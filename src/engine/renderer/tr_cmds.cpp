@@ -832,7 +832,7 @@ void RE_BeginFrame()
 	if ( r_textureMode->modified )
 	{
 		R_SyncRenderThread();
-		GL_TextureMode( r_textureMode->string );
+		GL_TextureMode( r_textureMode->string.c_str() );
 		r_textureMode->modified = false;
 	}
 

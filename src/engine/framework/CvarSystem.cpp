@@ -62,7 +62,7 @@ namespace Cvar {
             return;
         }
 
-        if (cvar.flags & CVAR_LATCH and cvar.ccvar.latchedString) {
+        if (cvar.flags & CVAR_LATCH and cvar.ccvar.latchedString.size()) {
             cvar.description = Str::Format("\"%s^*\" - latched value \"%s^*\"", cvar.ccvar.string, cvar.ccvar.latchedString);
         } else {
             cvar.description = Str::Format("\"%s^*\"", cvar.value);
@@ -76,36 +76,28 @@ namespace Cvar {
         bool modified = false;
 
         if (cvar.flags & CVAR_LATCH) {
-            if (not var.string) {
-                var.string = CopyString(cvar.value.c_str());
+            if (var.string.empty()) {
+                var.string = cvar.value;
                 modified = true;
             } else {
-                if (Q_stricmp(var.string, cvar.value.c_str())) {
+                if (Q_stricmp(var.string.c_str(), cvar.value.c_str())) {
                     Log::Notice("The change to %s will take effect after restart.", var.name);
-                    if (var.latchedString) Z_Free(var.latchedString);
-                    var.latchedString = CopyString(cvar.value.c_str());
+                    var.latchedString = cvar.value;
                     modified = true;
-                } else if (var.latchedString) {
-                    Z_Free(var.latchedString);
-                    var.latchedString = nullptr;
+                } else {
+                    var.latchedString.clear();
                 }
             }
         } else {
-            if (var.string) {
-                if (Q_stricmp(var.string, cvar.value.c_str())) {
-                    modified = true;
-                    Z_Free(var.string);
-                    var.string = CopyString(cvar.value.c_str());
-                }
-            } else {
-                var.string = CopyString(cvar.value.c_str());
-                modified = true;
-            }
+            modified = 0 != Q_stricmp(var.string.c_str(), cvar.value.c_str());
+            if (modified) {
+                var.string = cvar.value;
+						}
         }
 
         var.modified = modified;
-        var.value = atof(var.string);
-        var.integer = atoi(var.string);
+        var.value = atof(var.string.c_str());
+        var.integer = atoi(var.string.c_str());
 
         if (modified) {
             cvar_modifiedFlags |= var.flags;
@@ -117,36 +109,28 @@ namespace Cvar {
         cvar_t& var = cvar.ccvar;
         bool modified = false;
 
-        if (not var.name) {
-            var.name = CopyString(name.c_str());
+        if (var.name.empty()) {
+            var.name = name;
         }
 
-        if (var.resetString) Z_Free(var.resetString);
-        var.resetString = CopyString(cvar.resetValue.c_str());
+				var.resetString = cvar.resetValue;
 
         var.flags = cvar.flags;
 
-        if (cvar.flags & CVAR_LATCH and var.latchedString) {
-            if (var.string) Z_Free(var.string);
-            var.string = var.latchedString;
-            var.latchedString = nullptr;
+        if (cvar.flags & CVAR_LATCH and var.latchedString.size()) {
+            var.string.clear();
+						std::swap( var.string, var.latchedString );
             modified = true;
         } else {
-            if (var.string) {
-                if (Q_stricmp(var.string, cvar.value.c_str())) {
-                    modified = true;
-                    Z_Free(var.string);
-                    var.string = CopyString(cvar.value.c_str());
-                }
-            } else {
-                var.string = CopyString(cvar.value.c_str());
-                modified = true;
-            }
+            modified = 0 != Q_stricmp(var.string.c_str(), cvar.value.c_str());
+            if (modified) {
+                var.string = cvar.value;
+						}
         }
 
         var.modified |= modified;
-        var.value = atof(var.string);
-        var.integer = atoi(var.string);
+        var.value = atof(var.string.c_str());
+        var.integer = atoi(var.string.c_str());
 
         if (modified) {
             cvar_modifiedFlags |= var.flags;
@@ -501,12 +485,7 @@ namespace Cvar {
             cvarRecord_t& cvar = *entry.second;
 
             if (cvar.IsArchived()) {
-                const char* value;
-                if (cvar.ccvar.latchedString) {
-                    value = cvar.ccvar.latchedString;
-                } else {
-                    value = cvar.value.c_str();
-                }
+                std::string const& value = cvar.ccvar.latchedString.empty() ? cvar.value : cvar.ccvar.latchedString;
                 result << Str::Format("seta %s %s\n", entry.first.c_str(), Cmd::Escape(value).c_str());
             }
         }

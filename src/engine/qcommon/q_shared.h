@@ -1401,6 +1401,9 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 // portable case insensitive compare
 	int        Q_stricmp( const char *s1, const char *s2 );
+	inline int Q_stricmp( std::string const& s1, const char* s2 ) { return Q_stricmp( s1.c_str(), s2 ); }
+	inline int Q_stricmp( char const* s1, std::string const& s2 ) { return Q_stricmp( s1, s2.c_str() ); }
+	inline int Q_stricmp( std::string const& s1, std::string const& s2 ) { return Q_stricmp( s1.c_str(), s2.c_str() ); }
 	int        Q_strncmp( const char *s1, const char *s2, int n );
 	int        Q_strnicmp( const char *s1, const char *s2, int n );
 	char       *Q_strlwr( char *s1 );

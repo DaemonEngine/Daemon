@@ -2087,7 +2087,7 @@ success:
 		{
 			hardwareType = glHardwareType_t::GLHW_GENERIC;
 		}
-		else if ( !Q_stricmp( forceGL->string, "r300" ))
+		else if ( !Q_stricmp( forceGL->string.c_str(), "r300" ))
 		{
 			hardwareType = glHardwareType_t::GLHW_R300;
 		}
@@ -2124,7 +2124,7 @@ Responsible for doing a swapbuffers
 void GLimp_EndFrame()
 {
 	// don't flip if drawing to front buffer
-	if ( Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) != 0 )
+	if ( Q_stricmp( r_drawBuffer->string.c_str(), "GL_FRONT" ) != 0 )
 	{
 		SDL_GL_SwapWindow( window );
 	}

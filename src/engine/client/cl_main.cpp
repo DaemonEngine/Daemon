@@ -2149,11 +2149,11 @@ bool CL_InitRenderer()
 	// filehandle is unused but forces FS_FOpenFileRead() to heed purecheck because it does not when filehandle is nullptr
 	if ( cl_consoleFont->string[0] )
 	{
-		if ( FS_FOpenFileRead( cl_consoleFont->string, &f ) >= 0 )
+		if ( FS_FOpenFileRead( cl_consoleFont->string.c_str(), &f ) >= 0 )
 		{
 			if ( cl_consoleFontScaling->value == 0 )
 			{
-				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer );
+				cls.consoleFont = re.RegisterFont( cl_consoleFont->string.c_str(), cl_consoleFontSize->integer );
 			}
 			else
 			{
@@ -2161,7 +2161,7 @@ bool CL_InitRenderer()
 				int fontScale = std::min(cls.glconfig.vidWidth, cls.glconfig.vidHeight) / 90;
 
 				// fontScale / 12px gets 1px on 1920×1080 screen
-				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer * fontScale / 12 );
+				cls.consoleFont = re.RegisterFont( cl_consoleFont->string.c_str(), cl_consoleFontSize->integer * fontScale / 12 );
 			}
 
 			if ( cls.consoleFont != nullptr )

@@ -366,6 +366,11 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 	return false;
 }
 
+static bool Sys_StringToSockaddr( std::string const& s, struct sockaddr *sadr, unsigned sadr_len, sa_family_t family )
+{
+	return Sys_StringToSockaddr( s.c_str(), sadr, sadr_len, family );
+}
+
 /*
 =============
 Sys_SockaddrToString
@@ -1002,6 +1007,11 @@ SOCKET NET_IPSocket( const char *net_interface, int port, struct sockaddr_in *bi
 	return newsocket;
 }
 
+static SOCKET NET_IPSocket( std::string const& net_interface, int port, struct sockaddr_in *bindto, int *err )
+{
+	return NET_IPSocket( net_interface.c_str(), port, bindto, err );
+}
+
 /*
 ====================
 NET_IP6Socket
@@ -1093,6 +1103,11 @@ SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *
 	return newsocket;
 }
 
+SOCKET NET_IP6Socket( std::string const& net_interface, int port, struct sockaddr_in6 *bindto, int *err )
+{
+	return NET_IP6Socket( net_interface.c_str(), port, bindto, err );
+}
+
 /*
 ====================
 NET_SetMulticast6
@@ -1103,7 +1118,7 @@ void NET_SetMulticast6()
 {
 	struct sockaddr_in6 addr;
 
-	if ( !*net_mcast6addr->string || !Sys_StringToSockaddr( net_mcast6addr->string, ( struct sockaddr * ) &addr, sizeof( addr ), AF_INET6 ) )
+	if ( net_mcast6addr->string.empty() || !Sys_StringToSockaddr( net_mcast6addr->string, ( struct sockaddr * ) &addr, sizeof( addr ), AF_INET6 ) )
 	{
 		Log::Warn( "NET_JoinMulticast6: Incorrect multicast address given, "
 		            "please set cvar %s to a sane value.\n", net_mcast6addr->name );
@@ -1115,12 +1130,12 @@ void NET_SetMulticast6()
 
 	memcpy( &curgroup.ipv6mr_multiaddr, &addr.sin6_addr, sizeof( curgroup.ipv6mr_multiaddr ) );
 
-	if ( *net_mcast6iface->string )
+	if ( net_mcast6iface->string.size() )
 	{
 #ifdef _WIN32
 		curgroup.ipv6mr_interface = net_mcast6iface->integer;
 #else
-		curgroup.ipv6mr_interface = if_nametoindex( net_mcast6iface->string );
+		curgroup.ipv6mr_interface = if_nametoindex( net_mcast6iface->string.c_str() );
 #endif
 	}
 	else
@@ -1229,7 +1244,7 @@ void NET_OpenSocks( int port )
 		return;
 	}
 
-	h = gethostbyname( net_socksServer->string );
+	h = gethostbyname( net_socksServer->string.c_str() );
 
 	if ( h == nullptr )
 	{
@@ -1255,7 +1270,7 @@ void NET_OpenSocks( int port )
 	}
 
 	// send socks authentication handshake
-	if ( *net_socksUsername->string || *net_socksPassword->string )
+	if ( net_socksUsername->string.size() || net_socksPassword->string.size() )
 	{
 		rfc1929 = true;
 	}
@@ -1326,22 +1341,22 @@ void NET_OpenSocks( int port )
 		int plen;
 
 		// build the request
-		ulen = strlen( net_socksUsername->string );
-		plen = strlen( net_socksPassword->string );
+		ulen = net_socksUsername->string.size();
+		plen = net_socksPassword->string.size();
 
 		buf[ 0 ] = 1; // username/password authentication version
 		buf[ 1 ] = ulen;
 
 		if ( ulen )
 		{
-			memcpy( &buf[ 2 ], net_socksUsername->string, ulen );
+			memcpy( &buf[ 2 ], net_socksUsername->string.c_str(), ulen );
 		}
 
 		buf[ 2 + ulen ] = plen;
 
 		if ( plen )
 		{
-			memcpy( &buf[ 3 + ulen ], net_socksPassword->string, plen );
+			memcpy( &buf[ 3 + ulen ], net_socksPassword->string.c_str(), plen );
 		}
 
 		// send it

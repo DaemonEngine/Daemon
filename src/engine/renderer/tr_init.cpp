@@ -825,7 +825,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			for ( i = 31; i >= 0; i-- )
 			{
 				GL_SelectTexture( i );
-				GL_TextureMode( r_textureMode->string );
+				GL_TextureMode( r_textureMode->string.c_str() );
 			}
 		}
 

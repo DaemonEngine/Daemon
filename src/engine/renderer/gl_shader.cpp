@@ -209,7 +209,7 @@ std::string GetShaderPath()
 {
 	std::string shaderPath;
 	auto shaderPathVar = Cvar_Get("shaderpath", "", CVAR_INIT);
-	if (shaderPathVar->string != nullptr)
+	if (shaderPathVar->string.size())
 		shaderPath = shaderPathVar->string;
 	return shaderPath;
 }
