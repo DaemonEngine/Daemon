@@ -4471,7 +4471,7 @@ void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames )
 
 	for ( i = 0; i < c; i++ )
 	{
-		fs_serverPaks[ i ] = Str::ToInt(sums[i]);
+		fs_serverPaks[ i ] = atoi(sums[i].c_str());
 	}
 
 	if ( fs_numServerPaks )
@@ -4544,7 +4544,7 @@ void FS_PureServerSetReferencedPaks( const char *pakSums, const char *pakNames )
 
 	for ( i = 0; i < c; i++ )
 	{
-		fs_serverReferencedPaks[ i ] = Str::ToInt(sums[i]);
+		fs_serverReferencedPaks[ i ] = atoi(sums[i].c_str());
 	}
 
 	for ( i = 0; i < c; i++ )
@@ -4887,8 +4887,8 @@ void    FS_FilenameCompletion( const char *dir, const char *ext,
 }
 
 namespace FS {
-    Cmd::CompletionResult CompleteFilenameInDir(const std::string& prefix, const std::string& dir,
-                                                   const std::string& extension, bool stripExtension) {
+    Cmd::CompletionResult CompleteFilenameInDir(Str::StringRef prefix, Str::StringRef dir,
+                                                Str::StringRef extension, bool stripExtension) {
         int nfiles;
         char** filenames = FS_ListFilteredFiles(dir.c_str(), extension.c_str(), nullptr, &nfiles);
         FS_SortFileList(filenames, nfiles);
@@ -4910,6 +4910,7 @@ namespace FS {
             }
         }
 
+        FS_FreeFileList( filenames );
         return res;
     }
 }
