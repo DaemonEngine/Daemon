@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-#include "client.h"
+#include "../client/client.h"
 #include "snd_codec.h"
 
 /*
@@ -186,6 +186,13 @@ static qboolean S_ReadRIFFHeader( fileHandle_t file, snd_info_t *info )
 	{
 		Com_Printf( S_COLOR_RED "ERROR: Couldn't find \"data\" chunk\n" );
 		return qfalse;
+	}
+
+	// Arbitrary size cutoff. 4MB gives 95s of audio (22050Hz 16b mono)
+	if ( info->size > 4 * 1024 * 1024)
+	{
+		Com_Printf( S_COLOR_YELLOW "WARNING: Large sample – truncating\n" );
+		info->size = 4 * 1024 * 1024;
 	}
 
 	info->samples = ( info->size / info->width ) / info->channels;
