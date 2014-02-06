@@ -28,46 +28,83 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#include "../../common/Log.h"
-#include <vector>
+#include "../../common/String.h"
+#include "../qcommon/q_shared.h"
 
-#ifndef FRAMEWORK_LOG_SYSTEM_H_
-#define FRAMEWORK_LOG_SYSTEM_H_
+namespace Audio {
 
-/*
- * The log system takes log events from different sources and forwards them
- * to a number of targets. The event and the targets are decoupled so that
- * we can choose precisely where to send each event. Targets include
- * the TTY and graphical console and the HUD.
- *
- * A full list of the targets and "printing" facilities can be found in
- * common/Log
- */
+    bool Init() {
+        return true;
+    }
 
-namespace Log {
+    void Shutdown() {
+    }
 
-    // Dispatches the event to all the targets specified by targetControl (flags)
-    // Can be called by any thread.
-    void Dispatch(Log::Event event, int targetControl);
+    void Update() {
+    }
 
-    class Target {
-        public:
-            Target();
 
-            // Should process all the logs in the batch given or none at all
-            // return true iff the logs were processed (on false the log system
-            // retains them for later).
-            // Can be called by any thread.
-            virtual bool Process(std::vector<Log::Event>& events) = 0;
+    sfxHandle_t RegisterSFX(Str::StringRef filename) {
+        return 0;
+    }
 
-        protected:
-            // Register itself as the target with this id
-            void Register(TargetId id);
-    };
 
-    // Internal
+    void StartSound(int entityNum, const vec3_t origin, sfxHandle_t sfx) {
+    }
 
-    void RegisterTarget(TargetId id, Target* target);
+    void StartLocalSound(int entityNum) {
+    }
+
+
+    void AddEntityLoopingSound(int entityNum, sfxHandle_t sfx) {
+    }
+
+    void ClearAllLoopingSounds() {
+    }
+
+    void ClearLoopingSoundsForEntity(int entityNum) {
+    }
+
+
+    void StartMusic(Str::StringRef leadingSound, Str::StringRef loopSound) {
+    }
+
+    void StopMusic() {
+    }
+
+
+    void StopAllSounds() {
+    }
+
+
+    void StreamData(int streamNum, const void* data, int numSamples, int rate, int width, int channels, float volume, int entityNum) {
+    }
+
+
+    void UpdateListener(int entityNum, const vec3_t orientation[3]) {
+    }
+
+    void UpdateEntityPosition(int entityNum, const vec3_t position) {
+    }
+
+    void UpdateEntityVelocity(int entityNum, const vec3_t velocity) {
+    }
+
+
+    void SetReverb(int slotNum, std::string name, float ratio) {
+    }
+
+
+    void StartCapture(int rate) {
+    }
+
+    int AvailableCaptureSamples() {
+        return 0;
+    }
+
+    void GetCapturedData(int numSamples, void* buffer) {
+    }
+
+    void StopCapture() {
+    }
 }
-
-#endif //FRAMEWORK_LOG_SYSTEM_H_
