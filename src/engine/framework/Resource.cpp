@@ -11,14 +11,14 @@ modification, are permitted provided that the following conditions are met:
     * Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    * Neither the name of the Daemon developers nor the
+    * Neither the name of the <organization> nor the
       names of its contributors may be used to endorse or promote products
       derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
 DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -28,46 +28,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#include "../../common/Log.h"
-#include <vector>
+#include "Resource.h"
 
-#ifndef FRAMEWORK_LOG_SYSTEM_H_
-#define FRAMEWORK_LOG_SYSTEM_H_
+namespace Resource {
 
-/*
- * The log system takes log events from different sources and forwards them
- * to a number of targets. The event and the targets are decoupled so that
- * we can choose precisely where to send each event. Targets include
- * the TTY and graphical console and the HUD.
- *
- * A full list of the targets and "printing" facilities can be found in
- * common/Log
- */
+    Resource::Resource(std::string name) : name(std::move(name)),
+    loaded(false), failed(false), keep(true) {
+    }
 
-namespace Log {
+    Resource::~Resource() {
+    }
 
-    // Dispatches the event to all the targets specified by targetControl (flags)
-    // Can be called by any thread.
-    void Dispatch(Log::Event event, int targetControl);
+    bool Resource::TagDependencies() {
+        return true;
+    }
 
-    class Target {
-        public:
-            Target();
+    bool Resource::IsStillValid() {
+        return true;
+    }
 
-            // Should process all the logs in the batch given or none at all
-            // return true iff the logs were processed (on false the log system
-            // retains them for later).
-            // Can be called by any thread.
-            virtual bool Process(std::vector<Log::Event>& events) = 0;
+    Str::StringRef Resource::GetName() {
+        return name;
+    }
 
-        protected:
-            // Register itself as the target with this id
-            void Register(TargetId id);
-    };
-
-    // Internal
-
-    void RegisterTarget(TargetId id, Target* target);
+    bool Resource::TryLoad() {
+        loaded = Load();
+        if (not loaded) {
+            failed = true;
+        }
+        return loaded;
+    }
 }
-
-#endif //FRAMEWORK_LOG_SYSTEM_H_
