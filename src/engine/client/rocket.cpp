@@ -281,22 +281,6 @@ public:
 	}
 };
 
-// Rocket::Core::Input::KeyModifier RocketConvertSDLmod( SDLMod sdl )
-// {
-// 	using namespace Rocket::Core::Input;
-//
-// 	int mod = 0;
-// 	if( sdl & KMOD_SHIFT )	mod |= KM_SHIFT;
-// 	if( sdl & KMOD_CTRL )	mod |= KM_CTRL;
-// 	if( sdl & KMOD_ALT )	mod |= KM_ALT;
-// 	if( sdl & KMOD_META )	mod |= KM_META;
-// 	if( sdl & KMOD_CAPS )	mod |= KM_CAPSLOCK;
-// 	if( sdl & KMOD_NUM )	mod |= KM_NUMLOCK;
-//
-// 	return KeyModifier( mod );
-// }
-
-
 void Rocket_Rocket_f( void )
 {
 	Rocket_DocumentAction( Cmd_Argv(1), Cmd_Argv(2) );

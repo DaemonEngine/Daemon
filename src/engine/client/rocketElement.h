@@ -117,7 +117,7 @@ public:
 				stack.push( parent );
 			}
 		}
-		
+
 		// Return the calculated dimensions. If this changes the size of the element, it will result in
 		// a 'resize' event which is caught below and will regenerate the geometry.
 
