@@ -33,19 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Various utilities
 
-// Workaround for broken tuples in GCC 4.6
-#ifdef LIBSTDCXX_BROKEN_CXX11
-namespace std {
-
-template<size_t Index, typename... T>
-typename std::tuple_element<Index, std::tuple<T...>>::type&& get(std::tuple<T...>&& tuple)
-{
-    return static_cast<typename std::tuple_element<Index, std::tuple<T...>>::type&&>(std::get<Index>(tuple));
-}
-
-} // namespace std
-#endif
-
 namespace Util {
 
 // Binary search function which returns an iterator to the result or end if not found
@@ -116,17 +103,10 @@ public:
 	{
 		new(&data) T(std::forward<Args>(args)...);
 	}
-#ifdef GCC_BROKEN_CXX11
-	template<typename Arg> T& assign(Arg&& arg)
-	{
-		return get() = std::forward<Arg>(arg);
-	}
-#else
 	template<typename Arg> decltype(std::declval<T&>() = std::declval<Arg>()) assign(Arg&& arg)
 	{
 		return get() = std::forward<Arg>(arg);
 	}
-#endif
 	void destroy()
 	{
 		get().~T();

@@ -100,17 +100,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # define ATTRIBUTE_NO_SANITIZE_ADDRESS
 #endif
 
-// GCC 4.6 has incomplete support for C++11
-#if !defined(__clang__) && __GNUC__ * 100 + __GNUC_MINOR__ <= 407
-#define GCC_BROKEN_CXX11
-#endif
-#ifdef __cplusplus
-#include <new>
-#if defined(__GLIBCXX__) && (__GLIBCXX__ == 20110325 || __GLIBCXX__ == 20110627 || __GLIBCXX__ == 20111026 || __GLIBCXX__ == 20120301 || __GLIBCXX__ == 20130412)
-#define LIBSTDCXX_BROKEN_CXX11
-#endif
-#endif
-
 // Microsoft Visual C++
 #elif defined( _MSC_VER )
 
