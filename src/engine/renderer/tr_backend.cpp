@@ -5516,6 +5516,7 @@ Also called by RE_EndRegistration
 */
 void RB_ShowImages( void )
 {
+#if 0 //kangz: removed, reimplement some day?
 	int     i;
 	image_t *image;
 	float   x, y, w, h;
@@ -5591,6 +5592,7 @@ void RB_ShowImages( void )
 	ri.Printf( PRINT_DEVELOPER, "%i msec to draw all images\n", end - start );
 
 	GL_CheckErrors();
+#endif
 }
 
 /*

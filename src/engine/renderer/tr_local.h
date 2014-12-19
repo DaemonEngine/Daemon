@@ -541,9 +541,6 @@ static inline float halfToFloat( int16_t in ) {
 	typedef struct image_s
 	{
 		char name[ 1024 ]; // formerly MAX_QPATH, game path, including extension
-		// can contain stuff like this now:
-		// addnormals ( textures/base_floor/stetile4_local.tga ,
-		// heightmap ( textures/base_floor/stetile4_bmp.tga , 4 ) )
 
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
@@ -558,8 +555,6 @@ static inline float halfToFloat( int16_t in ) {
 		uint32_t       bits;
 		filterType_t   filterType;
 		wrapType_t     wrapType;
-
-		struct image_s *next;
 	} image_t;
 
 	inline bool IsImageCompressed(int bits) { return bits & (IF_BC1 | IF_BC3 | IF_BC4 | IF_BC5); }
@@ -2786,8 +2781,6 @@ static inline float halfToFloat( int16_t in ) {
 		int             numAnimations;
 		skelAnimation_t *animations[ MAX_ANIMATIONFILES ];
 
-		growList_t      images;
-
 		int             numFBOs;
 		FBO_t           *fbos[ MAX_FBOS ];
 
@@ -3080,10 +3073,6 @@ static inline float halfToFloat( int16_t in ) {
 //====================================================================
 
 #define IMAGE_FILE_HASH_SIZE 4096
-	extern image_t *r_imageHashTable[ IMAGE_FILE_HASH_SIZE ];
-
-	extern long    GenerateImageHashValue( const char *fname );
-
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit( void );
 
@@ -3272,9 +3261,12 @@ static inline float halfToFloat( int16_t in ) {
 
 	====================================================================
 	*/
+	void    R_PreInitImages(); // init before OpenGL
 	void    R_InitImages( void );
+	void    R_BeginRegistration();
+	void    R_EndRegistration();
 	void    R_ShutdownImages( void );
-	int     R_SumOfUsedImages( void );
+	void    R_ShutdownImageResources();
 
 	image_t *R_FindImageFile( const char *name, int bits, filterType_t filterType, wrapType_t wrapType, const char *materialName );
 	image_t *R_FindCubeImage( const char *name, int bits, filterType_t filterType, wrapType_t wrapType, const char *materialName );

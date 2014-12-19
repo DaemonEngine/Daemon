@@ -1411,6 +1411,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 		R_NoiseInit();
 
+		R_PreInitImages();
+
 		R_Register();
 
 		if ( !InitOpenGL() )
@@ -1534,12 +1536,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 		R_DoneFreeType();
 
-		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )
 		{
+			R_ShutdownImageResources();
 #if defined( GLSL_COMPILE_STARTUP_ONLY )
 			GLSL_ShutdownGPUShaders();
 #endif
+			// shut down platform specific OpenGL stuff
 			GLimp_Shutdown();
 			ri.Tag_Free();
 		}

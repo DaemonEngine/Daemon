@@ -23,11 +23,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_image.c
 #include "tr_local.h"
 #include "../../common/Maths.h"
+#include "../framework/Resource.h"
 
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int                  gl_filter_max = GL_LINEAR;
-
-image_t              *r_imageHashTable[ IMAGE_FILE_HASH_SIZE ];
 
 #define Tex_ByteToFloat(v) ( ( (int)(v) - 128 ) / 127.0f )
 #define Tex_FloatToByte(v) ( 128 + (int) ( (v) * 127.0f + 0.5 ) )
@@ -48,37 +47,54 @@ static const textureMode_t modes[] =
 	{ "GL_LINEAR_MIPMAP_LINEAR",   GL_LINEAR_MIPMAP_LINEAR,   GL_LINEAR  }
 };
 
-/*
-================
-return a hash value for the filename
-================
-*/
-long GenerateImageHashValue( const char *fname )
-{
-	int  i;
-	long hash;
-	char letter;
-
-//  ri.Printf(PRINT_ALL, "tr_image::GenerateImageHashValue: '%s'\n", fname);
-
-	hash = 0;
-	i = 0;
-
-	while ( fname[ i ] != '\0' )
-	{
-		letter = tolower( fname[ i ] );
-
-		if ( letter == '\\' )
-		{
-			letter = '/'; // damn path names
+class Texture: public Resource::Resource {
+	public:
+		Texture(std::string name): Resource(std::move(name)), image(nullptr) {
 		}
 
-		hash += ( long )( letter ) * ( i + 119 );
-		i++;
-	}
+		virtual ~Texture() OVERRIDE FINAL {
+			if (image) {
+				free(image);
+			}
+		}
 
-	hash &= ( IMAGE_FILE_HASH_SIZE - 1 );
-	return hash;
+		virtual bool Load() OVERRIDE FINAL {
+			// because for now the loads are made beforehand
+			return true;
+		}
+
+		virtual void Cleanup() OVERRIDE FINAL {
+			if (image) {
+				glDeleteTextures(1, &image->texnum);
+			}
+		}
+
+		image_t* CreateImageT(Str::StringRef filename) {
+			image = (image_t*) malloc(sizeof(image_t));
+			Com_Memset( image, 0, sizeof( image_t ) );
+
+			glGenTextures( 1, &image->texnum );
+
+			Q_strncpyz( image->name, filename.c_str(), sizeof( image->name ) );
+
+			return image;
+		}
+
+		image_t* GetImage() {
+			return image;
+		};
+
+	private:
+		image_t* image;
+};
+
+std::unique_ptr<Resource::Manager<Texture>> textureManager = nullptr;
+
+// Hack to allow bsp.cpp to create images too
+image_t* R_AllocImage(const char* name, int) {
+	std::shared_ptr<Texture> tex = std::make_shared<Texture>(name);
+	textureManager->Register(name, tex);
+	return tex->GetImage();
 }
 
 /*
@@ -89,8 +105,6 @@ GL_TextureMode
 void GL_TextureMode( const char *string )
 {
 	int     i;
-	image_t *image;
-
 	for ( i = 0; i < 6; i++ )
 	{
 		if ( !Q_stricmp( modes[ i ].name, string ) )
@@ -122,9 +136,8 @@ void GL_TextureMode( const char *string )
 	}
 
 	// change all the existing mipmap texture objects
-	for ( i = 0; i < tr.images.currentElements; i++ )
-	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
+	for (auto& textureRecord: *textureManager) {
+		image_t* image = textureRecord.second->GetImage();
 
 		if ( image->filterType == FT_DEFAULT )
 		{
@@ -150,8 +163,6 @@ R_ImageList_f
 */
 void R_ImageList_f( void )
 {
-	int        i;
-	image_t    *image;
 	int        texels;
 	int        dataSize;
 	int        imageDataSize;
@@ -166,9 +177,8 @@ void R_ImageList_f( void )
 	texels = 0;
 	dataSize = 0;
 
-	for ( i = 0; i < tr.images.currentElements; i++ )
-	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
+	for (auto& textureRecord: *textureManager) {
+		image_t* image = textureRecord.second->GetImage();
 		char buffer[ MAX_TOKEN_CHARS ];
 		std::string out;
 
@@ -177,8 +187,8 @@ void R_ImageList_f( void )
 			continue;
 		}
 
-		Com_sprintf( buffer, sizeof( buffer ), "%4i: %4i %4i  %s   ",
-		           i, image->uploadWidth, image->uploadHeight, yesno[ image->filterType == FT_DEFAULT ] );
+		Com_sprintf( buffer, sizeof( buffer ), "%4i %4i  %s   ",
+		           image->uploadWidth, image->uploadHeight, yesno[ image->filterType == FT_DEFAULT ] );
 		out += buffer;
 		switch ( image->type )
 		{
@@ -428,7 +438,7 @@ void R_ImageList_f( void )
 	ri.Printf( PRINT_ALL, " %i total texels (not including mipmaps)\n", texels );
 	ri.Printf( PRINT_ALL, " %d.%02d MB total image memory\n", dataSize / ( 1024 * 1024 ),
 	           ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	ri.Printf( PRINT_ALL, " %i total images\n\n", tr.images.currentElements );
+	ri.Printf( PRINT_ALL, " %i total images\n\n", textureManager->Size() );
 }
 
 //=======================================================================
@@ -1709,43 +1719,6 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 
 /*
 ================
-R_AllocImage
-================
-*/
-image_t        *R_AllocImage( const char *name, qboolean linkIntoHashTable )
-{
-	image_t *image;
-	long    hash;
-	char    buffer[ 1024 ];
-
-	if ( strlen( name ) >= 1024 )
-	{
-		ri.Error( ERR_DROP, "R_AllocImage: \"%s\" image name is too long", name );
-		return NULL;
-	}
-
-	image = (image_t*) ri.Hunk_Alloc( sizeof( image_t ), h_low );
-	Com_Memset( image, 0, sizeof( image_t ) );
-
-	glGenTextures( 1, &image->texnum );
-
-	Com_AddToGrowList( &tr.images, image );
-
-	Q_strncpyz( image->name, name, sizeof( image->name ) );
-
-	if ( linkIntoHashTable )
-	{
-		Q_strncpyz( buffer, name, sizeof( buffer ) );
-		hash = GenerateImageHashValue( buffer );
-		image->next = r_imageHashTable[ hash ];
-		r_imageHashTable[ hash ] = image;
-	}
-
-	return image;
-}
-
-/*
-================
 ================
 */
 static void R_ExportTexture( image_t *image )
@@ -1774,31 +1747,33 @@ R_CreateImage
 image_t        *R_CreateImage( const char *name, const byte **pic, int width, int height,
 			       int numMips, int bits, filterType_t filterType, wrapType_t wrapType )
 {
-	image_t *image;
+	std::shared_ptr<Texture> tex = std::make_shared<Texture>(name);
+	image_t* image = tex->CreateImageT(name);
 
-	image = R_AllocImage( name, qtrue );
+	Resource::Handle<Texture> registeredTex = textureManager->Register(name, tex);
 
-	if ( !image )
-	{
-		return NULL;
+	// This image is new
+	if (image == registeredTex.Get()->GetImage()) {
+		image->type = GL_TEXTURE_2D;
+
+		image->width = width;
+		image->height = height;
+
+		image->bits = bits;
+		image->filterType = filterType;
+		image->wrapType = wrapType;
+
+		R_UploadImage( pic, 1, numMips, image );
+
+		if( r_exportTextures->integer ) {
+			R_ExportTexture( image );
+		}
+	} else {
+		//TODO logger
+		Log::Warn("Reusing same image for %s", name);
 	}
 
-	image->type = GL_TEXTURE_2D;
-
-	image->width = width;
-	image->height = height;
-
-	image->bits = bits;
-	image->filterType = filterType;
-	image->wrapType = wrapType;
-
-	R_UploadImage( pic, 1, numMips, image );
-
-	if( r_exportTextures->integer ) {
-		R_ExportTexture( image );
-	}
-
-	return image;
+	return registeredTex.Get()->GetImage();
 }
 
 /*
@@ -1808,41 +1783,45 @@ R_CreateGlyph
 */
 image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height )
 {
-	image_t *image = R_AllocImage( name, qtrue );
+	std::shared_ptr<Texture> tex = std::make_shared<Texture>(name);
+	image_t* image = tex->CreateImageT(name);
 
-	if ( !image )
-	{
-		return NULL;
+	Resource::Handle<Texture> registeredTex = textureManager->Register(name, tex);
+
+	// This image is new
+	if (image == registeredTex.Get()->GetImage()) {
+		image->type = GL_TEXTURE_2D;
+		image->width = width;
+		image->height = height;
+		image->bits = IF_NOPICMIP;
+		image->filterType = FT_LINEAR;
+		image->wrapType = WT_CLAMP;
+
+		GL_Bind( image );
+
+		image->uploadWidth = width;
+		image->uploadHeight = height;
+		image->internalFormat = GL_RGBA;
+
+		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
+
+		GL_CheckErrors();
+
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+
+		GL_CheckErrors();
+
+		GL_Unbind( image );
+	} else {
+		//TODO logger
+		Log::Warn("Reusing same image for %s", name);
 	}
 
-	image->type = GL_TEXTURE_2D;
-	image->width = width;
-	image->height = height;
-	image->bits = IF_NOPICMIP;
-	image->filterType = FT_LINEAR;
-	image->wrapType = WT_CLAMP;
-
-	GL_Bind( image );
-
-	image->uploadWidth = width;
-	image->uploadHeight = height;
-	image->internalFormat = GL_RGBA;
-
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
-
-	GL_CheckErrors();
-
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-
-	GL_CheckErrors();
-
-	GL_Unbind( image );
-
-	return image;
+	return registeredTex.Get()->GetImage();
 }
 
 /*
@@ -1854,31 +1833,33 @@ image_t        *R_CreateCubeImage( const char *name,
                                    const byte *pic[ 6 ],
                                    int width, int height, int bits, filterType_t filterType, wrapType_t wrapType )
 {
-	image_t *image;
+	std::shared_ptr<Texture> tex = std::make_shared<Texture>(name);
+	image_t* image = tex->CreateImageT(name);
 
-	image = R_AllocImage( name, qtrue );
+	Resource::Handle<Texture> registeredTex = textureManager->Register(name, tex);
 
-	if ( !image )
-	{
-		return NULL;
+	// This image is new
+	if (image == registeredTex.Get()->GetImage()) {
+		image->type = GL_TEXTURE_CUBE_MAP;
+
+		image->width = width;
+		image->height = height;
+
+		image->bits = bits;
+		image->filterType = filterType;
+		image->wrapType = wrapType;
+
+		R_UploadImage( pic, 6, 1, image );
+
+		if( r_exportTextures->integer ) {
+			R_ExportTexture( image );
+		}
+	} else {
+		//TODO logger
+		Log::Warn("Reusing same image for %s", name);
 	}
 
-	image->type = GL_TEXTURE_CUBE_MAP;
-
-	image->width = width;
-	image->height = height;
-
-	image->bits = bits;
-	image->filterType = filterType;
-	image->wrapType = wrapType;
-
-	R_UploadImage( pic, 6, 1, image );
-
-	if( r_exportTextures->integer ) {
-		R_ExportTexture( image );
-	}
-
-	return image;
+	return registeredTex.Get()->GetImage();
 }
 
 /*
@@ -1892,40 +1873,41 @@ image_t        *R_Create3DImage( const char *name,
 				 int bits, filterType_t filterType,
 				 wrapType_t wrapType )
 {
-	image_t *image;
 	const byte **pics;
-	int i;
+	std::shared_ptr<Texture> tex = std::make_shared<Texture>(name);
+	image_t* image = tex->CreateImageT(name);
 
-	image = R_AllocImage( name, qtrue );
+	Resource::Handle<Texture> registeredTex = textureManager->Register(name, tex);
 
-	if ( !image )
-	{
-		return NULL;
+	// This image is new
+	if (image == registeredTex.Get()->GetImage()) {
+		image->type = GL_TEXTURE_3D;
+
+		image->width = width;
+		image->height = height;
+
+		pics = (const byte**) ri.Hunk_AllocateTempMemory( depth * sizeof(const byte *) );
+		for(int i = 0; i < depth; i++ ) {
+			pics[i] = pic + i * width * height * sizeof(u8vec4_t);
+		}
+
+		image->bits = bits;
+		image->filterType = filterType;
+		image->wrapType = wrapType;
+
+		R_UploadImage( pics, depth, 1, image );
+
+		ri.Hunk_FreeTempMemory( pics );
+
+		if( r_exportTextures->integer ) {
+			R_ExportTexture( image );
+		}
+	} else {
+		//TODO logger
+		Log::Warn("Reusing same image for %s", name);
 	}
 
-	image->type = GL_TEXTURE_3D;
-
-	image->width = width;
-	image->height = height;
-
-	pics = (const byte**) ri.Hunk_AllocateTempMemory( depth * sizeof(const byte *) );
-	for( i = 0; i < depth; i++ ) {
-		pics[i] = pic + i * width * height * sizeof(u8vec4_t);
-	}
-
-	image->bits = bits;
-	image->filterType = filterType;
-	image->wrapType = wrapType;
-
-	R_UploadImage( pics, depth, 1, image );
-
-	ri.Hunk_FreeTempMemory( pics );
-
-	if( r_exportTextures->integer ) {
-		R_ExportTexture( image );
-	}
-
-	return image;
+	return registeredTex.Get()->GetImage();
 }
 
 typedef struct
@@ -2062,11 +2044,9 @@ Returns NULL if it fails, not a default image.
 */
 image_t        *R_FindImageFile( const char *imageName, int bits, filterType_t filterType, wrapType_t wrapType, const char *materialName )
 {
-	image_t       *image = NULL;
 	int           width = 0, height = 0, numLayers = 0, numMips = 0;
 	byte          *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
 	byte          *mallocPtr = NULL;
-	long          hash;
 	char          buffer[ 1024 ];
 	char          *buffer_p;
 	unsigned long diff;
@@ -2077,31 +2057,29 @@ image_t        *R_FindImageFile( const char *imageName, int bits, filterType_t f
 	}
 
 	Q_strncpyz( buffer, imageName, sizeof( buffer ) );
-	hash = GenerateImageHashValue( buffer );
 
-	// see if the image is already loaded
-	for ( image = r_imageHashTable[ hash ]; image; image = image->next )
-	{
-		if ( !Q_strnicmp( buffer, image->name, sizeof( image->name ) ) )
+	Resource::Handle<Texture> texHandle = textureManager->GetResource(imageName);
+
+	if (not texHandle.IsDefault()) {
+		image_t* image = texHandle.Get()->GetImage();
+
+		// the white image can be used with any set of parms, but other mismatches are errors
+		if ( Q_stricmp( buffer, "_white" ) )
 		{
-			// the white image can be used with any set of parms, but other mismatches are errors
-			if ( Q_stricmp( buffer, "_white" ) )
+			diff = bits ^ image->bits;
+
+			if ( diff & IF_NOPICMIP )
 			{
-				diff = bits ^ image->bits;
-
-				if ( diff & IF_NOPICMIP )
-				{
-					ri.Printf( PRINT_DEVELOPER, "WARNING: reused image '%s' with mixed allowPicmip parm for shader '%s\n", imageName, materialName );
-				}
-
-				if ( image->wrapType != wrapType )
-				{
-					ri.Printf( PRINT_ALL, "WARNING: reused image '%s' with mixed glWrapType parm for shader '%s'\n", imageName, materialName );
-				}
+				ri.Printf( PRINT_DEVELOPER, "WARNING: reused image '%s' with mixed allowPicmip parm for shader '%s\n", imageName, materialName );
 			}
 
-			return image;
+			if ( image->wrapType != wrapType )
+			{
+				ri.Printf( PRINT_ALL, "WARNING: reused image '%s' with mixed glWrapType parm for shader '%s'\n", imageName, materialName );
+			}
 		}
+
+		return image;
 	}
 
 	// load the pic from disk
@@ -2125,7 +2103,7 @@ image_t        *R_FindImageFile( const char *imageName, int bits, filterType_t f
 		bits |= IF_NOCOMPRESSION;
 	}
 
-	image = R_CreateImage( ( char * ) buffer, (const byte **)pic,
+	image_t* image = R_CreateImage( ( char * ) buffer, (const byte **)pic,
 			       width, height, numMips, bits,
 			       filterType, wrapType );
 
@@ -2262,7 +2240,6 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 	image_t     *image = NULL;
 	int         width = 0, height = 0, numLayers = 0, numMips = 0;
 	byte        *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
-	long        hash;
 	int         numPicsToFree = 0;
 
 	static char *openglSuffices[ 6 ] = { "px", "nx", "py", "ny", "pz", "nz" };
@@ -2286,15 +2263,12 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 	}
 
 	Q_strncpyz( buffer, imageName, sizeof( buffer ) );
-	hash = GenerateImageHashValue( buffer );
+
+	Resource::Handle<Texture> texHandle = textureManager->GetResource(imageName);
 
 	// see if the image is already loaded
-	for ( image = r_imageHashTable[ hash ]; image; image = image->next )
-	{
-		if ( !Q_stricmp( buffer, image->name ) )
-		{
-			return image;
-		}
+	if (not texHandle.IsDefault()) {
+		return texHandle.Get()->GetImage();
 	}
 
 	// try to load .CRN cubemap
@@ -3166,6 +3140,14 @@ void R_CreateBuiltinImages( void )
 	R_CreateColorGradeImage();
 }
 
+void R_PreInitImages( void ) {
+    //TODO create it with a default image (like a big red one?)
+	if (!textureManager) {
+		Log::Debug("Preinit");
+		textureManager = std::unique_ptr<Resource::Manager<Texture>>(new Resource::Manager<Texture>());
+	}
+}
+
 /*
 ===============
 R_InitImages
@@ -3177,8 +3159,6 @@ void R_InitImages( void )
 
 	ri.Printf( PRINT_DEVELOPER, "------- R_InitImages -------\n" );
 
-	Com_Memset( r_imageHashTable, 0, sizeof( r_imageHashTable ) );
-	Com_InitGrowList( &tr.images, 4096 );
 	Com_InitGrowList( &tr.lightmaps, 128 );
 	Com_InitGrowList( &tr.deluxemaps, 128 );
 
@@ -3206,21 +3186,10 @@ R_ShutdownImages
 */
 void R_ShutdownImages( void )
 {
-	int     i;
-	image_t *image;
-
 	ri.Printf( PRINT_DEVELOPER, "------- R_ShutdownImages -------\n" );
-
-	for ( i = 0; i < tr.images.currentElements; i++ )
-	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
-
-		glDeleteTextures( 1, &image->texnum );
-	}
 
 	Com_Memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
 
-	Com_DestroyGrowList( &tr.images );
 	Com_DestroyGrowList( &tr.lightmaps );
 	Com_DestroyGrowList( &tr.deluxemaps );
 	Com_DestroyGrowList( &tr.cubeProbes );
@@ -3228,6 +3197,20 @@ void R_ShutdownImages( void )
 	FreeVertexHashTable( tr.cubeHashTable );
 }
 
+void R_ShutdownImageResources() {
+	Log::Debug("Destroying");
+	textureManager = nullptr;
+}
+
+void R_BeginImageRegistration( void ) {
+	Log::Debug("BeginImageRegistration");
+	textureManager->BeginRegistration(true);
+}
+
+void R_EndImageRegistration( void ) {
+	Log::Debug("EndImageRegistration");
+	// textureManager->EndRegistration();
+}
 void RE_GetTextureSize( int textureID, int *width, int *height )
 {
 	image_t *baseImage;
