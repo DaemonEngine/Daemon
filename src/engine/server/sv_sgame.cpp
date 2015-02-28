@@ -35,7 +35,7 @@ Maryland 20850 USA.
 // sv_game.c -- interface to the game module
 
 #include "server.h"
-#include "g_msgdef.h"
+#include "sg_msgdef.h"
 #include "../qcommon/crypto.h"
 #include "../framework/CommonVMServices.h"
 #include "../framework/CommandSystem.h"
@@ -418,16 +418,16 @@ qboolean SV_GetTag( int clientNum, int tagFileNumber, const char *tagname, orien
 	return qfalse;
 }
 
-GameVM::GameVM(): VM::VMBase("game"), services(nullptr){
+GameVM::GameVM(): VM::VMBase("sgame"), services(nullptr){
 }
 
 void GameVM::Start()
 {
-	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "Game", Cmd::GAME_VM));
+	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "SGame", Cmd::GAME_VM));
 
 	uint32_t version = this->Create();
 	if ( version != GAME_API_VERSION ) {
-		Com_Error( ERR_DROP, "Game ABI mismatch, expected %d, got %d", GAME_API_VERSION, version );
+		Com_Error( ERR_DROP, "SGame ABI mismatch, expected %d, got %d", GAME_API_VERSION, version );
 	}
 
 	this->GameStaticInit();
