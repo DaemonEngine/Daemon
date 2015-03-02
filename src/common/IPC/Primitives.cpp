@@ -28,28 +28,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#include "Common.h"
+#include "../Common.h"
+#include "Primitives.h"
 
 #ifdef _WIN32
 #include <windows.h>
+#include <io.h>
+#include <fcntl.h>
 #else
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#ifndef __native_client__
+#include <sys/socket.h>
+#endif
+#endif
+
+#ifdef BUILD_VM
+#include "../../gamelogic/shared/VMMain.h"
+#include "CommonSyscalls.h"
 #endif
 
 #undef INLINE
 #undef DLLEXPORT
 #undef NORETURN
 #undef NORETURN_PTR
-#include "../libs/nacl/native_client/src/shared/imc/nacl_imc_c.h"
-#include "../libs/nacl/native_client/src/public/imc_types.h"
-#include "../libs/nacl/native_client/src/trusted/service_runtime/nacl_config.h"
-#include "../libs/nacl/native_client/src/trusted/service_runtime/include/sys/fcntl.h"
-
-// Make sure if we notice if any of our assumptions about NaCl are violated
-static_assert(std::is_same<IPC::OSHandleType, NaClHandle>::value, "NaClHandle");
-static_assert(IPC::INVALID_HANDLE == NACL_INVALID_HANDLE, "NACL_INVALID_HANDLE");
+#include "../../libs/nacl/native_client/src/shared/imc/nacl_imc_c.h"
+#include "../../libs/nacl/native_client/src/public/imc_types.h"
+#include "../../libs/nacl/native_client/src/trusted/service_runtime/nacl_config.h"
+#include "../../libs/nacl/native_client/src/trusted/service_runtime/include/sys/fcntl.h"
 
 // Definitions taken from nacl_desc_base.h
 enum NaClDescTypeTag {
@@ -93,39 +100,21 @@ struct NaClInternalHeader {
 
 namespace IPC {
 
-// Windows equivalent of strerror
+void FileDesc::Close() const
+{
+	NaClClose(handle);
+}
+
+FileDesc FileHandle::GetDesc() const
+{
+	FileDesc out;
 #ifdef _WIN32
-static std::string Win32StrError(uint32_t error)
-{
-	std::string out;
-	char* message;
-	if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<char *>(&message), 0, NULL)) {
-		out = message;
-		LocalFree(message);
-	} else
-		out = Str::Format("Unknown error 0x%08lx", error);
-	return out;
-}
-#endif
-
-void CloseDesc(const Desc& desc)
-{
-#ifdef __native_client__
-	NaClClose(desc);
+	out.handle = reinterpret_cast<HANDLE>(_get_osfhandle(handle));
 #else
-	NaClClose(desc.handle);
-#endif
-}
-
-Desc FileHandle::GetDesc() const
-{
-#ifdef __native_client__
-	Q_UNUSED(mode);
-	return handle;
-#else
-	Desc out;
-	out.type = NACL_DESC_HOST_IO;
 	out.handle = handle;
+#endif
+#ifndef __native_client__
+	out.type = NACL_DESC_HOST_IO;
 	switch (mode) {
 	case MODE_READ:
 		out.flags = NACL_ABI_O_RDONLY;
@@ -143,16 +132,14 @@ Desc FileHandle::GetDesc() const
 		out.flags = NACL_ABI_O_RDWR | NACL_ABI_O_APPEND;
 		break;
 	}
-	return out;
 #endif
+	return out;
 }
 
-FileHandle FileHandle::FromDesc(const Desc& desc)
+FileHandle FileHandle::FromDesc(const FileDesc& desc)
 {
-#ifdef __native_client__
-	return FileHandle(desc, MODE_READ); // Mode isn't used in NaCl
-#else
 	FileOpenMode mode = MODE_READ;
+#ifndef __native_client__
 	switch (desc.flags) {
 	case NACL_ABI_O_RDONLY:
 		mode = MODE_READ;
@@ -170,58 +157,66 @@ FileHandle FileHandle::FromDesc(const Desc& desc)
 		mode = MODE_RW_APPEND;
 		break;
 	}
+#endif
+#ifdef _WIN32
+	int modes[] = {O_RDONLY, O_WRONLY | O_TRUNC | O_CREAT, O_WRONLY | O_APPEND | O_CREAT, O_RDWR | O_CREAT};
+	int fd = _open_osfhandle(reinterpret_cast<intptr_t>(desc.handle), modes[mode]);
+	if (fd == -1) {
+		CloseHandle(desc.handle);
+		return FileHandle();
+	}
+	return FileHandle(fd, mode);
+#else
 	return FileHandle(desc.handle, mode);
 #endif
 }
 
+OwnedFileHandle::~OwnedFileHandle()
+{
+	close(handle.GetHandle());
+}
+
 void Socket::Close()
 {
-	if (handle != INVALID_HANDLE)
+	if (Sys::IsValidHandle(handle))
 		NaClClose(handle);
-	handle = INVALID_HANDLE;
+	handle = Sys::INVALID_HANDLE;
 }
 
-Desc Socket::GetDesc() const
+FileDesc Socket::GetDesc() const
 {
-#ifdef __native_client__
-	return handle;
-#else
-	Desc out;
+	FileDesc out;
+	out.handle = handle;
+#ifndef __native_client__
 	out.type = NACL_DESC_TRANSFERABLE_DATA_SOCKET;
-	out.handle = handle;
-	return out;
 #endif
+	return out;
 }
 
-Socket Socket::FromDesc(const Desc& desc)
+Socket Socket::FromDesc(const FileDesc& desc)
 {
 	Socket out;
-#ifdef __native_client__
-	out.handle = desc;
-#else
 	out.handle = desc.handle;
-#endif
 	return out;
 }
-Socket Socket::FromHandle(OSHandleType handle)
+Socket Socket::FromHandle(Sys::OSHandle handle)
 {
 	Socket out;
 	out.handle = handle;
 	return out;
 }
 
-static void InternalSendMsg(OSHandleType handle, bool more, const Desc* handles, size_t numHandles, const void* data, size_t len)
+static void InternalSendMsg(Sys::OSHandle handle, bool more, const FileDesc* handles, size_t numHandles, const void* data, size_t len)
 {
 	NaClMessageHeader hdr;
 	NaClIOVec iov[4];
 
-#ifdef __native_client__
-	NaClHandle* h = const_cast<NaClHandle*>(handles);
-#else
 	NaClHandle h[NACL_ABI_IMC_DESC_MAX];
-	for (size_t i = 0; i < numHandles; i++)
+	for (size_t i = 0; i < numHandles; i++) {
+		if (!Sys::IsValidHandle(handles[i].handle))
+			Sys::Drop("IPC: Tried to send an invalid handle");
 		h[i] = handles[i].handle;
-#endif
+	}
 
 #ifdef __native_client__
 	hdr.iov = iov;
@@ -236,7 +231,7 @@ static void InternalSendMsg(OSHandleType handle, bool more, const Desc* handles,
 	if (NaClSendDatagram(handle, &hdr, 0) == -1) {
 		char error[256];
 		NaClGetLastErrorString(error, sizeof(error));
-		Com_Error(ERR_DROP, "IPC: Failed to send message: %s", error);
+		Sys::Drop("IPC: Failed to send message: %s", error);
 	}
 #else
 	size_t descBytes = 0;
@@ -294,14 +289,14 @@ static void InternalSendMsg(OSHandleType handle, bool more, const Desc* handles,
 	if (NaClSendDatagram(handle, &hdr, 0) == -1) {
 		char error[256];
 		NaClGetLastErrorString(error, sizeof(error));
-		Com_Error(ERR_DROP, "IPC: Failed to send message: %s", error);
+		Sys::Drop("IPC: Failed to send message: %s", error);
 	}
 #endif
 }
 
-void Socket::SendMsg(const Writer& writer) const
+void Socket::SendMsg(const Util::Writer& writer) const
 {
-	const Desc* handles = writer.GetHandles().data();
+	const FileDesc* handles = writer.GetHandles().data();
 	size_t numHandles = writer.GetHandles().size();
 	const void* data = writer.GetData().data();
 	size_t len = writer.GetData().size();
@@ -327,7 +322,7 @@ static void FreeHandles(const NaClHandle* h)
 }
 #endif
 
-bool InternalRecvMsg(OSHandleType handle, Reader& reader)
+bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 {
 	NaClMessageHeader hdr;
 	NaClIOVec iov[2];
@@ -350,12 +345,17 @@ bool InternalRecvMsg(OSHandleType handle, Reader& reader)
 	if (result == -1) {
 		char error[256];
 		NaClGetLastErrorString(error, sizeof(error));
-		Com_Error(ERR_DROP, "IPC: Failed to receive message: %s", error);
+		Sys::Drop("IPC: Failed to receive message: %s", error);
 	}
 
+	if (hdr.flags & (NACL_MESSAGE_TRUNCATED | NACL_HANDLES_TRUNCATED))
+		Sys::Drop("IPC: Recieved truncated message");
+
 	for (size_t i = 0; i < NACL_ABI_IMC_DESC_MAX; i++) {
-		if (h[i] != NACL_INVALID_HANDLE)
-			reader.GetHandles().push_back(h[i]);
+		if (h[i] != NACL_INVALID_HANDLE) {
+			reader.GetHandles().emplace_back();
+			reader.GetHandles().back().handle = h[i];
+		}
 	}
 	reader.GetData().insert(reader.GetData().end(), &recvBuffer[1], &recvBuffer[result]);
 	return recvBuffer[0];
@@ -375,23 +375,26 @@ bool InternalRecvMsg(OSHandleType handle, Reader& reader)
 	if (result == -1) {
 		char error[256];
 		NaClGetLastErrorString(error, sizeof(error));
-		Com_Error(ERR_DROP, "IPC: Failed to receive message: %s", error);
+		Sys::Drop("IPC: Failed to receive message: %s", error);
 	}
+
+	if (hdr.flags & (NACL_MESSAGE_TRUNCATED | NACL_HANDLES_TRUNCATED))
+		Sys::Drop("IPC: Recieved truncated message");
 
 	if (result == 0) {
 		FreeHandles(h);
-		Com_Error(ERR_DROP, "IPC: Socket closed by remote end");
+		Sys::Drop("IPC: Socket closed by remote end");
 	}
 
 	if (result < (int)sizeof(NaClInternalHeader)) {
 		FreeHandles(h);
-		Com_Error(ERR_DROP, "IPC: Message with invalid header");
+		Sys::Drop("IPC: Message with invalid header");
 	}
 	result -= sizeof(NaClInternalHeader);
 
 	if (internalHdr.h.xfer_protocol_version != NACL_HANDLE_TRANSFER_PROTOCOL || result < (int)internalHdr.h.descriptor_data_bytes) {
 		FreeHandles(h);
-		Com_Error(ERR_DROP, "IPC: Message with invalid header");
+		Sys::Drop("IPC: Message with invalid header");
 	}
 	result -= internalHdr.h.descriptor_data_bytes;
 
@@ -404,13 +407,13 @@ bool InternalRecvMsg(OSHandleType handle, Reader& reader)
 			break;
 		if (tag != NACL_DESC_SHM && tag != NACL_DESC_TRANSFERABLE_DATA_SOCKET && tag != NACL_DESC_HOST_IO) {
 			FreeHandles(h);
-			Com_Error(ERR_DROP, "IPC: Unrecognized descriptor tag in message: %02x", tag);
+			Sys::Drop("IPC: Unrecognized descriptor tag in message: %02x", tag);
 		}
 
 		// Ignore flags
 		if (desc_end - desc_ptr < (int)sizeof(uint32_t)) {
 			FreeHandles(h);
-			Com_Error(ERR_DROP, "IPC: Descriptor flags missing from message");
+			Sys::Drop("IPC: Descriptor flags missing from message");
 		}
 		desc_ptr += sizeof(uint32_t);
 
@@ -419,14 +422,14 @@ bool InternalRecvMsg(OSHandleType handle, Reader& reader)
 		if (tag == NACL_DESC_SHM) {
 			if (desc_end - desc_ptr < (int)sizeof(uint64_t)) {
 				FreeHandles(h);
-				Com_Error(ERR_DROP, "IPC: Shared memory size missing from message");
+				Sys::Drop("IPC: Shared memory size missing from message");
 			}
 			memcpy(&size, desc_ptr, sizeof(uint64_t));
 			desc_ptr += sizeof(uint64_t);
 		} else if (tag == NACL_DESC_HOST_IO) {
 			if (desc_end - desc_ptr < (int)sizeof(int32_t)) {
 				FreeHandles(h);
-				Com_Error(ERR_DROP, "IPC: Host file mode missing from message");
+				Sys::Drop("IPC: Host file mode missing from message");
 			}
 			memcpy(&flags, desc_ptr, sizeof(int32_t));
 			desc_ptr += sizeof(int32_t);
@@ -448,11 +451,25 @@ bool InternalRecvMsg(OSHandleType handle, Reader& reader)
 #endif
 }
 
-Reader Socket::RecvMsg() const
+Util::Reader Socket::RecvMsg() const
 {
-	Reader out;
+    Util::Reader out;
 	while (InternalRecvMsg(handle, out)) {}
 	return out;
+}
+
+void Socket::SetRecvTimeout(std::chrono::nanoseconds timeout)
+{
+#if defined(_WIN32) || defined(__native_client__)
+	// Not supported on Windows or NaCl
+	Q_UNUSED(timeout);
+#else
+	struct timeval tv;
+	auto seconds = std::chrono::duration_cast<std::chrono::seconds>(timeout);
+	tv.tv_sec = seconds.count();
+	tv.tv_usec = std::chrono::duration_cast<std::chrono::microseconds>(timeout - seconds).count();
+	setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+#endif
 }
 
 std::pair<Socket, Socket> Socket::CreatePair()
@@ -461,7 +478,7 @@ std::pair<Socket, Socket> Socket::CreatePair()
 	if (NaClSocketPair(handles) != 0) {
 		char error[256];
 		NaClGetLastErrorString(error, sizeof(error));
-		Com_Error(ERR_DROP, "IPC: Failed to create socket pair: %s", error);
+		Sys::Drop("IPC: Failed to create socket pair: %s", error);
 	}
 	Socket a, b;
 	a.handle = handles[0];
@@ -469,29 +486,25 @@ std::pair<Socket, Socket> Socket::CreatePair()
 	return std::make_pair(std::move(a), std::move(b));
 }
 
-void SharedMemory::Map()
+static void* MapSharedMemory(Sys::OSHandle handle, size_t size)
 {
 	// We don't use NaClMap here because it only supports MAP_FIXED
 #ifdef _WIN32
-	base = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, size);
-	if (base == nullptr) {
-		NaClClose(handle);
-		handle = INVALID_HANDLE;
-		Com_Error(ERR_DROP, "IPC: Failed to map shared memory object of size %zu: %s", size, Win32StrError(GetLastError()).c_str());
-	}
+	void* base = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, size);
+	if (base == nullptr)
+		Sys::Drop("IPC: Failed to map shared memory object of size %zu: %s", size, Sys::Win32StrError(GetLastError()));
+	return base;
 #else
-	base = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle, 0);
-	if (base == MAP_FAILED) {
-		NaClClose(handle);
-		handle = INVALID_HANDLE;
-		Com_Error(ERR_DROP, "IPC: Failed to map shared memory object of size %zu: %s", size, strerror(errno));
-	}
+	void* base = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle, 0);
+	if (base == MAP_FAILED)
+		Sys::Drop("IPC: Failed to map shared memory object of size %zu: %s", size, strerror(errno));
+	return base;
 #endif
 }
 
 void SharedMemory::Close()
 {
-	if (handle != INVALID_HANDLE) {
+	if (Sys::IsValidHandle(handle)) {
 #ifdef _WIN32
 		UnmapViewOfFile(base);
 #else
@@ -499,59 +512,65 @@ void SharedMemory::Close()
 #endif
 		NaClClose(handle);
 	}
-	handle = INVALID_HANDLE;
+	handle = Sys::INVALID_HANDLE;
 }
 
-Desc SharedMemory::GetDesc() const
+FileDesc SharedMemory::GetDesc() const
 {
-#ifdef __native_client__
-	return handle;
-#else
-	Desc out;
-	out.type = NACL_DESC_SHM;
+	FileDesc out;
 	out.handle = handle;
+#ifndef __native_client__
+	out.type = NACL_DESC_SHM;
 	out.size = size;
-	return out;
 #endif
+	return out;
 }
 
-SharedMemory SharedMemory::FromDesc(const Desc& desc)
+SharedMemory SharedMemory::FromDesc(const FileDesc& desc)
 {
 	SharedMemory out;
 #ifdef __native_client__
 	struct stat st;
-	if (fstat(desc, &st) == -1) {
+	if (fstat(desc.handle, &st) == -1) {
 		char error[256];
 		NaClGetLastErrorString(error, sizeof(error));
-		Com_Error(ERR_DROP, "IPC: Failed to stat shared memory handle: %s", error);
+		Sys::Drop("IPC: Failed to stat shared memory handle: %s", error);
 	}
 	out.size = st.st_size;
-	out.handle = desc;
 #else
 	out.size = desc.size;
-	out.handle = desc.handle;
 #endif
-	out.Map();
+	out.handle = desc.handle;
+	out.base = MapSharedMemory(out.handle, out.size);
 	return out;
 }
 
+#ifdef BUILD_VM
+SharedMemory SharedMemory::Create(size_t size)
+{
+    IPC::SharedMemory result;
+    VM::SendMsg<VM::CreateSharedMemoryMsg>(size, result);
+    return std::move(result);
+}
+#else
 SharedMemory SharedMemory::Create(size_t size)
 {
 	// Round size up to page size, otherwise the syscall will fail in NaCl
 	size = (size + NACL_MAP_PAGESIZE - 1) & ~(NACL_MAP_PAGESIZE - 1);
 
-	OSHandleType handle = NaClCreateMemoryObject(size, 0);
-	if (handle == INVALID_HANDLE) {
+	Sys::OSHandle handle = NaClCreateMemoryObject(size, 0);
+	if (!Sys::IsValidHandle(handle)) {
 		char error[256];
 		NaClGetLastErrorString(error, sizeof(error));
-		Com_Error(ERR_DROP, "IPC: Failed to create shared memory object of size %zu: %s", size, error);
+		Sys::Drop("IPC: Failed to create shared memory object of size %zu: %s", size, error);
 	}
 
 	SharedMemory out;
 	out.handle = handle;
 	out.size = size;
-	out.Map();
+	out.base = MapSharedMemory(out.handle, out.size);
 	return out;
 }
+#endif
 
 } // namespace IPC
