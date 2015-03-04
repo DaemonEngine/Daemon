@@ -35,6 +35,7 @@ Maryland 20850 USA.
 // sv_game.c -- interface to the game module
 
 #include "server.h"
+#include "sg_msgdef.h"
 #include "../qcommon/crypto.h"
 #include "../framework/CommonVMServices.h"
 #include "../framework/CommandSystem.h"
@@ -320,12 +321,6 @@ void SV_ShutdownGameProgs( void )
 
 	gvm.GameShutdown( qfalse );
     gvm.Free();
-
-	if ( sv_newGameShlib->string[ 0 ] )
-	{
-		FS_Rename( sv_newGameShlib->string, "game" DLL_EXT );
-		Cvar_Set( "sv_newGameShlib", "" );
-	}
 }
 
 /*
@@ -423,16 +418,16 @@ qboolean SV_GetTag( int clientNum, int tagFileNumber, const char *tagname, orien
 	return qfalse;
 }
 
-GameVM::GameVM(): VM::VMBase("game"), services(nullptr){
+GameVM::GameVM(): VM::VMBase("sgame"), services(nullptr){
 }
 
 void GameVM::Start()
 {
-	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "Game", Cmd::GAME_VM));
+	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "SGame", Cmd::GAME_VM));
 
 	uint32_t version = this->Create();
 	if ( version != GAME_API_VERSION ) {
-		Com_Error( ERR_DROP, "Game ABI mismatch, expected %d, got %d", GAME_API_VERSION, version );
+		Com_Error( ERR_DROP, "SGame ABI mismatch, expected %d, got %d", GAME_API_VERSION, version );
 	}
 
 	this->GameStaticInit();
@@ -445,7 +440,7 @@ void GameVM::GameStaticInit()
 
 void GameVM::GameInit(int levelTime, int randomSeed, qboolean restart)
 {
-	this->SendMsg<GameInitMsg>(levelTime, randomSeed, restart, Com_AreCheatsAllowed());
+	this->SendMsg<GameInitMsg>(levelTime, randomSeed, restart, Com_AreCheatsAllowed(), Com_IsClient());
 }
 
 void GameVM::GameShutdown(qboolean restart)
@@ -518,7 +513,7 @@ void GameVM::GameMessageRecieved(int clientNum, const char *buffer, int bufferSi
 	//Com_Error(ERR_DROP, "GameVM::GameMessageRecieved not implemented");
 }
 
-void GameVM::Syscall(uint32_t id, IPC::Reader reader, IPC::Channel& channel)
+void GameVM::Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel)
 {
 	int major = id >> 16;
 	int minor = id & 0xffff;
@@ -533,7 +528,7 @@ void GameVM::Syscall(uint32_t id, IPC::Reader reader, IPC::Channel& channel)
 	}
 }
 
-void GameVM::QVMSyscall(int index, IPC::Reader& reader, IPC::Channel& channel)
+void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 {
 	switch (index) {
 	case G_LOCATE_GAME_DATA1:

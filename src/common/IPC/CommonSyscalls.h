@@ -31,15 +31,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_COMMON_SYSCALLS_H_
 #define COMMON_COMMON_SYSCALLS_H_
 
+#include "Primitives.h"
+
 namespace VM {
+
+    /*
+     * This file contains the definition of the message types that are common
+     * to all the VMs and that are implemented in
+     *   - CommonVMServices in the engine
+     *   - CommonProxies in the VM
+     * QVM is a special message ID major number that will be used for all the
+     * messages for the former QVM syscalls.
+     * LAST_COMMON_SYSCALL is the first ID available for VM-specific use.
+     */
 
     enum {
         QVM,
         QVM_COMMON,
+        MISC,
         COMMAND,
         CVAR,
         LOG,
         FILESYSTEM,
+        COMMAND_BUFFER,
         LAST_COMMON_SYSCALL
     };
 
@@ -151,6 +165,18 @@ namespace VM {
         IPC::Reply<int, std::string, int>
     > ParseSourceFileAndLineMsg;
 
+    // Misc Syscall Definitions
+
+    enum EngineMiscMessages {
+        CREATE_SHARED_MEMORY
+    };
+
+    // CreateSharedMemoryMsg
+    typedef IPC::SyncMessage<
+        IPC::Message<IPC::Id<MISC, CREATE_SHARED_MEMORY>, uint32_t>,
+        IPC::Reply<IPC::SharedMemory>
+    > CreateSharedMemoryMsg;
+
     // Command-Related Syscall Definitions
 
     enum EngineCommandMessages {
@@ -255,7 +281,7 @@ namespace VM {
     // FSHomePathOpenModeMsg
     typedef IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_OPENMODE>, std::string, uint32_t>,
-        IPC::Reply<Util::optional<IPC::FileHandle>>
+        IPC::Reply<Util::optional<IPC::OwnedFileHandle>>
     > FSHomePathOpenModeMsg;
     // FSHomePathFileExistsMsg
     typedef IPC::SyncMessage<
@@ -290,7 +316,7 @@ namespace VM {
     // FSPakPathOpenMsg
     typedef IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_OPEN>, uint32_t, std::string>,
-        IPC::Reply<Util::optional<IPC::FileHandle>>
+        IPC::Reply<Util::optional<IPC::OwnedFileHandle>>
     > FSPakPathOpenMsg;
     // FSPakPathTimestampMsg
     typedef IPC::SyncMessage<

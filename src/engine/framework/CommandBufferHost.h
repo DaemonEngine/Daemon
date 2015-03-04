@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2013-2014, Daemon Developers
+Copyright (c) 2013-2015, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#ifndef COMMON_COMMON_H_
-#define COMMON_COMMON_H_
+#ifndef FRAMEWORK_COMMAND_BUFFER_HOST_H_
+#define FRAMEWORK_COMMAND_BUFFER_HOST_H_
 
-// Compiler.h, Platform.h and Endian.h are included by q_shared.h
-#include "../engine/qcommon/q_shared.h"
+#include "../../common/IPC/CommandBuffer.h"
+#include "../../common/Serialize.h"
 
-// Common headers
-#include "String.h"
-#include "Util.h"
-#include "Optional.h"
-#include "Command.h"
-#include "Cvar.h"
-#include "Log.h"
-#include "LineEditData.h"
-#include "Maths.h"
-#include "System.h"
-#include "Serialize.h"
-#include "FileSystem.h"
-#include "DisjointSets.h"
+namespace IPC {
 
-#endif // COMMON_COMMON_H_
+    class CommandBufferHost {
+        public:
+            CommandBufferHost(std::string name);
+
+            void Syscall(int index, Util::Reader& reader, IPC::Channel& channel);
+            void Close();
+
+        private:
+            std::string name;
+            Log::Logger logs;
+            IPC::CommandBuffer buffer;
+            IPC::SharedMemory shm;
+
+            virtual void HandleCommandBufferSyscall(int major, int minor, Util::Reader& reader) = 0;
+
+            void Init(IPC::SharedMemory mem);
+
+            void Consume();
+            bool ConsumeOne(Util::Reader& reader);
+    };
+}
+
+#endif // FRAMEWORK_COMMAND_BUFFER_HOST_H_

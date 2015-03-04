@@ -28,10 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#include "Common.h"
+#include "../Common.h"
+#include "Primitives.h"
 
 #ifdef _WIN32
 #include <windows.h>
+#include <io.h>
+#include <fcntl.h>
 #else
 #include <unistd.h>
 #include <sys/mman.h>
@@ -41,14 +44,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#ifdef BUILD_VM
+#include "../../gamelogic/shared/VMMain.h"
+#include "CommonSyscalls.h"
+#endif
+
 #undef INLINE
 #undef DLLEXPORT
 #undef NORETURN
 #undef NORETURN_PTR
-#include "../libs/nacl/native_client/src/shared/imc/nacl_imc_c.h"
-#include "../libs/nacl/native_client/src/public/imc_types.h"
-#include "../libs/nacl/native_client/src/trusted/service_runtime/nacl_config.h"
-#include "../libs/nacl/native_client/src/trusted/service_runtime/include/sys/fcntl.h"
+#include "../../libs/nacl/native_client/src/shared/imc/nacl_imc_c.h"
+#include "../../libs/nacl/native_client/src/public/imc_types.h"
+#include "../../libs/nacl/native_client/src/trusted/service_runtime/nacl_config.h"
+#include "../../libs/nacl/native_client/src/trusted/service_runtime/include/sys/fcntl.h"
 
 // Definitions taken from nacl_desc_base.h
 enum NaClDescTypeTag {
@@ -92,15 +100,19 @@ struct NaClInternalHeader {
 
 namespace IPC {
 
-void CloseDesc(const Desc& desc)
+void FileDesc::Close() const
 {
-	NaClClose(desc.handle);
+	NaClClose(handle);
 }
 
-Desc FileHandle::GetDesc() const
+FileDesc FileHandle::GetDesc() const
 {
-	Desc out;
+	FileDesc out;
+#ifdef _WIN32
+	out.handle = reinterpret_cast<HANDLE>(_get_osfhandle(handle));
+#else
 	out.handle = handle;
+#endif
 #ifndef __native_client__
 	out.type = NACL_DESC_HOST_IO;
 	switch (mode) {
@@ -124,7 +136,7 @@ Desc FileHandle::GetDesc() const
 	return out;
 }
 
-FileHandle FileHandle::FromDesc(const Desc& desc)
+FileHandle FileHandle::FromDesc(const FileDesc& desc)
 {
 	FileOpenMode mode = MODE_READ;
 #ifndef __native_client__
@@ -146,7 +158,22 @@ FileHandle FileHandle::FromDesc(const Desc& desc)
 		break;
 	}
 #endif
+#ifdef _WIN32
+	int modes[] = {O_RDONLY, O_WRONLY | O_TRUNC | O_CREAT, O_WRONLY | O_APPEND | O_CREAT, O_RDWR | O_CREAT};
+	int fd = _open_osfhandle(reinterpret_cast<intptr_t>(desc.handle), modes[mode]);
+	if (fd == -1) {
+		CloseHandle(desc.handle);
+		return FileHandle();
+	}
+	return FileHandle(fd, mode);
+#else
 	return FileHandle(desc.handle, mode);
+#endif
+}
+
+OwnedFileHandle::~OwnedFileHandle()
+{
+	close(handle.GetHandle());
 }
 
 void Socket::Close()
@@ -156,9 +183,9 @@ void Socket::Close()
 	handle = Sys::INVALID_HANDLE;
 }
 
-Desc Socket::GetDesc() const
+FileDesc Socket::GetDesc() const
 {
-	Desc out;
+	FileDesc out;
 	out.handle = handle;
 #ifndef __native_client__
 	out.type = NACL_DESC_TRANSFERABLE_DATA_SOCKET;
@@ -166,7 +193,7 @@ Desc Socket::GetDesc() const
 	return out;
 }
 
-Socket Socket::FromDesc(const Desc& desc)
+Socket Socket::FromDesc(const FileDesc& desc)
 {
 	Socket out;
 	out.handle = desc.handle;
@@ -179,7 +206,7 @@ Socket Socket::FromHandle(Sys::OSHandle handle)
 	return out;
 }
 
-static void InternalSendMsg(Sys::OSHandle handle, bool more, const Desc* handles, size_t numHandles, const void* data, size_t len)
+static void InternalSendMsg(Sys::OSHandle handle, bool more, const FileDesc* handles, size_t numHandles, const void* data, size_t len)
 {
 	NaClMessageHeader hdr;
 	NaClIOVec iov[4];
@@ -267,9 +294,9 @@ static void InternalSendMsg(Sys::OSHandle handle, bool more, const Desc* handles
 #endif
 }
 
-void Socket::SendMsg(const Writer& writer) const
+void Socket::SendMsg(const Util::Writer& writer) const
 {
-	const Desc* handles = writer.GetHandles().data();
+	const FileDesc* handles = writer.GetHandles().data();
 	size_t numHandles = writer.GetHandles().size();
 	const void* data = writer.GetData().data();
 	size_t len = writer.GetData().size();
@@ -295,7 +322,7 @@ static void FreeHandles(const NaClHandle* h)
 }
 #endif
 
-bool InternalRecvMsg(Sys::OSHandle handle, Reader& reader)
+bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 {
 	NaClMessageHeader hdr;
 	NaClIOVec iov[2];
@@ -424,9 +451,9 @@ bool InternalRecvMsg(Sys::OSHandle handle, Reader& reader)
 #endif
 }
 
-Reader Socket::RecvMsg() const
+Util::Reader Socket::RecvMsg() const
 {
-	Reader out;
+    Util::Reader out;
 	while (InternalRecvMsg(handle, out)) {}
 	return out;
 }
@@ -488,9 +515,9 @@ void SharedMemory::Close()
 	handle = Sys::INVALID_HANDLE;
 }
 
-Desc SharedMemory::GetDesc() const
+FileDesc SharedMemory::GetDesc() const
 {
-	Desc out;
+	FileDesc out;
 	out.handle = handle;
 #ifndef __native_client__
 	out.type = NACL_DESC_SHM;
@@ -499,7 +526,7 @@ Desc SharedMemory::GetDesc() const
 	return out;
 }
 
-SharedMemory SharedMemory::FromDesc(const Desc& desc)
+SharedMemory SharedMemory::FromDesc(const FileDesc& desc)
 {
 	SharedMemory out;
 #ifdef __native_client__
@@ -518,6 +545,14 @@ SharedMemory SharedMemory::FromDesc(const Desc& desc)
 	return out;
 }
 
+#ifdef BUILD_VM
+SharedMemory SharedMemory::Create(size_t size)
+{
+    IPC::SharedMemory result;
+    VM::SendMsg<VM::CreateSharedMemoryMsg>(size, result);
+    return std::move(result);
+}
+#else
 SharedMemory SharedMemory::Create(size_t size)
 {
 	// Round size up to page size, otherwise the syscall will fail in NaCl
@@ -536,5 +571,6 @@ SharedMemory SharedMemory::Create(size_t size)
 	out.base = MapSharedMemory(out.handle, out.size);
 	return out;
 }
+#endif
 
 } // namespace IPC

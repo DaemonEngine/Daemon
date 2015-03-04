@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2013-2014, Daemon Developers
+Copyright (c) 2013-2015, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,54 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#ifndef COMMON_COMMON_H_
-#define COMMON_COMMON_H_
+#ifndef SHARED_COMMAND_BUFFER_CLIENT_H_
+#define SHARED_COMMAND_BUFFER_CLIENT_H_
 
-// Compiler.h, Platform.h and Endian.h are included by q_shared.h
-#include "../engine/qcommon/q_shared.h"
+#include "../../common/IPC/CommandBuffer.h"
+#include "../../common/Serialize.h"
+#include "VMMain.h"
 
-// Common headers
-#include "String.h"
-#include "Util.h"
-#include "Optional.h"
-#include "Command.h"
-#include "Cvar.h"
-#include "Log.h"
-#include "LineEditData.h"
-#include "Maths.h"
-#include "System.h"
-#include "Serialize.h"
-#include "FileSystem.h"
-#include "DisjointSets.h"
+namespace IPC {
 
-#endif // COMMON_COMMON_H_
+
+    class CommandBufferClient {
+        public:
+            CommandBufferClient(std::string name);
+
+            void Init();
+
+            template<typename Message, typename... Args> void SendMsg(Args&&... args) {
+                SendMsgImpl(Message(), std::forward<Args>(args)...);
+            }
+
+            template<typename Message, typename... Args> void SendMsgImpl(Message, Args&&... args) {
+                static_assert(sizeof...(Args) == std::tuple_size<typename Message::Inputs>::value, "Incorrect number of arguments for CommandBufferClient::SendMsg");
+
+                Util::Writer writer;
+                writer.Write<uint32_t>(Message::id);
+                writer.WriteArgs(Util::TypeListFromTuple<typename Message::Inputs>(), std::forward<Args>(args)...);
+
+                Write(writer);
+            }
+
+            void TryFlush();
+
+        private:
+            std::string name;
+            Cvar::Range<Cvar::Cvar<int>> bufferSize;
+            Log::Logger logs;
+            IPC::CommandBuffer buffer;
+            IPC::SharedMemory shm;
+            bool initialized;
+
+            void Write(Util::Writer& writer);
+
+            bool CanWrite(size_t length);
+            size_t RemainingSize();
+
+            void Flush();
+    };
+
+}
+
+#endif // SHARED_COMMAND_BUFFER_CLIENT_H_
