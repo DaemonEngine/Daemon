@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "gl_shader.h"
+#include "common/DebugDraw.h"
 
 backEndData_t  *backEndData[ SMP_FRAMES ];
 backEndState_t backEnd;
@@ -5617,6 +5618,38 @@ const void     *RB_Finish( const void *data )
 	return ( const void * )( cmd + 1 );
 }
 
+void RB_DebugDrawSpheres(int count, const DebugDraw::SphereData* spheres) {
+    for (int i = 0; i < count; i++) {
+        const DebugDraw::SphereData& sphere = spheres[i];
+    }
+}
+
+const void* RB_DebugDraw(const void* data) {
+    const debugCommand_t* cmd = reinterpret_cast<const debugCommand_t*>(cmd);
+
+    // TODO factor this
+    size_t dataSize;
+    switch (cmd->type) {
+        case DRAWDEBUG_LINE:
+            dataSize = sizeof(DebugDraw::LineData);
+            Log::Debug("Got %i lines.", cmd->count);
+            //RB_DebugDrawLines(cmd->count, reinterpret_cast<const DebugDraw::LineData*>(cmd + 1));
+            break;
+
+        case DRAWDEBUG_SPHERE:
+            dataSize = sizeof(DebugDraw::SphereData);
+            Log::Debug("Got %i spheres.", cmd->count);
+            RB_DebugDrawSpheres(cmd->count, reinterpret_cast<const DebugDraw::SphereData*>(cmd + 1));
+            break;
+
+        default:
+            Sys::Error("R_DebugDraw: Unknown DrawDebugType %i", cmd->type);
+            break;
+    }
+
+    return reinterpret_cast<const char*>(cmd + 1) + cmd->count * dataSize;
+}
+
 /*
 =============
 R_ShutdownBackend
@@ -5725,6 +5758,9 @@ void RB_ExecuteRenderCommands( const void *data )
 			case RC_SCISSORSET:
 				data = RB_ScissorSet( data );
 				break;
+
+            case RC_DEBUGDRAW:
+                data = RB_DebugDraw(data);
 
 			case RC_END_OF_LIST:
 			default:

@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_cmds.c
 #include "tr_local.h"
 
+#include "common/DebugDraw.h"
+
 volatile bool            renderThreadActive;
 
 /*
@@ -621,6 +623,35 @@ void RE_ScissorSet( int x, int y, int w, int h )
 	cmd->y = y;
 	cmd->w = w;
 	cmd->h = h;
+}
+
+void R_DebugDraw(DrawDebugType type, int count, const void* data) {
+    int dataSize = 0;
+
+    switch (type) {
+        case DRAWDEBUG_LINE:
+            dataSize = sizeof(DebugDraw::LineData);
+            break;
+
+        case DRAWDEBUG_SPHERE:
+            dataSize = sizeof(DebugDraw::SphereData);
+            break;
+
+        default:
+            Sys::Error("R_DebugDraw: Unknown DrawDebugType %i", type);
+            break;
+    }
+
+    debugCommand_t* cmd = (debugCommand_t*) R_GetCommandBuffer(sizeof(debugCommand_t) + count * dataSize);
+
+    if (!cmd) {
+        return;
+    }
+
+    cmd->commandId = RC_DEBUGDRAW;
+    cmd->type = type;
+    cmd->count = count;
+    memcpy(cmd + 1, data, dataSize * count);
 }
 
 /*

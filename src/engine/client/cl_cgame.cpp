@@ -43,6 +43,7 @@ Maryland 20850 USA.
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
+#include "framework/DebugDrawSystem.h"
 
 #define __(x) Trans_GettextGame(x)
 #define C__(x, y) Trans_PgettextGame(x, y)
@@ -2158,6 +2159,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 
             case CG_R_RENDERSCENE:
                 HandleMsg<Render::RenderSceneMsg>(std::move(reader), [this] (refdef_t rd) {
+                    DebugDraw::Flush();
+                    DebugDraw::Frame();
                     re.RenderScene(&rd);
                 });
 				break;

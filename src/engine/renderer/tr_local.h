@@ -3076,11 +3076,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	float    R_CalcFov( float fovX, float width, float height );
 
-// Tr3B - visualisation tools to help debugging the renderer frontend
-	void     R_DebugAxis( const vec3_t origin, const matrix_t transformMatrix );
-	void     R_DebugBoundingBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, vec4_t color );
-	void     R_DebugPolygon( int color, int numPoints, float *points );
-	void     R_DebugText( const vec3_t org, float r, float g, float b, const char *text, bool neverOcclude );
+    void R_DebugDraw(DrawDebugType type, int num, const void* data);
 
 	void     DebugDrawVertex(const vec3_t pos, unsigned int color, const vec2_t uv);
 	void     DebugDrawBegin( debugDrawMode_t mode, float size );
@@ -3830,6 +3826,19 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool motionJpeg;
 	} videoFrameCommand_t;
 
+    struct debugCommand_t {
+		int commandId;
+        int type;
+        int count;
+    };
+
+    struct debugSphereCommand_t {
+		int commandId;
+        Vec3 center;
+        float radius;
+        Vec4 color;
+    };
+
 	typedef struct
 	{
 		int commandId;
@@ -3845,15 +3854,16 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  RC_2DPOLYSINDEXED,
 	  RC_SCISSORSET,
 	  RC_ROTATED_PIC,
-	  RC_STRETCH_PIC_GRADIENT, // (SA) added
+	  RC_STRETCH_PIC_GRADIENT,
 	  RC_DRAW_VIEW,
 	  RC_DRAW_BUFFER,
 	  RC_RUN_VISTESTS,
 	  RC_SWAP_BUFFERS,
 	  RC_SCREENSHOT,
 	  RC_VIDEOFRAME,
-	  RC_RENDERTOTEXTURE, //bani
-	  RC_FINISH //bani
+	  RC_RENDERTOTEXTURE,
+	  RC_FINISH,
+      RC_DEBUGDRAW,
 	} renderCommand_t;
 
 // ydnar: max decal projectors per frame, each can generate lots of polys

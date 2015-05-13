@@ -41,7 +41,10 @@ Maryland 20850 USA.
 
 #define REF_API_VERSION 10
 
-// *INDENT-OFF*
+enum DrawDebugType {
+    DRAWDEBUG_LINE,
+    DRAWDEBUG_SPHERE,
+};
 
 //
 // these are the functions exported by the refresh module
@@ -135,8 +138,7 @@ typedef struct
 
 	void ( *RemapShader )( const char *oldShader, const char *newShader, const char *offsetTime );
 
-	void ( *DrawDebugPolygon )( int color, int numpoints, float *points );
-	void ( *DrawDebugText )( const vec3_t org, float r, float g, float b, const char *text, bool neverOcclude );
+    void (*DrawDebug) (DrawDebugType type, int num, const void* data);
 
 	bool( *GetEntityToken )( char *buffer, int size );
 

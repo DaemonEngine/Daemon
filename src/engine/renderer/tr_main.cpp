@@ -2372,24 +2372,6 @@ void R_AddLightBoundsToVisBounds()
 	}
 }
 
-/*
-================
-R_DebugPolygon
-================
-*/
-void R_DebugPolygon( int color, int numPoints, float *points )
-{
-}
-
-/*
-================
-R_DebugText
-================
-*/
-void R_DebugText( const vec3_t org, float r, float g, float b, const char *text, bool neverOcclude )
-{
-}
-
 static BotDebugInterface_t bi = { DebugDrawBegin, DebugDrawDepthMask, DebugDrawVertex, DebugDrawEnd };
 
 /*
@@ -2412,7 +2394,7 @@ static void R_DebugGraphics()
 		GL_Bind( tr.whiteImage );
 
 		GL_Cull( CT_FRONT_SIDED );
-		ri.CM_DrawDebugSurface( R_DebugPolygon );
+		//ri.CM_DrawDebugSurface( R_DebugPolygon );
 
 		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 

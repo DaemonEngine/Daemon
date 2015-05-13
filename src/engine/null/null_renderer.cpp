@@ -131,8 +131,7 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 }
 void R_ModelBounds( qhandle_t model, vec3_t mins, vec3_t maxs ) { }
 void R_RemapShader( const char *oldShader, const char *newShader, const char *offsetTime ) { }
-void R_DebugPolygon( int color, int numpoints, float *points ) { }
-void R_DebugText( const vec3_t org, float r, float g, float b, const char *text, bool neverOcclude ) { }
+void R_DrawDebug(DrawDebugType type, int num, const void* data) {}
 bool R_GetEntityToken( char *buffer, int size )
 {
 	return true;
@@ -285,8 +284,7 @@ refexport_t    *GetRefAPI( int apiVersion, refimport_t *rimp )
     re.ModelBounds = R_ModelBounds;
 
     re.RemapShader = R_RemapShader;
-    re.DrawDebugPolygon = R_DebugPolygon;
-    re.DrawDebugText = R_DebugText;
+    re.DrawDebug = R_DrawDebug;
     re.GetEntityToken = R_GetEntityToken;
 
     re.AddPolyBufferToScene = RE_AddPolyBufferToScene;

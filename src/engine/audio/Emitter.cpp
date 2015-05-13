@@ -30,6 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AudioPrivate.h"
 
+#include "common/DebugDraw.h"
+
 namespace Audio {
 
     // Structures to keep the state of entities we were given
@@ -57,14 +59,16 @@ namespace Audio {
     static Cvar::Range<Cvar::Cvar<float>> dopplerExaggeration("audio.dopplerExaggeration", "controls the pitch change of the doppler effect", Cvar::ARCHIVE, 0.4, 0.0, 1.0);
     static Cvar::Range<Cvar::Cvar<float>> reverbIntensity("audio.reverbIntensity", "the intensity of the reverb effects", Cvar::ARCHIVE, 1.0, 0.0, 1.0);
 
+    static DebugDraw::Drawer emitterDraw("audio.emitters");
+
     struct ReverbSlot {
         AL::EffectSlot* effect;
         std::string name;
         float ratio;
         float askedRatio;
     };
-    ReverbSlot reverbSlots[N_REVERB_SLOTS];
-    bool testingReverb = false;
+    static ReverbSlot reverbSlots[N_REVERB_SLOTS];
+    static bool testingReverb = false;
 
     static bool initialized = false;
 
@@ -156,6 +160,12 @@ namespace Audio {
         }
 
         AL::SetDopplerExaggerationFactor(dopplerExaggeration.Get());
+
+        //TODO use Drawer::DoDrawCode
+        for (auto emitter : posEmitters) {
+            Vec3 position = Vec3::Load(emitter->GetPosition());
+            emitterDraw.AddSphere(position, 4.0f).Color({1.0f, 0.0f, 0.0f, 1.0f});
+        }
     }
 
     void UpdateListenerEntity(int entityNum, const Vec3 orientation[3]) {
