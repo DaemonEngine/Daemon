@@ -119,12 +119,12 @@ void SV_DirectConnect( netadr_t from, const Cmd::Args& args )
 	client_t            temp;
 	sharedEntity_t      *ent;
 	int                 clientNum;
-	int                 version;
+	const char          *version;
 	int                 qport;
 	int                 challenge;
-	const char                *password;
+	const char          *password;
 	int                 startIndex;
-	bool            denied;
+	bool                denied;
 	char                reason[ MAX_STRING_CHARS ];
 	int                 count;
 	const char          *ip;
@@ -143,12 +143,12 @@ void SV_DirectConnect( netadr_t from, const Cmd::Args& args )
 
 	// DHM - Nerve :: Update Server allows any protocol to connect
 	// NOTE TTimo: but we might need to store the protocol around for potential non http/ftp clients
-	version = atoi( Info_ValueForKey( userinfo, "protocol" ) );
+	version = Info_ValueForKey( userinfo, "protocol" );
 
-	if ( version != PROTOCOL_VERSION )
+	if ( Q_stricmp( version, PROTOCOL_VERSION ) != 0 )
 	{
-		NET_OutOfBandPrint( NS_SERVER, from, "print\nServer uses protocol version %i (yours is %i).", PROTOCOL_VERSION, version );
-		Com_DPrintf( "    rejected connect from version %i\n", version );
+		NET_OutOfBandPrint( NS_SERVER, from, "print\nServer uses protocol version %s (yours is %s).", PROTOCOL_VERSION, version );
+		Com_DPrintf( "    rejected connect from version %s\n", version );
 		return;
 	}
 

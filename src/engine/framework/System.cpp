@@ -465,7 +465,7 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			);
 			OSExit(0);
 		} else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-version")) {
-			printf(PRODUCT_NAME " " PRODUCT_VERSION "\n");
+			printf("%s %s\n", PRODUCT_NAME, PRODUCT_VERSION);
 			OSExit(0);
 		} else if (!strcmp(argv[i], "-set")) {
 			if (i >= argc - 2) {

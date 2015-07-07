@@ -285,7 +285,7 @@ You or the server may be running older versions of the game."
 
 #define GAMENAME_STRING        "unv"
 
-#define PROTOCOL_VERSION       86
+#define PROTOCOL_VERSION       PRODUCT_VERSION
 
 #define URI_SCHEME             GAMENAME_STRING "://"
 #define URI_SCHEME_LENGTH      ( ARRAY_LEN( URI_SCHEME ) - 1 )

@@ -836,7 +836,7 @@ void CL_Record_f()
 	{
 		s = Cmd_Argv( 1 );
 		Q_strncpyz( demoName, s, sizeof( demoName ) );
-		Com_sprintf( name, sizeof( name ), "demos/%s.dm_%d", demoName, PROTOCOL_VERSION );
+		Com_sprintf( name, sizeof( name ), "demos/%s.dm_%s", demoName, PROTOCOL_VERSION );
 	}
 
 	else
@@ -871,7 +871,7 @@ void CL_Record_f()
 			period++;
 		}
 
-		Com_sprintf( name, sizeof( name ), "demos/%s-%s_%04i-%02i-%02i_%02i%02i%02i.dm_%d", NET_AdrToString( clc.serverAddress ), period,
+		Com_sprintf( name, sizeof( name ), "demos/%s-%s_%04i-%02i-%02i_%02i%02i%02i.dm_%s", NET_AdrToString( clc.serverAddress ), period,
 		             1900 + time.tm_year, time.tm_mon + 1, time.tm_mday,
 		             time.tm_hour, time.tm_min, time.tm_sec,
 		             PROTOCOL_VERSION );
@@ -1267,23 +1267,10 @@ class DemoCmd: public Cmd::StaticCmd {
             const std::string& fileName = args.Argv(1);
 
             const char* arg = fileName.c_str();
-            int prot_ver = PROTOCOL_VERSION - 1;
-
-            char extension[32];
             char name[ MAX_OSPATH ];
-            while (prot_ver <= PROTOCOL_VERSION && !clc.demofile) {
-                Com_sprintf(extension, sizeof(extension), ".dm_%d", prot_ver );
+            Com_sprintf(name, sizeof(name), "demos/%s.dm_%s", arg, PROTOCOL_VERSION);
 
-                if (!Q_stricmp(arg + strlen(arg) - strlen(extension), extension)) {
-                    Com_sprintf(name, sizeof(name), "demos/%s", arg);
-
-                } else {
-                    Com_sprintf(name, sizeof(name), "demos/%s.dm_%d", arg, prot_ver);
-                }
-
-                FS_FOpenFileRead(name, &clc.demofile, true);
-                prot_ver++;
-            }
+				FS_FOpenFileRead(name, &clc.demofile, true);
 
             if (!clc.demofile) {
                 Com_Error(ERR_DROP, "couldn't open %s", name);
@@ -1316,7 +1303,7 @@ class DemoCmd: public Cmd::StaticCmd {
 
         Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
             if (argNum == 1) {
-                return FS::HomePath::CompleteFilename(prefix, "demos", ".dm_" XSTRING(PROTOCOL_VERSION), false, true);
+                return FS::HomePath::CompleteFilename(prefix, "demos", ".dm_" PROTOCOL_VERSION, false, true);
             }
 
             return {};
@@ -2611,7 +2598,7 @@ void CL_CheckForResend()
 			port = Cvar_VariableValue( "net_qport" );
 
 			Q_strncpyz( info, Cvar_InfoString( CVAR_USERINFO, false ), sizeof( info ) );
-			Info_SetValueForKey( info, "protocol", va( "%i", PROTOCOL_VERSION ), false );
+			Info_SetValueForKey( info, "protocol", PROTOCOL_VERSION, false );
 			Info_SetValueForKey( info, "qport", va( "%i", port ), false );
 			Info_SetValueForKey( info, "challenge", va( "%i", clc.challenge ), false );
 			Info_SetValueForKey( info, "pubkey", key, false );
@@ -4246,9 +4233,7 @@ void CL_ServerInfoPacket( netadr_t from, msg_t *msg )
 	infoString = MSG_ReadString( msg );
 
 	// if this isn't the correct protocol version, ignore it
-	prot = atoi( Info_ValueForKey( infoString, "protocol" ) );
-
-	if ( prot != PROTOCOL_VERSION )
+	if ( Q_stricmp( Info_ValueForKey( infoString, "protocol" ), PROTOCOL_VERSION ) != 0 )
 	{
 		Com_DPrintf( "Different protocol info packet: %s\n", infoString );
 		return;

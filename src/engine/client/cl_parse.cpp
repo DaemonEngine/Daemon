@@ -353,7 +353,7 @@ void CL_ParseSnapshot( msg_t *msg )
 					period++;
 				}
 
-				Com_sprintf( name, sizeof( name ), "demos/%s_%04i-%02i-%02i_%02i%02i%02i.dm_%d", period,
+				Com_sprintf( name, sizeof( name ), "demos/%s_%04i-%02i-%02i_%02i%02i%02i.dm_%s", period,
 				             1900 + time.tm_year, time.tm_mon + 1, time.tm_mday,
 				             time.tm_hour, time.tm_min, time.tm_sec,
 				             PROTOCOL_VERSION );

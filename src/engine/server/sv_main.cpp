@@ -635,7 +635,7 @@ void SVC_Info( netadr_t from, const Cmd::Args& args )
 		strcpy( challenges[ i ].text, challenge );
 	}
 
-	Info_SetValueForKey( infostring, "protocol", va( "%i", PROTOCOL_VERSION ), false );
+	Info_SetValueForKey( infostring, "protocol", PROTOCOL_VERSION, false );
 	Info_SetValueForKey( infostring, "hostname", sv_hostname->string, false );
 	Info_SetValueForKey( infostring, "serverload", va( "%i", svs.serverLoad ), false );
 	Info_SetValueForKey( infostring, "mapname", sv_mapname->string, false );
