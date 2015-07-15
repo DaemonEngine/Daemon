@@ -24,7 +24,7 @@ include(CMakeParseArguments)
 function(GAMEMODULE)
     # ParseArguments setup
     set(oneValueArgs NAME)
-    set(multiValueArgs DEFINITIONS FLAGS FILES NACL_FILES LIBS NACL_LIBS)
+    set(multiValueArgs DEFINITIONS FLAGS FILES LIBS)
     cmake_parse_arguments(GAMEMODULE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
     if (NOT NACL)
         if (BUILD_GAME_NATIVE_DLL)
@@ -95,7 +95,7 @@ function(GAMEMODULE)
         endif()
 
         add_executable(${GAMEMODULE_NAME}-nacl-exe ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST} ${COMMONLIST} ${NACLLIST_MODULE})
-        target_link_libraries(${GAMEMODULE_NAME}-nacl-exe ${GAMEMODULE_LIBS} ${GAMEMODULE_NACL_LIBS} ${LIBS_BASE})
+        target_link_libraries(${GAMEMODULE_NAME}-nacl-exe ${GAMEMODULE_LIBS} ${LIBS_BASE})
         set_target_properties(${GAMEMODULE_NAME}-nacl-exe PROPERTIES
             OUTPUT_NAME ${GAMEMODULE_NAME}.pexe
             COMPILE_DEFINITIONS "${GAMEMODULE_DEFINITIONS}"

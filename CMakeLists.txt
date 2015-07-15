@@ -100,13 +100,11 @@ include(DaemonPlatform)
 
 # Dependencies version, this must match the number in external_deps/build.sh
 set(DEPS_VERSION 3)
-set(NACL_DEPS_VERSION 2)
 
 set(MOUNT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(MOUNT_DIR ${MOUNT_DIR} PARENT_SCOPE)
 include_directories(${MOUNT_DIR})
 set(OBJ_DIR ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY})
-set(OBJ_DIR ${OBJ_DIR} PARENT_SCOPE)
 set(ENGINE_DIR ${MOUNT_DIR}/engine)
 set(ENGINE_DIR ${ENGINE_DIR} PARENT_SCOPE)
 set(COMMON_DIR ${MOUNT_DIR}/common)
@@ -114,8 +112,6 @@ set(COMMON_DIR ${COMMON_DIR} PARENT_SCOPE)
 set(LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 set(LIB_DIR ${LIB_DIR} PARENT_SCOPE)
 include_directories(${LIB_DIR})
-set(ROCKET_DIR ${LIB_DIR}/libRocket)
-set(ROCKET_DIR ${ROCKET_DIR} PARENT_SCOPE)
 if (CMAKE_CFG_INTDIR STREQUAL ".")
     set(FULL_OUTPUT_DIR ${CMAKE_BINARY_DIR})
 else()
@@ -154,9 +150,6 @@ elseif (LINUX)
     endif()
 endif()
 set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
-
-set(NACL_DEPS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external_deps/pnacl-${NACL_DEPS_VERSION})
-set(NACL_DEPS_DIR ${NACL_DEPS_DIR} PARENT_SCOPE)
 
 ################################################################################
 # Compile and link flags
@@ -599,40 +592,6 @@ if (DEPS_DIR)
     endif()
 endif()
 
-if (NACL_DEPS_DIR)
-    # Download them if they not available
-    if (NOT EXISTS ${NACL_DEPS_DIR})
-        get_filename_component(BASENAME ${NACL_DEPS_DIR} NAME)
-        set(REMOTE "http://dl.unvanquished.net/deps/${BASENAME}.zip")
-        message(STATUS "Downloading dependencies from '${REMOTE}'")
-        file(DOWNLOAD ${REMOTE} ${OBJ_DIR}/${BASENAME}.zip
-            SHOW_PROGRESS
-            STATUS DOWNLOAD_RESULT
-            LOG DOWNLOAD_LOG
-        )
-        list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
-        list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
-        if (NOT DOWNLOAD_STATUS EQUAL 0)
-            message(FATAL_ERROR "Error downloading '${REMOTE}':
-                Status code: ${DOWNLOAD_STATUS}
-                Error string: ${DOWNLOAD_STRING}
-                Download log: ${DOWNLOAD_LOG}"
-            )
-        endif()
-        message(STATUS "Download completed successfully")
-
-        # Extract the downloaded archive
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -E tar xzf ${OBJ_DIR}/${BASENAME}.zip
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/external_deps
-            RESULT_VARIABLE EXTRACT_RESULT
-        )
-        if (NOT EXTRACT_RESULT EQUAL 0)
-            message(FATAL_ERROR "Could not extract ${BASENAME}.zip")
-        endif()
-    endif()
-endif()
-
 # These variables are defined:
 # LIBS_BASE, LIBS_ENGINE, LIBS_BASECLIENT, LIBS_CLIENT
 
@@ -778,13 +737,6 @@ if (BUILD_CLIENT OR (WIN32 AND (BUILD_TTY_CLIENT OR BUILD_SERVER)))
         add_definitions(-DHAVE_SDL)
     endif()
     mark_as_advanced(SDL2MAIN_LIBRARY SDL2_LIBRARY SDL2_INCLUDE_DIR)
-endif()
-
-if (BUILD_CLIENT OR BUILD_GAME_NATIVE_EXE OR BUILD_GAME_NATIVE_DLL)
-    add_subdirectory(${ROCKET_DIR})
-    set_target_properties(ROCKET_LIB PROPERTIES FOLDER "libs")
-    include_directories(${ROCKET_DIR}/Include ${ROCKET_DIR}/Contrib/Include)
-    set(LIBS_CLIENT ${LIBS_CLIENT} ROCKET_LIB)
 endif()
 
 if (BUILD_CLIENT)
