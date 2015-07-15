@@ -206,7 +206,7 @@ namespace // Implementation details
 		ThrowShaderError("Internal error. ShaderKind not set.");
 		return std::string();
 	}
-};
+}
 
 std::string GetShaderPath()
 {

@@ -36,12 +36,12 @@ Maryland 20850 USA.
 #include "qcommon.h"
 
 extern "C" {
-    #include "libs/findlocale/findlocale.h"
+    #include "findlocale/findlocale.h"
 }
 
-#include "libs/tinygettext/log.hpp"
-#include "libs/tinygettext/tinygettext.hpp"
-#include "libs/tinygettext/file_system.hpp"
+#include "tinygettext/log.hpp"
+#include "tinygettext/tinygettext.hpp"
+#include "tinygettext/file_system.hpp"
 
 using namespace tinygettext;
 

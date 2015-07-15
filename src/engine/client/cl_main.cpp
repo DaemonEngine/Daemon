@@ -44,7 +44,7 @@ Maryland 20850 USA.
 
 cvar_t *cl_wavefilerecord;
 
-#include "libmumblelink.h"
+#include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 
 #ifndef _WIN32

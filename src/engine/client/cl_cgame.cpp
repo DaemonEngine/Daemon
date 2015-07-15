@@ -37,7 +37,7 @@ Maryland 20850 USA.
 #include "client.h"
 #include "cg_msgdef.h"
 
-#include "libmumblelink.h"
+#include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 
 #include "framework/CommonVMServices.h"
