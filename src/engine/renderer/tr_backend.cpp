@@ -5600,24 +5600,6 @@ const void     *RB_RenderToTexture( const void *data )
 	return ( const void * )( cmd + 1 );
 }
 
-//bani
-
-/*
-=============
-RB_Finish
-=============
-*/
-const void     *RB_Finish( const void *data )
-{
-	const renderFinishCommand_t *cmd;
-
-	cmd = ( const renderFinishCommand_t * ) data;
-
-	glFinish();
-
-	return ( const void * )( cmd + 1 );
-}
-
 void RB_DebugDrawSpheres(int count, const DebugDraw::SphereData* spheres) {
     for (int i = 0; i < count; i++) {
         const DebugDraw::SphereData& sphere = spheres[i];
@@ -5749,10 +5731,6 @@ void RB_ExecuteRenderCommands( const void *data )
 
 			case RC_RENDERTOTEXTURE:
 				data = RB_RenderToTexture( data );
-				break;
-
-			case RC_FINISH:
-				data = RB_Finish( data );
 				break;
 
 			case RC_SCISSORSET:

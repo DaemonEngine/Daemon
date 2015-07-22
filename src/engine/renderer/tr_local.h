@@ -3862,7 +3862,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  RC_SCREENSHOT,
 	  RC_VIDEOFRAME,
 	  RC_RENDERTOTEXTURE,
-	  RC_FINISH,
       RC_DEBUGDRAW,
 	} renderCommand_t;
 

@@ -150,7 +150,6 @@ typedef struct
 	bool( *LoadDynamicShader )( const char *shadername, const char *shadertext );
 
 	void ( *RenderToTexture )( int textureid, int x, int y, int w, int h );
-	void ( *Finish )();
 
 	// XreaL BEGIN
 	void ( *TakeVideoFrame )( int h, int w, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg );

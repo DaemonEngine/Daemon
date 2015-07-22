@@ -956,23 +956,3 @@ void RE_RenderToTexture( int textureid, int x, int y, int w, int h )
 	ri.Printf( PRINT_ALL, S_COLOR_RED "TODO RE_RenderToTexture\n" );
 }
 
-/*
-==================
-RE_Finish
-==================
-*/
-void RE_Finish()
-{
-	renderFinishCommand_t *cmd;
-
-	ri.Printf( PRINT_ALL, "RE_Finish\n" );
-
-	cmd = (renderFinishCommand_t*) R_GetCommandBuffer( sizeof( *cmd ) );
-
-	if ( !cmd )
-	{
-		return;
-	}
-
-	cmd->commandId = RC_FINISH;
-}

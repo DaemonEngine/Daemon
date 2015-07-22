@@ -154,7 +154,6 @@ int R_GetTextureId( const char *imagename )
 {
 	return 0;
 }
-void RE_Finish() { }
 void RE_TakeVideoFrame( int h, int w, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg ) { }
 void RE_AddRefLightToScene( const refLight_t *light ) { }
 int RE_RegisterAnimation( const char *name )
@@ -296,8 +295,6 @@ refexport_t    *GetRefAPI( int apiVersion, refimport_t *rimp )
     re.LoadDynamicShader = RE_LoadDynamicShader;
     // fretn
     re.RenderToTexture = RE_RenderToTexture;
-    //bani
-    re.Finish = RE_Finish;
 
     re.TakeVideoFrame = RE_TakeVideoFrame;
     re.AddRefLightToScene = RE_AddRefLightToScene;
