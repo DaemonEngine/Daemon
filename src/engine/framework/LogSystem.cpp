@@ -79,7 +79,7 @@ namespace Log {
 
     //Log Targets
     //TODO: move them in their respective modules
-    //TODO this one isn't mutlithreaded at all, need a rewrite of the consoles
+    //TODO this one isn't multithreaded at all, need a rewrite of the consoles
     class TTYTarget : public Target {
         public:
             TTYTarget() {

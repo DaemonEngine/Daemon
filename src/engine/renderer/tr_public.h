@@ -38,6 +38,7 @@ Maryland 20850 USA.
 
 #include "tr_types.h"
 #include "engine/botlib/bot_debug.h"
+#include "engine/qcommon/qcommon.h"
 
 #define REF_API_VERSION 10
 

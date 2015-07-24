@@ -166,6 +166,17 @@ namespace Audio {
             Vec3 position = Vec3::Load(emitter->GetPosition());
             emitterDraw.AddSphere(position, 4.0f).Color({1.0f, 0.0f, 0.0f, 1.0f});
         }
+
+        for (int i = 0; i < MAX_GENTITIES; i++) {
+            auto emitter = entityEmitters[i];
+
+            if (not emitter) {
+                continue;
+            }
+
+            Vec3 position = Vec3::Load(entities[i].position);
+            emitterDraw.AddSphere(position, 4.0f).Color({1.0f, 0.0f, 0.0f, 1.0f});
+        }
     }
 
     void UpdateListenerEntity(int entityNum, const Vec3 orientation[3]) {

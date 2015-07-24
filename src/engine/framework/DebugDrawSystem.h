@@ -30,14 +30,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 
-//TODO
+//TODO remove when it is included in Common.h
 #include "common/DebugDraw.h"
+#include "engine/renderer/tr_public.h"
 
 #ifndef FRAMEWORK_DEBUG_DRAW_SYSTEM_H_
 #define FRAMEWORK_DEBUG_DRAW_SYSTEM_H_
 
 namespace DebugDraw {
-    void Frame();
+    void Frame(const refexport_t* renderer);
 }
 
 #endif // FRAMEWORK_DEBUG_DRAW_SYSTEM_H_

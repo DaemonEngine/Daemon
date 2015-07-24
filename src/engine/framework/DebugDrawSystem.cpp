@@ -32,10 +32,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace DebugDraw {
 
-    void Render(const LineData& line) {
+    void Render(const refexport_t* renderer, const LineData* lines, int count) {
+        renderer->DrawDebug(DRAWDEBUG_LINE, count, lines);
     }
 
-    void Render(const SphereData& sphere) {
+    void Render(const refexport_t* renderer, const SphereData* spheres, int count) {
+        renderer->DrawDebug(DRAWDEBUG_SPHERE, count, spheres);
     }
 
     template<typename T>
@@ -46,29 +48,37 @@ namespace DebugDraw {
             Sys::SteadyClock::time_point endTime;
         };
 
-        std::vector<Persistent> persistent;
-        std::vector<std::vector<T>> flushes;
+        std::vector<Persistent> persistent = {};
+        std::vector<std::vector<T>> flushes = {};
 
-        void Frame() {
+        void Frame(const refexport_t* renderer) {
             auto now = Sys::SteadyClock::now();
 
+            if (!persistent.empty()) {
+                persistent.erase(std::remove_if(persistent.begin(), persistent.end(), [&] (Persistent& p) -> bool {
+                    return p.endTime < now;
+                }));
+            }
+
+            // TODO make only one render for all of these
+            for (auto& p : persistent) {
+                Render(renderer, &p.data, 1);
+            }
+
             for (auto& flush : flushes) {
+                if (flush.empty()) {
+                    continue;
+                }
+
                 for (auto& data : flush) {
-                    if (data.lifetime == 0) {
-                        Render(data);
-                    } else {
+                    if (data.lifetime != 0) {
                         persistent.emplace_back(data, now + std::chrono::milliseconds(data.lifetime));
                     }
                 }
+                Render(renderer, flush.data(), flush.size());
             }
-            
-            persistent.erase(std::remove_if(persistent.begin(), persistent.end(), [&] (Persistent& p) -> bool {
-                return p.endTime < now;
-            }));
 
-            for (auto& p : persistent) {
-                Render(p.data);
-            }
+            flushes.clear();
         }
     };
 
@@ -83,9 +93,9 @@ namespace DebugDraw {
         spheres.flushes.push_back(std::move(flush));
     }
 
-    void Frame() {
-        lines.Frame();
-        spheres.Frame();
+    void Frame(const refexport_t* renderer) {
+        lines.Frame(renderer);
+        spheres.Frame(renderer);
     }
 
 }

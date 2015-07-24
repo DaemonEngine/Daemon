@@ -319,6 +319,8 @@ void R_ModelInit()
 
 	mod = R_AllocModel();
 	mod->type = MOD_BAD;
+    
+    tr.sphereSurface = tr.models[RE_RegisterModel("models/generic/sphere.md3")]->mdv[0]->vboSurfaces[0];
 }
 
 /*

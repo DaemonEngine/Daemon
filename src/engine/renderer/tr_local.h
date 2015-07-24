@@ -2588,6 +2588,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
 
+        srfVBOMDVMesh_t *sphereSurface;
+
 		image_t    *defaultImage;
 		image_t    *scratchImage[ 32 ];
 		image_t    *fogImage;
@@ -3830,13 +3832,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int commandId;
         int type;
         int count;
-    };
-
-    struct debugSphereCommand_t {
-		int commandId;
-        Vec3 center;
-        float radius;
-        Vec4 color;
     };
 
 	typedef struct

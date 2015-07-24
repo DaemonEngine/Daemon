@@ -648,6 +648,7 @@ void R_DebugDraw(DrawDebugType type, int count, const void* data) {
         return;
     }
 
+    static int n = 0;
     cmd->commandId = RC_DEBUGDRAW;
     cmd->type = type;
     cmd->count = count;

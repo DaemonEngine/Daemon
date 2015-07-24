@@ -4263,6 +4263,9 @@ static void RB_RenderDebugUtils()
 		Tess_End();
 	}
 
+    void RB_RenderDebugDraw();
+    RB_RenderDebugDraw();
+
 	GL_CheckErrors();
 }
 
@@ -5600,28 +5603,92 @@ const void     *RB_RenderToTexture( const void *data )
 	return ( const void * )( cmd + 1 );
 }
 
-void RB_DebugDrawSpheres(int count, const DebugDraw::SphereData* spheres) {
-    for (int i = 0; i < count; i++) {
-        const DebugDraw::SphereData& sphere = spheres[i];
+// Implementation of the rendering commands for common/DebugDraw
+
+namespace DebugDraw {
+    std::vector<DebugDraw::SphereData> spheres;
+
+    void AddSpheres(int count, const DebugDraw::SphereData* sphereData) {
+        // TODO inefficient
+        for (int i = 0; i < count; i++) {
+            const DebugDraw::SphereData& sphere = sphereData[i];
+            spheres.push_back(sphere);
+        }
+    }
+
+    void RenderSpheres() {
+        if ( tess.numVertexes )
+        {
+            Tess_End();
+        }
+        Tess_MapVBOs( false );
+
+        gl_genericShader->DisableVertexSkinning();
+        gl_genericShader->DisableVertexAnimation();
+        gl_genericShader->DisableTCGenEnvironment();
+        gl_genericShader->DisableTCGenLightmap();
+        gl_genericShader->BindProgram( 0 );
+
+        GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+        GL_Cull( CT_FRONT_SIDED );
+
+        GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
+
+        // set uniforms
+        gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
+        gl_genericShader->SetUniform_ColorModulate( CGEN_VERTEX, AGEN_VERTEX );
+
+        // bind u_ColorMap
+        GL_SelectTexture( 0 );
+        GL_Bind( tr.whiteImage );
+        gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+
+        // render in world space
+        backEnd.orientation = backEnd.viewParms.world;
+        GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
+        gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+        GL_DepthMask( GL_FALSE );
+
+        for (auto& sphere : spheres) {
+            gl_genericShader->BindProgram( 0 );
+            matrix_t modelView = {
+                sphere.radius, 0, 0, sphere.center.x(),
+                0, sphere.radius, 0, sphere.center.y(),
+                0, 0, sphere.radius, sphere.center.z(),
+                0, 0, 0, 1
+            };
+            gl_genericShader->SetUniform_Color( sphere.color.Data() );
+            matrix_t modelViewProjection;
+	        MatrixMultiply( glState.projectionMatrix[glState.stackIndex], modelView, modelViewProjection);
+			gl_genericShader->SetUniform_ModelViewProjectionMatrix(modelViewProjection);
+            // TODO
+            srfVBOMDVMesh_t *vboSurface = tr.sphereSurface;
+            rb_surfaceTable[vboSurface->surfaceType](vboSurface);
+        }
+
+        spheres.clear();
     }
 }
 
+void RB_RenderDebugDraw() {
+    DebugDraw::RenderSpheres();
+}
+
 const void* RB_DebugDraw(const void* data) {
-    const debugCommand_t* cmd = reinterpret_cast<const debugCommand_t*>(cmd);
+    const debugCommand_t* cmd = reinterpret_cast<const debugCommand_t*>(data);
 
     // TODO factor this
     size_t dataSize;
     switch (cmd->type) {
         case DRAWDEBUG_LINE:
             dataSize = sizeof(DebugDraw::LineData);
-            Log::Debug("Got %i lines.", cmd->count);
             //RB_DebugDrawLines(cmd->count, reinterpret_cast<const DebugDraw::LineData*>(cmd + 1));
             break;
 
         case DRAWDEBUG_SPHERE:
             dataSize = sizeof(DebugDraw::SphereData);
-            Log::Debug("Got %i spheres.", cmd->count);
-            RB_DebugDrawSpheres(cmd->count, reinterpret_cast<const DebugDraw::SphereData*>(cmd + 1));
+            DebugDraw::AddSpheres(cmd->count, reinterpret_cast<const DebugDraw::SphereData*>(cmd + 1));
             break;
 
         default:
@@ -5629,7 +5696,7 @@ const void* RB_DebugDraw(const void* data) {
             break;
     }
 
-    return reinterpret_cast<const char*>(cmd + 1) + cmd->count * dataSize;
+    return reinterpret_cast<const char*>(cmd) + sizeof(debugCommand_t) + cmd->count * dataSize;
 }
 
 /*
@@ -5739,6 +5806,7 @@ void RB_ExecuteRenderCommands( const void *data )
 
             case RC_DEBUGDRAW:
                 data = RB_DebugDraw(data);
+                break;
 
 			case RC_END_OF_LIST:
 			default:

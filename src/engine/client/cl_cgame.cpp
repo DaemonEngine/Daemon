@@ -2160,7 +2160,7 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
             case CG_R_RENDERSCENE:
                 HandleMsg<Render::RenderSceneMsg>(std::move(reader), [this] (refdef_t rd) {
                     DebugDraw::Flush();
-                    DebugDraw::Frame();
+                    DebugDraw::Frame(&re);
                     re.RenderScene(&rd);
                 });
 				break;
