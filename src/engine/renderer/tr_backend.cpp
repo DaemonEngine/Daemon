@@ -5616,7 +5616,7 @@ namespace DebugDraw {
         }
     }
 
-    void RenderSpheres() {
+   /* void RenderSpheres() {
         if ( tess.numVertexes )
         {
             Tess_End();
@@ -5627,45 +5627,100 @@ namespace DebugDraw {
         gl_genericShader->DisableVertexAnimation();
         gl_genericShader->DisableTCGenEnvironment();
         gl_genericShader->DisableTCGenLightmap();
-        gl_genericShader->BindProgram( 0 );
+        gl_genericShader->BindProgram(0);
 
-        GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
-        GL_Cull( CT_FRONT_SIDED );
+        GL_State(GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+        GL_Cull(CT_FRONT_SIDED);
 
-        GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
+        //GL_VertexAttribsState(ATTR_POSITION | ATTR_TEXCOORD);
 
         // set uniforms
-        gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-        gl_genericShader->SetUniform_ColorModulate( CGEN_VERTEX, AGEN_VERTEX );
+        gl_genericShader->SetUniform_AlphaTest(GLS_ATEST_NONE);
+        gl_genericShader->SetUniform_ColorModulate(CGEN_VERTEX, AGEN_VERTEX);
 
         // bind u_ColorMap
-        GL_SelectTexture( 0 );
-        GL_Bind( tr.whiteImage );
-        gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+        GL_SelectTexture(0);
+        GL_Bind(tr.whiteImage);
+        gl_genericShader->SetUniform_ColorTextureMatrix(matrixIdentity);
 
         // render in world space
         backEnd.orientation = backEnd.viewParms.world;
-        GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
-        gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
         GL_DepthMask( GL_FALSE );
 
         for (auto& sphere : spheres) {
+			tess.multiDrawPrimitives = 0;
+			tess.numIndexes = 0;
+			tess.numVertexes = 0;
+
+			Tess_MapVBOs( false );
             gl_genericShader->BindProgram( 0 );
+            static const vec3_t minSize = { -20, -20, -20 };
+            static const vec3_t maxSize = { 20,  20,  20 };
+            gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+            gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+            GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
+			Tess_AddCube(sphere.center.Data(), minSize, maxSize, colorYellow);
+			Tess_UpdateVBOs( );
+			GL_VertexAttribsState( ATTR_POSITION | ATTR_COLOR );
+			Tess_DrawElements();
+			tess.multiDrawPrimitives = 0;
+			tess.numIndexes = 0;
+			tess.numVertexes = 0;
+        }
+
+        spheres.clear();
+    } */
+    void RenderSpheres() {
+        if ( tess.numVertexes )
+        {
+            Tess_End();
+        }
+        //Tess_MapVBOs( false );
+
+        gl_genericShader->DisableVertexSkinning();
+        gl_genericShader->DisableVertexAnimation();
+        gl_genericShader->DisableTCGenEnvironment();
+        gl_genericShader->DisableTCGenLightmap();
+        gl_genericShader->BindProgram(0);
+
+        GL_State(GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
+        GL_Cull(CT_FRONT_SIDED);
+
+        GL_VertexAttribsState(ATTR_POSITION | ATTR_TEXCOORD);
+
+        // set uniforms
+        gl_genericShader->SetUniform_AlphaTest(GLS_ATEST_NONE);
+        gl_genericShader->SetUniform_ColorModulate(CGEN_VERTEX, AGEN_VERTEX);
+
+        // bind u_ColorMap
+        GL_SelectTexture(0);
+        GL_Bind(tr.whiteImage);
+        gl_genericShader->SetUniform_ColorTextureMatrix(matrixIdentity);
+
+        // render in world space
+        backEnd.orientation = backEnd.viewParms.world;
+
+        GL_DepthMask( GL_FALSE );
+
+		Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, nullptr, true, false, -1, 0 );
+
+        for (auto& sphere : spheres) {
             matrix_t modelView = {
                 sphere.radius, 0, 0, sphere.center.x(),
                 0, sphere.radius, 0, sphere.center.y(),
                 0, 0, sphere.radius, sphere.center.z(),
                 0, 0, 0, 1
             };
-            gl_genericShader->SetUniform_Color( sphere.color.Data() );
-            matrix_t modelViewProjection;
-	        MatrixMultiply( glState.projectionMatrix[glState.stackIndex], modelView, modelViewProjection);
-			gl_genericShader->SetUniform_ModelViewProjectionMatrix(modelViewProjection);
-            // TODO
+            gl_genericShader->SetUniform_Color(sphere.color.Data());
+            GL_LoadModelViewMatrix(modelView);
+			gl_genericShader->SetUniform_ModelMatrix(modelView);
+            gl_genericShader->SetUniform_ModelViewProjectionMatrix(glState.modelViewProjectionMatrix[glState.stackIndex]);
+
             srfVBOMDVMesh_t *vboSurface = tr.sphereSurface;
             rb_surfaceTable[vboSurface->surfaceType](vboSurface);
         }
+        Tess_End();
 
         spheres.clear();
     }
