@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define __NAV_H
 
 #include "bot_types.h"
-#include "../../libs/fastlz/fastlz.h"
+#include "fastlz/fastlz.h"
 #include "bot_convert.h"
 
 // should be the same as in rest of engine
@@ -105,7 +105,7 @@ struct OffMeshConnections
 
 	OffMeshConnections() : offMeshConCount( 0 ) { }
 
-	void reset( void )
+	void reset()
 	{
 		offMeshConCount = 0;
 	}

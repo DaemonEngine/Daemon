@@ -22,7 +22,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_light.c
 #include "tr_local.h"
-#include "../../common/Maths.h"
 
 /*
 =============
@@ -35,8 +34,8 @@ void R_AddBrushModelInteractions( trRefEntity_t *ent, trRefLight_t *light, inter
 {
 	int               i;
 	bspSurface_t      *surf;
-	bspModel_t        *bspModel = NULL;
-	model_t           *pModel = NULL;
+	bspModel_t        *bspModel = nullptr;
+	model_t           *pModel = nullptr;
 	byte              cubeSideBits;
 
 	// cull the entire model if it is outside the view frustum
@@ -192,10 +191,10 @@ int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, ve
 	float           totalFactor;
 
 	// bk010103 - this segfaults with -nolight maps
-	if ( tr.world->lightGridData1 == NULL ||
-	     tr.world->lightGridData2 == NULL )
+	if ( tr.world->lightGridData1 == nullptr ||
+	     tr.world->lightGridData2 == nullptr )
 	{
-		return qfalse;
+		return false;
 	}
 
 	for ( i = 0; i < 3; i++ )
@@ -255,21 +254,7 @@ int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, ve
 		ambientLight[ 2 ] = r_forceAmbient->value;
 	}
 
-//----(SA)  added
-	// cheats?  check for single player?
-	if ( tr.lightGridMulDirected )
-	{
-		VectorScale( directedLight, tr.lightGridMulDirected, directedLight );
-	}
-
-	if ( tr.lightGridMulAmbient )
-	{
-		VectorScale( ambientLight, tr.lightGridMulAmbient, ambientLight );
-	}
-
-//----(SA)  end
-
-	return qtrue;
+	return true;
 }
 
 /*
@@ -320,7 +305,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t
 		return;
 	}
 
-	ent->lightingCalculated = qtrue;
+	ent->lightingCalculated = true;
 
 	// if NOWORLDMODEL, only use dynamic lights (menu system, etc)
 	if ( !( refdef->rdflags & RDF_NOWORLDMODEL ) && tr.world
@@ -345,24 +330,12 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t
 		VectorNormalize( ent->lightDir );
 	}
 
-	if ( ent->e.hilightIntensity )
-	{
-		// level of intensity was set because the item was looked at
-		ent->ambientLight[ 0 ] += tr.identityLight * 0.5f * ent->e.hilightIntensity;
-		ent->ambientLight[ 1 ] += tr.identityLight * 0.5f * ent->e.hilightIntensity;
-		ent->ambientLight[ 2 ] += tr.identityLight * 0.5f * ent->e.hilightIntensity;
-	}
-	else if ( ( ent->e.renderfx & RF_MINLIGHT ) ) // && VectorLength(ent->ambientLight) <= 0)
+	if ( ( ent->e.renderfx & RF_MINLIGHT ) ) // && VectorLength(ent->ambientLight) <= 0)
 	{
 		// give everything a minimum light add
 		ent->ambientLight[ 0 ] += tr.identityLight * 0.125f;
 		ent->ambientLight[ 1 ] += tr.identityLight * 0.125f;
 		ent->ambientLight[ 2 ] += tr.identityLight * 0.125f;
-	}
-
-	if ( ent->e.entityNum < MAX_CLIENTS && ( refdef->rdflags & RDF_SNOOPERVIEW ) )
-	{
-		VectorSet( ent->ambientLight, 0.96f, 0.96f, 0.96f );  // allow a little room for flicker from directed light
 	}
 }
 
@@ -719,7 +692,7 @@ void R_SetupLightFrustum( trRefLight_t *light )
 		tess.numIndexes = 0;
 		tess.numVertexes = 0;
 
-		R_TessLight( light, NULL );
+		R_TessLight( light, nullptr );
 
 		memset( &data, 0, sizeof( data ) );
 		data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( tess.numVertexes * sizeof( *data.xyz ) );
@@ -897,7 +870,7 @@ void R_SetupLightProjection( trRefLight_t *light )
 R_AddLightInteraction
 =================
 */
-qboolean R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, shader_t *surfaceShader, byte cubeSideBits,
+bool R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, shader_t *surfaceShader, byte cubeSideBits,
                                 interactionType_t iaType )
 {
 	int           iaIndex;
@@ -908,12 +881,12 @@ qboolean R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, sha
 	{
 		if ( surfaceShader->isSky || ( !surfaceShader->interactLight && surfaceShader->noShadows ) )
 		{
-			return qfalse;
+			return false;
 		}
 	}
 	else
 	{
-		return qfalse;
+		return false;
 	}
 
 	// instead of checking for overflow, we just mask the index
@@ -947,7 +920,7 @@ qboolean R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, sha
 		light->numLightOnlyInteractions++;
 	}
 
-	ia->next = NULL;
+	ia->next = nullptr;
 
 	ia->type = iaType;
 
@@ -963,11 +936,6 @@ qboolean R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, sha
 	ia->scissorWidth = light->scissor.coords[ 2 ] - light->scissor.coords[ 0 ];
 	ia->scissorHeight = light->scissor.coords[ 3 ] - light->scissor.coords[ 1 ];
 
-	if ( glConfig2.occlusionQueryAvailable )
-	{
-		ia->noOcclusionQueries = light->noOcclusionQueries;
-	}
-
 	if ( light->isStatic )
 	{
 		tr.pc.c_slightInteractions++;
@@ -977,7 +945,7 @@ qboolean R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, sha
 		tr.pc.c_dlightInteractions++;
 	}
 
-	return qtrue;
+	return true;
 }
 
 /*
@@ -1053,7 +1021,7 @@ void R_SortInteractions( trRefLight_t *light )
 	qsort( iaFirst, light->numInteractions, sizeof( interaction_t ), InteractionCompare );
 
 	// fix linked list
-	iaLast = NULL;
+	iaLast = nullptr;
 
 	for ( i = 0; i < light->numInteractions; i++ )
 	{
@@ -1064,7 +1032,7 @@ void R_SortInteractions( trRefLight_t *light )
 			iaLast->next = ia;
 		}
 
-		ia->next = NULL;
+		ia->next = nullptr;
 
 		iaLast = ia;
 	}
@@ -1161,10 +1129,6 @@ static void R_AddEdgeToLightScissor( trRefLight_t *light, const vec3_t in_world1
 		// only clip against near plane
 		frust = &tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ];
 		int sides = R_ClipEdgeToPlane( *frust, in_world1, in_world2, clip1, clip2 );
-		if ( glConfig2.occlusionQueryAvailable && sides != 3 )
-		{
-			light->noOcclusionQueries = qtrue;
-		}
 		if ( !sides )
 		{
 			return;
@@ -1180,14 +1144,6 @@ static void R_AddEdgeToLightScissor( trRefLight_t *light, const vec3_t in_world1
 			frust = &tr.viewParms.frustums[ 0 ][ i ];
 
 			int sides = R_ClipEdgeToPlane( *frust, in_world1, in_world2, clip1, clip2 );
-
-			if ( glConfig2.occlusionQueryAvailable && i == FRUSTUM_NEAR )
-			{
-				if ( sides != 3 )
-				{
-					light->noOcclusionQueries = qtrue;
-				}
-			}
 
 			if ( !sides )
 			{
@@ -1216,20 +1172,6 @@ void R_SetupLightScissor( trRefLight_t *light )
 	light->scissor.coords[ 1 ] = tr.viewParms.viewportY;
 	light->scissor.coords[ 2 ] = tr.viewParms.viewportX + tr.viewParms.viewportWidth;
 	light->scissor.coords[ 3 ] = tr.viewParms.viewportY + tr.viewParms.viewportHeight;
-
-	if ( glConfig2.occlusionQueryAvailable )
-	{
-		light->noOcclusionQueries = qfalse;
-	}
-
-	if ( r_lightScissors->integer == 0 )
-	{
-		if ( glConfig2.occlusionQueryAvailable )
-		{
-			light->noOcclusionQueries = qtrue;
-		}
-		return;
-	}
 
 	// transform world light corners to eye space -> clip space -> window space
 	// and extend the light scissor's mins maxs by resulting window coords
@@ -1351,11 +1293,11 @@ void R_SetupLightScissor( trRefLight_t *light )
 			break;
 	}
 
-	light->scissor.coords[ 0 ] = Maths::clamp( light->scissor.coords[ 0 ], tr.viewParms.viewportX, tr.viewParms.viewportX + tr.viewParms.viewportWidth );
-	light->scissor.coords[ 2 ] = Maths::clamp( light->scissor.coords[ 2 ], tr.viewParms.viewportX, tr.viewParms.viewportX + tr.viewParms.viewportWidth );
+	light->scissor.coords[ 0 ] = Math::Clamp( light->scissor.coords[ 0 ], tr.viewParms.viewportX, tr.viewParms.viewportX + tr.viewParms.viewportWidth );
+	light->scissor.coords[ 2 ] = Math::Clamp( light->scissor.coords[ 2 ], tr.viewParms.viewportX, tr.viewParms.viewportX + tr.viewParms.viewportWidth );
 
-	light->scissor.coords[ 1 ] = Maths::clamp( light->scissor.coords[ 1 ], tr.viewParms.viewportY, tr.viewParms.viewportY + tr.viewParms.viewportHeight );
-	light->scissor.coords[ 3 ] = Maths::clamp( light->scissor.coords[ 3 ], tr.viewParms.viewportY, tr.viewParms.viewportY + tr.viewParms.viewportHeight );
+	light->scissor.coords[ 1 ] = Math::Clamp( light->scissor.coords[ 1 ], tr.viewParms.viewportY, tr.viewParms.viewportY + tr.viewParms.viewportHeight );
+	light->scissor.coords[ 3 ] = Math::Clamp( light->scissor.coords[ 3 ], tr.viewParms.viewportY, tr.viewParms.viewportY + tr.viewParms.viewportHeight );
 }
 
 /*
@@ -1377,8 +1319,8 @@ byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 	frustum_t  frustum;
 	cplane_t   *clipPlane;
 	int        r;
-	qboolean   anyClip;
-	qboolean   culled;
+	bool   anyClip;
+	bool   culled;
 
 	if ( light->l.rlType != RL_OMNI || r_shadows->integer < SHADOWING_ESM16 || r_noShadowPyramids->integer )
 	{
@@ -1458,8 +1400,8 @@ byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 		R_SetupFrustum2( frustum, viewProjectionMatrix );
 
 		// use the frustum planes to cut off shadowmaps beyond the light volume
-		anyClip = qfalse;
-		culled = qfalse;
+		anyClip = false;
+		culled = false;
 
 		for ( i = 0; i < 5; i++ )
 		{
@@ -1469,13 +1411,13 @@ byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 
 			if ( r == 2 )
 			{
-				culled = qtrue;
+				culled = true;
 				break;
 			}
 
 			if ( r == 3 )
 			{
-				anyClip = qtrue;
+				anyClip = true;
 			}
 		}
 
@@ -1716,7 +1658,7 @@ int R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 {
 	int      i;
 	cplane_t *frust;
-	qboolean anyClip;
+	bool anyClip;
 	int      r;
 
 	if ( r_nocull->integer )
@@ -1725,7 +1667,7 @@ int R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 	}
 
 	// check against frustum planes
-	anyClip = qfalse;
+	anyClip = false;
 
 	for ( i = 0; i < 6; i++ )
 	{
@@ -1741,7 +1683,7 @@ int R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 
 		if ( r == 3 )
 		{
-			anyClip = qtrue;
+			anyClip = true;
 		}
 	}
 

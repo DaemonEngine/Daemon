@@ -35,13 +35,14 @@ Maryland 20850 USA.
 // cl_cgame.c  -- client system interaction with client game
 
 #include "client.h"
-#include "../sys/sys_local.h"
+#include "cg_msgdef.h"
 
-#include "libmumblelink.h"
-#include "../qcommon/crypto.h"
+#include "mumblelink/libmumblelink.h"
+#include "qcommon/crypto.h"
 
-#include "../framework/CommandSystem.h"
-#include "../framework/CvarSystem.h"
+#include "framework/CommonVMServices.h"
+#include "framework/CommandSystem.h"
+#include "framework/CvarSystem.h"
 
 #define __(x) Trans_GettextGame(x)
 #define C__(x, y) Trans_PgettextGame(x, y)
@@ -58,30 +59,10 @@ void Key_GetBindingByString( const char *binding, int team, int *key1, int *key2
 
 /*
 ====================
-CL_GetGameState
-====================
-*/
-void CL_GetGameState( gameState_t *gs )
-{
-	*gs = cl.gameState;
-}
-
-/*
-====================
-CL_GetGlconfig
-====================
-*/
-void CL_GetGlconfig( glconfig_t *glconfig )
-{
-	*glconfig = cls.glconfig;
-}
-
-/*
-====================
 CL_GetUserCmd
 ====================
 */
-qboolean CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd )
+bool CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd )
 {
 	// cmds[cmdNumber] is the last properly generated command
 
@@ -95,15 +76,15 @@ qboolean CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd )
 	// buffer because it is too far out of date
 	if ( cmdNumber <= cl.cmdNumber - CMD_BACKUP )
 	{
-		return qfalse;
+		return false;
 	}
 
 	*ucmd = cl.cmds[ cmdNumber & CMD_MASK ];
 
-	return qtrue;
+	return true;
 }
 
-int CL_GetCurrentCmdNumber( void )
+int CL_GetCurrentCmdNumber()
 {
 	return cl.cmdNumber;
 }
@@ -120,132 +101,15 @@ void CL_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime )
 }
 
 /*
-====================
-CL_GetSnapshot
-====================
-*/
-qboolean CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
-{
-	clSnapshot_t *clSnap;
-	int          i, count;
-
-	if ( snapshotNumber > cl.snap.messageNum )
-	{
-		Com_Error( ERR_DROP, "CL_GetSnapshot: snapshotNumber > cl.snapshot.messageNum" );
-	}
-
-	// if the frame has fallen out of the circular buffer, we can't return it
-	if ( cl.snap.messageNum - snapshotNumber >= PACKET_BACKUP )
-	{
-		return qfalse;
-	}
-
-	// if the frame is not valid, we can't return it
-	clSnap = &cl.snapshots[ snapshotNumber & PACKET_MASK ];
-
-	if ( !clSnap->valid )
-	{
-		return qfalse;
-	}
-
-	// if the entities in the frame have fallen out of their
-	// circular buffer, we can't return it
-	if ( cl.parseEntitiesNum - clSnap->parseEntitiesNum >= MAX_PARSE_ENTITIES )
-	{
-		return qfalse;
-	}
-
-	// write the snapshot
-	snapshot->snapFlags = clSnap->snapFlags;
-	snapshot->serverCommandSequence = clSnap->serverCommandNum;
-	snapshot->ping = clSnap->ping;
-	snapshot->serverTime = clSnap->serverTime;
-	memcpy( snapshot->areamask, clSnap->areamask, sizeof( snapshot->areamask ) );
-	snapshot->ps = clSnap->ps;
-	count = clSnap->numEntities;
-
-	if ( count > MAX_ENTITIES_IN_SNAPSHOT )
-	{
-		Com_DPrintf( "CL_GetSnapshot: truncated %i entities to %i\n", count, MAX_ENTITIES_IN_SNAPSHOT );
-		count = MAX_ENTITIES_IN_SNAPSHOT;
-	}
-
-	snapshot->numEntities = count;
-
-	for ( i = 0; i < count; i++ )
-	{
-		snapshot->entities[ i ] = cl.parseEntities[( clSnap->parseEntitiesNum + i ) & ( MAX_PARSE_ENTITIES - 1 ) ];
-	}
-
-	// FIXME: configstring changes and server commands!!!
-
-	return qtrue;
-}
-
-/*
 ==============
 CL_SetUserCmdValue
 ==============
 */
-void CL_SetUserCmdValue( int userCmdValue, int flags, float sensitivityScale, int mpIdentClient )
+void CL_SetUserCmdValue( int userCmdValue, int flags, float sensitivityScale )
 {
 	cl.cgameUserCmdValue = userCmdValue;
 	cl.cgameFlags = flags;
 	cl.cgameSensitivity = sensitivityScale;
-	cl.cgameMpIdentClient = mpIdentClient; // NERVE - SMF
-}
-
-/*
-==================
-CL_SetClientLerpOrigin
-==================
-*/
-void CL_SetClientLerpOrigin( float x, float y, float z )
-{
-	cl.cgameClientLerpOrigin[ 0 ] = x;
-	cl.cgameClientLerpOrigin[ 1 ] = y;
-	cl.cgameClientLerpOrigin[ 2 ] = z;
-}
-
-/*
-==================
-CL_CGameStats
-==================
-*/
-void CL_CGameStats( void )
-{
-	int nFrames = cl_cgameSyscallStats->integer;
-
-	if (nFrames > 0 && cls.framecount % nFrames == 0 && cls.nCgameSyscalls != 0) {
-		Com_Printf("Average over %i frames: %f syscalls (R: %f CM: %f U: %f S: %f)\n", nFrames,
-				float(cls.nCgameSyscalls) / nFrames,
-				float(cls.nCgameRenderSyscalls) / nFrames,
-				float(cls.nCgamePhysicsSyscalls) / nFrames,
-				float(cls.nCgameUselessSyscalls) / nFrames,
-				float(cls.nCgameSoundSyscalls) / nFrames
-			);
-		cls.nCgameSyscalls = cls.nCgameRenderSyscalls = cls.nCgamePhysicsSyscalls = cls.nCgameUselessSyscalls = cls.nCgameSoundSyscalls = 0;
-	}
-}
-/*
-=====================
-CL_CompleteCgameCommand
-=====================
-*/
-void CL_CompleteCgameCommand( char *args, int argNum )
-{
-	VM_Call( cgvm, CG_COMPLETE_COMMAND, argNum );
-}
-
-/*
-==============
-CL_AddCgameCommand
-==============
-*/
-void CL_AddCgameCommand( const char *cmdName )
-{
-	Cmd_AddCommand( cmdName, CL_GameCommandHandler );
-	Cmd_SetCommandCompletionFunc( cmdName, CL_CompleteCgameCommand );
 }
 
 /*
@@ -255,71 +119,23 @@ CL_ConfigstringModified
 */
 void CL_ConfigstringModified( Cmd::Args& csCmd )
 {
-	const char  *old, *s;
-	int         i, index;
-	const char  *dup;
-	gameState_t oldGs;
-	int         len;
-
 	if (csCmd.Argc() < 3) {
 		Com_Error( ERR_DROP, "CL_ConfigstringModified: wrong command received" );
 	}
 
-	index = atoi( csCmd.Argv(1).c_str() );
+	int index = atoi( csCmd.Argv(1).c_str() );
 
 	if ( index < 0 || index >= MAX_CONFIGSTRINGS )
 	{
 		Com_Error( ERR_DROP, "CL_ConfigstringModified: bad index %i", index );
 	}
 
-//  s = Cmd_Argv(2);
-	// get everything after "cs <num>"
-	//s = Cmd_ArgsFrom( 2 );
-	s = csCmd.Argv(2).c_str();
-
-	old = cl.gameState.stringData + cl.gameState.stringOffsets[ index ];
-
-	if ( !strcmp( old, s ) )
+	if ( cl.gameState[index] == csCmd.Argv(2) )
 	{
-		return; // unchanged
+		return;
 	}
 
-	// build the new gameState_t
-	oldGs = cl.gameState;
-
-	memset( &cl.gameState, 0, sizeof( cl.gameState ) );
-
-	// leave the first 0 for uninitialized strings
-	cl.gameState.dataCount = 1;
-
-	for ( i = 0; i < MAX_CONFIGSTRINGS; i++ )
-	{
-		if ( i == index )
-		{
-			dup = s;
-		}
-		else
-		{
-			dup = oldGs.stringData + oldGs.stringOffsets[ i ];
-		}
-
-		if ( !dup[ 0 ] )
-		{
-			continue; // leave with the default empty string
-		}
-
-		len = strlen( dup );
-
-		if ( len + 1 + cl.gameState.dataCount > MAX_GAMESTATE_CHARS )
-		{
-			Com_Error( ERR_DROP, "MAX_GAMESTATE_CHARS exceeded" );
-		}
-
-		// append it to the gameState string buffer
-		cl.gameState.stringOffsets[ i ] = cl.gameState.dataCount;
-		memcpy( cl.gameState.stringData + cl.gameState.dataCount, dup, len + 1 );
-		cl.gameState.dataCount += len + 1;
-	}
+	cl.gameState[index] = csCmd.Argv(2);
 
 	if ( index == CS_SYSTEMINFO )
 	{
@@ -334,12 +150,12 @@ CL_HandleServerCommand
 CL_GetServerCommand
 ===================
 */
-bool CL_HandleServerCommand(Str::StringRef text) {
+bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 	static char bigConfigString[ BIG_INFO_STRING ];
 	Cmd::Args args(text);
 
 	if (args.Argc() == 0) {
-		return qfalse;
+		return false;
 	}
 
 	auto cmd = args.Argv(0);
@@ -363,7 +179,7 @@ bool CL_HandleServerCommand(Str::StringRef text) {
 		if (argc >= 3) {
 			Com_sprintf(bigConfigString, BIG_INFO_STRING, "cs %s %s", args.Argv(1).c_str(), args.EscapedArgs(2).c_str());
 		}
-		return qfalse;
+		return false;
 	}
 
 	if (cmd == "bcs1") {
@@ -376,7 +192,7 @@ bool CL_HandleServerCommand(Str::StringRef text) {
 
 			Q_strcat(bigConfigString, sizeof(bigConfigString), s);
 		}
-		return qfalse;
+		return false;
 	}
 
 	if (cmd == "bcs2") {
@@ -389,41 +205,40 @@ bool CL_HandleServerCommand(Str::StringRef text) {
 
 			Q_strcat(bigConfigString, sizeof(bigConfigString), s);
 			Q_strcat(bigConfigString, sizeof(bigConfigString), "\"");
-			return CL_HandleServerCommand(bigConfigString);
+			newText = bigConfigString;
+			return CL_HandleServerCommand(bigConfigString, newText);
 		}
-		return qfalse;
+		return false;
 	}
 
 	if (cmd == "cs") {
 		CL_ConfigstringModified(args);
-		Cmd_TokenizeString(text.c_str());
-		return qtrue;
+		return true;
 	}
 
 	if (cmd == "map_restart") {
 		// clear outgoing commands before passing
 		// the restart to the cgame
 		memset(cl.cmds, 0, sizeof(cl.cmds));
-		Cmd_TokenizeString(text.c_str());
-		return qtrue;
+		return true;
 	}
 
 	if (cmd == "popup") {
 		// direct server to client popup request, bypassing cgame
 		if (cls.state == CA_ACTIVE && !clc.demoplaying && argc >=1) {
-			Rocket_DocumentAction(args.Argv(1).c_str(), "open");
+			// TODO: Pass to the cgame
 		}
-		return qfalse;
+		return false;
 	}
 
 	if (cmd == "pubkey_decrypt") {
 		char         buffer[ MAX_STRING_CHARS ] = "pubkey_identify ";
-		unsigned int msg_len = MAX_STRING_CHARS - 16;
+		NettleLength msg_len = MAX_STRING_CHARS - 16;
 		mpz_t        message;
 
 		if (argc == 1) {
 			Com_Printf("%s", "^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!\n");
-			return qfalse;
+			return false;
 		}
 
 		mpz_init_set_str(message, args.Argv(1).c_str(), 16);
@@ -435,139 +250,97 @@ bool CL_HandleServerCommand(Str::StringRef text) {
 		}
 
 		mpz_clear(message);
-		return qfalse;
+		return false;
 	}
 
-	Cmd_TokenizeString(text.c_str());
-	return qtrue;
+	return true;
 }
 
-// Get the server command, does client-specific handling
-// that may block the propagation of the command to cgame.
-// If the propagation is not blocked then it tokenizes the
-// command.
-// Returns false if the command was blacked.
-qboolean CL_GetServerCommand( int serverCommandNumber )
+// Get the server commands, does client-specific handling
+// that may block the propagation of a command to cgame.
+// If the propagation is not blocked then it puts the command
+// in commands.
+void CL_FillServerCommands(std::vector<std::string>& commands, int start, int end)
 {
-	const char  *s;
-
 	// if we have irretrievably lost a reliable command, drop the connection
-	if ( serverCommandNumber <= clc.serverCommandSequence - MAX_RELIABLE_COMMANDS )
+	if ( start <= clc.serverCommandSequence - MAX_RELIABLE_COMMANDS )
 	{
 		// when a demo record was started after the client got a whole bunch of
 		// reliable commands then the client never got those first reliable commands
 		if ( clc.demoplaying )
 		{
-			return qfalse;
+			return;
 		}
 
-		Com_Error( ERR_DROP, "CL_GetServerCommand: a reliable command was cycled out" );
+		Com_Error( ERR_DROP, "CL_FillServerCommand: a reliable command was cycled out" );
 	}
 
-	if ( serverCommandNumber > clc.serverCommandSequence )
+	if ( end > clc.serverCommandSequence )
 	{
-		Com_Error( ERR_DROP, "CL_GetServerCommand: requested a command not received" );
+		Com_Error( ERR_DROP, "CL_FillServerCommand: requested a command not received" );
 	}
 
-	s = clc.serverCommands[ serverCommandNumber & ( MAX_RELIABLE_COMMANDS - 1 ) ];
-	clc.lastExecutedServerCommand = serverCommandNumber;
+	for (int i = start; i <= end; i++) {
+		const char* s = clc.serverCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ];
 
-	if ( cl_showServerCommands->integer )
-	{
-		// NERVE - SMF
-		Com_Printf( "serverCommand: %i : %s\n", serverCommandNumber, s );
-	}
-
-	return CL_HandleServerCommand(s);
-}
-
-// DHM - Nerve :: Copied from server to here
-
-/*
-====================
-CL_SetExpectedHunkUsage
-
-  Sets com_expectedhunkusage, so the client knows how to draw the percentage bar
-====================
-*/
-void CL_SetExpectedHunkUsage( const char *mapname )
-{
-	int  handle;
-	char *memlistfile = "hunkusage.dat";
-	char *buf;
-	char *buftrav;
-	char *token;
-	int  len;
-
-	len = FS_FOpenFileRead( memlistfile, &handle, qfalse );
-
-	if ( len >= 0 )
-	{
-		// the file exists, so read it in, strip out the current entry for this map, and save it out, so we can append the new value
-		buf = ( char * ) Z_Malloc( len + 1 );
-		memset( buf, 0, len + 1 );
-
-		FS_Read( ( void * ) buf, len, handle );
-		FS_FCloseFile( handle );
-
-		// now parse the file, filtering out the current map
-		buftrav = buf;
-
-		while ( ( token = COM_Parse( &buftrav ) ) != NULL && token[ 0 ] )
-		{
-			if ( !Q_stricmp( token, ( char * ) mapname ) )
-			{
-				// found a match
-				token = COM_Parse( &buftrav );  // read the size
-
-				if ( token && *token )
-				{
-					// this is the usage
-					com_expectedhunkusage = atoi( token );
-					Z_Free( buf );
-					return;
-				}
-			}
+		std::string cmdText = s;
+		if (CL_HandleServerCommand(s, cmdText)) {
+			commands.push_back(std::move(cmdText));
 		}
-
-		Z_Free( buf );
 	}
-
-	// just set it to a negative number,so the cgame knows not to draw the percent bar
-	com_expectedhunkusage = -1;
 }
 
 /*
 ====================
-CL_CM_LoadMap
-
-Just adds default parameters that cgame doesn't need to know about
+CL_GetSnapshot
 ====================
 */
-void CL_CM_LoadMap( const char *mapname )
+bool CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
 {
-	// DHM - Nerve :: If we are not running the server, then set expected usage here
-	if ( !com_sv_running->integer )
-	{
-		CL_SetExpectedHunkUsage( mapname );
-	}
-	else
-	{
-		// TTimo
-		// catch here when a local server is started to avoid outdated com_errorDiagnoseIP
-		Cvar_Set( "com_errorDiagnoseIP", "" );
-	}
-	void* buffer;
-	FS_ReadFile( mapname, ( void ** ) &buffer );
+	clSnapshot_t *clSnap;
 
-	if ( !buffer )
+	if ( snapshotNumber > cl.snap.messageNum )
 	{
-		Com_Error( ERR_DROP, "Couldn't load %s", mapname );
+		Com_Error( ERR_DROP, "CL_GetSnapshot: snapshotNumber > cl.snapshot.messageNum" );
 	}
 
-	CM_LoadMap( mapname, buffer, qtrue );
+	// if the frame has fallen out of the circular buffer, we can't return it
+	if ( cl.snap.messageNum - snapshotNumber >= PACKET_BACKUP )
+	{
+		return false;
+	}
 
-	FS_FreeFile( buffer );
+	// if the frame is not valid, we can't return it
+	clSnap = &cl.snapshots[ snapshotNumber & PACKET_MASK ];
+
+	if ( !clSnap->valid )
+	{
+		return false;
+	}
+
+	// if the entities in the frame have fallen out of their
+	// circular buffer, we can't return it
+	if ( cl.parseEntitiesNum - clSnap->parseEntitiesNum >= MAX_PARSE_ENTITIES )
+	{
+		return false;
+	}
+
+	// write the snapshot
+	snapshot->snapFlags = clSnap->snapFlags;
+	snapshot->ping = clSnap->ping;
+	snapshot->serverTime = clSnap->serverTime;
+	memcpy( snapshot->areamask, clSnap->areamask, sizeof( snapshot->areamask ) );
+	snapshot->ps = clSnap->ps;
+
+	snapshot->entities.reserve(clSnap->numEntities);
+	for (int i = 0; i < clSnap->numEntities; i++) {
+		snapshot->entities.push_back(cl.parseEntities[( clSnap->parseEntitiesNum + i ) & ( MAX_PARSE_ENTITIES - 1 ) ]);
+	}
+
+	CL_FillServerCommands(snapshot->serverCommands, clc.lastExecutedServerCommand + 1, clSnap->serverCommandNum);
+	clc.lastExecutedServerCommand = clSnap->serverCommandNum;
+
+	return true;
 }
 
 /*
@@ -575,21 +348,18 @@ void CL_CM_LoadMap( const char *mapname )
 CL_ShutdownCGame
 ====================
 */
-void CL_ShutdownCGame( void )
+void CL_ShutdownCGame()
 {
 	cls.keyCatchers &= ~KEYCATCH_CGAME;
-	cls.cgameStarted = qfalse;
+	cls.cgameStarted = false;
 
-	if ( !cgvm )
+	if ( !cgvm.IsActive() )
 	{
 		return;
 	}
 
-	Rocket_Shutdown();
-	VM_Call( cgvm, CG_SHUTDOWN );
-	VM_Free( cgvm );
-	cgvm = NULL;
-	Cmd_RemoveCommandsByFunc( CL_GameCommandHandler );
+	cgvm.CGameShutdown();
+	cgvm.Free();
 }
 
 //
@@ -598,25 +368,10 @@ void CL_ShutdownCGame( void )
 
 /*
  * ====================
- * GetClientState
- * ====================
- */
-static void GetClientState( cgClientState_t *state )
-{
-	state->connectPacketCount = clc.connectPacketCount;
-	state->connState = cls.state;
-	Q_strncpyz( state->servername, cls.servername, sizeof( state->servername ) );
-	Q_strncpyz( state->updateInfoString, cls.updateInfoString, sizeof( state->updateInfoString ) );
-	Q_strncpyz( state->messageString, clc.serverMessage, sizeof( state->messageString ) );
-	state->clientNum = cl.snap.ps.clientNum;
-}
-
-/*
- * ====================
  * LAN_LoadCachedServers
  * ====================
  */
-void LAN_LoadCachedServers( void )
+void LAN_LoadCachedServers()
 {
 	int          size;
 	fileHandle_t fileIn;
@@ -624,7 +379,7 @@ void LAN_LoadCachedServers( void )
 	cls.numglobalservers = cls.numfavoriteservers = 0;
 	cls.numGlobalServerAddresses = 0;
 
-	if ( FS_FOpenFileRead( "servercache.dat", &fileIn, qtrue ) != -1 )
+	if ( FS_FOpenFileRead( "servercache.dat", &fileIn, true ) != -1 )
 	{
 		FS_Read( &cls.numglobalservers, sizeof( int ), fileIn );
 		FS_Read( &cls.numfavoriteservers, sizeof( int ), fileIn );
@@ -650,7 +405,7 @@ void LAN_LoadCachedServers( void )
  * LAN_SaveServersToCache
  * ====================
  */
-void LAN_SaveServersToCache( void )
+void LAN_SaveServersToCache()
 {
 	int          size;
 	fileHandle_t fileOut;
@@ -670,7 +425,7 @@ void LAN_SaveServersToCache( void )
  * GetNews
  * ====================
  */
-qboolean GetNews( qboolean begin )
+bool GetNews( bool begin )
 {
 	if ( begin ) // if not already using curl, start the download
 	{
@@ -678,14 +433,7 @@ qboolean GetNews( qboolean begin )
 		Cvar_Set( "cl_newsString", "Retrieving…" );
 	}
 
-	if ( Cvar_VariableString( "cl_newsString" ) [ 0 ] == 'R' )
-	{
-		return qfalse;
-	}
-	else
-	{
-		return qtrue;
-	}
+	return Cvar_VariableString( "cl_newsString" ) [ 0 ] == 'R';
 }
 
 /*
@@ -696,7 +444,7 @@ qboolean GetNews( qboolean begin )
 static void LAN_ResetPings( int source )
 {
 	int          count, i;
-	serverInfo_t *servers = NULL;
+	serverInfo_t *servers = nullptr;
 
 	count = 0;
 
@@ -729,118 +477,6 @@ static void LAN_ResetPings( int source )
 
 /*
  * ====================
- * LAN_AddServer
- * ====================
- */
-static int LAN_AddServer( int source, const char *name, const char *address )
-{
-	int          max, *count, i;
-	netadr_t     adr;
-	serverInfo_t *servers = NULL;
-	max = MAX_OTHER_SERVERS;
-	count = 0;
-
-	switch ( source )
-	{
-		case AS_LOCAL:
-			count = &cls.numlocalservers;
-			servers = &cls.localServers[ 0 ];
-			break;
-
-		case AS_GLOBAL:
-			max = MAX_GLOBAL_SERVERS;
-			count = &cls.numglobalservers;
-			servers = &cls.globalServers[ 0 ];
-			break;
-
-		case AS_FAVORITES:
-			count = &cls.numfavoriteservers;
-			servers = &cls.favoriteServers[ 0 ];
-			break;
-	}
-
-	if ( servers && *count < max )
-	{
-		NET_StringToAdr( address, &adr, NA_UNSPEC );
-
-		for ( i = 0; i < *count; i++ )
-		{
-			if ( NET_CompareAdr( servers[ i ].adr, adr ) )
-			{
-				break;
-			}
-		}
-
-		if ( i >= *count )
-		{
-			servers[ *count ].adr = adr;
-			Q_strncpyz( servers[ *count ].hostName, name, sizeof( servers[ *count ].hostName ) );
-			servers[ *count ].visible = qtrue;
-			( *count ) ++;
-			return 1;
-		}
-
-		return 0;
-	}
-
-	return -1;
-}
-
-/*
- * ====================
- * LAN_RemoveServer
- * ====================
- */
-static void LAN_RemoveServer( int source, const char *addr )
-{
-	int          *count, i;
-	serverInfo_t *servers = NULL;
-	count = 0;
-
-	switch ( source )
-	{
-		case AS_LOCAL:
-			count = &cls.numlocalservers;
-			servers = &cls.localServers[ 0 ];
-			break;
-
-		case AS_GLOBAL:
-			count = &cls.numglobalservers;
-			servers = &cls.globalServers[ 0 ];
-			break;
-
-		case AS_FAVORITES:
-			count = &cls.numfavoriteservers;
-			servers = &cls.favoriteServers[ 0 ];
-			break;
-	}
-
-	if ( servers )
-	{
-		netadr_t comp;
-		NET_StringToAdr( addr, &comp, NA_UNSPEC );
-
-		for ( i = 0; i < *count; i++ )
-		{
-			if ( NET_CompareAdr( comp, servers[ i ].adr ) )
-			{
-				int j = i;
-
-				while ( j < *count - 1 )
-				{
-					Com_Memcpy( &servers[ j ], &servers[ j + 1 ], sizeof( servers[ j ] ) );
-					j++;
-				}
-
-				( *count )--;
-				break;
-			}
-		}
-	}
-}
-
-/*
- * ====================
  * LAN_GetServerCount
  * ====================
  */
@@ -863,53 +499,13 @@ static int LAN_GetServerCount( int source )
 
 /*
  * ====================
- * LAN_GetLocalServerAddressString
- * ====================
- */
-static void LAN_GetServerAddressString( int source, int n, char *buf, int buflen )
-{
-	switch ( source )
-	{
-		case AS_LOCAL:
-			if ( n >= 0 && n < MAX_OTHER_SERVERS )
-			{
-				Q_strncpyz( buf, NET_AdrToStringwPort( cls.localServers[ n ].adr ), buflen );
-				return;
-			}
-
-			break;
-
-		case AS_GLOBAL:
-			if ( n >= 0 && n < MAX_GLOBAL_SERVERS )
-			{
-				Q_strncpyz( buf, NET_AdrToStringwPort( cls.globalServers[ n ].adr ), buflen );
-				return;
-			}
-
-			break;
-
-		case AS_FAVORITES:
-			if ( n >= 0 && n < MAX_OTHER_SERVERS )
-			{
-				Q_strncpyz( buf, NET_AdrToStringwPort( cls.favoriteServers[ n ].adr ), buflen );
-				return;
-			}
-
-			break;
-	}
-
-	buf[ 0 ] = '\0';
-}
-
-/*
- * ====================
  * LAN_GetServerInfo
  * ====================
  */
 static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
 {
 	char         info[ MAX_STRING_CHARS ];
-	serverInfo_t *server = NULL;
+	serverInfo_t *server = nullptr;
 
 	info[ 0 ] = '\0';
 
@@ -943,22 +539,22 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
 	if ( server && buf )
 	{
 		buf[ 0 ] = '\0';
-		Info_SetValueForKey( info, "hostname", server->hostName, qfalse );
-		Info_SetValueForKey( info, "serverload", va( "%i", server->load ), qfalse );
-		Info_SetValueForKey( info, "mapname", server->mapName, qfalse );
-		Info_SetValueForKey( info, "label", server->label, qfalse );
-		Info_SetValueForKey( info, "clients", va( "%i", server->clients ), qfalse );
-		Info_SetValueForKey( info, "bots", va( "%i", server->bots ), qfalse );
-		Info_SetValueForKey( info, "sv_maxclients", va( "%i", server->maxClients ), qfalse );
-		Info_SetValueForKey( info, "ping", va( "%i", server->ping ), qfalse );
-		Info_SetValueForKey( info, "minping", va( "%i", server->minPing ), qfalse );
-		Info_SetValueForKey( info, "maxping", va( "%i", server->maxPing ), qfalse );
-		Info_SetValueForKey( info, "game", server->game, qfalse );
-		Info_SetValueForKey( info, "nettype", va( "%i", server->netType ), qfalse );
-		Info_SetValueForKey( info, "addr", NET_AdrToStringwPort( server->adr ), qfalse );
-		Info_SetValueForKey( info, "friendlyFire", va( "%i", server->friendlyFire ), qfalse );   // NERVE - SMF
-		Info_SetValueForKey( info, "needpass", va( "%i", server->needpass ), qfalse );   // NERVE - SMF
-		Info_SetValueForKey( info, "gamename", server->gameName, qfalse );  // Arnout
+		Info_SetValueForKey( info, "hostname", server->hostName, false );
+		Info_SetValueForKey( info, "serverload", va( "%i", server->load ), false );
+		Info_SetValueForKey( info, "mapname", server->mapName, false );
+		Info_SetValueForKey( info, "label", server->label, false );
+		Info_SetValueForKey( info, "clients", va( "%i", server->clients ), false );
+		Info_SetValueForKey( info, "bots", va( "%i", server->bots ), false );
+		Info_SetValueForKey( info, "sv_maxclients", va( "%i", server->maxClients ), false );
+		Info_SetValueForKey( info, "ping", va( "%i", server->ping ), false );
+		Info_SetValueForKey( info, "minping", va( "%i", server->minPing ), false );
+		Info_SetValueForKey( info, "maxping", va( "%i", server->maxPing ), false );
+		Info_SetValueForKey( info, "game", server->game, false );
+		Info_SetValueForKey( info, "nettype", va( "%i", server->netType ), false );
+		Info_SetValueForKey( info, "addr", NET_AdrToStringwPort( server->adr ), false );
+		Info_SetValueForKey( info, "friendlyFire", va( "%i", server->friendlyFire ), false );   // NERVE - SMF
+		Info_SetValueForKey( info, "needpass", va( "%i", server->needpass ), false );   // NERVE - SMF
+		Info_SetValueForKey( info, "gamename", server->gameName, false );  // Arnout
 		Q_strncpyz( buf, info, buflen );
 	}
 	else
@@ -977,7 +573,7 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
  */
 static int LAN_GetServerPing( int source, int n )
 {
-	serverInfo_t *server = NULL;
+	serverInfo_t *server = nullptr;
 
 	switch ( source )
 	{
@@ -1016,209 +612,15 @@ static int LAN_GetServerPing( int source, int n )
 
 /*
  * ====================
- * LAN_GetServerPtr
- * ====================
- */
-static serverInfo_t *LAN_GetServerPtr( int source, int n )
-{
-	switch ( source )
-	{
-		case AS_LOCAL:
-			if ( n >= 0 && n < MAX_OTHER_SERVERS )
-			{
-				return &cls.localServers[ n ];
-			}
-
-			break;
-
-		case AS_GLOBAL:
-			if ( n >= 0 && n < MAX_GLOBAL_SERVERS )
-			{
-				return &cls.globalServers[ n ];
-			}
-
-			break;
-
-		case AS_FAVORITES:
-			if ( n >= 0 && n < MAX_OTHER_SERVERS )
-			{
-				return &cls.favoriteServers[ n ];
-			}
-
-			break;
-	}
-
-	return NULL;
-}
-
-#define FEATURED_MAXPING 200
-
-/*
- * ====================
- * LAN_CompareServers
- * ====================
- */
-static int LAN_CompareServers( int source, int sortKey, int sortDir, int s1, int s2 )
-{
-	int          res;
-	serverInfo_t *server1, *server2;
-	char         name1[ MAX_NAME_LENGTH ], name2[ MAX_NAME_LENGTH ];
-
-	server1 = LAN_GetServerPtr( source, s1 );
-	server2 = LAN_GetServerPtr( source, s2 );
-
-	if ( !server1 || !server2 )
-	{
-		return 0;
-	}
-
-	// featured servers on top
-	if ( ( server1->label[ 0 ] && server1->ping <= FEATURED_MAXPING ) ||
-		( server2->label[ 0 ] && server2->ping <= FEATURED_MAXPING ) )
-	{
-		res = Q_strnicmp( server1->label, server2->label, MAX_FEATLABEL_CHARS );
-
-		if ( res )
-		{
-			return -res;
-		}
-	}
-
-	res = 0;
-
-	switch ( sortKey )
-	{
-		case SORT_HOST:
-			//% res = Q_stricmp( server1->hostName, server2->hostName );
-			Q_strncpyz( name1, server1->hostName, sizeof( name1 ) );
-			Q_CleanStr( name1 );
-			Q_strncpyz( name2, server2->hostName, sizeof( name2 ) );
-			Q_CleanStr( name2 );
-			res = Q_stricmp( name1, name2 );
-			break;
-
-		case SORT_MAP:
-			res = Q_stricmp( server1->mapName, server2->mapName );
-			break;
-
-		case SORT_CLIENTS:
-			if ( server1->clients < server2->clients )
-			{
-				res = -1;
-			}
-			else if ( server1->clients > server2->clients )
-			{
-				res = 1;
-			}
-			else
-			{
-				res = 0;
-			}
-
-			break;
-
-		case SORT_GAME:
-			if ( server1->gameName < server2->gameName )
-			{
-				res = -1;
-			}
-			else if ( server1->gameName > server2->gameName )
-			{
-				res = 1;
-			}
-			else
-			{
-				res = 0;
-			}
-
-			break;
-
-		case SORT_PING:
-			if ( server1->ping < server2->ping )
-			{
-				res = -1;
-			}
-			else if ( server1->ping > server2->ping )
-			{
-				res = 1;
-			}
-			else
-			{
-				res = 0;
-			}
-
-			break;
-	}
-
-	if ( sortDir )
-	{
-		if ( res < 0 )
-		{
-			return 1;
-		}
-
-		if ( res > 0 )
-		{
-			return -1;
-		}
-
-		return 0;
-	}
-
-	return res;
-}
-
-/*
- * ====================
- * LAN_GetPingQueueCount
- * ====================
- */
-static int LAN_GetPingQueueCount( void )
-{
-	return ( CL_GetPingQueueCount() );
-}
-
-/*
- * ====================
- * LAN_ClearPing
- * ====================
- */
-static void LAN_ClearPing( int n )
-{
-	CL_ClearPing( n );
-}
-
-/*
- * ====================
- * LAN_GetPing
- * ====================
- */
-static void LAN_GetPing( int n, char *buf, int buflen, int *pingtime )
-{
-	CL_GetPing( n, buf, buflen, pingtime );
-}
-
-/*
- * ====================
- * LAN_GetPingInfo
- * ====================
- */
-static void LAN_GetPingInfo( int n, char *buf, int buflen )
-{
-	CL_GetPingInfo( n, buf, buflen );
-}
-
-/*
- * ====================
  * LAN_MarkServerVisible
  * ====================
  */
-static void LAN_MarkServerVisible( int source, int n, qboolean visible )
+static void LAN_MarkServerVisible( int source, int n, bool visible )
 {
 	if ( n == -1 )
 	{
 		int          count = MAX_OTHER_SERVERS;
-		serverInfo_t *server = NULL;
+		serverInfo_t *server = nullptr;
 
 		switch ( source )
 		{
@@ -1293,7 +695,7 @@ static int LAN_ServerIsVisible( int source, int n )
 		if ( Cmd_Argc() == 1 )
 		{
 			Com_Log(LOG_ERROR, "Server sent a pubkey_decrypt command, but sent nothing to decrypt!" );
-			return qfalse;
+			return false;
 		}
 
 		case AS_GLOBAL:
@@ -1313,7 +715,7 @@ static int LAN_ServerIsVisible( int source, int n )
 			break;
 	}
 
-	return qfalse;
+	return false;
 }
 
 /*
@@ -1321,7 +723,7 @@ static int LAN_ServerIsVisible( int source, int n )
  * LAN_UpdateVisiblePings
  * =======================
  */
-qboolean LAN_UpdateVisiblePings( int source )
+bool LAN_UpdateVisiblePings( int source )
 {
 	return CL_UpdateVisiblePings_f( source );
 }
@@ -1331,7 +733,7 @@ qboolean LAN_UpdateVisiblePings( int source )
  * LAN_GetServerStatus
  * ====================
  */
-int LAN_GetServerStatus( char *serverAddress, char *serverStatus, int maxLen )
+int LAN_GetServerStatus( const char *serverAddress, char *serverStatus, int maxLen )
 {
 	return CL_ServerStatus( serverAddress, serverStatus, maxLen );
 }
@@ -1341,10 +743,10 @@ int LAN_GetServerStatus( char *serverAddress, char *serverStatus, int maxLen )
  * LAN_ServerIsInFavoriteList
  * =======================
  */
-qboolean LAN_ServerIsInFavoriteList( int source, int n )
+bool LAN_ServerIsInFavoriteList( int source, int n )
 {
 	int          i;
-	serverInfo_t *server = NULL;
+	serverInfo_t *server = nullptr;
 
 	switch ( source )
 	{
@@ -1367,7 +769,7 @@ qboolean LAN_ServerIsInFavoriteList( int source, int n )
 		case AS_FAVORITES:
 			if ( n >= 0 && n < MAX_OTHER_SERVERS )
 			{
-				return qtrue;
+				return true;
 			}
 
 			break;
@@ -1375,18 +777,18 @@ qboolean LAN_ServerIsInFavoriteList( int source, int n )
 
 	if ( !server )
 	{
-		return qfalse;
+		return false;
 	}
 
 	for ( i = 0; i < cls.numfavoriteservers; i++ )
 	{
 		if ( NET_CompareAdr( cls.favoriteServers[ i ].adr, server->adr ) )
 		{
-			return qtrue;
+			return true;
 		}
 	}
 
-	return qfalse;
+	return false;
 }
 
 /*
@@ -1425,7 +827,7 @@ void Key_GetBindingBuf( int keynum, int team, char *buf, int buflen )
  * Key_GetCatcher
  * ====================
  */
-int Key_GetCatcher( void )
+int Key_GetCatcher()
 {
 	return cls.keyCatchers;
 }
@@ -1446,1059 +848,6 @@ void Key_SetCatcher( int catcher )
 	{
 		cls.keyCatchers = catcher;
 	}
-
-	Rocket_SetActiveContext( catcher );
-}
-
-
-static int FloatAsInt( float f )
-{
-	floatint_t fi;
-
-	fi.f = f;
-	return fi.i;
-}
-
-//static int numtraces = 0;
-
-/*
-====================
-CL_CgameSystemCalls
-
-The cgame module is making a system call
-====================
-*/
-intptr_t CL_CgameSystemCalls( intptr_t *args )
-{
-	cls.nCgameSyscalls ++;
-
-	switch ( args[ 0 ] )
-	{
-		case CG_PRINT:
-			Com_Printf( "%s", ( char * ) VMA( 1 ) );
-			return 0;
-
-		case CG_ERROR:
-			Com_Error( ERR_DROP, "%s", ( char * ) VMA( 1 ) );
-			return 0; //silence warning and have a fallback behavior if Com_Error behavior changes
-
-		case CG_LOG:
-			Com_LogEvent( (log_event_t*) VMA( 1 ), NULL );
-			return 0;
-
-		case CG_MILLISECONDS:
-			return Sys_Milliseconds();
-
-		case CG_CVAR_REGISTER:
-			Cvar_Register( (vmCvar_t*) VMA( 1 ), (char*) VMA( 2 ), (char*) VMA( 3 ), args[ 4 ] );
-			return 0;
-
-		case CG_CVAR_UPDATE:
-			Cvar_Update( (vmCvar_t*) VMA( 1 ) );
-			return 0;
-
-		case CG_CVAR_SET:
-			Cvar_Set( (char*) VMA( 1 ), (char*) VMA( 2 ) );
-			return 0;
-
-		case CG_CVAR_VARIABLESTRINGBUFFER:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[2], args[3], "CVARVSB" );
-			Cvar_VariableStringBuffer( (char*) VMA( 1 ), (char*) VMA( 2 ), args[ 3 ] );
-			return 0;
-
-		case CG_CVAR_LATCHEDVARIABLESTRINGBUFFER:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[2], args[3], "CVARLVSB" );
-			Cvar_LatchedVariableStringBuffer( (char*) VMA( 1 ), (char*) VMA( 2 ), args[ 3 ] );
-			return 0;
-
-		case CG_CVAR_VARIABLEINTEGERVALUE:
-			cls.nCgameUselessSyscalls ++;
-			return Cvar_VariableIntegerValue( (char*) VMA( 1 ) );
-
-		case CG_CVAR_VARIABLEVALUE:
-			cls.nCgameUselessSyscalls ++;
-			return FloatAsInt( Cvar_VariableValue( (char*) VMA( 1 ) ) );
-
-		case CG_CVAR_ADDFLAGS:
-			cls.nCgameUselessSyscalls ++;
-			Cvar::AddFlags( ( const char * ) VMA( 1 ), args[ 2 ] );
-			return 0;
-
-		case CG_ARGC:
-			cls.nCgameUselessSyscalls ++;
-			return Cmd_Argc();
-
-		case CG_ARGV:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[2], args[3], "ARGV" );
-			Cmd_ArgvBuffer( args[ 1 ], (char*) VMA( 2 ), args[ 3 ] );
-			return 0;
-
-		case CG_ESCAPED_ARGS:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[1], args[2], "ARGS" );
-			Cmd_EscapedArgsBuffer( (char*) VMA( 1 ), args[ 2 ] );
-			return 0;
-
-		case CG_LITERAL_ARGS:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[1], args[2], "LARGS" );
-			Cmd_LiteralArgsBuffer((char*) VMA( 1 ), args[ 2 ] );
-			return 0;
-
-		case CG_GETDEMOSTATE:
-			return CL_DemoState();
-
-		case CG_GETDEMOPOS:
-			return CL_DemoPos();
-
-		case CG_FS_FOPENFILE:
-			return FS_Game_FOpenFileByMode( (char*) VMA( 1 ), (fileHandle_t*) VMA( 2 ), (fsMode_t) args[ 3 ] );
-
-		case CG_FS_READ:
-			VM_CheckBlock( args[1], args[2], "FSREAD" );
-			FS_Read( VMA( 1 ), args[ 2 ], args[ 3 ] );
-			return 0;
-
-		case CG_FS_WRITE:
-			VM_CheckBlock( args[1], args[2], "FSWRITE" );
-			return FS_Write( VMA( 1 ), args[ 2 ], args[ 3 ] );
-
-		case CG_FS_FCLOSEFILE:
-			FS_FCloseFile( args[ 1 ] );
-			return 0;
-
-		case CG_FS_GETFILELIST:
-			VM_CheckBlock( args[3], args[4], "FSGFL" );
-			return FS_GetFileList( (char*) VMA( 1 ), (char*) VMA( 2 ), (char*) VMA( 3 ), args[ 4 ] );
-
-		case CG_FS_GETFILELISTRECURSIVE:
-			VM_CheckBlock( args[3], args[4], "FSGFL" );
-			return FS_GetFileListRecursive( (char*) VMA( 1 ), (char*) VMA( 2 ), (char*) VMA( 3 ), args[ 4 ] );
-
-
-		case CG_FS_DELETEFILE:
-			return FS_Delete( (char*) VMA( 1 ) );
-
-		case CG_FS_LOADPAK:
-			try {
-				FS::PakPath::LoadPakPrefix( *FS::FindPak( ( const char * ) VMA( 1 ) ), ( const char * ) VMA( 2 ) );
-			} catch (std::system_error& err) {
-				return 0;
-			}
-			return 1;
-
-		case CG_FS_LOADMAPMETADATA:
-			FS_LoadAllMapMetadata();
-			return 0;
-
-		case CG_SENDCONSOLECOMMAND:
-			Cmd::BufferCommandText( (char*) VMA( 1 ) );
-			return 0;
-
-		case CG_ADDCOMMAND:
-			CL_AddCgameCommand( (char*) VMA( 1 ) );
-			return 0;
-
-		case CG_REMOVECOMMAND:
-			Cmd_RemoveCommand( (char*) VMA( 1 ) );
-			return 0;
-
-		case CG_COMPLETE_CALLBACK:
-			Cmd_OnCompleteMatch((char*) VMA(1));
-			return 0;
-
-		case CG_SENDCLIENTCOMMAND:
-			CL_AddReliableCommand( (char*) VMA( 1 ) );
-			return 0;
-
-		case CG_UPDATESCREEN:
-			SCR_UpdateScreen();
-			return 0;
-
-		case CG_CM_LOADMAP:
-			cls.nCgamePhysicsSyscalls ++;
-			CL_CM_LoadMap( (char*) VMA( 1 ) );
-			return 0;
-
-		case CG_CM_NUMINLINEMODELS:
-			cls.nCgamePhysicsSyscalls ++;
-			return CM_NumInlineModels();
-
-		case CG_CM_INLINEMODEL:
-			cls.nCgamePhysicsSyscalls ++;
-			return CM_InlineModel( args[ 1 ] );
-
-		case CG_CM_TEMPBOXMODEL:
-			cls.nCgamePhysicsSyscalls ++;
-			return CM_TempBoxModel( (float*) VMA( 1 ), (float*) VMA( 2 ), qfalse );
-
-		case CG_CM_TEMPCAPSULEMODEL:
-			cls.nCgamePhysicsSyscalls ++;
-			return CM_TempBoxModel( (float*) VMA( 1 ), (float*) VMA( 2 ), qtrue );
-
-		case CG_CM_POINTCONTENTS:
-			cls.nCgamePhysicsSyscalls ++;
-			return CM_PointContents( (float*) VMA( 1 ), args[ 2 ] );
-
-		case CG_CM_TRANSFORMEDPOINTCONTENTS:
-			cls.nCgamePhysicsSyscalls ++;
-			return CM_TransformedPointContents( (float*) VMA( 1 ), args[ 2 ], (float*) VMA( 3 ),
-			                                    (float*) VMA( 4 ) );
-
-		case CG_CM_BOXTRACE:
-			cls.nCgamePhysicsSyscalls ++;
-			CM_BoxTrace( (trace_t*) VMA( 1 ), (float*) VMA( 2 ), (float*) VMA( 3 ),
-			             (float*) VMA( 4 ), (float*) VMA( 5 ), args[ 6 ], args[ 7 ], args[ 8 ],
-			             TT_AABB );
-			return 0;
-
-		case CG_CM_TRANSFORMEDBOXTRACE:
-			cls.nCgamePhysicsSyscalls ++;
-			CM_TransformedBoxTrace( (trace_t*) VMA( 1 ), (float*) VMA( 2 ), (float*) VMA( 3 ),
-			                        (float*) VMA( 4 ), (float*) VMA( 5 ), args[ 6 ], args[ 7 ],
-			                        args[ 8 ], (float*) VMA( 9 ), (float*) VMA( 10 ), TT_AABB );
-			return 0;
-
-		case CG_CM_CAPSULETRACE:
-			cls.nCgamePhysicsSyscalls ++;
-			CM_BoxTrace( (trace_t*) VMA( 1 ), (float*) VMA( 2 ), (float*) VMA( 3 ),
-			             (float*) VMA( 4 ), (float*) VMA( 5 ), args[ 6 ], args[ 7 ], args[ 8 ],
-			             TT_CAPSULE );
-			return 0;
-
-		case CG_CM_TRANSFORMEDCAPSULETRACE:
-			cls.nCgamePhysicsSyscalls ++;
-			CM_TransformedBoxTrace( (trace_t*) VMA( 1 ), (float*) VMA( 2 ), (float*) VMA( 3 ),
-			                        (float*) VMA( 4 ), (float*) VMA( 5 ), args[ 6 ], args[ 7 ],
-			                        args[ 8 ], (float*) VMA( 9 ), (float*) VMA( 10 ), TT_CAPSULE );
-			return 0;
-
-		case CG_CM_BISPHERETRACE:
-			cls.nCgamePhysicsSyscalls ++;
-			CM_BiSphereTrace( (trace_t*) VMA( 1 ), (float*) VMA( 2 ), (float*) VMA( 3 ), VMF( 4 ),
-			                  VMF( 5 ), args[ 6 ], args[ 7 ], args[ 8 ] );
-			return 0;
-
-		case CG_CM_TRANSFORMEDBISPHERETRACE:
-			cls.nCgamePhysicsSyscalls ++;
-			CM_TransformedBiSphereTrace( (trace_t*) VMA( 1 ), (float*) VMA( 2 ), (float*) VMA( 3 ),
-			                             VMF( 4 ), VMF( 5 ), args[ 6 ], args[ 7 ], args[ 8 ],
-			                             (float*) VMA( 8 ) );
-			return 0;
-
-		case CG_CM_MARKFRAGMENTS:
-			cls.nCgamePhysicsSyscalls ++;
-			return re.MarkFragments( args[ 1 ], (vec3_t*) VMA( 2 ), (float*) VMA( 3 ), args[ 4 ],
-			                         (float*) VMA( 5 ), args[ 6 ], (markFragment_t*) VMA( 7 ) );
-
-		case CG_R_PROJECTDECAL:
-			cls.nCgameRenderSyscalls ++;
-			re.ProjectDecal( args[ 1 ], args[ 2 ], (vec3_t*) VMA( 3 ), (float*) VMA( 4 ),
-			                 (float*) VMA( 5 ), args[ 6 ], args[ 7 ] );
-			return 0;
-
-		case CG_R_CLEARDECALS:
-			cls.nCgameRenderSyscalls ++;
-			re.ClearDecals();
-			return 0;
-
-		case CG_S_STARTSOUND:
-			cls.nCgameSoundSyscalls ++;
-			Audio::StartSound( args[ 2 ], (float*) VMA( 1 ), args[ 4 ] );
-			return 0;
-
-		case CG_S_STARTLOCALSOUND:
-			cls.nCgameSoundSyscalls ++;
-			Audio::StartLocalSound( args[ 1 ] );
-			return 0;
-
-		case CG_S_CLEARLOOPINGSOUNDS:
-			cls.nCgameSoundSyscalls ++;
-			Audio::ClearAllLoopingSounds();
-			return 0;
-
-		case CG_S_CLEARSOUNDS:
-			cls.nCgameSoundSyscalls ++;
-			return 0;
-
-		case CG_S_ADDLOOPINGSOUND:
-		case CG_S_ADDREALLOOPINGSOUND:
-			cls.nCgameSoundSyscalls ++;
-			if( args[ 2 ] )
-			{
-				Audio::UpdateEntityPosition( args[ 1 ], (float*) VMA( 2 ) );
-			}
-			if( args[ 3 ] )
-			{
-				Audio::UpdateEntityVelocity( args[ 1 ], (float*) VMA( 3 ) );
-			}
-
-			Audio::AddEntityLoopingSound( args[ 1 ], args[ 4 ]);
-			return 0;
-
-		case CG_S_STOPLOOPINGSOUND:
-			cls.nCgameSoundSyscalls ++;
-			Audio::ClearLoopingSoundsForEntity( args[ 1 ] );
-			return 0;
-
-		case CG_S_STOPSTREAMINGSOUND:
-			cls.nCgameSoundSyscalls ++;
-			// FIXME
-			//S_StopEntStreamingSound(args[1]);
-			return 0;
-
-		case CG_S_UPDATEENTITYPOSITION:
-			cls.nCgameSoundSyscalls ++;
-			Audio::UpdateEntityPosition( args[ 1 ], (float*) VMA( 2 ) );
-			return 0;
-
-		case CG_S_RESPATIALIZE:
-			cls.nCgameSoundSyscalls ++;
-			if (args[ 1 ] >= 0 and args[ 1 ] < MAX_GENTITIES) {
-				Audio::UpdateEntityPosition( args[ 1 ], (float*) VMA( 2 ));
-			}
-			Audio::UpdateListener(args[ 1 ], (vec3_t*) VMA( 3 ) );
-			return 0;
-
-		case CG_S_REGISTERSOUND:
-			cls.nCgameSoundSyscalls ++;
-			return Audio::RegisterSFX( (char*) VMA( 1 ) );
-
-		case CG_S_STARTBACKGROUNDTRACK:
-			cls.nCgameSoundSyscalls ++;
-			Audio::StartMusic( (char*) VMA( 1 ), (char*) VMA( 2 ) );
-			return 0;
-
-		case CG_S_FADESTREAMINGSOUND:
-			cls.nCgameSoundSyscalls ++;
-			// FIXME
-			//S_FadeStreamingSound(VMF(1), args[2], args[3]); //----(SA)  added music/all-streaming options
-			return 0;
-
-		case CG_S_STARTSTREAMINGSOUND:
-			cls.nCgameSoundSyscalls ++;
-			// FIXME
-			//return S_StartStreamingSound(VMA(1), VMA(2), args[3], args[4], args[5]);
-			return 0;
-
-		case CG_R_LOADWORLDMAP:
-			cls.nCgameRenderSyscalls ++;
-			re.SetWorldVisData( CM_ClusterPVS( -1 ) );
-			re.LoadWorld( (char*) VMA( 1 ) );
-			return 0;
-
-		case CG_R_REGISTERMODEL:
-			cls.nCgameRenderSyscalls ++;
-			return re.RegisterModel( (char*) VMA( 1 ) );
-
-		case CG_R_REGISTERSKIN:
-			cls.nCgameRenderSyscalls ++;
-			return re.RegisterSkin( (char*) VMA( 1 ) );
-
-			//----(SA)  added
-		case CG_R_GETSKINMODEL:
-			cls.nCgameRenderSyscalls ++;
-			return re.GetSkinModel( args[ 1 ], (char*) VMA( 2 ), (char*) VMA( 3 ) );
-
-		case CG_R_GETMODELSHADER:
-			cls.nCgameRenderSyscalls ++;
-			return re.GetShaderFromModel( args[ 1 ], args[ 2 ], args[ 3 ] );
-			//----(SA)  end
-
-		case CG_R_REGISTERSHADER:
-			cls.nCgameRenderSyscalls ++;
-			return re.RegisterShader( (char*) VMA( 1 ), (RegisterShaderFlags_t) args[ 2 ] );
-
-		case CG_R_REGISTERFONT:
-			cls.nCgameRenderSyscalls ++;
-			re.RegisterFontVM( (char*) VMA( 1 ), (char*) VMA( 2 ), args[ 3 ], (fontMetrics_t*) VMA( 4 ) );
-			return 0;
-
-		case CG_R_CLEARSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.ClearScene();
-			return 0;
-
-		case CG_R_ADDREFENTITYTOSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.AddRefEntityToScene( (refEntity_t*) VMA( 1 ) );
-			return 0;
-
-		case CG_R_ADDREFLIGHTSTOSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.AddRefLightToScene( (refLight_t*) VMA( 1 ) );
-			return 0;
-
-		case CG_R_ADDPOLYTOSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.AddPolyToScene( args[ 1 ], args[ 2 ], (polyVert_t*) VMA( 3 ) );
-			return 0;
-
-		case CG_R_ADDPOLYSTOSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.AddPolysToScene( args[ 1 ], args[ 2 ], (polyVert_t*) VMA( 3 ), args[ 4 ] );
-			return 0;
-
-		case CG_R_ADDPOLYBUFFERTOSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.AddPolyBufferToScene( (polyBuffer_t*) VMA( 1 ) );
-			return 0;
-
-		case CG_R_ADDLIGHTTOSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.AddLightToScene( (float*) VMA( 1 ), VMF( 2 ), VMF( 3 ), VMF( 4 ), VMF( 5 ), VMF( 6 ), args[ 7 ], args[ 8 ] );
-			return 0;
-
-		case CG_R_ADDADDITIVELIGHTTOSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.AddAdditiveLightToScene( (float*) VMA( 1 ), VMF( 2 ), VMF( 3 ), VMF( 4 ), VMF( 5 ) );
-			return 0;
-
-		case CG_FS_SEEK:
-			return FS_Seek( args[ 1 ], args[ 2 ], args[ 3 ] );
-
-		case CG_R_ADDCORONATOSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.AddCoronaToScene( (float*) VMA( 1 ), VMF( 2 ), VMF( 3 ), VMF( 4 ), VMF( 5 ), args[ 6 ], args[ 7 ] );
-			return 0;
-
-		case CG_R_SETFOG:
-			cls.nCgameRenderSyscalls ++;
-			re.SetFog( args[ 1 ], args[ 2 ], args[ 3 ], VMF( 4 ), VMF( 5 ), VMF( 6 ), VMF( 7 ) );
-			return 0;
-
-		case CG_R_SETGLOBALFOG:
-			cls.nCgameRenderSyscalls ++;
-			re.SetGlobalFog( args[ 1 ], args[ 2 ], VMF( 3 ), VMF( 4 ), VMF( 5 ), VMF( 6 ) );
-			return 0;
-
-		case CG_R_RENDERSCENE:
-			cls.nCgameRenderSyscalls ++;
-			re.RenderScene( (refdef_t*) VMA( 1 ) );
-			return 0;
-
-		case CG_R_SAVEVIEWPARMS:
-			cls.nCgameRenderSyscalls ++;
-			re.SaveViewParms();
-			return 0;
-
-		case CG_R_RESTOREVIEWPARMS:
-			cls.nCgameRenderSyscalls ++;
-			re.RestoreViewParms();
-			return 0;
-
-		case CG_R_SETCOLOR:
-			cls.nCgameRenderSyscalls ++;
-			re.SetColor( (float*) VMA( 1 ) );
-			return 0;
-
-			// Tremulous
-		case CG_R_SETCLIPREGION:
-			cls.nCgameRenderSyscalls ++;
-			re.SetClipRegion( (float*) VMA( 1 ) );
-			return 0;
-
-		case CG_R_DRAWSTRETCHPIC:
-			cls.nCgameRenderSyscalls ++;
-			re.DrawStretchPic( VMF( 1 ), VMF( 2 ), VMF( 3 ), VMF( 4 ), VMF( 5 ), VMF( 6 ), VMF( 7 ), VMF( 8 ), args[ 9 ] );
-			return 0;
-
-		case CG_R_DRAWROTATEDPIC:
-			cls.nCgameRenderSyscalls ++;
-			re.DrawRotatedPic( VMF( 1 ), VMF( 2 ), VMF( 3 ), VMF( 4 ), VMF( 5 ), VMF( 6 ), VMF( 7 ), VMF( 8 ), args[ 9 ], VMF( 10 ) );
-			return 0;
-
-		case CG_R_DRAWSTRETCHPIC_GRADIENT:
-			cls.nCgameRenderSyscalls ++;
-			re.DrawStretchPicGradient( VMF( 1 ), VMF( 2 ), VMF( 3 ), VMF( 4 ), VMF( 5 ), VMF( 6 ), VMF( 7 ), VMF( 8 ), args[ 9 ], (float*) VMA( 10 ), args[ 11 ] );
-			return 0;
-
-		case CG_R_DRAW2DPOLYS:
-			cls.nCgameRenderSyscalls ++;
-			re.Add2dPolys( (polyVert_t*) VMA( 1 ), args[ 2 ], args[ 3 ] );
-			return 0;
-
-		case CG_R_MODELBOUNDS:
-			cls.nCgameRenderSyscalls ++;
-			re.ModelBounds( args[ 1 ], (float*) VMA( 2 ), (float*) VMA( 3 ) );
-			return 0;
-
-		case CG_R_LERPTAG:
-			cls.nCgameRenderSyscalls ++;
-			return re.LerpTag( (orientation_t*) VMA( 1 ), (refEntity_t*) VMA( 2 ), (char*) VMA( 3 ), args[ 4 ] );
-
-		case CG_GETGLCONFIG:
-			CL_GetGlconfig( (glconfig_t*) VMA( 1 ) );
-			return 0;
-
-		case CG_GETGAMESTATE:
-			CL_GetGameState( (gameState_t*) VMA( 1 ) );
-			return 0;
-
-		case CG_GETCLIENTSTATE:
-			GetClientState( (cgClientState_t*) VMA( 1 ) );
-			return 0;
-
-		case CG_GETCURRENTSNAPSHOTNUMBER:
-			CL_GetCurrentSnapshotNumber( (int*) VMA( 1 ), (int*) VMA( 2 ) );
-			return 0;
-
-		case CG_GETSNAPSHOT:
-			return CL_GetSnapshot( args[ 1 ], (snapshot_t*) VMA( 2 ) );
-
-		case CG_GETSERVERCOMMAND:
-			return CL_GetServerCommand( args[ 1 ] );
-
-		case CG_GETCURRENTCMDNUMBER:
-			return CL_GetCurrentCmdNumber();
-
-		case CG_GETUSERCMD:
-			return CL_GetUserCmd( args[ 1 ], (usercmd_t*) VMA( 2 ) );
-
-		case CG_SETUSERCMDVALUE:
-			CL_SetUserCmdValue( args[ 1 ], args[ 2 ], VMF( 3 ), args[ 4 ] );
-			return 0;
-
-		case CG_SETCLIENTLERPORIGIN:
-			CL_SetClientLerpOrigin( VMF( 1 ), VMF( 2 ), VMF( 3 ) );
-			return 0;
-
-		case CG_MEMORY_REMAINING:
-			cls.nCgameUselessSyscalls ++;
-			return Hunk_MemoryRemaining();
-
-		case CG_KEY_ISDOWN:
-			return Key_IsDown( args[ 1 ] );
-
-		case CG_KEY_GETCATCHER:
-			return Key_GetCatcher();
-
-		case CG_KEY_SETCATCHER:
-			Key_SetCatcher( args[ 1 ] );
-			return 0;
-
-		case CG_KEY_GETKEY:
-			return Key_GetKey( (char*) VMA( 1 ), 0 ); // FIXME BIND
-
-		case CG_KEY_GETOVERSTRIKEMODE:
-			return Key_GetOverstrikeMode();
-
-		case CG_KEY_SETOVERSTRIKEMODE:
-			Key_SetOverstrikeMode( args[ 1 ] );
-			return 0;
-
-		case CG_S_STOPBACKGROUNDTRACK:
-			cls.nCgameSoundSyscalls ++;
-			Audio::StopMusic();
-			return 0;
-
-		case CG_REAL_TIME:
-			return Com_RealTime( (qtime_t*) VMA( 1 ) );
-
-		case CG_SNAPVECTOR:
-			cls.nCgameUselessSyscalls ++;
-			SnapVector( (float*) VMA( 1 ) );
-			return 0;
-
-		case CG_CIN_PLAYCINEMATIC:
-			return CIN_PlayCinematic( (char*) VMA( 1 ), args[ 2 ], args[ 3 ], args[ 4 ], args[ 5 ], args[ 6 ] );
-
-		case CG_CIN_STOPCINEMATIC:
-			return CIN_StopCinematic( args[ 1 ] );
-
-		case CG_CIN_RUNCINEMATIC:
-			return CIN_RunCinematic( args[ 1 ] );
-
-		case CG_CIN_DRAWCINEMATIC:
-			CIN_DrawCinematic( args[ 1 ] );
-			return 0;
-
-		case CG_CIN_SETEXTENTS:
-			CIN_SetExtents( args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args[ 5 ] );
-			return 0;
-
-		case CG_R_REMAP_SHADER:
-			cls.nCgameRenderSyscalls ++;
-			re.RemapShader( (char*) VMA( 1 ), (char*) VMA( 2 ), (char*) VMA( 3 ) );
-			return 0;
-
-		case CG_GET_ENTITY_TOKEN:
-			VM_CheckBlock( args[1], args[2], "GETET" );
-			return re.GetEntityToken( (char*) VMA( 1 ), args[ 2 ] );
-
-		case CG_INGAME_POPUP:
-			if ( cls.state == CA_ACTIVE && !clc.demoplaying )
-			{
-				Rocket_DocumentAction( (const char *) VMA( 1 ), "open" );
-			}
-
-			return 0;
-
-		case CG_INGAME_CLOSEPOPUP:
-			return 0;
-
-		case CG_KEY_GETBINDINGBUF:
-			VM_CheckBlock( args[3], args[4], "KEYGBB" );
-			Key_GetBindingBuf( args[ 1 ], args[ 2 ], (char*) VMA( 3 ), args[ 4 ] );
-			return 0;
-
-		case CG_KEY_SETBINDING:
-			Key_SetBinding( args[ 1 ], args[ 2 ], (char*) VMA( 3 ) ); // FIXME BIND
-			return 0;
-
-		case CG_PARSE_ADD_GLOBAL_DEFINE:
-			cls.nCgameUselessSyscalls ++;
-			return Parse_AddGlobalDefine( (char*) VMA( 1 ) );
-
-		case CG_PARSE_LOAD_SOURCE:
-			cls.nCgameUselessSyscalls ++;
-			return Parse_LoadSourceHandle( (char*) VMA( 1 ) );
-
-		case CG_PARSE_FREE_SOURCE:
-			cls.nCgameUselessSyscalls ++;
-			return Parse_FreeSourceHandle( args[ 1 ] );
-
-		case CG_PARSE_READ_TOKEN:
-			cls.nCgameUselessSyscalls ++;
-			return Parse_ReadTokenHandle( args[ 1 ], (pc_token_t*) VMA( 2 ) );
-
-		case CG_PARSE_SOURCE_FILE_AND_LINE:
-			cls.nCgameUselessSyscalls ++;
-			return Parse_SourceFileAndLine( args[ 1 ], (char*) VMA( 2 ), (int*) VMA( 3 ) );
-
-		case CG_KEY_KEYNUMTOSTRINGBUF:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[2], args[3], "KEYNTSB" );
-			Key_KeynumToStringBuf( args[ 1 ], (char*) VMA( 2 ), args[ 3 ] );
-			return 0;
-
-		case CG_S_FADEALLSOUNDS:
-			cls.nCgameSoundSyscalls ++;
-			// FIXME
-			//S_FadeAllSounds(VMF(1), args[2], args[3]);
-			return 0;
-
-		case CG_R_INPVS:
-			cls.nCgameRenderSyscalls ++;
-			return re.inPVS( (float*) VMA( 1 ), (float*) VMA( 2 ) );
-
-		case CG_R_INPVVS:
-			cls.nCgameRenderSyscalls ++;
-			return re.inPVVS( (float*) VMA( 1 ), (float*) VMA( 2 ) );
-
-		case CG_GETHUNKDATA:
-			cls.nCgameUselessSyscalls ++;
-			Com_GetHunkInfo( (int*) VMA( 1 ), (int*) VMA( 2 ) );
-			return 0;
-
-			//bani - dynamic shaders
-		case CG_R_LOADDYNAMICSHADER:
-			cls.nCgameRenderSyscalls ++;
-			return re.LoadDynamicShader( (char*) VMA( 1 ), (char*) VMA( 2 ) );
-
-			// fretn - render to texture
-		case CG_R_RENDERTOTEXTURE:
-			cls.nCgameRenderSyscalls ++;
-			re.RenderToTexture( args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args[ 5 ] );
-			return 0;
-
-		//bani - flush gl rendering buffers
-		case CG_R_FINISH:
-			cls.nCgameRenderSyscalls ++;
-			re.Finish();
-			return 0;
-
-		case CG_GETDEMONAME:
-			VM_CheckBlock( args[1], args[2], "GETDM" );
-			CL_DemoName( (char*) VMA( 1 ), args[ 2 ] );
-			return 0;
-
-		case CG_R_LIGHTFORPOINT:
-			cls.nCgameRenderSyscalls ++;
-			return re.LightForPoint( (float*) VMA( 1 ), (float*) VMA( 2 ), (float*) VMA( 3 ), (float*) VMA( 4 ) );
-
-		case CG_R_REGISTERANIMATION:
-			cls.nCgameRenderSyscalls ++;
-			return re.RegisterAnimation( (char*) VMA( 1 ) );
-
-		case CG_R_CHECKSKELETON:
-			cls.nCgameRenderSyscalls ++;
-			return re.CheckSkeleton( (refSkeleton_t*) VMA( 1 ), args[ 2 ], args[ 3 ] );
-
-		case CG_R_BUILDSKELETON:
-			cls.nCgameRenderSyscalls ++;
-			return re.BuildSkeleton( (refSkeleton_t*) VMA( 1 ), args[ 2 ], args[ 3 ], args[ 4 ], VMF( 5 ), args[ 6 ] );
-
-		case CG_R_BLENDSKELETON:
-			cls.nCgameRenderSyscalls ++;
-			return re.BlendSkeleton( (refSkeleton_t*) VMA( 1 ), (refSkeleton_t*) VMA( 2 ), VMF( 3 ) );
-
-		case CG_R_BONEINDEX:
-			cls.nCgameRenderSyscalls ++;
-			return re.BoneIndex( args[ 1 ], (char*) VMA( 2 ) );
-
-		case CG_R_ANIMNUMFRAMES:
-			cls.nCgameRenderSyscalls ++;
-			return re.AnimNumFrames( args[ 1 ] );
-
-		case CG_R_ANIMFRAMERATE:
-			cls.nCgameRenderSyscalls ++;
-			return re.AnimFrameRate( args[ 1 ] );
-
-		case CG_REGISTER_BUTTON_COMMANDS:
-			CL_RegisterButtonCommands( (char*) VMA( 1 ) );
-			return 0;
-
-		case CG_GETCLIPBOARDDATA:
-			VM_CheckBlock( args[1], args[2], "GETCLIP" );
-
-			if ( cl_allowPaste->integer )
-			{
-				CL_GetClipboardData( (char*) VMA(1), args[2], (clipboard_t) args[3] );
-			}
-			else
-			{
-				( (char *) VMA( 1 ) )[0] = '\0';
-			}
-			return 0;
-
-		case CG_QUOTESTRING:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[ 2 ], args[ 3 ], "QUOTE" );
-			Cmd_QuoteStringBuffer( (char*) VMA( 1 ), (char*) VMA( 2 ), args[ 3 ] );
-			return 0;
-
-		case CG_GETTEXT:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[ 1 ], args[ 3 ], "CGGETTEXT" );
-			Q_strncpyz( (char*) VMA(1), __( (char*) VMA( 2 ) ), args[3] );
-			return 0;
-
-		case CG_PGETTEXT:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[ 1 ], args[ 4 ], "CGPGETTEXT" );
-			Q_strncpyz( (char*) VMA( 1 ), C__( (char*) VMA( 2 ), (char*) VMA( 3 ) ), args[ 4 ] );
-			return 0;
-
-		case CG_GETTEXT_PLURAL:
-			cls.nCgameUselessSyscalls ++;
-			VM_CheckBlock( args[ 1 ], args[ 5 ], "CGGETTEXTP" );
-			Q_strncpyz( (char*) VMA( 1 ), P__( (char*) VMA( 2 ), (char*) VMA( 3 ), args[ 4 ] ), args[ 5 ] );
-			return 0;
-
-		case CG_R_GLYPH:
-			cls.nCgameRenderSyscalls ++;
-			re.GlyphVM( args[1], (char*) VMA(2), (glyphInfo_t*) VMA(3) );
-			return 0;
-
-		case CG_R_GLYPHCHAR:
-			cls.nCgameRenderSyscalls ++;
-			re.GlyphCharVM( args[1], args[2], (glyphInfo_t*) VMA(3) );
-			return 0;
-
-		case CG_R_UREGISTERFONT:
-			cls.nCgameRenderSyscalls ++;
-			re.UnregisterFontVM( args[1] );
-			return 0;
-
-		case CG_NOTIFY_TEAMCHANGE:
-			CL_OnTeamChanged( args[1] );
-			return 0;
-
-		case CG_REGISTERVISTEST:
-			return re.RegisterVisTest();
-
-		case CG_ADDVISTESTTOSCENE:
-			re.AddVisTestToScene( args[1], (float*) VMA(2), VMF(3), VMF(4) );
-			return 0;
-
-		case CG_CHECKVISIBILITY:
-			cls.nCgameRenderSyscalls ++;
-			return FloatAsInt( re.CheckVisibility( args[1] ) );
-
-		case CG_UNREGISTERVISTEST:
-			cls.nCgameRenderSyscalls ++;
-			re.UnregisterVisTest( args[1] );
-			return 0;
-
-		case CG_SETCOLORGRADING:
-			cls.nCgameRenderSyscalls ++;
-			re.SetColorGrading( args[1], args[2] );
-			return 0;
-
-		case CG_CM_DISTANCETOMODEL:
-			cls.nCgamePhysicsSyscalls ++;
-			return FloatAsInt( CM_DistanceToModel( (float*) VMA(1), args[2] ) );
-
-		case CG_R_SCISSOR_ENABLE:
-			cls.nCgameRenderSyscalls ++;
-			re.ScissorEnable( args[1] );
-			return 0;
-
-		case CG_R_SCISSOR_SET:
-			cls.nCgameRenderSyscalls ++;
-			re.ScissorSet( args[1], args[2], args[3], args[4] );
-			return 0;
-
-		case CG_R_GETSHADERNAMEFROMHANDLE:
-			Q_strncpyz( (char *) VMA( 2 ), re.ShaderNameFromHandle( args[ 1 ] ), args[ 3 ] );
-			return 0;
-
-		case CG_ROCKET_INIT:
-			Rocket_Init();
-			return 0;
-
-		case CG_ROCKET_SHUTDOWN:
-			Rocket_Shutdown();
-			return 0;
-
-		case CG_ROCKET_LOADDOCUMENT:
-			Rocket_LoadDocument( (const char *) VMA(1) );
-			return 0;
-
-		case CG_ROCKET_LOADCURSOR:
-			Rocket_LoadCursor( (const char *) VMA(1) );
-			return 0;
-
-		case CG_ROCKET_DOCUMENTACTION:
-			Rocket_DocumentAction( (const char *) VMA(1), (const char *) VMA(2) );
-			return 0;
-
-		case CG_ROCKET_GETEVENT:
-			return Rocket_GetEvent();
-
-		case CG_ROCKET_DELELTEEVENT:
-			Rocket_DeleteEvent();
-			return 0;
-
-		case CG_ROCKET_REGISTERDATASOURCE:
-			Rocket_RegisterDataSource( (const char *) VMA(1) );
-			return 0;
-
-		case CG_ROCKET_DSADDROW:
-			Rocket_DSAddRow( (const char *) VMA(1), (const char *) VMA(2), (const char *) VMA(3) );
-			return 0;
-
-		case CG_LAN_LOADCACHEDSERVERS:
-			LAN_LoadCachedServers();
-			return 0;
-
-		case CG_LAN_SAVECACHEDSERVERS:
-			LAN_SaveServersToCache();
-			return 0;
-
-		case CG_LAN_ADDSERVER:
-			return LAN_AddServer( args[ 1 ], (const char *) VMA( 2 ), (const char *) VMA( 3 ) );
-
-		case CG_LAN_REMOVESERVER:
-			LAN_RemoveServer( args[ 1 ], (const char *) VMA( 2 ) );
-			return 0;
-
-		case CG_LAN_GETPINGQUEUECOUNT:
-			return LAN_GetPingQueueCount();
-
-		case CG_LAN_CLEARPING:
-			LAN_ClearPing( args[ 1 ] );
-			return 0;
-
-		case CG_LAN_GETPING:
-			VM_CheckBlock( args[2], args[3], "UILANGP" );
-			LAN_GetPing( args[ 1 ], (char *)VMA( 2 ), args[ 3 ], (int*) VMA( 4 ) );
-			return 0;
-
-		case CG_LAN_GETPINGINFO:
-			VM_CheckBlock( args[2], args[3], "UILANGPI" );
-			LAN_GetPingInfo( args[ 1 ], (char *) VMA( 2 ), args[ 3 ] );
-			return 0;
-
-		case CG_LAN_GETSERVERCOUNT:
-			return LAN_GetServerCount( args[ 1 ] );
-
-		case CG_LAN_GETSERVERADDRESSSTRING:
-			VM_CheckBlock( args[3], args[4], "UILANGSAS" );
-			LAN_GetServerAddressString( args[ 1 ], args[ 2 ], (char *) VMA( 3 ), args[ 4 ] );
-			return 0;
-
-		case CG_LAN_GETSERVERINFO:
-			VM_CheckBlock( args[3], args[4], "UILANGSI" );
-			LAN_GetServerInfo( args[ 1 ], args[ 2 ], (char *) VMA( 3 ), args[ 4 ] );
-			return 0;
-
-		case CG_LAN_GETSERVERPING:
-			return LAN_GetServerPing( args[ 1 ], args[ 2 ] );
-
-		case CG_LAN_MARKSERVERVISIBLE:
-			LAN_MarkServerVisible( args[ 1 ], args[ 2 ], args[ 3 ] );
-			return 0;
-
-		case CG_LAN_SERVERISVISIBLE:
-			return LAN_ServerIsVisible( args[ 1 ], args[ 2 ] );
-
-		case CG_LAN_UPDATEVISIBLEPINGS:
-			return LAN_UpdateVisiblePings( args[ 1 ] );
-
-		case CG_LAN_RESETPINGS:
-			LAN_ResetPings( args[ 1 ] );
-			return 0;
-
-		case CG_LAN_SERVERSTATUS:
-			VM_CheckBlock( args[2], args[3], "UILANGSS" );
-			return LAN_GetServerStatus( (char *) VMA( 1 ), (char *) VMA( 2 ), args[ 3 ] );
-
-		case CG_LAN_SERVERISINFAVORITELIST:
-			return LAN_ServerIsInFavoriteList( args[ 1 ], args[ 2 ] );
-
-		case CG_GETNEWS:
-			return GetNews( args[ 1 ] );
-
-		case CG_LAN_COMPARESERVERS:
-			return LAN_CompareServers( args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args[ 5 ] );
-
-		case CG_ROCKET_DSCLEARTABLE:
-			Rocket_DSClearTable( (const char *) VMA(1), (const char *) VMA(2) );
-			return 0;
-
-		case CG_ROCKET_SETINNERRML:
-			Rocket_SetInnerRML( "", "", (const char *) VMA(1), args[2] );
-			return 0;
-
-		case CG_ROCKET_GETEVENTPARAMETERS:
-			Rocket_GetEventParameters( (char *) VMA(1), args[2] );
-			return 0;
-
-		case CG_ROCKET_REGISTERDATAFORMATTER:
-			Rocket_RegisterDataFormatter( (const char *) VMA(1) );
-			return 0;
-
-		case CG_ROCKET_DATAFORMATTERRAWDATA:
-			Rocket_DataFormatterRawData( args[1], (char *) VMA(2), args[3], (char *) VMA(4), args[5] );
-			return 0;
-
-		case CG_ROCKET_DATAFORMATTERFORMATTEDDATA:
-			Rocket_DataFormatterFormattedData( args[1], (const char *) VMA(2), args[3] );
-			return 0;
-
-		case CG_ROCKET_GETATTRIBUTE:
-			Rocket_GetAttribute( "", "", (const char *) VMA(1), (char *) VMA(2), args[3] );
-			return 0;
-
-		case CG_ROCKET_SETATTRIBUTE:
-			Rocket_SetAttribute( "", "", (const char *) VMA(1), (const char *) VMA(2) );
-			return 0;
-
-		case CG_ROCKET_GETPROPERTY:
-			Rocket_GetProperty( (const char *) VMA(1), VMA(2), args[ 3 ], (rocketVarType_t) args[ 4 ] );
-			return 0;
-
-		case CG_ROCKET_REGISTERELEMENT:
-			Rocket_RegisterElement( (const char *) VMA(1) );
-			return 0;
-
-		case CG_ROCKET_SETELEMENTDIMENSIONS:
-			Rocket_SetElementDimensions( VMF(1), VMF(2) );
-			return 0;
-
-		case CG_ROCKET_GETELEMENTTAG:
-			Rocket_GetElementTag( (char *)VMA(1), args[ 2 ] );
-			return 0;
-
-		case CG_ROCKET_GETELEMENTABSOLUTEOFFSET:
-			Rocket_GetElementAbsoluteOffset( (float*) VMA(1), (float*) VMA(2) );
-			return 0;
-
-		case CG_ROCKET_QUAKETORML:
-			Rocket_QuakeToRMLBuffer( (const char *) VMA(1), (char *) VMA(2), args[3] );
-			return 0;
-
-		case CG_ROCKET_SETCLASS:
-			Rocket_SetClass( (const char *) VMA(1), args[ 2 ] );
-			return 0;
-
-		case CG_ROCKET_SETPROPERYBYID:
-			Rocket_SetPropertyById( "", (const char *) VMA(1), (const char *) VMA(2) );
-			return 0;
-
-		case CG_ROCKET_INITHUDS:
-			Rocket_InitializeHuds( args[1] );
-			return 0;
-
-		case CG_ROCKET_LOADUNIT:
-			Rocket_LoadUnit( (const char *) VMA(1) );
-			return 0;
-
-		case CG_ROCKET_ADDUNITTOHUD:
-			Rocket_AddUnitToHud( args[1], (const char *) VMA(2) );
-			return 0;
-
-		case CG_ROCKET_SHOWHUD:
-			Rocket_ShowHud( args[1] );
-			return 0;
-
-		case CG_ROCKET_CLEARHUD:
-			Rocket_ClearHud( args[1] );
-			return 0;
-
-		case CG_ROCKET_ADDTEXT:
-			Rocket_AddTextElement( ( const char * ) VMA(1), ( const char *) VMA(2), VMF(3), VMF(4) );
-			return 0;
-
-		case CG_ROCKET_CLEARTEXT:
-			Rocket_ClearText();
-			return 0;
-
-		case CG_PREPAREKEYUP:
-			IN_PrepareKeyUp();
-			return 0;
-
-		case CG_R_SETALTSHADERTOKENS:
-			cls.nCgameRenderSyscalls ++;
-			re.SetAltShaderTokens( ( const char * )VMA(1) );
-			return 0;
-
-		case CG_S_UPDATEENTITYVELOCITY:
-			cls.nCgameSoundSyscalls ++;
-			Audio::UpdateEntityVelocity( args[ 1 ], (float*) VMA( 2 ) );
-			return 0;
-
-		case CG_S_SETREVERB:
-			cls.nCgameSoundSyscalls ++;
-			Audio::SetReverb( args[ 1 ], (const char*) VMA( 2 ), VMF( 3 ) );
-			return 0;
-
-		case CG_S_BEGINREGISTRATION:
-			cls.nCgameSoundSyscalls ++;
-			Audio::BeginRegistration();
-			return 0;
-
-		case CG_S_ENDREGISTRATION:
-			cls.nCgameSoundSyscalls ++;
-			Audio::EndRegistration();
-			return 0;
-		case CG_ROCKET_REGISTERPROPERTY:
-			Rocket_RegisterProperty( ( const char * ) VMA( 1 ), ( const char * ) VMA( 2 ), args[ 3 ], args[ 4 ], ( const char * ) VMA( 5 ) );
-			return 0;
-
-		case CG_ROCKET_SHOWSCOREBOARD:
-			Rocket_ShowScoreboard( ( const char * ) VMA( 1 ), args[ 2 ] );
-			return 0;
-
-		case CG_ROCKET_SETDATASELECTINDEX:
-			Rocket_SetDataSelectIndex( args[ 1 ] );
-			return 0;
-
-		case CG_ROCKET_LOADFONT:
-			Rocket_LoadFont( ( const char * ) VMA( 1 ) );
-			return 0;
-
-		default:
-			Com_Error( ERR_DROP, "Bad cgame system trap: %ld", ( long int ) args[ 0 ] );
-			exit(1); // silence warning, and make sure this behaves as expected, if Com_Error's behavior changes
-	}
-
-	return 0;
 }
 
 /*
@@ -2514,19 +863,20 @@ CL_UpdateLevelHunkUsage
   things should only account for a small variation (hopefully)
 ====================
 */
-void CL_UpdateLevelHunkUsage( void )
+void CL_UpdateLevelHunkUsage()
 {
 	int  handle;
 	const char *memlistfile = "hunkusage.dat";
 	char *buf, *outbuf;
-	char *buftrav, *outbuftrav;
+	const char *buftrav;
+	char *outbuftrav;
 	char *token;
 	char outstr[ 256 ];
 	int  len, memusage;
 
 	memusage = Cvar_VariableIntegerValue( "com_hunkused" ) + Cvar_VariableIntegerValue( "hunk_soundadjust" );
 
-	len = FS_FOpenFileRead( memlistfile, &handle, qfalse );
+	len = FS_FOpenFileRead( memlistfile, &handle, false );
 
 	if ( len >= 0 )
 	{
@@ -2542,7 +892,7 @@ void CL_UpdateLevelHunkUsage( void )
 		outbuftrav = outbuf;
 		outbuftrav[ 0 ] = '\0';
 
-		while ( ( token = COM_Parse( &buftrav ) ) != NULL && token[ 0 ] )
+		while ( ( token = COM_Parse( &buftrav ) ) != nullptr && token[ 0 ] )
 		{
 			if ( !Q_stricmp( token, cl.mapname ) )
 			{
@@ -2619,7 +969,7 @@ void CL_UpdateLevelHunkUsage( void )
 	FS_FCloseFile( handle );
 
 	// now just open it and close it, so it gets copied to the pak dir
-	len = FS_FOpenFileRead( memlistfile, &handle, qfalse );
+	len = FS_FOpenFileRead( memlistfile, &handle, false );
 
 	if ( len >= 0 )
 	{
@@ -2628,35 +978,13 @@ void CL_UpdateLevelHunkUsage( void )
 }
 
 /*
-=============
-CL_InitUI
-
-Start the cgame so we can load rocket
-=============
-*/
-
-void CL_InitUI( void )
-{
-	cgvm = VM_Create("cgame", CL_CgameSystemCalls, (vmInterpret_t) Cvar_VariableIntegerValue("vm_cgame"));
-
-	if ( !cgvm )
-	{
-		Com_Error( ERR_DROP, "VM_Create on cgame failed" );
-	}
-
-	VM_Call( cgvm, CG_INIT_ROCKET );
-}
-
-
-
-/*
 ====================
 CL_InitCGame
 
 Should only by called by CL_StartHunkUsers
 ====================
 */
-void CL_InitCGame( void )
+void CL_InitCGame()
 {
 	const char *info;
 	const char *mapname;
@@ -2668,7 +996,7 @@ void CL_InitCGame( void )
 	Con_Close();
 
 	// find the current mapname
-	info = cl.gameState.stringData + cl.gameState.stringOffsets[ CS_SERVERINFO ];
+	info = cl.gameState[ CS_SERVERINFO ].c_str();
 	mapname = Info_ValueForKey( info, "mapname" );
 	Com_sprintf( cl.mapname, sizeof( cl.mapname ), "maps/%s.bsp", mapname );
 
@@ -2676,10 +1004,7 @@ void CL_InitCGame( void )
 	cls.state = CA_LOADING;
 
 	// init for this gamestate
-	// use the lastExecutedServerCommand instead of the serverCommandSequence
-	// otherwise server commands sent just before a gamestate are dropped
-	//bani - added clc.demoplaying, since some mods need this at init time, and drawactiveframe is too late for them
-	VM_Call( cgvm, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying );
+	cgvm.CGameInit(clc.serverMessageSequence, clc.clientNum);
 
 	// we will send a usercmd this frame, which
 	// will cause the server to send us the first snapshot
@@ -2693,9 +1018,6 @@ void CL_InitCGame( void )
 	// on the card even if the driver does deferred loading
 	re.EndRegistration();
 
-	// make sure everything is paged in
-	Com_TouchMemory();
-
 	// Ridah, update the memory usage file
 	CL_UpdateLevelHunkUsage();
 
@@ -2705,8 +1027,8 @@ void CL_InitCGame( void )
 	Key_ClearStates();
 }
 
-void CL_InitCGameCVars( void )
-{
+void CL_InitCGameCVars()
+{/* TODO I don't understand that
 	vm_t *cgv_vm = VM_Create( "cgame", CL_CgameSystemCalls, (vmInterpret_t) Cvar_VariableIntegerValue( "vm_cgame" ) );
 
 	if ( !cgv_vm )
@@ -2716,34 +1038,7 @@ void CL_InitCGameCVars( void )
 
 	VM_Call( cgv_vm, CG_INIT_CVARS );
 
-	VM_Free( cgv_vm );
-}
-
-/*
-====================
-CL_GameCommandHandler
-====================
-*/
-void CL_GameCommandHandler( void )
-{
-	VM_Call( cgvm, CG_CONSOLE_COMMAND );
-}
-
-/*
-====================
-CL_GameCommand
-
-See if the current console command is claimed by the cgame
-====================
-*/
-qboolean CL_GameConsoleText( void )
-{
-	if ( !cgvm )
-	{
-		return qfalse;
-	}
-
-	return VM_Call( cgvm, CG_CONSOLE_TEXT );
+	VM_Free( cgv_vm );*/
 }
 
 /*
@@ -2751,17 +1046,9 @@ qboolean CL_GameConsoleText( void )
 CL_CGameRendering
 =====================
 */
-void CL_CGameRendering( stereoFrame_t stereo )
+void CL_CGameRendering()
 {
-	/*  static int x = 0;
-	        if(!((++x) % 20)) {
-	                Com_Printf( "numtraces: %i\n", numtraces / 20 );
-	                numtraces = 0;
-	        } else {
-	        }*/
-
-	VM_Call( cgvm, CG_DRAW_ACTIVE_FRAME, cl.serverTime, stereo, clc.demoplaying );
-	VM_Debug( 0 );
+	cgvm.CGameDrawActiveFrame(cl.serverTime, clc.demoplaying);
 }
 
 /*
@@ -2786,13 +1073,13 @@ or bursted delayed packets.
 
 #define RESET_TIME 500
 
-void CL_AdjustTimeDelta( void )
+void CL_AdjustTimeDelta()
 {
 //	int             resetTime;
 	int newDelta;
 	int deltaDelta;
 
-	cl.newSnapshots = qfalse;
+	cl.newSnapshots = false;
 
 	// the delta never drifts when replaying a demo
 	if ( clc.demoplaying )
@@ -2848,7 +1135,7 @@ void CL_AdjustTimeDelta( void )
 		{
 			if ( cl.extrapolatedSnapshot )
 			{
-				cl.extrapolatedSnapshot = qfalse;
+				cl.extrapolatedSnapshot = false;
 				cl.serverTimeDelta -= 2;
 			}
 			else
@@ -2870,7 +1157,7 @@ void CL_AdjustTimeDelta( void )
 CL_FirstSnapshot
 ==================
 */
-void CL_FirstSnapshot( void )
+void CL_FirstSnapshot()
 {
 	// ignore snapshots that don't have entities
 	if ( cl.snap.snapFlags & SNAPFLAG_NOT_ACTIVE )
@@ -2901,6 +1188,10 @@ void CL_FirstSnapshot( void )
 		int ret = mumble_link( CLIENT_WINDOW_TITLE );
 		Com_Printf("%s", ret == 0 ? "Mumble: Linking to Mumble application okay\n" : "Mumble: Linking to Mumble application failed\n" );
 	}
+
+	// resend userinfo upon entering the game, as some cvars may
+    // not have had the CVAR_USERINFO flag set until loading cgame
+	cvar_modifiedFlags |= CVAR_USERINFO;
 
 #ifdef USE_VOIP
 
@@ -2933,12 +1224,12 @@ void CL_FirstSnapshot( void )
 			speex_bits_init( &clc.speexDecoderBits[ i ] );
 			speex_bits_reset( &clc.speexDecoderBits[ i ] );
 			clc.speexDecoder[ i ] = speex_decoder_init( speex_lib_get_mode( SPEEX_MODEID_NB ) );
-			clc.voipIgnore[ i ] = qfalse;
+			clc.voipIgnore[ i ] = false;
 			clc.voipGain[ i ] = 1.0f;
 		}
 
-		clc.speexInitialized = qtrue;
-		clc.voipMuteAll = qfalse;
+		clc.speexInitialized = true;
+		clc.voipMuteAll = false;
 		Cmd_AddCommand( "voip", CL_Voip_f );
 		Cvar_Set( "cl_voipSendTarget", "spatial" );
 		Com_Memset( clc.voipTargets, ~0, sizeof( clc.voipTargets ) );
@@ -2952,7 +1243,7 @@ void CL_FirstSnapshot( void )
 CL_SetCGameTime
 ==================
 */
-void CL_SetCGameTime( void )
+void CL_SetCGameTime()
 {
 	// getting a valid frame message ends the connection process
 	if ( cls.state != CA_ACTIVE )
@@ -2968,7 +1259,7 @@ void CL_SetCGameTime( void )
 			// as the gamestate, because it causes a bad time skip
 			if ( !clc.firstDemoFrameSkipped )
 			{
-				clc.firstDemoFrameSkipped = qtrue;
+				clc.firstDemoFrameSkipped = true;
 				return;
 			}
 
@@ -2977,7 +1268,7 @@ void CL_SetCGameTime( void )
 
 		if ( cl.newSnapshots )
 		{
-			cl.newSnapshots = qfalse;
+			cl.newSnapshots = false;
 			CL_FirstSnapshot();
 		}
 
@@ -3054,7 +1345,7 @@ void CL_SetCGameTime( void )
 		// so we will try and adjust back a bit when the next snapshot arrives
 		if ( cls.realtime + cl.serverTimeDelta >= cl.snap.serverTime - 5 )
 		{
-			cl.extrapolatedSnapshot = qtrue;
+			cl.extrapolatedSnapshot = true;
 		}
 	}
 
@@ -3107,17 +1398,17 @@ void CL_SetCGameTime( void )
 CL_GetTag
 ====================
 */
-qboolean CL_GetTag( int clientNum, const char *tagname, orientation_t * orientation )
+bool CL_GetTag( int clientNum, const char *tagname, orientation_t * orientation )
 {
-	if ( !cgvm )
+	if ( !cgvm.IsActive() )
 	{
-		return qfalse;
+		return false;
 	}
 
 	// the current design of CG_GET_TAG is inappropriate for modules in sandboxed formats
 	//  (the direct pointer method to pass the tag name would work only with modules in native format)
 	//return VM_Call( cgvm, CG_GET_TAG, clientNum, tagname, or );
-	return qfalse;
+	return false;
 }
 
 /**
@@ -3145,3 +1436,744 @@ void  CL_OnTeamChanged( int newTeam )
 	 */
 	Cmd::BufferCommandText( "exec -f " TEAMCONFIG_NAME );
 }
+
+CGameVM::CGameVM(): VM::VMBase("cgame"), services(nullptr), cmdBuffer("client")
+{
+}
+
+void CGameVM::Start()
+{
+	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "CGame", Cmd::CGAME_VM));
+	uint32_t version = this->Create();
+	if ( version != CGAME_API_VERSION ) {
+		Com_Error( ERR_DROP, "CGame ABI mismatch, expected %d, got %d", CGAME_API_VERSION, version );
+	}
+	this->CGameStaticInit();
+}
+
+void CGameVM::CGameStaticInit()
+{
+	this->SendMsg<CGameStaticInitMsg>(Sys_Milliseconds());
+}
+
+void CGameVM::CGameInit(int serverMessageNum, int clientNum)
+{
+	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, cls.glconfig, cl.gameState);
+}
+
+void CGameVM::CGameShutdown()
+{
+	// Ignore errors when shutting down
+	try {
+		this->SendMsg<CGameShutdownMsg>();
+		this->Free();
+	} catch (Sys::DropErr&) {}
+	services = nullptr;
+}
+
+void CGameVM::CGameDrawActiveFrame(int serverTime,  bool demoPlayback)
+{
+	this->SendMsg<CGameDrawActiveFrameMsg>(serverTime, demoPlayback);
+}
+
+int CGameVM::CGameCrosshairPlayer()
+{
+	int player;
+	this->SendMsg<CGameCrosshairPlayerMsg>(player);
+	return player;
+}
+
+void CGameVM::CGameKeyEvent(int key, bool down)
+{
+	this->SendMsg<CGameKeyEventMsg>(key, down);
+}
+
+void CGameVM::CGameMouseEvent(int dx, int dy)
+{
+	this->SendMsg<CGameMouseEventMsg>(dx, dy);
+}
+
+void CGameVM::CGameTextInputEvent(char c)
+{
+	this->SendMsg<CGameTextInptEvent>(c);
+}
+
+void CGameVM::CGameRocketInit()
+{
+	this->SendMsg<CGameRocketInitMsg>(cls.glconfig);
+}
+
+void CGameVM::CGameRocketFrame()
+{
+	cgClientState_t state;
+	state.connectPacketCount = clc.connectPacketCount;
+	state.connState = cls.state;
+	Q_strncpyz( state.servername, cls.servername, sizeof( state.servername ) );
+	Q_strncpyz( state.updateInfoString, cls.updateInfoString, sizeof( state.updateInfoString ) );
+	Q_strncpyz( state.messageString, clc.serverMessage, sizeof( state.messageString ) );
+	state.clientNum = cl.snap.ps.clientNum;
+	this->SendMsg<CGameRocketFrameMsg>(state);
+}
+
+void CGameVM::CGameConsoleLine(const std::string& str)
+{
+	this->SendMsg<CGameConsoleLineMsg>(str);
+}
+
+void CGameVM::Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel)
+{
+	int major = id >> 16;
+	int minor = id & 0xffff;
+	if (major == VM::QVM) {
+		this->QVMSyscall(minor, reader, channel);
+
+	} else if (major == VM::COMMAND_BUFFER) {
+		this->cmdBuffer.Syscall(minor, reader, channel);
+
+	} else if (major < VM::LAST_COMMON_SYSCALL) {
+		services->Syscall(major, minor, std::move(reader), channel);
+
+	} else {
+		Sys::Drop("Bad major game syscall number: %d", major);
+	}
+}
+
+void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
+{
+	switch (index) {
+		case CG_SENDCLIENTCOMMAND:
+			IPC::HandleMsg<SendClientCommandMsg>(channel, std::move(reader), [this] (const std::string& command) {
+				CL_AddReliableCommand(command.c_str());
+			});
+			break;
+
+		case CG_UPDATESCREEN:
+			IPC::HandleMsg<UpdateScreenMsg>(channel, std::move(reader), [this]  {
+				SCR_UpdateScreen();
+			});
+			break;
+
+		case CG_CM_MARKFRAGMENTS:
+			// TODO wow this is very ugly and expensive, find something better?
+			// plus we have a lot of const casts for the vector buffers
+			IPC::HandleMsg<CMMarkFragmentsMsg>(channel, std::move(reader), [this] (std::vector<std::array<float, 3>> points, std::array<float, 3> projection, int maxPoints, int maxFragments, std::vector<std::array<float, 3>>& pointBuffer, std::vector<markFragment_t>& fragmentBuffer) {
+				pointBuffer.resize(maxPoints);
+				fragmentBuffer.resize(maxFragments);
+				int numFragments = re.MarkFragments(points.size(), (vec3_t*)points.data(), projection.data(), maxPoints, (float*) pointBuffer.data(), maxFragments, fragmentBuffer.data());
+				fragmentBuffer.resize(numFragments);
+			});
+			break;
+
+		case CG_GETCURRENTSNAPSHOTNUMBER:
+			IPC::HandleMsg<GetCurrentSnapshotNumberMsg>(channel, std::move(reader), [this] (int& number, int& serverTime) {
+				CL_GetCurrentSnapshotNumber(&number, &serverTime);
+			});
+			break;
+
+		case CG_GETSNAPSHOT:
+			IPC::HandleMsg<GetSnapshotMsg>(channel, std::move(reader), [this] (int number, bool& res, snapshot_t& snapshot) {
+				res = CL_GetSnapshot(number, &snapshot);
+			});
+			break;
+
+		case CG_GETCURRENTCMDNUMBER:
+			IPC::HandleMsg<GetCurrentCmdNumberMsg>(channel, std::move(reader), [this] (int& number) {
+				number = CL_GetCurrentCmdNumber();
+			});
+			break;
+
+		case CG_GETUSERCMD:
+			IPC::HandleMsg<GetUserCmdMsg>(channel, std::move(reader), [this] (int number, bool& res, usercmd_t& cmd) {
+				res = CL_GetUserCmd(number, &cmd);
+			});
+			break;
+
+		case CG_SETUSERCMDVALUE:
+			IPC::HandleMsg<SetUserCmdValueMsg>(channel, std::move(reader), [this] (int stateValue, int flags, float scale) {
+				CL_SetUserCmdValue(stateValue, flags, scale);
+			});
+			break;
+
+		case CG_GET_ENTITY_TOKEN:
+			IPC::HandleMsg<GetEntityTokenMsg>(channel, std::move(reader), [this] (int len, bool& res, std::string& token) {
+				std::unique_ptr<char[]> buffer(new char[len]);
+				res = re.GetEntityToken(buffer.get(), len);
+				token.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_REGISTER_BUTTON_COMMANDS:
+			IPC::HandleMsg<RegisterButtonCommandsMsg>(channel, std::move(reader), [this] (const std::string& commands) {
+				CL_RegisterButtonCommands(commands.c_str());
+			});
+			break;
+
+		case CG_GETCLIPBOARDDATA:
+			IPC::HandleMsg<GetClipboardDataMsg>(channel, std::move(reader), [this] (int len, int type, std::string& data) {
+				if (cl_allowPaste->integer) {
+					std::unique_ptr<char[]> buffer(new char[len]);
+					CL_GetClipboardData(buffer.get(), len, (clipboard_t)type);
+					data.assign(buffer.get(), len);
+				}
+			});
+			break;
+
+		case CG_QUOTESTRING:
+			IPC::HandleMsg<QuoteStringMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
+				std::unique_ptr<char[]> buffer(new char[len]);
+				Cmd_QuoteStringBuffer(input.c_str(), buffer.get(), len);
+				output.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_GETTEXT:
+			IPC::HandleMsg<GettextMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
+				std::unique_ptr<char[]> buffer(new char[len]);
+				Q_strncpyz(buffer.get(), __(input.c_str()), len);
+				output.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_PGETTEXT:
+			IPC::HandleMsg<PGettextMsg>(channel, std::move(reader), [this] (int len, const std::string& context, const std::string& input, std::string& output) {
+				std::unique_ptr<char[]> buffer(new char[len]);
+				Q_strncpyz(buffer.get(), C__(context.c_str(), input.c_str()), len);
+				output.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_GETTEXT_PLURAL:
+			IPC::HandleMsg<GettextPluralMsg>(channel, std::move(reader), [this] (int len, const std::string& input1, const std::string& input2, int number, std::string& output) {
+				std::unique_ptr<char[]> buffer(new char[len]);
+				Q_strncpyz(buffer.get(), P__(input1.c_str(), input2.c_str(), number), len);
+				output.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_NOTIFY_TEAMCHANGE:
+			IPC::HandleMsg<NotifyTeamChangeMsg>(channel, std::move(reader), [this] (int team) {
+				CL_OnTeamChanged(team);
+			});
+			break;
+
+		case CG_PREPAREKEYUP:
+			IPC::HandleMsg<PrepareKeyUpMsg>(channel, std::move(reader), [this] {
+				IN_PrepareKeyUp();
+			});
+			break;
+
+		case CG_GETNEWS:
+			IPC::HandleMsg<GetNewsMsg>(channel, std::move(reader), [this] (bool force, bool& res) {
+				res = GetNews(force);
+			});
+			break;
+
+		// All sounds
+
+			case CG_S_REGISTERSOUND:
+				IPC::HandleMsg<Audio::RegisterSoundMsg>(channel, std::move(reader), [this] (const std::string& sample, int& handle) {
+					handle = Audio::RegisterSFX(sample.c_str());
+				});
+				break;
+
+		// All renderer
+
+		case CG_R_SETALTSHADERTOKENS:
+			IPC::HandleMsg<Render::SetAltShaderTokenMsg>(channel, std::move(reader), [this] (const std::string& tokens) {
+				re.SetAltShaderTokens(tokens.c_str());
+			});
+			break;
+
+		case CG_R_GETSHADERNAMEFROMHANDLE:
+			IPC::HandleMsg<Render::GetShaderNameFromHandleMsg>(channel, std::move(reader), [this] (int handle, std::string& name) {
+			    name = re.ShaderNameFromHandle(handle);
+			});
+			break;
+
+		case CG_R_INPVVS:
+			IPC::HandleMsg<Render::InPVVSMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& p1, const std::array<float, 3>& p2, bool& res) {
+				res = re.inPVVS(p1.data(), p2.data());
+			});
+			break;
+
+		case CG_R_LOADWORLDMAP:
+			IPC::HandleMsg<Render::LoadWorldMapMsg>(channel, std::move(reader), [this] (const std::string& mapName) {
+				re.SetWorldVisData(CM_ClusterPVS(-1));
+				re.LoadWorld(mapName.c_str());
+			});
+			break;
+
+		case CG_R_REGISTERMODEL:
+			IPC::HandleMsg<Render::RegisterModelMsg>(channel, std::move(reader), [this] (const std::string& name, int& handle) {
+				handle = re.RegisterModel(name.c_str());
+			});
+			break;
+
+		case CG_R_REGISTERSKIN:
+			IPC::HandleMsg<Render::RegisterSkinMsg>(channel, std::move(reader), [this] (const std::string& name, int& handle) {
+				handle = re.RegisterSkin(name.c_str());
+			});
+			break;
+
+		case CG_R_REGISTERSHADER:
+			IPC::HandleMsg<Render::RegisterShaderMsg>(channel, std::move(reader), [this] (const std::string& name, int flags, int& handle) {
+				handle = re.RegisterShader(name.c_str(), (RegisterShaderFlags) flags);
+			});
+			break;
+
+		case CG_R_REGISTERFONT:
+			IPC::HandleMsg<Render::RegisterFontMsg>(channel, std::move(reader), [this] (const std::string& name, const std::string& fallbackName, int pointSize, fontMetrics_t& font) {
+				re.RegisterFontVM(name.c_str(), fallbackName.c_str(), pointSize, &font);
+			});
+			break;
+
+		case CG_R_MODELBOUNDS:
+			IPC::HandleMsg<Render::ModelBoundsMsg>(channel, std::move(reader), [this] (int handle, std::array<float, 3>& mins, std::array<float, 3>& maxs) {
+				re.ModelBounds(handle, mins.data(), maxs.data());
+			});
+			break;
+
+		case CG_R_LERPTAG:
+			IPC::HandleMsg<Render::LerpTagMsg>(channel, std::move(reader), [this] (const refEntity_t& entity, const std::string& tagName, int startIndex, orientation_t& tag, int& res) {
+				res = re.LerpTag(&tag, &entity, tagName.c_str(), startIndex);
+			});
+			break;
+
+		case CG_R_REMAP_SHADER:
+			IPC::HandleMsg<Render::RemapShaderMsg>(channel, std::move(reader), [this] (const std::string& oldShader, const std::string& newShader, const std::string& timeOffset) {
+				re.RemapShader(oldShader.c_str(), newShader.c_str(), timeOffset.c_str());
+			});
+			break;
+
+		case CG_R_INPVS:
+			IPC::HandleMsg<Render::InPVSMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& p1, const std::array<float, 3>& p2, bool& res) {
+				res = re.inPVS(p1.data(), p2.data());
+			});
+			break;
+
+		case CG_R_LIGHTFORPOINT:
+			IPC::HandleMsg<Render::LightForPointMsg>(channel, std::move(reader), [this] (std::array<float, 3> point, std::array<float, 3>& ambient, std::array<float, 3>& directed, std::array<float, 3>& dir, int res) {
+				res = re.LightForPoint(point.data(), ambient.data(), directed.data(), dir.data());
+			});
+			break;
+
+		case CG_R_REGISTERANIMATION:
+			IPC::HandleMsg<Render::RegisterAnimationMsg>(channel, std::move(reader), [this] (const std::string& name, int& handle) {
+				handle = re.RegisterAnimation(name.c_str());
+			});
+			break;
+
+		case CG_R_BUILDSKELETON:
+			IPC::HandleMsg<Render::BuildSkeletonMsg>(channel, std::move(reader), [this] (int anim, int startFrame, int endFrame, float frac, bool clearOrigin, refSkeleton_t& skel, int& res) {
+				res = re.BuildSkeleton(&skel, anim, startFrame, endFrame, frac, clearOrigin);
+			});
+			break;
+
+		case CG_R_BONEINDEX:
+			IPC::HandleMsg<Render::BoneIndexMsg>(channel, std::move(reader), [this] (int model, const std::string& boneName, int& index) {
+				index = re.BoneIndex(model, boneName.c_str());
+			});
+			break;
+
+		case CG_R_ANIMNUMFRAMES:
+			IPC::HandleMsg<Render::AnimNumFramesMsg>(channel, std::move(reader), [this] (int anim, int& res) {
+				res = re.AnimNumFrames(anim);
+			});
+			break;
+
+		case CG_R_ANIMFRAMERATE:
+			IPC::HandleMsg<Render::AnimFrameRateMsg>(channel, std::move(reader), [this] (int anim, int& res) {
+				res = re.AnimFrameRate(anim);
+			});
+			break;
+
+		case CG_REGISTERVISTEST:
+			IPC::HandleMsg<Render::RegisterVisTestMsg>(channel, std::move(reader), [this] (int& handle) {
+				handle = re.RegisterVisTest();
+			});
+			break;
+
+		case CG_CHECKVISIBILITY:
+			IPC::HandleMsg<Render::CheckVisibilityMsg>(channel, std::move(reader), [this] (int handle, float& res) {
+				res = re.CheckVisibility(handle);
+			});
+			break;
+
+		case CG_R_GETTEXTURESIZE:
+			IPC::HandleMsg<Render::GetTextureSizeMsg>(channel, std::move(reader), [this] (qhandle_t handle, int& x, int& y) {
+				re.GetTextureSize(handle, &x, &y);
+			});
+			break;
+
+		case CG_R_GENERATETEXTURE:
+			IPC::HandleMsg<Render::GenerateTextureMsg>(channel, std::move(reader), [this] (std::vector<byte> data, int x, int y, qhandle_t& handle) {
+				handle = re.GenerateTexture(data.data(), x, y);
+			});
+			break;
+
+		// All keys
+
+		case CG_KEY_GETCATCHER:
+			IPC::HandleMsg<Key::GetCatcherMsg>(channel, std::move(reader), [this] (int& catcher) {
+				catcher = Key_GetCatcher();
+			});
+			break;
+
+		case CG_KEY_SETCATCHER:
+			IPC::HandleMsg<Key::SetCatcherMsg>(channel, std::move(reader), [this] (int catcher) {
+				Key_SetCatcher(catcher);
+			});
+			break;
+
+		case CG_KEY_GETKEYNUMFORBINDS:
+			IPC::HandleMsg<Key::GetKeynumForBindsMsg>(channel, std::move(reader), [this] (int team, const std::vector<std::string>& binds, std::vector<std::vector<int>>& result) {
+                for (const auto& bind : binds) {
+                    result.push_back({});
+                    for (int i = 0; i < MAX_KEYS; i++) {
+                        char buffer[MAX_STRING_CHARS];
+
+                        Key_GetBindingBuf(i, team, buffer, MAX_STRING_CHARS);
+                        if (bind == buffer) {
+                            result.back().push_back(i);
+                            continue;
+                        }
+                        Key_GetBindingBuf(0, team, buffer, MAX_STRING_CHARS);
+                        if (bind == buffer) {
+                            result.back().push_back(i);
+                            continue;
+                        }
+                    }
+                }
+			});
+			break;
+
+		case CG_KEY_KEYNUMTOSTRINGBUF:
+			IPC::HandleMsg<Key::KeyNumToStringMsg>(channel, std::move(reader), [this] (int keynum, int len, std::string& result) {
+				std::unique_ptr<char[]> buffer(new char[len]);
+				Key_KeynumToStringBuf(keynum, buffer.get(), len);
+				result.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_KEY_SETBINDING:
+			IPC::HandleMsg<Key::SetBindingMsg>(channel, std::move(reader), [this] (int keyNum, int team, std::string cmd) {
+				Key_SetBinding(keyNum, team, cmd.c_str());
+			});
+			break;
+
+		case CG_KEY_CLEARCMDBUTTONS:
+			IPC::HandleMsg<Key::ClearCmdButtonsMsg>(channel, std::move(reader), [this] {
+				CL_ClearCmdButtons();
+			});
+			break;
+//
+		case CG_KEY_CLEARSTATES:
+			IPC::HandleMsg<Key::ClearStatesMsg>(channel, std::move(reader), [this] {
+				Key_ClearStates();
+			});
+			break;
+
+		case CG_KEY_KEYSDOWN:
+			IPC::HandleMsg<Key::KeysDownMsg>(channel, std::move(reader), [this] (std::vector<int> keys, std::vector<int>& list) {
+				list.reserve(keys.size());
+				for (int i = 0; i < keys.size(); ++i)
+				{
+					if (keys[i] == K_KP_NUMLOCK)
+					{
+						list.push_back(IN_IsNumLockDown());
+					}
+					else
+					{
+						list.push_back(Key_IsDown( keys[i] ));
+					}
+				}
+			});
+			break;
+
+		// All LAN
+
+		case CG_LAN_GETSERVERCOUNT:
+			IPC::HandleMsg<LAN::GetServerCountMsg>(channel, std::move(reader), [this] (int source, int& count) {
+				count = LAN_GetServerCount(source);
+			});
+			break;
+
+		case CG_LAN_GETSERVERINFO:
+			IPC::HandleMsg<LAN::GetServerInfoMsg>(channel, std::move(reader), [this] (int source, int n, int len, std::string& info) {
+				std::unique_ptr<char[]> buffer(new char[len]);
+				LAN_GetServerInfo(source, n, buffer.get(), len);
+				info.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_LAN_GETSERVERPING:
+			IPC::HandleMsg<LAN::GetServerPingMsg>(channel, std::move(reader), [this] (int source, int n, int& ping) {
+				ping = LAN_GetServerPing(source, n);
+			});
+			break;
+
+		case CG_LAN_MARKSERVERVISIBLE:
+			IPC::HandleMsg<LAN::MarkServerVisibleMsg>(channel, std::move(reader), [this] (int source, int n, bool visible) {
+				LAN_MarkServerVisible(source, n, visible);
+			});
+			break;
+
+		case CG_LAN_SERVERISVISIBLE:
+			IPC::HandleMsg<LAN::ServerIsVisibleMsg>(channel, std::move(reader), [this] (int source, int n, bool& visible) {
+				visible = LAN_ServerIsVisible(source, n);
+			});
+			break;
+
+		case CG_LAN_UPDATEVISIBLEPINGS:
+			IPC::HandleMsg<LAN::UpdateVisiblePingsMsg>(channel, std::move(reader), [this] (int source, bool& res) {
+				res = LAN_UpdateVisiblePings(source);
+			});
+			break;
+
+		case CG_LAN_RESETPINGS:
+			IPC::HandleMsg<LAN::ResetPingsMsg>(channel, std::move(reader), [this] (int n) {
+				LAN_ResetPings(n);
+			});
+			break;
+
+		case CG_LAN_SERVERSTATUS:
+			IPC::HandleMsg<LAN::ServerStatusMsg>(channel, std::move(reader), [this] (const std::string& serverAddress, int len, std::string& status, int& res) {
+				std::unique_ptr<char[]> buffer(new char[len]);
+				res = LAN_GetServerStatus(serverAddress.c_str(), buffer.get(), len);
+				status.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_LAN_RESETSERVERSTATUS:
+			IPC::HandleMsg<LAN::ResetServerStatusMsg>(channel, std::move(reader), [this] {
+				LAN_GetServerStatus(nullptr, nullptr, 0);
+			});
+			break;
+
+	default:
+		Sys::Drop("Bad CGame QVM syscall minor number: %d", index);
+	}
+}
+
+//TODO move somewhere else
+template<typename Func, typename Id, typename... MsgArgs> void HandleMsg(IPC::Message<Id, MsgArgs...>, Util::Reader reader, Func&& func)
+{
+    typedef IPC::Message<Id, MsgArgs...> Message;
+
+    typename IPC::detail::MapTuple<typename Message::Inputs>::type inputs;
+    reader.FillTuple<0>(Util::TypeListFromTuple<typename Message::Inputs>(), inputs);
+
+    Util::apply(std::forward<Func>(func), std::move(inputs));
+}
+
+template<typename Msg, typename Func> void HandleMsg(Util::Reader reader, Func&& func)
+{
+    HandleMsg(Msg(), std::move(reader), std::forward<Func>(func));
+}
+
+CGameVM::CmdBuffer::CmdBuffer(std::string name): IPC::CommandBufferHost(name) {
+}
+
+void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::Reader& reader) {
+	if (major == VM::QVM) {
+		switch (minor) {
+
+			// All sounds
+
+			case CG_S_STARTSOUND:
+				HandleMsg<Audio::StartSoundMsg>(std::move(reader), [this] (bool isPositional, std::array<float, 3> origin, int entityNum, int sfx) {
+					Audio::StartSound(entityNum, (isPositional ? origin.data() : nullptr), sfx);
+				});
+				break;
+
+			case CG_S_STARTLOCALSOUND:
+				HandleMsg<Audio::StartLocalSoundMsg>(std::move(reader), [this] (int sfx) {
+					Audio::StartLocalSound(sfx);
+				});
+				break;
+
+			case CG_S_CLEARLOOPINGSOUNDS:
+				HandleMsg<Audio::ClearLoopingSoundsMsg>(std::move(reader), [this] {
+					Audio::ClearAllLoopingSounds();
+				});
+				break;
+
+			case CG_S_ADDLOOPINGSOUND:
+				HandleMsg<Audio::AddLoopingSoundMsg>(std::move(reader), [this] (int entityNum, int sfx) {
+					Audio::AddEntityLoopingSound(entityNum, sfx);
+				});
+				break;
+
+			case CG_S_STOPLOOPINGSOUND:
+				HandleMsg<Audio::StopLoopingSoundMsg>(std::move(reader), [this] (int entityNum) {
+					Audio::ClearLoopingSoundsForEntity(entityNum);
+				});
+				break;
+
+			case CG_S_UPDATEENTITYPOSITION:
+				HandleMsg<Audio::UpdateEntityPositionMsg>(std::move(reader), [this] (int entityNum, std::array<float, 3> position) {
+					Audio::UpdateEntityPosition(entityNum, position.data());
+				});
+				break;
+
+			case CG_S_RESPATIALIZE:
+				HandleMsg<Audio::RespatializeMsg>(std::move(reader), [this] (int entityNum, const std::array<float, 9>& axis) {
+					Audio::UpdateListener(entityNum, (vec3_t*) axis.data());
+				});
+				break;
+
+			case CG_S_STARTBACKGROUNDTRACK:
+				HandleMsg<Audio::StartBackgroundTrackMsg>(std::move(reader), [this] (const std::string& intro, const std::string& loop) {
+					Audio::StartMusic(intro.c_str(), loop.c_str());
+				});
+				break;
+
+			case CG_S_STOPBACKGROUNDTRACK:
+				HandleMsg<Audio::StopBackgroundTrackMsg>(std::move(reader), [this] {
+					Audio::StopMusic();
+				});
+				break;
+
+			case CG_S_UPDATEENTITYVELOCITY:
+				HandleMsg<Audio::UpdateEntityVelocityMsg>(std::move(reader), [this] (int entityNum, std::array<float, 3> velocity) {
+					Audio::UpdateEntityVelocity(entityNum, velocity.data());
+				});
+				break;
+
+			case CG_S_SETREVERB:
+				HandleMsg<Audio::SetReverbMsg>(std::move(reader), [this] (int slotNum, const std::string& name, float ratio) {
+					Audio::SetReverb(slotNum, name.c_str(), ratio);
+				});
+				break;
+
+			case CG_S_BEGINREGISTRATION:
+				HandleMsg<Audio::BeginRegistrationMsg>(std::move(reader), [this] {
+					Audio::BeginRegistration();
+				});
+				break;
+
+			case CG_S_ENDREGISTRATION:
+				HandleMsg<Audio::EndRegistrationMsg>(std::move(reader), [this] {
+					Audio::EndRegistration();
+				});
+				break;
+
+            // All renderer
+
+            case CG_R_SCISSOR_ENABLE:
+                HandleMsg<Render::ScissorEnableMsg>(std::move(reader), [this] (bool enable) {
+                    re.ScissorEnable(enable);
+                });
+                break;
+
+            case CG_R_SCISSOR_SET:
+                HandleMsg<Render::ScissorSetMsg>(std::move(reader), [this] (int x, int y, int w, int h) {
+                    re.ScissorSet(x, y, w, h);
+                });
+                break;
+
+            case CG_R_CLEARSCENE:
+                HandleMsg<Render::ClearSceneMsg>(std::move(reader), [this] {
+                    re.ClearScene();
+                });
+                break;
+
+            case CG_R_ADDREFENTITYTOSCENE:
+                HandleMsg<Render::AddRefEntityToSceneMsg>(std::move(reader), [this] (refEntity_t&& entity) {
+                    re.AddRefEntityToScene(&entity);
+                });
+                break;
+
+            case CG_R_ADDPOLYTOSCENE:
+                HandleMsg<Render::AddPolyToSceneMsg>(std::move(reader), [this] (int shader, const std::vector<polyVert_t>& verts) {
+                    re.AddPolyToScene(shader, verts.size(), verts.data());
+                });
+                break;
+
+            case CG_R_ADDPOLYSTOSCENE:
+                HandleMsg<Render::AddPolysToSceneMsg>(std::move(reader), [this] (int shader, const std::vector<polyVert_t>& verts, int numVerts, int numPolys) {
+                    re.AddPolysToScene(shader, numVerts, verts.data(), numPolys);
+                });
+                break;
+
+            case CG_R_ADDLIGHTTOSCENE:
+                HandleMsg<Render::AddLightToSceneMsg>(std::move(reader), [this] (const std::array<float, 3>& point, float radius, float intensity, float r, float g, float b, int shader, int flags) {
+                    re.AddLightToScene(point.data(), radius, intensity, r, g, b, shader, flags);
+                });
+                break;
+
+            case CG_R_ADDADDITIVELIGHTTOSCENE:
+                HandleMsg<Render::AddAdditiveLightToSceneMsg>(std::move(reader), [this] (const std::array<float, 3>& point, float intensity, float r, float g, float b) {
+                    re.AddAdditiveLightToScene(point.data(), intensity, r, g, b);
+                });
+                break;
+
+            case CG_R_SETCOLOR:
+                HandleMsg<Render::SetColorMsg>(std::move(reader), [this] (const std::array<float, 4>& color) {
+                    re.SetColor(color.data());
+                });
+                break;
+
+            case CG_R_SETCLIPREGION:
+                HandleMsg<Render::SetClipRegionMsg>(std::move(reader), [this] (const std::array<float, 4>& region) {
+                    re.SetClipRegion(region.data());
+                });
+                break;
+
+            case CG_R_RESETCLIPREGION:
+                HandleMsg<Render::ResetClipRegionMsg>(std::move(reader), [this] {
+                    re.SetClipRegion(nullptr);
+                });
+                break;
+
+            case CG_R_DRAWSTRETCHPIC:
+                HandleMsg<Render::DrawStretchPicMsg>(std::move(reader), [this] (float x, float y, float w, float h, float s1, float t1, float s2, float t2, int shader) {
+                    re.DrawStretchPic(x, y, w, h, s1, t1, s2, t2, shader);
+                });
+                break;
+
+            case CG_R_DRAWROTATEDPIC:
+                HandleMsg<Render::DrawRotatedPicMsg>(std::move(reader), [this] (float x, float y, float w, float h, float s1, float t1, float s2, float t2, int shader, float angle) {
+                    re.DrawRotatedPic(x, y, w, h, s1, t1, s2, t2, shader, angle);
+                });
+                break;
+
+            case CG_ADDVISTESTTOSCENE:
+                HandleMsg<Render::AddVisTestToSceneMsg>(std::move(reader), [this] (int handle, const std::array<float, 3>& pos, float depthAdjust, float area) {
+                    re.AddVisTestToScene(handle, pos.data(), depthAdjust, area);
+                });
+                break;
+
+            case CG_UNREGISTERVISTEST:
+                HandleMsg<Render::UnregisterVisTestMsg>(std::move(reader), [this] (int handle) {
+                    re.UnregisterVisTest(handle);
+                });
+                break;
+
+            case CG_SETCOLORGRADING:
+                HandleMsg<Render::SetColorGradingMsg>(std::move(reader), [this] (int slot, int shader) {
+                    re.SetColorGrading(slot, shader);
+                });
+                break;
+
+            case CG_R_RENDERSCENE:
+                HandleMsg<Render::RenderSceneMsg>(std::move(reader), [this] (refdef_t rd) {
+                    re.RenderScene(&rd);
+                });
+				break;
+
+			case CG_R_ADD2DPOLYSINDEXED:
+				HandleMsg<Render::Add2dPolysIndexedMsg>(std::move(reader), [this] (std::vector<polyVert_t> polys, int numPolys, std::vector<int> indicies, int numIndicies, int trans_x, int trans_y, qhandle_t shader) {
+					re.Add2dPolysIndexed(polys.data(), numPolys, indicies.data(), numIndicies, trans_x, trans_y, shader);
+				});
+                break;
+
+		default:
+			Sys::Drop("Bad minor CGame QVM Command Buffer number: %d", minor);
+		}
+
+	} else {
+		Sys::Drop("Bad major CGame Command Buffer number: %d", major);
+	}
+}
+

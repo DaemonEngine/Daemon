@@ -69,12 +69,12 @@ namespace AL {
     int ClearALError(int line = -1) {
         int error = alGetError();
 
-        if (line >= 0) {
-            if (error != AL_NO_ERROR) {
+        if (error != AL_NO_ERROR) {
+            if (line >= 0) {
                 audioLogs.Warn("Unhandled OpenAL error on line %i: %s", line, ALErrorToString(error));
+            } else if (checkAllCalls.Get()) {
+                audioLogs.Warn("Unhandled OpenAL error: %s", ALErrorToString(error));
             }
-        } else if (checkAllCalls.Get()) {
-            audioLogs.Warn("Unhandled OpenAL error: %s", ALErrorToString(error));
         }
 
         return error;
@@ -341,7 +341,7 @@ namespace AL {
     std::vector<std::string> ListPresetNames() {
         std::vector<std::string> res;
 
-        for (auto& it: presets) {
+        for (const auto& it: presets) {
             res.push_back(it.first);
         }
 
@@ -769,11 +769,11 @@ namespace AL {
     }
 
     std::string Device::DefaultDeviceName() {
-        return alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER);
+        return alcGetString(nullptr, ALC_DEFAULT_DEVICE_SPECIFIER);
     }
 
     std::vector<std::string> Device::ListByName() {
-        const char* list = alcGetString(NULL, ALC_ALL_DEVICES_SPECIFIER);
+        const char* list = alcGetString(nullptr, ALC_ALL_DEVICES_SPECIFIER);
 
         if (!list) {
             return {};
@@ -881,11 +881,11 @@ namespace AL {
     }
 
     std::string CaptureDevice::DefaultDeviceName() {
-        return alcGetString(NULL, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER);
+        return alcGetString(nullptr, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER);
     }
 
     std::vector<std::string> CaptureDevice::ListByName() {
-        const char* list = alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
+        const char* list = alcGetString(nullptr, ALC_CAPTURE_DEVICE_SPECIFIER);
 
         if (!list) {
             return {};

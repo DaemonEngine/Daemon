@@ -31,9 +31,12 @@ Maryland 20850 USA.
 
 ===========================================================================
 */
-#include "../client/client.h"
-#include "../../libs/detour/DetourDebugDraw.h"
-#include "../../libs/detour/DebugDraw.h"
+#include "client/client.h"
+#include "detour/DetourDebugDraw.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#include "detour/DebugDraw.h"
+#pragma GCC diagnostic pop
 #include "bot_local.h"
 #include "nav.h"
 #include "bot_debug.h"
@@ -46,7 +49,7 @@ void DebugDrawQuake::init(BotDebugInterface_t *ref)
 
 void DebugDrawQuake::depthMask(bool state)
 {
-	re->DebugDrawDepthMask( ( qboolean ) ( int ) state );
+	re->DebugDrawDepthMask( ( bool ) ( int ) state );
 }
 
 void DebugDrawQuake::begin(duDebugDrawPrimitives prim, float s)
@@ -56,7 +59,7 @@ void DebugDrawQuake::begin(duDebugDrawPrimitives prim, float s)
 
 void DebugDrawQuake::vertex(const float* pos, unsigned int c)
 {
-	vertex( pos, c, NULL );
+	vertex( pos, c, nullptr );
 }
 
 void DebugDrawQuake::vertex(const float x, const float y, const float z, unsigned int color)
@@ -64,7 +67,7 @@ void DebugDrawQuake::vertex(const float x, const float y, const float z, unsigne
 	vec3_t vert;
 	VectorSet( vert, x, y, z );
 	recast2quake( vert );
-	re->DebugDrawVertex( vert, color, NULL );
+	re->DebugDrawVertex( vert, color, nullptr );
 }
 
 void DebugDrawQuake::vertex(const float *pos, unsigned int color, const float* uv)

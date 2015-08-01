@@ -35,15 +35,16 @@ Maryland 20850 USA.
 // common.c -- misc functions used in client and server
 
 #include "revision.h"
-#include "../qcommon/q_shared.h"
+#include "qcommon/q_shared.h"
 #include "q_unicode.h"
 #include "qcommon.h"
 
-#include "../framework/BaseCommands.h"
-#include "../framework/CommandSystem.h"
-#include "../framework/CvarSystem.h"
-#include "../framework/ConsoleHistory.h"
-#include "../framework/LogSystem.h"
+#include "framework/BaseCommands.h"
+#include "framework/CommandSystem.h"
+#include "framework/CvarSystem.h"
+#include "framework/ConsoleHistory.h"
+#include "framework/LogSystem.h"
+#include "framework/System.h"
 
 // htons
 #ifdef _WIN32
@@ -58,25 +59,17 @@ Maryland 20850 USA.
 
 #define MAX_NUM_ARGVS             50
 
-#define MIN_DEDICATED_COMHUNKMEGS 4
-#define MIN_COMHUNKMEGS           256 // JPW NERVE changed this to 42 for MP, was 56 for team arena and 75 for wolfSP
-#define DEF_COMHUNKMEGS           512 // RF, increased this, some maps are exceeding 56mb
-// JPW NERVE changed this for multiplayer back to 42, 56 for depot/mp_cpdepot, 42 for everything else
-#define DEF_COMHUNKMEGS_S         XSTRING(DEF_COMHUNKMEGS)
-
-jmp_buf             abortframe; // an ERR_DROP has occurred, exit the entire frame
+#define MIN_COMHUNKMEGS 256
+#define DEF_COMHUNKMEGS 512
 
 static fileHandle_t logfile;
-static FILE         *pipefile;
 
-cvar_t              *com_crashed = NULL; // ydnar: set in case of a crash, prevents CVAR_UNSAFE variables from being set from a cfg
+cvar_t              *com_crashed = nullptr; // ydnar: set in case of a crash, prevents CVAR_UNSAFE variables from being set from a cfg
 
 cvar_t *com_pid; // bani - process id
 
-cvar_t *com_viewlog;
 cvar_t *com_speeds;
 cvar_t *com_developer;
-cvar_t *com_dedicated;
 cvar_t *com_timescale;
 cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
 cvar_t *com_timedemo;
@@ -113,17 +106,13 @@ int      time_backend; // renderer backend time
 int      com_frameTime;
 int      com_frameMsec;
 int      com_frameNumber;
-int      com_expectedhunkusage;
 int      com_hunkusedvalue;
 
-qboolean com_errorEntered;
-qboolean com_fullyInitialized;
+bool com_fullyInitialized;
 
-char     com_errorMessage[ MAXPRINTMSG ];
-
-void     Com_WriteConfig_f( void );
-void     Com_WriteBindings_f( void );
-void     CIN_CloseAllVideos( void );
+void     Com_WriteConfig_f();
+void     Com_WriteBindings_f();
+void     CIN_CloseAllVideos();
 
 //============================================================================
 
@@ -140,7 +129,7 @@ A raw string should NEVER be passed as fmt, because of "%f" type crashers.
 int QDECL VPRINTF_LIKE(1) Com_VPrintf( const char *fmt, va_list argptr )
 {
 #ifdef SMP
-	static SDL_mutex *lock = NULL;
+	static SDL_mutex *lock = nullptr;
 
 	// would be racy, but this gets called prior to renderer threads etc. being started
 	if ( !lock )
@@ -181,7 +170,7 @@ void QDECL PRINTF_LIKE(1) Com_Printf( const char *fmt, ... )
 	va_end( argptr );
 }
 
-void QDECL Com_LogEvent( log_event_t *event, log_location_info_t *location )
+void QDECL Com_LogEvent( log_event_t *event, log_location_info_t *location)
 {
 	switch (event->level)
 	{
@@ -224,7 +213,7 @@ void QDECL PRINTF_LIKE(2) Com_Logf( log_level_t level, const char *fmt, ... )
 	Q_vsnprintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
 
-	Com_LogEvent( &event, NULL );
+	Com_LogEvent( &event, nullptr );
 }
 
 void QDECL Com_Log( log_level_t level, const char* message )
@@ -232,7 +221,7 @@ void QDECL Com_Log( log_level_t level, const char* message )
 	log_event_t event;
 	event.level = level;
 	event.message = message;
-	Com_LogEvent( &event, NULL );
+	Com_LogEvent( &event, nullptr );
 }
 
 /*
@@ -268,87 +257,24 @@ do the appropriate things.
 =============
 */
 // *INDENT-OFF*
-void QDECL PRINTF_LIKE(2) NORETURN Com_Error( int code, const char *fmt, ... )
+void QDECL PRINTF_LIKE(2) Com_Error( int code, const char *fmt, ... )
 {
-	va_list    argptr;
-	static int lastErrorTime;
-	static int errorCount;
-	int        currentTime;
-
-	// make sure we can get at our local stuff
-	if (code != ERR_FATAL) {
-		FS::PakPath::ClearPaks();
-		FS_LoadBasePak();
-	}
-
-	// if we are getting a solid stream of ERR_DROP, do an ERR_FATAL
-	currentTime = Sys_Milliseconds();
-
-	if ( currentTime - lastErrorTime < 100 )
-	{
-		if ( ++errorCount > 3 )
-		{
-			code = ERR_FATAL;
-		}
-	}
-	else
-	{
-		errorCount = 0;
-	}
-
-	lastErrorTime = currentTime;
-
-	if ( com_errorEntered )
-	{
-		char buf[ 4096 ];
-
-		va_start( argptr, fmt );
-		Q_vsnprintf( buf, sizeof( buf ), fmt, argptr );
-		va_end( argptr );
-
-		Sys_Error( "recursive error '%s' after: %s", buf, com_errorMessage );
-	}
-
-	com_errorEntered = qtrue;
+	char buf[ 4096 ];
+	va_list argptr;
 
 	va_start( argptr, fmt );
-	Q_vsnprintf( com_errorMessage, sizeof( com_errorMessage ), fmt, argptr );
+	Q_vsnprintf( buf, sizeof( buf ), fmt, argptr );
 	va_end( argptr );
 
-	Cvar_Set("com_errorMessage", com_errorMessage);
-
-	if ( code == ERR_SERVERDISCONNECT )
-	{
-		Com_Printf( S_COLOR_WHITE "%s\n", com_errorMessage );
-		SV_Shutdown( "Server disconnected" );
-		CL_Disconnect( qtrue );
-		CL_FlushMemory();
-		com_errorEntered = qfalse;
-		longjmp( abortframe, -1 );
-	}
-	else if ( code == ERR_DROP )
-	{
-		Com_Printf( S_COLOR_ORANGE "%s\n", com_errorMessage );
-		SV_Shutdown( va( "********************\nServer crashed: %s\n********************\n", com_errorMessage ) );
-		CL_Disconnect( qtrue );
-		CL_FlushMemory();
-		com_errorEntered = qfalse;
-		longjmp( abortframe, -1 );
-	}
+	if ( code == ERR_FATAL )
+		Sys::Error( buf );
 	else
-	{
-		CL_Shutdown();
-		SV_Shutdown( va( "Server fatal crashed: %s\n", com_errorMessage ) );
-	}
-
-	Com_Shutdown();
-
-	Sys_Error( "%s", com_errorMessage );
+		Sys::Drop( buf );
 }
 
 // *INDENT-OFF*
 //bani - moved
-void CL_ShutdownCGame( void );
+void CL_ShutdownCGame();
 
 // *INDENT-ON*
 
@@ -360,27 +286,11 @@ Both client and server can use this, and it will
 do the appropriate things.
 =============
 */
-void NORETURN Com_Quit_f( void )
+void NORETURN Com_Quit_f()
 {
 	// don't try to shutdown if we are in a recursive error
 	char *p = Cmd_Args();
-
-	if ( !com_errorEntered )
-	{
-		// Some VMs might execute "quit" command directly,
-		// which would trigger an unload of active VM error.
-		// Sys_Quit will kill this process anyways, so
-		// a corrupt call stack makes no difference
-		SV_Shutdown( p[ 0 ] ? p : "Server quit\n" );
-//bani
-#ifdef BUILD_CLIENT
-		CL_ShutdownCGame();
-#endif
-		CL_Shutdown();
-		Com_Shutdown();
-	}
-
-	Sys_Quit();
+	Sys::Quit(p[0] ? p : "Server quit");
 }
 
 /*
@@ -444,7 +354,7 @@ Check for "safe" on the command line, which will
 skip loading of wolfconfig.cfg
 ===================
 */
-qboolean Com_SafeMode( void )
+bool Com_SafeMode()
 {
 	int i;
 
@@ -455,11 +365,11 @@ qboolean Com_SafeMode( void )
 		if ( line.size() > 1 && ( !Q_stricmp( line[0].c_str(), "safe" ) || !Q_stricmp( line[0].c_str(), "cvar_restart" ) ) )
 		{
 			com_consoleLines[ i ][ 0 ] = 0;
-			return qtrue;
+			return true;
 		}
 	}
 
-	return qfalse;
+	return false;
 }
 
 /*
@@ -467,7 +377,7 @@ qboolean Com_SafeMode( void )
 Com_StartupVariable
 
 Searches for command-line arguments that are set commands.
-If match is not NULL, only that cvar will be looked for.
+If match is not nullptr, only that cvar will be looked for.
 That is necessary because the fs_* cvars need to be set
 before the filesystem is started, but all other sets should
 be after execing the config and default.
@@ -481,6 +391,10 @@ void Com_StartupVariable( const char *match )
 
 	for ( i = 0; i < com_numConsoleLines; i++ )
 	{
+		if (com_consoleLines[i] == 0) {
+			continue;
+		}
+
 		Cmd::Args line(com_consoleLines[i]);
 
 		if ( line.size() < 3 || strcmp( line[0].c_str(), "set" ))
@@ -508,16 +422,16 @@ Com_AddStartupCommands
 Adds command-line arguments as script statements
 Commands are separated by + signs
 
-Returns qtrue if any late commands were added, which
+Returns true if any late commands were added, which
 will keep the demoloop from immediately starting
 =================
 */
-qboolean Com_AddStartupCommands( void )
+bool Com_AddStartupCommands()
 {
 	int      i;
-	qboolean added;
+	bool added;
 
-	added = qfalse;
+	added = false;
 
 	// quote every token, so args with semicolons can work
 	for ( i = 0; i < com_numConsoleLines; i++ )
@@ -530,7 +444,7 @@ qboolean Com_AddStartupCommands( void )
 		// set commands won't override menu startup
 		if ( Q_strnicmp( com_consoleLines[ i ], "set", 3 ) )
 		{
-			added = qtrue;
+			added = true;
 		}
 
 		Cmd::BufferCommandText(com_consoleLines[i], true);
@@ -601,60 +515,9 @@ void Info_Print( const char *s )
 	}
 }
 
-/* Internals for Com_RealTime & Com_GMTime */
-static int internalTime( qtime_t *qtime, struct tm *( *timefunc )( const time_t * ) )
-{
-	time_t    t;
-	struct tm *tms;
-
-	t = time( NULL );
-
-	if ( !qtime )
-	{
-		return t;
-	}
-
-	tms = timefunc( &t );
-
-	if ( tms )
-	{
-		qtime->tm_sec = tms->tm_sec;
-		qtime->tm_min = tms->tm_min;
-		qtime->tm_hour = tms->tm_hour;
-		qtime->tm_mday = tms->tm_mday;
-		qtime->tm_mon = tms->tm_mon;
-		qtime->tm_year = tms->tm_year;
-		qtime->tm_wday = tms->tm_wday;
-		qtime->tm_yday = tms->tm_yday;
-		qtime->tm_isdst = tms->tm_isdst;
-	}
-
-	return t;
-}
-
-/*
-================
-Com_RealTime
-================
-*/
-int Com_RealTime( qtime_t *qtime )
-{
-	return internalTime( qtime, localtime );
-}
-
-/*
-================
-Com_GMTime
-================
-*/
-int Com_GMTime( qtime_t *qtime )
-{
-	return internalTime( qtime, gmtime );
-}
-
 /*
 ==============================================================================
-	Cheating
+Global common state
 ==============================================================================
 */
 
@@ -669,6 +532,33 @@ Cvar::Callback<Cvar::Cvar<bool>> cvar_cheats("sv_cheats", "can cheats be used in
 bool Com_AreCheatsAllowed()
 {
 	return cvar_cheats.Get();
+}
+
+bool Com_IsClient()
+{
+#if BUILD_CLIENT || BUILD_TTY_CLIENT
+	return true;
+#elif BUILD_SERVER
+	return false;
+#else
+	#error
+#endif
+}
+
+bool Com_IsDedicatedServer()
+{
+#if BUILD_CLIENT || BUILD_TTY_CLIENT
+	return false;
+#elif BUILD_SERVER
+	return true;
+#else
+	#error
+#endif
+}
+
+bool Com_ServerRunning()
+{
+	return com_sv_running->integer;
 }
 
 /*
@@ -740,7 +630,7 @@ static hunkblock_t *hunkblocks;
 static hunkUsed_t  hunk_low, hunk_high;
 static hunkUsed_t  *hunk_permanent, *hunk_temp;
 
-static byte        *s_hunkData = NULL;
+static byte        *s_hunkData = nullptr;
 static int         s_hunkTotal;
 
 /*
@@ -748,7 +638,7 @@ static int         s_hunkTotal;
 Com_Meminfo_f
 =================
 */
-void Com_Meminfo_f( void )
+void Com_Meminfo_f()
 {
 	Com_Printf( "%9i bytes (%6.2f MB) total hunk\n", s_hunkTotal, s_hunkTotal / Square( 1024.f ) );
 	Com_Printf( "\n" );
@@ -790,44 +680,6 @@ void Com_Meminfo_f( void )
 }
 
 /*
-===============
-Com_TouchMemory
-
-Touch all known used data to make sure it is paged in
-===============
-*/
-void Com_TouchMemory( void )
-{
-	int        start, end;
-	int        i, j;
-	int        sum;
-	start = Sys_Milliseconds();
-
-	sum = 0;
-
-	j = hunk_low.permanent >> 2;
-
-	for ( i = 0; i < j; i += 64 )
-	{
-		// only need to touch each page
-		sum += ( ( int * ) s_hunkData ) [ i ];
-	}
-
-	i = ( s_hunkTotal - hunk_high.permanent ) >> 2;
-	j = hunk_high.permanent >> 2;
-
-	for ( ; i < j; i += 64 )
-	{
-		// only need to touch each page
-		sum += ( ( int * ) s_hunkData ) [ i ];
-	}
-
-	end = Sys_Milliseconds();
-
-	Com_DPrintf( "Com_TouchMemory: %i msec\n", end - start );
-}
-
-/*
 =================
 Com_Allocate_Aligned
 
@@ -843,7 +695,7 @@ void *Com_Allocate_Aligned( size_t alignment, size_t size )
 	if( !posix_memalign( &ptr, alignment, size ) )
 		return ptr;
 	else
-		return NULL;
+		return nullptr;
 #endif
 }
 
@@ -868,7 +720,7 @@ void Com_Free_Aligned( void *ptr )
 Hunk_Log
 =================
 */
-void Hunk_Log( void )
+void Hunk_Log()
 {
 	hunkblock_t *block;
 	char        buf[ 4096 ];
@@ -905,7 +757,7 @@ void Hunk_Log( void )
 Hunk_SmallLog
 =================
 */
-void Hunk_SmallLog( void )
+void Hunk_SmallLog()
 {
 	hunkblock_t *block, *block2;
 	char        buf[ 4096 ];
@@ -918,7 +770,7 @@ void Hunk_SmallLog( void )
 
 	for ( block = hunkblocks; block; block = block->next )
 	{
-		block->printed = qfalse;
+		block->printed = false;
 	}
 
 	size = 0;
@@ -949,7 +801,7 @@ void Hunk_SmallLog( void )
 
 			size += block2->size;
 			locsize += block2->size;
-			block2->printed = qtrue;
+			block2->printed = true;
 		}
 
 #ifdef HUNK_DEBUG
@@ -972,25 +824,17 @@ void Hunk_SmallLog( void )
 Com_InitHunkMemory
 =================
 */
-void Com_InitHunkMemory( void )
+void Com_InitHunkMemory()
 {
 	cvar_t *cv;
-	int    nMinAlloc;
-	qboolean isDedicated;
-
-	isDedicated = (com_dedicated && com_dedicated->integer);
 
 	// allocate the stack based hunk allocator
-	cv = Cvar_Get( "com_hunkMegs", DEF_COMHUNKMEGS_S, CVAR_LATCH  );
+	cv = Cvar_Get( "com_hunkMegs", XSTRING(DEF_COMHUNKMEGS), CVAR_LATCH  );
 
-	// if we are not dedicated min allocation is 56, otherwise min is 1
-	nMinAlloc = isDedicated ? MIN_DEDICATED_COMHUNKMEGS : MIN_COMHUNKMEGS;
-
-	if ( cv->integer < nMinAlloc )
+	if ( cv->integer < MIN_COMHUNKMEGS )
 	{
-		s_hunkTotal = 1024 * 1024 * nMinAlloc;
-		Com_Printf(	isDedicated	? "Minimum com_hunkMegs for a dedicated server is %i, allocating %iMB.\n"
-				: "Minimum com_hunkMegs is %i, allocating %iMB.\n", nMinAlloc, s_hunkTotal / ( 1024 * 1024 ) );
+		s_hunkTotal = 1024 * 1024 * MIN_COMHUNKMEGS;
+		Com_Printf( "Minimum com_hunkMegs is " XSTRING(MIN_COMHUNKMEGS) ", allocating " XSTRING(MIN_COMHUNKMEGS) "MB.\n" );
 	}
 	else
 	{
@@ -1019,7 +863,7 @@ void Com_InitHunkMemory( void )
 Hunk_MemoryRemaining
 ====================
 */
-int Hunk_MemoryRemaining( void )
+int Hunk_MemoryRemaining()
 {
 	int low, high;
 
@@ -1036,7 +880,7 @@ Hunk_SetMark
 The server calls this after the level and game VM have been loaded
 ===================
 */
-void Hunk_SetMark( void )
+void Hunk_SetMark()
 {
 	hunk_low.mark = hunk_low.permanent;
 	hunk_high.mark = hunk_high.permanent;
@@ -1049,13 +893,13 @@ Hunk_ClearToMark
 The client calls this before starting a vid_restart or snd_restart
 =================
 */
-void Hunk_ClearToMark( void )
+void Hunk_ClearToMark()
 {
 	hunk_low.permanent = hunk_low.temp = hunk_low.mark;
 	hunk_high.permanent = hunk_high.temp = hunk_high.mark;
 }
 
-void SV_ShutdownGameProgs( void );
+void SV_ShutdownGameProgs();
 
 /*
 =================
@@ -1064,7 +908,7 @@ Hunk_Clear
 The server calls this before shutting down or loading a new map
 =================
 */
-void Hunk_Clear( void )
+void Hunk_Clear()
 {
 #ifdef BUILD_CLIENT
 	CL_ShutdownCGame();
@@ -1091,11 +935,11 @@ void Hunk_Clear( void )
 
 	Com_DPrintf( "Hunk_Clear: reset the hunk ok\n" );
 #ifdef HUNK_DEBUG
-	hunkblocks = NULL;
+	hunkblocks = nullptr;
 #endif
 }
 
-static void Hunk_SwapBanks( void )
+static void Hunk_SwapBanks()
 {
 	hunkUsed_t *swap;
 
@@ -1131,7 +975,7 @@ void           *Hunk_Alloc( int size, ha_pref preference )
 #endif
 	void *buf;
 
-	if ( s_hunkData == NULL )
+	if ( s_hunkData == nullptr )
 	{
 		Com_Error( ERR_FATAL, "Hunk_Alloc: Hunk memory system not initialized" );
 	}
@@ -1216,7 +1060,7 @@ void           *Hunk_AllocateTempMemory( int size )
 	// this allows the config and product id files ( journal files too ) to be loaded
 	// by the file system without redundant routines in the file system utilizing different
 	// memory systems
-	if ( s_hunkData == NULL )
+	if ( s_hunkData == nullptr )
 	{
 		return Z_Malloc( size );
 	}
@@ -1273,7 +1117,7 @@ void Hunk_FreeTempMemory( void *buf )
 	// this allows the config and product id files ( journal files too ) to be loaded
 	// by the file system without redundant routines in the file system utilizing different
 	// memory systems
-	if ( s_hunkData == NULL )
+	if ( s_hunkData == nullptr )
 	{
 		Z_Free( buf );
 		return;
@@ -1384,7 +1228,7 @@ void Com_QueueEvent( int time, sysEventType_t type, int value, int value2, int p
 Com_GetEvent
 ================
 */
-sysEvent_t Com_GetEvent( void )
+sysEvent_t Com_GetEvent()
 {
 	sysEvent_t ev;
 	char       *s;
@@ -1399,7 +1243,7 @@ sysEvent_t Com_GetEvent( void )
 	}
 
 	// check for console commands
-	s = Sys_ConsoleInput();
+	s = CON_Input();
 
 	if ( s )
 	{
@@ -1482,15 +1326,18 @@ Returns last event time
 */
 
 #ifdef BUILD_CLIENT
-extern qboolean consoleButtonWasPressed;
+extern bool consoleButtonWasPressed;
 #endif
 
-int Com_EventLoop( void )
+int Com_EventLoop()
 {
 	sysEvent_t ev;
 	netadr_t   evFrom;
 	byte       bufData[ MAX_MSGLEN ];
 	msg_t      buf;
+
+	int        mouseX = 0, mouseY = 0, mouseTime = 0;
+	bool       mouseHaveEvent = false;
 
 	MSG_Init( &buf, bufData, sizeof( bufData ) );
 
@@ -1501,6 +1348,10 @@ int Com_EventLoop( void )
 		// if no more events are available
 		if ( ev.evType == SE_NONE )
 		{
+			if ( mouseHaveEvent ){
+				CL_MouseEvent( mouseX, mouseY, mouseTime );
+			}
+
 			// manually send packet events for the loopback channel
 			while ( NET_GetLoopPacket( NS_CLIENT, &evFrom, &buf ) )
 			{
@@ -1542,7 +1393,7 @@ int Com_EventLoop( void )
 				// when you just opened it
 				if ( consoleButtonWasPressed )
 				{
-					consoleButtonWasPressed = qfalse;
+					consoleButtonWasPressed = false;
 					break;
 				}
 
@@ -1551,7 +1402,10 @@ int Com_EventLoop( void )
 				break;
 
 			case SE_MOUSE:
-				CL_MouseEvent( ev.evValue, ev.evValue2, ev.evTime );
+				mouseHaveEvent = true;
+				mouseX += ev.evValue;
+				mouseY += ev.evValue2;
+				mouseTime += ev.evTime;
 				break;
 
 			case SE_JOYSTICK_AXIS:
@@ -1639,7 +1493,7 @@ Com_Milliseconds
 Can be used for profiling, but will be journaled accurately
 ================
 */
-int Com_Milliseconds( void )
+int Com_Milliseconds()
 {
     return Sys_Milliseconds();
 }
@@ -1654,7 +1508,7 @@ Just throw a fatal error to
 test error shutdown procedures
 =============
 */
-static void NORETURN Com_Error_f( void )
+static void Com_Error_f()
 {
 	if ( Cmd_Argc() > 1 )
 	{
@@ -1674,7 +1528,7 @@ Just freeze in place for a given number of seconds to test
 error recovery
 =============
 */
-static void Com_Freeze_f( void )
+static void Com_Freeze_f()
 {
 	float s;
 	int   start, now;
@@ -1707,16 +1561,16 @@ Com_Crash_f
 A way to force a bus error for development reasons
 =================
 */
-static void NORETURN Com_Crash_f( void )
+static void NORETURN Com_Crash_f()
 {
 	* ( volatile int * ) 0 = 0x12345678;
-	exit( 1 ); // silence warning
+	Sys::OSExit(1); // silence warning
 }
 
-void Com_SetRecommended( void )
+void Com_SetRecommended()
 {
 	cvar_t   *r_highQualityVideo; //, *com_recommended;
-	qboolean goodVideo;
+	bool goodVideo;
 
 	// will use this for recommended settings as well.. do i outside the lower check so it gets done even with command line stuff
 	r_highQualityVideo = Cvar_Get( "r_highQualityVideo", "1", 0 );
@@ -1737,43 +1591,27 @@ void Com_SetRecommended( void )
 	}
 }
 
+void Com_In_Restart_f()
+{
+	IN_Restart();
+}
+
 /*
 =================
 Com_Init
 =================
 */
-
-
-#ifndef _WIN32
-# ifdef BUILD_SERVER
-	const char* defaultPipeFilename = "svpipe";
-# else
-	const char* defaultPipeFilename = "pipe";
-# endif
-#else
-	const char* defaultPipeFilename = "";
-#endif
-
 void Com_Init( char *commandLine )
 {
 	char              *s;
-	int               pid, qport;
-
-	pid = Sys_GetPID();
-
-	Com_Printf( "%s %s %s %s\n%s\n", Q3_VERSION, PLATFORM_STRING, ARCH_STRING, __DATE__, commandLine );
-
-	if ( setjmp( abortframe ) )
-	{
-		Sys_Error( "Error during initialization" );
-	}
+	int               qport;
 
 	// prepare enough of the subsystems to handle
 	// cvar and command buffer management
 	Com_ParseCommandLine( commandLine );
 
 	// override anything from the config files with command line args
-	Com_StartupVariable( NULL );
+	Com_StartupVariable( nullptr );
 
 	// get the developer cvar set as early as possible
 	Com_StartupVariable( "developer" );
@@ -1784,48 +1622,8 @@ void Com_Init( char *commandLine )
 	// ydnar: init crashed variable as early as possible
 	com_crashed = Cvar_Get( "com_crashed", "0", CVAR_TEMP );
 
-	s = va( "%d", pid );
-	com_pid = Cvar_Get( "com_pid", s, CVAR_ROM );
-
-	// done early so bind command exists
-	CL_InitKeyCommands();
-
-	FS::Initialize();
-	FS_LoadBasePak();
-
 	Trans_Init();
 
-#ifndef BUILD_SERVER
-	Cmd::BufferCommandText("preset default.cfg");
-#endif
-
-#ifdef BUILD_CLIENT
-	// skip the q3config.cfg if "safe" is on the command line
-	if ( !Com_SafeMode() )
-	{
-		Cmd::BufferCommandText("exec -f " CONFIG_NAME);
-		Cmd::BufferCommandText("exec -f " KEYBINDINGS_NAME);
-		Cmd::BufferCommandText("exec -f " AUTOEXEC_NAME);
-	}
-#else
-	Cmd::BufferCommandText("exec -f " CONFIG_NAME);
-#endif
-
-	// ydnar: reset crashed state
-	Cmd::BufferCommandText("set com_crashed 0");
-
-	// execute the queued commands
-	Cmd::ExecuteCommandBuffer();
-
-	// override anything from the config files with command line args
-	Com_StartupVariable( NULL );
-
-#ifdef BUILD_SERVER
-	// TTimo: default to Internet dedicated, not LAN dedicated
-	com_dedicated = Cvar_Get( "dedicated", "2", CVAR_ROM );
-#else
-	com_dedicated = Cvar_Get( "dedicated", "0", CVAR_LATCH );
-#endif
 	// allocate the stack based hunk allocator
 	Com_InitHunkMemory();
 	Trans_LoadDefaultLanguage();
@@ -1843,7 +1641,6 @@ void Com_Init( char *commandLine )
 
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
-	com_viewlog = Cvar_Get( "viewlog", "0", CVAR_CHEAT );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
 	com_timedemo = Cvar_Get( "timedemo", "0", CVAR_CHEAT );
 
@@ -1871,14 +1668,6 @@ void Com_Init( char *commandLine )
 	com_hunkused = Cvar_Get( "com_hunkused", "0", 0 );
 	com_hunkusedvalue = 0;
 
-	if ( com_dedicated->integer )
-	{
-		if ( !com_viewlog->integer )
-		{
-			Cvar_Set( "viewlog", "1" );
-		}
-	}
-
 	if ( com_developer && com_developer->integer )
 	{
 		Cmd_AddCommand( "error", Com_Error_f );
@@ -1895,7 +1684,7 @@ void Com_Init( char *commandLine )
 	s = va( "%s %s %s %s", Q3_VERSION, PLATFORM_STRING, ARCH_STRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_ROM | CVAR_SERVERINFO );
 
-	Sys_Init();
+	Cmd_AddCommand( "in_restart", Com_In_Restart_f );
 
 	// Pick a qport value that is nice and random.
 	// As machines get faster, Com_Milliseconds() can't be used
@@ -1904,111 +1693,21 @@ void Com_Init( char *commandLine )
 	Com_RandomBytes( ( byte * )&qport, sizeof( int ) );
 	Netchan_Init( qport & 0xffff );
 
-	VM_Init();
-	// Ignore any errors
-	VM_Forced_Unload_Start();
-
 	SV_Init();
-	Console::LoadHistory();
 
-	com_dedicated->modified = qfalse;
-
-	if ( !com_dedicated->integer )
-	{
-		CL_Init();
-	}
+	CL_Init();
 
 	// set com_frameTime so that if a map is started on the
 	// command line it will still be able to count on com_frameTime
 	// being random enough for a serverid
 	com_frameTime = Com_Milliseconds();
 
-	// add + commands from command line
-	if ( !Com_AddStartupCommands() )
-	{
-		// if the user didn't give any commands, run default action
-	}
-
 	CL_StartHunkUsers();
 
-	if ( !com_dedicated->integer )
-	{
-		//Cvar_Set( "com_logosPlaying", "1" );
-		//Cmd::BufferCommandText("cinematic etintro.roq\n");
-
-		/*Cvar_Set( "sv_nextmap", "cinematic avlogo.roq" );
-		   if( !com_introPlayed->integer ) {
-		   Cvar_Set( com_introPlayed->name, "1" );
-		   //Cvar_Set( "sv_nextmap", "cinematic avlogo.roq" );
-		   } */
-	}
-
-	if (defaultPipeFilename[0])
-	{
-		std::string ospath = FS::Path::Build(FS::GetHomePath(), defaultPipeFilename);
-		pipefile = Sys_Mkfifo(ospath.c_str());
-		if (!pipefile)
-		{
-			Com_Printf( S_WARNING "Could not create new pipefile at %s. "
-			"pipefile will not be used.\n", ospath.c_str() );
-		}
-	}
-	com_fullyInitialized = qtrue;
+	com_fullyInitialized = true;
 	Com_Printf( "%s", "--- Common Initialization Complete ---\n" );
-}
 
-/*
-===============
-Com_ReadFromPipe
-
-Read whatever is in the pipe, and if a line gets accumulated, executed it
-===============
-*/
-void Com_ReadFromPipe( void )
-{
-	static char buf[ MAX_STRING_CHARS ];
-	static int  numAccd = 0;
-	int         numNew;
-
-	if ( !pipefile )
-	{
-		return;
-	}
-
-	while ( ( numNew = fread( buf + numAccd, 1, sizeof( buf ) - 1 - numAccd, pipefile ) ) > 0 )
-	{
-		char *brk = NULL; // will point to after the last CR/LF character, if any
-		int i;
-
-		for ( i = numAccd; i < numAccd + numNew; ++i )
-		{
-			if( buf[ i ] == '\0' )
-				buf[ i ] = '\n';
-			if( buf[ i ] == '\n' || buf[ i ] == '\r' )
-				brk = &buf[ i + 1 ];
-		}
-
-		numAccd += numNew;
-
-		if ( brk )
-		{
-			char tmp = *brk;
-			*brk = '\0';
-			Cmd::BufferCommandText(buf);
-			*brk = tmp;
-
-			numAccd -= brk - buf;
-			memmove( buf, brk, numAccd );
-		}
-		else if ( numAccd >= sizeof( buf ) - 1 ) // there are no CR/LF characters, but the buffer is full
-		{
-			// unfortunately, this command line gets chopped
-			//  (but Cbuf_ExecuteText() chops long command lines at (MAX_STRING_CHARS - 1) anyway)
-			buf[ sizeof( buf ) - 1 ] = '\0';
-			Cmd::BufferCommandText(buf);
-			numAccd = 0;
-		}
-	}
+	NET_Init();
 }
 
 //==================================================================
@@ -2040,7 +1739,7 @@ Com_WriteConfiguration
 Writes key bindings and archived cvars to config file if modified
 ===============
 */
-void Com_WriteConfiguration( void )
+void Com_WriteConfiguration()
 {
 	// if we are quiting without fully initializing, make sure
 	// we don't write out anything
@@ -2059,7 +1758,7 @@ void Com_WriteConfiguration( void )
 #ifdef BUILD_CLIENT
 	if ( bindingsModified )
 	{
-		bindingsModified = qfalse;
+		bindingsModified = false;
 
 		Com_WriteConfigToFile( KEYBINDINGS_NAME, Key_WriteBindings );
 	}
@@ -2073,13 +1772,13 @@ Com_WriteConfig_f
 Write the config file to a specific name
 ===============
 */
-void Com_WriteConfig_f( void )
+void Com_WriteConfig_f()
 {
 	char filename[ MAX_QPATH ];
 
 	if ( Cmd_Argc() != 2 )
 	{
-		Cmd_PrintUsage("<filename>", NULL);
+		Cmd_PrintUsage("<filename>", nullptr);
 		return;
 	}
 
@@ -2097,13 +1796,13 @@ Write the key bindings file to a specific name
 ===============
 */
 #ifndef BUILD_SERVER
-void Com_WriteBindings_f( void )
+void Com_WriteBindings_f()
 {
 	char filename[ MAX_QPATH ];
 
 	if ( Cmd_Argc() != 2 )
 	{
-		Cmd_PrintUsage("<filename>", NULL);
+		Cmd_PrintUsage("<filename>", nullptr);
 		return;
 	}
 
@@ -2143,7 +1842,7 @@ int Com_ModifyMsec( int msec )
 		msec = 1;
 	}
 
-	if ( com_dedicated->integer )
+	if ( Com_IsDedicatedServer() )
 	{
 		// dedicated servers don't want to clamp for a much longer
 		// period, because it would mess up all the client's views
@@ -2155,7 +1854,7 @@ int Com_ModifyMsec( int msec )
 
 		clampTime = 5000;
 	}
-	else if ( !com_sv_running->integer )
+	else if ( !Com_ServerRunning() )
 	{
 		// clients of remote servers do not want to clamp time, because
 		// it would skew their view of the server's time temporarily
@@ -2193,7 +1892,7 @@ static Cvar::Cvar<std::string> watchdogCmd("common.watchdogCmd", "the command tr
 
 static Cvar::Cvar<bool> showTraceStats("common.showTraceStats", "are physics traces stats printed each frame", Cvar::CHEAT, false);
 
-void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
+void Com_Frame()
 {
 	int             msec, minMsec;
 	static int      lastTime = 0;
@@ -2206,12 +1905,7 @@ void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
 	int             timeAfter;
 
 	static int      watchdogTime = 0;
-	static qboolean watchWarn = qfalse;
-
-	if ( setjmp( abortframe ) )
-	{
-		return; // an ERR_DROP was thrown
-	}
+	static bool watchWarn = false;
 
 	// bk001204 - init to zero.
 	//  also:  might be clobbered by `longjmp' or `vfork'
@@ -2229,12 +1923,6 @@ void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
 	// write config file if anything changed
 	Com_WriteConfiguration();
 
-	// if "viewlog" has been modified, show or hide the log console
-	if ( com_viewlog->modified )
-	{
-		com_viewlog->modified = qfalse;
-	}
-
 	//
 	// main event loop
 	//
@@ -2246,7 +1934,7 @@ void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
 	// we may want to spin here if things are going too fast
 	if ( !com_timedemo->integer )
 	{
-		if ( com_dedicated->integer )
+		if ( Com_IsDedicatedServer() )
 		{
 			minMsec = SV_FrameMsec();
 		}
@@ -2284,19 +1972,19 @@ void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
 
 	msec = com_frameTime - lastTime;
 
-	GetInput(); // must be called at least once
+	IN_Frame(); // must be called at least once
 
 	while ( msec < minMsec )
 	{
 		//give cycles back to the OS
-		Sys_Sleep( std::min( minMsec - msec, 50 ) );
-		GetInput();
+		Sys::SleepFor(std::chrono::milliseconds(std::min(minMsec - msec, 50)));
+		IN_Frame();
 
 		com_frameTime = Com_EventLoop();
 		msec = com_frameTime - lastTime;
 	}
 
-	DoneInput();
+	IN_FrameEnd();
 
 	Cmd::ExecuteCommandBuffer();
 
@@ -2316,59 +2004,29 @@ void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
 
 	SV_Frame( msec );
 
-	// if "dedicated" has been modified, start up
-	// or shut down the client system.
-	// Do this after the server may have started,
-	// but before the client tries to auto-connect
-	if ( com_dedicated->modified )
-	{
-		// get the latched value
-		Cvar_Get( "dedicated", "0", 0 );
-		com_dedicated->modified = qfalse;
-
-		if ( !com_dedicated->integer )
-		{
-			CL_Init();
-		}
-		else
-		{
-			CL_Shutdown();
-		}
-	}
-
 	//
 	// client system
 	//
-	if ( !com_dedicated->integer )
+	// run event loop a second time to get server to client packets
+	// without a frame of latency
+	//
+	if ( com_speeds->integer )
 	{
-		//
-		// run event loop a second time to get server to client packets
-		// without a frame of latency
-		//
-		if ( com_speeds->integer )
-		{
-			timeBeforeEvents = Sys_Milliseconds();
-		}
-
-		Com_EventLoop();
-		Cmd::DelayFrame();
-		Cmd::ExecuteCommandBuffer();
-		//
-		// client side
-		//
-		if ( com_speeds->integer )
-		{
-			timeBeforeClient = Sys_Milliseconds();
-		}
-
-		CL_Frame( msec );
-
-		if ( com_speeds->integer )
-		{
-			timeAfter = Sys_Milliseconds();
-		}
+		timeBeforeEvents = Sys_Milliseconds();
 	}
-	else
+
+	Com_EventLoop();
+	Cmd::DelayFrame();
+	Cmd::ExecuteCommandBuffer();
+
+	if ( com_speeds->integer )
+	{
+		timeBeforeClient = Sys_Milliseconds();
+	}
+
+	CL_Frame( msec );
+
+	if ( com_speeds->integer )
 	{
 		timeAfter = Sys_Milliseconds();
 	}
@@ -2376,7 +2034,7 @@ void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
 	//
 	// watchdog
 	//
-	if ( com_dedicated->integer && !com_sv_running->integer && watchdogThreshold.Get() != 0 )
+	if ( Com_IsDedicatedServer() && !Com_ServerRunning() && watchdogThreshold.Get() != 0 )
 	{
 		if ( watchdogTime == 0 )
 		{
@@ -2387,13 +2045,13 @@ void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
 			if ( !watchWarn && Sys_Milliseconds() - watchdogTime > ( watchdogThreshold.Get() - 4 ) * 1000 )
 			{
 				Com_Log( LOG_WARN, "watchdog will trigger in 4 seconds" );
-				watchWarn = qtrue;
+				watchWarn = true;
 			}
 			else if ( Sys_Milliseconds() - watchdogTime > watchdogThreshold.Get() * 1000 )
 			{
 				Com_Printf( "Idle server with no map — triggering watchdog\n" );
 				watchdogTime = 0;
-				watchWarn = qfalse;
+				watchWarn = false;
 
 				if ( watchdogCmd.Get().empty() )
 				{
@@ -2446,8 +2104,6 @@ void Com_Frame( void (*GetInput)( void ), void (*DoneInput)( void ) )
 	// old net chan encryption key
 	//key = lastTime * 0x87243987;
 
-	Com_ReadFromPipe();
-
 	com_frameNumber++;
 }
 
@@ -2464,21 +2120,7 @@ void Com_Shutdown()
 		logfile = 0;
 	}
 
-	if ( pipefile )
-	{
-		fclose( pipefile );
-		FS_Delete( defaultPipeFilename );
-	}
-
 	FS::FlushAll();
-}
-
-//------------------------------------------------------------------------
-
-void Com_GetHunkInfo( int *hunkused, int *hunkexpected )
-{
-	*hunkused = com_hunkusedvalue;
-	*hunkexpected = com_expectedhunkusage;
 }
 
 /*
@@ -2490,18 +2132,25 @@ fills string array with len radom bytes, peferably from the OS randomizer
 */
 void Com_RandomBytes( byte *string, int len )
 {
-	int i;
+	static std::random_device rd;
+	static std::mt19937 prng(rd());
+	static std::uniform_int_distribution<uint32_t> dist;
 
-	if ( Sys_RandomBytes( string, len ) )
-	{
+	while (len >= 4) {
+		*(uint32_t*)string = dist(prng);
+		string += 4;
+		len -= 4;
+	}
+
+	if (len == 0) {
 		return;
 	}
 
-	Com_Printf( "Com_RandomBytes: using weak randomization\n" );
-
-	for ( i = 0; i < len; i++ )
-	{
-		string[ i ] = ( unsigned char )( rand() % 255 );
+	uint32_t remainder = dist(prng);
+	while (len-->0) {
+		*string = uint8_t(remainder & 0xFF);
+		remainder >>= 8;
+		string ++;
 	}
 }
 
@@ -2513,7 +2162,7 @@ Returns non-zero if given clientNum is enabled in voipTargets, zero otherwise.
 If clientNum is negative return if any bit is set.
 ==================
 */
-qboolean Com_IsVoipTarget( uint8_t *voipTargets, int voipTargetsSize, int clientNum )
+bool Com_IsVoipTarget( uint8_t *voipTargets, int voipTargetsSize, int clientNum )
 {
 	int index;
 
@@ -2523,11 +2172,11 @@ qboolean Com_IsVoipTarget( uint8_t *voipTargets, int voipTargetsSize, int client
 		{
 			if ( voipTargets[ index ] )
 			{
-				return qtrue;
+				return true;
 			}
 		}
 
-		return qfalse;
+		return false;
 	}
 
 	index = clientNum >> 3;
@@ -2537,6 +2186,12 @@ qboolean Com_IsVoipTarget( uint8_t *voipTargets, int voipTargetsSize, int client
 		return ( voipTargets[ index ] & ( 1 << ( clientNum & 0x07 ) ) );
 	}
 
-	return qfalse;
+	return false;
 }
 
+
+int Sys_Milliseconds()
+{
+	static Sys::SteadyClock::time_point baseTime = Sys::SteadyClock::now();
+	return std::chrono::duration_cast<std::chrono::milliseconds>(Sys::SteadyClock::now() - baseTime).count();
+}

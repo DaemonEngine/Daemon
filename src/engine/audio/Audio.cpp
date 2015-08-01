@@ -113,7 +113,7 @@ namespace Audio {
         }
 
         std::stringstream deviceList;
-        for (auto deviceName : AL::Device::ListByName()) {
+        for (const auto& deviceName : AL::Device::ListByName()) {
             deviceList << deviceName << "\n";
         }
         availableDevices.Set(deviceList.str());
@@ -123,7 +123,7 @@ namespace Audio {
         // Initializes the list of input devices
 
         std::stringstream captureDeviceList;
-        for (auto captureDeviceName : AL::CaptureDevice::ListByName()) {
+        for (const auto& captureDeviceName : AL::CaptureDevice::ListByName()) {
             captureDeviceList << captureDeviceName << "\n";
         }
         availableCaptureDevices.Set(captureDeviceList.str());
@@ -137,6 +137,8 @@ namespace Audio {
         InitSamples();
         InitSounds();
         InitEmitters();
+
+        UpdateListenerGain();
 
         for (int i = 0; i < MAX_GENTITIES; i++) {
             entityLoops[i] = {false, nullptr, -1, -1};
@@ -203,11 +205,7 @@ namespace Audio {
             }
         }
 
-        if ((muteWhenMinimized.Get() and com_minimized->integer) or (muteWhenUnfocused.Get() and com_unfocused->integer)) {
-            AL::SetListenerGain(0.0f);
-        } else {
-            AL::SetListenerGain(SliderToAmplitude(masterVolume.Get()));
-        }
+        UpdateListenerGain();
 
         // Update the rest of the system
         CaptureTestUpdate();
@@ -341,8 +339,8 @@ namespace Audio {
     }
 
     void StopAllSounds() {
-        //TODO: really stop all the sounds
         StopMusic();
+        StopSounds();
     }
 
     void StreamData(int streamNum, const void* data, int numSamples, int rate, int width, int channels, float volume, int entityNum) {
@@ -383,6 +381,14 @@ namespace Audio {
         }
 
         UpdateListenerEntity(entityNum, orientation);
+    }
+
+    void UpdateListenerGain() {
+        if ((muteWhenMinimized.Get() and com_minimized->integer) or (muteWhenUnfocused.Get() and com_unfocused->integer)) {
+            AL::SetListenerGain(0.0f);
+        } else {
+            AL::SetListenerGain(SliderToAmplitude(masterVolume.Get()));
+        }
     }
 
     void UpdateEntityPosition(int entityNum, const vec3_t position) {
@@ -511,7 +517,7 @@ namespace Audio {
 
                 std::sort(samples.begin(), samples.end());
 
-                for (auto& sample: samples) {
+                for (const auto& sample: samples) {
                     Print(sample);
                 }
                 Print("%i samples", samples.size());
@@ -556,14 +562,28 @@ namespace Audio {
     // Play the sounds from the filenames specified as arguments of the command
     class PlaySoundCmd : public Cmd::StaticCmd {
         public:
-            PlaySoundCmd(): StaticCmd("playSound", Cmd::AUDIO, "Play a sound") {
+            PlaySoundCmd(): StaticCmd("playSound", Cmd::AUDIO, "Plays the given sound effects") {
             }
 
             virtual void Run(const Cmd::Args& args) const OVERRIDE {
-                for (int i = 1; i < args.Argc(); i++) {
-                  sfxHandle_t soundHandle = RegisterSFX( args.Argv(i) );
-                  StartLocalSound( soundHandle );
+                if (args.Argc() == 1) {
+                    PrintUsage(args, "/playSound <file> [<file>…]", "play sound files");
+                    return;
                 }
+
+                for (int i = 1; i < args.Argc(); i++) {
+                    sfxHandle_t soundHandle = RegisterSFX(args.Argv(i));
+                    StartLocalSound(soundHandle);
+                }
+            }
+
+            virtual Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+                if (argNum >= 1) {
+                    //TODO have a list of supported extensions somewhere and use that?
+                    return FS::PakPath::CompleteFilename(prefix, "", "", true, false);
+                }
+
+                return {};
             }
     };
     static PlaySoundCmd playSoundRegistration;
@@ -571,13 +591,24 @@ namespace Audio {
     // Play the music from the filename specified as argument of the command
     class PlayMusicCmd : public Cmd::StaticCmd {
         public:
-            PlayMusicCmd(): StaticCmd("playMusic", Cmd::AUDIO, "Play music") {
+            PlayMusicCmd(): StaticCmd("playMusic", Cmd::AUDIO, "Plays a music") {
             }
 
             virtual void Run(const Cmd::Args& args) const OVERRIDE {
-                if (args.Argc() >= 2) {
-                  StartMusic( args.Argv(1) , "");
+                if (args.Argc() == 2) {
+                    StartMusic( args.Argv(1) , "");
+                } else {
+                    PrintUsage(args, "/playMusic <file>", "play a music file");
                 }
+            }
+
+            virtual Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+                if (argNum == 1) {
+                    //TODO have a list of supported extensions somewhere and use that?
+                    return FS::PakPath::CompleteFilename(prefix, "", "", true, false);
+                }
+
+                return {};
             }
     };
     static PlayMusicCmd playMusicRegistration;
@@ -585,7 +616,7 @@ namespace Audio {
     // Stop the current music
     class StopMusicCmd : public Cmd::StaticCmd {
         public:
-            StopMusicCmd(): StaticCmd("stopMusic", Cmd::AUDIO, "Stop music") {
+            StopMusicCmd(): StaticCmd("stopMusic", Cmd::AUDIO, "Stops the currently playing music") {
             }
 
             virtual void Run(const Cmd::Args& args) const OVERRIDE {

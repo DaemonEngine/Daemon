@@ -33,7 +33,7 @@ Maryland 20850 USA.
 */
 
 #include "server.h"
-#include "../framework/CvarSystem.h"
+#include "framework/CvarSystem.h"
 
 /*
 ===============================================================================
@@ -95,10 +95,10 @@ class MapCmd: public Cmd::StaticCmd {
 static MapCmd MapCmdRegistration("map", "starts a new map", false);
 static MapCmd DevmapCmdRegistration("devmap", "starts a new map with cheats enabled", true);
 
-void MSG_PrioritiseEntitystateFields( void );
-void MSG_PrioritisePlayerStateFields( void );
+void MSG_PrioritiseEntitystateFields();
+void MSG_PrioritisePlayerStateFields();
 
-static void SV_FieldInfo_f( void )
+static void SV_FieldInfo_f()
 {
 	MSG_PrioritiseEntitystateFields();
 	MSG_PrioritisePlayerStateFields();
@@ -112,14 +112,13 @@ Completely restarts a level, but doesn't send a new gamestate to the clients.
 This allows fair starts with variable load times.
 ================
 */
-static void SV_MapRestart_f( void )
+static void SV_MapRestart_f()
 {
 	int         i;
 	client_t    *client;
-	qboolean    denied;
+	bool    denied;
 	char        reason[ MAX_STRING_CHARS ];
-	qboolean    isBot;
-	int         delay = 0;
+	bool    isBot;
 
 	// make sure we aren't restarting twice in the same frame
 	if ( com_frameTime == sv.serverId )
@@ -132,16 +131,6 @@ static void SV_MapRestart_f( void )
 	{
 		Com_Printf( "Server is not running.\n" );
 		return;
-	}
-
-	// ydnar: allow multiple delayed server restarts [atvi bug 3813]
-	//% if ( sv.restartTime ) {
-	//%     return;
-	//% }
-
-	if ( Cmd_Argc() > 1 )
-	{
-		delay = atoi( Cmd_Argv( 1 ) );
 	}
 
 	// check for changes in variables that can't just be restarted
@@ -171,16 +160,14 @@ static void SV_MapRestart_f( void )
 	// note that we do NOT set sv.state = SS_LOADING, so configstrings that
 	// had been changed from their default values will generate broadcast updates
 	sv.state = SS_LOADING;
-	sv.restarting = qtrue;
-
-	Cvar_Set( "sv_serverRestarting", "1" );
+	sv.restarting = true;
 
 	SV_RestartGameProgs(Cvar_VariableString("mapname"));
 
 	// run a few frames to allow everything to settle
 	for ( i = 0; i < GAME_INIT_FRAMES; i++ )
 	{
-		gvm->GameRunFrame( sv.time );
+		gvm.GameRunFrame( sv.time );
 		svs.time += FRAMETIME;
 		sv.time += FRAMETIME;
 	}
@@ -190,7 +177,7 @@ static void SV_MapRestart_f( void )
 //  SV_CreateBaseline ();
 
 	sv.state = SS_GAME;
-	sv.restarting = qfalse;
+	sv.restarting = false;
 
 	// connect and begin all the clients
 	for ( i = 0; i < sv_maxclients->integer; i++ )
@@ -203,20 +190,13 @@ static void SV_MapRestart_f( void )
 			continue;
 		}
 
-		if ( client->netchan.remoteAddress.type == NA_BOT )
-		{
-			isBot = qtrue;
-		}
-		else
-		{
-			isBot = qfalse;
-		}
+		isBot = SV_IsBot(client);
 
 		// add the map_restart command
 		SV_AddServerCommand( client, "map_restart\n" );
 
 		// connect the client again, without the firstTime flag
-		denied = gvm->GameClientConnect( reason, sizeof( reason ), i, qfalse, isBot );
+		denied = gvm.GameClientConnect( reason, sizeof( reason ), i, false, isBot );
 
 		if ( denied )
 		{
@@ -226,7 +206,7 @@ static void SV_MapRestart_f( void )
 
 			if ( !isBot )
 			{
-				Com_Printf( "SV_MapRestart_f(%d): dropped client %i: denied!\n", delay, i );  // bk010125
+				Com_Printf( "SV_MapRestart_f: dropped client %i: denied!\n", i );
 			}
 
 			continue;
@@ -238,11 +218,9 @@ static void SV_MapRestart_f( void )
 	}
 
 	// run another frame to allow things to look at all the players
-	gvm->GameRunFrame( sv.time );
+	gvm.GameRunFrame( sv.time );
 	svs.time += FRAMETIME;
 	sv.time += FRAMETIME;
-
-	Cvar_Set( "sv_serverRestarting", "0" );
 }
 
 /*
@@ -250,7 +228,7 @@ static void SV_MapRestart_f( void )
 SV_Status_f
 ================
 */
-static void SV_Status_f( void )
+static void SV_Status_f()
 {
 	int           i, j, l;
 	client_t      *cl;
@@ -343,7 +321,7 @@ SV_Heartbeat_f
 Also called by SV_DropClient, SV_DirectConnect, and SV_SpawnServer
 ==================
 */
-void SV_Heartbeat_f( void )
+void SV_Heartbeat_f()
 {
 	svs.nextHeartbeatTime = -9999999;
 }
@@ -355,7 +333,7 @@ SV_Serverinfo_f
 Examine the serverinfo string
 ===========
 */
-static void SV_Serverinfo_f( void )
+static void SV_Serverinfo_f()
 {
 	// make sure server is running
 	if ( !com_sv_running->integer )
@@ -365,7 +343,7 @@ static void SV_Serverinfo_f( void )
 	}
 
 	Com_Printf( "Server info settings:\n" );
-	Info_Print( Cvar_InfoString( CVAR_SERVERINFO, qfalse ) );
+	Info_Print( Cvar_InfoString( CVAR_SERVERINFO, false ) );
 }
 
 /*
@@ -375,7 +353,7 @@ SV_Systeminfo_f
 Examine the systeminfo string
 ===========
 */
-static void SV_Systeminfo_f( void )
+static void SV_Systeminfo_f()
 {
 	// make sure server is running
 	if ( !com_sv_running->integer )
@@ -385,17 +363,7 @@ static void SV_Systeminfo_f( void )
 	}
 
 	Com_Printf( "System info settings:\n" );
-	Info_Print( Cvar_InfoString( CVAR_SYSTEMINFO, qfalse ) );
-}
-
-/*
-=================
-SV_KillServer
-=================
-*/
-static void SV_KillServer_f( void )
-{
-	SV_Shutdown( "killserver" );
+	Info_Print( Cvar_InfoString( CVAR_SYSTEMINFO, false ) );
 }
 
 /*
@@ -403,14 +371,13 @@ static void SV_KillServer_f( void )
 SV_AddOperatorCommands
 ==================
 */
-void SV_AddOperatorCommands( void )
+void SV_AddOperatorCommands()
 {
 	if ( com_sv_running->integer )
 	{
 		// These commands should only be available while the server is running.
 		Cmd_AddCommand( "fieldinfo",   SV_FieldInfo_f );
 		Cmd_AddCommand( "heartbeat",   SV_Heartbeat_f );
-		Cmd_AddCommand( "killserver",  SV_KillServer_f );
 		Cmd_AddCommand( "map_restart", SV_MapRestart_f );
 		Cmd_AddCommand( "serverinfo",  SV_Serverinfo_f );
 		Cmd_AddCommand( "status",      SV_Status_f );
@@ -423,14 +390,11 @@ void SV_AddOperatorCommands( void )
 SV_RemoveOperatorCommands
 ==================
 */
-void SV_RemoveOperatorCommands( void )
+void SV_RemoveOperatorCommands()
 {
-	Cmd_RemoveCommand( "dumpuser" );
 	Cmd_RemoveCommand( "fieldinfo" );
 	Cmd_RemoveCommand( "heartbeat" );
-	Cmd_RemoveCommand( "killserver" );
 	Cmd_RemoveCommand( "map_restart" );
-	Cmd_RemoveCommand( "say" );
 	Cmd_RemoveCommand( "serverinfo" );
 	Cmd_RemoveCommand( "status" );
 	Cmd_RemoveCommand( "systeminfo" );

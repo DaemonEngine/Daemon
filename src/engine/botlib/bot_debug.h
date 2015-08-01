@@ -35,8 +35,6 @@ Maryland 20850 USA.
 #ifndef BOT_DEBUG_H
 #define BOT_DEBUG_H
 
-#include "../../gamelogic/shared/bg_public.h"
-
 typedef enum
 {
 	D_DRAW_POINTS,
@@ -48,7 +46,7 @@ typedef enum
 typedef struct
 {
 	void ( *DebugDrawBegin ) ( debugDrawMode_t mode, float size );
-	void ( *DebugDrawDepthMask )( qboolean state );
+	void ( *DebugDrawDepthMask )( bool state );
 	void ( *DebugDrawVertex ) ( const vec3_t pos, unsigned int color,const vec2_t uv );
 	void ( *DebugDrawEnd ) ();
 } BotDebugInterface_t;

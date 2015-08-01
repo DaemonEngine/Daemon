@@ -32,11 +32,11 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
-#include "../qcommon/q_shared.h"
+#include "qcommon/q_shared.h"
 #include "qcommon.h"
 
 static huffman_t msgHuff;
-static qboolean  msgInit = qfalse;
+static bool  msgInit = false;
 
 /*
 ==============================================================================
@@ -47,7 +47,7 @@ Handles byte ordering and avoids alignment errors
 ==============================================================================
 */
 
-void MSG_initHuffman( void );
+void MSG_initHuffman();
 
 void MSG_Init( msg_t *buf, byte *data, int length )
 {
@@ -71,47 +71,47 @@ void MSG_InitOOB( msg_t *buf, byte *data, int length )
 	Com_Memset( buf, 0, sizeof( *buf ) );
 	buf->data = data;
 	buf->maxsize = length;
-	buf->oob = qtrue;
+	buf->oob = true;
 }
 
 void MSG_Clear( msg_t *buf )
 {
 	buf->cursize = 0;
-	buf->overflowed = qfalse;
+	buf->overflowed = false;
 	buf->bit = 0; //<- in bits
 }
 
 void MSG_Bitstream( msg_t *buf )
 {
-	buf->oob = qfalse;
+	buf->oob = false;
 }
 
 void MSG_Uncompressed( msg_t *buf )
 {
 	// align to byte-boundary
 	buf->bit = ( buf->bit + 7 ) & ~7;
-	buf->oob = qtrue;
+	buf->oob = true;
 }
 
 void MSG_BeginReading( msg_t *msg )
 {
 	msg->readcount = 0;
 	msg->bit = 0;
-	msg->oob = qfalse;
+	msg->oob = false;
 }
 
 void MSG_BeginReadingOOB( msg_t *msg )
 {
 	msg->readcount = 0;
 	msg->bit = 0;
-	msg->oob = qtrue;
+	msg->oob = true;
 }
 
 void MSG_BeginReadingUncompressed( msg_t *buf )
 {
 	// align to byte-boundary
 	buf->bit = ( buf->bit + 7 ) & ~7;
-	buf->oob = qtrue;
+	buf->oob = true;
 }
 
 void MSG_Copy( msg_t *buf, byte *data, int length, msg_t *src )
@@ -144,7 +144,7 @@ void MSG_WriteBits( msg_t *msg, int value, int bits )
 	// this isn't an exact overflow check, but close enough
 	if ( msg->maxsize - msg->cursize < 32 )
 	{
-		msg->overflowed = qtrue;
+		msg->overflowed = true;
 		return;
 	}
 
@@ -223,7 +223,7 @@ int MSG_ReadBits( msg_t *msg, int bits )
 {
 	int      value;
 	int      get;
-	qboolean sgn;
+	bool sgn;
 	int      i, nbits;
 
 	value = 0;
@@ -231,11 +231,11 @@ int MSG_ReadBits( msg_t *msg, int bits )
 	if ( bits < 0 )
 	{
 		bits = -bits;
-		sgn = qtrue;
+		sgn = true;
 	}
 	else
 	{
-		sgn = qfalse;
+		sgn = false;
 	}
 
 	if ( msg->oob )
@@ -790,10 +790,10 @@ usercmd_t communication
 
 /*
 =====================
-MSG_WriteDeltaUsercmdKey
+MSG_WriteDeltaUsercmd
 =====================
 */
-void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to )
+void MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to )
 {
 	int i;
 
@@ -816,37 +816,35 @@ void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *
 	     from->upmove == to->upmove &&
 	     !memcmp( from->buttons, to->buttons, sizeof( from->buttons ) ) &&
 	     from->weapon == to->weapon &&
-	     from->flags == to->flags && from->doubleTap == to->doubleTap && from->identClient == to->identClient )
+	     from->flags == to->flags && from->doubleTap == to->doubleTap)
 	{
 		// NERVE - SMF
 		MSG_WriteBits( msg, 0, 1 );  // no change
 		return;
 	}
 
-	key ^= to->serverTime;
 	MSG_WriteBits( msg, 1, 1 );
-	MSG_WriteDeltaKey( msg, key, from->angles[ 0 ], to->angles[ 0 ], 16 );
-	MSG_WriteDeltaKey( msg, key, from->angles[ 1 ], to->angles[ 1 ], 16 );
-	MSG_WriteDeltaKey( msg, key, from->angles[ 2 ], to->angles[ 2 ], 16 );
-	MSG_WriteDeltaKey( msg, key, from->forwardmove, to->forwardmove, 8 );
-	MSG_WriteDeltaKey( msg, key, from->rightmove, to->rightmove, 8 );
-	MSG_WriteDeltaKey( msg, key, from->upmove, to->upmove, 8 );
+	MSG_WriteDelta( msg, from->angles[ 0 ], to->angles[ 0 ], 16 );
+	MSG_WriteDelta( msg, from->angles[ 1 ], to->angles[ 1 ], 16 );
+	MSG_WriteDelta( msg, from->angles[ 2 ], to->angles[ 2 ], 16 );
+	MSG_WriteDelta( msg, from->forwardmove, to->forwardmove, 8 );
+	MSG_WriteDelta( msg, from->rightmove, to->rightmove, 8 );
+	MSG_WriteDelta( msg, from->upmove, to->upmove, 8 );
 	for ( i = 0; i < USERCMD_BUTTONS / 8; ++i )
 	{
-		MSG_WriteDeltaKey( msg, key, from->buttons[i], to->buttons[i], 8 );
+		MSG_WriteDelta( msg, from->buttons[i], to->buttons[i], 8 );
 	}
-	MSG_WriteDeltaKey( msg, key, from->weapon, to->weapon, 8 );
-	MSG_WriteDeltaKey( msg, key, from->flags, to->flags, 8 );
-	MSG_WriteDeltaKey( msg, key, from->doubleTap, to->doubleTap, 3 );
-	MSG_WriteDeltaKey( msg, key, from->identClient, to->identClient, 8 );  // NERVE - SMF
+	MSG_WriteDelta( msg, from->weapon, to->weapon, 8 );
+	MSG_WriteDelta( msg, from->flags, to->flags, 8 );
+	MSG_WriteDelta( msg, from->doubleTap, to->doubleTap, 3 );
 }
 
 /*
 =====================
-MSG_ReadDeltaUsercmdKey
+MSG_ReadDeltaUsercmd
 =====================
 */
-void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to )
+void MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to )
 {
 	int i;
 
@@ -861,13 +859,12 @@ void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *t
 
 	if ( MSG_ReadBits( msg, 1 ) )
 	{
-		key ^= to->serverTime;
-		to->angles[ 0 ] = MSG_ReadDeltaKey( msg, key, from->angles[ 0 ], 16 );
-		to->angles[ 1 ] = MSG_ReadDeltaKey( msg, key, from->angles[ 1 ], 16 );
-		to->angles[ 2 ] = MSG_ReadDeltaKey( msg, key, from->angles[ 2 ], 16 );
-		to->forwardmove = MSG_ReadDeltaKey( msg, key, from->forwardmove, 8 );
-		to->rightmove = MSG_ReadDeltaKey( msg, key, from->rightmove, 8 );
-		to->upmove = MSG_ReadDeltaKey( msg, key, from->upmove, 8 );
+		to->angles[ 0 ] = MSG_ReadDelta( msg, from->angles[ 0 ], 16 );
+		to->angles[ 1 ] = MSG_ReadDelta( msg, from->angles[ 1 ], 16 );
+		to->angles[ 2 ] = MSG_ReadDelta( msg, from->angles[ 2 ], 16 );
+		to->forwardmove = MSG_ReadDelta( msg, from->forwardmove, 8 );
+		to->rightmove = MSG_ReadDelta( msg, from->rightmove, 8 );
+		to->upmove = MSG_ReadDelta( msg, from->upmove, 8 );
 		if ( to->forwardmove == -128 )
 			to->forwardmove = -127;
 		if ( to->rightmove == -128 )
@@ -876,12 +873,11 @@ void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *t
 			to->upmove = -127;
 		for ( i = 0; i < USERCMD_BUTTONS / 8; ++i )
 		{
-			to->buttons[i] = MSG_ReadDeltaKey( msg, key, from->buttons[i], 8 );
+			to->buttons[i] = MSG_ReadDelta( msg, from->buttons[i], 8 );
 		}
-		to->weapon = MSG_ReadDeltaKey( msg, key, from->weapon, 8 );
-		to->flags = MSG_ReadDeltaKey( msg, key, from->flags, 8 );
-		to->doubleTap = MSG_ReadDeltaKey( msg, key, from->doubleTap, 3 ) & 0x7;
-		to->identClient = MSG_ReadDeltaKey( msg, key, from->identClient, 8 );  // NERVE - SMF
+		to->weapon = MSG_ReadDelta( msg, from->weapon, 8 );
+		to->flags = MSG_ReadDelta( msg, from->flags, 8 );
+		to->doubleTap = MSG_ReadDelta( msg, from->doubleTap, 3 ) & 0x7;
 	}
 	else
 	{
@@ -895,7 +891,6 @@ void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *t
 		to->weapon = from->weapon;
 		to->flags = from->flags;
 		to->doubleTap = from->doubleTap;
-		to->identClient = from->identClient; // NERVE - SMF
 	}
 }
 
@@ -1003,7 +998,7 @@ static int QDECL qsort_entitystatefields( const void *a, const void *b )
 	return 0;
 }
 
-void MSG_PrioritiseEntitystateFields( void )
+void MSG_PrioritiseEntitystateFields()
 {
 	int fieldorders[ ARRAY_LEN( entityStateFields ) ];
 	int numfields = ARRAY_LEN( entityStateFields );
@@ -1038,12 +1033,12 @@ MSG_WriteDeltaEntity
 
 Writes part of a packetentities message, including the entity number.
 Can delta from either a baseline or a previous packet_entity
-If to is NULL, a remove entity update will be sent
+If to is nullptr, a remove entity update will be sent
 If force is not set, then nothing at all will be generated if the entity is
 identical, under the assumption that the in-order delta code will catch it.
 ==================
 */
-void MSG_WriteDeltaEntity( msg_t *msg, struct entityState_s *from, struct entityState_s *to, qboolean force )
+void MSG_WriteDeltaEntity( msg_t *msg, struct entityState_s *from, struct entityState_s *to, bool force )
 {
 	int        i, lc;
 	int        numFields;
@@ -1060,10 +1055,10 @@ void MSG_WriteDeltaEntity( msg_t *msg, struct entityState_s *from, struct entity
 	// struct without updating the message fields
 	assert( numFields + 1 == sizeof( *from ) / 4 );
 
-	// a NULL to is a delta remove message
-	if ( to == NULL )
+	// a nullptr to is a delta remove message
+	if ( to == nullptr )
 	{
-		if ( from == NULL )
+		if ( from == nullptr )
 		{
 			return;
 		}
@@ -1516,7 +1511,7 @@ static int QDECL qsort_playerstatefields( const void *a, const void *b )
 	return 0;
 }
 
-void MSG_PrioritisePlayerStateFields( void )
+void MSG_PrioritisePlayerStateFields()
 {
 	int fieldorders[ ARRAY_LEN( playerStateFields ) ];
 	int numfields = ARRAY_LEN( playerStateFields );
@@ -2209,11 +2204,11 @@ static const int msg_hData[ 256 ] =
 	13504, // 255
 };
 
-void MSG_initHuffman( void )
+void MSG_initHuffman()
 {
 	int i, j;
 
-	msgInit = qtrue;
+	msgInit = true;
 	Huff_Init( &msgHuff );
 
 	for ( i = 0; i < 256; i++ )

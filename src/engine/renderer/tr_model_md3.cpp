@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 R_LoadMD3
 =================
 */
-qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int bufferSize, const char *modName )
+bool R_LoadMD3( model_t *mod, int lod, void *buffer, int bufferSize, const char *modName )
 {
 	int            i, j, k; //, l;
 
@@ -64,7 +64,7 @@ qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int bufferSize, const c
 	if ( version != MD3_VERSION )
 	{
 		ri.Printf( PRINT_WARNING, "R_LoadMD3: %s has wrong version (%i should be %i)\n", modName, version, MD3_VERSION );
-		return qfalse;
+		return false;
 	}
 
 	mod->type = MOD_MESH;
@@ -85,7 +85,7 @@ qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int bufferSize, const c
 	if ( md3Model->numFrames < 1 )
 	{
 		ri.Printf( PRINT_WARNING, "R_LoadMD3: %s has no frames\n", modName );
-		return qfalse;
+		return false;
 	}
 
 	// swap all the frames
@@ -246,6 +246,7 @@ qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int bufferSize, const c
 		growList_t      vboSurfaces;
 		srfVBOMDVMesh_t *vboSurf;
 		vboData_t       data;
+		glIndex_t       *indexes;
 
 		int             f;
 
@@ -259,7 +260,7 @@ qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int bufferSize, const c
 			data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * mdvModel->numFrames * surf->numVerts );
 			data.numFrames = mdvModel->numFrames;
 			data.st = ( i16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec2_t ) * surf->numVerts );
-			data.noLightCoords = qtrue;
+			data.noLightCoords = true;
 			data.numVerts = surf->numVerts;
 
 			// feed vertex XYZ
@@ -345,13 +346,19 @@ qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int bufferSize, const c
 			vboSurf->numIndexes = surf->numTriangles * 3;
 			vboSurf->numVerts = surf->numVerts;
 
-			vboSurf->ibo = R_CreateStaticIBO2( va( "staticMD3Mesh_IBO %s", surf->name ), surf->numTriangles, surf->triangles );
-
 			vboSurf->vbo = R_CreateStaticVBO( va( "staticMD3Mesh_VBO '%s'", surf->name ), data, VBO_LAYOUT_VERTEX_ANIMATION );
 			
 			ri.Hunk_FreeTempMemory( data.st );
 			ri.Hunk_FreeTempMemory( data.qtangent );
 			ri.Hunk_FreeTempMemory( data.xyz );
+
+			indexes = (glIndex_t *)ri.Hunk_AllocateTempMemory( 3 * surf->numTriangles * sizeof( glIndex_t ) );
+			for ( f = j = 0; j < surf->numTriangles; j++ ) {
+				for( k = 0; k < 3; k++ ) {
+					indexes[ f++ ] = surf->triangles[ j ].indexes[ k ];
+				}
+			}
+			vboSurf->ibo = R_CreateStaticIBO2( va( "staticMD3Mesh_IBO %s", surf->name ), surf->numTriangles, indexes );
 		}
 
 		// move VBO surfaces list to hunk
@@ -366,5 +373,5 @@ qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int bufferSize, const c
 		Com_DestroyGrowList( &vboSurfaces );
 	}
 
-	return qtrue;
+	return true;
 }

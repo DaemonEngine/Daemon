@@ -32,9 +32,8 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
-#include "../qcommon/q_shared.h"
-#include "../qcommon/qcommon.h"
-#include "sys_local.h"
+#include "qcommon/q_shared.h"
+#include "qcommon/qcommon.h"
 
 #define MAX_LOG 131072
 
@@ -47,7 +46,7 @@ static unsigned int readPos = 0;
 CON_LogSize
 ==================
 */
-unsigned int CON_LogSize( void )
+unsigned int CON_LogSize()
 {
 	if ( readPos <= writePos )
 	{
@@ -64,7 +63,7 @@ unsigned int CON_LogSize( void )
 CON_LogFree
 ==================
 */
-static unsigned int CON_LogFree( void )
+static unsigned int CON_LogFree()
 {
 	return MAX_LOG - CON_LogSize() - 1;
 }

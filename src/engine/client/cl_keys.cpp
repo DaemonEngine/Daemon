@@ -33,8 +33,11 @@ Maryland 20850 USA.
 */
 
 #include "client.h"
-#include "../qcommon/q_unicode.h"
-#include "../framework/CommandSystem.h"
+#include "qcommon/q_unicode.h"
+#include "framework/CommandSystem.h"
+#ifdef BUILD_CLIENT
+#include <SDL.h>
+#endif
 
 /*
 
@@ -42,13 +45,13 @@ key up events are sent even if in console mode
 
 */
 
-#define CLIP(t) Maths::clamp( (t), 0, MAX_TEAMS - 1 )
+#define CLIP(t) Math::Clamp( (t), 0, MAX_TEAMS - 1 )
 
 Console::Field g_consoleField(INT_MAX);
-qboolean chat_irc;
+bool chat_irc;
 
-qboolean key_overstrikeMode;
-qboolean bindingsModified;
+bool key_overstrikeMode;
+bool bindingsModified;
 
 int      anykeydown;
 qkey_t   keys[ MAX_KEYS ];
@@ -58,7 +61,7 @@ int      bindTeam = DEFAULT_BINDING;
 static struct {
 	int          key;
 	unsigned int time;
-	qboolean     valid;
+	bool     valid;
 	int          check;
 } plusCommand;
 
@@ -338,7 +341,7 @@ static const keyname_t keynames[] =
 	{ "XBOX360_DPAD_LEFTUP",    K_XBOX360_DPAD_LEFTUP    },
 	{ "XBOX360_DPAD_LEFTDOWN",  K_XBOX360_DPAD_LEFTDOWN  },
 
-	{ NULL,                     0                        }
+	{ nullptr,                     0                        }
 };
 
 /*
@@ -357,8 +360,8 @@ Handles horizontal scrolling and cursor blinking
 x, y, and width are in pixels
 ===================
 */
-void Field_VariableSizeDraw(const Util::LineEditData& edit, int x, int y, int size, qboolean showCursor,
-        qboolean noColorEscape, float alpha )
+void Field_VariableSizeDraw(const Util::LineEditData& edit, int x, int y, int size, bool showCursor,
+        bool noColorEscape, float alpha )
 {
     //TODO support UTF-8 once LineEditData does
     //Extract the text we want to draw
@@ -371,7 +374,7 @@ void Field_VariableSizeDraw(const Util::LineEditData& edit, int x, int y, int si
     // draw the text
     if (size == SMALLCHAR_WIDTH) {
         float color[4] = {1.0, 1.0, 1.0, alpha};
-        SCR_DrawSmallStringExt(x, y, text.c_str(), color, qfalse, noColorEscape);
+        SCR_DrawSmallStringExt(x, y, text.c_str(), color, false, noColorEscape);
     } else {
         SCR_DrawBigString(x, y, text.c_str(), 1.0, noColorEscape);
     }
@@ -388,7 +391,7 @@ void Field_VariableSizeDraw(const Util::LineEditData& edit, int x, int y, int si
     // draw the cursor
     if (showCursor) {
         //Blink changes state approximately 4 times per second
-        if ((int)(cls.realtime >> 8) & 1) {
+        if (cls.realtime >> 8 & 1) {
             return;
         }
 
@@ -411,12 +414,12 @@ void Field_VariableSizeDraw(const Util::LineEditData& edit, int x, int y, int si
     }
 }
 
-void Field_Draw(const Util::LineEditData& edit, int x, int y, qboolean showCursor, qboolean noColorEscape, float alpha)
+void Field_Draw(const Util::LineEditData& edit, int x, int y, bool showCursor, bool noColorEscape, float alpha)
 {
 	Field_VariableSizeDraw(edit, x, y, SMALLCHAR_WIDTH, showCursor, noColorEscape, alpha);
 }
 
-void Field_BigDraw(const Util::LineEditData& edit, int x, int y, qboolean showCursor, qboolean noColorEscape)
+void Field_BigDraw(const Util::LineEditData& edit, int x, int y, bool showCursor, bool noColorEscape)
 {
 	Field_VariableSizeDraw(edit, x, y, BIGCHAR_WIDTH, showCursor, noColorEscape, 1.0f);
 }
@@ -426,11 +429,12 @@ void Field_BigDraw(const Util::LineEditData& edit, int x, int y, qboolean showCu
 Field_Paste
 ================
 */
-static void Field_Paste(Util::LineEditData& edit, clipboard_t clip )
+static void Field_Paste(Util::LineEditData& edit)
 {
+#ifdef BUILD_CLIENT
 	const char *cbd;
 	int        pasteLen, width;
-	char       *ptr = Sys_GetClipboardData(clip);
+	char       *ptr = SDL_GetClipboardText();
 
 	if ( !ptr )
 	{
@@ -438,7 +442,7 @@ static void Field_Paste(Util::LineEditData& edit, clipboard_t clip )
 	}
 
 	cbd = Com_ClearForeignCharacters( ptr );
-	Z_Free( ptr );
+	SDL_free( ptr );
 
 	// send as if typed, so insert / overstrike works properly
 	pasteLen = strlen( cbd );
@@ -450,6 +454,7 @@ static void Field_Paste(Util::LineEditData& edit, clipboard_t clip )
 		cbd += width;
 		pasteLen -= width;
 	}
+#endif
 }
 
 /*
@@ -462,16 +467,6 @@ in-game talk, and menu fields
 Key events are used for non-printable characters, others are gotten from char events.
 =================
 */
-#ifdef BUILD_TTY_CLIENT
-# define SDL1_case(v)
-#else
-# include "SDL_version.h"
-# if SDL_VERSION_ATLEAST( 2, 0, 0 )
-#  define SDL1_case(v)
-# else
-#  define SDL1_case(v) case v:
-# endif
-#endif
 void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
     key = tolower(key);
 
@@ -480,12 +475,6 @@ void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
             edit.DeleteNext();
             break;
 
-#ifndef BUILD_TTY_CLIENT
-# if !SDL_VERSION_ATLEAST( 2, 0, 0 )
-        case 'h':
-            if ( keys[ K_CTRL ].down )
-# endif
-#endif
         case K_BACKSPACE:
             edit.DeletePrev();
             break;
@@ -515,7 +504,6 @@ void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
             break;
 
         case K_HOME:
-		SDL1_case( 1 )
             edit.CursorStart();
             break;
 
@@ -526,13 +514,12 @@ void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
             break;
 
         case K_END:
-		SDL1_case( 5 )
             edit.CursorEnd();
             break;
 
         case K_INS:
             if (keys[ K_SHIFT ].down) {
-                Field_Paste(edit, SELECTION_PRIMARY);
+                Field_Paste(edit);
             } else {
                 key_overstrikeMode = !key_overstrikeMode;
             }
@@ -542,7 +529,6 @@ void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
         //kangz: I'm not sure we *need* this shortcut
         case 't':
             if ( keys[ K_CTRL ].down )
-		SDL1_case( 20 )
 			if( edit->cursor)
 			{
                 char *p, tmp[4];
@@ -566,28 +552,23 @@ void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
         */
         case 'v':
             if (keys[ K_CTRL ].down) {
-		SDL1_case( 22 )
-                Field_Paste( edit, SELECTION_CLIPBOARD );
+                Field_Paste( edit );
             }
             break;
         case 'd':
             if (keys[ K_CTRL ].down) {
-		SDL1_case( 4 )
                 edit.DeleteNext();
             }
             break;
         case 'c':
         case 'u':
             if (keys[ K_CTRL ].down) {
-		SDL1_case( 3 )
-		SDL1_case( 21 )
                 edit.Clear();
             }
             break;
         case 'k':
             if (keys[ K_CTRL ].down) {
-		SDL1_case( 11 )
-		edit.DeleteEnd();
+				edit.DeleteEnd();
             }
             break;
     }
@@ -757,12 +738,12 @@ void Console_Key( int key )
 
 //============================================================================
 
-qboolean Key_GetOverstrikeMode( void )
+bool Key_GetOverstrikeMode()
 {
 	return key_overstrikeMode;
 }
 
-void Key_SetOverstrikeMode( qboolean state )
+void Key_SetOverstrikeMode( bool state )
 {
 	key_overstrikeMode = state;
 }
@@ -772,11 +753,11 @@ void Key_SetOverstrikeMode( qboolean state )
 Key_IsDown
 ===================
 */
-qboolean Key_IsDown( int keynum )
+bool Key_IsDown( int keynum )
 {
 	if ( keynum < 0 || keynum >= MAX_KEYS )
 	{
-		return qfalse;
+		return false;
 	}
 
 	return keys[ keynum ].down;
@@ -979,7 +960,7 @@ void Key_SetBinding( int keynum, int team, const char *binding )
 			if ( keys[ keynum ].binding[ team ] )
 			{
 				Z_Free( keys[ keynum ].binding[ team ] );
-				keys[ keynum ].binding[ team ] = NULL;
+				keys[ keynum ].binding[ team ] = nullptr;
 			}
 		}
 		// team == 0...
@@ -1003,10 +984,10 @@ void Key_SetBinding( int keynum, int team, const char *binding )
 	}
 	else
 	{
-		keys[ keynum ].binding[ team ] = NULL;
+		keys[ keynum ].binding[ team ] = nullptr;
 	}
 
-	bindingsModified = qtrue;
+	bindingsModified = true;
 }
 
 /*
@@ -1022,7 +1003,7 @@ const char *Key_GetBinding( int keynum, int team )
 
 	if ( keynum < 0 || keynum >= MAX_KEYS )
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	if ( team <= 0 )
@@ -1065,7 +1046,7 @@ int Key_GetKey( const char *binding, int team )
 Key_Unbind_f
 ===================
 */
-void Key_Unbind_f( void )
+void Key_Unbind_f()
 {
 	int b = Cmd_Argc();
 	int team = -1;
@@ -1094,7 +1075,7 @@ void Key_Unbind_f( void )
 		return;
 	}
 
-	Key_SetBinding( b, team, NULL );
+	Key_SetBinding( b, team, nullptr );
 }
 
 /*
@@ -1102,13 +1083,13 @@ void Key_Unbind_f( void )
 Key_Unbindall_f
 ===================
 */
-void Key_Unbindall_f( void )
+void Key_Unbindall_f()
 {
 	int i;
 
 	for ( i = 0; i < MAX_KEYS; i++ )
 	{
-		Key_SetBinding( i, -1, NULL );
+		Key_SetBinding( i, -1, nullptr );
 	}
 }
 
@@ -1117,11 +1098,11 @@ void Key_Unbindall_f( void )
 Key_Bind_f
 ===================
 */
-void Key_Bind_f( void )
+void Key_Bind_f()
 {
 	int        c, b;
 	const char *key;
-	const char *cmd = NULL;
+	const char *cmd = nullptr;
 	int        team = -1;
 
 	int teambind = !Q_stricmp( Cmd_Argv( 0 ), "teambind" );
@@ -1174,7 +1155,7 @@ void Key_Bind_f( void )
 		}
 		else
 		{
-			qboolean bound = qfalse;
+			bool bound = false;
 			int      i;
 
 			for ( i = 0; i < MAX_TEAMS; ++i )
@@ -1182,7 +1163,7 @@ void Key_Bind_f( void )
 				if ( keys[ b ].binding[ i ] )
 				{
 					Com_Printf( "\"%s\"[%s] = %s\n", key, teamName[ i ], Cmd_QuoteString( keys[ b ].binding[ i ] ) );
-					bound = qtrue;
+					bound = true;
 				}
 			}
 
@@ -1213,7 +1194,7 @@ void Key_Bind_f( void )
 Key_EditBind_f
 ===================
 */
-void Key_EditBind_f( void )
+void Key_EditBind_f()
 {
 	std::u32string buf;
 	int            b;
@@ -1223,7 +1204,7 @@ void Key_EditBind_f( void )
 
 	if ( b < 2 || b > 3 )
 	{
-		Cmd_PrintUsage("[<team>] <key>", NULL);
+		Cmd_PrintUsage("[<team>] <key>", nullptr);
 		return;
 	}
 
@@ -1307,19 +1288,19 @@ Key_Bindlist_f
 
 ============
 */
-void Key_Bindlist_f( void )
+void Key_Bindlist_f()
 {
 	int i, team;
 
 	for ( i = 0; i < MAX_KEYS; i++ )
 	{
-		qboolean teamSpecific = qfalse;
+		bool teamSpecific = false;
 
 		for ( team = 1; team < MAX_TEAMS; ++team )
 		{
 			if ( keys[ i ].binding[ team ] && keys[ i ].binding[ team ][ 0 ] )
 			{
-				teamSpecific = qtrue;
+				teamSpecific = true;
 				break;
 			}
 		}
@@ -1349,26 +1330,26 @@ void Key_Bindlist_f( void )
 Key_SetKeyData
 ============
 */
-void Key_SetKeyData_f(void)
+void Key_SetKeyData_f()
 {
 	if ( atoi( Cmd_Argv( 1 ) ) == plusCommand.check )
 	{
 		plusCommand.key  = atoi( Cmd_Argv( 2 ) ) - 1;
 		plusCommand.time = atoi( Cmd_Argv( 3 ) );
-		plusCommand.valid = qtrue;
+		plusCommand.valid = true;
 	}
 	else
 	{
-		plusCommand.valid = qfalse;
+		plusCommand.valid = false;
 	}
 }
 
-int Key_GetKeyNumber(void)
+int Key_GetKeyNumber()
 {
 	return plusCommand.valid ? plusCommand.key : -1;
 }
 
-unsigned int Key_GetKeyTime(void)
+unsigned int Key_GetKeyTime()
 {
 	return plusCommand.valid ? plusCommand.time : 0;
 }
@@ -1435,7 +1416,7 @@ void Key_KeynameCompletion( void ( *callback )( const char *s ) )
 {
 	int i;
 
-	for ( i = 0; keynames[ i ].name != NULL; i++ )
+	for ( i = 0; keynames[ i ].name != nullptr; i++ )
 	{
 		callback( keynames[ i ].name );
 	}
@@ -1485,7 +1466,7 @@ static void Key_CompleteBind_Internal( char *args, int argNum, int nameArg )
 	{
 		Cmd::Args arg(args);
 		Cmd::CompletionResult res = Cmd::CompleteArgument(Cmd::Args(arg.EscapedArgs(nameArg)), argNum - nameArg - 1);
-		for (auto candidate : res)
+		for (const auto& candidate : res)
 		{
 			FindMatches(candidate.first.c_str());
 		}
@@ -1522,8 +1503,6 @@ static void Key_CompleteEditbind( char *args, int argNum )
 Helper functions for Cmd_If_f & Cmd_ModCase_f
 ===============
 */
-static const char modifierList[] = "shift, ctrl, alt, command/cmd, mode, super, compose, menu; ! negates; e.g. shift,!alt";
-
 static const struct
 {
 	char name[ 8 ];
@@ -1667,13 +1646,13 @@ Executes the command for the first matching modifier set
 
 ===============
 */
-void Key_ModCase_f( void )
+void Key_ModCase_f()
 {
 	int argc = Cmd_Argc();
 	int index = 0;
 	int max = 0;
 	int count = ( argc - 1 ) / 2; // round down :-)
-	char *v;
+	const char *v;
 
 	int mods[ 1 << NUM_RECOGNISED_MODIFIERS ];
 	// want 'modifierMask_t mods[argc / 2 - 1];' (variable array, C99)
@@ -1681,7 +1660,7 @@ void Key_ModCase_f( void )
 
 	if ( argc < 3 )
 	{
-		Cmd_PrintUsage( "<modifiers> <command> [<modifiers> <command>] … [<command>]", NULL );
+		Cmd_PrintUsage( "<modifiers> <command> [<modifiers> <command>] … [<command>]", nullptr );
 		return;
 	}
 
@@ -1705,7 +1684,7 @@ void Key_ModCase_f( void )
 	}
 
 	// If we have a tail command, use it as default
-	v = ( argc & 1 ) ? NULL : Cmd_Argv( argc - 1 );
+	v = ( argc & 1 ) ? nullptr : Cmd_Argv( argc - 1 );
 
 	// Search for a suitable command to execute.
 	// Search is done as if the commands are sorted by modifier count
@@ -1744,7 +1723,7 @@ found:
 CL_InitKeyCommands
 ===================
 */
-void CL_InitKeyCommands( void )
+void CL_InitKeyCommands()
 {
 	// register our functions
 	Cmd_AddCommand( "bind", Key_Bind_f );
@@ -1770,13 +1749,13 @@ Called by the system for both key up and key down events
 */
 //static consoleCount = 0;
 // fretn
-qboolean consoleButtonWasPressed = qfalse;
+bool consoleButtonWasPressed = false;
 
-void CL_KeyEvent( int key, qboolean down, unsigned time )
+void CL_KeyEvent( int key, bool down, unsigned time )
 {
 	char     *kb;
-	qboolean bypassMenu = qfalse; // NERVE - SMF
-	qboolean onlybinds = qfalse;
+	bool bypassMenu = false; // NERVE - SMF
+	bool onlybinds = false;
 
 	if ( key < 1 )
 	{
@@ -1797,9 +1776,9 @@ void CL_KeyEvent( int key, qboolean down, unsigned time )
 		case K_KP_INS:
 		case K_KP_DEL:
 		case K_KP_HOME:
-			if ( Sys_IsNumLockDown() )
+			if ( IN_IsNumLockDown() )
 			{
-				onlybinds = qtrue;
+				onlybinds = true;
 			}
 
 			break;
@@ -1922,7 +1901,7 @@ void CL_KeyEvent( int key, qboolean down, unsigned time )
 			return;
 		}
 
-		Rocket_ProcessKeyInput( key, down );
+		cgvm.CGameKeyEvent(key, down);
 		return;
 	}
 
@@ -1931,7 +1910,7 @@ void CL_KeyEvent( int key, qboolean down, unsigned time )
 	// to run any binds (since they won't be found).
 	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
 	{
-		Rocket_ProcessKeyInput( key, down );
+		cgvm.CGameKeyEvent(key, down);
 		return;
 	}
 
@@ -1946,11 +1925,11 @@ void CL_KeyEvent( int key, qboolean down, unsigned time )
 		// Handle any +commands which were invoked on the corresponding key-down
 		Cmd::BufferCommandText(va("keyup %d %d %u", plusCommand.check, key, time));
 
-		if ( cls.keyCatchers & KEYCATCH_CGAME && cgvm )
+		if ( cls.keyCatchers & KEYCATCH_CGAME && cgvm.IsActive() )
 		{
 			if ( !onlybinds )
 			{
-				VM_Call( cgvm, CG_KEY_EVENT, key, down );
+				cgvm.CGameKeyEvent(key, down);
 			}
 		}
 
@@ -1967,11 +1946,11 @@ void CL_KeyEvent( int key, qboolean down, unsigned time )
 	}
 	else if ( cls.keyCatchers & KEYCATCH_CGAME && !bypassMenu )
 	{
-		if ( cgvm )
+		if ( cgvm.IsActive() )
 		{
 			if ( !onlybinds )
 			{
-				VM_Call( cgvm, CG_KEY_EVENT, key, down );
+				cgvm.CGameKeyEvent(key, down);
 			}
 		}
 	}
@@ -2033,7 +2012,7 @@ void CL_CharEvent( int c )
 		Field_CharEvent(g_consoleField, CL_UTF8_unpack(c));
 	}
 
-	Rocket_ProcessTextInput( c );
+	cgvm.CGameTextInputEvent(c);
 }
 
 /*
@@ -2041,17 +2020,20 @@ void CL_CharEvent( int c )
 Key_ClearStates
 ===================
 */
-void Key_ClearStates( void )
+void Key_ClearStates()
 {
 	int i;
 
 	anykeydown = 0;
 
+	int oldKeyCatcher = Key_GetCatcher();
+	Key_SetCatcher( 0 );
+
 	for ( i = 0; i < MAX_KEYS; i++ )
 	{
 		if ( keys[ i ].down )
 		{
-			CL_KeyEvent( i, qfalse, 0 );
+			CL_KeyEvent( i, false, 0 );
 		}
 
 		keys[ i ].down = 0;
@@ -2059,6 +2041,8 @@ void Key_ClearStates( void )
 	}
 
 	plusCommand.check = rand();
+
+	Key_SetCatcher( oldKeyCatcher );
 }
 
 /*

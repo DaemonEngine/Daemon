@@ -32,9 +32,8 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
-#include "../qcommon/q_shared.h"
-#include "../qcommon/qcommon.h"
-#include "sys_local.h"
+#include "qcommon/q_shared.h"
+#include "qcommon/qcommon.h"
 
 #include <unistd.h>
 #include <signal.h>
@@ -42,7 +41,7 @@ Maryland 20850 USA.
 #include <fcntl.h>
 #include <sys/time.h>
 
-#include "../framework/ConsoleField.h"
+#include "framework/ConsoleField.h"
 
 /*
 =============================================================
@@ -54,10 +53,9 @@ called before and after a stdout or stderr output
 =============================================================
 */
 
-extern qboolean       stdinIsATTY;
-static qboolean       stdin_active;
+static bool       stdin_active;
 // general flag to tell about tty console mode
-static qboolean       ttycon_on = qfalse;
+static bool       ttycon_on = false;
 static int            ttycon_hide = 0;
 
 // some key codes that the terminal may be using, initialised on start up
@@ -69,6 +67,108 @@ static struct termios TTY_tc;
 static Console::Field TTY_field(INT_MAX);
 
 /*
+=================
+CON_AnsiColorPrint
+
+Transform Q3 colour codes to ANSI escape sequences
+=================
+*/
+static void CON_AnsiColorPrint( const char *msg )
+{
+	static char buffer[ MAXPRINTMSG ];
+	int         length = 0;
+
+	// Approximations of g_color_table (q_math.c)
+#define A_BOLD 16
+#define A_DIM  32
+	static const char colour16map[2][32] = {
+		{ // Variant 1 (xterm)
+			0 | A_BOLD, 1,          2,          3,
+			4,          6,          5,          7,
+			3 | A_DIM,  7 | A_DIM,  7 | A_DIM,  7 | A_DIM,
+			2 | A_DIM,  3 | A_DIM,  4 | A_DIM,  1 | A_DIM,
+			3 | A_DIM,  3 | A_DIM,  6 | A_DIM,  5 | A_DIM,
+			6 | A_DIM,  5 | A_DIM,  6 | A_DIM,  2 | A_BOLD,
+			2 | A_DIM,  1,          1 | A_DIM,  3 | A_DIM,
+			3 | A_DIM,  2 | A_DIM,  5,          3 | A_BOLD
+		},
+		{ // Variant 1 (vte)
+			0 | A_BOLD, 1,          2,          3 | A_BOLD,
+			4,          6,          5,          7,
+			3        ,  7 | A_DIM,  7 | A_DIM,  7 | A_DIM,
+			2 | A_DIM,  3,          4 | A_DIM,  1 | A_DIM,
+			3 | A_DIM,  3 | A_DIM,  6 | A_DIM,  5 | A_DIM,
+			6 | A_DIM,  5 | A_DIM,  6 | A_DIM,  2 | A_BOLD,
+			2 | A_DIM,  1,          1 | A_DIM,  3 | A_DIM,
+			3 | A_DIM,  2 | A_DIM,  5,          3 | A_BOLD
+		}
+	};
+	static const char modifier[][4] = { "", ";1", ";2", "" };
+
+	int index = abs( com_ansiColor->integer ) - 1;
+
+	if ( index >= ARRAY_LEN( colour16map ) )
+	{
+		index = 0;
+	}
+
+	while ( *msg )
+	{
+		if ( Q_IsColorString( msg ) || *msg == '\n' )
+		{
+			// First empty the buffer
+			if ( length > 0 )
+			{
+				buffer[ length ] = '\0';
+				fputs( buffer, stderr );
+				length = 0;
+			}
+
+			if ( *msg == '\n' )
+			{
+				// Issue a reset and then the newline
+				fputs( "\033[0;49;37m\n", stderr );
+				msg++;
+			}
+			else
+			{
+				// Print the color code
+				int colour = colour16map[ index ][ ( msg[ 1 ] - '0' ) & 31 ];
+
+				Com_sprintf( buffer, sizeof( buffer ), "\033[%s%d%sm",
+				             (colour & 0x30) == 0 ? "0;" : "",
+				             30 + ( colour & 15 ), modifier[ ( colour / 16 ) & 3 ] );
+				fputs( buffer, stderr );
+				msg += 2;
+			}
+		}
+		else
+		{
+			if ( length >= MAXPRINTMSG - 1 )
+			{
+				break;
+			}
+
+			if ( *msg == Q_COLOR_ESCAPE && msg[1] == Q_COLOR_ESCAPE )
+			{
+				++msg;
+			}
+
+			buffer[ length ] = *msg;
+			length++;
+			msg++;
+		}
+	}
+
+	// Empty anything still left in the buffer
+	if ( length > 0 )
+	{
+		buffer[ length ] = '\0';
+		fputs( buffer, stderr );
+	}
+}
+
+/*
 ==================
 CON_FlushIn
 
@@ -76,7 +176,7 @@ Flush stdin, I suspect some terminals are sending a LOT of shit
 FIXME relevant?
 ==================
 */
-static void CON_FlushIn( void )
+static void CON_FlushIn()
 {
 	char key;
 
@@ -94,7 +194,7 @@ send "\b \b"
 (FIXME there may be a way to find out if '\b' alone would work though)
 ==================
 */
-static void CON_Back( void )
+static void CON_Back()
 {
 	char key;
 //	size_t size;
@@ -115,7 +215,7 @@ Clear the display of the line currently edited
 bring cursor back to beginning of line
 ==================
 */
-static void CON_Hide( void )
+static void CON_Hide()
 {
 	if ( ttycon_on )
 	{
@@ -142,7 +242,7 @@ Show the current line
 FIXME need to position the cursor if needed?
 ==================
 */
-static void CON_Show( void )
+static void CON_Show()
 {
 	if ( ttycon_on )
 	{
@@ -166,7 +266,7 @@ CON_Shutdown_TTY
 Never exit without calling this, or your terminal will be left in a pretty bad state
 ==================
 */
-void CON_Shutdown_TTY( void )
+void CON_Shutdown_TTY()
 {
 	if ( ttycon_on )
 	{
@@ -188,7 +288,7 @@ set attributes if user did CTRL+Z and then does fg again.
 
 void CON_SigCont( int signum )
 {
-	void CON_Init_TTY( void );
+	void CON_Init_TTY();
 
 	CON_Init_TTY();
 }
@@ -200,7 +300,7 @@ CON_Init_TTY
 Initialize the console input (tty mode if possible)
 ==================
 */
-void CON_Init_TTY( void )
+void CON_Init_TTY()
 {
 	struct termios tc;
 
@@ -215,11 +315,14 @@ void CON_Init_TTY( void )
 	// Make stdin reads non-blocking
 	fcntl( STDIN_FILENO, F_SETFL, fcntl( STDIN_FILENO, F_GETFL, 0 ) | O_NONBLOCK );
 
+	const char *term = getenv( "TERM" );
+	bool stdinIsATTY = isatty( STDIN_FILENO ) && isatty( STDOUT_FILENO ) && isatty( STDERR_FILENO ) &&
+	                   !( term && ( !strcmp( term, "raw" ) || !strcmp( term, "dumb" ) ) );
 	if ( !stdinIsATTY )
 	{
 		Com_Printf( "tty console mode disabled\n" );
-		ttycon_on = qfalse;
-		stdin_active = qtrue;
+		ttycon_on = false;
+		stdin_active = true;
 		return;
 	}
 
@@ -246,7 +349,7 @@ void CON_Init_TTY( void )
 	tc.c_cc[ VMIN ] = 1;
 	tc.c_cc[ VTIME ] = 0;
 	tcsetattr( STDIN_FILENO, TCSADRAIN, &tc );
-	ttycon_on = qtrue;
+	ttycon_on = true;
 }
 
 /*
@@ -254,7 +357,7 @@ void CON_Init_TTY( void )
 CON_Input_TTY
 ==================
 */
-char *CON_Input_TTY( void )
+char *CON_Input_TTY()
 {
 	// we use this when sending back commands
 	static char text[ MAX_EDIT_LINE ];
@@ -276,7 +379,7 @@ char *CON_Input_TTY( void )
 				TTY_field.DeletePrev();
 				CON_Show();
 				CON_FlushIn();
-				return NULL;
+				return nullptr;
 			}
 
 			// check if this is a control char
@@ -286,7 +389,7 @@ char *CON_Input_TTY( void )
 				{
 					TTY_field.RunCommand(com_consoleCommand->string);
 					write( STDOUT_FILENO, "\n]", 2 );
-					return NULL;
+					return nullptr;
 				}
 
 				if ( key == '\t' )
@@ -294,7 +397,7 @@ char *CON_Input_TTY( void )
 					CON_Hide();
 					TTY_field.AutoComplete();
 					CON_Show();
-					return NULL;
+					return nullptr;
 				}
 
 				if ( key == '\x15' ) // ^U
@@ -302,7 +405,7 @@ char *CON_Input_TTY( void )
 					CON_Hide();
 					TTY_field.Clear();
 					CON_Show();
-					return NULL;
+					return nullptr;
 				}
 
 				avail = read( STDIN_FILENO, &key, 1 );
@@ -323,20 +426,20 @@ char *CON_Input_TTY( void )
 									TTY_field.HistoryPrev();
 									CON_Show();
 									CON_FlushIn();
-									return NULL;
+									return nullptr;
 
 								case 'B':
 									CON_Hide();
 									TTY_field.HistoryNext();
 									CON_Show();
 									CON_FlushIn();
-									return NULL;
+									return nullptr;
 
 								case 'C':
-									return NULL;
+									return nullptr;
 
 								case 'D':
-									return NULL;
+									return nullptr;
 							}
 						}
 					}
@@ -344,7 +447,7 @@ char *CON_Input_TTY( void )
 
 				Com_DPrintf( "droping ISCTL sequence: %d, TTY_erase: %d\n", key, TTY_erase );
 				CON_FlushIn();
-				return NULL;
+				return nullptr;
 			}
 
 			CON_Hide();
@@ -352,7 +455,7 @@ char *CON_Input_TTY( void )
 			CON_Show();
 		}
 
-		return NULL;
+		return nullptr;
 	}
 	else if ( stdin_active )
 	{
@@ -365,9 +468,9 @@ char *CON_Input_TTY( void )
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 0;
 
-		if ( select( STDIN_FILENO + 1, &fdset, NULL, NULL, &timeout ) == -1 || !FD_ISSET( STDIN_FILENO, &fdset ) )
+		if ( select( STDIN_FILENO + 1, &fdset, nullptr, nullptr, &timeout ) == -1 || !FD_ISSET( STDIN_FILENO, &fdset ) )
 		{
-			return NULL;
+			return nullptr;
 		}
 
 		len = read( STDIN_FILENO, text, sizeof( text ) );
@@ -375,13 +478,13 @@ char *CON_Input_TTY( void )
 		if ( len == 0 )
 		{
 			// eof!
-			stdin_active = qfalse;
-			return NULL;
+			stdin_active = false;
+			return nullptr;
 		}
 
 		if ( len < 1 )
 		{
-			return NULL;
+			return nullptr;
 		}
 
 		text[ len - 1 ] = 0; // rip off the /n and terminate
@@ -389,7 +492,7 @@ char *CON_Input_TTY( void )
 		return text;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 /*
@@ -401,9 +504,9 @@ void CON_Print_TTY( const char *msg )
 {
 	CON_Hide();
 
-	if ( com_ansiColor && com_ansiColor->integer )
+	if ( ttycon_on && com_ansiColor && com_ansiColor->integer )
 	{
-		Sys_AnsiColorPrint( msg );
+		CON_AnsiColorPrint( msg );
 	}
 	else
 	{
@@ -415,21 +518,21 @@ void CON_Print_TTY( const char *msg )
 
 /* fallbacks for con_curses.c */
 #ifndef USE_CURSES
-void CON_Init( void )
+void CON_Init()
 {
 	CON_Init_TTY();
 }
 
-void CON_Shutdown( void )
+void CON_Shutdown()
 {
 	CON_Shutdown_TTY();
 }
 
-void CON_LogDump( void )
+void CON_LogDump()
 {
 }
 
-char *CON_Input( void )
+char *CON_Input()
 {
 	return CON_Input_TTY();
 }
@@ -439,7 +542,7 @@ void CON_Print( const char *message )
 	CON_Print_TTY( message );
 }
 
-void CON_Clear_f( void )
+void CON_Clear_f()
 {
 }
 #endif

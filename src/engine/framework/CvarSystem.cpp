@@ -31,8 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CvarSystem.h"
 #include "CommandSystem.h"
 
-#include "../qcommon/qcommon.h"
-#include "../qcommon/cvar.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/cvar.h"
 
 //TODO: thread safety (not possible with the C API that doesn't care at all about this)
 
@@ -353,7 +353,7 @@ namespace Cvar {
         CvarMap& cvars = GetCvarMap();
 
         Cmd::CompletionResult res;
-        for (auto& entry : cvars) {
+        for (const auto& entry : cvars) {
             if (Str::IsIPrefix(prefix, entry.first)) {
                 res.push_back(std::make_pair(entry.first, entry.second->description));
             }
@@ -614,7 +614,7 @@ namespace Cvar {
 
                 //Find all the matching cvars
                 for (auto& entry : cvars) {
-                    if (Com_Filter(match.c_str(), entry.first.c_str(), qfalse)) {
+                    if (Com_Filter(match.c_str(), entry.first.c_str(), false)) {
                         matchesNames.push_back(entry.first);
 
                         matches.push_back(entry.second);

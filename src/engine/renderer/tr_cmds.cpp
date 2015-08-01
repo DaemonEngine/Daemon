@@ -23,14 +23,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_cmds.c
 #include "tr_local.h"
 
-volatile qboolean            renderThreadActive;
+volatile bool            renderThreadActive;
 
 /*
 =====================
 R_PerformanceCounters
 =====================
 */
-void R_PerformanceCounters( void )
+void R_PerformanceCounters()
 {
 	if ( !r_speeds->integer )
 	{
@@ -46,16 +46,14 @@ void R_PerformanceCounters( void )
 		           backEnd.pc.c_views, backEnd.pc.c_portals, backEnd.pc.c_batches, backEnd.pc.c_surfaces, tr.pc.c_leafs,
 		           backEnd.pc.c_vertexes, backEnd.pc.c_indexes / 3 );
 
-		ri.Printf( PRINT_ALL, "%i lights %i bout %i pvsout %i queryout %i interactions\n",
-		           tr.pc.c_dlights + tr.pc.c_slights - backEnd.pc.c_occlusionQueriesLightsCulled,
+		ri.Printf( PRINT_ALL, "%i lights %i bout %i pvsout %i interactions\n",
+		           tr.pc.c_dlights + tr.pc.c_slights,
 		           tr.pc.c_box_cull_light_out,
 		           tr.pc.c_pvs_cull_light_out,
-		           backEnd.pc.c_occlusionQueriesLightsCulled,
-		           tr.pc.c_dlightInteractions + tr.pc.c_slightInteractions - backEnd.pc.c_occlusionQueriesInteractionsCulled );
+		           tr.pc.c_dlightInteractions + tr.pc.c_slightInteractions );
 
-		ri.Printf( PRINT_ALL, "%i draws %i queries %i vbos %i ibos %i verts %i tris\n",
+		ri.Printf( PRINT_ALL, "%i draws %i vbos %i ibos %i verts %i tris\n",
 		           backEnd.pc.c_drawElements,
-		           tr.pc.c_occlusionQueries,
 		           backEnd.pc.c_vboVertexBuffers, backEnd.pc.c_vboIndexBuffers,
 		           backEnd.pc.c_vboVertexes, backEnd.pc.c_vboIndexes / 3 );
 
@@ -103,29 +101,10 @@ void R_PerformanceCounters( void )
 		ri.Printf( PRINT_ALL, "flare adds:%i tests:%i renders:%i\n",
 		           backEnd.pc.c_flareAdds, backEnd.pc.c_flareTests, backEnd.pc.c_flareRenders );
 	}
-	else if ( r_speeds->integer == RSPEEDS_OCCLUSION_QUERIES )
-	{
-		ri.Printf( PRINT_ALL, "occlusion queries:%i multi:%i saved:%i culled lights:%i culled entities:%i culled leafs:%i response time:%i fetch time:%i\n",
-		           backEnd.pc.c_occlusionQueries,
-		           backEnd.pc.c_occlusionQueriesMulti,
-		           backEnd.pc.c_occlusionQueriesSaved,
-		           backEnd.pc.c_occlusionQueriesLightsCulled,
-		           backEnd.pc.c_occlusionQueriesEntitiesCulled,
-		           backEnd.pc.c_occlusionQueriesLeafsCulled,
-		           backEnd.pc.c_occlusionQueriesResponseTime,
-		           backEnd.pc.c_occlusionQueriesFetchTime );
-	}
 	else if ( r_speeds->integer == RSPEEDS_SHADING_TIMES )
 	{
 		ri.Printf( PRINT_ALL, "forward shading times: ambient:%i lighting:%i\n", backEnd.pc.c_forwardAmbientTime,
 			           backEnd.pc.c_forwardLightingTime );
-	}
-	else if ( r_speeds->integer == RSPEEDS_CHC )
-	{
-		ri.Printf( PRINT_ALL, "%i queries %i multi queries %i saved\n",
-		           tr.pc.c_occlusionQueries,
-		           tr.pc.c_occlusionQueriesMulti,
-		           tr.pc.c_occlusionQueriesSaved );
 	}
 	else if ( r_speeds->integer == RSPEEDS_NEAR_FAR )
 	{
@@ -150,7 +129,7 @@ R_IssueRenderCommands
 int c_blockedOnRender;
 int c_blockedOnMain;
 
-void R_IssueRenderCommands( qboolean runPerformanceCounters )
+void R_IssueRenderCommands( bool runPerformanceCounters )
 {
 	renderCommandList_t *cmdList;
 
@@ -220,14 +199,14 @@ and will remain idle and the main thread is free to issue
 OpenGL calls until R_IssueRenderCommands is called.
 ====================
 */
-void R_SyncRenderThread( void )
+void R_SyncRenderThread()
 {
 	if ( !tr.registered )
 	{
 		return;
 	}
 
-	R_IssueRenderCommands( qfalse );
+	R_IssueRenderCommands( false );
 
 	if ( !glConfig.smpActive )
 	{
@@ -261,7 +240,7 @@ void           *R_GetCommandBuffer( int bytes )
 		}
 
 		// if we run out of room, just start dropping commands
-		return NULL;
+		return nullptr;
 	}
 
 	cmdList->used += bytes;
@@ -274,7 +253,7 @@ void           *R_GetCommandBuffer( int bytes )
 R_AddDrawViewCmd
 =============
 */
-void R_AddDrawViewCmd( void )
+void R_AddDrawViewCmd()
 {
 	drawViewCommand_t *cmd;
 
@@ -297,7 +276,7 @@ R_AddRunVisTestsCmd
 
 =============
 */
-void R_AddRunVisTestsCmd( void )
+void R_AddRunVisTestsCmd()
 {
 	runVisTestsCommand_t *cmd;
 
@@ -318,7 +297,7 @@ void R_AddRunVisTestsCmd( void )
 =============
 RE_SetColor
 
-Passing NULL will set the color to white
+Passing nullptr will set the color to white
 =============
 */
 void RE_SetColor( const float *rgba )
@@ -412,7 +391,7 @@ void RE_SetColorGrading( int slot, qhandle_t hShader )
 R_ClipRegion
 =============
 */
-static qboolean R_ClipRegion ( float *x, float *y, float *w, float *h, float *s1, float *t1, float *s2, float *t2 )
+static bool R_ClipRegion ( float *x, float *y, float *w, float *h, float *s1, float *t1, float *s2, float *t2 )
 {
 	float left, top, right, bottom;
 	float _s1, _t1, _s2, _t2;
@@ -421,7 +400,7 @@ static qboolean R_ClipRegion ( float *x, float *y, float *w, float *h, float *s1
 	if ( tr.clipRegion[2] <= tr.clipRegion[0] ||
 		tr.clipRegion[3] <= tr.clipRegion[1] )
 	{
-		return qfalse;
+		return false;
 	}
 
 	left = *x;
@@ -443,7 +422,7 @@ static qboolean R_ClipRegion ( float *x, float *y, float *w, float *h, float *s1
 	if ( right <= clipLeft || left >= clipRight ||
 		bottom <= clipTop || top >= clipBottom )
 	{
-		return qtrue;
+		return true;
 	}
 
 	// Clip left edge
@@ -480,7 +459,7 @@ static qboolean R_ClipRegion ( float *x, float *y, float *w, float *h, float *s1
 		*h = clipBottom - *y;
 	}
 
-	return qfalse;
+	return false;
 }
 
 
@@ -491,7 +470,7 @@ RE_SetClipRegion
 */
 void RE_SetClipRegion( const float *region )
 {
-	if ( region == NULL )
+	if ( region == nullptr )
 	{
 		Com_Memset( tr.clipRegion, 0, sizeof( vec4_t ) );
 	}
@@ -612,7 +591,7 @@ void RE_2DPolyiesIndexed( polyVert_t *verts, int numverts, int *indexes, int num
 RE_ScissorEnable
 ================
 */
-void RE_ScissorEnable( qboolean enable )
+void RE_ScissorEnable( bool enable )
 {
 	// scissor disable sets scissor to full screen
 	// scissor enable is a no-op
@@ -721,12 +700,9 @@ void RE_StretchPicGradient( float x, float y, float w, float h,
 /*
 ====================
 RE_BeginFrame
-
-If running in stereo, RE_BeginFrame will be called twice
-for each RE_EndFrame
 ====================
 */
-void RE_BeginFrame( stereoFrame_t stereoFrame )
+void RE_BeginFrame()
 {
 	drawBufferCommand_t *cmd;
 
@@ -748,7 +724,7 @@ void RE_BeginFrame( stereoFrame_t stereoFrame )
 		{
 			ri.Printf( PRINT_ALL, "Warning: not enough stencil bits to measure overdraw: %d\n", glConfig.stencilBits );
 			ri.Cvar_Set( "r_measureOverdraw", "0" );
-			r_measureOverdraw->modified = qfalse;
+			r_measureOverdraw->modified = false;
 		}
 		else
 		{
@@ -760,7 +736,7 @@ void RE_BeginFrame( stereoFrame_t stereoFrame )
 			glStencilOp( GL_KEEP, GL_INCR, GL_INCR );
 		}
 
-		r_measureOverdraw->modified = qfalse;
+		r_measureOverdraw->modified = false;
 	}
 	else
 	{
@@ -771,7 +747,7 @@ void RE_BeginFrame( stereoFrame_t stereoFrame )
 			glDisable( GL_STENCIL_TEST );
 		}
 
-		r_measureOverdraw->modified = qfalse;
+		r_measureOverdraw->modified = false;
 	}
 
 	// texturemode stuff
@@ -779,7 +755,7 @@ void RE_BeginFrame( stereoFrame_t stereoFrame )
 	{
 		R_SyncRenderThread();
 		GL_TextureMode( r_textureMode->string );
-		r_textureMode->modified = qfalse;
+		r_textureMode->modified = false;
 	}
 
 	// check for errors
@@ -822,8 +798,8 @@ void RE_BeginFrame( stereoFrame_t stereoFrame )
 					strcpy( s, "GL_TABLE_TOO_LARGE" );
 					break;
 
-				case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
-					strcpy( s, "GL_INVALID_FRAMEBUFFER_OPERATION_EXT" );
+				case GL_INVALID_FRAMEBUFFER_OPERATION:
+					strcpy( s, "GL_INVALID_FRAMEBUFFER_OPERATION" );
 					break;
 
 				default:
@@ -846,36 +822,13 @@ void RE_BeginFrame( stereoFrame_t stereoFrame )
 
 	cmd->commandId = RC_DRAW_BUFFER;
 
-	if ( glConfig.stereoEnabled )
+	if ( !Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) )
 	{
-		if ( stereoFrame == STEREO_LEFT )
-		{
-			cmd->buffer = ( int ) GL_BACK_LEFT;
-		}
-		else if ( stereoFrame == STEREO_RIGHT )
-		{
-			cmd->buffer = ( int ) GL_BACK_RIGHT;
-		}
-		else
-		{
-			ri.Error( ERR_FATAL, "RE_BeginFrame: Stereo is enabled, but stereoFrame was %i", stereoFrame );
-		}
+		cmd->buffer = ( int ) GL_FRONT;
 	}
 	else
 	{
-		if ( stereoFrame != STEREO_CENTER )
-		{
-			ri.Error( ERR_FATAL, "RE_BeginFrame: Stereo is disabled, but stereoFrame was %i", stereoFrame );
-		}
-
-		if ( !Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) )
-		{
-			cmd->buffer = ( int ) GL_FRONT;
-		}
-		else
-		{
-			cmd->buffer = ( int ) GL_BACK;
-		}
+		cmd->buffer = ( int ) GL_BACK;
 	}
 }
 
@@ -906,7 +859,7 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec )
 
 	cmd->commandId = RC_SWAP_BUFFERS;
 
-	R_IssueRenderCommands( qtrue );
+	R_IssueRenderCommands( true );
 
 	// use the other buffers next frame, because another CPU
 	// may still be rendering into the current ones
@@ -935,7 +888,7 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec )
 RE_TakeVideoFrame
 =============
 */
-void RE_TakeVideoFrame( int width, int height, byte *captureBuffer, byte *encodeBuffer, qboolean motionJpeg )
+void RE_TakeVideoFrame( int width, int height, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg )
 {
 	videoFrameCommand_t *cmd;
 
@@ -977,7 +930,7 @@ void RE_RenderToTexture( int textureid, int x, int y, int w, int h )
 RE_Finish
 ==================
 */
-void RE_Finish( void )
+void RE_Finish()
 {
 	renderFinishCommand_t *cmd;
 

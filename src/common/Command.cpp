@@ -29,7 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Common.h"
-#include "../engine/qcommon/qcommon.h"
+
+#include "engine/qcommon/qcommon.h"
 
 namespace Cmd {
 
@@ -475,7 +476,7 @@ namespace Cmd {
     }
 
     void AddToCompletion(CompletionResult& res, Str::StringRef prefix, std::initializer_list<CompletionItem> list) {
-        for (auto item: list) {
+        for (const auto& item: list) {
             if (Str::IsIPrefix(prefix, item.first)) {
                 res.push_back({item.first, item.second});
             }

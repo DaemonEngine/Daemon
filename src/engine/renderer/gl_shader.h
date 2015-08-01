@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define GL_SHADER_H
 
 #include "tr_local.h"
+#include <stdexcept>
 
 #define LOG_GLSL_UNIFORMS 1
 #define USE_UNIFORM_FIREWALL 1
@@ -31,6 +32,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // *INDENT-OFF*
 static const unsigned int MAX_SHADER_MACROS = 9;
 static const unsigned int GL_SHADER_VERSION = 3;
+
+class ShaderException : public std::runtime_error
+{
+public:
+	ShaderException(const char* msg) : std::runtime_error(msg) { }
+};
+
+enum class ShaderKind
+{
+	Unknown,
+	BuiltIn,
+	External
+};
 
 struct GLShaderHeader
 {
@@ -82,7 +96,7 @@ protected:
 		_mainShaderName( name ),
 		_activeMacros( 0 ),
 		_checkSum( 0 ),
-		_currentProgram( NULL ),
+		_currentProgram( nullptr ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
@@ -95,7 +109,7 @@ protected:
 		_mainShaderName( mainShaderName ),
 		_activeMacros( 0 ),
 		_checkSum( 0 ),
-		_currentProgram( NULL ),
+		_currentProgram( nullptr ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
@@ -112,6 +126,16 @@ protected:
 			if ( p->program )
 			{
 				glDeleteProgram( p->program );
+			}
+
+			if ( p->VS )
+			{
+				glDeleteShader( p->VS );
+			}
+
+			if ( p->FS )
+			{
+				glDeleteShader( p->FS );
 			}
 
 			if ( p->uniformFirewall )
@@ -165,13 +189,13 @@ public:
 
 protected:
 	bool         GetCompileMacrosString( size_t permutation, std::string &compileMacrosOut ) const;
-	virtual void BuildShaderVertexLibNames( std::string& vertexInlines ) { };
-	virtual void BuildShaderFragmentLibNames( std::string& vertexInlines ) { };
-	virtual void BuildShaderCompileMacros( std::string& vertexInlines ) { };
-	virtual void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) { };
+	virtual void BuildShaderVertexLibNames( std::string& /*vertexInlines*/ ) { };
+	virtual void BuildShaderFragmentLibNames( std::string& /*vertexInlines*/ ) { };
+	virtual void BuildShaderCompileMacros( std::string& /*vertexInlines*/ ) { };
+	virtual void SetShaderProgramUniforms( shaderProgram_t* /*shaderProgram*/ ) { };
 	int          SelectProgram();
 public:
-	void BindProgram();
+	void BindProgram( int deformIndex );
 	void SetRequiredVertexPointers();
 
 	bool IsMacroSet( int bit )
@@ -209,6 +233,8 @@ class GLShaderManager
 {
 	std::queue< GLShader* > _shaderBuildQueue;
 	std::vector< GLShader* > _shaders;
+	std::unordered_map< std::string, int > _deformShaderLookup;
+	std::vector< GLint > _deformShaders;
 	int       _totalBuildTime;
 public:
 	GLShaderManager() : _totalBuildTime( 0 )
@@ -219,6 +245,10 @@ public:
 	template< class T >
 	void load( T *& shader )
 	{
+		if( _deformShaders.size() == 0 ) {
+			(void)getDeformShaderIndex( NULL, 0 );
+		}
+
 		shader = new T( this );
 		InitShader( shader );
 		_shaders.push_back( shader );
@@ -226,20 +256,25 @@ public:
 	}
 	void freeAll();
 
-	bool buildPermutation( GLShader *shader, size_t permutation );
+	int getDeformShaderIndex( deformStage_t *deforms, int numDeforms );
+
+	bool buildPermutation( GLShader *shader, int macroIndex, int deformIndex );
 	void buildAll();
 private:
 	bool LoadShaderBinary( GLShader *shader, size_t permutation );
 	void SaveShaderBinary( GLShader *shader, size_t permutation );
-	void CompileGPUShader( GLuint program, const char *programName, const char *shaderText,
-	                       int shaderTextSize, GLenum shaderType ) const;
+	GLuint CompileShader( Str::StringRef programName, Str::StringRef shaderText,
+			      int shaderTextSize, GLenum shaderType ) const;
+	void CompileGPUShaders( GLShader *shader, shaderProgram_t *program,
+				const std::string &compileMacros ) const;
 	void CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program,
-	                                     const std::string &compileMacros ) const;
-	std::string BuildGPUShaderText( const char *mainShader, const char *libShaders, GLenum shaderType ) const;
+	                                     Str::StringRef compileMacros, int deformIndex ) const;
+	std::string BuildDeformShaderText( const std::string& steps ) const;
+	std::string BuildGPUShaderText( Str::StringRef mainShader, Str::StringRef libShaders, GLenum shaderType ) const;
 	void LinkProgram( GLuint program ) const;
 	void BindAttribLocations( GLuint program ) const;
-	void PrintShaderSource( GLuint object ) const;
-	void PrintInfoLog( GLuint object, bool developerOnly ) const;
+	void PrintShaderSource( Str::StringRef programName, GLuint object ) const;
+	void PrintInfoLog( GLuint object ) const;
 	void InitShader( GLShader *shader );
 	void ValidateProgram( GLuint program ) const;
 	void UpdateShaderProgramUniformLocations( GLShader *shader, shaderProgram_t *shaderProgram ) const;
@@ -273,7 +308,7 @@ public:
 		_locationIndex = index;
 	}
 
-	const char *GetName( void )
+	const char *GetName()
 	{
 		return _name.c_str();
 	}
@@ -283,7 +318,7 @@ public:
 		shaderProgram->uniformLocations[ _locationIndex ] = glGetUniformLocation( shaderProgram->program, GetName() );
 	}
 
-	virtual size_t GetSize( void )
+	virtual size_t GetSize()
 	{
 		return 0;
 	}
@@ -323,7 +358,7 @@ protected:
 		glUniform1f( p->uniformLocations[ _locationIndex ], value );
 	}
 public:
-	size_t GetSize( void )
+	size_t GetSize()
 	{
 		return sizeof( float );
 	}
@@ -389,7 +424,7 @@ protected:
 		glUniform2f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ] );
 	}
 
-	size_t GetSize( void )
+	size_t GetSize()
 	{
 		return sizeof( vec2_t );
 	}
@@ -429,7 +464,7 @@ protected:
 		glUniform3f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ] );
 	}
 public:
-	size_t GetSize( void )
+	size_t GetSize()
 	{
 		return sizeof( vec3_t );
 	}
@@ -469,7 +504,7 @@ protected:
 		glUniform4f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
 	}
 public:
-	size_t GetSize( void )
+	size_t GetSize()
 	{
 		return sizeof( vec4_t );
 	}
@@ -536,7 +571,7 @@ protected:
 		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], 1, transpose, m );
 	}
 public:
-	size_t GetSize( void )
+	size_t GetSize()
 	{
 		return sizeof( matrix_t );
 	}
@@ -612,27 +647,28 @@ protected:
 	{
 	  USE_VERTEX_SKINNING,
 	  USE_VERTEX_ANIMATION,
+	  USE_VERTEX_SPRITE,
 	  USE_TCGEN_ENVIRONMENT,
 	  USE_TCGEN_LIGHTMAP,
 	  USE_NORMAL_MAPPING,
 	  USE_PARALLAX_MAPPING,
 	  USE_REFLECTIVE_SPECULAR,
 	  USE_SHADOWING,
-	  TWOSIDED,
 	  LIGHT_DIRECTIONAL,
-	  USE_GLOW_MAPPING
+	  USE_GLOW_MAPPING,
+	  USE_DEPTH_FADE
 	};
 
 public:
 	virtual const char       *GetName() const = 0;
 	virtual EGLCompileMacro GetType() const = 0;
 
-	virtual bool            HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+	virtual bool            HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &/*macros*/ ) const
 	{
 		return false;
 	}
 
-	virtual bool            MissesRequiredMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+	virtual bool            MissesRequiredMacros( size_t permutation, const std::vector< GLCompileMacro * > &/*macros*/ ) const
 	{
 		return false;
 	}
@@ -762,6 +798,53 @@ public:
 		else
 		{
 			DisableVertexAnimation();
+		}
+	}
+};
+
+class GLCompileMacro_USE_VERTEX_SPRITE :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_VERTEX_SPRITE( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "USE_VERTEX_SPRITE";
+	}
+
+	EGLCompileMacro GetType() const
+	{
+		return USE_VERTEX_SPRITE;
+	}
+
+	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const;
+	uint32_t GetRequiredVertexAttributes() const {
+		return ATTR_QTANGENT;
+	}
+
+	void EnableVertexSprite()
+	{
+		EnableMacro();
+	}
+
+	void DisableVertexSprite()
+	{
+		DisableMacro();
+	}
+
+	void SetVertexSprite( bool enable )
+	{
+		if ( enable )
+		{
+			EnableVertexSprite();
+		}
+		else
+		{
+			DisableVertexSprite();
 		}
 	}
 };
@@ -990,53 +1073,6 @@ public:
 	}
 };
 
-class GLCompileMacro_TWOSIDED :
-	GLCompileMacro
-{
-public:
-	GLCompileMacro_TWOSIDED( GLShader *shader ) :
-		GLCompileMacro( shader )
-	{
-	}
-
-	const char *GetName() const
-	{
-		return "TWOSIDED";
-	}
-
-	EGLCompileMacro GetType() const
-	{
-		return TWOSIDED;
-	}
-
-	uint32_t        GetRequiredVertexAttributes() const
-	{
-		return ATTR_QTANGENT;
-	}
-
-	void EnableMacro_TWOSIDED()
-	{
-		EnableMacro();
-	}
-
-	void DisableMacro_TWOSIDED()
-	{
-		DisableMacro();
-	}
-
-	void SetMacro_TWOSIDED( cullType_t cullType )
-	{
-		if ( cullType == CT_TWO_SIDED || cullType == CT_BACK_SIDED )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
-	}
-};
-
 class GLCompileMacro_LIGHT_DIRECTIONAL :
 	GLCompileMacro
 {
@@ -1151,6 +1187,48 @@ public:
 	}
 
 	void SetGlowMapping( bool enable )
+	{
+		if ( enable )
+		{
+			EnableMacro();
+		}
+		else
+		{
+			DisableMacro();
+		}
+	}
+};
+
+class GLCompileMacro_USE_DEPTH_FADE :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_DEPTH_FADE( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "USE_DEPTH_FADE";
+	}
+
+	EGLCompileMacro GetType() const
+	{
+		return USE_DEPTH_FADE;
+	}
+
+	void EnableMacro_USE_DEPTH_FADE()
+	{
+		EnableMacro();
+	}
+
+	void DisableMacro_USE_DEPTH_FADE()
+	{
+		DisableMacro();
+	}
+
+	void SetDepthFade( bool enable )
 	{
 		if ( enable )
 		{
@@ -1286,6 +1364,21 @@ public:
 	}
 
 	void SetUniform_ViewOrigin( const vec3_t v )
+	{
+		this->SetValue( v );
+	}
+};
+
+class u_ViewUp :
+	GLUniform3f
+{
+public:
+	u_ViewUp( GLShader *shader ) :
+		GLUniform3f( shader, "u_ViewUp" )
+	{
+	}
+
+	void SetUniform_ViewUp( const vec3_t v )
 	{
 		this->SetValue( v );
 	}
@@ -1771,76 +1864,6 @@ public:
 	}
 };
 
-class u_DeformParms :
-	GLUniform1fv
-{
-public:
-	u_DeformParms( GLShader *shader ) :
-		GLUniform1fv( shader, "u_DeformParms" )
-	{
-	}
-
-	void SetUniform_DeformParms( deformStage_t deforms[ MAX_SHADER_DEFORMS ], int numDeforms )
-	{
-		float deformParms[ MAX_SHADER_DEFORM_PARMS ];
-		int   deformOfs = 0;
-
-		if ( numDeforms > MAX_SHADER_DEFORMS )
-		{
-			numDeforms = MAX_SHADER_DEFORMS;
-		}
-
-		deformParms[ deformOfs++ ] = numDeforms;
-
-		for ( int i = 0; i < numDeforms; i++ )
-		{
-			deformStage_t *ds = &deforms[ i ];
-
-			switch ( ds->deformation )
-			{
-				case DEFORM_WAVE:
-					deformParms[ deformOfs++ ] = DEFORM_WAVE;
-
-					deformParms[ deformOfs++ ] = ds->deformationWave.func;
-					deformParms[ deformOfs++ ] = ds->deformationWave.base;
-					deformParms[ deformOfs++ ] = ds->deformationWave.amplitude;
-					deformParms[ deformOfs++ ] = ds->deformationWave.phase;
-					deformParms[ deformOfs++ ] = ds->deformationWave.frequency;
-
-					deformParms[ deformOfs++ ] = ds->deformationSpread;
-					break;
-
-				case DEFORM_BULGE:
-					deformParms[ deformOfs++ ] = DEFORM_BULGE;
-
-					deformParms[ deformOfs++ ] = ds->bulgeWidth;
-					deformParms[ deformOfs++ ] = ds->bulgeHeight;
-					deformParms[ deformOfs++ ] = ds->bulgeSpeed * 0.001f;
-					break;
-
-				case DEFORM_MOVE:
-					deformParms[ deformOfs++ ] = DEFORM_MOVE;
-
-					deformParms[ deformOfs++ ] = ds->deformationWave.func;
-					deformParms[ deformOfs++ ] = ds->deformationWave.base;
-					deformParms[ deformOfs++ ] = ds->deformationWave.amplitude;
-					deformParms[ deformOfs++ ] = ds->deformationWave.phase;
-					deformParms[ deformOfs++ ] = ds->deformationWave.frequency;
-
-					deformParms[ deformOfs++ ] = ds->moveVector[ 0 ];
-					deformParms[ deformOfs++ ] = ds->moveVector[ 1 ];
-					deformParms[ deformOfs++ ] = ds->moveVector[ 2 ];
-					break;
-
-				default:
-					break;
-			}
-		}
-
-		this->SetValue( deformOfs, deformParms );
-	}
-};
-
 class u_Time :
 	GLUniform1f
 {
@@ -1857,12 +1880,10 @@ public:
 };
 
 class GLDeformStage :
-	public u_DeformParms,
 	public u_Time
 {
 public:
 	GLDeformStage( GLShader *shader ) :
-		u_DeformParms( shader ),
 		u_Time( shader )
 	{
 	}
@@ -2084,22 +2105,42 @@ public:
 	}
 };
 
+class u_zFar :
+	GLUniform3f
+{
+public:
+	u_zFar( GLShader *shader ) :
+		GLUniform3f( shader, "u_zFar" )
+	{
+	}
+
+	void SetUniform_zFar( const vec3_t value )
+	{
+		this->SetValue( value );
+	}
+};
+
 class GLShader_generic :
 	public GLShader,
 	public u_ColorTextureMatrix,
 	public u_ViewOrigin,
+	public u_ViewUp,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
+ 	public u_ProjectionMatrixTranspose,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorModulate,
 	public u_Color,
 	public u_Bones,
 	public u_VertexInterpolation,
+	public u_DepthScale,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_VERTEX_SPRITE,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
-	public GLCompileMacro_USE_TCGEN_LIGHTMAP
+	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
+	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
 	GLShader_generic( GLShaderManager *manager );
@@ -2411,6 +2452,7 @@ class GLShader_heatHaze :
 	public GLShader,
 	public u_NormalTextureMatrix,
 	public u_ViewOrigin,
+	public u_ViewUp,
 	public u_DeformMagnitude,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -2422,7 +2464,8 @@ class GLShader_heatHaze :
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_VERTEX_SPRITE
 {
 public:
 	GLShader_heatHaze( GLShaderManager *manager );
@@ -2577,6 +2620,15 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
 
+class GLShader_ssao :
+	public GLShader,
+	public u_zFar
+{
+public:
+	GLShader_ssao( GLShaderManager *manager );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+};
+
 class GLShader_fxaa :
 	public GLShader
 {
@@ -2585,6 +2637,10 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
 };
+
+std::string GetShaderPath();
+
+extern ShaderKind shaderKind;
 
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
@@ -2611,6 +2667,7 @@ extern GLShader_lightVolume_omni                *gl_lightVolumeShader_omni;
 extern GLShader_liquid                          *gl_liquidShader;
 extern GLShader_volumetricFog                   *gl_volumetricFogShader;
 extern GLShader_motionblur                      *gl_motionblurShader;
+extern GLShader_ssao                            *gl_ssaoShader;
 extern GLShader_fxaa                            *gl_fxaaShader;
 extern GLShaderManager                           gl_shaderManager;
 

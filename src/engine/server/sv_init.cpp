@@ -67,10 +67,10 @@ void SV_SetConfigstring( int index, const char *val )
 	// change the string in sv
 	Z_Free( sv.configstrings[ index ] );
 	sv.configstrings[ index ] = CopyString( val );
-	sv.configstringsmodified[ index ] = qtrue;
+	sv.configstringsmodified[ index ] = true;
 }
 
-void SV_UpdateConfigStrings( void )
+void SV_UpdateConfigStrings()
 {
 	int      len, i, index;
 	client_t *client;
@@ -83,7 +83,7 @@ void SV_UpdateConfigStrings( void )
 			continue;
 		}
 
-		sv.configstringsmodified[ index ] = qfalse;
+		sv.configstringsmodified[ index ] = false;
 
 		// send it to all the clients if we aren't
 		// spawning a new server
@@ -247,7 +247,7 @@ to the clients -- only the fields that differ from the
 baseline will be transmitted
 ================
 */
-void SV_CreateBaseline( void )
+void SV_CreateBaseline()
 {
 	sharedEntity_t *svent;
 	int            entnum;
@@ -281,7 +281,7 @@ void SV_BoundMaxClients( int minimum )
 	// get the current maxclients value
 	Cvar_Get( "sv_maxclients", "20", 0 ); // NERVE - SMF - changed to 20 from 8
 
-	sv_maxclients->modified = qfalse;
+	sv_maxclients->modified = false;
 
 	if ( sv_maxclients->integer < minimum )
 	{
@@ -303,7 +303,7 @@ NOT cause this to be called, unless the game is exited to
 the menu system first.
 ===============
 */
-void SV_Startup( void )
+void SV_Startup()
 {
 	if ( svs.initialized )
 	{
@@ -320,21 +320,13 @@ void SV_Startup( void )
 		Com_Error( ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
 	}
 
-	if ( com_dedicated->integer )
-	{
-		svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
-	}
-	else
-	{
-		// we don't need nearly as many when playing locally
-		svs.numSnapshotEntities = sv_maxclients->integer * 4 * 64;
-	}
+	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
 
-	svs.initialized = qtrue;
+	svs.initialized = true;
 
 	Cvar_Set( "sv_running", "1" );
 #ifndef BUILD_SERVER
-	NET_Config( qtrue );
+	NET_Config( true );
 #endif
 
 	// Join the IPv6 multicast group now that a map is running, so clients can scan for us on the local network.
@@ -346,7 +338,7 @@ void SV_Startup( void )
 SV_ChangeMaxClients
 ==================
 */
-void SV_ChangeMaxClients( void )
+void SV_ChangeMaxClients()
 {
 	int      oldMaxClients;
 	int      i;
@@ -421,70 +413,7 @@ void SV_ChangeMaxClients( void )
 	// free the old clients on the hunk
 	Hunk_FreeTempMemory( oldClients );
 
-	// allocate new snapshot entities
-	if ( com_dedicated->integer )
-	{
-		svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
-	}
-	else
-	{
-		// we don't need nearly as many when playing locally
-		svs.numSnapshotEntities = sv_maxclients->integer * 4 * 64;
-	}
-}
-
-/*
-====================
-SV_SetExpectedHunkUsage
-
-  Sets com_expectedhunkusage, so the client knows how to draw the percentage bar
-====================
-*/
-void SV_SetExpectedHunkUsage( char *mapname )
-{
-	int  handle;
-	const char *memlistfile = "hunkusage.dat";
-	char *buf;
-	char *buftrav;
-	char *token;
-	int  len;
-
-	len = FS_FOpenFileRead( memlistfile, &handle, qfalse );
-
-	if ( len >= 0 )
-	{
-		// the file exists, so read it in, strip out the current entry for this map, and save it out, so we can append the new value
-		buf = ( char * ) Z_Malloc( len + 1 );
-		memset( buf, 0, len + 1 );
-
-		FS_Read( ( void * ) buf, len, handle );
-		FS_FCloseFile( handle );
-
-		// now parse the file, filtering out the current map
-		buftrav = buf;
-
-		while ( ( token = COM_Parse( &buftrav ) ) != NULL && token[ 0 ] )
-		{
-			if ( !Q_stricmp( token, mapname ) )
-			{
-				// found a match
-				token = COM_Parse( &buftrav );  // read the size
-
-				if ( token && token[ 0 ] )
-				{
-					// this is the usage
-					com_expectedhunkusage = atoi( token );
-					Z_Free( buf );
-					return;
-				}
-			}
-		}
-
-		Z_Free( buf );
-	}
-
-	// just set it to a negative number,so the cgame knows not to draw the percent bar
-	com_expectedhunkusage = -1;
+	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
 }
 
 /*
@@ -492,7 +421,7 @@ void SV_SetExpectedHunkUsage( char *mapname )
 SV_ClearServer
 ================
 */
-void SV_ClearServer( void )
+void SV_ClearServer()
 {
 	int i;
 
@@ -519,7 +448,7 @@ This is NOT called for map_restart
 void SV_SpawnServer( const char *server )
 {
 	int        i;
-	qboolean   isBot;
+	bool   isBot;
 
 	// shut down the existing game if it is running
 	SV_ShutdownGameProgs();
@@ -527,12 +456,12 @@ void SV_SpawnServer( const char *server )
 	PrintBanner( "Server Initialization" )
 	Com_Printf( "Server: %s\n", server );
 
+	// clear the whole hunk because we're (re)loading the server
+	Hunk_Clear();
+
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
 	// also print some status stuff
 	CL_MapLoading();
-
-	// clear the whole hunk because we're (re)loading the server
-	Hunk_Clear();
 
 	// clear collision map data     // (SA) NOTE: TODO: used in missionpack
 	CM_ClearMap();
@@ -544,7 +473,7 @@ void SV_SpawnServer( const char *server )
 	for ( i = 0; i < MAX_CONFIGSTRINGS; i++ )
 	{
 		sv.configstrings[ i ] = CopyString( "" );
-		sv.configstringsmodified[ i ] = qfalse;
+		sv.configstringsmodified[ i ] = false;
 	}
 
 	// init client structures and svs.numSnapshotEntities
@@ -572,39 +501,23 @@ void SV_SpawnServer( const char *server )
 	// set sv_nextmap to the same map, but it may be overridden
 	// by the game startup or another console command
 	Cvar_Set( "sv_nextmap", "map_restart 0" );
-//  Cvar_Set( "sv_nextmap", va("map %s", server) );
-
-	SV_SetExpectedHunkUsage( va( "maps/%s.bsp", server ) );
 
 	// make sure we are not paused
 	Cvar_Set( "cl_paused", "0" );
 
 	// get a new checksum feed and restart the file system
 	srand( Sys_Milliseconds() );
-	sv.checksumFeed = ( ( ( int ) rand() << 16 ) ^ rand() ) ^ Sys_Milliseconds();
+	sv.checksumFeed = ( ( rand() << 16 ) ^ rand() ) ^ Sys_Milliseconds();
 
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
 	if (!FS_LoadPak(va("map-%s", server)))
 		Com_Error(ERR_DROP, "Could not load map pak\n");
 
-	void* buffer;
-	const char* name = va( "maps/%s.bsp", server );
-	FS_ReadFile( name, ( void ** ) &buffer );
-
-	if ( !buffer )
-	{
-		Com_Error( ERR_DROP, "Couldn't load %s", name );
-	}
-
-	CM_LoadMap( name, buffer, qfalse );
-
-	FS_FreeFile( buffer );
+	CM_LoadMap(server);
 
 	// set serverinfo visible name
 	Cvar_Set( "mapname", server );
-
-	sv_newGameShlib = Cvar_Get( "sv_newGameShlib", "", CVAR_TEMP );
 
 	// serverid should be different each time
 	sv.serverId = com_frameTime;
@@ -616,15 +529,13 @@ void SV_SpawnServer( const char *server )
 	// to load during actual gameplay
 	sv.state = SS_LOADING;
 
-	Cvar_Set( "sv_serverRestarting", "1" );
-
 	// load and spawn all other entities
 	SV_InitGameProgs(server);
 
 	// run a few frames to allow everything to settle
 	for ( i = 0; i < GAME_INIT_FRAMES; i++ )
 	{
-		gvm->GameRunFrame( sv.time );
+		gvm.GameRunFrame( sv.time );
 		svs.time += FRAMETIME;
 		sv.time += FRAMETIME;
 	}
@@ -637,21 +548,13 @@ void SV_SpawnServer( const char *server )
 		// send the new gamestate to all connected clients
 		if ( svs.clients[ i ].state >= CS_CONNECTED )
 		{
-			qboolean denied;
+			bool denied;
 			char reason[ MAX_STRING_CHARS ];
 
-			if ( svs.clients[ i ].netchan.remoteAddress.type == NA_BOT )
-			{
-
-				isBot = qtrue;
-			}
-			else
-			{
-				isBot = qfalse;
-			}
+			isBot = SV_IsBot(&svs.clients[i]);
 
 			// connect the client again
-			denied = gvm->GameClientConnect( reason, sizeof( reason ), i, qfalse, isBot );   // firstTime = qfalse
+			denied = gvm.GameClientConnect( reason, sizeof( reason ), i, false, isBot );   // firstTime = false
 
 			if ( denied )
 			{
@@ -681,14 +584,14 @@ void SV_SpawnServer( const char *server )
 					client->deltaMessage = -1;
 					client->nextSnapshotTime = svs.time; // generate a snapshot immediately
 
-					gvm->GameClientBegin( i );
+					gvm.GameClientBegin( i );
 				}
 			}
 		}
 	}
 
 	// run another frame to allow things to look at all the players
-	gvm->GameRunFrame( sv.time );
+	gvm.GameRunFrame( sv.time );
 	svs.time += FRAMETIME;
 	sv.time += FRAMETIME;
 
@@ -699,9 +602,9 @@ void SV_SpawnServer( const char *server )
 
 	// save systeminfo and serverinfo strings
 	cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
-	SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO, qtrue ) );
+	SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString( CVAR_SYSTEMINFO, true ) );
 
-	SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO, qfalse ) );
+	SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO, false ) );
 	cvar_modifiedFlags &= ~CVAR_SERVERINFO;
 
 	// any media configstring setting now should issue a warning
@@ -716,8 +619,6 @@ void SV_SpawnServer( const char *server )
 
 	SV_UpdateConfigStrings();
 
-	Cvar_Set( "sv_serverRestarting", "0" );
-
 	SV_AddOperatorCommands();
 
 	Com_Printf( "-----------------------------------\n" );
@@ -730,7 +631,7 @@ SV_Init
 Only called at main exe startup, not for each game
 ===============
 */
-void SV_Init( void )
+void SV_Init()
 {
 	SV_AddOperatorCommands();
 
@@ -815,7 +716,7 @@ not just stuck on the outgoing message list, because the server is going
 to totally exit after returning from this function.
 ==================
 */
-void SV_FinalCommand( char *cmd, qboolean disconnect )
+void SV_FinalCommand( char *cmd, bool disconnect )
 {
 	int      i, j;
 	client_t *cl;
@@ -867,9 +768,9 @@ void SV_Shutdown( const char *finalmsg )
 
 	NET_LeaveMulticast6();
 
-	if ( svs.clients && !com_errorEntered )
+	if ( svs.clients )
 	{
-		SV_FinalCommand( va( "print %s", Cmd_QuoteString( finalmsg ) ), qtrue );
+		SV_FinalCommand( va( "print %s", Cmd_QuoteString( finalmsg ) ), true );
 	}
 
 	SV_RemoveOperatorCommands();
@@ -889,8 +790,7 @@ void SV_Shutdown( const char *finalmsg )
 			SV_FreeClient( &svs.clients[ index ] );
 		}
 
-		//Z_Free( svs.clients );
-		free( svs.clients );  // RF, avoid trying to allocate large chunk on a fragmented zone
+		free( svs.clients );
 	}
 
 	memset( &svs, 0, sizeof( svs ) );
@@ -898,11 +798,11 @@ void SV_Shutdown( const char *finalmsg )
 
 	Cvar_Set( "sv_running", "0" );
 #ifndef BUILD_SERVER
-	NET_Config( qtrue );
+	NET_Config( true );
 #endif
 
 	Com_Printf( "---------------------------\n" );
 
 	// disconnect any local clients
-	CL_Disconnect( qfalse );
+	CL_Disconnect( false );
 }

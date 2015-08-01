@@ -35,15 +35,15 @@ Maryland 20850 USA.
 #ifndef __BOT_LOCAL_H
 #define __BOT_LOCAL_H
 
-#include "../qcommon/q_shared.h"
-#include "../qcommon/qcommon.h"
+#include "qcommon/q_shared.h"
+#include "qcommon/qcommon.h"
 
-#include "../../libs/detour/DetourNavMeshBuilder.h"
-#include "../../libs/detour/DetourNavMeshQuery.h"
-#include "../../libs/detour/DetourPathCorridor.h"
-#include "../../libs/detour/DetourCommon.h"
-#include "../../libs/detour/DetourTileCache.h"
-#include "../../libs/detour/DetourTileCacheBuilder.h"
+#include "detour/DetourNavMeshBuilder.h"
+#include "detour/DetourNavMeshQuery.h"
+#include "detour/DetourPathCorridor.h"
+#include "detour/DetourCommon.h"
+#include "detour/DetourTileCache.h"
+#include "detour/DetourTileCacheBuilder.h"
 
 #include "bot_types.h"
 #include "bot_api.h"
@@ -98,8 +98,8 @@ extern int numNavData;
 extern NavData_t BotNavData[ MAX_NAV_DATA ];
 extern Bot_t agents[ MAX_CLIENTS ];
 
-void NavEditInit( void );
-void NavEditShutdown( void );
+void NavEditInit();
+void NavEditShutdown();
 void BotSaveOffMeshConnections( NavData_t *nav );
 
 void         BotCalcSteerDir( Bot_t *bot, rVec &dir );

@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#include "../qcommon/q_shared.h"
+#include "qcommon/q_shared.h"
 #include "BaseCommands.h"
 
 #include "CommandSystem.h"
@@ -111,15 +111,11 @@ namespace Cmd {
                 const std::string& filename = args.Argv(filenameArg);
 
                 SetExecArgs(args, filenameArg + 1);
-                if (not ExecFile(filename)) {
+                if (not ExecFile(filename, executeSilent)) {
                     if (not failSilent) {
                         Print("couldn't exec '%s'", filename.c_str());
                     }
                     return;
-                }
-
-                if (not executeSilent) {
-                    Print("execing '%s'", filename.c_str());
                 }
             }
 
@@ -143,21 +139,28 @@ namespace Cmd {
                 ExecuteAfter(Str::Format("set arg_count %d", args.Argc() - start));
 
                 for (int i = start; i < args.Argc(); i++) {
-                    ExecuteAfter(Str::Format("set arg_%d %s", i, Cmd::Escape(args.Argv(i + start - 1))));
+                    ExecuteAfter(Str::Format("set arg_%d %s", i - start, Cmd::Escape(args.Argv(i))));
                 }
             }
 
-            bool ExecFile(Str::StringRef filename) const {
+            bool ExecFile(Str::StringRef filename, bool executeSilent) const {
                 std::string buffer;
-                try {
-                    if (readHomepath) {
-                        buffer = FS::HomePath::OpenRead(FS::Path::Build("config", filename)).ReadAll();
-                    } else {
-                        buffer = FS::PakPath::ReadFile(filename);
-                    }
-                } catch (std::system_error&) {
+                std::error_code err;
+                if (readHomepath) {
+                    FS::File file = FS::HomePath::OpenRead(FS::Path::Build("config", filename), err);
+                    if (!err)
+                        buffer = file.ReadAll(err);
+                } else {
+                    buffer = FS::PakPath::ReadFile(filename, err);
+                }
+                if (err) {
                     return false;
                 }
+
+                if (not executeSilent) {
+                    Print("execing '%s'", filename.c_str());
+                }
+
                 ExecuteAfter(buffer, true);
                 return true;
             }
@@ -343,7 +346,7 @@ namespace Cmd {
 
     class IfCmd: public StaticCmd {
         public:
-            IfCmd(): StaticCmd("if", BASE, "conditionnaly execute commands") {
+            IfCmd(): StaticCmd("if", BASE, "conditionally execute commands") {
             }
 
             void Run(const Cmd::Args& args) const OVERRIDE {
@@ -357,14 +360,27 @@ namespace Cmd {
                 const std::string& relation = args.Argv(2);
 
                 int intValue1, intValue2;
-                if (!Str::ParseInt(intValue1, value1) || !Str::ParseInt(intValue2, value2)) {
-                    Usage(args);
-                    return;
-                }
 
                 bool result;
 
-                if (relation == "=" or relation == "==") {
+                if (relation == "eq") {
+                    result = value1 == value2;
+
+                } else if (relation == "ne") {
+                    result = value1 != value2;
+
+                } else if (relation == "in") {
+                    result = value2.find(value1) != std::string::npos;
+
+                } else if (relation == "!in") {
+                    result = value2.find(value1) == std::string::npos;
+
+                } else if (!Str::ParseInt(intValue1, value1) || !Str::ParseInt(intValue2, value2)) {
+                    Usage(args);
+                    return;
+                
+
+                } else if (relation == "=" or relation == "==") {
                     result = intValue1 == intValue2;
 
                 } else if (relation == "!=" or relation == "≠") {
@@ -382,21 +398,13 @@ namespace Cmd {
                 } else if (relation == ">=" or relation == "≥") {
                     result = intValue1 >= intValue2;
 
-                } else if (relation == "eq") {
-                    result = value1 == value2;
-
-                } else if (relation == "ne") {
-                    result = value1 != value2;
-
-                } else if (relation == "in") {
-                    result = value2.find(value1) != std::string::npos;
-
-                } else if (relation == "!in") {
-                    result = value2.find(value1) == std::string::npos;
-
                 } else {
                     Print( "invalid relation operator in if command. valid relation operators are = != ≠ < > ≥ >= ≤ <= eq ne in !in" );
                     Usage(args);
+                    return;
+                }
+
+                if (!result && args.Argc() != 6) {
                     return;
                 }
 
@@ -595,7 +603,7 @@ namespace Cmd {
     Cmd::CompletionResult CompleteDelayName(Str::StringRef prefix) {
         Cmd::CompletionResult res;
 
-        for (auto& delay: delays) {
+        for (const auto& delay: delays) {
             if (Str::IsIPrefix(prefix, delay.name)) {
                 res.push_back({delay.name, ""});
             }
@@ -613,7 +621,7 @@ namespace Cmd {
                 int argc = args.Argc();
 
                 if (argc < 3) {
-		            PrintUsage(args, "delay (name) <delay in milliseconds> <command>\n  delay <delay in frames>f <command>", "executes <command> after the delay" );
+		            PrintUsage(args, "delay (name) <delay in milliseconds> <command>\n  delay (name) <delay in frames>f <command>", "executes <command> after the delay" );
 		            return;
                 }
 
@@ -646,9 +654,7 @@ namespace Cmd {
                 delays.emplace_back(delayRecord_t{name, command, target, type});
             }
 
-            Cmd::CompletionResult Complete(int argNum, const Args& args, Str::StringRef prefix) const OVERRIDE {
-                Q_UNUSED(args);
-
+            Cmd::CompletionResult Complete(int argNum, const Args&, Str::StringRef prefix) const OVERRIDE {
                 if (argNum == 1) {
                     return CompleteDelayName(prefix);
                 }
@@ -729,7 +735,7 @@ namespace Cmd {
         std::string toWrite = "clearAliases\n";
         FS_Write(toWrite.c_str(), toWrite.size(), f);
 
-        for (auto it: aliases) {
+        for (const auto& it: aliases) {
             toWrite = "alias " + it.first + " " + it.second.command + "\n";
             FS_Write(toWrite.c_str(), toWrite.size(), f);
         }
@@ -738,7 +744,7 @@ namespace Cmd {
     Cmd::CompletionResult CompleteAliasName(Str::StringRef prefix) {
         Cmd::CompletionResult res;
 
-        for (auto it: aliases) {
+        for (const auto& it: aliases) {
             if (Str::IsIPrefix(prefix, it.first)) {
                 res.push_back({it.first, ""});
             }

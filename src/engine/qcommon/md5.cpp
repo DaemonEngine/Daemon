@@ -14,7 +14,7 @@
  * needed on buffers full of bytes, and then call MD5Final, which
  * will fill a supplied 16-byte array with the digest.
  */
-#include "../qcommon/q_shared.h"
+#include "qcommon/q_shared.h"
 #include "qcommon.h"
 
 #ifdef USE_OPENSSL
@@ -280,7 +280,7 @@ static void MD5Final( struct MD5Context *ctx, unsigned char *digest )
 	MD5Transform( ctx->buf, ( uint32_t * ) ctx->in );
 	byteReverse( ( unsigned char * ) ctx->buf, 4 );
 
-	if ( digest != NULL )
+	if ( digest != nullptr )
 	{
 		memcpy( digest, ctx->buf, 16 );
 	}

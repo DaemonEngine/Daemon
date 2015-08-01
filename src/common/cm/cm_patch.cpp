@@ -33,13 +33,14 @@ Maryland 20850 USA.
 */
 
 #include "cm_local.h"
+
 #include "cm_patch.h"
 
 int                     c_totalPatchBlocks;
 
 const cSurfaceCollide_t *debugSurfaceCollide;
 const cFacet_t          *debugFacet;
-qboolean                debugBlock;
+bool                debugBlock;
 vec3_t                  debugBlockPoints[ 4 ];
 
 /*
@@ -47,10 +48,10 @@ vec3_t                  debugBlockPoints[ 4 ];
 CM_ClearLevelPatches
 =================
 */
-void CM_ClearLevelPatches( void )
+void CM_ClearLevelPatches()
 {
-	debugSurfaceCollide = NULL;
-	debugFacet = NULL;
+	debugSurfaceCollide = nullptr;
+	debugFacet = nullptr;
 }
 
 /*
@@ -69,7 +70,7 @@ Returns true if the given quadratic curve is not flat enough for our
 collision detection purposes
 =================
 */
-static qboolean CM_NeedsSubdivision( vec3_t a, vec3_t b, vec3_t c )
+static bool CM_NeedsSubdivision( vec3_t a, vec3_t b, vec3_t c )
 {
 	vec3_t cmid;
 	vec3_t lmid;
@@ -127,7 +128,7 @@ static void CM_TransposeGrid( cGrid_t *grid )
 {
 	int      i, j, l;
 	vec3_t   temp;
-	qboolean tempWrap;
+	bool tempWrap;
 
 	if ( grid->width > grid->height )
 	{
@@ -185,7 +186,7 @@ static void CM_TransposeGrid( cGrid_t *grid )
 ===================
 CM_SetGridWrapWidth
 
-If the left and right columns are exactly equal, set grid->wrapWidth qtrue
+If the left and right columns are exactly equal, set grid->wrapWidth true
 ===================
 */
 static void CM_SetGridWrapWidth( cGrid_t *grid )
@@ -213,11 +214,11 @@ static void CM_SetGridWrapWidth( cGrid_t *grid )
 
 	if ( i == grid->height )
 	{
-		grid->wrapWidth = qtrue;
+		grid->wrapWidth = true;
 	}
 	else
 	{
-		grid->wrapWidth = qfalse;
+		grid->wrapWidth = false;
 	}
 }
 
@@ -308,7 +309,7 @@ CM_ComparePoints
 ======================
 */
 #define POINT_EPSILON 0.1
-static qboolean CM_ComparePoints( float *a, float *b )
+static bool CM_ComparePoints( float *a, float *b )
 {
 	float d;
 
@@ -316,24 +317,24 @@ static qboolean CM_ComparePoints( float *a, float *b )
 
 	if ( d < -POINT_EPSILON || d > POINT_EPSILON )
 	{
-		return qfalse;
+		return false;
 	}
 
 	d = a[ 1 ] - b[ 1 ];
 
 	if ( d < -POINT_EPSILON || d > POINT_EPSILON )
 	{
-		return qfalse;
+		return false;
 	}
 
 	d = a[ 2 ] - b[ 2 ];
 
 	if ( d < -POINT_EPSILON || d > POINT_EPSILON )
 	{
-		return qfalse;
+		return false;
 	}
 
-	return qtrue;
+	return true;
 }
 
 /*
@@ -410,7 +411,7 @@ static int CM_GridPlane( int gridPlanes[ MAX_GRID_SIZE ][ MAX_GRID_SIZE ][ 2 ], 
 	}
 
 	// should never happen
-	Com_Printf(_( "WARNING: CM_GridPlane unresolvable\n" ));
+	Log::Warn( "CM_GridPlane unresolvable" );
 	return -1;
 }
 
@@ -470,7 +471,7 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[ MAX_GRID_SIZE ][ MAX_
 			return CM_FindPlane( p1, p2, up );
 	}
 
-	Com_Error( ERR_DROP, "CM_EdgePlaneNum: bad k" );
+	Sys::Drop( "CM_EdgePlaneNum: bad k" );
 }
 
 /*
@@ -510,7 +511,7 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid, int gridPlanes[ 
 			break;
 
 		default:
-			Com_Error( ERR_FATAL, "CM_SetBorderInward: bad parameter" );
+			Sys::Error( "CM_SetBorderInward: bad parameter" );
 	}
 
 	for ( k = 0; k < facet->numBorders; k++ )
@@ -539,11 +540,11 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid, int gridPlanes[ 
 
 		if ( front && !back )
 		{
-			facet->borderInward[ k ] = qtrue;
+			facet->borderInward[ k ] = true;
 		}
 		else if ( back && !front )
 		{
-			facet->borderInward[ k ] = qfalse;
+			facet->borderInward[ k ] = false;
 		}
 		else if ( !front && !back )
 		{
@@ -554,11 +555,11 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid, int gridPlanes[ 
 		{
 			// bisecting side border
 			cmLog.Debug( "WARNING: CM_SetBorderInward: mixed plane sides\n" );
-			facet->borderInward[ k ] = qfalse;
+			facet->borderInward[ k ] = false;
 
 			if ( !debugBlock )
 			{
-				debugBlock = qtrue;
+				debugBlock = true;
 				VectorCopy( grid->points[ i ][ j ], debugBlockPoints[ 0 ] );
 				VectorCopy( grid->points[ i + 1 ][ j ], debugBlockPoints[ 1 ] );
 				VectorCopy( grid->points[ i + 1 ][ j + 1 ], debugBlockPoints[ 2 ] );
@@ -688,7 +689,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 
 			if ( numFacets == SHADER_MAX_TRIANGLES )
 			{
-				Com_Error( ERR_DROP, "MAX_FACETS" );
+				Sys::Drop( "MAX_FACETS" );
 			}
 
 			facet = &facets[ numFacets ];
@@ -750,7 +751,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 
 				if ( numFacets == SHADER_MAX_TRIANGLES )
 				{
-					Com_Error( ERR_DROP, "MAX_FACETS" );
+					Sys::Drop( "MAX_FACETS" );
 				}
 
 				facet = &facets[ numFacets ];
@@ -812,24 +813,24 @@ cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, vec3_t *point
 
 	if ( width <= 2 || height <= 2 || !points )
 	{
-		Com_Error( ERR_DROP, "CM_GeneratePatchFacets: bad parameters: (%i, %i, %p)", width, height, ( void * ) points );
+		Sys::Drop( "CM_GeneratePatchFacets: bad parameters: (%i, %i, %p)", width, height, ( void * ) points );
 	}
 
 	if ( !( width & 1 ) || !( height & 1 ) )
 	{
-		Com_Error( ERR_DROP, "CM_GeneratePatchFacets: even sizes are invalid for quadratic meshes" );
+		Sys::Drop( "CM_GeneratePatchFacets: even sizes are invalid for quadratic meshes" );
 	}
 
 	if ( width > MAX_GRID_SIZE || height > MAX_GRID_SIZE )
 	{
-		Com_Error( ERR_DROP, "CM_GeneratePatchFacets: source is > MAX_GRID_SIZE" );
+		Sys::Drop( "CM_GeneratePatchFacets: source is > MAX_GRID_SIZE" );
 	}
 
 	// build a grid
 	grid.width = width;
 	grid.height = height;
-	grid.wrapWidth = qfalse;
-	grid.wrapHeight = qfalse;
+	grid.wrapWidth = false;
+	grid.wrapHeight = false;
 
 	for ( i = 0; i < width; i++ )
 	{

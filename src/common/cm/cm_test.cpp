@@ -110,7 +110,7 @@ void CM_StoreLeafs( leafList_t *ll, int nodenum )
 
 	if ( ll->count >= ll->maxcount )
 	{
-		ll->overflowed = qtrue;
+		ll->overflowed = true;
 		return;
 	}
 
@@ -177,7 +177,7 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 	ll.list = list;
 	ll.storeLeafs = CM_StoreLeafs;
 	ll.lastLeaf = 0;
-	ll.overflowed = qfalse;
+	ll.overflowed = false;
 
 	CM_BoxLeafnums_r( &ll, 0 );
 
@@ -340,7 +340,7 @@ void CM_FloodArea_r( int areaNum, int floodnum )
 			return;
 		}
 
-		Com_Error( ERR_DROP, "FloodArea_r: reflooded" );
+		Sys::Drop( "FloodArea_r: reflooded" );
 	}
 
 	area->floodnum = floodnum;
@@ -362,7 +362,7 @@ CM_FloodAreaConnections
 
 ====================
 */
-void CM_FloodAreaConnections( void )
+void CM_FloodAreaConnections()
 {
 	int     i;
 	cArea_t *area;
@@ -392,7 +392,7 @@ CM_AdjustAreaPortalState
 
 ====================
 */
-void CM_AdjustAreaPortalState( int area1, int area2, qboolean open )
+void CM_AdjustAreaPortalState( int area1, int area2, bool open )
 {
 	if ( area1 < 0 || area2 < 0 )
 	{
@@ -401,7 +401,7 @@ void CM_AdjustAreaPortalState( int area1, int area2, qboolean open )
 
 	if ( area1 >= cm.numAreas || area2 >= cm.numAreas )
 	{
-		Com_Error( ERR_DROP, "CM_ChangeAreaPortalState: bad area number" );
+		Sys::Drop( "CM_ChangeAreaPortalState: bad area number" );
 	}
 
 	if ( open )
@@ -417,7 +417,7 @@ void CM_AdjustAreaPortalState( int area1, int area2, qboolean open )
 
 		if ( cm.areaPortals[ area2 * cm.numAreas + area1 ] < 0 )
 		{
-			Com_Error( ERR_DROP, "CM_AdjustAreaPortalState: negative reference count" );
+			Sys::Drop( "CM_AdjustAreaPortalState: negative reference count" );
 		}
 	}
 
@@ -430,29 +430,29 @@ CM_AreasConnected
 
 ====================
 */
-qboolean CM_AreasConnected( int area1, int area2 )
+bool CM_AreasConnected( int area1, int area2 )
 {
 	if ( cm_noAreas.Get() )
 	{
-		return qtrue;
+		return true;
 	}
 
 	if ( area1 < 0 || area2 < 0 )
 	{
-		return qfalse;
+		return false;
 	}
 
 	if ( area1 >= cm.numAreas || area2 >= cm.numAreas )
 	{
-		Com_Error( ERR_DROP, "area >= cm.numAreas" );
+		Sys::Drop( "area >= cm.numAreas" );
 	}
 
 	if ( cm.areas[ area1 ].floodnum == cm.areas[ area2 ].floodnum )
 	{
-		return qtrue;
+		return true;
 	}
 
-	return qfalse;
+	return false;
 }
 
 /*
@@ -505,7 +505,7 @@ int CM_WriteAreaBits( byte *buffer, int area )
 CM_BoundsIntersect
 ====================
 */
-qboolean CM_BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 )
+bool CM_BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 )
 {
 	if ( maxs[ 0 ] < mins2[ 0 ] - SURFACE_CLIP_EPSILON ||
 	     maxs[ 1 ] < mins2[ 1 ] - SURFACE_CLIP_EPSILON ||
@@ -514,10 +514,10 @@ qboolean CM_BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t 
 	     mins[ 1 ] > maxs2[ 1 ] + SURFACE_CLIP_EPSILON ||
 	     mins[ 2 ] > maxs2[ 2 ] + SURFACE_CLIP_EPSILON )
 	{
-		return qfalse;
+		return false;
 	}
 
-	return qtrue;
+	return true;
 }
 
 /*
@@ -525,7 +525,7 @@ qboolean CM_BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t 
 CM_BoundsIntersectPoint
 ====================
 */
-qboolean CM_BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t point )
+bool CM_BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t point )
 {
 	if ( maxs[ 0 ] < point[ 0 ] - SURFACE_CLIP_EPSILON ||
 	     maxs[ 1 ] < point[ 1 ] - SURFACE_CLIP_EPSILON ||
@@ -534,10 +534,10 @@ qboolean CM_BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const ve
 	     mins[ 1 ] > point[ 1 ] + SURFACE_CLIP_EPSILON ||
 	     mins[ 2 ] > point[ 2 ] + SURFACE_CLIP_EPSILON )
 	{
-		return qfalse;
+		return false;
 	}
 
-	return qtrue;
+	return true;
 }
 
 // XreaL END

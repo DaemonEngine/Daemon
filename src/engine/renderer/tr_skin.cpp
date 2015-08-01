@@ -41,7 +41,7 @@ This is unfortunate, but the skin files aren't
 compatible with our engine's main script/source parsing rules.
 ==================
 */
-static char    *CommaParse( char **data_p )
+static const char *CommaParse( char **data_p )
 {
 	int         c = 0, len;
 	char        *data;
@@ -54,7 +54,7 @@ static char    *CommaParse( char **data_p )
 	// make sure incoming data is valid
 	if ( !data )
 	{
-		*data_p = NULL;
+		*data_p = nullptr;
 		return com_token;
 	}
 
@@ -117,7 +117,7 @@ static char    *CommaParse( char **data_p )
 			if ( c == '\"' || !c )
 			{
 				com_token[ len ] = 0;
-				*data_p = ( char * ) data;
+				*data_p = data;
 				return com_token;
 			}
 
@@ -150,98 +150,9 @@ static char    *CommaParse( char **data_p )
 
 	com_token[ len ] = 0;
 
-	*data_p = ( char * ) data;
+	*data_p = data;
 	return com_token;
 }
-
-/*
-==============
-RE_GetSkinModel
-==============
-*/
-qboolean RE_GetSkinModel( qhandle_t skinid, const char *type, char *name )
-{
-	int    i;
-	int    hash;
-	skin_t *skin;
-
-	skin = tr.skins[ skinid ];
-	hash = Com_HashKey( ( char * ) type, strlen( type ) );
-
-	for ( i = 0; i < skin->numModels; i++ )
-	{
-		if ( hash != skin->models[ i ]->hash )
-		{
-			continue;
-		}
-
-		if ( !Q_stricmp( skin->models[ i ]->type, type ) )
-		{
-			// (SA) whoops, should've been this way
-			Q_strncpyz( name, skin->models[ i ]->model, sizeof( skin->models[ i ]->model ) );
-			return qtrue;
-		}
-	}
-
-	return qfalse;
-}
-
-/*
-==============
-RE_GetShaderFromModel
-        return a shader index for a given model's surface
-        'withlightmap' set to '0' will create a new shader that is a copy of the one found
-        on the model, without the lighmap stage, if the shader has a lightmap stage
-
-        NOTE: this only works for bmodels right now. could modify it for other models (MD3s, etc.)...
-==============
-*/
-qhandle_t RE_GetShaderFromModel( qhandle_t modelid, int surfnum, int withlightmap )
-{
-	model_t      *model;
-	bspModel_t   *bmodel;
-	bspSurface_t *surf;
-	shader_t     *shd;
-
-	if ( surfnum < 0 )
-	{
-		surfnum = 0;
-	}
-
-	model = R_GetModelByHandle( modelid );  // (SA) should be correct now
-
-	if ( model )
-	{
-		bmodel = model->bsp;
-
-		if ( bmodel && bmodel->firstSurface )
-		{
-			if ( surfnum >= bmodel->numSurfaces )
-			{
-				// if it's out of range, return the first surface
-				surfnum = 0;
-			}
-
-			surf = bmodel->firstSurface + surfnum;
-
-			// RF, check for null shader (can happen on func_explosive entities with botclips attached)
-			if ( !surf->shader )
-			{
-				return 0;
-			}
-
-			{
-				shd = surf->shader;
-			}
-
-			return shd->index;
-		}
-	}
-
-	return 0;
-}
-
-//----(SA) end
 
 /*
 ===============
@@ -256,7 +167,7 @@ qhandle_t RE_RegisterSkin( const char *name )
 	skinSurface_t *surf;
 	skinModel_t   *model; //----(SA) added
 	char          *text, *text_p;
-	char          *token;
+	const char    *token;
 	char          surfName[ MAX_QPATH ];
 
 	if ( !name || !name[ 0 ] )
@@ -387,7 +298,7 @@ qhandle_t RE_RegisterSkin( const char *name )
 R_InitSkins
 ===============
 */
-void R_InitSkins( void )
+void R_InitSkins()
 {
 	skin_t *skin;
 
@@ -421,7 +332,7 @@ skin_t         *R_GetSkinByHandle( qhandle_t hSkin )
 R_SkinList_f
 ===============
 */
-void R_SkinList_f( void )
+void R_SkinList_f()
 {
 	int    i, j;
 	skin_t *skin;

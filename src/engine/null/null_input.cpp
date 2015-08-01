@@ -26,30 +26,30 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../qcommon/q_shared.h"
-#include "../qcommon/qcommon.h"
+#include "qcommon/q_shared.h"
+#include "qcommon/qcommon.h"
 
 void IN_Init( void* windowData )
 {
 }
 
-void IN_Frame( void )
+void IN_Frame()
 {
 }
 
-void IN_FrameEnd( void )
+void IN_FrameEnd()
 {
 }
 
-void IN_Restart( void )
+void IN_Restart()
 {
 }
 
-void IN_Shutdown( void )
+void IN_Shutdown()
 {
 }
 
-void Sys_SendKeyEvents( void )
+void Sys_SendKeyEvents()
 {
 }
 
@@ -58,10 +58,15 @@ void IN_MouseEvent( int mstate )
 {
 }
 
-void IN_Activate( qboolean active )
+void IN_Activate( bool active )
 {
 }
 
-void IN_DropInputsForFrame( void )
+void IN_DropInputsForFrame()
 {
+}
+
+bool IN_IsNumLockDown()
+{
+    return false;
 }
