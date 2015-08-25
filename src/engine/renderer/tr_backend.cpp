@@ -5694,8 +5694,7 @@ namespace DebugDraw {
         gl_genericShader->SetUniform_ColorModulate(CGEN_VERTEX, AGEN_VERTEX);
 
         // bind u_ColorMap
-        GL_SelectTexture(0);
-        GL_Bind(tr.whiteImage);
+        GL_BindToTMU(0, tr.whiteImage);
         gl_genericShader->SetUniform_ColorTextureMatrix(matrixIdentity);
 
         // render in world space
@@ -5707,9 +5706,9 @@ namespace DebugDraw {
 
         for (auto& sphere : spheres) {
             matrix_t modelView = {
-                sphere.radius, 0, 0, sphere.center.x(),
-                0, sphere.radius, 0, sphere.center.y(),
-                0, 0, sphere.radius, sphere.center.z(),
+                sphere.radius * 1000, 0, 0, sphere.center.x(),
+                0, sphere.radius * 1000, 0, sphere.center.y(),
+                0, 0, sphere.radius * 1000, sphere.center.z(),
                 0, 0, 0, 1
             };
             gl_genericShader->SetUniform_Color(sphere.color.Data());
@@ -5720,7 +5719,6 @@ namespace DebugDraw {
             srfVBOMDVMesh_t *vboSurface = tr.sphereSurface;
             rb_surfaceTable[vboSurface->surfaceType](vboSurface);
         }
-        Tess_End();
 
         spheres.clear();
     }
@@ -5734,7 +5732,7 @@ const void* RB_DebugDraw(const void* data) {
     const debugCommand_t* cmd = reinterpret_cast<const debugCommand_t*>(data);
 
     // TODO factor this
-    size_t dataSize;
+    size_t dataSize = 0;
     switch (cmd->type) {
         case DRAWDEBUG_LINE:
             dataSize = sizeof(DebugDraw::LineData);

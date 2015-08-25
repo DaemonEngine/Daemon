@@ -163,8 +163,7 @@ namespace Audio {
 
         //TODO use Drawer::DoDrawCode
         for (auto emitter : posEmitters) {
-            Vec3 position = Vec3::Load(emitter->GetPosition());
-            emitterDraw.AddSphere(position, 4.0f).Color({1.0f, 0.0f, 0.0f, 1.0f});
+            emitterDraw.AddSphere(emitter->GetPosition(), 4.0f).Color({1.0f, 0.0f, 0.0f, 1.0f});
         }
 
         for (int i = 0; i < MAX_GENTITIES; i++) {
@@ -174,8 +173,7 @@ namespace Audio {
                 continue;
             }
 
-            Vec3 position = Vec3::Load(entities[i].position);
-            emitterDraw.AddSphere(position, 4.0f).Color({1.0f, 0.0f, 0.0f, 1.0f});
+            emitterDraw.AddSphere(entities[i].position, 4.0f).Color({1.0f, 0.0f, 0.0f, 1.0f});
         }
     }
 
