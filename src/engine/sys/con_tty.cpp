@@ -66,6 +66,12 @@ static struct termios TTY_tc;
 
 static Console::Field TTY_field(INT_MAX);
 
+void WriteToStdout(const char* text) {
+	if (write( STDOUT_FILENO, text, strlen(text)) < 0) {
+        Log::Warn("Error writing to the terminal: %s", strerror(errno));
+    }
+}
+
 /*
 =================
 CON_AnsiColorPrint
@@ -105,9 +111,9 @@ static void CON_AnsiColorPrint( const char *msg )
 	};
 	static const char modifier[][4] = { "", ";1", ";2", "" };
 
-	int index = abs( com_ansiColor->integer ) - 1;
+	int index = com_ansiColor.Get() ? 1 : 0;
 
-	if ( index >= ARRAY_LEN( colour16map ) )
+	if ( index >= (int) ARRAY_LEN( colour16map ) )
 	{
 		index = 0;
 	}
@@ -196,15 +202,7 @@ send "\b \b"
 */
 static void CON_Back()
 {
-	char key;
-//	size_t size;
-
-	key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
-	key = ' ';
-	write( STDOUT_FILENO, &key, 1 );
-	key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
+	WriteToStdout("\b \b");
 }
 
 /*
@@ -251,10 +249,10 @@ static void CON_Show()
 
 		if ( ttycon_hide == 0 )
 		{
-			write( STDOUT_FILENO, "]", 1 );
+			WriteToStdout("]");
 
 			std::string text = Str::UTF32To8(TTY_field.GetText());
-			write( STDOUT_FILENO, text.c_str(), text.size());
+			WriteToStdout(text.c_str());
 		}
 	}
 }
@@ -286,7 +284,7 @@ set attributes if user did CTRL+Z and then does fg again.
 ==================
 */
 
-void CON_SigCont( int signum )
+void CON_SigCont( int )
 {
 	void CON_Init_TTY();
 
@@ -320,7 +318,7 @@ void CON_Init_TTY()
 	                   !( term && ( !strcmp( term, "raw" ) || !strcmp( term, "dumb" ) ) );
 	if ( !stdinIsATTY )
 	{
-		Com_Printf( "tty console mode disabled\n" );
+        Log::Notice( "tty console mode disabled\n" );
 		ttycon_on = false;
 		stdin_active = true;
 		return;
@@ -387,8 +385,8 @@ char *CON_Input_TTY()
 			{
 				if ( key == '\n' )
 				{
-					TTY_field.RunCommand(com_consoleCommand->string);
-					write( STDOUT_FILENO, "\n]", 2 );
+					TTY_field.RunCommand(com_consoleCommand.Get());
+					WriteToStdout("\n]");
 					return nullptr;
 				}
 
@@ -445,7 +443,6 @@ char *CON_Input_TTY()
 					}
 				}
 
-				Com_DPrintf( "droping ISCTL sequence: %d, TTY_erase: %d\n", key, TTY_erase );
 				CON_FlushIn();
 				return nullptr;
 			}
@@ -504,7 +501,7 @@ void CON_Print_TTY( const char *msg )
 {
 	CON_Hide();
 
-	if ( ttycon_on && com_ansiColor && com_ansiColor->integer )
+	if ( ttycon_on && com_ansiColor.Get() )
 	{
 		CON_AnsiColorPrint( msg );
 	}

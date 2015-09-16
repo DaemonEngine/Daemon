@@ -1847,7 +1847,7 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 		if ( cinTable[ currentHandle ].alterGameState )
 		{
 			// close the menu
-			Rocket_DocumentAction( "", "close" );
+			// TODO: Rocket: Close all menus
 		}
 		else
 		{
@@ -1888,7 +1888,7 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 	if ( cinTable[ currentHandle ].alterGameState )
 	{
 		// close the menu
-		Rocket_DocumentAction( "", "close" );
+		// TODO: Rocket
 	}
 	else
 	{
@@ -2152,7 +2152,7 @@ void CIN_UploadCinematic( int handle )
 			}
 		}
 
-		re.UploadCinematic( 256, 256, 256, 256, cinTable[ handle ].buf, handle, cinTable[ handle ].dirty );
+		re.UploadCinematic( 256, 256, cinTable[ handle ].buf, handle, cinTable[ handle ].dirty );
 
 		if ( cl_inGameVideo->integer == 0 && cinTable[ handle ].playonwalls == 1 )
 		{

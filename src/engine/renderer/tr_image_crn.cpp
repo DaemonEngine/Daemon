@@ -23,14 +23,17 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "tr_local.h"
-#include "libs/crunch/crn_decomp.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-pedantic"
+#include "crunch/crn_decomp.h"
+#pragma GCC diagnostic pop
 
 void LoadCRN( const char *name, byte **data, int *width, int *height,
-	      int *numLayers, int *numMips, int *bits, byte alphaByte )
+	      int *numLayers, int *numMips, int *bits, byte )
 {
 	byte    *buff;
 	size_t  buffLen, size, imageSize;
-	int     i, j;
+	unsigned i, j;
 	crnd::crn_texture_info ti;
 	crnd::crn_level_info li;
 	crnd::crnd_unpack_context ctx;

@@ -74,7 +74,7 @@ typedef struct
 	int           cmdNum; // the next cmdNum the server is expecting
 	playerState_t ps; // complete information about the current player at this time
 
-	int           numEntities; // all of the entities that need to be presented
+	unsigned      numEntities; // all of the entities that need to be presented
 	int           parseEntitiesNum; // at the time of this snapshot
 
 	int           serverCommandNum; // execute all commands up to this before
@@ -376,7 +376,7 @@ typedef struct
 	int          numGlobalServerAddresses;
 	netadr_t     globalServerAddresses[ MAX_GLOBAL_SERVERS ];
 
-	int          numserverLinks;
+	unsigned     numserverLinks;
 	netadr_t     serverLinks[ MAX_GLOBAL_SERVERS ];
 
 	int          numfavoriteservers;
@@ -428,14 +428,13 @@ public:
 	int CGameCrosshairPlayer();
 	void CGameKeyEvent(int key, bool down);
 	void CGameMouseEvent(int dx, int dy);
+	void CGameTextInputEvent(int c);
 	//std::vector<std::string> CGameVoipString();
 	//void CGameInitCvars();
 
 	void CGameRocketInit();
 	void CGameRocketFrame();
-	void CGameRocketFormatData(int handle);
-	void CGameRocketRenderElement();
-	float CGameRocketProgressbarValue(Str::StringRef source);
+	void CGameConsoleLine(const std::string& str);
 
 private:
 	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) OVERRIDE FINAL;
@@ -577,6 +576,8 @@ extern  cvar_t *cl_voipShowMeter;
 extern  cvar_t *cl_voipShowSender;
 extern  cvar_t *cl_voip;
 #endif
+
+extern Log::Logger downloadLogger;
 
 //=================================================
 
@@ -920,57 +921,5 @@ bool CL_VideoRecording();
 //
 void CL_WriteDemoMessage( msg_t *msg, int headerBytes );
 void CL_RequestMotd();
-void CL_GetClipboardData( char *, int, clipboard_t );
-
-//
-// Rocket Functions
-//
-void Rocket_Init();
-void Rocket_Shutdown();
-void Rocket_Render();
-void Rocket_Update();
-void Rocket_InjectMouseMotion( int x, int y );
-void Rocket_LoadDocument( const char *path );
-void Rocket_LoadCursor( const char *path );
-void Rocket_DocumentAction( const char *name, const char *action );
-bool Rocket_GetEvent(std::string& cmdText);
-void Rocket_DeleteEvent();
-void Rocket_RegisterDataSource( const char *name );
-void Rocket_DSAddRow( const char *name, const char *table, const char *data );
-void Rocket_DSChangeRow( const char *name, const char *table, const int row, const char *data );
-void Rocket_DSRemoveRow( const char *name, const char *table, const int row );
-void Rocket_DSClearTable( const char *name, const char *table );
-void Rocket_SetInnerRML( const char *name, const char *id, const char *RML, int parseFlags );
-void Rocket_QuakeToRMLBuffer( const char *in, char *out, int length );
-void Rocket_GetEventParameters( char *params, int length );
-void Rocket_RegisterDataFormatter( const char *name );
-void Rocket_DataFormatterRawData( int handle, char *name, int nameLength, char *data, int dataLength );
-void Rocket_DataFormatterFormattedData( int handle, const char *data, bool parseQuake );
-void Rocket_GetElementTag( char *tag, int length );
-void Rocket_SetElementDimensions( float x, float y );
-void Rocket_RegisterElement( const char *tag );
-void Rocket_SetAttribute( const char *name, const char *id, const char *attribute, const char *value );
-void Rocket_GetAttribute( const char *name, const char *id, const char *attribute, char *out, int length );
-void Rocket_GetProperty( const char *name, void *out, int len, rocketVarType_t type );
-void Rocket_GetElementAbsoluteOffset( float *x, float *y );
-void Rocket_SetClass( const char *in, bool activate );
-void Rocket_SetPropertyById( const char *id, const char *property, const char *value );
-void Rocket_SetActiveContext( int catcher );
-void Rocket_AddConsoleText(Str::StringRef text);
-void Rocket_InitializeHuds( int size );
-void Rocket_LoadUnit( const char *path );
-void Rocket_AddUnitToHud( int weapon, const char *id );
-void Rocket_ShowHud( int weapon );
-void Rocket_ClearHud( int weapon );
-void Rocket_InitKeys();
-keyNum_t Rocket_ToQuake( int key );
-void Rocket_ProcessKeyInput( int key, bool down );
-void Rocket_ProcessTextInput( int key );
-void Rocket_MouseMove( int x, int y );
-void Rocket_AddTextElement( const char *text, const char *_class, float x, float y );
-void Rocket_ClearText();
-void Rocket_RegisterProperty( const char *name, const char *defaultValue, bool inherited, bool force_layout, const char *parseAs );
-void Rocket_ShowScoreboard( const char *name, bool show );
-void Rocket_SetDataSelectIndex( int index );
-void Rocket_LoadFont( const char *font );
+void CL_GetClipboardData( char *, int );
 #endif

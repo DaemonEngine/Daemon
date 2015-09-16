@@ -386,10 +386,9 @@ void Con_Grep_f()
 	if( printbuf )
 	{
 		char tmpbuf[ MAXPRINTMSG ];
-		int i;
 
 		// print out in chunks so we don't go over the MAXPRINTMSG limit
-		for ( i = 0; i < pbLength; i += MAXPRINTMSG - 1 )
+		for (unsigned i = 0; i < pbLength; i += MAXPRINTMSG - 1 )
 		{
 			Q_strncpyz( tmpbuf, printbuf + i, sizeof( tmpbuf ) );
 			Com_Printf( "%s", tmpbuf );
@@ -612,7 +611,7 @@ bool CL_InternalConsolePrint( const char *text )
 	{
 		// feed the text to cgame
 		Cmd_SaveCmdContext();
-		Rocket_AddConsoleText(text);
+		cgvm.CGameConsoleLine( text );
 	}
 
 	color = ColorIndex( CONSOLE_COLOR );

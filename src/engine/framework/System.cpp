@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
+#include "Application.h"
 #include "ConsoleHistory.h"
 #include "CommandSystem.h"
 #include "LogSystem.h"
@@ -45,18 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #include <sys/file.h>
 #endif
-#if defined(_WIN32) || defined(BUILD_CLIENT)
-#include <SDL.h>
-#endif
 
 namespace Sys {
-
-// Allow a client and a server to share the same homepath
-#ifdef BUILD_SERVER
-#define SERVER_SUFFIX "-server"
-#else
-#define SERVER_SUFFIX ""
-#endif
 
 #ifdef _WIN32
 static HANDLE singletonSocket;
@@ -70,17 +61,18 @@ static std::string singletonSocketPath;
 // Get the path of a singleton socket
 static std::string GetSingletonSocketPath()
 {
+    auto& suffix = Application::GetTraits().uniqueHomepathSuffix;
 	// Use the hash of the homepath to identify instances sharing a homepath
 	const std::string& homePath = FS::GetHomePath();
 	char homePathHash[33] = "";
 	Com_MD5Buffer(homePath.data(), homePath.size(), homePathHash, sizeof(homePathHash));
 #ifdef _WIN32
-	return std::string("\\\\.\\pipe\\" PRODUCT_NAME SERVER_SUFFIX "-") + homePathHash;
+	return std::string("\\\\.\\pipe\\" PRODUCT_NAME) + suffix + "-" + homePathHash;
 #else
 	// We use a temporary directory rather that using the homepath because
 	// socket paths are limited to about 100 characters. This also avoids issues
 	// when the homepath is on a network filesystem.
-	return std::string("/tmp/." PRODUCT_NAME_LOWER SERVER_SUFFIX "-") + homePathHash + "/socket";
+	return std::string("/tmp/." PRODUCT_NAME_LOWER) +  suffix + "-" + homePathHash + "/socket";
 #endif
 }
 
@@ -96,15 +88,16 @@ static void CreateSingletonSocket()
 	// the process quits, but it may remain if the homepath is on a network filesystem.
 	// We restrict the permissions to owner-only to prevent other users from grabbing
 	// an exclusive lock (which only requires read access).
+    auto& suffix = Application::GetTraits().uniqueHomepathSuffix;
 	try {
 		mode_t oldMask = umask(0077);
-		lockFile = FS::HomePath::OpenWrite("lock" SERVER_SUFFIX);
+		lockFile = FS::HomePath::OpenWrite(std::string("lock") + suffix);
 		umask(oldMask);
 		if (flock(fileno(lockFile.GetHandle()), LOCK_EX | LOCK_NB) == -1)
 			throw std::system_error(errno, std::generic_category());
 	} catch (std::system_error& err) {
 		Sys::Error("Could not acquire singleton lock: %s\n"
-		           "If you are sure no other instance is running, delete %s", err.what(), FS::Path::Build(FS::GetHomePath(), "lock" SERVER_SUFFIX));
+		           "If you are sure no other instance is running, delete %s", err.what(), FS::Path::Build(FS::GetHomePath(), std::string("lock") + suffix));
 	}
 	haveSingletonLock = true;
 
@@ -270,7 +263,7 @@ static void CloseSingletonSocket()
 	unlink(singletonSocketPath.c_str());
 	rmdir(dirName.c_str());
 	try {
-		FS::HomePath::DeleteFile("lock" SERVER_SUFFIX);
+		FS::HomePath::DeleteFile(std::string("lock") + Application::GetTraits().uniqueHomepathSuffix);
 	} catch (std::system_error&) {}
 #endif
 }
@@ -283,24 +276,10 @@ static void Shutdown(bool error, Str::StringRef message)
 	// Stop accepting commands from other instances
 	CloseSingletonSocket();
 
-	// Catch any errors in one stage of shutdown and just skip to the next one
-	try {
-		CL_Shutdown();
-	} catch (Sys::DropErr&) {}
-	try {
-		SV_Shutdown(error ? va("Server fatal crashed: %s\n", message.c_str()) : va("%s\n", message.c_str()));
-	} catch (Sys::DropErr&) {}
-	try {
-		Com_Shutdown();
-	} catch (Sys::DropErr&) {}
+    Application::Shutdown(error, message);
 
 	// Always run CON_Shutdown, because it restores the terminal to a usable state.
 	CON_Shutdown();
-
-	// Always run SDL_Quit, because it restores system resolution and gamma.
-#if defined(_WIN32) || defined(BUILD_CLIENT)
-	SDL_Quit();
-#endif
 }
 
 void Quit(Str::StringRef message)
@@ -310,6 +289,17 @@ void Quit(Str::StringRef message)
 	OSExit(0);
 }
 
+class QuitCmd : public Cmd::StaticCmd {
+    public:
+        QuitCmd(): StaticCmd("quit", Cmd::BASE, "quits the program") {
+        }
+
+        void Run(const Cmd::Args& args) const OVERRIDE {
+            Quit(args.ConcatArgs(1));
+        }
+};
+static QuitCmd QuitCmdRegistration;
+
 void Error(Str::StringRef message)
 {
 	// Crash immediately in case of a recursive error
@@ -318,11 +308,6 @@ void Error(Str::StringRef message)
 		_exit(-1);
 
 	Log::Notice("^1 Error: %s", message);
-
-#if defined(_WIN32) || defined(BUILD_CLIENT)
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, PRODUCT_NAME, message.c_str(), nullptr);
-#endif
-
 	Shutdown(true, message);
 
 	OSExit(1);
@@ -332,6 +317,14 @@ void Error(Str::StringRef message)
 #ifndef _WIN32
 static void SignalHandler(int sig)
 {
+	// Abort if we still haven't exited 1 second after shutdown started
+	static Util::optional<Sys::SteadyClock::time_point> abort_time;
+	if (abort_time) {
+		if (Sys::SteadyClock::now() < abort_time)
+			return;
+		_exit(255);
+	}
+
 	// Queue a quit command to be executed next frame
 	Cmd::BufferCommandText("quit");
 
@@ -344,6 +337,11 @@ static void SignalHandler(int sig)
 	for (int sig: {SIGTERM, SIGINT, SIGQUIT, SIGPIPE, SIGHUP})
 		sigaddset(&sigset, sig);
 	sigwait(&sigset, &sig);
+
+	// Allow aborting shutdown if it gets stuck
+	abort_time = Sys::SteadyClock::now() + std::chrono::seconds(1);
+	pthread_sigmask(SIG_UNBLOCK, &sigset, nullptr);
+
 	Sys::Error("Forcing shutdown from signal: %s", strsignal(sig));
 }
 static void SignalThread()
@@ -390,10 +388,12 @@ struct cmdlineArgs_t {
 	cmdlineArgs_t()
 		: homePath(FS::DefaultHomePath()), libPath(FS::DefaultBasePath()), reset_config(false), use_curses(false)
 	{
-#if defined(_WIN32) && !defined(BUILD_CLIENT)
+#if defined(_WIN32)
 		// The windows dedicated server and tty client must enable the curses
 		// interface because they have no other usable interface.
 		use_curses = true;
+#else
+        use_curses = Application::GetTraits().useCurses;
 #endif
 	}
 
@@ -406,14 +406,10 @@ struct cmdlineArgs_t {
 
 	std::unordered_map<std::string, std::string> cvars;
 	std::string commands;
+    std::string uriText;
 };
 
 // Parse the command line arguments
-#ifdef BUILD_SERVER
-#define HELP_URL ""
-#else
-#define HELP_URL " [" URI_SCHEME "ADDRESS[:PORT]]"
-#endif
 static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 {
 #ifdef __APPLE__
@@ -440,20 +436,19 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			continue;
 		}
 
-#ifndef BUILD_SERVER
-		// If a URI is given, transform it into a /connect command. This only
-		// applies if no +commands have been given. Any arguments after the URI
-		// are discarded.
+        // If a URI is given, save it so it can later be transformed into a
+        // /connect command. This only applies if no +commands have been given.
+        // Any arguments after the URI are discarded.
 		if (Str::IsIPrefix(URI_SCHEME, argv[i])) {
-			cmdlineArgs.commands = "connect " + Cmd::Escape(argv[i]);
+			cmdlineArgs.uriText = argv[i];
 			if (i != argc - 1)
 				Log::Warn("Ignoring extraneous arguments after URI");
 			return;
 		}
-#endif
 
 		if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-help")) {
-			printf("Usage: %s [-OPTION]..." HELP_URL " [+COMMAND]...\n",  argv[0]);
+            std::string helpUrl = Application::GetTraits().supportsUri ? " [" URI_SCHEME "ADDRESS[:PORT]]" : "";
+			printf("Usage: %s [-OPTION]...%s [+COMMAND]...\n",  argv[0], helpUrl.c_str());
 			printf("Possible options are:\n"
 			       "  -homepath <path>         set the path used for user-specific configuration files and downloaded pk3 files\n"
 			       "  -libpath <path>          set the path containing additional executables and libraries\n"
@@ -560,14 +555,20 @@ static void Init(int argc, char** argv)
 	// characters. We keep all other locale facets as "C".
 	if (!setlocale(LC_CTYPE, "C.UTF-8") || !setlocale(LC_CTYPE, "UTF-8") || !setlocale(LC_CTYPE, "en_US.UTF-8")) {
 		// Try using the user's locale with UTF-8
-		std::string locale = setlocale(LC_CTYPE, "");
-		if (!Str::IsSuffix(".UTF-8", locale)) {
-			size_t dot = locale.rfind('.');
-			if (dot != std::string::npos)
-				locale.replace(dot, locale.size() - dot, ".UTF-8");
-			if (!setlocale(LC_CTYPE, locale.c_str())) {
-				setlocale(LC_CTYPE, "C");
-				Log::Warn("Could not set locale to UTF-8, unicode characters may not display correctly");
+		const char* locale = setlocale(LC_CTYPE, "");
+		if (!locale) {
+			setlocale(LC_CTYPE, "C");
+			Log::Warn("Could not set locale to UTF-8, unicode characters may not display correctly");
+		} else {
+			std::string locale2 = locale;
+			if (!Str::IsSuffix(".UTF-8", locale2)) {
+				size_t dot = locale2.rfind('.');
+				if (dot != std::string::npos)
+					locale2.replace(dot, locale2.size() - dot, ".UTF-8");
+				if (!setlocale(LC_CTYPE, locale2.c_str())) {
+					setlocale(LC_CTYPE, "C");
+					Log::Warn("Could not set locale to UTF-8, unicode characters may not display correctly");
+				}
 			}
 		}
 	}
@@ -623,22 +624,8 @@ static void Init(int argc, char** argv)
 	// TODO: cvar names and FS_* stuff needs to be properly integrated
 	EarlyCvar("fs_basepak", cmdlineArgs);
 	EarlyCvar("fs_extrapaks", cmdlineArgs);
-	FS_LoadBasePak();
 
-	// Load configuration files
-	CL_InitKeyCommands(); // for binds
-#ifndef BUILD_SERVER
-	Cmd::BufferCommandText("preset default.cfg");
-#endif
-	if (!cmdlineArgs.reset_config) {
-#ifdef BUILD_SERVER
-		Cmd::BufferCommandText("exec -f " SERVERCONFIG_NAME);
-#else
-		Cmd::BufferCommandText("exec -f " CONFIG_NAME);
-		Cmd::BufferCommandText("exec -f " KEYBINDINGS_NAME);
-		Cmd::BufferCommandText("exec -f " AUTOEXEC_NAME);
-#endif
-	}
+    Application::LoadInitialConfig(cmdlineArgs.reset_config);
 	Cmd::ExecuteCommandBuffer();
 
 	// Override any cvars set in configuration files with those on the command-line
@@ -650,7 +637,8 @@ static void Init(int argc, char** argv)
 
 	// Legacy initialization code, needs to be replaced
 	// TODO: eventually move all of Com_Init into here
-	Com_Init((char *) "");
+
+    Application::Initialize(cmdlineArgs.uriText);
 
 	// Buffer the commands that were specified on the command line so they are
 	// executed in the first frame.
@@ -687,14 +675,10 @@ ALIGN_STACK int main(int argc, char** argv)
 	try {
 		while (true) {
 			try {
-				Com_Frame();
+                Application::Frame();
 			} catch (Sys::DropErr& err) {
 				Log::Notice("^1Error: %s", err.what());
-				FS::PakPath::ClearPaks();
-				FS_LoadBasePak();
-				SV_Shutdown(va("********************\nServer crashed: %s\n********************\n", err.what()));
-				CL_Disconnect(true);
-				CL_FlushMemory();
+                Application::OnDrop(err.what());
 			}
 		}
 	} catch (Sys::DropErr& err) {

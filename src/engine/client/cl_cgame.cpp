@@ -37,7 +37,7 @@ Maryland 20850 USA.
 #include "client.h"
 #include "cg_msgdef.h"
 
-#include "libmumblelink.h"
+#include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 
 #include "framework/CommonVMServices.h"
@@ -226,7 +226,7 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 	if (cmd == "popup") {
 		// direct server to client popup request, bypassing cgame
 		if (cls.state == CA_ACTIVE && !clc.demoplaying && argc >=1) {
-			Rocket_DocumentAction(args.Argv(1).c_str(), "open");
+			// TODO: Pass to the cgame
 		}
 		return false;
 	}
@@ -333,7 +333,7 @@ bool CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
 	snapshot->ps = clSnap->ps;
 
 	snapshot->entities.reserve(clSnap->numEntities);
-	for (int i = 0; i < clSnap->numEntities; i++) {
+	for (unsigned i = 0; i < clSnap->numEntities; i++) {
 		snapshot->entities.push_back(cl.parseEntities[( clSnap->parseEntitiesNum + i ) & ( MAX_PARSE_ENTITIES - 1 ) ]);
 	}
 
@@ -358,7 +358,6 @@ void CL_ShutdownCGame()
 		return;
 	}
 
-	Rocket_Shutdown();
 	cgvm.CGameShutdown();
 	cgvm.Free();
 }
@@ -849,8 +848,6 @@ void Key_SetCatcher( int catcher )
 	{
 		cls.keyCatchers = catcher;
 	}
-
-	Rocket_SetActiveContext( catcher );
 }
 
 /*
@@ -1396,24 +1393,6 @@ void CL_SetCGameTime()
 	}
 }
 
-/*
-====================
-CL_GetTag
-====================
-*/
-bool CL_GetTag( int clientNum, const char *tagname, orientation_t * orientation )
-{
-	if ( !cgvm.IsActive() )
-	{
-		return false;
-	}
-
-	// the current design of CG_GET_TAG is inappropriate for modules in sandboxed formats
-	//  (the direct pointer method to pass the tag name would work only with modules in native format)
-	//return VM_Call( cgvm, CG_GET_TAG, clientNum, tagname, or );
-	return false;
-}
-
 /**
  * is notified by teamchanges.
  * while most notifications will come from the cgame, due to game semantics,
@@ -1496,9 +1475,14 @@ void CGameVM::CGameMouseEvent(int dx, int dy)
 	this->SendMsg<CGameMouseEventMsg>(dx, dy);
 }
 
+void CGameVM::CGameTextInputEvent(int c)
+{
+	this->SendMsg<CGameTextInptEvent>(c);
+}
+
 void CGameVM::CGameRocketInit()
 {
-	this->SendMsg<CGameRocketInitMsg>();
+	this->SendMsg<CGameRocketInitMsg>(cls.glconfig);
 }
 
 void CGameVM::CGameRocketFrame()
@@ -1513,21 +1497,9 @@ void CGameVM::CGameRocketFrame()
 	this->SendMsg<CGameRocketFrameMsg>(state);
 }
 
-void CGameVM::CGameRocketFormatData(int handle)
+void CGameVM::CGameConsoleLine(const std::string& str)
 {
-	this->SendMsg<CGameRocketFormatDataMsg>(handle);
-}
-
-void CGameVM::CGameRocketRenderElement()
-{
-	this->SendMsg<CGameRocketRenderElementMsg>();
-}
-
-float CGameVM::CGameRocketProgressbarValue(Str::StringRef source)
-{
-	float value;
-	this->SendMsg<CGameRocketProgressbarValueMsg>(source, value);
-	return value;
+	this->SendMsg<CGameConsoleLineMsg>(str);
 }
 
 void CGameVM::Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel)
@@ -1559,7 +1531,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 
 		case CG_UPDATESCREEN:
 			IPC::HandleMsg<UpdateScreenMsg>(channel, std::move(reader), [this]  {
-				CGameRocketFrame();
 				SCR_UpdateScreen();
 			});
 			break;
@@ -1620,10 +1591,10 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			break;
 
 		case CG_GETCLIPBOARDDATA:
-			IPC::HandleMsg<GetClipboardDataMsg>(channel, std::move(reader), [this] (int len, int type, std::string& data) {
+			IPC::HandleMsg<GetClipboardDataMsg>(channel, std::move(reader), [this] (int len, std::string& data) {
 				if (cl_allowPaste->integer) {
 					std::unique_ptr<char[]> buffer(new char[len]);
-					CL_GetClipboardData(buffer.get(), len, (clipboard_t)type);
+					CL_GetClipboardData(buffer.get(), len);
 					data.assign(buffer.get(), len);
 				}
 			});
@@ -1763,7 +1734,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			break;
 
 		case CG_R_LIGHTFORPOINT:
-			IPC::HandleMsg<Render::LightForPointMsg>(channel, std::move(reader), [this] (std::array<float, 3> point, std::array<float, 3>& ambient, std::array<float, 3>& directed, std::array<float, 3>& dir, int res) {
+			IPC::HandleMsg<Render::LightForPointMsg>(channel, std::move(reader), [this] (std::array<float, 3> point, std::array<float, 3>& ambient, std::array<float, 3>& directed, std::array<float, 3>& dir, int& res) {
 				res = re.LightForPoint(point.data(), ambient.data(), directed.data(), dir.data());
 			});
 			break;
@@ -1810,6 +1781,18 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			});
 			break;
 
+		case CG_R_GETTEXTURESIZE:
+			IPC::HandleMsg<Render::GetTextureSizeMsg>(channel, std::move(reader), [this] (qhandle_t handle, int& x, int& y) {
+				re.GetTextureSize(handle, &x, &y);
+			});
+			break;
+
+		case CG_R_GENERATETEXTURE:
+			IPC::HandleMsg<Render::GenerateTextureMsg>(channel, std::move(reader), [this] (std::vector<byte> data, int x, int y, qhandle_t& handle) {
+				handle = re.GenerateTexture(data.data(), x, y);
+			});
+			break;
+
 		// All keys
 
 		case CG_KEY_GETCATCHER:
@@ -1851,6 +1834,41 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 				std::unique_ptr<char[]> buffer(new char[len]);
 				Key_KeynumToStringBuf(keynum, buffer.get(), len);
 				result.assign(buffer.get(), len);
+			});
+			break;
+
+		case CG_KEY_SETBINDING:
+			IPC::HandleMsg<Key::SetBindingMsg>(channel, std::move(reader), [this] (int keyNum, int team, std::string cmd) {
+				Key_SetBinding(keyNum, team, cmd.c_str());
+			});
+			break;
+
+		case CG_KEY_CLEARCMDBUTTONS:
+			IPC::HandleMsg<Key::ClearCmdButtonsMsg>(channel, std::move(reader), [this] {
+				CL_ClearCmdButtons();
+			});
+			break;
+//
+		case CG_KEY_CLEARSTATES:
+			IPC::HandleMsg<Key::ClearStatesMsg>(channel, std::move(reader), [this] {
+				Key_ClearStates();
+			});
+			break;
+
+		case CG_KEY_KEYSDOWN:
+			IPC::HandleMsg<Key::KeysDownMsg>(channel, std::move(reader), [this] (std::vector<int> keys, std::vector<int>& list) {
+				list.reserve(keys.size());
+				for (unsigned i = 0; i < keys.size(); ++i)
+				{
+					if (keys[i] == K_KP_NUMLOCK)
+					{
+						list.push_back(IN_IsNumLockDown());
+					}
+					else
+					{
+						list.push_back(Key_IsDown( keys[i] ));
+					}
+				}
 			});
 			break;
 
@@ -1914,232 +1932,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			});
 			break;
 
-		// All rocket
-
-		case CG_ROCKET_INIT:
-			IPC::HandleMsg<Rocket::InitMsg>(channel, std::move(reader), [this] {
-				Rocket_Init();
-			});
-			break;
-
-		case CG_ROCKET_SHUTDOWN:
-			IPC::HandleMsg<Rocket::ShutdownMsg>(channel, std::move(reader), [this] {
-				Rocket_Shutdown();
-			});
-			break;
-
-		case CG_ROCKET_LOADDOCUMENT:
-			IPC::HandleMsg<Rocket::LoadDocumentMsg>(channel, std::move(reader), [this] (const std::string& path) {
-				Rocket_LoadDocument(path.c_str());
-			});
-			break;
-
-		case CG_ROCKET_LOADCURSOR:
-			IPC::HandleMsg<Rocket::LoadCursorMsg>(channel, std::move(reader), [this] (const std::string& path) {
-				Rocket_LoadCursor(path.c_str());
-			});
-			break;
-
-		case CG_ROCKET_DOCUMENTACTION:
-			IPC::HandleMsg<Rocket::DocumentActionMsg>(channel, std::move(reader), [this] (const std::string& name, const std::string& action) {
-				Rocket_DocumentAction(name.c_str(), action.c_str());
-			});
-			break;
-
-		case CG_ROCKET_GETEVENT:
-			IPC::HandleMsg<Rocket::GetEventMsg>(channel, std::move(reader), [this] (bool& got, std::string& cmdText) {
-				got = Rocket_GetEvent(cmdText);
-			});
-			break;
-
-		case CG_ROCKET_DELETEEVENT:
-			IPC::HandleMsg<Rocket::DeleteEventMsg>(channel, std::move(reader), [this] {
-				Rocket_DeleteEvent();
-			});
-			break;
-
-		case CG_ROCKET_REGISTERDATASOURCE:
-			IPC::HandleMsg<Rocket::RegisterDataSourceMsg>(channel, std::move(reader), [this] (const std::string& name) {
-				Rocket_RegisterDataSource(name.c_str());
-			});
-			break;
-
-		case CG_ROCKET_DSADDROW:
-			IPC::HandleMsg<Rocket::DSAddRowMsg>(channel, std::move(reader), [this] (const std::string& name, const std::string& table, const std::string& data) {
-				Rocket_DSAddRow(name.c_str(), table.c_str(), data.c_str());
-			});
-			break;
-
-		case CG_ROCKET_DSCLEARTABLE:
-			IPC::HandleMsg<Rocket::DSClearTableMsg>(channel, std::move(reader), [this] (const std::string& name, const std::string& table) {
-				Rocket_DSClearTable(name.c_str(), table.c_str());
-			});
-			break;
-
-		case CG_ROCKET_SETINNERRML:
-			IPC::HandleMsg<Rocket::SetInnerRMLMsg>(channel, std::move(reader), [this] (const std::string& rml, int flags) {
-				Rocket_SetInnerRML( "", "", rml.c_str(), flags);
-			});
-			break;
-
-		case CG_ROCKET_GETATTRIBUTE:
-			IPC::HandleMsg<Rocket::GetAttributeMsg>(channel, std::move(reader), [this] (const std::string& attribute, int len, std::string& result) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				Rocket_GetAttribute( "", "", attribute.c_str(), buffer.get(), len);
-				result.assign(buffer.get(), len);
-			});
-			break;
-
-		case CG_ROCKET_SETATTRIBUTE:
-			IPC::HandleMsg<Rocket::SetAttributeMsg>(channel, std::move(reader), [this] (const std::string& attribute, const std::string& value) {
-				Rocket_SetAttribute("", "", attribute.c_str(), value.c_str());
-			});
-			break;
-
-		case CG_ROCKET_GETPROPERTY:
-			IPC::HandleMsg<Rocket::GetPropertyMsg>(channel, std::move(reader), [this] (const std::string& property, int type, int len, std::vector<char>& result) {
-				result.resize(len);
-				assert(len > 0);
-				Rocket_GetProperty(property.c_str(), &result[0], len, (rocketVarType_t)type);
-			});
-			break;
-
-		case CG_ROCKET_SETPROPERTYBYID:
-			IPC::HandleMsg<Rocket::SetPropertyMsg>(channel, std::move(reader), [this] (const std::string& property, const std::string& value) {
-				Rocket_SetPropertyById("", property.c_str(), value.c_str());
-			});
-			break;
-
-		case CG_ROCKET_GETEVENTPARAMETERS:
-			IPC::HandleMsg<Rocket::GetEventParametersMsg>(channel, std::move(reader), [this] (int len, std::string& result) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				Rocket_GetEventParameters(buffer.get(), len);
-				result.assign(buffer.get(), len);
-			});
-			break;
-
-		case CG_ROCKET_REGISTERDATAFORMATTER:
-			IPC::HandleMsg<Rocket::RegisterDataFormatterMsg>(channel, std::move(reader), [this] (const std::string& name) {
-				Rocket_RegisterDataFormatter(name.c_str());
-			});
-			break;
-
-		case CG_ROCKET_DATAFORMATTERRAWDATA:
-			IPC::HandleMsg<Rocket::DataFormatterDataMsg>(channel, std::move(reader), [this] (int handle, int nameLength, int dataLength, std::string& name, std::string& data) {
-				std::unique_ptr<char[]> nameBuffer(new char[nameLength]);
-				std::unique_ptr<char[]> dataBuffer(new char[dataLength]);
-				Rocket_DataFormatterRawData(handle, nameBuffer.get(), nameLength, dataBuffer.get(), dataLength);
-				name.assign(nameBuffer.get(), nameLength);
-				data.assign(dataBuffer.get(), dataLength);
-			});
-			break;
-
-		case CG_ROCKET_DATAFORMATTERFORMATTEDDATA:
-			IPC::HandleMsg<Rocket::DataFormatterFormattedDataMsg>(channel, std::move(reader), [this] (int handle, const std::string& data, bool parseQuake) {
-				Rocket_DataFormatterFormattedData(handle, data.c_str(), parseQuake);
-			});
-			break;
-
-		case CG_ROCKET_REGISTERELEMENT:
-			IPC::HandleMsg<Rocket::RegisterElementMsg>(channel, std::move(reader), [this] (const std::string& tag) {
-				Rocket_RegisterElement(tag.c_str());
-			});
-			break;
-
-		case CG_ROCKET_GETELEMENTTAG:
-			IPC::HandleMsg<Rocket::GetElementTagMsg>(channel, std::move(reader), [this] (int len, std::string& result) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				Rocket_GetElementTag(buffer.get(), len);
-				result.assign(buffer.get(), len);
-			});
-			break;
-
-		case CG_ROCKET_GETELEMENTABSOLUTEOFFSET:
-			IPC::HandleMsg<Rocket::GetElementAbsoluteOffsetMsg>(channel, std::move(reader), [this] (float& x, float& y) {
-				Rocket_GetElementAbsoluteOffset(&x, &y);
-			});
-			break;
-
-		case CG_ROCKET_QUAKETORML:
-			IPC::HandleMsg<Rocket::QuakeToRMLMsg>(channel, std::move(reader), [this] (const std::string& input, int len, std::string& result) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				Rocket_QuakeToRMLBuffer(input.c_str(), buffer.get(), len);
-				result.assign(buffer.get(), len);
-			});
-			break;
-
-		case CG_ROCKET_SETCLASS:
-			IPC::HandleMsg<Rocket::SetClassMsg>(channel, std::move(reader), [this] (std::string Class, bool activate) {
-				Rocket_SetClass(Class.c_str(), activate);
-			});
-			break;
-
-		case CG_ROCKET_INITHUDS:
-			IPC::HandleMsg<Rocket::InitHUDsMsg>(channel, std::move(reader), [this] (int size) {
-				Rocket_InitializeHuds(size);
-			});
-			break;
-
-		case CG_ROCKET_LOADUNIT:
-			IPC::HandleMsg<Rocket::LoadUnitMsg>(channel, std::move(reader), [this] (const std::string& path) {
-				Rocket_LoadUnit(path.c_str());
-			});
-			break;
-
-		case CG_ROCKET_ADDUNITTOHUD:
-			IPC::HandleMsg<Rocket::AddUnitToHUDMsg>(channel, std::move(reader), [this] (int weapon, const std::string& id) {
-				Rocket_AddUnitToHud(weapon, id.c_str());
-			});
-			break;
-
-		case CG_ROCKET_SHOWHUD:
-			IPC::HandleMsg<Rocket::ShowHUDMsg>(channel, std::move(reader), [this] (int weapon) {
-				Rocket_ShowHud(weapon);
-			});
-			break;
-
-		case CG_ROCKET_CLEARHUD:
-			IPC::HandleMsg<Rocket::ClearHUDMsg>(channel, std::move(reader), [this] (int weapon) {
-				Rocket_ClearHud(weapon);
-			});
-			break;
-
-		case CG_ROCKET_ADDTEXT:
-			IPC::HandleMsg<Rocket::AddTextMsg>(channel, std::move(reader), [this] (const std::string& text, const std::string& Class, float x, float y) {
-				Rocket_AddTextElement(text.c_str(), Class.c_str(), x, y);
-			});
-			break;
-
-		case CG_ROCKET_CLEARTEXT:
-			IPC::HandleMsg<Rocket::ClearTextMsg>(channel, std::move(reader), [this] {
-				Rocket_ClearText();
-			});
-			break;
-
-		case CG_ROCKET_REGISTERPROPERTY:
-			IPC::HandleMsg<Rocket::RegisterPropertyMsg>(channel, std::move(reader), [this] (const std::string& name, const std::string& defaultValue, bool inherited, bool forceLayout, const std::string& parseAs) {
-				Rocket_RegisterProperty(name.c_str(), defaultValue.c_str(), inherited, forceLayout, parseAs.c_str());
-			});
-			break;
-
-		case CG_ROCKET_SHOWSCOREBOARD:
-			IPC::HandleMsg<Rocket::ShowScoreboardMsg>(channel, std::move(reader), [this] (const std::string& name, bool show) {
-				Rocket_ShowScoreboard(name.c_str(), show);
-			});
-			break;
-
-		case CG_ROCKET_SETDATASELECTINDEX:
-			IPC::HandleMsg<Rocket::SetDataSelectIndexMsg>(channel, std::move(reader), [this] (int index) {
-				Rocket_SetDataSelectIndex(index);
-			});
-			break;
-
-		case CG_ROCKET_LOADFONT:
-			IPC::HandleMsg<Rocket::LoadFontMsg>(channel, std::move(reader), [this] (const std::string& font) {
-				Rocket_LoadFont(font.c_str());
-			});
-			break;
-
 	default:
 		Sys::Drop("Bad CGame QVM syscall minor number: %d", index);
 	}
@@ -2171,8 +1963,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 			// All sounds
 
 			case CG_S_STARTSOUND:
-				HandleMsg<Audio::StartSoundMsg>(std::move(reader), [this] (bool isPositional, std::array<float, 3> origin, int entityNum, int sfx) {
-					Audio::StartSound(entityNum, (isPositional ? origin.data() : nullptr), sfx);
+				HandleMsg<Audio::StartSoundMsg>(std::move(reader), [this] (bool isPositional, Vec3 origin, int entityNum, int sfx) {
+					Audio::StartSound((isPositional ? -1 : entityNum), origin, sfx);
 				});
 				break;
 
@@ -2201,14 +1993,14 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 				break;
 
 			case CG_S_UPDATEENTITYPOSITION:
-				HandleMsg<Audio::UpdateEntityPositionMsg>(std::move(reader), [this] (int entityNum, std::array<float, 3> position) {
-					Audio::UpdateEntityPosition(entityNum, position.data());
+				HandleMsg<Audio::UpdateEntityPositionMsg>(std::move(reader), [this] (int entityNum, Vec3 position) {
+					Audio::UpdateEntityPosition(entityNum, position);
 				});
 				break;
 
 			case CG_S_RESPATIALIZE:
-				HandleMsg<Audio::RespatializeMsg>(std::move(reader), [this] (int entityNum, const std::array<float, 9>& axis) {
-					Audio::UpdateListener(entityNum, (vec3_t*) axis.data());
+				HandleMsg<Audio::RespatializeMsg>(std::move(reader), [this] (int entityNum, const std::array<Vec3, 3>& axis) {
+					Audio::UpdateListener(entityNum, axis.data());
 				});
 				break;
 
@@ -2225,8 +2017,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 				break;
 
 			case CG_S_UPDATEENTITYVELOCITY:
-				HandleMsg<Audio::UpdateEntityVelocityMsg>(std::move(reader), [this] (int entityNum, std::array<float, 3> velocity) {
-					Audio::UpdateEntityVelocity(entityNum, velocity.data());
+				HandleMsg<Audio::UpdateEntityVelocityMsg>(std::move(reader), [this] (int entityNum, Vec3 velocity) {
+					Audio::UpdateEntityVelocity(entityNum, velocity);
 				});
 				break;
 
@@ -2350,6 +2142,12 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
                 HandleMsg<Render::RenderSceneMsg>(std::move(reader), [this] (refdef_t rd) {
                     re.RenderScene(&rd);
                 });
+				break;
+
+			case CG_R_ADD2DPOLYSINDEXED:
+				HandleMsg<Render::Add2dPolysIndexedMsg>(std::move(reader), [this] (std::vector<polyVert_t> polys, int numPolys, std::vector<int> indicies, int numIndicies, int trans_x, int trans_y, qhandle_t shader) {
+					re.Add2dPolysIndexed(polys.data(), numPolys, indicies.data(), numIndicies, trans_x, trans_y, shader);
+				});
                 break;
 
 		default:

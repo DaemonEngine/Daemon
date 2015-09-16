@@ -61,7 +61,9 @@ typedef int socklen_t;
 #       else
 typedef unsigned short sa_family_t;
 #       endif
-
+// HACK: Redefine these constants to their windows equivalents
+// TODO: Figure out a cleaner way to do this. Perhaps write a set of
+//       compatibility constants.
 #       define EAGAIN        WSAEWOULDBLOCK
 #       define EADDRNOTAVAIL WSAEADDRNOTAVAIL
 #       define EAFNOSUPPORT  WSAEAFNOSUPPORT
@@ -176,7 +178,7 @@ static int             numIP;
 NET_ErrorString
 ====================
 */
-char *NET_ErrorString()
+const char *NET_ErrorString()
 {
 #ifdef _WIN32
 
@@ -391,7 +393,7 @@ static struct addrinfo *SearchAddrInfo( struct addrinfo *hints, sa_family_t fami
 Sys_StringToSockaddr
 =============
 */
-static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, int sadr_len, sa_family_t family )
+static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned sadr_len, sa_family_t family )
 {
 	struct addrinfo hints;
 
@@ -1561,7 +1563,7 @@ void NET_OpenSocks( int port )
 NET_AddLocalAddress
 =====================
 */
-static void NET_AddLocalAddress( char *ifname, struct sockaddr *addr, struct sockaddr *netmask )
+static void NET_AddLocalAddress( const char *ifname, struct sockaddr *addr, struct sockaddr *netmask )
 {
 	int         addrlen;
 	sa_family_t family;
@@ -1985,11 +1987,20 @@ const char *NET_GeoIP_Country( const netadr_t *from )
 
 static GeoIP *NET_GeoIP_LoadData (int db)
 {
-	GeoIP *data = GeoIP_open_type (db, GEOIP_INDEX_CACHE);
+	GeoIP *data = GeoIP_open_type (db, GEOIP_MEMORY_CACHE);
 
-	if (!data)
+	if (data == nullptr)
 	{
-		data = GeoIP_open_type (db, GEOIP_MEMORY_CACHE);
+		if (db == GEOIP_COUNTRY_EDITION)
+		{
+			std::string dbPath = FS::Path::Build(FS::GetLibPath(), "GeoIP.dat");
+			data = GeoIP_open (dbPath.c_str(), GEOIP_MEMORY_CACHE);
+		}
+		else if (db == GEOIP_COUNTRY_EDITION_V6)
+		{
+			std::string dbPath = FS::Path::Build(FS::GetLibPath(), "GeoIPv6.dat");
+			data = GeoIP_open (dbPath.c_str(), GEOIP_MEMORY_CACHE);
+		}
 	}
 
 	return data;

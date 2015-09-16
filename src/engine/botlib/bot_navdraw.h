@@ -32,8 +32,8 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
-#include "libs/detour/DetourDebugDraw.h"
-#include "libs/detour/DebugDraw.h"
+#include "detour/DetourDebugDraw.h"
+#include "detour/DebugDraw.h"
 #include "bot_debug.h"
 #include "bot_local.h"
 
@@ -43,7 +43,7 @@ class DebugDrawQuake : public duDebugDraw
 public:
 	void init(BotDebugInterface_t *in);
 	void depthMask(bool state);
-	void texture(bool state) {};
+	void texture(bool) {};
 	void begin(duDebugDrawPrimitives prim, float size = 1.0f);
 	void vertex(const float* pos, unsigned int color);
 	void vertex(const float x, const float y, const float z, unsigned int color);

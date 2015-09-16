@@ -49,7 +49,7 @@ Maryland 20850 USA.
 #define PRODUCT_NAME            "Unvanquished"
 #define PRODUCT_NAME_UPPER      "UNVANQUISHED" // Case, No spaces
 #define PRODUCT_NAME_LOWER      "unvanquished" // No case, No spaces
-#define PRODUCT_VERSION         "0.40"
+#define PRODUCT_VERSION         "0.43"
 
 #define ENGINE_NAME             "Daemon Engine"
 #define ENGINE_VERSION          PRODUCT_VERSION
@@ -80,6 +80,9 @@ Maryland 20850 USA.
 #define UNNAMED_PLAYER "UnnamedPlayer"
 
 #define Q_UNUSED(x) (void)(x)
+
+template<class T>
+void ignore_result(T) {}
 
 #define EXTERN_C extern "C"
 
@@ -2371,7 +2374,7 @@ typedef std::array<std::string, MAX_CONFIGSTRINGS> GameStateCSs;
 		ET_MODELDOOR,
 		ET_LIGHTFLARE,
 		ET_LEV2_ZAP_CHAIN,
-		
+
 		ET_BEACON,
 
 		ET_EVENTS       // any of the EV_* events can be added freestanding
@@ -2448,14 +2451,6 @@ typedef std::array<std::string, MAX_CONFIGSTRINGS> GameStateCSs;
 	  CA_ACTIVE, // game views should be displayed
 	  CA_CINEMATIC // playing a cinematic or a static pic, not connected to a server
 	} connstate_t;
-
-// clipboard
-	typedef enum
-	{
-		SELECTION_PRIMARY,
-		SELECTION_SECONDARY,
-		SELECTION_CLIPBOARD
-	} clipboard_t;
 
 // font support
 

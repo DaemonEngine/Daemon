@@ -431,18 +431,12 @@ Field_Paste
 */
 static void Field_Paste(Util::LineEditData& edit)
 {
-#ifdef BUILD_CLIENT
-	const char *cbd;
 	int        pasteLen, width;
-	char       *ptr = SDL_GetClipboardText();
+    char buffer[1024];
 
-	if ( !ptr )
-	{
-		return;
-	}
+    CL_GetClipboardData(buffer, sizeof(buffer));
 
-	cbd = Com_ClearForeignCharacters( ptr );
-	SDL_free( ptr );
+    const char* cbd = buffer;
 
 	// send as if typed, so insert / overstrike works properly
 	pasteLen = strlen( cbd );
@@ -454,7 +448,6 @@ static void Field_Paste(Util::LineEditData& edit)
 		cbd += width;
 		pasteLen -= width;
 	}
-#endif
 }
 
 /*
@@ -919,7 +912,7 @@ int Key_GetTeam( const char *arg, const char *cmd )
 
 	l = strlen( arg );
 
-	for ( t = 0; t < ARRAY_LEN( labels ); ++t )
+	for ( unsigned t = 0; t < ARRAY_LEN( labels ); ++t )
 	{
 		// matching initial substring
 		if ( !Q_strnicmp( arg, labels[ t ].label, l ) )
@@ -1490,7 +1483,7 @@ void Key_CompleteTeambind( char *args, int argNum )
 	}
 }
 
-static void Key_CompleteEditbind( char *args, int argNum )
+static void Key_CompleteEditbind( char *, int argNum )
 {
 	if ( argNum < 4 )
 	{
@@ -1901,7 +1894,7 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 			return;
 		}
 
-		Rocket_ProcessKeyInput( key, down );
+		cgvm.CGameKeyEvent(key, down);
 		return;
 	}
 
@@ -1910,7 +1903,7 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 	// to run any binds (since they won't be found).
 	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
 	{
-		Rocket_ProcessKeyInput( key, down );
+		cgvm.CGameKeyEvent(key, down);
 		return;
 	}
 
@@ -2012,7 +2005,7 @@ void CL_CharEvent( int c )
 		Field_CharEvent(g_consoleField, CL_UTF8_unpack(c));
 	}
 
-	Rocket_ProcessTextInput( c );
+	cgvm.CGameTextInputEvent(c);
 }
 
 /*
@@ -2026,6 +2019,9 @@ void Key_ClearStates()
 
 	anykeydown = 0;
 
+	int oldKeyCatcher = Key_GetCatcher();
+	Key_SetCatcher( 0 );
+
 	for ( i = 0; i < MAX_KEYS; i++ )
 	{
 		if ( keys[ i ].down )
@@ -2038,6 +2034,8 @@ void Key_ClearStates()
 	}
 
 	plusCommand.check = rand();
+
+	Key_SetCatcher( oldKeyCatcher );
 }
 
 /*

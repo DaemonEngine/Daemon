@@ -30,56 +30,48 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
+#include "framework/Application.h"
 #include "ConsoleHistory.h"
 
 //TODO: make it thread safe.
 namespace Console {
-#ifndef BUILD_SERVER
-    static const char* HISTORY_FILE = "conhistory";
-#else
-    static const char* HISTORY_FILE = "conhistory_server";
-#endif
     static const int SAVED_HISTORY_LINES = 512;
 
     static std::vector<std::string> lines;
 
+    static std::string GetHistoryFilename() {
+        return "conhistory" + Application::GetTraits().uniqueHomepathSuffix;
+    }
+
     void SaveHistory() {
-        fileHandle_t f = FS_SV_FOpenFileWrite(HISTORY_FILE);
+        try {
+            FS::File f = FS::HomePath::OpenWrite(GetHistoryFilename());
 
-        if (!f) {
-            Com_Printf("Couldn't write %s.\n", HISTORY_FILE);
-            return;
+            for (unsigned i = std::max(0L, ((long)lines.size()) - SAVED_HISTORY_LINES); i < lines.size(); i++) {
+                f.Write(lines[i].data(), lines[i].size());
+                f.Write("\n", 1);
+            }
+        } catch (const std::system_error& error) {
+            Log::Warn("Couldn't write %s: %s", GetHistoryFilename(), error.what());
         }
-
-        for (unsigned i = std::max(0L, ((long)lines.size()) - SAVED_HISTORY_LINES); i < lines.size(); i++) {
-            FS_Write(lines[i].data(), lines[i].size(), f);
-            FS_Write("\n", 1, f);
-        }
-
-        FS_FCloseFile(f);
     }
 
     void LoadHistory() {
-        fileHandle_t f;
-        int len = FS_SV_FOpenFileRead(HISTORY_FILE, &f);
+        std::string buffer;
 
-        if (!f) {
-            Com_Printf("Couldn't read %s.\n", HISTORY_FILE);
-            return;
+        try {
+            FS::File f = FS::HomePath::OpenRead(GetHistoryFilename());
+            buffer = f.ReadAll();
+        } catch (const std::system_error& error) {
+            Log::Warn("Couldn't read %s: %s", GetHistoryFilename(), error.what());
         }
 
-        std::unique_ptr<char[]> buffer(new char[len + 1]);
-
-        FS_Read(buffer.get(), len, f);
-        buffer[len] = '\0';
-        FS_FCloseFile(f);
-
-        char* buf = buffer.get();
-        char* end;
-        while ((end = strchr(buf, '\n'))) {
-            *end = '\0';
-            lines.push_back(buf);
-            buf = end + 1;
+        size_t currentPos = 0;
+        size_t nextPos = 0;
+        while (nextPos != std::string::npos) {
+            nextPos = buffer.find('\n', currentPos);
+            lines.push_back(std::string(buffer, currentPos, (nextPos - currentPos)));
+            currentPos = nextPos + 1;
         }
     }
 
