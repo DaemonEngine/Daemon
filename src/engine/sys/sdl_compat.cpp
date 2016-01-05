@@ -27,35 +27,21 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
+#if _MSC_VER >= 1900
+/* In versions of Visual Studio before VS2015, the streams in stdio.h were defined like
 
-#ifndef FRAMEWORK_COMMAND_BUFFER_HOST_H_
-#define FRAMEWORK_COMMAND_BUFFER_HOST_H_
+    _CRTIMP FILE * __cdecl __iob_func(void);
+    #define stdin  (&__iob_func()[0])
+    #define stdout (&__iob_func()[1])
+    #define stderr (&__iob_func()[2])
 
-#include "common/IPC/CommandBuffer.h"
-#include "common/Serialize.h"
-
-namespace IPC {
-
-    class CommandBufferHost {
-        public:
-            CommandBufferHost(std::string name);
-
-            void Syscall(int index, Util::Reader& reader, IPC::Channel& channel);
-            void Close();
-
-        private:
-            std::string name;
-            Log::Logger logs;
-            IPC::CommandBuffer buffer;
-            IPC::SharedMemory shm;
-
-            virtual void HandleCommandBufferSyscall(int major, int minor, Util::Reader& reader) = 0;
-
-            void Init(IPC::SharedMemory mem);
-
-            void Consume();
-            bool ConsumeOne(Util::Reader& reader);
-    };
+   In VS2015 __iob_func is no longer defined. It is referenced since SDL2 prints a message to 
+   stderr in an extremely unlikely situation. Mostly, we just want the link error to go 
+   away by defining something named __iob_func.
+*/
+extern "C" {
+    FILE* __iob_func(void) {
+        return stderr - 2;
+    }
 }
-
-#endif // FRAMEWORK_COMMAND_BUFFER_HOST_H_
+#endif  // _MSC_VER >= 1900
