@@ -57,6 +57,7 @@ project(Daemon C CXX)
 # Configuration options
 ################################################################################
 
+option(BUILD_SDL "Build SDL from source" OFF)
 if(NOT DAEMON_EXTERNAL_APP)
     option(BUILD_CLIENT "Build Daemon client" 1)
     option(BUILD_SERVER "Build Daemonded server" 1)
@@ -523,9 +524,30 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
     set(LIBS_CLIENTBASE ${LIBS_CLIENTBASE} srclibs-mumblelink)
 endif()
 
+add_custom_target(externals)
+
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
-    find_package(SDL2 REQUIRED)
+    if (BUILD_SDL)
+        include(ExternalProject)
+        set(SDL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/sdl")
+        ExternalProject_Add(SDL
+            PREFIX ${SDL_PREFIX}
+            # HG_REPOSITORY http://hg.libsdl.org/SDL
+            GIT_REPOSITORY https://github.com/spurious/SDL-mirror.git
+            GIT_TAG a1c1b64a935ac3f12adc7bda2fc06c4a88721b46
+            INSTALL_DIR ${SDL_PREFIX}
+            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SDL_PREFIX}
+                -DSDL_STATIC=ON
+                -DSDL_SHARED=OFF
+        )
+        add_dependencies(externals SDL)
+        set(SDL2MAIN_LIBRARY ${SDL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2main${CMAKE_STATIC_LIBRARY_SUFFIX})
+        set(SDL2_LIBRARY ${SDL_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}SDL2${CMAKE_STATIC_LIBRARY_SUFFIX} ${SDL2MAIN_LIBRARY})
+        set(SDL2_INCLUDE_DIR ${SDL_PREFIX}/include/SDL2)
+    else()
+        find_package(SDL2 REQUIRED)
+    endif()
     include_directories(${SDL2_INCLUDE_DIR})
     if (WIN32)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${SDL2_LIBRARY})
@@ -649,6 +671,7 @@ function(AddApplication)
     # enough for SDLMain to see __iob_func so we add SDLCompat to the executable source
     # list directly.
     add_executable(${A_Target} ${A_Files} ${ENGINE_DIR}/framework/SDLCompat.cpp ${PCH_FILE})
+    add_dependencies(${A_Target} externals)
     target_link_libraries(${A_Target} engine-lib ${A_Libs})
 
     set_property(TARGET ${A_Target} APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
