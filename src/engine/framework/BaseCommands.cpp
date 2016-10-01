@@ -148,16 +148,20 @@ namespace Cmd {
             bool ExecFile(Str::StringRef filename, bool executeSilent) const {
                 std::string buffer;
                 std::error_code err;
-                if (readHomepath) {
-                    FS::File file = FS::HomePath::OpenRead(FS::Path::Build("config", filename), err);
-                    if (!err)
-                        buffer = file.ReadAll(err);
-                } else {
+                do {
+                    if (readHomepath) {
+                        FS::File file = FS::HomePath::OpenRead(FS::Path::Build("config", filename), err);
+                        if (!err) {
+                            buffer = file.ReadAll(err);
+                            if (!err) {
+                                break;
+                            }
+                        }
+                    }
                     buffer = FS::PakPath::ReadFile(filename, err);
-                }
-                if (err) {
+                } while (0);
+                if (err)
                     return false;
-                }
 
                 if (not executeSilent) {
                     Print("execing '%s'", filename.c_str());
@@ -826,7 +830,7 @@ namespace Cmd {
                 }
 
                 if (CommandExists(name)) {
-                    Print("Can't override a builtin function with an alias");
+                    Print("Can't override builtin function '%s' with an alias", name);
                     return;
                 }
 

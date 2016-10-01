@@ -236,22 +236,34 @@ namespace Cmd {
             if (in[0] == '$') {
                 // Find the end of the block, only allow valid cvar name characters
                 auto cvarStart = ++in;
+                bool braced = in[0] == '{';
+                if (braced) {
+                    cvarStart = ++in;
+                }
                 while (in[0] == '_' || in[0] == '.' ||
                        (in[0] >= 'a' && in[0] <= 'z') ||
                        (in[0] >= 'A' && in[0] <= 'Z') ||
-                       (in[0] >= '0' && in[0] <= '9')) {
+                       (in[0] >= '0' && in[0] <= '9') ||
+                        (braced && (
+                                in[0] == '*' || // TODO
+                                in[0] == '?' || // TODO
+                                in[0] == ' '
+                        ))) {
                     in++;
                 }
 
                 // If the block is not terminated properly, ignore it
-                if (in[0] == '$') {
+                if ((!braced && in[0] == '$')
+                    || (braced && in[0] == '}')
+                    || (!braced && true) // legacy
+                        ) {
                     std::string cvarName(cvarStart, in);
                     std::string cvarValue = Cvar::GetValue(cvarName);
                     EscapeCvarValue(cvarValue, inQuote);
 
                     // Iterators get invalidated by replace
-                    size_t stringPos = cvarStart - 1 - out.begin() + cvarValue.size();
-                    out.replace(cvarStart - 1, in + 1, cvarValue);
+                    size_t stringPos = cvarStart - (1 + braced) - out.begin() + cvarValue.size();
+                    out.replace(cvarStart - (1 + braced), in + 1, cvarValue);
                     in = out.begin() + stringPos;
                     end = out.end();
                 }
