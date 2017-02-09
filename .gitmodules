@@ -1,0 +1,6 @@
+[submodule "libs/breakpad"]
+	path = libs/breakpad
+	url = https://github.com/Unvanquished/breakpad.git
+[submodule "libs/recastnavigation"]
+	path = libs/recastnavigation
+	url = https://github.com/Unvanquished/recastnavigation.git
