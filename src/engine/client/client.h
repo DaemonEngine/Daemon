@@ -544,7 +544,7 @@ bool    CL_InitRef();
 
 int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
 
-void CL_Record( const char *name );
+void CL_Record(std::string demo_name);
 
 //
 // cl_keys (for input usage)
