@@ -729,10 +729,6 @@ void CL_WriteWaveOpen()
 		return;
 	}
 
-	// yes ... no ? leave it up to them imo
-	//if (cl_avidemo.integer)
-	//  return;
-
 	if ( Cmd_Argc() == 2 )
 	{
 		s = Cmd_Argv( 1 );
@@ -1419,8 +1415,6 @@ void CL_Connect_f()
 		cls.state = connstate_t::CA_CONNECTING;
 	}
 
-	Cvar_Set( "cl_avidemo", "0" );
-
 	// we need to setup a correct default for this, otherwise the first val we set might reappear
 	Cvar_Set( "com_errorMessage", "" );
 
@@ -1794,7 +1788,6 @@ void CL_Vid_Restart_f()
 	// settings may have changed so stop recording now
 	if ( CL_VideoRecording() )
 	{
-		Cvar_Set( "cl_avidemo", "0" );
 		CL_CloseAVI();
 	}
 
