@@ -230,26 +230,6 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string,
 	re.SetColor( Color::White );
 }
 
-//===============================================================================
-
-/*
-=================
-SCR_DrawDemoRecording
-=================
-*/
-void SCR_DrawDemoRecording()
-{
-	if ( !clc.demorecording )
-	{
-		return;
-	}
-
-	//bani
-	Cvar_Set( "cl_demooffset", va( "%d", FS_FTell( clc.demofile ) ) );
-}
-
-//=============================================================================
-
 /*
 ==================
 SCR_Init
@@ -317,7 +297,6 @@ void SCR_DrawScreenField()
 
 			case connstate_t::CA_ACTIVE:
 				CL_CGameRendering();
-				SCR_DrawDemoRecording();
 				break;
 		}
 	}

@@ -1009,7 +1009,7 @@ void CL_SetCGameTime()
 
 	// a timedemo will always use a deterministic set of time samples
 	// no matter what speed machine it is run on
-	if ( cl_timedemo->integer )
+	if ( cvar_cl_demo_print_time.Get() )
 	{
 		if ( !clc.timeDemoStart )
 		{

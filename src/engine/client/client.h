@@ -461,7 +461,7 @@ extern cvar_t *cl_IRC_nickname;
 extern cvar_t *cl_IRC_kick_rejoin;
 extern cvar_t *cl_IRC_reconnect_delay;
 
-extern cvar_t *cl_timedemo;
+extern Cvar::Cvar<bool> cvar_cl_demo_print_time;
 
 extern cvar_t *cl_activeAction;
 extern cvar_t *cl_autorecord;

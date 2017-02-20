@@ -78,7 +78,27 @@ cvar_t *cl_shownet = nullptr; // NERVE - SMF - This is referenced in msg.c and w
 cvar_t *cl_shownuments; // DHM - Nerve
 cvar_t *cl_showSend;
 cvar_t *cl_showServerCommands; // NERVE - SMF
-cvar_t *cl_timedemo;
+
+Cvar::Cvar<bool> cvar_cl_demo_print_time(
+    "cl_demo_print_time",
+    "Whether to show timing statistics at the end of a demo",
+    Cvar::NONE,
+    false
+);
+
+Cvar::Cvar<bool> cvar_cl_demo_status_isrecording(
+    "cl_demo_status_isrecording",
+    "(Read-only) Whether there is a demo currently being recorded",
+    Cvar::ROM,
+    false
+);
+
+Cvar::Cvar<std::string> cvar_cl_demo_status_filename(
+    "cl_demo_status_filename",
+    "(Read-only) Name of the demo currently being recorded",
+    Cvar::ROM,
+    ""
+);
 
 cvar_t *cl_aviFrameRate;
 
@@ -118,9 +138,6 @@ cvar_t *cl_allowDownload;
 cvar_t *cl_inGameVideo;
 
 cvar_t *cl_serverStatusResendTime;
-
-cvar_t                 *cl_demorecording; // fretn
-cvar_t                 *cl_demofilename; // bani
 
 cvar_t                 *cl_waverecording; //bani
 cvar_t                 *cl_wavefilename; //bani
@@ -318,8 +335,8 @@ void CL_StopRecord()
     clc.demofile = 0;
 
     clc.demorecording = false;
-    Cvar_Set( "cl_demorecording", "0" );  // fretn
-    Cvar_Set( "cl_demofilename", "" );  // bani
+    Cvar::SetValueForce(cvar_cl_demo_status_isrecording.Name(), "0");
+    Cvar::SetValueForce(cvar_cl_demo_status_filename.Name(), "");
     Log::Notice("%s", "Stopped demo.\n" );
 }
 
@@ -428,9 +445,9 @@ void CL_Record(std::string demo_name)
     Log::Notice( "recording to %s.\n", file_name );
 
     clc.demorecording = true;
-    Cvar::SetValueCProxy("cl_demorecording", "1");
     Q_strncpyz(clc.demoName, demo_name.c_str(), std::min<std::size_t>(demo_name.size(), MAX_QPATH));
-    Cvar::SetValueCProxy("cl_demofilename", clc.demoName);
+    Cvar::SetValueForce(cvar_cl_demo_status_isrecording.Name(), "1");
+    Cvar::SetValueForce(cvar_cl_demo_status_filename.Name(), demo_name);
 
     // don't start saving messages until a non-delta compressed message is received
     clc.demowaiting = true;
@@ -517,7 +534,7 @@ CL_DemoCompleted
 
 void CL_DemoCompleted()
 {
-	if ( cl_timedemo && cl_timedemo->integer )
+	if ( cvar_cl_demo_print_time.Get() )
 	{
 		int time;
 
@@ -3521,7 +3538,6 @@ void CL_Init()
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
 	cl_autorecord = Cvar_Get( "cl_autorecord", "0", CVAR_TEMP );
 
-	cl_timedemo = Cvar_Get( "timedemo", "0", 0 );
 	cl_aviFrameRate = Cvar_Get( "cl_aviFrameRate", "25", 0 );
 
 	// XreaL BEGIN
@@ -3596,8 +3612,6 @@ void CL_Init()
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
 	//bani - make these cvars visible to cgame
-	cl_demorecording = Cvar_Get( "cl_demorecording", "0", CVAR_ROM );
-	cl_demofilename = Cvar_Get( "cl_demofilename", "", CVAR_ROM );
 	cl_waverecording = Cvar_Get( "cl_waverecording", "0", CVAR_ROM );
 	cl_wavefilename = Cvar_Get( "cl_wavefilename", "", CVAR_ROM );
 	cl_waveoffset = Cvar_Get( "cl_waveoffset", "0", CVAR_ROM );
