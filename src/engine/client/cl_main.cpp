@@ -81,7 +81,6 @@ cvar_t *cl_showServerCommands; // NERVE - SMF
 cvar_t *cl_timedemo;
 
 cvar_t *cl_aviFrameRate;
-cvar_t *cl_forceavidemo;
 
 cvar_t *cl_freelook;
 cvar_t *cl_sensitivity;
@@ -3182,7 +3181,7 @@ void CL_Frame( int msec )
 	if ( CL_VideoRecording() && cl_aviFrameRate->integer && msec )
 	{
 		// save the current screen
-		if ( cls.state == connstate_t::CA_ACTIVE || cl_forceavidemo->integer )
+		if ( cls.state == connstate_t::CA_ACTIVE )
 		{
 			CL_TakeVideoFrame();
 
@@ -3523,7 +3522,6 @@ void CL_Init()
 	cl_autorecord = Cvar_Get( "cl_autorecord", "0", CVAR_TEMP );
 
 	cl_timedemo = Cvar_Get( "timedemo", "0", 0 );
-	cl_forceavidemo = Cvar_Get( "cl_forceavidemo", "0", 0 );
 	cl_aviFrameRate = Cvar_Get( "cl_aviFrameRate", "25", 0 );
 
 	// XreaL BEGIN
