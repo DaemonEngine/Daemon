@@ -1816,7 +1816,7 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 	{
 		if ( !( cls.keyCatchers & KEYCATCH_UI ) )
 		{
-			if ( cls.state == connstate_t::CA_ACTIVE && !clc.demoplaying )
+			if ( cls.state == connstate_t::CA_ACTIVE )
 			{
 				// Arnout: on request
 				if ( cls.keyCatchers & KEYCATCH_CONSOLE ) // get rid of the console
