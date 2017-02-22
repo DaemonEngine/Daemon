@@ -416,7 +416,6 @@ extern cvar_t *cl_showSend;
 extern cvar_t *cl_showServerCommands; // NERVE - SMF
 extern cvar_t *cl_timeNudge;
 extern cvar_t *cl_showTimeDelta;
-extern cvar_t *cl_freezeDemo;
 
 extern cvar_t *cl_yawspeed;
 extern cvar_t *cl_pitchspeed;

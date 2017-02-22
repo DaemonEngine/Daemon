@@ -72,7 +72,6 @@ cvar_t *cl_maxpackets;
 cvar_t *cl_packetdup;
 cvar_t *cl_timeNudge;
 cvar_t *cl_showTimeDelta;
-cvar_t *cl_freezeDemo;
 
 cvar_t *cl_shownet = nullptr; // NERVE - SMF - This is referenced in msg.c and we need to make sure it is nullptr
 cvar_t *cl_shownuments; // DHM - Nerve
@@ -3527,7 +3526,6 @@ void CL_Init()
 	cl_showServerCommands = Cvar_Get( "cl_showServerCommands", "0", 0 );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
-	cl_freezeDemo = Cvar_Get( "cl_freezeDemo", "0", CVAR_TEMP );
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
 	cl_autorecord = Cvar_Get( "cl_autorecord", "0", CVAR_TEMP );
 

@@ -947,48 +947,39 @@ void CL_SetCGameTime()
 
 	cl.oldFrameServerTime = cl.snap.serverTime;
 
-	// get our current view of time
+    // cl_timeNudge is a user adjustable cvar that allows more
+    // or less latency to be added in the interest of better
+    // smoothness or better responsiveness.
+    int tn;
 
-	if ( clc.demoplaying && cl_freezeDemo->integer )
-	{
-		// cl_freezeDemo is used to lock a demo in place for single frame advances
-	}
-	else
-	{
-		// cl_timeNudge is a user adjustable cvar that allows more
-		// or less latency to be added in the interest of better
-		// smoothness or better responsiveness.
-		int tn;
+    tn = cl_timeNudge->integer;
 
-		tn = cl_timeNudge->integer;
+    if ( tn < -30 )
+    {
+        tn = -30;
+    }
+    else if ( tn > 30 )
+    {
+        tn = 30;
+    }
 
-		if ( tn < -30 )
-		{
-			tn = -30;
-		}
-		else if ( tn > 30 )
-		{
-			tn = 30;
-		}
+    cl.serverTime = cls.realtime + cl.serverTimeDelta - tn;
 
-		cl.serverTime = cls.realtime + cl.serverTimeDelta - tn;
+    // guarantee that time will never flow backwards, even if
+    // serverTimeDelta made an adjustment or cl_timeNudge was changed
+    if ( cl.serverTime < cl.oldServerTime )
+    {
+        cl.serverTime = cl.oldServerTime;
+    }
 
-		// guarantee that time will never flow backwards, even if
-		// serverTimeDelta made an adjustment or cl_timeNudge was changed
-		if ( cl.serverTime < cl.oldServerTime )
-		{
-			cl.serverTime = cl.oldServerTime;
-		}
+    cl.oldServerTime = cl.serverTime;
 
-		cl.oldServerTime = cl.serverTime;
-
-		// note if we are almost past the latest frame (without timeNudge),
-		// so we will try and adjust back a bit when the next snapshot arrives
-		if ( cls.realtime + cl.serverTimeDelta >= cl.snap.serverTime - 5 )
-		{
-			cl.extrapolatedSnapshot = true;
-		}
-	}
+    // note if we are almost past the latest frame (without timeNudge),
+    // so we will try and adjust back a bit when the next snapshot arrives
+    if ( cls.realtime + cl.serverTimeDelta >= cl.snap.serverTime - 5 )
+    {
+        cl.extrapolatedSnapshot = true;
+    }
 
 	// if we have gotten new snapshots, drift serverTimeDelta
 	// don't do this every frame, or a period of packet loss would
