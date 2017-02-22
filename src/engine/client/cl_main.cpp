@@ -99,6 +99,13 @@ Cvar::Cvar<std::string> cvar_cl_demo_status_filename(
     ""
 );
 
+Cvar::Cvar<std::string> cvar_cl_demo_next(
+    "cl_demo_next",
+    "Name of the demo to play after the current one",
+    Cvar::NONE,
+    ""
+);
+
 cvar_t *cl_aviFrameRate;
 
 cvar_t *cl_freelook;
@@ -877,19 +884,16 @@ If the "nextdemo" cvar is set, that command will be issued
 */
 void CL_NextDemo()
 {
-	char v[ MAX_STRING_CHARS ];
+	std::string v = cvar_cl_demo_next.Get();
 
-	Q_strncpyz( v, Cvar_VariableString( "nextdemo" ), sizeof( v ) );
-	v[ MAX_STRING_CHARS - 1 ] = 0;
-	Log::Debug( "CL_NextDemo: %s", v );
-
-	if ( !v[ 0 ] )
+	if ( v.empty() )
 	{
 		return;
 	}
 
-	Cvar_Set( "nextdemo", "" );
-	Cmd::BufferCommandTextAfter(v, true);
+	Log::Debug( "CL_NextDemo: %s", v );
+	cvar_cl_demo_next.Set("");
+	Cmd::BufferCommandTextAfter("demo_play " + v, false);
 	Cmd::ExecuteCommandBuffer();
 }
 
