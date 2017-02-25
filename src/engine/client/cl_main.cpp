@@ -44,8 +44,6 @@ Maryland 20850 USA.
 
 #include "botlib/bot_debug.h"
 
-cvar_t *cl_wavefilerecord;
-
 #include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 #include "framework/Rcon.h"
@@ -145,10 +143,6 @@ cvar_t *cl_inGameVideo;
 
 cvar_t *cl_serverStatusResendTime;
 
-cvar_t                 *cl_waverecording; //bani
-cvar_t                 *cl_wavefilename; //bani
-cvar_t                 *cl_waveoffset; //bani
-
 cvar_t                 *cl_packetloss; //bani
 cvar_t                 *cl_packetdelay; //bani
 
@@ -208,10 +202,6 @@ void        CL_CheckForResend();
 void        CL_ShowIP_f();
 void        CL_ServerStatus_f();
 void        CL_ServerStatusResponse( netadr_t from, msg_t *msg );
-
-// fretn
-void        CL_WriteWaveClose();
-void        CL_WavStopRecord_f();
 
 static void CL_UpdateMumble()
 {
@@ -553,13 +543,6 @@ void CL_DemoCompleted()
 		}
 	}
 
-	// fretn
-	if ( clc.waverecording )
-	{
-		CL_WriteWaveClose();
-		clc.waverecording = false;
-	}
-
 	CL_Disconnect( true );
 	CL_NextDemo();
 }
@@ -633,168 +616,6 @@ void CL_ReadDemoMessage()
 	CL_ParseServerMessage( &buf );
 }
 
-/*
-====================
-
-  Wave file saving functions
-
-  FIXME: make this actually work
-
-====================
-*/
-
-/*
-==================
-CL_DemoFilename
-==================
-*/
-void CL_WavFilename( int number, char *fileName )
-{
-	if ( number < 0 || number > 9999 )
-	{
-		Com_sprintf( fileName, MAX_OSPATH, "wav9999" );  // fretn - removed .tga
-		return;
-	}
-
-	Com_sprintf( fileName, MAX_OSPATH, "wav%04i", number );
-}
-
-struct wav_hdr_t
-{
-	unsigned int   ChunkID; // big endian
-	unsigned int   ChunkSize; // little endian
-	unsigned int   Format; // big endian
-
-	unsigned int   Subchunk1ID; // big endian
-	unsigned int   Subchunk1Size; // little endian
-	unsigned short AudioFormat; // little endian
-	unsigned short NumChannels; // little endian
-	unsigned int   SampleRate; // little endian
-	unsigned int   ByteRate; // little endian
-	unsigned short BlockAlign; // little endian
-	unsigned short BitsPerSample; // little endian
-
-	unsigned int   Subchunk2ID; // big endian
-	unsigned int   Subchunk2Size; // little endian
-
-	unsigned int   NumSamples;
-};
-
-wav_hdr_t hdr;
-
-static void CL_WriteWaveHeader()
-{
-	memset( &hdr, 0, sizeof( hdr ) );
-
-	hdr.ChunkID = 0x46464952; // "RIFF"
-	hdr.ChunkSize = 0; // total filesize - 8 bytes
-	hdr.Format = 0x45564157; // "WAVE"
-
-	hdr.Subchunk1ID = 0x20746d66; // "fmt "
-	hdr.Subchunk1Size = 16; // 16 = pcm
-	hdr.AudioFormat = 1; // 1 = linear quantization
-	hdr.NumChannels = 2; // 2 = stereo
-
-	//TODO
-	//hdr.SampleRate = dma.speed;
-
-	hdr.BitsPerSample = 16; // 16bits
-
-	// SampleRate * NumChannels * BitsPerSample/8
-	hdr.ByteRate = hdr.SampleRate * hdr.NumChannels * ( hdr.BitsPerSample / 8 );
-
-	// NumChannels * BitsPerSample/8
-	hdr.BlockAlign = hdr.NumChannels * ( hdr.BitsPerSample / 8 );
-
-	hdr.Subchunk2ID = 0x61746164; // "data"
-
-	hdr.Subchunk2Size = 0; // NumSamples * NumChannels * BitsPerSample/8
-
-	// ...
-	FS_Write( &hdr.ChunkID, 44, clc.wavefile );
-}
-
-static char wavName[ MAX_OSPATH ]; // compiler bug workaround
-void CL_WriteWaveOpen()
-{
-	// we will just save it as a 16bit stereo 22050kz pcm file
-
-	char name[ MAX_OSPATH ];
-	int  len;
-	const char *s;
-
-	if ( Cmd_Argc() > 2 )
-	{
-		Cmd_PrintUsage("<name>", nullptr);
-		return;
-	}
-
-	if ( clc.waverecording )
-	{
-		Log::Notice("%s", "Already recording a wav file\n" );
-		return;
-	}
-
-	if ( Cmd_Argc() == 2 )
-	{
-		s = Cmd_Argv( 1 );
-		Q_strncpyz( wavName, s, sizeof( wavName ) );
-		Com_sprintf( name, sizeof( name ), "wav/%s.wav", wavName );
-	}
-	else
-	{
-		int number;
-
-		// I STOLE THIS
-		for ( number = 0; number <= 9999; number++ )
-		{
-			CL_WavFilename( number, wavName );
-			Com_sprintf( name, sizeof( name ), "wav/%s.wav", wavName );
-
-			len = FS_FileExists( name );
-
-			if ( len <= 0 )
-			{
-				break; // file doesn't exist
-			}
-		}
-	}
-
-	Log::Notice( "recording to %s.\n", name );
-	clc.wavefile = FS_FOpenFileWrite( name );
-
-	if ( !clc.wavefile )
-	{
-		Log::Warn("couldn't open %s for writing.", name );
-		return;
-	}
-
-	CL_WriteWaveHeader();
-	clc.wavetime = -1;
-
-	clc.waverecording = true;
-
-	Cvar_Set( "cl_waverecording", "1" );
-	Cvar_Set( "cl_wavefilename", wavName );
-	Cvar_Set( "cl_waveoffset", "0" );
-}
-
-void CL_WriteWaveClose()
-{
-	Log::Notice("%s", "Stopped recording\n" );
-
-	hdr.Subchunk2Size = hdr.NumSamples * hdr.NumChannels * ( hdr.BitsPerSample / 8 );
-	hdr.ChunkSize = 36 + hdr.Subchunk2Size;
-
-	FS_Seek( clc.wavefile, 4, fsOrigin_t::FS_SEEK_SET );
-	FS_Write( &hdr.ChunkSize, 4, clc.wavefile );
-	FS_Seek( clc.wavefile, 40, fsOrigin_t::FS_SEEK_SET );
-	FS_Write( &hdr.Subchunk2Size, 4, clc.wavefile );
-
-	// and we're outta here
-	FS_FCloseFile( clc.wavefile );
-	clc.wavefile = 0;
-}
 
 class DemoPlayCmd: public Cmd::StaticCmd {
     public:
@@ -846,10 +667,6 @@ class DemoPlayCmd: public Cmd::StaticCmd {
             cls.state = connstate_t::CA_CONNECTED;
             clc.demoplaying = true;
 
-            if (Cvar_VariableValue( "cl_wavefilerecord")) {
-                CL_WriteWaveOpen();
-            }
-
             // read demo messages until connected
             while (cls.state >= connstate_t::CA_CONNECTED && cls.state < connstate_t::CA_PRIMED) {
                 CL_ReadDemoMessage();
@@ -858,10 +675,6 @@ class DemoPlayCmd: public Cmd::StaticCmd {
             // don't get the first snapshot this frame, to prevent the long
             // time from the gamestate load from messing causing a time skip
             clc.firstDemoFrameSkipped = false;
-            //  if (clc.waverecording) {
-            //      CL_WriteWaveClose();
-            //      clc.waverecording = false;
-            //  }
         }
 
         Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const OVERRIDE {
@@ -933,11 +746,6 @@ void CL_ShutdownAll()
 
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
     CL_StopRecord();
-
-	if ( clc.waverecording )
-	{
-		CL_WavStopRecord_f();
-	}
 }
 
 /*
@@ -1911,43 +1719,6 @@ void CL_Clientinfo_f()
 	Log::Notice("%s", "--------------------------------------" );
 }
 
-/*
-==============
-CL_WavRecord_f
-==============
-*/
-
-void CL_WavRecord_f()
-{
-	if ( clc.wavefile )
-	{
-		Log::Notice("%s", "Already recording a wav file\n" );
-		return;
-	}
-
-	CL_WriteWaveOpen();
-}
-
-/*
-==============
-CL_WavStopRecord_f
-==============
-*/
-
-void CL_WavStopRecord_f()
-{
-	if ( !clc.wavefile )
-	{
-		Log::Notice("%s", "Not recording a wav file\n" );
-		return;
-	}
-
-	CL_WriteWaveClose();
-	Cvar_Set( "cl_waverecording", "0" );
-	Cvar_Set( "cl_wavefilename", "" );
-	Cvar_Set( "cl_waveoffset", "0" );
-	clc.waverecording = false;
-}
 
 class DemoVideoCmd: public Cmd::StaticCmd
 {
@@ -3522,8 +3293,6 @@ void CL_Init()
 
 	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
 
-	cl_wavefilerecord = Cvar_Get( "cl_wavefilerecord", "0", CVAR_TEMP );
-
 	cl_timeNudge = Cvar_Get( "cl_timeNudge", "0", CVAR_TEMP );
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
 	cl_shownuments = Cvar_Get( "cl_shownuments", "0", CVAR_TEMP );
@@ -3606,11 +3375,6 @@ void CL_Init()
 	cl_gamename = Cvar_Get( "cl_gamename", GAMENAME_FOR_MASTER, CVAR_TEMP );
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
-	//bani - make these cvars visible to cgame
-	cl_waverecording = Cvar_Get( "cl_waverecording", "0", CVAR_ROM );
-	cl_wavefilename = Cvar_Get( "cl_wavefilename", "", CVAR_ROM );
-	cl_waveoffset = Cvar_Get( "cl_waveoffset", "0", CVAR_ROM );
-
 	//bani
 	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
 	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
@@ -3662,9 +3426,6 @@ void CL_Init()
 
 	Cmd_AddCommand( "setRecommended", CL_SetRecommended_f );
 
-	Cmd_AddCommand( "wav_record", CL_WavRecord_f );
-	Cmd_AddCommand( "wav_stoprecord", CL_WavStopRecord_f );
-
 	SCR_Init();
 
 	Cmd::ExecuteCommandBuffer();
@@ -3699,11 +3460,6 @@ void CL_Shutdown()
 
 	recursive = true;
 
-	if ( clc.waverecording ) // fretn - write wav header when we quit
-	{
-		CL_WavStopRecord_f();
-	}
-
 	CL_Disconnect( true );
 
 	CL_ShutdownCGame();
@@ -3737,8 +3493,6 @@ void CL_Shutdown()
 	Cmd_RemoveCommand( "showip" );
 	Cmd_RemoveCommand( "model" );
 
-	Cmd_RemoveCommand( "wav_record" );
-	Cmd_RemoveCommand( "wav_stoprecord" );
 	// done.
 
 	CL_IRCWaitShutdown();

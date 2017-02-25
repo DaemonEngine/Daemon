@@ -231,10 +231,6 @@ struct clientConnection_t
 	bool     firstDemoFrameSkipped;
 	fileHandle_t demofile;
 
-	bool     waverecording;
-	fileHandle_t wavefile;
-	int          wavetime;
-
 	int          timeDemoFrames; // counter of rendered frames
 	int          timeDemoStart; // cls.realtime before first frame
 	int          timeDemoBaseTime; // each frame will be at this time + frameNum * 50
