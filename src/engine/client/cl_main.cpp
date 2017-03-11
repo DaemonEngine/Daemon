@@ -76,29 +76,22 @@ cvar_t *cl_shownuments; // DHM - Nerve
 cvar_t *cl_showSend;
 cvar_t *cl_showServerCommands; // NERVE - SMF
 
-Cvar::Cvar<bool> cvar_cl_demo_print_time(
-    "cl_demo_print_time",
-    "Whether to show timing statistics at the end of a demo",
-    Cvar::NONE,
-    false
-);
-
-Cvar::Cvar<bool> cvar_cl_demo_status_isrecording(
-    "cl_demo_status_isrecording",
+Cvar::Cvar<bool> cvar_demo_status_isrecording(
+    "demo.status.isrecording",
     "(Read-only) Whether there is a demo currently being recorded",
     Cvar::ROM,
     false
 );
 
-Cvar::Cvar<std::string> cvar_cl_demo_status_filename(
-    "cl_demo_status_filename",
+Cvar::Cvar<std::string> cvar_demo_status_filename(
+    "demo.status.filename",
     "(Read-only) Name of the demo currently being recorded",
     Cvar::ROM,
     ""
 );
 
-Cvar::Cvar<std::string> cvar_cl_demo_next(
-    "cl_demo_next",
+Cvar::Cvar<std::string> cvar_demo_next(
+    "demo.next",
     "Name of the demo to play after the current one",
     Cvar::NONE,
     ""
@@ -331,8 +324,8 @@ void CL_StopRecord()
     clc.demofile = 0;
 
     clc.demorecording = false;
-    Cvar::SetValueForce(cvar_cl_demo_status_isrecording.Name(), "0");
-    Cvar::SetValueForce(cvar_cl_demo_status_filename.Name(), "");
+    Cvar::SetValueForce(cvar_demo_status_isrecording.Name(), "0");
+    Cvar::SetValueForce(cvar_demo_status_filename.Name(), "");
     Log::Notice("%s", "Stopped demo.\n" );
 }
 
@@ -442,8 +435,8 @@ void CL_Record(std::string demo_name)
 
     clc.demorecording = true;
     Q_strncpyz(clc.demoName, demo_name.c_str(), std::min<std::size_t>(demo_name.size(), MAX_QPATH));
-    Cvar::SetValueForce(cvar_cl_demo_status_isrecording.Name(), "1");
-    Cvar::SetValueForce(cvar_cl_demo_status_filename.Name(), demo_name);
+    Cvar::SetValueForce(cvar_demo_status_isrecording.Name(), "1");
+    Cvar::SetValueForce(cvar_demo_status_filename.Name(), demo_name);
 
     // don't start saving messages until a non-delta compressed message is received
     clc.demowaiting = true;
@@ -530,7 +523,7 @@ CL_DemoCompleted
 
 void CL_DemoCompleted()
 {
-	if ( cvar_cl_demo_print_time.Get() )
+	if ( cvar_demo_timedemo.Get() )
 	{
 		int time;
 
@@ -692,12 +685,12 @@ static DemoPlayCmd DemoPlayCmdRegistration;
 CL_NextDemo
 
 Called when a demo or cinematic finishes
-If the "nextdemo" cvar is set, that command will be issued
+If the "demo.next" cvar is set, that command will be issued
 ==================
 */
 void CL_NextDemo()
 {
-	std::string v = cvar_cl_demo_next.Get();
+	std::string v = cvar_demo_next.Get();
 
 	if ( v.empty() )
 	{
@@ -705,7 +698,7 @@ void CL_NextDemo()
 	}
 
 	Log::Debug( "CL_NextDemo: %s", v );
-	cvar_cl_demo_next.Set("");
+	cvar_demo_next.Set("");
 	Cmd::BufferCommandTextAfter("demo_play " + v, false);
 	Cmd::ExecuteCommandBuffer();
 }
