@@ -738,7 +738,7 @@ void CL_ShutdownAll()
 	cls.soundRegistered = false;
 
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
-    CL_StopRecord();
+	CL_StopRecord();
 }
 
 /*

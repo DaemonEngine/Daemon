@@ -226,13 +226,10 @@ void CL_ParseSnapshot( msg_t *msg )
 		if ( clc.demorecording )
 		{
 			clc.demowaiting = false; // we can start recording now
-//          if(cl_autorecord->integer) {
-//              Cvar_Set( "g_synchronousClients", "0" );
-//          }
 		}
 		else
 		{
-			if ( cl_autorecord->integer /*&& Cvar_VariableValue( "g_synchronousClients") */ )
+			if ( cl_autorecord->integer )
 			{
 				CL_Record("");
 			}
