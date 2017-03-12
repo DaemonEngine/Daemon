@@ -226,51 +226,12 @@ void CL_ParseSnapshot( msg_t *msg )
 		if ( clc.demorecording )
 		{
 			clc.demowaiting = false; // we can start recording now
-//          if(cl_autorecord->integer) {
-//              Cvar_Set( "g_synchronousClients", "0" );
-//          }
 		}
 		else
 		{
-			if ( cl_autorecord->integer /*&& Cvar_VariableValue( "g_synchronousClients") */ )
+			if ( cl_autorecord->integer )
 			{
-				char    name[ 256 ];
-				char    mapname[ MAX_QPATH ];
-				char    *period;
-				qtime_t time;
-
-				Com_RealTime( &time );
-
-				Q_strncpyz( mapname, cl.mapname, MAX_QPATH );
-
-				for ( period = mapname; *period; period++ )
-				{
-					if ( *period == '.' )
-					{
-						*period = '\0';
-						break;
-					}
-				}
-
-				for ( period = mapname; *period; period++ )
-				{
-					if ( *period == '/' )
-					{
-						break;
-					}
-				}
-
-				if ( *period )
-				{
-					period++;
-				}
-
-				Com_sprintf( name, sizeof( name ), "demos/%s_%04i-%02i-%02i_%02i%02i%02i.dm_%d", period,
-				             1900 + time.tm_year, time.tm_mon + 1, time.tm_mday,
-				             time.tm_hour, time.tm_min, time.tm_sec,
-				             PROTOCOL_VERSION );
-
-				CL_Record( name );
+				CL_Record("");
 			}
 		}
 	}

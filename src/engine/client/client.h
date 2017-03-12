@@ -231,10 +231,6 @@ struct clientConnection_t
 	bool     firstDemoFrameSkipped;
 	fileHandle_t demofile;
 
-	bool     waverecording;
-	fileHandle_t wavefile;
-	int          wavetime;
-
 	int          timeDemoFrames; // counter of rendered frames
 	int          timeDemoStart; // cls.realtime before first frame
 	int          timeDemoBaseTime; // each frame will be at this time + frameNum * 50
@@ -416,7 +412,6 @@ extern cvar_t *cl_showSend;
 extern cvar_t *cl_showServerCommands; // NERVE - SMF
 extern cvar_t *cl_timeNudge;
 extern cvar_t *cl_showTimeDelta;
-extern cvar_t *cl_freezeDemo;
 
 extern cvar_t *cl_yawspeed;
 extern cvar_t *cl_pitchspeed;
@@ -461,7 +456,7 @@ extern cvar_t *cl_IRC_nickname;
 extern cvar_t *cl_IRC_kick_rejoin;
 extern cvar_t *cl_IRC_reconnect_delay;
 
-extern cvar_t *cl_timedemo;
+extern Cvar::Cvar<bool> cvar_demo_timedemo;
 
 extern cvar_t *cl_activeAction;
 extern cvar_t *cl_autorecord;
@@ -544,7 +539,7 @@ bool    CL_InitRef();
 
 int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
 
-void CL_Record( const char *name );
+void CL_Record(std::string demo_name);
 
 //
 // cl_keys (for input usage)

@@ -44,8 +44,6 @@ Maryland 20850 USA.
 
 #include "botlib/bot_debug.h"
 
-cvar_t *cl_wavefilerecord;
-
 #include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 #include "framework/Rcon.h"
@@ -72,16 +70,34 @@ cvar_t *cl_maxpackets;
 cvar_t *cl_packetdup;
 cvar_t *cl_timeNudge;
 cvar_t *cl_showTimeDelta;
-cvar_t *cl_freezeDemo;
 
 cvar_t *cl_shownet = nullptr; // NERVE - SMF - This is referenced in msg.c and we need to make sure it is nullptr
 cvar_t *cl_shownuments; // DHM - Nerve
 cvar_t *cl_showSend;
 cvar_t *cl_showServerCommands; // NERVE - SMF
-cvar_t *cl_timedemo;
+
+Cvar::Cvar<bool> cvar_demo_status_isrecording(
+    "demo.status.isrecording",
+    "(Read-only) Whether there is a demo currently being recorded",
+    Cvar::ROM,
+    false
+);
+
+Cvar::Cvar<std::string> cvar_demo_status_filename(
+    "demo.status.filename",
+    "(Read-only) Name of the demo currently being recorded",
+    Cvar::ROM,
+    ""
+);
+
+Cvar::Cvar<std::string> cvar_demo_next(
+    "demo.next",
+    "Name of the demo to play after the current one",
+    Cvar::NONE,
+    ""
+);
 
 cvar_t *cl_aviFrameRate;
-cvar_t *cl_forceavidemo;
 
 cvar_t *cl_freelook;
 cvar_t *cl_sensitivity;
@@ -119,13 +135,6 @@ cvar_t *cl_allowDownload;
 cvar_t *cl_inGameVideo;
 
 cvar_t *cl_serverStatusResendTime;
-
-cvar_t                 *cl_demorecording; // fretn
-cvar_t                 *cl_demofilename; // bani
-
-cvar_t                 *cl_waverecording; //bani
-cvar_t                 *cl_wavefilename; //bani
-cvar_t                 *cl_waveoffset; //bani
 
 cvar_t                 *cl_packetloss; //bani
 cvar_t                 *cl_packetdelay; //bani
@@ -186,10 +195,6 @@ void        CL_CheckForResend();
 void        CL_ShowIP_f();
 void        CL_ServerStatus_f();
 void        CL_ServerStatusResponse( netadr_t from, msg_t *msg );
-
-// fretn
-void        CL_WriteWaveClose();
-void        CL_WavStopRecord_f();
 
 static void CL_UpdateMumble()
 {
@@ -302,213 +307,204 @@ void CL_WriteDemoMessage( msg_t *msg, int headerBytes )
 	FS_Write( msg->data + headerBytes, len, clc.demofile );
 }
 
-/*
-====================
-CL_StopRecording_f
 
-stop recording a demo
-====================
-*/
-void CL_StopRecord_f()
+/**
+ * If a demo is being recorderd, this stops it
+ */
+void CL_StopRecord()
 {
-	int len;
+    if ( !clc.demorecording )
+        return;
 
-	if ( !clc.demorecording )
-	{
-		Log::Notice("%s", "Not recording a demo.\n" );
-		return;
-	}
+    // finish up
+    int len = -1;
+    FS_Write( &len, 4, clc.demofile );
+    FS_Write( &len, 4, clc.demofile );
+    FS_FCloseFile( clc.demofile );
+    clc.demofile = 0;
 
-	// finish up
-	len = -1;
-	FS_Write( &len, 4, clc.demofile );
-	FS_Write( &len, 4, clc.demofile );
-	FS_FCloseFile( clc.demofile );
-	clc.demofile = 0;
-
-	clc.demorecording = false;
-	Cvar_Set( "cl_demorecording", "0" );  // fretn
-	Cvar_Set( "cl_demofilename", "" );  // bani
-	Log::Notice("%s", "Stopped demo.\n" );
+    clc.demorecording = false;
+    Cvar::SetValueForce(cvar_demo_status_isrecording.Name(), "0");
+    Cvar::SetValueForce(cvar_demo_status_filename.Name(), "");
+    Log::Notice("%s", "Stopped demo." );
 }
 
-/*
-====================
-CL_Record_f
-
-record <demoname>
-
-Begins recording a demo from the current position
-====================
-*/
-
-static char demoName[ MAX_QPATH ]; // compiler bug workaround
-void CL_Record_f()
+class DemoRecordStopCmd: public Cmd::StaticCmd
 {
-	char name[ MAX_OSPATH ];
-	const char *s;
+public:
+    DemoRecordStopCmd()
+        : Cmd::StaticCmd("demo_record_stop", Cmd::SYSTEM, "Stops recording a demo")
+    {}
 
-	if ( Cmd_Argc() > 2 )
-	{
-		Cmd_PrintUsage( "<name>", nullptr );
-		return;
-	}
+    void Run(const Cmd::Args&) const OVERRIDE
+    {
+        if ( !clc.demorecording )
+        {
+            Log::Notice("%s", "Not recording a demo." );
+            return;
+        }
+        CL_StopRecord();
+    }
+};
+static DemoRecordStopCmd DemoRecordStopCmdRegistration;
 
-	if ( clc.demorecording )
-	{
-		Log::Warn("Already recording." );
-		return;
-	}
 
-	if ( cls.state != connstate_t::CA_ACTIVE )
-	{
-		Log::Warn("You must be in a level to record." );
-		return;
-	}
+class DemoRecordCmd : public Cmd::StaticCmd
+{
+public:
+    DemoRecordCmd()
+        : Cmd::StaticCmd("demo_record", Cmd::SYSTEM, "Begins recording a demo from the current position")
+    {}
 
-	// ATVI Wolfenstein Misc #479 - changing this to a warning
-	// sync 0 doesn't prevent recording, so not forcing it off .. everyone does g_sync 1 ; record ; g_sync 0 ..
-	if ( NET_IsLocalAddress( clc.serverAddress ) && !Cvar_VariableValue( "g_synchronousClients" ) )
-	{
-		Log::Warn("You should set '%s' for smoother demo recording" , "g_synchronousClients 1" );
-	}
+    void Run(const Cmd::Args& args) const OVERRIDE
+    {
+        if ( args.size() > 2 )
+        {
+            PrintUsage(args, "[demoname]", "Begins recording a demo from the current position");
+            return;
+        }
 
-	if ( Cmd_Argc() == 2 )
-	{
-		s = Cmd_Argv( 1 );
-		Q_strncpyz( demoName, s, sizeof( demoName ) );
-		Com_sprintf( name, sizeof( name ), "demos/%s.dm_%d", demoName, PROTOCOL_VERSION );
-	}
+        if ( clc.demorecording )
+        {
+            Log::Warn("Already recording.");
+            return;
+        }
 
-	else
-	{
-		char    mapname[ MAX_QPATH ];
-		char    *period;
-		qtime_t time;
+        if ( cls.state != connstate_t::CA_ACTIVE )
+        {
+            Log::Warn("You must be in a level to record.");
+            return;
+        }
 
-		Com_RealTime( &time );
+        // ATVI Wolfenstein Misc #479 - changing this to a warning
+        // sync 0 doesn't prevent recording, so not forcing it off .. everyone does g_sync 1 ; record ; g_sync 0 ..
+        if ( NET_IsLocalAddress(clc.serverAddress) && !Cvar_VariableValue("g_synchronousClients") )
+        {
+            Log::Warn("You should set '%s' for smoother demo recording" , "g_synchronousClients 1");
+        }
 
-		Q_strncpyz( mapname, cl.mapname, MAX_QPATH );
+        std::string demo_name;
 
-		for ( period = mapname; *period; period++ )
-		{
-			if ( *period == '.' )
-			{
-				*period = '\0';
-				break;
-			}
-		}
+        if ( args.size() == 2 )
+        {
+            demo_name = args[1];
+        }
 
-		for ( period = mapname; *period; period++ )
-		{
-			if ( *period == '/' )
-			{
-				break;
-			}
-		}
+        CL_Record(demo_name);
+    }
 
-		if ( *period )
-		{
-			period++;
-		}
+};
+static DemoRecordCmd DemoRecordCmdRegistration;
 
-		Com_sprintf( name, sizeof( name ), "demos/%s-%s_%04i-%02i-%02i_%02i%02i%02i.dm_%d", NET_AdrToString( clc.serverAddress ), period,
-		             1900 + time.tm_year, time.tm_mon + 1, time.tm_mday,
-		             time.tm_hour, time.tm_min, time.tm_sec,
-		             PROTOCOL_VERSION );
-	}
+/**
+ * Returns a demo name from the current map and time
+ */
+std::string GenerateDemoName()
+{
+    qtime_t time;
+    Com_RealTime(&time);
 
-	CL_Record( name );
+    std::string map_name = cl.mapname;
+    map_name.erase(map_name.rfind('.'));
+    auto last_slash = map_name.rfind('/');
+    if ( last_slash != std::string::npos )
+        map_name.erase(0, last_slash + 1);
+
+    return Str::Format(
+        "%s-%s_%04i-%02i-%02i_%02i%02i%02i",
+        NET_AdrToString(clc.serverAddress),
+        map_name,
+        1900 + time.tm_year, time.tm_mon + 1, time.tm_mday,
+        time.tm_hour, time.tm_min, time.tm_sec
+    );
 }
 
-void CL_Record( const char *name )
+void CL_Record(std::string demo_name)
 {
-	int           i;
-	msg_t         buf;
-	byte          bufData[ MAX_MSGLEN ];
-	entityState_t *ent;
-	entityState_t nullstate;
-	int           len;
+    if ( demo_name.empty() )
+        demo_name = GenerateDemoName();
 
-	// open the demo file
+    std::string file_name = Str::Format("demos/%s.dm_%d", demo_name, PROTOCOL_VERSION);
+    clc.demofile = FS_FOpenFileWrite(file_name.c_str());
+    if ( !clc.demofile )
+    {
+        Log::Warn("couldn't open %s.", file_name);
+        return;
+    }
+    Log::Notice( "recording to %s.", file_name );
 
-	Log::Notice( "recording to %s.\n", name );
-	clc.demofile = FS_FOpenFileWrite( name );
+    clc.demorecording = true;
+    Q_strncpyz(clc.demoName, demo_name.c_str(), std::min<std::size_t>(demo_name.size(), MAX_QPATH));
+    Cvar::SetValueForce(cvar_demo_status_isrecording.Name(), "1");
+    Cvar::SetValueForce(cvar_demo_status_filename.Name(), demo_name);
 
-	if ( !clc.demofile )
-	{
-		Log::Warn("couldn't open." );
-		return;
-	}
+    // don't start saving messages until a non-delta compressed message is received
+    clc.demowaiting = true;
 
-	clc.demorecording = true;
-	Cvar_Set( "cl_demorecording", "1" );  // fretn
-	Q_strncpyz( clc.demoName, demoName, sizeof( clc.demoName ) );
-	Cvar_Set( "cl_demofilename", clc.demoName );  // bani
+    msg_t buf;
+    byte bufData[ MAX_MSGLEN ];
+    // write out the gamestate message
+    MSG_Init( &buf, bufData, sizeof( bufData ) );
+    MSG_Bitstream( &buf );
 
-	// don't start saving messages until a non-delta compressed message is received
-	clc.demowaiting = true;
+    // NOTE, MRE: all server->client messages now acknowledge
+    MSG_WriteLong( &buf, clc.reliableSequence );
 
-	// write out the gamestate message
-	MSG_Init( &buf, bufData, sizeof( bufData ) );
-	MSG_Bitstream( &buf );
+    MSG_WriteByte( &buf, svc_gamestate );
+    MSG_WriteLong( &buf, clc.serverCommandSequence );
 
-	// NOTE, MRE: all server->client messages now acknowledge
-	MSG_WriteLong( &buf, clc.reliableSequence );
 
-	MSG_WriteByte( &buf, svc_gamestate );
-	MSG_WriteLong( &buf, clc.serverCommandSequence );
+    // configstrings
+    for ( int i = 0; i < MAX_CONFIGSTRINGS; i++ )
+    {
+        if ( cl.gameState[i].empty() )
+        {
+            continue;
+        }
 
-	// configstrings
-	for ( i = 0; i < MAX_CONFIGSTRINGS; i++ )
-	{
-		if ( cl.gameState[i].empty() )
-		{
-			continue;
-		}
+        MSG_WriteByte( &buf, svc_configstring );
+        MSG_WriteShort( &buf, i );
+        MSG_WriteBigString( &buf, cl.gameState[i].c_str() );
+    }
 
-		MSG_WriteByte( &buf, svc_configstring );
-		MSG_WriteShort( &buf, i );
-		MSG_WriteBigString( &buf, cl.gameState[i].c_str() );
-	}
+    // baselines
+    entityState_t nullstate;
+    memset( &nullstate, 0, sizeof( nullstate ) );
 
-	// baselines
-	memset( &nullstate, 0, sizeof( nullstate ) );
+    for ( int i = 0; i < MAX_GENTITIES; i++ )
+    {
+        entityState_t *ent = &cl.entityBaselines[ i ];
 
-	for ( i = 0; i < MAX_GENTITIES; i++ )
-	{
-		ent = &cl.entityBaselines[ i ];
+        if ( !ent->number )
+        {
+            continue;
+        }
 
-		if ( !ent->number )
-		{
-			continue;
-		}
+        MSG_WriteByte( &buf, svc_baseline );
+        MSG_WriteDeltaEntity( &buf, &nullstate, ent, true );
+    }
 
-		MSG_WriteByte( &buf, svc_baseline );
-		MSG_WriteDeltaEntity( &buf, &nullstate, ent, true );
-	}
+    MSG_WriteByte( &buf, svc_EOF );
 
-	MSG_WriteByte( &buf, svc_EOF );
+    // finished writing the gamestate stuff
 
-	// finished writing the gamestate stuff
+    // write the client num
+    MSG_WriteLong( &buf, clc.clientNum );
+    // write the checksum feed
+    MSG_WriteLong( &buf, clc.checksumFeed );
 
-	// write the client num
-	MSG_WriteLong( &buf, clc.clientNum );
-	// write the checksum feed
-	MSG_WriteLong( &buf, clc.checksumFeed );
+    // finished writing the client packet
+    MSG_WriteByte( &buf, svc_EOF );
 
-	// finished writing the client packet
-	MSG_WriteByte( &buf, svc_EOF );
+    // write it to the demo file
+    int len = LittleLong( clc.serverMessageSequence - 1 );
+    FS_Write( &len, 4, clc.demofile );
 
-	// write it to the demo file
-	len = LittleLong( clc.serverMessageSequence - 1 );
-	FS_Write( &len, 4, clc.demofile );
+    len = LittleLong( buf.cursize );
+    FS_Write( &len, 4, clc.demofile );
+    FS_Write( buf.data, buf.cursize, clc.demofile );
 
-	len = LittleLong( buf.cursize );
-	FS_Write( &len, 4, clc.demofile );
-	FS_Write( buf.data, buf.cursize, clc.demofile );
-
-	// the rest of the demo file will be copied from net messages
+    // the rest of the demo file will be copied from net messages
 }
 
 /*
@@ -527,7 +523,7 @@ CL_DemoCompleted
 
 void CL_DemoCompleted()
 {
-	if ( cl_timedemo && cl_timedemo->integer )
+	if ( cvar_demo_timedemo.Get() )
 	{
 		int time;
 
@@ -535,16 +531,9 @@ void CL_DemoCompleted()
 
 		if ( time > 0 )
 		{
-			Log::Notice( "%i frames, %3.1fs: %3.1f fps\n", clc.timeDemoFrames,
+			Log::Notice( "%i frames, %3.1fs: %3.1f fps", clc.timeDemoFrames,
 			            time / 1000.0, clc.timeDemoFrames * 1000.0 / time );
 		}
-	}
-
-	// fretn
-	if ( clc.waverecording )
-	{
-		CL_WriteWaveClose();
-		clc.waverecording = false;
 	}
 
 	CL_Disconnect( true );
@@ -610,7 +599,7 @@ void CL_ReadDemoMessage()
 
 	if ( r != buf.cursize )
 	{
-		Log::Notice("%s", "Demo file was truncated.\n" );
+		Log::Notice("%s", "Demo file was truncated.");
 		CL_DemoCompleted();
 		return;
 	}
@@ -620,176 +609,10 @@ void CL_ReadDemoMessage()
 	CL_ParseServerMessage( &buf );
 }
 
-/*
-====================
 
-  Wave file saving functions
-
-  FIXME: make this actually work
-
-====================
-*/
-
-/*
-==================
-CL_DemoFilename
-==================
-*/
-void CL_WavFilename( int number, char *fileName )
-{
-	if ( number < 0 || number > 9999 )
-	{
-		Com_sprintf( fileName, MAX_OSPATH, "wav9999" );  // fretn - removed .tga
-		return;
-	}
-
-	Com_sprintf( fileName, MAX_OSPATH, "wav%04i", number );
-}
-
-struct wav_hdr_t
-{
-	unsigned int   ChunkID; // big endian
-	unsigned int   ChunkSize; // little endian
-	unsigned int   Format; // big endian
-
-	unsigned int   Subchunk1ID; // big endian
-	unsigned int   Subchunk1Size; // little endian
-	unsigned short AudioFormat; // little endian
-	unsigned short NumChannels; // little endian
-	unsigned int   SampleRate; // little endian
-	unsigned int   ByteRate; // little endian
-	unsigned short BlockAlign; // little endian
-	unsigned short BitsPerSample; // little endian
-
-	unsigned int   Subchunk2ID; // big endian
-	unsigned int   Subchunk2Size; // little endian
-
-	unsigned int   NumSamples;
-};
-
-wav_hdr_t hdr;
-
-static void CL_WriteWaveHeader()
-{
-	memset( &hdr, 0, sizeof( hdr ) );
-
-	hdr.ChunkID = 0x46464952; // "RIFF"
-	hdr.ChunkSize = 0; // total filesize - 8 bytes
-	hdr.Format = 0x45564157; // "WAVE"
-
-	hdr.Subchunk1ID = 0x20746d66; // "fmt "
-	hdr.Subchunk1Size = 16; // 16 = pcm
-	hdr.AudioFormat = 1; // 1 = linear quantization
-	hdr.NumChannels = 2; // 2 = stereo
-
-	//TODO
-	//hdr.SampleRate = dma.speed;
-
-	hdr.BitsPerSample = 16; // 16bits
-
-	// SampleRate * NumChannels * BitsPerSample/8
-	hdr.ByteRate = hdr.SampleRate * hdr.NumChannels * ( hdr.BitsPerSample / 8 );
-
-	// NumChannels * BitsPerSample/8
-	hdr.BlockAlign = hdr.NumChannels * ( hdr.BitsPerSample / 8 );
-
-	hdr.Subchunk2ID = 0x61746164; // "data"
-
-	hdr.Subchunk2Size = 0; // NumSamples * NumChannels * BitsPerSample/8
-
-	// ...
-	FS_Write( &hdr.ChunkID, 44, clc.wavefile );
-}
-
-static char wavName[ MAX_OSPATH ]; // compiler bug workaround
-void CL_WriteWaveOpen()
-{
-	// we will just save it as a 16bit stereo 22050kz pcm file
-
-	char name[ MAX_OSPATH ];
-	int  len;
-	const char *s;
-
-	if ( Cmd_Argc() > 2 )
-	{
-		Cmd_PrintUsage("<name>", nullptr);
-		return;
-	}
-
-	if ( clc.waverecording )
-	{
-		Log::Notice("%s", "Already recording a wav file\n" );
-		return;
-	}
-
-	// yes ... no ? leave it up to them imo
-	//if (cl_avidemo.integer)
-	//  return;
-
-	if ( Cmd_Argc() == 2 )
-	{
-		s = Cmd_Argv( 1 );
-		Q_strncpyz( wavName, s, sizeof( wavName ) );
-		Com_sprintf( name, sizeof( name ), "wav/%s.wav", wavName );
-	}
-	else
-	{
-		int number;
-
-		// I STOLE THIS
-		for ( number = 0; number <= 9999; number++ )
-		{
-			CL_WavFilename( number, wavName );
-			Com_sprintf( name, sizeof( name ), "wav/%s.wav", wavName );
-
-			len = FS_FileExists( name );
-
-			if ( len <= 0 )
-			{
-				break; // file doesn't exist
-			}
-		}
-	}
-
-	Log::Notice( "recording to %s.\n", name );
-	clc.wavefile = FS_FOpenFileWrite( name );
-
-	if ( !clc.wavefile )
-	{
-		Log::Warn("couldn't open %s for writing.", name );
-		return;
-	}
-
-	CL_WriteWaveHeader();
-	clc.wavetime = -1;
-
-	clc.waverecording = true;
-
-	Cvar_Set( "cl_waverecording", "1" );
-	Cvar_Set( "cl_wavefilename", wavName );
-	Cvar_Set( "cl_waveoffset", "0" );
-}
-
-void CL_WriteWaveClose()
-{
-	Log::Notice("%s", "Stopped recording\n" );
-
-	hdr.Subchunk2Size = hdr.NumSamples * hdr.NumChannels * ( hdr.BitsPerSample / 8 );
-	hdr.ChunkSize = 36 + hdr.Subchunk2Size;
-
-	FS_Seek( clc.wavefile, 4, fsOrigin_t::FS_SEEK_SET );
-	FS_Write( &hdr.ChunkSize, 4, clc.wavefile );
-	FS_Seek( clc.wavefile, 40, fsOrigin_t::FS_SEEK_SET );
-	FS_Write( &hdr.Subchunk2Size, 4, clc.wavefile );
-
-	// and we're outta here
-	FS_FCloseFile( clc.wavefile );
-	clc.wavefile = 0;
-}
-
-class DemoCmd: public Cmd::StaticCmd {
+class DemoPlayCmd: public Cmd::StaticCmd {
     public:
-        DemoCmd(): Cmd::StaticCmd("demo", Cmd::SYSTEM, "starts playing a demo file") {
+        DemoPlayCmd(): Cmd::StaticCmd("demo_play", Cmd::SYSTEM, "Starts playing a demo file") {
         }
 
         void Run(const Cmd::Args& args) const OVERRIDE {
@@ -837,10 +660,6 @@ class DemoCmd: public Cmd::StaticCmd {
             cls.state = connstate_t::CA_CONNECTED;
             clc.demoplaying = true;
 
-            if (Cvar_VariableValue( "cl_wavefilerecord")) {
-                CL_WriteWaveOpen();
-            }
-
             // read demo messages until connected
             while (cls.state >= connstate_t::CA_CONNECTED && cls.state < connstate_t::CA_PRIMED) {
                 CL_ReadDemoMessage();
@@ -849,10 +668,6 @@ class DemoCmd: public Cmd::StaticCmd {
             // don't get the first snapshot this frame, to prevent the long
             // time from the gamestate load from messing causing a time skip
             clc.firstDemoFrameSkipped = false;
-            //  if (clc.waverecording) {
-            //      CL_WriteWaveClose();
-            //      clc.waverecording = false;
-            //  }
         }
 
         Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const OVERRIDE {
@@ -863,31 +678,28 @@ class DemoCmd: public Cmd::StaticCmd {
             return {};
         }
 };
-static DemoCmd DemoCmdRegistration;
+static DemoPlayCmd DemoPlayCmdRegistration;
 
 /*
 ==================
 CL_NextDemo
 
 Called when a demo or cinematic finishes
-If the "nextdemo" cvar is set, that command will be issued
+If the "demo.next" cvar is set, that command will be issued
 ==================
 */
 void CL_NextDemo()
 {
-	char v[ MAX_STRING_CHARS ];
+	std::string v = cvar_demo_next.Get();
 
-	Q_strncpyz( v, Cvar_VariableString( "nextdemo" ), sizeof( v ) );
-	v[ MAX_STRING_CHARS - 1 ] = 0;
-	Log::Debug( "CL_NextDemo: %s", v );
-
-	if ( !v[ 0 ] )
+	if ( v.empty() )
 	{
 		return;
 	}
 
-	Cvar_Set( "nextdemo", "" );
-	Cmd::BufferCommandTextAfter(v, true);
+	Log::Debug( "CL_NextDemo: %s", v );
+	cvar_demo_next.Set("");
+	Cmd::BufferCommandTextAfter("demo_play " + v, false);
 	Cmd::ExecuteCommandBuffer();
 }
 
@@ -926,15 +738,7 @@ void CL_ShutdownAll()
 	cls.soundRegistered = false;
 
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
-	if ( clc.demorecording )
-	{
-		CL_StopRecord_f();
-	}
-
-	if ( clc.waverecording )
-	{
-		CL_WavStopRecord_f();
-	}
+	CL_StopRecord();
 }
 
 /*
@@ -1075,10 +879,7 @@ void CL_Disconnect( bool showMainMenu )
 		return;
 	}
 
-	if ( clc.demorecording )
-	{
-		CL_StopRecord_f();
-	}
+	CL_StopRecord();
 
 	if ( !cls.bWWWDlDisconnected )
 	{
@@ -1417,8 +1218,6 @@ void CL_Connect_f()
 	{
 		cls.state = connstate_t::CA_CONNECTING;
 	}
-
-	Cvar_Set( "cl_avidemo", "0" );
 
 	// we need to setup a correct default for this, otherwise the first val we set might reappear
 	Cvar_Set( "com_errorMessage", "" );
@@ -1793,7 +1592,6 @@ void CL_Vid_Restart_f()
 	// settings may have changed so stop recording now
 	if ( CL_VideoRecording() )
 	{
-		Cvar_Set( "cl_avidemo", "0" );
 		CL_CloseAVI();
 	}
 
@@ -1914,116 +1712,79 @@ void CL_Clientinfo_f()
 	Log::Notice("%s", "--------------------------------------" );
 }
 
-/*
-==============
-CL_WavRecord_f
-==============
-*/
 
-void CL_WavRecord_f()
+class DemoVideoCmd: public Cmd::StaticCmd
 {
-	if ( clc.wavefile )
-	{
-		Log::Notice("%s", "Already recording a wav file\n" );
-		return;
-	}
+public:
+    DemoVideoCmd()
+        : Cmd::StaticCmd("demo_video", Cmd::SYSTEM,
+                         "Begins recording a video from the current demo")
+    {}
 
-	CL_WriteWaveOpen();
-}
+    void Run(const Cmd::Args& args) const OVERRIDE
+    {
+        if ( args.size() > 2 )
+        {
+            PrintUsage(args, "[filename]", "Begins recording a video from the current demo");
+            return;
+        }
 
-/*
-==============
-CL_WavStopRecord_f
-==============
-*/
+        if ( !clc.demoplaying )
+        {
+            Log::Notice("%s", "The demo_video command can only be used when playing back demos");
+            return;
+        }
 
-void CL_WavStopRecord_f()
+        std::string filename;
+        if ( args.size() == 2 )
+        {
+            // explicit filename
+            filename = Str::Format( "videos/%s.avi", args[1] );
+        }
+        else
+        {
+            // scan for a free filename
+            int i;
+            for ( i = 0; i <= 9999; i++ )
+            {
+
+                filename = Str::Format("videos/%s-%04d.avi", clc.demoName, i);
+
+                if ( !FS::HomePath::FileExists(filename) )
+                {
+                    break; // file doesn't exist
+                }
+            }
+
+            if ( i > 9999 )
+            {
+                Log::Warn("no free file names to create video" );
+                return;
+            }
+        }
+
+        Log::Notice("Writing demo video to %s", filename);
+
+        CL_OpenAVIForWriting( filename.c_str() );
+    }
+};
+static DemoVideoCmd DemoVideoCmdRegistration;
+
+
+class DemoStopVideoCmd: public Cmd::StaticCmd
 {
-	if ( !clc.wavefile )
-	{
-		Log::Notice("%s", "Not recording a wav file\n" );
-		return;
-	}
+public:
+    DemoStopVideoCmd()
+        : Cmd::StaticCmd("demo_video_stop", Cmd::SYSTEM, "Stops recording a video")
+    {}
 
-	CL_WriteWaveClose();
-	Cvar_Set( "cl_waverecording", "0" );
-	Cvar_Set( "cl_wavefilename", "" );
-	Cvar_Set( "cl_waveoffset", "0" );
-	clc.waverecording = false;
-}
+    void Run(const Cmd::Args&) const OVERRIDE
+    {
+        CL_CloseAVI();
+    }
+};
+static DemoStopVideoCmd DemoStopVideoCmdRegistration;
 
-// XreaL BEGIN =======================================================
-
-/*
-===============
-CL_Video_f
-
-video
-video [filename]
-===============
-*/
-void CL_Video_f()
-{
-	char filename[ MAX_OSPATH ];
-	int  i, last;
-
-	if ( !clc.demoplaying )
-	{
-		Log::Notice("%s", "The video command can only be used when playing back demos\n" );
-		return;
-	}
-
-	if ( Cmd_Argc() == 2 )
-	{
-		// explicit filename
-		Com_sprintf( filename, MAX_OSPATH, "videos/%s.avi", Cmd_Argv( 1 ) );
-	}
-	else
-	{
-		// scan for a free filename
-		for ( i = 0; i <= 9999; i++ )
-		{
-			int a, b, c, d;
-
-			last = i;
-
-			a = last / 1000;
-			last -= a * 1000;
-			b = last / 100;
-			last -= b * 100;
-			c = last / 10;
-			last -= c * 10;
-			d = last;
-
-			Com_sprintf( filename, MAX_OSPATH, "videos/video%d%d%d%d.avi", a, b, c, d );
-
-			if ( !FS_FileExists( filename ) )
-			{
-				break; // file doesn't exist
-			}
-		}
-
-		if ( i > 9999 )
-		{
-			Log::Warn("no free file names to create video" );
-			return;
-		}
-	}
-
-	CL_OpenAVIForWriting( filename );
-}
-
-/*
-===============
-CL_StopVideo_f
-===============
-*/
-void CL_StopVideo_f()
-{
-	CL_CloseAVI();
-}
-
-// XreaL END =========================================================
 
 /*
 =================
@@ -3196,14 +2957,8 @@ void CL_Frame( int msec )
 	// if recording an avi, lock to a fixed fps
 	if ( CL_VideoRecording() && cl_aviFrameRate->integer && msec )
 	{
-		// XreaL BEGIN
-		if ( !CL_VideoRecording() )
-		{
-			CL_Video_f();
-		}
-
 		// save the current screen
-		if ( cls.state == connstate_t::CA_ACTIVE || cl_forceavidemo->integer )
+		if ( cls.state == connstate_t::CA_ACTIVE )
 		{
 			CL_TakeVideoFrame();
 
@@ -3531,20 +3286,15 @@ void CL_Init()
 
 	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
 
-	cl_wavefilerecord = Cvar_Get( "cl_wavefilerecord", "0", CVAR_TEMP );
-
 	cl_timeNudge = Cvar_Get( "cl_timeNudge", "0", CVAR_TEMP );
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
 	cl_shownuments = Cvar_Get( "cl_shownuments", "0", CVAR_TEMP );
 	cl_showServerCommands = Cvar_Get( "cl_showServerCommands", "0", 0 );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
-	cl_freezeDemo = Cvar_Get( "cl_freezeDemo", "0", CVAR_TEMP );
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
 	cl_autorecord = Cvar_Get( "cl_autorecord", "0", CVAR_TEMP );
 
-	cl_timedemo = Cvar_Get( "timedemo", "0", 0 );
-	cl_forceavidemo = Cvar_Get( "cl_forceavidemo", "0", 0 );
 	cl_aviFrameRate = Cvar_Get( "cl_aviFrameRate", "25", 0 );
 
 	// XreaL BEGIN
@@ -3618,13 +3368,6 @@ void CL_Init()
 	cl_gamename = Cvar_Get( "cl_gamename", GAMENAME_FOR_MASTER, CVAR_TEMP );
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
-	//bani - make these cvars visible to cgame
-	cl_demorecording = Cvar_Get( "cl_demorecording", "0", CVAR_ROM );
-	cl_demofilename = Cvar_Get( "cl_demofilename", "", CVAR_ROM );
-	cl_waverecording = Cvar_Get( "cl_waverecording", "0", CVAR_ROM );
-	cl_wavefilename = Cvar_Get( "cl_wavefilename", "", CVAR_ROM );
-	cl_waveoffset = Cvar_Get( "cl_waveoffset", "0", CVAR_ROM );
-
 	//bani
 	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
 	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
@@ -3657,9 +3400,7 @@ void CL_Init()
 	Cmd_AddCommand( "snd_restart", CL_Snd_Restart_f );
 	Cmd_AddCommand( "vid_restart", CL_Vid_Restart_f );
 	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
-	Cmd_AddCommand( "record", CL_Record_f );
 	Cmd_AddCommand( "cinematic", CL_PlayCinematic_f );
-	Cmd_AddCommand( "stoprecord", CL_StopRecord_f );
 	Cmd_AddCommand( "connect", CL_Connect_f );
 	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
 	Cmd_AddCommand( "localservers", CL_LocalServers_f );
@@ -3677,14 +3418,6 @@ void CL_Init()
 	// done.
 
 	Cmd_AddCommand( "setRecommended", CL_SetRecommended_f );
-
-	Cmd_AddCommand( "wav_record", CL_WavRecord_f );
-	Cmd_AddCommand( "wav_stoprecord", CL_WavStopRecord_f );
-
-// XreaL BEGIN
-	Cmd_AddCommand( "video", CL_Video_f );
-	Cmd_AddCommand( "stopvideo", CL_StopVideo_f );
-// XreaL END
 
 	SCR_Init();
 
@@ -3720,11 +3453,6 @@ void CL_Shutdown()
 
 	recursive = true;
 
-	if ( clc.waverecording ) // fretn - write wav header when we quit
-	{
-		CL_WavStopRecord_f();
-	}
-
 	CL_Disconnect( true );
 
 	CL_ShutdownCGame();
@@ -3748,9 +3476,7 @@ void CL_Shutdown()
 	Cmd_RemoveCommand( "snd_restart" );
 	Cmd_RemoveCommand( "vid_restart" );
 	Cmd_RemoveCommand( "disconnect" );
-	Cmd_RemoveCommand( "record" );
 	Cmd_RemoveCommand( "cinematic" );
-	Cmd_RemoveCommand( "stoprecord" );
 	Cmd_RemoveCommand( "connect" );
 	Cmd_RemoveCommand( "localservers" );
 	Cmd_RemoveCommand( "globalservers" );
@@ -3760,8 +3486,6 @@ void CL_Shutdown()
 	Cmd_RemoveCommand( "showip" );
 	Cmd_RemoveCommand( "model" );
 
-	Cmd_RemoveCommand( "wav_record" );
-	Cmd_RemoveCommand( "wav_stoprecord" );
 	// done.
 
 	CL_IRCWaitShutdown();

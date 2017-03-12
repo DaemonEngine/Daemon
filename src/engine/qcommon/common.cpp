@@ -74,7 +74,13 @@ cvar_t *com_speeds;
 cvar_t *com_developer;
 cvar_t *com_timescale;
 cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
-cvar_t *com_timedemo;
+
+Cvar::Cvar<bool> cvar_demo_timedemo(
+    "demo.timedemo",
+    "Whether to show timing statistics at the end of a demo",
+    Cvar::CHEAT,
+    false
+);
 cvar_t *com_sv_running;
 cvar_t *com_cl_running;
 cvar_t *com_logfile; // 1 = buffer log, 2 = flush after each print, 3 = append + flush
@@ -1239,7 +1245,6 @@ void Com_Init( char *commandLine )
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
-	com_timedemo = Cvar_Get( "timedemo", "0", CVAR_CHEAT );
 
 	cl_paused = Cvar_Get( "cl_paused", "0", CVAR_ROM );
 	sv_paused = Cvar_Get( "sv_paused", "0", CVAR_ROM );
@@ -1523,7 +1528,7 @@ void Com_Frame()
 	}
 
 	// we may want to spin here if things are going too fast
-	if ( !com_timedemo->integer )
+	if ( !cvar_demo_timedemo.Get() )
 	{
 		if ( Com_IsDedicatedServer() )
 		{

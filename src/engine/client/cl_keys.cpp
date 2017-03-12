@@ -1801,22 +1801,12 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 
 	// most keys during demo playback will bring up the menu, but non-ascii
 
-	/* Do something better than this :)
-	// keys can still be used for bound actions
-	if ( down && ( key < 128 || key == K_MOUSE1 )
-	         && ( clc.demoplaying || cls.state == CA_CINEMATIC ) && !cls.keyCatchers ) {
-
-	        Cvar_Set( "nextdemo","" );
-	        key = K_ESCAPE;
-	}
-	*/
-
 	// escape is always handled special
 	if ( key == K_ESCAPE && down )
 	{
 		if ( !( cls.keyCatchers & KEYCATCH_UI ) )
 		{
-			if ( cls.state == connstate_t::CA_ACTIVE && !clc.demoplaying )
+			if ( cls.state == connstate_t::CA_ACTIVE )
 			{
 				// Arnout: on request
 				if ( cls.keyCatchers & KEYCATCH_CONSOLE ) // get rid of the console
