@@ -326,7 +326,7 @@ void CL_StopRecord()
     clc.demorecording = false;
     Cvar::SetValueForce(cvar_demo_status_isrecording.Name(), "0");
     Cvar::SetValueForce(cvar_demo_status_filename.Name(), "");
-    Log::Notice("%s", "Stopped demo.\n" );
+    Log::Notice("%s", "Stopped demo." );
 }
 
 class DemoRecordStopCmd: public Cmd::StaticCmd
@@ -340,7 +340,7 @@ public:
     {
         if ( !clc.demorecording )
         {
-            Log::Notice("%s", "Not recording a demo.\n" );
+            Log::Notice("%s", "Not recording a demo." );
             return;
         }
         CL_StopRecord();
@@ -366,13 +366,13 @@ public:
 
         if ( clc.demorecording )
         {
-            Log::Warn("Already recording." );
+            Log::Warn("Already recording.");
             return;
         }
 
         if ( cls.state != connstate_t::CA_ACTIVE )
         {
-            Log::Warn("You must be in a level to record." );
+            Log::Warn("You must be in a level to record.");
             return;
         }
 
@@ -431,7 +431,7 @@ void CL_Record(std::string demo_name)
         Log::Warn("couldn't open %s.", file_name);
         return;
     }
-    Log::Notice( "recording to %s.\n", file_name );
+    Log::Notice( "recording to %s.", file_name );
 
     clc.demorecording = true;
     Q_strncpyz(clc.demoName, demo_name.c_str(), std::min<std::size_t>(demo_name.size(), MAX_QPATH));
@@ -531,7 +531,7 @@ void CL_DemoCompleted()
 
 		if ( time > 0 )
 		{
-			Log::Notice( "%i frames, %3.1fs: %3.1f fps\n", clc.timeDemoFrames,
+			Log::Notice( "%i frames, %3.1fs: %3.1f fps", clc.timeDemoFrames,
 			            time / 1000.0, clc.timeDemoFrames * 1000.0 / time );
 		}
 	}
@@ -599,7 +599,7 @@ void CL_ReadDemoMessage()
 
 	if ( r != buf.cursize )
 	{
-		Log::Notice("%s", "Demo file was truncated.\n" );
+		Log::Notice("%s", "Demo file was truncated.");
 		CL_DemoCompleted();
 		return;
 	}
@@ -1731,7 +1731,7 @@ public:
 
         if ( !clc.demoplaying )
         {
-            Log::Notice("%s", "The demo_video command can only be used when playing back demos\n" );
+            Log::Notice("%s", "The demo_video command can only be used when playing back demos");
             return;
         }
 
