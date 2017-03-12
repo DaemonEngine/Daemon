@@ -329,10 +329,10 @@ void CL_StopRecord()
     Log::Notice("%s", "Stopped demo.\n" );
 }
 
-class DemoStopRecordCmd: public Cmd::StaticCmd
+class DemoRecordStopCmd: public Cmd::StaticCmd
 {
 public:
-    DemoStopRecordCmd()
+    DemoRecordStopCmd()
         : Cmd::StaticCmd("demo_record_stop", Cmd::SYSTEM, "Stops recording a demo")
     {}
 
@@ -346,7 +346,7 @@ public:
         CL_StopRecord();
     }
 };
-static DemoStopRecordCmd DemoStopRecordCmdRegistration;
+static DemoRecordStopCmd DemoRecordStopCmdRegistration;
 
 
 class DemoRecordCmd : public Cmd::StaticCmd
