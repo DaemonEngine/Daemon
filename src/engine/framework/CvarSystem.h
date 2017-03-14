@@ -88,6 +88,7 @@ namespace Cvar {
     void SetValueCProxy(const std::string& cvarName, const std::string& value);
 
     void SetCheatsAllowed(bool allowed);
+    void ClearCvarMap();
 
     //Kept as a reference for cvar flags
 

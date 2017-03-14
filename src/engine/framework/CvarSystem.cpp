@@ -168,6 +168,34 @@ namespace Cvar {
         return *cvars;
     }
 
+	void ClearCvarMap() {
+		CvarMap _cvars = GetCvarMap();
+
+		for (auto it: _cvars) {
+			cvar_t &cvar = it.second->ccvar;
+
+			if (cvar.name)
+			{
+				Z_Free(cvar.name);
+			}
+
+			if (cvar.resetString)
+			{
+				Z_Free(cvar.resetString);
+			}
+
+			if (cvar.latchedString)
+			{
+				Z_Free(cvar.latchedString);
+			}
+
+			if (cvar.string)
+			{
+				Z_Free(cvar.string);
+			}
+		}
+	}
+
     // A command created for each cvar, used for /<cvar>
     class CvarCommand : public Cmd::CmdBase {
         public:

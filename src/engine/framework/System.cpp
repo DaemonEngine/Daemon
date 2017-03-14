@@ -282,6 +282,7 @@ static void Shutdown(bool error, Str::StringRef message)
     Application::Shutdown(error, message);
 
 	// Always run CON_Shutdown, because it restores the terminal to a usable state.
+	Cvar_ClearCvarMap();
 	CON_Shutdown();
 }
 

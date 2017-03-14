@@ -169,3 +169,7 @@ Cvar_InfoString
 char* Cvar_InfoString(int flag, bool big) {
     return Cvar::InfoString(flag, big);
 }
+
+void Cvar_ClearCvarMap(void) {
+	Cvar::ClearCvarMap();
+}

@@ -1342,3 +1342,16 @@ void CL_ClearKeys()
 
 	memset( kb, 0, sizeof( kb ) );
 }
+
+void CL_ClearInput()
+{
+	int i;
+
+	for ( i = 0; i < USERCMD_BUTTONS; ++i )
+	{
+		if ( registeredButtonCommands[ i ] )
+		{
+			Z_Free( registeredButtonCommands[i] );
+		}
+	}
+}
