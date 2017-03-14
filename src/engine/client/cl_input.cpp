@@ -1352,6 +1352,7 @@ void CL_ClearInput()
 		if ( registeredButtonCommands[ i ] )
 		{
 			Z_Free( registeredButtonCommands[i] );
+			registeredButtonCommands[i] = nullptr;
 		}
 	}
 }

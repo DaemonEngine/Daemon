@@ -120,11 +120,6 @@ void Cvar_WriteVariables(fileHandle_t f);
 char *Cvar_InfoString(int bit, bool big);
 
 /**
- * free general cvars resources
- */
-void Cvar_ClearCvarMap(void);
-
-/**
  *  whenever a cvar is modified, its flags will be OR'd into this, so
  *  a single check can determine if any CVAR_USERINFO, CVAR_SERVERINFO,
  *  etc, variables have been modified since the last check.  The bit

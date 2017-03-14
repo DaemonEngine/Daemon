@@ -1687,6 +1687,7 @@ void CL_ClearKeyBinding()
 			if ( keys[ keynum ].binding[ team ] )
 			{
 				Z_Free( keys[ keynum ].binding[ team ] );
+				keys[ keynum ].binding[ team ] = nullptr;
 			}
 		}
 	}

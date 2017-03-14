@@ -111,7 +111,6 @@ using SOCKET = int;
 #include <GeoIP.h>
 static GeoIP *geoip_data_4 = nullptr;
 static GeoIP *geoip_data_6 = nullptr;
-extern char **GeoIPDBFileName;
 #endif
 
 static bool            usingSocks = false;
@@ -2076,16 +2075,7 @@ void NET_Shutdown()
 		geoip_data_4 = nullptr;
 	}
 
-	if (GeoIPDBFileName)
-	{
-		for (int i = 0; i < NUM_DB_TYPES; i ++)
-		{
-			free(GeoIPDBFileName[i]);
-		}
-
-		free(GeoIPDBFileName);
-		GeoIPDBFileName = nullptr;
-	}
+	GeoIP_cleanup();
 #endif
 
 #ifdef _WIN32

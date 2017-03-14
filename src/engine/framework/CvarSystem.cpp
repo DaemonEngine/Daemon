@@ -168,10 +168,10 @@ namespace Cvar {
         return *cvars;
     }
 
-	void ClearCvarMap() {
-		CvarMap _cvars = GetCvarMap();
+	void Shutdown() {
+		CvarMap &cvars = GetCvarMap();
 
-		for (auto it: _cvars) {
+		for (const auto &it: cvars) {
 			cvar_t &cvar = it.second->ccvar;
 
 			if (cvar.name)
@@ -194,6 +194,8 @@ namespace Cvar {
 				Z_Free(cvar.string);
 			}
 		}
+
+		cvars.clear();
 	}
 
     // A command created for each cvar, used for /<cvar>
