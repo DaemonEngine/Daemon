@@ -24,6 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <common/FileSystem.h>
 #include "tr_local.h"
 
+#include <SDL.h>
+#include <SDL_ttf.h>
+
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int                  gl_filter_max = GL_LINEAR;
 
@@ -31,6 +34,7 @@ image_t              *r_imageHashTable[ IMAGE_FILE_HASH_SIZE ];
 
 #define Tex_ByteToFloat(v) ( ( (int)(v) - 128 ) / 127.0f )
 #define Tex_FloatToByte(v) ( 128 + (int) ( (v) * 127.0f + 0.5 ) )
+#define CHARSETIMAGE_CHARSIZE 16
 
 struct textureMode_t
 {
@@ -2790,6 +2794,72 @@ void R_CreateBuiltinImages()
 	R_CreateColorGradeImage();
 }
 
+void R_CreateCharsetImage()
+{
+	// charsetImage
+	if ( TTF_Init() < 0 )
+	{
+		Log::Warn( "R_CreateCharsetImage: could not load init SDL_ttf");
+		tr.charsetImage = tr.whiteImage;
+		return;
+	}
+	SDL_Surface* charsetSurf = SDL_CreateRGBSurface ( SDL_SWSURFACE, 16*CHARSETIMAGE_CHARSIZE, 16*CHARSETIMAGE_CHARSIZE, 32, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF );
+	char* fontname = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH )->string;
+	std::string fontfile = FS::PakPath::ReadFile ( fontname );
+	TTF_Font* font = TTF_OpenFontRW ( SDL_RWFromConstMem ( fontfile.c_str (), fontfile.size () ), 1, CHARSETIMAGE_CHARSIZE );
+	if ( font == NULL )
+	{
+		Log::Warn( "R_CreateCharsetImage: could not open font %s", fontname );
+		tr.charsetImage = tr.whiteImage;
+		return;
+	}
+	SDL_Surface* charSurf = NULL;
+	SDL_Rect dest;
+	dest.w = 16;
+	dest.h = 16;
+	char c[2];
+	c[1] = 0;
+	for (uint8_t i = 0; i < 16; ++i)
+	{
+		for (uint8_t j = 0; j < 16; ++j)
+		{
+			dest.x = j*CHARSETIMAGE_CHARSIZE;
+			dest.y = i*CHARSETIMAGE_CHARSIZE;
+			c[0] = i*16+j;
+			charSurf = TTF_RenderText_Solid ( font, c, {255, 255, 255} );
+			SDL_BlitSurface ( charSurf, NULL, charsetSurf, &dest );
+			SDL_FreeSurface ( charSurf );
+		}
+	}
+	SDL_LockSurface ( charsetSurf );
+	byte  data[ CHARSETIMAGE_CHARSIZE*16 ][ CHARSETIMAGE_CHARSIZE*16 ][ 4 ];
+	byte  *dataPtr = &data[0][0][0];
+	byte  *out = &data[ 0 ][ 0 ][ 0 ];
+
+	int bpp = charsetSurf->format->BytesPerPixel;
+	for (int y = 0; y < CHARSETIMAGE_CHARSIZE*16; y++ )
+	{
+		for (int x = 0; x < CHARSETIMAGE_CHARSIZE*16; x++, out += 4 )
+		{
+			byte* pixeldata = (byte *)charsetSurf->pixels + y*charsetSurf->pitch + x*bpp;
+			out [ 0 ] = 255;
+			out [ 1 ] = 255;
+			out [ 2 ] = 255;
+			out [ 3 ] = *(pixeldata+3);
+		}
+	}
+
+	tr.charsetImage =
+		R_CreateImage( "_consolechars", ( const byte ** ) &dataPtr,
+					   CHARSETIMAGE_CHARSIZE*16, CHARSETIMAGE_CHARSIZE*16, 1, IF_NOPICMIP | IF_NOCOMPRESSION,
+					   filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP );
+
+	SDL_UnlockSurface ( charsetSurf );
+	TTF_CloseFont ( font );
+	TTF_Quit ();
+
+}
+
 /*
 ===============
 R_InitImages
@@ -2797,8 +2867,6 @@ R_InitImages
 */
 void R_InitImages()
 {
-	const char *charsetImage = "gfx/2d/consolechars";
-
 	Log::Debug("------- R_InitImages -------" );
 
 	Com_Memset( r_imageHashTable, 0, sizeof( r_imageHashTable ) );
@@ -2814,13 +2882,7 @@ void R_InitImages()
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();
-
-	tr.charsetImage = R_FindImageFile( charsetImage, IF_NOCOMPRESSION | IF_NOPICMIP, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP );
-
-	if ( !tr.charsetImage )
-	{
-		ri.Error( errorParm_t::ERR_FATAL, "R_InitImages: could not load '%s'", charsetImage );
-	}
+	R_CreateCharsetImage();
 }
 
 /*
