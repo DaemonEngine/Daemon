@@ -1676,6 +1676,23 @@ void CL_InitKeyCommands()
 	Cmd_AddCommand( "setkeydata", Key_SetKeyData_f );
 }
 
+void CL_ClearKeyBinding()
+{
+	int team, keynum;
+
+	for ( team = 0; team < MAX_TEAMS; team++ )
+	{
+		for ( keynum = 0; keynum < MAX_KEYS; keynum++ )
+		{
+			if ( keys[ keynum ].binding[ team ] )
+			{
+				Z_Free( keys[ keynum ].binding[ team ] );
+				keys[ keynum ].binding[ team ] = nullptr;
+			}
+		}
+	}
+}
+
 /*
 ===================
 CL_KeyEvent

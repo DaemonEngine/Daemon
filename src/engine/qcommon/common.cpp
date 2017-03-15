@@ -1710,6 +1710,7 @@ Com_Shutdown
 */
 void Com_Shutdown()
 {
+	NET_Shutdown();
 	if ( logfile )
 	{
 		FS_FCloseFile( logfile );

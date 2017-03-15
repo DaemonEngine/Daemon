@@ -1569,6 +1569,12 @@ static void CL_LoadRSAKeys()
 	Log::Notice( "%s", "Daemon RSA public-key found." );
 }
 
+static void CL_ClearRSAKeys()
+{
+	rsa_private_key_clear( &private_key );
+	rsa_public_key_clear( &public_key );
+}
+
 
 /*
 =================
@@ -3485,6 +3491,11 @@ void CL_Shutdown()
 	Cmd_RemoveCommand( "serverstatus" );
 	Cmd_RemoveCommand( "showip" );
 	Cmd_RemoveCommand( "model" );
+
+	CL_ClearKeyBinding();
+	CL_ClearInput();
+
+	CL_ClearRSAKeys();
 
 	// done.
 

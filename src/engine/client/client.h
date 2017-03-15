@@ -582,7 +582,9 @@ enum kbuttons_t
 };
 
 void CL_ClearKeys();
+void CL_ClearKeyBinding();
 void CL_ClearCmdButtons();
+void CL_ClearInput();
 
 void CL_InitInput();
 void CL_SendCmd();

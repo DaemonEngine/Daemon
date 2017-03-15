@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "LogSystem.h"
 #include "System.h"
 #include "CrashDump.h"
+#include "CvarSystem.h"
 #include <common/FileSystem.h>
 #ifdef _WIN32
 #include <windows.h>
@@ -281,6 +282,10 @@ static void Shutdown(bool error, Str::StringRef message)
 
     Application::Shutdown(error, message);
 
+	if ( !error)
+	{
+		Cvar::Shutdown();
+	}
 	// Always run CON_Shutdown, because it restores the terminal to a usable state.
 	CON_Shutdown();
 }

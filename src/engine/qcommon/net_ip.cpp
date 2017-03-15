@@ -2031,8 +2031,15 @@ void NET_Init()
 #endif
 
 #ifdef HAVE_GEOIP
-	geoip_data_4 = NET_GeoIP_LoadData( GEOIP_COUNTRY_EDITION );
-	geoip_data_6 = NET_GeoIP_LoadData( GEOIP_COUNTRY_EDITION_V6 );
+	if (geoip_data_4 == nullptr)
+	{
+		geoip_data_4 = NET_GeoIP_LoadData( GEOIP_COUNTRY_EDITION );
+	}
+
+	if (geoip_data_6 == nullptr)
+	{
+		geoip_data_6 = NET_GeoIP_LoadData( GEOIP_COUNTRY_EDITION_V6 );
+	}
 	Log::Notice( "Loaded GeoIP data: ^%dIPv4 ^%dIPv6", geoip_data_4 ? 2 : 1, geoip_data_6 ? 2 : 1 );
 #endif
 
@@ -2054,6 +2061,22 @@ void NET_Shutdown()
 	}
 
 	NET_Config( false );
+
+#ifdef HAVE_GEOIP
+    if ( geoip_data_6 )
+	{
+		GeoIP_delete(geoip_data_6);
+		geoip_data_6 = nullptr;
+	}
+
+	if ( geoip_data_4 )
+	{
+		GeoIP_delete(geoip_data_4);
+		geoip_data_4 = nullptr;
+	}
+
+	GeoIP_cleanup();
+#endif
 
 #ifdef _WIN32
 	WSACleanup();
