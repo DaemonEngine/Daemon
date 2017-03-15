@@ -2833,8 +2833,8 @@ void R_CreateCharsetImage()
 	}
 	SDL_LockSurface ( charsetSurf );
 	byte  data [ CHARSETIMAGE_CHARSIZE*16 * CHARSETIMAGE_CHARSIZE*16 * 4 ];
-	byte  *dataPtr = &data [ 0 ];
-	byte  *out = &data [ 0 ];
+	byte  *dataPtr = data;
+	byte  *out = data;
 
 	int bpp = charsetSurf->format->BytesPerPixel;
 	for (int y = 0; y < CHARSETIMAGE_CHARSIZE*16; y++ )
