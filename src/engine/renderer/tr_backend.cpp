@@ -3800,7 +3800,7 @@ static void RB_RenderDebugUtils()
 								break;
 							}
 
-							glyphInfo_t *glyph = &cls.consoleFont->glyphBlock[ ch / 256][ ch % 256 ];
+							glyphInfo_t *glyph = &cls.consoleFont->glyphBlock[ 0 ][ ch ];
 							re.GlyphChar( cls.consoleFont, ch, glyph );
 
 							// factor 1.5 improves readability
