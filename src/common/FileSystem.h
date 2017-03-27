@@ -41,6 +41,12 @@ namespace FS {
 
 bool UseLegacyPaks();
 
+// Pak zip and directory extensions
+const char LEGACY_PAK_ZIP_EXT[] = ".pk3";
+const char LEGACY_PAK_DIR_EXT[] = ".pk3dir/";
+const char PAK_ZIP_EXT[] = ".dpk";
+const char PAK_DIR_EXT[] = ".dpkdir/";
+
 // File offset type. Using 64bit to allow large files.
 using offset_t = int64_t;
 

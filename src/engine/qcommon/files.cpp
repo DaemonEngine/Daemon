@@ -627,11 +627,14 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 	for (auto& x: args) {
 		std::string name, version;
 		Util::optional<uint32_t> checksum;
+
 		if (!FS::ParsePakName(x.data(), x.data() + x.size(), name, version, checksum)) {
 			Com_Error(errorParm_t::ERR_DROP, "Invalid pak reference from server: %s", x.c_str());
-		} else if (!checksum) {
-			if (isDemo || allowRemotePakDir.Get())
+		} else if (!version.empty() && !checksum) {
+			// non-legacy paks (with non empty version) must have a checksum
+			if (isDemo || allowRemotePakDir.Get()) {
 				continue;
+			}
 			Com_Error(errorParm_t::ERR_DROP, "The server is configured to load game data from a directory which makes it incompatible with remote clients.");
 		}
 
@@ -669,19 +672,19 @@ bool FS_ComparePaks(char* neededpaks, int len, bool dlstring)
 			Q_strcat(neededpaks, len, "@");
 			Q_strcat(neededpaks, len, FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str());
 			Q_strcat(neededpaks, len, "@");
-			std::string pakName = Str::Format("pkg/%s.pk3", FS::MakePakName(std::get<0>(x), std::get<1>(x)));
+			std::string pakName = Str::Format("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x)));
 			if (FS::HomePath::FileExists(pakName))
-				Q_strcat(neededpaks, len, va("pkg/%s.pk3", FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str()));
+				Q_strcat(neededpaks, len, va("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str()));
 			else
 				Q_strcat(neededpaks, len, pakName.c_str());
 		} else {
-			Q_strcat(neededpaks, len, va("%s.pk3", FS::MakePakName(std::get<0>(x), std::get<1>(x)).c_str()));
+			Q_strcat(neededpaks, len, va("%s", FS::MakePakName(std::get<0>(x), std::get<1>(x)).c_str()));
 			if (FS::FindPak(std::get<0>(x), std::get<1>(x))) {
 				Q_strcat(neededpaks, len, " (local file exists with wrong checksum)");
 #ifndef BUILD_SERVER
 				if (CL_WWWBadChecksum(FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str())) {
 					try {
-						FS::HomePath::DeleteFile(Str::Format("pkg/%s.pk3", FS::MakePakName(std::get<0>(x), std::get<1>(x))));
+						FS::HomePath::DeleteFile(Str::Format("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x))));
 					} catch (std::system_error&) {}
 				}
 #endif
