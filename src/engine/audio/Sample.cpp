@@ -70,8 +70,6 @@ namespace Audio {
 
     // Implementation of the sample storage
 
-    static const char errorSampleName[] = "sound/feedback/hit.wav";
-    static std::shared_ptr<Sample> errorSample = nullptr;
     bool initialized = false;
 
     void InitSamples() {
@@ -79,11 +77,7 @@ namespace Audio {
             return;
         }
 
-        sampleManager = new Resource::Manager<Sample>(errorSampleName);
-
-        // Work around for the lack of VM Handles, initiliaze the HandledResource
-        auto errorSample = sampleManager->GetResource(errorSampleName).Get();
-        errorSample->InitHandle(errorSample);
+        sampleManager = new Resource::Manager<Sample>();
 
         initialized = true;
     }
@@ -92,8 +86,6 @@ namespace Audio {
         if (not initialized) {
             return;
         }
-
-        errorSample = nullptr;
 
         delete sampleManager;
         sampleManager = nullptr;
