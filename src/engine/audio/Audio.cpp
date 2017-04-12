@@ -232,9 +232,16 @@ namespace Audio {
         BeginSampleRegistration();
     }
 
+    // return the handle to a Sample, -1 if not found
     sfxHandle_t RegisterSFX(Str::StringRef filename) {
         // TODO: what should we do if we aren't initialized?
-        return RegisterSample(filename)->GetHandle();
+        auto sample = RegisterSample(filename);
+        if (sample == nullptr)
+        {
+            Log::Warn ( "RegisterSFX: Sample %s not found", filename );
+            return -1;
+        }
+        return sample->GetHandle();
     }
 
     void EndRegistration() {
