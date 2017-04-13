@@ -390,8 +390,8 @@ but not on every player enter or exit.
 ================
 */
 static const int HEARTBEAT_MSEC = (300 * 1000);
-#define HEARTBEAT_GAME PRODUCT_NAME
-#define HEARTBEAT_DEAD PRODUCT_NAME "-dead"
+#define HEARTBEAT_GAME ENGINE_NAME
+#define HEARTBEAT_DEAD HEARTBEAT_GAME "-dead"
 
 void SV_MasterHeartbeat( const char *hbname )
 {
