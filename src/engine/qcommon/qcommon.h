@@ -41,6 +41,10 @@ Maryland 20850 USA.
 #include "common/Defs.h"
 #include "net_types.h"
 
+#if !defined(BUILD_VM)
+#include "framework/GameInfo.h"
+#endif
+
 //============================================================================
 
 //
@@ -230,9 +234,6 @@ The server you attempted to join is running an incompatible version of the game.
 You or the server may be running older versions of the game."
 
 #define PROTOCOL_VERSION       86
-
-#define URI_SCHEME             GAMENAME_STRING "://"
-#define URI_SCHEME_LENGTH      ( ARRAY_LEN( URI_SCHEME ) - 1 )
 
 #define PORT_MASTER             27950
 #define PORT_SERVER             27960
