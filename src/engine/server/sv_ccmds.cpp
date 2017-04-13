@@ -270,7 +270,8 @@ public:
 		Print(
 			"(begin server status)\n"
 			"hostname: %s\n"
-			"version:  %s\n"
+			"game:     %s\n"
+			"engine:   %s\n"
 			"protocol: %d\n"
 			"cpu:      %.0f%%\n"
 			"time:     %s\n"
@@ -279,7 +280,8 @@ public:
 			"num score connection address                port   name\n"
 			"--- ----- ---------- ---------------------- ------ ----",
 			sv_hostname->string,
-			Q3_VERSION " on " Q3_ENGINE,
+			GAME_NAME_VERSION,
+			ENGINE_NAME_VERSION,
 			PROTOCOL_VERSION,
 			cpu,
 			time_string,

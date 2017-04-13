@@ -608,7 +608,8 @@ void SV_Init()
 	Cvar_Get( "pakname", "", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar_Get( "layout", "", CVAR_SERVERINFO );
 	Cvar_Get( "g_layouts", "", 0 ); // FIXME
-	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
+	sv_hostname = Cvar_Get( "sv_hostname", Gameinfo::getInstance().unnamedservername().c_str(), CVAR_SERVERINFO  );
+	sv_hostname = Cvar_Get( "sv_hostname", Gameinfo::getInstance().unnamedservername().c_str(), CVAR_SERVERINFO  );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );  // NERVE - SMF - changed to 20 from 8
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0",  CVAR_SERVERINFO );
 	sv_floodProtect = Cvar_Get( "sv_floodProtect", "0",  CVAR_SERVERINFO );
@@ -638,7 +639,7 @@ void SV_Init()
 	sv_dl_maxRate = Cvar_Get( "sv_dl_maxRate", "42000", 0 );
 
 	sv_wwwDownload = Cvar_Get( "sv_wwwDownload", "0", 0 );
-	sv_wwwBaseURL = Cvar_Get( "sv_wwwBaseURL", WWW_BASEURL, 0 );
+	sv_wwwBaseURL = Cvar_Get( "sv_wwwBaseURL", Gameinfo::getInstance().wwwbaseurl().c_str(), 0 );
 	sv_wwwFallbackURL = Cvar_Get( "sv_wwwFallbackURL", "", 0 );
 
 	//bani

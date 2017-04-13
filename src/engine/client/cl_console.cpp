@@ -688,8 +688,8 @@ void Con_DrawAboutText()
 	//ANIMATION_TYPE_FADE but also ANIMATION_TYPE_SCROLL_DOWN needs this, latter, since it might otherwise scroll out the console
 	color.SetAlpha( 0.66f * consoleState.currentAnimationFraction );
 
-	Con_DrawRightFloatingTextLine( 0, color, Q3_VERSION );
-	Con_DrawRightFloatingTextLine( 1, color, Q3_ENGINE );
+	Con_DrawRightFloatingTextLine( 0, color, GAME_NAME_VERSION );
+	Con_DrawRightFloatingTextLine( 1, color, ENGINE_NAME_VERSION );
 }
 
 /*
