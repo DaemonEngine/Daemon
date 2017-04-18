@@ -40,6 +40,9 @@ Maryland 20850 USA.
 #include "cvar.h"
 #include "common/Defs.h"
 #include "net_types.h"
+#ifndef BUILD_VM
+#include "gameinfo.h"
+#endif
 
 //============================================================================
 

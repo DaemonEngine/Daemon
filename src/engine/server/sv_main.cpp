@@ -603,7 +603,7 @@ void SVC_Info( netadr_t from, const Cmd::Args& args )
 		info_map["stats"] = sv_statsURL->string;
 	}
 
-	info_map["gamename"] = GAMENAME_STRING;  // Arnout: to be able to filter out Quake servers
+	info_map["gamename"] = Gameinfo::getInstance().name_upper();  // Arnout: to be able to filter out Quake servers
 
 	Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "infoResponse\n%s", InfoMapToString( info_map ) );
 }
