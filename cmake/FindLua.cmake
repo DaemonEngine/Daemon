@@ -99,7 +99,7 @@ set_lua_version_vars()
 find_path(LUA_INCLUDE_DIR lua.h
   HINTS
     ENV LUA_DIR
-  PATH_SUFFIXES ${_lua_include_subdirs} include/lua include
+  PATH_SUFFIXES include/lua ${_lua_include_subdirs} include
   PATHS
   ~/Library/Frameworks
   /Library/Frameworks
