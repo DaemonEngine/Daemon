@@ -55,21 +55,6 @@ AudioData LoadSoundCodec(std::string filename)
 
 	std::string ext = FS::Path::Extension(filename);
 
-	// if filename has extension, try to load it
-	if (ext != "") {
-		// look for the correct loader and use it
-		for (int i = 0; i < numSoundLoaders; i++) {
-			if (ext == soundLoaders[i].ext) {
-				// if file exists, load it
-				if (FS::PakPath::FileExists(filename)) {
-					return soundLoaders[i].SoundLoader(filename);
-				}
-			}
-		}
-	}
-
-	// if filename does not have extension or there is no file with such extension
-	// or if there is no codec available for this file format,
 	// try and find a suitable match using all the sound file formats supported
 	// prioritize with the pak priority
 	int bestLoader = -1;
