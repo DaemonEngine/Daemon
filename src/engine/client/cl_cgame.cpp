@@ -316,7 +316,6 @@ CL_ShutdownCGame
 */
 void CL_ShutdownCGame()
 {
-	cls.keyCatchers &= ~KEYCATCH_CGAME;
 	cls.cgameStarted = false;
 
 	if ( !cgvm.IsActive() )
