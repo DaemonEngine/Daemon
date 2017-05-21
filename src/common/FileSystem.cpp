@@ -1068,6 +1068,8 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 		} else {
 			fsLogs.Notice("Loading legacy pakdir '%s'...", pak.path.c_str());
 		}
+	} else {
+		UNREACHABLE();
 	}
 
 	loadedPaks.emplace_back();
@@ -1097,7 +1099,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			if (err)
 				return;
 		}
-	} else {
+	} else if (pak.type == pakType_t::PAK_ZIP) {
 		// Open file
 		loadedPaks.back().fd = my_open(pak.path, openMode_t::MODE_READ);
 		if (loadedPaks.back().fd == -1) {
@@ -1141,6 +1143,8 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 		}, err);
 		if (err)
 			return;
+	} else {
+		UNREACHABLE();
 	}
 
 	// Save the real checksum in the list of loaded paks (empty for directories, not used for legacy paks)
@@ -1177,7 +1181,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			depsData = depsFile.ReadAll(err);
 			if (err)
 				return;
-		} else {
+		} else if (pak.type == pakType_t::PAK_ZIP) {
 			zipFile.OpenFile(depsOffset, err);
 			if (err)
 				return;
@@ -1189,6 +1193,8 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			depsData.resize(read);
 			if (err)
 				return;
+		} else {
+			UNREACHABLE();
 		}
 		ParseDeps(pak, depsData, err);
 	}
@@ -1272,7 +1278,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 		out.resize(length);
 		file.Read(&out[0], length, err);
 		return out;
-	} else {
+	} else if (pak.type == pakType_t::PAK_ZIP) {
 		// Open zip
 		ZipArchive zipFile = ZipArchive::Open(pak.fd, err);
 		if (err)
@@ -1301,6 +1307,8 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 			return "";
 
 		return out;
+	} else {
+		UNREACHABLE();
 	}
 }
 
@@ -1324,7 +1332,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 		if (err)
 			return;
 		file.CopyTo(dest, err);
-	} else {
+	} else if (pak.type == pakType_t::PAK_ZIP) {
 		// Open zip
 		ZipArchive zipFile = ZipArchive::Open(pak.fd, err);
 		if (err)
@@ -1350,6 +1358,8 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 
 		// Close file and check for CRC errors
 		zipFile.CloseFile(err);
+	} else {
+		UNREACHABLE();
 	}
 }
 
@@ -1390,8 +1400,11 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 #else
 		return RawPath::FileTimestamp(Path::Build(pak.path, path), err);
 #endif
-	} else
+	} else if (pak.type == pakType_t::PAK_ZIP) {
 		return pak.timestamp;
+	} else {
+		UNREACHABLE();
+	}
 }
 
 bool DirectoryRange::InternalAdvance()
@@ -2219,6 +2232,8 @@ static void FindPaksInPath(Str::StringRef basePath, Str::StringRef subPath)
 				AddPak(pakType_t::PAK_DIR, Path::Build(subPath, filename), basePath);
 			} else if (Str::IsSuffix("/", filename)) {
 				FindPaksInPath(basePath, Path::Build(subPath, filename));
+			} else {
+				UNREACHABLE();
 			}
 		}
 	} catch (std::system_error&) {
@@ -2409,6 +2424,8 @@ bool ParsePakName(const char* begin, const char* end, std::string& name, std::st
 		end -= strlen(PAK_ZIP_EXT);
 	} else if (Str::IsSuffix(PAK_DIR_EXT, begin)) {
 		end -= strlen(PAK_DIR_EXT);
+	} else {
+		UNREACHABLE();
 	}
 
 	nameStart = std::find(std::reverse_iterator<const char*>(end), std::reverse_iterator<const char*>(begin), '/').base();
@@ -2600,7 +2617,7 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 			auto& loadedPaks = FS::PakPath::GetLoadedPaks();
 			if (loadedPaks.size() <= pakIndex)
 				return;
-			if (loadedPaks[pakIndex].type != pakType_t::PAK_DIR)
+			if (loadedPaks[pakIndex].type == pakType_t::PAK_ZIP)
 				return;
 			if (!Path::IsValid(path, false))
 				return;
@@ -2616,7 +2633,7 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 			auto& loadedPaks = FS::PakPath::GetLoadedPaks();
 			if (loadedPaks.size() <= pakIndex)
 				return;
-			if (loadedPaks[pakIndex].type != pakType_t::PAK_DIR)
+			if (loadedPaks[pakIndex].type == pakType_t::PAK_ZIP)
 				return;
 			if (!Path::IsValid(path, false))
 				return;
