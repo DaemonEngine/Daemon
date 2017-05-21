@@ -509,7 +509,7 @@ int FS_Seek( fileHandle_t f, long offset, fsOrigin_t origin );
 
 const char* FS_LoadedPaks();
 
-// Returns a space separated string containing all loaded pk3 files.
+// Returns a space separated string containing all loaded dpk/pk3 files.
 
 bool     FS_LoadPak( const char *name );
 void     FS_LoadBasePak();
