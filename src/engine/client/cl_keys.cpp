@@ -48,7 +48,6 @@ key up events are sent even if in console mode
 #define CLIP(t) Math::Clamp( (t), 0, MAX_TEAMS - 1 )
 
 Console::Field g_consoleField(INT_MAX);
-bool chat_irc;
 
 bool key_overstrikeMode;
 bool bindingsModified;

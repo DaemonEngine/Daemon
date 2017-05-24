@@ -50,12 +50,9 @@ Maryland 20850 USA.
 
 // NERVE - SMF
 void                   Key_GetBindingBuf( int keynum, int team, char *buf, int buflen );
-void                   Key_KeynumToStringBuf( int keynum, char *buf, int buflen );
 
 // -NERVE - SMF
 
-// ydnar: can we put this in a header, pls?
-void Key_GetBindingByString( const char *binding, int team, int *key1, int *key2 );
 
 /*
 ====================
