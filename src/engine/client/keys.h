@@ -63,13 +63,9 @@ extern bool chat_irc;
 
 void            Key_WriteBindings( fileHandle_t f );
 void            Key_SetBinding( int keynum, int team, const char *binding );
-void            Key_GetBindingByString( const char *binding, int team, int *key1, int *key2 );
 const char      *Key_GetBinding( int keynum, int team );
 bool        Key_IsDown( int keynum );
-bool        Key_GetOverstrikeMode();
-void            Key_SetOverstrikeMode( bool state );
 void            Key_ClearStates();
-int             Key_GetKey( const char *binding, int team );
 
 void            Key_SetTeam( int newTeam );
 int             Key_GetTeam( const char *arg, const char *cmd );
