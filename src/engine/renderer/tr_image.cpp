@@ -2797,8 +2797,6 @@ R_InitImages
 */
 void R_InitImages()
 {
-	const char *charsetImage = "gfx/2d/consolechars";
-
 	Log::Debug("------- R_InitImages -------" );
 
 	Com_Memset( r_imageHashTable, 0, sizeof( r_imageHashTable ) );
@@ -2815,12 +2813,14 @@ void R_InitImages()
 	// create default texture and white texture
 	R_CreateBuiltinImages();
 
-	tr.charsetImage = R_FindImageFile( charsetImage, IF_NOCOMPRESSION | IF_NOPICMIP, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP );
-
-	if ( !tr.charsetImage )
-	{
-		ri.Error( errorParm_t::ERR_FATAL, "R_InitImages: could not load '%s'", charsetImage );
-	}
+#if defined( REFBONE_NAMES )
+	char fileName [ MAX_QPATH ];
+	char strippedName [ MAX_QPATH ];
+	char* fontname = Cvar_VariableString ( "cl_consoleFont" );
+	COM_StripExtension2( fontname, strippedName, sizeof( strippedName ) );
+	Com_sprintf( fileName, sizeof( fileName ), "%s_%i_%i_%i.png", strippedName, 0, 0, 16 );
+	tr.charsetImageHash = GenerateImageHashValue ( fileName );
+#endif
 }
 
 /*

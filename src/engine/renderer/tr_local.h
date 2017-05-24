@@ -2652,7 +2652,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		image_t *sunShadowClipMapFBOImage[ MAX_SHADOWMAPS * 2 ];
 
 		// external images
-		image_t *charsetImage;
+#if defined( REFBONE_NAMES )
+		int      charsetImageHash;
+#endif
 		image_t *colorGradeImage;
 		GLuint   colorGradePBO;
 

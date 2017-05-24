@@ -24,6 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "gl_shader.h"
+#if defined( REFBONE_NAMES )
+	#include <client/client.h>
+#endif
 
 backEndData_t  *backEndData[ SMP_FRAMES ];
 backEndState_t backEnd;
@@ -3622,7 +3625,13 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_Color( Color::Black );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.charsetImage );
+#if defined( REFBONE_NAMES )
+		GL_BindToTMU( 0, r_imageHashTable [ tr.charsetImageHash ] );
+		int width = r_imageHashTable [ tr.charsetImageHash ]->width;
+		int height = r_imageHashTable [ tr.charsetImageHash ]->height;
+#else
+		GL_BindToTMU( 0, tr.whiteImage );
+#endif
 		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
 
 		ent = backEnd.refdef.entities;
@@ -3782,9 +3791,6 @@ static void RB_RenderDebugUtils()
 						for ( k = 0; ( unsigned ) k < strlen( skel->bones[ j ].name ); k++ )
 						{
 							int   ch;
-							int   row, col;
-							float frow, fcol;
-							float size;
 
 							ch = skel->bones[ j ].name[ k ];
 							ch &= 255;
@@ -3794,15 +3800,15 @@ static void RB_RenderDebugUtils()
 								break;
 							}
 
-							row = ch >> 4;
-							col = ch & 15;
+							glyphInfo_t *glyph = &cls.consoleFont->glyphBlock[ 0 ][ ch ];
+							re.GlyphChar( cls.consoleFont, ch, glyph );
 
-							frow = row * 0.0625;
-							fcol = col * 0.0625;
-							size = 0.0625;
-
-							VectorMA( worldOrigins[ j ], - ( k + 2.0f ), left, origin );
-							Tess_AddQuadStampExt( origin, left, up, Color::White, fcol, frow, fcol + size, frow + size );
+							// factor 1.5 improves readability
+							VectorMA( worldOrigins[ j ], - ( k*1.5f + 2.0f ), left, origin );
+							float pixelheight = 1.0f/(float)height;
+							int heightAdj = 16 - glyph->height;
+							Tess_AddQuadStampExt( origin, left, up, Color::White, glyph->s,
+												  glyph->t-pixelheight*heightAdj, glyph->s2, glyph->t2);
 						}
 
 						Tess_UpdateVBOs( );
