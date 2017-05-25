@@ -326,6 +326,7 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/cl_parse.cpp
     ${ENGINE_DIR}/client/cl_scrn.cpp
     ${ENGINE_DIR}/client/dl_main.cpp
+    ${ENGINE_DIR}/client/key_identification.cpp
     ${ENGINE_DIR}/client/keycodes.h
     ${ENGINE_DIR}/client/keys.h
     ${ENGINE_DIR}/client/ClientApplication.cpp

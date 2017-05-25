@@ -307,6 +307,13 @@ bool Q_Unicode_IsAlphaOrIdeoOrDigit( int ch )
   return Q_Unicode_IsAlpha( ch ) || Q_Unicode_IsIdeo( ch ) || Q_Unicode_IsDigit( ch );
 }
 
+bool Q_Unicode_IsPrivateUse( int ch )
+{
+    return (0xE000 <= ch && ch <= 0xF8FF)
+        || (0xF0000 <= ch && ch <= 0xFFFFF)
+        || (0x100000 <= ch && ch <= 0x10FFFF);
+}
+
 static int CmpFirstElement( const void *chp, const void *memb )
 {
   unsigned ch = *(unsigned *)chp;
@@ -317,7 +324,7 @@ static int CmpFirstElement( const void *chp, const void *memb )
 
 static int UnicodeCaseLookup( int ch, const ucs2_pair_t* array, size_t length )
 {
-	const ucs2_pair_t *converted = (ucs2_pair_t*) bsearch( &ch, array, ARRAY_LEN( array ),
+	const ucs2_pair_t *converted = (ucs2_pair_t*) bsearch( &ch, array, length,
 		                                                   sizeof( array[ 0 ] ), CmpFirstElement );
 	return converted ? converted->c2 : ch;
 }

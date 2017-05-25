@@ -61,7 +61,7 @@ at the same time.
 */
 
 static kbutton_t  kb[Util::ordinal(kbuttons_t::NUM_BUTTONS)];
-static char       *keyup[Util::ordinal(keyNum_t::MAX_KEYS)];
+static std::unordered_map<Keyboard::Key, char*, Keyboard::Key::hash> keyup;
 
 // Arnout: doubleTap button mapping
 // FIXME: should be registered by cgame code
@@ -77,19 +77,20 @@ static kbuttons_t dtmapping[] =
 
 void IN_KeyDown( kbutton_t *b )
 {
+	using Keyboard::Key;
 	bool nokey = ( Cmd_Argc() > 1 );
-	int      k = nokey ? -1 : Key_GetKeyNumber(); // -1 if typed manually at the console for continuous down
+	Key k = nokey ? Key::NONE : Key_GetKeyNumber(); // NONE if typed manually at the console for continuous down
 
 	if ( k == b->down[ 0 ] || k == b->down[ 1 ] )
 	{
 		return; // repeating key
 	}
 
-	if ( !b->down[ 0 ] )
+	if ( !b->down[ 0 ].IsValid() )
 	{
 		b->down[ 0 ] = k;
 	}
-	else if ( !b->down[ 1 ] )
+	else if ( !b->down[ 1 ].IsValid() )
 	{
 		b->down[ 1 ] = k;
 	}
@@ -113,30 +114,31 @@ void IN_KeyDown( kbutton_t *b )
 
 void IN_KeyUp( kbutton_t *b )
 {
+	using Keyboard::Key;
 	unsigned uptime;
 	bool nokey = ( Cmd_Argc() > 1 );
-	int      k = nokey ? -1 : Key_GetKeyNumber(); // -1 if typed manually at the console for continuous down
+	Key k = nokey ? Key::NONE : Key_GetKeyNumber(); // NONE if typed manually at the console for continuous down
 
-	if ( k < 0 )
+	if ( !k.IsValid() )
 	{
 		// typed manually at the console, assume for unsticking, so clear all
-		b->down[ 0 ] = b->down[ 1 ] = 0;
+		b->down[ 0 ] = b->down[ 1 ] = Key::NONE;
 		b->active = false;
 		return;
 	}
 
 	// If this key is marked as down for this button, clear it
 	// Also clear sticky state (don't care if there was no key-down)
-	if ( b->down[ 0 ] == k || b->down[ 0 ] < 0 )
+	if ( b->down[ 0 ] == k || !b->down[ 0 ].IsValid() )
 	{
-		b->down[ 0 ] = 0;
+		b->down[ 0 ] = Key::NONE;
 	}
-	if ( b->down[ 1 ] == k || b->down[ 1 ] < 0 )
+	if ( b->down[ 1 ] == k || !b->down[ 1 ].IsValid() )
 	{
-		b->down[ 1 ] = 0;
+		b->down[ 1 ] = Key::NONE;
 	}
 
-	if ( b->down[ 0 ] || b->down[ 1 ] )
+	if ( b->down[ 0 ].IsValid() || b->down[ 1 ].IsValid() )
 	{
 		return; // some other key is still holding it down
 	}
@@ -1145,12 +1147,15 @@ void IN_BuiltinButtonCommand()
 void IN_KeysUp_f()
 {
 	unsigned int check;
-	int key, time;
+	int time;
 	int i;
 	bool first = true;
 
 	check = atoi( Cmd_Argv( 1 ) );
-	key   = atoi( Cmd_Argv( 2 ) );
+	Keyboard::Key key = Key_StringToKeynum( Cmd_Argv( 2 ) );
+	if ( !key.IsValid() ) {
+		return;
+	}
 	time  = atoi( Cmd_Argv( 3 ) );
 
 	for ( i = 0; i < USERCMD_BUTTONS; ++i )
@@ -1159,7 +1164,7 @@ void IN_KeysUp_f()
 		{
 			if ( first )
 			{
-				Cmd::ExecuteCommand(va("setkeydata %d %d %u", check, key + 1, time));
+				Cmd::ExecuteCommand(va("setkeydata %d %s %u", check, Key_KeynumToString(key), time));
 				first = false;
 			}
 
@@ -1173,7 +1178,7 @@ void IN_KeysUp_f()
 		{
 			if ( first )
 			{
-				Cmd::ExecuteCommand(va("setkeydata %d %d %u", check, key + 1, time));
+				Cmd::ExecuteCommand(va("setkeydata %d %s %u", check, Key_KeynumToString(key), time));
 				first = false;
 			}
 
@@ -1207,12 +1212,11 @@ Called by the +command code.
 void IN_PrepareKeyUp()
 {
 	const char *cmd;
-	int  key;
 
 	// Get the current key no. If negative, return
-	key = Key_GetKeyNumber();
+	Keyboard::Key key = Key_GetKeyNumber();
 
-	if ( key < 0 )
+	if ( !key.IsValid() )
 	{
 		return;
 	}
@@ -1330,12 +1334,12 @@ CL_ClearKeys
 */
 void CL_ClearKeys()
 {
-	for ( unsigned i = 0; i < ARRAY_LEN( keyup ); ++i )
+	for ( auto& kv: keyup )
 	{
-		if ( keyup[ i ] )
+		if ( kv.second )
 		{
-			Z_Free( keyup[ i ] );
-			keyup[ i ] = nullptr;
+			Z_Free( kv.second );
+			kv.second = nullptr;
 		}
 	}
 

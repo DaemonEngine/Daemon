@@ -77,7 +77,7 @@ void CL_MapLoading()
 {
 }
 
-void CL_KeyEvent( int, bool, unsigned )
+void CL_KeyEvent( const Keyboard::Key&, bool, unsigned )
 {
 }
 

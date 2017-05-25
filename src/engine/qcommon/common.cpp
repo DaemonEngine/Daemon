@@ -41,6 +41,7 @@ Maryland 20850 USA.
 
 #include "common/Defs.h"
 
+#include "client/keys.h"
 #include "framework/Application.h"
 #include "framework/BaseCommands.h"
 #include "framework/CommandSystem.h"
