@@ -41,6 +41,7 @@ Maryland 20850 USA.
 
 #include "common/Defs.h"
 
+#include "client/keys.h"
 #include "framework/Application.h"
 #include "framework/BaseCommands.h"
 #include "framework/CommandSystem.h"
@@ -975,24 +976,10 @@ int Com_EventLoop()
 				break;
 
 			case sysEventType_t::SE_KEY:
-				CL_KeyEvent( ev.evValue, ev.evValue2, ev.evTime );
+				CL_KeyEvent( *(Keyboard::Key*)ev.evPtr, ev.evValue2, ev.evTime );
 				break;
 
 			case sysEventType_t::SE_CHAR:
-#ifdef BUILD_CLIENT
-
-				// fretn
-				// we just pressed the console button,
-				// so ignore this event
-				// this prevents chars appearing at console input
-				// when you just opened it
-				if ( consoleButtonWasPressed )
-				{
-					consoleButtonWasPressed = false;
-					break;
-				}
-
-#endif
 				CL_CharEvent( ev.evValue );
 				break;
 

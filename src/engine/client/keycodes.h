@@ -257,7 +257,7 @@ enum keyNum_t
   K_HELP,
   K_PRINT,
   K_SYSREQ,
-  K_SCROLLOCK,
+  K_SCROLLLOCK,
   K_BREAK,
   K_MENU,
   K_EURO,

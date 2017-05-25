@@ -35,9 +35,6 @@ Maryland 20850 USA.
 #include "client.h"
 #include "qcommon/q_unicode.h"
 #include "framework/CommandSystem.h"
-#ifdef BUILD_CLIENT
-#include <SDL.h>
-#endif
 
 /*
 
@@ -45,304 +42,27 @@ key up events are sent even if in console mode
 
 */
 
+using Keyboard::Key;
+
 #define CLIP(t) Math::Clamp( (t), 0, MAX_TEAMS - 1 )
 
 Console::Field g_consoleField(INT_MAX);
-bool chat_irc;
 
 bool key_overstrikeMode;
 bool bindingsModified;
 
 int      anykeydown;
-qkey_t   keys[Util::ordinal(keyNum_t::MAX_KEYS)];
+std::unordered_map<Key, qkey_t, Key::hash> keys;
 
 int      bindTeam = DEFAULT_BINDING;
 
 static struct {
-	int          key;
+	Keyboard::Key key;
 	unsigned int time;
 	bool     valid;
 	int          check;
 } plusCommand;
 
-struct keyname_t
-{
-	const char *name;
-	keyNum_t keynum;
-};
-
-// names not in this list can either be lowercase ascii, or '0xnn' hex sequences
-static const keyname_t keynames[] =
-{
-	{ "TAB",                    keyNum_t::K_TAB          },
-	{ "ENTER",                  keyNum_t::K_ENTER        },
-	{ "ESCAPE",                 keyNum_t::K_ESCAPE       },
-	{ "SPACE",                  keyNum_t::K_SPACE        },
-	{ "BACKSPACE",              keyNum_t::K_BACKSPACE    },
-	{ "UPARROW",                keyNum_t::K_UPARROW      },
-	{ "DOWNARROW",              keyNum_t::K_DOWNARROW    },
-	{ "LEFTARROW",              keyNum_t::K_LEFTARROW    },
-	{ "RIGHTARROW",             keyNum_t::K_RIGHTARROW   },
-
-	{ "BACKSLASH",              Util::enum_cast<keyNum_t>(+'\\') },
-
-	{ "ALT",                    keyNum_t::K_ALT          },
-	{ "CTRL",                   keyNum_t::K_CTRL         },
-	{ "SHIFT",                  keyNum_t::K_SHIFT        },
-
-	{ "COMMAND",                keyNum_t::K_COMMAND      },
-
-	{ "CAPSLOCK",               keyNum_t::K_CAPSLOCK     },
-
-	{ "F1",                     keyNum_t::K_F1           },
-	{ "F2",                     keyNum_t::K_F2           },
-	{ "F3",                     keyNum_t::K_F3           },
-	{ "F4",                     keyNum_t::K_F4           },
-	{ "F5",                     keyNum_t::K_F5           },
-	{ "F6",                     keyNum_t::K_F6           },
-	{ "F7",                     keyNum_t::K_F7           },
-	{ "F8",                     keyNum_t::K_F8           },
-	{ "F9",                     keyNum_t::K_F9           },
-	{ "F10",                    keyNum_t::K_F10          },
-	{ "F11",                    keyNum_t::K_F11          },
-	{ "F12",                    keyNum_t::K_F12          },
-	{ "F13",                    keyNum_t::K_F13          },
-	{ "F14",                    keyNum_t::K_F14          },
-	{ "F15",                    keyNum_t::K_F15          },
-
-	{ "INS",                    keyNum_t::K_INS          },
-	{ "DEL",                    keyNum_t::K_DEL          },
-	{ "PGDN",                   keyNum_t::K_PGDN         },
-	{ "PGUP",                   keyNum_t::K_PGUP         },
-	{ "HOME",                   keyNum_t::K_HOME         },
-	{ "END",                    keyNum_t::K_END          },
-
-	{ "MOUSE1",                 keyNum_t::K_MOUSE1       },
-	{ "MOUSE2",                 keyNum_t::K_MOUSE2       },
-	{ "MOUSE3",                 keyNum_t::K_MOUSE3       },
-	{ "MOUSE4",                 keyNum_t::K_MOUSE4       },
-	{ "MOUSE5",                 keyNum_t::K_MOUSE5       },
-
-	{ "MWHEELUP",               keyNum_t::K_MWHEELUP     },
-	{ "MWHEELDOWN",             keyNum_t::K_MWHEELDOWN   },
-
-	{ "JOY1",                   keyNum_t::K_JOY1         },
-	{ "JOY2",                   keyNum_t::K_JOY2         },
-	{ "JOY3",                   keyNum_t::K_JOY3         },
-	{ "JOY4",                   keyNum_t::K_JOY4         },
-	{ "JOY5",                   keyNum_t::K_JOY5         },
-	{ "JOY6",                   keyNum_t::K_JOY6         },
-	{ "JOY7",                   keyNum_t::K_JOY7         },
-	{ "JOY8",                   keyNum_t::K_JOY8         },
-	{ "JOY9",                   keyNum_t::K_JOY9         },
-	{ "JOY10",                  keyNum_t::K_JOY10        },
-	{ "JOY11",                  keyNum_t::K_JOY11        },
-	{ "JOY12",                  keyNum_t::K_JOY12        },
-	{ "JOY13",                  keyNum_t::K_JOY13        },
-	{ "JOY14",                  keyNum_t::K_JOY14        },
-	{ "JOY15",                  keyNum_t::K_JOY15        },
-	{ "JOY16",                  keyNum_t::K_JOY16        },
-	{ "JOY17",                  keyNum_t::K_JOY17        },
-	{ "JOY18",                  keyNum_t::K_JOY18        },
-	{ "JOY19",                  keyNum_t::K_JOY19        },
-	{ "JOY20",                  keyNum_t::K_JOY20        },
-	{ "JOY21",                  keyNum_t::K_JOY21        },
-	{ "JOY22",                  keyNum_t::K_JOY22        },
-	{ "JOY23",                  keyNum_t::K_JOY23        },
-	{ "JOY24",                  keyNum_t::K_JOY24        },
-	{ "JOY25",                  keyNum_t::K_JOY25        },
-	{ "JOY26",                  keyNum_t::K_JOY26        },
-	{ "JOY27",                  keyNum_t::K_JOY27        },
-	{ "JOY28",                  keyNum_t::K_JOY28        },
-	{ "JOY29",                  keyNum_t::K_JOY29        },
-	{ "JOY30",                  keyNum_t::K_JOY30        },
-	{ "JOY31",                  keyNum_t::K_JOY31        },
-	{ "JOY32",                  keyNum_t::K_JOY32        },
-
-	{ "AUX1",                   keyNum_t::K_AUX1         },
-	{ "AUX2",                   keyNum_t::K_AUX2         },
-	{ "AUX3",                   keyNum_t::K_AUX3         },
-	{ "AUX4",                   keyNum_t::K_AUX4         },
-	{ "AUX5",                   keyNum_t::K_AUX5         },
-	{ "AUX6",                   keyNum_t::K_AUX6         },
-	{ "AUX7",                   keyNum_t::K_AUX7         },
-	{ "AUX8",                   keyNum_t::K_AUX8         },
-	{ "AUX9",                   keyNum_t::K_AUX9         },
-	{ "AUX10",                  keyNum_t::K_AUX10        },
-	{ "AUX11",                  keyNum_t::K_AUX11        },
-	{ "AUX12",                  keyNum_t::K_AUX12        },
-	{ "AUX13",                  keyNum_t::K_AUX13        },
-	{ "AUX14",                  keyNum_t::K_AUX14        },
-	{ "AUX15",                  keyNum_t::K_AUX15        },
-	{ "AUX16",                  keyNum_t::K_AUX16        },
-
-	{ "KP_HOME",                keyNum_t::K_KP_HOME      },
-	{ "KP_7",                   keyNum_t::K_KP_HOME      },
-	{ "KP_UPARROW",             keyNum_t::K_KP_UPARROW   },
-	{ "KP_8",                   keyNum_t::K_KP_UPARROW   },
-	{ "KP_PGUP",                keyNum_t::K_KP_PGUP      },
-	{ "KP_9",                   keyNum_t::K_KP_PGUP      },
-	{ "KP_LEFTARROW",           keyNum_t::K_KP_LEFTARROW },
-	{ "KP_4",                   keyNum_t::K_KP_LEFTARROW },
-	{ "KP_5",                   keyNum_t::K_KP_5         },
-	{ "KP_RIGHTARROW",          keyNum_t::K_KP_RIGHTARROW},
-	{ "KP_6",                   keyNum_t::K_KP_RIGHTARROW},
-	{ "KP_END",                 keyNum_t::K_KP_END       },
-	{ "KP_1",                   keyNum_t::K_KP_END       },
-	{ "KP_DOWNARROW",           keyNum_t::K_KP_DOWNARROW },
-	{ "KP_2",                   keyNum_t::K_KP_DOWNARROW },
-	{ "KP_PGDN",                keyNum_t::K_KP_PGDN      },
-	{ "KP_3",                   keyNum_t::K_KP_PGDN      },
-	{ "KP_ENTER",               keyNum_t::K_KP_ENTER     },
-	{ "KP_INS",                 keyNum_t::K_KP_INS       },
-	{ "KP_0",                   keyNum_t::K_KP_INS       },
-	{ "KP_DEL",                 keyNum_t::K_KP_DEL       },
-	{ "KP_PERIOD",              keyNum_t::K_KP_DEL       },
-	{ "KP_SLASH",               keyNum_t::K_KP_SLASH     },
-	{ "KP_MINUS",               keyNum_t::K_KP_MINUS     },
-	{ "KP_PLUS",                keyNum_t::K_KP_PLUS      },
-	{ "KP_NUMLOCK",             keyNum_t::K_KP_NUMLOCK   },
-	{ "KP_STAR",                keyNum_t::K_KP_STAR      },
-	{ "KP_EQUALS",              keyNum_t::K_KP_EQUALS    },
-
-	{ "PAUSE",                  keyNum_t::K_PAUSE        },
-
-	{ "SEMICOLON",              Util::enum_cast<keyNum_t>(+';') }, // because a raw semicolon separates commands
-
-	{ "WORLD_0",                keyNum_t::K_WORLD_0      },
-	{ "WORLD_1",                keyNum_t::K_WORLD_1      },
-	{ "WORLD_2",                keyNum_t::K_WORLD_2      },
-	{ "WORLD_3",                keyNum_t::K_WORLD_3      },
-	{ "WORLD_4",                keyNum_t::K_WORLD_4      },
-	{ "WORLD_5",                keyNum_t::K_WORLD_5      },
-	{ "WORLD_6",                keyNum_t::K_WORLD_6      },
-	{ "WORLD_7",                keyNum_t::K_WORLD_7      },
-	{ "WORLD_8",                keyNum_t::K_WORLD_8      },
-	{ "WORLD_9",                keyNum_t::K_WORLD_9      },
-	{ "WORLD_10",               keyNum_t::K_WORLD_10     },
-	{ "WORLD_11",               keyNum_t::K_WORLD_11     },
-	{ "WORLD_12",               keyNum_t::K_WORLD_12     },
-	{ "WORLD_13",               keyNum_t::K_WORLD_13     },
-	{ "WORLD_14",               keyNum_t::K_WORLD_14     },
-	{ "WORLD_15",               keyNum_t::K_WORLD_15     },
-	{ "WORLD_16",               keyNum_t::K_WORLD_16     },
-	{ "WORLD_17",               keyNum_t::K_WORLD_17     },
-	{ "WORLD_18",               keyNum_t::K_WORLD_18     },
-	{ "WORLD_19",               keyNum_t::K_WORLD_19     },
-	{ "WORLD_20",               keyNum_t::K_WORLD_20     },
-	{ "WORLD_21",               keyNum_t::K_WORLD_21     },
-	{ "WORLD_22",               keyNum_t::K_WORLD_22     },
-	{ "WORLD_23",               keyNum_t::K_WORLD_23     },
-	{ "WORLD_24",               keyNum_t::K_WORLD_24     },
-	{ "WORLD_25",               keyNum_t::K_WORLD_25     },
-	{ "WORLD_26",               keyNum_t::K_WORLD_26     },
-	{ "WORLD_27",               keyNum_t::K_WORLD_27     },
-	{ "WORLD_28",               keyNum_t::K_WORLD_28     },
-	{ "WORLD_29",               keyNum_t::K_WORLD_29     },
-	{ "WORLD_30",               keyNum_t::K_WORLD_30     },
-	{ "WORLD_31",               keyNum_t::K_WORLD_31     },
-	{ "WORLD_32",               keyNum_t::K_WORLD_32     },
-	{ "WORLD_33",               keyNum_t::K_WORLD_33     },
-	{ "WORLD_34",               keyNum_t::K_WORLD_34     },
-	{ "WORLD_35",               keyNum_t::K_WORLD_35     },
-	{ "WORLD_36",               keyNum_t::K_WORLD_36     },
-	{ "WORLD_37",               keyNum_t::K_WORLD_37     },
-	{ "WORLD_38",               keyNum_t::K_WORLD_38     },
-	{ "WORLD_39",               keyNum_t::K_WORLD_39     },
-	{ "WORLD_40",               keyNum_t::K_WORLD_40     },
-	{ "WORLD_41",               keyNum_t::K_WORLD_41     },
-	{ "WORLD_42",               keyNum_t::K_WORLD_42     },
-	{ "WORLD_43",               keyNum_t::K_WORLD_43     },
-	{ "WORLD_44",               keyNum_t::K_WORLD_44     },
-	{ "WORLD_45",               keyNum_t::K_WORLD_45     },
-	{ "WORLD_46",               keyNum_t::K_WORLD_46     },
-	{ "WORLD_47",               keyNum_t::K_WORLD_47     },
-	{ "WORLD_48",               keyNum_t::K_WORLD_48     },
-	{ "WORLD_49",               keyNum_t::K_WORLD_49     },
-	{ "WORLD_50",               keyNum_t::K_WORLD_50     },
-	{ "WORLD_51",               keyNum_t::K_WORLD_51     },
-	{ "WORLD_52",               keyNum_t::K_WORLD_52     },
-	{ "WORLD_53",               keyNum_t::K_WORLD_53     },
-	{ "WORLD_54",               keyNum_t::K_WORLD_54     },
-	{ "WORLD_55",               keyNum_t::K_WORLD_55     },
-	{ "WORLD_56",               keyNum_t::K_WORLD_56     },
-	{ "WORLD_57",               keyNum_t::K_WORLD_57     },
-	{ "WORLD_58",               keyNum_t::K_WORLD_58     },
-	{ "WORLD_59",               keyNum_t::K_WORLD_59     },
-	{ "WORLD_60",               keyNum_t::K_WORLD_60     },
-	{ "WORLD_61",               keyNum_t::K_WORLD_61     },
-	{ "WORLD_62",               keyNum_t::K_WORLD_62     },
-	{ "WORLD_63",               keyNum_t::K_WORLD_63     },
-	{ "WORLD_64",               keyNum_t::K_WORLD_64     },
-	{ "WORLD_65",               keyNum_t::K_WORLD_65     },
-	{ "WORLD_66",               keyNum_t::K_WORLD_66     },
-	{ "WORLD_67",               keyNum_t::K_WORLD_67     },
-	{ "WORLD_68",               keyNum_t::K_WORLD_68     },
-	{ "WORLD_69",               keyNum_t::K_WORLD_69     },
-	{ "WORLD_70",               keyNum_t::K_WORLD_70     },
-	{ "WORLD_71",               keyNum_t::K_WORLD_71     },
-	{ "WORLD_72",               keyNum_t::K_WORLD_72     },
-	{ "WORLD_73",               keyNum_t::K_WORLD_73     },
-	{ "WORLD_74",               keyNum_t::K_WORLD_74     },
-	{ "WORLD_75",               keyNum_t::K_WORLD_75     },
-	{ "WORLD_76",               keyNum_t::K_WORLD_76     },
-	{ "WORLD_77",               keyNum_t::K_WORLD_77     },
-	{ "WORLD_78",               keyNum_t::K_WORLD_78     },
-	{ "WORLD_79",               keyNum_t::K_WORLD_79     },
-	{ "WORLD_80",               keyNum_t::K_WORLD_80     },
-	{ "WORLD_81",               keyNum_t::K_WORLD_81     },
-	{ "WORLD_82",               keyNum_t::K_WORLD_82     },
-	{ "WORLD_83",               keyNum_t::K_WORLD_83     },
-	{ "WORLD_84",               keyNum_t::K_WORLD_84     },
-	{ "WORLD_85",               keyNum_t::K_WORLD_85     },
-	{ "WORLD_86",               keyNum_t::K_WORLD_86     },
-	{ "WORLD_87",               keyNum_t::K_WORLD_87     },
-	{ "WORLD_88",               keyNum_t::K_WORLD_88     },
-	{ "WORLD_89",               keyNum_t::K_WORLD_89     },
-	{ "WORLD_90",               keyNum_t::K_WORLD_90     },
-	{ "WORLD_91",               keyNum_t::K_WORLD_91     },
-	{ "WORLD_92",               keyNum_t::K_WORLD_92     },
-	{ "WORLD_93",               keyNum_t::K_WORLD_93     },
-	{ "WORLD_94",               keyNum_t::K_WORLD_94     },
-	{ "WORLD_95",               keyNum_t::K_WORLD_95     },
-
-	{ "WINDOWS",                keyNum_t::K_SUPER        },
-	{ "COMPOSE",                keyNum_t::K_COMPOSE      },
-	{ "MODE",                   keyNum_t::K_MODE         },
-	{ "HELP",                   keyNum_t::K_HELP         },
-	{ "PRINT",                  keyNum_t::K_PRINT        },
-	{ "SYSREQ",                 keyNum_t::K_SYSREQ       },
-	{ "SCROLLOCK",              keyNum_t::K_SCROLLOCK    },
-	{ "BREAK",                  keyNum_t::K_BREAK        },
-	{ "MENU",                   keyNum_t::K_MENU         },
-	{ "POWER",                  keyNum_t::K_POWER        },
-	{ "EURO",                   keyNum_t::K_EURO         },
-	{ "UNDO",                   keyNum_t::K_UNDO         },
-
-	{ "XBOX360_A",              keyNum_t::K_XBOX360_A              },
-	{ "XBOX360_B",              keyNum_t::K_XBOX360_B              },
-	{ "XBOX360_X",              keyNum_t::K_XBOX360_X              },
-	{ "XBOX360_Y",              keyNum_t::K_XBOX360_Y              },
-	{ "XBOX360_LB",             keyNum_t::K_XBOX360_LB             },
-	{ "XBOX360_RB",             keyNum_t::K_XBOX360_RB             },
-	{ "XBOX360_START",          keyNum_t::K_XBOX360_START          },
-	{ "XBOX360_GUIDE",          keyNum_t::K_XBOX360_GUIDE          },
-	{ "XBOX360_LS",             keyNum_t::K_XBOX360_LS             },
-	{ "XBOX360_RS",             keyNum_t::K_XBOX360_RS             },
-	{ "XBOX360_BACK",           keyNum_t::K_XBOX360_BACK           },
-	{ "XBOX360_LT",             keyNum_t::K_XBOX360_LT             },
-	{ "XBOX360_RT",             keyNum_t::K_XBOX360_RT             },
-	{ "XBOX360_DPAD_UP",        keyNum_t::K_XBOX360_DPAD_UP        },
-	{ "XBOX360_DPAD_RIGHT",     keyNum_t::K_XBOX360_DPAD_RIGHT     },
-	{ "XBOX360_DPAD_DOWN",      keyNum_t::K_XBOX360_DPAD_DOWN      },
-	{ "XBOX360_DPAD_LEFT",      keyNum_t::K_XBOX360_DPAD_LEFT      },
-	{ "XBOX360_DPAD_RIGHTUP",   keyNum_t::K_XBOX360_DPAD_RIGHTUP   },
-	{ "XBOX360_DPAD_RIGHTDOWN", keyNum_t::K_XBOX360_DPAD_RIGHTDOWN },
-	{ "XBOX360_DPAD_LEFTUP",    keyNum_t::K_XBOX360_DPAD_LEFTUP    },
-	{ "XBOX360_DPAD_LEFTDOWN",  keyNum_t::K_XBOX360_DPAD_LEFTDOWN  },
-
-	{ nullptr,                  Util::enum_cast<keyNum_t>(0)       }
-};
 
 /*
 =============================================================================
@@ -439,10 +159,9 @@ in-game talk, and menu fields
 Key events are used for non-printable characters, others are gotten from char events.
 =================
 */
-void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
-    key = Str::ctolower(key);
-
-    switch (key) {
+void Field_KeyDownEvent(Util::LineEditData& edit, Keyboard::Key key) {
+	if (key.kind() == Key::Kind::KEYNUM) {
+        switch (key.AsKeynum()) {
         case K_DEL:
             edit.DeleteNext();
             break;
@@ -468,24 +187,10 @@ void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
                 edit.CursorLeft();
             }
             break;
-
-        case 'a':
-            if (keys[ K_CTRL ].down) {
-                edit.CursorStart();
-            }
-            break;
-
-        case K_HOME:
+		case K_HOME:
             edit.CursorStart();
             break;
-
-        case 'e':
-            if (keys[ K_CTRL ].down) {
-                edit.CursorEnd();
-            }
-            break;
-
-        case K_END:
+		case K_END:
             edit.CursorEnd();
             break;
 
@@ -496,32 +201,19 @@ void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
                 key_overstrikeMode = !key_overstrikeMode;
             }
             break;
-
-        /*
-        //kangz: I'm not sure we *need* this shortcut
-        case 't':
-            if ( keys[ K_CTRL ].down )
-			if( edit->cursor)
-			{
-                char *p, tmp[4];
-
-                if ( edit->cursor == len )
-                {
-                    --edit->cursor;
-                    s = &edit->buffer[ Field_CursorToOffset( edit ) ];
-                    width = Q_UTF8_Width( s );
-                }
-
-                --edit->cursor;
-                p = &edit->buffer[ Field_CursorToOffset( edit ) ];
-                memcpy( tmp, p, s - p );
-                memmove( p, s, width );
-                memcpy( p + width, tmp, s - p );
-                edit->cursor += 2;
+        }
+    } else if (key.kind() == Key::Kind::UNICODE_CHAR) {
+        switch ((char) key.AsCharacter()) {
+        case 'a':
+            if (keys[ K_CTRL ].down) {
+                edit.CursorStart();
             }
-
             break;
-        */
+        case 'e':
+            if (keys[ K_CTRL ].down) {
+                edit.CursorEnd();
+            }
+            break;
         case 'v':
             if (keys[ K_CTRL ].down) {
                 Field_Paste( edit );
@@ -543,6 +235,7 @@ void Field_KeyDownEvent(Util::LineEditData& edit, int key) {
 				edit.DeleteEnd();
             }
             break;
+        }
     }
 }
 
@@ -588,7 +281,7 @@ Console_Key
 Handles history and console scrollback for the ingame console
 ====================
 */
-void Console_Key( int key )
+void Console_Key( Key key )
 {
 	// just return if any of the listed modifiers are pressed
 	// - no point in passing on, since they Just Get In The Way
@@ -599,7 +292,7 @@ void Console_Key( int key )
 	}
 
 	// ctrl-L clears screen
-	if (key == 'l' && keys[ K_CTRL ].down) {
+	if (key == Key::FromCharacter('l') && keys[ K_CTRL ].down) {
 		Cmd::BufferCommandText("clear");
 		return;
 	}
@@ -639,7 +332,7 @@ void Console_Key( int key )
 
 	//----(SA)  added some mousewheel functionality to the console
 	if ( ( key == K_MWHEELUP && keys[ K_SHIFT ].down ) || ( key == K_UPARROW ) || ( key == K_KP_UPARROW ) ||
-			( ( Str::ctolower( key ) == 'p' ) && keys[ K_CTRL ].down ) )
+			( ( key == Key::FromCharacter('p') ) && keys[ K_CTRL ].down ) )
 	{
 		g_consoleField.HistoryPrev();
 		return;
@@ -647,7 +340,7 @@ void Console_Key( int key )
 
 	//----(SA)  added some mousewheel functionality to the console
 	if ( ( key == K_MWHEELDOWN && keys[ K_SHIFT ].down ) || ( key == K_DOWNARROW ) || ( key == K_KP_DOWNARROW ) ||
-			( ( Str::ctolower( key ) == 'n' ) && keys[ K_CTRL ].down ) )
+			( ( key == Key::FromCharacter('n') ) && keys[ K_CTRL ].down ) )
 	{
 		g_consoleField.HistoryNext();
 		return;
@@ -715,122 +408,17 @@ void Console_Key( int key )
 Key_IsDown
 ===================
 */
-bool Key_IsDown( int keynum )
+bool Key_IsDown( Key key )
 {
-	if ( keynum < 0 || keynum >= MAX_KEYS )
+	if ( !key.IsValid() )
 	{
 		return false;
 	}
 
-	return keys[ keynum ].down;
+	return keys[ key ].down;
 }
 
-/*
-===================
-Key_StringToKeynum
 
-Returns a key number to be used to index keys[] by looking at
-the given string.  Single ascii characters return themselves, while
-the K_* names are matched up.
-
-0x11 will be interpreted as raw hex, which will allow new controlers
-
-to be configured even if they don't have defined names.
-===================
-*/
-int Key_StringToKeynum( const char *str )
-{
-	const keyname_t *kn;
-
-	if ( !str )
-	{
-		return -1;
-	}
-
-	if ( !str[ 1 ] )
-	{
-		// single character; map upper-case ASCII letters to lower case
-		int key = str[ 0 ] == '\n' ? -1 : str[ 0 ];
-
-		return ( key >= 'A' && key <= 'Z' ) ? key + 0x20 : key;
-	}
-
-	// check for hex code
-	if ( strlen( str ) == 4 )
-	{
-		int n = Com_HexStrToInt( str );
-
-		if ( n >= 0 )
-		{
-			return n;
-		}
-	}
-
-	// scan for a text match
-	for ( kn = keynames; kn->name; kn++ )
-	{
-		if ( !Q_stricmp( str, kn->name ) )
-		{
-			return kn->keynum;
-		}
-	}
-
-	return -1;
-}
-
-/*
-===================
-Key_KeynumToString
-
-Returns a string (either a single ascii char, a K_* name, or a 0x11 hex string) for the
-given keynum.
-===================
-*/
-const char *Key_KeynumToString( int keynum )
-{
-	const keyname_t *kn;
-	static char tinystr[ 5 ];
-	int         i, j;
-
-	if ( keynum == -1 )
-	{
-		return "<KEY NOT FOUND>";
-	}
-
-	if ( keynum < 0 || keynum >= MAX_KEYS )
-	{
-		return "<OUT OF RANGE>";
-	}
-
-	// check for printable ascii (don't use quote)
-	if ( keynum > 32 && keynum < 127 && keynum != '"' && keynum != ';' && keynum != '\\' )
-	{
-		tinystr[ 0 ] = keynum;
-		tinystr[ 1 ] = 0;
-		return tinystr;
-	}
-
-	// check for a key string
-	for ( kn = keynames; kn->name; kn++ )
-	{
-		if ( keynum == kn->keynum )
-		{
-			return kn->name;
-		}
-	}
-
-	// make a hex string
-	i = keynum >> 4;
-	j = keynum & 15;
-
-	tinystr[ 0 ] = '0';
-	tinystr[ 1 ] = 'x';
-	tinystr[ 2 ] = i > 9 ? i - 10 + 'a' : i + '0';
-	tinystr[ 3 ] = j > 9 ? j - 10 + 'a' : j + '0';
-	tinystr[ 4 ] = 0;
-
-	return tinystr;
-}
 
 /*
 ===================
@@ -902,13 +490,13 @@ Key_SetBinding
 team == -1 clears all bindings for the key, then sets the spec/global binding
 ===================
 */
-void Key_SetBinding( int keynum, int team, const char *binding )
+void Key_SetBinding( Key key, int team, const char *binding )
 {
 	char *lcbinding; // fretn - make a copy of our binding lowercase
 	// so name toggle scripts work again: bind x name BzZIfretn?
 	// resulted into bzzifretn?
 
-	if ( keynum < 0 || keynum >= MAX_KEYS )
+	if ( !key.IsBindable() )
 	{
 		return;
 	}
@@ -919,10 +507,10 @@ void Key_SetBinding( int keynum, int team, const char *binding )
 		// just the team-specific ones here
 		for ( team = MAX_TEAMS - 1; team; --team )
 		{
-			if ( keys[ keynum ].binding[ team ] )
+			if ( keys[ key ].binding[ team ] )
 			{
-				Z_Free( keys[ keynum ].binding[ team ] );
-				keys[ keynum ].binding[ team ] = nullptr;
+				Z_Free( keys[ key ].binding[ team ] );
+				keys[ key ].binding[ team ] = nullptr;
 			}
 		}
 		// team == 0...
@@ -930,23 +518,23 @@ void Key_SetBinding( int keynum, int team, const char *binding )
 
 	team = CLIP( team );
 
-	if ( keys[ keynum ].binding[ team ] )
+	if ( keys[ key ].binding[ team ] )
 	{
-		Z_Free( keys[ keynum ].binding[ team ] );
+		Z_Free( keys[ key ].binding[ team ] );
 	}
 
 	// set the new binding, if not null/empty
 	if ( binding && binding[ 0 ] )
 	{
 		// allocate memory for new binding
-		keys[ keynum ].binding[ team ] = CopyString( binding );
+		keys[ key ].binding[ team ] = CopyString( binding );
 		lcbinding = CopyString( binding );
 		Q_strlwr( lcbinding );  // saves doing it on all the generateHashValues in Key_GetBindingByString
 		Z_Free( lcbinding );
 	}
 	else
 	{
-		keys[ keynum ].binding[ team ] = nullptr;
+		keys[ key ].binding[ team ] = nullptr;
 	}
 
 	bindingsModified = true;
@@ -959,22 +547,22 @@ Key_GetBinding
 -ve team no. = don't return the default binding
 ===================
 */
-const char *Key_GetBinding( int keynum, int team )
+const char *Key_GetBinding( Key key, int team )
 {
 	const char *bind;
 
-	if ( keynum < 0 || keynum >= MAX_KEYS )
+	if ( !key.IsBindable() )
 	{
 		return nullptr;
 	}
 
 	if ( team <= 0 )
 	{
-		return keys[ keynum ].binding[ CLIP( -team ) ];
+		return keys[ key ].binding[ CLIP( -team ) ];
 	}
 
-	bind = keys[ keynum ].binding[ CLIP( team ) ];
-	return bind ? bind : keys[ keynum ].binding[ 0 ];
+	bind = keys[ key ].binding[ CLIP( team ) ];
+	return bind ? bind : keys[ key ].binding[ 0 ];
 }
 
 /*
@@ -1003,15 +591,15 @@ void Key_Unbind_f()
 		}
 	}
 
-	b = Key_StringToKeynum( Cmd_Argv( b - 1 ) );
+	Key key = Key_StringToKeynum( Cmd_Argv( b - 1 ) );
 
-	if ( b == -1 )
+	if ( !key.IsBindable() )
 	{
 		Log::Notice( "\"%s\" isn't a valid key\n", Cmd_Argv( 1 ) );
 		return;
 	}
 
-	Key_SetBinding( b, team, nullptr );
+	Key_SetBinding( key, team, nullptr );
 }
 
 /*
@@ -1021,11 +609,9 @@ Key_Unbindall_f
 */
 void Key_Unbindall_f()
 {
-	int i;
-
-	for ( i = 0; i < MAX_KEYS; i++ )
+	for (auto& kv : keys)
 	{
-		Key_SetBinding( i, -1, nullptr );
+		Key_SetBinding( kv.first, -1, nullptr );
 	}
 }
 
@@ -1036,7 +622,7 @@ Key_Bind_f
 */
 void Key_Bind_f()
 {
-	int        c, b;
+	int        c;
 	const char *key;
 	const char *cmd = nullptr;
 	int        team = -1;
@@ -1066,9 +652,9 @@ void Key_Bind_f()
 	}
 
 	key = Cmd_Argv( 1 + teambind );
-	b = Key_StringToKeynum( key );
+	Key b = Key_StringToKeynum( key );
 
-	if ( b == -1 )
+	if ( !b.IsBindable() )
 	{
 		Log::Notice( "\"%s\" isn't a valid key\n", key );
 		return;
@@ -1155,9 +741,9 @@ void Key_EditBind_f()
 	}
 
 	const char *key = Cmd_Argv( b - 1 );
-	b = Key_StringToKeynum( key );
+	Key k = Key_StringToKeynum( key );
 
-	if ( b == -1 )
+	if ( !k.IsBindable() )
 	{
 		Log::Notice( "\"%s\" isn't a valid key\n", key );
 		return;
@@ -1174,10 +760,10 @@ void Key_EditBind_f()
 		buf = Str::UTF8To32("/bind ");
 	}
 
-	buf += Str::UTF8To32( Key_KeynumToString( b ) );
+	buf += Str::UTF8To32( Key_KeynumToString( k ) );
 	buf += Str::UTF8To32(" ");
 
-	const char *binding = Key_GetBinding( b, -team );
+	const char *binding = Key_GetBinding( k, -team );
 	if ( binding )
 	{
 		buf += Str::UTF8To32( Cmd::Escape( std::string( binding ) ) );
@@ -1197,22 +783,24 @@ Writes lines containing "bind key value"
 */
 void Key_WriteBindings( fileHandle_t f )
 {
-	int i, team;
+	int team;
 
 	FS_Printf( f,"%s", "unbindall\n" );
 
-	for ( i = 0; i < MAX_KEYS; i++ )
+	for (const auto& kv: keys)
 	{
-		if ( keys[ i ].binding[ 0 ] && keys[ i ].binding[ 0 ][ 0 ] )
+		if ( kv.second.binding[ 0 ] && kv.second.binding[ 0 ][ 0 ] )
 		{
-			FS_Printf( f, "bind       %s %s\n", Key_KeynumToString( i ), Cmd_QuoteString( keys[ i ].binding[ 0 ] ) );
+			FS_Printf( f, "bind       %s %s\n", Key_KeynumToString( kv.first ), 
+                       Cmd_QuoteString( kv.second.binding[ 0 ] ) );
 		}
 
 		for ( team = 1; team < MAX_TEAMS; ++team )
 		{
-			if ( keys[ i ].binding[ team ] && keys[ i ].binding[ team ][ 0 ] )
+			if ( kv.second.binding[ team ] && kv.second.binding[ team ][ 0 ] )
 			{
-				FS_Printf( f, "teambind %d %s %s\n", team, Key_KeynumToString( i ), Cmd_QuoteString( keys[ i ].binding[ team ] ) );
+				FS_Printf( f, "teambind %d %s %s\n", team, Key_KeynumToString( kv.first ),
+                           Cmd_QuoteString( kv.second.binding[ team ] ) );
 			}
 		}
 	}
@@ -1226,15 +814,15 @@ Key_Bindlist_f
 */
 void Key_Bindlist_f()
 {
-	int i, team;
+	int team;
 
-	for ( i = 0; i < MAX_KEYS; i++ )
+	for (auto& kv: keys)
 	{
 		bool teamSpecific = false;
 
 		for ( team = 1; team < MAX_TEAMS; ++team )
 		{
-			if ( keys[ i ].binding[ team ] && keys[ i ].binding[ team ][ 0 ] )
+			if ( kv.second.binding[ team ] && kv.second.binding[ team ][ 0 ] )
 			{
 				teamSpecific = true;
 				break;
@@ -1243,18 +831,18 @@ void Key_Bindlist_f()
 
 		if ( !teamSpecific )
 		{
-			if ( keys[ i ].binding[ 0 ] && keys[ i ].binding[ 0 ][ 0 ] )
+			if ( kv.second.binding[ 0 ] && kv.second.binding[ 0 ][ 0 ] )
 			{
-				Log::Notice( "%s = %s\n", Key_KeynumToString( i ), keys[ i ].binding[ 0 ] );
+				Log::Notice( "%s = %s\n", Key_KeynumToString( kv.first ), kv.second.binding[ 0 ] );
 			}
 		}
 		else
 		{
 			for ( team = 0; team < MAX_TEAMS; ++team )
 			{
-				if ( keys[ i ].binding[ team ] && keys[ i ].binding[ team ][ 0 ] )
+				if ( kv.second.binding[ team ] && kv.second.binding[ team ][ 0 ] )
 				{
-					Log::Notice( "%s[%s] = %s\n", Key_KeynumToString( i ), teamName[ team ], keys[ i ].binding[ team ] );
+					Log::Notice( "%s[%s] = %s\n", Key_KeynumToString( kv.first ), teamName[ team ], kv.second.binding[ team ] );
 				}
 			}
 		}
@@ -1270,7 +858,7 @@ void Key_SetKeyData_f()
 {
 	if ( atoi( Cmd_Argv( 1 ) ) == plusCommand.check )
 	{
-		plusCommand.key  = atoi( Cmd_Argv( 2 ) ) - 1;
+		plusCommand.key = Key_StringToKeynum( Cmd_Argv( 2 ) );
 		plusCommand.time = atoi( Cmd_Argv( 3 ) );
 		plusCommand.valid = true;
 	}
@@ -1280,9 +868,9 @@ void Key_SetKeyData_f()
 	}
 }
 
-int Key_GetKeyNumber()
+Key Key_GetKeyNumber()
 {
-	return plusCommand.valid ? plusCommand.key : -1;
+	return plusCommand.valid ? plusCommand.key : Key::NONE;
 }
 
 unsigned int Key_GetKeyTime()
@@ -1343,20 +931,7 @@ void Field_CompleteTeamname( int flags )
 	Field_TeamnameCompletion( FindMatches, flags );
 }
 
-/*
-============
-Key_KeynameCompletion
-============
-*/
-void Key_KeynameCompletion( void ( *callback )( const char *s ) )
-{
-	int i;
 
-	for ( i = 0; keynames[ i ].name != nullptr; i++ )
-	{
-		callback( keynames[ i ].name );
-	}
-}
 
 /*
 ====================
@@ -1444,7 +1019,7 @@ static const struct
 	char name[ 8 ];
 	unsigned short count;
 	unsigned short bit;
-	unsigned int index;
+	keyNum_t index;
 } modifierKeys[] =
 {
 	{ "shift", 5, 1, K_SHIFT },
@@ -1456,7 +1031,7 @@ static const struct
 	{ "super", 5, 32, K_SUPER },
 	{ "compose", 6, 64, K_COMPOSE },
 	{ "menu", 7, 128, K_MENU },
-	{ "", 0, 0, 0 }
+	{ "" }
 };
 // Following is no. of bits required for modifiers in the above list
 // (it doesn't reflect the array length)
@@ -1678,16 +1253,16 @@ void CL_InitKeyCommands()
 
 void CL_ClearKeyBinding()
 {
-	int team, keynum;
+	int team;
 
 	for ( team = 0; team < MAX_TEAMS; team++ )
 	{
-		for ( keynum = 0; keynum < MAX_KEYS; keynum++ )
+		for ( auto& kv: keys )
 		{
-			if ( keys[ keynum ].binding[ team ] )
+			if ( kv.second.binding[ team ] )
 			{
-				Z_Free( keys[ keynum ].binding[ team ] );
-				keys[ keynum ].binding[ team ] = nullptr;
+				Z_Free( kv.second.binding[ team ] );
+				kv.second.binding[ team ] = nullptr;
 			}
 		}
 	}
@@ -1704,19 +1279,19 @@ Called by the system for both key up and key down events
 // fretn
 bool consoleButtonWasPressed = false;
 
-void CL_KeyEvent( int key, bool down, unsigned time )
+void CL_KeyEvent( const Key& key, bool down, unsigned time )
 {
 	char     *kb;
 	bool bypassMenu = false; // NERVE - SMF
 	bool onlybinds = false;
 
-	if ( key < 1 )
+	if ( !key.IsValid() )
 	{
 		return;
 	}
 
-	switch ( key )
-	{
+    if ( key.kind() == Key::Kind::KEYNUM ) {
+	    switch ( key.AsKeynum() ) {
 		case K_KP_PGUP:
 		case K_KP_EQUALS:
 		case K_KP_5:
@@ -1735,6 +1310,10 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 			}
 
 			break;
+
+        default:
+            break;
+        }
 	}
 
 	// update auto-repeat status and BUTTON_ANY status
@@ -1763,13 +1342,13 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 #ifdef MACOS_X
 	if ( down && keys[ K_COMMAND ].down )
 	{
-		if ( key == 'f' )
+		if ( key == Key::FromCharacter('f') )
 		{
 			Key_ClearStates();
 			Cmd::BufferCommandText("toggle r_fullscreen; vid_restart");
 			return;
 		}
-		else if ( key == 'q' )
+		else if ( key == Key::FromCharacter('q') )
 		{
 			Key_ClearStates();
 			Cmd::BufferCommandText("quit");
@@ -1844,7 +1423,7 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 			return;
 		}
 
-		cgvm.CGameKeyEvent(key, down);
+		cgvm.CGameKeyEvent(key.AsLegacyInt(), down);
 		return;
 	}
 
@@ -1853,7 +1432,10 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 	// to run any binds (since they won't be found).
 	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
 	{
-		cgvm.CGameKeyEvent(key, down);
+        int intKey = key.AsLegacyInt();
+        if (intKey > 0) {
+		    cgvm.CGameKeyEvent(intKey, down);
+        }
 		return;
 	}
 
@@ -1866,7 +1448,7 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 	if ( !down )
 	{
 		// Handle any +commands which were invoked on the corresponding key-down
-		Cmd::BufferCommandText(va("keyup %d %d %u", plusCommand.check, key, time));
+		Cmd::BufferCommandText(Str::Format("keyup %d %s %u", plusCommand.check, Key_KeynumToString(key), time));
 
 		return;
 	}
@@ -1896,7 +1478,7 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 		if ( kb )
 		{
 			// down-only command
-			Cmd::BufferCommandTextAfter(va("setkeydata %d %d %u\n%s", plusCommand.check, key + 1, time, kb), true);
+			Cmd::BufferCommandTextAfter(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Key_KeynumToString(key), time, kb), true);
 			Cmd::BufferCommandTextAfter(va("setkeydata %d", plusCommand.check), true);
 		}
 	}
@@ -1947,22 +1529,20 @@ Key_ClearStates
 */
 void Key_ClearStates()
 {
-	int i;
-
 	anykeydown = 0;
 
 	int oldKeyCatcher = Key_GetCatcher();
 	Key_SetCatcher( 0 );
 
-	for ( i = 0; i < MAX_KEYS; i++ )
+	for ( auto& kv: keys )
 	{
-		if ( keys[ i ].down )
+		if ( kv.second.down )
 		{
-			CL_KeyEvent( i, false, 0 );
+			CL_KeyEvent(kv.first, false, 0 );
 		}
 
-		keys[ i ].down = 0;
-		keys[ i ].repeats = 0;
+		kv.second.down = 0;
+		kv.second.repeats = 0;
 	}
 
 	plusCommand.check = rand();

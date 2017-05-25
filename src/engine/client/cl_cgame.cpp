@@ -629,6 +629,8 @@ static int LAN_ServerIsVisible( int source, int n )
  */
 void Key_GetBindingBuf( int keynum, int team, char *buf, int buflen )
 {
+    *buf = 0;
+#if 0
 	const char *value;
 
 	value = Key_GetBinding( keynum, team );
@@ -641,6 +643,7 @@ void Key_GetBindingBuf( int keynum, int team, char *buf, int buflen )
 	{
 		*buf = 0;
 	}
+#endif
 }
 
 /*
@@ -1507,13 +1510,13 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 
 		case CG_KEY_KEYNUMTOSTRINGBUF:
 			IPC::HandleMsg<Key::KeyNumToStringMsg>(channel, std::move(reader), [this] (int keynum, std::string& result) {
-				result = Key_KeynumToString(keynum);
+				result = Key_KeynumToString(Keyboard::Key::FromLegacyInt(keynum));
 			});
 			break;
 
 		case CG_KEY_SETBINDING:
 			IPC::HandleMsg<Key::SetBindingMsg>(channel, std::move(reader), [this] (int keyNum, int team, std::string cmd) {
-				Key_SetBinding(keyNum, team, cmd.c_str());
+				Key_SetBinding(Keyboard::Key::FromLegacyInt(keyNum), team, cmd.c_str());
 			});
 			break;
 
@@ -1534,13 +1537,14 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 				list.reserve(keys.size());
 				for (unsigned i = 0; i < keys.size(); ++i)
 				{
-					if (keys[i] == Util::ordinal(keyNum_t::K_KP_NUMLOCK))
+                    keyNum_t key = Util::enum_cast<keyNum_t>(keys[i]);
+					if (key == keyNum_t::K_KP_NUMLOCK)
 					{
 						list.push_back(IN_IsNumLockDown());
 					}
 					else
 					{
-						list.push_back(Key_IsDown( keys[i] ));
+						list.push_back(Key_IsDown(Keyboard::Key(key)));
 					}
 				}
 			});
