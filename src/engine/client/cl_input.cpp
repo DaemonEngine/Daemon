@@ -35,6 +35,7 @@ Maryland 20850 USA.
 // cl.input.c  -- builds an intended movement command to send to the server
 
 #include "client.h"
+#include "engine/client/keys.h"
 #include "framework/CommandSystem.h"
 
 unsigned frame_msec;
@@ -660,7 +661,7 @@ void CL_CmdButtons( usercmd_t *cmd )
 
 	// allow the game to know if any key at all is
 	// currently pressed, even if it isn't bound to anything
-	if ( anykeydown && ( !cls.keyCatchers ) )
+	if ( AnyKeyDown() && ( !cls.keyCatchers ) )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_ANY );
 	}

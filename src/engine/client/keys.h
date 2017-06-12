@@ -32,10 +32,10 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
-#ifndef COMMON_KEYS_H_
-#define COMMON_KEYS_H_
+#ifndef ENGINE_CLIENT_KEYS_H_
+#define ENGINE_CLIENT_KEYS_H_
 
-#include <unordered_map>
+#include "common/Common.h"
 
 #include "keycodes.h"
 
@@ -75,7 +75,7 @@ public:
     static const Key NONE;
     static const Key CONSOLE;
 
-    Key(): Key(Kind::INVALID, 0) { }
+    constexpr Key(): Key(Kind::INVALID, 0) { }
     Key(keyNum_t key) {
         if (key <= 0 || key >= MAX_KEYS)
             *this = Key();
@@ -168,4 +168,6 @@ void            Key_ClearStates();
 void            Key_SetTeam( int newTeam );
 int             Key_GetTeam( const char *arg, const char *cmd );
 
-#endif // COMMON_KEYS_H_
+bool AnyKeyDown();
+
+#endif // ENGINE_CLIENT_KEYS_H_

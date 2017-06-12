@@ -580,14 +580,6 @@ struct field_t
     char buffer[ MAX_EDIT_LINE ];
 };
 
-// Field_Complete{Key,Team}name
-#define FIELD_TEAM            1
-#define FIELD_TEAM_SPECTATORS 2
-#define FIELD_TEAM_DEFAULT    4
-
-void Field_CompleteKeyname( int flags );
-void Field_CompleteTeamname( int flags );
-
 // code point count <-> UTF-8 byte count
 int Field_CursorToOffset( field_t *edit );
 int Field_ScrollToOffset( field_t *edit );

@@ -48,6 +48,8 @@ int g_console_field_width = DEFAULT_CONSOLE_WIDTH;
 
 console_t consoleState;
 
+Console::Field g_consoleField(INT_MAX);
+
 cvar_t    *con_animationSpeed;
 cvar_t    *con_animationType;
 

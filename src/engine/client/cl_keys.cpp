@@ -46,8 +46,6 @@ using Keyboard::Key;
 
 #define CLIP(t) Math::Clamp( (t), 0, MAX_TEAMS - 1 )
 
-Console::Field g_consoleField(INT_MAX);
-
 bool key_overstrikeMode;
 bool bindingsModified;
 
@@ -62,6 +60,14 @@ static struct {
 	bool     valid;
 	int          check;
 } plusCommand;
+
+
+#define FIELD_TEAM            1
+#define FIELD_TEAM_SPECTATORS 2
+#define FIELD_TEAM_DEFAULT    4
+
+static void Field_CompleteKeyname( int flags );
+static void Field_CompleteTeamname( int flags );
 
 
 /*
@@ -281,7 +287,7 @@ Console_Key
 Handles history and console scrollback for the ingame console
 ====================
 */
-void Console_Key( Key key )
+static void Console_Key( Key key )
 {
 	// just return if any of the listed modifiers are pressed
 	// - no point in passing on, since they Just Get In The Way
@@ -570,7 +576,7 @@ const char *Key_GetBinding( Key key, int team )
 Key_Unbind_f
 ===================
 */
-void Key_Unbind_f()
+static void Key_Unbind_f()
 {
 	int b = Cmd_Argc();
 	int team = -1;
@@ -607,7 +613,7 @@ void Key_Unbind_f()
 Key_Unbindall_f
 ===================
 */
-void Key_Unbindall_f()
+static void Key_Unbindall_f()
 {
 	for (auto& kv : keys)
 	{
@@ -620,7 +626,7 @@ void Key_Unbindall_f()
 Key_Bind_f
 ===================
 */
-void Key_Bind_f()
+static void Key_Bind_f()
 {
 	int        c;
 	const char *key;
@@ -716,7 +722,7 @@ void Key_Bind_f()
 Key_EditBind_f
 ===================
 */
-void Key_EditBind_f()
+static void Key_EditBind_f()
 {
 	std::u32string buf;
 	int            b;
@@ -812,7 +818,7 @@ Key_Bindlist_f
 
 ============
 */
-void Key_Bindlist_f()
+static void Key_Bindlist_f()
 {
 	int team;
 
@@ -854,7 +860,7 @@ void Key_Bindlist_f()
 Key_SetKeyData
 ============
 */
-void Key_SetKeyData_f()
+static void Key_SetKeyData_f()
 {
 	if ( atoi( Cmd_Argv( 1 ) ) == plusCommand.check )
 	{
@@ -911,7 +917,7 @@ static void Field_TeamnameCompletion( void ( *callback )( const char *s ), int f
 Field_CompleteKeyname
 ===============
 */
-void Field_CompleteKeyname( int flags )
+static void Field_CompleteKeyname( int flags )
 {
 	if ( flags & FIELD_TEAM )
 	{
@@ -926,7 +932,7 @@ void Field_CompleteKeyname( int flags )
 Field_CompleteTeamname
 ===============
 */
-void Field_CompleteTeamname( int flags )
+static void Field_CompleteTeamname( int flags )
 {
 	Field_TeamnameCompletion( FindMatches, flags );
 }
@@ -984,12 +990,12 @@ static void Key_CompleteBind_Internal( char *args, int argNum, int nameArg )
 	}
 }
 
-void Key_CompleteBind( char *args, int argNum )
+static void Key_CompleteBind( char *args, int argNum )
 {
 	Key_CompleteBind_Internal( args, argNum, 2 );
 }
 
-void Key_CompleteTeambind( char *args, int argNum )
+static void Key_CompleteTeambind( char *args, int argNum )
 {
 	if ( argNum == 2 )
 	{
@@ -1157,7 +1163,7 @@ Executes the command for the first matching modifier set
 
 ===============
 */
-void Key_ModCase_f()
+static void Key_ModCase_f()
 {
 	int argc = Cmd_Argc();
 	int index = 0;
@@ -1567,4 +1573,9 @@ void Key_SetTeam( int newTeam )
 	}
 
 	bindTeam = newTeam;
+}
+
+bool AnyKeyDown()
+{
+	return anykeydown > 0;
 }
