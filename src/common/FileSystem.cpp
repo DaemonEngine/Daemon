@@ -2067,7 +2067,51 @@ std::string DefaultHomePath()
 #ifdef __APPLE__
 	return std::string(home) + "/Library/Application Support/" PRODUCT_NAME;
 #else
-	return std::string(home) + "/." PRODUCT_NAME_LOWER;
+	struct stat stl, stx;
+
+	std::string legacyHomePath = Path::Build(std::string(home), "." PRODUCT_NAME_LOWER);
+	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
+	std::string xdgDataHome = _xdgDataHome == NULL ? "" : std::string(xdgDataHome);
+	std::string xdgHomePath;
+
+	if (xdgDataHome.empty()) {
+		xdgDataHome = Path::Build(Path::Build(std::string(home), ".local") ,"share");
+	}
+
+	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
+
+	// move legacy ~/.unvanquished directory to XDG ~/.local/share/unvanquished
+	// if ~/.unvanquished exists but ~/.local/share/unvanquished does not exist
+	// unless ~/.unvanquished is a symlink (symlink can be relative, behavior is unpredictable)
+	if (lstat(legacyHomePath.c_str(), &stl) == 0) {
+		if (S_ISLNK(stl.st_mode) && stat(xdgHomePath.c_str(), &stx) != 0) {
+			Sys::Error("Legacy home path %s is a symlink and symlink can be relative, will not rename to %s"
+						", do it yourself!", legacyHomePath, xdgHomePath);
+		}
+
+		if (S_ISDIR(stl.st_mode)) {
+			if (stat(xdgHomePath.c_str(), &stx) != 0) {
+				std::error_code err;
+
+				RawPath::CreatePathTo(xdgDataHome, err);
+
+				if (err) {
+					Sys::Error("Could not create %s: %s", xdgDataHome, err.message());
+				}
+
+				fsLogs.Warn("Renaming legacy home path %s to %s", legacyHomePath, xdgHomePath);
+				RawPath::MoveFile(xdgHomePath, legacyHomePath, err);
+
+				if (err) {
+					Sys::Error("Could not rename legacy home path to %s: %s", xdgHomePath, err.message());
+				}
+			} else {
+				fsLogs.Warn("XDG home path already exist, doing nothing: %s", xdgHomePath);
+			}
+		}
+	}
+
+	return xdgHomePath;
 #endif
 #endif
 }
