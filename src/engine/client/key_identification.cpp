@@ -529,12 +529,12 @@ const char *Key_KeynumToString( Key key )
 Key_KeynameCompletion
 ============
 */
-void Key_KeynameCompletion( void ( *callback )( const char *s ) )
+void Key_KeynameCompletion(Cmd::CompletionResult& completions, Str::StringRef prefix)
 {
 	int i;
 
 	for ( i = 0; keynames[ i ].name != nullptr; i++ )
 	{
-		callback( keynames[ i ].name );
+		Cmd::AddToCompletion(completions, prefix, {{keynames[i].name, ""}});
 	}
 }

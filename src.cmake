@@ -349,6 +349,7 @@ set(CLIENTLIST
     ${ENGINE_DIR}/audio/SoundCodec.h
     ${ENGINE_DIR}/audio/WavCodec.cpp
     ${ENGINE_DIR}/client/cl_keys.cpp
+    ${ENGINE_DIR}/client/key_binding.cpp
     ${ENGINE_DIR}/client/key_identification.cpp
     ${ENGINE_DIR}/sys/sdl_input.cpp
     ${RENDERERLIST}

@@ -789,7 +789,7 @@ void CL_StartHunkUsers();
 
 // start all the client stuff using the hunk
 
-void Key_KeynameCompletion( void ( *callback )( const char *s ) );
+void Key_KeynameCompletion(Cmd::CompletionResult& completions, Str::StringRef prefix);
 
 // for keyname autocompletion
 

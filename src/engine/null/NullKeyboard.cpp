@@ -49,7 +49,7 @@ const char *Key_KeynumToString( Key ) {
     return "<unimplemented>";
 }
 
-void Key_KeynameCompletion( void ( * )( const char * ) ) {
+void Key_KeynameCompletion(Cmd::CompletionResult& completions, Str::StringRef prefix) {
 }
 
 void Field_Draw(const Util::LineEditData&, int, int, bool, bool, float) {
