@@ -2080,33 +2080,41 @@ std::string DefaultHomePath()
 
 	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
 
-	// move legacy ~/.unvanquished directory to XDG ~/.local/share/unvanquished
-	// if ~/.unvanquished exists but ~/.local/share/unvanquished does not exist
-	// unless ~/.unvanquished is a symlink (symlink can be relative, behavior is unpredictable)
 	if (lstat(legacyHomePath.c_str(), &stl) == 0) {
-		if (S_ISLNK(stl.st_mode) && stat(xdgHomePath.c_str(), &stx) != 0) {
-			Sys::Error("Legacy home path %s is a symlink and symlink can be relative, will not rename to %s"
-						", do it yourself!", legacyHomePath, xdgHomePath);
-		}
-
-		if (S_ISDIR(stl.st_mode)) {
+		if (S_ISDIR(stl.st_mode) || S_ISLNK(stl.st_mode)) {
 			if (stat(xdgHomePath.c_str(), &stx) != 0) {
 				std::error_code err;
 
 				RawPath::CreatePathTo(xdgDataHome, err);
 
 				if (err) {
-					Sys::Error("Could not create %s: %s", xdgDataHome, err.message());
+					Sys::Error("Could not create XDG data directory %s: %s", xdgDataHome, err.message());
 				}
 
-				fsLogs.Warn("Renaming legacy home path %s to %s", legacyHomePath, xdgHomePath);
-				RawPath::MoveFile(xdgHomePath, legacyHomePath, err);
+				if (S_ISLNK(stl.st_mode)) {
+					int ret;
+					int fd = open(xdgDataHome.c_str(), O_DIRECTORY);
+
+					if (fd == -1) {
+						Sys::Error("Could not open XDG data directory %s", xdgDataHome);
+					}
+
+					fsLogs.Warn("Creating legacy home path symlink %s to XDG home path %s", legacyHomePath, xdgHomePath);
+					ret = symlinkat(legacyHomePath.c_str(), fd, xdgHomePath.c_str());
+
+					if (ret == -1) {
+						Sys::Error("Could not create symlink %s", xdgHomePath);
+					}
+				} else {
+					fsLogs.Warn("Renaming legacy home path %s to XDG home path %s", legacyHomePath, xdgHomePath);
+					RawPath::MoveFile(xdgHomePath, legacyHomePath, err);
+				}
 
 				if (err) {
 					Sys::Error("Could not rename legacy home path to %s: %s", xdgHomePath, err.message());
 				}
 			} else {
-				fsLogs.Warn("XDG home path already exist, doing nothing: %s", xdgHomePath);
+				fsLogs.Warn("Legacy home path %s exists but XDG home path %s already exists, doing nothing", legacyHomePath, xdgHomePath);
 			}
 		}
 	}
