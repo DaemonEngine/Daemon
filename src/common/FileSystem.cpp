@@ -1069,7 +1069,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			fsLogs.Notice("Loading legacy pakdir '%s'...", pak.path.c_str());
 		}
 	} else {
-		UNREACHABLE();
+		ASSERT_UNREACHABLE();
 	}
 
 	loadedPaks.emplace_back();
@@ -1144,7 +1144,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 		if (err)
 			return;
 	} else {
-		UNREACHABLE();
+		ASSERT_UNREACHABLE();
 	}
 
 	// Save the real checksum in the list of loaded paks (empty for directories, not used for legacy paks)
@@ -1194,7 +1194,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			if (err)
 				return;
 		} else {
-			UNREACHABLE();
+			ASSERT_UNREACHABLE();
 		}
 		ParseDeps(pak, depsData, err);
 	}
@@ -1307,9 +1307,9 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 			return "";
 
 		return out;
-	} else {
-		UNREACHABLE();
 	}
+
+	ASSERT_UNREACHABLE();
 }
 
 void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
@@ -1358,9 +1358,9 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 
 		// Close file and check for CRC errors
 		zipFile.CloseFile(err);
-	} else {
-		UNREACHABLE();
 	}
+
+	ASSERT_UNREACHABLE();
 }
 
 bool FileExists(Str::StringRef path)
@@ -1402,9 +1402,9 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 #endif
 	} else if (pak.type == pakType_t::PAK_ZIP) {
 		return pak.timestamp;
-	} else {
-		UNREACHABLE();
 	}
+
+	ASSERT_UNREACHABLE();
 }
 
 bool DirectoryRange::InternalAdvance()
@@ -2233,7 +2233,7 @@ static void FindPaksInPath(Str::StringRef basePath, Str::StringRef subPath)
 			} else if (Str::IsSuffix("/", filename)) {
 				FindPaksInPath(basePath, Path::Build(subPath, filename));
 			} else {
-				UNREACHABLE();
+				ASSERT_UNREACHABLE();
 			}
 		}
 	} catch (std::system_error&) {
@@ -2425,7 +2425,7 @@ bool ParsePakName(const char* begin, const char* end, std::string& name, std::st
 	} else if (Str::IsSuffix(PAK_DIR_EXT, begin)) {
 		end -= strlen(PAK_DIR_EXT);
 	} else {
-		UNREACHABLE();
+		ASSERT_UNREACHABLE();
 	}
 
 	nameStart = std::find(std::reverse_iterator<const char*>(end), std::reverse_iterator<const char*>(begin), '/').base();
