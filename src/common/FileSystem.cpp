@@ -2096,14 +2096,14 @@ std::string DefaultHomePath()
 					int fd = open(xdgDataHome.c_str(), O_DIRECTORY);
 
 					if (fd == -1) {
-						Sys::Error("Could not open XDG data directory %s", xdgDataHome);
+						Sys::Error("Could not open XDG data directory %s: %s", xdgDataHome, strerror(errno));
 					}
 
 					fsLogs.Warn("Creating legacy home path symlink %s to XDG home path %s", legacyHomePath, xdgHomePath);
 					ret = symlinkat(legacyHomePath.c_str(), fd, xdgHomePath.c_str());
 
 					if (ret == -1) {
-						Sys::Error("Could not create symlink %s", xdgHomePath);
+						Sys::Error("Could not create symlink %s: %s", xdgHomePath, strerror(errno));
 					}
 				} else {
 					fsLogs.Warn("Renaming legacy home path %s to XDG home path %s", legacyHomePath, xdgHomePath);
