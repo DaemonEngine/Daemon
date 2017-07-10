@@ -33,6 +33,7 @@ Maryland 20850 USA.
 */
 
 #include "client.h"
+#include "engine/client/key_identification.h"
 #include "qcommon/q_unicode.h"
 #include "framework/CommandSystem.h"
 
@@ -42,15 +43,11 @@ key up events are sent even if in console mode
 
 */
 
-using Keyboard::Key;
-
 bool key_overstrikeMode;
 bool bindingsModified;
 
-int      anykeydown;
-std::unordered_map<Key, qkey_t, Key::hash> keys;
-
-int      bindTeam = DEFAULT_BINDING;
+static int anykeydown;
+std::unordered_map<Keyboard::Key, qkey_t, Keyboard::Key::hash> keys;
 
 static struct {
 	Keyboard::Key key;
@@ -156,6 +153,7 @@ Key events are used for non-printable characters, others are gotten from char ev
 =================
 */
 void Field_KeyDownEvent(Util::LineEditData& edit, Keyboard::Key key) {
+    using Keyboard::Key;
     if (key.kind() == Key::Kind::KEYNUM) {
         switch (key.AsKeynum()) {
         case K_DEL:
@@ -277,8 +275,9 @@ Console_Key
 Handles history and console scrollback for the ingame console
 ====================
 */
-static void Console_Key( Key key )
+static void Console_Key( Keyboard::Key key )
 {
+	using Keyboard::Key;
 	// just return if any of the listed modifiers are pressed
 	// - no point in passing on, since they Just Get In The Way
 	if ( keys[ K_ALT     ].down || keys[ K_COMMAND ].down ||
@@ -399,12 +398,9 @@ static void Console_Key( Key key )
 
 //============================================================================
 
-/*
-===================
-Key_IsDown
-===================
-*/
-bool Key_IsDown( Key key )
+namespace Keyboard {
+
+bool IsDown( Key key )
 {
 	if ( !key.IsValid() )
 	{
@@ -413,6 +409,13 @@ bool Key_IsDown( Key key )
 
 	return keys[ key ].down;
 }
+
+bool AnyKeyDown() {
+	return anykeydown > 0;
+}
+
+} // namespace Keyboard
+
 
 /*
 ============
@@ -423,7 +426,7 @@ static void Key_SetKeyData_f()
 {
 	if ( atoi( Cmd_Argv( 1 ) ) == plusCommand.check )
 	{
-		plusCommand.key = Key_StringToKeynum( Cmd_Argv( 2 ) );
+		plusCommand.key = Keyboard::StringToKey( Cmd_Argv( 2 ) );
 		plusCommand.time = atoi( Cmd_Argv( 3 ) );
 		plusCommand.valid = true;
 	}
@@ -433,9 +436,9 @@ static void Key_SetKeyData_f()
 	}
 }
 
-Key Key_GetKeyNumber()
+Keyboard::Key Key_GetKeyNumber()
 {
-	return plusCommand.valid ? plusCommand.key : Key::NONE;
+	return plusCommand.valid ? plusCommand.key : Keyboard::Key::NONE;
 }
 
 unsigned int Key_GetKeyTime()
@@ -464,8 +467,9 @@ Called by the system for both key up and key down events
 ===================
 */
 
-void CL_KeyEvent( const Key& key, bool down, unsigned time )
+void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 {
+	using Keyboard::Key;
 	char     *kb;
 	bool bypassMenu = false; // NERVE - SMF
 	bool onlybinds = false;
@@ -633,7 +637,7 @@ void CL_KeyEvent( const Key& key, bool down, unsigned time )
 	if ( !down )
 	{
 		// Handle any +commands which were invoked on the corresponding key-down
-		Cmd::BufferCommandText(Str::Format("keyup %d %s %u", plusCommand.check, Key_KeynumToString(key), time));
+		Cmd::BufferCommandText(Str::Format("keyup %d %s %u", plusCommand.check, Cmd::Escape(KeyToString(key)), time));
 
 		return;
 	}
@@ -656,6 +660,7 @@ void CL_KeyEvent( const Key& key, bool down, unsigned time )
 	else
 	{
 		// send the bound action
+		int bindTeam = Keyboard::GetTeam();
 		kb = keys[ key ].binding[ bindTeam ]
 		   ? keys[ key ].binding[ bindTeam ] // prefer the team bind
 		   : keys[ key ].binding[ 0 ];       // default to global
@@ -663,7 +668,7 @@ void CL_KeyEvent( const Key& key, bool down, unsigned time )
 		if ( kb )
 		{
 			// down-only command
-			Cmd::BufferCommandTextAfter(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Key_KeynumToString(key), time, kb), true);
+			Cmd::BufferCommandTextAfter(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Cmd::Escape(KeyToString(key)), time, kb), true);
 			Cmd::BufferCommandTextAfter(va("setkeydata %d", plusCommand.check), true);
 		}
 	}
@@ -733,11 +738,4 @@ void Key_ClearStates()
 	plusCommand.check = rand();
 
 	Key_SetCatcher( oldKeyCatcher );
-}
-
-
-
-bool AnyKeyDown()
-{
-	return anykeydown > 0;
 }

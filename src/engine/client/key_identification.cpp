@@ -35,11 +35,13 @@ Maryland 20850 USA.
 // Object and string representations of keyboard keys.
 
 #include "common/Common.h"
-#include "keys.h"
+
+#include "key_identification.h"
+
 #include <SDL_scancode.h>
 #include <SDL_keyboard.h>
 
-using Keyboard::Key;
+namespace Keyboard {
 
 const Key Key::NONE = Key();
 const Key Key::CONSOLE = Key(Key::Kind::CONSOLE, 0);
@@ -415,26 +417,17 @@ static Key KeyFromUnprefixedCharacter(int ch)
 }
 
 /*
-===================
-Key_StringToKeynum
-
-Returns a key number to be used to index keys[] by looking at
-the given string.  Single ascii characters return themselves, while
-the K_* names are matched up.
-
-0x11 will be interpreted as raw hex, which will allow new controlers
-
-to be configured even if they don't have defined names.
-===================
+    Accepted formats:
+        hw:<ascii char> => QWERTY-based scancode
+        char:<unicode char> => character-based key representation
+        0xnnn => numeric scancode
+        <unicode char> => Find key producing this char with SDL lookup function.
+                          If that fails, try falling back to qwerty instead.
+        "SHIFT", etc. => keynum representation for this name
 */
-Key Key_StringToKeynum( const char *str )
+Key StringToKey(Str::StringRef str)
 {
 	const keyname_t *kn;
-
-	if ( !str )
-	{
-		return Key::NONE;
-	}
 
 	if ( int c = ParseCharacter( str ) )
 	{
@@ -442,30 +435,30 @@ Key Key_StringToKeynum( const char *str )
 	}
 
 	// check for hex code
-	if ( str[0] == '0' && str[1] == 'x' )
+	if ( Str::IsIPrefix("0x", str) )
 	{
-		int n = Com_HexStrToInt( str );
+		int n = Com_HexStrToInt( str.c_str() );
 		return Key::FromScancode( n );
 	}
 
 	// Physical key by QWERTY location, from ascii char
 	int prefixLen = strlen(SCANCODE_ASCII_BIND_PREFIX);
-	if ( !Q_strnicmp( SCANCODE_ASCII_BIND_PREFIX, str, prefixLen ) && strlen( str ) == prefixLen + 1 )
+	if ( Str::IsIPrefix( SCANCODE_ASCII_BIND_PREFIX, str ) && str.size() == prefixLen + 1 )
 	{
-		return Key::FromScancode( AsciiToScancode( ParseCharacter ( str + prefixLen ) ) );
+		return Key::FromScancode( AsciiToScancode( ParseCharacter ( str.substr( prefixLen ) ) ) );
 	}
 
 	// char:X forces a virtual key-based rather than scancode binding to be used for some (Unicode) char
 	prefixLen = strlen( CHARACTER_BIND_PREFIX );
-	if ( !Q_strnicmp( CHARACTER_BIND_PREFIX, str, prefixLen ) && Q_UTF8_Strlen( str + prefixLen ) == 1 )
+	if ( Str::IsIPrefix( CHARACTER_BIND_PREFIX, str ) && Q_UTF8_Strlen( &str[prefixLen] ) == 1 )
 	{
-		return Key::FromCharacter( ParseCharacter( str + prefixLen ) );
+		return Key::FromCharacter( ParseCharacter( str.substr( prefixLen ) ) );
 	}
 
 	// scan for a text match
 	for ( kn = keynames; kn->name; kn++ )
 	{
-		if ( !Q_stricmp( str, kn->name ) )
+		if ( Str::IsIEqual( str, kn->name ) )
 		{
 			return kn->keynum;
 		}
@@ -476,19 +469,9 @@ Key Key_StringToKeynum( const char *str )
 
 
 
-
-/*
-===================
-Key_KeynumToString
-
-Returns a string (either a single ascii char, a K_* name, or a 0x11 hex string) for the
-given keynum.
-===================
-*/
-const char *Key_KeynumToString( Key key )
+std::string KeyToString(Key key)
 {
 	const keyname_t *kn;
-	static std::string tinystr;
 
 	// check for a key string
 	for ( kn = keynames; kn->name; kn++ )
@@ -501,35 +484,24 @@ const char *Key_KeynumToString( Key key )
 
 	if ( key.kind() == Key::Kind::UNICODE_CHAR )
 	{
-		tinystr = CHARACTER_BIND_PREFIX;
-		tinystr += Q_UTF8_Encode( key.AsCharacter() );
-		tinystr = Cmd::Escape( tinystr );
-		return tinystr.data();
+		return std::string(CHARACTER_BIND_PREFIX) + Q_UTF8_Encode(key.AsCharacter());
 	}
 
 	if ( key.kind() == Key::Kind::SCANCODE ) {
 		int sc = key.AsScancode();
 		if ( char c = ScancodeToAscii(sc) ) {
-			tinystr = SCANCODE_ASCII_BIND_PREFIX;
-			tinystr += c;
-			tinystr = Cmd::Escape(tinystr);
+			return std::string(SCANCODE_ASCII_BIND_PREFIX) + c;
 		} else {
 			// make a hex string
-			tinystr = Str::Format("0x%03x", key.AsScancode());
+			return Str::Format("0x%03x", key.AsScancode());
 		}
-		return tinystr.data();
 	}
 
 	return "<INVALID KEY>";
 }
 
 
-/*
-============
-Key_KeynameCompletion
-============
-*/
-void Key_KeynameCompletion(Cmd::CompletionResult& completions, Str::StringRef prefix)
+void CompleteKeyName(Cmd::CompletionResult& completions, Str::StringRef prefix)
 {
 	int i;
 
@@ -538,3 +510,5 @@ void Key_KeynameCompletion(Cmd::CompletionResult& completions, Str::StringRef pr
 		Cmd::AddToCompletion(completions, prefix, {{keynames[i].name, ""}});
 	}
 }
+
+} // namespace Keyboard
