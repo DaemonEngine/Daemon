@@ -2067,7 +2067,59 @@ std::string DefaultHomePath()
 #ifdef __APPLE__
 	return std::string(home) + "/Library/Application Support/" PRODUCT_NAME;
 #else
-	return std::string(home) + "/." PRODUCT_NAME_LOWER;
+	struct stat stl, stx;
+
+	std::string legacyHomePath = Path::Build(std::string(home), "." PRODUCT_NAME_LOWER);
+	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
+	std::string xdgDataHome = _xdgDataHome == NULL ? "" : std::string(xdgDataHome);
+	std::string xdgHomePath;
+
+	if (xdgDataHome.empty()) {
+		xdgDataHome = Path::Build(Path::Build(std::string(home), ".local") ,"share");
+	}
+
+	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
+
+	if (lstat(legacyHomePath.c_str(), &stl) == 0) {
+		if (S_ISDIR(stl.st_mode) || S_ISLNK(stl.st_mode)) {
+			if (stat(xdgHomePath.c_str(), &stx) != 0) {
+				std::error_code err;
+
+				RawPath::CreatePathTo(xdgDataHome, err);
+
+				if (err) {
+					Sys::Error("Could not create XDG data directory %s: %s", xdgDataHome, err.message());
+				}
+
+				if (S_ISLNK(stl.st_mode)) {
+					int ret;
+					int fd = open(xdgDataHome.c_str(), O_DIRECTORY);
+
+					if (fd == -1) {
+						Sys::Error("Could not open XDG data directory %s: %s", xdgDataHome, strerror(errno));
+					}
+
+					fsLogs.Warn("Creating legacy home path symlink %s to XDG home path %s", legacyHomePath, xdgHomePath);
+					ret = symlinkat(legacyHomePath.c_str(), fd, xdgHomePath.c_str());
+
+					if (ret == -1) {
+						Sys::Error("Could not create symlink %s: %s", xdgHomePath, strerror(errno));
+					}
+				} else {
+					fsLogs.Warn("Renaming legacy home path %s to XDG home path %s", legacyHomePath, xdgHomePath);
+					RawPath::MoveFile(xdgHomePath, legacyHomePath, err);
+				}
+
+				if (err) {
+					Sys::Error("Could not rename legacy home path to %s: %s", xdgHomePath, err.message());
+				}
+			} else {
+				fsLogs.Warn("Legacy home path %s exists but XDG home path %s already exists, doing nothing", legacyHomePath, xdgHomePath);
+			}
+		}
+	}
+
+	return xdgHomePath;
 #endif
 #endif
 }
