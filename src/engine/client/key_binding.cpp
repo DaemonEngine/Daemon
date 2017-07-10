@@ -34,13 +34,19 @@ Maryland 20850 USA.
 
 #include "common/Common.h"
 
+#include "keys.h"
+
 #include "client.h"
+#include "key_identification.h"
 #include "framework/CommandSystem.h"
 
 
-#define CLIP(t) Math::Clamp( (t), 0, MAX_TEAMS - 1 )
-
 using Keyboard::Key;
+
+static int ClipTeamNumber(int team)
+{
+    return Math::Clamp(team, 0, MAX_TEAMS - 1);
+}
 
 
 /*
@@ -201,12 +207,11 @@ void CL_ClearKeyBinding()
 	}
 }
 
-/*
-===================
-Key_SetTeam
-===================
-*/
-void Key_SetTeam( int newTeam )
+namespace Keyboard {
+
+static int bindTeam = DEFAULT_BINDING;
+
+void SetTeam( int newTeam )
 {
 	if ( newTeam < 0 || newTeam >= MAX_TEAMS )
 	{
@@ -223,75 +228,14 @@ void Key_SetTeam( int newTeam )
 	bindTeam = newTeam;
 }
 
-/*
-===================
-Key_GetTeam
-Assumes 'three' teams: spectators, aliens, humans
-===================
-*/
-static const char *const teamName[] = { "default", "aliens", "humans", "others" };
-
-int Key_GetTeam( const char *arg, const char *cmd )
+int GetTeam()
 {
-	static const struct {
-		char team;
-		char label[11];
-	} labels[] = {
-		{ 0, "spectators" },
-		{ 0, "default" },
-		{ 1, "aliens" },
-		{ 2, "humans" }
-	};
-	int t, l;
-
-	if ( !*arg ) // empty string
-	{
-		goto fail;
-	}
-
-	for ( t = 0; arg[ t ]; ++t )
-	{
-		if ( !Str::cisdigit( arg[ t ] ) )
-		{
-			break;
-		}
-	}
-
-	if ( !arg[ t ] )
-	{
-		t = atoi( arg );
-
-		if ( t != CLIP( t ) )
-		{
-			return -1;
-		}
-
-		return t;
-	}
-
-	l = strlen( arg );
-
-	for ( unsigned t = 0; t < ARRAY_LEN( labels ); ++t )
-	{
-		// matching initial substring
-		if ( !Q_strnicmp( arg, labels[ t ].label, l ) )
-		{
-			return labels[ t ].team;
-		}
-	}
-
-fail:
-	return -1;
+	return bindTeam;
 }
 
-/*
-===================
-Key_SetBinding
-
-team == -1 clears all bindings for the key, then sets the spec/global binding
-===================
-*/
-void Key_SetBinding( Key key, int team, const char *binding )
+// Sets a key binding, or clears it given an empty string.
+// team == -1 clears all bindings for the key, then sets the spec/global binding
+void SetBinding( Key key, int team, Str::StringRef binding )
 {
 	char *lcbinding; // fretn - make a copy of our binding lowercase
 	// so name toggle scripts work again: bind x name BzZIfretn?
@@ -317,7 +261,7 @@ void Key_SetBinding( Key key, int team, const char *binding )
 		// team == 0...
 	}
 
-	team = CLIP( team );
+	team = ClipTeamNumber( team );
 
 	if ( keys[ key ].binding[ team ] )
 	{
@@ -325,11 +269,11 @@ void Key_SetBinding( Key key, int team, const char *binding )
 	}
 
 	// set the new binding, if not null/empty
-	if ( binding && binding[ 0 ] )
+	if ( !binding.empty() )
 	{
 		// allocate memory for new binding
-		keys[ key ].binding[ team ] = CopyString( binding );
-		lcbinding = CopyString( binding );
+		keys[ key ].binding[ team ] = CopyString( binding.c_str() );
+		lcbinding = CopyString( binding.c_str() );
 		Q_strlwr( lcbinding );  // saves doing it on all the generateHashValues in Key_GetBindingByString
 		Z_Free( lcbinding );
 	}
@@ -341,40 +285,35 @@ void Key_SetBinding( Key key, int team, const char *binding )
 	bindingsModified = true;
 }
 
-/*
-===================
-Key_GetBinding
-
--ve team no. = don't return the default binding
-===================
-*/
-const char *Key_GetBinding( Key key, int team )
+// -ve team no. = don't return the default binding
+Util::optional<std::string> GetBinding(Key key, int team)
 {
 	const char *bind;
 
 	if ( !key.IsBindable() )
 	{
-		return nullptr;
+		return {};
 	}
 
 	if ( team <= 0 )
 	{
-		return keys[ key ].binding[ CLIP( -team ) ];
+		bind = keys[ key ].binding[ ClipTeamNumber( -team ) ];
+	} else
+	{
+		bind = keys[ key ].binding[ ClipTeamNumber( team ) ];
+		if (!bind) {
+			bind = keys[ key ].binding[ 0 ];
+		}
 	}
-
-	bind = keys[ key ].binding[ CLIP( team ) ];
-	return bind ? bind : keys[ key ].binding[ 0 ];
+	if (bind) {
+		return {bind};
+	} else {
+		return {};
+	}
 }
 
 
-/*
-============
-Key_WriteBindings
-
-Writes lines containing "bind key value"
-============
-*/
-void Key_WriteBindings( fileHandle_t f )
+void WriteBindings( fileHandle_t f )
 {
 	int team;
 
@@ -384,22 +323,77 @@ void Key_WriteBindings( fileHandle_t f )
 	{
 		if ( kv.second.binding[ 0 ] && kv.second.binding[ 0 ][ 0 ] )
 		{
-			FS_Printf( f, "bind       %s %s\n", Key_KeynumToString( kv.first ), 
-                       Cmd_QuoteString( kv.second.binding[ 0 ] ) );
+			FS_Printf( f, "bind       %s %s\n", Cmd::Escape( KeyToString( kv.first ) ).c_str(), 
+			           Cmd::Escape( kv.second.binding[ 0 ] ).c_str() );
 		}
 
 		for ( team = 1; team < MAX_TEAMS; ++team )
 		{
 			if ( kv.second.binding[ team ] && kv.second.binding[ team ][ 0 ] )
 			{
-				FS_Printf( f, "teambind %d %s %s\n", team, Key_KeynumToString( kv.first ),
-                           Cmd_QuoteString( kv.second.binding[ team ] ) );
+				FS_Printf( f, "teambind %d %s %s\n", team, Cmd::Escape( KeyToString( kv.first ) ).c_str(),
+				           Cmd::Escape( kv.second.binding[ team ] ).c_str() );
 			}
 		}
 	}
 }
 
 namespace { // Key binding commands
+
+// Assumes 'three' teams: spectators, aliens, humans
+static const char *const teamName[] = { "default", "aliens", "humans", "others" };
+int GetTeam(Str::StringRef arg)
+{
+	static const struct {
+		char team;
+		char label[11];
+	} labels[] = {
+		{ 0, "spectators" },
+		{ 0, "default" },
+		{ 1, "aliens" },
+		{ 2, "humans" }
+	};
+	int t, l;
+
+	if ( arg.empty() )
+	{
+		goto fail;
+	}
+
+	for ( t = 0; arg[ t ]; ++t )
+	{
+		if ( !Str::cisdigit( arg[ t ] ) )
+		{
+			break;
+		}
+	}
+
+	if ( !arg[ t ] )
+	{
+		t = atoi( arg.c_str() );
+
+		if ( t != ClipTeamNumber( t ) )
+		{
+			return -1;
+		}
+
+		return t;
+	}
+
+	l = arg.size();
+
+	for ( unsigned t = 0; t < ARRAY_LEN( labels ); ++t )
+	{
+		// matching initial substring
+		if ( !Q_strnicmp( arg.c_str(), labels[ t ].label, l ) )
+		{
+			return labels[ t ].team;
+		}
+	}
+
+fail:
+	return -1;
+}
 
 Cmd::CompletionResult CompleteEmbeddedCommand(const Cmd::Args& args, int startIndex, int completeIndex) {
     // TODO: make not O(n^2)?
@@ -414,12 +408,12 @@ void CompleteTeamName(Str::StringRef prefix, Cmd::CompletionResult& completions)
 
 
 void CompleteTeamAndKey(int argNum, const Cmd::Args& args, Str::StringRef prefix, Cmd::CompletionResult& res) {
-    bool hasTeam = argNum > 1 && Key_GetTeam(args.Argv(1).c_str(), "") >= 0;
+    bool hasTeam = argNum > 1 && GetTeam(args.Argv(1)) >= 0;
     if (argNum == 1) {
         CompleteTeamName(prefix, res);
     }
     if (argNum == 1 + +hasTeam) {
-        Key_KeynameCompletion(res, prefix);
+        CompleteKeyName(res, prefix);
     }
 }
 
@@ -456,7 +450,7 @@ public:
 		    {
 			    if ( kv.second.binding[ 0 ] && kv.second.binding[ 0 ][ 0 ] )
 			    {
-				    Log::Notice( "%s = %s", Key_KeynumToString( kv.first ), kv.second.binding[ 0 ] );
+				    Log::Notice( "%s = %s", KeyToString( kv.first ), kv.second.binding[ 0 ] );
 			    }
 		    }
 		    else
@@ -465,7 +459,7 @@ public:
 			    {
 				    if ( kv.second.binding[ team ] && kv.second.binding[ team ][ 0 ] )
 				    {
-					    Log::Notice( "%s[%s] = %s", Key_KeynumToString( kv.first ), teamName[ team ], kv.second.binding[ team ] );
+					    Log::Notice( "%s[%s] = %s", KeyToString( kv.first ), teamName[ team ], kv.second.binding[ team ] );
 				    }
 			    }
 		    }
@@ -485,7 +479,7 @@ class BindCmd: public Cmd::StaticCmd
 	    {
 		    if ( teamFilter(i) && keys[ b ].binding[ i ] )
 		    {
-			    Print( "\"%s\"[%s] = %s", Key_KeynumToString(b), teamName[ i ],
+			    Print( "\"%s\"[%s] = %s", KeyToString(b), teamName[ i ],
                        Cmd_QuoteString( keys[ b ].binding[ i ] ) );
 			    bound = true;
 		    }
@@ -493,7 +487,7 @@ class BindCmd: public Cmd::StaticCmd
 
 	    if ( !bound )
 	    {
-		    Print( "\"%s\" is not bound", Key_KeynumToString(b) );
+		    Print( "\"%s\" is not bound", KeyToString(b) );
 	    }
     }
 
@@ -517,7 +511,7 @@ public:
 
 	    if ( teambind )
 	    {
-		    team = Key_GetTeam( args.Argv( 1 ).c_str(), args.Argv( 0 ).c_str() );
+		    team = GetTeam( args.Argv( 1 ) );
 		    if (team < 0) {
                 Print(InvalidTeamMessage(args.Argv(1)));
 			    return;
@@ -525,7 +519,7 @@ public:
 	    }
 
 	    key = args.Argv( 1 + +teambind ).c_str();
-	    Key b = Key_StringToKeynum( key );
+	    Key b = StringToKey( key );
 
 	    if ( !b.IsBindable() )
 	    {
@@ -542,7 +536,7 @@ public:
             return;
         }
 
-		Key_SetBinding( b, team, args.ConcatArgs( 2 + +teambind ).c_str() );
+		SetBinding( b, team, args.ConcatArgs( 2 + +teambind ) );
     }
 
     Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
@@ -550,7 +544,7 @@ public:
         if (teambind && argNum == 1) {
             CompleteTeamName(prefix, res);
         } else if (argNum == 1 + +teambind) {
-            Key_KeynameCompletion(res, prefix);
+            CompleteKeyName(res, prefix);
         } else {
             DAEMON_ASSERT_GE(argNum, 2 + +teambind);
             res = CompleteEmbeddedCommand(args, 2 + +teambind, argNum);
@@ -583,7 +577,7 @@ public:
 
 	    if ( b > 2 )
 	    {
-		    team = Key_GetTeam( args.Argv( 1 ).c_str(), "editbind" );
+		    team = GetTeam( args.Argv( 1 ) );
 
 		    if ( team < 0 )
 		    {
@@ -593,7 +587,7 @@ public:
 	    }
 
 	    const char *key = args.Argv( b - 1 ).c_str();
-	    Key k = Key_StringToKeynum( key );
+	    Key k = StringToKey( key );
 
 	    if ( !k.IsBindable() )
 	    {
@@ -612,13 +606,13 @@ public:
 		    buf = Str::UTF8To32("/bind ");
 	    }
 
-	    buf += Str::UTF8To32( Key_KeynumToString( k ) );
+	    buf += Str::UTF8To32( Cmd::Escape( KeyToString( k ) ) );
 	    buf += Str::UTF8To32(" ");
 
-	    const char *binding = Key_GetBinding( k, -team );
-	    if ( binding )
+	    auto maybeBinding = GetBinding( k, -team );
+	    if ( maybeBinding )
 	    {
-		    buf += Str::UTF8To32( Cmd::Escape( std::string( binding ) ) );
+		    buf += Str::UTF8To32( Cmd::Escape( maybeBinding.value() ) );
 	    }
 
 	    // FIXME: use text console if that's where the editbind command was entered
@@ -653,7 +647,7 @@ public:
 
 	    if ( b > 2 )
 	    {
-		    team = Key_GetTeam( args.Argv( 1 ).c_str(), "unbind" );
+		    team = GetTeam( args.Argv( 1 ) );
 
 		    if ( team < 0 )
 		    {
@@ -662,7 +656,7 @@ public:
 		    }
 	    }
 
-	    Key key = Key_StringToKeynum( args.Argv( b - 1 ).c_str() );
+	    Key key = StringToKey( args.Argv( b - 1 ).c_str() );
 
 	    if ( !key.IsBindable() )
 	    {
@@ -670,7 +664,7 @@ public:
 		    return;
 	    }
 
-	    Key_SetBinding( key, team, nullptr );
+	    SetBinding( key, team, "" );
     }
 
     Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
@@ -691,7 +685,7 @@ public:
 	{
         for (auto& kv : keys)
 	    {
-		    Key_SetBinding( kv.first, -1, nullptr );
+		    SetBinding( kv.first, -1, "" );
 	    }
 	}
 };
@@ -788,3 +782,4 @@ const ModcaseCmd ModcaseCmdRegistration;
 
 } // namespace (key binding commands)
 
+} // namespace Keyboard

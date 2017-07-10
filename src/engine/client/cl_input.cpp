@@ -35,6 +35,7 @@ Maryland 20850 USA.
 // cl.input.c  -- builds an intended movement command to send to the server
 
 #include "client.h"
+#include "engine/client/key_identification.h"
 #include "engine/client/keys.h"
 #include "framework/CommandSystem.h"
 
@@ -661,7 +662,7 @@ void CL_CmdButtons( usercmd_t *cmd )
 
 	// allow the game to know if any key at all is
 	// currently pressed, even if it isn't bound to anything
-	if ( AnyKeyDown() && ( !cls.keyCatchers ) )
+	if ( Keyboard::AnyKeyDown() && ( !cls.keyCatchers ) )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_ANY );
 	}
@@ -1153,7 +1154,7 @@ void IN_KeysUp_f()
 	bool first = true;
 
 	check = atoi( Cmd_Argv( 1 ) );
-	Keyboard::Key key = Key_StringToKeynum( Cmd_Argv( 2 ) );
+	Keyboard::Key key = Keyboard::StringToKey( Cmd_Argv( 2 ) );
     if ( !key.IsValid() ) {
         return;
     }
@@ -1165,7 +1166,7 @@ void IN_KeysUp_f()
 		{
 			if ( first )
 			{
-				Cmd::ExecuteCommand(va("setkeydata %d %s %u", check, Key_KeynumToString(key), time));
+				Cmd::ExecuteCommand(Str::Format("setkeydata %u %s %d", check, Cmd::Escape(KeyToString(key)), time));
 				first = false;
 			}
 
@@ -1179,7 +1180,7 @@ void IN_KeysUp_f()
 		{
 			if ( first )
 			{
-				Cmd::ExecuteCommand(va("setkeydata %d %s %u", check, Key_KeynumToString(key), time));
+				Cmd::ExecuteCommand(Str::Format("setkeydata %u %s %d", check, Cmd::Escape(KeyToString(key)), time));
 				first = false;
 			}
 

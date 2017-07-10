@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "client.h"
 #include "cg_msgdef.h"
 
+#include "key_identification.h"
 #include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 
@@ -629,21 +630,16 @@ static int LAN_ServerIsVisible( int source, int n )
  */
 void Key_GetBindingBuf( int keynum, int team, char *buf, int buflen )
 {
-    *buf = 0;
-#if 0
-	const char *value;
-
-	value = Key_GetBinding( keynum, team );
+    auto value = Keyboard::GetBinding( Keyboard::Key::FromLegacyInt(keynum), team );
 
 	if ( value )
 	{
-		Q_strncpyz( buf, value, buflen );
+		Q_strncpyz( buf, value.value().c_str(), buflen );
 	}
 	else
 	{
 		*buf = 0;
 	}
-#endif
 }
 
 /*
@@ -1074,7 +1070,7 @@ void  CL_OnTeamChanged( int newTeam )
 	Cvar_SetValue( p_team->name, newTeam );
 
 	/* set all team specific teambindinds */
-	Key_SetTeam( newTeam );
+	Keyboard::SetTeam( newTeam );
 
 	/*
 	 * execute a possibly team aware config each time the team was changed.
@@ -1510,13 +1506,13 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 
 		case CG_KEY_KEYNUMTOSTRINGBUF:
 			IPC::HandleMsg<Key::KeyNumToStringMsg>(channel, std::move(reader), [this] (int keynum, std::string& result) {
-				result = Key_KeynumToString(Keyboard::Key::FromLegacyInt(keynum));
+				result = Keyboard::KeyToString(Keyboard::Key::FromLegacyInt(keynum));
 			});
 			break;
 
 		case CG_KEY_SETBINDING:
 			IPC::HandleMsg<Key::SetBindingMsg>(channel, std::move(reader), [this] (int keyNum, int team, std::string cmd) {
-				Key_SetBinding(Keyboard::Key::FromLegacyInt(keyNum), team, cmd.c_str());
+				Keyboard::SetBinding(Keyboard::Key::FromLegacyInt(keyNum), team, cmd);
 			});
 			break;
 
@@ -1544,7 +1540,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 					}
 					else
 					{
-						list.push_back(Key_IsDown(Keyboard::Key(key)));
+						list.push_back(Keyboard::IsDown(Keyboard::Key(key)));
 					}
 				}
 			});

@@ -34,6 +34,7 @@ Maryland 20850 USA.
 
 #include <SDL.h>
 #include "client/client.h"
+#include "client/key_identification.h"
 #include "qcommon/q_unicode.h"
 #include "framework/CommandSystem.h"
 
@@ -91,7 +92,7 @@ static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key key, bool down 
 	if ( keysym->mod & KMOD_RESERVED ) { Log::Notice( " KMOD_RESERVED" ); }
 
 	Log::Notice( "%c scancode = 0x%03x \"%s\" engine keycode name = %s\n", down ? '+' : '-',
-        keysym->scancode, SDL_GetKeyName( keysym->sym ), Key_KeynumToString( key ) );
+        keysym->scancode, SDL_GetKeyName( keysym->sym ), KeyToString( key ) );
 }
 
 /*
@@ -119,7 +120,7 @@ static bool IN_IsConsoleKey( Keyboard::Key key )
 			{
 				break;
 			}
-            Keyboard::Key k = Key_StringToKeynum(token);
+            Keyboard::Key k = Keyboard::StringToKey(token);
             if (k.IsBindable()) {
                 consoleKeys.push_back(k);
             }
@@ -944,7 +945,7 @@ static int IN_XBox360AxisToButton( int controllerAxis, keyNum_t key, float expec
 
 		if ( in_xbox360ControllerDebug->integer )
 		{
-			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Key_KeynumToString( key ), f );
+			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Keyboard::KeyToString( key ), f );
 		}
 	}
 
@@ -954,7 +955,7 @@ static int IN_XBox360AxisToButton( int controllerAxis, keyNum_t key, float expec
 
 		if ( in_xbox360ControllerDebug->integer )
 		{
-			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Key_KeynumToString( key ), f );
+			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Keyboard::KeyToString( key ), f );
 		}
 	}
 
@@ -1009,7 +1010,7 @@ static void IN_Xbox360ControllerMove()
 				if ( in_xbox360ControllerDebug->integer )
 				{
 					Log::Notice( "xbox button = %i to key = Q:0x%02x(%s)\n", i, K_XBOX360_A + i,
-                                 Key_KeynumToString( Util::enum_cast<keyNum_t>( K_XBOX360_A + i ) ) );
+                                 Keyboard::KeyToString( Util::enum_cast<keyNum_t>( K_XBOX360_A + i ) ) );
 				}
 
 				stick_state.buttons[ i ] = pressed;
@@ -1074,7 +1075,7 @@ static void IN_Xbox360ControllerMove()
 
 			if ( hat != SDL_HAT_CENTERED )
 			{
-				Log::Notice( "xbox hat bits = %i to key = Q:0x%02x(%s)\n", hat, key, Key_KeynumToString( key ) );
+				Log::Notice( "xbox hat bits = %i to key = Q:0x%02x(%s)\n", hat, key, Keyboard::KeyToString( key ) );
 			}
 		}
 

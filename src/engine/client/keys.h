@@ -38,6 +38,7 @@ Maryland 20850 USA.
 #include "common/Common.h"
 
 #include "keycodes.h"
+#include "key_identification.h"
 
 #include "framework/ConsoleField.h"
 #include "qcommon/q_unicode.h"
@@ -52,105 +53,9 @@ struct qkey_t
     char     *binding[ MAX_TEAMS ];
 };
 
-namespace Keyboard {
-class Key
-{
-public:
-    enum class Kind {
-        INVALID,      // No key.
-        UNICODE_CHAR, // The key that types this char (layout-dependent)
-        KEYNUM,       // keyNum_t values, for virtual keys that aren't characters
-                      //    Also used for mouse buttons
-        SCANCODE,     // "Physical" keys, these are encouraged over UNICODE_CHAR because SDL is
-                      //     inconsistent about whether it knows the Unicode character that a key
-                      //     maps to, or just defaults to the QWERTY key at that location
-        CONSOLE,      // Hack to integrate with existing code
-    };
-private:
-    Kind kind_;
-    int id_;
-    constexpr Key(Kind kind, int id): kind_(kind), id_(id) { }
-
-public:
-    static const Key NONE;
-    static const Key CONSOLE;
-
-    constexpr Key(): Key(Kind::INVALID, 0) { }
-    Key(keyNum_t key) {
-        if (key <= 0 || key >= MAX_KEYS)
-            *this = Key();
-        else if (key == K_CONSOLE)
-            *this = CONSOLE;
-        else
-            *this = Key(Kind::KEYNUM, Util::ordinal<keyNum_t>(key));
-    }
-    static Key FromScancode(int scancode);
-    static Key FromCharacter(int codePoint) {
-        if (codePoint >= MIN_PRINTABLE_ASCII && codePoint <= UNICODE_MAX_CODE_POINT
-            && !Q_Unicode_IsPrivateUse(codePoint)) {
-            return Key(Kind::UNICODE_CHAR, Str::ctolower(codePoint));
-        }
-        return NONE;
-    }
-    int AsScancode() const {
-        return kind_ == Kind::SCANCODE ? id_ : 0;
-    }
-    int AsCharacter() const {
-        return kind_ == Kind::UNICODE_CHAR ? id_ : 0;
-    }
-    keyNum_t AsKeynum() const {
-        return kind_ == Kind::KEYNUM ? Util::enum_cast<keyNum_t>(id_) : K_NONE;
-    }
-    
-
-    Kind kind() const {
-        return kind_;
-    }
-    bool operator==(Key other) const {
-        return kind_ == other.kind_ && id_ == other.id_;
-    }
-    bool operator!=(Key other) const {
-        return !(*this == other);
-    }
-    bool IsValid() const {
-        return kind_ != Kind::INVALID;
-    }
-    bool IsBindable() const {
-        return kind_ == Kind::UNICODE_CHAR || kind_ == Kind::KEYNUM || kind_ == Kind::SCANCODE;
-    }
-
-    struct hash {
-        size_t operator()(Key k) const {
-            return std::hash<uint64_t>()(
-                Util::ordinal<Kind, uint64_t>(k.kind_) << 32 | uint64_t(k.id_));
-        }
-    };
-
-    // TODO(slipher): remove need for all of the following
-    int AsLegacyInt() const {
-        if (kind_ == Kind::CONSOLE)
-            return (int) K_CONSOLE;
-        else if (kind_ == Kind::KEYNUM || (kind_ == Kind::UNICODE_CHAR && id_ < 127))
-            return id_;
-        else
-            return K_NONE;
-    }
-    static Key FromLegacyInt(int k) {
-        if (k == K_CONSOLE)
-            return CONSOLE;
-        if (MIN_PRINTABLE_ASCII <= k && k <= MAX_PRINTABLE_ASCII)
-            return FromCharacter(k);
-        if (k > 0 && k < keyNum_t::MAX_KEYS)
-            return Key(Util::enum_cast<keyNum_t>(k));
-        return NONE;
-    }
-};
-
-} // namespace Keyboard
 
 extern bool key_overstrikeMode;
 extern std::unordered_map<Keyboard::Key, qkey_t, Keyboard::Key::hash> keys;
-extern int      bindTeam;
 
 void            Field_KeyDownEvent(Util::LineEditData& edit, Keyboard::Key key );
 void            Field_CharEvent(Util::LineEditData& edit, int c );
@@ -158,17 +63,21 @@ void            Field_Draw(const Util::LineEditData& edit, int x, int y,
                            bool showCursor, bool noColorEscape, float alpha );
 
 extern Console::Field  g_consoleField;
-extern int      anykeydown;
 
-void            Key_WriteBindings( fileHandle_t f );
-void            Key_SetBinding( Keyboard::Key key, int team, const char *binding );
-const char      *Key_GetBinding( Keyboard::Key key, int team );
-bool        Key_IsDown( Keyboard::Key key );
 void            Key_ClearStates();
 
-void            Key_SetTeam( int newTeam );
-int             Key_GetTeam( const char *arg, const char *cmd );
+namespace Keyboard {
 
+void WriteBindings(fileHandle_t f);
+void SetBinding(Key key, int team, Str::StringRef binding);
+Util::optional<std::string> GetBinding(Key key, int team);
+
+bool IsDown(Key key);
 bool AnyKeyDown();
+
+void SetTeam(int newTeam);
+int GetTeam();
+
+}
 
 #endif // ENGINE_CLIENT_KEYS_H_

@@ -601,8 +601,6 @@ void IN_PrepareKeyUp();
 //----(SA)
 
 float    CL_KeyState( kbutton_t *key );
-Keyboard::Key Key_StringToKeynum( const char *str );
-const char *Key_KeynumToString( Keyboard::Key key );
 
 //cl_irc.c
 void     CL_IRCSetup();

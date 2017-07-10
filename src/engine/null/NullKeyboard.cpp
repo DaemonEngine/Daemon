@@ -30,9 +30,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Keyboard-based controls (and in-game console) are not needed for tty client or dedicated server.
 
+#include "engine/client/key_identification.h"
 #include "engine/client/keys.h"
 
-using Keyboard::Key;
+namespace Keyboard {
 
 const Key Key::NONE;
 const Key Key::CONSOLE;
@@ -41,16 +42,43 @@ Key Key::FromScancode(int) {
     return Key();
 }
 
-Key Key_StringToKeynum( const char * ) {
+Key StringToKey(Str::StringRef) {
     return Key();
 }
 
-const char *Key_KeynumToString( Key ) {
+std::string KeyToString(Key) {
     return "<unimplemented>";
 }
 
-void Key_KeynameCompletion(Cmd::CompletionResult& completions, Str::StringRef prefix) {
+void CompleteKeyName(Cmd::CompletionResult&, Str::StringRef) {
 }
+
+bool IsDown(Key) {
+    return false;
+}
+
+void SetBinding(Key, int, Str::StringRef) {
+}
+
+Util::optional<std::string> GetBinding(Key, int) {
+    return {};
+}
+
+void WriteBindings( fileHandle_t ) {
+}
+
+void SetTeam(int) {
+}
+
+int GetTeam() {
+    return 0;
+}
+
+bool AnyKeyDown() {
+    return false;
+}
+
+} // namespace Keyboard
 
 void Field_Draw(const Util::LineEditData&, int, int, bool, bool, float) {
 }
@@ -61,23 +89,7 @@ void Field_KeyDownEvent(Util::LineEditData&, Keyboard::Key) {
 void Field_CharEvent(Util::LineEditData&, int) {
 }
 
-bool Key_IsDown(Key) {
-    return false;
-}
-
-int Key_GetTeam( const char *, const char * ) {
-    return 0;
-}
-
-void Key_SetBinding( Key, int, const char * ) {
-}
-
-const char *Key_GetBinding( Key, int ) {
-    return nullptr;
-}
-
-void Key_WriteBindings( fileHandle_t ) {
-}
+using Keyboard::Key;
 
 Key Key_GetKeyNumber() {
     return Key();
@@ -100,11 +112,4 @@ void CL_CharEvent( int ) {
 }
 
 void Key_ClearStates() {
-}
-
-void Key_SetTeam( int ) {
-}
-
-bool AnyKeyDown() {
-    return false;
 }

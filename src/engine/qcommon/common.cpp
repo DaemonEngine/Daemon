@@ -1260,7 +1260,7 @@ void Com_Init( char *commandLine )
 	}
 
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
-#ifndef BUILD_SERVER
+#ifdef BUILD_CLIENT
 	Cmd_AddCommand( "writebindings", Com_WriteBindings_f );
 #endif
 
@@ -1343,7 +1343,7 @@ void Com_WriteConfiguration()
 	{
 		bindingsModified = false;
 
-		Com_WriteConfigToFile( KEYBINDINGS_NAME, Key_WriteBindings );
+		Com_WriteConfigToFile( KEYBINDINGS_NAME, Keyboard::WriteBindings );
 	}
 #endif
 }
@@ -1378,7 +1378,7 @@ Com_WriteBindings_f
 Write the key bindings file to a specific name
 ===============
 */
-#ifndef BUILD_SERVER
+#ifdef BUILD_CLIENT
 void Com_WriteBindings_f()
 {
 	char filename[ MAX_QPATH ];
@@ -1392,7 +1392,7 @@ void Com_WriteBindings_f()
 	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
 	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
 	Log::Notice( "Writing %s.\n", filename );
-	Com_WriteConfigToFile( filename, Key_WriteBindings );
+	Com_WriteConfigToFile( filename, Keyboard::WriteBindings );
 }
 #endif
 

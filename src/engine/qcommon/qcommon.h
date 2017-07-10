@@ -791,14 +791,6 @@ void CL_StartHunkUsers();
 
 // start all the client stuff using the hunk
 
-void Key_KeynameCompletion(Cmd::CompletionResult& completions, Str::StringRef prefix);
-
-// for keyname autocompletion
-
-void Key_WriteBindings( fileHandle_t f );
-
-// for writing the config files
-
 void S_ClearSoundBuffer();
 
 // AVI files have the start of pixel lines 4 byte-aligned
