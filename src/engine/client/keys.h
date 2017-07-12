@@ -48,9 +48,9 @@ Maryland 20850 USA.
 
 struct qkey_t
 {
-	bool down;
-	int      repeats; // if > 1, it is autorepeating
-	char     *binding[ MAX_TEAMS ];
+    bool down;
+    int      repeats; // if > 1, it is autorepeating
+    Util::optional<std::string> binding[ MAX_TEAMS ];
 };
 
 extern bool key_overstrikeMode;
@@ -68,7 +68,7 @@ void            Key_ClearStates();
 namespace Keyboard {
 
 void WriteBindings(fileHandle_t f);
-void SetBinding(Key key, int team, Str::StringRef binding);
+void SetBinding(Key key, int team, std::string binding);
 Util::optional<std::string> GetBinding(Key key, int team);
 
 bool IsDown(Key key);

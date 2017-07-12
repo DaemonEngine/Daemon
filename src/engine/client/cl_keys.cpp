@@ -165,7 +165,7 @@ void Field_KeyDownEvent(Util::LineEditData& edit, Keyboard::Key key) {
             break;
 
         case K_RIGHTARROW:
-            if (keys[ K_CTRL ].down) {
+            if (keys[ Key(K_CTRL) ].down) {
                 //TODO: Skip a full word
                 edit.CursorRight();
             } else {
@@ -174,7 +174,7 @@ void Field_KeyDownEvent(Util::LineEditData& edit, Keyboard::Key key) {
             break;
 
         case K_LEFTARROW:
-            if (keys[ K_CTRL ].down) {
+            if (keys[ Key(K_CTRL) ].down) {
                 //TODO: Skip a full word
                 edit.CursorLeft();
             } else {
@@ -189,45 +189,49 @@ void Field_KeyDownEvent(Util::LineEditData& edit, Keyboard::Key key) {
             break;
 
         case K_INS:
-            if (keys[ K_SHIFT ].down) {
+            if (keys[ Key(K_SHIFT) ].down) {
                 Field_Paste(edit);
             } else {
                 key_overstrikeMode = !key_overstrikeMode;
             }
             break;
+        default:
+            break;
         }
     } else if (key.kind() == Key::Kind::UNICODE_CHAR) {
         switch ((char) key.AsCharacter()) {
         case 'a':
-            if (keys[ K_CTRL ].down) {
+            if (keys[ Key(K_CTRL) ].down) {
                 edit.CursorStart();
             }
             break;
         case 'e':
-            if (keys[ K_CTRL ].down) {
+            if (keys[ Key(K_CTRL) ].down) {
                 edit.CursorEnd();
             }
             break;
         case 'v':
-            if (keys[ K_CTRL ].down) {
+            if (keys[ Key(K_CTRL) ].down) {
                 Field_Paste( edit );
             }
             break;
         case 'd':
-            if (keys[ K_CTRL ].down) {
+            if (keys[ Key(K_CTRL) ].down) {
                 edit.DeleteNext();
             }
             break;
         case 'c':
         case 'u':
-            if (keys[ K_CTRL ].down) {
+            if (keys[ Key(K_CTRL) ].down) {
                 edit.Clear();
             }
             break;
         case 'k':
-            if (keys[ K_CTRL ].down) {
+            if (keys[ Key(K_CTRL) ].down) {
                 edit.DeleteEnd();
             }
+            break;
+        default:
             break;
         }
     }
@@ -280,20 +284,20 @@ static void Console_Key( Keyboard::Key key )
 	using Keyboard::Key;
 	// just return if any of the listed modifiers are pressed
 	// - no point in passing on, since they Just Get In The Way
-	if ( keys[ K_ALT     ].down || keys[ K_COMMAND ].down ||
-			keys[ K_MODE    ].down || keys[ K_SUPER   ].down )
+	if ( keys[ Key(K_ALT) ].down || keys[ Key(K_COMMAND) ].down ||
+			keys[ Key(K_MODE) ].down || keys[ Key(K_SUPER) ].down )
 	{
 		return;
 	}
 
 	// ctrl-L clears screen
-	if (key == Key::FromCharacter('l') && keys[ K_CTRL ].down) {
+	if (key == Key::FromCharacter('l') && keys[ Key(K_CTRL) ].down) {
 		Cmd::BufferCommandText("clear");
 		return;
 	}
 
 	// enter finishes the line
-	if (key == K_ENTER or key == K_KP_ENTER) {
+	if (key == Key(K_ENTER) or key == Key(K_KP_ENTER)) {
 
 		//scroll lock state 1 or smaller will scroll down on own output
 		if (con_scrollLock->integer <= 1) {
@@ -317,7 +321,7 @@ static void Console_Key( Keyboard::Key key )
 
 	// command completion
 
-	if ( key == K_TAB )
+	if ( key == Key(K_TAB) )
 	{
 		g_consoleField.AutoComplete();
 		return;
@@ -326,39 +330,39 @@ static void Console_Key( Keyboard::Key key )
 	// command history (ctrl-p ctrl-n for unix style)
 
 	//----(SA)  added some mousewheel functionality to the console
-	if ( ( key == K_MWHEELUP && keys[ K_SHIFT ].down ) || ( key == K_UPARROW ) || ( key == K_KP_UPARROW ) ||
-			( ( key == Key::FromCharacter('p') ) && keys[ K_CTRL ].down ) )
+	if ( ( key == Key(K_MWHEELUP) && keys[ Key(K_SHIFT) ].down ) || ( key == Key(K_UPARROW) ) || ( key == Key(K_KP_UPARROW) ) ||
+			( ( key == Key::FromCharacter('p') ) && keys[ Key(K_CTRL) ].down ) )
 	{
 		g_consoleField.HistoryPrev();
 		return;
 	}
 
 	//----(SA)  added some mousewheel functionality to the console
-	if ( ( key == K_MWHEELDOWN && keys[ K_SHIFT ].down ) || ( key == K_DOWNARROW ) || ( key == K_KP_DOWNARROW ) ||
-			( ( key == Key::FromCharacter('n') ) && keys[ K_CTRL ].down ) )
+	if ( ( key == Key(K_MWHEELDOWN) && keys[ Key(K_SHIFT) ].down ) || ( key == Key(K_DOWNARROW) ) || ( key == Key(K_KP_DOWNARROW) ) ||
+			( ( key == Key::FromCharacter('n') ) && keys[ Key(K_CTRL) ].down ) )
 	{
 		g_consoleField.HistoryNext();
 		return;
 	}
 
 	// console scrolling
-	if ( key == K_PGUP || key == K_KP_PGUP )
+	if ( key == Key(K_PGUP) || key == Key(K_KP_PGUP) )
 	{
 		Con_PageUp();
 		return;
 	}
 
-	if ( key == K_PGDN || key == K_KP_PGDN )
+	if ( key == Key(K_PGDN) || key == Key(K_KP_PGDN) )
 	{
 		Con_PageDown();
 		return;
 	}
 
-	if ( key == K_MWHEELUP ) //----(SA) added some mousewheel functionality to the console
+	if ( key == Key(K_MWHEELUP) ) //----(SA) added some mousewheel functionality to the console
 	{
 		Con_PageUp();
 
-		if ( keys[ K_CTRL ].down ) // hold <ctrl> to accelerate scrolling
+		if ( keys[ Key(K_CTRL) ].down ) // hold <ctrl> to accelerate scrolling
 		{
 			Con_ScrollUp( consoleState.visibleAmountOfLines );
 		}
@@ -366,11 +370,11 @@ static void Console_Key( Keyboard::Key key )
 		return;
 	}
 
-	if ( key == K_MWHEELDOWN ) //----(SA) added some mousewheel functionality to the console
+	if ( key == Key(K_MWHEELDOWN) ) //----(SA) added some mousewheel functionality to the console
 	{
 		Con_PageDown();
 
-		if ( keys[ K_CTRL ].down ) // hold <ctrl> to accelerate scrolling
+		if ( keys[ Key(K_CTRL) ].down ) // hold <ctrl> to accelerate scrolling
 		{
 			Con_ScrollDown( consoleState.visibleAmountOfLines );
 		}
@@ -379,14 +383,14 @@ static void Console_Key( Keyboard::Key key )
 	}
 
 	// ctrl-home = top of console
-	if ( ( key == K_HOME || key == K_KP_HOME ) && keys[ K_CTRL ].down )
+	if ( ( key == Key(K_HOME) || key == Key(K_KP_HOME) ) && keys[ Key(K_CTRL) ].down )
 	{
 		Con_JumpUp();
 		return;
 	}
 
 	// ctrl-end = bottom of console
-	if ( ( key == K_END || key == K_KP_END ) && keys[ K_CTRL ].down )
+	if ( ( key == Key(K_END) || key == Key(K_KP_END) ) && keys[ Key(K_CTRL) ].down )
 	{
 		Con_ScrollToBottom();
 		return;
@@ -470,8 +474,6 @@ Called by the system for both key up and key down events
 void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 {
 	using Keyboard::Key;
-	char     *kb;
-	bool bypassMenu = false; // NERVE - SMF
 	bool onlybinds = false;
 
 	if ( !key.IsValid() )
@@ -529,7 +531,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 	}
 
 #ifdef MACOS_X
-	if ( down && keys[ K_COMMAND ].down )
+	if ( down && keys[ Key(K_COMMAND) ].down )
 	{
 		if ( key == Key::FromCharacter('f') )
 		{
@@ -543,7 +545,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 			Cmd::BufferCommandText("quit");
 			return;
 		}
-		else if ( key == K_TAB )
+		else if ( key == Key(K_TAB) )
 		{
 			Key_ClearStates();
 			Cmd::BufferCommandText("minimize");
@@ -551,11 +553,11 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		}
 	}
 #else
-	if ( key == K_ENTER )
+	if ( key == Key(K_ENTER) )
 	{
 		if ( down )
 		{
-			if ( keys[ K_ALT ].down )
+			if ( keys[ Key(K_ALT) ].down )
 			{
 				Cvar_SetValue( "r_fullscreen", !Cvar_VariableIntegerValue( "r_fullscreen" ) );
 				return;
@@ -563,7 +565,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		}
 	}
 
-	if ( cl_altTab->integer && keys[ K_ALT ].down && key == K_TAB )
+	if ( cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
 	{
 		Key_ClearStates();
 		Cmd::BufferCommandText("minimize");
@@ -572,7 +574,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 #endif
 
 	// console key is hardcoded, so the user can never unbind it
-	if ( key == K_CONSOLE || ( keys[ K_SHIFT ].down && key == K_ESCAPE ) )
+	if ( key == Key(K_CONSOLE) || ( keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) ) )
 	{
 		if ( !down )
 		{
@@ -587,7 +589,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 	// most keys during demo playback will bring up the menu, but non-ascii
 
 	// escape is always handled special
-	if ( key == K_ESCAPE && down )
+	if ( key == Key(K_ESCAPE) && down )
 	{
 		if ( !( cls.keyCatchers & KEYCATCH_UI ) )
 		{
@@ -661,14 +663,14 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 	{
 		// send the bound action
 		int bindTeam = Keyboard::GetTeam();
-		kb = keys[ key ].binding[ bindTeam ]
-		   ? keys[ key ].binding[ bindTeam ] // prefer the team bind
-		   : keys[ key ].binding[ 0 ];       // default to global
+		auto kb = keys[ key ].binding[ bindTeam ]
+		          ? keys[ key ].binding[ bindTeam ] // prefer the team bind
+		          : keys[ key ].binding[ 0 ];       // default to global
 
 		if ( kb )
 		{
 			// down-only command
-			Cmd::BufferCommandTextAfter(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Cmd::Escape(KeyToString(key)), time, kb), true);
+			Cmd::BufferCommandTextAfter(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Cmd::Escape(KeyToString(key)), time, kb.value()), true);
 			Cmd::BufferCommandTextAfter(va("setkeydata %d", plusCommand.check), true);
 		}
 	}
