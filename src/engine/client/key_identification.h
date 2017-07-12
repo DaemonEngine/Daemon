@@ -60,7 +60,7 @@ public:
     static const Key CONSOLE;
 
     constexpr Key(): Key(Kind::INVALID, 0) { }
-    Key(keyNum_t key) {
+    explicit Key(keyNum_t key) {
         if (key <= 0 || key >= MAX_KEYS)
             *this = Key();
         else if (key == K_CONSOLE)
@@ -113,7 +113,7 @@ public:
     // TODO(slipher): remove need for all of the following
     int AsLegacyInt() const {
         if (kind_ == Kind::CONSOLE)
-            return (int) K_CONSOLE;
+            return Util::ordinal(K_CONSOLE);
         else if (kind_ == Kind::KEYNUM || (kind_ == Kind::UNICODE_CHAR && id_ < 127))
             return id_;
         else

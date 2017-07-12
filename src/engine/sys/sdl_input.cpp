@@ -152,251 +152,251 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, bool down )
 		switch ( keysym->sym )
 		{
 			case SDLK_PAGEUP:
-				key = K_PGUP;
+				key = Key(K_PGUP);
 				break;
 
 			case SDLK_KP_9:
-				key = K_KP_PGUP;
+				key = Key(K_KP_PGUP);
 				break;
 
 			case SDLK_PAGEDOWN:
-				key = K_PGDN;
+				key = Key(K_PGDN);
 				break;
 
 			case SDLK_KP_3:
-				key = K_KP_PGDN;
+				key = Key(K_KP_PGDN);
 				break;
 
 			case SDLK_KP_7:
-				key = K_KP_HOME;
+				key = Key(K_KP_HOME);
 				break;
 
 			case SDLK_HOME:
-				key = K_HOME;
+				key = Key(K_HOME);
 				break;
 
 			case SDLK_KP_1:
-				key = K_KP_END;
+				key = Key(K_KP_END);
 				break;
 
 			case SDLK_END:
-				key = K_END;
+				key = Key(K_END);
 				break;
 
 			case SDLK_KP_4:
-				key = K_KP_LEFTARROW;
+				key = Key(K_KP_LEFTARROW);
 				break;
 
 			case SDLK_LEFT:
-				key = K_LEFTARROW;
+				key = Key(K_LEFTARROW);
 				break;
 
 			case SDLK_KP_6:
-				key = K_KP_RIGHTARROW;
+				key = Key(K_KP_RIGHTARROW);
 				break;
 
 			case SDLK_RIGHT:
-				key = K_RIGHTARROW;
+				key = Key(K_RIGHTARROW);
 				break;
 
 			case SDLK_KP_2:
-				key = K_KP_DOWNARROW;
+				key = Key(K_KP_DOWNARROW);
 				break;
 
 			case SDLK_DOWN:
-				key = K_DOWNARROW;
+				key = Key(K_DOWNARROW);
 				break;
 
 			case SDLK_KP_8:
-				key = K_KP_UPARROW;
+				key = Key(K_KP_UPARROW);
 				break;
 
 			case SDLK_UP:
-				key = K_UPARROW;
+				key = Key(K_UPARROW);
 				break;
 
 			case SDLK_ESCAPE:
-				key = K_ESCAPE;
+				key = Key(K_ESCAPE);
 				break;
 
 			case SDLK_KP_ENTER:
-				key = K_KP_ENTER;
+				key = Key(K_KP_ENTER);
 				break;
 
 			case SDLK_RETURN:
-				key = K_ENTER;
+				key = Key(K_ENTER);
 				break;
 
 			case SDLK_TAB:
-				key = K_TAB;
+				key = Key(K_TAB);
 				break;
 
 			case SDLK_F1:
-				key = K_F1;
+				key = Key(K_F1);
 				break;
 
 			case SDLK_F2:
-				key = K_F2;
+				key = Key(K_F2);
 				break;
 
 			case SDLK_F3:
-				key = K_F3;
+				key = Key(K_F3);
 				break;
 
 			case SDLK_F4:
-				key = K_F4;
+				key = Key(K_F4);
 				break;
 
 			case SDLK_F5:
-				key = K_F5;
+				key = Key(K_F5);
 				break;
 
 			case SDLK_F6:
-				key = K_F6;
+				key = Key(K_F6);
 				break;
 
 			case SDLK_F7:
-				key = K_F7;
+				key = Key(K_F7);
 				break;
 
 			case SDLK_F8:
-				key = K_F8;
+				key = Key(K_F8);
 				break;
 
 			case SDLK_F9:
-				key = K_F9;
+				key = Key(K_F9);
 				break;
 
 			case SDLK_F10:
-				key = K_F10;
+				key = Key(K_F10);
 				break;
 
 			case SDLK_F11:
-				key = K_F11;
+				key = Key(K_F11);
 				break;
 
 			case SDLK_F12:
-				key = K_F12;
+				key = Key(K_F12);
 				break;
 
 			case SDLK_F13:
-				key = K_F13;
+				key = Key(K_F13);
 				break;
 
 			case SDLK_F14:
-				key = K_F14;
+				key = Key(K_F14);
 				break;
 
 			case SDLK_F15:
-				key = K_F15;
+				key = Key(K_F15);
 				break;
 
 			case SDLK_BACKSPACE:
-				key = K_BACKSPACE;
+				key = Key(K_BACKSPACE);
 				break;
 
 			case SDLK_KP_PERIOD:
-				key = K_KP_DEL;
+				key = Key(K_KP_DEL);
 				break;
 
 			case SDLK_DELETE:
-				key = K_DEL;
+				key = Key(K_DEL);
 				break;
 
 			case SDLK_PAUSE:
-				key = K_PAUSE;
+				key = Key(K_PAUSE);
 				break;
 
 			case SDLK_LSHIFT:
 			case SDLK_RSHIFT:
-				key = K_SHIFT;
+				key = Key(K_SHIFT);
 				break;
 
 			case SDLK_LCTRL:
 			case SDLK_RCTRL:
-				key = K_CTRL;
+				key = Key(K_CTRL);
 				break;
 
 			case SDLK_RGUI:
 			case SDLK_LGUI:
-				key = K_COMMAND;
+				key = Key(K_COMMAND);
 				break;
 
 			case SDLK_RALT:
 			case SDLK_LALT:
-				key = K_ALT;
+				key = Key(K_ALT);
 				break;
 
 			case SDLK_KP_5:
-				key = K_KP_5;
+				key = Key(K_KP_5);
 				break;
 
 			case SDLK_INSERT:
-				key = K_INS;
+				key = Key(K_INS);
 				break;
 
 			case SDLK_KP_0:
-				key = K_KP_INS;
+				key = Key(K_KP_INS);
 				break;
 
 			case SDLK_KP_MULTIPLY:
-				key = K_KP_STAR;
+				key = Key(K_KP_STAR);
 				break;
 
 			case SDLK_KP_PLUS:
-				key = K_KP_PLUS;
+				key = Key(K_KP_PLUS);
 				break;
 
 			case SDLK_KP_MINUS:
-				key = K_KP_MINUS;
+				key = Key(K_KP_MINUS);
 				break;
 
 			case SDLK_KP_DIVIDE:
-				key = K_KP_SLASH;
+				key = Key(K_KP_SLASH);
 				break;
 
 			case SDLK_MODE:
-				key = K_MODE;
+				key = Key(K_MODE);
 				break;
 
 			case SDLK_HELP:
-				key = K_HELP;
+				key = Key(K_HELP);
 				break;
 
 			case SDLK_PRINTSCREEN:
-				key = K_PRINT;
+				key = Key(K_PRINT);
 				break;
 
 			case SDLK_SYSREQ:
-				key = K_SYSREQ;
+				key = Key(K_SYSREQ);
 				break;
 
 			case SDLK_MENU:
-				key = K_MENU;
+				key = Key(K_MENU);
 				break;
 
 			case SDLK_APPLICATION:
-				key = K_COMPOSE;
+				key = Key(K_COMPOSE);
 				break;
 
 			case SDLK_POWER:
-				key = K_POWER;
+				key = Key(K_POWER);
 				break;
 
 			case SDLK_UNDO:
-				key = K_UNDO;
+				key = Key(K_UNDO);
 				break;
 
 			case SDLK_SCROLLLOCK:
-				key = K_SCROLLLOCK;
+				key = Key(K_SCROLLLOCK);
 				break;
 
 			case SDLK_NUMLOCKCLEAR:
-				key = K_KP_NUMLOCK;
+				key = Key(K_KP_NUMLOCK);
 				break;
 
 			case SDLK_CAPSLOCK:
-				key = K_CAPSLOCK;
+				key = Key(K_CAPSLOCK);
 				break;
 
 			default:
@@ -626,6 +626,9 @@ static void QueueKeyEvent(Keyboard::Key key, bool down)
     Key* keyPtr = static_cast<Key*>(Z_Malloc(sizeof(Key)));
     *keyPtr = key;
 	Com_QueueEvent( 0, sysEventType_t::SE_KEY, UNUSED, down, UNUSED, keyPtr );
+}
+static void QueueKeyEvent(keyNum_t key, bool down) {
+    QueueKeyEvent(Keyboard::Key(key), down);
 }
 
 /*
@@ -918,6 +921,7 @@ static void IN_XBox360Axis( int controllerAxis, joystickAxis_t gameAxis, float s
 
 static int IN_XBox360AxisToButton( int controllerAxis, keyNum_t key, float expectedStartValue, float threshold )
 {
+    using Keyboard::Key;
 	unsigned int axes = 0;
 
 	Sint16       axis = SDL_JoystickGetAxis( stick, controllerAxis );
@@ -945,7 +949,7 @@ static int IN_XBox360AxisToButton( int controllerAxis, keyNum_t key, float expec
 
 		if ( in_xbox360ControllerDebug->integer )
 		{
-			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Keyboard::KeyToString( key ), f );
+			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Keyboard::KeyToString( Key(key) ), f );
 		}
 	}
 
@@ -955,7 +959,7 @@ static int IN_XBox360AxisToButton( int controllerAxis, keyNum_t key, float expec
 
 		if ( in_xbox360ControllerDebug->integer )
 		{
-			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Keyboard::KeyToString( key ), f );
+			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Keyboard::KeyToString( Key(key) ), f );
 		}
 	}
 
@@ -969,6 +973,7 @@ IN_Xbox360ControllerMove
 */
 static void IN_Xbox360ControllerMove()
 {
+    using Keyboard::Key;
 	bool     joy_pressed[ ARRAY_LEN( joy_keys ) ];
 	unsigned int axes = 0;
 	unsigned int hat = 0;
@@ -1010,7 +1015,7 @@ static void IN_Xbox360ControllerMove()
 				if ( in_xbox360ControllerDebug->integer )
 				{
 					Log::Notice( "xbox button = %i to key = Q:0x%02x(%s)\n", i, K_XBOX360_A + i,
-                                 Keyboard::KeyToString( Util::enum_cast<keyNum_t>( K_XBOX360_A + i ) ) );
+                                 Keyboard::KeyToString( Key( Util::enum_cast<keyNum_t>( K_XBOX360_A + i ) ) ) );
 				}
 
 				stick_state.buttons[ i ] = pressed;
@@ -1075,7 +1080,7 @@ static void IN_Xbox360ControllerMove()
 
 			if ( hat != SDL_HAT_CENTERED )
 			{
-				Log::Notice( "xbox hat bits = %i to key = Q:0x%02x(%s)\n", hat, key, Keyboard::KeyToString( key ) );
+				Log::Notice( "xbox hat bits = %i to key = Q:0x%02x(%s)\n", hat, key, Keyboard::KeyToString( Key( key ) ) );
 			}
 		}
 
@@ -1222,7 +1227,7 @@ static void IN_ProcessEvents( bool dropInput )
                     Key kKeycode = IN_TranslateSDLToQ3Key( &e.key.keysym, true );
                     bool consoleFound = false;
                     for (Key k: {kScan, kKeycode} ) {
-                        if ( IN_IsConsoleKey( k ) && !keys[ K_ALT ].down) {
+                        if ( IN_IsConsoleKey( k ) && !keys[ Key(K_ALT) ].down) {
 		                    // Console keys can't be bound or generate characters
 		                    // (but allow Alt+key for text input)
 		                    QueueKeyEvent( Key::CONSOLE, true );

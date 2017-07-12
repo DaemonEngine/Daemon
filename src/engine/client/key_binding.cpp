@@ -174,12 +174,12 @@ static int checkKeysDown( modifierMask_t mask )
 
 	for ( i = 0; modifierKeys[ i ].bit; ++i )
 	{
-		if ( ( mask.down & modifierKeys[ i ].bit ) && keys[ modifierKeys[ i ].index ].down == 0 )
+		if ( ( mask.down & modifierKeys[ i ].bit ) && keys[ Keyboard::Key(modifierKeys[ i ].index) ].down == 0 )
 		{
 			return 0; // should be pressed, isn't pressed
 		}
 
-		if ( ( mask.up & modifierKeys[ i ].bit ) && keys[ modifierKeys[ i ].index ].down )
+		if ( ( mask.up & modifierKeys[ i ].bit ) && keys[ Keyboard::Key(modifierKeys[ i ].index) ].down )
 		{
 			return 0; // should not be pressed, is pressed
 		}
@@ -198,11 +198,7 @@ void CL_ClearKeyBinding()
 	{
 		for ( auto& kv: keys )
 		{
-			if ( kv.second.binding[ team ] )
-			{
-				Z_Free( kv.second.binding[ team ] );
-				kv.second.binding[ team ] = nullptr;
-			}
+			kv.second.binding[ team ] = {};
 		}
 	}
 }
@@ -235,9 +231,8 @@ int GetTeam()
 
 // Sets a key binding, or clears it given an empty string.
 // team == -1 clears all bindings for the key, then sets the spec/global binding
-void SetBinding( Key key, int team, Str::StringRef binding )
+void SetBinding(Key key, int team, std::string binding)
 {
-	char *lcbinding; // fretn - make a copy of our binding lowercase
 	// so name toggle scripts work again: bind x name BzZIfretn?
 	// resulted into bzzifretn?
 
@@ -252,34 +247,21 @@ void SetBinding( Key key, int team, Str::StringRef binding )
 		// just the team-specific ones here
 		for ( team = MAX_TEAMS - 1; team; --team )
 		{
-			if ( keys[ key ].binding[ team ] )
-			{
-				Z_Free( keys[ key ].binding[ team ] );
-				keys[ key ].binding[ team ] = nullptr;
-			}
+			keys[ key ].binding[ team ] = {};
 		}
 		// team == 0...
 	}
 
 	team = ClipTeamNumber( team );
 
-	if ( keys[ key ].binding[ team ] )
-	{
-		Z_Free( keys[ key ].binding[ team ] );
-	}
-
 	// set the new binding, if not null/empty
 	if ( !binding.empty() )
 	{
-		// allocate memory for new binding
-		keys[ key ].binding[ team ] = CopyString( binding.c_str() );
-		lcbinding = CopyString( binding.c_str() );
-		Q_strlwr( lcbinding );  // saves doing it on all the generateHashValues in Key_GetBindingByString
-		Z_Free( lcbinding );
+		keys[ key ].binding[ team ] = std::move(binding);
 	}
 	else
 	{
-		keys[ key ].binding[ team ] = nullptr;
+		keys[ key ].binding[ team ] = Util::nullopt;
 	}
 
 	bindingsModified = true;
@@ -288,27 +270,25 @@ void SetBinding( Key key, int team, Str::StringRef binding )
 // -ve team no. = don't return the default binding
 Util::optional<std::string> GetBinding(Key key, int team)
 {
-	const char *bind;
-
 	if ( !key.IsBindable() )
 	{
+		return {};
+	}
+	auto it = keys.find(key);
+	if (it == keys.end()) {
 		return {};
 	}
 
 	if ( team <= 0 )
 	{
-		bind = keys[ key ].binding[ ClipTeamNumber( -team ) ];
+		return it->second.binding[ ClipTeamNumber( -team ) ];
 	} else
 	{
-		bind = keys[ key ].binding[ ClipTeamNumber( team ) ];
+		auto bind = it->second.binding[ ClipTeamNumber( team ) ];
 		if (!bind) {
-			bind = keys[ key ].binding[ 0 ];
+			bind = it->second.binding[ 0 ];
 		}
-	}
-	if (bind) {
-		return {bind};
-	} else {
-		return {};
+		return bind;
 	}
 }
 
@@ -321,18 +301,18 @@ void WriteBindings( fileHandle_t f )
 
 	for (const auto& kv: keys)
 	{
-		if ( kv.second.binding[ 0 ] && kv.second.binding[ 0 ][ 0 ] )
+		if ( kv.second.binding[ 0 ]  )
 		{
 			FS_Printf( f, "bind       %s %s\n", Cmd::Escape( KeyToString( kv.first ) ).c_str(), 
-			           Cmd::Escape( kv.second.binding[ 0 ] ).c_str() );
+			           Cmd::Escape( kv.second.binding[ 0 ].value() ).c_str() );
 		}
 
 		for ( team = 1; team < MAX_TEAMS; ++team )
 		{
-			if ( kv.second.binding[ team ] && kv.second.binding[ team ][ 0 ] )
+			if ( kv.second.binding[ team ] )
 			{
 				FS_Printf( f, "teambind %d %s %s\n", team, Cmd::Escape( KeyToString( kv.first ) ).c_str(),
-				           Cmd::Escape( kv.second.binding[ team ] ).c_str() );
+				           Cmd::Escape( kv.second.binding[ team ].value() ).c_str() );
 			}
 		}
 	}
@@ -439,7 +419,7 @@ public:
 
 		    for ( int team = 1; team < MAX_TEAMS; ++team )
 		    {
-			    if ( kv.second.binding[ team ] && kv.second.binding[ team ][ 0 ] )
+			    if ( kv.second.binding[ team ] )
 			    {
 				    teamSpecific = true;
 				    break;
@@ -448,18 +428,18 @@ public:
 
 		    if ( !teamSpecific )
 		    {
-			    if ( kv.second.binding[ 0 ] && kv.second.binding[ 0 ][ 0 ] )
+			    if ( kv.second.binding[ 0 ] )
 			    {
-				    Log::Notice( "%s = %s", KeyToString( kv.first ), kv.second.binding[ 0 ] );
+				    Print( "%s = %s", KeyToString( kv.first ), kv.second.binding[ 0 ].value() );
 			    }
 		    }
 		    else
 		    {
 			    for ( int team = 0; team < MAX_TEAMS; ++team )
 			    {
-				    if ( kv.second.binding[ team ] && kv.second.binding[ team ][ 0 ] )
+				    if ( kv.second.binding[ team ] )
 				    {
-					    Log::Notice( "%s[%s] = %s", KeyToString( kv.first ), teamName[ team ], kv.second.binding[ team ] );
+					    Print( "%s[%s] = %s", KeyToString( kv.first ), teamName[ team ], kv.second.binding[ team ].value() );
 				    }
 			    }
 		    }
@@ -475,16 +455,19 @@ class BindCmd: public Cmd::StaticCmd
     {
         bool bound = false;
 
-	    for ( int i = 0; i < MAX_TEAMS; ++i )
-	    {
-		    if ( teamFilter(i) && keys[ b ].binding[ i ] )
-		    {
-			    Print( "\"%s\"[%s] = %s", KeyToString(b), teamName[ i ],
-                       Cmd_QuoteString( keys[ b ].binding[ i ] ) );
-			    bound = true;
-		    }
-	    }
-
+        auto it = keys.find(b);
+        if (it != keys.end()) {
+            const auto& bindings = it->second.binding;
+	        for ( int i = 0; i < MAX_TEAMS; ++i )
+	        {
+		        if ( teamFilter(i) && bindings[ i ] )
+		        {
+			        Print( "\"%s\"[%s] = %s", KeyToString(b), teamName[ i ],
+                           Cmd_QuoteString( bindings[ i ].value().c_str() ) );
+			        bound = true;
+		        }
+	        }
+        }
 	    if ( !bound )
 	    {
 		    Print( "\"%s\" is not bound", KeyToString(b) );

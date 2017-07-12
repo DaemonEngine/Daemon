@@ -57,7 +57,7 @@ bool IsDown(Key) {
     return false;
 }
 
-void SetBinding(Key, int, Str::StringRef) {
+void SetBinding(Key, int, std::string) {
 }
 
 Util::optional<std::string> GetBinding(Key, int) {

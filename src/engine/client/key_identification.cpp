@@ -121,7 +121,7 @@ struct keyname_t
 };
 
 // names not in this list can either be lowercase ascii, or '0xnn' hex sequences
-static const keyname_t keynames[] =
+static const std::unordered_map<Str::StringRef, keyNum_t, Str::IHash, Str::IEqual> keynames
 {
 	{ "TAB",                    keyNum_t::K_TAB          },
 	{ "ENTER",                  keyNum_t::K_ENTER        },
@@ -253,110 +253,13 @@ static const keyname_t keynames[] =
 
 	{ "PAUSE",                  keyNum_t::K_PAUSE        },
 
-	{ "WORLD_0",                keyNum_t::K_WORLD_0      },
-	{ "WORLD_1",                keyNum_t::K_WORLD_1      },
-	{ "WORLD_2",                keyNum_t::K_WORLD_2      },
-	{ "WORLD_3",                keyNum_t::K_WORLD_3      },
-	{ "WORLD_4",                keyNum_t::K_WORLD_4      },
-	{ "WORLD_5",                keyNum_t::K_WORLD_5      },
-	{ "WORLD_6",                keyNum_t::K_WORLD_6      },
-	{ "WORLD_7",                keyNum_t::K_WORLD_7      },
-	{ "WORLD_8",                keyNum_t::K_WORLD_8      },
-	{ "WORLD_9",                keyNum_t::K_WORLD_9      },
-	{ "WORLD_10",               keyNum_t::K_WORLD_10     },
-	{ "WORLD_11",               keyNum_t::K_WORLD_11     },
-	{ "WORLD_12",               keyNum_t::K_WORLD_12     },
-	{ "WORLD_13",               keyNum_t::K_WORLD_13     },
-	{ "WORLD_14",               keyNum_t::K_WORLD_14     },
-	{ "WORLD_15",               keyNum_t::K_WORLD_15     },
-	{ "WORLD_16",               keyNum_t::K_WORLD_16     },
-	{ "WORLD_17",               keyNum_t::K_WORLD_17     },
-	{ "WORLD_18",               keyNum_t::K_WORLD_18     },
-	{ "WORLD_19",               keyNum_t::K_WORLD_19     },
-	{ "WORLD_20",               keyNum_t::K_WORLD_20     },
-	{ "WORLD_21",               keyNum_t::K_WORLD_21     },
-	{ "WORLD_22",               keyNum_t::K_WORLD_22     },
-	{ "WORLD_23",               keyNum_t::K_WORLD_23     },
-	{ "WORLD_24",               keyNum_t::K_WORLD_24     },
-	{ "WORLD_25",               keyNum_t::K_WORLD_25     },
-	{ "WORLD_26",               keyNum_t::K_WORLD_26     },
-	{ "WORLD_27",               keyNum_t::K_WORLD_27     },
-	{ "WORLD_28",               keyNum_t::K_WORLD_28     },
-	{ "WORLD_29",               keyNum_t::K_WORLD_29     },
-	{ "WORLD_30",               keyNum_t::K_WORLD_30     },
-	{ "WORLD_31",               keyNum_t::K_WORLD_31     },
-	{ "WORLD_32",               keyNum_t::K_WORLD_32     },
-	{ "WORLD_33",               keyNum_t::K_WORLD_33     },
-	{ "WORLD_34",               keyNum_t::K_WORLD_34     },
-	{ "WORLD_35",               keyNum_t::K_WORLD_35     },
-	{ "WORLD_36",               keyNum_t::K_WORLD_36     },
-	{ "WORLD_37",               keyNum_t::K_WORLD_37     },
-	{ "WORLD_38",               keyNum_t::K_WORLD_38     },
-	{ "WORLD_39",               keyNum_t::K_WORLD_39     },
-	{ "WORLD_40",               keyNum_t::K_WORLD_40     },
-	{ "WORLD_41",               keyNum_t::K_WORLD_41     },
-	{ "WORLD_42",               keyNum_t::K_WORLD_42     },
-	{ "WORLD_43",               keyNum_t::K_WORLD_43     },
-	{ "WORLD_44",               keyNum_t::K_WORLD_44     },
-	{ "WORLD_45",               keyNum_t::K_WORLD_45     },
-	{ "WORLD_46",               keyNum_t::K_WORLD_46     },
-	{ "WORLD_47",               keyNum_t::K_WORLD_47     },
-	{ "WORLD_48",               keyNum_t::K_WORLD_48     },
-	{ "WORLD_49",               keyNum_t::K_WORLD_49     },
-	{ "WORLD_50",               keyNum_t::K_WORLD_50     },
-	{ "WORLD_51",               keyNum_t::K_WORLD_51     },
-	{ "WORLD_52",               keyNum_t::K_WORLD_52     },
-	{ "WORLD_53",               keyNum_t::K_WORLD_53     },
-	{ "WORLD_54",               keyNum_t::K_WORLD_54     },
-	{ "WORLD_55",               keyNum_t::K_WORLD_55     },
-	{ "WORLD_56",               keyNum_t::K_WORLD_56     },
-	{ "WORLD_57",               keyNum_t::K_WORLD_57     },
-	{ "WORLD_58",               keyNum_t::K_WORLD_58     },
-	{ "WORLD_59",               keyNum_t::K_WORLD_59     },
-	{ "WORLD_60",               keyNum_t::K_WORLD_60     },
-	{ "WORLD_61",               keyNum_t::K_WORLD_61     },
-	{ "WORLD_62",               keyNum_t::K_WORLD_62     },
-	{ "WORLD_63",               keyNum_t::K_WORLD_63     },
-	{ "WORLD_64",               keyNum_t::K_WORLD_64     },
-	{ "WORLD_65",               keyNum_t::K_WORLD_65     },
-	{ "WORLD_66",               keyNum_t::K_WORLD_66     },
-	{ "WORLD_67",               keyNum_t::K_WORLD_67     },
-	{ "WORLD_68",               keyNum_t::K_WORLD_68     },
-	{ "WORLD_69",               keyNum_t::K_WORLD_69     },
-	{ "WORLD_70",               keyNum_t::K_WORLD_70     },
-	{ "WORLD_71",               keyNum_t::K_WORLD_71     },
-	{ "WORLD_72",               keyNum_t::K_WORLD_72     },
-	{ "WORLD_73",               keyNum_t::K_WORLD_73     },
-	{ "WORLD_74",               keyNum_t::K_WORLD_74     },
-	{ "WORLD_75",               keyNum_t::K_WORLD_75     },
-	{ "WORLD_76",               keyNum_t::K_WORLD_76     },
-	{ "WORLD_77",               keyNum_t::K_WORLD_77     },
-	{ "WORLD_78",               keyNum_t::K_WORLD_78     },
-	{ "WORLD_79",               keyNum_t::K_WORLD_79     },
-	{ "WORLD_80",               keyNum_t::K_WORLD_80     },
-	{ "WORLD_81",               keyNum_t::K_WORLD_81     },
-	{ "WORLD_82",               keyNum_t::K_WORLD_82     },
-	{ "WORLD_83",               keyNum_t::K_WORLD_83     },
-	{ "WORLD_84",               keyNum_t::K_WORLD_84     },
-	{ "WORLD_85",               keyNum_t::K_WORLD_85     },
-	{ "WORLD_86",               keyNum_t::K_WORLD_86     },
-	{ "WORLD_87",               keyNum_t::K_WORLD_87     },
-	{ "WORLD_88",               keyNum_t::K_WORLD_88     },
-	{ "WORLD_89",               keyNum_t::K_WORLD_89     },
-	{ "WORLD_90",               keyNum_t::K_WORLD_90     },
-	{ "WORLD_91",               keyNum_t::K_WORLD_91     },
-	{ "WORLD_92",               keyNum_t::K_WORLD_92     },
-	{ "WORLD_93",               keyNum_t::K_WORLD_93     },
-	{ "WORLD_94",               keyNum_t::K_WORLD_94     },
-	{ "WORLD_95",               keyNum_t::K_WORLD_95     },
-
 	{ "WINDOWS",                keyNum_t::K_SUPER        },
 	{ "COMPOSE",                keyNum_t::K_COMPOSE      },
 	{ "MODE",                   keyNum_t::K_MODE         },
 	{ "HELP",                   keyNum_t::K_HELP         },
 	{ "PRINT",                  keyNum_t::K_PRINT        },
 	{ "SYSREQ",                 keyNum_t::K_SYSREQ       },
-	{ "SCROLLLOCK",              keyNum_t::K_SCROLLLOCK  },
+	{ "SCROLLLOCK",             keyNum_t::K_SCROLLLOCK   },
 	{ "BREAK",                  keyNum_t::K_BREAK        },
 	{ "MENU",                   keyNum_t::K_MENU         },
 	{ "POWER",                  keyNum_t::K_POWER        },
@@ -384,20 +287,18 @@ static const keyname_t keynames[] =
 	{ "XBOX360_DPAD_RIGHTDOWN", keyNum_t::K_XBOX360_DPAD_RIGHTDOWN },
 	{ "XBOX360_DPAD_LEFTUP",    keyNum_t::K_XBOX360_DPAD_LEFTUP    },
 	{ "XBOX360_DPAD_LEFTDOWN",  keyNum_t::K_XBOX360_DPAD_LEFTDOWN  },
-
-	{ nullptr,                  Key::NONE                          }
 };
 
-static const char CHARACTER_BIND_PREFIX[] = "char:";
-static const char SCANCODE_ASCII_BIND_PREFIX[] = "hw:";
+static const Str::StringRef CHARACTER_BIND_PREFIX = "char:";
+static const Str::StringRef SCANCODE_ASCII_BIND_PREFIX = "hw:";
 
 static int ParseCharacter(Str::StringRef s)
 {
-    if (!Q_stricmp(s.data(), "SEMICOLON"))
+    if (Str::IsIEqual(s, "SEMICOLON"))
         return ';';
-    if (!Q_stricmp(s.data(), "BACKSLASH"))
+    if (Str::IsIEqual(s, "BACKSLASH"))
         return '\\';
-    if (!Q_stricmp(s.data(), "SPACE"))
+    if (Str::IsIEqual(s, "SPACE"))
         return ' ';
     if (Q_UTF8_Strlen(s.data()) == 1)
         return Str::ctolower(Str::UTF8To32(s.data())[0]);
@@ -427,73 +328,65 @@ static Key KeyFromUnprefixedCharacter(int ch)
 */
 Key StringToKey(Str::StringRef str)
 {
-	const keyname_t *kn;
+    if ( int c = ParseCharacter( str ) )
+    {
+        return KeyFromUnprefixedCharacter( c );
+    }
 
-	if ( int c = ParseCharacter( str ) )
-	{
-		return KeyFromUnprefixedCharacter( c );
-	}
-
-	// check for hex code
-	if ( Str::IsIPrefix("0x", str) )
-	{
-		int n = Com_HexStrToInt( str.c_str() );
-		return Key::FromScancode( n );
-	}
+    // check for hex code
+    if ( Str::IsIPrefix("0x", str) )
+    {
+        int n = Com_HexStrToInt( str.c_str() );
+        return Key::FromScancode( n );
+    }
 
     // Physical key by QWERTY location, from ascii char
-    int prefixLen = strlen(SCANCODE_ASCII_BIND_PREFIX);
+    size_t prefixLen = SCANCODE_ASCII_BIND_PREFIX.size();
     if ( Str::IsIPrefix( SCANCODE_ASCII_BIND_PREFIX, str ) && str.size() == prefixLen + 1 )
     {
         return Key::FromScancode( AsciiToScancode( ParseCharacter ( str.substr( prefixLen ) ) ) );
     }
 
     // char:X forces a virtual key-based rather than scancode binding to be used for some (Unicode) char
-    prefixLen = strlen( CHARACTER_BIND_PREFIX );
-    if ( Str::IsIPrefix( CHARACTER_BIND_PREFIX, str ) && Q_UTF8_Strlen( &str[prefixLen] ) == 1 )
+    prefixLen = CHARACTER_BIND_PREFIX.size();
+    if ( Str::IsIPrefix( CHARACTER_BIND_PREFIX, str ) && Q_UTF8_Strlen( str.substr(prefixLen).c_str() ) == 1 )
     {
         return Key::FromCharacter( ParseCharacter( str.substr( prefixLen ) ) );
     }
 
-	// scan for a text match
-	for ( kn = keynames; kn->name; kn++ )
-	{
-		if ( Str::IsIEqual( str, kn->name ) )
-		{
-			return kn->keynum;
-		}
-	}
+    auto it = keynames.find(str);
+    if (it != keynames.end()) {
+        return Key(it->second);
+    }
 
-	return Key::NONE;
+    return Key::NONE;
 }
 
 
 
 std::string KeyToString(Key key)
 {
-	const keyname_t *kn;
+    if (key.kind() == Key::Kind::KEYNUM) {
+        for (auto& kv : keynames) {
+            if ( kv.second == key.AsKeynum() ) {
+                return kv.first;
+            }
+        }
+        Log::Warn("Unknown keynum %d", Util::ordinal(key.AsKeynum()));
+    }
 
-    // check for a key string
-	for ( kn = keynames; kn->name; kn++ )
-	{
-		if ( key == kn->keynum )
-		{
-			return kn->name;
-		}
-	}
-
-	if ( key.kind() == Key::Kind::UNICODE_CHAR )
-	{
+    if ( key.kind() == Key::Kind::UNICODE_CHAR )
+    {
         return std::string(CHARACTER_BIND_PREFIX) + Q_UTF8_Encode(key.AsCharacter());
-	}
+    }
 
     if ( key.kind() == Key::Kind::SCANCODE ) {
         int sc = key.AsScancode();
         if ( char c = ScancodeToAscii(sc) ) {
             return std::string(SCANCODE_ASCII_BIND_PREFIX) + c;
         } else {
-	        // make a hex string
-	        return Str::Format("0x%03x", key.AsScancode());
+            // make a hex string
+            return Str::Format("0x%02x", key.AsScancode());
         }
     }
 
@@ -503,12 +396,10 @@ std::string KeyToString(Key key)
 
 void CompleteKeyName(Cmd::CompletionResult& completions, Str::StringRef prefix)
 {
-	int i;
-
-	for ( i = 0; keynames[ i ].name != nullptr; i++ )
-	{
-		Cmd::AddToCompletion(completions, prefix, {{keynames[i].name, ""}});
-	}
+    for (auto& kv : keynames)
+    {
+        Cmd::AddToCompletion(completions, prefix, {{kv.first, ""}});
+    }
 }
 
 } // namespace Keyboard

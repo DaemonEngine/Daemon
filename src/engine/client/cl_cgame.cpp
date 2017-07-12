@@ -1512,7 +1512,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 
 		case CG_KEY_SETBINDING:
 			IPC::HandleMsg<Key::SetBindingMsg>(channel, std::move(reader), [this] (int keyNum, int team, std::string cmd) {
-				Keyboard::SetBinding(Keyboard::Key::FromLegacyInt(keyNum), team, cmd);
+				Keyboard::SetBinding(Keyboard::Key::FromLegacyInt(keyNum), team, std::move(cmd));
 			});
 			break;
 
