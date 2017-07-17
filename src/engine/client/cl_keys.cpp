@@ -473,9 +473,6 @@ CL_KeyEvent
 Called by the system for both key up and key down events
 ===================
 */
-//static consoleCount = 0;
-// fretn
-bool consoleButtonWasPressed = false;
 
 void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 {
@@ -689,14 +686,6 @@ CL_CharEvent
 Characters, already shifted/capslocked/etc.
 ===================
 */
-static int CL_UTF8_unpack( int c )
-{
-	const char *str = Q_UTF8_Unstore( c );
-	int chr = Q_UTF8_CodePoint( str );
-
-	// filter out Apple control codes
-	return (unsigned int)( chr - 0xF700 ) < 0x200u ? 0 : chr;
-}
 
 void CL_CharEvent( int c )
 {
@@ -710,11 +699,11 @@ void CL_CharEvent( int c )
 	// distribute the key down event to the appropriate handler
 	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
 	{
-		Field_CharEvent(g_consoleField, CL_UTF8_unpack(c));
+		Field_CharEvent(g_consoleField, c);
 	}
 	else if ( cls.state == connstate_t::CA_DISCONNECTED )
 	{
-		Field_CharEvent(g_consoleField, CL_UTF8_unpack(c));
+		Field_CharEvent(g_consoleField, c);
 	}
 
 	cgvm.CGameTextInputEvent(c);

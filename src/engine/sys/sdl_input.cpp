@@ -60,6 +60,65 @@ static cvar_t *in_xbox360ControllerDebug = nullptr;
 
 static SDL_Window *window = nullptr;
 
+
+namespace {
+
+class KeyEvent: public SysEvent {
+	Keyboard::Key key;
+	bool down;
+	int time;
+public:
+	KeyEvent(Keyboard::Key key, bool down, int time): key(key), down(down), time(time) {}
+	void Run() OVERRIDE
+	{
+		CL_KeyEvent(key, down, time);
+	}
+};
+
+class CharEvent: public SysEvent {
+	int ch; // Unicode code point
+public:
+	CharEvent(int ch): ch(ch) {}
+	void Run() OVERRIDE
+	{
+		CL_CharEvent(ch);
+	}
+};
+
+// Absolute mouse position
+class MousePosEvent: public SysEvent {
+	int x, y;
+public:
+	MousePosEvent(int x, int y): x(x), y(y) {}
+	void Run() OVERRIDE
+	{
+		CL_MousePosEvent(x, y);
+	}
+};
+
+class FocusEvent: public SysEvent {
+	bool focus; // Whether the cgame has focus
+public:
+	FocusEvent(bool focus): focus(focus) {}
+	void Run() OVERRIDE
+	{
+		CL_FocusEvent(focus);
+	}
+};
+
+class JoystickEvent: public SysEvent {
+	int axis;
+	int value;
+public:
+	JoystickEvent(int axis, int value): axis(axis), value(value) {}
+	void Run() OVERRIDE
+	{
+		CL_JoystickEvent(axis, value);
+	}
+};
+
+} // namespace
+
 /*
 ===============
 IN_PrintKey
@@ -460,7 +519,7 @@ static void IN_SetFocus(bool hasFocus)
 
 	in_focus = hasFocus;
 
-	Com_QueueEvent( 0, sysEventType_t::SE_FOCUS, in_focus, 0, 0, nullptr );
+	Com_QueueEvent( Util::make_unique<FocusEvent>(hasFocus) );
 
 }
 
@@ -618,17 +677,14 @@ static void IN_ShutdownJoystick()
 
 static void QueueKeyEvent(Keyboard::Key key, bool down)
 {
-    const int UNUSED = 0;
-    using Keyboard::Key;
-    if (!key.IsValid()) {
-        return;
-    }
-    Key* keyPtr = static_cast<Key*>(Z_Malloc(sizeof(Key)));
-    *keyPtr = key;
-	Com_QueueEvent( 0, sysEventType_t::SE_KEY, UNUSED, down, UNUSED, keyPtr );
+	if (!key.IsValid()) {
+		return;
+	}
+	Com_QueueEvent( Util::make_unique<KeyEvent>(key, down, Sys_Milliseconds()) );
 }
-static void QueueKeyEvent(keyNum_t key, bool down) {
-    QueueKeyEvent(Keyboard::Key(key), down);
+static void QueueKeyEvent(keyNum_t key, bool down)
+{
+	QueueKeyEvent(Keyboard::Key(key), down);
 }
 
 /*
@@ -689,7 +745,7 @@ static void IN_JoyMove()
 				balldy *= 2;
 			}
 
-			Com_QueueEvent( 0, sysEventType_t::SE_MOUSE, balldx, balldy, 0, nullptr );
+			Com_QueueEvent( Util::make_unique<MouseEvent>(balldx, balldy) );
 		}
 	}
 
@@ -870,7 +926,7 @@ static void IN_JoyMove()
 
 				if ( axis != stick_state.oldaaxes[ i ] )
 				{
-					Com_QueueEvent( 0, sysEventType_t::SE_JOYSTICK_AXIS, i, axis, 0, nullptr );
+					Com_QueueEvent( Util::make_unique<JoystickEvent>(i, axis) );
 
 					stick_state.oldaaxes[ i ] = axis;
 				}
@@ -906,7 +962,7 @@ static void IN_XBox360Axis( int controllerAxis, joystickAxis_t gameAxis, float s
 
 	if ( f > -in_joystickThreshold->value && f < in_joystickThreshold->value )
 	{
-		Com_QueueEvent( 0, sysEventType_t::SE_JOYSTICK_AXIS, Util::ordinal(gameAxis), 0, 0, nullptr );
+		Com_QueueEvent( Util::make_unique<JoystickEvent>(Util::ordinal(gameAxis), 0) );
 	}
 	else
 	{
@@ -915,7 +971,7 @@ static void IN_XBox360Axis( int controllerAxis, joystickAxis_t gameAxis, float s
 			Log::Notice( "xbox axis %i = %f\n", controllerAxis, f );
 		}
 
-		Com_QueueEvent( 0, sysEventType_t::SE_JOYSTICK_AXIS, Util::ordinal(gameAxis), f * scale, 0, nullptr );
+		Com_QueueEvent( Util::make_unique<JoystickEvent>(Util::ordinal(gameAxis), static_cast<int>(f * scale)) );
 	}
 }
 
@@ -1262,8 +1318,7 @@ static void IN_ProcessEvents( bool dropInput )
 					while ( *c )
 					{
 						int width = Q_UTF8_Width( c );
-						int sc = Q_UTF8_Store( c );
-						Com_QueueEvent( 0, sysEventType_t::SE_CHAR, sc, 0, 0, nullptr );
+						Com_QueueEvent( Util::make_unique<CharEvent>( Q_UTF8_CodePoint( c ) ) );
 						c += width;
 					}
 				}
@@ -1273,11 +1328,11 @@ static void IN_ProcessEvents( bool dropInput )
 				{
 					if ( mouse_mode != MouseMode::Deltas )
 					{
-						Com_QueueEvent( 0, sysEventType_t::SE_MOUSE_POS, e.motion.x, e.motion.y, 0, nullptr );
+						Com_QueueEvent( Util::make_unique<MousePosEvent>(e.motion.x, e.motion.y) );
 					}
 					else
 					{
-						Com_QueueEvent( 0, sysEventType_t::SE_MOUSE, e.motion.xrel, e.motion.yrel, 0, nullptr );
+						Com_QueueEvent( Util::make_unique<MouseEvent>(e.motion.xrel, e.motion.yrel) );
 #if defined( __linux__ ) || defined( __BSD__ )
 						if ( !in_nograb->integer )
 						{

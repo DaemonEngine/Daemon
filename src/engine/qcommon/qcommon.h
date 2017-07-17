@@ -755,12 +755,12 @@ void     CL_CharEvent( int c );
 
 // char events are for field typing, not game control
 
-void CL_MouseEvent( int dx, int dy, int time );
+void CL_MouseEvent( int dx, int dy );
 void CL_MousePosEvent( int dx, int dy);
 void CL_FocusEvent( bool focus );
 
 
-void CL_JoystickEvent( int axis, int value, int time );
+void CL_JoystickEvent( int axis, int value );
 
 void CL_PacketEvent( netadr_t from, msg_t *msg );
 
@@ -838,16 +838,32 @@ enum class sysEventType_t
   SE_FOCUS, // evValue is a boolean indicating whether the game has focus
 };
 
-struct sysEvent_t
-{
-    int            evTime;
-    sysEventType_t evType;
-    int            evValue, evValue2;
-    int            evPtrLength; // bytes of data pointed to by evPtr, for journaling
-    void           *evPtr; // this must be manually freed if not nullptr
+class SysEvent {
+public:
+    virtual void Run() = 0; // Handle the event.
+    virtual ~SysEvent() = default;
+    virtual bool IsMouseEvent()
+    {
+        return false;
+    }
 };
 
-void       Com_QueueEvent( int time, sysEventType_t type, int value, int value2, int ptrLength, void *ptr );
+// Relative mouse movement
+class MouseEvent: public SysEvent {
+public:
+	int dx, dy;
+	MouseEvent(int dx, int dy): dx(dx), dy(dy) {}
+	bool IsMouseEvent() OVERRIDE
+	{
+		return true;
+	}
+	void Run() OVERRIDE
+	{
+		DAEMON_ASSERT(false);
+	}
+};
+
+void       Com_QueueEvent( std::unique_ptr<SysEvent> event );
 int        Com_EventLoop();
 
 void Sys_SendPacket(int length, const void *data, netadr_t to);

@@ -41,7 +41,7 @@ void CL_Init()
 	// TTimo: localisation, prolly not any use in dedicated / null client
 }
 
-void CL_MouseEvent( int, int, int )
+void CL_MouseEvent( int, int )
 {
 }
 
@@ -78,7 +78,7 @@ void CL_ConsolePrint( std::string )
 {
 }
 
-void CL_JoystickEvent( int, int, int )
+void CL_JoystickEvent( int, int )
 {
 }
 
