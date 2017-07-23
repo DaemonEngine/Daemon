@@ -1122,19 +1122,19 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 
 				if( image->bits & IF_NORMALMAP ) {
 					c = scaledWidth * scaledHeight;
-					for ( i = 0; i < c; i++ )
+					for ( int j = 0; j < c; j++ )
 					{
 						vec3_t n;
 
-						n[ 0 ] = Tex_ByteToFloat( scaledBuffer[ i * 4 + 0 ] );
-						n[ 1 ] = Tex_ByteToFloat( scaledBuffer[ i * 4 + 1 ] );
-						n[ 2 ] = Tex_ByteToFloat( scaledBuffer[ i * 4 + 2 ] );
+						n[ 0 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 0 ] );
+						n[ 1 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 1 ] );
+						n[ 2 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 2 ] );
 
 						VectorNormalize( n );
 
-						scaledBuffer[ i * 4 + 0 ] = Tex_FloatToByte( n[ 0 ] );
-						scaledBuffer[ i * 4 + 1 ] = Tex_FloatToByte( n[ 1 ] );
-						scaledBuffer[ i * 4 + 2 ] = Tex_FloatToByte( n[ 2 ] );
+						scaledBuffer[ j * 4 + 0 ] = Tex_FloatToByte( n[ 0 ] );
+						scaledBuffer[ j * 4 + 1 ] = Tex_FloatToByte( n[ 1 ] );
+						scaledBuffer[ j * 4 + 2 ] = Tex_FloatToByte( n[ 2 ] );
 					}
 				}
 			}
