@@ -2703,7 +2703,7 @@ static void ParseSkyParms( const char **text )
 	{
 		Q_strncpyz( prefix, token, sizeof( prefix ) );
 
-		shader.sky.outerbox = R_FindCubeImage( prefix, IF_NONE, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_EDGE_CLAMP );
+		shader.sky.outerbox = R_FindCubeImage( prefix, IF_NOCOMPRESSION, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_EDGE_CLAMP );
 
 		if ( !shader.sky.outerbox )
 		{
