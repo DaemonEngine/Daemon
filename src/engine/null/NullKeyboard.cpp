@@ -78,6 +78,9 @@ bool AnyKeyDown() {
     return false;
 }
 
+void BufferDeferredBinds() {
+}
+
 } // namespace Keyboard
 
 void Field_Draw(const Util::LineEditData&, int, int, bool, bool, float) {

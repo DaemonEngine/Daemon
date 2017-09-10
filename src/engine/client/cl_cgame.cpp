@@ -1486,15 +1486,13 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			IPC::HandleMsg<Key::GetKeynumForBindsMsg>(channel, std::move(reader), [this] (int team, const std::vector<std::string>& binds, std::vector<std::vector<int>>& result) {
                 for (const auto& bind : binds) {
                     result.push_back({});
-                    for (int i = 0; i < Util::ordinal(keyNum_t::MAX_KEYS); i++) {
+                    for (int i = 1; i < Util::ordinal(keyNum_t::MAX_KEYS); i++) {
+                        if (i >= 'A' && i <= 'Z') {
+                            continue;
+                        }
                         char buffer[MAX_STRING_CHARS];
 
                         Key_GetBindingBuf(i, team, buffer, MAX_STRING_CHARS);
-                        if (bind == buffer) {
-                            result.back().push_back(i);
-                            continue;
-                        }
-                        Key_GetBindingBuf(0, team, buffer, MAX_STRING_CHARS);
                         if (bind == buffer) {
                             result.back().push_back(i);
                             continue;

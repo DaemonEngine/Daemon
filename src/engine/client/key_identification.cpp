@@ -292,16 +292,23 @@ static const std::unordered_map<Str::StringRef, keyNum_t, Str::IHash, Str::IEqua
 static const Str::StringRef CHARACTER_BIND_PREFIX = "char:";
 static const Str::StringRef SCANCODE_ASCII_BIND_PREFIX = "hw:";
 
+static const std::unordered_map<char, Str::StringRef> SPECIAL_CHARACTER_NAMES {
+    {';', "SEMICOLON"},
+    {'\\', "BACKSLASH"},
+    {' ', "SPACE"},
+    {'"', "DOUBLEQUOTE"},
+};
+
 static int ParseCharacter(Str::StringRef s)
 {
-    if (Str::IsIEqual(s, "SEMICOLON"))
-        return ';';
-    if (Str::IsIEqual(s, "BACKSLASH"))
-        return '\\';
-    if (Str::IsIEqual(s, "SPACE"))
-        return ' ';
-    if (Q_UTF8_Strlen(s.data()) == 1)
+    for (auto kv: SPECIAL_CHARACTER_NAMES) {
+        if (Str::IsIEqual(s, kv.second)) {
+            return kv.first;
+        }
+    }
+    if (Q_UTF8_Strlen(s.data()) == 1) {
         return Str::ctolower(Str::UTF8To32(s.data())[0]);
+    }
     return 0;
 }
 
@@ -310,7 +317,7 @@ static int ParseCharacter(Str::StringRef s)
 // for the key on a QWERTY layout, if possible.
 static Key KeyFromUnprefixedCharacter(int ch)
 {
-    SDL_Scancode sc = SDL_GetScancodeFromKey(Util::enum_cast<SDL_Keycode>(ch));
+    SDL_Scancode sc = SDL_GetScancodeFromKey(static_cast<SDL_Keycode>(ch));
     if (sc != SDL_SCANCODE_UNKNOWN) {
         return Key::FromScancode(sc);
     }
@@ -342,14 +349,14 @@ Key StringToKey(Str::StringRef str)
 
     // Physical key by QWERTY location, from ascii char
     size_t prefixLen = SCANCODE_ASCII_BIND_PREFIX.size();
-    if ( Str::IsIPrefix( SCANCODE_ASCII_BIND_PREFIX, str ) && str.size() == prefixLen + 1 )
+    if ( Str::IsIPrefix( SCANCODE_ASCII_BIND_PREFIX, str ) )
     {
         return Key::FromScancode( AsciiToScancode( ParseCharacter ( str.substr( prefixLen ) ) ) );
     }
 
     // char:X forces a virtual key-based rather than scancode binding to be used for some (Unicode) char
     prefixLen = CHARACTER_BIND_PREFIX.size();
-    if ( Str::IsIPrefix( CHARACTER_BIND_PREFIX, str ) && Q_UTF8_Strlen( str.substr(prefixLen).c_str() ) == 1 )
+    if ( Str::IsIPrefix( CHARACTER_BIND_PREFIX, str ) )
     {
         return Key::FromCharacter( ParseCharacter( str.substr( prefixLen ) ) );
     }
@@ -362,7 +369,14 @@ Key StringToKey(Str::StringRef str)
     return Key::NONE;
 }
 
-
+static std::string CharToString(int ch)
+{
+    auto it = SPECIAL_CHARACTER_NAMES.find(ch);
+    if (it != SPECIAL_CHARACTER_NAMES.end()) {
+        return it->second;
+    }
+    return Q_UTF8_Encode(ch);
+}
 
 std::string KeyToString(Key key)
 {
@@ -377,13 +391,13 @@ std::string KeyToString(Key key)
 
     if ( key.kind() == Key::Kind::UNICODE_CHAR )
     {
-        return std::string(CHARACTER_BIND_PREFIX) + Q_UTF8_Encode(key.AsCharacter());
+        return std::string(CHARACTER_BIND_PREFIX) + CharToString(key.AsCharacter());
     }
 
     if ( key.kind() == Key::Kind::SCANCODE ) {
         int sc = key.AsScancode();
         if ( char c = ScancodeToAscii(sc) ) {
-            return std::string(SCANCODE_ASCII_BIND_PREFIX) + c;
+            return std::string(SCANCODE_ASCII_BIND_PREFIX) + CharToString(c);
         } else {
             // make a hex string
             return Str::Format("0x%02x", key.AsScancode());

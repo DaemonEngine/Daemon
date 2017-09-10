@@ -538,6 +538,7 @@ void IN_Shutdown();
 bool IN_IsNumLockDown();
 void IN_DropInputsForFrame();
 void IN_CenterMouse();
+bool IN_IsKeyboardLayoutInfoAvailable();
 
 /*
 ==============================================================

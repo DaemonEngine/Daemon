@@ -451,9 +451,6 @@ unsigned int Key_GetKeyTime()
 }
 
 
-
-
-
 /*
 ===================
 CL_InitKeyCommands
@@ -588,8 +585,6 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		Key_ClearStates();
 		return;
 	}
-
-	// most keys during demo playback will bring up the menu, but non-ascii
 
 	// escape is always handled special
 	if ( key == Key(K_ESCAPE) && down )

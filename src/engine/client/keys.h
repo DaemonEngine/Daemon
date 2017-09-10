@@ -78,6 +78,8 @@ bool AnyKeyDown();
 void SetTeam(int newTeam);
 int GetTeam();
 
+void BufferDeferredBinds();
+
 }
 
 #endif // ENGINE_CLIENT_KEYS_H_
