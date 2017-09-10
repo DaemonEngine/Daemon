@@ -586,8 +586,6 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		return;
 	}
 
-	// most keys during demo playback will bring up the menu, but non-ascii
-
 	// escape is always handled special
 	if ( key == Key(K_ESCAPE) && down )
 	{

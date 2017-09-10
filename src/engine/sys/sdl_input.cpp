@@ -1473,6 +1473,12 @@ void IN_Init( void *windowData )
 	Log::Debug( "------------------------------------" );
 }
 
+// SDL_GetScancodeFromKey won't work before initialization
+bool IN_IsKeyboardLayoutInfoAvailable()
+{
+	return SDL_WasInit(SDL_INIT_VIDEO) == SDL_INIT_VIDEO;
+}
+
 /*
 ===============
 IN_Shutdown

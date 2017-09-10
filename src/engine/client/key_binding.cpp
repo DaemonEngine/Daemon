@@ -295,26 +295,31 @@ Util::optional<std::string> GetBinding(Key key, int team)
 
 void WriteBindings( fileHandle_t f )
 {
-	int team;
-
 	FS_Printf( f,"%s", "unbindall\n" );
 
+	std::vector<std::string> lines;
 	for (const auto& kv: keys)
 	{
 		if ( kv.second.binding[ 0 ]  )
 		{
-			FS_Printf( f, "bind       %s %s\n", Cmd::Escape( KeyToString( kv.first ) ).c_str(),
-			           Cmd::Escape( kv.second.binding[ 0 ].value() ).c_str() );
+			lines.push_back( Str::Format( "bind       %s %s\n",
+			                              Cmd::Escape( KeyToString( kv.first ) ),
+			                              Cmd::Escape( kv.second.binding[ 0 ].value() ) ) );
 		}
 
-		for ( team = 1; team < MAX_TEAMS; ++team )
+		for ( int team = 1; team < MAX_TEAMS; ++team )
 		{
 			if ( kv.second.binding[ team ] )
 			{
-				FS_Printf( f, "teambind %d %s %s\n", team, Cmd::Escape( KeyToString( kv.first ) ).c_str(),
-				           Cmd::Escape( kv.second.binding[ team ].value() ).c_str() );
+				lines.push_back( Str::Format( "teambind %d %s %s\n", team, Cmd::Escape( KeyToString( kv.first ) ),
+				    Cmd::Escape( kv.second.binding[ team ].value() ) ) );
 			}
 		}
+	}
+	std::sort( lines.begin(), lines.end() );
+	for (const auto& line: lines)
+	{
+		FS_Printf( f, "%s", line.c_str() );
 	}
 }
 
@@ -447,6 +452,8 @@ public:
 	}
 };
 
+std::vector<std::string> deferredBindCommands;
+
 class BindCmd: public Cmd::StaticCmd
 {
 	bool teambind;
@@ -481,11 +488,12 @@ public:
 
 	void Run(const Cmd::Args& args) const OVERRIDE
 	{
-		int        c;
-		const char *key;
-		int        team = -1;
-
-		c = args.Argc();
+		if (!IN_IsKeyboardLayoutInfoAvailable()) {
+			deferredBindCommands.push_back(args.EscapedArgs(0));
+			return;
+		}
+		int team = -1;
+		int c = args.Argc();
 
 		if (c < 2 + +teambind) {
 			PrintUsage(args, teambind ? "<team> <key> [<command>]" : "<key> [<command>]", "attach a command to a key");
@@ -501,7 +509,7 @@ public:
 			}
 		}
 
-		key = args.Argv( 1 + +teambind ).c_str();
+		Str::StringRef key = args.Argv( 1 + +teambind );
 		Key b = StringToKey( key );
 
 		if ( !b.IsBindable() )
@@ -764,5 +772,20 @@ const UnbindAllCmd UnbindAllCmdRegistration;
 const ModcaseCmd ModcaseCmdRegistration;
 
 } // namespace (key binding commands)
+
+/* The SDL subsystem with keyboard functionality ("video") is not initialized when execing configs
+   at startup. We could just initialize that first, but the subystem is also shut down and
+   re-initialized on map changes, etc. and it's hard to prove that a command can't be executed
+   during this period. */
+void BufferDeferredBinds()
+{
+	if (!IN_IsKeyboardLayoutInfoAvailable()) {
+		return;
+	}
+	for (const auto& bind: deferredBindCommands) {
+		Cmd::BufferCommandText(bind, false);
+	}
+	deferredBindCommands.clear();
+}
 
 } // namespace Keyboard

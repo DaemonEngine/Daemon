@@ -1526,6 +1526,7 @@ void Com_Frame()
 
 	IN_FrameEnd();
 
+	Keyboard::BufferDeferredBinds();
 	Cmd::ExecuteCommandBuffer();
 
 	lastTime = com_frameTime;

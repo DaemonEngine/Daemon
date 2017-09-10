@@ -63,7 +63,7 @@ at the same time.
 */
 
 static kbutton_t  kb[Util::ordinal(kbuttons_t::NUM_BUTTONS)];
-static std::unordered_map<Keyboard::Key, char*, Keyboard::Key::hash> keyup;
+static std::unordered_map<Keyboard::Key, std::vector<std::string>, Keyboard::Key::hash> keyup;
 
 // Arnout: doubleTap button mapping
 // FIXME: should be registered by cgame code
@@ -1195,11 +1195,12 @@ void IN_KeysUp_f()
 
 	// Pseudo-button commands handled here
 	// After the setkeydata so that they can't go adding more commands
-	if ( keyup[ key ] )
-	{
-		Cmd::ExecuteCommand( keyup[ key ] );
-		Z_Free( keyup[ key ] );
-		keyup[ key ] = nullptr;
+	auto it = keyup.find(key);
+	if (it != keyup.end()) {
+		for (const std::string& s: it->second) {
+			Cmd::ExecuteCommand(s);
+		}
+		keyup.erase(it);
 	}
 }
 
@@ -1234,18 +1235,7 @@ void IN_PrepareKeyUp()
 	++cmd; // skip the '+'
 
 	// Add the command to what's already marked for this command
-	if ( keyup[ key ] )
-	{
-		char *newcmd = ( char* )Z_Malloc( strlen( keyup[ key ] ) + strlen( cmd ) + 3 );
-		sprintf( newcmd, "%s-%s", keyup[ key ], cmd );
-		Z_Free( keyup[ key ] );
-		keyup[ key ] = newcmd;
-	}
-	else
-	{
-		keyup[ key ] = ( char* )Z_Malloc( strlen( cmd ) + 3 );
-		sprintf( keyup[ key ], "-%s", cmd );
-	}
+	keyup[key].push_back(Str::Format("-%s", cmd));
 }
 
 /*
@@ -1336,16 +1326,12 @@ CL_ClearKeys
 */
 void CL_ClearKeys()
 {
-	for ( auto& kv: keyup )
-	{
-		if ( kv.second )
-		{
-			Z_Free( kv.second );
-			kv.second = nullptr;
-		}
-	}
+	keyup.clear();
 
-	memset( kb, 0, sizeof( kb ) );
+	for (auto& b: kb)
+	{
+		b = {};
+	}
 }
 
 void CL_ClearInput()
