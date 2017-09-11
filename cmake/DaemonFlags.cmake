@@ -330,6 +330,6 @@ if (APPLE)
 endif()
 
 # Configuration specific definitions
-if (CMAKE_BUILD_TYPE STREQUAL Debug OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
+if (CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(-DDEBUG_BUILD)
 endif()
