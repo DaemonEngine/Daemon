@@ -1420,11 +1420,6 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 		imageBits |= IF_DISPLACEMAP;
 	}
 
-	if ( stage->uncompressed || stage->highQuality || stage->forceHighQuality || shader.uncompressed )
-	{
-		imageBits |= IF_NOCOMPRESSION;
-	}
-
 	if ( stage->stateBits & ( GLS_ATEST_BITS ) )
 	{
 		imageBits |= IF_ALPHATEST;
@@ -1757,10 +1752,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			stage->overrideWrapType = true;
 		}
-		// uncompressed
+		// uncompressed (removed option)
 		else if ( !Q_stricmp( token, "uncompressed" ) )
 		{
-			stage->uncompressed = true;
 		}
 		// highQuality
 		else if ( !Q_stricmp( token, "highQuality" ) )
@@ -2703,7 +2697,7 @@ static void ParseSkyParms( const char **text )
 	{
 		Q_strncpyz( prefix, token, sizeof( prefix ) );
 
-		shader.sky.outerbox = R_FindCubeImage( prefix, IF_NOCOMPRESSION, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_EDGE_CLAMP );
+		shader.sky.outerbox = R_FindCubeImage( prefix, IF_NONE, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_EDGE_CLAMP );
 
 		if ( !shader.sky.outerbox )
 		{
@@ -2991,11 +2985,6 @@ static void ParseDiffuseMap( shaderStage_t *stage, const char **text )
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	if ( !r_compressDiffuseMaps->integer )
-	{
-		stage->uncompressed = true;
-	}
-
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
 		LoadMap( stage, buffer );
@@ -3010,11 +2999,6 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text )
 	stage->type = stageType_t::ST_NORMALMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
-
-	if ( !r_compressNormalMaps->integer )
-	{
-		stage->uncompressed = true;
-	}
 
 	if ( r_highQualityNormalMapping->integer )
 	{
@@ -3039,11 +3023,6 @@ static void ParseSpecularMap( shaderStage_t *stage, const char **text )
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	if ( !r_compressSpecularMaps->integer )
-	{
-		stage->uncompressed = true;
-	}
-
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
 		LoadMap( stage, buffer );
@@ -3058,11 +3037,6 @@ static void ParseMaterialMap( shaderStage_t *stage, const char **text )
 	stage->type = stageType_t::ST_MATERIALMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
-
-	if ( !r_compressSpecularMaps->integer )
-	{
-		stage->uncompressed = true;
-	}
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
@@ -3359,15 +3333,14 @@ static bool ParseShader( const char *_text )
 			shader.noPicMip = true;
 			continue;
 		}
-		// RF, allow each shader to permit compression if available
+		// RF, allow each shader to permit compression if available (removed option)
 		else if ( !Q_stricmp( token, "allowcompress" ) )
 		{
-			shader.uncompressed = false;
 			continue;
 		}
+		// (removed option)
 		else if ( !Q_stricmp( token, "nocompress" ) )
 		{
-			shader.uncompressed = true;
 			continue;
 		}
 		// polygonOffset
@@ -4807,7 +4780,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		shader.noPicMip = true;
 
 	if( flags & RSF_NOLIGHTSCALE )
-		bits |= IF_NOLIGHTSCALE | IF_NOCOMPRESSION;
+		bits |= IF_NOLIGHTSCALE;
 
 	// choosing filter based on the NOMIP flag seems strange,
 	// maybe it should be changed to type == SHADER_2D

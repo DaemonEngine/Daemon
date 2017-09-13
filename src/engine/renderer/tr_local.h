@@ -512,30 +512,29 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	{
 	  IF_NONE,
 	  IF_NOPICMIP = BIT( 0 ),
-	  IF_NOCOMPRESSION = BIT( 1 ),
-	  IF_ALPHA = BIT( 2 ),
-	  IF_NORMALMAP = BIT( 3 ),
-	  IF_RGBA16F = BIT( 4 ),
-	  IF_RGBA32F = BIT( 5 ),
-	  IF_TWOCOMP16F = BIT( 6 ),
-	  IF_TWOCOMP32F = BIT( 7 ),
-	  IF_ONECOMP16F = BIT( 8 ),
-	  IF_ONECOMP32F = BIT( 9 ),
-	  IF_DEPTH16 = BIT( 10 ),
-	  IF_DEPTH24 = BIT( 11 ),
-	  IF_DEPTH32 = BIT( 12 ),
-	  IF_PACKED_DEPTH24_STENCIL8 = BIT( 13 ),
-	  IF_LIGHTMAP = BIT( 14 ),
-	  IF_RGBA16 = BIT( 15 ),
-	  IF_RGBE = BIT( 16 ),
-	  IF_ALPHATEST = BIT( 17 ),
-	  IF_DISPLACEMAP = BIT( 18 ),
-	  IF_NOLIGHTSCALE = BIT( 19 ),
-	  IF_BC1 = BIT( 20 ),
-	  IF_BC3 = BIT( 21 ),
-	  IF_BC4 = BIT( 22 ),
-	  IF_BC5 = BIT( 23 ),
-	  IF_RGBA32UI = BIT( 24 )
+	  IF_ALPHA = BIT( 1 ),
+	  IF_NORMALMAP = BIT( 2 ),
+	  IF_RGBA16F = BIT( 3 ),
+	  IF_RGBA32F = BIT( 4 ),
+	  IF_TWOCOMP16F = BIT( 5 ),
+	  IF_TWOCOMP32F = BIT( 6 ),
+	  IF_ONECOMP16F = BIT( 7 ),
+	  IF_ONECOMP32F = BIT( 8 ),
+	  IF_DEPTH16 = BIT( 9 ),
+	  IF_DEPTH24 = BIT( 10 ),
+	  IF_DEPTH32 = BIT( 11 ),
+	  IF_PACKED_DEPTH24_STENCIL8 = BIT( 12 ),
+	  IF_LIGHTMAP = BIT( 13 ),
+	  IF_RGBA16 = BIT( 14 ),
+	  IF_RGBE = BIT( 15 ),
+	  IF_ALPHATEST = BIT( 16 ),
+	  IF_DISPLACEMAP = BIT( 17 ),
+	  IF_NOLIGHTSCALE = BIT( 18 ),
+	  IF_BC1 = BIT( 19 ),
+	  IF_BC3 = BIT( 20 ),
+	  IF_BC4 = BIT( 21 ),
+	  IF_BC5 = BIT( 22 ),
+	  IF_RGBA32UI = BIT( 23 )
 	};
 
 	enum class filterType_t
@@ -1110,7 +1109,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool        overrideWrapType;
 		wrapType_t      wrapType;
 
-		bool        uncompressed;
 		bool        highQuality;
 		bool        forceHighQuality;
 
@@ -1230,7 +1228,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool       polygonOffset; // set for decals and other items that must be offset
 		float          polygonOffsetValue;
 
-		bool       uncompressed;
 		bool       noPicMip; // for images that must always be full resolution
 		filterType_t   filterType; // for console fonts, 2D elements, etc.
 		wrapType_t     wrapType;
@@ -2843,9 +2840,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern cvar_t *r_vertexLighting;
-	extern cvar_t *r_compressDiffuseMaps;
-	extern cvar_t *r_compressSpecularMaps;
-	extern cvar_t *r_compressNormalMaps;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
 	extern cvar_t *r_noMarksOnTrisurfs;

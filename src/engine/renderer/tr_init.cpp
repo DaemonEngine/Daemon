@@ -82,9 +82,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_dynamicLightCastShadows;
 	cvar_t      *r_precomputedLighting;
 	cvar_t      *r_vertexLighting;
-	cvar_t      *r_compressDiffuseMaps;
-	cvar_t      *r_compressSpecularMaps;
-	cvar_t      *r_compressNormalMaps;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
 	cvar_t      *r_noMarksOnTrisurfs;
@@ -1103,9 +1100,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		r_dynamicLightCastShadows = ri.Cvar_Get( "r_dynamicLightCastShadows", "1", 0 );
 		r_precomputedLighting = ri.Cvar_Get( "r_precomputedLighting", "1", CVAR_SHADER );
 		r_vertexLighting = ri.Cvar_Get( "r_vertexLighting", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_compressDiffuseMaps = ri.Cvar_Get( "r_compressDiffuseMaps", "1", CVAR_LATCH );
-		r_compressSpecularMaps = ri.Cvar_Get( "r_compressSpecularMaps", "1", CVAR_LATCH );
-		r_compressNormalMaps = ri.Cvar_Get( "r_compressNormalMaps", "0", CVAR_LATCH );
 		r_exportTextures = ri.Cvar_Get( "r_exportTextures", "0", 0 );
 		r_heatHaze = ri.Cvar_Get( "r_heatHaze", "1", 0 );
 		r_noMarksOnTrisurfs = ri.Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
