@@ -5236,27 +5236,20 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 
 // NERVE - SMF
 
-#if 0 // unused ?
 /*
 =============
 RB_RotatedPic
 =============
 */
-const void     *RB_RotatedPic( const void *data )
+const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 {
-	const stretchPicCommand_t *cmd;
-	shader_t                  *shader;
 	int                       numVerts, numIndexes;
 	float                     mx, my, cosA, sinA, cw, ch, sw, sh;
-
-	cmd = ( const stretchPicCommand_t * ) data;
 
 	if ( !backEnd.projection2D )
 	{
 		RB_SetGL2D();
 	}
-
-	shader = cmd->shader;
 
 	if ( shader != tess.surfaceShader )
 	{
@@ -5287,50 +5280,50 @@ const void     *RB_RotatedPic( const void *data )
 	tess.indexes[ numIndexes + 4 ] = numVerts + 0;
 	tess.indexes[ numIndexes + 5 ] = numVerts + 1;
 
-	mx = cmd->x + ( cmd->w / 2 );
-	my = cmd->y + ( cmd->h / 2 );
-	cosA = cos( DEG2RAD( cmd->angle ) );
-	sinA = sin( DEG2RAD( cmd->angle ) );
-	cw = cosA * ( cmd->w / 2 );
-	ch = cosA * ( cmd->h / 2 );
-	sw = sinA * ( cmd->w / 2 );
-	sh = sinA * ( cmd->h / 2 );
+	mx = x + ( w / 2 );
+	my = y + ( h / 2 );
+	cosA = cos( DEG2RAD( angle ) );
+	sinA = sin( DEG2RAD( angle ) );
+	cw = cosA * ( w / 2 );
+	ch = cosA * ( h / 2 );
+	sw = sinA * ( w / 2 );
+	sh = sinA * ( h / 2 );
 
 	tess.verts[ numVerts ].xyz[ 0 ] = mx - cw - sh;
 	tess.verts[ numVerts ].xyz[ 1 ] = my + sw - ch;
 	tess.verts[ numVerts ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 0 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( cmd->s1 );
-	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( cmd->t1 );
+	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( s1 );
+	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( t1 );
 
 	tess.verts[ numVerts + 1 ].xyz[ 0 ] = mx + cw - sh;
 	tess.verts[ numVerts + 1 ].xyz[ 1 ] = my - sw - ch;
 	tess.verts[ numVerts + 1 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 1 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( cmd->s2 );
-	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( cmd->t1 );
+	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
+	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
 
 	tess.verts[ numVerts + 2 ].xyz[ 0 ] = mx + cw + sh;
 	tess.verts[ numVerts + 2 ].xyz[ 1 ] = my - sw + ch;
 	tess.verts[ numVerts + 2 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 2 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( cmd->s2 );
-	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( cmd->t2 );
+	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
+	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
 
 	tess.verts[ numVerts + 3 ].xyz[ 0 ] = mx - cw + sh;
 	tess.verts[ numVerts + 3 ].xyz[ 1 ] = my + sw + ch;
 	tess.verts[ numVerts + 3 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 3 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( cmd->s1 );
-	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( cmd->t2 );
+	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
+	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
 
 	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR;
 
-	return ( const void * )( cmd + 1 );
+	return this + 1;
 }
 
 // -NERVE - SMF
@@ -5340,20 +5333,14 @@ const void     *RB_RotatedPic( const void *data )
 RB_StretchPicGradient
 ==============
 */
-const void     *RB_StretchPicGradient( const void *data )
+const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 {
-	const stretchPicCommand_t *cmd;
-	shader_t                  *shader;
 	int                       numVerts, numIndexes;
-
-	cmd = ( const stretchPicCommand_t * ) data;
 
 	if ( !backEnd.projection2D )
 	{
 		RB_SetGL2D();
 	}
-
-	shader = cmd->shader;
 
 	if ( shader != tess.surfaceShader )
 	{
@@ -5386,41 +5373,40 @@ const void     *RB_StretchPicGradient( const void *data )
 
 	tess.verts[ numVerts + 0 ].color = backEnd.color2D;
 	tess.verts[ numVerts + 1 ].color = backEnd.color2D;
-	tess.verts[ numVerts + 2 ].color = cmd->gradientColor;
-	tess.verts[ numVerts + 3 ].color = cmd->gradientColor;
+	tess.verts[ numVerts + 2 ].color = gradientColor;
+	tess.verts[ numVerts + 3 ].color = gradientColor;
 
-	tess.verts[ numVerts ].xyz[ 0 ] = cmd->x;
-	tess.verts[ numVerts ].xyz[ 1 ] = cmd->y;
+	tess.verts[ numVerts ].xyz[ 0 ] = x;
+	tess.verts[ numVerts ].xyz[ 1 ] = y;
 	tess.verts[ numVerts ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( cmd->s1 );
-	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( cmd->t1 );
+	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( s1 );
+	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( t1 );
 
-	tess.verts[ numVerts + 1 ].xyz[ 0 ] = cmd->x + cmd->w;
-	tess.verts[ numVerts + 1 ].xyz[ 1 ] = cmd->y;
+	tess.verts[ numVerts + 1 ].xyz[ 0 ] = x + w;
+	tess.verts[ numVerts + 1 ].xyz[ 1 ] = y;
 	tess.verts[ numVerts + 1 ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( cmd->s2 );
-	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( cmd->t1 );
+	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
+	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
 
-	tess.verts[ numVerts + 2 ].xyz[ 0 ] = cmd->x + cmd->w;
-	tess.verts[ numVerts + 2 ].xyz[ 1 ] = cmd->y + cmd->h;
+	tess.verts[ numVerts + 2 ].xyz[ 0 ] = x + w;
+	tess.verts[ numVerts + 2 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 2 ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( cmd->s2 );
-	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( cmd->t2 );
+	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
+	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
 
-	tess.verts[ numVerts + 3 ].xyz[ 0 ] = cmd->x;
-	tess.verts[ numVerts + 3 ].xyz[ 1 ] = cmd->y + cmd->h;
+	tess.verts[ numVerts + 3 ].xyz[ 0 ] = x;
+	tess.verts[ numVerts + 3 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 3 ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( cmd->s1 );
-	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( cmd->t2 );
+	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
+	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
 
 	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR;
-	return ( const void * )( cmd + 1 );
+	return this + 1;
 }
-#endif
 
 /*
 =============

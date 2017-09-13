@@ -3765,10 +3765,17 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		float    w, h;
 		float    s1, t1;
 		float    s2, t2;
+	};
+	struct RotatedPicCommand : public StretchPicCommand {
+		const RenderCommand *ExecuteSelf() const;
+
+		float    angle;
+	};
+	struct GradientPicCommand : public StretchPicCommand {
+		const RenderCommand *ExecuteSelf() const;
 
 		Color::Color32Bit gradientColor; // color values 0-255
-		int      gradientType; //----(SA)  added
-		float    angle; // NERVE - SMF
+		int               gradientType;
 	};
 	struct Poly2dCommand : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const;
