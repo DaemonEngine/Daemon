@@ -691,9 +691,9 @@ RE_RotatedPic
 */
 void RE_RotatedPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader, float angle )
 {
-	StretchPicCommand *cmd;
+	RotatedPicCommand *cmd;
 
-	cmd = R_GetRenderCommand<StretchPicCommand>();
+	cmd = R_GetRenderCommand<RotatedPicCommand>();
 
 	if ( !cmd )
 	{
@@ -725,9 +725,9 @@ void RE_StretchPicGradient( float x, float y, float w, float h,
                             qhandle_t hShader, const Color::Color& gradientColor,
                             int gradientType )
 {
-	StretchPicCommand *cmd;
+	GradientPicCommand *cmd;
 
-	cmd = R_GetRenderCommand<StretchPicCommand>();
+	cmd = R_GetRenderCommand<GradientPicCommand>();
 
 	if ( !cmd )
 	{
