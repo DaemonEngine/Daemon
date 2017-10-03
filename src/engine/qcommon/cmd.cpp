@@ -347,6 +347,7 @@ static const char *EscapeString( const char *in, bool quote )
 			// no need to quote semicolons if in ""
 			quoted = true;
 			if ( quote ) break;
+            DAEMON_FALLTHROUGH;
 		case '"':
 		case '$':
 		case '\\':
