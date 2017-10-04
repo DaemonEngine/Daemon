@@ -237,4 +237,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #   define CONSTEXPR_FUNCTION_RELAXED
 #endif
 
+// The new -Wimplicit-fallthrough warning...
+#if defined(__clang__) && __clang_major__ >= 6
+#   define DAEMON_FALLTHROUGH [[clang::fallthrough]]
+#elif __GNUC__ >= 7
+#   define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
+#else
+#   define DAEMON_FALLTHROUGH
+#endif
+
 #endif // COMMON_COMPILER_H_

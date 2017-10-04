@@ -604,11 +604,7 @@ static int LAN_ServerIsVisible( int source, int n )
 				return cls.localServers[ n ].visible;
 			}
 
-		if ( Cmd_Argc() == 1 )
-		{
-			Log::Warn("Server sent a pubkey_decrypt command, but sent nothing to decrypt!" );
-			return false;
-		}
+			break;
 
 		case AS_GLOBAL:
 			if ( n >= 0 && n < MAX_GLOBAL_SERVERS )

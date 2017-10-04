@@ -2364,10 +2364,12 @@ static int Parse_EvaluateTokens( source_t *source, token_t *tokens, signed long 
 
 						case punctuationSub_t::P_INC:
 						case punctuationSub_t::P_DEC:
+							if ( lastwasvalue )
 							{
 								Parse_SourceError( source, "++ or -- used in #if/#elif" );
 								break;
 							}
+							break;
 
 						case punctuationSub_t::P_SUB:
 							{
@@ -2377,6 +2379,7 @@ static int Parse_EvaluateTokens( source_t *source, token_t *tokens, signed long 
 									break;
 								}
 							}
+							DAEMON_FALLTHROUGH;
 
 						case punctuationSub_t::P_MUL:
 						case punctuationSub_t::P_DIV:
@@ -2815,7 +2818,7 @@ static int Parse_Evaluate( source_t *source, signed long int *intvalue,
 
 	//
 	if ( !Parse_EvaluateTokens( source, firsttoken, intvalue, floatvalue, integer ) )
-	{ 
+	{
 		Parse_FreeTokens( firsttoken );
 		return false;
 	}
@@ -2900,7 +2903,7 @@ static int Parse_DollarEvaluate( source_t *source, signed long int *intvalue,
 					return false;
 				}
 
-				if ( !Parse_ExpandDefineIntoSource( source, &token, define ) ) 
+				if ( !Parse_ExpandDefineIntoSource( source, &token, define ) )
 				{
 					Parse_FreeTokens( firsttoken );
 					return false;
@@ -2934,9 +2937,9 @@ static int Parse_DollarEvaluate( source_t *source, signed long int *intvalue,
 
 	//
 	if ( !Parse_EvaluateTokens( source, firsttoken, intvalue, floatvalue, integer ) )
-	{ 
+	{
 		Parse_FreeTokens( firsttoken );
-		return false; 
+		return false;
 	}
 
 	//

@@ -4538,9 +4538,9 @@ void CL_GetClipboardData( char *buf, int buflen )
 
 			switch ( w )
 			{
-			case 4: buf[ j++ ] = clean[ i++ ];
-			case 3: buf[ j++ ] = clean[ i++ ];
-			case 2: buf[ j++ ] = clean[ i++ ];
+			case 4: buf[ j++ ] = clean[ i++ ]; DAEMON_FALLTHROUGH;
+			case 3: buf[ j++ ] = clean[ i++ ]; DAEMON_FALLTHROUGH;
+			case 2: buf[ j++ ] = clean[ i++ ]; DAEMON_FALLTHROUGH;
 			case 1: buf[ j++ ] = clean[ i++ ];
 			}
 		}
