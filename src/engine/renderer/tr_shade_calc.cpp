@@ -664,7 +664,7 @@ static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes 
 				k = 1;
 
 			VectorSubtract( v1->xyz, mid[ k ], minor );
-			if ( DotProduct( cross, minor ) * ( v1->texCoords[ 3 ] < 0 ) ) {
+			if ( ( DotProduct( cross, minor ) *  v1->texCoords[ 3 ] ) < 0  ) {
 				VectorNegate( major, orientation );
 			} else {
 				VectorCopy( major, orientation );
