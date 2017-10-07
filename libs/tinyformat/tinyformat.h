@@ -876,7 +876,7 @@ class FormatListN : public FormatList
         template<TINYFORMAT_ARGTYPES(n)>                       \
         FormatListN(TINYFORMAT_VARARGS(n))                     \
             : FormatList(&m_formatterStore[0], n)              \
-        { assert(n == N); init(0, TINYFORMAT_PASSARGS(n)); }   \
+        { TINYFORMAT_ERROR(n == N); init(0, TINYFORMAT_PASSARGS(n)); }   \
                                                                \
         template<TINYFORMAT_ARGTYPES(n)>                       \
         void init(int i, TINYFORMAT_VARARGS(n))                \
