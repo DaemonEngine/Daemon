@@ -1358,9 +1358,9 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 
 		// Close file and check for CRC errors
 		zipFile.CloseFile(err);
+	} else {
+		ASSERT_UNREACHABLE();
 	}
-
-	ASSERT_UNREACHABLE();
 }
 
 bool FileExists(Str::StringRef path)
