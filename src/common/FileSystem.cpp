@@ -2071,7 +2071,7 @@ std::string DefaultHomePath()
 
 	std::string legacyHomePath = Path::Build(std::string(home), "." PRODUCT_NAME_LOWER);
 	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
-	std::string xdgDataHome = _xdgDataHome == NULL ? "" : std::string(xdgDataHome);
+	std::string xdgDataHome = _xdgDataHome == NULL ? "" : std::string(_xdgDataHome);
 	std::string xdgHomePath;
 
 	if (xdgDataHome.empty()) {
