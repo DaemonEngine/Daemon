@@ -479,7 +479,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				width = height = 0;
 				LoadRGBEToBytes( va( "%s/%s", mapName, lightmapFiles[ i ] ), &ldrImage, &width, &height );
 
-				auto image = R_CreateImage( va( "%s/%s", mapName, lightmapFiles[ i ] ), (const byte **)&ldrImage, width, height, 1, IF_NOPICMIP | IF_LIGHTMAP | IF_NOCOMPRESSION, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP );
+				auto image = R_CreateImage( va( "%s/%s", mapName, lightmapFiles[ i ] ), (const byte **)&ldrImage, width, height, 1, IF_NOPICMIP | IF_LIGHTMAP, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP );
 
 				Com_AddToGrowList( &tr.lightmaps, image );
 
@@ -498,7 +498,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 				for (int i = 0; i < numLightmaps; i++) {
 					Log::Debug("...loading external lightmap '%s/%s'", mapName, lightmapFiles[i]);
-					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), IF_NORMALMAP | IF_NOCOMPRESSION, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP);
+					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), IF_NORMALMAP, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP);
 					Com_AddToGrowList(&tr.deluxemaps, image);
 				}
 			}
@@ -521,10 +521,10 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				Log::Debug("...loading external lightmap '%s/%s'", mapName, lightmapFiles[i]);
 
 				if (!tr.worldDeluxeMapping || i % 2 == 0) {
-					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), IF_LIGHTMAP | IF_NOCOMPRESSION, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP);
+					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), IF_LIGHTMAP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP);
 					Com_AddToGrowList(&tr.lightmaps, image);
 				} else {
-					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), IF_NORMALMAP | IF_NOCOMPRESSION, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP);
+					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), IF_NORMALMAP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP);
 					Com_AddToGrowList(&tr.deluxemaps, image);
 				}
 			}
@@ -607,7 +607,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 		tr.fatLightmap = R_CreateImage( va( "_fatlightmap%d", 0 ), (const byte **)&fatbuffer,
 						tr.fatLightmapSize, tr.fatLightmapSize, 1,
-						IF_LIGHTMAP | IF_NOCOMPRESSION, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP );
+						IF_LIGHTMAP, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP );
 		Com_AddToGrowList( &tr.lightmaps, tr.fatLightmap );
 
 		ri.Hunk_FreeTempMemory( fatbuffer );
@@ -3939,11 +3939,11 @@ void R_LoadLightGrid( lump_t *l )
 
 		tr.lightGrid1Image = R_Create3DImage("<lightGrid1>", (const byte *)w->lightGridData1,
 						     w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ],
-						     w->lightGridBounds[ 2 ], IF_NOPICMIP | IF_NOLIGHTSCALE | IF_NOCOMPRESSION,
+						     w->lightGridBounds[ 2 ], IF_NOPICMIP | IF_NOLIGHTSCALE,
 						     filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_EDGE_CLAMP );
 		tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2,
 						     w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ],
-						     w->lightGridBounds[ 2 ], IF_NOPICMIP | IF_NOLIGHTSCALE | IF_NOCOMPRESSION,
+						     w->lightGridBounds[ 2 ], IF_NOPICMIP | IF_NOLIGHTSCALE,
 						     filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_EDGE_CLAMP );
 
 		return;
@@ -4103,11 +4103,11 @@ void R_LoadLightGrid( lump_t *l )
 
 	tr.lightGrid1Image = R_Create3DImage("<lightGrid1>", (const byte *)w->lightGridData1,
 					     w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ],
-					     w->lightGridBounds[ 2 ], IF_NOPICMIP | IF_NOLIGHTSCALE | IF_NOCOMPRESSION,
+					     w->lightGridBounds[ 2 ], IF_NOPICMIP | IF_NOLIGHTSCALE,
 					     filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_EDGE_CLAMP );
 	tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2,
 					     w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ],
-					     w->lightGridBounds[ 2 ], IF_NOPICMIP | IF_NOLIGHTSCALE | IF_NOCOMPRESSION,
+					     w->lightGridBounds[ 2 ], IF_NOPICMIP | IF_NOLIGHTSCALE,
 					     filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_EDGE_CLAMP );
 
 	Log::Debug("%i light grid points created", w->numLightGridPoints );

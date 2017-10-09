@@ -1044,7 +1044,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 {
 	Util::optional<uint32_t> realChecksum;
 	bool hasDeps = false;
-	offset_t depsOffset;
+	offset_t depsOffset = 0;
 	ZipArchive zipFile;
 	bool isLegacy = pak.version.empty();
 

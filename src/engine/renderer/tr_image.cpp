@@ -1038,14 +1038,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 		// select proper internal format
 		if ( samples == 3 )
 		{
-			if ( glConfig.textureCompression == textureCompression_t::TC_S3TC && !(image->bits & IF_NOCOMPRESSION ) )
-			{
-				internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-			}
-			else
-			{
-				internalFormat = GL_RGB8;
-			}
+			internalFormat = GL_RGB8;
 		}
 		else if ( samples == 4 )
 		{
@@ -1055,25 +1048,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 			}
 			else
 			{
-				if ( glConfig.textureCompression == textureCompression_t::TC_S3TC && !( image->bits & IF_NOCOMPRESSION ) )
-				{
-					if ( image->bits & IF_DISPLACEMAP )
-					{
-						internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-					}
-					else if ( image->bits & IF_ALPHATEST )
-					{
-						internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-					}
-					else
-					{
-						internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-					}
-				}
-				else
-				{
-					internalFormat = GL_RGBA8;
-				}
+				internalFormat = GL_RGBA8;
 			}
 		}
 	}
@@ -1122,19 +1097,19 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 
 				if( image->bits & IF_NORMALMAP ) {
 					c = scaledWidth * scaledHeight;
-					for ( i = 0; i < c; i++ )
+					for ( int j = 0; j < c; j++ )
 					{
 						vec3_t n;
 
-						n[ 0 ] = Tex_ByteToFloat( scaledBuffer[ i * 4 + 0 ] );
-						n[ 1 ] = Tex_ByteToFloat( scaledBuffer[ i * 4 + 1 ] );
-						n[ 2 ] = Tex_ByteToFloat( scaledBuffer[ i * 4 + 2 ] );
+						n[ 0 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 0 ] );
+						n[ 1 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 1 ] );
+						n[ 2 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 2 ] );
 
 						VectorNormalize( n );
 
-						scaledBuffer[ i * 4 + 0 ] = Tex_FloatToByte( n[ 0 ] );
-						scaledBuffer[ i * 4 + 1 ] = Tex_FloatToByte( n[ 1 ] );
-						scaledBuffer[ i * 4 + 2 ] = Tex_FloatToByte( n[ 2 ] );
+						scaledBuffer[ j * 4 + 0 ] = Tex_FloatToByte( n[ 0 ] );
+						scaledBuffer[ j * 4 + 1 ] = Tex_FloatToByte( n[ 1 ] );
+						scaledBuffer[ j * 4 + 2 ] = Tex_FloatToByte( n[ 2 ] );
 					}
 				}
 			}
@@ -1804,8 +1779,6 @@ image_t        *R_FindImageFile( const char *imageName, int bits, filterType_t f
 	if ( bits & IF_LIGHTMAP )
 	{
 		R_ProcessLightmap( pic[ 0 ], 4, width, height, bits, pic[ 0 ] );
-
-		bits |= IF_NOCOMPRESSION;
 	}
 
 	image = R_CreateImage( ( char * ) buffer, (const byte **)pic,
@@ -2353,7 +2326,7 @@ static void R_CreateContrastRenderFBOImage()
 	width = glConfig.vidWidth * 0.25f;
 	height = glConfig.vidHeight * 0.25f;
 
-	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP );
+	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP );
 }
 
 static void R_CreateBloomRenderFBOImage()
@@ -2366,7 +2339,7 @@ static void R_CreateBloomRenderFBOImage()
 
 	for ( i = 0; i < 2; i++ )
 	{
-		tr.bloomRenderFBOImage[ i ] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP );
+		tr.bloomRenderFBOImage[ i ] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP );
 	}
 }
 
@@ -2377,9 +2350,9 @@ static void R_CreateCurrentRenderImage()
 	width = glConfig.vidWidth;
 	height = glConfig.vidHeight;
 
-	tr.currentRenderImage[0] = R_CreateImage( "_currentRender[0]", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
-	tr.currentRenderImage[1] = R_CreateImage( "_currentRender[1]", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
-	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION | IF_PACKED_DEPTH24_STENCIL8, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
+	tr.currentRenderImage[0] = R_CreateImage( "_currentRender[0]", nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
+	tr.currentRenderImage[1] = R_CreateImage( "_currentRender[1]", nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
+	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
 }
 
 static void R_CreateDepthRenderImage()
@@ -2416,7 +2389,7 @@ static void R_CreatePortalRenderImage()
 	width = glConfig.vidWidth;
 	height = glConfig.vidHeight;
 
-	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
+	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
 }
 
 static void R_CreateDepthToColorFBOImages()
@@ -2427,8 +2400,8 @@ static void R_CreateDepthToColorFBOImages()
 	height = glConfig.vidHeight;
 
 	{
-		tr.depthToColorBackFacesFBOImage = R_CreateImage( "_depthToColorBackFacesFBORender", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
-		tr.depthToColorFrontFacesFBOImage = R_CreateImage( "_depthToColorFrontFacesFBORender", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
+		tr.depthToColorBackFacesFBOImage = R_CreateImage( "_depthToColorBackFacesFBORender", nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
+		tr.depthToColorFrontFacesFBOImage = R_CreateImage( "_depthToColorFrontFacesFBORender", nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
 	}
 }
 
@@ -2440,11 +2413,11 @@ static void R_CreateDownScaleFBOImages()
 	width = glConfig.vidWidth * 0.25f;
 	height = glConfig.vidHeight * 0.25f;
 
-	tr.downScaleFBOImage_quarter = R_CreateImage( "_downScaleFBOImage_quarter", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
+	tr.downScaleFBOImage_quarter = R_CreateImage( "_downScaleFBOImage_quarter", nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
 
 	width = height = 64;
 
-	tr.downScaleFBOImage_64x64 = R_CreateImage( "_downScaleFBOImage_64x64", nullptr, width, height, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
+	tr.downScaleFBOImage_64x64 = R_CreateImage( "_downScaleFBOImage_64x64", nullptr, width, height, 1, IF_NOPICMIP, filterType_t::FT_NEAREST, wrapTypeEnum_t::WT_CLAMP );
 }
 
 // *INDENT-OFF*
@@ -2665,7 +2638,7 @@ static void R_CreateColorGradeImage()
 					      REF_COLORGRADEMAP_SIZE,
 					      REF_COLORGRADEMAP_SIZE,
 					      REF_COLORGRADE_SLOTS * REF_COLORGRADEMAP_SIZE,
-					      IF_NOPICMIP | IF_NOCOMPRESSION | IF_NOLIGHTSCALE,
+					      IF_NOPICMIP | IF_NOLIGHTSCALE,
 					      filterType_t::FT_LINEAR,
 						  wrapTypeEnum_t::WT_EDGE_CLAMP );
 
@@ -2769,7 +2742,7 @@ void R_CreateBuiltinImages()
 
 	tr.quadraticImage =
 		R_CreateImage( "_quadratic", ( const byte ** ) &dataPtr,
-			       DEFAULT_SIZE, DEFAULT_SIZE, 1, IF_NOPICMIP | IF_NOCOMPRESSION, filterType_t::FT_LINEAR,
+			       DEFAULT_SIZE, DEFAULT_SIZE, 1, IF_NOPICMIP, filterType_t::FT_LINEAR,
 					   wrapTypeEnum_t::WT_CLAMP );
 
 	R_CreateRandomNormalsImage();
@@ -2797,8 +2770,6 @@ R_InitImages
 */
 void R_InitImages()
 {
-	const char *charsetImage = "gfx/2d/consolechars";
-
 	Log::Debug("------- R_InitImages -------" );
 
 	Com_Memset( r_imageHashTable, 0, sizeof( r_imageHashTable ) );
@@ -2815,12 +2786,14 @@ void R_InitImages()
 	// create default texture and white texture
 	R_CreateBuiltinImages();
 
-	tr.charsetImage = R_FindImageFile( charsetImage, IF_NOCOMPRESSION | IF_NOPICMIP, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_CLAMP );
-
-	if ( !tr.charsetImage )
-	{
-		ri.Error( errorParm_t::ERR_FATAL, "R_InitImages: could not load '%s'", charsetImage );
-	}
+#if defined( REFBONE_NAMES )
+	char fileName [ MAX_QPATH ];
+	char strippedName [ MAX_QPATH ];
+	char* fontname = Cvar_VariableString ( "cl_consoleFont" );
+	COM_StripExtension2( fontname, strippedName, sizeof( strippedName ) );
+	Com_sprintf( fileName, sizeof( fileName ), "%s_%i_%i_%i.png", strippedName, 0, 0, 16 );
+	tr.charsetImageHash = GenerateImageHashValue ( fileName );
+#endif
 }
 
 /*
@@ -2890,5 +2863,5 @@ qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 {
 	const char *name = va( "rocket%d", numTextures++ );
 	R_SyncRenderThread();
-	return RE_RegisterShaderFromImage( name, R_CreateImage( name, &pic, width, height, 1, IF_NOCOMPRESSION | IF_NOPICMIP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP ) );
+	return RE_RegisterShaderFromImage( name, R_CreateImage( name, &pic, width, height, 1, IF_NOPICMIP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP ) );
 }

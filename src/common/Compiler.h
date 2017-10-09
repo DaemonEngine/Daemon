@@ -185,15 +185,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NOEXCEPT_IF(x) noexcept(x)
 #define NOEXCEPT_EXPR(x) false
 #define HAS_EXPLICIT_DEFAULT
+#define CONSTEXPR constexpr
 #else
 #define NOEXCEPT
 #define NOEXCEPT_IF(x)
 #define NOEXCEPT_EXPR(x) false
-#endif
 // Work around lack of C99 support
 #define __func__ __FUNCTION__
 // Work around lack of constexpr
 #define CONSTEXPR const
+#endif
+
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS
 
 // Other compilers, unsupported
@@ -233,6 +235,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Work around lack of constexpr
 #   define CONSTEXPR_FUNCTION
 #   define CONSTEXPR_FUNCTION_RELAXED
+#endif
+
+// The new -Wimplicit-fallthrough warning...
+#if defined(__clang__) && __clang_major__ >= 6
+#   define DAEMON_FALLTHROUGH [[clang::fallthrough]]
+#elif __GNUC__ >= 7
+#   define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
+#else
+#   define DAEMON_FALLTHROUGH
 #endif
 
 /* Compiler can be fooled when calling ASSERT_UNREACHABLE() macro at end of non-void function.

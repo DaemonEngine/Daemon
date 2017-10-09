@@ -75,7 +75,7 @@ AudioData LoadSoundCodec(std::string filename)
 	int bestLoader = -1;
 	const FS::PakInfo* bestPak = nullptr;
 	std::string strippedname = FS::Path::StripExtension(filename);
-	
+
 	for (int i = 0; i < numSoundLoaders; i++)
 	{
 		std::string altName = Str::Format("%s%s", strippedname, soundLoaders[i].ext);
@@ -102,7 +102,7 @@ AudioData LoadSoundCodec(std::string filename)
 		return AudioData();
 	}
 
-	audioLogs.Warn("Sound file %s not found.", filename);
+	audioLogs.Debug("Sound file %s not found.", filename);
 	return AudioData();
 
 }

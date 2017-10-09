@@ -49,7 +49,7 @@ namespace Audio {
 	    auto audioData = LoadSoundCodec(GetName());
 
 	    if (audioData.size == 0) {
-		    audioLogs.Warn("Couldn't load sound %s, it's empty!", GetName());
+		    audioLogs.Debug("Couldn't load sound %s, it's empty!", GetName());
             return false;
         }
 

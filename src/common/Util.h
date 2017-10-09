@@ -181,6 +181,29 @@ private:
 	uninitialized& operator=(uninitialized&&) = delete;
 };
 
+// Use to perform an action only if a minimum time has passed since the last time it was performed.
+// Not thread-safe.
+class MinimumDelay {
+public:
+	// duration: length of delay in milliseconds
+	MinimumDelay(int duration): duration(duration), lastTime(std::numeric_limits<int>::min()) {}
+
+	// Returns true if it is OK to perform the action again.
+	bool Check() {
+		int Sys_Milliseconds();
+		int now = Sys_Milliseconds();
+		if (now >= lastTime && now < lastTime + duration) {
+			return false;
+		} else {
+			lastTime = now;
+			return true;
+		}
+	}
+private:
+	const int duration;
+	int lastTime;
+};
+
 } // namespace Util
 
 #endif // COMMON_UTIL_H_

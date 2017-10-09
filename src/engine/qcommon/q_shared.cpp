@@ -1306,9 +1306,9 @@ const char *Com_ClearForeignCharacters( const char *str )
 			// width is in the range 1..4
 			switch ( width )
 			{
-			case 4: clean[ j++ ] = str[ i++ ];
-			case 3: clean[ j++ ] = str[ i++ ];
-			case 2: clean[ j++ ] = str[ i++ ];
+			case 4: clean[ j++ ] = str[ i++ ]; DAEMON_FALLTHROUGH;
+			case 3: clean[ j++ ] = str[ i++ ]; DAEMON_FALLTHROUGH;
+			case 2: clean[ j++ ] = str[ i++ ]; DAEMON_FALLTHROUGH;
 			case 1: clean[ j++ ] = str[ i ];
 			}
 		}
