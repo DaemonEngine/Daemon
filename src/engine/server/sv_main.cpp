@@ -571,11 +571,10 @@ void SVC_Info( netadr_t from, const Cmd::Args& args )
 
 	SV_ResolveMasterServers();
 
-	// don't count privateclients
 	int botCount = 0;
 	int count = 0;
 
-	for ( int i = sv_privateClients->integer; i < sv_maxclients->integer; i++ )
+	for ( int i = 0; i < sv_maxclients->integer; i++ )
 	{
 		if ( svs.clients[ i ].state >= clientState_t::CS_CONNECTED )
 		{
