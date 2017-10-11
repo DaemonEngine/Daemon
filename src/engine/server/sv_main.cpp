@@ -627,13 +627,18 @@ void SVC_Info( netadr_t from, const Cmd::Args& args )
 		}
 	}
 
+	// do not disclose private slot number except for those taken
+	int maxclients = sv_maxclients->integer - sv_privateClients->integer;
+	int clients = count + botCount;
+	maxclients = clients > maxclients ? clients : maxclients;
+
 	info_map["protocol"] = std::to_string( PROTOCOL_VERSION );
 	info_map["hostname"] = sv_hostname->string;
 	info_map["serverload"] = std::to_string( svs.serverLoad );
 	info_map["mapname"] = sv_mapname->string;
 	info_map["clients"] = std::to_string( count );
 	info_map["bots"] = std::to_string( botCount );
-	info_map["sv_maxclients"] = std::to_string( sv_maxclients->integer - sv_privateClients->integer );
+	info_map["sv_maxclients"] = std::to_string( maxclients );
 	info_map["pure"] = std::to_string( sv_pure->integer );
 
 	if ( sv_statsURL->string[0] )
