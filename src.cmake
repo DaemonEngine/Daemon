@@ -320,11 +320,11 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/cl_console.cpp
     ${ENGINE_DIR}/client/cl_input.cpp
     ${ENGINE_DIR}/client/cl_irc.cpp
-    ${ENGINE_DIR}/client/cl_keys.cpp
     ${ENGINE_DIR}/client/cl_main.cpp
     ${ENGINE_DIR}/client/cl_parse.cpp
     ${ENGINE_DIR}/client/cl_scrn.cpp
     ${ENGINE_DIR}/client/dl_main.cpp
+    ${ENGINE_DIR}/client/key_identification.h
     ${ENGINE_DIR}/client/keycodes.h
     ${ENGINE_DIR}/client/keys.h
     ${ENGINE_DIR}/client/ClientApplication.cpp
@@ -348,6 +348,9 @@ set(CLIENTLIST
     ${ENGINE_DIR}/audio/SoundCodec.cpp
     ${ENGINE_DIR}/audio/SoundCodec.h
     ${ENGINE_DIR}/audio/WavCodec.cpp
+    ${ENGINE_DIR}/client/cl_keys.cpp
+    ${ENGINE_DIR}/client/key_binding.cpp
+    ${ENGINE_DIR}/client/key_identification.cpp
     ${ENGINE_DIR}/sys/sdl_input.cpp
     ${RENDERERLIST}
     ${GLSLINCLUDELIST}
@@ -355,11 +358,13 @@ set(CLIENTLIST
 
 set(TTYCLIENTLIST
     ${ENGINE_DIR}/null/NullAudio.cpp
+    ${ENGINE_DIR}/null/NullKeyboard.cpp
     ${ENGINE_DIR}/null/null_input.cpp
     ${ENGINE_DIR}/null/null_renderer.cpp
 )
 
 set(DEDSERVERLIST
+    ${ENGINE_DIR}/null/NullKeyboard.cpp
     ${ENGINE_DIR}/null/null_client.cpp
     ${ENGINE_DIR}/null/null_input.cpp
     ${ENGINE_DIR}/server/ServerApplication.cpp

@@ -366,6 +366,6 @@ namespace Cmd {
     static ListCmdsCmd listAudioCmdsRegistration("listAudioCmds", BASE | AUDIO, "lists all the audio commands", AUDIO);
     static ListCmdsCmd listCGameCmdsRegistration("listCGameCmds", BASE | CGAME_VM, "lists all the client-side game commands", CGAME_VM);
     static ListCmdsCmd listGameCmdsRegistration("listSGameCmds", BASE | SGAME_VM, "lists all the server-side game commands", CGAME_VM);
-    static ListCmdsCmd listUICmdsRegistration("listUICmds", BASE | UI_VM, "lists all the UI commands", CGAME_VM);
+    static ListCmdsCmd listKeyCmdsRegistration("listKeyBindingCmds", BASE | KEY_BINDING, "lists all the key binding commands", KEY_BINDING);
     static ListCmdsCmd listOldStyleCmdsRegistration("listOldStyleCmds", BASE, "lists all the commands registered through the C interface", PROXY_FOR_OLD);
 }

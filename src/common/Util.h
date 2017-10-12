@@ -32,7 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define COMMON_UTIL_H_
 
 #include <algorithm>
+#include <memory>
 #include <tuple>
+#include <type_traits>
 
 // Various utilities
 
@@ -75,14 +77,21 @@ Iter binary_find(Iter begin, Iter end, const T& value, Compare comp)
  * Enum to integral
  */
 template<class E, class R = typename std::underlying_type<E>::type>
-constexpr R ordinal(E e) { return static_cast<R>(e); }
+constexpr R ordinal(E e)
+{
+    static_assert(std::is_enum<E>::value, "Type should be an enum");
+    return static_cast<R>(e);
+}
 
 /**
  * Integral to enum
  * Prefer ordinal, as that's guaranteed to be valid
  */
 template<class E, class I = typename std::underlying_type<E>::type>
-constexpr E enum_cast(I i) { return static_cast<E>(i); }
+constexpr E enum_cast(I i) {
+    static_assert(std::is_enum<E>::value, "Type should be an enum");
+    return static_cast<E>(i);
+}
 
 /**
  * Enum to string
@@ -203,6 +212,13 @@ private:
 	const int duration;
 	int lastTime;
 };
+
+// std::make_unique is not available until C++14.
+template<typename T, typename ... U>
+std::unique_ptr<T> make_unique(U&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<U>(args)...));
+}
 
 } // namespace Util
 

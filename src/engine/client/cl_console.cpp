@@ -48,6 +48,8 @@ int g_console_field_width = DEFAULT_CONSOLE_WIDTH;
 
 console_t consoleState;
 
+Console::Field g_consoleField(INT_MAX);
+
 cvar_t    *con_animationSpeed;
 cvar_t    *con_animationType;
 
@@ -1102,7 +1104,7 @@ void Con_DrawConsole()
 {
 	// render console only if flag is set or is within an animation but also in special disconnected states
 	if ( !consoleState.isOpened && consoleState.currentAnimationFraction <= 0
-		&& !( cls.state == connstate_t::CA_DISCONNECTED && !( cls.keyCatchers & ( KEYCATCH_UI | KEYCATCH_CGAME ) ) ) )
+		&& !( cls.state == connstate_t::CA_DISCONNECTED && !( cls.keyCatchers & KEYCATCH_UI ) ) )
 		return;
 
 

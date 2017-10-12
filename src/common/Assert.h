@@ -154,4 +154,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define ASSERT_GE DAEMON_ASSERT_GE
 #endif
 
-#endif // COMMON_ASEERT_H_
+// You can put ASSERT_UNREACHABLE() in places that must never be reached.
+#define ASSERT_UNREACHABLE() DAEMON_ASSERT_CALLSITE(false, , false, "Unreachable code hit."); UNREACHABLE();
+
+#endif // COMMON_ASSERT_H_

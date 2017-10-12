@@ -283,7 +283,7 @@ The server you are attempting to join is running an incompatible version of the 
 The server you attempted to join is running an incompatible version of the game.\n\
 You or the server may be running older versions of the game."
 
-#define PROTOCOL_VERSION       86
+#define PROTOCOL_VERSION       87
 
 #define URI_SCHEME             GAMENAME_STRING "://"
 #define URI_SCHEME_LENGTH      ( ARRAY_LEN( URI_SCHEME ) - 1 )
@@ -509,7 +509,7 @@ int FS_Seek( fileHandle_t f, long offset, fsOrigin_t origin );
 
 const char* FS_LoadedPaks();
 
-// Returns a space separated string containing all loaded pk3 files.
+// Returns a space separated string containing all loaded dpk/pk3 files.
 
 bool     FS_LoadPak( const char *name );
 void     FS_LoadBasePak();
@@ -538,6 +538,7 @@ void IN_Shutdown();
 bool IN_IsNumLockDown();
 void IN_DropInputsForFrame();
 void IN_CenterMouse();
+bool IN_IsKeyboardLayoutInfoAvailable();
 
 /*
 ==============================================================
@@ -581,14 +582,6 @@ struct field_t
     int  widthInChars;
     char buffer[ MAX_EDIT_LINE ];
 };
-
-// Field_Complete{Key,Team}name
-#define FIELD_TEAM            1
-#define FIELD_TEAM_SPECTATORS 2
-#define FIELD_TEAM_DEFAULT    4
-
-void Field_CompleteKeyname( int flags );
-void Field_CompleteTeamname( int flags );
 
 // code point count <-> UTF-8 byte count
 int Field_CursorToOffset( field_t *edit );
@@ -756,18 +749,19 @@ void     CL_Disconnect( bool showMainMenu );
 void     CL_SendDisconnect();
 void     CL_Shutdown();
 void     CL_Frame( int msec );
-void     CL_KeyEvent( int key, bool down, unsigned time );
+namespace Keyboard { class Key; };
+void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
 
 void     CL_CharEvent( int c );
 
 // char events are for field typing, not game control
 
-void CL_MouseEvent( int dx, int dy, int time );
+void CL_MouseEvent( int dx, int dy );
 void CL_MousePosEvent( int dx, int dy);
 void CL_FocusEvent( bool focus );
 
 
-void CL_JoystickEvent( int axis, int value, int time );
+void CL_JoystickEvent( int axis, int value );
 
 void CL_PacketEvent( netadr_t from, msg_t *msg );
 
@@ -797,14 +791,6 @@ void CL_FlushMemory();
 void CL_StartHunkUsers();
 
 // start all the client stuff using the hunk
-
-void Key_KeynameCompletion( void ( *callback )( const char *s ) );
-
-// for keyname autocompletion
-
-void Key_WriteBindings( fileHandle_t f );
-
-// for writing the config files
 
 void S_ClearSoundBuffer();
 
@@ -853,16 +839,32 @@ enum class sysEventType_t
   SE_FOCUS, // evValue is a boolean indicating whether the game has focus
 };
 
-struct sysEvent_t
-{
-    int            evTime;
-    sysEventType_t evType;
-    int            evValue, evValue2;
-    int            evPtrLength; // bytes of data pointed to by evPtr, for journaling
-    void           *evPtr; // this must be manually freed if not nullptr
+class SysEvent {
+public:
+    virtual void Run() = 0; // Handle the event.
+    virtual ~SysEvent() = default;
+    virtual bool IsMouseEvent()
+    {
+        return false;
+    }
 };
 
-void       Com_QueueEvent( int time, sysEventType_t type, int value, int value2, int ptrLength, void *ptr );
+// Relative mouse movement
+class MouseEvent: public SysEvent {
+public:
+	int dx, dy;
+	MouseEvent(int dx, int dy): dx(dx), dy(dy) {}
+	bool IsMouseEvent() OVERRIDE
+	{
+		return true;
+	}
+	void Run() OVERRIDE
+	{
+		DAEMON_ASSERT(false);
+	}
+};
+
+void       Com_QueueEvent( std::unique_ptr<SysEvent> event );
 int        Com_EventLoop();
 
 void Sys_SendPacket(int length, const void *data, netadr_t to);

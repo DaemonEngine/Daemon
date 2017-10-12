@@ -49,7 +49,7 @@ namespace Cmd {
         AUDIO            = BIT(5),
         SGAME_VM         = BIT(6),
         CGAME_VM         = BIT(7),
-        UI_VM            = BIT(8),
+        KEY_BINDING      = BIT(8),
         PROXY_FOR_OLD    = BIT(31) // OLD: The command has been registered through the proxy function in cmd.c
     };
 

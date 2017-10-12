@@ -544,7 +544,7 @@ void CL_Record(std::string demo_name);
 //
 // cl_keys (for input usage)
 //
-int             Key_GetKeyNumber();
+Keyboard::Key Key_GetKeyNumber();
 unsigned int    Key_GetKeyTime();
 
 //
@@ -552,7 +552,7 @@ unsigned int    Key_GetKeyTime();
 //
 struct kbutton_t
 {
-	int      down[ 2 ]; // key nums holding it down
+	Keyboard::Key down[ 2 ]; // key nums holding it down
 	unsigned downtime; // msec timestamp
 	unsigned msec; // msec down this frame if both a down and up happened
 	bool active; // current state
@@ -601,8 +601,6 @@ void IN_PrepareKeyUp();
 //----(SA)
 
 float    CL_KeyState( kbutton_t *key );
-int      Key_StringToKeynum( const char *str );
-const char *Key_KeynumToString( int keynum );
 
 //cl_irc.c
 void     CL_IRCSetup();
