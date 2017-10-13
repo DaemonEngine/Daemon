@@ -37,7 +37,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define TITLE         "^2[ ^3" CLIENT_WINDOW_TITLE " Console ^2]"
 #endif
 #define PROMPT        "^3-> "
-static const int INPUT_SCROLL  = 15;
 static const int LOG_SCROLL    = 5;
 static const int MAX_LOG_LINES = 1024;
 static const int LOG_BUF_SIZE  = 65536;

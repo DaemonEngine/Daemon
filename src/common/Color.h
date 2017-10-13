@@ -585,7 +585,7 @@ char* StripColors( char* string );
 
 // Removes color codes from in, writing to out
 // Pre: in NUL terminated and out can contain at least len characters
-void StripColors( const char *in, char *out, int len );
+void StripColors( const char *in, char *out, size_t len );
 
 // Overload for C++ strings
 std::string StripColors( const std::string& input );
