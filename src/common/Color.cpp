@@ -105,7 +105,7 @@ char *StripColors( char *string )
 	return string;
 }
 
-void StripColors( const char *in, char *out, int len )
+void StripColors( const char *in, char *out, size_t len )
 {
 	--len;
 
@@ -168,11 +168,6 @@ CONSTEXPR_FUNCTION bool Has8Bits( uint8_t v )
 	return ( v / 0x11 * 0x11 ) != v;
 }
 
-/*
- * This is to be used when colors are needed to be printed in C-like code
- * Uses multiple character arrays to allow multiple calls
- * within the same sequence point
- */
 std::string ToString ( const Color32Bit& color )
 {
     std::string text = "^";
