@@ -48,7 +48,6 @@ key up events are sent even if in console mode
 #define CLIP(t) Math::Clamp( (t), 0, MAX_TEAMS - 1 )
 
 Console::Field g_consoleField(INT_MAX);
-bool chat_irc;
 
 bool key_overstrikeMode;
 bool bindingsModified;
@@ -1868,14 +1867,6 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 		// Handle any +commands which were invoked on the corresponding key-down
 		Cmd::BufferCommandText(va("keyup %d %d %u", plusCommand.check, key, time));
 
-		if ( cls.keyCatchers & KEYCATCH_CGAME && cgvm.IsActive() )
-		{
-			if ( !onlybinds )
-			{
-				cgvm.CGameKeyEvent(key, down);
-			}
-		}
-
 		return;
 	}
 
@@ -1885,16 +1876,6 @@ void CL_KeyEvent( int key, bool down, unsigned time )
 		if ( !onlybinds )
 		{
 			Console_Key( key );
-		}
-	}
-	else if ( cls.keyCatchers & KEYCATCH_CGAME && !bypassMenu )
-	{
-		if ( cgvm.IsActive() )
-		{
-			if ( !onlybinds )
-			{
-				cgvm.CGameKeyEvent(key, down);
-			}
 		}
 	}
 	else if ( cls.state == connstate_t::CA_DISCONNECTED )

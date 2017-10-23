@@ -381,8 +381,7 @@ CL_MouseEvent
 */
 void CL_MouseEvent( int dx, int dy, int )
 {
-	if ( cls.keyCatchers & KEYCATCH_CGAME ||
-		cls.keyCatchers & KEYCATCH_UI )
+	if ( cls.keyCatchers & KEYCATCH_UI )
 	{
 		cgvm.CGameMouseEvent(dx, dy);
 	}
