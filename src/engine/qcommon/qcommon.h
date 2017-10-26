@@ -760,12 +760,12 @@ void     CL_CharEvent( int c );
 
 // char events are for field typing, not game control
 
-void CL_MouseEvent( int dx, int dy, int time );
+void CL_MouseEvent( int dx, int dy );
 void CL_MousePosEvent( int dx, int dy);
 void CL_FocusEvent( bool focus );
 
 
-void CL_JoystickEvent( int axis, int value, int time );
+void CL_JoystickEvent( int axis, int value );
 
 void CL_PacketEvent( netadr_t from, msg_t *msg );
 

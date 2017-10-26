@@ -944,7 +944,7 @@ int Com_EventLoop()
 		if ( ev.evType == sysEventType_t::SE_NONE )
 		{
 			if ( mouseHaveEvent ){
-				CL_MouseEvent( mouseX, mouseY, mouseTime );
+				CL_MouseEvent( mouseX, mouseY );
 			}
 
 			// manually send packet events for the loopback channel
@@ -1012,7 +1012,7 @@ int Com_EventLoop()
 				break;
 
 			case sysEventType_t::SE_JOYSTICK_AXIS:
-				CL_JoystickEvent( ev.evValue, ev.evValue2, ev.evTime );
+				CL_JoystickEvent( ev.evValue, ev.evValue2 );
 				break;
 
 			case sysEventType_t::SE_CONSOLE:
