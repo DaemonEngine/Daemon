@@ -126,7 +126,7 @@ Con_Clear_f
 void Con_Clear_f()
 {
 	consoleState.lines.clear();
-	Con_ScrollToBottom(); // go to end
+	consoleState.scrollLineIndex = consoleState.bottomDisplayedLine = -1;
 }
 
 /*
@@ -1273,7 +1273,6 @@ void Con_ScrollToTop()
 void Con_ScrollToBottom()
 {
 	consoleState.scrollLineIndex = consoleState.lines.size() - 1;
-	//consoleState.bottomDisplayedLine = consoleState.currentLine;
 }
 
 void Con_JumpUp()
