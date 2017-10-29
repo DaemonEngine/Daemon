@@ -1699,9 +1699,6 @@ CL_KeyEvent
 Called by the system for both key up and key down events
 ===================
 */
-//static consoleCount = 0;
-// fretn
-bool consoleButtonWasPressed = false;
 
 void CL_KeyEvent( int key, bool down, unsigned time )
 {

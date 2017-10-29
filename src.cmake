@@ -266,6 +266,7 @@ set(ENGINELIST
     ${ENGINE_DIR}/sys/con_common.h
     ${ENGINE_DIR}/sys/con_common.cpp
     ${ENGINE_DIR}/sys/con_log.cpp
+    ${ENGINE_DIR}/sys/sys_events.h
 )
 
 if (WIN32)
