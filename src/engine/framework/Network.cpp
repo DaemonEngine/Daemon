@@ -80,7 +80,7 @@ std::string AddressToString( const netadr_t& address, bool with_port )
               address.type == netadrtype_t::NA_IP_DUAL )
     {
         char s[ NET_ADDR_STR_MAX_LEN ];
-        sockaddr_storage sadr = {0};
+        sockaddr_storage sadr = {};
         NetadrToSockadr( &address, reinterpret_cast<sockaddr*>(&sadr) );
         Sys_SockaddrToString( s, sizeof(s), reinterpret_cast<sockaddr*>(&sadr) );
 

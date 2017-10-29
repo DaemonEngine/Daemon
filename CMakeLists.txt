@@ -202,6 +202,7 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
             COMMAND ${GIT_EXECUTABLE} describe --tags --long --match v* --dirty=+dirty
             OUTPUT_VARIABLE GIT_DESCRIBE_REPORT
             OUTPUT_STRIP_TRAILING_WHITESPACE
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         )
         message(STATUS "git reported ${GIT_DESCRIBE_REPORT}")
         # this may fail with annotated non-release tags

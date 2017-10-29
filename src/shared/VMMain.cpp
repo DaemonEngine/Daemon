@@ -125,7 +125,11 @@ int main(int argc, char** argv)
 		Sys::OSExit(1);
 	}
 	char* end;
-	Sys::OSHandle rootSocket = (Sys::OSHandle)strtol(argv[1], &end, 10);
+#ifdef _WIN32
+	Sys::OSHandle rootSocket = reinterpret_cast<Sys::OSHandle>(static_cast<intptr_t>(strtol(argv[1], &end, 10)));
+#else
+	Sys::OSHandle rootSocket = static_cast<Sys::OSHandle>(strtol(argv[1], &end, 10));
+#endif
 	if (argv[1] == end || *end != '\0') {
 		fprintf(stderr, "Parameter is not a valid handle number\n");
 		Sys::OSExit(1);

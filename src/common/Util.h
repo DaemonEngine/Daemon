@@ -188,10 +188,8 @@ public:
 	// duration: length of delay in milliseconds
 	MinimumDelay(int duration): duration(duration), lastTime(std::numeric_limits<int>::min()) {}
 
-	// Returns true if it is OK to perform the action again.
-	bool Check() {
-		int Sys_Milliseconds();
-		int now = Sys_Milliseconds();
+	// Returns true if it is OK to perform the action again. Takes current time in milliseconds.
+	bool Check(int now) {
 		if (now >= lastTime && now < lastTime + duration) {
 			return false;
 		} else {
