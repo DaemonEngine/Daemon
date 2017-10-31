@@ -369,7 +369,6 @@ public:
     void CGameMousePosEvent(int x, int y);
 	void CGameTextInputEvent(int c);
 	void CGameFocusEvent(bool focus);
-	//std::vector<std::string> CGameVoipString();
 	//void CGameInitCvars();
 
 	void CGameRocketInit();
@@ -575,7 +574,6 @@ enum kbuttons_t
   KB_DOWN,
 
   KB_MLOOK,
-  KB_VOIPRECORD,
 
   KB_BUTTONS, // must be second-last
   NUM_BUTTONS = KB_BUTTONS + USERCMD_BUTTONS
