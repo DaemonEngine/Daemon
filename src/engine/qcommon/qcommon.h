@@ -855,7 +855,7 @@ namespace Sys {
     class EventBase;
 }
 void       Com_QueueEvent( std::unique_ptr<Sys::EventBase> event );
-int        Com_EventLoop();
+void       Com_EventLoop();
 
 void Sys_SendPacket(int length, const void *data, netadr_t to);
 bool Sys_GetPacket(netadr_t *net_from, msg_t *net_message);

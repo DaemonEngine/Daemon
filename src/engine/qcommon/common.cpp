@@ -929,11 +929,10 @@ static void HandlePacketEvent(const Sys::PacketEvent& event)
 =================
 Com_EventLoop
 
-Returns the current time (but why?)
 =================
 */
 
-int Com_EventLoop()
+void Com_EventLoop()
 {
 	netadr_t   evFrom;
 	byte       bufData[ MAX_MSGLEN ];
@@ -970,7 +969,7 @@ int Com_EventLoop()
 				}
 			}
 
-			return Sys_Milliseconds();
+			return;
 		}
 
 		switch ( ev->type )
@@ -1501,7 +1500,8 @@ void Com_Frame()
 		minMsec = 1; // Bad things happen if this is 0
 	}
 
-	com_frameTime = Com_EventLoop();
+	Com_EventLoop();
+	com_frameTime = Sys_Milliseconds();
 
 	if ( lastTime > com_frameTime )
 	{
@@ -1518,7 +1518,8 @@ void Com_Frame()
 		Sys::SleepFor(std::chrono::milliseconds(std::min(minMsec - msec, 50)));
 		IN_Frame();
 
-		com_frameTime = Com_EventLoop();
+		Com_EventLoop();
+		com_frameTime = Sys_Milliseconds();
 		msec = com_frameTime - lastTime;
 	}
 
