@@ -2285,7 +2285,7 @@ static void FindPaksInPath(Str::StringRef basePath, Str::StringRef subPath)
 			} else if (Str::IsSuffix("/", filename)) {
 				FindPaksInPath(basePath, Path::Build(subPath, filename));
 			} else {
-				ASSERT_UNREACHABLE();
+				fsLogs.Verbose("Ignoring file: %s", filename);
 			}
 		}
 	} catch (std::system_error&) {
