@@ -140,28 +140,29 @@ void SV_DirectConnect( netadr_t from, const Cmd::Args& args )
 		// servers so we can play without having to kick people.
 		// check for privateClient password
 
-		int startIndex = 0;
+		auto allowed_clients_begin = clients_begin;
 		if ( userinfo["password"] != sv_privatePassword->string )
 		{
 			// skip past the reserved slots
-			startIndex = std::min(sv_privateClients.Get(), sv_maxclients->integer);
+			allowed_clients_begin += std::min(sv_privateClients.Get(), sv_maxclients->integer);
 		}
 
-		new_client = std::find_if(clients_begin, clients_end,
+		new_client = std::find_if(allowed_clients_begin, clients_end,
 			[](const client_t& client) {
 				return client.state == clientState_t::CS_FREE;
 		});
 
 		if ( new_client == clients_end )
 		{
-			if ( NET_IsLocalAddress( from ) )
+			// This is a bizarre special case, in which if you have a local address and EVERY
+			// non-private client is a bot (and there is at least 1), you can boot one of them off.
+			if ( NET_IsLocalAddress( from ) && sv_privateClients.Get() < sv_maxclients->integer )
 			{
-				int count = std::count_if(clients_begin+startIndex, clients_end,
+				bool all_bots = std::all_of(allowed_clients_begin, clients_end,
 					[](const client_t& client) { return SV_IsBot(&client); }
 				);
 
-				// if they're all bots
-				if ( count >= sv_maxclients->integer - startIndex )
+				if ( all_bots )
 				{
 					SV_DropClient( &svs.clients[ sv_maxclients->integer - 1 ], "only bots on server" );
 					new_client = &svs.clients[ sv_maxclients->integer - 1 ];
