@@ -144,7 +144,7 @@ void SV_DirectConnect( netadr_t from, const Cmd::Args& args )
 		if ( userinfo["password"] != sv_privatePassword->string )
 		{
 			// skip past the reserved slots
-			startIndex = sv_privateClients->integer;
+			startIndex = std::min(sv_privateClients.Get(), sv_maxclients->integer);
 		}
 
 		new_client = std::find_if(clients_begin, clients_end,
