@@ -646,7 +646,6 @@ void SV_Init()
 	Cvar_Get( "pakname", "", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar_Get( "layout", "", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar_Get( "g_layouts", "", 0 ); // FIXME
-	sv_privateClients = Cvar_Get( "sv_privateClients", "0", CVAR_SERVERINFO );
 	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );  // NERVE - SMF - changed to 20 from 8
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0",  CVAR_SERVERINFO );

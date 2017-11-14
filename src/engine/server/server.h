@@ -308,7 +308,7 @@ extern cvar_t         *sv_privatePassword;
 extern cvar_t         *sv_allowDownload;
 extern cvar_t         *sv_maxclients;
 
-extern cvar_t         *sv_privateClients;
+extern Cvar::Range<Cvar::Cvar<int>> sv_privateClients;
 extern cvar_t         *sv_hostname;
 extern cvar_t         *sv_statsURL;
 extern cvar_t         *sv_master[ MAX_MASTER_SERVERS ];
