@@ -19,6 +19,7 @@ This repository contains the engine of the game Unvanquished. See below for buil
 ## Build Instructions
 
 Instead of `make`, you can use `make -jN` where `N` is your number of CPU cores to speed up compilation.
+Or on linux you can do `make -j$(getconf _NPROCESSORS_ONLN)`.
 
 ### Visual Studio
 
