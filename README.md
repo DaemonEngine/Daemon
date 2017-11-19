@@ -1,10 +1,8 @@
-# Daemon
+# Dæmon
 
-
-This repository contains the engine of the game Unvanquished. See below for build and launch instructions.
+The standalone engine that powers the multiplayer first person shooter [Unvanquished](https://github.com/Unvanquished/Unvanquished).
 
 ## Dependencies
-
 
 `zlib`, `libgmp`, `libnettle`, `libcurl`, `SDL2`, `GLEW`, `libpng`, `libjpeg` ≥ 8, `libwebp` ≥ 0.2.0, `Freetype`, `OpenAL`, `libogg`, `libvorbis`, `libtheora`, `libopus`, `libopusfile`
 
@@ -17,9 +15,6 @@ This repository contains the engine of the game Unvanquished. See below for buil
 `ncurses`, `libGeoIP`
 
 ## Build Instructions
-
-Instead of `make`, you can use `make -jN` where `N` is your number of CPU cores to speed up compilation.
-
 ### Visual Studio
 
   1. Run CMake.
@@ -30,12 +25,13 @@ Instead of `make`, you can use `make -jN` where `N` is your number of CPU cores 
 
   1. `mkdir build && cd build`
   2. `cmake ..`
-  3. `make`
+  3. `make`¹
 
 ### Linux cross-compile to Windows
 
   1. `mkdir build && cd build`
-  2. `cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross-toolchain-mingw32.cmake ..`¹
-  3. `make`
+  2. `cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross-toolchain-mingw32.cmake ..`²
+  3. `make`¹
 
-¹ *Use `cross-toolchain-mingw64.cmake` for a Win64 build.*
+¹ *Use `make -j$(getconf _NPROCESSORS_ONLN)` to speed up compilation by using all CPU cores (`make -jN` for `N` threads).*  
+² *Use `cross-toolchain-mingw64.cmake` for a Win64 build.*
