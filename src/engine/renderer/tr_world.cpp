@@ -318,8 +318,6 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 	bspModel_t *bspModel;
 	model_t    *pModel;
 	unsigned int i;
-	vec3_t     v;
-	vec3_t     transformed;
 	vec3_t     boundsCenter;
 	int        fogNum;
 
