@@ -379,7 +379,7 @@ void CL_KeyMove( usercmd_t *cmd )
 CL_MouseEvent
 =================
 */
-void CL_MouseEvent( int dx, int dy, int )
+void CL_MouseEvent( int dx, int dy )
 {
 	if ( cls.keyCatchers & KEYCATCH_UI )
 	{
@@ -416,7 +416,7 @@ CL_JoystickEvent
 Joystick values stay set until changed
 =================
 */
-void CL_JoystickEvent( int axis, int value, int )
+void CL_JoystickEvent( int axis, int value )
 {
 	if ( axis < 0 || axis >= Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS))
 	{

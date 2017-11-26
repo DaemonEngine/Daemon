@@ -330,6 +330,4 @@ if (APPLE)
 endif()
 
 # Configuration specific definitions
-if (CMAKE_BUILD_TYPE STREQUAL Debug)
-    add_definitions(-DDEBUG_BUILD)
-endif()
+set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<$<CONFIG:Debug>:DEBUG_BUILD>)

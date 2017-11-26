@@ -588,9 +588,7 @@ if (USE_BREAKPAD)
             # Breakpad library assumes wide char versions of Windows API functions
             target_compile_definitions(${breaklib} PRIVATE UNICODE)
 
-            if (CMAKE_BUILD_TYPE MATCHES Debug)
-                target_compile_definitions(${breaklib} PRIVATE _DEBUG)
-            endif()
+            target_compile_definitions(${breaklib} PRIVATE $<$<CONFIG:Debug>:_DEBUG>)
         endforeach(breaklib)
 
         # WIN32 option prevents a console from being created for the process

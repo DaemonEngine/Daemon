@@ -39,6 +39,7 @@ namespace Str {
     void AssertOnTinyFormatError(std::string reason);
 }
 
+#define TINYFORMAT_USE_VARIADIC_TEMPLATES
 #define TINYFORMAT_ERROR(reason) Str::AssertOnTinyFormatError(#reason);
 #include "tinyformat/tinyformat.h"
 
