@@ -2067,18 +2067,33 @@ std::string DefaultHomePath()
 #ifdef __APPLE__
 	return std::string(home) + "/Library/Application Support/" PRODUCT_NAME;
 #else
-	struct stat stl, stx;
-
-	std::string legacyHomePath = Path::Build(std::string(home), "." PRODUCT_NAME_LOWER);
 	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
-	std::string xdgDataHome = _xdgDataHome == NULL ? "" : std::string(_xdgDataHome);
+	std::string xdgDataHome = _xdgDataHome == NULL ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
 	std::string xdgHomePath;
 
-	if (xdgDataHome.empty()) {
-		xdgDataHome = Path::Build(Path::Build(std::string(home), ".local") ,"share");
+	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
+
+	return xdgHomePath;
+#endif
+#endif
+}
+
+void MigrateHomePath()
+{
+#if defined(__linux__)
+	const char* home = getenv("HOME");
+	if (!home) {
+		// in this case DefaultHomePath() will return "",
+		// hence homePath will be neither the legacy one
+		// neither the xdg one, hence there is nothing we can do.
+		return;
 	}
 
-	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
+	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
+	std::string xdgDataHome = _xdgDataHome == NULL ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
+	std::string xdgHomePath = DefaultHomePath();
+	std::string legacyHomePath = Path::Build(std::string(home), "." PRODUCT_NAME_LOWER);
+	struct stat stl, stx;
 
 	if (lstat(legacyHomePath.c_str(), &stl) == 0) {
 		if (S_ISDIR(stl.st_mode) || S_ISLNK(stl.st_mode)) {
@@ -2118,9 +2133,6 @@ std::string DefaultHomePath()
 			}
 		}
 	}
-
-	return xdgHomePath;
-#endif
 #endif
 }
 #endif // BUILD_VM

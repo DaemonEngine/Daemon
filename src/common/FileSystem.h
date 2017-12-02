@@ -485,6 +485,7 @@ void Initialize();
 #else
 std::string DefaultBasePath();
 std::string DefaultHomePath();
+void MigrateHomePath();
 void Initialize(Str::StringRef homePath, Str::StringRef libPath, const std::vector<std::string>& paths);
 #endif
 
