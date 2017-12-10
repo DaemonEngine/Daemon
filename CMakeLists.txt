@@ -70,7 +70,7 @@ if(NOT DAEMON_EXTERNAL_APP)
         set(BUILD_GAME_NACL_NEXE 0)
     endif()
     option(BUILD_TTY_CLIENT "Build Daemon headless client" 1)
-    option(BUILD_DUMMPY_APP "Build the dummy app for daemon" 0)
+    option(BUILD_DUMMY_APP "Build the dummy app for daemon" 0)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
@@ -96,7 +96,23 @@ option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" 1)
 option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" 1)
 option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" 0)
 option(BE_VERBOSE "Tell the compiler to report all warnings" 0)
-option( USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" 0 )
+option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" 0)
+
+# Game VM modules are built with a recursive invocation of CMake, by which all the configuration
+# options are lost, except ones we explicitly choose to pass.
+set(DEFAULT_NACL_VM_INHERITED_OPTIONS
+    BE_VERBOSE
+    BUILD_CGAME
+    BUILD_SGAME
+    CMAKE_BUILD_TYPE
+    USE_PEDANTIC
+    USE_PRECOMPILED_HEADER
+    USE_WERROR
+)
+set(NACL_VM_INHERITED_OPTIONS "${DEFAULT_NACL_VM_INHERITED_OPTIONS}" CACHE STRING
+    "Semicolon-separated list of options for which NaCl game VMs should use the same value as the other binaries")
+mark_as_advanced(NACL_VM_INHERITED_OPTIONS)
+
 if (BE_VERBOSE)
     set(WARNMODE "no-error=")
 else()
@@ -687,7 +703,7 @@ if (NOT NACL)
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
     ADD_PRECOMPILED_HEADER(engine-lib)
 
-    if(BUILD_DUMMPY_APP)
+    if (BUILD_DUMMY_APP)
         AddApplication(
             Target dummyapp
             ExecutableName dummyapp
