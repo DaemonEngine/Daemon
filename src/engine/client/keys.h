@@ -53,7 +53,6 @@ struct qkey_t
     Util::optional<std::string> binding[ MAX_TEAMS ];
 };
 
-extern bool key_overstrikeMode;
 extern std::unordered_map<Keyboard::Key, qkey_t, Keyboard::Key::hash> keys;
 
 void            Field_KeyDownEvent(Util::LineEditData& edit, Keyboard::Key key );

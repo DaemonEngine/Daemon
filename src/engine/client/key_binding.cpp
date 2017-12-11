@@ -774,7 +774,7 @@ const ModcaseCmd ModcaseCmdRegistration;
 } // namespace (key binding commands)
 
 /* The SDL subsystem with keyboard functionality ("video") is not initialized when execing configs
-   at startup. We could just initialize that first, but the subystem is also shut down and
+   at startup. We could just initialize that first, but the subsystem is also shut down and
    re-initialized on map changes, etc. and it's hard to prove that a command can't be executed
    during this period. */
 void BufferDeferredBinds()
