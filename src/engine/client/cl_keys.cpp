@@ -660,10 +660,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 	else
 	{
 		// send the bound action
-		int bindTeam = Keyboard::GetTeam();
-		auto kb = keys[ key ].binding[ bindTeam ]
-		          ? keys[ key ].binding[ bindTeam ] // prefer the team bind
-		          : keys[ key ].binding[ 0 ];       // default to global
+		auto kb = Keyboard::GetBinding( key, Keyboard::GetTeam(), true );
 
 		if ( kb )
 		{

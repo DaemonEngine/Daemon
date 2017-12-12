@@ -43,14 +43,19 @@ Maryland 20850 USA.
 #include "framework/ConsoleField.h"
 #include "qcommon/q_unicode.h"
 
-#define MAX_TEAMS 4
-#define DEFAULT_BINDING 0
+namespace Keyboard {
+enum BindTeam {
+    BIND_TEAM_DEFAULT = 0, // Default bind is used if there is no bind set for the player's current team
+    BIND_TEAM_SPECTATORS = 3,
+    MAX_TEAMS
+};
+}
 
 struct qkey_t
 {
     bool down;
     int      repeats; // if > 1, it is autorepeating
-    Util::optional<std::string> binding[ MAX_TEAMS ];
+    Util::optional<std::string> binding[ Keyboard::MAX_TEAMS ];
 };
 
 extern std::unordered_map<Keyboard::Key, qkey_t, Keyboard::Key::hash> keys;
@@ -67,14 +72,18 @@ void            Key_ClearStates();
 namespace Keyboard {
 
 void WriteBindings(fileHandle_t f);
+
 void SetBinding(Key key, int team, std::string binding);
-Util::optional<std::string> GetBinding(Key key, int team);
+Util::optional<std::string> GetBinding(Key key, BindTeam team, bool useDefault);
+Util::optional<std::string> GetBinding(Key key, int team); // DEPRECATED
 
 bool IsDown(Key key);
 bool AnyKeyDown();
 
 void SetTeam(int newTeam);
-int GetTeam();
+
+// Returns the player's current team, which cannot be DEFAULT.
+BindTeam GetTeam();
 
 void BufferDeferredBinds();
 

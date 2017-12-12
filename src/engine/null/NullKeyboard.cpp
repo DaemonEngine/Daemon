@@ -70,8 +70,8 @@ void WriteBindings( fileHandle_t ) {
 void SetTeam(int) {
 }
 
-int GetTeam() {
-    return 0;
+BindTeam GetTeam() {
+    return {};
 }
 
 bool AnyKeyDown() {
