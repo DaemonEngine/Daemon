@@ -77,6 +77,9 @@ void SetBinding(Key key, int team, std::string binding);
 Util::optional<std::string> GetBinding(Key key, BindTeam team, bool useDefault);
 Util::optional<std::string> GetBinding(Key key, int team); // DEPRECATED
 
+// Gets all keys that, if pressed, would execute the given command, based on the current team.
+std::vector<Key> GetKeysBoundTo(Str::StringRef command);
+
 bool IsDown(Key key);
 bool AnyKeyDown();
 

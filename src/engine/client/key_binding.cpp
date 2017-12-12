@@ -297,6 +297,23 @@ Util::optional<std::string> GetBinding(Key key, BindTeam team, bool useDefault)
 	}
 }
 
+std::vector<Key> GetKeysBoundTo(Str::StringRef command)
+{
+	std::vector<Key> result;
+	for (const auto& key : keys) {
+		for (BindTeam team : {GetTeam(), BIND_TEAM_DEFAULT}) {
+			const auto& binding = key.second.binding[team];
+			if (binding) {
+				if (Str::IsIEqual(command, binding.value())) {
+					result.push_back(key.first);
+				}
+				break;
+			}
+		}
+	}
+	return result;
+}
+
 void WriteBindings( fileHandle_t f )
 {
 	FS_Printf( f,"%s", "unbindall\n" );
