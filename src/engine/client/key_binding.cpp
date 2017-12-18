@@ -419,6 +419,21 @@ std::string InvalidTeamMessage(Str::StringRef name) {
 	return Str::Format("\"%s\" is not a valid team", name);
 }
 
+// Like KeyToString, but if the key is scancode-based and in the current layout is mapped to
+// a different character than the QWERTY layout one, it also shows that character.
+// Unlike KeyToString it is not a valid representation to use in a command.
+std::string ExtraInfoKeyString(Key key)
+{
+	if (key.kind() == Key::Kind::SCANCODE) {
+		int codePoint = GetCharForScancode(key.AsScancode());
+		// Don't add the parenthetical if it's the same character
+		if (codePoint && codePoint != ScancodeToAscii(key.AsScancode())) {
+			return Str::Format("\"%s\" (%s)", KeyToString(key), CharToString(codePoint));
+		}
+	}
+	return KeyToString(key);
+}
+
 class BindListCmd: public Cmd::StaticCmd
 {
 public:
@@ -445,7 +460,7 @@ public:
 			{
 				if ( kv.second.binding[ 0 ] )
 				{
-					Print( "%s = %s", KeyToString( kv.first ), kv.second.binding[ 0 ].value() );
+					Print( "%s = %s", ExtraInfoKeyString( kv.first ), kv.second.binding[ 0 ].value() );
 				}
 			}
 			else
@@ -454,7 +469,7 @@ public:
 				{
 					if ( kv.second.binding[ team ] )
 					{
-						Print( "%s[%s] = %s", KeyToString( kv.first ), teamName[ team ], kv.second.binding[ team ].value() );
+						Print( "%s[%s] = %s", ExtraInfoKeyString( kv.first ), teamName[ team ], kv.second.binding[ team ].value() );
 					}
 				}
 			}
@@ -479,7 +494,7 @@ class BindCmd: public Cmd::StaticCmd
 			{
 				if ( teamFilter(i) && bindings[ i ] )
 				{
-					Print( "\"%s\"[%s] = %s", KeyToString(b), teamName[ i ],
+					Print( "\"%s\"[%s] = %s", ExtraInfoKeyString( b ), teamName[ i ],
 					       Cmd_QuoteString( bindings[ i ].value().c_str() ) );
 					bound = true;
 				}
@@ -487,7 +502,7 @@ class BindCmd: public Cmd::StaticCmd
 		}
 		if ( !bound )
 		{
-			Print( "\"%s\" is not bound", KeyToString(b) );
+			Print( "\"%s\" is not bound", ExtraInfoKeyString( b ) );
 		}
 	}
 

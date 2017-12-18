@@ -130,9 +130,17 @@ public:
     }
 };
 
+// Returns either a special name (e.g. "SPACE") or just the character UTF8-encoded.
+std::string CharToString(int ch);
 
 Key StringToKey(Str::StringRef name);
 std::string KeyToString(Key key);
+
+// Returns the code point of a character typed by the given key, or 0 if none is found.
+int GetCharForScancode(int scancode);
+
+// Returns the character corresponding to scancode sc in the QWERTY layout, if any, otherwise 0.
+char ScancodeToAscii(int sc);
 
 void CompleteKeyName(Cmd::CompletionResult& completions, Str::StringRef prefix);
 

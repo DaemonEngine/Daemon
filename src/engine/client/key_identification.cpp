@@ -85,7 +85,7 @@ static int AsciiToScancode(int ch)
 }
 
 
-static char ScancodeToAscii(int sc)
+char ScancodeToAscii(int sc)
 {
 	if (SDL_SCANCODE_A <= sc && sc <= SDL_SCANCODE_Z) {
 		return sc - Util::ordinal<SDL_Scancode>(SDL_SCANCODE_A) + 'a';
@@ -369,7 +369,7 @@ Key StringToKey(Str::StringRef str)
     return Key::NONE;
 }
 
-static std::string CharToString(int ch)
+std::string CharToString(int ch)
 {
     auto it = SPECIAL_CHARACTER_NAMES.find(ch);
     if (it != SPECIAL_CHARACTER_NAMES.end()) {
@@ -407,6 +407,14 @@ std::string KeyToString(Key key)
     return "<INVALID KEY>";
 }
 
+int GetCharForScancode(int scancode) {
+    int keycode = static_cast<int>(SDL_GetKeyFromScancode(Util::enum_cast<SDL_Scancode>(scancode)));
+    // The keycode is a "large" number for keys such as Shift
+    if (MIN_PRINTABLE_ASCII <= keycode && keycode <= UNICODE_MAX_CODE_POINT) {
+        return keycode;
+    }
+    return 0;
+}
 
 void CompleteKeyName(Cmd::CompletionResult& completions, Str::StringRef prefix)
 {
