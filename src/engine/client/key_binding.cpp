@@ -45,7 +45,7 @@ using Keyboard::Key;
 
 static int ClipTeamNumber(int team)
 {
-	return Math::Clamp(team, 0, Keyboard::MAX_TEAMS - 1);
+	return Math::Clamp(team, 0, Keyboard::NUM_TEAMS - 1);
 }
 
 
@@ -208,7 +208,7 @@ static BindTeam bindTeam = BIND_TEAM_SPECTATORS; // Should never be BIND_TEAM_DE
 void SetTeam( int newTeam )
 {
 	BindTeam newBindTeam;
-	if (newTeam > BIND_TEAM_DEFAULT && newTeam < MAX_TEAMS) {
+	if (newTeam > BIND_TEAM_DEFAULT && newTeam < NUM_TEAMS) {
 		newBindTeam = Util::enum_cast<BindTeam>(newTeam);
 	} else {
 		newBindTeam = BIND_TEAM_SPECTATORS;
@@ -245,7 +245,7 @@ void SetBinding(Key key, int team, std::string binding)
 	if ( team == -1 )
 	{
 		// just the team-specific ones here
-		for ( team = MAX_TEAMS - 1; team; --team )
+		for ( team = NUM_TEAMS - 1; team; --team )
 		{
 			keys[ key ].binding[ team ] = {};
 		}
@@ -321,7 +321,7 @@ void WriteBindings( fileHandle_t f )
 	std::vector<std::string> lines;
 	for (const auto& kv: keys)
 	{
-		for (int team = 0; team < MAX_TEAMS; ++team) {
+		for (int team = 0; team < NUM_TEAMS; ++team) {
 			if (!kv.second.binding[ team ]) {
 				continue;
 			}
@@ -447,7 +447,7 @@ public:
 		{
 			bool teamSpecific = false;
 
-			for ( int team = 1; team < MAX_TEAMS; ++team )
+			for ( int team = 1; team < NUM_TEAMS; ++team )
 			{
 				if ( kv.second.binding[ team ] )
 				{
@@ -465,7 +465,7 @@ public:
 			}
 			else
 			{
-				for ( int team = 0; team < MAX_TEAMS; ++team )
+				for ( int team = 0; team < NUM_TEAMS; ++team )
 				{
 					if ( kv.second.binding[ team ] )
 					{
@@ -490,7 +490,7 @@ class BindCmd: public Cmd::StaticCmd
 		auto it = keys.find(b);
 		if (it != keys.end()) {
 			const auto& bindings = it->second.binding;
-			for ( int i = 0; i < MAX_TEAMS; ++i )
+			for ( int i = 0; i < NUM_TEAMS; ++i )
 			{
 				if ( teamFilter(i) && bindings[ i ] )
 				{
