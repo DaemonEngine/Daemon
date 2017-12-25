@@ -48,6 +48,10 @@ static int ClipTeamNumber(int team)
 	return Math::Clamp(team, 0, Keyboard::NUM_TEAMS - 1);
 }
 
+static bool IsValidTeamNumber(int team)
+{
+	return team >= 0 && team < Keyboard::NUM_TEAMS;
+}
 
 /*
 ===============
@@ -267,22 +271,9 @@ void SetBinding(Key key, int team, std::string binding)
 	bindingsModified = true;
 }
 
-// -ve team no. = don't return the default binding
-Util::optional<std::string> GetBinding(Key key, int team)
-{
-	if ( team <= 0 )
-	{
-		return GetBinding( key, Util::enum_cast<BindTeam>( ClipTeamNumber( -team ) ), false );
-	} else
-	{
-		return GetBinding( key, Util::enum_cast<BindTeam>( ClipTeamNumber( team ) ), true );
-	}
-}
-
 Util::optional<std::string> GetBinding(Key key, BindTeam team, bool useDefault)
 {
-	if ( !key.IsBindable() )
-	{
+	if (!key.IsBindable() || !IsValidTeamNumber(team)) {
 		return {};
 	}
 	auto it = keys.find(key);
@@ -366,7 +357,7 @@ int GetTeam(Str::StringRef arg)
 	{
 		t = atoi( arg.c_str() );
 
-		if ( t != ClipTeamNumber( t ) )
+		if ( !IsValidTeamNumber( t ) )
 		{
 			return -1;
 		}
@@ -620,12 +611,13 @@ public:
 		else
 		{
 			buf = Str::UTF8To32("/bind ");
+			team = BIND_TEAM_DEFAULT;
 		}
 
 		buf += Str::UTF8To32( Cmd::Escape( KeyToString( k ) ) );
 		buf += Str::UTF8To32(" ");
 
-		auto maybeBinding = GetBinding( k, -team );
+		auto maybeBinding = GetBinding( k, Util::enum_cast<BindTeam>(team), false );
 		if ( maybeBinding )
 		{
 			buf += Str::UTF8To32( Cmd::Escape( maybeBinding.value() ) );

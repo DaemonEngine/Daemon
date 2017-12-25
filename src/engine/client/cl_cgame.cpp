@@ -630,7 +630,10 @@ static int LAN_ServerIsVisible( int source, int n )
  */
 void Key_GetBindingBuf( int keynum, int team, char *buf, int buflen )
 {
-	auto value = Keyboard::GetBinding( Keyboard::Key::FromLegacyInt(keynum), team );
+	auto key = Keyboard::Key::FromLegacyInt( keynum );
+	auto value = team < 0
+	    ? Keyboard::GetBinding( key, Util::enum_cast<Keyboard::BindTeam>( -team ), false )
+	    : Keyboard::GetBinding( key, Util::enum_cast<Keyboard::BindTeam>( team ), true );
 
 	if ( value )
 	{

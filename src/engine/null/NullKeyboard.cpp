@@ -60,7 +60,7 @@ bool IsDown(Key) {
 void SetBinding(Key, int, std::string) {
 }
 
-Util::optional<std::string> GetBinding(Key, int) {
+Util::optional<std::string> GetBinding(Key, Keyboard::BindTeam, bool) {
     return {};
 }
 
