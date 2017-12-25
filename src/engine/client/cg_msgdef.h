@@ -569,6 +569,7 @@ using CGameMouseEventMsg = IPC::SyncMessage<
 using CGameMousePosEventMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, CG_MOUSE_POS_EVENT>, int, int>
 >;
+// TODO(slipher) - When ready to change ABI, make this a regular code point instead of a utf8 int.
 using CGameTextInptEvent = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_TEXT_INPUT_EVENT>, int>
 >;

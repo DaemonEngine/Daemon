@@ -252,12 +252,6 @@ void Field_CharEvent(Util::LineEditData& edit, int c )
         return;
     }
 
-    // 'unprintable' on Mac - used for cursor keys, function keys etc.
-    if ( (unsigned int)( c - 0xF700 ) < 0x200u )
-    {
-        return;
-    }
-
     if (overstrikeModeOn) {
         edit.DeleteNext();
     }
@@ -678,32 +672,23 @@ CL_CharEvent
 Characters, already shifted/capslocked/etc.
 ===================
 */
-static int CL_UTF8_unpack( int c )
-{
-	const char *str = Q_UTF8_Unstore( c );
-	int chr = Q_UTF8_CodePoint( str );
-
-	// filter out Apple control codes
-	return (unsigned int)( chr - 0xF700 ) < 0x200u ? 0 : chr;
-}
-
 void CL_CharEvent( int c )
 {
-	// the console key should never be used as a char
-	// ydnar: added uk equivalent of shift+`
-	// the RIGHT way to do this would be to have certain keys disable the equivalent SE_CHAR event
-
-	// fretn - this should be fixed in Com_EventLoop
-	// but I can't be arsed to leave this as is
-
+	// filter out Apple control codes
+#ifdef __APPLE__
+	if ( (unsigned int)(c - 0xF700) < 0x200u )
+	{
+		return;
+	}
+#endif
 	// distribute the key down event to the appropriate handler
 	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
 	{
-		Field_CharEvent(g_consoleField, CL_UTF8_unpack(c));
+		Field_CharEvent(g_consoleField, c);
 	}
 	else if ( cls.state == connstate_t::CA_DISCONNECTED )
 	{
-		Field_CharEvent(g_consoleField, CL_UTF8_unpack(c));
+		Field_CharEvent(g_consoleField, c);
 	}
 
 	cgvm.CGameTextInputEvent(c);

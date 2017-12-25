@@ -986,12 +986,8 @@ void Com_EventLoop()
 			}
 
 			case sysEventType_t::SE_CHAR:
-			{
-				int codePoint = ev->Cast<Sys::CharEvent>().ch;
-				int utf8BytesPackedIntoAnInt = Q_UTF8_Store( Q_UTF8_Encode( codePoint ) );
-				CL_CharEvent( utf8BytesPackedIntoAnInt );
+				CL_CharEvent( ev->Cast<Sys::CharEvent>().ch );
 				break;
-			}
 
 			case sysEventType_t::SE_MOUSE:
 			{

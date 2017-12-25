@@ -1152,7 +1152,7 @@ void CGameVM::CGameFocusEvent(bool focus)
 
 void CGameVM::CGameTextInputEvent(int c)
 {
-	this->SendMsg<CGameTextInptEvent>(c);
+	this->SendMsg<CGameTextInptEvent>(Q_UTF8_Store(Q_UTF8_Encode(c)));
 }
 
 void CGameVM::CGameRocketInit()
