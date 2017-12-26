@@ -133,6 +133,9 @@ public:
 // Returns either a special name (e.g. "SPACE") or just the character UTF8-encoded.
 std::string CharToString(int ch);
 
+// Gets the string associated with a keyNum_t, e.g. "F2" or "CAPSLOCK".
+std::string KeynumToString(keyNum_t keynum);
+
 Key StringToKey(Str::StringRef name);
 std::string KeyToString(Key key);
 

@@ -378,15 +378,21 @@ std::string CharToString(int ch)
     return Q_UTF8_Encode(ch);
 }
 
+std::string KeynumToString(keyNum_t keynum)
+{
+    for (auto& kv : keynames) {
+        if (kv.second == keynum) {
+            return kv.first;
+        }
+    }
+    Log::Warn("Unknown keynum %d", Util::ordinal(keynum));
+    return "<UNKNOWN KEYNUM>";
+}
+
 std::string KeyToString(Key key)
 {
     if (key.kind() == Key::Kind::KEYNUM) {
-        for (auto& kv : keynames) {
-            if ( kv.second == key.AsKeynum() ) {
-                return kv.first;
-            }
-        }
-        Log::Warn("Unknown keynum %d", Util::ordinal(key.AsKeynum()));
+        return KeynumToString(key.AsKeynum());
     }
 
     if ( key.kind() == Key::Kind::UNICODE_CHAR )
