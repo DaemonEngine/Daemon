@@ -40,6 +40,8 @@ set(COMMONLIST
     ${COMMON_DIR}/IPC/CommonSyscalls.h
     ${COMMON_DIR}/IPC/Primitives.cpp
     ${COMMON_DIR}/IPC/Primitives.h
+    ${COMMON_DIR}/KeyIdentification.cpp
+    ${COMMON_DIR}/KeyIdentification.h
     ${COMMON_DIR}/LineEditData.cpp
     ${COMMON_DIR}/LineEditData.h
     ${COMMON_DIR}/Log.cpp
