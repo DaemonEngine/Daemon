@@ -35,10 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Keyboard {
 
-const Key Key::NONE;
-const Key Key::CONSOLE;
-
-Key Key::FromScancode(int) {
+Key KeyFromScancode(int) {
     return Key();
 }
 
