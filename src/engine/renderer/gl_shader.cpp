@@ -419,7 +419,7 @@ static std::string GenVersionDeclaration() {
 				       glConfig2.shadingLanguageVersion >= 150 ? (glConfig2.glCoreProfile ? "core" : "compatibility") : "");
 
 	// add supported GLSL extensions
-	addExtension( str, r_arb_texture_gather->integer, 400,
+	addExtension( str, glConfig2.textureGatherAvailable, 400,
 		      GLEW_ARB_texture_gather, "ARB_texture_gather" );
 	addExtension( str, r_ext_gpu_shader4->integer, 130,
 		      GLEW_EXT_gpu_shader4, "EXT_gpu_shader4" );
