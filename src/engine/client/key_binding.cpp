@@ -419,7 +419,7 @@ std::string ExtraInfoKeyString(Key key)
 		int codePoint = GetCharForScancode(key.AsScancode());
 		// Don't add the parenthetical if it's the same character
 		if (codePoint && codePoint != ScancodeToAscii(key.AsScancode())) {
-			return Str::Format("\"%s\" (%s)", KeyToString(key), CharToString(codePoint));
+			return Str::Format("%s (%s)", KeyToString(key), CharToString(codePoint));
 		}
 	}
 	return KeyToString(key);
@@ -451,7 +451,7 @@ public:
 			{
 				if ( kv.second.binding[ 0 ] )
 				{
-					Print( "%s = %s", ExtraInfoKeyString( kv.first ), kv.second.binding[ 0 ].value() );
+					Print( "%s → %s", ExtraInfoKeyString( kv.first ), kv.second.binding[ 0 ].value() );
 				}
 			}
 			else
@@ -460,7 +460,7 @@ public:
 				{
 					if ( kv.second.binding[ team ] )
 					{
-						Print( "%s[%s] = %s", ExtraInfoKeyString( kv.first ), teamName[ team ], kv.second.binding[ team ].value() );
+						Print( "%s [%s] → %s", ExtraInfoKeyString( kv.first ), teamName[ team ], kv.second.binding[ team ].value() );
 					}
 				}
 			}
@@ -485,7 +485,7 @@ class BindCmd: public Cmd::StaticCmd
 			{
 				if ( teamFilter(i) && bindings[ i ] )
 				{
-					Print( "\"%s\"[%s] = %s", ExtraInfoKeyString( b ), teamName[ i ],
+					Print( "%s [%s] → %s", ExtraInfoKeyString( b ), teamName[ i ],
 					       Cmd_QuoteString( bindings[ i ].value().c_str() ) );
 					bound = true;
 				}
@@ -493,7 +493,7 @@ class BindCmd: public Cmd::StaticCmd
 		}
 		if ( !bound )
 		{
-			Print( "\"%s\" is not bound", ExtraInfoKeyString( b ) );
+			Print( "%s is not bound", ExtraInfoKeyString( b ) );
 		}
 	}
 
