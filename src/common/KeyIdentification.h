@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_map>
 
 #include "common/Util.h"
+#include "common/Serialize.h"
 #include "common/String.h"
 #include "engine/client/keycodes.h"
 #include "engine/qcommon/q_unicode.h"
@@ -73,6 +74,8 @@ public:
             *this = Key(Kind::KEYNUM, Util::ordinal<keyNum_t>(key));
     }
     friend Key KeyFromScancode(int scancode);
+    friend struct Util::SerializeTraits<Key>;
+
     static Key FromCharacter(int codePoint) {
         if (codePoint >= MIN_PRINTABLE_ASCII && codePoint <= UNICODE_MAX_CODE_POINT
             && !Q_Unicode_IsPrivateUse(codePoint)) {
@@ -100,7 +103,7 @@ public:
         return !(*this == other);
     }
     bool IsValid() const {
-        return kind_ != Kind::INVALID;
+        return IsBindable() || kind_ == Kind::CONSOLE;
     }
     bool IsBindable() const {
         return kind_ == Kind::UNICODE_CHAR || kind_ == Kind::KEYNUM || kind_ == Kind::SCANCODE;
@@ -147,5 +150,21 @@ extern const std::unordered_map<Str::StringRef, keyNum_t, Str::IHash, Str::IEqua
 
 } // namespace Keyboard
 
+
+namespace Util {
+template<> struct SerializeTraits<Keyboard::Key> {
+    static void Write(Writer& stream, Keyboard::Key value)
+    {
+        stream.Write<Keyboard::Key::Kind>(value.kind_);
+        stream.Write<int>(value.id_);
+    }
+    static Keyboard::Key Read(Reader& stream)
+    {
+        auto kind = stream.Read<Keyboard::Key::Kind>();
+        auto id = stream.Read<int>();
+        return Keyboard::Key(kind, id);
+    }
+};
+}
 
 #endif // COMMON_KEY_IDENTIFICATION_H_
