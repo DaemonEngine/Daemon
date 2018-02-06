@@ -30,6 +30,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Keyboard-based controls (and in-game console) are not needed for tty client or dedicated server.
 
+#include "common/Common.h"
+
 #include "engine/client/key_identification.h"
 #include "engine/client/keys.h"
 
