@@ -63,6 +63,10 @@ Util::optional<std::string> GetBinding(Key, Keyboard::BindTeam, bool) {
     return {};
 }
 
+std::vector<Keyboard::Key> GetKeysBoundTo(int, Str::StringRef) {
+    return {};
+}
+
 void WriteBindings( fileHandle_t ) {
 }
 

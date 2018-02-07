@@ -288,12 +288,15 @@ Util::optional<std::string> GetBinding(Key key, BindTeam team, bool useDefault)
 	}
 }
 
-std::vector<Key> GetKeysBoundTo(Str::StringRef command)
+std::vector<Key> GetKeysBoundTo(int team, Str::StringRef command)
 {
+	if (!IsValidTeamNumber(team)) {
+		return {};
+	}
 	std::vector<Key> result;
 	for (const auto& key : keys) {
-		for (BindTeam team : {GetTeam(), BIND_TEAM_DEFAULT}) {
-			const auto& binding = key.second.binding[team];
+		for (BindTeam t: {Util::enum_cast<BindTeam>(team), BIND_TEAM_DEFAULT}) {
+			const auto& binding = key.second.binding[t];
 			if (binding) {
 				if (Str::IsIEqual(command, binding.value())) {
 					result.push_back(key.first);
