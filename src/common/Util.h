@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <type_traits>
 
+#include "Compiler.h"
+
 // Various utilities
 
 // Workaround for broken tuples in GCC 4.6
@@ -50,6 +52,8 @@ typename std::tuple_element<Index, std::tuple<T...>>::type&& get(std::tuple<T...
 
 } // namespace std
 #endif
+
+char     *QDECL PRINTF_LIKE(1) va( const char *format, ... );
 
 namespace Util {
 
@@ -97,7 +101,7 @@ constexpr E enum_cast(I i) {
  * Enum to string
  */
 template<class E>
-const char *enum_str(E e) { return va("%d", ordinal(e)); }
+const char* enum_str(E e) { return va("%d", ordinal<E, int>(e)); }
 
 // Compile-time integer sequences
 template<size_t...> struct seq {
