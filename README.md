@@ -33,5 +33,5 @@ The standalone engine that powers the multiplayer first person shooter [Unvanqui
   2. `cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross-toolchain-mingw32.cmake ..`²
   3. `make`¹
 
-¹ *Use `make -j$(getconf _NPROCESSORS_ONLN)` to speed up compilation by using all CPU cores (`make -jN` for `N` threads).*  
+¹ *Use `make -j$(nproc)` to speed up compilation by using all CPU cores (`make -jN` for `N` threads).*  
 ² *Use `cross-toolchain-mingw64.cmake` for a Win64 build.*

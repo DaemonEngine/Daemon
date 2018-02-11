@@ -1069,6 +1069,13 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.0
 	glConfig2.textureRGAvailable = LOAD_CORE_EXTENSION_WITH_CVAR(ARB_texture_rg, r_ext_texture_rg);
 
+	// made required in OpenGL 4.0
+	if( Q_stristr( glConfig.renderer_string, "geforce" ) ) {
+		glConfig2.textureGatherAvailable = false; // disabled on nVidia because some driver versions are bugged
+	} else {
+		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_CVAR(ARB_texture_gather, r_arb_texture_gather);
+	}
+
 	// made required in OpenGL 1.3
 	glConfig.textureCompression = textureCompression_t::TC_NONE;
 	if( GLEW_EXT_texture_compression_s3tc )
