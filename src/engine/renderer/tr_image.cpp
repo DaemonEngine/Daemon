@@ -1660,8 +1660,17 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 		{
 			if ( !Q_stricmp( ext, imageLoaders[ i ].ext ) )
 			{
-				// load
-				imageLoaders[ i ].ImageLoader( filename, pic, width, height, numLayers, numMips, bits, alphaByte );
+				// do not complain on missing file if extension is hardcoded to a wrong one
+				// since file can exist with another extension and it will tested right after
+				// that, and by the way if there is no alternative an error will be raised
+				// because of missing texture so we don't have to let the ImageLoader says
+				// it failed to read the file using this filename
+				if (FS_FileExists( filename ))
+				{
+					// load
+					imageLoaders[ i ].ImageLoader( filename, pic, width, height, numLayers, numMips, bits, alphaByte );
+				}
+				// we still have to break because a loader was found, so we can strip the extension
 				break;
 			}
 		}
