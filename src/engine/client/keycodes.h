@@ -24,12 +24,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef __KEYCODES_H__
 #define __KEYCODES_H__
 
-//
-// these are the key numbers that should be passed to KeyEvent
-//
-
-// when applicable, keys should be passed as lowercased ASCII
-
 enum keyNum_t
 {
   K_NONE = -1,
