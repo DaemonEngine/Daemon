@@ -364,9 +364,9 @@ public:
 	void CGameShutdown();
 	void CGameDrawActiveFrame(int serverTime, bool demoPlayback);
 	int CGameCrosshairPlayer();
-	void CGameKeyEvent(int key, bool down);
+	void CGameKeyEvent(Keyboard::Key key, bool down);
 	void CGameMouseEvent(int dx, int dy);
-    void CGameMousePosEvent(int x, int y);
+	void CGameMousePosEvent(int x, int y);
 	void CGameTextInputEvent(int c);
 	void CGameFocusEvent(bool focus);
 	//void CGameInitCvars();

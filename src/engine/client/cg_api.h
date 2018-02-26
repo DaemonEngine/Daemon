@@ -26,6 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "engine/qcommon/q_shared.h"
 #include "engine/renderer/tr_types.h"
+#include "common/KeyIdentification.h"
 #include "common/cm/cm_public.h"
 
 #define CGAME_API_VERSION 3
@@ -213,10 +214,10 @@ bool        trap_GetUserCmd( int cmdNumber, usercmd_t *ucmd );
 void            trap_SetUserCmdValue( int stateValue, int flags, float sensitivityScale );
 int             trap_Key_GetCatcher();
 void            trap_Key_SetCatcher( int catcher );
-void            trap_Key_SetBinding( int keyNum, int team, const char *cmd );
+void            trap_Key_SetBinding( Keyboard::Key key, int team, const char *cmd );
 void            trap_Key_ClearCmdButtons();
 void            trap_Key_ClearStates();
-std::vector<int> trap_Key_KeysDown( const std::vector<int>& keys );
+std::vector<bool> trap_Key_KeysDown( const std::vector<Keyboard::Key>& keys );
 void            trap_SetMouseMode( MouseMode mode );
 void            trap_S_StopBackgroundTrack();
 void            trap_R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
@@ -225,13 +226,13 @@ void 			trap_SendMessage(const std::vector<uint8_t>& message);
 messageStatus_t trap_MessageStatus();
 void            trap_UI_Popup( int arg0 );
 void            trap_UI_ClosePopup( const char *arg0 );
-std::vector<std::vector<int>> trap_Key_GetKeynumForBinds(int team, std::vector<std::string> binds);
+std::vector<std::vector<Keyboard::Key>> trap_Key_GetKeysForBinds(int team, const std::vector<std::string>& binds);
 int             trap_Parse_AddGlobalDefine( const char *define );
 int             trap_Parse_LoadSource( const char *filename );
 int             trap_Parse_FreeSource( int handle );
 bool             trap_Parse_ReadToken( int handle, pc_token_t *pc_token );
 int             trap_Parse_SourceFileAndLine( int handle, char *filename, int *line );
-void            trap_Key_KeynumToStringBuf( int keynum, char *buf, int buflen );
+int             trap_Key_GetCharForScancode( int scancode );
 void            trap_CG_TranslateString( const char *string, char *buf );
 bool        trap_R_inPVS( const vec3_t p1, const vec3_t p2 );
 bool        trap_R_inPVVS( const vec3_t p1, const vec3_t p2 );

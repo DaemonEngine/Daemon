@@ -116,6 +116,13 @@ public:
         }
     };
 
+    int PackIntoInt() const {
+        return Util::ordinal(kind_) << 24 | id_;
+    }
+    static Key UnpackFromInt(int value) {
+        return Key(Util::enum_cast<Kind>(value >> 24), value & 0xFFFFFF);
+    }
+
     // TODO(slipher): remove need for all of the following
     int AsLegacyInt() const {
         if (kind_ == Kind::CONSOLE)

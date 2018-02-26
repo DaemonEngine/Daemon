@@ -606,7 +606,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 			return;
 		}
 
-		cgvm.CGameKeyEvent(key.AsLegacyInt(), down);
+		cgvm.CGameKeyEvent(key, down);
 		return;
 	}
 
@@ -615,10 +615,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 	// to run any binds (since they won't be found).
 	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
 	{
-		int intKey = key.AsLegacyInt();
-		if (intKey > 0) {
-			cgvm.CGameKeyEvent(intKey, down);
-		}
+		cgvm.CGameKeyEvent(key, down);
 		return;
 	}
 

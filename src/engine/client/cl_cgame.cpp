@@ -49,11 +49,6 @@ Maryland 20850 USA.
 #define C__(x, y) Trans_PgettextGame(x, y)
 #define P__(x, y, c) Trans_GettextGamePlural(x, y, c)
 
-// NERVE - SMF
-void                   Key_GetBindingBuf( int keynum, int team, char *buf, int buflen );
-
-// -NERVE - SMF
-
 
 /*
 ====================
@@ -625,28 +620,6 @@ static int LAN_ServerIsVisible( int source, int n )
 
 /*
  * ====================
- * Key_GetBindingBuf
- * ====================
- */
-void Key_GetBindingBuf( int keynum, int team, char *buf, int buflen )
-{
-	auto key = Keyboard::Key::FromLegacyInt( keynum );
-	auto value = team < 0
-	    ? Keyboard::GetBinding( key, Util::enum_cast<Keyboard::BindTeam>( -team ), false )
-	    : Keyboard::GetBinding( key, Util::enum_cast<Keyboard::BindTeam>( team ), true );
-
-	if ( value )
-	{
-		Q_strncpyz( buf, value.value().c_str(), buflen );
-	}
-	else
-	{
-		*buf = 0;
-	}
-}
-
-/*
- * ====================
  * Key_GetCatcher
  * ====================
  */
@@ -1129,7 +1102,7 @@ int CGameVM::CGameCrosshairPlayer()
 	return player;
 }
 
-void CGameVM::CGameKeyEvent(int key, bool down)
+void CGameVM::CGameKeyEvent(Keyboard::Key key, bool down)
 {
 	this->SendMsg<CGameKeyEventMsg>(key, down);
 }
@@ -1152,7 +1125,7 @@ void CGameVM::CGameFocusEvent(bool focus)
 
 void CGameVM::CGameTextInputEvent(int c)
 {
-	this->SendMsg<CGameTextInptEvent>(Q_UTF8_Store(Q_UTF8_Encode(c)));
+	this->SendMsg<CGameCharacterInputMsg>(c);
 }
 
 void CGameVM::CGameRocketInit()
@@ -1474,74 +1447,65 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		// All keys
 
 		case CG_KEY_GETCATCHER:
-			IPC::HandleMsg<Key::GetCatcherMsg>(channel, std::move(reader), [this] (int& catcher) {
+			IPC::HandleMsg<Keyboard::GetCatcherMsg>(channel, std::move(reader), [this] (int& catcher) {
 				catcher = Key_GetCatcher();
 			});
 			break;
 
 		case CG_KEY_SETCATCHER:
-			IPC::HandleMsg<Key::SetCatcherMsg>(channel, std::move(reader), [this] (int catcher) {
+			IPC::HandleMsg<Keyboard::SetCatcherMsg>(channel, std::move(reader), [this] (int catcher) {
 				Key_SetCatcher(catcher);
 			});
 			break;
 
-		case CG_KEY_GETKEYNUMFORBINDS:
-			IPC::HandleMsg<Key::GetKeynumForBindsMsg>(channel, std::move(reader), [this] (int team, const std::vector<std::string>& binds, std::vector<std::vector<int>>& result) {
+		case CG_KEY_GETKEYSFORBINDS:
+			IPC::HandleMsg<Keyboard::GetKeysForBindsMsg>(channel, std::move(reader), [this] (int team, const std::vector<std::string>& binds, std::vector<std::vector<Keyboard::Key>>& result) {
 				for (const auto& bind : binds) {
-					result.push_back({});
-					for (int i = 1; i < Util::ordinal(keyNum_t::MAX_KEYS); i++) {
-						if (i >= 'A' && i <= 'Z') {
-							continue; // Skip since these are equivalent to lowercase letters.
-						}
-						char buffer[MAX_STRING_CHARS];
-
-						Key_GetBindingBuf(i, team, buffer, MAX_STRING_CHARS);
-						if (bind == buffer) {
-							result.back().push_back(i);
-							continue;
-						}
-					}
+					result.push_back(Keyboard::GetKeysBoundTo(team, bind));
 				}
 			});
 			break;
 
-		case CG_KEY_KEYNUMTOSTRINGBUF:
-			IPC::HandleMsg<Key::KeyNumToStringMsg>(channel, std::move(reader), [this] (int keynum, std::string& result) {
-				result = Keyboard::KeyToString(Keyboard::Key::FromLegacyInt(keynum));
+		case CG_KEY_GETCHARFORSCANCODE:
+			IPC::HandleMsg<Keyboard::GetCharForScancodeMsg>(channel, std::move(reader), [this] (int scancode, int& result) {
+				result = Keyboard::GetCharForScancode(scancode);
+				if (!result) {
+					// Not sure if this fallback is ever useful. Usually SDL falls back on QWERTY itself.
+					result = Keyboard::ScancodeToAscii(scancode);
+				}
 			});
 			break;
 
 		case CG_KEY_SETBINDING:
-			IPC::HandleMsg<Key::SetBindingMsg>(channel, std::move(reader), [this] (int keyNum, int team, std::string cmd) {
-				Keyboard::SetBinding(Keyboard::Key::FromLegacyInt(keyNum), team, std::move(cmd));
+			IPC::HandleMsg<Keyboard::SetBindingMsg>(channel, std::move(reader), [this] (Keyboard::Key key, int team, std::string cmd) {
+				Keyboard::SetBinding(key, team, std::move(cmd));
 			});
 			break;
 
 		case CG_KEY_CLEARCMDBUTTONS:
-			IPC::HandleMsg<Key::ClearCmdButtonsMsg>(channel, std::move(reader), [this] {
+			IPC::HandleMsg<Keyboard::ClearCmdButtonsMsg>(channel, std::move(reader), [this] {
 				CL_ClearCmdButtons();
 			});
 			break;
 
 		case CG_KEY_CLEARSTATES:
-			IPC::HandleMsg<Key::ClearStatesMsg>(channel, std::move(reader), [this] {
+			IPC::HandleMsg<Keyboard::ClearStatesMsg>(channel, std::move(reader), [this] {
 				Key_ClearStates();
 			});
 			break;
 
 		case CG_KEY_KEYSDOWN:
-			IPC::HandleMsg<Key::KeysDownMsg>(channel, std::move(reader), [this] (std::vector<int> keys, std::vector<int>& list) {
+			IPC::HandleMsg<Keyboard::KeysDownMsg>(channel, std::move(reader), [this] (std::vector<Keyboard::Key> keys, std::vector<bool>& list) {
 				list.reserve(keys.size());
-				for (unsigned i = 0; i < keys.size(); ++i)
+				for (Keyboard::Key key : keys)
 				{
-					keyNum_t key = Util::enum_cast<keyNum_t>(keys[i]);
-					if (key == keyNum_t::K_KP_NUMLOCK)
+					if (key == Keyboard::Key(keyNum_t::K_KP_NUMLOCK))
 					{
 						list.push_back(IN_IsNumLockDown());
 					}
 					else
 					{
-						list.push_back(Keyboard::IsDown(Keyboard::Key(key)));
+						list.push_back(Keyboard::IsDown(key));
 					}
 				}
 			});

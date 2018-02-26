@@ -1240,7 +1240,7 @@ static void IN_ProcessEvents( bool dropInput )
 						lastEventWasConsoleKeyDown = true;
 						continue;
 					}
-					for (Key k: {kScan, kKeycode} ) {
+					for (Key k: {kKeycode, kScan} ) {
 						QueueKeyEvent( k, true );
 					}
 				}

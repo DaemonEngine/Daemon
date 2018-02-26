@@ -583,47 +583,47 @@ void trap_SetColorGrading( int slot, qhandle_t hShader )
 int trap_Key_GetCatcher()
 {
 	int result;
-	VM::SendMsg<Key::GetCatcherMsg>(result);
+	VM::SendMsg<Keyboard::GetCatcherMsg>(result);
 	return result;
 }
 
 void trap_Key_SetCatcher( int catcher )
 {
-	VM::SendMsg<Key::SetCatcherMsg>(catcher);
+	VM::SendMsg<Keyboard::SetCatcherMsg>(catcher);
 }
 
-std::vector<std::vector<int>> trap_Key_GetKeynumForBinds(int team, std::vector<std::string> binds) {
-    std::vector<std::vector<int>> result;
-	VM::SendMsg<Key::GetKeynumForBindsMsg>(team, binds, result);
-    return result;
+std::vector<std::vector<Keyboard::Key>> trap_Key_GetKeysForBinds(int team, const std::vector<std::string>& binds) {
+	std::vector<std::vector<Keyboard::Key>> result;
+	VM::SendMsg<Keyboard::GetKeysForBindsMsg>(team, binds, result);
+	return result;
 }
 
-void trap_Key_KeynumToStringBuf( int keynum, char *buf, int buflen )
+int trap_Key_GetCharForScancode( int scancode )
 {
-	std::string result;
-	VM::SendMsg<Key::KeyNumToStringMsg>(keynum, result);
-	Q_strncpyz(buf, result.c_str(), buflen);
+	int result;
+	VM::SendMsg<Keyboard::GetCharForScancodeMsg>(scancode, result);
+	return result;
 }
 
-void trap_Key_SetBinding( int keyNum, int team, const char *cmd )
+void trap_Key_SetBinding( Keyboard::Key key, int team, const char *cmd )
 {
-	VM::SendMsg<Key::SetBindingMsg>(keyNum, team, cmd);
+	VM::SendMsg<Keyboard::SetBindingMsg>(key, team, cmd);
 }
 
 void trap_Key_ClearCmdButtons( void )
 {
-	VM::SendMsg<Key::ClearCmdButtonsMsg>();
+	VM::SendMsg<Keyboard::ClearCmdButtonsMsg>();
 }
 
 void trap_Key_ClearStates( void )
 {
-	VM::SendMsg<Key::ClearStatesMsg>();
+	VM::SendMsg<Keyboard::ClearStatesMsg>();
 }
 
-std::vector<int> trap_Key_KeysDown( const std::vector<int>& keys )
+std::vector<bool> trap_Key_KeysDown( const std::vector<Keyboard::Key>& keys )
 {
-	std::vector<int> list;
-	VM::SendMsg<Key::KeysDownMsg>( keys, list );
+	std::vector<bool> list;
+	VM::SendMsg<Keyboard::KeysDownMsg>( keys, list );
 	return list;
 }
 

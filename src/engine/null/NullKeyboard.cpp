@@ -49,6 +49,14 @@ std::string KeyToString(Key) {
     return "<unimplemented>";
 }
 
+int GetCharForScancode(int) {
+    return 0;
+}
+
+char ScancodeToAscii(int) {
+    return '\0';
+}
+
 void CompleteKeyName(Cmd::CompletionResult&, Str::StringRef) {
 }
 
