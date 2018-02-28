@@ -40,9 +40,6 @@ namespace Keyboard {
 Key StringToKey(Str::StringRef name);
 std::string KeyToString(Key key);
 
-// Construct a Key from a scancode.
-Key KeyFromScancode(int scancode);
-
 // Returns the code point of a character typed by the given key, or 0 if none is found.
 int GetCharForScancode(int scancode);
 

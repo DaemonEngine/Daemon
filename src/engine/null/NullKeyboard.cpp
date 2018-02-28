@@ -37,10 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Keyboard {
 
-Key KeyFromScancode(int) {
-    return Key();
-}
-
 Key StringToKey(Str::StringRef) {
     return Key();
 }

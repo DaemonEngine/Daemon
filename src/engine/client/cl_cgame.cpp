@@ -1478,7 +1478,11 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 
 		case CG_KEY_SETBINDING:
 			IPC::HandleMsg<Keyboard::SetBindingMsg>(channel, std::move(reader), [this] (Keyboard::Key key, int team, std::string cmd) {
-				Keyboard::SetBinding(key, team, std::move(cmd));
+				if (key.IsBindable()) {
+					Keyboard::SetBinding(key, team, std::move(cmd));
+				} else {
+					Log::Warn("Invalid key in SetBindingMsg");
+				}
 			});
 			break;
 
