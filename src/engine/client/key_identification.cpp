@@ -41,14 +41,6 @@ Maryland 20850 USA.
 
 namespace Keyboard {
 
-Key KeyFromScancode(int scancode) {
-	if (scancode > static_cast<int>(SDL_SCANCODE_UNKNOWN)
-		&& scancode < static_cast<int>(SDL_NUM_SCANCODES)) {
-		return Key(Key::Kind::SCANCODE, scancode);
-	}
-	return Key::NONE;
-}
-
 // Returns the scancode of a char for a QWERTY keyboard
 static int AsciiToScancode(int ch)
 {
@@ -132,9 +124,9 @@ static Key KeyFromUnprefixedCharacter(int ch)
 {
     SDL_Scancode sc = SDL_GetScancodeFromKey(static_cast<SDL_Keycode>(ch));
     if (sc != SDL_SCANCODE_UNKNOWN) {
-        return KeyFromScancode(sc);
+        return Key::FromScancode(sc);
     }
-    return KeyFromScancode(AsciiToScancode(ch));
+    return Key::FromScancode(AsciiToScancode(ch));
 }
 
 /*
@@ -157,14 +149,14 @@ Key StringToKey(Str::StringRef str)
     if ( Str::IsIPrefix("0x", str) )
     {
         int n = Com_HexStrToInt( str.c_str() );
-        return KeyFromScancode( n );
+        return Key::FromScancode( n );
     }
 
     // Physical key by QWERTY location, from ascii char
     size_t prefixLen = SCANCODE_ASCII_BIND_PREFIX.size();
     if ( Str::IsIPrefix( SCANCODE_ASCII_BIND_PREFIX, str ) )
     {
-        return KeyFromScancode( AsciiToScancode( ParseCharacter ( str.substr( prefixLen ) ) ) );
+        return Key::FromScancode( AsciiToScancode( ParseCharacter ( str.substr( prefixLen ) ) ) );
     }
 
     // char:X forces a virtual key-based rather than scancode binding to be used for some (Unicode) char

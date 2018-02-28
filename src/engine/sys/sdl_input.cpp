@@ -1224,7 +1224,7 @@ static void IN_ProcessEvents( bool dropInput )
 				if ( !dropInput && ( !e.key.repeat || cls.keyCatchers ) )
 				{
 					// Send events for both scancode- and keycode-based Keys
-					Key kScan = Keyboard::KeyFromScancode( e.key.keysym.scancode );
+					Key kScan = Keyboard::Key::FromScancode( e.key.keysym.scancode );
 					Key kKeycode = IN_TranslateSDLToQ3Key( &e.key.keysym, true );
 					bool consoleFound = false;
 					for (Key k: {kScan, kKeycode} ) {
@@ -1249,7 +1249,7 @@ static void IN_ProcessEvents( bool dropInput )
 			case SDL_KEYUP:
 				if ( !dropInput )
 				{
-					QueueKeyEvent( Keyboard::KeyFromScancode( e.key.keysym.scancode ), false );
+					QueueKeyEvent( Keyboard::Key::FromScancode( e.key.keysym.scancode ), false );
 					Key k = IN_TranslateSDLToQ3Key( &e.key.keysym, false );
 					QueueKeyEvent( k, false );
 				}

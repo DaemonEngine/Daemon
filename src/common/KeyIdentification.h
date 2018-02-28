@@ -73,9 +73,15 @@ public:
         else
             *this = Key(Kind::KEYNUM, Util::ordinal<keyNum_t>(key));
     }
-    friend Key KeyFromScancode(int scancode);
     friend struct Util::SerializeTraits<Key>;
 
+    static Key FromScancode(int scancode) {
+        if (scancode > 0 /* SDL_SCANCODE_UNKNOWN */
+            && scancode < 512 /* SDL_NUM_SCANCODES */) {
+            return Key(Kind::SCANCODE, scancode);
+        }
+        return NONE;
+    }
     static Key FromCharacter(int codePoint) {
         if (codePoint >= MIN_PRINTABLE_ASCII && codePoint <= UNICODE_MAX_CODE_POINT
             && !Q_Unicode_IsPrivateUse(codePoint)) {
@@ -167,9 +173,23 @@ template<> struct SerializeTraits<Keyboard::Key> {
     }
     static Keyboard::Key Read(Reader& stream)
     {
-        auto kind = stream.Read<Keyboard::Key::Kind>();
+        using Keyboard::Key;
+        auto kind = stream.Read<Key::Kind>();
         auto id = stream.Read<int>();
-        return Keyboard::Key(kind, id);
+        // CONSOLE is an engine implementation detail so we don't deserialize it.
+        switch (kind) {
+        case Key::Kind::UNICODE_CHAR:
+            return Key::FromCharacter(id);
+        case Key::Kind::SCANCODE:
+            return Key::FromScancode(id);
+        case Key::Kind::KEYNUM:
+            if (id != Util::ordinal(keyNum_t::K_CONSOLE)) {
+                return Key(Util::enum_cast<keyNum_t>(id));
+            }
+            return Key::NONE;
+        default:
+            return Key::NONE;
+        }
     }
 };
 }
