@@ -1653,6 +1653,7 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 
 	ext = COM_GetExtension( filename );
 
+	// the Daemon's default strategy is to use the hardcoded path if exists
 	if ( *ext )
 	{
 		// look for the correct loader and use it
@@ -1694,6 +1695,20 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 
 	int bestLoader = -1;
 	const FS::PakInfo* bestPak = nullptr;
+
+	// Darkplaces or Doom3 packages can ship alternative texture path in the form of
+	//   dds/<path without ext>.dds
+	std::string altName = Str::Format("dds/%s.dds", filename);
+	bestPak = FS::PakPath::LocateFile(altName);
+
+	// If this alternative path exists, it's expected to be loaded as the best one
+	// except when it goes against Daemon's rule to load the hardcoded one if exists
+	// because this dds alternative is only supported for compatibility with
+	// third-party content
+	if ( bestPak != nullptr ) {
+		LoadDDS( altName.c_str(), pic, width, height, numLayers, numMips, bits, alphaByte );
+		return;
+	}
 
 	// try and find a suitable match using all the image formats supported
 	// prioritize with the pak priority
