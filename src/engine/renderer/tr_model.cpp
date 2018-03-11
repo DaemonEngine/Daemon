@@ -171,6 +171,7 @@ qhandle_t RE_RegisterModel( const char *name )
 		}
 	}
 
+	bool isOptional = false;
 	for ( lod = MD3_MAX_LODS - 1; lod >= 0; lod-- )
 	{
 		char filename[ 1024 ];
@@ -188,9 +189,17 @@ qhandle_t RE_RegisterModel( const char *name )
 
 			sprintf( namebuf, "_%d.md3", lod );
 			strcat( filename, namebuf );
+			isOptional = true;
 		}
 
 		filename[ strlen( filename ) - 1 ] = '3';  // try MD3 first
+
+		// LoD are optionals
+		if (isOptional && !ri.FS_FileExists( filename ))
+		{
+			continue;
+		}
+
 		ri.FS_ReadFile( filename, ( void ** ) &buffer );
 
 		loadmodel = mod;
