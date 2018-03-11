@@ -3684,7 +3684,8 @@ static bool ParseShader( const char *_text )
 		else
 		{
 			Log::Warn("unknown general shader parameter '%s' in '%s'", token, shader.name );
-			return false;
+			SkipRestOfLine( text );
+			continue;
 		}
 	}
 
