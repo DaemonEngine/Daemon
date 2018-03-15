@@ -531,10 +531,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  IF_DISPLACEMAP = BIT( 17 ),
 	  IF_NOLIGHTSCALE = BIT( 18 ),
 	  IF_BC1 = BIT( 19 ),
-	  IF_BC3 = BIT( 20 ),
-	  IF_BC4 = BIT( 21 ),
-	  IF_BC5 = BIT( 22 ),
-	  IF_RGBA32UI = BIT( 23 )
+	  IF_BC2 = BIT( 20 ),
+	  IF_BC3 = BIT( 21 ),
+	  IF_BC4 = BIT( 22 ),
+	  IF_BC5 = BIT( 23 ),
+	  IF_RGBA32UI = BIT( 24 )
 	};
 
 	enum class filterType_t
@@ -594,7 +595,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		image_t *next;
 	};
 
-	inline bool IsImageCompressed(int bits) { return bits & (IF_BC1 | IF_BC3 | IF_BC4 | IF_BC5); }
+	inline bool IsImageCompressed(int bits) { return bits & (IF_BC1 | IF_BC2 | IF_BC3 | IF_BC4 | IF_BC5); }
 
 	struct FBO_t
 	{

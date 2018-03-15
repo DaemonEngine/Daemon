@@ -949,6 +949,11 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 			internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 			blockSize = 8;
 		}
+		else if ( image->bits & IF_BC2 ) {
+			format = GL_NONE;
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+			blockSize = 16;
+		}
 		else if ( image->bits & IF_BC3 ) {
 			format = GL_NONE;
 			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;

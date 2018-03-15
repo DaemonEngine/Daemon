@@ -277,6 +277,11 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 			blockSize = 8;
 			break;
 
+		case FOURCC_DXT3:
+			*bits |= IF_BC2;
+			blockSize = 16;
+			break;
+
 		case FOURCC_DXT5:
 			*bits |= IF_BC3;
 			blockSize = 16;
