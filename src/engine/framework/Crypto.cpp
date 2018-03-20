@@ -154,9 +154,9 @@ Data Base64Encode( const Data& input )
 
     Data output( BASE64_ENCODE_LENGTH( input.size() ) + BASE64_ENCODE_FINAL_LENGTH );
     int encoded_bytes = nettle_base64_encode_update(
-        &ctx, output.data(), input.size(), input.data()
+        &ctx, reinterpret_cast<char*>(output.data()), input.size(), input.data()
     );
-    encoded_bytes += nettle_base64_encode_final( &ctx, output.data() + encoded_bytes );
+    encoded_bytes += nettle_base64_encode_final( &ctx, reinterpret_cast<char*>(output.data()) + encoded_bytes );
     output.erase( output.begin() + encoded_bytes, output.end() );
     return output;
 }
@@ -176,7 +176,7 @@ bool Base64Decode( const Data& input, Data& output )
     Data temp( BASE64_DECODE_LENGTH( input.size() ) );
     std::size_t decoded_bytes = 0;
     if ( !nettle_base64_decode_update( &ctx, &decoded_bytes, temp.data(),
-                                       input.size(), input.data() ) )
+                                       input.size(), reinterpret_cast<const char*>(input.data()) ) )
     {
         return false;
     }
