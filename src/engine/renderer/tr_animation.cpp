@@ -521,7 +521,7 @@ qhandle_t RE_RegisterAnimation( const char *name )
 	// do not try to load file for iqm animation name in the form of
 	//   models/players/level0/level0.iqm:stand
 	// since we know it's not a file and it's already loaded
-	if ( strcasestr( name, ".iqm:" ) )
+	if ( Q_stristr( name, ".iqm:" ) )
 	{
 		return 0;
 	}
