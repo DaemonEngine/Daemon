@@ -37,6 +37,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "framework/LogSystem.h"
 #include "framework/VirtualMachine.h"
 
+// Suppress warnings for unused [this] lambda captures.
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-lambda-capture"
+#endif
+
 namespace VM {
 
     // Misc Related
