@@ -99,6 +99,9 @@ void LoadKTX( const char *name, byte **data, int *width, int *height,
 	case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
 		*bits |= IF_BC1;
 		break;
+	case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+		*bits |= IF_BC2;
+		break;
 	case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
 		*bits |= IF_BC3;
 		break;

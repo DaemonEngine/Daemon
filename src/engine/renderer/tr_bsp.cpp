@@ -129,7 +129,7 @@ float R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int b
 		{
 			R_ColorShiftLightingBytesCompressed( &pic[ j * 8 ], &pic_out[ j * 8 ] );
 		}
-	} else if( bits & IF_BC3 ) {
+	} else if( bits & (IF_BC2 | IF_BC3) ) {
 		for ( j = 0; j < ((width + 3) >> 2) * ((height + 3) >> 2); j++ )
 		{
 			R_ColorShiftLightingBytesCompressed( &pic[ j * 16 ], &pic_out[ j * 16 ] );
