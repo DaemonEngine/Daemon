@@ -77,7 +77,7 @@ static int nettle_compat_base64_decode_update(base64_decode_ctx *ctx,
 		     const uint8_t *src)
 {
 	unsigned dst_length_uns = *dst_length;
-	return nettle_base64_decode_update(ctx, &dst_length_uns, reinterpret_cast<char*>(dst), src_length, reinterpret_cast<const char*>(src));
+	return nettle_base64_decode_update(ctx, &dst_length_uns, dst, src_length, src);
 }
 
 #undef aes256_set_encrypt_key
@@ -93,7 +93,7 @@ static int nettle_compat_base64_decode_update(base64_decode_ctx *ctx,
 
 // Nettle 3.4 changed the base64 API to accept char* arguments instead of uint8_t* args. Account
 // for this here.
-#if NETTLE_VERSION_MAJOR >= 3 && NETTLE_VERSION_MINOR >= 4
+#if (NETTLE_VERSION_MAJOR * 100 + NETTLE_VERSION_MINOR) >= 304
 static size_t nettle_compat_base64_encode_update(struct base64_encode_ctx *ctx,
 		uint8_t *dst,
 		size_t length,
@@ -126,7 +126,7 @@ static int nettle_compat_base64_decode_update(base64_decode_ctx *ctx,
 #define nettle_base64_encode_update nettle_compat_base64_encode_update
 #define nettle_base64_encode_final nettle_compat_base64_encode_final
 #define nettle_base64_decode_update nettle_compat_base64_decode_update
-#endif // NETTLE_VERSION_MAJOR >= 3 || NETTLE_VERSION_MINOR >= 4
+#endif // Nettle version >= 3.4
 
 namespace Crypto {
 
@@ -194,9 +194,9 @@ Data Base64Encode( const Data& input )
 
     Data output( BASE64_ENCODE_LENGTH( input.size() ) + BASE64_ENCODE_FINAL_LENGTH );
     int encoded_bytes = nettle_base64_encode_update(
-        &ctx, reinterpret_cast<char*>(output.data()), input.size(), input.data()
+        &ctx, output.data(), input.size(), input.data()
     );
-    encoded_bytes += nettle_base64_encode_final( &ctx, reinterpret_cast<char*>(output.data()) + encoded_bytes );
+    encoded_bytes += nettle_base64_encode_final( &ctx, output.data() + encoded_bytes );
     output.erase( output.begin() + encoded_bytes, output.end() );
     return output;
 }
@@ -216,7 +216,7 @@ bool Base64Decode( const Data& input, Data& output )
     Data temp( BASE64_DECODE_LENGTH( input.size() ) );
     std::size_t decoded_bytes = 0;
     if ( !nettle_base64_decode_update( &ctx, &decoded_bytes, temp.data(),
-                                       input.size(), reinterpret_cast<const char*>(input.data()) ) )
+                                       input.size(), input.data() ) )
     {
         return false;
     }
