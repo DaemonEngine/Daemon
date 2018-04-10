@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nettle/base64.h>
 #include <nettle/md5.h>
 #include <nettle/sha2.h>
+// HACK: include this because this pulls in nettle/version.h, which does not
+//       exist in older versions of nettle.
+#include <nettle/bignum.h>
 
 // Compatibility with old nettle versions
 #if !defined(AES256_KEY_SIZE)
@@ -87,6 +90,43 @@ static int nettle_compat_base64_decode_update(base64_decode_ctx *ctx,
 #define nettle_base64_decode_update nettle_compat_base64_decode_update
 
 #endif // NETTLE_VERSION_MAJOR < 3
+
+// Nettle 3.4 changed the base64 API to accept char* arguments instead of uint8_t* args. Account
+// for this here.
+#if (NETTLE_VERSION_MAJOR * 100 + NETTLE_VERSION_MINOR) >= 304
+static size_t nettle_compat_base64_encode_update(struct base64_encode_ctx *ctx,
+		uint8_t *dst,
+		size_t length,
+		const uint8_t *src)
+{
+	return nettle_base64_encode_update(ctx,
+			reinterpret_cast<char*>(dst),
+			length,
+			src);
+}
+
+static size_t nettle_compat_base64_encode_final(struct base64_encode_ctx *ctx,
+		uint8_t *dst)
+{
+	return nettle_base64_encode_final(ctx, reinterpret_cast<char*>(dst));
+}
+
+static int nettle_compat_base64_decode_update(base64_decode_ctx *ctx,
+		size_t *dst_length,
+		uint8_t *dst,
+		size_t src_length,
+		const uint8_t *src)
+{
+	return nettle_base64_decode_update(ctx,
+			dst_length,
+			dst,
+			src_length,
+			reinterpret_cast<const char*>(src));
+}
+#define nettle_base64_encode_update nettle_compat_base64_encode_update
+#define nettle_base64_encode_final nettle_compat_base64_encode_final
+#define nettle_base64_decode_update nettle_compat_base64_decode_update
+#endif // Nettle version >= 3.4
 
 namespace Crypto {
 

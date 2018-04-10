@@ -44,6 +44,11 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
+// Suppress warnings for unused [this] lambda captures.
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-lambda-capture"
+#endif
+
 #define __(x) Trans_GettextGame(x)
 #define C__(x, y) Trans_PgettextGame(x, y)
 #define P__(x, y, c) Trans_GettextGamePlural(x, y, c)

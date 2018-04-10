@@ -40,6 +40,11 @@ Maryland 20850 USA.
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
 
+// Suppress warnings for unused [this] lambda captures.
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-lambda-capture"
+#endif
+
 // these functions must be used instead of pointer arithmetic, because
 // the game allocates gentities with private information after the server shared part
 

@@ -1197,7 +1197,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping 
 	}
 
 	// bind u_NormalMap
-	if ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] )
+	if ( normalMapping )
 	{
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 	}
@@ -1226,7 +1226,14 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping 
 	gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
 
 	// bind u_DeluxeMap
-	BindDeluxeMap( 4 );
+	if ( normalMapping )
+	{
+		BindDeluxeMap( 4 );
+	}
+	else
+	{
+		GL_BindToTMU( 4, tr.blackImage );
+	}
 
 	// bind u_LightMap
 	BindLightMap( 3 );
@@ -2013,7 +2020,13 @@ static void Render_reflection_CB( int stage )
 	}
 
 	// bind u_NormalMap
-	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+	if ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr )
+	{
+		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+	} else
+	{
+		GL_BindToTMU( 1, tr.flatImage );
+	}
 	gl_reflectionShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	gl_reflectionShader->SetRequiredVertexPointers();

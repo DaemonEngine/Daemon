@@ -62,6 +62,9 @@ void LoadCRN( const char *name, byte **data, int *width, int *height,
 	case cCRNFmtDXT1:
 		*bits |= IF_BC1;
 		break;
+	case cCRNFmtDXT3:
+		*bits |= IF_BC2;
+		break;
 	case cCRNFmtDXT5:
 		*bits |= IF_BC3;
 		break;
