@@ -32,8 +32,6 @@ int Q_UTF8_Strlen( const char *str );
 bool Q_UTF8_ContByte( char c );
 unsigned long Q_UTF8_CodePoint( const char *str );
 char *Q_UTF8_Encode( unsigned long codepoint );
-int Q_UTF8_Store( const char *s );
-char *Q_UTF8_Unstore( int e );
 
 bool Q_Unicode_IsAlpha( int ch );
 bool Q_Unicode_IsUpper( int ch );
