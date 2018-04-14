@@ -31,6 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_IPC_COMMON_H_
 #define COMMON_IPC_COMMON_H_
 
+#include <utility>
+
+#include "common/System.h"
+
 /*
  * Contains definitions that are common to all IPC methods so that they are consistent
  */

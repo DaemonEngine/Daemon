@@ -53,10 +53,6 @@ void CL_FocusEvent( bool )
 {
 }
 
-void Key_WriteBindings( fileHandle_t )
-{
-}
-
 void CL_Frame( int )
 {
 }
@@ -65,19 +61,11 @@ void CL_PacketEvent( netadr_t, msg_t*  )
 {
 }
 
-void CL_CharEvent( int )
-{
-}
-
 void CL_Disconnect( bool )
 {
 }
 
 void CL_MapLoading()
-{
-}
-
-void CL_KeyEvent( int, bool, unsigned )
 {
 }
 
@@ -94,10 +82,6 @@ void CL_JoystickEvent( int, int )
 {
 }
 
-void CL_InitKeyCommands()
-{
-}
-
 void CL_FlushMemory()
 {
 }
@@ -107,9 +91,5 @@ void CL_StartHunkUsers()
 }
 
 void CL_ShutdownAll()
-{
-}
-
-void Key_ClearStates()
 {
 }

@@ -35,6 +35,8 @@ Maryland 20850 USA.
 // cl.input.c  -- builds an intended movement command to send to the server
 
 #include "client.h"
+#include "engine/client/key_identification.h"
+#include "engine/client/keys.h"
 #include "framework/CommandSystem.h"
 
 unsigned frame_msec;
@@ -61,7 +63,7 @@ at the same time.
 */
 
 static kbutton_t  kb[Util::ordinal(kbuttons_t::NUM_BUTTONS)];
-static char       *keyup[Util::ordinal(keyNum_t::MAX_KEYS)];
+static std::unordered_map<Keyboard::Key, std::vector<std::string>, Keyboard::Key::hash> keyup;
 
 // Arnout: doubleTap button mapping
 // FIXME: should be registered by cgame code
@@ -77,19 +79,20 @@ static kbuttons_t dtmapping[] =
 
 void IN_KeyDown( kbutton_t *b )
 {
+	using Keyboard::Key;
 	bool nokey = ( Cmd_Argc() > 1 );
-	int      k = nokey ? -1 : Key_GetKeyNumber(); // -1 if typed manually at the console for continuous down
+	Key k = nokey ? Key::NONE : Key_GetKeyNumber(); // NONE if typed manually at the console for continuous down
 
 	if ( k == b->down[ 0 ] || k == b->down[ 1 ] )
 	{
 		return; // repeating key
 	}
 
-	if ( !b->down[ 0 ] )
+	if ( !b->down[ 0 ].IsValid() )
 	{
 		b->down[ 0 ] = k;
 	}
-	else if ( !b->down[ 1 ] )
+	else if ( !b->down[ 1 ].IsValid() )
 	{
 		b->down[ 1 ] = k;
 	}
@@ -113,30 +116,31 @@ void IN_KeyDown( kbutton_t *b )
 
 void IN_KeyUp( kbutton_t *b )
 {
+	using Keyboard::Key;
 	unsigned uptime;
 	bool nokey = ( Cmd_Argc() > 1 );
-	int      k = nokey ? -1 : Key_GetKeyNumber(); // -1 if typed manually at the console for continuous down
+	Key k = nokey ? Key::NONE : Key_GetKeyNumber(); // NONE if typed manually at the console for continuous down
 
-	if ( k < 0 )
+	if ( !k.IsValid() )
 	{
 		// typed manually at the console, assume for unsticking, so clear all
-		b->down[ 0 ] = b->down[ 1 ] = 0;
+		b->down[ 0 ] = b->down[ 1 ] = Key::NONE;
 		b->active = false;
 		return;
 	}
 
 	// If this key is marked as down for this button, clear it
 	// Also clear sticky state (don't care if there was no key-down)
-	if ( b->down[ 0 ] == k || b->down[ 0 ] < 0 )
+	if ( b->down[ 0 ] == k || !b->down[ 0 ].IsValid() )
 	{
-		b->down[ 0 ] = 0;
+		b->down[ 0 ] = Key::NONE;
 	}
-	if ( b->down[ 1 ] == k || b->down[ 1 ] < 0 )
+	if ( b->down[ 1 ] == k || !b->down[ 1 ].IsValid() )
 	{
-		b->down[ 1 ] = 0;
+		b->down[ 1 ] = Key::NONE;
 	}
 
-	if ( b->down[ 0 ] || b->down[ 1 ] )
+	if ( b->down[ 0 ].IsValid() || b->down[ 1 ].IsValid() )
 	{
 		return; // some other key is still holding it down
 	}
@@ -658,7 +662,7 @@ void CL_CmdButtons( usercmd_t *cmd )
 
 	// allow the game to know if any key at all is
 	// currently pressed, even if it isn't bound to anything
-	if ( anykeydown && ( !cls.keyCatchers ) )
+	if ( Keyboard::AnyKeyDown() && ( !cls.keyCatchers ) )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_ANY );
 	}
@@ -1145,13 +1149,16 @@ void IN_BuiltinButtonCommand()
 void IN_KeysUp_f()
 {
 	unsigned int check;
-	int key, time;
+	int time;
 	int i;
 	bool first = true;
 
 	check = atoi( Cmd_Argv( 1 ) );
-	key   = atoi( Cmd_Argv( 2 ) );
-	time  = atoi( Cmd_Argv( 3 ) );
+	Keyboard::Key key = Keyboard::StringToKey( Cmd_Argv( 2 ) );
+	if ( !key.IsValid() ) {
+		return;
+	}
+	time = atoi( Cmd_Argv( 3 ) );
 
 	for ( i = 0; i < USERCMD_BUTTONS; ++i )
 	{
@@ -1159,7 +1166,7 @@ void IN_KeysUp_f()
 		{
 			if ( first )
 			{
-				Cmd::ExecuteCommand(va("setkeydata %d %d %u", check, key + 1, time));
+				Cmd::ExecuteCommand(Str::Format("setkeydata %u %s %d", check, Cmd::Escape(KeyToString(key)), time));
 				first = false;
 			}
 
@@ -1173,7 +1180,7 @@ void IN_KeysUp_f()
 		{
 			if ( first )
 			{
-				Cmd::ExecuteCommand(va("setkeydata %d %d %u", check, key + 1, time));
+				Cmd::ExecuteCommand(Str::Format("setkeydata %u %s %d", check, Cmd::Escape(KeyToString(key)), time));
 				first = false;
 			}
 
@@ -1188,11 +1195,12 @@ void IN_KeysUp_f()
 
 	// Pseudo-button commands handled here
 	// After the setkeydata so that they can't go adding more commands
-	if ( keyup[ key ] )
-	{
-		Cmd::ExecuteCommand( keyup[ key ] );
-		Z_Free( keyup[ key ] );
-		keyup[ key ] = nullptr;
+	auto it = keyup.find(key);
+	if (it != keyup.end()) {
+		for (const std::string& s: it->second) {
+			Cmd::ExecuteCommand(s);
+		}
+		keyup.erase(it);
 	}
 }
 
@@ -1207,12 +1215,11 @@ Called by the +command code.
 void IN_PrepareKeyUp()
 {
 	const char *cmd;
-	int  key;
 
 	// Get the current key no. If negative, return
-	key = Key_GetKeyNumber();
+	Keyboard::Key key = Key_GetKeyNumber();
 
-	if ( key < 0 )
+	if ( !key.IsValid() )
 	{
 		return;
 	}
@@ -1228,18 +1235,7 @@ void IN_PrepareKeyUp()
 	++cmd; // skip the '+'
 
 	// Add the command to what's already marked for this command
-	if ( keyup[ key ] )
-	{
-		char *newcmd = ( char* )Z_Malloc( strlen( keyup[ key ] ) + strlen( cmd ) + 3 );
-		sprintf( newcmd, "%s-%s", keyup[ key ], cmd );
-		Z_Free( keyup[ key ] );
-		keyup[ key ] = newcmd;
-	}
-	else
-	{
-		keyup[ key ] = ( char* )Z_Malloc( strlen( cmd ) + 3 );
-		sprintf( keyup[ key ], "-%s", cmd );
-	}
+	keyup[key].push_back(Str::Format("-%s", cmd));
 }
 
 /*
@@ -1330,16 +1326,12 @@ CL_ClearKeys
 */
 void CL_ClearKeys()
 {
-	for ( unsigned i = 0; i < ARRAY_LEN( keyup ); ++i )
-	{
-		if ( keyup[ i ] )
-		{
-			Z_Free( keyup[ i ] );
-			keyup[ i ] = nullptr;
-		}
-	}
+	keyup.clear();
 
-	memset( kb, 0, sizeof( kb ) );
+	for (auto& b: kb)
+	{
+		b = {};
+	}
 }
 
 void CL_ClearInput()

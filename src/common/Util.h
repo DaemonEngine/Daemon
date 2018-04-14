@@ -34,6 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <memory>
 #include <tuple>
+#include <type_traits>
+
+#include "Compiler.h"
 
 // Various utilities
 
@@ -49,6 +52,8 @@ typename std::tuple_element<Index, std::tuple<T...>>::type&& get(std::tuple<T...
 
 } // namespace std
 #endif
+
+char     *QDECL PRINTF_LIKE(1) va( const char *format, ... );
 
 namespace Util {
 
@@ -76,20 +81,27 @@ Iter binary_find(Iter begin, Iter end, const T& value, Compare comp)
  * Enum to integral
  */
 template<class E, class R = typename std::underlying_type<E>::type>
-constexpr R ordinal(E e) { return static_cast<R>(e); }
+constexpr R ordinal(E e)
+{
+    static_assert(std::is_enum<E>::value, "Type should be an enum");
+    return static_cast<R>(e);
+}
 
 /**
  * Integral to enum
  * Prefer ordinal, as that's guaranteed to be valid
  */
 template<class E, class I = typename std::underlying_type<E>::type>
-constexpr E enum_cast(I i) { return static_cast<E>(i); }
+constexpr E enum_cast(I i) {
+    static_assert(std::is_enum<E>::value, "Type should be an enum");
+    return static_cast<E>(i);
+}
 
 /**
  * Enum to string
  */
 template<class E>
-const char *enum_str(E e) { return va("%d", ordinal(e)); }
+const char* enum_str(E e) { return va("%d", ordinal<E, int>(e)); }
 
 // Compile-time integer sequences
 template<size_t...> struct seq {

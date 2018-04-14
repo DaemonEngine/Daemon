@@ -536,6 +536,7 @@ void IN_Shutdown();
 bool IN_IsNumLockDown();
 void IN_DropInputsForFrame();
 void IN_CenterMouse();
+bool IN_IsKeyboardLayoutInfoAvailable();
 
 /*
 ==============================================================
@@ -579,14 +580,6 @@ struct field_t
     int  widthInChars;
     char buffer[ MAX_EDIT_LINE ];
 };
-
-// Field_Complete{Key,Team}name
-#define FIELD_TEAM            1
-#define FIELD_TEAM_SPECTATORS 2
-#define FIELD_TEAM_DEFAULT    4
-
-void Field_CompleteKeyname( int flags );
-void Field_CompleteTeamname( int flags );
 
 // code point count <-> UTF-8 byte count
 int Field_CursorToOffset( field_t *edit );
@@ -754,7 +747,8 @@ void     CL_Disconnect( bool showMainMenu );
 void     CL_SendDisconnect();
 void     CL_Shutdown();
 void     CL_Frame( int msec );
-void     CL_KeyEvent( int key, bool down, unsigned time );
+namespace Keyboard { class Key; };
+void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
 
 void     CL_CharEvent( int c );
 
@@ -795,14 +789,6 @@ void CL_FlushMemory();
 void CL_StartHunkUsers();
 
 // start all the client stuff using the hunk
-
-void Key_KeynameCompletion( void ( *callback )( const char *s ) );
-
-// for keyname autocompletion
-
-void Key_WriteBindings( fileHandle_t f );
-
-// for writing the config files
 
 void S_ClearSoundBuffer();
 

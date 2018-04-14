@@ -205,62 +205,6 @@ char *Q_UTF8_Encode( unsigned long codepoint )
   return buf;
 }
 
-// stores a single UTF8 char inside an int
-int Q_UTF8_Store( const char *s )
-{
-	int r = 0;
-	const uint8_t *us = ( const uint8_t * ) s;
-
-	if ( !us )
-	{
-		return 0;
-	}
-
-	if ( !( us[ 0 ] & 0x80 ) ) // 0xxxxxxx
-	{
-		r = us[ 0 ];
-	}
-	else if ( ( us[ 0 ] & 0xE0 ) == 0xC0 ) // 110xxxxx
-	{
-		r = us[ 0 ];
-		r |= ( uint32_t ) us[ 1 ] << 8;
-	}
-	else if ( ( us[ 0 ] & 0xF0 ) == 0xE0 ) // 1110xxxx
-	{
-		r = us[ 0 ];
-		r |= ( uint32_t ) us[ 1 ] << 8;
-		r |= ( uint32_t ) us[ 2 ] << 16;
-	}
-	else if ( ( us[ 0 ] & 0xF8 ) == 0xF0 ) // 11110xxx
-	{
-		r = us[ 0 ];
-		r |= ( uint32_t ) us[ 1 ] << 8;
-		r |= ( uint32_t ) us[ 2 ] << 16;
-		r |= ( uint32_t ) us[ 3 ] << 24;
-	}
-
-	return r;
-}
-
-// converts a single UTF8 char stored as an int into a byte array
-char *Q_UTF8_Unstore( int e )
-{
-	static unsigned char sbuf[2][5];
-	static int index = 0;
-	unsigned char *buf;
-
-	index = ( index + 1 ) & 1;
-	buf = sbuf[ index ];
-
-	buf[ 0 ] = e & 0xFF;
-	buf[ 1 ] = ( e >> 8 ) & 0xFF;
-	buf[ 2 ] = ( e >> 16 ) & 0xFF;
-	buf[ 3 ] = ( e >> 24 ) & 0xFF;
-	buf[ 4 ] = 0;
-
-	return ( char * ) buf;
-}
-
 
 #include "unicode_data.h"
 
@@ -307,6 +251,13 @@ bool Q_Unicode_IsAlphaOrIdeoOrDigit( int ch )
   return Q_Unicode_IsAlpha( ch ) || Q_Unicode_IsIdeo( ch ) || Q_Unicode_IsDigit( ch );
 }
 
+bool Q_Unicode_IsPrivateUse( int ch )
+{
+    return (0xE000 <= ch && ch <= 0xF8FF)
+        || (0xF0000 <= ch && ch <= 0xFFFFF)
+        || (0x100000 <= ch && ch <= 0x10FFFF);
+}
+
 static int CmpFirstElement( const void *chp, const void *memb )
 {
   unsigned ch = *(unsigned *)chp;
@@ -317,7 +268,7 @@ static int CmpFirstElement( const void *chp, const void *memb )
 
 static int UnicodeCaseLookup( int ch, const ucs2_pair_t* array, size_t length )
 {
-	const ucs2_pair_t *converted = (ucs2_pair_t*) bsearch( &ch, array, ARRAY_LEN( array ),
+	const ucs2_pair_t *converted = (ucs2_pair_t*) bsearch( &ch, array, length,
 		                                                   sizeof( array[ 0 ] ), CmpFirstElement );
 	return converted ? converted->c2 : ch;
 }

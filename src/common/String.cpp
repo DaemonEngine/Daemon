@@ -146,6 +146,10 @@ namespace Str {
         return LongestPrefixSize(ToLower(text1), ToLower(text2));
     }
 
+    bool IsIEqual(Str::StringRef text1, Str::StringRef text2) {
+        return IEqual()(text1, text2);
+    }
+
     // Unicode encoder/decoder based on http://utfcpp.sourceforge.net/
     static const uint32_t UNICODE_CODE_POINT_MAX = 0x10ffff;
     static const uint32_t UNICODE_SURROGATE_HEAD_START = 0xd800;

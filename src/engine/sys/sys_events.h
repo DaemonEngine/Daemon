@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "common/Assert.h"
+#include "engine/client/keys.h"
 #include "engine/qcommon/qcommon.h"
 
 namespace Sys {
@@ -61,10 +62,10 @@ class KeyEvent: public EventBase {
 public:
     static constexpr sysEventType_t ClassType() { return sysEventType_t::SE_KEY; }
 
-    const int key;
+    const Keyboard::Key key;
     const bool down;
     const int time;
-    KeyEvent(int key, bool down, int time):
+    KeyEvent(Keyboard::Key key, bool down, int time):
         EventBase(ClassType()), key(key), down(down), time(time) {}
 };
 

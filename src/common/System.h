@@ -31,6 +31,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_SYSTEM_H_
 #define COMMON_SYSTEM_H_
 
+#include <chrono>
+#include <stdexcept>
+
+#include "Compiler.h"
+#include "String.h"
+
 // Low-level system functions
 namespace Sys {
 

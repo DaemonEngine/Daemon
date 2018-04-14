@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2013-2016, Daemon Developers
+Copyright (c) 2017, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,30 +27,27 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
+#ifndef ENGINE_CLIENT_KEY_IDENTIFICATION_H_
+#define ENGINE_CLIENT_KEY_IDENTIFICATION_H_
 
-#ifndef FRAMEWORK_CONSOLE_FIELD_H_
-#define FRAMEWORK_CONSOLE_FIELD_H_
-
-#include "ConsoleHistory.h"
-#include "common/LineEditData.h"
+#include "common/KeyIdentification.h"
 #include "common/String.h"
+#include "engine/framework/CommandSystem.h"
 
-namespace Console {
 
-    class Field : public Util::LineEditData {
-        public:
-            Field(int size);
+namespace Keyboard {
 
-            void HistoryPrev();
-            void HistoryNext();
+Key StringToKey(Str::StringRef name);
+std::string KeyToString(Key key);
 
-            void RunCommand(Str::StringRef defaultCommand = "");
-            void AutoComplete();
+// Returns the code point of a character typed by the given key, or 0 if none is found.
+int GetCharForScancode(int scancode);
 
-        private:
-            History hist;
-    };
+// Returns the character corresponding to scancode sc in the QWERTY layout, if any, otherwise 0.
+char ScancodeToAscii(int sc);
 
-}
+void CompleteKeyName(Cmd::CompletionResult& completions, Str::StringRef prefix);
 
-#endif // FRAMEWORK_CONSOLE_FIELD_H_
+} // namespace Keyboard
+
+#endif // ENGINE_CLIENT_KEY_IDENTIFICATION_H_

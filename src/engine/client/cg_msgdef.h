@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "cg_api.h"
 #include "common/IPC/CommonSyscalls.h"
+#include "common/KeyIdentification.h"
 
 namespace Util {
 	template<> struct SerializeTraits<snapshot_t> {
@@ -202,8 +203,8 @@ enum cgameImport_t
   // Keys
   CG_KEY_GETCATCHER,
   CG_KEY_SETCATCHER,
-  CG_KEY_GETKEYNUMFORBINDS,
-  CG_KEY_KEYNUMTOSTRINGBUF,
+  CG_KEY_GETKEYSFORBINDS,
+  CG_KEY_GETCHARFORSCANCODE,
   CG_KEY_SETBINDING,
   CG_KEY_CLEARSTATES,
   CG_KEY_CLEARCMDBUTTONS,
@@ -223,44 +224,7 @@ enum cgameImport_t
   CG_LAN_SERVERSTATUS,
   CG_LAN_RESETSERVERSTATUS,
 
-  // Rocket
-  CG_ROCKET_INIT,
-  CG_ROCKET_SHUTDOWN,
-  CG_ROCKET_LOADDOCUMENT,
-  CG_ROCKET_LOADCURSOR,
-  CG_ROCKET_DOCUMENTACTION,
-  CG_ROCKET_GETEVENT,
-  CG_ROCKET_DELETEEVENT,
-  CG_ROCKET_REGISTERDATASOURCE,
-  CG_ROCKET_DSADDROW,
-  CG_ROCKET_DSCLEARTABLE,
-  CG_ROCKET_SETINNERRML,
-  CG_ROCKET_GETATTRIBUTE,
-  CG_ROCKET_SETATTRIBUTE,
-  CG_ROCKET_GETPROPERTY,
-  CG_ROCKET_SETPROPERTYBYID,
-  CG_ROCKET_GETEVENTPARAMETERS,
-  CG_ROCKET_REGISTERDATAFORMATTER,
-  CG_ROCKET_DATAFORMATTERRAWDATA,
-  CG_ROCKET_DATAFORMATTERFORMATTEDDATA,
-  CG_ROCKET_REGISTERELEMENT,
-  CG_ROCKET_GETELEMENTTAG,
-  CG_ROCKET_GETELEMENTABSOLUTEOFFSET,
-  CG_ROCKET_QUAKETORML,
-  CG_ROCKET_SETCLASS,
-  CG_ROCKET_INITHUDS,
-  CG_ROCKET_LOADUNIT,
-  CG_ROCKET_ADDUNITTOHUD,
-  CG_ROCKET_SHOWHUD,
-  CG_ROCKET_CLEARHUD,
-  CG_ROCKET_ADDTEXT,
-  CG_ROCKET_CLEARTEXT,
-  CG_ROCKET_REGISTERPROPERTY,
-  CG_ROCKET_SHOWSCOREBOARD,
-  CG_ROCKET_SETDATASELECTINDEX,
-  CG_ROCKET_LOADFONT,
-
-  CG_SEND_MESSAGE,
+  CG_SEND_MESSAGE = 125,
   CG_MESSAGE_STATUS,
 };
 
@@ -472,26 +436,26 @@ namespace Render {
 	using Add2dPolysIndexedMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADD2DPOLYSINDEXED>, std::vector<polyVert_t>, int, std::vector<int>, int, int, int, qhandle_t>;
 }
 
-namespace Key {
+namespace Keyboard {
 	using GetCatcherMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETCATCHER>>,
 		IPC::Reply<int>
 	>;
 	using SetCatcherMsg = IPC::Message<IPC::Id<VM::QVM, CG_KEY_SETCATCHER>, int>;
-	using GetKeynumForBindsMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETKEYNUMFORBINDS>, int, std::vector<std::string>>,
-		IPC::Reply<std::vector<std::vector<int>>>
+	using GetKeysForBindsMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETKEYSFORBINDS>, int, std::vector<std::string>>,
+		IPC::Reply<std::vector<std::vector<Key>>>
 	>;
-	using KeyNumToStringMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_KEY_KEYNUMTOSTRINGBUF>, int>,
-		IPC::Reply<std::string>
+	using GetCharForScancodeMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETCHARFORSCANCODE>, int>,
+		IPC::Reply<int>
 	>;
-	using SetBindingMsg = IPC::Message<IPC::Id<VM::QVM, CG_KEY_SETBINDING>, int, int, std::string>;
+	using SetBindingMsg = IPC::Message<IPC::Id<VM::QVM, CG_KEY_SETBINDING>, Key, int, std::string>;
 	using ClearCmdButtonsMsg = IPC::Message<IPC::Id<VM::QVM, CG_KEY_CLEARCMDBUTTONS>>;
 	using ClearStatesMsg = IPC::Message<IPC::Id<VM::QVM, CG_KEY_CLEARSTATES>>;
 	using KeysDownMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_KEY_KEYSDOWN>, std::vector<int>>,
-		IPC::Reply<std::vector<int>>
+		IPC::Message<IPC::Id<VM::QVM, CG_KEY_KEYSDOWN>, std::vector<Key>>,
+		IPC::Reply<std::vector<bool>>
 	>;
 }
 
@@ -529,124 +493,6 @@ namespace LAN {
 	using ResetServerStatusMsg = IPC::Message<IPC::Id<VM::QVM, CG_LAN_RESETSERVERSTATUS>>;
 }
 
-namespace Rocket {
-	// TODO all of these are declared as sync but some might be async
-	// it is not really important as librocket will be moved to nacl
-
-	using InitMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_INIT>>
-	>;
-	using ShutdownMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_SHUTDOWN>>
-	>;
-	using LoadDocumentMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_LOADDOCUMENT>, std::string>
-	>;
-	using LoadCursorMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_LOADCURSOR>, std::string>
-	>;
-	using DocumentActionMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_DOCUMENTACTION>, std::string, std::string>
-	>;
-	using GetEventMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_GETEVENT>>,
-		IPC::Reply<bool, std::string>
-	>;
-	using DeleteEventMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_DELETEEVENT>>
-	>;
-	using RegisterDataSourceMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_REGISTERDATASOURCE>, std::string>
-	>;
-	using DSAddRowMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_DSADDROW>, std::string, std::string, std::string>
-	>;
-	using DSClearTableMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_DSCLEARTABLE>, std::string, std::string>
-	>;
-	using SetInnerRMLMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_SETINNERRML>, std::string, int>
-	>;
-	using GetAttributeMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_GETATTRIBUTE>, std::string, int>,
-		IPC::Reply<std::string>
-	>;
-	using SetAttributeMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_SETATTRIBUTE>, std::string, std::string>
-	>;
-	using GetPropertyMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_GETPROPERTY>, std::string, int, int>,
-		IPC::Reply<std::vector<char>>
-	>;
-	using SetPropertyMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_SETPROPERTYBYID>, std::string, std::string>
-	>;
-	using GetEventParametersMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_GETEVENTPARAMETERS>, int>,
-		IPC::Reply<std::string>
-	>;
-	using RegisterDataFormatterMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_REGISTERDATAFORMATTER>, std::string>
-	>;
-	using DataFormatterDataMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_DATAFORMATTERRAWDATA>, int, int, int>,
-		IPC::Reply<std::string, std::string>
-	>;
-	using DataFormatterFormattedDataMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_DATAFORMATTERFORMATTEDDATA>, int, std::string, bool>
-	>;
-	using RegisterElementMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_REGISTERELEMENT>, std::string>
-	>;
-	using GetElementTagMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_GETELEMENTTAG>, int>,
-		IPC::Reply<std::string>
-	>;
-	using GetElementAbsoluteOffsetMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_GETELEMENTABSOLUTEOFFSET>>,
-		IPC::Reply<float, float>
-	>;
-	using QuakeToRMLMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_QUAKETORML>, std::string, int>,
-		IPC::Reply<std::string>
-	>;
-	using SetClassMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_SETCLASS>, std::string, bool>
-	>;
-	using InitHUDsMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_INITHUDS>, int>
-	>;
-	using LoadUnitMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_LOADUNIT>, std::string>
-	>;
-	using AddUnitToHUDMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_ADDUNITTOHUD>, int, std::string>
-	>;
-	using ShowHUDMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_SHOWHUD>, int>
-	>;
-	using ClearHUDMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_CLEARHUD>, int>
-	>;
-	using AddTextMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_ADDTEXT>, std::string, std::string, float, float>
-	>;
-	using ClearTextMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_CLEARTEXT>>
-	>;
-	using RegisterPropertyMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_REGISTERPROPERTY>, std::string, std::string, bool, bool, std::string>
-	>;
-	using ShowScoreboardMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_SHOWSCOREBOARD>, std::string, bool>
-	>;
-	using SetDataSelectIndexMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_SETDATASELECTINDEX>, int>
-	>;
-	using LoadFontMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_ROCKET_LOADFONT>, std::string>
-	>;
-}
 
 enum cgameExport_t
 {
@@ -673,7 +519,7 @@ enum cgameExport_t
 //  int (*CG_CrosshairPlayer)();
   CG_CROSSHAIR_PLAYER,
 
-//  void    (*CG_KeyEvent)( int key, bool down );
+//  void    (*CG_KeyEvent)( Keyboard::Key key, bool down );
   CG_KEY_EVENT,
 
 //  void    (*CG_MouseEvent)( int dx, int dy );
@@ -683,7 +529,7 @@ enum cgameExport_t
   CG_MOUSE_POS_EVENT,
 
 // pass in text input events from the engine
-  CG_TEXT_INPUT_EVENT,
+  CG_CHARACTER_INPUT_EVENT,
 
 // Inits libRocket in the game.
   CG_ROCKET_VM_INIT,
@@ -716,16 +562,16 @@ using CGameCrosshairPlayerMsg = IPC::SyncMessage<
 	IPC::Reply<int>
 >;
 using CGameKeyEventMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_KEY_EVENT>, int, bool>
+	IPC::Message<IPC::Id<VM::QVM, CG_KEY_EVENT>, Keyboard::Key, bool>
 >;
 using CGameMouseEventMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_MOUSE_EVENT>, int, int>
 >;
 using CGameMousePosEventMsg = IPC::SyncMessage<
-    IPC::Message<IPC::Id<VM::QVM, CG_MOUSE_POS_EVENT>, int, int>
+	IPC::Message<IPC::Id<VM::QVM, CG_MOUSE_POS_EVENT>, int, int>
 >;
-using CGameTextInptEvent = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_TEXT_INPUT_EVENT>, int>
+using CGameCharacterInputMsg = IPC::SyncMessage <
+	IPC::Message<IPC::Id<VM::QVM, CG_CHARACTER_INPUT_EVENT>, int>
 >;
 using CGameFocusEventMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_FOCUS_EVENT>, bool>

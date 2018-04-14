@@ -41,6 +41,7 @@ Maryland 20850 USA.
 
 #include "common/Defs.h"
 
+#include "client/keys.h"
 #include "framework/Application.h"
 #include "framework/BaseCommands.h"
 #include "framework/CommandSystem.h"
@@ -985,12 +986,8 @@ void Com_EventLoop()
 			}
 
 			case sysEventType_t::SE_CHAR:
-			{
-				int codePoint = ev->Cast<Sys::CharEvent>().ch;
-				int utf8BytesPackedIntoAnInt = Q_UTF8_Store( Q_UTF8_Encode( codePoint ) );
-				CL_CharEvent( utf8BytesPackedIntoAnInt );
+				CL_CharEvent( ev->Cast<Sys::CharEvent>().ch );
 				break;
-			}
 
 			case sysEventType_t::SE_MOUSE:
 			{
@@ -1214,7 +1211,7 @@ void Com_Init( char *commandLine )
 	}
 
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
-#ifndef BUILD_SERVER
+#ifdef BUILD_CLIENT
 	Cmd_AddCommand( "writebindings", Com_WriteBindings_f );
 #endif
 
@@ -1297,7 +1294,7 @@ void Com_WriteConfiguration()
 	{
 		bindingsModified = false;
 
-		Com_WriteConfigToFile( KEYBINDINGS_NAME, Key_WriteBindings );
+		Com_WriteConfigToFile( KEYBINDINGS_NAME, Keyboard::WriteBindings );
 	}
 #endif
 }
@@ -1332,7 +1329,7 @@ Com_WriteBindings_f
 Write the key bindings file to a specific name
 ===============
 */
-#ifndef BUILD_SERVER
+#ifdef BUILD_CLIENT
 void Com_WriteBindings_f()
 {
 	char filename[ MAX_QPATH ];
@@ -1346,7 +1343,7 @@ void Com_WriteBindings_f()
 	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
 	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
 	Log::Notice( "Writing %s.\n", filename );
-	Com_WriteConfigToFile( filename, Key_WriteBindings );
+	Com_WriteConfigToFile( filename, Keyboard::WriteBindings );
 }
 #endif
 
@@ -1525,6 +1522,7 @@ void Com_Frame()
 
 	IN_FrameEnd();
 
+	Keyboard::BufferDeferredBinds();
 	Cmd::ExecuteCommandBuffer();
 
 	lastTime = com_frameTime;
