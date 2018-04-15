@@ -100,6 +100,8 @@ static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key key, bool down 
 	    keysym->scancode, SDL_GetKeyName( keysym->sym ), KeyToString( key ) );
 }
 
+static Cvar::Modified<Cvar::Cvar<std::string>> cl_consoleKeys("cl_consoleKeys", "Keys to open or close the console", 0, "hw:`");
+
 /*
 ===============
 IN_IsConsoleKey
@@ -111,16 +113,14 @@ static bool IN_IsConsoleKey( Keyboard::Key key )
 	static std::vector<Keyboard::Key> consoleKeys;
 
 	// Only parse the variable when it changes
-	if ( cl_consoleKeys->modified )
+	Util::optional<std::string> modifiedString = cl_consoleKeys.GetModifiedValue();
+	if ( modifiedString )
 	{
-		const char *text_p, *token;
-
-		cl_consoleKeys->modified = false;
-		text_p = cl_consoleKeys->string;
+		const char* text_p = modifiedString.value().c_str();
 		consoleKeys.clear();
 		while ( true )
 		{
-			token = COM_Parse( &text_p );
+			const char* token = COM_Parse( &text_p );
 			if ( !token[ 0 ] )
 			{
 				break;
