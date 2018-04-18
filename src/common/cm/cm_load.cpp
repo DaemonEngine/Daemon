@@ -50,7 +50,7 @@ clipMap_t cm;
 int       c_pointcontents;
 int       c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces;
 
-cmodel_t  box_model;
+cmodel_t  box_model = {};
 cplane_t  *box_planes;
 cbrush_t  *box_brush;
 
