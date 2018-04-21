@@ -81,6 +81,7 @@ function(GAMEMODULE)
                 CMAKE_ARGS
                     -DFORK=2
                     -DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-pnacl.cmake
+                    -DDAEMON_DIR=${Daemon_SOURCE_DIR}
                     -DDEPS_DIR=${DEPS_DIR}
                     -DBUILD_GAME_NACL_NEXE=${BUILD_GAME_NACL_NEXE}
                     -DBUILD_GAME_NACL=1
