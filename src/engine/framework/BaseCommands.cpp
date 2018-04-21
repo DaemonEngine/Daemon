@@ -251,6 +251,15 @@ namespace Cmd {
             MathCmd(): StaticCmd("math", BASE, "does math and sets the result to a variable") {
             }
 
+            Util::optional<float> ParseFloat(const std::string& str) const {
+                try {
+                    return {std::stof(str)};
+                } catch (const std::invalid_argument&) {
+                    Print("Invalid number format: %s", str);
+                    return Util::nullopt;
+                }
+            }
+
             void Run(const Cmd::Args& args) const OVERRIDE {
                 if  (args.Argc() < 2) {
                     Usage(args);
@@ -277,20 +286,23 @@ namespace Cmd {
                 } else if (args.Argc() == 4) {
                     // two additional arguments (+=, -=, *=, /=)
                     const std::string& op = args.Argv(2);
-                    float operand = std::stof(args.Argv(3));
+                    Util::optional<float> operand = ParseFloat(args.Argv(3));
+                    if (!operand) {
+                        return;
+                    }
 
                     if (op == "+") {
-                        newValue = currentValue + operand;
+                        newValue = currentValue + operand.value();
                     } else if (op == "-") {
-                        newValue = currentValue - operand;
+                        newValue = currentValue - operand.value();
                     } else if (op == "*") {
-                        newValue = currentValue * operand;
+                        newValue = currentValue * operand.value();
                     } else if (op == "/" or op == "÷") {
-                        if (operand == 0.0f) {
+                        if (operand.value() == 0.0f) {
                             Print("Error: Cannot divide by 0!");
                             return;
                         }
-                        newValue = currentValue / operand;
+                        newValue = currentValue / operand.value();
                     } else {
                         Usage(args);
                         return;
@@ -298,22 +310,25 @@ namespace Cmd {
 
                 } else if (args.Argc() == 6) {
                     // for additional arguments (_ = _ op _ with op in +, -, *, /)
-                    float operand1 = std::stof(args.Argv(3));
+                    Util::optional<float> operand1 = ParseFloat(args.Argv(3));
                     const std::string& op = args.Argv(4);
-                    float operand2 = std::stof(args.Argv(5));
+                    Util::optional<float> operand2 = ParseFloat(args.Argv(5));
+                    if (!operand1 || !operand2) {
+                        return;
+                    }
 
                     if (op == "+") {
-                        newValue = operand1 + operand2;
+                        newValue = operand1.value() + operand2.value();
                     } else if (op == "-") {
-                        newValue = operand1 - operand2;
+                        newValue = operand1.value() - operand2.value();
                     } else if (op == "*") {
-                        newValue = operand1 * operand2;
+                        newValue = operand1.value() * operand2.value();
                     } else if (op == "/" or op == "÷") {
-                        if (operand2 == 0.0f) {
+                        if (operand2.value() == 0.0f) {
                             Print("Error: Cannot divide by 0!");
                             return;
                         }
-                        newValue = operand1 / operand2;
+                        newValue = operand1.value() / operand2.value();
                     } else {
                         Usage(args);
                         return;

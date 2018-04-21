@@ -235,7 +235,7 @@ int CM_PointContents( const vec3_t p, clipHandle_t model )
 
 	for ( k = 0; k < leaf->numLeafBrushes; k++ )
 	{
-		brushnum = cm.leafbrushes[ leaf->firstLeafBrush + k ];
+		brushnum = leaf->firstLeafBrush[ k ];
 		b = &cm.brushes[ brushnum ];
 
 		// XreaL BEGIN
