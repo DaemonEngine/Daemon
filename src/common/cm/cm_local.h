@@ -62,10 +62,10 @@ struct cLeaf_t
 	int cluster;
 	int area;
 
-	int firstLeafBrush;
-	int numLeafBrushes;
+	const int* firstLeafBrush;
+	const int* firstLeafSurface;
 
-	int firstLeafSurface;
+	int numLeafBrushes;
 	int numLeafSurfaces;
 };
 

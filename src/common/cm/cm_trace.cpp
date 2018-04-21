@@ -382,7 +382,7 @@ void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf )
 	// test box position against all brushes in the leaf
 	for ( k = 0; k < leaf->numLeafBrushes; k++ )
 	{
-		brushnum = cm.leafbrushes[ leaf->firstLeafBrush + k ];
+		brushnum = leaf->firstLeafBrush[ k ];
 		b = &cm.brushes[ brushnum ];
 
 		if ( b->checkcount == cm.checkcount )
@@ -413,7 +413,7 @@ void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf )
 	// test against all surfaces
 	for ( k = 0; k < leaf->numLeafSurfaces; k++ )
 	{
-		surface = cm.surfaces[ cm.leafsurfaces[ leaf->firstLeafSurface + k ] ];
+		surface = cm.surfaces[ leaf->firstLeafSurface[ k ] ];
 
 		if ( !surface )
 		{
@@ -1444,7 +1444,7 @@ void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 	// trace line against all brushes in the leaf
 	for ( k = 0; k < leaf->numLeafBrushes; k++ )
 	{
-		brushnum = cm.leafbrushes[ leaf->firstLeafBrush + k ];
+		brushnum = leaf->firstLeafBrush[ k ];
 
 		b = &cm.brushes[ brushnum ];
 
@@ -1484,7 +1484,7 @@ void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 	// trace line against all surfaces in the leaf
 	for ( k = 0; k < leaf->numLeafSurfaces; k++ )
 	{
-		surface = cm.surfaces[ cm.leafsurfaces[ leaf->firstLeafSurface + k ] ];
+		surface = cm.surfaces[ leaf->firstLeafSurface[ k ] ];
 
 		if ( !surface )
 		{
@@ -1526,7 +1526,7 @@ void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 	{
 		for ( k = 0; k < leaf->numLeafBrushes; k++ )
 		{
-			brushnum = cm.leafbrushes[ leaf->firstLeafBrush + k ];
+			brushnum = leaf->firstLeafBrush[ k ];
 
 			b = &cm.brushes[ brushnum ];
 
@@ -1556,7 +1556,7 @@ void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 
 		for ( k = 0; k < leaf->numLeafSurfaces; k++ )
 		{
-			surface = cm.surfaces[ cm.leafsurfaces[ leaf->firstLeafSurface + k ] ];
+			surface = cm.surfaces[ leaf->firstLeafSurface[ k ] ];
 
 			if ( !surface )
 			{
@@ -2606,7 +2606,7 @@ float CM_DistanceToModel( const vec3_t loc, clipHandle_t model ) {
 	// test box position against all brushes in the leaf
 	for ( k = 0; k < cmod->leaf.numLeafBrushes; k++ )
 	{
-		brushnum = cm.leafbrushes[ cmod->leaf.firstLeafBrush + k ];
+		brushnum = cmod->leaf.firstLeafBrush[ k ];
 		b = &cm.brushes[ brushnum ];
 
 		d1 = CM_DistanceToBrush( loc, b );
