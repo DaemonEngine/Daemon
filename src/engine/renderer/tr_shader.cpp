@@ -1853,7 +1853,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				stage->type = stageType_t::ST_DIFFUSEMAP;
 			}
-			else if ( !Q_stricmp( token, "bumpMap" ) )
+			else if ( !Q_stricmp( token, "normalMap" ) || !Q_stricmp( token, "bumpMap" ) )
 			{
 				stage->type = stageType_t::ST_NORMALMAP;
 			}
