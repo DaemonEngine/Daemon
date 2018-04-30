@@ -61,6 +61,7 @@ namespace Resource {
     class Handle {
         public:
             Handle(std::shared_ptr<T> value, const Manager<T>* manager): value(value), manager(manager) {
+                ASSERT(!!value); // Should not be null
             }
 
             // Returns a pointer to the resource, or to the default value if the
@@ -157,7 +158,7 @@ namespace Resource {
             using iterator = typename std::unordered_map<Str::StringRef, std::shared_ptr<T>>::iterator;
 
         public:
-            Manager(Str::StringRef name = "", std::shared_ptr<T> defaultResource = nullptr);
+            Manager(Str::StringRef name);
             ~Manager();
 
             // Starts the registration.
@@ -169,12 +170,10 @@ namespace Resource {
             // Ends the registration.
             void EndRegistration();
 
-            // Registers the resource, if the second argument isn't given the resource
-            // is created by passing name to the constructor of T. Returns a handle to
-            // a resource (miht not be the same as provided if an error occursit returns
+            // Registers the resource. Returns a handle to
+            // a resource (might not be the same as provided: if an error occurs, it returns
             // the default value).
-            // TODO name is redundant if resource is provided
-            Handle<T> Register(Str::StringRef name, std::shared_ptr<T> resource = nullptr);
+            Handle<T> Register(Str::StringRef name);
 
             // Search and delete unused resources.
             void Prune();
@@ -193,6 +192,9 @@ namespace Resource {
             }
 
         private:
+            // Like Register() but returns null instead of the default value
+            std::shared_ptr<T> RegisterInternal(Str::StringRef name);
+
             bool inRegistration;
             bool immediate;
             std::shared_ptr<T> defaultValue;
@@ -204,14 +206,10 @@ namespace Resource {
     // Implementation of the templates
 
     template<typename T>
-    Manager<T>::Manager(Str::StringRef defaultName, std::shared_ptr<T> _defaultValue): inRegistration(false), immediate(false) {
-        if (defaultName == "") {
-            defaultValue = nullptr;
-        } else {
-            defaultValue = Register(defaultName, _defaultValue).Get();
-            if (not defaultValue) {
-                Sys::Error("Couldn't load the default resource for %s\n", typeid(T).name());
-            }
+    Manager<T>::Manager(Str::StringRef defaultName): inRegistration(false), immediate(false) {
+        defaultValue = RegisterInternal(defaultName);
+        if (not defaultValue) {
+            Sys::Error("Couldn't load the default resource for %s\n", typeid(T).name());
         }
     }
 
@@ -249,19 +247,17 @@ namespace Resource {
     }
 
     template<typename T>
-    Handle<T> Manager<T>::Register(Str::StringRef name, std::shared_ptr<T> resource) {
+    std::shared_ptr<T> Manager<T>::RegisterInternal(Str::StringRef name) {
         auto it = resources.find(name);
 
         if (it != resources.end()) {
             it->second->keep = true;
-            return Handle<T>(it->second, this);
+            return it->second;
         }
 
-        if (not resource) {
-            resource = std::make_shared<T>(std::move(name));
-        }
+        auto resource = std::make_shared<T>(name);
         if (not resource->TagDependencies()) {
-            return Handle<T>(defaultValue, this);
+            return defaultValue;
         }
 
         if (inRegistration and not immediate) {
@@ -270,10 +266,19 @@ namespace Resource {
             if (resource->TryLoad()) {
                 resources[resource->GetName()] = resource;
             } else {
-                return Handle<T>(defaultValue, this);
+                return defaultValue;
             }
         }
 
+        return resource;
+    }
+
+    template<typename T>
+    Handle<T> Manager<T>::Register(Str::StringRef name) {
+        std::shared_ptr<T> resource = RegisterInternal(name);
+        if (!resource) {
+            resource = defaultValue;
+        }
         return Handle<T>(resource, this);
     }
 
