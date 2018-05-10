@@ -488,19 +488,6 @@ static std::string GenEngineConstants() {
 	// Engine constants
 	std::string str;
 
-	AddConst( str, "r_AmbientScale", r_ambientScale->value );
-	AddConst( str, "r_SpecularScale", r_specularScale->value );
-	AddConst( str, "r_NormalScale", r_normalScale->value );
-	AddConst( str, "r_zNear", r_znear->value );
-
-	AddConst( str, "M_PI", static_cast<float>( M_PI ) );
-	AddConst( str, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
-	AddConst( str, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
-	AddConst( str, "TILE_SIZE", TILE_SIZE );
-
-	AddConst( str, "r_FBufScale", 1.0f / glConfig.vidWidth, 1.0f / glConfig.vidHeight );
-	AddConst( str, "r_tileStep", glState.tileStep[ 0 ], glState.tileStep[ 1 ] );
-
 	if ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && glConfig2.textureFloatAvailable )
 	{
 		if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_ESM16) || r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_ESM32) )
@@ -686,6 +673,23 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 
 	if ( glConfig2.textureIntegerAvailable )
 		AddDefine( env, "TEXTURE_INTEGER", 1 );
+
+	AddDefine( env, "r_AmbientScale", r_ambientScale->value );
+	AddDefine( env, "r_SpecularScale", r_specularScale->value );
+	AddDefine( env, "r_NormalScale", r_normalScale->value );
+	AddDefine( env, "r_zNear", r_znear->value );
+
+	AddDefine( env, "M_PI", static_cast<float>( M_PI ) );
+	AddDefine( env, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
+	AddDefine( env, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
+	AddDefine( env, "TILE_SIZE", TILE_SIZE );
+
+	float fbufWidthScale = 1.0f / glConfig.vidWidth;
+	float fbufHeightScale = 1.0f / glConfig.vidHeight;
+
+	AddDefine( env, "r_FBufScale", fbufWidthScale, fbufHeightScale );
+
+	AddDefine( env, "r_tileStep", glState.tileStep[ 0 ], glState.tileStep[ 1 ] );
 
 	if ( glConfig.driverType == glDriverType_t::GLDRV_MESA )
 		AddDefine( env, "GLDRV_MESA", 1 );
