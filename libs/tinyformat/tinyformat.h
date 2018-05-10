@@ -286,6 +286,18 @@ TINYFORMAT_DEFINE_FORMAT_TRUNCATED_CSTR(const char)
 TINYFORMAT_DEFINE_FORMAT_TRUNCATED_CSTR(char)
 #undef TINYFORMAT_DEFINE_FORMAT_TRUNCATED_CSTR
 
+template<typename T>
+bool isNullCString(const T&)
+{
+    return false;
+}
+template<> inline bool isNullCString<char*>(char* const& str) {
+    return str == nullptr;
+}
+template<> inline bool isNullCString<const char*>(const char* const& str) {
+    return str == nullptr;
+}
+
 } // namespace detail
 
 
@@ -329,6 +341,11 @@ inline void formatValue(std::ostream& out, const char* /*fmtBegin*/,
 #ifdef TINYFORMAT_OLD_LIBSTDCPLUSPLUS_WORKAROUND
     else if(detail::formatZeroIntegerWorkaround<T>::invoke(out, value)) /**/;
 #endif
+    else if (detail::isNullCString(value))
+    {
+        TINYFORMAT_ERROR("tinyformat: Null char* pointer passed for string parameter");
+        detail::formatTruncated(out, "<nullptr>", ntrunc >= 0 ? ntrunc : 99);
+    }
     else if(ntrunc >= 0)
     {
         // Take care not to overread C strings in truncating conversions like
