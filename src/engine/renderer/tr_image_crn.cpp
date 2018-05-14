@@ -32,79 +32,91 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #pragma GCC diagnostic pop
 #endif
 
-void LoadCRN( const char *name, byte **data, int *width, int *height,
-	      int *numLayers, int *numMips, int *bits, byte )
+bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *height,
+                     int *numLayers, int *numMips, int *bits)
 {
-	byte    *buff;
-	size_t  buffLen, size, imageSize;
-	unsigned i, j;
-	crnd::crn_texture_info ti;
-	crnd::crn_level_info li;
-	crnd::crnd_unpack_context ctx;
+    if (crnd::crnd_validate_file(buff, buffLen, nullptr)) { // Checks the header, not the whole file.
+        // Found height and width in [1, 4096], num mip levels in [1, 13], faces in {1, 6}
+    } else {
+        return false;
+    }
+    crnd::crn_texture_info ti;
+    if (!crnd::crnd_get_texture_info(buff, buffLen, &ti)) {
+        return false;
+    }
 
-	*numLayers = 0;
+    switch (ti.m_format) {
+    case cCRNFmtDXT1:
+        *bits |= IF_BC1;
+        break;
+    case cCRNFmtDXT3:
+        *bits |= IF_BC2;
+        break;
+    case cCRNFmtDXT5:
+        *bits |= IF_BC3;
+        break;
+    case cCRNFmtDXT5A:
+        *bits |= IF_BC4;
+        break;
+    case cCRNFmtDXN_XY:
+        *bits |= IF_BC5;
+        break;
+    default:
+        return false;
+    }
 
-	buffLen = ri.FS_ReadFile( name, ( void ** ) &buff );
+    *width = ti.m_width;
+    *height = ti.m_height;
+    *numMips = ti.m_levels;
+    *numLayers = ti.m_faces == 6 ? 6 : 0;
 
-	if ( !buff )
-	{
-		return;
-	}
+    uint32_t totalSize = 0;
+    uint32_t sizes[cCRNMaxLevels];
+    for (unsigned i = 0; i < ti.m_levels; i++) {
+        crnd::crn_level_info li;
+        if (!crnd::crnd_get_level_info(buff, buffLen, i, &li)) {
+            return false;
+        }
+        sizes[i] = li.m_blocks_x * li.m_blocks_y * li.m_bytes_per_block;
+        totalSize += sizes[i] * ti.m_faces;
+    }
 
-	if( !crnd::crnd_get_texture_info( buff, buffLen, &ti ) ||
-	    ( ti.m_faces != 1 && ti.m_faces != 6 ) )
-	{
-		ri.FS_FreeFile( buff );
-		return;
-	}
+    crnd::crnd_unpack_context ctx = crnd::crnd_unpack_begin(buff, buffLen);
+    if (!ctx) {
+        return false;
+    }
+    byte* nextImage = (byte *)ri.Z_Malloc(totalSize);
+    bool success = true;
+    for (unsigned i = 0; i < ti.m_levels; i++) {
+        byte* levelDataBegin = nextImage;
+        for (unsigned j = 0; j < ti.m_faces; j++) {
+            data[i * ti.m_faces + j] = nextImage;
+            nextImage += sizes[i];
+        }
+        if (!crnd::crnd_unpack_level(ctx, (void **)&data[i * ti.m_faces], sizes[i], 0, i)) {
+            success = false;
+            break;
+        }
+    }
+    crnd::crnd_unpack_end(ctx);
+    return success;
+}
 
-	switch( ti.m_format ) {
-	case cCRNFmtDXT1:
-		*bits |= IF_BC1;
-		break;
-	case cCRNFmtDXT3:
-		*bits |= IF_BC2;
-		break;
-	case cCRNFmtDXT5:
-		*bits |= IF_BC3;
-		break;
-	case cCRNFmtDXT5A:
-		*bits |= IF_BC4;
-		break;
-	case cCRNFmtDXN_XY:
-		*bits |= IF_BC5;
-		break;
-	default:
-		ri.FS_FreeFile( buff );
-		return;
-	}
-
-	*width = ti.m_width;
-	*height = ti.m_height;
-	*numMips = ti.m_levels;
-	*numLayers = ti.m_faces == 6 ? 6 : 0;
-
-	size = 0;
-	for( i = 0; i < ti.m_levels; i++ ) {
-		crnd::crnd_get_level_info( buff, buffLen, i, &li );
-		imageSize = li.m_blocks_x * li.m_blocks_y * li.m_bytes_per_block;
-		for( j = 0; j < ti.m_faces; j++ ) {
-			size += imageSize;
-			data[ i * ti.m_faces + j + 1 ] = size + (byte *)0;
-		}
-	}
-
-	data[ 0 ] = (byte *)ri.Z_Malloc( size );
-	for(i = 1; i <= ti.m_levels * ti.m_faces; i++ ) {
-		data[ i ] = (data[ i ] - (byte *)0) + data[ 0 ];
-	}
-
-	ctx = crnd::crnd_unpack_begin( buff, buffLen );
-	for( i = 0; i < ti.m_levels; i++ ) {
-		crnd::crnd_unpack_level( ctx, (void **)&data[ i * ti.m_faces ],
-					 data[ i * ti.m_faces + 1 ] - data[ i * ti.m_faces ], 0, i );
-	}
-	crnd::crnd_unpack_end( ctx );
-
-	ri.FS_FreeFile( buff );
+void LoadCRN(const char* name, byte **data, int *width, int *height,
+             int *numLayers, int *numMips, int *bits, byte)
+{
+    void* buff;
+    size_t buffLen = ri.FS_ReadFile(name, &buff);
+    *numLayers = 0;
+    if (!buff) {
+        return;
+    }
+    if (!LoadInMemoryCRN(buff, buffLen, data, width, height, numLayers, numMips, bits)) {
+        if (*data) {
+            ri.Free(*data);
+            *data = nullptr; // This signals failure.
+        }
+        Log::Warn("Invalid CRN image: %s", name);
+    }
+    ri.FS_FreeFile(buff);
 }
