@@ -93,7 +93,14 @@ bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *h
             data[i * ti.m_faces + j] = nextImage;
             nextImage += sizes[i];
         }
-        if (!crnd::crnd_unpack_level(ctx, (void **)&data[i * ti.m_faces], sizes[i], 0, i)) {
+        try {
+            if (!crnd::crnd_unpack_level(ctx, (void **)&data[i * ti.m_faces], sizes[i], 0, i)) {
+                success = false;
+                break;
+            }
+        } catch (const crnd::decompression_exception&) {
+            // Exception added as a hack to try and avoid crashing on files using the old format.
+            // In general though, it seems the crunch library does not try to validate the files and may crash while decoding.
             success = false;
             break;
         }

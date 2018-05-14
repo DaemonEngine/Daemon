@@ -26,6 +26,7 @@
 #endif
 #include <stdarg.h>
 #include <new>  // needed for placement new, _msize, _expand
+#include <exception>
 
 #define CRND_RESTRICT __restrict
 
@@ -130,15 +131,10 @@ void crnd_fail(const char* pExp, const char* pFile, unsigned line);
 
 // File: crnd_assert.h
 namespace crnd {
-void crnd_assert(const char* pExp, const char* pFile, unsigned line);
+class decompression_exception : public std::exception {};
 
-#ifdef NDEBUG
-#define CRND_ASSERT(x) ((void)0)
-#undef CRND_ASSERTS_ENABLED
-#else
-#define CRND_ASSERT(_exp) (void)((!!(_exp)) || (crnd::crnd_assert(#_exp, __FILE__, __LINE__), 0))
-#define CRND_ASSERTS_ENABLED
-#endif
+// HACK: Try to crash less when asked to decode invalid inputs.
+#define CRND_ASSERT(_exp) (!!(_exp) ? (void)0 : throw decompression_exception())
 
 void crnd_trace(const char* pFmt, va_list args);
 void crnd_trace(const char* pFmt, ...);
