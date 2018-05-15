@@ -169,7 +169,7 @@ bool BotLoadNavMesh( const char *filename, NavData_t &nav )
 
 	if ( !f )
 	{
-		Log::Warn("Cannot open Navigaton Mesh file" );
+		Log::Warn("Cannot open Navigation Mesh file" );
 		return false;
 	}
 
