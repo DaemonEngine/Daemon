@@ -88,7 +88,6 @@ bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *h
     byte* nextImage = (byte *)ri.Z_Malloc(totalSize);
     bool success = true;
     for (unsigned i = 0; i < ti.m_levels; i++) {
-        byte* levelDataBegin = nextImage;
         for (unsigned j = 0; j < ti.m_faces; j++) {
             data[i * ti.m_faces + j] = nextImage;
             nextImage += sizes[i];
