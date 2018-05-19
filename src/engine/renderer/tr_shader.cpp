@@ -1368,7 +1368,6 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 	char         *token;
 	int          imageBits = 0;
 	filterType_t filterType;
-	wrapType_t   wrapType;
 	const char         *buffer_p = &buffer[ 0 ];
 
 	if ( !buffer || !buffer[ 0 ] )
@@ -1434,14 +1433,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 		filterType = shader.filterType;
 	}
 
-	if ( stage->overrideWrapType )
-	{
-		wrapType = stage->wrapType;
-	}
-	else
-	{
-		wrapType = shader.wrapType;
-	}
+	wrapType_t wrapType = stage->overrideWrapType ? stage->wrapType : shader.wrapType;
 
 	// try to load the image
 	stage->bundle[ 0 ].image[ 0 ] = R_FindImageFile( buffer, imageBits, filterType, wrapType );
