@@ -175,7 +175,6 @@ void CL_ParseSnapshot( msg_t *msg )
 {
 	int          len;
 	clSnapshot_t *old;
-	clSnapshot_t newSnap;
 	int          deltaNum;
 	int          oldMessageNum;
 	int          i, packetNum;
@@ -186,7 +185,7 @@ void CL_ParseSnapshot( msg_t *msg )
 
 	// read in the new snapshot to a temporary buffer
 	// we will only copy to cl.snap if it is valid
-	Com_Memset( &newSnap, 0, sizeof( newSnap ) );
+	clSnapshot_t newSnap{};
 
 	// we will have read any new server commands in this
 	// message before we got to svc_snapshot
