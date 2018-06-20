@@ -1004,30 +1004,42 @@ CL_RequestMotd
 void CL_RequestMotd()
 {
 	char info[ MAX_INFO_STRING ];
+	int i;
 
 	if ( !cl_motd->integer )
 	{
 		return;
 	}
 
-	Log::Debug( "Resolving %s", MOTD_MASTER_SERVER_NAME );
+	for ( i = 0; i < MAX_MASTER_SERVERS; i++ ) {
+		const char* master_server_name = sv_master[ i ]->string;
 
-	switch ( NET_StringToAdr( MOTD_MASTER_SERVER_NAME, &cls.updateServer,
-	                          netadrtype_t::NA_UNSPEC ) )
-	{
-		case 0:
-			Log::Notice("%s", "Couldn't resolve master address\n" );
-			return;
+		if (strlen(master_server_name) == 0) {
+			continue;
+		}
 
-		case 2:
-			cls.updateServer.port = BigShort( PORT_MASTER );
+		Log::Debug( "Resolving %s", master_server_name );
 
-		default:
-			break;
+		switch ( NET_StringToAdr( master_server_name, &cls.updateServer,
+		                          netadrtype_t::NA_UNSPEC ) )
+		{
+			case 0:
+				Log::Notice("%s", "Couldn't resolve master address\n" );
+				continue;
+
+			case 2:
+				cls.updateServer.port = BigShort( PORT_MASTER );
+
+			default:
+				break;
+		}
+
+		Log::Debug( "%s resolved to %s", master_server_name,
+		             NET_AdrToStringwPort( cls.updateServer ) );
+
+		// retrieve motd from the first working master server
+		break;
 	}
-
-	Log::Debug( "%s resolved to %s", MOTD_MASTER_SERVER_NAME,
-	             NET_AdrToStringwPort( cls.updateServer ) );
 
 	info[ 0 ] = 0;
 
