@@ -4019,60 +4019,88 @@ CL_GlobalServers_f
 void CL_GlobalServers_f()
 {
 	netadr_t to;
-	int      count, i, masterNum;
+	int      count, i, masterNum, protocol;
 	char     command[ 1024 ], *masteraddress;
-	int      protocol = atoi( Cmd_Argv( 2 ) );   // Do this right away, otherwise weird things happen when you use the ingame "Get New Servers" button.
+	bool     wildcard = false;
+	bool     active_master_servers[MAX_MASTER_SERVERS] = { false, false, false, false, false };
 
-	if ( ( count = Cmd_Argc() ) < 2 || ( masterNum = atoi( Cmd_Argv( 1 ) ) ) < 0 || masterNum > MAX_MASTER_SERVERS - 1 )
+	count = Cmd_Argc();
+	protocol = atoi( Cmd_Argv( 2 ) );   // Do this right away, otherwise weird things happen when you use the ingame "Get New Servers" button.
+
+	if ( ! strcmp( Cmd_Argv( 1 ), "*" ) )
 	{
-		Cmd_PrintUsage("<master# 0-" XSTRING(MAX_MASTER_SERVERS - 1) "> [<protocol>] [<keywords>]", nullptr);
+		wildcard = true;
+		for ( masterNum = 0; masterNum < MAX_MASTER_SERVERS; masterNum++ )
+		{
+			active_master_servers[ masterNum ] = true;
+		}
+	}
+	else {
+		masterNum = atoi( Cmd_Argv( 1 ) );
+		active_master_servers[ masterNum ] = true;
+	}
+
+	if ( count < 2 || ( ( masterNum < 0 || masterNum > MAX_MASTER_SERVERS - 1 ) && !wildcard ) )
+	{
+		Cmd_PrintUsage("(<master# 0-" XSTRING(MAX_MASTER_SERVERS - 1) "> | *) [<protocol>] [<keywords>]", nullptr);
 		return;
 	}
 
-	sprintf( command, "sv_master%d", masterNum + 1 );
-	masteraddress = Cvar_VariableString( command );
-
-	if ( !*masteraddress )
+	for ( masterNum = 0; masterNum < MAX_MASTER_SERVERS; masterNum++ )
 	{
-		Log::Warn( "CL_GlobalServers_f: No master server address given.\n" );
-		return;
+		if ( !active_master_servers[ masterNum ] ) {
+			continue;
+		}
+
+		sprintf( command, "sv_master%d", masterNum + 1 );
+		masteraddress = Cvar_VariableString( command );
+
+		if ( !*masteraddress )
+		{
+			if ( !wildcard )
+			{
+				Log::Warn( "CL_GlobalServers_f: No master server address given.\n" );
+			}
+			continue;
+		}
+
+		// reset the list, waiting for response
+		// -1 is used to distinguish a "no response"
+
+		i = NET_StringToAdr( masteraddress, &to, netadrtype_t::NA_UNSPEC );
+
+		if ( !i )
+		{
+			Log::Warn( "CL_GlobalServers_f: could not resolve address of master %s\n", masteraddress );
+			continue;
+		}
+		else if ( i == 2 )
+		{
+			to.port = BigShort( PORT_MASTER );
+		}
+
+		Log::Debug( "Requesting servers from master %s…", masteraddress );
+
+		cls.numglobalservers = -1;
+		cls.numserverLinks = 0;
+		cls.pingUpdateSource = AS_GLOBAL;
+
+		Com_sprintf( command, sizeof( command ), "getserversExt %s %d dual",
+		             cl_gamename->string, protocol );
+		// TODO: test if we only have IPv4/IPv6, if so request only the relevant
+		// servers with getserversExt %s %d ipvX
+		// not that big a deal since the extra servers won't respond to getinfo
+		// anyway.
+
+		for ( i = 3; i < count; i++ )
+		{
+			Q_strcat( command, sizeof( command ), " " );
+			Q_strcat( command, sizeof( command ), Cmd_Argv( i ) );
+		}
+
+		Net::OutOfBandPrint( netsrc_t::NS_SERVER, to, "%s", command );
 	}
 
-	// reset the list, waiting for response
-	// -1 is used to distinguish a "no response"
-
-	i = NET_StringToAdr( masteraddress, &to, netadrtype_t::NA_UNSPEC );
-
-	if ( !i )
-	{
-		Log::Warn( "CL_GlobalServers_f: could not resolve address of master %s\n", masteraddress );
-		return;
-	}
-	else if ( i == 2 )
-	{
-		to.port = BigShort( PORT_MASTER );
-	}
-
-	Log::Debug( "Requesting servers from master %s…", masteraddress );
-
-	cls.numglobalservers = -1;
-	cls.numserverLinks = 0;
-	cls.pingUpdateSource = AS_GLOBAL;
-
-	Com_sprintf( command, sizeof( command ), "getserversExt %s %d dual",
-	             cl_gamename->string, protocol );
-	// TODO: test if we only have IPv4/IPv6, if so request only the relevant
-	// servers with getserversExt %s %d ipvX
-	// not that big a deal since the extra servers won't respond to getinfo
-	// anyway.
-
-	for ( i = 3; i < count; i++ )
-	{
-		Q_strcat( command, sizeof( command ), " " );
-		Q_strcat( command, sizeof( command ), Cmd_Argv( i ) );
-	}
-
-	Net::OutOfBandPrint( netsrc_t::NS_SERVER, to, "%s", command );
 	CL_RequestMotd();
 }
 
