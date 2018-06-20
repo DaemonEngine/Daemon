@@ -1010,9 +1010,9 @@ void CL_RequestMotd()
 		return;
 	}
 
-	Log::Debug( "Resolving %s", MASTER_SERVER_NAME );
+	Log::Debug( "Resolving %s", MOTD_MASTER_SERVER_NAME );
 
-	switch ( NET_StringToAdr( MASTER_SERVER_NAME, &cls.updateServer,
+	switch ( NET_StringToAdr( MOTD_MASTER_SERVER_NAME, &cls.updateServer,
 	                          netadrtype_t::NA_UNSPEC ) )
 	{
 		case 0:
@@ -1026,7 +1026,7 @@ void CL_RequestMotd()
 			break;
 	}
 
-	Log::Debug( "%s resolved to %s", MASTER_SERVER_NAME,
+	Log::Debug( "%s resolved to %s", MOTD_MASTER_SERVER_NAME,
 	             NET_AdrToStringwPort( cls.updateServer ) );
 
 	info[ 0 ] = 0;

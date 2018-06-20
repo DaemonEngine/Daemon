@@ -484,12 +484,12 @@ void SV_MasterGameStat( const char *data )
 		return; // only dedicated servers send stats
 	}
 
-	Log::Notice( "Resolving %s", MASTER_SERVER_NAME );
+	Log::Notice( "Resolving %s", GAMESTAT_MASTER_SERVER_NAME );
 
-	switch ( NET_StringToAdr( MASTER_SERVER_NAME, &adr, netadrtype_t::NA_UNSPEC ) )
+	switch ( NET_StringToAdr( GAMESTAT_MASTER_SERVER_NAME, &adr, netadrtype_t::NA_UNSPEC ) )
 	{
 		case 0:
-			Log::Warn( "Couldn't resolve master address: %s", MASTER_SERVER_NAME );
+			Log::Warn( "Couldn't resolve master address: %s", GAMESTAT_MASTER_SERVER_NAME );
 			return;
 
 		case 2:
@@ -499,10 +499,10 @@ void SV_MasterGameStat( const char *data )
 			break;
 	}
 
-	Log::Notice( "%s resolved to %s", MASTER_SERVER_NAME,
+	Log::Notice( "%s resolved to %s", GAMESTAT_MASTER_SERVER_NAME,
 	            Net::AddressToString(adr, true) );
 
-	Log::Notice( "Sending gamestat to %s", MASTER_SERVER_NAME );
+	Log::Notice( "Sending gamestat to %s", GAMESTAT_MASTER_SERVER_NAME );
 	Net::OutOfBandPrint( netsrc_t::NS_SERVER, adr, "gamestat %s", data );
 }
 

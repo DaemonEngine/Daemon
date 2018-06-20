@@ -672,11 +672,11 @@ void SV_Init()
 	Cvar_Get( "sv_nextmap", "", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", 0 );
-	sv_master[ 0 ] = Cvar_Get( "sv_master1", MASTER_SERVER_NAME, 0 );
-	sv_master[ 1 ] = Cvar_Get( "sv_master2", "", 0 );
-	sv_master[ 2 ] = Cvar_Get( "sv_master3", "", 0 );
-	sv_master[ 3 ] = Cvar_Get( "sv_master4", "", 0 );
-	sv_master[ 4 ] = Cvar_Get( "sv_master5", "", 0 );
+	sv_master[ 0 ] = Cvar_Get( "sv_master1", MASTER1_SERVER_NAME, 0 );
+	sv_master[ 1 ] = Cvar_Get( "sv_master2", MASTER2_SERVER_NAME, 0 );
+	sv_master[ 2 ] = Cvar_Get( "sv_master3", MASTER3_SERVER_NAME, 0 );
+	sv_master[ 3 ] = Cvar_Get( "sv_master4", MASTER4_SERVER_NAME, 0 );
+	sv_master[ 4 ] = Cvar_Get( "sv_master5", MASTER5_SERVER_NAME, 0 );
 	sv_reconnectlimit = Cvar_Get( "sv_reconnectlimit", "3", 0 );
 	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );

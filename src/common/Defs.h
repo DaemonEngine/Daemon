@@ -46,7 +46,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GAMENAME_STRING     "unv"
 #define GAMENAME_FOR_MASTER PRODUCT_NAME_UPPER
 
-#define MASTER_SERVER_NAME  "master.unvanquished.net"
+#define MASTER1_SERVER_NAME "master.unvanquished.net"
+#define MASTER2_SERVER_NAME "master2.unvanquished.net"
+#define MASTER3_SERVER_NAME ""
+#define MASTER4_SERVER_NAME ""
+#define MASTER5_SERVER_NAME ""
+#define MOTD_MASTER_SERVER_NAME     MASTER1_SERVER_NAME
+#define GAMESTAT_MASTER_SERVER_NAME MASTER1_SERVER_NAME
 
 #define IRC_SERVER          "irc.freenode.org"
 #define IRC_CHANNEL         "unv-lobby"
