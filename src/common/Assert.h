@@ -31,6 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_ASSERT_H_
 #define COMMON_ASSERT_H_
 
+#include "LogBase.h"
+#include "String.h"
+#include "System.h"
+
 /*
  * Daemon asserts to be used instead of the regular C stdlib assert function (if you don't
  * use assert yet, you should start now!). In debug ASSERT(condition) will trigger an error,
@@ -68,7 +72,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             if (!(condition)) { \
                 std::string msg = Str::Format("Assertion failure at %s:%s (%s): %s", file, line, func, message); \
                 if (Sys::IsDebuggerAttached()) { \
-                    Log::Warn(msg); \
+                    Log::defaultLogger.Warn(msg); \
                     BREAKPOINT(); \
                 } \
                 Sys::Error(msg); \
@@ -154,4 +158,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define ASSERT_GE DAEMON_ASSERT_GE
 #endif
 
-#endif // COMMON_ASEERT_H_
+#endif // COMMON_ASSERT_H_
