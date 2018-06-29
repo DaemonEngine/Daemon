@@ -3889,6 +3889,12 @@ static void CollapseStages()
 	shader.numStages = stagesWritten;
 	// FIXME: This seems stupid since there can be any number of collapse types.
 	shader.collapseType = tmpCollapseType;
+
+	// Code that processes the stages after this point seems to rely on numStages rather than the
+	// 'active' fields, but just to be safe...
+	for ( int i = stagesWritten; i < MAX_SHADER_STAGES; i++ ) {
+		stages[i].active = false;
+	}
 }
 
 // *INDENT-ON*
