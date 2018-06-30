@@ -1018,13 +1018,13 @@ void CL_RequestMotd()
 			continue;
 		}
 
-		Log::Debug( "Resolving %s", master_server_name );
+		Log::Debug( "CL_RequestMotd: Resolving %s", master_server_name );
 
 		switch ( NET_StringToAdr( master_server_name, &cls.updateServer,
 		                          netadrtype_t::NA_UNSPEC ) )
 		{
 			case 0:
-				Log::Notice("%s", "Couldn't resolve master address\n" );
+				Log::Notice("CL_RequestMotd: Couldn't resolve address of master %s\n", master_server_name );
 				continue;
 
 			case 2:
@@ -1034,7 +1034,7 @@ void CL_RequestMotd()
 				break;
 		}
 
-		Log::Debug( "%s resolved to %s", master_server_name,
+		Log::Debug( "CL_RequestMotd: %s resolved to %s", master_server_name,
 		             NET_AdrToStringwPort( cls.updateServer ) );
 
 		// retrieve motd from the first working master server
@@ -4064,6 +4064,8 @@ void CL_GlobalServers_f()
 			continue;
 		}
 
+		Log::Debug( "CL_GlobalServers_f: Resolving %s", masteraddress );
+
 		// reset the list, waiting for response
 		// -1 is used to distinguish a "no response"
 
@@ -4071,7 +4073,7 @@ void CL_GlobalServers_f()
 
 		if ( !i )
 		{
-			Log::Warn( "CL_GlobalServers_f: could not resolve address of master %s\n", masteraddress );
+			Log::Warn( "CL_GlobalServers_f: Could not resolve address of master %s\n", masteraddress );
 			continue;
 		}
 		else if ( i == 2 )
@@ -4079,7 +4081,10 @@ void CL_GlobalServers_f()
 			to.port = BigShort( PORT_MASTER );
 		}
 
-		Log::Debug( "Requesting servers from master %s…", masteraddress );
+		Log::Debug( "CL_GlobalServers_f: %s resolved to %s", masteraddress,
+		             NET_AdrToStringwPort( to ) );
+
+		Log::Debug( "CL_GlobalServers_f: Requesting servers from master %s…", masteraddress );
 
 		cls.numglobalservers = -1;
 		cls.numserverLinks = 0;
@@ -4087,6 +4092,7 @@ void CL_GlobalServers_f()
 
 		Com_sprintf( command, sizeof( command ), "getserversExt %s %d dual",
 		             cl_gamename->string, protocol );
+
 		// TODO: test if we only have IPv4/IPv6, if so request only the relevant
 		// servers with getserversExt %s %d ipvX
 		// not that big a deal since the extra servers won't respond to getinfo
