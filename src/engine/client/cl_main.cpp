@@ -2328,14 +2328,16 @@ CL_ServersResponsePacket
 */
 void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 {
-	int      i, count, total;
+	int      i, count, duplicate_count, parsed_count, total;
 	netadr_t addresses[ MAX_SERVERSPERPACKET ];
 	int      numservers;
-	byte      *buffptr;
-	byte      *buffend;
+	byte     *buffptr;
+	byte     *buffend;
 	char     label[ MAX_FEATLABEL_CHARS ] = "";
 
 	Log::Debug( "CL_ServersResponsePacket" );
+
+	duplicate_count = 0;
 
 	if ( cls.numglobalservers == -1 )
 	{
@@ -2374,15 +2376,6 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 
 		if ( ind >= 0 )
 		{
-			// this denotes the start of new-syntax stuff
-			// have we already received this packet?
-			if ( cls.receivedMasterPackets & ( 1 << ( ind - 1 ) ) )
-			{
-				Log::Debug( "CL_ServersResponsePacket: "
-				             "received packet %d again, ignoring",
-				             ind );
-				return;
-			}
 
 			// TODO: detect dropped packets and make another
 			// request
@@ -2401,6 +2394,9 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 	while ( buffptr + 1 < buffend )
 	{
 		bool duplicate = false;
+		byte ip6[16];
+		byte ip[4];
+		short port;
 
 		// IPv4 address
 		if ( *buffptr == '\\' )
@@ -2412,22 +2408,35 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 				break;
 			}
 
-			for (unsigned i = 0; i < sizeof( addresses[ numservers ].ip ); i++ )
-			{
-				addresses[ numservers ].ip[ i ] = *buffptr++;
-			}
+			// parse out ip
+			memcpy( ip, buffptr, sizeof( ip ) );
+			buffptr += sizeof( ip );
 
 			// parse out port
-			addresses[ numservers ].port = ( *buffptr++ ) << 8;
-			addresses[ numservers ].port += *buffptr++;
-			addresses[ numservers ].port = BigShort( addresses[ numservers ].port );
+			port = ( *buffptr++ ) << 8;
+			port += *buffptr++;
+			port = BigShort( port );;
 
+			// deduplicate server list, do not add known server
+			for ( unsigned i = 0; i < cls.numglobalservers; i++ )
+			{
+				if ( cls.globalServers[ i ].adr.port == port && !memcmp( cls.globalServers[ i ].adr.ip, ip, sizeof( ip ) ) )
+				{
+					duplicate = true;
+					duplicate_count++;
+					break;
+				}
+			}
+
+			memcpy( addresses[ numservers ].ip, ip, sizeof( ip ) );
+
+			addresses[ numservers ].port = port;
 			addresses[ numservers ].type = netadrtype_t::NA_IP;
 
 			// look up this address in the links list
 			for (unsigned j = 0; j < cls.numserverLinks && !duplicate; ++j )
 			{
-				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port4 && !memcmp( addresses[ numservers ].ip, cls.serverLinks[ j ].ip, 4 ) )
+				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port4 && !memcmp( addresses[ numservers ].ip, cls.serverLinks[ j ].ip, sizeof( addresses[ numservers ].ip ) ) )
 				{
 					// found it, so look up the corresponding address
 					char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
@@ -2447,6 +2456,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 							addresses[ i ].type = NET_TYPE( cls.serverLinks[ j ].type );
 							addresses[ i ].port = ( addresses[ i ].type == netadrtype_t::NA_IP ) ? cls.serverLinks[ j ].port4 : cls.serverLinks[ j ].port6;
 							duplicate = true;
+							duplicate_count++;
 							break;
 						}
 					}
@@ -2468,18 +2478,36 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 				addresses[ numservers ].ip6[ i ] = *buffptr++;
 			}
 
-			// parse out port
-			addresses[ numservers ].port = ( *buffptr++ ) << 8;
-			addresses[ numservers ].port += *buffptr++;
-			addresses[ numservers ].port = BigShort( addresses[ numservers ].port );
+			// parse out ip
+			memcpy( ip6, buffptr, sizeof( ip6 ) );
+			buffptr += sizeof( ip6 );
 
+			// parse out port
+			port = ( *buffptr++ ) << 8;
+			port += *buffptr++;
+			port = BigShort( port );;
+
+			// deduplicate server list, do not add known server
+			for ( unsigned i = 0; i < cls.numglobalservers; i++ )
+			{
+				if ( cls.globalServers[ i ].adr.port == port && !memcmp( cls.globalServers[ i ].adr.ip6, ip6, sizeof( ip6 ) ) )
+				{
+					duplicate = true;
+					duplicate_count++;
+					break;
+				}
+			}
+
+			memcpy( addresses[ numservers ].ip6, ip6, sizeof( ip6 ) );
+
+			addresses[ numservers ].port = port;
 			addresses[ numservers ].type = netadrtype_t::NA_IP6;
 			addresses[ numservers ].scope_id = from->scope_id;
 
 			// look up this address in the links list
 			for ( unsigned j = 0; j < cls.numserverLinks && !duplicate; ++j )
 			{
-				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port6 && !memcmp( addresses[ numservers ].ip6, cls.serverLinks[ j ].ip6, 16 ) )
+				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port6 && !memcmp( addresses[ numservers ].ip6, cls.serverLinks[ j ].ip6, sizeof( addresses[ numservers ].ip6 ) ) )
 				{
 					// found it, so look up the corresponding address
 					char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
@@ -2499,6 +2527,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 							addresses[ i ].type = NET_TYPE( cls.serverLinks[ j ].type );
 							addresses[ i ].port = ( addresses[ i ].type == netadrtype_t::NA_IP ) ? cls.serverLinks[ j ].port4 : cls.serverLinks[ j ].port6;
 							duplicate = true;
+							duplicate_count++;
 							break;
 						}
 					}
@@ -2554,8 +2583,9 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 
 	cls.numglobalservers = count;
 	total = count + cls.numGlobalServerAddresses;
+	parsed_count = numservers + duplicate_count;
 
-	Log::Debug( "%d servers parsed (total %d)", numservers, total );
+	Log::Debug( "%d servers parsed, %s new, %d duplicate (total %d)", parsed_count, numservers, duplicate_count, total );
 }
 
 /*
