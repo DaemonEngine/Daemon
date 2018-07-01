@@ -42,7 +42,6 @@ enum gameImport_t
   G_GET_SERVERINFO,
   G_GET_USERCMD,
   G_GET_ENTITY_TOKEN,
-  G_SEND_GAME_STAT,
   G_SEND_MESSAGE,
   G_MESSAGE_STATUS,
   G_RSA_GENMSG, // ( const char *public_key, char *cleartext, char *encrypted )
@@ -102,7 +101,6 @@ using GetEntityTokenMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_ENTITY_TOKEN>>,
     IPC::Reply<bool, std::string>
 >;
-using SendGameStatMsg = IPC::Message<IPC::Id<VM::QVM, G_SEND_GAME_STAT>, std::string>;
 using SendMessageMsg = IPC::Message<IPC::Id<VM::QVM, G_SEND_MESSAGE>, int, std::vector<uint8_t>>;
 using MessageStatusMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_MESSAGE_STATUS>, int>,

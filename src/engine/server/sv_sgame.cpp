@@ -591,12 +591,6 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		});
 		break;
 
-	case G_SEND_GAME_STAT:
-		IPC::HandleMsg<SendGameStatMsg>(channel, std::move(reader), [this](std::string text) {
-			SV_MasterGameStat(text.c_str());
-		});
-		break;
-
 	case G_SEND_MESSAGE:
 		IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](int clientNum, std::vector<uint8_t> message) {
 			SV_SendBinaryMessage(clientNum, std::move(message));

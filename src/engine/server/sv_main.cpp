@@ -462,51 +462,6 @@ void SV_MasterShutdown()
 }
 
 /*
-=================
-SV_MasterGameStat
-=================
-*/
-void SV_MasterGameStat( const char *data )
-{
-	netadr_t adr;
-	int i;
-
-	if ( SV_Private(ServerPrivate::NoAdvertise) )
-	{
-		return; // only dedicated servers send stats
-	}
-
-	for ( i = 0; i < MAX_MASTER_SERVERS; i++ ) {
-		const char* master_server_name = sv_master[ i ]->string;
-
-		if (strlen(master_server_name) == 0) {
-			continue;
-		}
-
-		Log::Notice( "Resolving %s", master_server_name );
-
-		switch ( NET_StringToAdr( master_server_name, &adr, netadrtype_t::NA_UNSPEC ) )
-		{
-			case 0:
-				Log::Warn( "Couldn't resolve master address: %s", master_server_name );
-				continue;
-
-			case 2:
-				adr.port = BigShort( PORT_MASTER );
-
-			default:
-				break;
-		}
-
-		Log::Notice( "%s resolved to %s", master_server_name,
-					Net::AddressToString(adr, true) );
-
-		Log::Notice( "Sending gamestat to %s", master_server_name );
-		Net::OutOfBandPrint( netsrc_t::NS_SERVER, adr, "gamestat %s", data );
-	}
-}
-
-/*
 ==============================================================================
 
 CONNECTIONLESS COMMANDS

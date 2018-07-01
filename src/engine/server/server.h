@@ -359,7 +359,6 @@ void       SV_NET_Config();
 
 void       SV_MasterHeartbeat( const char *hbname );
 void       SV_MasterShutdown();
-void       SV_MasterGameStat( const char *data );
 
 //
 // sv_init.c
