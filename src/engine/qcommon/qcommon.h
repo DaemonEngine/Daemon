@@ -860,10 +860,6 @@ void         CON_Init_TTY();
 char         *CON_Input();
 void         CON_Print( const char *message );
 
-// Console - other
-unsigned int CON_LogSize();
-unsigned int CON_LogWrite( const char *in );
-
 /* This is based on the Adaptive Huffman algorithm described in Sayood's Data
  * Compression book.  The ranks are not actually stored, but implicitly defined
  * by the location of a node within a doubly-linked list */
