@@ -149,10 +149,7 @@ namespace Log {
     enum TargetId {
         GRAPHICAL_CONSOLE,
         TTY_CONSOLE,
-        CRASHLOG,
         LOGFILE,
-        GAMELOG,
-        HUD,
         MAX_TARGET_ID
     };
 
