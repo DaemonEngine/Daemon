@@ -245,7 +245,7 @@ namespace Log {
 
     template<typename ... Args>
     void Verbose(Str::StringRef format, Args&& ... args) {
-        CodeSourceVerbose(Str::Format(format, std::forward<Args>(args) ...));
+        defaultLogger.Verbose(format, std::forward<Args>(args) ...);
     }
 
     template<typename ... Args>
