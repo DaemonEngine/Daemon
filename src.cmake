@@ -300,8 +300,6 @@ set(QCOMMONLIST
     ${ENGINE_DIR}/qcommon/surfaceflags.h
     ${ENGINE_DIR}/qcommon/translation.cpp
     ${ENGINE_DIR}/sys/con_log.cpp
-    ${ENGINE_DIR}/sys/con_common.h
-    ${ENGINE_DIR}/sys/con_common.cpp
 )
 
 if (USE_CURSES)
