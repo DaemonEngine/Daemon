@@ -35,7 +35,7 @@ Maryland 20850 USA.
 #ifndef ENGINE_QCOMMON_SYS_H_
 #define ENGINE_QCOMMON_SYS_H_
 
-#include "qcommon/net_types.h"
+#include "engine/qcommon/net_types.h"
 
 void Sys_SendPacket(int length, const void *data, netadr_t to);
 bool Sys_GetPacket(netadr_t *net_from, msg_t *net_message);
@@ -45,6 +45,6 @@ bool Sys_StringToAdr(const char *s, netadr_t *a, netadrtype_t family);
 bool Sys_IsLANAddress(netadr_t adr);
 void Sys_ShowIP();
 
-int Sys_Milliseconds();
+#define Sys_Milliseconds Sys::Milliseconds
 
 #endif // ENGINE_QCOMMON_SYS_H_
