@@ -36,6 +36,7 @@ Maryland 20850 USA.
 
 #include "revision.h"
 #include "qcommon/q_shared.h"
+#include "qcommon/sys.h"
 #include "q_unicode.h"
 #include "qcommon.h"
 

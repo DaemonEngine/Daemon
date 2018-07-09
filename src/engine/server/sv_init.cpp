@@ -42,6 +42,7 @@ Maryland 20850 USA.
 #include "server.h"
 #include "CryptoChallenge.h"
 #include "common/Defs.h"
+#include "qcommon/sys.h"
 
 /*
 ===============

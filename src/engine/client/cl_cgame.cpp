@@ -40,6 +40,7 @@ Maryland 20850 USA.
 #include "key_identification.h"
 #include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
+#include "qcommon/sys.h"
 
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
