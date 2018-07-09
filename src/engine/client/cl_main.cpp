@@ -63,7 +63,6 @@ cvar_t *cl_mumbleScale;
 cvar_t *cl_nodelta;
 
 cvar_t *cl_noprint;
-cvar_t *cl_motd;
 
 cvar_t *cl_timeout;
 cvar_t *cl_maxpackets;
@@ -128,8 +127,6 @@ cvar_t *j_up_axis;
 cvar_t *cl_activeAction;
 
 cvar_t *cl_autorecord;
-
-cvar_t *cl_motdString;
 
 cvar_t *cl_allowDownload;
 cvar_t *cl_inGameVideo;
@@ -996,63 +993,6 @@ void CL_ForwardCommandToServer( const char *string )
 }
 
 /*
-===================
-CL_RequestMotd
-
-===================
-*/
-void CL_RequestMotd()
-{
-	char info[ MAX_INFO_STRING ];
-	int i;
-
-	if ( !cl_motd->integer )
-	{
-		return;
-	}
-
-	for ( i = 0; i < MAX_MASTER_SERVERS; i++ ) {
-		const char* master_server_name = sv_master[ i ]->string;
-
-		if (strlen(master_server_name) == 0) {
-			continue;
-		}
-
-		Log::Debug( "CL_RequestMotd: Resolving %s", master_server_name );
-
-		switch ( NET_StringToAdr( master_server_name, &cls.updateServer,
-		                          netadrtype_t::NA_UNSPEC ) )
-		{
-			case 0:
-				Log::Notice("CL_RequestMotd: Couldn't resolve address of master %s\n", master_server_name );
-				continue;
-
-			case 2:
-				cls.updateServer.port = BigShort( PORT_MASTER );
-
-			default:
-				break;
-		}
-
-		Log::Debug( "CL_RequestMotd: %s resolved to %s", master_server_name,
-		             NET_AdrToStringwPort( cls.updateServer ) );
-
-		// retrieve motd from the first working master server
-		break;
-	}
-
-	info[ 0 ] = 0;
-
-	Com_sprintf( cls.updateChallenge, sizeof( cls.updateChallenge ),
-	             "%i", ( ( rand() << 16 ) ^ rand() ) ^ Com_Milliseconds() );
-
-	Info_SetValueForKey( info, "challenge", cls.updateChallenge, false );
-	Info_SetValueForKey( info, "version", com_version->string, false );
-
-	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, cls.updateServer, "getmotd%s", info );
-}
-
-/*
 ======================================================================
 
 CONSOLE COMMANDS
@@ -1182,9 +1122,6 @@ void CL_Connect_f()
 	Audio::StopAllSounds(); // NERVE - SMF
 
 	Cvar_Set( "ui_connecting", "1" );
-
-	// fire a message off to the motd server
-	CL_RequestMotd();
 
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
@@ -3329,7 +3266,6 @@ void CL_Init()
 	// register our variables
 	//
 	cl_noprint = Cvar_Get( "cl_noprint", "0", 0 );
-	cl_motd = Cvar_Get( "cl_motd", "1", 0 );
 
 	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
 
@@ -3396,8 +3332,6 @@ void CL_Init()
 	j_forward_axis = Cvar_Get( "j_forward_axis", "1", 0 );
 	j_side_axis = Cvar_Get( "j_side_axis", "0", 0 );
 	j_up_axis = Cvar_Get( "j_up_axis", "2", 0 );
-
-	cl_motdString = Cvar_Get( "cl_motdString", "", CVAR_ROM );
 
 	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
@@ -4136,8 +4070,6 @@ void CL_GlobalServers_f()
 
 		Net::OutOfBandPrint( netsrc_t::NS_SERVER, to, "%s", command );
 	}
-
-	CL_RequestMotd();
 }
 
 /*
