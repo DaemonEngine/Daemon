@@ -85,25 +85,26 @@ namespace Log {
         }
     }
 
-	//TODO add the time (broken for now because it is journaled) use Sys_Milliseconds instead (Utils::Milliseconds ?)
-    static const int warnTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE) | (1 << LOGFILE);
-    void CodeSourceWarn(std::string message) {
-        Log::Dispatch({"^3Warn: " + message}, warnTargets);
-    }
-
-    static const int noticeTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE) | (1 << LOGFILE);
-    void CodeSourceNotice(std::string message) {
-        Log::Dispatch({message}, noticeTargets);
-    }
-
-    static const int verboseTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE) | (1 << LOGFILE);
-    void CodeSourceVerbose(std::string message) {
-        Log::Dispatch({message}, verboseTargets);
-    }
-
     static const int debugTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE);
-    void CodeSourceDebug(std::string message) {
-        Log::Dispatch({"^5Debug: " + message}, debugTargets);
+    static const int verboseTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE) | (1 << LOGFILE);
+    static const int noticeTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE) | (1 << LOGFILE);
+    static const int warnTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE) | (1 << LOGFILE);
+
+    //TODO add the time (broken for now because it is journaled) use Sys_Milliseconds instead (Utils::Milliseconds ?)
+    void DispatchByLevel(std::string message, Log::Level level) {
+        switch (level) {
+        case Level::DEBUG:
+            Log::Dispatch({"^5Debug: " + message}, debugTargets);
+            break;
+        case Level::VERBOSE:
+            Log::Dispatch({std::move(message)}, verboseTargets);
+            break;
+        case Level::NOTICE:
+            Log::Dispatch({std::move(message)}, noticeTargets);
+            break;
+        case Level::WARNING:
+            Log::Dispatch({"^3Warn: " + message}, warnTargets);
+        }
     }
 }
 
