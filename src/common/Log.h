@@ -159,12 +159,8 @@ namespace Log {
     bool ParseCvarValue(std::string value, Log::Level& result);
     std::string SerializeCvarValue(Log::Level value);
 
-    // Common entry points for all the formatted logs of the same level
-    // (decide to which log targets the event goes)
-    void CodeSourceWarn(std::string message);
-    void CodeSourceNotice(std::string message);
-    void CodeSourceVerbose(std::string message);
-    void CodeSourceDebug(std::string message);
+    // Sends the message to the appropriate targets for the specified level.
+    void DispatchByLevel(std::string message, Log::Level level);
 
     // Engine calls available everywhere
 
@@ -177,28 +173,28 @@ namespace Log {
     template<typename ... Args>
     void Logger::Warn(Str::StringRef format, Args&& ... args) {
         if (filterLevel.Get() <= Level::WARNING) {
-            CodeSourceWarn(Prefix(Str::Format(format, std::forward<Args>(args) ...)));
+            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::WARNING);
         }
     }
 
     template<typename ... Args>
     void Logger::Notice(Str::StringRef format, Args&& ... args) {
         if (filterLevel.Get() <= Level::NOTICE) {
-            CodeSourceNotice(Prefix(Str::Format(format, std::forward<Args>(args) ...)));
+            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::NOTICE);
         }
     }
 
     template<typename ... Args>
     void Logger::Verbose(Str::StringRef format, Args&& ... args) {
         if (filterLevel.Get() <= Level::VERBOSE) {
-            CodeSourceVerbose(Prefix(Str::Format(format, std::forward<Args>(args) ...)));
+            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::VERBOSE);
         }
     }
 
     template<typename ... Args>
     void Logger::Debug(Str::StringRef format, Args&& ... args) {
         if (filterLevel.Get() <= Level::DEBUG) {
-            CodeSourceDebug(Prefix(Str::Format(format, std::forward<Args>(args) ...)));
+            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::DEBUG);
         }
     }
 
