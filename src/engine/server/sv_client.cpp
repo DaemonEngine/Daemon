@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "server.h"
 #include "CryptoChallenge.h"
 #include "framework/Network.h"
+#include "qcommon/sys.h"
 #include <common/FileSystem.h>
 
 static void SV_CloseDownload( client_t *cl );

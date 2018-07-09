@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "server.h"
 #include "sg_msgdef.h"
 #include "qcommon/crypto.h"
+#include "qcommon/sys.h"
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
 

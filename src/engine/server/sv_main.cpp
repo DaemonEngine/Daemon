@@ -42,6 +42,7 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 #include "framework/Network.h"
+#include "qcommon/sys.h"
 
 serverStatic_t svs; // persistent server info
 server_t       sv; // local server
