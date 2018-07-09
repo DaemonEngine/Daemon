@@ -69,6 +69,10 @@ using RealClock = std::chrono::system_clock;
 SteadyClock::time_point SleepUntil(SteadyClock::time_point time);
 void SleepFor(SteadyClock::duration time);
 
+// Returns approximately the number of milliseconds the engine has been running.
+// Results *within a single module* (engine/cgame/sgame) are monotonic.
+int Milliseconds();
+
 // Exit with a fatal error. Only critical subsystems are shut down cleanly, and
 // an error message is displayed to the user.
 NORETURN void Error(Str::StringRef errorMessage);

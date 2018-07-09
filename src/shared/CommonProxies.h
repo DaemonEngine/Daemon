@@ -48,4 +48,6 @@ namespace VM {
 
 }
 
+int trap_Milliseconds();
+
 #endif // SHARED_COMMON_PROXIES_H_

@@ -1661,9 +1661,3 @@ void Com_Shutdown()
 
 	FS::FlushAll();
 }
-
-int Sys_Milliseconds()
-{
-	static Sys::SteadyClock::time_point baseTime = Sys::SteadyClock::now();
-	return std::chrono::duration_cast<std::chrono::milliseconds>(Sys::SteadyClock::now() - baseTime).count();
-}
