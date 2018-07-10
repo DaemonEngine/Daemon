@@ -162,6 +162,10 @@ namespace Log {
     // Sends the message to the appropriate targets for the specified level.
     void DispatchByLevel(std::string message, Log::Level level);
 
+    // Forwards to DispatchByLevel if the log message is determined to be non-spammy.
+    // The format string is used to classify whether it is the same message repeated excessively.
+    void DispatchWithSuppression(std::string message, Log::Level level, Str::StringRef format);
+
     // Engine calls available everywhere
 
     void Dispatch(Log::Event event, int targetControl);
@@ -173,28 +177,28 @@ namespace Log {
     template<typename ... Args>
     void Logger::Warn(Str::StringRef format, Args&& ... args) {
         if (filterLevel.Get() <= Level::WARNING) {
-            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::WARNING);
+            DispatchWithSuppression(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::WARNING, format);
         }
     }
 
     template<typename ... Args>
     void Logger::Notice(Str::StringRef format, Args&& ... args) {
         if (filterLevel.Get() <= Level::NOTICE) {
-            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::NOTICE);
+            DispatchWithSuppression(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::NOTICE, format);
         }
     }
 
     template<typename ... Args>
     void Logger::Verbose(Str::StringRef format, Args&& ... args) {
         if (filterLevel.Get() <= Level::VERBOSE) {
-            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::VERBOSE);
+            DispatchWithSuppression(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::VERBOSE, format);
         }
     }
 
     template<typename ... Args>
     void Logger::Debug(Str::StringRef format, Args&& ... args) {
         if (filterLevel.Get() <= Level::DEBUG) {
-            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::DEBUG);
+            DispatchWithSuppression(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::DEBUG, format);
         }
     }
 

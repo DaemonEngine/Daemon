@@ -106,7 +106,73 @@ namespace Log {
             Log::Dispatch({"^3Warn: " + message}, warnTargets);
         }
     }
-}
+
+    namespace {
+        // Log-spam suppression: if more than MAX_OCCURRENCES log messages with the same format string
+        // are sent in less than INTERVAL_MS milliseconds, they will stop being printed.
+        // (Unless the spammy message desists long enough to be flushed out of the buffer: then it can
+        // be printed again.)
+        class LogSpamSuppressor {
+            static constexpr int INTERVAL_MS = 2000;
+            static constexpr int MAX_OCCURRENCES = 10;
+            static constexpr int BUFFER_SIZE = 50;
+
+            struct MessageStatistics {
+                std::string messageFormat;
+                int numOccurrences;
+                int intervalStartTime = -2 * INTERVAL_MS;
+            };
+            MessageStatistics buf[BUFFER_SIZE];
+            std::mutex mutex;
+        public:
+            enum Result {
+                OK, // not log spam
+                LAST_CHANCE, // any more messages after this will be considered log spam
+                KNOWN_SPAM
+            };
+            Result UpdateAndEvaluate(Str::StringRef messageFormat) {
+                std::lock_guard<std::mutex> lock(mutex);
+                MessageStatistics* oldest = &buf[0];
+                int now = Sys::Milliseconds();
+                // Search for an existing entry. An entry is considered expired
+                // if it is both older than INTERVAL_MS and has less than MAX_OCCURRENCES.
+                for (MessageStatistics& stats : buf) {
+                    if ((stats.numOccurrences >= MAX_OCCURRENCES || stats.intervalStartTime > now - INTERVAL_MS)
+                        && stats.messageFormat == messageFormat) {
+                        ++stats.numOccurrences;
+                        if (stats.numOccurrences < MAX_OCCURRENCES) {
+                            return OK;
+                        }
+                        stats.intervalStartTime = now;
+                        return stats.numOccurrences == MAX_OCCURRENCES ? LAST_CHANCE : KNOWN_SPAM;
+                    }
+                    if (stats.intervalStartTime < oldest->intervalStartTime) {
+                        oldest = &stats;
+                    }
+                }
+                // Replace oldest entry if there is not already one for this message
+                oldest->intervalStartTime = now;
+                oldest->messageFormat = messageFormat;
+                oldest->numOccurrences = 1;
+                return OK;
+            }
+        };
+    } // namespace
+
+    void DispatchWithSuppression(std::string message, Log::Level level, Str::StringRef format) {
+        static LogSpamSuppressor suppressor;
+        switch (suppressor.UpdateAndEvaluate(format)) {
+        case LogSpamSuppressor::LAST_CHANCE:
+            message += " [further messages like this will be suppressed]";
+            DAEMON_FALLTHROUGH;
+        case LogSpamSuppressor::OK:
+            DispatchByLevel(std::move(message), level);
+            break;
+        case LogSpamSuppressor::KNOWN_SPAM:
+            break;
+        }
+    }
+} // namespace Log
 
 namespace Cvar {
     template<>
