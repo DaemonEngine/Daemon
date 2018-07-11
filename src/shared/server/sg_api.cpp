@@ -112,11 +112,6 @@ bool trap_GetEntityToken(char *buffer, int bufferSize)
     return res;
 }
 
-void trap_SendGameStat(const char *data)
-{
-    VM::SendMsg<SendGameStatMsg>(data);
-}
-
 void trap_SendMessage(int clientNum, const std::vector<uint8_t>& message)
 {
     VM::SendMsg<SendMessageMsg>(clientNum, message);

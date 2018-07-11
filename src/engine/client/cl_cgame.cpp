@@ -325,26 +325,6 @@ void CL_ShutdownCGame()
 	cgvm.Free();
 }
 
-//
-// libRocket UI stuff
-//
-
-/*
- * ====================
- * GetNews
- * ====================
- */
-bool GetNews( bool begin )
-{
-	if ( begin ) // if not already using curl, start the download
-	{
-		CL_RequestMotd();
-		Cvar_Set( "cl_newsString", "Retrieving…" );
-	}
-
-	return Cvar_VariableString( "cl_newsString" ) [ 0 ] == 'R';
-}
-
 /*
  * ====================
  * LAN_ResetPings
@@ -1297,12 +1277,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_PREPAREKEYUP:
 			IPC::HandleMsg<PrepareKeyUpMsg>(channel, std::move(reader), [this] {
 				IN_PrepareKeyUp();
-			});
-			break;
-
-		case CG_GETNEWS:
-			IPC::HandleMsg<GetNewsMsg>(channel, std::move(reader), [this] (bool force, bool& res) {
-				res = GetNews(force);
 			});
 			break;
 

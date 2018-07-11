@@ -63,7 +63,6 @@ cvar_t *cl_mumbleScale;
 cvar_t *cl_nodelta;
 
 cvar_t *cl_noprint;
-cvar_t *cl_motd;
 
 cvar_t *cl_timeout;
 cvar_t *cl_maxpackets;
@@ -128,8 +127,6 @@ cvar_t *j_up_axis;
 cvar_t *cl_activeAction;
 
 cvar_t *cl_autorecord;
-
-cvar_t *cl_motdString;
 
 cvar_t *cl_allowDownload;
 cvar_t *cl_inGameVideo;
@@ -996,51 +993,6 @@ void CL_ForwardCommandToServer( const char *string )
 }
 
 /*
-===================
-CL_RequestMotd
-
-===================
-*/
-void CL_RequestMotd()
-{
-	char info[ MAX_INFO_STRING ];
-
-	if ( !cl_motd->integer )
-	{
-		return;
-	}
-
-	Log::Debug( "Resolving %s", MASTER_SERVER_NAME );
-
-	switch ( NET_StringToAdr( MASTER_SERVER_NAME, &cls.updateServer,
-	                          netadrtype_t::NA_UNSPEC ) )
-	{
-		case 0:
-			Log::Notice("%s", "Couldn't resolve master address\n" );
-			return;
-
-		case 2:
-			cls.updateServer.port = BigShort( PORT_MASTER );
-
-		default:
-			break;
-	}
-
-	Log::Debug( "%s resolved to %s", MASTER_SERVER_NAME,
-	             NET_AdrToStringwPort( cls.updateServer ) );
-
-	info[ 0 ] = 0;
-
-	Com_sprintf( cls.updateChallenge, sizeof( cls.updateChallenge ),
-	             "%i", ( ( rand() << 16 ) ^ rand() ) ^ Com_Milliseconds() );
-
-	Info_SetValueForKey( info, "challenge", cls.updateChallenge, false );
-	Info_SetValueForKey( info, "version", com_version->string, false );
-
-	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, cls.updateServer, "getmotd%s", info );
-}
-
-/*
 ======================================================================
 
 CONSOLE COMMANDS
@@ -1170,9 +1122,6 @@ void CL_Connect_f()
 	Audio::StopAllSounds(); // NERVE - SMF
 
 	Cvar_Set( "ui_connecting", "1" );
-
-	// fire a message off to the motd server
-	CL_RequestMotd();
 
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
@@ -2316,14 +2265,16 @@ CL_ServersResponsePacket
 */
 void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 {
-	int      i, count, total;
+	int      i, count, duplicate_count, parsed_count, total;
 	netadr_t addresses[ MAX_SERVERSPERPACKET ];
 	int      numservers;
-	byte      *buffptr;
-	byte      *buffend;
+	byte     *buffptr;
+	byte     *buffend;
 	char     label[ MAX_FEATLABEL_CHARS ] = "";
 
 	Log::Debug( "CL_ServersResponsePacket" );
+
+	duplicate_count = 0;
 
 	if ( cls.numglobalservers == -1 )
 	{
@@ -2362,15 +2313,6 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 
 		if ( ind >= 0 )
 		{
-			// this denotes the start of new-syntax stuff
-			// have we already received this packet?
-			if ( cls.receivedMasterPackets & ( 1 << ( ind - 1 ) ) )
-			{
-				Log::Debug( "CL_ServersResponsePacket: "
-				             "received packet %d again, ignoring",
-				             ind );
-				return;
-			}
 
 			// TODO: detect dropped packets and make another
 			// request
@@ -2389,6 +2331,9 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 	while ( buffptr + 1 < buffend )
 	{
 		bool duplicate = false;
+		byte ip6[16];
+		byte ip[4];
+		short port;
 
 		// IPv4 address
 		if ( *buffptr == '\\' )
@@ -2400,22 +2345,35 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 				break;
 			}
 
-			for (unsigned i = 0; i < sizeof( addresses[ numservers ].ip ); i++ )
-			{
-				addresses[ numservers ].ip[ i ] = *buffptr++;
-			}
+			// parse out ip
+			memcpy( ip, buffptr, sizeof( ip ) );
+			buffptr += sizeof( ip );
 
 			// parse out port
-			addresses[ numservers ].port = ( *buffptr++ ) << 8;
-			addresses[ numservers ].port += *buffptr++;
-			addresses[ numservers ].port = BigShort( addresses[ numservers ].port );
+			port = ( *buffptr++ ) << 8;
+			port += *buffptr++;
+			port = BigShort( port );;
 
+			// deduplicate server list, do not add known server
+			for ( unsigned i = 0; i < cls.numglobalservers; i++ )
+			{
+				if ( cls.globalServers[ i ].adr.port == port && !memcmp( cls.globalServers[ i ].adr.ip, ip, sizeof( ip ) ) )
+				{
+					duplicate = true;
+					duplicate_count++;
+					break;
+				}
+			}
+
+			memcpy( addresses[ numservers ].ip, ip, sizeof( ip ) );
+
+			addresses[ numservers ].port = port;
 			addresses[ numservers ].type = netadrtype_t::NA_IP;
 
 			// look up this address in the links list
 			for (unsigned j = 0; j < cls.numserverLinks && !duplicate; ++j )
 			{
-				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port4 && !memcmp( addresses[ numservers ].ip, cls.serverLinks[ j ].ip, 4 ) )
+				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port4 && !memcmp( addresses[ numservers ].ip, cls.serverLinks[ j ].ip, sizeof( addresses[ numservers ].ip ) ) )
 				{
 					// found it, so look up the corresponding address
 					char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
@@ -2435,6 +2393,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 							addresses[ i ].type = NET_TYPE( cls.serverLinks[ j ].type );
 							addresses[ i ].port = ( addresses[ i ].type == netadrtype_t::NA_IP ) ? cls.serverLinks[ j ].port4 : cls.serverLinks[ j ].port6;
 							duplicate = true;
+							duplicate_count++;
 							break;
 						}
 					}
@@ -2456,18 +2415,36 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 				addresses[ numservers ].ip6[ i ] = *buffptr++;
 			}
 
-			// parse out port
-			addresses[ numservers ].port = ( *buffptr++ ) << 8;
-			addresses[ numservers ].port += *buffptr++;
-			addresses[ numservers ].port = BigShort( addresses[ numservers ].port );
+			// parse out ip
+			memcpy( ip6, buffptr, sizeof( ip6 ) );
+			buffptr += sizeof( ip6 );
 
+			// parse out port
+			port = ( *buffptr++ ) << 8;
+			port += *buffptr++;
+			port = BigShort( port );;
+
+			// deduplicate server list, do not add known server
+			for ( unsigned i = 0; i < cls.numglobalservers; i++ )
+			{
+				if ( cls.globalServers[ i ].adr.port == port && !memcmp( cls.globalServers[ i ].adr.ip6, ip6, sizeof( ip6 ) ) )
+				{
+					duplicate = true;
+					duplicate_count++;
+					break;
+				}
+			}
+
+			memcpy( addresses[ numservers ].ip6, ip6, sizeof( ip6 ) );
+
+			addresses[ numservers ].port = port;
 			addresses[ numservers ].type = netadrtype_t::NA_IP6;
 			addresses[ numservers ].scope_id = from->scope_id;
 
 			// look up this address in the links list
 			for ( unsigned j = 0; j < cls.numserverLinks && !duplicate; ++j )
 			{
-				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port6 && !memcmp( addresses[ numservers ].ip6, cls.serverLinks[ j ].ip6, 16 ) )
+				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port6 && !memcmp( addresses[ numservers ].ip6, cls.serverLinks[ j ].ip6, sizeof( addresses[ numservers ].ip6 ) ) )
 				{
 					// found it, so look up the corresponding address
 					char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
@@ -2487,6 +2464,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 							addresses[ i ].type = NET_TYPE( cls.serverLinks[ j ].type );
 							addresses[ i ].port = ( addresses[ i ].type == netadrtype_t::NA_IP ) ? cls.serverLinks[ j ].port4 : cls.serverLinks[ j ].port6;
 							duplicate = true;
+							duplicate_count++;
 							break;
 						}
 					}
@@ -2542,8 +2520,9 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 
 	cls.numglobalservers = count;
 	total = count + cls.numGlobalServerAddresses;
+	parsed_count = numservers + duplicate_count;
 
-	Log::Debug( "%d servers parsed (total %d)", numservers, total );
+	Log::Debug( "%d servers parsed, %s new, %d duplicate (total %d)", parsed_count, numservers, duplicate_count, total );
 }
 
 /*
@@ -3287,7 +3266,6 @@ void CL_Init()
 	// register our variables
 	//
 	cl_noprint = Cvar_Get( "cl_noprint", "0", 0 );
-	cl_motd = Cvar_Get( "cl_motd", "1", 0 );
 
 	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
 
@@ -3354,8 +3332,6 @@ void CL_Init()
 	j_forward_axis = Cvar_Get( "j_forward_axis", "1", 0 );
 	j_side_axis = Cvar_Get( "j_side_axis", "0", 0 );
 	j_up_axis = Cvar_Get( "j_up_axis", "2", 0 );
-
-	cl_motdString = Cvar_Get( "cl_motdString", "", CVAR_ROM );
 
 	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
@@ -4007,61 +3983,93 @@ CL_GlobalServers_f
 void CL_GlobalServers_f()
 {
 	netadr_t to;
-	int      count, i, masterNum;
+	int      count, i, masterNum, protocol;
 	char     command[ 1024 ], *masteraddress;
-	int      protocol = atoi( Cmd_Argv( 2 ) );   // Do this right away, otherwise weird things happen when you use the ingame "Get New Servers" button.
+	bool     wildcard = false;
+	bool     active_master_servers[MAX_MASTER_SERVERS] = { false, false, false, false, false };
 
-	if ( ( count = Cmd_Argc() ) < 2 || ( masterNum = atoi( Cmd_Argv( 1 ) ) ) < 0 || masterNum > MAX_MASTER_SERVERS - 1 )
+	count = Cmd_Argc();
+	protocol = atoi( Cmd_Argv( 2 ) );   // Do this right away, otherwise weird things happen when you use the ingame "Get New Servers" button.
+
+	if ( ! strcmp( Cmd_Argv( 1 ), "*" ) )
 	{
-		Cmd_PrintUsage("<master# 0-" XSTRING(MAX_MASTER_SERVERS - 1) "> [<protocol>] [<keywords>]", nullptr);
+		wildcard = true;
+		for ( masterNum = 0; masterNum < MAX_MASTER_SERVERS; masterNum++ )
+		{
+			active_master_servers[ masterNum ] = true;
+		}
+	}
+	else {
+		masterNum = atoi( Cmd_Argv( 1 ) );
+		active_master_servers[ masterNum ] = true;
+	}
+
+	if ( count < 2 || ( ( masterNum < 0 || masterNum > MAX_MASTER_SERVERS - 1 ) && !wildcard ) )
+	{
+		Cmd_PrintUsage("(<master# 0-" XSTRING(MAX_MASTER_SERVERS - 1) "> | *) [<protocol>] [<keywords>]", nullptr);
 		return;
 	}
 
-	sprintf( command, "sv_master%d", masterNum + 1 );
-	masteraddress = Cvar_VariableString( command );
-
-	if ( !*masteraddress )
+	for ( masterNum = 0; masterNum < MAX_MASTER_SERVERS; masterNum++ )
 	{
-		Log::Warn( "CL_GlobalServers_f: No master server address given.\n" );
-		return;
+		if ( !active_master_servers[ masterNum ] ) {
+			continue;
+		}
+
+		sprintf( command, "sv_master%d", masterNum + 1 );
+		masteraddress = Cvar_VariableString( command );
+
+		if ( !*masteraddress )
+		{
+			if ( !wildcard )
+			{
+				Log::Warn( "CL_GlobalServers_f: No master server address given.\n" );
+			}
+			continue;
+		}
+
+		Log::Debug( "CL_GlobalServers_f: Resolving %s", masteraddress );
+
+		// reset the list, waiting for response
+		// -1 is used to distinguish a "no response"
+
+		i = NET_StringToAdr( masteraddress, &to, netadrtype_t::NA_UNSPEC );
+
+		if ( !i )
+		{
+			Log::Warn( "CL_GlobalServers_f: Could not resolve address of master %s\n", masteraddress );
+			continue;
+		}
+		else if ( i == 2 )
+		{
+			to.port = BigShort( PORT_MASTER );
+		}
+
+		Log::Debug( "CL_GlobalServers_f: %s resolved to %s", masteraddress,
+		             NET_AdrToStringwPort( to ) );
+
+		Log::Debug( "CL_GlobalServers_f: Requesting servers from master %s…", masteraddress );
+
+		cls.numglobalservers = -1;
+		cls.numserverLinks = 0;
+		cls.pingUpdateSource = AS_GLOBAL;
+
+		Com_sprintf( command, sizeof( command ), "getserversExt %s %d dual",
+		             cl_gamename->string, protocol );
+
+		// TODO: test if we only have IPv4/IPv6, if so request only the relevant
+		// servers with getserversExt %s %d ipvX
+		// not that big a deal since the extra servers won't respond to getinfo
+		// anyway.
+
+		for ( i = 3; i < count; i++ )
+		{
+			Q_strcat( command, sizeof( command ), " " );
+			Q_strcat( command, sizeof( command ), Cmd_Argv( i ) );
+		}
+
+		Net::OutOfBandPrint( netsrc_t::NS_SERVER, to, "%s", command );
 	}
-
-	// reset the list, waiting for response
-	// -1 is used to distinguish a "no response"
-
-	i = NET_StringToAdr( masteraddress, &to, netadrtype_t::NA_UNSPEC );
-
-	if ( !i )
-	{
-		Log::Warn( "CL_GlobalServers_f: could not resolve address of master %s\n", masteraddress );
-		return;
-	}
-	else if ( i == 2 )
-	{
-		to.port = BigShort( PORT_MASTER );
-	}
-
-	Log::Debug( "Requesting servers from master %s…", masteraddress );
-
-	cls.numglobalservers = -1;
-	cls.numserverLinks = 0;
-	cls.pingUpdateSource = AS_GLOBAL;
-
-	Com_sprintf( command, sizeof( command ), "getserversExt %s %d dual",
-	             cl_gamename->string, protocol );
-	// TODO: test if we only have IPv4/IPv6, if so request only the relevant
-	// servers with getserversExt %s %d ipvX
-	// not that big a deal since the extra servers won't respond to getinfo
-	// anyway.
-
-	for ( i = 3; i < count; i++ )
-	{
-		Q_strcat( command, sizeof( command ), " " );
-		Q_strcat( command, sizeof( command ), Cmd_Argv( i ) );
-	}
-
-	Net::OutOfBandPrint( netsrc_t::NS_SERVER, to, "%s", command );
-	CL_RequestMotd();
 }
 
 /*

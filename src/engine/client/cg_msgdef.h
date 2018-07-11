@@ -140,7 +140,6 @@ enum cgameImport_t
   CG_GETTEXT_PLURAL,
   CG_NOTIFY_TEAMCHANGE,
   CG_PREPAREKEYUP,
-  CG_GETNEWS,
 
   // Sound
   CG_S_STARTSOUND,
@@ -293,10 +292,6 @@ using NotifyTeamChangeMsg = IPC::SyncMessage<
 >;
 using PrepareKeyUpMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_PREPAREKEYUP>>
->;
-using GetNewsMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_GETNEWS>, bool>,
-	IPC::Reply<bool>
 >;
 
 using SendMessageMsg = IPC::Message<IPC::Id<VM::QVM, CG_SEND_MESSAGE>, std::vector<uint8_t>>;

@@ -146,8 +146,6 @@ NET
 
 #define PORT_ANY            0
 
-#define MAX_MASTER_SERVERS  5
-
 // RF, increased this, seems to keep causing problems when set to 64, especially when loading
 // a savegame, which is hard to fix on that side, since we can't really spread out a loadgame
 // among several frames
@@ -289,7 +287,6 @@ You or the server may be running older versions of the game."
 #define URI_SCHEME_LENGTH      ( ARRAY_LEN( URI_SCHEME ) - 1 )
 
 #define PORT_MASTER             27950
-#define PORT_MOTD               27950
 #define PORT_SERVER             27960
 #define NUM_SERVER_PORTS        4 // broadcast scan this many ports after
 // PORT_SERVER so a single machine can
@@ -644,6 +641,8 @@ extern cvar_t       *sv_paused;
 
 extern cvar_t       *cl_packetdelay;
 extern cvar_t       *sv_packetdelay;
+
+extern cvar_t       *sv_master[ MAX_MASTER_SERVERS ];
 
 // com_speeds times
 extern int          time_game;
