@@ -237,12 +237,6 @@ namespace VM {
     // Common common QVM syscalls
     void CommonVMServices::HandleCommonQVMSyscall(int minor, Util::Reader& reader, IPC::Channel& channel) {
         switch (minor) {
-            case QVM_COMMON_PRINT:
-                IPC::HandleMsg<PrintMsg>(channel, std::move(reader), [this](const std::string& text) {
-                    Log::Notice(text.c_str());
-                });
-                break;
-
             case QVM_COMMON_ERROR:
                 IPC::HandleMsg<ErrorMsg>(channel, std::move(reader), [this](const std::string& text) {
                     Sys::Drop("%s VM: %s", vmName, text);
