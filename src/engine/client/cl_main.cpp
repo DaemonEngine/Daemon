@@ -323,7 +323,7 @@ void CL_StopRecord()
     clc.demorecording = false;
     Cvar::SetValueForce(cvar_demo_status_isrecording.Name(), "0");
     Cvar::SetValueForce(cvar_demo_status_filename.Name(), "");
-    Log::Notice("%s", "Stopped demo." );
+    Log::Notice("Stopped demo." );
 }
 
 class DemoRecordStopCmd: public Cmd::StaticCmd
@@ -337,7 +337,7 @@ public:
     {
         if ( !clc.demorecording )
         {
-            Log::Notice("%s", "Not recording a demo." );
+            Log::Notice("Not recording a demo." );
             return;
         }
         CL_StopRecord();
@@ -596,7 +596,7 @@ void CL_ReadDemoMessage()
 
 	if ( r != buf.cursize )
 	{
-		Log::Notice("%s", "Demo file was truncated.");
+		Log::Notice("Demo file was truncated.");
 		CL_DemoCompleted();
 		return;
 	}
@@ -892,7 +892,7 @@ void CL_Disconnect( bool showMainMenu )
 
 	if ( cl_useMumble->integer && mumble_islinked() )
 	{
-		Log::Notice("%s", "Mumble: Unlinking from Mumble application\n" );
+		Log::Notice("Mumble: Unlinking from Mumble application" );
 		mumble_unlink();
 	}
 
@@ -1010,7 +1010,7 @@ void CL_ForwardToServer_f()
 {
 	if ( cls.state != connstate_t::CA_ACTIVE || clc.demoplaying )
 	{
-		Log::Notice("%s", "Not connected to a server.\n" );
+		Log::Notice("Not connected to a server." );
 		return;
 	}
 
@@ -1041,11 +1041,11 @@ void CL_Reconnect_f()
 {
 	if ( !*cls.servername )
 	{
-		Log::Notice("%s", "Can't reconnect to nothing.\n" );
+		Log::Notice("Can't reconnect to nothing." );
 	}
 	else if ( !*cls.reconnectCmd )
 	{
-		Log::Notice("%s", "Can't reconnect to localhost.\n" );
+		Log::Notice("Can't reconnect to localhost." );
 	}
 	else
 	{
@@ -1142,7 +1142,7 @@ void CL_Connect_f()
 
 	if ( !NET_StringToAdr( cls.servername, &clc.serverAddress, family ) )
 	{
-		Log::Notice("%s", "Bad server address\n" );
+		Log::Notice("Bad server address" );
 		cls.state = connstate_t::CA_DISCONNECTED;
 		Cvar_Set( "ui_connecting", "0" );
 		return;
@@ -1468,7 +1468,7 @@ static void CL_GenerateRSAKeys( const char *fileName )
 	FS_FCloseFile( f );
 
 	nettle_buffer_clear( &key_buffer );
-	Log::Notice( "%s", "Daemon RSA keys generated\n"  );
+	Log::Notice( "Daemon RSA keys generated" );
 }
 
 /*
@@ -1515,7 +1515,7 @@ static void CL_LoadRSAKeys()
 	}
 
 	Z_Free( buf );
-	Log::Notice( "%s", "Daemon RSA public-key found." );
+	Log::Notice( "Daemon RSA public-key found." );
 }
 
 static void CL_ClearRSAKeys()
@@ -1637,7 +1637,7 @@ void CL_Configstrings_f()
 
 	if ( cls.state != connstate_t::CA_ACTIVE )
 	{
-		Log::Notice("%s", "Not connected to a server.\n" );
+		Log::Notice("Not connected to a server." );
 		return;
 	}
 
@@ -1659,12 +1659,12 @@ CL_Clientinfo_f
 */
 void CL_Clientinfo_f()
 {
-	Log::Notice("%s",  "--------- Client Information ---------" );
+	Log::Notice( "--------- Client Information ---------" );
 	Log::Notice( "state: %s", Util::enum_str(cls.state));
 	Log::Notice( "Server: %s", cls.servername );
-	Log::Notice("%s", "User info settings:" );
+	Log::Notice("User info settings:" );
 	Info_Print( Cvar_InfoString( CVAR_USERINFO, false ) );
-	Log::Notice("%s", "--------------------------------------" );
+	Log::Notice("--------------------------------------" );
 }
 
 
@@ -1686,7 +1686,7 @@ public:
 
         if ( !clc.demoplaying )
         {
-            Log::Notice("%s", "The demo_video command can only be used when playing back demos");
+            Log::Notice("The demo_video command can only be used when playing back demos");
             return;
         }
 
@@ -2665,7 +2665,7 @@ void CL_ConnectionlessPacket( netadr_t from, msg_t *msg )
 	// prints a n error message returned by the server
 	if ( args.Argv(0) == "error" )
 	{
-		Log::Warn( "%s", MSG_ReadStringLine(msg) );
+		Log::Warn( MSG_ReadStringLine(msg) );
 		return;
 	}
 
@@ -3205,7 +3205,7 @@ bool CL_InitRef( )
 
 	ri.Bot_DrawDebugMesh = BotDebugDrawMesh;
 
-	Log::Notice("%s", "Calling GetRefAPI…" );
+	Log::Notice("Calling GetRefAPI…" );
 	ret = GetRefAPI( REF_API_VERSION, &ri );
 
 	if ( !ret )
@@ -3829,7 +3829,7 @@ void CL_ServerStatusResponse( netadr_t from, msg_t *msg )
 
 	if ( serverStatus->print )
 	{
-		Log::Notice("%s", "Server settings:\n" );
+		Log::Notice("Server settings:" );
 
 		// print cvars
 		while ( *s )

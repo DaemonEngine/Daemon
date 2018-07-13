@@ -172,7 +172,7 @@ void Trans_Info( const std::string& str )
 {
 	if( trans_debug->integer != 0 )
 	{
-		LOG.Notice( "%s", str.c_str() );
+		LOG.Notice( str.c_str() );
 	}
 }
 
