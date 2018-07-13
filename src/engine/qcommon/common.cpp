@@ -260,7 +260,7 @@ void Info_Print( const char *s )
 			*o = 0;
 		}
 
-		Log::Notice( "%s", key );
+		Log::Notice( key );
 
 		if ( !*s )
 		{
@@ -1240,7 +1240,7 @@ void Com_Init( char *commandLine )
 	CL_StartHunkUsers();
 
 	com_fullyInitialized = true;
-	Log::Notice( "%s", "--- Common Initialization Complete ---" );
+	Log::Notice( "--- Common Initialization Complete ---" );
 
 	NET_Init();
 }

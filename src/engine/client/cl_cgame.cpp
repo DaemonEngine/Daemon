@@ -213,7 +213,7 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 		mpz_t        message;
 
 		if (argc == 1) {
-			Log::Notice("%s", "^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!\n");
+			Log::Notice("^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!\n");
 			return false;
 		}
 
@@ -824,7 +824,7 @@ void CL_FirstSnapshot()
 	if ( ( cl_useMumble->integer ) && !mumble_islinked() )
 	{
 		int ret = mumble_link( CLIENT_WINDOW_TITLE );
-		Log::Notice("%s", ret == 0 ? "Mumble: Linking to Mumble application okay\n" : "Mumble: Linking to Mumble application failed\n" );
+		Log::Notice(ret == 0 ? "Mumble: Linking to Mumble application okay" : "Mumble: Linking to Mumble application failed" );
 	}
 
 	// resend userinfo upon entering the game, as some cvars may
