@@ -107,22 +107,27 @@ namespace Log {
         }
     }
 
+    template <typename T>
+    static T GetCvarOrDie(Str::StringRef cvar) {
+        T value;
+        std::string valueString = Cvar::GetValue(cvar);
+        if (!Cvar::ParseCvarValue(valueString, value)) {
+            Sys::Error("Failed to deserialize cvar %s with value: %s", cvar, valueString);
+        }
+        return value;
+    }
     namespace {
         // Log-spam suppression: if more than MAX_OCCURRENCES log messages with the same format string
         // are sent in less than INTERVAL_MS milliseconds, they will stop being printed.
         // (Unless the spammy message desists long enough to be flushed out of the buffer: then it can
         // be printed again.)
         class LogSpamSuppressor {
-            static constexpr int INTERVAL_MS = 2000;
-            static constexpr int MAX_OCCURRENCES = 10;
-            static constexpr int BUFFER_SIZE = 50;
-
             struct MessageStatistics {
                 std::string messageFormat;
                 int numOccurrences;
-                int intervalStartTime = -2 * INTERVAL_MS;
+                int intervalStartTime = -2000000;
             };
-            MessageStatistics buf[BUFFER_SIZE];
+            std::vector<MessageStatistics> buf;
             std::mutex mutex;
         public:
             enum Result {
@@ -132,19 +137,23 @@ namespace Log {
             };
             Result UpdateAndEvaluate(Str::StringRef messageFormat) {
                 std::lock_guard<std::mutex> lock(mutex);
+                int intervalMs = GetCvarOrDie<int>("logs.suppression.interval");
+                int maxOccurrences = GetCvarOrDie<int>("logs.suppression.count");
+                int bufferSize = GetCvarOrDie<int>("logs.suppression.bufferSize");
+                buf.resize(bufferSize);
                 MessageStatistics* oldest = &buf[0];
                 int now = Sys::Milliseconds();
                 // Search for an existing entry. An entry is considered expired
                 // if it is both older than INTERVAL_MS and has less than MAX_OCCURRENCES.
                 for (MessageStatistics& stats : buf) {
-                    if ((stats.numOccurrences >= MAX_OCCURRENCES || stats.intervalStartTime > now - INTERVAL_MS)
+                    if ((stats.numOccurrences >= maxOccurrences || stats.intervalStartTime > now - intervalMs)
                         && stats.messageFormat == messageFormat) {
                         ++stats.numOccurrences;
-                        if (stats.numOccurrences < MAX_OCCURRENCES) {
+                        if (stats.numOccurrences < maxOccurrences) {
                             return OK;
                         }
                         stats.intervalStartTime = now;
-                        return stats.numOccurrences == MAX_OCCURRENCES ? LAST_CHANCE : KNOWN_SPAM;
+                        return stats.numOccurrences == maxOccurrences ? LAST_CHANCE : KNOWN_SPAM;
                     }
                     if (stats.intervalStartTime < oldest->intervalStartTime) {
                         oldest = &stats;
