@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Log {
 
+    static Cvar::Cvar<bool> suppressionEnabled(
+        "logs.suppression.enabled", "Whether to suppress log messages that are printed too many times", Cvar::NONE, true);
     static Cvar::Range<Cvar::Cvar<int>> suppressionInterval(
         "logs.suppression.interval", "Interval in milliseconds for detecting log spam", Cvar::NONE, 2000, 1, 1000000);
     static Cvar::Range<Cvar::Cvar<int>> suppressionCount(

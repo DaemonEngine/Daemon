@@ -170,6 +170,10 @@ namespace Log {
 
     void DispatchWithSuppression(std::string message, Log::Level level, Str::StringRef format) {
         static LogSpamSuppressor suppressor;
+        if (!GetCvarOrDie<bool>("logs.suppression.enabled")) {
+            DispatchByLevel(std::move(message), level);
+            return;
+        }
         switch (suppressor.UpdateAndEvaluate(format)) {
         case LogSpamSuppressor::LAST_CHANCE:
             message += " [further messages like this will be suppressed]";
