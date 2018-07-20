@@ -33,7 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Log {
 
     Logger::Logger(Str::StringRef name, std::string prefix, Level defaultLevel)
-    :filterLevel("logs.logLevel." + name, "Log::Level - logs from '" + name + "' below the level specified are filtered", 0, defaultLevel), prefix(prefix) {
+        : filterLevel(new Cvar::Cvar<Log::Level>(
+              "logs.logLevel." + name, "Log::Level - logs from '" + name + "' below the level specified are filtered", 0, defaultLevel)),
+          prefix(prefix), enableSuppression(true) {
     }
 
     std::string Logger::Prefix(std::string message) const {
@@ -42,6 +44,20 @@ namespace Log {
         } else {
             return prefix + " " + message;
         }
+    }
+
+    void Logger::Dispatch(std::string message, Log::Level level, Str::StringRef format) {
+        if (enableSuppression) {
+            Log::DispatchWithSuppression(std::move(message), level, format);
+        } else {
+            Log::DispatchByLevel(std::move(message), level);
+        }
+    }
+
+    Logger Logger::WithoutSuppression() {
+        Logger unsuppressed = *this;
+        unsuppressed.enableSuppression = false;
+        return unsuppressed;
     }
 
     Logger defaultLogger(VM_STRING_PREFIX "default", "", Level::NOTICE);
