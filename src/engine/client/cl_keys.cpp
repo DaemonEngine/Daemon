@@ -298,7 +298,7 @@ static void Console_Key( Keyboard::Key key )
 			consoleState.scrollLineIndex = consoleState.lines.size() - 1;
 		}
 
-		Log::Notice("]%s\n", Str::UTF32To8(g_consoleField.GetText()).c_str());
+		Log::CommandInteractionMessage(Str::Format("]%s", Str::UTF32To8(g_consoleField.GetText())));
 
 		// if not in the game always treat the input as a command
 		if (cls.state != connstate_t::CA_ACTIVE) {

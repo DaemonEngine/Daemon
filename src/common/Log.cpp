@@ -201,6 +201,10 @@ namespace Log {
             break;
         }
     }
+
+    void CommandInteractionMessage(std::string message) {
+        DispatchByLevel(std::move(message), Log::Level::NOTICE);
+    }
 } // namespace Log
 
 namespace Cvar {

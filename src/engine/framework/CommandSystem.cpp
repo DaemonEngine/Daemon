@@ -291,7 +291,7 @@ namespace Cmd {
     */
 
     void DefaultEnvironment::Print(Str::StringRef text) {
-        Log::DispatchByLevel(text, Log::Level::NOTICE);
+        Log::CommandInteractionMessage(text);
     }
 
     void DefaultEnvironment::ExecuteAfter(Str::StringRef text, bool parseCvars) {
