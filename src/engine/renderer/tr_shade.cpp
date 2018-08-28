@@ -2750,7 +2750,10 @@ void Tess_StageIteratorGeneric()
 					{
 						if ( r_precomputedLighting->integer || r_vertexLighting->integer )
 						{
-							if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
+							if ( tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP ) {
+								tess.lightmapNum = -1;
+							}
+							if ( !r_vertexLighting->integer && tess.lightmapNum >= -1 && tess.lightmapNum < tr.lightmaps.currentElements )
 							{
 								if ( tr.worldDeluxeMapping && r_normalMapping->integer )
 								{
