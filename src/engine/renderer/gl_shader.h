@@ -2030,6 +2030,7 @@ public:
 	void SetUniform_ColorModulate( colorGen_t colorGen, alphaGen_t alphaGen )
 	{
 		vec4_t v;
+		bool needAttrib = false;
 
 		if ( r_logFile->integer )
 		{
@@ -2039,17 +2040,16 @@ public:
 		switch ( colorGen )
 		{
 			case colorGen_t::CGEN_VERTEX:
-				_shader->AddVertexAttribBit( ATTR_COLOR );
+				needAttrib = true;
 				VectorSet( v, 1, 1, 1 );
 				break;
 
 			case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-				_shader->AddVertexAttribBit( ATTR_COLOR );
+				needAttrib = true;
 				VectorSet( v, -1, -1, -1 );
 				break;
 
 			default:
-				_shader->DelVertexAttribBit( ATTR_COLOR );
 				VectorSet( v, 0, 0, 0 );
 				break;
 		}
@@ -2057,12 +2057,12 @@ public:
 		switch ( alphaGen )
 		{
 			case alphaGen_t::AGEN_VERTEX:
-				_shader->AddVertexAttribBit( ATTR_COLOR );
+				needAttrib = true;
 				v[ 3 ] = 1.0f;
 				break;
 
 			case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-				_shader->AddVertexAttribBit( ATTR_COLOR );
+				needAttrib = true;
 				v[ 3 ] = -1.0f;
 				break;
 
@@ -2071,6 +2071,14 @@ public:
 				break;
 		}
 
+		if ( needAttrib )
+		{
+			_shader->AddVertexAttribBit( ATTR_COLOR );
+		}
+		else
+		{
+			_shader->DelVertexAttribBit( ATTR_COLOR );
+		}
 		this->SetValue( v );
 	}
 };
