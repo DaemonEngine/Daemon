@@ -2743,7 +2743,8 @@ void Tess_StageIteratorGeneric()
 					{
 						if ( r_precomputedLighting->integer || r_vertexLighting->integer )
 						{
-							if ( (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP) && tess.lightmapNum >= 0 )
+							if ( (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP) &&
+							     !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX) )
 							{
 								Render_lightMapping( stage, false, false, true );
 							}
