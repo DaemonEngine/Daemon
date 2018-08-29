@@ -357,11 +357,15 @@ ALIGNED( 16, shaderCommands_t tess );
 BindLightMap
 =================
 */
-static void BindLightMap( int tmu )
+static void BindLightMap( int tmu, bool whiteLight )
 {
 	image_t *lightmap;
 
-	if ( tr.fatLightmap )
+	if ( whiteLight )
+	{
+		lightmap = nullptr;
+	}
+	else if ( tr.fatLightmap )
 	{
 		lightmap = tr.fatLightmap;
 	}
@@ -1085,7 +1089,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping )
+static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping, bool whiteLight )
 {
 	shaderStage_t *pStage;
 	uint32_t      stateBits;
@@ -1236,7 +1240,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping 
 	}
 
 	// bind u_LightMap
-	BindLightMap( 3 );
+	BindLightMap( 3, whiteLight );
 
 	if ( glowMapping )
 	{
@@ -2735,7 +2739,7 @@ void Tess_StageIteratorGeneric()
 
 			case stageType_t::ST_LIGHTMAP:
 				{
-					Render_lightMapping( stage, true, false );
+					Render_lightMapping( stage, true, false, false );
 					break;
 				}
 
@@ -2750,18 +2754,19 @@ void Tess_StageIteratorGeneric()
 					{
 						if ( r_precomputedLighting->integer || r_vertexLighting->integer )
 						{
-							if ( tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP ) {
-								tess.lightmapNum = -1;
+							if ( tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP )
+							{
+								Render_lightMapping( stage, false, false, true );
 							}
-							if ( !r_vertexLighting->integer && tess.lightmapNum >= -1 && tess.lightmapNum < tr.lightmaps.currentElements )
+							else if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
 							{
 								if ( tr.worldDeluxeMapping && r_normalMapping->integer )
 								{
-									Render_lightMapping( stage, false, true );
+									Render_lightMapping( stage, false, true, false );
 								}
 								else
 								{
-									Render_lightMapping( stage, false, false );
+									Render_lightMapping( stage, false, false, false );
 								}
 							}
 							else if ( backEnd.currentEntity != &tr.worldEntity )
