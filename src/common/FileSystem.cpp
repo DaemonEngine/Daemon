@@ -1058,15 +1058,15 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 
 	if (pak.type == pakType_t::PAK_ZIP) {
 		if (!isLegacy) {
-			fsLogs.Notice("Loading pak '%s'...", pak.path.c_str());
+			fsLogs.WithoutSuppression().Notice("Loading pak '%s'...", pak.path.c_str());
 		} else {
-			fsLogs.Notice("Loading legacy pak '%s'...", pak.path.c_str());
+			fsLogs.WithoutSuppression().Notice("Loading legacy pak '%s'...", pak.path.c_str());
 		}
 	} else if (pak.type == pakType_t::PAK_DIR) {
 		if (!isLegacy) {
-			fsLogs.Notice("Loading pakdir '%s'...", pak.path.c_str());
+			fsLogs.WithoutSuppression().Notice("Loading pakdir '%s'...", pak.path.c_str());
 		} else {
-			fsLogs.Notice("Loading legacy pakdir '%s'...", pak.path.c_str());
+			fsLogs.WithoutSuppression().Notice("Loading legacy pakdir '%s'...", pak.path.c_str());
 		}
 	} else {
 		ASSERT_UNREACHABLE();

@@ -71,6 +71,10 @@ namespace Log {
      *
      * In addition the user/developer can control the filtering level with
      *   /set logs.logLevel.foo.bar {warning, info, verbose, debug}
+     *
+     * To intentionally print a message repeatedly at high volume without getting it blocked as
+     * log spam, do like thus:
+     * logger.WithoutSuppression().Notice("my message that prints every frame");
      */
 
     class Logger {
@@ -101,14 +105,20 @@ namespace Log {
             template<typename F>
             void DoDebugCode(F&& code);
 
+            Logger WithoutSuppression();
+
         private:
+            void Dispatch(std::string message, Log::Level level, Str::StringRef format);
+
             std::string Prefix(std::string message) const;
 
             // the cvar logs.logLevel.<name>
-            Cvar::Cvar<Level> filterLevel;
+            std::shared_ptr<Cvar::Cvar<Level>> filterLevel;
 
             // a prefix appended to all the messages of this logger
             std::string prefix;
+
+            bool enableSuppression;
     };
 
     /*
@@ -129,6 +139,13 @@ namespace Log {
 
     template<typename ... Args>
     void Debug(Str::StringRef format, Args&& ... args);
+
+    /*
+     * For messages which are not true log messages, but rather are produced by
+     * direct interaction of the user with the console command system.
+     * This should not be used outside of the command system implementation.
+     */
+    void CommandInteractionMessage(std::string message);
 
     /*
      * A log Event, sent to the log system along a list of targets to output
@@ -162,6 +179,10 @@ namespace Log {
     // Sends the message to the appropriate targets for the specified level.
     void DispatchByLevel(std::string message, Log::Level level);
 
+    // Forwards to DispatchByLevel if the log message is determined to be non-spammy.
+    // The format string is used to classify whether it is the same message repeated excessively.
+    void DispatchWithSuppression(std::string message, Log::Level level, Str::StringRef format);
+
     // Engine calls available everywhere
 
     void Dispatch(Log::Event event, int targetControl);
@@ -172,56 +193,56 @@ namespace Log {
 
     template<typename ... Args>
     void Logger::Warn(Str::StringRef format, Args&& ... args) {
-        if (filterLevel.Get() <= Level::WARNING) {
-            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::WARNING);
+        if (filterLevel->Get() <= Level::WARNING) {
+            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::WARNING, format);
         }
     }
 
     template<typename ... Args>
     void Logger::Notice(Str::StringRef format, Args&& ... args) {
-        if (filterLevel.Get() <= Level::NOTICE) {
-            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::NOTICE);
+        if (filterLevel->Get() <= Level::NOTICE) {
+            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::NOTICE, format);
         }
     }
 
     template<typename ... Args>
     void Logger::Verbose(Str::StringRef format, Args&& ... args) {
-        if (filterLevel.Get() <= Level::VERBOSE) {
-            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::VERBOSE);
+        if (filterLevel->Get() <= Level::VERBOSE) {
+            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::VERBOSE, format);
         }
     }
 
     template<typename ... Args>
     void Logger::Debug(Str::StringRef format, Args&& ... args) {
-        if (filterLevel.Get() <= Level::DEBUG) {
-            DispatchByLevel(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::DEBUG);
+        if (filterLevel->Get() <= Level::DEBUG) {
+            this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::DEBUG, format);
         }
     }
 
     template<typename F>
     inline void Logger::DoWarnCode(F&& code) {
-        if (filterLevel.Get() <= Level::WARNING) {
+        if (filterLevel->Get() <= Level::WARNING) {
             code();
         }
     }
 
     template<typename F>
     inline void Logger::DoNoticeCode(F&& code) {
-        if (filterLevel.Get() <= Level::NOTICE) {
+        if (filterLevel->Get() <= Level::NOTICE) {
             code();
         }
     }
 
     template<typename F>
     inline void Logger::DoVerboseCode(F&& code) {
-        if (filterLevel.Get() <= Level::VERBOSE) {
+        if (filterLevel->Get() <= Level::VERBOSE) {
             code();
         }
     }
 
     template<typename F>
     inline void Logger::DoDebugCode(F&& code) {
-        if (filterLevel.Get() <= Level::DEBUG) {
+        if (filterLevel->Get() <= Level::DEBUG) {
             code();
         }
     }

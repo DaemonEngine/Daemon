@@ -32,6 +32,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "SDL_syswm.h"
 #include "framework/CommandSystem.h"
 
+static Log::Logger logger("glconfig", "", Log::Level::NOTICE);
+
 SDL_Window         *window = nullptr;
 static SDL_GLContext glContext = nullptr;
 static int colorBits = 0;
@@ -76,13 +78,13 @@ GLimp_RenderThreadWrapper
 static int GLimp_RenderThreadWrapper( void* )
 {
 	// These printfs cause race conditions which mess up the console output
-	Log::Notice( "Render thread starting\n" );
+	logger.Notice( "Render thread starting\n" );
 
 	renderThreadFunction();
 
 	GLimp_SetCurrentContext( false );
 
-	Log::Notice( "Render thread terminating\n" );
+	logger.Notice( "Render thread terminating\n" );
 
 	return 0;
 }
@@ -98,13 +100,13 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( !warned )
 	{
-		Log::Warn( "You enable r_smp at your own risk!\n" );
+		logger.Warn( "You enable r_smp at your own risk!\n" );
 		warned = true;
 	}
 
 	if ( renderThread != nullptr ) /* hopefully just a zombie at this point... */
 	{
-		Log::Notice( "Already a render thread? Trying to clean it up...\n" );
+		logger.Notice( "Already a render thread? Trying to clean it up...\n" );
 		GLimp_ShutdownRenderThread();
 	}
 
@@ -112,7 +114,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( smpMutex == nullptr )
 	{
-		Log::Notice( "smpMutex creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "smpMutex creation failed: %s\n", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
@@ -121,7 +123,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( renderCommandsEvent == nullptr )
 	{
-		Log::Notice( "renderCommandsEvent creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "renderCommandsEvent creation failed: %s\n", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
@@ -130,7 +132,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( renderCompletedEvent == nullptr )
 	{
-		Log::Notice( "renderCompletedEvent creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "renderCompletedEvent creation failed: %s\n", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
@@ -140,7 +142,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( renderThread == nullptr )
 	{
-		Log::Notice("SDL_CreateThread() returned %s", SDL_GetError() );
+		logger.Notice("SDL_CreateThread() returned %s", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
@@ -279,7 +281,7 @@ void GLimp_RenderThreadWrapper( void* )
 
 bool GLimp_SpawnRenderThread( void ( * )() )
 {
-	Log::Warn("SMP support was disabled at compile time" );
+	logger.Warn("SMP support was disabled at compile time" );
 	return false;
 }
 
@@ -329,7 +331,7 @@ GLimp_Shutdown
 */
 void GLimp_Shutdown()
 {
-	Log::Debug("Shutting down OpenGL subsystem" );
+	logger.Debug("Shutting down OpenGL subsystem" );
 
 	ri.IN_Shutdown();
 
@@ -337,7 +339,7 @@ void GLimp_Shutdown()
 
 	if ( renderThread != nullptr )
 	{
-		Log::Notice( "Destroying renderer thread...\n" );
+		logger.Notice( "Destroying renderer thread...\n" );
 		GLimp_ShutdownRenderThread();
 	}
 
@@ -416,7 +418,7 @@ static void GLimp_DetectAvailableModes()
 
 	if ( SDL_GetWindowDisplayMode( window, &windowMode ) < 0 )
 	{
-		Log::Warn("Couldn't get window display mode: %s", SDL_GetError() );
+		logger.Warn("Couldn't get window display mode: %s", SDL_GetError() );
 		return;
 	}
 
@@ -431,7 +433,7 @@ static void GLimp_DetectAvailableModes()
 
 		if ( !mode.w || !mode.h )
 		{
-			Log::Notice("Display supports any resolution" );
+			logger.Notice("Display supports any resolution" );
 			return;
 		}
 
@@ -460,13 +462,13 @@ static void GLimp_DetectAvailableModes()
 		}
 		else
 		{
-			Log::Warn("Skipping mode %ux%x, buffer too small", modes[ i ].w, modes[ i ].h );
+			logger.Warn("Skipping mode %ux%x, buffer too small", modes[ i ].w, modes[ i ].h );
 		}
 	}
 
 	if ( *buf )
 	{
-		Log::Notice("Available modes: '%s'", buf );
+		logger.Notice("Available modes: '%s'", buf );
 		ri.Cvar_Set( "r_availableModes", buf );
 	}
 }
@@ -491,7 +493,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	int         GLmajor, GLminor;
 	int         GLEWmajor, GLEWminor, GLEWmicro;
 
-	Log::Notice("Initializing OpenGL display" );
+	logger.Notice("Initializing OpenGL display" );
 
 	if ( r_allowResize->integer )
 	{
@@ -526,16 +528,16 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	{
 		displayAspect = ( float ) desktopMode.w / ( float ) desktopMode.h;
 
-		Log::Notice("Display aspect: %.3f", displayAspect );
+		logger.Notice("Display aspect: %.3f", displayAspect );
 	}
 	else
 	{
 		Com_Memset( &desktopMode, 0, sizeof( SDL_DisplayMode ) );
 
-		Log::Notice("Cannot determine display aspect (%s), assuming 1.333", SDL_GetError() );
+		logger.Notice("Cannot determine display aspect (%s), assuming 1.333", SDL_GetError() );
 	}
 
-	Log::Notice("...setting mode %d:", mode );
+	logger.Notice("...setting mode %d:", mode );
 
 	if ( mode == -2 )
 	{
@@ -549,25 +551,25 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 		{
 			glConfig.vidWidth = 640;
 			glConfig.vidHeight = 480;
-			Log::Notice("Cannot determine display resolution, assuming 640x480" );
+			logger.Notice("Cannot determine display resolution, assuming 640x480" );
 		}
 
 		glConfig.windowAspect = ( float ) glConfig.vidWidth / ( float ) glConfig.vidHeight;
 	}
 	else if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, &glConfig.windowAspect, mode ) )
 	{
-		Log::Notice(" invalid mode" );
+		logger.Notice(" invalid mode" );
 		return rserr_t::RSERR_INVALID_MODE;
 	}
 
-	Log::Notice(" %d %d", glConfig.vidWidth, glConfig.vidHeight );
+	logger.Notice(" %d %d", glConfig.vidWidth, glConfig.vidHeight );
 	Cvar_Set( "r_customwidth", va("%d", glConfig.vidWidth ) );
 	Cvar_Set( "r_customheight", va("%d", glConfig.vidHeight ) );
 
 	sscanf( ( const char * ) glewGetString( GLEW_VERSION ), "%d.%d.%d",
 		&GLEWmajor, &GLEWminor, &GLEWmicro );
 	if( GLEWmajor < 2 ) {
-		Log::Warn( "GLEW version < 2.0.0 doesn't support GL core profiles" );
+		logger.Warn( "GLEW version < 2.0.0 doesn't support GL core profiles" );
 	}
 
 	do
@@ -581,7 +583,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 		if ( window != nullptr )
 		{
 			SDL_GetWindowPosition( window, &x, &y );
-			Log::Debug("Existing window at %dx%d before being destroyed", x, y );
+			logger.Debug("Existing window at %dx%d before being destroyed", x, y );
 			SDL_DestroyWindow( window );
 			window = nullptr;
 		}
@@ -701,7 +703,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 
 			if ( !window )
 			{
-				Log::Warn("SDL_CreateWindow failed: %s\n", SDL_GetError() );
+				logger.Warn("SDL_CreateWindow failed: %s\n", SDL_GetError() );
 				continue;
 			}
 
@@ -711,7 +713,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 
 			if ( !glContext )
 			{
-				Log::Warn("SDL_GL_CreateContext failed: %s\n", SDL_GetError() );
+				logger.Warn("SDL_GL_CreateContext failed: %s\n", SDL_GetError() );
 				continue;
 			}
 			SDL_GL_SetSwapInterval( r_swapInterval->integer );
@@ -721,7 +723,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 			glConfig.stencilBits = stencilBits;
 			glConfig2.glCoreProfile = testCore;
 
-			Log::Notice("Using %d Color bits, %d depth, %d stencil display.",
+			logger.Notice("Using %d Color bits, %d depth, %d stencil display.",
 				glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );
 
 			break;
@@ -745,7 +747,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	}
 	else
 	{
-		Log::Notice("Using GLEW %s", glewGetString( GLEW_VERSION ) );
+		logger.Notice("Using GLEW %s", glewGetString( GLEW_VERSION ) );
 	}
 
 	sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
@@ -758,17 +760,17 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	if ( GLmajor < 3 || ( GLmajor == 3 && GLminor < 2 ) )
 	{
 		// shaders are supported, but not all GL3.x features
-		Log::Notice("Using enhanced (GL3) Renderer in GL 2.x mode..." );
+		logger.Notice("Using enhanced (GL3) Renderer in GL 2.x mode..." );
 	}
 	else
 	{
-		Log::Notice("Using enhanced (GL3) Renderer in GL 3.x mode..." );
+		logger.Notice("Using enhanced (GL3) Renderer in GL 3.x mode..." );
 		glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
 	}
 	GLimp_DetectAvailableModes();
 
 	glstring = ( char * ) glGetString( GL_RENDERER );
-	Log::Notice("GL_RENDERER: %s", glstring );
+	logger.Notice("GL_RENDERER: %s", glstring );
 
 	return rserr_t::RSERR_OK;
 }
@@ -779,19 +781,19 @@ static void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool should
 	{
 		if ( ( int ) cv->value != cv->integer )
 		{
-			Log::Warn("cvar '%s' must be integral (%f)", cv->name, cv->value );
+			logger.Warn("cvar '%s' must be integral (%f)", cv->name, cv->value );
 			ri.Cvar_Set( cv->name, va( "%d", cv->integer ) );
 		}
 	}
 
 	if ( cv->value < minVal )
 	{
-		Log::Warn("cvar '%s' out of range (%f < %f)", cv->name, cv->value, minVal );
+		logger.Warn("cvar '%s' out of range (%f < %f)", cv->name, cv->value, minVal );
 		ri.Cvar_Set( cv->name, va( "%f", minVal ) );
 	}
 	else if ( cv->value > maxVal )
 	{
-		Log::Warn("cvar '%s' out of range (%f > %f)", cv->name, cv->value, maxVal );
+		logger.Warn("cvar '%s' out of range (%f > %f)", cv->name, cv->value, maxVal );
 		ri.Cvar_Set( cv->name, va( "%f", maxVal ) );
 	}
 }
@@ -811,12 +813,12 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 		SDL_version v;
 		SDL_GetVersion( &v );
 
-		Log::Notice("SDL_Init( SDL_INIT_VIDEO )... " );
-		Log::Notice("Using SDL Version %u.%u.%u", v.major, v.minor, v.patch );
+		logger.Notice("SDL_Init( SDL_INIT_VIDEO )... " );
+		logger.Notice("Using SDL Version %u.%u.%u", v.major, v.minor, v.patch );
 
 		if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE ) == -1 )
 		{
-			Log::Notice("SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) FAILED (%s)", SDL_GetError() );
+			logger.Notice("SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) FAILED (%s)", SDL_GetError() );
 			return false;
 		}
 
@@ -827,7 +829,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 			ri.Error( errorParm_t::ERR_FATAL, "No video driver initialized\n" );
 		}
 
-		Log::Notice("SDL using driver \"%s\"", driverName );
+		logger.Notice("SDL using driver \"%s\"", driverName );
 		ri.Cvar_Set( "r_sdlDriver", driverName );
 	}
 
@@ -842,7 +844,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 
 	if ( fullscreen && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
 	{
-		Log::Notice("Fullscreen not allowed with in_nograb 1" );
+		logger.Notice("Fullscreen not allowed with in_nograb 1" );
 		ri.Cvar_Set( "r_fullscreen", "0" );
 		r_fullscreen->modified = false;
 		fullscreen = false;
@@ -853,15 +855,15 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 	switch ( err )
 	{
 		case rserr_t::RSERR_INVALID_FULLSCREEN:
-			Log::Notice("...WARNING: fullscreen unavailable in this mode" );
+			logger.Notice("...WARNING: fullscreen unavailable in this mode" );
 			return false;
 
 		case rserr_t::RSERR_INVALID_MODE:
-			Log::Notice("...WARNING: could not set the given mode (%d)", mode );
+			logger.Notice("...WARNING: could not set the given mode (%d)", mode );
 			return false;
 
 		case rserr_t::RSERR_OLD_GL:
-			Log::Notice("...WARNING: OpenGL too old" );
+			logger.Notice("...WARNING: OpenGL too old" );
 			return false;
 
 		default:
@@ -947,7 +949,7 @@ static void DEBUG_CALLBACK_CALL GLimp_DebugCallback( GLenum, GLenum type, GLuint
 			break;
 	}
 
-	Log::Warn("%s: severity: %s msg: %s", debugTypeName, debugSeverity, message );
+	logger.Warn("%s: severity: %s msg: %s", debugTypeName, debugSeverity, message );
 }
 
 /*
@@ -960,11 +962,11 @@ static void RequireExt( bool hasExt, const char* name )
 {
 	if ( hasExt )
 	{
-		Log::Notice("...using GL_%s", name );
+		logger.WithoutSuppression().Notice("...using GL_%s", name );
 	}
 	else
 	{
-		Log::Notice("...GL_%s not found", name );
+		logger.WithoutSuppression().Notice("...GL_%s not found", name );
 	}
 }
 
@@ -974,17 +976,17 @@ static bool LoadExtWithCvar( bool hasExt, const char* name, bool cvarValue )
 	{
 		if ( cvarValue )
 		{
-			Log::Notice("...using GL_%s", name );
+			logger.WithoutSuppression().Notice("...using GL_%s", name );
 			return true;
 		}
 		else
 		{
-			Log::Notice("...ignoring GL_%s", name );
+			logger.WithoutSuppression().Notice("...ignoring GL_%s", name );
 		}
 	}
 	else
 	{
-		Log::Notice("...GL_%s not found", name );
+		logger.WithoutSuppression().Notice("...GL_%s not found", name );
 	}
 	return false;
 }
@@ -998,17 +1000,17 @@ static bool LoadCoreExtWithCvar(bool hasExt, const char* name, bool cvarValue)
 	{
 		if (cvarValue)
 		{
-			Log::Notice("...using GL_%s", name);
+			logger.WithoutSuppression().Notice("...using GL_%s", name);
 			return true;
 		}
 		else
 		{
-			Log::Notice("...ignoring GL_%s", name);
+			logger.WithoutSuppression().Notice("...ignoring GL_%s", name);
 		}
 	}
 	else
 	{
-		Log::Notice("...GL_%s not found", name);
+		logger.WithoutSuppression().Notice("...GL_%s not found", name);
 	}
 	return false;
 }
@@ -1020,7 +1022,7 @@ static bool LoadCoreExtWithCvar(bool hasExt, const char* name, bool cvarValue)
 
 static void GLimp_InitExtensions()
 {
-	Log::Notice("Initializing OpenGL extensions" );
+	logger.Notice("Initializing OpenGL extensions" );
 
 	if ( LOAD_EXTENSION_WITH_CVAR(ARB_debug_output, r_glDebugProfile) )
 	{
@@ -1043,11 +1045,11 @@ static void GLimp_InitExtensions()
 	int majorVersion, minorVersion;
 	if ( sscanf( glConfig2.shadingLanguageVersionString, "%i.%i", &majorVersion, &minorVersion ) != 2 )
 	{
-		Log::Warn("unrecognized shading language version string format" );
+		logger.Warn("unrecognized shading language version string format" );
 	}
 	glConfig2.shadingLanguageVersion = majorVersion * 100 + minorVersion;
 
-	Log::Notice("...found shading language version %i", glConfig2.shadingLanguageVersion );
+	logger.Notice("...found shading language version %i", glConfig2.shadingLanguageVersion );
 
 	// Texture formats and compression
 	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
@@ -1134,19 +1136,19 @@ static void GLimp_InitExtensions()
 
 		if ( !formats )
 		{
-			Log::Notice("...GL_ARB_get_program_binary found, but with no binary formats");
+			logger.Notice("...GL_ARB_get_program_binary found, but with no binary formats");
 			glConfig2.getProgramBinaryAvailable = false;
 		}
 		else
 		{
-			Log::Notice("...using GL_ARB_get_program_binary");
+			logger.Notice("...using GL_ARB_get_program_binary");
 			glConfig2.getProgramBinaryAvailable = true;
 		}
 	}
 	else
 #endif
 	{
-		Log::Notice("...GL_ARB_get_program_binary not found");
+		logger.Notice("...GL_ARB_get_program_binary not found");
 		glConfig2.getProgramBinaryAvailable = false;
 	}
 
@@ -1155,19 +1157,19 @@ static void GLimp_InitExtensions()
 	{
 		if ( r_arb_buffer_storage->integer )
 		{
-			Log::Notice("...using GL_ARB_buffer_storage" );
+			logger.Notice("...using GL_ARB_buffer_storage" );
 			glConfig2.bufferStorageAvailable = true;
 		}
 		else
 		{
-			Log::Notice("...ignoring GL_ARB_buffer_storage" );
+			logger.Notice("...ignoring GL_ARB_buffer_storage" );
 			glConfig2.bufferStorageAvailable = false;
 		}
 	}
 	else
 #endif
 	{
-		Log::Notice("...GL_ARB_buffer_storage not found" );
+		logger.Notice("...GL_ARB_buffer_storage not found" );
 		glConfig2.bufferStorageAvailable = false;
 	}
 
@@ -1194,7 +1196,7 @@ static void reportDriverType( bool force )
 	};
 	if (glConfig.driverType > glDriverType_t::GLDRV_UNKNOWN && (unsigned) glConfig.driverType < ARRAY_LEN( drivers ) )
 	{
-		Log::Notice("%s graphics driver class '%s'",
+		logger.Notice("%s graphics driver class '%s'",
 		           force ? "User has forced" : "Detected",
 		           drivers[Util::ordinal(glConfig.driverType)] );
 	}
@@ -1207,7 +1209,7 @@ static void reportHardwareType( bool force )
 	};
 	if (glConfig.hardwareType > glHardwareType_t::GLHW_UNKNOWN && (unsigned) glConfig.hardwareType < ARRAY_LEN( hardware ) )
 	{
-		Log::Notice("%s graphics hardware class '%s'",
+		logger.Notice("%s graphics hardware class '%s'",
 		           force ? "User has forced" : "Detected",
 		           hardware[Util::ordinal(glConfig.hardwareType)] );
 	}
@@ -1250,7 +1252,7 @@ bool GLimp_Init()
 	// Finally, try the default screen resolution
 	if ( r_mode->integer != R_MODE_FALLBACK )
 	{
-		Log::Notice("Setting r_mode %d failed, falling back on r_mode %d", r_mode->integer, R_MODE_FALLBACK );
+		logger.Notice("Setting r_mode %d failed, falling back on r_mode %d", r_mode->integer, R_MODE_FALLBACK );
 
 		if ( GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, false ) )
 		{
@@ -1482,7 +1484,7 @@ void GLimp_HandleCvars()
 
 		if ( r_fullscreen->integer && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
 		{
-			Log::Notice("Fullscreen not allowed with in_nograb 1" );
+			logger.Notice("Fullscreen not allowed with in_nograb 1" );
 			ri.Cvar_Set( "r_fullscreen", "0" );
 			r_fullscreen->modified = false;
 		}
