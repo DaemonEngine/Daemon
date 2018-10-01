@@ -346,6 +346,8 @@ protected:
 	}
 
 public:
+	virtual ~GLUniform() = default;
+
 	void SetFirewallIndex( size_t offSetValue )
 	{
 		_firewallIndex = offSetValue;

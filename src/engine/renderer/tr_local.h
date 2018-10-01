@@ -3729,6 +3729,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	};
 
 	struct RenderCommand {
+		virtual ~RenderCommand() = default;
+
 		// returns address of next command or nullptr
 		virtual const RenderCommand *ExecuteSelf() const = 0;
 	};

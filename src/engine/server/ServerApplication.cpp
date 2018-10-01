@@ -77,6 +77,6 @@ class ServerApplication : public Application {
         }
 };
 
-INSTANTIATE_APPLICATION(ServerApplication);
+INSTANTIATE_APPLICATION(ServerApplication)
 
 }

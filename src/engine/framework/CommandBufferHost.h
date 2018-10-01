@@ -39,6 +39,7 @@ namespace IPC {
     class CommandBufferHost {
         public:
             CommandBufferHost(std::string name);
+            virtual ~CommandBufferHost() = default;
 
             void Syscall(int index, Util::Reader& reader, IPC::Channel& channel);
             void Close();

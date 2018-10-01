@@ -120,6 +120,8 @@ namespace Cmd {
      */
     class CmdBase {
         public:
+            virtual ~CmdBase() = default;
+
             // Called when the command is run with the command line args
             virtual void Run(const Args& args) const = 0;
             // Called when the user wants to autocomplete a call to this command.
@@ -202,6 +204,8 @@ namespace Cmd {
      */
     class Environment {
         public:
+            virtual ~Environment() = default;
+
             virtual void Print(Str::StringRef text) = 0;
             virtual void ExecuteAfter(Str::StringRef text, bool parseCvars = false) = 0;
     };
