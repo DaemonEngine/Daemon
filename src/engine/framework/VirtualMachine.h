@@ -123,7 +123,7 @@ public:
 	}
 
 	// Make sure the VM is closed on exit
-	~VMBase()
+	virtual ~VMBase()
 	{
 		Free();
 	}

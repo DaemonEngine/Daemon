@@ -65,6 +65,7 @@ namespace Cvar {
     class CvarProxy {
         public:
             CvarProxy(std::string name, int flags, std::string defaultValue);
+            virtual ~CvarProxy() = default;
 
             // Called when the value of the cvar changes, returns success=true if the new value
             // is valid, false otherwise. If true is returned, the description will be the new

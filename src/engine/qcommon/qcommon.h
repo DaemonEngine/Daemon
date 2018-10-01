@@ -704,7 +704,7 @@ void     CL_Disconnect( bool showMainMenu );
 void     CL_SendDisconnect();
 void     CL_Shutdown();
 void     CL_Frame( int msec );
-namespace Keyboard { class Key; };
+namespace Keyboard { class Key; }
 void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
 
 void     CL_CharEvent( int c );

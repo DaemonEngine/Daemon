@@ -2356,7 +2356,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 			port = BigShort( port );;
 
 			// deduplicate server list, do not add known server
-			for ( unsigned i = 0; i < cls.numglobalservers; i++ )
+			for ( int i = 0; i < cls.numglobalservers; i++ )
 			{
 				if ( cls.globalServers[ i ].adr.port == port && !memcmp( cls.globalServers[ i ].adr.ip, ip, sizeof( ip ) ) )
 				{
@@ -2426,7 +2426,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 			port = BigShort( port );;
 
 			// deduplicate server list, do not add known server
-			for ( unsigned i = 0; i < cls.numglobalservers; i++ )
+			for ( int i = 0; i < cls.numglobalservers; i++ )
 			{
 				if ( cls.globalServers[ i ].adr.port == port && !memcmp( cls.globalServers[ i ].adr.ip6, ip6, sizeof( ip6 ) ) )
 				{
