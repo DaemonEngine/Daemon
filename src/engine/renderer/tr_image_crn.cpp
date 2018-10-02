@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-pedantic"
 #endif
-#include "crunch/crn_decomp.h"
+#include "crunch/inc/crn_decomp.h"
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif

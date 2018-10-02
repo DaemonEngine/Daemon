@@ -1,6 +1,6 @@
 set(CRUNCHLIST
-    ${LIB_DIR}/crunch/crn_decomp.h
-    ${LIB_DIR}/crunch/crnlib.h
+    ${LIB_DIR}/crunch/inc/crn_decomp.h
+    ${LIB_DIR}/crunch/inc/crnlib.h
 )
 
 set(DETOURLIST
