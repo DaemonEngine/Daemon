@@ -27,7 +27,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-pedantic"
 #endif
+
+// HACK: Try to crash less when asked to decode invalid inputs.
+class crnd_decompression_exception : public std::exception {};
+#define CRND_ASSERT(_exp) (!!(_exp) ? (void)0 : throw crnd_decompression_exception())
+
 #include "crunch/inc/crn_decomp.h"
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -97,7 +103,7 @@ bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *h
                 success = false;
                 break;
             }
-        } catch (const crnd::decompression_exception&) {
+        } catch (const crnd_decompression_exception&) {
             // Exception added as a hack to try and avoid crashing on files using the old format.
             // In general though, it seems the crunch library does not try to validate the files and may crash while decoding.
             success = false;
