@@ -357,11 +357,15 @@ ALIGNED( 16, shaderCommands_t tess );
 BindLightMap
 =================
 */
-static void BindLightMap( int tmu )
+static void BindLightMap( int tmu, bool whiteLight )
 {
 	image_t *lightmap;
 
-	if ( tr.fatLightmap )
+	if ( whiteLight )
+	{
+		lightmap = nullptr;
+	}
+	else if ( tr.fatLightmap )
 	{
 		lightmap = tr.fatLightmap;
 	}
@@ -1085,7 +1089,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping )
+static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping, bool whiteLight )
 {
 	shaderStage_t *pStage;
 	uint32_t      stateBits;
@@ -1236,7 +1240,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping 
 	}
 
 	// bind u_LightMap
-	BindLightMap( 3 );
+	BindLightMap( 3, whiteLight );
 
 	if ( glowMapping )
 	{
@@ -2402,13 +2406,13 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	switch ( pStage->rgbGen )
 	{
 		case colorGen_t::CGEN_IDENTITY:
+		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
 			{
 				tess.svars.color = Color::White;
 				break;
 			}
 
 		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
 			{
 				tess.svars.color = Color::Color();
 				break;
@@ -2454,7 +2458,6 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 					tess.svars.color.SetRed( 1.0 - Math::Clamp( backEnd.currentLight->l.color[ 0 ], 0.0f, 1.0f ) );
 					tess.svars.color.SetGreen( 1.0 - Math::Clamp( backEnd.currentLight->l.color[ 1 ], 0.0f, 1.0f ) );
 					tess.svars.color.SetBlue( 1.0 - Math::Clamp( backEnd.currentLight->l.color[ 2 ], 0.0f, 1.0f ) );
-					tess.svars.color.SetAlpha( 0.0 ); // FIXME
 				}
 				else if ( backEnd.currentEntity )
 				{
@@ -2488,7 +2491,6 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				glow = Com_Clamp( 0, 1, glow );
 
 				tess.svars.color = Color::White * glow;
-				tess.svars.color.SetAlpha( 1.0 );
 				break;
 			}
 
@@ -2536,20 +2538,14 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	{
 		default:
 		case alphaGen_t::AGEN_IDENTITY:
+		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
 			{
-				if ( pStage->rgbGen != colorGen_t::CGEN_IDENTITY )
-				{
-					if ( ( pStage->rgbGen == colorGen_t::CGEN_VERTEX && tr.identityLight != 1 ) || pStage->rgbGen != colorGen_t::CGEN_VERTEX )
-					{
-						tess.svars.color.SetAlpha( 1.0 );
-					}
-				}
+				tess.svars.color.SetAlpha( 1.0 );
 
 				break;
 			}
 
 		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
 			{
 				tess.svars.color.SetAlpha( 0.0 );
 				break;
@@ -2557,10 +2553,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 
 		case alphaGen_t::AGEN_CONST:
 			{
-				if ( pStage->rgbGen != colorGen_t::CGEN_CONST )
-				{
-					tess.svars.color.SetAlpha( pStage->constantColor.Alpha() * ( 1.0 / 255.0 ) );
-				}
+				tess.svars.color.SetAlpha( pStage->constantColor.Alpha() * ( 1.0 / 255.0 ) );
 
 				break;
 			}
@@ -2735,7 +2728,7 @@ void Tess_StageIteratorGeneric()
 
 			case stageType_t::ST_LIGHTMAP:
 				{
-					Render_lightMapping( stage, true, false );
+					Render_lightMapping( stage, true, false, false );
 					break;
 				}
 
@@ -2750,15 +2743,20 @@ void Tess_StageIteratorGeneric()
 					{
 						if ( r_precomputedLighting->integer || r_vertexLighting->integer )
 						{
-							if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
+							if ( (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP) &&
+							     !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX) )
+							{
+								Render_lightMapping( stage, false, false, true );
+							}
+							else if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
 							{
 								if ( tr.worldDeluxeMapping && r_normalMapping->integer )
 								{
-									Render_lightMapping( stage, false, true );
+									Render_lightMapping( stage, false, true, false );
 								}
 								else
 								{
-									Render_lightMapping( stage, false, false );
+									Render_lightMapping( stage, false, false, false );
 								}
 							}
 							else if ( backEnd.currentEntity != &tr.worldEntity )
