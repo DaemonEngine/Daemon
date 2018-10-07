@@ -46,6 +46,7 @@ Maryland 20850 USA.
 static cvar_t       *in_keyboardDebug = nullptr;
 
 static SDL_Joystick *stick = nullptr;
+static SDL_GameController *gamepad = nullptr;
 
 static bool     mouseAvailable = false;
 
@@ -58,10 +59,11 @@ static cvar_t       *in_joystickDebug = nullptr;
 static cvar_t       *in_joystickThreshold = nullptr;
 static cvar_t       *in_joystickNo = nullptr;
 static cvar_t       *in_joystickUseAnalog = nullptr;
+static cvar_t       *in_gameControllerTriggerDeadzone = nullptr;
 
-static cvar_t *in_xbox360Controller = nullptr;
-static cvar_t *in_xbox360ControllerAvailable = nullptr;
-static cvar_t *in_xbox360ControllerDebug = nullptr;
+static cvar_t *in_gameController = nullptr;
+static cvar_t *in_gameControllerAvailable = nullptr;
+static cvar_t *in_gameControllerDebug = nullptr;
 
 static SDL_Window *window = nullptr;
 
@@ -540,14 +542,13 @@ static void IN_InitJoystick()
 	stick = nullptr;
 	memset( &stick_state, '\0', sizeof( stick_state ) );
 
-	if ( !in_joystick->integer && !in_xbox360Controller->integer )
+	if ( !in_joystick->integer )
 	{
 		Log::Debug( "Joystick is not active." );
 
-		if ( !in_xbox360Controller->integer )
+		if ( !gamepad )
 		{
 			Log::Debug( "Gamepad is not active." );
-			Cvar_Set( "in_xbox360ControllerAvailable", "0" );
 		}
 
 		return;
@@ -591,6 +592,16 @@ static void IN_InitJoystick()
 		return;
 	}
 
+	if ( SDL_IsGameController( in_joystickNo->integer ) )
+	{
+		gamepad = SDL_GameControllerOpen( in_joystickNo->integer );
+		if ( gamepad )
+		{
+			Cvar_Set( "in_gameControllerAvailable", "1" );
+			SDL_GameControllerEventState( SDL_QUERY );
+		}
+	}
+
 	Log::Debug( "Joystick %d opened", in_joystickNo->integer );
 	Log::Debug( "Name:    %s", JoystickNameForIndex( in_joystickNo->integer ) );
 	Log::Debug( "Axes:    %d", SDL_JoystickNumAxes( stick ) );
@@ -598,18 +609,9 @@ static void IN_InitJoystick()
 	Log::Debug( "Buttons: %d", SDL_JoystickNumButtons( stick ) );
 	Log::Debug( "Balls: %d", SDL_JoystickNumBalls( stick ) );
 	Log::Debug( "Use Analog: %s", in_joystickUseAnalog->integer ? "Yes" : "No" );
+	Log::Debug( "Use SDL2 GameController mappings: %s", gamepad ? "Yes" : "No" );
 
 	SDL_JoystickEventState( SDL_QUERY );
-
-	// XBox 360 controller support
-	if ( !Q_stricmp( JoystickNameForIndex( in_joystickNo->integer ), "Microsoft X-Box 360 pad" ) )
-	{
-		Cvar_Set( "in_xbox360ControllerAvailable", "1" );
-	}
-	else
-	{
-		Cvar_Set( "in_xbox360ControllerAvailable", "0" );
-	}
 }
 
 /*
@@ -619,6 +621,11 @@ IN_ShutdownJoystick
 */
 static void IN_ShutdownJoystick()
 {
+	if ( gamepad )
+	{
+		SDL_GameControllerClose( gamepad );
+		gamepad = nullptr;
+	}
 	if ( stick )
 	{
 		SDL_JoystickClose( stick );
@@ -646,7 +653,6 @@ IN_JoyMove
 */
 static void IN_JoyMove()
 {
-	bool     joy_pressed[ ARRAY_LEN( joy_keys ) ];
 	unsigned int axes = 0;
 	unsigned int hats = 0;
 	int          total = 0;
@@ -657,14 +663,7 @@ static void IN_JoyMove()
 		return;
 	}
 
-	if ( !in_joystick->integer )
-	{
-		return;
-	}
-
 	SDL_JoystickUpdate();
-
-	memset( joy_pressed, '\0', sizeof( joy_pressed ) );
 
 	// update the ball state.
 	total = SDL_JoystickNumBalls( stick );
@@ -717,17 +716,7 @@ static void IN_JoyMove()
 
 			if ( pressed != stick_state.buttons[ i ] )
 			{
-				if ( in_xbox360ControllerAvailable->integer )
-				{
-					if ( i == 0 )
-					{
-						QueueKeyEvent( K_XBOX360_A, pressed );
-					}
-				}
-				else
-				{
-					QueueKeyEvent( Util::enum_cast<keyNum_t>(K_JOY1 + i), pressed );
-				}
+				QueueKeyEvent( Util::enum_cast<keyNum_t>(K_JOY1 + i), pressed );
 
 				stick_state.buttons[ i ] = pressed;
 			}
@@ -907,9 +896,9 @@ static void IN_JoyMove()
 	stick_state.oldaxes = axes;
 }
 
-static void IN_XBox360Axis( int controllerAxis, joystickAxis_t gameAxis, float scale )
+static void IN_GameControllerAxis( SDL_GameControllerAxis controllerAxis, joystickAxis_t gameAxis, float scale )
 {
-	Sint16 axis = SDL_JoystickGetAxis( stick, controllerAxis );
+	Sint16 axis = SDL_GameControllerGetAxis( gamepad, controllerAxis );
 	float  f = ( ( float ) axis ) / 32767.0f;
 
 	if ( f > -in_joystickThreshold->value && f < in_joystickThreshold->value )
@@ -918,35 +907,24 @@ static void IN_XBox360Axis( int controllerAxis, joystickAxis_t gameAxis, float s
 	}
 	else
 	{
-		if ( in_xbox360ControllerDebug->integer )
+		if ( in_gameControllerDebug->integer )
 		{
-			Log::Notice( "xbox axis %i = %f\n", controllerAxis, f );
+			Log::Notice( "GameController axis %i = %f\n", controllerAxis, f );
 		}
 
 		Com_QueueEvent( Util::make_unique<Sys::JoystickEvent>(Util::ordinal(gameAxis), static_cast<int>(f * scale)) );
 	}
 }
 
-static int IN_XBox360AxisToButton( int controllerAxis, keyNum_t key, float expectedStartValue, float threshold )
+static int IN_GameControllerAxisToButton( SDL_GameControllerAxis controllerAxis, keyNum_t key )
 {
 	using Keyboard::Key;
 	unsigned int axes = 0;
 
-	Sint16       axis = SDL_JoystickGetAxis( stick, controllerAxis );
+	Sint16       axis = SDL_GameControllerGetAxis( gamepad, controllerAxis );
 	float        f = ( ( float ) axis ) / 32767.0f;
 
-	/*
-	if(f < -in_joystickThreshold->value)
-	{
-	        axes |= (1 << (controllerAxis * 2));
-	}
-	else if(f > in_joystickThreshold->value)
-	{
-	        axes |= (1 << ((controllerAxis * 2) + 1));
-	}
-	*/
-
-	if ( f > ( expectedStartValue + threshold + in_joystickThreshold->value ) )
+	if ( f > in_gameControllerTriggerDeadzone->value )
 	{
 		axes |= ( 1 << ( controllerAxis ) );
 	}
@@ -954,20 +932,22 @@ static int IN_XBox360AxisToButton( int controllerAxis, keyNum_t key, float expec
 	if ( ( axes & ( 1 << controllerAxis ) ) && !( stick_state.oldaxes & ( 1 << controllerAxis ) ) )
 	{
 		QueueKeyEvent( key, true );
-
-		if ( in_xbox360ControllerDebug->integer )
+		if ( in_gameControllerDebug->integer )
 		{
-			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Keyboard::KeyToString( Key(key) ), f );
+			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f\n",
+						 SDL_GameControllerGetStringForAxis( controllerAxis ), key,
+						 Keyboard::KeyToString( Key(key) ), f );
 		}
 	}
 
 	if ( !( axes & ( 1 << controllerAxis ) ) && ( stick_state.oldaxes & ( 1 << controllerAxis ) ) )
 	{
 		QueueKeyEvent( key, false );
-
-		if ( in_xbox360ControllerDebug->integer )
+		if ( in_gameControllerDebug->integer )
 		{
-			Log::Notice( "xbox axis = %i to key = Q:0x%02x(%s), value = %f\n", controllerAxis, key, Keyboard::KeyToString( Key(key) ), f );
+			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f\n",
+						 SDL_GameControllerGetStringForAxis( controllerAxis ), key,
+						 Keyboard::KeyToString( Key(key) ), f );
 		}
 	}
 
@@ -976,227 +956,51 @@ static int IN_XBox360AxisToButton( int controllerAxis, keyNum_t key, float expec
 
 /*
 ===============
-IN_Xbox360ControllerMove
+IN_GameControllerMove
 ===============
 */
-static void IN_Xbox360ControllerMove()
+static void IN_GameControllerMove()
 {
 	using Keyboard::Key;
-	bool     joy_pressed[ ARRAY_LEN( joy_keys ) ];
 	unsigned int axes = 0;
-	unsigned int hat = 0;
-	int          total = 0;
 	int          i = 0;
 
-	if ( !stick )
+	if ( !gamepad )
 	{
 		return;
 	}
 
-	if ( !in_joystick->integer )
+	SDL_GameControllerUpdate();
+
+	for ( i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++ )
 	{
-		return;
-	}
+		bool pressed = SDL_GameControllerGetButton( gamepad, Util::enum_cast<SDL_GameControllerButton>(i) );
 
-	SDL_JoystickUpdate();
-
-	memset( joy_pressed, '\0', sizeof( joy_pressed ) );
-
-	// query the stick buttons...
-	total = SDL_JoystickNumButtons( stick );
-
-	if ( total > 0 )
-	{
-		if ( total > (int) ARRAY_LEN( stick_state.buttons ) )
+		if ( pressed != stick_state.buttons[ i ] )
 		{
-			total = ARRAY_LEN( stick_state.buttons );
-		}
+			QueueKeyEvent( Util::enum_cast<keyNum_t>(K_CONTROLLER_A + i), pressed );
 
-		for ( i = 0; i < total; i++ )
-		{
-			bool pressed = ( SDL_JoystickGetButton( stick, i ) != 0 );
-
-			if ( pressed != stick_state.buttons[ i ] )
+			if ( in_gameControllerDebug->integer )
 			{
-				QueueKeyEvent( Util::enum_cast<keyNum_t>(K_XBOX360_A + i), pressed );
-
-				if ( in_xbox360ControllerDebug->integer )
-				{
-					Log::Notice( "xbox button = %i to key = Q:0x%02x(%s)\n", i, K_XBOX360_A + i,
-					             Keyboard::KeyToString( Key( Util::enum_cast<keyNum_t>( K_XBOX360_A + i ) ) ) );
-				}
-
-				stick_state.buttons[ i ] = pressed;
+				Log::Notice( "GameController button %s = %s\n",
+							 SDL_GameControllerGetStringForButton( Util::enum_cast<SDL_GameControllerButton>(i) ),
+							 pressed ? "Pressed" : "Released" );
 			}
+
+			stick_state.buttons[ i ] = pressed;
 		}
 	}
 
-	// look at the hats...
-	total = SDL_JoystickNumHats( stick );
-	hat = SDL_JoystickGetHat( stick, 0 );
-
-	// update hat state
-	if ( hat != stick_state.oldhats )
-	{
-		keyNum_t key;
-
-		const int allHatDirections = ( SDL_HAT_UP |
-			                            SDL_HAT_RIGHT |
-			                            SDL_HAT_DOWN |
-			                            SDL_HAT_LEFT );
-
-		if ( in_xbox360ControllerDebug->integer )
-		{
-			switch ( hat & allHatDirections )
-			{
-				case SDL_HAT_UP:
-					key = K_XBOX360_DPAD_UP;
-					break;
-
-				case SDL_HAT_RIGHT:
-					key = K_XBOX360_DPAD_RIGHT;
-					break;
-
-				case SDL_HAT_DOWN:
-					key = K_XBOX360_DPAD_DOWN;
-					break;
-
-				case SDL_HAT_LEFT:
-					key = K_XBOX360_DPAD_LEFT;
-					break;
-
-				case SDL_HAT_RIGHTUP:
-					key = K_XBOX360_DPAD_RIGHTUP;
-					break;
-
-				case SDL_HAT_RIGHTDOWN:
-					key = K_XBOX360_DPAD_RIGHTDOWN;
-					break;
-
-				case SDL_HAT_LEFTUP:
-					key = K_XBOX360_DPAD_LEFTUP;
-					break;
-
-				case SDL_HAT_LEFTDOWN:
-					key = K_XBOX360_DPAD_LEFTDOWN;
-					break;
-
-				default:
-					key = (keyNum_t) 0;
-					break;
-			}
-
-			if ( hat != SDL_HAT_CENTERED )
-			{
-				Log::Notice( "xbox hat bits = %i to key = Q:0x%02x(%s)\n", hat, key, Keyboard::KeyToString( Key( key ) ) );
-			}
-		}
-
-		// release event
-		switch ( stick_state.oldhats & allHatDirections )
-		{
-			case SDL_HAT_UP:
-				QueueKeyEvent( K_XBOX360_DPAD_UP, false );
-				break;
-
-			case SDL_HAT_RIGHT:
-				QueueKeyEvent( K_XBOX360_DPAD_RIGHT, false );
-				break;
-
-			case SDL_HAT_DOWN:
-				QueueKeyEvent( K_XBOX360_DPAD_DOWN, false );
-				break;
-
-			case SDL_HAT_LEFT:
-				QueueKeyEvent( K_XBOX360_DPAD_LEFT, false );
-				break;
-
-			case SDL_HAT_RIGHTUP:
-				QueueKeyEvent( K_XBOX360_DPAD_RIGHTUP, false );
-				break;
-
-			case SDL_HAT_RIGHTDOWN:
-				QueueKeyEvent( K_XBOX360_DPAD_RIGHTDOWN, false );
-				break;
-
-			case SDL_HAT_LEFTUP:
-				QueueKeyEvent( K_XBOX360_DPAD_LEFTUP, false );
-				break;
-
-			case SDL_HAT_LEFTDOWN:
-				QueueKeyEvent( K_XBOX360_DPAD_LEFTDOWN, false );
-				break;
-
-			default:
-				break;
-		}
-
-		// press event
-		switch ( hat & allHatDirections )
-		{
-			case SDL_HAT_UP:
-				QueueKeyEvent( K_XBOX360_DPAD_UP, true );
-				break;
-
-			case SDL_HAT_RIGHT:
-				QueueKeyEvent( K_XBOX360_DPAD_RIGHT, true );
-				break;
-
-			case SDL_HAT_DOWN:
-				QueueKeyEvent( K_XBOX360_DPAD_DOWN, true );
-				break;
-
-			case SDL_HAT_LEFT:
-				QueueKeyEvent( K_XBOX360_DPAD_LEFT, true );
-				break;
-
-			case SDL_HAT_RIGHTUP:
-				QueueKeyEvent( K_XBOX360_DPAD_RIGHTUP, true );
-				break;
-
-			case SDL_HAT_RIGHTDOWN:
-				QueueKeyEvent( K_XBOX360_DPAD_RIGHTDOWN, true );
-				break;
-
-			case SDL_HAT_LEFTUP:
-				QueueKeyEvent( K_XBOX360_DPAD_LEFTUP, true );
-				break;
-
-			case SDL_HAT_LEFTDOWN:
-				QueueKeyEvent( K_XBOX360_DPAD_LEFTDOWN, true );
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	// save hat state
-	stick_state.oldhats = hat;
-
-#if defined( WIN32 )
 	// use left stick for strafing
-	IN_XBox360Axis( 0, joystickAxis_t::AXIS_SIDE, 127 );
-	IN_XBox360Axis( 1, joystickAxis_t::AXIS_FORWARD, -127 );
+	IN_GameControllerAxis( SDL_CONTROLLER_AXIS_LEFTX, joystickAxis_t::AXIS_SIDE, 127 );
+	IN_GameControllerAxis( SDL_CONTROLLER_AXIS_LEFTY, joystickAxis_t::AXIS_FORWARD, -127 );
 
 	// use right stick for viewing
-	IN_XBox360Axis( 4, joystickAxis_t::AXIS_YAW, -127 );
-	IN_XBox360Axis( 3, joystickAxis_t::AXIS_PITCH, 127 );
+	IN_GameControllerAxis( SDL_CONTROLLER_AXIS_RIGHTX, joystickAxis_t::AXIS_YAW, -127 );
+	IN_GameControllerAxis( SDL_CONTROLLER_AXIS_RIGHTY, joystickAxis_t::AXIS_PITCH, 127 );
 
-	axes |= IN_XBox360AxisToButton( 2, K_XBOX360_LT, -1, 0 );
-	axes |= IN_XBox360AxisToButton( 5, K_XBOX360_RT, -1, 0 );
-#else
-	// use left stick for strafing
-	IN_XBox360Axis( 0, joystickAxis_t::AXIS_SIDE, 127 );
-	IN_XBox360Axis( 1, joystickAxis_t::AXIS_FORWARD, -127 );
-
-	// use right stick for viewing
-	IN_XBox360Axis( 3, joystickAxis_t::AXIS_YAW, -127 );
-	IN_XBox360Axis( 4, joystickAxis_t::AXIS_PITCH, 127 );
-
-	axes |= IN_XBox360AxisToButton( 2, K_XBOX360_LT, -1, 0 );
-	axes |= IN_XBox360AxisToButton( 5, K_XBOX360_RT, -1, 0 );
-#endif
+	axes |= IN_GameControllerAxisToButton( SDL_CONTROLLER_AXIS_TRIGGERLEFT, K_CONTROLLER_LT );
+	axes |= IN_GameControllerAxisToButton( SDL_CONTROLLER_AXIS_TRIGGERRIGHT, K_CONTROLLER_RT );
 
 	/* Save for future generations. */
 	stick_state.oldaxes = axes;
@@ -1395,9 +1199,9 @@ static bool dropInput = false;
 
 void IN_Frame()
 {
-	if ( in_xbox360ControllerAvailable->integer )
+	if ( gamepad )
 	{
-		IN_Xbox360ControllerMove();
+		IN_GameControllerMove();
 	}
 	else
 	{
@@ -1465,10 +1269,11 @@ void IN_Init( void *windowData )
 	in_joystick = Cvar_Get( "in_joystick", "0",  CVAR_LATCH );
 	in_joystickDebug = Cvar_Get( "in_joystickDebug", "0", CVAR_TEMP );
 	in_joystickThreshold = Cvar_Get( "in_joystickThreshold", "0.15", 0 );
+	in_gameControllerTriggerDeadzone = Cvar_Get( "in_gameControllerTriggerDeadzone", "0.5", 0);
 
-	in_xbox360Controller = Cvar_Get( "in_xbox360Controller", "1", CVAR_TEMP );
-	in_xbox360ControllerAvailable = Cvar_Get( "in_xbox360ControllerAvailable", "0", CVAR_ROM );
-	in_xbox360ControllerDebug = Cvar_Get( "in_xbox360ControllerDebug", "0", CVAR_TEMP );
+	in_gameController = Cvar_Get( "in_gameController", "1", CVAR_TEMP );
+	in_gameControllerAvailable = Cvar_Get( "in_gameControllerAvailable", "0", CVAR_ROM );
+	in_gameControllerDebug = Cvar_Get( "in_gameControllerDebug", "0", CVAR_TEMP );
 	SDL_StartTextInput();
 	mouseAvailable = ( in_mouse->value != 0 );
 	IN_SetMouseMode( MouseMode::CustomCursor );

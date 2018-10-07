@@ -488,11 +488,11 @@ void CL_JoystickMove( usercmd_t *cmd )
 
 /*
 =================
-CL_Xbox360ControllerMove
+CL_GameControllerMove
 =================
 */
 
-void CL_Xbox360ControllerMove( usercmd_t *cmd )
+void CL_GameControllerMove( usercmd_t *cmd )
 {
 //	int     movespeed;
 	float anglespeed;
@@ -728,9 +728,9 @@ usercmd_t CL_CreateCmd()
 	CL_MouseMove( &cmd );
 
 	// get basic movement from joystick or controller
-	if ( cl_xbox360ControllerAvailable->integer )
+	if ( cl_gameControllerAvailable->integer )
 	{
-		CL_Xbox360ControllerMove( &cmd );
+		CL_GameControllerMove( &cmd );
 	}
 	else
 	{
