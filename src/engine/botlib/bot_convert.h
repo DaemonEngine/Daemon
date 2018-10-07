@@ -83,7 +83,7 @@ class rVec
 {
 	float v[ 3 ];
 public:
-	rVec() { }
+	rVec() = default;
 	rVec( float x, float y, float z );
 	rVec( const float vec[ 3 ] );
 	rVec( qVec vec );
