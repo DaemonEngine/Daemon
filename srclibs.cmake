@@ -127,20 +127,6 @@ set(PDCURSESLIST
     ${LIB_DIR}/pdcurses/win32a/pdcutil.c
 )
 
-set(RECASTLIST
-    ${LIB_DIR}/recast/ChunkyTriMesh.cpp
-    ${LIB_DIR}/recast/Recast.cpp
-    ${LIB_DIR}/recast/RecastAlloc.cpp
-    ${LIB_DIR}/recast/RecastArea.cpp
-    ${LIB_DIR}/recast/RecastContour.cpp
-    ${LIB_DIR}/recast/RecastFilter.cpp
-    ${LIB_DIR}/recast/RecastLayers.cpp
-    ${LIB_DIR}/recast/RecastMesh.cpp
-    ${LIB_DIR}/recast/RecastMeshDetail.cpp
-    ${LIB_DIR}/recast/RecastRasterization.cpp
-    ${LIB_DIR}/recast/RecastRegion.cpp
-)
-
 set(TINYFORMATLIST
     ${LIB_DIR}/tinyformat/tinyformat.h
 )
