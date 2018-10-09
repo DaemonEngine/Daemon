@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "client.h"
 #include "cg_msgdef.h"
 
+#include "key_identification.h"
 #include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 
@@ -53,14 +54,6 @@ Maryland 20850 USA.
 #define C__(x, y) Trans_PgettextGame(x, y)
 #define P__(x, y, c) Trans_GettextGamePlural(x, y, c)
 
-// NERVE - SMF
-void                   Key_GetBindingBuf( int keynum, int team, char *buf, int buflen );
-void                   Key_KeynumToStringBuf( int keynum, char *buf, int buflen );
-
-// -NERVE - SMF
-
-// ydnar: can we put this in a header, pls?
-void Key_GetBindingByString( const char *binding, int team, int *key1, int *key2 );
 
 /*
 ====================
@@ -321,7 +314,6 @@ CL_ShutdownCGame
 */
 void CL_ShutdownCGame()
 {
-	cls.keyCatchers &= ~KEYCATCH_CGAME;
 	cls.cgameStarted = false;
 
 	if ( !cgvm.IsActive() )
@@ -629,27 +621,6 @@ static int LAN_ServerIsVisible( int source, int n )
 	}
 
 	return false;
-}
-
-/*
- * ====================
- * Key_GetBindingBuf
- * ====================
- */
-void Key_GetBindingBuf( int keynum, int team, char *buf, int buflen )
-{
-	const char *value;
-
-	value = Key_GetBinding( keynum, team );
-
-	if ( value )
-	{
-		Q_strncpyz( buf, value, buflen );
-	}
-	else
-	{
-		*buf = 0;
-	}
 }
 
 /*
@@ -1080,7 +1051,7 @@ void  CL_OnTeamChanged( int newTeam )
 	Cvar_SetValue( p_team->name, newTeam );
 
 	/* set all team specific teambindinds */
-	Key_SetTeam( newTeam );
+	Keyboard::SetTeam( newTeam );
 
 	/*
 	 * execute a possibly team aware config each time the team was changed.
@@ -1136,7 +1107,7 @@ int CGameVM::CGameCrosshairPlayer()
 	return player;
 }
 
-void CGameVM::CGameKeyEvent(int key, bool down)
+void CGameVM::CGameKeyEvent(Keyboard::Key key, bool down)
 {
 	this->SendMsg<CGameKeyEventMsg>(key, down);
 }
@@ -1159,7 +1130,7 @@ void CGameVM::CGameFocusEvent(bool focus)
 
 void CGameVM::CGameTextInputEvent(int c)
 {
-	this->SendMsg<CGameTextInptEvent>(c);
+	this->SendMsg<CGameCharacterInputMsg>(c);
 }
 
 void CGameVM::CGameRocketInit()
@@ -1481,75 +1452,69 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		// All keys
 
 		case CG_KEY_GETCATCHER:
-			IPC::HandleMsg<Key::GetCatcherMsg>(channel, std::move(reader), [this] (int& catcher) {
+			IPC::HandleMsg<Keyboard::GetCatcherMsg>(channel, std::move(reader), [this] (int& catcher) {
 				catcher = Key_GetCatcher();
 			});
 			break;
 
 		case CG_KEY_SETCATCHER:
-			IPC::HandleMsg<Key::SetCatcherMsg>(channel, std::move(reader), [this] (int catcher) {
+			IPC::HandleMsg<Keyboard::SetCatcherMsg>(channel, std::move(reader), [this] (int catcher) {
 				Key_SetCatcher(catcher);
 			});
 			break;
 
-		case CG_KEY_GETKEYNUMFORBINDS:
-			IPC::HandleMsg<Key::GetKeynumForBindsMsg>(channel, std::move(reader), [this] (int team, const std::vector<std::string>& binds, std::vector<std::vector<int>>& result) {
-                for (const auto& bind : binds) {
-                    result.push_back({});
-                    for (int i = 0; i < Util::ordinal(keyNum_t::MAX_KEYS); i++) {
-                        char buffer[MAX_STRING_CHARS];
-
-                        Key_GetBindingBuf(i, team, buffer, MAX_STRING_CHARS);
-                        if (bind == buffer) {
-                            result.back().push_back(i);
-                            continue;
-                        }
-                        Key_GetBindingBuf(0, team, buffer, MAX_STRING_CHARS);
-                        if (bind == buffer) {
-                            result.back().push_back(i);
-                            continue;
-                        }
-                    }
-                }
+		case CG_KEY_GETKEYSFORBINDS:
+			IPC::HandleMsg<Keyboard::GetKeysForBindsMsg>(channel, std::move(reader), [this] (int team, const std::vector<std::string>& binds, std::vector<std::vector<Keyboard::Key>>& result) {
+				for (const auto& bind : binds) {
+					result.push_back(Keyboard::GetKeysBoundTo(team, bind));
+				}
 			});
 			break;
 
-		case CG_KEY_KEYNUMTOSTRINGBUF:
-			IPC::HandleMsg<Key::KeyNumToStringMsg>(channel, std::move(reader), [this] (int keynum, std::string& result) {
-				result = Key_KeynumToString(keynum);
+		case CG_KEY_GETCHARFORSCANCODE:
+			IPC::HandleMsg<Keyboard::GetCharForScancodeMsg>(channel, std::move(reader), [this] (int scancode, int& result) {
+				result = Keyboard::GetCharForScancode(scancode);
+				if (!result) {
+					// Not sure if this fallback is ever useful. Usually SDL falls back on QWERTY itself.
+					result = Keyboard::ScancodeToAscii(scancode);
+				}
 			});
 			break;
 
 		case CG_KEY_SETBINDING:
-			IPC::HandleMsg<Key::SetBindingMsg>(channel, std::move(reader), [this] (int keyNum, int team, std::string cmd) {
-				Key_SetBinding(keyNum, team, cmd.c_str());
+			IPC::HandleMsg<Keyboard::SetBindingMsg>(channel, std::move(reader), [this] (Keyboard::Key key, int team, std::string cmd) {
+				if (key.IsBindable()) {
+					Keyboard::SetBinding(key, team, std::move(cmd));
+				} else {
+					Log::Warn("Invalid key in SetBindingMsg");
+				}
 			});
 			break;
 
 		case CG_KEY_CLEARCMDBUTTONS:
-			IPC::HandleMsg<Key::ClearCmdButtonsMsg>(channel, std::move(reader), [this] {
+			IPC::HandleMsg<Keyboard::ClearCmdButtonsMsg>(channel, std::move(reader), [this] {
 				CL_ClearCmdButtons();
 			});
 			break;
 
 		case CG_KEY_CLEARSTATES:
-			IPC::HandleMsg<Key::ClearStatesMsg>(channel, std::move(reader), [this] {
+			IPC::HandleMsg<Keyboard::ClearStatesMsg>(channel, std::move(reader), [this] {
 				Key_ClearStates();
 			});
 			break;
 
 		case CG_KEY_KEYSDOWN:
-			IPC::HandleMsg<Key::KeysDownMsg>(channel, std::move(reader), [this] (std::vector<int> keys, std::vector<int>& list) {
+			IPC::HandleMsg<Keyboard::KeysDownMsg>(channel, std::move(reader), [this] (std::vector<Keyboard::Key> keys, std::vector<bool>& list) {
 				list.reserve(keys.size());
-				for (unsigned i = 0; i < keys.size(); ++i)
+				for (Keyboard::Key key : keys)
 				{
-					if (keys[i] == Util::ordinal(keyNum_t::K_KP_NUMLOCK))
+					if (key == Keyboard::Key(keyNum_t::K_KP_NUMLOCK))
 					{
 						list.push_back(IN_IsNumLockDown());
 					}
 					else
 					{
-						list.push_back(Key_IsDown( keys[i] ));
+						list.push_back(Keyboard::IsDown(key));
 					}
 				}
 			});

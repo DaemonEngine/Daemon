@@ -31,7 +31,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_SERIALIZATION_H_
 #define COMMON_SERIALIZATION_H_
 
+#include <limits>
+#include <map>
+#include <set>
+#include <string>
+#include <string.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include "IPC/Common.h"
+#include "Optional.h"
+#include "String.h"
 
 namespace Util {
 

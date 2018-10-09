@@ -71,11 +71,11 @@ namespace VM {
  * - Native exe: no sandboxing, no leaks, hard to debug. Might be used by server owners for perf.
  */
 enum vmType_t {
-	// Loads the VM as an nacl executable from the homepath, potentially from a pk3
+	// Loads the VM as an nacl executable from the homepath, potentially from a dpk
 	// USE THIS BY DEFAULT FOR PROD
 	TYPE_NACL,
 
-	// Loads the VM as an nacl executable from the libpath, for freshly compiled NaCl VMs (no need to put it in a pk3)
+	// Loads the VM as an nacl executable from the libpath, for freshly compiled NaCl VMs (no need to put it in a dpk)
 	TYPE_NACL_LIBPATH,
 
 	// Loads the VM as a native exe from the libpath

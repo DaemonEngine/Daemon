@@ -340,6 +340,9 @@ if (APPLE)
 endif()
 
 # Configuration specific definitions
-if (CMAKE_BUILD_TYPE STREQUAL Debug)
-    add_definitions(-DDEBUG_BUILD)
-endif()
+
+# This stupid trick to define THIS_IS_NOT_A_DEBUG_BUILD (rather than nothing) in the non-debug case
+# is so that it doesn't break the hacky gcc/clang PCH code which reads all the definitions
+# and prefixes "-D" to them.
+set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS
+             $<$<NOT:$<CONFIG:Debug>>:THIS_IS_NOT_A_>DEBUG_BUILD)

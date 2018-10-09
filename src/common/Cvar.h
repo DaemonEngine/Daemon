@@ -169,7 +169,8 @@ namespace Cvar {
 
     /*
      * Modified<CvarType> allow to query atomically if the cvar has been modified and the new value.
-     * (resets the modified flag to false)
+     * (GetModifiedValue() resets the modified flag to false.)
+     * The modified flag is set to true on construction (before the cvar has been read the first time).
      */
 
     template<typename Base> class Modified : public Base {
@@ -177,14 +178,13 @@ namespace Cvar {
             using value_type = typename Base::value_type;
 
             template<typename ... Args>
-            Modified(std::string name, std::string description, int flags, value_type defaultValue, Args ... args);
+            Modified(std::string name, std::string description, int flags, value_type defaultValue, Args&& ... args);
             template<typename ... Args>
-            Modified(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, Args ... args);
+            Modified(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, Args&& ... args);
 
             virtual OnValueChangedResult OnValueChanged(Str::StringRef newValue);
 
-            //TODO change it when we have optional
-            bool GetModifiedValue(value_type& value);
+            Util::optional<value_type> GetModifiedValue();
 
         private:
             bool modified;
@@ -199,9 +199,9 @@ namespace Cvar {
             using value_type = typename Base::value_type;
 
             template<typename ... Args>
-            Range(std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args ... args);
+            Range(std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args&& ... args);
             template<typename ... Args>
-            Range(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args ... args);
+            Range(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args&& ... args);
 
         private:
             virtual OnValueChangedResult Validate(const value_type& value);
@@ -348,15 +348,15 @@ namespace Cvar {
 
     template <typename Base>
     template <typename ... Args>
-    Modified<Base>::Modified(std::string name, std::string description, int flags, value_type defaultValue, Args ... args)
-    : Base(NoRegisterTag(), std::move(name), std::move(description), flags, std::move(defaultValue), std::forward<Args>(args) ...), modified(false) {
+    Modified<Base>::Modified(std::string name, std::string description, int flags, typename Modified<Base>::value_type defaultValue, Args&& ... args)
+    : Base(NoRegisterTag(), std::move(name), std::move(description), flags, std::move(defaultValue), std::forward<Args>(args) ...), modified(true) {
         Cvar<value_type>::Register();
     }
 
     template <typename Base>
     template <typename ... Args>
-    Modified<Base>::Modified(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, Args ... args)
-    : Base(NoRegisterTag(), std::move(name), std::move(description), flags, std::move(defaultValue), std::forward<Args>(args) ...), modified(false) {
+    Modified<Base>::Modified(NoRegisterTag, std::string name, std::string description, int flags, typename Modified<Base>::value_type defaultValue, Args&& ... args)
+    : Base(NoRegisterTag(), std::move(name), std::move(description), flags, std::move(defaultValue), std::forward<Args>(args) ...), modified(true) {
     }
 
     template <typename Base>
@@ -370,25 +370,26 @@ namespace Cvar {
     }
 
     template<typename Base>
-    bool Modified<Base>::GetModifiedValue(value_type& value) {
-        value = this->Get();
-        bool res = modified;
-        modified = false;
-        return res;
+    Util::optional<typename Modified<Base>::value_type> Modified<Base>::GetModifiedValue() {
+        if (modified) {
+            modified = false;
+            return {this->Get()};
+        }
+        return Util::nullopt;
     }
 
     // Range<Base>
 
     template <typename Base>
     template <typename ... Args>
-    Range<Base>::Range(std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args ... args)
+    Range<Base>::Range(std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args&& ... args)
     : Base(NoRegisterTag(), std::move(name), std::move(description), flags, std::move(defaultValue), std::forward<Args>(args) ...), min(min), max(max) {
         Cvar<value_type>::Register();
     }
 
     template <typename Base>
     template <typename ... Args>
-    Range<Base>::Range(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args ... args)
+    Range<Base>::Range(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args&& ... args)
     : Base(NoRegisterTag(), std::move(name), std::move(description), flags, std::move(defaultValue), std::forward<Args>(args) ...), min(min), max(max) {
     }
 

@@ -518,6 +518,14 @@ qhandle_t RE_RegisterAnimation( const char *name )
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
+	// do not try to load file for iqm animation name in the form of
+	//   models/players/level0/level0.iqm:stand
+	// since we know it's not a file and it's already loaded
+	if ( Q_stristr( name, ".iqm:" ) )
+	{
+		return 0;
+	}
+
 	// load and parse the .md5anim file
 	int bufferLen = ri.FS_ReadFile( name, ( void ** ) &buffer );
 

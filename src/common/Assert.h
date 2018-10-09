@@ -51,6 +51,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     - Use the assert information to help the compiler optimizer in release builds.
  */
 
+#ifdef DEBUG_BUILD
+#define DAEMON_ASSERTS_ENABLED
+#endif
+
 // MSVC triggers a warning in /W4 for do {} while(0). SDL worked around this by using
 // (0,0) and points out that it looks like an owl face.
 #if defined(_MSC_VER)
@@ -61,7 +65,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // DAEMON_ASSERT_CALLSITE_HELPER generates the actual assert code. In Debug it does what you would
 // expect of an assert and in release it tries to give hints to make the compiler generate better code.
-#if defined(DEBUG_BUILD)
+#ifdef DAEMON_ASSERTS_ENABLED
     #define DAEMON_ASSERT_CALLSITE_HELPER(file, func, line, _0, code, condition, message) \
         do { \
             code; \
@@ -110,38 +114,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         (a) == (b), \
         auto&& expected = (a); auto&& actual = (b), \
         expected == actual, \
-        Str::Format("\"%s == %s\" expected: %s, actual: %s", #a, #b, expected, actual) \
+        Str::Format("\"%s == %s\" expected: %s, actual: %s", #a, #b, AssertDetail::Printable(expected), AssertDetail::Printable(actual)) \
     );
 #define DAEMON_ASSERT_NQ(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) != (b), \
         auto&& notExpected = (a); auto&& actual = (b), \
         notExpected != actual, \
-        Str::Format("\"%s != %s\" not expected: %s, actual: %s", #a, #b, notExpected, actual) \
+        Str::Format("\"%s != %s\" not expected: %s, actual: %s", #a, #b, AssertDetail::Printable(notExpected), AssertDetail::Printable(actual)) \
     );
 
 #define DAEMON_ASSERT_LT(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) < (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound < actual, \
-        Str::Format("\"%s < %s\" bound: %s, actual: %s", #a, #b, a, b) \
+        Str::Format("\"%s < %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
     );
 #define DAEMON_ASSERT_LE(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) <= (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound <= actual, \
-        Str::Format("\"%s <= %s\" bound: %s, actual: %s", #a, #b, a, b) \
+        Str::Format("\"%s <= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
     );
 #define DAEMON_ASSERT_GT(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) > (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound > actual, \
-        Str::Format("\"%s > %s\" bound: %s, actual: %s", #a, #b, a, b) \
+        Str::Format("\"%s > %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
     );
 #define DAEMON_ASSERT_GE(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) >= (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound >= actual, \
-        Str::Format("\"%s >= %s\" bound: %s, actual: %s", #a, #b, a, b) \
+        Str::Format("\"%s >= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
     );
 
 #if !defined(DAEMON_SKIP_ASSERT_SHORTHANDS)
@@ -154,4 +158,44 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     #define ASSERT_GE DAEMON_ASSERT_GE
 #endif
 
-#endif // COMMON_ASEERT_H_
+// You can put ASSERT_UNREACHABLE() in places that must never be reached.
+#define ASSERT_UNREACHABLE() DAEMON_ASSERT_CALLSITE(false, , false, "Unreachable code hit."); UNREACHABLE();
+
+#ifdef DAEMON_ASSERTS_ENABLED
+// This stuff is so that the ASSERT_cc variants can be used on objects that don't have a
+// function defined for printing to a stream.
+namespace AssertDetail {
+    template<typename ...>
+    struct CanTinyformatPrintIt {
+        static constexpr bool value = false;
+    };
+    template<typename T>
+    struct CanTinyformatPrintIt<T, decltype(std::declval<std::ostream&>() << std::declval<const T&>(), void())> {
+        static constexpr bool value = true;
+    };
+
+    // Forward the value as-is if the format string library can handle it.
+    template<typename T>
+    typename std::enable_if<CanTinyformatPrintIt<T, void>::value, const T&>::type
+    Printable(const T& value) {
+        return value;
+    }
+
+    // Specialization for enums so we can see the integer value.
+    template<typename T>
+    typename std::enable_if<!CanTinyformatPrintIt<T, void>::value && std::is_enum<T>::value, std::string>::type
+    Printable(T value) {
+        return Str::Format("(%s)%d", typeid(T).name(), Util::ordinal(value));
+    }
+
+    // Just send some nonsense string otherwise.
+    template<typename T>
+    typename std::enable_if<!CanTinyformatPrintIt<T, void>::value && !std::is_enum<T>::value, std::string>::type
+    Printable(const T& value) {
+        return Str::Format("[%s @ %p]", typeid(T).name(), &value);
+    }
+
+} // namespace AssertDetail
+#endif // DAEMON_ASSERTS_ENABLED
+
+#endif // COMMON_ASSERT_H_

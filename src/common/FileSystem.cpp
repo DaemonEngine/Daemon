@@ -122,16 +122,12 @@ template<> struct SerializeTraits<FS::LoadedPakInfo> {
 
 namespace FS {
 
-static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "Don't use versioned pk3 files", Cvar::NONE, false);
+static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "Also load pk3s, ignoring version.", Cvar::NONE, false);
 
 bool UseLegacyPaks()
 {
 	return *fs_legacypaks;
 }
-
-// Pak zip and directory extensions
-#define PAK_ZIP_EXT ".pk3"
-#define PAK_DIR_EXT ".pk3dir/"
 
 // Error variable used by throws(). This is never written to and always
 // represents a success value.
@@ -1050,6 +1046,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 	bool hasDeps = false;
 	offset_t depsOffset = 0;
 	ZipArchive zipFile;
+	bool isLegacy = pak.version.empty();
 
 	// Check if this pak has already been loaded to avoid recursive dependencies
 	for (auto& x: loadedPaks) {
@@ -1059,8 +1056,22 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			return;
 	}
 
-	// Add the pak to the list of loaded paks
-	fsLogs.Notice("Loading pak '%s'...", pak.path.c_str());
+	if (pak.type == pakType_t::PAK_ZIP) {
+		if (!isLegacy) {
+			fsLogs.Notice("Loading pak '%s'...", pak.path.c_str());
+		} else {
+			fsLogs.Notice("Loading legacy pak '%s'...", pak.path.c_str());
+		}
+	} else if (pak.type == pakType_t::PAK_DIR) {
+		if (!isLegacy) {
+			fsLogs.Notice("Loading pakdir '%s'...", pak.path.c_str());
+		} else {
+			fsLogs.Notice("Loading legacy pakdir '%s'...", pak.path.c_str());
+		}
+	} else {
+		ASSERT_UNREACHABLE();
+	}
+
 	loadedPaks.emplace_back();
 	loadedPaks.back().name = pak.name;
 	loadedPaks.back().version = pak.version;
@@ -1088,7 +1099,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			if (err)
 				return;
 		}
-	} else {
+	} else if (pak.type == pakType_t::PAK_ZIP) {
 		// Open file
 		loadedPaks.back().fd = my_open(pak.path, openMode_t::MODE_READ);
 		if (loadedPaks.back().fd == -1) {
@@ -1103,7 +1114,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 
 		// Get the file list and calculate the checksum of the package (checksum of all file checksums)
 		realChecksum = crc32(0, Z_NULL, 0);
-		zipFile.ForEachFile([&pak, &realChecksum, &pathPrefix, &hasDeps, &depsOffset](Str::StringRef filename, offset_t offset, uint32_t crc) {
+		zipFile.ForEachFile([&pak, &realChecksum, &pathPrefix, &hasDeps, &depsOffset, &isLegacy](Str::StringRef filename, offset_t offset, uint32_t crc) {
 			// Note that 'return' is effectively 'continue' since we are in a lambda
 			if (!Str::IsPrefix(pathPrefix, filename) && filename != PAK_DEPS_FILE)
 				return;
@@ -1113,8 +1124,13 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 				fsLogs.Warn("Invalid filename '%s' in pak '%s'", filename, pak.path);
 				return;
 			}
-			realChecksum = crc32(*realChecksum, reinterpret_cast<const Bytef*>(&crc), sizeof(crc));
-			if (filename == PAK_DEPS_FILE) {
+
+			// Legacy paks don't have version neither checksum
+			if (!isLegacy) {
+				realChecksum = crc32(*realChecksum, reinterpret_cast<const Bytef*>(&crc), sizeof(crc));
+			}
+
+			if (!isLegacy && (filename == PAK_DEPS_FILE)) {
 				hasDeps = true;
 				depsOffset = offset;
 				return;
@@ -1127,29 +1143,36 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 		}, err);
 		if (err)
 			return;
-
-		// Get the timestamp of the pak
-		loadedPaks.back().timestamp = FS::RawPath::FileTimestamp(pak.path, err);
-		if (err)
-			return;
+	} else {
+		ASSERT_UNREACHABLE();
 	}
 
-	// Save the real checksum in the list of loaded paks (empty for directories)
+	// Save the real checksum in the list of loaded paks (empty for directories, not used for legacy paks)
 	loadedPaks.back().realChecksum = realChecksum;
+
+	// Get the timestamp of the pak
+	loadedPaks.back().timestamp = FS::RawPath::FileTimestamp(pak.path, err);
+	if (err)
+		return;
+
 	loadedPaks.back().pathPrefix = pathPrefix;
 
-	// If an explicit checksum was requested, verify that the pak we loaded is the one we are expecting
-	if (expectedChecksum && realChecksum != *expectedChecksum) {
-		SetErrorCodeFilesystem(err, filesystem_error::wrong_pak_checksum);
-		return;
+	// Legacy paks don't have version neither checksum
+	if (!isLegacy) {
+		// If an explicit checksum was requested, verify that the pak we loaded is the one we are expecting
+		if (expectedChecksum && realChecksum != *expectedChecksum) {
+			SetErrorCodeFilesystem(err, filesystem_error::wrong_pak_checksum);
+			return;
+		}
+
+		// Print a warning if the checksum doesn't match the one in the filename
+		if (pak.checksum && *pak.checksum != realChecksum)
+			fsLogs.Warn("Pak checksum doesn't match filename: %s", pak.path);
 	}
 
-	// Print a warning if the checksum doesn't match the one in the filename
-	if (pak.checksum && *pak.checksum != realChecksum)
-		fsLogs.Warn("Pak checksum doesn't match filename: %s", pak.path);
-
 	// Load dependencies, but not if a checksum was specified
-	if (hasDeps && !expectedChecksum) {
+	// Do not look for dependencies if it's a legacy pak (pk3)
+	if (!isLegacy && hasDeps && !expectedChecksum) {
 		std::string depsData;
 		if (pak.type == pakType_t::PAK_DIR) {
 			File depsFile = RawPath::OpenRead(Path::Build(pak.path, PAK_DEPS_FILE), err);
@@ -1158,7 +1181,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			depsData = depsFile.ReadAll(err);
 			if (err)
 				return;
-		} else {
+		} else if (pak.type == pakType_t::PAK_ZIP) {
 			zipFile.OpenFile(depsOffset, err);
 			if (err)
 				return;
@@ -1170,6 +1193,8 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			depsData.resize(read);
 			if (err)
 				return;
+		} else {
+			ASSERT_UNREACHABLE();
 		}
 		ParseDeps(pak, depsData, err);
 	}
@@ -1253,7 +1278,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 		out.resize(length);
 		file.Read(&out[0], length, err);
 		return out;
-	} else {
+	} else if (pak.type == pakType_t::PAK_ZIP) {
 		// Open zip
 		ZipArchive zipFile = ZipArchive::Open(pak.fd, err);
 		if (err)
@@ -1283,6 +1308,8 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 
 		return out;
 	}
+
+	ASSERT_UNREACHABLE();
 }
 
 void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
@@ -1305,7 +1332,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 		if (err)
 			return;
 		file.CopyTo(dest, err);
-	} else {
+	} else if (pak.type == pakType_t::PAK_ZIP) {
 		// Open zip
 		ZipArchive zipFile = ZipArchive::Open(pak.fd, err);
 		if (err)
@@ -1331,6 +1358,8 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 
 		// Close file and check for CRC errors
 		zipFile.CloseFile(err);
+	} else {
+		ASSERT_UNREACHABLE();
 	}
 }
 
@@ -1371,8 +1400,11 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 #else
 		return RawPath::FileTimestamp(Path::Build(pak.path, path), err);
 #endif
-	} else
+	} else if (pak.type == pakType_t::PAK_ZIP) {
 		return pak.timestamp;
+	}
+
+	ASSERT_UNREACHABLE();
 }
 
 bool DirectoryRange::InternalAdvance()
@@ -2035,8 +2067,72 @@ std::string DefaultHomePath()
 #ifdef __APPLE__
 	return std::string(home) + "/Library/Application Support/" PRODUCT_NAME;
 #else
-	return std::string(home) + "/." PRODUCT_NAME_LOWER;
+	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
+	std::string xdgDataHome = _xdgDataHome == NULL ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
+	std::string xdgHomePath;
+
+	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
+
+	return xdgHomePath;
 #endif
+#endif
+}
+
+void MigrateHomePath()
+{
+#if defined(__linux__)
+	const char* home = getenv("HOME");
+	if (!home) {
+		// in this case DefaultHomePath() will return "",
+		// hence homePath will be neither the legacy one
+		// neither the xdg one, hence there is nothing we can do.
+		return;
+	}
+
+	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
+	std::string xdgDataHome = _xdgDataHome == NULL ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
+	std::string xdgHomePath = DefaultHomePath();
+	std::string legacyHomePath = Path::Build(std::string(home), "." PRODUCT_NAME_LOWER);
+	struct stat stl, stx;
+
+	if (lstat(legacyHomePath.c_str(), &stl) == 0) {
+		if (S_ISDIR(stl.st_mode) || S_ISLNK(stl.st_mode)) {
+			if (stat(xdgHomePath.c_str(), &stx) != 0) {
+				std::error_code err;
+
+				RawPath::CreatePathTo(xdgDataHome, err);
+
+				if (err) {
+					Sys::Error("Could not create XDG data directory %s: %s", xdgDataHome, err.message());
+				}
+
+				if (S_ISLNK(stl.st_mode)) {
+					int ret;
+					int fd = open(xdgDataHome.c_str(), O_DIRECTORY);
+
+					if (fd == -1) {
+						Sys::Error("Could not open XDG data directory %s: %s", xdgDataHome, strerror(errno));
+					}
+
+					fsLogs.Warn("Creating legacy home path symlink %s to XDG home path %s", legacyHomePath, xdgHomePath);
+					ret = symlinkat(legacyHomePath.c_str(), fd, xdgHomePath.c_str());
+
+					if (ret == -1) {
+						Sys::Error("Could not create symlink %s: %s", xdgHomePath, strerror(errno));
+					}
+				} else {
+					fsLogs.Warn("Renaming legacy home path %s to XDG home path %s", legacyHomePath, xdgHomePath);
+					RawPath::MoveFile(xdgHomePath, legacyHomePath, err);
+				}
+
+				if (err) {
+					Sys::Error("Could not rename legacy home path to %s: %s", xdgHomePath, err.message());
+				}
+			} else {
+				fsLogs.Warn("Legacy home path %s exists but XDG home path %s already exists, doing nothing", legacyHomePath, xdgHomePath);
+			}
+		}
+	}
 #endif
 }
 #endif // BUILD_VM
@@ -2155,19 +2251,28 @@ bool IsInitialized()
 // Add a pak to the list of available paks
 static void AddPak(pakType_t type, Str::StringRef filename, Str::StringRef basePath)
 {
+	bool isPakDir = (type == pakType_t::PAK_DIR);
 	std::string fullPath = Path::Build(basePath, filename);
 
-	size_t suffixLen = type == pakType_t::PAK_DIR ? strlen(PAK_DIR_EXT) : strlen(PAK_ZIP_EXT);
 	std::string name, version;
 	Util::optional<uint32_t> checksum;
-	if (!ParsePakName(filename.begin(), filename.end() - suffixLen, name, version, checksum) || (type == pakType_t::PAK_DIR && checksum)) {
-		if (!UseLegacyPaks()) {
-			fsLogs.Warn("Invalid pak name: %s", fullPath);
-			return;
+
+	if (!ParsePakName(filename.begin(), filename.end(), name, version, checksum) || (isPakDir && checksum)) {
+		fsLogs.Warn("Invalid pak name: '%s'", fullPath);
+		return;
+	}
+
+	if (isPakDir) {
+		if (version.empty()) {
+			fsLogs.Verbose("Found legacy pakdir: '%s'...", fullPath);
 		} else {
-			fsLogs.Notice("Loading legacy pak: %s", fullPath);
-			name = filename.substr(0, filename.size() - suffixLen);
-			version = "1";
+			fsLogs.Verbose("Found pakdir: '%s'...", fullPath);
+		}
+	} else {
+		if (version.empty()) {
+			fsLogs.Verbose("Found legacy pak: '%s'...", fullPath);
+		} else {
+			fsLogs.Verbose("Found pak: '%s'...", fullPath);
 		}
 	}
 
@@ -2178,14 +2283,22 @@ static void AddPak(pakType_t type, Str::StringRef filename, Str::StringRef baseP
 static void FindPaksInPath(Str::StringRef basePath, Str::StringRef subPath)
 {
 	std::string fullPath = Path::Build(basePath, subPath);
+	bool useLegacyPaks = UseLegacyPaks();
 	try {
 		for (auto& filename: RawPath::ListFiles(fullPath)) {
 			if (Str::IsSuffix(PAK_ZIP_EXT, filename)) {
 				AddPak(pakType_t::PAK_ZIP, Path::Build(subPath, filename), basePath);
 			} else if (Str::IsSuffix(PAK_DIR_EXT, filename)) {
 				AddPak(pakType_t::PAK_DIR, Path::Build(subPath, filename), basePath);
-			} else if (Str::IsSuffix("/", filename))
+			} else if (useLegacyPaks && Str::IsSuffix(LEGACY_PAK_ZIP_EXT, filename)) {
+				AddPak(pakType_t::PAK_ZIP, Path::Build(subPath, filename), basePath);
+			} else if (useLegacyPaks && Str::IsSuffix(LEGACY_PAK_DIR_EXT, filename)) {
+				AddPak(pakType_t::PAK_DIR, Path::Build(subPath, filename), basePath);
+			} else if (Str::IsSuffix("/", filename)) {
 				FindPaksInPath(basePath, Path::Build(subPath, filename));
+			} else {
+				fsLogs.Verbose("Ignoring file: %s", filename);
+			}
 		}
 	} catch (std::system_error&) {
 		// If there was an error reading a directory, just ignore it and go to
@@ -2351,16 +2464,44 @@ const PakInfo* FindPak(Str::StringRef name, Str::StringRef version, uint32_t che
 	return &*(iter - 1);
 }
 
+// This function is only used to parse dpk/dpkdir package names (pk3 name can't contain version neither checksum)
 bool ParsePakName(const char* begin, const char* end, std::string& name, std::string& version, Util::optional<uint32_t>& checksum)
 {
-	const char* nameStart = std::find(std::reverse_iterator<const char*>(end), std::reverse_iterator<const char*>(begin), '/').base();
-	if (nameStart != begin)
+	const char* nameStart;
+
+	if (Str::IsSuffix(LEGACY_PAK_ZIP_EXT, begin)) {
+		name.assign(begin, end - strlen(FS::LEGACY_PAK_ZIP_EXT));
+		// prefer versioned dpk over legacy pk3 if pak name collides, uses the smallest version string available
+		// this version can't be found in standard dpk, so we can also uses this value to test later if it's a legacy pk3
+		version = "";
+		// legacy paks can't have checksum
+		checksum = Util::nullopt;
+		return true;
+	} else if (Str::IsSuffix(LEGACY_PAK_DIR_EXT, begin)) {
+		name.assign(begin, end - strlen(FS::LEGACY_PAK_DIR_EXT));
+		// empty version string for legacy pak, see above for explanations
+		version = "";
+		// dir can't have checksum
+		checksum = Util::nullopt;
+		return true;
+	} else if (Str::IsSuffix(PAK_ZIP_EXT, begin)) {
+		end -= strlen(PAK_ZIP_EXT);
+	} else if (Str::IsSuffix(PAK_DIR_EXT, begin)) {
+		end -= strlen(PAK_DIR_EXT);
+	} else {
+		ASSERT_UNREACHABLE();
+	}
+
+	nameStart = std::find(std::reverse_iterator<const char*>(end), std::reverse_iterator<const char*>(begin), '/').base();
+	if (nameStart != begin) {
 		nameStart++;
+	}
 
 	// Get the name of the package
 	const char* underscore1 = std::find(nameStart, end, '_');
-	if (underscore1 == end || (UseLegacyPaks() && underscore1 == begin))
+	if (underscore1 == end) {
 		return false;
+	}
 	name.assign(begin, underscore1);
 
 	// Get the version of the package
@@ -2386,12 +2527,22 @@ bool ParsePakName(const char* begin, const char* end, std::string& name, std::st
 	return true;
 }
 
+// Contains dpk/pk3 extension to tell the client if it must parse that name it as a dpk or a pk3 (no need to tell if it's a dir or not)
+// Server send to client a package list that way [ name1_version_checksum.dpk, name2.pk3, n_a_m_e.pk3, name4_version_checksum.dpk ]
+// Luckily, can also be used to produce archive pak file name at download time
 std::string MakePakName(Str::StringRef name, Str::StringRef version, Util::optional<uint32_t> checksum)
 {
-	if (checksum)
-		return Str::Format("%s_%s_%08x", name, version, *checksum);
-	else
-		return Str::Format("%s_%s", name, version);
+	if (!version.empty()) {
+		// versioned dpk
+		if (checksum) {
+			return Str::Format("%s_%s_%08x%s", name, version, *checksum, PAK_ZIP_EXT);
+		} else {
+			return Str::Format("%s_%s%s", name, version, PAK_ZIP_EXT);
+		}
+	} else {
+		// legacy unversioned pk3
+		return Str::Format("%s%s", name, LEGACY_PAK_ZIP_EXT);
+	}
 }
 
 const std::vector<PakInfo>& GetAvailablePaks()
@@ -2530,7 +2681,7 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 			auto& loadedPaks = FS::PakPath::GetLoadedPaks();
 			if (loadedPaks.size() <= pakIndex)
 				return;
-			if (loadedPaks[pakIndex].type != pakType_t::PAK_DIR)
+			if (loadedPaks[pakIndex].type == pakType_t::PAK_ZIP)
 				return;
 			if (!Path::IsValid(path, false))
 				return;
@@ -2546,7 +2697,7 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 			auto& loadedPaks = FS::PakPath::GetLoadedPaks();
 			if (loadedPaks.size() <= pakIndex)
 				return;
-			if (loadedPaks[pakIndex].type != pakType_t::PAK_DIR)
+			if (loadedPaks[pakIndex].type == pakType_t::PAK_ZIP)
 				return;
 			if (!Path::IsValid(path, false))
 				return;

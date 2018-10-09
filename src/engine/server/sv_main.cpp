@@ -32,8 +32,9 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#include "common/Common.h"
+
 #include "server.h"
-#include "common/Assert.h"
 #include "CryptoChallenge.h"
 #include "framework/Rcon.h"
 
@@ -53,7 +54,8 @@ cvar_t         *sv_privatePassword; // password for the privateClient slots
 cvar_t         *sv_allowDownload;
 cvar_t         *sv_maxclients;
 
-cvar_t         *sv_privateClients; // number of clients reserved for password
+Cvar::Range<Cvar::Cvar<int>> sv_privateClients("sv_privateClients",
+    "number of password-protected client slots", CVAR_SERVERINFO, 0, 0, MAX_CLIENTS);
 cvar_t         *sv_hostname;
 cvar_t         *sv_statsURL;
 cvar_t         *sv_master[ MAX_MASTER_SERVERS ]; // master server IP addresses
@@ -571,21 +573,25 @@ void SVC_Info( netadr_t from, const Cmd::Args& args )
 
 	SV_ResolveMasterServers();
 
-	// don't count privateclients
-	int botCount = 0;
-	int count = 0;
+	int bots = 0; // Bots always use public slots.
+	int publicSlotHumans = 0;
+	int privateSlotHumans = 0;
 
-	for ( int i = sv_privateClients->integer; i < sv_maxclients->integer; i++ )
+	for ( int i = 0; i < sv_maxclients->integer; i++ )
 	{
 		if ( svs.clients[ i ].state >= clientState_t::CS_CONNECTED )
 		{
-			if ( SV_IsBot(&svs.clients[ i ]) )
+			if (i < sv_privateClients.Get())
 			{
-				++botCount;
+				++privateSlotHumans;
+			}
+			else if ( SV_IsBot(&svs.clients[ i ]) )
+			{
+				++bots;
 			}
 			else
 			{
-				++count;
+				++publicSlotHumans;
 			}
 		}
 	}
@@ -632,9 +638,11 @@ void SVC_Info( netadr_t from, const Cmd::Args& args )
 	info_map["hostname"] = sv_hostname->string;
 	info_map["serverload"] = std::to_string( svs.serverLoad );
 	info_map["mapname"] = sv_mapname->string;
-	info_map["clients"] = std::to_string( count );
-	info_map["bots"] = std::to_string( botCount );
-	info_map["sv_maxclients"] = std::to_string( sv_maxclients->integer - sv_privateClients->integer );
+	info_map["clients"] = std::to_string( publicSlotHumans + privateSlotHumans );
+	info_map["bots"] = std::to_string( bots );
+	// Satisfies (number of open public slots) = (displayed max clients) - (number of clients).
+	info_map["sv_maxclients"] = std::to_string(
+	    std::max( 0, sv_maxclients->integer - sv_privateClients.Get() ) + privateSlotHumans );
 	info_map["pure"] = std::to_string( sv_pure->integer );
 
 	if ( sv_statsURL->string[0] )

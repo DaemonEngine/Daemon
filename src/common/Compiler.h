@@ -246,4 +246,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #   define DAEMON_FALLTHROUGH
 #endif
 
+/* Compiler can be fooled when calling ASSERT_UNREACHABLE() macro at end of non-void function.
+ * In this case, compiler is complaining because control reaches end of non-void function,
+ * even if the execution flow is expected to be taken down by assert before.
+ *
+ * That's why we use these compiler specific unreachable builtin on modern compilers,
+ * ASSERT_UNREACHABLE() macro makes use of this UNREACHABLE() macro, preventing useless warnings.
+ * Unsupported compilers will raise "control reaches end of non-void function" warnings but
+ * that's not a big issue and that's likely to never happen (these compilers would be too old and
+ * would lack too much features to compile Daemon anyway).
+ *
+ * See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf
+*/
+#if defined(_MSC_VER) //UNREACHABLE
+	#define UNREACHABLE() __assume(0)
+// both gcc, clang and icc defines __GNUC__, so the order is important
+#elif defined(__INTEL_COMPILER)
+	#define UNREACHABLE() __builtin_unreachable()
+#elif defined(__clang__)
+	#if __has_builtin(__builtin_unreachable)
+		#define UNREACHABLE() __builtin_unreachable()
+	#endif
+#elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
+	#define UNREACHABLE() __builtin_unreachable()
+#else // UNREACHABLE
+	#define UNREACHABLE()
+#endif // UNREACHABLE
+
 #endif // COMMON_COMPILER_H_

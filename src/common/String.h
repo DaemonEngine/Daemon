@@ -39,6 +39,7 @@ namespace Str {
     void AssertOnTinyFormatError(std::string reason);
 }
 
+#define TINYFORMAT_USE_VARIADIC_TEMPLATES
 #define TINYFORMAT_ERROR(reason) Str::AssertOnTinyFormatError(#reason);
 #include "tinyformat/tinyformat.h"
 
@@ -265,6 +266,7 @@ namespace Str {
     // Case insensitive versions
     bool IsIPrefix(Str::StringRef prefix, Str::StringRef text);
     int LongestIPrefixSize(Str::StringRef text1, Str::StringRef text2);
+    bool IsIEqual(Str::StringRef text1, Str::StringRef text2);
 
     // Case insensitive Hash and Equal functions for maps
     struct IHash {

@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "server.h"
 #include "CryptoChallenge.h"
 #include "framework/Network.h"
+#include <common/FileSystem.h>
 
 static void SV_CloseDownload( client_t *cl );
 
@@ -139,28 +140,29 @@ void SV_DirectConnect( netadr_t from, const Cmd::Args& args )
 		// servers so we can play without having to kick people.
 		// check for privateClient password
 
-		int startIndex = 0;
+		auto allowed_clients_begin = clients_begin;
 		if ( userinfo["password"] != sv_privatePassword->string )
 		{
 			// skip past the reserved slots
-			startIndex = sv_privateClients->integer;
+			allowed_clients_begin += std::min(sv_privateClients.Get(), sv_maxclients->integer);
 		}
 
-		new_client = std::find_if(clients_begin, clients_end,
+		new_client = std::find_if(allowed_clients_begin, clients_end,
 			[](const client_t& client) {
 				return client.state == clientState_t::CS_FREE;
 		});
 
 		if ( new_client == clients_end )
 		{
-			if ( NET_IsLocalAddress( from ) )
+			// This is a bizarre special case, in which if you have a local address and EVERY
+			// non-private client is a bot (and there is at least 1), you can boot one of them off.
+			if ( NET_IsLocalAddress( from ) && sv_privateClients.Get() < sv_maxclients->integer )
 			{
-				int count = std::count_if(clients_begin+startIndex, clients_end,
+				bool all_bots = std::all_of(allowed_clients_begin, clients_end,
 					[](const client_t& client) { return SV_IsBot(&client); }
 				);
 
-				// if they're all bots
-				if ( count >= sv_maxclients->integer - startIndex )
+				if ( all_bots )
 				{
 					SV_DropClient( &svs.clients[ sv_maxclients->integer - 1 ], "only bots on server" );
 					new_client = &svs.clients[ sv_maxclients->integer - 1 ];
@@ -709,6 +711,8 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 	char     errorMessage[ 1024 ];
 	int      download_flag;
 
+	const FS::PakInfo* pak;
+	bool success;
 	bool bTellRate = false; // verbosity
 
 	if ( !*cl->downloadName )
@@ -766,9 +770,15 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 			std::string name, version;
 			Util::optional<uint32_t> checksum;
 			int downloadSize = 0;
-			bool success = FS::ParsePakName(cl->downloadName, cl->downloadName + strlen(cl->downloadName), name, version, checksum);
+
+			success = FS::ParsePakName(cl->downloadName, cl->downloadName + strlen(cl->downloadName), name, version, checksum);
+
 			if (success) {
-				const FS::PakInfo* pak = checksum ? FS::FindPak(name, version) : FS::FindPak(name, version, *checksum);
+				// legacy pk3s have empty version but no checksum
+				// looking for that speical version ensures the client load the legacy pk3 if server is using it, even if client has non-legacy dpk
+				// dpks have version and can have checksum
+				pak = checksum ? FS::FindPak(name, version) : FS::FindPak(name, version, *checksum);
+
 				if (pak) {
 					try {
 						downloadSize = FS::RawPath::OpenRead(pak->path).Length();
@@ -778,7 +788,8 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 				} else
 					success = false;
 			}
-			std::string pakName = name + "_" + version + ".pk3";
+
+			std::string pakName = FS::MakePakName(name, version);
 
 			if ( !cl->bFallback )
 			{
@@ -837,9 +848,15 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		cl->bWWWDl = false;
 		std::string name, version;
 		Util::optional<uint32_t> checksum;
-		bool success = FS::ParsePakName(cl->downloadName, cl->downloadName + strlen(cl->downloadName), name, version, checksum);
+
+		success = FS::ParsePakName(cl->downloadName, cl->downloadName + strlen(cl->downloadName), name, version, checksum);
+
 		if (success) {
-			const FS::PakInfo* pak = checksum ? FS::FindPak(name, version) : FS::FindPak(name, version, *checksum);
+			// legacy paks have empty version but no checksum
+			// looking for that speical version ensures the client load the legacy pk3 if server is using it, even if client has non-legacy dpk
+			// dpks have version and can have checksum
+			pak = checksum ? FS::FindPak(name, version) : FS::FindPak(name, version, *checksum);
+
 			if (pak) {
 				try {
 					cl->download = new FS::File(FS::RawPath::OpenRead(pak->path));
@@ -847,8 +864,9 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 				} catch (std::system_error&) {
 					success = false;
 				}
-			} else
+			} else {
 				success = false;
+			}
 		}
 
 		if ( !success )

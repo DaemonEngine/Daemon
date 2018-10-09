@@ -364,12 +364,11 @@ public:
 	void CGameShutdown();
 	void CGameDrawActiveFrame(int serverTime, bool demoPlayback);
 	int CGameCrosshairPlayer();
-	void CGameKeyEvent(int key, bool down);
+	void CGameKeyEvent(Keyboard::Key key, bool down);
 	void CGameMouseEvent(int dx, int dy);
-    void CGameMousePosEvent(int x, int y);
+	void CGameMousePosEvent(int x, int y);
 	void CGameTextInputEvent(int c);
 	void CGameFocusEvent(bool focus);
-	//std::vector<std::string> CGameVoipString();
 	//void CGameInitCvars();
 
 	void CGameRocketInit();
@@ -469,7 +468,6 @@ extern cvar_t *cl_altTab;
 
 // -NERVE - SMF
 
-extern cvar_t *cl_consoleKeys;
 extern cvar_t *cl_consoleFont;
 extern cvar_t *cl_consoleFontSize;
 extern cvar_t *cl_consoleFontKerning;
@@ -544,7 +542,7 @@ void CL_Record(std::string demo_name);
 //
 // cl_keys (for input usage)
 //
-int             Key_GetKeyNumber();
+Keyboard::Key Key_GetKeyNumber();
 unsigned int    Key_GetKeyTime();
 
 //
@@ -552,7 +550,7 @@ unsigned int    Key_GetKeyTime();
 //
 struct kbutton_t
 {
-	int      down[ 2 ]; // key nums holding it down
+	Keyboard::Key down[ 2 ]; // key nums holding it down
 	unsigned downtime; // msec timestamp
 	unsigned msec; // msec down this frame if both a down and up happened
 	bool active; // current state
@@ -575,7 +573,6 @@ enum kbuttons_t
   KB_DOWN,
 
   KB_MLOOK,
-  KB_VOIPRECORD,
 
   KB_BUTTONS, // must be second-last
   NUM_BUTTONS = KB_BUTTONS + USERCMD_BUTTONS
@@ -601,8 +598,6 @@ void IN_PrepareKeyUp();
 //----(SA)
 
 float    CL_KeyState( kbutton_t *key );
-int      Key_StringToKeynum( const char *str );
-const char *Key_KeynumToString( int keynum );
 
 //cl_irc.c
 void     CL_IRCSetup();

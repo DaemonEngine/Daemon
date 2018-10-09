@@ -69,6 +69,11 @@ function(GAMEMODULE)
             set(FORK 1 PARENT_SCOPE)
             include(ExternalProject)
             set(vm nacl-vms)
+            set(inherited_option_args)
+            foreach(inherited_option ${NACL_VM_INHERITED_OPTIONS})
+                set(inherited_option_args ${inherited_option_args}
+                    "-D${inherited_option}=${${inherited_option}}")
+            endforeach(inherited_option)
             ExternalProject_Add(${vm}
                 SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
                 BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${vm}
@@ -76,10 +81,8 @@ function(GAMEMODULE)
                 CMAKE_ARGS
                     -DFORK=2
                     -DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-pnacl.cmake
-                    -DCMAKE_BUILD_TYPE=$<CONFIG>
+                    -DDAEMON_DIR=${Daemon_SOURCE_DIR}
                     -DDEPS_DIR=${DEPS_DIR}
-                    -DBUILD_CGAME=${BUILD_CGAME}
-                    -DBUILD_SGAME=${BUILD_SGAME}
                     -DBUILD_GAME_NACL_NEXE=${BUILD_GAME_NACL_NEXE}
                     -DBUILD_GAME_NACL=1
                     -DBUILD_GAME_NATIVE_DLL=0
@@ -87,6 +90,7 @@ function(GAMEMODULE)
                     -DBUILD_CLIENT=0
                     -DBUILD_TTY_CLIENT=0
                     -DBUILD_SERVER=0
+                    ${inherited_option_args}
                 INSTALL_COMMAND ""
             )
             ExternalProject_Add_Step(${vm} forcebuild

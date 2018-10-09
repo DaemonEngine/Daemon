@@ -32,44 +32,63 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#ifndef ENGINE_CLIENT_KEYS_H_
+#define ENGINE_CLIENT_KEYS_H_
+
+#include "common/Common.h"
+
 #include "keycodes.h"
+#include "key_identification.h"
 
 #include "framework/ConsoleField.h"
+#include "qcommon/q_unicode.h"
 
-#define MAX_TEAMS 4
-#define DEFAULT_BINDING 0
+namespace Keyboard {
+enum BindTeam {
+    BIND_TEAM_DEFAULT = 0, // Default bind is used if there is no bind set for the player's current team
+    BIND_TEAM_SPECTATORS = 3,
+    NUM_TEAMS
+};
+}
 
 struct qkey_t
 {
-	bool down;
-	int      repeats; // if > 1, it is autorepeating
-	char     *binding[ MAX_TEAMS ];
+    bool down;
+    int      repeats; // if > 1, it is autorepeating
+    Util::optional<std::string> binding[ Keyboard::NUM_TEAMS ];
 };
 
-extern bool key_overstrikeMode;
-extern qkey_t   keys[Util::ordinal(keyNum_t::MAX_KEYS)];
-extern int      bindTeam;
+extern std::unordered_map<Keyboard::Key, qkey_t, Keyboard::Key::hash> keys;
 
-// NOTE TTimo the declaration of field_t and Field_Clear is now in qcommon/qcommon.h
-
-void            Field_KeyDownEvent(Util::LineEditData& edit, int key );
+void            Field_KeyDownEvent(Util::LineEditData& edit, Keyboard::Key key );
 void            Field_CharEvent(Util::LineEditData& edit, int c );
 void            Field_Draw(const Util::LineEditData& edit, int x, int y,
-						   bool showCursor, bool noColorEscape, float alpha );
+                           bool showCursor, bool noColorEscape, float alpha );
 
 extern Console::Field  g_consoleField;
-extern int      anykeydown;
-extern bool chat_irc;
 
-void            Key_WriteBindings( fileHandle_t f );
-void            Key_SetBinding( int keynum, int team, const char *binding );
-void            Key_GetBindingByString( const char *binding, int team, int *key1, int *key2 );
-const char      *Key_GetBinding( int keynum, int team );
-bool        Key_IsDown( int keynum );
-bool        Key_GetOverstrikeMode();
-void            Key_SetOverstrikeMode( bool state );
 void            Key_ClearStates();
-int             Key_GetKey( const char *binding, int team );
 
-void            Key_SetTeam( int newTeam );
-int             Key_GetTeam( const char *arg, const char *cmd );
+namespace Keyboard {
+
+void WriteBindings(fileHandle_t f);
+
+void SetBinding(Key key, int team, std::string binding);
+Util::optional<std::string> GetBinding(Key key, BindTeam team, bool useDefault);
+
+// Gets all keys that, if pressed, would execute the given command, based on the current team.
+std::vector<Key> GetKeysBoundTo(int team, Str::StringRef command);
+
+bool IsDown(Key key);
+bool AnyKeyDown();
+
+void SetTeam(int newTeam);
+
+// Returns the player's current team, which cannot be DEFAULT.
+BindTeam GetTeam();
+
+void BufferDeferredBinds();
+
+}
+
+#endif // ENGINE_CLIENT_KEYS_H_

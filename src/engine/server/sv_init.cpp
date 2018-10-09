@@ -599,7 +599,7 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	sv.time += FRAMETIME;
 
 	// the server sends these to the clients so they can figure
-	// out which pk3s should be auto-downloaded
+	// out which dpk/pk3s should be auto-downloaded
 
 	Cvar_Set( "sv_paks", FS_LoadedPaks() );
 
@@ -646,7 +646,6 @@ void SV_Init()
 	Cvar_Get( "pakname", "", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar_Get( "layout", "", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar_Get( "g_layouts", "", 0 ); // FIXME
-	sv_privateClients = Cvar_Get( "sv_privateClients", "0", CVAR_SERVERINFO );
 	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );  // NERVE - SMF - changed to 20 from 8
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0",  CVAR_SERVERINFO );
@@ -660,7 +659,7 @@ void SV_Init()
 	sv_pure = Cvar_Get( "sv_pure", "1", CVAR_SYSTEMINFO );
 #else
 	// Use OS shared libs for the client at startup. This prevents crashes due to mismatching syscall ABIs
-	// from loading outdated vms pk3s. The correct vms pk3 will be loaded upon connecting to a pure server.
+	// from loading outdated vms dpks. The correct vms dpk will be loaded upon connecting to a pure server.
 	sv_pure = Cvar_Get( "sv_pure", "0", CVAR_SYSTEMINFO );
 #endif
 	Cvar_Get( "sv_paks", "", CVAR_SYSTEMINFO | CVAR_ROM );

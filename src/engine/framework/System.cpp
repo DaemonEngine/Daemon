@@ -418,6 +418,7 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 #endif
 
 	bool foundCommands = false;
+	bool foundHomePathCommand = false;
 	for (int i = 1; i < argc; i++) {
 		// A + indicate the start of a command that should be run on startup
 		if (argv[i][0] == '+') {
@@ -449,9 +450,9 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
             std::string helpUrl = Application::GetTraits().supportsUri ? " [" URI_SCHEME "ADDRESS[:PORT]]" : "";
 			printf("Usage: %s [-OPTION]...%s [+COMMAND]...\n",  argv[0], helpUrl.c_str());
 			printf("Possible options are:\n"
-			       "  -homepath <path>         set the path used for user-specific configuration files and downloaded pk3 files\n"
+			       "  -homepath <path>         set the path used for user-specific configuration files and downloaded dpk files\n"
 			       "  -libpath <path>          set the path containing additional executables and libraries\n"
-			       "  -pakpath <path>          add another path from which pk3 files are loaded\n"
+			       "  -pakpath <path>          add another path from which dpk files are loaded\n"
 			       "  -resetconfig             reset all cvars and keybindings to their default value\n"
 #ifdef USE_CURSES
 			       "  -curses                  activate the curses interface\n"
@@ -489,6 +490,7 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				Log::Warn("Missing argument for -homepath");
 				continue;
 			}
+			foundHomePathCommand = true;
 			cmdlineArgs.homePath = argv[i + 1];
 			i++;
 		} else if (!strcmp(argv[i], "-resetconfig")) {
@@ -503,6 +505,10 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			Log::Warn("Ignoring unrecognized parameter \"%s\"", argv[i]);
 			continue;
 		}
+	}
+
+	if (!foundHomePathCommand) {
+		FS::MigrateHomePath();
 	}
 }
 

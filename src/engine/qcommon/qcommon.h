@@ -308,7 +308,6 @@ enum svc_ops_e
   svc_serverCommand, // [string] to be executed by client game module
   svc_download, // [short] size [size bytes]
   svc_snapshot,
-  svc_voip, // not wrapped in USE_VOIP, so this value is reserved.
   svc_EOF,
 };
 
@@ -322,7 +321,6 @@ enum clc_ops_e
   clc_move, // [usercmd_t]
   clc_moveNoDelta, // [usercmd_t]
   clc_clientCommand, // [string] message
-  clc_voip, // not wrapped in USE_VOIP, so this value is reserved.
   clc_EOF,
 };
 
@@ -509,7 +507,7 @@ int FS_Seek( fileHandle_t f, long offset, fsOrigin_t origin );
 
 const char* FS_LoadedPaks();
 
-// Returns a space separated string containing all loaded pk3 files.
+// Returns a space separated string containing all loaded dpk/pk3 files.
 
 bool     FS_LoadPak( const char *name );
 void     FS_LoadBasePak();
@@ -538,6 +536,7 @@ void IN_Shutdown();
 bool IN_IsNumLockDown();
 void IN_DropInputsForFrame();
 void IN_CenterMouse();
+bool IN_IsKeyboardLayoutInfoAvailable();
 
 /*
 ==============================================================
@@ -581,14 +580,6 @@ struct field_t
     int  widthInChars;
     char buffer[ MAX_EDIT_LINE ];
 };
-
-// Field_Complete{Key,Team}name
-#define FIELD_TEAM            1
-#define FIELD_TEAM_SPECTATORS 2
-#define FIELD_TEAM_DEFAULT    4
-
-void Field_CompleteKeyname( int flags );
-void Field_CompleteTeamname( int flags );
 
 // code point count <-> UTF-8 byte count
 int Field_CursorToOffset( field_t *edit );
@@ -756,18 +747,19 @@ void     CL_Disconnect( bool showMainMenu );
 void     CL_SendDisconnect();
 void     CL_Shutdown();
 void     CL_Frame( int msec );
-void     CL_KeyEvent( int key, bool down, unsigned time );
+namespace Keyboard { class Key; };
+void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
 
 void     CL_CharEvent( int c );
 
 // char events are for field typing, not game control
 
-void CL_MouseEvent( int dx, int dy, int time );
+void CL_MouseEvent( int dx, int dy );
 void CL_MousePosEvent( int dx, int dy);
 void CL_FocusEvent( bool focus );
 
 
-void CL_JoystickEvent( int axis, int value, int time );
+void CL_JoystickEvent( int axis, int value );
 
 void CL_PacketEvent( netadr_t from, msg_t *msg );
 
@@ -797,14 +789,6 @@ void CL_FlushMemory();
 void CL_StartHunkUsers();
 
 // start all the client stuff using the hunk
-
-void Key_KeynameCompletion( void ( *callback )( const char *s ) );
-
-// for keyname autocompletion
-
-void Key_WriteBindings( fileHandle_t f );
-
-// for writing the config files
 
 void S_ClearSoundBuffer();
 
@@ -853,17 +837,11 @@ enum class sysEventType_t
   SE_FOCUS, // evValue is a boolean indicating whether the game has focus
 };
 
-struct sysEvent_t
-{
-    int            evTime;
-    sysEventType_t evType;
-    int            evValue, evValue2;
-    int            evPtrLength; // bytes of data pointed to by evPtr, for journaling
-    void           *evPtr; // this must be manually freed if not nullptr
-};
-
-void       Com_QueueEvent( int time, sysEventType_t type, int value, int value2, int ptrLength, void *ptr );
-int        Com_EventLoop();
+namespace Sys {
+    class EventBase;
+}
+void       Com_QueueEvent( std::unique_ptr<Sys::EventBase> event );
+void       Com_EventLoop();
 
 void Sys_SendPacket(int length, const void *data, netadr_t to);
 bool Sys_GetPacket(netadr_t *net_from, msg_t *net_message);

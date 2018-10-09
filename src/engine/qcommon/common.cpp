@@ -41,6 +41,7 @@ Maryland 20850 USA.
 
 #include "common/Defs.h"
 
+#include "client/keys.h"
 #include "framework/Application.h"
 #include "framework/BaseCommands.h"
 #include "framework/CommandSystem.h"
@@ -48,6 +49,7 @@ Maryland 20850 USA.
 #include "framework/ConsoleHistory.h"
 #include "framework/LogSystem.h"
 #include "framework/System.h"
+#include "sys/sys_events.h"
 #include <common/FileSystem.h>
 
 // htons
@@ -770,7 +772,7 @@ EVENT LOOP
 static const int MAX_QUEUED_EVENTS  = 1024;
 static const int MASK_QUEUED_EVENTS = ( MAX_QUEUED_EVENTS - 1 );
 
-static sysEvent_t eventQueue[ MAX_QUEUED_EVENTS ];
+static std::unique_ptr<Sys::EventBase> eventQueue[ MAX_QUEUED_EVENTS ];
 static int        eventHead = 0;
 static int        eventTail = 0;
 static byte       sys_packetReceived[ MAX_MSGLEN ];
@@ -778,108 +780,62 @@ static byte       sys_packetReceived[ MAX_MSGLEN ];
 /*
 ================
 Com_QueueEvent
-
-A time of 0 will get the current time
-Ptr should either be null, or point to a block of data that can
-be freed by the game later.
 ================
 */
-void Com_QueueEvent( int time, sysEventType_t type, int value, int value2, int ptrLength, void *ptr )
+void Com_QueueEvent( std::unique_ptr<Sys::EventBase> event )
 {
-	sysEvent_t *ev;
-
-	ev = &eventQueue[ eventHead & MASK_QUEUED_EVENTS ];
-
 	if ( eventHead - eventTail >= MAX_QUEUED_EVENTS )
 	{
 		Log::Notice( "Com_QueueEvent: overflow" );
-
-		// we are discarding an event, but don't leak memory
-		if ( ev->evPtr )
-		{
-			Z_Free( ev->evPtr );
-		}
-
 		eventTail++;
 	}
 
+	eventQueue[ eventHead & MASK_QUEUED_EVENTS ] = std::move( event );
 	eventHead++;
-
-	if ( time == 0 )
-	{
-		time = Sys_Milliseconds();
-	}
-
-	ev->evTime = time;
-	ev->evType = type;
-	ev->evValue = value;
-	ev->evValue2 = value2;
-	ev->evPtrLength = ptrLength;
-	ev->evPtr = ptr;
 }
 
 /*
 ================
 Com_GetEvent
+
+Returns nullptr if there are no more events.
 ================
 */
-sysEvent_t Com_GetEvent()
+std::unique_ptr<Sys::EventBase> Com_GetEvent()
 {
-	sysEvent_t ev;
-	char       *s;
-	msg_t      netmsg;
-	netadr_t   adr;
-
 	// return if we have data
 	if ( eventHead > eventTail )
 	{
 		eventTail++;
-		return eventQueue[( eventTail - 1 ) & MASK_QUEUED_EVENTS ];
+		return std::move(eventQueue[( eventTail - 1 ) & MASK_QUEUED_EVENTS ]);
 	}
 
 	// check for console commands
-	s = CON_Input();
-
-	if ( s )
+	if ( char* s = CON_Input() )
 	{
-		char *b;
-		int  len;
-
-		len = strlen( s ) + 1;
-		b = ( char * ) Z_Malloc( len );
-		strcpy( b, s );
-		Com_QueueEvent( 0, sysEventType_t::SE_CONSOLE, 0, 0, len, b );
+		Com_QueueEvent( Util::make_unique<Sys::ConsoleInputEvent>( s ) );
 	}
 
 	// check for network packets
+	msg_t netmsg;
+	netadr_t adr;
 	MSG_Init( &netmsg, sys_packetReceived, sizeof( sys_packetReceived ) );
 	adr.type = netadrtype_t::NA_UNSPEC;
 
 	if ( Sys_GetPacket( &adr, &netmsg ) )
 	{
-		netadr_t *buf;
-		int      len;
-
-		// copy out to a separate buffer for queuing
-		len = sizeof( netadr_t ) + netmsg.cursize;
-		buf = ( netadr_t * ) Z_Malloc( len );
-		*buf = adr;
-		memcpy( buf + 1, &netmsg.data[ netmsg.readcount ], netmsg.cursize - netmsg.readcount );
-		Com_QueueEvent( 0, sysEventType_t::SE_PACKET, 0, 0, len, buf );
+		Com_QueueEvent( Util::make_unique<Sys::PacketEvent>(
+			adr, &netmsg.data[ netmsg.readcount ], netmsg.cursize - netmsg.readcount ) );
 	}
 
 	// return if we have data
 	if ( eventHead > eventTail )
 	{
 		eventTail++;
-		return eventQueue[( eventTail - 1 ) & MASK_QUEUED_EVENTS ];
+		return std::move(eventQueue[( eventTail - 1 ) & MASK_QUEUED_EVENTS ]);
 	}
 
-	// create an empty event to return
-	memset( &ev, 0, sizeof( ev ) );
-	ev.evTime = Sys_Milliseconds();
-
-	return ev;
+	return nullptr;
 }
 
 /*
@@ -887,7 +843,7 @@ sysEvent_t Com_GetEvent()
 Com_RunAndTimeServerPacket
 =================
 */
-void Com_RunAndTimeServerPacket( netadr_t *evFrom, msg_t *buf )
+static void Com_RunAndTimeServerPacket( const netadr_t *evFrom, msg_t *buf )
 {
 	int t1, t2, msec;
 
@@ -912,39 +868,91 @@ void Com_RunAndTimeServerPacket( netadr_t *evFrom, msg_t *buf )
 	}
 }
 
+static void HandleConsoleInputEvent(const Sys::ConsoleInputEvent& event)
+{
+	if (Str::IsPrefix("/", event.text) || Str::IsPrefix("\\", event.text)) {
+		//make sure, explicit commands are not getting handled with com_consoleCommand
+		Cmd::BufferCommandTextAfter(Str::StringRef(event.text).substr(1), true);
+	} else {
+		/*
+		 * when there was no command prefix, execute the command prefixed by com_consoleCommand
+		 * if the cvar is empty, it will interpret the text as command directly
+		 * (and will so for BUILD_SERVER)
+		 *
+		 * the additional space gets trimmed by the parser
+		 */
+		Cmd::BufferCommandTextAfter(Str::Format("%s %s", com_consoleCommand.Get(), event.text));
+	}
+}
+
+static void HandlePacketEvent(const Sys::PacketEvent& event)
+{
+	// this cvar allows simulation of connections that
+	// drop a lot of packets.  Note that loopback connections
+	// don't go through here at all.
+	if ( com_dropsim->value > 0 )
+	{
+		static int seed;
+
+		if ( Q_random( &seed ) < com_dropsim->value )
+		{
+			return; // drop this packet
+		}
+	}
+	msg_t buf;
+	byte bufData[ MAX_MSGLEN ];
+	MSG_Init( &buf, bufData, sizeof( bufData ) );
+
+	// we must copy the contents of the message out, because
+	// the event buffers are only large enough to hold the
+	// exact payload, but channel messages need to be large
+	// enough to hold fragment reassembly
+	if ( event.data.size() > buf.maxsize )
+	{
+		Log::Notice( "Com_EventLoop: oversize packet\n" );
+		return;
+	}
+
+	buf.cursize = event.data.size();
+	memcpy( buf.data, event.data.data(), buf.cursize );
+
+	if ( com_sv_running->integer )
+	{
+		Com_RunAndTimeServerPacket( &event.adr, &buf );
+	}
+	else
+	{
+		CL_PacketEvent( event.adr, &buf );
+	}
+}
+
 /*
 =================
 Com_EventLoop
 
-Returns last event time
 =================
 */
 
-#ifdef BUILD_CLIENT
-extern bool consoleButtonWasPressed;
-#endif
-
-int Com_EventLoop()
+void Com_EventLoop()
 {
-	sysEvent_t ev;
 	netadr_t   evFrom;
 	byte       bufData[ MAX_MSGLEN ];
 	msg_t      buf;
 
-	int        mouseX = 0, mouseY = 0, mouseTime = 0;
-	bool       mouseHaveEvent = false;
+	int        mouseX = 0, mouseY = 0;
+	bool       hadMouseEvent = false;
 
 	MSG_Init( &buf, bufData, sizeof( bufData ) );
 
 	while ( 1 )
 	{
-		ev = Com_GetEvent();
+		auto ev = Com_GetEvent();
 
 		// if no more events are available
-		if ( ev.evType == sysEventType_t::SE_NONE )
+		if ( !ev )
 		{
-			if ( mouseHaveEvent ){
-				CL_MouseEvent( mouseX, mouseY, mouseTime );
+			if ( hadMouseEvent ){
+				CL_MouseEvent( mouseX, mouseY );
 			}
 
 			// manually send packet events for the loopback channel
@@ -962,129 +970,59 @@ int Com_EventLoop()
 				}
 			}
 
-			return ev.evTime;
+			return;
 		}
 
-		switch ( ev.evType )
+		switch ( ev->type )
 		{
 			default:
-				// bk001129 - was ev.evTime
-				Com_Error( errorParm_t::ERR_FATAL, "Com_EventLoop: bad event type %s", Util::enum_str(ev.evType) );
-
-			case sysEventType_t::SE_NONE:
-				break;
+				Com_Error( errorParm_t::ERR_FATAL, "Com_EventLoop: bad event type %s", Util::enum_str(ev->type) );
 
 			case sysEventType_t::SE_KEY:
-				CL_KeyEvent( ev.evValue, ev.evValue2, ev.evTime );
-				break;
-
-			case sysEventType_t::SE_CHAR:
-#ifdef BUILD_CLIENT
-
-				// fretn
-				// we just pressed the console button,
-				// so ignore this event
-				// this prevents chars appearing at console input
-				// when you just opened it
-				if ( consoleButtonWasPressed )
-				{
-					consoleButtonWasPressed = false;
-					break;
-				}
-
-#endif
-				CL_CharEvent( ev.evValue );
-				break;
-
-			case sysEventType_t::SE_MOUSE:
-				mouseHaveEvent = true;
-				mouseX += ev.evValue;
-				mouseY += ev.evValue2;
-				mouseTime += ev.evTime;
-				break;
-
-			case sysEventType_t::SE_MOUSE_POS:
-				CL_MousePosEvent( ev.evValue, ev.evValue2 );
-				break;
-
-            case sysEventType_t::SE_FOCUS:
-				CL_FocusEvent( ev.evValue );
-				break;
-
-			case sysEventType_t::SE_JOYSTICK_AXIS:
-				CL_JoystickEvent( ev.evValue, ev.evValue2, ev.evTime );
-				break;
-
-			case sysEventType_t::SE_CONSOLE:
 			{
-				char *cmd = (char *) ev.evPtr;
-
-				if (cmd[0] == '/' || cmd[0] == '\\')
-				{
-					//make sure, explicit commands are not getting handled with com_consoleCommand
-					Cmd::BufferCommandTextAfter(cmd + 1, true);
-				}
-				else
-				{
-					/*
-					 * when there was no command prefix, execute the command prefixed by com_consoleCommand
-					 * if the cvar is empty, it will interpret the text as command direclty
-					 * (and will so for BUILD_SERVER)
-					 *
-					 * the additional space gets trimmed by the parser
-					 */
-					Cmd::BufferCommandTextAfter(va("%s %s", com_consoleCommand.Get().c_str(), cmd), true);
-				}
-
+				auto& keyEvent = ev->Cast<Sys::KeyEvent>();
+				CL_KeyEvent( keyEvent.key, keyEvent.down, keyEvent.time );
 				break;
 			}
 
-			case sysEventType_t::SE_PACKET:
-
-				// this cvar allows simulation of connections that
-				// drop a lot of packets.  Note that loopback connections
-				// don't go through here at all.
-				if ( com_dropsim->value > 0 )
-				{
-					static int seed;
-
-					if ( Q_random( &seed ) < com_dropsim->value )
-					{
-						break; // drop this packet
-					}
-				}
-
-				evFrom = * ( netadr_t * ) ev.evPtr;
-				buf.cursize = ev.evPtrLength - sizeof( evFrom );
-
-				// we must copy the contents of the message out, because
-				// the event buffers are only large enough to hold the
-				// exact payload, but channel messages need to be large
-				// enough to hold fragment reassembly
-				if ( buf.cursize > buf.maxsize )
-				{
-					Log::Notice( "Com_EventLoop: oversize packet\n" );
-					continue;
-				}
-
-				memcpy( buf.data, ( byte * )( ( netadr_t * ) ev.evPtr + 1 ), buf.cursize );
-
-				if ( com_sv_running->integer )
-				{
-					Com_RunAndTimeServerPacket( &evFrom, &buf );
-				}
-				else
-				{
-					CL_PacketEvent( evFrom, &buf );
-				}
-
+			case sysEventType_t::SE_CHAR:
+				CL_CharEvent( ev->Cast<Sys::CharEvent>().ch );
 				break;
-		}
 
-		// free any block data
-		if ( ev.evPtr )
-		{
-			Z_Free( ev.evPtr );
+			case sysEventType_t::SE_MOUSE:
+			{
+				hadMouseEvent = true;
+				auto& mouseEvent = ev->Cast<Sys::MouseEvent>();
+				mouseX += mouseEvent.dx;
+				mouseY += mouseEvent.dy;
+				break;
+			}
+
+			case sysEventType_t::SE_MOUSE_POS:
+			{
+				auto& mouseEvent = ev->Cast<Sys::MousePosEvent>();
+				CL_MousePosEvent( mouseEvent.x, mouseEvent.y );
+				break;
+			}
+
+			case sysEventType_t::SE_FOCUS:
+				CL_FocusEvent( ev->Cast<Sys::FocusEvent>().focus );
+				break;
+
+			case sysEventType_t::SE_JOYSTICK_AXIS:
+			{
+				auto& joystickEvent = ev->Cast<Sys::JoystickEvent>();
+				CL_JoystickEvent( joystickEvent.axis, joystickEvent.value );
+				break;
+			}
+
+			case sysEventType_t::SE_CONSOLE:
+				HandleConsoleInputEvent(ev->Cast<Sys::ConsoleInputEvent>());
+				break;
+
+			case sysEventType_t::SE_PACKET:
+				HandlePacketEvent(ev->Cast<Sys::PacketEvent>());
+				break;
 		}
 	}
 }
@@ -1273,7 +1211,7 @@ void Com_Init( char *commandLine )
 	}
 
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
-#ifndef BUILD_SERVER
+#ifdef BUILD_CLIENT
 	Cmd_AddCommand( "writebindings", Com_WriteBindings_f );
 #endif
 
@@ -1356,7 +1294,7 @@ void Com_WriteConfiguration()
 	{
 		bindingsModified = false;
 
-		Com_WriteConfigToFile( KEYBINDINGS_NAME, Key_WriteBindings );
+		Com_WriteConfigToFile( KEYBINDINGS_NAME, Keyboard::WriteBindings );
 	}
 #endif
 }
@@ -1391,7 +1329,7 @@ Com_WriteBindings_f
 Write the key bindings file to a specific name
 ===============
 */
-#ifndef BUILD_SERVER
+#ifdef BUILD_CLIENT
 void Com_WriteBindings_f()
 {
 	char filename[ MAX_QPATH ];
@@ -1405,7 +1343,7 @@ void Com_WriteBindings_f()
 	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
 	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
 	Log::Notice( "Writing %s.\n", filename );
-	Com_WriteConfigToFile( filename, Key_WriteBindings );
+	Com_WriteConfigToFile( filename, Keyboard::WriteBindings );
 }
 #endif
 
@@ -1559,7 +1497,8 @@ void Com_Frame()
 		minMsec = 1; // Bad things happen if this is 0
 	}
 
-	com_frameTime = Com_EventLoop();
+	Com_EventLoop();
+	com_frameTime = Sys_Milliseconds();
 
 	if ( lastTime > com_frameTime )
 	{
@@ -1576,12 +1515,14 @@ void Com_Frame()
 		Sys::SleepFor(std::chrono::milliseconds(std::min(minMsec - msec, 50)));
 		IN_Frame();
 
-		com_frameTime = Com_EventLoop();
+		Com_EventLoop();
+		com_frameTime = Sys_Milliseconds();
 		msec = com_frameTime - lastTime;
 	}
 
 	IN_FrameEnd();
 
+	Keyboard::BufferDeferredBinds();
 	Cmd::ExecuteCommandBuffer();
 
 	lastTime = com_frameTime;

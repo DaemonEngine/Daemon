@@ -22,14 +22,16 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef Q_UNICODE_H_
 #define Q_UNICODE_H_
 
+constexpr int MIN_PRINTABLE_ASCII = 32;
+constexpr int MAX_PRINTABLE_ASCII = 126;
+constexpr int UNICODE_MAX_CODE_POINT = 0x10FFFF;
+
 int Q_UTF8_Width( const char *str );
 int Q_UTF8_WidthCP( int ch );
 int Q_UTF8_Strlen( const char *str );
 bool Q_UTF8_ContByte( char c );
 unsigned long Q_UTF8_CodePoint( const char *str );
 char *Q_UTF8_Encode( unsigned long codepoint );
-int Q_UTF8_Store( const char *s );
-char *Q_UTF8_Unstore( int e );
 
 bool Q_Unicode_IsAlpha( int ch );
 bool Q_Unicode_IsUpper( int ch );
@@ -37,6 +39,7 @@ bool Q_Unicode_IsLower( int ch );
 bool Q_Unicode_IsIdeo( int ch );
 bool Q_Unicode_IsAlphaOrIdeo( int ch );
 bool Q_Unicode_IsAlphaOrIdeoOrDigit( int ch );
+bool Q_Unicode_IsPrivateUse( int ch );
 
 int Q_Unicode_ToUpper( int ch );
 int Q_Unicode_ToLower( int ch );
