@@ -771,7 +771,6 @@ NON-PORTABLE SYSTEM SERVICES
 
 enum class joystickAxis_t
 {
-  AXIS_INVALID = -1,
   AXIS_SIDE,
   AXIS_FORWARD,
   AXIS_UP,
