@@ -343,28 +343,20 @@ SV_ChangeMaxClients
 */
 void SV_ChangeMaxClients()
 {
-	int      oldMaxClients;
-	int      i;
-	client_t *oldClients;
-	int      count;
-
 	// get the highest client number in use
-	count = 0;
+	int count = 0;
 
-	for ( i = 0; i < sv_maxclients->integer; i++ )
+	for ( int i = 0; i < sv_maxclients->integer; i++ )
 	{
 		if ( svs.clients[ i ].state >= clientState_t::CS_CONNECTED )
 		{
-			if ( i > count )
-			{
-				count = i;
-			}
+			count = i;
 		}
 	}
 
 	count++;
 
-	oldMaxClients = sv_maxclients->integer;
+	int oldMaxClients = sv_maxclients->integer;
 	// never go below the highest client number in use
 	SV_BoundMaxClients( count );
 
@@ -374,47 +366,27 @@ void SV_ChangeMaxClients()
 		return;
 	}
 
-	oldClients = ( client_t * ) Hunk_AllocateTempMemory( count * sizeof( client_t ) );
-
-	// copy the clients to hunk memory
-	for ( i = 0; i < count; i++ )
-	{
-		if ( svs.clients[ i ].state >= clientState_t::CS_CONNECTED )
-		{
-			oldClients[ i ] = std::move(svs.clients[ i ]);
-		}
-		else
-		{
-			Com_Memset( &oldClients[ i ], 0, sizeof( client_t ) );
-		}
-	}
-
-	// free old clients arrays
-	//Z_Free( svs.clients );
-	free( svs.clients );  // RF, avoid trying to allocate large chunk on a fragmented zone
+	client_t* oldClients = svs.clients;
 
 	// allocate new clients
-	// RF, avoid trying to allocate large chunk on a fragmented zone
-	svs.clients = ( client_t * ) calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
+	svs.clients = ( client_t * ) calloc( sv_maxclients->integer, sizeof( client_t ) );
 
 	if ( !svs.clients )
 	{
 		Com_Error( errorParm_t::ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
 	}
 
-	Com_Memset( svs.clients, 0, sv_maxclients->integer * sizeof( client_t ) );
-
 	// copy the clients over
-	for ( i = 0; i < count; i++ )
+	for ( int i = 0; i < count; i++ )
 	{
 		if ( oldClients[ i ].state >= clientState_t::CS_CONNECTED )
 		{
-			svs.clients[ i ] = std::move(oldClients[ i ]);
+			svs.clients[ i ] = oldClients[ i ];
 		}
 	}
 
-	// free the old clients on the hunk
-	Hunk_FreeTempMemory( oldClients );
+	// free the old clients
+	free( oldClients );
 
 	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
 }
