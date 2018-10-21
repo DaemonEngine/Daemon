@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon GPL Source Code
-Copyright (C) 2012 Unvanquished Developers
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
 
 This file is part of the Daemon GPL Source Code (Daemon Source Code).
 
@@ -32,109 +32,53 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
-#ifndef __BOT_VEC_H
-#define __BOT_VEC_H
+#ifndef ENGINE_QCOMMON_NET_TYPES_H_
+#define ENGINE_QCOMMON_NET_TYPES_H_
 
-#include "bot_types.h"
+#include "./q_shared.h"
 
-//coordinate conversion
-static inline void quake2recast( float vec[ 3 ] )
+enum class netadrtype_t : int
 {
-	float temp = vec[1];
-	vec[1] = vec[2];
-	vec[2] = temp;
-}
-
-static inline void recast2quake( float vec[ 3 ] )
-{
-	float temp = vec[1];
-	vec[1] = vec[2];
-	vec[2] = temp;
-}
-
-class rVec;
-class qVec
-{
-	float v[ 3 ];
-
-public:
-	qVec( ) { }
-	qVec( float x, float y, float z );
-	qVec( const float vec[ 3 ] );
-	qVec( rVec vec );
-
-	inline float &operator[]( int i )
-	{
-		return v[ i ];
-	}
-
-	inline operator const float*() const
-	{
-		return v;
-	}
-
-	inline operator float*()
-	{
-		return v;
-	}
+    NA_BOT,
+    NA_BAD, // an address lookup failed
+    NA_LOOPBACK,
+    NA_BROADCAST,
+    NA_IP,
+    NA_IP6,
+    NA_IP_DUAL,
+    NA_MULTICAST6,
+    NA_UNSPEC
 };
 
-class rVec
+enum class netsrc_t
 {
-	float v[ 3 ];
-public:
-	rVec() = default;
-	rVec( float x, float y, float z );
-	rVec( const float vec[ 3 ] );
-	rVec( qVec vec );
-
-	inline float &operator[]( int i )
-	{
-		return v[ i ];
-	}
-	
-	inline operator const float*() const
-	{
-		return v;
-	}
-
-	inline operator float*()
-	{
-		return v;
-	}
+    NS_CLIENT,
+    NS_SERVER
 };
 
-class rBounds
+struct netadr_t
 {
-public:
-	rVec mins, maxs;
+    netadrtype_t   type;
 
-	rBounds()
-	{
-		clear();
-	}
+    byte           ip[ 4 ];
+    byte           ip6[ 16 ];
 
-	rBounds( const rBounds &b )
-	{
-		mins = b.mins;
-		maxs = b.maxs;
-	}
-
-	rBounds( qVec min, qVec max );
-	rBounds( const float min[ 3 ], const float max[ 3 ] );
-
-	void addPoint( rVec p );
-	void clear();
+    unsigned short port; // port which is in use
+    unsigned short port4, port6; // ports to choose from
+    unsigned long  scope_id; // Needed for IPv6 link-local addresses
 };
 
-struct botRouteTargetInternal
+struct msg_t
 {
-	botRouteTargetType_t type;
-	rVec pos;
-	rVec polyExtents;
-
-	botRouteTargetInternal() { }
-	botRouteTargetInternal( const botRouteTarget_t &target );
+    bool allowoverflow; // if false, do a Com_Error
+    bool overflowed; // set to true if the buffer size failed (with allowoverflow set)
+    bool oob; // set to true if the buffer size failed (with allowoverflow set)
+    byte     *data;
+    int      maxsize;
+    int      cursize;
+    int      uncompsize; // NERVE - SMF - net debugging
+    int      readcount;
+    int      bit; // for bitwise reads and writes
 };
 
-#endif
+#endif // ENGINE_QCOMMON_NET_TYPES_H_

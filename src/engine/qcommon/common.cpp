@@ -36,6 +36,7 @@ Maryland 20850 USA.
 
 #include "revision.h"
 #include "qcommon/q_shared.h"
+#include "qcommon/sys.h"
 #include "q_unicode.h"
 #include "qcommon.h"
 
@@ -259,7 +260,7 @@ void Info_Print( const char *s )
 			*o = 0;
 		}
 
-		Log::Notice( "%s", key );
+		Log::Notice( key );
 
 		if ( !*s )
 		{
@@ -1239,7 +1240,7 @@ void Com_Init( char *commandLine )
 	CL_StartHunkUsers();
 
 	com_fullyInitialized = true;
-	Log::Notice( "%s", "--- Common Initialization Complete ---" );
+	Log::Notice( "--- Common Initialization Complete ---" );
 
 	NET_Init();
 }
@@ -1659,10 +1660,4 @@ void Com_Shutdown()
 	}
 
 	FS::FlushAll();
-}
-
-int Sys_Milliseconds()
-{
-	static Sys::SteadyClock::time_point baseTime = Sys::SteadyClock::now();
-	return std::chrono::duration_cast<std::chrono::milliseconds>(Sys::SteadyClock::now() - baseTime).count();
 }

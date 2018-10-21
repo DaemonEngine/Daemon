@@ -39,24 +39,13 @@ Maryland 20850 USA.
 #include "common/cm/cm_public.h"
 #include "cvar.h"
 #include "common/Defs.h"
+#include "net_types.h"
 
 //============================================================================
 
 //
 // msg.c
 //
-struct msg_t
-{
-    bool allowoverflow; // if false, do a Com_Error
-    bool overflowed; // set to true if the buffer size failed (with allowoverflow set)
-    bool oob; // set to true if the buffer size failed (with allowoverflow set)
-    byte     *data;
-    int      maxsize;
-    int      cursize;
-    int      uncompsize; // NERVE - SMF - net debugging
-    int      readcount;
-    int      bit; // for bitwise reads and writes
-};
 
 void MSG_Init( msg_t *buf, byte *data, int length );
 void MSG_InitOOB( msg_t *buf, byte *data, int length );
@@ -146,8 +135,6 @@ NET
 
 #define PORT_ANY            0
 
-#define MAX_MASTER_SERVERS  5
-
 // RF, increased this, seems to keep causing problems when set to 64, especially when loading
 // a savegame, which is hard to fix on that side, since we can't really spread out a loadgame
 // among several frames
@@ -155,43 +142,12 @@ NET
 //#define   MAX_RELIABLE_COMMANDS   128         // max string commands buffered for restransmit
 #define MAX_RELIABLE_COMMANDS 256 // bigger!
 
-enum class netadrtype_t : int
-{
-  NA_BOT,
-  NA_BAD, // an address lookup failed
-  NA_LOOPBACK,
-  NA_BROADCAST,
-  NA_IP,
-  NA_IP6,
-  NA_IP_DUAL,
-  NA_MULTICAST6,
-  NA_UNSPEC
-};
-
-enum class netsrc_t
-{
-  NS_CLIENT,
-  NS_SERVER
-};
-
 // maximum length of an IPv6 address string including trailing '\0'
 #define NET_ADDR_STR_MAX_LEN 48
 
 // maximum length of an formatted IPv6 address string including port and trailing '\0'
 // format [%s]:%hu - 48 for %s (address), 3 for []: and 5 for %hu (port number, max value 65535)
 #define NET_ADDR_W_PORT_STR_MAX_LEN ( NET_ADDR_STR_MAX_LEN + 3 + 5 )
-
-struct netadr_t
-{
-    netadrtype_t   type;
-
-    byte           ip[ 4 ];
-    byte           ip6[ 16 ];
-
-    unsigned short port; // port which is in use
-    unsigned short port4, port6; // ports to choose from
-    unsigned long  scope_id; // Needed for IPv6 link-local addresses
-};
 
 extern cvar_t       *net_enabled;
 
@@ -289,7 +245,6 @@ You or the server may be running older versions of the game."
 #define URI_SCHEME_LENGTH      ( ARRAY_LEN( URI_SCHEME ) - 1 )
 
 #define PORT_MASTER             27950
-#define PORT_MOTD               27950
 #define PORT_SERVER             27960
 #define NUM_SERVER_PORTS        4 // broadcast scan this many ports after
 // PORT_SERVER so a single machine can
@@ -645,6 +600,8 @@ extern cvar_t       *sv_paused;
 extern cvar_t       *cl_packetdelay;
 extern cvar_t       *sv_packetdelay;
 
+extern cvar_t       *sv_master[ MAX_MASTER_SERVERS ];
+
 // com_speeds times
 extern int          time_game;
 extern int          time_frontend;
@@ -747,7 +704,7 @@ void     CL_Disconnect( bool showMainMenu );
 void     CL_SendDisconnect();
 void     CL_Shutdown();
 void     CL_Frame( int msec );
-namespace Keyboard { class Key; };
+namespace Keyboard { class Key; }
 void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
 
 void     CL_CharEvent( int c );
@@ -843,26 +800,12 @@ namespace Sys {
 void       Com_QueueEvent( std::unique_ptr<Sys::EventBase> event );
 void       Com_EventLoop();
 
-void Sys_SendPacket(int length, const void *data, netadr_t to);
-bool Sys_GetPacket(netadr_t *net_from, msg_t *net_message);
-
-bool Sys_StringToAdr(const char *s, netadr_t *a, netadrtype_t family);
-
-bool Sys_IsLANAddress(netadr_t adr);
-void Sys_ShowIP();
-
-int Sys_Milliseconds();
-
 // Curses Console
 void         CON_Shutdown();
 void         CON_Init();
 void         CON_Init_TTY();
 char         *CON_Input();
 void         CON_Print( const char *message );
-
-// Console - other
-unsigned int CON_LogSize();
-unsigned int CON_LogWrite( const char *in );
 
 /* This is based on the Adaptive Huffman algorithm described in Sayood's Data
  * Compression book.  The ranks are not actually stored, but implicitly defined

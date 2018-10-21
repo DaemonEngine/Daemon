@@ -166,13 +166,6 @@ void trap_PrepareKeyUp()
 	VM::SendMsg<PrepareKeyUpMsg>();
 }
 
-bool trap_GetNews( bool force )
-{
-	bool res;
-	VM::SendMsg<GetNewsMsg>(force, res);
-	return res;
-}
-
 // All Sounds
 
 void trap_S_StartSound( vec3_t origin, int entityNum, soundChannel_t, sfxHandle_t sfx )

@@ -804,7 +804,6 @@ bool CL_VideoRecording();
 // cl_main.c
 //
 void CL_WriteDemoMessage( msg_t *msg, int headerBytes );
-void CL_RequestMotd();
 void CL_GetClipboardData( char *, int );
 
 //

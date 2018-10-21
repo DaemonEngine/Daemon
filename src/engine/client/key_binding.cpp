@@ -75,7 +75,7 @@ static const struct
 	{ "super", 5, 32, K_SUPER },
 	{ "compose", 6, 64, K_COMPOSE },
 	{ "menu", 7, 128, K_MENU },
-	{ "" }
+	{ },
 };
 // Following is no. of bits required for modifiers in the above list
 // (it doesn't reflect the array length)

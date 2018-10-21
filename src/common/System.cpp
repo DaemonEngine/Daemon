@@ -47,10 +47,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nacl/nacl_exception.h>
 #include <nacl/nacl_minidump.h>
 #include <nacl/nacl_random.h>
-#include "shared/CommonProxies.h"
 #else
 #include <dlfcn.h>
 #endif
+#endif
+#ifdef BUILD_VM
+#include "shared/CommonProxies.h"
+#else
+#include "qcommon/sys.h"
 #endif
 
 namespace Sys {
@@ -137,6 +141,15 @@ SteadyClock::time_point SleepUntil(SteadyClock::time_point time)
 	// current time as the base for the next frame. That way we ensure
 	// that the frame rate remains consistent.
 	return time;
+}
+
+int Milliseconds() {
+#ifdef BUILD_VM
+	return trap_Milliseconds();
+#else
+	static Sys::SteadyClock::time_point baseTime = Sys::SteadyClock::now();
+	return std::chrono::duration_cast<std::chrono::milliseconds>(Sys::SteadyClock::now() - baseTime).count();
+#endif
 }
 
 void Drop(Str::StringRef message)

@@ -89,7 +89,7 @@ static const char *TranslateText_Internal( bool plural, int firstTextArg )
 
 							if( i >= MAX_STRING_CHARS )
 							{
-								Log::Notice( "%s", str );
+								Log::Notice( str );
 								memset( &str, 0, sizeof( str ) );
 								i = length;
 							}
@@ -113,7 +113,7 @@ static const char *TranslateText_Internal( bool plural, int firstTextArg )
 
 							if( i >= MAX_STRING_CHARS )
 							{
-								Log::Notice( "%s", str );
+								Log::Notice( str );
 								memset( &str, 0, sizeof( str ) );
 								i = length;
 							}
@@ -146,7 +146,7 @@ static const char *TranslateText_Internal( bool plural, int firstTextArg )
 			}
 			else
 			{
-				Log::Notice( "%s", str );
+				Log::Notice( str );
 				memset( &str, 0, sizeof( str ) );
 				str[ 0 ] = c;
 				i = 1;

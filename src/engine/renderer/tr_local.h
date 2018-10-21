@@ -559,7 +559,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	{
 		wrapTypeEnum_t s, t;
 
-		wrapType_t() : s(wrapTypeEnum_t::WT_CLAMP), t(wrapTypeEnum_t::WT_CLAMP) {}
+		wrapType_t() = default;
 		wrapType_t( wrapTypeEnum_t w ) : s(w), t(w) {}
 		wrapType_t( wrapTypeEnum_t s, wrapTypeEnum_t t ) : s(s), t(t) {}
 
@@ -3729,6 +3729,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	};
 
 	struct RenderCommand {
+		virtual ~RenderCommand() = default;
+
 		// returns address of next command or nullptr
 		virtual const RenderCommand *ExecuteSelf() const = 0;
 	};

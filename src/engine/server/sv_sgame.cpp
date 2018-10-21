@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "server.h"
 #include "sg_msgdef.h"
 #include "qcommon/crypto.h"
+#include "qcommon/sys.h"
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
 
@@ -588,12 +589,6 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		IPC::HandleMsg<GetEntityTokenMsg>(channel, std::move(reader), [this](bool& boolRes, std::string& res) {
 			res = COM_Parse(&sv.entityParsePoint);
 			boolRes = sv.entityParsePoint or res.size() > 0;
-		});
-		break;
-
-	case G_SEND_GAME_STAT:
-		IPC::HandleMsg<SendGameStatMsg>(channel, std::move(reader), [this](std::string text) {
-			SV_MasterGameStat(text.c_str());
 		});
 		break;
 

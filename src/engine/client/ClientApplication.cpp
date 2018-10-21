@@ -112,6 +112,6 @@ class ClientApplication : public Application {
         }
 };
 
-INSTANTIATE_APPLICATION(ClientApplication);
+INSTANTIATE_APPLICATION(ClientApplication)
 
 }

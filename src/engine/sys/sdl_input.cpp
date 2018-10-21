@@ -39,6 +39,7 @@ Maryland 20850 USA.
 #include "client/key_identification.h"
 #include "qcommon/q_unicode.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/sys.h"
 #include "framework/CommandSystem.h"
 #include "sys/sys_events.h"
 
@@ -515,6 +516,12 @@ struct
 	unsigned int oldhats;
 } stick_state;
 
+static const char* JoystickNameForIndex(int index)
+{
+    const char* name = SDL_JoystickNameForIndex(index);
+    return name ? name : "<no name found>";
+}
+
 /*
 ===============
 IN_InitJoystick
@@ -564,7 +571,7 @@ static void IN_InitJoystick()
 
 	for ( i = 0; i < total; i++ )
 	{
-		Log::Debug( "[%d] %s", i, SDL_JoystickNameForIndex( i ) );
+		Log::Debug( "[%d] %s", i, JoystickNameForIndex( i ) );
 	}
 
 	in_joystickNo = Cvar_Get( "in_joystickNo", "0", 0 );
@@ -585,7 +592,7 @@ static void IN_InitJoystick()
 	}
 
 	Log::Debug( "Joystick %d opened", in_joystickNo->integer );
-	Log::Debug( "Name:    %s", SDL_JoystickNameForIndex( in_joystickNo->integer ) );
+	Log::Debug( "Name:    %s", JoystickNameForIndex( in_joystickNo->integer ) );
 	Log::Debug( "Axes:    %d", SDL_JoystickNumAxes( stick ) );
 	Log::Debug( "Hats:    %d", SDL_JoystickNumHats( stick ) );
 	Log::Debug( "Buttons: %d", SDL_JoystickNumButtons( stick ) );
@@ -595,7 +602,7 @@ static void IN_InitJoystick()
 	SDL_JoystickEventState( SDL_QUERY );
 
 	// XBox 360 controller support
-	if ( !Q_stricmp( SDL_JoystickNameForIndex( in_joystickNo->integer ), "Microsoft X-Box 360 pad" ) )
+	if ( !Q_stricmp( JoystickNameForIndex( in_joystickNo->integer ), "Microsoft X-Box 360 pad" ) )
 	{
 		Cvar_Set( "in_xbox360ControllerAvailable", "1" );
 	}

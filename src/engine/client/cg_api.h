@@ -121,7 +121,7 @@ enum class MouseMode
 	SystemCursor, // The input is sent as positions, the cursor should be rendered by the system
 };
 
-int             trap_Milliseconds();
+int             trap_Milliseconds(); // TODO: Rely on CommonProxies.h declaration instead of this one.
 void            trap_Cvar_Register( vmCvar_t *vmCvar, const char *varName, const char *defaultValue, int flags );
 void            trap_Cvar_Update( vmCvar_t *vmCvar );
 void            trap_Cvar_Set( const char *var_name, const char *value );
@@ -275,7 +275,6 @@ bool        trap_LAN_UpdateVisiblePings( int source );
 void            trap_LAN_ResetPings( int n );
 int             trap_LAN_ServerStatus( const char *serverAddress, char *serverStatus, int maxLen );
 void            trap_LAN_ResetServerStatus();
-bool        trap_GetNews( bool force );
 void            trap_R_GetShaderNameFromHandle( const qhandle_t shader, char *out, int len );
 void            trap_PrepareKeyUp();
 void            trap_R_SetAltShaderTokens( const char * );

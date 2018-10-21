@@ -1368,7 +1368,6 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 	char         *token;
 	int          imageBits = 0;
 	filterType_t filterType;
-	wrapType_t   wrapType;
 	const char         *buffer_p = &buffer[ 0 ];
 
 	if ( !buffer || !buffer[ 0 ] )
@@ -1434,14 +1433,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 		filterType = shader.filterType;
 	}
 
-	if ( stage->overrideWrapType )
-	{
-		wrapType = stage->wrapType;
-	}
-	else
-	{
-		wrapType = shader.wrapType;
-	}
+	wrapType_t wrapType = stage->overrideWrapType ? stage->wrapType : shader.wrapType;
 
 	// try to load the image
 	stage->bundle[ 0 ].image[ 0 ] = R_FindImageFile( buffer, imageBits, filterType, wrapType );
@@ -3714,276 +3706,195 @@ CollapseMultitexture
 // *INDENT-OFF*
 static void CollapseStages()
 {
-	int           i, j;
-
-	bool      hasDiffuseStage;
-	bool      hasNormalStage;
-	bool      hasSpecularStage;
-	bool      hasMaterialStage;
-	bool      hasReflectionStage;
-	bool      hasGlowStage;
-
-	shaderStage_t tmpDiffuseStage;
-	shaderStage_t tmpNormalStage;
-	shaderStage_t tmpSpecularStage;
-	shaderStage_t tmpMaterialStage;
-	shaderStage_t tmpReflectionStage;
-	shaderStage_t tmpGlowStage;
-
-	shaderStage_t tmpColorStage;
-	shaderStage_t tmpLightmapStage;
-
-	shader_t      tmpShader;
-
-	int           numStages = 0;
-	shaderStage_t tmpStages[ MAX_SHADER_STAGES ];
-
 	if ( !r_collapseStages->integer )
 	{
 		return;
 	}
 
-	Com_Memcpy( &tmpShader, &shader, sizeof( shader ) );
+	collapseType_t tmpCollapseType = shader.collapseType;
+	shaderStage_t* activeStages[ MAX_SHADER_STAGES ];
+	int numActiveStages = 0;
+	for (shaderStage_t& stage : stages) {
+		if (stage.active) {
+			activeStages[numActiveStages++] = &stage;
+		}
+	}
+	int stagesWritten = 0;
 
-	Com_Memset( &tmpStages[ 0 ], 0, sizeof( stages ) );
-
-	for ( j = 0; j < MAX_SHADER_STAGES; j++ )
+	for ( int j = 0; j < numActiveStages; )
 	{
-		hasDiffuseStage = false;
-		hasNormalStage = false;
-		hasSpecularStage = false;
-		hasMaterialStage = false;
-		hasReflectionStage = false;
-		hasGlowStage = false;
-
-		Com_Memset( &tmpDiffuseStage, 0, sizeof( shaderStage_t ) );
-		Com_Memset( &tmpNormalStage, 0, sizeof( shaderStage_t ) );
-		Com_Memset( &tmpSpecularStage, 0, sizeof( shaderStage_t ) );
-		Com_Memset( &tmpGlowStage, 0, sizeof( shaderStage_t ) );
-
-		Com_Memset( &tmpColorStage, 0, sizeof( shaderStage_t ) );
-		Com_Memset( &tmpLightmapStage, 0, sizeof( shaderStage_t ) );
-
-		if ( !stages[ j ].active )
-		{
-			continue;
-		}
-
-		if (
-		  stages[ j ].type == stageType_t::ST_REFRACTIONMAP ||
-		  stages[ j ].type == stageType_t::ST_DISPERSIONMAP ||
-		  stages[ j ].type == stageType_t::ST_SKYBOXMAP ||
-		  stages[ j ].type == stageType_t::ST_SCREENMAP ||
-		  stages[ j ].type == stageType_t::ST_PORTALMAP ||
-		  stages[ j ].type == stageType_t::ST_HEATHAZEMAP ||
-		  stages[ j ].type == stageType_t::ST_LIQUIDMAP ||
-		  stages[ j ].type == stageType_t::ST_ATTENUATIONMAP_XY ||
-		  stages[ j ].type == stageType_t::ST_ATTENUATIONMAP_Z )
-		{
-			// only merge lighting relevant stages
-			tmpStages[ numStages ] = stages[ j ];
-			numStages++;
-			continue;
-		}
-
-		for ( i = 0; i < 4; i++ )
-		{
-			if ( ( j + i ) >= MAX_SHADER_STAGES )
+		struct CollapsibleStages {
+			const shaderStage_t* diffuseStage = nullptr;
+			const shaderStage_t* normalStage = nullptr;
+			const shaderStage_t* specularStage = nullptr;
+			const shaderStage_t* materialStage = nullptr;
+			const shaderStage_t* reflectionStage = nullptr;
+			const shaderStage_t* glowStage = nullptr;
+		};
+		auto FindStages = [&activeStages, numActiveStages](CollapsibleStages collapsibleStages, int i) {
+			if ( i >= numActiveStages )
 			{
-				continue;
+				return collapsibleStages;
 			}
 
-			if ( !stages[ j + i ].active )
+			if ( activeStages[ i ]->type == stageType_t::ST_DIFFUSEMAP && !collapsibleStages.diffuseStage )
 			{
-				continue;
+				collapsibleStages.diffuseStage = activeStages[ i ];
 			}
-
-			if ( stages[ j + i ].type == stageType_t::ST_DIFFUSEMAP && !hasDiffuseStage )
+			else if ( activeStages[ i ]->type == stageType_t::ST_NORMALMAP && !collapsibleStages.normalStage )
 			{
-				hasDiffuseStage = true;
-				tmpDiffuseStage = stages[ j + i ];
+				collapsibleStages.normalStage = activeStages[ i ];
 			}
-			else if ( stages[ j + i ].type == stageType_t::ST_NORMALMAP && !hasNormalStage )
+			else if ( activeStages[ i ]->type == stageType_t::ST_SPECULARMAP && !collapsibleStages.specularStage )
 			{
-				hasNormalStage = true;
-				tmpNormalStage = stages[ j + i ];
+				collapsibleStages.specularStage = activeStages[ i ];
 			}
-			else if ( stages[ j + i ].type == stageType_t::ST_SPECULARMAP && !hasSpecularStage )
+			else if ( activeStages[ i ]->type == stageType_t::ST_MATERIALMAP && !collapsibleStages.materialStage )
 			{
-				hasSpecularStage = true;
-				tmpSpecularStage = stages[ j + i ];
+				collapsibleStages.materialStage = activeStages[ i ];
 			}
-			else if ( stages[ j + i ].type == stageType_t::ST_MATERIALMAP && !hasMaterialStage )
+			else if ( activeStages[ i ]->type == stageType_t::ST_REFLECTIONMAP && !collapsibleStages.reflectionStage )
 			{
-				hasMaterialStage = true;
-				tmpMaterialStage = stages[ j + i ];
+				collapsibleStages.reflectionStage = activeStages[ i ];
 			}
-			else if ( stages[ j + i ].type == stageType_t::ST_REFLECTIONMAP && !hasReflectionStage )
+			else if ( activeStages[ i ]->type == stageType_t::ST_GLOWMAP && !collapsibleStages.glowStage )
 			{
-				hasReflectionStage = true;
-				tmpReflectionStage = stages[ j + i ];
+				collapsibleStages.glowStage = activeStages[ i ];
 			}
-			else if ( stages[ j + i ].type == stageType_t::ST_GLOWMAP && !hasGlowStage )
-			{
-				hasGlowStage = true;
-				tmpGlowStage = stages[ j + i ];
-			}
-		}
-
-		// NOTE: Tr3B - merge as many stages as possible
-		if( hasSpecularStage && hasMaterialStage ) {
-			Log::Warn( "specularMap disabled in favor of materialMap in shader '%s'\n", shader.name );
-			hasSpecularStage = false;
-		}
+			return collapsibleStages;
+		};
+		CollapsibleStages stages1 = FindStages(CollapsibleStages(), j);
+		CollapsibleStages stages2 = FindStages(stages1, j + 1);
+		CollapsibleStages stages3 = FindStages(stages2, j + 2);
+		CollapsibleStages stages4 = FindStages(stages3, j + 3);
 
 		// try to merge diffuse/normal/specular/glow
-		if ( hasDiffuseStage         &&
-		     hasNormalStage          &&
-		     hasSpecularStage        &&
-		     hasGlowStage
-		   )
+		if ( stages4.diffuseStage && stages4.normalStage && stages4.specularStage && stages4.glowStage )
 		{
-			tmpShader.collapseType = collapseType_t::COLLAPSE_lighting_DBSG;
+			tmpCollapseType = collapseType_t::COLLAPSE_lighting_DBSG;
 
-			tmpStages[ numStages ] = tmpDiffuseStage;
-			tmpStages[ numStages ].type = stageType_t::ST_COLLAPSE_lighting_DBSG;
+			shaderStage_t tmpStage = *stages4.diffuseStage;
+			tmpStage.type = stageType_t::ST_COLLAPSE_lighting_DBSG;
+			tmpStage.bundle[ TB_NORMALMAP ] = stages4.normalStage->bundle[ 0 ];
+			tmpStage.bundle[ TB_SPECULARMAP ] = stages4.specularStage->bundle[ 0 ];
+			tmpStage.specularExponentMin = stages4.specularStage->specularExponentMin;
+			tmpStage.specularExponentMax = stages4.specularStage->specularExponentMax;
+			tmpStage.bundle[ TB_GLOWMAP ] = stages4.glowStage->bundle[ 0 ];
 
-			tmpStages[ numStages ].bundle[ TB_NORMALMAP ] = tmpNormalStage.bundle[ 0 ];
-
-			tmpStages[ numStages ].bundle[ TB_SPECULARMAP ] = tmpSpecularStage.bundle[ 0 ];
-			tmpStages[ numStages ].specularExponentMin = tmpSpecularStage.specularExponentMin;
-			tmpStages[ numStages ].specularExponentMax = tmpSpecularStage.specularExponentMax;
-
-			tmpStages[ numStages ].bundle[ TB_GLOWMAP ] = tmpGlowStage.bundle[ 0 ];
-			numStages++;
-			j += 3;
-			continue;
+			stages[stagesWritten++] = tmpStage;
+			j += 4;
 		}
-		// try to merge diffuse/normal/specular
-		else if ( hasDiffuseStage         &&
-		          hasNormalStage          &&
-		          hasSpecularStage
-		   )
-		{
-			tmpShader.collapseType = collapseType_t::COLLAPSE_lighting_DBS;
 
-			tmpStages[ numStages ] = tmpDiffuseStage;
-			tmpStages[ numStages ].type = stageType_t::ST_COLLAPSE_lighting_DBS;
-
-			tmpStages[ numStages ].bundle[ TB_NORMALMAP ] = tmpNormalStage.bundle[ 0 ];
-
-			tmpStages[ numStages ].bundle[ TB_SPECULARMAP ] = tmpSpecularStage.bundle[ 0 ];
-			tmpStages[ numStages ].specularExponentMin = tmpSpecularStage.specularExponentMin;
-			tmpStages[ numStages ].specularExponentMax = tmpSpecularStage.specularExponentMax;
-
-			numStages++;
-			j += 2;
-			continue;
-		}
 		// try to merge diffuse/normal/material/glow
-		else if ( hasDiffuseStage         &&
-			  hasNormalStage          &&
-			  hasMaterialStage        &&
-			  hasGlowStage
-		   )
+		else if ( stages4.diffuseStage && stages4.normalStage && stages4.materialStage && stages4.glowStage )
 		{
-			tmpShader.collapseType = collapseType_t::COLLAPSE_lighting_DBMG;
+			tmpCollapseType = collapseType_t::COLLAPSE_lighting_DBMG;
 
-			tmpStages[ numStages ] = tmpDiffuseStage;
-			tmpStages[ numStages ].type = stageType_t::ST_COLLAPSE_lighting_DBMG;
+			shaderStage_t tmpStage = *stages4.diffuseStage;
+			tmpStage.type = stageType_t::ST_COLLAPSE_lighting_DBMG;
+			tmpStage.bundle[ TB_NORMALMAP ] = stages4.normalStage->bundle[ 0 ];
+			tmpStage.bundle[ TB_MATERIALMAP ] = stages4.materialStage->bundle[ 0 ];
+			tmpStage.bundle[ TB_GLOWMAP ] = stages4.glowStage->bundle[ 0 ];
 
-			tmpStages[ numStages ].bundle[ TB_NORMALMAP ] = tmpNormalStage.bundle[ 0 ];
+			stages[stagesWritten++] = tmpStage;
+			j += 4;
+		}
 
-			tmpStages[ numStages ].bundle[ TB_MATERIALMAP ] = tmpMaterialStage.bundle[ 0 ];
+		// try to merge diffuse/normal/specular
+		else if ( stages3.diffuseStage && stages3.normalStage && stages3.specularStage )
+		{
+			tmpCollapseType = collapseType_t::COLLAPSE_lighting_DBS;
 
-			tmpStages[ numStages ].bundle[ TB_GLOWMAP ] = tmpGlowStage.bundle[ 0 ];
-			numStages++;
+			shaderStage_t tmpStage = *stages3.diffuseStage;
+			tmpStage.type = stageType_t::ST_COLLAPSE_lighting_DBS;
+			tmpStage.bundle[ TB_NORMALMAP ] = stages3.normalStage->bundle[ 0 ];
+			tmpStage.bundle[ TB_SPECULARMAP ] = stages3.specularStage->bundle[ 0 ];
+			tmpStage.specularExponentMin = stages3.specularStage->specularExponentMin;
+			tmpStage.specularExponentMax = stages3.specularStage->specularExponentMax;
+
+			stages[stagesWritten++] = tmpStage;
 			j += 3;
-			continue;
 		}
+
 		// try to merge diffuse/normal/material
-		else if ( hasDiffuseStage         &&
-		          hasNormalStage          &&
-		          hasMaterialStage
-		   )
+		else if ( stages3.diffuseStage && stages3.normalStage && stages3.materialStage )
 		{
-			tmpShader.collapseType = collapseType_t::COLLAPSE_lighting_DBM;
+			tmpCollapseType = collapseType_t::COLLAPSE_lighting_DBM;
 
-			tmpStages[ numStages ] = tmpDiffuseStage;
-			tmpStages[ numStages ].type = stageType_t::ST_COLLAPSE_lighting_DBM;
+			shaderStage_t tmpStage = *stages3.diffuseStage;
+			tmpStage.type = stageType_t::ST_COLLAPSE_lighting_DBM;
+			tmpStage.bundle[ TB_NORMALMAP ] = stages3.normalStage->bundle[ 0 ];
+			tmpStage.bundle[ TB_MATERIALMAP ] = stages3.materialStage->bundle[ 0 ];
 
-			tmpStages[ numStages ].bundle[ TB_NORMALMAP ] = tmpNormalStage.bundle[ 0 ];
-
-			tmpStages[ numStages ].bundle[ TB_MATERIALMAP ] = tmpMaterialStage.bundle[ 0 ];
-
-			numStages++;
-			j += 2;
-			continue;
+			stages[stagesWritten++] = tmpStage;
+			j += 3;
 		}
+
 		// try to merge diffuse/normal/glow
-		else if ( hasDiffuseStage         &&
-		          hasNormalStage          &&
-		          hasGlowStage
-		        )
+		else if ( stages3.diffuseStage && stages3.normalStage && stages3.glowStage )
 		{
-			tmpShader.collapseType = collapseType_t::COLLAPSE_lighting_DBG;
+			tmpCollapseType = collapseType_t::COLLAPSE_lighting_DBG;
 
-			tmpStages[ numStages ] = tmpDiffuseStage;
-			tmpStages[ numStages ].type = stageType_t::ST_COLLAPSE_lighting_DBG;
+			shaderStage_t tmpStage = *stages3.diffuseStage;
+			tmpStage.type = stageType_t::ST_COLLAPSE_lighting_DBG;
+			tmpStage.bundle[ TB_NORMALMAP ] = stages3.normalStage->bundle[ 0 ];
+			tmpStage.bundle[ TB_GLOWMAP ] = stages3.glowStage->bundle[ 0 ];
 
-			tmpStages[ numStages ].bundle[ TB_NORMALMAP ] = tmpNormalStage.bundle[ 0 ];
-			tmpStages[ numStages ].bundle[ TB_GLOWMAP ] = tmpGlowStage.bundle[ 0 ];
-			numStages++;
-			j += 2;
-			continue;
+			stages[stagesWritten++] = tmpStage;
+			j += 3;
 		}
+
 		// try to merge diffuse/normal
-		else if ( hasDiffuseStage         &&
-		          hasNormalStage
-		        )
+		else if ( stages2.diffuseStage && stages2.normalStage )
 		{
-			tmpShader.collapseType = collapseType_t::COLLAPSE_lighting_DB;
+			tmpCollapseType = collapseType_t::COLLAPSE_lighting_DB;
 
-			tmpStages[ numStages ] = tmpDiffuseStage;
-			tmpStages[ numStages ].type = stageType_t::ST_COLLAPSE_lighting_DB;
+			shaderStage_t tmpStage = *stages2.diffuseStage;
+			tmpStage.type = stageType_t::ST_COLLAPSE_lighting_DB;
+			tmpStage.bundle[ TB_NORMALMAP ] = stages2.normalStage->bundle[ 0 ];
 
-			tmpStages[ numStages ].bundle[ TB_NORMALMAP ] = tmpNormalStage.bundle[ 0 ];
-
-			numStages++;
-			j += 1;
-			continue;
+			stages[stagesWritten++] = tmpStage;
+			j += 2;
 		}
+
 		// try to merge env/normal
-		else if ( hasReflectionStage &&
-		          hasNormalStage
-		        )
+		else if ( stages2.reflectionStage && stages2.normalStage )
 		{
-			tmpShader.collapseType = collapseType_t::COLLAPSE_reflection_CB;
+			tmpCollapseType = collapseType_t::COLLAPSE_reflection_CB;
 
-			tmpStages[ numStages ] = tmpReflectionStage;
-			tmpStages[ numStages ].type = stageType_t::ST_COLLAPSE_reflection_CB;
+			shaderStage_t tmpStage = *stages2.reflectionStage;
+			tmpStage.type = stageType_t::ST_COLLAPSE_reflection_CB;
+			tmpStage.bundle[ TB_NORMALMAP ] = stages2.normalStage->bundle[ 0 ];
 
-			tmpStages[ numStages ].bundle[ TB_NORMALMAP ] = tmpNormalStage.bundle[ 0 ];
-
-			numStages++;
-			j += 1;
-			continue;
+			stages[stagesWritten++] = tmpStage;
+			j += 2;
 		}
+
 		// if there was no merge option just copy stage
 		else
 		{
-			tmpStages[ numStages ] = stages[ j ];
-			numStages++;
+			if ( &stages[stagesWritten] != activeStages[j] ) {
+				stages[stagesWritten] = *activeStages[j];
+			}
+			++stagesWritten;
+			j += 1;
+		}
+
+		if ( stages4.specularStage && stages4.materialStage )
+		{
+			Log::Warn("Supposedly you shouldn't have both specularMap and materialMap (in shader '%s')?", shader.name);
 		}
 	}
 
-	// clear unused stages
-	Com_Memset( &tmpStages[ numStages ], 0, sizeof( stages[ 0 ] ) * ( MAX_SHADER_STAGES - numStages ) );
-	tmpShader.numStages = numStages;
+	shader.numStages = stagesWritten;
+	// FIXME: This seems stupid since there can be any number of collapse types.
+	shader.collapseType = tmpCollapseType;
 
-	// copy result
-	Com_Memcpy( &stages[ 0 ], &tmpStages[ 0 ], sizeof( stages ) );
-	Com_Memcpy( &shader, &tmpShader, sizeof( shader ) );
+	// Code that processes the stages after this point seems to rely on numStages rather than the
+	// 'active' fields, but just to be safe...
+	for ( int i = stagesWritten; i < MAX_SHADER_STAGES; i++ ) {
+		stages[i].active = false;
+	}
 }
 
 // *INDENT-ON*

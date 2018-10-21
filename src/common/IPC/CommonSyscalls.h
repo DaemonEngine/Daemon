@@ -61,7 +61,6 @@ namespace VM {
     // Common QVM syscalls
     // TODO kill them or move them somewhere else?
     enum {
-        QVM_COMMON_PRINT,
         QVM_COMMON_ERROR,
         QVM_COMMON_SEND_CONSOLE_COMMAND,
 
@@ -86,12 +85,9 @@ namespace VM {
         QVM_COMMON_PARSE_SOURCE_FILE_AND_LINE,
     };
 
-    /** @deprecated */
-    using PrintMsg = IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PRINT>, std::string>;
     using ErrorMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_ERROR>, std::string>
     >;
-    // LogMsg TODO
     using SendConsoleCommandMsg = IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_SEND_CONSOLE_COMMAND>, std::string>;
 
     using FSFOpenFileMsg = IPC::SyncMessage<

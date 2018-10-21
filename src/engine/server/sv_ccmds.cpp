@@ -402,7 +402,7 @@ public:
 
 		for ( const auto& map: maps )
 		{
-			Print("%s", map.c_str());
+			Print(map.c_str());
 		}
 	}
 };

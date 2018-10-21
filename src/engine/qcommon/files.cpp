@@ -760,7 +760,7 @@ public:
 		try {
 			for (auto& filename : FS::PakPath::ListFiles(args.Argv(1))) {
 				if (filename.size() && (!filter || Com_Filter(args.Argv(2).c_str(), filename.c_str(), false))) {
-					Print("%s", filename.c_str());
+					Print(filename.c_str());
 				}
 			}
 		} catch (std::system_error&) {
@@ -773,7 +773,7 @@ public:
 		try {
 			for (auto& filename : FS::RawPath::ListFiles(FS::Path::Build(FS::GetHomePath(),args.Argv(1)))) {
 				if (filename.size() && (!filter || Com_Filter(args.Argv(2).c_str(), filename.c_str(), false))) {
-					Print("%s", filename.c_str());
+					Print(filename.c_str());
 				}
 			}
 		} catch (std::system_error&) {

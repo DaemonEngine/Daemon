@@ -42,6 +42,7 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 #include "framework/Network.h"
+#include "qcommon/sys.h"
 
 serverStatic_t svs; // persistent server info
 server_t       sv; // local server
@@ -312,64 +313,55 @@ static void SV_ResolveMasterServers()
 			continue;
 		}
 
-		// see if we haven't already resolved the name
-		// resolving usually causes hitches on win95, so only
-		// do it when needed
-		if ( master.Cvar()->modified || master.Empty() )
+		if ( netenabled & NET_ENABLEV4 )
 		{
-			master.Cvar()->modified = false;
+			Log::Notice( "Resolving %s (IPv4)\n", master.Cvar()->string );
+			int res = NET_StringToAdr( master.Cvar()->string, &master.ipv4, netadrtype_t::NA_IP );
 
-			if ( netenabled & NET_ENABLEV4 )
+			if ( res == 2 )
 			{
-				Log::Notice( "Resolving %s (IPv4)\n", master.Cvar()->string );
-				int res = NET_StringToAdr( master.Cvar()->string, &master.ipv4, netadrtype_t::NA_IP );
-
-				if ( res == 2 )
-				{
-					// if no port was specified, use the default master port
-					master.ipv4.port = BigShort( PORT_MASTER );
-				}
-
-				if ( res )
-				{
-					Log::Notice( "%s resolved to %s\n", master.Cvar()->string, Net::AddressToString(master.ipv4, true) );
-				}
-				else
-				{
-					Log::Notice( "%s has no IPv4 address.\n", master.Cvar()->string );
-				}
+				// if no port was specified, use the default master port
+				master.ipv4.port = BigShort( PORT_MASTER );
 			}
 
-			if ( netenabled & NET_ENABLEV6 )
+			if ( res )
 			{
-				Log::Notice( "Resolving %s (IPv6)\n", master.Cvar()->string );
-				int res = NET_StringToAdr( master.Cvar()->string, &master.ipv6, netadrtype_t::NA_IP6 );
+				Log::Notice( "%s resolved to %s\n", master.Cvar()->string, Net::AddressToString(master.ipv4, true) );
+			}
+			else
+			{
+				Log::Notice( "%s has no IPv4 address.\n", master.Cvar()->string );
+			}
+		}
 
-				if ( res == 2 )
-				{
-					// if no port was specified, use the default master port
-					master.ipv6.port = BigShort( PORT_MASTER );
-				}
+		if ( netenabled & NET_ENABLEV6 )
+		{
+			Log::Notice( "Resolving %s (IPv6)\n", master.Cvar()->string );
+			int res = NET_StringToAdr( master.Cvar()->string, &master.ipv6, netadrtype_t::NA_IP6 );
 
-				if ( res )
-				{
-					Log::Notice( "%s resolved to %s\n", master.Cvar()->string, Net::AddressToString(master.ipv6, true) );
-				}
-				else
-				{
-					Log::Notice( "%s has no IPv6 address.\n", master.Cvar()->string );
-				}
+			if ( res == 2 )
+			{
+				// if no port was specified, use the default master port
+				master.ipv6.port = BigShort( PORT_MASTER );
 			}
 
-			if ( master.Empty() )
+			if ( res )
 			{
-				// if the address failed to resolve, clear it
-				// so we don't take repeated dns hits
-				Log::Notice( "Couldn't resolve address: %s\n", master.Cvar()->string );
-				Cvar_Set( master.Cvar()->name, "" );
-				master.Cvar()->modified = false;
-				continue;
+				Log::Notice( "%s resolved to %s\n", master.Cvar()->string, Net::AddressToString(master.ipv6, true) );
 			}
+			else
+			{
+				Log::Notice( "%s has no IPv6 address.\n", master.Cvar()->string );
+			}
+		}
+
+		if ( master.Empty() )
+		{
+			// if the address failed to resolve, clear it
+			// so we don't take repeated dns hits
+			Log::Notice( "Couldn't resolve address: %s\n", master.Cvar()->string );
+			Cvar_Set( master.Cvar()->name, "" );
+			continue;
 		}
 	}
 }
@@ -468,42 +460,6 @@ void SV_MasterShutdown()
 
 	// when the master tries to poll the server, it won't respond, so
 	// it will be removed from the list
-}
-
-/*
-=================
-SV_MasterGameStat
-=================
-*/
-void SV_MasterGameStat( const char *data )
-{
-	netadr_t adr;
-
-	if ( SV_Private(ServerPrivate::NoAdvertise) )
-	{
-		return; // only dedicated servers send stats
-	}
-
-	Log::Notice( "Resolving %s", MASTER_SERVER_NAME );
-
-	switch ( NET_StringToAdr( MASTER_SERVER_NAME, &adr, netadrtype_t::NA_UNSPEC ) )
-	{
-		case 0:
-			Log::Warn( "Couldn't resolve master address: %s", MASTER_SERVER_NAME );
-			return;
-
-		case 2:
-			adr.port = BigShort( PORT_MASTER );
-
-		default:
-			break;
-	}
-
-	Log::Notice( "%s resolved to %s", MASTER_SERVER_NAME,
-	            Net::AddressToString(adr, true) );
-
-	Log::Notice( "Sending gamestat to %s", MASTER_SERVER_NAME );
-	Net::OutOfBandPrint( netsrc_t::NS_SERVER, adr, "gamestat %s", data );
 }
 
 /*

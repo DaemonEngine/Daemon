@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "client.h"
 #include "engine/client/key_identification.h"
 #include "engine/client/keys.h"
+#include "engine/qcommon/sys.h"
 #include "framework/CommandSystem.h"
 
 unsigned frame_msec;

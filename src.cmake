@@ -267,7 +267,6 @@ set(ENGINELIST
     ${ENGINE_DIR}/qcommon/md5.cpp
     ${ENGINE_DIR}/sys/con_common.h
     ${ENGINE_DIR}/sys/con_common.cpp
-    ${ENGINE_DIR}/sys/con_log.cpp
     ${ENGINE_DIR}/sys/sys_events.h
 )
 
@@ -293,15 +292,14 @@ set(QCOMMONLIST
     ${ENGINE_DIR}/qcommon/msg.cpp
     ${ENGINE_DIR}/qcommon/net_chan.cpp
     ${ENGINE_DIR}/qcommon/net_ip.cpp
+    ${ENGINE_DIR}/qcommon/net_types.h
     ${ENGINE_DIR}/qcommon/parse.cpp
     ${ENGINE_DIR}/qcommon/print_translated.h
     ${ENGINE_DIR}/qcommon/qcommon.h
     ${ENGINE_DIR}/qcommon/qfiles.h
     ${ENGINE_DIR}/qcommon/surfaceflags.h
+    ${ENGINE_DIR}/qcommon/sys.h
     ${ENGINE_DIR}/qcommon/translation.cpp
-    ${ENGINE_DIR}/sys/con_log.cpp
-    ${ENGINE_DIR}/sys/con_common.h
-    ${ENGINE_DIR}/sys/con_common.cpp
 )
 
 if (USE_CURSES)

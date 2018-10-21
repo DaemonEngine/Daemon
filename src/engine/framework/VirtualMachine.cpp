@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "qcommon/qcommon.h"
+#include "qcommon/sys.h"
 #include "VirtualMachine.h"
 
 #ifdef _WIN32

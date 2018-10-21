@@ -33,6 +33,9 @@ Maryland 20850 USA.
 
 #include "con_common.h"
 
+Cvar::Cvar<bool> com_ansiColor("com_ansiColor", "", Cvar::NONE, true);
+Cvar::Cvar<std::string> com_consoleCommand("com_consoleCommand", "", Cvar::NONE, "");
+
 namespace Color {
 
 /*

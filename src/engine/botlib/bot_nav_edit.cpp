@@ -185,7 +185,7 @@ void Cmd_NavEdit()
 
 	if ( argc < 2 )
 	{
-		Log::Notice( "%s", usage );
+		Log::Notice( usage );
 		return;
 	}
 
@@ -196,7 +196,7 @@ void Cmd_NavEdit()
 		int i;
 		if ( argc < 3 )
 		{
-			Log::Notice( "%s", usage );
+			Log::Notice( usage );
 			return;
 		}
 
@@ -238,7 +238,7 @@ void Cmd_NavEdit()
 	}
 	else
 	{
-		Log::Notice( "%s", usage );
+		Log::Notice( usage );
 	}
 }
 
@@ -251,7 +251,7 @@ void Cmd_AddConnection()
 
 	if ( argc < 2 )
 	{
-		Log::Notice( "%s", usage );
+		Log::Notice( usage );
 		return;
 	}
 
@@ -266,7 +266,7 @@ void Cmd_AddConnection()
 
 		if ( argc < 3 )
 		{
-			Log::Notice( "%s", usage );
+			Log::Notice( usage );
 			return;
 		}
 
@@ -341,7 +341,7 @@ void Cmd_AddConnection()
 	}
 	else
 	{
-		Log::Notice( "%s", usage );
+		Log::Notice( usage );
 	}
 }
 
@@ -383,13 +383,13 @@ void Cmd_NavTest()
 
 	if ( !cmd.enabled )
 	{
-		Log::Notice( "%s", "Can't test navmesh without enabling navedit" );
+		Log::Notice( "Can't test navmesh without enabling navedit" );
 		return;
 	}
 
 	if ( argc < 2 )
 	{
-		Log::Notice( "%s", usage );
+		Log::Notice( usage );
 		return;
 	}
 
@@ -443,7 +443,7 @@ void Cmd_NavTest()
 	}
 	else
 	{
-		Log::Notice( "%s", usage );
+		Log::Notice( usage );
 	}
 }
 

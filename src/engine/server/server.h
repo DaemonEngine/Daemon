@@ -311,7 +311,6 @@ extern cvar_t         *sv_maxclients;
 extern Cvar::Range<Cvar::Cvar<int>> sv_privateClients;
 extern cvar_t         *sv_hostname;
 extern cvar_t         *sv_statsURL;
-extern cvar_t         *sv_master[ MAX_MASTER_SERVERS ];
 extern cvar_t         *sv_reconnectlimit;
 extern cvar_t         *sv_padPackets;
 extern cvar_t         *sv_killserver;
@@ -360,7 +359,6 @@ void       SV_NET_Config();
 
 void       SV_MasterHeartbeat( const char *hbname );
 void       SV_MasterShutdown();
-void       SV_MasterGameStat( const char *data );
 
 //
 // sv_init.c

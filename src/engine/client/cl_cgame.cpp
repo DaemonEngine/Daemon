@@ -40,6 +40,7 @@ Maryland 20850 USA.
 #include "key_identification.h"
 #include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
+#include "qcommon/sys.h"
 
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
@@ -212,7 +213,7 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 		mpz_t        message;
 
 		if (argc == 1) {
-			Log::Notice("%s", "^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!\n");
+			Log::Notice("^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!\n");
 			return false;
 		}
 
@@ -323,26 +324,6 @@ void CL_ShutdownCGame()
 
 	cgvm.CGameShutdown();
 	cgvm.Free();
-}
-
-//
-// libRocket UI stuff
-//
-
-/*
- * ====================
- * GetNews
- * ====================
- */
-bool GetNews( bool begin )
-{
-	if ( begin ) // if not already using curl, start the download
-	{
-		CL_RequestMotd();
-		Cvar_Set( "cl_newsString", "Retrieving…" );
-	}
-
-	return Cvar_VariableString( "cl_newsString" ) [ 0 ] == 'R';
 }
 
 /*
@@ -843,7 +824,7 @@ void CL_FirstSnapshot()
 	if ( ( cl_useMumble->integer ) && !mumble_islinked() )
 	{
 		int ret = mumble_link( CLIENT_WINDOW_TITLE );
-		Log::Notice("%s", ret == 0 ? "Mumble: Linking to Mumble application okay\n" : "Mumble: Linking to Mumble application failed\n" );
+		Log::Notice(ret == 0 ? "Mumble: Linking to Mumble application okay" : "Mumble: Linking to Mumble application failed" );
 	}
 
 	// resend userinfo upon entering the game, as some cvars may
@@ -1297,12 +1278,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_PREPAREKEYUP:
 			IPC::HandleMsg<PrepareKeyUpMsg>(channel, std::move(reader), [this] {
 				IN_PrepareKeyUp();
-			});
-			break;
-
-		case CG_GETNEWS:
-			IPC::HandleMsg<GetNewsMsg>(channel, std::move(reader), [this] (bool force, bool& res) {
-				res = GetNews(force);
 			});
 			break;
 

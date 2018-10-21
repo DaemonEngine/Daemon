@@ -53,6 +53,7 @@ struct Traits {
 class Application {
     public:
         Application();
+        virtual ~Application() = default;
 
         virtual void LoadInitialConfig(bool resetConfig);
         virtual void Initialize(Str::StringRef uri);

@@ -1,6 +1,6 @@
 set(CRUNCHLIST
-    ${LIB_DIR}/crunch/crn_decomp.h
-    ${LIB_DIR}/crunch/crnlib.h
+    ${LIB_DIR}/crunch/inc/crn_decomp.h
+    ${LIB_DIR}/crunch/inc/crnlib.h
 )
 
 set(DETOURLIST
@@ -125,20 +125,6 @@ set(PDCURSESLIST
     ${LIB_DIR}/pdcurses/win32a/pdcscrn.c
     ${LIB_DIR}/pdcurses/win32a/pdcsetsc.c
     ${LIB_DIR}/pdcurses/win32a/pdcutil.c
-)
-
-set(RECASTLIST
-    ${LIB_DIR}/recast/ChunkyTriMesh.cpp
-    ${LIB_DIR}/recast/Recast.cpp
-    ${LIB_DIR}/recast/RecastAlloc.cpp
-    ${LIB_DIR}/recast/RecastArea.cpp
-    ${LIB_DIR}/recast/RecastContour.cpp
-    ${LIB_DIR}/recast/RecastFilter.cpp
-    ${LIB_DIR}/recast/RecastLayers.cpp
-    ${LIB_DIR}/recast/RecastMesh.cpp
-    ${LIB_DIR}/recast/RecastMeshDetail.cpp
-    ${LIB_DIR}/recast/RecastRasterization.cpp
-    ${LIB_DIR}/recast/RecastRegion.cpp
 )
 
 set(TINYFORMATLIST

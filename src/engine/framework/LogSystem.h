@@ -53,6 +53,7 @@ namespace Log {
     class Target {
         public:
             Target();
+            virtual ~Target() = default;
 
             // Should process all the logs in the batch given or none at all
             // return true iff the logs were processed (on false the log system
