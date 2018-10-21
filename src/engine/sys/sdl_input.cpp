@@ -151,7 +151,11 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, bool down )
 	using Keyboard::Key;
 	Key key;
 
-	if ( keysym->sym >= SDLK_SPACE && keysym->sym < UNICODE_MAX_CODE_POINT )
+	if ( keysym->sym == SDLK_DELETE ) // SDLK_DELETE is anomalously located in the Unicode range.
+	{
+		key = Key(K_DEL);
+	}
+	else if ( keysym->sym >= SDLK_SPACE && keysym->sym < UNICODE_MAX_CODE_POINT )
 	{
 		key = Key::FromCharacter(keysym->sym);
 	}
