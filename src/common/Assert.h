@@ -148,6 +148,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         Str::Format("\"%s >= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
     );
 
+/*
+ * Reuse DAEMON_ASSERT in Detour and Recast
+ */
+#define dtAssert DAEMON_ASSERT
+#define rcAssert DAEMON_ASSERT
+
 #if !defined(DAEMON_SKIP_ASSERT_SHORTHANDS)
     #define ASSERT DAEMON_ASSERT
     #define ASSERT_EQ DAEMON_ASSERT_EQ
