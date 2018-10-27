@@ -62,9 +62,9 @@ namespace Cvar {
         }
 
         if (cvar.flags & CVAR_LATCH and cvar.ccvar.latchedString) {
-            cvar.description = Str::Format("\"%s^7\" - latched value \"%s^7\"", cvar.ccvar.string, cvar.ccvar.latchedString);
+            cvar.description = Str::Format("\"%s^*\" - latched value \"%s^*\"", cvar.ccvar.string, cvar.ccvar.latchedString);
         } else {
-            cvar.description = Str::Format("\"%s^7\"", cvar.value);
+            cvar.description = Str::Format("\"%s^*\"", cvar.value);
         }
 
         Cmd::ChangeDescription(cvar.ccvar.name, cvar.description);
@@ -210,7 +210,7 @@ namespace Cvar {
                 cvarRecord_t* var = cvars[name];
 
                 if (args.Argc() < 2) {
-                    Print("\"%s\" - %s^7 - default: \"%s^7\"", name.c_str(), var->description.c_str(), var->resetValue.c_str());
+                    Print("\"%s\" - %s^* - default: \"%s^*\"", name.c_str(), var->description.c_str(), var->resetValue.c_str());
                 } else {
                     //TODO forward the print part of the environment
                     SetValue(name, args.Argv(1));

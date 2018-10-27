@@ -764,7 +764,7 @@ public:
 				}
 			}
 		} catch (std::system_error&) {
-			Print("^1ERROR^7: Path does not exist");
+			Print("^1ERROR^*: Path does not exist");
 		}
 
 		Print("\n");
@@ -777,7 +777,7 @@ public:
 				}
 			}
 		} catch (std::system_error&) {
-			Print("^1ERROR^7: Path does not exist");
+			Print("^1ERROR^*: Path does not exist");
 		}
 
 	}

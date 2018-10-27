@@ -634,7 +634,7 @@ void Con_DrawInput( int linePosition, float overrideAlpha )
 	qtime_t realtime;
 
 	Com_RealTime( &realtime );
-	Com_sprintf( prompt,  sizeof( prompt ), "^0[^3%02d%c%02d^0]^7 %s", realtime.tm_hour, ( realtime.tm_sec & 1 ) ? ':' : ' ', realtime.tm_min, con_prompt->string );
+	Com_sprintf( prompt,  sizeof( prompt ), "^0[^3%02d%c%02d^0]^* %s", realtime.tm_hour, ( realtime.tm_sec & 1 ) ? ':' : ' ', realtime.tm_min, con_prompt->string );
 
 	Color::Color color = console_color;
 	color.SetAlpha( consoleState.currentAlphaFactor * overrideAlpha );
