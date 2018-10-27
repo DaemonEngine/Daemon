@@ -184,7 +184,7 @@ static void CON_UpdateClock()
 	qtime_t realtime;
 	Com_Time( &realtime );
 	werase( clockwin );
-	CON_ColorPrint( clockwin, va( "^0[^3%02d%c%02d^0]^7 ", realtime.tm_hour, ( realtime.tm_sec & 1 ) ? ':' : ' ', realtime.tm_min ), true );
+	CON_ColorPrint( clockwin, va( "^0[^3%02d%c%02d^0] ", realtime.tm_hour, ( realtime.tm_sec & 1 ) ? ':' : ' ', realtime.tm_min ), true );
 	wnoutrefresh( clockwin );
 }
 

@@ -157,14 +157,14 @@ Logging functions used by tinygettext
 
 void Trans_Error( const std::string& str )
 {
-	LOG.Notice( "^1%s^7", str.c_str() );
+	LOG.Notice( "^1%s", str.c_str() );
 }
 
 void Trans_Warning( const std::string& str )
 {
 	if( trans_debug->integer != 0 )
 	{
-		LOG.Notice( "^3%s^7", str.c_str() );
+		LOG.Notice( "^3%s", str.c_str() );
 	}
 }
 

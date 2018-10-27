@@ -493,7 +493,7 @@ void SV_StopDownload_f( client_t *cl, const Cmd::Args& )
 {
 	if ( *cl->downloadName )
 	{
-		Log::Debug( "clientDownload: %d: file \"%s^7\" aborted", ( int )( cl - svs.clients ), cl->downloadName );
+		Log::Debug( "clientDownload: %d: file \"%s^*\" aborted", ( int )( cl - svs.clients ), cl->downloadName );
 	}
 
 	SV_CloseDownload( cl );
@@ -513,7 +513,7 @@ void SV_DoneDownload_f( client_t *cl, const Cmd::Args& )
 		return;
 	}
 
-	Log::Debug( "clientDownload: %s^7 Done", cl->name );
+	Log::Debug( "clientDownload: %s^* Done", cl->name );
 	// resend the game state to update any clients that entered during the download
 	SV_SendClientGameState( cl );
 }
@@ -1205,7 +1205,7 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool p
 	}
 	else if ( !bProcessed )
 	{
-		Log::Debug( "client text ignored for %s^7: %s", cl->name, args.Argv(0).c_str());
+		Log::Debug( "client text ignored for %s^*: %s", cl->name, args.Argv(0).c_str());
 	}
 }
 
@@ -1228,7 +1228,7 @@ static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 		return true;
 	}
 
-	Log::Debug( "clientCommand: %s^7 : %i : %s", cl->name, seq, s );
+	Log::Debug( "clientCommand: %s^* : %i : %s", cl->name, seq, s );
 
 	// drop the connection if we have somehow lost commands
 	if ( seq > cl->lastClientCommand + 1 )
@@ -1473,7 +1473,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 		{
 			// TTimo - use a comparison here to catch multiple map_restart
 			// they just haven't caught the map_restart yet
-			Log::Debug( "%s^7: ignoring pre map_restart / outdated client message", cl->name );
+			Log::Debug( "%s^*: ignoring pre map_restart / outdated client message", cl->name );
 			return;
 		}
 
@@ -1481,7 +1481,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 		// gamestate we sent them, resend it
 		if ( cl->messageAcknowledge > cl->gamestateMessageNum )
 		{
-			Log::Debug( "%s^7: dropped gamestate, resending", cl->name );
+			Log::Debug( "%s^*: dropped gamestate, resending", cl->name );
 			SV_SendClientGameState( cl );
 		}
 
