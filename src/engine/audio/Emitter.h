@@ -77,9 +77,9 @@ namespace Audio {
             EntityEmitter(int entityNum);
             virtual ~EntityEmitter();
 
-            void virtual Update() OVERRIDE;
-            virtual void UpdateSound(Sound& sound) OVERRIDE;
-            virtual void InternalSetupSound(Sound& sound) OVERRIDE;
+            void virtual Update() override;
+            virtual void UpdateSound(Sound& sound) override;
+            virtual void InternalSetupSound(Sound& sound) override;
 
         private:
             int entityNum;
@@ -91,9 +91,9 @@ namespace Audio {
             PositionEmitter(Vec3 position);
             virtual ~PositionEmitter();
 
-            void virtual Update() OVERRIDE;
-            virtual void UpdateSound(Sound& sound) OVERRIDE;
-            virtual void InternalSetupSound(Sound& sound) OVERRIDE;
+            void virtual Update() override;
+            virtual void UpdateSound(Sound& sound) override;
+            virtual void InternalSetupSound(Sound& sound) override;
 
             Vec3 GetPosition() const;
 
@@ -107,9 +107,9 @@ namespace Audio {
             LocalEmitter();
             virtual ~LocalEmitter();
 
-            void virtual Update() OVERRIDE;
-            virtual void UpdateSound(Sound& sound) OVERRIDE;
-            virtual void InternalSetupSound(Sound& sound) OVERRIDE;
+            void virtual Update() override;
+            virtual void UpdateSound(Sound& sound) override;
+            virtual void InternalSetupSound(Sound& sound) override;
     };
 
 }

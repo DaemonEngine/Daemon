@@ -289,11 +289,11 @@ inline intptr_t my_pread(int fd, void* buf, size_t count, offset_t offset)
 class minizip_category_impl: public std::error_category
 {
 public:
-	virtual const char* name() const NOEXCEPT OVERRIDE FINAL
+	virtual const char* name() const NOEXCEPT override final
 	{
 		return "unzip";
 	}
-	virtual std::string message(int ev) const OVERRIDE FINAL
+	virtual std::string message(int ev) const override final
 	{
 		switch (ev) {
 		case UNZ_OK:
@@ -333,11 +333,11 @@ enum class filesystem_error {
 class filesystem_category_impl: public std::error_category
 {
 public:
-	virtual const char* name() const NOEXCEPT OVERRIDE FINAL
+	virtual const char* name() const NOEXCEPT override final
 	{
 		return "filesystem";
 	}
-	virtual std::string message(int ev) const OVERRIDE FINAL
+	virtual std::string message(int ev) const override final
 	{
 		switch (Util::enum_cast<filesystem_error>(ev)) {
 		case filesystem_error::invalid_filename:

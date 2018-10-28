@@ -287,7 +287,7 @@ public:
 	void GameMessageRecieved(int clientNum, const uint8_t *buf, size_t size, int commandTime);
 
 private:
-	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) OVERRIDE FINAL;
+	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) override final;
 	void QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel);
 
 	IPC::SharedMemory shmRegion;

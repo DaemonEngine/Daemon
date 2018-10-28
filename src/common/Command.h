@@ -183,8 +183,8 @@ namespace Cmd {
             LambdaCmd(std::string name, std::string description, RunFn run, CompleteFn complete = NoopComplete);
             LambdaCmd(std::string name, int flags, std::string description, RunFn run, CompleteFn complete = NoopComplete);
 
-            void Run(const Args& args) const OVERRIDE;
-            CompletionResult Complete(int argNum, const Args& args, Str::StringRef prefix) const OVERRIDE;
+            void Run(const Args& args) const override;
+            CompletionResult Complete(int argNum, const Args& args, Str::StringRef prefix) const override;
 
         private:
             RunFn run;

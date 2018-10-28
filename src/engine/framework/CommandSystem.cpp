@@ -313,7 +313,7 @@ namespace Cmd {
             :StaticCmd(std::move(name), cmdFlags, std::move(description)), showCmdFlags(showCmdFlags) {
             }
 
-            void Run(const Cmd::Args& args) const OVERRIDE {
+            void Run(const Cmd::Args& args) const override {
                 CommandMap& commands = GetCommandMap();
 
                 std::vector<const commandRecord_t*> matches;
@@ -345,7 +345,7 @@ namespace Cmd {
                 Print("%zu commands", matches.size());
             }
 
-            Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+            Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
                 Q_UNUSED(args);
 
                 if (argNum == 1) {

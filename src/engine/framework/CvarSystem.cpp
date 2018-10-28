@@ -204,7 +204,7 @@ namespace Cvar {
             CvarCommand() : Cmd::CmdBase(Cmd::CVAR) {
             }
 
-            void Run(const Cmd::Args& args) const OVERRIDE {
+            void Run(const Cmd::Args& args) const override {
                 CvarMap& cvars = GetCvarMap();
                 const std::string& name = args.Argv(0);
                 cvarRecord_t* var = cvars[name];
@@ -537,7 +537,7 @@ namespace Cvar {
             SetCmd(const std::string& name, const std::string& help, int flags): Cmd::StaticCmd(name, Cmd::BASE, help), flags(flags) {
             }
 
-            void Run(const Cmd::Args& args) const OVERRIDE {
+            void Run(const Cmd::Args& args) const override {
                 if (args.Argc() < 2) {
                     PrintUsage(args, "<variable> <value>","");
                     return;
@@ -550,7 +550,7 @@ namespace Cvar {
                 ::Cvar::AddFlags(name, flags);
             }
 
-            Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const OVERRIDE {
+            Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const override {
                 if (argNum == 1) {
                     return ::Cvar::Complete(prefix);
                 }
@@ -571,7 +571,7 @@ namespace Cvar {
             ResetCmd(): Cmd::StaticCmd("reset", Cmd::BASE, "resets the named variables") {
             }
 
-            void Run(const Cmd::Args& args) const OVERRIDE {
+            void Run(const Cmd::Args& args) const override {
                 int argc = args.Argc();
                 bool clearArchive = true;
 
@@ -599,7 +599,7 @@ namespace Cvar {
                 }
             }
 
-            Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const OVERRIDE {
+            Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const override {
                 if (argNum) {
                     return ::Cvar::Complete(prefix);
                 }
@@ -627,7 +627,7 @@ namespace Cvar {
             ListCvars(): Cmd::StaticCmd("listCvars", Cmd::BASE, "lists variables") {
             }
 
-            void Run(const Cmd::Args& args) const OVERRIDE {
+            void Run(const Cmd::Args& args) const override {
                 CvarMap& cvars = GetCvarMap();
 
                 bool raw = false;
@@ -704,7 +704,7 @@ namespace Cvar {
                 Print("%zu cvars", matches.size());
             }
 
-            Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+            Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
                 int nameIndex = 1;
                 int argc = args.Argc();
 

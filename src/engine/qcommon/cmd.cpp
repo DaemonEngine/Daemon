@@ -441,12 +441,12 @@ class ProxyCmd: public Cmd::CmdBase {
 	public:
 		ProxyCmd(): Cmd::CmdBase(Cmd::PROXY_FOR_OLD) {}
 
-		void Run(const Cmd::Args& args) const OVERRIDE {
+		void Run(const Cmd::Args& args) const override {
 			proxyInfo_t proxy = proxies[args.Argv(0)];
 			proxy.cmd();
 		}
 
-		Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+		Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
 			static char buffer[4096];
 			proxyInfo_t proxy = proxies[args.Argv(0)];
 

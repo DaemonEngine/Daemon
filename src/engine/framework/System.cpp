@@ -302,7 +302,7 @@ class QuitCmd : public Cmd::StaticCmd {
         QuitCmd(): StaticCmd("quit", Cmd::BASE, "quits the program") {
         }
 
-        void Run(const Cmd::Args& args) const OVERRIDE {
+        void Run(const Cmd::Args& args) const override {
             Quit(args.ConcatArgs(1));
         }
 };

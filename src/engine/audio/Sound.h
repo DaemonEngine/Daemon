@@ -98,8 +98,8 @@ namespace Audio {
             OneShotSound(std::shared_ptr<Sample> sample);
             virtual ~OneShotSound();
 
-            virtual void SetupSource(AL::Source& source) OVERRIDE;
-            virtual void InternalUpdate() OVERRIDE;
+            virtual void SetupSource(AL::Source& source) override;
+            virtual void InternalUpdate() override;
 
         private:
             std::shared_ptr<Sample> sample;
@@ -113,8 +113,8 @@ namespace Audio {
 
             void FadeOutAndDie();
 
-            virtual void SetupSource(AL::Source& source) OVERRIDE;
-            virtual void InternalUpdate() OVERRIDE;
+            virtual void SetupSource(AL::Source& source) override;
+            virtual void InternalUpdate() override;
 
         private:
             void SetupLoopingSound(AL::Source& source);
@@ -130,8 +130,8 @@ namespace Audio {
             StreamingSound();
             virtual ~StreamingSound();
 
-            virtual void SetupSource(AL::Source& source) OVERRIDE;
-            virtual void InternalUpdate() OVERRIDE;
+            virtual void SetupSource(AL::Source& source) override;
+            virtual void InternalUpdate() override;
 
             void AppendBuffer(AL::Buffer buffer);
             void SetGain(float gain);

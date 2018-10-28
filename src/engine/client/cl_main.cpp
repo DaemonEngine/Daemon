@@ -333,7 +333,7 @@ public:
         : Cmd::StaticCmd("demo_record_stop", Cmd::SYSTEM, "Stops recording a demo")
     {}
 
-    void Run(const Cmd::Args&) const OVERRIDE
+    void Run(const Cmd::Args&) const override
     {
         if ( !clc.demorecording )
         {
@@ -353,7 +353,7 @@ public:
         : Cmd::StaticCmd("demo_record", Cmd::SYSTEM, "Begins recording a demo from the current position")
     {}
 
-    void Run(const Cmd::Args& args) const OVERRIDE
+    void Run(const Cmd::Args& args) const override
     {
         if ( args.size() > 2 )
         {
@@ -612,7 +612,7 @@ class DemoPlayCmd: public Cmd::StaticCmd {
         DemoPlayCmd(): Cmd::StaticCmd("demo_play", Cmd::SYSTEM, "Starts playing a demo file") {
         }
 
-        void Run(const Cmd::Args& args) const OVERRIDE {
+        void Run(const Cmd::Args& args) const override {
             if (args.Argc() != 2) {
                 PrintUsage(args, "<demoname>", "starts playing a demo file");
                 return;
@@ -667,7 +667,7 @@ class DemoPlayCmd: public Cmd::StaticCmd {
             clc.firstDemoFrameSkipped = false;
         }
 
-        Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const OVERRIDE {
+        Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const override {
             if (argNum == 1) {
                 return FS::HomePath::CompleteFilename(prefix, "demos", ".dm_" XSTRING(PROTOCOL_VERSION), false, true);
             }
@@ -1335,7 +1335,7 @@ public:
 		StaticCmd("rcon", Cmd::SYSTEM, "Sends a remote console command")
 	{}
 
-	void Run(const Cmd::Args& args) const OVERRIDE
+	void Run(const Cmd::Args& args) const override
 	{
 		if ( cvar_rcon_client_password.Get().empty() )
 		{
@@ -1399,7 +1399,7 @@ public:
 		StaticCmd("rconDiscover", Cmd::SYSTEM, "Sends a request to the server to populate rcon.client cvars")
 	{}
 
-	void Run(const Cmd::Args&) const OVERRIDE
+	void Run(const Cmd::Args&) const override
 	{
 		if ( cls.state < connstate_t::CA_CONNECTED && cvar_rcon_client_destination.Get().empty() )
 		{
@@ -1676,7 +1676,7 @@ public:
                          "Begins recording a video from the current demo")
     {}
 
-    void Run(const Cmd::Args& args) const OVERRIDE
+    void Run(const Cmd::Args& args) const override
     {
         if ( args.size() > 2 )
         {
@@ -1733,7 +1733,7 @@ public:
         : Cmd::StaticCmd("demo_video_stop", Cmd::SYSTEM, "Stops recording a video")
     {}
 
-    void Run(const Cmd::Args&) const OVERRIDE
+    void Run(const Cmd::Args&) const override
     {
         CL_CloseAVI();
     }

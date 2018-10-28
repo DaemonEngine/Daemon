@@ -752,7 +752,7 @@ public:
 		: from(from), bufferSize(MAX_MSGLEN - prefix.size() - 1)
 	{}
 
-	virtual void Print(Str::StringRef text) OVERRIDE
+	virtual void Print(Str::StringRef text) override
 	{
 		if (text.size() + buffer.size() > bufferSize - 1)
 		{
