@@ -175,23 +175,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BREAKPOINT() __debugbreak()
 #define OVERRIDE override
 #define FINAL final
-// VS2015 supports this
-#if _MSC_VER >= 1900
 #define NOEXCEPT noexcept
 #define NOEXCEPT_IF(x) noexcept(x)
-#define NOEXCEPT_EXPR(x) false
+#define NOEXCEPT_EXPR(x) false // TODO: Find out why this is defined to false?
 #define HAS_EXPLICIT_DEFAULT
 #define CONSTEXPR constexpr
-#else
-#define NOEXCEPT
-#define NOEXCEPT_IF(x)
-#define NOEXCEPT_EXPR(x) false
-// Work around lack of C99 support
-#define __func__ __FUNCTION__
-// Work around lack of constexpr
-#define CONSTEXPR const
-#endif
-
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS
 
 // Other compilers, unsupported
