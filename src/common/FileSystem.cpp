@@ -1089,11 +1089,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			if (*it == PAK_DEPS_FILE)
 				hasDeps = true;
 			else if (!Str::IsSuffix("/", *it) && Str::IsPrefix(pathPrefix, *it)) {
-#ifdef LIBSTDCXX_BROKEN_CXX11
-				fileMap.insert({*it, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, 0)});
-#else
 				fileMap.emplace(*it, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, 0));
-#endif
 			}
 			it.increment(err);
 			if (err)
@@ -1135,11 +1131,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 				depsOffset = offset;
 				return;
 			}
-#ifdef LIBSTDCXX_BROKEN_CXX11
-			fileMap.insert({filename, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, offset)});
-#else
 			fileMap.emplace(filename, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, offset));
-#endif
 		}, err);
 		if (err)
 			return;
@@ -1718,11 +1710,7 @@ DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
 {
 	std::string dirPath = path;
 	if (!dirPath.empty() && dirPath.back() == '/')
-#ifdef LIBSTDCXX_BROKEN_CXX11
-		dirPath.resize(dirPath.size() - 1);
-#else
 		dirPath.pop_back();
-#endif
 
 #ifdef _WIN32
 	WIN32_FIND_DATAW findData;
