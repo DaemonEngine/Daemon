@@ -156,7 +156,7 @@ namespace VM {
                 }
             }
 
-            virtual Cvar::OnValueChangedResult OnValueChanged(Str::StringRef newValue) OVERRIDE {
+            virtual Cvar::OnValueChangedResult OnValueChanged(Str::StringRef newValue) override {
                 Cvar::OnValueChangedResult result;
                 services->GetVM().SendMsg<OnValueChangedMsg>(name, newValue, result.success, result.description);
                 return result;

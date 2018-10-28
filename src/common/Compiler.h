@@ -79,15 +79,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error "Implement BREAKPOINT on your platform"
 #endif
 
-// override and final keywords
-#if __clang__ || (__GNUC__ * 100 + __GNUC_MINOR__) >= 407
-#define OVERRIDE override
-#define FINAL final
-#else
-#define OVERRIDE
-#define FINAL
-#endif
-
 // noexcept keyword, this should be used on all move constructors and move
 // assignments so that containers move objects instead of copying them.
 #define NOEXCEPT noexcept
@@ -171,8 +162,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DLLEXPORT __declspec(dllexport)
 #define DLLIMPORT __declspec(dllimport)
 #define BREAKPOINT() __debugbreak()
-#define OVERRIDE override
-#define FINAL final
 #define NOEXCEPT noexcept
 #define NOEXCEPT_IF(x) noexcept(x)
 #define NOEXCEPT_EXPR(x) false // TODO: Find out why this is defined to false?

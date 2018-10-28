@@ -435,7 +435,7 @@ public:
 		StaticCmd("bindlist", Cmd::KEY_BINDING, "Lists all key bindings")
 	{}
 
-	void Run(const Cmd::Args&) const OVERRIDE
+	void Run(const Cmd::Args&) const override
 	{
 		for (auto& kv: keys)
 		{
@@ -505,7 +505,7 @@ public:
 		StaticCmd(name, Cmd::KEY_BINDING, desc), teambind(teambind)
 	{}
 
-	void Run(const Cmd::Args& args) const OVERRIDE
+	void Run(const Cmd::Args& args) const override
 	{
 		if (!IN_IsKeyboardLayoutInfoAvailable()) {
 			deferredBindCommands.push_back(args.EscapedArgs(0));
@@ -549,7 +549,7 @@ public:
 		SetBinding( b, team, args.ConcatArgs( 2 + +teambind ) );
 	}
 
-	Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+	Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
 		Cmd::CompletionResult res;
 		if (teambind && argNum == 1) {
 			CompleteTeamName(prefix, res);
@@ -571,7 +571,7 @@ public:
 		StaticCmd("editbind", Cmd::KEY_BINDING, "Puts a key binding in the text field for editing")
 	{}
 
-	void Run(const Cmd::Args& args) const OVERRIDE
+	void Run(const Cmd::Args& args) const override
 	{
 		std::u32string buf;
 		int            b;
@@ -631,7 +631,7 @@ public:
 		g_consoleField.SetText( buf );
 	}
 
-	Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+	Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
 		Cmd::CompletionResult res;
 		CompleteTeamAndKey(argNum, args, prefix, res);
 		return res;
@@ -645,7 +645,7 @@ public:
 		StaticCmd("unbind", Cmd::KEY_BINDING, "Removes a key binding")
 	{}
 
-	void Run(const Cmd::Args& args) const OVERRIDE
+	void Run(const Cmd::Args& args) const override
 	{
 		int b = args.Argc();
 		int team = -1;
@@ -678,7 +678,7 @@ public:
 		SetBinding( key, team, "" );
 	}
 
-	Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+	Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
 		Cmd::CompletionResult res;
 		CompleteTeamAndKey(argNum, args, prefix, res);
 		return res;
@@ -692,7 +692,7 @@ public:
 		StaticCmd("unbindall", Cmd::KEY_BINDING, "Removes all key bindings")
 	{}
 
-	void Run(const Cmd::Args&) const OVERRIDE
+	void Run(const Cmd::Args&) const override
 	{
 		for (auto& kv : keys)
 		{
@@ -708,7 +708,7 @@ public:
 		StaticCmd("modcase", Cmd::KEY_BINDING, "Conditionally performs an action based on modifier keys")
 	{}
 
-	void Run(const Cmd::Args& args) const OVERRIDE
+	void Run(const Cmd::Args& args) const override
 	{
 		int argc = args.Argc();
 		int index = 0;

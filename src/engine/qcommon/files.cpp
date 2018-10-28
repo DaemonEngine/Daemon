@@ -699,7 +699,7 @@ public:
 	WhichCmd()
 		: Cmd::StaticCmd("which", Cmd::SYSTEM, "shows which pak a file is in") {}
 
-	void Run(const Cmd::Args& args) const OVERRIDE
+	void Run(const Cmd::Args& args) const override
 	{
 		if (args.Argc() != 2) {
 			PrintUsage(args, "<file>", "");
@@ -714,7 +714,7 @@ public:
 			Print("File not found: \"%s\"", filename);
 	}
 
-	Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const OVERRIDE
+	Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const override
 	{
 		if (argNum == 1) {
 			return FS::PakPath::CompleteFilename(prefix, "", "", true, false);
@@ -730,7 +730,7 @@ public:
 	ListPathsCmd()
 		: Cmd::StaticCmd("listPaths", Cmd::SYSTEM, "list filesystem search paths") {}
 
-	void Run(const Cmd::Args&) const OVERRIDE
+	void Run(const Cmd::Args&) const override
 	{
 		Print("Home path: %s", FS::GetHomePath());
 		for (auto& x: FS::PakPath::GetLoadedPaks())
@@ -743,7 +743,7 @@ class DirCmd: public Cmd::StaticCmd {
 public:
 	DirCmd(): Cmd::StaticCmd("dir", Cmd::SYSTEM, "list all files in a given directory with the option to pass a filter") {}
 
-	void Run(const Cmd::Args& args) const OVERRIDE
+	void Run(const Cmd::Args& args) const override
 	{
 		bool filter = false;
 		if (args.Argc() != 2 && args.Argc() != 3) {

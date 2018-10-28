@@ -230,7 +230,7 @@ struct LinearAllocator : public dtTileCacheAlloc
 		resize(cap);
 	}
 
-	~LinearAllocator() OVERRIDE
+	~LinearAllocator() override
 	{
 		free( buffer );
 	}
@@ -246,13 +246,13 @@ struct LinearAllocator : public dtTileCacheAlloc
 		capacity = cap;
 	}
 
-	void reset() OVERRIDE
+	void reset() override
 	{
 		high = dtMax( high, top );
 		top = 0;
 	}
 
-	void* alloc( const size_t size ) OVERRIDE
+	void* alloc( const size_t size ) override
 	{
 		if ( !buffer )
 		{
@@ -269,7 +269,7 @@ struct LinearAllocator : public dtTileCacheAlloc
 		return mem;
 	}
 
-	void free( void* /*ptr*/ ) OVERRIDE { }
+	void free( void* /*ptr*/ ) override { }
 	size_t getHighSize() { return high; }
 };
 #endif

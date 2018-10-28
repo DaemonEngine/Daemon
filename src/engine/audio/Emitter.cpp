@@ -352,7 +352,7 @@ namespace Audio {
             TestReverbCmd(): StaticCmd("testReverb", Cmd::AUDIO, "Tests a reverb preset.") {
             }
 
-            virtual void Run(const Cmd::Args& args) const OVERRIDE {
+            virtual void Run(const Cmd::Args& args) const override {
                 if (args.Argc() != 2) {
                     PrintUsage(args, "stop", "stop the test");
                     PrintUsage(args, "[preset name]", "tests the reverb preset.");
@@ -366,7 +366,7 @@ namespace Audio {
                 }
             }
 
-            Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const OVERRIDE {
+            Cmd::CompletionResult Complete(int argNum, const Cmd::Args&, Str::StringRef prefix) const override {
                 if (argNum != 1) {
                     return {};
                 }

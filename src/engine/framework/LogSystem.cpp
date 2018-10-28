@@ -96,7 +96,7 @@ namespace Log {
                 this->Register(TTY_CONSOLE);
             }
 
-            virtual bool Process(const std::vector<Log::Event>& events) OVERRIDE {
+            virtual bool Process(const std::vector<Log::Event>& events) override {
                 for (auto& event : events)  {
                     CON_Print(event.text.c_str());
                     CON_Print("\n");
@@ -120,7 +120,7 @@ namespace Log {
                 this->Register(LOGFILE);
             }
 
-            virtual bool Process(const std::vector<Log::Event>& events) OVERRIDE {
+            virtual bool Process(const std::vector<Log::Event>& events) override {
                 //If we have no log file drop the events
                 if (not useLogFile.Get()) {
                     return true;

@@ -50,7 +50,7 @@ class MapCmd: public Cmd::StaticCmd {
             Cmd::StaticCmd(name, Cmd::SYSTEM, description), cheat(cheat) {
         }
 
-        void Run(const Cmd::Args& args) const OVERRIDE {
+        void Run(const Cmd::Args& args) const override {
             if (args.Argc() < 2) {
                 PrintUsage(args, "<mapname> (layoutname)", "loads a new map");
                 return;
@@ -76,7 +76,7 @@ class MapCmd: public Cmd::StaticCmd {
             SV_SpawnServer(loadedPakInfo->name, mapName);
         }
 
-        Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const OVERRIDE {
+        Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
             if (argNum == 1) {
                 Cmd::CompletionResult out;
                 for (auto& map: FS::GetAvailableMaps()) {
@@ -234,7 +234,7 @@ public:
 		StaticCmd("status", Cmd::SYSTEM, "Shows a table with server and player information")
 	{}
 
-	void Run(const Cmd::Args&) const OVERRIDE
+	void Run(const Cmd::Args&) const override
 	{
 		// make sure server is running
 		if ( !com_sv_running->integer )
@@ -394,7 +394,7 @@ public:
 		StaticCmd("listmaps", Cmd::SYSTEM, "Lists all maps available to the server")
 	{}
 
-	void Run(const Cmd::Args&) const OVERRIDE
+	void Run(const Cmd::Args&) const override
 	{
 		auto maps = FS::GetAvailableMaps();
 

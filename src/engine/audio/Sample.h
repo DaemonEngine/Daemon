@@ -99,10 +99,10 @@ namespace Audio {
     class Sample: public HandledResource<Sample>, public Resource::Resource {
         public:
             explicit Sample(std::string name);
-            virtual ~Sample() OVERRIDE FINAL;
+            virtual ~Sample() override final;
 
-            virtual bool Load() OVERRIDE FINAL;
-            virtual void Cleanup() OVERRIDE FINAL;
+            virtual bool Load() override final;
+            virtual void Cleanup() override final;
 
             AL::Buffer& GetBuffer();
 

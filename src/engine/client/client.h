@@ -376,7 +376,7 @@ public:
 	void CGameConsoleLine(const std::string& str);
 
 private:
-	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) OVERRIDE FINAL;
+	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) override final;
 	void QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel);
 
 	std::unique_ptr<VM::CommonVMServices> services;
@@ -384,7 +384,7 @@ private:
     class CmdBuffer: public IPC::CommandBufferHost {
         public:
             CmdBuffer(std::string name);
-            virtual void HandleCommandBufferSyscall(int major, int minor, Util::Reader& reader) OVERRIDE FINAL;
+            virtual void HandleCommandBufferSyscall(int major, int minor, Util::Reader& reader) override final;
     };
 
     CmdBuffer cmdBuffer;
