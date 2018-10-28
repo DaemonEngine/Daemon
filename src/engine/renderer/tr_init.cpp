@@ -1549,7 +1549,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	GetRefAPI
 	=====================
 	*/
-	Q_EXPORT refexport_t *GetRefAPI( int apiVersion, refimport_t *rimp )
+	refexport_t *GetRefAPI( int apiVersion, refimport_t *rimp )
 	{
 		static refexport_t re;
 
