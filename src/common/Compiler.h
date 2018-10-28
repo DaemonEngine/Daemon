@@ -222,14 +222,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #if defined(_MSC_VER) //UNREACHABLE
 	#define UNREACHABLE() __assume(0)
-// both gcc, clang and icc defines __GNUC__, so the order is important
-#elif defined(__INTEL_COMPILER)
-	#define UNREACHABLE() __builtin_unreachable()
-#elif defined(__clang__)
-	#if __has_builtin(__builtin_unreachable)
-		#define UNREACHABLE() __builtin_unreachable()
-	#endif
-#elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
+// All of gcc, clang and icc define __GNUC__
+#elif defined(__GNUC__)
 	#define UNREACHABLE() __builtin_unreachable()
 #else // UNREACHABLE
 	#define UNREACHABLE()
