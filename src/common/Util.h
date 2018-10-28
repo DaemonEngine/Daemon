@@ -40,19 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Various utilities
 
-// Workaround for broken tuples in GCC 4.6
-#ifdef LIBSTDCXX_BROKEN_CXX11
-namespace std {
-
-template<size_t Index, typename... T>
-typename std::tuple_element<Index, std::tuple<T...>>::type&& get(std::tuple<T...>&& tuple)
-{
-    return static_cast<typename std::tuple_element<Index, std::tuple<T...>>::type&&>(std::get<Index>(tuple));
-}
-
-} // namespace std
-#endif
-
 char     *QDECL PRINTF_LIKE(1) va( const char *format, ... );
 
 namespace Util {

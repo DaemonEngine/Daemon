@@ -57,25 +57,9 @@ public:
 // Missing type traits
 namespace detail {
 
-// GCC 4.6 is missing some type traits
-#ifdef LIBSTDCXX_BROKEN_CXX11
-using one = char[1];
-using two = char[2];
-template<typename T, typename Arg, typename = decltype(std::declval<T>() = std::declval<Arg>())>
-two& is_assignable_helper(int);
-template<typename T, typename Arg>
-one& is_assignable_helper(...);
-
-template<typename T, typename Arg> struct is_assignable: public std::integral_constant<bool, sizeof(is_assignable_helper<T, Arg>(0)) - 1> {};
-
-template<typename T> struct is_nothrow_move_assignable: public std::integral_constant<bool, NOEXCEPT_EXPR(std::declval<T&>() = std::declval<T>())> {};
-template<typename T> struct is_nothrow_move_constructible: public std::integral_constant<bool, NOEXCEPT_EXPR(T(std::declval<T>()))> {};
-
-#else
 using std::is_assignable;
 using std::is_nothrow_move_assignable;
 using std::is_nothrow_move_constructible;
-#endif
 
 using std::swap;
 template<typename T> struct is_nothrow_swappable: public std::integral_constant<bool, NOEXCEPT_EXPR(swap(std::declval<T&>(), std::declval<T&>()))> {};
