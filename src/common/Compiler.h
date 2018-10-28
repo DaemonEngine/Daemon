@@ -183,7 +183,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Compat macros
 #define QDECL
 #define INLINE inline
-#define Q_EXPORT DLLEXPORT
 
 // Uses SD-6 Feature Test Recommendations
 #ifdef __cpp_constexpr
