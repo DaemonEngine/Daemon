@@ -110,11 +110,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # define ATTRIBUTE_NO_SANITIZE_ADDRESS
 #endif
 
-#ifdef __cplusplus
 #include <new>
 #if defined(__GLIBCXX__) && (__GLIBCXX__ == 20110325 || __GLIBCXX__ == 20110627 || __GLIBCXX__ == 20111026 || __GLIBCXX__ == 20120301 || __GLIBCXX__ == 20130412)
 #define LIBSTDCXX_BROKEN_CXX11
-#endif
 #endif
 
 // Support for explicitly defaulted functions
@@ -200,11 +198,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Compat macros
 #define QDECL
-#if defined(_MSC_VER) && !defined(__cplusplus)
-#define INLINE __inline
-#else
 #define INLINE inline
-#endif
 #define Q_EXPORT DLLEXPORT
 
 // Uses SD-6 Feature Test Recommendations
