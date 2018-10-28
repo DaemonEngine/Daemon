@@ -8,7 +8,11 @@ The standalone engine that powers the multiplayer first person shooter [Unvanqui
 
 ### Buildtime
 
-`cmake`
+- CMake
+- A C++ compiler. The following are actively supported:
+  - GCC (at least 4.8)
+  - Visual Studio/MSVC (at least Visual Studio 2015)
+  - Clang (at least 3.6)
 
 ### Optional 
 
