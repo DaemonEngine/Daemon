@@ -92,7 +92,6 @@ void ignore_result(T) {}
 #include <wchar.h>
 
 // C++ standard library headers
-#ifdef __cplusplus
 #include <utility>
 #include <functional>
 #include <chrono>
@@ -127,7 +126,6 @@ void ignore_result(T) {}
 #include <valarray>
 #include <sstream>
 #include <iostream>
-#endif // __cplusplus
 
 // vsnprintf is ISO/IEC 9899:1999
 // abstracting this to make it portable
