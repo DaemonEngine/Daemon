@@ -101,9 +101,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # define ATTRIBUTE_NO_SANITIZE_ADDRESS
 #endif
 
-// Support for explicitly defaulted functions
-#define HAS_EXPLICIT_DEFAULT
-
 // Microsoft Visual C++
 #elif defined( _MSC_VER )
 
@@ -160,7 +157,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NOEXCEPT noexcept
 #define NOEXCEPT_IF(x) noexcept(x)
 #define NOEXCEPT_EXPR(x) false // TODO: Find out why this is defined to false?
-#define HAS_EXPLICIT_DEFAULT
 #define CONSTEXPR constexpr
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS
 
