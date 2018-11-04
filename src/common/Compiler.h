@@ -156,7 +156,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BREAKPOINT() __debugbreak()
 #define NOEXCEPT noexcept
 #define NOEXCEPT_IF(x) noexcept(x)
-#define NOEXCEPT_EXPR(x) false // TODO: Find out why this is defined to false?
+#define NOEXCEPT_EXPR(x) noexcept(x)
 #define CONSTEXPR constexpr
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS
 
