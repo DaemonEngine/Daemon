@@ -1443,7 +1443,20 @@ int Q_strncmp( const char *s1, const char *s2, int n )
 
 int Q_stricmp( const char *s1, const char *s2 )
 {
-	return Q_strnicmp( s1, s2, 99999 );
+	if (!s1 || !s2) {
+		return Q_strnicmp(s1, s2, 0);
+	}
+	while (*s1) {
+		if (*s1 != *s2) {
+			int uc1 = Str::ctoupper(*s1);
+			int uc2 = Str::ctoupper(*s2);
+			if (uc1 < uc2) return -1;
+			if (uc1 > uc2) return 1;
+		}
+		s1++;
+		s2++;
+	}
+	return *s2 == '\0' ? 0 : -1;
 }
 
 char *Q_strlwr( char *s1 )
