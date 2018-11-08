@@ -1,32 +1,65 @@
+sudo: required
+
 language:
   - cpp
-#  - objective-c
 
-dist: trusty
-sudo: required
+os:
+  - linux
+  - osx
+
+cache: ccache
 
 compiler:
   - gcc
   - clang
 
+#Prepare dependency installation
+before_install:
+  - |
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      sudo apt-get -qq update
+    fi
+
 install:
-  - sudo add-apt-repository ppa:zoogie/sdl2-snapshots -y
-  - sudo add-apt-repository ppa:george-edison55/cmake-3.x -y
-  - sudo apt-get -qq update
-  - sudo apt-get -qq install libwebp-dev libglew-dev libgmp-dev libjpeg8-dev libcurl4-gnutls-dev libfreetype6-dev libgeoip-dev libncursesw5-dev libogg-dev libopenal-dev libpng-dev libsdl2-dev libtheora-dev libvorbis-dev libopusfile-dev libxvidcore-dev nettle-dev zlib1g-dev cmake ninja-build
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      sudo apt-get -y -q --no-install-recommends install
+        zlib1g-dev libncursesw5-dev libgeoip-dev
+        nettle-dev libgmp-dev libcurl4-gnutls-dev libsdl2-dev
+        libogg-dev libvorbis-dev libopusfile-dev libtheora-dev
+        libwebp-dev libjpeg8-dev libpng-dev
+        libfreetype6-dev libglew-dev libopenal-dev
+        liblua5.2-dev;
+    fi
+  - |
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      sudo apt-get -y -q --no-install-recommends install ninja-build
+    elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      brew install ninja
+    fi
+  - |
+    # workarounds to make ccache work
+    if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$CXX" == "clang++" ]; then
+      sudo ln -s $(which ccache) /usr/lib/ccache/clang
+      sudo ln -s $(which ccache) /usr/lib/ccache/clang++
+    elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      brew install ccache
+      export PATH="/usr/local/opt/ccache/libexec:$PATH"
+    fi
 
-#install:
-#  - brew update
-#  - brew install ninja
-
-script:
+before_script:
+  - ccache --zero-stats
+  - mkdir -p build && cd build
   # In older versions of gcc the missing field initializer warning fires even when the initialization list is empty, which is stupid.
   # This issue is fixed in version 5 of gcc, so if we get a newer version on Travis the warning can be re-enabled.
-  - if [ "$CC" == "gcc" ]; then COMPILER_SPECIFIC_FLAGS="-Wno-missing-field-initializers"; fi
-  - mkdir -p build
-  - cd build
-  - CXXFLAGS="-D__extern_always_inline=inline ${COMPILER_SPECIFIC_FLAGS}" cmake -DUSE_WERROR=1 -DBE_VERBOSE=1 -G "Ninja" -DCMAKE_BUILD_TYPE=Debug ..
+  - if [ "$CC" == "gcc" ]; then export CXXFLAGS="$CXXFLAGS -Wno-missing-field-initializers"; fi
+  - export CXXFLAGS="$CXXFLAGS -D__extern_always_inline=inline"
+
+script:
+  - cmake -DUSE_WERROR=1 -DBE_VERBOSE=1 -G "Ninja" -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_OPTIMIZE=0 ..
   - cmake --build . -- -j8
+
+before_cache:
+  - ccache --show-stats
 
 notifications:
   irc:
