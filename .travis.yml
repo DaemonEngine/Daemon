@@ -1,17 +1,20 @@
 sudo: required
 
-language:
-  - cpp
-
-os:
-  - linux
-  - osx
-
+language: cpp
 cache: ccache
 
-compiler:
-  - gcc
-  - clang
+matrix:
+  include:
+    - name: "Linux build using gcc"
+      os: linux
+      compiler: gcc
+    - name: "Linux build using clang"
+      os: linux
+      compiler: clang
+    - name: "osx build"
+      os: osx
+      compiler: clang
+    # osx links gcc to clang; so skip
 
 #Prepare dependency installation
 before_install:
