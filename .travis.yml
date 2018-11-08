@@ -3,6 +3,14 @@ sudo: required
 language: cpp
 cache: ccache
 
+addons:
+  apt:
+    update: true
+  homebrew:
+    packages:
+    - ninja
+    - ccache
+
 matrix:
   include:
     - name: "Linux build using gcc"
@@ -16,13 +24,6 @@ matrix:
       compiler: clang
     # osx links gcc to clang; so skip
 
-#Prepare dependency installation
-before_install:
-  - |
-    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      sudo apt-get -qq update
-    fi
-
 install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       sudo apt-get -y -q --no-install-recommends install
@@ -33,11 +34,8 @@ install:
         libfreetype6-dev libglew-dev libopenal-dev
         liblua5.2-dev;
     fi
-  - |
-    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      sudo apt-get -y -q --no-install-recommends install ninja-build
-    elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      brew install ninja
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      sudo apt-get -y -q --no-install-recommends install ninja-build;
     fi
   - |
     # workarounds to make ccache work
@@ -45,7 +43,6 @@ install:
       sudo ln -s $(which ccache) /usr/lib/ccache/clang
       sudo ln -s $(which ccache) /usr/lib/ccache/clang++
     elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      brew install ccache
       export PATH="/usr/local/opt/ccache/libexec:$PATH"
     fi
 
