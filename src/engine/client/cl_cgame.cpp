@@ -1216,8 +1216,9 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_GET_ENTITY_TOKEN:
 			IPC::HandleMsg<GetEntityTokenMsg>(channel, std::move(reader), [this] (int len, bool& res, std::string& token) {
 				std::unique_ptr<char[]> buffer(new char[len]);
+				buffer[0] = '\0';
 				res = re.GetEntityToken(buffer.get(), len);
-				token.assign(buffer.get(), len);
+				token.assign(buffer.get());
 			});
 			break;
 
@@ -1231,8 +1232,9 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			IPC::HandleMsg<GetClipboardDataMsg>(channel, std::move(reader), [this] (int len, std::string& data) {
 				if (cl_allowPaste->integer) {
 					std::unique_ptr<char[]> buffer(new char[len]);
+					buffer[0] = '\0';
 					CL_GetClipboardData(buffer.get(), len);
-					data.assign(buffer.get(), len);
+					data.assign(buffer.get());
 				}
 			});
 			break;
@@ -1240,8 +1242,9 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_QUOTESTRING:
 			IPC::HandleMsg<QuoteStringMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
 				std::unique_ptr<char[]> buffer(new char[len]);
+				buffer[0] = '\0';
 				Cmd_QuoteStringBuffer(input.c_str(), buffer.get(), len);
-				output.assign(buffer.get(), len);
+				output.assign(buffer.get());
 			});
 			break;
 
@@ -1249,7 +1252,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			IPC::HandleMsg<GettextMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
 				std::unique_ptr<char[]> buffer(new char[len]);
 				Q_strncpyz(buffer.get(), __(input.c_str()), len);
-				output.assign(buffer.get(), len);
+				output.assign(buffer.get());
 			});
 			break;
 
@@ -1257,7 +1260,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			IPC::HandleMsg<PGettextMsg>(channel, std::move(reader), [this] (int len, const std::string& context, const std::string& input, std::string& output) {
 				std::unique_ptr<char[]> buffer(new char[len]);
 				Q_strncpyz(buffer.get(), C__(context.c_str(), input.c_str()), len);
-				output.assign(buffer.get(), len);
+				output.assign(buffer.get());
 			});
 			break;
 
@@ -1265,7 +1268,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			IPC::HandleMsg<GettextPluralMsg>(channel, std::move(reader), [this] (int len, const std::string& input1, const std::string& input2, int number, std::string& output) {
 				std::unique_ptr<char[]> buffer(new char[len]);
 				Q_strncpyz(buffer.get(), P__(input1.c_str(), input2.c_str(), number), len);
-				output.assign(buffer.get(), len);
+				output.assign(buffer.get());
 			});
 			break;
 
@@ -1512,8 +1515,9 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_LAN_GETSERVERINFO:
 			IPC::HandleMsg<LAN::GetServerInfoMsg>(channel, std::move(reader), [this] (int source, int n, int len, std::string& info) {
 				std::unique_ptr<char[]> buffer(new char[len]);
+				buffer[0] = '\0';
 				LAN_GetServerInfo(source, n, buffer.get(), len);
-				info.assign(buffer.get(), len);
+				info.assign(buffer.get());
 			});
 			break;
 
@@ -1550,8 +1554,9 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_LAN_SERVERSTATUS:
 			IPC::HandleMsg<LAN::ServerStatusMsg>(channel, std::move(reader), [this] (const std::string& serverAddress, int len, std::string& status, int& res) {
 				std::unique_ptr<char[]> buffer(new char[len]);
+				buffer[0] = '\0';
 				res = CL_ServerStatus(serverAddress.c_str(), buffer.get(), len);
-				status.assign(buffer.get(), len);
+				status.assign(buffer.get());
 			});
 			break;
 
