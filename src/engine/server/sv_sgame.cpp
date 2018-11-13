@@ -545,7 +545,7 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			std::unique_ptr<char[]> buffer(new char[len]);
 			buffer[0] = '\0';
 			SV_GetConfigstring(index, buffer.get(), len);
-			res.assign(buffer.get(), len);
+			res.assign(buffer.get());
 		});
 		break;
 
@@ -566,7 +566,7 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			std::unique_ptr<char[]> buffer(new char[len]);
 			buffer[0] = '\0';
 			SV_GetUserinfo(index, buffer.get(), len);
-			res.assign(buffer.get(), len);
+			res.assign(buffer.get());
 		});
 		break;
 
@@ -575,7 +575,7 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			std::unique_ptr<char[]> buffer(new char[len]);
 			buffer[0] = '\0';
 			SV_GetServerinfo(buffer.get(), len);
-			res.assign(buffer.get(), len);
+			res.assign(buffer.get());
 		});
 		break;
 
@@ -619,7 +619,7 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			std::unique_ptr<char[]> buffer(new char[len]);
 			buffer[0] = '\0';
 			Com_MD5Buffer(key.data(), keylen, buffer.get(), len);
-			res.assign(buffer.get(), len);
+			res.assign(buffer.get());
 		});
 		break;
 
@@ -637,7 +637,7 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			std::unique_ptr<char[]> buffer(new char[len]);
 			buffer[0] = '\0';
 			SV_GetTimeString(buffer.get(), len, format.c_str(), &time);
-			res.assign(buffer.get(), len);
+			res.assign(buffer.get());
 		});
 		break;
 
@@ -658,7 +658,7 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			std::unique_ptr<char[]> buffer(new char[len]);
 			buffer[0] = '\0';
 			res = SV_BotGetConsoleMessage(client, buffer.get(), len);
-			message.assign(buffer.get(), len);
+			message.assign(buffer.get());
 		});
 		break;
 
