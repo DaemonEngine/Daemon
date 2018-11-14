@@ -60,6 +60,9 @@ namespace AL {
             Buffer(Buffer&& other);
             ~Buffer();
 
+            Buffer(const Buffer& other) = delete;
+            Buffer& operator=(const Buffer& other) = delete;
+
             // TODO
             // Fills the buffer with data (width/rate/size should be given by info)
 	        unsigned Feed(const AudioData& audioData);
@@ -71,9 +74,6 @@ namespace AL {
             operator unsigned() const;
 
         private:
-            Buffer(const Buffer& other);
-            Buffer& operator=(const Buffer& other);
-
             unsigned alHandle;
     };
 
@@ -98,6 +98,9 @@ namespace AL {
             Effect();
             Effect(Effect&& other);
             ~Effect();
+
+            Effect(const Effect& other) = delete;
+            Effect& operator=(const Effect& other) = delete;
 
             //EAX reverb parameters
             void MakeReverb();
@@ -128,9 +131,6 @@ namespace AL {
             operator unsigned() const;
 
         private:
-            Effect(const Effect& other);
-            Effect& operator=(const Effect& other);
-
             unsigned alHandle;
     };
 
@@ -141,15 +141,15 @@ namespace AL {
             EffectSlot(EffectSlot&& other);
             ~EffectSlot();
 
+            EffectSlot(const EffectSlot& other) = delete;
+            EffectSlot& operator=(const EffectSlot& other) = delete;
+
             void SetGain(float gain);
             void SetEffect(Effect& effect);
 
             operator unsigned() const;
 
         private:
-            EffectSlot(const EffectSlot& other);
-            EffectSlot& operator=(const EffectSlot& other);
-
             unsigned alHandle;
     };
 
@@ -169,6 +169,9 @@ namespace AL {
             Source();
             Source(Source&& other);
             ~Source();
+
+            Source(const Source& other) = delete;
+            Source& operator=(const Source& other) = delete;
 
             void Play();
             void Pause();
@@ -207,9 +210,6 @@ namespace AL {
             operator unsigned() const;
 
         private:
-            Source(const Source& other);
-            Source& operator=(const Source& other);
-
             int GetType();
 
             unsigned alHandle;
@@ -223,6 +223,9 @@ namespace AL {
             Device(Device&& other);
             ~Device();
 
+            Device(const Device& other) = delete;
+            Device& operator=(const Device& other) = delete;
+
             operator void*();
 
             static std::string DefaultDeviceName();
@@ -230,8 +233,6 @@ namespace AL {
 
         private:
             Device(void* alHandle);
-            Device(const Device& other);
-            Device& operator=(const Device& other);
             void* alHandle;
     };
 
@@ -242,6 +243,9 @@ namespace AL {
             Context(Context&& other);
             ~Context();
 
+            Context(const Context& other) = delete;
+            Context& operator=(const Context& other) = delete;
+
             // Sets the current OpenAL thread.
             void MakeCurrent();
 
@@ -249,8 +253,6 @@ namespace AL {
 
         private:
             Context(void* alHandle);
-            Context(const Context& other);
-            Context& operator=(const Context& other);
             void* alHandle;
     };
 
