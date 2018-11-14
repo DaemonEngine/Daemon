@@ -142,7 +142,7 @@ struct IsPOD<T, typename std::enable_if<std::is_trivial<T>::value && std::is_sta
 // Utility class to hold a possibly uninitialized object.
 template<typename T> class uninitialized {
 public:
-	uninitialized() {}
+	uninitialized() = default;
 
 	uninitialized(const uninitialized&) = delete;
 	uninitialized(uninitialized&&) = delete;

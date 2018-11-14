@@ -91,8 +91,7 @@ namespace VM {
         public:
             ProxyCmd(CommonVMServices& services, int flag): Cmd::CmdBase(flag), services(services) {
             }
-            virtual ~ProxyCmd() {
-            }
+            virtual ~ProxyCmd() = default;
 
             virtual void Run(const Cmd::Args& args) const {
                 services.GetVM().SendMsg<ExecuteMsg>(args.EscapedArgs(0));

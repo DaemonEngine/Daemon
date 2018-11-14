@@ -258,11 +258,9 @@ namespace Audio {
 
     // Implementation for Emitter
 
-    Emitter::Emitter() {
-    }
+    Emitter::Emitter() = default;
 
-    Emitter::~Emitter() {
-    }
+    Emitter::~Emitter() = default;
 
     void Emitter::SetupSound(Sound& sound) {
         sound.GetSource().SetReferenceDistance(120.0f);
@@ -275,8 +273,7 @@ namespace Audio {
     EntityEmitter::EntityEmitter(int entityNum): entityNum(entityNum) {
     }
 
-    EntityEmitter::~EntityEmitter(){
-    }
+    EntityEmitter::~EntityEmitter() = default;
 
     void EntityEmitter::Update() {
         // TODO
@@ -304,8 +301,7 @@ namespace Audio {
         VectorCopy(position, this->position);
     }
 
-    PositionEmitter::~PositionEmitter() {
-    }
+    PositionEmitter::~PositionEmitter() = default;
 
     void PositionEmitter::Update() {
         //TODO
@@ -329,11 +325,9 @@ namespace Audio {
 
     // Implementation of LocalEmitter
 
-    LocalEmitter::LocalEmitter() {
-    }
+    LocalEmitter::LocalEmitter() = default;
 
-    LocalEmitter::~LocalEmitter() {
-    }
+    LocalEmitter::~LocalEmitter() = default;
 
     void LocalEmitter::Update() {
     }

@@ -317,8 +317,7 @@ namespace Cmd {
     ===============================================================================
     */
 
-    Args::Args() {
-    }
+    Args::Args() = default;
 
     Args::Args(std::vector<std::string> args_) {
         args = std::move(args_);

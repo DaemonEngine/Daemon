@@ -73,7 +73,7 @@ namespace IPC {
 	// Same as FileHandle except the fd is closed on destruction
 	class OwnedFileHandle {
 	public:
-		OwnedFileHandle() {}
+		OwnedFileHandle() = default;
 		OwnedFileHandle(int fd, FileOpenMode mode) : handle(fd, mode) {}
 		OwnedFileHandle(OwnedFileHandle&& other) : handle(other.handle) {
 			other.handle = FileHandle();

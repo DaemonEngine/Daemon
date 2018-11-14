@@ -837,7 +837,7 @@ public:
 		return _bit;
 	}
 
-	virtual ~GLCompileMacro() {}
+	virtual ~GLCompileMacro() = default;
 };
 
 class GLCompileMacro_USE_VERTEX_SKINNING :

@@ -162,8 +162,7 @@ namespace Audio {
     Sound::Sound(): positionalGain(1.0f), soundGain(1.0f), currentGain(1.0f), playing(false), source(nullptr) {
     }
 
-    Sound::~Sound() {
-    }
+    Sound::~Sound() = default;
 
     void Sound::Play() {
         source->Play();
@@ -240,8 +239,7 @@ namespace Audio {
     OneShotSound::OneShotSound(std::shared_ptr<Sample> sample): sample(sample) {
     }
 
-    OneShotSound::~OneShotSound() {
-    }
+    OneShotSound::~OneShotSound() = default;
 
     void OneShotSound::SetupSource(AL::Source& source) {
         source.SetBuffer(sample->GetBuffer());
@@ -263,8 +261,7 @@ namespace Audio {
           leadingSample(leadingSample),
           fadingOut(false) {}
 
-    LoopingSound::~LoopingSound() {
-    }
+    LoopingSound::~LoopingSound() = default;
 
     void LoopingSound::FadeOutAndDie() {
         fadingOut = true;
@@ -306,11 +303,9 @@ namespace Audio {
 
     // Implementation of StreamingSound
 
-    StreamingSound::StreamingSound() {
-    }
+    StreamingSound::StreamingSound() = default;
 
-    StreamingSound::~StreamingSound() {
-    }
+    StreamingSound::~StreamingSound() = default;
 
     void StreamingSound::SetupSource(AL::Source&) {
     }
