@@ -998,7 +998,7 @@ static void CL_SendBinaryMessage(std::vector<uint8_t> message)
 CL_BinaryMessageStatus
 ====================
 */
-static messageStatus_t CL_BinaryMessageStatus(void)
+static messageStatus_t CL_BinaryMessageStatus()
 {
 	if (clc.binaryMessageLength == 0) {
 		return messageStatus_t::MESSAGE_EMPTY;
