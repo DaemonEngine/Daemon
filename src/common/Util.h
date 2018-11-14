@@ -143,6 +143,12 @@ struct IsPOD<T, typename std::enable_if<std::is_trivial<T>::value && std::is_sta
 template<typename T> class uninitialized {
 public:
 	uninitialized() {}
+
+	uninitialized(const uninitialized&) = delete;
+	uninitialized(uninitialized&&) = delete;
+	uninitialized& operator=(const uninitialized&) = delete;
+	uninitialized& operator=(uninitialized&&) = delete;
+
 	template<typename... Args> void construct(Args&&... args)
 	{
 		new(&data) T(std::forward<Args>(args)...);
@@ -166,12 +172,6 @@ public:
 
 private:
 	typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type data;
-
-	// Not copyable or movable
-	uninitialized(const uninitialized&) = delete;
-	uninitialized(uninitialized&&) = delete;
-	uninitialized& operator=(const uninitialized&) = delete;
-	uninitialized& operator=(uninitialized&&) = delete;
 };
 
 // Use to perform an action only if a minimum time has passed since the last time it was performed.
