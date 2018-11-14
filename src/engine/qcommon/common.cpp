@@ -201,7 +201,7 @@ void Com_StartupVariable( const char *match )
 
 	for ( i = 0; i < com_numConsoleLines; i++ )
 	{
-		if (com_consoleLines[i] == 0) {
+		if (com_consoleLines[i] == nullptr) {
 			continue;
 		}
 
@@ -219,7 +219,7 @@ void Com_StartupVariable( const char *match )
 			Cvar_Set( s, line[2].c_str() );
 			cv = Cvar_Get( s, "", CVAR_USER_CREATED );
 			if (cv->flags & CVAR_ROM) {
-				com_consoleLines[i] = 0;
+				com_consoleLines[i] = nullptr;
 			}
 		}
 	}

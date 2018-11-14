@@ -2056,7 +2056,7 @@ std::string DefaultHomePath()
 	return std::string(home) + "/Library/Application Support/" PRODUCT_NAME;
 #else
 	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
-	std::string xdgDataHome = _xdgDataHome == NULL ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
+	std::string xdgDataHome = _xdgDataHome == nullptr ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
 	std::string xdgHomePath;
 
 	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
@@ -2078,7 +2078,7 @@ void MigrateHomePath()
 	}
 
 	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
-	std::string xdgDataHome = _xdgDataHome == NULL ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
+	std::string xdgDataHome = _xdgDataHome == nullptr ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
 	std::string xdgHomePath = DefaultHomePath();
 	std::string legacyHomePath = Path::Build(std::string(home), "." PRODUCT_NAME_LOWER);
 	struct stat stl, stx;

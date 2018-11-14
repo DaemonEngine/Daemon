@@ -202,7 +202,7 @@ int R_ComputeLOD( trRefEntity_t *ent )
 
 static shader_t *GetMDVSurfaceShader( const trRefEntity_t *ent, mdvSurface_t *mdvSurface )
 {
-	shader_t *shader = 0;
+	shader_t *shader = nullptr;
 
 	if ( ent->e.customShader )
 	{
@@ -253,9 +253,9 @@ R_AddMDVSurfaces
 void R_AddMDVSurfaces( trRefEntity_t *ent )
 {
 	int          i;
-	mdvModel_t   *model = 0;
-	mdvSurface_t *mdvSurface = 0;
-	shader_t     *shader = 0;
+	mdvModel_t   *model = nullptr;
+	mdvSurface_t *mdvSurface = nullptr;
+	shader_t     *shader = nullptr;
 	int          lod;
 	bool     personalModel;
 	int          fogNum;
@@ -359,9 +359,9 @@ R_AddMDVInteractions
 void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType )
 {
 	int               i;
-	mdvModel_t        *model = 0;
-	mdvSurface_t      *mdvSurface = 0;
-	shader_t          *shader = 0;
+	mdvModel_t        *model = nullptr;
+	mdvSurface_t      *mdvSurface = nullptr;
+	shader_t          *shader = nullptr;
 	int               lod;
 	bool          personalModel;
 	byte              cubeSideBits;

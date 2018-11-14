@@ -77,7 +77,7 @@ void WriteToStdout(const char* text) {
 		fd_set set;
 		FD_ZERO( &set );
 		FD_SET( STDOUT_FILENO, &set );
-		select( STDOUT_FILENO + 1, NULL, &set, NULL, NULL);
+		select( STDOUT_FILENO + 1, nullptr, &set, nullptr, nullptr);
 
 		ret = write( STDOUT_FILENO, text, strlen(text) );
 	}

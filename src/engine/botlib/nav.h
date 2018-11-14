@@ -225,7 +225,7 @@ struct LinearAllocator : public dtTileCacheAlloc
 	size_t top;
 	size_t high;
 
-	LinearAllocator( const size_t cap ) : buffer(0), capacity(0), top(0), high(0)
+	LinearAllocator( const size_t cap ) : buffer(nullptr), capacity(0), top(0), high(0)
 	{
 		resize(cap);
 	}
@@ -256,12 +256,12 @@ struct LinearAllocator : public dtTileCacheAlloc
 	{
 		if ( !buffer )
 		{
-			return 0;
+			return nullptr;
 		}
 
 		if ( top + size > capacity )
 		{
-			return 0;
+			return nullptr;
 		}
 
 		unsigned char* mem = &buffer[ top ];

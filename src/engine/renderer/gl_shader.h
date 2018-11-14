@@ -294,7 +294,7 @@ public:
 	void load( T *& shader )
 	{
 		if( _deformShaders.size() == 0 ) {
-			Q_UNUSED(getDeformShaderIndex( NULL, 0 ));
+			Q_UNUSED(getDeformShaderIndex( nullptr, 0 ));
 		}
 
 		shader = new T( this );
