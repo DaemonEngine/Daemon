@@ -603,12 +603,12 @@ void trap_Key_SetBinding( Keyboard::Key key, int team, const char *cmd )
 	VM::SendMsg<Keyboard::SetBindingMsg>(key, team, cmd);
 }
 
-void trap_Key_ClearCmdButtons( void )
+void trap_Key_ClearCmdButtons()
 {
 	VM::SendMsg<Keyboard::ClearCmdButtonsMsg>();
 }
 
-void trap_Key_ClearStates( void )
+void trap_Key_ClearStates()
 {
 	VM::SendMsg<Keyboard::ClearStatesMsg>();
 }
