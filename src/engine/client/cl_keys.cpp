@@ -710,7 +710,7 @@ void Key_ClearStates()
 			CL_KeyEvent(kv.first, false, 0 );
 		}
 
-		kv.second.down = 0;
+		kv.second.down = false;
 		kv.second.repeats = 0;
 	}
 

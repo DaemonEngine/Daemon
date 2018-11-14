@@ -176,14 +176,14 @@ static void Tokenise( const char *text, char *textOut, bool tokens, bool ignoreQ
 
 	*textOut = '\0'; // initial NUL-termination in case of early exit
 
-	while ( 1 )
+	while (true)
 	{
 		if ( tokens && cmd.argc == MAX_STRING_TOKENS )
 		{
 			goto done; // this is usually something malicious
 		}
 
-		while ( 1 )
+		while (true)
 		{
 			// skip whitespace
 			while ( *text > '\0' && *text <= ' ' )

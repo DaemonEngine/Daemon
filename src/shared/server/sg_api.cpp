@@ -210,7 +210,7 @@ bool trap_BotFindRoute(int botClientNum, const botRouteTarget_t *target, bool al
 bool trap_BotUpdatePath(int botClientNum, const botRouteTarget_t *target, botNavCmd_t *cmd)
 {
     VM::SendMsg<BotUpdatePathMsg>(botClientNum, *target, *cmd);
-    return 0; // Amanieu: This always returns 0, but the value isn't used
+    return false; // Amanieu: This always returns false, but the value isn't used
 }
 
 bool trap_BotNavTrace(int botClientNum, botTrace_t *botTrace, const vec3_t start, const vec3_t end)

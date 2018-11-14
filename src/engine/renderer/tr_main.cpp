@@ -316,7 +316,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 		qtangent[ 3 ] = resqtangent[ 3 ];
 	}
 
-	if (0) {
+	if (false) {
 		vec3_t T, B, N;
 		R_QtangentsToTBN( qtangent, T, B, N );
 		ASSERT_LT(Distance(N, normal2), 0.01f);

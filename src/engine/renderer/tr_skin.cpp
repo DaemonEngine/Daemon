@@ -58,7 +58,7 @@ static const char *CommaParse( char **data_p )
 		return com_token;
 	}
 
-	while ( 1 )
+	while ( true )
 	{
 		// skip whitespace
 		while ( ( c = *data ) <= ' ' )
@@ -110,7 +110,7 @@ static const char *CommaParse( char **data_p )
 	{
 		data++;
 
-		while ( 1 )
+		while ( true )
 		{
 			c = *data++;
 

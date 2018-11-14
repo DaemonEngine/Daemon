@@ -1897,7 +1897,7 @@ void NET_Config( bool enableNetworking )
 
 	if ( !net_enabled->integer )
 	{
-		enableNetworking = 0;
+		enableNetworking = false;
 	}
 
 	// if enable state is the same and no cvars were modified, we have nothing to do

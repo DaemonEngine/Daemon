@@ -432,7 +432,7 @@ static char    *ParseExpressionElement( const char **data_p )
 	}
 
 	// skip whitespace
-	while ( 1 )
+	while ( true )
 	{
 		// skip whitespace
 		while ( ( c = *data ) <= ' ' )
@@ -493,7 +493,7 @@ static char    *ParseExpressionElement( const char **data_p )
 	{
 		data++;
 
-		while ( 1 )
+		while ( true )
 		{
 			c = *data++;
 
@@ -678,7 +678,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	op.value = 0;
 	inFixOps[ numInFixOps++ ] = op;
 
-	while ( 1 )
+	while ( true )
 	{
 		token = ParseExpressionElement( text );
 
@@ -1337,7 +1337,7 @@ static bool ParseMap( const char **text, char *buffer, int bufferSize )
 	// addnormals (textures/caves/tembrick1crum_local.tga, heightmap (textures/caves/tembrick1crum_bmp.tga, 3 ))
 	// heightmap( textures/hell/hellbones_d07bbump.tga, 8)
 
-	while ( 1 )
+	while ( true )
 	{
 		token = COM_ParseExt2( text, false );
 
@@ -1498,7 +1498,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
 
-	while ( 1 )
+	while ( true )
 	{
 		token = COM_ParseExt2( text, true );
 
@@ -1590,7 +1590,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			stage->bundle[ 0 ].imageAnimationSpeed = atof( token );
 
 			// parse up to MAX_IMAGE_ANIMATIONS animations
-			while ( 1 )
+			while ( true )
 			{
 				int num;
 
@@ -3128,7 +3128,7 @@ static bool ParseShader( const char *_text )
 		return false;
 	}
 
-	while ( 1 )
+	while ( true )
 	{
 		token = COM_ParseExt2( text, true );
 
@@ -5181,7 +5181,7 @@ static void ScanAndLoadShaderFiles()
 
 		p = buffers[ i ];
 
-		while ( 1 )
+		while ( true )
 		{
 			token = COM_ParseExt2( &p, true );
 
@@ -5251,7 +5251,7 @@ static void ScanAndLoadShaderFiles()
 	p = s_shaderText;
 
 	// look for shader names
-	while ( 1 )
+	while ( true )
 	{
 		token = COM_ParseExt2( &p, true );
 
@@ -5292,7 +5292,7 @@ static void ScanAndLoadShaderFiles()
 	p = s_shaderText;
 
 	// look for shader names
-	while ( 1 )
+	while ( true )
 	{
 		oldp = p;
 		token = COM_ParseExt( &p, true );
