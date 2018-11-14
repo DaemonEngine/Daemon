@@ -36,8 +36,7 @@ namespace Resource {
     loaded(false), failed(false), keep(true) {
     }
 
-    Resource::~Resource() {
-    }
+    Resource::~Resource() = default;
 
     bool Resource::TagDependencies() {
         return true;

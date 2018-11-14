@@ -39,9 +39,7 @@ namespace Application {
     // Forward declaration of the function declared by INSTANTIATE_APPLICATION
     Application& GetApp();
 
-    Application::Application()
-    {
-    }
+    Application::Application() = default;
 
     void Application::LoadInitialConfig(bool) {
     }

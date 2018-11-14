@@ -80,8 +80,7 @@ namespace Log {
         targets[id] = target;
     }
 
-    Target::Target() {
-    }
+    Target::Target() = default;
 
     void Target::Register(TargetId id) {
         Log::RegisterTarget(id, this);

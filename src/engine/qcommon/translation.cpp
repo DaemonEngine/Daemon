@@ -124,7 +124,7 @@ Uses the engine's File I/O functions for this purpose
 class DaemonFileSystem : public FileSystem
 {
 public:
-	DaemonFileSystem() {}
+	DaemonFileSystem() = default;
 
 	std::vector<std::string> open_directory( const std::string& pathname )
 	{

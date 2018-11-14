@@ -222,8 +222,7 @@ std::string GetShaderPath()
 }
 
 GLShaderManager::~GLShaderManager()
-{
-}
+= default;
 
 void GLShaderManager::freeAll()
 {
