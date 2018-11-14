@@ -4150,7 +4150,7 @@ void R_LoadEntities( lump_t *l )
 	p = w->entityString;
 
 	// only parse the world spawn
-	while ( 1 )
+	while ( true )
 	{
 		// parse key
 		token = COM_ParseExt2( &p, true );
@@ -4285,7 +4285,7 @@ void R_LoadEntities( lump_t *l )
 	numEntities = 1; // parsed worldspawn so far
 
 	// count lights
-	while ( 1 )
+	while ( true )
 	{
 		// parse {
 		token = COM_ParseExt2( &p, true );
@@ -4306,7 +4306,7 @@ void R_LoadEntities( lump_t *l )
 		isLight = false;
 
 		// parse epairs
-		while ( 1 )
+		while ( true )
 		{
 			// parse key
 			token = COM_ParseExt2( &p, true );
@@ -4398,7 +4398,7 @@ void R_LoadEntities( lump_t *l )
 	numEntities = 1;
 	light = &s_worldData.lights[ 0 ];
 
-	while ( 1 )
+	while ( true )
 	{
 		// parse {
 		token = COM_ParseExt2( &p, true );
@@ -4419,7 +4419,7 @@ void R_LoadEntities( lump_t *l )
 		isLight = false;
 
 		// parse epairs
-		while ( 1 )
+		while ( true )
 		{
 			// parse key
 			token = COM_ParseExt2( &p, true );
@@ -4759,7 +4759,7 @@ static void R_RecursivePrecacheInteractionNode( bspNode_t *node, trRefLight_t *l
 				break;
 		}
 	}
-	while ( 1 );
+	while ( true );
 
 	{
 		// leaf node, so add mark surfaces

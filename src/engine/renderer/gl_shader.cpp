@@ -639,7 +639,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 
 	std::string libs; // All libs concatenated
 	libs.reserve(8192); // Might help, just an estimate.
-	while ( 1 )
+	while ( true )
 	{
 		token = COM_ParseExt2( &libNames, false );
 
@@ -975,7 +975,7 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 		const char **compileMacrosP = &compileMacros_;
 		char       *token;
 
-		while ( 1 )
+		while ( true )
 		{
 			token = COM_ParseExt2( compileMacrosP, false );
 

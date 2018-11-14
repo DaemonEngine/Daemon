@@ -606,7 +606,7 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 	// RF, backup the session data so we can unget easily
 	COM_BackupParseSession( data_p );
 
-	while ( 1 )
+	while (true)
 	{
 		// skip whitespace
 		data = SkipWhitespace( data, &hasNewLines );
@@ -668,7 +668,7 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 	{
 		data++;
 
-		while ( 1 )
+		while (true)
 		{
 			c = *data++;
 
@@ -683,7 +683,7 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 
 				data++;
 
-				while ( 1 )
+				while (true)
 				{
 					c = *data++;
 
@@ -794,7 +794,7 @@ char           *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
 	COM_BackupParseSession( data_p );
 
 	// skip whitespace
-	while ( 1 )
+	while (true)
 	{
 		data = SkipWhitespace( data, &hasNewLines );
 
@@ -849,7 +849,7 @@ char           *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
 	{
 		data++;
 
-		while ( 1 )
+		while (true)
 		{
 			c = *data++;
 
@@ -1156,7 +1156,7 @@ int Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] )
 
 	count = 0;
 
-	while ( 1 )
+	while (true)
 	{
 		token = COM_Parse( &buf );
 
@@ -1179,7 +1179,7 @@ int Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] )
 
 		infos[ count ][ 0 ] = 0;
 
-		while ( 1 )
+		while (true)
 		{
 			token = COM_Parse( &buf );
 
@@ -1973,7 +1973,7 @@ const char *Info_ValueForKey( const char *s, const char *key )
 		s++;
 	}
 
-	while ( 1 )
+	while (true)
 	{
 		o = pkey;
 
@@ -2090,7 +2090,7 @@ void Info_RemoveKey( char *s, const char *key, bool big )
 		return;
 	}
 
-	while ( 1 )
+	while (true)
 	{
 		start = s;
 

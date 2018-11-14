@@ -5930,7 +5930,7 @@ void RB_RenderThread()
 	const void *data;
 
 	// wait for either a rendering command or a quit command
-	while ( 1 )
+	while ( true )
 	{
 		// sleep until we have work to do
 		data = GLimp_RendererSleep();

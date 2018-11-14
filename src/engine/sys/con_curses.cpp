@@ -421,7 +421,7 @@ char *CON_Input()
 		num_chars++;
 	}
 
-	while ( 1 )
+	while ( true )
 	{
 		chr = getch();
 		num_chars++;

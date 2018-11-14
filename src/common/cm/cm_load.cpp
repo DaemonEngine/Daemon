@@ -681,7 +681,7 @@ void CMod_LoadEntityString(const byte *const cmod_base, lump_t *l)
 	p = cm.entityString;
 
 	// only parse the world spawn
-	while ( 1 )
+	while (true)
 	{
 		// parse key
 		token = COM_ParseExt2( &p, true );

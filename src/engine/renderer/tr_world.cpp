@@ -505,7 +505,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 		// tail recurse
 		node = node->children[ side ^ 1 ];
 	}
-	while ( 1 );
+	while ( true );
 
 	if ( node->numMarkSurfaces )
 	{
@@ -596,7 +596,7 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 				break;
 		}
 	}
-	while ( 1 );
+	while ( true );
 
 	{
 		// leaf node, so add mark surfaces
@@ -636,7 +636,7 @@ static bspNode_t *R_PointInLeaf( const vec3_t p )
 
 	node = tr.world->nodes;
 
-	while ( 1 )
+	while ( true )
 	{
 		if ( node->contents != -1 )
 		{

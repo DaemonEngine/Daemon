@@ -1510,7 +1510,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 				return; // disconnect command
 			}
 		}
-		while ( 1 );
+		while ( true );
 
 		return;
 	}

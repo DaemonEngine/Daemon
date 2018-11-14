@@ -195,7 +195,7 @@ void CL_ParseSnapshot( msg_t *msg )
 
 	// if we were just unpaused, we can only *now* really let the
 	// change come into effect or the client hangs.
-	cl_paused->modified = 0;
+	cl_paused->modified = false;
 
 	newSnap.messageNum = clc.serverMessageSequence;
 
@@ -413,7 +413,7 @@ void CL_ParseGamestate( msg_t *msg )
 	clc.serverCommandSequence = MSG_ReadLong( msg );
 
 	// parse all the configstrings and baselines
-	while ( 1 )
+	while (true)
 	{
 		cmd = MSG_ReadByte( msg );
 
@@ -735,7 +735,7 @@ void CL_ParseServerMessage( msg_t *msg )
 	//
 	// parse the message
 	//
-	while ( 1 )
+	while (true)
 	{
 		if ( msg->readcount > msg->cursize )
 		{

@@ -130,7 +130,7 @@ void CM_BoxLeafnums_r( leafList_t *ll, int nodenum )
 	cNode_t  *node;
 	int      s;
 
-	while ( 1 )
+	while (true)
 	{
 		if ( nodenum < 0 )
 		{

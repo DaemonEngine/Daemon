@@ -418,7 +418,7 @@ Parse_ReadWhiteSpace
 */
 static int Parse_ReadWhiteSpace( script_t *script )
 {
-	while ( 1 )
+	while (true)
 	{
 		//skip white space
 		while ( *script->script_p <= ' ' )
@@ -630,7 +630,7 @@ static int Parse_ReadString( script_t *script, token_t *token, int quote )
 	token->string[ len++ ] = *script->script_p++;
 
 	//
-	while ( 1 )
+	while (true)
 	{
 		//minus 2 because trailing double quote and zero have to be appended
 		if ( len >= MAX_TOKEN_CHARS - 2 )
@@ -911,7 +911,7 @@ static int Parse_ReadNumber( script_t *script, token_t *token )
 
 		if ( *script->script_p == '0' ) { octal = true; }
 
-		while ( 1 )
+		while (true)
 		{
 			c = *script->script_p;
 
@@ -3558,7 +3558,7 @@ static int Parse_Directive_define( source_t *source )
 
 		if ( !Parse_CheckTokenString( source, ")" ) )
 		{
-			while ( 1 )
+			while (true)
 			{
 				if ( !Parse_ReadLine( source, &token ) )
 				{
@@ -3886,7 +3886,7 @@ static bool Parse_ReadToken( source_t *source, token_t *token )
 {
 	define_t *define;
 
-	while ( 1 )
+	while (true)
 	{
 		if ( !Parse_ReadSourceToken( source, token ) ) { return false; }
 
@@ -4319,12 +4319,12 @@ bool Parse_ReadTokenHandle( int handle, pc_token_t *pc_token )
 
 	if ( handle < 1 || handle >= MAX_SOURCEFILES )
 	{
-		return 0;
+		return false;
 	}
 
 	if ( !sourceFiles[ handle ] )
 	{
-		return 0;
+		return false;
 	}
 
 	ret = Parse_ReadToken( sourceFiles[ handle ], &token );

@@ -945,7 +945,7 @@ void Com_EventLoop()
 
 	MSG_Init( &buf, bufData, sizeof( bufData ) );
 
-	while ( 1 )
+	while (true)
 	{
 		auto ev = Com_GetEvent();
 
@@ -1085,7 +1085,7 @@ static void Com_Freeze_f()
 
 	start = Com_Milliseconds();
 
-	while ( 1 )
+	while (true)
 	{
 		now = Com_Milliseconds();
 
