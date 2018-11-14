@@ -4323,7 +4323,7 @@ static shader_t *FinishShader()
 		// disable depth writes in the main pass
 		ret->stages[0]->stateBits &= ~GLS_DEPTHMASK_TRUE;
 	} else {
-		ret->depthShader = NULL;
+		ret->depthShader = nullptr;
 	}
 
 	// load all altShaders recursively

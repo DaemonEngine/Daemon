@@ -1356,7 +1356,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 
 	GL_CheckErrors();
 
-	if ( scaledBuffer != 0 )
+	if ( scaledBuffer != nullptr )
 	{
 		ri.Hunk_FreeTempMemory( scaledBuffer );
 	}

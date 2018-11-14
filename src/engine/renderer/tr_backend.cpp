@@ -5457,7 +5457,7 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 		glUnmapBuffer( bufferTarget );
 		if( !glConfig2.uniformBufferObjectAvailable ) {
 			GL_BindToTMU( 0, tr.dlightImage );
-			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, tr.dlightImage->width, tr.dlightImage->height, GL_RGBA, GL_FLOAT, NULL );
+			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, tr.dlightImage->width, tr.dlightImage->height, GL_RGBA, GL_FLOAT, nullptr );
 		}
 		glBindBuffer( bufferTarget, 0 );
 	}

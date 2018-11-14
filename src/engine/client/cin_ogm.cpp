@@ -778,7 +778,7 @@ int Cin_OGM_Run( int )
 
 unsigned char  *Cin_OGM_GetOutput( int*, int* )
 {
-	return 0;
+	return nullptr;
 }
 
 void Cin_OGM_Shutdown()

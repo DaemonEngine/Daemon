@@ -541,14 +541,14 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		//----(SA) added "visibility dummies"
 		if ( ent->r.svFlags & SVF_VISDUMMY )
 		{
-			sharedEntity_t *ment = 0;
+			sharedEntity_t *ment = nullptr;
 
 			//find master;
 			ment = SV_GentityNum( ent->s.otherEntityNum );
 
 			if ( ment )
 			{
-				svEntity_t *master = 0;
+				svEntity_t *master = nullptr;
 
 				master = SV_SvEntityForGentity( ment );
 
@@ -567,8 +567,8 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		{
 			{
 				int            h;
-				sharedEntity_t *ment = 0;
-				svEntity_t     *master = 0;
+				sharedEntity_t *ment = nullptr;
+				svEntity_t     *master = nullptr;
 
 				for ( h = 0; h < sv.num_entities; h++ )
 				{

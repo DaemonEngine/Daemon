@@ -328,19 +328,19 @@ void BotShutdownNav()
 		if ( nav->cache )
 		{
 			dtFreeTileCache( nav->cache );
-			nav->cache = 0;
+			nav->cache = nullptr;
 		}
 
 		if ( nav->mesh )
 		{
 			dtFreeNavMesh( nav->mesh );
-			nav->mesh = 0;
+			nav->mesh = nullptr;
 		}
 
 		if ( nav->query )
 		{
 			dtFreeNavMeshQuery( nav->query );
-			nav->query = 0;
+			nav->query = nullptr;
 		}
 
 		nav->process.con.reset();

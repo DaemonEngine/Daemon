@@ -801,7 +801,7 @@ void R_AddIQMInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 	int               i;
 	IQModel_t         *model;
 	srfIQModel_t      *surface;
-	shader_t          *shader = 0;
+	shader_t          *shader = nullptr;
 	bool          personalModel;
 	byte              cubeSideBits = CUBESIDE_CLIPALL;
 
@@ -987,7 +987,7 @@ void R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 	if ( !r_vboModels->integer || !model->numVBOSurfaces ||
 	     ( !glConfig2.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
 	{
-		shader_t *shader = 0;
+		shader_t *shader = nullptr;
 
 		// generate interactions with all surfaces
 		for ( i = 0, surface = model->surfaces; i < model->numSurfaces; i++, surface++ )
