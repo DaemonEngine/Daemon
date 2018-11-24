@@ -157,8 +157,6 @@ cvar_t             *cl_altTab;
 cvar_t             *cl_aviMotionJpeg;
 // XreaL END
 
-cvar_t             *cl_allowPaste;
-
 cvar_t             *cl_rate;
 
 cvar_t             *cl_cgameSyscallStats;
@@ -3366,8 +3364,6 @@ void CL_Init()
 	// cgame might not be initialized before menu is used
 	Cvar_Get( "cg_viewsize", "100", 0 );
 
-	cl_allowPaste = Cvar_Get( "cl_allowPaste", "1", 0 );
-
 	cl_cgameSyscallStats = Cvar_Get( "cl_cgameSyscallStats", "0", 0 );
 
 	//
@@ -4552,10 +4548,5 @@ void CL_GetClipboardData( char *buf, int buflen )
 	}
 
 	buf[ j ] = '\0';
-}
-#else
-void CL_GetClipboardData( char *buf, int )
-{
-	buf[ 0 ] = '\0';
 }
 #endif
