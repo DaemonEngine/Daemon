@@ -698,7 +698,7 @@ function(AddApplication)
 endfunction()
 
 if (NOT NACL)
-    add_library(engine-lib ${PCH_FILE} ${COMMONLIST} ${ENGINELIST})
+    add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${COMMONLIST} ${ENGINELIST})
     target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
