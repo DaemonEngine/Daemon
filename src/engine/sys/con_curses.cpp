@@ -454,7 +454,7 @@ char *CON_Input()
 			case '\n':
 			case '\r':
 			case KEY_ENTER:
-                Log::Notice( PROMPT "^*%s", Str::UTF32To8(input_field.GetText()).c_str() );
+				Log::CommandInteractionMessage( Str::Format( PROMPT "^*%s", Str::UTF32To8(input_field.GetText()) ) );
 				input_field.RunCommand(com_consoleCommand.Get());
 				werase( inputwin );
 				wnoutrefresh( inputwin );
