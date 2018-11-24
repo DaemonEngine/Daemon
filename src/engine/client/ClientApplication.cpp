@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "framework/CommandSystem.h"
 #include "client.h"
 
-#if defined(_WIN32) || defined(BUILD_CLIENT)
+#if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
 #include <SDL.h>
 #endif
 
@@ -46,7 +46,7 @@ class ClientApplication : public Application {
                 // curses interface because they have no other usable interface.
                 traits.useCurses = true;
             #endif
-            #ifdef BUILD_CLIENT
+            #ifdef BUILD_GRAPHICAL_CLIENT
                 traits.isClient = true;
             #endif
             #ifdef BUILD_TTY_CLIENT
@@ -89,7 +89,7 @@ class ClientApplication : public Application {
         }
 
         void Shutdown(bool error, Str::StringRef message) override {
-            #if defined(_WIN32) || defined(BUILD_CLIENT)
+            #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
                 if (error) {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, PRODUCT_NAME, message.c_str(), nullptr);
                 }
@@ -101,7 +101,7 @@ class ClientApplication : public Application {
             );
             TRY_SHUTDOWN(Com_Shutdown());
 
-            #if defined(_WIN32) || defined(BUILD_CLIENT)
+            #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
                 // Always run SDL_Quit, because it restores system resolution and gamma.
                 SDL_Quit();
             #endif
