@@ -546,11 +546,11 @@ The server calls this before shutting down or loading a new map
 */
 void Hunk_Clear()
 {
-#ifdef BUILD_CLIENT
+#ifdef BUILD_GRAPHICAL_CLIENT // TODO(slipher): Should either of these also happen for tty client?
 	CL_ShutdownCGame();
 #endif
 	SV_ShutdownGameProgs();
-#ifdef BUILD_CLIENT
+#ifdef BUILD_GRAPHICAL_CLIENT
 	CIN_CloseAllVideos();
 #endif
 	hunk_low.mark = 0;
@@ -1212,7 +1212,7 @@ void Com_Init( char *commandLine )
 	}
 
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
-#ifdef BUILD_CLIENT
+#ifdef BUILD_GRAPHICAL_CLIENT
 	Cmd_AddCommand( "writebindings", Com_WriteBindings_f );
 #endif
 
@@ -1290,7 +1290,7 @@ void Com_WriteConfiguration()
 		Com_WriteConfigToFile( CONFIG_NAME, Cvar_WriteVariables );
 	}
 
-#ifdef BUILD_CLIENT
+#ifdef BUILD_GRAPHICAL_CLIENT
 	if ( bindingsModified )
 	{
 		bindingsModified = false;
@@ -1330,7 +1330,7 @@ Com_WriteBindings_f
 Write the key bindings file to a specific name
 ===============
 */
-#ifdef BUILD_CLIENT
+#ifdef BUILD_GRAPHICAL_CLIENT
 void Com_WriteBindings_f()
 {
 	char filename[ MAX_QPATH ];

@@ -54,7 +54,7 @@ Maryland 20850 USA.
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
-#ifdef BUILD_CLIENT
+#ifdef BUILD_GRAPHICAL_CLIENT
 #include <SDL.h>
 #endif
 
@@ -4499,7 +4499,7 @@ void CL_ShowIP_f()
 CL_GetClipboardData
 ====================
 */
-#ifdef BUILD_CLIENT
+#ifdef BUILD_GRAPHICAL_CLIENT
 void CL_GetClipboardData( char *buf, int buflen )
 {
 	int         i, j;

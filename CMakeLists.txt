@@ -717,7 +717,7 @@ endif()
 
 if (BUILD_CLIENT)
     set(Definitions
-        BUILD_ENGINE BUILD_CLIENT
+        BUILD_ENGINE BUILD_GRAPHICAL_CLIENT
     )
     if (USE_SMP)
         list(APPEND Definitions USE_SMP)
