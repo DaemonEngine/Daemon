@@ -3796,8 +3796,7 @@ CL_ServerStatusResponse
 void CL_ServerStatusResponse( netadr_t from, msg_t *msg )
 {
 	const char           *s;
-	char           info[ MAX_INFO_STRING ];
-	int            i, l, score, ping;
+	int            i, score, ping;
 	int            len;
 	serverStatus_t *serverStatus;
 
@@ -3825,48 +3824,10 @@ void CL_ServerStatusResponse( netadr_t from, msg_t *msg )
 
 	if ( serverStatus->print )
 	{
-		Log::Notice("Server settings:" );
-
+		Log::CommandInteractionMessage("Server settings:" );
 		// print cvars
-		while ( *s )
-		{
-			for ( i = 0; i < 2 && *s; i++ )
-			{
-				if ( *s == '\\' )
-				{
-					s++;
-				}
-
-				l = 0;
-
-				while ( *s )
-				{
-					info[ l++ ] = *s;
-
-					if ( l >= MAX_INFO_STRING - 1 )
-					{
-						break;
-					}
-
-					s++;
-
-					if ( *s == '\\' )
-					{
-						break;
-					}
-				}
-
-				info[ l ] = '\0';
-
-				if ( i )
-				{
-					Log::Notice("%s\n", info );
-				}
-				else
-				{
-					Log::Notice("%-24s", info );
-				}
-			}
+		for (const auto& kv: InfoStringToMap(s)) {
+			Log::CommandInteractionMessage(Str::Format("%-24s%s", kv.first, kv.second));
 		}
 	}
 
@@ -3875,8 +3836,8 @@ void CL_ServerStatusResponse( netadr_t from, msg_t *msg )
 
 	if ( serverStatus->print )
 	{
-		Log::Notice( "\nPlayers:\n" );
-		Log::Notice( "num: score: ping: name:\n" );
+		Log::CommandInteractionMessage( "\nPlayers:" );
+		Log::CommandInteractionMessage( "num: score: ping: name:" );
 	}
 
 	for ( i = 0, s = MSG_ReadStringLine( msg ); *s; s = MSG_ReadStringLine( msg ), i++ )
@@ -3904,7 +3865,7 @@ void CL_ServerStatusResponse( netadr_t from, msg_t *msg )
 				s = "unknown";
 			}
 
-			Log::Notice( "%-2d   %-3d    %-3d   %s\n", i, score, ping, s );
+			Log::CommandInteractionMessage(Str::Format("%-2d   %-3d    %-3d   %s", i, score, ping, s));
 		}
 	}
 
