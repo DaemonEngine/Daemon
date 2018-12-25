@@ -231,6 +231,22 @@ static void CON_Show()
 	}
 }
 
+static bool CON_InputAvailable() {
+	fd_set         fdset;
+	struct timeval timeout;
+
+	FD_ZERO( &fdset );
+	FD_SET( STDIN_FILENO, &fdset );  // stdin
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 0;
+
+	if ( select( STDIN_FILENO + 1, &fdset, nullptr, nullptr, &timeout ) == -1 || !FD_ISSET( STDIN_FILENO, &fdset ) )
+	{
+		return false;
+	}
+	return true;
+}
+
 /*
 ==================
 CON_Shutdown_TTY
@@ -245,9 +261,6 @@ void CON_Shutdown_TTY()
 		CON_Back(); // Delete "]"
 		tcsetattr( STDIN_FILENO, TCSADRAIN, &TTY_tc );
 	}
-
-	// Restore blocking to stdin reads
-	fcntl( STDIN_FILENO, F_SETFL, fcntl( STDIN_FILENO, F_GETFL, 0 ) & ~O_NONBLOCK );
 }
 
 /*
@@ -283,9 +296,6 @@ void CON_Init_TTY()
 
 	// If SIGCONT is received, reinitialize console
 	signal( SIGCONT, CON_SigCont );
-
-	// Make stdin reads non-blocking
-	fcntl( STDIN_FILENO, F_SETFL, fcntl( STDIN_FILENO, F_GETFL, 0 ) | O_NONBLOCK );
 
 	const char *term = getenv( "TERM" );
 	bool stdinIsATTY = isatty( STDIN_FILENO ) && isatty( STDOUT_FILENO ) && isatty( STDERR_FILENO ) &&
@@ -336,7 +346,7 @@ char *CON_Input_TTY()
 	int         avail;
 	char        key;
 
-	if ( ttycon_on )
+	if ( ttycon_on && CON_InputAvailable() )
 	{
 		avail = read( STDIN_FILENO, &key, 1 );
 
