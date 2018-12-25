@@ -38,24 +38,20 @@ void LoadWEBP( const char *filename, unsigned char **pic, int *width, int *heigh
 	int  len;
 	int  stride;
 	int  size;
-	union
-	{
-		byte *b;
-		void *v;
-	} fbuffer;
+	void* filebuf;
 
 	/* read compressed data */
-	len = ri.FS_ReadFile( ( char * ) filename, &fbuffer.v );
+	len = ri.FS_ReadFile( filename, &filebuf );
 
-	if ( !fbuffer.b || len < 0 )
+	if ( !filebuf || len < 0 )
 	{
 		return;
 	}
 
 	/* validate data and query image size */
-	if ( !WebPGetInfo( fbuffer.b, len, width, height ) )
+	if ( !WebPGetInfo( static_cast<const uint8_t*>(filebuf), len, width, height ) )
 	{
-		ri.FS_FreeFile( fbuffer.v );
+		ri.FS_FreeFile( filebuf );
 		return;
 	}
 
@@ -64,12 +60,12 @@ void LoadWEBP( const char *filename, unsigned char **pic, int *width, int *heigh
 
 	out = (byte*) ri.Z_Malloc( size );
 
-	if ( !WebPDecodeRGBAInto( fbuffer.b, len, out, size, stride ) )
+	if ( !WebPDecodeRGBAInto( static_cast<const uint8_t*>(filebuf), len, out, size, stride ) )
 	{
 		ri.Free( out );
 		return;
 	}
 
-	ri.FS_FreeFile( fbuffer.v );
+	ri.FS_FreeFile( filebuf );
 	*pic = out;
 }
