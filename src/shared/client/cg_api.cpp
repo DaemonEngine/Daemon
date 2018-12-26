@@ -121,13 +121,6 @@ void trap_RegisterButtonCommands( const char *cmds )
 	VM::SendMsg<RegisterButtonCommandsMsg>(cmds);
 }
 
-void trap_GetClipboardData( char *buf, int bufsize )
-{
-	std::string data;
-	VM::SendMsg<GetClipboardDataMsg>(bufsize, data);
-	Q_strncpyz(buf, data.c_str(), bufsize);
-}
-
 void trap_QuoteString( const char *str, char *buffer, int size )
 {
 	std::string quoted;

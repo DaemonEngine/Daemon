@@ -133,7 +133,6 @@ enum cgameImport_t
   CG_SETUSERCMDVALUE,
   CG_GET_ENTITY_TOKEN,
   CG_REGISTER_BUTTON_COMMANDS,
-  CG_GETCLIPBOARDDATA,
   CG_QUOTESTRING,
   CG_GETTEXT,
   CG_PGETTEXT,
@@ -266,10 +265,6 @@ using GetEntityTokenMsg =  IPC::SyncMessage<
 	IPC::Reply<bool, std::string>
 >;
 using RegisterButtonCommandsMsg = IPC::Message<IPC::Id<VM::QVM, CG_REGISTER_BUTTON_COMMANDS>, std::string>;
-using GetClipboardDataMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_GETCLIPBOARDDATA>, int>,
-	IPC::Reply<std::string>
->;
 // TODO using Command.h for that ?
 using QuoteStringMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_QUOTESTRING>, int, std::string>,
