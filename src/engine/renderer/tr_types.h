@@ -191,11 +191,6 @@ struct refEntity_t
 	float radius;
 	float rotation;
 
-	// Ridah, entity fading (gibs, debris, etc)
-	int   fadeStartTime, fadeEndTime;
-
-	int   entityNum; // currentState.number, so we can attach rendering effects to specific entities (Zombie)
-
 #if defined( USE_REFENTITY_NOSHADOWID )
 	// extra light interaction information
 	short noShadowID;
