@@ -2510,7 +2510,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 
 /*
 ===============
-R_TryStitchPatch
+R_TryStitchingPatch
 
 This function will try to stitch patches in the same LoD group together for the highest LoD.
 

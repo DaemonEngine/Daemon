@@ -614,7 +614,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	/*
 	==================
-	R_TakeScreenshotJPEG
+	RB_TakeScreenshotJPEG
 	==================
 	*/
 	static void RB_TakeScreenshotJPEG( int x, int y, int width, int height, char *fileName )
@@ -627,7 +627,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	/*
 	==================
-	R_TakeScreenshotPNG
+	RB_TakeScreenshotPNG
 	==================
 	*/
 	static void RB_TakeScreenshotPNG( int x, int y, int width, int height, char *fileName )

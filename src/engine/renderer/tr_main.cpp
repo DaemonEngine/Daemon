@@ -1254,7 +1254,7 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane )
 
 /*
 =================
-R_GetPortalOrientation
+R_GetPortalOrientations
 
 entityNum is the entity that the portal surface is a part of, which may
 be moving and rotating.

@@ -577,7 +577,7 @@ enum edgeName_e
 
 /*
 ==================
-CM_PatchCollideFromGrid
+CM_SurfaceCollideFromGrid
 ==================
 */
 static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )

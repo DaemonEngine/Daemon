@@ -2066,7 +2066,7 @@ void CL_DisconnectPacket( netadr_t from )
 
 /*
 ===================
-CL_PrintPackets
+CL_PrintPacket
 an OOB message from server, with potential markups
 print OOB are the only messages we handle markups in
 [err_dialog]: used to indicate that the connection should be aborted

@@ -616,7 +616,7 @@ int Key_GetCatcher()
 
 /*
  * ====================
- * Ket_SetCatcher
+ * Key_SetCatcher
  * ====================
  */
 void Key_SetCatcher( int catcher )

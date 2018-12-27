@@ -5442,7 +5442,7 @@ void R_InitShaders()
 
 /*
 ==================
-R_SetAltShaderKeywords
+R_SetAltShaderTokens
 ==================
 */
 void R_SetAltShaderTokens( const char *list )
