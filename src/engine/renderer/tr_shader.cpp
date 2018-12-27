@@ -2836,7 +2836,7 @@ static const infoParm_t infoParms[] =
 	{ "clipmissile",        1,                         0,                      CONTENTS_MISSILECLIP                   }, // impact only specific weapons (rl, gl)
 	{ "water",              1,                         0,                      CONTENTS_WATER                         },
 	{ "slag",               1,                         0,                      CONTENTS_SLIME                         }, // uses the CONTENTS_SLIME flag, but the shader reference is changed to 'slag'
-	// to idendify that this doesn't work the same as 'slime' did.
+	// to identify that this doesn't work the same as 'slime' did.
 
 	{ "lava",               1,                         0,                      CONTENTS_LAVA                          }, // very damaging
 	{ "playerclip",         1,                         0,                      CONTENTS_PLAYERCLIP                    },
@@ -2900,7 +2900,7 @@ static const infoParm_t infoParms[] =
 	{ "nodraw",             0,                         SURF_NODRAW,            0                                      }, // don't generate a drawsurface (or a lightmap)
 	{ "pointlight",         0,                         SURF_POINTLIGHT,        0                                      }, // sample lighting at vertexes
 	{ "nolightmap",         0,                         SURF_NOLIGHTMAP,        0                                      }, // don't generate a lightmap
-	{ "nodlight",           0,                         0,                      0                                      }, // OBSELETE: don't ever add dynamic lights
+	{ "nodlight",           0,                         0,                      0                                      }, // OBSOLETE: don't ever add dynamic lights
 
 	// monster ai
 	{ "monsterslicknorth",  0,                         SURF_MONSLICK_N,        0                                      },
@@ -4608,7 +4608,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		}
 	}
 
-	shader.altShader[ 0 ].index = flags; // save for later use (in case of alternativer shaders)
+	shader.altShader[ 0 ].index = flags; // save for later use (in case of alternative shaders)
 
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image

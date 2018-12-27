@@ -1634,7 +1634,7 @@ const char *Com_StringContains( const char *str1, const char *str2, int casesens
 /*
 ============
 Com_Filter
-String comparison with wildcard support and optional casesensitivity
+String comparison with wildcard support and optional case sensitivity
 ============
 */
 int Com_Filter( const char *filter, const char *name, int casesensitive )

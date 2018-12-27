@@ -117,7 +117,7 @@ static void SV_EmitPacketEntities( const clientSnapshot_t *from, clientSnapshot_
 		{
 			// delta update from old position
 			// because the force parm is false, this will not result
-			// in any bytes being emited if the entity has not changed at all
+			// in any bytes being emitted if the entity has not changed at all
 			MSG_WriteDeltaEntity( msg, oldent, newent, false );
 			oldindex++;
 			newindex++;
@@ -364,7 +364,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 
 	// during an error shutdown message we may need to transmit
 	// the shutdown message after the server has shutdown, so
-	// specfically check for it
+	// specifically check for it
 	if (sv.state == serverState_t::SS_DEAD)
 	{
 		return;

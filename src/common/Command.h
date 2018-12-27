@@ -115,7 +115,7 @@ namespace Cmd {
      * the Run method and the namespace in which the command is.
      * Then it can be registered in the command system, this can be done
      * automatically and that's why most of the time you will want to use
-     * Cmd::StaticCmd instad of Cmd::CmdBase.
+     * Cmd::StaticCmd instead of Cmd::CmdBase.
      * In the engine, Run and Complete will always be called from the main thread.
      */
     class CmdBase {
@@ -168,7 +168,7 @@ namespace Cmd {
     /**
      * Cmd::LambdaCmd an automatically registered command whose callbacks can be
      * defined by lambdas. A typical usage is
-     *  static LambdaCMd MyCmd("my_command", NAMESPACE, "my_description",
+     *  static LambdaCmd MyCmd("my_command", NAMESPACE, "my_description",
      *      [](const Args& args) {
      *          // Do stuff
      *      }

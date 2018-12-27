@@ -65,7 +65,7 @@ Maryland 20850 USA.
 //
 // To generate new font data you need to go through the following steps.
 // 1. delete the fontImage_x_xx.png files and fontImage_xx.dat files from the fonts path.
-// 2. in a ui script, specificy a font, smallFont, and bigFont keyword with font name and
+// 2. in a ui script, specify a font, smallFont, and bigFont keyword with font name and
 //    point size. the original TrueType fonts must exist in fonts at this point.
 // 3. run the game. you should see things.
 // 4. Exit the game and there will be three dat files and at least three PNG files. The

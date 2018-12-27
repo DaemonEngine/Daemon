@@ -1688,7 +1688,7 @@ enum class tokenType_t {
 		cplane_t plane; // surface normal at impact, transformed to world space
 		int      surfaceFlags; // surface hit
 		int      contents; // contents on other side of surface hit
-		int      entityNum; // entity the contacted sirface is a part of
+		int      entityNum; // entity the contacted surface is a part of
 		float    lateralFraction; // fraction of collision tangetially to the trace direction
 	};
 
@@ -1761,7 +1761,7 @@ enum class tokenType_t {
 #define MAX_GENTITIES       ( 1 << GENTITYNUM_BITS )
 
 // entitynums are communicated with GENTITY_BITS, so any reserved
-// values thatare going to be communcated over the net need to
+// values that are going to be communicated over the net need to
 // also be in this range
 #define ENTITYNUM_NONE           ( MAX_GENTITIES - 1 )
 #define ENTITYNUM_WORLD          ( MAX_GENTITIES - 2 )

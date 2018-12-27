@@ -119,7 +119,7 @@ namespace Cmd {
         return *commands;
     }
 
-    // Used to emalute the C API
+    // Used to emulate the C API
     //TODO: remove the need for this
     Args currentArgs;
     Args oldArgs;
@@ -324,7 +324,7 @@ namespace Cmd {
                 for (auto it = commands.cbegin(); it != commands.cend(); ++it) {
                     const commandRecord_t& record = it->second;
 
-                    // /listCmds's arguement is used for prefix matching
+                    // /listCmds's argument is used for prefix matching
                     if (args.Argc() >= 2 and not Str::IsIPrefix(args.Argv(1), it->first)) {
                         continue;
                     }

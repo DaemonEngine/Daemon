@@ -65,7 +65,7 @@ struct DDSHEADER_t
 
 	unsigned int dwDepth; // the depth if this is a volume texture
 
-	unsigned int dwMipMapCount; // number of mip-map levels requestde
+	unsigned int dwMipMapCount; // number of mip-map levels requested
 
 	unsigned int dwReserved[11]; // reserved
 

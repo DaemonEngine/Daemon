@@ -930,7 +930,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 	// show_bug.cgi?id=509
 	// for autodownload, we use a separate max rate value
-	// we do this everytime because the client might change its rate during the download
+	// we do this every time because the client might change its rate during the download
 	if ( sv_dl_maxRate->integer < rate )
 	{
 		rate = sv_dl_maxRate->integer;
@@ -1358,7 +1358,7 @@ static void SV_UserMove( client_t *cl, msg_t *msg, bool delta )
 	if ( cl->state == clientState_t::CS_PRIMED )
 	{
 		SV_ClientEnterWorld( cl, &cmds[ 0 ] );
-		// the moves can be processed normaly
+		// the moves can be processed normally
 	}
 
 	if ( cl->state != clientState_t::CS_ACTIVE )

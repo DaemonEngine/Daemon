@@ -47,7 +47,7 @@ template<class T>
 {
 	// Type used to represent the components
 	using component_type = T;
-	// Maxiumum value for a component
+	// Maximum value for a component
 	static CONSTEXPR component_type component_max = std::numeric_limits<component_type>::max();
 	// Size of a component value in bytes
 	static CONSTEXPR std::size_t component_size = sizeof(component_type);
@@ -413,7 +413,7 @@ public:
 	}
 
 	/*
-	 * Distance berween Begin and End
+	 * Distance between Begin and End
 	 */
 	std::size_t Size() const
 	{

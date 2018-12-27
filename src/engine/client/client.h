@@ -60,7 +60,7 @@ struct clSnapshot_t
 
 	int           messageNum; // copied from netchan->incoming_sequence
 	int           deltaNum; // messageNum the delta is from
-	int           ping; // time from when cmdNum-1 was sent to time packet was reeceived
+	int           ping; // time from when cmdNum-1 was sent to time packet was received
 	byte          areamask[ MAX_MAP_AREA_BYTES ]; // portalarea visibility bits
 
 	int           cmdNum; // the next cmdNum the server is expecting
@@ -104,7 +104,7 @@ extern int g_console_field_width;
 struct clientActive_t
 {
 	GameStateCSs gameState; // configstrings
-	int timeoutcount; // it requres several frames in a timeout condition
+	int timeoutcount; // it requires several frames in a timeout condition
 	// to disconnect, preventing debugging breaks from
 	// causing immediate disconnects on continue
 	clSnapshot_t snap; // latest received from server
@@ -481,7 +481,7 @@ extern cvar_t *cl_cgameSyscallStats;
  * Independently of the gamelogic, we can assume the game to have "teams" with an id,
  * as long as we don't assume any semantics on that
  * we can assume however that "0" is some form of "neutral" or "non" team,
- * most likly a non-playing client that e.g. observes the game or hasn't joined yet.
+ * most likely a non-playing client that e.g. observes the game or hasn't joined yet.
  * even in a deathmatch or singleplayer game, joining would start with team 1, even though there might not be another one
  * this allows several client logic (like team specific binds or configurations) to work no matter how the team is called or what its attributes are
  */

@@ -116,7 +116,7 @@ public:
 ====================
 DaemonFileSystem
 
-Class used by tinygettext to read files and directorys
+Class used by tinygettext to read files and directories
 Uses the engine's File I/O functions for this purpose
 ====================
 */

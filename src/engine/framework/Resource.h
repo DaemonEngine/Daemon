@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Resource registration logic.
  *
  * Resources are any data that is loaded from the disk (sounds, images, ...).
- * The goal of the resource system impemented in this file is to allow:
+ * The goal of the resource system implemented in this file is to allow:
  *  1 - resources to be loaded from the disk only if they aren't already loaded
  *  2 - to prevent duplicates of resources
  *  3 - resources to have dependencies on other resources (e.g. for shaders)
@@ -145,11 +145,11 @@ namespace Resource {
     /*
      * Manages resources so as to avoid redundant loads as well as defer the loading
      * to prepare for async loading. The manager can be in two states, either in the
-     * registration during which the loading of resources will be defered, either not
+     * registration during which the loading of resources will be deferred, either not
      * in the registration in which case resources will be loaded immediately.
      *
      * The manager gives Handle to resources, a resource will be candidate for
-     * deletion when no more handles refering to that resource exist (so that we are
+     * deletion when no more handles referring to that resource exist (so that we are
      * sure that noone is currently using the resource).
      */
     template<typename T>

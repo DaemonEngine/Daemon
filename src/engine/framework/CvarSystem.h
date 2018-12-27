@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * is bad practice.
  *
  * Cvars should be declared statically using the Cvar::Cvar class, see
- * common/Cvar for more details. Facilites are also provided to do more
+ * common/Cvar for more details. Facilities are also provided to do more
  * "static checking" of cvars with types, bounds, ...
  *
  * There are two ways for the code to access cvars:

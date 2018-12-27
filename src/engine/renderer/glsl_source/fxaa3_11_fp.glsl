@@ -146,7 +146,7 @@ To use FXAA,
   return color;
 
 Another example where output is linear encoded,
-say for instance writing to an sRGB formated render target,
+say for instance writing to an sRGB formatted render target,
 where the render target does the conversion back to sRGB after blending,
 
   color.rgb = ToneMap(color.rgb); // linear color output
@@ -165,8 +165,8 @@ Getting luma correct is required for the algorithm to work correctly.
                           BEING LINEARLY CORRECT?
 ------------------------------------------------------------------------------
 Applying FXAA to a framebuffer with linear RGB color will look worse.
-This is very counter intuitive, but happends to be true in this case.
-The reason is because dithering artifacts will be more visiable
+This is very counter intuitive, but happens to be true in this case.
+The reason is because dithering artifacts will be more visible
 in a linear colorspace.
 
 
@@ -892,7 +892,7 @@ FxaaFloat4 FxaaPixelShader(
     //
     // Extra constants for 360 FXAA Console only.
     // Use zeros or anything else for other platforms.
-    // These must be in physical constant registers and NOT immedates.
+    // These must be in physical constant registers and NOT immediates.
     // Immedates will result in compiler un-optimizing.
     // {xyzw} = float4(1.0, -1.0, 0.25, -0.25)
     FxaaFloat4 fxaaConsole360ConstDir
@@ -1272,7 +1272,7 @@ Instead of using this on PC, I'd suggest just using FXAA Quality with
 #define FXAA_QUALITY_PRESET 10
 Or
 #define FXAA_QUALITY_PRESET 20
-Either are higher qualilty and almost as fast as this on modern PC GPUs.
+Either are higher quality and almost as fast as this on modern PC GPUs.
 ============================================================================*/
 #if (FXAA_PC_CONSOLE == 1)
 /*--------------------------------------------------------------------------*/
@@ -1713,7 +1713,7 @@ half4 FxaaPixelShader(
     rgby2 = (temp2N + rgby2) * 0.5;
 /*--------------------------------------------------------------------------*/
 // (11)
-    // compilier moves these scalar ops up to other cycles
+    // compiler moves these scalar ops up to other cycles
 #if (FXAA_GREEN_AS_LUMA == 0)
     half lumaMin = min(min(lumaNw.w, lumaSw.w), min(lumaNe.w, lumaSe.w));
     half lumaMax = max(max(lumaNw.w, lumaSw.w), max(lumaNe.w, lumaSe.w));

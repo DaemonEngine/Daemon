@@ -287,7 +287,7 @@ namespace Cvar {
 
     }
 
-    // Simple proxies for SetValueInternal
+    // Simple proxies for InternalSetValue
     void SetValue(const std::string& cvarName, const std::string& value) {
         InternalSetValue(cvarName, value, 0, false, true);
     }

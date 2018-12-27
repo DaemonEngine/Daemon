@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * information to start debugging when the assert fires.
  *
  * In case of name clashes (with for example a testing library), you can define the
- * DEAMON_SKIP_ASSERT_SHORTHANDS to only define the DAEMON_ prefixed macros.
+ * DAEMON_SKIP_ASSERT_SHORTHANDS to only define the DAEMON_ prefixed macros.
  *
  * These asserts feature:
  *     - Logging of the error with file, line and function information.

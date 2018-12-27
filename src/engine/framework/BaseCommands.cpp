@@ -218,7 +218,7 @@ namespace Cmd {
 
     class ConcatCmd: public StaticCmd {
         public:
-            ConcatCmd(): StaticCmd("concat", BASE, "concatenatas variables") {
+            ConcatCmd(): StaticCmd("concat", BASE, "concatenates variables") {
             }
 
             void Run(const Cmd::Args& args) const override {

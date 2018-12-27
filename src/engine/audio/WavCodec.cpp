@@ -48,7 +48,7 @@ inline int PackChars(const std::string& input, int startingPosition, int numberO
 	int charsLeftToPack = numberOfCharsToPack;
 	while (charsLeftToPack > 0) {
 		int position = numberOfCharsToPack - charsLeftToPack;
-        //the number must be converted to unsinged char first
+        //the number must be converted to unsigned char first
         //else if it's >127, 1s will be added to the higher-order bits
 		packed |= static_cast<unsigned char>(input[startingPosition + position]) << position * 8;
 		--charsLeftToPack;

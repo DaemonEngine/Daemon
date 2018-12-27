@@ -1031,7 +1031,7 @@ void  CL_OnTeamChanged( int newTeam )
 
 	Cvar_SetValue( p_team->name, newTeam );
 
-	/* set all team specific teambindinds */
+	/* set all team specific teambindings */
 	Keyboard::SetTeam( newTeam );
 
 	/*

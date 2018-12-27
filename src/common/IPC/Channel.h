@@ -64,7 +64,7 @@ namespace IPC {
      * To handle a message, once the method has been determined using the ID,
      * do the following, with reader the Reader given to the dispatch function:
      *
-     *     IPC::HandleMsg<MssageType>(channel, std::move(reader), [&](int input1, std::string input2, int& output1, myStruct_t& output2) {
+     *     IPC::HandleMsg<MessageType>(channel, std::move(reader), [&](int input1, std::string input2, int& output1, myStruct_t& output2) {
      *         // Handle the method call and fill both output references.
      *     });
      *
@@ -227,7 +227,7 @@ namespace IPC {
     } // namespace detail
 
     // Send a message to the given channel. If the message is synchronous then messageHandler is invoked for all
-    // message that are recieved until ID_RETURN is recieved. Values returned by a synchronous message are
+    // message that are received until ID_RETURN is received. Values returned by a synchronous message are
     // returned through reference parameters.
     template<typename Msg, typename Func, typename... Args> void SendMsg(Channel& channel, Func&& messageHandler, Args&&... args)
     {

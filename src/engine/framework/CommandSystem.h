@@ -63,7 +63,7 @@ namespace Cmd {
 
     /*
      * The command buffer stores command to be executed for later.
-     * Command texts can be parsed for cvar substition ($cvarname$)
+     * Command texts can be parsed for cvar substitution ($cvarname$)
      * when run and can also be executed in a custom Environment.
      */
 
