@@ -292,8 +292,6 @@ void BotUpdateCorridor( int botClientNum, const botRouteTarget_t *target, botNav
 		qVec pos, proj;
 		qVec start = bot->offMeshStart;
 		qVec end = bot->offMeshEnd;
-		qVec dir;
-		qVec pVec;
 
 		GetEntPosition( botClientNum, pos );
 		start[ 2 ] = pos[ 2 ];
