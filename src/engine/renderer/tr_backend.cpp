@@ -4816,7 +4816,7 @@ void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *
 
 	if ( ( 1 << i ) != cols || ( 1 << j ) != rows )
 	{
-		ri.Error( errorParm_t::ERR_DROP, "Draw_StretchRaw: size not a power of 2: %i by %i", cols, rows );
+		ri.Error( errorParm_t::ERR_DROP, "RE_StretchRaw: size not a power of 2: %i by %i", cols, rows );
 	}
 
 	RB_SetGL2D();

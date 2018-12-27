@@ -253,7 +253,7 @@ bool BotLoadNavMesh( const char *filename, NavData_t &nav )
 
 		if ( !tileHeader.tileRef || !tileHeader.dataSize )
 		{
-			Log::Warn("NUll Tile in navmesh" );
+			Log::Warn("Null Tile in navmesh" );
 			dtFreeNavMesh( nav.mesh );
 			dtFreeTileCache( nav.cache );
 			nav.cache = nullptr;

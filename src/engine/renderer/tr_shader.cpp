@@ -1583,7 +1583,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parameter for 'animMmap' keyword in shader '%s'", shader.name );
+				Log::Warn("missing parameter for 'animMap' keyword in shader '%s'", shader.name );
 				return false;
 			}
 
@@ -4011,7 +4011,7 @@ static void GeneratePermanentShaderTable( float *values, int numValues )
 
 	if ( tr.numTables == MAX_SHADER_TABLES )
 	{
-		Log::Warn("GeneratePermanentShaderTables - MAX_SHADER_TABLES hit" );
+		Log::Warn("GeneratePermanentShaderTable - MAX_SHADER_TABLES hit" );
 		return;
 	}
 

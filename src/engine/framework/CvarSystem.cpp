@@ -252,7 +252,7 @@ namespace Cvar {
                 }
 
                 if (rom and warnRom and not (cvar->flags & (CVAR_ROM | CVAR_INIT))) {
-                    Log::Notice("SetValueROM called on non-ROM cvar '%s'\n", cvarName.c_str());
+                    Log::Notice("SetValueForce called on non-ROM cvar '%s'\n", cvarName.c_str());
                 }
 
                 if (not cheatsAllowed && cvar->flags & CHEAT) {

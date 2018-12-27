@@ -1249,7 +1249,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	int             i, j;
 	int             offset = tess.numVertexes - surf->first_vertex;
 
-	GLimp_LogComment( "--- RB_SurfaceIQM ---\n" );
+	GLimp_LogComment( "--- Tess_SurfaceIQM ---\n" );
 
 	Tess_CheckOverflow( surf->num_vertexes, surf->num_triangles * 3 );
 

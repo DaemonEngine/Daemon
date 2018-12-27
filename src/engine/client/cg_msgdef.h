@@ -81,7 +81,7 @@ namespace Util {
 			skel.scale = stream.Read<float>();
 
 			if (skel.numBones > sizeof(skel.bones) / sizeof(refBone_t)) {
-				Sys::Drop("IPC: Too many bones for refSkelon_t: %i", skel.numBones);
+				Sys::Drop("IPC: Too many bones for refSkeleton_t: %i", skel.numBones);
 			}
 			size_t length = sizeof(refBone_t) * skel.numBones;
 			stream.ReadData(&skel.bones, length);

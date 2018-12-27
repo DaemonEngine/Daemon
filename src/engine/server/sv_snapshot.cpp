@@ -297,7 +297,7 @@ static int QDECL SV_QsortEntityNumbers( const void *a, const void *b )
 
 	if ( *ea == *eb )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_QsortEntityStates: duplicated entity" );
+		Com_Error( errorParm_t::ERR_DROP, "SV_QsortEntityNumbers: duplicated entity" );
 	}
 
 	if ( *ea < *eb )

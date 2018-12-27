@@ -368,7 +368,7 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 		}
 	}
 
-	Log::Debug( "SCR_PlayCinematic( %s )", arg );
+	Log::Debug( "CIN_PlayCinematic( %s )", arg );
 
 	Com_Memset( &cin, 0, sizeof( cinematics_t ) );
 	currentHandle = CIN_HandleForVideo();

@@ -401,7 +401,7 @@ void CM_AdjustAreaPortalState( int area1, int area2, bool open )
 
 	if ( area1 >= cm.numAreas || area2 >= cm.numAreas )
 	{
-		Sys::Drop( "CM_ChangeAreaPortalState: bad area number" );
+		Sys::Drop( "CM_AdjustAreaPortalState: bad area number" );
 	}
 
 	if ( open )
