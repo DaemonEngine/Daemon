@@ -542,29 +542,6 @@ static void NET_QueuePacket( int length, const void *data, netadr_t to,
 	}
 }
 
-void NET_FlushPacketQueue()
-{
-	packetQueue_t *last;
-	int           now;
-
-	while ( packetQueue )
-	{
-		now = Sys_Milliseconds();
-
-		if ( packetQueue->release >= now )
-		{
-			break;
-		}
-
-		Sys_SendPacket( packetQueue->length, packetQueue->data,
-		                packetQueue->to );
-		last = packetQueue;
-		packetQueue = packetQueue->next;
-		Z_Free( last->data );
-		Z_Free( last );
-	}
-}
-
 void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to )
 {
 	// sequenced packets are shown in netchan, so just show oob
