@@ -30,8 +30,6 @@ bool R_LoadMD3( model_t *mod, int lod, void *buffer, const char *name );
 bool R_LoadMD5( model_t *mod, void *buffer, const char *name );
 bool R_LoadIQModel( model_t *mod, void *buffer, int bufferSize, const char *name );
 
-model_t  *loadmodel;
-
 /*
 ** R_GetModelByHandle
 */
@@ -150,8 +148,6 @@ qhandle_t RE_RegisterModel( const char *name )
 
 		if ( buffer )
 		{
-			loadmodel = mod;
-
 			ident = LittleLong( * ( unsigned * ) buffer );
 
 			if ( !Q_strnicmp( ( const char * ) buffer, "MD5Version", 10 ) )
@@ -201,8 +197,6 @@ qhandle_t RE_RegisterModel( const char *name )
 		}
 
 		ri.FS_ReadFile( filename, ( void ** ) &buffer );
-
-		loadmodel = mod;
 
 		if ( !buffer )
 		{
