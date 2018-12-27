@@ -1230,7 +1230,7 @@ SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *
 
 /*
 ====================
-NET_SetMulticast
+NET_SetMulticast6
 Set the current multicast group
 ====================
 */
@@ -1266,7 +1266,7 @@ void NET_SetMulticast6()
 
 /*
 ====================
-NET_JoinMulticast
+NET_JoinMulticast6
 Join an ipv6 multicast group
 ====================
 */

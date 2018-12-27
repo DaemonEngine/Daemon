@@ -1063,7 +1063,7 @@ void SV_ConnectionlessPacket( netadr_t from, msg_t *msg )
 
 /*
 =================
-SV_ReadPackets
+SV_PacketEvent
 =================
 */
 void SV_PacketEvent( netadr_t from, msg_t *msg )

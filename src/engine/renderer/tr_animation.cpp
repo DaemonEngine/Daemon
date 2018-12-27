@@ -1246,7 +1246,7 @@ int RE_CheckSkeleton( refSkeleton_t *skel, qhandle_t hModel, qhandle_t hAnim )
 
 /*
 ==============
-R_IQMBuildSkeleton
+IQMBuildSkeleton
 ==============
 */
 static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,

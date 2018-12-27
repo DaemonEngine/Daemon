@@ -1150,7 +1150,7 @@ static void R_AddEdgeToLightScissor( trRefLight_t *light, const vec3_t in_world1
 
 /*
 =================
-R_SetLightScissor
+R_SetupLightScissor
 Recturns the screen space rectangle taken by the box.
         (Clips the box to the near plane to have correct results even if the box intersects the near plane)
 Tr3B - recoded from Tenebrae2
