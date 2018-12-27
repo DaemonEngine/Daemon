@@ -1243,7 +1243,7 @@ void IN_PrepareKeyUp()
 ============
 CL_RegisterButtonCommands
 
-Get a list of buttons from cgame (USERCMD_BUTTONS comma sperated names)
+Get a list of buttons from cgame (USERCMD_BUTTONS comma separated names)
 and registers the appropriate commands.
 ============
 */

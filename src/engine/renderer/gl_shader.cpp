@@ -170,7 +170,7 @@ namespace // Implementation details
 			// There should be no differences in normal conditions.
 			// When testing shader file changes this is an expected message
 			// and helps the tester track which files have changed and need 
-			// to be recommmitted to git.
+			// to be recommitted to git.
 			// If one is not making shader files changes this message
 			// indicates there is a mismatch between disk changes and builtins
 			// which the application is out of sync with it's files 
@@ -193,7 +193,7 @@ namespace // Implementation details
 			// what's going on from seeing that.
 			// We normalize the text by removing CL/LF's so they aren't considered
 			// a difference as Windows or the Version Control System can put them in
-			// and another OS might read them back and conisder that a difference
+			// and another OS might read them back and consider that a difference
 			// to what's in shader.cpp or vice vesa.
 			NormalizeShaderText(internalShaderText);
 			NormalizeShaderText(shaderText);

@@ -186,7 +186,7 @@ inline float SwapFloat(float x)
 
 #else
 
-#error "Unknown endianess"
+#error "Unknown endianness"
 
 #endif
 

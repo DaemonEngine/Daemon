@@ -2105,7 +2105,7 @@ static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, ve
 	tw.contents = brushmask;
 	tw.skipContents = skipmask;
 
-	// adjust so that mins and maxs are always symetric, which
+	// adjust so that mins and maxs are always symmetric, which
 	// avoids some complications with plane expanding of rotated
 	// bmodels
 	for ( i = 0; i < 3; i++ )

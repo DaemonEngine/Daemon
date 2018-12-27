@@ -403,7 +403,7 @@ uint32_t VMBase::Create()
 	if (type != TYPE_NATIVE_DLL && params.debug.Get())
 		Log::Notice("Waiting for GDB connection on localhost:4014\n");
 
-	// Only set a recieve timeout for non-debug configurations, otherwise it
+	// Only set a receive timeout for non-debug configurations, otherwise it
 	// would get triggered by breakpoints.
 	if (type != TYPE_NATIVE_DLL && !params.debug.Get())
 		rootChannel.SetRecvTimeout(std::chrono::seconds(2));

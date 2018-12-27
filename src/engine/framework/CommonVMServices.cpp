@@ -205,7 +205,7 @@ namespace VM {
     }
 
     void CommonVMServices::SetCvar(Util::Reader& reader, IPC::Channel& channel) {
-        // Leaving value by value for now. May revist later.
+        // Leaving value by value for now. May revisit later.
         IPC::HandleMsg<SetCvarMsg>(channel, std::move(reader), [this](const std::string& name, std::string value){
             //TODO check it is only touching allowed cvars?
             Cvar::SetValue(name, value);
@@ -383,7 +383,7 @@ namespace VM {
     CommonVMServices::~CommonVMServices() {
         //FIXME or iterate over the commands we registered, or add Cmd::RemoveByProxy()
         Cmd::RemoveSameCommands(*commandProxy.get());
-        //TODO unregesiter cvars
+        //TODO unregister cvars
     }
 
     void CommonVMServices::Syscall(int major, int minor, Util::Reader reader, IPC::Channel& channel) {

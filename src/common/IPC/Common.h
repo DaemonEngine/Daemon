@@ -46,7 +46,7 @@ namespace IPC {
      * the VMs: in NaCl they are in different processes which means that communication
      * has to be Inter-Process Communication, via sockets and shared memory.
      * The most basic level of communication goes through a socket and is somewhat
-     * expensive (10us overhead for a synchronous message, 1us for an asnc one) but
+     * expensive (10us overhead for a synchronous message, 1us for an async one) but
      * it has a strong ordering of messages and is the only way to wait one another
      * process: spinlocks in shared memory would prevent the OS from rescheduling etc.
      * For larger but very asynchronous messages, there is a command buffer in shared
@@ -132,4 +132,4 @@ namespace IPC {
 
 } // namespace IPC
 
-#endif // COMMON_IPC_IPC_H_
+#endif // COMMON_IPC_COMMON_H_

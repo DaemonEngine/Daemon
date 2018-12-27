@@ -938,7 +938,7 @@ void SVC_RemoteCommand( netadr_t from, const Cmd::Args& args )
 
 	if ( !RconAcceptable(message, &invalid_reason) )
 	{
-		// If the rconpassword is bad and one just happned recently, don't spam the log file, just die.
+		// If the rconpassword is bad and one just happened recently, don't spam the log file, just die.
 		if ( throttle_delta < 600 )
 		{
 			return;
@@ -1212,7 +1212,7 @@ void SV_CalcPings()
 SV_CheckTimeouts
 
 If a packet has not been received from a client for timeout->integer
-seconds, drop the conneciton.  Server time is used instead of
+seconds, drop the connection.  Server time is used instead of
 realtime to avoid dropping the local client while debugging.
 
 When a client is dropped, the client_t goes into a zombie state
@@ -1313,7 +1313,7 @@ bool SV_CheckPaused()
 /*
 ==================
 SV_FrameMsec
-Return time in millseconds until processing of the next server frame.
+Return time in milliseconds until processing of the next server frame.
 ==================
 */
 int SV_FrameMsec()

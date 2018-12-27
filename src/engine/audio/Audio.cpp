@@ -637,7 +637,7 @@ namespace Audio {
         // With c and d two constants such that the equation holds for A = B = 0 and A = B = 1.
         // Solving gives us:
         //     c = 10^(-d/3) and 10^((1-d)/3) - 10^(-d/3) = 1
-        // With Wofram Alpha we get:
+        // With Wolfram Alpha we get:
         //     d = 3log_10(10^(1/3) - 1) and c = 1 / (10^(1/3) - 1)
         const float PERCEPTUAL_C = 0.866224835960518f;
         const float PERCEPTUAL_D = 0.187108105667604f;

@@ -41,7 +41,7 @@ namespace Rcon {
 enum class Secure {
 	Unencrypted,        // Allow unencrypted rcon
 	EncryptedPlain,     // Require encryption
-	EncryptedChallenge, // Require encryption and challege check
+	EncryptedChallenge, // Require encryption and challenge check
 	Invalid             // Invalid protocol
 };
 

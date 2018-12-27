@@ -3562,7 +3562,7 @@ static void R_LoadNodesAndLeafs( lump_t *nodeLump, lump_t *leafLump )
 		out->numMarkSurfaces = LittleLong( inLeaf->numLeafSurfaces );
 	}
 
-	// chain decendants and compute surface bounds
+	// chain descendants and compute surface bounds
 	R_SetParent( s_worldData.nodes, nullptr );
 
 	backEndData[ 0 ]->traversalList = ( bspNode_t ** ) ri.Hunk_Alloc( sizeof( bspNode_t * ) * s_worldData.numnodes, ha_pref::h_low );
@@ -3718,7 +3718,7 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 
 	count = l->filelen / sizeof( *fogs );
 
-	// create fog strucutres for them
+	// create fog structures for them
 	s_worldData.numFogs = count + 1;
 	s_worldData.fogs = (fog_t*) ri.Hunk_Alloc( s_worldData.numFogs * sizeof( *out ), ha_pref::h_low );
 	out = s_worldData.fogs + 1;

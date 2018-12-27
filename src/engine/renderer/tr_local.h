@@ -552,7 +552,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  WT_EDGE_CLAMP,
 	  WT_ONE_CLAMP,
 	  WT_ZERO_CLAMP, // guarantee 0,0,0,255 edge for projected textures
-	  WT_ALPHA_ZERO_CLAMP // guarante 0 alpha edge for projected textures
+	  WT_ALPHA_ZERO_CLAMP // guarantee 0 alpha edge for projected textures
 	};
 
 	struct wrapType_t
@@ -2709,7 +2709,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		float          identityLight; // 1.0 / ( 1 << overbrightBits )
 		int            overbrightBits; // r_overbrightBits->integer, but set to 0 if no hw gamma
-		int            mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overriden by mapper using the worldspawn
+		int            mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
 
 		orientationr_t orientation; // for current entity
 

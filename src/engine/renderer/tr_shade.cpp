@@ -149,7 +149,7 @@ void GLSL_InitGPUShaders()
 	 4. Run the app and get to the point required to check work.
 	 5. If the change failed or succeeded but you want to make more changes restart at step 1.
 
-	 Alternatively, if set shaderpath "c:/unvanquished/main" is used, the cylcle is:
+	 Alternatively, if set shaderpath "c:/unvanquished/main" is used, the cycle is:
 	 1. Change shader file(s) - don't run the buildshaders script unless samples.cpp is missing.
 	 2. Start the app, the app will load the shader files directly.
 	    If there is a problem the app will revert to the last working changes

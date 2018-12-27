@@ -240,7 +240,7 @@ CLIENT RELIABLE COMMAND COMMUNICATION
 ======================
 CL_AddReliableCommand
 
-The given command will be transmitted to the server, and is gauranteed to
+The given command will be transmitted to the server, and is guaranteed to
 not have future usercmd_t executed before it is executed
 ======================
 */
@@ -304,7 +304,7 @@ void CL_WriteDemoMessage( msg_t *msg, int headerBytes )
 
 
 /**
- * If a demo is being recorderd, this stops it
+ * If a demo is being recorded, this stops it
  */
 void CL_StopRecord()
 {
@@ -1114,7 +1114,7 @@ void CL_Connect_f()
 		*offset = 0;
 	}
 
-	//Copy the arguments before they can be overwritten, afater that server is invalid
+	//Copy the arguments before they can be overwritten, after that server is invalid
 	Q_strncpyz( cls.servername, server, sizeof( cls.servername ) );
 	Q_strncpyz( cls.reconnectCmd, Cmd::GetCurrentArgs().EscapedArgs(0).c_str(), sizeof( cls.reconnectCmd ) );
 
@@ -2038,7 +2038,7 @@ void CL_DisconnectPacket( netadr_t from )
 
 	// if we have received packets within three seconds, ignore (it might be a malicious spoof)
 	// NOTE TTimo:
-	// there used to be a  clc.lastPacketTime = cls.realtime; line in CL_PacketEvent before calling CL_ConnectionLessPacket
+	// there used to be a  clc.lastPacketTime = cls.realtime; line in CL_PacketEvent before calling CL_ConnectionlessPacket
 	// therefore .. packets never got through this check, clients never disconnected
 	// switched the clc.lastPacketTime = cls.realtime to happen after the connectionless packets have been processed
 	// you still can't spoof disconnects, cause legal netchan packets will maintain realtime - lastPacketTime below the threshold

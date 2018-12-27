@@ -101,7 +101,7 @@ namespace Audio {
             Vec3 position;
     };
 
-    // An Emitter for things that aren't spatialized (like menus, annoucements, ...)
+    // An Emitter for things that aren't spatialized (like menus, announcements, ...)
     class LocalEmitter: public Emitter {
         public:
             LocalEmitter();

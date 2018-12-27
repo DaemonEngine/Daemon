@@ -69,7 +69,7 @@ namespace Cvar {
 
             // Called when the value of the cvar changes, returns success=true if the new value
             // is valid, false otherwise. If true is returned, the description will be the new
-            // description of the cvar. If false is returned, the cvar wil keep its old
+            // description of the cvar. If false is returned, the cvar will keep its old
             // value. And the description will be the description of the problem printed to
             // the user.
             virtual OnValueChangedResult OnValueChanged(Str::StringRef newValue) = 0;
@@ -143,7 +143,7 @@ namespace Cvar {
      * If you want to create you own extension you should take care of calling the right constructor
      * of the base class in order to prevent the base class from calling Register (which will be
      * problematic because the vtable isn't set up for your class). To do that, pass to the base
-     * class a first argument NoRegisterTag(). Likewise if your class should be extandable, you need to
+     * class a first argument NoRegisterTag(). Likewise if your class should be extendable, you need to
      * make two constructors: a normal one that calls Register and a one that takes NoRegisterTag without
      * registering.
      */

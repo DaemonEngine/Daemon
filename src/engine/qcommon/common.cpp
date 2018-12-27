@@ -326,7 +326,7 @@ bool Com_ServerRunning()
 ==============================================================================
 
 Goals:
-        reproducable without history effects -- no out of memory errors on weird map to map changes
+        reproducible without history effects -- no out of memory errors on weird map to map changes
         allow restarting of the client without fragmentation
         minimize total pages in use at run time
         minimize total pages needed during load time

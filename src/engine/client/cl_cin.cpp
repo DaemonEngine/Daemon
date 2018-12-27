@@ -177,7 +177,7 @@ void ROQ_GenYUVTables()
 Frame_yuv_to_rgb24
 is used by the Theora(ogm) code
 
-  moved the convertion into one function, to reduce the number of function-calls
+  moved the conversion into one function, to reduce the number of function-calls
 */
 void Frame_yuv_to_rgb24( const unsigned char *y, const unsigned char *u, const unsigned char *v,
                          int width, int height, int y_stride, int uv_stride,

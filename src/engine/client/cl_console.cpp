@@ -933,7 +933,7 @@ void Con_DrawAnimatedConsole()
 	re.SetClipRegion( contentClipping );
 
 
-	//build info, projectname/copyrights, meta informatin or similar
+	//build info, projectname/copyrights, meta information or similar
 	Con_DrawAboutText();
 
 	if(con_debug->integer) {
@@ -1007,7 +1007,7 @@ void Con_UpdateConsoleState()
 
 	/*
 	 * calculate global alpha factor
-	 * apply the fade animation if the type is set, otherwise remain completly visible
+	 * apply the fade animation if the type is set, otherwise remain completely visible
 	 */
 	consoleState.currentAlphaFactor = ( con_animationType->integer & ANIMATION_TYPE_FADE ) ? consoleState.currentAnimationFraction : 1.0f;
 
@@ -1118,7 +1118,7 @@ void Con_DrawConsole()
 ==================
 Con_RunConsole
 
-runs each frame once independend wheter or not the console is going to be rendered or not
+runs each frame once independent of whether or not the console is going to be rendered or not
 ==================
 */
 

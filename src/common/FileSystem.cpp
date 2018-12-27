@@ -2295,7 +2295,7 @@ static void FindPaksInPath(Str::StringRef basePath, Str::StringRef subPath)
 }
 #endif // BUILD_VM
 
-// Comparaison function for version numbers
+// Comparison function for version numbers
 // Implementation is based on dpkg's version comparison code (verrevcmp() and order())
 // http://anonscm.debian.org/gitweb/?p=dpkg/dpkg.git;a=blob;f=lib/dpkg/version.c;hb=74946af470550a3295e00cf57eca1747215b9311
 static int VersionCmp(Str::StringRef aStr, Str::StringRef bStr)

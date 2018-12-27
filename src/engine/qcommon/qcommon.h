@@ -128,7 +128,7 @@ NET
 #define NET_TYPE( type )    ( NET_IS_IPv4( type ) ? netadrtype_t::NA_IP : NET_IS_IPv6( type ) ? netadrtype_t::NA_IP6 : ( ( type ) == netadrtype_t::NA_IP_DUAL ) ? netadrtype_t::NA_IP : ( type ) )
 
 #define PACKET_BACKUP       32 // number of old messages that must be kept on client and
-// server for delta comrpession and ping estimation
+// server for delta compression and ping estimation
 #define PACKET_MASK         ( PACKET_BACKUP - 1 )
 
 #define MAX_PACKET_USERCMDS 32 // max number of usercmd_t in a packet

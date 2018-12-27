@@ -59,7 +59,7 @@ namespace VM {
  * is how the gamelogic is ran when we do not trust the code as it won't be able to
  * access anything apart from the file handles the engine gives it. When the NaCl
  * gamelogic exits the OS will clean up any leaks for us. It is also slightly slower
- * than native format (no SSE and code alignement constraints).
+ * than native format (no SSE and code alignment constraints).
  *  - A native executable started in a new process, obviously the "main" function
  * is the first one ran. The root socket handle is given in argv[1]. It doesn't
  * provide sandboxing like the nacl executable but the OS will still clean up any

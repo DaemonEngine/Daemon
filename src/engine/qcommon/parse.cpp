@@ -672,7 +672,7 @@ static int Parse_ReadString( script_t *script, token_t *token, int quote )
 				break;
 			}
 
-			//if there's no leading double qoute
+			//if there's no leading double quote
 			if ( *script->script_p != quote )
 			{
 				script->script_p = tmpscript_p;
@@ -2500,7 +2500,7 @@ static int Parse_EvaluateTokens( source_t *source, token_t *tokens, signed long 
 			//if there's no value or no next value
 			if ( !v )
 			{
-				Parse_SourceError( source, "mising values in #if/#elif" );
+				Parse_SourceError( source, "missing values in #if/#elif" );
 				error = 1;
 				break;
 			}

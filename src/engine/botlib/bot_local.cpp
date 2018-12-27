@@ -99,7 +99,7 @@ bool PointInPolyExtents( Bot_t *bot, dtPolyRef ref, rVec point, rVec extents )
 		return false;
 	}
 
-	// use the bot's bbox as an epsilon because the navmesh is always at least that far from a boundry
+	// use the bot's bbox as an epsilon because the navmesh is always at least that far from a boundary
 	float maxRad = std::max( extents[ 0 ], extents[ 1 ] ) + 1;
 
 	if ( fabsf( point[ 0 ] - closest[ 0 ] ) > maxRad )
