@@ -247,9 +247,6 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg )
 	int      fragmentStart, fragmentLength;
 	bool fragmented;
 
-	// XOR unscramble all data in the packet after the header
-//	Netchan_UnScramblePacket( msg );
-
 	// get sequence numbers
 	MSG_BeginReadingOOB( msg );
 	sequence = MSG_ReadLong( msg );

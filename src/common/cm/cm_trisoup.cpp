@@ -204,8 +204,6 @@ static void CM_SurfaceCollideFromTriangleSoup( cTriangleSoup_t *triSoup, cSurfac
 		p3 = triSoup->points[ i ][ 2 ];
 
 		triSoup->trianglePlanes[ i ] = CM_FindPlane( p1, p2, p3 );
-
-		//Log::Notive( "trianglePlane[%i] = %i", i, trianglePlanes[i]);
 	}
 
 	// create the borders for each triangle

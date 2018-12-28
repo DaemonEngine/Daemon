@@ -1078,7 +1078,6 @@ static int Parse_ReadScriptToken( script_t *script, token_t *token )
 	//if there is a literal
 	else if ( *script->script_p == '\'' )
 	{
-		//if (!Parse_ReadLiteral(script, token)) return 0;
 		if ( !Parse_ReadString( script, token, '\'' ) ) { return 0; }
 	}
 	//if there is a number
