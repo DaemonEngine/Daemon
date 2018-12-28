@@ -2248,7 +2248,7 @@ static void Render_liquid( int stage )
 
 	float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
 	float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-	gl_liquidShader->SetUniform_SpecularExponent( specMin, specMAx );
+	gl_liquidShader->SetUniform_SpecularExponent( specMin, specMax );
 
 	GL_BindToTMU( 0, tr.currentRenderImage[ backEnd.currentMainFBO ] );
 

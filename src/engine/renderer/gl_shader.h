@@ -252,7 +252,7 @@ public:
 		_activeMacros &= ~bit;
 	}
 
-	bool IsVertexAtttribSet( int bit )
+	bool IsVertexAttribSet( int bit )
 	{
 		return ( _vertexAttribs & bit ) != 0;
 	}
