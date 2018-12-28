@@ -46,7 +46,6 @@ Maryland 20850 USA.
 #define MAX_WEIGHTS        4 // GPU vertex skinning limit, never change this without rewriting many GLSL shaders
 // XreaL END
 
-#define MAX_CORONAS        32 //----(SA)  not really a reason to limit this other than trying to keep a reasonable count
 #define MAX_DLIGHTS        32 // can't be increased, because bit flags are used on surfaces
 #define MAX_ENTITIES       MAX_REF_ENTITIES // RB: for compatibility
 
@@ -258,9 +257,6 @@ struct refLight_t
 // XreaL END
 
 // ================================================================================================
-
-#define MAX_RENDER_STRINGS       8
-#define MAX_RENDER_STRING_LENGTH 32
 
 struct refdef_t
 {
