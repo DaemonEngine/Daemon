@@ -71,7 +71,6 @@ void ignore_result(T) {}
 
 // C standard library headers
 #include <errno.h>
-//#include <fenv.h>
 #include <float.h>
 #include <iso646.h>
 #include <limits.h>
@@ -80,7 +79,6 @@ void ignore_result(T) {}
 #include <setjmp.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
