@@ -1417,16 +1417,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		vec4_t   texMat[ 3 ][ 2 ];
 	};
 
-	struct corona_t
-	{
-		vec3_t   origin;
-		vec3_t   color; // range from 0.0 to 1.0, should be color normalized
-		vec3_t   transformed; // origin in local coordinate system
-		float    scale; // uses r_flaresize as the baseline (1.0)
-		int      id;
-		bool visible; // still send the corona request, even if not visible, for proper fading
-	};
-
 //=================================================================================
 
 // skins allow models to be retextured without modifying the model file

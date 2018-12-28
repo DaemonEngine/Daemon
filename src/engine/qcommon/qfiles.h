@@ -53,59 +53,6 @@ Maryland 20850 USA.
 /*
 ========================================================================
 
-QVM files
-
-========================================================================
-*/
-
-#define VM_MAGIC      0x12721444
-#define VM_MAGIC_VER2 0x12721445
-struct vmHeader_t
-{
-	int vmMagic;
-
-	int instructionCount;
-
-	int codeOffset;
-	int codeLength;
-
-	int dataOffset;
-	int dataLength;
-	int litLength; // ( dataLength - litLength ) should be byteswapped on load
-	int bssLength; // zero filled memory appended to datalength
-
-	//!!! below here is VM_MAGIC_VER2 !!!
-	int jtrgLength; // number of jump table targets
-};
-
-/*
-========================================================================
-
-PCX files are used for 8 bit images
-
-========================================================================
-*/
-
-struct pcx_t
-{
-	char           manufacturer;
-	char           version;
-	char           encoding;
-	char           bits_per_pixel;
-	unsigned short xmin, ymin, xmax, ymax;
-	unsigned short hres, vres;
-	unsigned char  palette[ 48 ];
-	char           reserved;
-	char           color_planes;
-	unsigned short bytes_per_line;
-	unsigned short palette_type;
-	char           filler[ 58 ];
-	unsigned char  data; // unbounded
-};
-
-/*
-========================================================================
-
 TGA files are used for 24/32 bit images
 
 ========================================================================
@@ -463,13 +410,5 @@ struct dsurface_t
 	int    patchWidth; // ydnar: num foliage instances
 	int    patchHeight; // ydnar: num foliage mesh verts
 };
-
-//----(SA) added so I didn't change the dsurface_t struct (and thereby the bsp format) for something that doesn't need to be stored in the bsp
-struct drsurfaceInternal_t
-{
-	char *lighttarg;
-};
-
-//----(SA) end
 
 #endif

@@ -1385,21 +1385,6 @@ void         ByteToDir( int b, vec3_t dir );
 
 //=============================================================================
 
-	enum
-	{
-	  MEMSTREAM_SEEK_SET,
-	  MEMSTREAM_SEEK_CUR,
-	  MEMSTREAM_SEEK_END
-	};
-
-	enum
-	{
-	  MEMSTREAM_FLAGS_EOF = BIT( 0 ),
-	  MEMSTREAM_FLAGS_ERR = BIT( 1 ),
-	};
-
-//=============================================
-
 	float      Com_Clamp( float min, float max, float value );
 
 	char       *COM_SkipPath( char *pathname );
@@ -2230,14 +2215,6 @@ int        Com_GMTime( qtime_t *qtime );
 	  FMV_ID_IDLE,
 	  FMV_LOOPED,
 	  FMV_ID_WAIT
-	};
-
-	enum class demoState_t
-	{
-	  DS_NONE,
-	  DS_PLAYBACK,
-	  DS_RECORDING,
-	  DS_NUM_DEMO_STATES
 	};
 
 #define MAX_GLOBAL_SERVERS       4096
