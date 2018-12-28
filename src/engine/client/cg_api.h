@@ -103,17 +103,6 @@ struct cgClientState_t
 	char        messageString[ MAX_STRING_CHARS ];
 };
 
-enum class serverSortField_t
-{
-	SORT_HOST,
-	SORT_MAP,
-	SORT_CLIENTS,
-	SORT_PING,
-	SORT_GAME,
-	SORT_FILTERS,
-	SORT_FAVOURITES
-};
-
 enum class MouseMode
 {
 	Deltas,       // The input is sent as movement deltas, the cursor is hidden
