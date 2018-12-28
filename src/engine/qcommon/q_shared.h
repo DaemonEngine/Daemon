@@ -69,8 +69,6 @@ Maryland 20850 USA.
 template<class T>
 void ignore_result(T) {}
 
-#define EXTERN_C extern "C"
-
 // C standard library headers
 #include <errno.h>
 //#include <fenv.h>
@@ -177,9 +175,6 @@ using clipHandle_t = int;
 #define STRING(s)  #s
 // expand constants before stringifying them
 #define XSTRING(s) STRING(s)
-
-#define MAX_QINT 0x7fffffff
-#define MIN_QINT ( -MAX_QINT - 1 )
 
 #define HUGE_QFLT 3e38f // TODO: Replace HUGE_QFLT with MAX_QFLT
 
@@ -352,12 +347,6 @@ void  Com_Free_Aligned( void *ptr );
 #define SCREEN_WIDTH     640
 #define SCREEN_HEIGHT    480
 
-#define TINYCHAR_WIDTH   ( SMALLCHAR_WIDTH )
-#define TINYCHAR_HEIGHT  ( SMALLCHAR_HEIGHT )
-
-#define MINICHAR_WIDTH   8
-#define MINICHAR_HEIGHT  12
-
 #define SMALLCHAR_WIDTH  8
 #define SMALLCHAR_HEIGHT 16
 
@@ -376,7 +365,6 @@ void  Com_Free_Aligned( void *ptr );
 #define RAD2DEG( a )                  ( ( ( a ) * 180.0f ) / M_PI )
 
 #define Q_clamp( a, b, c )            Math::Clamp( (a), (b), (c) )
-#define Q_lerp( from, to, frac )      ( ( from ) + ( frac ) * ( ( to ) - ( from ) ) )
 
 struct cplane_t;
 
@@ -1593,7 +1581,6 @@ enum class tokenType_t {
  */
 #define CVAR_SERVERINFO_NOUPDATE BIT(13)
 #define CVAR_USER_ARCHIVE        BIT(14)
-#define CVAR_NONEXISTENT         0xFFFFFFFF /*< Cvar doesn't exist. */
 
 #define CVAR_ARCHIVE_BITS        (CVAR_ARCHIVE | CVAR_USER_ARCHIVE)
 
@@ -1770,8 +1757,6 @@ enum class tokenType_t {
 #define CS_SYSTEMINFO          1 // an info string for server system to client system configuration (timescale, etc)
 
 #define RESERVED_CONFIGSTRINGS 2 // game can't modify below this, only the system can
-
-#define MAX_GAMESTATE_CHARS    16000
 
 using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 
