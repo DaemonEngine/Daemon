@@ -369,7 +369,6 @@ public:
 	void CGameMousePosEvent(int x, int y);
 	void CGameTextInputEvent(int c);
 	void CGameFocusEvent(bool focus);
-	//void CGameInitCvars();
 
 	void CGameRocketInit();
 	void CGameRocketFrame();
@@ -461,7 +460,6 @@ extern cvar_t *cl_activeAction;
 extern cvar_t *cl_autorecord;
 
 extern cvar_t *cl_allowDownload;
-extern cvar_t *cl_conXOffset;
 extern cvar_t *cl_inGameVideo;
 
 extern cvar_t *cl_altTab;
@@ -515,13 +513,11 @@ void        CL_RegisterButtonCommands( const char *cmdList );
 void        CL_StartHunkUsers();
 
 void        CL_Disconnect_f();
-void        CL_GetChallengePacket();
 void        CL_Vid_Restart_f();
 void        CL_Snd_Restart_f();
 
 void        CL_NextDemo();
 void        CL_ReadDemoMessage();
-void        CL_StartDemoLoop();
 
 void        CL_InitDownloads();
 void        CL_NextDownload();
@@ -584,12 +580,8 @@ void CL_ClearInput();
 void CL_InitInput();
 void CL_SendCmd();
 void CL_ClearState();
-void CL_ReadPackets();
 
 void CL_WritePacket();
-
-void IN_Notebook();
-void IN_Help();
 
 void IN_PrepareKeyUp();
 
@@ -617,7 +609,6 @@ void CL_ParseServerMessage( msg_t *msg );
 void     CL_ServerInfoPacket( netadr_t from, msg_t *msg );
 void     CL_LocalServers_f();
 void     CL_GlobalServers_f();
-void     CL_FavoriteServers_f();
 void     CL_Ping_f();
 bool CL_UpdateVisiblePings_f( int source );
 
@@ -685,8 +676,6 @@ struct console_t
 
 extern console_t consoleState;
 
-void             Con_DrawCharacter( int cx, int line, int num );
-
 bool         Con_CheckResize();
 void             Con_Init();
 void             Con_Clear_f();
@@ -704,9 +693,6 @@ void             Con_ScrollToMarkerLine();
 void             Con_ScrollToTop();
 void             Con_ScrollToBottom();
 void             Con_Close();
-
-void             CL_LoadConsoleHistory();
-void             CL_SaveConsoleHistory();
 
 //
 // cl_scrn.c
@@ -760,29 +746,17 @@ void          Cin_OGM_Shutdown();
 //
 void     CL_InitCGame();
 void     CL_ShutdownCGame();
-void     CL_GameCommandHandler();
-bool CL_GameConsoleText();
 void     CL_CGameRendering();
 void     CL_SetCGameTime();
 void     CL_FirstSnapshot();
-void     CL_ShaderStateChanged();
 void CL_CGameBinaryMessageReceived(const uint8_t *buf, size_t size, int serverTime);
 void     CL_OnTeamChanged( int newTeam );
 
 //
 // cl_ui.c
 //
-void CL_ShutdownUI();
 int  Key_GetCatcher();
 void Key_SetCatcher( int catcher );
-void UI_GameCommandHandler();
-
-//
-// cl_net_chan.c
-//
-void     CL_Netchan_Transmit( netchan_t *chan, msg_t *msg );  //int length, const byte *data );
-void     CL_Netchan_TransmitNextFragment( netchan_t *chan );
-bool CL_Netchan_Process( netchan_t *chan, msg_t *msg );
 
 // XreaL BEGIN
 
@@ -792,7 +766,6 @@ bool CL_Netchan_Process( netchan_t *chan, msg_t *msg );
 bool CL_OpenAVIForWriting( const char *filename );
 void     CL_TakeVideoFrame();
 void     CL_WriteAVIVideoFrame( const byte *imageBuffer, int size );
-void     CL_WriteAVIAudioFrame( const byte *pcmBuffer, int size );
 bool CL_CloseAVI();
 bool CL_VideoRecording();
 

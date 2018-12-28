@@ -363,7 +363,6 @@ void       SV_MasterShutdown();
 //
 // sv_init.c
 //
-void SV_SetConfigstringNoUpdate( int index, const char *val );
 void SV_UpdateConfigStrings();
 void SV_SetConfigstring( int index, const char *val );
 void SV_UpdateConfigStrings();
@@ -418,20 +417,14 @@ void SV_SendClientIdle( client_t *client );
 //
 // sv_sgame.c
 //
-int SV_NumForGentity( sharedEntity_t *ent );
-
 sharedEntity_t *SV_GentityNum( int num );
 playerState_t  *SV_GameClientNum( int num );
 
 svEntity_t     *SV_SvEntityForGentity( sharedEntity_t *gEnt );
-sharedEntity_t *SV_GEntityForSvEntity( svEntity_t *svEnt );
-std::unique_ptr<GameVM> SV_CreateGameVM();
 void           SV_InitGameProgs();
 void           SV_ShutdownGameProgs();
 void           SV_RestartGameProgs();
-bool       SV_inPVS( const vec3_t p1, const vec3_t p2 );
 void           SV_GameBinaryMessageReceived(int cno, const byte *buf, size_t buflen, int commandTime);
-void           SV_GameCommandHandler();
 
 //
 // sv_bot.c
@@ -447,16 +440,12 @@ int  SV_BotGetConsoleMessage( int client, char *buf, int size );
 //
 void     SV_Netchan_Transmit( client_t *client, msg_t *msg );
 void     SV_Netchan_TransmitNextFragment( client_t *client );
-bool SV_Netchan_Process( client_t *client, msg_t *msg );
 void     SV_Netchan_FreeQueue( client_t *client );
 
 //bani - cl->downloadnotify
 #define DLNOTIFY_REDIRECT 0x00000001 // "Redirecting client ..."
 #define DLNOTIFY_BEGIN    0x00000002 // "clientDownload: 4 : beginning ..."
 #define DLNOTIFY_ALL      ( DLNOTIFY_REDIRECT | DLNOTIFY_BEGIN )
-
-
-void SV_GeoIP_Init();
 
 
 enum class ServerPrivate
