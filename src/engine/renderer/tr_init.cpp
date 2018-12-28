@@ -39,10 +39,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_glDebugMode;
 	cvar_t      *r_glAllowSoftware;
 
-	cvar_t      *r_flares;
-	cvar_t      *r_flareSize;
-	cvar_t      *r_flareFade;
-
 	cvar_t      *r_verbose;
 	cvar_t      *r_ignore;
 
@@ -200,7 +196,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_forceAmbient;
 	cvar_t      *r_ambientScale;
 	cvar_t      *r_lightScale;
-	cvar_t      *r_debugLight;
 	cvar_t      *r_debugSort;
 	cvar_t      *r_printShaders;
 
@@ -1132,7 +1127,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 		// archived variables that can change at any time
 		r_lodBias = ri.Cvar_Get( "r_lodBias", "0", 0 );
-		r_flares = ri.Cvar_Get( "r_flares", "0", 0 );
 		r_znear = ri.Cvar_Get( "r_znear", "3", CVAR_CHEAT );
 		r_zfar = ri.Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
 		r_ignoreGLErrors = ri.Cvar_Get( "r_ignoreGLErrors", "1", 0 );
@@ -1172,7 +1166,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		// temporary variables that can change at any time
 		r_showImages = ri.Cvar_Get( "r_showImages", "0", CVAR_TEMP );
 
-		r_debugLight = ri.Cvar_Get( "r_debuglight", "0", CVAR_TEMP );
 		r_debugSort = ri.Cvar_Get( "r_debugSort", "0", CVAR_CHEAT );
 
 		r_nocurves = ri.Cvar_Get( "r_nocurves", "0", CVAR_CHEAT );
@@ -1187,9 +1180,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		r_portalOnly = ri.Cvar_Get( "r_portalOnly", "0", CVAR_CHEAT );
 		r_portalSky = ri.Cvar_Get( "cg_skybox", "1", 0 );
 		r_max_portal_levels = ri.Cvar_Get( "r_max_portal_levels", "5", 0 );
-
-		r_flareSize = ri.Cvar_Get( "r_flareSize", "40", CVAR_CHEAT );
-		r_flareFade = ri.Cvar_Get( "r_flareFade", "7", CVAR_CHEAT );
 
 		r_showSmp = ri.Cvar_Get( "r_showSmp", "0", CVAR_CHEAT );
 		r_skipBackEnd = ri.Cvar_Get( "r_skipBackEnd", "0", CVAR_CHEAT );

@@ -93,8 +93,6 @@ cvar_t *com_unfocused;
 cvar_t *com_minimized;
 
 
-cvar_t *com_introPlayed;
-cvar_t *com_logosPlaying;
 cvar_t *cl_paused;
 cvar_t *sv_paused;
 
@@ -1158,9 +1156,6 @@ void Com_Init( char *commandLine )
 	// get the developer cvar set as early as possible
 	Com_StartupVariable( "developer" );
 
-	// bani: init this early
-	Com_StartupVariable( "com_ignorecrash" );
-
 	// ydnar: init crashed variable as early as possible
 	com_crashed = Cvar_Get( "com_crashed", "0", CVAR_TEMP );
 
@@ -1190,8 +1185,6 @@ void Com_Init( char *commandLine )
 	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM );
 	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM );
 
-	com_introPlayed = Cvar_Get( "com_introplayed", "0", 0 );
-	com_logosPlaying = Cvar_Get( "com_logosPlaying", "0", CVAR_ROM );
 	com_recommendedSet = Cvar_Get( "com_recommendedSet", "0", 0 );
 
 	com_unfocused = Cvar_Get( "com_unfocused", "0", CVAR_ROM );

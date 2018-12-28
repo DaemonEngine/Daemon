@@ -2771,10 +2771,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_glDebugMode;
 	extern cvar_t *r_glAllowSoftware;
 
-	extern cvar_t *r_flares; // light flares
-	extern cvar_t *r_flareSize;
-	extern cvar_t *r_flareFade;
-
 	extern cvar_t *r_ignore; // used for debugging anything
 	extern cvar_t *r_verbose; // used for verbose debug spew
 
@@ -2801,8 +2797,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_forceAmbient;
 	extern cvar_t *r_ambientScale;
 	extern cvar_t *r_lightScale;
-	extern cvar_t *r_lightRadiusScale;
-	extern cvar_t *r_debugLight;
 
 	extern cvar_t *r_inGameVideo; // controls whether in game video should be draw
 	extern cvar_t *r_fastsky; // controls whether sky should be cleared or drawn
