@@ -152,7 +152,6 @@ struct script_t
 	int             length; //length of the script in bytes
 	int             line; //current line in script
 	int             lastline; //line before reading token
-	int             tokenavailable; //set by UnreadLastToken
 	int             flags; //several script flags
 	punctuation_t   *punctuations; //the punctuations used in the script
 	punctuation_t   **punctuationtable;
@@ -1042,14 +1041,6 @@ Parse_ReadScriptToken
 */
 static int Parse_ReadScriptToken( script_t *script, token_t *token )
 {
-	//if there is a token available (from UnreadToken)
-	if ( script->tokenavailable )
-	{
-		script->tokenavailable = 0;
-		Com_Memcpy( token, &script->token, sizeof( token_t ) );
-		return 1;
-	}
-
 	//save script pointer
 	script->lastscript_p = script->script_p;
 	//save line counter
@@ -1171,8 +1162,6 @@ static script_t *Parse_LoadScriptFile( const char *filename )
 	script->lastscript_p = script->buffer;
 	//pointer to end of script buffer
 	script->end_p = &script->buffer[ length ];
-	//set if there's a token available in script->token
-	script->tokenavailable = 0;
 	//
 	script->line = 1;
 	script->lastline = 1;
@@ -1211,8 +1200,6 @@ static script_t *Parse_LoadScriptMemory( const char *ptr, int length, const char
 	script->lastscript_p = script->buffer;
 	//pointer to end of script buffer
 	script->end_p = &script->buffer[ length ];
-	//set if there's a token available in script->token
-	script->tokenavailable = 0;
 	//
 	script->line = 1;
 	script->lastline = 1;

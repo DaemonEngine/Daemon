@@ -135,9 +135,6 @@ struct refexport_t
 
 	void ( *RemapShader )( const char *oldShader, const char *newShader, const char *offsetTime );
 
-	void ( *DrawDebugPolygon )( int color, int numpoints, float *points );
-	void ( *DrawDebugText )( const vec3_t org, float r, float g, float b, const char *text, bool neverOcclude );
-
 	bool( *GetEntityToken )( char *buffer, int size );
 
 	void ( *AddPolyBufferToScene )( polyBuffer_t *pPolyBuffer );
@@ -232,7 +229,6 @@ struct refimport_t
 
 	// a -1 return means the file does not exist
 	// nullptr can be passed for buf to just determine existence
-	int ( *FS_FileIsInPAK )( const char *name, int *pChecksum );
 	int ( *FS_ReadFile )( const char *name, void **buf );
 	void ( *FS_FreeFile )( void *buf );
 	char           **( *FS_ListFiles )( const char *name, const char *extension, int *numfilesfound );

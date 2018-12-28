@@ -1243,8 +1243,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		uint8_t         numStages;
 		shaderStage_t   *stages[ MAX_SHADER_STAGES ];
 
-		int             numStates; // if non-zero this is a state shader
-
 		int             currentState; // current state index for cycle purposes
 
 		struct shader_t *remappedShader; // current shader this one is remapped too
@@ -2475,7 +2473,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		int   c_forwardAmbientTime;
 		int   c_forwardLightingTime;
-		int   c_forwardTranslucentTime;
 
 		int   c_multiDrawElements;
 		int   c_multiDrawPrimitives;
@@ -2508,7 +2505,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		bool          projection2D; // if true, drawstretchpic doesn't need to change modes
 		Color::Color32Bit color2D;
-		bool          vertexes2D; // shader needs to be finished
 		trRefEntity_t     entity2D; // currentEntity will point at this when doing 2D rendering
 		int               currentMainFBO;
 		GLuint            currentVAO;

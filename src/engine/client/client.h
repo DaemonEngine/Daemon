@@ -325,8 +325,6 @@ struct clientStatic_t
 	int          masterNum;
 
 	// update server info
-	netadr_t updateServer;
-	char     updateChallenge[ MAX_TOKEN_CHARS ];
 	char     updateInfoString[ MAX_INFO_STRING ];
 
 	// rendering info
@@ -335,7 +333,6 @@ struct clientStatic_t
 	qhandle_t   charSetShader;
 	qhandle_t   whiteShader;
 	qhandle_t   consoleShader;
-	qhandle_t   consoleShader2; // NERVE - SMF - merged from WolfSP
 	bool    useLegacyConsoleFont;
 	bool    useLegacyConsoleFace;
 	fontInfo_t *consoleFont;
