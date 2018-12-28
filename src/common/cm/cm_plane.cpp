@@ -232,7 +232,6 @@ int CM_FindPlane2( float plane[ 4 ], bool *flipped )
 	cPlane_t *p;
 	int      hash, h;
 
-	//SnapPlane(normal, &dist);
 	hash = CM_GenerateHashValue( plane );
 
 	// search the border bins as well

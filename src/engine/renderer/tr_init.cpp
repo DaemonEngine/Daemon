@@ -255,8 +255,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_fontScale;
 
-//	glBroken_t  glBroken = {};
-
 	static void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral )
 	{
 		if ( shouldBeIntegral )
