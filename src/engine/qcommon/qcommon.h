@@ -50,7 +50,6 @@ Maryland 20850 USA.
 void MSG_Init( msg_t *buf, byte *data, int length );
 void MSG_InitOOB( msg_t *buf, byte *data, int length );
 void MSG_Clear( msg_t *buf );
-void *MSG_GetSpace( msg_t *buf, int length );
 void MSG_WriteData( msg_t *buf, const void *data, int length );
 void MSG_Bitstream( msg_t *buf );
 void MSG_Uncompressed( msg_t *buf );
@@ -76,7 +75,6 @@ void  MSG_WriteLong( msg_t *sb, int c );
 void  MSG_WriteFloat( msg_t *sb, float f );
 void  MSG_WriteString( msg_t *sb, const char *s );
 void  MSG_WriteBigString( msg_t *sb, const char *s );
-void  MSG_WriteAngle16( msg_t *sb, float f );
 
 void  MSG_BeginReading( msg_t *sb );
 void  MSG_BeginReadingOOB( msg_t *sb );
@@ -297,10 +295,6 @@ files can be execed.
 
 */
 
-void Cbuf_ExecuteText( int exec_when, const char *text );
-
-// this can be used in place of either Cbuf_AddText or Cbuf_InsertText
-
 //===========================================================================
 
 /*
@@ -323,18 +317,12 @@ void     Cmd_AddCommand( const char *cmd_name, xcommand_t function );
 
 void Cmd_RemoveCommand( const char *cmd_name );
 
-void Cmd_CommandCompletion( void ( *callback )( const char *s ) );
-
 using completionFunc_t = void (*)(char *args, int argNum);
 
 void Cmd_OnCompleteMatch(const char* s);
-void Cmd_AliasCompletion( void ( *callback )( const char *s ) );
-void Cmd_DelayCompletion( void ( *callback )( const char *s ) );
 
 void Cmd_SetCommandCompletionFunc( const char *command,
                                    completionFunc_t complete );
-void Cmd_CompleteArgument( const char *command, char *args, int argNum );
-void Cmd_CompleteCfgName( char *args, int argNum );
 
 // callback with each valid string
 
@@ -343,8 +331,6 @@ int  Cmd_Argc();
 const char *Cmd_Argv( int arg );
 char *Cmd_Args();
 char *Cmd_ArgsFrom( int arg );
-const char *Cmd_Cmd();
-const char *Cmd_Cmd_FromNth( int );
 
 // these all share an output buffer
 const char *Cmd_QuoteString( const char *in );
@@ -386,7 +372,6 @@ int          FS_GetFileListRecursive( const char* path, const char* extension, c
 
 fileHandle_t FS_FOpenFileWrite( const char *qpath );
 fileHandle_t FS_FOpenFileAppend( const char *filename );
-fileHandle_t  FS_FCreateOpenPipeFile( const char *filename );
 
 fileHandle_t FS_FOpenFileWriteViaTemporary( const char *qpath );
 
@@ -536,10 +521,6 @@ struct field_t
     char buffer[ MAX_EDIT_LINE ];
 };
 
-// code point count <-> UTF-8 byte count
-int Field_CursorToOffset( field_t *edit );
-int Field_ScrollToOffset( field_t *edit );
-
 /*
 ==============================================================
 
@@ -564,7 +545,6 @@ int        Com_Milliseconds();
 unsigned   Com_BlockChecksum( const void *buffer, int length );
 char       *Com_MD5File( const char *filename, int length );
 void       Com_MD5Buffer( const char *pubkey, int size, char *buffer, int bufsize );
-int        Com_FilterPath( const char *filter, char *name, int casesensitive );
 
 void       Com_StartupVariable( const char *match );
 void       Com_SetRecommended();
@@ -667,15 +647,12 @@ static inline void Z_Free(void* ptr)
 void     Hunk_Clear();
 void     Hunk_ClearToMark();
 void     Hunk_SetMark();
-bool Hunk_CheckMark();
 
 //void *Hunk_Alloc( int size );
 // void *Hunk_Alloc( int size, ha_pref preference );
 void   Hunk_ClearTempMemory();
 void   *Hunk_AllocateTempMemory( int size );
 void   Hunk_FreeTempMemory( void *buf );
-void   Hunk_SmallLog();
-void   Hunk_Log();
 
 // commandLine should not include the executable name (argv[0])
 void   Com_Init( char *commandLine );
@@ -746,8 +723,6 @@ void CL_FlushMemory();
 void CL_StartHunkUsers();
 
 // start all the client stuff using the hunk
-
-void S_ClearSoundBuffer();
 
 // AVI files have the start of pixel lines 4 byte-aligned
 #define AVI_LINE_PADDING 4
@@ -859,8 +834,6 @@ void             Huff_offsetReceive( node_t *node, int *ch, byte *fin, int *offs
 void             Huff_offsetTransmit( huff_t *huff, int ch, byte *fout, int *offset );
 void             Huff_putBit( int bit, byte *fout, int *offset );
 int              Huff_getBit( byte *fout, int *offset );
-
-extern huffman_t clientHuffTables;
 
 #define SV_ENCODE_START 4
 #define SV_DECODE_START 12

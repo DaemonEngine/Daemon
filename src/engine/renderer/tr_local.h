@@ -1693,20 +1693,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		interaction_t *next;
 	};
 
-	struct shadowState_t
-	{
-		int      numDegenerated; // number of bad triangles
-		bool degenerated[ SHADER_MAX_TRIANGLES ];
-
-		bool facing[ SHADER_MAX_TRIANGLES ];
-		int      numFacing; // number of triangles facing the light origin
-
-		int      numIndexes;
-		int      indexes[ SHADER_MAX_INDEXES ];
-	};
-
-	extern shadowState_t shadowState;
-
 #define MAX_FACE_POINTS 64
 
 #define MAX_PATCH_SIZE  64 // max dimensions of a patch mesh in map file
@@ -2383,7 +2369,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void               R_ModelInit();
 	model_t            *R_GetModelByHandle( qhandle_t hModel );
 
-	int                RE_LerpTagQ3A( orientation_t *tag, qhandle_t handle, int startFrame, int endFrame, float frac, const char *tagNameIn );
 	int                RE_LerpTagET( orientation_t *tag, const refEntity_t *refent, const char *tagNameIn, int startIndex );
 
 	int                RE_BoneIndex( qhandle_t hModel, const char *boneName );
@@ -3032,8 +3017,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
 
-	void           R_SwapBuffers( int );
-
 	void           R_RenderView( viewParms_t *parms );
 	void           R_RenderPostProcess();
 
@@ -3053,9 +3036,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	cullResult_t   R_CullLocalPointAndRadius( vec3_t origin, float radius );
 	cullResult_t   R_CullPointAndRadius( vec3_t origin, float radius );
 
-	int            R_FogLocalPointAndRadius( const vec3_t pt, float radius );
-	int            R_FogPointAndRadius( const vec3_t pt, float radius );
-
 	int            R_FogWorldBox( vec3_t bounds[ 2 ] );
 
 	void           R_SetupEntityWorldBounds( trRefEntity_t *ent );
@@ -3067,7 +3047,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void           R_SetupFrustum2( frustum_t frustum, const matrix_t modelViewProjectionMatrix );
 	void           R_CalcFrustumNearCorners(const vec4_t frustum[Util::ordinal(frustumBits_t::FRUSTUM_PLANES)], vec3_t corners[ 4 ] );
 	void           R_CalcFrustumFarCorners( const vec4_t frustum[Util::ordinal(frustumBits_t::FRUSTUM_PLANES)], vec3_t corners[ 4 ] );
-	bool       R_CompareVert( srfVert_t *v1, srfVert_t *v2, bool checkst );
 
 	/* Tangent/normal vector calculation functions */
 	void R_CalcFaceNormal( vec3_t normal, const vec3_t v0,
@@ -3106,12 +3085,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 			       vec3_t binormal, vec3_t normal );
 	void R_QtangentsToNormal( const i16vec4_t qtangent, vec3_t normal );
 
-	float    R_CalcFov( float fovX, float width, float height );
-
 // Tr3B - visualisation tools to help debugging the renderer frontend
-	void     R_DebugAxis( const vec3_t origin, const matrix_t transformMatrix );
-	void     R_DebugBoundingBox( const vec3_t origin, const vec3_t mins, const vec3_t maxs, vec4_t color );
-
 	void     DebugDrawVertex(const vec3_t pos, unsigned int color, const vec2_t uv);
 	void     DebugDrawBegin( debugDrawMode_t mode, float size );
 	void     DebugDrawDepthMask(bool state);
@@ -3195,15 +3169,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void       R_ImageList_f();
 	void       R_SkinList_f();
 
-	void       R_SubImageCpy( byte *dest, size_t destx, size_t desty, size_t destw, size_t desth, byte *src, size_t srcw, size_t srch, size_t bytes );
-
 // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516
 	const void *RB_TakeScreenshotCmd( const void *data );
 
 	void       R_InitSkins();
 	skin_t     *R_GetSkinByHandle( qhandle_t hSkin );
-
-	void       R_DeleteSurfaceVBOs();
 
 	/*
 	====================================================================
@@ -3214,7 +3184,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	*/
 	void    R_InitImages();
 	void    R_ShutdownImages();
-	int     R_SumOfUsedImages();
 
 	image_t *R_FindImageFile( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
 	image_t *R_FindCubeImage( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
@@ -3605,7 +3574,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	                          int fadeTime );
 	void     RE_ClearDecals();
 
-	void     R_TransformDecalProjector( decalProjector_t *in, vec3_t axis[ 3 ], vec3_t origin, decalProjector_t *out );
 	bool R_TestDecalBoundingBox( decalProjector_t *dp, vec3_t mins, vec3_t maxs );
 	bool R_TestDecalBoundingSphere( decalProjector_t *dp, vec3_t center, float radius2 );
 

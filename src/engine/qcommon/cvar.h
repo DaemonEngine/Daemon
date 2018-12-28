@@ -81,12 +81,6 @@ struct cvar_t
 cvar_t *Cvar_Get(const char *var_name, const char *value, int flags);
 
 /**
- * basically a slightly modified Cvar_Get for the interpreted modules
- */
-void Cvar_Register(vmCvar_t *vmCvar, const char *varName,
-		const char *defaultValue, int flags);
-
-/**
  * will create the variable with no flags if it doesn't exist
  */
 void Cvar_Set(const char *var_name, const char *value);
