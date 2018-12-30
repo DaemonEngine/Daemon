@@ -38,8 +38,9 @@ model_t        *R_GetModelByHandle( qhandle_t index )
 	model_t *mod;
 
 	// out of range gets the default model
-	if ( index < 1 || index >= tr.numModels )
+	if ( index < 0 || index >= tr.numModels )
 	{
+		Log::Warn("R_GetModelByHandle: index=%d out of range", index);
 		return tr.models[ 0 ];
 	}
 
