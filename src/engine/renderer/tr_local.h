@@ -573,10 +573,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	struct image_t
 	{
-		char name[ 1024 ]; // formerly MAX_QPATH, game path, including extension
-		// can contain stuff like this now:
-		// addnormals ( textures/base_floor/stetile4_local.tga ,
-		// heightmap ( textures/base_floor/stetile4_bmp.tga , 4 ) )
+		char name[ MAX_QPATH ];
 
 		GLenum         type;
 		GLuint         texnum; // gl texture binding

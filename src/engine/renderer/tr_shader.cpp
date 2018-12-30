@@ -1332,10 +1332,8 @@ static bool ParseMap( const char **text, char *buffer, int bufferSize )
 	int  len;
 	char *token;
 
-	// examples
+	// example
 	// map textures/caves/tembrick1crum_local.tga
-	// addnormals (textures/caves/tembrick1crum_local.tga, heightmap (textures/caves/tembrick1crum_bmp.tga, 3 ))
-	// heightmap( textures/hell/hellbones_d07bbump.tga, 8)
 
 	while ( true )
 	{
