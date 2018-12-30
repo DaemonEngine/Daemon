@@ -1373,9 +1373,8 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 {
 	image_t *image;
 	long    hash;
-	char    buffer[ 1024 ];
 
-	if ( strlen( name ) >= 1024 )
+	if ( strlen( name ) >= sizeof( image->name ) )
 	{
 		ri.Error(errorParm_t::ERR_DROP, "R_AllocImage: \"%s\" image name is too long", name );
 		return nullptr;
@@ -1392,8 +1391,7 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 
 	if ( linkIntoHashTable )
 	{
-		Q_strncpyz( buffer, name, sizeof( buffer ) );
-		hash = GenerateImageHashValue( buffer );
+		hash = GenerateImageHashValue( name );
 		image->next = r_imageHashTable[ hash ];
 		r_imageHashTable[ hash ] = image;
 	}
