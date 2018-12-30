@@ -319,8 +319,9 @@ R_GetSkinByHandle
 */
 skin_t         *R_GetSkinByHandle( qhandle_t hSkin )
 {
-	if ( hSkin < 1 || hSkin >= tr.numSkins )
+	if ( hSkin < 0 || hSkin >= tr.numSkins )
 	{
+		Log::Warn("R_GetSkinByHandle: hSkin=%d out of range", hSkin);
 		return tr.skins[ 0 ];
 	}
 

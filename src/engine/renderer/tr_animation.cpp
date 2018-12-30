@@ -567,8 +567,9 @@ skelAnimation_t *R_GetAnimationByHandle( qhandle_t index )
 	skelAnimation_t *anim;
 
 	// out of range gets the default animation
-	if ( index < 1 || index >= tr.numAnimations )
+	if ( index < 0 || index >= tr.numAnimations )
 	{
+		Log::Warn("R_GetAnimationByHandle: index=%d out of range", index);
 		return tr.animations[ 0 ];
 	}
 
