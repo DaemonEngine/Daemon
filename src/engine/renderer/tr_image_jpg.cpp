@@ -453,7 +453,7 @@ int SaveJPGToBuffer( byte *buffer, size_t bufSize, int quality, int image_width,
 	return outcount;
 }
 
-void SaveJPG( char *filename, int quality, int image_width, int image_height, byte *image_buffer )
+void SaveJPG( const char *filename, int quality, int image_width, int image_height, byte *image_buffer )
 {
 	byte   *out;
 	size_t bufSize;
