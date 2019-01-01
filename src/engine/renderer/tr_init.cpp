@@ -515,21 +515,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	}
 
 	/*
-	==============================================================================
-
-	                                                SCREEN SHOTS
-
-	screenshots get written in fs_homepath + fs_gamedir
-	.. base/screenshots\*.*
-
-	three commands: "screenshot", "screenshotJPEG" and "screenshotPNG"
-
-	the format is etxreal-YYYY_MM_DD-HH_MM_SS-MS.tga/jpeg/png
-
-	==============================================================================
-	*/
-
-	/*
 	==================
 	RB_ReadPixels
 
@@ -568,10 +553,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	/*
 	==================
-	R_TakeScreenshot
+	RB_TakeScreenshot
 	==================
 	*/
-	static void RB_TakeScreenshot( int x, int y, int width, int height, char *fileName )
+	static void RB_TakeScreenshot( int x, int y, int width, int height, const char *fileName )
 	{
 		byte *buffer;
 		int  dataSize;
@@ -610,7 +595,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	RB_TakeScreenshotJPEG
 	==================
 	*/
-	static void RB_TakeScreenshotJPEG( int x, int y, int width, int height, char *fileName )
+	static void RB_TakeScreenshotJPEG( int x, int y, int width, int height, const char *fileName )
 	{
 		byte *buffer = RB_ReadPixels( x, y, width, height, 0 );
 
@@ -623,7 +608,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	RB_TakeScreenshotPNG
 	==================
 	*/
-	static void RB_TakeScreenshotPNG( int x, int y, int width, int height, char *fileName )
+	static void RB_TakeScreenshotPNG( int x, int y, int width, int height, const char *fileName )
 	{
 		byte *buffer = RB_ReadPixels( x, y, width, height, 0 );
 
@@ -661,36 +646,62 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	R_TakeScreenshot
 	==================
 	*/
-	void R_TakeScreenshot( const char *name, ssFormat_t format )
+	static bool R_TakeScreenshot( Str::StringRef path, ssFormat_t format )
 	{
-		static char         fileName[ MAX_OSPATH ]; // bad things may happen if two screenshots per frame are taken.
-		ScreenshotCommand  *cmd;
-		int                 lastNumber;
-
-		cmd = R_GetRenderCommand<ScreenshotCommand>();
+		ScreenshotCommand *cmd = R_GetRenderCommand<ScreenshotCommand>();
 
 		if ( !cmd )
 		{
+			return false;
+		}
+
+		cmd->x = 0;
+		cmd->y = 0;
+		cmd->width = glConfig.vidWidth;
+		cmd->height = glConfig.vidHeight;
+		Q_strncpyz(cmd->fileName, path.c_str(), sizeof(cmd->fileName));
+		cmd->format = format;
+
+		return true;
+	}
+
+namespace {
+class ScreenshotCmd : public Cmd::StaticCmd {
+	const ssFormat_t format;
+	const std::string fileExtension;
+public:
+	ScreenshotCmd(std::string cmdName, ssFormat_t format, std::string ext)
+		: StaticCmd(cmdName, Cmd::RENDERER, Str::Format("take a screenshot in %s format", ext)),
+		format(format), fileExtension(ext) {}
+
+	void Run(const Cmd::Args& args) const override {
+		if (!tr.registered) {
+			Print("ScreenshotCmd: renderer not initialized");
+			return;
+		}
+		if (args.Argc() > 2) {
+			PrintUsage(args, "[name]");
 			return;
 		}
 
-		if ( ri.Cmd_Argc() == 2 )
+		std::string fileName;
+		if ( args.Argc() == 2 )
 		{
-			Com_sprintf( fileName, sizeof( fileName ), "screenshots/" PRODUCT_NAME_LOWER "-%s.%s", ri.Cmd_Argv( 1 ), name );
+			fileName = Str::Format( "screenshots/" PRODUCT_NAME_LOWER "-%s.%s", args.Argv(1), fileExtension );
 		}
 		else
 		{
 			qtime_t t;
-
 			ri.RealTime( &t );
 
 			// scan for a free filename
+			int lastNumber;
 			for ( lastNumber = 0; lastNumber <= 999; lastNumber++ )
 			{
-				Com_sprintf( fileName, sizeof( fileName ), "screenshots/" PRODUCT_NAME_LOWER "_%04d-%02d-%02d_%02d%02d%02d_%03d.%s",
-				             1900 + t.tm_year, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, lastNumber, name );
+				fileName = Str::Format( "screenshots/" PRODUCT_NAME_LOWER "_%04d-%02d-%02d_%02d%02d%02d_%03d.%s",
+					                    1900 + t.tm_year, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, lastNumber, fileExtension );
 
-				if ( !ri.FS_FileExists( fileName ) )
+				if ( !ri.FS_FileExists( fileName.c_str() ) )
 				{
 					break; // file doesn't exist
 				}
@@ -698,45 +709,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 			if ( lastNumber == 1000 )
 			{
-				Log::Notice("ScreenShot: Couldn't create a file" );
+				Print("ScreenshotCmd: Couldn't create a file" );
 				return;
 			}
-
-			lastNumber++;
 		}
 
-		Log::Notice("Wrote %s", fileName );
-
-		cmd->x = 0;
-		cmd->y = 0;
-		cmd->width = glConfig.vidWidth;
-		cmd->height = glConfig.vidHeight;
-		cmd->fileName = fileName;
-		cmd->format = format;
+		if (R_TakeScreenshot(fileName, format))
+		{
+			Print("Wrote %s", fileName);
+		}
 	}
-
-	/*
-	==================
-	R_ScreenShot_f
-
-	screenshot
-	screenshot [filename]
-	==================
-	*/
-	static void R_ScreenShot_f()
-	{
-		R_TakeScreenshot( "tga", ssFormat_t::SSF_TGA );
-	}
-
-	static void R_ScreenShotJPEG_f()
-	{
-		R_TakeScreenshot( "jpg", ssFormat_t::SSF_JPEG );
-	}
-
-	static void R_ScreenShotPNG_f()
-	{
-		R_TakeScreenshot( "png", ssFormat_t::SSF_PNG );
-	}
+};
+ScreenshotCmd screenshotTGARegistration("screenshot", ssFormat_t::SSF_TGA, "tga");
+ScreenshotCmd screenshotJPEGRegistration("screenshotJPEG", ssFormat_t::SSF_JPEG, "jpg");
+ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "png");
+} // namespace
 
 //============================================================================
 
@@ -1328,9 +1315,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		ri.Cmd_AddCommand( "animationlist", R_AnimationList_f );
 		ri.Cmd_AddCommand( "fbolist", R_FBOList_f );
 		ri.Cmd_AddCommand( "vbolist", R_VBOList_f );
-		ri.Cmd_AddCommand( "screenshot", R_ScreenShot_f );
-		ri.Cmd_AddCommand( "screenshotJPEG", R_ScreenShotJPEG_f );
-		ri.Cmd_AddCommand( "screenshotPNG", R_ScreenShotPNG_f );
 		ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
 		ri.Cmd_AddCommand( "buildcubemaps", R_BuildCubeMaps );
 
@@ -1463,9 +1447,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Log::Debug("RE_Shutdown( destroyWindow = %i )", destroyWindow );
 
 		ri.Cmd_RemoveCommand( "modellist" );
-		ri.Cmd_RemoveCommand( "screenshotPNG" );
-		ri.Cmd_RemoveCommand( "screenshotJPEG" );
-		ri.Cmd_RemoveCommand( "screenshot" );
 		ri.Cmd_RemoveCommand( "imagelist" );
 		ri.Cmd_RemoveCommand( "shaderlist" );
 		ri.Cmd_RemoveCommand( "shaderexp" );

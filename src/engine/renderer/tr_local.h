@@ -3769,7 +3769,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int        y;
 		int        width;
 		int        height;
-		char       *fileName;
+		char       fileName[MAX_OSPATH];
 		ssFormat_t format;
 	};
 	struct VideoFrameCommand : public RenderCommand {
@@ -3885,7 +3885,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void                                LoadTGA( const char *name, byte **pic, int *width, int *height, int *numLayers, int *numMips, int *bits, byte alphaByte );
 
 	void                                LoadJPG( const char *filename, unsigned char **pic, int *width, int *height, int *numLayers, int *numMips, int *bits, byte alphaByte );
-	void                                SaveJPG( char *filename, int quality, int image_width, int image_height, unsigned char *image_buffer );
+	void                                SaveJPG( const char *filename, int quality, int image_width, int image_height, unsigned char *image_buffer );
 	int                                 SaveJPGToBuffer( byte *buffer, size_t bufferSize, int quality, int image_width, int image_height, byte *image_buffer );
 
 	void                                LoadPNG( const char *name, byte **pic, int *width, int *height, int *numLayers, int *numMips, int *bits, byte alphaByte );
