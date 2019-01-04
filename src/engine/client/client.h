@@ -360,7 +360,6 @@ public:
 	void CGameInit(int serverMessageNum, int clientNum);
 	void CGameShutdown();
 	void CGameDrawActiveFrame(int serverTime, bool demoPlayback);
-	int CGameCrosshairPlayer();
 	void CGameKeyEvent(Keyboard::Key key, bool down);
 	void CGameMouseEvent(int dx, int dy);
 	void CGameMousePosEvent(int x, int y);

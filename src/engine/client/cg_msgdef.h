@@ -506,9 +506,6 @@ enum cgameExport_t
   // If demoPlayback is set, local movement prediction will not be enabled
   CG_DRAW_ACTIVE_FRAME,
 
-//  int (*CG_CrosshairPlayer)();
-  CG_CROSSHAIR_PLAYER,
-
 //  void    (*CG_KeyEvent)( Keyboard::Key key, bool down );
   CG_KEY_EVENT,
 
@@ -546,10 +543,6 @@ using CGameShutdownMsg = IPC::SyncMessage<
 >;
 using CGameDrawActiveFrameMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_DRAW_ACTIVE_FRAME>, int, bool>
->;
-using CGameCrosshairPlayerMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_CROSSHAIR_PLAYER>>,
-	IPC::Reply<int>
 >;
 using CGameKeyEventMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_KEY_EVENT>, Keyboard::Key, bool>

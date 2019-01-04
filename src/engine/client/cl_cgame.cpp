@@ -1081,13 +1081,6 @@ void CGameVM::CGameDrawActiveFrame(int serverTime,  bool demoPlayback)
 	this->SendMsg<CGameDrawActiveFrameMsg>(serverTime, demoPlayback);
 }
 
-int CGameVM::CGameCrosshairPlayer()
-{
-	int player;
-	this->SendMsg<CGameCrosshairPlayerMsg>(player);
-	return player;
-}
-
 void CGameVM::CGameKeyEvent(Keyboard::Key key, bool down)
 {
 	this->SendMsg<CGameKeyEventMsg>(key, down);
