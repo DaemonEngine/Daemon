@@ -75,7 +75,7 @@ static SDL_Thread *renderThread = nullptr;
 GLimp_RenderThreadWrapper
 ===============
 */
-static int GLimp_RenderThreadWrapper( void* )
+ALIGN_STACK_FOR_MINGW static int GLimp_RenderThreadWrapper( void* )
 {
 	// These printfs cause race conditions which mess up the console output
 	logger.Notice( "Render thread starting\n" );

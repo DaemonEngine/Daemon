@@ -240,7 +240,7 @@ static const char *WindowsExceptionString(DWORD code)
 		return "Unknown exception";
 	}
 }
-static LONG WINAPI CrashHandler(PEXCEPTION_POINTERS ExceptionInfo)
+ ALIGN_STACK_FOR_MINGW static LONG WINAPI CrashHandler(PEXCEPTION_POINTERS ExceptionInfo)
 {
 	// Reset handler so that any future errors cause a crash
 	SetUnhandledExceptionFilter(nullptr);

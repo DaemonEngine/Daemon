@@ -2533,7 +2533,7 @@ static HANDLE IRC_ThreadHandle = nullptr;
 IRC_SystemThreadProc
 ==================
 */
-static DWORD WINAPI IRC_SystemThreadProc( LPVOID )
+ ALIGN_STACK_FOR_MINGW static DWORD WINAPI IRC_SystemThreadProc( LPVOID )
 {
 	IRC_Thread();
 	return 0;

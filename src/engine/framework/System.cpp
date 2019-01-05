@@ -671,17 +671,9 @@ static void Init(int argc, char** argv)
 
 } // namespace Sys
 
-// GCC expects a 16-byte aligned stack but Windows only guarantees 4-byte alignment.
-// The MinGW startup code should be handling this but for some reason it isn't.
-#if defined(_WIN32) && defined(__GNUC__) && defined(__i386__)
-#define ALIGN_STACK __attribute__((force_align_arg_pointer))
-#else
-#define ALIGN_STACK
-#endif
-
-// Program entry point. On Windows, main is #defined to SDL_main which is
-// invoked by SDLmain.
-ALIGN_STACK int main(int argc, char** argv)
+// Program entry point. On Windows, main is #defined to SDL_main which is invoked by SDLmain.
+// This is why ALIGN_STACK_FOR_MINGW is needed (normally gcc would generate alignment code in main()).
+ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 {
 	// Initialize the engine. Any errors here are fatal.
 	try {
