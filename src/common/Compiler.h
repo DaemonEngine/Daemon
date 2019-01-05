@@ -176,6 +176,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BREAKPOINT()
 #endif
 
+#if defined(__MINGW32__) && defined(__i386__)
+// On x86, GCC expects 16-byte stack alignment (used for SSE instructions), but MSVC only uses 4-byte alignment.
+// Therefore the stack needs to be adjusted whenever MSVC code calls into GCC code.
+#   define ALIGN_STACK_FOR_MINGW __attribute__((force_align_arg_pointer))
+#else
+#   define ALIGN_STACK_FOR_MINGW
+#endif
+
 // Compat macros
 #define QDECL
 #define INLINE inline
