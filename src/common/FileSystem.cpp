@@ -1142,7 +1142,8 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 	// Save the real checksum in the list of loaded paks (empty for directories, not used for legacy paks)
 	loadedPaks.back().realChecksum = realChecksum;
 
-	// Get the timestamp of the pak, but only for directories. Directories don't need timestamp.
+	// Get the timestamp of the pak, but only for dpk files. 
+	// Directories (aka a dpkdir) don't need timestamp.
 	// Fixes Windows bug where calling _wstat64i with trailing slash causes "file not found" error.
 	// For future stat calls on directories, trim the trailing slash (if exists)
 	if (pak.type == pakType_t::PAK_ZIP) {
