@@ -442,15 +442,6 @@ extern cvar_t *j_forward_axis;
 extern cvar_t *j_side_axis;
 extern cvar_t *j_up_axis;
 
-extern cvar_t *cl_IRC_connect_at_startup;
-extern cvar_t *cl_IRC_server;
-extern cvar_t *cl_IRC_channel;
-extern cvar_t *cl_IRC_port;
-extern cvar_t *cl_IRC_override_nickname;
-extern cvar_t *cl_IRC_nickname;
-extern cvar_t *cl_IRC_kick_rejoin;
-extern cvar_t *cl_IRC_reconnect_delay;
-
 extern Cvar::Cvar<bool> cvar_demo_timedemo;
 
 extern cvar_t *cl_activeAction;
@@ -585,15 +576,6 @@ void IN_PrepareKeyUp();
 //----(SA)
 
 float    CL_KeyState( kbutton_t *key );
-
-//cl_irc.c
-void     CL_IRCSetup();
-void     CL_InitIRC();
-void     CL_IRCInitiateShutdown();
-void     CL_IRCWaitShutdown();
-void     CL_IRCSay();
-bool CL_IRCIsConnected();
-bool CL_IRCIsRunning();
 
 //
 // cl_parse.c

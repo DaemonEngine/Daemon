@@ -320,7 +320,6 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/cl_cin.cpp
     ${ENGINE_DIR}/client/cl_console.cpp
     ${ENGINE_DIR}/client/cl_input.cpp
-    ${ENGINE_DIR}/client/cl_irc.cpp
     ${ENGINE_DIR}/client/cl_main.cpp
     ${ENGINE_DIR}/client/cl_parse.cpp
     ${ENGINE_DIR}/client/cl_scrn.cpp

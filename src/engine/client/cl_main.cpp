@@ -3257,8 +3257,6 @@ void CL_Init()
 
 	CL_InitInput();
 
-	CL_IRCSetup();
-
 	CL_LoadRSAKeys();
 
 	//
@@ -3385,10 +3383,6 @@ void CL_Init()
 	Cmd_AddCommand( "serverstatus", CL_ServerStatus_f );
 	Cmd_AddCommand( "showip", CL_ShowIP_f );
 
-	Cmd_AddCommand( "irc_connect", CL_InitIRC );
-	Cmd_AddCommand( "irc_quit", CL_IRCInitiateShutdown );
-	Cmd_AddCommand( "irc_say", CL_IRCSay );
-
 	Cmd_AddCommand( "updatescreen", SCR_UpdateScreen );
 	// done.
 
@@ -3443,8 +3437,6 @@ void CL_Shutdown()
 
 	CL_ShutdownRef();
 
-	CL_IRCInitiateShutdown();
-
 	Cmd_RemoveCommand( "cmd" );
 	Cmd_RemoveCommand( "configstrings" );
 	Cmd_RemoveCommand( "userinfo" );
@@ -3467,8 +3459,6 @@ void CL_Shutdown()
 	CL_ClearRSAKeys();
 
 	// done.
-
-	CL_IRCWaitShutdown();
 
 	Cvar_Set( "cl_running", "0" );
 
