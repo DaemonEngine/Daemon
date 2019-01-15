@@ -418,7 +418,6 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 #endif
 
 	bool foundCommands = false;
-	bool foundHomePathCommand = false;
 	for (int i = 1; i < argc; i++) {
 		// A + indicate the start of a command that should be run on startup
 		if (argv[i][0] == '+') {
@@ -497,7 +496,6 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				Log::Warn("Missing argument for -homepath");
 				continue;
 			}
-			foundHomePathCommand = true;
 			cmdlineArgs.homePath = argv[i + 1];
 			i++;
 		} else if (!strcmp(argv[i], "-resetconfig")) {
@@ -512,10 +510,6 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			Log::Warn("Ignoring unrecognized parameter \"%s\"", argv[i]);
 			continue;
 		}
-	}
-
-	if (!foundHomePathCommand) {
-		FS::MigrateHomePath();
 	}
 }
 
