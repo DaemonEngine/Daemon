@@ -409,24 +409,4 @@ struct glconfig2_t
 };
 // XreaL END
 
-// =========================================
-// Gordon, these MUST NOT exceed the values for SHADER_MAX_VERTEXES/SHADER_MAX_INDEXES
-#define MAX_PB_VERTS    1025
-#define MAX_PB_INDICIES ( MAX_PB_VERTS * 6 )
-
-struct polyBuffer_t
-{
-	vec4_t    xyz[ MAX_PB_VERTS ];
-	vec2_t    st[ MAX_PB_VERTS ];
-	byte      color[ MAX_PB_VERTS ][ 4 ];
-	int       numVerts;
-
-	glIndex_t indicies[ MAX_PB_INDICIES ];
-	int       numIndicies;
-
-	qhandle_t shader;
-};
-
-// =========================================
-
 #endif // __TR_TYPES_H

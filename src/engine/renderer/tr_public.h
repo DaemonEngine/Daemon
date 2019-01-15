@@ -137,8 +137,6 @@ struct refexport_t
 
 	bool( *GetEntityToken )( char *buffer, int size );
 
-	void ( *AddPolyBufferToScene )( polyBuffer_t *pPolyBuffer );
-
 	bool( *inPVS )( const vec3_t p1, const vec3_t p2 );
 	bool( *inPVVS )( const vec3_t p1, const vec3_t p2 );
 

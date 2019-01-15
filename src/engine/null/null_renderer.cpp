@@ -131,7 +131,6 @@ bool R_GetEntityToken( char*, int )
 {
 	return true;
 }
-void RE_AddPolyBufferToScene( polyBuffer_t* ) { }
 bool R_inPVS( const vec3_t, const vec3_t )
 {
 	return false;
@@ -275,8 +274,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 
     re.RemapShader = R_RemapShader;
     re.GetEntityToken = R_GetEntityToken;
-
-    re.AddPolyBufferToScene = RE_AddPolyBufferToScene;
 
     re.inPVS = R_inPVS;
     re.inPVVS = R_inPVVS;

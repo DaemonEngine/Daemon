@@ -2759,8 +2759,6 @@ void R_RenderView( viewParms_t *parms )
 
 	R_AddPolygonSurfaces();
 
-	R_AddPolygonBufferSurfaces();
-
 	// we have tr.viewParms.visBounds set and now we need to add the light bounds
 	// or we get wrong occlusion query results
 	R_AddLightBoundsToVisBounds();
