@@ -431,8 +431,10 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	PrintBanner( "Server Initialization" )
 	Log::Notice( "Server: %s", server );
 
+#ifndef BUILD_SERVER
 	// clear the whole hunk because we're (re)loading the server
-	Hunk_Clear();
+	Hunk_ShutDownRandomStuffAndClear();
+#endif
 
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
 	// also print some status stuff
@@ -590,8 +592,6 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 
 	// send a heartbeat now so the master will get up to date info
 	SV_Heartbeat_f();
-
-	Hunk_SetMark();
 
 	SV_UpdateConfigStrings();
 
