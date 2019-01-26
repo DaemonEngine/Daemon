@@ -465,8 +465,8 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 		}
 	}
 
-	// allocate the snapshot entities on the hunk
-	svs.snapshotEntities = ( entityState_t * ) Hunk_Alloc( sizeof( entityState_t ) * svs.numSnapshotEntities, ha_pref::h_high );
+	// allocate the snapshot entities
+	svs.snapshotEntities.reset(new entityState_t[svs.numSnapshotEntities]);
 	svs.nextSnapshotEntities = 0;
 
 	// toggle the server bit so clients can detect that a
@@ -766,7 +766,8 @@ void SV_Shutdown( const char *finalmsg )
 		free( svs.clients );
 	}
 
-	memset( &svs, 0, sizeof( svs ) );
+	svs.~serverStatic_t();
+	new(&svs) serverStatic_t{};
 	svs.serverLoad = -1;
 	ChallengeManager::Clear();
 
