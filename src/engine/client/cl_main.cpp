@@ -754,14 +754,14 @@ void CL_FlushMemory()
 	if ( !com_sv_running->integer )
 	{
 		// clear the whole hunk
-		Hunk_Clear();
+		Hunk_ShutDownRandomStuffAndClear();
 		// clear collision map data
 		CM_ClearMap();
 	}
 	else
 	{
 		// clear all the client data on the hunk
-		Hunk_ClearToMark();
+		Hunk_Clear();
 	}
 
 	CL_StartHunkUsers();
@@ -1572,12 +1572,13 @@ void CL_Vid_Restart_f()
 	if ( !com_sv_running->integer )
 	{
 		// clear the whole hunk
-		Hunk_Clear();
+		// BUT DO WE REALLY WANT TO SHUT DOWN RANDOM STUFF TOO?
+		Hunk_ShutDownRandomStuffAndClear();
 	}
 	else
 	{
 		// clear all the client data on the hunk
-		Hunk_ClearToMark();
+		Hunk_Clear();
 	}
 
 	// startup all the client stuff
@@ -1797,8 +1798,6 @@ void CL_DownloadsComplete()
 
 	// flush client memory and start loading stuff
 	// this will also (re)load the UI
-	// if this is a local client then only the client part of the hunk
-	// will be cleared, note that this is done after the hunk mark has been set
 	CL_FlushMemory();
 
 	// initialize the CGame
@@ -3157,7 +3156,6 @@ bool CL_InitRef( )
 	ri.Z_Malloc = CL_RefMalloc;
 	ri.Free = Z_Free;
 	ri.Tag_Free = CL_RefTagFree;
-	ri.Hunk_Clear = Hunk_ClearToMark;
 	ri.Hunk_Alloc = Hunk_Alloc;
 	ri.Hunk_AllocateTempMemory = Hunk_AllocateTempMemory;
 	ri.Hunk_FreeTempMemory = Hunk_FreeTempMemory;

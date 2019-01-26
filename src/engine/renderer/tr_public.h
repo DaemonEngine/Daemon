@@ -195,7 +195,6 @@ struct refimport_t
 
 	// stack based memory allocation for per-level things that
 	// won't be freed
-	void ( *Hunk_Clear )();
 	void            *( *Hunk_Alloc )( int size, ha_pref pref );
 	void            *( *Hunk_AllocateTempMemory )( int size );
 	void ( *Hunk_FreeTempMemory )( void *block );
