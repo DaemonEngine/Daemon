@@ -69,7 +69,7 @@ namespace VM {
         QVM_COMMON_FS_WRITE,
         QVM_COMMON_FS_SEEK,
         QVM_COMMON_FS_TELL,
-		QVM_COMMON_FS_FILELENGTH,
+        QVM_COMMON_FS_FILELENGTH,
         QVM_COMMON_FS_RENAME,
         QVM_COMMON_FS_FCLOSE_FILE,
         QVM_COMMON_FS_GET_FILE_LIST,
@@ -77,12 +77,6 @@ namespace VM {
         QVM_COMMON_FS_FIND_PAK,
         QVM_COMMON_FS_LOAD_PAK,
         QVM_COMMON_FS_LOAD_MAP_METADATA,
-
-        QVM_COMMON_PARSE_ADD_GLOBAL_DEFINE,
-        QVM_COMMON_PARSE_LOAD_SOURCE,
-        QVM_COMMON_PARSE_FREE_SOURCE,
-        QVM_COMMON_PARSE_READ_TOKEN,
-        QVM_COMMON_PARSE_SOURCE_FILE_AND_LINE,
     };
 
     using ErrorMsg = IPC::SyncMessage<
@@ -134,27 +128,6 @@ namespace VM {
     >;
     using FSLoadMapMetadataMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_LOAD_MAP_METADATA>>
-    >;
-
-    using ParseAddGlobalDefineMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_ADD_GLOBAL_DEFINE>, std::string>,
-        IPC::Reply<int>
-    > ;
-    using ParseLoadSourceMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_LOAD_SOURCE>, std::string>,
-        IPC::Reply<int>
-    >;
-    using ParseFreeSourceMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_FREE_SOURCE>, int>,
-        IPC::Reply<int>
-    >;
-    using ParseReadTokenMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_READ_TOKEN>, int>,
-        IPC::Reply<bool, pc_token_t>
-    >;
-    using ParseSourceFileAndLineMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_SOURCE_FILE_AND_LINE>, int>,
-        IPC::Reply<int, std::string, int>
     >;
 
     // Misc Syscall Definitions

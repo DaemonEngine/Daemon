@@ -293,7 +293,6 @@ set(QCOMMONLIST
     ${ENGINE_DIR}/qcommon/net_chan.cpp
     ${ENGINE_DIR}/qcommon/net_ip.cpp
     ${ENGINE_DIR}/qcommon/net_types.h
-    ${ENGINE_DIR}/qcommon/parse.cpp
     ${ENGINE_DIR}/qcommon/print_translated.h
     ${ENGINE_DIR}/qcommon/qcommon.h
     ${ENGINE_DIR}/qcommon/qfiles.h

@@ -337,38 +337,6 @@ namespace VM {
                 });
                 break;
 
-            case QVM_COMMON_PARSE_ADD_GLOBAL_DEFINE:
-                IPC::HandleMsg<ParseAddGlobalDefineMsg>(channel, std::move(reader), [this](const std::string& define, int& res) {
-                    res = Parse_AddGlobalDefine(define.c_str());
-                });
-                break;
-
-            case QVM_COMMON_PARSE_LOAD_SOURCE:
-                IPC::HandleMsg<ParseLoadSourceMsg>(channel, std::move(reader), [this](const std::string& name, int& res) {
-                    res = Parse_LoadSourceHandle(name.c_str());
-                });
-                break;
-
-            case QVM_COMMON_PARSE_FREE_SOURCE:
-                IPC::HandleMsg<ParseFreeSourceMsg>(channel, std::move(reader), [this](int source, int& res) {
-                    res = Parse_FreeSourceHandle(source);
-                });
-                break;
-
-            case QVM_COMMON_PARSE_READ_TOKEN:
-                IPC::HandleMsg<ParseReadTokenMsg>(channel, std::move(reader), [this](int source, bool& res, pc_token_t& token) {
-                    res = Parse_ReadTokenHandle(source, &token);
-                });
-                break;
-
-            case QVM_COMMON_PARSE_SOURCE_FILE_AND_LINE:
-                IPC::HandleMsg<ParseSourceFileAndLineMsg>(channel, std::move(reader), [this](int source, int& res, std::string& file, int& line) {
-                    char buffer[128] = {0};
-                    res = Parse_SourceFileAndLine(source, buffer, &line);
-                    file = buffer;
-                });
-                break;
-
             default:
                 Com_Error(errorParm_t::ERR_DROP, "Bad log syscall number '%d' for VM '%s'", minor, vmName.c_str());
         }
