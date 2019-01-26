@@ -297,7 +297,7 @@ static int QDECL SV_QsortEntityNumbers( const void *a, const void *b )
 
 	if ( *ea == *eb )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_QsortEntityNumbers: duplicated entity" );
+		Sys::Drop( "SV_QsortEntityNumbers: duplicated entity" );
 	}
 
 	if ( *ea < *eb )
@@ -700,7 +700,7 @@ static void SV_BuildClientSnapshot( client_t *client )
 
 	if ( clientNum < 0 || clientNum >= MAX_GENTITIES )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_SvEntityForGentity: bad gEnt" );
+		Sys::Drop( "SV_SvEntityForGentity: bad gEnt" );
 	}
 
 	svEnt = &sv.svEntities[ clientNum ];
@@ -751,7 +751,7 @@ static void SV_BuildClientSnapshot( client_t *client )
 		// this should never hit, map should always be restarted first in SV_Frame
 		if ( svs.nextSnapshotEntities >= 0x7FFFFFFE )
 		{
-			Com_Error( errorParm_t::ERR_FATAL, "svs.nextSnapshotEntities wrapped" );
+			Sys::Error( "svs.nextSnapshotEntities wrapped" );
 		}
 
 		frame->num_entities++;

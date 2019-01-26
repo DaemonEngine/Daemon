@@ -61,17 +61,17 @@ static fileHandle_t FS_AllocHandle()
 		if (!handleTable[i].isOpen)
 			return i;
 	}
-	Com_Error(errorParm_t::ERR_DROP, "FS_AllocHandle: none free");
+	Sys::Drop("FS_AllocHandle: none free");
 }
 
 static void FS_CheckHandle(fileHandle_t handle, bool write)
 {
 	if (handle < 0 || handle >= MAX_FILE_HANDLES)
-		Com_Error(errorParm_t::ERR_DROP, "FS_CheckHandle: invalid handle");
+		Sys::Drop("FS_CheckHandle: invalid handle");
 	if (!handleTable[handle].isOpen)
-		Com_Error(errorParm_t::ERR_DROP, "FS_CheckHandle: closed handle");
+		Sys::Drop("FS_CheckHandle: closed handle");
 	if (write && handleTable[handle].isPakFile)
-		Com_Error(errorParm_t::ERR_DROP, "FS_CheckHandle: writing to file in pak");
+		Sys::Drop("FS_CheckHandle: writing to file in pak");
 }
 
 bool FS_FileExists(const char* path)
@@ -200,7 +200,7 @@ int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mod
 		return *handle == 0 ? -1 : 0;
 
 	default:
-		Com_Error(errorParm_t::ERR_DROP, "FS_Game_FOpenFileByMode: bad mode %s", Util::enum_str(mode));
+		Sys::Drop("FS_Game_FOpenFileByMode: bad mode %s", Util::enum_str(mode));
 	}
 }
 
@@ -277,7 +277,7 @@ int FS_Seek(fileHandle_t handle, long offset, fsOrigin_t origin)
 			break;
 
 		default:
-			Com_Error(errorParm_t::ERR_DROP, "Bad origin in FS_Seek");
+			Sys::Drop("Bad origin in FS_Seek");
 		}
 		return 0;
 	} else {
@@ -296,7 +296,7 @@ int FS_Seek(fileHandle_t handle, long offset, fsOrigin_t origin)
 				break;
 
 			default:
-				Com_Error(errorParm_t::ERR_DROP, "Bad origin in FS_Seek");
+				Sys::Drop("Bad origin in FS_Seek");
 			}
 			return 0;
 		} catch (std::system_error& err) {
@@ -340,7 +340,7 @@ int FS_Read(void* buffer, int len, fileHandle_t handle)
 	FS_CheckHandle(handle, false);
 	if (handleTable[handle].isPakFile) {
 		if (len < 0)
-			Com_Error(errorParm_t::ERR_DROP, "FS_Read: invalid length");
+			Sys::Drop("FS_Read: invalid length");
 		if (handleTable[handle].filePos >= handleTable[handle].fileData.size())
 			return 0;
 		len = std::min<size_t>(len, handleTable[handle].fileData.size() - handleTable[handle].filePos);
@@ -601,13 +601,13 @@ void FS_LoadBasePak()
 	Cmd::Args extrapaks(fs_extrapaks.Get());
 	for (const auto& x: extrapaks) {
 		if (!FS_LoadPak(x.c_str()))
-			Com_Error(errorParm_t::ERR_FATAL, "Could not load extra pak '%s'\n", x.c_str());
+			Sys::Error("Could not load extra pak '%s'\n", x.c_str());
 	}
 
 	if (!FS_LoadPak(fs_basepak.Get().c_str())) {
 		Log::Notice("Could not load base pak '%s', falling back to default\n", fs_basepak.Get().c_str());
 		if (!FS_LoadPak(DEFAULT_BASE_PAK))
-			Com_Error(errorParm_t::ERR_FATAL, "Could not load default base pak '%s'", DEFAULT_BASE_PAK);
+			Sys::Error("Could not load default base pak '%s'", DEFAULT_BASE_PAK);
 	}
 }
 
@@ -629,13 +629,13 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		Util::optional<uint32_t> checksum;
 
 		if (!FS::ParsePakName(x.data(), x.data() + x.size(), name, version, checksum)) {
-			Com_Error(errorParm_t::ERR_DROP, "Invalid pak reference from server: %s", x.c_str());
+			Sys::Drop("Invalid pak reference from server: %s", x.c_str());
 		} else if (!version.empty() && !checksum) {
 			// non-legacy paks (with non empty version) must have a checksum
 			if (isDemo || allowRemotePakDir.Get()) {
 				continue;
 			}
-			Com_Error(errorParm_t::ERR_DROP, "The server is configured to load game data from a directory which makes it incompatible with remote clients.");
+			Sys::Drop("The server is configured to load game data from a directory which makes it incompatible with remote clients.");
 		}
 
 		// Keep track of all missing paks
@@ -656,7 +656,7 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		Cmd::Args extrapaks(fs_extrapaks.Get());
 		for (auto& x: extrapaks) {
 			if (!FS_LoadPak(x.c_str()))
-				Com_Error(errorParm_t::ERR_FATAL, "Could not load extra pak '%s'\n", x.c_str());
+				Sys::Error("Could not load extra pak '%s'\n", x.c_str());
 		}
 	}
 

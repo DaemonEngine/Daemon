@@ -545,7 +545,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 
 	if ( !tess.stageIteratorFunc )
 	{
-		ri.Error( errorParm_t::ERR_FATAL, "tess.stageIteratorFunc == NULL" );
+		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
 	if ( tess.stageIteratorFunc == &Tess_StageIteratorGeneric )

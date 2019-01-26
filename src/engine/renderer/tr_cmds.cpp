@@ -237,7 +237,7 @@ void           *R_GetCommandBuffer( size_t bytes )
 	{
 		if ( bytes > MAX_RENDER_COMMANDS - reserved )
 		{
-			ri.Error( errorParm_t::ERR_FATAL, "R_GetCommandBuffer: bad size %lu", (unsigned long)bytes );
+			Sys::Error( "R_GetCommandBuffer: bad size %lu", (unsigned long)bytes );
 		}
 
 		// if we run out of room, just start dropping commands
@@ -860,8 +860,8 @@ void RE_BeginFrame()
 					break;
 			}
 
-			//ri.Error(ERR_FATAL, "caught OpenGL error: %s in file %s line %i", s, filename, line);
-			ri.Error( errorParm_t::ERR_FATAL, "RE_BeginFrame() - glGetError() failed (%s)!", s );
+			//Sys::Error("caught OpenGL error: %s in file %s line %i", s, filename, line);
+			Sys::Error( "RE_BeginFrame() - glGetError() failed (%s)!", s );
 		}
 	}
 

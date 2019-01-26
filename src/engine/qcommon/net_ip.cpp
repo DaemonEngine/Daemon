@@ -846,7 +846,7 @@ void Sys_SendPacket( int length, const void *data, netadr_t to )
 
 	if ( to.type != netadrtype_t::NA_BROADCAST && to.type != netadrtype_t::NA_IP && to.type != netadrtype_t::NA_IP_DUAL && to.type != netadrtype_t::NA_IP6 && to.type != netadrtype_t::NA_MULTICAST6 )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Sys_SendPacket: bad address type" );
+		Sys::Error( "Sys_SendPacket: bad address type" );
 	}
 
 	if ( ( ip_socket == INVALID_SOCKET && NET_IS_IPv4( to.type ) ) ||

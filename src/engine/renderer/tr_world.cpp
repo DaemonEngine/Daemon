@@ -631,7 +631,7 @@ static bspNode_t *R_PointInLeaf( const vec3_t p )
 
 	if ( !tr.world )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_PointInLeaf: bad model" );
+		Sys::Drop( "R_PointInLeaf: bad model" );
 	}
 
 	node = tr.world->nodes;

@@ -187,9 +187,6 @@ struct refexport_t
 //
 struct refimport_t
 {
-	// abort the game
-	void ( QDECL *Error )( errorParm_t errorLevel, const char *fmt, ... ) PRINTF_LIKE(2) NORETURN_PTR;
-
 	// milliseconds should only be used for profiling, never
 	// for anything game related.  Get time from the refdef
 	int ( *Milliseconds )();

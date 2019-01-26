@@ -1257,7 +1257,7 @@ void IN_Init( void *windowData )
 
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "IN_Init called before SDL_Init( SDL_INIT_VIDEO )" );
+		Sys::Error( "IN_Init called before SDL_Init( SDL_INIT_VIDEO )" );
 	}
 
 	window = (SDL_Window*) windowData;

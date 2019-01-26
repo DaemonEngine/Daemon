@@ -278,7 +278,7 @@ void RE_AddRefEntityToScene( const refEntity_t *ent )
 
 	if (ent->reType >= refEntityType_t::RT_MAX_REF_ENTITY_TYPE)
 	{
-		ri.Error(errorParm_t::ERR_DROP, "RE_AddRefEntityToScene: bad reType %s", Util::enum_str(ent->reType));
+		Sys::Drop("RE_AddRefEntityToScene: bad reType %s", Util::enum_str(ent->reType));
 	}
 
 	Com_Memcpy( &backEndData[ tr.smpFrame ]->entities[ r_numEntities ].e, ent, sizeof( refEntity_t ) );
@@ -313,7 +313,7 @@ void RE_AddRefLightToScene( const refLight_t *l )
 
 	if (l->rlType >= refLightType_t::RL_MAX_REF_LIGHT_TYPE)
 	{
-		ri.Error(errorParm_t::ERR_DROP, "RE_AddRefLightToScene: bad rlType %s", Util::enum_str(l->rlType));
+		Sys::Drop("RE_AddRefLightToScene: bad rlType %s", Util::enum_str(l->rlType));
 	}
 
 	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
@@ -486,7 +486,7 @@ void RE_RenderScene( const refdef_t *fd )
 
 	if ( !tr.world && !( fd->rdflags & RDF_NOWORLDMODEL ) )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_RenderScene: NULL worldmodel" );
+		Sys::Drop( "R_RenderScene: NULL worldmodel" );
 	}
 
 	tr.refdef.x = fd->x;

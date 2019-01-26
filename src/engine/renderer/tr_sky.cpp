@@ -210,7 +210,7 @@ static void ClipSkyPolygon( int nump, vec3_t vecs, int stage )
 
 	if ( nump > MAX_CLIP_VERTS - 2 )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "ClipSkyPolygon: MAX_CLIP_VERTS" );
+		Sys::Drop( "ClipSkyPolygon: MAX_CLIP_VERTS" );
 	}
 
 	if ( stage == 6 )
@@ -453,7 +453,7 @@ static void FillCloudySkySide( const int mins[ 2 ], const int maxs[ 2 ], bool ad
 
 			if ( tess.numVertexes >= SHADER_MAX_VERTEXES )
 			{
-				ri.Error(errorParm_t::ERR_DROP, "SHADER_MAX_VERTEXES hit in FillCloudySkySide()" );
+				Sys::Drop( "SHADER_MAX_VERTEXES hit in FillCloudySkySide()" );
 			}
 		}
 	}
@@ -788,7 +788,7 @@ void Tess_StageIteratorSky()
 	if ( tess.stageIteratorFunc2 == nullptr )
 	{
 		//tess.stageIteratorFunc2 = Tess_StageIteratorGeneric;
-		ri.Error( errorParm_t::ERR_FATAL, "tess.stageIteratorFunc == NULL" );
+		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
 	GL_Cull(cullType_t::CT_TWO_SIDED);
