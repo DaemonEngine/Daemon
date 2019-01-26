@@ -152,7 +152,7 @@ void GL_SelectTexture( int unit )
 	}
 	else
 	{
-		ri.Error( errorParm_t::ERR_DROP, "GL_SelectTexture: unit = %i", unit );
+		Sys::Drop( "GL_SelectTexture: unit = %i", unit );
 	}
 
 	glState.currenttmu = unit;
@@ -164,7 +164,7 @@ void GL_BindToTMU( int unit, image_t *image )
 
 	if ( unit < 0 || unit > 31 )
 	{
-		ri.Error( errorParm_t::ERR_DROP, "GL_BindToTMU: unit %i is out of range\n", unit );
+		Sys::Drop( "GL_BindToTMU: unit %i is out of range\n", unit );
 	}
 
 	if ( glState.currenttextures[ unit ] == texnum )
@@ -314,7 +314,7 @@ void GL_PushMatrix()
 	if ( glState.stackIndex >= MAX_GLSTACK )
 	{
 		glState.stackIndex = MAX_GLSTACK - 1;
-		ri.Error( errorParm_t::ERR_DROP, "GL_PushMatrix: stack overflow = %i", glState.stackIndex );
+		Sys::Drop( "GL_PushMatrix: stack overflow = %i", glState.stackIndex );
 	}
 }
 
@@ -325,7 +325,7 @@ void GL_PopMatrix()
 	if ( glState.stackIndex < 0 )
 	{
 		glState.stackIndex = 0;
-		ri.Error( errorParm_t::ERR_DROP, "GL_PushMatrix: stack underflow" );
+		Sys::Drop( "GL_PushMatrix: stack underflow" );
 	}
 }
 
@@ -496,7 +496,7 @@ void GL_State( uint32_t stateBits )
 
 				default:
 					srcFactor = GL_ONE; // to get warning to shut up
-					ri.Error( errorParm_t::ERR_DROP, "GL_State: invalid src blend state bits" );
+					Sys::Drop( "GL_State: invalid src blend state bits" );
 			}
 
 			switch ( stateBits & GLS_DSTBLEND_BITS )
@@ -535,7 +535,7 @@ void GL_State( uint32_t stateBits )
 
 				default:
 					dstFactor = GL_ONE; // to get warning to shut up
-					ri.Error( errorParm_t::ERR_DROP, "GL_State: invalid dst blend state bits" );
+					Sys::Drop( "GL_State: invalid dst blend state bits" );
 			}
 
 			glEnable( GL_BLEND );
@@ -665,7 +665,7 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 
 	if ( !glState.currentVBO )
 	{
-		ri.Error( errorParm_t::ERR_FATAL, "GL_VertexAttribPointers: no VBO bound" );
+		Sys::Error( "GL_VertexAttribPointers: no VBO bound" );
 	}
 
 	if ( r_logFile->integer )
@@ -4816,7 +4816,7 @@ void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *
 
 	if ( ( 1 << i ) != cols || ( 1 << j ) != rows )
 	{
-		ri.Error( errorParm_t::ERR_DROP, "RE_StretchRaw: size not a power of 2: %i by %i", cols, rows );
+		Sys::Drop( "RE_StretchRaw: size not a power of 2: %i by %i", cols, rows );
 	}
 
 	RB_SetGL2D();

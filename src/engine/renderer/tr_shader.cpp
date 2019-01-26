@@ -417,7 +417,7 @@ static char    *ParseExpressionElement( const char **data_p )
 
 	if ( !data_p )
 	{
-		ri.Error( errorParm_t::ERR_FATAL, "ParseExpressionElement: NULL data_p" );
+		Sys::Error( "ParseExpressionElement: NULL data_p" );
 	}
 
 	data = *data_p;
@@ -1080,7 +1080,7 @@ static bool ParseTexMod( const char **text, shaderStage_t *stage )
 
 	if ( stage->bundle[ 0 ].numTexMods == TR_MAX_TEXMODS )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "ERROR: too many tcMod stages in shader '%s'", shader.name );
+		Sys::Drop( "ERROR: too many tcMod stages in shader '%s'", shader.name );
 	}
 
 	tmi = &stage->bundle[ 0 ].texMods[ stage->bundle[ 0 ].numTexMods ];
@@ -2221,7 +2221,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			if ( stage->bundle[ 0 ].numTexMods == TR_MAX_TEXMODS )
 			{
-				ri.Error(errorParm_t::ERR_DROP, "ERROR: too many tcMod stages in shader '%s'", shader.name );
+				Sys::Drop( "ERROR: too many tcMod stages in shader '%s'", shader.name );
 			}
 
 			tmi = &stage->bundle[ 0 ].texMods[ stage->bundle[ 0 ].numTexMods ];
@@ -2239,7 +2239,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			if ( stage->bundle[ 0 ].numTexMods == TR_MAX_TEXMODS )
 			{
-				ri.Error(errorParm_t::ERR_DROP, "ERROR: too many tcMod stages in shader '%s'", shader.name );
+				Sys::Drop( "ERROR: too many tcMod stages in shader '%s'", shader.name );
 			}
 
 			tmi = &stage->bundle[ 0 ].texMods[ stage->bundle[ 0 ].numTexMods ];
@@ -2257,7 +2257,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			if ( stage->bundle[ 0 ].numTexMods == TR_MAX_TEXMODS )
 			{
-				ri.Error(errorParm_t::ERR_DROP, "ERROR: too many tcMod stages in shader '%s'", shader.name );
+				Sys::Drop( "ERROR: too many tcMod stages in shader '%s'", shader.name );
 			}
 
 			tmi = &stage->bundle[ 0 ].texMods[ stage->bundle[ 0 ].numTexMods ];
@@ -2275,7 +2275,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			if ( stage->bundle[ 0 ].numTexMods == TR_MAX_TEXMODS )
 			{
-				ri.Error(errorParm_t::ERR_DROP, "ERROR: too many tcMod stages in shader '%s'", shader.name );
+				Sys::Drop( "ERROR: too many tcMod stages in shader '%s'", shader.name );
 			}
 
 			tmi = &stage->bundle[ 0 ].texMods[ stage->bundle[ 0 ].numTexMods ];
@@ -2293,7 +2293,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			if ( stage->bundle[ 0 ].numTexMods == TR_MAX_TEXMODS )
 			{
-				ri.Error(errorParm_t::ERR_DROP, "ERROR: too many tcMod stages in shader '%s'", shader.name );
+				Sys::Drop( "ERROR: too many tcMod stages in shader '%s'", shader.name );
 			}
 
 			tmi = &stage->bundle[ 0 ].texMods[ stage->bundle[ 0 ].numTexMods ];
@@ -4446,7 +4446,7 @@ bool RE_LoadDynamicShader( const char *shadername, const char *shadertext )
 
 	if ( !dptr )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Couldn't allocate struct for dynamic shader %s", shadername );
+		Sys::Error( "Couldn't allocate struct for dynamic shader %s", shadername );
 	}
 
 	if ( lastdptr )
@@ -4458,7 +4458,7 @@ bool RE_LoadDynamicShader( const char *shadername, const char *shadertext )
 
 	if ( !dptr->shadertext )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Couldn't allocate buffer for dynamic shader %s", shadername );
+		Sys::Error( "Couldn't allocate buffer for dynamic shader %s", shadername );
 	}
 
 	Q_strncpyz( dptr->shadertext, shadertext, strlen( shadertext ) + 1 );
@@ -5173,7 +5173,7 @@ static void ScanAndLoadShaderFiles()
 
 		if ( !buffers[ i ] )
 		{
-			ri.Error(errorParm_t::ERR_DROP, "Couldn't load %s", filename );
+			Sys::Drop( "Couldn't load %s", filename );
 		}
 
 		p = buffers[ i ];

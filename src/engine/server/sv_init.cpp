@@ -53,7 +53,7 @@ void SV_SetConfigstring( int index, const char *val )
 {
 	if ( index < 0 || index >= MAX_CONFIGSTRINGS )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_SetConfigstring: bad index %i", index );
+		Sys::Drop( "SV_SetConfigstring: bad index %i", index );
 	}
 
 	if ( !val )
@@ -158,12 +158,12 @@ void SV_GetConfigstring( int index, char *buffer, int bufferSize )
 {
 	if ( bufferSize < 1 )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetConfigstring: bufferSize == %i", bufferSize );
+		Sys::Drop( "SV_GetConfigstring: bufferSize == %i", bufferSize );
 	}
 
 	if ( index < 0 || index >= MAX_CONFIGSTRINGS )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetConfigstring: bad index %i", index );
+		Sys::Drop( "SV_GetConfigstring: bad index %i", index );
 	}
 
 	if ( !sv.configstrings[ index ] )
@@ -185,7 +185,7 @@ void SV_SetUserinfo( int index, const char *val )
 {
 	if ( index < 0 || index >= sv_maxclients->integer )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_SetUserinfo: bad index %i", index );
+		Sys::Drop( "SV_SetUserinfo: bad index %i", index );
 	}
 
 	if ( !val )
@@ -207,12 +207,12 @@ void SV_GetUserinfo( int index, char *buffer, int bufferSize )
 {
 	if ( bufferSize < 1 )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetUserinfo: bufferSize == %i", bufferSize );
+		Sys::Drop( "SV_GetUserinfo: bufferSize == %i", bufferSize );
 	}
 
 	if ( index < 0 || index >= sv_maxclients->integer )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetUserinfo: bad index %i", index );
+		Sys::Drop( "SV_GetUserinfo: bad index %i", index );
 	}
 
 	Q_strncpyz( buffer, svs.clients[ index ].userinfo, bufferSize );
@@ -229,12 +229,12 @@ void SV_GetPlayerPubkey( int clientNum, char *pubkey, int size )
 {
 	if ( size < 1 )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetPlayerPubkey: size == %i", size );
+		Sys::Drop( "SV_GetPlayerPubkey: size == %i", size );
 	}
 
 	if ( clientNum < 0 || clientNum >= sv_maxclients->integer )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetPlayerPubkey: bad clientNum %i", clientNum );
+		Sys::Drop( "SV_GetPlayerPubkey: bad clientNum %i", clientNum );
 	}
 
 	Q_strncpyz( pubkey, svs.clients[ clientNum ].pubkey, size );
@@ -310,7 +310,7 @@ void SV_Startup()
 {
 	if ( svs.initialized )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "SV_Startup: svs.initialized" );
+		Sys::Error( "SV_Startup: svs.initialized" );
 	}
 
 	SV_BoundMaxClients( 1 );
@@ -320,7 +320,7 @@ void SV_Startup()
 
 	if ( !svs.clients )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
+		Sys::Error( "SV_Startup: unable to allocate svs.clients" );
 	}
 
 	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
@@ -373,7 +373,7 @@ void SV_ChangeMaxClients()
 
 	if ( !svs.clients )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
+		Sys::Error( "SV_Startup: unable to allocate svs.clients" );
 	}
 
 	// copy the clients over
@@ -487,7 +487,7 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
 	if (!FS_LoadPak(pakname.c_str()))
-		Com_Error(errorParm_t::ERR_DROP, "Could not load map pak\n");
+		Sys::Drop("Could not load map pak\n");
 
 	CM_LoadMap(server);
 

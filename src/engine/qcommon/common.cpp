@@ -499,7 +499,7 @@ void Com_InitHunkMemory()
 
 	if ( !s_hunkData )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Hunk data failed to allocate %iMB", s_hunkTotal / ( 1024 * 1024 ) );
+		Sys::Error( "Hunk data failed to allocate %iMB", s_hunkTotal / ( 1024 * 1024 ) );
 	}
 
 	Hunk_Clear();
@@ -603,7 +603,7 @@ void           *Hunk_Alloc( int size, ha_pref)
 
 	if ( s_hunkData == nullptr )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Hunk_Alloc: Hunk memory system not initialized" );
+		Sys::Error( "Hunk_Alloc: Hunk memory system not initialized" );
 	}
 
 	Hunk_SwapBanks();
@@ -613,7 +613,7 @@ void           *Hunk_Alloc( int size, ha_pref)
 
 	if ( hunk_low.temp + hunk_high.temp + size > s_hunkTotal )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "Hunk_Alloc failed on %i", size );
+		Sys::Drop( "Hunk_Alloc failed on %i", size );
 	}
 
 	if ( hunk_permanent == &hunk_low )
@@ -671,7 +671,7 @@ void           *Hunk_AllocateTempMemory( int size )
 
 	if ( hunk_temp->temp + hunk_permanent->permanent + size > s_hunkTotal )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "Hunk_AllocateTempMemory: failed on %i", size );
+		Sys::Drop( "Hunk_AllocateTempMemory: failed on %i", size );
 	}
 
 	if ( hunk_temp == &hunk_low )
@@ -723,7 +723,7 @@ void Hunk_FreeTempMemory( void *buf )
 
 	if ( hdr->magic != (int) HUNK_MAGIC )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Hunk_FreeTempMemory: bad magic" );
+		Sys::Error( "Hunk_FreeTempMemory: bad magic" );
 	}
 
 	hdr->magic = HUNK_FREE_MAGIC;
@@ -975,7 +975,7 @@ void Com_EventLoop()
 		switch ( ev->type )
 		{
 			default:
-				Com_Error( errorParm_t::ERR_FATAL, "Com_EventLoop: bad event type %s", Util::enum_str(ev->type) );
+				Sys::Error( "Com_EventLoop: bad event type %s", Util::enum_str(ev->type) );
 
 			case sysEventType_t::SE_KEY:
 			{
@@ -1052,11 +1052,11 @@ static void Com_Error_f()
 {
 	if ( Cmd_Argc() > 1 )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "Testing drop error" );
+		Sys::Drop( "Testing drop error" );
 	}
 	else
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Testing fatal error" );
+		Sys::Error( "Testing fatal error" );
 	}
 }
 

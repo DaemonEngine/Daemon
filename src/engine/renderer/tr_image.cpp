@@ -1376,7 +1376,7 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 
 	if ( strlen( name ) >= sizeof( image->name ) )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_AllocImage: \"%s\" image name is too long", name );
+		Sys::Drop( "R_AllocImage: \"%s\" image name is too long", name );
 		return nullptr;
 	}
 

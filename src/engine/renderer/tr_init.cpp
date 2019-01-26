@@ -426,7 +426,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 				break;
 		}
 
-		ri.Error( errorParm_t::ERR_FATAL, "caught OpenGL error: %s in file %s line %i", s, fileName, line );
+		Sys::Error( "caught OpenGL error: %s in file %s line %i", s, fileName, line );
 	}
 
 	/*

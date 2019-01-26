@@ -743,7 +743,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	if ( glewResult != GLEW_OK )
 	{
 		// glewInit failed, something is seriously wrong
-		ri.Error( errorParm_t::ERR_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem: %s", glewGetErrorString( glewResult ) );
+		Sys::Error( "GLW_StartOpenGL() - could not load OpenGL subsystem: %s", glewGetErrorString( glewResult ) );
 	}
 	else
 	{
@@ -826,7 +826,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 
 		if ( !driverName )
 		{
-			ri.Error( errorParm_t::ERR_FATAL, "No video driver initialized\n" );
+			Sys::Error( "No video driver initialized\n" );
 		}
 
 		logger.Notice("SDL using driver \"%s\"", driverName );
@@ -837,7 +837,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 
 	if ( numDisplays <= 0 )
 	{
-		ri.Error( errorParm_t::ERR_FATAL, "SDL_GetNumVideoDisplays FAILED (%s)\n", SDL_GetError() );
+		Sys::Error( "SDL_GetNumVideoDisplays FAILED (%s)\n", SDL_GetError() );
 	}
 
 	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );

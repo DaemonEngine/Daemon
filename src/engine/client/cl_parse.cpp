@@ -259,7 +259,7 @@ void CL_ParseSnapshot( msg_t *msg )
 
 	if ( len > (int) sizeof( newSnap.areamask ) )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_ParseSnapshot: Invalid size %d for areamask.", len );
+		Sys::Drop( "CL_ParseSnapshot: Invalid size %d for areamask.", len );
 	}
 
 	MSG_ReadData( msg, &newSnap.areamask, len );
@@ -360,9 +360,9 @@ void CL_SystemInfoChanged()
 		FS::PakPath::ClearPaks();
 		if (!FS_LoadServerPaks(Info_ValueForKey(systemInfo, "sv_paks"), clc.demoplaying)) {
 			if (!cl_allowDownload->integer) {
-				Com_Error(errorParm_t::ERR_DROP, "Client is missing paks but downloads are disabled");
+				Sys::Drop("Client is missing paks but downloads are disabled");
 			} else if (clc.demoplaying) {
-				Com_Error(errorParm_t::ERR_DROP, "Client is missing paks needed by the demo");
+				Sys::Drop("Client is missing paks needed by the demo");
 			}
 		}
 	}
@@ -428,7 +428,7 @@ void CL_ParseGamestate( msg_t *msg )
 
 			if ( i < 0 || i >= MAX_CONFIGSTRINGS )
 			{
-				Com_Error( errorParm_t::ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
+				Sys::Drop( "configstring > MAX_CONFIGSTRINGS" );
 			}
 
 			const char* str = MSG_ReadBigString( msg );
@@ -440,7 +440,7 @@ void CL_ParseGamestate( msg_t *msg )
 
 			if ( newnum < 0 || newnum >= MAX_GENTITIES )
 			{
-				Com_Error( errorParm_t::ERR_DROP, "Baseline number out of range: %i", newnum );
+				Sys::Drop( "Baseline number out of range: %i", newnum );
 			}
 
 			memset( &nullstate, 0, sizeof( nullstate ) );
@@ -449,7 +449,7 @@ void CL_ParseGamestate( msg_t *msg )
 		}
 		else
 		{
-			Com_Error( errorParm_t::ERR_DROP, "CL_ParseGamestate: bad command byte" );
+			Sys::Drop( "CL_ParseGamestate: bad command byte" );
 		}
 	}
 
@@ -496,7 +496,7 @@ void CL_ParseDownload( msg_t *msg )
             size = MSG_ReadShort( msg );
             if ( size < 0 || size > (int) sizeof( data ) )
             {
-                Com_Error( errorParm_t::ERR_DROP, "CL_ParseDownload: Invalid size %d for download chunk.", size );
+                Sys::Drop( "CL_ParseDownload: Invalid size %d for download chunk.", size );
             }
 	        MSG_ReadData( msg, data, size );
         }
@@ -579,7 +579,7 @@ void CL_ParseDownload( msg_t *msg )
 
 		if ( clc.downloadSize < 0 )
 		{
-			Com_Error( errorParm_t::ERR_DROP, "%s", MSG_ReadString( msg ) );
+			Sys::Drop( "%s", MSG_ReadString( msg ) );
 		}
 	}
 
@@ -587,7 +587,7 @@ void CL_ParseDownload( msg_t *msg )
 
 	if ( size < 0 || size > (int) sizeof( data ) )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_ParseDownload: Invalid size %d for download chunk.", size );
+		Sys::Drop( "CL_ParseDownload: Invalid size %d for download chunk.", size );
 	}
 
     downloadLogger.Debug("Received block of size %i", size);
@@ -739,7 +739,7 @@ void CL_ParseServerMessage( msg_t *msg )
 	{
 		if ( msg->readcount > msg->cursize )
 		{
-			Com_Error( errorParm_t::ERR_DROP, "CL_ParseServerMessage: read past end of server message" );
+			Sys::Drop( "CL_ParseServerMessage: read past end of server message" );
 		}
 
 		cmd = MSG_ReadByte( msg );
@@ -766,7 +766,7 @@ void CL_ParseServerMessage( msg_t *msg )
 		switch ( cmd )
 		{
 			default:
-				Com_Error( errorParm_t::ERR_DROP, "CL_ParseServerMessage: Illegible server message %d", cmd );
+				Sys::Drop( "CL_ParseServerMessage: Illegible server message %d", cmd );
 
 			case svc_nop:
 				break;

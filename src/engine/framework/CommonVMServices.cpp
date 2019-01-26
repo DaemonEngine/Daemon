@@ -370,7 +370,7 @@ namespace VM {
                 break;
 
             default:
-                Com_Error(errorParm_t::ERR_DROP, "Bad log syscall number '%d' for VM '%s'", minor, vmName.c_str());
+                Sys::Drop("Bad log syscall number '%d' for VM '%s'", minor, vmName.c_str());
         }
     }
 

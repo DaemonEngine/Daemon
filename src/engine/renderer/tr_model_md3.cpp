@@ -154,14 +154,14 @@ bool R_LoadMD3( model_t *mod, int lod, void *buffer, const char *modName )
 
 		if ( md3Surf->numVerts > SHADER_MAX_VERTEXES )
 		{
-			ri.Error(errorParm_t::ERR_DROP, "R_LoadMD3: %s has more than %i verts on a surface (%i)",
-			          modName, SHADER_MAX_VERTEXES, md3Surf->numVerts );
+			Sys::Drop( "R_LoadMD3: %s has more than %i verts on a surface (%i)",
+			           modName, SHADER_MAX_VERTEXES, md3Surf->numVerts );
 		}
 
 		if ( md3Surf->numTriangles * 3 > SHADER_MAX_INDEXES )
 		{
-			ri.Error(errorParm_t::ERR_DROP, "R_LoadMD3: %s has more than %i triangles on a surface (%i)",
-			          modName, SHADER_MAX_INDEXES / 3, md3Surf->numTriangles );
+			Sys::Drop( "R_LoadMD3: %s has more than %i triangles on a surface (%i)",
+			           modName, SHADER_MAX_INDEXES / 3, md3Surf->numTriangles );
 		}
 
 		// change to surface identifier
