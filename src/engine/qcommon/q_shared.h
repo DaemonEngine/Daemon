@@ -1398,28 +1398,6 @@ void         ByteToDir( int b, vec3_t dir );
 
 	int        Com_HashKey( char *string, int maxlen );
 
-#define MAX_TOKENLENGTH 1024
-
-//token types
-enum class tokenType_t {
-    TT_STRING, // string
-    TT_LITERAL, // literal
-    TT_NUMBER, // number
-    TT_NAME, // name
-    TT_PUNCTUATION, // punctuation
-};
-
-	struct pc_token_t
-	{
-		tokenType_t type;
-		int   subtype;
-		int   intvalue;
-		float floatvalue;
-		char  string[ MAX_TOKENLENGTH ];
-		int   line;
-		int   linescrossed;
-	};
-
 // data is an in/out parm, returns a parsed out token
 
 	void      COM_MatchToken( char **buf_p, char *match );

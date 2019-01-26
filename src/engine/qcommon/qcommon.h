@@ -835,12 +835,6 @@ void             Huff_offsetTransmit( huff_t *huff, int ch, byte *fout, int *off
 void             Huff_putBit( int bit, byte *fout, int *offset );
 int              Huff_getBit( byte *fout, int *offset );
 
-int  Parse_AddGlobalDefine( const char *string );
-int  Parse_LoadSourceHandle( const char *filename );
-int  Parse_FreeSourceHandle( int handle );
-bool  Parse_ReadTokenHandle( int handle, pc_token_t *pc_token );
-int  Parse_SourceFileAndLine( int handle, char *filename, int *line );
-
 #define _(x) Trans_Gettext(x)
 #define C_(x, y) Trans_Pgettext(x, y)
 #define N_(x) (x)
