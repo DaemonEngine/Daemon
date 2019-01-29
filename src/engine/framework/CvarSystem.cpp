@@ -645,10 +645,9 @@ namespace Cvar {
                 std::vector<cvarRecord_t*> matches;
 
                 std::vector<std::string> matchesNames;
-                unsigned long maxNameLength = 0;
+                size_t maxNameLength = 0;
 
                 std::vector<std::string> matchesValues;
-                unsigned long maxValueLength = 0;
 
                 //Find all the matching cvars
                 for (auto& entry : cvars) {
@@ -659,21 +658,15 @@ namespace Cvar {
                         matchesValues.push_back(entry.second->value);
 
                         //TODO: the raw parameter is not handled, need a function to escape carets
-                        maxNameLength = std::max<size_t>(maxNameLength, entry.first.length());
-                        maxValueLength = std::max<size_t>(maxValueLength, matchesValues.back().length());
+                        maxNameLength = std::max(maxNameLength, entry.first.length());
                     }
                 }
 
-                //Do not pad descriptions too much
-                maxValueLength = std::min(maxValueLength, 20UL);
-
                 //Print the matches, keeping the flags and descriptions aligned
-                for (unsigned i = 0; i < matches.size(); i++) {
+                for (size_t i = 0; i < matches.size(); i++) {
                     const std::string& name = matchesNames[i];
                     const std::string& value = matchesValues[i];
                     cvarRecord_t* var = matches[i];
-
-                    std::string filler1 = std::string(maxNameLength - name.length(), ' ');
 
                     std::string flags = "";
                     flags += (var->flags & SERVERINFO) ? "S" : "_";
@@ -686,18 +679,12 @@ namespace Cvar {
                     flags += (var->flags & CHEAT) ? "C" : "_";
                     flags += (var->flags & CVAR_USER_CREATED) ? "?" : "_";
 
-                    int padding = maxValueLength - value.length();
-                    std::string filler2;
-                    if (padding > 0) {
-                        filler2 = std::string(maxValueLength - value.length(), ' ');
-                    }
-
                     // this is going to 'break' (wrong output) if the description contains any ^s other than in the variable value(s)
                     if (raw) {
-                        Print("  %s%s %s %s", name, filler1, flags, Raw(var->description));
+                        Print("  %-*s %s %s", maxNameLength, name, flags, Raw(var->description));
                     }
                     else {
-                        Print("  %s%s %s %s", name, filler1, flags, var->description);
+                        Print("  %-*s %s %s", maxNameLength, name, flags, var->description);
                     }
                 }
 
