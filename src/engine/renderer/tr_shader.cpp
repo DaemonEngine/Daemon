@@ -54,11 +54,11 @@ static char          whenTokens[ MAX_STRING_CHARS ];
 return a hash value for the filename
 ================
 */
-static long generateHashValue( const char *fname, const int size )
+static unsigned int generateHashValue( const char *fname, const int size )
 {
 	int  i;
 
-	long hash;
+	unsigned hash;
 	char letter;
 
 	hash = 0;
@@ -83,7 +83,7 @@ static long generateHashValue( const char *fname, const int size )
 			letter = '/'; // damn path names
 		}
 
-		hash += ( long )( letter ) * ( i + 119 );
+		hash += ( unsigned )( letter ) * ( i + 119 );
 		i++;
 	}
 
@@ -5145,7 +5145,7 @@ static void ScanAndLoadShaderFiles()
 	const char **hashMem;
 	int  shaderTextHashTableSizes[ MAX_SHADERTEXT_HASH ], hash, size;
 	char filename[ MAX_QPATH ];
-	long sum = 0, summand;
+	size_t sum = 0, summand;
 
 	Log::Debug("----- ScanAndLoadShaderFiles -----" );
 

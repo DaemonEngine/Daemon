@@ -53,10 +53,10 @@ static const textureMode_t modes[] =
 return a hash value for the filename
 ================
 */
-long GenerateImageHashValue( const char *fname )
+unsigned int GenerateImageHashValue( const char *fname )
 {
 	int  i;
-	long hash;
+	unsigned hash;
 	char letter;
 
 //  Log::Notice("tr_image::GenerateImageHashValue: '%s'", fname);
@@ -73,7 +73,7 @@ long GenerateImageHashValue( const char *fname )
 			letter = '/'; // damn path names
 		}
 
-		hash += ( long )( letter ) * ( i + 119 );
+		hash += ( unsigned )( letter ) * ( i + 119 );
 		i++;
 	}
 
@@ -1372,7 +1372,7 @@ R_AllocImage
 image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 {
 	image_t *image;
-	long    hash;
+	unsigned hash;
 
 	if ( strlen( name ) >= sizeof( image->name ) )
 	{
@@ -1751,10 +1751,9 @@ image_t        *R_FindImageFile( const char *imageName, int bits, filterType_t f
 	int           width = 0, height = 0, numLayers = 0, numMips = 0;
 	byte          *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
 	byte          *mallocPtr = nullptr;
-	long          hash;
 	char          buffer[ 1024 ];
 	const char          *buffer_p;
-	unsigned long diff;
+	unsigned int diff;
 
 	if ( !imageName )
 	{
@@ -1762,7 +1761,7 @@ image_t        *R_FindImageFile( const char *imageName, int bits, filterType_t f
 	}
 
 	Q_strncpyz( buffer, imageName, sizeof( buffer ) );
-	hash = GenerateImageHashValue( buffer );
+	unsigned hash = GenerateImageHashValue( buffer );
 
 	// see if the image is already loaded
 	for ( image = r_imageHashTable[ hash ]; image; image = image->next )
@@ -1945,7 +1944,6 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 	image_t     *image = nullptr;
 	int         width = 0, height = 0, numLayers = 0, numMips = 0;
 	byte        *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
-	long        hash;
 	int         numPicsToFree = 0;
 
 	static const char *openglSuffices[ 6 ] = { "px", "nx", "py", "ny", "pz", "nz" };
@@ -1969,7 +1967,7 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 	}
 
 	Q_strncpyz( buffer, imageName, sizeof( buffer ) );
-	hash = GenerateImageHashValue( buffer );
+	unsigned hash = GenerateImageHashValue( buffer );
 
 	// see if the image is already loaded
 	for ( image = r_imageHashTable[ hash ]; image; image = image->next )

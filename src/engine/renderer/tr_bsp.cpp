@@ -702,7 +702,7 @@ static void R_LoadVisibility( lump_t *l )
 	for ( i = 0; i < s_worldData.numClusters; i++ )
 	{
 		const byte *src;
-		const long *src2;
+		const int *src2;
 		byte *dest;
 
 		src  = s_worldData.vis + i * s_worldData.clusterBytes;
@@ -730,12 +730,12 @@ static void R_LoadVisibility( lump_t *l )
 
 				// retrieve vis data for the cluster
 				index = ( ( j << 3 ) | k );
-				src2 = ( long * ) ( s_worldData.vis + index * s_worldData.clusterBytes );
+				src2 = ( int * ) ( s_worldData.vis + index * s_worldData.clusterBytes );
 
 				// OR this vis data with the current cluster's
-				for (unsigned m = 0; m < ( s_worldData.clusterBytes / sizeof( long ) ); m++ )
+				for (unsigned m = 0; m < ( s_worldData.clusterBytes / sizeof( int ) ); m++ )
 				{
-					( ( long * ) dest )[ m ] |= src2[ m ];
+					( ( int * ) dest )[ m ] |= src2[ m ];
 				}
 			}
 		}

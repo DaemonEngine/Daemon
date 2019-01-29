@@ -2978,7 +2978,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define IMAGE_FILE_HASH_SIZE 4096
 	extern image_t *r_imageHashTable[ IMAGE_FILE_HASH_SIZE ];
 
-	extern long    GenerateImageHashValue( const char *fname );
+	unsigned int   GenerateImageHashValue( const char *fname );
 
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
