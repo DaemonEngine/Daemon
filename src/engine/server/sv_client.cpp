@@ -410,7 +410,7 @@ void SV_SendClientGameState( client_t *client )
 	MSG_WriteLong( &msg, sv.checksumFeed );
 
 	// NERVE - SMF - debug info
-	Log::Debug( "Sending %i bytes in gamestate to client: %li", msg.cursize, ( long )( client - svs.clients ) );
+	Log::Debug( "Sending %i bytes in gamestate to client: %i", msg.cursize, client - svs.clients );
 
 	// deliver this to the client
 	SV_SendMessageToClient( &msg, client );

@@ -237,7 +237,7 @@ void           *R_GetCommandBuffer( size_t bytes )
 	{
 		if ( bytes > MAX_RENDER_COMMANDS - reserved )
 		{
-			Sys::Error( "R_GetCommandBuffer: bad size %lu", (unsigned long)bytes );
+			Sys::Error( "R_GetCommandBuffer: bad size %u", bytes );
 		}
 
 		// if we run out of room, just start dropping commands

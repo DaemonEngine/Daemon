@@ -268,7 +268,7 @@ void Trans_Init()
 	Cvar_Set( "trans_languages", langList );
 	Cvar_Set( "trans_encodings", encList );
 
-	LOG.Notice( "Loaded %lu language%s", ( unsigned long ) langs.size(), ( langs.size() == 1 ? "" : "s" ) );
+	LOG.Notice( "Loaded %u language%s", langs.size(), ( langs.size() == 1 ? "" : "s" ) );
 }
 
 void Trans_LoadDefaultLanguage()

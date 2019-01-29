@@ -5827,7 +5827,7 @@ const RenderCommand *SwapBuffersCommand::ExecuteSelf( ) const
 	if ( r_measureOverdraw->integer )
 	{
 		int           i;
-		long          sum = 0;
+		unsigned sum = 0;
 		unsigned char *stencilReadback;
 
 		stencilReadback = ( unsigned char * ) ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight );
