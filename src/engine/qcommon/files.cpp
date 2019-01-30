@@ -47,10 +47,15 @@ struct handleData_t {
 	std::string fileData;
 	size_t filePos;
 };
+struct missingPak_t {
+	std::string name;
+	std::string version;
+	uint32_t checksum;
+};
 
 static const int MAX_FILE_HANDLES = 64;
 static handleData_t handleTable[MAX_FILE_HANDLES];
-static std::vector<std::tuple<std::string, std::string, uint32_t>> fs_missingPaks;
+std::vector<missingPak_t> fs_missingPaks;
 
 static Cvar::Cvar<bool> allowRemotePakDir("client.allowRemotePakDir", "Connect to servers that load game data from directories", Cvar::TEMPORARY, false);
 
@@ -641,12 +646,12 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		// Keep track of all missing paks
 		const FS::PakInfo* pak = FS::FindPak(name, version, *checksum);
 		if (!pak)
-			fs_missingPaks.emplace_back(std::move(name), std::move(version), *checksum);
+			fs_missingPaks.push_back({std::move(name), std::move(version), *checksum});
 		else {
 			try {
 				FS::PakPath::LoadPakExplicit(*pak, *checksum);
 			} catch (std::system_error&) {
-				fs_missingPaks.emplace_back(std::move(name), std::move(version), *checksum);
+				fs_missingPaks.push_back({std::move(name), std::move(version), *checksum});
 			}
 		}
 	}
@@ -667,24 +672,24 @@ bool CL_WWWBadChecksum(const char *pakname);
 bool FS_ComparePaks(char* neededpaks, int len, bool dlstring)
 {
 	*neededpaks = '\0';
-	for (auto& x: fs_missingPaks) {
+	for (const missingPak_t& x: fs_missingPaks) {
 		if (dlstring) {
 			Q_strcat(neededpaks, len, "@");
-			Q_strcat(neededpaks, len, FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str());
+			Q_strcat(neededpaks, len, FS::MakePakName(x.name, x.version, x.checksum).c_str());
 			Q_strcat(neededpaks, len, "@");
-			std::string pakName = Str::Format("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x)));
+			std::string pakName = Str::Format("pkg/%s", FS::MakePakName(x.name, x.version));
 			if (FS::HomePath::FileExists(pakName))
-				Q_strcat(neededpaks, len, va("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str()));
+				Q_strcat(neededpaks, len, va("pkg/%s", FS::MakePakName(x.name, x.version, x.checksum).c_str()));
 			else
 				Q_strcat(neededpaks, len, pakName.c_str());
 		} else {
-			Q_strcat(neededpaks, len, va("%s", FS::MakePakName(std::get<0>(x), std::get<1>(x)).c_str()));
-			if (FS::FindPak(std::get<0>(x), std::get<1>(x))) {
+			Q_strcat(neededpaks, len, va("%s", FS::MakePakName(x.name, x.version).c_str()));
+			if (FS::FindPak(x.name, x.version)) {
 				Q_strcat(neededpaks, len, " (local file exists with wrong checksum)");
 #ifndef BUILD_SERVER
-				if (CL_WWWBadChecksum(FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str())) {
+				if (CL_WWWBadChecksum(FS::MakePakName(x.name, x.version, x.checksum).c_str())) {
 					try {
-						FS::HomePath::DeleteFile(Str::Format("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x))));
+						FS::HomePath::DeleteFile(Str::Format("pkg/%s", FS::MakePakName(x.name, x.version)));
 					} catch (std::system_error&) {}
 				}
 #endif
