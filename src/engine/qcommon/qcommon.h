@@ -456,7 +456,8 @@ bool     FS_LoadServerPaks( const char* paks, bool isDemo );
 
 // shutdown and restart the filesystem so changes to fs_gamedir can take effect
 
-bool   FS_ComparePaks( char *neededpaks, int len, bool dlstring );
+void FS_DeletePaksWithBadChecksum();
+bool FS_ComparePaks(char* neededpaks, int len);
 
 void       FS_Rename( const char *from, const char *to );
 

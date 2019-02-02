@@ -1914,22 +1914,15 @@ void CL_InitDownloads()
 	cls.bWWWDlDisconnected = false;
 	CL_ClearStaticDownload();
 
-	// whatever autodownload configuration, store missing files in a cvar, use later in the ui maybe
-	if ( FS_ComparePaks( missingfiles, sizeof( missingfiles ), false ) )
-	{
-		Cvar_Set( "com_missingFiles", missingfiles );
-	}
-	else
-	{
-		Cvar_Set( "com_missingFiles", "" );
-	}
+	if ( cl_allowDownload->integer )
+		FS_DeletePaksWithBadChecksum();
 
 	// reset the redirect checksum tracking
 	clc.redirectedList[ 0 ] = '\0';
 
-	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList, sizeof( clc.downloadList ), true ) )
+	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList, sizeof( clc.downloadList ) ) )
 	{
-        downloadLogger.Debug("Need paks: '%s'", clc.downloadList);
+		downloadLogger.Debug("Need paks: '%s'", clc.downloadList);
 
 		if ( *clc.downloadList )
 		{

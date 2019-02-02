@@ -668,36 +668,40 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 	return fs_missingPaks.empty();
 }
 
-bool CL_WWWBadChecksum(const char *pakname);
-bool FS_ComparePaks(char* neededpaks, int len, bool dlstring)
-{
-	*neededpaks = '\0';
-	for (const missingPak_t& x: fs_missingPaks) {
-		if (dlstring) {
-			Q_strcat(neededpaks, len, "@");
-			Q_strcat(neededpaks, len, FS::MakePakName(x.name, x.version, x.checksum).c_str());
-			Q_strcat(neededpaks, len, "@");
-			std::string pakName = Str::Format("pkg/%s", FS::MakePakName(x.name, x.version));
-			if (FS::HomePath::FileExists(pakName))
-				Q_strcat(neededpaks, len, va("pkg/%s", FS::MakePakName(x.name, x.version, x.checksum).c_str()));
-			else
-				Q_strcat(neededpaks, len, pakName.c_str());
-		} else {
-			Q_strcat(neededpaks, len, va("%s", FS::MakePakName(x.name, x.version).c_str()));
-			if (FS::FindPak(x.name, x.version)) {
-				Q_strcat(neededpaks, len, " (local file exists with wrong checksum)");
 #ifndef BUILD_SERVER
-				if (CL_WWWBadChecksum(FS::MakePakName(x.name, x.version, x.checksum).c_str())) {
-					try {
-						FS::HomePath::DeleteFile(Str::Format("pkg/%s", FS::MakePakName(x.name, x.version)));
-					} catch (std::system_error&) {}
+
+bool CL_WWWBadChecksum(const char *pakname);
+void FS_DeletePaksWithBadChecksum() {
+	for (const missingPak_t& x: fs_missingPaks) {
+		if (FS::FindPak(x.name, x.version)) {
+			if (CL_WWWBadChecksum(FS::MakePakName(x.name, x.version, x.checksum).c_str())) {
+				std::string filename = Str::Format("pkg/%s", FS::MakePakName(x.name, x.version));
+				try {
+					FS::HomePath::DeleteFile(filename);
+				} catch (const std::system_error& e) {
+					Sys::Drop("FS_DeletePaksWithBadChecksum: couldn't delete %s: %s", filename, e.what());
 				}
-#endif
 			}
 		}
 	}
+}
+
+bool FS_ComparePaks(char* neededpaks, int len)
+{
+	*neededpaks = '\0';
+	for (const missingPak_t& x: fs_missingPaks) {
+		Q_strcat(neededpaks, len, "@");
+		Q_strcat(neededpaks, len, FS::MakePakName(x.name, x.version, x.checksum).c_str());
+		Q_strcat(neededpaks, len, "@");
+		std::string pakName = Str::Format("pkg/%s", FS::MakePakName(x.name, x.version));
+		if (FS::HomePath::FileExists(pakName))
+			Q_strcat(neededpaks, len, Str::Format("pkg/%s", FS::MakePakName(x.name, x.version, x.checksum)).c_str());
+		else
+			Q_strcat(neededpaks, len, pakName.c_str());
+	}
 	return !fs_missingPaks.empty();
 }
+#endif // !BUILD_SERVER
 
 class WhichCmd: public Cmd::StaticCmd {
 public:
