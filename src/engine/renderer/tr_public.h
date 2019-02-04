@@ -41,7 +41,47 @@ Maryland 20850 USA.
 
 #define REF_API_VERSION 10
 
-// *INDENT-OFF*
+struct glconfig2_t
+{
+	bool textureCompressionRGTCAvailable;
+
+	bool glCoreProfile;
+
+	int      maxCubeMapTextureSize;
+
+	bool occlusionQueryAvailable;
+	int      occlusionQueryBits;
+
+	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
+	int      shadingLanguageVersion;
+
+	int      maxVertexUniforms;
+//	int             maxVaryingFloats;
+	int      maxVertexAttribs;
+	bool vboVertexSkinningAvailable;
+	int      maxVertexSkinningBones;
+
+	bool drawBuffersAvailable;
+	bool textureHalfFloatAvailable;
+	bool textureFloatAvailable;
+	bool textureIntegerAvailable;
+	bool textureRGAvailable;
+	bool gpuShader4Available;
+	bool textureGatherAvailable;
+	int      maxDrawBuffers;
+
+	float    maxTextureAnisotropy;
+	bool textureAnisotropyAvailable;
+
+	int      maxRenderbufferSize;
+	int      maxColorAttachments;
+
+	bool getProgramBinaryAvailable;
+	bool bufferStorageAvailable;
+	bool uniformBufferObjectAvailable;
+	bool mapBufferRangeAvailable;
+	bool syncAvailable;
+};
 
 //
 // these are the functions exported by the refresh module
