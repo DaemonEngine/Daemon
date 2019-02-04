@@ -39,6 +39,12 @@ Maryland 20850 USA.
 #ifndef __TR_TYPES_H
 #define __TR_TYPES_H
 
+// bool can't be safely deserialized by memcpy
+#pragma push_macro("bool")
+#undef bool
+#define bool DO_NOT_USE_BOOL_IN_IPC_MESSAGE_TYPES
+using bool8_t = uint8_t;
+
 // XreaL BEGIN
 #define MAX_REF_LIGHTS     1024
 #define MAX_REF_ENTITIES   1023 // can't be increased without changing drawsurf bit packing
@@ -168,7 +174,7 @@ struct refEntity_t
 	vec3_t    lightingOrigin; // so multi-part models can be lit identically (RF_LIGHTING_ORIGIN)
 
 	vec3_t    axis[ 3 ]; // rotation vectors
-	bool  nonNormalizedAxes; // axis are not normalized, i.e. they have scale
+	bool8_t  nonNormalizedAxes; // axis are not normalized, i.e. they have scale
 	vec3_t    origin;
 	int       frame;
 
@@ -242,10 +248,10 @@ struct refLight_t
 	vec3_t   projStart;
 	vec3_t   projEnd;
 
-	bool noShadows;
+	bool8_t noShadows;
 	short    noShadowID; // don't cast shadows of all entities with this id
 
-	bool inverseShadows; // don't cast light and draw shadows by darken the scene
+	bool8_t inverseShadows; // don't cast light and draw shadows by darken the scene
 	// this is useful for drawing player shadows with shadow mapping
 };
 
@@ -343,8 +349,8 @@ struct glconfig_t
 	glHardwareType_t     hardwareType;
 
 	textureCompression_t textureCompression;
-	bool             textureEnvAddAvailable;
-	bool             anisotropicAvailable; //----(SA)  added
+	bool8_t             textureEnvAddAvailable;
+	bool8_t             anisotropicAvailable; //----(SA)  added
 	float                maxAnisotropy; //----(SA)  added
 
 	int      vidWidth, vidHeight;
@@ -356,8 +362,10 @@ struct glconfig_t
 
 	// synonymous with "does rendering consume the entire screen?", therefore
 	// a Win32 ICD that used CDS will have this set to TRUE
-	bool isFullscreen;
-	bool smpActive; // dual processor
+	bool8_t isFullscreen;
+	bool8_t smpActive; // dual processor
 };
+
+#pragma pop_macro("bool")
 
 #endif // __TR_TYPES_H
