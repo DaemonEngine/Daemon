@@ -360,48 +360,4 @@ struct glconfig_t
 	bool smpActive; // dual processor
 };
 
-// XreaL BEGIN
-struct glconfig2_t
-{
-	bool textureCompressionRGTCAvailable;
-
-	bool glCoreProfile;
-
-	int      maxCubeMapTextureSize;
-
-	bool occlusionQueryAvailable;
-	int      occlusionQueryBits;
-
-	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
-	int      shadingLanguageVersion;
-
-	int      maxVertexUniforms;
-//	int             maxVaryingFloats;
-	int      maxVertexAttribs;
-	bool vboVertexSkinningAvailable;
-	int      maxVertexSkinningBones;
-
-	bool drawBuffersAvailable;
-	bool textureHalfFloatAvailable;
-	bool textureFloatAvailable;
-	bool textureIntegerAvailable;
-	bool textureRGAvailable;
-	bool gpuShader4Available;
-	bool textureGatherAvailable;
-	int      maxDrawBuffers;
-
-	float    maxTextureAnisotropy;
-	bool textureAnisotropyAvailable;
-
-	int      maxRenderbufferSize;
-	int      maxColorAttachments;
-
-	bool getProgramBinaryAvailable;
-	bool bufferStorageAvailable;
-	bool uniformBufferObjectAvailable;
-	bool mapBufferRangeAvailable;
-	bool syncAvailable;
-};
-// XreaL END
-
 #endif // __TR_TYPES_H
