@@ -122,12 +122,21 @@ template<> struct SerializeTraits<FS::LoadedPakInfo> {
 
 namespace FS {
 
+#ifdef BUILD_ENGINE
 static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "Also load pk3s, ignoring version.", Cvar::NONE, false);
 
 bool UseLegacyPaks()
 {
 	return *fs_legacypaks;
 }
+#else
+bool UseLegacyPaks()
+{
+	bool result = false;
+	Cvar::ParseCvarValue(Cvar::GetValue("fs_legacypaks"), result);
+	return result;
+}
+#endif
 
 // Error variable used by throws(). This is never written to and always
 // represents a success value.
