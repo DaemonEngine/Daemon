@@ -268,7 +268,7 @@ void SCR_DrawScreenField()
 		switch ( cls.state )
 		{
 			default:
-				Com_Error( errorParm_t::ERR_FATAL, "SCR_DrawScreenField: bad cls.state" );
+				Sys::Error( "SCR_DrawScreenField: bad cls.state" );
 
 			case connstate_t::CA_CINEMATIC:
 				SCR_DrawCinematic();
@@ -331,7 +331,7 @@ void SCR_UpdateScreen()
 		recursive = 0;
 		// Gordon: i'm breaking this again, because we've removed most of our cases but still have one which will not fix easily
 		return;
-//      Com_Error( ERR_FATAL, "SCR_UpdateScreen: recursively called" );
+//      Sys::Error( "SCR_UpdateScreen: recursively called" );
 	}
 
 	recursive = 1;

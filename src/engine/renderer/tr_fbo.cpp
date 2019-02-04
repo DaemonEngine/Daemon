@@ -88,22 +88,22 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateFBO: \"%s\" is too long", name );
+		Sys::Drop( "R_CreateFBO: \"%s\" is too long", name );
 	}
 
 	if ( width <= 0 || width > glConfig2.maxRenderbufferSize )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateFBO: bad width %i", width );
+		Sys::Drop( "R_CreateFBO: bad width %i", width );
 	}
 
 	if ( height <= 0 || height > glConfig2.maxRenderbufferSize )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateFBO: bad height %i", height );
+		Sys::Drop( "R_CreateFBO: bad height %i", height );
 	}
 
 	if ( tr.numFBOs == MAX_FBOS )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateFBO: MAX_FBOS hit" );
+		Sys::Drop( "R_CreateFBO: MAX_FBOS hit" );
 	}
 
 	fbo = tr.fbos[ tr.numFBOs ] = (FBO_t*) ri.Hunk_Alloc( sizeof( *fbo ), ha_pref::h_low );

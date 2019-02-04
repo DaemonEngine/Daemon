@@ -418,7 +418,6 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 #endif
 
 	bool foundCommands = false;
-	bool foundHomePathCommand = false;
 	for (int i = 1; i < argc; i++) {
 		// A + indicate the start of a command that should be run on startup
 		if (argv[i][0] == '+') {
@@ -497,7 +496,6 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				Log::Warn("Missing argument for -homepath");
 				continue;
 			}
-			foundHomePathCommand = true;
 			cmdlineArgs.homePath = argv[i + 1];
 			i++;
 		} else if (!strcmp(argv[i], "-resetconfig")) {
@@ -512,10 +510,6 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			Log::Warn("Ignoring unrecognized parameter \"%s\"", argv[i]);
 			continue;
 		}
-	}
-
-	if (!foundHomePathCommand) {
-		FS::MigrateHomePath();
 	}
 }
 
@@ -671,17 +665,9 @@ static void Init(int argc, char** argv)
 
 } // namespace Sys
 
-// GCC expects a 16-byte aligned stack but Windows only guarantees 4-byte alignment.
-// The MinGW startup code should be handling this but for some reason it isn't.
-#if defined(_WIN32) && defined(__GNUC__) && defined(__i386__)
-#define ALIGN_STACK __attribute__((force_align_arg_pointer))
-#else
-#define ALIGN_STACK
-#endif
-
-// Program entry point. On Windows, main is #defined to SDL_main which is
-// invoked by SDLmain.
-ALIGN_STACK int main(int argc, char** argv)
+// Program entry point. On Windows, main is #defined to SDL_main which is invoked by SDLmain.
+// This is why ALIGN_STACK_FOR_MINGW is needed (normally gcc would generate alignment code in main()).
+ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 {
 	// Initialize the engine. Any errors here are fatal.
 	try {

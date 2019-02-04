@@ -354,6 +354,8 @@ Goals:
 ==============================================================================
 */
 
+#ifndef BUILD_SERVER
+
 static const int HUNK_MAGIC      = 0x89537892;
 static const int HUNK_FREE_MAGIC = 0x89537893;
 
@@ -365,7 +367,6 @@ struct hunkHeader_t
 
 struct hunkUsed_t
 {
-	int mark;
 	int permanent;
 	int temp;
 	int tempHighwater;
@@ -399,7 +400,6 @@ void Com_Meminfo_f()
 {
 	Log::Notice( "%9i bytes (%6.2f MB) total hunk\n", s_hunkTotal, s_hunkTotal / Square( 1024.f ) );
 	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) low mark\n", hunk_low.mark, hunk_low.mark / Square( 1024.f ) );
 	Log::Notice( "%9i bytes (%6.2f MB) low permanent\n", hunk_low.permanent, hunk_low.permanent / Square( 1024.f ) );
 
 	if ( hunk_low.temp != hunk_low.permanent )
@@ -409,7 +409,6 @@ void Com_Meminfo_f()
 
 	Log::Notice( "%9i bytes (%6.2f MB) low tempHighwater\n", hunk_low.tempHighwater, hunk_low.tempHighwater / Square( 1024.f ) );
 	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) high mark\n", hunk_high.mark, hunk_high.mark / Square( 1024.f ) );
 	Log::Notice( "%9i bytes (%6.2f MB) high permanent\n", hunk_high.permanent, hunk_high.permanent / Square( 1024.f ) );
 
 	if ( hunk_high.temp != hunk_high.permanent )
@@ -499,7 +498,7 @@ void Com_InitHunkMemory()
 
 	if ( !s_hunkData )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Hunk data failed to allocate %iMB", s_hunkTotal / ( 1024 * 1024 ) );
+		Sys::Error( "Hunk data failed to allocate %iMB", s_hunkTotal / ( 1024 * 1024 ) );
 	}
 
 	Hunk_Clear();
@@ -507,56 +506,12 @@ void Com_InitHunkMemory()
 	Cmd_AddCommand( "meminfo", Com_Meminfo_f );
 }
 
-/*
-===================
-Hunk_SetMark
-
-The server calls this after the level and game VM have been loaded
-===================
-*/
-void Hunk_SetMark()
-{
-	hunk_low.mark = hunk_low.permanent;
-	hunk_high.mark = hunk_high.permanent;
-}
-
-/*
-=================
-Hunk_ClearToMark
-
-The client calls this before starting a vid_restart or snd_restart
-=================
-*/
-void Hunk_ClearToMark()
-{
-	hunk_low.permanent = hunk_low.temp = hunk_low.mark;
-	hunk_high.permanent = hunk_high.temp = hunk_high.mark;
-}
-
-void SV_ShutdownGameProgs();
-
-/*
-=================
-Hunk_Clear
-
-The server calls this before shutting down or loading a new map
-=================
-*/
 void Hunk_Clear()
 {
-#ifdef BUILD_GRAPHICAL_CLIENT // TODO(slipher): Should either of these also happen for tty client?
-	CL_ShutdownCGame();
-#endif
-	SV_ShutdownGameProgs();
-#ifdef BUILD_GRAPHICAL_CLIENT
-	CIN_CloseAllVideos();
-#endif
-	hunk_low.mark = 0;
 	hunk_low.permanent = 0;
 	hunk_low.temp = 0;
 	hunk_low.tempHighwater = 0;
 
-	hunk_high.mark = 0;
 	hunk_high.permanent = 0;
 	hunk_high.temp = 0;
 	hunk_high.tempHighwater = 0;
@@ -568,6 +523,26 @@ void Hunk_Clear()
 	com_hunkusedvalue = hunk_low.permanent + hunk_high.permanent;
 
 	Log::Debug( "Hunk_Clear: reset the hunk ok" );
+}
+
+/*
+=================
+Hunk_ShutDownRandomStuffAndClear
+
+The server calls this before shutting down or loading a new map
+=================
+*/
+void Hunk_ShutDownRandomStuffAndClear()
+{
+#ifdef BUILD_GRAPHICAL_CLIENT // TODO(slipher): Should either of these also happen for tty client?
+	CL_ShutdownCGame();
+#endif
+	void SV_ShutdownGameProgs();
+	SV_ShutdownGameProgs();
+#ifdef BUILD_GRAPHICAL_CLIENT
+	CIN_CloseAllVideos();
+#endif
+	Hunk_Clear();
 }
 
 static void Hunk_SwapBanks()
@@ -603,7 +578,7 @@ void           *Hunk_Alloc( int size, ha_pref)
 
 	if ( s_hunkData == nullptr )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Hunk_Alloc: Hunk memory system not initialized" );
+		Sys::Error( "Hunk_Alloc: Hunk memory system not initialized" );
 	}
 
 	Hunk_SwapBanks();
@@ -613,7 +588,7 @@ void           *Hunk_Alloc( int size, ha_pref)
 
 	if ( hunk_low.temp + hunk_high.temp + size > s_hunkTotal )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "Hunk_Alloc failed on %i", size );
+		Sys::Drop( "Hunk_Alloc failed on %i", size );
 	}
 
 	if ( hunk_permanent == &hunk_low )
@@ -671,7 +646,7 @@ void           *Hunk_AllocateTempMemory( int size )
 
 	if ( hunk_temp->temp + hunk_permanent->permanent + size > s_hunkTotal )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "Hunk_AllocateTempMemory: failed on %i", size );
+		Sys::Drop( "Hunk_AllocateTempMemory: failed on %i", size );
 	}
 
 	if ( hunk_temp == &hunk_low )
@@ -723,13 +698,13 @@ void Hunk_FreeTempMemory( void *buf )
 
 	if ( hdr->magic != (int) HUNK_MAGIC )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Hunk_FreeTempMemory: bad magic" );
+		Sys::Error( "Hunk_FreeTempMemory: bad magic" );
 	}
 
 	hdr->magic = HUNK_FREE_MAGIC;
 
 	// this only works if the files are freed in stack order,
-	// otherwise the memory will stay around until Hunk_ClearTempMemory
+	// otherwise the memory will stay around until Hunk_Clear
 	if ( hunk_temp == &hunk_low )
 	{
 		if ( hdr == ( void * )( s_hunkData + hunk_temp->temp - hdr->size ) )
@@ -753,6 +728,8 @@ void Hunk_FreeTempMemory( void *buf )
 		}
 	}
 }
+
+#endif // !BUILD_SERVER
 
 /*
 ===================================================================
@@ -975,7 +952,7 @@ void Com_EventLoop()
 		switch ( ev->type )
 		{
 			default:
-				Com_Error( errorParm_t::ERR_FATAL, "Com_EventLoop: bad event type %s", Util::enum_str(ev->type) );
+				Sys::Error( "Com_EventLoop: bad event type %s", Util::enum_str(ev->type) );
 
 			case sysEventType_t::SE_KEY:
 			{
@@ -1052,11 +1029,11 @@ static void Com_Error_f()
 {
 	if ( Cmd_Argc() > 1 )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "Testing drop error" );
+		Sys::Drop( "Testing drop error" );
 	}
 	else
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Testing fatal error" );
+		Sys::Error( "Testing fatal error" );
 	}
 }
 
@@ -1161,8 +1138,10 @@ void Com_Init( char *commandLine )
 
 	Trans_Init();
 
+#ifndef BUILD_SERVER
 	// allocate the stack based hunk allocator
 	Com_InitHunkMemory();
+#endif
 	Trans_LoadDefaultLanguage();
 
 	// if any archived cvars are modified after this, we will trigger a writing

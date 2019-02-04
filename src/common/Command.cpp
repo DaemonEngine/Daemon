@@ -377,6 +377,9 @@ namespace Cmd {
     }
 
     const std::string& Args::Argv(int argNum) const {
+        // Cmd_Argv() returns an empty string for an out of bounds index.
+        // Try to catch porting issues with an assert.
+        ASSERT_LT(static_cast<size_t>(argNum), args.size());
         return args[argNum];
     }
 

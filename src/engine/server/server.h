@@ -253,7 +253,7 @@ struct serverStatic_t
 	client_t      *clients; // [sv_maxclients->integer];
 	int           numSnapshotEntities; // sv_maxclients->integer*PACKET_BACKUP*MAX_PACKET_ENTITIES
 	int           nextSnapshotEntities; // next snapshotEntities to use
-	entityState_t *snapshotEntities; // [numSnapshotEntities]
+	std::unique_ptr<entityState_t[]> snapshotEntities; // [numSnapshotEntities]
 	int           nextHeartbeatTime;
 	receipt_t     infoReceipts[ MAX_INFO_RECEIPTS ];
 

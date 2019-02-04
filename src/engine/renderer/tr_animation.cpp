@@ -181,8 +181,8 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *
 
 		if ( channel->parentIndex >= anim->numChannels )
 		{
-			ri.Error( errorParm_t::ERR_DROP, "RE_RegisterAnimation: '%s' has channel '%s' with bad parent index %i while numBones is %i",
-			          name, channel->name, channel->parentIndex, anim->numChannels );
+			Sys::Drop( "RE_RegisterAnimation: '%s' has channel '%s' with bad parent index %i while numBones is %i",
+			           name, channel->name, channel->parentIndex, anim->numChannels );
 		}
 
 		token = COM_ParseExt2( &buf_p, false );
@@ -567,8 +567,9 @@ skelAnimation_t *R_GetAnimationByHandle( qhandle_t index )
 	skelAnimation_t *anim;
 
 	// out of range gets the default animation
-	if ( index < 1 || index >= tr.numAnimations )
+	if ( index < 0 || index >= tr.numAnimations )
 	{
+		Log::Warn("R_GetAnimationByHandle: index=%d out of range", index);
 		return tr.animations[ 0 ];
 	}
 

@@ -53,7 +53,7 @@ void SV_SetConfigstring( int index, const char *val )
 {
 	if ( index < 0 || index >= MAX_CONFIGSTRINGS )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_SetConfigstring: bad index %i", index );
+		Sys::Drop( "SV_SetConfigstring: bad index %i", index );
 	}
 
 	if ( !val )
@@ -158,12 +158,12 @@ void SV_GetConfigstring( int index, char *buffer, int bufferSize )
 {
 	if ( bufferSize < 1 )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetConfigstring: bufferSize == %i", bufferSize );
+		Sys::Drop( "SV_GetConfigstring: bufferSize == %i", bufferSize );
 	}
 
 	if ( index < 0 || index >= MAX_CONFIGSTRINGS )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetConfigstring: bad index %i", index );
+		Sys::Drop( "SV_GetConfigstring: bad index %i", index );
 	}
 
 	if ( !sv.configstrings[ index ] )
@@ -185,7 +185,7 @@ void SV_SetUserinfo( int index, const char *val )
 {
 	if ( index < 0 || index >= sv_maxclients->integer )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_SetUserinfo: bad index %i", index );
+		Sys::Drop( "SV_SetUserinfo: bad index %i", index );
 	}
 
 	if ( !val )
@@ -207,12 +207,12 @@ void SV_GetUserinfo( int index, char *buffer, int bufferSize )
 {
 	if ( bufferSize < 1 )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetUserinfo: bufferSize == %i", bufferSize );
+		Sys::Drop( "SV_GetUserinfo: bufferSize == %i", bufferSize );
 	}
 
 	if ( index < 0 || index >= sv_maxclients->integer )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetUserinfo: bad index %i", index );
+		Sys::Drop( "SV_GetUserinfo: bad index %i", index );
 	}
 
 	Q_strncpyz( buffer, svs.clients[ index ].userinfo, bufferSize );
@@ -229,12 +229,12 @@ void SV_GetPlayerPubkey( int clientNum, char *pubkey, int size )
 {
 	if ( size < 1 )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetPlayerPubkey: size == %i", size );
+		Sys::Drop( "SV_GetPlayerPubkey: size == %i", size );
 	}
 
 	if ( clientNum < 0 || clientNum >= sv_maxclients->integer )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_GetPlayerPubkey: bad clientNum %i", clientNum );
+		Sys::Drop( "SV_GetPlayerPubkey: bad clientNum %i", clientNum );
 	}
 
 	Q_strncpyz( pubkey, svs.clients[ clientNum ].pubkey, size );
@@ -310,7 +310,7 @@ void SV_Startup()
 {
 	if ( svs.initialized )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "SV_Startup: svs.initialized" );
+		Sys::Error( "SV_Startup: svs.initialized" );
 	}
 
 	SV_BoundMaxClients( 1 );
@@ -320,7 +320,7 @@ void SV_Startup()
 
 	if ( !svs.clients )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
+		Sys::Error( "SV_Startup: unable to allocate svs.clients" );
 	}
 
 	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
@@ -343,28 +343,20 @@ SV_ChangeMaxClients
 */
 void SV_ChangeMaxClients()
 {
-	int      oldMaxClients;
-	int      i;
-	client_t *oldClients;
-	int      count;
-
 	// get the highest client number in use
-	count = 0;
+	int count = 0;
 
-	for ( i = 0; i < sv_maxclients->integer; i++ )
+	for ( int i = 0; i < sv_maxclients->integer; i++ )
 	{
 		if ( svs.clients[ i ].state >= clientState_t::CS_CONNECTED )
 		{
-			if ( i > count )
-			{
-				count = i;
-			}
+			count = i;
 		}
 	}
 
 	count++;
 
-	oldMaxClients = sv_maxclients->integer;
+	int oldMaxClients = sv_maxclients->integer;
 	// never go below the highest client number in use
 	SV_BoundMaxClients( count );
 
@@ -374,47 +366,27 @@ void SV_ChangeMaxClients()
 		return;
 	}
 
-	oldClients = ( client_t * ) Hunk_AllocateTempMemory( count * sizeof( client_t ) );
-
-	// copy the clients to hunk memory
-	for ( i = 0; i < count; i++ )
-	{
-		if ( svs.clients[ i ].state >= clientState_t::CS_CONNECTED )
-		{
-			oldClients[ i ] = std::move(svs.clients[ i ]);
-		}
-		else
-		{
-			Com_Memset( &oldClients[ i ], 0, sizeof( client_t ) );
-		}
-	}
-
-	// free old clients arrays
-	//Z_Free( svs.clients );
-	free( svs.clients );  // RF, avoid trying to allocate large chunk on a fragmented zone
+	client_t* oldClients = svs.clients;
 
 	// allocate new clients
-	// RF, avoid trying to allocate large chunk on a fragmented zone
-	svs.clients = ( client_t * ) calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
+	svs.clients = ( client_t * ) calloc( sv_maxclients->integer, sizeof( client_t ) );
 
 	if ( !svs.clients )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
+		Sys::Error( "SV_Startup: unable to allocate svs.clients" );
 	}
 
-	Com_Memset( svs.clients, 0, sv_maxclients->integer * sizeof( client_t ) );
-
 	// copy the clients over
-	for ( i = 0; i < count; i++ )
+	for ( int i = 0; i < count; i++ )
 	{
 		if ( oldClients[ i ].state >= clientState_t::CS_CONNECTED )
 		{
-			svs.clients[ i ] = std::move(oldClients[ i ]);
+			svs.clients[ i ] = oldClients[ i ];
 		}
 	}
 
-	// free the old clients on the hunk
-	Hunk_FreeTempMemory( oldClients );
+	// free the old clients
+	free( oldClients );
 
 	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
 }
@@ -459,8 +431,10 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	PrintBanner( "Server Initialization" )
 	Log::Notice( "Server: %s", server );
 
+#ifndef BUILD_SERVER
 	// clear the whole hunk because we're (re)loading the server
-	Hunk_Clear();
+	Hunk_ShutDownRandomStuffAndClear();
+#endif
 
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
 	// also print some status stuff
@@ -493,8 +467,8 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 		}
 	}
 
-	// allocate the snapshot entities on the hunk
-	svs.snapshotEntities = ( entityState_t * ) Hunk_Alloc( sizeof( entityState_t ) * svs.numSnapshotEntities, ha_pref::h_high );
+	// allocate the snapshot entities
+	svs.snapshotEntities.reset(new entityState_t[svs.numSnapshotEntities]);
 	svs.nextSnapshotEntities = 0;
 
 	// toggle the server bit so clients can detect that a
@@ -515,7 +489,7 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
 	if (!FS_LoadPak(pakname.c_str()))
-		Com_Error(errorParm_t::ERR_DROP, "Could not load map pak\n");
+		Sys::Drop("Could not load map pak\n");
 
 	CM_LoadMap(server);
 
@@ -618,8 +592,6 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 
 	// send a heartbeat now so the master will get up to date info
 	SV_Heartbeat_f();
-
-	Hunk_SetMark();
 
 	SV_UpdateConfigStrings();
 
@@ -794,7 +766,8 @@ void SV_Shutdown( const char *finalmsg )
 		free( svs.clients );
 	}
 
-	memset( &svs, 0, sizeof( svs ) );
+	svs.~serverStatic_t();
+	new(&svs) serverStatic_t{};
 	svs.serverLoad = -1;
 	ChallengeManager::Clear();
 

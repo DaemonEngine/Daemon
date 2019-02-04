@@ -299,9 +299,8 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	}
 	else
 	{
-		ri.Error(errorParm_t::ERR_DROP, "%sUnknown attribute layout for vbo: %s\n",
-			Color::ToString( Color::Yellow ).c_str(),
-			vbo->name );
+		Sys::Drop("%sUnknown attribute layout for vbo: %s\n",
+		          Color::ToString( Color::Yellow ), vbo->name );
 	}
 }
 
@@ -516,7 +515,7 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateDynamicVBO: \"%s\" is too long", name );
+		Sys::Drop( "R_CreateDynamicVBO: \"%s\" is too long", name );
 	}
 
 	// make sure the render thread is stopped
@@ -570,7 +569,7 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateVBO: \"%s\" is too long", name );
+		Sys::Drop( "R_CreateVBO: \"%s\" is too long", name );
 	}
 
 	// make sure the render thread is stopped
@@ -633,7 +632,7 @@ VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *ve
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateVBO2: \"%s\" is too long", name );
+		Sys::Drop( "R_CreateVBO2: \"%s\" is too long", name );
 	}
 
 	// make sure the render thread is stopped
@@ -686,7 +685,7 @@ IBO_t *R_CreateDynamicIBO( const char *name, int numIndexes )
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateIBO: \"%s\" is too long", name );
+		Sys::Drop( "R_CreateIBO: \"%s\" is too long", name );
 	}
 
 	// make sure the render thread is stopped
@@ -736,7 +735,7 @@ IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateIBO: \"%s\" is too long", name );
+		Sys::Drop( "R_CreateIBO: \"%s\" is too long", name );
 	}
 
 	// make sure the render thread is stopped
@@ -780,7 +779,7 @@ IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexe
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_CreateIBO2: \"%s\" is too long", name );
+		Sys::Drop( "R_CreateIBO2: \"%s\" is too long", name );
 	}
 
 	// make sure the render thread is stopped
@@ -820,7 +819,7 @@ void R_BindVBO( VBO_t *vbo )
 {
 	if ( !vbo )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_BindNullVBO: NULL vbo" );
+		Sys::Drop( "R_BindNullVBO: NULL vbo" );
 	}
 
 	if ( r_logFile->integer )
@@ -871,7 +870,7 @@ void R_BindIBO( IBO_t *ibo )
 {
 	if ( !ibo )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_BindIBO: NULL ibo" );
+		Sys::Drop( "R_BindIBO: NULL ibo" );
 	}
 
 	if ( r_logFile->integer )

@@ -76,7 +76,7 @@ void SV_BotFreeClient( int clientNum )
 
 	if ( clientNum < 0 || clientNum >= sv_maxclients->integer )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "SV_BotFreeClient: bad clientNum: %i", clientNum );
+		Sys::Drop( "SV_BotFreeClient: bad clientNum: %i", clientNum );
 	}
 
 	cl = &svs.clients[ clientNum ];

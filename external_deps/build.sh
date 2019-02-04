@@ -630,8 +630,8 @@ setup_msvc32() {
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
 	export CC="i686-w64-mingw32-gcc -static-libgcc"
 	export CXX="i686-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-m32"
-	export CXXFLAGS="-m32"
+	export CFLAGS="-m32 -msse2 -mpreferred-stack-boundary=2"
+	export CXXFLAGS="-m32 -msse2 -mpreferred-stack-boundary=2"
 	export LDFLAGS="-m32"
 	common_setup
 }
@@ -655,8 +655,8 @@ setup_mingw32() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
 	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m32"
-	export CXXFLAGS="-m32"
+	export CFLAGS="-m32 -msse2"
+	export CXXFLAGS="-m32 -msse2"
 	export LDFLAGS="-m32"
 	common_setup
 }

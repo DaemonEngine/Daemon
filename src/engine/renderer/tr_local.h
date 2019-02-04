@@ -573,10 +573,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	struct image_t
 	{
-		char name[ 1024 ]; // formerly MAX_QPATH, game path, including extension
-		// can contain stuff like this now:
-		// addnormals ( textures/base_floor/stetile4_local.tga ,
-		// heightmap ( textures/base_floor/stetile4_bmp.tga , 4 ) )
+		char name[ MAX_QPATH ];
 
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
@@ -1374,9 +1371,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int                     numPolys;
 		struct srfPoly_t        *polys;
 
-		int                     numPolybuffers;
-		struct srfPolyBuffer_t  *polybuffers;
-
 		int                     decalBits; // ydnar: optimization
 		int                     numDecalProjectors;
 		struct decalProjector_t *decalProjectors;
@@ -1523,7 +1517,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  SF_TRIANGLES,
 
 	  SF_POLY,
-	  SF_POLYBUFFER,
 	  SF_DECAL, // ydnar: decal surfaces
 
 	  SF_MDV,
@@ -1695,13 +1688,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int16_t       numVerts;
 		int16_t       fogIndex;
 		polyVert_t    *verts;
-	};
-
-	struct srfPolyBuffer_t
-	{
-		surfaceType_t surfaceType;
-		int16_t       fogIndex;
-		polyBuffer_t  *pPolyBuffer;
 	};
 
 // ydnar: decals
@@ -3004,7 +2990,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void           R_AddMDVInteractions( trRefEntity_t *e, trRefLight_t *light, interactionType_t iaType );
 
 	void           R_AddPolygonSurfaces();
-	void           R_AddPolygonBufferSurfaces();
 
 	void           R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum );
 
@@ -3581,8 +3566,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 
-	void RE_AddPolyBufferToScene( polyBuffer_t *pPolyBuffer );
-
 	void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
 	void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float intensity, float r, float g, float b );
 
@@ -3772,7 +3755,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int        y;
 		int        width;
 		int        height;
-		char       *fileName;
+		char       fileName[MAX_OSPATH];
 		ssFormat_t format;
 	};
 	struct VideoFrameCommand : public RenderCommand {
@@ -3838,7 +3821,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		srfPoly_t           *polys; //[MAX_POLYS];
 		polyVert_t          *polyVerts; //[MAX_POLYVERTS];
 		int                 *polyIndexes; //[MAX_POLYVERTS];
-		srfPolyBuffer_t     *polybuffers; //[MAX_POLYS];
 
 		decalProjector_t    decalProjectors[ MAX_DECAL_PROJECTORS ];
 		srfDecal_t          decals[ MAX_DECALS ];
@@ -3888,7 +3870,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void                                LoadTGA( const char *name, byte **pic, int *width, int *height, int *numLayers, int *numMips, int *bits, byte alphaByte );
 
 	void                                LoadJPG( const char *filename, unsigned char **pic, int *width, int *height, int *numLayers, int *numMips, int *bits, byte alphaByte );
-	void                                SaveJPG( char *filename, int quality, int image_width, int image_height, unsigned char *image_buffer );
+	void                                SaveJPG( const char *filename, int quality, int image_width, int image_height, unsigned char *image_buffer );
 	int                                 SaveJPGToBuffer( byte *buffer, size_t bufferSize, int quality, int image_width, int image_height, byte *image_buffer );
 
 	void                                LoadPNG( const char *name, byte **pic, int *width, int *height, int *numLayers, int *numMips, int *bits, byte alphaByte );

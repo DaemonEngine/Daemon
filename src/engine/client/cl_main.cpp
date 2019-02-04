@@ -263,7 +263,7 @@ void CL_AddReliableCommand( const char *cmd )
 	// we must drop the connection
 	if ( clc.reliableSequence - clc.reliableAcknowledge > MAX_RELIABLE_COMMANDS )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "Client command overflow" );
+		Sys::Drop( "Client command overflow" );
 	}
 
 	clc.reliableSequence++;
@@ -587,7 +587,7 @@ void CL_ReadDemoMessage()
 
 	if ( buf.cursize > buf.maxsize )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_ReadDemoMessage: demoMsglen > MAX_MSGLEN" );
+		Sys::Drop( "CL_ReadDemoMessage: demoMsglen > MAX_MSGLEN" );
 	}
 
 	r = FS_Read( buf.data, buf.cursize, clc.demofile );
@@ -645,7 +645,7 @@ class DemoPlayCmd: public Cmd::StaticCmd {
             }
 
             if (!clc.demofile) {
-                Com_Error(errorParm_t::ERR_DROP, "couldn't open %s", name);
+                Sys::Drop("couldn't open %s", name);
             }
 
             Q_strncpyz(clc.demoName, arg, sizeof(clc.demoName));
@@ -754,14 +754,14 @@ void CL_FlushMemory()
 	if ( !com_sv_running->integer )
 	{
 		// clear the whole hunk
-		Hunk_Clear();
+		Hunk_ShutDownRandomStuffAndClear();
 		// clear collision map data
 		CM_ClearMap();
 	}
 	else
 	{
 		// clear all the client data on the hunk
-		Hunk_ClearToMark();
+		Hunk_Clear();
 	}
 
 	CL_StartHunkUsers();
@@ -1437,14 +1437,14 @@ static void CL_GenerateRSAKeys( const char *fileName )
 
 	if ( !rsa_generate_keypair( &public_key, &private_key, nullptr, qnettle_random, nullptr, nullptr, RSA_KEY_LENGTH, 0 ) )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Error generating RSA keypair" );
+		Sys::Error( "Error generating RSA keypair" );
 	}
 
 	nettle_buffer_init( &key_buffer );
 
 	if ( !rsa_keypair_to_sexp( &key_buffer, nullptr, &public_key, &private_key ) )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Error converting RSA keypair to sexp" );
+		Sys::Error( "Error converting RSA keypair to sexp" );
 	}
 
 	Log::Notice( "^5Regenerating RSA keypair; writing to %s\n" , fileName );
@@ -1459,7 +1459,7 @@ static void CL_GenerateRSAKeys( const char *fileName )
 
 	if ( !f )
 	{
-		Com_Error( errorParm_t::ERR_FATAL, "Daemon could not open %s for writing the RSA keypair", RSAKEY_FILE );
+		Sys::Error( "Daemon could not open %s for writing the RSA keypair", RSAKEY_FILE );
 	}
 
 	FS_Write( key_buffer.contents, key_buffer.size, f );
@@ -1572,12 +1572,13 @@ void CL_Vid_Restart_f()
 	if ( !com_sv_running->integer )
 	{
 		// clear the whole hunk
-		Hunk_Clear();
+		// BUT DO WE REALLY WANT TO SHUT DOWN RANDOM STUFF TOO?
+		Hunk_ShutDownRandomStuffAndClear();
 	}
 	else
 	{
 		// clear all the client data on the hunk
-		Hunk_ClearToMark();
+		Hunk_Clear();
 	}
 
 	// startup all the client stuff
@@ -1611,14 +1612,14 @@ void CL_Snd_Restart_f()
 	if( !cls.cgameStarted )
 	{
 		if (!Audio::Init()) {
-			Com_Error(errorParm_t::ERR_FATAL, "Couldn't initialize the audio subsystem.");
+			Sys::Error("Couldn't initialize the audio subsystem.");
 		}
 		//TODO S_BeginRegistration()
 	}
 	else
 	{
 		if (!Audio::Init()) {
-			Com_Error(errorParm_t::ERR_FATAL, "Couldn't initialize the audio subsystem.");
+			Sys::Error("Couldn't initialize the audio subsystem.");
 		}
 		CL_Vid_Restart_f();
 	}
@@ -1797,8 +1798,6 @@ void CL_DownloadsComplete()
 
 	// flush client memory and start loading stuff
 	// this will also (re)load the UI
-	// if this is a local client then only the client part of the hunk
-	// will be cleared, note that this is done after the hunk mark has been set
 	CL_FlushMemory();
 
 	// initialize the CGame
@@ -2007,7 +2006,7 @@ void CL_CheckForResend()
 			break;
 		}
 		default:
-			Com_Error( errorParm_t::ERR_FATAL, "CL_CheckForResend: bad cls.state" );
+			Sys::Error( "CL_CheckForResend: bad cls.state" );
 	}
 }
 
@@ -2087,7 +2086,7 @@ void CL_PrintPacket( msg_t *msg )
 	{
 		Q_strncpyz( clc.serverMessage, s + 12, sizeof( clc.serverMessage ) );
 		// Cvar_Set("com_errorMessage", clc.serverMessage );
-		Com_Error( errorParm_t::ERR_DROP, "%s", clc.serverMessage );
+		Sys::Drop( "%s", clc.serverMessage );
 	}
 	else
 	{
@@ -2876,7 +2875,7 @@ void CL_WWWDownload()
 
 			cls.bWWWDlDisconnected = false; // need clearing structs before ERR_DROP, or it goes into endless reload
 			CL_ClearStaticDownload();
-			Com_Error( errorParm_t::ERR_DROP, "%s", error );
+			Sys::Drop( "%s", error );
 		}
 		else
 		{
@@ -3082,14 +3081,14 @@ void CL_StartHunkUsers()
 	if ( !cls.rendererStarted )
 	{
 		CL_ShutdownRef();
-		Com_Error( errorParm_t::ERR_FATAL, "Couldn't load a renderer" );
+		Sys::Error( "Couldn't load a renderer" );
 	}
 
 	if ( !cls.soundStarted )
 	{
 		cls.soundStarted = true;
 		if (!Audio::Init()) {
-			Com_Error(errorParm_t::ERR_FATAL, "Couldn't initialize the audio subsystem.");
+			Sys::Error("Couldn't initialize the audio subsystem.");
 		}
 	}
 
@@ -3151,15 +3150,12 @@ bool CL_InitRef( )
 	ri.Cmd_Argv = Cmd_Argv;
 	ri.Cmd_QuoteString = Cmd_QuoteString;
 
-	ri.Error = Com_Error;
-
 	ri.Milliseconds = CL_ScaledMilliseconds;
 	ri.RealTime = Com_RealTime;
 
 	ri.Z_Malloc = CL_RefMalloc;
 	ri.Free = Z_Free;
 	ri.Tag_Free = CL_RefTagFree;
-	ri.Hunk_Clear = Hunk_ClearToMark;
 	ri.Hunk_Alloc = Hunk_Alloc;
 	ri.Hunk_AllocateTempMemory = Hunk_AllocateTempMemory;
 	ri.Hunk_FreeTempMemory = Hunk_FreeTempMemory;
@@ -3256,8 +3252,6 @@ void CL_Init()
 	cls.realtime = 0;
 
 	CL_InitInput();
-
-	CL_IRCSetup();
 
 	CL_LoadRSAKeys();
 
@@ -3385,10 +3379,6 @@ void CL_Init()
 	Cmd_AddCommand( "serverstatus", CL_ServerStatus_f );
 	Cmd_AddCommand( "showip", CL_ShowIP_f );
 
-	Cmd_AddCommand( "irc_connect", CL_InitIRC );
-	Cmd_AddCommand( "irc_quit", CL_IRCInitiateShutdown );
-	Cmd_AddCommand( "irc_say", CL_IRCSay );
-
 	Cmd_AddCommand( "updatescreen", SCR_UpdateScreen );
 	// done.
 
@@ -3443,8 +3433,6 @@ void CL_Shutdown()
 
 	CL_ShutdownRef();
 
-	CL_IRCInitiateShutdown();
-
 	Cmd_RemoveCommand( "cmd" );
 	Cmd_RemoveCommand( "configstrings" );
 	Cmd_RemoveCommand( "userinfo" );
@@ -3467,8 +3455,6 @@ void CL_Shutdown()
 	CL_ClearRSAKeys();
 
 	// done.
-
-	CL_IRCWaitShutdown();
 
 	Cvar_Set( "cl_running", "0" );
 

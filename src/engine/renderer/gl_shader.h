@@ -200,7 +200,7 @@ public:
 	{
 		if ( _compileMacros.size() >= MAX_SHADER_MACROS )
 		{
-			ri.Error( errorParm_t::ERR_DROP, "Can't register more than %u compile macros for a single shader", MAX_SHADER_MACROS );
+			Sys::Drop( "Can't register more than %u compile macros for a single shader", MAX_SHADER_MACROS );
 		}
 
 		_compileMacros.push_back( compileMacro );

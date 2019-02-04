@@ -68,7 +68,7 @@ bool CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd )
 	// can't return anything that we haven't created yet
 	if ( cmdNumber > cl.cmdNumber )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_GetUserCmd: %i >= %i", cmdNumber, cl.cmdNumber );
+		Sys::Drop( "CL_GetUserCmd: %i >= %i", cmdNumber, cl.cmdNumber );
 	}
 
 	// the usercmd has been overwritten in the wrapping
@@ -96,14 +96,14 @@ CL_ConfigstringModified
 void CL_ConfigstringModified( Cmd::Args& csCmd )
 {
 	if (csCmd.Argc() < 3) {
-		Com_Error( errorParm_t::ERR_DROP, "CL_ConfigstringModified: wrong command received" );
+		Sys::Drop( "CL_ConfigstringModified: wrong command received" );
 	}
 
 	int index = atoi( csCmd.Argv(1).c_str() );
 
 	if ( index < 0 || index >= MAX_CONFIGSTRINGS )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_ConfigstringModified: bad index %i", index );
+		Sys::Drop( "CL_ConfigstringModified: bad index %i", index );
 	}
 
 	if ( cl.gameState[index] == csCmd.Argv(2) )
@@ -140,9 +140,9 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 	if (cmd == "disconnect") {
 		// NERVE - SMF - allow server to indicate why they were disconnected
 		if (argc >= 2) {
-			Com_Error(errorParm_t::ERR_SERVERDISCONNECT, "Server disconnected: %s", args.Argv(1).c_str());
+			Sys::Drop("Server disconnected: %s", args.Argv(1).c_str());
 		} else {
-			Com_Error(errorParm_t::ERR_SERVERDISCONNECT, "Server disconnected");
+			Sys::Drop("Server disconnected");
 		}
 	}
 
@@ -163,7 +163,7 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 			const char* s = Cmd_QuoteString( args[2].c_str() );
 
 			if (strlen(bigConfigString) + strlen(s) >= BIG_INFO_STRING) {
-				Com_Error(errorParm_t::ERR_DROP, "bcs exceeded BIG_INFO_STRING");
+				Sys::Drop("bcs exceeded BIG_INFO_STRING");
 			}
 
 			Q_strcat(bigConfigString, sizeof(bigConfigString), s);
@@ -176,7 +176,7 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 			const char* s = Cmd_QuoteString( args[2].c_str() );
 
 			if (strlen(bigConfigString) + strlen(s) + 1 >= BIG_INFO_STRING) {
-				Com_Error(errorParm_t::ERR_DROP, "bcs exceeded BIG_INFO_STRING");
+				Sys::Drop("bcs exceeded BIG_INFO_STRING");
 			}
 
 			Q_strcat(bigConfigString, sizeof(bigConfigString), s);
@@ -248,12 +248,12 @@ void CL_FillServerCommands(std::vector<std::string>& commands, int start, int en
 			return;
 		}
 
-		Com_Error( errorParm_t::ERR_DROP, "CL_FillServerCommand: a reliable command was cycled out" );
+		Sys::Drop( "CL_FillServerCommand: a reliable command was cycled out" );
 	}
 
 	if ( end > clc.serverCommandSequence )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_FillServerCommand: requested a command not received" );
+		Sys::Drop( "CL_FillServerCommand: requested a command not received" );
 	}
 
 	for (int i = start; i <= end; i++) {
@@ -277,7 +277,7 @@ bool CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
 
 	if ( snapshotNumber > cl.snap.messageNum )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_GetSnapshot: snapshotNumber > cl.snapshot.messageNum" );
+		Sys::Drop( "CL_GetSnapshot: snapshotNumber > cl.snapshot.messageNum" );
 	}
 
 	// if the frame has fallen out of the circular buffer, we can't return it
@@ -875,7 +875,7 @@ void CL_SetCGameTime()
 	// if we have gotten to this point, cl.snap is guaranteed to be valid
 	if ( !cl.snap.valid )
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_SetCGameTime: !cl.snap.valid" );
+		Sys::Drop( "CL_SetCGameTime: !cl.snap.valid" );
 	}
 
 	if ( sv_paused->integer && cl_paused->integer && com_sv_running->integer )
@@ -894,7 +894,7 @@ void CL_SetCGameTime()
 		}
 		else
 		{
-			Com_Error( errorParm_t::ERR_DROP, "cl.snap.serverTime < cl.oldFrameServerTime" );
+			Sys::Drop( "cl.snap.serverTime < cl.oldFrameServerTime" );
 		}
 	}
 
@@ -987,7 +987,7 @@ CL_SendBinaryMessage
 static void CL_SendBinaryMessage(std::vector<uint8_t> message)
 {
 	if (message.size() > MAX_BINARY_MESSAGE) {
-		Com_Error(errorParm_t::ERR_DROP, "CL_SendBinaryMessage: bad length %zi", message.size());
+		Sys::Drop("CL_SendBinaryMessage: bad length %zi", message.size());
 	}
 
 	memcpy(clc.binaryMessage, message.data(), clc.binaryMessageLength = message.size());
@@ -1051,7 +1051,7 @@ void CGameVM::Start()
 	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "CGame", Cmd::CGAME_VM));
 	uint32_t version = this->Create();
 	if ( version != CGAME_API_VERSION ) {
-		Com_Error( errorParm_t::ERR_DROP, "CGame ABI mismatch, expected %d, got %d", CGAME_API_VERSION, version );
+		Sys::Drop( "CGame ABI mismatch, expected %d, got %d", CGAME_API_VERSION, version );
 	}
 	this->CGameStaticInit();
 }

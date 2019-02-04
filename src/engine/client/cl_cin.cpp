@@ -138,7 +138,7 @@ static int CIN_HandleForVideo()
 		}
 	}
 
-	Com_Error( errorParm_t::ERR_DROP, "CIN_HandleForVideo: none free" );
+	Sys::Drop( "CIN_HandleForVideo: none free" );
 }
 
 extern int CL_ScaledMilliseconds();

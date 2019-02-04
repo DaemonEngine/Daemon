@@ -170,7 +170,7 @@ void SV_DirectConnect( netadr_t from, const Cmd::Args& args )
 				}
 				else
 				{
-					Com_Error( errorParm_t::ERR_FATAL, "server is full on local connect" );
+					Sys::Error( "server is full on local connect" );
 				}
 			}
 			else

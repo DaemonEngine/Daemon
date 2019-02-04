@@ -644,15 +644,13 @@ static inline void Z_Free(void* ptr)
   free(ptr);
 }
 
+#ifndef BUILD_SERVER
 void     Hunk_Clear();
-void     Hunk_ClearToMark();
-void     Hunk_SetMark();
-
-//void *Hunk_Alloc( int size );
-// void *Hunk_Alloc( int size, ha_pref preference );
-void   Hunk_ClearTempMemory();
+void Hunk_ShutDownRandomStuffAndClear();
+void *Hunk_Alloc( int size, ha_pref preference );
 void   *Hunk_AllocateTempMemory( int size );
 void   Hunk_FreeTempMemory( void *buf );
+#endif
 
 // commandLine should not include the executable name (argv[0])
 void   Com_Init( char *commandLine );

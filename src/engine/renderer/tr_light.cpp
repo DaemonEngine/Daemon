@@ -473,7 +473,7 @@ void R_SetupLightView( trRefLight_t *light )
 				break;
 			}
 		default:
-			ri.Error(errorParm_t::ERR_DROP, "R_SetupLightView: Bad rlType" );
+			Sys::Drop( "R_SetupLightView: Bad rlType" );
 	}
 }
 
@@ -850,7 +850,7 @@ void R_SetupLightProjection( trRefLight_t *light )
 			}
 
 		default:
-			ri.Error(errorParm_t::ERR_DROP, "R_SetupLightProjection: Bad rlType" );
+			Sys::Drop( "R_SetupLightProjection: Bad rlType" );
 	}
 }
 

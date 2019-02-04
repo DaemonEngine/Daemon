@@ -38,9 +38,6 @@ static int r_firstScenePoly;
 int        r_numPolyVerts;
 int        r_numPolyIndexes;
 
-int        r_firstScenePolybuffer;
-int        r_numPolybuffers;
-
 // ydnar: decals
 int        r_firstSceneDecalProjector;
 int        r_numDecalProjectors;
@@ -84,9 +81,6 @@ void R_ToggleSmpFrame()
 
 	r_numPolyVerts = 0;
 	r_numPolyIndexes = 0;
-
-	r_numPolybuffers = 0;
-	r_firstScenePolybuffer = 0;
 
 	// ydnar: decals
 	r_numDecalProjectors = 0;
@@ -143,29 +137,6 @@ void R_AddPolygonSurfaces()
 	{
 		sh = R_GetShaderByHandle( poly->hShader );
 		R_AddDrawSurf( ( surfaceType_t * ) poly, sh, -1, poly->fogIndex );
-	}
-}
-
-/*
-=====================
-R_AddPolygonSurfaces
-
-Adds all the scene's polys into this view's drawsurf list
-=====================
-*/
-void R_AddPolygonBufferSurfaces()
-{
-	int             i;
-	shader_t        *sh;
-	srfPolyBuffer_t *polybuffer;
-
-	tr.currentEntity = &tr.worldEntity;
-
-	for ( i = 0, polybuffer = tr.refdef.polybuffers; i < tr.refdef.numPolybuffers; i++, polybuffer++ )
-	{
-		sh = R_GetShaderByHandle( polybuffer->pPolyBuffer->shader );
-
-		R_AddDrawSurf( ( surfaceType_t * ) polybuffer, sh, -1, polybuffer->fogIndex );
 	}
 }
 
@@ -285,61 +256,6 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 	R_AddPolysToScene( hShader, numVerts, verts, numPolys );
 }
 
-/*
-=====================
-RE_AddPolyBufferToScene
-=====================
-*/
-void RE_AddPolyBufferToScene( polyBuffer_t *pPolyBuffer )
-{
-	srfPolyBuffer_t *pPolySurf;
-	int             fogIndex;
-	fog_t           *fog;
-	vec3_t          bounds[ 2 ];
-	int             i;
-
-	if ( !r_drawpolies->integer )
-	{
-		return;
-	}
-
-	if ( r_numPolybuffers >= r_maxPolyVerts->integer )
-	{
-		return;
-	}
-
-	pPolySurf = &backEndData[ tr.smpFrame ]->polybuffers[ r_numPolybuffers ];
-	r_numPolybuffers++;
-
-	pPolySurf->surfaceType = surfaceType_t::SF_POLYBUFFER;
-	pPolySurf->pPolyBuffer = pPolyBuffer;
-
-	VectorCopy( pPolyBuffer->xyz[ 0 ], bounds[ 0 ] );
-	VectorCopy( pPolyBuffer->xyz[ 0 ], bounds[ 1 ] );
-
-	for ( i = 1; i < pPolyBuffer->numVerts; i++ )
-	{
-		AddPointToBounds( pPolyBuffer->xyz[ i ], bounds[ 0 ], bounds[ 1 ] );
-	}
-
-	for ( fogIndex = 1; fogIndex < tr.world->numFogs; fogIndex++ )
-	{
-		fog = &tr.world->fogs[ fogIndex ];
-
-		if ( BoundsIntersect( bounds[ 0 ], bounds[ 1 ], fog->bounds[ 0 ], fog->bounds[ 1 ] ) )
-		{
-			break;
-		}
-	}
-
-	if ( fogIndex == tr.world->numFogs )
-	{
-		fogIndex = 0;
-	}
-
-	pPolySurf->fogIndex = fogIndex;
-}
-
 //=================================================================================
 
 /*
@@ -362,7 +278,7 @@ void RE_AddRefEntityToScene( const refEntity_t *ent )
 
 	if (ent->reType >= refEntityType_t::RT_MAX_REF_ENTITY_TYPE)
 	{
-		ri.Error(errorParm_t::ERR_DROP, "RE_AddRefEntityToScene: bad reType %s", Util::enum_str(ent->reType));
+		Sys::Drop("RE_AddRefEntityToScene: bad reType %s", Util::enum_str(ent->reType));
 	}
 
 	Com_Memcpy( &backEndData[ tr.smpFrame ]->entities[ r_numEntities ].e, ent, sizeof( refEntity_t ) );
@@ -397,7 +313,7 @@ void RE_AddRefLightToScene( const refLight_t *l )
 
 	if (l->rlType >= refLightType_t::RL_MAX_REF_LIGHT_TYPE)
 	{
-		ri.Error(errorParm_t::ERR_DROP, "RE_AddRefLightToScene: bad rlType %s", Util::enum_str(l->rlType));
+		Sys::Drop("RE_AddRefLightToScene: bad rlType %s", Util::enum_str(l->rlType));
 	}
 
 	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
@@ -570,7 +486,7 @@ void RE_RenderScene( const refdef_t *fd )
 
 	if ( !tr.world && !( fd->rdflags & RDF_NOWORLDMODEL ) )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "R_RenderScene: NULL worldmodel" );
+		Sys::Drop( "R_RenderScene: NULL worldmodel" );
 	}
 
 	tr.refdef.x = fd->x;
@@ -633,9 +549,6 @@ void RE_RenderScene( const refdef_t *fd )
 
 	tr.refdef.numPolys = r_numPolys - r_firstScenePoly;
 	tr.refdef.polys = &backEndData[ tr.smpFrame ]->polys[ r_firstScenePoly ];
-
-	tr.refdef.numPolybuffers = r_numPolybuffers - r_firstScenePolybuffer;
-	tr.refdef.polybuffers = &backEndData[ tr.smpFrame ]->polybuffers[ r_firstScenePolybuffer ];
 
 	tr.refdef.numDecalProjectors = r_numDecalProjectors - r_firstSceneDecalProjector;
 	tr.refdef.decalProjectors = &backEndData[ tr.smpFrame ]->decalProjectors[ r_firstSceneDecalProjector ];
@@ -720,7 +633,6 @@ void RE_RenderScene( const refdef_t *fd )
 	r_firstSceneEntity = r_numEntities;
 	r_firstSceneLight = r_numLights;
 	r_firstScenePoly = r_numPolys;
-	r_firstScenePolybuffer = r_numPolybuffers;
 	r_firstSceneVisTest = r_numVisTests;
 
 	tr.frontEndMsec += ri.Milliseconds() - startTime;

@@ -137,8 +137,6 @@ struct refexport_t
 
 	bool( *GetEntityToken )( char *buffer, int size );
 
-	void ( *AddPolyBufferToScene )( polyBuffer_t *pPolyBuffer );
-
 	bool( *inPVS )( const vec3_t p1, const vec3_t p2 );
 	bool( *inPVVS )( const vec3_t p1, const vec3_t p2 );
 
@@ -189,9 +187,6 @@ struct refexport_t
 //
 struct refimport_t
 {
-	// abort the game
-	void ( QDECL *Error )( errorParm_t errorLevel, const char *fmt, ... ) PRINTF_LIKE(2) NORETURN_PTR;
-
 	// milliseconds should only be used for profiling, never
 	// for anything game related.  Get time from the refdef
 	int ( *Milliseconds )();
@@ -200,7 +195,6 @@ struct refimport_t
 
 	// stack based memory allocation for per-level things that
 	// won't be freed
-	void ( *Hunk_Clear )();
 	void            *( *Hunk_Alloc )( int size, ha_pref pref );
 	void            *( *Hunk_AllocateTempMemory )( int size );
 	void ( *Hunk_FreeTempMemory )( void *block );

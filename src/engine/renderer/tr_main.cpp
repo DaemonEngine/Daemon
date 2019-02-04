@@ -2043,7 +2043,7 @@ static void R_SortDrawSurfs()
 		// no shader should ever have this sort type
 		if ( shader->sort == Util::ordinal(shaderSort_t::SS_BAD) )
 		{
-			ri.Error(errorParm_t::ERR_DROP, "Shader '%s'with sort == SS_BAD", shader->name );
+			Sys::Drop( "Shader '%s'with sort == SS_BAD", shader->name );
 		}
 
 		while ( sort < Util::ordinal( shaderSort_t::SS_NUM_SORTS ) - 1 && shader->sort > sort ) {
@@ -2180,14 +2180,14 @@ void R_AddEntitySurfaces()
 							break;
 
 						default:
-							ri.Error(errorParm_t::ERR_DROP, "R_AddEntitySurfaces: Bad modeltype" );
+							Sys::Drop( "R_AddEntitySurfaces: Bad modeltype" );
 					}
 				}
 
 				break;
 
 			default:
-				ri.Error(errorParm_t::ERR_DROP, "R_AddEntitySurfaces: Bad reType" );
+				Sys::Drop( "R_AddEntitySurfaces: Bad reType" );
 		}
 	}
 }
@@ -2278,14 +2278,14 @@ void R_AddEntityInteractions( trRefLight_t *light )
 							break;
 
 						default:
-							ri.Error(errorParm_t::ERR_DROP, "R_AddEntityInteractions: Bad modeltype" );
+							Sys::Drop( "R_AddEntityInteractions: Bad modeltype" );
 					}
 				}
 
 				break;
 
 			default:
-				ri.Error(errorParm_t::ERR_DROP, "R_AddEntityInteractions: Bad reType" );
+				Sys::Drop( "R_AddEntityInteractions: Bad reType" );
 		}
 	}
 }
@@ -2758,8 +2758,6 @@ void R_RenderView( viewParms_t *parms )
 	R_AddWorldSurfaces();
 
 	R_AddPolygonSurfaces();
-
-	R_AddPolygonBufferSurfaces();
 
 	// we have tr.viewParms.visBounds set and now we need to add the light bounds
 	// or we get wrong occlusion query results

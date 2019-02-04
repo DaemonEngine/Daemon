@@ -104,12 +104,12 @@ void Tess_CheckOverflow( int verts, int indexes )
 
 	if ( verts >= SHADER_MAX_VERTEXES )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "Tess_CheckOverflow: verts > std::max (%d > %d)", verts, SHADER_MAX_VERTEXES );
+		Sys::Drop( "Tess_CheckOverflow: verts > std::max (%d > %d)", verts, SHADER_MAX_VERTEXES );
 	}
 
 	if ( indexes >= SHADER_MAX_INDEXES )
 	{
-		ri.Error(errorParm_t::ERR_DROP, "Tess_CheckOverflow: indexes > std::max (%d > %d)", indexes, SHADER_MAX_INDEXES );
+		Sys::Drop( "Tess_CheckOverflow: indexes > std::max (%d > %d)", indexes, SHADER_MAX_INDEXES );
 	}
 
 	Tess_Begin( tess.stageIteratorFunc, tess.stageIteratorFunc2, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces, tess.skipVBO,
@@ -788,49 +788,6 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 	}
 
 	tess.numIndexes += numIndexes;
-	tess.numVertexes += numVertexes;
-}
-
-void Tess_SurfacePolybuffer( srfPolyBuffer_t *surf )
-{
-	int       i;
-	int       numIndexes;
-	int       numVertexes;
-	glIndex_t *indices;
-	float     *xyzw;
-	float     *st;
-	byte      *color;
-
-	GLimp_LogComment( "--- Tess_SurfacePolybuffer ---\n" );
-
-	Tess_CheckOverflow( surf->pPolyBuffer->numVerts, surf->pPolyBuffer->numIndicies );
-
-	numIndexes = std::min( surf->pPolyBuffer->numIndicies, MAX_PB_INDICIES );
-	indices = surf->pPolyBuffer->indicies;
-
-	for ( i = 0; i < numIndexes; i++ )
-	{
-		tess.indexes[ tess.numIndexes + i ] = tess.numVertexes + indices[ i ];
-	}
-
-	tess.numIndexes += numIndexes;
-
-	numVertexes = std::min( surf->pPolyBuffer->numVerts, MAX_PB_VERTS );
-	xyzw = &surf->pPolyBuffer->xyz[ 0 ][ 0 ];
-	st = &surf->pPolyBuffer->st[ 0 ][ 0 ];
-	color = &surf->pPolyBuffer->color[ 0 ][ 0 ];
-
-	for ( i = 0; i < numVertexes; i++, xyzw += 4, st += 2, color += 4 )
-	{
-		VectorCopy( xyzw, tess.verts[ tess.numVertexes + i ].xyz );
-
-		tess.verts[ tess.numVertexes + i ].texCoords[ 0 ] = floatToHalf( st[ 0 ] );
-		tess.verts[ tess.numVertexes + i ].texCoords[ 1 ] = floatToHalf( st[ 1 ] );
-
-		tess.verts[ tess.numVertexes + i ].color = Color::Adapt( color );
-	}
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD;
 	tess.numVertexes += numVertexes;
 }
 
@@ -1545,7 +1502,6 @@ void ( *rb_surfaceTable[ Util::ordinal(surfaceType_t::SF_NUM_SURFACE_TYPES) ] )(
 	( void ( * )( void * ) ) Tess_SurfaceGrid,  // SF_GRID,
 	( void ( * )( void * ) ) Tess_SurfaceTriangles,  // SF_TRIANGLES,
 	( void ( * )( void * ) ) Tess_SurfacePolychain,  // SF_POLY,
-	( void ( * )( void * ) ) Tess_SurfacePolybuffer,  // SF_POLYBUFFER,
 	( void ( * )( void * ) ) Tess_SurfaceDecal,  // SF_DECAL
 	( void ( * )( void * ) ) Tess_SurfaceMDV,  // SF_MDV,
 	( void ( * )( void * ) ) Tess_SurfaceMD5,  // SF_MD5,

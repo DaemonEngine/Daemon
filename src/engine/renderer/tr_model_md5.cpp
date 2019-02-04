@@ -144,8 +144,8 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 
 		if ( bone->parentIndex >= md5->numBones )
 		{
-			ri.Error(errorParm_t::ERR_DROP, "R_LoadMD5: '%s' has bone '%s' with bad parent index %i while numBones is %i", modName,
-			          bone->name, bone->parentIndex, md5->numBones );
+			Sys::Drop( "R_LoadMD5: '%s' has bone '%s' with bad parent index %i while numBones is %i", modName,
+			           bone->name, bone->parentIndex, md5->numBones );
 		}
 
 		// skip (
@@ -288,8 +288,8 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 
 		if ( surf->numVerts > SHADER_MAX_VERTEXES )
 		{
-			ri.Error(errorParm_t::ERR_DROP, "R_LoadMD5: '%s' has more than %i verts on a surface (%i)",
-			          modName, SHADER_MAX_VERTEXES, surf->numVerts );
+			Sys::Drop( "R_LoadMD5: '%s' has more than %i verts on a surface (%i)",
+			           modName, SHADER_MAX_VERTEXES, surf->numVerts );
 		}
 
 		surf->verts = (md5Vertex_t*) ri.Hunk_Alloc( sizeof( *v ) * surf->numVerts, ha_pref::h_low );
@@ -341,8 +341,8 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 
 			if ( v->numWeights > MAX_WEIGHTS )
 			{
-				ri.Error(errorParm_t::ERR_DROP, "R_LoadMD5: vertex %i requires more than %i weights on surface (%i) in model '%s'",
-				          j, MAX_WEIGHTS, i, modName );
+				Sys::Drop( "R_LoadMD5: vertex %i requires more than %i weights on surface (%i) in model '%s'",
+				           j, MAX_WEIGHTS, i, modName );
 			}
 		}
 
@@ -360,8 +360,8 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 
 		if ( surf->numTriangles > SHADER_MAX_TRIANGLES )
 		{
-			ri.Error(errorParm_t::ERR_DROP, "R_LoadMD5: '%s' has more than %i triangles on a surface (%i)",
-			          modName, SHADER_MAX_TRIANGLES, surf->numTriangles );
+			Sys::Drop( "R_LoadMD5: '%s' has more than %i triangles on a surface (%i)",
+			           modName, SHADER_MAX_TRIANGLES, surf->numTriangles );
 		}
 
 		surf->triangles = (srfTriangle_t*) ri.Hunk_Alloc( sizeof( *tri ) * surf->numTriangles, ha_pref::h_low );

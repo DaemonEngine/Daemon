@@ -425,7 +425,7 @@ void CL_JoystickEvent( int axis, int value )
 {
 	if ( axis < 0 || axis >= Util::ordinal(joystickAxis_t::MAX_JOYSTICK_AXIS))
 	{
-		Com_Error( errorParm_t::ERR_DROP, "CL_JoystickEvent: bad axis %i", axis );
+		Sys::Drop( "CL_JoystickEvent: bad axis %i", axis );
 	}
 
 	cl.joystickAxis[ axis ] = value;
