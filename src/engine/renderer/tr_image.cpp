@@ -1613,6 +1613,58 @@ static int                   numImageLoaders = ARRAY_LEN( imageLoaders );
 
 /*
 =================
+R_FindImageLoader
+
+Finds and returns an image loader for a given basename,
+tells the extra prefix that may be required to load the image.
+=================
+*/
+int R_FindImageLoader( char *baseName, const char **prefix ) {
+	const FS::PakInfo* bestPak = nullptr;
+	int i;
+
+	// Darkplaces or Doom3 packages can ship alternative texture path in the form of
+	//   dds/<path without ext>.dds
+	std::string altName = Str::Format( "dds/%s.dds", baseName );
+	bestPak = FS::PakPath::LocateFile( altName );
+
+	// If this alternative path exists, it's expected to be loaded as the best one
+	// except when it goes against Daemon's rule to load the hardcoded one if exists
+	// because this dds alternative is only supported for compatibility with
+	// third-party content
+	if ( bestPak != nullptr ) {
+		for ( i = 0; i < numImageLoaders; i++ ) {
+			if ( !Q_stricmp( "dds", imageLoaders[i].ext ) ) {
+				*prefix = "dds/";
+				return i;
+			}
+		}
+	}
+	
+	int bestLoader = -1;
+	*prefix = "";
+	// try and find a suitable match using all the image formats supported
+	// prioritize with the pak priority
+	for ( i = 0; i < numImageLoaders; i++ )
+	{
+		std::string altName = Str::Format( "%s.%s", baseName, imageLoaders[i].ext );
+		const FS::PakInfo* pak = FS::PakPath::LocateFile( altName );
+
+		// We found a file and its pak is better than the best pak we have
+		// this relies on how the filesystem works internally and should be moved
+		// to a more explicit interface once there is one. (FIXME)
+		if ( pak != nullptr && ( bestPak == nullptr || pak < bestPak ) )
+		{
+			bestPak = pak;
+			bestLoader = i;
+		}
+	}
+
+	return bestLoader;
+}
+
+/*
+=================
 R_LoadImage
 
 Loads any of the supported image types into a canonical
@@ -1682,13 +1734,7 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 		// a loader was found
 		if ( i < numImageLoaders )
 		{
-			if ( *pic == nullptr )
-			{
-				// loader failed, most likely because the file isn't there;
-				// try again without the extension
-				COM_StripExtension3( token, filename, MAX_QPATH );
-			}
-			else
+			if ( *pic != nullptr )
 			{
 				// something loaded
 				return;
@@ -1696,43 +1742,16 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 		}
 	}
 
-	int bestLoader = -1;
-	const FS::PakInfo* bestPak = nullptr;
+	// loader failed, most likely because the file isn't there;
+	// try again without the extension
+	COM_StripExtension3( token, filename, MAX_QPATH );
 
-	// Darkplaces or Doom3 packages can ship alternative texture path in the form of
-	//   dds/<path without ext>.dds
-	std::string altName = Str::Format("dds/%s.dds", filename);
-	bestPak = FS::PakPath::LocateFile(altName);
-
-	// If this alternative path exists, it's expected to be loaded as the best one
-	// except when it goes against Daemon's rule to load the hardcoded one if exists
-	// because this dds alternative is only supported for compatibility with
-	// third-party content
-	if ( bestPak != nullptr ) {
-		LoadDDS( altName.c_str(), pic, width, height, numLayers, numMips, bits, alphaByte );
-		return;
-	}
-
-	// try and find a suitable match using all the image formats supported
-	// prioritize with the pak priority
-	for ( i = 0; i < numImageLoaders; i++ )
-	{
-		std::string altName = Str::Format("%s.%s", filename, imageLoaders[i].ext);
-		const FS::PakInfo* pak = FS::PakPath::LocateFile(altName);
-
-		// We found a file and its pak is better than the best pak we have
-		// this relies on how the filesystem works internally and should be moved
-		// to a more explicit interface once there is one. (FIXME)
-		if ( pak != nullptr && (bestPak == nullptr || pak < bestPak ) )
-		{
-			bestPak = pak;
-			bestLoader = i;
-		}
-	}
+	const char *prefix;
+	int bestLoader = R_FindImageLoader( filename, &prefix );
 
 	if ( bestLoader >= 0 )
 	{
-		char *altName = va( "%s.%s", filename, imageLoaders[ bestLoader ].ext );
+		char *altName = va( "%s%s.%s", prefix, filename, imageLoaders[ bestLoader ].ext );
 		imageLoaders[ bestLoader ].ImageLoader( altName, pic, width, height, numLayers, numMips, bits, alphaByte );
 	}
 }
