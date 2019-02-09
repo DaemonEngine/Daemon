@@ -2818,7 +2818,7 @@ static void ParseSort( const char **text )
 	}
 }
 
-// this table is also present in xmap
+// this table is also present in q3map
 
 struct infoParm_t
 {
@@ -3184,8 +3184,7 @@ static bool ParseShader( const char *_text )
 			continue;
 		}
 		// sun parms
-		else if ( !Q_stricmp( token, "xmap_sun" ) ||
-		          !Q_stricmp( token, "q3map_sun" ) )
+		else if ( !Q_stricmp( token, "q3map_sun" ) )
 		{
 			float a, b;
 
@@ -3193,7 +3192,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for 'xmap_sun' keyword in shader '%s'", shader.name );
+				Log::Warn("missing parm for 'q3map_sun' keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -3203,7 +3202,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for 'xmap_sun' keyword in shader '%s'", shader.name );
+				Log::Warn("missing parm for 'q3map_sun' keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -3213,7 +3212,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for 'xmap_sun' keyword in shader '%s'", shader.name );
+				Log::Warn("missing parm for 'q3map_sun' keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -3225,7 +3224,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for 'xmap_sun' keyword in shader '%s'", shader.name );
+				Log::Warn("missing parm for 'q3map_sun' keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -3236,7 +3235,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for 'xmap_sun' keyword in shader '%s'", shader.name );
+				Log::Warn("missing parm for 'q3map_sun' keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -3247,7 +3246,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for 'xmap_sun' keyword in shader '%s'", shader.name );
+				Log::Warn("missing parm for 'q3map_sun' keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -3298,13 +3297,13 @@ static bool ParseShader( const char *_text )
 		{
 			continue;
 		}
-		// skip stuff that only the xmap needs
-		else if ( !Q_strnicmp( token, "xmap", 4 ) || !Q_strnicmp( token, "q3map", 5 ) )
+		// skip stuff that only the q3map needs
+		else if ( !Q_strnicmp( token, "q3map", 5 ) )
 		{
 			SkipRestOfLine( text );
 			continue;
 		}
-		// skip stuff that only xmap or the server needs
+		// skip stuff that only q3map or the server needs
 		else if ( !Q_stricmp( token, "surfaceParm" ) )
 		{
 			ParseSurfaceParm( text );
@@ -3451,7 +3450,7 @@ static bool ParseShader( const char *_text )
 			tr.sunShaderName = (char*) ri.Hunk_Alloc( sizeof( char ) * tokenLen, ha_pref::h_low );
 			Q_strncpyz( tr.sunShaderName, token, tokenLen );
 		}
-		// light <value> determines flaring in xmap, not needed here
+		// light <value> determines flaring in q3map, not needed here
 		else if ( !Q_stricmp( token, "light" ) )
 		{
 			token = COM_ParseExt2( text, false );

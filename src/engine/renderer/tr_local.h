@@ -1786,7 +1786,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		IBO_t *ibo;
 	};
 
-// misc_models in maps are turned into direct geometry by xmap
+// misc_models in maps are turned into direct geometry by q3map
 	struct srfTriangles_t : srfGeneric_t
 	{
 		// triangle definitions
