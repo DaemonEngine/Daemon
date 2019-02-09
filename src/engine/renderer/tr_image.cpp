@@ -1623,24 +1623,6 @@ int R_FindImageLoader( char *baseName, const char **prefix ) {
 	const FS::PakInfo* bestPak = nullptr;
 	int i;
 
-	// Darkplaces or Doom3 packages can ship alternative texture path in the form of
-	//   dds/<path without ext>.dds
-	std::string altName = Str::Format( "dds/%s.dds", baseName );
-	bestPak = FS::PakPath::LocateFile( altName );
-
-	// If this alternative path exists, it's expected to be loaded as the best one
-	// except when it goes against Daemon's rule to load the hardcoded one if exists
-	// because this dds alternative is only supported for compatibility with
-	// third-party content
-	if ( bestPak != nullptr ) {
-		for ( i = 0; i < numImageLoaders; i++ ) {
-			if ( !Q_stricmp( "dds", imageLoaders[i].ext ) ) {
-				*prefix = "dds/";
-				return i;
-			}
-		}
-	}
-	
 	int bestLoader = -1;
 	*prefix = "";
 	// try and find a suitable match using all the image formats supported
@@ -1657,6 +1639,19 @@ int R_FindImageLoader( char *baseName, const char **prefix ) {
 		{
 			bestPak = pak;
 			bestLoader = i;
+		}
+
+		// DarkPlaces or Doom3 packages can ship alternative texture path in the form of
+		//   dds/<path without ext>.dds
+		if ( bestPak == nullptr && !Q_stricmp( "dds", imageLoaders[i].ext ) )
+		{
+			std::string prefixedName = Str::Format( "dds/%s.dds", baseName );
+			bestPak = FS::PakPath::LocateFile( prefixedName );
+			if ( bestPak != nullptr ) {
+				*prefix = "dds/";
+				bestPak = pak;
+				bestLoader = i;
+			}
 		}
 	}
 
@@ -1747,8 +1742,7 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 		}
 	}
 
-	// loader failed, most likely because the file isn't there;
-	// try again without the extension
+	// the file isn't there, try again without the extension
 	COM_StripExtension3( token, filename, MAX_QPATH );
 
 	const char *prefix;
