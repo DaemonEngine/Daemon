@@ -1442,6 +1442,12 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 		return false;
 	}
 
+	// enable parallax if an heightmap is found
+	if ( stage->bundle[ 0 ].image[ 0 ]->bits & IF_DISPLACEMAP )
+	{
+		shader.parallax = true;
+	}
+
 	return true;
 }
 
