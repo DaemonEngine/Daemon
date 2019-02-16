@@ -456,6 +456,7 @@ extern cvar_t *cl_altTab;
 
 extern cvar_t *cl_consoleFont;
 extern cvar_t *cl_consoleFontSize;
+extern cvar_t *cl_consoleFontScaling;
 extern cvar_t *cl_consoleFontKerning;
 extern cvar_t *cl_consoleCommand;
 

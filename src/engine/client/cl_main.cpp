@@ -139,6 +139,7 @@ cvar_t                 *cl_packetdelay; //bani
 
 cvar_t                 *cl_consoleFont;
 cvar_t                 *cl_consoleFontSize;
+cvar_t                 *cl_consoleFontScaling;
 cvar_t                 *cl_consoleFontKerning;
 cvar_t                 *cl_consoleCommand; //see also com_consoleCommand for terminal consoles
 
@@ -3030,7 +3031,19 @@ bool CL_InitRenderer()
 	{
 		if ( FS_FOpenFileRead( cl_consoleFont->string, &f, false ) >= 0 )
 		{
-			re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer, &cls.consoleFont );
+			if ( cl_consoleFontScaling->value == 0 )
+			{
+				re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer, &cls.consoleFont );
+			}
+			else
+			{
+				// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
+				int fontScale = std::min(cls.glconfig.vidWidth, cls.glconfig.vidHeight) / 90;
+
+				// fontScale / 12px gets 1px on 1920×1080 screen
+				re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer * fontScale / 12, &cls.consoleFont );
+			}
+
 			cls.useLegacyConsoleFont = false;
 		}
 
@@ -3321,6 +3334,7 @@ void CL_Init()
 
 	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
+	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
 	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );
