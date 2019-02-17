@@ -155,8 +155,8 @@ void	main()
 	// ray intersect in view direction
 
 	// size and start position of search in texture space
-	//vec2 S = V.xy * -u_DepthScale / V.z;
-	vec2 S = V.xy * -0.03 / V.z;
+	//vec2 S = V.xy * u_DepthScale / V.z;
+	vec2 S = V.xy * 0.03 / V.z;
 
 	float depth = RayIntersectDisplaceMap(texNormal, S);
 

@@ -965,7 +965,7 @@ void	main()
 	Vts = normalize(Vts);
 
 	// size and start position of search in texture space
-	vec2 S = Vts.xy * -u_DepthScale / Vts.z;
+	vec2 S = Vts.xy * u_DepthScale / Vts.z;
 
 	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
 

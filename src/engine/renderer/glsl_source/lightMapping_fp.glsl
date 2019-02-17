@@ -63,7 +63,7 @@ void	main()
 	V = normalize(V);
 
 	// size and start position of search in texture space
-	vec2 S = V.xy * -u_DepthScale / V.z;
+	vec2 S = V.xy * u_DepthScale / V.z;
 
 #if 0
 	vec2 texOffset = vec2(0.0);
