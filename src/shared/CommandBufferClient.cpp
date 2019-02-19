@@ -37,7 +37,7 @@ namespace IPC {
 
     CommandBufferClient::CommandBufferClient(std::string name)
     : name(name),
-    bufferSize("vm." + name + "commandBuffer.size", "The size of the shared memory command buffer used by " + name, Cvar::NONE, DEFAULT_SIZE, MINIMUM_SIZE, 16 * 1024 * 1024),
+    bufferSize("vm." + name + ".commandBuffer.size", "The size of the shared memory command buffer used by " + name, Cvar::NONE, DEFAULT_SIZE, MINIMUM_SIZE, 16 * 1024 * 1024),
     logs(name + ".commandBufferClient"), initialized(false) {
     }
 
