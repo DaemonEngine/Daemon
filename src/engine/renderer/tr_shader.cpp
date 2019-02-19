@@ -5095,29 +5095,25 @@ void R_ShaderList_f()
 
 void R_ShaderExp_f()
 {
-	int          i;
-	int          len;
-	char         buffer[ 1024 ] = "";
-	const char         *buffer_p = &buffer[ 0 ];
 	expression_t exp;
 
 	strcpy( shader.name, "dummy" );
 
 	Log::Notice("-----------------------" );
 
-	len = sizeof( buffer );
+	std::string buffer;
 
-	for ( i = 1; i < ri.Cmd_Argc() && len > 0; i++ )
+	for ( int i = 1; i < ri.Cmd_Argc(); i++ )
 	{
 		if ( i > 1 )
 		{
-			strncat( buffer, " ", len-- );
+			buffer += ' ';
 		}
 
-		strncat( buffer, ri.Cmd_Argv( i ), len );
-		len -= strlen( ri.Cmd_Argv( i ) );
+		buffer += ri.Cmd_Argv( i );
 	}
 
+	const char* buffer_p = buffer.c_str();
 	ParseExpression( &buffer_p, &exp );
 
 	Log::Notice("%i total ops", exp.numOps );
