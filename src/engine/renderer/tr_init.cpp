@@ -1274,10 +1274,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_noShadowFrustums = ri.Cvar_Get( "r_noShadowFrustums", "0", CVAR_CHEAT );
 		r_noLightFrustums = ri.Cvar_Get( "r_noLightFrustums", "1", CVAR_CHEAT );
 
-		r_maxPolys = ri.Cvar_Get( "r_maxpolys", "10000", 0 );  // 600 in vanilla Q3A
+		r_maxPolys = ri.Cvar_Get( "r_maxpolys", "10000", CVAR_LATCH );  // 600 in vanilla Q3A
 		AssertCvarRange( r_maxPolys, 600, 30000, true );
 
-		r_maxPolyVerts = ri.Cvar_Get( "r_maxpolyverts", "100000", 0 );  // 3000 in vanilla Q3A
+		r_maxPolyVerts = ri.Cvar_Get( "r_maxpolyverts", "100000", CVAR_LATCH );  // 3000 in vanilla Q3A
 		AssertCvarRange( r_maxPolyVerts, 3000, 200000, true );
 
 		r_showTris = ri.Cvar_Get( "r_showTris", "0", CVAR_CHEAT );
