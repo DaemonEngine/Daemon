@@ -378,7 +378,6 @@ fileHandle_t FS_FOpenFileWriteViaTemporary( const char *qpath );
 // will properly create any needed paths and deal with separator character issues
 
 fileHandle_t FS_SV_FOpenFileWrite( const char *filename );
-int          FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp );
 void         FS_SV_Rename( const char *from, const char *to );
 int          FS_FOpenFileRead( const char *qpath, fileHandle_t *file, bool uniqueFILE );
 
