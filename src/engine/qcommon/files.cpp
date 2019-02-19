@@ -27,6 +27,9 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #include "qcommon.h"
 #include "common/Defs.h"
 
+// There must be some limit for the APIs in this file since they use 'int' for lengths which can be overflowed by large files.
+constexpr FS::offset_t MAX_FILE_LENGTH = 1000 * 1000 * 1000;
+
 // Compatibility wrapper for the filesystem
 const char TEMP_SUFFIX[] = ".tmp";
 
@@ -109,7 +112,12 @@ int FS_FOpenFileRead(const char* path, fileHandle_t* handle, bool)
 		}
 	}
 	if (err) {
-		Log::Debug("Failed to open '%s' for reading: %s", path, err.message().c_str());
+		Log::Debug("Failed to open '%s' for reading: %s", path, err.message());
+		*handle = 0;
+		length = -1;
+	} else if (length > MAX_FILE_LENGTH) {
+		Log::Warn("FS_FOpenFileRead: Failed to open '%s' for reading: size %d is too large", path, length);
+		FS_FCloseFile(*handle);
 		*handle = 0;
 		length = -1;
 	}
@@ -164,7 +172,7 @@ fileHandle_t FS_SV_FOpenFileWrite(const char* path)
 	return FS_FOpenFileWrite_internal(path, false);
 }
 
-int FS_SV_FOpenFileRead(const char* path, fileHandle_t* handle)
+static int FS_SV_FOpenFileRead(const char* path, fileHandle_t* handle)
 {
 	if (!handle)
 		return FS::HomePath::FileExists(path);
@@ -175,11 +183,18 @@ int FS_SV_FOpenFileRead(const char* path, fileHandle_t* handle)
 	if (err) {
 		Log::Debug("Failed to open '%s' for reading: %s", path, err.message().c_str());
 		*handle = 0;
-		return 0;
+		return -1;
 	}
 	handleTable[*handle].isPakFile = false;
 	handleTable[*handle].isOpen = true;
-	return handleTable[*handle].file.Length();
+	FS::offset_t length = handleTable[*handle].file.Length();
+	if (length > MAX_FILE_LENGTH) {
+		Log::Warn("FS_SV_FOpenFileRead: Failed to open '%s' for reading: size %d is too large", path, length);
+		FS_FCloseFile(*handle);
+		*handle = 0;
+		return -1;
+	}
+	return length;
 }
 
 int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mode)
