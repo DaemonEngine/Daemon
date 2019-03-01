@@ -1047,14 +1047,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 		}
 		else if ( samples == 4 )
 		{
-			if ( image->bits & IF_ALPHA )
-			{
-				internalFormat = GL_ALPHA8;
-			}
-			else
-			{
-				internalFormat = GL_RGBA8;
-			}
+			internalFormat = GL_RGBA8;
 		}
 	}
 
