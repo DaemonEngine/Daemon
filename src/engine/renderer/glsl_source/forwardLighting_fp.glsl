@@ -743,7 +743,7 @@ while with filtering in exp space you have:
 float exp_occluder = tex2D( esm_sampler, esm_uv );
 float occlusion = exp_occluder / exp( receiver );
 
-EDIT: if more complex filters are used (trilinear, aniso, with mip maps) you need to generate mip maps using log filteirng as well.
+EDIT: if more complex filters are used (trilinear, aniso, with mip maps) you need to generate mip maps using log filtering as well.
 */
 
 /*
