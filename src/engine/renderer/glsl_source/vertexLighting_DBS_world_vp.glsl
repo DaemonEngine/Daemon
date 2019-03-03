@@ -77,13 +77,13 @@ void	main()
 
 	// assign color
 	var_Color = color;
-	
+
 	// transform normalmap texcoords
 	var_TexNormalSpecular.st = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// transform specularmap texture coords
 	var_TexNormalSpecular.pq = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
-	
+
 	var_Tangent = LB.tangent;
 	var_Binormal = LB.binormal;
 

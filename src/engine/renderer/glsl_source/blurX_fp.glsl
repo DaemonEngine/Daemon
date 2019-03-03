@@ -52,7 +52,7 @@ void	main()
 
 	// do a full gaussian blur
 	vec4 sumColors = vec4(0.0);
-	
+
 	for(int t = -tap; t <= tap; t++)
 	{
 		float weight = gaussFact[t + tap];

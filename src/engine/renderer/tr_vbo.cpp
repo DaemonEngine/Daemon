@@ -652,7 +652,7 @@ VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *ve
 	vbo->usage = GL_STATIC_DRAW;
 
 	R_SetVBOAttributeLayouts( vbo );
-	
+
 	glGenBuffers( 1, &vbo->vertexesVBO );
 	R_BindVBO( vbo );
 
@@ -1149,7 +1149,7 @@ void Tess_MapVBOs( bool forceCPU ) {
 				glBufferData( GL_ARRAY_BUFFER, vertexCapacity * sizeof( shaderVertex_t ), nullptr, GL_DYNAMIC_DRAW );
 				tess.vertsWritten = 0;
 			}
-			tess.verts = ( shaderVertex_t *) glMapBufferRange( 
+			tess.verts = ( shaderVertex_t *) glMapBufferRange(
 				GL_ARRAY_BUFFER, tess.vertsWritten * sizeof( shaderVertex_t ),
 				SHADER_MAX_VERTEXES * sizeof( shaderVertex_t ),
 				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT |
@@ -1176,7 +1176,7 @@ void Tess_MapVBOs( bool forceCPU ) {
 				glBufferData( GL_ELEMENT_ARRAY_BUFFER, indexCapacity * sizeof( glIndex_t ), nullptr, GL_DYNAMIC_DRAW );
 				tess.indexesWritten = 0;
 			}
-			tess.indexes = ( glIndex_t *) glMapBufferRange( 
+			tess.indexes = ( glIndex_t *) glMapBufferRange(
 				GL_ELEMENT_ARRAY_BUFFER, tess.indexesWritten * sizeof( glIndex_t ),
 				SHADER_MAX_INDEXES * sizeof( glIndex_t ),
 				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT |

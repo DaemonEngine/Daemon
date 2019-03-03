@@ -268,7 +268,7 @@ void BotUpdateCorridor( int botClientNum, const botRouteTarget_t *target, botNav
 		recast2quake( cmd->pos );
 
 		// if there are no corners, we have reached the goal
-		// FIXME: this must be done because of a weird bug where the target is not reachable even if 
+		// FIXME: this must be done because of a weird bug where the target is not reachable even if
 		// the path was checked for a partial path beforehand
 		if ( bot->numCorners == 0 )
 		{
@@ -286,7 +286,7 @@ void BotUpdateCorridor( int botClientNum, const botRouteTarget_t *target, botNav
 			recast2quake( cmd->tpos );
 		}
 	}
-	
+
 	if ( bot->offMesh )
 	{
 		qVec pos, proj;
@@ -298,7 +298,7 @@ void BotUpdateCorridor( int botClientNum, const botRouteTarget_t *target, botNav
 		end[ 2 ] = pos[ 2 ];
 
 		ProjectPointOntoVectorBounded( pos, start, end, proj );
-		
+	
 		VectorCopy( proj, cmd->pos );
 		cmd->directPathToGoal = false;
 		VectorSubtract( end, pos, cmd->dir );
@@ -353,7 +353,7 @@ bool BotFindRandomPointInRadius( int botClientNum, const vec3_t origin, vec3_t p
 
 	dtPolyRef randRef;
 	dtStatus status = bot->nav->query->findRandomPointAroundCircle( nearPoly, rorigin, radius, &bot->nav->filter, frand, &randRef, nearPoint );
-	
+
 	if ( dtStatusFailed( status ) )
 	{
 		return false;
@@ -420,7 +420,7 @@ void BotAddObstacle( const vec3_t mins, const vec3_t maxs, qhandle_t *obstacleHa
 
 		tempBox.maxs[ 0 ] += offset;
 		tempBox.maxs[ 2 ] += offset;
-		
+	
 		// offset mins down by agent height so obstacles placed on ledges are handled correctly
 		tempBox.mins[ 1 ] -= params->walkableHeight;
 

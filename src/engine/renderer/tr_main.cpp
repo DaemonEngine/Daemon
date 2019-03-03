@@ -217,7 +217,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 
 			VectorMA(tangent2, -DotProduct(mid, tangent2), mid, tangent3 );
 			VectorMA(binormal2, -DotProduct(mid, binormal2), mid, binormal3 );
-			
+		
 			if( VectorLengthSquared( tangent3 ) < 0.001f ) {
 				CrossProduct( mid, normal2, tangent3 );
 				VectorNegate( tangent3, binormal3 );
@@ -299,7 +299,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 	if( resqtangent[ 3 ] == 0 )
 	{
 		resqtangent[ 3 ] = 1;
-	} 
+	}
 
 	if( flipped )
 	{

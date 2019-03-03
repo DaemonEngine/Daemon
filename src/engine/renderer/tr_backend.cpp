@@ -5646,7 +5646,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	if( backEnd.viewParms.portalLevel == 0 ) {
 		glDisable( GL_STENCIL_TEST );
 	}
-	
+
 	return this + 1;
 }
 

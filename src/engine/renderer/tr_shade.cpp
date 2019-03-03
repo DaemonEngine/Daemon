@@ -590,7 +590,7 @@ static void Render_generic( int stage )
 	GLimp_LogComment( "--- Render_generic ---\n" );
 
 	pStage = tess.surfaceStages[ stage ];
-	
+
 	GL_State( pStage->stateBits );
 
 	hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;

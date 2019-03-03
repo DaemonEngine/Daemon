@@ -919,7 +919,7 @@ static void R_CullIQM( trRefEntity_t *ent ) {
 	VectorScale( localBounds[0], scale, ent->localBounds[ 0 ] );
 	VectorScale( localBounds[1], scale, ent->localBounds[ 1 ] );
 
-	
+
 	R_SetupEntityWorldBounds(ent);
 
 	switch ( R_CullBox( ent->worldBounds ) )

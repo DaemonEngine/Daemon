@@ -54,7 +54,7 @@ void VertexFetch(out vec4 position,
 	LB.normal = weights.x * (QuatTransVec( quat, inLB.normal ));
 	LB.tangent = weights.x * (QuatTransVec( quat, inLB.tangent ));
 	LB.binormal = weights.x * (QuatTransVec( quat, inLB.binormal ));
-	
+
 	quat = u_Bones[ idx.y ];
 	trans = u_Bones[ idx.y + 1 ];
 

@@ -322,7 +322,7 @@ void FetchShadowMoments(vec3 Pworld, out vec4 shadowVert,
 
 	shadowMoments = FixShadowMoments(shadowMoments);
 	shadowClipMoments = FixShadowMoments(shadowClipMoments);
-	
+
 #if defined(EVSM) && defined(r_EVSMPostProcess)
 	shadowMoments = ShadowDepthToEVSM(shadowMoments.x);
 	shadowClipMoments = ShadowDepthToEVSM(shadowClipMoments.x);
@@ -660,7 +660,7 @@ float ShadowTest( float vertexDistance, vec4 shadowMoments, vec4 shadowClipMomen
 	outputColor.b = (r_DebugShadowMaps & 4) != 0 ? shadow : 0.0;
 	outputColor.a = 1.0;
 #endif
-		
+	
 #elif defined( VSM )
 #if defined(VSM_CLAMP)
 	// convert to [-1, 1] vector space
@@ -683,7 +683,7 @@ float ShadowTest( float vertexDistance, vec4 shadowMoments, vec4 shadowClipMomen
 	float negContrib = ChebyshevUpperBound(shadowMoments.zw, warpedVertexDistances.y, minVariance.y);
 
 	shadow = min(posContrib, negContrib);
-	
+
 #if defined(r_DebugShadowMaps) && defined( HAVE_EXT_gpu_shader4 )
 	outputColor.r = (r_DebugShadowMaps & 1) != 0 ? posContrib : 0.0;
 	outputColor.g = (r_DebugShadowMaps & 2) != 0 ? negContrib : 0.0;
@@ -878,7 +878,7 @@ void	main()
 
 	// compute incident ray
 	vec3 I = var_Position.xyz - u_LightOrigin;
-	
+
 	float vertexDistance = length(I) / u_LightRadius - SHADOW_BIAS;
 	if( vertexDistance >= 1.0f ) {
 		discard;
@@ -926,11 +926,11 @@ void	main()
 #endif
 #endif
 	shadow = ShadowTest(vertexDistance, shadowMoments, shadowClipMoments);
-	
+
 #if defined(r_DebugShadowMaps)
 	return;
 #endif
-	
+
 	if(shadow <= 0.0)
 	{
 		discard;
@@ -985,7 +985,7 @@ void	main()
 	N.x *= N.z;
 	N.xy = 2.0 * N.xy - 1.0;
 	N.z = sqrt(1.0 - dot(N.xy, N.xy));
-	
+
 #if defined(r_NormalScale)
 	N.z *= r_NormalScale;
 	normalize(N);

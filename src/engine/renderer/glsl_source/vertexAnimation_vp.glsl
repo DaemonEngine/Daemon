@@ -59,7 +59,7 @@ void VertexFetch(out vec4 position,
 
 	position.xyz = 512.0 * mix(attr_Position, attr_Position2, u_VertexInterpolation);
 	position.w = 1;
-	
+
 	LB.normal = normalize(mix(fromLB.normal, toLB.normal, u_VertexInterpolation));
 	LB.tangent = normalize(mix(fromLB.tangent, toLB.tangent, u_VertexInterpolation));
 	LB.binormal = normalize(mix(fromLB.binormal, toLB.binormal, u_VertexInterpolation));

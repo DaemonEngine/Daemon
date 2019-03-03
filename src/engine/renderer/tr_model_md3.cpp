@@ -347,7 +347,7 @@ bool R_LoadMD3( model_t *mod, int lod, void *buffer, const char *modName )
 			vboSurf->numVerts = surf->numVerts;
 
 			vboSurf->vbo = R_CreateStaticVBO( va( "staticMD3Mesh_VBO '%s'", surf->name ), data, vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION );
-			
+		
 			ri.Hunk_FreeTempMemory( data.st );
 			ri.Hunk_FreeTempMemory( data.qtangent );
 			ri.Hunk_FreeTempMemory( data.xyz );

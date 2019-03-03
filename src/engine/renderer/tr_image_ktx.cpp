@@ -1,6 +1,6 @@
 /*
 ===========================================================================
-Copyright (C) 2014 
+Copyright (C) 2014
 
 This file is part of Daemon source code.
 
@@ -693,7 +693,7 @@ void SaveImageKTX( const char *path, image_t *img )
 			     (GLint *)&i );
 	if( i == GL_NEAREST_MIPMAP_NEAREST || i == GL_NEAREST_MIPMAP_LINEAR ||
 	    i == GL_LINEAR_MIPMAP_NEAREST || i == GL_LINEAR_MIPMAP_LINEAR ) {
-		
+	
 		mipWidth = std::max(hdr.pixelWidth, 1u);
 		mipHeight = std::max(hdr.pixelHeight, 1u);
 		mipDepth = std::max(hdr.pixelDepth, 1u);
@@ -736,7 +736,7 @@ void SaveImageKTX( const char *path, image_t *img )
 	ptr = data;
 	Com_Memcpy( ptr, &hdr, sizeof( hdr ) );
 	ptr += sizeof( hdr );
-	
+
 	mipWidth = std::max(hdr.pixelWidth, 1u);
 	mipHeight = std::max(hdr.pixelHeight, 1u);
 	mipDepth = std::max(hdr.pixelDepth, 1u);

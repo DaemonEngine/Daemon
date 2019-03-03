@@ -117,7 +117,7 @@ void StripColors( const char *in, char *out, size_t len )
 			{
 				break;
 			}
-			
+		
 			strncpy( out, token.Begin(), token.Size() );
 			out += token.Size();
 			len -= token.Size();

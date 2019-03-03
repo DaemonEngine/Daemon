@@ -35,7 +35,7 @@ out vec4 outputColor;
 void	main()
 {
 	vec2 st = gl_FragCoord.st * u_TexScale;
-	
+
 #if 0
 	float gaussFact[3] = float[3](1.0, 2.0, 1.0);
 	float gaussSum = 4;
@@ -52,12 +52,12 @@ void	main()
 
 	// do a full gaussian blur
 	vec4 sumColors = vec4(0.0);
-	
+
 	for(int t = -tap; t <= tap; t++)
 	{
 		float weight = gaussFact[t + tap];
 		sumColors += texture2D(u_ColorMap, st + vec2(0, t) * u_TexScale * u_DeformMagnitude) * weight;
 	}
-	
+
 	outputColor = sumColors * (1.0 / gaussSum);
 }

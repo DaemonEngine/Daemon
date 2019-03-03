@@ -115,7 +115,7 @@ void lightOutsidePlane( in vec4 plane, inout vec3 center, inout float radius ) {
 vec3 ProjToView(vec2 inp)
 {
 	vec3 p = u_zFar * vec3(inp, -1);
-	
+
 	return p;
 }
 

@@ -167,7 +167,7 @@ void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriang
 		VectorCopy( surf->verts[ j ].position, data.xyz[ j ] );
 		R_TBNtoQtangents( surf->verts[ j ].tangent, surf->verts[ j ].binormal,
 				  surf->verts[ j ].normal, data.qtangent[ j ] );
-		
+	
 		data.st[ j ][ 0 ] = floatToHalf( surf->verts[ j ].texCoords[ 0 ] );
 		data.st[ j ][ 1 ] = floatToHalf( surf->verts[ j ].texCoords[ 1 ] );
 

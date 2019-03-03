@@ -162,7 +162,7 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 
 				lightDir[ 0 ] += factor * snorm8ToFloat( gp1->lightVecX - 128 );
 				lightDir[ 1 ] += factor * snorm8ToFloat( gp2->lightVecY - 128 );
-				
+			
 				ambientLight[ 0 ] += factor * unorm8ToFloat( gp1->ambient[ 0 ] );
 				ambientLight[ 1 ] += factor * unorm8ToFloat( gp1->ambient[ 1 ] );
 				ambientLight[ 2 ] += factor * unorm8ToFloat( gp1->ambient[ 2 ] );
@@ -1101,7 +1101,7 @@ static int R_ClipEdgeToPlane( cplane_t plane, const vec3_t in_world1, const vec3
 		VectorCopy( in_world1, out_world1 );
 		VectorCopy( in_world2, out_world2 );
 	}
-	
+
 	return sides;
 }
 
