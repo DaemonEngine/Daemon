@@ -168,7 +168,7 @@ struct client_t
 	char           name[ MAX_NAME_LENGTH ]; // extracted from userinfo, high bits masked
 
 	// downloading
-	char          downloadName[ MAX_QPATH ]; // if not empty string, we are downloading
+	char          downloadName[ MAX_OSPATH ]; // if not empty string, we are downloading
 	FS::File*     download; // file being downloaded
 	int           downloadSize; // total bytes (can't use EOF because of paks)
 	int           downloadCount; // bytes sent

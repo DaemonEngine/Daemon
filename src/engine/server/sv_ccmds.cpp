@@ -140,7 +140,7 @@ static void SV_MapRestart_f()
 	if ( sv_maxclients->modified )
 	{
 		char mapname[ MAX_QPATH ];
-		char pakname[ MAX_QPATH ];
+		char pakname[ MAX_OSPATH ];
 
 		Log::Notice( "sv_maxclients variable change — restarting.\n" );
 		// restart the map the slow way
