@@ -740,7 +740,6 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	gl_vertexLightingShader_DBS_entity->SetPhysicalShading( materialMapping );
 
 	gl_vertexLightingShader_DBS_entity->BindProgram( pStage->deformIndex );
-
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
@@ -955,7 +954,6 @@ static void Render_vertexLighting_DBS_world( int stage )
 	tess.vboVertexSprite = false;
 
 	gl_vertexLightingShader_DBS_world->BindProgram( pStage->deformIndex );
-
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
@@ -1152,7 +1150,6 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	tess.vboVertexSprite = false;
 
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
-
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
@@ -1435,7 +1432,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_omniXYZ->BindProgram( diffuseStage->deformIndex );
-
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
@@ -1619,7 +1615,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_projXYZ->BindProgram( diffuseStage->deformIndex );
-
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
@@ -1802,7 +1797,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_directionalSun->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_directionalSun->BindProgram( diffuseStage->deformIndex );
-
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
@@ -1992,7 +1986,6 @@ static void Render_reflection_CB( int stage )
 	gl_reflectionShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_reflectionShader->BindProgram( pStage->deformIndex );
-
 	// end choose right shader program ------------------------------
 
 	gl_reflectionShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
@@ -2148,7 +2141,6 @@ static void Render_heatHaze( int stage )
 	}
 
 	gl_heatHazeShader->BindProgram( pStage->deformIndex );
-
 	// end choose right shader program ------------------------------
 
 	// set uniforms
