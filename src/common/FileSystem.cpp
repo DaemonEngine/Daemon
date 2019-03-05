@@ -123,7 +123,7 @@ template<> struct SerializeTraits<FS::LoadedPakInfo> {
 namespace FS {
 
 #ifdef BUILD_ENGINE
-static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "Also load pk3s, ignoring version.", Cvar::NONE, false);
+static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "Also load pk3s, ignoring version", Cvar::NONE, false);
 
 bool UseLegacyPaks()
 {
