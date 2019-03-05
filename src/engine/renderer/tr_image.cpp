@@ -1663,6 +1663,11 @@ int R_FindImageLoader( char *baseName, const char **prefix ) {
 	return bestLoader;
 }
 
+int R_FindImageLoader( char *baseName ) {
+	const char *prefix; // not used but required by R_FindImageLoader
+	return R_FindImageLoader( baseName, &prefix );
+}
+
 /*
 =================
 R_LoadImage
