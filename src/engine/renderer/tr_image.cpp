@@ -1956,6 +1956,22 @@ static void R_FreeCubePics( byte **pic, int count )
 	}
 }
 
+struct cubeMapLoader_t
+{
+	const char *ext;
+	void ( *ImageLoader )( const char *, unsigned char **, int *, int *, int *, int *, int *, byte );
+};
+
+// Note that the ordering indicates the order of preference used
+// when there are multiple images of different formats available
+static const cubeMapLoader_t cubeMapLoaders[] =
+{
+	{ "crn", LoadCRN },
+	{ "ktx", LoadKTX },
+};
+
+static int numCubeMapLoaders = ARRAY_LEN( cubeMapLoaders );
+
 image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t filterType, wrapType_t wrapType )
 {
 	int         i;
@@ -1996,22 +2012,25 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 		}
 	}
 
-	// try to load .CRN cubemap
-	LoadCRN( buffer, pic, &width, &height, &numLayers, &numMips, &bits, 0 );
-	if( numLayers == 6 && pic[0] ) {
-		numPicsToFree = 1;
-		goto createCubeImage;
-	} else {
-		R_FreeCubePics( pic, numLayers );
-	}
+	const char *cubeMapName;
+	char cubeMapBaseName[ MAX_QPATH ];
 
-	// try to load .KTX cubemap
-	LoadKTX( buffer, pic, &width, &height, &numLayers, &numMips, &bits, 0 );
-	if( numLayers == 6 && pic[0] ) {
-		numPicsToFree = 1;
-		goto createCubeImage;
-	} else {
-		R_FreeCubePics( pic, numLayers );
+	COM_StripExtension3( buffer, cubeMapBaseName, MAX_QPATH );
+
+	for ( i = 0; i < numCubeMapLoaders; i++ )
+	{
+		cubeMapName = va( "%s.%s", cubeMapBaseName, cubeMapLoaders[ i ].ext );
+		if( R_FindImageLoader( (char*) cubeMapName ) >= 0 )
+		{
+			Log::Debug( "found %s cube map '%s'", cubeMapLoaders[ i ].ext, cubeMapBaseName );
+			cubeMapLoaders[ i ].ImageLoader( cubeMapName, pic, &width, &height, &numLayers, &numMips, &bits, 0 );
+			if( numLayers == 6 && pic[0] ) {
+				numPicsToFree = 1;
+				goto createCubeImage;
+			} else {
+				R_FreeCubePics( pic, numLayers );
+			}
+		}
 	}
 
 	for ( i = 0; i < 6; i++ )
