@@ -1959,6 +1959,30 @@ static void R_Rotate( byte *in, int width, int height, int degrees )
 }
 
 /*
+========
+R_Resize
+
+wrapper for ResampleTexture to help to resize a texture in place like this:
+pic = R_Resize( pic, width, height, newWidth, newHeight );
+
+please not resize normalmap with this, use ResampleTexture directly instead
+
+========
+*/
+
+byte *R_Resize( byte *in, int width, int height, int newWidth, int newHeight )
+{
+
+	byte *out;
+
+	out = (byte*) ri.Z_Malloc( newWidth * newHeight * 4 );
+	ResampleTexture( (unsigned int*) in, width, height, (unsigned int*) out, newWidth, newHeight, false );
+	ri.Free( in );
+
+	return out;
+}
+
+/*
 ===============
 R_FindCubeImage
 
