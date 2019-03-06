@@ -1619,7 +1619,7 @@ Finds and returns an image loader for a given basename,
 tells the extra prefix that may be required to load the image.
 =================
 */
-int R_FindImageLoader( char *baseName, const char **prefix ) {
+static int R_FindImageLoader( const char *baseName, const char **prefix ) {
 	const FS::PakInfo* bestPak = nullptr;
 	int i;
 
@@ -1658,8 +1658,10 @@ int R_FindImageLoader( char *baseName, const char **prefix ) {
 	return bestLoader;
 }
 
-int R_FindImageLoader( char *baseName ) {
-	const char *prefix; // not used but required by R_FindImageLoader
+static int R_FindImageLoader( const char *baseName ) {
+	// not used but required by R_FindImageLoader
+	const char *prefix;
+
 	return R_FindImageLoader( baseName, &prefix );
 }
 
@@ -2012,18 +2014,16 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 		}
 	}
 
-	const char *cubeMapName;
 	char cubeMapBaseName[ MAX_QPATH ];
-
-	COM_StripExtension3( buffer, cubeMapBaseName, MAX_QPATH );
+	COM_StripExtension3( buffer, cubeMapBaseName, sizeof( cubeMapBaseName ) );
 
 	for ( i = 0; i < numCubeMapLoaders; i++ )
 	{
-		cubeMapName = va( "%s.%s", cubeMapBaseName, cubeMapLoaders[ i ].ext );
-		if( R_FindImageLoader( (char*) cubeMapName ) >= 0 )
+		std::string cubeMapName = Str::Format( "%s.%s", cubeMapBaseName, cubeMapLoaders[ i ].ext );
+		if( R_FindImageLoader( cubeMapName.c_str() ) >= 0 )
 		{
 			Log::Debug( "found %s cube map '%s'", cubeMapLoaders[ i ].ext, cubeMapBaseName );
-			cubeMapLoaders[ i ].ImageLoader( cubeMapName, pic, &width, &height, &numLayers, &numMips, &bits, 0 );
+			cubeMapLoaders[ i ].ImageLoader( cubeMapName.c_str(), pic, &width, &height, &numLayers, &numMips, &bits, 0 );
 			if( numLayers == 6 && pic[0] ) {
 				numPicsToFree = 1;
 				goto createCubeImage;
