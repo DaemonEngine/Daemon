@@ -33,11 +33,10 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
-	vec4 color0, color1;
+	vec4 color;
 
 	// compute normal in tangent space from normalmap
-	color0 = texture2D(u_NormalMap, var_TexNormal).rgba;
-	vec3 N = 2.0 * (color0.rgb - 0.5);
+	vec3 N = ComputeNormalInTangentSpace(u_NormalMap, var_TexNormal);
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st * r_FBufScale;
@@ -46,7 +45,7 @@ void	main()
 	st += N.xy * var_Deform;
 	st = clamp(st, 0.0, 1.0);
 
-	color0 = texture2D(u_CurrentMap, st);
+	color = texture2D(u_CurrentMap, st);
 
-	outputColor = color0;
+	outputColor = color;
 }

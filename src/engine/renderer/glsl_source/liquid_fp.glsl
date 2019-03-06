@@ -117,11 +117,8 @@ void	main()
 
 	vec3 N = normalize(var_Normal);
 
-	vec3 N2 = texture2D(u_NormalMap, texNormal.st).xyw;
-	N2.x *= N2.z;
-	N2.xy = 2.0 * N2.xy - 1.0;
-	N2.z = sqrt(1.0 - dot(N2.xy, N2.xy));
-	N2 = normalize(tangentToWorldMatrix * N2);
+	// compute normal in tangent space from normalmap, transform normal into world space
+	vec3 N2 = TransformNormalIntoWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
 
 	// compute fresnel term
 	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(I, N), u_FresnelPower) *

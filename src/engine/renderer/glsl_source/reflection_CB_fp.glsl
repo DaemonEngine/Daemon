@@ -40,20 +40,10 @@ void	main()
 	// compute incident ray in world space
 	vec3 I = normalize(var_Position - u_ViewOrigin);
 
-	// compute normal in tangent space from normalmap
-	vec3 N = texture2D(u_NormalMap, var_TexNormal.st).xyw;
-	N.x *= N.z;
-	N.xy = 2.0 * N.xy - 1.0;
-	N.z = sqrt(1.0 - dot(N.xy, N.xy));
-#if defined(r_NormalScale)
-	N.z *= r_NormalScale;
-	normalize(N);
-#endif
-
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	// transform normal into world space
-	N = normalize(tangentToWorldMatrix * N);
+	// compute normal in tangent space from normalmap, transform normal into world space
+	vec3 N = TransformNormalIntoWorldSpace(u_NormalMap, var_TexNormal, tangentToWorldMatrix);
 
 	// compute reflection ray
 	vec3 R = reflect(I, N);

@@ -1789,6 +1789,11 @@ void GLShader_reflection::BuildShaderVertexLibNames( std::string& vertexInlines 
 	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
 }
 
+void GLShader_reflection::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "reliefMapping";
+}
+
 void GLShader_reflection::BuildShaderCompileMacros( std::string& )
 {
 }
@@ -1883,6 +1888,11 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 void GLShader_heatHaze::BuildShaderVertexLibNames( std::string& vertexInlines )
 {
 	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
+}
+
+void GLShader_heatHaze::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "reliefMapping";
 }
 
 void GLShader_heatHaze::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )

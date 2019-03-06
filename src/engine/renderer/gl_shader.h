@@ -2575,6 +2575,7 @@ class GLShader_reflection :
 public:
 	GLShader_reflection( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
 	void BuildShaderCompileMacros( std::string& compileMacros );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
@@ -2650,6 +2651,7 @@ class GLShader_heatHaze :
 public:
 	GLShader_heatHaze( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
 

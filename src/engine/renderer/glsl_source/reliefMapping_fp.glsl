@@ -199,6 +199,26 @@ void computeDLights( vec3 P, vec3 N, vec3 I, vec4 diffuse, vec4 specular,
 #endif
 }
 
+vec3 ComputeNormalInTangentSpace(sampler2D normalMap, vec2 texNormal)
+{
+	vec3 N = texture2D(normalMap, texNormal).rga;
+	N.x *= N.z;
+	N.xy = 2.0 * N.xy - 1.0;
+	N.z = sqrt(1.0 - dot(N.xy, N.xy));
+
+#if defined(r_NormalScale)
+	N.z *= r_NormalScale;
+#endif
+
+	return N;
+}
+
+vec3 TransformNormalIntoWorldSpace(sampler2D normalMap, vec2 texNormal, mat3 tangentToWorldMatrix)
+{
+	vec3 N = ComputeNormalInTangentSpace(normalMap, texNormal);
+	return normalize(tangentToWorldMatrix * N);
+}
+
 #if defined(USE_PARALLAX_MAPPING)
 float RayIntersectDisplaceMap(vec2 dp, vec2 ds, sampler2D normalMap)
 {
@@ -252,6 +272,3 @@ float RayIntersectDisplaceMap(vec2 dp, vec2 ds, sampler2D normalMap)
 	return bestDepth;
 }
 #endif
-
-
-
