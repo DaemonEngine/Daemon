@@ -1964,17 +1964,16 @@ R_FindCubeImage
 
 Finds or loads the given image.
 Returns nullptr if it fails, not a default image.
-
-Tr3B: fear the use of goto
 ==============
 */
 static void R_FreeCubePics( byte **pic, int count )
 {
 	while (--count >= 0)
 	{
-		if ( pic[ count ] )
+		if ( pic[ count ] != nullptr )
 		{
 			ri.Free( pic[ count ] );
+			pic[ count ] = nullptr;
 		}
 	}
 }
@@ -1993,30 +1992,49 @@ static const cubeMapLoader_t cubeMapLoaders[] =
 	{ "ktx", LoadKTX },
 };
 
-static int numCubeMapLoaders = ARRAY_LEN( cubeMapLoaders );
-
-image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t filterType, wrapType_t wrapType )
+struct multifileCubeMapFormat_t
 {
-	int         i;
-	image_t     *image = nullptr;
-	int         width = 0, height = 0, numLayers = 0, numMips = 0;
-	byte        *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
-	int         numPicsToFree = 0;
+	const char *name;
+	const char *suffixes[6];
+	bool flipX[6];
+	bool flipY[6];
+	int rot[6];
+};
 
-	static const char *openglSuffices[ 6 ] = { "px", "nx", "py", "ny", "pz", "nz" };
+static const multifileCubeMapFormat_t multifileCubeMapFormats[] =
+{
+	{
+		"OpenGL",
+		{ "px", "nx", "py", "ny", "pz", "nz" },
+		{ false, false, false, false, false, false },
+		{ false, false, false, false, false, false },
+		{ 0, 0, 0, 0, 0, 0 },
+	},
+	{
+		"Quake",
+		{ "rt", "lf", "bk", "ft", "up", "dn" },
+		{ true, true, false, true, true, false },
+		{ false, false, true, false, false, true },
+		{ 90, -90, 0, 0, 90, -90 },
+	},
+	{
+		"Doom 3",
+		{ "forward", "back", "left", "right", "up", "down" },
+		{ true, true, false, true, true, false },
+		{ false, false, true, false, false, true },
+		{ 90, -90, 0, 0, 90, -90 },
+	},
+};
 
-	static const char *doom3Suffices[ 6 ] = { "forward", "back", "left", "right", "up", "down" };
-	static bool doom3FlipX[ 6 ] = { true,  true,  false, true,  true,  false };
-	static bool doom3FlipY[ 6 ] = { false, false, true,  false, false, true };
-	static int      doom3Rot[ 6 ] = { 90,           -90,    0,              0,              90,             -90 };
+image_t *R_FindCubeImage( const char *imageName, int bits, filterType_t filterType, wrapType_t wrapType )
+{
+	int i;
+	image_t *image = nullptr;
+	int width = 0, height = 0, numLayers = 0, numMips = 0;
+	byte *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
 
-	static const char *quakeSuffices[ 6 ] = { "rt", "lf", "bk", "ft", "up", "dn" };
-	static bool quakeFlipX[ 6 ] = { true,  true,  false, true,  true,  false };
-	static bool quakeFlipY[ 6 ] = { false, false, true,  false, false, true };
-	static int      quakeRot[ 6 ] = { 90,           -90,    0,              0,              90,             -90 };
-
-	char            buffer[ 1024 ], filename[ 1024 ];
-	const  char     *filename_p;
+	char buffer[ 1024 ], filename[ 1024 ];
+	const  char *filename_p;
 
 	if ( !imageName )
 	{
@@ -2038,19 +2056,21 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 	char cubeMapBaseName[ MAX_QPATH ];
 	COM_StripExtension3( buffer, cubeMapBaseName, sizeof( cubeMapBaseName ) );
 
-	for ( i = 0; i < numCubeMapLoaders; i++ )
+	for ( const cubeMapLoader_t loader : cubeMapLoaders )
 	{
-		std::string cubeMapName = Str::Format( "%s.%s", cubeMapBaseName, cubeMapLoaders[ i ].ext );
+		std::string cubeMapName = Str::Format( "%s.%s", cubeMapBaseName, loader.ext );
 		if( R_FindImageLoader( cubeMapName.c_str() ) >= 0 )
 		{
-			Log::Debug( "found %s cube map '%s'", cubeMapLoaders[ i ].ext, cubeMapBaseName );
-			cubeMapLoaders[ i ].ImageLoader( cubeMapName.c_str(), pic, &width, &height, &numLayers, &numMips, &bits, 0 );
+			Log::Debug( "found %s cube map '%s'", loader.ext, cubeMapBaseName );
+			loader.ImageLoader( cubeMapName.c_str(), pic, &width, &height, &numLayers, &numMips, &bits, 0 );
+
 			if( numLayers == 6 && pic[0] ) {
-				numPicsToFree = 1;
-				goto createCubeImage;
-			} else {
-				R_FreeCubePics( pic, numLayers );
+				image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, width, height, bits, filterType, wrapType );
+				R_FreeCubePics( pic, 1 );
+				return image;
 			}
+
+			R_FreeCubePics( pic, numLayers );
 		}
 	}
 
@@ -2059,122 +2079,70 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 		pic[ i ] = nullptr;
 	}
 
-	for ( i = 0; i < 6; i++ )
+	for ( const multifileCubeMapFormat_t format : multifileCubeMapFormats )
 	{
-		Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, openglSuffices[ i ] );
-
-		filename_p = &filename[ 0 ];
-		R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
-
-		if ( IsImageCompressed( bits ) )
+		for ( i = 0; i < 6; i++ )
 		{
-				Log::Warn("DXTn compression found in multi-file cube map; ignoring '%s'", imageName );
-		        goto skipCubeImage;
+			Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, format.suffixes[ i ] );
+
+			filename_p = &filename[ 0 ];
+			R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
+
+			if ( pic[ i ] == nullptr )
+			{
+				// ignore silently, skip this format
+				// note that it may silent incomplete multifile cubemap
+				// but this is an hardly decidable problem since
+				// multiple formats can share some suffixes
+				break;
+			}
+
+			if ( IsImageCompressed( bits ) )
+			{
+				Log::Warn("cube map face '%s' has DXTn compression, cube map unusable", filename );
+				break;
+			}
+
+			if ( numLayers > 0 )
+			{
+				Log::Warn("cubemap face '%s' is a multilayer image with %d layer(s), cube map unusable", filename, numLayers);
+				break;
+			}
+
+			if ( width != height )
+			{
+				Log::Warn("cubemap face '%s' is not a square with %d×%d dimension", filename, width, height);
+				break;
+			}
+			
+			if ( format.flipX[ i ] )
+			{
+				R_Flip( pic[ i ], width, height );
+			}
+
+			if ( format.flipY[ i ] )
+			{
+				R_Flop( pic[ i ], width, height );
+			}
+
+			if ( format.rot[ i ] != 0 )
+			{
+				R_Rotate( pic[ i ], width, height, format.rot[ i ] );
+			}
 		}
 
-		if ( !pic[ i ] || width != height || numLayers > 0 )
+		if ( i == 6 )
 		{
-			image = nullptr;
-			goto tryDoom3Suffices;
+			Log::Debug( "found %s multifile cube map '%s'", format.name, imageName );
+			image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, width, height, bits, filterType, wrapType );
+			R_FreeCubePics( pic, i );
+			return image;
 		}
-		numPicsToFree = i;
+
+		R_FreeCubePics( pic, i );
 	}
 
-	goto createCubeImage;
-
-tryDoom3Suffices:
-
-	for ( i = 0; i < numPicsToFree; i++ ) {
-		ri.Free( pic[i] );
-		pic[i] = nullptr;
-	}
-	numPicsToFree = 0;
-
-	for ( i = 0; i < 6; i++ )
-	{
-		Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, doom3Suffices[ i ] );
-
-		filename_p = &filename[ 0 ];
-		R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
-
-		if ( IsImageCompressed( bits ) )
-		{
-				Log::Warn("DXTn compression found in multi-file cube map; ignoring '%s'", imageName );
-		        goto skipCubeImage;
-		}
-
-		if ( !pic[ i ] || width != height || numLayers > 0 )
-		{
-			image = nullptr;
-			goto tryQuakeSuffices;
-		}
-
-		if ( doom3FlipX[ i ] )
-		{
-			R_Flip( pic[ i ], width, height );
-		}
-
-		if ( doom3FlipY[ i ] )
-		{
-			R_Flop( pic[ i ], width, height );
-		}
-
-		R_Rotate( pic[ i ], width, height, doom3Rot[ i ] );
-
-		numPicsToFree = i;
-	}
-
-	goto createCubeImage;
-
-tryQuakeSuffices:
-
-	for ( i = 0; i < numPicsToFree; i++ ) {
-		ri.Free( pic[i] );
-		pic[i] = nullptr;
-	}
-	numPicsToFree = 0;
-
-	for ( i = 0; i < 6; i++ )
-	{
-		Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, quakeSuffices[ i ] );
-
-		filename_p = &filename[ 0 ];
-		R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
-
-		if ( IsImageCompressed( bits ) )
-		{
-				Log::Warn("DXTn compression found in multi-file cube map; ignoring '%s'", imageName );
-		        goto skipCubeImage;
-		}
-
-		if ( !pic[ i ] || width != height || numLayers > 0 )
-		{
-			image = nullptr;
-			goto skipCubeImage;
-		}
-
-		if ( quakeFlipX[ i ] )
-		{
-			R_Flip( pic[ i ], width, height );
-		}
-
-		if ( quakeFlipY[ i ] )
-		{
-			R_Flop( pic[ i ], width, height );
-		}
-
-		R_Rotate( pic[ i ], width, height, quakeRot[ i ] );
-
-		numPicsToFree = i;
-	}
-
-createCubeImage:
-	image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, width, height, bits, filterType, wrapType );
-
-skipCubeImage:
-	R_FreeCubePics( pic, numPicsToFree );
-
-	return image;
+	return nullptr;
 }
 
 /*
