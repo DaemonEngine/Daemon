@@ -1658,7 +1658,7 @@ static int R_FindImageLoader( const char *baseName, const char **prefix ) {
 	return bestLoader;
 }
 
-static int R_FindImageLoader( const char *baseName ) {
+int R_FindImageLoader( const char *baseName ) {
 	// not used but required by R_FindImageLoader
 	const char *prefix;
 

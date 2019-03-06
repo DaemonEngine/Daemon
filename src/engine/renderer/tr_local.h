@@ -3150,6 +3150,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void    R_InitImages();
 	void    R_ShutdownImages();
 
+	int R_FindImageLoader( const char *baseName );
 	image_t *R_FindImageFile( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
 	image_t *R_FindCubeImage( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
 
