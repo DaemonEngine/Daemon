@@ -2050,9 +2050,15 @@ static const multifileCubeMapFormat_t multifileCubeMapFormats[] =
 	},
 };
 
+struct face_t
+{
+	int width;
+	int height;
+};
+
 image_t *R_FindCubeImage( const char *imageName, int bits, filterType_t filterType, wrapType_t wrapType )
 {
-	int i;
+	int i, j;
 	image_t *image = nullptr;
 	int width = 0, height = 0, numLayers = 0, numMips = 0;
 	byte *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
@@ -2105,6 +2111,9 @@ image_t *R_FindCubeImage( const char *imageName, int bits, filterType_t filterTy
 
 	for ( const multifileCubeMapFormat_t format : multifileCubeMapFormats )
 	{
+		int greatestEdge = 0;
+		face_t faces[6];
+
 		for ( i = 0; i < 6; i++ )
 		{
 			Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, format.suffixes[ i ] );
@@ -2133,32 +2142,68 @@ image_t *R_FindCubeImage( const char *imageName, int bits, filterType_t filterTy
 				break;
 			}
 
-			if ( width != height )
+			if ( width > greatestEdge )
 			{
-				Log::Warn("cubemap face '%s' is not a square with %d×%d dimension", filename, width, height);
-				break;
-			}
-			
-			if ( format.flipX[ i ] )
-			{
-				R_Flip( pic[ i ], width, height );
+				greatestEdge = width;
 			}
 
-			if ( format.flipY[ i ] )
+			if ( height > greatestEdge )
 			{
-				R_Flop( pic[ i ], width, height );
+				greatestEdge = height;
 			}
 
-			if ( format.rot[ i ] != 0 )
-			{
-				R_Rotate( pic[ i ], width, height, format.rot[ i ] );
-			}
+			faces[ i ].width = width;
+			faces[ i ].height = height;
 		}
 
 		if ( i == 6 )
 		{
+
+			for ( j = 0; j < 6; j++ )
+			{
+				width = faces[ j ].width;
+				height = faces[ j ].height;
+
+				bool badSize = false;
+
+				if ( width != height )
+				{
+					Log::Warn("cubemap face '%s_%s' is not a square with %d×%d dimension, resizing to %d×%d",
+						imageName, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
+					badSize = true;
+				}
+
+				if ( width < greatestEdge || height < greatestEdge )
+				{
+					Log::Warn("cubemap face '%s_%s' is too small with %d×%d dimension, resizing to %d×%d",
+						imageName, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
+					badSize = true;
+				}
+
+				// make face square before doing other operations like rotation
+				if ( badSize )
+				{
+					pic[ j ] = R_Resize( pic[ j ], width, height, greatestEdge, greatestEdge );
+				}
+
+				if ( format.flipX[ j ] )
+				{
+					R_Flip( pic[ j ], width, height );
+				}
+
+				if ( format.flipY[ j ] )
+				{
+					R_Flop( pic[ j ], width, height );
+				}
+
+				if ( format.rot[ j ] != 0 )
+				{
+					R_Rotate( pic[ j ], width, height, format.rot[ j ] );
+				}
+			}
+
 			Log::Debug( "found %s multifile cube map '%s'", format.name, imageName );
-			image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, width, height, bits, filterType, wrapType );
+			image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, greatestEdge, greatestEdge, bits, filterType, wrapType );
 			R_FreeCubePics( pic, i );
 			return image;
 		}
