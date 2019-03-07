@@ -1207,6 +1207,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		bool       parallax; // material has normalmaps suited for parallax mapping
 
+		vec3_t     normalFormat; // normalmap format (channel flip)
+
 		bool       noShadows;
 		bool       fogLight;
 		bool       blendLight;

@@ -21,6 +21,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // reliefMapping_vp.glsl - Relief mapping helper functions
 
+uniform vec3 u_NormalFormat;
+
 struct light {
   vec4  center_radius;
   vec4  color_type;
@@ -199,12 +201,36 @@ void computeDLights( vec3 P, vec3 N, vec3 I, vec4 diffuse, vec4 specular,
 #endif
 }
 
+vec3 NormalFlip(vec3 N)
+{
+	// undefined (zero) means default means 1.0 means do nothing
+
+	if (u_NormalFormat.x < 0.0)
+	{
+		N.x *= -1.0;
+	}
+
+	if (u_NormalFormat.y < 0.0)
+	{
+		N.y *= -1.0;
+	}
+
+	if (u_NormalFormat.z < 0.0)
+	{
+		N.z *= -1.0;
+	}
+
+	return N;
+}
+
 vec3 ComputeNormalInTangentSpace(sampler2D normalMap, vec2 texNormal)
 {
 	vec3 N = texture2D(normalMap, texNormal).rga;
 	N.x *= N.z;
 	N.xy = 2.0 * N.xy - 1.0;
 	N.z = sqrt(1.0 - dot(N.xy, N.xy));
+
+	N = NormalFlip(N);
 
 #if defined(r_NormalScale)
 	N.z *= r_NormalScale;

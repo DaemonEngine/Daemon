@@ -3358,6 +3358,13 @@ static bool ParseShader( const char *_text )
 							Log::Debug( "found extra %s '%s'", parser.description, extraMapName.c_str() );
 							const char *name = extraMapName.c_str();
 							parser.parser( &stages[ s ], &name );
+
+							if ( Q_stricmp( "norm", parser.suffix ) == 0 )
+							{
+								// Xonotic uses -Y (DirectX) while this engine uses Y (OpenGL)
+								shader.normalFormat[ 1 ] = -1;
+							}
+
 							s++;
 						}
 					}
@@ -3571,7 +3578,51 @@ static bool ParseShader( const char *_text )
 
 			continue;
 		}
-		// parallax mapping
+		// normalFormat <format>
+		//
+		// expects OpenGL format as default
+		//
+		// OpenGL format is described there:
+		//     https://github.com/KhronosGroup/glTF/tree/2.0/specification/2.0#materialnormaltexture
+		//
+		// > The normal vectors use OpenGL conventions where +X is right and +Y is up.
+		// > +Z points toward the viewer.
+		//
+		// example of formats:
+		//
+		//  1  1  1  OpenGL format (default)
+		//  1 -1  1  DirectX format with reverted green (Y) channel
+		// -1  1  1  weird other format with reverted red (X) channel
+		else if ( !Q_stricmp( token, "normalFormat" ) )
+		{
+			for ( int i = 0; i < 3; i++ )
+			{
+				token = COM_ParseExt2( text, false );
+
+				if ( token[ 0 ] == '\0' )
+				{
+					Log::Warn("missing normalFormat parm in shader '%s'", shader.name );
+					continue;
+				}
+
+				if ( !Q_stricmp( token, "-1" ) )
+				{
+					shader.normalFormat[ i ] = -1;
+				}
+				else if ( !Q_stricmp( token, "1" ) )
+				{
+					// do nothing, that's the default
+				}
+				else
+				{
+					Log::Warn("unknown normalFormat parm '%s' in '%s'", token, shader.name );
+					break;
+				}
+			}
+			SkipRestOfLine( text );
+			continue;
+		}
+		// in normal case, this is not used since this is detected by engine
 		else if ( !Q_stricmp( token, "parallax" ) )
 		{
 			shader.parallax = true;
@@ -5529,6 +5580,7 @@ static void ScanAndLoadShaderFiles()
 			shaderTable_t *tb;
 			bool      alreadyCreated;
 
+			// zeroes all shaders, booleans can be assumed as false
 			Com_Memset( &table, 0, sizeof( table ) );
 
 			token = COM_ParseExt2( &p, true );

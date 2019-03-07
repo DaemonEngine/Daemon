@@ -1766,6 +1766,22 @@ public:
 	}
 };
 
+class u_NormalFormat :
+	GLUniform3f
+{
+public:
+	u_NormalFormat( GLShader *shader ) :
+		GLUniform3f( shader, "u_NormalFormat" )
+	{
+	}
+
+	void SetUniform_NormalFormat( const vec3_t value )
+	{
+		this->SetValue( value );
+	}
+};
+
+
 class u_FogDensity :
 	GLUniform1f
 {
@@ -2343,6 +2359,7 @@ class GLShader_lightMapping :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_DepthScale,
+	public u_NormalFormat,
 	public u_numLights,
 	public u_Lights,
 	public GLDeformStage,
@@ -2371,6 +2388,7 @@ class GLShader_vertexLighting_DBS_entity :
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_NormalFormat,
 	public u_EnvironmentInterpolation,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
@@ -2405,6 +2423,7 @@ class GLShader_vertexLighting_DBS_world :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_DepthScale,
+	public u_NormalFormat,
 	public u_LightWrapAround,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
@@ -2445,6 +2464,7 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2483,6 +2503,7 @@ class GLShader_forwardLighting_projXYZ :
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2523,6 +2544,7 @@ class GLShader_forwardLighting_directionalSun :
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2567,6 +2589,7 @@ class GLShader_reflection :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
+	public u_NormalFormat,
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2642,6 +2665,7 @@ class GLShader_heatHaze :
 	public u_ColorModulate,
 	public u_Color,
 	public u_Bones,
+	public u_NormalFormat,
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2768,6 +2792,7 @@ class GLShader_liquid :
 	public u_FresnelScale,
 	public u_FresnelBias,
 	public u_NormalScale,
+	public u_NormalFormat,
 	public u_FogDensity,
 	public u_FogColor,
 	public u_SpecularExponent,

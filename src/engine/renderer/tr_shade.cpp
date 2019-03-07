@@ -808,6 +808,9 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	gl_vertexLightingShader_DBS_entity->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
+	// bind u_NormalFormat
+	gl_vertexLightingShader_DBS_entity->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+
 	// bind u_SpecularMap
 	if ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
 	{
@@ -1049,6 +1052,9 @@ static void Render_vertexLighting_DBS_world( int stage )
 
 	gl_vertexLightingShader_DBS_world->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
+	// bind u_NormalFormat
+	gl_vertexLightingShader_DBS_world->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+
 	// bind u_SpecularMap
 	if ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
 	{
@@ -1211,6 +1217,9 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	}
 
 	gl_lightMappingShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+
+	// bind u_NormalFormat
+	gl_lightMappingShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
 	// bind u_SpecularMap
 	if ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
@@ -1548,6 +1557,9 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 
 	gl_forwardLightingShader_omniXYZ->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
+	// bind u_NormalFormat
+	gl_forwardLightingShader_omniXYZ->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+
 	// bind u_SpecularMap
 	if ( r_forceSpecular->integer )
 	{
@@ -1732,6 +1744,9 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	}
 
 	gl_forwardLightingShader_projXYZ->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+
+	// bind u_NormalFormat
+	gl_forwardLightingShader_projXYZ->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
 	// bind u_SpecularMap
 	if ( r_forceSpecular->integer )
@@ -1920,6 +1935,9 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 
 	gl_forwardLightingShader_directionalSun->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
+	// bind u_NormalFormat
+	gl_forwardLightingShader_directionalSun->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+
 	// bind u_SpecularMap
 	if ( r_forceSpecular->integer )
 	{
@@ -2031,7 +2049,11 @@ static void Render_reflection_CB( int stage )
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
+
 	gl_reflectionShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+
+	// bind u_NormalFormat
+	gl_reflectionShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
 	gl_reflectionShader->SetRequiredVertexPointers();
 
@@ -2192,6 +2214,9 @@ static void Render_heatHaze( int stage )
 	GL_BindToTMU( 0, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
 	gl_heatHazeShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
+	// bind u_NormalFormat
+	gl_heatHazeShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+
 	GL_BindToTMU( 1, tr.currentRenderImage[ backEnd.currentMainFBO ] );
 
 	gl_heatHazeShader->SetRequiredVertexPointers();
@@ -2261,6 +2286,9 @@ static void Render_liquid( int stage )
 	// bind u_NormalMap
 	GL_BindToTMU( 3, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
 	gl_liquidShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+
+	// bind u_NormalFormat
+	gl_liquidShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
 	Tess_DrawElements();
 
