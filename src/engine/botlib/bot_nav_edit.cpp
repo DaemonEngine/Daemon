@@ -45,7 +45,6 @@ Maryland 20850 USA.
 #include "nav.h"
 
 static const int DEFAULT_CONNECTION_SIZE = 50;
-static int connectionSize = DEFAULT_CONNECTION_SIZE;
 
 bool GetPointPointedTo( NavData_t *nav, rVec &p )
 {
@@ -93,13 +92,13 @@ void BotDrawNavEdit( DebugDrawQuake *dd )
 	{
 		unsigned int col = duRGBA( 255, 255, 255, 220 );
 		dd->begin( DU_DRAW_LINES, 2.0f );
-		duAppendCircle( dd, p[ 0 ], p[ 1 ], p[ 2 ], connectionSize, col );
+		duAppendCircle( dd, p[ 0 ], p[ 1 ], p[ 2 ], DEFAULT_CONNECTION_SIZE, col );
 
 		if ( cmd.offBegin )
 		{
 			duAppendArc( dd, cmd.pc.start[ 0 ], cmd.pc.start[ 1 ], cmd.pc.start[ 2 ], p[ 0 ], p[ 1 ], p[ 2 ], 0.25f,
 						0.6f, 0.6f, col );
-			duAppendCircle( dd, cmd.pc.start[ 0 ], cmd.pc.start[ 1 ], cmd.pc.start[ 2 ], connectionSize, col );
+			duAppendCircle( dd, cmd.pc.start[ 0 ], cmd.pc.start[ 1 ], cmd.pc.start[ 2 ], DEFAULT_CONNECTION_SIZE, col );
 		}
 		dd->end();
 	}
@@ -298,7 +297,7 @@ void Cmd_AddConnection()
 			}
 			else
 			{
-				cmd.pc.radius = connectionSize;
+				cmd.pc.radius = DEFAULT_CONNECTION_SIZE;
 			}
 			cmd.offBegin = true;
 		}
@@ -343,36 +342,6 @@ void Cmd_AddConnection()
 	{
 		Log::Notice( usage );
 	}
-}
-
-static void adjustConnectionSize( int dir )
-{
-	int argc = Cmd_Argc();
-	int adjust = 5;
-	int newConnectionSize;
-
-	if ( argc > 1 )
-	{
-		adjust = Math::Clamp( atoi( Cmd_Argv( 1 ) ), 1, 20 );
-	}
-
-	newConnectionSize = Math::Clamp( connectionSize + dir * adjust, 20, 100 );
-
-	if ( newConnectionSize != connectionSize )
-	{
-		connectionSize = newConnectionSize;
-		Log::Notice( "Default connection size = %d", connectionSize );
-	}
-}
-
-void Cmd_ConnectionSizeUp()
-{
-	return adjustConnectionSize( 1 );
-}
-
-void Cmd_ConnectionSizeDown()
-{
-	return adjustConnectionSize( -1 );
 }
 
 void Cmd_NavTest()
@@ -454,8 +423,6 @@ void NavEditInit()
 	Cvar_Set( "r_debugSurface", "0" );
 	Cmd_AddCommand( "navedit", Cmd_NavEdit );
 	Cmd_AddCommand( "addcon", Cmd_AddConnection );
-	Cmd_AddCommand( "conSizeUp", Cmd_ConnectionSizeUp );
-	Cmd_AddCommand( "conSizeDown", Cmd_ConnectionSizeDown );
 	Cmd_AddCommand( "navtest", Cmd_NavTest );
 #endif
 }
@@ -465,8 +432,6 @@ void NavEditShutdown()
 #ifndef BUILD_SERVER
 	Cmd_RemoveCommand( "navedit" );
 	Cmd_RemoveCommand( "addcon" );
-	Cmd_RemoveCommand( "conSizeUp" );
-	Cmd_RemoveCommand( "conSizeDown" );
 	Cmd_RemoveCommand( "navtest" );
 #endif
 }
