@@ -50,6 +50,7 @@ void	main()
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
 	vec2 texDiffuse = var_TexDiffuseGlow.st;
+	vec2 texGlow = var_TexDiffuseGlow.pq;
 	vec2 texNormal = var_TexNormalSpecular.st;
 	vec2 texSpecular = var_TexNormalSpecular.pq;
 
@@ -60,6 +61,7 @@ void	main()
 	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_DepthScale, viewDir, tangentToWorldMatrix);
 
 	texDiffuse += texOffset;
+	texGlow += texOffset;
 	texNormal += texOffset;
 	texSpecular += texOffset;
 #endif // USE_PARALLAX_MAPPING
@@ -101,7 +103,7 @@ void	main()
 	}
 	computeDLights( var_Position, N, viewDir, diffuse, specular, color );
 
-	color.rgb += texture2D(u_GlowMap, var_TexDiffuseGlow.pq).rgb;
+	color.rgb += texture2D(u_GlowMap, texGlow).rgb;
 
 	// convert normal to [0,1] color space
 	N = N * 0.5 + 0.5;

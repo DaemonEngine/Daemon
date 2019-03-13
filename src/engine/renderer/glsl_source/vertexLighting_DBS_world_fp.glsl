@@ -92,6 +92,7 @@ void	main()
 	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_DepthScale, viewDir, tangentToWorldMatrix);
 
 	texDiffuse += texOffset;
+	texGlow += texOffset;
 	texNormal += texOffset;
 	texSpecular += texOffset;
 #endif // USE_PARALLAX_MAPPING

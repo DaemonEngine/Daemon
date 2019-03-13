@@ -85,6 +85,7 @@ void	main()
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
 	vec2 texDiffuse = var_TexDiffuse.st;
+	vec2 texGlow = var_TexGlow;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
@@ -96,6 +97,7 @@ void	main()
 	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_DepthScale, viewDir, tangentToWorldMatrix);
 
 	texDiffuse += texOffset;
+	texGlow += texOffset;
 	texNormal += texOffset;
 	texSpecular += texOffset;
 #endif // USE_PARALLAX_MAPPING
@@ -144,7 +146,7 @@ void	main()
 	color.rgb += 0.7 * emission;
 #endif
 
-	color.rgb += texture2D(u_GlowMap, var_TexGlow).rgb;
+	color.rgb += texture2D(u_GlowMap, texGlow).rgb;
 
 	// convert normal to [0,1] color space
 	N = N * 0.5 + 0.5;
