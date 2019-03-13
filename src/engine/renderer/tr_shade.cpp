@@ -787,9 +787,13 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	if ( r_parallaxMapping->integer && tess.surfaceShader->parallax )
 	{
 		float depthScale;
+		float offsetScale;
 
 		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_parallaxDepthScale->value );
-		gl_vertexLightingShader_DBS_entity->SetUniform_DepthScale( depthScale );
+		offsetScale = tess.surfaceShader->offsetScale;
+		depthScale *= offsetScale == 0 ? 1 : offsetScale;
+		gl_vertexLightingShader_DBS_entity->SetUniform_OffsetScale( depthScale );
+		gl_vertexLightingShader_DBS_entity->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
 	}
 
 	// bind u_DiffuseMap
@@ -1026,9 +1030,13 @@ static void Render_vertexLighting_DBS_world( int stage )
 	if ( r_parallaxMapping->integer )
 	{
 		float depthScale;
+		float offsetScale;
 
 		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_parallaxDepthScale->value );
-		gl_vertexLightingShader_DBS_world->SetUniform_DepthScale( depthScale );
+		offsetScale = tess.surfaceShader->offsetScale;
+		depthScale *= offsetScale == 0 ? 1 : offsetScale;
+		gl_vertexLightingShader_DBS_world->SetUniform_OffsetScale( depthScale );
+		gl_vertexLightingShader_DBS_world->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
 	}
 
 	if( tr.world ) {
@@ -1190,9 +1198,13 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	if ( r_parallaxMapping->integer )
 	{
 		float depthScale;
+		float offsetScale;
 
 		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_parallaxDepthScale->value );
-		gl_lightMappingShader->SetUniform_DepthScale( depthScale );
+		offsetScale = tess.surfaceShader->offsetScale;
+		depthScale *= offsetScale == 0 ? 1 : offsetScale;
+		gl_lightMappingShader->SetUniform_OffsetScale( depthScale );
+		gl_lightMappingShader->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
 	}
 
 	// bind u_DiffuseMap
@@ -1484,9 +1496,13 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	if ( r_parallaxMapping->integer )
 	{
 		float depthScale;
+		float offsetScale;
 
 		depthScale = RB_EvalExpression( &diffuseStage->depthScaleExp, r_parallaxDepthScale->value );
-		gl_forwardLightingShader_omniXYZ->SetUniform_DepthScale( depthScale );
+		offsetScale = tess.surfaceShader->offsetScale;
+		depthScale *= offsetScale == 0 ? 1 : offsetScale;
+		gl_forwardLightingShader_omniXYZ->SetUniform_OffsetScale( depthScale );
+		gl_forwardLightingShader_omniXYZ->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
 	}
 
 	// set uniforms
@@ -1671,9 +1687,13 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	if ( r_parallaxMapping->integer )
 	{
 		float depthScale;
+		float offsetScale;
 
 		depthScale = RB_EvalExpression( &diffuseStage->depthScaleExp, r_parallaxDepthScale->value );
-		gl_forwardLightingShader_projXYZ->SetUniform_DepthScale( depthScale );
+		offsetScale = tess.surfaceShader->offsetScale;
+		depthScale *= offsetScale == 0 ? 1 : offsetScale;
+		gl_forwardLightingShader_projXYZ->SetUniform_OffsetScale( depthScale );
+		gl_forwardLightingShader_projXYZ->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
 	}
 
 	// set uniforms
@@ -1857,9 +1877,13 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	if ( r_parallaxMapping->integer )
 	{
 		float depthScale;
+		float offsetScale;
 
 		depthScale = RB_EvalExpression( &diffuseStage->depthScaleExp, r_parallaxDepthScale->value );
-		gl_forwardLightingShader_directionalSun->SetUniform_DepthScale( depthScale );
+		offsetScale = tess.surfaceShader->offsetScale;
+		depthScale *= offsetScale == 0 ? 1 : offsetScale;
+		gl_forwardLightingShader_directionalSun->SetUniform_OffsetScale( depthScale );
+		gl_forwardLightingShader_directionalSun->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
 	}
 
 	// set uniforms

@@ -1992,6 +1992,36 @@ public:
 	}
 };
 
+class u_OffsetScale :
+	GLUniform1f
+{
+public:
+	u_OffsetScale( GLShader *shader ) :
+		GLUniform1f( shader, "u_OffsetScale" )
+	{
+	}
+
+	void SetUniform_OffsetScale( float value )
+	{
+		this->SetValue( value );
+	}
+};
+
+class u_OffsetBias :
+	GLUniform1f
+{
+public:
+	u_OffsetBias( GLShader *shader ) :
+		GLUniform1f( shader, "u_OffsetBias" )
+	{
+	}
+
+	void SetUniform_OffsetBias( float value )
+	{
+		this->SetValue( value );
+	}
+};
+
 class u_EnvironmentInterpolation :
 	GLUniform1f
 {
@@ -2358,7 +2388,8 @@ class GLShader_lightMapping :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_DepthScale,
+	public u_OffsetScale,
+	public u_OffsetBias,
 	public u_NormalFormat,
 	public u_numLights,
 	public u_Lights,
@@ -2387,7 +2418,8 @@ class GLShader_vertexLighting_DBS_entity :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_DepthScale,
+	public u_OffsetScale,
+	public u_OffsetBias,
 	public u_NormalFormat,
 	public u_EnvironmentInterpolation,
 	public u_LightGridOrigin,
@@ -2422,7 +2454,8 @@ class GLShader_vertexLighting_DBS_world :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_DepthScale,
+	public u_OffsetScale,
+	public u_OffsetBias,
 	public u_NormalFormat,
 	public u_LightWrapAround,
 	public u_LightGridOrigin,
@@ -2463,7 +2496,8 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_DepthScale,
+	public u_OffsetScale,
+	public u_OffsetBias,
 	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2502,7 +2536,8 @@ class GLShader_forwardLighting_projXYZ :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_DepthScale,
+	public u_OffsetScale,
+	public u_OffsetBias,
 	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2543,7 +2578,8 @@ class GLShader_forwardLighting_directionalSun :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_DepthScale,
+	public u_OffsetScale,
+	public u_OffsetBias,
 	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2791,7 +2827,8 @@ class GLShader_liquid :
 	public u_FresnelPower,
 	public u_FresnelScale,
 	public u_FresnelBias,
-	public u_DepthScale,
+	public u_OffsetScale,
+	public u_OffsetBias,
 	public u_NormalScale,
 	public u_NormalFormat,
 	public u_FogDensity,

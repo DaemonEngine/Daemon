@@ -1415,7 +1415,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 		imageBits |= IF_NORMALMAP;
 	}
 
-	if ( stage->type == stageType_t::ST_NORMALMAP && shader.parallax )
+	if ( stage->type == stageType_t::ST_NORMALMAP && shader.heightMapInNormalMap )
 	{
 		imageBits |= IF_DISPLACEMAP;
 	}
@@ -1446,7 +1446,9 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 	}
 
 	// enable parallax if an heightmap is found
-	if ( stage->bundle[ 0 ].image[ 0 ]->bits & IF_DISPLACEMAP )
+	// and not explicitely disabled by a shader keyword
+	if ( !shader.noParallax
+		&& stage->bundle[ 0 ].image[ 0 ]->bits & IF_DISPLACEMAP )
 	{
 		shader.parallax = true;
 	}
@@ -3622,10 +3624,132 @@ static bool ParseShader( const char *_text )
 			SkipRestOfLine( text );
 			continue;
 		}
-		// in normal case, this is not used since this is detected by engine
-		else if ( !Q_stricmp( token, "parallax" ) )
+		// parallax mapping
+		else if ( !Q_stricmp( token, "parallax" )
+			|| ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) ) )
 		{
-			shader.parallax = true;
+			char* keyword = token;
+			token = COM_ParseExt2( text, false );
+
+			// in common case this is not used since heightmap is detected by engine
+			shader.heightMapInNormalMap = true;
+
+			if ( !token[ 0 ] )
+			{
+				// legacy “parallax” XreaL keyword was never used
+				// it had purpose to enable parallax for the
+				// current shader
+				//
+				// the engine also relied on this to know
+				// that heightMap was stored in normalMap
+				// but there was no other storage options
+				//
+				// since parallax is now enabled by default
+				// when heightMap is present, do nothing
+				continue;
+			}
+
+			if ( !Q_stricmp( token, "none" ) )
+			{
+				shader.noParallax = true;
+			}
+			else if ( !Q_stricmp( token, "disable" ) )
+			{
+				shader.noParallax = true;
+			}
+			else if ( !Q_stricmp( token, "off" ) )
+			{
+				shader.noParallax = true;
+			}
+			else if ( !Q_stricmp( token, "default" ) )
+			{
+				// do nothing more
+			}
+			else if ( !Q_stricmp( token, "normal" ) )
+			{
+				// do nothing more (same as default)
+			}
+			else if ( !Q_stricmp( token, "linear" ) )
+			{
+				// not implemented yet
+				Log::Warn("unsupported parm for '%s' keyword in shader '%s'", keyword, shader.name );
+			}
+			else if ( !Q_stricmp( token, "relief" ) )
+			{
+				// the only implemented algorithm
+				// hence the default
+				// do nothing more
+			}
+			else if ( !Q_stricmp( token, "-" ) )
+			{
+				// do nothing, that's just a filler
+			}
+			else
+			{
+				Log::Warn("invalid parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				SkipRestOfLine( text );
+				continue;
+			}
+
+			token = COM_ParseExt2( text, false );
+
+			if ( !token[ 0 ] )
+			{
+				Log::Warn("missing parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				continue;
+			}
+
+			shader.offsetScale = atof( token );
+
+			token = COM_ParseExt2( text, false );
+
+			// dpoffsetmapping - 2
+			if ( !token[ 0 ] )
+			{
+				continue;
+			}
+
+			// dpoffsetmapping - 2 match8 65
+			float off;
+			float div;
+
+			if ( !Q_stricmp( token, "bias" ) )
+			{
+				off = 0.0f;
+				div = 1.0f;
+			}
+			else if ( !Q_stricmp( token, "match" ) )
+			{
+				off = 1.0f;
+				div = 1.0f;
+			}
+			else if ( !Q_stricmp( token, "match8" ) )
+			{
+				off = 1.0f;
+				div = 255.0f;
+			}
+			else if ( !Q_stricmp( token, "match16" ) )
+			{
+				off = 1.0f;
+				div = 65535.0f;
+			}
+			else
+			{
+				Log::Warn("invalid parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				SkipRestOfLine( text );
+				continue;
+			}
+
+			token = COM_ParseExt2( text, false );
+
+			if ( !token[ 0 ] )
+			{
+				Log::Warn("missing parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				continue;
+			}
+
+			float bias = atof( token );
+			shader.offsetBias = off - bias / div;
 			continue;
 		}
 		// entityMergable, allowing sprite surfaces from multiple entities
@@ -3944,6 +4068,19 @@ static bool ParseShader( const char *_text )
 		}
 		else if ( SurfaceParm( token ) )
 		{
+			continue;
+		}
+		else if ( !Q_strnicmp( token, "dp", 2 ) )
+		{
+			if ( *r_dpMaterial )
+			{
+				Log::Warn("unknown DarkPlaces shader parameter '%s' in '%s'", token, shader.name );
+			}
+			else
+			{
+				Log::Warn("disabled DarkPlaces shader parameter '%s' in '%s'", token, shader.name );
+			}
+			SkipRestOfLine( text );
 			continue;
 		}
 		else

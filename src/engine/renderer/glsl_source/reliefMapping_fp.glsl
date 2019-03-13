@@ -252,12 +252,12 @@ vec3 NormalInWorldSpace(sampler2D normalMap, vec2 texNormal, mat3 tangentToWorld
 #if defined(USE_PARALLAX_MAPPING)
 // compute texcoords offset from heightmap
 // was RayIntersectDisplaceMap
-vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float depthScale, vec3 viewDir, mat3 tangentToWorldMatrix)
+vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float offsetScale, float offsetBias, vec3 viewDir, mat3 tangentToWorldMatrix)
 {
 	// compute view direction in tangent space
 	vec3 tangentViewDir = normalize(viewDir * tangentToWorldMatrix);
 
-	vec2 ds = tangentViewDir.xy * -depthScale / tangentViewDir.z;
+	vec2 ds = tangentViewDir.xy * -offsetScale / tangentViewDir.z;
 
 	const int linearSearchSteps = 16;
 	const int binarySearchSteps = 6;
@@ -278,7 +278,7 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float depthScale, ve
 	{
 		depth += size;
 
-		float t = 1.0 - texture2D(normalMap, texCoords + ds * depth).a;
+		float t = 1.0 - offsetBias - texture2D(normalMap, texCoords + ds * depth).a;
 
 		if(bestDepth > 0.996)		// if no depth found yet
 		{
@@ -296,7 +296,7 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float depthScale, ve
 	{
 		size *= 0.5;
 
-		float t = 1.0 - texture2D(normalMap, texCoords + ds * depth).a;
+		float t = 1.0 - offsetBias - texture2D(normalMap, texCoords + ds * depth).a;
 
 		if(depth >= t)
 		{
