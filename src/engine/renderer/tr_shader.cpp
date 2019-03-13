@@ -3201,6 +3201,7 @@ static const extraMapParser_t extraMapParsers[] =
 	{ "norm",    "normal map",     ParseNormalMap     },
 	{ "gloss",   "specular map",   ParseSpecularMap   },
 	{ "glow",    "glow map",       ParseGlowMap       },
+	{ "luma",    "glow map",       ParseGlowMap       },
 };
 
 /*
