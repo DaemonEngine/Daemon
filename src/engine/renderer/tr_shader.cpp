@@ -4007,7 +4007,8 @@ static bool ParseShader( const char *_text )
 			continue;
 		}
 		// reflectionMapBlended <image>
-		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
+		else if ( !Q_stricmp( token, "reflectionMapBlended" )
+			|| ( *r_dpMaterial && !Q_stricmp( token, "dpreflectcube" ) ) )
 		{
 			ParseReflectionMapBlended( &stages[ s ], text );
 			s++;
