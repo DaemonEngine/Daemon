@@ -4154,6 +4154,7 @@ static void CollapseStages()
 	int specularStage = -1;
 	int materialStage = -1;
 	int reflectionStage = -1;
+	int lightStage = -1;
 	int glowStage = -1;
 
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
@@ -4213,6 +4214,17 @@ static void CollapseStages()
 				reflectionStage = i;
 			}
 		}
+		else if ( stages[ i ].type == stageType_t::ST_LIGHTMAP )
+		{
+			if ( lightStage != -1 )
+			{
+				Log::Warn( "more than one light map stage in shader '%s'", shader.name );
+			}
+			else
+			{
+				lightStage = i;
+			}
+		}
 		else if ( stages[ i ].type == stageType_t::ST_GLOWMAP )
 		{
 			if ( glowStage != -1 )
@@ -4249,6 +4261,7 @@ static void CollapseStages()
 		&& ( specularStage != -1
 			|| normalStage != -1
 			|| materialStage != -1
+			|| lightStage != -1
 			|| glowStage != -1 ) )
 	{
 		// note that if uncollapsed diffuseStage had to be merged in another stage
@@ -4295,6 +4308,12 @@ static void CollapseStages()
 				stages[ diffuseStage ].bundle[ TB_MATERIALMAP ] = stages[ materialStage ].bundle[ 0 ];
 				// disable since it's merged
 				stages[ materialStage ].active = false;
+			}
+			if ( lightStage != -1 )
+			{
+				// TODO: investigate how to pass rgbGen/alphaGen to implicit lightmap stage
+				// disable to not paint it over implicit lightmap stage and glow map
+				stages[ lightStage ].active = false;
 			}
 			if ( glowStage != -1 )
 			{
