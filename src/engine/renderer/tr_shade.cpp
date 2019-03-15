@@ -700,9 +700,8 @@ static void Render_generic( int stage )
 }
 
 static bool hasMaterialMapping( shader_t *shader ) {
-  switch( shader->collapseType ) {
-  case collapseType_t::COLLAPSE_lighting_DBM:
-  case collapseType_t::COLLAPSE_lighting_DBMG:
+  switch( shader->lightingCollapseType ) {
+  case collapseType_t::COLLAPSE_lighting_PBR:
     return true;
   default:
     return false;
@@ -2807,12 +2806,8 @@ void Tess_StageIteratorGeneric()
 				}
 
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_DBSG:
-			case stageType_t::ST_COLLAPSE_lighting_DBG:
-			case stageType_t::ST_COLLAPSE_lighting_DB:
-			case stageType_t::ST_COLLAPSE_lighting_DBS:
-			case stageType_t::ST_COLLAPSE_lighting_DBM:
-			case stageType_t::ST_COLLAPSE_lighting_DBMG:
+			case stageType_t::ST_COLLAPSE_lighting_PHONG:
+			case stageType_t::ST_COLLAPSE_lighting_PBR:
 				{
 					{
 						if ( r_precomputedLighting->integer || r_vertexLighting->integer )
@@ -2997,10 +2992,7 @@ void Tess_StageIteratorDepthFill()
 				}
 
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_DBSG:
-			case stageType_t::ST_COLLAPSE_lighting_DBG:
-			case stageType_t::ST_COLLAPSE_lighting_DB:
-			case stageType_t::ST_COLLAPSE_lighting_DBS:
+			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 				{
 					Render_depthFill( stage );
 					break;
@@ -3080,10 +3072,7 @@ void Tess_StageIteratorShadowFill()
 
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_DBSG:
-			case stageType_t::ST_COLLAPSE_lighting_DBG:
-			case stageType_t::ST_COLLAPSE_lighting_DB:
-			case stageType_t::ST_COLLAPSE_lighting_DBS:
+			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 				{
 					Render_shadowFill( stage );
 					break;
@@ -3198,8 +3187,7 @@ void Tess_StageIteratorLighting()
 			switch ( diffuseStage->type )
 			{
 				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_lighting_DB:
-				case stageType_t::ST_COLLAPSE_lighting_DBS:
+				case stageType_t::ST_COLLAPSE_lighting_PHONG:
 					if ( light->l.rlType == refLightType_t::RL_OMNI )
 					{
 						Render_forwardLighting_DBS_omni( diffuseStage, attenuationXYStage, attenuationZStage, light );

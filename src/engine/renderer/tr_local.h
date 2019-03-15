@@ -1043,13 +1043,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_LIGHTMAP,
-	  ST_COLLAPSE_lighting_DB, // diffusemap + bumpmap
-	  ST_COLLAPSE_lighting_DBG, // diffusemap + bumpmap + glowmap
-	  ST_COLLAPSE_lighting_DBS, // diffusemap + bumpmap + specularmap
-	  ST_COLLAPSE_lighting_DBSG, // diffusemap + bumpmap + specularmap + glowmap
-	  ST_COLLAPSE_lighting_DBM, // diffusemap + bumpmap + materialmap
-	  ST_COLLAPSE_lighting_DBMG, // diffusemap + bumpmap + materialmap + glowmap
-	  ST_COLLAPSE_reflection_CB, // color cubemap + bumpmap
+	  ST_COLLAPSE_lighting_PHONG, // diffusemap + opt:normalmap + opt:glowmap + opt:specularmap
+	  ST_COLLAPSE_lighting_PBR,   // diffusemap + opt:normalmap + opt:glowmap + materialmap
+	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
 
 	  // light shader stage types
 	  ST_ATTENUATIONMAP_XY,
@@ -1060,12 +1056,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	{
 	  COLLAPSE_none,
 	  COLLAPSE_genericMulti,
-	  COLLAPSE_lighting_DB,
-	  COLLAPSE_lighting_DBG,
-	  COLLAPSE_lighting_DBS,
-	  COLLAPSE_lighting_DBSG,
-	  COLLAPSE_lighting_DBM,
-	  COLLAPSE_lighting_DBMG,
+	  COLLAPSE_lighting_PHONG,
+	  COLLAPSE_lighting_PBR,
 	  COLLAPSE_reflection_CB,
 	  COLLAPSE_color_lightmap
 	};
@@ -1229,7 +1221,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		float          portalRange; // distance to fog out at
 		bool       isPortal;
 
-		collapseType_t collapseType;
+		collapseType_t lightingCollapseType;
+		collapseType_t reflectCollapseType;
 		int            collapseTextureEnv; // 0, GL_MODULATE, GL_ADD (FIXME: put in stage)
 
 		cullType_t     cullType; // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
