@@ -1100,6 +1100,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		uint32_t        stateBits; // GLS_xxxx mask
 
+		bool            isCubeMap;
+
 		int             deformIndex;
 		bool        overrideNoPicMip; // for images that must always be full resolution
 		bool        overrideFilterType; // for console fonts, 2D elements, etc.

@@ -1437,12 +1437,25 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 	wrapType_t wrapType = stage->overrideWrapType ? stage->wrapType : shader.wrapType;
 
 	// try to load the image
-	stage->bundle[ 0 ].image[ 0 ] = R_FindImageFile( buffer, imageBits, filterType, wrapType );
-
-	if ( !stage->bundle[ 0 ].image[ 0 ] )
+	if ( stage->isCubeMap )
 	{
-		Log::Warn("R_FindImageFile could not find image '%s' in shader '%s'", buffer, shader.name );
-		return false;
+		stage->bundle[ 0 ].image[ 0 ] = R_FindCubeImage( buffer, imageBits, filterType, wrapType );
+
+		if ( !stage->bundle[ 0 ].image[ 0 ] )
+		{
+			Log::Warn("R_FindCubeImage could not find image '%s' in shader '%s'", buffer, shader.name );
+			return false;
+		}
+	}
+	else
+	{
+		stage->bundle[ 0 ].image[ 0 ] = R_FindImageFile( buffer, imageBits, filterType, wrapType );
+
+		if ( !stage->bundle[ 0 ].image[ 0 ] )
+		{
+			Log::Warn("R_FindImageFile could not find image '%s' in shader '%s'", buffer, shader.name );
+			return false;
+		}
 	}
 
 	// enable parallax if an heightmap is found
@@ -3155,6 +3168,7 @@ static void ParseReflectionMap( shaderStage_t *stage, const char **text )
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
+		stage->isCubeMap = true;
 		LoadMap( stage, buffer );
 	}
 }
@@ -3172,6 +3186,7 @@ static void ParseReflectionMapBlended( shaderStage_t *stage, const char **text )
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
+		stage->isCubeMap = true;
 		LoadMap( stage, buffer );
 	}
 }

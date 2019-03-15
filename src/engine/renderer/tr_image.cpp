@@ -2130,6 +2130,8 @@ image_t *R_FindCubeImage( const char *imageName, int bits, filterType_t filterTy
 		{
 			Com_sprintf( filename, sizeof( filename ), "%s%s%s", buffer, format.sep, format.suffixes[ i ] );
 
+			Log::Debug( "looking for %s cube map face '%s'", format.name, filename );
+
 			filename_p = &filename[ 0 ];
 			R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
 
