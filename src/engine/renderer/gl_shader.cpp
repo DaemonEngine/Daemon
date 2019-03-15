@@ -1789,11 +1789,15 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
+	u_OffsetScale( this ),
+	u_OffsetBias( this ),
+	u_NormalScale( this ),
 	u_NormalFormat( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this )
+	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_PARALLAX_MAPPING( this )
 {
 }
 

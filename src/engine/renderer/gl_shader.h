@@ -2625,11 +2625,15 @@ class GLShader_reflection :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
+	public u_OffsetScale,
+	public u_OffsetBias,
+	public u_NormalScale,
 	public u_NormalFormat,
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_PARALLAX_MAPPING
 {
 public:
 	GLShader_reflection( GLShaderManager *manager );

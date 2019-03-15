@@ -2037,6 +2037,8 @@ static void Render_reflection_CB( int stage )
 
 	// end choose right shader program ------------------------------
 
+	gl_reflectionShader->SetParallaxMapping(r_parallaxMapping->integer && tess.surfaceShader->parallax);
+
 	gl_reflectionShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
 
 	gl_reflectionShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
@@ -2075,6 +2077,19 @@ static void Render_reflection_CB( int stage )
 	}
 
 	gl_reflectionShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+
+	// bind u_depthScale u_offsetBias
+	if ( r_parallaxMapping->integer )
+	{
+		float depthScale;
+		float offsetScale;
+
+		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_parallaxDepthScale->value );
+		offsetScale = tess.surfaceShader->offsetScale;
+		depthScale *= offsetScale == 0 ? 1 : offsetScale;
+		gl_reflectionShader->SetUniform_OffsetScale( depthScale );
+		gl_reflectionShader->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
+	}
 
 	// bind u_NormalFormat
 	gl_reflectionShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );

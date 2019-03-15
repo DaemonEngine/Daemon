@@ -26,6 +26,8 @@ uniform samplerCube	u_ColorMap;
 uniform sampler2D	u_NormalMap;
 uniform vec3		u_ViewOrigin;
 uniform mat4		u_ModelMatrix;
+uniform float		u_OffsetScale;
+uniform float		u_OffsetBias;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexNormal;
@@ -37,16 +39,25 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
-	// compute incident ray in world space
-	vec3 I = normalize(var_Position - u_ViewOrigin);
+	// compute view direction in world space
+	vec3 viewDir = normalize(var_Position - u_ViewOrigin);
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
+	vec2 texNormal = var_TexNormal;
+
+#if defined(USE_PARALLAX_MAPPING)
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_OffsetScale, u_OffsetBias, viewDir, tangentToWorldMatrix);
+
+	texNormal += texOffset;
+#endif // USE_PARALLAX_MAPPING
+
 	// compute normal in tangent space from normal map
-	vec3 N = NormalInWorldSpace(u_NormalMap, var_TexNormal, tangentToWorldMatrix);
+	vec3 N = NormalInWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
 
 	// compute reflection ray
-	vec3 R = reflect(I, N);
+	vec3 R = reflect(viewDir, N);
 
 	outputColor = textureCube(u_ColorMap, R).rgba;
 	// outputColor = vec4(1.0, 0.0, 0.0, 1.0);
