@@ -123,7 +123,8 @@ template<> struct SerializeTraits<FS::LoadedPakInfo> {
 namespace FS {
 
 #ifdef BUILD_ENGINE
-static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "Also load pk3s, ignoring version.", Cvar::NONE, false);
+static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "also load pk3s, ignoring version", Cvar::NONE, false);
+static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 0);
 
 bool UseLegacyPaks()
 {
@@ -865,7 +866,7 @@ public:
 
 		for (ZPOS64_T i = 0; i != globalInfo.number_entry; i++) {
 			unz_file_info64 fileInfo;
-			char filename[65537]; // The zip format has a maximum filename size of 64K
+			char filename[MAX_FILENAME_BUF];
 			result = unzGetCurrentFileInfo64(zipFile, &fileInfo, filename, sizeof(filename), nullptr, 0, nullptr, 0);
 			if (result != UNZ_OK) {
 				SetErrorCodeZlib(err, result);
@@ -888,7 +889,7 @@ public:
 	}
 
 	// Open a file in the archive
-	void OpenFile(offset_t offset, std::error_code& err) const
+	void OpenFile(offset_t offset, std::error_code& err)
 	{
 		// Set position in zip
 		int result = unzSetOffset64(zipFile, offset);
@@ -903,6 +904,75 @@ public:
 			SetErrorCodeZlib(err, result);
 		else
 			ClearErrorCode(err);
+	}
+
+	// OpenFile but with support for symlinks.
+	// Symlinks are a bad feature which you should not use. Therefore, the implementation is as
+	// slow as possible with a full iteration of the archive performed for each symlink.
+	// Returns: Length of the opened file, if successful.
+	offset_t OpenFileWithSymlinkResolution(Str::StringRef name, offset_t offset, std::error_code& err)
+	{
+		int depth = 0;
+#ifdef BUILD_ENGINE
+		int maxDepth = fs_maxSymlinkDepth.Get();
+#else
+		int maxDepth = 0; // TODO(slipher): Stop building unzip code in the gamelogic.
+#endif
+		std::string resolvedName;
+		for (;;) {
+			OpenFile(offset, err);
+			if (err)
+				return 0;
+			unz_file_info64 fileInfo;
+			int result = unzGetCurrentFileInfo64(zipFile, &fileInfo, nullptr, 0, nullptr, 0, nullptr, 0);
+			if (result != UNZ_OK) {
+				SetErrorCodeZlib(err, result);
+				return 0;
+			}
+			if (!IsSymlink(fileInfo)) {
+				// success
+				return fileInfo.uncompressed_size;
+			}
+			if (depth >= maxDepth) {
+				fsLogs.Warn("Failed to open symlinked zip archive file '%s': maximum depth of %d exceeded", name, depth);
+				CloseFile(err);
+				if (err)
+					return 0;
+				// TODO: find better error code?
+				SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+				return 0;
+			}
+			++depth;
+			char link[MAX_FILENAME_BUF];
+			size_t linkLength = ReadFile(&link, sizeof(link) - 1, err);
+			if (err) {
+				// If there was a read error, are we still supposed to close the file? Oh well.
+				return 0;
+			}
+			CloseFile(err);
+			if (err)
+				return 0;
+			link[linkLength] = '\0';
+			resolvedName = ResolveLinkPath(name, link, err);
+			if (err)
+				return 0;
+			if (!Path::IsValid(resolvedName, /*allowDir=*/false)) {
+				fsLogs.Warn("Symlink resolved to invalid filename '%s' → '%s'", name, resolvedName);
+				SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
+				return 0;
+			}
+			auto maybeOffset = FindOffsetForName(resolvedName, err);
+			if (err)
+				return 0;
+			if (!maybeOffset) {
+				fsLogs.Warn("Symlink points to nonexistent file '%s' → '%s'", name, resolvedName);
+				SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+				return 0;
+			}
+			fsLogs.Debug("Symlink resolved: '%s' → '%s'", name, resolvedName);
+			name = resolvedName;
+			offset = *maybeOffset;
+		}
 	}
 
 	// Get the length of the currently open file
@@ -950,6 +1020,45 @@ public:
 	}
 
 private:
+	static constexpr size_t MAX_FILENAME_BUF = 65537; // The zip format has a maximum filename size of 64K
+
+	static bool IsSymlink(const unz_file_info64& fileInfo) {
+		// see https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/stat.h
+		// redefine so it works outside of Unices
+		constexpr int DAEMON_S_IFMT = 00170000;
+		constexpr int DAEMON_S_IFLNK = 0120000;
+		// see https://trac.edgewall.org/attachment/ticket/8919/ZipDownload.patch
+		constexpr int PKZIP_EXTERNAL_ATTR_FILE_TYPE_SHIFT = 16;
+
+		uLong attr = fileInfo.external_fa >> PKZIP_EXTERNAL_ATTR_FILE_TYPE_SHIFT;
+		return (attr & DAEMON_S_IFMT) == DAEMON_S_IFLNK;
+	}
+
+	// The symlink path `relative` must be relative to the symlink's location.
+	// Only supports paths consisting of "../" 0 or more times, followed by non-magical path components.
+	static std::string ResolveLinkPath(std::string base, Str::StringRef relative, std::error_code& err) {
+		base = Path::DirName(base);
+		while (Str::IsPrefix("../", relative)) {
+			if (base.empty()) {
+				SetErrorCodeFilesystem(err, filesystem_error::no_such_directory);
+				return "";
+			}
+			base = Path::DirName(base);
+			relative = relative.suffix(3);
+		}
+		return Path::Build(base, relative);
+	}
+
+	Util::optional<offset_t> FindOffsetForName(Str::StringRef name, std::error_code& err) {
+		Util::optional<offset_t> offset;
+		ForEachFile([&](Str::StringRef arcName, offset_t arcOffset, uint32_t) {
+			if (!offset && arcName == name) {
+				offset = arcOffset;
+			}
+		}, err);
+		return offset;
+	}
+
 	unzFile zipFile;
 };
 
@@ -1291,12 +1400,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 			return "";
 
 		// Open file in zip
-		zipFile.OpenFile(it->second.second, err);
-		if (err)
-			return "";
-
-		// Get file length
-		offset_t length = zipFile.FileLength(err);
+		offset_t length = zipFile.OpenFileWithSymlinkResolution(path, it->second.second, err);
 		if (err)
 			return "";
 
@@ -1318,6 +1422,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 	ASSERT_UNREACHABLE();
 }
 
+// Note: Does not handle symlinks.
 void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 {
 	auto it = fileMap.find(path);
