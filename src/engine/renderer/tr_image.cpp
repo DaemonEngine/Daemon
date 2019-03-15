@@ -2019,6 +2019,7 @@ static const cubeMapLoader_t cubeMapLoaders[] =
 struct multifileCubeMapFormat_t
 {
 	const char *name;
+	const char *sep;
 	const char *suffixes[6];
 	bool flipX[6];
 	bool flipY[6];
@@ -2029,6 +2030,7 @@ static const multifileCubeMapFormat_t multifileCubeMapFormats[] =
 {
 	{
 		"OpenGL",
+		"_",
 		{ "px", "nx", "py", "ny", "pz", "nz" },
 		{ false, false, false, false, false, false },
 		{ false, false, false, false, false, false },
@@ -2036,13 +2038,23 @@ static const multifileCubeMapFormat_t multifileCubeMapFormats[] =
 	},
 	{
 		"Quake",
+		"_",
 		{ "rt", "lf", "bk", "ft", "up", "dn" },
 		{ true, true, false, true, true, false },
 		{ false, false, true, false, false, true },
 		{ 90, -90, 0, 0, 90, -90 },
 	},
 	{
+		"DarkPlaces",
+		"",
+		{ "px", "nx", "py", "ny", "pz", "nz" },
+		{ false, false, false, false, false, false },
+		{ false, false, false, false, false, false },
+		{ 0, 0, 0, 0, 0, 0 },
+	},
+	{
 		"Doom 3",
+		"_",
 		{ "forward", "back", "left", "right", "up", "down" },
 		{ true, true, false, true, true, false },
 		{ false, false, true, false, false, true },
@@ -2116,7 +2128,7 @@ image_t *R_FindCubeImage( const char *imageName, int bits, filterType_t filterTy
 
 		for ( i = 0; i < 6; i++ )
 		{
-			Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, format.suffixes[ i ] );
+			Com_sprintf( filename, sizeof( filename ), "%s%s%s", buffer, format.sep, format.suffixes[ i ] );
 
 			filename_p = &filename[ 0 ];
 			R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
@@ -2168,15 +2180,15 @@ image_t *R_FindCubeImage( const char *imageName, int bits, filterType_t filterTy
 
 				if ( width != height )
 				{
-					Log::Warn("cubemap face '%s_%s' is not a square with %d×%d dimension, resizing to %d×%d",
-						imageName, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
+					Log::Warn("cubemap face '%s%s%s' is not a square with %d×%d dimension, resizing to %d×%d",
+						imageName, format.sep, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
 					badSize = true;
 				}
 
 				if ( width < greatestEdge || height < greatestEdge )
 				{
-					Log::Warn("cubemap face '%s_%s' is too small with %d×%d dimension, resizing to %d×%d",
-						imageName, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
+					Log::Warn("cubemap face '%s%s%s' is too small with %d×%d dimension, resizing to %d×%d",
+						imageName, format.sep, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
 					badSize = true;
 				}
 
