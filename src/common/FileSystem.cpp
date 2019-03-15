@@ -874,6 +874,10 @@ public:
 			}
 			offset_t offset = unzGetOffset64(zipFile);
 			uint32_t crc = fileInfo.crc;
+			// Make the checksum something arbitrarily different if the file is a symlink.
+			if (IsSymlink(fileInfo)) {
+				crc ^= 0x80000000;
+			}
 			func(filename, offset, crc);
 
 			if (i + 1 != globalInfo.number_entry) {
