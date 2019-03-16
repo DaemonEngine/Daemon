@@ -5393,7 +5393,8 @@ static void ScanAndLoadShaderFiles()
 
 		if ( !buffers[ i ] )
 		{
-			Sys::Drop( "Couldn't load %s", filename );
+			Log::Warn( "Couldn't load shader file %s", filename );
+			continue;
 		}
 
 		p = buffers[ i ];
