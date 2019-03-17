@@ -1449,6 +1449,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_numLights( this ),
 	u_Lights( this ),
 	GLDeformStage( this ),
+	GLCompileMacro_USE_DELUXE_MAPPING( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_PHYSICAL_SHADING( this )
 {

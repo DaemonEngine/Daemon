@@ -89,21 +89,25 @@ void	main()
 
 	vec4 color = vec4( 0.0, 0.0, 0.0, diffuse.a );
 
+#if defined(USE_DELUXE_MAPPING)
 	// compute light direction in world space
 	vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
-	if( deluxe.w < 0.5 ) {
-		// normal/deluxe mapping is disabled
-		color.xyz += lightColor.xyz * diffuse.xyz;
-	} else {
-		vec3 L = 2.0 * deluxe.xyz - 1.0;
-		L = normalize(L);
+#else // !USE_DELUXE_MAPPING
+	// normal/deluxe mapping is disabled
+	color.xyz += lightColor.xyz * diffuse.xyz;
+#endif // USE_DELUXE_MAPPING
 
-		// divide by cosine term to restore original light color
-		lightColor /= clamp(dot(normalize(var_Normal), L), 0.004, 1.0);
+#if defined(USE_DELUXE_MAPPING)
+	vec3 L = 2.0 * deluxe.xyz - 1.0;
+	L = normalize(L);
 
-		// compute final color
-		computeLight( L, N, viewDir, lightColor, diffuse, specular, color );
-	}
+	// divide by cosine term to restore original light color
+	lightColor /= clamp(dot(normalize(var_Normal), L), 0.004, 1.0);
+
+	// compute final color
+	computeLight( L, N, viewDir, lightColor, diffuse, specular, color );
+#endif // USE_DELUXE_MAPPING
+
 	computeDLights( var_Position, N, viewDir, diffuse, specular, color );
 
 	color.rgb += texture2D(u_GlowMap, texGlow).rgb;

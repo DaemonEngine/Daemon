@@ -783,6 +783,7 @@ protected:
 	  USE_VERTEX_SPRITE,
 	  USE_TCGEN_ENVIRONMENT,
 	  USE_TCGEN_LIGHTMAP,
+	  USE_DELUXE_MAPPING,
 	  USE_PARALLAX_MAPPING,
 	  USE_REFLECTIVE_SPECULAR,
 	  USE_SHADOWING,
@@ -978,6 +979,31 @@ public:
 	}
 
 	void SetTCGenLightmap( bool enable )
+	{
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_USE_DELUXE_MAPPING :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_DELUXE_MAPPING( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "USE_DELUXE_MAPPING";
+	}
+
+	EGLCompileMacro GetType() const
+	{
+		return EGLCompileMacro::USE_DELUXE_MAPPING;
+	}
+
+	void SetDeluxeMapping( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -2201,6 +2227,7 @@ class GLShader_lightMapping :
 	public u_numLights,
 	public u_Lights,
 	public GLDeformStage,
+	public GLCompileMacro_USE_DELUXE_MAPPING,
 	public GLCompileMacro_USE_PARALLAX_MAPPING,
 	public GLCompileMacro_USE_PHYSICAL_SHADING
 {
