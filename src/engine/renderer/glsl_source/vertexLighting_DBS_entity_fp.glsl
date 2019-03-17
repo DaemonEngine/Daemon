@@ -82,7 +82,7 @@ void	main()
 		       L, ambCol, lgtCol );
 
 	// compute view direction in world space
-	vec3 V = normalize(u_ViewOrigin - var_Position);
+	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
 	vec2 texDiffuse = var_TexDiffuse.st;
 
@@ -92,45 +92,24 @@ void	main()
 	vec2 texSpecular = var_TexNormalSpecular.zw;
 
 #if defined(USE_PARALLAX_MAPPING)
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_DepthScale, viewDir, tangentToWorldMatrix);
 
-	// ray intersect in view direction
-
-	// compute view direction in tangent space
-	vec3 Vts = (u_ViewOrigin - var_Position.xyz) * tangentToWorldMatrix;
-	Vts = normalize(Vts);
-
-	// size and start position of search in texture space
-	vec2 S = Vts.xy * -u_DepthScale / Vts.z;
-
-#if 0
-	vec2 texOffset = vec2(0.0);
-	for(int i = 0; i < 4; i++) {
-		vec4 Normal = texture2D(u_NormalMap, texNormal.st + texOffset);
-		float height = Normal.a * 0.2 - 0.0125;
-		texOffset += height * Normal.z * S;
-	}
-#else
-	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
-
-	// compute texcoords offset
-	vec2 texOffset = S * depth;
-#endif
-
-	texDiffuse.st += texOffset;
-	texNormal.st += texOffset;
-	texSpecular.st += texOffset;
+	texDiffuse += texOffset;
+	texNormal += texOffset;
+	texSpecular += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
-	// compute normal in tangent space from normalmap, transform normal into world space
-	vec3 N = TransformNormalIntoWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
+	// compute normal in world space from normalmap
+	vec3 N = NormalInWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
 
 	// compute the specular term
 #if defined(USE_REFLECTIVE_SPECULAR)
 
 	vec4 specBase = texture2D(u_SpecularMap, texSpecular).rgba;
 
-	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-V, N)).rgba;
-	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-V, N)).rgba;
+	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, N)).rgba;
+	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, N)).rgba;
 
 	specBase.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
 
@@ -151,15 +130,15 @@ void	main()
 
 // add Rim Lighting to highlight the edges
 #if defined(r_RimLighting)
-	float rim = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), r_RimExponent);
+	float rim = pow(1.0 - clamp(dot(N, viewDir), 0.0, 1.0), r_RimExponent);
 	vec3 emission = ambCol * rim * rim * 0.2;
 #endif
 
 	// compute final color
 	vec4 color = vec4(ambCol * r_AmbientScale * diffuse.xyz, diffuse.a);
-	computeLight( L, N, V, lgtCol, diffuse, specBase, color );
+	computeLight( L, N, viewDir, lgtCol, diffuse, specBase, color );
 
-	computeDLights( var_Position, N, V, diffuse, specBase, color );
+	computeDLights( var_Position, N, viewDir, diffuse, specBase, color );
 
 #if defined(r_RimLighting)
 	color.rgb += 0.7 * emission;

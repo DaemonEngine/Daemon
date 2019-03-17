@@ -2791,6 +2791,7 @@ class GLShader_liquid :
 	public u_FresnelPower,
 	public u_FresnelScale,
 	public u_FresnelBias,
+	public u_DepthScale,
 	public u_NormalScale,
 	public u_NormalFormat,
 	public u_FogDensity,

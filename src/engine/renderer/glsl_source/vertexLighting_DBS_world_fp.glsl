@@ -74,7 +74,9 @@ void	main()
 {
 	vec2 texDiffuse = var_TexDiffuseGlow.st;
 	vec2 texGlow = var_TexDiffuseGlow.pq;
-	vec3 V = normalize(u_ViewOrigin - var_Position);
+
+	// compute view direction in world space
+	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyx);
 
@@ -86,33 +88,12 @@ void	main()
 	vec2 texSpecular = var_TexNormalSpecular.pq;
 
 #if defined(USE_PARALLAX_MAPPING)
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_DepthScale, viewDir, tangentToWorldMatrix);
 
-	// ray intersect in view direction
-
-	// compute view direction in tangent space
-	vec3 Vts = V * tangentToWorldMatrix;
-	Vts = normalize(Vts);
-
-	// size and start position of search in texture space
-	vec2 S = Vts.xy * -u_DepthScale / Vts.z;
-
-#if 0
-	vec2 texOffset = vec2(0.0);
-	for(int i = 0; i < 4; i++) {
-		vec4 Normal = texture2D(u_NormalMap, texNormal.st + texOffset);
-		float height = Normal.a * 0.2 - 0.0125;
-		texOffset += height * Normal.z * S;
-	}
-#else
-	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
-
-	// compute texcoords offset
-	vec2 texOffset = S * depth;
-#endif
-
-	texDiffuse.st += texOffset;
-	texNormal.st += texOffset;
-	texSpecular.st += texOffset;
+	texDiffuse += texOffset;
+	texNormal += texOffset;
+	texSpecular += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute the diffuse term
@@ -126,14 +107,14 @@ void	main()
 
 	vec4 specular = texture2D(u_SpecularMap, texSpecular);
 
-	// compute normal in tangent space from normalmap, transform normal into world space
-	vec3 N = TransformNormalIntoWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
+	// compute normal in world space from normalmap
+	vec3 N = NormalInWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
 
 	// compute final color
 	vec4 color = vec4( ambCol * diffuse.xyz, diffuse.a );
-	computeLight( L, N, V, dirCol, diffuse, specular, color );
+	computeLight( L, N, viewDir, dirCol, diffuse, specular, color );
 
-	computeDLights( var_Position, N, V, diffuse, specular, color );
+	computeDLights( var_Position, N, viewDir, diffuse, specular, color );
 
 	color.rgb += texture2D(u_GlowMap, texGlow).rgb;
 

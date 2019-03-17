@@ -33,10 +33,10 @@ uniform float		u_RefractionIndex;
 uniform float		u_FresnelPower;
 uniform float		u_FresnelScale;
 uniform float		u_FresnelBias;
+uniform float		u_DepthScale;
 uniform float		u_NormalScale;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_UnprojectMatrix;
-uniform vec2		u_SpecularExponent;
 
 uniform sampler3D       u_LightGrid1;
 uniform sampler3D       u_LightGrid2;
@@ -81,7 +81,7 @@ void ReadLightGrid(in vec3 pos, out vec3 lgtDir,
 void	main()
 {
 	// compute incident ray
-	vec3 I = normalize(u_ViewOrigin - var_Position);
+	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 	if(gl_FrontFacing)
@@ -94,34 +94,24 @@ void	main()
 	vec2 texNormal = var_TexNormal.st;
 
 #if defined(USE_PARALLAX_MAPPING)
-	// compute view direction in tangent space
-	vec3 V = I * tangentToWorldMatrix;
-	V = normalize(V);
-
 	// ray intersect in view direction
 
-	// size and start position of search in texture space
-	//vec2 S = V.xy * -u_DepthScale / V.z;
-	vec2 S = V.xy * -0.03 / V.z;
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_DepthScale, viewDir, tangentToWorldMatrix);
 
-	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
-
-	// compute texcoords offset
-	vec2 texOffset = S * depth;
-
-	texScreen.st += texOffset;
-	texNormal.st += texOffset;
+	texScreen += texOffset;
+	texNormal += texOffset;
 #endif
 
 	// compute normals
 
 	vec3 N = normalize(var_Normal);
 
-	// compute normal in tangent space from normalmap, transform normal into world space
-	vec3 N2 = TransformNormalIntoWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
+	// compute normal in world space from normalmap
+	vec3 N2 = NormalInWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
 
 	// compute fresnel term
-	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(I, N), u_FresnelPower) *
+	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, N), u_FresnelPower) *
 			u_FresnelScale, 0.0, 1.0);
 
 	texScreen += u_NormalScale * N2.xy;
@@ -161,7 +151,7 @@ void	main()
 		       L, ambCol, lgtCol );
 
 	// compute half angle in world space
-	vec3 H = normalize(L + I);
+	vec3 H = normalize(L + viewDir);
 
 	// compute the light term
 	vec3 light = lgtCol * clamp(dot(N2, L), 0.0, 1.0);

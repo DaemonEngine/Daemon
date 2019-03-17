@@ -223,7 +223,8 @@ vec3 NormalFlip(vec3 N)
 	return N;
 }
 
-vec3 ComputeNormalInTangentSpace(sampler2D normalMap, vec2 texNormal)
+// compute normal in tangent space
+vec3 NormalInTangentSpace(sampler2D normalMap, vec2 texNormal)
 {
 	vec3 N = texture2D(normalMap, texNormal).rga;
 	N.x *= N.z;
@@ -239,15 +240,25 @@ vec3 ComputeNormalInTangentSpace(sampler2D normalMap, vec2 texNormal)
 	return N;
 }
 
-vec3 TransformNormalIntoWorldSpace(sampler2D normalMap, vec2 texNormal, mat3 tangentToWorldMatrix)
+// compute normal in worldspace from normalmap
+vec3 NormalInWorldSpace(sampler2D normalMap, vec2 texNormal, mat3 tangentToWorldMatrix)
 {
-	vec3 N = ComputeNormalInTangentSpace(normalMap, texNormal);
+	// compute normal in tangent space from normalmap
+	vec3 N = NormalInTangentSpace(normalMap, texNormal);
+	// transform normal into world space
 	return normalize(tangentToWorldMatrix * N);
 }
 
 #if defined(USE_PARALLAX_MAPPING)
-float RayIntersectDisplaceMap(vec2 dp, vec2 ds, sampler2D normalMap)
+// compute texcoords offset from heightmap
+// was RayIntersectDisplaceMap
+vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float depthScale, vec3 viewDir, mat3 tangentToWorldMatrix)
 {
+	// compute view direction in tangent space
+	vec3 tangentViewDir = normalize(viewDir * tangentToWorldMatrix);
+
+	vec2 ds = tangentViewDir.xy * -depthScale / tangentViewDir.z;
+
 	const int linearSearchSteps = 16;
 	const int binarySearchSteps = 6;
 
@@ -267,11 +278,15 @@ float RayIntersectDisplaceMap(vec2 dp, vec2 ds, sampler2D normalMap)
 	{
 		depth += size;
 
-		vec4 t = texture2D(normalMap, dp + ds * depth);
+		vec4 t = texture2D(normalMap, texCoords + ds * depth);
 
 		if(bestDepth > 0.996)		// if no depth found yet
+		{
 			if(depth >= t.w)
+			{
 				bestDepth = depth;	// store best depth
+			}
+		}
 	}
 
 	depth = bestDepth;
@@ -281,20 +296,17 @@ float RayIntersectDisplaceMap(vec2 dp, vec2 ds, sampler2D normalMap)
 	{
 		size *= 0.5;
 
-		vec4 t = texture2D(normalMap, dp + ds * depth);
+		vec4 t = texture2D(normalMap, texCoords + ds * depth);
 
 		if(depth >= t.w)
-#ifdef RM_DOUBLEDEPTH
-			if(depth <= t.z)
-#endif
-			{
-				bestDepth = depth;
-				depth -= 2.0 * size;
-			}
+		{
+			bestDepth = depth;
+			depth -= 2.0 * size;
+		}
 
 		depth += size;
 	}
 
-	return bestDepth;
+	return bestDepth * ds;
 }
 #endif

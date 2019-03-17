@@ -954,34 +954,22 @@ void	main()
 	vec2 texSpecular = var_TexSpecular.st;
 
 	// compute view direction in world space
-	vec3 V = normalize(u_ViewOrigin - var_Position.xyz);
+	vec3 viewDir = normalize(u_ViewOrigin - var_Position.xyz);
 
 #if defined(USE_PARALLAX_MAPPING)
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_DepthScale, viewDir, tangentToWorldMatrix);
 
-	// ray intersect in view direction
-
-	// compute view direction in tangent space
-	vec3 Vts = V * tangentToWorldMatrix;
-	Vts = normalize(Vts);
-
-	// size and start position of search in texture space
-	vec2 S = Vts.xy * -u_DepthScale / Vts.z;
-
-	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
-
-	// compute texcoords offset
-	vec2 texOffset = S * depth;
-
-	texDiffuse.st += texOffset;
-	texNormal.st += texOffset;
-	texSpecular.st += texOffset;
+	texDiffuse += texOffset;
+	texNormal += texOffset;
+	texSpecular += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute half angle in world space
-	vec3 H = normalize(L + V);
+	vec3 H = normalize(L + viewDir);
 
-	// compute normal in tangent space from normalmap, transform normal into world space
-	vec3 N = TransformNormalIntoWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
+	// compute normal in world space from normal map
+	vec3 N = NormalInWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
 
 	// compute the light term
 #if defined(r_WrapAroundLighting)

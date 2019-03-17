@@ -2045,6 +2045,7 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_FresnelPower( this ),
 	u_FresnelScale( this ),
 	u_FresnelBias( this ),
+	u_DepthScale( this ),
 	u_NormalScale( this ),
 	u_NormalFormat( this ),
 	u_FogDensity( this ),

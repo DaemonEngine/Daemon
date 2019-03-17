@@ -42,8 +42,8 @@ void	main()
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	// compute normal in tangent space from normalmap, transform normal into world space
-	vec3 N = TransformNormalIntoWorldSpace(u_NormalMap, var_TexNormal, tangentToWorldMatrix);
+	// compute normal in tangent space from normal map
+	vec3 N = NormalInWorldSpace(u_NormalMap, var_TexNormal, tangentToWorldMatrix);
 
 	// compute reflection ray
 	vec3 R = reflect(I, N);
