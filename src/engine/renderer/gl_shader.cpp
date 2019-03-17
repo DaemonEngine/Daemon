@@ -579,6 +579,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
 
+	if ( r_specularMapping->integer )
+	{
+		AddDefine( str, "r_specularMapping", 1 );
+	}
+
 	return str;
 }
 

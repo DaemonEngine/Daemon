@@ -93,7 +93,9 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 eyeDir, vec3 lightColor,
 #endif
 
   accumulator.xyz += diffuseColor.xyz * lightColor.xyz * NdotL;
+#if defined(r_specularMapping)
   accumulator.xyz += specularColor.xyz * lightColor.xyz * pow( NdotH, u_SpecularExponent.x * specularColor.w + u_SpecularExponent.y) * r_SpecularScale;
+#endif // r_specularMapping
 #endif // USE_PHYSICAL_SHADING
 }
 

@@ -721,6 +721,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	GL_State( stateBits );
 
 	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
+	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	bool glowMapping = ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
 	bool materialMapping = hasMaterialMapping( tess.surfaceShader );
 
@@ -815,10 +816,15 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	// bind u_NormalFormat
 	gl_vertexLightingShader_DBS_entity->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
-	// bind u_SpecularMap
-	if ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( specularMapping )
 	{
+		// bind u_SpecularMap
 		GL_BindToTMU( 2, pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+
+		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_vertexLightingShader_DBS_entity->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
 	else
 	{
@@ -826,11 +832,6 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	}
 
 	gl_vertexLightingShader_DBS_entity->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
-
-	float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-	float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-
-	gl_vertexLightingShader_DBS_entity->SetUniform_SpecularExponent( minSpec, maxSpec );
 
 	if ( tr.cubeHashTable != nullptr )
 	{
@@ -952,6 +953,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	stateBits = pStage->stateBits;
 
 	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
+	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	bool glowMapping = ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
 
 	// choose right shader program ----------------------------------
@@ -1064,10 +1066,15 @@ static void Render_vertexLighting_DBS_world( int stage )
 	// bind u_NormalFormat
 	gl_vertexLightingShader_DBS_world->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
-	// bind u_SpecularMap
-	if ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( specularMapping )
 	{
+		// bind u_SpecularMap
 		GL_BindToTMU( 2, pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+
+		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_vertexLightingShader_DBS_world->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
 	else
 	{
@@ -1075,11 +1082,6 @@ static void Render_vertexLighting_DBS_world( int stage )
 	}
 
 	gl_vertexLightingShader_DBS_world->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
-
-	float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-	float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-
-	gl_vertexLightingShader_DBS_world->SetUniform_SpecularExponent( minSpec, maxSpec );
 
 	if ( tr.lightGrid1Image && tr.lightGrid2Image ) {
 		GL_BindToTMU( 6, tr.lightGrid1Image );
@@ -1155,6 +1157,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		normalMapping = false;
 	}
 
+	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	if ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr )
 	{
 		glowMapping = true;
@@ -1237,10 +1240,15 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	// bind u_NormalFormat
 	gl_lightMappingShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
-	// bind u_SpecularMap
-	if ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( specularMapping )
 	{
+		// bind u_SpecularMap
 		GL_BindToTMU( 2, pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+
+		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 	else
 	{
@@ -1248,11 +1256,6 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	}
 
 	gl_lightMappingShader->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
-
-	float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-	float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-
-	gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
 
 	// bind u_DeluxeMap
 	if ( deluxeMapping )
@@ -1457,6 +1460,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 
 	bool normalMapping = r_normalMapping->integer && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 
+	bool specularMapping = r_specularMapping->integer && ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
@@ -1464,7 +1468,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_omniXYZ->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
-
+	
 	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_omniXYZ->BindProgram( diffuseStage->deformIndex );
@@ -1589,10 +1593,15 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	// bind u_NormalFormat
 	gl_forwardLightingShader_omniXYZ->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
-	// bind u_SpecularMap
-	if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( specularMapping )
 	{
+		// bind u_SpecularMap
 		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+
+		float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
+		float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_forwardLightingShader_omniXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
 	else
 	{
@@ -1600,11 +1609,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	}
 
 	gl_forwardLightingShader_omniXYZ->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
-
-	float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
-	float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
-
-	gl_forwardLightingShader_omniXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
 
 	// bind u_AttenuationMapXY
 	GL_SelectTexture( 3 );
@@ -1645,6 +1649,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 
 	bool normalMapping = r_normalMapping->integer && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 
+	bool specularMapping = r_specularMapping->integer && ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
@@ -1652,7 +1657,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_projXYZ->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
-
+	
 	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_projXYZ->BindProgram( diffuseStage->deformIndex );
@@ -1778,10 +1783,15 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	// bind u_NormalFormat
 	gl_forwardLightingShader_projXYZ->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
-	// bind u_SpecularMap
-	if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( specularMapping )
 	{
+		// bind u_SpecularMap
 		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+
+		float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
+		float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_forwardLightingShader_projXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
 	else
 	{
@@ -1789,11 +1799,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	}
 
 	gl_forwardLightingShader_projXYZ->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
-
-	float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
-	float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
-
-	gl_forwardLightingShader_projXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
 
 	// bind u_AttenuationMapXY
 	GL_SelectTexture( 3 );
@@ -1832,6 +1837,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 
 	bool normalMapping = r_normalMapping->integer && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 
+	bool specularMapping = r_specularMapping->integer && ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
@@ -1969,10 +1975,15 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	// bind u_NormalFormat
 	gl_forwardLightingShader_directionalSun->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
-	// bind u_SpecularMap
-	if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( specularMapping )
 	{
+		// bind u_SpecularMap
 		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+
+		float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
+		float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_forwardLightingShader_directionalSun->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
 	else
 	{
@@ -1980,11 +1991,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	}
 
 	gl_forwardLightingShader_directionalSun->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
-
-	float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
-	float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
-
-	gl_forwardLightingShader_directionalSun->SetUniform_SpecularExponent( minSpec, maxSpec );
 
 	// bind u_ShadowMap
 	if ( shadowCompare )
@@ -2285,6 +2291,8 @@ static void Render_liquid( int stage )
 
 	GLimp_LogComment( "--- Render_liquid ---\n" );
 
+	bool specularMapping = r_specularMapping->integer; // TODO: specular map?
+
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
@@ -2314,9 +2322,12 @@ static void Render_liquid( int stage )
 	gl_liquidShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_liquidShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-	float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-	gl_liquidShader->SetUniform_SpecularExponent( specMin, specMax );
+	if ( specularMapping )
+	{
+		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		gl_liquidShader->SetUniform_SpecularExponent( specMin, specMax );
+	}
 
 	GL_BindToTMU( 0, tr.currentRenderImage[ backEnd.currentMainFBO ] );
 

@@ -986,9 +986,11 @@ void	main()
 	}
 	diffuse.rgb *= u_LightColor * NL;
 
+#if defined(r_specularMapping)
 	// compute the specular term
 	vec4 spec = texture2D(u_SpecularMap, texSpecular).rgba;
 	vec3 specular = spec.rgb * u_LightColor * pow(clamp(dot(N, H), 0.0, 1.0), u_SpecularExponent.x * spec.a + u_SpecularExponent.y) * r_SpecularScale;
+#endif // r_specularMapping
 
 	// compute light attenuation
 #if defined(LIGHT_PROJ)
@@ -1007,7 +1009,9 @@ void	main()
 	// compute final color
 	vec4 color = diffuse;
 
+#if defined(r_specularMapping)
 	color.rgb += specular;
+#endif // r_specularMapping
 
 #if !defined(LIGHT_DIRECTIONAL)
 	color.rgb *= attenuationXY;

@@ -161,6 +161,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_specularExponentMin;
 	cvar_t      *r_specularExponentMax;
 	cvar_t      *r_specularScale;
+	cvar_t      *r_specularMapping;
 	cvar_t      *r_deluxeMapping;
 	cvar_t      *r_normalScale;
 	cvar_t      *r_normalMapping;
@@ -1193,6 +1194,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_specularExponentMin = ri.Cvar_Get( "r_specularExponentMin", "0", CVAR_CHEAT );
 		r_specularExponentMax = ri.Cvar_Get( "r_specularExponentMax", "16", CVAR_CHEAT );
 		r_specularScale = ri.Cvar_Get( "r_specularScale", "1.0", CVAR_CHEAT | CVAR_SHADER );
+		r_specularMapping = ri.Cvar_Get( "r_specularMapping", "1", CVAR_LATCH );
 		r_deluxeMapping = ri.Cvar_Get( "r_deluxeMapping", "1", CVAR_ARCHIVE );
 		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_SHADER );
 		r_normalMapping = ri.Cvar_Get( "r_normalMapping", "1", CVAR_ARCHIVE );

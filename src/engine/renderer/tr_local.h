@@ -2851,6 +2851,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_specularExponentMin;
 	extern cvar_t *r_specularExponentMax;
 	extern cvar_t *r_specularScale;
+	extern cvar_t *r_specularMapping;
 	extern cvar_t *r_deluxeMapping;
 	extern cvar_t *r_normalScale;
 	extern cvar_t *r_normalMapping;

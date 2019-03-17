@@ -158,9 +158,11 @@ void	main()
 	// compute the light term
 	vec3 light = lgtCol * clamp(dot(N2, L), 0.0, 1.0);
 
+#if defined(r_specularMapping)
 	// compute the specular term
 	vec3 specular = reflectColor * lgtCol * pow(clamp(dot(N2, H), 0.0, 1.0), u_SpecularExponent.x + u_SpecularExponent.y) * r_SpecularScale;
 	color.rgb += specular;
+#endif // r_specularMapping
 
 	outputColor = color;
 }
