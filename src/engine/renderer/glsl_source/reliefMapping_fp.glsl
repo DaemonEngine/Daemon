@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // reliefMapping_vp.glsl - Relief mapping helper functions
 
+uniform int u_HeightMapInNormalMap;
 uniform vec3 u_NormalFormat;
 
 struct light {
@@ -226,10 +227,28 @@ vec3 NormalFlip(vec3 N)
 // compute normal in tangent space
 vec3 NormalInTangentSpace(sampler2D normalMap, vec2 texNormal)
 {
-	vec3 N = texture2D(normalMap, texNormal).rga;
-	N.x *= N.z;
-	N.xy = 2.0 * N.xy - 1.0;
-	N.z = sqrt(1.0 - dot(N.xy, N.xy));
+	vec3 N;
+	if (u_HeightMapInNormalMap == 0)
+	{
+		// the Capcom trick abusing alpha channel of DXT1/5 formats to encode normal map
+		// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
+		//
+		// the algorithm also works with normal maps in rgb format without alpha channel
+		// but we still must be sure there is no height map in alpha channel hence the test
+		//
+		// crunch -dxn seems to produce such files, since alpha channel is abused such format
+		// is unsuitable to embed height map, then height map must be distributed as loose file
+		N = texture2D(normalMap, texNormal).rga;
+		N.x *= N.z;
+		N.xy = 2.0 * N.xy - 1.0;
+		N.z = sqrt(1.0 - dot(N.xy, N.xy));
+	}
+	else
+	{
+		// alpha channel contains the height map so do not try to restore the normal map from it
+		N = texture2D(normalMap, texNormal).rgb;
+		N = 2.0 * N - 1.0;
+	}
 
 	N = NormalFlip(N);
 

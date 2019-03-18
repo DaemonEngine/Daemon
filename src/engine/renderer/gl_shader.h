@@ -2022,6 +2022,21 @@ public:
 	}
 };
 
+class u_HeightMapInNormalMap :
+	GLUniform1i
+{
+public:
+	u_HeightMapInNormalMap( GLShader *shader ) :
+		GLUniform1i( shader, "u_HeightMapInNormalMap" )
+	{
+	}
+
+	void SetUniform_HeightMapInNormalMap( int value )
+	{
+		this->SetValue( value );
+	}
+};
+
 class u_EnvironmentInterpolation :
 	GLUniform1f
 {
@@ -2390,6 +2405,7 @@ class GLShader_lightMapping :
 	public u_ModelViewProjectionMatrix,
 	public u_OffsetScale,
 	public u_OffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public u_numLights,
 	public u_Lights,
@@ -2420,6 +2436,7 @@ class GLShader_vertexLighting_DBS_entity :
 	public u_VertexInterpolation,
 	public u_OffsetScale,
 	public u_OffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public u_EnvironmentInterpolation,
 	public u_LightGridOrigin,
@@ -2456,6 +2473,7 @@ class GLShader_vertexLighting_DBS_world :
 	public u_ModelViewProjectionMatrix,
 	public u_OffsetScale,
 	public u_OffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public u_LightWrapAround,
 	public u_LightGridOrigin,
@@ -2498,6 +2516,7 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_VertexInterpolation,
 	public u_OffsetScale,
 	public u_OffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2538,6 +2557,7 @@ class GLShader_forwardLighting_projXYZ :
 	public u_VertexInterpolation,
 	public u_OffsetScale,
 	public u_OffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2580,6 +2600,7 @@ class GLShader_forwardLighting_directionalSun :
 	public u_VertexInterpolation,
 	public u_OffsetScale,
 	public u_OffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2627,6 +2648,7 @@ class GLShader_reflection :
 	public u_Bones,
 	public u_OffsetScale,
 	public u_OffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalScale,
 	public u_NormalFormat,
 	public u_VertexInterpolation,
@@ -2833,6 +2855,7 @@ class GLShader_liquid :
 	public u_FresnelBias,
 	public u_OffsetScale,
 	public u_OffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalScale,
 	public u_NormalFormat,
 	public u_FogDensity,

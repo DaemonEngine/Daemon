@@ -1460,10 +1460,22 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 
 	// enable parallax if an heightmap is found
 	// and not explicitely disabled by a shader keyword
-	if ( !shader.noParallax
-		&& stage->bundle[ 0 ].image[ 0 ]->bits & IF_DISPLACEMAP )
+	if ( stage->bundle[ 0 ].image[ 0 ]->bits & IF_DISPLACEMAP )
 	{
-		shader.parallax = true;
+		if ( stage->bundle[ 0 ].image[ 0 ]->bits & IF_NORMALMAP )
+		{
+			shader.heightMapInNormalMap = true;
+
+			if ( !shader.noParallax )
+			{
+				Log::Debug("heightmap embedded in normalmap '%s' enabled", buffer);
+				shader.parallax = true;
+			}
+			else
+			{
+				Log::Debug("heightmap embedded in normalmap '%s' disabled by shader", buffer);
+			}
+		}
 	}
 
 	return true;
@@ -3646,21 +3658,29 @@ static bool ParseShader( const char *_text )
 			char* keyword = token;
 			token = COM_ParseExt2( text, false );
 
-			// in common case this is not used since heightmap is detected by engine
-			shader.heightMapInNormalMap = true;
-
 			if ( !token[ 0 ] )
 			{
-				// legacy “parallax” XreaL keyword was never used
-				// it had purpose to enable parallax for the
-				// current shader
+				// legacy lone “parallax” XreaL keyword was
+				// never used, it had purpose to enable parallax
+				// for the current shader
 				//
 				// the engine also relied on this to know
-				// that heightMap was stored in normalMap
+				// that height map was stored in normal map
 				// but there was no other storage options
 				//
-				// since parallax is now enabled by default
-				// when heightMap is present, do nothing
+				// since engine now automatically loads
+				// and enable height map stored in normal map,
+				// this seems pretty useless, but it costs
+				// nothing to keep the behavior
+				//
+				// this is only done if the “parallax” keyword
+				// is called alone
+				//
+				// note that DarkPlaces expects heightmap to be
+				// stored in normalmap, so even a mistakenly
+				// lone “dpoffsetmapping” keyword will not produce
+				// something wrong
+				shader.heightMapInNormalMap = true;
 				continue;
 			}
 

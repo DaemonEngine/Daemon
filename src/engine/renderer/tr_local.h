@@ -1100,6 +1100,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		uint32_t        stateBits; // GLS_xxxx mask
 
+		bool            heightMapInNormalMap;
+
 		bool            isCubeMap;
 
 		int             deformIndex;

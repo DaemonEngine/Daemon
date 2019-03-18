@@ -794,6 +794,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 		depthScale *= offsetScale == 0 ? 1 : offsetScale;
 		gl_vertexLightingShader_DBS_entity->SetUniform_OffsetScale( depthScale );
 		gl_vertexLightingShader_DBS_entity->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
+		gl_vertexLightingShader_DBS_entity->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// bind u_DiffuseMap
@@ -1037,6 +1038,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 		depthScale *= offsetScale == 0 ? 1 : offsetScale;
 		gl_vertexLightingShader_DBS_world->SetUniform_OffsetScale( depthScale );
 		gl_vertexLightingShader_DBS_world->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
+		gl_vertexLightingShader_DBS_world->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	if( tr.world ) {
@@ -1205,6 +1207,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		depthScale *= offsetScale == 0 ? 1 : offsetScale;
 		gl_lightMappingShader->SetUniform_OffsetScale( depthScale );
 		gl_lightMappingShader->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
+		gl_lightMappingShader->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// bind u_DiffuseMap
@@ -1503,6 +1506,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 		depthScale *= offsetScale == 0 ? 1 : offsetScale;
 		gl_forwardLightingShader_omniXYZ->SetUniform_OffsetScale( depthScale );
 		gl_forwardLightingShader_omniXYZ->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
+		gl_forwardLightingShader_omniXYZ->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -1694,6 +1698,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 		depthScale *= offsetScale == 0 ? 1 : offsetScale;
 		gl_forwardLightingShader_projXYZ->SetUniform_OffsetScale( depthScale );
 		gl_forwardLightingShader_projXYZ->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
+		gl_forwardLightingShader_projXYZ->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -1884,6 +1889,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 		depthScale *= offsetScale == 0 ? 1 : offsetScale;
 		gl_forwardLightingShader_directionalSun->SetUniform_OffsetScale( depthScale );
 		gl_forwardLightingShader_directionalSun->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
+		gl_forwardLightingShader_directionalSun->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -2089,6 +2095,7 @@ static void Render_reflection_CB( int stage )
 		depthScale *= offsetScale == 0 ? 1 : offsetScale;
 		gl_reflectionShader->SetUniform_OffsetScale( depthScale );
 		gl_reflectionShader->SetUniform_OffsetBias( tess.surfaceShader->offsetBias );
+		gl_reflectionShader->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// bind u_NormalFormat
