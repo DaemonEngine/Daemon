@@ -2237,7 +2237,7 @@ static void Render_liquid( int stage )
 {
 	vec3_t        viewOrigin;
 	float         fogDensity;
-	GLfloat       fogColor[ 3 ];
+	vec3_t        fogColor;
 	shaderStage_t *pStage = tess.surfaceStages[ stage ];
 
 	GLimp_LogComment( "--- Render_liquid ---\n" );
@@ -2249,14 +2249,14 @@ static void Render_liquid( int stage )
 	gl_liquidShader->SetParallaxMapping(r_parallaxMapping->integer && tess.surfaceShader->parallax);
 
 	// enable shader, set arrays
-	gl_liquidShader->BindProgram();
+	gl_liquidShader->BindProgram( pStage->deformIndex );
 	gl_liquidShader->SetRequiredVertexPointers();
 
 	// set uniforms
 	VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin );  // in world space
 
 	fogDensity = RB_EvalExpression( &pStage->fogDensityExp, 0.001 );
-	VectorCopy( tess.svars.color, fogColor );
+	VectorCopy( tess.svars.color.ToArray(), fogColor );
 
 	gl_liquidShader->SetUniform_ViewOrigin( viewOrigin );
 	gl_liquidShader->SetUniform_RefractionIndex( RB_EvalExpression( &pStage->refractionIndexExp, 1.0 ) );

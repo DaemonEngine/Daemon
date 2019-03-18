@@ -2034,8 +2034,7 @@ void GLShader_lightVolume_omni::SetShaderProgramUniforms( shaderProgram_t *shade
 }
 
 GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
-	GLShader( "liquid", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT
-		, manager ),
+	GLShader( "liquid", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_NormalTextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_RefractionIndex( this ),
@@ -2055,6 +2054,11 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_LightGridScale( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this )
 {
+}
+
+void GLShader_liquid::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "reliefMapping";
 }
 
 void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )

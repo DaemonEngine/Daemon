@@ -2803,6 +2803,7 @@ class GLShader_liquid :
 {
 public:
 	GLShader_liquid( GLShaderManager *manager );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
 

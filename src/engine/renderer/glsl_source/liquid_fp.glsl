@@ -37,6 +37,7 @@ uniform float		u_DepthScale;
 uniform float		u_NormalScale;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_UnprojectMatrix;
+uniform vec2		u_SpecularExponent;
 
 uniform sampler3D       u_LightGrid1;
 uniform sampler3D       u_LightGrid2;
