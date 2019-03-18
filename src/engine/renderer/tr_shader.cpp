@@ -1464,17 +1464,9 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer )
 	{
 		if ( stage->bundle[ 0 ].image[ 0 ]->bits & IF_NORMALMAP )
 		{
+			Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
 			shader.heightMapInNormalMap = true;
-
-			if ( !shader.noParallax )
-			{
-				Log::Debug("heightmap embedded in normalmap '%s' enabled", buffer);
-				shader.parallax = true;
-			}
-			else
-			{
-				Log::Debug("heightmap embedded in normalmap '%s' disabled by shader", buffer);
-			}
+			shader.parallax = true;
 		}
 	}
 

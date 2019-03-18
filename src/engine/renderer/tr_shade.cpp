@@ -733,7 +733,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
 
-	gl_vertexLightingShader_DBS_entity->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax );
+	gl_vertexLightingShader_DBS_entity->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
 
 	gl_vertexLightingShader_DBS_entity->SetReflectiveSpecular( normalMapping && tr.cubeHashTable != nullptr );
 
@@ -784,7 +784,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	// u_DeformGen
 	gl_vertexLightingShader_DBS_entity->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
-	if ( r_parallaxMapping->integer && tess.surfaceShader->parallax )
+	if ( r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax )
 	{
 		float depthScale;
 		float offsetScale;
@@ -958,7 +958,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
 
-	gl_vertexLightingShader_DBS_world->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax );
+	gl_vertexLightingShader_DBS_world->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
 
 	tess.vboVertexSprite = false;
 
@@ -1163,7 +1163,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
 
-	gl_lightMappingShader->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax );
+	gl_lightMappingShader->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
 
 	tess.vboVertexSprite = false;
 
@@ -1454,7 +1454,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_omniXYZ->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax );
+	gl_forwardLightingShader_omniXYZ->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
 
 	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
 
@@ -1646,7 +1646,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_projXYZ->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax );
+	gl_forwardLightingShader_projXYZ->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
 
 	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
 
@@ -1837,7 +1837,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_directionalSun->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax );
+	gl_forwardLightingShader_directionalSun->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
 
 	gl_forwardLightingShader_directionalSun->SetShadowing( shadowCompare );
 
@@ -2043,7 +2043,7 @@ static void Render_reflection_CB( int stage )
 
 	// end choose right shader program ------------------------------
 
-	gl_reflectionShader->SetParallaxMapping(r_parallaxMapping->integer && tess.surfaceShader->parallax);
+	gl_reflectionShader->SetParallaxMapping(r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax);
 
 	gl_reflectionShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
 
@@ -2292,7 +2292,7 @@ static void Render_liquid( int stage )
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
 	// choose right shader program
-	gl_liquidShader->SetParallaxMapping(r_parallaxMapping->integer && tess.surfaceShader->parallax);
+	gl_liquidShader->SetParallaxMapping(r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax);
 
 	// enable shader, set arrays
 	gl_liquidShader->BindProgram( pStage->deformIndex );
