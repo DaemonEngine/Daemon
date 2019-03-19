@@ -2855,6 +2855,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_deluxeMapping;
 	extern cvar_t *r_normalScale;
 	extern cvar_t *r_normalMapping;
+	extern cvar_t *r_glowMapping;
 	extern cvar_t *r_wrapAroundLighting;
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;

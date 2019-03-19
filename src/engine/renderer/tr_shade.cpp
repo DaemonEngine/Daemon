@@ -722,7 +722,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
-	bool glowMapping = ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
+	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
 	bool materialMapping = hasMaterialMapping( tess.surfaceShader );
 
 	// choose right shader program ----------------------------------
@@ -954,7 +954,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 
 	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
-	bool glowMapping = ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
+	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
 
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
@@ -1112,7 +1112,6 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	uint32_t      stateBits;
 	colorGen_t    rgbGen;
 	alphaGen_t    alphaGen;
-	bool glowMapping = false;
 
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
 
@@ -1158,10 +1157,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	}
 
 	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
-	if ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr )
-	{
-		glowMapping = true;
-	}
+	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
 
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );

@@ -165,6 +165,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_deluxeMapping;
 	cvar_t      *r_normalScale;
 	cvar_t      *r_normalMapping;
+	cvar_t      *r_glowMapping;
 	cvar_t      *r_wrapAroundLighting;
 	cvar_t      *r_halfLambertLighting;
 	cvar_t      *r_rimLighting;
@@ -1199,6 +1200,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_SHADER );
 		r_normalMapping = ri.Cvar_Get( "r_normalMapping", "1", CVAR_ARCHIVE );
 		r_parallaxDepthScale = ri.Cvar_Get( "r_parallaxDepthScale", "0.03", CVAR_CHEAT );
+		r_glowMapping = ri.Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
 
 		r_wrapAroundLighting = ri.Cvar_Get( "r_wrapAroundLighting", "0.7", CVAR_CHEAT | CVAR_SHADER );
 		r_halfLambertLighting = ri.Cvar_Get( "r_halfLambertLighting", "1", CVAR_CHEAT | CVAR_SHADER );

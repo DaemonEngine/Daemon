@@ -148,7 +148,9 @@ void	main()
 	color.rgb += 0.7 * emission;
 #endif
 
+#if defined(r_glowMapping)
 	color.rgb += texture2D(u_GlowMap, texGlow).rgb;
+#endif // r_glowMapping
 
 	outputColor = color;
 

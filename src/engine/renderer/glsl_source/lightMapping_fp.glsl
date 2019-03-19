@@ -110,7 +110,9 @@ void	main()
 
 	computeDLights( var_Position, N, viewDir, diffuse, specular, color );
 
+#if defined(r_glowMapping)
 	color.rgb += texture2D(u_GlowMap, texGlow).rgb;
+#endif // r_glowMapping
 
 	outputColor = color;
 
