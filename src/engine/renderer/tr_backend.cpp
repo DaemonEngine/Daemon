@@ -1850,13 +1850,13 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 
 							GL_PushMatrix();
 
-							gl_genericShader->DisableVertexSkinning();
-							gl_genericShader->DisableVertexAnimation();
-							gl_genericShader->DisableTCGenEnvironment();
-							gl_genericShader->DisableVertexSprite();
-							gl_genericShader->DisableTCGenLightmap();
-							gl_genericShader->DisableDepthFade();
-							gl_genericShader->DisableAlphaTesting();
+							gl_genericShader->SetVertexSkinning( false );
+							gl_genericShader->SetVertexAnimation( false );
+							gl_genericShader->SetTCGenEnvironment( false );
+							gl_genericShader->SetVertexSprite( false );
+							gl_genericShader->SetTCGenLightmap( false );
+							gl_genericShader->SetDepthFade( false );
+							gl_genericShader->SetAlphaTesting( false );
 							gl_genericShader->BindProgram( 0 );
 
 							// set uniforms
@@ -2718,13 +2718,13 @@ void RB_RunVisTests( )
 		Tess_UpdateVBOs( );
 		GL_VertexAttribsState( ATTR_POSITION );
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		//gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
@@ -3245,13 +3245,13 @@ static void RB_RenderDebugUtils()
 		static const vec3_t minSize = { -2, -2, -2 };
 		static const vec3_t maxSize = { 2,  2,  2 };
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
@@ -3406,13 +3406,13 @@ static void RB_RenderDebugUtils()
 		static const vec3_t mins = { -1, -1, -1 };
 		static const vec3_t maxs = { 1, 1, 1 };
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
@@ -3531,13 +3531,13 @@ static void RB_RenderDebugUtils()
 		static const vec3_t mins = { -1, -1, -1 };
 		static const vec3_t maxs = { 1, 1, 1 };
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
@@ -3608,13 +3608,13 @@ static void RB_RenderDebugUtils()
 		static refSkeleton_t skeleton;
 		refSkeleton_t        *skel;
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -3837,13 +3837,13 @@ static void RB_RenderDebugUtils()
 		matrix_t      ortho;
 		vec4_t        quadVerts[ 4 ];
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
@@ -3953,13 +3953,13 @@ static void RB_RenderDebugUtils()
 			cubemapProbe_t *cubeProbeNearest;
 			cubemapProbe_t *cubeProbeSecondNearest;
 
-			gl_genericShader->DisableVertexSkinning();
-			gl_genericShader->DisableVertexAnimation();
-			gl_genericShader->DisableVertexSprite();
-			gl_genericShader->DisableTCGenEnvironment();
-			gl_genericShader->DisableTCGenLightmap();
-			gl_genericShader->DisableDepthFade();
-			gl_genericShader->DisableAlphaTesting();
+			gl_genericShader->SetVertexSkinning( false );
+			gl_genericShader->SetVertexAnimation( false );
+			gl_genericShader->SetVertexSprite( false );
+			gl_genericShader->SetTCGenEnvironment( false );
+			gl_genericShader->SetTCGenLightmap( false );
+			gl_genericShader->SetDepthFade( false );
+			gl_genericShader->SetAlphaTesting( false );
 			gl_genericShader->BindProgram( 0 );
 
 			//gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
@@ -4029,13 +4029,13 @@ static void RB_RenderDebugUtils()
 
 		GLimp_LogComment( "--- r_showLightGrid > 0: Rendering light grid\n" );
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		//gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
@@ -4126,13 +4126,13 @@ static void RB_RenderDebugUtils()
 			return;
 		}
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		// set uniforms
@@ -4414,13 +4414,13 @@ static void RB_RenderDebugUtils()
 			return;
 		}
 
-		gl_genericShader->DisableVertexSkinning();
-		gl_genericShader->DisableVertexAnimation();
-		gl_genericShader->DisableVertexSprite();
-		gl_genericShader->DisableTCGenEnvironment();
-		gl_genericShader->DisableTCGenLightmap();
-		gl_genericShader->DisableDepthFade();
-		gl_genericShader->DisableAlphaTesting();
+		gl_genericShader->SetVertexSkinning( false );
+		gl_genericShader->SetVertexAnimation( false );
+		gl_genericShader->SetVertexSprite( false );
+		gl_genericShader->SetTCGenEnvironment( false );
+		gl_genericShader->SetTCGenLightmap( false );
+		gl_genericShader->SetDepthFade( false );
+		gl_genericShader->SetAlphaTesting( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
@@ -4509,13 +4509,13 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 			break;
 	}
 
-	gl_genericShader->DisableVertexSkinning();
-	gl_genericShader->DisableVertexAnimation();
-	gl_genericShader->DisableVertexSprite();
-	gl_genericShader->DisableTCGenEnvironment();
-	gl_genericShader->DisableTCGenLightmap();
-	gl_genericShader->DisableDepthFade();
-	gl_genericShader->DisableAlphaTesting();
+	gl_genericShader->SetVertexSkinning( false );
+	gl_genericShader->SetVertexAnimation( false );
+	gl_genericShader->SetVertexSprite( false );
+	gl_genericShader->SetTCGenEnvironment( false );
+	gl_genericShader->SetTCGenLightmap( false );
+	gl_genericShader->SetDepthFade( false );
+	gl_genericShader->SetAlphaTesting( false );
 	gl_genericShader->BindProgram( 0 );
 
 	GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
@@ -4824,13 +4824,13 @@ void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *
 	glVertexAttrib4f( ATTR_INDEX_QTANGENT, 0.0f, 0.0f, 0.0f, 1.0f );
 	glVertexAttrib4f( ATTR_INDEX_COLOR, tr.identityLight, tr.identityLight, tr.identityLight, 1 );
 
-	gl_genericShader->DisableVertexSkinning();
-	gl_genericShader->DisableVertexAnimation();
-	gl_genericShader->DisableVertexSprite();
-	gl_genericShader->DisableTCGenEnvironment();
-	gl_genericShader->DisableTCGenLightmap();
-	gl_genericShader->DisableDepthFade();
-	gl_genericShader->DisableAlphaTesting();
+	gl_genericShader->SetVertexSkinning( false );
+	gl_genericShader->SetVertexAnimation( false );
+	gl_genericShader->SetVertexSprite( false );
+	gl_genericShader->SetTCGenEnvironment( false );
+	gl_genericShader->SetTCGenLightmap( false );
+	gl_genericShader->SetDepthFade( false );
+	gl_genericShader->SetAlphaTesting( false );
 	gl_genericShader->BindProgram( 0 );
 
 	// set uniforms
@@ -5740,13 +5740,13 @@ void RB_ShowImages()
 
 	glFinish();
 
-	gl_genericShader->DisableVertexSkinning();
-	gl_genericShader->DisableVertexAnimation();
-	gl_genericShader->DisableVertexSprite();
-	gl_genericShader->DisableTCGenEnvironment();
-	gl_genericShader->DisableTCGenLightmap();
-	gl_genericShader->DisableDepthFade();
-	gl_genericShader->DisableAlphaTesting();
+	gl_genericShader->SetVertexSkinning( false );
+	gl_genericShader->SetVertexAnimation( false );
+	gl_genericShader->SetVertexSprite( false );
+	gl_genericShader->SetTCGenEnvironment( false );
+	gl_genericShader->SetTCGenLightmap( false );
+	gl_genericShader->SetDepthFade( false );
+	gl_genericShader->SetAlphaTesting( false );
 	gl_genericShader->BindProgram( 0 );
 
 	GL_Cull( cullType_t::CT_TWO_SIDED );

@@ -811,24 +811,19 @@ public:
 		return 0;
 	}
 
-	void EnableMacro()
+	void SetMacro( bool enable )
 	{
 		int bit = GetBit();
 
-		if ( !_shader->IsMacroSet( bit ) )
+		if ( enable && !_shader->IsMacroSet( bit ) )
 		{
 			_shader->AddMacroBit( bit );
 		}
-	}
-
-	void DisableMacro()
-	{
-		int bit = GetBit();
-
-		if ( _shader->IsMacroSet( bit ) )
+		else if ( !enable && _shader->IsMacroSet( bit ) )
 		{
 			_shader->DelMacroBit( bit );
 		}
+		// else do nothing because already enabled/disabled
 	}
 
 public:
@@ -867,26 +862,9 @@ public:
 		return ATTR_BONE_FACTORS;
 	}
 
-	void EnableVertexSkinning()
-	{
-		EnableMacro();
-	}
-
-	void DisableVertexSkinning()
-	{
-		DisableMacro();
-	}
-
 	void SetVertexSkinning( bool enable )
 	{
-		if ( enable )
-		{
-			EnableVertexSkinning();
-		}
-		else
-		{
-			DisableVertexSkinning();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -912,26 +890,9 @@ public:
 	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const;
 	uint32_t GetRequiredVertexAttributes() const;
 
-	void EnableVertexAnimation()
-	{
-		EnableMacro();
-	}
-
-	void DisableVertexAnimation()
-	{
-		DisableMacro();
-	}
-
 	void SetVertexAnimation( bool enable )
 	{
-		if ( enable )
-		{
-			EnableVertexAnimation();
-		}
-		else
-		{
-			DisableVertexAnimation();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -959,26 +920,9 @@ public:
 		return ATTR_QTANGENT;
 	}
 
-	void EnableVertexSprite()
-	{
-		EnableMacro();
-	}
-
-	void DisableVertexSprite()
-	{
-		DisableMacro();
-	}
-
 	void SetVertexSprite( bool enable )
 	{
-		if ( enable )
-		{
-			EnableVertexSprite();
-		}
-		else
-		{
-			DisableVertexSprite();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1007,26 +951,9 @@ public:
 		return ATTR_QTANGENT;
 	}
 
-	void EnableTCGenEnvironment()
-	{
-		EnableMacro();
-	}
-
-	void DisableTCGenEnvironment()
-	{
-		DisableMacro();
-	}
-
 	void SetTCGenEnvironment( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1050,26 +977,9 @@ public:
 		return EGLCompileMacro::USE_TCGEN_LIGHTMAP;
 	}
 
-	void EnableTCGenLightmap()
-	{
-		EnableMacro();
-	}
-
-	void DisableTCGenLightmap()
-	{
-		DisableMacro();
-	}
-
 	void SetTCGenLightmap( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1092,26 +1002,9 @@ public:
 		return EGLCompileMacro::USE_PARALLAX_MAPPING;
 	}
 
-	void EnableParallaxMapping()
-	{
-		EnableMacro();
-	}
-
-	void DisableParallaxMapping()
-	{
-		DisableMacro();
-	}
-
 	void SetParallaxMapping( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1134,26 +1027,9 @@ public:
 		return EGLCompileMacro::USE_REFLECTIVE_SPECULAR;
 	}
 
-	void EnableReflectiveSpecular()
-	{
-		EnableMacro();
-	}
-
-	void DisableReflectiveSpecular()
-	{
-		DisableMacro();
-	}
-
 	void SetReflectiveSpecular( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1176,26 +1052,9 @@ public:
 		return EGLCompileMacro::LIGHT_DIRECTIONAL;
 	}
 
-	void EnableMacro_LIGHT_DIRECTIONAL()
-	{
-		EnableMacro();
-	}
-
-	void DisableMacro_LIGHT_DIRECTIONAL()
-	{
-		DisableMacro();
-	}
-
 	void SetMacro_LIGHT_DIRECTIONAL( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1218,26 +1077,9 @@ public:
 		return EGLCompileMacro::USE_SHADOWING;
 	}
 
-	void EnableShadowing()
-	{
-		EnableMacro();
-	}
-
-	void DisableShadowing()
-	{
-		DisableMacro();
-	}
-
 	void SetShadowing( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1261,26 +1103,9 @@ public:
 		return EGLCompileMacro::USE_DEPTH_FADE;
 	}
 
-	void EnableDepthFade()
-	{
-		EnableMacro();
-	}
-
-	void DisableDepthFade()
-	{
-		DisableMacro();
-	}
-
 	void SetDepthFade( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1303,26 +1128,9 @@ public:
 		return USE_PHYSICAL_SHADING;
 	}
 
-	void EnableMacro_USE_PHYSICAL_SHADING()
-	{
-		EnableMacro();
-	}
-
-	void DisableMacro_USE_PHYSICAL_SHADING()
-	{
-		DisableMacro();
-	}
-
 	void SetPhysicalShading( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1345,26 +1153,9 @@ public:
 		return USE_ALPHA_TESTING;
 	}
 
-	void EnableAlphaTesting()
-	{
-		EnableMacro();
-	}
-
-	void DisableAlphaTesting()
-	{
-		DisableMacro();
-	}
-
 	void SetAlphaTesting(bool enable)
 	{
-		if (enable)
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 

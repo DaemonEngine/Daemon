@@ -432,10 +432,10 @@ static void DrawTris()
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
 	gl_genericShader->SetVertexSprite( tess.vboVertexSprite );
-	gl_genericShader->DisableTCGenEnvironment();
-	gl_genericShader->DisableTCGenLightmap();
-	gl_genericShader->DisableDepthFade();
-	gl_genericShader->DisableAlphaTesting();
+	gl_genericShader->SetTCGenEnvironment( false );
+	gl_genericShader->SetTCGenLightmap( false );
+	gl_genericShader->SetDepthFade( false );
+	gl_genericShader->SetAlphaTesting( false );
 
 	if( tess.surfaceShader->stages[0] ) {
 		deform = tess.surfaceShader->stages[0]->deformIndex;
@@ -1313,8 +1313,8 @@ static void Render_depthFill(int stage)
 	gl_genericShader->SetTCGenEnvironment(pStage->tcGen_Environment);
 	gl_genericShader->SetTCGenLightmap(pStage->tcGen_Lightmap);
 	gl_genericShader->SetAlphaTesting(alphaBits != 0);
-	gl_genericShader->DisableDepthFade();
-	gl_genericShader->DisableVertexSprite();
+	gl_genericShader->SetDepthFade( false );
+	gl_genericShader->SetVertexSprite( false );
 	gl_genericShader->BindProgram(pStage->deformIndex);
 
 	// set uniforms
@@ -2215,10 +2215,10 @@ static void Render_heatHaze( int stage )
 	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_heatHazeShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 	if( tess.surfaceShader->autoSpriteMode ) {
-		gl_heatHazeShader->EnableVertexSprite();
+		gl_heatHazeShader->SetVertexSprite( true );
 		tess.vboVertexSprite = true;
 	} else {
-		gl_heatHazeShader->DisableVertexSprite();
+		gl_heatHazeShader->SetVertexSprite( false );
 		tess.vboVertexSprite = false;
 	}
 
