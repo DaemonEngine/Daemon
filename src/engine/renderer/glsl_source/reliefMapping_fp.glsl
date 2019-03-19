@@ -278,11 +278,11 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float depthScale, ve
 	{
 		depth += size;
 
-		vec4 t = texture2D(normalMap, texCoords + ds * depth);
+		float t = texture2D(normalMap, texCoords + ds * depth).a;
 
 		if(bestDepth > 0.996)		// if no depth found yet
 		{
-			if(depth >= t.w)
+			if(depth >= t)
 			{
 				bestDepth = depth;	// store best depth
 			}
@@ -296,9 +296,9 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float depthScale, ve
 	{
 		size *= 0.5;
 
-		vec4 t = texture2D(normalMap, texCoords + ds * depth);
+		float t = texture2D(normalMap, texCoords + ds * depth).a;
 
-		if(depth >= t.w)
+		if(depth >= t)
 		{
 			bestDepth = depth;
 			depth -= 2.0 * size;
