@@ -202,32 +202,32 @@ void computeDLights( vec3 P, vec3 N, vec3 I, vec4 diffuse, vec4 specular,
 #endif
 }
 
-vec3 NormalFlip(vec3 N)
+vec3 normalFlip(vec3 normal)
 {
 	// undefined (zero) means default means 1.0 means do nothing
 
 	if (u_NormalFormat.x < 0.0)
 	{
-		N.x *= -1.0;
+		normal.x *= -1.0;
 	}
 
 	if (u_NormalFormat.y < 0.0)
 	{
-		N.y *= -1.0;
+		normal.y *= -1.0;
 	}
 
 	if (u_NormalFormat.z < 0.0)
 	{
-		N.z *= -1.0;
+		normal.z *= -1.0;
 	}
 
-	return N;
+	return normal;
 }
 
 // compute normal in tangent space
 vec3 NormalInTangentSpace(sampler2D normalMap, vec2 texNormal)
 {
-	vec3 N;
+	vec3 normal;
 	if (u_HeightMapInNormalMap == 0)
 	{
 		// the Capcom trick abusing alpha channel of DXT1/5 formats to encode normal map
@@ -238,56 +238,59 @@ vec3 NormalInTangentSpace(sampler2D normalMap, vec2 texNormal)
 		//
 		// crunch -dxn seems to produce such files, since alpha channel is abused such format
 		// is unsuitable to embed height map, then height map must be distributed as loose file
-		N = texture2D(normalMap, texNormal).rga;
-		N.x *= N.z;
-		N.xy = 2.0 * N.xy - 1.0;
-		N.z = sqrt(1.0 - dot(N.xy, N.xy));
+		normal = texture2D(normalMap, texNormal).rga;
+		normal.x *= normal.z;
+		normal.xy = 2.0 * normal.xy - 1.0;
+		normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
 	}
 	else
 	{
 		// alpha channel contains the height map so do not try to restore the normal map from it
-		N = texture2D(normalMap, texNormal).rgb;
-		N = 2.0 * N - 1.0;
+		normal = texture2D(normalMap, texNormal).rgb;
+		normal = 2.0 * normal - 1.0;
 	}
 
-	N = NormalFlip(N);
+	normal = normalFlip(normal);
 
 #if defined(r_NormalScale)
-	N.z *= r_NormalScale;
+	normal.z *= r_NormalScale;
 #endif
 
-	return N;
+	return normal;
 }
 
 // compute normal in worldspace from normalmap
 vec3 NormalInWorldSpace(sampler2D normalMap, vec2 texNormal, mat3 tangentToWorldMatrix)
 {
 	// compute normal in tangent space from normalmap
-	vec3 N = NormalInTangentSpace(normalMap, texNormal);
+	vec3 normal = NormalInTangentSpace(normalMap, texNormal);
 	// transform normal into world space
-	return normalize(tangentToWorldMatrix * N);
+	return normalize(tangentToWorldMatrix * normal);
 }
 
 #if defined(USE_PARALLAX_MAPPING)
 // compute texcoords offset from heightmap
-// was RayIntersectDisplaceMap
-vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float offsetScale, float offsetBias, vec3 viewDir, mat3 tangentToWorldMatrix)
+// most of the code doing somewhat the same is likely to be named
+// RayIntersectDisplaceMap in other id tech3-based engines
+// so please keep the comment above to enable cross-tree look-up
+vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parallaxParallaxDepthScale, float parallaxParallaxOffsetBias, vec3 viewDir, mat3 tangentToWorldMatrix)
 {
 	// compute view direction in tangent space
 	vec3 tangentViewDir = normalize(viewDir * tangentToWorldMatrix);
 
-	vec2 ds = tangentViewDir.xy * -offsetScale / tangentViewDir.z;
+	vec2 displacement = tangentViewDir.xy * -parallaxParallaxDepthScale / tangentViewDir.z;
 
 	const int linearSearchSteps = 16;
 	const int binarySearchSteps = 6;
 
 	float depthStep = 1.0 / float(linearSearchSteps);
+	float topDepth = 1.0 - parallaxParallaxOffsetBias;
 
 	// current size of search window
-	float size = depthStep;
+	float currentSize = depthStep;
 
 	// current depth position
-	float depth = 0.0;
+	float currentDepth = 0.0;
 
 	// best match found (starts with last position 1.0)
 	float bestDepth = 1.0;
@@ -295,37 +298,37 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 texCoords, float offsetScale, f
 	// search front to back for first point inside object
 	for(int i = 0; i < linearSearchSteps - 1; ++i)
 	{
-		depth += size;
+		currentDepth += currentSize;
 
-		float t = 1.0 - offsetBias - texture2D(normalMap, texCoords + ds * depth).a;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
 
-		if(bestDepth > 0.996)		// if no depth found yet
+		if(bestDepth > 0.996) // if no depth found yet
 		{
-			if(depth >= t)
+			if(currentDepth >= heightMapDepth)
 			{
-				bestDepth = depth;	// store best depth
+				bestDepth = currentDepth;
 			}
 		}
 	}
 
-	depth = bestDepth;
+	currentDepth = bestDepth;
 
 	// recurse around first point (depth) for closest match
 	for(int i = 0; i < binarySearchSteps; ++i)
 	{
-		size *= 0.5;
+		currentSize *= 0.5;
 
-		float t = 1.0 - offsetBias - texture2D(normalMap, texCoords + ds * depth).a;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
 
-		if(depth >= t)
+		if(currentDepth >= heightMapDepth)
 		{
-			bestDepth = depth;
-			depth -= 2.0 * size;
+			bestDepth = currentDepth;
+			currentDepth -= 2.0 * currentSize;
 		}
 
-		depth += size;
+		currentDepth += currentSize;
 	}
 
-	return bestDepth * ds;
+	return bestDepth * displacement;
 }
 #endif

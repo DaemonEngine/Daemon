@@ -3726,7 +3726,7 @@ static bool ParseShader( const char *_text )
 				continue;
 			}
 
-			shader.offsetScale = atof( token );
+			shader.parallaxDepthScale = atof( token );
 
 			token = COM_ParseExt2( text, false );
 
@@ -3776,7 +3776,7 @@ static bool ParseShader( const char *_text )
 			}
 
 			float bias = atof( token );
-			shader.offsetBias = off - bias / div;
+			shader.parallaxOffsetBias = off - bias / div;
 			continue;
 		}
 		// entityMergable, allowing sprite surfaces from multiple entities

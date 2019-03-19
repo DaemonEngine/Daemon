@@ -1992,31 +1992,31 @@ public:
 	}
 };
 
-class u_OffsetScale :
+class u_ParallaxDepthScale :
 	GLUniform1f
 {
 public:
-	u_OffsetScale( GLShader *shader ) :
-		GLUniform1f( shader, "u_OffsetScale" )
+	u_ParallaxDepthScale( GLShader *shader ) :
+		GLUniform1f( shader, "u_ParallaxDepthScale" )
 	{
 	}
 
-	void SetUniform_OffsetScale( float value )
+	void SetUniform_ParallaxDepthScale( float value )
 	{
 		this->SetValue( value );
 	}
 };
 
-class u_OffsetBias :
+class u_ParallaxOffsetBias :
 	GLUniform1f
 {
 public:
-	u_OffsetBias( GLShader *shader ) :
-		GLUniform1f( shader, "u_OffsetBias" )
+	u_ParallaxOffsetBias( GLShader *shader ) :
+		GLUniform1f( shader, "u_ParallaxOffsetBias" )
 	{
 	}
 
-	void SetUniform_OffsetBias( float value )
+	void SetUniform_ParallaxOffsetBias( float value )
 	{
 		this->SetValue( value );
 	}
@@ -2403,8 +2403,8 @@ class GLShader_lightMapping :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_OffsetScale,
-	public u_OffsetBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public u_numLights,
@@ -2434,8 +2434,8 @@ class GLShader_vertexLighting_DBS_entity :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_OffsetScale,
-	public u_OffsetBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public u_EnvironmentInterpolation,
@@ -2471,8 +2471,8 @@ class GLShader_vertexLighting_DBS_world :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_OffsetScale,
-	public u_OffsetBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public u_LightWrapAround,
@@ -2514,8 +2514,8 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_OffsetScale,
-	public u_OffsetBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public GLDeformStage,
@@ -2555,8 +2555,8 @@ class GLShader_forwardLighting_projXYZ :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_OffsetScale,
-	public u_OffsetBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public GLDeformStage,
@@ -2598,8 +2598,8 @@ class GLShader_forwardLighting_directionalSun :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_OffsetScale,
-	public u_OffsetBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
 	public u_NormalFormat,
 	public GLDeformStage,
@@ -2646,8 +2646,8 @@ class GLShader_reflection :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
-	public u_OffsetScale,
-	public u_OffsetBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
 	public u_NormalScale,
 	public u_NormalFormat,
@@ -2853,8 +2853,8 @@ class GLShader_liquid :
 	public u_FresnelPower,
 	public u_FresnelScale,
 	public u_FresnelBias,
-	public u_OffsetScale,
-	public u_OffsetBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
 	public u_NormalScale,
 	public u_NormalFormat,

@@ -33,8 +33,8 @@ uniform float		u_RefractionIndex;
 uniform float		u_FresnelPower;
 uniform float		u_FresnelScale;
 uniform float		u_FresnelBias;
-uniform float		u_OffsetScale;
-uniform float		u_OffsetBias;
+uniform float		u_ParallaxDepthScale;
+uniform float		u_ParallaxOffsetBias;
 uniform float		u_NormalScale;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_UnprojectMatrix;
@@ -99,7 +99,7 @@ void	main()
 	// ray intersect in view direction
 
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_OffsetScale, u_OffsetBias, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
 
 	texScreen += texOffset;
 	texNormal += texOffset;

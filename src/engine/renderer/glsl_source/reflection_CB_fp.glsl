@@ -26,8 +26,8 @@ uniform samplerCube	u_ColorMap;
 uniform sampler2D	u_NormalMap;
 uniform vec3		u_ViewOrigin;
 uniform mat4		u_ModelMatrix;
-uniform float		u_OffsetScale;
-uniform float		u_OffsetBias;
+uniform float		u_ParallaxDepthScale;
+uniform float		u_ParallaxOffsetBias;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexNormal;
@@ -48,7 +48,7 @@ void	main()
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_OffsetScale, u_OffsetBias, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
 
 	texNormal += texOffset;
 #endif // USE_PARALLAX_MAPPING
