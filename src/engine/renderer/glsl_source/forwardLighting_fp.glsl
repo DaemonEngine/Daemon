@@ -58,7 +58,6 @@ uniform samplerCube	u_ShadowClipMap;
 
 uniform sampler2D	u_RandomMap;	// random normals
 
-
 uniform vec3		u_ViewOrigin;
 
 #if defined(LIGHT_DIRECTIONAL)
@@ -83,14 +82,14 @@ uniform float		u_ParallaxDepthScale;
 uniform float		u_ParallaxOffsetBias;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec4		var_TexDiffuse;
-IN(smooth) vec4		var_TexNormal;
+IN(smooth) vec2		var_TexDiffuse;
+IN(smooth) vec2		var_TexNormal;
 IN(smooth) vec2		var_TexSpecular;
 IN(smooth) vec4		var_TexAttenuation;
 IN(smooth) vec4		var_Tangent;
 IN(smooth) vec4		var_Binormal;
 IN(smooth) vec4		var_Normal;
-//IN(smooth) vec4	var_Color;
+IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
 
@@ -157,7 +156,6 @@ Pr(X -mu >= k * sigma) <= 1 / ( 1 + k^2)
 */
 
 #if defined(VSM) || defined(EVSM)
-
 float linstep(float low, float high, float v)
 {
 	return clamp((v - low)/(high - low), 0.0, 1.0);
@@ -947,12 +945,12 @@ void	main()
 	vec3 L = normalize(u_LightOrigin - var_Position);
 #endif
 
-	vec2 texDiffuse = var_TexDiffuse.st;
+	vec2 texDiffuse = var_TexDiffuse;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	vec2 texNormal = var_TexNormal.st;
-	vec2 texSpecular = var_TexSpecular.st;
+	vec2 texNormal = var_TexNormal;
+	vec2 texSpecular = var_TexSpecular;
 
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position.xyz);
@@ -980,7 +978,7 @@ void	main()
 #endif
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texDiffuse.st);
+	vec4 diffuse = texture2D(u_DiffuseMap, texDiffuse);
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
 		discard;
@@ -1018,8 +1016,7 @@ void	main()
 	color.rgb *= abs(u_LightScale);
 	color.rgb *= shadow;
 
-	color.r *= var_TexDiffuse.p;
-	color.gb *= var_TexNormal.pq;
+	color.rgb *= var_Color.rgb;
 
 	if( u_LightScale < 0.0 ) {
 		color.rgb = vec3( clamp(dot(color.rgb, vec3( 0.3333 ) ), 0.3, 0.7 ) );

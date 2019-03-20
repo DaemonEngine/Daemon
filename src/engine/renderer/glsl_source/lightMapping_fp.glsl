@@ -33,8 +33,10 @@ uniform float		u_ParallaxDepthScale;
 uniform float		u_ParallaxOffsetBias;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec4		var_TexDiffuseGlow;
-IN(smooth) vec4		var_TexNormalSpecular;
+IN(smooth) vec2		var_TexDiffuse;
+IN(smooth) vec2		var_TexGlow;
+IN(smooth) vec2		var_TexNormal;
+IN(smooth) vec2		var_TexSpecular;
 IN(smooth) vec2		var_TexLight;
 
 IN(smooth) vec3		var_Tangent;
@@ -50,10 +52,10 @@ void	main()
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
-	vec2 texDiffuse = var_TexDiffuseGlow.st;
-	vec2 texGlow = var_TexDiffuseGlow.pq;
-	vec2 texNormal = var_TexNormalSpecular.st;
-	vec2 texSpecular = var_TexNormalSpecular.pq;
+	vec2 texDiffuse = var_TexDiffuse;
+	vec2 texGlow = var_TexGlow;
+	vec2 texNormal = var_TexNormal;
+	vec2 texSpecular = var_TexSpecular;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 

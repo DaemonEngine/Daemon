@@ -36,8 +36,8 @@ uniform mat4		u_ModelViewProjectionMatrix;
 uniform float		u_Time;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec4	var_TexDiffuse;
-OUT(smooth) vec4	var_TexNormal;
+OUT(smooth) vec2	var_TexDiffuse;
+OUT(smooth) vec2	var_TexNormal;
 OUT(smooth) vec2	var_TexSpecular;
 
 OUT(smooth) vec4	var_TexAttenuation;
@@ -45,7 +45,8 @@ OUT(smooth) vec4	var_TexAttenuation;
 OUT(smooth) vec4	var_Tangent;
 OUT(smooth) vec4	var_Binormal;
 OUT(smooth) vec4	var_Normal;
-//OUT(smooth) vec4	var_Color;	// Tr3B - maximum vars reached
+
+OUT(smooth) vec4	var_Color;
 
 void DeformVertex( inout vec4 pos,
 		   inout vec3 normal,
@@ -85,14 +86,13 @@ void	main()
 	var_TexAttenuation = u_LightAttenuationMatrix * position;
 
 	// transform diffusemap texcoords
-	var_TexDiffuse.xy = (u_DiffuseTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexDiffuse = (u_DiffuseTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// transform normalmap texcoords
-	var_TexNormal.xy = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexNormal = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// transform specularmap texture coords
 	var_TexSpecular = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
-	var_TexDiffuse.p = color.r;
-	var_TexNormal.pq = color.gb;
+	var_Color = color;
 }

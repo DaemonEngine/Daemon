@@ -34,7 +34,8 @@ uniform float		u_Time;
 OUT(smooth) vec3	var_Position;
 OUT(smooth) vec2	var_TexDiffuse;
 OUT(smooth) vec4	var_Color;
-OUT(smooth) vec4	var_TexNormalSpecular;
+OUT(smooth) vec2	var_TexNormal;
+OUT(smooth) vec2	var_TexSpecular;
 OUT(smooth) vec3	var_Tangent;
 OUT(smooth) vec3	var_Binormal;
 OUT(smooth) vec2	var_TexGlow;
@@ -77,10 +78,11 @@ void	main()
 	var_Color = color;
 
 	// transform normalmap texcoords
-	var_TexNormalSpecular.xy = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexNormal = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// transform specularmap texture coords
-	var_TexNormalSpecular.zw = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexSpecular = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
+	// transform glowmap texcoords
 	var_TexGlow = (u_GlowTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 }

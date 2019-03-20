@@ -44,7 +44,8 @@ uniform vec3            u_LightGridScale;
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexDiffuse;
 IN(smooth) vec4		var_Color;
-IN(smooth) vec4		var_TexNormalSpecular;
+IN(smooth) vec2		var_TexNormal;
+IN(smooth) vec2		var_TexSpecular;
 IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
 IN(smooth) vec2		var_TexGlow;
@@ -85,13 +86,13 @@ void	main()
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
-	vec2 texDiffuse = var_TexDiffuse.st;
+	vec2 texDiffuse = var_TexDiffuse;
 	vec2 texGlow = var_TexGlow;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	vec2 texNormal = var_TexNormalSpecular.xy;
-	vec2 texSpecular = var_TexNormalSpecular.zw;
+	vec2 texNormal = var_TexNormal;
+	vec2 texSpecular = var_TexSpecular;
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap

@@ -34,10 +34,12 @@ uniform vec4		u_ColorModulate;
 uniform vec4		u_Color;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec4	var_TexDiffuseGlow;
+OUT(smooth) vec2	var_TexDiffuse;
+OUT(smooth) vec2	var_TexGlow;
 OUT(smooth) vec4	var_Color;
 
-OUT(smooth) vec4	var_TexNormalSpecular;
+OUT(smooth) vec2	var_TexNormal;
+OUT(smooth) vec2	var_TexSpecular;
 OUT(smooth) vec3	var_Tangent;
 OUT(smooth) vec3	var_Binormal;
 
@@ -73,21 +75,22 @@ void	main()
 	var_Position = position.xyz;
 
 	// transform diffusemap texcoords
-	var_TexDiffuseGlow.st = (u_DiffuseTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexDiffuse = (u_DiffuseTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// assign color
 	var_Color = color;
 	
 	// transform normalmap texcoords
-	var_TexNormalSpecular.st = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexNormal = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// transform specularmap texture coords
-	var_TexNormalSpecular.pq = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexSpecular = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 	
 	var_Tangent = LB.tangent;
 	var_Binormal = LB.binormal;
 
 	var_Normal = LB.normal;
 
-	var_TexDiffuseGlow.pq = ( u_GlowTextureMatrix * vec4(texCoord, 0.0, 1.0) ).st;
+	// transform glowmap texture coords
+	var_TexGlow = ( u_GlowTextureMatrix * vec4(texCoord, 0.0, 1.0) ).st;
 }

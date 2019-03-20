@@ -40,10 +40,12 @@ uniform vec3            u_LightGridScale;
 uniform vec3		u_ViewOrigin;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec4		var_TexDiffuseGlow;
+IN(smooth) vec2		var_TexDiffuse;
+IN(smooth) vec2		var_TexGlow;
 IN(smooth) vec4		var_Color;
 
-IN(smooth) vec4		var_TexNormalSpecular;
+IN(smooth) vec2		var_TexNormal;
+IN(smooth) vec2		var_TexSpecular;
 IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
 
@@ -73,8 +75,8 @@ void ReadLightGrid(in vec3 pos, out vec3 lgtDir,
 
 void	main()
 {
-	vec2 texDiffuse = var_TexDiffuseGlow.st;
-	vec2 texGlow = var_TexDiffuseGlow.pq;
+	vec2 texDiffuse = var_TexDiffuse;
+	vec2 texGlow = var_TexGlow;
 
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
@@ -85,8 +87,8 @@ void	main()
 	ReadLightGrid( (var_Position - u_LightGridOrigin) * u_LightGridScale,
 		       L, ambCol, dirCol);
 
-	vec2 texNormal = var_TexNormalSpecular.st;
-	vec2 texSpecular = var_TexNormalSpecular.pq;
+	vec2 texNormal = var_TexNormal;
+	vec2 texSpecular = var_TexSpecular;
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
