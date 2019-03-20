@@ -149,13 +149,12 @@ void	main()
 
 	color.rgb += texture2D(u_GlowMap, texGlow).rgb;
 
-	// convert normal to [0,1] color space
-	N = N * 0.5 + 0.5;
-
 	outputColor = color;
 
 // Debugging
 #if defined(r_showEntityNormals)
+	// convert normal to [0,1] color space
+	N = N * 0.5 + 0.5;
 	outputColor = vec4(N, 1.0);
 #endif
 }
