@@ -32,7 +32,7 @@ layout(std140) uniform u_Lights {
   light lights[ MAX_REF_LIGHTS ];
 };
 #define GetLight(idx, component) lights[idx].component
-#else
+#else // !HAVE_ARB_uniform_buffer_object
 uniform sampler2D u_Lights;
 #define idxToTC( idx, w, h ) vec2( floor( ( idx * ( 1.0 / w ) ) + 0.5 ) * ( 1.0 / h ), \
 				   fract( ( idx + 0.5 ) * (1.0 / w ) ) )
@@ -42,7 +42,7 @@ const struct GetLightOffsets {
   int direction_angle;
 } getLightOffsets = GetLightOffsets(0, 1, 2);
 #define GetLight(idx, component) texture2D( u_Lights, idxToTC(3 * idx + getLightOffsets.component, 64.0, float( 3 * MAX_REF_LIGHTS / 64 ) ) )
-#endif
+#endif // HAVE_ARB_uniform_buffer_object
 
 uniform int u_numLights;
 
@@ -55,7 +55,7 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 eyeDir, vec3 lightColor,
   vec3 H = normalize( lightDir + eyeDir );
   float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
 
-#if defined( USE_PHYSICAL_SHADING )
+#if defined(USE_PHYSICAL_SHADING)
   float metalness = specularColor.x;
   float roughness = specularColor.y;
 
@@ -80,7 +80,7 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 eyeDir, vec3 lightColor,
   accumulator.xyz += lightColor.xyz * (1.0 - metalness) * NdotL * diffuseColor.xyz;
   accumulator.xyz += lightColor.xyz * vec3((D * F * G) / (4.0 * NdotV));
   accumulator.a = mix(diffuseColor.a, 1.0, FexpNV);
-#else
+#else // !USE_PHYSICAL_SHADING
   float NdotL = dot( normal, lightDir );
 #if defined(r_HalfLambertLighting)
   // http://developer.valvesoftware.com/wiki/Half_Lambert
@@ -94,10 +94,10 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 eyeDir, vec3 lightColor,
 
   accumulator.xyz += diffuseColor.xyz * lightColor.xyz * NdotL;
   accumulator.xyz += specularColor.xyz * lightColor.xyz * pow( NdotH, u_SpecularExponent.x * specularColor.w + u_SpecularExponent.y) * r_SpecularScale;
-#endif
+#endif // USE_PHYSICAL_SHADING
 }
 
-#if defined( TEXTURE_INTEGER )
+#if defined(TEXTURE_INTEGER)
 const int lightsPerLayer = 16;
 uniform usampler3D u_LightTiles;
 #define idxs_t uvec4
@@ -109,7 +109,7 @@ int nextIdx( inout idxs_t idxs ) {
   idxs = idxs >> 2;
   return int( tmp.x + tmp.y + tmp.z + tmp.w );
 }
-#else
+#else // !TEXTURE INTEGER
 const int lightsPerLayer = 4;
 uniform sampler3D u_LightTiles;
 #define idxs_t vec4
@@ -122,7 +122,7 @@ int nextIdx( inout idxs_t idxs ) {
   tmp -= 4.0 * idxs;
   return int( dot( tmp, vec4( 64.0, 16.0, 4.0, 1.0 ) ) );
 }
-#endif
+#endif // TEXTURE_INTEGER
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 

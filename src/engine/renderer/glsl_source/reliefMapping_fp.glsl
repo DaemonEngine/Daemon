@@ -153,4 +153,4 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parall
 
 	return bestDepth * displacement;
 }
-#endif
+#endif // USE_PARALLAX_MAPPING
