@@ -1066,18 +1066,48 @@ GLuint GLShaderManager::CompileShader( Str::StringRef programName,
 
 void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint object ) const
 {
-	char        *msg;
+	char        *dump;
 	int         maxLength = 0;
 
 	glGetShaderiv( object, GL_SHADER_SOURCE_LENGTH, &maxLength );
 
-	msg = ( char * ) ri.Hunk_AllocateTempMemory( maxLength );
+	dump = ( char * ) ri.Hunk_AllocateTempMemory( maxLength );
 
-	glGetShaderSource( object, maxLength, &maxLength, msg );
+	glGetShaderSource( object, maxLength, &maxLength, dump );
 
-	Log::Warn("Source for shader program %s:\n%s", programName, msg);
+	std::string buffer;
+	std::string delim("\n");
+	std::string src(dump);
 
-	ri.Hunk_FreeTempMemory( msg );
+	ri.Hunk_FreeTempMemory( dump );
+
+	int i = 0;
+	size_t pos = 0;
+	while ( ( pos = src.find(delim) ) != std::string::npos )
+	{
+		std::string line = src.substr( 0, pos );
+		if ( line.compare( "#line 0" ) == 0 )
+		{
+			i = 0;
+		}
+
+		std::string number = std::to_string(i);
+
+		int p = 4 - number.length();
+		p = p < 0 ? 0 : p;
+		number.insert( number.begin(), p, ' ' );
+
+		buffer.append(number);
+		buffer.append(": ");
+		buffer.append(line);
+		buffer.append(delim);
+
+		src.erase(0, pos + delim.length());
+
+		i++;
+	}
+
+	Log::Warn("Source for shader program %s:\n%s", programName, buffer.c_str());
 }
 
 void GLShaderManager::PrintInfoLog( GLuint object) const
