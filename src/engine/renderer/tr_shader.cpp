@@ -4309,18 +4309,81 @@ static void CollapseStages()
 				// disable since it's merged
 				stages[ materialStage ].active = false;
 			}
+			// always test for this stage before glow stage
 			if ( lightStage != -1 )
 			{
-				// TODO: investigate how to pass rgbGen/alphaGen to implicit lightmap stage
-				// disable to not paint it over implicit lightmap stage and glow map
-				stages[ lightStage ].active = false;
+				// “blendFunc filter” is same as “blendFunc GL_DST_COLOR GL_ZERO” and the default
+				if ( ( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR 
+					&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO )
+				{
+					// common lightmap stage
+					// disable to not paint it over implicit light stage and glow map
+					stages[ lightStage ].active = false;
+				}
+				else
+				{
+					// custom lightmap stage, disable the implicit light stage and keep
+					// this one uncollapsed
+					Log::Debug("found custom lightmap stage in '%s' shader, not collapsing", shader.name);
+					stages[ diffuseStage ].disableImplicitLightmap = true;
+				}
 			}
+			// always test for this stage after light stage
 			if ( glowStage != -1 )
 			{
-				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_GLOWMAP ] = stages[ glowStage ].bundle[ 0 ];
-				// disable since it's merged
-				stages[ glowStage ].active = false;
+				// if there is no custom light stage, collapse to the diffuse stage
+				// that will relie on the implicit light stage
+				if ( !stages[ diffuseStage ].disableImplicitLightmap )
+				{
+					// merge with diffuse stage
+					stages[ diffuseStage ].bundle[ TB_GLOWMAP ] = stages[ glowStage ].bundle[ 0 ];
+					// disable since it's merged
+					stages[ glowStage ].active = false;
+				}
+				// if there is a custom light stage, keep the glow stage uncollapsed
+				// and makes sure the diffuse stage precedes the light stage
+				// and the light stages precedes the glow stage
+				else
+				{
+					Log::Debug("found glow map with custom lightmap stage in '%s' shader, not collapsing", shader.name);
+					stages[ glowStage ].type = stageType_t::ST_COLORMAP;
+					stages[ glowStage ].bundle[ TB_COLORMAP ] = stages[ glowStage ].bundle[ 0 ];
+
+					// we can't be there without collapsing an already found
+					// diffuse stage that is then not using -1 index
+					// and since we are there because glow stage is found
+					// there is no need to secure it more
+					if ( glowStage < diffuseStage )
+					{
+						// swap stages
+						shaderStage_t tmpStage = stages [ diffuseStage ];
+						stages[ diffuseStage ] = stages [ glowStage ];
+						stages [ glowStage ] = tmpStage;
+
+						// swap stage indexes
+						int tmp = diffuseStage;
+						diffuseStage = glowStage;
+						glowStage = tmp;
+					}
+					// part of that code is not run if lightStage does not exist
+					// since disableImplicitLightmap is set when a custom lightStage
+					// exists and non-existent lightStage has -1 index so it can't
+					// be smaller than glowStage index, so no need to secure it more
+					if ( glowStage < lightStage )
+					{
+						// swap stages
+						shaderStage_t tmpStage = stages [ lightStage ];
+						stages[ lightStage ] = stages [ glowStage ];
+						stages [ glowStage ] = tmpStage;
+
+						// no need to swap indexes at this point
+						/*
+						int tmp = lightStage;
+						lightStage = glowStage;
+						glowStage = tmp;
+						*/
+					}
+				}
 			}
 		}
 	}

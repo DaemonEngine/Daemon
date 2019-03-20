@@ -1262,6 +1262,14 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		GL_BindToTMU( 4, tr.blackImage );
 	}
 
+	// do not paintover lightmap
+	// as a standalone lightmap stage
+	// will do later
+	if ( pStage->disableImplicitLightmap )
+	{
+		whiteLight = true;
+	}
+
 	// bind u_LightMap
 	BindLightMap( 3, whiteLight );
 
