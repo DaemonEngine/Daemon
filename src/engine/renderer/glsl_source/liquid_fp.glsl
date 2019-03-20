@@ -25,7 +25,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_CurrentMap;
 uniform sampler2D	u_PortalMap;
 uniform sampler2D	u_DepthMap;
-uniform sampler2D	u_NormalMap;
 uniform vec3		u_ViewOrigin;
 uniform float		u_FogDensity;
 uniform vec3		u_FogColor;
@@ -99,7 +98,7 @@ void	main()
 	// ray intersect in view direction
 
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
 
 	texScreen += texOffset;
 	texNormal += texOffset;
@@ -110,7 +109,7 @@ void	main()
 	vec3 N = normalize(var_Normal);
 
 	// compute normal in world space from normalmap
-	vec3 N2 = NormalInWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
+	vec3 N2 = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
 
 	// compute fresnel term
 	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, N), u_FresnelPower) *

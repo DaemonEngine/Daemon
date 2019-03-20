@@ -22,7 +22,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* heatHaze_fp.glsl */
 
-uniform sampler2D	u_NormalMap;
 uniform sampler2D	u_CurrentMap;
 uniform float		u_AlphaThreshold;
 
@@ -36,7 +35,7 @@ void	main()
 	vec4 color;
 
 	// compute normal in tangent space from normalmap
-	vec3 N = NormalInTangentSpace(u_NormalMap, var_TexNormal);
+	vec3 N = NormalInTangentSpace(var_TexNormal);
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st * r_FBufScale;

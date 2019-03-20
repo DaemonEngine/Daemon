@@ -23,7 +23,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* vertexLighting_DBS_entity_fp.glsl */
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_NormalMap;
 uniform sampler2D	u_SpecularMap;
 uniform sampler2D	u_GlowMap;
 
@@ -96,7 +95,7 @@ void	main()
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
 
 	texDiffuse += texOffset;
 	texGlow += texOffset;
@@ -105,7 +104,7 @@ void	main()
 #endif // USE_PARALLAX_MAPPING
 
 	// compute normal in world space from normalmap
-	vec3 N = NormalInWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
+	vec3 N = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
 
 	// compute the specular term
 #if defined(USE_REFLECTIVE_SPECULAR)

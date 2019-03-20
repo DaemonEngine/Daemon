@@ -1151,11 +1151,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	GL_State( stateBits );
 
 	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping;
-	if ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] == nullptr )
-	{
-		normalMapping = false;
-	}
-
+	normalMapping = normalMapping && deluxeMapping && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
 
@@ -1163,6 +1159,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
 
 	gl_lightMappingShader->SetDeluxeMapping( deluxeMapping );
+
 	gl_lightMappingShader->SetParallaxMapping( normalMapping && r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax );
 
 	tess.vboVertexSprite = false;

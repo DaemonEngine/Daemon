@@ -23,7 +23,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* reflection_CB_fp.glsl */
 
 uniform samplerCube	u_ColorMap;
-uniform sampler2D	u_NormalMap;
 uniform vec3		u_ViewOrigin;
 uniform mat4		u_ModelMatrix;
 uniform float		u_ParallaxDepthScale;
@@ -48,13 +47,13 @@ void	main()
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(u_NormalMap, texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
 
 	texNormal += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute normal in tangent space from normal map
-	vec3 N = NormalInWorldSpace(u_NormalMap, texNormal, tangentToWorldMatrix);
+	vec3 N = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
 
 	// compute reflection ray
 	vec3 R = reflect(viewDir, N);
