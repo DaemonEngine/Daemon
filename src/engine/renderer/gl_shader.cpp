@@ -653,6 +653,10 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 			Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", token );
 
 		libs += GetShaderText(filename);
+		// We added a lot of stuff but if we do something bad
+		// in the GLSL shaders then we want the proper line
+		// so we have to reset the line counting.
+		libs += "#line 0\n";
 	}
 
 	// load main() program
@@ -708,8 +712,9 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 		break;
 	}
 
-	// OK we added a lot of stuff but if we do something bad in the GLSL shaders then we want the proper line
-	// so we have to reset the line counting
+	// We added a lot of stuff but if we do something bad
+	// in the GLSL shaders then we want the proper line
+	// so we have to reset the line counting.
 	env += "#line 0\n";
 
 	std::string shaderText = env + libs + GetShaderText(filename);
