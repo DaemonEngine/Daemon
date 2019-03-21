@@ -55,7 +55,6 @@ vec3 normalFlip(vec3 normal)
 // compute normal in tangent space
 vec3 NormalInTangentSpace(vec2 texNormal)
 {
-#if defined(USE_NORMAL_MAPPING)
 	vec3 normal;
 
 #if defined(r_normalMapping)
@@ -87,10 +86,11 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	normal.z *= r_NormalScale;
 #endif
 
-	return normal;
 #else // !r_normalMapping
-	return vec3(1.0, 1.0, 1.0);
+	normal = vec3(0.0, 0.0, 1.0);
 #endif // r_normalMapping
+
+	return normal;
 }
 
 // compute normal in worldspace from normalmap
