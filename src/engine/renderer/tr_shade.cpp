@@ -796,7 +796,6 @@ static void Render_vertexLighting_DBS_entity( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_vertexLightingShader_DBS_entity->SetUniform_ParallaxDepthScale( depthScale );
 		gl_vertexLightingShader_DBS_entity->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_vertexLightingShader_DBS_entity->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// bind u_DiffuseMap
@@ -815,6 +814,8 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
+
+	gl_vertexLightingShader_DBS_entity->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	if ( specularMapping )
 	{
@@ -1035,7 +1036,6 @@ static void Render_vertexLighting_DBS_world( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_vertexLightingShader_DBS_world->SetUniform_ParallaxDepthScale( depthScale );
 		gl_vertexLightingShader_DBS_world->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_vertexLightingShader_DBS_world->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	if( tr.world ) {
@@ -1059,6 +1059,8 @@ static void Render_vertexLighting_DBS_world( int stage )
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
+
+	gl_vertexLightingShader_DBS_world->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	if ( specularMapping )
 	{
@@ -1196,7 +1198,6 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_lightMappingShader->SetUniform_ParallaxDepthScale( depthScale );
 		gl_lightMappingShader->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_lightMappingShader->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// bind u_DiffuseMap
@@ -1222,6 +1223,8 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
+
+	gl_lightMappingShader->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	if ( specularMapping )
 	{
@@ -1497,7 +1500,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_omniXYZ->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_omniXYZ->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_omniXYZ->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -1568,6 +1570,8 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
+
+	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	if ( specularMapping )
 	{
@@ -1683,7 +1687,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_projXYZ->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_projXYZ->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_projXYZ->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -1755,6 +1758,8 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
+
+	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	if ( specularMapping )
 	{
@@ -1868,7 +1873,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_directionalSun->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_directionalSun->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_directionalSun->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -1944,6 +1948,8 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
+
+	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	if ( specularMapping )
 	{
@@ -2070,11 +2076,12 @@ static void Render_reflection_CB( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_reflectionShader->SetUniform_ParallaxDepthScale( depthScale );
 		gl_reflectionShader->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_reflectionShader->SetUniform_HeightMapInNormalMap( tess.surfaceShader->heightMapInNormalMap );
 	}
 
 	// bind u_NormalFormat
 	gl_reflectionShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+
+	gl_reflectionShader->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	gl_reflectionShader->SetRequiredVertexPointers();
 

@@ -63,27 +63,24 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	vec3 normal;
 
 #if defined(r_normalMapping)
-	if (u_HeightMapInNormalMap == 0)
-	{
-		// the Capcom trick abusing alpha channel of DXT1/5 formats to encode normal map
-		// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
-		//
-		// the algorithm also works with normal maps in rgb format without alpha channel
-		// but we still must be sure there is no height map in alpha channel hence the test
-		//
-		// crunch -dxn seems to produce such files, since alpha channel is abused such format
-		// is unsuitable to embed height map, then height map must be distributed as loose file
-		normal = texture2D(u_NormalMap, texNormal).rga;
-		normal.x *= normal.z;
-		normal.xy = 2.0 * normal.xy - 1.0;
-		normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
-	}
-	else
-	{
-		// alpha channel contains the height map so do not try to restore the normal map from it
-		normal = texture2D(u_NormalMap, texNormal).rgb;
-		normal = 2.0 * normal - 1.0;
-	}
+#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+	// alpha channel contains the height map so do not try to restore the normal map from it
+	normal = texture2D(u_NormalMap, texNormal).rgb;
+	normal = 2.0 * normal - 1.0;
+#else // !HEIGHTMAP_IN_NORMALMAP
+	// the Capcom trick abusing alpha channel of DXT1/5 formats to encode normal map
+	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
+	//
+	// the algorithm also works with normal maps in rgb format without alpha channel
+	// but we still must be sure there is no height map in alpha channel hence the test
+	//
+	// crunch -dxn seems to produce such files, since alpha channel is abused such format
+	// is unsuitable to embed height map, then height map must be distributed as loose file
+	normal = texture2D(u_NormalMap, texNormal).rga;
+	normal.x *= normal.z;
+	normal.xy = 2.0 * normal.xy - 1.0;
+	normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+#endif // HEIGHTMAP_IN_NORMALMAP
 
 	normal = normalFlip(normal);
 
