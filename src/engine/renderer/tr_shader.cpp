@@ -4332,7 +4332,7 @@ static void CollapseStages()
 			if ( glowStage != -1 )
 			{
 				// if there is no custom light stage, collapse to the diffuse stage
-				// that will relie on the implicit light stage
+				// that will rely on the implicit light stage
 				if ( !stages[ diffuseStage ].disableImplicitLightmap )
 				{
 					// merge with diffuse stage
@@ -4341,47 +4341,27 @@ static void CollapseStages()
 					stages[ glowStage ].active = false;
 				}
 				// if there is a custom light stage, keep the glow stage uncollapsed
-				// and makes sure the diffuse stage precedes the light stage
-				// and the light stages precedes the glow stage
+				// and make sure the diffuse stage precedes the light stage
+				// and the light stage (known to exist by disableImplicitLightMap==true) precedes the glow stage
 				else
 				{
+					ASSERT_GE(lightStage, 0);
 					Log::Debug("found glow map with custom lightmap stage in '%s' shader, not collapsing", shader.name);
 					stages[ glowStage ].type = stageType_t::ST_COLORMAP;
 					stages[ glowStage ].bundle[ TB_COLORMAP ] = stages[ glowStage ].bundle[ 0 ];
 
-					// we can't be there without collapsing an already found
-					// diffuse stage that is then not using -1 index
-					// and since we are there because glow stage is found
-					// there is no need to secure it more
-					if ( glowStage < diffuseStage )
+					// put diffuse stage in the first of the three spots
+					int& minStageIndex = lightStage < glowStage ? lightStage : glowStage; // note the reference!
+					if ( minStageIndex < diffuseStage )
 					{
-						// swap stages
-						shaderStage_t tmpStage = stages [ diffuseStage ];
-						stages[ diffuseStage ] = stages [ glowStage ];
-						stages [ glowStage ] = tmpStage;
-
-						// swap stage indexes
-						int tmp = diffuseStage;
-						diffuseStage = glowStage;
-						glowStage = tmp;
+						std::swap(stages[diffuseStage], stages[minStageIndex]);
+						std::swap(diffuseStage, minStageIndex);
 					}
-					// part of that code is not run if lightStage does not exist
-					// since disableImplicitLightmap is set when a custom lightStage
-					// exists and non-existent lightStage has -1 index so it can't
-					// be smaller than glowStage index, so no need to secure it more
+					// fix 2nd and 3rd spots
 					if ( glowStage < lightStage )
 					{
-						// swap stages
-						shaderStage_t tmpStage = stages [ lightStage ];
-						stages[ lightStage ] = stages [ glowStage ];
-						stages [ glowStage ] = tmpStage;
-
-						// no need to swap indexes at this point
-						/*
-						int tmp = lightStage;
-						lightStage = glowStage;
-						glowStage = tmp;
-						*/
+						std::swap(stages[glowStage], stages[lightStage]);
+						std::swap(glowStage, lightStage);
 					}
 				}
 			}
@@ -4389,20 +4369,17 @@ static void CollapseStages()
 	}
 
 	// move all active stages at beginning
-	// note that the 'active' field is also used
-	// instead of numStages in some code that runs later
+	// note that the 'active' field is still used instead of numStages in some code that runs later
 	int numActiveStages = 0;
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
-		// for every active stage, swap it with the
-		// inactive stage that has the smaller index
-		// at this time
 		if ( stages[ i ].active )
 		{
-			// swap stages
-			shaderStage_t tmpStage = stages [ i ];
-			stages[ i ] = stages [ numActiveStages ];
-			stages [ numActiveStages ] = tmpStage;
+			if ( i != numActiveStages )
+			{
+				stages[ numActiveStages ] = stages[ i ];
+				stages[ i ].active = false;
+			}
 			numActiveStages++;
 		}
 	}
