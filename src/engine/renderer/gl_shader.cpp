@@ -1461,7 +1461,7 @@ void GLShader_lightMapping::BuildShaderVertexLibNames( std::string& vertexInline
 
 void GLShader_lightMapping::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_lightMapping::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
@@ -1520,7 +1520,7 @@ void GLShader_vertexLighting_DBS_entity::BuildShaderVertexLibNames( std::string&
 
 void GLShader_vertexLighting_DBS_entity::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_vertexLighting_DBS_entity::BuildShaderCompileMacros( std::string& )
@@ -1580,7 +1580,7 @@ void GLShader_vertexLighting_DBS_world::BuildShaderVertexLibNames( std::string& 
 }
 void GLShader_vertexLighting_DBS_world::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_vertexLighting_DBS_world::BuildShaderCompileMacros( std::string& )
@@ -1642,7 +1642,7 @@ void GLShader_forwardLighting_omniXYZ::BuildShaderVertexLibNames( std::string& v
 
 void GLShader_forwardLighting_omniXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_omniXYZ::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
@@ -1703,7 +1703,7 @@ void GLShader_forwardLighting_projXYZ::BuildShaderVertexLibNames( std::string& v
 
 void GLShader_forwardLighting_projXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_projXYZ::BuildShaderCompileMacros( std::string& compileMacros )
@@ -1767,7 +1767,7 @@ void GLShader_forwardLighting_directionalSun::BuildShaderVertexLibNames( std::st
 
 void GLShader_forwardLighting_directionalSun::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_directionalSun::BuildShaderCompileMacros( std::string& compileMacros )
@@ -2112,7 +2112,7 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 
 void GLShader_liquid::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )

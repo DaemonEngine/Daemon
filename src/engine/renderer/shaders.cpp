@@ -19,6 +19,7 @@
 #include "glsl/blurY_vp.h"
 #include "glsl/cameraEffects_fp.h"
 #include "glsl/cameraEffects_vp.h"
+#include "glsl/computeLight_fp.h"
 #include "glsl/contrast_fp.h"
 #include "glsl/contrast_vp.h"
 #include "glsl/debugShadowMap_fp.h"
@@ -75,6 +76,7 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/blurY_vp.glsl", std::string((char*)blurY_vp_glsl, blurY_vp_glsl_len) },
 	{ "glsl/cameraEffects_fp.glsl", std::string((char*)cameraEffects_fp_glsl, cameraEffects_fp_glsl_len) },
 	{ "glsl/cameraEffects_vp.glsl", std::string((char*)cameraEffects_vp_glsl, cameraEffects_vp_glsl_len) },
+	{ "glsl/computeLight_fp.glsl", std::string((char*)computeLight_fp_glsl, computeLight_fp_glsl_len) },
 	{ "glsl/contrast_fp.glsl", std::string((char*)contrast_fp_glsl, contrast_fp_glsl_len) },
 	{ "glsl/contrast_vp.glsl", std::string((char*)contrast_vp_glsl, contrast_vp_glsl_len) },
 	{ "glsl/debugShadowMap_fp.glsl", std::string((char*)debugShadowMap_fp_glsl, debugShadowMap_fp_glsl_len) },
