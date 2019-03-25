@@ -41,9 +41,34 @@ static byte       *fileBase;
 
 //===============================================================================
 
+static void R_LinearizeLightingColorBytes( byte* bytes )
+{
+	if ( !tr.worldLinearizeLightMap )
+	{
+		return;
+	}
+
+	convertFromSRGB( bytes );
+}
+
+static void R_LinearizeLightingColor( Color::Color lightColor )
+{
+	if ( !tr.worldLinearizeLightMap )
+	{
+		return;
+	}
+
+	lightColor.ConvertFromSRGB();
+}
+
 static bool cannotColorShiftLighting()
 {
 	if ( tr.overbrightBits >= tr.mapOverBrightBits )
+	{
+		return true;
+	}
+
+	if ( tr.worldLinearizeLightMap )
 	{
 		return true;
 	}
@@ -467,6 +492,14 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 		return;
 	}
 
+	int lightMapBits = IF_LIGHTMAP | IF_NOPICMIP;
+	int deluxeMapBits = IF_NORMALMAP | IF_NOPICMIP;
+
+	if ( tr.worldLinearizeLightMap )
+	{
+		lightMapBits |= IF_SRGB;
+	}
+
 	int len = l->filelen;
 	if ( !len )
 	{
@@ -509,7 +542,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				LoadRGBEToBytes( va( "%s/%s", mapName, filename.c_str() ), &ldrImage, &width, &height );
 
 				imageParams_t imageParams = {};
-				imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
+				imageParams.bits = lightMapBits;
 				imageParams.filterType = filterType_t::FT_DEFAULT;
 				imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -536,7 +569,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					Log::Debug("...loading external lightmap '%s/%s'", mapName, filename);
 
 					imageParams_t imageParams = {};
-					imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
+					imageParams.bits = deluxeMapBits;
 					imageParams.filterType = filterType_t::FT_DEFAULT;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -565,7 +598,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 				if (!tr.worldDeluxeMapping || i % 2 == 0) {
 					imageParams_t imageParams = {};
-					imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
+					imageParams.bits = lightMapBits;
 					imageParams.filterType = filterType_t::FT_LINEAR;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -575,7 +608,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				else if (tr.worldDeluxeMapping)
 				{
 					imageParams_t imageParams = {};
-					imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
+					imageParams.bits = deluxeMapBits;
 					imageParams.filterType = filterType_t::FT_LINEAR;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -642,7 +675,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			}
 
 			imageParams_t imageParams = {};
-			imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
+			imageParams.bits = lightMapBits;
 			imageParams.filterType = filterType_t::FT_DEFAULT;
 			imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
@@ -985,6 +1018,8 @@ static void ParseTriangleSurface( dsurface_t* ds, drawVert_t* verts, bspSurface_
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
+		R_LinearizeLightingColor( cv->verts[ i ].lightColor );
+
 		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 	}
 
@@ -1216,6 +1251,8 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 		}
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
+
+		R_LinearizeLightingColor( points[ i ].lightColor );
 
 		R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray() );
 	}
@@ -3500,6 +3537,9 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
+		R_LinearizeLightingColorBytes( tmpAmbient );
+		R_LinearizeLightingColorBytes( tmpDirected );
+
 		R_ColorShiftLightingBytes( tmpAmbient );
 		R_ColorShiftLightingBytes( tmpDirected );
 
@@ -3769,6 +3809,75 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 				Log::Debug("map features directional light mapping" );
 				// This will be disabled if the engine fails to load the lightmaps.
 				tr.worldDeluxeMapping = glConfig2.deluxeMapping;
+			}
+
+			bool sRGBtex = false;
+			bool sRGBcolor = false;
+			bool sRGBlight = false;
+
+			s = strstr( value, "-sRGB" );
+
+			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
+			{
+				sRGBtex = true;
+				sRGBcolor = true;
+				sRGBlight = true;
+			}
+
+			s = strstr( value, "-nosRGB" );
+
+			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
+			{
+				sRGBtex = false;
+				sRGBcolor = false;
+				sRGBlight = false;
+			}
+
+			if ( strstr( value, "-sRGBlight" ) )
+			{
+				sRGBlight = true;
+			}
+
+			if ( strstr( value, "-nosRGBlight" ) )
+			{
+				sRGBlight = false;
+			}
+
+			if ( strstr( value, "-sRGBcolor" ) )
+			{
+				sRGBcolor = true;
+			}
+
+			if ( strstr( value, "-nosRGBcolor" ) )
+			{
+				sRGBcolor = false;
+			}
+
+			if ( strstr( value, "-sRGBtex" ) )
+			{
+				sRGBtex = true;
+			}
+
+			if ( strstr( value, "-nosRGBtex" ) )
+			{
+				sRGBtex = false;
+			}
+
+			if ( sRGBlight )
+			{
+				Log::Debug( "Map features lights in sRGB colorspace." );
+				tr.worldLinearizeLightMap = true;
+			}
+
+			if ( sRGBcolor && sRGBtex )
+			{
+				Log::Debug( "Map features lights computed with linear colors and textures." );
+				tr.worldLinearizeTexture = true;
+			}
+			else if ( sRGBcolor != sRGBtex )
+			{
+				Log::Warn( "Map features lights computed with a mix of linear and non-linear colors or textures, acting like both colors and textures were linear when lights were computed." );
+				tr.worldLinearizeTexture = true;
 			}
 
 			continue;
@@ -4522,6 +4631,8 @@ void RE_LoadWorldMap( const char *name )
 	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() ); // set by RE_LoadWorldMap
 	tr.mapLightFactor = 1.0f; // set by RE_LoadWorldMap
 	tr.identityLight = 1.0f; // set by RE_LoadWorldMap
+	tr.worldLinearizeTexture = false;
+	tr.worldLinearizeLightMap = false;
 
 	s_worldData = {};
 	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );
@@ -4571,7 +4682,17 @@ void RE_LoadWorldMap( const char *name )
 	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ], externalEntities );
 
 	// Now we can set this after checking a possible worldspawn value for mapOverbrightBits
-	tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() );
+	if ( tr.worldLinearizeLightMap )
+	{
+		/* Never shift and clamp the lightmap when stored in sRGB space, that breaks it.
+		Also maps using lightmaps in sRGB space are maintained maps and there is
+		no need to provide such clamping meant for compatibility with legacy maps. */
+		tr.overbrightBits = tr.mapOverBrightBits;
+	}
+	else
+	{
+		tr.overbrightBits = std::min( tr.mapOverBrightBits, r_overbrightBits.Get() );
+	}
 
 	R_LoadShaders( &header->lumps[ LUMP_SHADERS ] );
 

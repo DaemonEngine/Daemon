@@ -1479,6 +1479,23 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 	imageParams.minDimension = shader.imageMinDimension;
 	imageParams.maxDimension = shader.imageMaxDimension;
 
+	if ( tr.worldLinearizeTexture )
+	{
+		switch ( type )
+		{
+			case stageType_t::ST_COLORMAP:
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_GLOWMAP:
+			case stageType_t::ST_REFLECTIONMAP:
+			case stageType_t::ST_SKYBOXMAP:
+			case stageType_t::ST_SPECULARMAP:
+				imageParams.bits |= IF_SRGB;
+				break;
+			default:
+				break;
+		}
+	}
+
 	// determine image options
 	if ( stage->overrideNoPicMip || shader.noPicMip || stage->highQuality || stage->forceHighQuality )
 	{
@@ -3491,6 +3508,11 @@ static void ParseSkyParms( const char **text )
 		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 		imageParams.minDimension = shader.imageMinDimension;
 		imageParams.maxDimension = shader.imageMaxDimension;
+
+		if ( tr.worldLinearizeTexture )
+		{
+			imageParams.bits |= IF_SRGB;
+		}
 
 		shader.sky.outerbox = R_FindCubeImage( prefix, imageParams );
 
@@ -6186,6 +6208,11 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 		imageParams.bits = bits;
 		imageParams.filterType = filterType_t::FT_DEFAULT;
 		imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
+
+		if ( tr.worldLinearizeTexture )
+		{
+			imageParams.bits |= IF_SRGB;
+		}
 
 		image = R_FindImageFile( fileName, imageParams );
 	}
