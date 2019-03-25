@@ -869,6 +869,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		GL_fboShim.glBindRenderbuffer( GL_RENDERBUFFER, 0 );
 		glState.currentFBO = nullptr;
 
+		glEnable( GL_FRAMEBUFFER_SRGB );
+
 		GL_PolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 		GL_DepthMask( GL_TRUE );
 		glDisable( GL_DEPTH_TEST );

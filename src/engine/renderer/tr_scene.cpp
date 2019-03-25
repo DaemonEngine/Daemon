@@ -324,6 +324,14 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 	light->color[ 1 ] = g;
 	light->color[ 2 ] = b;
 
+	// Linearize dynamic lights.
+	if ( tr.worldLinearizeTexture )
+	{
+		light->color[ 0 ] = convertFromSRGB( light->color[ 0 ] );
+		light->color[ 1 ] = convertFromSRGB( light->color[ 1 ] );
+		light->color[ 2 ] = convertFromSRGB( light->color[ 2 ] );
+	}
+
 	light->scale = intensity;
 }
 

@@ -1479,6 +1479,17 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 	imageParams.minDimension = shader.imageMinDimension;
 	imageParams.maxDimension = shader.imageMaxDimension;
 
+	if ( stage->type == stageType_t::ST_COLORMAP
+		|| stage->type == stageType_t::ST_DIFFUSEMAP
+		|| ( stage->type == stageType_t::ST_SPECULARMAP && stage->specularSRGB )
+		|| stage->type == stageType_t::ST_GLOWMAP
+		|| stage->type == stageType_t::ST_REFLECTIONMAP
+		|| stage->type == stageType_t::ST_SKYBOXMAP
+		|| stage->collapseType != collapseType_t::COLLAPSE_none )
+	{
+		imageParams.bits |= IF_SRGB;
+	}
+
 	// determine image options
 	if ( stage->overrideNoPicMip || shader.noPicMip || stage->highQuality || stage->forceHighQuality )
 	{
@@ -1522,6 +1533,8 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 	// try to load the image
 	if ( stage->isCubeMap )
 	{
+		imageParams.bits |= IF_SRGB;
+
 		stage->bundle[ bundleIndex ].image[ 0 ] = R_FindCubeImage( buffer, imageParams );
 
 		if ( !stage->bundle[ bundleIndex ].image[ 0 ] )
@@ -3195,6 +3208,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "deformMagnitude" ) )
 		{
 			ParseExpression( text, &stage->deformMagnitudeExp );
+		}
+		else if ( !Q_stricmp( token, "specularSRGB" ) )
+		{
+			stage->specularSRGB = true;
 		}
 		else
 		{
@@ -6172,7 +6189,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	if( bits & RSF_2D )
 	{
 		imageParams_t imageParams = {};
-		imageParams.bits = bits;
+		imageParams.bits = bits | IF_SRGB;
 		imageParams.filterType = filterType_t::FT_LINEAR;
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
