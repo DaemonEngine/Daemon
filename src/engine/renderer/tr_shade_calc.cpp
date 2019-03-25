@@ -202,7 +202,7 @@ static float GetOpValue( const expOperation_t *op )
 
 const char* GetOpName(opcode_t type);
 
-float RB_EvalExpression( const expression_t *exp, float defaultValue )
+static float EvalExpression( const expression_t *exp, float defaultValue )
 {
 	ASSERT( exp );
 
@@ -433,6 +433,21 @@ float RB_EvalExpression( const expression_t *exp, float defaultValue )
 	}
 
 	return GetOpValue( &ops[ 0 ] );
+}
+
+float RB_EvalExpression( const expression_t *exp, float defaultValue )
+{
+	ASSERT( exp );
+
+	float value = EvalExpression( exp, defaultValue );
+
+	if ( exp->bits & EXP_SRGB )
+	{
+		value = Math::Clamp( value, 0.0f, 1.0f );
+		value = tr.convertFloatFromSRGB( value );
+	}
+
+	return value;
 }
 
 /*

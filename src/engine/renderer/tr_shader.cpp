@@ -693,8 +693,10 @@ static char    *ParseExpressionElement( const char **data_p )
 ParseExpression
 ===============
 */
-static void ParseExpression( const char **text, expression_t *exp )
+static void ParseExpression( const char **text, expression_t *exp, int bits = 0 )
 {
+	exp->bits = bits;
+
 	expOperation_t op, op2;
 
 	expOperation_t inFixOps[ MAX_EXPRESSION_OPS ];
@@ -1479,6 +1481,28 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 	imageParams.minDimension = shader.imageMinDimension;
 	imageParams.maxDimension = shader.imageMaxDimension;
 
+	if ( tr.worldLinearizeTexture )
+	{
+		/* Some stage types may be meaningless in 2D but we can't prevent people
+		to use any shader in UI, so we better take care of more than ST_COLORMAP. */
+		if ( ! ( shader.registerFlags & RSF_2D ) )
+		{
+			switch ( type )
+			{
+				case stageType_t::ST_COLORMAP:
+				case stageType_t::ST_DIFFUSEMAP:
+				case stageType_t::ST_GLOWMAP:
+				case stageType_t::ST_REFLECTIONMAP:
+				case stageType_t::ST_SKYBOXMAP:
+				case stageType_t::ST_SPECULARMAP:
+					imageParams.bits |= IF_SRGB;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
 	// determine image options
 	if ( stage->overrideNoPicMip || shader.noPicMip || stage->highQuality || stage->forceHighQuality )
 	{
@@ -2232,6 +2256,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 					imageParams.minDimension = shader.imageMinDimension;
 					imageParams.maxDimension = shader.imageMaxDimension;
 
+					if ( tr.worldLinearizeTexture )
+					{
+						imageParams.bits |= IF_SRGB;
+					}
+
 					stage->bundle[ 0 ].image[ num ] = R_FindImageFile( token, imageParams );
 
 					if ( !stage->bundle[ 0 ].image[ num ] )
@@ -2710,25 +2739,25 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "rgb" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGB;
-			ParseExpression( text, &stage->rgbExp );
+			ParseExpression( text, &stage->rgbExp, EXP_SRGB );
 		}
 		// red <arithmetic expression>
 		else if ( !Q_stricmp( token, "red" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->redExp );
+			ParseExpression( text, &stage->redExp, EXP_SRGB );
 		}
 		// green <arithmetic expression>
 		else if ( !Q_stricmp( token, "green" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->greenExp );
+			ParseExpression( text, &stage->greenExp, EXP_SRGB );
 		}
 		// blue <arithmetic expression>
 		else if ( !Q_stricmp( token, "blue" ) )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
-			ParseExpression( text, &stage->blueExp );
+			ParseExpression( text, &stage->blueExp, EXP_SRGB );
 		}
 		// colored
 		else if ( !Q_stricmp( token, "colored" ) )
@@ -2837,9 +2866,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			stage->rgbGen = colorGen_t::CGEN_CUSTOM_RGBs;
 			stage->alphaGen = alphaGen_t::AGEN_CUSTOM;
-			ParseExpression( text, &stage->redExp );
-			ParseExpression( text, &stage->greenExp );
-			ParseExpression( text, &stage->blueExp );
+			ParseExpression( text, &stage->redExp, EXP_SRGB );
+			ParseExpression( text, &stage->greenExp, EXP_SRGB );
+			ParseExpression( text, &stage->blueExp, EXP_SRGB );
 			ParseExpression( text, &stage->alphaExp );
 		}
 		// tcGen <function>
@@ -3491,6 +3520,11 @@ static void ParseSkyParms( const char **text )
 		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 		imageParams.minDimension = shader.imageMinDimension;
 		imageParams.maxDimension = shader.imageMaxDimension;
+
+		if ( tr.worldLinearizeTexture )
+		{
+			imageParams.bits |= IF_SRGB;
+		}
 
 		shader.sky.outerbox = R_FindCubeImage( prefix, imageParams );
 
@@ -6167,6 +6201,11 @@ shader_t       *R_FindShader( const char *name, int flags )
 		imageParams.bits = bits;
 		imageParams.filterType = filterType_t::FT_DEFAULT;
 		imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
+
+		if ( tr.worldLinearizeTexture )
+		{
+			imageParams.bits |= IF_SRGB;
+		}
 
 		image = R_FindImageFile( fileName, imageParams );
 	}
