@@ -707,6 +707,99 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 	}
 }
 
+static GLint GL_ToSRGB( GLint internalFormat, bool isSRGB )
+{
+	if ( !isSRGB )
+	{
+		return internalFormat;
+	}
+
+	auto convert = []( GLint format )
+	{
+		switch ( format )
+		{
+#if 0 // Not used in the code base.
+			/* EXT_texture_sRGB_R8 extension.
+			See: https://github.com/KhronosGroup/OpenGL-Registry/blob/main/extensions/EXT/EXT_texture_sRGB_R8.txt */
+			case GL_RED:
+				return GL_SR8_EXT;
+#endif
+			case GL_RGB:
+				return GL_SRGB;
+			case GL_RGBA:
+				return GL_SRGB_ALPHA;
+			case GL_RGB8:
+				return GL_SRGB8;
+			case GL_RGBA8:
+				return GL_SRGB8_ALPHA8;
+#if 0 // Internal formats, should not be used directly.
+			case GL_COMPRESSED_RGB:
+			 	return GL_COMPRESSED_SRGB;
+			case GL_COMPRESSED_RGBA:
+				return GL_COMPRESSED_SRGB_ALPHA;
+#endif
+			case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+				return GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+			case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+				return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
+			case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+				return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+			case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+				return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+#if 0 // Not used in the codebase,
+			/* Core 4.2, ARB_texture_compression_bptc extension.
+			See: https://github.com/KhronosGroup/OpenGL-Registry/blob/main/extensions/ARB/ARB_texture_compression_bptc.txt */
+			case GL_COMPRESSED_RGBA_BPTC_UNORM:
+				return GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM;
+#endif
+			default:
+				return format;
+		}
+	};
+
+	GLint finalFormat = convert( internalFormat );
+
+	if ( finalFormat == internalFormat )
+	{
+		Log::Warn( "Missing sRGB conversion for GL format: %0#x", internalFormat );
+	}
+	else
+	{
+		Log::Debug( "Using sRGB GL format: %0#x", finalFormat );
+	}
+
+	return finalFormat;
+}
+
+void GL_TexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glTexImage2D( target, level, finalFormat, width, height, border, format, type, data );
+
+}
+
+void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glTexImage3D( target, level, finalFormat, width, height, depth, border, format, type, data );
+}
+
+void GL_CompressedTexImage2D( GLenum target, GLint level, GLenum internalFormat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glCompressedTexImage2D( target, level, finalFormat, width, height, border, imageSize, data );
+}
+
+void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLint yOffset, GLint zOffset, GLsizei width, GLsizei height, GLsizei depth, GLenum internalFormat, GLsizei size, const void *data, bool isSRGB )
+{
+	GLint finalFormat = GL_ToSRGB( internalFormat, isSRGB );
+
+	glCompressedTexSubImage3D( target, level, xOffset, yOffset, zOffset, width, height, depth, finalFormat, size, data );
+}
+
 /*
 ================
 RB_Hyperspace
@@ -1534,6 +1627,8 @@ void RB_CameraPostFX() {
 	gl_cameraEffectsShader->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
 
 	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
+
+	gl_cameraEffectsShader->SetUniform_SRGB( tr.worldLinearizeTexture );
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig2.textureFloatAvailable;
 	if ( tonemap ) {
@@ -2668,12 +2763,24 @@ void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool 
 	GL_Bind( tr.cinematicImage[ client ] );
 
 	// if the scratchImage isn't in the format we want, specify it as a new texture
+	/* HACK: This also detects we start playing a video to set the appropriate colorspace
+	because this assumes a video cannot have a 1×1 size (the RoQ format expects the size
+	to be a multiples of 4). */
 	if ( cols != tr.cinematicImage[ client ]->width || rows != tr.cinematicImage[ client ]->height )
 	{
 		tr.cinematicImage[ client ]->width = tr.cinematicImage[ client ]->uploadWidth = cols;
 		tr.cinematicImage[ client ]->height = tr.cinematicImage[ client ]->uploadHeight = rows;
 
-		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+		bool isSRGB = tr.worldLinearizeTexture;
+
+		// Makes sure listImages lists the colorspace properly.
+		if ( isSRGB )
+		{
+			tr.cinematicImage[ client ]->bits |= IF_SRGB;
+		}
+		// No need to delete the bit otherwise because R_InitImages() is called at every map load.
+
+		GL_TexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data, isSRGB );
 
 		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -2903,7 +3010,10 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = verts[ i ].st[ 0 ];
 		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = verts[ i ].st[ 1 ];
 
-		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
+		Color::Color32Bit color = Color::Adapt( verts[ i ].modulate );
+		color = tr.convertColorFromSRGB( color );
+		tess.verts[ tess.numVertexes ].color = color;
+
 		tess.numVertexes++;
 	}
 
@@ -2960,7 +3070,10 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = verts[ i ].st[ 0 ];
 		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = verts[ i ].st[ 1 ];
 
-		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
+		Color::Color32Bit color = Color::Adapt( verts[ i ].modulate );
+		color = tr.convertColorFromSRGB( color );
+		tess.verts[ tess.numVertexes ].color = color;
+
 		tess.numVertexes++;
 	}
 
