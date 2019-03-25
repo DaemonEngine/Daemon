@@ -475,6 +475,7 @@ enum class ssaoMode {
 	  IF_RGBE = BIT( 15 ),
 	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
 	  IF_ALPHA = BIT( 17 ),
+	  IF_SRGB = BIT( 18 ),
 	  IF_BC1 = BIT( 19 ),
 	  IF_BC2 = BIT( 20 ),
 	  IF_BC3 = BIT( 21 ),
@@ -1146,6 +1147,7 @@ enum class ssaoMode {
 
 		expression_t    deformMagnitudeExp;
 
+		bool specularSRGB;
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
 
 		bool useMaterialSystem = false;
@@ -2513,6 +2515,8 @@ enum class ssaoMode {
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
+		bool worldLinearizeTexture;
+		bool worldLinearizeLightMap;
 
 		lightMode_t lightMode;
 		lightMode_t worldLight;
@@ -3020,6 +3024,9 @@ inline bool checkGLErrors()
 	void GL_VertexAttribsState( uint32_t stateBits );
 	void GL_VertexAttribPointers( uint32_t attribBits );
 	void GL_Cull( cullType_t cullType );
+	GLint GL_ToSRGB( GLint internalFormat, bool isSRGB );
+	void GL_TexImage2D( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data, bool isSRGB );
+	void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void * data, bool isSRGB );
 	void R_ShutdownBackend();
 
 	/*
