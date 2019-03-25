@@ -1701,6 +1701,8 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 		case colorGen_t::CGEN_CONST:
 			{
 				tess.svars.color = pStage->constantColor;
+				tess.svars.color.Clamp();
+				tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
 				break;
 			}
 
@@ -1710,6 +1712,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				{
 					tess.svars.color = backEnd.currentEntity->e.shaderRGBA;
 					tess.svars.color.Clamp();
+					tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
 				}
 				else
 				{
@@ -1725,6 +1728,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				{
 					tess.svars.color = backEnd.currentEntity->e.shaderRGBA;
 					tess.svars.color.Clamp();
+					tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
 				}
 				else
 				{
@@ -1755,9 +1759,9 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 					glow = RB_EvalWaveForm( wf );
 				}
 
-				glow = Math::Clamp( glow, 0.0f, 1.0f );
-
 				tess.svars.color = Color::White * glow;
+				tess.svars.color.Clamp();
+				tess.svars.color = tr.convertColorFromSRGB( tess.svars.color );
 				break;
 			}
 
