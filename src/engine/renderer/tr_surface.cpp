@@ -630,8 +630,9 @@ static void Tess_SurfaceSprite()
 	if ( backEnd.viewParms.isMirror )
 		VectorSubtract( vec3_origin, left, left );
 
-	Tess_AddQuadStamp( backEnd.currentEntity->e.origin, left, up,
-		backEnd.currentEntity->e.shaderRGBA );
+	Color::Color32Bit color = backEnd.currentEntity->e.shaderRGBA;
+	color = tr.convertColorFromSRGB( color );
+	Tess_AddQuadStamp( backEnd.currentEntity->e.origin, left, up, color );
 }
 
 /*
@@ -660,7 +661,10 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 		{
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
 
-			tess.verts[tess.numVertexes + i].color = Color::Adapt(p->verts[i].modulate);
+			Color::Color32Bit color = Color::Adapt( p->verts[ i ].modulate );
+			color = tr.convertColorFromSRGB( color );
+			tess.verts[tess.numVertexes + i].color = color;
+
 			tess.verts[tess.numVertexes + i].texCoords[0] = p->verts[i].st[0];
 			tess.verts[tess.numVertexes + i].texCoords[1] = p->verts[i].st[1];
 		}
@@ -728,7 +732,11 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 				normals[i], qtangents);
 
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
-			tess.verts[tess.numVertexes + i].color = Color::Adapt(p->verts[i].modulate);
+
+			Color::Color32Bit color =  Color::Adapt( p->verts[ i ].modulate );
+			color = tr.convertColorFromSRGB( color );
+			tess.verts[tess.numVertexes + i].color = color;
+
 			Vector4Copy(qtangents, tess.verts[tess.numVertexes + i].qtangents);
 			tess.verts[tess.numVertexes + i].texCoords[0] = p->verts[i].st[0];
 			tess.verts[tess.numVertexes + i].texCoords[1] = p->verts[i].st[1];
