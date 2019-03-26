@@ -302,6 +302,7 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parall
 
 		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
 
+		/*
 		if(bestDepth > 0.996) // if no depth found yet
 		{
 			if(currentDepth >= heightMapDepth)
@@ -309,6 +310,10 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parall
 				bestDepth = currentDepth;
 			}
 		}
+		*/
+
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
 	}
 
 	currentDepth = bestDepth;
@@ -320,13 +325,17 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parall
 
 		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
 
+		/*
 		if(currentDepth >= heightMapDepth)
 		{
 			bestDepth = currentDepth;
 			currentDepth -= 2.0 * currentSize;
 		}
+		*/
 
-		currentDepth += currentSize;
+		bool test = currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+		currentDepth += int(test) * currentSize;
 	}
 
 	return bestDepth * displacement;
