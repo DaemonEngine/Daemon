@@ -948,7 +948,7 @@ void	main()
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = QuickParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
 	texCoords += texOffset;
 #endif // USE_PARALLAX_MAPPING

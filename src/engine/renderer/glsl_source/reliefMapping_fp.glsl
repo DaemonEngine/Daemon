@@ -108,6 +108,23 @@ vec3 NormalInWorldSpace(vec2 texNormal, mat3 tangentToWorldMatrix)
 }
 
 #if defined(USE_PARALLAX_MAPPING)
+// very poor but very fast parallax
+// do not use for something else than real time lights
+vec2 QuickParallaxTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorldMatrix)
+{
+	// compute view direction in tangent space
+	vec3 tangentViewDir = normalize(viewDir * tangentToWorldMatrix);
+
+	vec2 displacement = tangentViewDir.xy * -u_ParallaxDepthScale / tangentViewDir.z;
+
+	float topDepth = 1.0 - u_ParallaxOffsetBias;
+
+	float depth = topDepth - texture2D(u_NormalMap, rayStartTexCoords).a;
+
+	// depthmap value at current texture coordinates
+	return depth * displacement;
+}
+
 // compute texcoords offset from heightmap
 // most of the code doing somewhat the same is likely to be named
 // RayIntersectDisplaceMap in other id tech3-based engines
