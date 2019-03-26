@@ -281,7 +281,9 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parall
 	vec2 displacement = tangentViewDir.xy * -parallaxDepthScale / tangentViewDir.z;
 
 	const int linearSearchSteps = 16;
+	/*
 	const int binarySearchSteps = 6;
+	*/
 
 	float depthStep = 1.0 / float(linearSearchSteps);
 	float topDepth = 1.0 - parallaxOffsetBias;
@@ -296,13 +298,13 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parall
 	float bestDepth = 1.0;
 
 	// search front to back for first point inside object
+	/*
 	for(int i = 0; i < linearSearchSteps - 1; ++i)
 	{
 		currentDepth += currentSize;
 
 		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
 
-		/*
 		if(bestDepth > 0.996) // if no depth found yet
 		{
 			if(currentDepth >= heightMapDepth)
@@ -310,8 +312,102 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parall
 				bestDepth = currentDepth;
 			}
 		}
-		*/
+	}
+	*/
 
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+	}
+	{
+		currentDepth += currentSize;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
 		bool test = bestDepth > 0.996 && currentDepth >= heightMapDepth;
 		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
 	}
@@ -319,20 +415,59 @@ vec2 ParallaxTexOffset(sampler2D normalMap, vec2 rayStartTexCoords, float parall
 	currentDepth = bestDepth;
 
 	// recurse around first point (depth) for closest match
+	/*
 	for(int i = 0; i < binarySearchSteps; ++i)
 	{
 		currentSize *= 0.5;
 
 		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
 
-		/*
 		if(currentDepth >= heightMapDepth)
 		{
 			bestDepth = currentDepth;
 			currentDepth -= 2.0 * currentSize;
 		}
-		*/
+	}
+	*/
 
+	{
+		currentSize *= 0.5;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+		currentDepth += int(test) * currentSize;
+	}
+	{
+		currentSize *= 0.5;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+		currentDepth += int(test) * currentSize;
+	}
+	{
+		currentSize *= 0.5;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+		currentDepth += int(test) * currentSize;
+	}
+	{
+		currentSize *= 0.5;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+		currentDepth += int(test) * currentSize;
+	}
+	{
+		currentSize *= 0.5;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
+		bool test = currentDepth >= heightMapDepth;
+		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
+		currentDepth += int(test) * currentSize;
+	}
+	{
+		currentSize *= 0.5;
+		float heightMapDepth = topDepth - texture2D(normalMap, rayStartTexCoords + displacement * currentDepth).a;
 		bool test = currentDepth >= heightMapDepth;
 		bestDepth = (int(test) * currentDepth) + (int(!test) * bestDepth);
 		currentDepth += int(test) * currentSize;
