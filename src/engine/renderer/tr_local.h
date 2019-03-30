@@ -2848,6 +2848,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_textureMode;
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;
+
 	extern cvar_t *r_specularExponentMin;
 	extern cvar_t *r_specularExponentMax;
 	extern cvar_t *r_specularScale;
@@ -2855,7 +2856,12 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_deluxeMapping;
 	extern cvar_t *r_normalScale;
 	extern cvar_t *r_normalMapping;
+	extern cvar_t *r_highQualityNormalMapping;
+	extern cvar_t *r_parallaxDepthScale;
+	extern cvar_t *r_parallaxMapping;
 	extern cvar_t *r_glowMapping;
+	extern cvar_t *r_reflectionMapping;
+
 	extern cvar_t *r_wrapAroundLighting;
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
@@ -2964,11 +2970,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_vboDeformVertexes;
 
 	extern cvar_t *r_mergeLeafSurfaces;
-	extern cvar_t *r_parallaxMapping;
-	extern cvar_t *r_parallaxDepthScale;
-
-	extern cvar_t *r_reflectionMapping;
-	extern cvar_t *r_highQualityNormalMapping;
 
 	extern cvar_t *r_bloom;
 	extern cvar_t *r_bloomBlur;
