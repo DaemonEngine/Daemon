@@ -30,10 +30,7 @@ uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec2		var_TexDiffuse;
-IN(smooth) vec2		var_TexGlow;
-IN(smooth) vec2		var_TexNormal;
-IN(smooth) vec2		var_TexSpecular;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec2		var_TexLight;
 
 IN(smooth) vec3		var_Tangent;
@@ -49,25 +46,19 @@ void	main()
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
-	vec2 texDiffuse = var_TexDiffuse;
-	vec2 texGlow = var_TexGlow;
-	vec2 texNormal = var_TexNormal;
-	vec2 texSpecular = var_TexSpecular;
+	vec2 texCoords = var_TexCoords;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
-	texDiffuse += texOffset;
-	texGlow += texOffset;
-	texNormal += texOffset;
-	texSpecular += texOffset;
+	texCoords += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texDiffuse);
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
 
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
@@ -76,10 +67,10 @@ void	main()
 	}
 
 	// compute the specular term
-	vec4 specular = texture2D(u_SpecularMap, texSpecular);
+	vec4 specular = texture2D(u_SpecularMap, texCoords);
 
 	// compute normal in world space from normalmap
-	vec3 N = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	vec3 N = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute light color from world space lightmap
 	vec3 lightColor = texture2D(u_LightMap, var_TexLight).xyz;
@@ -108,7 +99,7 @@ void	main()
 	computeDLights( var_Position, N, viewDir, diffuse, specular, color );
 
 #if defined(r_glowMapping)
-	color.rgb += texture2D(u_GlowMap, texGlow).rgb;
+	color.rgb += texture2D(u_GlowMap, texCoords).rgb;
 #endif // r_glowMapping
 
 	outputColor = color;

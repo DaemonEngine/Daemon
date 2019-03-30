@@ -22,14 +22,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* reflection_CB_vp.glsl */
 
-uniform mat4		u_NormalTextureMatrix;
+uniform mat4		u_TextureMatrix;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform float		u_Time;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec2	var_TexNormal;
+OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Tangent;
 OUT(smooth) vec4	var_Binormal;
 OUT(smooth) vec4	var_Normal;
@@ -66,6 +66,6 @@ void	main()
 	var_Normal.xyz = (u_ModelMatrix * vec4(LB.normal, 0.0)).xyz;
 
 	// transform normalmap texcoords
-	var_TexNormal = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 }
 

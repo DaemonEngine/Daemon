@@ -78,9 +78,7 @@ uniform float       u_ShadowBlur;
 uniform mat4		u_ViewMatrix;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec2		var_TexDiffuse;
-IN(smooth) vec2		var_TexNormal;
-IN(smooth) vec2		var_TexSpecular;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_TexAttenuation;
 IN(smooth) vec4		var_Tangent;
 IN(smooth) vec4		var_Binormal;
@@ -941,30 +939,25 @@ void	main()
 	vec3 L = normalize(u_LightOrigin - var_Position);
 #endif
 
-	vec2 texDiffuse = var_TexDiffuse;
+	vec2 texCoords = var_TexCoords;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
-
-	vec2 texNormal = var_TexNormal;
-	vec2 texSpecular = var_TexSpecular;
 
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position.xyz);
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
-	texDiffuse += texOffset;
-	texNormal += texOffset;
-	texSpecular += texOffset;
+	texCoords += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute half angle in world space
 	vec3 H = normalize(L + viewDir);
 
 	// compute normal in world space from normal map
-	vec3 N = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	vec3 N = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute the light term
 #if defined(r_WrapAroundLighting)
@@ -974,7 +967,7 @@ void	main()
 #endif
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texDiffuse);
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
 		discard;
@@ -984,7 +977,7 @@ void	main()
 
 #if defined(r_specularMapping)
 	// compute the specular term
-	vec4 spec = texture2D(u_SpecularMap, texSpecular).rgba;
+	vec4 spec = texture2D(u_SpecularMap, texCoords).rgba;
 	vec3 specular = spec.rgb * u_LightColor * pow(clamp(dot(N, H), 0.0, 1.0), u_SpecularExponent.x * spec.a + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping
 

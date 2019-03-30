@@ -22,23 +22,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* forwardLighting_vp.glsl */
 
-uniform mat4		u_DiffuseTextureMatrix;
-uniform mat4		u_NormalTextureMatrix;
-uniform mat4		u_SpecularTextureMatrix;
-
-uniform vec4		u_ColorModulate;
-uniform vec4		u_Color;
-
+uniform mat4		u_TextureMatrix;
 uniform mat4		u_LightAttenuationMatrix;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
+uniform vec4		u_ColorModulate;
+uniform vec4		u_Color;
+
 uniform float		u_Time;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec2	var_TexDiffuse;
-OUT(smooth) vec2	var_TexNormal;
-OUT(smooth) vec2	var_TexSpecular;
+OUT(smooth) vec2	var_TexCoords;
 
 OUT(smooth) vec4	var_TexAttenuation;
 
@@ -86,13 +81,7 @@ void	main()
 	var_TexAttenuation = u_LightAttenuationMatrix * position;
 
 	// transform diffusemap texcoords
-	var_TexDiffuse = (u_DiffuseTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
-
-	// transform normalmap texcoords
-	var_TexNormal = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
-
-	// transform specularmap texture coords
-	var_TexSpecular = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	var_Color = color;
 }

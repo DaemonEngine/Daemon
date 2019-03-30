@@ -479,7 +479,7 @@ static void DrawTris()
 
 	// bind u_ColorMap
 	GL_BindToTMU( 0, tr.whiteImage );
-	gl_genericShader->SetUniform_ColorTextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 	gl_genericShader->SetRequiredVertexPointers();
 
 	glDepthRange( 0, 0 );
@@ -678,7 +678,7 @@ static void Render_generic( int stage )
 	// bind u_ColorMap
 	GL_SelectTexture( 0 );
 	BindAnimatedImage( &pStage->bundle[ TB_COLORMAP ] );
-	gl_genericShader->SetUniform_ColorTextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
 	if ( hasDepthFade )
 	{
@@ -801,7 +801,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_vertexLightingShader_DBS_entity->SetUniform_DiffuseTextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	gl_vertexLightingShader_DBS_entity->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
 	if ( normalMapping || heightMapInNormalMap )
 	{
@@ -815,8 +815,6 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
-
-	gl_vertexLightingShader_DBS_entity->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	if ( specularMapping )
 	{
@@ -832,8 +830,6 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	{
 		GL_BindToTMU( 2, tr.blackImage );
 	}
-
-	gl_vertexLightingShader_DBS_entity->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
 
 	if ( tr.cubeHashTable != nullptr )
 	{
@@ -922,12 +918,8 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	if ( glowMapping )
 	{
 		GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
-
-		gl_vertexLightingShader_DBS_entity->SetUniform_GlowTextureMatrix( tess.svars.texMatrices[ TB_GLOWMAP ] );
 	} else {
 		GL_BindToTMU( 5, tr.blackImage );
-
-		gl_vertexLightingShader_DBS_entity->SetUniform_GlowTextureMatrix( tess.svars.texMatrices[ TB_GLOWMAP ] );
 	}
 
 	if ( tr.lightGrid1Image && tr.lightGrid2Image ) {
@@ -1053,7 +1045,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_vertexLightingShader_DBS_world->SetUniform_DiffuseTextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	gl_vertexLightingShader_DBS_world->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
 	if ( normalMapping || heightMapInNormalMap )
 	{
@@ -1067,8 +1059,6 @@ static void Render_vertexLighting_DBS_world( int stage )
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
-
-	gl_vertexLightingShader_DBS_world->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	if ( specularMapping )
 	{
@@ -1085,8 +1075,6 @@ static void Render_vertexLighting_DBS_world( int stage )
 		GL_BindToTMU( 2, tr.blackImage );
 	}
 
-	gl_vertexLightingShader_DBS_world->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
-
 	if ( tr.lightGrid1Image && tr.lightGrid2Image ) {
 		GL_BindToTMU( 6, tr.lightGrid1Image );
 		GL_BindToTMU( 7, tr.lightGrid2Image );
@@ -1095,12 +1083,8 @@ static void Render_vertexLighting_DBS_world( int stage )
 	if ( glowMapping )
 	{
 		GL_BindToTMU( 3, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
-
-		gl_vertexLightingShader_DBS_world->SetUniform_GlowTextureMatrix( tess.svars.texMatrices[ TB_GLOWMAP ] );
 	} else {
 		GL_BindToTMU( 3, tr.blackImage );
-
-		gl_vertexLightingShader_DBS_world->SetUniform_GlowTextureMatrix( tess.svars.texMatrices[ TB_GLOWMAP ] );
 	}
 
 	gl_vertexLightingShader_DBS_world->SetRequiredVertexPointers();
@@ -1223,7 +1207,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	else
 	{
 		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-		gl_lightMappingShader->SetUniform_DiffuseTextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+		gl_lightMappingShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 
 	// bind u_NormalMap
@@ -1239,8 +1223,6 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	gl_lightMappingShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
-
 	if ( specularMapping )
 	{
 		// bind u_SpecularMap
@@ -1255,8 +1237,6 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	{
 		GL_BindToTMU( 2, tr.blackImage );
 	}
-
-	gl_lightMappingShader->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
 
 	// bind u_DeluxeMap
 	if ( deluxeMapping )
@@ -1282,12 +1262,8 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	if ( glowMapping )
 	{
 		GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
-
-		gl_lightMappingShader->SetUniform_GlowTextureMatrix( tess.svars.texMatrices[ TB_GLOWMAP ] );
 	} else {
 		GL_BindToTMU( 5, tr.blackImage );
-
-		gl_lightMappingShader->SetUniform_GlowTextureMatrix( tess.svars.texMatrices[ TB_GLOWMAP ] );
 	}
 
 	gl_lightMappingShader->SetRequiredVertexPointers();
@@ -1360,13 +1336,13 @@ static void Render_depthFill(int stage)
 	if ( alphaBits != 0 )
 	{
 		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-		gl_genericShader->SetUniform_ColorTextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+		gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 	else
 	{
 		//GL_Bind(tr.defaultImage);
 		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 	}
 
 	gl_genericShader->SetRequiredVertexPointers();
@@ -1435,7 +1411,7 @@ static void Render_shadowFill( int stage )
 	if ( ( pStage->stateBits & GLS_ATEST_BITS ) != 0 )
 	{
 		GL_BindToTMU( 0, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
-		gl_shadowFillShader->SetUniform_ColorTextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+		gl_shadowFillShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 	}
 	else
 	{
@@ -1578,7 +1554,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_omniXYZ->SetUniform_DiffuseTextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
 	if ( normalMapping || heightMapInNormalMap )
 	{
@@ -1592,8 +1568,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
-
-	gl_forwardLightingShader_omniXYZ->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	if ( specularMapping )
 	{
@@ -1609,8 +1583,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 2, tr.blackImage );
 	}
-
-	gl_forwardLightingShader_omniXYZ->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
 
 	// bind u_AttenuationMapXY
 	GL_SelectTexture( 3 );
@@ -1769,7 +1741,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_projXYZ->SetUniform_DiffuseTextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
 	if ( normalMapping || heightMapInNormalMap )
 	{
@@ -1783,8 +1755,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
-
-	gl_forwardLightingShader_projXYZ->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	if ( specularMapping )
 	{
@@ -1800,8 +1770,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 2, tr.blackImage );
 	}
-
-	gl_forwardLightingShader_projXYZ->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
 
 	// bind u_AttenuationMapXY
 	GL_SelectTexture( 3 );
@@ -1962,7 +1930,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_directionalSun->SetUniform_DiffuseTextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
 	if ( normalMapping || heightMapInNormalMap )
 	{
@@ -1976,8 +1944,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
-
-	gl_forwardLightingShader_directionalSun->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	if ( specularMapping )
 	{
@@ -1993,8 +1959,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	{
 		GL_BindToTMU( 2, tr.blackImage );
 	}
-
-	gl_forwardLightingShader_directionalSun->SetUniform_SpecularTextureMatrix( tess.svars.texMatrices[ TB_SPECULARMAP ] );
 
 	// bind u_ShadowMap
 	if ( shadowCompare )
@@ -2093,7 +2057,7 @@ static void Render_reflection_CB( int stage )
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	gl_reflectionShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
+	gl_reflectionShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	// bind u_depthScale u_parallaxOffsetBias
 	if ( parallaxMapping )
@@ -2274,7 +2238,7 @@ static void Render_heatHaze( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 0, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
 
-		gl_heatHazeShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+		gl_heatHazeShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
 		// bind u_NormalFormat
 		gl_heatHazeShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
@@ -2363,7 +2327,7 @@ static void Render_liquid( int stage )
 		gl_liquidShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 	}
 
-	gl_liquidShader->SetUniform_NormalTextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
 	Tess_DrawElements();
 

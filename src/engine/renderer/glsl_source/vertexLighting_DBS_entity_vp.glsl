@@ -22,23 +22,17 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* vertexLighting_DBS_entity_vp.glsl */
 
-uniform mat4		u_DiffuseTextureMatrix;
-uniform mat4		u_NormalTextureMatrix;
-uniform mat4		u_SpecularTextureMatrix;
-uniform mat4		u_GlowTextureMatrix;
+uniform mat4		u_TextureMatrix;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform float		u_Time;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec2	var_TexDiffuse;
+OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Color;
-OUT(smooth) vec2	var_TexNormal;
-OUT(smooth) vec2	var_TexSpecular;
 OUT(smooth) vec3	var_Tangent;
 OUT(smooth) vec3	var_Binormal;
-OUT(smooth) vec2	var_TexGlow;
 
 OUT(smooth) vec3	var_Normal;
 
@@ -74,15 +68,6 @@ void	main()
 	var_Normal.xyz = (u_ModelMatrix * vec4(LB.normal, 0.0)).xyz;
 
 	// transform diffusemap texcoords
-	var_TexDiffuse = (u_DiffuseTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 	var_Color = color;
-
-	// transform normalmap texcoords
-	var_TexNormal = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
-
-	// transform specularmap texture coords
-	var_TexSpecular = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
-
-	// transform glowmap texcoords
-	var_TexGlow = (u_GlowTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 }

@@ -25,14 +25,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_ColorMap;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec2		var_Tex;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
 
 void	main()
 {
-	vec4 color = texture2D(u_ColorMap, var_Tex);
+	vec4 color = texture2D(u_ColorMap, var_TexCoords);
 
 	color *= var_Color;
 	outputColor = color;

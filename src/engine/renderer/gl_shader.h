@@ -1185,76 +1185,16 @@ public:
 	}
 };
 
-class u_ColorTextureMatrix :
+class u_TextureMatrix :
 	GLUniformMatrix4f
 {
 public:
-	u_ColorTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_ColorTextureMatrix" )
+	u_TextureMatrix( GLShader *shader ) :
+		GLUniformMatrix4f( shader, "u_TextureMatrix" )
 	{
 	}
 
-	void SetUniform_ColorTextureMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_DiffuseTextureMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_DiffuseTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_DiffuseTextureMatrix" )
-	{
-	}
-
-	void SetUniform_DiffuseTextureMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_NormalTextureMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_NormalTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_NormalTextureMatrix" )
-	{
-	}
-
-	void SetUniform_NormalTextureMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_SpecularTextureMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_SpecularTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_SpecularTextureMatrix" )
-	{
-	}
-
-	void SetUniform_SpecularTextureMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_GlowTextureMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_GlowTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_GlowTextureMatrix" )
-	{
-	}
-
-	void SetUniform_GlowTextureMatrix( const matrix_t m )
+	void SetUniform_TextureMatrix( const matrix_t m )
 	{
 		this->SetValue( GL_FALSE, m );
 	}
@@ -2180,7 +2120,7 @@ class u_Lights :
 
 class GLShader_generic :
 	public GLShader,
-	public u_ColorTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
 	public u_AlphaThreshold,
@@ -2209,10 +2149,7 @@ public:
 
 class GLShader_lightMapping :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
-	public u_GlowTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
 	public u_Color,
@@ -2241,10 +2178,7 @@ public:
 
 class GLShader_vertexLighting_DBS_entity :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
-	public u_GlowTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
@@ -2278,10 +2212,7 @@ public:
 
 class GLShader_vertexLighting_DBS_world :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
-	public u_GlowTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
 	public u_Color,
@@ -2312,9 +2243,7 @@ public:
 
 class GLShader_forwardLighting_omniXYZ :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
 	public u_ColorModulate,
@@ -2352,9 +2281,7 @@ public:
 
 class GLShader_forwardLighting_projXYZ :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
 	public u_ColorModulate,
@@ -2393,9 +2320,7 @@ public:
 
 class GLShader_forwardLighting_directionalSun :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
 	public u_ColorModulate,
@@ -2436,7 +2361,7 @@ public:
 
 class GLShader_shadowFill :
 	public GLShader,
-	public u_ColorTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_AlphaThreshold,
 	public u_LightOrigin,
@@ -2459,7 +2384,7 @@ public:
 
 class GLShader_reflection :
 	public GLShader,
-	public u_NormalTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -2534,7 +2459,7 @@ public:
 
 class GLShader_heatHaze :
 	public GLShader,
-	public u_NormalTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
 	public u_DeformMagnitude,
@@ -2591,7 +2516,7 @@ public:
 class GLShader_cameraEffects :
 	public GLShader,
 	public u_ColorModulate,
-	public u_ColorTextureMatrix,
+	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
 	public u_InverseGamma
@@ -2662,7 +2587,7 @@ public:
 
 class GLShader_liquid :
 	public GLShader,
-	public u_NormalTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_RefractionIndex,
 	public u_ModelMatrix,

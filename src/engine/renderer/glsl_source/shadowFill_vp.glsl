@@ -24,14 +24,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 uniform vec4		u_Color;
 
-uniform mat4		u_ColorTextureMatrix;
+uniform mat4		u_TextureMatrix;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform float		u_Time;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec2	var_Tex;
+OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Color;
 
 void DeformVertex( inout vec4 pos,
@@ -66,7 +66,7 @@ void	main()
 #endif
 
 	// transform texcoords
-	var_Tex = (u_ColorTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// assign color
 	var_Color = u_Color;

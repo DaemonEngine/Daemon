@@ -43,7 +43,7 @@ uniform vec3            u_LightGridOrigin;
 uniform vec3            u_LightGridScale;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec2		var_TexNormal;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
 IN(smooth) vec3		var_Normal;
@@ -90,7 +90,7 @@ void	main()
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 texScreen = gl_FragCoord.st * r_FBufScale;
-	vec2 texNormal = var_TexNormal;
+	vec2 texNormal = var_TexCoords;
 
 #if defined(USE_PARALLAX_MAPPING)
 	// ray intersect in view direction

@@ -1869,7 +1869,7 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 
 							// bind u_ColorMap
 							GL_BindToTMU( 0, tr.whiteImage );
-							gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+							gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 							gl_genericShader->SetUniform_ModelViewProjectionMatrix( light->shadowMatrices[ frustumIndex ] );
 
@@ -2737,7 +2737,7 @@ void RB_RunVisTests( )
 
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tr.whiteImage );
-		gl_genericShader->SetUniform_ColorTextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+		gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_COLORMASK_BITS );
 		glBeginQuery( GL_SAMPLES_PASSED, testState->hQueryRef );
@@ -3265,7 +3265,7 @@ static void RB_RenderDebugUtils()
 
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tr.whiteImage );
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		ia = nullptr;
 		Color::Color lightColor;
@@ -3425,7 +3425,7 @@ static void RB_RenderDebugUtils()
 
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tr.whiteImage );
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		for ( iaCount = 0, ia = &backEnd.viewParms.interactions[ 0 ]; iaCount < backEnd.viewParms.numInteractions; ia++, iaCount++ )
 		{
@@ -3550,7 +3550,7 @@ static void RB_RenderDebugUtils()
 
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tr.whiteImage );
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		ent = backEnd.refdef.entities;
 
@@ -3632,7 +3632,7 @@ static void RB_RenderDebugUtils()
 #else
 		GL_BindToTMU( 0, tr.whiteImage );
 #endif
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		ent = backEnd.refdef.entities;
 
@@ -3855,7 +3855,7 @@ static void RB_RenderDebugUtils()
 
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tr.whiteImage );
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		// set 2D virtual screen size
 		GL_PushMatrix();
@@ -3980,7 +3980,7 @@ static void RB_RenderDebugUtils()
 
 			// bind u_ColorMap
 			GL_BindToTMU( 0, tr.whiteImage );
-			gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+			gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 			GL_CheckErrors();
 
@@ -4056,7 +4056,7 @@ static void RB_RenderDebugUtils()
 
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tr.whiteImage );
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		GL_CheckErrors();
 
@@ -4141,7 +4141,7 @@ static void RB_RenderDebugUtils()
 
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tr.whiteImage );
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		GL_CheckErrors();
 
@@ -4236,7 +4236,7 @@ static void RB_RenderDebugUtils()
 
 					// bind u_ColorMap
 					GL_BindToTMU( 0, tr.whiteImage );
-					gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+					gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 					gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -4438,7 +4438,7 @@ static void RB_RenderDebugUtils()
 
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tr.whiteImage );
-		gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		GL_CheckErrors();
 
@@ -4530,7 +4530,7 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 
 	// bind u_ColorMap
 	GL_BindToTMU( 0, tr.whiteImage );
-	gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 	// render in world space
 	backEnd.orientation = backEnd.viewParms.world;
@@ -4842,7 +4842,7 @@ void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *
 
 	// bind u_ColorMap
 	GL_BindToTMU( 0, tr.scratchImage[ client ] );
-	gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 	// if the scratchImage isn't in the format we want, specify it as a new texture
 	if ( cols != tr.scratchImage[ client ]->width || rows != tr.scratchImage[ client ]->height )
@@ -5754,7 +5754,7 @@ void RB_ShowImages()
 	// set uniforms
 	//gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-	gl_genericShader->SetUniform_ColorTextureMatrix( matrixIdentity );
+	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 	GL_SelectTexture( 0 );
 

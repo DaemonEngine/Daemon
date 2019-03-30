@@ -1410,7 +1410,7 @@ void GLShader::SetRequiredVertexPointers()
 
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ViewUp( this ),
 	u_AlphaThreshold( this ),
@@ -1446,10 +1446,7 @@ void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram 
 
 GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLShader( "lightMapping", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR, manager ),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
-	u_GlowTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
@@ -1500,10 +1497,7 @@ void GLShader_lightMapping::SetShaderProgramUniforms( shaderProgram_t *shaderPro
 
 GLShader_vertexLighting_DBS_entity::GLShader_vertexLighting_DBS_entity( GLShaderManager *manager ) :
 	GLShader( "vertexLighting_DBS_entity", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
-	u_GlowTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
@@ -1564,10 +1558,7 @@ GLShader_vertexLighting_DBS_world::GLShader_vertexLighting_DBS_world( GLShaderMa
 	          ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR,
 		  manager
 	        ),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
-	u_GlowTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
@@ -1619,9 +1610,7 @@ void GLShader_vertexLighting_DBS_world::SetShaderProgramUniforms( shaderProgram_
 
 GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderManager *manager ):
 	GLShader("forwardLighting_omniXYZ", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
 	u_ColorModulate( this ),
@@ -1679,9 +1668,7 @@ void GLShader_forwardLighting_omniXYZ::SetShaderProgramUniforms( shaderProgram_t
 
 GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderManager *manager ):
 	GLShader("forwardLighting_projXYZ", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
 	u_ColorModulate( this ),
@@ -1741,9 +1728,7 @@ void GLShader_forwardLighting_projXYZ::SetShaderProgramUniforms( shaderProgram_t
 
 GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun( GLShaderManager *manager ):
 	GLShader("forwardLighting_directionalSun", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
 	u_ColorModulate( this ),
@@ -1812,7 +1797,7 @@ void GLShader_forwardLighting_directionalSun::SetShaderProgramUniforms( shaderPr
 
 GLShader_shadowFill::GLShader_shadowFill( GLShaderManager *manager ) :
 	GLShader( "shadowFill", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
 	u_LightOrigin( this ),
@@ -1841,7 +1826,7 @@ void GLShader_shadowFill::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	GLShader("reflection", "reflection_CB", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_NormalTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -1941,7 +1926,7 @@ void GLShader_fogGlobal::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 
 GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	GLShader( "heatHaze", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_NormalTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ViewUp( this ),
 	u_DeformMagnitude( this ),
@@ -2015,7 +2000,7 @@ void GLShader_contrast::SetShaderProgramUniforms( shaderProgram_t *shaderProgram
 GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	GLShader( "cameraEffects", ATTR_POSITION | ATTR_TEXCOORD, manager ),
 	u_ColorModulate( this ),
-	u_ColorTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_DeformMagnitude( this ),
 	u_InverseGamma( this )
@@ -2103,7 +2088,7 @@ void GLShader_lightVolume_omni::SetShaderProgramUniforms( shaderProgram_t *shade
 
 GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	GLShader( "liquid", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_NormalTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_RefractionIndex( this ),
 	u_ModelMatrix( this ),

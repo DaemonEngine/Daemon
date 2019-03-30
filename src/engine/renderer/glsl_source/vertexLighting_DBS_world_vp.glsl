@@ -22,10 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* vertexLighting_DBS_world_vp.glsl */
 
-uniform mat4		u_DiffuseTextureMatrix;
-uniform mat4		u_NormalTextureMatrix;
-uniform mat4		u_SpecularTextureMatrix;
-uniform mat4		u_GlowTextureMatrix;
+uniform mat4		u_TextureMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform float		u_Time;
@@ -34,12 +31,9 @@ uniform vec4		u_ColorModulate;
 uniform vec4		u_Color;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec2	var_TexDiffuse;
-OUT(smooth) vec2	var_TexGlow;
+OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Color;
 
-OUT(smooth) vec2	var_TexNormal;
-OUT(smooth) vec2	var_TexSpecular;
 OUT(smooth) vec3	var_Tangent;
 OUT(smooth) vec3	var_Binormal;
 
@@ -75,22 +69,13 @@ void	main()
 	var_Position = position.xyz;
 
 	// transform diffusemap texcoords
-	var_TexDiffuse = (u_DiffuseTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// assign color
 	var_Color = color;
-	
-	// transform normalmap texcoords
-	var_TexNormal = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
-
-	// transform specularmap texture coords
-	var_TexSpecular = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 	
 	var_Tangent = LB.tangent;
 	var_Binormal = LB.binormal;
 
 	var_Normal = LB.normal;
-
-	// transform glowmap texture coords
-	var_TexGlow = ( u_GlowTextureMatrix * vec4(texCoord, 0.0, 1.0) ).st;
 }

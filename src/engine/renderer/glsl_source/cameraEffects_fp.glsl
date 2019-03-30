@@ -27,7 +27,7 @@ uniform sampler3D u_ColorMap;
 uniform vec4      u_ColorModulate;
 uniform float     u_InverseGamma;
 
-IN(smooth) vec2		var_Tex;
+IN(smooth) vec2		var_TexCoords;
 
 DECLARE_OUTPUT(vec4)
 

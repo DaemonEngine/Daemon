@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_ColorMap;
 uniform float		u_AlphaThreshold;
 
-IN(smooth) vec2		var_Tex;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
 #if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
@@ -37,7 +37,7 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
-	vec4 color = texture2D(u_ColorMap, var_Tex);
+	vec4 color = texture2D(u_ColorMap, var_TexCoords);
 
 #if defined(USE_ALPHA_TESTING)
 	if( abs(color.a + u_AlphaThreshold) <= 1.0 )

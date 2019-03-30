@@ -27,7 +27,7 @@ uniform vec3		u_ViewOrigin;
 uniform mat4		u_ModelMatrix;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec2		var_TexNormal;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Tangent;
 IN(smooth) vec4		var_Binormal;
 IN(smooth) vec4		var_Normal;
@@ -41,7 +41,7 @@ void	main()
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	vec2 texNormal = var_TexNormal;
+	vec2 texNormal = var_TexCoords;
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap

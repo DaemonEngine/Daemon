@@ -43,7 +43,6 @@ uniform float       u_LightScale;
 uniform mat4		u_LightAttenuationMatrix;
 uniform mat4		u_UnprojectMatrix;
 
-IN(smooth) vec2		var_TexDiffuse;
 IN(smooth) vec3		var_TexAttenXYZ;
 
 DECLARE_OUTPUT(vec4)
