@@ -77,9 +77,6 @@ uniform float       u_ShadowBlur;
 
 uniform mat4		u_ViewMatrix;
 
-uniform float		u_ParallaxDepthScale;
-uniform float		u_ParallaxOffsetBias;
-
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexDiffuse;
 IN(smooth) vec2		var_TexNormal;
@@ -956,7 +953,7 @@ void	main()
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(texNormal, viewDir, tangentToWorldMatrix);
 
 	texDiffuse += texOffset;
 	texNormal += texOffset;

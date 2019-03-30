@@ -27,8 +27,6 @@ uniform sampler2D	u_SpecularMap;
 uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
-uniform float		u_ParallaxDepthScale;
-uniform float		u_ParallaxOffsetBias;
 uniform	float		u_LightWrapAround;
 
 uniform sampler3D       u_LightGrid1;
@@ -91,7 +89,7 @@ void	main()
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(texNormal, viewDir, tangentToWorldMatrix);
 
 	texDiffuse += texOffset;
 	texGlow += texOffset;

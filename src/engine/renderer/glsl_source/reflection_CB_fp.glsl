@@ -25,8 +25,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform samplerCube	u_ColorMap;
 uniform vec3		u_ViewOrigin;
 uniform mat4		u_ModelMatrix;
-uniform float		u_ParallaxDepthScale;
-uniform float		u_ParallaxOffsetBias;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexNormal;
@@ -47,7 +45,7 @@ void	main()
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texNormal, u_ParallaxDepthScale, u_ParallaxOffsetBias, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ParallaxTexOffset(texNormal, viewDir, tangentToWorldMatrix);
 
 	texNormal += texOffset;
 #endif // USE_PARALLAX_MAPPING
