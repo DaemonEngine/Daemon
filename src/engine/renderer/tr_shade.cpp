@@ -1588,11 +1588,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_omniXYZ->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
 	// bind u_SpecularMap
-	if ( r_forceSpecular->integer )
-	{
-		GL_BindToTMU( 2, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	}
-	else if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
 	{
 		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	}
@@ -1781,11 +1777,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_projXYZ->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
 	// bind u_SpecularMap
-	if ( r_forceSpecular->integer )
-	{
-		GL_BindToTMU( 2, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	}
-	else if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
 	{
 		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	}
@@ -1976,11 +1968,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_directionalSun->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
 
 	// bind u_SpecularMap
-	if ( r_forceSpecular->integer )
-	{
-		GL_BindToTMU( 2, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	}
-	else if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
+	if ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] )
 	{
 		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	}
