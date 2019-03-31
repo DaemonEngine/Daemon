@@ -3019,6 +3019,10 @@ bool CL_InitRenderer()
 		return false;
 	}
 
+	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
+	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
+	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
+
 	// load character sets
 	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars", RSF_DEFAULT );
 	cls.useLegacyConsoleFont = cls.useLegacyConsoleFace = true;
@@ -3335,9 +3339,6 @@ void CL_Init()
 	j_side_axis = Cvar_Get( "j_side_axis", "0", 0 );
 	j_up_axis = Cvar_Get( "j_up_axis", "2", 0 );
 
-	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
-	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
-	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
 	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );
