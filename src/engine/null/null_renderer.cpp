@@ -50,14 +50,9 @@ qhandle_t RE_RegisterShader( const char *, RegisterShaderFlags_t )
 {
 	return 1;
 }
-void RE_RegisterFont( const char *, const char *, int pointSize, fontInfo_t **font )
+fontInfo_t* RE_RegisterFont( const char *, const char *, int pointSize )
 {
-	if (!*font)
-		return;
-	(*font)->pointSize = pointSize;
-	(*font)->height = 1;
-	(*font)->glyphScale = 1.0f;
-	(*font)->name[0] = '\0';
+	return nullptr;
 }
 void RE_Glyph( fontInfo_t *, const char *, glyphInfo_t *glyph )
 {

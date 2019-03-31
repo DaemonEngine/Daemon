@@ -604,7 +604,7 @@ static void RE_FreeFontFile( void *data )
 	}
 }
 
-static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *fallbackName, int pointSize, fontInfo_t **font )
+fontInfo_t* RE_RegisterFont( const char *fontName, const char *fallbackName, int pointSize )
 {
 	FT_Face       face, fallback;
 	void          *faceData, *fallbackData;
@@ -656,20 +656,19 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 		}
 		else if ( pointSize == registeredFont[ i ].pointSize && Q_stricmp( strippedName, registeredFont[ i ].name ) == 0 )
 		{
-			*font =  &registeredFont[ i ];
 			++fontUsage[ i ];
-			return i;
+			return &registeredFont[ i ];
 		}
 	}
-
-	*font = &registeredFont[ fontNo ];
-	memset( *font, 0, sizeof( fontInfo_t ) );
 
 	if ( fontNo < 0 )
 	{
 		Log::Warn("RE_RegisterFont: Too many fonts registered already." );
-		return -1;
+		return nullptr;
 	}
+
+	fontInfo_t* font = &registeredFont[ fontNo ];
+	memset( font, 0, sizeof( fontInfo_t ) );
 
 	len = ri.FS_ReadFile( fileName, nullptr );
 
@@ -682,7 +681,7 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 		fdOffset = 0;
 		fdFile = (byte*) faceData;
 
-		glyphs = (*font)->glyphBlock[0] = (glyphInfo_t*) ri.Z_Malloc( sizeof( glyphBlock_t ) );
+		glyphs = font->glyphBlock[0] = (glyphInfo_t*) ri.Z_Malloc( sizeof( glyphBlock_t ) );
 		memset( glyphs, 0, sizeof( glyphBlock_t ) );
 
 		for ( i = 0; i < GLYPHS_PER_FONT; i++ )
@@ -709,10 +708,10 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 			fdOffset += sizeof( glyphs[ i ].shaderName );
 		}
 
-		(*font)->pointSize = pointSize;
-		(*font)->height = height;
-		(*font)->glyphScale = readFloat();
-		Q_strncpyz( (*font)->name, registeredName, sizeof( (*font)->name ) );
+		font->pointSize = pointSize;
+		font->height = height;
+		font->glyphScale = readFloat();
+		Q_strncpyz( font->name, registeredName, sizeof( font->name ) );
 
 		ri.FS_FreeFile( faceData );
 
@@ -722,17 +721,17 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 		}
 
 		++fontUsage[ fontNo ];
-		return fontNo;
+		return font;
 	}
 
 	if ( ftLibrary == nullptr )
 	{
 		Log::Warn("RE_RegisterFont: FreeType not initialized." );
-		return -1;
+		return nullptr;
 	}
 
 	// FIXME: fallback name OR index no.
-	Q_strncpyz( (*font)->name, strippedName, sizeof( (*font)->name ) );
+	Q_strncpyz( font->name, strippedName, sizeof( font->name ) );
 
 	Q_strncpyz( fileName, fontName, sizeof( fileName ) );
 
@@ -742,7 +741,7 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 	{
 		Log::Warn("RE_RegisterFont: Unable to read font file %s", fileName );
 		RE_FreeFontFile( faceData );
-		return -1;
+		return nullptr;
 	}
 
 	// allocate on the stack first in case we fail
@@ -750,7 +749,7 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 	{
 		Log::Warn("RE_RegisterFont: FreeType2, unable to allocate new face." );
 		RE_FreeFontFile( faceData );
-		return -1;
+		return nullptr;
 	}
 
 	if ( FT_Set_Char_Size( face, pointSize << 6, pointSize << 6, 72, 72 ) )
@@ -758,7 +757,7 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 		Log::Warn("RE_RegisterFont: FreeType2, Unable to set face char size." );
 		FT_Done_Face( face );
 		RE_FreeFontFile( faceData );
-		return -1;
+		return nullptr;
 	}
 
 	fallback = nullptr;
@@ -776,7 +775,7 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 			RE_FreeFontFile( fallbackData );
 			FT_Done_Face( face );
 			RE_FreeFontFile( faceData );
-			return -1;
+			return nullptr;
 		}
 
 		// allocate on the stack first in case we fail
@@ -786,7 +785,7 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 			RE_FreeFontFile( fallbackData );
 			FT_Done_Face( face );
 			RE_FreeFontFile( faceData );
-			return -1;
+			return nullptr;
 		}
 
 		if ( FT_Set_Char_Size( fallback, pointSize << 6, pointSize << 6, 72, 72 ) )
@@ -796,27 +795,22 @@ static fontHandle_t RE_RegisterFont_Internal( const char *fontName, const char *
 			RE_FreeFontFile( fallbackData );
 			FT_Done_Face( face );
 			RE_FreeFontFile( faceData );
-			return -1;
+			return nullptr;
 		}
 	}
 
-	(*font)->face = face;
-	(*font)->faceData = faceData;
-	(*font)->fallback = fallback;
-	(*font)->fallbackData = fallbackData;
-	(*font)->pointSize = pointSize;
-	(*font)->glyphScale = Com_Clamp( 24.0f, 64.0f, r_fontScale->value ) / pointSize;
-	(*font)->height = ceil( ( face->height / 64.0 ) * ( face->size->metrics.y_scale / 65536.0 ) * (*font)->glyphScale );
+	font->face = face;
+	font->faceData = faceData;
+	font->fallback = fallback;
+	font->fallbackData = fallbackData;
+	font->pointSize = pointSize;
+	font->glyphScale = Com_Clamp( 24.0f, 64.0f, r_fontScale->value ) / pointSize;
+	font->height = ceil( ( face->height / 64.0 ) * ( face->size->metrics.y_scale / 65536.0 ) * font->glyphScale );
 
-	RE_RenderChunk( *font, 0 );
+	RE_RenderChunk( font, 0 );
 
 	++fontUsage[ fontNo ];
-	return fontNo;
-}
-
-void RE_RegisterFont( const char *fontName, const char *fallbackName, int pointSize, fontInfo_t **font )
-{
-	RE_RegisterFont_Internal( fontName, fallbackName, pointSize, font );
+	return font;
 }
 
 void R_InitFreeType()

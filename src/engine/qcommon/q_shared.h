@@ -2131,6 +2131,7 @@ struct glyphInfo_t
 	char      shaderName[ 32 ];
 };
 
+// Unlike with many other handle types, 0 is valid, not an error or default return value.
 using fontHandle_t = int;
 
 using glyphBlock_t = glyphInfo_t[256];

@@ -716,7 +716,7 @@ void CL_ShutdownAll()
 	CL_ShutdownCGame();
 
 	// Clear Faces
-	if ( re.UnregisterFont && cls.consoleFont )
+	if ( cls.consoleFont )
 	{
 		re.UnregisterFont( cls.consoleFont );
 		cls.consoleFont = nullptr;
@@ -3031,7 +3031,7 @@ bool CL_InitRenderer()
 		{
 			if ( cl_consoleFontScaling->value == 0 )
 			{
-				re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer, &cls.consoleFont );
+				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer );
 			}
 			else
 			{
@@ -3039,10 +3039,15 @@ bool CL_InitRenderer()
 				int fontScale = std::min(cls.glconfig.vidWidth, cls.glconfig.vidHeight) / 90;
 
 				// fontScale / 12px gets 1px on 1920×1080 screen
-				re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer * fontScale / 12, &cls.consoleFont );
+				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer * fontScale / 12 );
 			}
 
-			cls.useLegacyConsoleFont = false;
+			if ( cls.consoleFont != nullptr )
+				cls.useLegacyConsoleFont = false;
+		}
+		else
+		{
+			Log::Warn("Font file '%s' not found", cl_consoleFont->string);
 		}
 
 		FS_FCloseFile( f );
