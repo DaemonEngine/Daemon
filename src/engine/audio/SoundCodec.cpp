@@ -102,7 +102,7 @@ AudioData LoadSoundCodec(std::string filename)
 		return AudioData();
 	}
 
-	audioLogs.Warn("Sound file %s not found.", filename);
+	audioLogs.Notice("Sound file '%s' not found.", filename);
 	return AudioData();
 
 }
