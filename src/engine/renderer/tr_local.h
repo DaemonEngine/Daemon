@@ -3906,10 +3906,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void       RE_UnregisterFont( fontInfo_t *font );
 	void       RE_Glyph(fontInfo_t *font, const char *str, glyphInfo_t *glyph);
 	void       RE_GlyphChar(fontInfo_t *font, int ch, glyphInfo_t *glyph);
-	void       RE_RegisterFontVM( const char *fontName, const char *fallbackName, int pointSize, fontMetrics_t * );
-	void       RE_UnregisterFontVM( fontHandle_t );
-	void       RE_GlyphVM( fontHandle_t, const char *str, glyphInfo_t *glyph);
-	void       RE_GlyphCharVM( fontHandle_t, int ch, glyphInfo_t *glyph);
 
 	void       RE_Finish();
 

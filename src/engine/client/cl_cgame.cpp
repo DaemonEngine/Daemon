@@ -1334,8 +1334,8 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			break;
 
 		case CG_R_REGISTERFONT:
-			IPC::HandleMsg<Render::RegisterFontMsg>(channel, std::move(reader), [this] (const std::string& name, const std::string& fallbackName, int pointSize, fontMetrics_t& font) {
-				re.RegisterFontVM(name.c_str(), fallbackName.c_str(), pointSize, &font);
+			IPC::HandleMsg<Render::RegisterFontMsg>(channel, std::move(reader), [this] (const std::string&, const std::string&, int, fontMetrics_t&) {
+				Log::Warn("TODO(0.52): remove");
 			});
 			break;
 

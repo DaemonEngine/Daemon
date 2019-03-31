@@ -80,17 +80,6 @@ void RE_GlyphChar( fontInfo_t *font, int, glyphInfo_t *glyph )
 	RE_Glyph( font, nullptr, glyph );
 }
 void RE_UnregisterFont( fontInfo_t* ) { }
-void RE_RegisterFontVM( const char *, const char *, int pointSize, fontMetrics_t *font )
-{
-	font->handle = 1;
-	font->isBitmap = true;
-	font->pointSize = pointSize;
-	font->height = 1;
-	font->glyphScale = 1.0f;
-}
-void RE_GlyphVM( fontHandle_t, const char *, glyphInfo_t * ) { }
-void RE_GlyphCharVM( fontHandle_t, int, glyphInfo_t * ) { }
-void RE_UnregisterFontVM( fontHandle_t ) { }
 void RE_LoadWorldMap( const char * ) { }
 void RE_SetWorldVisData( const byte * ) { }
 void RE_EndRegistration() { }
@@ -233,10 +222,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.Glyph = RE_Glyph;
     re.GlyphChar = RE_GlyphChar;
     re.UnregisterFont = RE_UnregisterFont;
-    re.RegisterFontVM = RE_RegisterFontVM;
-    re.GlyphVM = RE_GlyphVM;
-    re.GlyphCharVM = RE_GlyphCharVM;
-    re.UnregisterFontVM = RE_UnregisterFontVM;
     re.LoadWorld = RE_LoadWorldMap;
     re.SetWorldVisData = RE_SetWorldVisData;
     re.EndRegistration = RE_EndRegistration;
