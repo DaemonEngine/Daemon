@@ -1154,8 +1154,8 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 
 	GL_State( stateBits );
 
-	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping;
-	normalMapping = normalMapping && deluxeMapping && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
+	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
+	normalMapping = normalMapping && deluxeMapping;
 	bool heightMapInNormalMap = tess.surfaceShader->heightMapInNormalMap && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
 	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
