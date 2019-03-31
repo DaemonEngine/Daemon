@@ -71,12 +71,8 @@ struct refexport_t
 								   RegisterShaderFlags_t flags );
 	void   ( *RegisterFont )( const char *fontName, const char *fallbackName, int pointSize, fontInfo_t **font );
 	void   ( *UnregisterFont )( fontInfo_t *font );
-	void   ( *RegisterFontVM )( const char *fontName, const char *fallbackName, int pointSize, fontMetrics_t * );
-	void   ( *UnregisterFontVM )( fontHandle_t font );
 	void   ( *Glyph )( fontInfo_t *font, const char *str, glyphInfo_t *glyph );
 	void   ( *GlyphChar )( fontInfo_t *font, int ch, glyphInfo_t *glyph );
-	void   ( *GlyphVM )( fontHandle_t font, const char *ch, glyphInfo_t *glyph );
-	void   ( *GlyphCharVM )( fontHandle_t font, int ch, glyphInfo_t *glyph );
 
 	void ( *LoadWorld )( const char *name );
 

@@ -2145,6 +2145,7 @@ struct fontInfo_t
 	char          name[ MAX_QPATH ];
 };
 
+// TODO(0.52) remove.
 struct fontMetrics_t
 {
 	fontHandle_t  handle;

@@ -101,7 +101,6 @@ static const int MAX_FONTS = 16;
 static const int MAX_FILES = ( MAX_FONTS );
 static fontInfo_t registeredFont[ MAX_FONTS ];
 static unsigned int fontUsage[ MAX_FONTS ];
-static unsigned int fontUsageVM[ MAX_FONTS ];
 
 static struct {
 	void *data;
@@ -368,25 +367,9 @@ void RE_GlyphChar( fontInfo_t *font, int ch, glyphInfo_t *glyph )
 	memcpy( glyph, &font->glyphBlock[ ch / 256][ ch % 256 ], sizeof( *glyph ) );
 }
 
-void RE_GlyphCharVM( fontHandle_t handle, int ch, glyphInfo_t *glyph )
-{
-	if ( handle < 0 || handle >= MAX_FONTS || !fontUsageVM[ handle ] )
-	{
-		memset( glyph, 0, sizeof( *glyph ) );
-		return;
-	}
-
-	RE_GlyphChar( &registeredFont[ handle ], ch, glyph );
-}
-
 void RE_Glyph( fontInfo_t *font, const char *str, glyphInfo_t *glyph )
 {
 	RE_GlyphChar( font, Q_UTF8_CodePoint( str ), glyph );
-}
-
-void RE_GlyphVM( fontHandle_t handle, const char *str, glyphInfo_t *glyph )
-{
-	RE_GlyphCharVM( handle, str ? Q_UTF8_CodePoint( str ) : 0, glyph );
 }
 
 static void RE_StoreImage( fontInfo_t *font, int chunk, int page, int from, int to, const unsigned char *bitmap, int yEnd )
@@ -836,26 +819,6 @@ void RE_RegisterFont( const char *fontName, const char *fallbackName, int pointS
 	RE_RegisterFont_Internal( fontName, fallbackName, pointSize, font );
 }
 
-void RE_RegisterFontVM( const char *fontName, const char *fallbackName, int pointSize, fontMetrics_t *metrics )
-{
-	fontInfo_t *font;
-	fontHandle_t handle = RE_RegisterFont_Internal( fontName, fallbackName, pointSize, &font );
-
-	if ( handle >= 0 )
-	{
-		++fontUsageVM[ handle ];
-		metrics->handle = handle;
-		metrics->isBitmap = !!font->face;
-		metrics->pointSize = font->pointSize;
-		metrics->height = font->height;
-		metrics->glyphScale = font->glyphScale;
-	}
-	else
-	{
-		metrics->handle = -1;
-	}
-}
-
 void R_InitFreeType()
 {
 	if ( FT_Init_FreeType( &ftLibrary ) )
@@ -925,15 +888,6 @@ void RE_UnregisterFont( fontInfo_t *font )
 		{
 			break;
 		}
-	}
-}
-
-void RE_UnregisterFontVM( fontHandle_t handle )
-{
-	if ( handle >= 0 && handle < MAX_FONTS && fontUsageVM[ handle ] )
-	{
-		--fontUsageVM[ handle ];
-		RE_UnregisterFont_Internal( handle );
 	}
 }
 
