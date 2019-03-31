@@ -1906,8 +1906,6 @@ and determine if we need to download them
 */
 void CL_InitDownloads()
 {
-	char missingfiles[ 1024 ];
-
 	// TTimo
 	// init some of the www dl data
 	clc.bWWWDl = false;
