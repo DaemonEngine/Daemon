@@ -579,6 +579,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
 
+	if ( r_floorLight->integer )
+	{
+		AddDefine( str, "r_floorLight", 1 );
+	}
+
 	if ( r_normalMapping->integer )
 	{
 		AddDefine( str, "r_normalMapping", 1 );

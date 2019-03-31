@@ -41,6 +41,26 @@ IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
 
+#if defined(r_floorLight)
+// returns a pseudo-boolean (1 or 0) vec3 given the component
+// is smaller to the given float or not
+// for example isSmaller(vec3(1, 2, 3), 2) returns vec3(1, 0, 0)
+vec3 isSmaller(vec3 v, float max)
+{
+	return floor(min(v, max) / max) * -1 + 1;
+}
+
+// shift and rescale a vec3 from any [min1, max1] range to [min2 - max2] range
+// for example it can be used to rescale [0, 12] to [6, 32]
+vec3 shiftRange(vec3 v, float min1, float max1, float min2, float max2)
+{
+	v -= min1;
+	v *= (max2 - min2) / (max1 - min1);
+	v += min2;
+	return v;
+}
+#endif // r_floorLight
+
 void	main()
 {
 	// compute view direction in world space
@@ -74,6 +94,24 @@ void	main()
 
 	// compute light color from world space lightmap
 	vec3 lightColor = texture2D(u_LightMap, var_TexLight).xyz;
+	
+#if defined(r_floorLight)
+	// rescale [min1, max1] to [min2, max2]
+	// values were chosen the empirical way by testing against some maps on a
+	// calibrated screen with 100% sRGB coverage, the tested maps were:
+	// parpax, spacetracks, antares, vega, arachnid2, hangar28
+	// those values are for non-sRGB lightmaps
+	// TODO: find or compute related values for sRGB lightmaps if implemented
+	float min1 = 0.0;
+	float max1 = 0.18;
+	float min2 = 0.06;
+	float max2 = max1;
+	// isSmaller() produces a pseudo boolean vec3
+	// shiftRange() translates the given range
+	// shiftRange() - lightColor gives the value of the number to add to lightColor
+	// this number being 0 if isSmaller() produces a 0
+	lightColor += isSmaller(lightColor, max1) * (shiftRange(lightColor, min1, max1, min2, max2) - lightColor);
+#endif // r_floorLight
 
 	vec4 color = vec4( 0.0, 0.0, 0.0, diffuse.a );
 

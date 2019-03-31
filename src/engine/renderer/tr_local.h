@@ -2849,6 +2849,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;
 
+	extern cvar_t *r_floorLight;
+
 	extern cvar_t *r_specularExponentMin;
 	extern cvar_t *r_specularExponentMax;
 	extern cvar_t *r_specularScale;
