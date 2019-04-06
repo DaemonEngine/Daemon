@@ -4149,6 +4149,9 @@ static void CollapseStages()
 		return;
 	}
 
+	bool colorMapAfterDiffuseMap = false;
+
+	int colorStage = -1;
 	int diffuseStage = -1;
 	int normalStage = -1;
 	int specularStage = -1;
@@ -4165,6 +4168,11 @@ static void CollapseStages()
 		}
 		else if ( stages[ i ].type == stageType_t::ST_DIFFUSEMAP )
 		{
+			if ( colorStage != -1 )
+			{
+				Log::Warn( "found diffuse map after color map in shader '%s'", shader.name );
+				// do it any way, will be overpainted in any way
+			}
 			if ( diffuseStage != -1 )
 			{
 				Log::Warn( "more than one diffuse map stage in shader '%s'", shader.name );
@@ -4226,6 +4234,7 @@ static void CollapseStages()
 			}
 			else
 			{
+				Log::Debug( "found lightmap" );
 				lightStage = i;
 			}
 		}
@@ -4238,6 +4247,32 @@ static void CollapseStages()
 			else
 			{
 				glowStage = i;
+			}
+		}
+		else if ( stages[ i ].type == stageType_t::ST_REFLECTIONMAP )
+		{
+			if ( reflectionStage != -1 )
+			{
+				Log::Warn( "more than one reflection map stage in shader '%s'", shader.name );
+			}
+			else
+			{
+				reflectionStage = i;
+			}
+		}
+		// test for color stage following diffuse stage
+		// color stage preceding diffuse stage is buggy but is less
+		// problematic (diffuse stage will overpaint it)
+		// color stage after diffuse stage that is not a legacy addition
+		// stage overpaints the diffuse map leading to curious behaviour
+		// since optional normal map may be rendered in some cases
+		// (realtime light) while not in others (lightmap)
+		else if ( stages[ i ].type == stageType_t::ST_COLORMAP )
+		{
+			if ( diffuseStage != -1 )
+			{
+				colorMapAfterDiffuseMap = true;
+				Log::Debug( "found color stage after diffuse stage in shader '%s'", shader.name );
 			}
 		}
 	}
@@ -4320,9 +4355,19 @@ static void CollapseStages()
 				if ( ( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR 
 					&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO )
 				{
-					// common lightmap stage
-					// disable to not paint it over implicit light stage and glow map
-					stages[ lightStage ].active = false;
+					if ( colorMapAfterDiffuseMap )
+					{
+						// color stage after a diffuse stage is a legacy addition map (glow map)
+						// or a mistake, use the explicit light stage instead of the implicit one
+						Log::Debug("found color stage after diffuse stage in '%s' shader, not collapsing lightmap", shader.name);
+						stages[ diffuseStage ].disableImplicitLightmap = true;
+					}
+					else
+					{
+						// common lightmap stage
+						// disable to not paint it over implicit light stage and glow map
+						stages[ lightStage ].active = false;
+					}
 				}
 				else
 				{
@@ -4333,6 +4378,7 @@ static void CollapseStages()
 				}
 			}
 			// always test for this stage after light stage
+			// merge with diffuse stage only if known to be implicit
 			if ( glowStage != -1 )
 			{
 				// if there is no custom light stage, collapse to the diffuse stage
@@ -4350,7 +4396,7 @@ static void CollapseStages()
 				else
 				{
 					ASSERT_GE(lightStage, 0);
-					Log::Debug("found glow map with custom lightmap stage in '%s' shader, not collapsing", shader.name);
+					Log::Debug("found glow map with standalone lightmap stage in '%s' shader, not collapsing", shader.name);
 					stages[ glowStage ].type = stageType_t::ST_COLORMAP;
 					stages[ glowStage ].bundle[ TB_COLORMAP ] = stages[ glowStage ].bundle[ 0 ];
 
