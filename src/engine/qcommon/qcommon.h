@@ -546,7 +546,6 @@ unsigned   Com_BlockChecksum( const void *buffer, int length );
 char       *Com_MD5File( const char *filename, int length );
 void       Com_MD5Buffer( const char *pubkey, int size, char *buffer, int bufsize );
 
-void       Com_StartupVariable( const char *match );
 void       Com_SetRecommended();
 bool       Com_AreCheatsAllowed();
 bool       Com_IsClient();
@@ -556,8 +555,6 @@ bool       Com_ServerRunning();
 // checks for and removes command line "+set var arg" constructs
 // if match is nullptr, all set commands will be executed, otherwise
 // only a set with the exact name.  Only used during startup.
-
-extern cvar_t       *com_crashed;
 
 extern cvar_t       *com_developer;
 extern cvar_t       *com_speeds;
@@ -653,7 +650,7 @@ void   Hunk_FreeTempMemory( void *buf );
 #endif
 
 // commandLine should not include the executable name (argv[0])
-void   Com_Init( char *commandLine );
+void   Com_Init();
 void   Com_Frame();
 void   Com_Shutdown();
 
