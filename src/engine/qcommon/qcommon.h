@@ -671,7 +671,6 @@ void CL_InitKeyCommands();
 // config files, but the rest of client startup will happen later
 
 void     CL_Init();
-void     CL_ClearStaticDownload();
 void     CL_Disconnect( bool showMainMenu );
 void     CL_SendDisconnect();
 void     CL_Shutdown();

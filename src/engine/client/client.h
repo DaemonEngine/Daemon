@@ -484,8 +484,6 @@ extern cvar_t *cl_aviMotionJpeg;
 extern cvar_t *cl_useMumble;
 extern cvar_t *cl_mumbleScale;
 
-extern Log::Logger downloadLogger;
-
 //=================================================
 
 //
@@ -508,9 +506,6 @@ void        CL_Snd_Restart_f();
 void        CL_NextDemo();
 void        CL_ReadDemoMessage();
 
-void        CL_InitDownloads();
-void        CL_NextDownload();
-
 void        CL_GetPing( int n, char *buf, int buflen, int *pingtime );
 void        CL_ClearPing( int n );
 int         CL_GetPingQueueCount();
@@ -527,6 +522,14 @@ void CL_Record(std::string demo_name);
 //
 Keyboard::Key Key_GetKeyNumber();
 unsigned int    Key_GetKeyTime();
+
+//
+// cl_download.cpp
+//
+void CL_ClearStaticDownload();
+void CL_InitDownloads();
+void CL_WWWDownload();
+void CL_ParseDownload( msg_t *msg );
 
 //
 // cl_input
