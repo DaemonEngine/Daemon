@@ -665,7 +665,6 @@ namespace Cvar {
                 //Print the matches, keeping the flags and descriptions aligned
                 for (size_t i = 0; i < matches.size(); i++) {
                     const std::string& name = matchesNames[i];
-                    const std::string& value = matchesValues[i];
                     cvarRecord_t* var = matches[i];
 
                     std::string flags = "";
