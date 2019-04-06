@@ -69,8 +69,6 @@ Maryland 20850 USA.
 
 static fileHandle_t logfile;
 
-cvar_t              *com_crashed = nullptr; // ydnar: set in case of a crash, prevents CVAR_UNSAFE variables from being set from a cfg
-
 cvar_t *com_pid; // bani - process id
 
 cvar_t *com_speeds;
@@ -124,104 +122,6 @@ void     CIN_CloseAllVideos();
 // *INDENT-OFF*
 //bani - moved
 void CL_ShutdownCGame();
-
-// *INDENT-ON*
-
-/*
-============================================================================
-
-COMMAND LINE FUNCTIONS
-
-+ characters separate the commandLine string into multiple console
-command lines.
-
-All of these are valid:
-
-quake3 +set test blah +map test
-quake3 set test blah+map test
-quake3 set test blah + map test
-
-============================================================================
-*/
-
-static const int MAX_CONSOLE_LINES = 32;
-int  com_numConsoleLines;
-char *com_consoleLines[ MAX_CONSOLE_LINES ];
-
-/*
-==================
-Com_ParseCommandLine
-
-Break it up into multiple console lines
-==================
-*/
-void Com_ParseCommandLine( char *commandLine )
-{
-	com_consoleLines[ 0 ] = commandLine;
-	com_numConsoleLines = 1;
-
-	while ( *commandLine )
-	{
-		// look for a + separating character
-		// if commandLine came from a file, we might have real line separators
-		if ( *commandLine == '+' || *commandLine == '\n' || *commandLine == '\r' )
-		{
-			if ( com_numConsoleLines == MAX_CONSOLE_LINES )
-			{
-				return;
-			}
-
-			com_consoleLines[ com_numConsoleLines ] = commandLine + 1;
-			com_numConsoleLines++;
-			*commandLine = 0;
-		}
-
-		commandLine++;
-	}
-}
-
-/*
-===============
-Com_StartupVariable
-
-Searches for command-line arguments that are set commands.
-If match is not nullptr, only that cvar will be looked for.
-That is necessary because the fs_* cvars need to be set
-before the filesystem is started, but all other sets should
-be after execing the config and default.
-===============
-*/
-void Com_StartupVariable( const char *match )
-{
-	int    i;
-	const char   *s;
-	cvar_t *cv;
-
-	for ( i = 0; i < com_numConsoleLines; i++ )
-	{
-		if (com_consoleLines[i] == nullptr) {
-			continue;
-		}
-
-		Cmd::Args line(com_consoleLines[i]);
-
-		if ( line.size() < 3 || strcmp( line[0].c_str(), "set" ))
-		{
-			continue;
-		}
-
-		s = line[1].c_str();
-
-		if ( !match || !strcmp( s, match ) )
-		{
-			Cvar_Set( s, line[2].c_str() );
-			cv = Cvar_Get( s, "", CVAR_USER_CREATED );
-			if (cv->flags & CVAR_ROM) {
-				com_consoleLines[i] = nullptr;
-			}
-		}
-	}
-}
 
 //============================================================================
 
@@ -1118,23 +1018,10 @@ void Com_In_Restart_f()
 Com_Init
 =================
 */
-void Com_Init( char *commandLine )
+void Com_Init()
 {
 	char              *s;
 	int               qport;
-
-	// prepare enough of the subsystems to handle
-	// cvar and command buffer management
-	Com_ParseCommandLine( commandLine );
-
-	// override anything from the config files with command line args
-	Com_StartupVariable( nullptr );
-
-	// get the developer cvar set as early as possible
-	Com_StartupVariable( "developer" );
-
-	// ydnar: init crashed variable as early as possible
-	com_crashed = Cvar_Get( "com_crashed", "0", CVAR_TEMP );
 
 	Trans_Init();
 
