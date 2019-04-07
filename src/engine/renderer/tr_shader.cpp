@@ -4159,7 +4159,11 @@ static void CollapseStages()
 
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
-		if ( stages[ i ].type == stageType_t::ST_DIFFUSEMAP )
+		if ( !stages[ i ].active )
+		{
+			continue;
+		}
+		else if ( stages[ i ].type == stageType_t::ST_DIFFUSEMAP )
 		{
 			if ( diffuseStage != -1 )
 			{
