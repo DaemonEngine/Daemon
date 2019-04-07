@@ -223,57 +223,6 @@ void SV_GetUsercmd( int clientNum, usercmd_t *cmd )
 
 /*
 ====================
-SV_SendBinaryMessage
-====================
-*/
-static void SV_SendBinaryMessage(int cno, std::vector<uint8_t> message)
-{
-	if (cno < 0 || cno >= sv_maxclients->integer) {
-		Sys::Drop("SV_SendBinaryMessage: bad client %i", cno);
-	}
-
-	if (message.size() > MAX_BINARY_MESSAGE) {
-		Sys::Drop("SV_SendBinaryMessage: bad length %zi", message.size());
-	}
-
-	auto &cl = svs.clients[cno];
-	memcpy(cl.binaryMessage, message.data(), cl.binaryMessageLength = message.size());
-}
-
-/*
-====================
-SV_BinaryMessageStatus
-====================
-*/
-static messageStatus_t SV_BinaryMessageStatus(int cno)
-{
-	if (cno < 0 || cno >= sv_maxclients->integer) {
-		return messageStatus_t::MESSAGE_EMPTY;
-	}
-	const auto &cl = svs.clients[cno];
-	if (cl.binaryMessageLength == 0) {
-		return messageStatus_t::MESSAGE_EMPTY;
-	}
-	if (cl.binaryMessageOverflowed) {
-		return messageStatus_t::MESSAGE_WAITING_OVERFLOW;
-	}
-	return messageStatus_t::MESSAGE_WAITING;
-}
-
-/*
-====================
-SV_GameBinaryMessageReceived
-====================
-*/
-void SV_GameBinaryMessageReceived(int cno, const byte *buf, size_t buflen, int commandTime)
-{
-	gvm.GameMessageRecieved( cno, buf, buflen, commandTime );
-}
-
-//==============================================
-
-/*
-====================
 SV_GetTimeString
 
 Returns 0 if we have a representable time
@@ -477,13 +426,6 @@ void GameVM::BotAIStartFrame(int)
 	Sys::Drop("GameVM::BotAIStartFrame not implemented");
 }
 
-void GameVM::GameMessageRecieved(int clientNum, const uint8_t *buf, size_t size, int commandTime)
-{
-	static auto shm = IPC::SharedMemory::Create(MAX_BINARY_MESSAGE);
-	memcpy(shm.GetBase(), buf, size);
-	gvm.SendMsg<GameRecvMessageMsg>(clientNum, shm, size, commandTime);
-}
-
 void GameVM::Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel)
 {
 	int major = id >> 16;
@@ -593,14 +535,15 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		break;
 
 	case G_SEND_MESSAGE:
-		IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](int clientNum, std::vector<uint8_t> message) {
-			SV_SendBinaryMessage(clientNum, std::move(message));
+		IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](int, std::vector<uint8_t>) {
+			Log::Warn("SendMessageMsg unsupported");
 		});
 		break;
 
 	case G_MESSAGE_STATUS:
-		IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](int index, messageStatus_t& status) {
-			status = SV_BinaryMessageStatus(index);
+		IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](int, messageStatus_t& status) {
+			Log::Warn("MessageStatusMsg unsupported");
+			status = {};
 		});
 		break;
 

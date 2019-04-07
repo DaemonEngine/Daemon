@@ -154,10 +154,6 @@ struct client_t
 	int            reliableSent; // last sent reliable message, not necessarily acknowledged yet
 	int            messageAcknowledge;
 
-	size_t binaryMessageLength;
-	uint8_t binaryMessage[MAX_BINARY_MESSAGE];
-	bool binaryMessageOverflowed;
-
 	int            gamestateMessageNum; // netchan->outgoingSequence of gamestate
 
 	usercmd_t      lastUsercmd;
@@ -284,7 +280,6 @@ public:
 	void GameRunFrame(int levelTime);
 	bool GameSnapshotCallback(int entityNum, int clientNum);
 	void BotAIStartFrame(int levelTime);
-	void GameMessageRecieved(int clientNum, const uint8_t *buf, size_t size, int commandTime);
 
 private:
 	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) override final;
@@ -424,7 +419,6 @@ svEntity_t     *SV_SvEntityForGentity( sharedEntity_t *gEnt );
 void           SV_InitGameProgs();
 void           SV_ShutdownGameProgs();
 void           SV_RestartGameProgs();
-void           SV_GameBinaryMessageReceived(int cno, const byte *buf, size_t buflen, int commandTime);
 
 //
 // sv_bot.c

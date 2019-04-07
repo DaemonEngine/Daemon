@@ -978,44 +978,6 @@ void CL_SetCGameTime()
 	}
 }
 
-
-/*
-====================
-CL_SendBinaryMessage
-====================
-*/
-static void CL_SendBinaryMessage(std::vector<uint8_t> message)
-{
-	if (message.size() > MAX_BINARY_MESSAGE) {
-		Sys::Drop("CL_SendBinaryMessage: bad length %zi", message.size());
-	}
-
-	memcpy(clc.binaryMessage, message.data(), clc.binaryMessageLength = message.size());
-}
-
-/*
-====================
-CL_BinaryMessageStatus
-====================
-*/
-static messageStatus_t CL_BinaryMessageStatus()
-{
-	if (clc.binaryMessageLength == 0) {
-		return messageStatus_t::MESSAGE_EMPTY;
-	}
-	if (clc.binaryMessageOverflowed) {
-		return messageStatus_t::MESSAGE_WAITING_OVERFLOW;
-	}
-	return messageStatus_t::MESSAGE_WAITING;
-}
-
-void CL_CGameBinaryMessageReceived(const uint8_t *buf, size_t size, int serverTime)
-{
-	static auto shm = IPC::SharedMemory::Create(MAX_BINARY_MESSAGE);
-	memcpy(shm.GetBase(), buf, size);
-	cgvm.SendMsg<CGameRecvMessageMsg>(shm, size, serverTime);
-}
-
 /**
  * is notified by teamchanges.
  * while most notifications will come from the cgame, due to game semantics,
@@ -1563,16 +1525,19 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			break;
 
 		case CG_SEND_MESSAGE:
-			IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](std::vector<uint8_t> message) {
-				CL_SendBinaryMessage(std::move(message));
+			IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](std::vector<uint8_t>) {
+				Log::Warn("unsupported SendMessageMsg");
 			});
 			break;
 
 		case CG_MESSAGE_STATUS:
 			IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](messageStatus_t& status) {
-				status = CL_BinaryMessageStatus();
+				Log::Warn("unsupported MessageStatusMsg");
+				status = {};
 			});
 			break;
+
+
 
 	default:
 		Sys::Drop("Bad CGame QVM syscall minor number: %d", index);
