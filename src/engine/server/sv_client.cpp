@@ -1389,22 +1389,6 @@ static void SV_UserMove( client_t *cl, msg_t *msg, bool delta )
 }
 
 /*
-=====================
-SV_ParseBinaryMessage
-=====================
-*/
-static void SV_ParseBinaryMessage(client_t *cl, msg_t *msg)
-{
-	MSG_BeginReadingUncompressed(msg);
-	int ssize = msg->cursize - msg->readcount;
-	if (ssize <= 0 || ssize > MAX_BINARY_MESSAGE) {
-		return;
-	}
-	const auto client = int(cl - svs.clients);
-	SV_GameBinaryMessageReceived(client, msg->data + msg->readcount, size_t(ssize), cl->lastUsercmd.serverTime);
-}
-
-/*
 ===========================================================================
 
 USER CMD EXECUTION
@@ -1548,7 +1532,6 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 		Log::Warn("missing clc_EOF byte for client %i\n", (int) (cl - svs.clients));
 	}
 
-	SV_ParseBinaryMessage( cl, msg );
 //  TODO: track bytes read
 //	if (msg->readcount != msg->cursize) {
 //		Log::Warn("Junk at end of packet for client %i (%i bytes), read %i of %i bytes", cl - svs.clients, msg->cursize - msg->readcount, msg->readcount, msg->cursize);

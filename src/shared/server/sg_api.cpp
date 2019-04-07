@@ -112,18 +112,6 @@ bool trap_GetEntityToken(char *buffer, int bufferSize)
     return res;
 }
 
-void trap_SendMessage(int clientNum, const std::vector<uint8_t>& message)
-{
-    VM::SendMsg<SendMessageMsg>(clientNum, message);
-}
-
-messageStatus_t trap_MessageStatus(int clientNum)
-{
-    messageStatus_t res;
-    VM::SendMsg<MessageStatusMsg>(clientNum, res);
-    return res;
-}
-
 int trap_RSA_GenerateMessage(const char *public_key, char *cleartext, char *encrypted)
 {
     std::string cleartext2, encrypted2;

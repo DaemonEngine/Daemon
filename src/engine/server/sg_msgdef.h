@@ -42,7 +42,7 @@ enum gameImport_t
   G_GET_SERVERINFO,
   G_GET_USERCMD,
   G_GET_ENTITY_TOKEN,
-  G_SEND_MESSAGE,
+  G_SEND_MESSAGE, // TODO(0.52): Remove these two
   G_MESSAGE_STATUS,
   G_RSA_GENMSG, // ( const char *public_key, char *cleartext, char *encrypted )
   G_GEN_FINGERPRINT,
@@ -208,7 +208,7 @@ enum gameExport_t
   BOT_CHECKATTACKATPOS, // bool ()( int entityNum, int enemyNum, vec3_t position,
   //              bool ducking, bool allowWorldHit );
 
-  GAME_MESSAGERECEIVED, // void ()( int clientNum, const char *buffer, int bufferSize, int commandTime );
+  GAME_MESSAGERECEIVED, // TODO(0.52) remove
 };
 
 using GameStaticInitMsg = IPC::SyncMessage<
@@ -241,7 +241,4 @@ using GameClientThinkMsg = IPC::SyncMessage<
 >;
 using GameRunFrameMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, GAME_RUN_FRAME>, int>
->;
-using GameRecvMessageMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, GAME_MESSAGERECEIVED>, int, IPC::SharedMemory, size_t, int>
 >;

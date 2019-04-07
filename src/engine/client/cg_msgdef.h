@@ -223,6 +223,7 @@ enum cgameImport_t
   CG_LAN_SERVERSTATUS,
   CG_LAN_RESETSERVERSTATUS,
 
+  // TODO(0.52) Remove these two.
   CG_SEND_MESSAGE = 125,
   CG_MESSAGE_STATUS,
 };
@@ -536,8 +537,6 @@ enum cgameExport_t
 
 // void (*CG_FocusEvent)( bool focus);
   CG_FOCUS_EVENT,
-
-  CG_RECV_MESSAGE,
 };
 
 using CGameStaticInitMsg = IPC::SyncMessage<
@@ -570,9 +569,6 @@ using CGameCharacterInputMsg = IPC::SyncMessage <
 >;
 using CGameFocusEventMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_FOCUS_EVENT>, bool>
->;
-using CGameRecvMessageMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_RECV_MESSAGE>, IPC::SharedMemory, size_t, int>
 >;
 
 //TODO Check all rocket calls

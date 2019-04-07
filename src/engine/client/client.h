@@ -189,11 +189,6 @@ struct clientConnection_t
 	// TTimo - NOTE: incidentally, reliableCommands[0] is never used (always start at reliableAcknowledge+1)
 	char reliableCommands[ MAX_RELIABLE_COMMANDS ][ MAX_TOKEN_CHARS ];
 
-	// unreliable binary data to send to server
-	size_t binaryMessageLength;
-	uint8_t binaryMessage[MAX_BINARY_MESSAGE];
-	bool binaryMessageOverflowed;
-
 	// server message (unreliable) and command (reliable) sequence
 	// numbers are NOT cleared at level changes, but continue to
 	// increase as long as the connection is valid
@@ -732,7 +727,6 @@ void     CL_ShutdownCGame();
 void     CL_CGameRendering();
 void     CL_SetCGameTime();
 void     CL_FirstSnapshot();
-void CL_CGameBinaryMessageReceived(const uint8_t *buf, size_t size, int serverTime);
 void     CL_OnTeamChanged( int newTeam );
 
 //

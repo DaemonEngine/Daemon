@@ -206,8 +206,7 @@ using clipHandle_t = int;
 
 #define MAX_SAY_TEXT       400
 
-#define MAX_BINARY_MESSAGE 32768 // max length of binary message
-
+// TODO(0.52): remove
 	enum class messageStatus_t : uint8_t
 	{
 	  MESSAGE_EMPTY,
