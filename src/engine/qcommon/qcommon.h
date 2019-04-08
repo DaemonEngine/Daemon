@@ -586,7 +586,6 @@ extern int          time_backend; // renderer backend time
 
 extern int          com_frameTime;
 extern int          com_frameMsec;
-extern int          com_hunkusedvalue;
 
 enum class memtag_t
 {
@@ -642,6 +641,7 @@ static inline void Z_Free(void* ptr)
 }
 
 #ifndef BUILD_SERVER
+void Hunk_Init();
 void     Hunk_Clear();
 void Hunk_ShutDownRandomStuffAndClear();
 void *Hunk_Alloc( int size, ha_pref preference );
