@@ -57,6 +57,8 @@ class ServerApplication : public Application {
 
         void Initialize(Str::StringRef) override {
             Com_Init();
+
+            CL_StartHunkUsers();
         }
 
         void Frame() override {
