@@ -81,7 +81,6 @@ Cvar::Cvar<bool> cvar_demo_timedemo(
 );
 cvar_t *com_sv_running;
 cvar_t *com_cl_running;
-cvar_t *com_logfile; // 1 = buffer log, 2 = flush after each print, 3 = append + flush
 cvar_t *com_version;
 
 cvar_t *com_unfocused;
@@ -90,11 +89,6 @@ cvar_t *com_minimized;
 
 cvar_t *cl_paused;
 cvar_t *sv_paused;
-
-#if defined( _WIN32 ) && !defined( NDEBUG )
-cvar_t *com_noErrorInterrupt;
-#endif
-cvar_t *com_recommendedSet;
 
 // com_speeds times
 int      time_game;
@@ -636,6 +630,9 @@ void Com_In_Restart_f()
 /*
 =================
 Com_Init
+
+This does initializations that only occur once in the lifetime of the program.
+Stuff that is initialized e.g. each time the cgame restarts is done elsewhere.
 =================
 */
 void Com_Init()
@@ -644,11 +641,6 @@ void Com_Init()
 	int               qport;
 
 	Trans_Init();
-
-#ifndef BUILD_SERVER
-	// allocate the stack based hunk allocator
-	Hunk_Init();
-#endif
 	Trans_LoadDefaultLanguage();
 
 	// if any archived cvars are modified after this, we will trigger a writing
@@ -660,8 +652,6 @@ void Com_Init()
 	//
 	com_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
 
-	com_logfile = Cvar_Get( "logfile", "0", CVAR_TEMP );
-
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
@@ -671,14 +661,8 @@ void Com_Init()
 	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM );
 	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM );
 
-	com_recommendedSet = Cvar_Get( "com_recommendedSet", "0", 0 );
-
 	com_unfocused = Cvar_Get( "com_unfocused", "0", CVAR_ROM );
 	com_minimized = Cvar_Get( "com_minimized", "0", CVAR_ROM );
-
-#if defined( _WIN32 ) && !defined( NDEBUG )
-	com_noErrorInterrupt = Cvar_Get( "com_noErrorInterrupt", "0", 0 );
-#endif
 
 	if ( com_developer && com_developer->integer )
 	{
@@ -713,12 +697,10 @@ void Com_Init()
 	// being random enough for a serverid
 	com_frameTime = Com_Milliseconds();
 
-	CL_StartHunkUsers();
+	NET_Init();
 
 	com_fullyInitialized = true;
 	Log::Notice( "--- Common Initialization Complete ---" );
-
-	NET_Init();
 }
 
 //==================================================================
