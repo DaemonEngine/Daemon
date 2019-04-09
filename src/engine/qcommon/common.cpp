@@ -1060,6 +1060,11 @@ void Com_Frame()
 			}
 		}
 	}
+	else if ( Com_IsDedicatedServer() && Com_ServerRunning() )
+	{
+		watchdogTime = 0;
+		watchWarn = false;
+	}
 
 	//
 	// report timing information
