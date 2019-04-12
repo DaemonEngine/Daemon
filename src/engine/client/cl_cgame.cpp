@@ -1004,7 +1004,7 @@ void  CL_OnTeamChanged( int newTeam )
 	Cmd::BufferCommandText( "exec -f " TEAMCONFIG_NAME );
 }
 
-CGameVM::CGameVM(): VM::VMBase("cgame"), services(nullptr), cmdBuffer("client")
+CGameVM::CGameVM(): VM::VMBase("cgame", Cvar::CHEAT), services(nullptr), cmdBuffer("client")
 {
 }
 

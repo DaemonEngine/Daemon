@@ -336,7 +336,7 @@ void SV_InitGameProgs()
 	SV_InitGameVM();
 }
 
-GameVM::GameVM(): VM::VMBase("sgame"), services(nullptr){
+GameVM::GameVM(): VM::VMBase("sgame", Cvar::NONE), services(nullptr) {
 }
 
 void GameVM::Start()
