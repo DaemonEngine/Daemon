@@ -37,7 +37,9 @@ namespace Audio {
 
     // An interface to the sound system that mimics the previous sound system's behavior
 
+    // It is safe to call this again if audio is already initialized.
     bool Init();
+
     void Shutdown();
     void Update();
 

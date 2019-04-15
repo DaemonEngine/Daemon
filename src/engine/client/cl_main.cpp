@@ -2761,12 +2761,8 @@ void CL_StartHunkUsers()
 		Sys::Error( "Couldn't load a renderer" );
 	}
 
-	if ( !cls.soundStarted )
-	{
-		cls.soundStarted = true;
-		if (!Audio::Init()) {
-			Sys::Error("Couldn't initialize the audio subsystem.");
-		}
+	if ( !Audio::Init() ) {
+		Sys::Error("Couldn't initialize the audio subsystem.");
 	}
 
 	if ( !cls.soundRegistered )

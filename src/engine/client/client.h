@@ -285,7 +285,6 @@ struct clientStatic_t
 
 	// when the server clears the hunk, all of these must be restarted
 	bool rendererStarted;
-	bool soundStarted;
 	bool soundRegistered;
 	bool cgameStarted;
 
