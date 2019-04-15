@@ -726,7 +726,6 @@ void CL_ShutdownAll()
 		re.Shutdown( false );  // don't destroy window or context
 	}
 
-	cls.uiStarted = false;
 	cls.cgameStarted = false;
 	cls.rendererStarted = false;
 	cls.soundRegistered = false;
@@ -1544,7 +1543,6 @@ void CL_Vid_Restart_f()
 	CL_ShutdownRef();
 
 	cls.rendererStarted = false;
-	cls.uiStarted = false;
 	cls.cgameStarted = false;
 	cls.soundRegistered = false;
 
@@ -2778,10 +2776,8 @@ void CL_StartHunkUsers()
 		//S_BeginRegistration();
 	}
 
-	if ( !cls.uiStarted )
+	if ( !cgvm.IsActive() )
 	{
-		cls.uiStarted = true;
-
 		cgvm.Start();
 		cgvm.CGameRocketInit();
 	}

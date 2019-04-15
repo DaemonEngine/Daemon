@@ -287,7 +287,6 @@ struct clientStatic_t
 	bool rendererStarted;
 	bool soundStarted;
 	bool soundRegistered;
-	bool uiStarted;
 	bool cgameStarted;
 
 	int      framecount;
