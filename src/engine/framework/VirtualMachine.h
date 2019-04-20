@@ -97,7 +97,7 @@ struct VMParams {
 		  vmType("vm." + name + ".type", "how the vm should be loaded for " + name, vmTypeFlags,
 		         Util::ordinal(vmType_t::TYPE_NACL), 0, Util::ordinal(vmType_t::TYPE_END) - 1),
 		  debug("vm." + name + ".debug", "run a gdbserver on localhost:4014 to debug the VM", Cvar::NONE, false),
-		  debugLoader("vm." + name + ".debugLoader", "make nacl_loader dump information to " + name + "-nacl_loader.log", Cvar::NONE, 0, 0, 5) {
+		  debugLoader("vm." + name + ".debugLoader", "make nacl_loader dump information to " + name + "-nacl_loader.log", Cvar::NONE, 1, 0, 5) {
 	}
 
 	Cvar::Cvar<bool> logSyscalls;
