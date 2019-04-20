@@ -737,6 +737,8 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	gl_vertexLightingShader_DBS_entity->SetParallaxMapping( parallaxMapping );
 
+	gl_vertexLightingShader_DBS_entity->SetHeightMapInNormalMap( heightMapInNormalMap );
+
 	gl_vertexLightingShader_DBS_entity->SetReflectiveSpecular( normalMapping && tr.cubeHashTable != nullptr );
 
 	gl_vertexLightingShader_DBS_entity->SetPhysicalShading( materialMapping );
@@ -814,8 +816,6 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
-
-	gl_vertexLightingShader_DBS_entity->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	if ( specularMapping )
 	{
@@ -958,6 +958,8 @@ static void Render_vertexLighting_DBS_world( int stage )
 
 	gl_vertexLightingShader_DBS_world->SetParallaxMapping( parallaxMapping );
 
+	gl_vertexLightingShader_DBS_world->SetHeightMapInNormalMap( heightMapInNormalMap );
+
 	tess.vboVertexSprite = false;
 
 	gl_vertexLightingShader_DBS_world->BindProgram( pStage->deformIndex );
@@ -1060,8 +1062,6 @@ static void Render_vertexLighting_DBS_world( int stage )
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	gl_vertexLightingShader_DBS_world->SetHeightMapInNormalMap( heightMapInNormalMap );
-
 	if ( specularMapping )
 	{
 		// bind u_SpecularMap
@@ -1156,6 +1156,8 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 
 	gl_lightMappingShader->SetParallaxMapping( parallaxMapping );
 
+	gl_lightMappingShader->SetHeightMapInNormalMap( heightMapInNormalMap );
+
 	tess.vboVertexSprite = false;
 
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
@@ -1223,8 +1225,6 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
-
-	gl_lightMappingShader->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	if ( specularMapping )
 	{
@@ -1449,6 +1449,8 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_omniXYZ->SetParallaxMapping( parallaxMapping );
+
+	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( heightMapInNormalMap );
 	
 	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
 
@@ -1571,8 +1573,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( heightMapInNormalMap );
-
 	if ( specularMapping )
 	{
 		// bind u_SpecularMap
@@ -1636,6 +1636,8 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_projXYZ->SetParallaxMapping( parallaxMapping );
+
+	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( heightMapInNormalMap );
 	
 	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
 
@@ -1759,8 +1761,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( heightMapInNormalMap );
-
 	if ( specularMapping )
 	{
 		// bind u_SpecularMap
@@ -1822,6 +1822,8 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_directionalSun->SetParallaxMapping( parallaxMapping );
+
+	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	gl_forwardLightingShader_directionalSun->SetShadowing( shadowCompare );
 
@@ -1949,8 +1951,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( heightMapInNormalMap );
-
 	if ( specularMapping )
 	{
 		// bind u_SpecularMap
@@ -2019,6 +2019,8 @@ static void Render_reflection_CB( int stage )
 	// choose right shader program ----------------------------------
 	gl_reflectionShader->SetParallaxMapping( parallaxMapping );
 
+	gl_reflectionShader->SetHeightMapInNormalMap( heightMapInNormalMap );
+
 	gl_reflectionShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_reflectionShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
@@ -2080,8 +2082,6 @@ static void Render_reflection_CB( int stage )
 
 	// bind u_NormalFormat
 	gl_reflectionShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
-
-	gl_reflectionShader->SetHeightMapInNormalMap( heightMapInNormalMap );
 
 	gl_reflectionShader->SetRequiredVertexPointers();
 
