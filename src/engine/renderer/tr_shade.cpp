@@ -1238,16 +1238,6 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		GL_BindToTMU( 2, tr.blackImage );
 	}
 
-	// bind u_DeluxeMap
-	if ( deluxeMapping )
-	{
-		BindDeluxeMap( 4 );
-	}
-	else
-	{
-		GL_BindToTMU( 4, tr.blackImage );
-	}
-
 	// do not paintover lightmap
 	// as a standalone lightmap stage
 	// will do later
@@ -1258,6 +1248,16 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 
 	// bind u_LightMap
 	BindLightMap( 3, whiteLight );
+
+	// bind u_DeluxeMap
+	if ( deluxeMapping )
+	{
+		BindDeluxeMap( 4 );
+	}
+	else
+	{
+		GL_BindToTMU( 4, tr.blackImage );
+	}
 
 	if ( glowMapping )
 	{
