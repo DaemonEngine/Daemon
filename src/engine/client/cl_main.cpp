@@ -693,7 +693,7 @@ void CL_NextDemo()
 
 	Log::Debug( "CL_NextDemo: %s", v );
 	cvar_demo_next.Set("");
-	Cmd::BufferCommandTextAfter("demo_play " + v, false);
+	Cmd::BufferCommandTextAfter("demo_play " + Cmd::Escape(v), false);
 	Cmd::ExecuteCommandBuffer();
 }
 
