@@ -714,10 +714,6 @@ void CL_FlushMemory();
 
 // dump all memory on an error
 
-void CL_StartHunkUsers();
-
-// start all the client stuff using the hunk
-
 // AVI files have the start of pixel lines 4 byte-aligned
 #define AVI_LINE_PADDING 4
 

@@ -86,10 +86,6 @@ void CL_FlushMemory()
 {
 }
 
-void CL_StartHunkUsers()
-{
-}
-
 void CL_ShutdownAll()
 {
 }
