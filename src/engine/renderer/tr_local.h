@@ -1054,11 +1054,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	enum class collapseType_t
 	{
 	  COLLAPSE_none,
-	  COLLAPSE_genericMulti,
 	  COLLAPSE_lighting_PHONG,
 	  COLLAPSE_lighting_PBR,
 	  COLLAPSE_reflection_CB,
-	  COLLAPSE_color_lightmap
 	};
 
 	struct shaderStage_t
