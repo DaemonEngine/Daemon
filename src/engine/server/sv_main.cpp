@@ -1411,7 +1411,7 @@ void SV_Frame( int msec )
 		// there won't be a map_restart if you have shut down the server
 		// since it doesn't restart a non-running server
 		// instead, re-run the current map
-		Cmd::BufferCommandText(va("map %s", mapname));
+		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(mapname)));
 		return;
 	}
 
@@ -1421,7 +1421,7 @@ void SV_Frame( int msec )
 		Q_strncpyz( mapname, sv_mapname->string, MAX_QPATH );
 		SV_Shutdown( "Restarting server due to numSnapshotEntities wrapping" );
 		// TTimo see above
-		Cmd::BufferCommandText(va("map %s", mapname));
+		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(mapname)));
 		return;
 	}
 
