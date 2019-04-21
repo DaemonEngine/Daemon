@@ -323,7 +323,6 @@ void CL_ShutdownCGame()
 	}
 
 	cgvm.CGameShutdown();
-	cgvm.Free();
 }
 
 /*
@@ -1030,11 +1029,16 @@ void CGameVM::CGameInit(int serverMessageNum, int clientNum)
 
 void CGameVM::CGameShutdown()
 {
-	// Ignore errors when shutting down
 	try {
 		this->SendMsg<CGameShutdownMsg>();
+	} catch (Sys::DropErr& err) {
+		Log::Notice("Error during cgame shutdown: %s", err.what());
+	}
+	try {
 		this->Free();
-	} catch (Sys::DropErr&) {}
+	} catch (Sys::DropErr& err) {
+		Log::Notice("Error while freeing cgame: %s", err.what());
+	}
 	services = nullptr;
 }
 

@@ -268,7 +268,6 @@ void SV_ShutdownGameProgs()
 	}
 
 	gvm.GameShutdown( false );
-    gvm.Free();
 }
 
 /*
@@ -363,11 +362,16 @@ void GameVM::GameInit(int levelTime, int randomSeed)
 
 void GameVM::GameShutdown(bool restart)
 {
-	// Ignore errors when shutting down
 	try {
 		this->SendMsg<GameShutdownMsg>(restart);
+	} catch (Sys::DropErr& err) {
+		Log::Notice("Error during sgame shutdown: %s", err.what());
+	}
+	try {
 		this->Free();
-	} catch (Sys::DropErr&) {}
+	} catch (Sys::DropErr& err) {
+		Log::Notice("Error while freeing sgame: %s", err.what());
+	}
 	services = nullptr;
 
 	// Release the shared memory region
