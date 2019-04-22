@@ -1562,7 +1562,6 @@ enum class tokenType_t {
 #define CVAR_TEMP                BIT(8)   /*< can be set even when cheats are disabled, but is not archived */
 #define CVAR_CHEAT               BIT(9)   /*< can not be changed if cheats are disabled */
 #define CVAR_NORESTART           BIT(10)  /*< do not clear when a cvar_restart is issued */
-#define CVAR_SHADER              BIT(11)  /*< tell renderer to recompile shaders. */
 
 /**
  * unsafe system cvars (renderer, sound settings,

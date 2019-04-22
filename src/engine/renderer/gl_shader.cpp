@@ -813,11 +813,6 @@ void GLShaderManager::buildAll()
 	}
 
 	Log::Notice( "glsl shaders took %d msec to build", _totalBuildTime );
-
-	if( r_recompileShaders->integer )
-	{
-		ri.Cvar_Set( "r_recompileShaders", "0" );
-	}
 }
 
 void GLShaderManager::InitShader( GLShader *shader )
@@ -860,10 +855,6 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	GLBinaryHeader shaderHeader;
 
 	if (!GetShaderPath().empty())
-		return false;
-
-	// we need to recompile the shaders
-	if( r_recompileShaders->integer )
 		return false;
 
 	// don't even try if the necessary functions aren't available
