@@ -87,9 +87,6 @@ cvar_t *com_unfocused;
 cvar_t *com_minimized;
 
 
-cvar_t *cl_paused;
-cvar_t *sv_paused;
-
 // com_speeds times
 int      time_game;
 int      time_frontend; // renderer frontend time
@@ -656,8 +653,6 @@ void Com_Init()
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
 
-	cl_paused = Cvar_Get( "cl_paused", "0", CVAR_ROM );
-	sv_paused = Cvar_Get( "sv_paused", "0", CVAR_ROM );
 	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM );
 	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM );
 

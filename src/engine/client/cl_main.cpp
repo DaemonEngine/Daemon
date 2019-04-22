@@ -1544,9 +1544,6 @@ void CL_Vid_Restart_f()
 	cls.cgameStarted = false;
 	cls.soundRegistered = false;
 
-	// unpause so the cgame definitely gets a snapshot and renders a frame
-	Cvar_Set( "cl_paused", "0" );
-
 	// if not running a server clear the whole hunk
 	if ( !com_sv_running->integer )
 	{
@@ -2530,8 +2527,7 @@ void CL_CheckTimeout()
 	//
 	// check timeout
 	//
-	if ( ( !cl_paused->integer || !sv_paused->integer )
-	     && cls.state >= connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
 	{
 		if ( ++cl.timeoutcount > 5 )
 		{
@@ -2559,12 +2555,6 @@ void CL_CheckUserinfo()
 {
 	// don't add reliable commands when not yet connected
 	if ( cls.state < connstate_t::CA_CHALLENGING )
-	{
-		return;
-	}
-
-	// don't overflow the reliable command buffer when paused
-	if ( cl_paused->integer )
 	{
 		return;
 	}
@@ -2878,9 +2868,6 @@ bool CL_InitRef( )
 	}
 
 	re = *ret;
-
-	// unpause so the cgame definitely gets a snapshot and renders a frame
-	Cvar_Set( "cl_paused", "0" );
 
 	return true;
 }

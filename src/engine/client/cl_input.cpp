@@ -1023,12 +1023,6 @@ void CL_SendCmd()
 		return;
 	}
 
-	// don't send commands if paused
-	if ( com_sv_running->integer && sv_paused->integer && cl_paused->integer )
-	{
-		return;
-	}
-
 	// we create commands even if a demo is playing,
 	CL_CreateNewCommands();
 

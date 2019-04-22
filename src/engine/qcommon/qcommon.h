@@ -570,10 +570,6 @@ extern Cvar::Cvar<bool> com_ansiColor;
 extern cvar_t       *com_unfocused;
 extern cvar_t       *com_minimized;
 
-// both client and server must agree to pause
-extern cvar_t       *cl_paused;
-extern cvar_t       *sv_paused;
-
 extern cvar_t       *cl_packetdelay;
 extern cvar_t       *sv_packetdelay;
 

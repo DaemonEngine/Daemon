@@ -1266,52 +1266,6 @@ void SV_CheckTimeouts()
 
 /*
 ==================
-SV_CheckPaused
-==================
-*/
-bool SV_CheckPaused()
-{
-	int      count;
-	client_t *cl;
-	int      i;
-
-	if ( !cl_paused->integer )
-	{
-		return false;
-	}
-
-	// only pause if there is just a single client connected
-	count = 0;
-
-	for ( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
-	{
-		if ( cl->state >= clientState_t::CS_CONNECTED && cl->netchan.remoteAddress.type != netadrtype_t::NA_BOT )
-		{
-			count++;
-		}
-	}
-
-	if ( count > 1 )
-	{
-		// don't pause
-		if ( sv_paused->integer )
-		{
-			Cvar_Set( "sv_paused", "0" );
-		}
-
-		return false;
-	}
-
-	if ( !sv_paused->integer )
-	{
-		Cvar_Set( "sv_paused", "1" );
-	}
-
-	return true;
-}
-
-/*
-==================
 SV_FrameMsec
 Return time in milliseconds until processing of the next server frame.
 ==================
@@ -1368,12 +1322,6 @@ void SV_Frame( int msec )
 	}
 
 	if ( !com_sv_running->integer )
-	{
-		return;
-	}
-
-	// allow pause if only the local client is connected
-	if ( SV_CheckPaused() )
 	{
 		return;
 	}

@@ -193,10 +193,6 @@ void CL_ParseSnapshot( msg_t *msg )
 
 	newSnap.serverTime = MSG_ReadLong( msg );
 
-	// if we were just unpaused, we can only *now* really let the
-	// change come into effect or the client hangs.
-	cl_paused->modified = false;
-
 	newSnap.messageNum = clc.serverMessageSequence;
 
 	deltaNum = MSG_ReadByte( msg );
@@ -463,9 +459,6 @@ void CL_ParseGamestate( msg_t *msg )
 	// This used to call CL_StartHunkUsers, but now we enter the download state before loading the
 	// cgame
 	CL_InitDownloads();
-
-	// make sure the game starts
-	Cvar_Set( "cl_paused", "0" );
 }
 
 //=====================================================================

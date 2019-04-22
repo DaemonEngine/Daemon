@@ -877,12 +877,6 @@ void CL_SetCGameTime()
 		Sys::Drop( "CL_SetCGameTime: !cl.snap.valid" );
 	}
 
-	if ( sv_paused->integer && cl_paused->integer && com_sv_running->integer )
-	{
-		// paused
-		return;
-	}
-
 	if ( cl.snap.serverTime < cl.oldFrameServerTime )
 	{
 		// Ridah, if this is a localhost, then we are probably loading a savegame

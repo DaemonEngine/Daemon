@@ -475,9 +475,6 @@ void SV_SpawnServer(const std::string pakname, const std::string mapname)
 	// server has changed
 	svs.snapFlagServerBit ^= SNAPFLAG_SERVERCOUNT;
 
-	// make sure we are not paused
-	Cvar_Set( "cl_paused", "0" );
-
 	// get a new checksum feed and restart the file system
 	srand( Sys_Milliseconds() );
 	sv.checksumFeed = ( ( rand() << 16 ) ^ rand() ) ^ Sys_Milliseconds();
