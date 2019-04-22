@@ -797,8 +797,6 @@ void CL_MapLoading()
 	}
 	else
 	{
-		// clear nextmap so the cinematic shutdown doesn't execute it
-		Cvar_Set( "sv_nextmap", "" );
 		CL_Disconnect( false );
 		Q_strncpyz( cls.servername, "loopback", sizeof( cls.servername ) );
 		*cls.reconnectCmd = 0; // can't reconnect to this!

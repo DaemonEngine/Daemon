@@ -475,10 +475,6 @@ void SV_SpawnServer(const std::string pakname, const std::string mapname)
 	// server has changed
 	svs.snapFlagServerBit ^= SNAPFLAG_SERVERCOUNT;
 
-	// set sv_nextmap to the same map, but it may be overridden
-	// by the game startup or another console command
-	Cvar_Set( "sv_nextmap", "map_restart 0" );
-
 	// make sure we are not paused
 	Cvar_Set( "cl_paused", "0" );
 
@@ -642,7 +638,6 @@ void SV_Init()
 	sv_fps = Cvar_Get( "sv_fps", "40", CVAR_TEMP );
 	sv_timeout = Cvar_Get( "sv_timeout", "240", CVAR_TEMP );
 	sv_zombietime = Cvar_Get( "sv_zombietime", "2", CVAR_TEMP );
-	Cvar_Get( "sv_nextmap", "", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", 0 );
 	sv_master[ 0 ] = Cvar_Get( "sv_master1", MASTER1_SERVER_NAME, 0 );
