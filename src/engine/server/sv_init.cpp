@@ -417,10 +417,10 @@ SV_SpawnServer
 
 Change the server to a new map, taking all connected
 clients along with it.
-This is NOT called for map_restart
+This is NOT called for map_restart, UNLESS the number of client slots changed
 ================
 */
-void SV_SpawnServer(const std::string pakname, const std::string server)
+void SV_SpawnServer(const std::string pakname, const std::string mapname)
 {
 	int        i;
 	bool   isBot;
@@ -429,7 +429,7 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	SV_ShutdownGameProgs();
 
 	PrintBanner( "Server Initialization" )
-	Log::Notice( "Server: %s", server );
+	Log::Notice( "Map: %s", mapname );
 
 #ifndef BUILD_SERVER
 	// clear the whole hunk because we're (re)loading the server
@@ -491,10 +491,10 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	if (!FS_LoadPak(pakname.c_str()))
 		Sys::Drop("Could not load map pak\n");
 
-	CM_LoadMap(server);
+	CM_LoadMap(mapname);
 
 	// set serverinfo visible name
-	Cvar_Set( "mapname", server.c_str() );
+	Cvar_Set( "mapname", mapname.c_str() );
 	Cvar_Set( "pakname", pakname.c_str() );
 
 	// serverid should be different each time
