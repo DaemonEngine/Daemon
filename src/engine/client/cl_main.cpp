@@ -782,7 +782,6 @@ void CL_MapLoading()
 	}
 
 	Con_Close();
-	CL_FlushMemory();
 	cls.keyCatchers = 0;
 
 	// if we are already connected to the local host, stay connected

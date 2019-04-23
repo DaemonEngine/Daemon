@@ -432,8 +432,8 @@ void SV_SpawnServer(const std::string pakname, const std::string mapname)
 	Log::Notice( "Map: %s", mapname );
 
 #ifndef BUILD_SERVER
-	// clear the whole hunk because we're (re)loading the server
-	Hunk_ShutDownRandomStuffAndClear();
+	void CIN_CloseAllVideos();
+	CIN_CloseAllVideos();
 #endif
 
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
