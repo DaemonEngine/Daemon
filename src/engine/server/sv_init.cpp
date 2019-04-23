@@ -769,7 +769,4 @@ void SV_Shutdown( const char *finalmsg )
 #endif
 
 	Log::Notice( "---------------------------\n" );
-
-	// disconnect any local clients
-	CL_Disconnect( false );
 }
