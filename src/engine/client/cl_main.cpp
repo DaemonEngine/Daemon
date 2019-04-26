@@ -305,7 +305,7 @@ void CL_WriteDemoMessage( msg_t *msg, int headerBytes )
 /**
  * If a demo is being recorded, this stops it
  */
-void CL_StopRecord()
+static void CL_StopRecord()
 {
     if ( !clc.demorecording )
         return;
@@ -697,7 +697,36 @@ void CL_NextDemo()
 	Cmd::ExecuteCommandBuffer();
 }
 
+// stop demo recording and playback
+static void StopDemos()
+{
+	// stop demo recording
+	CL_StopRecord();
+
+	// stop demo playback
+	if ( clc.demofile )
+	{
+		FS_FCloseFile( clc.demofile );
+		clc.demofile = 0;
+	}
+}
+
 //======================================================================
+
+// stop video recording and playback
+static void StopVideo()
+{
+	SCR_StopCinematic();
+	CIN_CloseAllVideos();
+
+	// stop recording any video
+	if ( CL_VideoRecording() )
+	{
+		// finish rendering current frame
+		//SCR_UpdateScreen();
+		CL_CloseAVI();
+	}
+}
 
 /*
 =====================
@@ -730,8 +759,9 @@ void CL_ShutdownAll()
 	cls.rendererStarted = false;
 	cls.soundRegistered = false;
 
+	StopVideo();
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
-	CL_StopRecord();
+	StopDemos();
 }
 
 /*
@@ -853,7 +883,13 @@ void CL_Disconnect( bool showMainMenu )
 		return;
 	}
 
-	CL_StopRecord();
+	CL_SendDisconnect();
+
+	if ( cl_useMumble->integer && mumble_islinked() )
+	{
+		Log::Notice("Mumble: Unlinking from Mumble application" );
+		mumble_unlink();
+	}
 
 	if ( !cls.bWWWDlDisconnected )
 	{
@@ -867,21 +903,8 @@ void CL_Disconnect( bool showMainMenu )
 		Cvar_Set( "cl_downloadName", "" );
 	}
 
-	if ( cl_useMumble->integer && mumble_islinked() )
-	{
-		Log::Notice("Mumble: Unlinking from Mumble application" );
-		mumble_unlink();
-	}
-
-	if ( clc.demofile )
-	{
-		FS_FCloseFile( clc.demofile );
-		clc.demofile = 0;
-	}
-
-	SCR_StopCinematic();
-
-	CL_SendDisconnect();
+	StopVideo();
+	StopDemos();
 
 	// allow cheats locally again
 	if (showMainMenu) {
@@ -901,17 +924,6 @@ void CL_Disconnect( bool showMainMenu )
 
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
-
-	// XreaL BEGIN
-	// stop recording any video
-	if ( CL_VideoRecording() )
-	{
-		// finish rendering current frame
-		//SCR_UpdateScreen();
-		CL_CloseAVI();
-	}
-
-	// XreaL END
 
 	// show_bug.cgi?id=589
 	// don't try a restart if rocket is nullptr, as we might be in the middle of a restart already
@@ -1520,14 +1532,8 @@ extern void IN_Restart();  // fretn
 
 void CL_Vid_Restart_f()
 {
-// XreaL BEGIN
 	// settings may have changed so stop recording now
-	if ( CL_VideoRecording() )
-	{
-		CL_CloseAVI();
-	}
-
-// XreaL END
+	StopVideo();
 
 	// don't let them loop during the restart
 	Audio::StopAllSounds();
@@ -1543,18 +1549,7 @@ void CL_Vid_Restart_f()
 	cls.cgameStarted = false;
 	cls.soundRegistered = false;
 
-	// if not running a server clear the whole hunk
-	if ( !com_sv_running->integer )
-	{
-		// clear the whole hunk
-		// BUT DO WE REALLY WANT TO SHUT DOWN RANDOM STUFF TOO?
-		Hunk_ShutDownRandomStuffAndClear();
-	}
-	else
-	{
-		// clear all the client data on the hunk
-		Hunk_Clear();
-	}
+	Hunk_Clear();
 
 	// startup all the client stuff
 	CL_StartHunkUsers();
