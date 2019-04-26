@@ -357,11 +357,11 @@ ALIGNED( 16, shaderCommands_t tess );
 BindLightMap
 =================
 */
-static void BindLightMap( int tmu, bool whiteLight )
+static void BindLightMap( int tmu, bool noLightMap )
 {
 	image_t *lightmap;
 
-	if ( whiteLight )
+	if ( noLightMap )
 	{
 		lightmap = nullptr;
 	}
@@ -1094,7 +1094,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping, bool whiteLight )
+static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping )
 {
 	shaderStage_t *pStage;
 	uint32_t      stateBits;
@@ -1137,6 +1137,10 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	}
 
 	GL_State( stateBits );
+
+	bool noLightMap = pStage->disableImplicitLightmap
+		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
+		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 
@@ -1238,16 +1242,8 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		GL_BindToTMU( 2, tr.blackImage );
 	}
 
-	// do not paintover lightmap
-	// as a standalone lightmap stage
-	// will do later
-	if ( pStage->disableImplicitLightmap )
-	{
-		whiteLight = true;
-	}
-
 	// bind u_LightMap
-	BindLightMap( 3, whiteLight );
+	BindLightMap( 3, noLightMap );
 
 	// bind u_DeluxeMap
 	if ( deluxeMapping )
@@ -2795,7 +2791,7 @@ void Tess_StageIteratorGeneric()
 
 			case stageType_t::ST_LIGHTMAP:
 				{
-					Render_lightMapping( stage, true, false, false );
+					Render_lightMapping( stage, true, false );
 					break;
 				}
 
@@ -2806,20 +2802,15 @@ void Tess_StageIteratorGeneric()
 					{
 						if ( r_precomputedLighting->integer || r_vertexLighting->integer )
 						{
-							if ( (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP) &&
-							     !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX) )
-							{
-								Render_lightMapping( stage, false, false, true );
-							}
-							else if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
+							if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
 							{
 								if ( tr.worldDeluxeMapping && r_normalMapping->integer )
 								{
-									Render_lightMapping( stage, false, true, false );
+									Render_lightMapping( stage, false, true );
 								}
 								else
 								{
-									Render_lightMapping( stage, false, false, false );
+									Render_lightMapping( stage, false, false );
 								}
 							}
 							else if ( backEnd.currentEntity != &tr.worldEntity )
