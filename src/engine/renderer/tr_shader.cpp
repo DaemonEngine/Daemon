@@ -4352,6 +4352,7 @@ static void CollapseStages()
 					ASSERT_GE(lightStage, 0);
 					Log::Debug("found glow map with custom lightmap stage in '%s' shader, not collapsing", shader.name);
 					stages[ glowStage ].type = stageType_t::ST_COLORMAP;
+					// not required since TB_COLORMAP is equal to 0, but the compiler knows how to optimize
 					stages[ glowStage ].bundle[ TB_COLORMAP ] = stages[ glowStage ].bundle[ 0 ];
 
 					// put diffuse stage in the first of the three spots
