@@ -1094,7 +1094,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping )
+static void Render_lightMapping( int stage )
 {
 	shaderStage_t *pStage;
 	uint32_t      stateBits;
@@ -1146,8 +1146,8 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping 
 	bool hasSpecularMap = pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] != nullptr;
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
-	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && hasNormalMap;
-	normalMapping &= deluxeMapping; // && hasNormalMap (done for deluxeMapping)
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && normalMapping;
 	bool heightMapInNormalMap = tess.surfaceShader->heightMapInNormalMap && hasNormalMap;
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
 	bool specularMapping = r_specularMapping->integer && hasSpecularMap;
@@ -1206,8 +1206,9 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping 
 	}
 
 	// bind u_DiffuseMap
-	if ( asColorMap )
+	if ( pStage->type == stageType_t::ST_LIGHTMAP )
 	{
+		// standalone lightmap stage: paint shadows over a white texture
 		GL_BindToTMU( 0, tr.whiteImage );
 	}
 	else
@@ -2794,7 +2795,7 @@ void Tess_StageIteratorGeneric()
 
 			case stageType_t::ST_LIGHTMAP:
 				{
-					Render_lightMapping( stage, true, false );
+					Render_lightMapping( stage );
 					break;
 				}
 
@@ -2807,14 +2808,7 @@ void Tess_StageIteratorGeneric()
 						{
 							if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
 							{
-								if ( tr.worldDeluxeMapping && r_normalMapping->integer )
-								{
-									Render_lightMapping( stage, false, true );
-								}
-								else
-								{
-									Render_lightMapping( stage, false, false );
-								}
+								Render_lightMapping( stage );
 							}
 							else if ( backEnd.currentEntity != &tr.worldEntity )
 							{
