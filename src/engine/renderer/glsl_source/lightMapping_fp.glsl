@@ -80,12 +80,7 @@ void	main()
 #if defined(USE_DELUXE_MAPPING)
 	// compute light direction in world space
 	vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
-#else // !USE_DELUXE_MAPPING
-	// normal/deluxe mapping is disabled
-	color.xyz += lightColor.xyz * diffuse.xyz;
-#endif // USE_DELUXE_MAPPING
 
-#if defined(USE_DELUXE_MAPPING)
 	vec3 L = 2.0 * deluxe.xyz - 1.0;
 	L = normalize(L);
 
@@ -94,6 +89,9 @@ void	main()
 
 	// compute final color
 	computeLight( L, N, viewDir, lightColor, diffuse, specular, color );
+#else // !USE_DELUXE_MAPPING
+	// normal/deluxe mapping is disabled
+	color.xyz += lightColor.xyz * diffuse.xyz;
 #endif // USE_DELUXE_MAPPING
 
 	computeDLights( var_Position, N, viewDir, diffuse, specular, color );
