@@ -1257,6 +1257,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping 
 		GL_BindToTMU( 4, tr.blackImage );
 	}
 
+	// bind u_GlowMap
 	if ( glowMapping )
 	{
 		GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
