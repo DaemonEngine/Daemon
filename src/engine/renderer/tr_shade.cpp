@@ -1143,13 +1143,15 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping 
 		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasSpecularMap = pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] != nullptr;
+	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
 	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && hasNormalMap;
 	normalMapping &= deluxeMapping; // && hasNormalMap (done for deluxeMapping)
 	bool heightMapInNormalMap = tess.surfaceShader->heightMapInNormalMap && hasNormalMap;
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
-	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
+	bool specularMapping = r_specularMapping->integer && hasSpecularMap;
+	bool glowMapping = r_glowMapping->integer && hasGlowMap;
 
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
