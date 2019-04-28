@@ -1048,6 +1048,8 @@ public:
 		return "USE_REFLECTIVE_SPECULAR";
 	}
 
+	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const;
+
 	EGLCompileMacro GetType() const
 	{
 		return EGLCompileMacro::USE_REFLECTIVE_SPECULAR;

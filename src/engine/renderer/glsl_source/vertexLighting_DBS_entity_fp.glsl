@@ -94,8 +94,8 @@ void	main()
 	// compute normal in world space from normalmap
 	vec3 N = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
-	// compute the specular term
 #if defined(USE_REFLECTIVE_SPECULAR)
+	// not implemented for PBR yet
 
 	vec4 specBase = texture2D(u_SpecularMap, texCoords).rgba;
 
@@ -104,7 +104,7 @@ void	main()
 
 	specBase.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
 
-#else
+#else // USE_REFLECTIVE_SPECULAR
 	// simple Blinn-Phong
 	vec4 specBase = texture2D(u_SpecularMap, texCoords).rgba;
 
