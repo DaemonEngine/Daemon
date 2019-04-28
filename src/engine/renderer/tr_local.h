@@ -1002,13 +1002,13 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	enum
 	{
-	  TB_COLORMAP = 0,
-	  TB_DIFFUSEMAP = 0,
+	  TB_COLORMAP,
+	  TB_DIFFUSEMAP = TB_COLORMAP,
 	  TB_NORMALMAP,
 	  TB_SPECULARMAP,
 	  TB_MATERIALMAP = TB_SPECULARMAP,
 	  TB_GLOWMAP,
-	  MAX_TEXTURE_BUNDLES = 4
+	  MAX_TEXTURE_BUNDLES
 	};
 
 	struct textureBundle_t
