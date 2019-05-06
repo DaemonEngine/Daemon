@@ -755,7 +755,6 @@ void CL_ShutdownAll()
 		re.Shutdown( false );  // don't destroy window or context
 	}
 
-	cls.cgameStarted = false;
 	cls.rendererStarted = false;
 	cls.soundRegistered = false;
 
@@ -1542,7 +1541,6 @@ void CL_Vid_Restart_f()
 	CL_ShutdownRef();
 
 	cls.rendererStarted = false;
-	cls.cgameStarted = false;
 	cls.soundRegistered = false;
 
 	Hunk_Clear();
