@@ -1336,6 +1336,7 @@ void LoadPakExplicit(const PakInfo& pak, uint32_t expectedChecksum, std::error_c
 
 void ClearPaks()
 {
+	fsLogs.Verbose("^5Unloading all paks");
 	fileMap.clear();
 	for (LoadedPakInfo& x: loadedPaks) {
 		if (x.fd != -1)
