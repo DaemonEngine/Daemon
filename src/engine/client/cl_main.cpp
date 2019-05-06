@@ -1565,7 +1565,7 @@ void CL_Vid_Restart_f()
 CL_Snd_Restart_f
 
 Restart the sound subsystem
-The cgame and game must also be forced to restart because
+The cgame must also be forced to restart because
 handles will be invalid
 =================
 */
@@ -1575,6 +1575,8 @@ void CL_Snd_Restart_f()
 
 	if( !cls.cgameStarted )
 	{
+		// In the main menu case the cgame is not restarted... but is there anything preventing
+		// the main menu from also using sound handles?
 		if (!Audio::Init()) {
 			Sys::Error("Couldn't initialize the audio subsystem.");
 		}
@@ -2710,8 +2712,8 @@ bool CL_InitRenderer()
 ============================
 CL_StartHunkUsers
 
-After the server has cleared the hunk, these will need to be restarted
-This is the only place that any of these functions are called from
+Starts any of {renderer, audio, cgame vm} that is not already started.
+Only the renderer is really a hunk user.
 ============================
 */
 void CL_StartHunkUsers()
