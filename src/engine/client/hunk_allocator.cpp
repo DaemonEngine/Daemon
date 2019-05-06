@@ -212,26 +212,6 @@ void Hunk_Clear()
 	Log::Debug( "Hunk_Clear: reset the hunk ok" );
 }
 
-/*
-=================
-Hunk_ShutDownRandomStuffAndClear
-
-The server calls this before shutting down or loading a new map
-=================
-*/
-void Hunk_ShutDownRandomStuffAndClear()
-{
-#ifdef BUILD_GRAPHICAL_CLIENT // TODO(slipher): Should either of these also happen for tty client?
-	CL_ShutdownCGame();
-#endif
-	void SV_ShutdownGameProgs();
-	SV_ShutdownGameProgs();
-#ifdef BUILD_GRAPHICAL_CLIENT
-	CIN_CloseAllVideos();
-#endif
-	Hunk_Clear();
-}
-
 static void Hunk_SwapBanks()
 {
 	hunkUsed_t *swap;

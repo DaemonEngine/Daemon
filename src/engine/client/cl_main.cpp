@@ -768,9 +768,8 @@ void CL_ShutdownAll()
 =================
 CL_FlushMemory
 
-Called by CL_MapLoading, CL_Connect_f, CL_PlayDemo_f, and CL_ParseGamestate the only
-ways a client gets into a game
-Also called by Com_Error
+Called by CL_DownloadsComplete (the only way a client gets into a game)
+Also called on a DropError
 =================
 */
 void CL_FlushMemory()
@@ -778,19 +777,16 @@ void CL_FlushMemory()
 	// shutdown all the client stuff
 	CL_ShutdownAll();
 
-	// if not running a server clear the whole hunk
 	if ( !com_sv_running->integer )
 	{
-		// clear the whole hunk
-		Hunk_ShutDownRandomStuffAndClear();
+		void SV_ShutdownGameProgs();
+		SV_ShutdownGameProgs();
+
 		// clear collision map data
 		CM_ClearMap();
 	}
-	else
-	{
-		// clear all the client data on the hunk
-		Hunk_Clear();
-	}
+
+	Hunk_Clear();
 
 	CL_StartHunkUsers();
 }
