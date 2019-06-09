@@ -61,10 +61,6 @@ void CL_PacketEvent( netadr_t, msg_t*  )
 {
 }
 
-void CL_Disconnect( bool )
-{
-}
-
 void CL_MapLoading()
 {
 }

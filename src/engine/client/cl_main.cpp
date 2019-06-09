@@ -305,7 +305,7 @@ void CL_WriteDemoMessage( msg_t *msg, int headerBytes )
 /**
  * If a demo is being recorded, this stops it
  */
-void CL_StopRecord()
+static void CL_StopRecord()
 {
     if ( !clc.demorecording )
         return;
@@ -697,7 +697,36 @@ void CL_NextDemo()
 	Cmd::ExecuteCommandBuffer();
 }
 
+// stop demo recording and playback
+static void StopDemos()
+{
+	// stop demo recording
+	CL_StopRecord();
+
+	// stop demo playback
+	if ( clc.demofile )
+	{
+		FS_FCloseFile( clc.demofile );
+		clc.demofile = 0;
+	}
+}
+
 //======================================================================
+
+// stop video recording and playback
+static void StopVideo()
+{
+	SCR_StopCinematic();
+	CIN_CloseAllVideos();
+
+	// stop recording any video
+	if ( CL_VideoRecording() )
+	{
+		// finish rendering current frame
+		//SCR_UpdateScreen();
+		CL_CloseAVI();
+	}
+}
 
 /*
 =====================
@@ -726,21 +755,20 @@ void CL_ShutdownAll()
 		re.Shutdown( false );  // don't destroy window or context
 	}
 
-	cls.cgameStarted = false;
 	cls.rendererStarted = false;
 	cls.soundRegistered = false;
 
+	StopVideo();
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
-	CL_StopRecord();
+	StopDemos();
 }
 
 /*
 =================
 CL_FlushMemory
 
-Called by CL_MapLoading, CL_Connect_f, CL_PlayDemo_f, and CL_ParseGamestate the only
-ways a client gets into a game
-Also called by Com_Error
+Called by CL_DownloadsComplete (the only way a client gets into a game)
+Also called on a DropError
 =================
 */
 void CL_FlushMemory()
@@ -748,19 +776,16 @@ void CL_FlushMemory()
 	// shutdown all the client stuff
 	CL_ShutdownAll();
 
-	// if not running a server clear the whole hunk
 	if ( !com_sv_running->integer )
 	{
-		// clear the whole hunk
-		Hunk_ShutDownRandomStuffAndClear();
+		void SV_ShutdownGameProgs();
+		SV_ShutdownGameProgs();
+
 		// clear collision map data
 		CM_ClearMap();
 	}
-	else
-	{
-		// clear all the client data on the hunk
-		Hunk_Clear();
-	}
+
+	Hunk_Clear();
 
 	CL_StartHunkUsers();
 }
@@ -782,7 +807,6 @@ void CL_MapLoading()
 	}
 
 	Con_Close();
-	CL_FlushMemory();
 	cls.keyCatchers = 0;
 
 	// if we are already connected to the local host, stay connected
@@ -797,8 +821,6 @@ void CL_MapLoading()
 	}
 	else
 	{
-		// clear nextmap so the cinematic shutdown doesn't execute it
-		Cvar_Set( "sv_nextmap", "" );
 		CL_Disconnect( false );
 		Q_strncpyz( cls.servername, "loopback", sizeof( cls.servername ) );
 		*cls.reconnectCmd = 0; // can't reconnect to this!
@@ -856,7 +878,13 @@ void CL_Disconnect( bool showMainMenu )
 		return;
 	}
 
-	CL_StopRecord();
+	CL_SendDisconnect();
+
+	if ( cl_useMumble->integer && mumble_islinked() )
+	{
+		Log::Notice("Mumble: Unlinking from Mumble application" );
+		mumble_unlink();
+	}
 
 	if ( !cls.bWWWDlDisconnected )
 	{
@@ -870,21 +898,8 @@ void CL_Disconnect( bool showMainMenu )
 		Cvar_Set( "cl_downloadName", "" );
 	}
 
-	if ( cl_useMumble->integer && mumble_islinked() )
-	{
-		Log::Notice("Mumble: Unlinking from Mumble application" );
-		mumble_unlink();
-	}
-
-	if ( clc.demofile )
-	{
-		FS_FCloseFile( clc.demofile );
-		clc.demofile = 0;
-	}
-
-	SCR_StopCinematic();
-
-	CL_SendDisconnect();
+	StopVideo();
+	StopDemos();
 
 	// allow cheats locally again
 	if (showMainMenu) {
@@ -904,17 +919,6 @@ void CL_Disconnect( bool showMainMenu )
 
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
-
-	// XreaL BEGIN
-	// stop recording any video
-	if ( CL_VideoRecording() )
-	{
-		// finish rendering current frame
-		//SCR_UpdateScreen();
-		CL_CloseAVI();
-	}
-
-	// XreaL END
 
 	// show_bug.cgi?id=589
 	// don't try a restart if rocket is nullptr, as we might be in the middle of a restart already
@@ -1523,14 +1527,8 @@ extern void IN_Restart();  // fretn
 
 void CL_Vid_Restart_f()
 {
-// XreaL BEGIN
 	// settings may have changed so stop recording now
-	if ( CL_VideoRecording() )
-	{
-		CL_CloseAVI();
-	}
-
-// XreaL END
+	StopVideo();
 
 	// don't let them loop during the restart
 	Audio::StopAllSounds();
@@ -1543,24 +1541,9 @@ void CL_Vid_Restart_f()
 	CL_ShutdownRef();
 
 	cls.rendererStarted = false;
-	cls.cgameStarted = false;
 	cls.soundRegistered = false;
 
-	// unpause so the cgame definitely gets a snapshot and renders a frame
-	Cvar_Set( "cl_paused", "0" );
-
-	// if not running a server clear the whole hunk
-	if ( !com_sv_running->integer )
-	{
-		// clear the whole hunk
-		// BUT DO WE REALLY WANT TO SHUT DOWN RANDOM STUFF TOO?
-		Hunk_ShutDownRandomStuffAndClear();
-	}
-	else
-	{
-		// clear all the client data on the hunk
-		Hunk_Clear();
-	}
+	Hunk_Clear();
 
 	// startup all the client stuff
 	CL_StartHunkUsers();
@@ -1582,7 +1565,7 @@ void CL_Vid_Restart_f()
 CL_Snd_Restart_f
 
 Restart the sound subsystem
-The cgame and game must also be forced to restart because
+The cgame must also be forced to restart because
 handles will be invalid
 =================
 */
@@ -1592,6 +1575,8 @@ void CL_Snd_Restart_f()
 
 	if( !cls.cgameStarted )
 	{
+		// In the main menu case the cgame is not restarted... but is there anything preventing
+		// the main menu from also using sound handles?
 		if (!Audio::Init()) {
 			Sys::Error("Couldn't initialize the audio subsystem.");
 		}
@@ -2532,8 +2517,7 @@ void CL_CheckTimeout()
 	//
 	// check timeout
 	//
-	if ( ( !cl_paused->integer || !sv_paused->integer )
-	     && cls.state >= connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
 	{
 		if ( ++cl.timeoutcount > 5 )
 		{
@@ -2561,12 +2545,6 @@ void CL_CheckUserinfo()
 {
 	// don't add reliable commands when not yet connected
 	if ( cls.state < connstate_t::CA_CHALLENGING )
-	{
-		return;
-	}
-
-	// don't overflow the reliable command buffer when paused
-	if ( cl_paused->integer )
 	{
 		return;
 	}
@@ -2734,8 +2712,8 @@ bool CL_InitRenderer()
 ============================
 CL_StartHunkUsers
 
-After the server has cleared the hunk, these will need to be restarted
-This is the only place that any of these functions are called from
+Starts any of {renderer, audio, cgame vm} that is not already started.
+Only the renderer is really a hunk user.
 ============================
 */
 void CL_StartHunkUsers()
@@ -2880,9 +2858,6 @@ bool CL_InitRef( )
 	}
 
 	re = *ret;
-
-	// unpause so the cgame definitely gets a snapshot and renders a frame
-	Cvar_Set( "cl_paused", "0" );
 
 	return true;
 }

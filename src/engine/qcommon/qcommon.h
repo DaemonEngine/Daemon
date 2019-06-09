@@ -570,10 +570,6 @@ extern Cvar::Cvar<bool> com_ansiColor;
 extern cvar_t       *com_unfocused;
 extern cvar_t       *com_minimized;
 
-// both client and server must agree to pause
-extern cvar_t       *cl_paused;
-extern cvar_t       *sv_paused;
-
 extern cvar_t       *cl_packetdelay;
 extern cvar_t       *sv_packetdelay;
 
@@ -643,7 +639,6 @@ static inline void Z_Free(void* ptr)
 #ifndef BUILD_SERVER
 void Hunk_Init();
 void     Hunk_Clear();
-void Hunk_ShutDownRandomStuffAndClear();
 void *Hunk_Alloc( int size, ha_pref preference );
 void   *Hunk_AllocateTempMemory( int size );
 void   Hunk_FreeTempMemory( void *buf );

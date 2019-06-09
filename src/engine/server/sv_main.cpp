@@ -1266,52 +1266,6 @@ void SV_CheckTimeouts()
 
 /*
 ==================
-SV_CheckPaused
-==================
-*/
-bool SV_CheckPaused()
-{
-	int      count;
-	client_t *cl;
-	int      i;
-
-	if ( !cl_paused->integer )
-	{
-		return false;
-	}
-
-	// only pause if there is just a single client connected
-	count = 0;
-
-	for ( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )
-	{
-		if ( cl->state >= clientState_t::CS_CONNECTED && cl->netchan.remoteAddress.type != netadrtype_t::NA_BOT )
-		{
-			count++;
-		}
-	}
-
-	if ( count > 1 )
-	{
-		// don't pause
-		if ( sv_paused->integer )
-		{
-			Cvar_Set( "sv_paused", "0" );
-		}
-
-		return false;
-	}
-
-	if ( !sv_paused->integer )
-	{
-		Cvar_Set( "sv_paused", "1" );
-	}
-
-	return true;
-}
-
-/*
-==================
 SV_FrameMsec
 Return time in milliseconds until processing of the next server frame.
 ==================
@@ -1352,7 +1306,6 @@ void SV_Frame( int msec )
 {
 	int        frameMsec;
 	int        startTime;
-	char       mapname[ MAX_QPATH ];
 	int        frameStartTime = 0, frameEndTime;
 	static int start, end;
 
@@ -1368,12 +1321,6 @@ void SV_Frame( int msec )
 	}
 
 	if ( !com_sv_running->integer )
-	{
-		return;
-	}
-
-	// allow pause if only the local client is connected
-	if ( SV_CheckPaused() )
 	{
 		return;
 	}
@@ -1404,25 +1351,22 @@ void SV_Frame( int msec )
 	// 2giga-milliseconds = 23 days, so it won't be too often
 	if ( svs.time > 0x70000000 )
 	{
-		Q_strncpyz( mapname, sv_mapname->string, MAX_QPATH );
-		SV_Shutdown( "Restarting server due to time wrapping" );
 		// TTimo
 		// show_bug.cgi?id=388
 		// there won't be a map_restart if you have shut down the server
 		// since it doesn't restart a non-running server
 		// instead, re-run the current map
-		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(mapname)));
-		return;
+		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname->string)));
+
+		Sys::Drop( "Restarting server due to time wrapping" );
 	}
 
 	// this can happen considerably earlier when lots of clients play and the map doesn't change
 	if ( svs.nextSnapshotEntities >= 0x7FFFFFFE - svs.numSnapshotEntities )
 	{
-		Q_strncpyz( mapname, sv_mapname->string, MAX_QPATH );
-		SV_Shutdown( "Restarting server due to numSnapshotEntities wrapping" );
 		// TTimo see above
-		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(mapname)));
-		return;
+		Cmd::BufferCommandText(Str::Format("map %s", Cmd::Escape(sv_mapname->string)));
+		Sys::Drop( "Restarting server due to numSnapshotEntities wrapping" );
 	}
 
 	if ( sv.restartTime && sv.time >= sv.restartTime )
