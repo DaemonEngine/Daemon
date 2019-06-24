@@ -597,12 +597,6 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 					Cmd::BufferCommandText( "toggleMenu" );
 				}
 			}
-			else
-			{
-				CL_Disconnect_f();
-				Audio::StopAllSounds();
-			}
-
 			return;
 		}
 
