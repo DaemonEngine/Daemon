@@ -504,7 +504,6 @@ void        CL_ClearPing( int n );
 int         CL_GetPingQueueCount();
 
 void        CL_ShutdownRef();
-bool    CL_InitRef();
 
 int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
 
