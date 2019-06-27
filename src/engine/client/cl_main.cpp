@@ -2646,6 +2646,7 @@ void CL_SetRecommended_f()
 	Com_SetRecommended();
 }
 
+static bool CL_InitRef();
 /*
 ============
 CL_InitRenderer
@@ -2653,6 +2654,11 @@ CL_InitRenderer
 */
 bool CL_InitRenderer()
 {
+	if ( !CL_InitRef() )
+	{
+		return false;
+	}
+
 	fileHandle_t f;
 
 	// this sets up the renderer and calls R_Init
@@ -2728,7 +2734,7 @@ void CL_StartHunkUsers()
 		return;
 	}
 
-	if ( !cls.rendererStarted && CL_InitRef() && CL_InitRenderer() )
+	if ( !cls.rendererStarted && CL_InitRenderer() )
 	{
 		cls.rendererStarted = true;
 	}
@@ -2788,7 +2794,7 @@ extern refexport_t *GetRefAPI( int apiVersion, refimport_t *rimp );
 CL_InitRef
 ============
 */
-bool CL_InitRef( )
+static bool CL_InitRef()
 {
 	refimport_t ri;
 	refexport_t *ret;
