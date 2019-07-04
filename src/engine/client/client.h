@@ -496,7 +496,6 @@ void        CL_Disconnect_f();
 void        CL_Vid_Restart_f();
 void        CL_Snd_Restart_f();
 
-void        CL_NextDemo();
 void        CL_ReadDemoMessage();
 
 void        CL_GetPing( int n, char *buf, int buflen, int *pingtime );
