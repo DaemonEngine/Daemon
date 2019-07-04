@@ -90,13 +90,6 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
     ""
 );
 
-Cvar::Cvar<std::string> cvar_demo_next(
-    "demo.next",
-    "Name of the demo to play after the current one",
-    Cvar::NONE,
-    ""
-);
-
 cvar_t *cl_aviFrameRate;
 
 cvar_t *cl_freelook;
@@ -531,7 +524,6 @@ void CL_DemoCompleted()
 	}
 
 	CL_Disconnect( true );
-	CL_NextDemo();
 }
 
 /*
@@ -673,29 +665,6 @@ class DemoPlayCmd: public Cmd::StaticCmd {
         }
 };
 static DemoPlayCmd DemoPlayCmdRegistration;
-
-/*
-==================
-CL_NextDemo
-
-Called when a demo or cinematic finishes
-If the "demo.next" cvar is set, that command will be issued
-==================
-*/
-void CL_NextDemo()
-{
-	std::string v = cvar_demo_next.Get();
-
-	if ( v.empty() )
-	{
-		return;
-	}
-
-	Log::Debug( "CL_NextDemo: %s", v );
-	cvar_demo_next.Set("");
-	Cmd::BufferCommandTextAfter("demo_play " + Cmd::Escape(v), false);
-	Cmd::ExecuteCommandBuffer();
-}
 
 // stop demo recording and playback
 static void StopDemos()
