@@ -918,9 +918,8 @@ void CM_LoadMap(Str::StringRef name)
 	}
 
 	// free old stuff
-    CM_FreeAll();
-	memset( &cm, 0, sizeof( cm ) );
-	CM_ClearLevelPatches();
+	CM_FreeAll();
+	CM_ClearMap();
 
 	if ( !name[ 0 ] )
 	{
