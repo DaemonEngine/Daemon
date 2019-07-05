@@ -2812,6 +2812,7 @@ void Tess_StageIteratorGeneric()
 							}
 							else if ( backEnd.currentEntity != &tr.worldEntity )
 							{
+								// FIXME: This can be reached if r_vertexLighting == 0 and tess.lightmapNum is invalid which doesn't seem right
 								Render_vertexLighting_DBS_entity( stage );
 							}
 							else
