@@ -78,10 +78,6 @@ void CL_JoystickEvent( int, int )
 {
 }
 
-void CL_FlushMemory()
-{
-}
-
 void CL_ShutdownAll()
 {
 }

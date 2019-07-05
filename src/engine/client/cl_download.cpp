@@ -112,7 +112,8 @@ static void CL_DownloadsComplete()
 
 	// flush client memory and start loading stuff
 	// this will also (re)load the UI
-	CL_FlushMemory();
+	CL_ShutdownAll();
+	CL_StartHunkUsers();
 
 	// initialize the CGame
 	cls.cgameStarted = true;

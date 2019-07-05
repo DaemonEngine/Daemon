@@ -484,7 +484,6 @@ extern cvar_t *cl_mumbleScale;
 //
 
 void        CL_Init();
-void        CL_FlushMemory();
 void        CL_ShutdownAll();
 void        CL_AddReliableCommand( const char *cmd );
 
