@@ -89,7 +89,8 @@ class ClientApplication : public Application {
             FS_LoadBasePak();
             SV_Shutdown(Str::Format("Server crashed: %s\n", reason).c_str());
             CL_Disconnect(true);
-            CL_FlushMemory();
+            CL_ShutdownAll();
+            CL_StartHunkUsers();
         }
 
         void Shutdown(bool error, Str::StringRef message) override {

@@ -611,8 +611,6 @@ class DemoPlayCmd: public Cmd::StaticCmd {
             Cvar_Set( "sv_killserver", "1" );
             CL_Disconnect( true );
 
-            //  CL_FlushMemory();   //----(SA)  MEM NOTE: in missionpack, this is moved to CL_DownloadsComplete
-
             // open the demo file
             const std::string& fileName = args.Argv(1);
 
@@ -730,20 +728,6 @@ void CL_ShutdownAll()
 	StopVideo();
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
 	CL_StopRecord();
-}
-
-/*
-=================
-CL_FlushMemory
-
-Called by CL_DownloadsComplete (the only way a client gets into a game)
-Also called on a DropError
-=================
-*/
-void CL_FlushMemory()
-{
-	// shutdown all the client stuff
-	CL_ShutdownAll();
 
 	if ( !com_sv_running->integer )
 	{
@@ -755,8 +739,6 @@ void CL_FlushMemory()
 	}
 
 	Hunk_Clear();
-
-	CL_StartHunkUsers();
 }
 
 /*

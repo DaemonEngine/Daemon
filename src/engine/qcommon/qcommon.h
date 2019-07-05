@@ -705,10 +705,6 @@ void CL_ShutdownAll();
 
 // shutdown all the client stuff
 
-void CL_FlushMemory();
-
-// dump all memory on an error
-
 // AVI files have the start of pixel lines 4 byte-aligned
 #define AVI_LINE_PADDING 4
 
