@@ -760,7 +760,7 @@ void CL_ShutdownAll()
 
 	StopVideo();
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
-	StopDemos();
+	CL_StopRecord();
 }
 
 /*
