@@ -66,12 +66,12 @@ class ServerApplication : public Application {
         void OnDrop(Str::StringRef reason) override {
             FS::PakPath::ClearPaks();
             FS_LoadBasePak();
-            SV_Shutdown(Str::Format("Server crashed: %s\n", reason).c_str());
+            SV_Shutdown(Str::Format("Server crashed: %s", reason).c_str());
         }
 
         void Shutdown(bool error, Str::StringRef message) override {
             TRY_SHUTDOWN(
-                SV_Shutdown(error ? Str::Format("Server fatal crashed: %s\n", message).c_str() : Str::Format("%s\n", message).c_str())
+                SV_Shutdown(error ? Str::Format("Server fatal crashed: %s", message).c_str() : message.c_str())
             );
             TRY_SHUTDOWN(Com_Shutdown());
         }

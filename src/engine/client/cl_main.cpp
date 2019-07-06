@@ -1057,7 +1057,7 @@ void CL_Connect_f()
 	if ( com_sv_running->integer && !strcmp( server, "loopback" ) )
 	{
 		// if running a local server, kill it
-		SV_Shutdown( "Server quit\n" );
+		SV_Shutdown( "Server quit" );
 	}
 
 	// make sure a local server is killed
