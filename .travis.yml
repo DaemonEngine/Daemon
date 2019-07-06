@@ -43,6 +43,7 @@ install:
       sudo ln -s $(which ccache) /usr/lib/ccache/clang
       sudo ln -s $(which ccache) /usr/lib/ccache/clang++
     elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      brew install ccache ninja
       export PATH="/usr/local/opt/ccache/libexec:$PATH"
     fi
 
