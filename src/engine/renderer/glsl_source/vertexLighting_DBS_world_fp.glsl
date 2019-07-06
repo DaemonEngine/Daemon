@@ -99,13 +99,13 @@ void	main()
 	vec4 specular = texture2D(u_SpecularMap, texCoords);
 
 	// compute normal in world space from normalmap
-	vec3 N = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute final color
 	vec4 color = vec4( ambCol * diffuse.xyz, diffuse.a );
-	computeLight( L, N, viewDir, dirCol, diffuse, specular, color );
+	computeLight( L, normal, viewDir, dirCol, diffuse, specular, color );
 
-	computeDLights( var_Position, N, viewDir, diffuse, specular, color );
+	computeDLights( var_Position, normal, viewDir, diffuse, specular, color );
 
 #if defined(r_glowMapping)
 	color.rgb += texture2D(u_GlowMap, texCoords).rgb;

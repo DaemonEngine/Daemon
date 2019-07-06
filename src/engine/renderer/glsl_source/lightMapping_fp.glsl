@@ -70,7 +70,7 @@ void	main()
 	vec4 specular = texture2D(u_SpecularMap, texCoords);
 
 	// compute normal in world space from normalmap
-	vec3 N = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute light color from world space lightmap
 	vec3 lightColor = texture2D(u_LightMap, var_TexLight).xyz;
@@ -80,12 +80,7 @@ void	main()
 #if defined(USE_DELUXE_MAPPING)
 	// compute light direction in world space
 	vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
-#else // !USE_DELUXE_MAPPING
-	// normal/deluxe mapping is disabled
-	color.xyz += lightColor.xyz * diffuse.xyz;
-#endif // USE_DELUXE_MAPPING
 
-#if defined(USE_DELUXE_MAPPING)
 	vec3 L = 2.0 * deluxe.xyz - 1.0;
 	L = normalize(L);
 
@@ -93,10 +88,13 @@ void	main()
 	lightColor /= clamp(dot(normalize(var_Normal), L), 0.004, 1.0);
 
 	// compute final color
-	computeLight( L, N, viewDir, lightColor, diffuse, specular, color );
+	computeLight( L, normal, viewDir, lightColor, diffuse, specular, color );
+#else // !USE_DELUXE_MAPPING
+	// normal/deluxe mapping is disabled
+	color.xyz += lightColor.xyz * diffuse.xyz;
 #endif // USE_DELUXE_MAPPING
 
-	computeDLights( var_Position, N, viewDir, diffuse, specular, color );
+	computeDLights( var_Position, normal, viewDir, diffuse, specular, color );
 
 #if defined(r_glowMapping)
 	color.rgb += texture2D(u_GlowMap, texCoords).rgb;

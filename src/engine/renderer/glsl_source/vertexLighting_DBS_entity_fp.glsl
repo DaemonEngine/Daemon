@@ -92,19 +92,19 @@ void	main()
 #endif // USE_PARALLAX_MAPPING
 
 	// compute normal in world space from normalmap
-	vec3 N = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
-	// compute the specular term
 #if defined(USE_REFLECTIVE_SPECULAR)
+	// not implemented for PBR yet
 
 	vec4 specBase = texture2D(u_SpecularMap, texCoords).rgba;
 
-	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, N)).rgba;
-	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, N)).rgba;
+	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal)).rgba;
+	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal)).rgba;
 
 	specBase.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
 
-#else
+#else // USE_REFLECTIVE_SPECULAR
 	// simple Blinn-Phong
 	vec4 specBase = texture2D(u_SpecularMap, texCoords).rgba;
 
@@ -121,15 +121,15 @@ void	main()
 
 // add Rim Lighting to highlight the edges
 #if defined(r_RimLighting)
-	float rim = pow(1.0 - clamp(dot(N, viewDir), 0.0, 1.0), r_RimExponent);
+	float rim = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), r_RimExponent);
 	vec3 emission = ambCol * rim * rim * 0.2;
 #endif
 
 	// compute final color
 	vec4 color = vec4(ambCol * r_AmbientScale * diffuse.xyz, diffuse.a);
-	computeLight( L, N, viewDir, lgtCol, diffuse, specBase, color );
+	computeLight( L, normal, viewDir, lgtCol, diffuse, specBase, color );
 
-	computeDLights( var_Position, N, viewDir, diffuse, specBase, color );
+	computeDLights( var_Position, normal, viewDir, diffuse, specBase, color );
 
 #if defined(r_RimLighting)
 	color.rgb += 0.7 * emission;
@@ -144,7 +144,7 @@ void	main()
 // Debugging
 #if defined(r_showEntityNormals)
 	// convert normal to [0,1] color space
-	N = N * 0.5 + 0.5;
-	outputColor = vec4(N, 1.0);
+	normal = normal * 0.5 + 0.5;
+	outputColor = vec4(normal, 1.0);
 #endif
 }

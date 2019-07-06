@@ -49,18 +49,18 @@ uniform int u_numLights;
 uniform vec2 u_SpecularExponent;
 
 // lighting helper functions
-void computeLight( vec3 lightDir, vec3 normal, vec3 eyeDir, vec3 lightColor,
+void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 		   vec4 diffuseColor, vec4 specularColor,
 		   inout vec4 accumulator ) {
-  vec3 H = normalize( lightDir + eyeDir );
+  vec3 H = normalize( lightDir + viewDir );
   float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
 
 #if defined(USE_PHYSICAL_SHADING)
   float metalness = specularColor.x;
   float roughness = specularColor.y;
 
-  float NdotV = clamp( dot( normal, eyeDir ), 0.0, 1.0);
-  float VdotH = clamp( dot( eyeDir, H ), 0.0, 1.0);
+  float NdotV = clamp( dot( normal, viewDir ), 0.0, 1.0);
+  float VdotH = clamp( dot( viewDir, H ), 0.0, 1.0);
   float NdotL = clamp( dot( normal, lightDir ), 0.0, 1.0 );
 
   float alpha = roughness * roughness;
@@ -128,7 +128,7 @@ int nextIdx( inout idxs_t idxs ) {
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
-void computeDLight( int idx, vec3 P, vec3 N, vec3 I, vec4 diffuse,
+void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 		    vec4 specular, inout vec4 color ) {
   vec4 center_radius = GetLight( idx, center_radius );
   vec4 color_type = GetLight( idx, color_type );
@@ -155,12 +155,12 @@ void computeDLight( int idx, vec3 P, vec3 N, vec3 I, vec4 diffuse,
     L = GetLight( idx, direction_angle ).xyz;
     attenuation = 1.0;
   }
-  computeLight( L, N, I,
+  computeLight( L, normal, viewDir,
 		attenuation * attenuation * color_type.xyz,
 		diffuse, specular, color );
 }
 
-void computeDLights( vec3 P, vec3 N, vec3 I, vec4 diffuse, vec4 specular,
+void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 specular,
 		     inout vec4 color ) {
   vec2 tile = floor( gl_FragCoord.xy * (1.0 / float( TILE_SIZE ) ) ) + 0.5;
   vec3 tileScale = vec3( r_tileStep, 1.0/numLayers );
@@ -185,7 +185,7 @@ void computeDLights( vec3 P, vec3 N, vec3 I, vec4 diffuse, vec4 specular,
         return;
       }
 
-      computeDLight( idx, P, N, I, diffuse, specular, color );
+      computeDLight( idx, P, normal, viewDir, diffuse, specular, color );
 
 #if defined(r_showLightTiles)
       numLights++;

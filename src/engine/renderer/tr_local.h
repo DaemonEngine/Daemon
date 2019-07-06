@@ -1002,13 +1002,13 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	enum
 	{
-	  TB_COLORMAP = 0,
-	  TB_DIFFUSEMAP = 0,
+	  TB_COLORMAP,
+	  TB_DIFFUSEMAP = TB_COLORMAP,
 	  TB_NORMALMAP,
 	  TB_SPECULARMAP,
 	  TB_MATERIALMAP = TB_SPECULARMAP,
 	  TB_GLOWMAP,
-	  MAX_TEXTURE_BUNDLES = 4
+	  MAX_TEXTURE_BUNDLES
 	};
 
 	struct textureBundle_t
@@ -1054,11 +1054,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	enum class collapseType_t
 	{
 	  COLLAPSE_none,
-	  COLLAPSE_genericMulti,
 	  COLLAPSE_lighting_PHONG,
 	  COLLAPSE_lighting_PBR,
 	  COLLAPSE_reflection_CB,
-	  COLLAPSE_color_lightmap
 	};
 
 	struct shaderStage_t

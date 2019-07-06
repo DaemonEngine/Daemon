@@ -51,11 +51,11 @@ void	main()
 #endif // USE_PARALLAX_MAPPING
 
 	// compute normal in tangent space from normal map
-	vec3 N = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
 
 	// compute reflection ray
-	vec3 R = reflect(viewDir, N);
+	vec3 reflectionRay = reflect(viewDir, normal);
 
-	outputColor = textureCube(u_ColorMap, R).rgba;
+	outputColor = textureCube(u_ColorMap, reflectionRay).rgba;
 	// outputColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

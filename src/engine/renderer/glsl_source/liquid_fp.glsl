@@ -103,17 +103,16 @@ void	main()
 #endif
 
 	// compute normals
-
 	vec3 N = normalize(var_Normal);
 
 	// compute normal in world space from normalmap
-	vec3 N2 = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
 
 	// compute fresnel term
-	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, N), u_FresnelPower) *
+	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, normal), u_FresnelPower) *
 			u_FresnelScale, 0.0, 1.0);
 
-	texScreen += u_NormalScale * N2.xy;
+	texScreen += u_NormalScale * normal.xy;
 
 	vec3 refractColor = texture2D(u_CurrentMap, texScreen).rgb;
 	vec3 reflectColor = texture2D(u_PortalMap, texScreen).rgb;
@@ -153,11 +152,11 @@ void	main()
 	vec3 H = normalize(L + viewDir);
 
 	// compute the light term
-	vec3 light = lgtCol * clamp(dot(N2, L), 0.0, 1.0);
+	vec3 light = lgtCol * clamp(dot(normal, L), 0.0, 1.0);
 
 #if defined(r_specularMapping)
 	// compute the specular term
-	vec3 specular = reflectColor * lgtCol * pow(clamp(dot(N2, H), 0.0, 1.0), u_SpecularExponent.x + u_SpecularExponent.y) * r_SpecularScale;
+	vec3 specular = reflectColor * lgtCol * pow(clamp(dot(normal, H), 0.0, 1.0), u_SpecularExponent.x + u_SpecularExponent.y) * r_SpecularScale;
 	color.rgb += specular;
 #endif // r_specularMapping
 

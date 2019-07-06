@@ -1191,6 +1191,21 @@ void GLShaderManager::BindAttribLocations( GLuint program ) const
 	}
 }
 
+// reflective specular not implemented for PBR yet
+bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+{
+	for (const GLCompileMacro* macro : macros)
+	{
+		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_SHADING || macro->GetType() == USE_VERTEX_SPRITE) )
+		{
+			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)

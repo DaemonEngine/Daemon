@@ -357,11 +357,11 @@ ALIGNED( 16, shaderCommands_t tess );
 BindLightMap
 =================
 */
-static void BindLightMap( int tmu, bool whiteLight )
+static void BindLightMap( int tmu, bool noLightMap )
 {
 	image_t *lightmap;
 
-	if ( whiteLight )
+	if ( noLightMap )
 	{
 		lightmap = nullptr;
 	}
@@ -1094,7 +1094,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping, bool whiteLight )
+static void Render_lightMapping( int stage )
 {
 	shaderStage_t *pStage;
 	uint32_t      stateBits;
@@ -1138,14 +1138,20 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 
 	GL_State( stateBits );
 
-	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool noLightMap = pStage->disableImplicitLightmap
+		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
+		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
 
-	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && hasNormalMap;
-	normalMapping &= deluxeMapping; // && hasNormalMap (done for deluxeMapping)
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasSpecularMap = pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] != nullptr;
+	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
+
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && normalMapping;
 	bool heightMapInNormalMap = tess.surfaceShader->heightMapInNormalMap && hasNormalMap;
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
-	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
+	bool specularMapping = r_specularMapping->integer && hasSpecularMap;
+	bool glowMapping = r_glowMapping->integer && hasGlowMap;
 
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
@@ -1200,8 +1206,9 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 	}
 
 	// bind u_DiffuseMap
-	if ( asColorMap )
+	if ( pStage->type == stageType_t::ST_LIGHTMAP )
 	{
+		// standalone lightmap stage: paint shadows over a white texture
 		GL_BindToTMU( 0, tr.whiteImage );
 	}
 	else
@@ -1238,6 +1245,9 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		GL_BindToTMU( 2, tr.blackImage );
 	}
 
+	// bind u_LightMap
+	BindLightMap( 3, noLightMap );
+
 	// bind u_DeluxeMap
 	if ( deluxeMapping )
 	{
@@ -1248,17 +1258,7 @@ static void Render_lightMapping( int stage, bool asColorMap, bool normalMapping,
 		GL_BindToTMU( 4, tr.blackImage );
 	}
 
-	// do not paintover lightmap
-	// as a standalone lightmap stage
-	// will do later
-	if ( pStage->disableImplicitLightmap )
-	{
-		whiteLight = true;
-	}
-
-	// bind u_LightMap
-	BindLightMap( 3, whiteLight );
-
+	// bind u_GlowMap
 	if ( glowMapping )
 	{
 		GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
@@ -2795,7 +2795,7 @@ void Tess_StageIteratorGeneric()
 
 			case stageType_t::ST_LIGHTMAP:
 				{
-					Render_lightMapping( stage, true, false, false );
+					Render_lightMapping( stage );
 					break;
 				}
 
@@ -2806,24 +2806,13 @@ void Tess_StageIteratorGeneric()
 					{
 						if ( r_precomputedLighting->integer || r_vertexLighting->integer )
 						{
-							if ( (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP) &&
-							     !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX) )
+							if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
 							{
-								Render_lightMapping( stage, false, false, true );
-							}
-							else if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
-							{
-								if ( tr.worldDeluxeMapping && r_normalMapping->integer )
-								{
-									Render_lightMapping( stage, false, true, false );
-								}
-								else
-								{
-									Render_lightMapping( stage, false, false, false );
-								}
+								Render_lightMapping( stage );
 							}
 							else if ( backEnd.currentEntity != &tr.worldEntity )
 							{
+								// FIXME: This can be reached if r_vertexLighting == 0 and tess.lightmapNum is invalid which doesn't seem right
 								Render_vertexLighting_DBS_entity( stage );
 							}
 							else

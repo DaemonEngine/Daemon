@@ -35,13 +35,13 @@ void	main()
 	vec4 color;
 
 	// compute normal in tangent space from normalmap
-	vec3 N = NormalInTangentSpace(var_TexCoords);
+	vec3 normal = NormalInTangentSpace(var_TexCoords);
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st * r_FBufScale;
 
 	// offset by the scaled normal and clamp it to 0.0 - 1.0
-	st += N.xy * var_Deform;
+	st += normal.xy * var_Deform;
 	st = clamp(st, 0.0, 1.0);
 
 	color = texture2D(u_CurrentMap, st);

@@ -58,10 +58,10 @@ void	main()
 	P.xyz /= P.w;
 
 	// compute incident ray in world space
-	vec3 R = normalize(P.xyz - u_ViewOrigin);
-	//vec3 R = normalize(u_ViewOrigin - P.xyz);
+	vec3 incidentRay = normalize(P.xyz - u_ViewOrigin);
+	//vec3 incidentRay = normalize(u_ViewOrigin - P.xyz);
 
-	//float traceDistance = dot(P.xyz - (u_ViewOrigin.xyz + R * u_ZNear ), forward);
+	//float traceDistance = dot(P.xyz - (u_ViewOrigin.xyz + incidentRay * u_ZNear ), forward);
 	//traceDistance = clamp(traceDistance, 0.0, 2500.0 ); // Far trace distance
 
 	float traceDistance = distance(P.xyz, u_ViewOrigin);
@@ -79,9 +79,9 @@ void	main()
 
 	for(float tracedDistance = 0.0; tracedDistance < traceDistance; tracedDistance += stepSize)
 	{
-		//vec3 T = P.xyz + (R * stepSize * float(i));
-		//vec3 T = u_ViewOrigin + (R * stepSize * float(i));
-		vec3 T = u_ViewOrigin + (R * tracedDistance);
+		//vec3 T = P.xyz + (incidentRay * stepSize * float(i));
+		//vec3 T = u_ViewOrigin + (incidentRay * stepSize * float(i));
+		vec3 T = u_ViewOrigin + (incidentRay * tracedDistance);
 
 		// compute attenuation
 		vec3 texAttenXYZ		= (u_LightAttenuationMatrix * vec4(T, 1.0)).xyz;
