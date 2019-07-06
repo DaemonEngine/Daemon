@@ -508,7 +508,7 @@ CL_DemoCompleted
 =================
 */
 
-void CL_DemoCompleted()
+NORETURN static void CL_DemoCompleted()
 {
 	if ( cvar_demo_timedemo.Get() )
 	{
@@ -523,7 +523,7 @@ void CL_DemoCompleted()
 		}
 	}
 
-	CL_Disconnect( true );
+	throw Sys::DropErr(false, "Demo completed");
 }
 
 /*
@@ -542,7 +542,6 @@ void CL_ReadDemoMessage()
 	if ( !clc.demofile )
 	{
 		CL_DemoCompleted();
-		return;
 	}
 
 	// get the sequence number
@@ -551,7 +550,6 @@ void CL_ReadDemoMessage()
 	if ( r != 4 )
 	{
 		CL_DemoCompleted();
-		return;
 	}
 
 	clc.serverMessageSequence = LittleLong( s );
@@ -565,7 +563,6 @@ void CL_ReadDemoMessage()
 	if ( r != 4 )
 	{
 		CL_DemoCompleted();
-		return;
 	}
 
 	buf.cursize = LittleLong( buf.cursize );
@@ -573,7 +570,6 @@ void CL_ReadDemoMessage()
 	if ( buf.cursize == -1 )
 	{
 		CL_DemoCompleted();
-		return;
 	}
 
 	if ( buf.cursize > buf.maxsize )
@@ -587,7 +583,6 @@ void CL_ReadDemoMessage()
 	{
 		Log::Notice("Demo file was truncated.");
 		CL_DemoCompleted();
-		return;
 	}
 
 	clc.lastPacketTime = cls.realtime;
