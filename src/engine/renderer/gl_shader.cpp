@@ -842,7 +842,7 @@ void GLShaderManager::InitShader( GLShader *shader )
 
 	shader->_vertexShaderText = BuildGPUShaderText( shader->GetMainShaderName(), vertexInlines, GL_VERTEX_SHADER );
 	shader->_fragmentShaderText = BuildGPUShaderText( shader->GetMainShaderName(), fragmentInlines, GL_FRAGMENT_SHADER );
-	std::string combinedShaderText= shader->_vertexShaderText + shader->_fragmentShaderText;
+	std::string combinedShaderText = GLEngineConstants.getText() + shader->_vertexShaderText + shader->_fragmentShaderText;
 
 	shader->_checkSum = Com_BlockChecksum( combinedShaderText.c_str(), combinedShaderText.length() );
 }
