@@ -685,10 +685,14 @@ ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 	try {
 		while (true) {
 			try {
-                Application::Frame();
+				Application::Frame();
 			} catch (Sys::DropErr& err) {
-				Log::Warn(err.what());
-                Application::OnDrop(err.what());
+				if (err.is_error()) {
+					Log::Warn(err.what());
+				} else {
+					Log::Notice(err.what());
+				}
+				Application::OnDrop(err.is_error(), err.what());
 			}
 		}
 	} catch (Sys::DropErr& err) {

@@ -63,10 +63,10 @@ class ServerApplication : public Application {
             Com_Frame();
         }
 
-        void OnDrop(Str::StringRef reason) override {
+        void OnDrop(bool error, Str::StringRef reason) override {
             FS::PakPath::ClearPaks();
             FS_LoadBasePak();
-            SV_Shutdown(Str::Format("Server crashed: %s", reason).c_str());
+            SV_Shutdown(Str::Format("Server %s: %s", error ? "crashed" : "shutdown", reason).c_str());
         }
 
         void Shutdown(bool error, Str::StringRef message) override {

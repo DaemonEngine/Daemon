@@ -166,7 +166,7 @@ void Drop(Str::StringRef message)
 		errorCount = 0;
 	lastError = now;
 
-	throw DropErr(message.c_str());
+	throw DropErr(true, message);
 }
 
 #ifdef _WIN32

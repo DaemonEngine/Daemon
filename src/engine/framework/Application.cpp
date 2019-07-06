@@ -47,7 +47,7 @@ namespace Application {
     void Application::Initialize(Str::StringRef) {
     }
 
-    void Application::OnDrop(Str::StringRef) {
+    void Application::OnDrop(bool, Str::StringRef) {
     }
 
     void Application::Shutdown(bool, Str::StringRef) {
@@ -73,8 +73,8 @@ namespace Application {
         GetApp().Frame();
     }
 
-    void OnDrop(Str::StringRef reason) {
-        GetApp().OnDrop(reason);
+    void OnDrop(bool error, Str::StringRef reason) {
+        GetApp().OnDrop(error, reason);
     }
 
     void Shutdown(bool error, Str::StringRef message) {
