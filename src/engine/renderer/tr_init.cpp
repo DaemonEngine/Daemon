@@ -168,6 +168,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_highQualityNormalMapping;
 	cvar_t      *r_parallaxDepthScale;
 	cvar_t      *r_parallaxMapping;
+	cvar_t      *r_quickLightParallaxMapping;
 	cvar_t      *r_glowMapping;
 	cvar_t      *r_reflectionMapping;
 
@@ -1199,6 +1200,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_highQualityNormalMapping = ri.Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
 		r_parallaxDepthScale = ri.Cvar_Get( "r_parallaxDepthScale", "0.03", CVAR_CHEAT );
 		r_parallaxMapping = ri.Cvar_Get( "r_parallaxMapping", "0", 0 );
+		r_quickLightParallaxMapping = ri.Cvar_Get( "r_quickLightParallaxMapping", "1", CVAR_LATCH );
 		r_glowMapping = ri.Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
 		r_reflectionMapping = ri.Cvar_Get( "r_reflectionMapping", "0", CVAR_CHEAT );
 

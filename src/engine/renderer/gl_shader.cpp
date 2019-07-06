@@ -584,6 +584,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_normalMapping", 1 );
 	}
 
+	if ( r_quickLightParallaxMapping->integer )
+	{
+		AddDefine( str, "r_quickLightParallaxMapping", 1 );
+	}
+
 	if ( r_specularMapping->integer )
 	{
 		AddDefine( str, "r_specularMapping", 1 );
