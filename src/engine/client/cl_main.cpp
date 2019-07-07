@@ -767,7 +767,11 @@ void CL_MapLoading()
 	}
 	else
 	{
-		CL_Disconnect( false );
+		try {
+			CL_Disconnect( false );
+		} catch (Sys::DropErr& err) {
+			Sys::Error( "CL_Disconnect error during map load: %s", err.what() );
+		}
 		Q_strncpyz( cls.servername, "loopback", sizeof( cls.servername ) );
 		*cls.reconnectCmd = 0; // can't reconnect to this!
 		cls.state = connstate_t::CA_CHALLENGING; // so the connect screen is drawn
@@ -952,7 +956,7 @@ CL_Disconnect_f
 */
 void CL_Disconnect_f()
 {
-	CL_Disconnect( false );
+	throw Sys::DropErr(false, "Disconnecting.");
 }
 
 /*
@@ -1059,7 +1063,11 @@ void CL_Connect_f()
 	Cvar_Set( "sv_killserver", "1" );
 	SV_Frame( 0 );
 
-	CL_Disconnect( true );
+	try {
+		CL_Disconnect( true );
+	} catch (Sys::DropErr& err) {
+		Sys::Error( "CL_Disconnect error during /connect: %s", err.what() );
+	}
 	Con_Close();
 
 	if ( !NET_StringToAdr( cls.servername, &clc.serverAddress, family ) )
@@ -1722,8 +1730,6 @@ to the client so it doesn't have to wait for the full timeout period.
 */
 void CL_DisconnectPacket( netadr_t from )
 {
-	const char *message;
-
 	if ( cls.state < connstate_t::CA_CONNECTING )
 	{
 		return;
@@ -1747,10 +1753,9 @@ void CL_DisconnectPacket( netadr_t from )
 	}
 
 	// drop the connection
-	message = "Server disconnected for unknown reason";
-	Log::Notice( "%s", message );
+	const char* message = "Server disconnected for unknown reason";
 	Cvar_Set( "com_errorMessage", message );
-	CL_Disconnect( true );
+	Sys::Drop( message );
 }
 
 /*
@@ -2449,9 +2454,9 @@ void CL_CheckTimeout()
 		if ( ++cl.timeoutcount > 5 )
 		{
 			// timeoutcount saves debugger
-			Cvar_Set( "com_errorMessage", "Server connection timed out." );
-			CL_Disconnect( true );
-			return;
+			const char* message = "Server connection timed out.";
+			Cvar_Set( "com_errorMessage", message );
+			Sys::Drop( message );
 		}
 	}
 	else
