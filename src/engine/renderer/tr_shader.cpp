@@ -5201,7 +5201,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 
 	if ( !image )
 	{
-		Log::Debug("Couldn't find image file for shader %s", name );
+		Log::Warn("Couldn't find image file for shader %s", name );
 		shader.defaultShader = true;
 		return FinishShader();
 	}
