@@ -50,35 +50,16 @@ static const soundExtToLoaderMap_t soundLoaders[] =
 
 static int numSoundLoaders = ARRAY_LEN(soundLoaders);
 
-AudioData LoadSoundCodec(std::string filename)
+static int FindSoundLoader(std::string filename)
 {
+	const FS::PakInfo* bestPak = nullptr;
+	int bestLoader = -1;
 
-	std::string ext = FS::Path::Extension(filename);
-
-	// if filename has extension, try to load it
-	if (ext != "") {
-		// look for the correct loader and use it
-		for (int i = 0; i < numSoundLoaders; i++) {
-			if (ext == soundLoaders[i].ext) {
-				// if file exists, load it
-				if (FS::PakPath::FileExists(filename)) {
-					return soundLoaders[i].SoundLoader(filename);
-				}
-			}
-		}
-	}
-
-	// if filename does not have extension or there is no file with such extension
-	// or if there is no codec available for this file format,
 	// try and find a suitable match using all the sound file formats supported
 	// prioritize with the pak priority
-	int bestLoader = -1;
-	const FS::PakInfo* bestPak = nullptr;
-	std::string strippedname = FS::Path::StripExtension(filename);
-
 	for (int i = 0; i < numSoundLoaders; i++)
 	{
-		std::string altName = Str::Format("%s%s", strippedname, soundLoaders[i].ext);
+		std::string altName = Str::Format("%s%s", filename, soundLoaders[i].ext);
 		const FS::PakInfo* pak = FS::PakPath::LocateFile(altName);
 
 		// We found a file and its pak is better than the best pak we have
@@ -91,9 +72,44 @@ AudioData LoadSoundCodec(std::string filename)
 		}
 	}
 
+	return bestLoader;
+}
+
+AudioData LoadSoundCodec(std::string filename)
+{
+
+	std::string ext = FS::Path::Extension(filename);
+
+	// if filename has extension, try to load it
+	if (!ext.empty()) {
+		// look for the correct loader and use it
+		for (int i = 0; i < numSoundLoaders; i++) {
+			if (ext == soundLoaders[i].ext) {
+				// if file exists, load it
+				if (FS::PakPath::FileExists(filename)) {
+					return soundLoaders[i].SoundLoader(filename);
+				}
+			}
+		}
+	}
+
+	// if the file isn't there, maybe the file path did not have any extension,
+	// and it may be possible the file has a dot in its name that was mistakenly
+	// taken as an extension
+	int bestLoader = FindSoundLoader(filename);
+
+	if (!ext.empty() && bestLoader == -1)
+	{
+		// if there is no file with such extension
+		// or there is no codec available for this file format
+		filename = FS::Path::StripExtension(filename);
+
+		bestLoader = FindSoundLoader(filename);
+	}
+
 	if (bestLoader >= 0)
 	{
-		std::string altName = Str::Format("%s%s", strippedname, soundLoaders[bestLoader].ext );
+		std::string altName = Str::Format("%s%s", filename, soundLoaders[bestLoader].ext );
 		return soundLoaders[bestLoader].SoundLoader(altName);
 	}
 

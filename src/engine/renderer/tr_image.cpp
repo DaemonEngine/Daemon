@@ -1758,11 +1758,20 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 		}
 	}
 
-	// the file isn't there, try again without the extension
-	COM_StripExtension3( token, filename, MAX_QPATH );
-
+	// if the file isn't there, maybe the file path did not have any extension,
+	// and it may be possible the file has a dot in its name that was mistakenly
+	// taken as an extension
 	const char *prefix;
 	int bestLoader = R_FindImageLoader( filename, &prefix );
+
+	if ( *ext && bestLoader == -1 )
+	{
+		// if there is no file with such extension
+		// or there is no codec available for this file format
+		COM_StripExtension3( token, filename, sizeof(filename) );
+
+		bestLoader = R_FindImageLoader( filename, &prefix );
+	}
 
 	if ( bestLoader >= 0 )
 	{
