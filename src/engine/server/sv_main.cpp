@@ -78,9 +78,6 @@ cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
 cvar_t *sv_wwwDownload; // server does a www dl redirect
 cvar_t *sv_wwwBaseURL; // base URL for redirect
 
-// tell clients to perform their downloads while disconnected from the server
-// this gets you a better throughput, but you lose the ability to control the download usage
-cvar_t *sv_wwwDlDisconnected;
 cvar_t *sv_wwwFallbackURL; // URL to send to if an http/ftp fails or is refused client side
 
 //bani

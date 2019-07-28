@@ -331,9 +331,8 @@ struct clientStatic_t
 	fontInfo_t *consoleFont;
 
 	// www downloading
-	// in the static stuff since this may have to survive server disconnects
+	// in the static stuff since this may have to survive server disconnects (but disconnected dl was removed so this is maybe no longer true?)
 	// if new stuff gets added, CL_ClearStaticDownload code needs to be updated for clear up
-	bool bWWWDlDisconnected; // keep going with the download after server disconnect
 	char     downloadName[ MAX_OSPATH ];
 	char     downloadTempName[ MAX_OSPATH ]; // in wwwdl mode, this is OS path (it's a qpath otherwise)
 	char     originalDownloadName[ MAX_QPATH ]; // if we get a redirect, keep a copy of the original file path

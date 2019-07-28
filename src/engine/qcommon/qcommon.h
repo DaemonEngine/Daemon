@@ -501,7 +501,7 @@ void       DL_Shutdown();
 // bitmask
 enum dlFlags_t
 {
-  DL_FLAG_DISCON = 1 << 0
+  DL_FLAG_DISCON = 1 << 0, // Obsolete, unused
 };
 
 /*

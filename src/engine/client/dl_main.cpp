@@ -217,8 +217,6 @@ dlStatus_t DL_DownloadLoop()
 
 	dl_request = nullptr;
 
-	Cvar_Set( "ui_dl_running", "0" );
-
 	if ( err )
 	{
 		Log::Debug( "DL_DownloadLoop: request terminated with failure status '%s'", err );
