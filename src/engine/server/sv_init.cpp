@@ -655,7 +655,6 @@ void SV_Init()
 
 	sv_wwwDownload = Cvar_Get( "sv_wwwDownload", "0", 0 );
 	sv_wwwBaseURL = Cvar_Get( "sv_wwwBaseURL", WWW_BASEURL, 0 );
-	sv_wwwDlDisconnected = Cvar_Get( "sv_wwwDlDisconnected", "0", 0 );
 	sv_wwwFallbackURL = Cvar_Get( "sv_wwwFallbackURL", "", 0 );
 
 	//bani

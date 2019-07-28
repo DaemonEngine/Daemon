@@ -612,11 +612,6 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 		cl->bWWWing = true;
 		return;
 	}
-	else if ( !Q_stricmp( subcmd, "bbl8r" ) )
-	{
-		SV_DropClient( cl, "acking disconnected download mode" );
-		return;
-	}
 
 	// below for messages that only happen during/after download
 	if ( !cl->bWWWing )
@@ -815,11 +810,6 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					MSG_WriteString( msg, cl->downloadURL );
 					MSG_WriteLong( msg, downloadSize );
 					download_flag = 0;
-
-					if ( sv_wwwDlDisconnected->integer )
-					{
-						download_flag |= DL_FLAG_DISCON;
-					}
 
 					MSG_WriteLong( msg, download_flag );  // flags
 					return;

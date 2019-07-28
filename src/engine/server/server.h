@@ -327,9 +327,6 @@ extern cvar_t *sv_dl_maxRate;
 extern cvar_t *sv_wwwDownload; // general flag to enable/disable www download redirects
 extern cvar_t *sv_wwwBaseURL; // the base URL of all the files
 
-// tell clients to perform their downloads while disconnected from the server
-// this gets you a better throughput, but you lose the ability to control the download usage
-extern cvar_t *sv_wwwDlDisconnected;
 extern cvar_t *sv_wwwFallbackURL;
 
 //bani

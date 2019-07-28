@@ -47,7 +47,6 @@ Clear download information that we keep in cls (disconnected download support)
 void CL_ClearStaticDownload()
 {
 	downloadLogger.Debug("Clearing the download info");
-	ASSERT(!cls.bWWWDlDisconnected);  // reset before calling
 	cls.downloadRestart = false;
 	cls.downloadTempName[ 0 ] = '\0';
 	cls.downloadName[ 0 ] = '\0';
@@ -75,25 +74,14 @@ static void CL_DownloadsComplete()
 		FS::PakPath::ClearPaks();
 		FS_LoadServerPaks(Cvar_VariableString("sv_paks"), clc.demoplaying); // We possibly downloaded a pak, restart the file system to load it
 
-		if ( !cls.bWWWDlDisconnected )
-		{
-			// inform the server so we get new gamestate info
-			CL_AddReliableCommand( "donedl" );
-		}
+		// inform the server so we get new gamestate info
+		CL_AddReliableCommand( "donedl" );
 
 		// we can reset that now
-		cls.bWWWDlDisconnected = false;
 		CL_ClearStaticDownload();
 
 		// by sending the donedl command we request a new gamestate
 		// so we don't want to load stuff yet
-		return;
-	}
-
-	if ( cls.bWWWDlDisconnected )
-	{
-		cls.bWWWDlDisconnected = false;
-		CL_ClearStaticDownload();
 		return;
 	}
 
@@ -224,7 +212,6 @@ void CL_InitDownloads()
 	// init some of the www dl data
 	clc.bWWWDl = false;
 	clc.bWWWDlAborting = false;
-	cls.bWWWDlDisconnected = false;
 	CL_ClearStaticDownload();
 
 	if ( cl_allowDownload->integer )
@@ -294,44 +281,26 @@ void CL_WWWDownload()
 		*cls.downloadTempName = *cls.downloadName = 0;
 		Cvar_Set( "cl_downloadName", "" );
 
-		if ( !cls.bWWWDlDisconnected )
-		{
-			CL_AddReliableCommand( "wwwdl done" );
+		CL_AddReliableCommand( "wwwdl done" );
 
-			// tracking potential web redirects leading us to wrong checksum - only works in connected mode
-			if ( strlen( clc.redirectedList ) + strlen( cls.originalDownloadName ) + 1 >= sizeof( clc.redirectedList ) )
-			{
-				// just to be safe
-				Log::Warn( "redirectedList overflow (%s)\n", clc.redirectedList );
-			}
-			else
-			{
-				strcat( clc.redirectedList, "@" );
-				strcat( clc.redirectedList, cls.originalDownloadName );
-			}
+		// tracking potential web redirects leading us to wrong checksum - only works in connected mode
+		if ( strlen( clc.redirectedList ) + strlen( cls.originalDownloadName ) + 1 >= sizeof( clc.redirectedList ) )
+		{
+			// just to be safe
+			Log::Warn( "redirectedList overflow (%s)\n", clc.redirectedList );
+		}
+		else
+		{
+			strcat( clc.redirectedList, "@" );
+			strcat( clc.redirectedList, cls.originalDownloadName );
 		}
 	}
 	else
 	{
-		if ( cls.bWWWDlDisconnected )
-		{
-			// in a connected download, we'd tell the server about failure and wait for a reply
-			// but in this case we can't get anything from server
-			// if we just reconnect it's likely we'll get the same disconnected download message, and error out again
-			// this may happen for a regular dl or an auto update
-			const char *error = va( "Download failure while getting '%s'\n", cls.downloadName );  // get the msg before clearing structs
-
-			cls.bWWWDlDisconnected = false; // need clearing structs before ERR_DROP, or it goes into endless reload
-			CL_ClearStaticDownload();
-			Sys::Drop( "%s", error );
-		}
-		else
-		{
-			// see CL_ParseDownload, same abort strategy
-			Log::Notice( "Download failure while getting '%s'\n", cls.downloadName );
-			CL_AddReliableCommand( "wwwdl fail" );
-			clc.bWWWDlAborting = true;
-		}
+		// see CL_ParseDownload, same abort strategy
+		Log::Notice( "Download failure while getting '%s'\n", cls.downloadName );
+		CL_AddReliableCommand( "wwwdl fail" );
+		clc.bWWWDlAborting = true;
 
 		return;
 	}
@@ -447,14 +416,6 @@ void CL_ParseDownload( msg_t *msg )
 				CL_AddReliableCommand( "wwwdl fail" );
 				clc.bWWWDlAborting = true;
 				Log::Notice( "Failed to initialize download for '%s'\n", cls.downloadName );
-			}
-
-			// Check for a disconnected download
-			// we'll let the server disconnect us when it gets the bbl8r message
-			if ( clc.downloadFlags & DL_FLAG_DISCON )
-			{
-				CL_AddReliableCommand( "wwwdl bbl8r" );
-				cls.bWWWDlDisconnected = true;
 			}
 
 			return;

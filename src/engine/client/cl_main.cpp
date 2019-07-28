@@ -837,17 +837,14 @@ void CL_Disconnect( bool showMainMenu )
 		mumble_unlink();
 	}
 
-	if ( !cls.bWWWDlDisconnected )
+	if ( clc.download )
 	{
-		if ( clc.download )
-		{
-			FS_FCloseFile( clc.download );
-			clc.download = 0;
-		}
-
-		*cls.downloadTempName = *cls.downloadName = 0;
-		Cvar_Set( "cl_downloadName", "" );
+		FS_FCloseFile( clc.download );
+		clc.download = 0;
 	}
+
+	*cls.downloadTempName = *cls.downloadName = 0;
+	Cvar_Set( "cl_downloadName", "" );
 
 	StopVideo();
 	StopDemos();
@@ -863,10 +860,7 @@ void CL_Disconnect( bool showMainMenu )
 	clc.~clientConnection_t();
 	new(&clc) clientConnection_t{}; // Using {} instead of () to work around MSVC bug
 
-	if ( !cls.bWWWDlDisconnected )
-	{
-		CL_ClearStaticDownload();
-	}
+	CL_ClearStaticDownload();
 
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
@@ -1057,8 +1051,6 @@ void CL_Connect_f()
 
 	Audio::StopAllSounds(); // NERVE - SMF
 
-	Cvar_Set( "ui_connecting", "1" );
-
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
 
@@ -1079,7 +1071,6 @@ void CL_Connect_f()
 	{
 		Log::Notice("Bad server address" );
 		cls.state = connstate_t::CA_DISCONNECTED;
-		Cvar_Set( "ui_connecting", "0" );
 		return;
 	}
 
@@ -1760,21 +1751,11 @@ void CL_DisconnectPacket( netadr_t from )
 		return;
 	}
 
-	// if we are doing a disconnected download, leave the 'connecting' screen on with the progress information
-	if ( !cls.bWWWDlDisconnected )
-	{
-		// drop the connection
-		message = "Server disconnected for unknown reason";
-		Log::Notice( "%s\n", message );
-		Cvar_Set( "com_errorMessage", message );
-		CL_Disconnect( true );
-	}
-	else
-	{
-		CL_Disconnect( false );
-		Cvar_Set( "ui_connecting", "1" );
-		Cvar_Set( "ui_dl_running", "1" );
-	}
+	// drop the connection
+	message = "Server disconnected for unknown reason";
+	Log::Notice( "%s", message );
+	Cvar_Set( "com_errorMessage", message );
+	CL_Disconnect( true );
 }
 
 /*
@@ -2557,7 +2538,7 @@ void CL_Frame( int msec )
 	CL_CheckTimeout();
 
 	// wwwdl download may survive a server disconnect
-	if ( ( cls.state == connstate_t::CA_DOWNLOADING && clc.bWWWDl ) || cls.bWWWDlDisconnected )
+	if ( cls.state == connstate_t::CA_DOWNLOADING && clc.bWWWDl )
 	{
 		CL_WWWDownload();
 	}
