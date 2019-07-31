@@ -5018,7 +5018,7 @@ const RenderCommand *SetColorGradingCommand::ExecuteSelf( ) const
 		{
 			glTexSubImage3D( GL_TEXTURE_3D, 0, 0, 0, i + slot * REF_COLORGRADEMAP_SIZE,
 			                 REF_COLORGRADEMAP_SIZE, REF_COLORGRADEMAP_SIZE, 1,
-			                 GL_RGBA, GL_UNSIGNED_BYTE, ( ( u8vec4_t * ) nullptr ) + REF_COLORGRADEMAP_SIZE );
+			                 GL_RGBA, GL_UNSIGNED_BYTE, BUFFER_OFFSET( sizeof(u8vec4_t) * REF_COLORGRADEMAP_SIZE ) );
 		}
 
 		glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
