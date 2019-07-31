@@ -1241,7 +1241,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 		R_BindIBO( surf->ibo );
 		tess.vboVertexSkinning = true;
 
-		tess.multiDrawIndexes[ tess.multiDrawPrimitives ] = ((glIndex_t *)nullptr) + surf->first_triangle * 3;
+		tess.multiDrawIndexes[ tess.multiDrawPrimitives ] = reinterpret_cast<glIndex_t*>( sizeof(glIndex_t) * surf->first_triangle * 3 );
 		tess.multiDrawCounts[ tess.multiDrawPrimitives ] = surf->num_triangles * 3;
 		tess.multiDrawPrimitives++;
 

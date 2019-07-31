@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
 #define DYN_BUFFER_SEGMENTS 4
-#define BUFFER_OFFSET(i) ((char *)nullptr + ( i ))
+#define BUFFER_OFFSET(i) (reinterpret_cast<const void*>( i ))
 
 using i8vec4_t = int8_t[4];
 using u8vec4_t = uint8_t[4];
