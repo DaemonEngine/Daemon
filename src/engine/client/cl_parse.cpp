@@ -388,6 +388,8 @@ void CL_SystemInfoChanged()
 /*
 ==================
 CL_ParseGamestate
+
+The server normally sends this for a new map or when a download operation completes.
 ==================
 */
 void CL_ParseGamestate( msg_t *msg )
