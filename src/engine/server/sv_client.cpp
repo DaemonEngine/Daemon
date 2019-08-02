@@ -1455,11 +1455,11 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 			return;
 		}
 
-		// if we can tell that the client has dropped the last
+		// if the client has not been sent the gamestate yet, or if we can tell that the client has dropped the last
 		// gamestate we sent them, resend it
 		if ( cl->messageAcknowledge > cl->gamestateMessageNum )
 		{
-			Log::Debug( "%s^*: dropped gamestate, resending", cl->name );
+			Log::Debug( "%s^*: sending gamestate", cl->name );
 			SV_SendClientGameState( cl );
 		}
 
