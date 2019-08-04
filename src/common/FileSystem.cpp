@@ -2544,7 +2544,7 @@ bool ParsePakName(const char* begin, const char* end, std::string& name, std::st
 	} else if (Str::IsSuffix(PAK_DIR_EXT, begin)) {
 		end -= strlen(PAK_DIR_EXT);
 	} else {
-		ASSERT_UNREACHABLE();
+		return false;
 	}
 
 	nameStart = std::find(std::reverse_iterator<const char*>(end), std::reverse_iterator<const char*>(begin), '/').base();
