@@ -36,7 +36,7 @@ Maryland 20850 USA.
 
 #include "client.h"
 
-static Log::Logger downloadLogger("client.pakDownload");
+Log::Logger downloadLogger("client.pakDownload", "", Log::Level::NOTICE);
 
 /*
 =====================

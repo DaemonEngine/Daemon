@@ -42,6 +42,8 @@ Maryland 20850 USA.
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
 
+extern Log::Logger downloadLogger; // cl_download.cpp
+
 // initialize once
 static int   dl_initialized = 0;
 
@@ -83,7 +85,7 @@ void DL_InitDownload()
 
 	dl_multi = curl_multi_init();
 
-	Log::Debug( "Client download subsystem initialized" );
+	downloadLogger.Debug( "Client download subsystem initialized" );
 	dl_initialized = 1;
 }
 
@@ -133,7 +135,7 @@ int DL_BeginDownload( const char *localName, const char *remoteName )
 
 	if ( !localName || !remoteName )
 	{
-		Log::Debug( "Empty download URL or empty local file name" );
+		downloadLogger.Notice( "Empty download URL or empty local file name" );
 		return 0;
 	}
 
@@ -141,7 +143,7 @@ int DL_BeginDownload( const char *localName, const char *remoteName )
 
 	if ( !dl_file )
 	{
-		Log::Warn( "DL_BeginDownload unable to open '%s' for writing\n", localName );
+		downloadLogger.Notice( "DL_BeginDownload unable to open '%s' for writing", localName );
 		return 0;
 	}
 
@@ -177,7 +179,7 @@ dlStatus_t DL_DownloadLoop()
 
 	if ( !dl_request )
 	{
-		Log::Debug( "DL_DownloadLoop: unexpected call with dl_request == NULL" );
+		downloadLogger.Warn( "DL_DownloadLoop: unexpected call with dl_request == NULL" );
 		return dlStatus_t::DL_DONE;
 	}
 
@@ -219,7 +221,7 @@ dlStatus_t DL_DownloadLoop()
 
 	if ( err )
 	{
-		Log::Debug( "DL_DownloadLoop: request terminated with failure status '%s'", err );
+		downloadLogger.Notice( "DL_DownloadLoop: request terminated with failure status '%s'", err );
 		return dlStatus_t::DL_FAILED;
 	}
 
