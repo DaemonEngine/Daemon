@@ -81,12 +81,36 @@ void DL_InitDownload()
 	}
 
 	/* Make sure curl has initialized, so the cleanup doesn't get confused */
-	curl_global_init( CURL_GLOBAL_ALL );
+	if ( curl_global_init( CURL_GLOBAL_ALL ) == CURLE_OK && (dl_multi = curl_multi_init()) != nullptr )
+	{
+		downloadLogger.Debug( "Client download subsystem initialized" );
+		dl_initialized = 1;
+	}
+	else
+	{
+		downloadLogger.Warn( "Error initializing libcurl" );
+	}
+}
 
-	dl_multi = curl_multi_init();
+static void DL_StopDownload()
+{
+	if ( !dl_initialized )
+	{
+		return;
+	}
 
-	downloadLogger.Debug( "Client download subsystem initialized" );
-	dl_initialized = 1;
+	if ( dl_request )
+	{
+		curl_multi_remove_handle( dl_multi, dl_request );
+		curl_easy_cleanup( dl_request );
+		dl_request = nullptr;
+	}
+
+	if ( dl_file )
+	{
+		FS_FCloseFile( dl_file );
+		dl_file = 0;
+	}
 }
 
 /*
@@ -102,8 +126,7 @@ void DL_Shutdown()
 		return;
 	}
 
-	curl_multi_cleanup( dl_multi );
-	dl_multi = nullptr;
+	DL_StopDownload();
 
 	curl_global_cleanup();
 
@@ -120,18 +143,7 @@ int DL_BeginDownload( const char *localName, const char *remoteName )
 {
 	char referer[ MAX_STRING_CHARS + URI_SCHEME_LENGTH ];
 
-	if ( dl_request )
-	{
-		curl_multi_remove_handle( dl_multi, dl_request );
-		curl_easy_cleanup( dl_request );
-		dl_request = nullptr;
-	}
-
-	if ( dl_file )
-	{
-		FS_FCloseFile( dl_file );
-		dl_file = 0;
-	}
+	DL_StopDownload();
 
 	if ( !localName || !remoteName )
 	{
@@ -148,21 +160,43 @@ int DL_BeginDownload( const char *localName, const char *remoteName )
 	}
 
 	DL_InitDownload();
+	if ( !dl_initialized )
+	{
+		return 0;
+	}
 
 	strcpy( referer, URI_SCHEME );
 	Q_strncpyz( referer + URI_SCHEME_LENGTH, Cvar_VariableString( "cl_currentServerIP" ), MAX_STRING_CHARS );
 
 	dl_request = curl_easy_init();
-	curl_easy_setopt( dl_request, CURLOPT_USERAGENT, va( "%s %s", PRODUCT_NAME "/" PRODUCT_VERSION, curl_version() ) );
-	curl_easy_setopt( dl_request, CURLOPT_REFERER, referer );
-	curl_easy_setopt( dl_request, CURLOPT_URL, remoteName );
-	curl_easy_setopt( dl_request, CURLOPT_WRITEFUNCTION, DL_cb_FWriteFile );
-	curl_easy_setopt( dl_request, CURLOPT_WRITEDATA, ( void * )( intptr_t ) dl_file );
-	curl_easy_setopt( dl_request, CURLOPT_PROGRESSFUNCTION, DL_cb_Progress );
-	curl_easy_setopt( dl_request, CURLOPT_NOPROGRESS, 0 );
-	curl_easy_setopt( dl_request, CURLOPT_FAILONERROR, 1 );
+	if ( !dl_request )
+	{
+		downloadLogger.Warn( "curl_easy_init returned null" );
+		return 0;
+	}
+#define SETOPT(option, value) \
+	if (curl_easy_setopt(dl_request, option, value) != CURLE_OK) { \
+		downloadLogger.Warn("Setting " #option " failed"); \
+		return 0; \
+	}
+	SETOPT( CURLOPT_USERAGENT, va( "%s %s", PRODUCT_NAME "/" PRODUCT_VERSION, curl_version() ) );
+	SETOPT( CURLOPT_REFERER, referer );
+	SETOPT( CURLOPT_URL, remoteName );
+	SETOPT( CURLOPT_PROTOCOLS, long(CURLPROTO_HTTP) );
+	SETOPT( CURLOPT_WRITEFUNCTION, DL_cb_FWriteFile );
+	SETOPT( CURLOPT_WRITEDATA, ( void * )( intptr_t ) dl_file );
+	SETOPT( CURLOPT_PROGRESSFUNCTION, DL_cb_Progress );
+	SETOPT( CURLOPT_NOPROGRESS, 0L );
+	SETOPT( CURLOPT_FAILONERROR, 1L );
 
-	curl_multi_add_handle( dl_multi, dl_request );
+	CURLMcode err = curl_multi_add_handle( dl_multi, dl_request );
+	if (err != CURLM_OK)
+	{
+		downloadLogger.Warn("curl_multi_add_handle error: %s", curl_multi_strerror(err));
+		curl_easy_cleanup( dl_request );
+		dl_request = nullptr;
+		return 0;
+	}
 
 	Cvar_Set( "cl_downloadName", remoteName );
 
@@ -174,8 +208,7 @@ dlStatus_t DL_DownloadLoop()
 {
 	CURLMcode  status;
 	CURLMsg    *msg;
-	int        dls = 0;
-	const char *err = nullptr;
+	int        dls;
 
 	if ( !dl_request )
 	{
@@ -183,17 +216,13 @@ dlStatus_t DL_DownloadLoop()
 		return dlStatus_t::DL_DONE;
 	}
 
-	if ( ( status = curl_multi_perform( dl_multi, &dls ) ) == CURLM_CALL_MULTI_PERFORM && dls )
-	{
-		return dlStatus_t::DL_CONTINUE;
-	}
+	curl_multi_perform( dl_multi, &dls );
 
-	while ( ( msg = curl_multi_info_read( dl_multi, &dls ) ) && msg->easy_handle != dl_request )
-	{
-		;
-	}
+	do {
+		 msg = curl_multi_info_read( dl_multi, &dls );
+	} while (msg && msg->msg != CURLMSG_DONE);
 
-	if ( !msg || msg->msg != CURLMSG_DONE )
+	if ( !msg )
 	{
 		return dlStatus_t::DL_CONTINUE;
 	}
@@ -201,27 +230,24 @@ dlStatus_t DL_DownloadLoop()
 	if ( msg->data.result != CURLE_OK )
 	{
 #ifdef __MACOS__ // ���
-		err = "unknown curl error.";
+		const char* err = "unknown curl error.";
 #else
-		err = curl_easy_strerror( msg->data.result );
+		const char* err = curl_easy_strerror( msg->data.result );
 #endif
-	}
-	else
-	{
-		err = nullptr;
-	}
-
-	curl_multi_remove_handle( dl_multi, dl_request );
-	curl_easy_cleanup( dl_request );
-
-	FS_FCloseFile( dl_file );
-	dl_file = 0;
-
-	dl_request = nullptr;
-
-	if ( err )
-	{
 		downloadLogger.Notice( "DL_DownloadLoop: request terminated with failure status '%s'", err );
+		DL_StopDownload();
+		return dlStatus_t::DL_FAILED;
+	}
+	long httpStatus = -1;
+	curl_easy_getinfo(dl_request, CURLINFO_RESPONSE_CODE, &httpStatus);
+
+	DL_StopDownload();
+
+	if ( httpStatus != 200 )
+	{
+		// We don't follow redirects, so report a failure if we get one
+		// (they're not considered an error for CURLOPT_FAILONERROR purposes).
+		downloadLogger.Notice( "Download returned HTTP %d", httpStatus );
 		return dlStatus_t::DL_FAILED;
 	}
 
