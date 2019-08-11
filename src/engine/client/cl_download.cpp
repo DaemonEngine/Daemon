@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "client.h"
 
 Log::Logger downloadLogger("client.pakDownload", "", Log::Level::NOTICE);
+Cvar::Cvar<int> cl_downloadCount("cl_downloadCount", "bytes of a file downloaded", Cvar::NONE, 0);
 
 /*
 =====================
@@ -130,7 +131,7 @@ static void CL_BeginDownload( const char *localName, const char *remoteName )
 	// Set so UI gets access to it
 	Cvar_Set( "cl_downloadName", remoteName );
 	Cvar_Set( "cl_downloadSize", "0" );
-	Cvar_Set( "cl_downloadCount", "0" );
+	cl_downloadCount.Set(0);
 	Cvar_SetValue( "cl_downloadTime", cls.realtime );
 
 	clc.downloadBlock = 0; // Starting new file
@@ -487,7 +488,7 @@ void CL_ParseDownload( msg_t *msg )
 	clc.downloadCount += size;
 
 	// So UI gets access to it
-	Cvar_SetValue( "cl_downloadCount", clc.downloadCount );
+	cl_downloadCount.Set(clc.downloadCount);
 
 	if ( !size )
 	{

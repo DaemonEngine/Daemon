@@ -37,41 +37,171 @@ Maryland 20850 USA.
         * Add server as referring URL
 */
 
+#include "common/Common.h"
+
 #include <curl/curl.h>
 
+#include "common/FileSystem.h"
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
 
 extern Log::Logger downloadLogger; // cl_download.cpp
+extern Cvar::Cvar<int> cl_downloadCount; // cl_download.cpp
+
+namespace {
+
+class CurlDownload {
+	CURLM* multi_ = nullptr;
+	CURL* request_ = nullptr;
+	dlStatus_t status_ = dlStatus_t::DL_FAILED;
+
+public:
+	CurlDownload(Str::StringRef url) {
+		multi_ = curl_multi_init();
+		if (!multi_) {
+			downloadLogger.Warn("curl_multi_init returned null");
+			return;
+		}
+		request_ = curl_easy_init();
+		if (!request_) {
+			downloadLogger.Warn( "curl_easy_init returned null" );
+			return;
+		}
+		if (!SetOptions(url)) {
+			return;
+		}
+		CURLMcode err = curl_multi_add_handle(multi_, request_);
+		if (err != CURLM_OK)
+		{
+			downloadLogger.Warn("curl_multi_add_handle error: %s", curl_multi_strerror(err));
+			curl_easy_cleanup(request_);
+			request_ = nullptr;
+			return;
+		}
+		status_ = dlStatus_t::DL_CONTINUE;
+	}
+
+	CurlDownload(CurlDownload&&) = delete; // Disallow copy construction and assignment
+
+	void Advance() {
+		if (status_ != dlStatus_t::DL_CONTINUE) {
+			return;
+		}
+		int numRunningTransfers;
+		CURLMcode err = curl_multi_perform(multi_, &numRunningTransfers);
+		if (err != CURLM_OK) {
+			downloadLogger.Warn("curl_multi_perform error: %s", curl_multi_strerror(err));
+			status_ = dlStatus_t::DL_FAILED;
+		}
+		if (status_ != dlStatus_t::DL_CONTINUE) { // may be set by callback
+			return;
+		}
+		if (numRunningTransfers > 0) {
+			return;
+		}
+		CURLMsg* msg;
+		do {
+			int ignored;
+			msg = curl_multi_info_read(multi_, &ignored);
+		} while (msg && msg->msg != CURLMSG_DONE);
+
+		if (!msg) {
+			status_ = dlStatus_t::DL_FAILED;
+			Log::Warn("Unexpected lack of CURLMSG_DONE");
+		}
+
+		if (msg->data.result != CURLE_OK) {
+			downloadLogger.Notice("Download request terminated with failure status '%s'", err);
+			status_ = dlStatus_t::DL_FAILED;
+			return;
+		}
+		long httpStatus = -1;
+		curl_easy_getinfo(request_, CURLINFO_RESPONSE_CODE, &httpStatus); // ignore return code and fail due to httpStatus = -1
+		if (httpStatus != 200) {
+			// We don't follow redirects, so report a failure if we get one
+			// (they're not considered an error for CURLOPT_FAILONERROR purposes).
+			downloadLogger.Notice("Download failed: returned HTTP %d", httpStatus);
+			status_ = dlStatus_t::DL_FAILED;
+			return;
+		}
+		status_ = dlStatus_t::DL_DONE;
+	}
+
+	dlStatus_t Status() {
+		return status_;
+	}
+
+protected:
+	// return DL_CONTINUE to continue, DL_DONE or DL_FAILED to stop
+	virtual dlStatus_t WriteCallback(const char* data, size_t len) = 0;
+
+	virtual ~CurlDownload() {
+		if (request_) {
+			CURLMcode err = curl_multi_remove_handle(multi_, request_);
+			if (err != CURLM_OK) {
+				downloadLogger.Warn("curl_multi_remove_handle error: %s", curl_multi_strerror(err));
+			}
+			curl_easy_cleanup(request_);
+		}
+		if (multi_) {
+			CURLMcode err = curl_multi_cleanup(multi_);
+			if (err != CURLM_OK) {
+				downloadLogger.Warn("curl_multi_cleanup error: %s", curl_multi_strerror(err));
+			}
+		}
+	}
+
+private:
+	static size_t LibcurlWriteCallback(char* data, size_t, size_t len, void* object) {
+		auto* download = static_cast<CurlDownload*>(object);
+		download->status_ = download->WriteCallback(data, len);
+		return download->status_ == dlStatus_t::DL_CONTINUE ? len : ~size_t(0);
+	}
+
+	bool SetOptions(Str::StringRef url) {
+#define SETOPT(option, value) \
+if (curl_easy_setopt(request_, option, value) != CURLE_OK) { \
+	downloadLogger.Warn("Setting " #option " failed"); \
+	return false; \
+}
+
+		SETOPT( CURLOPT_USERAGENT, Str::Format( "%s %s", PRODUCT_NAME "/" PRODUCT_VERSION, curl_version() ).c_str() )
+		SETOPT( CURLOPT_REFERER, Str::Format("%s%s", URI_SCHEME, Cvar::GetValue("cl_currentServerIP")).c_str() )
+		SETOPT( CURLOPT_URL, url.c_str() )
+		SETOPT( CURLOPT_PROTOCOLS, long(CURLPROTO_HTTP) )
+		SETOPT( CURLOPT_WRITEFUNCTION, &LibcurlWriteCallback )
+		SETOPT( CURLOPT_WRITEDATA, static_cast<void*>(this) )
+		SETOPT( CURLOPT_FAILONERROR, 1L )
+		return true;
+	}
+};
+
+class FileDownload : public CurlDownload {
+	FS::File file_;
+
+	dlStatus_t WriteCallback(const char* data, size_t len) override {
+		try {
+			file_.Write(data, len);
+		} catch (std::system_error& e) {
+			downloadLogger.Notice("Error writing to download file: %s", e.what());
+			return dlStatus_t::DL_FAILED;
+		}
+		cl_downloadCount.Set(cl_downloadCount.Get() + len);
+		return dlStatus_t::DL_CONTINUE;
+	}
+
+public:
+	FileDownload(Str::StringRef url, FS::File file) : CurlDownload(url), file_(std::move(file)) {}
+};
+
+} // namespace
+
 
 // initialize once
 static int   dl_initialized = 0;
 
-static CURLM *dl_multi = nullptr;
-static CURL  *dl_request = nullptr;
-static fileHandle_t dl_file;
+static Util::optional<FileDownload> inProgressDownload;
 
-/*
-** Write to file
-*/
-static size_t DL_cb_FWriteFile( void *ptr, size_t size, size_t nmemb, void *stream )
-{
-	fileHandle_t file = ( fileHandle_t )( intptr_t ) stream;
-
-	return FS_Write( ptr, size * nmemb, file );
-}
-
-/*
-** Print progress
-*/
-static int DL_cb_Progress( void*, double, double dlnow, double, double )
-{
-	/* cl_downloadSize and cl_downloadTime are set by the Q3 protocol...
-	   and it would probably be expensive to verify them here.   -zinx */
-
-	Cvar_SetValue( "cl_downloadCount", ( float ) dlnow );
-	return 0;
-}
 
 void DL_InitDownload()
 {
@@ -81,7 +211,7 @@ void DL_InitDownload()
 	}
 
 	/* Make sure curl has initialized, so the cleanup doesn't get confused */
-	if ( curl_global_init( CURL_GLOBAL_ALL ) == CURLE_OK && (dl_multi = curl_multi_init()) != nullptr )
+	if ( curl_global_init( CURL_GLOBAL_ALL ) == CURLE_OK )
 	{
 		downloadLogger.Debug( "Client download subsystem initialized" );
 		dl_initialized = 1;
@@ -94,22 +224,10 @@ void DL_InitDownload()
 
 static void DL_StopDownload()
 {
-	if ( !dl_initialized )
+	if (inProgressDownload)
 	{
-		return;
-	}
-
-	if ( dl_request )
-	{
-		curl_multi_remove_handle( dl_multi, dl_request );
-		curl_easy_cleanup( dl_request );
-		dl_request = nullptr;
-	}
-
-	if ( dl_file )
-	{
-		FS_FCloseFile( dl_file );
-		dl_file = 0;
+		inProgressDownload = Util::nullopt;
+		// TODO: kill temp file, and call this whenever a download is cancelled
 	}
 }
 
@@ -141,21 +259,11 @@ setup the download, return once we have a connection
 */
 int DL_BeginDownload( const char *localName, const char *remoteName )
 {
-	char referer[ MAX_STRING_CHARS + URI_SCHEME_LENGTH ];
-
 	DL_StopDownload();
 
 	if ( !localName || !remoteName )
 	{
 		downloadLogger.Notice( "Empty download URL or empty local file name" );
-		return 0;
-	}
-
-	dl_file = FS_SV_FOpenFileWrite( localName );
-
-	if ( !dl_file )
-	{
-		downloadLogger.Notice( "DL_BeginDownload unable to open '%s' for writing", localName );
 		return 0;
 	}
 
@@ -165,38 +273,14 @@ int DL_BeginDownload( const char *localName, const char *remoteName )
 		return 0;
 	}
 
-	strcpy( referer, URI_SCHEME );
-	Q_strncpyz( referer + URI_SCHEME_LENGTH, Cvar_VariableString( "cl_currentServerIP" ), MAX_STRING_CHARS );
-
-	dl_request = curl_easy_init();
-	if ( !dl_request )
-	{
-		downloadLogger.Warn( "curl_easy_init returned null" );
+	FS::File file;
+	try {
+		file = FS::HomePath::OpenWrite(localName);
+	} catch (std::system_error& e) {
+		downloadLogger.Notice( "DL_BeginDownload unable to open '%s' for writing: %s", localName, e.what() );
 		return 0;
 	}
-#define SETOPT(option, value) \
-	if (curl_easy_setopt(dl_request, option, value) != CURLE_OK) { \
-		downloadLogger.Warn("Setting " #option " failed"); \
-		return 0; \
-	}
-	SETOPT( CURLOPT_USERAGENT, va( "%s %s", PRODUCT_NAME "/" PRODUCT_VERSION, curl_version() ) );
-	SETOPT( CURLOPT_REFERER, referer );
-	SETOPT( CURLOPT_URL, remoteName );
-	SETOPT( CURLOPT_PROTOCOLS, long(CURLPROTO_HTTP) );
-	SETOPT( CURLOPT_WRITEFUNCTION, DL_cb_FWriteFile );
-	SETOPT( CURLOPT_WRITEDATA, ( void * )( intptr_t ) dl_file );
-	SETOPT( CURLOPT_PROGRESSFUNCTION, DL_cb_Progress );
-	SETOPT( CURLOPT_NOPROGRESS, 0L );
-	SETOPT( CURLOPT_FAILONERROR, 1L );
-
-	CURLMcode err = curl_multi_add_handle( dl_multi, dl_request );
-	if (err != CURLM_OK)
-	{
-		downloadLogger.Warn("curl_multi_add_handle error: %s", curl_multi_strerror(err));
-		curl_easy_cleanup( dl_request );
-		dl_request = nullptr;
-		return 0;
-	}
+	inProgressDownload.emplace(remoteName, std::move(file));
 
 	Cvar_Set( "cl_downloadName", remoteName );
 
@@ -206,50 +290,19 @@ int DL_BeginDownload( const char *localName, const char *remoteName )
 // (maybe this should be CL_DL_DownloadLoop)
 dlStatus_t DL_DownloadLoop()
 {
-	CURLMcode  status;
-	CURLMsg    *msg;
-	int        dls;
-
-	if ( !dl_request )
+	if ( !inProgressDownload )
 	{
-		downloadLogger.Warn( "DL_DownloadLoop: unexpected call with dl_request == NULL" );
+		downloadLogger.Warn( "DL_DownloadLoop: unexpected call with no active request" );
 		return dlStatus_t::DL_DONE;
 	}
 
-	curl_multi_perform( dl_multi, &dls );
+	inProgressDownload->Advance();
 
-	do {
-		 msg = curl_multi_info_read( dl_multi, &dls );
-	} while (msg && msg->msg != CURLMSG_DONE);
-
-	if ( !msg )
+	dlStatus_t status = inProgressDownload->Status();
+	if ( status != dlStatus_t::DL_CONTINUE )
 	{
-		return dlStatus_t::DL_CONTINUE;
-	}
-
-	if ( msg->data.result != CURLE_OK )
-	{
-#ifdef __MACOS__ // ���
-		const char* err = "unknown curl error.";
-#else
-		const char* err = curl_easy_strerror( msg->data.result );
-#endif
-		downloadLogger.Notice( "DL_DownloadLoop: request terminated with failure status '%s'", err );
 		DL_StopDownload();
-		return dlStatus_t::DL_FAILED;
-	}
-	long httpStatus = -1;
-	curl_easy_getinfo(dl_request, CURLINFO_RESPONSE_CODE, &httpStatus);
-
-	DL_StopDownload();
-
-	if ( httpStatus != 200 )
-	{
-		// We don't follow redirects, so report a failure if we get one
-		// (they're not considered an error for CURLOPT_FAILONERROR purposes).
-		downloadLogger.Notice( "Download returned HTTP %d", httpStatus );
-		return dlStatus_t::DL_FAILED;
 	}
 
-	return dlStatus_t::DL_DONE;
+	return status;
 }
