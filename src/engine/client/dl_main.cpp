@@ -81,7 +81,7 @@ public:
 		status_ = dlStatus_t::DL_CONTINUE;
 	}
 
-	CurlDownload(CurlDownload&&) = delete; // Disallow copy construction and assignment
+	CurlDownload(CurlDownload&&) = delete; // Disallow copy construction and assignment (yes this is a move constructor)
 
 	void Advance() {
 		if (status_ != dlStatus_t::DL_CONTINUE) {
@@ -107,7 +107,7 @@ public:
 
 		if (!msg) {
 			status_ = dlStatus_t::DL_FAILED;
-			Log::Warn("Unexpected lack of CURLMSG_DONE");
+			downloadLogger.Warn("Unexpected lack of CURLMSG_DONE");
 		}
 
 		if (msg->data.result != CURLE_OK) {
@@ -169,7 +169,7 @@ if (curl_easy_setopt(request_, option, value) != CURLE_OK) { \
 		SETOPT( CURLOPT_REFERER, Str::Format("%s%s", URI_SCHEME, Cvar::GetValue("cl_currentServerIP")).c_str() )
 		SETOPT( CURLOPT_URL, url.c_str() )
 		SETOPT( CURLOPT_PROTOCOLS, long(CURLPROTO_HTTP) )
-		SETOPT( CURLOPT_WRITEFUNCTION, &LibcurlWriteCallback )
+		SETOPT( CURLOPT_WRITEFUNCTION, curl_write_callback(LibcurlWriteCallback) )
 		SETOPT( CURLOPT_WRITEDATA, static_cast<void*>(this) )
 		SETOPT( CURLOPT_FAILONERROR, 1L )
 		return true;
@@ -194,13 +194,48 @@ public:
 	FileDownload(Str::StringRef url, FS::File file) : CurlDownload(url), file_(std::move(file)) {}
 };
 
+// If servers could ask the client to download any URL, there would be a security issue: the URL
+// could point to something on a private network that the server shouldn't have access to. Therefore,
+// before an HTTP download commences, the client checks for a magic file named PAKSERVER in the same
+// directory where the desired file is stored. If the file begins with the right magic string (we
+// check only a prefix to avoid any fiddly newline issues), this is interpreted as permission
+// Daemon clients to download anything from that directory.
+//
+// Note that this is the same issue addressed by the Same-Origin Policy in web browsers. In that
+// model, CORS headers are used to give scripts permission to access resources. We couldn't really
+// implement that here since there is no origin tracking of cgame binaries.
+const Str::StringRef PAKSERVER_FILE_NAME = "PAKSERVER";
+const Str::StringRef PAKSERVER_FILE_CONTENT_PREFIX = "ALLOW_UNRESTRICTED_DOWNLOAD";
+class PakserverCheck : public CurlDownload {
+	Str::StringRef unmatchedPrefix_ = PAKSERVER_FILE_CONTENT_PREFIX;
+
+	dlStatus_t WriteCallback(const char* data, size_t len) override {
+		size_t n = std::min(len, unmatchedPrefix_.size());
+		if (0 != memcmp(unmatchedPrefix_.c_str(), data, n)) {
+			return dlStatus_t::DL_FAILED;
+		}
+		unmatchedPrefix_ = unmatchedPrefix_.suffix(n);
+		return unmatchedPrefix_.empty() ? dlStatus_t::DL_DONE : dlStatus_t::DL_CONTINUE;
+	}
+
+public:
+	PakserverCheck(Str::StringRef url) : CurlDownload(url) {}
+};
+
+struct DownloadState {
+	Util::optional<PakserverCheck> pakserverCheck;
+	Util::optional<FileDownload> actualDownload;
+	std::string url;
+	std::string homepathPath; // should begin with pkg/
+};
+
 } // namespace
 
 
 // initialize once
 static int   dl_initialized = 0;
 
-static Util::optional<FileDownload> inProgressDownload;
+static DownloadState download;
 
 
 void DL_InitDownload()
@@ -222,13 +257,16 @@ void DL_InitDownload()
 	}
 }
 
+// TODO: call this function whenever a download is cancelled
 static void DL_StopDownload()
 {
-	if (inProgressDownload)
+	if (download.actualDownload)
 	{
-		inProgressDownload = Util::nullopt;
-		// TODO: kill temp file, and call this whenever a download is cancelled
+		download.actualDownload = Util::nullopt;
+		// TODO: kill temp file
 	}
+	download.~DownloadState();
+	new (&download) DownloadState();
 }
 
 /*
@@ -261,44 +299,76 @@ int DL_BeginDownload( const char *localName, const char *remoteName )
 {
 	DL_StopDownload();
 
-	if ( !localName || !remoteName )
-	{
-		downloadLogger.Notice( "Empty download URL or empty local file name" );
-		return 0;
-	}
-
 	DL_InitDownload();
 	if ( !dl_initialized )
 	{
 		return 0;
 	}
 
-	FS::File file;
-	try {
-		file = FS::HomePath::OpenWrite(localName);
-	} catch (std::system_error& e) {
-		downloadLogger.Notice( "DL_BeginDownload unable to open '%s' for writing: %s", localName, e.what() );
+	// This URL parsing code is naive as it doesn't consider the possibility of params,
+	// anchors, or whatever, but regardless of what comes out, it should do the job of
+	// preventing downloading things that shouldn't be accessed.
+	std::string urlDir = remoteName;
+	size_t slash = urlDir.rfind('/');
+	if (slash == std::string::npos || slash + 1 == urlDir.size()) {
+		downloadLogger.Notice("Bogus download url '%s'", remoteName);
 		return 0;
 	}
-	inProgressDownload.emplace(remoteName, std::move(file));
+	urlDir = urlDir.substr(0, slash + 1);
 
+	downloadLogger.Debug("Checking for PAKSERVER file in %s", urlDir);
+	download.pakserverCheck.emplace(urlDir + PAKSERVER_FILE_NAME);
+	download.url = remoteName;
+	download.homepathPath = localName;
 	Cvar_Set( "cl_downloadName", remoteName );
-
 	return 1;
+}
+
+static void StartRealDownload() {
+	FS::File file;
+	try {
+		file = FS::HomePath::OpenWrite(download.homepathPath);
+	} catch (std::system_error& e) {
+		downloadLogger.Notice( "DL_BeginDownload unable to open '%s' for writing: %s", download.homepathPath, e.what() );
+		return;
+	}
+	downloadLogger.Debug("Starting HTTP download of %s", download.url);
+	download.actualDownload.emplace(download.url, std::move(file));
 }
 
 // (maybe this should be CL_DL_DownloadLoop)
 dlStatus_t DL_DownloadLoop()
 {
-	if ( !inProgressDownload )
+	if ( !download.pakserverCheck && !download.actualDownload )
 	{
 		downloadLogger.Warn( "DL_DownloadLoop: unexpected call with no active request" );
 		return dlStatus_t::DL_DONE;
 	}
 
-	inProgressDownload->Advance();
+	if ( download.pakserverCheck )
+	{
+		download.pakserverCheck->Advance();
+		switch (download.pakserverCheck->Status()) {
+		case dlStatus_t::DL_CONTINUE:
+			return dlStatus_t::DL_CONTINUE;
+		case dlStatus_t::DL_DONE:
+			download.pakserverCheck = Util::nullopt;
+			StartRealDownload();
+			if (!download.actualDownload)
+			{
+				DL_StopDownload();
+				return dlStatus_t::DL_FAILED;
+			}
+			break;
+		case dlStatus_t::DL_FAILED:
+			DL_StopDownload();
+			downloadLogger.Notice("Download server failed PAKSERVER check");
+			return dlStatus_t::DL_FAILED;
+		}
+	}
 
-	dlStatus_t status = inProgressDownload->Status();
+	download.actualDownload->Advance();
+	dlStatus_t status = download.actualDownload->Status();
 	if ( status != dlStatus_t::DL_CONTINUE )
 	{
 		DL_StopDownload();
