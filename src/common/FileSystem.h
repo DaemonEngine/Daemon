@@ -158,8 +158,8 @@ namespace Path {
 	std::string Build(Str::StringRef base, Str::StringRef path);
 
 	// Get the directory portion of a path:
-	// a/b/c => a/b/
-	// a/b/ => a/
+	// a/b/c => a/b
+	// a/b/ => a
 	// a => ""
 	std::string DirName(Str::StringRef path);
 
