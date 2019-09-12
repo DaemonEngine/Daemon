@@ -705,7 +705,6 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 	int      rate;
 	int      blockspersnap;
 	char     errorMessage[ 1024 ];
-	int      download_flag;
 
 	const FS::PakInfo* pak;
 	bool success;
@@ -809,9 +808,12 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					// download URL, size of the download file, download flags
 					MSG_WriteString( msg, cl->downloadURL );
 					MSG_WriteLong( msg, downloadSize );
-					download_flag = 0;
-
-					MSG_WriteLong( msg, download_flag );  // flags
+#if 0 // TODO(0.52) switch on
+					// Base URL length. The base prefix is expected to end with '/'
+					MSG_WriteLong( msg, strlen( sv_wwwBaseURL->string ) + 1 );
+#else
+					MSG_WriteLong( msg, 0 );  // flags
+#endif
 					return;
 				}
 				else

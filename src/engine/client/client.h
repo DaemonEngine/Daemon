@@ -208,7 +208,6 @@ struct clientConnection_t
 	int          downloadBlock; // block we are waiting for
 	int          downloadCount; // how many bytes we got
 	int          downloadSize; // how many bytes we got
-	int          downloadFlags; // misc download behaviour flags sent by the server
 	char         downloadList[ MAX_INFO_STRING ]; // list of paks we need to download
 
 	// www downloading

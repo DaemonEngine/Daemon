@@ -493,16 +493,10 @@ enum class dlStatus_t
   DL_FAILED
 };
 
-int        DL_BeginDownload( const char *localName, const char *remoteName );
+int        DL_BeginDownload( const char *localName, const char *remoteName, int basePathLen );
 dlStatus_t DL_DownloadLoop();
 
 void       DL_Shutdown();
-
-// bitmask
-enum dlFlags_t
-{
-  DL_FLAG_DISCON = 1 << 0, // Obsolete, unused
-};
 
 /*
 ==============================================================
