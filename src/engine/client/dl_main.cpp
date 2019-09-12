@@ -295,7 +295,7 @@ inspired from http://www.w3.org/Library/Examples/LoadToFile.c
 setup the download, return once we have a connection
 ===============
 */
-int DL_BeginDownload( const char *localName, const char *remoteName )
+int DL_BeginDownload( const char *localName, const char *remoteName, int basePathLen )
 {
 	DL_StopDownload();
 
@@ -309,12 +309,21 @@ int DL_BeginDownload( const char *localName, const char *remoteName )
 	// anchors, or whatever, but regardless of what comes out, it should do the job of
 	// preventing downloading things that shouldn't be accessed.
 	std::string urlDir = remoteName;
+#if 0 // TODO(0.52) switch on
+	if (basePathLen < 2 || static_cast<size_t>(basePathLen) + 1 >= urlDir.size() || urlDir[basePathLen - 1] != '/') {
+		downloadLogger.Notice("Bad download base path specification");
+		return 0;
+	}
+	urlDir = urlDir.substr(0, basePathLen);
+#else
+	Q_UNUSED(basePathLen);
 	size_t slash = urlDir.rfind('/');
-	if (slash == std::string::npos || slash + 1 == urlDir.size()) {
+	if (slash == 0 || slash == std::string::npos || slash + 1 == urlDir.size()) {
 		downloadLogger.Notice("Bogus download url '%s'", remoteName);
 		return 0;
 	}
 	urlDir = urlDir.substr(0, slash + 1);
+#endif
 
 	downloadLogger.Debug("Checking for PAKSERVER file in %s", urlDir);
 	download.pakserverCheck.emplace(urlDir + PAKSERVER_FILE_NAME);

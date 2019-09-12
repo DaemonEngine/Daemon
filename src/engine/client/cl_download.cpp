@@ -389,10 +389,10 @@ void CL_ParseDownload( msg_t *msg )
 			Q_strncpyz( cls.originalDownloadName, cls.downloadName, sizeof( cls.originalDownloadName ) );
 			Q_strncpyz( cls.downloadName, MSG_ReadString( msg ), sizeof( cls.downloadName ) );
 			clc.downloadSize = MSG_ReadLong( msg );
-			clc.downloadFlags = MSG_ReadLong( msg );
+			int basePathLen = MSG_ReadLong( msg );
 
-			downloadLogger.Debug("Server sent us a new WWW DL '%s', size %i, flags %i",
-			                     cls.downloadName, clc.downloadSize, clc.downloadFlags);
+			downloadLogger.Debug("Server sent us a new WWW DL '%s', size %i, prefix len %i",
+			                     cls.downloadName, clc.downloadSize, basePathLen);
 
 			Cvar_SetValue( "cl_downloadSize", clc.downloadSize );
 			clc.bWWWDl = true; // activate wwwdl client loop
@@ -408,7 +408,7 @@ void CL_ParseDownload( msg_t *msg )
 				return;
 			}
 
-			if ( !DL_BeginDownload( cls.downloadTempName, cls.downloadName ) )
+			if ( !DL_BeginDownload( cls.downloadTempName, cls.downloadName, basePathLen ) )
 			{
 				// setting bWWWDl to false after sending the wwwdl fail doesn't work
 				// not sure why, but I suspect we have to eat all remaining block -1 that the server has sent us
