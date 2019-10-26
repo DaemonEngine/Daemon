@@ -87,6 +87,8 @@ bool FS_FileExists(const char* path)
 	return FS::PakPath::FileExists(path) || FS::HomePath::FileExists(path);
 }
 
+std::set<std::string> usedFiles;
+
 int FS_FOpenFileRead(const char* path, fileHandle_t* handle, bool)
 {
 	if (!handle)
@@ -96,6 +98,7 @@ int FS_FOpenFileRead(const char* path, fileHandle_t* handle, bool)
 	int length = -1;
 	std::error_code err;
 	if (FS::PakPath::FileExists(path)) {
+		usedFiles.insert(path);
 		handleTable[*handle].fileData = FS::PakPath::ReadFile(path, err);
 		if (!err) {
 			handleTable[*handle].filePos = 0;
@@ -748,6 +751,25 @@ public:
 	}
 };
 static WhichCmd WhichCmdRegistration;
+
+class ListUsedFilesCmd : public Cmd::StaticCmd {
+public:
+	ListUsedFilesCmd()
+		: Cmd::StaticCmd("listUsedFiles", Cmd::SYSTEM, "list used files from pak path") {}
+
+	void Run(const Cmd::Args& args) const override
+	{
+		if (args.Argc() != 1) {
+			PrintUsage(args, "", "");
+			return;
+		}
+
+		for (auto filename : usedFiles) {
+			Print("%s", filename);
+		}
+	}
+};
+static ListUsedFilesCmd ListFilesCmdRegistration;
 
 class ListPathsCmd: public Cmd::StaticCmd {
 public:
