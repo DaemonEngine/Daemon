@@ -43,7 +43,8 @@ Maryland 20850 USA.
 
 using Keyboard::Key;
 
-static Cvar::Modified<Cvar::Cvar<std::string>> cl_consoleKeys("cl_consoleKeys", "Keys to open or close the console", 0, "hw:`");
+static Cvar::Modified<Cvar::Cvar<std::string>> cl_consoleKeys(
+	"cl_consoleKeys", "Keys to open or close the console", Cvar::ARCHIVE, "hw:`");
 
 static int ClipTeamNumber(int team)
 {
