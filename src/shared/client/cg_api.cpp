@@ -584,6 +584,18 @@ void trap_Key_SetBinding( Keyboard::Key key, int team, const char *cmd )
 	VM::SendMsg<Keyboard::SetBindingMsg>(key, team, cmd);
 }
 
+std::vector<Keyboard::Key> trap_Key_GetConsoleKeys()
+{
+	std::vector<Keyboard::Key> result;
+	VM::SendMsg<Keyboard::GetConsoleKeysMsg>(result);
+	return result;
+}
+
+void trap_Key_SetConsoleKeys(const std::vector<Keyboard::Key>& keys)
+{
+	VM::SendMsg<Keyboard::SetConsoleKeysMsg>(keys);
+}
+
 void trap_Key_ClearCmdButtons()
 {
 	VM::SendMsg<Keyboard::ClearCmdButtonsMsg>();

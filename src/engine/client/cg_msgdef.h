@@ -202,6 +202,8 @@ enum cgameImport_t
   CG_KEY_GETCATCHER,
   CG_KEY_SETCATCHER,
   CG_KEY_GETKEYSFORBINDS,
+  CG_KEY_GETCONSOLEKEYS,
+  CG_KEY_SETCONSOLEKEYS,
   CG_KEY_GETCHARFORSCANCODE,
   CG_KEY_SETBINDING,
   CG_KEY_CLEARSTATES,
@@ -437,6 +439,11 @@ namespace Keyboard {
 		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETKEYSFORBINDS>, int, std::vector<std::string>>,
 		IPC::Reply<std::vector<std::vector<Key>>>
 	>;
+	using GetConsoleKeysMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETCONSOLEKEYS>>,
+		IPC::Reply<std::vector<Key>>
+	>;
+	using SetConsoleKeysMsg = IPC::Message<IPC::Id<VM::QVM, CG_KEY_SETCONSOLEKEYS>, std::vector<Key>>;
 	using GetCharForScancodeMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETCHARFORSCANCODE>, int>,
 		IPC::Reply<int>

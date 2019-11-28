@@ -1411,6 +1411,18 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			});
 			break;
 
+		case CG_KEY_GETCONSOLEKEYS:
+			IPC::HandleMsg<Keyboard::GetConsoleKeysMsg>(channel, std::move(reader), [this] (std::vector<Keyboard::Key>& keys) {
+				keys = Keyboard::GetConsoleKeys();
+			});
+			break;
+
+		case CG_KEY_SETCONSOLEKEYS:
+			IPC::HandleMsg<Keyboard::SetConsoleKeysMsg>(channel, std::move(reader), [this] (const std::vector<Keyboard::Key>& keys) {
+				Keyboard::SetConsoleKeys(keys);
+			});
+			break;
+
 		case CG_KEY_CLEARCMDBUTTONS:
 			IPC::HandleMsg<Keyboard::ClearCmdButtonsMsg>(channel, std::move(reader), [this] {
 				CL_ClearCmdButtons();
