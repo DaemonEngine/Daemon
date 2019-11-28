@@ -197,6 +197,8 @@ void            trap_SetUserCmdValue( int stateValue, int flags, float sensitivi
 int             trap_Key_GetCatcher();
 void            trap_Key_SetCatcher( int catcher );
 void            trap_Key_SetBinding( Keyboard::Key key, int team, const char *cmd );
+std::vector<Keyboard::Key> trap_Key_GetConsoleKeys();
+void trap_Key_SetConsoleKeys(const std::vector<Keyboard::Key>& keys);
 void            trap_Key_ClearCmdButtons();
 void            trap_Key_ClearStates();
 std::vector<bool> trap_Key_KeysDown( const std::vector<Keyboard::Key>& keys );
