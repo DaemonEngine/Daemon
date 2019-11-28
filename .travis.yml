@@ -32,10 +32,11 @@ install:
         libogg-dev libvorbis-dev libopusfile-dev libtheora-dev
         libwebp-dev libjpeg8-dev libpng-dev
         libfreetype6-dev libglew-dev libopenal-dev
-        liblua5.2-dev;
+        liblua5.2-dev ninja-build;
     fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      sudo apt-get -y -q --no-install-recommends install ninja-build;
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      brew update;
+      brew install ccache ninja;
     fi
   - |
     # workarounds to make ccache work
@@ -48,7 +49,6 @@ install:
 
 before_script:
   - ccache --zero-stats
-  - mkdir -p build && cd build
   # In older versions of gcc the missing field initializer warning fires even when the initialization list is empty, which is stupid.
   # This issue is fixed in version 5 of gcc, so if we get a newer version on Travis the warning can be re-enabled.
   - if [ "$CC" == "gcc" ]; then export CXXFLAGS="$CXXFLAGS -Wno-missing-field-initializers"; fi
@@ -56,8 +56,9 @@ before_script:
 
 script:
   - cmake -DUSE_PRECOMPILED_HEADER=0
-    -DUSE_WERROR=1 -DBE_VERBOSE=1 -G "Ninja" -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_OPTIMIZE=0 ..
-  - cmake --build . -- -j8
+    -DUSE_WERROR=1 -DBE_VERBOSE=1 -G "Ninja" -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_OPTIMIZE=0
+    -H. -Bbuild
+  - cmake --build build -- -j8
 
 before_cache:
   - ccache --show-stats

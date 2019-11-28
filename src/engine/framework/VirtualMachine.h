@@ -65,6 +65,9 @@ namespace VM {
  * provide sandboxing like the nacl executable but the OS will still clean up any
  * leak for us.
  *
+ * When setting the cgame VM type to non-default values, make sure to use /devmap
+ * (rather than /map) as it is a 'CHEAT' cvar.
+ *
  * TL;DR
  * - Native DLL: no sandboxing, no cleaning up but debugger support. Use for dev.
  * - NaCl exe: sandboxing, no leaks, slightly slower, hard to debug. Use for regular players.
@@ -89,12 +92,12 @@ enum vmType_t {
 
 
 struct VMParams {
-	VMParams(std::string name)
+	VMParams(std::string name, int vmTypeFlags)
 		: logSyscalls("vm." + name + ".logSyscalls", "dump all the syscalls in the " + name + ".syscallLog file", Cvar::NONE, false),
-		  vmType("vm." + name + ".type", "how the vm should be loaded for " + name, Cvar::NONE,
-				 Util::ordinal(vmType_t::TYPE_NACL), 0, Util::ordinal(vmType_t::TYPE_END) - 1),
+		  vmType("vm." + name + ".type", "how the vm should be loaded for " + name, vmTypeFlags,
+		         Util::ordinal(vmType_t::TYPE_NACL), 0, Util::ordinal(vmType_t::TYPE_END) - 1),
 		  debug("vm." + name + ".debug", "run a gdbserver on localhost:4014 to debug the VM", Cvar::NONE, false),
-		  debugLoader("vm." + name + ".debugLoader", "make nacl_loader dump information to " + name + "-nacl_loader.log", Cvar::NONE, 0, 0, 5) {
+		  debugLoader("vm." + name + ".debugLoader", "make nacl_loader dump information to " + name + "-nacl_loader.log", Cvar::NONE, 1, 0, 5) {
 	}
 
 	Cvar::Cvar<bool> logSyscalls;
@@ -106,8 +109,8 @@ struct VMParams {
 // Base class for a virtual machine instance
 class VMBase {
 public:
-	VMBase(std::string name)
-		: processHandle(Sys::INVALID_HANDLE), name(name), params(name) {}
+	VMBase(std::string name, int vmTypeCvarFlags)
+		: processHandle(Sys::INVALID_HANDLE), name(name), params(name, vmTypeCvarFlags) {}
 
 	// Create the VM for the named module. Returns the ABI version reported
 	// by the module. This will automatically free any existing VM.

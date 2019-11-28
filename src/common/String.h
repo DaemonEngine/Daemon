@@ -108,6 +108,17 @@ namespace Str {
             return std::basic_string<T>(ptr + pos, count);
         }
 
+        BasicStringRef<T> suffix(size_t pos) const {
+            BasicStringRef<T> suff = *this;
+            if (pos > size()) {
+                suff.len = 0;
+            } else {
+                suff.ptr += pos;
+                suff.len -= pos;
+            }
+            return suff;
+        }
+
         size_t find(BasicStringRef str, size_t pos = 0) const
         {
             if (pos > len)

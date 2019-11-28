@@ -22,18 +22,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_fp.glsl */
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_NormalMap;
 uniform sampler2D	u_SpecularMap;
 uniform sampler2D	u_GlowMap;
 uniform sampler2D	u_LightMap;
 uniform sampler2D	u_DeluxeMap;
 uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
-uniform float		u_DepthScale;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec4		var_TexDiffuseGlow;
-IN(smooth) vec4		var_TexNormalSpecular;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec2		var_TexLight;
 
 IN(smooth) vec3		var_Tangent;
@@ -47,45 +44,21 @@ DECLARE_OUTPUT(vec4)
 void	main()
 {
 	// compute view direction in world space
-	vec3 I = normalize(u_ViewOrigin - var_Position);
+	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
-	vec2 texDiffuse = var_TexDiffuseGlow.st;
-	vec2 texNormal = var_TexNormalSpecular.st;
-	vec2 texSpecular = var_TexNormalSpecular.pq;
+	vec2 texCoords = var_TexCoords;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
 #if defined(USE_PARALLAX_MAPPING)
-	// ray intersect in view direction
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
-	// compute view direction in tangent space
-	vec3 V = I * tangentToWorldMatrix;
-	V = normalize(V);
-
-	// size and start position of search in texture space
-	vec2 S = V.xy * -u_DepthScale / V.z;
-
-#if 0
-	vec2 texOffset = vec2(0.0);
-	for(int i = 0; i < 4; i++) {
-		vec4 Normal = texture2D(u_NormalMap, texNormal.st + texOffset);
-		float height = Normal.a * 0.2 - 0.0125;
-		texOffset += height * Normal.z * S;
-	}
-#else
-	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
-
-	// compute texcoords offset
-	vec2 texOffset = S * depth;
-#endif
-
-	texDiffuse.st += texOffset;
-	texNormal.st += texOffset;
-	texSpecular.st += texOffset;
+	texCoords += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texDiffuse);
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
 
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
@@ -94,41 +67,38 @@ void	main()
 	}
 
 	// compute the specular term
-	vec4 specular = texture2D(u_SpecularMap, texSpecular);
+	vec4 specular = texture2D(u_SpecularMap, texCoords);
 
 	// compute normal in world space from normalmap
-	vec3 N = texture2D(u_NormalMap, texNormal.st).xyw;
-	N.x *= N.z;
-	N.xy = 2.0 * N.xy - 1.0;
-	N.z = sqrt(1.0 - dot(N.xy, N.xy));
-	N = normalize(tangentToWorldMatrix * N);
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute light color from world space lightmap
 	vec3 lightColor = texture2D(u_LightMap, var_TexLight).xyz;
 
 	vec4 color = vec4( 0.0, 0.0, 0.0, diffuse.a );
 
+#if defined(USE_DELUXE_MAPPING)
 	// compute light direction in world space
 	vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
-	if( deluxe.w < 0.5 ) {
-		// normal/deluxe mapping is disabled
-		color.xyz += lightColor.xyz * diffuse.xyz;
-	} else {
-		vec3 L = 2.0 * deluxe.xyz - 1.0;
-		L = normalize(L);
 
-		// divide by cosine term to restore original light color
-		lightColor /= clamp(dot(normalize(var_Normal), L), 0.004, 1.0);
+	vec3 L = 2.0 * deluxe.xyz - 1.0;
+	L = normalize(L);
 
-		// compute final color
-		computeLight( L, N, I, lightColor, diffuse, specular, color );
-	}
-	computeDLights( var_Position, N, I, diffuse, specular, color );
+	// divide by cosine term to restore original light color
+	lightColor /= clamp(dot(normalize(var_Normal), L), 0.004, 1.0);
 
-	color.rgb += texture2D(u_GlowMap, var_TexDiffuseGlow.pq).rgb;
+	// compute final color
+	computeLight( L, normal, viewDir, lightColor, diffuse, specular, color );
+#else // !USE_DELUXE_MAPPING
+	// normal/deluxe mapping is disabled
+	color.xyz += lightColor.xyz * diffuse.xyz;
+#endif // USE_DELUXE_MAPPING
 
-	// convert normal to [0,1] color space
-	N = N * 0.5 + 0.5;
+	computeDLights( var_Position, normal, viewDir, diffuse, specular, color );
+
+#if defined(r_glowMapping)
+	color.rgb += texture2D(u_GlowMap, texCoords).rgb;
+#endif // r_glowMapping
 
 	outputColor = color;
 

@@ -193,10 +193,6 @@ void CL_ParseSnapshot( msg_t *msg )
 
 	newSnap.serverTime = MSG_ReadLong( msg );
 
-	// if we were just unpaused, we can only *now* really let the
-	// change come into effect or the client hangs.
-	cl_paused->modified = false;
-
 	newSnap.messageNum = clc.serverMessageSequence;
 
 	deltaNum = MSG_ReadByte( msg );
@@ -463,198 +459,9 @@ void CL_ParseGamestate( msg_t *msg )
 	// This used to call CL_StartHunkUsers, but now we enter the download state before loading the
 	// cgame
 	CL_InitDownloads();
-
-	// make sure the game starts
-	Cvar_Set( "cl_paused", "0" );
 }
 
 //=====================================================================
-
-/*
-=====================
-CL_ParseDownload
-
-A download message has been received from the server
-=====================
-*/
-void CL_ParseDownload( msg_t *msg )
-{
-	int           size;
-	unsigned char data[ MAX_MSGLEN ];
-	int           block;
-
-	if ( !*cls.downloadTempName )
-	{
-		Log::Notice( "Server sending download, but no download was requested\n" );
-        // Eat the packet anyway
-	    block = MSG_ReadShort( msg );
-        if (block == -1) {
-			MSG_ReadString( msg );
-			MSG_ReadLong( msg );
-			MSG_ReadLong( msg );
-        } else if (block != 0) {
-            size = MSG_ReadShort( msg );
-            if ( size < 0 || size > (int) sizeof( data ) )
-            {
-                Sys::Drop( "CL_ParseDownload: Invalid size %d for download chunk.", size );
-            }
-	        MSG_ReadData( msg, data, size );
-        }
-
-		CL_AddReliableCommand( "stopdl" );
-		return;
-	}
-
-	// read the data
-	block = MSG_ReadShort( msg );
-
-	// TTimo - www dl
-	// if we haven't acked the download redirect yet
-	if ( block == -1 )
-	{
-		if ( !clc.bWWWDl )
-		{
-			// server is sending us a www download
-			Q_strncpyz( cls.originalDownloadName, cls.downloadName, sizeof( cls.originalDownloadName ) );
-			Q_strncpyz( cls.downloadName, MSG_ReadString( msg ), sizeof( cls.downloadName ) );
-			clc.downloadSize = MSG_ReadLong( msg );
-			clc.downloadFlags = MSG_ReadLong( msg );
-
-            downloadLogger.Debug("Server sent us a new WWW DL '%s', size %i, flags %i",
-                                 cls.downloadName, clc.downloadSize, clc.downloadFlags);
-
-			Cvar_SetValue( "cl_downloadSize", clc.downloadSize );
-			clc.bWWWDl = true; // activate wwwdl client loop
-			CL_AddReliableCommand( "wwwdl ack" );
-			cls.state = connstate_t::CA_DOWNLOADING;
-
-			// make sure the server is not trying to redirect us again on a bad checksum
-			if ( strstr( clc.badChecksumList, va( "@%s", cls.originalDownloadName ) ) )
-			{
-				Log::Notice( "refusing redirect to %s by server (bad checksum)\n", cls.downloadName );
-				CL_AddReliableCommand( "wwwdl fail" );
-				clc.bWWWDlAborting = true;
-				return;
-			}
-
-			if ( !DL_BeginDownload( cls.downloadTempName, cls.downloadName ) )
-			{
-				// setting bWWWDl to false after sending the wwwdl fail doesn't work
-				// not sure why, but I suspect we have to eat all remaining block -1 that the server has sent us
-				// still leave a flag so that CL_WWWDownload is inactive
-				// we count on server sending us a gamestate to start up clean again
-				CL_AddReliableCommand( "wwwdl fail" );
-				clc.bWWWDlAborting = true;
-				Log::Notice( "Failed to initialize download for '%s'\n", cls.downloadName );
-			}
-
-			// Check for a disconnected download
-			// we'll let the server disconnect us when it gets the bbl8r message
-			if ( clc.downloadFlags & DL_FLAG_DISCON )
-			{
-				CL_AddReliableCommand( "wwwdl bbl8r" );
-				cls.bWWWDlDisconnected = true;
-			}
-
-			return;
-		}
-		else
-		{
-			// server keeps sending that message till we ack it, eat and ignore
-			//MSG_ReadLong( msg );
-			MSG_ReadString( msg );
-			MSG_ReadLong( msg );
-			MSG_ReadLong( msg );
-			return;
-		}
-	}
-
-	if ( !block )
-	{
-		// block zero is special, contains file size
-		clc.downloadSize = MSG_ReadLong( msg );
-
-        downloadLogger.Debug("Starting new direct download of size %i for '%s'", clc.downloadSize, cls.downloadTempName);
-		Cvar_SetValue( "cl_downloadSize", clc.downloadSize );
-
-		if ( clc.downloadSize < 0 )
-		{
-			Sys::Drop( "%s", MSG_ReadString( msg ) );
-		}
-	}
-
-	size = MSG_ReadShort( msg );
-
-	if ( size < 0 || size > (int) sizeof( data ) )
-	{
-		Sys::Drop( "CL_ParseDownload: Invalid size %d for download chunk.", size );
-	}
-
-    downloadLogger.Debug("Received block of size %i", size);
-
-	MSG_ReadData( msg, data, size );
-
-	if ( clc.downloadBlock != block )
-	{
-		downloadLogger.Debug( "CL_ParseDownload: Expected block %i, got %i", clc.downloadBlock, block );
-		return;
-	}
-
-	// open the file if not opened yet
-	if ( !clc.download )
-	{
-		clc.download = FS_SV_FOpenFileWrite( cls.downloadTempName );
-
-		if ( !clc.download )
-		{
-			Log::Notice( "Could not create %s\n", cls.downloadTempName );
-			CL_AddReliableCommand( "stopdl" );
-			CL_NextDownload();
-			return;
-		}
-	}
-
-	if ( size )
-	{
-		FS_Write( data, size, clc.download );
-	}
-
-	CL_AddReliableCommand( va( "nextdl %d", clc.downloadBlock ) );
-	clc.downloadBlock++;
-
-	clc.downloadCount += size;
-
-	// So UI gets access to it
-	Cvar_SetValue( "cl_downloadCount", clc.downloadCount );
-
-	if ( !size )
-	{
-        downloadLogger.Debug("Received EOF, closing '%s'", cls.downloadTempName);
-		// A zero length block means EOF
-		if ( clc.download )
-		{
-			FS_FCloseFile( clc.download );
-			clc.download = 0;
-
-			// rename the file
-			FS_SV_Rename( cls.downloadTempName, cls.downloadName );
-		}
-
-		*cls.downloadTempName = *cls.downloadName = 0;
-		Cvar_Set( "cl_downloadName", "" );
-
-		// send intentions now
-		// We need this because without it, we would hold the last nextdl and then start
-		// loading right away.  If we take a while to load, the server is happily trying
-		// to send us that last block over and over.
-		// Write it twice to help make sure we acknowledge the download
-		CL_WritePacket();
-		CL_WritePacket();
-
-		// get another file if needed
-		CL_NextDownload();
-	}
-}
 
 /*
 =====================
@@ -683,21 +490,6 @@ void CL_ParseCommandString( msg_t *msg )
 
 	index = seq & ( MAX_RELIABLE_COMMANDS - 1 );
 	Q_strncpyz( clc.serverCommands[ index ], s, sizeof( clc.serverCommands[ index ] ) );
-}
-
-/*
-=====================
-CL_ParseBinaryMessage
-=====================
-*/
-void CL_ParseBinaryMessage(msg_t *msg)
-{
-	MSG_BeginReadingUncompressed(msg);
-	int ssize = msg->cursize - msg->readcount;
-	if (ssize <= 0 || ssize > MAX_BINARY_MESSAGE) {
-		return;
-	}
-	CL_CGameBinaryMessageReceived(msg->data + msg->readcount, size_t(ssize), cl.snap.serverTime);
 }
 
 /*
@@ -788,5 +580,4 @@ void CL_ParseServerMessage( msg_t *msg )
 				break;
 		}
 	}
-	CL_ParseBinaryMessage( msg );
 }

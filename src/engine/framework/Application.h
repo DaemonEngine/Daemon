@@ -59,7 +59,7 @@ class Application {
         virtual void Initialize(Str::StringRef uri);
         virtual void Frame() {}
 
-        virtual void OnDrop(Str::StringRef reason);
+        virtual void OnDrop(bool error, Str::StringRef reason);
         virtual void Shutdown(bool error, Str::StringRef message);
 
         virtual void OnUnhandledCommand(const Cmd::Args& args);
@@ -74,7 +74,7 @@ void LoadInitialConfig(bool resetConfig);
 void Initialize(Str::StringRef uri);
 void Frame();
 
-void OnDrop(Str::StringRef reason);
+void OnDrop(bool error, Str::StringRef reason);
 void Shutdown(bool error, Str::StringRef message);
 
 void OnUnhandledCommand(const Cmd::Args& args);

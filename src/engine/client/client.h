@@ -189,11 +189,6 @@ struct clientConnection_t
 	// TTimo - NOTE: incidentally, reliableCommands[0] is never used (always start at reliableAcknowledge+1)
 	char reliableCommands[ MAX_RELIABLE_COMMANDS ][ MAX_TOKEN_CHARS ];
 
-	// unreliable binary data to send to server
-	size_t binaryMessageLength;
-	uint8_t binaryMessage[MAX_BINARY_MESSAGE];
-	bool binaryMessageOverflowed;
-
 	// server message (unreliable) and command (reliable) sequence
 	// numbers are NOT cleared at level changes, but continue to
 	// increase as long as the connection is valid
@@ -213,7 +208,6 @@ struct clientConnection_t
 	int          downloadBlock; // block we are waiting for
 	int          downloadCount; // how many bytes we got
 	int          downloadSize; // how many bytes we got
-	int          downloadFlags; // misc download behaviour flags sent by the server
 	char         downloadList[ MAX_INFO_STRING ]; // list of paks we need to download
 
 	// www downloading
@@ -290,9 +284,7 @@ struct clientStatic_t
 
 	// when the server clears the hunk, all of these must be restarted
 	bool rendererStarted;
-	bool soundStarted;
 	bool soundRegistered;
-	bool uiStarted;
 	bool cgameStarted;
 
 	int      framecount;
@@ -338,9 +330,8 @@ struct clientStatic_t
 	fontInfo_t *consoleFont;
 
 	// www downloading
-	// in the static stuff since this may have to survive server disconnects
+	// in the static stuff since this may have to survive server disconnects (but disconnected dl was removed so this is maybe no longer true?)
 	// if new stuff gets added, CL_ClearStaticDownload code needs to be updated for clear up
-	bool bWWWDlDisconnected; // keep going with the download after server disconnect
 	char     downloadName[ MAX_OSPATH ];
 	char     downloadTempName[ MAX_OSPATH ]; // in wwwdl mode, this is OS path (it's a qpath otherwise)
 	char     originalDownloadName[ MAX_QPATH ]; // if we get a redirect, keep a copy of the original file path
@@ -455,6 +446,7 @@ extern cvar_t *cl_altTab;
 
 extern cvar_t *cl_consoleFont;
 extern cvar_t *cl_consoleFontSize;
+extern cvar_t *cl_consoleFontScaling;
 extern cvar_t *cl_consoleFontKerning;
 extern cvar_t *cl_consoleCommand;
 
@@ -482,8 +474,6 @@ extern cvar_t *cl_aviMotionJpeg;
 extern cvar_t *cl_useMumble;
 extern cvar_t *cl_mumbleScale;
 
-extern Log::Logger downloadLogger;
-
 //=================================================
 
 //
@@ -491,7 +481,6 @@ extern Log::Logger downloadLogger;
 //
 
 void        CL_Init();
-void        CL_FlushMemory();
 void        CL_ShutdownAll();
 void        CL_AddReliableCommand( const char *cmd );
 
@@ -503,18 +492,13 @@ void        CL_Disconnect_f();
 void        CL_Vid_Restart_f();
 void        CL_Snd_Restart_f();
 
-void        CL_NextDemo();
 void        CL_ReadDemoMessage();
-
-void        CL_InitDownloads();
-void        CL_NextDownload();
 
 void        CL_GetPing( int n, char *buf, int buflen, int *pingtime );
 void        CL_ClearPing( int n );
 int         CL_GetPingQueueCount();
 
 void        CL_ShutdownRef();
-bool    CL_InitRef();
 
 int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
 
@@ -525,6 +509,14 @@ void CL_Record(std::string demo_name);
 //
 Keyboard::Key Key_GetKeyNumber();
 unsigned int    Key_GetKeyTime();
+
+//
+// cl_download.cpp
+//
+void CL_ClearStaticDownload();
+void CL_InitDownloads();
+void CL_WWWDownload();
+void CL_ParseDownload( msg_t *msg );
 
 //
 // cl_input
@@ -727,7 +719,6 @@ void     CL_ShutdownCGame();
 void     CL_CGameRendering();
 void     CL_SetCGameTime();
 void     CL_FirstSnapshot();
-void CL_CGameBinaryMessageReceived(const uint8_t *buf, size_t size, int serverTime);
 void     CL_OnTeamChanged( int newTeam );
 
 //

@@ -37,21 +37,21 @@ DECLARE_OUTPUT(vec4)
 void	main()
 {
 	// compute incident ray
-	vec3 I = normalize(var_Position - u_ViewOrigin);
+	vec3 incidentRay = normalize(var_Position - u_ViewOrigin);
 
 	// compute normal
-	vec3 N = normalize(var_Normal);
+	vec3 normal = normalize(var_Normal);
 
 	// compute reflection ray
-	vec3 R = reflect(I, N);
+	vec3 reflectionRay = reflect(incidentRay, normal);
 
 	// compute refraction ray
-	vec3 T = refract(I, N, u_RefractionIndex);
+	vec3 T = refract(incidentRay, N, u_RefractionIndex);
 
 	// compute fresnel term
-	float fresnel = u_FresnelBias + pow(1.0 - dot(I, N), u_FresnelPower) * u_FresnelScale;
+	float fresnel = u_FresnelBias + pow(1.0 - dot(incidentRay, normal), u_FresnelPower) * u_FresnelScale;
 
-	vec3 reflectColor = textureCube(u_ColorMap, R).rgb;
+	vec3 reflectColor = textureCube(u_ColorMap, reflectionRay).rgb;
 	vec3 refractColor = textureCube(u_ColorMap, T).rgb;
 
 	// compute final color

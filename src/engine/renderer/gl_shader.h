@@ -783,6 +783,7 @@ protected:
 	  USE_VERTEX_SPRITE,
 	  USE_TCGEN_ENVIRONMENT,
 	  USE_TCGEN_LIGHTMAP,
+	  USE_DELUXE_MAPPING,
 	  USE_PARALLAX_MAPPING,
 	  USE_REFLECTIVE_SPECULAR,
 	  USE_SHADOWING,
@@ -811,24 +812,19 @@ public:
 		return 0;
 	}
 
-	void EnableMacro()
+	void SetMacro( bool enable )
 	{
 		int bit = GetBit();
 
-		if ( !_shader->IsMacroSet( bit ) )
+		if ( enable && !_shader->IsMacroSet( bit ) )
 		{
 			_shader->AddMacroBit( bit );
 		}
-	}
-
-	void DisableMacro()
-	{
-		int bit = GetBit();
-
-		if ( _shader->IsMacroSet( bit ) )
+		else if ( !enable && _shader->IsMacroSet( bit ) )
 		{
 			_shader->DelMacroBit( bit );
 		}
+		// else do nothing because already enabled/disabled
 	}
 
 public:
@@ -867,26 +863,9 @@ public:
 		return ATTR_BONE_FACTORS;
 	}
 
-	void EnableVertexSkinning()
-	{
-		EnableMacro();
-	}
-
-	void DisableVertexSkinning()
-	{
-		DisableMacro();
-	}
-
 	void SetVertexSkinning( bool enable )
 	{
-		if ( enable )
-		{
-			EnableVertexSkinning();
-		}
-		else
-		{
-			DisableVertexSkinning();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -912,26 +891,9 @@ public:
 	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const;
 	uint32_t GetRequiredVertexAttributes() const;
 
-	void EnableVertexAnimation()
-	{
-		EnableMacro();
-	}
-
-	void DisableVertexAnimation()
-	{
-		DisableMacro();
-	}
-
 	void SetVertexAnimation( bool enable )
 	{
-		if ( enable )
-		{
-			EnableVertexAnimation();
-		}
-		else
-		{
-			DisableVertexAnimation();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -959,26 +921,9 @@ public:
 		return ATTR_QTANGENT;
 	}
 
-	void EnableVertexSprite()
-	{
-		EnableMacro();
-	}
-
-	void DisableVertexSprite()
-	{
-		DisableMacro();
-	}
-
 	void SetVertexSprite( bool enable )
 	{
-		if ( enable )
-		{
-			EnableVertexSprite();
-		}
-		else
-		{
-			DisableVertexSprite();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1007,26 +952,9 @@ public:
 		return ATTR_QTANGENT;
 	}
 
-	void EnableTCGenEnvironment()
-	{
-		EnableMacro();
-	}
-
-	void DisableTCGenEnvironment()
-	{
-		DisableMacro();
-	}
-
 	void SetTCGenEnvironment( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1050,26 +978,34 @@ public:
 		return EGLCompileMacro::USE_TCGEN_LIGHTMAP;
 	}
 
-	void EnableTCGenLightmap()
-	{
-		EnableMacro();
-	}
-
-	void DisableTCGenLightmap()
-	{
-		DisableMacro();
-	}
-
 	void SetTCGenLightmap( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_USE_DELUXE_MAPPING :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_DELUXE_MAPPING( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "USE_DELUXE_MAPPING";
+	}
+
+	EGLCompileMacro GetType() const
+	{
+		return EGLCompileMacro::USE_DELUXE_MAPPING;
+	}
+
+	void SetDeluxeMapping( bool enable )
+	{
+		SetMacro( enable );
 	}
 };
 
@@ -1092,26 +1028,9 @@ public:
 		return EGLCompileMacro::USE_PARALLAX_MAPPING;
 	}
 
-	void EnableParallaxMapping()
-	{
-		EnableMacro();
-	}
-
-	void DisableParallaxMapping()
-	{
-		DisableMacro();
-	}
-
 	void SetParallaxMapping( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1129,31 +1048,16 @@ public:
 		return "USE_REFLECTIVE_SPECULAR";
 	}
 
+	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const;
+
 	EGLCompileMacro GetType() const
 	{
 		return EGLCompileMacro::USE_REFLECTIVE_SPECULAR;
 	}
 
-	void EnableReflectiveSpecular()
-	{
-		EnableMacro();
-	}
-
-	void DisableReflectiveSpecular()
-	{
-		DisableMacro();
-	}
-
 	void SetReflectiveSpecular( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1176,26 +1080,9 @@ public:
 		return EGLCompileMacro::LIGHT_DIRECTIONAL;
 	}
 
-	void EnableMacro_LIGHT_DIRECTIONAL()
-	{
-		EnableMacro();
-	}
-
-	void DisableMacro_LIGHT_DIRECTIONAL()
-	{
-		DisableMacro();
-	}
-
 	void SetMacro_LIGHT_DIRECTIONAL( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1218,26 +1105,9 @@ public:
 		return EGLCompileMacro::USE_SHADOWING;
 	}
 
-	void EnableShadowing()
-	{
-		EnableMacro();
-	}
-
-	void DisableShadowing()
-	{
-		DisableMacro();
-	}
-
 	void SetShadowing( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1261,26 +1131,9 @@ public:
 		return EGLCompileMacro::USE_DEPTH_FADE;
 	}
 
-	void EnableDepthFade()
-	{
-		EnableMacro();
-	}
-
-	void DisableDepthFade()
-	{
-		DisableMacro();
-	}
-
 	void SetDepthFade( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1303,26 +1156,9 @@ public:
 		return USE_PHYSICAL_SHADING;
 	}
 
-	void EnableMacro_USE_PHYSICAL_SHADING()
-	{
-		EnableMacro();
-	}
-
-	void DisableMacro_USE_PHYSICAL_SHADING()
-	{
-		DisableMacro();
-	}
-
 	void SetPhysicalShading( bool enable )
 	{
-		if ( enable )
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
@@ -1345,99 +1181,22 @@ public:
 		return USE_ALPHA_TESTING;
 	}
 
-	void EnableAlphaTesting()
-	{
-		EnableMacro();
-	}
-
-	void DisableAlphaTesting()
-	{
-		DisableMacro();
-	}
-
 	void SetAlphaTesting(bool enable)
 	{
-		if (enable)
-		{
-			EnableMacro();
-		}
-		else
-		{
-			DisableMacro();
-		}
+		SetMacro( enable );
 	}
 };
 
-class u_ColorTextureMatrix :
+class u_TextureMatrix :
 	GLUniformMatrix4f
 {
 public:
-	u_ColorTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_ColorTextureMatrix" )
+	u_TextureMatrix( GLShader *shader ) :
+		GLUniformMatrix4f( shader, "u_TextureMatrix" )
 	{
 	}
 
-	void SetUniform_ColorTextureMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_DiffuseTextureMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_DiffuseTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_DiffuseTextureMatrix" )
-	{
-	}
-
-	void SetUniform_DiffuseTextureMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_NormalTextureMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_NormalTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_NormalTextureMatrix" )
-	{
-	}
-
-	void SetUniform_NormalTextureMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_SpecularTextureMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_SpecularTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_SpecularTextureMatrix" )
-	{
-	}
-
-	void SetUniform_SpecularTextureMatrix( const matrix_t m )
-	{
-		this->SetValue( GL_FALSE, m );
-	}
-};
-
-class u_GlowTextureMatrix :
-	GLUniformMatrix4f
-{
-public:
-	u_GlowTextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_GlowTextureMatrix" )
-	{
-	}
-
-	void SetUniform_GlowTextureMatrix( const matrix_t m )
+	void SetUniform_TextureMatrix( const matrix_t m )
 	{
 		this->SetValue( GL_FALSE, m );
 	}
@@ -1766,6 +1525,22 @@ public:
 	}
 };
 
+class u_NormalFormat :
+	GLUniform3f
+{
+public:
+	u_NormalFormat( GLShader *shader ) :
+		GLUniform3f( shader, "u_NormalFormat" )
+	{
+	}
+
+	void SetUniform_NormalFormat( const vec3_t value )
+	{
+		this->SetValue( value );
+	}
+};
+
+
 class u_FogDensity :
 	GLUniform1f
 {
@@ -1971,6 +1746,51 @@ public:
 	}
 
 	void SetUniform_DepthScale( float value )
+	{
+		this->SetValue( value );
+	}
+};
+
+class u_ParallaxDepthScale :
+	GLUniform1f
+{
+public:
+	u_ParallaxDepthScale( GLShader *shader ) :
+		GLUniform1f( shader, "u_ParallaxDepthScale" )
+	{
+	}
+
+	void SetUniform_ParallaxDepthScale( float value )
+	{
+		this->SetValue( value );
+	}
+};
+
+class u_ParallaxOffsetBias :
+	GLUniform1f
+{
+public:
+	u_ParallaxOffsetBias( GLShader *shader ) :
+		GLUniform1f( shader, "u_ParallaxOffsetBias" )
+	{
+	}
+
+	void SetUniform_ParallaxOffsetBias( float value )
+	{
+		this->SetValue( value );
+	}
+};
+
+class u_HeightMapInNormalMap :
+	GLUniform1i
+{
+public:
+	u_HeightMapInNormalMap( GLShader *shader ) :
+		GLUniform1i( shader, "u_HeightMapInNormalMap" )
+	{
+	}
+
+	void SetUniform_HeightMapInNormalMap( int value )
 	{
 		this->SetValue( value );
 	}
@@ -2302,7 +2122,7 @@ class u_Lights :
 
 class GLShader_generic :
 	public GLShader,
-	public u_ColorTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
 	public u_AlphaThreshold,
@@ -2331,10 +2151,7 @@ public:
 
 class GLShader_lightMapping :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
-	public u_GlowTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
 	public u_Color,
@@ -2342,10 +2159,14 @@ class GLShader_lightMapping :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_DepthScale,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
+	public u_HeightMapInNormalMap,
+	public u_NormalFormat,
 	public u_numLights,
 	public u_Lights,
 	public GLDeformStage,
+	public GLCompileMacro_USE_DELUXE_MAPPING,
 	public GLCompileMacro_USE_PARALLAX_MAPPING,
 	public GLCompileMacro_USE_PHYSICAL_SHADING
 {
@@ -2359,10 +2180,7 @@ public:
 
 class GLShader_vertexLighting_DBS_entity :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
-	public u_GlowTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
@@ -2370,7 +2188,10 @@ class GLShader_vertexLighting_DBS_entity :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_DepthScale,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
+	public u_HeightMapInNormalMap,
+	public u_NormalFormat,
 	public u_EnvironmentInterpolation,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
@@ -2393,10 +2214,7 @@ public:
 
 class GLShader_vertexLighting_DBS_world :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
-	public u_GlowTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
 	public u_Color,
@@ -2404,7 +2222,10 @@ class GLShader_vertexLighting_DBS_world :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_DepthScale,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
+	public u_HeightMapInNormalMap,
+	public u_NormalFormat,
 	public u_LightWrapAround,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
@@ -2424,9 +2245,7 @@ public:
 
 class GLShader_forwardLighting_omniXYZ :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
 	public u_ColorModulate,
@@ -2444,7 +2263,10 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_DepthScale,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
+	public u_HeightMapInNormalMap,
+	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2461,9 +2283,7 @@ public:
 
 class GLShader_forwardLighting_projXYZ :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
 	public u_ColorModulate,
@@ -2482,7 +2302,10 @@ class GLShader_forwardLighting_projXYZ :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_DepthScale,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
+	public u_HeightMapInNormalMap,
+	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2499,9 +2322,7 @@ public:
 
 class GLShader_forwardLighting_directionalSun :
 	public GLShader,
-	public u_DiffuseTextureMatrix,
-	public u_NormalTextureMatrix,
-	public u_SpecularTextureMatrix,
+	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
 	public u_ColorModulate,
@@ -2522,7 +2343,10 @@ class GLShader_forwardLighting_directionalSun :
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
 	public u_VertexInterpolation,
-	public u_DepthScale,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
+	public u_HeightMapInNormalMap,
+	public u_NormalFormat,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2539,7 +2363,7 @@ public:
 
 class GLShader_shadowFill :
 	public GLShader,
-	public u_ColorTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_AlphaThreshold,
 	public u_LightOrigin,
@@ -2562,19 +2386,26 @@ public:
 
 class GLShader_reflection :
 	public GLShader,
-	public u_NormalTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
+	public u_HeightMapInNormalMap,
+	public u_NormalScale,
+	public u_NormalFormat,
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_PARALLAX_MAPPING
 {
 public:
 	GLShader_reflection( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
 	void BuildShaderCompileMacros( std::string& compileMacros );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
@@ -2630,7 +2461,7 @@ public:
 
 class GLShader_heatHaze :
 	public GLShader,
-	public u_NormalTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
 	public u_DeformMagnitude,
@@ -2641,6 +2472,7 @@ class GLShader_heatHaze :
 	public u_ColorModulate,
 	public u_Color,
 	public u_Bones,
+	public u_NormalFormat,
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2650,6 +2482,7 @@ class GLShader_heatHaze :
 public:
 	GLShader_heatHaze( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
 
@@ -2685,7 +2518,7 @@ public:
 class GLShader_cameraEffects :
 	public GLShader,
 	public u_ColorModulate,
-	public u_ColorTextureMatrix,
+	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
 	public u_InverseGamma
@@ -2756,7 +2589,7 @@ public:
 
 class GLShader_liquid :
 	public GLShader,
-	public u_NormalTextureMatrix,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_RefractionIndex,
 	public u_ModelMatrix,
@@ -2765,7 +2598,11 @@ class GLShader_liquid :
 	public u_FresnelPower,
 	public u_FresnelScale,
 	public u_FresnelBias,
+	public u_ParallaxDepthScale,
+	public u_ParallaxOffsetBias,
+	public u_HeightMapInNormalMap,
 	public u_NormalScale,
+	public u_NormalFormat,
 	public u_FogDensity,
 	public u_FogColor,
 	public u_SpecularExponent,
@@ -2775,6 +2612,7 @@ class GLShader_liquid :
 {
 public:
 	GLShader_liquid( GLShaderManager *manager );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
 

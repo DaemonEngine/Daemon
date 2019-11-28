@@ -70,7 +70,7 @@ namespace Audio {
 
     // Implementation of the sample storage
 
-    static const char errorSampleName[] = "sound/feedback/hit.wav";
+    static const char errorSampleName[] = "sound/null";
     static std::shared_ptr<Sample> errorSample = nullptr;
     bool initialized = false;
 

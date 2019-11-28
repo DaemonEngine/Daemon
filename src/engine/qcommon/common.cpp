@@ -64,12 +64,7 @@ Maryland 20850 USA.
 #include <SDL_mutex.h>
 #endif
 
-#define MIN_COMHUNKMEGS 256
-#define DEF_COMHUNKMEGS 512
-
 static fileHandle_t logfile;
-
-cvar_t              *com_crashed = nullptr; // ydnar: set in case of a crash, prevents CVAR_UNSAFE variables from being set from a cfg
 
 cvar_t *com_pid; // bani - process id
 
@@ -86,22 +81,11 @@ Cvar::Cvar<bool> cvar_demo_timedemo(
 );
 cvar_t *com_sv_running;
 cvar_t *com_cl_running;
-cvar_t *com_logfile; // 1 = buffer log, 2 = flush after each print, 3 = append + flush
 cvar_t *com_version;
 
 cvar_t *com_unfocused;
 cvar_t *com_minimized;
 
-
-cvar_t *cl_paused;
-cvar_t *sv_paused;
-
-#if defined( _WIN32 ) && !defined( NDEBUG )
-cvar_t *com_noErrorInterrupt;
-#endif
-cvar_t *com_recommendedSet;
-
-cvar_t *com_hunkused; // Ridah
 
 // com_speeds times
 int      time_game;
@@ -111,7 +95,6 @@ int      time_backend; // renderer backend time
 int      com_frameTime;
 int      com_frameMsec;
 int      com_frameNumber;
-int      com_hunkusedvalue;
 
 bool com_fullyInitialized;
 
@@ -124,104 +107,6 @@ void     CIN_CloseAllVideos();
 // *INDENT-OFF*
 //bani - moved
 void CL_ShutdownCGame();
-
-// *INDENT-ON*
-
-/*
-============================================================================
-
-COMMAND LINE FUNCTIONS
-
-+ characters separate the commandLine string into multiple console
-command lines.
-
-All of these are valid:
-
-quake3 +set test blah +map test
-quake3 set test blah+map test
-quake3 set test blah + map test
-
-============================================================================
-*/
-
-static const int MAX_CONSOLE_LINES = 32;
-int  com_numConsoleLines;
-char *com_consoleLines[ MAX_CONSOLE_LINES ];
-
-/*
-==================
-Com_ParseCommandLine
-
-Break it up into multiple console lines
-==================
-*/
-void Com_ParseCommandLine( char *commandLine )
-{
-	com_consoleLines[ 0 ] = commandLine;
-	com_numConsoleLines = 1;
-
-	while ( *commandLine )
-	{
-		// look for a + separating character
-		// if commandLine came from a file, we might have real line separators
-		if ( *commandLine == '+' || *commandLine == '\n' || *commandLine == '\r' )
-		{
-			if ( com_numConsoleLines == MAX_CONSOLE_LINES )
-			{
-				return;
-			}
-
-			com_consoleLines[ com_numConsoleLines ] = commandLine + 1;
-			com_numConsoleLines++;
-			*commandLine = 0;
-		}
-
-		commandLine++;
-	}
-}
-
-/*
-===============
-Com_StartupVariable
-
-Searches for command-line arguments that are set commands.
-If match is not nullptr, only that cvar will be looked for.
-That is necessary because the fs_* cvars need to be set
-before the filesystem is started, but all other sets should
-be after execing the config and default.
-===============
-*/
-void Com_StartupVariable( const char *match )
-{
-	int    i;
-	const char   *s;
-	cvar_t *cv;
-
-	for ( i = 0; i < com_numConsoleLines; i++ )
-	{
-		if (com_consoleLines[i] == nullptr) {
-			continue;
-		}
-
-		Cmd::Args line(com_consoleLines[i]);
-
-		if ( line.size() < 3 || strcmp( line[0].c_str(), "set" ))
-		{
-			continue;
-		}
-
-		s = line[1].c_str();
-
-		if ( !match || !strcmp( s, match ) )
-		{
-			Cvar_Set( s, line[2].c_str() );
-			cv = Cvar_Get( s, "", CVAR_USER_CREATED );
-			if (cv->flags & CVAR_ROM) {
-				com_consoleLines[i] = nullptr;
-			}
-		}
-	}
-}
 
 //============================================================================
 
@@ -321,121 +206,6 @@ bool Com_ServerRunning()
 }
 
 /*
-==============================================================================
-
-Goals:
-        reproducible without history effects -- no out of memory errors on weird map to map changes
-        allow restarting of the client without fragmentation
-        minimize total pages in use at run time
-        minimize total pages needed during load time
-
-  Single block of memory with stack allocators coming from both ends towards the middle.
-
-  One side is designated the temporary memory allocator.
-
-  Temporary memory can be allocated and freed in any order.
-
-  A highwater mark is kept of the most in use at any time.
-
-  When there is no temporary memory allocated, the permanent and temp sides
-  can be switched, allowing the already touched temp memory to be used for
-  permanent storage.
-
-  Temp memory must never be allocated on two ends at once, or fragmentation
-  could occur.
-
-  If we have any in-use temp memory, additional temp allocations must come from
-  that side.
-
-  If not, we can choose to make either side the new temp side and push future
-  permanent allocations to the other side.  Permanent allocations should be
-  kept on the side that has the current greatest wasted highwater mark.
-
-==============================================================================
-*/
-
-#ifndef BUILD_SERVER
-
-static const int HUNK_MAGIC      = 0x89537892;
-static const int HUNK_FREE_MAGIC = 0x89537893;
-
-struct hunkHeader_t
-{
-	int magic;
-	int size;
-};
-
-struct hunkUsed_t
-{
-	int permanent;
-	int temp;
-	int tempHighwater;
-};
-
-struct hunkblock_t
-{
-	int                size;
-	byte               printed;
-	hunkblock_t *next;
-
-	const char         *label;
-	const char         *file;
-	int                line;
-};
-// for alignment purposes
-#define SIZEOF_HUNKBLOCK_T ( ( sizeof( hunkblock_t ) + 31 ) & ~31 )
-
-static hunkUsed_t  hunk_low, hunk_high;
-static hunkUsed_t  *hunk_permanent, *hunk_temp;
-
-static byte        *s_hunkData = nullptr;
-static int         s_hunkTotal;
-
-/*
-=================
-Com_Meminfo_f
-=================
-*/
-void Com_Meminfo_f()
-{
-	Log::Notice( "%9i bytes (%6.2f MB) total hunk\n", s_hunkTotal, s_hunkTotal / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) low permanent\n", hunk_low.permanent, hunk_low.permanent / Square( 1024.f ) );
-
-	if ( hunk_low.temp != hunk_low.permanent )
-	{
-		Log::Notice( "%9i bytes (%6.2f MB) low temp\n", hunk_low.temp, hunk_low.temp / Square( 1024.f ) );
-	}
-
-	Log::Notice( "%9i bytes (%6.2f MB) low tempHighwater\n", hunk_low.tempHighwater, hunk_low.tempHighwater / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) high permanent\n", hunk_high.permanent, hunk_high.permanent / Square( 1024.f ) );
-
-	if ( hunk_high.temp != hunk_high.permanent )
-	{
-		Log::Notice( "%9i bytes (%6.2f MB) high temp\n", hunk_high.temp, hunk_high.temp / Square( 1024.f ) );
-	}
-
-	Log::Notice( "%9i bytes (%6.2f MB) high tempHighwater\n", hunk_high.tempHighwater, hunk_high.tempHighwater / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) total hunk in use\n", hunk_low.permanent + hunk_high.permanent,
-	            ( hunk_low.permanent + hunk_high.permanent ) / Square( 1024.f ) );
-	int unused = 0;
-
-	if ( hunk_low.tempHighwater > hunk_low.permanent )
-	{
-		unused += hunk_low.tempHighwater - hunk_low.permanent;
-	}
-
-	if ( hunk_high.tempHighwater > hunk_high.permanent )
-	{
-		unused += hunk_high.tempHighwater - hunk_high.permanent;
-	}
-
-	Log::Notice( "%9i bytes (%6.2f MB) unused highwater\n", unused, unused / Square( 1024.f ) );
-}
-
-/*
 =================
 Com_Allocate_Aligned
 
@@ -471,265 +241,6 @@ void Com_Free_Aligned( void *ptr )
 #endif
 }
 
-/*
-=================
-Com_InitHunkMemory
-=================
-*/
-void Com_InitHunkMemory()
-{
-	cvar_t *cv;
-
-	// allocate the stack based hunk allocator
-	cv = Cvar_Get( "com_hunkMegs", XSTRING(DEF_COMHUNKMEGS), CVAR_LATCH  );
-
-	if ( cv->integer < MIN_COMHUNKMEGS )
-	{
-		s_hunkTotal = 1024 * 1024 * MIN_COMHUNKMEGS;
-		Log::Notice( "Minimum com_hunkMegs is " XSTRING(MIN_COMHUNKMEGS) ", allocating " XSTRING(MIN_COMHUNKMEGS) "MB." );
-	}
-	else
-	{
-		s_hunkTotal = cv->integer * 1024 * 1024;
-	}
-
-	// cacheline aligned
-	s_hunkData = ( byte * ) Com_Allocate_Aligned( 64, s_hunkTotal );
-
-	if ( !s_hunkData )
-	{
-		Sys::Error( "Hunk data failed to allocate %iMB", s_hunkTotal / ( 1024 * 1024 ) );
-	}
-
-	Hunk_Clear();
-
-	Cmd_AddCommand( "meminfo", Com_Meminfo_f );
-}
-
-void Hunk_Clear()
-{
-	hunk_low.permanent = 0;
-	hunk_low.temp = 0;
-	hunk_low.tempHighwater = 0;
-
-	hunk_high.permanent = 0;
-	hunk_high.temp = 0;
-	hunk_high.tempHighwater = 0;
-
-	hunk_permanent = &hunk_low;
-	hunk_temp = &hunk_high;
-
-	Cvar_Set( "com_hunkused", va( "%i", hunk_low.permanent + hunk_high.permanent ) );
-	com_hunkusedvalue = hunk_low.permanent + hunk_high.permanent;
-
-	Log::Debug( "Hunk_Clear: reset the hunk ok" );
-}
-
-/*
-=================
-Hunk_ShutDownRandomStuffAndClear
-
-The server calls this before shutting down or loading a new map
-=================
-*/
-void Hunk_ShutDownRandomStuffAndClear()
-{
-#ifdef BUILD_GRAPHICAL_CLIENT // TODO(slipher): Should either of these also happen for tty client?
-	CL_ShutdownCGame();
-#endif
-	void SV_ShutdownGameProgs();
-	SV_ShutdownGameProgs();
-#ifdef BUILD_GRAPHICAL_CLIENT
-	CIN_CloseAllVideos();
-#endif
-	Hunk_Clear();
-}
-
-static void Hunk_SwapBanks()
-{
-	hunkUsed_t *swap;
-
-	// can't swap banks if there is any temp already allocated
-	if ( hunk_temp->temp != hunk_temp->permanent )
-	{
-		return;
-	}
-
-	// if we have a larger highwater mark on this side, start making
-	// our permanent allocations here and use the other side for temp
-	if ( hunk_temp->tempHighwater - hunk_temp->permanent > hunk_permanent->tempHighwater - hunk_permanent->permanent )
-	{
-		swap = hunk_temp;
-		hunk_temp = hunk_permanent;
-		hunk_permanent = swap;
-	}
-}
-
-/*
-=================
-Hunk_Alloc
-
-Allocate permanent (until the hunk is cleared) memory
-=================
-*/
-void           *Hunk_Alloc( int size, ha_pref)
-{
-	void *buf;
-
-	if ( s_hunkData == nullptr )
-	{
-		Sys::Error( "Hunk_Alloc: Hunk memory system not initialized" );
-	}
-
-	Hunk_SwapBanks();
-
-	// round to cacheline
-	size = ( size + 31 ) & ~31;
-
-	if ( hunk_low.temp + hunk_high.temp + size > s_hunkTotal )
-	{
-		Sys::Drop( "Hunk_Alloc failed on %i", size );
-	}
-
-	if ( hunk_permanent == &hunk_low )
-	{
-		buf = ( void * )( s_hunkData + hunk_permanent->permanent );
-		hunk_permanent->permanent += size;
-	}
-	else
-	{
-		hunk_permanent->permanent += size;
-		buf = ( void * )( s_hunkData + s_hunkTotal - hunk_permanent->permanent );
-	}
-
-	hunk_permanent->temp = hunk_permanent->permanent;
-
-	memset( buf, 0, size );
-
-	// Ridah, update the com_hunkused cvar in increments, so we don't update it too often, since this cvar call isn't very efficent
-	if ( ( hunk_low.permanent + hunk_high.permanent ) > com_hunkused->integer + 2500 )
-	{
-		Cvar_Set( "com_hunkused", va( "%i", hunk_low.permanent + hunk_high.permanent ) );
-	}
-
-	com_hunkusedvalue = hunk_low.permanent + hunk_high.permanent;
-
-	return buf;
-}
-
-/*
-=================
-Hunk_AllocateTempMemory
-
-This is used by the file loading system.
-Multiple files can be loaded in temporary memory.
-When the files-in-use count reaches zero, all temp memory will be deleted
-=================
-*/
-void           *Hunk_AllocateTempMemory( int size )
-{
-	void         *buf;
-	hunkHeader_t *hdr;
-
-	// return a Z_Malloc'd block if the hunk has not been initialized
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redundant routines in the file system utilizing different
-	// memory systems
-	if ( s_hunkData == nullptr )
-	{
-		return Z_Malloc( size );
-	}
-
-	Hunk_SwapBanks();
-
-	size = PAD( size, sizeof( intptr_t ) ) + sizeof( hunkHeader_t );
-
-	if ( hunk_temp->temp + hunk_permanent->permanent + size > s_hunkTotal )
-	{
-		Sys::Drop( "Hunk_AllocateTempMemory: failed on %i", size );
-	}
-
-	if ( hunk_temp == &hunk_low )
-	{
-		buf = ( void * )( s_hunkData + hunk_temp->temp );
-		hunk_temp->temp += size;
-	}
-	else
-	{
-		hunk_temp->temp += size;
-		buf = ( void * )( s_hunkData + s_hunkTotal - hunk_temp->temp );
-	}
-
-	if ( hunk_temp->temp > hunk_temp->tempHighwater )
-	{
-		hunk_temp->tempHighwater = hunk_temp->temp;
-	}
-
-	hdr = ( hunkHeader_t * ) buf;
-	buf = ( void * )( hdr + 1 );
-
-	hdr->magic = HUNK_MAGIC;
-	hdr->size = size;
-
-	// don't bother clearing, because we are going to load a file over it
-	return buf;
-}
-
-/*
-==================
-Hunk_FreeTempMemory
-==================
-*/
-void Hunk_FreeTempMemory( void *buf )
-{
-	hunkHeader_t *hdr;
-
-	// free with Z_Free if the hunk has not been initialized
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redundant routines in the file system utilizing different
-	// memory systems
-	if ( s_hunkData == nullptr )
-	{
-		Z_Free( buf );
-		return;
-	}
-
-	hdr = ( ( hunkHeader_t * ) buf ) - 1;
-
-	if ( hdr->magic != (int) HUNK_MAGIC )
-	{
-		Sys::Error( "Hunk_FreeTempMemory: bad magic" );
-	}
-
-	hdr->magic = HUNK_FREE_MAGIC;
-
-	// this only works if the files are freed in stack order,
-	// otherwise the memory will stay around until Hunk_Clear
-	if ( hunk_temp == &hunk_low )
-	{
-		if ( hdr == ( void * )( s_hunkData + hunk_temp->temp - hdr->size ) )
-		{
-			hunk_temp->temp -= hdr->size;
-		}
-		else
-		{
-			Log::Notice( "Hunk_FreeTempMemory: not the final block\n" );
-		}
-	}
-	else
-	{
-		if ( hdr == ( void * )( s_hunkData + s_hunkTotal - hunk_temp->temp ) )
-		{
-			hunk_temp->temp -= hdr->size;
-		}
-		else
-		{
-			Log::Notice( "Hunk_FreeTempMemory: not the final block\n" );
-		}
-	}
-}
-
-#endif // !BUILD_SERVER
 
 /*
 ===================================================================
@@ -1116,32 +627,17 @@ void Com_In_Restart_f()
 /*
 =================
 Com_Init
+
+This does initializations that only occur once in the lifetime of the program.
+Stuff that is initialized e.g. each time the cgame restarts is done elsewhere.
 =================
 */
-void Com_Init( char *commandLine )
+void Com_Init()
 {
 	char              *s;
 	int               qport;
 
-	// prepare enough of the subsystems to handle
-	// cvar and command buffer management
-	Com_ParseCommandLine( commandLine );
-
-	// override anything from the config files with command line args
-	Com_StartupVariable( nullptr );
-
-	// get the developer cvar set as early as possible
-	Com_StartupVariable( "developer" );
-
-	// ydnar: init crashed variable as early as possible
-	com_crashed = Cvar_Get( "com_crashed", "0", CVAR_TEMP );
-
 	Trans_Init();
-
-#ifndef BUILD_SERVER
-	// allocate the stack based hunk allocator
-	Com_InitHunkMemory();
-#endif
 	Trans_LoadDefaultLanguage();
 
 	// if any archived cvars are modified after this, we will trigger a writing
@@ -1153,28 +649,15 @@ void Com_Init( char *commandLine )
 	//
 	com_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
 
-	com_logfile = Cvar_Get( "logfile", "0", CVAR_TEMP );
-
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
 
-	cl_paused = Cvar_Get( "cl_paused", "0", CVAR_ROM );
-	sv_paused = Cvar_Get( "sv_paused", "0", CVAR_ROM );
 	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM );
 	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM );
 
-	com_recommendedSet = Cvar_Get( "com_recommendedSet", "0", 0 );
-
 	com_unfocused = Cvar_Get( "com_unfocused", "0", CVAR_ROM );
 	com_minimized = Cvar_Get( "com_minimized", "0", CVAR_ROM );
-
-#if defined( _WIN32 ) && !defined( NDEBUG )
-	com_noErrorInterrupt = Cvar_Get( "com_noErrorInterrupt", "0", 0 );
-#endif
-
-	com_hunkused = Cvar_Get( "com_hunkused", "0", 0 );
-	com_hunkusedvalue = 0;
 
 	if ( com_developer && com_developer->integer )
 	{
@@ -1209,12 +692,10 @@ void Com_Init( char *commandLine )
 	// being random enough for a serverid
 	com_frameTime = Com_Milliseconds();
 
-	CL_StartHunkUsers();
+	NET_Init();
 
 	com_fullyInitialized = true;
 	Log::Notice( "--- Common Initialization Complete ---" );
-
-	NET_Init();
 }
 
 //==================================================================
@@ -1573,6 +1054,11 @@ void Com_Frame()
 				}
 			}
 		}
+	}
+	else if ( Com_IsDedicatedServer() && Com_ServerRunning() )
+	{
+		watchdogTime = 0;
+		watchWarn = false;
 	}
 
 	//

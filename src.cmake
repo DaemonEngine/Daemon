@@ -19,6 +19,7 @@ set(SHAREDLIST_sgame
 )
 
 set(COMMONLIST
+    ${COMMON_DIR}/Assert.h
     ${COMMON_DIR}/Color.h
     ${COMMON_DIR}/Color.cpp
     ${COMMON_DIR}/Command.cpp
@@ -149,6 +150,7 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/blurY_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_vp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/computeLight_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/contrast_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/contrast_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/debugShadowMap_fp.glsl
@@ -211,8 +213,11 @@ endforeach()
 set(SERVERLIST
     ${ENGINE_DIR}/botlib/bot_api.h
     ${ENGINE_DIR}/botlib/bot_convert.cpp
+    ${ENGINE_DIR}/botlib/bot_convert.h
+    ${ENGINE_DIR}/botlib/bot_debug.h
     ${ENGINE_DIR}/botlib/bot_load.cpp
     ${ENGINE_DIR}/botlib/bot_local.cpp
+    ${ENGINE_DIR}/botlib/bot_local.h
     ${ENGINE_DIR}/botlib/bot_nav.cpp
     ${ENGINE_DIR}/botlib/bot_navdraw.h
     ${ENGINE_DIR}/botlib/bot_types.h
@@ -234,6 +239,7 @@ set(SERVERLIST
 
 set(ENGINELIST
     ${ENGINE_DIR}/framework/Application.cpp
+    ${ENGINE_DIR}/framework/Application.h
     ${ENGINE_DIR}/framework/BaseCommands.cpp
     ${ENGINE_DIR}/framework/BaseCommands.h
     ${ENGINE_DIR}/framework/CommandBufferHost.cpp
@@ -318,11 +324,13 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/cl_cgame.cpp
     ${ENGINE_DIR}/client/cl_cin.cpp
     ${ENGINE_DIR}/client/cl_console.cpp
+    ${ENGINE_DIR}/client/cl_download.cpp
     ${ENGINE_DIR}/client/cl_input.cpp
     ${ENGINE_DIR}/client/cl_main.cpp
     ${ENGINE_DIR}/client/cl_parse.cpp
     ${ENGINE_DIR}/client/cl_scrn.cpp
     ${ENGINE_DIR}/client/dl_main.cpp
+    ${ENGINE_DIR}/client/hunk_allocator.cpp
     ${ENGINE_DIR}/client/key_identification.h
     ${ENGINE_DIR}/client/keycodes.h
     ${ENGINE_DIR}/client/keys.h

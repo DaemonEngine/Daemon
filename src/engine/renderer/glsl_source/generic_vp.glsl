@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* generic_vp.glsl */
 
-uniform mat4		u_ColorTextureMatrix;
+uniform mat4		u_TextureMatrix;
 #if !defined(USE_VERTEX_SPRITE)
 uniform vec3		u_ViewOrigin;
 #endif
@@ -44,7 +44,7 @@ uniform float           u_DepthScale;
 OUT(smooth) vec2	var_FadeDepth;
 #endif
 
-OUT(smooth) vec2	var_Tex;
+OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Color;
 
 void DeformVertex( inout vec4 pos,
@@ -84,12 +84,12 @@ void	main()
 
 		vec3 reflected = LB.normal * 2.0 * d - viewer;
 
-		var_Tex = 0.5 + vec2(0.5, -0.5) * reflected.yz;
+		var_TexCoords = 0.5 + vec2(0.5, -0.5) * reflected.yz;
 	}
 #elif defined(USE_TCGEN_LIGHTMAP)
-	var_Tex = (u_ColorTextureMatrix * vec4(lmCoord, 0.0, 1.0)).xy;
+	var_TexCoords = (u_TextureMatrix * vec4(lmCoord, 0.0, 1.0)).xy;
 #else
-	var_Tex = (u_ColorTextureMatrix * vec4(texCoord, 0.0, 1.0)).xy;
+	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).xy;
 #endif
 
 #if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)

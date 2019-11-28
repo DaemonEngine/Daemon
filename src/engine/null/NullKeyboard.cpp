@@ -67,8 +67,16 @@ Util::optional<std::string> GetBinding(Key, Keyboard::BindTeam, bool) {
     return {};
 }
 
-std::vector<Keyboard::Key> GetKeysBoundTo(int, Str::StringRef) {
+std::vector<Key> GetKeysBoundTo(int, Str::StringRef) {
     return {};
+}
+
+const std::vector<Key>& GetConsoleKeys() {
+    static std::vector<Key> v;
+    return v;
+}
+
+void SetConsoleKeys(const std::vector<Key>&) {
 }
 
 void WriteBindings( fileHandle_t ) {

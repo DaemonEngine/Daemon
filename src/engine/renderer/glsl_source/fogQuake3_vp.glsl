@@ -36,7 +36,7 @@ uniform vec4		u_FogDepthVector;
 uniform float		u_FogEyeT;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec2	var_Tex;
+OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Color;
 
 void DeformVertex( inout vec4 pos,
@@ -96,7 +96,7 @@ void	main()
 		}
 	}
 
-	var_Tex = vec2(s, t);
+	var_TexCoords = vec2(s, t);
 
 	var_Color = color;
 }

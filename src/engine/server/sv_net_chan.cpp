@@ -89,31 +89,6 @@ void SV_Netchan_TransmitNextFragment( client_t *client )
 
 /*
 ===============
-SV_WriteBinaryMessage
-===============
-*/
-static void SV_WriteBinaryMessage( msg_t *msg, client_t *cl )
-{
-	if ( !cl->binaryMessageLength )
-	{
-		return;
-	}
-
-	MSG_Uncompressed( msg );
-
-	if ( ( msg->cursize + cl->binaryMessageLength ) >= msg->maxsize )
-	{
-		cl->binaryMessageOverflowed = true;
-		return;
-	}
-
-	MSG_WriteData( msg, cl->binaryMessage, cl->binaryMessageLength );
-	cl->binaryMessageLength = 0;
-	cl->binaryMessageOverflowed = false;
-}
-
-/*
-===============
 SV_Netchan_Transmit
 
 TTimo
@@ -127,7 +102,6 @@ void SV_Netchan_Transmit( client_t *client, msg_t *msg )
 {
 	//int length, const byte *data ) {
 	MSG_WriteByte( msg, svc_EOF );
-	SV_WriteBinaryMessage( msg, client );
 
 	if ( client->netchan.unsentFragments )
 	{

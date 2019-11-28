@@ -204,8 +204,6 @@ void            trap_SetMouseMode( MouseMode mode );
 void            trap_S_StopBackgroundTrack();
 void            trap_R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
 bool        trap_GetEntityToken( char *buffer, int bufferSize );
-void 			trap_SendMessage(const std::vector<uint8_t>& message);
-messageStatus_t trap_MessageStatus();
 std::vector<std::vector<Keyboard::Key>> trap_Key_GetKeysForBinds(int team, const std::vector<std::string>& binds);
 int             trap_Key_GetCharForScancode( int scancode );
 bool        trap_R_inPVS( const vec3_t p1, const vec3_t p2 );

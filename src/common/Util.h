@@ -165,27 +165,6 @@ private:
 	typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type data;
 };
 
-// Use to perform an action only if a minimum time has passed since the last time it was performed.
-// Not thread-safe.
-class MinimumDelay {
-public:
-	// duration: length of delay in milliseconds
-	MinimumDelay(int duration): duration(duration), lastTime(std::numeric_limits<int>::min()) {}
-
-	// Returns true if it is OK to perform the action again. Takes current time in milliseconds.
-	bool Check(int now) {
-		if (now >= lastTime && now < lastTime + duration) {
-			return false;
-		} else {
-			lastTime = now;
-			return true;
-		}
-	}
-private:
-	const int duration;
-	int lastTime;
-};
-
 // std::make_unique is not available until C++14.
 template<typename T, typename ... U>
 std::unique_ptr<T> make_unique(U&&... args)

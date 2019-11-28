@@ -22,31 +22,29 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* heatHaze_fp.glsl */
 
-uniform sampler2D	u_NormalMap;
 uniform sampler2D	u_CurrentMap;
 uniform float		u_AlphaThreshold;
 
-IN(smooth) vec2		var_TexNormal;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) float	var_Deform;
 
 DECLARE_OUTPUT(vec4)
 
 void	main()
 {
-	vec4 color0, color1;
+	vec4 color;
 
 	// compute normal in tangent space from normalmap
-	color0 = texture2D(u_NormalMap, var_TexNormal).rgba;
-	vec3 N = 2.0 * (color0.rgb - 0.5);
+	vec3 normal = NormalInTangentSpace(var_TexCoords);
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st * r_FBufScale;
 
 	// offset by the scaled normal and clamp it to 0.0 - 1.0
-	st += N.xy * var_Deform;
+	st += normal.xy * var_Deform;
 	st = clamp(st, 0.0, 1.0);
 
-	color0 = texture2D(u_CurrentMap, st);
+	color = texture2D(u_CurrentMap, st);
 
-	outputColor = color0;
+	outputColor = color;
 }

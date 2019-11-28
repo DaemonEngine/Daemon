@@ -37,26 +37,26 @@ DECLARE_OUTPUT(vec4)
 void	main()
 {
 	// compute incident ray
-	vec3 I = normalize(var_Position - u_ViewOrigin);
+	vec3 incidentRay = normalize(var_Position - u_ViewOrigin);
 
 	// compute normal
-	vec3 N = normalize(var_Normal);	// FIXME normalize?
+	vec3 normal = normalize(var_Normal);	// FIXME normalize?
 
 	// compute reflection ray
-	vec3 R = reflect(I, N);
+	vec3 reflectionRay = reflect(incidentRay, normal);
 
 	// compute fresnel term
-	float fresnel = u_FresnelBias + pow(1.0 - dot(I, N), u_FresnelPower) * u_FresnelScale;
+	float fresnel = u_FresnelBias + pow(1.0 - dot(incidentRay, normal), u_FresnelPower) * u_FresnelScale;
 
 	// compute reflection color
-	vec3 reflectColor = textureCube(u_ColorMap, R).rgb;
+	vec3 reflectColor = textureCube(u_ColorMap, reflectionRay).rgb;
 
 	// compute refraction color using a refraction ray for each channel
 	vec3 refractColor;
 
-	refractColor.r = textureCube(u_ColorMap, refract(I, N, u_EtaRatio.x)).r;
-	refractColor.g = textureCube(u_ColorMap, refract(I, N, u_EtaRatio.y)).g;
-	refractColor.b = textureCube(u_ColorMap, refract(I, N, u_EtaRatio.z)).b;
+	refractColor.r = textureCube(u_ColorMap, refract(incidentRay, normal, u_EtaRatio.x)).r;
+	refractColor.g = textureCube(u_ColorMap, refract(incidentRay, normal, u_EtaRatio.y)).g;
+	refractColor.b = textureCube(u_ColorMap, refract(incidentRay, normal, u_EtaRatio.z)).b;
 
 	// compute final color
 	vec4 color;

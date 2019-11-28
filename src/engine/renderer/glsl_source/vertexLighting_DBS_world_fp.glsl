@@ -23,12 +23,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* vertexLighting_DBS_world_fp.glsl */
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_NormalMap;
 uniform sampler2D	u_SpecularMap;
 uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
-uniform float		u_DepthScale;
 uniform	float		u_LightWrapAround;
 
 uniform sampler3D       u_LightGrid1;
@@ -39,10 +37,9 @@ uniform vec3            u_LightGridScale;
 uniform vec3		u_ViewOrigin;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec4		var_TexDiffuseGlow;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
-IN(smooth) vec4		var_TexNormalSpecular;
 IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
 
@@ -72,9 +69,10 @@ void ReadLightGrid(in vec3 pos, out vec3 lgtDir,
 
 void	main()
 {
-	vec2 texDiffuse = var_TexDiffuseGlow.st;
-	vec2 texGlow = var_TexDiffuseGlow.pq;
-	vec3 V = normalize(u_ViewOrigin - var_Position);
+	vec2 texCoords = var_TexCoords;
+
+	// compute view direction in world space
+	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyx);
 
@@ -82,41 +80,15 @@ void	main()
 	ReadLightGrid( (var_Position - u_LightGridOrigin) * u_LightGridScale,
 		       L, ambCol, dirCol);
 
-	vec2 texNormal = var_TexNormalSpecular.st;
-	vec2 texSpecular = var_TexNormalSpecular.pq;
-
 #if defined(USE_PARALLAX_MAPPING)
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
-	// ray intersect in view direction
-
-	// compute view direction in tangent space
-	vec3 Vts = V * tangentToWorldMatrix;
-	Vts = normalize(Vts);
-
-	// size and start position of search in texture space
-	vec2 S = Vts.xy * -u_DepthScale / Vts.z;
-
-#if 0
-	vec2 texOffset = vec2(0.0);
-	for(int i = 0; i < 4; i++) {
-		vec4 Normal = texture2D(u_NormalMap, texNormal.st + texOffset);
-		float height = Normal.a * 0.2 - 0.0125;
-		texOffset += height * Normal.z * S;
-	}
-#else
-	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
-
-	// compute texcoords offset
-	vec2 texOffset = S * depth;
-#endif
-
-	texDiffuse.st += texOffset;
-	texNormal.st += texOffset;
-	texSpecular.st += texOffset;
+	texCoords += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texDiffuse) * var_Color;
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords) * var_Color;
 
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
@@ -124,27 +96,20 @@ void	main()
 		return;
 	}
 
-	vec4 specular = texture2D(u_SpecularMap, texSpecular);
+	vec4 specular = texture2D(u_SpecularMap, texCoords);
 
-	// compute normal in tangent space from normalmap
-	vec3 N = texture2D(u_NormalMap, texNormal.st).xyw;
-	N.x *= N.z;
-	N.xy = 2.0 * N.xy - 1.0;
-	N.z = sqrt(1.0 - dot(N.xy, N.xy));
-	
-#if defined(r_NormalScale)
-	N.z *= r_NormalScale;
-#endif
-
-	N = normalize(tangentToWorldMatrix * N);
+	// compute normal in world space from normalmap
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute final color
 	vec4 color = vec4( ambCol * diffuse.xyz, diffuse.a );
-	computeLight( L, N, V, dirCol, diffuse, specular, color );
+	computeLight( L, normal, viewDir, dirCol, diffuse, specular, color );
 
-	computeDLights( var_Position, N, V, diffuse, specular, color );
+	computeDLights( var_Position, normal, viewDir, diffuse, specular, color );
 
-	color.rgb += texture2D(u_GlowMap, texGlow).rgb;
+#if defined(r_glowMapping)
+	color.rgb += texture2D(u_GlowMap, texCoords).rgb;
+#endif // r_glowMapping
 
 	outputColor = color;
 }

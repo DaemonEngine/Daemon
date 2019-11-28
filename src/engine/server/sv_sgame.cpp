@@ -51,30 +51,22 @@ Maryland 20850 USA.
 
 sharedEntity_t *SV_GentityNum( int num )
 {
-	sharedEntity_t *ent;
-
-	if ( num < 0 || num >= MAX_GENTITIES )
+	if ( num < 0 || num >= MAX_GENTITIES || sv.gentities == nullptr )
 	{
 		Sys::Drop( "SV_GentityNum: bad num %d", num );
 	}
 
-	ent = ( sharedEntity_t * )( ( byte * ) sv.gentities + sv.gentitySize * ( num ) );
-
-	return ent;
+	return ( sharedEntity_t * )( ( byte * ) sv.gentities + sv.gentitySize * ( num ) );
 }
 
 playerState_t  *SV_GameClientNum( int num )
 {
-	playerState_t *ps;
-
-	if ( num >= sv_maxclients->integer )
+	if ( num < 0 || num >= sv_maxclients->integer || sv.gameClients == nullptr )
 	{
 		Sys::Drop( "SV_GameClientNum: bad num" );
 	}
 
-	ps = ( playerState_t * )( ( byte * ) sv.gameClients + sv.gameClientSize * ( num ) );
-
-	return ps;
+	return ( playerState_t * )( ( byte * ) sv.gameClients + sv.gameClientSize * ( num ) );
 }
 
 svEntity_t     *SV_SvEntityForGentity( sharedEntity_t *gEnt )
@@ -191,9 +183,10 @@ SV_LocateGameData
 void SV_LocateGameData( const IPC::SharedMemory& shmRegion, int numGEntities, int sizeofGEntity_t,
                         int sizeofGameClient )
 {
-	if ( numGEntities < 0 || sizeofGEntity_t < 0 || sizeofGameClient < 0 )
+	if ( numGEntities < 0 || numGEntities > MAX_GENTITIES || sizeofGEntity_t < 0 || sizeofGameClient < 0
+	     || sizeofGEntity_t % alignof(sharedEntity_t) || sizeofGEntity_t % alignof(playerState_t) )
 		Sys::Drop( "SV_LocateGameData: Invalid game data parameters" );
-	if ( (int) shmRegion.GetSize() < numGEntities * sizeofGEntity_t + sv_maxclients->integer * sizeofGameClient )
+	if ( int64_t(shmRegion.GetSize()) < int64_t(MAX_GENTITIES) * sizeofGEntity_t + int64_t(sv_maxclients->integer) * sizeofGameClient )
 		Sys::Drop( "SV_LocateGameData: Shared memory region too small" );
 
 	char* base = static_cast<char*>(shmRegion.GetBase());
@@ -201,8 +194,14 @@ void SV_LocateGameData( const IPC::SharedMemory& shmRegion, int numGEntities, in
 	sv.gentitySize = sizeofGEntity_t;
 	sv.num_entities = numGEntities;
 
-	sv.gameClients = reinterpret_cast<playerState_t*>(base + MAX_GENTITIES * sizeofGEntity_t);
+	sv.gameClients = reinterpret_cast<playerState_t*>(base + MAX_GENTITIES * size_t(sizeofGEntity_t));
 	sv.gameClientSize = sizeofGameClient;
+}
+
+static void UnlocateGameData()
+{
+	sv.gentities = nullptr;
+	sv.gameClients = nullptr;
 }
 
 /*
@@ -220,57 +219,6 @@ void SV_GetUsercmd( int clientNum, usercmd_t *cmd )
 
 	*cmd = svs.clients[ clientNum ].lastUsercmd;
 }
-
-/*
-====================
-SV_SendBinaryMessage
-====================
-*/
-static void SV_SendBinaryMessage(int cno, std::vector<uint8_t> message)
-{
-	if (cno < 0 || cno >= sv_maxclients->integer) {
-		Sys::Drop("SV_SendBinaryMessage: bad client %i", cno);
-	}
-
-	if (message.size() > MAX_BINARY_MESSAGE) {
-		Sys::Drop("SV_SendBinaryMessage: bad length %zi", message.size());
-	}
-
-	auto &cl = svs.clients[cno];
-	memcpy(cl.binaryMessage, message.data(), cl.binaryMessageLength = message.size());
-}
-
-/*
-====================
-SV_BinaryMessageStatus
-====================
-*/
-static messageStatus_t SV_BinaryMessageStatus(int cno)
-{
-	if (cno < 0 || cno >= sv_maxclients->integer) {
-		return messageStatus_t::MESSAGE_EMPTY;
-	}
-	const auto &cl = svs.clients[cno];
-	if (cl.binaryMessageLength == 0) {
-		return messageStatus_t::MESSAGE_EMPTY;
-	}
-	if (cl.binaryMessageOverflowed) {
-		return messageStatus_t::MESSAGE_WAITING_OVERFLOW;
-	}
-	return messageStatus_t::MESSAGE_WAITING;
-}
-
-/*
-====================
-SV_GameBinaryMessageReceived
-====================
-*/
-void SV_GameBinaryMessageReceived(int cno, const byte *buf, size_t buflen, int commandTime)
-{
-	gvm.GameMessageRecieved( cno, buf, buflen, commandTime );
-}
-
-//==============================================
 
 /*
 ====================
@@ -319,7 +267,6 @@ void SV_ShutdownGameProgs()
 	}
 
 	gvm.GameShutdown( false );
-    gvm.Free();
 }
 
 /*
@@ -387,7 +334,7 @@ void SV_InitGameProgs()
 	SV_InitGameVM();
 }
 
-GameVM::GameVM(): VM::VMBase("sgame"), services(nullptr){
+GameVM::GameVM(): VM::VMBase("sgame", Cvar::NONE), services(nullptr) {
 }
 
 void GameVM::Start()
@@ -414,15 +361,21 @@ void GameVM::GameInit(int levelTime, int randomSeed)
 
 void GameVM::GameShutdown(bool restart)
 {
-	// Ignore errors when shutting down
 	try {
 		this->SendMsg<GameShutdownMsg>(restart);
+	} catch (Sys::DropErr& err) {
+		Log::Notice("Error during sgame shutdown: %s", err.what());
+	}
+	try {
 		this->Free();
-	} catch (Sys::DropErr&) {}
+	} catch (Sys::DropErr& err) {
+		Log::Notice("Error while freeing sgame: %s", err.what());
+	}
 	services = nullptr;
 
 	// Release the shared memory region
 	this->shmRegion.Close();
+	UnlocateGameData();
 }
 
 bool GameVM::GameClientConnect(char* reason, size_t size, int clientNum, bool firstTime, bool isBot)
@@ -475,13 +428,6 @@ bool GameVM::GameSnapshotCallback(int, int)
 void GameVM::BotAIStartFrame(int)
 {
 	Sys::Drop("GameVM::BotAIStartFrame not implemented");
-}
-
-void GameVM::GameMessageRecieved(int clientNum, const uint8_t *buf, size_t size, int commandTime)
-{
-	static auto shm = IPC::SharedMemory::Create(MAX_BINARY_MESSAGE);
-	memcpy(shm.GetBase(), buf, size);
-	gvm.SendMsg<GameRecvMessageMsg>(clientNum, shm, size, commandTime);
 }
 
 void GameVM::Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel)
@@ -593,14 +539,15 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		break;
 
 	case G_SEND_MESSAGE:
-		IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](int clientNum, std::vector<uint8_t> message) {
-			SV_SendBinaryMessage(clientNum, std::move(message));
+		IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](int, std::vector<uint8_t>) {
+			Log::Warn("SendMessageMsg unsupported");
 		});
 		break;
 
 	case G_MESSAGE_STATUS:
-		IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](int index, messageStatus_t& status) {
-			status = SV_BinaryMessageStatus(index);
+		IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](int, messageStatus_t& status) {
+			Log::Warn("MessageStatusMsg unsupported");
+			status = {};
 		});
 		break;
 

@@ -23,12 +23,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* reflection_CB_fp.glsl */
 
 uniform samplerCube	u_ColorMap;
-uniform sampler2D	u_NormalMap;
 uniform vec3		u_ViewOrigin;
 uniform mat4		u_ModelMatrix;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec2		var_TexNormal;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Tangent;
 IN(smooth) vec4		var_Binormal;
 IN(smooth) vec4		var_Normal;
@@ -37,27 +36,26 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
-	// compute incident ray in world space
-	vec3 I = normalize(var_Position - u_ViewOrigin);
-
-	// compute normal in tangent space from normalmap
-	vec3 N = texture2D(u_NormalMap, var_TexNormal.st).xyw;
-	N.x *= N.z;
-	N.xy = 2.0 * N.xy - 1.0;
-	N.z = sqrt(1.0 - dot(N.xy, N.xy));
-#if defined(r_NormalScale)
-	N.z *= r_NormalScale;
-	normalize(N);
-#endif
+	// compute view direction in world space
+	vec3 viewDir = normalize(var_Position - u_ViewOrigin);
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	// transform normal into world space
-	N = normalize(tangentToWorldMatrix * N);
+	vec2 texNormal = var_TexCoords;
+
+#if defined(USE_PARALLAX_MAPPING)
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+
+	texNormal += texOffset;
+#endif // USE_PARALLAX_MAPPING
+
+	// compute normal in tangent space from normal map
+	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
 
 	// compute reflection ray
-	vec3 R = reflect(I, N);
+	vec3 reflectionRay = reflect(viewDir, normal);
 
-	outputColor = textureCube(u_ColorMap, R).rgba;
+	outputColor = textureCube(u_ColorMap, reflectionRay).rgba;
 	// outputColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

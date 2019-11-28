@@ -206,8 +206,7 @@ using clipHandle_t = int;
 
 #define MAX_SAY_TEXT       400
 
-#define MAX_BINARY_MESSAGE 32768 // max length of binary message
-
+// TODO(0.52): remove
 	enum class messageStatus_t : uint8_t
 	{
 	  MESSAGE_EMPTY,
@@ -1541,7 +1540,6 @@ void         ByteToDir( int b, vec3_t dir );
 #define CVAR_TEMP                BIT(8)   /*< can be set even when cheats are disabled, but is not archived */
 #define CVAR_CHEAT               BIT(9)   /*< can not be changed if cheats are disabled */
 #define CVAR_NORESTART           BIT(10)  /*< do not clear when a cvar_restart is issued */
-#define CVAR_SHADER              BIT(11)  /*< tell renderer to recompile shaders. */
 
 /**
  * unsafe system cvars (renderer, sound settings,
@@ -2109,6 +2107,7 @@ struct glyphInfo_t
 	char      shaderName[ 32 ];
 };
 
+// Unlike with many other handle types, 0 is valid, not an error or default return value.
 using fontHandle_t = int;
 
 using glyphBlock_t = glyphInfo_t[256];
@@ -2123,6 +2122,7 @@ struct fontInfo_t
 	char          name[ MAX_QPATH ];
 };
 
+// TODO(0.52) remove.
 struct fontMetrics_t
 {
 	fontHandle_t  handle;

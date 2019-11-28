@@ -65,7 +65,7 @@ struct netadr_t
 
     unsigned short port; // port which is in use
     unsigned short port4, port6; // ports to choose from
-    unsigned long  scope_id; // Needed for IPv6 link-local addresses
+    uint32_t       scope_id; // Needed for IPv6 link-local addresses
 };
 
 struct msg_t

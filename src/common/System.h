@@ -74,12 +74,19 @@ int Milliseconds();
 NORETURN void Error(Str::StringRef errorMessage);
 
 // Throw a DropErr with the given message, which normally will drop to the main menu
-class DropErr: public std::runtime_error {
+class DropErr {
 public:
-	DropErr(const char* message)
-		: std::runtime_error(message) {}
-	DropErr(const std::string& message)
-		: std::runtime_error(message) {}
+	DropErr(bool error, std::string message)
+		: error(error), message(std::move(message)) {}
+	const std::string& what() const {
+		return message;
+	}
+	bool is_error() const {
+		return error;
+	}
+private:
+	bool error;
+	std::string message;
 };
 NORETURN void Drop(Str::StringRef errorMessage);
 

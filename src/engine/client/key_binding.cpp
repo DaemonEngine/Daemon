@@ -43,6 +43,9 @@ Maryland 20850 USA.
 
 using Keyboard::Key;
 
+static Cvar::Modified<Cvar::Cvar<std::string>> cl_consoleKeys(
+	"cl_consoleKeys", "Keys to open or close the console", Cvar::ARCHIVE, "hw:`");
+
 static int ClipTeamNumber(int team)
 {
 	return Math::Clamp(team, 0, Keyboard::NUM_TEAMS - 1);
@@ -269,6 +272,47 @@ void SetBinding(Key key, int team, std::string binding)
 	}
 
 	bindingsModified = true;
+}
+
+const std::vector<Key>& GetConsoleKeys()
+{
+	static std::vector<Keyboard::Key> consoleKeys;
+
+	// Only parse the variable when it changes
+	Util::optional<std::string> modifiedString = cl_consoleKeys.GetModifiedValue();
+	if ( modifiedString )
+	{
+		const char* text_p = modifiedString.value().c_str();
+		consoleKeys.clear();
+		while ( true )
+		{
+			const char* token = COM_Parse( &text_p );
+			if ( !token[ 0 ] )
+			{
+				break;
+			}
+			Keyboard::Key k = Keyboard::StringToKey(token);
+			if (k.IsBindable()) {
+				consoleKeys.push_back(k);
+			}
+		}
+	}
+
+	return consoleKeys;
+}
+
+void SetConsoleKeys(const std::vector<Key>& keys)
+{
+	std::string text;
+	for (Key key : keys) {
+		if (key.IsBindable()) {
+			if (!text.empty()) {
+				text += ' ';
+			}
+			text += Cmd::Escape(KeyToString(key));
+		}
+	}
+	cl_consoleKeys.Set(text);
 }
 
 Util::optional<std::string> GetBinding(Key key, BindTeam team, bool useDefault)

@@ -1,36 +1,36 @@
 /*
 ===========================================================================
 
-Daemon GPL Source Code
-Copyright (C) 2012 Unvanquished Developers
+Daemon BSD Source Code
+Copyright (c) 2013 Daemon Developers
+All rights reserved.
 
-This file is part of the Daemon GPL Source Code (Daemon Source Code).
+This file is part of the Daemon BSD Source Code (Daemon Source Code).
 
-Daemon Source Code is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the Daemon developers nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
 
-Daemon Source Code is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
-
-In addition, the Daemon Source Code is also subject to certain additional terms.
-You should have received a copy of these additional terms immediately following the
-terms and conditions of the GNU General Public License which accompanied the Daemon
-Source Code.  If not, please request a copy in writing from id Software at the address
-below.
-
-If you have questions concerning this license or the applicable additional terms, you
-may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville,
-Maryland 20850 USA.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL DAEMON DEVELOPERS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 
 ===========================================================================
 */
+
 #include "client/client.h"
 #include "DetourDebugDraw.h"
 #ifdef __GNUC__
@@ -45,7 +45,6 @@ Maryland 20850 USA.
 #include "nav.h"
 
 static const int DEFAULT_CONNECTION_SIZE = 50;
-static int connectionSize = DEFAULT_CONNECTION_SIZE;
 
 bool GetPointPointedTo( NavData_t *nav, rVec &p )
 {
@@ -93,13 +92,13 @@ void BotDrawNavEdit( DebugDrawQuake *dd )
 	{
 		unsigned int col = duRGBA( 255, 255, 255, 220 );
 		dd->begin( DU_DRAW_LINES, 2.0f );
-		duAppendCircle( dd, p[ 0 ], p[ 1 ], p[ 2 ], connectionSize, col );
+		duAppendCircle( dd, p[ 0 ], p[ 1 ], p[ 2 ], DEFAULT_CONNECTION_SIZE, col );
 
 		if ( cmd.offBegin )
 		{
 			duAppendArc( dd, cmd.pc.start[ 0 ], cmd.pc.start[ 1 ], cmd.pc.start[ 2 ], p[ 0 ], p[ 1 ], p[ 2 ], 0.25f,
 						0.6f, 0.6f, col );
-			duAppendCircle( dd, cmd.pc.start[ 0 ], cmd.pc.start[ 1 ], cmd.pc.start[ 2 ], connectionSize, col );
+			duAppendCircle( dd, cmd.pc.start[ 0 ], cmd.pc.start[ 1 ], cmd.pc.start[ 2 ], DEFAULT_CONNECTION_SIZE, col );
 		}
 		dd->end();
 	}
@@ -298,7 +297,7 @@ void Cmd_AddConnection()
 			}
 			else
 			{
-				cmd.pc.radius = connectionSize;
+				cmd.pc.radius = DEFAULT_CONNECTION_SIZE;
 			}
 			cmd.offBegin = true;
 		}
@@ -343,36 +342,6 @@ void Cmd_AddConnection()
 	{
 		Log::Notice( usage );
 	}
-}
-
-static void adjustConnectionSize( int dir )
-{
-	int argc = Cmd_Argc();
-	int adjust = 5;
-	int newConnectionSize;
-
-	if ( argc > 1 )
-	{
-		adjust = Math::Clamp( atoi( Cmd_Argv( 1 ) ), 1, 20 );
-	}
-
-	newConnectionSize = Math::Clamp( connectionSize + dir * adjust, 20, 100 );
-
-	if ( newConnectionSize != connectionSize )
-	{
-		connectionSize = newConnectionSize;
-		Log::Notice( "Default connection size = %d", connectionSize );
-	}
-}
-
-void Cmd_ConnectionSizeUp()
-{
-	return adjustConnectionSize( 1 );
-}
-
-void Cmd_ConnectionSizeDown()
-{
-	return adjustConnectionSize( -1 );
 }
 
 void Cmd_NavTest()
@@ -454,8 +423,6 @@ void NavEditInit()
 	Cvar_Set( "r_debugSurface", "0" );
 	Cmd_AddCommand( "navedit", Cmd_NavEdit );
 	Cmd_AddCommand( "addcon", Cmd_AddConnection );
-	Cmd_AddCommand( "conSizeUp", Cmd_ConnectionSizeUp );
-	Cmd_AddCommand( "conSizeDown", Cmd_ConnectionSizeDown );
 	Cmd_AddCommand( "navtest", Cmd_NavTest );
 #endif
 }
@@ -465,8 +432,6 @@ void NavEditShutdown()
 #ifndef BUILD_SERVER
 	Cmd_RemoveCommand( "navedit" );
 	Cmd_RemoveCommand( "addcon" );
-	Cmd_RemoveCommand( "conSizeUp" );
-	Cmd_RemoveCommand( "conSizeDown" );
 	Cmd_RemoveCommand( "navtest" );
 #endif
 }

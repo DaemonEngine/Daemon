@@ -579,6 +579,21 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
 
+	if ( r_normalMapping->integer )
+	{
+		AddDefine( str, "r_normalMapping", 1 );
+	}
+
+	if ( r_specularMapping->integer )
+	{
+		AddDefine( str, "r_specularMapping", 1 );
+	}
+
+	if ( r_glowMapping->integer )
+	{
+		AddDefine( str, "r_glowMapping", 1 );
+	}
+
 	return str;
 }
 
@@ -653,6 +668,10 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 			Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", token );
 
 		libs += GetShaderText(filename);
+		// We added a lot of stuff but if we do something bad
+		// in the GLSL shaders then we want the proper line
+		// so we have to reset the line counting.
+		libs += "#line 0\n";
 	}
 
 	// load main() program
@@ -708,8 +727,9 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 		break;
 	}
 
-	// OK we added a lot of stuff but if we do something bad in the GLSL shaders then we want the proper line
-	// so we have to reset the line counting
+	// We added a lot of stuff but if we do something bad
+	// in the GLSL shaders then we want the proper line
+	// so we have to reset the line counting.
 	env += "#line 0\n";
 
 	std::string shaderText = env + libs + GetShaderText(filename);
@@ -793,11 +813,6 @@ void GLShaderManager::buildAll()
 	}
 
 	Log::Notice( "glsl shaders took %d msec to build", _totalBuildTime );
-
-	if( r_recompileShaders->integer )
-	{
-		ri.Cvar_Set( "r_recompileShaders", "0" );
-	}
 }
 
 void GLShaderManager::InitShader( GLShader *shader )
@@ -827,7 +842,7 @@ void GLShaderManager::InitShader( GLShader *shader )
 
 	shader->_vertexShaderText = BuildGPUShaderText( shader->GetMainShaderName(), vertexInlines, GL_VERTEX_SHADER );
 	shader->_fragmentShaderText = BuildGPUShaderText( shader->GetMainShaderName(), fragmentInlines, GL_FRAGMENT_SHADER );
-	std::string combinedShaderText= shader->_vertexShaderText + shader->_fragmentShaderText;
+	std::string combinedShaderText = GLEngineConstants.getText() + shader->_vertexShaderText + shader->_fragmentShaderText;
 
 	shader->_checkSum = Com_BlockChecksum( combinedShaderText.c_str(), combinedShaderText.length() );
 }
@@ -840,10 +855,6 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	GLBinaryHeader shaderHeader;
 
 	if (!GetShaderPath().empty())
-		return false;
-
-	// we need to recompile the shaders
-	if( r_recompileShaders->integer )
 		return false;
 
 	// don't even try if the necessary functions aren't available
@@ -1066,18 +1077,48 @@ GLuint GLShaderManager::CompileShader( Str::StringRef programName,
 
 void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint object ) const
 {
-	char        *msg;
+	char        *dump;
 	int         maxLength = 0;
 
 	glGetShaderiv( object, GL_SHADER_SOURCE_LENGTH, &maxLength );
 
-	msg = ( char * ) ri.Hunk_AllocateTempMemory( maxLength );
+	dump = ( char * ) ri.Hunk_AllocateTempMemory( maxLength );
 
-	glGetShaderSource( object, maxLength, &maxLength, msg );
+	glGetShaderSource( object, maxLength, &maxLength, dump );
 
-	Log::Warn("Source for shader program %s:\n%s", programName, msg);
+	std::string buffer;
+	std::string delim("\n");
+	std::string src(dump);
 
-	ri.Hunk_FreeTempMemory( msg );
+	ri.Hunk_FreeTempMemory( dump );
+
+	int i = 0;
+	size_t pos = 0;
+	while ( ( pos = src.find(delim) ) != std::string::npos )
+	{
+		std::string line = src.substr( 0, pos );
+		if ( line.compare( "#line 0" ) == 0 )
+		{
+			i = 0;
+		}
+
+		std::string number = std::to_string(i);
+
+		int p = 4 - number.length();
+		p = p < 0 ? 0 : p;
+		number.insert( number.begin(), p, ' ' );
+
+		buffer.append(number);
+		buffer.append(": ");
+		buffer.append(line);
+		buffer.append(delim);
+
+		src.erase(0, pos + delim.length());
+
+		i++;
+	}
+
+	Log::Warn("Source for shader program %s:\n%s", programName, buffer.c_str());
 }
 
 void GLShaderManager::PrintInfoLog( GLuint object) const
@@ -1148,6 +1189,21 @@ void GLShaderManager::BindAttribLocations( GLuint program ) const
 	{
 		glBindAttribLocation( program, i, attributeNames[ i ] );
 	}
+}
+
+// reflective specular not implemented for PBR yet
+bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+{
+	for (const GLCompileMacro* macro : macros)
+	{
+		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_SHADING || macro->GetType() == USE_VERTEX_SPRITE) )
+		{
+			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
@@ -1360,7 +1416,7 @@ void GLShader::SetRequiredVertexPointers()
 
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ViewUp( this ),
 	u_AlphaThreshold( this ),
@@ -1396,10 +1452,7 @@ void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram 
 
 GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLShader( "lightMapping", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR, manager ),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
-	u_GlowTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
@@ -1407,10 +1460,14 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_DepthScale( this ),
+	u_ParallaxDepthScale( this ),
+	u_ParallaxOffsetBias( this ),
+	u_HeightMapInNormalMap( this ),
+	u_NormalFormat( this ),
 	u_numLights( this ),
 	u_Lights( this ),
 	GLDeformStage( this ),
+	GLCompileMacro_USE_DELUXE_MAPPING( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_PHYSICAL_SHADING( this )
 {
@@ -1423,7 +1480,7 @@ void GLShader_lightMapping::BuildShaderVertexLibNames( std::string& vertexInline
 
 void GLShader_lightMapping::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_lightMapping::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
@@ -1446,10 +1503,7 @@ void GLShader_lightMapping::SetShaderProgramUniforms( shaderProgram_t *shaderPro
 
 GLShader_vertexLighting_DBS_entity::GLShader_vertexLighting_DBS_entity( GLShaderManager *manager ) :
 	GLShader( "vertexLighting_DBS_entity", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
-	u_GlowTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
@@ -1457,7 +1511,10 @@ GLShader_vertexLighting_DBS_entity::GLShader_vertexLighting_DBS_entity( GLShader
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_DepthScale( this ),
+	u_ParallaxDepthScale( this ),
+	u_ParallaxOffsetBias( this ),
+	u_HeightMapInNormalMap( this ),
+	u_NormalFormat( this ),
 	u_EnvironmentInterpolation( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
@@ -1479,7 +1536,7 @@ void GLShader_vertexLighting_DBS_entity::BuildShaderVertexLibNames( std::string&
 
 void GLShader_vertexLighting_DBS_entity::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_vertexLighting_DBS_entity::BuildShaderCompileMacros( std::string& )
@@ -1507,10 +1564,7 @@ GLShader_vertexLighting_DBS_world::GLShader_vertexLighting_DBS_world( GLShaderMa
 	          ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR,
 		  manager
 	        ),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
-	u_GlowTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
@@ -1518,7 +1572,10 @@ GLShader_vertexLighting_DBS_world::GLShader_vertexLighting_DBS_world( GLShaderMa
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_DepthScale( this ),
+	u_ParallaxDepthScale( this ),
+	u_ParallaxOffsetBias( this ),
+	u_HeightMapInNormalMap( this ),
+	u_NormalFormat( this ),
 	u_LightWrapAround( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
@@ -1536,7 +1593,7 @@ void GLShader_vertexLighting_DBS_world::BuildShaderVertexLibNames( std::string& 
 }
 void GLShader_vertexLighting_DBS_world::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_vertexLighting_DBS_world::BuildShaderCompileMacros( std::string& )
@@ -1559,9 +1616,7 @@ void GLShader_vertexLighting_DBS_world::SetShaderProgramUniforms( shaderProgram_
 
 GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderManager *manager ):
 	GLShader("forwardLighting_omniXYZ", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
 	u_ColorModulate( this ),
@@ -1579,7 +1634,10 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_DepthScale( this ),
+	u_ParallaxDepthScale( this ),
+	u_ParallaxOffsetBias( this ),
+	u_HeightMapInNormalMap( this ),
+	u_NormalFormat( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1595,7 +1653,7 @@ void GLShader_forwardLighting_omniXYZ::BuildShaderVertexLibNames( std::string& v
 
 void GLShader_forwardLighting_omniXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_omniXYZ::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
@@ -1616,9 +1674,7 @@ void GLShader_forwardLighting_omniXYZ::SetShaderProgramUniforms( shaderProgram_t
 
 GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderManager *manager ):
 	GLShader("forwardLighting_projXYZ", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
 	u_ColorModulate( this ),
@@ -1637,7 +1693,10 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_DepthScale( this ),
+	u_ParallaxDepthScale( this ),
+	u_ParallaxOffsetBias( this ),
+	u_HeightMapInNormalMap( this ),
+	u_NormalFormat( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1653,7 +1712,7 @@ void GLShader_forwardLighting_projXYZ::BuildShaderVertexLibNames( std::string& v
 
 void GLShader_forwardLighting_projXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_projXYZ::BuildShaderCompileMacros( std::string& compileMacros )
@@ -1675,9 +1734,7 @@ void GLShader_forwardLighting_projXYZ::SetShaderProgramUniforms( shaderProgram_t
 
 GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun( GLShaderManager *manager ):
 	GLShader("forwardLighting_directionalSun", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
-	u_DiffuseTextureMatrix( this ),
-	u_NormalTextureMatrix( this ),
-	u_SpecularTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
 	u_ColorModulate( this ),
@@ -1698,7 +1755,10 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_DepthScale( this ),
+	u_ParallaxDepthScale( this ),
+	u_ParallaxOffsetBias( this ),
+	u_HeightMapInNormalMap( this ),
+	u_NormalFormat( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1714,7 +1774,7 @@ void GLShader_forwardLighting_directionalSun::BuildShaderVertexLibNames( std::st
 
 void GLShader_forwardLighting_directionalSun::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "reliefMapping";
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_directionalSun::BuildShaderCompileMacros( std::string& compileMacros )
@@ -1743,7 +1803,7 @@ void GLShader_forwardLighting_directionalSun::SetShaderProgramUniforms( shaderPr
 
 GLShader_shadowFill::GLShader_shadowFill( GLShaderManager *manager ) :
 	GLShader( "shadowFill", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
 	u_LightOrigin( this ),
@@ -1772,21 +1832,32 @@ void GLShader_shadowFill::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	GLShader("reflection", "reflection_CB", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_NormalTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
+	u_ParallaxDepthScale( this ),
+	u_ParallaxOffsetBias( this ),
+	u_HeightMapInNormalMap( this ),
+	u_NormalScale( this ),
+	u_NormalFormat( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this )
+	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_PARALLAX_MAPPING( this )
 {
 }
 
 void GLShader_reflection::BuildShaderVertexLibNames( std::string& vertexInlines )
 {
 	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
+}
+
+void GLShader_reflection::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "reliefMapping";
 }
 
 void GLShader_reflection::BuildShaderCompileMacros( std::string& )
@@ -1861,7 +1932,7 @@ void GLShader_fogGlobal::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 
 GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	GLShader( "heatHaze", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_NormalTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ViewUp( this ),
 	u_DeformMagnitude( this ),
@@ -1872,6 +1943,7 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_Color( this ),
 	u_Bones( this ),
+	u_NormalFormat( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
@@ -1883,6 +1955,11 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 void GLShader_heatHaze::BuildShaderVertexLibNames( std::string& vertexInlines )
 {
 	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
+}
+
+void GLShader_heatHaze::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "reliefMapping";
 }
 
 void GLShader_heatHaze::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
@@ -1929,7 +2006,7 @@ void GLShader_contrast::SetShaderProgramUniforms( shaderProgram_t *shaderProgram
 GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	GLShader( "cameraEffects", ATTR_POSITION | ATTR_TEXCOORD, manager ),
 	u_ColorModulate( this ),
-	u_ColorTextureMatrix( this ),
+	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_DeformMagnitude( this ),
 	u_InverseGamma( this )
@@ -2016,9 +2093,8 @@ void GLShader_lightVolume_omni::SetShaderProgramUniforms( shaderProgram_t *shade
 }
 
 GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
-	GLShader( "liquid", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT
-		, manager ),
-	u_NormalTextureMatrix( this ),
+	GLShader( "liquid", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_RefractionIndex( this ),
 	u_ModelMatrix( this ),
@@ -2027,7 +2103,11 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_FresnelPower( this ),
 	u_FresnelScale( this ),
 	u_FresnelBias( this ),
+	u_ParallaxDepthScale( this ),
+	u_ParallaxOffsetBias( this ),
+	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
+	u_NormalFormat( this ),
 	u_FogDensity( this ),
 	u_FogColor( this ),
 	u_SpecularExponent( this ),
@@ -2035,6 +2115,11 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_LightGridScale( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this )
 {
+}
+
+void GLShader_liquid::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )

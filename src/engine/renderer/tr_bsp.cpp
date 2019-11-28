@@ -702,7 +702,7 @@ static void R_LoadVisibility( lump_t *l )
 	for ( i = 0; i < s_worldData.numClusters; i++ )
 	{
 		const byte *src;
-		const long *src2;
+		const int *src2;
 		byte *dest;
 
 		src  = s_worldData.vis + i * s_worldData.clusterBytes;
@@ -730,12 +730,12 @@ static void R_LoadVisibility( lump_t *l )
 
 				// retrieve vis data for the cluster
 				index = ( ( j << 3 ) | k );
-				src2 = ( long * ) ( s_worldData.vis + index * s_worldData.clusterBytes );
+				src2 = ( int * ) ( s_worldData.vis + index * s_worldData.clusterBytes );
 
 				// OR this vis data with the current cluster's
-				for (unsigned m = 0; m < ( s_worldData.clusterBytes / sizeof( long ) ); m++ )
+				for (unsigned m = 0; m < ( s_worldData.clusterBytes / sizeof( int ) ); m++ )
 				{
-					( ( long * ) dest )[ m ] |= src2[ m ];
+					( ( int * ) dest )[ m ] |= src2[ m ];
 				}
 			}
 		}
@@ -955,7 +955,23 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 	for( i = 0; i < numVerts; i++ ) {
 		if( components[ i ].minVertex == i ) {
 			for( j = 0; j < 2; j++ ) {
-				components[ i ].stBounds[ 0 ][ j ] = rintf( 0.5f * (components[ i ].stBounds[ 1 ][ j ] + components[ i ].stBounds[ 0 ][ j ]) );
+				/* Some words about the “minus 0.5” trick:
+				 *
+				 * The vertexpack engine tries to optimize texture coords, because fp16 numbers have 1/2048 resolution only between -1.0 and 1.0,
+				 * and so we could have several texel rounding errors if the coords are too large. The optimization finds connected surfaces and
+				 * then shifts the texture coords so that their average value is near 0. If the range is 0-1, there are two equally good solutions,
+				 * either keep the range 0-1 or shift to -1-0, and in this case tiny rounding errors decide which one is used.
+				 * For non-animated textures this is no issue, but the rotating textures always rotate around 0.5/0.5, and if the texture coords
+				 * are shifted, it shifts the rotation center too. The easy fix is to move the average as close as possible to 0.5 instead of 0.0,
+				 * then all standard 0-1 textures will not be shifted.
+				 * -- @gimhael https://github.com/DaemonEngine/Daemon/issues/35#issuecomment-507406783
+				 *
+				 * Instead of round(x - 0.5) we can do floor(x). (using std::floorf)
+				 * Surprisingly to me, rintf is apparently a builtin in gcc (so is floorf, but not roundf).
+				 * And rounding x - 0.5 actually generates fewer instructions. So it looks like the original version is pretty great.
+				 * -- @slipher https://github.com/DaemonEngine/Daemon/pull/208#discussion_r299864660
+				 */
+				components[ i ].stBounds[ 0 ][ j ] = rintf( 0.5f * (components[ i ].stBounds[ 1 ][ j ] + components[ i ].stBounds[ 0 ][ j ]) - 0.5f );
 			}
 		}
 
@@ -1270,7 +1286,13 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 	for( i = 0; i < numVerts; i++ ) {
 		if( components[ i ].minVertex == i ) {
 			for( j = 0; j < 2; j++ ) {
-				components[ i ].stBounds[ 0 ][ j ] = rintf( 0.5f * (components[ i ].stBounds[ 1 ][ j ] + components[ i ].stBounds[ 0 ][ j ]) );
+				/* Reuse the “minus 0.5” trick:
+				 *
+				 * This is the loader for triangle meshes, there are probably no rotating textures on triangle meshes,
+				 * but it's better to keep it consistent.
+				 * -- @gimhael https://github.com/DaemonEngine/Daemon/pull/208#discussion_r299809045
+				 */
+				components[ i ].stBounds[ 0 ][ j ] = rintf( 0.5f * (components[ i ].stBounds[ 1 ][ j ] + components[ i ].stBounds[ 0 ][ j ]) - 0.5f );
 			}
 		}
 

@@ -22,10 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_vp.glsl */
 
-uniform mat4		u_DiffuseTextureMatrix;
-uniform mat4		u_NormalTextureMatrix;
-uniform mat4		u_SpecularTextureMatrix;
-uniform mat4		u_GlowTextureMatrix;
+uniform mat4		u_TextureMatrix;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
@@ -35,8 +32,7 @@ uniform vec4		u_ColorModulate;
 uniform vec4		u_Color;
 
 OUT(smooth) vec3	var_Position;
-OUT(smooth) vec4	var_TexDiffuseGlow;
-OUT(smooth) vec4	var_TexNormalSpecular;
+OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec2	var_TexLight;
 OUT(smooth) vec3	var_Tangent;
 OUT(smooth) vec3	var_Binormal;
@@ -70,16 +66,9 @@ void	main()
 	gl_Position = u_ModelViewProjectionMatrix * position;
 
 	// transform diffusemap texcoords
-	var_TexDiffuseGlow.st = (u_DiffuseTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+
 	var_TexLight = lmCoord;
-
-	// transform normalmap texcoords
-	var_TexNormalSpecular.st = (u_NormalTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
-
-	// transform specularmap texcoords
-	var_TexNormalSpecular.pq = (u_SpecularTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
-
-	var_TexDiffuseGlow.pq = (u_GlowTextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	var_Position = position.xyz;
 

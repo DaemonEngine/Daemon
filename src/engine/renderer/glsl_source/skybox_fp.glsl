@@ -32,9 +32,9 @@ DECLARE_OUTPUT(vec4)
 void	main()
 {
 	// compute incident ray
-	vec3 I = normalize(var_Position - u_ViewOrigin);
+	vec3 incidentRay = normalize(var_Position - u_ViewOrigin);
 
-	vec4 color = textureCube(u_ColorMap, I).rgba;
+	vec4 color = textureCube(u_ColorMap, incidentRay).rgba;
 
 	outputColor = color;
 }

@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
 #define DYN_BUFFER_SEGMENTS 4
-#define BUFFER_OFFSET(i) ((char *)nullptr + ( i ))
+#define BUFFER_OFFSET(i) (reinterpret_cast<const void*>( i ))
 
 using i8vec4_t = int8_t[4];
 using u8vec4_t = uint8_t[4];
@@ -512,7 +512,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	{
 	  IF_NONE,
 	  IF_NOPICMIP = BIT( 0 ),
-	  IF_ALPHA = BIT( 1 ),
 	  IF_NORMALMAP = BIT( 2 ),
 	  IF_RGBA16F = BIT( 3 ),
 	  IF_RGBA32F = BIT( 4 ),
@@ -1003,13 +1002,13 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	enum
 	{
-	  TB_COLORMAP = 0,
-	  TB_DIFFUSEMAP = 0,
+	  TB_COLORMAP,
+	  TB_DIFFUSEMAP = TB_COLORMAP,
 	  TB_NORMALMAP,
 	  TB_SPECULARMAP,
 	  TB_MATERIALMAP = TB_SPECULARMAP,
 	  TB_GLOWMAP,
-	  MAX_TEXTURE_BUNDLES = 4
+	  MAX_TEXTURE_BUNDLES
 	};
 
 	struct textureBundle_t
@@ -1043,13 +1042,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_LIGHTMAP,
-	  ST_COLLAPSE_lighting_DB, // diffusemap + bumpmap
-	  ST_COLLAPSE_lighting_DBG, // diffusemap + bumpmap + glowmap
-	  ST_COLLAPSE_lighting_DBS, // diffusemap + bumpmap + specularmap
-	  ST_COLLAPSE_lighting_DBSG, // diffusemap + bumpmap + specularmap + glowmap
-	  ST_COLLAPSE_lighting_DBM, // diffusemap + bumpmap + materialmap
-	  ST_COLLAPSE_lighting_DBMG, // diffusemap + bumpmap + materialmap + glowmap
-	  ST_COLLAPSE_reflection_CB, // color cubemap + bumpmap
+	  ST_COLLAPSE_lighting_PHONG, // diffusemap + opt:normalmap + opt:glowmap + opt:specularmap
+	  ST_COLLAPSE_lighting_PBR,   // diffusemap + opt:normalmap + opt:glowmap + materialmap
+	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
 
 	  // light shader stage types
 	  ST_ATTENUATIONMAP_XY,
@@ -1059,15 +1054,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	enum class collapseType_t
 	{
 	  COLLAPSE_none,
-	  COLLAPSE_genericMulti,
-	  COLLAPSE_lighting_DB,
-	  COLLAPSE_lighting_DBG,
-	  COLLAPSE_lighting_DBS,
-	  COLLAPSE_lighting_DBSG,
-	  COLLAPSE_lighting_DBM,
-	  COLLAPSE_lighting_DBMG,
+	  COLLAPSE_lighting_PHONG,
+	  COLLAPSE_lighting_PBR,
 	  COLLAPSE_reflection_CB,
-	  COLLAPSE_color_lightmap
 	};
 
 	struct shaderStage_t
@@ -1096,9 +1085,13 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool        tcGen_Environment;
 		bool        tcGen_Lightmap;
 
+		bool            disableImplicitLightmap;
+
 		Color::Color32Bit constantColor; // for CGEN_CONST and AGEN_CONST
 
 		uint32_t        stateBits; // GLS_xxxx mask
+
+		bool            isCubeMap;
 
 		int             deformIndex;
 		bool        overrideNoPicMip; // for images that must always be full resolution
@@ -1205,7 +1198,13 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		fogPass_t      fogPass; // draw a blended pass, possibly with depth test equals
 		bool       noFog;
 
-		bool       parallax; // material has normalmaps suited for parallax mapping
+		bool       heightMapInNormalMap; // material has normalmap suited for parallax mapping
+		bool       noParallax; // disable parallax for this material even if it's available
+		bool       parallax; // what is finally used by renderer to know what to do
+		float      parallaxOffsetBias; // offset the heightmap top relatively to the floor
+		float      parallaxDepthScale; // per-shader parallax depth scale
+
+		vec3_t     normalFormat; // normalmap format (channel flip)
 
 		bool       noShadows;
 		bool       fogLight;
@@ -1219,7 +1218,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		float          portalRange; // distance to fog out at
 		bool       isPortal;
 
-		collapseType_t collapseType;
+		collapseType_t lightingCollapseType;
+		collapseType_t reflectCollapseType;
 		int            collapseTextureEnv; // 0, GL_MODULATE, GL_ADD (FIXME: put in stage)
 
 		cullType_t     cullType; // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
@@ -1786,7 +1786,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		IBO_t *ibo;
 	};
 
-// misc_models in maps are turned into direct geometry by xmap
+// misc_models in maps are turned into direct geometry by q3map
 	struct srfTriangles_t : srfGeneric_t
 	{
 		// triangle definitions
@@ -2795,7 +2795,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
 	extern cvar_t *r_noMarksOnTrisurfs;
-	extern cvar_t *r_recompileShaders;
 	extern cvar_t *r_lazyShaders; // 0: build all shaders on program start 1: delay shader build until first map load 2: delay shader build until needed
 
 	extern cvar_t *r_norefresh; // bypasses the ref rendering
@@ -2843,12 +2842,20 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_textureMode;
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;
-	extern cvar_t *r_forceSpecular;
+
 	extern cvar_t *r_specularExponentMin;
 	extern cvar_t *r_specularExponentMax;
 	extern cvar_t *r_specularScale;
+	extern cvar_t *r_specularMapping;
+	extern cvar_t *r_deluxeMapping;
 	extern cvar_t *r_normalScale;
 	extern cvar_t *r_normalMapping;
+	extern cvar_t *r_highQualityNormalMapping;
+	extern cvar_t *r_parallaxDepthScale;
+	extern cvar_t *r_parallaxMapping;
+	extern cvar_t *r_glowMapping;
+	extern cvar_t *r_reflectionMapping;
+
 	extern cvar_t *r_wrapAroundLighting;
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
@@ -2957,11 +2964,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_vboDeformVertexes;
 
 	extern cvar_t *r_mergeLeafSurfaces;
-	extern cvar_t *r_parallaxMapping;
-	extern cvar_t *r_parallaxDepthScale;
-
-	extern cvar_t *r_reflectionMapping;
-	extern cvar_t *r_highQualityNormalMapping;
 
 	extern cvar_t *r_bloom;
 	extern cvar_t *r_bloomBlur;
@@ -2978,7 +2980,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define IMAGE_FILE_HASH_SIZE 4096
 	extern image_t *r_imageHashTable[ IMAGE_FILE_HASH_SIZE ];
 
-	extern long    GenerateImageHashValue( const char *fname );
+	unsigned int   GenerateImageHashValue( const char *fname );
 
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
@@ -3150,6 +3152,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void    R_InitImages();
 	void    R_ShutdownImages();
 
+	int R_FindImageLoader( const char *baseName );
 	image_t *R_FindImageFile( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
 	image_t *R_FindCubeImage( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
 
@@ -3896,14 +3899,10 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 // font stuff
 	void       R_InitFreeType();
 	void       R_DoneFreeType();
-	void       RE_RegisterFont( const char *fontName, const char *fallbackName, int pointSize, fontInfo_t **font );
+	fontInfo_t* RE_RegisterFont( const char *fontName, const char *fallbackName, int pointSize );
 	void       RE_UnregisterFont( fontInfo_t *font );
 	void       RE_Glyph(fontInfo_t *font, const char *str, glyphInfo_t *glyph);
 	void       RE_GlyphChar(fontInfo_t *font, int ch, glyphInfo_t *glyph);
-	void       RE_RegisterFontVM( const char *fontName, const char *fallbackName, int pointSize, fontMetrics_t * );
-	void       RE_UnregisterFontVM( fontHandle_t );
-	void       RE_GlyphVM( fontHandle_t, const char *str, glyphInfo_t *glyph);
-	void       RE_GlyphCharVM( fontHandle_t, int ch, glyphInfo_t *glyph);
 
 	void       RE_Finish();
 

@@ -154,10 +154,6 @@ struct client_t
 	int            reliableSent; // last sent reliable message, not necessarily acknowledged yet
 	int            messageAcknowledge;
 
-	size_t binaryMessageLength;
-	uint8_t binaryMessage[MAX_BINARY_MESSAGE];
-	bool binaryMessageOverflowed;
-
 	int            gamestateMessageNum; // netchan->outgoingSequence of gamestate
 
 	usercmd_t      lastUsercmd;
@@ -168,7 +164,7 @@ struct client_t
 	char           name[ MAX_NAME_LENGTH ]; // extracted from userinfo, high bits masked
 
 	// downloading
-	char          downloadName[ MAX_QPATH ]; // if not empty string, we are downloading
+	char          downloadName[ MAX_OSPATH ]; // if not empty string, we are downloading
 	FS::File*     download; // file being downloaded
 	int           downloadSize; // total bytes (can't use EOF because of paks)
 	int           downloadCount; // bytes sent
@@ -284,7 +280,6 @@ public:
 	void GameRunFrame(int levelTime);
 	bool GameSnapshotCallback(int entityNum, int clientNum);
 	void BotAIStartFrame(int levelTime);
-	void GameMessageRecieved(int clientNum, const uint8_t *buf, size_t size, int commandTime);
 
 private:
 	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) override final;
@@ -332,9 +327,6 @@ extern cvar_t *sv_dl_maxRate;
 extern cvar_t *sv_wwwDownload; // general flag to enable/disable www download redirects
 extern cvar_t *sv_wwwBaseURL; // the base URL of all the files
 
-// tell clients to perform their downloads while disconnected from the server
-// this gets you a better throughput, but you lose the ability to control the download usage
-extern cvar_t *sv_wwwDlDisconnected;
 extern cvar_t *sv_wwwFallbackURL;
 
 //bani
@@ -424,7 +416,6 @@ svEntity_t     *SV_SvEntityForGentity( sharedEntity_t *gEnt );
 void           SV_InitGameProgs();
 void           SV_ShutdownGameProgs();
 void           SV_RestartGameProgs();
-void           SV_GameBinaryMessageReceived(int cno, const byte *buf, size_t buflen, int commandTime);
 
 //
 // sv_bot.c

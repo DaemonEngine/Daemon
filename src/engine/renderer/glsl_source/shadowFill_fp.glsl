@@ -28,7 +28,7 @@ uniform vec3		u_LightOrigin;
 uniform float		u_LightRadius;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec2		var_Tex;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
@@ -63,7 +63,7 @@ vec4 ShadowDepthToEVSM(float depth)
 
 void	main()
 {
-	vec4 color = texture2D(u_ColorMap, var_Tex);
+	vec4 color = texture2D(u_ColorMap, var_TexCoords);
 
 	if( abs(color.a + u_AlphaThreshold) <= 1.0 )
 	{

@@ -26,14 +26,14 @@ IN vec3 		attr_Position;
 IN vec2 		attr_TexCoord0;
 
 uniform mat4		u_ModelViewProjectionMatrix;
-uniform mat4		u_ColorTextureMatrix;
+uniform mat4		u_TextureMatrix;
 
-OUT(smooth) vec2	var_Tex;
+OUT(smooth) vec2	var_TexCoords;
 
 void	main()
 {
 	// transform vertex position into homogenous clip-space
 	gl_Position = u_ModelViewProjectionMatrix * vec4(attr_Position, 1.0);
 
-	var_Tex = (u_ColorTextureMatrix * vec4(attr_TexCoord0, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec4(attr_TexCoord0, 0.0, 1.0)).st;
 }

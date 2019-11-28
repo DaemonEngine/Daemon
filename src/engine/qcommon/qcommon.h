@@ -378,7 +378,6 @@ fileHandle_t FS_FOpenFileWriteViaTemporary( const char *qpath );
 // will properly create any needed paths and deal with separator character issues
 
 fileHandle_t FS_SV_FOpenFileWrite( const char *filename );
-int          FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp );
 void         FS_SV_Rename( const char *from, const char *to );
 int          FS_FOpenFileRead( const char *qpath, fileHandle_t *file, bool uniqueFILE );
 
@@ -456,7 +455,8 @@ bool     FS_LoadServerPaks( const char* paks, bool isDemo );
 
 // shutdown and restart the filesystem so changes to fs_gamedir can take effect
 
-bool   FS_ComparePaks( char *neededpaks, int len, bool dlstring );
+void FS_DeletePaksWithBadChecksum();
+bool FS_ComparePaks(char* neededpaks, int len);
 
 void       FS_Rename( const char *from, const char *to );
 
@@ -493,16 +493,10 @@ enum class dlStatus_t
   DL_FAILED
 };
 
-int        DL_BeginDownload( const char *localName, const char *remoteName );
+int        DL_BeginDownload( const char *localName, const char *remoteName, int basePathLen );
 dlStatus_t DL_DownloadLoop();
 
 void       DL_Shutdown();
-
-// bitmask
-enum dlFlags_t
-{
-  DL_FLAG_DISCON = 1 << 0
-};
 
 /*
 ==============================================================
@@ -546,7 +540,6 @@ unsigned   Com_BlockChecksum( const void *buffer, int length );
 char       *Com_MD5File( const char *filename, int length );
 void       Com_MD5Buffer( const char *pubkey, int size, char *buffer, int bufsize );
 
-void       Com_StartupVariable( const char *match );
 void       Com_SetRecommended();
 bool       Com_AreCheatsAllowed();
 bool       Com_IsClient();
@@ -556,8 +549,6 @@ bool       Com_ServerRunning();
 // checks for and removes command line "+set var arg" constructs
 // if match is nullptr, all set commands will be executed, otherwise
 // only a set with the exact name.  Only used during startup.
-
-extern cvar_t       *com_crashed;
 
 extern cvar_t       *com_developer;
 extern cvar_t       *com_speeds;
@@ -573,10 +564,6 @@ extern Cvar::Cvar<bool> com_ansiColor;
 extern cvar_t       *com_unfocused;
 extern cvar_t       *com_minimized;
 
-// both client and server must agree to pause
-extern cvar_t       *cl_paused;
-extern cvar_t       *sv_paused;
-
 extern cvar_t       *cl_packetdelay;
 extern cvar_t       *sv_packetdelay;
 
@@ -589,7 +576,6 @@ extern int          time_backend; // renderer backend time
 
 extern int          com_frameTime;
 extern int          com_frameMsec;
-extern int          com_hunkusedvalue;
 
 enum class memtag_t
 {
@@ -645,15 +631,15 @@ static inline void Z_Free(void* ptr)
 }
 
 #ifndef BUILD_SERVER
+void Hunk_Init();
 void     Hunk_Clear();
-void Hunk_ShutDownRandomStuffAndClear();
 void *Hunk_Alloc( int size, ha_pref preference );
 void   *Hunk_AllocateTempMemory( int size );
 void   Hunk_FreeTempMemory( void *buf );
 #endif
 
 // commandLine should not include the executable name (argv[0])
-void   Com_Init( char *commandLine );
+void   Com_Init();
 void   Com_Frame();
 void   Com_Shutdown();
 
@@ -674,7 +660,6 @@ void CL_InitKeyCommands();
 // config files, but the rest of client startup will happen later
 
 void     CL_Init();
-void     CL_ClearStaticDownload();
 void     CL_Disconnect( bool showMainMenu );
 void     CL_SendDisconnect();
 void     CL_Shutdown();
@@ -713,14 +698,6 @@ void CL_ForwardCommandToServer( const char *string );
 void CL_ShutdownAll();
 
 // shutdown all the client stuff
-
-void CL_FlushMemory();
-
-// dump all memory on an error
-
-void CL_StartHunkUsers();
-
-// start all the client stuff using the hunk
 
 // AVI files have the start of pixel lines 4 byte-aligned
 #define AVI_LINE_PADDING 4

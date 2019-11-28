@@ -417,10 +417,10 @@ SV_SpawnServer
 
 Change the server to a new map, taking all connected
 clients along with it.
-This is NOT called for map_restart
+This is NOT called for map_restart, UNLESS the number of client slots changed
 ================
 */
-void SV_SpawnServer(const std::string pakname, const std::string server)
+void SV_SpawnServer(const std::string pakname, const std::string mapname)
 {
 	int        i;
 	bool   isBot;
@@ -429,11 +429,11 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	SV_ShutdownGameProgs();
 
 	PrintBanner( "Server Initialization" )
-	Log::Notice( "Server: %s", server );
+	Log::Notice( "Map: %s", mapname );
 
 #ifndef BUILD_SERVER
-	// clear the whole hunk because we're (re)loading the server
-	Hunk_ShutDownRandomStuffAndClear();
+	void CIN_CloseAllVideos();
+	CIN_CloseAllVideos();
 #endif
 
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
@@ -475,13 +475,6 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	// server has changed
 	svs.snapFlagServerBit ^= SNAPFLAG_SERVERCOUNT;
 
-	// set sv_nextmap to the same map, but it may be overridden
-	// by the game startup or another console command
-	Cvar_Set( "sv_nextmap", "map_restart 0" );
-
-	// make sure we are not paused
-	Cvar_Set( "cl_paused", "0" );
-
 	// get a new checksum feed and restart the file system
 	srand( Sys_Milliseconds() );
 	sv.checksumFeed = ( ( rand() << 16 ) ^ rand() ) ^ Sys_Milliseconds();
@@ -491,10 +484,10 @@ void SV_SpawnServer(const std::string pakname, const std::string server)
 	if (!FS_LoadPak(pakname.c_str()))
 		Sys::Drop("Could not load map pak\n");
 
-	CM_LoadMap(server);
+	CM_LoadMap(mapname);
 
 	// set serverinfo visible name
-	Cvar_Set( "mapname", server.c_str() );
+	Cvar_Set( "mapname", mapname.c_str() );
 	Cvar_Set( "pakname", pakname.c_str() );
 
 	// serverid should be different each time
@@ -642,7 +635,6 @@ void SV_Init()
 	sv_fps = Cvar_Get( "sv_fps", "40", CVAR_TEMP );
 	sv_timeout = Cvar_Get( "sv_timeout", "240", CVAR_TEMP );
 	sv_zombietime = Cvar_Get( "sv_zombietime", "2", CVAR_TEMP );
-	Cvar_Get( "sv_nextmap", "", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", 0 );
 	sv_master[ 0 ] = Cvar_Get( "sv_master1", MASTER1_SERVER_NAME, 0 );
@@ -663,7 +655,6 @@ void SV_Init()
 
 	sv_wwwDownload = Cvar_Get( "sv_wwwDownload", "0", 0 );
 	sv_wwwBaseURL = Cvar_Get( "sv_wwwBaseURL", WWW_BASEURL, 0 );
-	sv_wwwDlDisconnected = Cvar_Get( "sv_wwwDlDisconnected", "0", 0 );
 	sv_wwwFallbackURL = Cvar_Get( "sv_wwwFallbackURL", "", 0 );
 
 	//bani
@@ -777,7 +768,4 @@ void SV_Shutdown( const char *finalmsg )
 #endif
 
 	Log::Notice( "---------------------------\n" );
-
-	// disconnect any local clients
-	CL_Disconnect( false );
 }

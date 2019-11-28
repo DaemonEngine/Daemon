@@ -61,10 +61,6 @@ void CL_PacketEvent( netadr_t, msg_t*  )
 {
 }
 
-void CL_Disconnect( bool )
-{
-}
-
 void CL_MapLoading()
 {
 }
@@ -79,14 +75,6 @@ void CL_ConsolePrint( std::string )
 }
 
 void CL_JoystickEvent( int, int )
-{
-}
-
-void CL_FlushMemory()
-{
-}
-
-void CL_StartHunkUsers()
 {
 }
 

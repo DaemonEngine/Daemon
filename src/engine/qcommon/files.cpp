@@ -27,6 +27,9 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #include "qcommon.h"
 #include "common/Defs.h"
 
+// There must be some limit for the APIs in this file since they use 'int' for lengths which can be overflowed by large files.
+constexpr FS::offset_t MAX_FILE_LENGTH = 1000 * 1000 * 1000;
+
 // Compatibility wrapper for the filesystem
 const char TEMP_SUFFIX[] = ".tmp";
 
@@ -47,10 +50,15 @@ struct handleData_t {
 	std::string fileData;
 	size_t filePos;
 };
+struct missingPak_t {
+	std::string name;
+	std::string version;
+	uint32_t checksum;
+};
 
 static const int MAX_FILE_HANDLES = 64;
 static handleData_t handleTable[MAX_FILE_HANDLES];
-static std::vector<std::tuple<std::string, std::string, uint32_t>> fs_missingPaks;
+std::vector<missingPak_t> fs_missingPaks;
 
 static Cvar::Cvar<bool> allowRemotePakDir("client.allowRemotePakDir", "Connect to servers that load game data from directories", Cvar::TEMPORARY, false);
 
@@ -104,7 +112,12 @@ int FS_FOpenFileRead(const char* path, fileHandle_t* handle, bool)
 		}
 	}
 	if (err) {
-		Log::Debug("Failed to open '%s' for reading: %s", path, err.message().c_str());
+		Log::Debug("Failed to open '%s' for reading: %s", path, err.message());
+		*handle = 0;
+		length = -1;
+	} else if (length > MAX_FILE_LENGTH) {
+		Log::Warn("FS_FOpenFileRead: Failed to open '%s' for reading: size %d is too large", path, length);
+		FS_FCloseFile(*handle);
 		*handle = 0;
 		length = -1;
 	}
@@ -159,7 +172,7 @@ fileHandle_t FS_SV_FOpenFileWrite(const char* path)
 	return FS_FOpenFileWrite_internal(path, false);
 }
 
-int FS_SV_FOpenFileRead(const char* path, fileHandle_t* handle)
+static int FS_SV_FOpenFileRead(const char* path, fileHandle_t* handle)
 {
 	if (!handle)
 		return FS::HomePath::FileExists(path);
@@ -170,11 +183,18 @@ int FS_SV_FOpenFileRead(const char* path, fileHandle_t* handle)
 	if (err) {
 		Log::Debug("Failed to open '%s' for reading: %s", path, err.message().c_str());
 		*handle = 0;
-		return 0;
+		return -1;
 	}
 	handleTable[*handle].isPakFile = false;
 	handleTable[*handle].isOpen = true;
-	return handleTable[*handle].file.Length();
+	FS::offset_t length = handleTable[*handle].file.Length();
+	if (length > MAX_FILE_LENGTH) {
+		Log::Warn("FS_SV_FOpenFileRead: Failed to open '%s' for reading: size %d is too large", path, length);
+		FS_FCloseFile(*handle);
+		*handle = 0;
+		return -1;
+	}
+	return length;
 }
 
 int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mode)
@@ -641,12 +661,12 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		// Keep track of all missing paks
 		const FS::PakInfo* pak = FS::FindPak(name, version, *checksum);
 		if (!pak)
-			fs_missingPaks.emplace_back(std::move(name), std::move(version), *checksum);
+			fs_missingPaks.push_back({std::move(name), std::move(version), *checksum});
 		else {
 			try {
 				FS::PakPath::LoadPakExplicit(*pak, *checksum);
 			} catch (std::system_error&) {
-				fs_missingPaks.emplace_back(std::move(name), std::move(version), *checksum);
+				fs_missingPaks.push_back({std::move(name), std::move(version), *checksum});
 			}
 		}
 	}
@@ -663,36 +683,40 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 	return fs_missingPaks.empty();
 }
 
-bool CL_WWWBadChecksum(const char *pakname);
-bool FS_ComparePaks(char* neededpaks, int len, bool dlstring)
-{
-	*neededpaks = '\0';
-	for (auto& x: fs_missingPaks) {
-		if (dlstring) {
-			Q_strcat(neededpaks, len, "@");
-			Q_strcat(neededpaks, len, FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str());
-			Q_strcat(neededpaks, len, "@");
-			std::string pakName = Str::Format("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x)));
-			if (FS::HomePath::FileExists(pakName))
-				Q_strcat(neededpaks, len, va("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str()));
-			else
-				Q_strcat(neededpaks, len, pakName.c_str());
-		} else {
-			Q_strcat(neededpaks, len, va("%s", FS::MakePakName(std::get<0>(x), std::get<1>(x)).c_str()));
-			if (FS::FindPak(std::get<0>(x), std::get<1>(x))) {
-				Q_strcat(neededpaks, len, " (local file exists with wrong checksum)");
 #ifndef BUILD_SERVER
-				if (CL_WWWBadChecksum(FS::MakePakName(std::get<0>(x), std::get<1>(x), std::get<2>(x)).c_str())) {
-					try {
-						FS::HomePath::DeleteFile(Str::Format("pkg/%s", FS::MakePakName(std::get<0>(x), std::get<1>(x))));
-					} catch (std::system_error&) {}
+
+bool CL_WWWBadChecksum(const char *pakname);
+void FS_DeletePaksWithBadChecksum() {
+	for (const missingPak_t& x: fs_missingPaks) {
+		if (FS::FindPak(x.name, x.version)) {
+			if (CL_WWWBadChecksum(FS::MakePakName(x.name, x.version, x.checksum).c_str())) {
+				std::string filename = Str::Format("pkg/%s", FS::MakePakName(x.name, x.version));
+				try {
+					FS::HomePath::DeleteFile(filename);
+				} catch (const std::system_error& e) {
+					Sys::Drop("FS_DeletePaksWithBadChecksum: couldn't delete %s: %s", filename, e.what());
 				}
-#endif
 			}
 		}
 	}
+}
+
+bool FS_ComparePaks(char* neededpaks, int len)
+{
+	*neededpaks = '\0';
+	for (const missingPak_t& x: fs_missingPaks) {
+		Q_strcat(neededpaks, len, "@");
+		Q_strcat(neededpaks, len, FS::MakePakName(x.name, x.version, x.checksum).c_str());
+		Q_strcat(neededpaks, len, "@");
+		std::string pakName = Str::Format("pkg/%s", FS::MakePakName(x.name, x.version));
+		if (FS::HomePath::FileExists(pakName))
+			Q_strcat(neededpaks, len, Str::Format("pkg/%s", FS::MakePakName(x.name, x.version, x.checksum)).c_str());
+		else
+			Q_strcat(neededpaks, len, pakName.c_str());
+	}
 	return !fs_missingPaks.empty();
 }
+#endif // !BUILD_SERVER
 
 class WhichCmd: public Cmd::StaticCmd {
 public:

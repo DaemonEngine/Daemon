@@ -53,10 +53,10 @@ static const textureMode_t modes[] =
 return a hash value for the filename
 ================
 */
-long GenerateImageHashValue( const char *fname )
+unsigned int GenerateImageHashValue( const char *fname )
 {
 	int  i;
-	long hash;
+	unsigned hash;
 	char letter;
 
 //  Log::Notice("tr_image::GenerateImageHashValue: '%s'", fname);
@@ -73,7 +73,7 @@ long GenerateImageHashValue( const char *fname )
 			letter = '/'; // damn path names
 		}
 
-		hash += ( long )( letter ) * ( i + 119 );
+		hash += ( unsigned )( letter ) * ( i + 119 );
 		i++;
 	}
 
@@ -1047,14 +1047,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 		}
 		else if ( samples == 4 )
 		{
-			if ( image->bits & IF_ALPHA )
-			{
-				internalFormat = GL_ALPHA8;
-			}
-			else
-			{
-				internalFormat = GL_RGBA8;
-			}
+			internalFormat = GL_RGBA8;
 		}
 	}
 
@@ -1361,6 +1354,27 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 		ri.Hunk_FreeTempMemory( scaledBuffer );
 	}
 
+	// detect heightmap in normalmap alpha channel and enable it
+	// if not already enabled by explicit shader keyword
+	if ( image->bits & IF_NORMALMAP )
+	{
+		if ( ! ( image->bits & IF_DISPLACEMAP ) )
+		{
+			switch ( image->internalFormat )
+			{
+				case GL_RGBA:
+				case GL_RGBA8:
+				case GL_RGBA16:
+				case GL_RGBA16F:
+				case GL_RGBA32F:
+				case GL_RGBA32UI:
+				case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+				case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+					image->bits |= IF_DISPLACEMAP;
+			}
+		}
+	}
+
 	GL_Unbind( image );
 }
 
@@ -1372,7 +1386,7 @@ R_AllocImage
 image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 {
 	image_t *image;
-	long    hash;
+	unsigned hash;
 
 	if ( strlen( name ) >= sizeof( image->name ) )
 	{
@@ -1613,6 +1627,60 @@ static int                   numImageLoaders = ARRAY_LEN( imageLoaders );
 
 /*
 =================
+R_FindImageLoader
+
+Finds and returns an image loader for a given basename,
+tells the extra prefix that may be required to load the image.
+=================
+*/
+static int R_FindImageLoader( const char *baseName, const char **prefix ) {
+	const FS::PakInfo* bestPak = nullptr;
+	int i;
+
+	int bestLoader = -1;
+	*prefix = "";
+	// try and find a suitable match using all the image formats supported
+	// prioritize with the pak priority
+	for ( i = 0; i < numImageLoaders; i++ )
+	{
+		std::string altName = Str::Format( "%s.%s", baseName, imageLoaders[i].ext );
+		const FS::PakInfo* pak = FS::PakPath::LocateFile( altName );
+
+		// We found a file and its pak is better than the best pak we have
+		// this relies on how the filesystem works internally and should be moved
+		// to a more explicit interface once there is one. (FIXME)
+		if ( pak != nullptr && ( bestPak == nullptr || pak < bestPak ) )
+		{
+			bestPak = pak;
+			bestLoader = i;
+		}
+
+		// DarkPlaces or Doom3 packages can ship alternative texture path in the form of
+		//   dds/<path without ext>.dds
+		if ( bestPak == nullptr && !Q_stricmp( "dds", imageLoaders[i].ext ) )
+		{
+			std::string prefixedName = Str::Format( "dds/%s.dds", baseName );
+			bestPak = FS::PakPath::LocateFile( prefixedName );
+			if ( bestPak != nullptr ) {
+				*prefix = "dds/";
+				bestPak = pak;
+				bestLoader = i;
+			}
+		}
+	}
+
+	return bestLoader;
+}
+
+int R_FindImageLoader( const char *baseName ) {
+	// not used but required by R_FindImageLoader
+	const char *prefix;
+
+	return R_FindImageLoader( baseName, &prefix );
+}
+
+/*
+=================
 R_LoadImage
 
 Loads any of the supported image types into a canonical
@@ -1682,13 +1750,7 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 		// a loader was found
 		if ( i < numImageLoaders )
 		{
-			if ( *pic == nullptr )
-			{
-				// loader failed, most likely because the file isn't there;
-				// try again without the extension
-				COM_StripExtension3( token, filename, MAX_QPATH );
-			}
-			else
+			if ( *pic != nullptr )
 			{
 				// something loaded
 				return;
@@ -1696,43 +1758,24 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 		}
 	}
 
-	int bestLoader = -1;
-	const FS::PakInfo* bestPak = nullptr;
+	// if the file isn't there, maybe the file path did not have any extension,
+	// and it may be possible the file has a dot in its name that was mistakenly
+	// taken as an extension
+	const char *prefix;
+	int bestLoader = R_FindImageLoader( filename, &prefix );
 
-	// Darkplaces or Doom3 packages can ship alternative texture path in the form of
-	//   dds/<path without ext>.dds
-	std::string altName = Str::Format("dds/%s.dds", filename);
-	bestPak = FS::PakPath::LocateFile(altName);
-
-	// If this alternative path exists, it's expected to be loaded as the best one
-	// except when it goes against Daemon's rule to load the hardcoded one if exists
-	// because this dds alternative is only supported for compatibility with
-	// third-party content
-	if ( bestPak != nullptr ) {
-		LoadDDS( altName.c_str(), pic, width, height, numLayers, numMips, bits, alphaByte );
-		return;
-	}
-
-	// try and find a suitable match using all the image formats supported
-	// prioritize with the pak priority
-	for ( i = 0; i < numImageLoaders; i++ )
+	if ( *ext && bestLoader == -1 )
 	{
-		std::string altName = Str::Format("%s.%s", filename, imageLoaders[i].ext);
-		const FS::PakInfo* pak = FS::PakPath::LocateFile(altName);
+		// if there is no file with such extension
+		// or there is no codec available for this file format
+		COM_StripExtension3( token, filename, sizeof(filename) );
 
-		// We found a file and its pak is better than the best pak we have
-		// this relies on how the filesystem works internally and should be moved
-		// to a more explicit interface once there is one. (FIXME)
-		if ( pak != nullptr && (bestPak == nullptr || pak < bestPak ) )
-		{
-			bestPak = pak;
-			bestLoader = i;
-		}
+		bestLoader = R_FindImageLoader( filename, &prefix );
 	}
 
 	if ( bestLoader >= 0 )
 	{
-		char *altName = va( "%s.%s", filename, imageLoaders[ bestLoader ].ext );
+		char *altName = va( "%s%s.%s", prefix, filename, imageLoaders[ bestLoader ].ext );
 		imageLoaders[ bestLoader ].ImageLoader( altName, pic, width, height, numLayers, numMips, bits, alphaByte );
 	}
 }
@@ -1751,10 +1794,9 @@ image_t        *R_FindImageFile( const char *imageName, int bits, filterType_t f
 	int           width = 0, height = 0, numLayers = 0, numMips = 0;
 	byte          *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
 	byte          *mallocPtr = nullptr;
-	long          hash;
 	char          buffer[ 1024 ];
 	const char          *buffer_p;
-	unsigned long diff;
+	unsigned int diff;
 
 	if ( !imageName )
 	{
@@ -1762,7 +1804,7 @@ image_t        *R_FindImageFile( const char *imageName, int bits, filterType_t f
 	}
 
 	Q_strncpyz( buffer, imageName, sizeof( buffer ) );
-	hash = GenerateImageHashValue( buffer );
+	unsigned hash = GenerateImageHashValue( buffer );
 
 	// see if the image is already loaded
 	for ( image = r_imageHashTable[ hash ]; image; image = image->next )
@@ -1919,49 +1961,124 @@ static void R_Rotate( byte *in, int width, int height, int degrees )
 }
 
 /*
+========
+R_Resize
+
+wrapper for ResampleTexture to help to resize a texture in place like this:
+pic = R_Resize( pic, width, height, newWidth, newHeight );
+
+please not resize normalmap with this, use ResampleTexture directly instead
+
+========
+*/
+
+byte *R_Resize( byte *in, int width, int height, int newWidth, int newHeight )
+{
+
+	byte *out;
+
+	out = (byte*) ri.Z_Malloc( newWidth * newHeight * 4 );
+	ResampleTexture( (unsigned int*) in, width, height, (unsigned int*) out, newWidth, newHeight, false );
+	ri.Free( in );
+
+	return out;
+}
+
+/*
 ===============
 R_FindCubeImage
 
 Finds or loads the given image.
 Returns nullptr if it fails, not a default image.
-
-Tr3B: fear the use of goto
 ==============
 */
 static void R_FreeCubePics( byte **pic, int count )
 {
 	while (--count >= 0)
 	{
-		if ( pic[ count ] )
+		if ( pic[ count ] != nullptr )
 		{
 			ri.Free( pic[ count ] );
+			pic[ count ] = nullptr;
 		}
 	}
 }
 
-image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t filterType, wrapType_t wrapType )
+struct cubeMapLoader_t
 {
-	int         i;
-	image_t     *image = nullptr;
-	int         width = 0, height = 0, numLayers = 0, numMips = 0;
-	byte        *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
-	long        hash;
-	int         numPicsToFree = 0;
+	const char *ext;
+	void ( *ImageLoader )( const char *, unsigned char **, int *, int *, int *, int *, int *, byte );
+};
 
-	static const char *openglSuffices[ 6 ] = { "px", "nx", "py", "ny", "pz", "nz" };
+// Note that the ordering indicates the order of preference used
+// when there are multiple images of different formats available
+static const cubeMapLoader_t cubeMapLoaders[] =
+{
+	{ "crn", LoadCRN },
+	{ "ktx", LoadKTX },
+};
 
-	static const char *doom3Suffices[ 6 ] = { "forward", "back", "left", "right", "up", "down" };
-	static bool doom3FlipX[ 6 ] = { true,  true,  false, true,  true,  false };
-	static bool doom3FlipY[ 6 ] = { false, false, true,  false, false, true };
-	static int      doom3Rot[ 6 ] = { 90,           -90,    0,              0,              90,             -90 };
+struct multifileCubeMapFormat_t
+{
+	const char *name;
+	const char *sep;
+	const char *suffixes[6];
+	bool flipX[6];
+	bool flipY[6];
+	int rot[6];
+};
 
-	static const char *quakeSuffices[ 6 ] = { "rt", "lf", "bk", "ft", "up", "dn" };
-	static bool quakeFlipX[ 6 ] = { true,  true,  false, true,  true,  false };
-	static bool quakeFlipY[ 6 ] = { false, false, true,  false, false, true };
-	static int      quakeRot[ 6 ] = { 90,           -90,    0,              0,              90,             -90 };
+static const multifileCubeMapFormat_t multifileCubeMapFormats[] =
+{
+	{
+		"OpenGL",
+		"_",
+		{ "px", "nx", "py", "ny", "pz", "nz" },
+		{ false, false, false, false, false, false },
+		{ false, false, false, false, false, false },
+		{ 0, 0, 0, 0, 0, 0 },
+	},
+	{
+		"Quake",
+		"_",
+		{ "rt", "lf", "bk", "ft", "up", "dn" },
+		{ true, true, false, true, true, false },
+		{ false, false, true, false, false, true },
+		{ 90, -90, 0, 0, 90, -90 },
+	},
+	{
+		"DarkPlaces",
+		"",
+		{ "px", "nx", "py", "ny", "pz", "nz" },
+		{ false, false, false, false, false, false },
+		{ false, false, false, false, false, false },
+		{ 0, 0, 0, 0, 0, 0 },
+	},
+	{
+		"Doom 3",
+		"_",
+		{ "forward", "back", "left", "right", "up", "down" },
+		{ true, true, false, true, true, false },
+		{ false, false, true, false, false, true },
+		{ 90, -90, 0, 0, 90, -90 },
+	},
+};
 
-	char            buffer[ 1024 ], filename[ 1024 ];
-	const  char     *filename_p;
+struct face_t
+{
+	int width;
+	int height;
+};
+
+image_t *R_FindCubeImage( const char *imageName, int bits, filterType_t filterType, wrapType_t wrapType )
+{
+	int i, j;
+	image_t *image = nullptr;
+	int width = 0, height = 0, numLayers = 0, numMips = 0;
+	byte *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
+
+	char buffer[ 1024 ], filename[ 1024 ];
+	const  char *filename_p;
 
 	if ( !imageName )
 	{
@@ -1969,7 +2086,7 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 	}
 
 	Q_strncpyz( buffer, imageName, sizeof( buffer ) );
-	hash = GenerateImageHashValue( buffer );
+	unsigned hash = GenerateImageHashValue( buffer );
 
 	// see if the image is already loaded
 	for ( image = r_imageHashTable[ hash ]; image; image = image->next )
@@ -1980,22 +2097,25 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 		}
 	}
 
-	// try to load .CRN cubemap
-	LoadCRN( buffer, pic, &width, &height, &numLayers, &numMips, &bits, 0 );
-	if( numLayers == 6 && pic[0] ) {
-		numPicsToFree = 1;
-		goto createCubeImage;
-	} else {
-		R_FreeCubePics( pic, numLayers );
-	}
+	char cubeMapBaseName[ MAX_QPATH ];
+	COM_StripExtension3( buffer, cubeMapBaseName, sizeof( cubeMapBaseName ) );
 
-	// try to load .KTX cubemap
-	LoadKTX( buffer, pic, &width, &height, &numLayers, &numMips, &bits, 0 );
-	if( numLayers == 6 && pic[0] ) {
-		numPicsToFree = 1;
-		goto createCubeImage;
-	} else {
-		R_FreeCubePics( pic, numLayers );
+	for ( const cubeMapLoader_t loader : cubeMapLoaders )
+	{
+		std::string cubeMapName = Str::Format( "%s.%s", cubeMapBaseName, loader.ext );
+		if( R_FindImageLoader( cubeMapName.c_str() ) >= 0 )
+		{
+			Log::Debug( "found %s cube map '%s'", loader.ext, cubeMapBaseName );
+			loader.ImageLoader( cubeMapName.c_str(), pic, &width, &height, &numLayers, &numMips, &bits, 0 );
+
+			if( numLayers == 6 && pic[0] ) {
+				image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, width, height, bits, filterType, wrapType );
+				R_FreeCubePics( pic, 1 );
+				return image;
+			}
+
+			R_FreeCubePics( pic, numLayers );
+		}
 	}
 
 	for ( i = 0; i < 6; i++ )
@@ -2003,122 +2123,111 @@ image_t        *R_FindCubeImage( const char *imageName, int bits, filterType_t f
 		pic[ i ] = nullptr;
 	}
 
-	for ( i = 0; i < 6; i++ )
+	for ( const multifileCubeMapFormat_t format : multifileCubeMapFormats )
 	{
-		Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, openglSuffices[ i ] );
+		int greatestEdge = 0;
+		face_t faces[6];
 
-		filename_p = &filename[ 0 ];
-		R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
-
-		if ( IsImageCompressed( bits ) )
+		for ( i = 0; i < 6; i++ )
 		{
-				Log::Warn("DXTn compression found in multi-file cube map; ignoring '%s'", imageName );
-		        goto skipCubeImage;
+			Com_sprintf( filename, sizeof( filename ), "%s%s%s", buffer, format.sep, format.suffixes[ i ] );
+
+			Log::Debug( "looking for %s cube map face '%s'", format.name, filename );
+
+			filename_p = &filename[ 0 ];
+			R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
+
+			if ( pic[ i ] == nullptr )
+			{
+				// ignore silently, skip this format
+				// note that it may silent incomplete multifile cubemap
+				// but this is an hardly decidable problem since
+				// multiple formats can share some suffixes
+				break;
+			}
+
+			if ( IsImageCompressed( bits ) )
+			{
+				Log::Warn("cube map face '%s' has DXTn compression, cube map unusable", filename );
+				break;
+			}
+
+			if ( numLayers > 0 )
+			{
+				Log::Warn("cubemap face '%s' is a multilayer image with %d layer(s), cube map unusable", filename, numLayers);
+				break;
+			}
+
+			if ( width > greatestEdge )
+			{
+				greatestEdge = width;
+			}
+
+			if ( height > greatestEdge )
+			{
+				greatestEdge = height;
+			}
+
+			faces[ i ].width = width;
+			faces[ i ].height = height;
 		}
 
-		if ( !pic[ i ] || width != height || numLayers > 0 )
+		if ( i == 6 )
 		{
-			image = nullptr;
-			goto tryDoom3Suffices;
+
+			for ( j = 0; j < 6; j++ )
+			{
+				width = faces[ j ].width;
+				height = faces[ j ].height;
+
+				bool badSize = false;
+
+				if ( width != height )
+				{
+					Log::Warn("cubemap face '%s%s%s' is not a square with %d×%d dimension, resizing to %d×%d",
+						imageName, format.sep, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
+					badSize = true;
+				}
+
+				if ( width < greatestEdge || height < greatestEdge )
+				{
+					Log::Warn("cubemap face '%s%s%s' is too small with %d×%d dimension, resizing to %d×%d",
+						imageName, format.sep, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
+					badSize = true;
+				}
+
+				// make face square before doing other operations like rotation
+				if ( badSize )
+				{
+					pic[ j ] = R_Resize( pic[ j ], width, height, greatestEdge, greatestEdge );
+				}
+
+				if ( format.flipX[ j ] )
+				{
+					R_Flip( pic[ j ], width, height );
+				}
+
+				if ( format.flipY[ j ] )
+				{
+					R_Flop( pic[ j ], width, height );
+				}
+
+				if ( format.rot[ j ] != 0 )
+				{
+					R_Rotate( pic[ j ], width, height, format.rot[ j ] );
+				}
+			}
+
+			Log::Debug( "found %s multifile cube map '%s'", format.name, imageName );
+			image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, greatestEdge, greatestEdge, bits, filterType, wrapType );
+			R_FreeCubePics( pic, i );
+			return image;
 		}
-		numPicsToFree = i;
+
+		R_FreeCubePics( pic, i );
 	}
 
-	goto createCubeImage;
-
-tryDoom3Suffices:
-
-	for ( i = 0; i < numPicsToFree; i++ ) {
-		ri.Free( pic[i] );
-		pic[i] = nullptr;
-	}
-	numPicsToFree = 0;
-
-	for ( i = 0; i < 6; i++ )
-	{
-		Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, doom3Suffices[ i ] );
-
-		filename_p = &filename[ 0 ];
-		R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
-
-		if ( IsImageCompressed( bits ) )
-		{
-				Log::Warn("DXTn compression found in multi-file cube map; ignoring '%s'", imageName );
-		        goto skipCubeImage;
-		}
-
-		if ( !pic[ i ] || width != height || numLayers > 0 )
-		{
-			image = nullptr;
-			goto tryQuakeSuffices;
-		}
-
-		if ( doom3FlipX[ i ] )
-		{
-			R_Flip( pic[ i ], width, height );
-		}
-
-		if ( doom3FlipY[ i ] )
-		{
-			R_Flop( pic[ i ], width, height );
-		}
-
-		R_Rotate( pic[ i ], width, height, doom3Rot[ i ] );
-
-		numPicsToFree = i;
-	}
-
-	goto createCubeImage;
-
-tryQuakeSuffices:
-
-	for ( i = 0; i < numPicsToFree; i++ ) {
-		ri.Free( pic[i] );
-		pic[i] = nullptr;
-	}
-	numPicsToFree = 0;
-
-	for ( i = 0; i < 6; i++ )
-	{
-		Com_sprintf( filename, sizeof( filename ), "%s_%s", buffer, quakeSuffices[ i ] );
-
-		filename_p = &filename[ 0 ];
-		R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &bits );
-
-		if ( IsImageCompressed( bits ) )
-		{
-				Log::Warn("DXTn compression found in multi-file cube map; ignoring '%s'", imageName );
-		        goto skipCubeImage;
-		}
-
-		if ( !pic[ i ] || width != height || numLayers > 0 )
-		{
-			image = nullptr;
-			goto skipCubeImage;
-		}
-
-		if ( quakeFlipX[ i ] )
-		{
-			R_Flip( pic[ i ], width, height );
-		}
-
-		if ( quakeFlipY[ i ] )
-		{
-			R_Flop( pic[ i ], width, height );
-		}
-
-		R_Rotate( pic[ i ], width, height, quakeRot[ i ] );
-
-		numPicsToFree = i;
-	}
-
-createCubeImage:
-	image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, width, height, bits, filterType, wrapType );
-
-skipCubeImage:
-	R_FreeCubePics( pic, numPicsToFree );
-
-	return image;
+	return nullptr;
 }
 
 /*

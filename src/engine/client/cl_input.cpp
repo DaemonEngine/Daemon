@@ -859,31 +859,6 @@ bool CL_ReadyToSendPacket()
 }
 
 /*
-================
-CL_WriteBinaryMessage
-================
-*/
-static void CL_WriteBinaryMessage( msg_t *msg )
-{
-	if ( !clc.binaryMessageLength )
-	{
-		return;
-	}
-
-	MSG_Uncompressed( msg );
-
-	if ( ( msg->cursize + clc.binaryMessageLength ) >= msg->maxsize )
-	{
-		clc.binaryMessageOverflowed = true;
-		return;
-	}
-
-	MSG_WriteData( msg, clc.binaryMessage, clc.binaryMessageLength );
-	clc.binaryMessageLength = 0;
-	clc.binaryMessageOverflowed = false;
-}
-
-/*
 ===================
 CL_WritePacket
 
@@ -1015,7 +990,6 @@ void CL_WritePacket()
 	}
 
 	MSG_WriteByte( &buf, clc_EOF );
-	CL_WriteBinaryMessage( &buf );
 	Netchan_Transmit( &clc.netchan, buf.cursize, buf.data );
 
 	// clients never really should have messages large enough
@@ -1045,12 +1019,6 @@ void CL_SendCmd()
 {
 	// don't send any message if not connected
 	if ( cls.state < connstate_t::CA_CONNECTED )
-	{
-		return;
-	}
-
-	// don't send commands if paused
-	if ( com_sv_running->integer && sv_paused->integer && cl_paused->integer )
 	{
 		return;
 	}

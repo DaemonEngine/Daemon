@@ -90,13 +90,6 @@ Cvar::Cvar<std::string> cvar_demo_status_filename(
     ""
 );
 
-Cvar::Cvar<std::string> cvar_demo_next(
-    "demo.next",
-    "Name of the demo to play after the current one",
-    Cvar::NONE,
-    ""
-);
-
 cvar_t *cl_aviFrameRate;
 
 cvar_t *cl_freelook;
@@ -139,6 +132,7 @@ cvar_t                 *cl_packetdelay; //bani
 
 cvar_t                 *cl_consoleFont;
 cvar_t                 *cl_consoleFontSize;
+cvar_t                 *cl_consoleFontScaling;
 cvar_t                 *cl_consoleFontKerning;
 cvar_t                 *cl_consoleCommand; //see also com_consoleCommand for terminal consoles
 
@@ -165,8 +159,6 @@ clientActive_t     cl;
 clientConnection_t clc;
 clientStatic_t     cls;
 CGameVM            cgvm;
-
-Log::Logger downloadLogger("client.pakDownload");
 
 // Structure containing functions exported from refresh DLL
 refexport_t        re;
@@ -306,7 +298,7 @@ void CL_WriteDemoMessage( msg_t *msg, int headerBytes )
 /**
  * If a demo is being recorded, this stops it
  */
-void CL_StopRecord()
+static void CL_StopRecord()
 {
     if ( !clc.demorecording )
         return;
@@ -516,7 +508,7 @@ CL_DemoCompleted
 =================
 */
 
-void CL_DemoCompleted()
+NORETURN static void CL_DemoCompleted()
 {
 	if ( cvar_demo_timedemo.Get() )
 	{
@@ -531,8 +523,7 @@ void CL_DemoCompleted()
 		}
 	}
 
-	CL_Disconnect( true );
-	CL_NextDemo();
+	throw Sys::DropErr(false, "Demo completed");
 }
 
 /*
@@ -551,7 +542,6 @@ void CL_ReadDemoMessage()
 	if ( !clc.demofile )
 	{
 		CL_DemoCompleted();
-		return;
 	}
 
 	// get the sequence number
@@ -560,7 +550,6 @@ void CL_ReadDemoMessage()
 	if ( r != 4 )
 	{
 		CL_DemoCompleted();
-		return;
 	}
 
 	clc.serverMessageSequence = LittleLong( s );
@@ -574,7 +563,6 @@ void CL_ReadDemoMessage()
 	if ( r != 4 )
 	{
 		CL_DemoCompleted();
-		return;
 	}
 
 	buf.cursize = LittleLong( buf.cursize );
@@ -582,7 +570,6 @@ void CL_ReadDemoMessage()
 	if ( buf.cursize == -1 )
 	{
 		CL_DemoCompleted();
-		return;
 	}
 
 	if ( buf.cursize > buf.maxsize )
@@ -596,7 +583,6 @@ void CL_ReadDemoMessage()
 	{
 		Log::Notice("Demo file was truncated.");
 		CL_DemoCompleted();
-		return;
 	}
 
 	clc.lastPacketTime = cls.realtime;
@@ -619,8 +605,6 @@ class DemoPlayCmd: public Cmd::StaticCmd {
             // make sure a local server is killed
             Cvar_Set( "sv_killserver", "1" );
             CL_Disconnect( true );
-
-            //  CL_FlushMemory();   //----(SA)  MEM NOTE: in missionpack, this is moved to CL_DownloadsComplete
 
             // open the demo file
             const std::string& fileName = args.Argv(1);
@@ -675,30 +659,36 @@ class DemoPlayCmd: public Cmd::StaticCmd {
 };
 static DemoPlayCmd DemoPlayCmdRegistration;
 
-/*
-==================
-CL_NextDemo
-
-Called when a demo or cinematic finishes
-If the "demo.next" cvar is set, that command will be issued
-==================
-*/
-void CL_NextDemo()
+// stop demo recording and playback
+static void StopDemos()
 {
-	std::string v = cvar_demo_next.Get();
+	// stop demo recording
+	CL_StopRecord();
 
-	if ( v.empty() )
+	// stop demo playback
+	if ( clc.demofile )
 	{
-		return;
+		FS_FCloseFile( clc.demofile );
+		clc.demofile = 0;
 	}
-
-	Log::Debug( "CL_NextDemo: %s", v );
-	cvar_demo_next.Set("");
-	Cmd::BufferCommandTextAfter("demo_play " + v, false);
-	Cmd::ExecuteCommandBuffer();
 }
 
 //======================================================================
+
+// stop video recording and playback
+static void StopVideo()
+{
+	SCR_StopCinematic();
+	CIN_CloseAllVideos();
+
+	// stop recording any video
+	if ( CL_VideoRecording() )
+	{
+		// finish rendering current frame
+		//SCR_UpdateScreen();
+		CL_CloseAVI();
+	}
+}
 
 /*
 =====================
@@ -715,7 +705,7 @@ void CL_ShutdownAll()
 	CL_ShutdownCGame();
 
 	// Clear Faces
-	if ( re.UnregisterFont && cls.consoleFont )
+	if ( cls.consoleFont )
 	{
 		re.UnregisterFont( cls.consoleFont );
 		cls.consoleFont = nullptr;
@@ -727,44 +717,23 @@ void CL_ShutdownAll()
 		re.Shutdown( false );  // don't destroy window or context
 	}
 
-	cls.uiStarted = false;
-	cls.cgameStarted = false;
 	cls.rendererStarted = false;
 	cls.soundRegistered = false;
 
+	StopVideo();
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
 	CL_StopRecord();
-}
 
-/*
-=================
-CL_FlushMemory
-
-Called by CL_MapLoading, CL_Connect_f, CL_PlayDemo_f, and CL_ParseGamestate the only
-ways a client gets into a game
-Also called by Com_Error
-=================
-*/
-void CL_FlushMemory()
-{
-	// shutdown all the client stuff
-	CL_ShutdownAll();
-
-	// if not running a server clear the whole hunk
 	if ( !com_sv_running->integer )
 	{
-		// clear the whole hunk
-		Hunk_ShutDownRandomStuffAndClear();
+		void SV_ShutdownGameProgs();
+		SV_ShutdownGameProgs();
+
 		// clear collision map data
 		CM_ClearMap();
 	}
-	else
-	{
-		// clear all the client data on the hunk
-		Hunk_Clear();
-	}
 
-	CL_StartHunkUsers();
+	Hunk_Clear();
 }
 
 /*
@@ -784,7 +753,6 @@ void CL_MapLoading()
 	}
 
 	Con_Close();
-	CL_FlushMemory();
 	cls.keyCatchers = 0;
 
 	// if we are already connected to the local host, stay connected
@@ -799,9 +767,11 @@ void CL_MapLoading()
 	}
 	else
 	{
-		// clear nextmap so the cinematic shutdown doesn't execute it
-		Cvar_Set( "sv_nextmap", "" );
-		CL_Disconnect( false );
+		try {
+			CL_Disconnect( false );
+		} catch (Sys::DropErr& err) {
+			Sys::Error( "CL_Disconnect error during map load: %s", err.what() );
+		}
 		Q_strncpyz( cls.servername, "loopback", sizeof( cls.servername ) );
 		*cls.reconnectCmd = 0; // can't reconnect to this!
 		cls.state = connstate_t::CA_CHALLENGING; // so the connect screen is drawn
@@ -826,22 +796,6 @@ void CL_ClearState()
 {
 	cl.~clientActive_t();
 	new(&cl) clientActive_t{}; // Using {} instead of () to work around MSVC bug
-}
-
-/*
-=====================
-CL_ClearStaticDownload
-Clear download information that we keep in cls (disconnected download support)
-=====================
-*/
-void CL_ClearStaticDownload()
-{
-    downloadLogger.Debug("Clearing the download info");
-	ASSERT(!cls.bWWWDlDisconnected);  // reset before calling
-	cls.downloadRestart = false;
-	cls.downloadTempName[ 0 ] = '\0';
-	cls.downloadName[ 0 ] = '\0';
-	cls.originalDownloadName[ 0 ] = '\0';
 }
 
 /*
@@ -874,19 +828,7 @@ void CL_Disconnect( bool showMainMenu )
 		return;
 	}
 
-	CL_StopRecord();
-
-	if ( !cls.bWWWDlDisconnected )
-	{
-		if ( clc.download )
-		{
-			FS_FCloseFile( clc.download );
-			clc.download = 0;
-		}
-
-		*cls.downloadTempName = *cls.downloadName = 0;
-		Cvar_Set( "cl_downloadName", "" );
-	}
+	CL_SendDisconnect();
 
 	if ( cl_useMumble->integer && mumble_islinked() )
 	{
@@ -894,15 +836,17 @@ void CL_Disconnect( bool showMainMenu )
 		mumble_unlink();
 	}
 
-	if ( clc.demofile )
+	if ( clc.download )
 	{
-		FS_FCloseFile( clc.demofile );
-		clc.demofile = 0;
+		FS_FCloseFile( clc.download );
+		clc.download = 0;
 	}
 
-	SCR_StopCinematic();
+	*cls.downloadTempName = *cls.downloadName = 0;
+	Cvar_Set( "cl_downloadName", "" );
 
-	CL_SendDisconnect();
+	StopVideo();
+	StopDemos();
 
 	// allow cheats locally again
 	if (showMainMenu) {
@@ -915,24 +859,10 @@ void CL_Disconnect( bool showMainMenu )
 	clc.~clientConnection_t();
 	new(&clc) clientConnection_t{}; // Using {} instead of () to work around MSVC bug
 
-	if ( !cls.bWWWDlDisconnected )
-	{
-		CL_ClearStaticDownload();
-	}
+	CL_ClearStaticDownload();
 
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
-
-	// XreaL BEGIN
-	// stop recording any video
-	if ( CL_VideoRecording() )
-	{
-		// finish rendering current frame
-		//SCR_UpdateScreen();
-		CL_CloseAVI();
-	}
-
-	// XreaL END
 
 	// show_bug.cgi?id=589
 	// don't try a restart if rocket is nullptr, as we might be in the middle of a restart already
@@ -1026,7 +956,7 @@ CL_Disconnect_f
 */
 void CL_Disconnect_f()
 {
-	CL_Disconnect( false );
+	throw Sys::DropErr(false, "Disconnecting.");
 }
 
 /*
@@ -1120,29 +1050,30 @@ void CL_Connect_f()
 
 	Audio::StopAllSounds(); // NERVE - SMF
 
-	Cvar_Set( "ui_connecting", "1" );
-
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
 
 	if ( com_sv_running->integer && !strcmp( server, "loopback" ) )
 	{
 		// if running a local server, kill it
-		SV_Shutdown( "Server quit\n" );
+		SV_Shutdown( "Server quit" );
 	}
 
 	// make sure a local server is killed
 	Cvar_Set( "sv_killserver", "1" );
 	SV_Frame( 0 );
 
-	CL_Disconnect( true );
+	try {
+		CL_Disconnect( true );
+	} catch (Sys::DropErr& err) {
+		Sys::Error( "CL_Disconnect error during /connect: %s", err.what() );
+	}
 	Con_Close();
 
 	if ( !NET_StringToAdr( cls.servername, &clc.serverAddress, family ) )
 	{
 		Log::Notice("Bad server address" );
 		cls.state = connstate_t::CA_DISCONNECTED;
-		Cvar_Set( "ui_connecting", "0" );
 		return;
 	}
 
@@ -1541,14 +1472,8 @@ extern void IN_Restart();  // fretn
 
 void CL_Vid_Restart_f()
 {
-// XreaL BEGIN
 	// settings may have changed so stop recording now
-	if ( CL_VideoRecording() )
-	{
-		CL_CloseAVI();
-	}
-
-// XreaL END
+	StopVideo();
 
 	// don't let them loop during the restart
 	Audio::StopAllSounds();
@@ -1561,25 +1486,9 @@ void CL_Vid_Restart_f()
 	CL_ShutdownRef();
 
 	cls.rendererStarted = false;
-	cls.uiStarted = false;
-	cls.cgameStarted = false;
 	cls.soundRegistered = false;
 
-	// unpause so the cgame definitely gets a snapshot and renders a frame
-	Cvar_Set( "cl_paused", "0" );
-
-	// if not running a server clear the whole hunk
-	if ( !com_sv_running->integer )
-	{
-		// clear the whole hunk
-		// BUT DO WE REALLY WANT TO SHUT DOWN RANDOM STUFF TOO?
-		Hunk_ShutDownRandomStuffAndClear();
-	}
-	else
-	{
-		// clear all the client data on the hunk
-		Hunk_Clear();
-	}
+	Hunk_Clear();
 
 	// startup all the client stuff
 	CL_StartHunkUsers();
@@ -1601,7 +1510,7 @@ void CL_Vid_Restart_f()
 CL_Snd_Restart_f
 
 Restart the sound subsystem
-The cgame and game must also be forced to restart because
+The cgame must also be forced to restart because
 handles will be invalid
 =================
 */
@@ -1611,6 +1520,8 @@ void CL_Snd_Restart_f()
 
 	if( !cls.cgameStarted )
 	{
+		// In the main menu case the cgame is not restarted... but is there anything preventing
+		// the main menu from also using sound handles?
 		if (!Audio::Init()) {
 			Sys::Error("Couldn't initialize the audio subsystem.");
 		}
@@ -1742,209 +1653,6 @@ static DemoStopVideoCmd DemoStopVideoCmdRegistration;
 
 /*
 =================
-CL_DownloadsComplete
-
-Called when all downloading has been completed
-=================
-*/
-void CL_DownloadsComplete()
-{
-
-	// if we downloaded files we need to restart the file system
-	if ( cls.downloadRestart )
-	{
-		cls.downloadRestart = false;
-
-        downloadLogger.Debug("Downloaded something, reload the paks");
-        downloadLogger.Debug(" The paks to load are '%s'", Cvar_VariableString("sv_paks"));
-
-		FS::PakPath::ClearPaks();
-		FS_LoadServerPaks(Cvar_VariableString("sv_paks"), clc.demoplaying); // We possibly downloaded a pak, restart the file system to load it
-
-		if ( !cls.bWWWDlDisconnected )
-		{
-			// inform the server so we get new gamestate info
-			CL_AddReliableCommand( "donedl" );
-		}
-
-		// we can reset that now
-		cls.bWWWDlDisconnected = false;
-		CL_ClearStaticDownload();
-
-		// by sending the donedl command we request a new gamestate
-		// so we don't want to load stuff yet
-		return;
-	}
-
-	if ( cls.bWWWDlDisconnected )
-	{
-		cls.bWWWDlDisconnected = false;
-		CL_ClearStaticDownload();
-		return;
-	}
-
-	// let the client game init and load data
-	cls.state = connstate_t::CA_LOADING;
-
-	// Pump the loop, this may change gamestate!
-	Com_EventLoop();
-
-	// if the gamestate was changed by calling Com_EventLoop
-	// then we loaded everything already and we don't want to do it again.
-	if ( cls.state != connstate_t::CA_LOADING )
-	{
-		return;
-	}
-
-	// flush client memory and start loading stuff
-	// this will also (re)load the UI
-	CL_FlushMemory();
-
-	// initialize the CGame
-	cls.cgameStarted = true;
-	CL_InitCGame();
-
-	CL_WritePacket();
-	CL_WritePacket();
-	CL_WritePacket();
-}
-
-/*
-=================
-CL_BeginDownload
-
-Requests a file to download from the server.  Stores it in the current
-game directory.
-=================
-*/
-void CL_BeginDownload( const char *localName, const char *remoteName )
-{
-    downloadLogger.Debug("Requesting the download of '%s', with remote name '%s'", localName, remoteName);
-
-	Q_strncpyz( cls.downloadName, localName, sizeof( cls.downloadName ) );
-	Com_sprintf( cls.downloadTempName, sizeof( cls.downloadTempName ), "%s.tmp", localName );
-
-	// Set so UI gets access to it
-	Cvar_Set( "cl_downloadName", remoteName );
-	Cvar_Set( "cl_downloadSize", "0" );
-	Cvar_Set( "cl_downloadCount", "0" );
-	Cvar_SetValue( "cl_downloadTime", cls.realtime );
-
-	clc.downloadBlock = 0; // Starting new file
-	clc.downloadCount = 0;
-
-	CL_AddReliableCommand( va( "download %s", Cmd_QuoteString( remoteName ) ) );
-}
-
-/*
-=================
-CL_NextDownload
-
-A download completed or failed
-=================
-*/
-void CL_NextDownload()
-{
-	char *s;
-	char *remoteName, *localName;
-
-	// We are looking to start a download here
-	if ( *clc.downloadList )
-	{
-        downloadLogger.Debug("CL_NextDownload downloadList is '%s'", clc.downloadList);
-		s = clc.downloadList;
-
-		// format is:
-		//  @remotename@localname@remotename@localname, etc.
-
-		if ( *s == '@' )
-		{
-			s++;
-		}
-
-		remoteName = s;
-
-		if ( ( s = strchr( s, '@' ) ) == nullptr )
-		{
-			CL_DownloadsComplete();
-			return;
-		}
-
-		*s++ = 0;
-		localName = s;
-
-		if ( ( s = strchr( s, '@' ) ) != nullptr )
-		{
-			*s++ = 0;
-		}
-		else
-		{
-			s = localName + strlen( localName );  // point at the nul byte
-		}
-
-		CL_BeginDownload( localName, remoteName );
-
-		cls.downloadRestart = true;
-
-		// move over the rest
-		memmove( clc.downloadList, s, strlen( s ) + 1 );
-
-		return;
-	}
-
-	CL_DownloadsComplete();
-}
-
-/*
-=================
-CL_InitDownloads
-
-After receiving a valid game state, we valid the cgame and local zip files here
-and determine if we need to download them
-=================
-*/
-void CL_InitDownloads()
-{
-	char missingfiles[ 1024 ];
-
-	// TTimo
-	// init some of the www dl data
-	clc.bWWWDl = false;
-	clc.bWWWDlAborting = false;
-	cls.bWWWDlDisconnected = false;
-	CL_ClearStaticDownload();
-
-	// whatever autodownload configuration, store missing files in a cvar, use later in the ui maybe
-	if ( FS_ComparePaks( missingfiles, sizeof( missingfiles ), false ) )
-	{
-		Cvar_Set( "com_missingFiles", missingfiles );
-	}
-	else
-	{
-		Cvar_Set( "com_missingFiles", "" );
-	}
-
-	// reset the redirect checksum tracking
-	clc.redirectedList[ 0 ] = '\0';
-
-	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList, sizeof( clc.downloadList ), true ) )
-	{
-        downloadLogger.Debug("Need paks: '%s'", clc.downloadList);
-
-		if ( *clc.downloadList )
-		{
-			// if autodownloading is not enabled on the server
-			cls.state = connstate_t::CA_DOWNLOADING;
-			CL_NextDownload();
-			return;
-		}
-	}
-
-	CL_DownloadsComplete();
-}
-
-/*
-=================
 CL_CheckForResend
 
 Resend a connect message if the last one has timed out
@@ -2022,8 +1730,6 @@ to the client so it doesn't have to wait for the full timeout period.
 */
 void CL_DisconnectPacket( netadr_t from )
 {
-	const char *message;
-
 	if ( cls.state < connstate_t::CA_CONNECTING )
 	{
 		return;
@@ -2046,21 +1752,10 @@ void CL_DisconnectPacket( netadr_t from )
 		return;
 	}
 
-	// if we are doing a disconnected download, leave the 'connecting' screen on with the progress information
-	if ( !cls.bWWWDlDisconnected )
-	{
-		// drop the connection
-		message = "Server disconnected for unknown reason";
-		Log::Notice( "%s\n", message );
-		Cvar_Set( "com_errorMessage", message );
-		CL_Disconnect( true );
-	}
-	else
-	{
-		CL_Disconnect( false );
-		Cvar_Set( "ui_connecting", "1" );
-		Cvar_Set( "ui_dl_running", "1" );
-	}
+	// drop the connection
+	const char* message = "Server disconnected for unknown reason";
+	Cvar_Set( "com_errorMessage", message );
+	Sys::Drop( message );
 }
 
 /*
@@ -2754,15 +2449,14 @@ void CL_CheckTimeout()
 	//
 	// check timeout
 	//
-	if ( ( !cl_paused->integer || !sv_paused->integer )
-	     && cls.state >= connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
 	{
 		if ( ++cl.timeoutcount > 5 )
 		{
 			// timeoutcount saves debugger
-			Cvar_Set( "com_errorMessage", "Server connection timed out." );
-			CL_Disconnect( true );
-			return;
+			const char* message = "Server connection timed out.";
+			Cvar_Set( "com_errorMessage", message );
+			Sys::Drop( message );
 		}
 	}
 	else
@@ -2787,140 +2481,12 @@ void CL_CheckUserinfo()
 		return;
 	}
 
-	// don't overflow the reliable command buffer when paused
-	if ( cl_paused->integer )
-	{
-		return;
-	}
-
 	// send a reliable userinfo update if needed
 	if ( cvar_modifiedFlags & CVAR_USERINFO )
 	{
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
 		CL_AddReliableCommand( va( "userinfo %s", Cmd_QuoteString( Cvar_InfoString( CVAR_USERINFO, false ) ) ) );
 	}
-}
-
-/*
-==================
-CL_WWWDownload
-==================
-*/
-void CL_WWWDownload()
-{
-	dlStatus_t      ret;
-	static bool bAbort = false;
-
-	if ( clc.bWWWDlAborting )
-	{
-		if ( !bAbort )
-		{
-			Log::Debug( "CL_WWWDownload: WWWDlAborting" );
-			bAbort = true;
-		}
-
-		return;
-	}
-
-	if ( bAbort )
-	{
-		Log::Debug( "CL_WWWDownload: WWWDlAborting done" );
-		bAbort = false;
-	}
-
-	ret = DL_DownloadLoop();
-
-	if ( ret == dlStatus_t::DL_CONTINUE )
-	{
-		return;
-	}
-
-	if ( ret == dlStatus_t::DL_DONE )
-	{
-        downloadLogger.Debug("Finished WWW download of '%s', moving it to '%s'", cls.downloadTempName, cls.originalDownloadName);
-		// taken from CL_ParseDownload
-		clc.download = 0;
-
-		FS_SV_Rename( cls.downloadTempName, cls.originalDownloadName );
-
-		*cls.downloadTempName = *cls.downloadName = 0;
-		Cvar_Set( "cl_downloadName", "" );
-
-		if ( !cls.bWWWDlDisconnected )
-		{
-			CL_AddReliableCommand( "wwwdl done" );
-
-			// tracking potential web redirects leading us to wrong checksum - only works in connected mode
-			if ( strlen( clc.redirectedList ) + strlen( cls.originalDownloadName ) + 1 >= sizeof( clc.redirectedList ) )
-			{
-				// just to be safe
-				Log::Warn( "redirectedList overflow (%s)\n", clc.redirectedList );
-			}
-			else
-			{
-				strcat( clc.redirectedList, "@" );
-				strcat( clc.redirectedList, cls.originalDownloadName );
-			}
-		}
-	}
-	else
-	{
-		if ( cls.bWWWDlDisconnected )
-		{
-			// in a connected download, we'd tell the server about failure and wait for a reply
-			// but in this case we can't get anything from server
-			// if we just reconnect it's likely we'll get the same disconnected download message, and error out again
-			// this may happen for a regular dl or an auto update
-			const char *error = va( "Download failure while getting '%s'\n", cls.downloadName );  // get the msg before clearing structs
-
-			cls.bWWWDlDisconnected = false; // need clearing structs before ERR_DROP, or it goes into endless reload
-			CL_ClearStaticDownload();
-			Sys::Drop( "%s", error );
-		}
-		else
-		{
-			// see CL_ParseDownload, same abort strategy
-			Log::Notice( "Download failure while getting '%s'\n", cls.downloadName );
-			CL_AddReliableCommand( "wwwdl fail" );
-			clc.bWWWDlAborting = true;
-		}
-
-		return;
-	}
-
-	clc.bWWWDl = false;
-	CL_NextDownload();
-}
-
-/*
-==================
-CL_WWWBadChecksum
-
-FS code calls this when doing FS_ComparePaks
-we can detect files that we got from a www dl redirect with a wrong checksum
-this indicates that the redirect setup is broken, and next dl attempt should NOT redirect
-==================
-*/
-bool CL_WWWBadChecksum( const char *pakname )
-{
-	if ( strstr( clc.redirectedList, va( "@%s@", pakname ) ) )
-	{
-		Log::Warn("file %s obtained through download redirect has wrong checksum\n"
-		              "\tthis likely means the server configuration is broken", pakname );
-
-		if ( strlen( clc.badChecksumList ) + strlen( pakname ) + 1 >= sizeof( clc.badChecksumList ) )
-		{
-			Log::Warn("badChecksumList overflowed (%s)", clc.badChecksumList );
-			return false;
-		}
-
-		strcat( clc.badChecksumList, "@" );
-		strcat( clc.badChecksumList, pakname );
-		Log::Debug( "bad checksums: %s", clc.badChecksumList );
-		return true;
-	}
-
-	return false;
 }
 
 /*
@@ -2972,7 +2538,7 @@ void CL_Frame( int msec )
 	CL_CheckTimeout();
 
 	// wwwdl download may survive a server disconnect
-	if ( ( cls.state == connstate_t::CA_DOWNLOADING && clc.bWWWDl ) || cls.bWWWDlDisconnected )
+	if ( cls.state == connstate_t::CA_DOWNLOADING && clc.bWWWDl )
 	{
 		CL_WWWDownload();
 	}
@@ -3012,6 +2578,7 @@ void CL_SetRecommended_f()
 	Com_SetRecommended();
 }
 
+static bool CL_InitRef();
 /*
 ============
 CL_InitRenderer
@@ -3019,6 +2586,11 @@ CL_InitRenderer
 */
 bool CL_InitRenderer()
 {
+	if ( !CL_InitRef() )
+	{
+		return false;
+	}
+
 	fileHandle_t f;
 
 	// this sets up the renderer and calls R_Init
@@ -3026,6 +2598,10 @@ bool CL_InitRenderer()
 	{
 		return false;
 	}
+
+	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
+	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
+	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
 
 	// load character sets
 	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars", RSF_DEFAULT );
@@ -3037,8 +2613,25 @@ bool CL_InitRenderer()
 	{
 		if ( FS_FOpenFileRead( cl_consoleFont->string, &f, false ) >= 0 )
 		{
-			re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer, &cls.consoleFont );
-			cls.useLegacyConsoleFont = false;
+			if ( cl_consoleFontScaling->value == 0 )
+			{
+				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer );
+			}
+			else
+			{
+				// This gets 12px on 1920×1080 screen, which is libRocket default for 1em
+				int fontScale = std::min(cls.glconfig.vidWidth, cls.glconfig.vidHeight) / 90;
+
+				// fontScale / 12px gets 1px on 1920×1080 screen
+				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer * fontScale / 12 );
+			}
+
+			if ( cls.consoleFont != nullptr )
+				cls.useLegacyConsoleFont = false;
+		}
+		else
+		{
+			Log::Warn("Font file '%s' not found", cl_consoleFont->string);
 		}
 
 		FS_FCloseFile( f );
@@ -3057,8 +2650,8 @@ bool CL_InitRenderer()
 ============================
 CL_StartHunkUsers
 
-After the server has cleared the hunk, these will need to be restarted
-This is the only place that any of these functions are called from
+Starts any of {renderer, audio, cgame vm} that is not already started.
+Only the renderer is really a hunk user.
 ============================
 */
 void CL_StartHunkUsers()
@@ -3073,7 +2666,7 @@ void CL_StartHunkUsers()
 		return;
 	}
 
-	if ( !cls.rendererStarted && CL_InitRef() && CL_InitRenderer() )
+	if ( !cls.rendererStarted && CL_InitRenderer() )
 	{
 		cls.rendererStarted = true;
 	}
@@ -3084,12 +2677,8 @@ void CL_StartHunkUsers()
 		Sys::Error( "Couldn't load a renderer" );
 	}
 
-	if ( !cls.soundStarted )
-	{
-		cls.soundStarted = true;
-		if (!Audio::Init()) {
-			Sys::Error("Couldn't initialize the audio subsystem.");
-		}
+	if ( !Audio::Init() ) {
+		Sys::Error("Couldn't initialize the audio subsystem.");
 	}
 
 	if ( !cls.soundRegistered )
@@ -3099,10 +2688,8 @@ void CL_StartHunkUsers()
 		//S_BeginRegistration();
 	}
 
-	if ( !cls.uiStarted )
+	if ( !cgvm.IsActive() )
 	{
-		cls.uiStarted = true;
-
 		cgvm.Start();
 		cgvm.CGameRocketInit();
 	}
@@ -3139,7 +2726,7 @@ extern refexport_t *GetRefAPI( int apiVersion, refimport_t *rimp );
 CL_InitRef
 ============
 */
-bool CL_InitRef( )
+static bool CL_InitRef()
 {
 	refimport_t ri;
 	refexport_t *ret;
@@ -3209,9 +2796,6 @@ bool CL_InitRef( )
 	}
 
 	re = *ret;
-
-	// unpause so the cgame definitely gets a snapshot and renders a frame
-	Cvar_Set( "cl_paused", "0" );
 
 	return true;
 }
@@ -3326,8 +2910,6 @@ void CL_Init()
 	j_side_axis = Cvar_Get( "j_side_axis", "0", 0 );
 	j_up_axis = Cvar_Get( "j_up_axis", "2", 0 );
 
-	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
-	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
 	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );

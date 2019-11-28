@@ -32,7 +32,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_NormalMap;
 uniform sampler2D	u_SpecularMap;
 uniform sampler2D	u_AttenuationMapXY;
 uniform sampler2D	u_AttenuationMapZ;
@@ -58,7 +57,6 @@ uniform samplerCube	u_ShadowClipMap;
 
 uniform sampler2D	u_RandomMap;	// random normals
 
-
 uniform vec3		u_ViewOrigin;
 
 #if defined(LIGHT_DIRECTIONAL)
@@ -79,17 +77,13 @@ uniform float       u_ShadowBlur;
 
 uniform mat4		u_ViewMatrix;
 
-uniform float		u_DepthScale;
-
 IN(smooth) vec3		var_Position;
-IN(smooth) vec4		var_TexDiffuse;
-IN(smooth) vec4		var_TexNormal;
-IN(smooth) vec2		var_TexSpecular;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_TexAttenuation;
 IN(smooth) vec4		var_Tangent;
 IN(smooth) vec4		var_Binormal;
 IN(smooth) vec4		var_Normal;
-//IN(smooth) vec4	var_Color;
+IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
 
@@ -156,7 +150,6 @@ Pr(X -mu >= k * sigma) <= 1 / ( 1 + k^2)
 */
 
 #if defined(VSM) || defined(EVSM)
-
 float linstep(float low, float high, float v)
 {
 	return clamp((v - low)/(high - low), 0.0, 1.0);
@@ -450,23 +443,23 @@ vec4 PCF(vec4 shadowVert, float filterWidth, float samples, out vec4 clipMoments
 
 #else
 
-void FetchShadowMoments(vec3 I, out vec4 shadowMoments, out vec4 shadowClipMoments)
+void FetchShadowMoments(vec3 incidentRay, out vec4 shadowMoments, out vec4 shadowClipMoments)
 {
 #if defined(EVSM) && defined(r_EVSMPostProcess)
-	shadowMoments = ShadowDepthToEVSM(textureCube(u_ShadowMap, I).SWIZ1);
-	shadowClipMoments = ShadowDepthToEVSM(textureCube(u_ShadowClipMap, I).SWIZ1);
+	shadowMoments = ShadowDepthToEVSM(textureCube(u_ShadowMap, incidentRay).SWIZ1);
+	shadowClipMoments = ShadowDepthToEVSM(textureCube(u_ShadowClipMap, incidentRay).SWIZ1);
 #else
-	shadowMoments = FixShadowMoments(textureCube(u_ShadowMap, I));
-	shadowClipMoments = FixShadowMoments(textureCube(u_ShadowClipMap, I));
+	shadowMoments = FixShadowMoments(textureCube(u_ShadowMap, incidentRay));
+	shadowClipMoments = FixShadowMoments(textureCube(u_ShadowClipMap, incidentRay));
 #endif
 }
 
 #if defined(r_PCFSamples)
-vec4 PCF(vec4 I, float filterWidth, float samples, out vec4 clipMoments)
+vec4 PCF(vec4 incidentRay, float filterWidth, float samples, out vec4 clipMoments)
 {
 	vec3 forward, right, up;
 
-	forward = normalize(I.xyz);
+	forward = normalize(incidentRay.xyz);
 	MakeNormalVectors(forward, right, up);
 
 	vec4 moments = vec4(0.0, 0.0, 0.0, 0.0);
@@ -481,7 +474,7 @@ vec4 PCF(vec4 I, float filterWidth, float samples, out vec4 clipMoments)
 		for(float j = -filterWidth; j < filterWidth; j += stepSize)
 		{
 			vec4 sm, scm;
-			FetchShadowMoments(I.xyz + right * i + up * j, sm, scm);
+			FetchShadowMoments(incidentRay.xyz + right * i + up * j, sm, scm);
 			moments += sm;
 			clipMoments += scm;
 		}
@@ -496,7 +489,7 @@ vec4 PCF(vec4 I, float filterWidth, float samples, out vec4 clipMoments)
 			// rand = normalize(rand) * filterWidth;
 
 			vec4 sm, scm;
-			FetchShadowMoments(I.xyz + right * rand.x + up * rand.y, sm, scm);
+			FetchShadowMoments(incidentRay.xyz + right * rand.x + up * rand.y, sm, scm);
 			moments += sm;
 			clipMoments += scm;
 		}
@@ -555,11 +548,11 @@ float SumBlocker(vec4 shadowVert, float vertexDistance, float filterWidth, float
 }
 #else
 // case LIGHT_OMNI
-float SumBlocker(vec4 I, float vertexDistance, float filterWidth, float samples)
+float SumBlocker(vec4 incidentRay, float vertexDistance, float filterWidth, float samples)
 {
 	vec3 forward, right, up;
 
-	forward = normalize(I.xyz);
+	forward = normalize(incidentRay.xyz);
 	MakeNormalVectors(forward, right, up);
 
 	float stepSize = 2.0 * filterWidth / samples;
@@ -571,7 +564,7 @@ float SumBlocker(vec4 I, float vertexDistance, float filterWidth, float samples)
 	{
 		for(float j = -filterWidth; j < filterWidth; j += stepSize)
 		{
-			float shadowDistance = textureCube(u_ShadowMap, I.xyz + right * i + up * j).SWIZ1;
+			float shadowDistance = textureCube(u_ShadowMap, incidentRay.xyz + right * i + up * j).SWIZ1;
 
 			if(vertexDistance > shadowDistance)
 			{
@@ -603,12 +596,12 @@ float EstimatePenumbra(float vertexDistance, float blocker)
 	return penumbra;
 }
 
-vec4 PCSS( vec4 I, float vertexDistance, float PCFSamples )
+vec4 PCSS( vec4 incidentRay, float vertexDistance, float PCFSamples )
 {
 	// step 1: find blocker estimate
 	const float blockerSamples = 6.0;
 	float blockerSearchWidth = u_ShadowTexelSize * u_LightRadius / vertexDistance;
-	float blocker = SumBlocker(I, vertexDistance, blockerSearchWidth, blockerSamples);
+	float blocker = SumBlocker(incidentRay, vertexDistance, blockerSearchWidth, blockerSamples);
 
 	// step 2: estimate penumbra using parallel planes approximation
 	float penumbra = EstimatePenumbra(vertexDistance, blocker);
@@ -623,13 +616,13 @@ vec4 PCSS( vec4 I, float vertexDistance, float PCFSamples )
 		//	penumbra = maxpen;
 		//
 
-		// shadowMoments = PCF(I, penumbra, PCFsamples);
+		// shadowMoments = PCF(incidentRay, penumbra, PCFsamples);
 		vec4 clipMoments;
-		shadowMoments = PCF(I, u_ShadowTexelSize * u_ShadowBlur * penumbra, PCFsamples, clipMoments);
+		shadowMoments = PCF(incidentRay, u_ShadowTexelSize * u_ShadowBlur * penumbra, PCFsamples, clipMoments);
 	}
 	else
 	{
-		shadowMoments = FetchShadowMoments(I);
+		shadowMoments = FetchShadowMoments(incidentRay);
 	}
 }
 #endif
@@ -877,9 +870,9 @@ void	main()
 	vec4 shadowVert = u_ShadowMatrix[0] * vec4(var_Position.xyz, 1.0);
 
 	// compute incident ray
-	vec3 I = var_Position.xyz - u_LightOrigin;
+	vec3 incidentRay = var_Position.xyz - u_LightOrigin;
 	
-	float vertexDistance = length(I) / u_LightRadius - SHADOW_BIAS;
+	float vertexDistance = length(incidentRay) / u_LightRadius - SHADOW_BIAS;
 	if( vertexDistance >= 1.0f ) {
 		discard;
 		return;
@@ -903,26 +896,26 @@ void	main()
 
 #else
 	// compute incident ray
-	vec3 I = var_Position.xyz - u_LightOrigin;
-	float ILen = length(I);
-	float vertexDistance = ILen / u_LightRadius - SHADOW_BIAS;
+	vec3 incidentRay = var_Position.xyz - u_LightOrigin;
+	float incidentRayLen = length(incidentRay);
+	float vertexDistance = incidentRayLen / u_LightRadius - SHADOW_BIAS;
 
 #if 0
-	outputColor = vec4(u_ShadowTexelSize * u_ShadowBlur * ILen, 0.0, 0.0, 1.0);
+	outputColor = vec4(u_ShadowTexelSize * u_ShadowBlur * incidentRayLen, 0.0, 0.0, 1.0);
 	return;
 #endif
 
 #if defined(r_PCFSamples)
 #if 0//defined(PCSS)
-	vec4 shadowMoments = PCSS(vec4(I, 0.0), r_PCFSamples);
+	vec4 shadowMoments = PCSS(vec4(incidentRay, 0.0), r_PCFSamples);
 #else
 	vec4 shadowClipMoments;
-	vec4 shadowMoments = PCF(vec4(I, 0.0), u_ShadowTexelSize * u_ShadowBlur * ILen, r_PCFSamples, shadowClipMoments);
+	vec4 shadowMoments = PCF(vec4(incidentRay, 0.0), u_ShadowTexelSize * u_ShadowBlur * incidentRayLen, r_PCFSamples, shadowClipMoments);
 #endif
 #else
 	// no extra filtering, single tap
 	vec4 shadowMoments, shadowClipMoments;
-	FetchShadowMoments(I, shadowMoments, shadowClipMoments);
+	FetchShadowMoments(incidentRay, shadowMoments, shadowClipMoments);
 #endif
 #endif
 	shadow = ShadowTest(vertexDistance, shadowMoments, shadowClipMoments);
@@ -946,63 +939,35 @@ void	main()
 	vec3 L = normalize(u_LightOrigin - var_Position);
 #endif
 
-	vec2 texDiffuse = var_TexDiffuse.st;
+	vec2 texCoords = var_TexCoords;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	vec2 texNormal = var_TexNormal.st;
-	vec2 texSpecular = var_TexSpecular.st;
-
 	// compute view direction in world space
-	vec3 V = normalize(u_ViewOrigin - var_Position.xyz);
+	vec3 viewDir = normalize(u_ViewOrigin - var_Position.xyz);
 
 #if defined(USE_PARALLAX_MAPPING)
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
-	// ray intersect in view direction
-
-	// compute view direction in tangent space
-	vec3 Vts = V * tangentToWorldMatrix;
-	Vts = normalize(Vts);
-
-	// size and start position of search in texture space
-	vec2 S = Vts.xy * -u_DepthScale / Vts.z;
-
-	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
-
-	// compute texcoords offset
-	vec2 texOffset = S * depth;
-
-	texDiffuse.st += texOffset;
-	texNormal.st += texOffset;
-	texSpecular.st += texOffset;
+	texCoords += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute half angle in world space
-	vec3 H = normalize(L + V);
+	vec3 H = normalize(L + viewDir);
 
-	// compute normal in tangent space from normalmap
-	vec3 N = texture2D(u_NormalMap, texNormal.st).xyw;
-	N.x *= N.z;
-	N.xy = 2.0 * N.xy - 1.0;
-	N.z = sqrt(1.0 - dot(N.xy, N.xy));
-	
-#if defined(r_NormalScale)
-	N.z *= r_NormalScale;
-	normalize(N);
-#endif
-
-	// transform normal into world space
-	N = normalize(tangentToWorldMatrix * N);
+	// compute normal in world space from normal map
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute the light term
 #if defined(r_WrapAroundLighting)
-	float NL = clamp(dot(N, L) + u_LightWrapAround, 0.0, 1.0) / clamp(1.0 + u_LightWrapAround, 0.0, 1.0);
+	float NL = clamp(dot(normal, L) + u_LightWrapAround, 0.0, 1.0) / clamp(1.0 + u_LightWrapAround, 0.0, 1.0);
 #else
-	float NL = clamp(dot(N, L), 0.0, 1.0);
+	float NL = clamp(dot(normal, L), 0.0, 1.0);
 #endif
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texDiffuse.st);
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
 		discard;
@@ -1010,9 +975,11 @@ void	main()
 	}
 	diffuse.rgb *= u_LightColor * NL;
 
+#if defined(r_specularMapping)
 	// compute the specular term
-	vec4 spec = texture2D(u_SpecularMap, texSpecular).rgba;
-	vec3 specular = spec.rgb * u_LightColor * pow(clamp(dot(N, H), 0.0, 1.0), u_SpecularExponent.x * spec.a + u_SpecularExponent.y) * r_SpecularScale;
+	vec4 spec = texture2D(u_SpecularMap, texCoords).rgba;
+	vec3 specular = spec.rgb * u_LightColor * pow(clamp(dot(normal, H), 0.0, 1.0), u_SpecularExponent.x * spec.a + u_SpecularExponent.y) * r_SpecularScale;
+#endif // r_specularMapping
 
 	// compute light attenuation
 #if defined(LIGHT_PROJ)
@@ -1031,7 +998,9 @@ void	main()
 	// compute final color
 	vec4 color = diffuse;
 
+#if defined(r_specularMapping)
 	color.rgb += specular;
+#endif // r_specularMapping
 
 #if !defined(LIGHT_DIRECTIONAL)
 	color.rgb *= attenuationXY;
@@ -1040,8 +1009,7 @@ void	main()
 	color.rgb *= abs(u_LightScale);
 	color.rgb *= shadow;
 
-	color.r *= var_TexDiffuse.p;
-	color.gb *= var_TexNormal.pq;
+	color.rgb *= var_Color.rgb;
 
 	if( u_LightScale < 0.0 ) {
 		color.rgb = vec3( clamp(dot(color.rgb, vec3( 0.3333 ) ), 0.3, 0.7 ) );

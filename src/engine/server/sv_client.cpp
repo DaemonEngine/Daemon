@@ -410,7 +410,7 @@ void SV_SendClientGameState( client_t *client )
 	MSG_WriteLong( &msg, sv.checksumFeed );
 
 	// NERVE - SMF - debug info
-	Log::Debug( "Sending %i bytes in gamestate to client: %li", msg.cursize, ( long )( client - svs.clients ) );
+	Log::Debug( "Sending %i bytes in gamestate to client: %i", msg.cursize, client - svs.clients );
 
 	// deliver this to the client
 	SV_SendMessageToClient( &msg, client );
@@ -612,11 +612,6 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 		cl->bWWWing = true;
 		return;
 	}
-	else if ( !Q_stricmp( subcmd, "bbl8r" ) )
-	{
-		SV_DropClient( cl, "acking disconnected download mode" );
-		return;
-	}
 
 	// below for messages that only happen during/after download
 	if ( !cl->bWWWing )
@@ -710,7 +705,6 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 	int      rate;
 	int      blockspersnap;
 	char     errorMessage[ 1024 ];
-	int      download_flag;
 
 	const FS::PakInfo* pak;
 	bool success;
@@ -814,14 +808,12 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					// download URL, size of the download file, download flags
 					MSG_WriteString( msg, cl->downloadURL );
 					MSG_WriteLong( msg, downloadSize );
-					download_flag = 0;
-
-					if ( sv_wwwDlDisconnected->integer )
-					{
-						download_flag |= DL_FLAG_DISCON;
-					}
-
-					MSG_WriteLong( msg, download_flag );  // flags
+#if 0 // TODO(0.52) switch on
+					// Base URL length. The base prefix is expected to end with '/'
+					MSG_WriteLong( msg, strlen( sv_wwwBaseURL->string ) + 1 );
+#else
+					MSG_WriteLong( msg, 0 );  // flags
+#endif
 					return;
 				}
 				else
@@ -1389,22 +1381,6 @@ static void SV_UserMove( client_t *cl, msg_t *msg, bool delta )
 }
 
 /*
-=====================
-SV_ParseBinaryMessage
-=====================
-*/
-static void SV_ParseBinaryMessage(client_t *cl, msg_t *msg)
-{
-	MSG_BeginReadingUncompressed(msg);
-	int ssize = msg->cursize - msg->readcount;
-	if (ssize <= 0 || ssize > MAX_BINARY_MESSAGE) {
-		return;
-	}
-	const auto client = int(cl - svs.clients);
-	SV_GameBinaryMessageReceived(client, msg->data + msg->readcount, size_t(ssize), cl->lastUsercmd.serverTime);
-}
-
-/*
 ===========================================================================
 
 USER CMD EXECUTION
@@ -1548,7 +1524,6 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 		Log::Warn("missing clc_EOF byte for client %i\n", (int) (cl - svs.clients));
 	}
 
-	SV_ParseBinaryMessage( cl, msg );
 //  TODO: track bytes read
 //	if (msg->readcount != msg->cursize) {
 //		Log::Warn("Junk at end of packet for client %i (%i bytes), read %i of %i bytes", cl - svs.clients, msg->cursize - msg->readcount, msg->readcount, msg->cursize);

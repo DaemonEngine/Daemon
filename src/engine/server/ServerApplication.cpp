@@ -56,22 +56,22 @@ class ServerApplication : public Application {
         }
 
         void Initialize(Str::StringRef) override {
-            Com_Init((char*) "");
+            Com_Init();
         }
 
         void Frame() override {
             Com_Frame();
         }
 
-        void OnDrop(Str::StringRef reason) override {
+        void OnDrop(bool error, Str::StringRef reason) override {
             FS::PakPath::ClearPaks();
             FS_LoadBasePak();
-            SV_Shutdown(Str::Format("Server crashed: %s\n", reason).c_str());
+            SV_Shutdown(Str::Format("Server %s: %s", error ? "crashed" : "shutdown", reason).c_str());
         }
 
         void Shutdown(bool error, Str::StringRef message) override {
             TRY_SHUTDOWN(
-                SV_Shutdown(error ? Str::Format("Server fatal crashed: %s\n", message).c_str() : Str::Format("%s\n", message).c_str())
+                SV_Shutdown(error ? Str::Format("Server fatal crashed: %s", message).c_str() : message.c_str())
             );
             TRY_SHUTDOWN(Com_Shutdown());
         }

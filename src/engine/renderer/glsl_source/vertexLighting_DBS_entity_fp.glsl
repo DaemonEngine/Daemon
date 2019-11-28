@@ -23,7 +23,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* vertexLighting_DBS_entity_fp.glsl */
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_NormalMap;
 uniform sampler2D	u_SpecularMap;
 uniform sampler2D	u_GlowMap;
 
@@ -33,7 +32,6 @@ uniform float		u_EnvironmentInterpolation;
 
 uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
-uniform float		u_DepthScale;
 
 uniform sampler3D       u_LightGrid1;
 uniform sampler3D       u_LightGrid2;
@@ -41,12 +39,10 @@ uniform vec3            u_LightGridOrigin;
 uniform vec3            u_LightGridScale;
 
 IN(smooth) vec3		var_Position;
-IN(smooth) vec2		var_TexDiffuse;
+IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
-IN(smooth) vec4		var_TexNormalSpecular;
 IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
-IN(smooth) vec2		var_TexGlow;
 IN(smooth) vec3		var_Normal;
 
 DECLARE_OUTPUT(vec4)
@@ -82,75 +78,40 @@ void	main()
 		       L, ambCol, lgtCol );
 
 	// compute view direction in world space
-	vec3 V = normalize(u_ViewOrigin - var_Position);
+	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
-	vec2 texDiffuse = var_TexDiffuse.st;
+	vec2 texCoords = var_TexCoords;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	vec2 texNormal = var_TexNormalSpecular.xy;
-	vec2 texSpecular = var_TexNormalSpecular.zw;
-
 #if defined(USE_PARALLAX_MAPPING)
+	// compute texcoords offset from heightmap
+	vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
-	// ray intersect in view direction
-
-	// compute view direction in tangent space
-	vec3 Vts = (u_ViewOrigin - var_Position.xyz) * tangentToWorldMatrix;
-	Vts = normalize(Vts);
-
-	// size and start position of search in texture space
-	vec2 S = Vts.xy * -u_DepthScale / Vts.z;
-
-#if 0
-	vec2 texOffset = vec2(0.0);
-	for(int i = 0; i < 4; i++) {
-		vec4 Normal = texture2D(u_NormalMap, texNormal.st + texOffset);
-		float height = Normal.a * 0.2 - 0.0125;
-		texOffset += height * Normal.z * S;
-	}
-#else
-	float depth = RayIntersectDisplaceMap(texNormal, S, u_NormalMap);
-
-	// compute texcoords offset
-	vec2 texOffset = S * depth;
-#endif
-
-	texDiffuse.st += texOffset;
-	texNormal.st += texOffset;
-	texSpecular.st += texOffset;
+	texCoords += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
 	// compute normal in world space from normalmap
-	vec3 N = texture2D(u_NormalMap, texNormal.st).xyw;
-	N.x *= N.z;
-	N.xy = 2.0 * N.xy - 1.0;
-	N.z = sqrt(1.0 - dot(N.xy, N.xy));
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
-#if defined(r_NormalScale)
-	N.z *= r_NormalScale;
-#endif
-
-	N = normalize(tangentToWorldMatrix * N);
-
-	// compute the specular term
 #if defined(USE_REFLECTIVE_SPECULAR)
+	// not implemented for PBR yet
 
-	vec4 specBase = texture2D(u_SpecularMap, texSpecular).rgba;
+	vec4 specBase = texture2D(u_SpecularMap, texCoords).rgba;
 
-	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-V, N)).rgba;
-	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-V, N)).rgba;
+	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal)).rgba;
+	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal)).rgba;
 
 	specBase.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
 
-#else
+#else // USE_REFLECTIVE_SPECULAR
 	// simple Blinn-Phong
-	vec4 specBase = texture2D(u_SpecularMap, texSpecular).rgba;
+	vec4 specBase = texture2D(u_SpecularMap, texCoords).rgba;
 
 #endif // USE_REFLECTIVE_SPECULAR
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texDiffuse) * var_Color;
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords) * var_Color;
 
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
@@ -160,29 +121,30 @@ void	main()
 
 // add Rim Lighting to highlight the edges
 #if defined(r_RimLighting)
-	float rim = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), r_RimExponent);
+	float rim = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), r_RimExponent);
 	vec3 emission = ambCol * rim * rim * 0.2;
 #endif
 
 	// compute final color
 	vec4 color = vec4(ambCol * r_AmbientScale * diffuse.xyz, diffuse.a);
-	computeLight( L, N, V, lgtCol, diffuse, specBase, color );
+	computeLight( L, normal, viewDir, lgtCol, diffuse, specBase, color );
 
-	computeDLights( var_Position, N, V, diffuse, specBase, color );
+	computeDLights( var_Position, normal, viewDir, diffuse, specBase, color );
 
 #if defined(r_RimLighting)
 	color.rgb += 0.7 * emission;
 #endif
 
-	color.rgb += texture2D(u_GlowMap, var_TexGlow).rgb;
-
-	// convert normal to [0,1] color space
-	N = N * 0.5 + 0.5;
+#if defined(r_glowMapping)
+	color.rgb += texture2D(u_GlowMap, texCoords).rgb;
+#endif // r_glowMapping
 
 	outputColor = color;
 
 // Debugging
 #if defined(r_showEntityNormals)
-	outputColor = vec4(N, 1.0);
+	// convert normal to [0,1] color space
+	normal = normal * 0.5 + 0.5;
+	outputColor = vec4(normal, 1.0);
 #endif
 }
