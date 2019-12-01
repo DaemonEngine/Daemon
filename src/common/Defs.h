@@ -31,9 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_DEFS_H_
 #define COMMON_DEFS_H_
 
-#define PRODUCT_NAME        "Unvanquished"
 #define MAX_MASTER_SERVERS  5
-#define WWW_BASEURL         "dl.unvanquished.net/pkg"
 #define AUTOEXEC_NAME       "autoexec.cfg"
 
 #define CONFIG_NAME         "autogen.cfg"
@@ -42,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SERVERCONFIG_NAME   "autogen_server.cfg"
 
 #define UNNAMED_PLAYER      "UnnamedPlayer"
-#define UNNAMED_SERVER      PRODUCT_NAME " " PRODUCT_VERSION " Server"
 
 /** file containing our RSA public and private keys */
 #define RSAKEY_FILE        "pubkey"
