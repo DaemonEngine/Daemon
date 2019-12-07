@@ -1589,6 +1589,163 @@ static bool FindMapInStage( const char *text, char *buffer, int bufferlen )
 
 /*
 ===================
+ParseDifuseMap
+and others
+===================
+*/
+static void ParseDiffuseMap( shaderStage_t *stage, const char **text )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_DIFFUSEMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer );
+	}
+}
+
+static void ParseNormalMap( shaderStage_t *stage, const char **text )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_NORMALMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+
+	if ( r_highQualityNormalMapping->integer )
+	{
+		stage->overrideFilterType = true;
+		stage->filterType = filterType_t::FT_LINEAR;
+
+		stage->overrideNoPicMip = true;
+	}
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer );
+	}
+}
+
+static void ParseSpecularMap( shaderStage_t *stage, const char **text )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_SPECULARMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer );
+	}
+}
+
+static void ParseMaterialMap( shaderStage_t *stage, const char **text )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_MATERIALMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer );
+	}
+}
+
+static void ParseGlowMap( shaderStage_t *stage, const char **text )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_GLOWMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE; // blend add
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer );
+	}
+}
+
+static void ParseReflectionMap( shaderStage_t *stage, const char **text )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_REFLECTIONMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+	stage->overrideWrapType = true;
+	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		stage->isCubeMap = true;
+		LoadMap( stage, buffer );
+	}
+}
+
+static void ParseReflectionMapBlended( shaderStage_t *stage, const char **text )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_REFLECTIONMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE;
+	stage->overrideWrapType = true;
+	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		stage->isCubeMap = true;
+		LoadMap( stage, buffer );
+	}
+}
+
+static void ParseLightFalloffImage( shaderStage_t *stage, const char **text )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_ATTENUATIONMAP_Z;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+	stage->overrideWrapType = true;
+	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer );
+	}
+}
+
+struct extraMapParser_t
+{
+	const char *suffix;
+	const char *description;
+	void ( *parser ) ( shaderStage_t*, const char** );
+};
+
+static const extraMapParser_t extraMapParsers[] =
+{
+	{ "norm",    "normal map",     ParseNormalMap     },
+	{ "gloss",   "specular map",   ParseSpecularMap   },
+	{ "glow",    "glow map",       ParseGlowMap       },
+	{ "luma",    "glow map",       ParseGlowMap       },
+};
+
+/*
+===================
 ParseStage
 ===================
 */
@@ -3075,157 +3232,6 @@ static void ParseSurfaceParm( const char **text )
 	token = COM_ParseExt2( text, false );
 	SurfaceParm( token );
 }
-
-static void ParseDiffuseMap( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_DIFFUSEMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer );
-	}
-}
-
-static void ParseNormalMap( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_NORMALMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-
-	if ( r_highQualityNormalMapping->integer )
-	{
-		stage->overrideFilterType = true;
-		stage->filterType = filterType_t::FT_LINEAR;
-
-		stage->overrideNoPicMip = true;
-	}
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer );
-	}
-}
-
-static void ParseSpecularMap( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_SPECULARMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer );
-	}
-}
-
-static void ParseMaterialMap( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_MATERIALMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer );
-	}
-}
-
-static void ParseGlowMap( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_GLOWMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE; // blend add
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer );
-	}
-}
-
-static void ParseReflectionMap( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_REFLECTIONMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-	stage->overrideWrapType = true;
-	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		stage->isCubeMap = true;
-		LoadMap( stage, buffer );
-	}
-}
-
-static void ParseReflectionMapBlended( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_REFLECTIONMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE;
-	stage->overrideWrapType = true;
-	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		stage->isCubeMap = true;
-		LoadMap( stage, buffer );
-	}
-}
-
-static void ParseLightFalloffImage( shaderStage_t *stage, const char **text )
-{
-	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_ATTENUATIONMAP_Z;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-	stage->overrideWrapType = true;
-	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer );
-	}
-}
-
-struct extraMapParser_t
-{
-	const char *suffix;
-	const char *description;
-	void ( *parser ) ( shaderStage_t*, const char** );
-};
-
-static const extraMapParser_t extraMapParsers[] =
-{
-	{ "norm",    "normal map",     ParseNormalMap     },
-	{ "gloss",   "specular map",   ParseSpecularMap   },
-	{ "glow",    "glow map",       ParseGlowMap       },
-	{ "luma",    "glow map",       ParseGlowMap       },
-};
 
 /*
 =================
