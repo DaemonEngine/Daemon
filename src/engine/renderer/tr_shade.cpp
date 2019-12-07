@@ -1129,7 +1129,7 @@ static void Render_lightMapping( int stage )
 
 	GL_State( stateBits );
 
-	bool noLightMap = pStage->disableImplicitLightmap
+	bool noLightMap = !pStage->implicitLightmap
 		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
 		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
 

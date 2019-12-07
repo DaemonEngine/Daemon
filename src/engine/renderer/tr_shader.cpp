@@ -1803,6 +1803,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 
 			ParseDiffuseMap( stage, text );
+			stage->implicitLightmap = true;
 		}
 		else if ( !Q_stricmp( token, "normalMap" ) )
 		{
@@ -2228,6 +2229,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated idTech4 blend parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_DIFFUSEMAP;
+				stage->implicitLightmap = true;
 			}
 			else if ( !Q_stricmp( token, "normalMap" ) )
 			{
@@ -2304,6 +2306,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_DIFFUSEMAP;
+				stage->implicitLightmap = true;
 			}
 			else if ( !Q_stricmp( token, "normalMap" ) )
 			{
@@ -4128,6 +4131,7 @@ static bool ParseShader( const char *_text )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
 			ParseDiffuseMap( &stages[ s ], text, TB_COLORMAP );
+			stages[ s ].implicitLightmap = true;
 			s++;
 			continue;
 		}
@@ -4438,7 +4442,7 @@ static void CollapseStages()
 		{
 			// custom lightmap stage, disable the implicit light stage
 			Log::Debug("found custom lightmap stage in '%s' shader, not disabling implicit one", shader.name);
-			stages[ i ].disableImplicitLightmap = true;
+			stages[ i ].implicitLightmap = false;
 		}
 	}
 
@@ -4519,19 +4523,20 @@ static void CollapseStages()
 			if ( lightStage != -1 )
 			{
 				// “blendFunc filter” is same as “blendFunc GL_DST_COLOR GL_ZERO” and the default
-				if ( ( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR 
+				if ( ( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
 					&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO )
 				{
 					// common lightmap stage
 					// disable to not paint it over implicit light stage and glow map
 					stages[ lightStage ].active = false;
+					stages[ diffuseStage ].implicitLightmap = true;
 				}
 				else
 				{
 					// custom lightmap stage, disable the implicit light stage and keep
 					// this one uncollapsed
 					Log::Debug("found custom lightmap stage in '%s' shader, not collapsing", shader.name);
-					stages[ diffuseStage ].disableImplicitLightmap = true;
+					stages[ diffuseStage ].implicitLightmap = false;
 				}
 			}
 			// always test for this stage after light stage
@@ -4539,7 +4544,7 @@ static void CollapseStages()
 			{
 				// if there is no custom light stage, collapse to the diffuse stage
 				// that will rely on the implicit light stage
-				if ( !stages[ diffuseStage ].disableImplicitLightmap )
+				if ( stages[ diffuseStage ].implicitLightmap )
 				{
 					// merge with diffuse stage
 					stages[ diffuseStage ].bundle[ TB_GLOWMAP ] = stages[ glowStage ].bundle[ TB_COLORMAP ];
@@ -4548,7 +4553,7 @@ static void CollapseStages()
 				}
 				// if there is a custom light stage, keep the glow stage uncollapsed
 				// and make sure the diffuse stage precedes the light stage
-				// and the light stage (known to exist by disableImplicitLightMap==true) precedes the glow stage
+				// and the light stage (known to exist because of implicitLightMap==false) precedes the glow stage
 				else
 				{
 					ASSERT_GE(lightStage, 0);
