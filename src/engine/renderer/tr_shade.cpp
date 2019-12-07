@@ -717,7 +717,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool heightMapInNormalMap = pStage->heightMapInNormalMap && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool physicalMapping = hasMaterialMap && isMaterialPhysical;
+	bool physicalMapping = r_physicalMapping->integer && hasMaterialMap && isMaterialPhysical;
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
 

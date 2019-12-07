@@ -158,6 +158,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_offsetFactor;
 	cvar_t      *r_offsetUnits;
 
+	cvar_t      *r_physicalMapping;
 	cvar_t      *r_specularExponentMin;
 	cvar_t      *r_specularExponentMax;
 	cvar_t      *r_specularScale;
@@ -1189,6 +1190,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_offsetFactor = ri.Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );
 		r_offsetUnits = ri.Cvar_Get( "r_offsetUnits", "-2", CVAR_CHEAT );
 
+		r_physicalMapping = ri.Cvar_Get( "r_physicalMapping", "0", CVAR_ARCHIVE );
 		r_specularExponentMin = ri.Cvar_Get( "r_specularExponentMin", "0", CVAR_CHEAT );
 		r_specularExponentMax = ri.Cvar_Get( "r_specularExponentMax", "16", CVAR_CHEAT );
 		r_specularScale = ri.Cvar_Get( "r_specularScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
