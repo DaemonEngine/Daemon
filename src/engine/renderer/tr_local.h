@@ -1004,6 +1004,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	{
 	  TB_COLORMAP,
 	  TB_DIFFUSEMAP = TB_COLORMAP,
+	  TB_REFLECTIONMAP = TB_COLORMAP,
 	  TB_NORMALMAP,
 	  TB_SPECULARMAP,
 	  TB_MATERIALMAP = TB_SPECULARMAP,
@@ -1054,6 +1055,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	enum class collapseType_t
 	{
 	  COLLAPSE_none,
+	  COLLAPSE_generic, // used before we know it's another one
 	  COLLAPSE_lighting_PHONG,
 	  COLLAPSE_lighting_PBR,
 	  COLLAPSE_reflection_CB,
@@ -1062,6 +1064,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	struct shaderStage_t
 	{
 		stageType_t     type;
+
+		collapseType_t collapseType;
 
 		bool        active;
 
@@ -1218,8 +1222,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		float          portalRange; // distance to fog out at
 		bool       isPortal;
 
-		collapseType_t lightingCollapseType;
-		collapseType_t reflectCollapseType;
 		int            collapseTextureEnv; // 0, GL_MODULATE, GL_ADD (FIXME: put in stage)
 
 		cullType_t     cullType; // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED

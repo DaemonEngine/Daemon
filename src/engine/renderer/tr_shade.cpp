@@ -699,15 +699,6 @@ static void Render_generic( int stage )
 	GL_CheckErrors();
 }
 
-static bool hasMaterialMapping( shader_t *shader ) {
-  switch( shader->lightingCollapseType ) {
-  case collapseType_t::COLLAPSE_lighting_PBR:
-    return true;
-  default:
-    return false;
-  }
-}
-
 static void Render_vertexLighting_DBS_entity( int stage )
 {
 	vec3_t        viewOrigin;
@@ -725,7 +716,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
 	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
 	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
-	bool materialMapping = hasMaterialMapping( tess.surfaceShader );
+	bool materialMapping = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	// choose right shader program ----------------------------------
 	gl_vertexLightingShader_DBS_entity->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
