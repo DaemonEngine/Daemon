@@ -1510,31 +1510,31 @@ public:
 	}
 };
 
-class u_NormalScale :
+class u_NormalIntensity :
 	GLUniform1f
 {
 public:
-	u_NormalScale( GLShader *shader ) :
-		GLUniform1f( shader, "u_NormalScale" )
+	u_NormalIntensity( GLShader *shader ) :
+		GLUniform1f( shader, "u_NormalIntensity" )
 	{
 	}
 
-	void SetUniform_NormalScale( float value )
+	void SetUniform_NormalIntensity( float value )
 	{
 		this->SetValue( value );
 	}
 };
 
-class u_NormalFormat :
-	GLUniform3f
+class u_NormalScale :
+	GLUniform4f
 {
 public:
-	u_NormalFormat( GLShader *shader ) :
-		GLUniform3f( shader, "u_NormalFormat" )
+	u_NormalScale( GLShader *shader ) :
+		GLUniform4f( shader, "u_NormalScale" )
 	{
 	}
 
-	void SetUniform_NormalFormat( const vec3_t value )
+	void SetUniform_NormalScale( const vec4_t value )
 	{
 		this->SetValue( value );
 	}
@@ -2162,7 +2162,7 @@ class GLShader_lightMapping :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
-	public u_NormalFormat,
+	public u_NormalScale,
 	public u_numLights,
 	public u_Lights,
 	public GLDeformStage,
@@ -2191,7 +2191,7 @@ class GLShader_vertexLighting_DBS_entity :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
-	public u_NormalFormat,
+	public u_NormalScale,
 	public u_EnvironmentInterpolation,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
@@ -2225,7 +2225,7 @@ class GLShader_vertexLighting_DBS_world :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
-	public u_NormalFormat,
+	public u_NormalScale,
 	public u_LightWrapAround,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
@@ -2266,7 +2266,7 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
-	public u_NormalFormat,
+	public u_NormalScale,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2305,7 +2305,7 @@ class GLShader_forwardLighting_projXYZ :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
-	public u_NormalFormat,
+	public u_NormalScale,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2346,7 +2346,7 @@ class GLShader_forwardLighting_directionalSun :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
-	public u_NormalFormat,
+	public u_NormalScale,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2394,8 +2394,8 @@ class GLShader_reflection :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
+	public u_NormalIntensity,
 	public u_NormalScale,
-	public u_NormalFormat,
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2472,7 +2472,7 @@ class GLShader_heatHaze :
 	public u_ColorModulate,
 	public u_Color,
 	public u_Bones,
-	public u_NormalFormat,
+	public u_NormalScale,
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2601,8 +2601,8 @@ class GLShader_liquid :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
+	public u_NormalIntensity,
 	public u_NormalScale,
-	public u_NormalFormat,
 	public u_FogDensity,
 	public u_FogColor,
 	public u_SpecularExponent,

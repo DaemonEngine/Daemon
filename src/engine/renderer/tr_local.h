@@ -1121,7 +1121,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		expression_t    fresnelScaleExp;
 		expression_t    fresnelBiasExp;
 
-		expression_t    normalScaleExp;
+		// normalMap channel scale, negative value flips channel
+		// HACK: fourth component tells renderer if normal scale is customized or not
+		vec4_t          normalScale;
+
+		expression_t    normalIntensityExp;
 
 		expression_t    etaExp;
 		expression_t    etaDeltaExp;
@@ -1209,8 +1213,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool       parallax; // what is finally used by renderer to know what to do
 		float      parallaxOffsetBias; // offset the heightmap top relatively to the floor
 		float      parallaxDepthScale; // per-shader parallax depth scale
-
-		vec3_t     normalFormat; // normalmap format (channel flip)
 
 		bool       noShadows;
 		bool       fogLight;

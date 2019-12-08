@@ -2799,10 +2799,60 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			ParseExpression( text, &stage->fresnelBiasExp );
 		}
-		// normalScale <arithmetic expression>
+		// normalScale <float> <float> <float>
+		//
+		// for compatibility purpose, ioq3gl2 syntax is supported:
+		// normalScale <float> <float> 
+		//
+		// scale normalMap channel, can flip channels with negative values
+		//
+		// expects OpenGL scale as default: 1 1 1
+		//
+		// OpenGL format is described there:
+		//     https://github.com/KhronosGroup/glTF/tree/2.0/specification/2.0#materialnormaltexture
+		//
+		// > The normal vector uses OpenGL conventions where +X is right, +Y is up, and +Z points toward the viewer.
+		//
+		// examples of scales:
+		//
+		//  1   1   1    OpenGL format (default)
+		//  1  -1   1    DirectX format with reverted green channel (reverted Y component)
+		// -1   1   1    weird other format with reverted red channel (reverted X component)
+		//  1   1   1.5  OpenGL format with an increased blue channel (larger Z componnent)
 		else if ( !Q_stricmp( token, "normalScale" ) )
 		{
-			ParseExpression( text, &stage->normalScaleExp );
+			for ( int i = 0; i < 3; i++ )
+			{
+				token = COM_ParseExt2( text, false );
+
+				if ( token[ 0 ] == '\0' )
+				{
+					if ( i == 2 )
+					{
+						// ioq3gl2 only supports
+						// normalScale X Y
+						// having a fallback for missing Z component keeps compatibility
+						stage->normalScale[ 2 ] = 1;
+						// no need to hack the fourth component since previous loop did it
+					}
+					else
+					{
+						Log::Warn("missing normalScale parm in shader '%s'", shader.name );
+						continue;
+					}
+				}
+
+				stage->normalScale[ i ] = atof( token );
+				// HACK: fourth component tells renderer if normal scale is customized or not
+				stage->normalScale[ 3 ] = 1;
+			}
+			SkipRestOfLine( text );
+			continue;
+		}
+		// normalIntensity <arithmetic expression>
+		else if ( !Q_stricmp( token, "normalIntensity" ) )
+		{
+			ParseExpression( text, &stage->normalIntensityExp );
 		}
 		// fogDensity <arithmetic expression>
 		else if ( !Q_stricmp( token, "fogDensity" ) )
@@ -3542,7 +3592,11 @@ static bool ParseShader( const char *_text )
 							if ( Q_stricmp( "norm", parser.suffix ) == 0 )
 							{
 								// Xonotic uses -Y (DirectX) while this engine uses Y (OpenGL)
-								shader.normalFormat[ 1 ] = -1;
+								stages[ s ].normalScale[ 0 ] = 1;
+								stages[ s ].normalScale[ 1 ] = -1;
+								stages[ s ].normalScale[ 2 ] = 1;
+								// HACK: fourth component tells renderer if normal scale is customized or not
+								stages[ s ].normalScale[ 3 ] = 1;
 							}
 
 							s++;
@@ -3756,50 +3810,6 @@ static bool ParseShader( const char *_text )
 				shader.polygonOffsetValue = atof( token );
 			}
 
-			continue;
-		}
-		// normalFormat <format>
-		//
-		// expects OpenGL format as default
-		//
-		// OpenGL format is described there:
-		//     https://github.com/KhronosGroup/glTF/tree/2.0/specification/2.0#materialnormaltexture
-		//
-		// > The normal vectors use OpenGL conventions where +X is right and +Y is up.
-		// > +Z points toward the viewer.
-		//
-		// example of formats:
-		//
-		//  1  1  1  OpenGL format (default)
-		//  1 -1  1  DirectX format with reverted green (Y) channel
-		// -1  1  1  weird other format with reverted red (X) channel
-		else if ( !Q_stricmp( token, "normalFormat" ) )
-		{
-			for ( int i = 0; i < 3; i++ )
-			{
-				token = COM_ParseExt2( text, false );
-
-				if ( token[ 0 ] == '\0' )
-				{
-					Log::Warn("missing normalFormat parm in shader '%s'", shader.name );
-					continue;
-				}
-
-				if ( !Q_stricmp( token, "-1" ) )
-				{
-					shader.normalFormat[ i ] = -1;
-				}
-				else if ( !Q_stricmp( token, "1" ) )
-				{
-					// do nothing, that's the default
-				}
-				else
-				{
-					Log::Warn("unknown normalFormat parm '%s' in '%s'", token, shader.name );
-					break;
-				}
-			}
-			SkipRestOfLine( text );
 			continue;
 		}
 		// parallax mapping
@@ -4509,6 +4519,12 @@ static void CollapseStages()
 			{
 				// merge with diffuse stage
 				stages[ diffuseStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
+				stages[ diffuseStage ].normalIntensityExp = stages[ normalStage ].normalIntensityExp;
+				stages[ diffuseStage ].normalScale[ 0 ] = stages[ normalStage ].normalScale[ 0 ];
+				stages[ diffuseStage ].normalScale[ 1 ] = stages[ normalStage ].normalScale[ 1 ];
+				stages[ diffuseStage ].normalScale[ 2 ] = stages[ normalStage ].normalScale[ 2 ];
+				// HACK: fourth component tells renderer if normal scale is customized or not
+				stages[ diffuseStage ].normalScale[ 3 ] = stages[ normalStage ].normalScale[ 3 ];
 				stages[ diffuseStage ].heightMapInNormalMap = stages[ normalStage ].heightMapInNormalMap;
 				// disable since it's merged
 				stages[ normalStage ].active = false;
