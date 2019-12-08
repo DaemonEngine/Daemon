@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* vertexLighting_DBS_world_fp.glsl */
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_SpecularMap;
+uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
@@ -96,16 +96,16 @@ void	main()
 		return;
 	}
 
-	vec4 specular = texture2D(u_SpecularMap, texCoords);
+	vec4 material = texture2D(u_MaterialMap, texCoords);
 
 	// compute normal in world space from normalmap
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute final color
 	vec4 color = vec4( ambCol * diffuse.xyz, diffuse.a );
-	computeLight( L, normal, viewDir, dirCol, diffuse, specular, color );
+	computeLight( L, normal, viewDir, dirCol, diffuse, material, color );
 
-	computeDLights( var_Position, normal, viewDir, diffuse, specular, color );
+	computeDLights( var_Position, normal, viewDir, diffuse, material, color );
 
 #if defined(r_glowMapping)
 	color.rgb += texture2D(u_GlowMap, texCoords).rgb;

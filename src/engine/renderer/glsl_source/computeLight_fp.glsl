@@ -50,7 +50,7 @@ uniform vec2 u_SpecularExponent;
 
 // lighting helper functions
 void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
-		   vec4 diffuseColor, vec4 specularColor,
+		   vec4 diffuseColor, vec4 materialColor,
 		   inout vec4 accumulator ) {
   vec3 H = normalize( lightDir + viewDir );
   float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
@@ -59,14 +59,14 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   // Daemon PBR packing defaults to ORM like glTF 2.0 defines
   // https://www.khronos.org/blog/art-pipeline-for-gltf
   // > ORM texture for Occlusion, Roughness, and Metallic
-  // https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/schema/material.pbrMetallicRoughness.schema.json#L45
+  // https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/schema/material.pbrMetallicRoughness.schema.json
   // > The metalness values are sampled from the B channel. The roughness values are sampled from the G channel.
   // > These values are linear. If other channels are present (R or A), they are ignored for metallic-roughness calculations.
   // https://docs.blender.org/manual/en/2.80/addons/io_scene_gltf2.html
   // > glTF stores occlusion in the red (R) channel, allowing it to optionally share the same image
   // > with the roughness and metallic channels.
-  float roughness = specularColor.g;
-  float metalness = specularColor.b;
+  float roughness = materialColor.g;
+  float metalness = materialColor.b;
 
   float NdotV = clamp( dot( normal, viewDir ), 0.0, 1.0);
   float VdotH = clamp( dot( viewDir, H ), 0.0, 1.0);
@@ -103,7 +103,7 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 
   accumulator.xyz += diffuseColor.xyz * lightColor.xyz * NdotL;
 #if defined(r_specularMapping)
-  accumulator.xyz += specularColor.xyz * lightColor.xyz * pow( NdotH, u_SpecularExponent.x * specularColor.w + u_SpecularExponent.y) * r_SpecularScale;
+  accumulator.xyz += materialColor.xyz * lightColor.xyz * pow( NdotH, u_SpecularExponent.x * materialColor.w + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping
 #endif // USE_PHYSICAL_SHADING
 }
@@ -138,7 +138,7 @@ int nextIdx( inout idxs_t idxs ) {
 const int numLayers = MAX_REF_LIGHTS / 256;
 
 void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
-		    vec4 specular, inout vec4 color ) {
+		    vec4 material, inout vec4 color ) {
   vec4 center_radius = GetLight( idx, center_radius );
   vec4 color_type = GetLight( idx, color_type );
   vec3 L;
@@ -166,10 +166,10 @@ void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
   }
   computeLight( L, normal, viewDir,
 		attenuation * attenuation * color_type.xyz,
-		diffuse, specular, color );
+		diffuse, material, color );
 }
 
-void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 specular,
+void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
 		     inout vec4 color ) {
   vec2 tile = floor( gl_FragCoord.xy * (1.0 / float( TILE_SIZE ) ) ) + 0.5;
   vec3 tileScale = vec3( r_tileStep, 1.0/numLayers );
@@ -194,7 +194,7 @@ void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 specu
         return;
       }
 
-      computeDLight( idx, P, normal, viewDir, diffuse, specular, color );
+      computeDLight( idx, P, normal, viewDir, diffuse, material, color );
 
 #if defined(r_showLightTiles)
       numLights++;

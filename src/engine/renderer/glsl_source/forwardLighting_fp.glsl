@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_SpecularMap;
+uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_AttenuationMapXY;
 uniform sampler2D	u_AttenuationMapZ;
 
@@ -976,8 +976,9 @@ void	main()
 	diffuse.rgb *= u_LightColor * NL;
 
 #if defined(r_specularMapping)
+	// FIXME: ignore if PBR
 	// compute the specular term
-	vec4 spec = texture2D(u_SpecularMap, texCoords).rgba;
+	vec4 spec = texture2D(u_MaterialMap, texCoords).rgba;
 	vec3 specular = spec.rgb * u_LightColor * pow(clamp(dot(normal, H), 0.0, 1.0), u_SpecularExponent.x * spec.a + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping
 

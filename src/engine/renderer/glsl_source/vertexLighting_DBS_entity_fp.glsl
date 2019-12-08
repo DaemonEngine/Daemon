@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* vertexLighting_DBS_entity_fp.glsl */
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_SpecularMap;
+uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
 uniform samplerCube	u_EnvironmentMap0;
@@ -97,7 +97,7 @@ void	main()
 #if defined(USE_REFLECTIVE_SPECULAR)
 	// not implemented for PBR yet
 
-	vec4 specBase = texture2D(u_SpecularMap, texCoords).rgba;
+	vec4 specBase = texture2D(u_MaterialMap, texCoords).rgba;
 
 	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal)).rgba;
 	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal)).rgba;
@@ -106,7 +106,7 @@ void	main()
 
 #else // USE_REFLECTIVE_SPECULAR
 	// simple Blinn-Phong
-	vec4 specBase = texture2D(u_SpecularMap, texCoords).rgba;
+	vec4 specBase = texture2D(u_MaterialMap, texCoords).rgba;
 
 #endif // USE_REFLECTIVE_SPECULAR
 

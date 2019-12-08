@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_fp.glsl */
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_SpecularMap;
+uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 uniform sampler2D	u_LightMap;
 uniform sampler2D	u_DeluxeMap;
@@ -66,8 +66,8 @@ void	main()
 		return;
 	}
 
-	// compute the specular term
-	vec4 specular = texture2D(u_SpecularMap, texCoords);
+	// compute the material term
+	vec4 material = texture2D(u_MaterialMap, texCoords);
 
 	// compute normal in world space from normalmap
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
@@ -88,13 +88,13 @@ void	main()
 	lightColor /= clamp(dot(normalize(var_Normal), L), 0.004, 1.0);
 
 	// compute final color
-	computeLight( L, normal, viewDir, lightColor, diffuse, specular, color );
+	computeLight( L, normal, viewDir, lightColor, diffuse, material, color );
 #else // !USE_DELUXE_MAPPING
 	// normal/deluxe mapping is disabled
 	color.xyz += lightColor.xyz * diffuse.xyz;
 #endif // USE_DELUXE_MAPPING
 
-	computeDLights( var_Position, normal, viewDir, diffuse, specular, color );
+	computeDLights( var_Position, normal, viewDir, diffuse, material, color );
 
 #if defined(r_glowMapping)
 	color.rgb += texture2D(u_GlowMap, texCoords).rgb;
