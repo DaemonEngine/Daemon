@@ -810,15 +810,18 @@ static void Render_vertexLighting_DBS_entity( int stage )
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	if ( specularMapping )
+	if ( physicalMapping || specularMapping )
 	{
-		// bind u_SpecularMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+		// bind u_MaterialMap
+		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		if ( specularMapping )
+		{
+			float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+			float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
-		gl_vertexLightingShader_DBS_entity->SetUniform_SpecularExponent( minSpec, maxSpec );
+			gl_vertexLightingShader_DBS_entity->SetUniform_SpecularExponent( minSpec, maxSpec );
+		}
 	}
 	else
 	{
@@ -1136,15 +1139,18 @@ static void Render_lightMapping( int stage )
 		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
 		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
 
+	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
-	bool hasSpecularMap = pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] != nullptr;
+	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
 	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && normalMapping;
 	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && hasSpecularMap;
+	bool physicalMapping = r_physicalMapping->integer && hasMaterialMap && isMaterialPhysical;
+	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 	bool glowMapping = r_glowMapping->integer && hasGlowMap;
 
 	// choose right shader program ----------------------------------
@@ -1155,6 +1161,8 @@ static void Render_lightMapping( int stage )
 	gl_lightMappingShader->SetParallaxMapping( parallaxMapping );
 
 	tess.vboVertexSprite = false;
+
+	gl_lightMappingShader->SetPhysicalShading( physicalMapping );
 
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
 
@@ -1224,15 +1232,18 @@ static void Render_lightMapping( int stage )
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	if ( specularMapping )
+	if ( physicalMapping || specularMapping )
 	{
-		// bind u_SpecularMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+		// bind u_MaterialMap
+		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		if ( specularMapping )
+		{
+			float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+			float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
-		gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
+			gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
+		}
 	}
 	else
 	{
