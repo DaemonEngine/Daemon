@@ -1858,6 +1858,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				// use PBR instead
 			}
 
+			// Daemon PBR packing defaults to ORM like glTF 2.0
 			stage->collapseType = collapseType_t::COLLAPSE_lighting_PBR;
 			ParseMaterialMap( stage, text );
 		}

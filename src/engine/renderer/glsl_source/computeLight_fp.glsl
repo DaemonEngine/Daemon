@@ -56,8 +56,17 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
 
 #if defined(USE_PHYSICAL_SHADING)
-  float metalness = specularColor.x;
-  float roughness = specularColor.y;
+  // Daemon PBR packing defaults to ORM like glTF 2.0 defines
+  // https://www.khronos.org/blog/art-pipeline-for-gltf
+  // > ORM texture for Occlusion, Roughness, and Metallic
+  // https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/schema/material.pbrMetallicRoughness.schema.json#L45
+  // > The metalness values are sampled from the B channel. The roughness values are sampled from the G channel.
+  // > These values are linear. If other channels are present (R or A), they are ignored for metallic-roughness calculations.
+  // https://docs.blender.org/manual/en/2.80/addons/io_scene_gltf2.html
+  // > glTF stores occlusion in the red (R) channel, allowing it to optionally share the same image
+  // > with the roughness and metallic channels.
+  float roughness = specularColor.g;
+  float metalness = specularColor.b;
 
   float NdotV = clamp( dot( normal, viewDir ), 0.0, 1.0);
   float VdotH = clamp( dot( viewDir, H ), 0.0, 1.0);
