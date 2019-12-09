@@ -753,7 +753,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
 	if ( GLmajor < 2 || ( GLmajor == 2 && GLminor < 1 ) )
 	{
-		// missing shader support, switch to 1.x renderer
+		// missing shader support, there is no 1.x renderer anymore
 		return rserr_t::RSERR_OLD_GL;
 	}
 
