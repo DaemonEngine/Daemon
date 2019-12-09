@@ -2298,11 +2298,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				continue;
 			}
 
-			if ( !Q_stricmp( token, "colorMap" ) )
-			{
-				stage->type = stageType_t::ST_COLORMAP;
-			}
-			else if ( !Q_stricmp( token, "diffuseMap" ) )
+			if ( !Q_stricmp( token, "diffuseMap" ) )
 			{
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_DIFFUSEMAP;
