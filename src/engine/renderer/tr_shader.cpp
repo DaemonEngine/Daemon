@@ -4025,11 +4025,23 @@ static bool ParseShader( const char *_text )
 			continue;
 		}
 		// reflectionMapBlended <image>
-		else if ( !Q_stricmp( token, "reflectionMapBlended" )
-			|| ( *r_dpMaterial && !Q_stricmp( token, "dpreflectcube" ) ) )
+		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
 		{
 			ParseReflectionMapBlended( &stages[ s ], text );
 			s++;
+			continue;
+		}
+		else if ( !Q_stricmp( token, "dpreflectcube" ) )
+		{
+			if ( *r_dpMaterial )
+			{
+				ParseReflectionMapBlended( &stages[ s ], text, TB_COLORMAP );
+				s++;
+			}
+			else
+			{
+				Log::Warn("disabled DarkPlaces shader parameter '%s' in '%s'", token, shader.name );
+			}
 			continue;
 		}
 		// lightFalloffImage <image>
