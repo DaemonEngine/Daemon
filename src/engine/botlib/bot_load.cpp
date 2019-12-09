@@ -31,6 +31,10 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 ===========================================================================
 */
 
+#include "common/Common.h"
+
+#include "DetourAssert.h"
+
 #include "bot_local.h"
 #include "nav.h"
 
@@ -39,6 +43,27 @@ NavData_t BotNavData[ MAX_NAV_DATA ];
 
 LinearAllocator alloc( 1024 * 1024 * 16 );
 FastLZCompressor comp;
+
+// Recast uses NDEBUG to determine whether assertions are enabled.
+// Make sure this is in sync with DEBUG_BUILD
+#if defined(DEBUG_BUILD) != !defined(NDEBUG)
+#error
+#endif
+
+#ifdef DEBUG_BUILD
+static void FailAssertion(const char* expression, const char* file, int line)
+{
+	DAEMON_ASSERT_CALLSITE_HELPER(
+		file, "Detour assert", line, , , false, Str::Format("\"%s\" is false", expression));
+}
+#endif
+
+void BotInit()
+{
+#ifdef DEBUG_BUILD
+	dtAssertFailSetCustom(FailAssertion);
+#endif
+}
 
 void BotSaveOffMeshConnections( NavData_t *nav )
 {
