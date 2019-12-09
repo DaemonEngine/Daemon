@@ -711,12 +711,15 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	GL_State( stateBits );
 
+	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+
 	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool heightMapInNormalMap = pStage->heightMapInNormalMap && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+	bool physicalMapping = hasMaterialMap && isMaterialPhysical;
+	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
-	bool materialMapping = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	// choose right shader program ----------------------------------
 	gl_vertexLightingShader_DBS_entity->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -730,7 +733,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	gl_vertexLightingShader_DBS_entity->SetReflectiveSpecular( normalMapping && tr.cubeHashTable != nullptr );
 
-	gl_vertexLightingShader_DBS_entity->SetPhysicalShading( materialMapping );
+	gl_vertexLightingShader_DBS_entity->SetPhysicalShading( physicalMapping );
 
 	gl_vertexLightingShader_DBS_entity->BindProgram( pStage->deformIndex );
 
@@ -940,7 +943,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool heightMapInNormalMap = pStage->heightMapInNormalMap && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
 	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] != nullptr );
 	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
 
 	// choose right shader program ----------------------------------
@@ -3161,6 +3164,7 @@ void Tess_StageIteratorLighting()
 			switch ( diffuseStage->type )
 			{
 				case stageType_t::ST_DIFFUSEMAP:
+				case stageType_t::ST_COLLAPSE_lighting_PBR:
 				case stageType_t::ST_COLLAPSE_lighting_PHONG:
 					if ( light->l.rlType == refLightType_t::RL_OMNI )
 					{
