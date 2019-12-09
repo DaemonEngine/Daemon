@@ -1089,6 +1089,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool        tcGen_Environment;
 		bool        tcGen_Lightmap;
 
+		bool heightMapInNormalMap; // material has normalmap suited for parallax mapping
 		bool implicitLightmap;
 
 		Color::Color32Bit constantColor; // for CGEN_CONST and AGEN_CONST

@@ -1410,14 +1410,16 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		imageBits |= IF_NOPICMIP;
 	}
 
-	if ( stage->type == stageType_t::ST_NORMALMAP || stage->type == stageType_t::ST_HEATHAZEMAP || stage->type == stageType_t::ST_LIQUIDMAP )
+	switch ( stage->type )
 	{
-		imageBits |= IF_NORMALMAP;
-	}
-
-	if ( stage->type == stageType_t::ST_NORMALMAP && shader.heightMapInNormalMap )
-	{
-		imageBits |= IF_DISPLACEMAP;
+		case stageType_t::ST_NORMALMAP:
+		case stageType_t::ST_HEATHAZEMAP:
+		case stageType_t::ST_LIQUIDMAP:
+			imageBits |= IF_NORMALMAP;
+			if ( stage->heightMapInNormalMap || shader.heightMapInNormalMap )
+			{
+				imageBits |= IF_DISPLACEMAP;
+			}
 	}
 
 	if ( stage->stateBits & ( GLS_ATEST_BITS ) )
@@ -1465,7 +1467,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP )
 		{
 			Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
-			shader.heightMapInNormalMap = true;
+			stage->heightMapInNormalMap = true;
 			shader.parallax = true;
 		}
 	}
@@ -1812,6 +1814,16 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				stage->collapseType = collapseType_t::COLLAPSE_generic;
 			}
 
+			ParseNormalMap( stage, text );
+		}
+		else if ( !Q_stricmp( token, "normalHeightMap" ) )
+		{
+			if ( stage->collapseType == collapseType_t::COLLAPSE_none )
+			{
+				stage->collapseType = collapseType_t::COLLAPSE_generic;
+			}
+
+			stage->heightMapInNormalMap = true;
 			ParseNormalMap( stage, text );
 		}
 		else if ( !Q_stricmp( token, "specularMap" ) )
