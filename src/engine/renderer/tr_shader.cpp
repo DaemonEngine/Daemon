@@ -3811,37 +3811,35 @@ static bool ParseShader( const char *_text )
 			continue;
 		}
 		// parallax mapping
-		else if ( !Q_stricmp( token, "parallax" )
-			|| ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) ) )
+		else if ( !Q_stricmp( token, "parallax" ) )
 		{
+			// legacy lone “parallax” XreaL keyword was
+			// never used, it had purpose to enable parallax
+			// for the current shader
+			//
+			// the engine also relied on this to know
+			// that height map was stored in normal map
+			// but there was no other storage options
+			//
+			// since engine now automatically loads
+			// and enableis height map stored in normal map,
+			// this seems pretty useless, but it costs
+			// nothing to keep the behavior
+
+			shader.heightMapInNormalMap = true;
+
+			SkipRestOfLine( text );
+			continue;
+		}
+		else if ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) )
+		{
+			// DarkPlaces expects heightmap to be stored in normalmap
+			// so we can enfore that value to load heightmap
+			// even if engine fails to autodetect them
+			shader.heightMapInNormalMap = true;
+
 			char* keyword = token;
 			token = COM_ParseExt2( text, false );
-
-			if ( !token[ 0 ] )
-			{
-				// legacy lone “parallax” XreaL keyword was
-				// never used, it had purpose to enable parallax
-				// for the current shader
-				//
-				// the engine also relied on this to know
-				// that height map was stored in normal map
-				// but there was no other storage options
-				//
-				// since engine now automatically loads
-				// and enable height map stored in normal map,
-				// this seems pretty useless, but it costs
-				// nothing to keep the behavior
-				//
-				// this is only done if the “parallax” keyword
-				// is called alone
-				//
-				// note that DarkPlaces expects heightmap to be
-				// stored in normalmap, so even a mistakenly
-				// lone “dpoffsetmapping” keyword will not produce
-				// something wrong
-				shader.heightMapInNormalMap = true;
-				continue;
-			}
 
 			if ( !Q_stricmp( token, "none" ) )
 			{
