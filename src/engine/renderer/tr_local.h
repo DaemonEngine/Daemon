@@ -1210,7 +1210,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		bool       heightMapInNormalMap; // material has normalmap suited for parallax mapping
 		bool       noParallax; // disable parallax for this material even if it's available
-		bool       parallax; // what is finally used by renderer to know what to do
 		float      parallaxOffsetBias; // offset the heightmap top relatively to the floor
 		float      parallaxDepthScale; // per-shader parallax depth scale
 

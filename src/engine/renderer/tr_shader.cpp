@@ -1468,7 +1468,6 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		{
 			Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
 			stage->heightMapInNormalMap = true;
-			shader.parallax = true;
 		}
 	}
 
