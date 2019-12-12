@@ -1007,6 +1007,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  TB_REFLECTIONMAP = TB_COLORMAP,
 	  TB_NORMALMAP,
 	  TB_MATERIALMAP,
+	  TB_PHYSICALMAP = TB_MATERIALMAP,
 	  TB_SPECULARMAP = TB_MATERIALMAP,
 	  TB_GLOWMAP,
 	  MAX_TEXTURE_BUNDLES
@@ -1032,7 +1033,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  ST_GLOWMAP,
 	  ST_DIFFUSEMAP,
 	  ST_NORMALMAP,
-	  ST_MATERIALMAP,
+	  ST_PHYSICALMAP,
 	  ST_SPECULARMAP,
 	  ST_REFLECTIONMAP, // cubeMap based reflection
 	  ST_REFRACTIONMAP,
@@ -1043,7 +1044,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_LIGHTMAP,
-	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:materialmap
+	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:physicalmap
 	  ST_COLLAPSE_lighting_PHONG, // map|diffusemap + opt:normalmap + opt:glowmap + specularmap
 	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
 
