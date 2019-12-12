@@ -2833,7 +2833,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 						// normalScale X Y
 						// having a fallback for missing Z component keeps compatibility
 						stage->normalScale[ 2 ] = 1;
-						// no need to hack the fourth component since previous loop did it
+						// no need to set hasNormalScale since previous loop did it
+						// stage->hasNormalScale = true;
 					}
 					else
 					{
@@ -2843,8 +2844,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				}
 
 				stage->normalScale[ i ] = atof( token );
-				// HACK: fourth component tells renderer if normal scale is customized or not
-				stage->normalScale[ 3 ] = 1;
+				stage->hasNormalScale = true;
 			}
 			SkipRestOfLine( text );
 			continue;
@@ -3595,8 +3595,7 @@ static bool ParseShader( const char *_text )
 								stages[ s ].normalScale[ 0 ] = 1;
 								stages[ s ].normalScale[ 1 ] = -1;
 								stages[ s ].normalScale[ 2 ] = 1;
-								// HACK: fourth component tells renderer if normal scale is customized or not
-								stages[ s ].normalScale[ 3 ] = 1;
+								stages[ s ].hasNormalScale = true;
 							}
 
 							s++;
@@ -4523,8 +4522,7 @@ static void CollapseStages()
 				stages[ diffuseStage ].normalScale[ 0 ] = stages[ normalStage ].normalScale[ 0 ];
 				stages[ diffuseStage ].normalScale[ 1 ] = stages[ normalStage ].normalScale[ 1 ];
 				stages[ diffuseStage ].normalScale[ 2 ] = stages[ normalStage ].normalScale[ 2 ];
-				// HACK: fourth component tells renderer if normal scale is customized or not
-				stages[ diffuseStage ].normalScale[ 3 ] = stages[ normalStage ].normalScale[ 3 ];
+				stages[ diffuseStage ].hasNormalScale = stages[ normalStage ].hasNormalScale;
 				stages[ diffuseStage ].heightMapInNormalMap = stages[ normalStage ].heightMapInNormalMap;
 				// disable since it's merged
 				stages[ normalStage ].active = false;

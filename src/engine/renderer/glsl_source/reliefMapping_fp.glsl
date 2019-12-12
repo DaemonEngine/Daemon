@@ -27,8 +27,7 @@ uniform int u_HeightMapInNormalMap;
 #endif // r_normalMapping || USE_PARALLAX_MAPPING
 
 #if defined(r_normalMapping)
-// HACK: fourth component tells renderer if normal scale is customized or not
-uniform vec4 u_NormalScale;
+uniform vec3 u_NormalScale;
 #endif // r_normalMapping
 
 #if defined(USE_PARALLAX_MAPPING)
@@ -64,10 +63,10 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 		normal = 2.0 * normal - 1.0;
 	}
 
-	// HACK: fourth component tells renderer if normal scale is customized or not
-	if (u_NormalScale.w != 0)
+	// HACK: 0 normal Z channel can't be good
+	if (u_NormalScale.z != 0)
 	{
-		normal *= u_NormalScale.xyz;
+		normal *= u_NormalScale;
 	}
 
 #if defined(r_NormalScale)

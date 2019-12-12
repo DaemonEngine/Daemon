@@ -1510,31 +1510,16 @@ public:
 	}
 };
 
-class u_NormalIntensity :
-	GLUniform1f
-{
-public:
-	u_NormalIntensity( GLShader *shader ) :
-		GLUniform1f( shader, "u_NormalIntensity" )
-	{
-	}
-
-	void SetUniform_NormalIntensity( float value )
-	{
-		this->SetValue( value );
-	}
-};
-
 class u_NormalScale :
-	GLUniform4f
+	GLUniform3f
 {
 public:
 	u_NormalScale( GLShader *shader ) :
-		GLUniform4f( shader, "u_NormalScale" )
+		GLUniform3f( shader, "u_NormalScale" )
 	{
 	}
 
-	void SetUniform_NormalScale( const vec4_t value )
+	void SetUniform_NormalScale( const vec3_t value )
 	{
 		this->SetValue( value );
 	}
@@ -2394,7 +2379,6 @@ class GLShader_reflection :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
-	public u_NormalIntensity,
 	public u_NormalScale,
 	public u_VertexInterpolation,
 	public GLDeformStage,
@@ -2601,7 +2585,6 @@ class GLShader_liquid :
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,
 	public u_HeightMapInNormalMap,
-	public u_NormalIntensity,
 	public u_NormalScale,
 	public u_FogDensity,
 	public u_FogColor,

@@ -578,6 +578,28 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 }
 
+/*
+==============
+SetNormalScale
+==============
+*/
+void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale)
+{
+		float normalIntensity;
+
+		normalIntensity = RB_EvalExpression( &pStage->normalIntensityExp, 1 );
+
+		normalScale[ 0 ] *= normalIntensity;
+		normalScale[ 1 ] *= normalIntensity;
+
+		if ( pStage->hasNormalScale )
+		{
+			normalScale[ 0 ] *= pStage->normalScale[ 0 ];
+			normalScale[ 1 ] *= pStage->normalScale[ 1 ];
+			normalScale[ 2 ] *= pStage->normalScale[ 2 ];
+		}
+}
+
 // *INDENT-ON*
 
 static void Render_generic( int stage )
@@ -802,8 +824,11 @@ static void Render_vertexLighting_DBS_entity( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+		vec3_t normalScale = { 1, 1, 1 };
+		SetNormalScale( pStage, normalScale );
+
 		// bind u_NormalScale
-		gl_vertexLightingShader_DBS_entity->SetUniform_NormalScale( pStage->normalScale );
+		gl_vertexLightingShader_DBS_entity->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1049,8 +1074,11 @@ static void Render_vertexLighting_DBS_world( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+		vec3_t normalScale = { 1, 1, 1 };
+		SetNormalScale( pStage, normalScale );
+
 		// bind u_NormalScale
-		gl_vertexLightingShader_DBS_world->SetUniform_NormalScale( pStage->normalScale );
+		gl_vertexLightingShader_DBS_world->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1224,8 +1252,11 @@ static void Render_lightMapping( int stage )
 	{
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+		vec3_t normalScale = { 1, 1, 1 };
+		SetNormalScale( pStage, normalScale );
+
 		// bind u_NormalScale
-		gl_lightMappingShader->SetUniform_NormalScale( pStage->normalScale );
+		gl_lightMappingShader->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1566,8 +1597,11 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+		vec3_t normalScale = { 1, 1, 1 };
+		SetNormalScale( diffuseStage, normalScale );
+
 		// bind u_NormalScale
-		gl_forwardLightingShader_omniXYZ->SetUniform_NormalScale( diffuseStage->normalScale );
+		gl_forwardLightingShader_omniXYZ->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1753,8 +1787,11 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+		vec3_t normalScale = { 1, 1, 1 };
+		SetNormalScale( diffuseStage, normalScale );
+
 		// bind u_NormalScale
-		gl_forwardLightingShader_projXYZ->SetUniform_NormalScale( diffuseStage->normalScale );
+		gl_forwardLightingShader_projXYZ->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1942,8 +1979,11 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+		vec3_t normalScale = { 1, 1, 1 };
+		SetNormalScale( diffuseStage, normalScale );
+
 		// bind u_NormalScale
-		gl_forwardLightingShader_directionalSun->SetUniform_NormalScale( diffuseStage->normalScale );
+		gl_forwardLightingShader_directionalSun->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -2078,8 +2118,11 @@ static void Render_reflection_CB( int stage )
 		gl_reflectionShader->SetUniform_HeightMapInNormalMap( pStage->heightMapInNormalMap );
 	}
 
+	vec3_t normalScale = { 1, 1, 1 };
+	SetNormalScale( pStage, normalScale );
+
 	// bind u_NormalScale
-	gl_reflectionShader->SetUniform_NormalScale( pStage->normalScale );
+	gl_reflectionShader->SetUniform_NormalScale( normalScale );
 
 	gl_reflectionShader->SetRequiredVertexPointers();
 
@@ -2245,8 +2288,11 @@ static void Render_heatHaze( int stage )
 
 		gl_heatHazeShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
+		vec3_t normalScale = { 1, 1, 1 };
+		SetNormalScale( pStage, normalScale );
+
 		// bind u_NormalScale
-		gl_heatHazeShader->SetUniform_NormalScale( pStage->normalScale );
+		gl_heatHazeShader->SetUniform_NormalScale( normalScale );
 	}
 
 	GL_BindToTMU( 1, tr.currentRenderImage[ backEnd.currentMainFBO ] );
@@ -2332,7 +2378,7 @@ static void Render_liquid( int stage )
 		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
-		gl_liquidShader->SetUniform_NormalScale( pStage->normalScale );
+		gl_liquidShader->SetUniform_NormalScale( normalScale );
 	}
 
 	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );

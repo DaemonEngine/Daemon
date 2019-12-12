@@ -1122,8 +1122,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		expression_t    fresnelBiasExp;
 
 		// normalMap channel scale, negative value flips channel
-		// HACK: fourth component tells renderer if normal scale is customized or not
-		vec4_t          normalScale;
+		bool            hasNormalScale;
+		vec3_t          normalScale;
 
 		expression_t    normalIntensityExp;
 
