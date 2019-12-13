@@ -1416,10 +1416,6 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		case stageType_t::ST_HEATHAZEMAP:
 		case stageType_t::ST_LIQUIDMAP:
 			imageBits |= IF_NORMALMAP;
-			if ( stage->heightMapInNormalMap || shader.heightMapInNormalMap )
-			{
-				imageBits |= IF_DISPLACEMAP;
-			}
 	}
 
 	if ( stage->stateBits & ( GLS_ATEST_BITS ) )
