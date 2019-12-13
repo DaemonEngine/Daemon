@@ -748,7 +748,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
-	bool heightMapInNormalMap = ( pStage->heightMapInNormalMap || tess.surfaceShader->heightMapInNormalMap ) && hasNormalMap;
+	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
@@ -986,7 +986,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
-	bool heightMapInNormalMap = ( pStage->heightMapInNormalMap || tess.surfaceShader->heightMapInNormalMap ) && hasNormalMap;
+	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
@@ -1192,7 +1192,7 @@ static void Render_lightMapping( int stage )
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
-	bool heightMapInNormalMap = ( pStage->heightMapInNormalMap || tess.surfaceShader->heightMapInNormalMap ) && hasNormalMap;
+	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
 	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && normalMapping;
@@ -1498,7 +1498,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 
-	bool heightMapInNormalMap = ( pStage->heightMapInNormalMap || tess.surfaceShader->heightMapInNormalMap ) && hasNormalMap;
+	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
@@ -1696,7 +1696,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 
-	bool heightMapInNormalMap = ( pStage->heightMapInNormalMap || tess.surfaceShader->heightMapInNormalMap ) && hasNormalMap;
+	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
@@ -1892,7 +1892,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 
-	bool heightMapInNormalMap = ( pStage->heightMapInNormalMap || tess.surfaceShader->heightMapInNormalMap ) && hasNormalMap;
+	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
@@ -2101,7 +2101,7 @@ static void Render_reflection_CB( int stage )
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 
-	bool heightMapInNormalMap = ( pStage->heightMapInNormalMap || tess.surfaceShader->heightMapInNormalMap ) && hasNormalMap;
+	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
 	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && heightMapInNormalMap;
@@ -2383,7 +2383,7 @@ static void Render_liquid( int stage )
 
 	bool hasNormalMap = pStage->bundle[ TB_COLORMAP ].image[ 0 ] != nullptr;
 
-	bool heightMapInNormalMap = ( pStage->heightMapInNormalMap || tess.surfaceShader->heightMapInNormalMap ) && hasNormalMap;
+	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
 	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && heightMapInNormalMap;

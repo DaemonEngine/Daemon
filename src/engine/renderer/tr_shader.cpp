@@ -1456,8 +1456,9 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		}
 	}
 
-	// enable parallax if an heightmap is found
-	// and not explicitely disabled by a shader keyword
+	// tell renderer to enable parallax mapping since an heightmap is found
+	// also tell renderer to not abuse normalmap alpha channel because it's an heightmap
+	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
 	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_DISPLACEMAP )
 	{
 		if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP )
@@ -3814,26 +3815,32 @@ static bool ParseShader( const char *_text )
 			// for the current shader
 			//
 			// the engine also relied on this to know
-			// that height map was stored in normal map
+			// that heightmap was stored in normalmap
 			// but there was no other storage options
 			//
+			// the engine also had to rely on this to know
+			// that heightmap was stored in normalmap
+			// because of a design flaw that used depthmap
+			// instead of heightmap, meaning missing depthmap
+			// would cause a wrong displacement if not discarded
+			//
+			// so that option was there to tell the engine to
+			// not discard heightmap when mapper knows it is
+			// not flat
+			//
 			// since engine now automatically loads
-			// and enableis height map stored in normal map,
-			// this seems pretty useless, but it costs
-			// nothing to keep the behavior
+			// and enables heightmap stored in normalmap,
+			// and has not problem with flat heightmap
+			// in any way because of better design
+			// this seems pretty useless
 
-			shader.heightMapInNormalMap = true;
+			Log::Warn("deprecated keyword '%s' in shader '%s', this was a workaround for a design flaw, there is no need for it", token, shader.name );
 
 			SkipRestOfLine( text );
 			continue;
 		}
 		else if ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) )
 		{
-			// DarkPlaces expects heightmap to be stored in normalmap
-			// so we can enfore that value to load heightmap
-			// even if engine fails to autodetect them
-			shader.heightMapInNormalMap = true;
-
 			char* keyword = token;
 			token = COM_ParseExt2( text, false );
 
