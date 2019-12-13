@@ -1010,7 +1010,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 
 		// lightmap does not have alpha channel
 
-		// normalmap may have the displacement maps in the alpha channel
+		// normalmap may have the heightmap in the alpha channel
 		// opaque alpha channel means no displacement, so we can enable
 		// alpha channel everytime it is used, even for normalmap
 

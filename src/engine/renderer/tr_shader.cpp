@@ -4459,7 +4459,7 @@ static void CollapseStages()
 		if ( lightStage != -1 && stages[ i ].collapseType != collapseType_t::COLLAPSE_none )
 		{
 			// custom lightmap stage, disable the implicit light stage
-			Log::Debug("found custom lightmap stage in '%s' shader, not disabling implicit one", shader.name);
+			Log::Debug("found custom lightmap stage in '%s' shader, disabling implicit one", shader.name);
 			stages[ i ].implicitLightmap = false;
 		}
 	}
@@ -4527,6 +4527,7 @@ static void CollapseStages()
 				// disable since it's merged
 				stages[ normalStage ].active = false;
 			}
+
 			if ( specularStage != -1 )
 			{
 				// merge with diffuse stage
@@ -4536,6 +4537,7 @@ static void CollapseStages()
 				// disable since it's merged
 				stages[ specularStage ].active = false;
 			}
+
 			if ( physicalStage != -1 )
 			{
 				// merge with diffuse stage
@@ -4543,6 +4545,7 @@ static void CollapseStages()
 				// disable since it's merged
 				stages[ physicalStage ].active = false;
 			}
+
 			// always test for this stage before glow stage
 			if ( lightStage != -1 )
 			{
@@ -4563,6 +4566,7 @@ static void CollapseStages()
 					stages[ diffuseStage ].implicitLightmap = false;
 				}
 			}
+
 			// always test for this stage after light stage
 			if ( glowStage != -1 )
 			{
