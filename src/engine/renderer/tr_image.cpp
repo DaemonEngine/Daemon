@@ -1002,52 +1002,30 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 	}
 	else
 	{
-		int samples;
-
 		// scan the texture for each channel's max values
 		// and verify if the alpha channel is being used or not
+
 		c = image->width * image->height;
 		scan = dataArray[0];
 
-		samples = 3;
+		// lightmap does not have alpha channel
 
-		// Tr3B: normalmaps have the displacement maps in the alpha channel
-		// samples 3 would cause an opaque alpha channel and odd displacements!
-		if ( image->bits & IF_NORMALMAP )
-		{
-			if ( image->bits & ( IF_DISPLACEMAP | IF_ALPHATEST ) )
-			{
-				samples = 4;
-			}
-			else
-			{
-				samples = 3;
-			}
-		}
-		else if ( image->bits & IF_LIGHTMAP )
-		{
-			samples = 3;
-		}
-		else
+		// normalmap may have the displacement maps in the alpha channel
+		// opaque alpha channel means no displacement, so we can enable
+		// alpha channel everytime it is used, even for normalmap
+
+		internalFormat = GL_RGB8;
+
+		if ( !( image->bits & IF_LIGHTMAP ) )
 		{
 			for ( i = 0; i < c; i++ )
 			{
 				if ( scan[ i * 4 + 3 ] != 255 )
 				{
-					samples = 4;
+					internalFormat = GL_RGBA8;
 					break;
 				}
 			}
-		}
-
-		// select proper internal format
-		if ( samples == 3 )
-		{
-			internalFormat = GL_RGB8;
-		}
-		else if ( samples == 4 )
-		{
-			internalFormat = GL_RGBA8;
 		}
 	}
 
@@ -2837,7 +2815,7 @@ void R_CreateBuiltinImages()
 	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr,
 				      8, 8, 1, IF_NOPICMIP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_REPEAT );
 
-	// generate a default normalmap with a zero heightmap
+	// generate a default normalmap with a fully opaque heightmap (no displacement)
 	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
 	{
 		out[ 0 ] = out[ 1 ] = 128;

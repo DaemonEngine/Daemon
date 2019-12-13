@@ -90,9 +90,6 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 #if defined(r_NormalScale)
 	normal.z *= r_NormalScale;
 #endif
-
-#else // !r_normalMapping
-	normal = vec3(0.0, 0.0, 1.0);
 #endif // r_normalMapping
 
 	return normal;
