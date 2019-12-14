@@ -4508,6 +4508,7 @@ static void CollapseStages()
 			{
 				// merge with diffuse stage
 				stages[ diffuseStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
+				stages[ diffuseStage ].heightMapInNormalMap = stages[ normalStage ].heightMapInNormalMap;
 				// disable since it's merged
 				stages[ normalStage ].active = false;
 			}
