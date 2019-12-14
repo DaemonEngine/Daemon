@@ -745,6 +745,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	GL_State( stateBits );
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
@@ -752,7 +753,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
-	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && ( hasHeightMap || hasHeightMapInNormalMap );
 	bool physicalMapping = r_physicalMapping->integer && hasMaterialMap && isMaterialPhysical;
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 	bool glowMapping = r_glowMapping->integer && hasGlowMap;
@@ -764,6 +765,8 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	tess.vboVertexSprite = false;
 
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
+
+	gl_vertexLightingShader_DBS_entity->SetHeightMapInNormalMap( hasHeightMapInNormalMap );
 
 	gl_vertexLightingShader_DBS_entity->SetParallaxMapping( parallaxMapping );
 
@@ -816,6 +819,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	// u_DeformGen
 	gl_vertexLightingShader_DBS_entity->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
+	// bind u_HeightMap
 	if ( parallaxMapping )
 	{
 		float depthScale;
@@ -826,14 +830,23 @@ static void Render_vertexLighting_DBS_entity( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_vertexLightingShader_DBS_entity->SetUniform_ParallaxDepthScale( depthScale );
 		gl_vertexLightingShader_DBS_entity->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_vertexLightingShader_DBS_entity->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
+
+		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
+		if ( hasHeightMapInNormalMap )
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		}
+		else
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
+		}
 	}
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_vertexLightingShader_DBS_entity->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || hasHeightMapInNormalMap )
+	if ( normalMapping )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -983,6 +996,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	stateBits = pStage->stateBits;
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
@@ -990,13 +1004,15 @@ static void Render_vertexLighting_DBS_world( int stage )
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
-	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && ( hasHeightMap || hasHeightMapInNormalMap );
 	bool physicalMapping = r_physicalMapping->integer && hasMaterialMap && isMaterialPhysical;
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 	bool glowMapping = r_glowMapping->integer && hasGlowMap;
 
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
+
+	gl_vertexLightingShader_DBS_world->SetHeightMapInNormalMap( hasHeightMapInNormalMap );
 
 	gl_vertexLightingShader_DBS_world->SetParallaxMapping( parallaxMapping );
 
@@ -1068,6 +1084,8 @@ static void Render_vertexLighting_DBS_world( int stage )
 	gl_vertexLightingShader_DBS_world->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	gl_vertexLightingShader_DBS_world->SetUniform_AlphaTest( pStage->stateBits );
+
+	// bind u_HeightMap
 	if ( parallaxMapping )
 	{
 		float depthScale;
@@ -1078,7 +1096,16 @@ static void Render_vertexLighting_DBS_world( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_vertexLightingShader_DBS_world->SetUniform_ParallaxDepthScale( depthScale );
 		gl_vertexLightingShader_DBS_world->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_vertexLightingShader_DBS_world->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
+
+		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
+		if ( hasHeightMapInNormalMap )
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		}
+		else
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
+		}
 	}
 
 	if( tr.world ) {
@@ -1090,7 +1117,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_vertexLightingShader_DBS_world->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || hasHeightMapInNormalMap )
+	if ( normalMapping )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1188,6 +1215,7 @@ static void Render_lightMapping( int stage )
 	GL_State( stateBits );
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
@@ -1196,7 +1224,7 @@ static void Render_lightMapping( int stage )
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
 	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && normalMapping;
-	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && ( hasHeightMap || hasHeightMapInNormalMap );
 	bool physicalMapping = r_physicalMapping->integer && hasMaterialMap && isMaterialPhysical;
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 	bool glowMapping = r_glowMapping->integer && hasGlowMap;
@@ -1209,6 +1237,8 @@ static void Render_lightMapping( int stage )
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
 
 	gl_lightMappingShader->SetDeluxeMapping( deluxeMapping );
+
+	gl_lightMappingShader->SetHeightMapInNormalMap( hasHeightMapInNormalMap );
 
 	gl_lightMappingShader->SetParallaxMapping( parallaxMapping );
 
@@ -1246,6 +1276,7 @@ static void Render_lightMapping( int stage )
 	// u_Color
 	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
 
+	// bind u_HeightMap
 	if ( parallaxMapping )
 	{
 		float depthScale;
@@ -1256,7 +1287,16 @@ static void Render_lightMapping( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_lightMappingShader->SetUniform_ParallaxDepthScale( depthScale );
 		gl_lightMappingShader->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_lightMappingShader->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
+
+		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
+		if ( hasHeightMapInNormalMap )
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		}
+		else
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
+		}
 	}
 
 	// bind u_DiffuseMap
@@ -1272,7 +1312,7 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_NormalMap
-	if ( normalMapping || hasHeightMapInNormalMap )
+	if ( normalMapping )
 	{
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
@@ -1496,13 +1536,14 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_omni ---\n" );
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 
 	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
-	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && ( hasHeightMap || hasHeightMapInNormalMap );
 	// physical mapping is not implemented
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 	// glow mapping is not implemented
@@ -1512,6 +1553,8 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+
+	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_omniXYZ->SetParallaxMapping( parallaxMapping );
 	
@@ -1555,6 +1598,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 
 	gl_forwardLightingShader_omniXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
+	// bind u_HeightMap
 	if ( parallaxMapping )
 	{
 		float depthScale;
@@ -1565,7 +1609,16 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_omniXYZ->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_omniXYZ->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_omniXYZ->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
+
+		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
+		if ( hasHeightMapInNormalMap )
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		}
+		else
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
+		}
 	}
 
 	// set uniforms
@@ -1624,7 +1677,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || hasHeightMapInNormalMap )
+	if ( normalMapping )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1694,13 +1747,14 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_proj ---\n" );
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 
 	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
-	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && ( hasHeightMap || hasHeightMapInNormalMap );
 	// physical mapping is not implemented
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 
@@ -1709,6 +1763,8 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+
+	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_projXYZ->SetParallaxMapping( parallaxMapping );
 	
@@ -1752,6 +1808,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	gl_forwardLightingShader_projXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
+	// bind u_HeightMap
 	if ( parallaxMapping )
 	{
 		float depthScale;
@@ -1762,7 +1819,16 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_projXYZ->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_projXYZ->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_projXYZ->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
+
+		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
+		if ( hasHeightMapInNormalMap )
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		}
+		else
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
+		}
 	}
 
 	// set uniforms
@@ -1822,7 +1888,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || hasHeightMapInNormalMap )
+	if ( normalMapping )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1890,13 +1956,14 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_directional ---\n" );
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 
 	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
-	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && ( hasHeightMap || hasHeightMapInNormalMap );
 	// physical mapping is not implemented
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 
@@ -1905,6 +1972,8 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
+
+	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_directionalSun->SetParallaxMapping( parallaxMapping );
 
@@ -1948,6 +2017,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	gl_forwardLightingShader_directionalSun->SetUniform_AlphaTest( pStage->stateBits );
 
+	// bind u_HeightMap
 	if ( parallaxMapping )
 	{
 		float depthScale;
@@ -1958,7 +2028,16 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_directionalSun->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_directionalSun->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_directionalSun->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
+
+		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
+		if ( hasHeightMapInNormalMap )
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		}
+		else
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
+		}
 	}
 
 	// set uniforms
@@ -2022,7 +2101,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || hasHeightMapInNormalMap )
+	if ( normalMapping )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -2100,13 +2179,16 @@ static void Render_reflection_CB( int stage )
 	GL_State( pStage->stateBits );
 
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 
 	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
-	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && ( hasHeightMap || hasHeightMapInNormalMap );
 
 	// choose right shader program ----------------------------------
+	gl_reflectionShader->SetHeightMapInNormalMap( hasHeightMapInNormalMap );
+
 	gl_reflectionShader->SetParallaxMapping( parallaxMapping );
 
 	gl_reflectionShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -2144,7 +2226,7 @@ static void Render_reflection_CB( int stage )
 		GL_BindNearestCubeMap( backEnd.viewParms.orientation.origin );
 	}
 
-	if ( normalMapping || hasHeightMapInNormalMap )
+	if ( normalMapping )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -2162,7 +2244,7 @@ static void Render_reflection_CB( int stage )
 
 	gl_reflectionShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
-	// bind u_depthScale u_parallaxOffsetBias
+	// bind u_HeightMap u_depthScale u_parallaxOffsetBias
 	if ( parallaxMapping )
 	{
 		float depthScale;
@@ -2173,7 +2255,16 @@ static void Render_reflection_CB( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_reflectionShader->SetUniform_ParallaxDepthScale( depthScale );
 		gl_reflectionShader->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_reflectionShader->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
+
+		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
+		if ( hasHeightMapInNormalMap )
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		}
+		else
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
+		}
 	}
 
 	vec3_t normalScale;
@@ -2386,11 +2477,12 @@ static void Render_liquid( int stage )
 	GLimp_LogComment( "--- Render_liquid ---\n" );
 
 	bool hasNormalMap = pStage->bundle[ TB_COLORMAP ].image[ 0 ] != nullptr;
+	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 
 	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
-	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && ( hasHeightMap || hasHeightMapInNormalMap );
 	// specular component is computed by shader
 	// physical mapping is not implemented
 	bool specularMapping = r_specularMapping->integer;
@@ -2399,6 +2491,8 @@ static void Render_liquid( int stage )
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
 	// choose right shader program
+	gl_liquidShader->SetHeightMapInNormalMap( hasHeightMapInNormalMap );
+
 	gl_liquidShader->SetParallaxMapping( parallaxMapping );
 
 	// enable shader, set arrays
@@ -2441,7 +2535,30 @@ static void Render_liquid( int stage )
 	// depth texture
 	GL_BindToTMU( 2, tr.currentDepthImage );
 
-	if ( normalMapping || hasHeightMapInNormalMap )
+	// bind u_HeightMap u_depthScale u_parallaxOffsetBias
+	if ( parallaxMapping )
+	{
+		float depthScale;
+		float parallaxDepthScale;
+
+		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_parallaxDepthScale->value );
+		parallaxDepthScale = tess.surfaceShader->parallaxDepthScale;
+		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
+		gl_liquidShader->SetUniform_ParallaxDepthScale( depthScale );
+		gl_liquidShader->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
+
+		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
+		if ( hasHeightMapInNormalMap )
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
+		}
+		else
+		{
+			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
+		}
+	}
+
+	if ( normalMapping )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 3, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );

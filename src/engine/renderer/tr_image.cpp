@@ -1346,7 +1346,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 			case GL_RGBA32UI:
 			case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
 			case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-				image->bits |= IF_DISPLACEMAP;
+				image->bits |= IF_HEIGHTMAP;
 		}
 	}
 

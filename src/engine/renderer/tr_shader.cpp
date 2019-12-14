@@ -1464,7 +1464,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	// tell renderer to enable parallax mapping since an heightmap is found
 	// also tell renderer to not abuse normalmap alpha channel because it's an heightmap
 	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
-	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_DISPLACEMAP )
+	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_HEIGHTMAP )
 	{
 		if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP )
 		{
@@ -1635,6 +1635,21 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 	}
 }
 
+static void ParseHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_HEIGHTMAP )
+{
+	char buffer[ 1024 ] = "";
+
+	stage->active = true;
+	stage->type = stageType_t::ST_HEIGHTMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer, bundleIndex );
+	}
+}
+
 static void ParseSpecularMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_SPECULARMAP )
 {
 	char buffer[ 1024 ] = "";
@@ -1743,8 +1758,11 @@ struct extraMapParser_t
 
 static const extraMapParser_t extraMapParsers[] =
 {
-	// currently uses the collapse code path
+	// FIXME: dpMaterial Darkplaces compatibility layer still uses the collapse code path
+	// https://github.com/DaemonEngine/Daemon/pull/252#pullrequestreview-336919745
+
 	{ "norm",    "normal map",     ParseNormalMap,     TB_COLORMAP, },
+	{ "bump",    "height map",     ParseHeightMap,     TB_COLORMAP, },
 	{ "gloss",   "specular map",   ParseSpecularMap,   TB_COLORMAP, },
 	{ "glow",    "glow map",       ParseGlowMap,       TB_COLORMAP, },
 	{ "luma",    "glow map",       ParseGlowMap,       TB_COLORMAP, },
@@ -1826,6 +1844,15 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			stage->heightMapInNormalMap = true;
 			ParseNormalMap( stage, text );
+		}
+		else if ( !Q_stricmp( token, "heightMap" ) )
+		{
+			if ( stage->collapseType == collapseType_t::COLLAPSE_none )
+			{
+				stage->collapseType = collapseType_t::COLLAPSE_generic;
+			}
+
+			ParseHeightMap( stage, text );
 		}
 		else if ( !Q_stricmp( token, "specularMap" ) )
 		{
@@ -4350,8 +4377,16 @@ static void CollapseStages()
 		return;
 	}
 
+	// FIXME: heightStage is only used by dpMaterial Darkplaces compatibility layer
+	// that still uses to-be-collapsed standalone stages,
+	// this code will be dead when the dpMaterial feature
+	// will be ported to the pre-collapsed stage layout
+	// and this heightMap collapsing code would have to be deleted:
+	// https://github.com/DaemonEngine/Daemon/pull/252#pullrequestreview-336919745
+
 	int diffuseStage = -1;
 	int normalStage = -1;
+	int heightStage = -1;
 	int specularStage = -1;
 	int physicalStage = -1;
 	int reflectionStage = -1;
@@ -4400,6 +4435,17 @@ static void CollapseStages()
 			else
 			{
 				normalStage = i;
+			}
+		}
+		else if ( stages[ i ].type == stageType_t::ST_HEIGHTMAP )
+		{
+			if ( heightStage != -1 )
+			{
+				Log::Warn( "more than one height map stage in shader '%s'", shader.name );
+			}
+			else
+			{
+				heightStage = i;
 			}
 		}
 		else if ( stages[ i ].type == stageType_t::ST_SPECULARMAP )
@@ -4492,6 +4538,7 @@ static void CollapseStages()
 	if ( diffuseStage != -1
 		&& ( specularStage != -1
 			|| normalStage != -1
+			|| heightStage != -1
 			|| physicalStage != -1
 			|| lightStage != -1
 			|| glowStage != -1 ) )
@@ -4531,6 +4578,14 @@ static void CollapseStages()
 				stages[ diffuseStage ].heightMapInNormalMap = stages[ normalStage ].heightMapInNormalMap;
 				// disable since it's merged
 				stages[ normalStage ].active = false;
+			}
+
+			if ( heightStage != -1 )
+			{
+				// merge with diffuse stage
+				stages[ diffuseStage ].bundle[ TB_HEIGHTMAP ] = stages[ heightStage ].bundle[ TB_COLORMAP ];
+				// disable since it's merged
+				stages[ heightStage ].active = false;
 			}
 
 			if ( specularStage != -1 )

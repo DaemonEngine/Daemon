@@ -1466,12 +1466,12 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_ModelViewProjectionMatrix( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
-	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_DELUXE_MAPPING( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_PHYSICAL_SHADING( this )
 {
@@ -1503,6 +1503,7 @@ void GLShader_lightMapping::SetShaderProgramUniforms( shaderProgram_t *shaderPro
 	if( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->program, "u_Lights" ), 9 );
 	}
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_vertexLighting_DBS_entity::GLShader_vertexLighting_DBS_entity( GLShaderManager *manager ) :
@@ -1517,7 +1518,6 @@ GLShader_vertexLighting_DBS_entity::GLShader_vertexLighting_DBS_entity( GLShader
 	u_VertexInterpolation( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
-	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
 	u_EnvironmentInterpolation( this ),
 	u_LightGridOrigin( this ),
@@ -1527,6 +1527,7 @@ GLShader_vertexLighting_DBS_entity::GLShader_vertexLighting_DBS_entity( GLShader
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
 	GLCompileMacro_USE_PHYSICAL_SHADING( this )
@@ -1561,6 +1562,7 @@ void GLShader_vertexLighting_DBS_entity::SetShaderProgramUniforms( shaderProgram
 	if( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->program, "u_Lights" ), 9 );
 	}
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_vertexLighting_DBS_world::GLShader_vertexLighting_DBS_world( GLShaderManager *manager ) :
@@ -1578,7 +1580,6 @@ GLShader_vertexLighting_DBS_world::GLShader_vertexLighting_DBS_world( GLShaderMa
 	u_ModelViewProjectionMatrix( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
-	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
 	u_LightWrapAround( this ),
 	u_LightGridOrigin( this ),
@@ -1586,6 +1587,7 @@ GLShader_vertexLighting_DBS_world::GLShader_vertexLighting_DBS_world( GLShaderMa
 	u_numLights( this ),
 	u_Lights( this ),
 	GLDeformStage( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_PHYSICAL_SHADING( this )
 {
@@ -1616,6 +1618,7 @@ void GLShader_vertexLighting_DBS_world::SetShaderProgramUniforms( shaderProgram_
 	if( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->program, "u_Lights" ), 9 );
 	}
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderManager *manager ):
@@ -1640,11 +1643,11 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_VertexInterpolation( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
-	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
@@ -1674,6 +1677,7 @@ void GLShader_forwardLighting_omniXYZ::SetShaderProgramUniforms( shaderProgram_t
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowMap" ), 5 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_RandomMap" ), 6 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowClipMap" ), 7 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderManager *manager ):
@@ -1699,11 +1703,11 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_VertexInterpolation( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
-	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
@@ -1734,6 +1738,7 @@ void GLShader_forwardLighting_projXYZ::SetShaderProgramUniforms( shaderProgram_t
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowMap0" ), 5 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_RandomMap" ), 6 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowClipMap0" ), 7 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun( GLShaderManager *manager ):
@@ -1761,11 +1766,11 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_VertexInterpolation( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
-	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
@@ -1803,6 +1808,7 @@ void GLShader_forwardLighting_directionalSun::SetShaderProgramUniforms( shaderPr
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowClipMap2" ), 12 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowClipMap3" ), 13 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowClipMap4" ), 14 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_shadowFill::GLShader_shadowFill( GLShaderManager *manager ) :
@@ -1843,12 +1849,12 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	u_Bones( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
-	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this )
 {
 }
@@ -1871,6 +1877,7 @@ void GLShader_reflection::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
@@ -1969,6 +1976,7 @@ void GLShader_heatHaze::SetShaderProgramUniforms( shaderProgram_t *shaderProgram
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 1 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_screen::GLShader_screen( GLShaderManager *manager ) :
@@ -2108,13 +2116,13 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_FresnelBias( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
-	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
 	u_FogDensity( this ),
 	u_FogColor( this ),
 	u_SpecularExponent( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this )
 {
 }
@@ -2132,6 +2140,7 @@ void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 3 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid1" ), 6 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid2" ), 7 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
 GLShader_volumetricFog::GLShader_volumetricFog( GLShaderManager *manager ) :
