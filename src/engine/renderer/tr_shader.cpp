@@ -1649,12 +1649,12 @@ static void ParseSpecularMap( shaderStage_t *stage, const char **text, const int
 	}
 }
 
-static void ParseMaterialMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_MATERIALMAP )
+static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_PHYSICALMAP )
 {
 	char buffer[ 1024 ] = "";
 
 	stage->active = true;
-	stage->type = stageType_t::ST_MATERIALMAP;
+	stage->type = stageType_t::ST_PHYSICALMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
@@ -1830,13 +1830,13 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			if ( stage->collapseType == collapseType_t::COLLAPSE_reflection_CB )
 			{
-				Log::Warn("Supposedly you shouldn't have a materialMap after a reflectionMap (in shader '%s')?", shader.name);
+				Log::Warn("Supposedly you shouldn't have a physicalMap after a reflectionMap (in shader '%s')?", shader.name);
 				// use PHONG instead
 			}
 
 			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR )
 			{
-				Log::Warn("Supposedly you shouldn't have a specularMap after a materialMap (in shader '%s')?", shader.name);
+				Log::Warn("Supposedly you shouldn't have a specularMap after a physicalMap (in shader '%s')?", shader.name);
 				// keep PBR instead
 			}
 			else
@@ -1845,21 +1845,22 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				ParseSpecularMap( stage, text );
 			}
 		}
-		else if ( !Q_stricmp( token, "materialMap" ) )
+		else if ( !Q_stricmp( token, "physicalMap" ) )
 		{
 			if ( stage->collapseType == collapseType_t::COLLAPSE_reflection_CB )
 			{
-				Log::Warn("Supposedly you shouldn't have a materialMap after a reflectionMap (in shader '%s')?", shader.name);
+				Log::Warn("Supposedly you shouldn't have a physicalMap after a reflectionMap (in shader '%s')?", shader.name);
 				// use PBR instead
 			}
 			else if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
 			{
-				Log::Warn("Supposedly you shouldn't have a materialMap after a specularMap (in shader '%s')?", shader.name);
+				Log::Warn("Supposedly you shouldn't have a physicalMap after a specularMap (in shader '%s')?", shader.name);
 				// use PBR instead
 			}
 
+			// Daemon PBR packing defaults to ORM like glTF 2.0
 			stage->collapseType = collapseType_t::COLLAPSE_lighting_PBR;
-			ParseMaterialMap( stage, text );
+			ParsePhysicalMap( stage, text );
 		}
 		else if ( !Q_stricmp( token, "glowMap" ) )
 		{
@@ -1875,7 +1876,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR
 				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
 			{
-				Log::Warn("Supposedly you shouldn't have a reflectionMap after a materialMap or a specularMap (in shader '%s')?", shader.name);
+				Log::Warn("Supposedly you shouldn't have a reflectionMap after a physicalMap or a specularMap (in shader '%s')?", shader.name);
 				// use reflectionMap instead
 			}
 
@@ -1887,7 +1888,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR
 				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
 			{
-				Log::Warn("Supposedly you shouldn't have a reflectionMapBlended after a materialMap or a specularMap (in shader '%s')?", shader.name);
+				Log::Warn("Supposedly you shouldn't have a reflectionMapBlended after a physicalMap or a specularMap (in shader '%s')?", shader.name);
 				// use reflectionMapBlended instead
 			}
 
@@ -2258,10 +2259,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				Log::Warn("deprecated idTech4 blend parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_SPECULARMAP;
 			}
-			else if ( !Q_stricmp( token, "materialMap" ) )
+			else if ( !Q_stricmp( token, "physicalMap" ) )
 			{
 				Log::Warn("deprecated idTech4 blend parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
-				stage->type = stageType_t::ST_MATERIALMAP;
+				stage->type = stageType_t::ST_PHYSICALMAP;
 			}
 			else if ( !Q_stricmp( token, "glowMap" ) )
 			{
@@ -2331,10 +2332,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_SPECULARMAP;
 			}
-			else if ( !Q_stricmp( token, "materialMap" ) )
+			else if ( !Q_stricmp( token, "physicalMap" ) )
 			{
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
-				stage->type = stageType_t::ST_MATERIALMAP;
+				stage->type = stageType_t::ST_PHYSICALMAP;
 			}
 			else if ( !Q_stricmp( token, "glowMap" ) )
 			{
@@ -4167,11 +4168,11 @@ static bool ParseShader( const char *_text )
 			s++;
 			continue;
 		}
-		// materialMap <image>
-		else if ( !Q_stricmp( token, "materialMap" ) )
+		// physicalMap <image>
+		else if ( !Q_stricmp( token, "physicalMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseMaterialMap( &stages[ s ], text, TB_COLORMAP );
+			ParsePhysicalMap( &stages[ s ], text, TB_COLORMAP );
 			s++;
 			continue;
 		}
@@ -4338,7 +4339,7 @@ static void CollapseStages()
 	int diffuseStage = -1;
 	int normalStage = -1;
 	int specularStage = -1;
-	int materialStage = -1;
+	int physicalStage = -1;
 	int reflectionStage = -1;
 	int lightStage = -1;
 	int glowStage = -1;
@@ -4398,15 +4399,15 @@ static void CollapseStages()
 				specularStage = i;
 			}
 		}
-		else if ( stages[ i ].type == stageType_t::ST_MATERIALMAP )
+		else if ( stages[ i ].type == stageType_t::ST_PHYSICALMAP )
 		{
-			if ( materialStage != -1 )
+			if ( physicalStage != -1 )
 			{
-				Log::Warn( "more than one material map stage in shader '%s'", shader.name );
+				Log::Warn( "more than one physical map stage in shader '%s'", shader.name );
 			}
 			else
 			{
-				materialStage = i;
+				physicalStage = i;
 			}
 		}
 		else if ( stages[ i ].type == stageType_t::ST_REFLECTIONMAP )
@@ -4477,7 +4478,7 @@ static void CollapseStages()
 	if ( diffuseStage != -1
 		&& ( specularStage != -1
 			|| normalStage != -1
-			|| materialStage != -1
+			|| physicalStage != -1
 			|| lightStage != -1
 			|| glowStage != -1 ) )
 	{
@@ -4485,13 +4486,13 @@ static void CollapseStages()
 		// it would have to be backed-up somewhere
 
 
-		if ( specularStage != -1 && materialStage != -1 )
+		if ( specularStage != -1 && physicalStage != -1 )
 		{
-			Log::Warn("Supposedly you shouldn't have both specularMap and materialMap (in shader '%s')?", shader.name);
+			Log::Warn("Supposedly you shouldn't have both specularMap and physicalMap (in shader '%s')?", shader.name);
 		}
 		else
 		{
-			if ( materialStage != -1 )
+			if ( physicalStage != -1 )
 			{
 				Log::Debug("found PBR lighting collapsible stage in shader '%s'", shader.name);
 				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_PBR;
@@ -4521,12 +4522,12 @@ static void CollapseStages()
 				// disable since it's merged
 				stages[ specularStage ].active = false;
 			}
-			if ( materialStage != -1 )
+			if ( physicalStage != -1 )
 			{
 				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_MATERIALMAP ] = stages[ materialStage ].bundle[ TB_COLORMAP ];
+				stages[ diffuseStage ].bundle[ TB_PHYSICALMAP ] = stages[ physicalStage ].bundle[ TB_COLORMAP ];
 				// disable since it's merged
-				stages[ materialStage ].active = false;
+				stages[ physicalStage ].active = false;
 			}
 			// always test for this stage before glow stage
 			if ( lightStage != -1 )

@@ -589,6 +589,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_specularMapping", 1 );
 	}
 
+	if ( r_physicalMapping->integer )
+	{
+		AddDefine( str, "r_physicalMapping", 1 );
+	}
+
 	if ( r_glowMapping->integer )
 	{
 		AddDefine( str, "r_glowMapping", 1 );
