@@ -1416,6 +1416,11 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		case stageType_t::ST_HEATHAZEMAP:
 		case stageType_t::ST_LIQUIDMAP:
 			imageBits |= IF_NORMALMAP;
+
+		default:
+			// silence warning for other types, we don't have to take care of them:
+			//    warning: enumeration value ‘ST_GLOWMAP’ not handled in switch [-Wswitch]
+			break;
 	}
 
 	if ( stage->stateBits & ( GLS_ATEST_BITS ) )
