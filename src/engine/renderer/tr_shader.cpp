@@ -4473,14 +4473,14 @@ static void CollapseStages()
 			continue;
 		}
 		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_generic
-			|| stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PBR )
-		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PBR;
-			continue;
-		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+			|| stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
 		{
 			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PHONG;
+			continue;
+		}
+		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PBR )
+		{
+			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PBR;
 			continue;
 		}
 		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_reflection_CB )
