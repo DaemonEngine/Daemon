@@ -585,9 +585,11 @@ SetNormalScale
 */
 void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale)
 {
-		float normalIntensity;
+		float normalIntensity = RB_EvalExpression( &pStage->normalIntensityExp, 1 );
 
-		normalIntensity = RB_EvalExpression( &pStage->normalIntensityExp, 1 );
+		normalScale[ 0 ] = 1;
+		normalScale[ 1 ] = 1;
+		normalScale[ 2 ] = 1;
 
 		normalScale[ 0 ] *= normalIntensity;
 		normalScale[ 1 ] *= normalIntensity;
@@ -833,7 +835,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		vec3_t normalScale = { 1, 1, 1 };
+		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
@@ -1083,7 +1085,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		vec3_t normalScale = { 1, 1, 1 };
+		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
@@ -1261,7 +1263,7 @@ static void Render_lightMapping( int stage )
 	{
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		vec3_t normalScale = { 1, 1, 1 };
+		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
@@ -1606,7 +1608,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		vec3_t normalScale = { 1, 1, 1 };
+		vec3_t normalScale;
 		SetNormalScale( diffuseStage, normalScale );
 
 		// bind u_NormalScale
@@ -1796,7 +1798,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		vec3_t normalScale = { 1, 1, 1 };
+		vec3_t normalScale;
 		SetNormalScale( diffuseStage, normalScale );
 
 		// bind u_NormalScale
@@ -1988,7 +1990,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		vec3_t normalScale = { 1, 1, 1 };
+		vec3_t normalScale;
 		SetNormalScale( diffuseStage, normalScale );
 
 		// bind u_NormalScale
@@ -2127,7 +2129,7 @@ static void Render_reflection_CB( int stage )
 		gl_reflectionShader->SetUniform_HeightMapInNormalMap( pStage->heightMapInNormalMap );
 	}
 
-	vec3_t normalScale = { 1, 1, 1 };
+	vec3_t normalScale;
 	SetNormalScale( pStage, normalScale );
 
 	// bind u_NormalScale
@@ -2297,7 +2299,7 @@ static void Render_heatHaze( int stage )
 
 		gl_heatHazeShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
-		vec3_t normalScale = { 1, 1, 1 };
+		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
@@ -2383,7 +2385,7 @@ static void Render_liquid( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 3, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
 
-		vec3_t normalScale = { 1, 1, 1 };
+		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
