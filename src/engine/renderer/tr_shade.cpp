@@ -733,7 +733,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	gl_vertexLightingShader_DBS_entity->SetReflectiveSpecular( normalMapping && tr.cubeHashTable != nullptr );
 
-	gl_vertexLightingShader_DBS_entity->SetPhysicalShading( physicalMapping );
+	gl_vertexLightingShader_DBS_entity->SetPhysicalShading( isMaterialPhysical );
 
 	gl_vertexLightingShader_DBS_entity->BindProgram( pStage->deformIndex );
 
@@ -1162,7 +1162,7 @@ static void Render_lightMapping( int stage )
 
 	tess.vboVertexSprite = false;
 
-	gl_lightMappingShader->SetPhysicalShading( physicalMapping );
+	gl_lightMappingShader->SetPhysicalShading( isMaterialPhysical );
 
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
 
