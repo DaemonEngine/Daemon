@@ -1685,15 +1685,8 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 	char       filename[ MAX_QPATH ];
 	byte       alphaByte;
 
-	// Tr3B: clear alpha of normalmaps for displacement mapping
-	if ( *bits & IF_NORMALMAP )
-	{
-		alphaByte = 0x00;
-	}
-	else
-	{
-		alphaByte = 0xFF;
-	}
+	// missing alpha means fully opaque
+	alphaByte = 0xFF;
 
 	Q_strncpyz( filename, token, sizeof( filename ) );
 
