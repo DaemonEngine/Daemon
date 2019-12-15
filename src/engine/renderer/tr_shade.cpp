@@ -598,6 +598,15 @@ void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale)
 			normalScale[ 1 ] *= pStage->normalScale[ 1 ];
 			normalScale[ 2 ] *= pStage->normalScale[ 2 ];
 		}
+
+		// NOTE: normalmap with zero Z component is wrong
+		//
+		// since glsl disables normalScale when Z is zero
+		// setting this to zero has side effect to reset
+		// per-stage normalScale
+		//
+		// there is no intention to keep this undefined feature
+		normalScale[ 2 ] *= r_normalScale->value;
 }
 
 // *INDENT-ON*

@@ -699,7 +699,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 
 	AddDefine( env, "r_AmbientScale", r_ambientScale->value );
 	AddDefine( env, "r_SpecularScale", r_specularScale->value );
-	AddDefine( env, "r_NormalScale", r_normalScale->value );
 	AddDefine( env, "r_zNear", r_znear->value );
 
 	AddDefine( env, "M_PI", static_cast<float>( M_PI ) );
