@@ -4716,14 +4716,16 @@ static void RB_RenderView( bool depthPass )
 
 	if ( backEnd.viewParms.portalLevel > 0 )
 	{
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
 		{
 			// capture current color buffer
+			// liquid shader will then bind tr.portalRenderImage
+			// as u_PortalMap to be read by liquid glsl
+			// FIXME: it does not work
 			GL_SelectTexture( 0 );
 			GL_Bind( tr.portalRenderImage );
 			glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, tr.portalRenderImage->uploadWidth, tr.portalRenderImage->uploadHeight );
 		}
-#endif
+
 		backEnd.pc.c_portals++;
 	}
 

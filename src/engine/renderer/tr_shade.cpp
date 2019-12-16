@@ -106,9 +106,9 @@ static void GLSL_InitGPUShadersOrError()
 	// debug utils
 	gl_shaderManager.load( gl_debugShadowMapShader );
 
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
-
 	gl_shaderManager.load( gl_liquidShader );
+
+#if !defined( GLSL_COMPILE_STARTUP_ONLY )
 
 	gl_shaderManager.load( gl_volumetricFogShader );
 
@@ -2462,7 +2462,6 @@ static void Render_heatHaze( int stage )
 	GL_CheckErrors();
 }
 
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
 static void Render_liquid( int stage )
 {
 	vec3_t        viewOrigin;
@@ -2576,9 +2575,6 @@ static void Render_liquid( int stage )
 
 	GL_CheckErrors();
 }
-#else
-static void Render_liquid(int){}
-#endif
 
 static void Render_fog()
 {
