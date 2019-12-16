@@ -111,9 +111,15 @@ void	main()
 	vec4 reflectColor;
 	vec4 color;
 
+#if defined(r_liquidMapping)
 	refractColor = texture2D(u_CurrentMap, texScreen).rgb;
 	reflectColor.rgb = texture2D(u_PortalMap, texScreen).rgb;
 	reflectColor.a = 1.0;
+#else // !r_liquidMapping
+	// dummy fallback color
+	refractColor = vec3(0.7, 0.7, 0.7);
+	reflectColor = vec4(0.7, 0.7, 0.7, 1.0);
+#endif // !r_liquidMapping
 
 	color.rgb = mix(refractColor, reflectColor.rgb, fresnel);
 	color.a = 1.0;

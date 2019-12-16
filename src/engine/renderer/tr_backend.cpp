@@ -4716,6 +4716,7 @@ static void RB_RenderView( bool depthPass )
 
 	if ( backEnd.viewParms.portalLevel > 0 )
 	{
+		if ( r_liquidMapping->integer )
 		{
 			// capture current color buffer
 			// liquid shader will then bind tr.portalRenderImage
