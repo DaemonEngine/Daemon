@@ -34,7 +34,6 @@ uniform float		u_FresnelScale;
 uniform float		u_FresnelBias;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_UnprojectMatrix;
-uniform vec2		u_SpecularExponent;
 
 uniform sampler3D       u_LightGrid1;
 uniform sampler3D       u_LightGrid2;
@@ -101,9 +100,6 @@ void	main()
 	texNormal += texOffset;
 #endif
 
-	// compute normals
-	vec3 N = normalize(var_Normal);
-
 	// compute normal in world space from normalmap
 	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
 
@@ -111,12 +107,15 @@ void	main()
 	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, normal), u_FresnelPower) *
 			u_FresnelScale, 0.0, 1.0);
 
-	vec3 refractColor = texture2D(u_CurrentMap, texScreen).rgb;
-	vec3 reflectColor = texture2D(u_PortalMap, texScreen).rgb;
-
+	vec3 refractColor;
+	vec4 reflectColor;
 	vec4 color;
 
-	color.rgb = mix(refractColor, reflectColor, fresnel);
+	refractColor = texture2D(u_CurrentMap, texScreen).rgb;
+	reflectColor.rgb = texture2D(u_PortalMap, texScreen).rgb;
+	reflectColor.a = 1.0;
+
+	color.rgb = mix(refractColor, reflectColor.rgb, fresnel);
 	color.a = 1.0;
 
 	if(u_FogDensity > 0.0)
@@ -138,24 +137,17 @@ void	main()
 		color.rgb = mix(u_FogColor, color.rgb, fogFactor);
 	}
 
-	vec3 L;
-	vec3 ambCol;
-	vec3 lgtCol;
+	vec3 lightDir;
+	vec3 ambientColor;
+	vec3 lightColor;
 
 	ReadLightGrid( (var_Position - u_LightGridOrigin) * u_LightGridScale,
-		       L, ambCol, lgtCol );
+		       lightDir, ambientColor, lightColor );
 
-	// compute half angle in world space
-	vec3 H = normalize(L + viewDir);
+	vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
 
-	// compute the light term
-	vec3 light = lgtCol * clamp(dot(normal, L), 0.0, 1.0);
-
-#if defined(r_specularMapping)
 	// compute the specular term
-	vec3 specular = reflectColor * lgtCol * pow(clamp(dot(normal, H), 0.0, 1.0), u_SpecularExponent.x + u_SpecularExponent.y) * r_SpecularScale;
-	color.rgb += specular;
-#endif // r_specularMapping
+	computeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
 
 	outputColor = color;
 }
