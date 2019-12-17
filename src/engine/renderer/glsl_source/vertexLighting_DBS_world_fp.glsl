@@ -27,58 +27,57 @@ uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
-uniform	float		u_LightWrapAround;
+uniform vec3		u_ViewOrigin;
 
 uniform sampler3D       u_LightGrid1;
 uniform sampler3D       u_LightGrid2;
 uniform vec3            u_LightGridOrigin;
 uniform vec3            u_LightGridScale;
 
-uniform vec3		u_ViewOrigin;
-
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
-
 IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
-
 IN(smooth) vec3		var_Normal;
 
 DECLARE_OUTPUT(vec4)
 
-void ReadLightGrid(in vec3 pos, out vec3 lgtDir,
-		   out vec3 ambCol, out vec3 lgtCol ) {
+void ReadLightGrid(in vec3 pos, out vec3 lightDir,
+		   out vec3 ambientColor, out vec3 lightColor) {
 	vec4 texel1 = texture3D(u_LightGrid1, pos);
 	vec4 texel2 = texture3D(u_LightGrid2, pos);
 
-	ambCol = texel1.xyz;
-	lgtCol = texel2.xyz;
+	ambientColor = texel1.xyz;
+	lightColor = texel2.xyz;
 
-	lgtDir.x = (255.0 * texel1.w - 128.0) / 127.0;
-	lgtDir.y = (255.0 * texel2.w - 128.0) / 127.0;
-	lgtDir.z = 1.0 - abs( lgtDir.x ) - abs( lgtDir.y );
+	lightDir.x = (255.0 * texel1.w - 128.0) / 127.0;
+	lightDir.y = (255.0 * texel2.w - 128.0) / 127.0;
+	lightDir.z = 1.0 - abs(lightDir.x) - abs(lightDir.y);
 
-	vec2 signs = 2.0 * step( 0.0, lgtDir.xy ) - vec2( 1.0 );
-	if( lgtDir.z < 0.0 ) {
-		lgtDir.xy = signs * ( vec2( 1.0 ) - abs( lgtDir.yx ) );
+	vec2 signs = 2.0 * step(0.0, lightDir.xy) - vec2(1.0);
+	if(lightDir.z < 0.0) {
+		lightDir.xy = signs * (vec2(1.0) - abs(lightDir.yx));
 	}
 
-	lgtDir = normalize( lgtDir );
+	lightDir = normalize(lightDir);
 }
 
 void	main()
 {
-	vec2 texCoords = var_TexCoords;
-
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
+	vec2 texCoords = var_TexCoords;
+
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	vec3 L, ambCol, dirCol;
-	ReadLightGrid( (var_Position - u_LightGridOrigin) * u_LightGridScale,
-		       L, ambCol, dirCol);
+	// compute light direction in world space
+	vec3 lightDir;
+	vec3 ambientColor;
+	vec3 lightColor;
+
+	ReadLightGrid((var_Position - u_LightGridOrigin) * u_LightGridScale, lightDir, ambientColor, lightColor);
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
@@ -88,7 +87,9 @@ void	main()
 #endif // USE_PARALLAX_MAPPING
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texCoords) * var_Color;
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
+
+	diffuse *= var_Color;
 
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
@@ -96,14 +97,16 @@ void	main()
 		return;
 	}
 
-	vec4 material = texture2D(u_MaterialMap, texCoords);
-
 	// compute normal in world space from normalmap
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
+	// compute the material term
+	vec4 material = texture2D(u_MaterialMap, texCoords);
+
 	// compute final color
-	vec4 color = vec4( ambCol * diffuse.xyz, diffuse.a );
-	computeLight( L, normal, viewDir, dirCol, diffuse, material, color );
+	vec4 color = vec4(ambientColor * r_AmbientScale * diffuse.xyz, diffuse.a);
+
+	computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 
 	computeDLights( var_Position, normal, viewDir, diffuse, material, color );
 

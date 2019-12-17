@@ -47,42 +47,41 @@ IN(smooth) vec3		var_Normal;
 
 DECLARE_OUTPUT(vec4)
 
-void ReadLightGrid(in vec3 pos, out vec3 lgtDir,
-		   out vec3 ambCol, out vec3 lgtCol ) {
+void ReadLightGrid(in vec3 pos, out vec3 lightDir,
+		   out vec3 ambientColor, out vec3 lightColor) {
 	vec4 texel1 = texture3D(u_LightGrid1, pos);
 	vec4 texel2 = texture3D(u_LightGrid2, pos);
 
-	ambCol = texel1.xyz;
-	lgtCol = texel2.xyz;
+	ambientColor = texel1.xyz;
+	lightColor = texel2.xyz;
 
-	lgtDir.x = (texel1.w * 255.0 - 128.0) / 127.0;
-	lgtDir.y = (texel2.w * 255.0 - 128.0) / 127.0;
-	lgtDir.z = 1.0 - abs( lgtDir.x ) - abs( lgtDir.y );
+	lightDir.x = (255.0 * texel1.w - 128.0) / 127.0;
+	lightDir.y = (255.0 * texel2.w - 128.0) / 127.0;
+	lightDir.z = 1.0 - abs(lightDir.x) - abs(lightDir.y);
 
-	vec2 signs = 2.0 * step( 0.0, lgtDir.xy ) - vec2( 1.0 );
-	if( lgtDir.z < 0.0 ) {
-		lgtDir.xy = signs * ( vec2( 1.0 ) - abs( lgtDir.yx ) );
+	vec2 signs = 2.0 * step(0.0, lightDir.xy) - vec2(1.0);
+	if(lightDir.z < 0.0) {
+		lightDir.xy = signs * (vec2(1.0) - abs(lightDir.yx));
 	}
 
-	lgtDir = normalize( lgtDir );
+	lightDir = normalize(lightDir);
 }
 
 void	main()
 {
-	// compute light direction in world space
-	vec3 L;
-	vec3 ambCol;
-	vec3 lgtCol;
-
-	ReadLightGrid( (var_Position - u_LightGridOrigin) * u_LightGridScale,
-		       L, ambCol, lgtCol );
-
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
 	vec2 texCoords = var_TexCoords;
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
+
+	// compute light direction in world space
+	vec3 lightDir;
+	vec3 ambientColor;
+	vec3 lightColor;
+
+	ReadLightGrid((var_Position - u_LightGridOrigin) * u_LightGridScale, lightDir, ambientColor, lightColor);
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
@@ -91,27 +90,10 @@ void	main()
 	texCoords += texOffset;
 #endif // USE_PARALLAX_MAPPING
 
-	// compute normal in world space from normalmap
-	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
-
-#if defined(USE_REFLECTIVE_SPECULAR)
-	// not implemented for PBR yet
-
-	vec4 material = texture2D(u_MaterialMap, texCoords).rgba;
-
-	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal)).rgba;
-	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal)).rgba;
-
-	material.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
-
-#else // USE_REFLECTIVE_SPECULAR
-	// simple Blinn-Phong
-	vec4 material = texture2D(u_MaterialMap, texCoords).rgba;
-
-#endif // USE_REFLECTIVE_SPECULAR
-
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texCoords) * var_Color;
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
+
+	diffuse *= var_Color;
 
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
@@ -119,15 +101,35 @@ void	main()
 		return;
 	}
 
+	// compute normal in world space from normalmap
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+
+	// compute the material term
+#if defined(USE_REFLECTIVE_SPECULAR)
+	// not implemented for PBR yet
+
+	vec4 material = texture2D(u_MaterialMap, texCoords);
+
+	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal));
+	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal));
+
+	material.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
+
+#else // USE_REFLECTIVE_SPECULAR
+	// simple Blinn-Phong
+	vec4 material = texture2D(u_MaterialMap, texCoords);
+#endif // USE_REFLECTIVE_SPECULAR
+
 // add Rim Lighting to highlight the edges
 #if defined(r_RimLighting)
 	float rim = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), r_RimExponent);
-	vec3 emission = ambCol * rim * rim * 0.2;
+	vec3 emission = ambientColor * rim * rim * 0.2;
 #endif
 
 	// compute final color
-	vec4 color = vec4(ambCol * r_AmbientScale * diffuse.xyz, diffuse.a);
-	computeLight( L, normal, viewDir, lgtCol, diffuse, material, color );
+	vec4 color = vec4(ambientColor * r_AmbientScale * diffuse.xyz, diffuse.a);
+
+	computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 
 	computeDLights( var_Position, normal, viewDir, diffuse, material, color );
 

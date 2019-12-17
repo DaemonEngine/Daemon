@@ -21,23 +21,24 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 /* lightMapping_fp.glsl */
+
 uniform sampler2D	u_DiffuseMap;
 uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
+
 uniform sampler2D	u_LightMap;
 uniform sampler2D	u_DeluxeMap;
+
 uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec2		var_TexLight;
-
+IN(smooth) vec4		var_Color;
 IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
 IN(smooth) vec3		var_Normal;
-
-IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
 
@@ -66,29 +67,29 @@ void	main()
 		return;
 	}
 
-	// compute the material term
-	vec4 material = texture2D(u_MaterialMap, texCoords);
-
 	// compute normal in world space from normalmap
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+
+	// compute the material term
+	vec4 material = texture2D(u_MaterialMap, texCoords);
 
 	// compute light color from world space lightmap
 	vec3 lightColor = texture2D(u_LightMap, var_TexLight).xyz;
 
+	// compute final color
 	vec4 color = vec4( 0.0, 0.0, 0.0, diffuse.a );
 
 #if defined(USE_DELUXE_MAPPING)
 	// compute light direction in world space
 	vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
 
-	vec3 L = 2.0 * deluxe.xyz - 1.0;
-	L = normalize(L);
+	vec3 lightDir = normalize(2.0 * deluxe.xyz - 1.0);
 
 	// divide by cosine term to restore original light color
-	lightColor /= clamp(dot(normalize(var_Normal), L), 0.004, 1.0);
+	lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.004, 1.0);
 
-	// compute final color
-	computeLight( L, normal, viewDir, lightColor, diffuse, material, color );
+
+	computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 #else // !USE_DELUXE_MAPPING
 	// normal/deluxe mapping is disabled
 	color.xyz += lightColor.xyz * diffuse.xyz;
