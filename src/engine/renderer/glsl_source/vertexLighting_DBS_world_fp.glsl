@@ -74,7 +74,7 @@ void	main()
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
-	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyx);
+	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
 	vec3 L, ambCol, dirCol;
 	ReadLightGrid( (var_Position - u_LightGridOrigin) * u_LightGridScale,
