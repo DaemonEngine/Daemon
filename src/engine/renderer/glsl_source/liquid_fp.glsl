@@ -48,30 +48,30 @@ IN(smooth) vec3		var_Normal;
 
 DECLARE_OUTPUT(vec4)
 
-void ReadLightGrid(in vec3 pos, out vec3 lgtDir,
-		   out vec3 ambCol, out vec3 lgtCol ) {
+void ReadLightGrid(in vec3 pos, out vec3 lightDir,
+		   out vec3 ambientColor, out vec3 lightColor) {
 	vec4 texel1 = texture3D(u_LightGrid1, pos);
 	vec4 texel2 = texture3D(u_LightGrid2, pos);
-	float ambLum, lgtLum;
+	float ambientLuminance, lightLuminance;
 
 	texel1.xyz = (texel1.xyz * 255.0 - 128.0) / 127.0;
 	texel2.xyzw = texel2.xyzw - 0.5;
 
-	lgtDir = normalize(texel1.xyz);
+	lightDir = normalize(texel1.xyz);
 
-	lgtLum = 2.0 * length(texel1.xyz) * texel1.w;
-	ambLum = 2.0 * texel1.w - lgtLum;
+	lightLuminance = 2.0 * length(texel1.xyz) * texel1.w;
+	ambientLuminance = 2.0 * texel1.w - lightLuminance;
 
 	// YCoCg decode chrominance
-	ambCol.g = ambLum + texel2.x;
-	ambLum   = ambLum - texel2.x;
-	ambCol.r = ambLum + texel2.y;
-	ambCol.b = ambLum - texel2.y;
+	ambientColor.g = ambientLuminance + texel2.x;
+	ambientLuminance = ambientLuminance - texel2.x;
+	ambientColor.r = ambientLuminance + texel2.y;
+	ambientColor.b = ambientLuminance - texel2.y;
 
-	lgtCol.g = lgtLum + texel2.z;
-	lgtLum   = lgtLum - texel2.z;
-	lgtCol.r = lgtLum + texel2.w;
-	lgtCol.b = lgtLum - texel2.w;
+	lightColor.g = lightLuminance + texel2.z;
+	lightLuminance = lightLuminance - texel2.z;
+	lightColor.r = lightLuminance + texel2.w;
+	lightColor.b = lightLuminance - texel2.w;
 }
 
 
@@ -147,8 +147,8 @@ void	main()
 	vec3 ambientColor;
 	vec3 lightColor;
 
-	ReadLightGrid( (var_Position - u_LightGridOrigin) * u_LightGridScale,
-		       lightDir, ambientColor, lightColor );
+	ReadLightGrid((var_Position - u_LightGridOrigin) * u_LightGridScale,
+		       lightDir, ambientColor, lightColor);
 
 	vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
 

@@ -934,9 +934,9 @@ void	main()
 
 	// compute light direction in world space
 #if defined(LIGHT_DIRECTIONAL)
-	vec3 L = u_LightDir;
+	vec3 lightDir = u_LightDir;
 #else
-	vec3 L = normalize(u_LightOrigin - var_Position);
+	vec3 lightDir = normalize(u_LightOrigin - var_Position);
 #endif
 
 	vec2 texCoords = var_TexCoords;
@@ -954,16 +954,16 @@ void	main()
 #endif // USE_PARALLAX_MAPPING
 
 	// compute half angle in world space
-	vec3 H = normalize(L + viewDir);
+	vec3 H = normalize(lightDir + viewDir);
 
 	// compute normal in world space from normal map
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute the light term
 #if defined(r_WrapAroundLighting)
-	float NL = clamp(dot(normal, L) + u_LightWrapAround, 0.0, 1.0) / clamp(1.0 + u_LightWrapAround, 0.0, 1.0);
+	float NL = clamp(dot(normal, lightDir) + u_LightWrapAround, 0.0, 1.0) / clamp(1.0 + u_LightWrapAround, 0.0, 1.0);
 #else
-	float NL = clamp(dot(normal, L), 0.0, 1.0);
+	float NL = clamp(dot(normal, lightDir), 0.0, 1.0);
 #endif
 
 	// compute the diffuse term
