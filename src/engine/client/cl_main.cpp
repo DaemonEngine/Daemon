@@ -624,7 +624,7 @@ class DemoPlayCmd: public Cmd::StaticCmd {
                     Com_sprintf(name, sizeof(name), "demos/%s.dm_%d", arg, prot_ver);
                 }
 
-                FS_FOpenFileRead(name, &clc.demofile, true);
+                FS_FOpenFileRead(name, &clc.demofile);
                 prot_ver++;
             }
 
@@ -1422,7 +1422,7 @@ static void CL_LoadRSAKeys()
 
 	Log::Notice( "Loading RSA keys from %s" , fileName );
 
-	len = FS_FOpenFileRead( fileName, &f, true );
+	len = FS_FOpenFileRead( fileName, &f );
 
 	if ( !f || len < 1 )
 	{
@@ -2611,7 +2611,7 @@ bool CL_InitRenderer()
 	// filehandle is unused but forces FS_FOpenFileRead() to heed purecheck because it does not when filehandle is nullptr
 	if ( cl_consoleFont->string[0] )
 	{
-		if ( FS_FOpenFileRead( cl_consoleFont->string, &f, false ) >= 0 )
+		if ( FS_FOpenFileRead( cl_consoleFont->string, &f ) >= 0 )
 		{
 			if ( cl_consoleFontScaling->value == 0 )
 			{

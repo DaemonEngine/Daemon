@@ -229,7 +229,7 @@ struct refimport_t
 	int ( *FS_FTell )( fileHandle_t f );
 	int ( *FS_Read )( void *buffer, int len, fileHandle_t f );
 	int ( *FS_FCloseFile )( fileHandle_t f );
-	int ( *FS_FOpenFileRead )( const char *qpath, fileHandle_t *file, bool uniqueFILE );
+	int ( *FS_FOpenFileRead )( const char *qpath, fileHandle_t *file );
 
 	// cinematic stuff
 	void ( *CIN_UploadCinematic )( int handle );

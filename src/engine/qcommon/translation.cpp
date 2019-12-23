@@ -82,7 +82,7 @@ public:
 		end = buffer + BUFFER_SIZE - putBack;
 		setg( end, end, end );
 
-		FS_FOpenFileRead( filename.c_str(), &fileHandle, false );
+		FS_FOpenFileRead( filename.c_str(), &fileHandle );
 	}
 
 	~DaemonInputbuf()

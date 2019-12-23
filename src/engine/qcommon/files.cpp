@@ -87,7 +87,7 @@ bool FS_FileExists(const char* path)
 	return FS::PakPath::FileExists(path) || FS::HomePath::FileExists(path);
 }
 
-int FS_FOpenFileRead(const char* path, fileHandle_t* handle, bool)
+int FS_FOpenFileRead(const char* path, fileHandle_t* handle)
 {
 	if (!handle)
 		return FS_FileExists(path);
@@ -202,7 +202,7 @@ int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mod
 	switch (mode) {
 	case fsMode_t::FS_READ:
 		if (FS::PakPath::FileExists(path))
-			return FS_FOpenFileRead(path, handle, false);
+			return FS_FOpenFileRead(path, handle);
 		else {
 			int size = FS_SV_FOpenFileRead(FS::Path::Build("game", path).c_str(), handle);
 			return (!handle || *handle) ? size : -1;
@@ -427,7 +427,7 @@ void FS_WriteFile(const char* path, const void* buffer, int size)
 int FS_ReadFile(const char* path, void** buffer)
 {
 	fileHandle_t handle;
-	int length = FS_FOpenFileRead(path, &handle, true);
+	int length = FS_FOpenFileRead(path, &handle);
 
 	if (length < 0) {
 		if (buffer)

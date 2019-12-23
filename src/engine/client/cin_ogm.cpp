@@ -528,7 +528,7 @@ int Cin_OGM_Init( const char *filename )
 
 	memset( &g_ogm, 0, sizeof( cin_ogm_t ) );
 
-	FS_FOpenFileRead( filename, &g_ogm.ogmFile, true );
+	FS_FOpenFileRead( filename, &g_ogm.ogmFile );
 
 	if ( !g_ogm.ogmFile )
 	{
