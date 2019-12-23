@@ -338,7 +338,9 @@ enum class filesystem_error {
 	no_such_file,
 	no_such_directory,
 	wrong_pak_checksum,
-	missing_dependency
+	missing_dependency,
+	handle_exhaustion,
+	io_error,
 };
 class filesystem_category_impl: public std::error_category
 {
@@ -360,6 +362,10 @@ public:
 			return "Pak checksum incorrect";
 		case filesystem_error::missing_dependency:
 			return "Missing dependency";
+		case filesystem_error::io_error:
+			return "I/O error";
+		case filesystem_error::handle_exhaustion:
+			return "No file handles available";
 		default:
 			return "Unknown error";
 		}
@@ -653,57 +659,6 @@ void File::SetLineBuffered(bool enable, std::error_code& err) const
 	else
 		ClearErrorCode(err);
 }
-
-#ifdef BUILD_VM
-// Convert an IPC file handle to a File object
-static File FileFromIPC(Util::optional<IPC::OwnedFileHandle> ipcFile, openMode_t mode, std::error_code& err)
-{
-	if (!ipcFile) {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
-		return File();
-	}
-
-	int fd = ipcFile->GetHandle();
-
-	const char* modes[] = {"rb", "wb", "ab", "rb+"};
-	FILE* fp = fdopen(fd, modes[Util::ordinal(mode)]);
-	if (!fp) {
-		close(fd);
-		SetErrorCodeSystem(err);
-		return File();
-	}
-
-	return File(fp);
-}
-#endif
-
-#ifdef BUILD_ENGINE
-// Convert a File object to an ipc file handle
-static IPC::OwnedFileHandle FileToIPC(File file, openMode_t mode)
-{
-	IPC::FileOpenMode ipcMode;
-	switch (mode) {
-	default:
-    case openMode_t::MODE_READ:
-		ipcMode = IPC::FileOpenMode::MODE_READ;
-		break;
-	case openMode_t::MODE_WRITE:
-		ipcMode = IPC::FileOpenMode::MODE_WRITE;
-		break;
-	case openMode_t::MODE_APPEND:
-		ipcMode = IPC::FileOpenMode::MODE_WRITE_APPEND;
-		break;
-	case openMode_t::MODE_EDIT:
-		ipcMode = IPC::FileOpenMode::MODE_RW;
-		break;
-	}
-
-	int newfd = dup(fileno(file.GetHandle()));
-	if (newfd == -1)
-		return IPC::OwnedFileHandle();
-	return IPC::OwnedFileHandle(newfd, ipcMode);
-}
-#endif
 
 // Workaround for GCC 4.7.2 bug: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=55015
 namespace {
@@ -1367,6 +1322,32 @@ const std::vector<LoadedPakInfo>& GetLoadedPaks()
 	return loadedPaks;
 }
 
+#ifdef BUILD_VM
+std::string ReadFile(Str::StringRef path, std::error_code& err) {
+	if (!PakPath::FileExists(path)) {
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		return "";
+	}
+	int length, h;
+	const int mode = 0; // fsMode_t::FS_READ
+	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, mode, length, h);
+	if (!h) {
+		SetErrorCodeFilesystem(err, filesystem_error::handle_exhaustion);
+		return "";
+	}
+	std::string content;
+	int lengthRead;
+	VM::SendMsg<VM::FSReadMsg>(h, length, content, lengthRead);
+	if (lengthRead != length) {
+		SetErrorCodeFilesystem(err, filesystem_error::io_error);
+		return "";
+	}
+	ClearErrorCode(err);
+	return content;
+}
+#endif
+
+#ifdef BUILD_ENGINE
 std::string ReadFile(Str::StringRef path, std::error_code& err)
 {
 	auto it = fileMap.find(path);
@@ -1378,13 +1359,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
 	if (pak.type == pakType_t::PAK_DIR) {
 		// Open file
-#ifdef BUILD_VM
-		Util::optional<IPC::OwnedFileHandle> handle;
-		VM::SendMsg<VM::FSPakPathOpenMsg>(it->second.first, path, handle);
-		File file = FileFromIPC(std::move(handle), openMode_t::MODE_READ, err);
-#else
 		File file = RawPath::OpenRead(Path::Build(pak.path, path), err);
-#endif
 		if (err)
 			return "";
 
@@ -1438,13 +1413,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
 	if (pak.type == pakType_t::PAK_DIR) {
-#ifdef BUILD_VM
-		Util::optional<IPC::OwnedFileHandle> handle;
-		VM::SendMsg<VM::FSPakPathOpenMsg>(it->second.first, path, handle);
-		File file = FileFromIPC(std::move(handle), openMode_t::MODE_READ, err);
-#else
 		File file = RawPath::OpenRead(Path::Build(pak.path, path), err);
-#endif
 		if (err)
 			return;
 		file.CopyTo(dest, err);
@@ -1478,6 +1447,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 		ASSERT_UNREACHABLE();
 	}
 }
+#endif //BUILD_ENGINE
 
 bool FileExists(Str::StringRef path)
 {
@@ -1931,22 +1901,14 @@ RecursiveDirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code&
 
 namespace HomePath {
 
+#ifdef BUILD_ENGINE
 static File OpenMode(Str::StringRef path, openMode_t mode, std::error_code& err)
 {
-#ifdef BUILD_VM
-	Util::optional<IPC::OwnedFileHandle> handle;
-	VM::SendMsg<VM::FSHomePathOpenModeMsg>(path, Util::ordinal(mode), handle);
-	File file = FileFromIPC(std::move(handle), mode, err);
-	if (err)
-		return {};
-	return file;
-#else
 	if (!Path::IsValid(path, false)) {
 		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
 		return {};
 	}
 	return RawPath::OpenMode(Path::Build(homePath, path), mode, err);
-#endif
 }
 File OpenRead(Str::StringRef path, std::error_code& err)
 {
@@ -1964,6 +1926,7 @@ File OpenEdit(Str::StringRef path, std::error_code& err)
 {
 	return OpenMode(path, openMode_t::MODE_EDIT, err);
 }
+#endif //BUILD_ENGINE
 
 bool FileExists(Str::StringRef path)
 {
@@ -2670,11 +2633,8 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 		break;
 
 	case VM::FS_HOMEPATH_OPENMODE:
-		IPC::HandleMsg<VM::FSHomePathOpenModeMsg>(channel, std::move(reader), [](std::string path, uint32_t mode, Util::optional<IPC::OwnedFileHandle>& out) {
-			std::error_code err;
-			FS::File file = HomePath::OpenMode(Path::Build("game", path), static_cast<openMode_t>(mode), err);
-			if (!err)
-				out = FileToIPC(std::move(file), static_cast<openMode_t>(mode));
+		IPC::HandleMsg<VM::FSHomePathOpenModeMsg>(channel, std::move(reader), [](std::string, uint32_t) {
+			Sys::Drop("FSHomePathOpenModeMsg not implemented");
 		});
 		break;
 
@@ -2732,18 +2692,8 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 		break;
 
 	case VM::FS_PAKPATH_OPEN:
-		IPC::HandleMsg<VM::FSPakPathOpenMsg>(channel, std::move(reader), [](uint32_t pakIndex, std::string path, Util::optional<IPC::OwnedFileHandle>& out) {
-			auto& loadedPaks = FS::PakPath::GetLoadedPaks();
-			if (loadedPaks.size() <= pakIndex)
-				return;
-			if (loadedPaks[pakIndex].type == pakType_t::PAK_ZIP)
-				return;
-			if (!Path::IsValid(path, false))
-				return;
-			std::error_code err;
-			FS::File file = RawPath::OpenRead(Path::Build(loadedPaks[pakIndex].path, path), err);
-			if (!err)
-				out = FileToIPC(std::move(file), openMode_t::MODE_READ);
+		IPC::HandleMsg<VM::FSPakPathOpenMsg>(channel, std::move(reader), [](uint32_t, std::string) {
+			Sys::Drop("FSPakPathOpenMsg not implemented");
 		});
 		break;
 
