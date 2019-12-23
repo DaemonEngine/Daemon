@@ -249,9 +249,9 @@ namespace VM {
                 break;
 
             case QVM_COMMON_FS_FOPEN_FILE:
-                IPC::HandleMsg<FSFOpenFileMsg>(channel, std::move(reader), [this](const std::string& filename, bool open, int fsMode, int& success, int& handle) {
+                IPC::HandleMsg<FSFOpenFileMsg>(channel, std::move(reader), [this](const std::string& filename, bool open, int fsMode, int& length, int& handle) {
                     fsMode_t mode = static_cast<fsMode_t>(fsMode);
-                    success = FS_Game_FOpenFileByMode(filename.c_str(), open ? &handle : nullptr, mode);
+                    length = FS_Game_FOpenFileByMode(filename.c_str(), open ? &handle : nullptr, mode);
                 });
                 break;
 
