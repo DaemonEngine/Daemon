@@ -171,12 +171,6 @@ FileHandle FileHandle::FromDesc(const FileDesc& desc)
 #endif
 }
 
-OwnedFileHandle::~OwnedFileHandle()
-{
-	if (handle)
-		close(handle.GetHandle());
-}
-
 void Socket::Close()
 {
 	if (Sys::IsValidHandle(handle))

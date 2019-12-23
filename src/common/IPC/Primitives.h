@@ -70,42 +70,6 @@ namespace IPC {
 		FileOpenMode mode;
 	};
 
-	// Same as FileHandle except the fd is closed on destruction
-	class OwnedFileHandle {
-	public:
-		OwnedFileHandle() = default;
-		OwnedFileHandle(int fd, FileOpenMode mode) : handle(fd, mode) {}
-		OwnedFileHandle(OwnedFileHandle&& other) : handle(other.handle) {
-			other.handle = FileHandle();
-		}
-		OwnedFileHandle& operator=(OwnedFileHandle&& other) {
-			std::swap(handle, other.handle);
-			return *this;
-		}
-		~OwnedFileHandle();
-		explicit operator bool() const {
-			return bool(handle);
-		}
-
-		FileDesc GetDesc() const {
-			return handle.GetDesc();
-		}
-		static OwnedFileHandle FromDesc(const FileDesc& desc) {
-			OwnedFileHandle out;
-			out.handle = FileHandle::FromDesc(desc);
-			return out;
-		}
-
-		int GetHandle() {
-			int fd = handle.GetHandle();
-			handle = FileHandle();
-			return fd;
-		}
-
-	private:
-		FileHandle handle;
-	};
-
 	// Message-based socket through which data and handles can be passed.
 	class Socket {
 	public:
@@ -214,16 +178,6 @@ namespace Util {
 		static IPC::FileHandle Read(Reader& stream)
 		{
 			return IPC::FileHandle::FromDesc(stream.ReadHandle());
-		}
-	};
-	template<> struct SerializeTraits<IPC::OwnedFileHandle> {
-		static void Write(Writer& stream, const IPC::OwnedFileHandle& value)
-		{
-			stream.WriteHandle(value.GetDesc());
-		}
-		static IPC::OwnedFileHandle Read(Reader& stream)
-		{
-			return IPC::OwnedFileHandle::FromDesc(stream.ReadHandle());
 		}
 	};
 	template<> struct SerializeTraits<IPC::SharedMemory> {
