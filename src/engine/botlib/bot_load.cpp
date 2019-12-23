@@ -128,7 +128,7 @@ void BotLoadOffMeshConnections( const char *filename, NavData_t *nav )
 
 	Cvar_VariableStringBuffer( "mapname", mapname, sizeof( mapname ) );
 	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navcon", mapname, filename );
-	FS_FOpenFileRead( filePath, &f, true );
+	FS_FOpenFileRead( filePath, &f );
 
 	if ( !f )
 	{
@@ -189,7 +189,7 @@ bool BotLoadNavMesh( const char *filename, NavData_t &nav )
 	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navMesh", mapname, filename );
 	Log::Notice( " loading navigation mesh file '%s'...", filePath );
 
-	int len = FS_FOpenFileRead( filePath, &f, true );
+	int len = FS_FOpenFileRead( filePath, &f );
 
 	if ( !f )
 	{

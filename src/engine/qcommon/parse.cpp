@@ -1143,7 +1143,7 @@ static script_t *Parse_LoadScriptFile( const char *filename )
 	void         *buffer;
 	script_t     *script;
 
-	length = FS_FOpenFileRead( filename, &fp, false );
+	length = FS_FOpenFileRead( filename, &fp );
 
 	if ( !fp ) { return nullptr; }
 
