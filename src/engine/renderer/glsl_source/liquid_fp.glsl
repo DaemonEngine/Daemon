@@ -112,7 +112,11 @@ void	main()
 	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, normal), u_FresnelPower) *
 			u_FresnelScale, 0.0, 1.0);
 
-	texScreen += u_NormalScale * normal.xy;
+	// HACK: 0 normal Z channel can't be good
+	if (u_NormalScale.z != 0)
+	{
+		texScreen *= u_NormalScale;
+	}
 
 	vec3 refractColor = texture2D(u_CurrentMap, texScreen).rgb;
 	vec3 reflectColor = texture2D(u_PortalMap, texScreen).rgb;

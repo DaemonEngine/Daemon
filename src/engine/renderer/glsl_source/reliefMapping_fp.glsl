@@ -26,36 +26,14 @@ uniform sampler2D	u_NormalMap;
 uniform int u_HeightMapInNormalMap;
 #endif // r_normalMapping || USE_PARALLAX_MAPPING
 
+#if defined(r_normalMapping)
+uniform vec3 u_NormalScale;
+#endif // r_normalMapping
+
 #if defined(USE_PARALLAX_MAPPING)
 uniform float       u_ParallaxDepthScale;
 uniform float       u_ParallaxOffsetBias;
 #endif // USE_PARALLAX_MAPPING
-
-#if defined(r_normalMapping)
-uniform vec3 u_NormalFormat;
-
-vec3 normalFlip(vec3 normal)
-{
-	// undefined (zero) means default means 1.0 means do nothing
-
-	if (u_NormalFormat.x < 0.0)
-	{
-		normal.x *= -1.0;
-	}
-
-	if (u_NormalFormat.y < 0.0)
-	{
-		normal.y *= -1.0;
-	}
-
-	if (u_NormalFormat.z < 0.0)
-	{
-		normal.z *= -1.0;
-	}
-
-	return normal;
-}
-#endif // r_normalMapping
 
 // compute normal in tangent space
 vec3 NormalInTangentSpace(vec2 texNormal)
@@ -85,11 +63,11 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 		normal = 2.0 * normal - 1.0;
 	}
 
-	normal = normalFlip(normal);
-
-#if defined(r_NormalScale)
-	normal.z *= r_NormalScale;
-#endif
+	// HACK: 0 normal Z channel can't be good
+	if (u_NormalScale.z != 0)
+	{
+		normal *= u_NormalScale;
+	}
 #else // !r_normalMapping
 	normal = vec3(0.5, 0.5, 1.0);
 #endif // !r_normalMapping

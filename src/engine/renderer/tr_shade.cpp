@@ -578,6 +578,39 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 }
 
+/*
+==============
+SetNormalScale
+==============
+*/
+void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale)
+{
+		float normalIntensity = RB_EvalExpression( &pStage->normalIntensityExp, 1 );
+
+		normalScale[ 0 ] = 1;
+		normalScale[ 1 ] = 1;
+		normalScale[ 2 ] = 1;
+
+		normalScale[ 0 ] *= normalIntensity;
+		normalScale[ 1 ] *= normalIntensity;
+
+		if ( pStage->hasNormalScale )
+		{
+			normalScale[ 0 ] *= pStage->normalScale[ 0 ];
+			normalScale[ 1 ] *= pStage->normalScale[ 1 ];
+			normalScale[ 2 ] *= pStage->normalScale[ 2 ];
+		}
+
+		// NOTE: normalmap with zero Z component is wrong
+		//
+		// since glsl disables normalScale when Z is zero
+		// setting this to zero has side effect to reset
+		// per-stage normalScale
+		//
+		// there is no intention to keep this undefined feature
+		normalScale[ 2 ] *= r_normalScale->value;
+}
+
 // *INDENT-ON*
 
 static void Render_generic( int stage )
@@ -802,8 +835,11 @@ static void Render_vertexLighting_DBS_entity( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		// bind u_NormalFormat
-		gl_vertexLightingShader_DBS_entity->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+		vec3_t normalScale;
+		SetNormalScale( pStage, normalScale );
+
+		// bind u_NormalScale
+		gl_vertexLightingShader_DBS_entity->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1049,8 +1085,11 @@ static void Render_vertexLighting_DBS_world( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		// bind u_NormalFormat
-		gl_vertexLightingShader_DBS_world->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+		vec3_t normalScale;
+		SetNormalScale( pStage, normalScale );
+
+		// bind u_NormalScale
+		gl_vertexLightingShader_DBS_world->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1224,8 +1263,11 @@ static void Render_lightMapping( int stage )
 	{
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		// bind u_NormalFormat
-		gl_lightMappingShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+		vec3_t normalScale;
+		SetNormalScale( pStage, normalScale );
+
+		// bind u_NormalScale
+		gl_lightMappingShader->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1566,8 +1608,11 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		// bind u_NormalFormat
-		gl_forwardLightingShader_omniXYZ->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+		vec3_t normalScale;
+		SetNormalScale( diffuseStage, normalScale );
+
+		// bind u_NormalScale
+		gl_forwardLightingShader_omniXYZ->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1753,8 +1798,11 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		// bind u_NormalFormat
-		gl_forwardLightingShader_projXYZ->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+		vec3_t normalScale;
+		SetNormalScale( diffuseStage, normalScale );
+
+		// bind u_NormalScale
+		gl_forwardLightingShader_projXYZ->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -1942,8 +1990,11 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 		// bind u_NormalMap
 		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		// bind u_NormalFormat
-		gl_forwardLightingShader_directionalSun->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+		vec3_t normalScale;
+		SetNormalScale( diffuseStage, normalScale );
+
+		// bind u_NormalScale
+		gl_forwardLightingShader_directionalSun->SetUniform_NormalScale( normalScale );
 	}
 	else
 	{
@@ -2078,8 +2129,11 @@ static void Render_reflection_CB( int stage )
 		gl_reflectionShader->SetUniform_HeightMapInNormalMap( pStage->heightMapInNormalMap );
 	}
 
-	// bind u_NormalFormat
-	gl_reflectionShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+	vec3_t normalScale;
+	SetNormalScale( pStage, normalScale );
+
+	// bind u_NormalScale
+	gl_reflectionShader->SetUniform_NormalScale( normalScale );
 
 	gl_reflectionShader->SetRequiredVertexPointers();
 
@@ -2245,8 +2299,11 @@ static void Render_heatHaze( int stage )
 
 		gl_heatHazeShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
-		// bind u_NormalFormat
-		gl_heatHazeShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+		vec3_t normalScale;
+		SetNormalScale( pStage, normalScale );
+
+		// bind u_NormalScale
+		gl_heatHazeShader->SetUniform_NormalScale( normalScale );
 	}
 
 	GL_BindToTMU( 1, tr.currentRenderImage[ backEnd.currentMainFBO ] );
@@ -2300,7 +2357,7 @@ static void Render_liquid( int stage )
 	gl_liquidShader->SetUniform_FresnelPower( RB_EvalExpression( &pStage->fresnelPowerExp, 2.0 ) );
 	gl_liquidShader->SetUniform_FresnelScale( RB_EvalExpression( &pStage->fresnelScaleExp, 1.0 ) );
 	gl_liquidShader->SetUniform_FresnelBias( RB_EvalExpression( &pStage->fresnelBiasExp, 0.05 ) );
-	gl_liquidShader->SetUniform_NormalScale( RB_EvalExpression( &pStage->normalScaleExp, 0.05 ) );
+	gl_liquidShader->SetUniform_NormalIntensity( RB_EvalExpression( &pStage->normalIntensityExp, 0.05 ) );
 	gl_liquidShader->SetUniform_FogDensity( fogDensity );
 	gl_liquidShader->SetUniform_FogColor( fogColor );
 
@@ -2328,8 +2385,11 @@ static void Render_liquid( int stage )
 		// bind u_NormalMap
 		GL_BindToTMU( 3, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
 
-		// bind u_NormalFormat
-		gl_liquidShader->SetUniform_NormalFormat( tess.surfaceShader->normalFormat );
+		vec3_t normalScale;
+		SetNormalScale( pStage, normalScale );
+
+		// bind u_NormalScale
+		gl_liquidShader->SetUniform_NormalScale( normalScale );
 	}
 
 	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );

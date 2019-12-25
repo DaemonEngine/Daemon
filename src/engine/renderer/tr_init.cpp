@@ -1196,7 +1196,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_specularScale = ri.Cvar_Get( "r_specularScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
 		r_specularMapping = ri.Cvar_Get( "r_specularMapping", "1", CVAR_LATCH );
 		r_deluxeMapping = ri.Cvar_Get( "r_deluxeMapping", "1", CVAR_ARCHIVE );
-		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_LATCH );
+		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_ARCHIVE );
 		r_normalMapping = ri.Cvar_Get( "r_normalMapping", "1", CVAR_ARCHIVE );
 		r_highQualityNormalMapping = ri.Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
 		r_parallaxDepthScale = ri.Cvar_Get( "r_parallaxDepthScale", "0.03", CVAR_CHEAT );

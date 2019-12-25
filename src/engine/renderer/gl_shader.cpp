@@ -699,7 +699,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 
 	AddDefine( env, "r_AmbientScale", r_ambientScale->value );
 	AddDefine( env, "r_SpecularScale", r_specularScale->value );
-	AddDefine( env, "r_NormalScale", r_normalScale->value );
 	AddDefine( env, "r_zNear", r_znear->value );
 
 	AddDefine( env, "M_PI", static_cast<float>( M_PI ) );
@@ -1468,7 +1467,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
 	u_HeightMapInNormalMap( this ),
-	u_NormalFormat( this ),
+	u_NormalScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
 	GLDeformStage( this ),
@@ -1519,7 +1518,7 @@ GLShader_vertexLighting_DBS_entity::GLShader_vertexLighting_DBS_entity( GLShader
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
 	u_HeightMapInNormalMap( this ),
-	u_NormalFormat( this ),
+	u_NormalScale( this ),
 	u_EnvironmentInterpolation( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
@@ -1580,7 +1579,7 @@ GLShader_vertexLighting_DBS_world::GLShader_vertexLighting_DBS_world( GLShaderMa
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
 	u_HeightMapInNormalMap( this ),
-	u_NormalFormat( this ),
+	u_NormalScale( this ),
 	u_LightWrapAround( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
@@ -1642,7 +1641,7 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
 	u_HeightMapInNormalMap( this ),
-	u_NormalFormat( this ),
+	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1701,7 +1700,7 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
 	u_HeightMapInNormalMap( this ),
-	u_NormalFormat( this ),
+	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1763,7 +1762,7 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
 	u_HeightMapInNormalMap( this ),
-	u_NormalFormat( this ),
+	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1846,7 +1845,6 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	u_ParallaxOffsetBias( this ),
 	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
-	u_NormalFormat( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
@@ -1948,7 +1946,7 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_Color( this ),
 	u_Bones( this ),
-	u_NormalFormat( this ),
+	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
@@ -2112,7 +2110,6 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_ParallaxOffsetBias( this ),
 	u_HeightMapInNormalMap( this ),
 	u_NormalScale( this ),
-	u_NormalFormat( this ),
 	u_FogDensity( this ),
 	u_FogColor( this ),
 	u_SpecularExponent( this ),
