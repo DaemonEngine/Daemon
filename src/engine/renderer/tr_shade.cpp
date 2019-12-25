@@ -2354,6 +2354,10 @@ static void Render_heatHaze( int stage )
 		// bind u_NormalScale
 		gl_heatHazeShader->SetUniform_NormalScale( normalScale );
 	}
+	else
+	{
+		GL_BindToTMU( 0, tr.flatImage );
+	}
 
 	// bind u_CurrentMap
 	GL_BindToTMU( 1, tr.currentRenderImage[ backEnd.currentMainFBO ] );
@@ -2448,6 +2452,10 @@ static void Render_liquid( int stage )
 
 		// bind u_NormalScale
 		gl_liquidShader->SetUniform_NormalScale( normalScale );
+	}
+	else
+	{
+		GL_BindToTMU( 3, tr.flatImage );
 	}
 
 	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
