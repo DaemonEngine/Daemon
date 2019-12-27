@@ -32,7 +32,6 @@ uniform float		u_RefractionIndex;
 uniform float		u_FresnelPower;
 uniform float		u_FresnelScale;
 uniform float		u_FresnelBias;
-uniform float		u_NormalScale;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_UnprojectMatrix;
 uniform vec2		u_SpecularExponent;
@@ -111,12 +110,6 @@ void	main()
 	// compute fresnel term
 	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, normal), u_FresnelPower) *
 			u_FresnelScale, 0.0, 1.0);
-
-	// HACK: 0 normal Z channel can't be good
-	if (u_NormalScale.z != 0)
-	{
-		texScreen *= u_NormalScale;
-	}
 
 	vec3 refractColor = texture2D(u_CurrentMap, texScreen).rgb;
 	vec3 reflectColor = texture2D(u_PortalMap, texScreen).rgb;

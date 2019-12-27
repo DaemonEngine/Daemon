@@ -1416,10 +1416,11 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		case stageType_t::ST_HEATHAZEMAP:
 		case stageType_t::ST_LIQUIDMAP:
 			imageBits |= IF_NORMALMAP;
-			if ( stage->heightMapInNormalMap || shader.heightMapInNormalMap )
-			{
-				imageBits |= IF_DISPLACEMAP;
-			}
+
+		default:
+			// silence warning for other types, we don't have to take care of them:
+			//    warning: enumeration value ‘ST_GLOWMAP’ not handled in switch [-Wswitch]
+			break;
 	}
 
 	if ( stage->stateBits & ( GLS_ATEST_BITS ) )
@@ -1460,15 +1461,15 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		}
 	}
 
-	// enable parallax if an heightmap is found
-	// and not explicitely disabled by a shader keyword
+	// tell renderer to enable parallax mapping since an heightmap is found
+	// also tell renderer to not abuse normalmap alpha channel because it's an heightmap
+	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
 	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_DISPLACEMAP )
 	{
 		if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP )
 		{
 			Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
 			stage->heightMapInNormalMap = true;
-			shader.parallax = true;
 		}
 	}
 
@@ -3812,37 +3813,41 @@ static bool ParseShader( const char *_text )
 			continue;
 		}
 		// parallax mapping
-		else if ( !Q_stricmp( token, "parallax" )
-			|| ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) ) )
+		else if ( !Q_stricmp( token, "parallax" ) )
+		{
+			// legacy lone “parallax” XreaL keyword was
+			// never used, it had purpose to enable parallax
+			// for the current shader
+			//
+			// the engine also relied on this to know
+			// that heightmap was stored in normalmap
+			// but there was no other storage options
+			//
+			// the engine also had to rely on this to know
+			// that heightmap was stored in normalmap
+			// because of a design flaw that used depthmap
+			// instead of heightmap, meaning missing depthmap
+			// would cause a wrong displacement if not discarded
+			//
+			// so that option was there to tell the engine to
+			// not discard heightmap when mapper knows it is
+			// not flat
+			//
+			// since engine now automatically loads
+			// and enables heightmap stored in normalmap,
+			// and has not problem with flat heightmap
+			// in any way because of better design
+			// this seems pretty useless
+
+			Log::Warn("deprecated keyword '%s' in shader '%s', this was a workaround for a design flaw, there is no need for it", token, shader.name );
+
+			SkipRestOfLine( text );
+			continue;
+		}
+		else if ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) )
 		{
 			char* keyword = token;
 			token = COM_ParseExt2( text, false );
-
-			if ( !token[ 0 ] )
-			{
-				// legacy lone “parallax” XreaL keyword was
-				// never used, it had purpose to enable parallax
-				// for the current shader
-				//
-				// the engine also relied on this to know
-				// that height map was stored in normal map
-				// but there was no other storage options
-				//
-				// since engine now automatically loads
-				// and enable height map stored in normal map,
-				// this seems pretty useless, but it costs
-				// nothing to keep the behavior
-				//
-				// this is only done if the “parallax” keyword
-				// is called alone
-				//
-				// note that DarkPlaces expects heightmap to be
-				// stored in normalmap, so even a mistakenly
-				// lone “dpoffsetmapping” keyword will not produce
-				// something wrong
-				shader.heightMapInNormalMap = true;
-				continue;
-			}
 
 			if ( !Q_stricmp( token, "none" ) )
 			{
@@ -4459,7 +4464,7 @@ static void CollapseStages()
 		if ( lightStage != -1 && stages[ i ].collapseType != collapseType_t::COLLAPSE_none )
 		{
 			// custom lightmap stage, disable the implicit light stage
-			Log::Debug("found custom lightmap stage in '%s' shader, not disabling implicit one", shader.name);
+			Log::Debug("found custom lightmap stage in '%s' shader, disabling implicit one", shader.name);
 			stages[ i ].implicitLightmap = false;
 		}
 	}
@@ -4527,6 +4532,7 @@ static void CollapseStages()
 				// disable since it's merged
 				stages[ normalStage ].active = false;
 			}
+
 			if ( specularStage != -1 )
 			{
 				// merge with diffuse stage
@@ -4536,6 +4542,7 @@ static void CollapseStages()
 				// disable since it's merged
 				stages[ specularStage ].active = false;
 			}
+
 			if ( physicalStage != -1 )
 			{
 				// merge with diffuse stage
@@ -4543,6 +4550,7 @@ static void CollapseStages()
 				// disable since it's merged
 				stages[ physicalStage ].active = false;
 			}
+
 			// always test for this stage before glow stage
 			if ( lightStage != -1 )
 			{
@@ -4563,6 +4571,7 @@ static void CollapseStages()
 					stages[ diffuseStage ].implicitLightmap = false;
 				}
 			}
+
 			// always test for this stage after light stage
 			if ( glowStage != -1 )
 			{

@@ -744,15 +744,18 @@ static void Render_vertexLighting_DBS_entity( int stage )
 
 	GL_State( stateBits );
 
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
+
+	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
 	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
 
-	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool heightMapInNormalMap = pStage->heightMapInNormalMap && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
 	bool physicalMapping = r_physicalMapping->integer && hasMaterialMap && isMaterialPhysical;
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
-	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
+	bool glowMapping = r_glowMapping->integer && hasGlowMap;
 
 	// choose right shader program ----------------------------------
 	gl_vertexLightingShader_DBS_entity->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -823,14 +826,14 @@ static void Render_vertexLighting_DBS_entity( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_vertexLightingShader_DBS_entity->SetUniform_ParallaxDepthScale( depthScale );
 		gl_vertexLightingShader_DBS_entity->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_vertexLightingShader_DBS_entity->SetUniform_HeightMapInNormalMap( pStage->heightMapInNormalMap );
+		gl_vertexLightingShader_DBS_entity->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
 	}
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_vertexLightingShader_DBS_entity->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || heightMapInNormalMap )
+	if ( normalMapping || hasHeightMapInNormalMap )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -979,11 +982,18 @@ static void Render_vertexLighting_DBS_world( int stage )
 
 	stateBits = pStage->stateBits;
 
-	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool heightMapInNormalMap = pStage->heightMapInNormalMap && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && ( pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] != nullptr );
-	bool glowMapping = r_glowMapping->integer && ( pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr );
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
+
+	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
+	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	bool physicalMapping = r_physicalMapping->integer && hasMaterialMap && isMaterialPhysical;
+	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
+	bool glowMapping = r_glowMapping->integer && hasGlowMap;
 
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
@@ -1068,7 +1078,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_vertexLightingShader_DBS_world->SetUniform_ParallaxDepthScale( depthScale );
 		gl_vertexLightingShader_DBS_world->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_vertexLightingShader_DBS_world->SetUniform_HeightMapInNormalMap( pStage->heightMapInNormalMap );
+		gl_vertexLightingShader_DBS_world->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
 	}
 
 	if( tr.world ) {
@@ -1080,7 +1090,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_vertexLightingShader_DBS_world->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || heightMapInNormalMap )
+	if ( normalMapping || hasHeightMapInNormalMap )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1096,15 +1106,18 @@ static void Render_vertexLighting_DBS_world( int stage )
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
-	if ( specularMapping )
+	if ( physicalMapping || specularMapping )
 	{
-		// bind u_SpecularMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+		// bind u_MaterialMap
+		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		if ( specularMapping )
+		{
+			float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+			float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
-		gl_vertexLightingShader_DBS_world->SetUniform_SpecularExponent( minSpec, maxSpec );
+			gl_vertexLightingShader_DBS_world->SetUniform_SpecularExponent( minSpec, maxSpec );
+		}
 	}
 	else
 	{
@@ -1174,23 +1187,23 @@ static void Render_lightMapping( int stage )
 
 	GL_State( stateBits );
 
-	bool noLightMap = !pStage->implicitLightmap
-		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
-		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
-
-	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
-
 	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 	bool hasGlowMap = pStage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
+	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
+
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
 	bool deluxeMapping = r_deluxeMapping->integer && tr.worldDeluxeMapping && normalMapping;
-	bool heightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
-	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
 	bool physicalMapping = r_physicalMapping->integer && hasMaterialMap && isMaterialPhysical;
 	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
 	bool glowMapping = r_glowMapping->integer && hasGlowMap;
+
+	bool noLightMap = !pStage->implicitLightmap
+		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
+		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
 
 	// choose right shader program ----------------------------------
 	GL_BindToTMU( 8, tr.lighttileRenderImage );
@@ -1243,7 +1256,7 @@ static void Render_lightMapping( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_lightMappingShader->SetUniform_ParallaxDepthScale( depthScale );
 		gl_lightMappingShader->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_lightMappingShader->SetUniform_HeightMapInNormalMap( pStage->heightMapInNormalMap );
+		gl_lightMappingShader->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
 	}
 
 	// bind u_DiffuseMap
@@ -1259,7 +1272,7 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_NormalMap
-	if ( normalMapping || heightMapInNormalMap )
+	if ( normalMapping || hasHeightMapInNormalMap )
 	{
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
@@ -1470,7 +1483,7 @@ static void Render_shadowFill( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
+static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
     shaderStage_t *attenuationXYStage,
     shaderStage_t *attenuationZStage, trRefLight_t *light )
 {
@@ -1482,10 +1495,18 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_omni ---\n" );
 
-	bool normalMapping = r_normalMapping->integer && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool heightMapInNormalMap = diffuseStage->heightMapInNormalMap && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+
+	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
+	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	// physical mapping is not implemented
+	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
+	// glow mapping is not implemented
+
 	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
@@ -1496,18 +1517,18 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	
 	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
 
-	gl_forwardLightingShader_omniXYZ->BindProgram( diffuseStage->deformIndex );
+	gl_forwardLightingShader_omniXYZ->BindProgram( pStage->deformIndex );
 
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( diffuseStage->rgbGen )
+	switch ( pStage->rgbGen )
 	{
 		case colorGen_t::CGEN_VERTEX:
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = diffuseStage->rgbGen;
+			colorGen = pStage->rgbGen;
 			break;
 
 		default:
@@ -1515,11 +1536,11 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 			break;
 	}
 
-	switch ( diffuseStage->alphaGen )
+	switch ( pStage->alphaGen )
 	{
 		case alphaGen_t::AGEN_VERTEX:
 		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = diffuseStage->alphaGen;
+			alphaGen = pStage->alphaGen;
 			break;
 
 		default:
@@ -1532,19 +1553,19 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	// u_Color
 	gl_forwardLightingShader_omniXYZ->SetUniform_Color( tess.svars.color );
 
-	gl_forwardLightingShader_omniXYZ->SetUniform_AlphaTest( diffuseStage->stateBits );
+	gl_forwardLightingShader_omniXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
 	if ( parallaxMapping )
 	{
 		float depthScale;
 		float parallaxDepthScale;
 
-		depthScale = RB_EvalExpression( &diffuseStage->depthScaleExp, r_parallaxDepthScale->value );
+		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_parallaxDepthScale->value );
 		parallaxDepthScale = tess.surfaceShader->parallaxDepthScale;
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_omniXYZ->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_omniXYZ->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_omniXYZ->SetUniform_HeightMapInNormalMap( heightMapInNormalMap );
+		gl_forwardLightingShader_omniXYZ->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -1567,7 +1588,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightColor( lightColor.ToArray() );
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightRadius( light->sphereRadius );
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightScale( light->l.scale );
-	gl_forwardLightingShader_omniXYZ->SetUniform_LightWrapAround( RB_EvalExpression( &diffuseStage->wrapAroundLightingExp, 0 ) );
+	gl_forwardLightingShader_omniXYZ->SetUniform_LightWrapAround( RB_EvalExpression( &pStage->wrapAroundLightingExp, 0 ) );
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
 
 	GL_CheckErrors();
@@ -1600,16 +1621,16 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( 0, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || heightMapInNormalMap )
+	if ( normalMapping || hasHeightMapInNormalMap )
 	{
 		// bind u_NormalMap
-		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
 		vec3_t normalScale;
-		SetNormalScale( diffuseStage, normalScale );
+		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
 		gl_forwardLightingShader_omniXYZ->SetUniform_NormalScale( normalScale );
@@ -1619,13 +1640,14 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
+	// physical mapping is not implemented
 	if ( specularMapping )
 	{
-		// bind u_SpecularMap
-		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+		// bind u_MaterialMap
+		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
-		float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
+		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
 		gl_forwardLightingShader_omniXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
@@ -1659,7 +1681,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *diffuseStage,
 	GL_CheckErrors();
 }
 
-static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
+static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
     shaderStage_t *attenuationXYStage,
     shaderStage_t *attenuationZStage, trRefLight_t *light )
 {
@@ -1669,12 +1691,19 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	colorGen_t colorGen;
 	alphaGen_t alphaGen;
 
-	GLimp_LogComment( "--- Render_fowardLighting_DBS_proj ---\n" );
+	GLimp_LogComment( "--- Render_forwardLighting_DBS_proj ---\n" );
 
-	bool normalMapping = r_normalMapping->integer && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool heightMapInNormalMap = diffuseStage->heightMapInNormalMap && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+
+	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
+	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	// physical mapping is not implemented
+	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
+
 	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
@@ -1685,18 +1714,18 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	
 	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
 
-	gl_forwardLightingShader_projXYZ->BindProgram( diffuseStage->deformIndex );
+	gl_forwardLightingShader_projXYZ->BindProgram( pStage->deformIndex );
 
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( diffuseStage->rgbGen )
+	switch ( pStage->rgbGen )
 	{
 		case colorGen_t::CGEN_VERTEX:
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = diffuseStage->rgbGen;
+			colorGen = pStage->rgbGen;
 			break;
 
 		default:
@@ -1704,11 +1733,11 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 			break;
 	}
 
-	switch ( diffuseStage->alphaGen )
+	switch ( pStage->alphaGen )
 	{
 		case alphaGen_t::AGEN_VERTEX:
 		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = diffuseStage->alphaGen;
+			alphaGen = pStage->alphaGen;
 			break;
 
 		default:
@@ -1721,19 +1750,19 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	// u_Color
 	gl_forwardLightingShader_projXYZ->SetUniform_Color( tess.svars.color );
 
-	gl_forwardLightingShader_projXYZ->SetUniform_AlphaTest( diffuseStage->stateBits );
+	gl_forwardLightingShader_projXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
 	if ( parallaxMapping )
 	{
 		float depthScale;
 		float parallaxDepthScale;
 
-		depthScale = RB_EvalExpression( &diffuseStage->depthScaleExp, r_parallaxDepthScale->value );
+		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_parallaxDepthScale->value );
 		parallaxDepthScale = tess.surfaceShader->parallaxDepthScale;
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_projXYZ->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_projXYZ->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_projXYZ->SetUniform_HeightMapInNormalMap( heightMapInNormalMap );
+		gl_forwardLightingShader_projXYZ->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -1756,7 +1785,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_projXYZ->SetUniform_LightColor( lightColor.ToArray() );
 	gl_forwardLightingShader_projXYZ->SetUniform_LightRadius( light->sphereRadius );
 	gl_forwardLightingShader_projXYZ->SetUniform_LightScale( light->l.scale );
-	gl_forwardLightingShader_projXYZ->SetUniform_LightWrapAround( RB_EvalExpression( &diffuseStage->wrapAroundLightingExp, 0 ) );
+	gl_forwardLightingShader_projXYZ->SetUniform_LightWrapAround( RB_EvalExpression( &pStage->wrapAroundLightingExp, 0 ) );
 	gl_forwardLightingShader_projXYZ->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
 
 	GL_CheckErrors();
@@ -1790,16 +1819,16 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( 0, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || heightMapInNormalMap )
+	if ( normalMapping || hasHeightMapInNormalMap )
 	{
 		// bind u_NormalMap
-		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
 		vec3_t normalScale;
-		SetNormalScale( diffuseStage, normalScale );
+		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
 		gl_forwardLightingShader_projXYZ->SetUniform_NormalScale( normalScale );
@@ -1809,13 +1838,14 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
+	// physical mapping is not implemented
 	if ( specularMapping )
 	{
-		// bind u_SpecularMap
-		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+		// bind u_MaterialMap
+		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
-		float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
+		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
 		gl_forwardLightingShader_projXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
@@ -1849,7 +1879,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *diffuseStage,
 	GL_CheckErrors();
 }
 
-static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage, trRefLight_t *light )
+static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRefLight_t *light )
 {
 	vec3_t     viewOrigin;
 	vec3_t     lightDirection;
@@ -1859,10 +1889,17 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_directional ---\n" );
 
-	bool normalMapping = r_normalMapping->integer && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool heightMapInNormalMap = diffuseStage->heightMapInNormalMap && ( diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer && ( diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+	bool hasMaterialMap = pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+
+	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
+	bool isMaterialPhysical = pStage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	// physical mapping is not implemented
+	bool specularMapping = r_specularMapping->integer && hasMaterialMap && !isMaterialPhysical;
+
 	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
@@ -1873,18 +1910,18 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 
 	gl_forwardLightingShader_directionalSun->SetShadowing( shadowCompare );
 
-	gl_forwardLightingShader_directionalSun->BindProgram( diffuseStage->deformIndex );
+	gl_forwardLightingShader_directionalSun->BindProgram( pStage->deformIndex );
 
 	// end choose right shader program ------------------------------
 
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( diffuseStage->rgbGen )
+	switch ( pStage->rgbGen )
 	{
 		case colorGen_t::CGEN_VERTEX:
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = diffuseStage->rgbGen;
+			colorGen = pStage->rgbGen;
 			break;
 
 		default:
@@ -1892,11 +1929,11 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 			break;
 	}
 
-	switch ( diffuseStage->alphaGen )
+	switch ( pStage->alphaGen )
 	{
 		case alphaGen_t::AGEN_VERTEX:
 		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = diffuseStage->alphaGen;
+			alphaGen = pStage->alphaGen;
 			break;
 
 		default:
@@ -1909,19 +1946,19 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	// u_Color
 	gl_forwardLightingShader_directionalSun->SetUniform_Color( tess.svars.color );
 
-	gl_forwardLightingShader_directionalSun->SetUniform_AlphaTest( diffuseStage->stateBits );
+	gl_forwardLightingShader_directionalSun->SetUniform_AlphaTest( pStage->stateBits );
 
 	if ( parallaxMapping )
 	{
 		float depthScale;
 		float parallaxDepthScale;
 
-		depthScale = RB_EvalExpression( &diffuseStage->depthScaleExp, r_parallaxDepthScale->value );
+		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_parallaxDepthScale->value );
 		parallaxDepthScale = tess.surfaceShader->parallaxDepthScale;
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_forwardLightingShader_directionalSun->SetUniform_ParallaxDepthScale( depthScale );
 		gl_forwardLightingShader_directionalSun->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_forwardLightingShader_directionalSun->SetUniform_HeightMapInNormalMap( heightMapInNormalMap );
+		gl_forwardLightingShader_directionalSun->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
 	}
 
 	// set uniforms
@@ -1946,7 +1983,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	gl_forwardLightingShader_directionalSun->SetUniform_LightColor( lightColor.ToArray() );
 	gl_forwardLightingShader_directionalSun->SetUniform_LightRadius( light->sphereRadius );
 	gl_forwardLightingShader_directionalSun->SetUniform_LightScale( light->l.scale );
-	gl_forwardLightingShader_directionalSun->SetUniform_LightWrapAround( RB_EvalExpression( &diffuseStage->wrapAroundLightingExp, 0 ) );
+	gl_forwardLightingShader_directionalSun->SetUniform_LightWrapAround( RB_EvalExpression( &pStage->wrapAroundLightingExp, 0 ) );
 	gl_forwardLightingShader_directionalSun->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
 
 	GL_CheckErrors();
@@ -1982,16 +2019,16 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( 0, diffuseStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( normalMapping || heightMapInNormalMap )
+	if ( normalMapping || hasHeightMapInNormalMap )
 	{
 		// bind u_NormalMap
-		GL_BindToTMU( 1, diffuseStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
 		vec3_t normalScale;
-		SetNormalScale( diffuseStage, normalScale );
+		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
 		gl_forwardLightingShader_directionalSun->SetUniform_NormalScale( normalScale );
@@ -2001,14 +2038,14 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *diffuseStage,
 		GL_BindToTMU( 1, tr.flatImage );
 	}
 
+	// physical mapping is not implemented
 	if ( specularMapping )
 	{
-		// bind u_SpecularMap
-		GL_BindToTMU( 2, diffuseStage->bundle[ TB_SPECULARMAP ].image[ 0 ] );
+		// bind u_MaterialMap
+		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		float minSpec = RB_EvalExpression( &diffuseStage->specularExponentMin, r_specularExponentMin->value );
-		float maxSpec = RB_EvalExpression( &diffuseStage->specularExponentMax, r_specularExponentMax->value );
-
+		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 		gl_forwardLightingShader_directionalSun->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
 	else
@@ -2062,9 +2099,12 @@ static void Render_reflection_CB( int stage )
 
 	GL_State( pStage->stateBits );
 
-	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool heightMapInNormalMap = pStage->heightMapInNormalMap && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+
+	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
+
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
 
 	// choose right shader program ----------------------------------
 	gl_reflectionShader->SetParallaxMapping( parallaxMapping );
@@ -2104,11 +2144,18 @@ static void Render_reflection_CB( int stage )
 		GL_BindNearestCubeMap( backEnd.viewParms.orientation.origin );
 	}
 
-	if ( normalMapping || heightMapInNormalMap )
+	if ( normalMapping || hasHeightMapInNormalMap )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	} else
+
+		vec3_t normalScale;
+		SetNormalScale( pStage, normalScale );
+
+		// bind u_NormalScale
+		gl_reflectionShader->SetUniform_NormalScale( normalScale );
+	}
+	else
 	{
 		GL_BindToTMU( 1, tr.flatImage );
 	}
@@ -2126,7 +2173,7 @@ static void Render_reflection_CB( int stage )
 		depthScale *= parallaxDepthScale == 0 ? 1 : parallaxDepthScale;
 		gl_reflectionShader->SetUniform_ParallaxDepthScale( depthScale );
 		gl_reflectionShader->SetUniform_ParallaxOffsetBias( tess.surfaceShader->parallaxOffsetBias );
-		gl_reflectionShader->SetUniform_HeightMapInNormalMap( pStage->heightMapInNormalMap );
+		gl_reflectionShader->SetUniform_HeightMapInNormalMap( hasHeightMapInNormalMap );
 	}
 
 	vec3_t normalScale;
@@ -2231,7 +2278,9 @@ static void Render_heatHaze( int stage )
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
 
-	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_COLORMAP ].image[ 0 ] != nullptr );
+	bool hasNormalMap = pStage->bundle[ TB_COLORMAP ].image[ 0 ] != nullptr;
+
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
 
 	// remove alpha test
 	stateBits = pStage->stateBits;
@@ -2306,6 +2355,7 @@ static void Render_heatHaze( int stage )
 		gl_heatHazeShader->SetUniform_NormalScale( normalScale );
 	}
 
+	// bind u_CurrentMap
 	GL_BindToTMU( 1, tr.currentRenderImage[ backEnd.currentMainFBO ] );
 
 	gl_heatHazeShader->SetRequiredVertexPointers();
@@ -2331,10 +2381,15 @@ static void Render_liquid( int stage )
 
 	GLimp_LogComment( "--- Render_liquid ---\n" );
 
-	bool normalMapping = r_normalMapping->integer && ( pStage->bundle[ TB_COLORMAP ].image[ 0 ] != nullptr );
-	bool heightMapInNormalMap = pStage->heightMapInNormalMap && ( pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr );
-	bool parallaxMapping = r_parallaxMapping->integer && tess.surfaceShader->parallax && !tess.surfaceShader->noParallax && heightMapInNormalMap;
-	bool specularMapping = r_specularMapping->integer; // TODO: specular map?
+	bool hasNormalMap = pStage->bundle[ TB_COLORMAP ].image[ 0 ] != nullptr;
+
+	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
+
+	bool normalMapping = r_normalMapping->integer && hasNormalMap;
+	bool parallaxMapping = r_parallaxMapping->integer && !tess.surfaceShader->noParallax && hasHeightMapInNormalMap;
+	// specular component is computed by shader
+	// physical mapping is not implemented
+	bool specularMapping = r_specularMapping->integer;
 
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
@@ -2357,7 +2412,6 @@ static void Render_liquid( int stage )
 	gl_liquidShader->SetUniform_FresnelPower( RB_EvalExpression( &pStage->fresnelPowerExp, 2.0 ) );
 	gl_liquidShader->SetUniform_FresnelScale( RB_EvalExpression( &pStage->fresnelScaleExp, 1.0 ) );
 	gl_liquidShader->SetUniform_FresnelBias( RB_EvalExpression( &pStage->fresnelBiasExp, 0.05 ) );
-	gl_liquidShader->SetUniform_NormalIntensity( RB_EvalExpression( &pStage->normalIntensityExp, 0.05 ) );
 	gl_liquidShader->SetUniform_FogDensity( fogDensity );
 	gl_liquidShader->SetUniform_FogColor( fogColor );
 
@@ -2365,6 +2419,8 @@ static void Render_liquid( int stage )
 	gl_liquidShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_liquidShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
+	// specular component is computed by shader
+	// physical mapping is not implemented
 	if ( specularMapping )
 	{
 		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
@@ -2372,6 +2428,7 @@ static void Render_liquid( int stage )
 		gl_liquidShader->SetUniform_SpecularExponent( specMin, specMax );
 	}
 
+	// bind u_CurrentMap
 	GL_BindToTMU( 0, tr.currentRenderImage[ backEnd.currentMainFBO ] );
 
 	// bind u_PortalMap
@@ -2380,12 +2437,13 @@ static void Render_liquid( int stage )
 	// depth texture
 	GL_BindToTMU( 2, tr.currentDepthImage );
 
-	if ( normalMapping || heightMapInNormalMap )
+	if ( normalMapping || hasHeightMapInNormalMap )
 	{
 		// bind u_NormalMap
 		GL_BindToTMU( 3, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
 
 		vec3_t normalScale;
+		// FIXME: NormalIntensity default was 0.5
 		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
@@ -3196,19 +3254,19 @@ void Tess_StageIteratorLighting()
 
 	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
-		shaderStage_t *diffuseStage = tess.surfaceStages[ i ];
+		shaderStage_t *pStage = tess.surfaceStages[ i ];
 
-		if ( !diffuseStage )
+		if ( !pStage )
 		{
 			break;
 		}
 
-		if ( !RB_EvalExpression( &diffuseStage->ifExp, 1.0 ) )
+		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
 			continue;
 		}
 
-		Tess_ComputeTexMatrices( diffuseStage );
+		Tess_ComputeTexMatrices( pStage );
 
 		for ( j = 1; j < MAX_SHADER_STAGES; j++ )
 		{
@@ -3232,25 +3290,25 @@ void Tess_StageIteratorLighting()
 			Tess_ComputeColor( attenuationXYStage );
 			R_ComputeFinalAttenuation( attenuationXYStage, light );
 
-			switch ( diffuseStage->type )
+			switch ( pStage->type )
 			{
 				case stageType_t::ST_DIFFUSEMAP:
 				case stageType_t::ST_COLLAPSE_lighting_PBR:
 				case stageType_t::ST_COLLAPSE_lighting_PHONG:
 					if ( light->l.rlType == refLightType_t::RL_OMNI )
 					{
-						Render_forwardLighting_DBS_omni( diffuseStage, attenuationXYStage, attenuationZStage, light );
+						Render_forwardLighting_DBS_omni( pStage, attenuationXYStage, attenuationZStage, light );
 					}
 					else if ( light->l.rlType == refLightType_t::RL_PROJ )
 					{
 						{
-							Render_forwardLighting_DBS_proj( diffuseStage, attenuationXYStage, attenuationZStage, light );
+							Render_forwardLighting_DBS_proj( pStage, attenuationXYStage, attenuationZStage, light );
 						}
 					}
 					else if ( light->l.rlType == refLightType_t::RL_DIRECTIONAL )
 					{
 						{
-							Render_forwardLighting_DBS_directional( diffuseStage, light );
+							Render_forwardLighting_DBS_directional( pStage, light );
 						}
 					}
 
