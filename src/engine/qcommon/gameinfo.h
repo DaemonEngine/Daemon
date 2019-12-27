@@ -33,19 +33,19 @@ class Gameinfo
 public:
 	static Gameinfo& getInstance();
 	void parse(std::string fname);
-	std::string name();
-	std::string name_lower();
-	std::string name_upper();
-	std::string version();
-	std::string default_basepak();
-	std::string masterserver1();
-	std::string masterserver2();
-	std::string masterserver3();
-	std::string masterserver4();
-	std::string masterserver5();
-	std::string www_baseurl();
-	std::string unnamed_server();
-	std::string gamename_string();
+	std::string name() const;
+	std::string name_lower() const;
+	std::string name_upper() const;
+	std::string version() const;
+	std::string default_basepak() const;
+	std::string masterserver1() const;
+	std::string masterserver2() const;
+	std::string masterserver3() const;
+	std::string masterserver4() const;
+	std::string masterserver5() const;
+	std::string www_baseurl() const;
+	std::string unnamed_server() const;
+	std::string gamename_string() const;
 private:
 	Gameinfo() : _name("MISSING_NAME"), _version("UNKNOWN") {};
 	std::string _name;

@@ -99,71 +99,71 @@ void Gameinfo::parse(std::string fname)
 	}
 }
 
-std::string Gameinfo::name()
+std::string Gameinfo::name() const
 {
 	return _name;
 }
 
-std::string Gameinfo::name_lower()
+std::string Gameinfo::name_lower() const
 {
 	std::string temp = _name;
 	std::transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
 	return temp;
 }
 
-std::string Gameinfo::name_upper()
+std::string Gameinfo::name_upper() const
 {
 	std::string temp = _name;
 	std::transform(temp.begin(), temp.end(), temp.begin(), ::toupper);
 	return temp;
 }
 
-std::string Gameinfo::version()
+std::string Gameinfo::version() const
 {
 	return _version;
 }
 
-std::string Gameinfo::default_basepak()
+std::string Gameinfo::default_basepak() const
 {
 	return _default_basepak;
 }
 
-std::string Gameinfo::masterserver1()
+std::string Gameinfo::masterserver1() const
 {
 	return _masterserver1;
 }
 
-std::string Gameinfo::masterserver2()
+std::string Gameinfo::masterserver2() const
 {
 	return _masterserver2;
 }
 
-std::string Gameinfo::masterserver3()
+std::string Gameinfo::masterserver3() const
 {
 	return _masterserver3;
 }
 
-std::string Gameinfo::masterserver4()
+std::string Gameinfo::masterserver4() const
 {
 	return _masterserver4;
 }
 
-std::string Gameinfo::masterserver5()
+std::string Gameinfo::masterserver5() const
 {
 	return _masterserver5;
 }
 
-std::string Gameinfo::www_baseurl()
+std::string Gameinfo::www_baseurl() const
 {
 	return _www_baseurl;
 }
 
-std::string Gameinfo::unnamed_server()
+std::string Gameinfo::unnamed_server() const
 {
 	return _name + " " + _version + " Server";
 }
 
-std::string Gameinfo::gamename_string()
+std::string Gameinfo::gamename_string() const
 {
 	return _gamename_string;
 }
