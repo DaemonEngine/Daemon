@@ -39,7 +39,7 @@ void Gameinfo::parse(std::string fname)
 {
 	if (!FS::RawPath::FileExists(fname))
 	{
-		Sys::Error("GAMEINFO: No gameinfo.cfg found in libpath");
+		Sys::Error("GAMEINFO: No gameinfo.conf found in libpath");
 	}
 	FS::File f = FS::RawPath::OpenRead(fname);
 	std::string content = f.ReadAll();
@@ -47,7 +47,7 @@ void Gameinfo::parse(std::string fname)
 	Cmd::Args a(content);
 	if (a.Argc() & 1)
 	{
-		Sys::Error("GAMEINFO: Invalid gaminfo.cfg");
+		Sys::Error("GAMEINFO: Invalid gaminfo.conf");
 	}
 	std::vector<std::string> argvec = a.ArgVector();
 	for (int i = 0; i < argvec.size(); i += 2)
@@ -94,7 +94,7 @@ void Gameinfo::parse(std::string fname)
 		}
 		else
 		{
-			Log::Warn("GAMEINFO: Unrecognized field '%s' in gameinfo.cfg", argvec[i]);
+			Log::Warn("GAMEINFO: Unrecognized field '%s' in gameinfo.conf", argvec[i]);
 		}
 	}
 }

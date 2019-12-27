@@ -543,7 +543,7 @@ static void Init(int argc, char** argv)
 
 	Sys::SetupCrashHandler(); // If Breakpad is enabled, this handler will soon be replaced.
 	Sys::ParseCmdline(argc, argv, cmdlineArgs);
-	Gameinfo::getInstance().parse(FS::Path::Build(cmdlineArgs.libPath, "gameinfo.cfg"));
+	Gameinfo::getInstance().parse(FS::Path::Build(cmdlineArgs.libPath, "gameinfo.conf"));
     Log::Notice("%s %s", Q3_VERSION, PLATFORM_STRING " " ARCH_STRING " " __DATE__);
 	Log::Notice(argsString);
 	if (cmdlineArgs.homePath.empty()) {
