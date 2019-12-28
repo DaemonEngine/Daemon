@@ -21,13 +21,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // reliefMapping_fp.glsl - Relief mapping helper functions
 
-#if defined(r_normalMapping)
+#if defined(r_normalMapping) || defined(USE_HEIGHTMAP_IN_NORMALMAP)
 uniform sampler2D	u_NormalMap;
+#endif // r_normalMapping || USE_HEIGHTMAP_IN_NORMALMAP
+
+#if defined(r_normalMapping)
 uniform vec3        u_NormalScale;
 #endif // r_normalMapping
 
 #if defined(USE_PARALLAX_MAPPING)
+#if !defined(USE_HEIGHTMAP_IN_NORMALMAP)
 uniform sampler2D	u_HeightMap;
+#endif // !USE_HEIGHTMAP_IN_NORMALMAP
 uniform float       u_ParallaxDepthScale;
 uniform float       u_ParallaxOffsetBias;
 #endif // USE_PARALLAX_MAPPING
@@ -111,7 +116,7 @@ vec2 ParallaxTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorld
 		currentDepth += currentSize;
 
 #if defined(USE_HEIGHTMAP_IN_NORMALMAP)
-		float depth = texture2D(u_HeightMap, rayStartTexCoords + displacement * currentDepth).a;
+		float depth = texture2D(u_NormalMap, rayStartTexCoords + displacement * currentDepth).a;
 #else // !USE_HEIGHTMAP_IN_NORMALMAP
 		float depth = texture2D(u_HeightMap, rayStartTexCoords + displacement * currentDepth).g;
 #endif // !USE_HEIGHTMAP_IN_NORMALMAP
@@ -135,7 +140,7 @@ vec2 ParallaxTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorld
 		currentSize *= 0.5;
 
 #if defined(USE_HEIGHTMAP_IN_NORMALMAP)
-		float depth = texture2D(u_HeightMap, rayStartTexCoords + displacement * currentDepth).a;
+		float depth = texture2D(u_NormalMap, rayStartTexCoords + displacement * currentDepth).a;
 #else // !USE_HEIGHTMAP_IN_NORMALMAP
 		float depth = texture2D(u_HeightMap, rayStartTexCoords + displacement * currentDepth).g;
 #endif // !USE_HEIGHTMAP_IN_NORMALMAP
