@@ -1495,7 +1495,7 @@ void GLShader_lightMapping::SetShaderProgramUniforms( shaderProgram_t *shaderPro
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_SpecularMap" ),  2 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ),  2 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightMap" ), 3 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DeluxeMap" ), 4 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_GlowMap" ), 5 );
@@ -1552,7 +1552,7 @@ void GLShader_vertexLighting_DBS_entity::SetShaderProgramUniforms( shaderProgram
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_SpecularMap" ), 2 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ), 2 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap0" ), 3 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap1" ), 4 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_GlowMap" ), 5 );
@@ -1610,7 +1610,7 @@ void GLShader_vertexLighting_DBS_world::SetShaderProgramUniforms( shaderProgram_
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_SpecularMap" ), 2 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ), 2 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_GlowMap" ), 3 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid1" ), 6 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid2" ), 7 );
@@ -1671,7 +1671,7 @@ void GLShader_forwardLighting_omniXYZ::SetShaderProgramUniforms( shaderProgram_t
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_SpecularMap" ), 2 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ), 2 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_AttenuationMapXY" ), 3 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_AttenuationMapZ" ), 4 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowMap" ), 5 );
@@ -1732,7 +1732,7 @@ void GLShader_forwardLighting_projXYZ::SetShaderProgramUniforms( shaderProgram_t
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_SpecularMap" ), 2 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ), 2 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_AttenuationMapXY" ), 3 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_AttenuationMapZ" ), 4 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowMap0" ), 5 );
@@ -1795,7 +1795,7 @@ void GLShader_forwardLighting_directionalSun::SetShaderProgramUniforms( shaderPr
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_SpecularMap" ), 2 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ), 2 );
 	//glUniform1i(glGetUniformLocation( shaderProgram->program, "u_AttenuationMapXY" ), 3);
 	//glUniform1i(glGetUniformLocation( shaderProgram->program, "u_AttenuationMapZ" ), 4);
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowMap0" ), 5 );
