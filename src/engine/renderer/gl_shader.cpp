@@ -544,13 +544,19 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_precomputedLighting", 1 );
 
 	if ( r_showLightMaps->integer )
-		AddDefine( str, "r_showLightMaps", r_showLightMaps->integer );
+	{
+		AddDefine( str, "r_showLightMaps", 1 );
+	}
 
 	if ( r_showDeluxeMaps->integer )
-		AddDefine( str, "r_showDeluxeMaps", r_showDeluxeMaps->integer );
+	{
+		AddDefine( str, "r_showDeluxeMaps", 1 );
+	}
 
-	if ( r_showEntityNormals->integer )
-		AddDefine( str, "r_showEntityNormals", r_showEntityNormals->integer );
+	if ( r_showNormalMaps->integer )
+	{
+		AddDefine( str, "r_showNormalMaps", 1 );
+	}
 
 	if ( glConfig2.vboVertexSkinningAvailable )
 	{
