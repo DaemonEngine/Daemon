@@ -558,6 +558,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showNormalMaps", 1 );
 	}
 
+	if ( r_showMaterialMaps->integer )
+	{
+		AddDefine( str, "r_showMaterialMaps", 1 );
+	}
+
 	if ( glConfig2.vboVertexSkinningAvailable )
 	{
 		AddDefine( str, "r_VertexSkinning", 1 );
