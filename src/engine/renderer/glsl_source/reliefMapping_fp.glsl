@@ -29,13 +29,163 @@ uniform sampler2D	u_NormalMap;
 uniform vec3        u_NormalScale;
 #endif // r_normalMapping
 
-#if defined(USE_PARALLAX_MAPPING)
-#if !defined(USE_HEIGHTMAP_IN_NORMALMAP)
+#if (defined(USE_PARALLAX_MAPPING) && !defined(USE_HEIGHTMAP_IN_NORMALMAP)) || defined(USE_NORMALMAP_FROM_HEIGHTMAP)
 uniform sampler2D	u_HeightMap;
-#endif // !USE_HEIGHTMAP_IN_NORMALMAP
+#endif // (USE_PARALLAX_MAPPING && !USE_HEIGHTMAP_IN_NORMALMAP) || USE_NORMALMAP_FROM_HEIGHTMAP
+
+#if defined(USE_PARALLAX_MAPPING)
 uniform float       u_ParallaxDepthScale;
 uniform float       u_ParallaxOffsetBias;
 #endif // USE_PARALLAX_MAPPING
+
+#if defined(USE_NORMALMAP_FROM_HEIGHTMAP)
+vec3 NormalFromHeightMap(vec2 texNormal)
+{
+	vec3 normal;
+
+	/* Major inspiration was this post by jollyjeffers:
+	https://www.gamedev.net/forums/topic/475213-generate-normal-map-from-heightmap-algorithm/#post_4117038
+
+	and this Wikipedia article:
+	https://en.wikipedia.org/wiki/Sobel_operator
+
+	Various people recommends doing abs() on sample read in case of float image format:
+	http://www.catalinzima.com/2008/01/converting-displacement-maps-into-normal-maps/
+	https://community.khronos.org/t/heightmap-to-normalmap/58862
+
+	Or report issues by not doing it:
+	https://gamedev.stackexchange.com/questions/165575/calculating-normal-map-from-height-map-using-sobel-operator
+
+	Other people say texture2D clamps it but it's safer to do this.
+	*/
+
+	// Get texel size
+	vec2 texelSize = 1.0 / vec2(textureSize(u_HeightMap, 0));
+
+#if defined(r_sobelFiltering)
+	/* Useful things to know:
+	- It's required to get height samples (S) surrounding the current texel (T) to do a sobel filter:
+
+	  S S S
+	  S T S
+	  S S S
+
+	- Sobel X kernel is:
+
+	  [ 1  0  -1 ]
+	  [ 2  0  -2 ]
+	  [ 1  0  -1 ]
+
+	  See https://en.wikipedia.org/wiki/Sobel_operator#Formulation
+
+	- Sobel Y kernel is:
+
+	  [  1  2  1 ]
+	  [  0  0  0 ]
+	  [ -1 -2 -1 ]
+
+	  Which is the rotated sobel X kernel.
+
+	- Tangent space normals are +Z.
+	*/
+
+	ivec3 offsets;
+	mat3 xCoords;
+	mat3 yCoords;
+	mat3 heights;
+	mat3 sobel;
+
+	// Components will be computed by accumulating values.
+	normal = vec3(0.0, 0.0, 0.0);
+
+	// Set offsets:
+	offsets = ivec3(-1, 0, 1);
+
+	// Set sobel X kernel (beware, line is column with this notation):
+	sobel[0] = vec3( 1.0,  2.0,  1.0);
+	sobel[1] = vec3( 0.0,  0.0,  0.0);
+	sobel[2] = vec3(-1.0, -2.0, -1.0);
+
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			if (i != 1 || j != 1)
+			{
+				// Compute coordinates:
+				xCoords[i][j] = texNormal.x + texelSize.x * offsets[i];
+				yCoords[i][j] = texNormal.y + texelSize.y * offsets[j];
+
+				// Get surrounding samples:
+				heights[i][j] = abs(texture2D(u_HeightMap, vec2(xCoords[i][j], yCoords[i][j])).r);
+
+				if (i != 1)
+				{
+					// Sobel computation for X component (use the X sobel kernel):
+					normal.x += heights[i][j] * sobel[i][j];
+				}
+
+				if (j != 1)
+				{
+					// Sobel computation for Y component (use the rotated X sobel kernel as Y one):
+					normal.y += heights[i][j] * sobel[j][i];
+				}
+			}
+		}
+	}
+
+	/* Reconstruct Z component while making sure to not take the square root
+	of a negative number. That may occur because of compression artifacts.
+
+	Xonotic texture known to produce black normalmap artifacts when doing
+	Z reconstruction from X and Y computed from jpg heightmap:
+	textures/map_glowplant/sand_bump
+	*/
+
+	normal.z = sqrt(max(0.0, 1.0 - dot(normal.xy, normal.xy)));
+
+	normal.xy = 2.0 * normal.xy;
+#else // !r_sobelFiltering
+	/* Useful thing to know:
+	- Only three samples are required to determine two vectors
+	  they would be used to generate the normal at this texel:
+
+	  T S
+	  S
+
+	The texel itself is used as sample.
+	*/
+
+	vec2 hOffsets;
+	vec2 vOffsets;
+	vec2 hCoords;
+	vec2 vCoords;
+	vec3 heights;
+	vec3 xVector;
+	vec3 yVector;
+
+	// Set horizontal and vertical offsets:
+	hOffsets = vec2(texelSize.x, 0.0);
+	vOffsets = vec2(0.0, texelSize.y);
+
+	// Compute coordinates:
+	hCoords = vec2(texNormal.x + hOffsets.x, texNormal.y + hOffsets.y);
+	vCoords = vec2(texNormal.x + vOffsets.x, texNormal.y + vOffsets.y);
+
+	// Get samples:
+	heights.x = texture2D(u_HeightMap, texNormal).r; // No offset.
+	heights.y = texture2D(u_HeightMap, hCoords).r;
+	heights.z = texture2D(u_HeightMap, vCoords).r;
+
+	xVector = vec3(hOffsets.x, vOffsets.x, heights.y - heights.x);
+	yVector = vec3(hOffsets.y, vOffsets.y, heights.z - heights.x);
+
+	normal = cross(xVector, yVector);
+#endif // !r_sobelFiltering
+
+	return normal;
+}
+#endif // USE_NORMALMAP_FROM_HEIGHTMAP
 
 // compute normal in tangent space
 vec3 NormalInTangentSpace(vec2 texNormal)
@@ -43,10 +193,17 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	vec3 normal;
 
 #if defined(r_normalMapping)
-#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+#if defined(USE_NORMALMAP_FROM_HEIGHTMAP)
+	normal = NormalFromHeightMap(texNormal);
+#elif defined(USE_HEIGHTMAP_IN_NORMALMAP)
 	// alpha channel contains the height map so do not try to reconstruct normal map from it
 	normal = texture2D(u_NormalMap, texNormal).rgb;
 	normal = 2.0 * normal - 1.0;
+
+	// HACK: the GLSL code is currently assuming
+	// DirectX normal map format (+X -Y +Z)
+	// but engine is assuming the OpenGL way (+X +Y +Z)
+	normal.y *= -1;
 #else // !USE_HEIGHTMAP_IN_NORMALMAP
 	// the Capcom trick abusing alpha channel of DXT1/5 formats to encode normal map
 	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
@@ -74,6 +231,11 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	// This might happen with other formats too. So we must take care not to
 	// take the square root of a negative number here.
 	normal.z = sqrt(max(0, 1.0 - dot(normal.xy, normal.xy)));
+
+	// HACK: the GLSL code is currently assuming
+	// DirectX normal map format (+X -Y +Z)
+	// but engine is assuming the OpenGL way (+X +Y +Z)
+	normal.y *= -1;
 #endif // !USE_HEIGHTMAP_IN_NORMALMAP
 	/* Disable normal map scaling when normal Z scale is set to zero.
 
@@ -87,11 +249,6 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	{
 		normal *= u_NormalScale;
 	}
-
-	// HACK: the GLSL code is currently assuming
-	// DirectX normal map format (+X -Y +Z)
-	// but engine is assuming the OpenGL way (+X +Y +Z)
-	normal.y *= -1;
 #else // !r_normalMapping
 	// Flat normal map is {0.5, 0.5, 1.0} in [ 0.0, 1.0]
 	// which is stored as {0.0, 0.0, 1.0} in [-1.0, 1.0].

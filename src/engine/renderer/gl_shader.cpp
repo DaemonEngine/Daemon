@@ -573,6 +573,11 @@ static std::string GenEngineConstants() {
 		AddConst( str, "MAX_GLSL_BONES", 4 );
 	}
 
+	if ( r_sobelFiltering->integer )
+	{
+		AddDefine( str, "r_sobelFiltering", 1 );
+	}
+
 	if ( r_wrapAroundLighting->value )
 		AddConst( str, "r_WrapAroundLighting", r_wrapAroundLighting->value );
 
@@ -1496,6 +1501,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLCompileMacro_USE_LIGHT_MAPPING( this ),
 	GLCompileMacro_USE_DELUXE_MAPPING( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
 	GLCompileMacro_USE_PHYSICAL_SHADING( this )
@@ -1560,6 +1566,7 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
@@ -1620,6 +1627,7 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
@@ -1683,6 +1691,7 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
@@ -1767,6 +1776,7 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this )
 {
 }
@@ -2035,6 +2045,7 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP( this ),
 	GLCompileMacro_USE_PARALLAX_MAPPING( this )
 {
 }
