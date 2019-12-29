@@ -112,4 +112,11 @@ void	main()
 #endif // r_glowMapping
 
 	outputColor = color;
+
+// Debugging
+#if defined(r_showNormalMaps)
+	// convert normal to [0,1] color space
+	normal = normal * 0.5 + 0.5;
+	outputColor = vec4(normal, 1.0);
+#endif
 }
