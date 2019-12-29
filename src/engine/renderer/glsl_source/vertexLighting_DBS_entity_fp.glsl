@@ -97,16 +97,16 @@ void	main()
 #if defined(USE_REFLECTIVE_SPECULAR)
 	// not implemented for PBR yet
 
-	vec4 specBase = texture2D(u_MaterialMap, texCoords).rgba;
+	vec4 material = texture2D(u_MaterialMap, texCoords).rgba;
 
 	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal)).rgba;
 	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal)).rgba;
 
-	specBase.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
+	material.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
 
 #else // USE_REFLECTIVE_SPECULAR
 	// simple Blinn-Phong
-	vec4 specBase = texture2D(u_MaterialMap, texCoords).rgba;
+	vec4 material = texture2D(u_MaterialMap, texCoords).rgba;
 
 #endif // USE_REFLECTIVE_SPECULAR
 
@@ -127,9 +127,9 @@ void	main()
 
 	// compute final color
 	vec4 color = vec4(ambCol * r_AmbientScale * diffuse.xyz, diffuse.a);
-	computeLight( L, normal, viewDir, lgtCol, diffuse, specBase, color );
+	computeLight( L, normal, viewDir, lgtCol, diffuse, material, color );
 
-	computeDLights( var_Position, normal, viewDir, diffuse, specBase, color );
+	computeDLights( var_Position, normal, viewDir, diffuse, material, color );
 
 #if defined(r_RimLighting)
 	color.rgb += 0.7 * emission;
