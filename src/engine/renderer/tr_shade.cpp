@@ -1017,6 +1017,8 @@ static void Render_vertexLighting_DBS_world( int stage )
 
 	tess.vboVertexSprite = false;
 
+	gl_vertexLightingShader_DBS_world->SetPhysicalShading( isMaterialPhysical );
+
 	gl_vertexLightingShader_DBS_world->BindProgram( pStage->deformIndex );
 
 	// end choose right shader program ------------------------------
