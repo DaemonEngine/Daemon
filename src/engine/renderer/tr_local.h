@@ -2955,6 +2955,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_showLightMaps; // render lightmaps only
 	extern cvar_t *r_showDeluxeMaps;
 	extern cvar_t *r_showNormalMaps;
+	extern cvar_t *r_showMaterialMaps;
 	extern cvar_t *r_showAreaPortals;
 	extern cvar_t *r_showCubeProbes;
 	extern cvar_t *r_showBspNodes;
