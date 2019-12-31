@@ -59,9 +59,22 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	normal = texture2D(u_NormalMap, texNormal).rga;
 	normal.x *= normal.z;
 	normal.xy = 2.0 * normal.xy - 1.0;
-	normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+	// In a perfect world this code must be enough:
+	// normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+	//
+	// Unvanquished texture known to trigger black normalmap artifacts
+	// when doing Z reconstruction:
+	//   textures/shared_pk02_src/rock01_n
+	//
+	// Although the normal vector is supposed to have a length of 1,
+	// dot(normal.xy, normal.xy) may be greater than 1 due to compression
+	// artifacts: values as large as 1.27 have been observed with crunch -dxn.
+	// https://github.com/DaemonEngine/Daemon/pull/260#issuecomment-571010935
+	//
+	// This might happen with other formats too. So we must take care not to
+	// take the square root of a negative number here.
+	normal.z = sqrt(max(0, 1.0 - dot(normal.xy, normal.xy)));
 #endif // !USE_HEIGHTMAP_IN_NORMALMAP
-
 	// HACK: 0 normal Z channel can't be good
 	if (u_NormalScale.z != 0)
 	{
