@@ -2545,7 +2545,6 @@ static void Render_liquid( int stage )
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
 		if ( !hasHeightMapInNormalMap )
-		else
 		{
 			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
 		}
