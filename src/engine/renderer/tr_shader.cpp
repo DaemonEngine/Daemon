@@ -50,7 +50,7 @@ static cullType_t    implicitCullType;
 static char          whenTokens[ MAX_STRING_CHARS ];
 
 // DarkPlaces material compatibility
-static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::NONE, false);
+static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::LATCH, false);
 Cvar::Cvar<bool> r_dpBlend("r_dpBlend", "Enable DarkPlaces blend compatibility, process GT0 as GE128", Cvar::NONE, false);
 
 /*
