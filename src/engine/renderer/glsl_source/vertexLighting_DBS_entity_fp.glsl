@@ -26,9 +26,11 @@ uniform sampler2D	u_DiffuseMap;
 uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
+#if defined(USE_REFLECTIVE_SPECULAR)
 uniform samplerCube	u_EnvironmentMap0;
 uniform samplerCube	u_EnvironmentMap1;
 uniform float		u_EnvironmentInterpolation;
+#endif // USE_REFLECTIVE_SPECULAR
 
 uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
@@ -105,20 +107,15 @@ void	main()
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute the material term
-#if defined(USE_REFLECTIVE_SPECULAR)
-	// not implemented for PBR yet
-
 	vec4 material = texture2D(u_MaterialMap, texCoords);
 
+#if defined(USE_REFLECTIVE_SPECULAR) && !defined(USE_PHYSICAL_MAPPING)
+	// not implemented for PBR yet
 	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal));
 	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal));
 
 	material.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
-
-#else // USE_REFLECTIVE_SPECULAR
-	// simple Blinn-Phong
-	vec4 material = texture2D(u_MaterialMap, texCoords);
-#endif // USE_REFLECTIVE_SPECULAR
+#endif // USE_REFLECTIVE_SPECULAR && !USE_PHYSICAL_MAPPING
 
 	// compute final color
 	vec4 color = vec4(ambientColor * r_AmbientScale * diffuse.xyz, diffuse.a);
