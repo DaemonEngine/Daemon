@@ -120,12 +120,6 @@ void	main()
 	vec4 material = texture2D(u_MaterialMap, texCoords);
 #endif // USE_REFLECTIVE_SPECULAR
 
-// add Rim Lighting to highlight the edges
-#if defined(r_RimLighting)
-	float rim = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), r_RimExponent);
-	vec3 emission = ambientColor * rim * rim * 0.2;
-#endif
-
 	// compute final color
 	vec4 color = vec4(ambientColor * r_AmbientScale * diffuse.xyz, diffuse.a);
 
@@ -133,7 +127,10 @@ void	main()
 
 	computeDLights( var_Position, normal, viewDir, diffuse, material, color );
 
+// add Rim Lighting to highlight the edges
 #if defined(r_RimLighting)
+	float rim = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), r_RimExponent);
+	vec3 emission = ambientColor * rim * rim * 0.2;
 	color.rgb += 0.7 * emission;
 #endif
 
