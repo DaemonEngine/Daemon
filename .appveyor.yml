@@ -2,14 +2,18 @@ branches:
   except:
     - debian
 
-image: Visual Studio 2019
-
 environment:
-  generator: Visual Studio 16 2019
   configuration: Debug
   matrix:
-    - platform: win32
-    - platform: x64
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      generator: Visual Studio 16 2019
+      platform: x64
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      generator: Visual Studio 16 2019
+      platform: win32
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      generator: Visual Studio 15 2017
+      platform: x64
 
 build:
   parallel: true
