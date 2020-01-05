@@ -77,38 +77,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONTENTS_NODROP             BIT( 31 ) // 0x80000000 // delete bodies or items whean dropped, used on things like lava or pit of death to prevent unnecessary polygon pileups
 
 // content flags
-#define SURF_NODAMAGE               BIT( 0 )  // falling on this surface does not give damage
-#define SURF_SLICK                  BIT( 1 )  // reduce friction
-#define SURF_SKY                    BIT( 2 )  // rendered as sky
-#define SURF_LADDER                 BIT( 3 )  // player can climb this surface
-#define SURF_NOIMPACT               BIT( 4 )  // missile does not explode but disappear, useful for skyboxes
-#define SURF_NOMARKS                BIT( 5 )  // missile will explode, but no mark will be left
-#define SURF_SPLASH                 BIT( 6 )  // Q3 stores SURF_FLESH there; RTCW stores SURF_CERAMIC there; Wolf:ET stores SURF_SPLASH there
-#define SURF_NODRAW                 BIT( 7 )  // renderer will not draw this surface, q3map2 will not paint lightmap either
-#define SURF_HINT                   BIT( 7 )  // q3map2 will split BSP using this surface
-#define SURF_SKIP                   BIT( 9 )  // ignore this surface, non-closed brushes can be made this way
-#define SURF_NOLIGHTMAP             BIT( 10 ) // lightmap will not be painted on such surface
-#define SURF_POINTLIGHT             BIT( 11 ) // sample lighting at vertexes
-#define SURF_METAL                  BIT( 12 ) // play clanking footsteps
-#define SURF_NOSTEPS                BIT( 13 ) // do not play footstep sound at all
-#define SURF_NONSOLID               BIT( 14 ) // clears the solid flag, don't collide against curves
-#define SURF_LIGHTFILTER            BIT( 15 ) // used by q3map2 light stage to cast light through this surface color (stained glass)
-#define SURF_ALPHASHADOW            BIT( 16 ) // used by q3map2 light stage to cast shadows behind this surface
-#define SURF_NODLIGHT               BIT( 17 ) // don't paint dynamic light on this surface even if solid (sky, solid lava…)
-#define SURF_WOOD                   BIT( 18 ) // Q3 stores SURF_DUST there (leave a dust trail when walking on); RTCW and Wolf:ET stores SURF_WOOD there
-#define SURF_GRASS                  BIT( 19 ) // RTCW/Wolf:ET; Unvanquished stores SURF_NOALIENBUILD there; Q3 defined no surface flags after BIT(18); QuakeLive stores SURF_SNOW there
-#define SURF_GRAVEL                 BIT( 20 ) // RTCW/Wolf:ET; Unvanquished stores SURF_NOHUMANBUILD there; QuakeLive stores SURF_WOOD there
-#define SURF_GLASS                  BIT( 21 ) // RTCW/Wolf:ET; Unvanquished stores SURF_NOBUILD there; an unknown game stored SURF_SMGROUP there before RTCW
-#define SURF_SNOW                   BIT( 22 ) // RTCW/Wolf:ET
-#define SURF_ROOF                   BIT( 23 ) // RTCW/Wolf:ET
-#define SURF_RUBBLE                 BIT( 24 ) // RTCW/Wolf:ET
-#define SURF_CARPET                 BIT( 25 ) // RTCW/Wolf:ET
-#define SURF_MONSTERSLICK           BIT( 26 ) // reduced friction surface that only affects bots
-#define SURF_MONSLICK_W             BIT( 27 ) // west monsterslick
-#define SURF_MONSLICK_N             BIT( 28 ) // north monsterslick
-#define SURF_MONSLICK_E             BIT( 29 ) // east monsterslick
-#define SURF_MONSLICK_S             BIT( 30 ) // south monsterslick
-#define SURF_LANDMINE               BIT( 31 ) // Wolf:ET, landmines can be placed on this surface
+#define SURF_NODAMAGE               BIT( 0 )  // 0x1        // falling on this surface does not give damage
+#define SURF_SLICK                  BIT( 1 )  // 0x2        // reduce friction
+#define SURF_SKY                    BIT( 2 )  // 0x4        // rendered as sky
+#define SURF_LADDER                 BIT( 3 )  // 0x8        // player can climb this surface
+#define SURF_NOIMPACT               BIT( 4 )  // 0x10       // missile does not explode but disappear, useful for skyboxes
+#define SURF_NOMARKS                BIT( 5 )  // 0x20       // missile will explode, but no mark will be left
+#define SURF_SPLASH                 BIT( 6 )  // 0x40       // Q3 stores SURF_FLESH there; RTCW stores SURF_CERAMIC there; Wolf:ET stores SURF_SPLASH there
+#define SURF_NODRAW                 BIT( 7 )  // 0x80       // renderer will not draw this surface, q3map2 will not paint lightmap either
+#define SURF_HINT                   BIT( 7 )  // 0x100      // q3map2 will split BSP using this surface
+#define SURF_SKIP                   BIT( 9 )  // 0x200      // ignore this surface, non-closed brushes can be made this way
+#define SURF_NOLIGHTMAP             BIT( 10 ) // 0x400      // lightmap will not be painted on such surface
+#define SURF_POINTLIGHT             BIT( 11 ) // 0x800      // sample lighting at vertexes
+#define SURF_METAL                  BIT( 12 ) // 0x1000     // play clanking footsteps
+#define SURF_NOSTEPS                BIT( 13 ) // 0x2000     // do not play footstep sound at all
+#define SURF_NONSOLID               BIT( 14 ) // 0x4000     // clears the solid flag, don't collide against curves
+#define SURF_LIGHTFILTER            BIT( 15 ) // 0x8000     // used by q3map2 light stage to cast light through this surface color (stained glass)
+#define SURF_ALPHASHADOW            BIT( 16 ) // 0x10000    // used by q3map2 light stage to cast shadows behind this surface
+#define SURF_NODLIGHT               BIT( 17 ) // 0x20000    // don't paint dynamic light on this surface even if solid (sky, solid lava…)
+#define SURF_WOOD                   BIT( 18 ) // 0x40000    // Q3 stores SURF_DUST there (leave a dust trail when walking on); RTCW and Wolf:ET stores SURF_WOOD there
+#define SURF_GRASS                  BIT( 19 ) // 0x80000    // RTCW/Wolf:ET; Unvanquished stores SURF_NOALIENBUILD there; Q3 defined no surface flags after BIT(18); QuakeLive stores SURF_SNOW there
+#define SURF_GRAVEL                 BIT( 20 ) // 0x100000   // RTCW/Wolf:ET; Unvanquished stores SURF_NOHUMANBUILD there; QuakeLive stores SURF_WOOD there
+#define SURF_GLASS                  BIT( 21 ) // 0x200000   // RTCW/Wolf:ET; Unvanquished stores SURF_NOBUILD there; an unknown game stored SURF_SMGROUP there before RTCW
+#define SURF_SNOW                   BIT( 22 ) // 0x400000   // RTCW/Wolf:ET
+#define SURF_ROOF                   BIT( 23 ) // 0x800000   // RTCW/Wolf:ET
+#define SURF_RUBBLE                 BIT( 24 ) // 0x1000000  // RTCW/Wolf:ET
+#define SURF_CARPET                 BIT( 25 ) // 0x2000000  // RTCW/Wolf:ET
+#define SURF_MONSTERSLICK           BIT( 26 ) // 0x4000000  // reduced friction surface that only affects bots
+#define SURF_MONSLICK_W             BIT( 27 ) // 0x8000000  // west monsterslick
+#define SURF_MONSLICK_N             BIT( 28 ) // 0x10000000 // north monsterslick
+#define SURF_MONSLICK_E             BIT( 29 ) // 0x20000000 // east monsterslick
+#define SURF_MONSLICK_S             BIT( 30 ) // 0x40000000 // south monsterslick
+#define SURF_LANDMINE               BIT( 31 ) // 0x80000000 // Wolf:ET, landmines can be placed on this surface
 
 // Note about other idTech 3 based games:
 // Jedi Knights games (see OpenJK) also define a third bitfield for flags with MATERIAL prefix to tell surface is water, snow, sand, glass, sort grasss, long grass, etc.
