@@ -9,6 +9,10 @@ environment:
       generator: Visual Studio 16 2019
       platform: x64
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      generator: NMake Makefiles
+      # -Aplatform is not supported by CMake's NMake Makefiles generator and produces an error
+      VCVARSBAT: vcvars64.bat
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       generator: Visual Studio 16 2019
       platform: win32
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
@@ -27,7 +31,15 @@ build_script:
   - cmd: >
       cmake --version
 
-      cmake -G"%generator%" -A"%platform%"
+      if "%generator%"=="NMake Makefiles"
+      call "%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\%VCVARSBAT%"
+
+      set cmake=cmake
+
+      if not "x%generator:Visual Studio=%"=="x%generator%"
+      set cmake=%cmake% -A"%platform%"
+
+      %cmake% -G"%generator%"
       -DUSE_WERROR=1 -DBE_VERBOSE=1
       -DUSE_PRECOMPILED_HEADER=0 -DBUILD_GAME_NACL=0
       -DCMAKE_BUILD_TYPE="%configuration%"
