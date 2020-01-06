@@ -22,6 +22,15 @@ before_build:
   - git submodule update --init --recursive
 
 build_script:
-  - cmd: cmake --version
-  - cmd: cmake -G"%generator%" -A"%platform%" -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_PRECOMPILED_HEADER=0 -DBUILD_GAME_NACL=0 -DCMAKE_BUILD_TYPE="%configuration%" -S. -Bbuild
-  - cmd: cmake --build build
+  # simple line break: space
+  # double line break: line break
+  - cmd: >
+      cmake --version
+
+      cmake -G"%generator%" -A"%platform%"
+      -DUSE_WERROR=1 -DBE_VERBOSE=1
+      -DUSE_PRECOMPILED_HEADER=0 -DBUILD_GAME_NACL=0
+      -DCMAKE_BUILD_TYPE="%configuration%"
+      -S. -Bbuild
+
+      cmake --build build
