@@ -1430,7 +1430,6 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		case stageType_t::ST_HEATHAZEMAP:
 		case stageType_t::ST_LIQUIDMAP:
 			imageBits |= IF_NORMALMAP;
-
 		default:
 			// silence warning for other types, we don't have to take care of them:
 			//    warning: enumeration value ‘ST_GLOWMAP’ not handled in switch [-Wswitch]
@@ -1522,86 +1521,6 @@ static bool ParseClampType( char *token, wrapType_t *clamp )
 	if (t) { clamp->t = type; }
 
 	return true;
-}
-
-/*
-===================
-FindMapInStage
-
-returns true if the shader stage contains a map line
-
-for example this code will match:
-
-```
-	{
-		map textures/map_solarium/water4/water4.tga
-		tcmod scale 0.3 0.4
-		tcMod scroll 0.05 0.05
-		blendfunc add
-		alphaGen vertex
-	}
-```
-
-the pointeri to the found map file name is stored in *buffer
-here it would be the pointer to
-
-```
-textures/map_solarium/water4/water4.tga
-```
-
-nothing more is done at this point, but ParseShader
-will be able to rely on it to look for extra maps based the
-basename of this filename and suffixes
-
-===================
-*/
-static bool FindMapInStage( const char *text, char *buffer, int bufferlen )
-{
-	char *token;
-	bool foundMap = false;
-
-	while ( true )
-	{
-		token = COM_ParseExt2( &text, true );
-
-		if ( token[ 0 ] == '\0' )
-		{
-			// the real parser will complain about it
-			// no need to print twice the same warning
-			return false;
-		}
-		if ( token[ 0 ] == '}' )
-		{
-			break;
-		}
-		else if ( !Q_stricmp( token, "stage" ) )
-		{
-			return false;
-		}
-		else if ( !Q_stricmp( token, "map" ) )
-		{
-			if ( !ParseMap( &text, buffer, bufferlen ) )
-			{
-				return false;
-			}
-			foundMap = true;
-		}
-	}
-
-	if ( foundMap )
-	{
-		// texture path starting with one of those chars is known
-		// to be en engine internal texture (usually produced by code)
-		if ( buffer[0] == '*'
-			|| buffer[0] == '_'
-			|| buffer[0] == '$' )
-		{
-			return false;
-		}
-		return true;
-	}
-
-	return false;
 }
 
 /*
@@ -1772,15 +1691,154 @@ struct extraMapParser_t
 
 static const extraMapParser_t extraMapParsers[] =
 {
-	// FIXME: dpMaterial Darkplaces compatibility layer still uses the collapse code path
-	// https://github.com/DaemonEngine/Daemon/pull/252#pullrequestreview-336919745
-
-	{ "norm",    "normal map",     ParseNormalMap,     TB_COLORMAP, },
-	{ "bump",    "height map",     ParseHeightMap,     TB_COLORMAP, },
-	{ "gloss",   "specular map",   ParseSpecularMap,   TB_COLORMAP, },
-	{ "glow",    "glow map",       ParseGlowMap,       TB_COLORMAP, },
-	{ "luma",    "glow map",       ParseGlowMap,       TB_COLORMAP, },
+	{ "norm",    "normal map",     ParseNormalMap,     TB_NORMALMAP, },
+	{ "bump",    "height map",     ParseHeightMap,     TB_HEIGHTMAP, },
+	{ "gloss",   "specular map",   ParseSpecularMap,   TB_SPECULARMAP, },
+	{ "glow",    "glow map",       ParseGlowMap,       TB_GLOWMAP, },
+	{ "luma",    "glow map",       ParseGlowMap,       TB_GLOWMAP, },
 };
+
+/*
+=================
+LoadExtraMaps
+
+Look for implicit extra maps (normal, specular…) for the given image path
+=================
+*/
+void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
+{
+	if ( *r_dpMaterial )
+	{
+		/* DarkPlaces material compatibility
+
+		note that the DarkPlaces renderer code is very different than Dæmon one
+		so that code is just trying to produce the same results but it shares
+		no one code at all
+
+		note that dp* keywords will be processed elsewhere
+
+		look if the stage to be parsed has a map keyword without a stage keyword,
+		if there is look for extra maps based on their suffixes,
+		if they exist load them,
+		and tell the stage to be parsed is a diffuseMap one just before parsing it
+
+		basically it will turn this:
+
+		```
+			textures/map_solarium/water4
+			{
+				qer_editorimage textures/map_solarium/water4/water4.tga
+				qer_trans 20
+				surfaceparm nomarks
+				surfaceparm trans
+				surfaceparm water
+				surfaceparm nolightmap
+				cull none
+				q3map_globaltexture
+				tessSize 256
+
+				{
+					map textures/map_solarium/water4/water4.tga
+					tcmod scale 0.3 0.4
+					tcMod scroll 0.05 0.05
+					blendfunc add
+					alphaGen vertex
+				}
+				dpreflectcube cubemaps/default/sky
+				{
+					map $lightmap
+					blendfunc add
+					tcGen lightmap
+				}
+				dp_water 0.1 1.2  1.4 0.7  1 1 1  1 1 1  0.1
+			}
+		```
+
+		into this:
+
+		```
+			textures/map_solarium/water4
+			{
+				qer_editorimage textures/map_solarium/water4/water4.tga
+				qer_trans 20
+				surfaceparm nomarks
+				surfaceparm trans
+				surfaceparm water
+				surfaceparm nolightmap
+				cull none
+				q3map_globaltexture
+				tessSize 256
+
+				normalMap textures/map_solarium/water4/water4_norm
+				specularMap textures/map_solarium/water4/water4_gloss
+				{
+					stage diffuseMap
+					map textures/map_solarium/water4/water4.tga
+					tcmod scale 0.3 0.4
+					tcMod scroll 0.05 0.05
+					blendfunc add
+					alphaGen vertex
+				}
+				dpreflectcube cubemaps/default/sky
+				{
+					map $lightmap
+					blendfunc add
+					tcGen lightmap
+				}
+				dp_water 0.1 1.2  1.4 0.7  1 1 1  1 1 1  0.1
+			}
+		```
+
+		*/
+
+		// do not look for extramap for $whiteimage etc.
+		switch ( colorMapName[0] )
+		{
+			case '$':
+			case '_':
+			case '*':
+				return;
+			default:
+				break;
+		}
+
+		char colorMapBaseName[ MAX_QPATH ];
+		bool foundExtraMap = false;
+
+		Log::Debug( "looking for extra maps for color map: '%s'", colorMapName );
+
+		COM_StripExtension3( colorMapName, colorMapBaseName, sizeof( colorMapBaseName ) );
+
+		for ( const extraMapParser_t parser: extraMapParsers )
+		{
+			std::string extraMapName = Str::Format( "%s_%s", colorMapBaseName, parser.suffix );
+			if( R_FindImageLoader( extraMapName.c_str() ) >= 0 )
+			{
+				foundExtraMap = true;
+				Log::Debug( "found extra %s '%s'", parser.description, extraMapName.c_str() );
+
+				const char *name = extraMapName.c_str();
+				parser.parser( stage, &name, parser.bundleIndex );
+
+				if ( Q_stricmp( "norm", parser.suffix ) == 0 )
+				{
+					// Xonotic uses -Y (DirectX) while this engine uses Y (OpenGL)
+					stage->normalScale[ 0 ] = 1;
+					stage->normalScale[ 1 ] = -1;
+					stage->normalScale[ 2 ] = 1;
+					stage->hasNormalScale = true;
+				}
+			}
+		}
+
+		if ( foundExtraMap )
+		{
+			stage->type = stageType_t::ST_COLLAPSE_lighting_PHONG;
+			stage->collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
+			stage->dpMaterial = true;
+		}
+	}
+}
 
 /*
 ===================
@@ -1826,6 +1884,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 			else
 			{
+				LoadExtraMaps( stage, buffer );
+
 				loadMap = true;
 			}
 		}
@@ -3522,135 +3582,6 @@ static bool ParseShader( const char *_text )
 		// stage definition
 		else if ( token[ 0 ] == '{' )
 		{
-			if ( *r_dpMaterial )
-			{
-				/* DarkPlaces material compatibility
-
-				note that the DarkPlaces renderer code is very different than Dæmon one
-				so that code is just trying to produce the same results but it shares
-				no one code at all
-
-				note that dp* keywords will be processed elsewhere
-
-				look if the stage to be parsed has a map keyword without a stage keyword,
-				if there is look for extra maps based on their suffixes,
-				if they exist load them,
-				and tell the stage to be parsed is a diffuseMap one just before parsing it
-
-				basically it will turn this:
-
-				```
-					textures/map_solarium/water4
-					{
-						qer_editorimage textures/map_solarium/water4/water4.tga
-						qer_trans 20
-						surfaceparm nomarks
-						surfaceparm trans
-						surfaceparm water
-						surfaceparm nolightmap
-						cull none
-						q3map_globaltexture
-						tessSize 256
-
-						{
-							map textures/map_solarium/water4/water4.tga
-							tcmod scale 0.3 0.4
-							tcMod scroll 0.05 0.05
-							blendfunc add
-							alphaGen vertex
-						}
-						dpreflectcube cubemaps/default/sky
-						{
-							map $lightmap
-							blendfunc add
-							tcGen lightmap
-						}
-						dp_water 0.1 1.2  1.4 0.7  1 1 1  1 1 1  0.1
-					}
-				```
-
-				into this:
-
-				```
-					textures/map_solarium/water4
-					{
-						qer_editorimage textures/map_solarium/water4/water4.tga
-						qer_trans 20
-						surfaceparm nomarks
-						surfaceparm trans
-						surfaceparm water
-						surfaceparm nolightmap
-						cull none
-						q3map_globaltexture
-						tessSize 256
-
-						normalMap textures/map_solarium/water4/water4_norm
-						specularMap textures/map_solarium/water4/water4_gloss
-						{
-							stage diffuseMap
-							map textures/map_solarium/water4/water4.tga
-							tcmod scale 0.3 0.4
-							tcMod scroll 0.05 0.05
-							blendfunc add
-							alphaGen vertex
-						}
-						dpreflectcube cubemaps/default/sky
-						{
-							map $lightmap
-							blendfunc add
-							tcGen lightmap
-						}
-						dp_water 0.1 1.2  1.4 0.7  1 1 1  1 1 1  0.1
-					}
-				```
-
-				*/
-
-				char colorMapName[ MAX_QPATH ] = "";
-				bool foundMap = FindMapInStage( *text, colorMapName, sizeof( colorMapName ) );
-				if (foundMap) {
-					char colorMapBaseName[ MAX_QPATH ];
-					bool foundExtraMap = false;
-
-					Log::Debug( "looking for extra maps for color map: '%s'", colorMapName );
-					COM_StripExtension3( colorMapName, colorMapBaseName, sizeof( colorMapBaseName ) );
-
-					for ( const extraMapParser_t parser: extraMapParsers )
-					{
-						if ( s >= ( MAX_SHADER_STAGES - 1 ) )
-						{
-							Log::Warn( "too many extra stages in shader %s", shader.name );
-							return false;
-						}
-
-						std::string extraMapName = Str::Format( "%s_%s", colorMapBaseName, parser.suffix );
-						if( R_FindImageLoader( extraMapName.c_str() ) >= 0 )
-						{
-							foundExtraMap = true;
-							Log::Debug( "found extra %s '%s'", parser.description, extraMapName.c_str() );
-							const char *name = extraMapName.c_str();
-							parser.parser( &stages[ s ], &name, parser.bundleIndex );
-
-							if ( Q_stricmp( "norm", parser.suffix ) == 0 )
-							{
-								// Xonotic uses -Y (DirectX) while this engine uses Y (OpenGL)
-								stages[ s ].normalScale[ 0 ] = 1;
-								stages[ s ].normalScale[ 1 ] = -1;
-								stages[ s ].normalScale[ 2 ] = 1;
-								stages[ s ].hasNormalScale = true;
-							}
-
-							s++;
-						}
-					}
-
-					if ( foundExtraMap )
-					{
-						stages[ s ].type = stageType_t::ST_DIFFUSEMAP;
-					}
-				}
-			}
-
 			if ( s >= ( MAX_SHADER_STAGES - 1 ) )
 			{
 				Log::Warn("too many stages in shader %s", shader.name );
@@ -4523,9 +4454,21 @@ static void CollapseStages()
 	{
 		if ( lightStage != -1 && stages[ i ].collapseType != collapseType_t::COLLAPSE_none )
 		{
-			// custom lightmap stage, disable the implicit light stage
-			Log::Debug("found custom lightmap stage in '%s' shader, disabling implicit one", shader.name);
-			stages[ i ].implicitLightmap = false;
+			if ( stages[ i ].dpMaterial )
+			{
+				// DarkPlaces only supports one kind of lightmap blend
+				// which is the default one
+				Log::Debug("found custom lightmap stage in DarkPlaces '%s' shader, disable it and enable implicit one instead", shader.name);
+				stages[ i ].implicitLightmap = true;
+				stages[ lightStage ].active = false;
+				lightStage = -1;
+			}
+			else
+			{
+				// custom lightmap stage, disable the implicit light stage
+				Log::Debug("found custom lightmap stage in '%s' shader, disabling implicit one", shader.name);
+				stages[ i ].implicitLightmap = false;
+			}
 		}
 	}
 

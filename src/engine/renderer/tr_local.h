@@ -1072,6 +1072,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		bool        active;
 
+		bool            dpMaterial;
+
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
 		expression_t    ifExp;
