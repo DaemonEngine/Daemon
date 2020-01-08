@@ -4322,16 +4322,8 @@ static void CollapseStages()
 		return;
 	}
 
-	// FIXME: heightStage is only used by dpMaterial Darkplaces compatibility layer
-	// that still uses to-be-collapsed standalone stages,
-	// this code will be dead when the dpMaterial feature
-	// will be ported to the pre-collapsed stage layout
-	// and this heightMap collapsing code would have to be deleted:
-	// https://github.com/DaemonEngine/Daemon/pull/252#pullrequestreview-336919745
-
 	int diffuseStage = -1;
 	int normalStage = -1;
-	int heightStage = -1;
 	int specularStage = -1;
 	int physicalStage = -1;
 	int reflectionStage = -1;
@@ -4380,17 +4372,6 @@ static void CollapseStages()
 			else
 			{
 				normalStage = i;
-			}
-		}
-		else if ( stages[ i ].type == stageType_t::ST_HEIGHTMAP )
-		{
-			if ( heightStage != -1 )
-			{
-				Log::Warn( "more than one height map stage in shader '%s'", shader.name );
-			}
-			else
-			{
-				heightStage = i;
 			}
 		}
 		else if ( stages[ i ].type == stageType_t::ST_SPECULARMAP )
@@ -4495,7 +4476,6 @@ static void CollapseStages()
 	if ( diffuseStage != -1
 		&& ( specularStage != -1
 			|| normalStage != -1
-			|| heightStage != -1
 			|| physicalStage != -1
 			|| lightStage != -1
 			|| glowStage != -1 ) )
@@ -4535,14 +4515,6 @@ static void CollapseStages()
 				stages[ diffuseStage ].heightMapInNormalMap = stages[ normalStage ].heightMapInNormalMap;
 				// disable since it's merged
 				stages[ normalStage ].active = false;
-			}
-
-			if ( heightStage != -1 )
-			{
-				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_HEIGHTMAP ] = stages[ heightStage ].bundle[ TB_COLORMAP ];
-				// disable since it's merged
-				stages[ heightStage ].active = false;
 			}
 
 			if ( specularStage != -1 )
