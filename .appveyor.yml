@@ -5,19 +5,14 @@ branches:
 environment:
   configuration: Debug
   matrix:
+    # see 96d5c1f3ed77b09c64ce7c3c7cbd37c70456b3db
+    # for NMake template
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       generator: Visual Studio 16 2019
       platform: x64
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      generator: NMake Makefiles
-      # -Aplatform is not supported by CMake's NMake Makefiles generator and produces an error
-      VCVARSBAT: vcvars64.bat
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      generator: Visual Studio 16 2019
-      platform: win32
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       generator: Visual Studio 15 2017
-      platform: x64
+      platform: win32
 
 build:
   parallel: true
@@ -30,9 +25,6 @@ build_script:
   # double line break: line break
   - cmd: >
       cmake --version
-
-      if "%generator%"=="NMake Makefiles"
-      call "%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\%VCVARSBAT%"
 
       set cmake=cmake
 
