@@ -4655,7 +4655,7 @@ static void CollapseStages()
 				}
 				// if there is a custom light stage, keep the glow stage uncollapsed
 				// and make sure the diffuse stage precedes the light stage
-				// and the light stage (known to exist because of implicitLightMap==false) precedes the glow stage
+				// and the light stage (known to exist because of implicitLightmap == false) precedes the glow stage
 				else
 				{
 					ASSERT_GE(lightStage, 0);
