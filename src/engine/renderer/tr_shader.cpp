@@ -1689,13 +1689,13 @@ struct extraMapParser_t
 	int bundleIndex;
 };
 
-static const extraMapParser_t extraMapParsers[] =
+static const extraMapParser_t dpExtraMapParsers[] =
 {
-	{ "norm",    "normal map",     ParseNormalMap,     TB_NORMALMAP, },
-	{ "bump",    "height map",     ParseHeightMap,     TB_HEIGHTMAP, },
-	{ "gloss",   "specular map",   ParseSpecularMap,   TB_SPECULARMAP, },
-	{ "glow",    "glow map",       ParseGlowMap,       TB_GLOWMAP, },
-	{ "luma",    "glow map",       ParseGlowMap,       TB_GLOWMAP, },
+	{ "_norm",    "normal map",     ParseNormalMap,     TB_NORMALMAP, },
+	{ "_bump",    "height map",     ParseHeightMap,     TB_HEIGHTMAP, },
+	{ "_gloss",   "specular map",   ParseSpecularMap,   TB_SPECULARMAP, },
+	{ "_glow",    "glow map",       ParseGlowMap,       TB_GLOWMAP, },
+	{ "_luma",    "glow map",       ParseGlowMap,       TB_GLOWMAP, },
 };
 
 /*
@@ -1809,9 +1809,9 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 
 		COM_StripExtension3( colorMapName, colorMapBaseName, sizeof( colorMapBaseName ) );
 
-		for ( const extraMapParser_t parser: extraMapParsers )
+		for ( const extraMapParser_t parser: dpExtraMapParsers )
 		{
-			std::string extraMapName = Str::Format( "%s_%s", colorMapBaseName, parser.suffix );
+			std::string extraMapName = Str::Format( "%s%s", colorMapBaseName, parser.suffix );
 			if( R_FindImageLoader( extraMapName.c_str() ) >= 0 )
 			{
 				foundExtraMap = true;
