@@ -1820,7 +1820,7 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 				const char *name = extraMapName.c_str();
 				parser.parser( stage, &name, parser.bundleIndex );
 
-				if ( Q_stricmp( "norm", parser.suffix ) == 0 )
+				if ( parser.bundleIndex == TB_NORMALMAP )
 				{
 					// Xonotic uses -Y (DirectX) while this engine uses Y (OpenGL)
 					stage->normalScale[ 0 ] = 1;
