@@ -5416,6 +5416,8 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	// choosing filter based on the NOMIP flag seems strange,
 	// maybe it should be changed to type == SHADER_2D
 	if( !(bits & RSF_NOMIP) ) {
+		LoadExtraMaps( &stages[ 0 ], fileName );
+
 		image = R_FindImageFile( fileName, bits, filterType_t::FT_DEFAULT,
 					 wrapTypeEnum_t::WT_REPEAT );
 	} else {
