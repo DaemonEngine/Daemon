@@ -3628,7 +3628,7 @@ static void R_LoadShaders( lump_t *l )
 
 	for ( i = 0; i < count; i++ )
 	{
-		Log::Debug("shader: '%s'", out[ i ].shader );
+		Log::Debug("loading shader: '%s'", out[ i ].shader );
 
 		out[ i ].surfaceFlags = LittleLong( out[ i ].surfaceFlags );
 		out[ i ].contentFlags = LittleLong( out[ i ].contentFlags );

@@ -1691,11 +1691,13 @@ struct extraMapParser_t
 
 static const extraMapParser_t dpExtraMapParsers[] =
 {
-	{ "_norm",    "normal map",     ParseNormalMap,     TB_NORMALMAP, },
-	{ "_bump",    "height map",     ParseHeightMap,     TB_HEIGHTMAP, },
-	{ "_gloss",   "specular map",   ParseSpecularMap,   TB_SPECULARMAP, },
-	{ "_glow",    "glow map",       ParseGlowMap,       TB_GLOWMAP, },
-	{ "_luma",    "glow map",       ParseGlowMap,       TB_GLOWMAP, },
+	{ "_norm",    "DarkPlaces normal map",     ParseNormalMap,     TB_NORMALMAP, },
+	{ "_bump",    "DarkPlaces height map",     ParseHeightMap,     TB_HEIGHTMAP, },
+	{ "_gloss",   "DarkPlaces specular map",   ParseSpecularMap,   TB_SPECULARMAP, },
+	{ "_glow",    "DarkPlaces glow map",       ParseGlowMap,       TB_GLOWMAP, },
+	// DarkPlaces implemented _luma for Tenebrae compatibility, the
+	// probability of finding this suffix with Xonotic maps is very low.
+	{ "_luma",    "Tenebrae glow map",         ParseGlowMap,       TB_GLOWMAP, },
 };
 
 /*
@@ -1733,16 +1735,15 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 				surfaceparm trans
 				surfaceparm water
 				surfaceparm nolightmap
-				cull none
 				q3map_globaltexture
 				tessSize 256
-
+				cull none
 				{
 					map textures/map_solarium/water4/water4.tga
-					tcmod scale 0.3 0.4
+					tcmod scale  0.3  0.4
 					tcMod scroll 0.05 0.05
 					blendfunc add
-					alphaGen vertex
+					alphaGen  vertex
 				}
 				dpreflectcube cubemaps/default/sky
 				{
@@ -1759,32 +1760,26 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 		```
 			textures/map_solarium/water4
 			{
-				qer_editorimage textures/map_solarium/water4/water4.tga
+				qer_editorimage textures/map_solarium/water4/water4
 				qer_trans 20
 				surfaceparm nomarks
 				surfaceparm trans
 				surfaceparm water
 				surfaceparm nolightmap
-				cull none
 				q3map_globaltexture
 				tessSize 256
-
-				normalMap textures/map_solarium/water4/water4_norm
-				specularMap textures/map_solarium/water4/water4_gloss
+				cull none
 				{
-					stage diffuseMap
-					map textures/map_solarium/water4/water4.tga
-					tcmod scale 0.3 0.4
+					diffuseMap  textures/map_solarium/water4/water4
+					normalMap   textures/map_solarium/water4/water4_norm
+					specularMap textures/map_solarium/water4/water4_gloss
+					normalScale 1 -1 1
+					tcmod scale  0.3  0.4
 					tcMod scroll 0.05 0.05
 					blendfunc add
-					alphaGen vertex
+					alphaGen  vertex
 				}
 				dpreflectcube cubemaps/default/sky
-				{
-					map $lightmap
-					blendfunc add
-					tcGen lightmap
-				}
 				dp_water 0.1 1.2  1.4 0.7  1 1 1  1 1 1  0.1
 			}
 		```
@@ -1805,7 +1800,7 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 		char colorMapBaseName[ MAX_QPATH ];
 		bool foundExtraMap = false;
 
-		Log::Debug( "looking for extra maps for color map: '%s'", colorMapName );
+		Log::Debug( "looking for DarkPlaces extra maps for color map: '%s'", colorMapName );
 
 		COM_StripExtension3( colorMapName, colorMapBaseName, sizeof( colorMapBaseName ) );
 
@@ -4437,8 +4432,8 @@ static void CollapseStages()
 		{
 			if ( stages[ i ].dpMaterial )
 			{
-				// DarkPlaces only supports one kind of lightmap blend
-				// which is the default one
+				// DarkPlaces only supports one kind of lightmap blend:
+				//   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1886-1887
 				Log::Debug("found custom lightmap stage in DarkPlaces '%s' shader, disable it and enable implicit one instead", shader.name);
 				stages[ i ].implicitLightmap = true;
 				stages[ lightStage ].active = false;
@@ -4809,7 +4804,9 @@ static shader_t *FinishShader()
 			stages[ 0 ].overrideWrapType = true;
 			stages[ 0 ].wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-			LoadMap( &stages[ 0 ], "lights/squarelight1a.tga" );
+			const char *squarelight1a = "lights/squarelight1a";
+			Log::Debug( "loading '%s' image as shader", squarelight1a );
+			LoadMap( &stages[ 0 ], squarelight1a );
 		}
 
 		// force following shader stages to be xy attenuation stages
@@ -5373,7 +5370,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		// of all explicit shaders
 		if ( r_printShaders->integer )
 		{
-			Log::Notice("...loading explicit shader '%s'", strippedName );
+			Log::Notice("loading explicit shader '%s'", strippedName );
 		}
 
 		if ( !ParseShader( shaderText ) )
@@ -5413,6 +5410,8 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	if( flags & RSF_NOLIGHTSCALE )
 		bits |= IF_NOLIGHTSCALE;
 
+	Log::Debug( "loading '%s' image as shader", fileName );
+
 	// choosing filter based on the NOMIP flag seems strange,
 	// maybe it should be changed to type == SHADER_2D
 	if( !(bits & RSF_NOMIP) ) {
@@ -5427,7 +5426,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 
 	if ( !image )
 	{
-		Log::Warn("Couldn't find image file for shader %s", name );
+		Log::Warn("Couldn't find image file '%s'", name );
 		shader.defaultShader = true;
 		return FinishShader();
 	}
@@ -5899,7 +5898,7 @@ static void ScanAndLoadShaderFiles()
 	{
 		Com_sprintf( filename, sizeof( filename ), "scripts/%s", shaderFiles[ i ] );
 
-		Log::Debug("...loading '%s'", filename );
+		Log::Debug("loading '%s' shader file", filename );
 		summand = ri.FS_ReadFile( filename, ( void ** ) &buffers[ i ] );
 
 		if ( !buffers[ i ] )
