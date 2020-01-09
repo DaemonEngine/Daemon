@@ -2765,6 +2765,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_ignore; // used for debugging anything
 	extern cvar_t *r_verbose; // used for verbose debug spew
 
+	extern Cvar::Cvar<bool> r_dpBlend;
+
 	extern cvar_t *r_znear; // near Z clip plane
 	extern cvar_t *r_zfar;
 

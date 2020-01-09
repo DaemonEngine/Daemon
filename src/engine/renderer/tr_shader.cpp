@@ -51,6 +51,7 @@ static char          whenTokens[ MAX_STRING_CHARS ];
 
 // DarkPlaces material compatibility
 static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::NONE, false);
+Cvar::Cvar<bool> r_dpBlend("r_dpBlend", "Enable DarkPlaces blend compatibility, process GT0 as GE128", Cvar::NONE, false);
 
 /*
 ================
@@ -859,7 +860,20 @@ static unsigned NameToAFunc( const char *funcname )
 {
 	if ( !Q_stricmp( funcname, "GT0" ) )
 	{
-		return GLS_ATEST_GT_0;
+		if ( *r_dpBlend )
+		{
+			// DarkPlaces only supports one alphaFunc operation: GE128
+			Log::Warn("alphaFunc 'GT0' will be replaced by 'GE128' in shader '%s' because r_dpBlend compatibility layer is enabled", shader.name );
+			return GLS_ATEST_GE_128;
+		}
+		else
+		{
+			if ( *r_dpMaterial )
+			{
+				Log::Warn("alphaFunc 'GT0' will not be replaced by 'GE128' in shader '%s' because r_dpBlend compatibility layer is disabled", shader.name );
+			}
+			return GLS_ATEST_GT_0;
+		}
 	}
 	else if ( !Q_stricmp( funcname, "LT128" ) )
 	{
