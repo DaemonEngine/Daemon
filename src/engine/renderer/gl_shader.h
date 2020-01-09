@@ -1243,7 +1243,27 @@ public:
 
 		switch( stateBits & GLS_ATEST_BITS ) {
 			case GLS_ATEST_GT_0:
-				value = 1.0f;
+				if ( *r_dpBlend )
+				{
+					// DarkPlaces only supports one alphaFunc operation:
+					//   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1875-1876
+					// Which is GE128:
+					//   https://gitlab.com/xonotic/darkplaces/blob/0ea8f691e05ea968bb8940942197fa627966ff99/render.h#L95
+					// Because of that, people may silently introduce regressions in their textures
+					// designed for GT0 by compressing them using a lossy picture format like Jpg.
+					// Xonotic texture known to trigger this bug:
+					//   models/desertfactory/textures/shaders/grass01
+					// Using GE128 instead would hide Jpeg artifacts while not breaking that much
+					// non-DarkPlaces GT0.
+					// No one operation other than GT0 an GE128 was found in whole Xonotic corpus,
+					// so if there is other operations used in third party maps, they were broken
+					// on DarkPlaces and will work there.
+					value = 0.5f;
+				}
+				else
+				{
+					value = 1.0f;
+				}
 				break;
 			case GLS_ATEST_LT_128:
 				value = -1.5f;
