@@ -605,13 +605,15 @@ const char* FS_LoadedPaks()
 bool FS_LoadPak(const char* name)
 {
 	const FS::PakInfo* pak = FS::FindPak(name);
-	if (!pak)
+	if (!pak) {
+		Log::Warn("Pak not found: '%s'", name);
 		return false;
+	}
 	try {
 		FS::PakPath::LoadPak(*pak);
 		return true;
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to load pak '%s': %s\n", name, err.what());
+		Log::Warn("Failed to load pak '%s': %s", name, err.what());
 		return false;
 	}
 }
@@ -620,14 +622,16 @@ void FS_LoadBasePak()
 {
 	Cmd::Args extrapaks(fs_extrapaks.Get());
 	for (const auto& x: extrapaks) {
-		if (!FS_LoadPak(x.c_str()))
-			Sys::Error("Could not load extra pak '%s'\n", x.c_str());
+		if (!FS_LoadPak(x.c_str())) {
+			Sys::Error("Could not load extra pak '%s'", x.c_str());
+		}
 	}
 
 	if (!FS_LoadPak(fs_basepak.Get().c_str())) {
-		Log::Notice("Could not load base pak '%s', falling back to default\n", fs_basepak.Get().c_str());
-		if (!FS_LoadPak(DEFAULT_BASE_PAK))
+		Log::Notice("Could not load base pak '%s', falling back to default: '%s'", fs_basepak.Get().c_str(), DEFAULT_BASE_PAK);
+		if (!FS_LoadPak(DEFAULT_BASE_PAK)) {
 			Sys::Error("Could not load default base pak '%s'", DEFAULT_BASE_PAK);
+		}
 	}
 }
 
