@@ -861,6 +861,9 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
+	// u_LinearizeTexture
+	gl_genericShader->SetUniform_LinearizeTexture( pStage->linearizeTexture );
+
 	// u_Bones
 	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
@@ -1033,6 +1036,9 @@ void Render_lightMapping( shaderStage_t *pStage )
 	gl_lightMappingShader->SetUniform_ViewOrigin( viewOrigin );
 
 	gl_lightMappingShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+	// u_LinearizeTexture
+	gl_lightMappingShader->SetUniform_LinearizeTexture( pStage->linearizeTexture );
 
 	if ( glConfig2.realtimeLighting &&
 	     r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
@@ -1961,6 +1967,9 @@ void Render_skybox( shaderStage_t *pStage )
 		GL_BindToTMU( 0, pStage->bundle[TB_COLORMAP].image[0] )
 	);
 
+	// u_LinearizeTexture
+	gl_skyboxShader->SetUniform_LinearizeTexture( pStage->linearizeTexture );
+
 	// u_AlphaThreshold
 	gl_skyboxShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
@@ -2268,6 +2277,9 @@ void Render_fog( shaderStage_t* pStage )
 	gl_fogQuake3Shader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_fogQuake3Shader->BindProgram( 0 );
+
+	// u_LinearizeTexture
+	gl_fogQuake3Shader->SetUniform_LinearizeTexture( tr.worldLinearizeTexture );
 
 	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
