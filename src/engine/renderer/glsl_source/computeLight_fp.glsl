@@ -132,6 +132,7 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   color.rgb += lightColor.rgb * NdotL * diffuseColor.rgb;
 #if defined(r_specularMapping)
   // The minimal specular exponent should preferably be nonzero to avoid the undefined pow(0, 0)
+  // It is assumed the specular map is in linear space (maybe some did the mistake to make them in sRGB space though).
   color.rgb += lightColor.rgb * materialColor.rgb * pow( NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping
 #endif // !USE_PHYSICAL_MAPPING

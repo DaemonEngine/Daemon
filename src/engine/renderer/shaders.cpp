@@ -13,6 +13,7 @@
 #include "blurY_vp.glsl.h"
 #include "cameraEffects_fp.glsl.h"
 #include "cameraEffects_vp.glsl.h"
+#include "colorSpace_fp.glsl.h"
 #include "computeLight_fp.glsl.h"
 #include "contrast_fp.glsl.h"
 #include "contrast_vp.glsl.h"
@@ -67,6 +68,7 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/blurY_vp.glsl", std::string(reinterpret_cast<const char*>(blurY_vp_glsl), sizeof(blurY_vp_glsl)) },
 	{ "glsl/cameraEffects_fp.glsl", std::string(reinterpret_cast<const char*>(cameraEffects_fp_glsl), sizeof(cameraEffects_fp_glsl)) },
 	{ "glsl/cameraEffects_vp.glsl", std::string(reinterpret_cast<const char*>(cameraEffects_vp_glsl), sizeof(cameraEffects_vp_glsl)) },
+	{ "glsl/colorSpace_fp.glsl", std::string(reinterpret_cast<const char*>(colorSpace_fp_glsl), sizeof(colorSpace_fp_glsl)) },
 	{ "glsl/computeLight_fp.glsl", std::string(reinterpret_cast<const char*>(computeLight_fp_glsl), sizeof(computeLight_fp_glsl)) },
 	{ "glsl/contrast_fp.glsl", std::string(reinterpret_cast<const char*>(contrast_fp_glsl), sizeof(contrast_fp_glsl)) },
 	{ "glsl/contrast_vp.glsl", std::string(reinterpret_cast<const char*>(contrast_vp_glsl), sizeof(contrast_vp_glsl)) },

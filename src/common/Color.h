@@ -38,6 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Compiler.h"
 #include "Math.h"
 
+#define convertFromSRGB( v ) v <= 0.04045f ? v * (1.0f / 12.92f) : pow((v + 0.055f) * (1.0f / 1.055f), 2.4f)
+
 namespace Color {
 
 /*
@@ -80,6 +82,7 @@ template<>
  * 	component_type Alpha() const; // Alpha component
  *
  */
+
 template<class T>
 class ColorAdaptor;
 
@@ -254,6 +257,18 @@ public:
 	CONSTEXPR_FUNCTION_RELAXED void SetAlpha( component_type v ) NOEXCEPT
 	{
 		alpha = v;
+	}
+
+	CONSTEXPR_FUNCTION_RELAXED component_type ConvertFromSRGB( component_type v ) NOEXCEPT
+	{
+		return convertFromSRGB( v );
+	}
+
+	CONSTEXPR_FUNCTION_RELAXED void ConvertFromSRGB() NOEXCEPT
+	{
+		red = ConvertFromSRGB( red );
+		green = ConvertFromSRGB( green );
+		blue = ConvertFromSRGB( blue );
 	}
 
 	CONSTEXPR_FUNCTION_RELAXED BasicColor& operator*=( float factor ) NOEXCEPT

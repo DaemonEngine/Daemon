@@ -911,6 +911,10 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
+		if ( tr.worldSRGBLightMap )
+		{
+			cv->verts[ i ].lightColor.ConvertFromSRGB();
+		}
 
 		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray(), cv->verts[ i ].lightColor.ToArray() );
 	}
@@ -4030,6 +4034,12 @@ void R_LoadLightGrid( lump_t *l )
 		{
 			ambientColor[ j ] = tmpAmbient[ j ] * ( 1.0f / 255.0f );
 			directedColor[ j ] = tmpDirected[ j ] * ( 1.0f / 255.0f );
+
+			if ( tr.worldSRGBLightMap )
+			{
+				ambientColor[ j ] = convertFromSRGB( ambientColor[ j ] );
+				directedColor[ j ] = convertFromSRGB( directedColor[ j ] );
+			}
 		}
 
 		// standard spherical coordinates to cartesian coordinates conversion
@@ -4273,6 +4283,48 @@ void R_LoadEntities( lump_t *l )
 				tr.worldDeluxeMapping = r_deluxeMapping->integer != 0;
 			}
 
+			// -sRGB implies -sRGBlight
+			s = strstr( value, "-sRGB" );
+
+			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
+			{
+				Log::Debug("map features sRGB light mapping" );
+				tr.worldSRGBLightMap = true;
+			}
+
+			s = strstr( value, "-sRGBlight" );
+
+			if ( s )
+			{
+				Log::Debug("map features sRGB light mapping" );
+				tr.worldSRGBLightMap = true;
+			}
+
+			// -nosRGB implies -nosRGBlight
+			s = strstr( value, "-nosRGB" );
+
+			if ( s && ( s[7] == ' ' || s[7] == '\0' ) )
+			{
+				tr.worldSRGBLightMap = false;
+			}
+
+			s = strstr( value, "-nosRGBlight" );
+
+			if ( s )
+			{
+				tr.worldSRGBLightMap = false;
+			}
+
+			continue;
+		}
+
+		/* Check for physical lighting computation support.
+		The default is non-physical lighting to keep compatibility with
+		legacy maps. */
+		if ( !Q_stricmp( keyname, "physicalLight" ) && !Q_stricmp( value, "1" ) )
+		{
+			Log::Debug("map features physical light computation" );
+			tr.worldPhysicalLight = true;
 			continue;
 		}
 
@@ -6754,6 +6806,8 @@ void RE_LoadWorldMap( const char *name )
 	// tr.worldDeluxeMapping will be set by R_LoadEntities()
 	tr.worldDeluxeMapping = false;
 	tr.worldHDR_RGBE = false;
+	tr.worldSRGBLightMap = false;
+	tr.worldPhysicalLight = false;
 
 	memset( &s_worldData, 0, sizeof( s_worldData ) );
 	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );

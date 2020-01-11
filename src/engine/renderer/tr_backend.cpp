@@ -3257,6 +3257,9 @@ void RB_CameraPostFX()
 	// enable shader, set arrays
 	gl_cameraEffectsShader->BindProgram( 0 );
 
+	// u_DelinearizeScreen
+	gl_cameraEffectsShader->SetUniform_DelinearizeScreen( tr.worldPhysicalLight );
+
 	gl_cameraEffectsShader->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
 	gl_cameraEffectsShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 

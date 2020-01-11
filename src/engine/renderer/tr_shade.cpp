@@ -762,6 +762,9 @@ static void Render_generic( int stage )
 			break;
 	}
 
+	// u_LinearizeTexture
+	gl_genericShader->SetUniform_LinearizeTexture( pStage->linearizeTexture );
+
 	// u_ColorModulate
 	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
@@ -980,6 +983,12 @@ static void Render_lightMapping( int stage )
 
 	// now we are ready to set the shader program uniforms
 	vec3_t viewOrigin;
+
+	// u_LinearizeLightMap
+	gl_lightMappingShader->SetUniform_LinearizeLightMap( pStage->linearizeLightMap );
+
+	// u_LinearizeTexture
+	gl_lightMappingShader->SetUniform_LinearizeTexture( pStage->linearizeTexture );
 
 	if ( tess.bspSurface )
 	{

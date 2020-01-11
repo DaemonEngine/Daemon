@@ -1525,6 +1525,7 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
+	u_LinearizeTexture( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1534,6 +1535,11 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLCompileMacro_USE_DEPTH_FADE( this ),
 	GLCompileMacro_USE_ALPHA_TESTING( this )
 {
+}
+
+void GLShader_generic::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "colorSpace";
 }
 
 void GLShader_generic::BuildShaderVertexLibNames( std::string& vertexInlines )
@@ -1569,6 +1575,9 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_LightGridScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
+	u_LinearizeTexture( this ),
+	u_LinearizeLightMap( this ),
+	u_DelinearizeScreen( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
@@ -1589,7 +1598,7 @@ void GLShader_lightMapping::BuildShaderVertexLibNames( std::string& vertexInline
 
 void GLShader_lightMapping::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_lightMapping::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
@@ -1636,6 +1645,9 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
+	u_LinearizeTexture( this ),
+	u_LinearizeLightMap( this ),
+	u_DelinearizeScreen( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1652,7 +1664,7 @@ void GLShader_forwardLighting_omniXYZ::BuildShaderVertexLibNames( std::string& v
 
 void GLShader_forwardLighting_omniXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_omniXYZ::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
@@ -1696,6 +1708,9 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
+	u_LinearizeTexture( this ),
+	u_LinearizeLightMap( this ),
+	u_DelinearizeScreen( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1712,7 +1727,7 @@ void GLShader_forwardLighting_projXYZ::BuildShaderVertexLibNames( std::string& v
 
 void GLShader_forwardLighting_projXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_projXYZ::BuildShaderCompileMacros( std::string& compileMacros )
@@ -1759,6 +1774,9 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
+	u_LinearizeTexture( this ),
+	u_LinearizeLightMap( this ),
+	u_DelinearizeScreen( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -1775,7 +1793,7 @@ void GLShader_forwardLighting_directionalSun::BuildShaderVertexLibNames( std::st
 
 void GLShader_forwardLighting_directionalSun::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_directionalSun::BuildShaderCompileMacros( std::string& compileMacros )
@@ -2012,8 +2030,14 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_DeformMagnitude( this ),
-	u_InverseGamma( this )
+	u_InverseGamma( this ),
+	u_DelinearizeScreen( this )
 {
+}
+
+void GLShader_cameraEffects::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "colorSpace";
 }
 
 void GLShader_cameraEffects::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
@@ -2085,7 +2109,7 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 
 void GLShader_liquid::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )

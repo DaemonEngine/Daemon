@@ -4915,6 +4915,25 @@ static void CollapseStages()
 	{
 		shaderStage_t *stage = &stages[ s ];
 
+		switch ( stage->type )
+		{
+			case stageType_t::ST_COLORMAP:
+				stage->linearizeTexture = stage->tcGen_Lightmap
+					? tr.worldSRGBLightMap : tr.worldPhysicalLight;
+				break;
+			case stageType_t::ST_LIGHTMAP:
+				stage->linearizeLightMap = tr.worldSRGBLightMap;
+				break;
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_lighting_PHONG:
+			case stageType_t::ST_COLLAPSE_lighting_PBR:
+				stage->linearizeLightMap = tr.worldSRGBLightMap;
+				stage->linearizeTexture = tr.worldPhysicalLight;
+				break;
+			default:
+				break;
+		}
+
 		// Available textures.
 		stage->hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 		stage->hasHeightMap = stage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;

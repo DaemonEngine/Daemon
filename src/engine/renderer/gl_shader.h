@@ -1509,6 +1509,51 @@ public:
 	}
 };
 
+class u_LinearizeTexture :
+	GLUniform1i
+{
+public:
+	u_LinearizeTexture( GLShader *shader ) :
+		GLUniform1i( shader, "u_LinearizeTexture" )
+	{
+	}
+
+	void SetUniform_LinearizeTexture( bool value )
+	{
+		this->SetValue( (int) value );
+	}
+};
+
+class u_LinearizeLightMap :
+	GLUniform1i
+{
+public:
+	u_LinearizeLightMap( GLShader *shader ) :
+		GLUniform1i( shader, "u_LinearizeLightMap" )
+	{
+	}
+
+	void SetUniform_LinearizeLightMap( bool value )
+	{
+		this->SetValue( (int) value );
+	}
+};
+
+class u_DelinearizeScreen :
+	GLUniform1i
+{
+public:
+	u_DelinearizeScreen( GLShader *shader ) :
+		GLUniform1i( shader, "u_DelinearizeScreen" )
+	{
+	}
+
+	void SetUniform_DelinearizeScreen( bool value )
+	{
+		this->SetValue( (int) value );
+	}
+};
+
 class u_ShadowBlur :
 	GLUniform1f
 {
@@ -2232,6 +2277,7 @@ class GLShader_generic :
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_LinearizeTexture,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2244,6 +2290,7 @@ class GLShader_generic :
 public:
 	GLShader_generic( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& vertexInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -2268,6 +2315,9 @@ class GLShader_lightMapping :
 	public u_LightGridScale,
 	public u_numLights,
 	public u_Lights,
+	public u_LinearizeTexture,
+	public u_LinearizeLightMap,
+	public u_DelinearizeScreen,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -2310,6 +2360,9 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
+	public u_LinearizeTexture,
+	public u_LinearizeLightMap,
+	public u_DelinearizeScreen,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2349,6 +2402,9 @@ class GLShader_forwardLighting_projXYZ :
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
+	public u_LinearizeTexture,
+	public u_LinearizeLightMap,
+	public u_DelinearizeScreen,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2390,6 +2446,9 @@ class GLShader_forwardLighting_directionalSun :
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
+	public u_LinearizeTexture,
+	public u_LinearizeLightMap,
+	public u_DelinearizeScreen,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -2564,11 +2623,13 @@ class GLShader_cameraEffects :
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
-	public u_InverseGamma
+	public u_InverseGamma,
+	public u_DelinearizeScreen
 {
 public:
 	GLShader_cameraEffects( GLShaderManager *manager );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
+	void BuildShaderFragmentLibNames( std::string& vertexInlines ) override;
 };
 
 class GLShader_blurX :

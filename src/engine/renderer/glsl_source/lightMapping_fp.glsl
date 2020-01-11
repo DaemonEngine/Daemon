@@ -28,6 +28,8 @@ uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
+uniform int u_LinearizeTexture;
+uniform int u_LinearizeLightMap;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
@@ -94,13 +96,19 @@ void main()
 	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
 
 	// Apply vertex blend operation like: alphaGen vertex.
-	diffuse *= var_Color;
+	diffuse.a *= var_Color.a;
 
 	if(abs(diffuse.a + u_AlphaThreshold) <= 1.0)
 	{
 		discard;
 		return;
 	}
+
+	if (u_LinearizeTexture == 1) {
+		convertFromSRGB(diffuse.rgb);
+	}
+
+	diffuse.rgb *= var_Color.rgb;
 
 	// Compute normal in world space from normalmap.
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
@@ -122,6 +130,7 @@ void main()
 	#if defined(USE_DELUXE_MAPPING)
 		// Compute light direction in world space from deluxe map.
 		vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
+
 		vec3 lightDir = normalize(2.0 * deluxe.xyz - 1.0);
 	#else
 		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
@@ -134,6 +143,10 @@ void main()
 	#if defined(USE_LIGHT_MAPPING)
 		// Compute light color from world space lightmap.
 		vec3 lightColor = texture2D(u_LightMap, var_TexLight).rgb;
+
+		if (u_LinearizeLightMap == 1) {
+			convertFromSRGB(lightColor);
+		}
 
 		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
 			color.rgb = vec3(0.0);
@@ -195,7 +208,13 @@ void main()
 
 	#if defined(r_glowMapping)
 		// Blend glow map.
-		color.rgb += texture2D(u_GlowMap, texCoords).rgb;
+		vec3 glow = texture2D(u_GlowMap, texCoords).rgb;
+
+		if (u_LinearizeTexture == 1) {
+			convertFromSRGB(glow);
+		}
+
+		color.rgb += glow;
 	#endif
 
 	outputColor = color;

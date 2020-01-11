@@ -26,6 +26,7 @@ uniform sampler2D u_CurrentMap;
 uniform sampler3D u_ColorMap;
 uniform vec4      u_ColorModulate;
 uniform float     u_InverseGamma;
+uniform int u_DelinearizeScreen;
 
 IN(smooth) vec2		var_TexCoords;
 
@@ -36,9 +37,14 @@ void	main()
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st / r_FBufSize;
 
-	vec4 original = clamp(texture2D(u_CurrentMap, st), 0.0, 1.0);
+	vec4 original = texture2D(u_CurrentMap, st);
 
-	vec4 color = original;
+	if (u_DelinearizeScreen == 1)
+	{
+		convertToSRGB(original.rgb);
+	}
+
+	vec4 color = clamp(original, 0.0, 1.0);
 
 	// apply color grading
 	vec3 colCoord = color.rgb * 15.0 / 16.0 + 0.5 / 16.0;

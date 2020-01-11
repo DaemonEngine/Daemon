@@ -1197,6 +1197,9 @@ static inline void glFboSetExt()
 
 		bool            dpMaterial;
 
+		bool linearizeTexture;
+		bool linearizeLightMap;
+
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
 		expression_t    ifExp;
@@ -2714,6 +2717,8 @@ static inline void glFboSetExt()
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
+		bool worldSRGBLightMap;
+		bool worldPhysicalLight;
 		world_t    *world;
 
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load

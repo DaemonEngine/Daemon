@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 uniform sampler2D	u_ColorMap;
 uniform float		u_AlphaThreshold;
+uniform int u_LinearizeTexture;
 
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
@@ -44,6 +45,12 @@ void	main()
 	{
 		discard;
 		return;
+	}
+#endif
+
+#if !defined(GENERIC_2D)
+	if (u_LinearizeTexture == 1) {
+		convertFromSRGB(color.rgb);
 	}
 #endif
 
