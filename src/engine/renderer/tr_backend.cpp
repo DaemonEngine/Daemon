@@ -2974,6 +2974,9 @@ void RB_RenderGlobalFog()
 	// u_InverseLightFactor
 	gl_fogGlobalShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
+	// u_LinearizeTexture
+	gl_fogGlobalShader->SetUniform_LinearizeTexture( tr.worldLinearizeTexture );
+
 	{
 		fog_t *fog;
 
@@ -3297,6 +3300,9 @@ void RB_CameraPostFX()
 
 	// enable shader, set arrays
 	gl_cameraEffectsShader->BindProgram( 0 );
+
+	// u_DelinearizeScreen
+	gl_cameraEffectsShader->SetUniform_DelinearizeScreen( tr.worldLinearizeTexture );
 
 	// u_LightFactor
 	gl_cameraEffectsShader->SetUniform_LightFactor( tr.mapLightFactor );

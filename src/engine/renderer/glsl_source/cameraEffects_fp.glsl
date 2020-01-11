@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D u_CurrentMap;
 uniform sampler3D u_ColorMap;
 
+uniform bool u_DelinearizeScreen;
 uniform float u_LightFactor;
 uniform vec4      u_ColorModulate;
 uniform float     u_InverseGamma;
@@ -41,6 +42,8 @@ void	main()
 	vec4 color = texture2D(u_CurrentMap, st);
 
 	color.rgb *= u_LightFactor;
+
+	convertToSRGB(color.rgb, u_DelinearizeScreen);
 
 	color = clamp(color, 0.0, 1.0);
 

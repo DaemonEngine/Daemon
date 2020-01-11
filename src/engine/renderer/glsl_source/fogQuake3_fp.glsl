@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 uniform sampler2D	u_ColorMap;
 
+uniform bool u_LinearizeTexture;
 uniform float u_InverseLightFactor;
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
@@ -36,6 +37,8 @@ void	main()
 	vec4 color = texture2D(u_ColorMap, var_TexCoords);
 
 	color *= var_Color;
+
+	convertFromSRGB(color.rgb, u_LinearizeTexture);
 
 	color.rgb *= u_InverseLightFactor;
 

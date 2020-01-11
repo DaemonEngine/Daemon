@@ -617,6 +617,11 @@ static std::string GenEngineConstants() {
 		AddConst( str, "r_RimExponent", r_rimExponent->value );
 	}
 
+	if ( r_cheapSRGB.Get() )
+	{
+		AddDefine( str, "r_cheapSRGB", 1 );
+	}
+
 	if ( r_showLightTiles->integer )
 	{
 		AddDefine( str, "r_showLightTiles", 1 );
@@ -1615,6 +1620,7 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_ModelMatrix( this ),
 	u_ProjectionMatrixTranspose( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_LinearizeTexture( this ),
 	u_InverseLightFactor( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
@@ -1637,6 +1643,11 @@ void GLShader_generic::BuildShaderVertexLibNames( std::string& vertexInlines )
 	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
 }
 
+void GLShader_generic::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "colorSpace";
+}
+
 void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
@@ -1654,6 +1665,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_LinearizeTexture( this ),
 	u_InverseLightFactor( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
@@ -1686,7 +1698,7 @@ void GLShader_lightMapping::BuildShaderVertexLibNames( std::string& vertexInline
 
 void GLShader_lightMapping::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_lightMapping::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
@@ -1748,7 +1760,7 @@ void GLShader_forwardLighting_omniXYZ::BuildShaderVertexLibNames( std::string& v
 
 void GLShader_forwardLighting_omniXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_omniXYZ::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
@@ -1807,7 +1819,7 @@ void GLShader_forwardLighting_projXYZ::BuildShaderVertexLibNames( std::string& v
 
 void GLShader_forwardLighting_projXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_projXYZ::BuildShaderCompileMacros( std::string& compileMacros )
@@ -1869,7 +1881,7 @@ void GLShader_forwardLighting_directionalSun::BuildShaderVertexLibNames( std::st
 
 void GLShader_forwardLighting_directionalSun::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_directionalSun::BuildShaderCompileMacros( std::string& compileMacros )
@@ -1975,11 +1987,17 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_LinearizeTexture( this ),
 	u_InverseLightFactor( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_ALPHA_TESTING( this )
 {
+}
+
+void GLShader_skybox::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "colorSpace";
 }
 
 void GLShader_skybox::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
@@ -1992,6 +2010,7 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT, manager ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_LinearizeTexture( this ),
 	u_InverseLightFactor( this ),
 	u_Color( this ),
 	u_Bones( this ),
@@ -2010,6 +2029,11 @@ void GLShader_fogQuake3::BuildShaderVertexLibNames( std::string& vertexInlines )
 	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
 }
 
+void GLShader_fogQuake3::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "colorSpace";
+}
+
 void GLShader_fogQuake3::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
@@ -2021,11 +2045,17 @@ GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
 	u_ViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
+	u_LinearizeTexture( this ),
 	u_InverseLightFactor( this ),
 	u_Color( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this )
 {
+}
+
+void GLShader_fogGlobal::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "colorSpace";
 }
 
 void GLShader_fogGlobal::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
@@ -2116,8 +2146,14 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_ModelViewProjectionMatrix( this ),
 	u_LightFactor( this ),
 	u_DeformMagnitude( this ),
-	u_InverseGamma( this )
+	u_InverseGamma( this ),
+	u_DelinearizeScreen( this )
 {
+}
+
+void GLShader_cameraEffects::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "colorSpace";
 }
 
 void GLShader_cameraEffects::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
@@ -2189,7 +2225,7 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 
 void GLShader_liquid::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
-	fragmentInlines += "computeLight reliefMapping";
+	fragmentInlines += "colorSpace computeLight reliefMapping";
 }
 
 void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )

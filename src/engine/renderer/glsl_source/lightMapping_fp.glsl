@@ -26,8 +26,9 @@ uniform sampler2D	u_DiffuseMap;
 uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
-uniform float		u_AlphaThreshold;
+uniform int u_LinearizeTexture;
 uniform float u_InverseLightFactor;
+uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
 
 IN(smooth) vec3		var_Position;
@@ -82,13 +83,23 @@ void main()
 	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
 
 	// Apply vertex blend operation like: alphaGen vertex.
-	diffuse *= var_Color;
+	diffuse.a *= var_Color.a;
 
 	if(abs(diffuse.a + u_AlphaThreshold) <= 1.0)
 	{
 		discard;
 		return;
 	}
+
+	/* HACK: emulate two-bits bitfield
+	even: no texture linearization (first bit)
+	less than 2: no lightmap linearization (second bit) */
+	bool linearizeTexture = bool(u_LinearizeTexture % 2);
+	bool linearizeLightMap = u_LinearizeTexture > 1;
+
+	convertFromSRGB(diffuse.rgb, linearizeTexture);
+
+	diffuse.rgb *= var_Color.rgb;
 
 	// Compute normal in world space from normalmap.
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
@@ -118,6 +129,8 @@ void main()
 	#if defined(USE_LIGHT_MAPPING)
 		// Compute light color from world space lightmap.
 		vec3 lightColor = texture2D(u_LightMap, var_TexLight).rgb;
+
+		convertFromSRGB(lightColor, linearizeLightMap);
 
 		color.rgb = vec3(0.0);
 	#else
@@ -183,6 +196,8 @@ void main()
 	#if defined(r_glowMapping)
 		// Blend glow map.
 		vec3 glow = texture2D(u_GlowMap, texCoords).rgb;
+
+		convertFromSRGB(glow, linearizeTexture);
 
 		/* HACK: use sign to know if there is a light or not, and
 		then if it will receive overbright multiplication or not. */

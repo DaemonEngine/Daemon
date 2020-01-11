@@ -1557,6 +1557,36 @@ public:
 	}
 };
 
+class u_LinearizeTexture :
+	GLUniform1i
+{
+public:
+	u_LinearizeTexture( GLShader *shader ) :
+		GLUniform1i( shader, "u_LinearizeTexture" )
+	{
+	}
+
+	void SetUniform_LinearizeTexture( const int value )
+	{
+		this->SetValue( value );
+	}
+};
+
+class u_DelinearizeScreen :
+	GLUniform1i
+{
+public:
+	u_DelinearizeScreen( GLShader *shader ) :
+		GLUniform1i( shader, "u_DelinearizeScreen" )
+	{
+	}
+
+	void SetUniform_DelinearizeScreen( const int value )
+	{
+		this->SetValue( value );
+	}
+};
+
 class u_ShadowBlur :
 	GLUniform1f
 {
@@ -2300,6 +2330,7 @@ class GLShader_generic :
 	public u_ModelMatrix,
  	public u_ProjectionMatrixTranspose,
 	public u_ModelViewProjectionMatrix,
+	public u_LinearizeTexture,
 	public u_InverseLightFactor,
 	public u_ColorModulate,
 	public u_Color,
@@ -2318,6 +2349,7 @@ class GLShader_generic :
 public:
 	GLShader_generic( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& vertexInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -2331,6 +2363,7 @@ class GLShader_lightMapping :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_LinearizeTexture,
 	public u_InverseLightFactor,
 	public u_Bones,
 	public u_VertexInterpolation,
@@ -2534,6 +2567,7 @@ class GLShader_skybox :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_LinearizeTexture,
 	public u_InverseLightFactor,
 	public u_VertexInterpolation,
 	public GLDeformStage,
@@ -2541,6 +2575,7 @@ class GLShader_skybox :
 {
 public:
 	GLShader_skybox( GLShaderManager *manager );
+	void BuildShaderFragmentLibNames( std::string& vertexInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -2548,6 +2583,7 @@ class GLShader_fogQuake3 :
 	public GLShader,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_LinearizeTexture,
 	public u_InverseLightFactor,
 	public u_Color,
 	public u_Bones,
@@ -2562,6 +2598,7 @@ class GLShader_fogQuake3 :
 public:
 	GLShader_fogQuake3( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -2571,6 +2608,7 @@ class GLShader_fogGlobal :
 	public u_ViewMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
+	public u_LinearizeTexture,
 	public u_InverseLightFactor,
 	public u_Color,
 	public u_FogDistanceVector,
@@ -2578,6 +2616,7 @@ class GLShader_fogGlobal :
 {
 public:
 	GLShader_fogGlobal( GLShaderManager *manager );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -2645,11 +2684,13 @@ class GLShader_cameraEffects :
 	public u_ModelViewProjectionMatrix,
 	public u_LightFactor,
 	public u_DeformMagnitude,
-	public u_InverseGamma
+	public u_InverseGamma,
+	public u_DelinearizeScreen
 {
 public:
 	GLShader_cameraEffects( GLShaderManager *manager );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 };
 
 class GLShader_blurX :

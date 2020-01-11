@@ -4735,6 +4735,14 @@ static bool ParseShader( const char *_text )
 	return true;
 }
 
+static int packLinearizeTexture( bool linearizeTexture, bool linearizeLightMap )
+{
+	/* HACK: emulate two-bits bitfield
+	even: no texture linearization (first bit)
+	less than 2: no lightmap linearization (second bit) */
+	return int(linearizeTexture) + ( 2 * int(linearizeLightMap) );
+}
+
 /*
 ========================================================================================
 
@@ -5152,6 +5160,28 @@ static void CollapseStages()
 	for ( int s = 0; s < shader.numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
+
+		switch ( stage->type )
+		{
+			case stageType_t::ST_COLORMAP:
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+			case stageType_t::ST_SKYBOXMAP:
+				stage->linearizeTexture = tr.worldLinearizeTexture;
+				break;
+			case stageType_t::ST_STYLELIGHTMAP:
+			case stageType_t::ST_STYLECOLORMAP:
+				stage->linearizeTexture = tr.worldLinearizeLightMap;
+				break;
+			case stageType_t::ST_LIGHTMAP:
+				stage->linearizeTexture = packLinearizeTexture( false, tr.worldLinearizeLightMap );
+				break;
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+				stage->linearizeTexture = packLinearizeTexture( tr.worldLinearizeTexture, tr.worldLinearizeLightMap );
+				break;
+			default:
+				break;
+		}
 
 		switch ( stage->type )
 		{
