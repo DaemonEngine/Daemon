@@ -119,7 +119,6 @@ namespace Cvar {
 
         if (not var.name) {
             var.name = CopyString(name.c_str());
-            var.index = -1;
             var.modificationCount = -1;
         }
 
