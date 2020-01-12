@@ -2930,7 +2930,6 @@ void CL_Init()
 	Cvar_Get( "name", UNNAMED_PLAYER, CVAR_USERINFO | CVAR_ARCHIVE );
 	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "snaps", "40", CVAR_USERINFO  );
-//  Cvar_Get ("sex", "male", CVAR_USERINFO  );
 
 	Cvar_Get( "password", "", CVAR_USERINFO );
 

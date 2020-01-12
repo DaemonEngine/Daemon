@@ -597,25 +597,22 @@ static void NORETURN Com_Crash_f()
 
 void Com_SetRecommended()
 {
-	cvar_t   *r_highQualityVideo; //, *com_recommended;
+	cvar_t   *r_highQualityVideo;
 	bool goodVideo;
 
 	// will use this for recommended settings as well.. do i outside the lower check so it gets done even with command line stuff
 	r_highQualityVideo = Cvar_Get( "r_highQualityVideo", "1", 0 );
-	//com_recommended = Cvar_Get("com_recommended", "-1", 0);
 	goodVideo = ( r_highQualityVideo && r_highQualityVideo->integer );
 
 	if ( goodVideo )
 	{
 		Log::Notice( "Found high quality video and slow CPU\n" );
 		Cmd::BufferCommandText("preset preset_fast.cfg");
-		Cvar_Set( "com_recommended", "2" );
 	}
 	else
 	{
 		Log::Notice( "Found low quality video and slow CPU\n" );
 		Cmd::BufferCommandText("preset preset_fastest.cfg");
-		Cvar_Set( "com_recommended", "3" );
 	}
 }
 
