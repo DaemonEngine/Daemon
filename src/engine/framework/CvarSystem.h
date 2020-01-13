@@ -88,6 +88,8 @@ namespace Cvar {
     void SetValueCProxy(const std::string& cvarName, const std::string& value);
 
     void SetCheatsAllowed(bool allowed);
+    // Use the stored values for new-style cvars with LATCH flag
+    void SetLatchedValues();
     void Shutdown();
 
     //Kept as a reference for cvar flags
@@ -98,7 +100,7 @@ namespace Cvar {
     // Remove eventually
     //CVAR_UNSAFE, not sure <- no support for now
     //CVAR_USER_CREATED is kept for now but not really needed
-    //CVAR_LATCH, CVAR_SHADER, CVAR_INIT are not longer supported, will be implemented by the proxy
+    //CVAR_INIT is no longer supported, will be implemented by the proxy
 
     //CVAR_NORESTART is not used will be killed
     //CVAR_TEMP seems useless, don't put the CVAR_ARCHIVE and CVAR_CHEAT
