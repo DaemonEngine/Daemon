@@ -260,7 +260,6 @@ namespace Cvar {
                 }
             }
 
-            std::swap(cvar->value, value);
             cvar->flags |= flags;
 
             // mark for archival if flagged as archive-on-change
@@ -270,16 +269,17 @@ namespace Cvar {
 
             if (cvar->proxy) {
                 //Tell the cvar proxy about the new value
-                OnValueChangedResult result = cvar->proxy->OnValueChanged(cvar->value);
+                OnValueChangedResult result = cvar->proxy->OnValueChanged(value);
 
                 if (result.success) {
+                    cvar->value = std::move(value);
                     ChangeCvarDescription(cvarName, cvar, result.description);
                 } else {
-                    //The proxy could not parse the value, rollback
-                    Log::Notice("Value '%s' is not valid for cvar %s: %s\n",
-                            cvar->value.c_str(), cvarName.c_str(), result.description.c_str());
-                    cvar->value = value;
+                    Log::Notice("Value '%s' is not valid for cvar %s: %s", value, cvarName, result.description);
+                    return;
                 }
+            } else {
+                cvar->value = std::move(value);
             }
             SetCCvar(*cvar);
         }
