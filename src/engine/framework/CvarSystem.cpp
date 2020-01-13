@@ -44,6 +44,7 @@ namespace Cvar {
     struct cvarRecord_t {
         std::string value;
         std::string resetValue;
+        Util::optional<std::string> latchedValue;
         int flags;
         std::string description;
         CvarProxy* proxy;
@@ -237,7 +238,7 @@ namespace Cvar {
             }
 
             //The user creates a new cvar through a command.
-            cvars[cvarName] = new cvarRecord_t{value, value, flags | CVAR_USER_CREATED, "user created", nullptr, {}};
+            cvars[cvarName] = new cvarRecord_t{value, value, Util::nullopt, flags | CVAR_USER_CREATED, "user created", nullptr, {}};
             Cmd::AddCommand(cvarName, cvarCommand, "cvar - user created");
             GetCCvar(cvarName, *cvars[cvarName]);
 
@@ -272,6 +273,15 @@ namespace Cvar {
                 OnValueChangedResult result = cvar->proxy->OnValueChanged(value);
 
                 if (result.success) {
+                    if (cvar->flags & LATCH && value != cvar->value) {
+                        ChangeCvarDescription(cvarName, cvar, Str::Format("%s^* - latched value \"%s^*\"", result.description, value));
+                        OnValueChangedResult undo = cvar->proxy->OnValueChanged(cvar->value);
+                        ASSERT(undo.success);
+                        Log::Notice("The change will take effect after restart.");
+                        cvar->latchedValue = value;
+                        return;
+                    }
+                    cvar->latchedValue = Util::nullopt;
                     cvar->value = std::move(value);
                     ChangeCvarDescription(cvarName, cvar, result.description);
                 } else {
@@ -319,7 +329,7 @@ namespace Cvar {
             }
 
             //Create the cvar and parse its default value
-            cvar = new cvarRecord_t{defaultValue, defaultValue, flags, description, proxy, {}};
+            cvar = new cvarRecord_t{defaultValue, defaultValue, Util::nullopt, flags, description, proxy, {}};
             cvars[name] = cvar;
 
             Cmd::AddCommand(name, cvarCommand, "cvar - \"" + defaultValue + "\" - " + description);
@@ -455,6 +465,26 @@ namespace Cvar {
                                 cvar->resetValue.c_str(), entry.first.c_str(), result.description.c_str());
                     }
                 }
+            }
+        }
+    }
+
+    void SetLatchedValues()
+    {
+        for (auto& entry : GetCvarMap()) {
+            cvarRecord_t* cvar = entry.second;
+            if (!cvar->latchedValue) {
+                continue;
+            }
+            cvar->value = std::move(*cvar->latchedValue);
+            cvar->latchedValue = Util::nullopt;
+            SetCCvar(*cvar);
+            ASSERT_NQ(cvar->proxy, nullptr);
+            OnValueChangedResult result = cvar->proxy->OnValueChanged(cvar->value);
+            if (result.success) {
+                ChangeCvarDescription(entry.first, cvar, result.description);
+            } else {
+                Log::Warn("BUG: failed setting cvar %s to latched value", entry.first);
             }
         }
     }
@@ -674,7 +704,7 @@ namespace Cvar {
                     flags += (var->flags & ROM) ? "R" : "_";
                     flags += (var->flags & CVAR_INIT) ? "I" : "_";
                     flags += (var->flags & TEMPORARY) ? "T" : (var->flags & USER_ARCHIVE) ? "A" : "_";
-                    flags += (var->flags & CVAR_LATCH) ? "L" : "_";
+                    flags += (var->flags & (CVAR_LATCH | LATCH)) ? "L" : "_";
                     flags += (var->flags & CHEAT) ? "C" : "_";
                     flags += (var->flags & CVAR_USER_CREATED) ? "?" : "_";
 

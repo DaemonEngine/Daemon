@@ -2666,6 +2666,8 @@ void CL_StartHunkUsers()
 		return;
 	}
 
+	Cvar::SetLatchedValues();
+
 	if ( !cls.rendererStarted && CL_InitRenderer() )
 	{
 		cls.rendererStarted = true;

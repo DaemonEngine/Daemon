@@ -46,6 +46,7 @@ namespace Cvar {
         TEMPORARY  = BIT(8), // The cvar is temporary and is not to be archived (overrides archive flags)
         CHEAT      = BIT(9), // The cvar is a cheat and should stay at its default value on pure servers.
         USER_ARCHIVE = BIT(14), // The cvar is saved to the configuration file at user request
+        LATCH      = BIT(15), // The cvar's value can be changed only after a cgame restart. Intentionally different from CVAR_LATCH.
     };
 
     // Internal to the Cvar system
