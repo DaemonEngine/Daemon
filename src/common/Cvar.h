@@ -281,9 +281,11 @@ namespace Cvar {
 
     template<typename T>
     OnValueChangedResult Cvar<T>::OnValueChanged(Str::StringRef text) {
-        if (Parse(text, value)) {
-            OnValueChangedResult validationResult = Validate(value);
+        T newValue;
+        if (Parse(text, newValue)) {
+            OnValueChangedResult validationResult = Validate(newValue);
             if (validationResult.success) {
+                value = std::move(newValue);
                 return OnValueChangedResult{true, GetDescription()};
             } else {
                 return validationResult;
