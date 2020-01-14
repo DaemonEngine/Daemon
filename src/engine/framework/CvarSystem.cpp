@@ -226,6 +226,11 @@ namespace Cvar {
         cvar->description = std::move(realDescription);
     }
 
+    // To avoid "change will take effect after restart" messages during initialization, when
+    // variables are set by autogen.cfg or command line.
+    // Note that SetLatchedValues is never called in a dedicated server.
+    static bool setLatchedValuesCalled = false;
+
     void InternalSetValue(const std::string& cvarName, std::string value, int flags, bool rom, bool warnRom) {
         CvarMap& cvars = GetCvarMap();
 
@@ -277,7 +282,9 @@ namespace Cvar {
                         ChangeCvarDescription(cvarName, cvar, Str::Format("%s^* - latched value \"%s^*\"", result.description, value));
                         OnValueChangedResult undo = cvar->proxy->OnValueChanged(cvar->value);
                         ASSERT(undo.success);
-                        Log::Notice("The change will take effect after restart.");
+                        if (setLatchedValuesCalled) {
+                            Log::Notice("The change will take effect after restart.");
+                        }
                         cvar->latchedValue = value;
                         return;
                     }
@@ -487,6 +494,7 @@ namespace Cvar {
                 Log::Warn("BUG: failed setting cvar %s to latched value", entry.first);
             }
         }
+        setLatchedValuesCalled = true;
     }
 
     // Used by the C API
