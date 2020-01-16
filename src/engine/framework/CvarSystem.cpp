@@ -279,7 +279,7 @@ namespace Cvar {
 
                 if (result.success) {
                     if (cvar->flags & LATCH && value != cvar->value) {
-                        ChangeCvarDescription(cvarName, cvar, Str::Format("%s^* - latched value \"%s^*\"", result.description, value));
+                        ChangeCvarDescription(cvarName, cvar, Str::Format("%s - latched value \"%s^*\"", result.description, value));
                         OnValueChangedResult undo = cvar->proxy->OnValueChanged(cvar->value);
                         ASSERT(undo.success);
                         if (setLatchedValuesCalled) {
