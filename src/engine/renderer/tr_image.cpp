@@ -1332,22 +1332,17 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 		ri.Hunk_FreeTempMemory( scaledBuffer );
 	}
 
-	// detect heightmap in normalmap alpha channel and enable it
-	// if not already enabled by explicit shader keyword
-	if ( image->bits & IF_NORMALMAP )
+	switch ( image->internalFormat )
 	{
-		switch ( image->internalFormat )
-		{
-			case GL_RGBA:
-			case GL_RGBA8:
-			case GL_RGBA16:
-			case GL_RGBA16F:
-			case GL_RGBA32F:
-			case GL_RGBA32UI:
-			case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-			case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-				image->bits |= IF_HEIGHTMAP;
-		}
+		case GL_RGBA:
+		case GL_RGBA8:
+		case GL_RGBA16:
+		case GL_RGBA16F:
+		case GL_RGBA32F:
+		case GL_RGBA32UI:
+		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+			image->bits |= IF_ALPHA;
 	}
 
 	GL_Unbind( image );
