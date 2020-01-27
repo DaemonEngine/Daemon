@@ -526,8 +526,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  IF_LIGHTMAP = BIT( 13 ),
 	  IF_RGBA16 = BIT( 14 ),
 	  IF_RGBE = BIT( 15 ),
-	  IF_ALPHATEST = BIT( 16 ),
-	  IF_HEIGHTMAP = BIT( 17 ),
+	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
+	  IF_ALPHA = BIT( 17 ),
 	  IF_NOLIGHTSCALE = BIT( 18 ),
 	  IF_BC1 = BIT( 19 ),
 	  IF_BC2 = BIT( 20 ),

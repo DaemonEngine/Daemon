@@ -1438,7 +1438,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 
 	if ( stage->stateBits & ( GLS_ATEST_BITS ) )
 	{
-		imageBits |= IF_ALPHATEST;
+		imageBits |= IF_ALPHATEST; // FIXME: this is unused
 	}
 
 	if ( stage->overrideFilterType )
@@ -1477,13 +1477,11 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	// tell renderer to enable parallax mapping since an heightmap is found
 	// also tell renderer to not abuse normalmap alpha channel because it's an heightmap
 	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
-	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_HEIGHTMAP )
+	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP
+		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_ALPHA )
 	{
-		if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP )
-		{
-			Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
-			stage->heightMapInNormalMap = true;
-		}
+		Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
+		stage->heightMapInNormalMap = true;
 	}
 
 	return true;
