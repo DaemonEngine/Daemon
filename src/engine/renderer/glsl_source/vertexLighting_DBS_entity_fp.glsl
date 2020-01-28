@@ -54,11 +54,11 @@ void ReadLightGrid(in vec3 pos, out vec3 lightDir,
 	vec4 texel1 = texture3D(u_LightGrid1, pos);
 	vec4 texel2 = texture3D(u_LightGrid2, pos);
 
-	ambientColor = texel1.xyz;
-	lightColor = texel2.xyz;
+	ambientColor = texel1.rgb;
+	lightColor = texel2.rgb;
 
-	lightDir.x = (255.0 * texel1.w - 128.0) / 127.0;
-	lightDir.y = (255.0 * texel2.w - 128.0) / 127.0;
+	lightDir.x = (255.0 * texel1.a - 128.0) / 127.0;
+	lightDir.y = (255.0 * texel2.a - 128.0) / 127.0;
 	lightDir.z = 1.0 - abs(lightDir.x) - abs(lightDir.y);
 
 	vec2 signs = 2.0 * step(0.0, lightDir.xy) - vec2(1.0);
@@ -119,7 +119,7 @@ void	main()
 #endif // USE_REFLECTIVE_SPECULAR && !USE_PHYSICAL_MAPPING
 
 	// compute final color
-	vec4 color = vec4(ambientColor * r_AmbientScale * diffuse.xyz, diffuse.a);
+	vec4 color = vec4(ambientColor * r_AmbientScale * diffuse.rgb, diffuse.a);
 
 	computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 

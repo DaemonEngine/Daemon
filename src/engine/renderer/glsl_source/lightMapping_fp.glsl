@@ -77,7 +77,7 @@ void	main()
 	vec4 material = texture2D(u_MaterialMap, texCoords);
 
 	// compute light color from world space lightmap
-	vec3 lightColor = texture2D(u_LightMap, var_TexLight).xyz;
+	vec3 lightColor = texture2D(u_LightMap, var_TexLight).rgb;
 
 	// compute final color
 	vec4 color = vec4( 0.0, 0.0, 0.0, diffuse.a );
@@ -94,7 +94,7 @@ void	main()
 	computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 #else // !USE_DELUXE_MAPPING
 	// normal/deluxe mapping is disabled
-	color.xyz += lightColor.xyz * diffuse.xyz;
+	color.rgb += lightColor.rgb * diffuse.rgb;
 #endif // USE_DELUXE_MAPPING
 
 	computeDLights( var_Position, normal, viewDir, diffuse, material, color );
