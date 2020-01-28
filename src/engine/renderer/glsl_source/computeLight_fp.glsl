@@ -51,7 +51,7 @@ uniform vec2 u_SpecularExponent;
 // lighting helper functions
 void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 		   vec4 diffuseColor, vec4 materialColor,
-		   inout vec4 accumulator ) {
+		   inout vec4 color ) {
   vec3 H = normalize( lightDir + viewDir );
   float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
 
@@ -86,9 +86,9 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   float G = NdotL / (NdotL * (1.0 - k) + k);
   G *= NdotV / (NdotV * (1.0 - k) + k);
 
-  accumulator.xyz += lightColor.xyz * (1.0 - metalness) * NdotL * diffuseColor.xyz;
-  accumulator.xyz += lightColor.xyz * vec3((D * F * G) / (4.0 * NdotV));
-  accumulator.a = mix(diffuseColor.a, 1.0, FexpNV);
+  color.xyz += lightColor.xyz * (1.0 - metalness) * NdotL * diffuseColor.xyz;
+  color.xyz += lightColor.xyz * vec3((D * F * G) / (4.0 * NdotV));
+  color.a = mix(diffuseColor.a, 1.0, FexpNV);
 #else // !r_physicalMapping || !USE_PHYSICAL_SHADING
   float NdotL = dot( normal, lightDir );
 #if defined(r_HalfLambertLighting)
@@ -101,9 +101,9 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   NdotL = clamp( NdotL, 0.0, 1.0 );
 #endif
 
-  accumulator.xyz += diffuseColor.xyz * lightColor.xyz * NdotL;
+  color.xyz += diffuseColor.xyz * lightColor.xyz * NdotL;
 #if defined(r_specularMapping) && !defined(USE_PHYSICAL_SHADING)
-  accumulator.xyz += materialColor.xyz * lightColor.xyz * pow( NdotH, u_SpecularExponent.x * materialColor.w + u_SpecularExponent.y) * r_SpecularScale;
+  color.xyz += materialColor.xyz * lightColor.xyz * pow( NdotH, u_SpecularExponent.x * materialColor.w + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping && !USE_PHYSICAL_SHADING&
 #endif // !r_physicalMapping || !USE_PHYSICAL_SHADING
 }

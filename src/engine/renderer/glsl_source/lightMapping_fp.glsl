@@ -91,7 +91,6 @@ void	main()
 	// divide by cosine term to restore original light color
 	lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.004, 1.0);
 
-
 	computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 #else // !USE_DELUXE_MAPPING
 	// normal/deluxe mapping is disabled
