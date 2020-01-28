@@ -89,6 +89,7 @@ void	main()
 	// compute the diffuse term
 	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
 
+	// vertex blend operation like: alphaGen vertex
 	diffuse *= var_Color;
 
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
