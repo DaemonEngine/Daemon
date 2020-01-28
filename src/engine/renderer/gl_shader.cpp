@@ -1627,7 +1627,7 @@ void GLShader_vertexLighting_DBS_world::SetShaderProgramUniforms( shaderProgram_
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ), 2 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_GlowMap" ), 3 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_GlowMap" ), 5 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid1" ), 6 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid2" ), 7 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightTiles" ), 8 );
