@@ -1287,8 +1287,6 @@ static void Render_lightMapping( int stage )
 	// u_ViewOrigin
 	gl_lightMappingShader->SetUniform_ViewOrigin( viewOrigin );
 
-	gl_lightMappingShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-
 	gl_lightMappingShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	gl_lightMappingShader->SetUniform_AlphaTest( pStage->stateBits );
