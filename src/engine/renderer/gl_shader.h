@@ -2173,7 +2173,6 @@ class GLShader_lightMapping :
 	public u_Color,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ParallaxDepthScale,
 	public u_ParallaxOffsetBias,

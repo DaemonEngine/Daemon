@@ -1478,7 +1478,6 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_Color( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ParallaxDepthScale( this ),
 	u_ParallaxOffsetBias( this ),
