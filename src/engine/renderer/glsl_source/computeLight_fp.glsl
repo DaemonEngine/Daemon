@@ -80,14 +80,14 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 
   float FexpNH = pow(1.0 - NdotH, 5.0);
   float FexpNV = pow(1.0 - NdotV, 5.0);
-  vec3 F = mix(vec3(0.04), diffuseColor.xyz, metalness);
+  vec3 F = mix(vec3(0.04), diffuseColor.rgb, metalness);
   F = F + (1.0 - F) * FexpNH;
 
   float G = NdotL / (NdotL * (1.0 - k) + k);
   G *= NdotV / (NdotV * (1.0 - k) + k);
 
-  color.xyz += lightColor.xyz * (1.0 - metalness) * NdotL * diffuseColor.xyz;
-  color.xyz += lightColor.xyz * vec3((D * F * G) / (4.0 * NdotV));
+  color.rgb += lightColor.rgb * (1.0 - metalness) * NdotL * diffuseColor.rgb;
+  color.rgb += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
   color.a = mix(diffuseColor.a, 1.0, FexpNV);
 #else // !r_physicalMapping || !USE_PHYSICAL_SHADING
   float NdotL = dot( normal, lightDir );
@@ -101,9 +101,9 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   NdotL = clamp( NdotL, 0.0, 1.0 );
 #endif
 
-  color.xyz += diffuseColor.xyz * lightColor.xyz * NdotL;
+  color.rgb += diffuseColor.rgb * lightColor.rgb * NdotL;
 #if defined(r_specularMapping) && !defined(USE_PHYSICAL_SHADING)
-  color.xyz += materialColor.xyz * lightColor.xyz * pow( NdotH, u_SpecularExponent.x * materialColor.w + u_SpecularExponent.y) * r_SpecularScale;
+  color.rgb += materialColor.rgb * lightColor.rgb * pow( NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping && !USE_PHYSICAL_SHADING&
 #endif // !r_physicalMapping || !USE_PHYSICAL_SHADING
 }
