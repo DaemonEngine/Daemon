@@ -32,23 +32,23 @@ uniform vec4		u_Color;
 
 OUT(smooth) vec3	var_Position;
 OUT(smooth) vec2	var_TexCoords;
-OUT(smooth) vec4	var_Color;
 
 OUT(smooth) vec3	var_Tangent;
 OUT(smooth) vec3	var_Binormal;
-
 OUT(smooth) vec3	var_Normal;
 
-void DeformVertex( inout vec4 pos,
-		   inout vec3 normal,
-		   inout vec2 st,
-		   inout vec4 color,
-		   in    float time);
+OUT(smooth) vec4	var_Color;
 
-void	main()
+void DeformVertex( inout vec4 pos,
+		inout vec3 normal,
+		inout vec2 st,
+		inout vec4 color,
+		in    float time);
+
+void main()
 {
-	vec4 position;
 	localBasis LB;
+	vec4 position;
 	vec2 texCoord, lmCoord;
 	vec4 color;
 
@@ -57,10 +57,10 @@ void	main()
 	color = color * u_ColorModulate + u_Color;
 
 	DeformVertex( position,
-		      LB.normal,
-		      texCoord,
-		      color,
-		      u_Time);
+		LB.normal,
+		texCoord,
+		color,
+		u_Time);
 
 	// transform vertex position into homogenous clip-space
 	gl_Position = u_ModelViewProjectionMatrix * position;
@@ -68,14 +68,13 @@ void	main()
 	// assign vertex Position for light grid sampling
 	var_Position = position.xyz;
 
+	var_Normal = LB.normal;	
+	var_Tangent = LB.tangent;
+	var_Binormal = LB.binormal;
+
 	// transform diffusemap texcoords
 	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
 
 	// assign color
 	var_Color = color;
-	
-	var_Tangent = LB.tangent;
-	var_Binormal = LB.binormal;
-
-	var_Normal = LB.normal;
 }
