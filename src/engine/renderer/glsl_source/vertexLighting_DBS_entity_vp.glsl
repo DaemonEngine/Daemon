@@ -30,32 +30,33 @@ uniform float		u_Time;
 
 OUT(smooth) vec3	var_Position;
 OUT(smooth) vec2	var_TexCoords;
-OUT(smooth) vec4	var_Color;
+
 OUT(smooth) vec3	var_Tangent;
 OUT(smooth) vec3	var_Binormal;
-
 OUT(smooth) vec3	var_Normal;
 
+OUT(smooth) vec4	var_Color;
+
 void DeformVertex( inout vec4 pos,
-		   inout vec3 normal,
-		   inout vec2 st,
-		   inout vec4 color,
-		   in    float time);
+		inout vec3 normal,
+		inout vec2 st,
+		inout vec4 color,
+		in    float time);
 
 void	main()
 {
-	vec4 position;
 	localBasis LB;
+	vec4 position;
 	vec2 texCoord, lmCoord;
 	vec4 color;
 
 	VertexFetch( position, LB, color, texCoord, lmCoord);
 
 	DeformVertex( position,
-		      LB.normal,
-		      texCoord,
-		      color,
-		      u_Time);
+		LB.normal,
+		texCoord,
+		color,
+		u_Time);
 
 	// transform vertex position into homogenous clip-space
 	gl_Position = u_ModelViewProjectionMatrix * position;
@@ -63,11 +64,13 @@ void	main()
 	// transform position into world space
 	var_Position = (u_ModelMatrix * position).xyz;
 
-	var_Tangent.xyz = (u_ModelMatrix * vec4(LB.tangent, 0.0)).xyz;
-	var_Binormal.xyz = (u_ModelMatrix * vec4(LB.binormal, 0.0)).xyz;
-	var_Normal.xyz = (u_ModelMatrix * vec4(LB.normal, 0.0)).xyz;
+	var_Tangent = (u_ModelMatrix * vec4(LB.tangent, 0.0)).xyz;
+	var_Binormal = (u_ModelMatrix * vec4(LB.binormal, 0.0)).xyz;
+	var_Normal = (u_ModelMatrix * vec4(LB.normal, 0.0)).xyz;
 
 	// transform diffusemap texcoords
 	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+
+	// assign color
 	var_Color = color;
 }
