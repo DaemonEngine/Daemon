@@ -5675,7 +5675,7 @@ void R_ShaderList_f()
 		// there may be multiple kind of collapse stage in one shader,
 		// display first one since there is only one column to tell about it
 		bool foundCollapseType = false;
-		for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
+		for ( int i = 0; i < shader->numStages; i++ )
 		{
 			if ( shader->stages[ i ]->active )
 			{
