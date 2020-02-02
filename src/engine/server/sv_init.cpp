@@ -612,7 +612,7 @@ void SV_Init()
 	Cvar_Get( "protocol", va( "%i", PROTOCOL_VERSION ), CVAR_SERVERINFO  );
 	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar_Get( "pakname", "", CVAR_SERVERINFO | CVAR_ROM );
-	Cvar_Get( "layout", "", CVAR_SERVERINFO | CVAR_ROM );
+	Cvar_Get( "layout", "", CVAR_SERVERINFO );
 	Cvar_Get( "g_layouts", "", 0 ); // FIXME
 	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );  // NERVE - SMF - changed to 20 from 8
