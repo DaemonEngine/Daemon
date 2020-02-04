@@ -63,6 +63,8 @@ cvar_t *cl_nodelta;
 
 cvar_t *cl_noprint;
 
+static Cvar::Cvar<int> cl_floodLimiter( "cl_floodLimiter", "Wait for this time in miliseconds between each server query", Cvar::NONE, 0 );
+
 cvar_t *cl_timeout;
 cvar_t *cl_maxpackets;
 cvar_t *cl_packetdup;
@@ -161,7 +163,10 @@ CGameVM            cgvm;
 // Structure containing functions exported from refresh DLL
 refexport_t        re;
 
+// Server query list is iterated by Com_EventLoop
 ping_t             cl_pinglist[ MAX_PINGREQUESTS ];
+int                cl_pinglist_iterator = 0;
+int                cl_pinglist_time = 0;
 
 struct serverStatus_t
 {
@@ -2370,6 +2375,39 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 
 /*
 =================
+CL_IterateServerQueries
+
+Send server queries from the main loop, this way it is not blocking.
+=================
+*/
+void CL_IterateServerQueries()
+{
+	int time = Sys_Milliseconds();
+
+	// On mobile broadband network, sent packets may be lost if we flood them.
+	if ( time < cl_pinglist_time  + cl_floodLimiter.Get() )
+	{
+		return;
+	}
+
+	if ( cl_pinglist[ cl_pinglist_iterator ].toPing )
+	{
+		Log::Debug( "CL_IterateServerQueries: getinfo %s", NET_AdrToStringwPort( cl_pinglist[ cl_pinglist_iterator ].adr ) );
+		Net::OutOfBandPrint( netsrc_t::NS_CLIENT, cl_pinglist[ cl_pinglist_iterator ].adr, "getinfo xxx" );
+		cl_pinglist[ cl_pinglist_iterator ].toPing = false;
+		cl_pinglist[ cl_pinglist_iterator ].start = time;
+		cl_pinglist_time = time ;
+	}
+
+	cl_pinglist_iterator++;
+	if ( cl_pinglist_iterator == MAX_PINGREQUESTS )
+	{
+		cl_pinglist_iterator = 0;
+	}
+}
+
+/*
+=================
 CL_PacketEvent
 
 A packet has arrived from the main event loop
@@ -3870,16 +3908,16 @@ bool CL_UpdateVisiblePings_f( int source )
 					if ( j >= MAX_PINGREQUESTS )
 					{
 						status = true;
+						cl_pinglist_iterator = 0;
 
 						for ( j = 0; j < MAX_PINGREQUESTS; j++ )
 						{
 							if ( !cl_pinglist[ j ].adr.port )
 							{
+								Log::Debug( "CL_UpdateVisiblePings_f: add %s to pinglist", NET_AdrToStringwPort( cl_pinglist[ j ].adr ) );
 								memcpy( &cl_pinglist[ j ].adr, &server[ i ].adr, sizeof( netadr_t ) );
-								cl_pinglist[ j ].start = Sys_Milliseconds();
+								cl_pinglist[ j ].toPing = true;
 								cl_pinglist[ j ].time = 0;
-								Log::Debug( "CL_UpdateVisiblePings_f: getinfo %s", NET_AdrToStringwPort( cl_pinglist[ j ].adr ) );
-								Net::OutOfBandPrint( netsrc_t::NS_CLIENT, cl_pinglist[ j ].adr, "getinfo xxx" );
 								slots++;
 								break;
 							}
@@ -3914,7 +3952,7 @@ bool CL_UpdateVisiblePings_f( int source )
 
 	for ( i = 0; i < MAX_PINGREQUESTS; i++ )
 	{
-		if ( !cl_pinglist[ i ].adr.port )
+		if ( !cl_pinglist[ i ].adr.port || cl_pinglist[ i ].toPing )
 		{
 			continue;
 		}
