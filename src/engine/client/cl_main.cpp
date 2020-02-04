@@ -1287,6 +1287,7 @@ public:
 		if ( message.secure == Rcon::Secure::EncryptedChallenge )
 		{
 			queue.Push(message);
+			Log::Debug( "RconCmd: getchallenge %s", NET_AdrToStringwPort( message.remote ) );
 			Net::OutOfBandPrint(netsrc_t::NS_CLIENT, message.remote, "getchallenge");
 		}
 		else
@@ -1682,6 +1683,7 @@ void CL_CheckForResend()
 	switch ( cls.state )
 	{
 		case connstate_t::CA_CONNECTING:
+			Log::Debug( "CL_CheckForResend: getchallenge %s", NET_AdrToStringwPort( clc.serverAddress ) );
 			Net::OutOfBandPrint( netsrc_t::NS_CLIENT, clc.serverAddress, "getchallenge" );
 			break;
 
@@ -3317,6 +3319,7 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 			serverStatus->retrieved = false;
 			serverStatus->time = 0;
 			serverStatus->startTime = Sys_Milliseconds();
+			Log::Debug( "CL_ServerStatus (resend): getstatus %s", serverAddress );
 			Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getstatus" );
 			return false;
 		}
@@ -3330,6 +3333,7 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 		serverStatus->retrieved = false;
 		serverStatus->startTime = Sys_Milliseconds();
 		serverStatus->time = 0;
+		Log::Debug( "CL_ServerStatus (retrieved): getstatus %s", serverAddress );
 		Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getstatus" );
 		return false;
 	}
@@ -3784,6 +3788,7 @@ void CL_Ping_f()
 
 	CL_SetServerInfoByAddress( pingptr->adr, nullptr, 0 );
 
+	Log::Debug( "CL_Ping_f: getinfo %s", server );
 	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getinfo xxx" );
 }
 
@@ -3873,6 +3878,7 @@ bool CL_UpdateVisiblePings_f( int source )
 								memcpy( &cl_pinglist[ j ].adr, &server[ i ].adr, sizeof( netadr_t ) );
 								cl_pinglist[ j ].start = Sys_Milliseconds();
 								cl_pinglist[ j ].time = 0;
+								Log::Debug( "CL_UpdateVisiblePings_f: getinfo %s", NET_AdrToStringwPort( cl_pinglist[ j ].adr ) );
 								Net::OutOfBandPrint( netsrc_t::NS_CLIENT, cl_pinglist[ j ].adr, "getinfo xxx" );
 								slots++;
 								break;
@@ -3986,6 +3992,7 @@ void CL_ServerStatus_f()
 		}
 	}
 
+	Log::Debug( "CL_ServerStatus_f: getstatus %s", server );
 	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, *toptr, "getstatus" );
 
 	serverStatus = CL_GetServerStatus( *toptr );
