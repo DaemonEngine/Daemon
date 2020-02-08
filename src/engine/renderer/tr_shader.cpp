@@ -5440,7 +5440,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	{
 		case shaderType_t::SHADER_2D:
 			{
-				// stageType_t::GUI elements
+				// GUI elements
 				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
 				stages[ 0 ].active = true;
 				stages[ 0 ].rgbGen = colorGen_t::CGEN_VERTEX;
