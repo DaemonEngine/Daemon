@@ -1178,7 +1178,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	enum class shaderType_t
 	{
-	  SHADER_2D, // surface material: shader is for 2D rendering
+	  SHADER_2D, // surface material: shader is for 2D rendering (like GUI elements)
 	  SHADER_3D_DYNAMIC, // surface material: shader is for cGen diffuseLighting lighting
 	  SHADER_3D_STATIC, // surface material: pre-lit triangle models
 	  SHADER_LIGHT // light material: attenuation
