@@ -47,12 +47,12 @@ out vec4 outputColor;
 void	main()
 {
 	outputColor = FxaaPixelShader(
-		gl_FragCoord.xy * r_FBufScale, //pos
+		gl_FragCoord.xy / r_FBufSize, //pos
 		vec4(0.0), //not used
 		u_ColorMap, //tex
 		u_ColorMap, //not used
 		u_ColorMap, //not used
-		r_FBufScale, //fxaaQualityRcpFrame
+		1 / r_FBufSize, //fxaaQualityRcpFrame
 		vec4(0.0), //not used
 		vec4(0.0), //not used
 		vec4(0.0), //not used

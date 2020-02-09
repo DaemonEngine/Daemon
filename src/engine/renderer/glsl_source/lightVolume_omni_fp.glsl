@@ -50,7 +50,7 @@ DECLARE_OUTPUT(vec4)
 void	main()
 {
 	// calculate the screen texcoord in the 0.0 to 1.0 range
-	vec2 st = gl_FragCoord.st * r_FBufScale;
+	vec2 st = gl_FragCoord.st / r_FBufSize;
 
 	// reconstruct vertex position in world space
 	float depth = texture2D(u_DepthMap, st).r;
