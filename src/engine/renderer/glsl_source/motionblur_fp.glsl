@@ -35,11 +35,10 @@ out vec4 outputColor;
 
 void	main()
 {
-	vec2 st = gl_FragCoord.st;
 	vec4 color = vec4( 0.0 );
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
-	st *= r_FBufScale;
+	vec2 st = gl_FragCoord.st / r_FBufSize;
 
 	float depth = texture2D( u_DepthMap, st ).r;
 

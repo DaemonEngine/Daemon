@@ -87,7 +87,7 @@ void	main()
 	}
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
-	vec2 texScreen = gl_FragCoord.st * r_FBufScale;
+	vec2 texScreen = gl_FragCoord.st / r_FBufSize;
 	vec2 texNormal = var_TexCoords;
 
 #if defined(USE_PARALLAX_MAPPING)

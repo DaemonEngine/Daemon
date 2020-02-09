@@ -129,7 +129,7 @@ vec3 RandomVec3(vec2 uv)
 
 	dir = normalize(vec3(cos(angle), sin(angle), r));
 #else
-	// dir = texture2D(u_NoiseMap, gl_FragCoord.st * r_FBufScale).rgb;
+	// dir = texture2D(u_NoiseMap, gl_FragCoord.st / r_FBufSize).rgb;
 	dir = normalize(2.0 * (texture2D(u_RandomMap, uv).xyz - 0.5));
 #endif
 
@@ -357,7 +357,7 @@ vec4 PCF(vec3 Pworld, float filterWidth, float samples, out vec4 clipMoments)
 	{
 		for(int j = 0; j < samples; j++)
 		{
-			vec3 rand = RandomVec3(gl_FragCoord.st * r_FBufScale + vec2(i, j)) * filterWidth;
+			vec3 rand = RandomVec3(gl_FragCoord.st / r_FBufSize + vec2(i, j)) * filterWidth;
 			// rand.z = 0;
 			// rand = normalize(rand) * filterWidth;
 
@@ -420,7 +420,7 @@ vec4 PCF(vec4 shadowVert, float filterWidth, float samples, out vec4 clipMoments
 	{
 		for(int j = 0; j < samples; j++)
 		{
-			vec3 rand = RandomVec3(gl_FragCoord.st * r_FBufScale + vec2(i, j)) * filterWidth;
+			vec3 rand = RandomVec3(gl_FragCoord.st / r_FBufSize + vec2(i, j)) * filterWidth;
 			// rand = vec3(0.0, 0.0, 1.0);
 			// rand.z = 0;
 			// rand = normalize(rand);// * filterWidth;
@@ -484,7 +484,7 @@ vec4 PCF(vec4 incidentRay, float filterWidth, float samples, out vec4 clipMoment
 	{
 		for(int j = 0; j < samples; j++)
 		{
-			vec3 rand = RandomVec3(gl_FragCoord.st * r_FBufScale + vec2(i, j)) * filterWidth;
+			vec3 rand = RandomVec3(gl_FragCoord.st / r_FBufSize + vec2(i, j)) * filterWidth;
 			// rand.z = 0;
 			// rand = normalize(rand) * filterWidth;
 
@@ -750,7 +750,7 @@ void	main()
 {
 #if 0
 	// create random noise vector
-	vec3 rand = RandomVec3(gl_FragCoord.st * r_FBufScale);
+	vec3 rand = RandomVec3(gl_FragCoord.st / r_FBufSize);
 
 	outputColor = vec4(rand * 0.5 + 0.5, 1.0);
 	return;

@@ -29,7 +29,7 @@ DECLARE_OUTPUT(vec4)
 
 uniform vec3 u_zFar;
 
-const vec2 pixelScale = r_FBufScale;
+const vec2 pixelScale = 1 / r_FBufSize;
 const float haloCutoff = 15.0;
 
 float depthToZ(float depth) {

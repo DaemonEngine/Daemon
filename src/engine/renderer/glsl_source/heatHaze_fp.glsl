@@ -38,7 +38,7 @@ void	main()
 	vec3 normal = NormalInTangentSpace(var_TexCoords);
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
-	vec2 st = gl_FragCoord.st * r_FBufScale;
+	vec2 st = gl_FragCoord.st / r_FBufSize;
 
 	// offset by the scaled normal and clamp it to 0.0 - 1.0
 	st += normal.xy * var_Deform;

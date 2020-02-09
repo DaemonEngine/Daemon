@@ -722,10 +722,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	AddDefine( env, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
 	AddDefine( env, "TILE_SIZE", TILE_SIZE );
 
-	float fbufWidthScale = 1.0f / glConfig.vidWidth;
-	float fbufHeightScale = 1.0f / glConfig.vidHeight;
-
-	AddDefine( env, "r_FBufScale", fbufWidthScale, fbufHeightScale );
+	AddDefine( env, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );
 
 	AddDefine( env, "r_tileStep", glState.tileStep[ 0 ], glState.tileStep[ 1 ] );
 
