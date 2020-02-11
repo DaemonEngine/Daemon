@@ -277,14 +277,16 @@ static inline void AddDefine( std::string& defines, const std::string& define, i
 	defines += Str::Format("#ifndef %s\n#define %s %d\n#endif\n", define, define, value);
 }
 
+// Epsilon for float is 5.96e-08, so exponential notation with 8 decimal places should give exact values.
+
 static inline void AddDefine( std::string& defines, const std::string& define, float value )
 {
-	defines += Str::Format("#ifndef %s\n#define %s %f\n#endif\n", define, define, value);
+	defines += Str::Format("#ifndef %s\n#define %s %.8e\n#endif\n", define, define, value);
 }
 
 static inline void AddDefine( std::string& defines, const std::string& define, float v1, float v2 )
 {
-	defines += Str::Format("#ifndef %s\n#define %s vec2(%f, %f)\n#endif\n", define, define, v1, v2);
+	defines += Str::Format("#ifndef %s\n#define %s vec2(%.8e, %.8e)\n#endif\n", define, define, v1, v2);
 }
 
 static inline void AddDefine( std::string& defines, const std::string& define )
@@ -403,12 +405,12 @@ static void AddConst( std::string& str, const std::string& name, int value )
 
 static void AddConst( std::string& str, const std::string& name, float value )
 {
-	str += Str::Format("const float %s = %f;\n", name, value);
+	str += Str::Format("const float %s = %.8e;\n", name, value);
 }
 
 static void AddConst( std::string& str, const std::string& name, float v1, float v2 )
 {
-	str += Str::Format("const vec2 %s = vec2(%f, %f);\n", name, v1, v2);
+	str += Str::Format("const vec2 %s = vec2(%.8e, %.8e);\n", name, v1, v2);
 }
 
 static std::string GenVersionDeclaration() {
