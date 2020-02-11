@@ -204,12 +204,12 @@ else()
         try_c_cxx_flag(OPTIMIZE_DEBUG "-Og" DEBUG)
     endif()
 
-    # C++11 support
-    try_cxx_flag(GNUXX11 "-std=gnu++11")
-    if (NOT FLAG_GNUXX11)
-        try_cxx_flag(GNUXX0X "-std=gnu++0x")
-        if (NOT FLAG_GNUXX0X)
-            message(FATAL_ERROR "C++11 not supported by compiler")
+    # C++14 support
+    try_cxx_flag(GNUXX14 "-std=gnu++14")
+    if (NOT FLAG_GNUXX14)
+        try_cxx_flag(GNUXX1Y "-std=gnu++1y")
+        if (NOT FLAG_GNUXX1Y)
+            message(FATAL_ERROR "C++14 not supported by compiler")
         endif()
     endif()
 
