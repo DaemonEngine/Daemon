@@ -5467,7 +5467,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 				stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
 				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
 				stages[ 0 ].active = true;
-				stages[ 0 ].rgbGen = colorGen_t::CGEN_VERTEX;
+				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
 				stages[ 0 ].stateBits = implicitStateBits;
 				break;
 			}
