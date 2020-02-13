@@ -21,6 +21,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // computeLight_fp.glsl - Light computing helper functions
 
+#if defined(USE_REFLECTIVE_SPECULAR)
+uniform samplerCube u_EnvironmentMap0;
+uniform samplerCube u_EnvironmentMap1;
+uniform float u_EnvironmentInterpolation;
+#endif // USE_REFLECTIVE_SPECULAR
+
 struct light {
   vec4  center_radius;
   vec4  color_type;
@@ -100,6 +106,14 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 #else
   NdotL = clamp( NdotL, 0.0, 1.0 );
 #endif
+
+#if defined(USE_REFLECTIVE_SPECULAR)
+	// not implemented for PBR yet
+	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal));
+	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal));
+
+	materialColor.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
+#endif // USE_REFLECTIVE_SPECULAR
 
   color.rgb += diffuseColor.rgb * lightColor.rgb * NdotL;
 #if defined(r_specularMapping) && !defined(USE_PHYSICAL_SHADING)
