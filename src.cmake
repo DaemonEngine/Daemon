@@ -135,10 +135,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/ssao_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/ssao_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexAnimation_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexLighting_DBS_entity_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexLighting_DBS_entity_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexLighting_DBS_world_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/vertexLighting_DBS_world_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSimple_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSkinning_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSprite_vp.glsl
