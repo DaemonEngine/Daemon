@@ -778,11 +778,13 @@ protected:
 // It also works regardless of RTTI is enabled or not.
 	enum EGLCompileMacro
 	{
+	  USE_BSP_SURFACE,
 	  USE_VERTEX_SKINNING,
 	  USE_VERTEX_ANIMATION,
 	  USE_VERTEX_SPRITE,
 	  USE_TCGEN_ENVIRONMENT,
 	  USE_TCGEN_LIGHTMAP,
+	  USE_LIGHT_MAPPING,
 	  USE_DELUXE_MAPPING,
 	  USE_HEIGHTMAP_IN_NORMALMAP,
 	  USE_PARALLAX_MAPPING,
@@ -835,6 +837,31 @@ public:
 	}
 
 	virtual ~GLCompileMacro() = default;
+};
+
+class GLCompileMacro_USE_BSP_SURFACE :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_BSP_SURFACE( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "USE_BSP_SURFACE";
+	}
+
+	EGLCompileMacro GetType() const
+	{
+		return EGLCompileMacro::USE_BSP_SURFACE;
+	}
+
+	void SetBspSurface( bool enable )
+	{
+		SetMacro( enable );
+	}
 };
 
 class GLCompileMacro_USE_VERTEX_SKINNING :
@@ -980,6 +1007,31 @@ public:
 	}
 
 	void SetTCGenLightmap( bool enable )
+	{
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_USE_LIGHT_MAPPING :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_LIGHT_MAPPING( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "USE_LIGHT_MAPPING";
+	}
+
+	EGLCompileMacro GetType() const
+	{
+		return EGLCompileMacro::USE_LIGHT_MAPPING;
+	}
+
+	void SetLightMapping( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -2173,32 +2225,6 @@ class GLShader_lightMapping :
 	public u_Color,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
-	public u_ModelViewProjectionMatrix,
-	public u_ParallaxDepthScale,
-	public u_ParallaxOffsetBias,
-	public u_NormalScale,
-	public u_numLights,
-	public u_Lights,
-	public GLDeformStage,
-	public GLCompileMacro_USE_DELUXE_MAPPING,
-	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
-	public GLCompileMacro_USE_PARALLAX_MAPPING,
-	public GLCompileMacro_USE_PHYSICAL_SHADING
-{
-public:
-	GLShader_lightMapping( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void BuildShaderCompileMacros( std::string& compileMacros );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
-};
-
-class GLShader_vertexLighting_DBS_entity :
-	public GLShader,
-	public u_TextureMatrix,
-	public u_SpecularExponent,
-	public u_AlphaThreshold,
-	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_Bones,
@@ -2207,51 +2233,24 @@ class GLShader_vertexLighting_DBS_entity :
 	public u_ParallaxOffsetBias,
 	public u_NormalScale,
 	public u_EnvironmentInterpolation,
-	public u_LightGridOrigin,
-	public u_LightGridScale,
-	public u_numLights,
-	public u_Lights,
-	public GLDeformStage,
-	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
-	public GLCompileMacro_USE_PARALLAX_MAPPING,
-	public GLCompileMacro_USE_REFLECTIVE_SPECULAR,
-	public GLCompileMacro_USE_PHYSICAL_SHADING
-{
-public:
-	GLShader_vertexLighting_DBS_entity( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void BuildShaderCompileMacros( std::string& compileMacros );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
-};
-
-class GLShader_vertexLighting_DBS_world :
-	public GLShader,
-	public u_TextureMatrix,
-	public u_SpecularExponent,
-	public u_ColorModulate,
-	public u_Color,
-	public u_AlphaThreshold,
-	public u_ViewOrigin,
-	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_ParallaxDepthScale,
-	public u_ParallaxOffsetBias,
-	public u_NormalScale,
 	public u_LightWrapAround,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
 	public u_numLights,
 	public u_Lights,
 	public GLDeformStage,
+	public GLCompileMacro_USE_BSP_SURFACE,
+	public GLCompileMacro_USE_VERTEX_SKINNING,
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_LIGHT_MAPPING,
+	public GLCompileMacro_USE_DELUXE_MAPPING,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_PARALLAX_MAPPING,
+	public GLCompileMacro_USE_REFLECTIVE_SPECULAR,
 	public GLCompileMacro_USE_PHYSICAL_SHADING
 {
 public:
-	GLShader_vertexLighting_DBS_world( GLShaderManager *manager );
+	GLShader_lightMapping( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines );
 	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
 	void BuildShaderCompileMacros( std::string& compileMacros );
@@ -2705,8 +2704,6 @@ extern ShaderKind shaderKind;
 
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
-extern GLShader_vertexLighting_DBS_entity       *gl_vertexLightingShader_DBS_entity;
-extern GLShader_vertexLighting_DBS_world        *gl_vertexLightingShader_DBS_world;
 extern GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ;
 extern GLShader_forwardLighting_projXYZ         *gl_forwardLightingShader_projXYZ;
 extern GLShader_forwardLighting_directionalSun *gl_forwardLightingShader_directionalSun;

@@ -510,6 +510,21 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	enum
 	{
+		BIND_DIFFUSEMAP,
+		BIND_NORMALMAP,
+		BIND_HEIGHTMAP,
+		BIND_MATERIALMAP,
+		BIND_LIGHTMAP,
+		BIND_DELUXEMAP,
+		BIND_GLOWMAP,
+		BIND_ENVIRONMENTMAP0,
+		BIND_ENVIRONMENTMAP1,
+		BIND_LIGHTTILES,
+		BIND_LIGHTS,
+	};
+
+	enum
+	{
 	  IF_NONE,
 	  IF_NOPICMIP = BIT( 0 ),
 	  IF_NORMALMAP = BIT( 2 ),
