@@ -296,13 +296,17 @@ void Socket::SendMsg(const Util::Writer& writer) const
 	const void* data = writer.GetData().data();
 	size_t len = writer.GetData().size();
 
+	// Use a smaller buffer size to avoid ENOBUFS errors from the kernel
+	// NaCl defines NACL_ABI_IMC_USER_BYTES_MAX as 128K, use 4K instead
+	const size_t MAX_IPC_BYTES = 4 << 10;
+
 	while (numHandles || len) {
-		bool more = numHandles > NACL_ABI_IMC_DESC_MAX || len > NACL_ABI_IMC_USER_BYTES_MAX - 1;
-		InternalSendMsg(handle, more, handles, std::min<size_t>(numHandles, NACL_ABI_IMC_DESC_MAX), data, std::min<size_t>(len, NACL_ABI_IMC_USER_BYTES_MAX - 1));
+		bool more = numHandles > NACL_ABI_IMC_DESC_MAX || len > MAX_IPC_BYTES;
+		InternalSendMsg(handle, more, handles, std::min<size_t>(numHandles, NACL_ABI_IMC_DESC_MAX), data, std::min<size_t>(len, MAX_IPC_BYTES));
 		handles += std::min<size_t>(numHandles, NACL_ABI_IMC_DESC_MAX);
 		numHandles -= std::min<size_t>(numHandles, NACL_ABI_IMC_DESC_MAX);
-		data = static_cast<const char*>(data) + std::min<size_t>(len, NACL_ABI_IMC_USER_BYTES_MAX - 1);
-		len -= std::min<size_t>(len, NACL_ABI_IMC_USER_BYTES_MAX - 1);
+		data = static_cast<const char*>(data) + std::min<size_t>(len, MAX_IPC_BYTES);
+		len -= std::min<size_t>(len, MAX_IPC_BYTES);
 	}
 }
 
