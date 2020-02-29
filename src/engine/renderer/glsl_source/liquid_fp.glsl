@@ -52,28 +52,14 @@ void ReadLightGrid(in vec3 pos, out vec3 lightDir,
 		   out vec3 ambientColor, out vec3 lightColor) {
 	vec4 texel1 = texture3D(u_LightGrid1, pos);
 	vec4 texel2 = texture3D(u_LightGrid2, pos);
-	float ambientLuminance, lightLuminance;
 
-	texel1.xyz = (texel1.xyz * 255.0 - 128.0) / 127.0;
-	texel2.xyzw = texel2.xyzw - 0.5;
+	float ambientScale = 2.0 * texel1.a;
+	float directedScale = 2.0 - ambientScale;
+	ambientColor = ambientScale * texel1.rgb;
+	lightColor = directedScale * texel1.rgb;
 
-	lightDir = normalize(texel1.xyz);
-
-	lightLuminance = 2.0 * length(texel1.xyz) * texel1.w;
-	ambientLuminance = 2.0 * texel1.w - lightLuminance;
-
-	// YCoCg decode chrominance
-	ambientColor.g = ambientLuminance + texel2.x;
-	ambientLuminance = ambientLuminance - texel2.x;
-	ambientColor.r = ambientLuminance + texel2.y;
-	ambientColor.b = ambientLuminance - texel2.y;
-
-	lightColor.g = lightLuminance + texel2.z;
-	lightLuminance = lightLuminance - texel2.z;
-	lightColor.r = lightLuminance + texel2.w;
-	lightColor.b = lightLuminance - texel2.w;
+	lightDir = normalize( texel2.rgb - (128.0 / 255.0) );
 }
-
 
 void	main()
 {
