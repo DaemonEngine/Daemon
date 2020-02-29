@@ -290,7 +290,7 @@ function(ADD_PRECOMPILED_HEADER Target)
     endif()
 
     # Get the common compile flags
-    set(Flags ${CMAKE_CXX_FLAGS})
+    set(Flags ${CMAKE_CXX_FLAGS} ${WARNINGS})
     get_target_property(Type ${Target} TYPE)
     if (Type STREQUAL MODULE_LIBRARY)
         set(Flags ${Flags} ${CMAKE_SHARED_MODULE_CXX_FLAGS})
