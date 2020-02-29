@@ -215,6 +215,8 @@ try_flag(WARNINGS           "-Wno-error=unused-but-set-variable")
 try_flag(WARNINGS           "-Wno-error=unused-function")
 try_flag(WARNINGS           "-Wno-error=unused-parameter")
 try_flag(WARNINGS           "-Wno-error=unused-variable")
+try_flag(WARNINGS           "-Wno-error=format-truncation")
+try_flag(WARNINGS           "-Wno-error=deprecated-copy") # TODO: Fix these errors.
 
 ################################################################################
 # Git revision info
