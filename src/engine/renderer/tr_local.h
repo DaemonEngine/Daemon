@@ -1934,20 +1934,18 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		decal_t *decals;
 	};
 
-	// The light direction vector is stored as the x/y coordinates
-	// of the vector projected on an unit octahedron. To disambiguate
-	// the upper and lower half of the octahedron, the four lower
-	// triangles of the octahedron are flipped into the outer corners
-	// of the unit square.
+	// The ambient and directional colors are packed into four bytes, the color[3] is the
+	// average of the ambient and directional colors and the ambientPart factor is the
+	// proportion of ambient light in the total light
 	struct bspGridPoint1_t
 	{
-		byte  ambient[3];
-		byte  lightVecX;
+		byte  color[3];
+		byte  ambientPart;
 	};
 	struct bspGridPoint2_t
 	{
-		byte  directed[3];
-		byte  lightVecY;
+		byte  direction[3];
+		byte  unused;
 	};
 
 // ydnar: optimization
@@ -3426,7 +3424,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void     R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t forcedOrigin );
 	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				      float *factors[3], vec3_t ambientLight,
-				      vec3_t directedLight, vec2_t lightDir );
+				      vec3_t directedLight, vec3_t lightDir );
 	int      R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 	void     R_TessLight( const trRefLight_t *light, const Color::Color& color );
 

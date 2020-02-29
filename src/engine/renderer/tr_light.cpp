@@ -117,7 +117,7 @@ LIGHT SAMPLING
 
 float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 			      float *factors[3], vec3_t ambientLight,
-			      vec3_t directedLight, vec2_t lightDir ) {
+			      vec3_t directedLight, vec3_t lightDir ) {
 	float           totalFactor = 0.0f, factor;
 	float           *xFactor, *yFactor, *zFactor;
 	int             gridStep[ 3 ];
@@ -127,7 +127,7 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 
 	VectorClear( ambientLight );
 	VectorClear( directedLight );
-	lightDir[ 0 ] = lightDir[ 1 ] = 0.0f;
+	VectorClear( lightDir );
 
 	gridStep[ 0 ] = 1;
 	gridStep[ 1 ] = w->lightGridBounds[ 0 ];
@@ -151,7 +151,7 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				gp1 = w->lightGridData1 + x * gridStep[ 0 ] + y * gridStep[ 1 ] + z * gridStep[ 2 ];
 				gp2 = w->lightGridData2 + x * gridStep[ 0 ] + y * gridStep[ 1 ] + z * gridStep[ 2 ];
 
-				if ( !( gp1->ambient[ 0 ] || gp1->ambient[ 1 ] || gp1->ambient[ 2 ]) )
+				if ( !( gp1->color[ 0 ] || gp1->color[ 1 ] || gp1->color[ 2 ]) )
 				{
 					continue; // ignore samples in walls
 				}
@@ -160,15 +160,19 @@ float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 
 				totalFactor += factor;
 
-				lightDir[ 0 ] += factor * snorm8ToFloat( gp1->lightVecX - 128 );
-				lightDir[ 1 ] += factor * snorm8ToFloat( gp2->lightVecY - 128 );
-				
-				ambientLight[ 0 ] += factor * unorm8ToFloat( gp1->ambient[ 0 ] );
-				ambientLight[ 1 ] += factor * unorm8ToFloat( gp1->ambient[ 1 ] );
-				ambientLight[ 2 ] += factor * unorm8ToFloat( gp1->ambient[ 2 ] );
-				directedLight[ 0 ] += factor * unorm8ToFloat( gp2->directed[ 0 ] );
-				directedLight[ 1 ] += factor * unorm8ToFloat( gp2->directed[ 1 ] );
-				directedLight[ 2 ] += factor * unorm8ToFloat( gp2->directed[ 2 ] );
+				lightDir[ 0 ] += factor * snorm8ToFloat( gp2->direction[ 0 ] - 128 );
+				lightDir[ 1 ] += factor * snorm8ToFloat( gp2->direction[ 1 ] - 128 );
+				lightDir[ 2 ] += factor * snorm8ToFloat( gp2->direction[ 2 ] - 128 );
+
+				float ambientScale = 2.0f * unorm8ToFloat( gp1->ambientPart );
+				float directedScale = 2.0f - ambientScale;
+
+				ambientLight[ 0 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 0 ] );
+				ambientLight[ 1 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 1 ] );
+				ambientLight[ 2 ] += factor * ambientScale * unorm8ToFloat( gp1->color[ 2 ] );
+				directedLight[ 0 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 0 ] );
+				directedLight[ 1 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 1 ] );
+				directedLight[ 2 ] += factor * directedScale * unorm8ToFloat( gp1->color[ 2 ] );
 			}
 		}
 	}
