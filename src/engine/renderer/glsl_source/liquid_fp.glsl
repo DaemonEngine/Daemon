@@ -48,19 +48,6 @@ IN(smooth) vec3		var_Normal;
 
 DECLARE_OUTPUT(vec4)
 
-void ReadLightGrid(in vec3 pos, out vec3 lightDir,
-		   out vec3 ambientColor, out vec3 lightColor) {
-	vec4 texel1 = texture3D(u_LightGrid1, pos);
-	vec4 texel2 = texture3D(u_LightGrid2, pos);
-
-	float ambientScale = 2.0 * texel1.a;
-	float directedScale = 2.0 - ambientScale;
-	ambientColor = ambientScale * texel1.rgb;
-	lightColor = directedScale * texel1.rgb;
-
-	lightDir = normalize( texel2.rgb - (128.0 / 255.0) );
-}
-
 void	main()
 {
 	// compute incident ray
@@ -129,12 +116,15 @@ void	main()
 		color.rgb = mix(u_FogColor, color.rgb, fogFactor);
 	}
 
-	vec3 lightDir;
-	vec3 ambientColor;
-	vec3 lightColor;
+	vec3 lightGridPos = (var_Position - u_LightGridOrigin) * u_LightGridScale;
 
-	ReadLightGrid((var_Position - u_LightGridOrigin) * u_LightGridScale,
-		       lightDir, ambientColor, lightColor);
+	// compute light color from light grid
+	vec3 ambientColor, lightColor;
+	ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
+
+	// compute light direction in world space
+	vec4 texel = texture3D(u_LightGrid2, lightGridPos);
+	vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
 
 	vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
 

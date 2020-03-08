@@ -55,6 +55,14 @@ uniform int u_numLights;
 uniform vec2 u_SpecularExponent;
 
 // lighting helper functions
+
+void ReadLightGrid(in vec4 texel, out vec3 ambientColor, out vec3 lightColor) {
+	float ambientScale = 2.0 * texel.a;
+	float directedScale = 2.0 - ambientScale;
+	ambientColor = ambientScale * texel.rgb;
+	lightColor = directedScale * texel.rgb;
+}
+
 void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 		   vec4 diffuseColor, vec4 materialColor,
 		   inout vec4 color ) {
