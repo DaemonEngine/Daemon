@@ -1571,7 +1571,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 		if (!allowSubdirs)
 			return {};
 		prefixDir = prefix;
-		prefixBase = "";
+		prefixBase.clear();
 	} else {
 		prefixDir = Path::DirName(prefix);
 		if (!allowSubdirs && !prefixDir.empty())
@@ -2056,7 +2056,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 		if (!allowSubdirs)
 			return {};
 		prefixDir = prefix;
-		prefixBase = "";
+		prefixBase.clear();
 	} else {
 		prefixDir = Path::DirName(prefix);
 		if (!allowSubdirs && !prefixDir.empty())
@@ -2499,14 +2499,14 @@ bool ParsePakName(const char* begin, const char* end, std::string& name, std::st
 		name.assign(begin, end - strlen(FS::LEGACY_PAK_ZIP_EXT));
 		// prefer versioned dpk over legacy pk3 if pak name collides, uses the smallest version string available
 		// this version can't be found in standard dpk, so we can also uses this value to test later if it's a legacy pk3
-		version = "";
+		version.clear();
 		// legacy paks can't have checksum
 		checksum = Util::nullopt;
 		return true;
 	} else if (Str::IsSuffix(LEGACY_PAK_DIR_EXT, begin)) {
 		name.assign(begin, end - strlen(FS::LEGACY_PAK_DIR_EXT));
 		// empty version string for legacy pak, see above for explanations
-		version = "";
+		version.clear();
 		// dir can't have checksum
 		checksum = Util::nullopt;
 		return true;

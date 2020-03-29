@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Str {
 
     void AssertOnTinyFormatError(std::string reason) {
-        if (reason != "") {
+        if (!reason.empty()) {
             ASSERT_EQ(reason, "");
         } else {
             ASSERT_NQ(reason, "");

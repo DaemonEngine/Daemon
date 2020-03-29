@@ -926,7 +926,7 @@ namespace Cmd {
                 if (args.Argc() > 1) {
                     name = args.Argv(1);
                 } else {
-                    name = "";
+                    name.clear();
                 }
 
                 std::vector<const aliasRecord_t*> matches;
