@@ -410,7 +410,7 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 		}
 
 		// Ignore flags
-		if (desc_end - desc_ptr < (int)sizeof(uint32_t)) {
+		if (desc_end - desc_ptr < (ptrdiff_t)sizeof(uint32_t)) {
 			FreeHandles(h);
 			Sys::Drop("IPC: Descriptor flags missing from message");
 		}
@@ -419,14 +419,14 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 		uint64_t size = 0;
 		int32_t flags = 0;
 		if (tag == NACL_DESC_SHM) {
-			if (desc_end - desc_ptr < (int)sizeof(uint64_t)) {
+			if (desc_end - desc_ptr < (ptrdiff_t)sizeof(uint64_t)) {
 				FreeHandles(h);
 				Sys::Drop("IPC: Shared memory size missing from message");
 			}
 			memcpy(&size, desc_ptr, sizeof(uint64_t));
 			desc_ptr += sizeof(uint64_t);
 		} else if (tag == NACL_DESC_HOST_IO) {
-			if (desc_end - desc_ptr < (int)sizeof(int32_t)) {
+			if (desc_end - desc_ptr < (ptrdiff_t)sizeof(int32_t)) {
 				FreeHandles(h);
 				Sys::Drop("IPC: Host file mode missing from message");
 			}
