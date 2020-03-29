@@ -179,7 +179,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define MAX_DRAWSURFS      0x10000
 #define DRAWSURF_MASK      ( MAX_DRAWSURFS - 1 )
 
-#define MAX_INTERACTIONS   MAX_DRAWSURFS * 8
+#define MAX_INTERACTIONS   ( MAX_DRAWSURFS * 8 )
 #define INTERACTION_MASK   ( MAX_INTERACTIONS - 1 )
 
 // 16x16 pixels per tile
@@ -1569,7 +1569,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	static const uint64_t SORT_LIGHTMAP_SHIFT = SORT_ENTITYNUM_BITS + SORT_ENTITYNUM_SHIFT;
 	static const uint64_t SORT_SHADER_SHIFT = SORT_LIGHTMAP_BITS + SORT_LIGHTMAP_SHIFT;
 
-#define MASKBITS( b ) ( 1 << b ) - 1
+#define MASKBITS( b ) ( 1 << (b) ) - 1
 	static const uint32_t SORT_INDEX_MASK = MASKBITS( SORT_INDEX_BITS );
 	static const uint32_t SORT_FOGNUM_MASK = MASKBITS( SORT_FOGNUM_BITS );
 	static const uint32_t SORT_ENTITYNUM_MASK = MASKBITS( SORT_ENTITYNUM_BITS );
