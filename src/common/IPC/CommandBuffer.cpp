@@ -34,7 +34,7 @@ namespace IPC {
 
     void CommandBuffer::Init(void* memory, size_t size) {
         if (size < DATA_OFFSET) {
-            Sys::Drop("Buffer is too small, size is %u", (unsigned)size);
+            Sys::Drop("Buffer is too small, size is %i", size);
         }
 
         this->size = size - DATA_OFFSET;
