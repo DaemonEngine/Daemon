@@ -110,7 +110,7 @@ struct VMParams {
 class VMBase {
 public:
 	VMBase(std::string name, int vmTypeCvarFlags)
-		: processHandle(Sys::INVALID_HANDLE), name(name), params(name, vmTypeCvarFlags) {}
+		: processHandle(Sys::INVALID_HANDLE), name(name), type(TYPE_NACL), params(name, vmTypeCvarFlags) {}
 
 	// Create the VM for the named module. Returns the ABI version reported
 	// by the module. This will automatically free any existing VM.

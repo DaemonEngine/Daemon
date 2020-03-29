@@ -52,7 +52,7 @@ namespace IPC {
 	// Simple file handle wrapper, does *not* close handle on destruction
 	class FileHandle {
 	public:
-		FileHandle() : handle(-1) {}
+		FileHandle() : FileHandle(-1, FileOpenMode::MODE_READ) {}
 		FileHandle(int handle, FileOpenMode mode) : handle(handle), mode(mode) {}
 		explicit operator bool() const {
 			return handle != -1;
