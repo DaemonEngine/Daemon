@@ -87,7 +87,8 @@ enum vmType_t {
 	// Loads the VM as a native DLL from the libpath
 	// USE THIS FOR DEVELOPMENT
 	TYPE_NATIVE_DLL,
-	TYPE_END
+	TYPE_END,
+	TYPE_BEGIN = TYPE_NACL
 };
 
 
