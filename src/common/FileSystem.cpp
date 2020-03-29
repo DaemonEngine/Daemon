@@ -878,6 +878,7 @@ public:
 		int maxDepth = 0; // TODO(slipher): Stop building unzip code in the gamelogic.
 #endif
 		std::string resolvedName;
+		std::error_code ignored;
 		for (;;) {
 			OpenFile(offset, err);
 			if (err)
@@ -885,6 +886,7 @@ public:
 			unz_file_info64 fileInfo;
 			int result = unzGetCurrentFileInfo64(zipFile, &fileInfo, nullptr, 0, nullptr, 0, nullptr, 0);
 			if (result != UNZ_OK) {
+				CloseFile(ignored);
 				SetErrorCodeZlib(err, result);
 				return 0;
 			}
@@ -905,7 +907,7 @@ public:
 			char link[MAX_FILENAME_BUF];
 			size_t linkLength = ReadFile(&link, sizeof(link) - 1, err);
 			if (err) {
-				// If there was a read error, are we still supposed to close the file? Oh well.
+				CloseFile(ignored);
 				return 0;
 			}
 			CloseFile(err);
@@ -1432,13 +1434,19 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 		char buffer[65536];
 		while (true) {
 			offset_t read = zipFile.ReadFile(buffer, sizeof(buffer), err);
-			if (err)
+			if (err) {
+				std::error_code ignored;
+				zipFile.CloseFile(ignored);
 				return;
+			}
 			if (read == 0)
 				break;
 			dest.Write(buffer, read, err);
-			if (err)
+			if (err) {
+				std::error_code ignored;
+				zipFile.CloseFile(ignored);
 				return;
+			}
 		}
 
 		// Close file and check for CRC errors
