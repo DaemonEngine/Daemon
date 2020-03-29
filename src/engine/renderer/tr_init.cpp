@@ -226,7 +226,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showBatches;
 	cvar_t      *r_showLightMaps;
 	cvar_t      *r_showDeluxeMaps;
-	cvar_t      *r_showNormalMaps;
 	cvar_t      *r_showMaterialMaps;
 	cvar_t      *r_showAreaPortals;
 	cvar_t      *r_showCubeProbes;
@@ -1303,7 +1302,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showBatches = ri.Cvar_Get( "r_showBatches", "0", CVAR_CHEAT );
 		r_showLightMaps = ri.Cvar_Get( "r_showLightMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showDeluxeMaps = ri.Cvar_Get( "r_showDeluxeMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showNormalMaps = ri.Cvar_Get( "r_showNormalMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showMaterialMaps = ri.Cvar_Get( "r_showMaterialMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showAreaPortals = ri.Cvar_Get( "r_showAreaPortals", "0", CVAR_CHEAT );
 		r_showCubeProbes = ri.Cvar_Get( "r_showCubeProbes", "0", CVAR_CHEAT );

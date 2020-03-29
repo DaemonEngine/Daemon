@@ -110,7 +110,9 @@ void	main()
 	outputColor = texture2D(u_LightMap, var_TexLight);
 #elif defined(r_showDeluxeMaps)
 	outputColor = texture2D(u_DeluxeMap, var_TexLight);
-#elif defined(r_showNormalMaps)
+#elif r_showNormalMaps == 2
+	outputColor = vec4(NormalInTangentSpaceAsColor(texCoords), 1.0);
+#elif r_showNormalMaps == 1
 	// convert normal to [0,1] color space
 	normal = normal * 0.5 + 0.5;
 	outputColor = vec4(normal, 1.0);

@@ -172,3 +172,33 @@ vec2 ParallaxTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorld
 	return bestDepth * displacement;
 }
 #endif // USE_PARALLAX_MAPPING
+
+// Slow, should be used only for debugging
+// All arguments should be in [0, 1]
+// https://en.wikipedia.org/w/index.php?title=HSL_and_HSV&oldid=936097527#HSL_to_RGB
+vec3 hsl2rgb(float H, float S, float L)
+{
+	float h = H * 6.0;
+	float c = S * (1.0 - abs(2.0 * L - 1.0));
+	float x = c * (1.0 - abs(mod(h, 2.0) - 1.0));
+	float m = L - c * 0.5;
+	if (h < 1.0) return vec3(m + c, m + x, m);
+	if (h < 2.0) return vec3(m + x, m + c, m);
+	if (h < 3.0) return vec3(m, m + c, m + x);
+	if (h < 4.0) return vec3(m, m + x, m + c);
+	if (h < 5.0) return vec3(m + x, m, m + c);
+	return vec3(m + c, m, m + x);
+}
+
+// For normal map debugging
+vec3 NormalInTangentSpaceAsColor(vec2 texNormal)
+{
+	vec3 normal = NormalInTangentSpace(texNormal);
+	if (normal.x == 0.0)
+		normal.x = 1e-30;
+	float hue = atan(normal.y, normal.x/) / (2.0 * M_PI);
+	if (hue < 0.0)
+		hue += 1.0;
+	float saturation = 1.0 - normal.z;
+	return hsl2rgb(hue, saturation, 0.5);
+}

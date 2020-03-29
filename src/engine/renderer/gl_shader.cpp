@@ -29,6 +29,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // and try to memcpy over that or binary write an std::string to a file.
 static_assert(std::is_pod<GLBinaryHeader>::value, "Value must be a pod while code in this cpp file reads and writes this object to file as binary.");
 
+// World space normal maps rescale the x,y,z components from [-1, 1] to [0, 1] and interpret as RGB.
+// Tangent space normal maps use the angle in the xy-plane as a position on the color wheel and
+// (1 - z) as the saturation, with a constant lightness.
+static Cvar::Range<Cvar::Cvar<int>> r_showNormalMaps(
+	"r_showNormalMaps", "show normals as colors. 1 = world space, 2 = tangent space",
+	Cvar::CHEAT | Cvar::LATCH, 0, 0, 2);
+
 extern std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
@@ -555,10 +562,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showDeluxeMaps", 1 );
 	}
 
-	if ( r_showNormalMaps->integer )
-	{
-		AddDefine( str, "r_showNormalMaps", 1 );
-	}
+	AddDefine( str, "r_showNormalMaps", r_showNormalMaps.Get() );
 
 	if ( r_showMaterialMaps->integer )
 	{
