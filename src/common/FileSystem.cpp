@@ -1436,6 +1436,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 			offset_t read = zipFile.ReadFile(buffer, sizeof(buffer), err);
 			if (err) {
 				std::error_code ignored;
+				// TODO: Support closing on exceptions.
 				zipFile.CloseFile(ignored);
 				return;
 			}
@@ -1444,6 +1445,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 			dest.Write(buffer, read, err);
 			if (err) {
 				std::error_code ignored;
+				// TODO: Support closing on exceptions.
 				zipFile.CloseFile(ignored);
 				return;
 			}
