@@ -52,7 +52,7 @@ namespace IPC {
 	// Simple file handle wrapper, does *not* close handle on destruction
 	class FileHandle {
 	public:
-		FileHandle() : handle(-1) {}
+		FileHandle() : FileHandle(-1, FileOpenMode::MODE_READ) {}
 		FileHandle(int handle, FileOpenMode mode) : handle(handle), mode(mode) {}
 		explicit operator bool() const {
 			return handle != -1;
@@ -115,10 +115,10 @@ namespace IPC {
 	};
 
 	// Shared memory area, can be sent over a socket. Can be initialized in the VM
-    // safely as the engine will ask the OS for the size of the Shared memory region.
+	// safely as the engine will ask the OS for the size of the Shared memory region.
 	class SharedMemory {
 	public:
-		SharedMemory() : handle(Sys::INVALID_HANDLE) {}
+		SharedMemory() : handle(Sys::INVALID_HANDLE), base(nullptr), size(0) {}
 		SharedMemory(SharedMemory&& other) NOEXCEPT : handle(other.handle), base(other.base), size(other.size) {
 			other.handle = Sys::INVALID_HANDLE;
 		}

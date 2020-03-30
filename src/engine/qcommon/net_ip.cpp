@@ -1738,7 +1738,7 @@ static void NET_OpenIP()
 
 	if ( net_enabled->integer & NET_ENABLEV6 )
 	{
-		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i++ )
+		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i-- )
 		{
 			ip6_socket = NET_IP6Socket( net_ip6->string, port6, &boundto, &err );
 
@@ -1765,7 +1765,7 @@ static void NET_OpenIP()
 
 	if ( net_enabled->integer & NET_ENABLEV4 )
 	{
-		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i++ )
+		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i-- )
 		{
 			ip_socket = NET_IPSocket( net_ip->string, port, &boundto4, &err );
 

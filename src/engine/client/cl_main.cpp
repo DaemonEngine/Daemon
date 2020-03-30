@@ -2775,8 +2775,6 @@ static bool CL_InitRef()
 	ri.CIN_PlayCinematic = CIN_PlayCinematic;
 	ri.CIN_RunCinematic = CIN_RunCinematic;
 
-	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;
-
 	// XreaL BEGIN
 	ri.CL_VideoRecording = CL_VideoRecording;
 	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;

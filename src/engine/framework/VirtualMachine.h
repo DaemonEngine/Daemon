@@ -87,7 +87,8 @@ enum vmType_t {
 	// Loads the VM as a native DLL from the libpath
 	// USE THIS FOR DEVELOPMENT
 	TYPE_NATIVE_DLL,
-	TYPE_END
+	TYPE_END,
+	TYPE_BEGIN = TYPE_NACL
 };
 
 
@@ -110,7 +111,7 @@ struct VMParams {
 class VMBase {
 public:
 	VMBase(std::string name, int vmTypeCvarFlags)
-		: processHandle(Sys::INVALID_HANDLE), name(name), params(name, vmTypeCvarFlags) {}
+		: processHandle(Sys::INVALID_HANDLE), name(name), type(TYPE_NACL), params(name, vmTypeCvarFlags) {}
 
 	// Create the VM for the named module. Returns the ABI version reported
 	// by the module. This will automatically free any existing VM.

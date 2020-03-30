@@ -108,6 +108,7 @@ public:
 		if (!msg) {
 			status_ = dlStatus_t::DL_FAILED;
 			downloadLogger.Warn("Unexpected lack of CURLMSG_DONE");
+			return;
 		}
 
 		if (msg->data.result != CURLE_OK) {

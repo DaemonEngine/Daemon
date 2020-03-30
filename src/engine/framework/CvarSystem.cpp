@@ -358,7 +358,7 @@ namespace Cvar {
             }
 
             cvar->resetValue = defaultValue;
-            cvar->description = "";
+            cvar->description.clear();
 
             if (proxy) { //TODO replace me with an assert once we do not need to support the C API
                 OnValueChangedResult result = proxy->OnValueChanged(cvar->value);

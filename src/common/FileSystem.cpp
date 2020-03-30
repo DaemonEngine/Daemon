@@ -878,6 +878,7 @@ public:
 		int maxDepth = 0; // TODO(slipher): Stop building unzip code in the gamelogic.
 #endif
 		std::string resolvedName;
+		std::error_code ignored;
 		for (;;) {
 			OpenFile(offset, err);
 			if (err)
@@ -885,6 +886,7 @@ public:
 			unz_file_info64 fileInfo;
 			int result = unzGetCurrentFileInfo64(zipFile, &fileInfo, nullptr, 0, nullptr, 0, nullptr, 0);
 			if (result != UNZ_OK) {
+				CloseFile(ignored);
 				SetErrorCodeZlib(err, result);
 				return 0;
 			}
@@ -905,7 +907,7 @@ public:
 			char link[MAX_FILENAME_BUF];
 			size_t linkLength = ReadFile(&link, sizeof(link) - 1, err);
 			if (err) {
-				// If there was a read error, are we still supposed to close the file? Oh well.
+				CloseFile(ignored);
 				return 0;
 			}
 			CloseFile(err);
@@ -1432,13 +1434,21 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 		char buffer[65536];
 		while (true) {
 			offset_t read = zipFile.ReadFile(buffer, sizeof(buffer), err);
-			if (err)
+			if (err) {
+				std::error_code ignored;
+				// TODO: Support closing on exceptions.
+				zipFile.CloseFile(ignored);
 				return;
+			}
 			if (read == 0)
 				break;
 			dest.Write(buffer, read, err);
-			if (err)
+			if (err) {
+				std::error_code ignored;
+				// TODO: Support closing on exceptions.
+				zipFile.CloseFile(ignored);
 				return;
+			}
 		}
 
 		// Close file and check for CRC errors
@@ -1563,7 +1573,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 		if (!allowSubdirs)
 			return {};
 		prefixDir = prefix;
-		prefixBase = "";
+		prefixBase.clear();
 	} else {
 		prefixDir = Path::DirName(prefix);
 		if (!allowSubdirs && !prefixDir.empty())
@@ -2048,7 +2058,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 		if (!allowSubdirs)
 			return {};
 		prefixDir = prefix;
-		prefixBase = "";
+		prefixBase.clear();
 	} else {
 		prefixDir = Path::DirName(prefix);
 		if (!allowSubdirs && !prefixDir.empty())
@@ -2491,14 +2501,14 @@ bool ParsePakName(const char* begin, const char* end, std::string& name, std::st
 		name.assign(begin, end - strlen(FS::LEGACY_PAK_ZIP_EXT));
 		// prefer versioned dpk over legacy pk3 if pak name collides, uses the smallest version string available
 		// this version can't be found in standard dpk, so we can also uses this value to test later if it's a legacy pk3
-		version = "";
+		version.clear();
 		// legacy paks can't have checksum
 		checksum = Util::nullopt;
 		return true;
 	} else if (Str::IsSuffix(LEGACY_PAK_DIR_EXT, begin)) {
 		name.assign(begin, end - strlen(FS::LEGACY_PAK_DIR_EXT));
 		// empty version string for legacy pak, see above for explanations
-		version = "";
+		version.clear();
 		// dir can't have checksum
 		checksum = Util::nullopt;
 		return true;
