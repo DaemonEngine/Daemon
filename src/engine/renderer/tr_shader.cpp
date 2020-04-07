@@ -49,6 +49,27 @@ static cullType_t    implicitCullType;
 
 static char          whenTokens[ MAX_STRING_CHARS ];
 
+/* This parser does not assume any default normal map format.
+
+Syntax variations must define a default normal map format.
+
+Stage keywords like normalMap, bumpMap and normalHeightMap set
+normal format to +X -Y +Z like DirectX, to keep those keywords
+compatible with other idTech3 engines using those keywords.
+
+XreaL implemented normalMap like Doom3 which is an OpenGL engine
+using DirectX normal format convention. Then other renderers like
+Daemon, ioquake3 renderer2, OpenJK, ET:Legacy, etc. did like XreaL.
+
+It's possible to extend this parser with other stage keywords
+from other engines to load normal map with their respective format.
+
+The normalFormat stage keyword can be used in materials to set an
+arbitrary format.
+*/
+static const vec3_t glNormalFormat = {  1.0,  1.0,  1.0 };
+static const vec3_t dxNormalFormat = {  1.0, -1.0,  1.0 };
+
 // DarkPlaces material compatibility
 static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::LATCH, false);
 Cvar::Cvar<bool> r_dpBlend("r_dpBlend", "Enable DarkPlaces blend compatibility, process GT0 as GE128", Cvar::NONE, false);
@@ -1679,6 +1700,54 @@ static void ParseLightFalloffImage( shaderStage_t *stage, const char **text )
 	}
 }
 
+/* SetNormalFormat: set normal format for given stage if normal format
+is not already set or it must be overwritten.
+
+Set force option to true to overwrite existing normalFormat.
+
+The idea is to call SetNormalFormat with force set to true when called by normalFormat keyword
+so existing per-keyword format is overwritten, but keyword like normalMap does not set force
+to true so their per-keyword format is only set if there is no normal format already set.
+
+This ensures those two materials are rendered the same:
+
+```
+textures/castle/brick
+{
+		diffuseMap textures/castle/brick_d
+		// set normalMap-specific normal format
+		normalMap textures/castle/brick_n
+		// overwrite with custom normal format
+		normalFormat X Y Z
+}
+```
+
+```
+textures/castle/brick
+{
+		diffuseMap textures/castle/brick_d
+		// set custom normal format
+		normalFormat X Y Z
+		// do not set normalMap-specific normal format
+		//keep existing custom one
+		normalMap textures/castle/brick_n
+}
+```
+*/
+
+void SetNormalFormat( shaderStage_t *stage, const vec3_t normalFormat, bool force = false )
+{
+	if ( !stage->hasNormalFormat || force )
+	{
+		stage->hasNormalFormat = true;
+
+		for ( int i = 0; i < 3; i++ )
+		{
+			stage->normalFormat[ i ] = normalFormat[ i ];
+		}
+	}
+}
+
 struct extraMapParser_t
 {
 	const char *suffix;
@@ -1771,7 +1840,7 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 					diffuseMap  textures/map_solarium/water4/water4
 					normalMap   textures/map_solarium/water4/water4_norm
 					specularMap textures/map_solarium/water4/water4_gloss
-					normalScale 1 -1 1
+					normalFormat +X +Y +Z
 					tcmod scale  0.3  0.4
 					tcMod scroll 0.05 0.05
 					blendfunc add
@@ -1815,11 +1884,8 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 
 				if ( parser.bundleIndex == TB_NORMALMAP )
 				{
-					// Xonotic uses -Y (DirectX) while this engine uses Y (OpenGL)
-					stage->normalScale[ 0 ] = 1;
-					stage->normalScale[ 1 ] = -1;
-					stage->normalScale[ 2 ] = 1;
-					stage->hasNormalScale = true;
+					// Xonotic uses +X +Y +Z (OpenGL)
+					SetNormalFormat( stage, glNormalFormat );
 				}
 			}
 		}
@@ -1901,6 +1967,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 
 			ParseNormalMap( stage, text );
+			SetNormalFormat( stage, dxNormalFormat );
 		}
 		else if ( !Q_stricmp( token, "normalHeightMap" ) )
 		{
@@ -1911,6 +1978,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			stage->isHeightMapInNormalMap = true;
 			ParseNormalMap( stage, text );
+			SetNormalFormat( stage, dxNormalFormat );
 		}
 		else if ( !Q_stricmp( token, "heightMap" ) )
 		{
@@ -2343,11 +2411,13 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated idTech4 blend parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_NORMALMAP;
+				SetNormalFormat( stage, dxNormalFormat );
 			}
 			else if ( !Q_stricmp( token, "bumpMap" ) )
 			{
 				Log::Warn("deprecated idTech4 blend parameter '%s' in shader '%s', better use 'normalMap' keyword in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_NORMALMAP;
+				SetNormalFormat( stage, dxNormalFormat );
 			}
 			else if ( !Q_stricmp( token, "specularMap" ) )
 			{
@@ -2417,11 +2487,13 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_NORMALMAP;
+				SetNormalFormat( stage, dxNormalFormat );
 			}
 			else if ( !Q_stricmp( token, "bumpMap" ) )
 			{
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use 'normalMap' keyword in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_NORMALMAP;
+				SetNormalFormat( stage, dxNormalFormat );
 			}
 			else if ( !Q_stricmp( token, "specularMap" ) )
 			{
@@ -2466,10 +2538,12 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			else if ( !Q_stricmp( token, "heathazeMap" ) )
 			{
 				stage->type = stageType_t::ST_HEATHAZEMAP;
+				SetNormalFormat( stage, dxNormalFormat );
 			}
 			else if ( !Q_stricmp( token, "liquidMap" ) )
 			{
 				stage->type = stageType_t::ST_LIQUIDMAP;
+				SetNormalFormat( stage, dxNormalFormat );
 			}
 			else if ( !Q_stricmp( token, "attenuationMapXY" ) )
 			{
@@ -2895,26 +2969,90 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			ParseExpression( text, &stage->fresnelBiasExp );
 		}
-		// normalScale <float> <float> <float>
-		//
-		// for compatibility purpose, ioq3gl2 syntax is supported:
-		// normalScale <float> <float> 
-		//
-		// scale normalMap channel, can flip channels with negative values
-		//
-		// expects OpenGL scale as default: 1 1 1
-		//
-		// OpenGL format is described there:
-		//     https://github.com/KhronosGroup/glTF/tree/2.0/specification/2.0#materialnormaltexture
-		//
-		// > The normal vector uses OpenGL conventions where +X is right, +Y is up, and +Z points toward the viewer.
-		//
-		// examples of scales:
-		//
-		//  1   1   1    OpenGL format (default)
-		//  1  -1   1    DirectX format with reverted green channel (reverted Y component)
-		// -1   1   1    weird other format with reverted red channel (reverted X component)
-		//  1   1   1.5  OpenGL format with an increased blue channel (larger Z componnent)
+		/* normalFormat <[-]X> <[-]Y> <[-]Z>
+
+		Describes the normal map format for the the given normal map file.
+
+		Since this parser assumes DirectX format with normalMap keyword
+		to keep compatibility with materials created for ioquake3
+
+		To load normal maps in OpenGL format using normalMap keyword, use:
+		normalFormat X Y Z
+
+		OpenGL format is described there:
+		https://github.com/KhronosGroup/glTF/tree/2.0/specification/2.0#materialnormaltexture
+
+		> The normal vector uses OpenGL conventions where +X is right, +Y is up, and +Z points toward the viewer.
+
+		examples of formats:
+
+		 X  Y  Z OpenGL format
+		 X -Y  Z DirectX format with reverted green channel (reverted Y component)
+		-X  Y  Z weird other format with reverted red channel (reverted X component)
+
+		Unlike normalScale that can be used to revert channels by setting them
+		negative, the normalFormat keyword is meant to be engine agnostic:
+		engines implementing either OpenGL or DirectX format internally
+		are expected to do the required normal channel flip themselves.
+		*/
+		else if ( !Q_stricmp( token, "normalFormat" ) )
+		{
+			const char* components[3] = { "X", "Y", "Z" };
+			vec3_t normalFormat;
+
+			for ( int i = 0; i < 3; i++ )
+			{
+				token = COM_ParseExt( text, false );
+
+				if ( !Q_stricmp( token, components[ i ] ) )
+				{
+					normalFormat[ i ] = 1.0;
+				}
+				else if ( token[ 0 ] == '-' && !Q_stricmp( token + 1, components[ i ] ) )
+				{
+					normalFormat[ i ] = -1.0;
+				}
+				else
+				{
+					if ( token[ 0 ] == '\0' )
+					{
+						Log::Warn("missing normalFormat parm in shader '%s'", shader.name );
+					}
+					else
+					{
+						Log::Warn("unknown normalFormat parm in shader '%s': '%s'", shader.name, token );
+					}
+
+					break;
+				}
+
+				if ( i == 2 )
+				{
+					// If all three components are read properly,
+					// set normal format, replace existing one if exists.
+					SetNormalFormat( stage, normalFormat, true );
+				}
+			}
+
+			SkipRestOfLine( text );
+			continue;
+		}
+		/* normalScale <float> <float> <float>
+
+		Scales normal map channels.
+
+		For compatibility purpose, ioquake3 renderer2 syntax is supported:
+		normalScale <float> <float>
+
+		In this case it will be read like this:
+		normalScale <float> <float> 1.0
+
+		Using 1.0 as multiplier will have no effect on Z channel.
+
+		The normalScale keyword can also be used to flip normal map channels
+		by using negative values but this is strongly discouraged,
+		use normalFormat keyword instead.
+		*/
 		else if ( !Q_stricmp( token, "normalScale" ) )
 		{
 			for ( int i = 0; i < 3; i++ )
@@ -2925,12 +3063,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				{
 					if ( i == 2 )
 					{
-						// ioq3gl2 only supports
-						// normalScale X Y
-						// having a fallback for missing Z component keeps compatibility
-						stage->normalScale[ 2 ] = 1;
-						// no need to set hasNormalScale since previous loop did it
-						// stage->hasNormalScale = true;
+						/* Since ioquake3 renderer2 materials only tell X and Y
+						components, we set the missing Z component to 1.0.
+						It will have no effect.
+						*/
+						stage->normalScale[ 2 ] = 1.0;
 					}
 					else
 					{
@@ -2939,9 +3076,17 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 					}
 				}
 
-				stage->normalScale[ i ] = atof( token );
+				float j = atof( token );
+
+				if ( j < 0.0 )
+				{
+					Log::Warn("not recommended negative normalScale parm in shader '%s': '%f', better use 'normalFormat' to swap normal map channel direction", shader.name, j );
+				}
+
+				stage->normalScale[ i ] = j;
 				stage->hasNormalScale = true;
 			}
+
 			SkipRestOfLine( text );
 			continue;
 		}
@@ -4129,6 +4274,7 @@ static bool ParseShader( const char *_text )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
 			ParseNormalMap( &stages[ s ], text, TB_COLORMAP );
+			SetNormalFormat( &stages[ s ], dxNormalFormat );
 			s++;
 			continue;
 		}
@@ -4137,6 +4283,7 @@ static bool ParseShader( const char *_text )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better use 'normalMap' keyword and move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
 			ParseNormalMap( &stages[ s ], text, TB_COLORMAP );
+			SetNormalFormat( &stages[ s ], dxNormalFormat );
 			s++;
 			continue;
 		}
@@ -4508,12 +4655,20 @@ static void CollapseStages()
 			{
 				// merge with diffuse stage
 				stages[ diffuseStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
+
 				stages[ diffuseStage ].normalIntensityExp = stages[ normalStage ].normalIntensityExp;
-				stages[ diffuseStage ].normalScale[ 0 ] = stages[ normalStage ].normalScale[ 0 ];
-				stages[ diffuseStage ].normalScale[ 1 ] = stages[ normalStage ].normalScale[ 1 ];
-				stages[ diffuseStage ].normalScale[ 2 ] = stages[ normalStage ].normalScale[ 2 ];
+
+				for ( int i = 0; i < 3; i++ )
+				{
+					stages[ diffuseStage ].normalFormat[ i ] = stages[ normalStage ].normalFormat[ i ];
+					stages[ diffuseStage ].normalScale[ i ] = stages[ normalStage ].normalScale[ i ];
+				}
+
+				stages[ diffuseStage ].hasNormalFormat = stages[ normalStage ].hasNormalFormat;
 				stages[ diffuseStage ].hasNormalScale = stages[ normalStage ].hasNormalScale;
+
 				stages[ diffuseStage ].isHeightMapInNormalMap = stages[ normalStage ].isHeightMapInNormalMap;
+
 				// disable since it's merged
 				stages[ normalStage ].active = false;
 			}
@@ -4608,8 +4763,10 @@ static void CollapseStages()
 			if ( i != numActiveStages )
 			{
 				stages[ numActiveStages ] = stages[ i ];
+
 				stages[ i ].active = false;
 			}
+
 			numActiveStages++;
 		}
 	}
@@ -4651,6 +4808,55 @@ static void CollapseStages()
 		if ( !stage->enableGlowMapping )
 		{
 			stage->bundle[ TB_GLOWMAP ].image[ 0 ] = tr.blackImage;
+		}
+
+		// Compute normal scale.
+		for ( int i = 0; i < 3; i++ )
+		{
+			if ( stage->hasNormalMap )
+			{
+				if ( !stage->hasNormalFormat )
+				{
+					// Please make sure the parser sets a normal format
+					// when adding a new normal map syntax.
+					ASSERT_UNREACHABLE();
+				}
+
+				if ( !stage->hasNormalScale )
+				{
+					stage->normalScale[ i ] = 1.0;
+				}
+
+				/* Because Z reconstruction is destructive on alpha channel
+				Z reconstruction is never done on normal map shipping height
+				map in alpha channel and Z is read from the file itself.
+				Those files always provide Z anyway.
+
+				If height map is not stored in normal map alpha channel,
+				the Z component will be reconstructed from X and Y whatever
+				Z is provided by the file or not) and Z will be fine from
+				the start, so we must not apply the format translation on
+				the Z channel.
+
+				So this test means X and Y formats are always applied,
+				but Z format is applied only when Z is not reconstructed.
+
+				Note the XYZ format translations are not done on RGB channels
+				from the file but on the RGB channels as seen in GLSL shader,
+				there is no need to worry about DXn storing X in alpha channel.
+
+				This way the material syntax is expected to work the same with
+				both the PNG source and the released CRN.
+				*/
+				if ( i < 2 || stage->isHeightMapInNormalMap )
+				{
+					stage->normalScale[ i ] *= stage->normalFormat[ i ];
+				}
+			}
+			else
+			{
+				stage->normalScale[ i ] = 1.0;
+			}
 		}
 	}
 }

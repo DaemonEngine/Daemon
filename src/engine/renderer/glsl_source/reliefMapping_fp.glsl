@@ -75,12 +75,23 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	// take the square root of a negative number here.
 	normal.z = sqrt(max(0, 1.0 - dot(normal.xy, normal.xy)));
 #endif // !USE_HEIGHTMAP_IN_NORMALMAP
-	// HACK: 0 normal Z channel can't be good
+	/* Disable normal map scaling when normal Z scale is set to zero.
+
+	This happens when r_normalScale is set to zero because
+	u_NormalScale.z is premultiplied with r_normalScale. User can
+	disable normal map scaling by setting r_normalScale to zero.
+
+	Normal Z component equal to zero would be wrong anyway.
+	*/
 	if (u_NormalScale.z != 0)
 	{
 		normal *= u_NormalScale;
 	}
 
+	// HACK: the GLSL code is currently assuming
+	// DirectX normal map format (+X -Y +Z)
+	// but engine is assuming the OpenGL way (+X +Y +Z)
+	normal.y *= -1;
 #else // !r_normalMapping
 	// Flat normal map is {0.5, 0.5, 1.0} in [ 0.0, 1.0]
 	// which is stored as {0.0, 0.0, 1.0} in [-1.0, 1.0].

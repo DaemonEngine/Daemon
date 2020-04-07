@@ -579,37 +579,34 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 }
 
-/*
-==============
-SetNormalScale
-==============
-*/
-void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale)
+void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale )
 {
-		float normalIntensity = RB_EvalExpression( &pStage->normalIntensityExp, 1 );
+	float normalIntensity = RB_EvalExpression( &pStage->normalIntensityExp, 1.0 );
 
-		normalScale[ 0 ] = 1;
-		normalScale[ 1 ] = 1;
-		normalScale[ 2 ] = 1;
+	for ( int i = 0; i < 3; i++ )
+	{
+		normalScale[ i ] = pStage->normalScale[ i ];
 
-		normalScale[ 0 ] *= normalIntensity;
-		normalScale[ 1 ] *= normalIntensity;
-
-		if ( pStage->hasNormalScale )
+		// Normal intensity is only applied on X and Y.
+		// This behaviour is inherited.
+		if ( i < 2 )
 		{
-			normalScale[ 0 ] *= pStage->normalScale[ 0 ];
-			normalScale[ 1 ] *= pStage->normalScale[ 1 ];
-			normalScale[ 2 ] *= pStage->normalScale[ 2 ];
+			normalScale[ i ] *= normalIntensity;
 		}
+	}
 
-		// NOTE: normalmap with zero Z component is wrong
-		//
-		// since glsl disables normalScale when Z is zero
-		// setting this to zero has side effect to reset
-		// per-stage normalScale
-		//
-		// there is no intention to keep this undefined feature
-		normalScale[ 2 ] *= r_normalScale->value;
+	/* Note: the GLSL code disables normal map scaling when normal Z scale is
+	equal to zero.
+
+	It means normal map scaling is disabled when r_normalScale is set to zero.
+	This is cool enough to be kept as a feature.
+
+	Normal Z component equal to zero would be wrong anyway.
+
+	r_normalScale is only applied on Z.
+	This behaviour is inherited.
+	*/
+	normalScale[ 2 ] *= r_normalScale->value;
 }
 
 // *INDENT-ON*
