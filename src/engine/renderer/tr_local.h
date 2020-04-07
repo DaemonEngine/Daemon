@@ -1140,9 +1140,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool enableSpecularMapping;
 		bool enableGlowMapping;
 
-		// normalMap channel scale, negative value flips channel
-		bool            hasNormalScale;
-		vec3_t          normalScale;
+		// Normal map scale and format.
+		bool hasNormalFormat;
+		bool hasNormalScale;
+		vec3_t normalFormat;
+		vec3_t normalScale;
 
 		expression_t    normalIntensityExp;
 
