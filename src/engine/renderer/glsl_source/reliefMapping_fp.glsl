@@ -80,8 +80,11 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	{
 		normal *= u_NormalScale;
 	}
+
 #else // !r_normalMapping
-	normal = vec3(0.5, 0.5, 1.0);
+	// Flat normal map is {0.5, 0.5, 1.0} in [ 0.0, 1.0]
+	// which is stored as {0.0, 0.0, 1.0} in [-1.0, 1.0].
+	normal = vec3(0.0, 0.0, 1.0);
 #endif // !r_normalMapping
 
 	return normal;
