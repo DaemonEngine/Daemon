@@ -3056,18 +3056,21 @@ void Tess_StageIteratorGeneric()
 					{
 						if ( r_precomputedLighting->integer || r_vertexLighting->integer )
 						{
-							if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
+
+							if ( tess.bspSurface )
 							{
-								Render_lightMapping( stage );
-							}
-							else if ( backEnd.currentEntity != &tr.worldEntity )
-							{
-								// FIXME: This can be reached if r_vertexLighting == 0 and tess.lightmapNum is invalid which doesn't seem right
-								Render_vertexLighting_DBS_entity( stage );
+								if ( !r_vertexLighting->integer && tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements )
+								{
+									Render_lightMapping( stage );
+								}
+								else
+								{
+									Render_vertexLighting_DBS_world( stage );
+								}
 							}
 							else
 							{
-								Render_vertexLighting_DBS_world( stage );
+								Render_vertexLighting_DBS_entity( stage );
 							}
 						}
 						else
