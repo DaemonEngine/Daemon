@@ -4311,11 +4311,6 @@ CollapseMultitexture
 // *INDENT-OFF*
 static void CollapseStages()
 {
-	if ( !r_collapseStages->integer )
-	{
-		return;
-	}
-
 	int diffuseStage = -1;
 	int normalStage = -1;
 	int specularStage = -1;
