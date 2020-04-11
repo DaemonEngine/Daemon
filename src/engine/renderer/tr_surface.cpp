@@ -49,7 +49,7 @@ void Tess_EndBegin()
 {
 	Tess_End();
 	Tess_Begin( tess.stageIteratorFunc, tess.stageIteratorFunc2, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces, tess.skipVBO,
-	            tess.lightmapNum, tess.fogNum );
+	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
 /*
@@ -113,7 +113,7 @@ void Tess_CheckOverflow( int verts, int indexes )
 	}
 
 	Tess_Begin( tess.stageIteratorFunc, tess.stageIteratorFunc2, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces, tess.skipVBO,
-	            tess.lightmapNum, tess.fogNum );
+	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
 /*

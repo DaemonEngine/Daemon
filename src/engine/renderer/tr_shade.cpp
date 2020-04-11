@@ -505,7 +505,8 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
                  bool skipTangentSpaces,
                  bool skipVBO,
                  int lightmapNum,
-                 int fogNum )
+                 int fogNum,
+                 bool bspSurface )
 {
 	shader_t *state;
 
@@ -534,7 +535,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		tess.surfaceStages = nullptr;
 		Tess_MapVBOs( false );
 	}
-
 
 	bool isSky = ( state != nullptr && state->isSky != false );
 
@@ -569,6 +569,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	tess.skipVBO = skipVBO;
 	tess.lightmapNum = lightmapNum;
 	tess.fogNum = fogNum;
+	tess.bspSurface = bspSurface;
 
 	if ( r_logFile->integer )
 	{

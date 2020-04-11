@@ -296,7 +296,7 @@ static bool R_AddWorldSurface( bspSurface_t *surf, int fogIndex, int planeBits )
 		return true;
 	}
 
-	R_AddDrawSurf( surf->data, surf->shader, surf->lightmapNum, fogIndex );
+	R_AddDrawSurf( surf->data, surf->shader, surf->lightmapNum, fogIndex, true );
 	return true;
 }
 
