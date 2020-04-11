@@ -289,8 +289,6 @@ bool Aes256Encrypt( Data plain_text, const Data& key, Data& output )
     output.resize( plain_text.size(), 0 );
     nettle_aes256_encrypt( &ctx, plain_text.size(),
         output.data(), plain_text.data() );
-    nettle_aes256_decrypt( &ctx, plain_text.size(),
-        plain_text.data(), output.data() );
     return true;
 }
 
