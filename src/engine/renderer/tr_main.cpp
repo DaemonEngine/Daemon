@@ -1947,7 +1947,7 @@ int R_SpriteFogNum( trRefEntity_t *ent )
 R_AddDrawSurf
 =================
 */
-void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum )
+void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface )
 {
 	int        index;
 	drawSurf_t *drawSurf;
@@ -1961,6 +1961,7 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	drawSurf->entity = tr.currentEntity;
 	drawSurf->surface = surface;
 	drawSurf->shader = shader;
+	drawSurf->bspSurface = bspSurface;
 
 	int entityNum;
 
@@ -1983,7 +1984,7 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	tr.refdef.numDrawSurfs++;
 
 	if ( shader->depthShader != nullptr ) {
-		R_AddDrawSurf( surface, shader->depthShader, 0, 0 );
+		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
 	}
 }
 

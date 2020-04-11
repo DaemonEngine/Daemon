@@ -1595,6 +1595,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		surfaceType_t *surface; // any of surface*_t
 		shader_t      *shader;
 		uint64_t      sort;
+		bool          bspSurface;
 
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
@@ -3002,7 +3003,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	void           R_AddPolygonSurfaces();
 
-	void           R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum );
+	void           R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false );
 
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
@@ -3295,6 +3296,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool    skipVBO;
 		int16_t     lightmapNum;
 		int16_t     fogNum;
+		bool        bspSurface;
 
 		uint32_t    numIndexes;
 		uint32_t    numVertexes;
@@ -3342,7 +3344,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	                 bool skipTangentSpaces,
 	                 bool skipVBO,
 	                 int lightmapNum,
-	                 int     fogNum );
+	                 int fogNum,
+	                 bool bspSurface = false );
 
 // *INDENT-ON*
 	void Tess_End();

@@ -828,6 +828,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	shader_t      *shader, *oldShader;
 	int           lightmapNum, oldLightmapNum;
 	int           fogNum, oldFogNum;
+	bool          bspSurface;
 	bool      depthRange, oldDepthRange;
 	int           i;
 	drawSurf_t    *drawSurf;
@@ -854,6 +855,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		shader = drawSurf->shader;
 		lightmapNum = drawSurf->lightmapNum();
 		fogNum = drawSurf->fogNum();
+		bspSurface = drawSurf->bspSurface;
 
 		if( entity == &tr.worldEntity ) {
 			if( !( drawSurfFilter & DRAWSURFACES_WORLD ) )
@@ -888,7 +890,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				Tess_End();
 			}
 
-			Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, false, lightmapNum, fogNum );
+			Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, false, lightmapNum, fogNum, bspSurface );
 
 			oldShader = shader;
 			oldLightmapNum = lightmapNum;
