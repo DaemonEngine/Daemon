@@ -4636,6 +4636,22 @@ static void CollapseStages()
 		stage->enablePhysicalMapping = r_physicalMapping->integer && stage->hasMaterialMap && stage->isMaterialPhysical;
 		stage->enableSpecularMapping = r_specularMapping->integer && stage->hasMaterialMap && !stage->isMaterialPhysical;
 		stage->enableGlowMapping = r_glowMapping->integer && stage->hasGlowMap;
+
+		// Bind fallback textures if required.
+		if ( !stage->enableNormalMapping && !( stage->enableParallaxMapping && stage->isHeightMapInNormalMap) )
+		{
+			stage->bundle[ TB_NORMALMAP ].image[ 0 ] = tr.flatImage;
+		}
+
+		if ( !stage->enablePhysicalMapping && !stage->enableSpecularMapping )
+		{
+			stage->bundle[ TB_MATERIALMAP ].image[ 0 ] = tr.blackImage;
+		}
+
+		if ( !stage->enableGlowMapping )
+		{
+			stage->bundle[ TB_GLOWMAP ].image[ 0 ] = tr.blackImage;
+		}
 	}
 }
 
