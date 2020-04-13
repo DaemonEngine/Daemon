@@ -4615,6 +4615,13 @@ static void CollapseStages()
 	}
 
 	shader.numStages = numActiveStages;
+
+	// Do some precomputation.
+	for ( int s = 0; s < shader.numStages; s++ )
+	{
+		shaderStage_t *stage = &stages[ s ];
+		// STUB
+	}
 }
 
 // *INDENT-ON*
