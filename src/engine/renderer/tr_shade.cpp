@@ -2274,12 +2274,6 @@ static void Render_reflection_CB( int stage )
 		}
 	}
 
-	vec3_t normalScale;
-	SetNormalScale( pStage, normalScale );
-
-	// bind u_NormalScale
-	gl_reflectionShader->SetUniform_NormalScale( normalScale );
-
 	gl_reflectionShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
