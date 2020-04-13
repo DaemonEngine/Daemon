@@ -1094,7 +1094,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool        tcGen_Environment;
 		bool        tcGen_Lightmap;
 
-		bool heightMapInNormalMap; // material has normalmap suited for parallax mapping
 		bool implicitLightmap;
 
 		Color::Color32Bit constantColor; // for CGEN_CONST and AGEN_CONST
@@ -1124,6 +1123,22 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		expression_t    fresnelPowerExp;
 		expression_t    fresnelScaleExp;
 		expression_t    fresnelBiasExp;
+
+		// Available textures.
+		bool hasNormalMap;
+		bool hasHeightMap;
+		bool isHeightMapInNormalMap;
+		bool hasMaterialMap;
+		bool isMaterialPhysical;
+		bool hasGlowMap;
+
+		// Available features.
+		bool enableNormalMapping;
+		bool enableDeluxeMapping;
+		bool enableParallaxMapping;
+		bool enablePhysicalMapping;
+		bool enableSpecularMapping;
+		bool enableGlowMapping;
 
 		// normalMap channel scale, negative value flips channel
 		bool            hasNormalScale;
@@ -1212,7 +1227,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		fogPass_t      fogPass; // draw a blended pass, possibly with depth test equals
 		bool       noFog;
 
-		bool       heightMapInNormalMap; // material has normalmap suited for parallax mapping
 		bool       noParallax; // disable parallax for this material even if it's available
 		float      parallaxOffsetBias; // offset the heightmap top relatively to the floor
 		float      parallaxDepthScale; // per-shader parallax depth scale

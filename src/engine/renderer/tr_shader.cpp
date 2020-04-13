@@ -1481,7 +1481,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_ALPHA )
 	{
 		Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
-		stage->heightMapInNormalMap = true;
+		stage->isHeightMapInNormalMap = true;
 	}
 
 	return true;
@@ -1909,7 +1909,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				stage->collapseType = collapseType_t::COLLAPSE_generic;
 			}
 
-			stage->heightMapInNormalMap = true;
+			stage->isHeightMapInNormalMap = true;
 			ParseNormalMap( stage, text );
 		}
 		else if ( !Q_stricmp( token, "heightMap" ) )
@@ -4513,7 +4513,7 @@ static void CollapseStages()
 				stages[ diffuseStage ].normalScale[ 1 ] = stages[ normalStage ].normalScale[ 1 ];
 				stages[ diffuseStage ].normalScale[ 2 ] = stages[ normalStage ].normalScale[ 2 ];
 				stages[ diffuseStage ].hasNormalScale = stages[ normalStage ].hasNormalScale;
-				stages[ diffuseStage ].heightMapInNormalMap = stages[ normalStage ].heightMapInNormalMap;
+				stages[ diffuseStage ].isHeightMapInNormalMap = stages[ normalStage ].isHeightMapInNormalMap;
 				// disable since it's merged
 				stages[ normalStage ].active = false;
 			}
@@ -4620,7 +4620,22 @@ static void CollapseStages()
 	for ( int s = 0; s < shader.numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
-		// STUB
+
+		// Available textures.
+		stage->hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+		stage->hasHeightMap = stage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
+		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && stage->hasNormalMap;
+		stage->hasMaterialMap = stage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+		stage->hasGlowMap = stage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
+		stage->isMaterialPhysical = stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+
+		// Available features.
+		stage->enableNormalMapping = r_normalMapping->integer && stage->hasNormalMap;
+		stage->enableDeluxeMapping = r_deluxeMapping->integer && stage->hasNormalMap;
+		stage->enableParallaxMapping = r_parallaxMapping->integer && !shader.noParallax && ( stage->hasHeightMap || stage->isHeightMapInNormalMap );
+		stage->enablePhysicalMapping = r_physicalMapping->integer && stage->hasMaterialMap && stage->isMaterialPhysical;
+		stage->enableSpecularMapping = r_specularMapping->integer && stage->hasMaterialMap && !stage->isMaterialPhysical;
+		stage->enableGlowMapping = r_glowMapping->integer && stage->hasGlowMap;
 	}
 }
 
