@@ -2370,7 +2370,7 @@ static void Render_heatHaze( int stage )
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
 
-	bool hasNormalMap = pStage->bundle[ TB_COLORMAP ].image[ 0 ] != nullptr;
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 
 	bool normalMapping = r_normalMapping->integer && hasNormalMap;
 
@@ -2435,9 +2435,9 @@ static void Render_heatHaze( int stage )
 	if ( normalMapping )
 	{
 		// bind u_NormalMap
-		GL_BindToTMU( 0, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
+		GL_BindToTMU( 0, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
-		gl_heatHazeShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+		gl_heatHazeShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
@@ -2475,7 +2475,7 @@ static void Render_liquid( int stage )
 
 	GLimp_LogComment( "--- Render_liquid ---\n" );
 
-	bool hasNormalMap = pStage->bundle[ TB_COLORMAP ].image[ 0 ] != nullptr;
+	bool hasNormalMap = pStage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 	bool hasHeightMap = pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 
 	bool hasHeightMapInNormalMap = pStage->heightMapInNormalMap && hasNormalMap;
@@ -2556,7 +2556,7 @@ static void Render_liquid( int stage )
 	if ( normalMapping || ( parallaxMapping && hasHeightMapInNormalMap ) )
 	{
 		// bind u_NormalMap
-		GL_BindToTMU( 3, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
+		GL_BindToTMU( 3, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 	}
 	else
 	{
@@ -2573,7 +2573,7 @@ static void Render_liquid( int stage )
 		gl_liquidShader->SetUniform_NormalScale( normalScale );
 	}
 
-	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+	gl_liquidShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 	Tess_DrawElements();
 
