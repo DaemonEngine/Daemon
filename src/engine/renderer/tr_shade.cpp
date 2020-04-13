@@ -826,42 +826,27 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_vertexLightingShader_DBS_entity->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( pStage->enableNormalMapping || ( pStage->enableParallaxMapping && pStage->isHeightMapInNormalMap ) )
-	{
-		// bind u_NormalMap
-		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	}
-	else
-	{
-		GL_BindToTMU( 1, tr.flatImage );
-	}
-
 	// bind u_NormalMap
+	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+
+	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
 	{
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
 		gl_vertexLightingShader_DBS_entity->SetUniform_NormalScale( normalScale );
 	}
 
-	if ( pStage->enablePhysicalMapping || pStage->enableSpecularMapping )
-	{
-		// bind u_MaterialMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+	// bind u_MaterialMap
+	GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		if ( pStage->enableSpecularMapping )
-		{
-			float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-			float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-
-			gl_vertexLightingShader_DBS_entity->SetUniform_SpecularExponent( specExpMin, specExpMax );
-		}
-	}
-	else
+	if ( pStage->enableSpecularMapping )
 	{
-		GL_BindToTMU( 2, tr.blackImage );
+		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_vertexLightingShader_DBS_entity->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 
 	if ( tr.cubeHashTable != nullptr )
@@ -962,12 +947,7 @@ static void Render_vertexLighting_DBS_entity( int stage )
 	}
 
 	// bind u_GlowMap
-	if ( pStage->enableGlowMapping )
-	{
-		GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
-	} else {
-		GL_BindToTMU( 5, tr.blackImage );
-	}
+	GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
 
 	gl_vertexLightingShader_DBS_entity->SetRequiredVertexPointers();
 
@@ -1087,42 +1067,27 @@ static void Render_vertexLighting_DBS_world( int stage )
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_vertexLightingShader_DBS_world->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( pStage->enableNormalMapping || ( pStage->enableParallaxMapping && pStage->isHeightMapInNormalMap ) )
-	{
-		// bind u_NormalMap
-		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	}
-	else
-	{
-		GL_BindToTMU( 1, tr.flatImage );
-	}
-
 	// bind u_NormalMap
+	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+
+	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
 	{
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
 		gl_vertexLightingShader_DBS_world->SetUniform_NormalScale( normalScale );
 	}
 
-	if ( pStage->enablePhysicalMapping || pStage->enableSpecularMapping )
-	{
-		// bind u_MaterialMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+	// bind u_MaterialMap
+	GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		if ( pStage->enableSpecularMapping )
-		{
-			float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-			float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-
-			gl_vertexLightingShader_DBS_world->SetUniform_SpecularExponent( specExpMin, specExpMax );
-		}
-	}
-	else
+	if ( pStage->enableSpecularMapping )
 	{
-		GL_BindToTMU( 2, tr.blackImage );
+		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_vertexLightingShader_DBS_world->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 
 	if( tr.world )
@@ -1139,12 +1104,7 @@ static void Render_vertexLighting_DBS_world( int stage )
 	}
 
 	// bind u_GlowMap
-	if ( pStage->enableGlowMapping )
-	{
-		GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
-	} else {
-		GL_BindToTMU( 5, tr.blackImage );
-	}
+	GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
 
 	gl_vertexLightingShader_DBS_world->SetRequiredVertexPointers();
 
@@ -1281,42 +1241,27 @@ static void Render_lightMapping( int stage )
 		gl_lightMappingShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 
-	if ( pStage->enableNormalMapping || ( pStage->enableParallaxMapping && pStage->isHeightMapInNormalMap ) )
-	{
-		// bind u_NormalMap
-		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	}
-	else
-	{
-		GL_BindToTMU( 1, tr.flatImage );
-	}
-
 	// bind u_NormalMap
+	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+
+	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
 	{
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
 		gl_lightMappingShader->SetUniform_NormalScale( normalScale );
 	}
 
-	if ( pStage->enablePhysicalMapping || pStage->enableSpecularMapping )
-	{
-		// bind u_MaterialMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+	// bind u_MaterialMap
+	GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 
-		if ( pStage->enableSpecularMapping )
-		{
-			float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-			float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
-
-			gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
-		}
-	}
-	else
+	if ( pStage->enableSpecularMapping )
 	{
-		GL_BindToTMU( 2, tr.blackImage );
+		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
+		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+
+		gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 
 	// bind u_LightMap
@@ -1333,12 +1278,7 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_GlowMap
-	if ( pStage->enableGlowMapping )
-	{
-		GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
-	} else {
-		GL_BindToTMU( 5, tr.blackImage );
-	}
+	GL_BindToTMU( 5, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
 
 	gl_lightMappingShader->SetRequiredVertexPointers();
 
@@ -1633,39 +1573,28 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( pStage->enableNormalMapping || ( pStage->enableParallaxMapping && pStage->isHeightMapInNormalMap ) )
-	{
-		// bind u_NormalMap
-		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	}
-	else
-	{
-		GL_BindToTMU( 1, tr.flatImage );
-	}
+	// bind u_NormalMap
+	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
 	{
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
 		gl_forwardLightingShader_omniXYZ->SetUniform_NormalScale( normalScale );
 	}
 
-	// physical mapping is not implemented
+	// bind u_MaterialMap
+	GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+
+	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
-		// bind u_MaterialMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
-
 		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
 		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
 		gl_forwardLightingShader_omniXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
-	}
-	else
-	{
-		GL_BindToTMU( 2, tr.blackImage );
 	}
 
 	// bind u_AttenuationMapXY
@@ -1830,39 +1759,28 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( pStage->enableNormalMapping || ( pStage->enableParallaxMapping && pStage->isHeightMapInNormalMap ) )
-	{
-		// bind u_NormalMap
-		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	}
-	else
-	{
-		GL_BindToTMU( 1, tr.flatImage );
-	}
+	// bind u_NormalMap
+	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
 	{
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
 		gl_forwardLightingShader_projXYZ->SetUniform_NormalScale( normalScale );
 	}
 
-	// physical mapping is not implemented
+	// bind u_MaterialMap
+	GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+
+	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
-		// bind u_MaterialMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
-
 		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
 		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
 		gl_forwardLightingShader_projXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
-	}
-	else
-	{
-		GL_BindToTMU( 2, tr.blackImage );
 	}
 
 	// bind u_AttenuationMapXY
@@ -2029,38 +1947,27 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 	gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 
-	if ( pStage->enableNormalMapping )
-	{
-		// bind u_NormalMap
-		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	}
-	else
-	{
-		GL_BindToTMU( 1, tr.flatImage );
-	}
+	// bind u_NormalMap
+	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
 	{
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
 		gl_forwardLightingShader_directionalSun->SetUniform_NormalScale( normalScale );
 	}
 
-	// physical mapping is not implemented
+	// bind u_MaterialMap
+	GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+
+	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
-		// bind u_MaterialMap
-		GL_BindToTMU( 2, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
-
 		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
 		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 		gl_forwardLightingShader_directionalSun->SetUniform_SpecularExponent( minSpec, maxSpec );
-	}
-	else
-	{
-		GL_BindToTMU( 2, tr.blackImage );
 	}
 
 	// bind u_ShadowMap
@@ -2148,22 +2055,15 @@ static void Render_reflection_CB( int stage )
 		GL_BindNearestCubeMap( backEnd.viewParms.orientation.origin );
 	}
 
-	if ( pStage->enableNormalMapping || ( pStage->enableParallaxMapping && pStage->isHeightMapInNormalMap ) )
-	{
-		// bind u_NormalMap
-		GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	}
-	else
-	{
-		GL_BindToTMU( 1, tr.flatImage );
-	}
+	// bind u_NormalMap
+	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
 	{
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
 		gl_reflectionShader->SetUniform_NormalScale( normalScale );
 	}
 
@@ -2342,11 +2242,11 @@ static void Render_heatHaze( int stage )
 	// draw to background image
 	R_BindFBO( tr.mainFBO[ 1 - backEnd.currentMainFBO ] );
 
+	// bind u_NormalMap
+	GL_BindToTMU( 0, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+
 	if ( pStage->enableNormalMapping )
 	{
-		// bind u_NormalMap
-		GL_BindToTMU( 0, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-
 		gl_heatHazeShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_NORMALMAP ] );
 
 		vec3_t normalScale;
@@ -2354,10 +2254,6 @@ static void Render_heatHaze( int stage )
 
 		// bind u_NormalScale
 		gl_heatHazeShader->SetUniform_NormalScale( normalScale );
-	}
-	else
-	{
-		GL_BindToTMU( 0, tr.flatImage );
 	}
 
 	// bind u_CurrentMap
@@ -2415,8 +2311,8 @@ static void Render_liquid( int stage )
 	gl_liquidShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_liquidShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	// specular component is computed by shader
-	// physical mapping is not implemented
+	// NOTE: specular component is computed by shader.
+	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
 		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
@@ -2452,23 +2348,16 @@ static void Render_liquid( int stage )
 		}
 	}
 
-	if ( pStage->enableNormalMapping || ( pStage->enableParallaxMapping && pStage->isHeightMapInNormalMap ) )
-	{
-		// bind u_NormalMap
-		GL_BindToTMU( 3, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
-	}
-	else
-	{
-		GL_BindToTMU( 3, tr.flatImage );
-	}
+	// bind u_NormalMap
+	GL_BindToTMU( 3, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 
+	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
 	{
 		vec3_t normalScale;
 		// FIXME: NormalIntensity default was 0.5
 		SetNormalScale( pStage, normalScale );
 
-		// bind u_NormalScale
 		gl_liquidShader->SetUniform_NormalScale( normalScale );
 	}
 
