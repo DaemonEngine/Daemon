@@ -4422,6 +4422,18 @@ static void CollapseStages()
 
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
+		/* Store hethaze and liquid normal map in normal map slot.
+
+		NOTE: liquidMap may be entirely redesigned in the future
+		to be a variant of diffuseMap (hence supporting all others textures).
+		*/
+		if ( stages[ i ].type == stageType_t::ST_HEATHAZEMAP
+			|| stages[ i ].type == stageType_t::ST_LIQUIDMAP )
+		{
+			stages[ i ].bundle[ TB_NORMALMAP ] = stages[ i ].bundle[ TB_COLORMAP ];
+			stages[ i ].bundle[ TB_COLORMAP ] = {};
+		}
+
 		if ( lightStage != -1 && stages[ i ].collapseType != collapseType_t::COLLAPSE_none )
 		{
 			if ( stages[ i ].dpMaterial )
