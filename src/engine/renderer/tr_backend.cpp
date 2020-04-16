@@ -683,7 +683,7 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 	{
 		uint32_t bit = BIT( i );
 		uint32_t frame = 0;
-		uint32_t base = 0;
+		uintptr_t base = 0;
 
 		if( glState.currentVBO == tess.vbo ) {
 			base = tess.vertexBase * sizeof( shaderVertex_t );

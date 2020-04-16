@@ -287,7 +287,7 @@ void Tess_DrawElements()
 		}
 		else
 		{
-			uint32_t base = 0;
+			uintptr_t base = 0;
 
 			if( glState.currentIBO == tess.ibo ) {
 				base = tess.indexBase * sizeof( glIndex_t );
