@@ -348,7 +348,7 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 	int            i;
 	char           *fileextPtr;
 
-	if ( strstr( arg, "/" ) == nullptr && strstr( arg, "\\" ) == nullptr )
+	if ( strchr( arg, '/' ) == nullptr && strchr( arg, '\\' ) == nullptr )
 	{
 		Com_sprintf( name, sizeof( name ), "video/%s", arg );
 	}
