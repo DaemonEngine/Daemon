@@ -456,7 +456,7 @@ static void GLimp_DetectAvailableModes()
 	{
 		const char *newModeString = va( "%ux%u ", modes[ i ].w, modes[ i ].h );
 
-		if ( strlen( newModeString ) < ( int ) sizeof( buf ) - strlen( buf ) )
+		if ( strlen( newModeString ) < sizeof( buf ) - strlen( buf ) )
 		{
 			Q_strcat( buf, sizeof( buf ), newModeString );
 		}
