@@ -1152,15 +1152,16 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 	}
 
 	loadedPaks.emplace_back();
-	loadedPaks.back().name = pak.name;
-	loadedPaks.back().version = pak.version;
-	loadedPaks.back().checksum = pak.checksum;
-	loadedPaks.back().type = pak.type;
-	loadedPaks.back().path = pak.path;
+	auto loadedPak = loadedPaks.back();
+	loadedPak.name = pak.name;
+	loadedPak.version = pak.version;
+	loadedPak.checksum = pak.checksum;
+	loadedPak.type = pak.type;
+	loadedPak.path = pak.path;
 
 	// Update the list of files, but don't overwrite existing files, so the sort order is preserved
 	if (pak.type == pakType_t::PAK_DIR) {
-		loadedPaks.back().fd = -1;
+		loadedPak.fd = -1;
 		auto dirRange = RawPath::ListFilesRecursive(pak.path, err);
 		if (err)
 			return;
@@ -1176,14 +1177,14 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 		}
 	} else if (pak.type == pakType_t::PAK_ZIP) {
 		// Open file
-		loadedPaks.back().fd = my_open(pak.path, openMode_t::MODE_READ);
-		if (loadedPaks.back().fd == -1) {
+		loadedPak.fd = my_open(pak.path, openMode_t::MODE_READ);
+		if (loadedPak.fd == -1) {
 			SetErrorCodeSystem(err);
 			return;
 		}
 
 		// Open zip
-		zipFile = ZipArchive::Open(loadedPaks.back().fd, err);
+		zipFile = ZipArchive::Open(loadedPak.fd, err);
 		if (err)
 			return;
 
@@ -1219,19 +1220,19 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 	}
 
 	// Save the real checksum in the list of loaded paks (empty for directories, not used for legacy paks)
-	loadedPaks.back().realChecksum = realChecksum;
+	loadedPak.realChecksum = realChecksum;
 
 	// Get the timestamp of the pak, but only for dpk files. 
 	// Directories (aka a dpkdir) don't need timestamp.
 	// Fixes Windows bug where calling _wstat64i with trailing slash causes "file not found" error.
 	// For future stat calls on directories, trim the trailing slash (if exists)
 	if (pak.type == pakType_t::PAK_ZIP) {
-		loadedPaks.back().timestamp = FS::RawPath::FileTimestamp(pak.path, err);
+		loadedPak.timestamp = FS::RawPath::FileTimestamp(pak.path, err);
 		if (err)
 			return;
 	}
 
-	loadedPaks.back().pathPrefix = pathPrefix;
+	loadedPak.pathPrefix = pathPrefix;
 
 	// Legacy paks don't have version neither checksum
 	if (!isLegacy) {
