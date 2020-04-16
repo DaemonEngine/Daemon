@@ -397,7 +397,7 @@ namespace Cvar {
         Cmd::CompletionResult res;
         for (const auto& entry : cvars) {
             if (Str::IsIPrefix(prefix, entry.first)) {
-                res.push_back(std::make_pair(entry.first, entry.second->description));
+                res.emplace_back(entry.first, entry.second->description);
             }
         }
 
