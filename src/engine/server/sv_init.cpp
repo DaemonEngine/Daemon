@@ -421,7 +421,7 @@ clients along with it.
 This is NOT called for map_restart, UNLESS the number of client slots changed
 ================
 */
-void SV_SpawnServer(const std::string pakname, const std::string mapname)
+void SV_SpawnServer(const std::string &pakname, const std::string &mapname)
 {
 	int        i;
 	bool   isBot;
