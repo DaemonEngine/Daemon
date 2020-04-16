@@ -57,7 +57,7 @@ void CL_Frame( int )
 {
 }
 
-void CL_PacketEvent( netadr_t, msg_t*  )
+void CL_PacketEvent( const netadr_t& , msg_t*  )
 {
 }
 
