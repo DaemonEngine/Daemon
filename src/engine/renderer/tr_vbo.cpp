@@ -51,7 +51,7 @@ const GLsizei sizeSkeletal = sizeof( struct fmtSkeletal );
 // -> struct shaderVertex_t in tr_local.h
 const GLsizei sizeShaderVertex = sizeof( shaderVertex_t );
 
-static uint32_t R_DeriveAttrBits( vboData_t data )
+static uint32_t R_DeriveAttrBits( const vboData_t &data )
 {
 	uint32_t stateBits = 0;
 
