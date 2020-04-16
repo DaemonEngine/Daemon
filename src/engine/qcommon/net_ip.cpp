@@ -544,7 +544,7 @@ NET_CompareBaseAdrMask
 Compare without port, and up to the bit number given in netmask.
 ===================
 */
-bool NET_CompareBaseAdrMask( netadr_t a, netadr_t b, int netmask )
+bool NET_CompareBaseAdrMask( const netadr_t& a, const netadr_t& b, int netmask )
 {
 	byte     cmpmask, *addra, *addrb;
 	int      curbyte;
@@ -621,12 +621,12 @@ NET_CompareBaseAdr
 Compares without the port
 ===================
 */
-bool NET_CompareBaseAdr( netadr_t a, netadr_t b )
+bool NET_CompareBaseAdr( const netadr_t& a, const netadr_t& b )
 {
 	return NET_CompareBaseAdrMask( a, b, -1 );
 }
 
-const char      *NET_AdrToString( netadr_t a )
+const char      *NET_AdrToString( const netadr_t& a )
 {
 	static  char s[ NET_ADDR_STR_MAX_LEN ];
 
@@ -650,7 +650,7 @@ const char      *NET_AdrToString( netadr_t a )
 	return s;
 }
 
-const char      *NET_AdrToStringwPort( netadr_t a )
+const char      *NET_AdrToStringwPort( const netadr_t& a )
 {
 	static  char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
 
@@ -673,7 +673,7 @@ const char      *NET_AdrToStringwPort( netadr_t a )
 	return s;
 }
 
-bool        NET_CompareAdr( netadr_t a, netadr_t b )
+bool        NET_CompareAdr( const netadr_t& a, const netadr_t& b )
 {
 	if ( !NET_CompareBaseAdr( a, b ) )
 	{
@@ -695,7 +695,7 @@ bool        NET_CompareAdr( netadr_t a, netadr_t b )
 	return false;
 }
 
-bool        NET_IsLocalAddress( netadr_t adr )
+bool        NET_IsLocalAddress( const netadr_t& adr )
 {
 	return adr.type == netadrtype_t::NA_LOOPBACK;
 }
