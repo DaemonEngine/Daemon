@@ -833,13 +833,13 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 	// get lightmap
 	realLightmapNum = LittleLong( ds->lightmapNum );
 
-	if ( r_vertexLighting->integer || !r_precomputedLighting->integer )
+	if ( r_precomputedLighting->integer && ( !r_vertexLighting->integer || ( r_deluxeMapping->integer && tr.worldDeluxeMapping ) ) )
 	{
-		surf->lightmapNum = -1;
+		surf->lightmapNum = tr.fatLightmapSize ? 0 : realLightmapNum;
 	}
 	else
 	{
-		surf->lightmapNum = tr.fatLightmapSize ? 0 : realLightmapNum;
+		surf->lightmapNum = -1;
 	}
 
 	if ( tr.worldDeluxeMapping && surf->lightmapNum >= 2 )
@@ -1041,13 +1041,13 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	// get lightmap
 	realLightmapNum = LittleLong( ds->lightmapNum );
 
-	if ( r_vertexLighting->integer || !r_precomputedLighting->integer )
+	if ( r_precomputedLighting->integer && ( !r_vertexLighting->integer || ( r_deluxeMapping->integer && tr.worldDeluxeMapping ) ) )
 	{
-		surf->lightmapNum = -1;
+		surf->lightmapNum = tr.fatLightmapSize ? 0 : realLightmapNum;
 	}
 	else
 	{
-		surf->lightmapNum = tr.fatLightmapSize ? 0 : realLightmapNum;
+		surf->lightmapNum = -1;
 	}
 
 	if ( tr.worldDeluxeMapping && surf->lightmapNum >= 2 )
