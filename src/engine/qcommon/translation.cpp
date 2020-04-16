@@ -136,7 +136,7 @@ public:
 
 		for( int i = 0; i < numFiles; i++ )
 		{
-			ret.push_back( std::string( files[ i ] ) );
+			ret.emplace_back( files[ i ] );
 		}
 
 		FS_FreeFileList( files );
