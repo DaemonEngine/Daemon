@@ -1266,7 +1266,7 @@ player_state_t communication
 */
 
 // using the stringizing operator to save typing...
-#define PSF( x ) # x,int((size_t)&( (playerState_t*)0 )->x)
+#define PSF( x ) # x,(int((uintptr_t)&( (playerState_t*)0 )->x))
 
 static netField_t playerStateFields[] =
 {
