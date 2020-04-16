@@ -2033,7 +2033,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		{
 			buffptr++;
 
-			if ( buffend - buffptr < (int) (sizeof( addresses[ numservers ].ip ) + sizeof( addresses[ numservers ].port ) + 1) )
+			if ( buffend - buffptr < (ptrdiff_t) (sizeof( addresses[ numservers ].ip ) + sizeof( addresses[ numservers ].port ) + 1) )
 			{
 				break;
 			}
@@ -2098,7 +2098,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		{
 			buffptr++;
 
-			if ( buffend - buffptr < (int) (sizeof( addresses[ numservers ].ip6 ) + sizeof( addresses[ numservers ].port ) + 1) )
+			if ( buffend - buffptr < (ptrdiff_t) (sizeof( addresses[ numservers ].ip6 ) + sizeof( addresses[ numservers ].port ) + 1) )
 			{
 				break;
 			}
