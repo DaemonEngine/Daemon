@@ -673,7 +673,7 @@ when the cvar is set to something, the download server will effectively never us
 */
 static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, msg_t *msg )
 {
-	if ( !sv_wwwFallbackURL->string || !*sv_wwwFallbackURL->string )
+	if ( !sv_wwwFallbackURL->string || !sv_wwwFallbackURL->string[0] )
 	{
 		return false;
 	}
