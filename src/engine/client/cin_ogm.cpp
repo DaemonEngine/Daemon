@@ -204,7 +204,7 @@ static bool loadAudio()
 		if ( ( samples = vorbis_synthesis_pcmout( &g_ogm.vd, &pcm ) ) > 0 )
 		{
 			// vorbis -> raw
-            ptr = rawBuffer;
+			ptr = rawBuffer;
 			samplesNeeded = ( SIZEOF_RAWBUFF ) / ( 2 * 2 ); // (width*channel)
 
 			if ( samples < samplesNeeded )
