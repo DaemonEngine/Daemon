@@ -1447,7 +1447,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *
 	if ( !from )
 	{
 		from = &dummy;
-		memset( &dummy, 0, sizeof( dummy ) );
+		memset( from, 0, sizeof( *from ) );
 	}
 
 	if ( msg->bit == 0 )

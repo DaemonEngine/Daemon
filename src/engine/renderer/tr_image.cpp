@@ -2336,11 +2336,11 @@ static void R_CreateRandomNormalsImage()
 {
 	int  x, y;
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
+	// the default image will be a box, to allow you to see the mapping coordinates
+	Com_Memset(data, 32, sizeof(data));
+
 	byte *ptr = &data[0][0][0];
 	byte *dataPtr = &data[0][0][0];
-
-	// the default image will be a box, to allow you to see the mapping coordinates
-	Com_Memset( data, 32, sizeof( data ) );
 
 	for ( y = 0; y < DEFAULT_SIZE; y++ )
 	{
@@ -2370,10 +2370,11 @@ static void R_CreateRandomNormalsImage()
 static void R_CreateNoFalloffImage()
 {
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
+	// we use a solid white image instead of disabling texturing
+	Com_Memset(data, 255, sizeof(data));
+
 	byte *dataPtr = &data[0][0][0];
 
-	// we use a solid white image instead of disabling texturing
-	Com_Memset( data, 255, sizeof( data ) );
 	tr.noFalloffImage = R_CreateImage( "_noFalloff", ( const byte ** ) &dataPtr,
 					   8, 8, 1, IF_NOPICMIP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_EDGE_CLAMP );
 }
