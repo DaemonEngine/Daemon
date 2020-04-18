@@ -777,7 +777,6 @@ void RE_BeginFrame()
 		{
 			Log::Warn("not enough stencil bits to measure overdraw: %d", glConfig.stencilBits );
 			ri.Cvar_Set( "r_measureOverdraw", "0" );
-			r_measureOverdraw->modified = false;
 		}
 		else
 		{

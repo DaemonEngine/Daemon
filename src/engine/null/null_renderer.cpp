@@ -212,7 +212,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.RegisterModel = RE_RegisterModel;
     re.RegisterSkin = RE_RegisterSkin;
     re.RegisterShader = RE_RegisterShader;
-    re.RegisterShader = RE_RegisterShader;
     re.RegisterFont = RE_RegisterFont;
     re.Glyph = RE_Glyph;
     re.GlyphChar = RE_GlyphChar;

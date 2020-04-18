@@ -5360,8 +5360,6 @@ static void R_CreateVBOShadowMeshes( trRefLight_t *light )
 	{
 		iaCache = iaCachesSorted[ k ];
 
-		iaCache->mergedIntoVBO = true;
-
 		shader = iaCache->surface->shader;
 		alphaTest = shader->alphaTest;
 
