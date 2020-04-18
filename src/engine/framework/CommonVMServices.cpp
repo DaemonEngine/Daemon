@@ -193,7 +193,7 @@ namespace VM {
         IPC::HandleMsg<RegisterCvarMsg>(channel, std::move(reader), [this](std::string name, std::string description,
                 int flags, std::string defaultValue){
             // The registration of the cvar is made automatically when it is created
-            registeredCvars.emplace_back(new ProxyCvar(this, name, description, flags, defaultValue));
+            registeredCvars.emplace_back(Util::make_unique<ProxyCvar>(this, name, description, flags, defaultValue));
         });
     }
 
