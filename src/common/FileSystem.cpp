@@ -1152,7 +1152,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 	}
 
 	loadedPaks.emplace_back();
-	auto loadedPak = loadedPaks.back();
+	auto &loadedPak = loadedPaks.back();
 	loadedPak.name = pak.name;
 	loadedPak.version = pak.version;
 	loadedPak.checksum = pak.checksum;
