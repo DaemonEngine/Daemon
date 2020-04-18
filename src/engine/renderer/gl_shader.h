@@ -75,7 +75,7 @@ private:
 	GLShaderManager               *_shaderManager;
 
 public:
-	GLHeader() : _name(""), _text(""), _shaderManager(nullptr)
+	GLHeader() : _name(), _text(), _shaderManager(nullptr)
 	{}
 
 	GLHeader( const std::string &name, const std::string &text, GLShaderManager *manager ) :

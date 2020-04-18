@@ -1191,7 +1191,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_GETCLIPBOARDDATA:
 			IPC::HandleMsg<GetClipboardDataMsg>(channel, std::move(reader), [this] (int len, std::string& data) {
 				// TODO(slipher): Remove GetClipboardDataMsg.
-				data = "";
+				data.clear();
 			});
 			break;
 
