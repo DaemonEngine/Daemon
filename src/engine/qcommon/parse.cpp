@@ -1576,10 +1576,10 @@ static int Parse_StringizeTokens( token_t *tokens, token_t *token )
 
 	for ( t = tokens; t; t = t->next )
 	{
-		strncat( token->string, t->string, MAX_TOKEN_CHARS - strlen( token->string ) );
+		strncat( token->string, t->string, ARRAY_LEN(token->string) - strlen( token->string ) );
 	}
 
-	strncat( token->string, "\"", MAX_TOKEN_CHARS - strlen( token->string ) );
+	strncat( token->string, "\"", ARRAY_LEN(token->string) - strlen( token->string ) );
 	return true;
 }
 
