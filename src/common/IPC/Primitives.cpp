@@ -436,13 +436,14 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 
 		size_t i = handle_index++;
 		reader.GetHandles().emplace_back();
-		reader.GetHandles().back().handle = h[i];
-		reader.GetHandles().back().type = tag;
-		h[i] = NACL_INVALID_HANDLE;
+		auto& new_handle = reader.GetHandles().back();
+		new_handle.handle = h[i];
+		new_handle.type = tag;
 		if (tag == NACL_DESC_SHM)
-			reader.GetHandles().back().size = size;
+			new_handle.size = size;
 		else if (tag == NACL_DESC_HOST_IO)
-			reader.GetHandles().back().flags = flags;
+			new_handle.flags = flags;
+		h[i] = NACL_INVALID_HANDLE;
 	}
 
 	reader.GetData().insert(reader.GetData().end(), &desc_end[1], &desc_end[result]);
