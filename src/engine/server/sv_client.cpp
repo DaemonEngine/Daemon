@@ -42,7 +42,7 @@ Maryland 20850 USA.
 
 static void SV_CloseDownload( client_t *cl );
 
-void SV_GetChallenge( netadr_t from )
+void SV_GetChallenge( const netadr_t& from )
 {
 	if ( SV_Private(ServerPrivate::LanOnly) && !Sys_IsLANAddress(from) )
 	{
@@ -60,7 +60,7 @@ SV_DirectConnect
 A "connect" OOB command has been received
 ==================
 */
-void SV_DirectConnect( netadr_t from, const Cmd::Args& args )
+void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 {
 	if ( args.Argc() < 2 )
 	{
