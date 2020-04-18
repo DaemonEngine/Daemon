@@ -503,7 +503,7 @@ struct packetQueue_t
 
 packetQueue_t *packetQueue = nullptr;
 
-static void NET_QueuePacket( int length, const void *data, netadr_t to,
+static void NET_QueuePacket( int length, const void *data, const netadr_t& to,
                              int offset )
 {
 	packetQueue_t *newp, *next = packetQueue;

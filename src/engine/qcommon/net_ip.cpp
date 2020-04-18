@@ -839,7 +839,7 @@ static char socksBuf[ 4096 ];
 Sys_SendPacket
 ==================
 */
-void Sys_SendPacket( int length, const void *data, netadr_t to )
+void Sys_SendPacket( int length, const void *data, const netadr_t& to )
 {
 	int                     ret = SOCKET_ERROR;
 	struct sockaddr_storage addr;
@@ -928,11 +928,11 @@ Sys_IsLANAddress
 LAN clients will have their rate var ignored
 ==================
 */
-bool Sys_IsLANAddress( netadr_t adr )
+bool Sys_IsLANAddress( const netadr_t& adr )
 {
-	int      index, run, addrsize;
-	bool differed;
-	byte     *compareadr, *comparemask, *compareip;
+	int            index, run, addrsize;
+	bool           differed;
+	const byte     *compareadr, *comparemask, *compareip;
 
 	if ( adr.type == netadrtype_t::NA_LOOPBACK )
 	{
