@@ -421,7 +421,7 @@ clients along with it.
 This is NOT called for map_restart, UNLESS the number of client slots changed
 ================
 */
-void SV_SpawnServer(const std::string &pakname, const std::string &mapname)
+void SV_SpawnServer(std::string pakname, std::string mapname)
 {
 	int        i;
 	bool   isBot;
@@ -483,7 +483,7 @@ void SV_SpawnServer(const std::string &pakname, const std::string &mapname)
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
 	if (!FS_LoadPak(pakname.c_str()))
-		Sys::Drop("Could not load map pak\n");
+		Sys::Drop("Could not load map pak '%s'\n", pakname);
 
 	CM_LoadMap(mapname);
 
