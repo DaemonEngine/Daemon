@@ -5354,7 +5354,7 @@ static void R_CreateVBOShadowMeshes( trRefLight_t *light )
 
 	// create a VBO for each shader
 	shader = oldShader = nullptr;
-	oldAlphaTest = alphaTest = -1;
+	oldAlphaTest = alphaTest = true;
 
 	for ( k = 0; k < numCaches; k++ )
 	{
