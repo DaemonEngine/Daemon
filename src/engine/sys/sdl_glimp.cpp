@@ -1479,7 +1479,7 @@ void GLimp_HandleCvars()
 	{
 		bool    fullscreen;
 		bool    needToToggle = true;
-		int         sdlToggled = false;
+		int     sdlToggled = false;
 		fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
 
 		if ( r_fullscreen->integer && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
