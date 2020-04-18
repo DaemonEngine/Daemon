@@ -281,7 +281,7 @@ void Trans_LoadDefaultLanguage()
 		FL_FindLocale( &locale, FL_MESSAGES );
 
 		// Invalid or not found. Just use builtin language.
-		if( !locale->lang || !locale->lang[0] || !locale->country || !locale->country[0] )
+		if( !locale->lang || !locale->lang[0] )
 		{
 			Cvar_Set( "language", "en" );
 		}
