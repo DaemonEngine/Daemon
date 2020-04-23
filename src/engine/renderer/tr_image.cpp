@@ -1002,52 +1002,30 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 	}
 	else
 	{
-		int samples;
-
 		// scan the texture for each channel's max values
 		// and verify if the alpha channel is being used or not
+
 		c = image->width * image->height;
 		scan = dataArray[0];
 
-		samples = 3;
+		// lightmap does not have alpha channel
 
-		// Tr3B: normalmaps have the displacement maps in the alpha channel
-		// samples 3 would cause an opaque alpha channel and odd displacements!
-		if ( image->bits & IF_NORMALMAP )
-		{
-			if ( image->bits & ( IF_DISPLACEMAP | IF_ALPHATEST ) )
-			{
-				samples = 4;
-			}
-			else
-			{
-				samples = 3;
-			}
-		}
-		else if ( image->bits & IF_LIGHTMAP )
-		{
-			samples = 3;
-		}
-		else
+		// normalmap may have the heightmap in the alpha channel
+		// opaque alpha channel means no displacement, so we can enable
+		// alpha channel everytime it is used, even for normalmap
+
+		internalFormat = GL_RGB8;
+
+		if ( !( image->bits & IF_LIGHTMAP ) )
 		{
 			for ( i = 0; i < c; i++ )
 			{
 				if ( scan[ i * 4 + 3 ] != 255 )
 				{
-					samples = 4;
+					internalFormat = GL_RGBA8;
 					break;
 				}
 			}
-		}
-
-		// select proper internal format
-		if ( samples == 3 )
-		{
-			internalFormat = GL_RGB8;
-		}
-		else if ( samples == 4 )
-		{
-			internalFormat = GL_RGBA8;
 		}
 	}
 
@@ -1354,25 +1332,17 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips,
 		ri.Hunk_FreeTempMemory( scaledBuffer );
 	}
 
-	// detect heightmap in normalmap alpha channel and enable it
-	// if not already enabled by explicit shader keyword
-	if ( image->bits & IF_NORMALMAP )
+	switch ( image->internalFormat )
 	{
-		if ( ! ( image->bits & IF_DISPLACEMAP ) )
-		{
-			switch ( image->internalFormat )
-			{
-				case GL_RGBA:
-				case GL_RGBA8:
-				case GL_RGBA16:
-				case GL_RGBA16F:
-				case GL_RGBA32F:
-				case GL_RGBA32UI:
-				case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-				case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-					image->bits |= IF_DISPLACEMAP;
-			}
-		}
+		case GL_RGBA:
+		case GL_RGBA8:
+		case GL_RGBA16:
+		case GL_RGBA16F:
+		case GL_RGBA32F:
+		case GL_RGBA32UI:
+		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+			image->bits |= IF_ALPHA;
 	}
 
 	GL_Unbind( image );
@@ -1710,15 +1680,8 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 	char       filename[ MAX_QPATH ];
 	byte       alphaByte;
 
-	// Tr3B: clear alpha of normalmaps for displacement mapping
-	if ( *bits & IF_NORMALMAP )
-	{
-		alphaByte = 0x00;
-	}
-	else
-	{
-		alphaByte = 0xFF;
-	}
+	// missing alpha means fully opaque
+	alphaByte = 0xFF;
 
 	Q_strncpyz( filename, token, sizeof( filename ) );
 
@@ -2373,11 +2336,11 @@ static void R_CreateRandomNormalsImage()
 {
 	int  x, y;
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
+	// the default image will be a box, to allow you to see the mapping coordinates
+	Com_Memset(data, 32, sizeof(data));
+
 	byte *ptr = &data[0][0][0];
 	byte *dataPtr = &data[0][0][0];
-
-	// the default image will be a box, to allow you to see the mapping coordinates
-	Com_Memset( data, 32, sizeof( data ) );
 
 	for ( y = 0; y < DEFAULT_SIZE; y++ )
 	{
@@ -2407,10 +2370,11 @@ static void R_CreateRandomNormalsImage()
 static void R_CreateNoFalloffImage()
 {
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
+	// we use a solid white image instead of disabling texturing
+	Com_Memset(data, 255, sizeof(data));
+
 	byte *dataPtr = &data[0][0][0];
 
-	// we use a solid white image instead of disabling texturing
-	Com_Memset( data, 255, sizeof( data ) );
 	tr.noFalloffImage = R_CreateImage( "_noFalloff", ( const byte ** ) &dataPtr,
 					   8, 8, 1, IF_NOPICMIP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_EDGE_CLAMP );
 }
@@ -2837,7 +2801,7 @@ void R_CreateBuiltinImages()
 	tr.blueImage = R_CreateImage( "_blue", ( const byte ** ) &dataPtr,
 				      8, 8, 1, IF_NOPICMIP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_REPEAT );
 
-	// generate a default normalmap with a zero heightmap
+	// generate a default normalmap with a fully opaque heightmap (no displacement)
 	for ( x = DEFAULT_SIZE * DEFAULT_SIZE, out = &data[0][0][0]; x; --x, out += 4 )
 	{
 		out[ 0 ] = out[ 1 ] = 128;
@@ -2993,6 +2957,7 @@ void RE_GetTextureSize( int textureID, int *width, int *height )
 	}
 }
 
+// This code is used to upload images produced by the game (like GUI elements produced by libRocket in Unvanquished)
 int numTextures = 0;
 
 qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )

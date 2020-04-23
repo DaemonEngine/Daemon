@@ -46,6 +46,8 @@ namespace Cvar {
         TEMPORARY  = BIT(8), // The cvar is temporary and is not to be archived (overrides archive flags)
         CHEAT      = BIT(9), // The cvar is a cheat and should stay at its default value on pure servers.
         USER_ARCHIVE = BIT(14), // The cvar is saved to the configuration file at user request
+        LATCH      = BIT(15), // The cvar's value can be changed only after a cgame restart.
+                              // Different value from CVAR_LATCH since a separate implementation is used.
     };
 
     // Internal to the Cvar system
@@ -281,9 +283,11 @@ namespace Cvar {
 
     template<typename T>
     OnValueChangedResult Cvar<T>::OnValueChanged(Str::StringRef text) {
-        if (Parse(text, value)) {
-            OnValueChangedResult validationResult = Validate(value);
+        T newValue;
+        if (Parse(text, newValue)) {
+            OnValueChangedResult validationResult = Validate(newValue);
             if (validationResult.success) {
+                value = std::move(newValue);
                 return OnValueChangedResult{true, GetDescription()};
             } else {
                 return validationResult;

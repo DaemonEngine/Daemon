@@ -43,6 +43,7 @@ Maryland 20850 USA.
 #include "CryptoChallenge.h"
 #include "common/Defs.h"
 #include "qcommon/sys.h"
+#include "botlib/bot_api.h"
 
 /*
 ===============
@@ -420,7 +421,7 @@ clients along with it.
 This is NOT called for map_restart, UNLESS the number of client slots changed
 ================
 */
-void SV_SpawnServer(const std::string pakname, const std::string mapname)
+void SV_SpawnServer(std::string pakname, std::string mapname)
 {
 	int        i;
 	bool   isBot;
@@ -482,7 +483,7 @@ void SV_SpawnServer(const std::string pakname, const std::string mapname)
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
 	if (!FS_LoadPak(pakname.c_str()))
-		Sys::Drop("Could not load map pak\n");
+		Sys::Drop("Could not load map pak '%s'\n", pakname);
 
 	CM_LoadMap(mapname);
 
@@ -603,6 +604,7 @@ Only called at main exe startup, not for each game
 void SV_Init()
 {
 	SV_AddOperatorCommands();
+	BotInit();
 
 	// serverinfo vars
 	Cvar_Get( "timelimit", "0", CVAR_SERVERINFO );
@@ -610,7 +612,7 @@ void SV_Init()
 	Cvar_Get( "protocol", va( "%i", PROTOCOL_VERSION ), CVAR_SERVERINFO  );
 	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
 	Cvar_Get( "pakname", "", CVAR_SERVERINFO | CVAR_ROM );
-	Cvar_Get( "layout", "", CVAR_SERVERINFO | CVAR_ROM );
+	Cvar_Get( "layout", "", CVAR_SERVERINFO );
 	Cvar_Get( "g_layouts", "", 0 ); // FIXME
 	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );  // NERVE - SMF - changed to 20 from 8

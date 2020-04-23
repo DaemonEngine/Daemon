@@ -48,7 +48,7 @@ void	main()
 #endif
 
 #if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
-	float depth = texture2D(u_DepthMap, gl_FragCoord.xy * r_FBufScale).x;
+	float depth = texture2D(u_DepthMap, gl_FragCoord.xy / r_FBufSize).x;
 	float fadeDepth = 0.5 * var_FadeDepth.x / var_FadeDepth.y + 0.5;
 	color.a *= smoothstep(gl_FragCoord.z, fadeDepth, depth);
 #endif

@@ -338,7 +338,9 @@ enum class filesystem_error {
 	no_such_file,
 	no_such_directory,
 	wrong_pak_checksum,
-	missing_dependency
+	missing_dependency,
+	handle_exhaustion,
+	io_error,
 };
 class filesystem_category_impl: public std::error_category
 {
@@ -360,6 +362,10 @@ public:
 			return "Pak checksum incorrect";
 		case filesystem_error::missing_dependency:
 			return "Missing dependency";
+		case filesystem_error::io_error:
+			return "I/O error";
+		case filesystem_error::handle_exhaustion:
+			return "No file handles available";
 		default:
 			return "Unknown error";
 		}
@@ -654,57 +660,6 @@ void File::SetLineBuffered(bool enable, std::error_code& err) const
 		ClearErrorCode(err);
 }
 
-#ifdef BUILD_VM
-// Convert an IPC file handle to a File object
-static File FileFromIPC(Util::optional<IPC::OwnedFileHandle> ipcFile, openMode_t mode, std::error_code& err)
-{
-	if (!ipcFile) {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
-		return File();
-	}
-
-	int fd = ipcFile->GetHandle();
-
-	const char* modes[] = {"rb", "wb", "ab", "rb+"};
-	FILE* fp = fdopen(fd, modes[Util::ordinal(mode)]);
-	if (!fp) {
-		close(fd);
-		SetErrorCodeSystem(err);
-		return File();
-	}
-
-	return File(fp);
-}
-#endif
-
-#ifdef BUILD_ENGINE
-// Convert a File object to an ipc file handle
-static IPC::OwnedFileHandle FileToIPC(File file, openMode_t mode)
-{
-	IPC::FileOpenMode ipcMode;
-	switch (mode) {
-	default:
-    case openMode_t::MODE_READ:
-		ipcMode = IPC::FileOpenMode::MODE_READ;
-		break;
-	case openMode_t::MODE_WRITE:
-		ipcMode = IPC::FileOpenMode::MODE_WRITE;
-		break;
-	case openMode_t::MODE_APPEND:
-		ipcMode = IPC::FileOpenMode::MODE_WRITE_APPEND;
-		break;
-	case openMode_t::MODE_EDIT:
-		ipcMode = IPC::FileOpenMode::MODE_RW;
-		break;
-	}
-
-	int newfd = dup(fileno(file.GetHandle()));
-	if (newfd == -1)
-		return IPC::OwnedFileHandle();
-	return IPC::OwnedFileHandle(newfd, ipcMode);
-}
-#endif
-
 // Workaround for GCC 4.7.2 bug: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=55015
 namespace {
 
@@ -923,6 +878,7 @@ public:
 		int maxDepth = 0; // TODO(slipher): Stop building unzip code in the gamelogic.
 #endif
 		std::string resolvedName;
+		std::error_code ignored;
 		for (;;) {
 			OpenFile(offset, err);
 			if (err)
@@ -930,6 +886,7 @@ public:
 			unz_file_info64 fileInfo;
 			int result = unzGetCurrentFileInfo64(zipFile, &fileInfo, nullptr, 0, nullptr, 0, nullptr, 0);
 			if (result != UNZ_OK) {
+				CloseFile(ignored);
 				SetErrorCodeZlib(err, result);
 				return 0;
 			}
@@ -950,7 +907,7 @@ public:
 			char link[MAX_FILENAME_BUF];
 			size_t linkLength = ReadFile(&link, sizeof(link) - 1, err);
 			if (err) {
-				// If there was a read error, are we still supposed to close the file? Oh well.
+				CloseFile(ignored);
 				return 0;
 			}
 			CloseFile(err);
@@ -1195,15 +1152,16 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 	}
 
 	loadedPaks.emplace_back();
-	loadedPaks.back().name = pak.name;
-	loadedPaks.back().version = pak.version;
-	loadedPaks.back().checksum = pak.checksum;
-	loadedPaks.back().type = pak.type;
-	loadedPaks.back().path = pak.path;
+	auto &loadedPak = loadedPaks.back();
+	loadedPak.name = pak.name;
+	loadedPak.version = pak.version;
+	loadedPak.checksum = pak.checksum;
+	loadedPak.type = pak.type;
+	loadedPak.path = pak.path;
 
 	// Update the list of files, but don't overwrite existing files, so the sort order is preserved
 	if (pak.type == pakType_t::PAK_DIR) {
-		loadedPaks.back().fd = -1;
+		loadedPak.fd = -1;
 		auto dirRange = RawPath::ListFilesRecursive(pak.path, err);
 		if (err)
 			return;
@@ -1219,14 +1177,14 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 		}
 	} else if (pak.type == pakType_t::PAK_ZIP) {
 		// Open file
-		loadedPaks.back().fd = my_open(pak.path, openMode_t::MODE_READ);
-		if (loadedPaks.back().fd == -1) {
+		loadedPak.fd = my_open(pak.path, openMode_t::MODE_READ);
+		if (loadedPak.fd == -1) {
 			SetErrorCodeSystem(err);
 			return;
 		}
 
 		// Open zip
-		zipFile = ZipArchive::Open(loadedPaks.back().fd, err);
+		zipFile = ZipArchive::Open(loadedPak.fd, err);
 		if (err)
 			return;
 
@@ -1262,19 +1220,19 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 	}
 
 	// Save the real checksum in the list of loaded paks (empty for directories, not used for legacy paks)
-	loadedPaks.back().realChecksum = realChecksum;
+	loadedPak.realChecksum = realChecksum;
 
 	// Get the timestamp of the pak, but only for dpk files. 
 	// Directories (aka a dpkdir) don't need timestamp.
 	// Fixes Windows bug where calling _wstat64i with trailing slash causes "file not found" error.
 	// For future stat calls on directories, trim the trailing slash (if exists)
 	if (pak.type == pakType_t::PAK_ZIP) {
-		loadedPaks.back().timestamp = FS::RawPath::FileTimestamp(pak.path, err);
+		loadedPak.timestamp = FS::RawPath::FileTimestamp(pak.path, err);
 		if (err)
 			return;
 	}
 
-	loadedPaks.back().pathPrefix = pathPrefix;
+	loadedPak.pathPrefix = pathPrefix;
 
 	// Legacy paks don't have version neither checksum
 	if (!isLegacy) {
@@ -1367,6 +1325,32 @@ const std::vector<LoadedPakInfo>& GetLoadedPaks()
 	return loadedPaks;
 }
 
+#ifdef BUILD_VM
+std::string ReadFile(Str::StringRef path, std::error_code& err) {
+	if (!PakPath::FileExists(path)) {
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		return "";
+	}
+	int length, h;
+	const int mode = 0; // fsMode_t::FS_READ
+	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, mode, length, h);
+	if (!h) {
+		SetErrorCodeFilesystem(err, filesystem_error::handle_exhaustion);
+		return "";
+	}
+	std::string content;
+	int lengthRead;
+	VM::SendMsg<VM::FSReadMsg>(h, length, content, lengthRead);
+	if (lengthRead != length) {
+		SetErrorCodeFilesystem(err, filesystem_error::io_error);
+		return "";
+	}
+	ClearErrorCode(err);
+	return content;
+}
+#endif
+
+#ifdef BUILD_ENGINE
 std::string ReadFile(Str::StringRef path, std::error_code& err)
 {
 	auto it = fileMap.find(path);
@@ -1378,13 +1362,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
 	if (pak.type == pakType_t::PAK_DIR) {
 		// Open file
-#ifdef BUILD_VM
-		Util::optional<IPC::OwnedFileHandle> handle;
-		VM::SendMsg<VM::FSPakPathOpenMsg>(it->second.first, path, handle);
-		File file = FileFromIPC(std::move(handle), openMode_t::MODE_READ, err);
-#else
 		File file = RawPath::OpenRead(Path::Build(pak.path, path), err);
-#endif
 		if (err)
 			return "";
 
@@ -1438,13 +1416,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
 	if (pak.type == pakType_t::PAK_DIR) {
-#ifdef BUILD_VM
-		Util::optional<IPC::OwnedFileHandle> handle;
-		VM::SendMsg<VM::FSPakPathOpenMsg>(it->second.first, path, handle);
-		File file = FileFromIPC(std::move(handle), openMode_t::MODE_READ, err);
-#else
 		File file = RawPath::OpenRead(Path::Build(pak.path, path), err);
-#endif
 		if (err)
 			return;
 		file.CopyTo(dest, err);
@@ -1463,13 +1435,21 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 		char buffer[65536];
 		while (true) {
 			offset_t read = zipFile.ReadFile(buffer, sizeof(buffer), err);
-			if (err)
+			if (err) {
+				std::error_code ignored;
+				// TODO: Support closing on exceptions.
+				zipFile.CloseFile(ignored);
 				return;
+			}
 			if (read == 0)
 				break;
 			dest.Write(buffer, read, err);
-			if (err)
+			if (err) {
+				std::error_code ignored;
+				// TODO: Support closing on exceptions.
+				zipFile.CloseFile(ignored);
 				return;
+			}
 		}
 
 		// Close file and check for CRC errors
@@ -1478,6 +1458,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 		ASSERT_UNREACHABLE();
 	}
 }
+#endif //BUILD_ENGINE
 
 bool FileExists(Str::StringRef path)
 {
@@ -1593,7 +1574,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 		if (!allowSubdirs)
 			return {};
 		prefixDir = prefix;
-		prefixBase = "";
+		prefixBase.clear();
 	} else {
 		prefixDir = Path::DirName(prefix);
 		if (!allowSubdirs && !prefixDir.empty())
@@ -1931,22 +1912,14 @@ RecursiveDirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code&
 
 namespace HomePath {
 
+#ifdef BUILD_ENGINE
 static File OpenMode(Str::StringRef path, openMode_t mode, std::error_code& err)
 {
-#ifdef BUILD_VM
-	Util::optional<IPC::OwnedFileHandle> handle;
-	VM::SendMsg<VM::FSHomePathOpenModeMsg>(path, Util::ordinal(mode), handle);
-	File file = FileFromIPC(std::move(handle), mode, err);
-	if (err)
-		return {};
-	return file;
-#else
 	if (!Path::IsValid(path, false)) {
 		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
 		return {};
 	}
 	return RawPath::OpenMode(Path::Build(homePath, path), mode, err);
-#endif
 }
 File OpenRead(Str::StringRef path, std::error_code& err)
 {
@@ -1964,6 +1937,7 @@ File OpenEdit(Str::StringRef path, std::error_code& err)
 {
 	return OpenMode(path, openMode_t::MODE_EDIT, err);
 }
+#endif //BUILD_ENGINE
 
 bool FileExists(Str::StringRef path)
 {
@@ -2085,7 +2059,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 		if (!allowSubdirs)
 			return {};
 		prefixDir = prefix;
-		prefixBase = "";
+		prefixBase.clear();
 	} else {
 		prefixDir = Path::DirName(prefix);
 		if (!allowSubdirs && !prefixDir.empty())
@@ -2528,14 +2502,14 @@ bool ParsePakName(const char* begin, const char* end, std::string& name, std::st
 		name.assign(begin, end - strlen(FS::LEGACY_PAK_ZIP_EXT));
 		// prefer versioned dpk over legacy pk3 if pak name collides, uses the smallest version string available
 		// this version can't be found in standard dpk, so we can also uses this value to test later if it's a legacy pk3
-		version = "";
+		version.clear();
 		// legacy paks can't have checksum
 		checksum = Util::nullopt;
 		return true;
 	} else if (Str::IsSuffix(LEGACY_PAK_DIR_EXT, begin)) {
 		name.assign(begin, end - strlen(FS::LEGACY_PAK_DIR_EXT));
 		// empty version string for legacy pak, see above for explanations
-		version = "";
+		version.clear();
 		// dir can't have checksum
 		checksum = Util::nullopt;
 		return true;
@@ -2670,11 +2644,8 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 		break;
 
 	case VM::FS_HOMEPATH_OPENMODE:
-		IPC::HandleMsg<VM::FSHomePathOpenModeMsg>(channel, std::move(reader), [](std::string path, uint32_t mode, Util::optional<IPC::OwnedFileHandle>& out) {
-			std::error_code err;
-			FS::File file = HomePath::OpenMode(Path::Build("game", path), static_cast<openMode_t>(mode), err);
-			if (!err)
-				out = FileToIPC(std::move(file), static_cast<openMode_t>(mode));
+		IPC::HandleMsg<VM::FSHomePathOpenModeMsg>(channel, std::move(reader), [](std::string, uint32_t) {
+			Sys::Drop("FSHomePathOpenModeMsg not implemented");
 		});
 		break;
 
@@ -2732,18 +2703,8 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 		break;
 
 	case VM::FS_PAKPATH_OPEN:
-		IPC::HandleMsg<VM::FSPakPathOpenMsg>(channel, std::move(reader), [](uint32_t pakIndex, std::string path, Util::optional<IPC::OwnedFileHandle>& out) {
-			auto& loadedPaks = FS::PakPath::GetLoadedPaks();
-			if (loadedPaks.size() <= pakIndex)
-				return;
-			if (loadedPaks[pakIndex].type == pakType_t::PAK_ZIP)
-				return;
-			if (!Path::IsValid(path, false))
-				return;
-			std::error_code err;
-			FS::File file = RawPath::OpenRead(Path::Build(loadedPaks[pakIndex].path, path), err);
-			if (!err)
-				out = FileToIPC(std::move(file), openMode_t::MODE_READ);
+		IPC::HandleMsg<VM::FSPakPathOpenMsg>(channel, std::move(reader), [](uint32_t, std::string) {
+			Sys::Drop("FSPakPathOpenMsg not implemented");
 		});
 		break;
 

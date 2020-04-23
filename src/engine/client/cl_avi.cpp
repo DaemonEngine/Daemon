@@ -562,7 +562,7 @@ bool CL_CloseAVI()
 	// Write index
 
 	// Open the temp index file
-	if ( ( indexSize = FS_FOpenFileRead( idxFileName, &afd.idxF, true ) ) <= 0 )
+	if ( ( indexSize = FS_FOpenFileRead( idxFileName, &afd.idxF ) ) <= 0 )
 	{
 		FS_FCloseFile( afd.f );
 		return false;

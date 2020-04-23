@@ -219,14 +219,14 @@ namespace VM {
 
     enum EngineFileSystemMessages {
         FS_INITIALIZE,
-        FS_HOMEPATH_OPENMODE,
+        FS_HOMEPATH_OPENMODE, // TODO(0.52) remove
         FS_HOMEPATH_FILEEXISTS,
         FS_HOMEPATH_TIMESTAMP,
         FS_HOMEPATH_MOVEFILE,
         FS_HOMEPATH_DELETEFILE,
         FS_HOMEPATH_LISTFILES,
         FS_HOMEPATH_LISTFILESRECURSIVE,
-        FS_PAKPATH_OPEN,
+        FS_PAKPATH_OPEN, // TODO(0.52) remove
         FS_PAKPATH_TIMESTAMP,
         FS_PAKPATH_LOADPAK
     };
@@ -237,7 +237,7 @@ namespace VM {
     >;
     using FSHomePathOpenModeMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_OPENMODE>, std::string, uint32_t>,
-        IPC::Reply<Util::optional<IPC::OwnedFileHandle>>
+        IPC::Reply<>
     >;
     using FSHomePathFileExistsMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_FILEEXISTS>, std::string>,
@@ -265,7 +265,7 @@ namespace VM {
     >;
     using FSPakPathOpenMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_OPEN>, uint32_t, std::string>,
-        IPC::Reply<Util::optional<IPC::OwnedFileHandle>>
+        IPC::Reply<>
     >;
     using FSPakPathTimestampMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_TIMESTAMP>, uint32_t, std::string>,

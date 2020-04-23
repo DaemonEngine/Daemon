@@ -683,7 +683,7 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 	{
 		uint32_t bit = BIT( i );
 		uint32_t frame = 0;
-		uint32_t base = 0;
+		uintptr_t base = 0;
 
 		if( glState.currentVBO == tess.vbo ) {
 			base = tess.vertexBase * sizeof( shaderVertex_t );
@@ -828,6 +828,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	shader_t      *shader, *oldShader;
 	int           lightmapNum, oldLightmapNum;
 	int           fogNum, oldFogNum;
+	bool          bspSurface;
 	bool      depthRange, oldDepthRange;
 	int           i;
 	drawSurf_t    *drawSurf;
@@ -854,6 +855,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		shader = drawSurf->shader;
 		lightmapNum = drawSurf->lightmapNum();
 		fogNum = drawSurf->fogNum();
+		bspSurface = drawSurf->bspSurface;
 
 		if( entity == &tr.worldEntity ) {
 			if( !( drawSurfFilter & DRAWSURFACES_WORLD ) )
@@ -888,7 +890,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				Tess_End();
 			}
 
-			Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, false, lightmapNum, fogNum );
+			Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, false, lightmapNum, fogNum, bspSurface );
 
 			oldShader = shader;
 			oldLightmapNum = lightmapNum;
@@ -4716,14 +4718,17 @@ static void RB_RenderView( bool depthPass )
 
 	if ( backEnd.viewParms.portalLevel > 0 )
 	{
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
+		if ( r_liquidMapping->integer )
 		{
 			// capture current color buffer
+			// liquid shader will then bind tr.portalRenderImage
+			// as u_PortalMap to be read by liquid glsl
+			// FIXME: it does not work
 			GL_SelectTexture( 0 );
 			GL_Bind( tr.portalRenderImage );
 			glCopyTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 0, 0, tr.portalRenderImage->uploadWidth, tr.portalRenderImage->uploadHeight );
 		}
-#endif
+
 		backEnd.pc.c_portals++;
 	}
 

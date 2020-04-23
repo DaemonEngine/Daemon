@@ -183,7 +183,6 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t 
 
 	VectorCopy( color, f->color );
 
-	d2 = 0.0;
 	d2 = -eye[ 2 ];
 
 	if ( d2 > distBias )

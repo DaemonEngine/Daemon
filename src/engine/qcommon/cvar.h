@@ -58,18 +58,6 @@ struct cvar_t
 	int modificationCount; // incremented each time the cvar is changed
 	float value; // atof( string )
 	int integer; // atoi( string )
-
-    int index; //for vmCvar_t
-
-	/**
-	 * indicate whether the cvar won't be archived, even if it's an ARCHIVE flagged cvar.
-	 * this allows us to keep ARCHIVE cvars unwritten to autogen until a user changes them
-	 */
-	bool transient;
-
-	cvar_t *next;
-
-	cvar_t *hashNext;
 };
 
 /**

@@ -3628,7 +3628,7 @@ static void R_LoadShaders( lump_t *l )
 
 	for ( i = 0; i < count; i++ )
 	{
-		Log::Debug("shader: '%s'", out[ i ].shader );
+		Log::Debug("loading shader: '%s'", out[ i ].shader );
 
 		out[ i ].surfaceFlags = LittleLong( out[ i ].surfaceFlags );
 		out[ i ].contentFlags = LittleLong( out[ i ].contentFlags );
@@ -3947,14 +3947,14 @@ void R_LoadLightGrid( lump_t *l )
 		gridPoint2 = (bspGridPoint2_t *) (gridPoint1 + w->numLightGridPoints);
 
 		// default some white light from above
-		gridPoint1->ambient[ 0 ] = 32;
-		gridPoint1->ambient[ 1 ] = 32;
-		gridPoint1->ambient[ 2 ] = 32;
-		gridPoint2->directed[ 0 ] = 96;
-		gridPoint2->directed[ 1 ] = 96;
-		gridPoint2->directed[ 2 ] = 96;
-		gridPoint1->lightVecX = 128;
-		gridPoint2->lightVecY = 128;
+		gridPoint1->color[ 0 ] = 64;
+		gridPoint1->color[ 1 ] = 64;
+		gridPoint1->color[ 2 ] = 64;
+		gridPoint1->ambientPart = 128;
+		gridPoint2->direction[ 0 ] = floatToSnorm8(0.0f);
+		gridPoint2->direction[ 1 ] = floatToSnorm8(0.0f);
+		gridPoint2->direction[ 2 ] = floatToSnorm8(1.0f);
+		gridPoint2->unused = 0;
 
 		w->lightGridData1 = gridPoint1;
 		w->lightGridData2 = gridPoint2;
@@ -4029,52 +4029,15 @@ void R_LoadLightGrid( lump_t *l )
 		direction[ 2 ] = cos( lng );
 
 		// Pack data into an bspGridPoint
-		gridPoint1->ambient[ 0 ] = floatToUnorm8( ambientColor[ 0 ] );
-		gridPoint1->ambient[ 1 ] = floatToUnorm8( ambientColor[ 1 ] );
-		gridPoint1->ambient[ 2 ] = floatToUnorm8( ambientColor[ 2 ] );
-		gridPoint2->directed[ 0 ] = floatToUnorm8( directedColor[ 0 ] );
-		gridPoint2->directed[ 1 ] = floatToUnorm8( directedColor[ 1 ] );
-		gridPoint2->directed[ 2 ] = floatToUnorm8( directedColor[ 2 ] );
+		gridPoint1->color[ 0 ] = floatToUnorm8( 0.5f * (ambientColor[ 0 ] + directedColor[ 0 ]) );
+		gridPoint1->color[ 1 ] = floatToUnorm8( 0.5f * (ambientColor[ 1 ] + directedColor[ 1 ]) );
+		gridPoint1->color[ 2 ] = floatToUnorm8( 0.5f * (ambientColor[ 2 ] + directedColor[ 2 ]) );
+		gridPoint1->ambientPart = floatToUnorm8( VectorLength(ambientColor) / (VectorLength(ambientColor) + VectorLength(directedColor)) );
 
-		// Light direction vectors have to be stored in two bytes:
-		// First the vector is projected onto a unit octahedron, that means |x| + |y| + |z| = 1,
-		// then it is projected onto the x/y plane. The magnitude of z can be reconstructed by
-		// the above identity, but not the sign.
-		// Fortunately the identity implies |x| + |y| <= 1, so all vectors fall within a diamond
-		// shape within the unit square that covers exactly half of the area:
-		//
-		//           +-----+-----+
-		//           |    /|\    |
-		//           |   /#|#\   |
-		//           |  /##|##\  |
-		//           | /###|###\ |
-		//           |/####|####\|
-		//           +-----+-----+
-		//           |\####|####/|
-		//           | \###|###/ |
-		//           |  \##|##/  |
-		//           |   \#|#/   |
-		//           |    \|/    |
-		//           +-----+-----+
-		//
-		// If z >= 0, we keep just the x,y coordinates in the diamond, otherwise the point
-		// is flipped across the nearest diamond edge into one of the outer triangles.
-
-		// The interpolation in this format behaves quite good except when interpolating
-		// two points that are in different outer triangles.
-
-		scale = fabsf( direction[ 0 ] ) + fabsf( direction[ 1 ] ) + fabsf( direction[ 2 ] );
-		if( scale > 0.0f ) {
-			VectorScale( direction, 1.0f / scale, direction );
-			if( direction[ 2 ] < 0.0f ) {
-				float X = direction[ 0 ];
-				float Y = direction[ 1 ];
-				direction[ 0 ] = copysignf( 1.0f - fabs( Y ), X );
-				direction[ 1 ] = copysignf( 1.0f - fabs( X ), Y );
-			}
-		}
-		gridPoint1->lightVecX = 128 + floatToSnorm8( direction[ 0 ] );
-		gridPoint2->lightVecY = 128 + floatToSnorm8( direction[ 1 ] );
+		gridPoint2->direction[0] = 128 + floatToSnorm8( direction[ 0 ] );
+		gridPoint2->direction[1] = 128 + floatToSnorm8( direction[ 1 ] );
+		gridPoint2->direction[2] = 128 + floatToSnorm8( direction[ 2 ] );
+		gridPoint2->unused = 0;
 	}
 
 	// fill in gridpoints with zero light (samples in walls) to avoid
@@ -4095,9 +4058,9 @@ void R_LoadLightGrid( lump_t *l )
 				from[ 0 ] = i - 1;
 				to[ 0 ] = i + 1;
 
-				if( gridPoint1->ambient[ 0 ] ||
-				    gridPoint1->ambient[ 1 ] ||
-				    gridPoint1->ambient[ 2 ] )
+				if( gridPoint1->color[ 0 ] ||
+				    gridPoint1->color[ 1 ] ||
+				    gridPoint1->color[ 2 ] )
 					continue;
 
 				scale = R_InterpolateLightGrid( w, from, to, factors,
@@ -4110,14 +4073,16 @@ void R_LoadLightGrid( lump_t *l )
 					VectorScale( directedColor, scale, directedColor );
 					VectorScale( direction, scale, direction );
 
-					gridPoint1->ambient[ 0 ] = floatToUnorm8( ambientColor[ 0 ] );
-					gridPoint1->ambient[ 1 ] = floatToUnorm8( ambientColor[ 1 ] );
-					gridPoint1->ambient[ 2 ] = floatToUnorm8( ambientColor[ 2 ] );
-					gridPoint1->lightVecX = 128 + floatToSnorm8( direction[ 0 ] );
-					gridPoint2->directed[ 0 ] = floatToUnorm8( directedColor[ 0 ] );
-					gridPoint2->directed[ 1 ] = floatToUnorm8( directedColor[ 1 ] );
-					gridPoint2->directed[ 2 ] = floatToUnorm8( directedColor[ 2 ] );
-					gridPoint2->lightVecY = 128 + floatToSnorm8( direction[ 1 ] );
+
+					gridPoint1->color[0] = floatToUnorm8(0.5f * (ambientColor[0] + directedColor[0]));
+					gridPoint1->color[1] = floatToUnorm8(0.5f * (ambientColor[1] + directedColor[1]));
+					gridPoint1->color[2] = floatToUnorm8(0.5f * (ambientColor[2] + directedColor[2]));
+					gridPoint1->ambientPart = floatToUnorm8(VectorLength(ambientColor) / (VectorLength(ambientColor) + VectorLength(directedColor)));
+
+					gridPoint2->direction[0] = 128 + floatToSnorm8(direction[0]);
+					gridPoint2->direction[1] = 128 + floatToSnorm8(direction[1]);
+					gridPoint2->direction[2] = 128 + floatToSnorm8(direction[2]);
+					gridPoint2->unused = 0;
 				}
 			}
 		}
@@ -5389,13 +5354,11 @@ static void R_CreateVBOShadowMeshes( trRefLight_t *light )
 
 	// create a VBO for each shader
 	shader = oldShader = nullptr;
-	oldAlphaTest = alphaTest = -1;
+	oldAlphaTest = alphaTest = true;
 
 	for ( k = 0; k < numCaches; k++ )
 	{
 		iaCache = iaCachesSorted[ k ];
-
-		iaCache->mergedIntoVBO = true;
 
 		shader = iaCache->surface->shader;
 		alphaTest = shader->alphaTest;

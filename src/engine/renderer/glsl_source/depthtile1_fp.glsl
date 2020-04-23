@@ -39,7 +39,7 @@ IN(flat) vec3 unprojectionParams;
 
 uniform vec3 u_zFar;
 
-const vec2 pixelScale = r_FBufScale;
+const vec2 pixelScale = 1 / r_FBufSize;
 
 DECLARE_OUTPUT(vec4)
 

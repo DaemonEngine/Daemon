@@ -149,7 +149,7 @@ void Con_Dump_f()
 	}
 
 	std::string name = "condump/";
-	if ( argc == 1 )
+	if ( argc == 2 )
 	{
 		name += Cmd_Argv( 1 );
 	}

@@ -21,41 +21,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // reliefMapping_fp.glsl - Relief mapping helper functions
 
-#if defined(r_normalMapping) || defined(USE_PARALLAX_MAPPING)
+#if defined(r_normalMapping) || defined(USE_HEIGHTMAP_IN_NORMALMAP)
 uniform sampler2D	u_NormalMap;
-uniform int u_HeightMapInNormalMap;
-#endif // r_normalMapping || USE_PARALLAX_MAPPING
+#endif // r_normalMapping || USE_HEIGHTMAP_IN_NORMALMAP
+
+#if defined(r_normalMapping)
+uniform vec3        u_NormalScale;
+#endif // r_normalMapping
 
 #if defined(USE_PARALLAX_MAPPING)
+#if !defined(USE_HEIGHTMAP_IN_NORMALMAP)
+uniform sampler2D	u_HeightMap;
+#endif // !USE_HEIGHTMAP_IN_NORMALMAP
 uniform float       u_ParallaxDepthScale;
 uniform float       u_ParallaxOffsetBias;
 #endif // USE_PARALLAX_MAPPING
-
-#if defined(r_normalMapping)
-uniform vec3 u_NormalFormat;
-
-vec3 normalFlip(vec3 normal)
-{
-	// undefined (zero) means default means 1.0 means do nothing
-
-	if (u_NormalFormat.x < 0.0)
-	{
-		normal.x *= -1.0;
-	}
-
-	if (u_NormalFormat.y < 0.0)
-	{
-		normal.y *= -1.0;
-	}
-
-	if (u_NormalFormat.z < 0.0)
-	{
-		normal.z *= -1.0;
-	}
-
-	return normal;
-}
-#endif // r_normalMapping
 
 // compute normal in tangent space
 vec3 NormalInTangentSpace(vec2 texNormal)
@@ -63,37 +43,60 @@ vec3 NormalInTangentSpace(vec2 texNormal)
 	vec3 normal;
 
 #if defined(r_normalMapping)
-	if (u_HeightMapInNormalMap == 0)
+#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+	// alpha channel contains the height map so do not try to reconstruct normal map from it
+	normal = texture2D(u_NormalMap, texNormal).rgb;
+	normal = 2.0 * normal - 1.0;
+#else // !USE_HEIGHTMAP_IN_NORMALMAP
+	// the Capcom trick abusing alpha channel of DXT1/5 formats to encode normal map
+	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
+	//
+	// the algorithm also works with normal maps in rgb format without alpha channel
+	// but we still must be sure there is no height map in alpha channel hence the test
+	//
+	// crunch -dxn seems to produce such files, since alpha channel is abused such format
+	// is unsuitable to embed height map, then height map must be distributed as loose file
+	normal = texture2D(u_NormalMap, texNormal).rga;
+	normal.x *= normal.z;
+	normal.xy = 2.0 * normal.xy - 1.0;
+	// In a perfect world this code must be enough:
+	// normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+	//
+	// Unvanquished texture known to trigger black normalmap artifacts
+	// when doing Z reconstruction:
+	//   textures/shared_pk02_src/rock01_n
+	//
+	// Although the normal vector is supposed to have a length of 1,
+	// dot(normal.xy, normal.xy) may be greater than 1 due to compression
+	// artifacts: values as large as 1.27 have been observed with crunch -dxn.
+	// https://github.com/DaemonEngine/Daemon/pull/260#issuecomment-571010935
+	//
+	// This might happen with other formats too. So we must take care not to
+	// take the square root of a negative number here.
+	normal.z = sqrt(max(0, 1.0 - dot(normal.xy, normal.xy)));
+#endif // !USE_HEIGHTMAP_IN_NORMALMAP
+	/* Disable normal map scaling when normal Z scale is set to zero.
+
+	This happens when r_normalScale is set to zero because
+	u_NormalScale.z is premultiplied with r_normalScale. User can
+	disable normal map scaling by setting r_normalScale to zero.
+
+	Normal Z component equal to zero would be wrong anyway.
+	*/
+	if (u_NormalScale.z != 0)
 	{
-		// the Capcom trick abusing alpha channel of DXT1/5 formats to encode normal map
-		// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
-		//
-		// the algorithm also works with normal maps in rgb format without alpha channel
-		// but we still must be sure there is no height map in alpha channel hence the test
-		//
-		// crunch -dxn seems to produce such files, since alpha channel is abused such format
-		// is unsuitable to embed height map, then height map must be distributed as loose file
-		normal = texture2D(u_NormalMap, texNormal).rga;
-		normal.x *= normal.z;
-		normal.xy = 2.0 * normal.xy - 1.0;
-		normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
-	}
-	else
-	{
-		// alpha channel contains the height map so do not try to restore the normal map from it
-		normal = texture2D(u_NormalMap, texNormal).rgb;
-		normal = 2.0 * normal - 1.0;
+		normal *= u_NormalScale;
 	}
 
-	normal = normalFlip(normal);
-
-#if defined(r_NormalScale)
-	normal.z *= r_NormalScale;
-#endif
-
+	// HACK: the GLSL code is currently assuming
+	// DirectX normal map format (+X -Y +Z)
+	// but engine is assuming the OpenGL way (+X +Y +Z)
+	normal.y *= -1;
 #else // !r_normalMapping
+	// Flat normal map is {0.5, 0.5, 1.0} in [ 0.0, 1.0]
+	// which is stored as {0.0, 0.0, 1.0} in [-1.0, 1.0].
 	normal = vec3(0.0, 0.0, 1.0);
-#endif // r_normalMapping
+#endif // !r_normalMapping
 
 	return normal;
 }
@@ -139,7 +142,13 @@ vec2 ParallaxTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorld
 	{
 		currentDepth += currentSize;
 
-		float heightMapDepth = topDepth - texture2D(u_NormalMap, rayStartTexCoords + displacement * currentDepth).a;
+#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+		float depth = texture2D(u_NormalMap, rayStartTexCoords + displacement * currentDepth).a;
+#else // !USE_HEIGHTMAP_IN_NORMALMAP
+		float depth = texture2D(u_HeightMap, rayStartTexCoords + displacement * currentDepth).g;
+#endif // !USE_HEIGHTMAP_IN_NORMALMAP
+
+		float heightMapDepth = topDepth - depth;
 
 		if(bestDepth > 0.996) // if no depth found yet
 		{
@@ -157,7 +166,13 @@ vec2 ParallaxTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorld
 	{
 		currentSize *= 0.5;
 
-		float heightMapDepth = topDepth - texture2D(u_NormalMap, rayStartTexCoords + displacement * currentDepth).a;
+#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+		float depth = texture2D(u_NormalMap, rayStartTexCoords + displacement * currentDepth).a;
+#else // !USE_HEIGHTMAP_IN_NORMALMAP
+		float depth = texture2D(u_HeightMap, rayStartTexCoords + displacement * currentDepth).g;
+#endif // !USE_HEIGHTMAP_IN_NORMALMAP
+
+		float heightMapDepth = topDepth - depth;
 
 		if(currentDepth >= heightMapDepth)
 		{

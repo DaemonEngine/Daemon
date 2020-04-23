@@ -302,7 +302,7 @@ set(QCOMMONLIST
     ${ENGINE_DIR}/qcommon/print_translated.h
     ${ENGINE_DIR}/qcommon/qcommon.h
     ${ENGINE_DIR}/qcommon/qfiles.h
-    ${ENGINE_DIR}/qcommon/surfaceflags.h
+    ${ENGINE_DIR}/qcommon/SurfaceFlags.h
     ${ENGINE_DIR}/qcommon/sys.h
     ${ENGINE_DIR}/qcommon/translation.cpp
 )

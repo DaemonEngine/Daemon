@@ -40,11 +40,11 @@ Maryland 20850 USA.
 void RE_Shutdown( bool ) { }
 qhandle_t RE_RegisterModel( const char *name )
 {
-	return FS_FOpenFileRead( name, nullptr, false );
+	return FS_FOpenFileRead( name, nullptr );
 }
 qhandle_t RE_RegisterSkin( const char *name )
 {
-	return FS_FOpenFileRead( name, nullptr, false );
+	return FS_FOpenFileRead( name, nullptr );
 }
 qhandle_t RE_RegisterShader( const char *, RegisterShaderFlags_t )
 {
@@ -211,7 +211,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.BeginRegistration = RE_BeginRegistration;
     re.RegisterModel = RE_RegisterModel;
     re.RegisterSkin = RE_RegisterSkin;
-    re.RegisterShader = RE_RegisterShader;
     re.RegisterShader = RE_RegisterShader;
     re.RegisterFont = RE_RegisterFont;
     re.Glyph = RE_Glyph;

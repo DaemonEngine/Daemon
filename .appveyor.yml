@@ -2,19 +2,17 @@ branches:
   except:
     - debian
 
-image: Visual Studio 2017
-
 environment:
+  configuration: Debug
   matrix:
-    - COMPILER: msvc
-      COMPILER_VERSION: "15.0" # Visual Studio 2017
-      TARGET: x86
-      GENERATOR: "NMake Makefiles"
-
-matrix:
-  fast_finish: false
-
-configuration: Debug
+    # see 96d5c1f3ed77b09c64ce7c3c7cbd37c70456b3db
+    # for NMake template
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      generator: Visual Studio 16 2019
+      platform: x64
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      generator: Visual Studio 15 2017
+      platform: win32
 
 build:
   parallel: true
@@ -23,7 +21,20 @@ before_build:
   - git submodule update --init --recursive
 
 build_script:
-  - cmd: cmake --version
-  - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat"
-  - cmd: cmake -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_PRECOMPILED_HEADER=0 -G "NMake Makefiles" -DBUILD_GAME_NACL=0 -DCMAKE_BUILD_TYPE=Debug -H. -Bbuild
-  - cmd: cmake --build build
+  # simple line break: space
+  # double line break: line break
+  - cmd: >
+      cmake --version
+
+      set cmake=cmake
+
+      if not "x%generator:Visual Studio=%"=="x%generator%"
+      set cmake=%cmake% -A"%platform%"
+
+      %cmake% -G"%generator%"
+      -DUSE_WERROR=1 -DBE_VERBOSE=1
+      -DUSE_PRECOMPILED_HEADER=0 -DBUILD_GAME_NACL=0
+      -DCMAKE_BUILD_TYPE="%configuration%"
+      -S. -Bbuild
+
+      cmake --build build

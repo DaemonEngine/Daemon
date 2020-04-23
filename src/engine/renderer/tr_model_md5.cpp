@@ -89,6 +89,18 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 	token = COM_ParseExt2( &buf_p, false );
 	md5->numBones = atoi( token );
 
+	if (md5->numBones < 1)
+	{
+		Log::Warn("R_LoadMD5: '%s' has no bones", modName);
+		return false;
+	}
+
+	if (md5->numBones > MAX_BONES)
+	{
+		Log::Warn("R_LoadMD5: '%s' has more than %i bones (%i)", modName, MAX_BONES, md5->numBones);
+		return false;
+	}
+
 	// parse numMeshes <number>
 	token = COM_ParseExt2( &buf_p, true );
 
@@ -100,18 +112,6 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 
 	token = COM_ParseExt2( &buf_p, false );
 	md5->numSurfaces = atoi( token );
-
-	if ( md5->numBones < 1 )
-	{
-		Log::Warn("R_LoadMD5: '%s' has no bones", modName );
-		return false;
-	}
-
-	if ( md5->numBones > MAX_BONES )
-	{
-		Log::Warn("R_LoadMD5: '%s' has more than %i bones (%i)", modName, MAX_BONES, md5->numBones );
-		return false;
-	}
 
 	// parse all the bones
 	md5->bones = (md5Bone_t*) ri.Hunk_Alloc( sizeof( *bone ) * md5->numBones, ha_pref::h_low );

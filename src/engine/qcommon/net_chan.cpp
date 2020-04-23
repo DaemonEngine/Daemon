@@ -96,7 +96,7 @@ Netchan_Setup
 called to open a channel to a remote system
 ==============
 */
-void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport )
+void Netchan_Setup( netsrc_t sock, netchan_t *chan, const netadr_t& adr, int qport )
 {
 	Com_Memset( chan, 0, sizeof( *chan ) );
 
@@ -503,7 +503,7 @@ struct packetQueue_t
 
 packetQueue_t *packetQueue = nullptr;
 
-static void NET_QueuePacket( int length, const void *data, netadr_t to,
+static void NET_QueuePacket( int length, const void *data, const netadr_t& to,
                              int offset )
 {
 	packetQueue_t *newp, *next = packetQueue;
@@ -539,7 +539,7 @@ static void NET_QueuePacket( int length, const void *data, netadr_t to,
 	}
 }
 
-void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to )
+void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t& to )
 {
 	// sequenced packets are shown in netchan, so just show oob
 	if ( showpackets->integer && * ( int * ) data == -1 )

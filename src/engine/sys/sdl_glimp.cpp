@@ -456,7 +456,7 @@ static void GLimp_DetectAvailableModes()
 	{
 		const char *newModeString = va( "%ux%u ", modes[ i ].w, modes[ i ].h );
 
-		if ( strlen( newModeString ) < ( int ) sizeof( buf ) - strlen( buf ) )
+		if ( strlen( newModeString ) < sizeof( buf ) - strlen( buf ) )
 		{
 			Q_strcat( buf, sizeof( buf ), newModeString );
 		}
@@ -753,7 +753,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
 	if ( GLmajor < 2 || ( GLmajor == 2 && GLminor < 1 ) )
 	{
-		// missing shader support, switch to 1.x renderer
+		// missing shader support, there is no 1.x renderer anymore
 		return rserr_t::RSERR_OLD_GL;
 	}
 
@@ -1479,7 +1479,7 @@ void GLimp_HandleCvars()
 	{
 		bool    fullscreen;
 		bool    needToToggle = true;
-		int         sdlToggled = false;
+		int     sdlToggled = false;
 		fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
 
 		if ( r_fullscreen->integer && ri.Cvar_VariableIntegerValue( "in_nograb" ) )

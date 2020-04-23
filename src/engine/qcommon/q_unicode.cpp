@@ -106,7 +106,7 @@ static void shiftbitsright(unsigned char *p, unsigned long num, unsigned long by
     for( ; num > 8; p++, num -= 8 )
       *p = 0;
 
-    *p &= (~0x00) >> num;
+    *p &= (unsigned long)(~0x00) >> num;
 
     return;
   }

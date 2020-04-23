@@ -44,6 +44,7 @@ namespace Cvar {
     struct cvarRecord_t {
         std::string value;
         std::string resetValue;
+        Util::optional<std::string> latchedValue;
         int flags;
         std::string description;
         CvarProxy* proxy;
@@ -119,7 +120,6 @@ namespace Cvar {
 
         if (not var.name) {
             var.name = CopyString(name.c_str());
-            var.index = -1;
             var.modificationCount = -1;
         }
 
@@ -226,6 +226,11 @@ namespace Cvar {
         cvar->description = std::move(realDescription);
     }
 
+    // To avoid "change will take effect after restart" messages during initialization, when
+    // variables are set by autogen.cfg or command line.
+    // Note that SetLatchedValues is never called in a dedicated server.
+    static bool setLatchedValuesCalled = false;
+
     void InternalSetValue(const std::string& cvarName, std::string value, int flags, bool rom, bool warnRom) {
         CvarMap& cvars = GetCvarMap();
 
@@ -238,7 +243,7 @@ namespace Cvar {
             }
 
             //The user creates a new cvar through a command.
-            cvars[cvarName] = new cvarRecord_t{value, value, flags | CVAR_USER_CREATED, "user created", nullptr, {}};
+            cvars[cvarName] = new cvarRecord_t{value, value, Util::nullopt, flags | CVAR_USER_CREATED, "user created", nullptr, {}};
             Cmd::AddCommand(cvarName, cvarCommand, "cvar - user created");
             GetCCvar(cvarName, *cvars[cvarName]);
 
@@ -261,7 +266,6 @@ namespace Cvar {
                 }
             }
 
-            std::swap(cvar->value, value);
             cvar->flags |= flags;
 
             // mark for archival if flagged as archive-on-change
@@ -271,16 +275,28 @@ namespace Cvar {
 
             if (cvar->proxy) {
                 //Tell the cvar proxy about the new value
-                OnValueChangedResult result = cvar->proxy->OnValueChanged(cvar->value);
+                OnValueChangedResult result = cvar->proxy->OnValueChanged(value);
 
                 if (result.success) {
+                    if (cvar->flags & LATCH && value != cvar->value) {
+                        ChangeCvarDescription(cvarName, cvar, Str::Format("%s - latched value \"%s^*\"", result.description, value));
+                        OnValueChangedResult undo = cvar->proxy->OnValueChanged(cvar->value);
+                        ASSERT(undo.success);
+                        if (setLatchedValuesCalled) {
+                            Log::Notice("The change will take effect after restart.");
+                        }
+                        cvar->latchedValue = value;
+                        return;
+                    }
+                    cvar->latchedValue = Util::nullopt;
+                    cvar->value = std::move(value);
                     ChangeCvarDescription(cvarName, cvar, result.description);
                 } else {
-                    //The proxy could not parse the value, rollback
-                    Log::Notice("Value '%s' is not valid for cvar %s: %s\n",
-                            cvar->value.c_str(), cvarName.c_str(), result.description.c_str());
-                    cvar->value = value;
+                    Log::Notice("Value '%s' is not valid for cvar %s: %s", value, cvarName, result.description);
+                    return;
                 }
+            } else {
+                cvar->value = std::move(value);
             }
             SetCCvar(*cvar);
         }
@@ -320,7 +336,7 @@ namespace Cvar {
             }
 
             //Create the cvar and parse its default value
-            cvar = new cvarRecord_t{defaultValue, defaultValue, flags, description, proxy, {}};
+            cvar = new cvarRecord_t{defaultValue, defaultValue, Util::nullopt, flags, description, proxy, {}};
             cvars[name] = cvar;
 
             Cmd::AddCommand(name, cvarCommand, "cvar - \"" + defaultValue + "\" - " + description);
@@ -330,6 +346,7 @@ namespace Cvar {
 
             if (proxy && cvar->proxy) {
                 Log::Warn("Cvar %s cannot be registered twice", name.c_str());
+                return false;
             }
 
             // Register the cvar with the previous user_created value
@@ -341,7 +358,7 @@ namespace Cvar {
             }
 
             cvar->resetValue = defaultValue;
-            cvar->description = "";
+            cvar->description.clear();
 
             if (proxy) { //TODO replace me with an assert once we do not need to support the C API
                 OnValueChangedResult result = proxy->OnValueChanged(cvar->value);
@@ -380,7 +397,7 @@ namespace Cvar {
         Cmd::CompletionResult res;
         for (const auto& entry : cvars) {
             if (Str::IsIPrefix(prefix, entry.first)) {
-                res.push_back(std::make_pair(entry.first, entry.second->description));
+                res.emplace_back(entry.first, entry.second->description);
             }
         }
 
@@ -457,6 +474,27 @@ namespace Cvar {
                 }
             }
         }
+    }
+
+    void SetLatchedValues()
+    {
+        for (auto& entry : GetCvarMap()) {
+            cvarRecord_t* cvar = entry.second;
+            if (!cvar->latchedValue) {
+                continue;
+            }
+            cvar->value = std::move(*cvar->latchedValue);
+            cvar->latchedValue = Util::nullopt;
+            SetCCvar(*cvar);
+            ASSERT_NQ(cvar->proxy, nullptr);
+            OnValueChangedResult result = cvar->proxy->OnValueChanged(cvar->value);
+            if (result.success) {
+                ChangeCvarDescription(entry.first, cvar, result.description);
+            } else {
+                Log::Warn("BUG: failed setting cvar %s to latched value", entry.first);
+            }
+        }
+        setLatchedValuesCalled = true;
     }
 
     // Used by the C API
@@ -674,7 +712,7 @@ namespace Cvar {
                     flags += (var->flags & ROM) ? "R" : "_";
                     flags += (var->flags & CVAR_INIT) ? "I" : "_";
                     flags += (var->flags & TEMPORARY) ? "T" : (var->flags & USER_ARCHIVE) ? "A" : "_";
-                    flags += (var->flags & CVAR_LATCH) ? "L" : "_";
+                    flags += (var->flags & (CVAR_LATCH | LATCH)) ? "L" : "_";
                     flags += (var->flags & CHEAT) ? "C" : "_";
                     flags += (var->flags & CVAR_USER_CREATED) ? "?" : "_";
 

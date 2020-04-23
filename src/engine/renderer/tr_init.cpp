@@ -52,7 +52,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_measureOverdraw;
 
-	cvar_t      *r_inGameVideo;
 	cvar_t      *r_fastsky;
 	cvar_t      *r_drawSun;
 
@@ -146,7 +145,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_parallelShadowSplitWeight;
 
 	cvar_t      *r_mode;
-	cvar_t      *r_collapseStages;
 	cvar_t      *r_nobind;
 	cvar_t      *r_singleShader;
 	cvar_t      *r_colorMipLevels;
@@ -158,6 +156,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_offsetFactor;
 	cvar_t      *r_offsetUnits;
 
+	cvar_t      *r_physicalMapping;
 	cvar_t      *r_specularExponentMin;
 	cvar_t      *r_specularExponentMax;
 	cvar_t      *r_specularScale;
@@ -165,6 +164,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_deluxeMapping;
 	cvar_t      *r_normalScale;
 	cvar_t      *r_normalMapping;
+	cvar_t      *r_liquidMapping;
 	cvar_t      *r_highQualityNormalMapping;
 	cvar_t      *r_parallaxDepthScale;
 	cvar_t      *r_parallaxMapping;
@@ -225,7 +225,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showBatches;
 	cvar_t      *r_showLightMaps;
 	cvar_t      *r_showDeluxeMaps;
-	cvar_t      *r_showEntityNormals;
+	cvar_t      *r_showNormalMaps;
+	cvar_t      *r_showMaterialMaps;
 	cvar_t      *r_showAreaPortals;
 	cvar_t      *r_showCubeProbes;
 	cvar_t      *r_showBspNodes;
@@ -1063,7 +1064,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_arb_texture_gather = ri.Cvar_Get( "r_arb_texture_gather", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_gpu_shader5 = ri.Cvar_Get( "r_arb_gpu_shader5", "1", CVAR_CHEAT | CVAR_LATCH );
 
-		r_collapseStages = ri.Cvar_Get( "r_collapseStages", "1", CVAR_LATCH | CVAR_CHEAT );
 		r_picmip = ri.Cvar_Get( "r_picmip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		AssertCvarRange( r_picmip, 0, 3, true );
 		r_colorMipLevels = ri.Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
@@ -1116,7 +1116,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_zfar = ri.Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
 		r_ignoreGLErrors = ri.Cvar_Get( "r_ignoreGLErrors", "1", 0 );
 		r_fastsky = ri.Cvar_Get( "r_fastsky", "0", 0 );
-		r_inGameVideo = ri.Cvar_Get( "r_inGameVideo", "1", CVAR_ARCHIVE );
 		r_drawSun = ri.Cvar_Get( "r_drawSun", "0", 0 );
 		r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_CHEAT );
 		r_textureMode = ri.Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE );
@@ -1189,14 +1188,16 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_offsetFactor = ri.Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );
 		r_offsetUnits = ri.Cvar_Get( "r_offsetUnits", "-2", CVAR_CHEAT );
 
+		r_physicalMapping = ri.Cvar_Get( "r_physicalMapping", "0", CVAR_LATCH );
 		r_specularExponentMin = ri.Cvar_Get( "r_specularExponentMin", "0", CVAR_CHEAT );
 		r_specularExponentMax = ri.Cvar_Get( "r_specularExponentMax", "16", CVAR_CHEAT );
 		r_specularScale = ri.Cvar_Get( "r_specularScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
 		r_specularMapping = ri.Cvar_Get( "r_specularMapping", "1", CVAR_LATCH );
-		r_deluxeMapping = ri.Cvar_Get( "r_deluxeMapping", "1", CVAR_ARCHIVE );
-		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_LATCH );
-		r_normalMapping = ri.Cvar_Get( "r_normalMapping", "1", CVAR_ARCHIVE );
+		r_deluxeMapping = ri.Cvar_Get( "r_deluxeMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
+		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_ARCHIVE );
+		r_normalMapping = ri.Cvar_Get( "r_normalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_highQualityNormalMapping = ri.Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
+		r_liquidMapping = ri.Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH );
 		r_parallaxDepthScale = ri.Cvar_Get( "r_parallaxDepthScale", "0.03", CVAR_CHEAT );
 		r_parallaxMapping = ri.Cvar_Get( "r_parallaxMapping", "0", 0 );
 		r_glowMapping = ri.Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
@@ -1300,7 +1301,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showBatches = ri.Cvar_Get( "r_showBatches", "0", CVAR_CHEAT );
 		r_showLightMaps = ri.Cvar_Get( "r_showLightMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showDeluxeMaps = ri.Cvar_Get( "r_showDeluxeMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showEntityNormals = ri.Cvar_Get( "r_showEntityNormals", "0", CVAR_CHEAT | CVAR_LATCH );
+		r_showNormalMaps = ri.Cvar_Get( "r_showNormalMaps", "0", CVAR_CHEAT | CVAR_LATCH );
+		r_showMaterialMaps = ri.Cvar_Get( "r_showMaterialMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showAreaPortals = ri.Cvar_Get( "r_showAreaPortals", "0", CVAR_CHEAT );
 		r_showCubeProbes = ri.Cvar_Get( "r_showCubeProbes", "0", CVAR_CHEAT );
 		r_showBspNodes = ri.Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );

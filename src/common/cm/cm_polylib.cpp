@@ -209,9 +209,14 @@ ChopWindingInPlace
 */
 void ChopWindingInPlace( winding_t **inout, vec3_t normal, vec_t dist, vec_t epsilon )
 {
+// FIXME: https://github.com/DaemonEngine/Daemon/issues/169
+// This is required to load oasis (Wolf:ET) and  moteof (Q3) maps.
+// Maps requiring this workaround are usually large and detailed maps
+// but some very large maps do not require such workaround.
+#define WORKAROUND_MAX_POINTS_ON_WINDING 4 * MAX_POINTS_ON_WINDING
 	winding_t    *in;
-	vec_t        dists[ MAX_POINTS_ON_WINDING + 4 ];
-	planeSide_t  sides[ MAX_POINTS_ON_WINDING + 4 ];
+	vec_t        dists[ WORKAROUND_MAX_POINTS_ON_WINDING + 4 ];
+	planeSide_t  sides[ WORKAROUND_MAX_POINTS_ON_WINDING + 4 ];
 	int          counts[ 3 ];
 	static vec_t dot; // VC 4.2 optimizer bug if not static
 	int          i, j;
@@ -321,7 +326,12 @@ void ChopWindingInPlace( winding_t **inout, vec3_t normal, vec_t dist, vec_t eps
 
 	if ( f->numpoints > MAX_POINTS_ON_WINDING )
 	{
-		Sys::Drop( "ClipWinding: MAX_POINTS_ON_WINDING" );
+		Log::Debug( "ClipWinding: MAX_POINTS_ON_WINDING, %d > %d, please fix Daemon#169, applying workaround just for you", f->numpoints, MAX_POINTS_ON_WINDING );
+	}
+
+	if ( f->numpoints > WORKAROUND_MAX_POINTS_ON_WINDING )
+	{
+		Sys::Drop( "ClipWinding: MAX_POINTS_ON_WINDING, can't workaround more, %d > %d, maybe that's an issue on map side?", f->numpoints, WORKAROUND_MAX_POINTS_ON_WINDING );
 	}
 
 	FreeWinding( in );

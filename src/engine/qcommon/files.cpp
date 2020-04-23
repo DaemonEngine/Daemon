@@ -87,7 +87,7 @@ bool FS_FileExists(const char* path)
 	return FS::PakPath::FileExists(path) || FS::HomePath::FileExists(path);
 }
 
-int FS_FOpenFileRead(const char* path, fileHandle_t* handle, bool)
+int FS_FOpenFileRead(const char* path, fileHandle_t* handle)
 {
 	if (!handle)
 		return FS_FileExists(path);
@@ -202,7 +202,7 @@ int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mod
 	switch (mode) {
 	case fsMode_t::FS_READ:
 		if (FS::PakPath::FileExists(path))
-			return FS_FOpenFileRead(path, handle, false);
+			return FS_FOpenFileRead(path, handle);
 		else {
 			int size = FS_SV_FOpenFileRead(FS::Path::Build("game", path).c_str(), handle);
 			return (!handle || *handle) ? size : -1;
@@ -427,7 +427,7 @@ void FS_WriteFile(const char* path, const void* buffer, int size)
 int FS_ReadFile(const char* path, void** buffer)
 {
 	fileHandle_t handle;
-	int length = FS_FOpenFileRead(path, &handle, true);
+	int length = FS_FOpenFileRead(path, &handle);
 
 	if (length < 0) {
 		if (buffer)
@@ -605,13 +605,15 @@ const char* FS_LoadedPaks()
 bool FS_LoadPak(const char* name)
 {
 	const FS::PakInfo* pak = FS::FindPak(name);
-	if (!pak)
+	if (!pak) {
+		Log::Warn("Pak not found: '%s'", name);
 		return false;
+	}
 	try {
 		FS::PakPath::LoadPak(*pak);
 		return true;
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to load pak '%s': %s\n", name, err.what());
+		Log::Warn("Failed to load pak '%s': %s", name, err.what());
 		return false;
 	}
 }
@@ -620,22 +622,37 @@ void FS_LoadBasePak()
 {
 	Cmd::Args extrapaks(fs_extrapaks.Get());
 	for (const auto& x: extrapaks) {
-		if (!FS_LoadPak(x.c_str()))
-			Sys::Error("Could not load extra pak '%s'\n", x.c_str());
+		if (!FS_LoadPak(x.c_str())) {
+			Sys::Error("Could not load extra pak '%s'", x.c_str());
+		}
 	}
 
 	if (!FS_LoadPak(fs_basepak.Get().c_str())) {
-		Log::Notice("Could not load base pak '%s', falling back to default\n", fs_basepak.Get().c_str());
-		if (!FS_LoadPak(DEFAULT_BASE_PAK))
+		Log::Notice("Could not load base pak '%s', falling back to default: '%s'", fs_basepak.Get().c_str(), DEFAULT_BASE_PAK);
+		if (!FS_LoadPak(DEFAULT_BASE_PAK)) {
 			Sys::Error("Could not load default base pak '%s'", DEFAULT_BASE_PAK);
+		}
 	}
 }
 
 void FS_LoadAllMapMetadata()
 {
+	const std::string pak_map_prefix("map-");
+
 	for (const auto& pak: FS::GetAvailableMapPaks()) {
 		try {
-			FS::PakPath::LoadPakPrefix(pak, va("meta/%s/", pak.name.substr(4).c_str()));
+			// If pak name is long enough to have “map-” prefix,
+			// and pak name without ”map-” prefix is not empty string.
+			if (pak.name.length() > pak_map_prefix.length())
+			{
+				// If pak name starts with “map-” prefix
+				if (Str::IsPrefix(pak_map_prefix, pak.name))
+				{
+					// FIXME: This looks to be game-specific,
+					// not all games use “meta/” mechanism.
+					FS::PakPath::LoadPakPrefix(pak, va("meta/%s/", pak.name.substr(pak_map_prefix.length()).c_str()));
+				}
+			}
 		} catch (std::system_error&) {} // ignore and move on
 	}
 }

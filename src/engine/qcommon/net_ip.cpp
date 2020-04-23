@@ -544,7 +544,7 @@ NET_CompareBaseAdrMask
 Compare without port, and up to the bit number given in netmask.
 ===================
 */
-bool NET_CompareBaseAdrMask( netadr_t a, netadr_t b, int netmask )
+bool NET_CompareBaseAdrMask( const netadr_t& a, const netadr_t& b, int netmask )
 {
 	byte     cmpmask, *addra, *addrb;
 	int      curbyte;
@@ -621,12 +621,12 @@ NET_CompareBaseAdr
 Compares without the port
 ===================
 */
-bool NET_CompareBaseAdr( netadr_t a, netadr_t b )
+bool NET_CompareBaseAdr( const netadr_t& a, const netadr_t& b )
 {
 	return NET_CompareBaseAdrMask( a, b, -1 );
 }
 
-const char      *NET_AdrToString( netadr_t a )
+const char      *NET_AdrToString( const netadr_t& a )
 {
 	static  char s[ NET_ADDR_STR_MAX_LEN ];
 
@@ -650,7 +650,7 @@ const char      *NET_AdrToString( netadr_t a )
 	return s;
 }
 
-const char      *NET_AdrToStringwPort( netadr_t a )
+const char      *NET_AdrToStringwPort( const netadr_t& a )
 {
 	static  char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
 
@@ -673,7 +673,7 @@ const char      *NET_AdrToStringwPort( netadr_t a )
 	return s;
 }
 
-bool        NET_CompareAdr( netadr_t a, netadr_t b )
+bool        NET_CompareAdr( const netadr_t& a, const netadr_t& b )
 {
 	if ( !NET_CompareBaseAdr( a, b ) )
 	{
@@ -695,7 +695,7 @@ bool        NET_CompareAdr( netadr_t a, netadr_t b )
 	return false;
 }
 
-bool        NET_IsLocalAddress( netadr_t adr )
+bool        NET_IsLocalAddress( const netadr_t& adr )
 {
 	return adr.type == netadrtype_t::NA_LOOPBACK;
 }
@@ -839,7 +839,7 @@ static char socksBuf[ 4096 ];
 Sys_SendPacket
 ==================
 */
-void Sys_SendPacket( int length, const void *data, netadr_t to )
+void Sys_SendPacket( int length, const void *data, const netadr_t& to )
 {
 	int                     ret = SOCKET_ERROR;
 	struct sockaddr_storage addr;
@@ -928,11 +928,11 @@ Sys_IsLANAddress
 LAN clients will have their rate var ignored
 ==================
 */
-bool Sys_IsLANAddress( netadr_t adr )
+bool Sys_IsLANAddress( const netadr_t& adr )
 {
-	int      index, run, addrsize;
-	bool differed;
-	byte     *compareadr, *comparemask, *compareip;
+	int            index, run, addrsize;
+	bool           differed;
+	const byte     *compareadr, *comparemask, *compareip;
 
 	if ( adr.type == netadrtype_t::NA_LOOPBACK )
 	{
@@ -1738,7 +1738,7 @@ static void NET_OpenIP()
 
 	if ( net_enabled->integer & NET_ENABLEV6 )
 	{
-		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i++ )
+		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i-- )
 		{
 			ip6_socket = NET_IP6Socket( net_ip6->string, port6, &boundto, &err );
 
@@ -1765,7 +1765,7 @@ static void NET_OpenIP()
 
 	if ( net_enabled->integer & NET_ENABLEV4 )
 	{
-		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i++ )
+		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i-- )
 		{
 			ip_socket = NET_IPSocket( net_ip->string, port, &boundto4, &err );
 

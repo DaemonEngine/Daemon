@@ -82,7 +82,7 @@ public:
 		end = buffer + BUFFER_SIZE - putBack;
 		setg( end, end, end );
 
-		FS_FOpenFileRead( filename.c_str(), &fileHandle, false );
+		FS_FOpenFileRead( filename.c_str(), &fileHandle );
 	}
 
 	~DaemonInputbuf()
@@ -136,7 +136,7 @@ public:
 
 		for( int i = 0; i < numFiles; i++ )
 		{
-			ret.push_back( std::string( files[ i ] ) );
+			ret.emplace_back( files[ i ] );
 		}
 
 		FS_FreeFileList( files );
@@ -281,7 +281,7 @@ void Trans_LoadDefaultLanguage()
 		FL_FindLocale( &locale, FL_MESSAGES );
 
 		// Invalid or not found. Just use builtin language.
-		if( !locale->lang || !locale->lang[0] || !locale->country || !locale->country[0] )
+		if( !locale->lang || !locale->lang[0] )
 		{
 			Cvar_Set( "language", "en" );
 		}

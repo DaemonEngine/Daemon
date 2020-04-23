@@ -7,6 +7,7 @@ set(DETOURLIST
     ${LIB_DIR}/recastnavigation/DebugUtils/Source/DebugDraw.cpp
     ${LIB_DIR}/recastnavigation/Detour/Source/DetourAlloc.cpp
     ${LIB_DIR}/recastnavigation/Detour/Include/DetourAssert.h
+    ${LIB_DIR}/recastnavigation/Detour/Source/DetourAssert.cpp
     ${LIB_DIR}/recastnavigation/Detour/Source/DetourCommon.cpp
     ${LIB_DIR}/recastnavigation/DebugUtils/Source/DetourDebugDraw.cpp
     ${LIB_DIR}/recastnavigation/Detour/Source/DetourNavMesh.cpp

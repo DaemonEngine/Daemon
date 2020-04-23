@@ -154,15 +154,15 @@ void       NET_Shutdown();
 void       NET_Restart_f();
 void       NET_Config( bool enableNetworking );
 
-void       NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to );
+void       NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t& to );
 
-bool   NET_CompareAdr( netadr_t a, netadr_t b );
-bool   NET_CompareBaseAdr( netadr_t a, netadr_t b );
-bool   NET_IsLocalAddress( netadr_t adr );
+bool   NET_CompareAdr( const netadr_t& a, const netadr_t& b );
+bool   NET_CompareBaseAdr( const netadr_t& a, const netadr_t& b );
+bool   NET_IsLocalAddress( const netadr_t& adr );
 // DEPRECATED: Use Net::AddressToString
-const char *NET_AdrToString( netadr_t a );
+const char *NET_AdrToString( const netadr_t& a );
 // DEPRECATED: Use Net::AddressToString
-const char *NET_AdrToStringwPort( netadr_t a );
+const char *NET_AdrToStringwPort( const netadr_t& a );
 int        NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family );
 bool   NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message );
 void       NET_JoinMulticast6();
@@ -212,7 +212,7 @@ struct netchan_t
 };
 
 void     Netchan_Init( int qport );
-void     Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport );
+void     Netchan_Setup( netsrc_t sock, netchan_t *chan, const netadr_t& adr, int qport );
 
 void     Netchan_Transmit( netchan_t *chan, int length, const byte *data );
 void     Netchan_TransmitNextFragment( netchan_t *chan );
@@ -379,7 +379,7 @@ fileHandle_t FS_FOpenFileWriteViaTemporary( const char *qpath );
 
 fileHandle_t FS_SV_FOpenFileWrite( const char *filename );
 void         FS_SV_Rename( const char *from, const char *to );
-int          FS_FOpenFileRead( const char *qpath, fileHandle_t *file, bool uniqueFILE );
+int          FS_FOpenFileRead( const char *qpath, fileHandle_t *file );
 
 /*
 if uniqueFILE is true, then a new FILE will be fopened even if the file
@@ -678,7 +678,7 @@ void CL_FocusEvent( bool focus );
 
 void CL_JoystickEvent( int axis, int value );
 
-void CL_PacketEvent( netadr_t from, msg_t *msg );
+void CL_PacketEvent( const netadr_t& from, msg_t *msg );
 
 void CL_ConsolePrint( std::string text );
 
@@ -708,7 +708,7 @@ void CL_ShutdownAll();
 void     SV_Init();
 void     SV_Shutdown( const char *finalmsg );
 void     SV_Frame( int msec );
-void     SV_PacketEvent( netadr_t from, msg_t *msg );
+void     SV_PacketEvent( const netadr_t& from, msg_t *msg );
 int      SV_FrameMsec();
 
 /*

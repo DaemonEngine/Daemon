@@ -1266,7 +1266,7 @@ player_state_t communication
 */
 
 // using the stringizing operator to save typing...
-#define PSF( x ) # x,int((size_t)&( (playerState_t*)0 )->x)
+#define PSF( x ) # x,(int((uintptr_t)&( (playerState_t*)0 )->x))
 
 static netField_t playerStateFields[] =
 {
@@ -1447,7 +1447,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *
 	if ( !from )
 	{
 		from = &dummy;
-		memset( &dummy, 0, sizeof( dummy ) );
+		memset( from, 0, sizeof( *from ) );
 	}
 
 	if ( msg->bit == 0 )

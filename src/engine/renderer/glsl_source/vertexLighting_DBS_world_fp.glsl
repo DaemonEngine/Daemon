@@ -23,62 +23,44 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* vertexLighting_DBS_world_fp.glsl */
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_SpecularMap;
+uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
-uniform	float		u_LightWrapAround;
+uniform vec3		u_ViewOrigin;
 
 uniform sampler3D       u_LightGrid1;
 uniform sampler3D       u_LightGrid2;
 uniform vec3            u_LightGridOrigin;
 uniform vec3            u_LightGridScale;
 
-uniform vec3		u_ViewOrigin;
-
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
-
 IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
-
 IN(smooth) vec3		var_Normal;
 
 DECLARE_OUTPUT(vec4)
 
-void ReadLightGrid(in vec3 pos, out vec3 lgtDir,
-		   out vec3 ambCol, out vec3 lgtCol ) {
-	vec4 texel1 = texture3D(u_LightGrid1, pos);
-	vec4 texel2 = texture3D(u_LightGrid2, pos);
-
-	ambCol = texel1.xyz;
-	lgtCol = texel2.xyz;
-
-	lgtDir.x = (255.0 * texel1.w - 128.0) / 127.0;
-	lgtDir.y = (255.0 * texel2.w - 128.0) / 127.0;
-	lgtDir.z = 1.0 - abs( lgtDir.x ) - abs( lgtDir.y );
-
-	vec2 signs = 2.0 * step( 0.0, lgtDir.xy ) - vec2( 1.0 );
-	if( lgtDir.z < 0.0 ) {
-		lgtDir.xy = signs * ( vec2( 1.0 ) - abs( lgtDir.yx ) );
-	}
-
-	lgtDir = normalize( lgtDir );
-}
-
 void	main()
 {
-	vec2 texCoords = var_TexCoords;
-
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
-	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyx);
+	vec2 texCoords = var_TexCoords;
 
-	vec3 L, ambCol, dirCol;
-	ReadLightGrid( (var_Position - u_LightGridOrigin) * u_LightGridScale,
-		       L, ambCol, dirCol);
+	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
+
+	vec3 lightGridPos = (var_Position - u_LightGridOrigin) * u_LightGridScale;
+
+	// compute light color from light grid
+	vec3 ambientColor, lightColor;
+	ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
+
+	// compute light direction in world space
+	vec4 texel = texture3D(u_LightGrid2, lightGridPos);
+	vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
 
 #if defined(USE_PARALLAX_MAPPING)
 	// compute texcoords offset from heightmap
@@ -88,7 +70,10 @@ void	main()
 #endif // USE_PARALLAX_MAPPING
 
 	// compute the diffuse term
-	vec4 diffuse = texture2D(u_DiffuseMap, texCoords) * var_Color;
+	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);
+
+	// vertex blend operation like: alphaGen vertex
+	diffuse *= var_Color;
 
 	if( abs(diffuse.a + u_AlphaThreshold) <= 1.0 )
 	{
@@ -96,20 +81,31 @@ void	main()
 		return;
 	}
 
-	vec4 specular = texture2D(u_SpecularMap, texCoords);
-
 	// compute normal in world space from normalmap
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
-	// compute final color
-	vec4 color = vec4( ambCol * diffuse.xyz, diffuse.a );
-	computeLight( L, normal, viewDir, dirCol, diffuse, specular, color );
+	// compute the material term
+	vec4 material = texture2D(u_MaterialMap, texCoords);
 
-	computeDLights( var_Position, normal, viewDir, diffuse, specular, color );
+	// compute final color
+	vec4 color = vec4(ambientColor * r_AmbientScale * diffuse.rgb, diffuse.a);
+
+	computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+
+	computeDLights( var_Position, normal, viewDir, diffuse, material, color );
 
 #if defined(r_glowMapping)
 	color.rgb += texture2D(u_GlowMap, texCoords).rgb;
 #endif // r_glowMapping
 
 	outputColor = color;
+
+// Debugging
+#if defined(r_showNormalMaps)
+	// convert normal to [0,1] color space
+	normal = normal * 0.5 + 0.5;
+	outputColor = vec4(normal, 1.0);
+#elif defined(r_showMaterialMaps)
+	outputColor = material;
+#endif
 }

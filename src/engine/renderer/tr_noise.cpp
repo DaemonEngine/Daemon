@@ -27,12 +27,12 @@ static const int NOISE_SIZE = 256;
 static const int NOISE_MASK = ( NOISE_SIZE - 1 );
 
 #define VAL( a )            s_noise_perm[ ( a ) & ( NOISE_MASK ) ]
-#define INDEX( x, y, z, t ) VAL( x + VAL( y + VAL( z + VAL( t ) ) ) )
+#define INDEX( x, y, z, t ) VAL( (x) + VAL( (y) + VAL( (z) + VAL( t ) ) ) )
 
 static float s_noise_table[ NOISE_SIZE ];
 static int   s_noise_perm[ NOISE_SIZE ];
 
-#define LERP( a, b, w ) ( a * ( 1.0f - w ) + b * w )
+#define LERP( a, b, w ) ( (a) * ( 1.0f - (w) ) + (b) * (w) )
 
 static float GetNoiseValue( int x, int y, int z, int t )
 {

@@ -370,7 +370,7 @@ uint32_t VMBase::Create()
 {
 	type = static_cast<vmType_t>(params.vmType.Get());
 
-	if (type < 0 || type >= TYPE_END)
+	if (type < TYPE_BEGIN || type >= TYPE_END)
 		Sys::Drop("VM: Invalid type %d", type);
 
 	int loadStartTime = Sys_Milliseconds();

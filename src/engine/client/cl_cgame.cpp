@@ -1627,7 +1627,7 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 
 			case CG_S_SETREVERB:
 				HandleMsg<Audio::SetReverbMsg>(std::move(reader), [this] (int slotNum, const std::string& name, float ratio) {
-					Audio::SetReverb(slotNum, name.c_str(), ratio);
+					Audio::SetReverb(slotNum, name, ratio);
 				});
 				break;
 

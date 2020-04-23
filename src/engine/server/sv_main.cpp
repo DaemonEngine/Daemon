@@ -476,7 +476,7 @@ and all connected players.  Used for getting detailed information after
 the simple info query.
 ================
 */
-void SVC_Status( netadr_t from, const Cmd::Args& args )
+static void SVC_Status( const netadr_t& from, const Cmd::Args& args )
 {
 	if ( SV_Private(ServerPrivate::NoStatus) )
 	{
@@ -517,7 +517,7 @@ Responds with a short info message that should be enough to determine
 if a user is interested in a server to do a full status
 ================
 */
-void SVC_Info( netadr_t from, const Cmd::Args& args )
+static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 {
 	if ( SV_Private(ServerPrivate::NoStatus) )
 	{
@@ -612,7 +612,7 @@ void SVC_Info( netadr_t from, const Cmd::Args& args )
  * Sends back a simple reply
  * Used to check if the server is online without sending any other info
  */
-void SVC_Ping( netadr_t from, const Cmd::Args& )
+static void SVC_Ping( const netadr_t& from, const Cmd::Args& )
 {
 	if ( SV_Private(ServerPrivate::NoStatus) )
 	{
@@ -745,7 +745,7 @@ Redirect all printfs
 
 class RconEnvironment: public Cmd::DefaultEnvironment {
 public:
-	RconEnvironment(netadr_t from)
+	RconEnvironment(const netadr_t& from)
 		: from(from), bufferSize(MAX_MSGLEN - prefix.size() - 1)
 	{}
 
@@ -769,16 +769,16 @@ public:
 		}
 	}
 
-	static void PrintError(netadr_t to, const std::string& message)
+	static void PrintError(const netadr_t& to, const std::string& message)
 	{
 		Net::OutOfBandPrint(netsrc_t::NS_SERVER, to, "error\n%s", message);
 	}
 
 private:
-	netadr_t from;
+	const netadr_t from;
 	std::string buffer;
-	std::string prefix = "print";
-	std::size_t bufferSize;
+	const std::string prefix = "print";
+	const std::size_t bufferSize;
 };
 
 static Cvar::Cvar<std::string> cvar_rcon_server_password(
@@ -920,7 +920,7 @@ static int RemoteCommandThrottle()
     return delta;
 }
 
-void SVC_RemoteCommand( netadr_t from, const Cmd::Args& args )
+static void SVC_RemoteCommand( const netadr_t& from, const Cmd::Args& args )
 {
 	int throttle_delta = RemoteCommandThrottle();
 
@@ -964,7 +964,7 @@ void SVC_RemoteCommand( netadr_t from, const Cmd::Args& args )
 
 }
 
-static void SVC_RconInfo( netadr_t from, const Cmd::Args& )
+static void SVC_RconInfo( const netadr_t& from, const Cmd::Args& )
 {
 	if ( SV_Private(ServerPrivate::NoStatus) )
 	{
@@ -993,7 +993,7 @@ Clients that are in the game can still send
 connectionless packets.
 =================
 */
-void SV_ConnectionlessPacket( netadr_t from, msg_t *msg )
+static void SV_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 {
 	MSG_BeginReadingOOB( msg );
 	MSG_ReadLong( msg );  // skip the -1 marker
@@ -1063,7 +1063,7 @@ void SV_ConnectionlessPacket( netadr_t from, msg_t *msg )
 SV_PacketEvent
 =================
 */
-void SV_PacketEvent( netadr_t from, msg_t *msg )
+void SV_PacketEvent( const netadr_t& from, msg_t *msg )
 {
 	int      i;
 	client_t *cl;

@@ -21,6 +21,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // computeLight_fp.glsl - Light computing helper functions
 
+#if defined(USE_REFLECTIVE_SPECULAR)
+uniform samplerCube u_EnvironmentMap0;
+uniform samplerCube u_EnvironmentMap1;
+uniform float u_EnvironmentInterpolation;
+#endif // USE_REFLECTIVE_SPECULAR
+
 struct light {
   vec4  center_radius;
   vec4  color_type;
@@ -49,15 +55,32 @@ uniform int u_numLights;
 uniform vec2 u_SpecularExponent;
 
 // lighting helper functions
+
+void ReadLightGrid(in vec4 texel, out vec3 ambientColor, out vec3 lightColor) {
+	float ambientScale = 2.0 * texel.a;
+	float directedScale = 2.0 - ambientScale;
+	ambientColor = ambientScale * texel.rgb;
+	lightColor = directedScale * texel.rgb;
+}
+
 void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
-		   vec4 diffuseColor, vec4 specularColor,
-		   inout vec4 accumulator ) {
+		   vec4 diffuseColor, vec4 materialColor,
+		   inout vec4 color ) {
   vec3 H = normalize( lightDir + viewDir );
   float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
 
-#if defined(USE_PHYSICAL_SHADING)
-  float metalness = specularColor.x;
-  float roughness = specularColor.y;
+#if defined(r_physicalMapping) && defined(USE_PHYSICAL_SHADING)
+  // Daemon PBR packing defaults to ORM like glTF 2.0 defines
+  // https://www.khronos.org/blog/art-pipeline-for-gltf
+  // > ORM texture for Occlusion, Roughness, and Metallic
+  // https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/schema/material.pbrMetallicRoughness.schema.json
+  // > The metalness values are sampled from the B channel. The roughness values are sampled from the G channel.
+  // > These values are linear. If other channels are present (R or A), they are ignored for metallic-roughness calculations.
+  // https://docs.blender.org/manual/en/2.80/addons/io_scene_gltf2.html
+  // > glTF stores occlusion in the red (R) channel, allowing it to optionally share the same image
+  // > with the roughness and metallic channels.
+  float roughness = materialColor.g;
+  float metalness = materialColor.b;
 
   float NdotV = clamp( dot( normal, viewDir ), 0.0, 1.0);
   float VdotH = clamp( dot( viewDir, H ), 0.0, 1.0);
@@ -71,16 +94,16 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 
   float FexpNH = pow(1.0 - NdotH, 5.0);
   float FexpNV = pow(1.0 - NdotV, 5.0);
-  vec3 F = mix(vec3(0.04), diffuseColor.xyz, metalness);
+  vec3 F = mix(vec3(0.04), diffuseColor.rgb, metalness);
   F = F + (1.0 - F) * FexpNH;
 
   float G = NdotL / (NdotL * (1.0 - k) + k);
   G *= NdotV / (NdotV * (1.0 - k) + k);
 
-  accumulator.xyz += lightColor.xyz * (1.0 - metalness) * NdotL * diffuseColor.xyz;
-  accumulator.xyz += lightColor.xyz * vec3((D * F * G) / (4.0 * NdotV));
-  accumulator.a = mix(diffuseColor.a, 1.0, FexpNV);
-#else // !USE_PHYSICAL_SHADING
+  color.rgb += lightColor.rgb * (1.0 - metalness) * NdotL * diffuseColor.rgb;
+  color.rgb += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
+  color.a = mix(diffuseColor.a, 1.0, FexpNV);
+#else // !r_physicalMapping || !USE_PHYSICAL_SHADING
   float NdotL = dot( normal, lightDir );
 #if defined(r_HalfLambertLighting)
   // http://developer.valvesoftware.com/wiki/Half_Lambert
@@ -92,11 +115,19 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   NdotL = clamp( NdotL, 0.0, 1.0 );
 #endif
 
-  accumulator.xyz += diffuseColor.xyz * lightColor.xyz * NdotL;
-#if defined(r_specularMapping)
-  accumulator.xyz += specularColor.xyz * lightColor.xyz * pow( NdotH, u_SpecularExponent.x * specularColor.w + u_SpecularExponent.y) * r_SpecularScale;
-#endif // r_specularMapping
-#endif // USE_PHYSICAL_SHADING
+#if defined(USE_REFLECTIVE_SPECULAR)
+	// not implemented for PBR yet
+	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal));
+	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal));
+
+	materialColor.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
+#endif // USE_REFLECTIVE_SPECULAR
+
+  color.rgb += diffuseColor.rgb * lightColor.rgb * NdotL;
+#if defined(r_specularMapping) && !defined(USE_PHYSICAL_SHADING)
+  color.rgb += materialColor.rgb * lightColor.rgb * pow( NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
+#endif // r_specularMapping && !USE_PHYSICAL_SHADING&
+#endif // !r_physicalMapping || !USE_PHYSICAL_SHADING
 }
 
 #if defined(TEXTURE_INTEGER)
@@ -129,7 +160,7 @@ int nextIdx( inout idxs_t idxs ) {
 const int numLayers = MAX_REF_LIGHTS / 256;
 
 void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
-		    vec4 specular, inout vec4 color ) {
+		    vec4 material, inout vec4 color ) {
   vec4 center_radius = GetLight( idx, center_radius );
   vec4 color_type = GetLight( idx, color_type );
   vec3 L;
@@ -157,10 +188,10 @@ void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
   }
   computeLight( L, normal, viewDir,
 		attenuation * attenuation * color_type.xyz,
-		diffuse, specular, color );
+		diffuse, material, color );
 }
 
-void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 specular,
+void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
 		     inout vec4 color ) {
   vec2 tile = floor( gl_FragCoord.xy * (1.0 / float( TILE_SIZE ) ) ) + 0.5;
   vec3 tileScale = vec3( r_tileStep, 1.0/numLayers );
@@ -185,7 +216,7 @@ void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 specu
         return;
       }
 
-      computeDLight( idx, P, normal, viewDir, diffuse, specular, color );
+      computeDLight( idx, P, normal, viewDir, diffuse, material, color );
 
 #if defined(r_showLightTiles)
       numLights++;

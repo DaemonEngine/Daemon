@@ -193,7 +193,7 @@ namespace VM {
         IPC::HandleMsg<RegisterCvarMsg>(channel, std::move(reader), [this](std::string name, std::string description,
                 int flags, std::string defaultValue){
             // The registration of the cvar is made automatically when it is created
-            registeredCvars.emplace_back(new ProxyCvar(this, name, description, flags, defaultValue));
+            registeredCvars.emplace_back(Util::make_unique<ProxyCvar>(this, name, description, flags, defaultValue));
         });
     }
 
@@ -249,9 +249,9 @@ namespace VM {
                 break;
 
             case QVM_COMMON_FS_FOPEN_FILE:
-                IPC::HandleMsg<FSFOpenFileMsg>(channel, std::move(reader), [this](const std::string& filename, bool open, int fsMode, int& success, int& handle) {
+                IPC::HandleMsg<FSFOpenFileMsg>(channel, std::move(reader), [this](const std::string& filename, bool open, int fsMode, int& length, int& handle) {
                     fsMode_t mode = static_cast<fsMode_t>(fsMode);
-                    success = FS_Game_FOpenFileByMode(filename.c_str(), open ? &handle : nullptr, mode);
+                    length = FS_Game_FOpenFileByMode(filename.c_str(), open ? &handle : nullptr, mode);
                 });
                 break;
 

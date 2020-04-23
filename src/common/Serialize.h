@@ -190,7 +190,7 @@ namespace Util {
 
 		IPC::FileDesc ReadHandle()
 		{
-			if (handles_pos <= handles.size())
+			if (handles_pos < handles.size())
 				return handles[handles_pos++];
 			else
 				Sys::Drop("Reader: Unexpected end of message");

@@ -495,9 +495,10 @@ void CM_AddFacetBevels( cFacet_t *facet )
 
 			if ( i == facet->numBorders )
 			{
-				if ( facet->numBorders > MAX_FACET_BEVELS )
+				if ( facet->numBorders >= MAX_FACET_BEVELS )
 				{
 					Log::Warn( "too many bevels" );
+					continue;
 				}
 
 				facet->borderPlanes[ facet->numBorders ] = CM_FindPlane2( plane, &flipped );
@@ -589,9 +590,10 @@ void CM_AddFacetBevels( cFacet_t *facet )
 
 				if ( i == facet->numBorders )
 				{
-					if ( facet->numBorders > MAX_FACET_BEVELS )
+					if ( facet->numBorders >= MAX_FACET_BEVELS )
 					{
 						Log::Warn( "too many bevels" );
+						continue;
 					}
 
 					facet->borderPlanes[ facet->numBorders ] = CM_FindPlane2( plane, &flipped );
@@ -640,6 +642,10 @@ void CM_AddFacetBevels( cFacet_t *facet )
 	FreeWinding( w );
 
 	// add opposite plane
+	if ( facet->numBorders >= MAX_FACET_BEVELS ) {
+		Sys::Drop( "too many bevels" );
+		return;
+	}
 	facet->borderPlanes[ facet->numBorders ] = facet->surfacePlane;
 	facet->borderNoAdjust[ facet->numBorders ] = false;
 	facet->borderInward[ facet->numBorders ] = true;

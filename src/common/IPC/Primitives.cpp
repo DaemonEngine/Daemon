@@ -171,12 +171,6 @@ FileHandle FileHandle::FromDesc(const FileDesc& desc)
 #endif
 }
 
-OwnedFileHandle::~OwnedFileHandle()
-{
-	if (handle)
-		close(handle.GetHandle());
-}
-
 void Socket::Close()
 {
 	if (Sys::IsValidHandle(handle))
@@ -302,13 +296,17 @@ void Socket::SendMsg(const Util::Writer& writer) const
 	const void* data = writer.GetData().data();
 	size_t len = writer.GetData().size();
 
+	// Use a smaller buffer size to avoid ENOBUFS errors from the kernel
+	// NaCl defines NACL_ABI_IMC_USER_BYTES_MAX as 128K, use 4K instead
+	const size_t MAX_IPC_BYTES = 4 << 10;
+
 	while (numHandles || len) {
-		bool more = numHandles > NACL_ABI_IMC_DESC_MAX || len > NACL_ABI_IMC_USER_BYTES_MAX - 1;
-		InternalSendMsg(handle, more, handles, std::min<size_t>(numHandles, NACL_ABI_IMC_DESC_MAX), data, std::min<size_t>(len, NACL_ABI_IMC_USER_BYTES_MAX - 1));
+		bool more = numHandles > NACL_ABI_IMC_DESC_MAX || len > MAX_IPC_BYTES;
+		InternalSendMsg(handle, more, handles, std::min<size_t>(numHandles, NACL_ABI_IMC_DESC_MAX), data, std::min<size_t>(len, MAX_IPC_BYTES));
 		handles += std::min<size_t>(numHandles, NACL_ABI_IMC_DESC_MAX);
 		numHandles -= std::min<size_t>(numHandles, NACL_ABI_IMC_DESC_MAX);
-		data = static_cast<const char*>(data) + std::min<size_t>(len, NACL_ABI_IMC_USER_BYTES_MAX - 1);
-		len -= std::min<size_t>(len, NACL_ABI_IMC_USER_BYTES_MAX - 1);
+		data = static_cast<const char*>(data) + std::min<size_t>(len, MAX_IPC_BYTES);
+		len -= std::min<size_t>(len, MAX_IPC_BYTES);
 	}
 }
 
@@ -412,7 +410,7 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 		}
 
 		// Ignore flags
-		if (desc_end - desc_ptr < (int)sizeof(uint32_t)) {
+		if (desc_end - desc_ptr < (ptrdiff_t)sizeof(uint32_t)) {
 			FreeHandles(h);
 			Sys::Drop("IPC: Descriptor flags missing from message");
 		}
@@ -421,14 +419,14 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 		uint64_t size = 0;
 		int32_t flags = 0;
 		if (tag == NACL_DESC_SHM) {
-			if (desc_end - desc_ptr < (int)sizeof(uint64_t)) {
+			if (desc_end - desc_ptr < (ptrdiff_t)sizeof(uint64_t)) {
 				FreeHandles(h);
 				Sys::Drop("IPC: Shared memory size missing from message");
 			}
 			memcpy(&size, desc_ptr, sizeof(uint64_t));
 			desc_ptr += sizeof(uint64_t);
 		} else if (tag == NACL_DESC_HOST_IO) {
-			if (desc_end - desc_ptr < (int)sizeof(int32_t)) {
+			if (desc_end - desc_ptr < (ptrdiff_t)sizeof(int32_t)) {
 				FreeHandles(h);
 				Sys::Drop("IPC: Host file mode missing from message");
 			}
@@ -438,13 +436,14 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 
 		size_t i = handle_index++;
 		reader.GetHandles().emplace_back();
-		reader.GetHandles().back().handle = h[i];
-		reader.GetHandles().back().type = tag;
-		h[i] = NACL_INVALID_HANDLE;
+		auto& new_handle = reader.GetHandles().back();
+		new_handle.handle = h[i];
+		new_handle.type = tag;
 		if (tag == NACL_DESC_SHM)
-			reader.GetHandles().back().size = size;
+			new_handle.size = size;
 		else if (tag == NACL_DESC_HOST_IO)
-			reader.GetHandles().back().flags = flags;
+			new_handle.flags = flags;
+		h[i] = NACL_INVALID_HANDLE;
 	}
 
 	reader.GetData().insert(reader.GetData().end(), &desc_end[1], &desc_end[result]);

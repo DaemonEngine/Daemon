@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 uniform sampler2D	u_DiffuseMap;
-uniform sampler2D	u_SpecularMap;
+uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_AttenuationMapXY;
 uniform sampler2D	u_AttenuationMapZ;
 
@@ -129,7 +129,7 @@ vec3 RandomVec3(vec2 uv)
 
 	dir = normalize(vec3(cos(angle), sin(angle), r));
 #else
-	// dir = texture2D(u_NoiseMap, gl_FragCoord.st * r_FBufScale).rgb;
+	// dir = texture2D(u_NoiseMap, gl_FragCoord.st / r_FBufSize).rgb;
 	dir = normalize(2.0 * (texture2D(u_RandomMap, uv).xyz - 0.5));
 #endif
 
@@ -357,7 +357,7 @@ vec4 PCF(vec3 Pworld, float filterWidth, float samples, out vec4 clipMoments)
 	{
 		for(int j = 0; j < samples; j++)
 		{
-			vec3 rand = RandomVec3(gl_FragCoord.st * r_FBufScale + vec2(i, j)) * filterWidth;
+			vec3 rand = RandomVec3(gl_FragCoord.st / r_FBufSize + vec2(i, j)) * filterWidth;
 			// rand.z = 0;
 			// rand = normalize(rand) * filterWidth;
 
@@ -420,7 +420,7 @@ vec4 PCF(vec4 shadowVert, float filterWidth, float samples, out vec4 clipMoments
 	{
 		for(int j = 0; j < samples; j++)
 		{
-			vec3 rand = RandomVec3(gl_FragCoord.st * r_FBufScale + vec2(i, j)) * filterWidth;
+			vec3 rand = RandomVec3(gl_FragCoord.st / r_FBufSize + vec2(i, j)) * filterWidth;
 			// rand = vec3(0.0, 0.0, 1.0);
 			// rand.z = 0;
 			// rand = normalize(rand);// * filterWidth;
@@ -484,7 +484,7 @@ vec4 PCF(vec4 incidentRay, float filterWidth, float samples, out vec4 clipMoment
 	{
 		for(int j = 0; j < samples; j++)
 		{
-			vec3 rand = RandomVec3(gl_FragCoord.st * r_FBufScale + vec2(i, j)) * filterWidth;
+			vec3 rand = RandomVec3(gl_FragCoord.st / r_FBufSize + vec2(i, j)) * filterWidth;
 			// rand.z = 0;
 			// rand = normalize(rand) * filterWidth;
 
@@ -750,7 +750,7 @@ void	main()
 {
 #if 0
 	// create random noise vector
-	vec3 rand = RandomVec3(gl_FragCoord.st * r_FBufScale);
+	vec3 rand = RandomVec3(gl_FragCoord.st / r_FBufSize);
 
 	outputColor = vec4(rand * 0.5 + 0.5, 1.0);
 	return;
@@ -934,9 +934,9 @@ void	main()
 
 	// compute light direction in world space
 #if defined(LIGHT_DIRECTIONAL)
-	vec3 L = u_LightDir;
+	vec3 lightDir = u_LightDir;
 #else
-	vec3 L = normalize(u_LightOrigin - var_Position);
+	vec3 lightDir = normalize(u_LightOrigin - var_Position);
 #endif
 
 	vec2 texCoords = var_TexCoords;
@@ -954,16 +954,16 @@ void	main()
 #endif // USE_PARALLAX_MAPPING
 
 	// compute half angle in world space
-	vec3 H = normalize(L + viewDir);
+	vec3 H = normalize(lightDir + viewDir);
 
 	// compute normal in world space from normal map
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute the light term
 #if defined(r_WrapAroundLighting)
-	float NL = clamp(dot(normal, L) + u_LightWrapAround, 0.0, 1.0) / clamp(1.0 + u_LightWrapAround, 0.0, 1.0);
+	float NL = clamp(dot(normal, lightDir) + u_LightWrapAround, 0.0, 1.0) / clamp(1.0 + u_LightWrapAround, 0.0, 1.0);
 #else
-	float NL = clamp(dot(normal, L), 0.0, 1.0);
+	float NL = clamp(dot(normal, lightDir), 0.0, 1.0);
 #endif
 
 	// compute the diffuse term
@@ -975,11 +975,13 @@ void	main()
 	}
 	diffuse.rgb *= u_LightColor * NL;
 
+#if !defined(USE_PHYSICAL_SHADING)
 #if defined(r_specularMapping)
 	// compute the specular term
-	vec4 spec = texture2D(u_SpecularMap, texCoords).rgba;
+	vec4 spec = texture2D(u_MaterialMap, texCoords).rgba;
 	vec3 specular = spec.rgb * u_LightColor * pow(clamp(dot(normal, H), 0.0, 1.0), u_SpecularExponent.x * spec.a + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping
+#endif // !USE_PHYSICAL_SHADING
 
 	// compute light attenuation
 #if defined(LIGHT_PROJ)
@@ -998,9 +1000,11 @@ void	main()
 	// compute final color
 	vec4 color = diffuse;
 
+#if !defined(USE_PHYSICAL_SHADING)
 #if defined(r_specularMapping)
 	color.rgb += specular;
 #endif // r_specularMapping
+#endif // !USE_PHYSICAL_SHADING
 
 #if !defined(LIGHT_DIRECTIONAL)
 	color.rgb *= attenuationXY;

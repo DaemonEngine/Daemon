@@ -179,7 +179,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define MAX_DRAWSURFS      0x10000
 #define DRAWSURF_MASK      ( MAX_DRAWSURFS - 1 )
 
-#define MAX_INTERACTIONS   MAX_DRAWSURFS * 8
+#define MAX_INTERACTIONS   ( MAX_DRAWSURFS * 8 )
 #define INTERACTION_MASK   ( MAX_INTERACTIONS - 1 )
 
 // 16x16 pixels per tile
@@ -526,8 +526,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  IF_LIGHTMAP = BIT( 13 ),
 	  IF_RGBA16 = BIT( 14 ),
 	  IF_RGBE = BIT( 15 ),
-	  IF_ALPHATEST = BIT( 16 ),
-	  IF_DISPLACEMAP = BIT( 17 ),
+	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
+	  IF_ALPHA = BIT( 17 ),
 	  IF_NOLIGHTSCALE = BIT( 18 ),
 	  IF_BC1 = BIT( 19 ),
 	  IF_BC2 = BIT( 20 ),
@@ -1004,9 +1004,12 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	{
 	  TB_COLORMAP,
 	  TB_DIFFUSEMAP = TB_COLORMAP,
+	  TB_REFLECTIONMAP = TB_COLORMAP,
 	  TB_NORMALMAP,
-	  TB_SPECULARMAP,
-	  TB_MATERIALMAP = TB_SPECULARMAP,
+	  TB_HEIGHTMAP,
+	  TB_MATERIALMAP,
+	  TB_PHYSICALMAP = TB_MATERIALMAP,
+	  TB_SPECULARMAP = TB_MATERIALMAP,
 	  TB_GLOWMAP,
 	  MAX_TEXTURE_BUNDLES
 	};
@@ -1031,8 +1034,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  ST_GLOWMAP,
 	  ST_DIFFUSEMAP,
 	  ST_NORMALMAP,
+	  ST_HEIGHTMAP,
+	  ST_PHYSICALMAP,
 	  ST_SPECULARMAP,
-	  ST_MATERIALMAP,
 	  ST_REFLECTIONMAP, // cubeMap based reflection
 	  ST_REFRACTIONMAP,
 	  ST_DISPERSIONMAP,
@@ -1042,8 +1046,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_LIGHTMAP,
-	  ST_COLLAPSE_lighting_PHONG, // diffusemap + opt:normalmap + opt:glowmap + opt:specularmap
-	  ST_COLLAPSE_lighting_PBR,   // diffusemap + opt:normalmap + opt:glowmap + materialmap
+	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:physicalmap
+	  ST_COLLAPSE_lighting_PHONG, // map|diffusemap + opt:normalmap + opt:glowmap + specularmap
 	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
 
 	  // light shader stage types
@@ -1054,6 +1058,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	enum class collapseType_t
 	{
 	  COLLAPSE_none,
+	  COLLAPSE_generic, // used before we know it's another one
 	  COLLAPSE_lighting_PHONG,
 	  COLLAPSE_lighting_PBR,
 	  COLLAPSE_reflection_CB,
@@ -1063,7 +1068,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	{
 		stageType_t     type;
 
+		collapseType_t collapseType;
+
 		bool        active;
+
+		bool            dpMaterial;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
@@ -1085,7 +1094,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool        tcGen_Environment;
 		bool        tcGen_Lightmap;
 
-		bool            disableImplicitLightmap;
+		bool implicitLightmap;
 
 		Color::Color32Bit constantColor; // for CGEN_CONST and AGEN_CONST
 
@@ -1115,7 +1124,29 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		expression_t    fresnelScaleExp;
 		expression_t    fresnelBiasExp;
 
-		expression_t    normalScaleExp;
+		// Available textures.
+		bool hasNormalMap;
+		bool hasHeightMap;
+		bool isHeightMapInNormalMap;
+		bool hasMaterialMap;
+		bool isMaterialPhysical;
+		bool hasGlowMap;
+
+		// Available features.
+		bool enableNormalMapping;
+		bool enableDeluxeMapping;
+		bool enableParallaxMapping;
+		bool enablePhysicalMapping;
+		bool enableSpecularMapping;
+		bool enableGlowMapping;
+
+		// Normal map scale and format.
+		bool hasNormalFormat;
+		bool hasNormalScale;
+		vec3_t normalFormat;
+		vec3_t normalScale;
+
+		expression_t    normalIntensityExp;
 
 		expression_t    etaExp;
 		expression_t    etaDeltaExp;
@@ -1164,7 +1195,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	enum class shaderType_t
 	{
-	  SHADER_2D, // surface material: shader is for 2D rendering
+	  SHADER_2D, // surface material: shader is for 2D rendering (like GUI elements)
 	  SHADER_3D_DYNAMIC, // surface material: shader is for cGen diffuseLighting lighting
 	  SHADER_3D_STATIC, // surface material: pre-lit triangle models
 	  SHADER_LIGHT // light material: attenuation
@@ -1198,13 +1229,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		fogPass_t      fogPass; // draw a blended pass, possibly with depth test equals
 		bool       noFog;
 
-		bool       heightMapInNormalMap; // material has normalmap suited for parallax mapping
 		bool       noParallax; // disable parallax for this material even if it's available
-		bool       parallax; // what is finally used by renderer to know what to do
 		float      parallaxOffsetBias; // offset the heightmap top relatively to the floor
 		float      parallaxDepthScale; // per-shader parallax depth scale
-
-		vec3_t     normalFormat; // normalmap format (channel flip)
 
 		bool       noShadows;
 		bool       fogLight;
@@ -1217,10 +1244,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		float          portalRange; // distance to fog out at
 		bool       isPortal;
-
-		collapseType_t lightingCollapseType;
-		collapseType_t reflectCollapseType;
-		int            collapseTextureEnv; // 0, GL_MODULATE, GL_ADD (FIXME: put in stage)
 
 		cullType_t     cullType; // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 		bool       polygonOffset; // set for decals and other items that must be offset
@@ -1562,7 +1585,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	static const uint64_t SORT_LIGHTMAP_SHIFT = SORT_ENTITYNUM_BITS + SORT_ENTITYNUM_SHIFT;
 	static const uint64_t SORT_SHADER_SHIFT = SORT_LIGHTMAP_BITS + SORT_LIGHTMAP_SHIFT;
 
-#define MASKBITS( b ) ( 1 << b ) - 1
+#define MASKBITS( b ) ( 1 << (b) ) - 1
 	static const uint32_t SORT_INDEX_MASK = MASKBITS( SORT_INDEX_BITS );
 	static const uint32_t SORT_FOGNUM_MASK = MASKBITS( SORT_FOGNUM_BITS );
 	static const uint32_t SORT_ENTITYNUM_MASK = MASKBITS( SORT_ENTITYNUM_BITS );
@@ -1588,6 +1611,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		surfaceType_t *surface; // any of surface*_t
 		shader_t      *shader;
 		uint64_t      sort;
+		bool          bspSurface;
 
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
@@ -1927,20 +1951,18 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		decal_t *decals;
 	};
 
-	// The light direction vector is stored as the x/y coordinates
-	// of the vector projected on an unit octahedron. To disambiguate
-	// the upper and lower half of the octahedron, the four lower
-	// triangles of the octahedron are flipped into the outer corners
-	// of the unit square.
+	// The ambient and directional colors are packed into four bytes, the color[3] is the
+	// average of the ambient and directional colors and the ambientPart factor is the
+	// proportion of ambient light in the total light
 	struct bspGridPoint1_t
 	{
-		byte  ambient[3];
-		byte  lightVecX;
+		byte  color[3];
+		byte  ambientPart;
 	};
 	struct bspGridPoint2_t
 	{
-		byte  directed[3];
-		byte  lightVecY;
+		byte  direction[3];
+		byte  unused;
 	};
 
 // ydnar: optimization
@@ -2760,6 +2782,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_ignore; // used for debugging anything
 	extern cvar_t *r_verbose; // used for verbose debug spew
 
+	extern Cvar::Cvar<bool> r_dpBlend;
+
 	extern cvar_t *r_znear; // near Z clip plane
 	extern cvar_t *r_zfar;
 
@@ -2784,7 +2808,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_ambientScale;
 	extern cvar_t *r_lightScale;
 
-	extern cvar_t *r_inGameVideo; // controls whether in game video should be draw
 	extern cvar_t *r_fastsky; // controls whether sky should be cleared or drawn
 	extern cvar_t *r_drawSun; // controls drawing of sun quad
 	extern cvar_t *r_dynamicLight; // dynamic lights enabled/disabled
@@ -2832,7 +2855,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_arb_gpu_shader5;
 
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
-	extern cvar_t *r_collapseStages;
 	extern cvar_t *r_singleShader; // make most world faces use default shader
 	extern cvar_t *r_colorMipLevels; // development aid to see texture mip usage
 	extern cvar_t *r_picmip; // controls picmip values
@@ -2843,6 +2865,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;
 
+	extern cvar_t *r_physicalMapping;
 	extern cvar_t *r_specularExponentMin;
 	extern cvar_t *r_specularExponentMax;
 	extern cvar_t *r_specularScale;
@@ -2851,6 +2874,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_normalScale;
 	extern cvar_t *r_normalMapping;
 	extern cvar_t *r_highQualityNormalMapping;
+	extern cvar_t *r_liquidMapping;
 	extern cvar_t *r_parallaxDepthScale;
 	extern cvar_t *r_parallaxMapping;
 	extern cvar_t *r_glowMapping;
@@ -2947,7 +2971,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_showBatches;
 	extern cvar_t *r_showLightMaps; // render lightmaps only
 	extern cvar_t *r_showDeluxeMaps;
-	extern cvar_t *r_showEntityNormals;
+	extern cvar_t *r_showNormalMaps;
+	extern cvar_t *r_showMaterialMaps;
 	extern cvar_t *r_showAreaPortals;
 	extern cvar_t *r_showCubeProbes;
 	extern cvar_t *r_showBspNodes;
@@ -2993,7 +3018,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	void           R_AddPolygonSurfaces();
 
-	void           R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum );
+	void           R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false );
 
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
@@ -3286,6 +3311,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		bool    skipVBO;
 		int16_t     lightmapNum;
 		int16_t     fogNum;
+		bool        bspSurface;
 
 		uint32_t    numIndexes;
 		uint32_t    numVertexes;
@@ -3333,7 +3359,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	                 bool skipTangentSpaces,
 	                 bool skipVBO,
 	                 int lightmapNum,
-	                 int     fogNum );
+	                 int fogNum,
+	                 bool bspSurface = false );
 
 // *INDENT-ON*
 	void Tess_End();
@@ -3415,7 +3442,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void     R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t forcedOrigin );
 	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				      float *factors[3], vec3_t ambientLight,
-				      vec3_t directedLight, vec2_t lightDir );
+				      vec3_t directedLight, vec3_t lightDir );
 	int      R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 	void     R_TessLight( const trRefLight_t *light, const Color::Color& color );
 

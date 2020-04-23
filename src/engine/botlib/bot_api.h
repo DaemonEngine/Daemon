@@ -33,6 +33,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 #include "bot_types.h"
 
+void BotInit();
 bool     BotSetupNav( const botClass_t *botClass, qhandle_t *navHandle );
 void         BotShutdownNav();
 

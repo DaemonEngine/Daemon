@@ -181,7 +181,7 @@ int            serverStatusCount;
 void        CL_CheckForResend();
 void        CL_ShowIP_f();
 void        CL_ServerStatus_f();
-void        CL_ServerStatusResponse( netadr_t from, msg_t *msg );
+void        CL_ServerStatusResponse( const netadr_t& from, msg_t *msg );
 
 static void CL_UpdateMumble()
 {
@@ -624,7 +624,7 @@ class DemoPlayCmd: public Cmd::StaticCmd {
                     Com_sprintf(name, sizeof(name), "demos/%s.dm_%d", arg, prot_ver);
                 }
 
-                FS_FOpenFileRead(name, &clc.demofile, true);
+                FS_FOpenFileRead(name, &clc.demofile);
                 prot_ver++;
             }
 
@@ -1203,7 +1203,7 @@ public:
 	 * Pops a queued command and executes it whenever there's a matching challenge.
 	 * Returns whether the command has been successful
 	 */
-	bool Pop(const netadr_t &server, const Str::StringRef& challenge)
+	bool Pop(const netadr_t& server, const Str::StringRef& challenge)
 	{
 		auto lock = std::unique_lock<std::mutex>(mutex);
 
@@ -1305,7 +1305,7 @@ public:
 	 * use the challenge to do so.
 	 * Returns true if a command has been executed
 	 */
-	bool HandleChallenge(const netadr_t &server, const Str::StringRef& challenge)
+	bool HandleChallenge(const netadr_t& server, const Str::StringRef& challenge)
 	{
 		return queue.Pop(server, challenge);
 	}
@@ -1422,7 +1422,7 @@ static void CL_LoadRSAKeys()
 
 	Log::Notice( "Loading RSA keys from %s" , fileName );
 
-	len = FS_FOpenFileRead( fileName, &f, true );
+	len = FS_FOpenFileRead( fileName, &f );
 
 	if ( !f || len < 1 )
 	{
@@ -1728,7 +1728,7 @@ to the server, the server will send out of band disconnect packets
 to the client so it doesn't have to wait for the full timeout period.
 ===================
 */
-void CL_DisconnectPacket( netadr_t from )
+static void CL_DisconnectPacket( const netadr_t& from )
 {
 	if ( cls.state < connstate_t::CA_CONNECTING )
 	{
@@ -2033,7 +2033,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		{
 			buffptr++;
 
-			if ( buffend - buffptr < (int) (sizeof( addresses[ numservers ].ip ) + sizeof( addresses[ numservers ].port ) + 1) )
+			if ( buffend - buffptr < (ptrdiff_t) (sizeof( addresses[ numservers ].ip ) + sizeof( addresses[ numservers ].port ) + 1) )
 			{
 				break;
 			}
@@ -2098,7 +2098,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		{
 			buffptr++;
 
-			if ( buffend - buffptr < (int) (sizeof( addresses[ numservers ].ip6 ) + sizeof( addresses[ numservers ].port ) + 1) )
+			if ( buffend - buffptr < (ptrdiff_t) (sizeof( addresses[ numservers ].ip6 ) + sizeof( addresses[ numservers ].port ) + 1) )
 			{
 				break;
 			}
@@ -2225,7 +2225,7 @@ CL_ConnectionlessPacket
 Responses to broadcasts, etc
 =================
 */
-void CL_ConnectionlessPacket( netadr_t from, msg_t *msg )
+static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 {
 	MSG_BeginReadingOOB( msg );
 	MSG_ReadLong( msg );  // skip the -1
@@ -2378,7 +2378,7 @@ CL_PacketEvent
 A packet has arrived from the main event loop
 =================
 */
-void CL_PacketEvent( netadr_t from, msg_t *msg )
+void CL_PacketEvent( const netadr_t& from, msg_t *msg )
 {
 	int headerBytes;
 
@@ -2611,7 +2611,7 @@ bool CL_InitRenderer()
 	// filehandle is unused but forces FS_FOpenFileRead() to heed purecheck because it does not when filehandle is nullptr
 	if ( cl_consoleFont->string[0] )
 	{
-		if ( FS_FOpenFileRead( cl_consoleFont->string, &f, false ) >= 0 )
+		if ( FS_FOpenFileRead( cl_consoleFont->string, &f ) >= 0 )
 		{
 			if ( cl_consoleFontScaling->value == 0 )
 			{
@@ -2665,6 +2665,8 @@ void CL_StartHunkUsers()
 	{
 		return;
 	}
+
+	Cvar::SetLatchedValues();
 
 	if ( !cls.rendererStarted && CL_InitRenderer() )
 	{
@@ -2772,8 +2774,6 @@ static bool CL_InitRef()
 	ri.CIN_UploadCinematic = CIN_UploadCinematic;
 	ri.CIN_PlayCinematic = CIN_PlayCinematic;
 	ri.CIN_RunCinematic = CIN_RunCinematic;
-
-	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;
 
 	// XreaL BEGIN
 	ri.CL_VideoRecording = CL_VideoRecording;
@@ -2930,7 +2930,6 @@ void CL_Init()
 	Cvar_Get( "name", UNNAMED_PLAYER, CVAR_USERINFO | CVAR_ARCHIVE );
 	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "snaps", "40", CVAR_USERINFO  );
-//  Cvar_Get ("sex", "male", CVAR_USERINFO  );
 
 	Cvar_Get( "password", "", CVAR_USERINFO );
 
@@ -3073,7 +3072,7 @@ static void CL_SetServerInfo( serverInfo_t *server, const char *info, int ping )
 	}
 }
 
-static void CL_SetServerInfoByAddress( netadr_t from, const char *info, int ping )
+static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, int ping )
 {
 	int i;
 
@@ -3107,7 +3106,7 @@ static void CL_SetServerInfoByAddress( netadr_t from, const char *info, int ping
 CL_ServerInfoPacket
 ===================
 */
-void CL_ServerInfoPacket( netadr_t from, msg_t *msg )
+void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 {
 	int  i, type;
 	char info[ MAX_INFO_STRING ];
@@ -3236,7 +3235,7 @@ void CL_ServerInfoPacket( netadr_t from, msg_t *msg )
 CL_GetServerStatus
 ===================
 */
-serverStatus_t *CL_GetServerStatus( netadr_t from )
+static serverStatus_t *CL_GetServerStatus( const netadr_t& from )
 {
 //	serverStatus_t *serverStatus;
 	int i, oldest, oldestTime;
@@ -3361,7 +3360,7 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 CL_ServerStatusResponse
 ===================
 */
-void CL_ServerStatusResponse( netadr_t from, msg_t *msg )
+void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
 {
 	const char           *s;
 	int            i, score, ping;
