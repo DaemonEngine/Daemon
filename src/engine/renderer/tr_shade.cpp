@@ -346,53 +346,6 @@ SURFACE SHADERS
 ALIGNED( 16, shaderCommands_t tess );
 
 /*
-=================
-GetLightMap
-=================
-*/
-static image_t* GetLightMap()
-{
-	if ( !tr.lightmaps.currentElements )
-	{
-		return tr.whiteImage;
-	}
-	else if ( tr.fatLightmap )
-	{
-		return tr.fatLightmap;
-	}
-	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
-	{
-		return ( image_t * ) Com_GrowListElement( &tr.lightmaps, tess.lightmapNum );
-	}
-	else
-	{
-		return tr.whiteImage;
-	}
-}
-
-/*
-=================
-GetDeluxeMap
-=================
-*/
-static image_t* GetDeluxeMap()
-{
-
-	if ( !tr.deluxemaps.currentElements )
-	{
-		return tr.blackImage;
-	}
-	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.deluxemaps.currentElements )
-	{
-		return ( image_t * ) Com_GrowListElement( &tr.deluxemaps, tess.lightmapNum );
-	}
-	else
-	{
-		return tr.blackImage;
-	}
-}
-
-/*
 ================
 DrawTris
 
@@ -706,6 +659,53 @@ static void Render_generic( int stage )
 	Tess_DrawElements();
 
 	GL_CheckErrors();
+}
+
+/*
+=================
+GetLightMap
+=================
+*/
+static image_t* GetLightMap()
+{
+	if ( !tr.lightmaps.currentElements )
+	{
+		return tr.whiteImage;
+	}
+	else if ( tr.fatLightmap )
+	{
+		return tr.fatLightmap;
+	}
+	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
+	{
+		return ( image_t * ) Com_GrowListElement( &tr.lightmaps, tess.lightmapNum );
+	}
+	else
+	{
+		return tr.whiteImage;
+	}
+}
+
+/*
+=================
+GetDeluxeMap
+=================
+*/
+static image_t* GetDeluxeMap()
+{
+
+	if ( !tr.deluxemaps.currentElements )
+	{
+		return tr.blackImage;
+	}
+	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.deluxemaps.currentElements )
+	{
+		return ( image_t * ) Com_GrowListElement( &tr.deluxemaps, tess.lightmapNum );
+	}
+	else
+	{
+		return tr.blackImage;
+	}
 }
 
 static void Render_lightMapping( int stage )
