@@ -538,19 +538,6 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		});
 		break;
 
-	case G_SEND_MESSAGE:
-		IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](int, std::vector<uint8_t>) {
-			Log::Warn("SendMessageMsg unsupported");
-		});
-		break;
-
-	case G_MESSAGE_STATUS:
-		IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](int, messageStatus_t& status) {
-			Log::Warn("MessageStatusMsg unsupported");
-			status = {};
-		});
-		break;
-
 	case G_RSA_GENMSG:
 		IPC::HandleMsg<RSAGenMsgMsg>(channel, std::move(reader), [this](std::string pubkey, int& res, std::string& cleartext, std::string& encrypted) {
 			char cleartextBuffer[RSA_STRING_LENGTH];

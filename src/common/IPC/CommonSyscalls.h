@@ -219,14 +219,12 @@ namespace VM {
 
     enum EngineFileSystemMessages {
         FS_INITIALIZE,
-        FS_HOMEPATH_OPENMODE, // TODO(0.52) remove
         FS_HOMEPATH_FILEEXISTS,
         FS_HOMEPATH_TIMESTAMP,
         FS_HOMEPATH_MOVEFILE,
         FS_HOMEPATH_DELETEFILE,
         FS_HOMEPATH_LISTFILES,
         FS_HOMEPATH_LISTFILESRECURSIVE,
-        FS_PAKPATH_OPEN, // TODO(0.52) remove
         FS_PAKPATH_TIMESTAMP,
         FS_PAKPATH_LOADPAK
     };
@@ -234,10 +232,6 @@ namespace VM {
     using FSInitializeMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_INITIALIZE>>,
         IPC::Reply<std::string, std::string, std::vector<FS::PakInfo>, std::vector<FS::LoadedPakInfo>, std::unordered_map<std::string, std::pair<uint32_t, FS::offset_t>>>
-    >;
-    using FSHomePathOpenModeMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_OPENMODE>, std::string, uint32_t>,
-        IPC::Reply<>
     >;
     using FSHomePathFileExistsMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_FILEEXISTS>, std::string>,
@@ -262,10 +256,6 @@ namespace VM {
     using FSHomePathListFilesRecursiveMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_LISTFILESRECURSIVE>, std::string>,
         IPC::Reply<Util::optional<std::vector<std::string>>>
-    >;
-    using FSPakPathOpenMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_OPEN>, uint32_t, std::string>,
-        IPC::Reply<>
     >;
     using FSPakPathTimestampMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_TIMESTAMP>, uint32_t, std::string>,

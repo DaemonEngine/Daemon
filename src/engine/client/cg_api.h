@@ -166,7 +166,6 @@ void            trap_R_LoadWorldMap( const char *mapname );
 qhandle_t       trap_R_RegisterModel( const char *name );
 qhandle_t       trap_R_RegisterSkin( const char *name );
 qhandle_t       trap_R_RegisterShader( const char *name, RegisterShaderFlags_t flags );
-void            trap_R_RegisterFont( const char *fontName, const char *fallbackName, int pointSize, fontMetrics_t * );
 
 void            trap_R_ClearScene();
 void            trap_R_AddRefEntityToScene( const refEntity_t *re );

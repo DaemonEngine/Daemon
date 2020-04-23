@@ -1279,12 +1279,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			});
 			break;
 
-		case CG_R_REGISTERFONT:
-			IPC::HandleMsg<Render::RegisterFontMsg>(channel, std::move(reader), [this] (const std::string&, const std::string&, int, fontMetrics_t&) {
-				Log::Warn("TODO(0.52): remove");
-			});
-			break;
-
 		case CG_R_MODELBOUNDS:
 			IPC::HandleMsg<Render::ModelBoundsMsg>(channel, std::move(reader), [this] (int handle, std::array<float, 3>& mins, std::array<float, 3>& maxs) {
 				re.ModelBounds(handle, mins.data(), maxs.data());
@@ -1519,21 +1513,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 				CL_ServerStatus(nullptr, nullptr, 0);
 			});
 			break;
-
-		case CG_SEND_MESSAGE:
-			IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](std::vector<uint8_t>) {
-				Log::Warn("unsupported SendMessageMsg");
-			});
-			break;
-
-		case CG_MESSAGE_STATUS:
-			IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](messageStatus_t& status) {
-				Log::Warn("unsupported MessageStatusMsg");
-				status = {};
-			});
-			break;
-
-
 
 	default:
 		Sys::Drop("Bad CGame QVM syscall minor number: %d", index);
