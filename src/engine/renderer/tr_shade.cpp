@@ -350,33 +350,24 @@ ALIGNED( 16, shaderCommands_t tess );
 GetLightMap
 =================
 */
-static image_t* GetLightMap( bool noLightMap )
+static image_t* GetLightMap()
 {
-	image_t *lightmap;
-
-	if ( noLightMap )
-	{
-		lightmap = nullptr;
-	}
-	else if ( tr.fatLightmap )
-	{
-		lightmap = tr.fatLightmap;
-	}
-	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
-	{
-		lightmap = ( image_t * ) Com_GrowListElement( &tr.lightmaps, tess.lightmapNum );
-	}
-	else
-	{
-		lightmap = nullptr;
-	}
-
-	if ( !tr.lightmaps.currentElements || !lightmap )
+	if ( !tr.lightmaps.currentElements )
 	{
 		return tr.whiteImage;
 	}
-
-	return lightmap;
+	else if ( tr.fatLightmap )
+	{
+		return tr.fatLightmap;
+	}
+	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
+	{
+		return ( image_t * ) Com_GrowListElement( &tr.lightmaps, tess.lightmapNum );
+	}
+	else
+	{
+		return tr.whiteImage;
+	}
 }
 
 /*
@@ -386,23 +377,19 @@ GetDeluxeMap
 */
 static image_t* GetDeluxeMap()
 {
-	image_t *deluxemap;
 
-	if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.deluxemaps.currentElements )
-	{
-		deluxemap = ( image_t * ) Com_GrowListElement( &tr.deluxemaps, tess.lightmapNum );
-	}
-	else
-	{
-		deluxemap = nullptr;
-	}
-
-	if ( !tr.deluxemaps.currentElements || !deluxemap )
+	if ( !tr.deluxemaps.currentElements )
 	{
 		return tr.blackImage;
 	}
-
-	return deluxemap;
+	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.deluxemaps.currentElements )
+	{
+		return ( image_t * ) Com_GrowListElement( &tr.deluxemaps, tess.lightmapNum );
+	}
+	else
+	{
+		return tr.blackImage;
+	}
 }
 
 /*
@@ -735,6 +722,10 @@ static void Render_lightMapping( int stage )
 		&& tess.bspSurface \
 		&& tr.worldDeluxeMapping;
 
+	bool noLightMap = !pStage->implicitLightmap
+	&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
+	&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
+
 	bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
 
 	uint32_t stateBits = pStage->stateBits;
@@ -772,6 +763,47 @@ static void Render_lightMapping( int stage )
 		default:
 			alphaGen = alphaGen_t::AGEN_CONST;
 			break;
+	}
+
+	// u_LightMap, u_DeluxeMap
+	image_t *lightmap;
+	image_t *deluxemap;
+
+	if ( noLightMap )
+	{
+		lightmap = tr.whiteImage;
+		enableLightMapping = true;
+	}
+	else if ( enableLightMapping )
+	{
+		lightmap = GetLightMap();
+	}
+	else if ( tr.lightGrid1Image )
+	{
+		// Store lightGrid1 as lightmap,
+		// the GLSL code will know to deal with it.
+		lightmap = tr.lightGrid1Image;
+	}
+	else
+	{
+		lightmap = tr.whiteImage;
+		enableLightMapping = true;
+	}
+
+	if ( enableDeluxeMapping )
+	{
+		deluxemap = GetDeluxeMap();
+	}
+	else if ( tr.lightGrid2Image )
+	{
+		// Store lightGrid2 as deluxemap,
+		// the GLSL code will know to deal with it.
+		deluxemap = tr.lightGrid2Image;
+	}
+	else
+	{
+		deluxemap =  tr.blackImage;
+		enableDeluxeMapping = true;
 	}
 
 	// choose right shader program ----------------------------------
@@ -1009,40 +1041,10 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_LightMap
-	if ( enableLightMapping )
-	{
-		bool noLightMap = !pStage->implicitLightmap
-		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
-		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
-
-		image_t *lightmap = GetLightMap( noLightMap );
-		GL_BindToTMU( BIND_LIGHTMAP, lightmap );
-	}
-	else if ( tr.lightGrid1Image )
-	{
-		// FIXME: enable lightmapping with whiteImage if not tr.lightGrid1Image
-		GL_BindToTMU( BIND_LIGHTMAP, tr.lightGrid1Image );
-	}
-	else
-	{
-		GL_BindToTMU( BIND_LIGHTMAP, tr.whiteImage );
-	}
+	GL_BindToTMU( BIND_LIGHTMAP, lightmap );
 
 	// bind u_DeluxeMap
-	if ( enableDeluxeMapping )
-	{
-		image_t *deluxemap = GetDeluxeMap();
-		GL_BindToTMU( BIND_DELUXEMAP, deluxemap );
-	}
-	else if ( tr.lightGrid2Image )
-	{
-		// FIXME: enable deluxemapping with blackImage if not tr.lightGrid2Image
-		GL_BindToTMU( BIND_DELUXEMAP, tr.lightGrid2Image );
-	}
-	else
-	{
-		GL_BindToTMU( BIND_DELUXEMAP, tr.blackImage );
-	}
+	GL_BindToTMU( BIND_DELUXEMAP, deluxemap );
 
 	// bind u_GlowMap
 	GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
