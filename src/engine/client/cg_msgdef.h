@@ -223,10 +223,6 @@ enum cgameImport_t
   CG_LAN_RESETPINGS,
   CG_LAN_SERVERSTATUS,
   CG_LAN_RESETSERVERSTATUS,
-
-  // TODO(0.52) Remove these two.
-  CG_SEND_MESSAGE = 125,
-  CG_MESSAGE_STATUS,
 };
 
 // All Miscs
@@ -292,12 +288,6 @@ using PrepareKeyUpMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_PREPAREKEYUP>>
 >;
 
-using SendMessageMsg = IPC::Message<IPC::Id<VM::QVM, CG_SEND_MESSAGE>, std::vector<uint8_t>>;
-using MessageStatusMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_MESSAGE_STATUS>>,
-		IPC::Reply<messageStatus_t>
->;
-
 // All Sounds
 
 namespace Audio {
@@ -347,10 +337,6 @@ namespace Render {
 	using RegisterShaderMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_REGISTERSHADER>, std::string, int>,
 		IPC::Reply<int>
-	>;
-	using RegisterFontMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_R_REGISTERFONT>, std::string, std::string, int>,
-		IPC::Reply<fontMetrics_t>
 	>;
 	using ModelBoundsMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_MODELBOUNDS>, int>,

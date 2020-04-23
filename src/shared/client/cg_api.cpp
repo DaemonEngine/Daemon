@@ -303,11 +303,6 @@ qhandle_t trap_R_RegisterShader( const char *name, RegisterShaderFlags_t flags )
 	return handle;
 }
 
-void trap_R_RegisterFont( const char *fontName, const char *fallbackName, int pointSize, fontMetrics_t *font )
-{
-	VM::SendMsg<Render::RegisterFontMsg>(fontName, fallbackName, pointSize, *font);
-}
-
 void trap_R_ClearScene()
 {
 	cmdBuffer.SendMsg<Render::ClearSceneMsg>();

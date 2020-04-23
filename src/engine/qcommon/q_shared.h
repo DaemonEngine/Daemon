@@ -206,14 +206,6 @@ using clipHandle_t = int;
 
 #define MAX_SAY_TEXT       400
 
-// TODO(0.52): remove
-	enum class messageStatus_t : uint8_t
-	{
-	  MESSAGE_EMPTY,
-	  MESSAGE_WAITING, // rate/packet limited
-	  MESSAGE_WAITING_OVERFLOW, // packet too large with message
-	};
-
 //
 // these aren't needed by any of the VMs.  put in another header?
 //
@@ -2120,16 +2112,6 @@ struct fontInfo_t
 	int           height;
 	float         glyphScale;
 	char          name[ MAX_QPATH ];
-};
-
-// TODO(0.52) remove.
-struct fontMetrics_t
-{
-	fontHandle_t  handle;
-	bool      isBitmap;
-	int           pointSize;
-	int           height;
-	float         glyphScale;
 };
 
 #define Square( x ) ( ( x ) * ( x ) )

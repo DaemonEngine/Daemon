@@ -42,8 +42,6 @@ enum gameImport_t
   G_GET_SERVERINFO,
   G_GET_USERCMD,
   G_GET_ENTITY_TOKEN,
-  G_SEND_MESSAGE, // TODO(0.52): Remove these two
-  G_MESSAGE_STATUS,
   G_RSA_GENMSG, // ( const char *public_key, char *cleartext, char *encrypted )
   G_GEN_FINGERPRINT,
   G_GET_PLAYER_PUBKEY,
@@ -100,11 +98,6 @@ using GetUsercmdMsg = IPC::SyncMessage<
 using GetEntityTokenMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_ENTITY_TOKEN>>,
     IPC::Reply<bool, std::string>
->;
-using SendMessageMsg = IPC::Message<IPC::Id<VM::QVM, G_SEND_MESSAGE>, int, std::vector<uint8_t>>;
-using MessageStatusMsg = IPC::SyncMessage<
-    IPC::Message<IPC::Id<VM::QVM, G_MESSAGE_STATUS>, int>,
-    IPC::Reply<messageStatus_t>
 >;
 using RSAGenMsgMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_RSA_GENMSG>, std::string>,
@@ -207,8 +200,6 @@ enum gameExport_t
   BOT_VISIBLEFROMPOS, // bool ()( vec3_t srcOrig, int srcNum, dstOrig, int dstNum, bool isDummy );
   BOT_CHECKATTACKATPOS, // bool ()( int entityNum, int enemyNum, vec3_t position,
   //              bool ducking, bool allowWorldHit );
-
-  GAME_MESSAGERECEIVED, // TODO(0.52) remove
 };
 
 using GameStaticInitMsg = IPC::SyncMessage<
