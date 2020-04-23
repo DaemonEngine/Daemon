@@ -36,6 +36,19 @@ IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
 IN(smooth) vec3		var_Normal;
 
+#if defined(USE_BSP_SURFACE) && defined(USE_LIGHT_MAPPING) && !defined(USE_DELUXE_MAPPING)
+/* HACK: restore legacy behavior for bsp surface with lightmap
+but no deluxemap, do not use the lightgrid to compute the light
+direction, do not do normal mapping neither specular mapping
+with static lights.
+https://github.com/DaemonEngine/Daemon/issues/324
+
+Comment out this line to enable lightgrid light direction with
+lightmap light color when there is no deluxe map.
+*/
+	#define HACK_NO_BSP_GRID_LIGHTDIR
+#endif
+
 #if defined(USE_LIGHT_MAPPING)
 	uniform sampler2D u_LightMap;
 #else
@@ -100,8 +113,10 @@ void main()
 	color.a = diffuse.a;
 
 	#if !defined(USE_LIGHT_MAPPING) || !defined(USE_DELUXE_MAPPING)
-		// Compute light grid position.
-		vec3 lightGridPos = (var_Position - u_LightGridOrigin) * u_LightGridScale;
+		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
+			// Compute light grid position.
+			vec3 lightGridPos = (var_Position - u_LightGridOrigin) * u_LightGridScale;
+		#endif
 	#endif
 
 	#if defined(USE_DELUXE_MAPPING)
@@ -109,16 +124,22 @@ void main()
 		vec4 deluxe = texture2D(u_DeluxeMap, var_TexLight);
 		vec3 lightDir = normalize(2.0 * deluxe.xyz - 1.0);
 	#else
-		// Compute light direction in world space from light grid.
-		vec4 texel = texture3D(u_LightGrid2, lightGridPos);
-		vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
+		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
+			// Compute light direction in world space from light grid.
+			vec4 texel = texture3D(u_LightGrid2, lightGridPos);
+			vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
+		#endif
 	#endif
 
 	#if defined(USE_LIGHT_MAPPING)
 		// Compute light color from world space lightmap.
 		vec3 lightColor = texture2D(u_LightMap, var_TexLight).rgb;
 
-		color.rgb = vec3(0.0);
+		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
+			color.rgb = vec3(0.0);
+		#else
+			color.rgb = lightColor.rgb * diffuse.rgb;
+		#endif
 	#else
 		// Compute light color from lightgrid.
 		vec3 ambientColor, lightColor;
@@ -149,12 +170,16 @@ void main()
 		https://github.com/DaemonEngine/Daemon/issues/299#issuecomment-606186347
 		*/
 
-		// Divide by cosine term to restore original light color.
-		lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.3, 1.0);
+		#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
+			// Divide by cosine term to restore original light color.
+			lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.3, 1.0);
+		#endif
 	#endif
 
-	// Blend static light.
-	computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+	#if !defined(HACK_NO_BSP_GRID_LIGHTDIR)
+		// Blend static light.
+		computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+	#endif
 
 	// Blend dynamic lights.
 	computeDLights(var_Position, normal, viewDir, diffuse, material, color);
