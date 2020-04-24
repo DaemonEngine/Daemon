@@ -948,6 +948,11 @@ static void Render_lightMapping( int stage )
 		cubemapProbe_t *cubeProbeNearest;
 		cubemapProbe_t *cubeProbeSecondNearest;
 
+		image_t *cubeMap0 = nullptr;
+		image_t *cubeMap1 = nullptr;
+
+		float interpolation = 0.0;
+
 		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
 
 		if ( backEnd.currentEntity && !isWorldEntity )
@@ -964,35 +969,20 @@ static void Render_lightMapping( int stage )
 		{
 			GLimp_LogComment( "cubeProbeNearest && cubeProbeSecondNearest == NULL\n" );
 
-			// bind u_EnvironmentMap0
-			GL_BindToTMU( BIND_ENVIRONMENTMAP0, tr.whiteCubeImage );
-
-			// bind u_EnvironmentMap1
-			GL_BindToTMU( BIND_ENVIRONMENTMAP1, tr.whiteCubeImage );
+			cubeMap0 = tr.whiteCubeImage;
+			cubeMap1 = tr.whiteCubeImage;
 		}
 		else if ( cubeProbeNearest == nullptr )
 		{
 			GLimp_LogComment( "cubeProbeNearest == NULL\n" );
 
-			// bind u_EnvironmentMap0
-			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeProbeSecondNearest->cubemap );
-
-			// u_EnvironmentInterpolation
-			gl_lightMappingShader->SetUniform_EnvironmentInterpolation( 0.0 );
+			cubeMap0 = cubeProbeSecondNearest->cubemap;
 		}
 		else if ( cubeProbeSecondNearest == nullptr )
 		{
 			GLimp_LogComment( "cubeProbeSecondNearest == NULL\n" );
 
-			// bind u_EnvironmentMap0
-			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeProbeNearest->cubemap );
-
-			// bind u_EnvironmentMap1
-			// GL_SelectTexture( BIND_ENVIRONMENTMAP1 );
-			// GL_Bind( cubeProbeNearest->cubemap );
-
-			// u_EnvironmentInterpolation
-			gl_lightMappingShader->SetUniform_EnvironmentInterpolation( 0.0 );
+			cubeMap0 = cubeProbeNearest->cubemap;
 		}
 		else
 		{
@@ -1010,23 +1000,40 @@ static void Render_lightMapping( int stage )
 				cubeProbeSecondNearestDistance = Distance( backEnd.viewParms.orientation.origin, cubeProbeSecondNearest->origin );
 			}
 
-			float interpolate = cubeProbeNearestDistance / ( cubeProbeNearestDistance + cubeProbeSecondNearestDistance );
+			interpolation = cubeProbeNearestDistance / ( cubeProbeNearestDistance + cubeProbeSecondNearestDistance );
 
 			if ( r_logFile->integer )
 			{
 				GLimp_LogComment( va( "cubeProbeNearestDistance = %f, cubeProbeSecondNearestDistance = %f, interpolation = %f\n",
-						cubeProbeNearestDistance, cubeProbeSecondNearestDistance, interpolate ) );
+						cubeProbeNearestDistance, cubeProbeSecondNearestDistance, interpolation ) );
 			}
 
-			// bind u_EnvironmentMap0
-			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeProbeNearest->cubemap );
-
-			// bind u_EnvironmentMap1
-			GL_BindToTMU( BIND_ENVIRONMENTMAP1, cubeProbeSecondNearest->cubemap );
-
-			// u_EnvironmentInterpolation
-			gl_lightMappingShader->SetUniform_EnvironmentInterpolation( interpolate );
+			cubeMap0 = cubeProbeNearest->cubemap;
+			cubeMap1 = cubeProbeSecondNearest->cubemap;
 		}
+
+		/* TODO: Check why it is required to test for this, why
+		cubeProbeNearest->cubemap and cubeProbeSecondNearest->cubemap
+		can be nullptr while cubeProbeNearest and cubeProbeSecondNearest
+		are not. Maybe this is only required while cubemaps are building. */
+		if ( cubeMap0 == nullptr )
+		{
+			cubeMap0 = tr.whiteCubeImage;
+		}
+
+		if ( cubeMap1 == nullptr )
+		{
+			cubeMap1 = tr.whiteCubeImage;
+		}
+
+		// bind u_EnvironmentMap0
+		GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeMap0 );
+
+		// bind u_EnvironmentMap1
+		GL_BindToTMU( BIND_ENVIRONMENTMAP1, cubeMap1 );
+
+		// bind u_EnvironmentInterpolation
+		gl_lightMappingShader->SetUniform_EnvironmentInterpolation( interpolation );
 	}
 
 	// bind u_LightGridOrigin and u_LightGridScale to compute light grid position
