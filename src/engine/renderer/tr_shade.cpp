@@ -726,8 +726,6 @@ static void Render_lightMapping( int stage )
 	&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
 	&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
 
-	bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
-
 	uint32_t stateBits = pStage->stateBits;
 
 	if ( enableLightMapping && r_showLightMaps->integer )
@@ -949,6 +947,8 @@ static void Render_lightMapping( int stage )
 	{
 		cubemapProbe_t *cubeProbeNearest;
 		cubemapProbe_t *cubeProbeSecondNearest;
+
+		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
 
 		if ( backEnd.currentEntity && !isWorldEntity )
 		{
