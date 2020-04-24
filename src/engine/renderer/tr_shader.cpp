@@ -4782,6 +4782,7 @@ static void CollapseStages()
 		stage->hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 		stage->hasHeightMap = stage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
 		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && stage->hasNormalMap;
+		stage->isNormalMapFromHeightMap = stage->hasHeightMap && !stage->hasNormalMap;
 		stage->hasMaterialMap = stage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 		stage->hasGlowMap = stage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 		stage->isMaterialPhysical = stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;

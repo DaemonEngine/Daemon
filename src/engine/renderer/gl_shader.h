@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define USE_UNIFORM_FIREWALL 1
 
 // *INDENT-OFF*
-static const unsigned int MAX_SHADER_MACROS = 9;
+static const unsigned int MAX_SHADER_MACROS = 10;
 static const unsigned int GL_SHADER_VERSION = 3;
 
 class ShaderException : public std::runtime_error
@@ -787,6 +787,7 @@ protected:
 	  USE_LIGHT_MAPPING,
 	  USE_DELUXE_MAPPING,
 	  USE_HEIGHTMAP_IN_NORMALMAP,
+	  USE_NORMALMAP_FROM_HEIGHTMAP,
 	  USE_PARALLAX_MAPPING,
 	  USE_REFLECTIVE_SPECULAR,
 	  USE_SHADOWING,
@@ -1082,6 +1083,31 @@ public:
 	}
 
 	void SetHeightMapInNormalMap( bool enable )
+	{
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "USE_NORMALMAP_FROM_HEIGHTMAP";
+	}
+
+	EGLCompileMacro GetType() const
+	{
+		return EGLCompileMacro::USE_NORMALMAP_FROM_HEIGHTMAP;
+	}
+
+	void SetNormalMapFromHeightMap( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -2245,6 +2271,7 @@ class GLShader_lightMapping :
 	public GLCompileMacro_USE_LIGHT_MAPPING,
 	public GLCompileMacro_USE_DELUXE_MAPPING,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP,
 	public GLCompileMacro_USE_PARALLAX_MAPPING,
 	public GLCompileMacro_USE_REFLECTIVE_SPECULAR,
 	public GLCompileMacro_USE_PHYSICAL_SHADING
@@ -2284,6 +2311,7 @@ class GLShader_forwardLighting_omniXYZ :
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP,
 	public GLCompileMacro_USE_PARALLAX_MAPPING,
 	public GLCompileMacro_USE_SHADOWING //,
 {
@@ -2323,6 +2351,7 @@ class GLShader_forwardLighting_projXYZ :
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP,
 	public GLCompileMacro_USE_PARALLAX_MAPPING,
 	public GLCompileMacro_USE_SHADOWING //,
 {
@@ -2364,6 +2393,7 @@ class GLShader_forwardLighting_directionalSun :
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP,
 	public GLCompileMacro_USE_PARALLAX_MAPPING,
 	public GLCompileMacro_USE_SHADOWING //,
 {
@@ -2413,6 +2443,7 @@ class GLShader_reflection :
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP,
 	public GLCompileMacro_USE_PARALLAX_MAPPING
 {
 public:
@@ -2620,6 +2651,7 @@ class GLShader_liquid :
 	public u_LightGridOrigin,
 	public u_LightGridScale,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_NORMALMAP_FROM_HEIGHTMAP,
 	public GLCompileMacro_USE_PARALLAX_MAPPING
 {
 public:

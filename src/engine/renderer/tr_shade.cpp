@@ -510,6 +510,11 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 }
 
+/*
+==============
+SetNormalScale
+==============
+*/
 void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale )
 {
 	float normalIntensity = RB_EvalExpression( &pStage->normalIntensityExp, 1.0 );
@@ -820,6 +825,8 @@ static void Render_lightMapping( int stage )
 	gl_lightMappingShader->SetDeluxeMapping( enableDeluxeMapping );
 
 	gl_lightMappingShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+
+	gl_lightMappingShader->SetNormalMapFromHeightMap( pStage->isNormalMapFromHeightMap );
 
 	gl_lightMappingShader->SetParallaxMapping( pStage->enableParallaxMapping );
 
@@ -1226,6 +1233,8 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 
 	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
 
+	gl_forwardLightingShader_omniXYZ->SetNormalMapFromHeightMap( pStage->isNormalMapFromHeightMap );
+
 	gl_forwardLightingShader_omniXYZ->SetParallaxMapping( pStage->enableParallaxMapping );
 	
 	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
@@ -1411,6 +1420,8 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
 
+	gl_forwardLightingShader_projXYZ->SetNormalMapFromHeightMap( pStage->isNormalMapFromHeightMap );
+
 	gl_forwardLightingShader_projXYZ->SetParallaxMapping( pStage->enableParallaxMapping );
 	
 	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
@@ -1594,6 +1605,8 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+
+	gl_forwardLightingShader_directionalSun->SetNormalMapFromHeightMap( pStage->isNormalMapFromHeightMap );
 
 	gl_forwardLightingShader_directionalSun->SetParallaxMapping( pStage->enableParallaxMapping );
 
@@ -1787,6 +1800,8 @@ static void Render_reflection_CB( int stage )
 
 	// choose right shader program ----------------------------------
 	gl_reflectionShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+
+	gl_reflectionShader->SetNormalMapFromHeightMap( pStage->isNormalMapFromHeightMap );
 
 	gl_reflectionShader->SetParallaxMapping( pStage->enableParallaxMapping );
 
@@ -2055,6 +2070,8 @@ static void Render_liquid( int stage )
 
 	// choose right shader program
 	gl_liquidShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+
+	gl_liquidShader->SetNormalMapFromHeightMap( pStage->isNormalMapFromHeightMap );
 
 	gl_liquidShader->SetParallaxMapping( pStage->enableParallaxMapping );
 
