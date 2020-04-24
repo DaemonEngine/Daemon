@@ -6347,6 +6347,14 @@ void R_BuildCubeMaps()
 	size_t tics = 0;
 	int nextTicCount = 0;
 
+	// Early abort if a BSP is not loaded yet since
+	// the buildcubemaps command can be called from
+	// everywhere including the main menu.
+	if ( tr.world == nullptr )
+	{
+		return;
+	}
+
 	startTime = ri.Milliseconds();
 
 	memset( &rf, 0, sizeof( refdef_t ) );
