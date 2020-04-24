@@ -26,6 +26,8 @@ build_script:
   - cmd: >
       cmake --version
 
+      bash -c "echo aaaaaaa"
+
       set cmake=cmake
 
       if not "x%generator:Visual Studio=%"=="x%generator%"
