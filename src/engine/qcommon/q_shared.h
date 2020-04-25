@@ -1844,8 +1844,8 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 #define USERCMD_BUTTONS     16 // bits allocated for buttons (multiple of 8)
 
 #define BUTTON_ATTACK       0
-#define BUTTON_TALK         1  // disables actions
-#define BUTTON_USE_HOLDABLE 2
+#define BUTTON_ATTACK2      1
+#define BUTTON_ATTACK3      2
 #define BUTTON_GESTURE      3
 #define BUTTON_WALKING      4  // walking can't just be inferred from MOVE_RUN
                                // because a key pressed late in the frame will
@@ -1854,9 +1854,9 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
                                // and won't generate footsteps
 #define BUTTON_SPRINT       5
 #define BUTTON_ACTIVATE     6
-#define BUTTON_ANY          7  // if any key is pressed
-#define BUTTON_ATTACK2      8
-//                          9
+//                          7
+#define BUTTON_ANY          8  // if any key is pressed
+#define BUTTON_TALK         9  // disables actions
 //                          10
 //                          11
 //                          12
