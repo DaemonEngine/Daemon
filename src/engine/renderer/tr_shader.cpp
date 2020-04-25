@@ -1495,7 +1495,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		}
 	}
 
-	// tell renderer to enable parallax mapping since an heightmap is found
+	// tell renderer to enable relief mapping since an heightmap is found
 	// also tell renderer to not abuse normalmap alpha channel because it's an heightmap
 	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
 	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP
@@ -3923,12 +3923,12 @@ static bool ParseShader( const char *_text )
 
 			continue;
 		}
-		// parallax mapping
+		// relief mapping
 		else if ( !Q_stricmp( token, "parallax" ) )
 		{
 			// legacy lone “parallax” XreaL keyword was
-			// never used, it had purpose to enable parallax
-			// for the current shader
+			// never used, it had purpose to enable relief
+			// mapping for the current shader
 			//
 			// the engine also relied on this to know
 			// that heightmap was stored in normalmap
@@ -3962,15 +3962,15 @@ static bool ParseShader( const char *_text )
 
 			if ( !Q_stricmp( token, "none" ) )
 			{
-				shader.noParallax = true;
+				shader.disableReliefMapping = true;
 			}
 			else if ( !Q_stricmp( token, "disable" ) )
 			{
-				shader.noParallax = true;
+				shader.disableReliefMapping = true;
 			}
 			else if ( !Q_stricmp( token, "off" ) )
 			{
-				shader.noParallax = true;
+				shader.disableReliefMapping = true;
 			}
 			else if ( !Q_stricmp( token, "default" ) )
 			{
@@ -4010,7 +4010,7 @@ static bool ParseShader( const char *_text )
 				continue;
 			}
 
-			shader.parallaxDepthScale = atof( token );
+			shader.reliefDepthScale = atof( token );
 
 			token = COM_ParseExt2( text, false );
 
@@ -4060,7 +4060,7 @@ static bool ParseShader( const char *_text )
 			}
 
 			float bias = atof( token );
-			shader.parallaxOffsetBias = off - bias / div;
+			shader.reliefOffsetBias = off - bias / div;
 			continue;
 		}
 		// entityMergable, allowing sprite surfaces from multiple entities
@@ -4789,13 +4789,13 @@ static void CollapseStages()
 		// Available features.
 		stage->enableNormalMapping = r_normalMapping->integer && stage->hasNormalMap;
 		stage->enableDeluxeMapping = r_deluxeMapping->integer && stage->hasNormalMap;
-		stage->enableParallaxMapping = r_parallaxMapping->integer && !shader.noParallax && ( stage->hasHeightMap || stage->isHeightMapInNormalMap );
+		stage->enableReliefMapping = r_reliefMapping->integer && !shader.disableReliefMapping && ( stage->hasHeightMap || stage->isHeightMapInNormalMap );
 		stage->enablePhysicalMapping = r_physicalMapping->integer && stage->hasMaterialMap && stage->isMaterialPhysical;
 		stage->enableSpecularMapping = r_specularMapping->integer && stage->hasMaterialMap && !stage->isMaterialPhysical;
 		stage->enableGlowMapping = r_glowMapping->integer && stage->hasGlowMap;
 
 		// Bind fallback textures if required.
-		if ( !stage->enableNormalMapping && !( stage->enableParallaxMapping && stage->isHeightMapInNormalMap) )
+		if ( !stage->enableNormalMapping && !( stage->enableReliefMapping && stage->isHeightMapInNormalMap) )
 		{
 			stage->bundle[ TB_NORMALMAP ].image[ 0 ] = tr.flatImage;
 		}

@@ -63,11 +63,11 @@ void	main()
 	vec2 texScreen = gl_FragCoord.st / r_FBufSize;
 	vec2 texNormal = var_TexCoords;
 
-#if defined(USE_PARALLAX_MAPPING)
+#if defined(USE_RELIEF_MAPPING)
 	// ray intersect in view direction
 
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix);
 
 	texScreen += texOffset;
 	texNormal += texOffset;
