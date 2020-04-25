@@ -29,13 +29,13 @@ uniform sampler2D	u_NormalMap;
 uniform vec3        u_NormalScale;
 #endif // r_normalMapping
 
-#if defined(USE_PARALLAX_MAPPING)
+#if defined(USE_RELIEF_MAPPING)
 #if !defined(USE_HEIGHTMAP_IN_NORMALMAP)
 uniform sampler2D	u_HeightMap;
 #endif // !USE_HEIGHTMAP_IN_NORMALMAP
-uniform float       u_ParallaxDepthScale;
-uniform float       u_ParallaxOffsetBias;
-#endif // USE_PARALLAX_MAPPING
+uniform float       u_ReliefDepthScale;
+uniform float       u_ReliefOffsetBias;
+#endif // USE_RELIEF_MAPPING
 
 // compute normal in tangent space
 vec3 NormalInTangentSpace(vec2 texNormal)
@@ -110,23 +110,23 @@ vec3 NormalInWorldSpace(vec2 texNormal, mat3 tangentToWorldMatrix)
 	return normalize(tangentToWorldMatrix * normal);
 }
 
-#if defined(USE_PARALLAX_MAPPING)
+#if defined(USE_RELIEF_MAPPING)
 // compute texcoords offset from heightmap
 // most of the code doing somewhat the same is likely to be named
 // RayIntersectDisplaceMap in other id tech3-based engines
 // so please keep the comment above to enable cross-tree look-up
-vec2 ParallaxTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorldMatrix)
+vec2 ReliefTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorldMatrix)
 {
 	// compute view direction in tangent space
 	vec3 tangentViewDir = normalize(viewDir * tangentToWorldMatrix);
 
-	vec2 displacement = tangentViewDir.xy * -u_ParallaxDepthScale / tangentViewDir.z;
+	vec2 displacement = tangentViewDir.xy * -u_ReliefDepthScale / tangentViewDir.z;
 
 	const int linearSearchSteps = 16;
 	const int binarySearchSteps = 6;
 
 	float depthStep = 1.0 / float(linearSearchSteps);
-	float topDepth = 1.0 - u_ParallaxOffsetBias;
+	float topDepth = 1.0 - u_ReliefOffsetBias;
 
 	// current size of search window
 	float currentSize = depthStep;
@@ -185,4 +185,4 @@ vec2 ParallaxTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorld
 
 	return bestDepth * displacement;
 }
-#endif // USE_PARALLAX_MAPPING
+#endif // USE_RELIEF_MAPPING

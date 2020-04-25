@@ -43,12 +43,12 @@ void	main()
 
 	vec2 texNormal = var_TexCoords;
 
-#if defined(USE_PARALLAX_MAPPING)
+#if defined(USE_RELIEF_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix);
 
 	texNormal += texOffset;
-#endif // USE_PARALLAX_MAPPING
+#endif // USE_RELIEF_MAPPING
 
 	// compute normal in tangent space from normal map
 	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);

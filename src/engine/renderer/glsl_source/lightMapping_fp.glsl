@@ -83,9 +83,9 @@ void main()
 
 	mat3 tangentToWorldMatrix = mat3(var_Tangent.xyz, var_Binormal.xyz, var_Normal.xyz);
 
-	#if defined(USE_PARALLAX_MAPPING)
+	#if defined(USE_RELIEF_MAPPING)
 		// Compute texcoords offset from heightmap.
-		vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
+		vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
 		texCoords += texOffset;
 	#endif

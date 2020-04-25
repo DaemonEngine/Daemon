@@ -946,12 +946,12 @@ void	main()
 	// compute view direction in world space
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position.xyz);
 
-#if defined(USE_PARALLAX_MAPPING)
+#if defined(USE_RELIEF_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ParallaxTexOffset(texCoords, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix);
 
 	texCoords += texOffset;
-#endif // USE_PARALLAX_MAPPING
+#endif // USE_RELIEF_MAPPING
 
 	// compute half angle in world space
 	vec3 H = normalize(lightDir + viewDir);
@@ -1022,7 +1022,7 @@ void	main()
 	outputColor = color;
 
 #if 0
-#if defined(USE_PARALLAX_MAPPING)
+#if defined(USE_RELIEF_MAPPING)
 	outputColor = vec4(vec3(1.0, 0.0, 0.0), diffuse.a);
 #else
 	outputColor = vec4(vec3(0.0, 0.0, 1.0), diffuse.a);

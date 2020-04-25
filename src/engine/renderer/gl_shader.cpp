@@ -1480,8 +1480,8 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_ParallaxDepthScale( this ),
-	u_ParallaxOffsetBias( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	u_EnvironmentInterpolation( this ),
 	u_LightWrapAround( this ),
@@ -1496,7 +1496,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLCompileMacro_USE_LIGHT_MAPPING( this ),
 	GLCompileMacro_USE_DELUXE_MAPPING( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
+	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
 	GLCompileMacro_USE_PHYSICAL_SHADING( this )
 {
@@ -1553,14 +1553,14 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_ParallaxDepthScale( this ),
-	u_ParallaxOffsetBias( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
+	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
 }
@@ -1613,14 +1613,14 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_ParallaxDepthScale( this ),
-	u_ParallaxOffsetBias( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
+	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
 }
@@ -1676,14 +1676,14 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	u_ParallaxDepthScale( this ),
-	u_ParallaxOffsetBias( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_PARALLAX_MAPPING( this ),
+	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
 }
@@ -1759,15 +1759,15 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_Bones( this ),
-	u_ParallaxDepthScale( this ),
-	u_ParallaxOffsetBias( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_PARALLAX_MAPPING( this )
+	GLCompileMacro_USE_RELIEF_MAPPING( this )
 {
 }
 
@@ -2026,8 +2026,8 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_FresnelPower( this ),
 	u_FresnelScale( this ),
 	u_FresnelBias( this ),
-	u_ParallaxDepthScale( this ),
-	u_ParallaxOffsetBias( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	u_FogDensity( this ),
 	u_FogColor( this ),
@@ -2035,7 +2035,7 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
-	GLCompileMacro_USE_PARALLAX_MAPPING( this )
+	GLCompileMacro_USE_RELIEF_MAPPING( this )
 {
 }
 
