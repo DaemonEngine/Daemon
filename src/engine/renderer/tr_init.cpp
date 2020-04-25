@@ -1188,18 +1188,18 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_offsetFactor = ri.Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );
 		r_offsetUnits = ri.Cvar_Get( "r_offsetUnits", "-2", CVAR_CHEAT );
 
-		r_physicalMapping = ri.Cvar_Get( "r_physicalMapping", "0", CVAR_LATCH );
+		r_physicalMapping = ri.Cvar_Get( "r_physicalMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_specularExponentMin = ri.Cvar_Get( "r_specularExponentMin", "0", CVAR_CHEAT );
 		r_specularExponentMax = ri.Cvar_Get( "r_specularExponentMax", "16", CVAR_CHEAT );
 		r_specularScale = ri.Cvar_Get( "r_specularScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
-		r_specularMapping = ri.Cvar_Get( "r_specularMapping", "1", CVAR_LATCH );
+		r_specularMapping = ri.Cvar_Get( "r_specularMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_deluxeMapping = ri.Cvar_Get( "r_deluxeMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_ARCHIVE );
 		r_normalMapping = ri.Cvar_Get( "r_normalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_highQualityNormalMapping = ri.Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
 		r_liquidMapping = ri.Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH );
 		r_parallaxDepthScale = ri.Cvar_Get( "r_parallaxDepthScale", "0.03", CVAR_CHEAT );
-		r_parallaxMapping = ri.Cvar_Get( "r_parallaxMapping", "0", 0 );
+		r_parallaxMapping = ri.Cvar_Get( "r_parallaxMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_glowMapping = ri.Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
 		r_reflectionMapping = ri.Cvar_Get( "r_reflectionMapping", "0", CVAR_CHEAT );
 
