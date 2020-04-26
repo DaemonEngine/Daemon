@@ -510,6 +510,21 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	enum
 	{
+		BIND_DIFFUSEMAP,
+		BIND_NORMALMAP,
+		BIND_HEIGHTMAP,
+		BIND_MATERIALMAP,
+		BIND_LIGHTMAP,
+		BIND_DELUXEMAP,
+		BIND_GLOWMAP,
+		BIND_ENVIRONMENTMAP0,
+		BIND_ENVIRONMENTMAP1,
+		BIND_LIGHTTILES,
+		BIND_LIGHTS,
+	};
+
+	enum
+	{
 	  IF_NONE,
 	  IF_NOPICMIP = BIT( 0 ),
 	  IF_NORMALMAP = BIT( 2 ),
@@ -1135,7 +1150,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		// Available features.
 		bool enableNormalMapping;
 		bool enableDeluxeMapping;
-		bool enableParallaxMapping;
+		bool enableReliefMapping;
 		bool enablePhysicalMapping;
 		bool enableSpecularMapping;
 		bool enableGlowMapping;
@@ -1229,9 +1244,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		fogPass_t      fogPass; // draw a blended pass, possibly with depth test equals
 		bool       noFog;
 
-		bool       noParallax; // disable parallax for this material even if it's available
-		float      parallaxOffsetBias; // offset the heightmap top relatively to the floor
-		float      parallaxDepthScale; // per-shader parallax depth scale
+		bool       disableReliefMapping; // disable relief mapping for this material even if it's available
+		float      reliefOffsetBias; // offset the heightmap top relatively to the floor
+		float      reliefDepthScale; // per-shader relief depth scale
 
 		bool       noShadows;
 		bool       fogLight;
@@ -2875,8 +2890,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_normalMapping;
 	extern cvar_t *r_highQualityNormalMapping;
 	extern cvar_t *r_liquidMapping;
-	extern cvar_t *r_parallaxDepthScale;
-	extern cvar_t *r_parallaxMapping;
+	extern cvar_t *r_reliefDepthScale;
+	extern cvar_t *r_reliefMapping;
 	extern cvar_t *r_glowMapping;
 	extern cvar_t *r_reflectionMapping;
 

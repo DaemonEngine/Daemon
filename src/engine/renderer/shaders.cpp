@@ -4,10 +4,6 @@
 #include "glsl/ssao_fp.h"
 #include "glsl/ssao_vp.h"
 #include "glsl/vertexAnimation_vp.h"
-#include "glsl/vertexLighting_DBS_entity_fp.h"
-#include "glsl/vertexLighting_DBS_entity_vp.h"
-#include "glsl/vertexLighting_DBS_world_fp.h"
-#include "glsl/vertexLighting_DBS_world_vp.h"
 #include "glsl/vertexSimple_vp.h"
 #include "glsl/vertexSkinning_vp.h"
 #include "glsl/vertexSprite_vp.h"
@@ -129,10 +125,6 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/ssao_fp.glsl", std::string((char*)ssao_fp_glsl, ssao_fp_glsl_len) },
 	{ "glsl/ssao_vp.glsl", std::string((char*)ssao_vp_glsl, ssao_vp_glsl_len) },
 	{ "glsl/vertexAnimation_vp.glsl", std::string((char*)vertexAnimation_vp_glsl, vertexAnimation_vp_glsl_len) },
-	{ "glsl/vertexLighting_DBS_entity_fp.glsl", std::string((char*)vertexLighting_DBS_entity_fp_glsl, vertexLighting_DBS_entity_fp_glsl_len) },
-	{ "glsl/vertexLighting_DBS_entity_vp.glsl", std::string((char*)vertexLighting_DBS_entity_vp_glsl, vertexLighting_DBS_entity_vp_glsl_len) },
-	{ "glsl/vertexLighting_DBS_world_fp.glsl", std::string((char*)vertexLighting_DBS_world_fp_glsl, vertexLighting_DBS_world_fp_glsl_len) },
-	{ "glsl/vertexLighting_DBS_world_vp.glsl", std::string((char*)vertexLighting_DBS_world_vp_glsl, vertexLighting_DBS_world_vp_glsl_len) },
 	{ "glsl/vertexSimple_vp.glsl", std::string((char*)vertexSimple_vp_glsl, vertexSimple_vp_glsl_len) },
 	{ "glsl/vertexSkinning_vp.glsl", std::string((char*)vertexSkinning_vp_glsl, vertexSkinning_vp_glsl_len) },
 	{ "glsl/vertexSprite_vp.glsl", std::string((char*)vertexSprite_vp_glsl, vertexSprite_vp_glsl_len) },
