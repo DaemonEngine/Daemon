@@ -136,24 +136,24 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 	auto *hdr{ static_cast<KTX_header_t *>(ktxData) };
 
 	if( !IsValidKTXHeader( hdr, ktxSize ) ) {
-		Log::Warn("KTX texture '%s' is not in KTX format", name);
+		Log::Warn("KTX image '%s' is not in KTX format", name);
 		return false;
 	}
 
 	bool needReverseBytes{false};
 	if( !TryApplyKTXHeaderEndianness( hdr, needReverseBytes ) ) {
-		Log::Warn("KTX texture '%s' has unknown endianness value %u", name,
+		Log::Warn("KTX image '%s' has unknown endianness value '%d'", name,
 		hdr->endianness);
 		return false;
 	}
 
 	if( !IsSupportedKTXFormat( hdr ) ) {
-		Log::Warn("KTX texture '%s' may be valid, but not supported", name);
+		Log::Warn("KTX image '%s' may be valid, but not supported", name);
 		return false;
 	}
 
 	if( !TryParseInternalFormatBits( hdr->glInternalFormat, *bits ) ) {
-		Log::Warn("KTX texture '%s' has unsupported glInternalFormat value %u",
+		Log::Warn("KTX image '%s' has unsupported glInternalFormat value '%d'",
 		name, hdr->glInternalFormat);
 		return false;
 	}
@@ -165,7 +165,7 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 
 	byte *firstImageDataPtr{ (byte *)(hdr + 1) + hdr->bytesOfKeyValueData };
 	if ( !IsValidKTXFileStreamPosition( firstImageDataPtr, ktxSize, static_cast<const byte *>(ktxData) ) ) {
-		Log::Warn("KTX texture '%s' has bad bytesOfKeyValueData or texture data", name);
+		Log::Warn("KTX image '%s' has bad bytesOfKeyValueData or texture data", name);
 		return false;
 	}
 	byte *ptr{ firstImageDataPtr };
@@ -187,7 +187,7 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 
 	// ptr points to next byte after ktxData buffer end.
 	if ( !IsValidKTXFileStreamPosition( ptr - 1, ktxSize, static_cast<const byte *>(ktxData) ) ) {
-		Log::Warn("KTX texture '%s' has bad header or texture data", name);
+		Log::Warn("KTX image '%s' has bad header or texture data", name);
 		return false;
 	}
 
@@ -741,7 +741,7 @@ void SaveImageKTX( const char *path, image_t *img )
 
 	uint32_t components;
 	if( !ApplyKTXHeaderGlProperties( glInternalFormat, hdr, components ) ) {
-		Log::Warn( "KTX texture '%s' format '%x' is not supported", path, glInternalFormat );
+		Log::Warn( "KTX image '%s' format '%x' is not supported", path, glInternalFormat );
 		return;
 	}
 
