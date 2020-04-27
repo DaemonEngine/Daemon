@@ -698,10 +698,10 @@ bool ApplyKTXHeaderGlProperties( uint32_t glInternalFormat, KTX_header_t &hdr, u
 }
 }  // namespace
 
-void LoadKTX( const char *name, byte **data, int *width, int *height,
-	      int *numLayers, int *numMips, int *bits, byte )
+void LoadKTX( const char *name, byte **pic, int *width, int *height,
+			  int *numLayers, int *numMips, int *bits, byte )
 {
-	*data = nullptr;
+	*pic = nullptr;
 	*numLayers = 0;
 
 	void *ktxData{ nullptr };
@@ -709,10 +709,11 @@ void LoadKTX( const char *name, byte **data, int *width, int *height,
 	if (!ktxData) {
 		return;
 	}
-	if ( !LoadInMemoryKTX( name, ktxData, ktxSize, data, width, height, numLayers, numMips, bits ) ) {
-		if (*data) {
-			*data = nullptr; // This signals failure.
+	if ( !LoadInMemoryKTX( name, ktxData, ktxSize, pic, width, height, numLayers, numMips, bits ) ) {
+		if (*pic) {
+			ri.Free(*pic);
 		}
+		*pic = nullptr; // This signals failure.
 	}
 	ri.FS_FreeFile( ktxData );
 }
