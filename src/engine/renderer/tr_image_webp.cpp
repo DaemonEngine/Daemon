@@ -29,7 +29,7 @@ bool LoadInMemoryWEBP( const char *path, const uint8_t* webpData, size_t webpSiz
 	// Validate data and query image size.
 	if ( !WebPGetInfo( webpData, webpSize, width, height ) )
 	{
-		Log::Warn( "WebP image '%s' is not in WebP format", path );
+		Log::Warn( "WebP image '%s' has an invalid format", path );
 		return false;
 	}
 

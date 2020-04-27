@@ -136,7 +136,7 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 	auto *hdr{ static_cast<KTX_header_t *>(ktxData) };
 
 	if( !IsValidKTXHeader( hdr, ktxSize ) ) {
-		Log::Warn("KTX image '%s' is not in KTX format", name);
+		Log::Warn("KTX image '%s' has an invalid format", name);
 		return false;
 	}
 

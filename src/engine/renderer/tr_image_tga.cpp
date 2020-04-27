@@ -76,19 +76,22 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 	if ( targa_header.image_type != 2 && targa_header.image_type != 10 && targa_header.image_type != 3 )
 	{
 		ri.FS_FreeFile( buffer );
-		Sys::Drop( "LoadTGA: Only type 2 (RGB), 3 (gray), and 10 (RGB) TGA images supported (%s)", name );
+		Sys::Drop( "TGA image '%s' has unsupported image type (%d). "
+			 "Only type 2 (uncompressed RGB), 3 (gray), and 10 (compressed RGB) TGA images supported",
+			 name, targa_header.image_type );
 	}
 
 	if ( targa_header.colormap_type != 0 )
 	{
 		ri.FS_FreeFile( buffer );
-		Sys::Drop( "LoadTGA: colormaps not supported (%s)", name );
+		Sys::Drop( "TGA image '%s' has color map and not supported", name );
 	}
 
 	if ( ( targa_header.pixel_size != 32 && targa_header.pixel_size != 24 ) && targa_header.image_type != 3 )
 	{
 		ri.FS_FreeFile( buffer );
-		Sys::Drop( "LoadTGA: Only 32 or 24 bit images supported (no colormaps) (%s)", name );
+		Sys::Drop( "TGA image '%s' has unsupported pixel size (%d). "
+			 "Only 32 or 24 bit images supported (except gray ones)", name, targa_header.pixel_size );
 	}
 
 	columns = targa_header.width;
@@ -108,7 +111,7 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 	if ( !columns || !rows || numPixels > 0x7FFFFFFF || numPixels / columns / 4 != rows )
 	{
 		ri.FS_FreeFile( buffer );
-		Sys::Drop( "LoadTGA: %s has an invalid image size", name );
+		Sys::Drop( "TGA image '%s' has an invalid image size", name );
 	}
 
 	targa_rgba = (byte*) ri.Z_Malloc( numPixels );
@@ -167,7 +170,7 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 					default:
 						ri.Free( targa_rgba );
 						ri.FS_FreeFile( buffer );
-						Sys::Drop( "LoadTGA: illegal pixel_size '%d' in file '%s'", targa_header.pixel_size, name );
+						Sys::Drop( "TGA image '%s' has illegal pixel_size (%d)", name, targa_header.pixel_size );
 				}
 			}
 		}
@@ -213,7 +216,7 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 						default:
 							ri.Free( targa_rgba );
 							ri.FS_FreeFile( buffer );
-							Sys::Drop( "LoadTGA: illegal pixel_size '%d' in file '%s'", targa_header.pixel_size, name );
+							Sys::Drop( "TGA image '%s' has illegal pixel_size (%d)", name, targa_header.pixel_size );
 					}
 
 					for ( j = 0; j < packetSize; j++ )
@@ -273,7 +276,7 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 							default:
 								ri.Free( targa_rgba );
 								ri.FS_FreeFile( buffer );
-								Sys::Drop( "LoadTGA: illegal pixel_size '%d' in file '%s'", targa_header.pixel_size, name );
+								Sys::Drop( "TGA image '%s' has illegal pixel_size (%d)", name, targa_header.pixel_size );
 						}
 
 						column++;

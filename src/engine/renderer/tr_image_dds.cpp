@@ -163,7 +163,7 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 
 	if ( strncmp( ( const char * ) buff, "DDS ", 4 ) != 0 )
 	{
-		Log::Warn("R_LoadDDSImage: invalid dds header \"%s\"", name );
+		Log::Warn("DDS image '%s' has invalid DDS id", name );
 		return;
 	}
 
@@ -186,7 +186,7 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 
 	if ( ddsd->dwSize != sizeof( DDSHEADER_t ) || ddsd->ddpfPixelFormat.dwSize != sizeof( DDS_PIXELFORMAT_t ) )
 	{
-		Log::Warn("R_LoadDDSImage: invalid dds header \"%s\"", name );
+		Log::Warn("DDS image '%s' has invalid DDS header", name );
 		return;
 	}
 
@@ -194,7 +194,7 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 
 	if ( *numMips > MAX_TEXTURE_MIPS )
 	{
-		Log::Warn("R_LoadDDSImage: dds image has too many mip levels \"%s\"", name );
+		Log::Warn("DDS image '%s' has too many mip levels (%d > %d)", name, *numMips, MAX_TEXTURE_MIPS );
 		return;
 	}
 
@@ -207,7 +207,8 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 
 		if ( ddsd->dwWidth != ddsd->dwHeight )
 		{
-			Log::Warn("R_LoadDDSImage: invalid dds image \"%s\"", name );
+			Log::Warn("DDS image '%s' is cube map and height (%d) != width (%d)", name,
+				ddsd->dwWidth, ddsd->dwHeight );
 			return;
 		}
 
@@ -218,7 +219,7 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 		if ( *width & ( *width - 1 ) )
 		{
 			//cubes must be a power of two
-			Log::Warn("R_LoadDDSImage: cube images must be power of two \"%s\"", name );
+			Log::Warn("DDS image '%s' is cube map and width (%d) is not power of two", name, *width );
 			return;
 		}
 	}
@@ -232,13 +233,15 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 
 		if ( *numLayers > MAX_TEXTURE_LAYERS )
 		{
-			Log::Warn("R_LoadDDSImage: dds image has too many layers \"%s\"", name );
+			Log::Warn("DDS image '%s' is volume and has too many layers (%d > %d)", name,
+				*numLayers, MAX_TEXTURE_LAYERS );
 			return;
 		}
 
 		if ( *width & ( *width - 1 ) || *height & ( *height - 1 ) || *numLayers & ( *numLayers - 1 ) )
 		{
-			Log::Warn("R_LoadDDSImage: volume images must be power of two \"%s\"", name );
+			Log::Warn("DDS image '%s' is volume and it's values are not power of two: "
+				 "width (%d), height (%d), layers (%d)", name, *width, *height, *numLayers );
 			return;
 		}
 	}
@@ -254,7 +257,8 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 		//except for compressed images!
 		if ( compressed && ( *width & ( *width - 1 ) || *height & ( *height - 1 ) ) )
 		{
-			Log::Warn("R_LoadDDSImage: compressed texture images must be power of two \"%s\"", name );
+			Log::Warn("DDS image '%s' is 2D compressed texture and it's values are not power of two: "
+				"width (%d), height (%d)", name, *width, *height );
 			return;
 		}
 	}
@@ -265,7 +269,7 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 
 		if ( *numLayers != 0 )
 		{
-			Log::Warn("R_LoadDDSImage: compressed volume textures are not supported \"%s\"", name );
+			Log::Warn("DDS image '%s' is unsupported compressed volume texture", name );
 			return;
 		}
 
@@ -300,8 +304,8 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 			break;
 
 		default:
-			Log::Warn("R_LoadDDSImage: unsupported FOURCC 0x%08x, \"%s\"",
-				   ddsd->ddpfPixelFormat.dwFourCC, name );
+			Log::Warn("DDS image '%s' is compressed, but FOURCC 0x%08x is unsupported",
+				name, ddsd->ddpfPixelFormat.dwFourCC );
 			return;
 		}
 		w = *width;
@@ -329,13 +333,14 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 					break;
 
 				default:
-					Log::Warn("R_LoadDDSImage: unsupported RGB bit depth \"%s\"", name );
+					Log::Warn("DDS image '%s' is not compressed, but RGB bit depth (%d) is unsupported", name,
+						ddsd->ddpfPixelFormat.dwRGBBitCount );
 					return;
 			}
 		}
 		else
 		{
-			Log::Warn("R_LoadDDSImage: unsupported DDS image type \"%s\"", name );
+			Log::Warn("DDS image '%s' is not compressed and has unsupported image type", name );
 			return;
 		}
 	}
