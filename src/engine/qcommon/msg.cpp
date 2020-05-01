@@ -706,6 +706,7 @@ void MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to )
 	     from->upmove == to->upmove &&
 	     !memcmp( from->buttons, to->buttons, sizeof( from->buttons ) ) &&
 	     from->weapon == to->weapon &&
+	     from->weaponCharge == to->weaponCharge &&
 	     from->flags == to->flags && from->doubleTap == to->doubleTap)
 	{
 		// NERVE - SMF
@@ -725,6 +726,7 @@ void MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to )
 		MSG_WriteDelta( msg, from->buttons[i], to->buttons[i], 8 );
 	}
 	MSG_WriteDelta( msg, from->weapon, to->weapon, 8 );
+	MSG_WriteDelta( msg, from->weaponCharge, to->weaponCharge, 16 );
 	MSG_WriteDelta( msg, from->flags, to->flags, 8 );
 	MSG_WriteDelta( msg, Util::ordinal(from->doubleTap), Util::ordinal(to->doubleTap), 3 );
 }
@@ -766,6 +768,7 @@ void MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to )
 			to->buttons[i] = MSG_ReadDelta( msg, from->buttons[i], 8 );
 		}
 		to->weapon = MSG_ReadDelta( msg, from->weapon, 8 );
+		to->weaponCharge = MSG_ReadDelta( msg, from->weaponCharge, 16 );
 		to->flags = MSG_ReadDelta( msg, from->flags, 8 );
 		to->doubleTap = Util::enum_cast<dtType_t>(MSG_ReadDelta(msg, Util::ordinal(from->doubleTap), 3) & 0x7);
 	}
@@ -779,6 +782,7 @@ void MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to )
 		to->upmove = from->upmove;
 		usercmdCopyButtons( to->buttons, from->buttons );
 		to->weapon = from->weapon;
+		to->weaponCharge = from->weaponCharge;
 		to->flags = from->flags;
 		to->doubleTap = from->doubleTap;
 	}
@@ -860,6 +864,7 @@ static netField_t entityStateFields[] =
 	{ NETF( eventParms[ 2 ] ),   8              , 0 },
 	{ NETF( eventParms[ 3 ] ),   8              , 0 },
 	{ NETF( weapon ),            8              , 0 },
+	{ NETF( weaponCharge ),      16             , 0 },
 	{ NETF( legsAnim ),          ANIM_BITS      , 0 },
 	{ NETF( torsoAnim ),         ANIM_BITS      , 0 },
 	{ NETF( generic1 ),          10             , 0 },
@@ -1339,6 +1344,8 @@ static netField_t playerStateFields[] =
 	{ PSF( clientNum ),            8              , 0 }
 	,
 	{ PSF( weapon ),               7              , 0 }
+	,
+	{ PSF( weaponCharge ),         16             , 0 }
 	,
 	{ PSF( weaponstate ),          4              , 0 }
 	,

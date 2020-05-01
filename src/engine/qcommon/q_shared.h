@@ -1798,6 +1798,7 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 		// weapon info
 		int weapon; // copied to entityState_t->weapon
 		int weaponstate;
+		int weaponCharge;
 
 		vec3_t viewangles; // for fixed views
 		int    viewheight;
@@ -1889,6 +1890,7 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 		dtType_t    doubleTap; // Arnout: only 3 bits used
 
 		byte        weapon;
+		int         weaponCharge;
 		byte        flags;
 
 		byte        buttons[ USERCMD_BUTTONS / 8 ];
@@ -2053,6 +2055,7 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 
 		// for players
 		int weapon; // determines weapon and flash model, etc
+		int weaponCharge; // for charging mechanism
 		int legsAnim; // mask off ANIM_TOGGLEBIT
 		int torsoAnim; // mask off ANIM_TOGGLEBIT
 
