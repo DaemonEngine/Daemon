@@ -236,6 +236,8 @@ POParser::parse_header(const std::string& header)
 {
   std::string from_charset;
   std::string::size_type start = 0;
+  const char content_type[] = "Content-Type: text/plain; charset=";
+  const size_t content_type_len = strlen(content_type);
   for(std::string::size_type i = 0; i < header.length(); ++i)
   {
     if (header[i] == '\n')
@@ -245,10 +247,9 @@ POParser::parse_header(const std::string& header)
       if (has_prefix(line, "Content-Type:"))
       {
         // from_charset = line.substr(len);
-        size_t len = strlen("Content-Type: text/plain; charset=");
-        if (line.compare(0, len, "Content-Type: text/plain; charset=") == 0)
+        if (line.compare(0, content_type_len, content_type) == 0)
         {
-          from_charset = line.substr(len);
+          from_charset = line.substr(content_type_len);
 
           for(std::string::iterator ch = from_charset.begin(); ch != from_charset.end(); ++ch)
             *ch = static_cast<char>(toupper(*ch));
