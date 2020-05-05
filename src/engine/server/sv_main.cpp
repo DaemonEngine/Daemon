@@ -500,7 +500,7 @@ static void SVC_Status( const netadr_t& from, const Cmd::Args& args )
 
 		if ( cl->state >= clientState_t::CS_CONNECTED )
 		{
-			playerState_t* ps = SV_GameClientNum( i );
+			OpaquePlayerState* ps = SV_GameClientNum( i );
 			status +=  Str::Format( "%i %i \"%s\"\n", ps->persistant[ PERS_SCORE ], cl->ping, cl->name );
 		}
 	}
@@ -1145,7 +1145,6 @@ void SV_CalcPings()
 	client_t      *cl;
 	int           total, count;
 	int           delta;
-	playerState_t *ps;
 
 	for ( i = 0; i < sv_maxclients->integer; i++ )
 	{
@@ -1199,7 +1198,7 @@ void SV_CalcPings()
 		}
 
 		// let the game module know about the ping
-		ps = SV_GameClientNum( i );
+		OpaquePlayerState* ps = SV_GameClientNum( i );
 		ps->ping = cl->ping;
 	}
 }

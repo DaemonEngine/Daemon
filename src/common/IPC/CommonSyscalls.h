@@ -34,6 +34,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Primitives.h"
 #include <common/FileSystem.h>
 
+namespace Util {
+    template<> struct SerializeTraits<netField_t> {
+        static void Write(Writer& stream, const netField_t& field)
+        {
+            stream.Write<int>(field.bits);
+            stream.Write<int>(field.offset);
+            stream.Write<std::string>(field.name);
+        }
+        static netField_t Read(Reader& stream)
+        {
+            netField_t field;
+            field.bits = stream.Read<int>();
+            field.offset = stream.Read<int>();
+            field.name = stream.Read<std::string>();
+            field.used = 0;
+            return field;
+        }
+    };
+} // namespace Util
+
 namespace VM {
 
     /*
@@ -145,6 +165,16 @@ namespace VM {
     // CrashDumpMsg
     using CrashDumpMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<MISC, CRASH_DUMP>, std::vector<uint8_t>>
+    >;
+
+    enum VMMiscMessages {
+        GET_NETCODE_TABLES,
+    };
+
+    // GetNetcodeTablesMsg
+    using GetNetcodeTablesMsg = IPC::SyncMessage <
+        IPC::Message<IPC::Id<MISC, GET_NETCODE_TABLES>>,
+        IPC::Reply<NetcodeTable, int>
     >;
 
     // Command-Related Syscall Definitions

@@ -36,7 +36,7 @@ IPC::SharedMemory shmRegion;
 // Definition of the VM->Engine calls
 
 // The actual shared memory region is handled in this file, and is pretty much invisible to the rest of the code
-void trap_LocateGameData(int numGEntities, int sizeofGEntity_t, playerState_t*, int sizeofGClient)
+void trap_LocateGameData(int numGEntities, int sizeofGEntity_t, int sizeofGClient)
 {
     static bool firstTime = true;
     if (firstTime) {

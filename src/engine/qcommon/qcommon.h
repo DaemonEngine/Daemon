@@ -64,8 +64,6 @@ struct usercmd_t;
 
 struct entityState_t;
 
-struct playerState_t;
-
 void  MSG_WriteBits( msg_t *msg, int value, int bits );
 
 void  MSG_WriteChar( msg_t *sb, int c );
@@ -99,8 +97,9 @@ void  MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to );
 void  MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, bool force );
 void  MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number );
 
-void  MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *to );
-void  MSG_ReadDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *to );
+void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int playerStateSize);
+void  MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to );
+void  MSG_ReadDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to );
 
 //============================================================================
 
