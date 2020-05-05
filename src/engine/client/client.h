@@ -64,7 +64,7 @@ struct clSnapshot_t
 	byte          areamask[ MAX_MAP_AREA_BYTES ]; // portalarea visibility bits
 
 	int           cmdNum; // the next cmdNum the server is expecting
-	playerState_t ps; // complete information about the current player at this time
+	OpaquePlayerState ps; // complete information about the current player at this time
 
 	int           serverCommandNum; // execute all commands up to this before
 	// making the snapshot current

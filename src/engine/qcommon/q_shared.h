@@ -1739,100 +1739,50 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 
 #define PS_PMOVEFRAMECOUNTBITS 6
 
+struct netField_t
+{
+	std::string name;
+	int  offset;
+	int  bits;
+	int  used;
+};
+#define STATS_GROUP_FIELD 99 // magic number in `bits` for 'int stats[16]' (but these ints must fit in a signed short)
+#define STATS_GROUP_NUM_STATS 16
+#define MAX_PLAYERSTATE_SIZE 600 // HACK: limit size
+#define PLAYERSTATE_FIELD_SIZE 4
+using NetcodeTable = std::vector<netField_t>;
+
 // playerState_t is the information needed by both the client and server
 // to predict player motion and actions
 // nothing outside of pmove should modify these, or some degree of prediction error
 // will occur
 
-// you can't add anything to this without modifying the code in msg.c
-// (Gordon: unless it doesn't need transmission over the network, in which case it should probably go into the new pmext struct anyway)
+// the full definition of playerState_t is found in the gamelogic. The OpaquePlayerState
+// struct includes only player state fields which are used by the engine.
 
 // playerState_t is a full superset of entityState_t as it is used by players,
 // so if a playerState_t is transmitted, the entityState_t can be fully derived
 // from it.
 //
 // NOTE: all fields in here must be 32 bits (or those within sub-structures)
-	struct playerState_t
-	{
-		int    commandTime; // cmd->serverTime of last executed command
-		int    pm_type;
-		int    bobCycle; // for view bobbing and footstep generation
-		int    pm_flags; // ducked, jump_held, etc
-		int    pm_time;
 
+union OpaquePlayerState {
+	byte storage[MAX_PLAYERSTATE_SIZE];
+	struct {
+		// These fields must be identical to ones at the start of playerState_t
 		vec3_t origin;
-		vec3_t velocity;
-		int    weaponTime;
-		int    gravity;
-
-		int   speed;
-		int   delta_angles[ 3 ]; // add to command angles to get view direction
-		// changed by spawns, rotating objects, and teleporters
-
-		int groundEntityNum; // ENTITYNUM_NONE = in air
-
-		int legsTimer; // don't change low priority animations until this runs out
-		int legsAnim; // mask off ANIM_TOGGLEBIT
-
-		int torsoTimer; // don't change low priority animations until this runs out
-		int torsoAnim; // mask off ANIM_TOGGLEBIT
-
-		int movementDir; // a number 0 to 7 that represents the relative angle
-		// of movement to the view angle (axial and diagonals)
-		// when at rest, the value will remain unchanged
-		// used to twist the legs during strafing
-
-		int eFlags; // copied to entityState_t->eFlags
-
-		int eventSequence; // pmove generated events
-		int events[ MAX_EVENTS ];
-		int eventParms[ MAX_EVENTS ];
-		int oldEventSequence; // so we can see which events have been added since we last converted to entityState_t
-
-		int externalEvent; // events set on player from another source
-		int externalEventParm;
-		int externalEventTime;
-
-		int clientNum; // ranges from 0 to MAX_CLIENTS-1
-
-		// weapon info
-		int weapon; // copied to entityState_t->weapon
-		int weaponstate;
-
-		vec3_t viewangles; // for fixed views
+		int ping; // shouldn't even be here?
+		int persistant[16];
 		int    viewheight;
+		int clientNum;
+		int   delta_angles[3]; // add to command angles to get view direction
+		vec3_t viewangles; // for fixed views
+		int    commandTime; // cmd->serverTime of last executed command
 
-		// damage feedback
-		int damageEvent; // when it changes, latch the other parms
-		int damageYaw;
-		int damagePitch;
-		int damageCount;
-
-		int stats[ MAX_STATS ];
-		int persistant[ MAX_PERSISTANT ]; // stats that aren't cleared on death
-
-		// ----------------------------------------------------------------------
-		// So to use persistent variables here, which don't need to come from the server,
-		// we could use a marker variable, and use that to store everything after it
-		// before we read in the new values for the predictedPlayerState, then restore them
-		// after copying the structure received from the server.
-
-		// Arnout: use the pmoveExt_t structure in bg_public.h to store this kind of data now (presistant on client, not network transmitted)
-
-		int ping; // server to game info for scoreboard
-		int pmove_framecount;
-		int entityEventSequence;
-
-		int           generic1;
-		int           loopSound;
-		int           otherEntityNum;
-		vec3_t        grapplePoint; // location of grapple to pull towards if PMF_GRAPPLE_PULL
-		int           weaponAnim; // mask off ANIM_TOGGLEBIT
-		int           ammo;
-		int           clips; // clips held
-		int           tauntTimer; // don't allow another taunt until this runs out
-		int           misc[ MAX_MISC ]; // misc data
+		// this is just for determining the size of the unnamed struct
+		int END;
 	};
+};
 
 //====================================================================
 

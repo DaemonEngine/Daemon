@@ -780,14 +780,6 @@ entityState_t communication
 =============================================================================
 */
 
-struct netField_t
-{
-	const char *name;
-	int  offset;
-	int  bits;
-	int  used;
-};
-
 #define NETF( x ) # x,int((size_t)&( (entityState_t*)0 )->x)
 
 static netField_t entityStateFields[] =
@@ -1253,119 +1245,38 @@ player_state_t communication
 ============================================================================
 */
 
-// using the stringizing operator to save typing...
-#define PSF( x ) # x,(int((uintptr_t)&( (playerState_t*)0 )->x))
+static bool IsValid(const NetcodeTable& table, int size) {
+	if (size % PLAYERSTATE_FIELD_SIZE != 0 || size < offsetof(OpaquePlayerState, END) || size > MAX_PLAYERSTATE_SIZE)
+		return false;
+	for (const netField_t& f : table) {
+		if (f.offset < 0 || f.offset % PLAYERSTATE_FIELD_SIZE != 0)
+			return false;
+		if (f.bits == STATS_GROUP_FIELD) {
+			if (f.offset > size - STATS_GROUP_NUM_STATS * PLAYERSTATE_FIELD_SIZE)
+				return false;
+		} else {
+			if (f.bits < -31 || f.bits > 32)
+				return false;
+			if (f.offset >= size)
+				return false;
+		}
+	}
+	return true;
+}
 
-static netField_t playerStateFields[] =
-{
-	{ PSF( commandTime ),          32             , 0 }
-	,
-	{ PSF( pm_type ),              8              , 0 }
-	,
-	{ PSF( bobCycle ),             8              , 0 }
-	,
-	{ PSF( pm_flags ),             16             , 0 }
-	,
-	{ PSF( pm_time ),              -16            , 0 }
-	,
-	{ PSF( origin[ 0 ] ),          0              , 0 }
-	,
-	{ PSF( origin[ 1 ] ),          0              , 0 }
-	,
-	{ PSF( origin[ 2 ] ),          0              , 0 }
-	,
-	{ PSF( velocity[ 0 ] ),        0              , 0 }
-	,
-	{ PSF( velocity[ 1 ] ),        0              , 0 }
-	,
-	{ PSF( velocity[ 2 ] ),        0              , 0 }
-	,
-	{ PSF( weaponTime ),           -16            , 0 }
-	,
-	{ PSF( gravity ),              16             , 0 }
-	,
-	{ PSF( speed ),                16             , 0 }
-	,
-	{ PSF( delta_angles[ 0 ] ),    16             , 0 }
-	,
-	{ PSF( delta_angles[ 1 ] ),    16             , 0 }
-	,
-	{ PSF( delta_angles[ 2 ] ),    16             , 0 }
-	,
-	{ PSF( groundEntityNum ),      GENTITYNUM_BITS, 0 }
-	,
-	{ PSF( legsTimer ),            16             , 0 }
-	,
-	{ PSF( torsoTimer ),           16             , 0 }
-	,
-	{ PSF( legsAnim ),             ANIM_BITS      , 0 }
-	,
-	{ PSF( torsoAnim ),            ANIM_BITS      , 0 }
-	,
-	{ PSF( movementDir ),          8              , 0 }
-	,
-	{ PSF( eFlags ),               24             , 0 }
-	,
-	{ PSF( eventSequence ),        8              , 0 }
-	,
-	{ PSF( events[ 0 ] ),          8              , 0 }
-	,
-	{ PSF( events[ 1 ] ),          8              , 0 }
-	,
-	{ PSF( events[ 2 ] ),          8              , 0 }
-	,
-	{ PSF( events[ 3 ] ),          8              , 0 }
-	,
-	{ PSF( eventParms[ 0 ] ),      8              , 0 }
-	,
-	{ PSF( eventParms[ 1 ] ),      8              , 0 }
-	,
-	{ PSF( eventParms[ 2 ] ),      8              , 0 }
-	,
-	{ PSF( eventParms[ 3 ] ),      8              , 0 }
-	,
-	{ PSF( clientNum ),            8              , 0 }
-	,
-	{ PSF( weapon ),               7              , 0 }
-	,
-	{ PSF( weaponstate ),          4              , 0 }
-	,
-	{ PSF( viewangles[ 0 ] ),      0              , 0 }
-	,
-	{ PSF( viewangles[ 1 ] ),      0              , 0 }
-	,
-	{ PSF( viewangles[ 2 ] ),      0              , 0 }
-	,
-	{ PSF( viewheight ),           -8             , 0 }
-	,
-	{ PSF( damageEvent ),          8              , 0 }
-	,
-	{ PSF( damageYaw ),            8              , 0 }
-	,
-	{ PSF( damagePitch ),          8              , 0 }
-	,
-	{ PSF( damageCount ),          8              , 0 }
-	,
-	{ PSF( generic1 ),             10             , 0 }
-	,
-	{ PSF( loopSound ),            16             , 0 }
-	,
-	{ PSF( grapplePoint[ 0 ] ),    0              , 0 }
-	,
-	{ PSF( grapplePoint[ 1 ] ),    0              , 0 }
-	,
-	{ PSF( grapplePoint[ 2 ] ),    0              , 0 }
-	,
-	{ PSF( ammo ),                 12             , 0 }
-	,
-	{ PSF( clips ),                4              , 0 }
-	,
-	{ PSF( tauntTimer ),           12             , 0 }
-	,
-	{ PSF( otherEntityNum ),       10             , 0 }
-	,
-	{ PSF( weaponAnim ),           ANIM_BITS      , 0 }
-};
+static NetcodeTable playerStateFields;
+static size_t playerStateSize;
+// This will be called twice (with what should be the same data both times) in a local
+// game where both the cgame and sgame are running.
+void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int psSize) {
+	if (!IsValid(playerStateTable, psSize))
+		Sys::Drop("bad playerstate netcode table");
+
+	playerStateFields = std::move(playerStateTable);
+	playerStateSize = psSize;
+}
+// TODO: add function to clear
+
 
 static int QDECL qsort_playerstatefields( const void *a, const void *b )
 {
@@ -1389,26 +1300,53 @@ static int QDECL qsort_playerstatefields( const void *a, const void *b )
 
 void MSG_PrioritisePlayerStateFields()
 {
-	int fieldorders[ ARRAY_LEN( playerStateFields ) ];
-	int numfields = ARRAY_LEN( playerStateFields );
-	int i;
+	std::vector<int> fieldorders(playerStateFields.size());
 
-	for ( i = 0; i < numfields; i++ )
+	for ( size_t i = 0; i < fieldorders.size(); i++ )
 	{
 		fieldorders[ i ] = i;
 	}
 
-	qsort( fieldorders, numfields, sizeof( int ), qsort_playerstatefields );
+	qsort( &fieldorders[ 0 ], fieldorders.size(), sizeof( int ), qsort_playerstatefields );
 
 	Log::Notice( "Playerstate fields in order of priority\n" );
 	Log::Notice( "netField_t playerStateFields[] = {\n" );
 
-	for ( i = 0; i < numfields; i++ )
+	for ( size_t i = 0; i < fieldorders.size(); i++ )
 	{
 		Log::Notice( "{ PSF(%s), %i },\n", playerStateFields[ fieldorders[ i ] ].name, playerStateFields[ fieldorders[ i ] ].bits );
 	}
 
 	Log::Notice( "};\n" );
+}
+
+// includes presence bit
+static void WriteStatsGroup(msg_t* msg, const int* from, const int* to)
+{
+	int statsbits = 0;
+	for ( int i = 0; i < STATS_GROUP_NUM_STATS; i++ )
+	{
+		if ( from[i] != to[i] )
+		{
+			statsbits |= 1 << i;
+		}
+	}
+	if (!statsbits)
+	{
+		MSG_WriteBits( msg, 0, 1 );  // no change to stats
+		return;
+	}
+
+	MSG_WriteBits( msg, 1, 1 );  // changed
+	MSG_WriteShort( msg, statsbits );
+
+	for ( int i = 0; i < MAX_STATS; i++ )
+	{
+		if ( statsbits & ( 1 << i ) )
+		{
+			MSG_WriteShort( msg, to[i] );  //----(SA)    back to short since weapon bits are handled elsewhere now
+		}
+	}
 }
 
 /*
@@ -1417,25 +1355,23 @@ MSG_WriteDeltaPlayerstate
 
 =============
 */
-void MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *to )
+void MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to )
 {
-	int           i, lc;
-	playerState_t dummy;
-	int           statsbits;
-	int           persistantbits;
-	int           numFields;
-	netField_t *field;
+	int           lc;
 	int        *fromF, *toF;
 	float      fullFloat;
 	int        trunc;
 	int        startBit, endBit;
 	int        print;
-	int        miscbits;
 
+	if ( playerStateFields.empty() )
+		Sys::Drop( "no netcode table" );
+
+	OpaquePlayerState dummy;
 	if ( !from )
 	{
+		memset( &dummy, 0, playerStateSize );
 		from = &dummy;
-		memset( from, 0, sizeof( *from ) );
 	}
 
 	if ( msg->bit == 0 )
@@ -1459,16 +1395,19 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *
 		print = 0;
 	}
 
-	numFields = ARRAY_LEN( playerStateFields );
+	int numFields = playerStateFields.size();
 
 	lc = 0;
 
-	for ( i = 0, field = playerStateFields; i < numFields; i++, field++ )
+	for ( int i = 0; i < numFields; i++ )
 	{
+		netField_t* field = &playerStateFields[i];
 		fromF = ( int * )( ( byte * ) from + field->offset );
 		toF = ( int * )( ( byte * ) to + field->offset );
 
-		if ( *fromF != *toF )
+		if (field->bits == STATS_GROUP_FIELD
+			? memcmp(fromF, toF, sizeof(int) * STATS_GROUP_NUM_STATS)
+			: *fromF != *toF )
 		{
 			lc = i + 1;
 
@@ -1478,11 +1417,17 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *
 
 	MSG_WriteByte( msg, lc );  // # of changes
 
-	for ( i = 0, field = playerStateFields; i < lc; i++, field++ )
+	for ( size_t i = 0; i < lc; i++ )
 	{
+		netField_t* field = &playerStateFields[i];
 		fromF = ( int * )( ( byte * ) from + field->offset );
 		toF = ( int * )( ( byte * ) to + field->offset );
 
+		if (field->bits == STATS_GROUP_FIELD)
+		{
+			WriteStatsGroup(msg, fromF, toF);
+			continue;
+		}
 		if ( *fromF == *toF )
 		{
 			MSG_WriteBits( msg, 0, 1 );  // no change
@@ -1526,104 +1471,6 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *
 		}
 	}
 
-	//
-	// send the arrays
-	//
-	statsbits = 0;
-
-	for ( i = 0; i < MAX_STATS; i++ )
-	{
-		if ( to->stats[ i ] != from->stats[ i ] )
-		{
-			statsbits |= 1 << i;
-		}
-	}
-
-	persistantbits = 0;
-
-	for ( i = 0; i < MAX_PERSISTANT; i++ )
-	{
-		if ( to->persistant[ i ] != from->persistant[ i ] )
-		{
-			persistantbits |= 1 << i;
-		}
-	}
-
-	miscbits = 0;
-
-	for ( i = 0; i < MAX_MISC; i++ )
-	{
-		if ( to->misc[ i ] != from->misc[ i ] )
-		{
-			miscbits |= 1 << i;
-		}
-	}
-
-	if ( statsbits || persistantbits || miscbits )
-	{
-		MSG_WriteBits( msg, 1, 1 );  // something changed
-
-		if ( statsbits )
-		{
-			MSG_WriteBits( msg, 1, 1 );  // changed
-			MSG_WriteShort( msg, statsbits );
-
-			for ( i = 0; i < MAX_STATS; i++ )
-			{
-				if ( statsbits & ( 1 << i ) )
-				{
-					// RF, changed to long to allow more flexibility
-//                  MSG_WriteLong (msg, to->stats[i]);
-					MSG_WriteShort( msg, to->stats[ i ] );  //----(SA)    back to short since weapon bits are handled elsewhere now
-				}
-			}
-		}
-		else
-		{
-			MSG_WriteBits( msg, 0, 1 );  // no change to stats
-		}
-
-		if ( persistantbits )
-		{
-			MSG_WriteBits( msg, 1, 1 );  // changed
-			MSG_WriteShort( msg, persistantbits );
-
-			for ( i = 0; i < MAX_PERSISTANT; i++ )
-			{
-				if ( persistantbits & ( 1 << i ) )
-				{
-					MSG_WriteShort( msg, to->persistant[ i ] );
-				}
-			}
-		}
-		else
-		{
-			MSG_WriteBits( msg, 0, 1 );  // no change to persistent
-		}
-
-		if ( miscbits )
-		{
-			MSG_WriteBits( msg, 1, 1 );  // changed
-			MSG_WriteBits( msg, miscbits, MAX_MISC );
-
-			for ( i = 0; i < MAX_MISC; i++ )
-			{
-				if ( miscbits & ( 1 << i ) )
-				{
-					MSG_WriteLong( msg, to->misc[ i ] );
-				}
-			}
-		}
-		else
-		{
-			MSG_WriteBits( msg, 0, 1 );  // no change
-		}
-	}
-	else
-	{
-		MSG_WriteBits( msg, 0, 1 );  // no change to any
-	}
-
 	if ( print )
 	{
 		if ( msg->bit == 0 )
@@ -1639,30 +1486,43 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *
 	}
 }
 
+// does not include presence bit
+static void ReadStatsGroup(msg_t* msg, int* to, const netField_t& field)
+{
+	LOG( field.name );
+	int bits = MSG_ReadShort( msg );
+
+	for ( int i = 0; i < STATS_GROUP_NUM_STATS; i++ )
+	{
+		if ( bits & ( 1 << i ) )
+		{
+			to[i] = MSG_ReadShort( msg );  //----(SA)    back to short since weapon bits are handled elsewhere now
+		}
+	}
+}
 /*
 ===================
 MSG_ReadDeltaPlayerstate
 ===================
 */
-void MSG_ReadDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *to )
+void MSG_ReadDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to )
 {
-	int           i, lc;
-	int           bits;
-	netField_t    *field;
-	int           numFields;
+	int           lc;
 	int           startBit, endBit;
 	int           print;
 	int           *fromF, *toF;
 	int           trunc;
-	playerState_t dummy;
 
+	if (playerStateFields.empty())
+		Sys::Drop("no netcode table");
+
+	OpaquePlayerState dummy;
 	if ( !from )
 	{
+		memset( &dummy, 0, playerStateSize );
 		from = &dummy;
-		memset( &dummy, 0, sizeof( dummy ) );
 	}
-
-	*to = *from;
+	memcpy( to, from, playerStateSize );
 
 	if ( msg->bit == 0 )
 	{
@@ -1685,7 +1545,7 @@ void MSG_ReadDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *t
 		print = 0;
 	}
 
-	numFields = ARRAY_LEN( playerStateFields );
+	int numFields = playerStateFields.size();
 	lc = MSG_ReadByte( msg );
 
 	if ( lc > numFields || lc < 0 )
@@ -1693,15 +1553,19 @@ void MSG_ReadDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *t
 		Sys::Drop( "invalid playerState field count" );
 	}
 
-	for ( i = 0, field = playerStateFields; i < lc; i++, field++ )
+	for ( int i = 0; i < lc; i++ )
 	{
+		netField_t* field = &playerStateFields[i];
 		fromF = ( int * )( ( byte * ) from + field->offset );
 		toF = ( int * )( ( byte * ) to + field->offset );
 
 		if ( !MSG_ReadBits( msg, 1 ) )
 		{
 			// no change
-			*toF = *fromF;
+			if (field->bits == STATS_GROUP_FIELD)
+				memcpy(toF, fromF, sizeof(int) * STATS_GROUP_NUM_STATS);
+			else
+				*toF = *fromF;
 		}
 		else
 		{
@@ -1732,6 +1596,10 @@ void MSG_ReadDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *t
 					}
 				}
 			}
+			else if ( field->bits == STATS_GROUP_FIELD )
+			{
+				ReadStatsGroup(msg, toF, *field);
+			}
 			else
 			{
 				// integer
@@ -1740,66 +1608,6 @@ void MSG_ReadDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *t
 				if ( print )
 				{
 					Log::Notice( "%s:%i ", field->name, *toF );
-				}
-			}
-		}
-	}
-
-	for ( i = lc, field = &playerStateFields[ lc ]; i < numFields; i++, field++ )
-	{
-		fromF = ( int * )( ( byte * ) from + field->offset );
-		toF = ( int * )( ( byte * ) to + field->offset );
-		// no change
-		*toF = *fromF;
-	}
-
-	// read the arrays
-	if ( MSG_ReadBits( msg, 1 ) )
-	{
-		// one general bit tells if any of this infrequently changing stuff has changed
-		// parse stats
-		if ( MSG_ReadBits( msg, 1 ) )
-		{
-			LOG( "PS_STATS" );
-			bits = MSG_ReadShort( msg );
-
-			for ( i = 0; i < MAX_STATS; i++ )
-			{
-				if ( bits & ( 1 << i ) )
-				{
-					// RF, changed to long to allow more flexibility
-//                  to->stats[i] = MSG_ReadLong(msg);
-					to->stats[ i ] = MSG_ReadShort( msg );  //----(SA)    back to short since weapon bits are handled elsewhere now
-				}
-			}
-		}
-
-		// parse persistent stats
-		if ( MSG_ReadBits( msg, 1 ) )
-		{
-			LOG( "PS_PERSISTANT" );
-			bits = MSG_ReadShort( msg );
-
-			for ( i = 0; i < MAX_PERSISTANT; i++ )
-			{
-				if ( bits & ( 1 << i ) )
-				{
-					to->persistant[ i ] = MSG_ReadShort( msg );
-				}
-			}
-		}
-
-		// parse misc data
-		if ( MSG_ReadBits( msg, 1 ) )
-		{
-			LOG( "PS_MISC" );
-			bits = MSG_ReadBits( msg, MAX_MISC );
-
-			for ( i = 0; i < MAX_MISC; i++ )
-			{
-				if ( bits & ( 1 << i ) )
-				{
-					to->misc[ i ] = MSG_ReadLong( msg );
 				}
 			}
 		}

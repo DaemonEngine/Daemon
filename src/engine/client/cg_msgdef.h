@@ -29,16 +29,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace Util {
 	template<> struct SerializeTraits<snapshot_t> {
+#ifdef BUILD_ENGINE
 		static void Write(Writer& stream, const snapshot_t& snap)
 		{
+
 			stream.Write<uint32_t>(snap.snapFlags);
 			stream.Write<uint32_t>(snap.ping);
 			stream.Write<uint32_t>(snap.serverTime);
 			stream.WriteData(&snap.areamask, MAX_MAP_AREA_BYTES);
-			stream.Write<playerState_t>(snap.ps);
+			stream.Write<OpaquePlayerState>(snap.ps);
 			stream.Write<std::vector<entityState_t>>(snap.entities);
 			stream.Write<std::vector<std::string>>(snap.serverCommands);
 		}
+#endif
+#ifdef BUILD_CGAME
 		static snapshot_t Read(Reader& stream)
 		{
 			snapshot_t snap;
@@ -46,11 +50,13 @@ namespace Util {
 			snap.ping = stream.Read<uint32_t>();
 			snap.serverTime = stream.Read<uint32_t>();
 			stream.ReadData(&snap.areamask, MAX_MAP_AREA_BYTES);
-			snap.ps = stream.Read<playerState_t>();
+			auto ops = stream.Read<OpaquePlayerState>();
+			memcpy(&snap.ps, &ops, sizeof(snap.ps));
 			snap.entities = stream.Read<std::vector<entityState_t>>();
 			snap.serverCommands = stream.Read<std::vector<std::string>>();
 			return snap;
 		}
+#endif
 	};
 
 	// For skeletons, only send the bones which are used

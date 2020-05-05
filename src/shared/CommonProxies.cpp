@@ -497,8 +497,24 @@ namespace VM {
         Cvar::InitializeProxy();
     }
 
+    static void HandleMiscSyscall(int minor, Util::Reader& reader, IPC::Channel& channel) {
+        switch (minor) {
+            case VM::GET_NETCODE_TABLES:
+                IPC::HandleMsg<GetNetcodeTablesMsg>(VM::rootChannel, std::move(reader), [](NetcodeTable& playerStateTable, int& playerStateSize) {
+                    GetNetcodeTables(playerStateTable, playerStateSize);
+                });
+                break;
+            default:
+                Sys::Drop("Unhandled misc engine->VM syscall %d", minor);
+        }
+    }
+
     void HandleCommonSyscall(int major, int minor, Util::Reader reader, IPC::Channel& channel) {
         switch (major) {
+            case VM::MISC:
+                HandleMiscSyscall(minor, reader, channel);
+                break;
+
             case VM::COMMAND:
                 Cmd::HandleSyscall(minor, reader, channel);
                 break;

@@ -59,14 +59,14 @@ sharedEntity_t *SV_GentityNum( int num )
 	return ( sharedEntity_t * )( ( byte * ) sv.gentities + sv.gentitySize * ( num ) );
 }
 
-playerState_t  *SV_GameClientNum( int num )
+OpaquePlayerState *SV_GameClientNum( int num )
 {
 	if ( num < 0 || num >= sv_maxclients->integer || sv.gameClients == nullptr )
 	{
 		Sys::Drop( "SV_GameClientNum: bad num" );
 	}
 
-	return ( playerState_t * )( ( byte * ) sv.gameClients + sv.gameClientSize * ( num ) );
+	return ( OpaquePlayerState * )( ( byte * ) sv.gameClients + sv.gameClientSize * ( num ) );
 }
 
 svEntity_t     *SV_SvEntityForGentity( sharedEntity_t *gEnt )
@@ -183,8 +183,9 @@ SV_LocateGameData
 void SV_LocateGameData( const IPC::SharedMemory& shmRegion, int numGEntities, int sizeofGEntity_t,
                         int sizeofGameClient )
 {
+	constexpr size_t playerStateAlignment = 4;
 	if ( numGEntities < 0 || numGEntities > MAX_GENTITIES || sizeofGEntity_t < 0 || sizeofGameClient < 0
-	     || sizeofGEntity_t % alignof(sharedEntity_t) || sizeofGEntity_t % alignof(playerState_t) )
+	     || sizeofGEntity_t % alignof(sharedEntity_t) || sizeofGEntity_t % playerStateAlignment )
 		Sys::Drop( "SV_LocateGameData: Invalid game data parameters" );
 	if ( int64_t(shmRegion.GetSize()) < int64_t(MAX_GENTITIES) * sizeofGEntity_t + int64_t(sv_maxclients->integer) * sizeofGameClient )
 		Sys::Drop( "SV_LocateGameData: Shared memory region too small" );
@@ -194,7 +195,7 @@ void SV_LocateGameData( const IPC::SharedMemory& shmRegion, int numGEntities, in
 	sv.gentitySize = sizeofGEntity_t;
 	sv.num_entities = numGEntities;
 
-	sv.gameClients = reinterpret_cast<playerState_t*>(base + MAX_GENTITIES * size_t(sizeofGEntity_t));
+	sv.gameClients = reinterpret_cast<OpaquePlayerState*>(base + MAX_GENTITIES * size_t(sizeofGEntity_t));
 	sv.gameClientSize = sizeofGameClient;
 }
 
@@ -357,6 +358,10 @@ void GameVM::GameStaticInit()
 void GameVM::GameInit(int levelTime, int randomSeed)
 {
 	this->SendMsg<GameInitMsg>(levelTime, randomSeed, Com_AreCheatsAllowed(), Com_IsClient());
+	NetcodeTable psTable;
+	size_t psSize;
+	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
+	MSG_InitNetcodeTables(std::move(psTable), psSize);
 }
 
 void GameVM::GameShutdown(bool restart)

@@ -28,6 +28,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "engine/renderer/tr_types.h"
 #include "common/KeyIdentification.h"
 #include "common/cm/cm_public.h"
+#ifdef BUILD_CGAME
+// TODO: find a better way that does not depend on a gamelogic file from an engine file
+#include "shared/bg_public.h"
+#endif
 
 #define CGAME_API_VERSION 3
 
@@ -53,7 +57,11 @@ struct snapshot_t
 
 	byte          areamask[ MAX_MAP_AREA_BYTES ]; // portalarea visibility bits
 
+#ifdef BUILD_CGAME
 	playerState_t ps; // complete information about the current player at this time
+#else
+	OpaquePlayerState ps;
+#endif
 
 	// all of the entities that need to be presented at the time of this snapshot
 	std::vector<entityState_t> entities;

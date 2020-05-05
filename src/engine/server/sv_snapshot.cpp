@@ -668,7 +668,6 @@ static void SV_BuildClientSnapshot( client_t *client )
 	svEntity_t              *svEnt;
 	sharedEntity_t          *clent;
 	int                     clientNum;
-	playerState_t           *ps;
 
 	// bump the counter used to prevent double adding
 	sv.snapshotCounter++;
@@ -691,8 +690,8 @@ static void SV_BuildClientSnapshot( client_t *client )
 	}
 
 	// grab the current playerState_t
-	ps = SV_GameClientNum( client - svs.clients );
-	frame->ps = *ps;
+	OpaquePlayerState* ps = SV_GameClientNum( client - svs.clients );
+	memcpy(&frame->ps, ps, sizeof(frame->ps));
 
 	// never send client's own entity, because it can
 	// be regenerated from the playerstate

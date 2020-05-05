@@ -1019,6 +1019,10 @@ void CGameVM::CGameStaticInit()
 void CGameVM::CGameInit(int serverMessageNum, int clientNum)
 {
 	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, cls.glconfig, cl.gameState);
+	NetcodeTable psTable;
+	size_t psSize;
+	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
+	MSG_InitNetcodeTables(std::move(psTable), psSize);
 }
 
 void CGameVM::CGameShutdown()
