@@ -46,7 +46,7 @@ struct KTX_header_t {
 
 const byte KTX_identifier[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
 const uint32_t KTX_endianness{ 0x04030201U };
-const uint32_t KTX_endianness_reverse{ 0x01020304u };
+const uint32_t KTX_endianness_reverse{ 0x01020304U };
 
 bool IsValidKTXHeader( const KTX_header_t *hdr, size_t file_size ) {
 	return hdr && file_size >= sizeof(KTX_header_t) &&
@@ -119,7 +119,7 @@ uint32_t GetImageSize( const byte *ktxPosition, bool needReverseBytes ) {
 	if( needReverseBytes )
 		imageSize = Swap32(imageSize);
 
-	return PAD(imageSize, 4u);
+	return PAD( imageSize, 4U );
 }
 
 bool IsNonArrayCubemapTexture( const KTX_header_t *hdr ) {
@@ -772,16 +772,16 @@ void SaveImageKTX( const char *path, image_t *img )
 			     (GLint *)&mipFilter );
 	if( mipFilter == GL_NEAREST_MIPMAP_NEAREST || mipFilter == GL_NEAREST_MIPMAP_LINEAR ||
 		mipFilter == GL_LINEAR_MIPMAP_NEAREST || mipFilter == GL_LINEAR_MIPMAP_LINEAR ) {
-		mipWidth = std::max(hdr.pixelWidth, 1u);
-		mipHeight = std::max(hdr.pixelHeight, 1u);
-		mipDepth = std::max(hdr.pixelDepth, 1u);
+		mipWidth = std::max(hdr.pixelWidth, 1U);
+		mipHeight = std::max(hdr.pixelHeight, 1U);
+		mipDepth = std::max(hdr.pixelDepth, 1U);
 
 		while( mipWidth > 1 || mipHeight > 1 || mipDepth > 1 ) {
 			hdr.numberOfMipmapLevels++;
 
-			if( mipWidth  > 1 ) mipWidth  >>= 1u;
-			if( mipHeight > 1 ) mipHeight >>= 1u;
-			if( mipDepth  > 1 ) mipDepth  >>= 1u;
+			if( mipWidth  > 1 ) mipWidth  >>= 1U;
+			if( mipHeight > 1 ) mipHeight >>= 1U;
+			if( mipDepth  > 1 ) mipDepth  >>= 1U;
 		}
 	}
 
@@ -789,9 +789,9 @@ void SaveImageKTX( const char *path, image_t *img )
 
 	uint32_t size = 0;
 	int      mipSize;
-	mipWidth = std::max(hdr.pixelWidth, 1u);
-	mipHeight = std::max(hdr.pixelHeight, 1u);
-	mipDepth = std::max(hdr.pixelDepth, 1u);
+	mipWidth = std::max(hdr.pixelWidth, 1U);
+	mipHeight = std::max(hdr.pixelHeight, 1U);
+	mipDepth = std::max(hdr.pixelDepth, 1U);
 	for(uint32_t i = size = 0; i < hdr.numberOfMipmapLevels; i++ ) {
 		size += sizeof(uint32_t);
 		if( !hdr.glFormat ) {
@@ -800,14 +800,14 @@ void SaveImageKTX( const char *path, image_t *img )
 						  &mipSize );
 		} else {
 			mipSize = mipWidth * hdr.glTypeSize * components;
-			mipSize = PAD( mipSize, 4u );
+			mipSize = PAD( mipSize, 4U );
 			mipSize *= mipHeight * mipDepth;
 		}
-		size += hdr.numberOfFaces * PAD( mipSize, 4u );
+		size += hdr.numberOfFaces * PAD( mipSize, 4U );
 
-		if( mipWidth  > 1 ) mipWidth  >>= 1u;
-		if( mipHeight > 1 ) mipHeight >>= 1u;
-		if( mipDepth  > 1 ) mipDepth  >>= 1u;
+		if( mipWidth  > 1 ) mipWidth  >>= 1U;
+		if( mipHeight > 1 ) mipHeight >>= 1U;
+		if( mipDepth  > 1 ) mipDepth  >>= 1U;
 	}
 	
 	byte *data = (byte *)ri.Hunk_AllocateTempMemory( size + sizeof( hdr ) );
@@ -815,9 +815,9 @@ void SaveImageKTX( const char *path, image_t *img )
 	Com_Memcpy( ptr, &hdr, sizeof( hdr ) );
 	ptr += sizeof( hdr );
 
-	mipWidth = std::max(hdr.pixelWidth, 1u);
-	mipHeight = std::max(hdr.pixelHeight, 1u);
-	mipDepth = std::max(hdr.pixelDepth, 1u);
+	mipWidth = std::max(hdr.pixelWidth, 1U);
+	mipHeight = std::max(hdr.pixelHeight, 1U);
+	mipDepth = std::max(hdr.pixelDepth, 1U);
 	for(uint32_t i = 0; i < hdr.numberOfMipmapLevels; i++ ) {
 		if( !hdr.glFormat ) {
 			glGetTexLevelParameteriv( target, i,
@@ -825,10 +825,10 @@ void SaveImageKTX( const char *path, image_t *img )
 						  &mipSize );
 		} else {
 			mipSize = mipWidth * hdr.glTypeSize * components;
-			mipSize = PAD( mipSize, 4u );
+			mipSize = PAD( mipSize, 4U );
 			mipSize *= mipHeight * mipDepth;
 		}
-		*(int32_t *)ptr = PAD( mipSize, 4u );
+		*(int32_t *)ptr = PAD( mipSize, 4U );
 		ptr += sizeof( int32_t );
 
 		for(uint32_t j = 0; j < hdr.numberOfFaces; j++ ) {
@@ -838,12 +838,12 @@ void SaveImageKTX( const char *path, image_t *img )
 				glGetTexImage( target + j, i, hdr.glFormat,
 					       hdr.glType, ptr );
 			}
-			ptr += PAD( mipSize, 4u );
+			ptr += PAD( mipSize, 4U );
 		}
 
-		if( mipWidth  > 1 ) mipWidth  >>= 1u;
-		if( mipHeight > 1 ) mipHeight >>= 1u;
-		if( mipDepth  > 1 ) mipDepth  >>= 1u;
+		if( mipWidth  > 1 ) mipWidth  >>= 1U;
+		if( mipHeight > 1 ) mipHeight >>= 1U;
+		if( mipDepth  > 1 ) mipDepth  >>= 1U;
 	}
 
 	ri.FS_WriteFile( path, data, size + sizeof( hdr ) );
