@@ -179,16 +179,15 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 		IsNonArrayCubemapTexture(hdr) ? hdr->numberOfFaces : 1U};
 
 	for(uint32_t i{ 0 }; i < hdr->numberOfMipmapLevels; i++) {
+		if ( !IsValidKTXFileStreamPosition( ptr, ktxSize, static_cast<const byte*>(ktxData) ) ) {
+			Log::Warn("KTX image '%s' has bad header or texture data", name);
+			return false;
+		}
+
 		const uint32_t imageSize{ GetImageSize( ptr, needReverseBytes ) };
 
 		totalImageSize += imageSize * mipmapLevelCoefficient;
 		ptr += sizeof(uint32_t) + imageSize;
-	}
-
-	// ptr points to next byte after ktxData buffer end.
-	if ( !IsValidKTXFileStreamPosition( ptr - 1, ktxSize, static_cast<const byte *>(ktxData) ) ) {
-		Log::Warn("KTX image '%s' has bad header or texture data", name);
-		return false;
 	}
 
 	ptr = firstImageDataPtr;
