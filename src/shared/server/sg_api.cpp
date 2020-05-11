@@ -107,7 +107,7 @@ bool trap_GetEntityToken(char *buffer, int bufferSize)
 {
     std::string text;
     bool res;
-    VM::SendMsg<GetEntityTokenMsg>(res, text);
+    VM::SendMsg<SgGetEntityTokenMsg>(res, text);
     Q_strncpyz(buffer, text.c_str(), bufferSize);
     return res;
 }

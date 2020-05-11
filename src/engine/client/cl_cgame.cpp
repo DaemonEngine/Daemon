@@ -1167,7 +1167,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			break;
 
 		case CG_GET_ENTITY_TOKEN:
-			IPC::HandleMsg<GetEntityTokenMsg>(channel, std::move(reader), [this] (int len, bool& res, std::string& token) {
+			IPC::HandleMsg<CgGetEntityTokenMsg>(channel, std::move(reader), [this] (int len, bool& res, std::string& token) {
 				std::unique_ptr<char[]> buffer(new char[len]);
 				buffer[0] = '\0';
 				res = re.GetEntityToken(buffer.get(), len);

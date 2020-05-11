@@ -259,7 +259,7 @@ using GetUserCmdMsg = IPC::SyncMessage<
 >;
 using SetUserCmdValueMsg = IPC::Message<IPC::Id<VM::QVM, CG_SETUSERCMDVALUE>, int, int, float>;
 // TODO what?
-using GetEntityTokenMsg =  IPC::SyncMessage<
+using CgGetEntityTokenMsg =  IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_GET_ENTITY_TOKEN>, int>,
 	IPC::Reply<bool, std::string>
 >;

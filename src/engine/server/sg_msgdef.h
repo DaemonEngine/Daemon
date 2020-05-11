@@ -95,7 +95,7 @@ using GetUsercmdMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_USERCMD>, int>,
     IPC::Reply<usercmd_t>
 >;
-using GetEntityTokenMsg = IPC::SyncMessage<
+using SgGetEntityTokenMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_ENTITY_TOKEN>>,
     IPC::Reply<bool, std::string>
 >;
