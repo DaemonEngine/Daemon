@@ -532,7 +532,7 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		break;
 
 	case G_GET_ENTITY_TOKEN:
-		IPC::HandleMsg<GetEntityTokenMsg>(channel, std::move(reader), [this](bool& boolRes, std::string& res) {
+		IPC::HandleMsg<SgGetEntityTokenMsg>(channel, std::move(reader), [this](bool& boolRes, std::string& res) {
 			res = COM_Parse(&sv.entityParsePoint);
 			boolRes = sv.entityParsePoint or res.size() > 0;
 		});
