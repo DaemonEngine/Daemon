@@ -80,13 +80,58 @@ bool TryApplyKTXHeaderEndianness( KTX_header_t *hdr, bool &needReverseBytes ) {
 	}
 }
 
-bool IsSupportedKTXFormat( const KTX_header_t *hdr ) {
-	return !( hdr->glTypeSize != 1 ||
-		  hdr->numberOfArrayElements != 0 ||
-		  (hdr->numberOfFaces != 1 && hdr->numberOfFaces != 6) ||
-		  hdr->numberOfMipmapLevels > MAX_TEXTURE_MIPS ||
-		  hdr->pixelWidth == 0 || hdr->pixelHeight == 0 ||
-		  hdr->pixelDepth != 0 );
+bool IsSupportedKTXFormat( const KTX_header_t *hdr, const char* name ) {
+	if ( hdr->glTypeSize != 1 ) {
+		// For texture data which does not depend on platform endianness, including compressed
+		// texture data, glTypeSize must equal 1.
+		Log::Warn("KTX image '%s' isn't supported. Header glTypeSize '%d' should be 1", name,
+			hdr->glTypeSize);
+		return false;
+	}
+
+	if ( hdr->numberOfArrayElements != 0 ) {
+		// numberOfArrayElements specifies the number of array elements. If the texture is not an
+		// array texture, numberOfArrayElements must equal 0.
+		Log::Warn("KTX image '%s' isn't supported. Header numberOfArrayElements '%d' should be 0", name,
+			hdr->numberOfArrayElements);
+		return false;
+	}
+
+	if ( hdr->numberOfFaces != 1 && hdr->numberOfFaces != 6 ) {
+		// numberOfFaces specifies the number of cubemap faces. For cubemapsand cubemap arrays this
+		// should be 6. For non cubemaps this should be 1. Cube map faces are stored in the order:
+		// +X, -X, +Y, -Y, +Z, -Z.
+		Log::Warn("KTX image '%s' isn't supported. Header numberOfFaces '%d' should be 1 or 6", name,
+			hdr->numberOfFaces);
+		return false;
+	}
+
+	if ( hdr->numberOfMipmapLevels > MAX_TEXTURE_MIPS ) {
+		// numberOfMipmapLevels must equal 1 for non-mipmapped textures. For mipmapped textures,
+		// it equals the number of mipmaps. Mipmaps are stored in order from largest size to
+		// smallest size. The first mipmap level is always level 0. If numberOfMipmapLevels equals 0, it
+		// indicates that a full mipmap pyramid should be generated from level 0 at load time (this is
+		// usually not allowed for compressed formats).
+		Log::Warn("KTX image '%s' isn't supported. Header numberOfMipmapLevels is too large ('%d' > '%d')",
+			name, hdr->numberOfMipmapLevels, MAX_TEXTURE_MIPS);
+		return false;
+	}
+
+	if ( hdr->pixelWidth == 0 || hdr->pixelHeight == 0 ) {
+		// The size of the texture image for level 0, in pixels. No rounding to block sizes should be applied
+		// for block compressed textures.
+		Log::Warn("KTX image '%s' isn't supported. Header pixelWidth '%d' and pixelHeight '%d' should be nonzero",
+			name, hdr->pixelWidth, hdr->pixelHeight);
+		return false;
+	}
+
+	if ( hdr->pixelDepth != 0 ) {
+		// For 1D textures pixelHeight and pixelDepth must be 0. For 2D and cube textures pixelDepth must be 0.
+		Log::Warn("KTX image '%s' isn't supported. Header pixelDepth '%d' should be 0", name, hdr->pixelDepth);
+		return false;
+	}
+
+	return true;
 }
 
 bool TryParseInternalFormatBits( uint32_t glInternalFormat, int &bits ) {
@@ -147,8 +192,7 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 		return false;
 	}
 
-	if( !IsSupportedKTXFormat( hdr ) ) {
-		Log::Warn("KTX image '%s' may be valid, but not supported", name);
+	if( !IsSupportedKTXFormat( hdr, name ) ) {
 		return false;
 	}
 
@@ -188,6 +232,12 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 
 		totalImageSize += imageSize * mipmapLevelCoefficient;
 		ptr += sizeof(uint32_t) + imageSize;
+	}
+
+	// ptr points to next byte after ktxData buffer end.
+	if ( !IsValidKTXFileStreamPosition( ptr - 1, ktxSize, static_cast<const byte*>(ktxData) ) ) {
+		Log::Warn("KTX image '%s' has bad header or texture data", name);
+		return false;
 	}
 
 	ptr = firstImageDataPtr;
