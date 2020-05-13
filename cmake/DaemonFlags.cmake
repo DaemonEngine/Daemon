@@ -167,7 +167,7 @@ if (MSVC)
     set_c_cxx_flag("/wd4996")
 elseif (NACL)
     set_c_flag("-std=c11")
-    set_cxx_flag("-std=gnu++11")
+    set_cxx_flag("-std=gnu++14")
 
     set_c_cxx_flag("-ffast-math")
     set_c_cxx_flag("-fvisibility=hidden")

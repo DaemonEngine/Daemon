@@ -416,7 +416,13 @@ void* operator new(size_t n)
 		Sys::Error("Out of memory");
 	return p;
 }
+
 void operator delete(void* p) NOEXCEPT
+{
+	free(p);
+}
+
+void operator delete(void* p, size_t) NOEXCEPT
 {
 	free(p);
 }
