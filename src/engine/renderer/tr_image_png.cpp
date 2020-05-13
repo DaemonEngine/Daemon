@@ -78,7 +78,8 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 
 	if ( !png )
 	{
-		Log::Warn("LoadPNG: png_create_write_struct() failed for (%s)", name );
+		Log::Warn("PNG image '%s' has failed png_create_write_struct() [libpng v.'%s']",
+			name, PNG_LIBPNG_VER_STRING );
 		ri.FS_FreeFile( data );
 		return;
 	}
@@ -88,7 +89,8 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 
 	if ( !info )
 	{
-		Log::Warn("LoadPNG: png_create_info_struct() failed for (%s)", name );
+		Log::Warn("PNG image '%s' has failed png_create_info_struct() [libpng v.'%s']",
+			name, PNG_LIBPNG_VER_STRING );
 		ri.FS_FreeFile( data );
 		png_destroy_read_struct( &png, ( png_infopp ) nullptr, ( png_infopp ) nullptr );
 		return;
@@ -102,7 +104,8 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 	if ( setjmp( png_jmpbuf( png ) ) )
 	{
 		// if we get here, we had a problem reading the file
-		Log::Warn("LoadPNG: first exception handler called for (%s)", name );
+		Log::Warn("PNG image '%s' has first exception handler called [libpng v.'%s']",
+			name, PNG_LIBPNG_VER_STRING );
 		ri.FS_FreeFile( data );
 		png_destroy_read_struct( &png, ( png_infopp ) & info, ( png_infopp ) nullptr );
 		return;
@@ -170,7 +173,8 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 	// set a new exception handler
 	if ( setjmp( png_jmpbuf( png ) ) )
 	{
-		Log::Warn("LoadPNG: second exception handler called for (%s)", name );
+		Log::Warn("PNG image '%s' has second exception handler called [libpng v.'%s']",
+			name, PNG_LIBPNG_VER_STRING );
 		ri.Hunk_FreeTempMemory( row_pointers );
 		ri.FS_FreeFile( data );
 		png_destroy_read_struct( &png, ( png_infopp ) & info, ( png_infopp ) nullptr );

@@ -19,9 +19,35 @@ along with Daemon source code; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
-// tr_image.c
+
 #include "tr_local.h"
 #include <webp/decode.h>
+
+namespace {
+bool LoadInMemoryWEBP( const char *path, const uint8_t* webpData, size_t webpSize, byte **pic, int *width,
+	int *height ) {
+	// Validate data and query image size.
+	if ( !WebPGetInfo( webpData, webpSize, width, height ) )
+	{
+		Log::Warn( "WebP image '%s' has an invalid format", path );
+		return false;
+	}
+
+	const size_t stride{ *width * sizeof( u8vec4_t ) };
+	const size_t size{ *height * stride };
+	auto *out = (byte*)ri.Z_Malloc( size );
+
+	// Decode into RGBA.
+	if ( !WebPDecodeRGBAInto( webpData, webpSize, out, size, stride ) )
+	{
+		Log::Warn( "WebP image '%s' has bad header or data", path );
+		return false;
+	}
+
+	*pic = out;
+	return true;
+}
+}
 
 /*
 =========================================================
@@ -30,42 +56,18 @@ LoadWEBP
 
 =========================================================
 */
-
-void LoadWEBP( const char *filename, unsigned char **pic, int *width, int *height,
-	       int*, int*, int*, byte )
+void LoadWEBP( const char *path, byte **pic, int *width, int *height, int *, int *, int *, byte )
 {
-	byte *out;
-	int  len;
-	int  stride;
-	int  size;
-	void* filebuf;
-
-	/* read compressed data */
-	len = ri.FS_ReadFile( filename, &filebuf );
-
-	if ( !filebuf || len < 0 )
-	{
+	*pic = nullptr;
+	
+	void *webpData{ nullptr };
+	const size_t webpSize = ri.FS_ReadFile( path, &webpData );
+	if (!webpData) {
 		return;
 	}
-
-	/* validate data and query image size */
-	if ( !WebPGetInfo( static_cast<const uint8_t*>(filebuf), len, width, height ) )
-	{
-		ri.FS_FreeFile( filebuf );
-		return;
+	if ( !LoadInMemoryWEBP( path, static_cast<const uint8_t*>(webpData), webpSize, pic, width, height ) ) {
+		ri.Free( *pic );
+		*pic = nullptr; // This signals failure.
 	}
-
-	stride = *width * sizeof( u8vec4_t );
-	size = *height * stride;
-
-	out = (byte*) ri.Z_Malloc( size );
-
-	if ( !WebPDecodeRGBAInto( static_cast<const uint8_t*>(filebuf), len, out, size, stride ) )
-	{
-		ri.Free( out );
-		return;
-	}
-
-	ri.FS_FreeFile( filebuf );
-	*pic = out;
+	ri.FS_FreeFile( webpData );
 }

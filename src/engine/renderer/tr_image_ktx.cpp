@@ -1,6 +1,6 @@
 /*
 ===========================================================================
-Copyright (C) 2014 
+Copyright (C) 2014
 
 This file is part of Daemon source code.
 
@@ -22,6 +22,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 
+namespace {
+// KTX is a format for storing textures for OpenGL® and OpenGL® ES applications.
+// See https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/
+#pragma pack(push, 1)
 struct KTX_header_t {
 	byte     identifier[12];
 	uint32_t endianness;
@@ -38,91 +42,164 @@ struct KTX_header_t {
 	uint32_t numberOfMipmapLevels;
 	uint32_t bytesOfKeyValueData;
 };
+#pragma pack(pop)
 
-static const byte KTX_identifier[12] = {
-	0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
-};
-static const uint32_t KTX_endianness = 0x04030201;
-static const uint32_t KTX_endianness_reverse = 0x01020304;
+const byte KTX_identifier[12]{ 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
+const uint32_t KTX_endianness{ 0x04030201U };
+const uint32_t KTX_endianness_reverse{ 0x01020304U };
 
-void LoadKTX( const char *name, byte **data, int *width, int *height,
-	      int *numLayers, int *numMips, int *bits, byte )
-{
-	KTX_header_t *hdr;
-	byte         *ptr;
-	size_t        bufLen, size;
-	uint32_t      imageSize;
+bool IsValidKTXHeader( const KTX_header_t *hdr, size_t file_size ) {
+	return hdr && file_size >= sizeof(KTX_header_t) &&
+		memcmp(hdr->identifier, KTX_identifier, sizeof(KTX_identifier)) == 0;
+}
 
-	*numLayers = 0;
-
-	bufLen = ri.FS_ReadFile( name, ( void ** ) &hdr );
-
-	if( !hdr )
-	{
-		return;
-	}
-
-	if( bufLen < sizeof( KTX_header_t ) ||
-	    memcmp( hdr->identifier, KTX_identifier, sizeof( KTX_identifier) ) ) {
-		ri.FS_FreeFile( hdr );
-		return;
-	}
-
-	switch( hdr->endianness ) {
+bool TryApplyKTXHeaderEndianness( KTX_header_t *hdr, bool &needReverseBytes ) {
+	switch (hdr->endianness) {
 	case KTX_endianness:
-		break;
+		needReverseBytes = false;
+		return true;
 
 	case KTX_endianness_reverse:
-		hdr->glType                = Swap32( hdr->glType );
-		hdr->glTypeSize            = Swap32( hdr->glTypeSize );
-		hdr->glFormat              = Swap32( hdr->glFormat );
-		hdr->glInternalFormat      = Swap32( hdr->glInternalFormat );
-		hdr->glBaseInternalFormat  = Swap32( hdr->glBaseInternalFormat );
-		hdr->pixelWidth            = Swap32( hdr->pixelWidth );
-		hdr->pixelHeight           = Swap32( hdr->pixelHeight );
-		hdr->pixelDepth            = Swap32( hdr->pixelDepth );
-		hdr->numberOfArrayElements = Swap32( hdr->numberOfArrayElements );
-		hdr->numberOfFaces         = Swap32( hdr->numberOfFaces );
-		hdr->numberOfMipmapLevels  = Swap32( hdr->numberOfMipmapLevels );
-		hdr->bytesOfKeyValueData   = Swap32( hdr->bytesOfKeyValueData );
-		break;
+		hdr->glType = Swap32(hdr->glType);
+		hdr->glTypeSize = Swap32(hdr->glTypeSize);
+		hdr->glFormat = Swap32(hdr->glFormat);
+		hdr->glInternalFormat = Swap32(hdr->glInternalFormat);
+		hdr->glBaseInternalFormat = Swap32(hdr->glBaseInternalFormat);
+		hdr->pixelWidth = Swap32(hdr->pixelWidth);
+		hdr->pixelHeight = Swap32(hdr->pixelHeight);
+		hdr->pixelDepth = Swap32(hdr->pixelDepth);
+		hdr->numberOfArrayElements = Swap32(hdr->numberOfArrayElements);
+		hdr->numberOfFaces = Swap32(hdr->numberOfFaces);
+		hdr->numberOfMipmapLevels = Swap32(hdr->numberOfMipmapLevels);
+		hdr->bytesOfKeyValueData = Swap32(hdr->bytesOfKeyValueData);
+		needReverseBytes = true;
+		return true;
 
 	default:
-		ri.FS_FreeFile( hdr );
-		return;
+		return false;
+	}
+}
+
+bool IsSupportedKTXFormat( const KTX_header_t *hdr, const char* name ) {
+	if ( hdr->glTypeSize != 1 ) {
+		// For texture data which does not depend on platform endianness, including compressed
+		// texture data, glTypeSize must equal 1.
+		Log::Warn("KTX image '%s' isn't supported. Header glTypeSize '%d' should be 1", name,
+			hdr->glTypeSize);
+		return false;
 	}
 
-	// Support only for RGBA8 and BCn
-	switch( hdr->glInternalFormat ) {
+	if ( hdr->numberOfArrayElements != 0 ) {
+		// numberOfArrayElements specifies the number of array elements. If the texture is not an
+		// array texture, numberOfArrayElements must equal 0.
+		Log::Warn("KTX image '%s' isn't supported. Header numberOfArrayElements '%d' should be 0", name,
+			hdr->numberOfArrayElements);
+		return false;
+	}
+
+	if ( hdr->numberOfFaces != 1 && hdr->numberOfFaces != 6 ) {
+		// numberOfFaces specifies the number of cubemap faces. For cubemapsand cubemap arrays this
+		// should be 6. For non cubemaps this should be 1. Cube map faces are stored in the order:
+		// +X, -X, +Y, -Y, +Z, -Z.
+		Log::Warn("KTX image '%s' isn't supported. Header numberOfFaces '%d' should be 1 or 6", name,
+			hdr->numberOfFaces);
+		return false;
+	}
+
+	if ( hdr->numberOfMipmapLevels > MAX_TEXTURE_MIPS ) {
+		// numberOfMipmapLevels must equal 1 for non-mipmapped textures. For mipmapped textures,
+		// it equals the number of mipmaps. Mipmaps are stored in order from largest size to
+		// smallest size. The first mipmap level is always level 0. If numberOfMipmapLevels equals 0, it
+		// indicates that a full mipmap pyramid should be generated from level 0 at load time (this is
+		// usually not allowed for compressed formats).
+		Log::Warn("KTX image '%s' isn't supported. Header numberOfMipmapLevels is too large ('%d' > '%d')",
+			name, hdr->numberOfMipmapLevels, MAX_TEXTURE_MIPS);
+		return false;
+	}
+
+	if ( hdr->pixelWidth == 0 || hdr->pixelHeight == 0 ) {
+		// The size of the texture image for level 0, in pixels. No rounding to block sizes should be applied
+		// for block compressed textures.
+		Log::Warn("KTX image '%s' isn't supported. Header pixelWidth '%d' and pixelHeight '%d' should be nonzero",
+			name, hdr->pixelWidth, hdr->pixelHeight);
+		return false;
+	}
+
+	if ( hdr->pixelDepth != 0 ) {
+		// For 1D textures pixelHeight and pixelDepth must be 0. For 2D and cube textures pixelDepth must be 0.
+		Log::Warn("KTX image '%s' isn't supported. Header pixelDepth '%d' should be 0", name, hdr->pixelDepth);
+		return false;
+	}
+
+	return true;
+}
+
+bool TryParseInternalFormatBits( uint32_t glInternalFormat, int &bits ) {
+	switch (glInternalFormat) {
 	case GL_RGBA8:
-		break;
+		return true;
 	case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-		*bits |= IF_BC1;
-		break;
+		bits |= IF_BC1;
+		return true;
 	case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-		*bits |= IF_BC2;
-		break;
+		bits |= IF_BC2;
+		return true;
 	case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-		*bits |= IF_BC3;
-		break;
+		bits |= IF_BC3;
+		return true;
 	case GL_COMPRESSED_RED_RGTC1:
-		*bits |= IF_BC4;
-		break;
+		bits |= IF_BC4;
+		return true;
 	case GL_COMPRESSED_RG_RGTC2:
-		*bits |= IF_BC5;
-		break;
+		bits |= IF_BC5;
+		return true;
 	default:
-		ri.FS_FreeFile( hdr );
-		return;
+		return false;
+	}
+}
+
+uint32_t GetImageSize( const byte *ktxPosition, bool needReverseBytes ) {
+	uint32_t imageSize = *(reinterpret_cast<const uint32_t *>(ktxPosition));
+
+	if( needReverseBytes )
+		imageSize = Swap32(imageSize);
+
+	return PAD( imageSize, 4U );
+}
+
+bool IsNonArrayCubemapTexture( const KTX_header_t *hdr ) {
+	return hdr->numberOfArrayElements == 0 && hdr->numberOfFaces == 6;
+}
+
+bool IsValidKTXFileStreamPosition( const byte *position, size_t ktxSize, const byte *ktxData ) {
+	return position >= ktxData && position < ktxData + ktxSize;
+}
+
+bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
+    			     byte **data, int *width, int *height, int *numLayers,
+    			     int *numMips, int *bits ) {
+	auto *hdr{ static_cast<KTX_header_t *>(ktxData) };
+
+	if( !IsValidKTXHeader( hdr, ktxSize ) ) {
+		Log::Warn("KTX image '%s' has an invalid format", name);
+		return false;
 	}
 
-	if( hdr->numberOfArrayElements != 0 ||
-	    (hdr->numberOfFaces != 1 && hdr->numberOfFaces != 6) ||
-	    hdr->pixelWidth == 0 ||
-	    hdr->pixelHeight == 0 ||
-	    hdr->pixelDepth != 0 ) {
-		ri.FS_FreeFile( hdr );
-		return;
+	bool needReverseBytes{false};
+	if( !TryApplyKTXHeaderEndianness( hdr, needReverseBytes ) ) {
+		Log::Warn("KTX image '%s' has unknown endianness value '%d'", name,
+		hdr->endianness);
+		return false;
+	}
+
+	if( !IsSupportedKTXFormat( hdr, name ) ) {
+		return false;
+	}
+
+	if( !TryParseInternalFormatBits( hdr->glInternalFormat, *bits ) ) {
+		Log::Warn("KTX image '%s' has unsupported glInternalFormat value '%d'",
+		name, hdr->glInternalFormat);
+		return false;
 	}
 
 	*width = hdr->pixelWidth;
@@ -130,76 +207,77 @@ void LoadKTX( const char *name, byte **data, int *width, int *height,
 	*numMips = hdr->numberOfMipmapLevels;
 	*numLayers = hdr->numberOfFaces == 6 ? 6 : 0;
 
-	ptr = (byte *)(hdr + 1);
-	ptr += hdr->bytesOfKeyValueData;
-	size = 0;
-	for(unsigned i = 0; i < hdr->numberOfMipmapLevels; i++ ) {
-		imageSize = *((uint32_t *)ptr);
-		if( hdr->endianness == KTX_endianness_reverse )
-			imageSize = Swap32( imageSize );
-		imageSize = PAD( imageSize, 4 );
+	byte *firstImageDataPtr{ (byte *)(hdr + 1) + hdr->bytesOfKeyValueData };
+	if ( !IsValidKTXFileStreamPosition( firstImageDataPtr, ktxSize, static_cast<const byte *>(ktxData) ) ) {
+		Log::Warn("KTX image '%s' has bad bytesOfKeyValueData or texture data", name);
+		return false;
+	}
+	byte *ptr{ firstImageDataPtr };
+	size_t totalImageSize{ 0 };
 
-		size += imageSize * hdr->numberOfFaces;
-		ptr += 4 + imageSize;
+	// For most textures imageSize is the number of bytes of pixel data in the
+	// current LOD level. The exception is non-array cubemap textures where
+	// imageSize is the number of bytes in each face of the texture for the
+	// current LOD level.
+	const uint32_t mipmapLevelCoefficient{
+		IsNonArrayCubemapTexture(hdr) ? hdr->numberOfFaces : 1U};
+
+	for(uint32_t i{ 0 }; i < hdr->numberOfMipmapLevels; i++) {
+		if ( !IsValidKTXFileStreamPosition( ptr, ktxSize, static_cast<const byte*>(ktxData) ) ) {
+			Log::Warn("KTX image '%s' has bad header or texture data", name);
+			return false;
+		}
+
+		const uint32_t imageSize{ GetImageSize( ptr, needReverseBytes ) };
+
+		totalImageSize += imageSize * mipmapLevelCoefficient;
+		ptr += sizeof(uint32_t) + imageSize;
 	}
 
-	ptr = (byte *)(hdr + 1);
-	ptr += hdr->bytesOfKeyValueData;
-	data[ 0 ] = (byte *)ri.Z_Malloc( size );
+	// ptr points to next byte after ktxData buffer end.
+	if ( !IsValidKTXFileStreamPosition( ptr - 1, ktxSize, static_cast<const byte*>(ktxData) ) ) {
+		Log::Warn("KTX image '%s' has bad header or texture data", name);
+		return false;
+	}
 
-	imageSize = *((uint32_t *)ptr);
-	if( hdr->endianness == KTX_endianness_reverse )
-		imageSize = Swap32( imageSize );
-	imageSize = PAD( imageSize, 4 );
-	ptr += 4;
+	ptr = firstImageDataPtr;
+	data[ 0 ] = (byte *)ri.Z_Malloc(totalImageSize);
+
+	uint32_t imageSize{ GetImageSize( ptr, needReverseBytes ) };
+	ptr += sizeof(uint32_t);
+
 	Com_Memcpy( data[ 0 ], ptr, imageSize );
 	ptr += imageSize;
-	for(unsigned j = 1; j < hdr->numberOfFaces; j++ ) {
+
+	for(uint32_t j{ 1 }; j < hdr->numberOfFaces; j++) {
 		data[ j ] = data[ j - 1 ] + imageSize;
 		Com_Memcpy( data[ j ], ptr, imageSize );
+
 		ptr += imageSize;
 	}
-	for(unsigned i = 1; i <= hdr->numberOfMipmapLevels; i++ ) {
-		imageSize = *((uint32_t *)ptr);
-		if( hdr->endianness == KTX_endianness_reverse )
-			imageSize = Swap32( imageSize );
-		imageSize = PAD( imageSize, 4 );
-		ptr += 4;
 
-		for(unsigned j = 0; j < hdr->numberOfFaces; j++ ) {
-			int idx = i * hdr->numberOfFaces + j;
+	for(uint32_t i{ 1 }; i < hdr->numberOfMipmapLevels; i++) {
+		imageSize = GetImageSize( ptr, needReverseBytes );
+		ptr += sizeof(uint32_t);
+
+		for (uint32_t j{ 0 }; j < hdr->numberOfFaces; j++) {
+			const uint32_t idx{ i * hdr->numberOfFaces + j };
+
 			data[ idx ] = data[ idx - 1 ] + imageSize;
 			Com_Memcpy( data[ idx ], ptr, imageSize );
+
 			ptr += imageSize;
 		}
 	}
 
-	ri.FS_FreeFile( hdr );
+	return true;
 }
 
-void SaveImageKTX( const char *path, image_t *img )
-{
-	KTX_header_t hdr;
-	int          size, components;
-	int          mipWidth, mipHeight, mipDepth, mipSize;
-	GLenum       target;
-	byte        *data, *ptr;
-
-	Com_Memcpy( &hdr.identifier, KTX_identifier, sizeof( KTX_identifier ) );
-	hdr.endianness = KTX_endianness;
-
-	GL_Bind( img );
-	if( img->type == GL_TEXTURE_CUBE_MAP ) {
-		hdr.numberOfFaces = 6;
-		target = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-	} else {
-		hdr.numberOfFaces = 1;
-		target = img->type;
-	}
-
-	glGetTexLevelParameteriv( target, 0, GL_TEXTURE_INTERNAL_FORMAT,
-				  (GLint *)&hdr.glInternalFormat );
-	switch( hdr.glInternalFormat ) {
+bool ApplyKTXHeaderGlProperties( uint32_t glInternalFormat, KTX_header_t &hdr, uint32_t &components ) {
+	components = std::numeric_limits<uint32_t>::max();
+	hdr.glInternalFormat = glInternalFormat;
+	
+	switch( glInternalFormat ) {
 	case GL_ALPHA4:
 	case GL_ALPHA8:
 		hdr.glType               = GL_UNSIGNED_BYTE;
@@ -652,9 +730,9 @@ void SaveImageKTX( const char *path, image_t *img )
 		hdr.glBaseInternalFormat = GL_RGB;
 		components               = 0;
 		break;
-        case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-        case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-        case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+	case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+	case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+	case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
 		hdr.glType               = 0;
 		hdr.glTypeSize           = 1;
 		hdr.glFormat             = 0;
@@ -662,8 +740,57 @@ void SaveImageKTX( const char *path, image_t *img )
 		components               = 0;
 		break;
 	default:
-		Log::Warn("Unknown texture format %x",
-			  hdr.glInternalFormat );
+		break;
+	}
+	
+	return components != std::numeric_limits<uint32_t>::max();
+}
+}  // namespace
+
+void LoadKTX( const char *name, byte **pic, int *width, int *height,
+			  int *numLayers, int *numMips, int *bits, byte )
+{
+	*pic = nullptr;
+	*numLayers = 0;
+
+	void *ktxData{ nullptr };
+	const size_t ktxSize = ri.FS_ReadFile( name, &ktxData );
+	if (!ktxData) {
+		return;
+	}
+	if ( !LoadInMemoryKTX( name, ktxData, ktxSize, pic, width, height, numLayers, numMips, bits ) ) {
+		if (*pic) {
+			ri.Free(*pic);
+		}
+		*pic = nullptr; // This signals failure.
+	}
+	ri.FS_FreeFile( ktxData );
+}
+
+void SaveImageKTX( const char *path, image_t *img )
+{
+	KTX_header_t hdr;
+	Com_Memset( &hdr, 0, sizeof(hdr) );
+	Com_Memcpy( &hdr.identifier, KTX_identifier, sizeof( KTX_identifier ) );
+	hdr.endianness = KTX_endianness;
+
+	GLenum target;
+	GL_Bind( img );
+	if( img->type == GL_TEXTURE_CUBE_MAP ) {
+		hdr.numberOfFaces = 6;
+		target = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+	} else {
+		hdr.numberOfFaces = 1;
+		target = img->type;
+	}
+
+	uint32_t glInternalFormat;
+	glGetTexLevelParameteriv( target, 0, GL_TEXTURE_INTERNAL_FORMAT,
+		(GLint *)&glInternalFormat );
+
+	uint32_t components;
+	if( !ApplyKTXHeaderGlProperties( glInternalFormat, hdr, components ) ) {
+		Log::Warn( "KTX image '%s' format '%x' is not supported", path, glInternalFormat );
 		return;
 	}
 
@@ -688,84 +815,84 @@ void SaveImageKTX( const char *path, image_t *img )
 	}
 
 	hdr.numberOfMipmapLevels = 1;
-    int i;
+	uint32_t mipWidth, mipHeight, mipDepth;
+	int mipFilter;
 	glGetTexParameteriv( target, GL_TEXTURE_MIN_FILTER,
-			     (GLint *)&i );
-	if( i == GL_NEAREST_MIPMAP_NEAREST || i == GL_NEAREST_MIPMAP_LINEAR ||
-	    i == GL_LINEAR_MIPMAP_NEAREST || i == GL_LINEAR_MIPMAP_LINEAR ) {
-		
-		mipWidth = std::max(hdr.pixelWidth, 1u);
-		mipHeight = std::max(hdr.pixelHeight, 1u);
-		mipDepth = std::max(hdr.pixelDepth, 1u);
+			     (GLint *)&mipFilter );
+	if( mipFilter == GL_NEAREST_MIPMAP_NEAREST || mipFilter == GL_NEAREST_MIPMAP_LINEAR ||
+		mipFilter == GL_LINEAR_MIPMAP_NEAREST || mipFilter == GL_LINEAR_MIPMAP_LINEAR ) {
+		mipWidth = std::max(hdr.pixelWidth, 1U);
+		mipHeight = std::max(hdr.pixelHeight, 1U);
+		mipDepth = std::max(hdr.pixelDepth, 1U);
 
 		while( mipWidth > 1 || mipHeight > 1 || mipDepth > 1 ) {
 			hdr.numberOfMipmapLevels++;
 
-			if( mipWidth  > 1 ) mipWidth  >>= 1;
-			if( mipHeight > 1 ) mipHeight >>= 1;
-			if( mipDepth  > 1 ) mipDepth  >>= 1;
+			if( mipWidth  > 1 ) mipWidth  >>= 1U;
+			if( mipHeight > 1 ) mipHeight >>= 1U;
+			if( mipDepth  > 1 ) mipDepth  >>= 1U;
 		}
 	}
 
 	hdr.bytesOfKeyValueData = 0;
 
-	size = 0;
-	mipWidth = std::max(hdr.pixelWidth, 1u);
-	mipHeight = std::max(hdr.pixelHeight, 1u);
-	mipDepth = std::max(hdr.pixelDepth, 1u);
-	for(unsigned i = size = 0; i < hdr.numberOfMipmapLevels; i++ ) {
-		size += 4;
+	uint32_t size = 0;
+	int      mipSize;
+	mipWidth = std::max(hdr.pixelWidth, 1U);
+	mipHeight = std::max(hdr.pixelHeight, 1U);
+	mipDepth = std::max(hdr.pixelDepth, 1U);
+	for(uint32_t i = size = 0; i < hdr.numberOfMipmapLevels; i++ ) {
+		size += sizeof(uint32_t);
 		if( !hdr.glFormat ) {
 			glGetTexLevelParameteriv( target, i,
 						  GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
 						  &mipSize );
 		} else {
 			mipSize = mipWidth * hdr.glTypeSize * components;
-			mipSize = PAD( mipSize, 4 );
+			mipSize = PAD( mipSize, 4U );
 			mipSize *= mipHeight * mipDepth;
 		}
-		size += hdr.numberOfFaces * PAD( mipSize, 4 );
+		size += hdr.numberOfFaces * PAD( mipSize, 4U );
 
-		if( mipWidth  > 1 ) mipWidth  >>= 1;
-		if( mipHeight > 1 ) mipHeight >>= 1;
-		if( mipDepth  > 1 ) mipDepth  >>= 1;
+		if( mipWidth  > 1 ) mipWidth  >>= 1U;
+		if( mipHeight > 1 ) mipHeight >>= 1U;
+		if( mipDepth  > 1 ) mipDepth  >>= 1U;
 	}
-
-	data = (byte *)ri.Hunk_AllocateTempMemory( size + sizeof( hdr ) );
-
-	ptr = data;
+	
+	byte *data = (byte *)ri.Hunk_AllocateTempMemory( size + sizeof( hdr ) );
+	byte *ptr = data;
 	Com_Memcpy( ptr, &hdr, sizeof( hdr ) );
 	ptr += sizeof( hdr );
-	
-	mipWidth = std::max(hdr.pixelWidth, 1u);
-	mipHeight = std::max(hdr.pixelHeight, 1u);
-	mipDepth = std::max(hdr.pixelDepth, 1u);
-	for(unsigned i = 0; i < hdr.numberOfMipmapLevels; i++ ) {
+
+	mipWidth = std::max(hdr.pixelWidth, 1U);
+	mipHeight = std::max(hdr.pixelHeight, 1U);
+	mipDepth = std::max(hdr.pixelDepth, 1U);
+	for(uint32_t i = 0; i < hdr.numberOfMipmapLevels; i++ ) {
 		if( !hdr.glFormat ) {
 			glGetTexLevelParameteriv( target, i,
 						  GL_TEXTURE_COMPRESSED_IMAGE_SIZE,
 						  &mipSize );
 		} else {
 			mipSize = mipWidth * hdr.glTypeSize * components;
-			mipSize = PAD( mipSize, 4 );
+			mipSize = PAD( mipSize, 4U );
 			mipSize *= mipHeight * mipDepth;
 		}
-		*(int32_t *)ptr = PAD( mipSize, 4 );
+		*(int32_t *)ptr = PAD( mipSize, 4U );
 		ptr += sizeof( int32_t );
 
-		for(unsigned j = 0; j < hdr.numberOfFaces; j++ ) {
+		for(uint32_t j = 0; j < hdr.numberOfFaces; j++ ) {
 			if( !hdr.glFormat ) {
 				glGetCompressedTexImage( target + j, i, ptr );
 			} else {
 				glGetTexImage( target + j, i, hdr.glFormat,
 					       hdr.glType, ptr );
 			}
-			ptr += PAD( mipSize, 4);
+			ptr += PAD( mipSize, 4U );
 		}
 
-		if( mipWidth  > 1 ) mipWidth  >>= 1;
-		if( mipHeight > 1 ) mipHeight >>= 1;
-		if( mipDepth  > 1 ) mipDepth  >>= 1;
+		if( mipWidth  > 1 ) mipWidth  >>= 1U;
+		if( mipHeight > 1 ) mipHeight >>= 1U;
+		if( mipDepth  > 1 ) mipDepth  >>= 1U;
 	}
 
 	ri.FS_WriteFile( path, data, size + sizeof( hdr ) );

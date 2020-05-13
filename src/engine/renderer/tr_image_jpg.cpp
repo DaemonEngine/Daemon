@@ -188,7 +188,7 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 		fclose( jpegfd );
 #endif
 
-		Sys::Drop( "LoadJPG: %s has an invalid image format: %dx%d*4=%d, components: %d", filename,
+		Sys::Drop( "JPG image '%s' has an invalid format: %dx%d*4=%d, components: %d", filename,
 		          cinfo.output_width, cinfo.output_height, pixelcount * 4, cinfo.output_components );
 	}
 

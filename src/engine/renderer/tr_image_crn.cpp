@@ -128,7 +128,7 @@ void LoadCRN(const char* name, byte **data, int *width, int *height,
             ri.Free(*data);
             *data = nullptr; // This signals failure.
         }
-        Log::Warn("Invalid CRN image: %s", name);
+        Log::Warn("CRN image '%s' has an invalid format", name);
     }
     ri.FS_FreeFile(buff);
 }
