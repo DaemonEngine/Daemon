@@ -38,16 +38,46 @@ class crnd_decompression_exception : public std::exception {};
 #pragma GCC diagnostic pop
 #endif
 
-bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *height,
+#define CASE_CRN_FORMAT(format) \
+  case format: return STRING(format);
+
+namespace {
+std::string CRNFormatToString(crn_format format)
+{
+  switch (format)
+  {
+    CASE_CRN_FORMAT(cCRNFmtDXT1);
+    CASE_CRN_FORMAT(cCRNFmtDXT3);
+    CASE_CRN_FORMAT(cCRNFmtDXT5);
+    CASE_CRN_FORMAT(cCRNFmtDXT5_CCxY);
+    CASE_CRN_FORMAT(cCRNFmtDXT5_xGxR);
+    CASE_CRN_FORMAT(cCRNFmtDXT5_xGBR);
+    CASE_CRN_FORMAT(cCRNFmtDXT5_AGBR);
+    CASE_CRN_FORMAT(cCRNFmtDXN_XY);
+    CASE_CRN_FORMAT(cCRNFmtDXN_YX);
+    CASE_CRN_FORMAT(cCRNFmtDXT5A);
+    CASE_CRN_FORMAT(cCRNFmtETC1);
+    CASE_CRN_FORMAT(cCRNFmtETC2);
+    CASE_CRN_FORMAT(cCRNFmtETC2A);
+    CASE_CRN_FORMAT(cCRNFmtETC1S);
+    CASE_CRN_FORMAT(cCRNFmtETC2AS);
+  default:
+    return "unknown (" + std::to_string(Util::ordinal(format)) + ")";
+  }
+}
+
+bool LoadInMemoryCRN(const char* name, void* buff, size_t buffLen, byte **data, int *width, int *height,
                      int *numLayers, int *numMips, int *bits)
 {
     if (crnd::crnd_validate_file(buff, buffLen, nullptr)) { // Checks the header, not the whole file.
         // Found height and width in [1, 4096], num mip levels in [1, 13], faces in {1, 6}
     } else {
+        Log::Warn("CRN image '%s' has an invalid header", name);
         return false;
     }
     crnd::crn_texture_info ti;
     if (!crnd::crnd_get_texture_info(buff, buffLen, &ti)) {
+        Log::Warn("CRN image '%s' has bad texture info", name);
         return false;
     }
 
@@ -68,6 +98,7 @@ bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *h
         *bits |= IF_BC5;
         break;
     default:
+        Log::Warn("CRN image '%s' has unsupported format '%s'", name, CRNFormatToString(ti.m_format));
         return false;
     }
 
@@ -81,6 +112,7 @@ bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *h
     for (unsigned i = 0; i < ti.m_levels; i++) {
         crnd::crn_level_info li;
         if (!crnd::crnd_get_level_info(buff, buffLen, i, &li)) {
+            Log::Warn("CRN image '%s' has bad info on level '%d'", name, i);
             return false;
         }
         sizes[i] = li.m_blocks_x * li.m_blocks_y * li.m_bytes_per_block;
@@ -89,6 +121,7 @@ bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *h
 
     crnd::crnd_unpack_context ctx = crnd::crnd_unpack_begin(buff, buffLen);
     if (!ctx) {
+        Log::Warn("CRN image '%s' has bad data", name);
         return false;
     }
     byte* nextImage = (byte *)ri.Z_Malloc(totalSize);
@@ -100,12 +133,14 @@ bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *h
         }
         try {
             if (!crnd::crnd_unpack_level(ctx, (void **)&data[i * ti.m_faces], sizes[i], 0, i)) {
+                Log::Warn("CRN image '%s' has bad level '%d'", name, i);
                 success = false;
                 break;
             }
-        } catch (const crnd_decompression_exception&) {
+        } catch (const crnd_decompression_exception& ex) {
             // Exception added as a hack to try and avoid crashing on files using the old format.
             // In general though, it seems the crunch library does not try to validate the files and may crash while decoding.
+            Log::Warn("CRN image '%s' decompression failure for level '%d': %s", name, i, ex.what());
             success = false;
             break;
         }
@@ -113,6 +148,7 @@ bool LoadInMemoryCRN(void* buff, size_t buffLen, byte **data, int *width, int *h
     crnd::crnd_unpack_end(ctx);
     return success;
 }
+}  // namespace
 
 void LoadCRN(const char* name, byte **data, int *width, int *height,
              int *numLayers, int *numMips, int *bits, byte)
@@ -123,12 +159,11 @@ void LoadCRN(const char* name, byte **data, int *width, int *height,
     if (!buff) {
         return;
     }
-    if (!LoadInMemoryCRN(buff, buffLen, data, width, height, numLayers, numMips, bits)) {
+    if (!LoadInMemoryCRN(name, buff, buffLen, data, width, height, numLayers, numMips, bits)) {
         if (*data) {
             ri.Free(*data);
             *data = nullptr; // This signals failure.
         }
-        Log::Warn("CRN image '%s' has an invalid format", name);
     }
     ri.FS_FreeFile(buff);
 }
