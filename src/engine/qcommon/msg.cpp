@@ -224,7 +224,7 @@ int MSG_ReadBits( msg_t *msg, int bits )
 	int      value;
 	int      get;
 	bool sgn;
-	int      i, nbits;
+	int      i;
 
 	value = 0;
 
@@ -269,27 +269,15 @@ int MSG_ReadBits( msg_t *msg, int bits )
 	}
 	else
 	{
-		nbits = 0;
-
-		if ( bits & 7 )
+		for ( i = 0; i < ( bits & 7 ); i++ )
 		{
-			nbits = bits & 7;
-
-			for ( i = 0; i < nbits; i++ )
-			{
-				value |= ( Huff_getBit( msg->data, &msg->bit ) << i );
-			}
-
-			bits = bits - nbits;
+			value |= ( Huff_getBit( msg->data, &msg->bit ) << i );
 		}
 
-		if ( bits )
+		for ( ; i < bits; i += 8 )
 		{
-			for ( i = 0; i < bits; i += 8 )
-			{
-				Huff_offsetReceive( msgHuff.decompressor.tree, &get, msg->data, &msg->bit );
-				value |= ( get << ( i + nbits ) );
-			}
+			Huff_offsetReceive( msgHuff.decompressor.tree, &get, msg->data, &msg->bit );
+			value |= get << i;
 		}
 
 		msg->readcount = ( msg->bit >> 3 ) + 1;
