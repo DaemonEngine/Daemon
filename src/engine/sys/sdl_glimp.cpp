@@ -699,12 +699,16 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 			{
 				SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
 			}
-			window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
 
 			if ( !window )
 			{
-				logger.Warn("SDL_CreateWindow failed: %s\n", SDL_GetError() );
-				continue;
+				window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
+
+				if ( !window )
+				{
+					logger.Warn("SDL_CreateWindow failed: %s\n", SDL_GetError() );
+					continue;
+				}
 			}
 
 			SDL_SetWindowIcon( window, icon );
