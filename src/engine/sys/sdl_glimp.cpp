@@ -966,7 +966,7 @@ static void RequireExt( bool hasExt, const char* name )
 	}
 	else
 	{
-		logger.WithoutSuppression().Notice("...GL_%s not found", name );
+		Sys::Error("Required extension GL_%s is missing", name );
 	}
 }
 
