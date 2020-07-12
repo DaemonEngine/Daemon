@@ -33,7 +33,7 @@ void	main()
 	// compute depth instead of world vertex position in a [0..1] range
 	float depth = gl_FragCoord.z;
 
-//#if 0 //defined(GLHW_ATI_DX10) || defined(GLHW_NV_DX10)
+//#if 0 //defined(GLHW_ATI_DX10)
 //	outputColor = vec4(0.0, 0.0, 0.0, depth);
 //#else
 	// 32 bit precision

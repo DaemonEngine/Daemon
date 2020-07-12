@@ -1002,11 +1002,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Debug("Using ATI DirectX 10 hardware features" );
 		}
 
-		if ( glConfig.hardwareType == glHardwareType_t::GLHW_NV_DX10 )
-		{
-			Log::Debug("Using NVIDIA DirectX 10 hardware features" );
-		}
-
 		if ( glConfig2.vboVertexSkinningAvailable )
 		{
 			Log::Notice("Using GPU vertex skinning with max %i bones in a single pass", glConfig2.maxVertexSkinningBones );
