@@ -1209,7 +1209,7 @@ static void reportDriverType( bool force )
 static void reportHardwareType( bool force )
 {
 	static const char *const hardware[] = {
-		"generic", "ATI Radeon", "AMD Radeon DX10-class"
+		"generic", "ATI Radeon"
 	};
 	if (glConfig.hardwareType > glHardwareType_t::GLHW_UNKNOWN && (unsigned) glConfig.hardwareType < ARRAY_LEN( hardware ) )
 	{
@@ -1301,11 +1301,7 @@ success:
 	if ( Q_stristr( glConfig.renderer_string, "amd " ) ||
 	     Q_stristr( glConfig.renderer_string, "ati " ) )
 	{
-		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
-		{
-			glConfig.hardwareType = glHardwareType_t::GLHW_ATI_DX10;
-		}
-		else
+		if ( glConfig.driverType != glDriverType_t::GLDRV_OPENGL3 )
 		{
 			glConfig.hardwareType = glHardwareType_t::GLHW_ATI;
 		}
@@ -1343,11 +1339,6 @@ success:
 		else if ( !Q_stricmp( forceGL->string, "ati" ))
 		{
 			hardwareType = glHardwareType_t::GLHW_ATI;
-		}
-		else if ( !Q_stricmp( forceGL->string, "atidx10" ) ||
-		          !Q_stricmp( forceGL->string, "radeonhd" ))
-		{
-			hardwareType = glHardwareType_t::GLHW_ATI_DX10;
 		}
 
 		if ( driverType != glDriverType_t::GLDRV_UNKNOWN )

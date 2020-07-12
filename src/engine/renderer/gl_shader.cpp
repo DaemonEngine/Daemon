@@ -731,9 +731,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 		case glHardwareType_t::GLHW_ATI:
 		AddDefine(env, "GLHW_ATI", 1);
 		break;
-	case glHardwareType_t::GLHW_ATI_DX10:
-		AddDefine(env, "GLHW_ATI_DX10", 1);
-		break;
 	default:
 		break;
 	}

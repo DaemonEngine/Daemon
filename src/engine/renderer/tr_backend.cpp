@@ -2973,7 +2973,7 @@ void RB_RenderBloom()
 	GL_LoadModelViewMatrix( matrixIdentity );
 
 	// FIXME
-	//if(glConfig.hardwareType != GLHW_ATI && glConfig.hardwareType != GLHW_ATI_DX10)
+	//if(glConfig.hardwareType != GLHW_ATI)
 	{
 		GL_State( GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
