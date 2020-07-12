@@ -1307,73 +1307,26 @@ success:
 		glConfig.driverType = glDriverType_t::GLDRV_MESA;
 	}
 
-	if ( Q_stristr( glConfig.renderer_string, "geforce" ) )
+	if ( Q_stristr( glConfig.vendor_string, "nvidia" ) ||
+	     Q_stristr( glConfig.vendor_string, "nouveau" ) )
 	{
-		if ( Q_stristr( glConfig.renderer_string, "8400" ) ||
-		     Q_stristr( glConfig.renderer_string, "8500" ) ||
-		     Q_stristr( glConfig.renderer_string, "8600" ) ||
-		     Q_stristr( glConfig.renderer_string, "8800" ) ||
-		     Q_stristr( glConfig.renderer_string, "9500" ) ||
-		     Q_stristr( glConfig.renderer_string, "9600" ) ||
-		     Q_stristr( glConfig.renderer_string, "9800" ) ||
-		     Q_stristr( glConfig.renderer_string, "gts 240" ) ||
-		     Q_stristr( glConfig.renderer_string, "gts 250" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 260" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 275" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 280" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 285" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 295" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 320" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 330" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 340" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 415" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 420" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 425" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 430" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 435" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 440" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 520" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 525" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 540" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 550" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 555" ) ||
-		     Q_stristr( glConfig.renderer_string, "gts 450" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 460" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 470" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 480" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 485" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 560" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 570" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 580" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 590" ) )
+		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 		{
 			glConfig.hardwareType = glHardwareType_t::GLHW_NV_DX10;
 		}
 	}
-	else if ( Q_stristr( glConfig.renderer_string, "quadro fx" ) )
+
+	if ( Q_stristr( glConfig.renderer_string, "amd " ) ||
+	     Q_stristr( glConfig.renderer_string, "ati " ) )
 	{
-		if ( Q_stristr( glConfig.renderer_string, "3600" ) )
+		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 		{
-			glConfig.hardwareType = glHardwareType_t::GLHW_NV_DX10;
+			glConfig.hardwareType = glHardwareType_t::GLHW_ATI_DX10;
 		}
-	}
-	else if ( Q_stristr( glConfig.renderer_string, "gallium" ) &&
-	          Q_stristr( glConfig.renderer_string, " amd " ) )
-	{
-		// anything prior to R600 is listed as ATI.
-		glConfig.hardwareType = glHardwareType_t::GLHW_ATI_DX10;
-	}
-	else if ( Q_stristr( glConfig.renderer_string, "rv770" ) ||
-	          Q_stristr( glConfig.renderer_string, "eah4850" ) ||
-	          Q_stristr( glConfig.renderer_string, "eah4870" ) ||
-	          // previous three are too specific?
-	          Q_stristr( glConfig.renderer_string, "radeon hd" ) )
-	{
-		glConfig.hardwareType = glHardwareType_t::GLHW_ATI_DX10;
-	}
-	else if ( Q_stristr( glConfig.renderer_string, "radeon" ) )
-	{
-		glConfig.hardwareType = glHardwareType_t::GLHW_ATI;
+		else
+		{
+			glConfig.hardwareType = glHardwareType_t::GLHW_ATI;
+		}
 	}
 
 	reportDriverType( false );
