@@ -987,9 +987,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			}
 		}
 
-		if ( glConfig.hardwareType == glHardwareType_t::GLHW_ATI )
+		if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
 		{
-			Log::Debug("HACK: ATI approximations" );
+			Log::Debug("HACK: ATI R300 approximations" );
 		}
 
 		if ( glConfig.textureCompression != textureCompression_t::TC_NONE )

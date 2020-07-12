@@ -1205,7 +1205,7 @@ static void reportDriverType( bool force )
 static void reportHardwareType( bool force )
 {
 	static const char *const hardware[] = {
-		"generic", "ATI Radeon"
+		"generic", "ATI R300"
 	};
 	if (glConfig.hardwareType > glHardwareType_t::GLHW_UNKNOWN && (unsigned) glConfig.hardwareType < ARRAY_LEN( hardware ) )
 	{
@@ -1299,7 +1299,7 @@ success:
 	{
 		if ( glConfig.driverType != glDriverType_t::GLDRV_OPENGL3 )
 		{
-			glConfig.hardwareType = glHardwareType_t::GLHW_ATI;
+			glConfig.hardwareType = glHardwareType_t::GLHW_R300;
 		}
 	}
 
@@ -1332,9 +1332,9 @@ success:
 		{
 			hardwareType = glHardwareType_t::GLHW_GENERIC;
 		}
-		else if ( !Q_stricmp( forceGL->string, "ati" ))
+		else if ( !Q_stricmp( forceGL->string, "r300" ))
 		{
-			hardwareType = glHardwareType_t::GLHW_ATI;
+			hardwareType = glHardwareType_t::GLHW_R300;
 		}
 
 		if ( driverType != glDriverType_t::GLDRV_UNKNOWN )

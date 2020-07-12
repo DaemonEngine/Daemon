@@ -321,7 +321,7 @@ enum class glHardwareType_t
   GLHW_GENERIC, // where everthing works the way it should
 
 // XreaL BEGIN
-  GLHW_ATI, // where you don't have proper GLSL support
+  GLHW_R300, // pre-GL3 ATI hack
 // XreaL END
 };
 
