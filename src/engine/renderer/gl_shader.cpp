@@ -726,15 +726,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 
 	AddDefine( env, "r_tileStep", glState.tileStep[ 0 ], glState.tileStep[ 1 ] );
 
-	switch (glConfig.hardwareType)
-	{
-		case glHardwareType_t::GLHW_ATI:
-		AddDefine(env, "GLHW_ATI", 1);
-		break;
-	default:
-		break;
-	}
-
 	// We added a lot of stuff but if we do something bad
 	// in the GLSL shaders then we want the proper line
 	// so we have to reset the line counting.
