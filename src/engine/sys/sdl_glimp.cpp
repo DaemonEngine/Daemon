@@ -1294,15 +1294,6 @@ success:
 		Q_strncpyz( glConfig.extensions_string, ( char * ) glGetString( GL_EXTENSIONS ), sizeof( glConfig.extensions_string ) );
 	}
 
-	if ( Q_stristr( glConfig.renderer_string, "mesa" ) ||
-	     Q_stristr( glConfig.renderer_string, "gallium" ) ||
-	     Q_stristr( glConfig.vendor_string, "nouveau" ) ||
-	     Q_stristr( glConfig.vendor_string, "mesa" ) )
-	{
-		// suckage
-		glConfig.driverType = glDriverType_t::GLDRV_MESA;
-	}
-
 	if ( Q_stristr( glConfig.vendor_string, "nvidia" ) ||
 	     Q_stristr( glConfig.vendor_string, "nouveau" ) )
 	{
@@ -1346,10 +1337,6 @@ success:
 		else if ( !Q_stricmp( forceGL->string, "opengl3" ))
 		{
 			driverType = glDriverType_t::GLDRV_OPENGL3;
-		}
-		else if ( !Q_stricmp( forceGL->string, "mesa" ))
-		{
-			driverType = glDriverType_t::GLDRV_MESA;
 		}
 
 		forceGL = ri.Cvar_Get( "r_glForceHardware", "", CVAR_LATCH );
