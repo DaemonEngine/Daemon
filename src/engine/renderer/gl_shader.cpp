@@ -507,14 +507,20 @@ static std::string GenEngineConstants() {
 		{
 			AddDefine( str, "VSM", 1 );
 
-			if ( glConfig.hardwareType == glHardwareType_t::GLHW_ATI )
+			if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+			{
 				AddDefine( str, "VSM_CLAMP", 1 );
+			}
 		}
 
 		if ( ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 ) && r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM32) )
+		{
 			AddConst( str, "VSM_EPSILON", 0.000001f );
-		else
+		}
+		else // also required by GLHW_R300 which is not GLDRV_OPENGL3 anyway
+		{
 			AddConst( str, "VSM_EPSILON", 0.0001f );
+		}
 
 		if ( r_lightBleedReduction->value )
 			AddConst( str, "r_LightBleedReduction", r_lightBleedReduction->value );
