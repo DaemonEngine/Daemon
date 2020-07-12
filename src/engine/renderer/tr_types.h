@@ -323,7 +323,6 @@ enum class glHardwareType_t
 // XreaL BEGIN
   GLHW_ATI, // where you don't have proper GLSL support
   GLHW_ATI_DX10, // ATI Radeon HD series DX10 hardware
-  GLHW_NV_DX10 // Geforce 8/9 class DX10 hardware
 // XreaL END
 };
 
