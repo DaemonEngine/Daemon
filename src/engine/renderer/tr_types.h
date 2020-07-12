@@ -311,7 +311,6 @@ enum class glDriverType_t
 
 // XreaL BEGIN
   GLDRV_OPENGL3, // new driver system
-  GLDRV_MESA, // crap
 // XreaL END
 };
 

@@ -726,9 +726,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 
 	AddDefine( env, "r_tileStep", glState.tileStep[ 0 ], glState.tileStep[ 1 ] );
 
-	if ( glConfig.driverType == glDriverType_t::GLDRV_MESA )
-		AddDefine( env, "GLDRV_MESA", 1 );
-
 	switch (glConfig.hardwareType)
 	{
 		case glHardwareType_t::GLHW_ATI:
