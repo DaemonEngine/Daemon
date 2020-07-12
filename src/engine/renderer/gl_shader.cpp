@@ -511,7 +511,7 @@ static std::string GenEngineConstants() {
 				AddDefine( str, "VSM_CLAMP", 1 );
 		}
 
-		if ( ( glConfig.hardwareType == glHardwareType_t::GLHW_NV_DX10 || glConfig.hardwareType == glHardwareType_t::GLHW_ATI_DX10 ) && r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM32) )
+		if ( ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 ) && r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM32) )
 			AddConst( str, "VSM_EPSILON", 0.000001f );
 		else
 			AddConst( str, "VSM_EPSILON", 0.0001f );
