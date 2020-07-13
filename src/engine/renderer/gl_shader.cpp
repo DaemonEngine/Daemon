@@ -1205,7 +1205,7 @@ bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permut
 {
 	for (const GLCompileMacro* macro : macros)
 	{
-		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_SHADING || macro->GetType() == USE_VERTEX_SPRITE) )
+		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_MAPPING || macro->GetType() == USE_VERTEX_SPRITE) )
 		{
 			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
 			return true;
@@ -1490,7 +1490,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
-	GLCompileMacro_USE_PHYSICAL_SHADING( this )
+	GLCompileMacro_USE_PHYSICAL_MAPPING( this )
 {
 }
 
