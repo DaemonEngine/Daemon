@@ -1015,6 +1015,10 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 		}
 	}
 
+	Log::Debug( "building %s shader permutation with macro: %s",
+		shader->GetMainShaderName(),
+		compileMacros.empty() ? "none" : compileMacros );
+
 	// add them
 	std::string vertexShaderTextWithMacros = macrosString + shader->_vertexShaderText;
 	std::string fragmentShaderTextWithMacros = macrosString + shader->_fragmentShaderText;
