@@ -774,6 +774,11 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 			if( !baseShader->VS || !baseShader->FS )
 				CompileGPUShaders( shader, baseShader, compileMacros );
 
+			if ( baseShader->unusedPermutation )
+			{
+				return true;
+			}
+
 			glAttachShader( shaderProgram->program, baseShader->VS );
 			glAttachShader( shaderProgram->program, _deformShaders[ deformIndex ] );
 			glAttachShader( shaderProgram->program, baseShader->FS );
@@ -990,6 +995,7 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 		const char **compileMacrosP = &compileMacros_;
 		char       *token;
 
+		// Do not build shader macro permutations that will never be used.
 		while ( true )
 		{
 			token = COM_ParseExt2( compileMacrosP, false );
@@ -999,9 +1005,53 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 				break;
 			}
 
+			/* FIXME: add this test: ( strcmp( token, "USE_TCGEN_LIGHTMAP" ) == 0 && r_lightMapping->integer == 0 )
+			when lightmaps are never used when lightmapping is disabled
+			see https://github.com/DaemonEngine/Daemon/issues/296 is fixed */
+			if ( strcmp( token, "USE_LIGHT_MAPPING" ) == 0 && r_vertexLighting->integer != 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 && r_normalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 && r_deluxeMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 && r_physicalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			/* FIXME: add to the following test: && r_physicalMapping->integer == 0
+			when reflective specular is implemented for physical mapping too
+			see https://github.com/DaemonEngine/Daemon/issues/355 */
+			else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 && r_specularMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_RELIEF_MAPPING" ) == 0 && r_reliefMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 && r_reliefMapping->integer == 0 && r_normalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+
 			macrosString += Str::Format( "#ifndef %s\n#define %s 1\n#endif\n", token, token );
 		}
 	}
+
+	program->unusedPermutation = false;
 
 	Log::Debug( "building %s shader permutation with macro: %s",
 		shader->GetMainShaderName(),
@@ -1030,6 +1080,11 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 						      Str::StringRef compileMacros, int deformIndex )
 {
 	GLShaderManager::CompileGPUShaders( shader, program, compileMacros );
+
+	if ( program->unusedPermutation )
+	{
+		return;
+	}
 
 	glAttachShader( program->program, program->VS );
 	glAttachShader( program->program, _deformShaders[ deformIndex ] );
