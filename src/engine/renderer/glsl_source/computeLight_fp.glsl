@@ -67,9 +67,12 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 		   vec4 diffuseColor, vec4 materialColor,
 		   inout vec4 color ) {
   vec3 H = normalize( lightDir + viewDir );
-  float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
 
-#if defined(r_physicalMapping) && defined(USE_PHYSICAL_MAPPING)
+#if defined(USE_PHYSICAL_MAPPING) || defined(r_specularMapping)
+  float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
+#endif // USE_PHYSICAL_MAPPING || r_specularMapping
+
+#if defined(USE_PHYSICAL_MAPPING)
   // Daemon PBR packing defaults to ORM like glTF 2.0 defines
   // https://www.khronos.org/blog/art-pipeline-for-gltf
   // > ORM texture for Occlusion, Roughness, and Metallic
@@ -103,7 +106,7 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   color.rgb += lightColor.rgb * (1.0 - metalness) * NdotL * diffuseColor.rgb;
   color.rgb += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
   color.a = mix(diffuseColor.a, 1.0, FexpNV);
-#else // !r_physicalMapping || !USE_PHYSICAL_MAPPING
+#else // !USE_PHYSICAL_MAPPING
   float NdotL = dot( normal, lightDir );
 #if defined(r_HalfLambertLighting)
   // http://developer.valvesoftware.com/wiki/Half_Lambert
@@ -124,10 +127,10 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 #endif // USE_REFLECTIVE_SPECULAR
 
   color.rgb += diffuseColor.rgb * lightColor.rgb * NdotL;
-#if defined(r_specularMapping) && !defined(USE_PHYSICAL_MAPPING)
+#if defined(r_specularMapping)
   color.rgb += materialColor.rgb * lightColor.rgb * pow( NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
-#endif // r_specularMapping && !USE_PHYSICAL_MAPPING&
-#endif // !r_physicalMapping || !USE_PHYSICAL_MAPPING
+#endif // r_specularMapping
+#endif // !USE_PHYSICAL_MAPPING
 }
 
 #if defined(TEXTURE_INTEGER)
