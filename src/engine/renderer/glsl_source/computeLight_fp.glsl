@@ -27,13 +27,13 @@ uniform samplerCube u_EnvironmentMap1;
 uniform float u_EnvironmentInterpolation;
 #endif // USE_REFLECTIVE_SPECULAR
 
+#ifdef HAVE_ARB_uniform_buffer_object
 struct light {
   vec4  center_radius;
   vec4  color_type;
   vec4  direction_angle;
 };
 
-#ifdef HAVE_ARB_uniform_buffer_object
 layout(std140) uniform u_Lights {
   light lights[ MAX_REF_LIGHTS ];
 };
