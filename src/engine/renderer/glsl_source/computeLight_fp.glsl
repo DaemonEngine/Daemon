@@ -162,6 +162,7 @@ int nextIdx( inout idxs_t idxs ) {
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
+#if defined(r_dynamicLight)
 void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 		    vec4 material, inout vec4 color ) {
   vec4 center_radius = GetLight( idx, center_radius );
@@ -234,3 +235,4 @@ void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 mater
   }
 #endif
 }
+#endif
