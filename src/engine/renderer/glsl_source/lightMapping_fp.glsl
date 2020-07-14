@@ -181,8 +181,10 @@ void main()
 		computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 	#endif
 
-	// Blend dynamic lights.
-	computeDLights(var_Position, normal, viewDir, diffuse, material, color);
+	#if defined(r_dynamicLight)
+		// Blend dynamic lights.
+		computeDLights(var_Position, normal, viewDir, diffuse, material, color);
+	#endif
 
 	// Add Rim Lighting to highlight the edges on model entities.
 	#if defined(r_RimLighting) && !defined(USE_BSP_SURFACE) && !defined(USE_LIGHT_MAPPING)
