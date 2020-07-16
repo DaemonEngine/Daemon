@@ -1414,6 +1414,17 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 
 	token = COM_ParseExt2( &buffer_p, false );
 
+	// NOTE: Normal map can ship height map in alpha channel.
+	if ( ( stage->type == stageType_t::ST_NORMALMAP && !r_normalMapping && !r_reliefMapping )
+		|| ( stage->type == stageType_t::ST_HEIGHTMAP && !r_reliefMapping )
+		|| ( stage->type == stageType_t::ST_SPECULARMAP && !r_specularMapping )
+		|| ( stage->type == stageType_t::ST_PHYSICALMAP && !r_physicalMapping )
+		|| ( stage->type == stageType_t::ST_GLOWMAP && !r_glowMapping )
+		|| ( stage->type == stageType_t::ST_REFLECTIONMAP && !r_reflectionMapping ) )
+	{
+		return true;
+	}
+
 	if ( !Q_stricmp( token, "$whiteimage" ) || !Q_stricmp( token, "$white" ) || !Q_stricmp( token, "_white" ) ||
 	     !Q_stricmp( token, "*white" ) )
 	{
