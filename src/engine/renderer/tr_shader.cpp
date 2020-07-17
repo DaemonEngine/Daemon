@@ -4478,6 +4478,8 @@ static void CollapseStages()
 	int lightStage = -1;
 	int glowStage = -1;
 
+	int lightMapCount = 0;
+
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
 		if ( !stages[ i ].active )
@@ -4557,11 +4559,9 @@ static void CollapseStages()
 		}
 		else if ( stages[ i ].type == stageType_t::ST_LIGHTMAP )
 		{
-			if ( lightStage != -1 )
-			{
-				Log::Warn( "more than one light map stage in shader '%s'", shader.name );
-			}
-			else
+			lightMapCount++;
+
+			if ( lightStage == -1 )
 			{
 				lightStage = i;
 			}
@@ -4577,6 +4577,11 @@ static void CollapseStages()
 				glowStage = i;
 			}
 		}
+	}
+
+	if ( lightMapCount > 1 )
+	{
+		Log::Debug( "found %d light map stages in shader '%s'", lightMapCount, shader.name );
 	}
 
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
