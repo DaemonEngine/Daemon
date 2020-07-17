@@ -447,6 +447,11 @@ R_LoadLightmaps
 static const int LIGHTMAP_SIZE = 128;
 static void R_LoadLightmaps( lump_t *l, const char *bspName )
 {
+	if ( r_vertexLighting->integer )
+	{
+		return;
+	}
+
 	tr.fatLightmapSize = 0;
 	int len = l->filelen;
 	if ( !len )
