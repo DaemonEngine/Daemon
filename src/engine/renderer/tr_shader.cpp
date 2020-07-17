@@ -3173,6 +3173,14 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	// compute state bits
 	stage->stateBits = colorMaskBits | depthMaskBits | blendSrcBits | blendDstBits | atestBits | depthFuncBits | polyModeBits;
 
+	/* If light style external light map and light mapping is disabled,
+	do not load the image and disable the stage */
+	if ( r_vertexLighting->integer && stage->tcGen_Lightmap == true )
+	{
+		stage->active = false;
+		return true;
+	}
+
 	// load image
 	if ( loadMap && !LoadMap( stage, buffer ) )
 	{
