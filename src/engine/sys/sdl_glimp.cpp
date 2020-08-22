@@ -1246,7 +1246,13 @@ success:
 
 		glConfig.extensions_string[ 0 ] = '\0';
 		for ( i = 0; i < numExts; ++i )
+		{
+			if ( i != 0 )
+			{
+				Q_strcat( glConfig.extensions_string, sizeof( glConfig.extensions_string ), ( char * ) " " );
+			}
 			Q_strcat( glConfig.extensions_string, sizeof( glConfig.extensions_string ), ( char * ) glGetStringi( GL_EXTENSIONS, i ) );
+		}
 	}
 	else
 	{
