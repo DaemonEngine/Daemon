@@ -1073,7 +1073,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_precomputedLighting = ri.Cvar_Get( "r_precomputedLighting", "1", CVAR_LATCH );
 		r_vertexLighting = ri.Cvar_Get( "r_vertexLighting", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_exportTextures = ri.Cvar_Get( "r_exportTextures", "0", 0 );
-		r_heatHaze = ri.Cvar_Get( "r_heatHaze", "1", 0 );
+		r_heatHaze = ri.Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_noMarksOnTrisurfs = ri.Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
 		r_lazyShaders = ri.Cvar_Get( "r_lazyShaders", "0", 0 );
 
@@ -1131,11 +1131,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_printShaders = ri.Cvar_Get( "r_printShaders", "0", 0 );
 
-		r_bloom = ri.Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE );
+		r_bloom = ri.Cvar_Get( "r_bloom", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_bloomBlur = ri.Cvar_Get( "r_bloomBlur", "1.0", CVAR_CHEAT );
 		r_bloomPasses = ri.Cvar_Get( "r_bloomPasses", "2", CVAR_CHEAT );
-		r_FXAA = ri.Cvar_Get( "r_FXAA", "0", 0 );
-		r_ssao = ri.Cvar_Get( "r_ssao", "0", CVAR_LATCH );
+		r_FXAA = ri.Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		r_ssao = ri.Cvar_Get( "r_ssao", "0", CVAR_LATCH | CVAR_ARCHIVE );
 
 		// temporary variables that can change at any time
 		r_showImages = ri.Cvar_Get( "r_showImages", "0", CVAR_TEMP );
@@ -1148,7 +1148,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_noLightVisCull = ri.Cvar_Get( "r_noLightVisCull", "0", CVAR_CHEAT );
 		r_noInteractionSort = ri.Cvar_Get( "r_noInteractionSort", "0", CVAR_CHEAT );
-		r_dynamicLight = ri.Cvar_Get( "r_dynamicLight", "2", CVAR_ARCHIVE );
+		r_dynamicLight = ri.Cvar_Get( "r_dynamicLight", "2", CVAR_LATCH | CVAR_ARCHIVE );
 		r_staticLight = ri.Cvar_Get( "r_staticLight", "2", CVAR_ARCHIVE );
 		r_drawworld = ri.Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
 		r_portalOnly = ri.Cvar_Get( "r_portalOnly", "0", CVAR_CHEAT );
@@ -1187,14 +1187,14 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_ARCHIVE );
 		r_normalMapping = ri.Cvar_Get( "r_normalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_highQualityNormalMapping = ri.Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
-		r_liquidMapping = ri.Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH );
+		r_liquidMapping = ri.Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_reliefDepthScale = ri.Cvar_Get( "r_reliefDepthScale", "0.03", CVAR_CHEAT );
 		r_reliefMapping = ri.Cvar_Get( "r_reliefMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_glowMapping = ri.Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
-		r_reflectionMapping = ri.Cvar_Get( "r_reflectionMapping", "0", CVAR_CHEAT );
+		r_reflectionMapping = ri.Cvar_Get( "r_reflectionMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 
 		r_wrapAroundLighting = ri.Cvar_Get( "r_wrapAroundLighting", "0.7", CVAR_CHEAT | CVAR_LATCH );
-		r_halfLambertLighting = ri.Cvar_Get( "r_halfLambertLighting", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_halfLambertLighting = ri.Cvar_Get( "r_halfLambertLighting", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimLighting = ri.Cvar_Get( "r_rimLighting", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimExponent = ri.Cvar_Get( "r_rimExponent", "3", CVAR_CHEAT | CVAR_LATCH );
 		AssertCvarRange( r_rimExponent, 0.5, 8.0, false );

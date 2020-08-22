@@ -1372,6 +1372,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 // GLSL vertex and one GLSL fragment shader
 	struct shaderProgram_t
 	{
+		/* If this shader program permutation implements a disabled feature,
+		it will not be built. This boolean makes possible to ignore such
+		programs at link time. */
+		bool      unusedPermutation;
+
 		GLuint    program;
 		GLuint    VS, FS;
 		uint32_t  attribs; // vertex array attributes

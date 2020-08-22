@@ -792,7 +792,7 @@ protected:
 	  USE_SHADOWING,
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
-	  USE_PHYSICAL_SHADING,
+	  USE_PHYSICAL_MAPPING,
 	  USE_ALPHA_TESTING
 	};
 
@@ -1215,23 +1215,23 @@ public:
 	}
 };
 
-class GLCompileMacro_USE_PHYSICAL_SHADING :
+class GLCompileMacro_USE_PHYSICAL_MAPPING :
 	GLCompileMacro
 {
 public:
-	GLCompileMacro_USE_PHYSICAL_SHADING( GLShader *shader ) :
+	GLCompileMacro_USE_PHYSICAL_MAPPING( GLShader *shader ) :
 		GLCompileMacro( shader )
 	{
 	}
 
 	const char *GetName() const
 	{
-		return "USE_PHYSICAL_SHADING";
+		return "USE_PHYSICAL_MAPPING";
 	}
 
 	EGLCompileMacro GetType() const
 	{
-		return USE_PHYSICAL_SHADING;
+		return USE_PHYSICAL_MAPPING;
 	}
 
 	void SetPhysicalShading( bool enable )
@@ -2247,7 +2247,7 @@ class GLShader_lightMapping :
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING,
 	public GLCompileMacro_USE_REFLECTIVE_SPECULAR,
-	public GLCompileMacro_USE_PHYSICAL_SHADING
+	public GLCompileMacro_USE_PHYSICAL_MAPPING
 {
 public:
 	GLShader_lightMapping( GLShaderManager *manager );

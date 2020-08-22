@@ -546,6 +546,11 @@ static std::string GenEngineConstants() {
 			AddDefine( str, "r_ShowParallelShadowSplits", 1 );
 	}
 
+	if ( r_dynamicLight->integer )
+	{
+		AddDefine( str, "r_dynamicLight", r_dynamicLight->integer );
+	}
+
 	if ( r_precomputedLighting->integer )
 		AddDefine( str, "r_precomputedLighting", 1 );
 
@@ -774,6 +779,11 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 			if( !baseShader->VS || !baseShader->FS )
 				CompileGPUShaders( shader, baseShader, compileMacros );
 
+			if ( baseShader->unusedPermutation )
+			{
+				return true;
+			}
+
 			glAttachShader( shaderProgram->program, baseShader->VS );
 			glAttachShader( shaderProgram->program, _deformShaders[ deformIndex ] );
 			glAttachShader( shaderProgram->program, baseShader->FS );
@@ -806,6 +816,42 @@ void GLShaderManager::buildAll()
 	while ( !_shaderBuildQueue.empty() )
 	{
 		GLShader& shader = *_shaderBuildQueue.front();
+
+		std::string shaderName = shader.GetMainShaderName();
+
+		/* NOTE: motionblur is enabled by cg_motionblur which is a client cvar
+		so we have to build it in all cases. */
+		if ( shaderName == "forwardLighting" && r_dynamicLight->integer != 1 )
+		{
+			_shaderBuildQueue.pop();
+			continue;
+		}
+		else if ( shaderName == "reflection_CB" && r_reflectionMapping->integer == 0 )
+		{
+			_shaderBuildQueue.pop();
+			continue;
+		}
+		else if ( shaderName == "liquid" && r_liquidMapping->integer == 0 )
+		{
+			_shaderBuildQueue.pop();
+			continue;
+		}
+		else if ( shaderName == "heatHaze" && r_heatHaze->integer == 0 )
+		{
+			_shaderBuildQueue.pop();
+			continue;
+		}
+		else if ( shaderName == "fxaa" && r_FXAA->integer == 0 )
+		{
+			_shaderBuildQueue.pop();
+			continue;
+		}
+		else if ( shaderName == "bloom" && r_bloom->integer != 1 )
+		{
+			_shaderBuildQueue.pop();
+			continue;
+		}
+
 		size_t numPermutations = static_cast<size_t>(1) << shader.GetNumOfCompiledMacros();
 		size_t i;
 
@@ -990,6 +1036,7 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 		const char **compileMacrosP = &compileMacros_;
 		char       *token;
 
+		// Do not build shader macro permutations that will never be used.
 		while ( true )
 		{
 			token = COM_ParseExt2( compileMacrosP, false );
@@ -999,9 +1046,53 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 				break;
 			}
 
+			/* FIXME: add this test: ( strcmp( token, "USE_TCGEN_LIGHTMAP" ) == 0 && r_lightMapping->integer == 0 )
+			when lightmaps are never used when lightmapping is disabled
+			see https://github.com/DaemonEngine/Daemon/issues/296 is fixed */
+			if ( strcmp( token, "USE_LIGHT_MAPPING" ) == 0 && r_vertexLighting->integer != 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 && r_normalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 && r_deluxeMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 && r_physicalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			/* FIXME: add to the following test: && r_physicalMapping->integer == 0
+			when reflective specular is implemented for physical mapping too
+			see https://github.com/DaemonEngine/Daemon/issues/355 */
+			else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 && r_specularMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_RELIEF_MAPPING" ) == 0 && r_reliefMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 && r_reliefMapping->integer == 0 && r_normalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+
 			macrosString += Str::Format( "#ifndef %s\n#define %s 1\n#endif\n", token, token );
 		}
 	}
+
+	program->unusedPermutation = false;
 
 	Log::Debug( "building %s shader permutation with macro: %s",
 		shader->GetMainShaderName(),
@@ -1030,6 +1121,11 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 						      Str::StringRef compileMacros, int deformIndex )
 {
 	GLShaderManager::CompileGPUShaders( shader, program, compileMacros );
+
+	if ( program->unusedPermutation )
+	{
+		return;
+	}
 
 	glAttachShader( program->program, program->VS );
 	glAttachShader( program->program, _deformShaders[ deformIndex ] );
@@ -1205,7 +1301,7 @@ bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permut
 {
 	for (const GLCompileMacro* macro : macros)
 	{
-		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_SHADING || macro->GetType() == USE_VERTEX_SPRITE) )
+		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_MAPPING || macro->GetType() == USE_VERTEX_SPRITE) )
 		{
 			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
 			return true;
@@ -1490,7 +1586,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
-	GLCompileMacro_USE_PHYSICAL_SHADING( this )
+	GLCompileMacro_USE_PHYSICAL_MAPPING( this )
 {
 }
 
