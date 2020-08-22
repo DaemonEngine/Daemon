@@ -962,73 +962,57 @@ GLimp_InitExtensions
 ===============
 */
 
-static void RequireExt( bool hasExt, const char* name )
-{
-	if ( hasExt )
-	{
-		logger.WithoutSuppression().Notice("...using GL_%s", name );
-	}
-	else
-	{
-		Sys::Error("Required extension GL_%s is missing", name );
-	}
-}
+/* ExtFlag_CORE means the extension is known to be an OpenGL 3 core extension.
+The code considers the extension is available even if the extension is not listed
+if the driver pretends to support OpenGL Core 3 and we know this extension is part
+of OpenGL Core 3. */
 
-static bool LoadExtWithCvar( bool hasExt, const char* name, bool cvarValue )
+enum {
+	ExtFlag_NONE,
+	ExtFlag_REQUIRED = BIT( 1 ),
+	ExtFlag_CORE = BIT( 2 ),
+};
+
+static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true )
 {
-	if ( hasExt )
+	if ( hasExt || ( flags & ExtFlag_CORE && glConfig2.glCoreProfile) )
 	{
-		if ( cvarValue )
+		if ( test )
 		{
-			logger.WithoutSuppression().Notice("...using GL_%s", name );
+			logger.WithoutSuppression().Notice( "...using GL_%s", name );
 			return true;
 		}
 		else
 		{
-			logger.WithoutSuppression().Notice("...ignoring GL_%s", name );
+			// Required extension can't be made optional
+			ASSERT( !( flags & ExtFlag_REQUIRED ) );
+
+			logger.WithoutSuppression().Notice( "...ignoring GL_%s", name );
 		}
 	}
 	else
 	{
-		logger.WithoutSuppression().Notice("...GL_%s not found", name );
-	}
-	return false;
-}
-
-/*
-	load extensions that were made a required part of OpenGL core profile by version 3.2
-*/
-static bool LoadCoreExtWithCvar(bool hasExt, const char* name, bool cvarValue)
-{
-	if (hasExt || glConfig2.glCoreProfile)
-	{
-		if (cvarValue)
+		if ( flags & ExtFlag_REQUIRED )
 		{
-			logger.WithoutSuppression().Notice("...using GL_%s", name);
-			return true;
+			Sys::Error( "Required extension GL_%s is missing", name );
 		}
 		else
 		{
-			logger.WithoutSuppression().Notice("...ignoring GL_%s", name);
+			logger.WithoutSuppression().Notice( "...GL_%s not found", name );
 		}
-	}
-	else
-	{
-		logger.WithoutSuppression().Notice("...GL_%s not found", name);
 	}
 	return false;
 }
-#define REQUIRE_EXTENSION(ext) RequireExt(GLEW_##ext, #ext)
 
-#define LOAD_EXTENSION_WITH_CVAR(ext, cvar) LoadExtWithCvar(GLEW_##ext, #ext, cvar->value)
+#define LOAD_EXTENSION(flags, ext) LoadExt(flags, GLEW_##ext, #ext)
 
-#define LOAD_CORE_EXTENSION_WITH_CVAR(ext, cvar) LoadCoreExtWithCvar(GLEW_##ext, #ext, cvar->value)
+#define LOAD_EXTENSION_WITH_TEST(flags, ext, test) LoadExt(flags, GLEW_##ext, #ext, test)
 
 static void GLimp_InitExtensions()
 {
 	logger.Notice("Initializing OpenGL extensions" );
 
-	if ( LOAD_EXTENSION_WITH_CVAR(ARB_debug_output, r_glDebugProfile) )
+	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output, r_glDebugProfile->value ) )
 	{
 		glDebugMessageCallbackARB( (GLDEBUGPROCARB)GLimp_DebugCallback, nullptr );
 		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
@@ -1059,56 +1043,54 @@ static void GLimp_InitExtensions()
 	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureHalfFloatAvailable =  LOAD_CORE_EXTENSION_WITH_CVAR(ARB_half_float_pixel, r_ext_half_float_pixel);
+	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_ext_half_float_pixel->value );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureFloatAvailable = LOAD_CORE_EXTENSION_WITH_CVAR(ARB_texture_float, r_ext_texture_float);
+	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float->value );
 
 	// made required in OpenGL 3.0
-	glConfig2.gpuShader4Available = LOAD_CORE_EXTENSION_WITH_CVAR(EXT_gpu_shader4, r_ext_gpu_shader4);
+	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4->value );
 
 	// made required in OpenGL 3.0
 	// GL_EXT_texture_integer can be used in shaders only if GL_EXT_gpu_shader4 is also available
-	glConfig2.textureIntegerAvailable = LOAD_CORE_EXTENSION_WITH_CVAR(EXT_texture_integer, r_ext_texture_integer)
+	glConfig2.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer->value )
 	  && glConfig2.gpuShader4Available;
 
 	// made required in OpenGL 3.0
-	glConfig2.textureRGAvailable = LOAD_CORE_EXTENSION_WITH_CVAR(ARB_texture_rg, r_ext_texture_rg);
+	glConfig2.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg->value );
 
 	// made required in OpenGL 4.0
 	if( Q_stristr( glConfig.renderer_string, "geforce" ) ) {
 		glConfig2.textureGatherAvailable = false; // disabled on nVidia because some driver versions are bugged
 	} else {
-		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_CVAR(ARB_texture_gather, r_arb_texture_gather);
+		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather->value );
 	}
 
 	// made required in OpenGL 1.3
 	glConfig.textureCompression = textureCompression_t::TC_NONE;
-	if( GLEW_EXT_texture_compression_s3tc )
+	if( LOAD_EXTENSION( ExtFlag_NONE, EXT_texture_compression_s3tc ) )
 	{
 		glConfig.textureCompression = textureCompression_t::TC_S3TC;
 	}
 
 	// made required in OpenGL 3.0
-	glConfig2.textureCompressionRGTCAvailable = glConfig2.glCoreProfile || GLEW_ARB_texture_compression_rgtc;
+	glConfig2.textureCompressionRGTCAvailable = LOAD_EXTENSION( ExtFlag_CORE, ARB_texture_compression_rgtc );
 
 	// Texture - others
 	glConfig2.textureAnisotropyAvailable = false;
-	if ( LOAD_EXTENSION_WITH_CVAR(EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic) )
+	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic->value ) )
 	{
 		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig2.maxTextureAnisotropy );
 		glConfig2.textureAnisotropyAvailable = true;
 	}
 
 	// VAO and VBO
-	if( !glConfig2.glCoreProfile )
-	{
-		// made required in OpenGL 3.0
-		REQUIRE_EXTENSION( ARB_half_float_vertex );
+	// made required in OpenGL 3.0
 
-		// made required in OpenGL 3.0
-		REQUIRE_EXTENSION( ARB_framebuffer_object );
-	}
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
+
+	// made required in OpenGL 3.0
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_framebuffer_object );
 
 	// FBO
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );
@@ -1131,60 +1113,32 @@ static void GLimp_InitExtensions()
 		glConfig2.drawBuffersAvailable = true;
 	}
 
-#ifdef GL_ARB_get_program_binary
-	if( GLEW_ARB_get_program_binary )
+	glConfig2.getProgramBinaryAvailable = false;
 	{
 		int formats = 0;
 
 		glGetIntegerv( GL_NUM_PROGRAM_BINARY_FORMATS, &formats );
 
-		if ( !formats )
+		if ( formats == 0 )
 		{
-			logger.Notice("...GL_ARB_get_program_binary found, but with no binary formats");
-			glConfig2.getProgramBinaryAvailable = false;
+			// No need for WithoutSuppression for something which can only be printed once per renderer restart.
+			logger.Notice("...no program binary formats");
 		}
-		else
-		{
-			logger.Notice("...using GL_ARB_get_program_binary");
-			glConfig2.getProgramBinaryAvailable = true;
-		}
-	}
-	else
-#endif
-	{
-		logger.Notice("...GL_ARB_get_program_binary not found");
-		glConfig2.getProgramBinaryAvailable = false;
+
+		glConfig2.getProgramBinaryAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_get_program_binary, formats > 0 );
 	}
 
-#ifdef GL_ARB_buffer_storage
-	if ( GLEW_ARB_buffer_storage )
-	{
-		if ( r_arb_buffer_storage->integer )
-		{
-			logger.Notice("...using GL_ARB_buffer_storage" );
-			glConfig2.bufferStorageAvailable = true;
-		}
-		else
-		{
-			logger.Notice("...ignoring GL_ARB_buffer_storage" );
-			glConfig2.bufferStorageAvailable = false;
-		}
-	}
-	else
-#endif
-	{
-		logger.Notice("...GL_ARB_buffer_storage not found" );
-		glConfig2.bufferStorageAvailable = false;
-	}
+	glConfig2.bufferStorageAvailable = false;
+	glConfig2.bufferStorageAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_buffer_storage, r_arb_buffer_storage->integer > 0 );
 
 	// made required since OpenGL 3.1
-	glConfig2.uniformBufferObjectAvailable = LOAD_CORE_EXTENSION_WITH_CVAR( ARB_uniform_buffer_object, r_arb_uniform_buffer_object );
+	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object->value );
 
 	// made required in OpenGL 3.0
-	glConfig2.mapBufferRangeAvailable = LOAD_CORE_EXTENSION_WITH_CVAR( ARB_map_buffer_range, r_arb_map_buffer_range );
+	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range->value );
 
 	// made required in OpenGL 3.2
-	glConfig2.syncAvailable = LOAD_CORE_EXTENSION_WITH_CVAR( ARB_sync, r_arb_sync );
+	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync->value );
 
 	GL_CheckErrors();
 }
