@@ -1244,11 +1244,12 @@ bool GLimp_Init()
 		ri.Cvar_Set( "r_mode", va( "%d", R_MODE_FALLBACK ) );
 		ri.Cvar_Set( "r_fullscreen", "0" );
 		ri.Cvar_Set( "r_centerWindow", "0" );
+		ri.Cvar_Set( "r_noBorder", "0" );
 		ri.Cvar_Set( "com_abnormalExit", "0" );
 	}
 
 	// Create the window and set up the context
-	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen->integer, false ) )
+	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen->integer, r_noBorder->value ) )
 	{
 		goto success;
 	}
@@ -1427,6 +1428,23 @@ void GLimp_HandleCvars()
 		}
 
 		r_fullscreen->modified = false;
+	}
+
+	if ( r_noBorder->modified )
+	{
+		bool needToToggle = true;
+		bool noBorder = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_BORDERLESS );
+
+		// Is the state we want different from the current state?
+		needToToggle = !!r_noBorder->integer != noBorder;
+
+		if ( needToToggle )
+		{
+			SDL_bool bordered = r_noBorder->integer == 0 ? SDL_TRUE : SDL_FALSE;
+			SDL_SetWindowBordered( window, bordered );
+		}
+
+		r_noBorder->modified = false;
 	}
 }
 

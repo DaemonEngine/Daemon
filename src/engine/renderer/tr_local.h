@@ -2855,6 +2855,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_showcluster;
 
 	extern cvar_t *r_mode; // video mode
+	extern cvar_t *r_noBorder;
 	extern cvar_t *r_fullscreen;
 	extern cvar_t *r_gamma;
 
