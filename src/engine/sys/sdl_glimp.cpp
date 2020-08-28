@@ -1400,10 +1400,9 @@ void GLimp_HandleCvars()
 
 	if ( r_fullscreen->modified )
 	{
-		bool    fullscreen;
-		bool    needToToggle = true;
-		int     sdlToggled = false;
-		fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
+		int sdlToggled = false;
+		bool needToToggle = true;
+		bool fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
 
 		if ( r_fullscreen->integer && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
 		{
@@ -1417,7 +1416,8 @@ void GLimp_HandleCvars()
 
 		if ( needToToggle )
 		{
-			sdlToggled = SDL_SetWindowFullscreen( window, r_fullscreen->integer );
+			Uint32 flags = r_fullscreen->integer == 0 ? 0 : SDL_WINDOW_FULLSCREEN;
+			sdlToggled = SDL_SetWindowFullscreen( window, flags );
 
 			if ( sdlToggled < 0 )
 			{
