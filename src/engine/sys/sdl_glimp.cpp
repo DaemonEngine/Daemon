@@ -1432,17 +1432,8 @@ void GLimp_HandleCvars()
 
 	if ( r_noBorder->modified )
 	{
-		bool needToToggle = true;
-		bool noBorder = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_BORDERLESS );
-
-		// Is the state we want different from the current state?
-		needToToggle = !!r_noBorder->integer != noBorder;
-
-		if ( needToToggle )
-		{
-			SDL_bool bordered = r_noBorder->integer == 0 ? SDL_TRUE : SDL_FALSE;
-			SDL_SetWindowBordered( window, bordered );
-		}
+		SDL_bool bordered = r_noBorder->integer == 0 ? SDL_TRUE : SDL_FALSE;
+		SDL_SetWindowBordered( window, bordered );
 
 		r_noBorder->modified = false;
 	}
