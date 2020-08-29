@@ -1810,9 +1810,9 @@ union OpaquePlayerState {
 //                          10
 //                          11
 //                          12
-//                          13
+// BUTTON_DECONSTRUCT       13 // defined in gamelogic
 #define BUTTON_RALLY        14
-#define BUTTON_DODGE        15
+//                          15
 
 #define MOVE_RUN          120 // if forwardmove or rightmove are >= MOVE_RUN,
 // then BUTTON_WALKING should be set
