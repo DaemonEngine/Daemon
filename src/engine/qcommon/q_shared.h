@@ -1806,13 +1806,13 @@ union OpaquePlayerState {
 #define BUTTON_ACTIVATE     6
 #define BUTTON_ANY          7  // if any key is pressed
 #define BUTTON_ATTACK2      8
-//                          9
+// BUTTON_ATTACK3           9  // defined in game code
 //                          10
 //                          11
 //                          12
-//                          13
+// BUTTON_DECONSTRUCT       13 // defined in game code
 #define BUTTON_RALLY        14
-#define BUTTON_DODGE        15
+//                          15
 
 #define MOVE_RUN          120 // if forwardmove or rightmove are >= MOVE_RUN,
 // then BUTTON_WALKING should be set
