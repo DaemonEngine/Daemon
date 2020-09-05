@@ -269,6 +269,20 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 		ent->e.frame %= tr.currentModel->mdv[ 0 ]->numFrames;
 		ent->e.oldframe %= tr.currentModel->mdv[ 0 ]->numFrames;
 	}
+	else if ( ent->e.frame == -2147483648 )
+	{
+		/* HACK: It looks like the previous test is always
+		false with md3 models, e.frame is equal to -2147483648
+		with md3 models used in particles and equal to 0 with
+		others.
+		Setting them to zero when previous test is wrong and
+		this is the well-known boggy use case will silent the
+		later “R_AddMDVSurfaces: no such frame” debug log spam.
+		Other situation will still triggers the debug log.
+		Note that this is probably hiding a bug somewhere else. */
+		ent->e.frame = 0;
+		ent->e.oldframe = 0;
+	}
 
 	// compute LOD
 	if ( ent->e.renderfx & RF_FORCENOLOD )
