@@ -1059,11 +1059,36 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.0
 	glConfig2.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg->value );
 
-	// made required in OpenGL 4.0
-	if( Q_stristr( glConfig.renderer_string, "geforce" ) ) {
-		glConfig2.textureGatherAvailable = false; // disabled on nVidia because some driver versions are bugged
-	} else {
-		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather->value );
+	{
+		/* GT218-based GPU with Nvidia 340.108 driver advertising
+		ARB_texture_gather extension is know to fail to compile
+		the depthtile1 GLSL shader.
+
+		See https://github.com/DaemonEngine/Daemon/issues/368
+
+		Unfortunately this workaround may also disable the feature for
+		all GPUs using this driver even if we don't know if some of them
+		are not affected by the bug while advertising this extension, but
+		there is no known easy way to detect GT218-based cards. Not all cards
+		using 340 driver supports this extension anyway, like the G92 one.
+
+		We can assume cards not using the 340 driver are not GT218 ones and
+		are not affected.
+
+		Usually, those GT218 cards are not powerful enough for dynamic
+		lighting so it is likely this feature would be disabled to
+		get acceptable framerate on this hardware anyway, making the
+		need for such extension and the related shader code useless. */
+		bool foundNvidia340 = ( Q_stristr( glConfig.vendor_string, "NVIDIA Corporation" ) && Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
+
+		if ( foundNvidia340 )
+		{
+			// No need for WithoutSuppression for something which can only be printed once per renderer restart.
+			logger.Notice("...found buggy Nvidia 340 driver");
+		}
+
+		// made required in OpenGL 4.0
+		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather->value && !foundNvidia340 );
 	}
 
 	// made required in OpenGL 1.3
