@@ -1138,7 +1138,6 @@ static void GLimp_InitExtensions()
 		glConfig2.drawBuffersAvailable = true;
 	}
 
-	glConfig2.getProgramBinaryAvailable = false;
 	{
 		int formats = 0;
 
