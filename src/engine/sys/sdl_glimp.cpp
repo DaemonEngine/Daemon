@@ -722,6 +722,11 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 			}
 			SDL_GL_SetSwapInterval( r_swapInterval->integer );
 
+			// Fill window with a dark grey (#141414) background.
+			glClearColor( 0.08f, 0.08f, 0.08f, 1.0f );
+			glClear( GL_COLOR_BUFFER_BIT );
+			GLimp_EndFrame();
+
 			glConfig.colorBits = testColorBits;
 			glConfig.depthBits = depthBits;
 			glConfig.stencilBits = stencilBits;
