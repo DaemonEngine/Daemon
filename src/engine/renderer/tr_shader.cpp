@@ -4819,6 +4819,10 @@ static void CollapseStages()
 		stage->enableSpecularMapping = r_specularMapping->integer && stage->hasMaterialMap && !stage->isMaterialPhysical;
 		stage->enableGlowMapping = r_glowMapping->integer && stage->hasGlowMap;
 
+		// Finally disable useless heightMapInNormalMap if both normal and relief mapping are disabled.
+		// see https://github.com/DaemonEngine/Daemon/issues/376
+		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && ( stage->enableNormalMapping || stage->enableReliefMapping );
+
 		// Bind fallback textures if required.
 		if ( !stage->enableNormalMapping && !( stage->enableReliefMapping && stage->isHeightMapInNormalMap) )
 		{
