@@ -329,6 +329,30 @@ void R_ImageList_f()
 				imageDataSize *= 4 / 4;
 				break;
 
+			case GL_COMPRESSED_RED_RGTC1:
+				Com_sprintf( buffer, sizeof( buffer ),  "RGTC1r   " );
+				out += buffer;
+				// TODO: find imageDataSize
+				break;
+
+			case GL_COMPRESSED_SIGNED_RED_RGTC1:
+				Com_sprintf( buffer, sizeof( buffer ),  "RGTC1Sr  " );
+				out += buffer;
+				// TODO: find imageDataSize
+				break;
+
+			case GL_COMPRESSED_RG_RGTC2:
+				Com_sprintf( buffer, sizeof( buffer ),  "RGTC2rg  " );
+				out += buffer;
+				// TODO: find imageDataSize
+				break;
+
+			case GL_COMPRESSED_SIGNED_RG_RGTC2:
+				Com_sprintf( buffer, sizeof( buffer ),  "RGTC2Srg " );
+				out += buffer;
+				// TODO: find imageDataSize
+				break;
+
 			case GL_DEPTH_COMPONENT16:
 				Com_sprintf( buffer, sizeof( buffer ),  "D16      " );
 				out += buffer;
