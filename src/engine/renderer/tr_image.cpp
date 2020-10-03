@@ -199,7 +199,8 @@ void R_ImageList_f()
 				break;
 
 			default:
-				Com_sprintf( buffer, sizeof( buffer ),  "???? " );
+				Log::Debug( "Undocumented image type %i for image %s", image->type, image->name );
+				Com_sprintf( buffer, sizeof( buffer ),  "%5i    ", image->type );
 				out += buffer;
 				imageDataSize = image->uploadWidth * image->uploadHeight;
 				break;
@@ -347,7 +348,8 @@ void R_ImageList_f()
 				break;
 
 			default:
-				Com_sprintf( buffer, sizeof( buffer ),  "????     " );
+				Log::Debug( "Undocumented image format %i for image %s", image->internalFormat, image->name );
+				Com_sprintf( buffer, sizeof( buffer ),  "%5i    ", image->internalFormat );
 				out += buffer;
 				imageDataSize *= 4;
 				break;
@@ -381,6 +383,7 @@ void R_ImageList_f()
 				break;
 
 			default:
+				Log::Debug( "Undocumented wrapType.s %i for image %s", Util::ordinal(image->wrapType.s), image->name );
 				Com_sprintf( buffer, sizeof( buffer ),  "s.%4i  ", Util::ordinal(image->wrapType.s) );
 				out += buffer;
 				break;
@@ -414,6 +417,7 @@ void R_ImageList_f()
 				break;
 
 			default:
+				Log::Debug( "Undocumented wrapType.t %i for image %s", Util::ordinal(image->wrapType.t), image->name );
 				Com_sprintf( buffer, sizeof( buffer ),  "t.%4i  ", Util::ordinal(image->wrapType.t));
 				out += buffer;
 				break;
