@@ -1506,16 +1506,6 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		}
 	}
 
-	// tell renderer to enable relief mapping since an heightmap is found
-	// also tell renderer to not abuse normalmap alpha channel because it's an heightmap
-	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
-	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP
-		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_ALPHA )
-	{
-		Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
-		stage->isHeightMapInNormalMap = true;
-	}
-
 	return true;
 }
 
@@ -1595,6 +1585,49 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
 		LoadMap( stage, buffer, bundleIndex );
+	}
+}
+
+static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_NORMALMAP )
+{
+	/* Always call this function on assets known to never use RGTC format
+	or the engine running on hardware with driver not implementing the
+	GL_ARB_texture_compression_rgtc extension will wrongly assume a normal
+	component stored in alpha channel is an heightmap and the renderer will
+	select the wrong GLSL code for it, resulting in serious graphical issues.
+
+	See https://github.com/DaemonEngine/Daemon/issues/375
+
+	This code is meant to be used as compatibility code for games known
+	to not use RGTC format and to requires alpha channel detection,
+	like Xonotic/Darkplaces.
+
+	Please do not implement material keyword for this function, never. */
+
+	const char* initialText = *text;
+
+	ParseNormalMap( stage, text, bundleIndex );
+
+	/* Tell renderer to enable relief mapping since an heightmap is found,
+	also tell renderer to not abuse normalmap alpha channel because it's an heightmap.
+
+	See https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252 */
+
+	if ( stage->bundle[ bundleIndex ].image[ 0 ]
+		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP
+		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_ALPHA )
+	{
+		Log::defaultLogger.DoDebugCode([&] {
+			char buffer[ 1024 ];
+			buffer[ 0 ] = '\0';
+			if ( !ParseMap( &initialText, buffer, sizeof( buffer ) ) )
+			{
+				ASSERT( false );
+			}
+			Log::Debug("Found heightmap embedded in normalmap '%s'", buffer);
+		});
+
+		stage->isHeightMapInNormalMap = true;
 	}
 }
 
@@ -1769,7 +1802,7 @@ struct extraMapParser_t
 
 static const extraMapParser_t dpExtraMapParsers[] =
 {
-	{ "_norm",    "DarkPlaces normal map",     ParseNormalMap,     TB_NORMALMAP, },
+	{ "_norm",    "DarkPlaces normal map",     ParseNormalMapDetectHeightMap,   TB_NORMALMAP, },
 	{ "_bump",    "DarkPlaces height map",     ParseHeightMap,     TB_HEIGHTMAP, },
 	{ "_gloss",   "DarkPlaces specular map",   ParseSpecularMap,   TB_SPECULARMAP, },
 	{ "_glow",    "DarkPlaces glow map",       ParseGlowMap,       TB_GLOWMAP, },
@@ -3946,29 +3979,37 @@ static bool ParseShader( const char *_text )
 		// relief mapping
 		else if ( !Q_stricmp( token, "parallax" ) )
 		{
-			// legacy lone “parallax” XreaL keyword was
-			// never used, it had purpose to enable relief
-			// mapping for the current shader
-			//
-			// the engine also relied on this to know
-			// that heightmap was stored in normalmap
-			// but there was no other storage options
-			//
-			// the engine also had to rely on this to know
-			// that heightmap was stored in normalmap
-			// because of a design flaw that used depthmap
-			// instead of heightmap, meaning missing depthmap
-			// would cause a wrong displacement if not discarded
-			//
-			// so that option was there to tell the engine to
-			// not discard heightmap when mapper knows it is
-			// not flat
-			//
-			// since engine now automatically loads
-			// and enables heightmap stored in normalmap,
-			// and has not problem with flat heightmap
-			// in any way because of better design
-			// this seems pretty useless
+			/* Legacy lone “parallax” XreaL material keyword was never used,
+			its purpose was to enable relief mapping for the current shader.
+
+			The engine relied on it to know the heightmap was stored in
+			normalmap alpha channel but there was no other storage options.
+
+			The engine also had to rely on it to know that heightmap
+			was stored in normalmap because of a design flaw that used
+			depthmap (black is up) instead of heightmap (black is down).
+			I meant a missing depthmap would cause a wrong displacement
+			if not discarded.
+
+			So that option was there to tell the engine to not discard
+			heightmap when the artist knew it was not flat.
+
+			Since the engine knows how to automatically load and enable
+			heightmap stored in normalmap if detection is required, and
+			has not problem with flat heightmap in any way because of a
+			better design, this keyword is now pretty useless.
+
+			Artists can use “normalMap” material keyword for normalmap
+			without heightmap, and can use “normalHeightMap” keyword for
+			normalmap with heightmap in alpha channel.
+
+			Developers can use ParseNormalMapDetectHeightMap function to detect
+			heightmap in normal map alpha channel, please never add a material
+			keyword for this behaviour because some texture format can lead to
+			wrong detection when GL_ARB_texture_compression_rgtc extension is
+			missing. Only use this function for compatibility layers for games
+			that relies on detection (and were already unable to use such
+			texture format because of that). */
 
 			Log::Warn("deprecated keyword '%s' in shader '%s', this was a workaround for a design flaw, there is no need for it", token, shader.name );
 
