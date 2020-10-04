@@ -300,9 +300,9 @@ void R_ImageList_f()
 				break;
 
 			case GL_COMPRESSED_RGBA:
-				Com_sprintf( buffer, sizeof( buffer ),  "      " );
+				Com_sprintf( buffer, sizeof( buffer ),  "RGBAC " );
 				out += buffer;
-				imageDataSize *= 4; // FIXME
+				// TODO: find imageDataSize
 				break;
 
 			case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
