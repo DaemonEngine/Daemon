@@ -553,10 +553,8 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 			glConfig.vidHeight = 480;
 			logger.Notice("Cannot determine display resolution, assuming 640x480" );
 		}
-
-		glConfig.windowAspect = ( float ) glConfig.vidWidth / ( float ) glConfig.vidHeight;
 	}
-	else if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, &glConfig.windowAspect, mode ) )
+	else if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, mode ) )
 	{
 		logger.Notice(" invalid mode" );
 		return rserr_t::RSERR_INVALID_MODE;

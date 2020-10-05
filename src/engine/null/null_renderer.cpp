@@ -194,7 +194,6 @@ bool RE_BeginRegistration( glconfig_t *config, glconfig2_t *glconfig2 )
 	Com_Memset( config, 0, sizeof( glconfig_t ) );
 	config->vidWidth = 640;
 	config->vidHeight = 480;
-	config->windowAspect = 1.0f;
 	Com_Memset( glconfig2, 0, sizeof( glconfig2_t ) );
 
 	return true;
