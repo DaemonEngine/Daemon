@@ -424,20 +424,26 @@ void R_InitFBOs()
 	R_AttachFBOTexturePackedDepthStencil( tr.currentDepthImage->texnum );
 	R_CheckFBO( tr.mainFBO[1] );
 
-	tr.depthtile1FBO = R_CreateFBO( "_depthtile1", tr.depthtile1RenderImage->width, tr.depthtile1RenderImage->height );
-	R_BindFBO( tr.depthtile1FBO );
-	R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.depthtile1RenderImage->texnum, 0 );
-	R_CheckFBO( tr.depthtile1FBO );
+	if ( r_dynamicLight->integer == 2 )
+	{
+		/* It's only required to create frame buffers only used by the
+		tiled dynamic lighting renderer when this feature is enabled. */
 
-	tr.depthtile2FBO = R_CreateFBO( "_depthtile2", tr.depthtile2RenderImage->width, tr.depthtile2RenderImage->height );
-	R_BindFBO( tr.depthtile2FBO );
-	R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.depthtile2RenderImage->texnum, 0 );
-	R_CheckFBO( tr.depthtile2FBO );
+		tr.depthtile1FBO = R_CreateFBO( "_depthtile1", tr.depthtile1RenderImage->width, tr.depthtile1RenderImage->height );
+		R_BindFBO( tr.depthtile1FBO );
+		R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.depthtile1RenderImage->texnum, 0 );
+		R_CheckFBO( tr.depthtile1FBO );
 
-	tr.lighttileFBO = R_CreateFBO( "_lighttile", tr.lighttileRenderImage->width, tr.lighttileRenderImage->height );
-	R_BindFBO( tr.lighttileFBO );
-	R_AttachFBOTexture3D( tr.lighttileRenderImage->texnum, 0, 0 );
-	R_CheckFBO( tr.lighttileFBO );
+		tr.depthtile2FBO = R_CreateFBO( "_depthtile2", tr.depthtile2RenderImage->width, tr.depthtile2RenderImage->height );
+		R_BindFBO( tr.depthtile2FBO );
+		R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.depthtile2RenderImage->texnum, 0 );
+		R_CheckFBO( tr.depthtile2FBO );
+
+		tr.lighttileFBO = R_CreateFBO( "_lighttile", tr.lighttileRenderImage->width, tr.lighttileRenderImage->height );
+		R_BindFBO( tr.lighttileFBO );
+		R_AttachFBOTexture3D( tr.lighttileRenderImage->texnum, 0, 0 );
+		R_CheckFBO( tr.lighttileFBO );
+	}
 
 	if ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && glConfig2.textureFloatAvailable )
 	{

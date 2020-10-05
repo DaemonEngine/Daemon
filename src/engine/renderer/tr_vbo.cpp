@@ -949,6 +949,17 @@ static void R_InitTileVBO()
 	int       x, y, w, h;
 	vboData_t data;
 
+	if ( r_dynamicLight->integer != 2 ) {
+		/* This computation is part of the tiled dynamic lighting renderer,
+		it's better to not run it and save CPU cycles when such effects
+		are disabled.
+
+		There is no need to create vertex buffers that are only used by the
+		tiled dynamic lighting renderer when this feature is disabled. */
+
+		return;
+	}
+
 	R_SyncRenderThread();
 
 	w = tr.depthtile2RenderImage->width;
