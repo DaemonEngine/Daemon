@@ -2758,7 +2758,7 @@ void RB_RunVisTests( )
 	}
 }
 
-void RB_RenderPostDepth()
+void RB_RenderPostDepthLightTile()
 {
 	static vec4_t quadVerts[4] = {
 		{ -1.0f, -1.0f, 0.0f, 1.0f },
@@ -2769,7 +2769,31 @@ void RB_RenderPostDepth()
 	vec3_t zParams;
 	int w, h;
 
-	GLimp_LogComment( "--- RB_RenderPostDepth ---\n" );
+	GLimp_LogComment( "--- RB_RenderPostDepthLightTile ---\n" );
+
+	if ( r_dynamicLight->integer != 2 )
+	{
+		/* Do not run lightTile code when the tiled renderer is not used.
+
+		This computation is part of the tiled dynamic lighting renderer,
+		it's better to not run it and save CPU cycles when such effects
+		are disabled.
+
+		Disabling this code also make possible to not compile the related
+		GLSL shaders at all when such effects are disabled.
+
+		Not running the related GLSL shaders also helps older hardware to
+		run the game, for example the Radeon R300 Arithmetic Logic Unit is
+		too small to run the related GLSL code even if the shader itself
+		can be compiled. Such GPU are so old and slow that	any kind of
+		dynamic lighting including the tiled implementation is expected to
+		be disabled anyway. Saving CPU cycles when a feature is not used is
+		welcome in any case.
+
+		See https://github.com/DaemonEngine/Daemon/issues/344 */
+
+		return;
+	}
 
 	if ( ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
@@ -2843,7 +2867,10 @@ void RB_RenderPostDepth()
 		if( !glConfig2.glCoreProfile )
 			glEnable( GL_POINT_SPRITE );
 		glEnable( GL_PROGRAM_POINT_SIZE );
+
+		// Radeon R300 small ALU is known to fail on this.
 		Tess_DrawArrays( GL_POINTS );
+
 		glDisable( GL_PROGRAM_POINT_SIZE );
 		if( !glConfig2.glCoreProfile )
 			glDisable( GL_POINT_SPRITE );
@@ -4656,7 +4683,7 @@ static void RB_RenderView( bool depthPass )
 	if( depthPass ) {
 		RB_RenderDrawSurfaces( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, DRAWSURFACES_ALL );
 		RB_RunVisTests();
-		RB_RenderPostDepth();
+		RB_RenderPostDepthLightTile();
 		return;
 	}
 
