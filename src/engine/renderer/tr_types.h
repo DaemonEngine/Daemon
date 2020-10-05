@@ -351,9 +351,6 @@ struct glconfig_t
 	float                maxAnisotropy; //----(SA)  added
 
 	int      vidWidth, vidHeight;
-	// aspect is the screen's physical width / height, which may be different
-	// than scrWidth / scrHeight if the pixels are non-square
-	float windowAspect;
 
 	int   displayFrequency;
 

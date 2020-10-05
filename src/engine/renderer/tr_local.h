@@ -3172,7 +3172,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	bool   R_Init();
 
-	bool   R_GetModeInfo( int *width, int *height, float *windowAspect, int mode );
+	bool   R_GetModeInfo( int *width, int *height, int mode );
 
 	void       R_ImageList_f();
 	void       R_SkinList_f();

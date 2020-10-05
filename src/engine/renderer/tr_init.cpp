@@ -190,7 +190,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_customwidth;
 	cvar_t      *r_customheight;
-	cvar_t      *r_customaspect;
 
 	cvar_t      *r_debugSurface;
 	cvar_t      *r_simpleMipMaps;
@@ -462,7 +461,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	};
 	static const int s_numVidModes = ARRAY_LEN( r_vidModes );
 
-	bool R_GetModeInfo( int *width, int *height, float *windowAspect, int mode )
+	bool R_GetModeInfo( int *width, int *height, int mode )
 	{
 		const vidmode_t *vm;
 
@@ -479,13 +478,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		if( mode == -2)
 		{
 			// Must set width and height to display size before calling this function!
-			*windowAspect = ( float ) *width / *height;
 		}
 		else if ( mode == -1 )
 		{
 			*width = r_customwidth->integer;
 			*height = r_customheight->integer;
-			*windowAspect = r_customaspect->value;
 		}
 		else
 		{
@@ -493,7 +490,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 			*width = vm->width;
 			*height = vm->height;
-			*windowAspect = ( float ) vm->width / ( vm->height * vm->pixelAspect );
 		}
 
 		return true;
@@ -1061,7 +1057,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_fullscreen = ri.Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE );
 		r_customwidth = ri.Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customheight = ri.Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
-		r_customaspect = ri.Cvar_Get( "r_customaspect", "1", CVAR_LATCH );
 		r_simpleMipMaps = ri.Cvar_Get( "r_simpleMipMaps", "0", CVAR_LATCH );
 		r_subdivisions = ri.Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
 		r_dynamicLightCastShadows = ri.Cvar_Get( "r_dynamicLightCastShadows", "1", 0 );
