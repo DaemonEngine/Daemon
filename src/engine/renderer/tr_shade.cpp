@@ -342,7 +342,19 @@ void Tess_DrawArrays( GLenum elementType )
 		return;
 	}
 
-	// move tess data through the GPU, finally
+	/* Move tess data through the GPU, finally.
+
+	Radeon R300 small ALU is known to fail on this glDrawArrays call:
+
+	> r300 FP: Compiler Error:
+	> ../src/gallium/drivers/r300/compiler/r300_fragprog_emit.c::emit_alu(): Too many ALU instructions
+	> Using a dummy shader instead.
+	> r300 FP: Compiler Error:
+	> build_loop_info: Cannot find condition for if
+	> Using a dummy shader instead.
+
+	See https://github.com/DaemonEngine/Daemon/issues/344 */
+
 	glDrawArrays( elementType, 0, tess.numVertexes );
 
 	backEnd.pc.c_drawElements++;
