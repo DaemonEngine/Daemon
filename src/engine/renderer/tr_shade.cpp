@@ -59,6 +59,12 @@ static void GLSL_InitGPUShadersOrError()
 		// directional sun lighting ( Doom3 style )
 		gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
 	}
+	else if ( r_dynamicLight->integer == 2 )
+	{
+		gl_shaderManager.load( gl_depthtile1Shader );
+		gl_shaderManager.load( gl_depthtile2Shader );
+		gl_shaderManager.load( gl_lighttileShader );
+	}
 
 #if !defined( GLSL_COMPILE_STARTUP_ONLY )
 
@@ -140,10 +146,6 @@ static void GLSL_InitGPUShadersOrError()
 	{
 		Log::Warn("SSAO not used because GL_ARB_texture_gather is not available.");
 	}
-
-	gl_shaderManager.load( gl_depthtile1Shader );
-	gl_shaderManager.load( gl_depthtile2Shader );
-	gl_shaderManager.load( gl_lighttileShader );
 
 	if ( r_FXAA->integer != 0 )
 	{
