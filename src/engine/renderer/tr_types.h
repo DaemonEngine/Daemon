@@ -357,9 +357,6 @@ struct glconfig_t
 
 	int   displayFrequency;
 
-	// synonymous with "does rendering consume the entire screen?", therefore
-	// a Win32 ICD that used CDS will have this set to TRUE
-	bool8_t isFullscreen;
 	bool8_t smpActive; // dual processor
 };
 
