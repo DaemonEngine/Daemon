@@ -611,7 +611,10 @@ static void IN_ShutdownJoystick()
 		stick = nullptr;
 	}
 
-	SDL_QuitSubSystem( SDL_INIT_JOYSTICK );
+	if ( SDL_WasInit( SDL_INIT_JOYSTICK ) )
+	{
+		SDL_QuitSubSystem( SDL_INIT_JOYSTICK );
+	}
 }
 
 static void QueueKeyEvent(Keyboard::Key key, bool down)
