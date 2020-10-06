@@ -593,7 +593,6 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 		if ( fullscreen )
 		{
 			flags |= SDL_WINDOW_FULLSCREEN;
-			glConfig.isFullscreen = true;
 		}
 		else
 		{
@@ -601,8 +600,6 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 			{
 				flags |= SDL_WINDOW_BORDERLESS;
 			}
-
-			glConfig.isFullscreen = false;
 		}
 
 		colorBits = r_colorbits->integer;
