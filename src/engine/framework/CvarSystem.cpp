@@ -81,7 +81,7 @@ namespace Cvar {
                 modified = true;
             } else {
                 if (Q_stricmp(var.string, cvar.value.c_str())) {
-                    Log::Notice("The change will take effect after restart.");
+                    Log::Notice("The change to %s will take effect after restart.", var.name);
                     if (var.latchedString) Z_Free(var.latchedString);
                     var.latchedString = CopyString(cvar.value.c_str());
                     modified = true;
@@ -283,7 +283,7 @@ namespace Cvar {
                         OnValueChangedResult undo = cvar->proxy->OnValueChanged(cvar->value);
                         ASSERT(undo.success);
                         if (setLatchedValuesCalled) {
-                            Log::Notice("The change will take effect after restart.");
+                            Log::Notice("The change to %s will take effect after restart.", cvarName);
                         }
                         cvar->latchedValue = value;
                         return;
