@@ -592,12 +592,10 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 		{
 			flags |= SDL_WINDOW_FULLSCREEN;
 		}
-		else
+
+		if ( noborder )
 		{
-			if ( noborder )
-			{
-				flags |= SDL_WINDOW_BORDERLESS;
-			}
+			flags |= SDL_WINDOW_BORDERLESS;
 		}
 
 		colorBits = r_colorbits->integer;
