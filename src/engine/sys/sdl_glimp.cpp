@@ -1179,7 +1179,7 @@ bool GLimp_Init()
 	glConfig.driverType = glDriverType_t::GLDRV_ICD;
 
 	r_sdlDriver = ri.Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
-	r_allowResize = ri.Cvar_Get( "r_allowResize", "0", 0 );
+	r_allowResize = ri.Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
 	r_centerWindow = ri.Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = ri.Cvar_Get( "r_displayIndex", "0", 0 );
 	ri.Cvar_Get( "r_availableModes", "", CVAR_ROM );
@@ -1390,6 +1390,8 @@ void GLimp_HandleCvars()
 
 		r_noBorder->modified = false;
 	}
+
+	// TODO: Update r_allowResize using SDL_SetWindowResizable when we have SDL 2.0.5
 }
 
 void GLimp_LogComment( const char *comment )

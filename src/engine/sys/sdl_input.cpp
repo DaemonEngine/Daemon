@@ -1136,6 +1136,10 @@ static void IN_ProcessEvents( bool dropInput )
 				switch( e.window.event )
 				{
 					case SDL_WINDOWEVENT_RESIZED:
+						extern cvar_t* r_allowResize;
+						// Toggling r_fullscreen does not work well when r_allowResize is enabled -
+						// it generates spurious resize events.
+						if ( r_allowResize->integer )
 						{
 							char width[32], height[32];
 							Com_sprintf( width, sizeof( width ), "%d", e.window.data1 );
