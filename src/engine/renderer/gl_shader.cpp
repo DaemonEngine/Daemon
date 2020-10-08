@@ -819,39 +819,6 @@ void GLShaderManager::buildAll()
 
 		std::string shaderName = shader.GetMainShaderName();
 
-		/* NOTE: motionblur is enabled by cg_motionblur which is a client cvar
-		so we have to build it in all cases. */
-		if ( shaderName == "forwardLighting" && r_dynamicLight->integer != 1 )
-		{
-			_shaderBuildQueue.pop();
-			continue;
-		}
-		else if ( shaderName == "reflection_CB" && r_reflectionMapping->integer == 0 )
-		{
-			_shaderBuildQueue.pop();
-			continue;
-		}
-		else if ( shaderName == "liquid" && r_liquidMapping->integer == 0 )
-		{
-			_shaderBuildQueue.pop();
-			continue;
-		}
-		else if ( shaderName == "heatHaze" && r_heatHaze->integer == 0 )
-		{
-			_shaderBuildQueue.pop();
-			continue;
-		}
-		else if ( shaderName == "fxaa" && r_FXAA->integer == 0 )
-		{
-			_shaderBuildQueue.pop();
-			continue;
-		}
-		else if ( shaderName == "bloom" && r_bloom->integer != 1 )
-		{
-			_shaderBuildQueue.pop();
-			continue;
-		}
-
 		size_t numPermutations = static_cast<size_t>(1) << shader.GetNumOfCompiledMacros();
 		size_t i;
 

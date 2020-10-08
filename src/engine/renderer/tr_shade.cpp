@@ -48,14 +48,17 @@ static void GLSL_InitGPUShadersOrError()
 	// standard light mapping
 	gl_shaderManager.load( gl_lightMappingShader );
 
-	// omni-directional specular bump mapping ( Doom3 style )
-	gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
+	if ( r_dynamicLight->integer == 1 )
+	{
+		// omni-directional specular bump mapping ( Doom3 style )
+		gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
 
-	// projective lighting ( Doom3 style )
-	gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
+		// projective lighting ( Doom3 style )
+		gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
 
-	// directional sun lighting ( Doom3 style )
-	gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
+		// directional sun lighting ( Doom3 style )
+		gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
+	}
 
 #if !defined( GLSL_COMPILE_STARTUP_ONLY )
 
@@ -66,8 +69,11 @@ static void GLSL_InitGPUShadersOrError()
 	// shadowmap distance compression
 	gl_shaderManager.load( gl_shadowFillShader );
 
-	// bumped cubemap reflection for abitrary polygons ( EMBM )
-	gl_shaderManager.load( gl_reflectionShader );
+	if ( r_reflectionMapping->integer != 0 )
+	{
+		// bumped cubemap reflection for abitrary polygons ( EMBM )
+		gl_shaderManager.load( gl_reflectionShader );
+	}
 
 	// skybox drawing for abitrary polygons
 	gl_shaderManager.load( gl_skyboxShader );
@@ -78,11 +84,18 @@ static void GLSL_InitGPUShadersOrError()
 	// global fog post process effect
 	gl_shaderManager.load( gl_fogGlobalShader );
 
-	// heatHaze post process effect
-	gl_shaderManager.load( gl_heatHazeShader );
+	if ( r_heatHaze->integer != 0 )
+	{
+		// heatHaze post process effect
+		gl_shaderManager.load( gl_heatHazeShader );
+	}
 
-	// screen post process effect
-	gl_shaderManager.load( gl_screenShader );
+	// NOTE: screen shader seems to be only used by bloom post process effect.
+	if ( r_bloom->integer != 0 )
+	{
+		// screen post process effect
+		gl_shaderManager.load( gl_screenShader );
+	}
 
 	// portal process effect
 	gl_shaderManager.load( gl_portalShader );
@@ -101,7 +114,10 @@ static void GLSL_InitGPUShadersOrError()
 	// debug utils
 	gl_shaderManager.load( gl_debugShadowMapShader );
 
-	gl_shaderManager.load( gl_liquidShader );
+	if ( r_liquidMapping->integer != 0 )
+	{
+		gl_shaderManager.load( gl_liquidShader );
+	}
 
 #if !defined( GLSL_COMPILE_STARTUP_ONLY )
 
@@ -109,6 +125,8 @@ static void GLSL_InitGPUShadersOrError()
 
 #endif // #if !defined(GLSL_COMPILE_STARTUP_ONLY)
 
+	/* NOTE: motionblur is enabled by cg_motionblur which is a client cvar
+	so we have to build it in all cases. */
 	gl_shaderManager.load( gl_motionblurShader );
 
 	if (GLEW_ARB_texture_gather)
@@ -126,7 +144,11 @@ static void GLSL_InitGPUShadersOrError()
 	gl_shaderManager.load( gl_depthtile1Shader );
 	gl_shaderManager.load( gl_depthtile2Shader );
 	gl_shaderManager.load( gl_lighttileShader );
-	gl_shaderManager.load( gl_fxaaShader );
+
+	if ( r_FXAA->integer != 0 )
+	{
+		gl_shaderManager.load( gl_fxaaShader );
+	}
 
 	if ( !r_lazyShaders->integer )
 	{
