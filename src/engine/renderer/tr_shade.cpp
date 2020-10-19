@@ -691,7 +691,10 @@ static void Render_generic( int stage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	GL_BindToTMU( 8, tr.lighttileRenderImage );
+	if ( r_dynamicLight->integer == 2 )
+	{
+		GL_BindToTMU( 8, tr.lighttileRenderImage );
+	}
 
 	gl_genericShader->SetRequiredVertexPointers();
 
@@ -907,7 +910,10 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_LightTiles
-	GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage );
+	if ( r_dynamicLight->integer == 2 )
+	{
+		GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage );
+	}
 
 	// u_DeformGen
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
@@ -959,7 +965,10 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_NormalMap
-	GL_BindToTMU( BIND_NORMALMAP, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+	if ( !!r_normalMapping->integer || pStage->isHeightMapInNormalMap )
+	{
+		GL_BindToTMU( BIND_NORMALMAP, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+	}
 
 	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
@@ -971,7 +980,10 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_MaterialMap
-	GL_BindToTMU( BIND_MATERIALMAP, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+	if ( !!r_specularMapping->integer || pStage->enablePhysicalMapping )
+	{
+		GL_BindToTMU( BIND_MATERIALMAP, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+	}
 
 	if ( pStage->enableSpecularMapping )
 	{
@@ -1093,7 +1105,10 @@ static void Render_lightMapping( int stage )
 	GL_BindToTMU( BIND_DELUXEMAP, deluxemap );
 
 	// bind u_GlowMap
-	GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
+	if ( !!r_glowMapping->integer )
+	{
+		GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
+	}
 
 	gl_lightMappingShader->SetRequiredVertexPointers();
 
