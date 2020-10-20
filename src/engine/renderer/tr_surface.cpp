@@ -1053,145 +1053,160 @@ Tess_SurfaceMD5
 */
 static void Tess_SurfaceMD5( md5Surface_t *srf )
 {
-	int             j;
-	int             numIndexes = 0;
-	int             numVertexes;
-	md5Model_t      *model;
-	md5Vertex_t     *v;
-	srfTriangle_t   *tri;
+	md5Model_t *model = srf->model;
 
 	GLimp_LogComment( "--- Tess_SurfaceMD5 ---\n" );
 
-	Tess_CheckOverflow( srf->numVerts, srf->numTriangles * 3 );
+	int numIndexes = srf->numTriangles * 3;
 
-	model = srf->model;
-
-	numIndexes = srf->numTriangles * 3;
-
-    tri = srf->triangles;
-	for (unsigned i = 0; i < srf->numTriangles; i++, tri++ )
-	{
-		tess.indexes[ tess.numIndexes + i * 3 + 0 ] = tess.numVertexes + tri->indexes[ 0 ];
-		tess.indexes[ tess.numIndexes + i * 3 + 1 ] = tess.numVertexes + tri->indexes[ 1 ];
-		tess.indexes[ tess.numIndexes + i * 3 + 2 ] = tess.numVertexes + tri->indexes[ 2 ];
-	}
+	Tess_CheckOverflow( srf->numVerts, numIndexes );
 
 	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
 
-	if ( tess.skipTangentSpaces )
+	if ( !tess.skipTangentSpaces )
 	{
-		// convert bones back to matrices
-		for (unsigned i = 0; i < model->numBones; i++ )
-		{
-			if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
-			{
-				refBone_t *bone = &backEnd.currentEntity->e.skeleton.bones[ i ];
+		tess.attribsSet |= ATTR_QTANGENT;
+	}
 
-				TransInitRotationQuat( model->bones[ i ].rotation, &bones[ i ] );
-				TransAddTranslation( model->bones[ i ].origin, &bones[ i ] );
-				TransInverse( &bones[ i ], &bones[ i ] );
-				TransCombine( &bones[ i ], &bone->t, &bones[ i ] );
-				TransAddScale( backEnd.currentEntity->e.skeleton.scale, &bones[ i ] );
-			}
-			else
-			{
-				TransInitRotationQuat( model->bones[ i ].rotation, &bones[i] );
-				TransAddTranslation( model->bones[ i ].origin, &bones[ i ] );
-			}
-			TransInsScale( model->internalScale, &bones[ i ] );
+	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
+	float modelScale = model->internalScale;
+	transform_t *bone = bones;
+	transform_t *lastBone = bones + model->numBones;
+
+	// Convert bones back to matrices.
+	if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
+	{
+		refBone_t *entityBone = backEnd.currentEntity->e.skeleton.bones;
+		md5Bone_t *modelBone = model->bones;
+
+		for ( ; bone < lastBone; bone++,
+			modelBone++, entityBone++ )
+		{
+			TransInitRotationQuat( modelBone->rotation, bone );
+			TransAddTranslation( modelBone->origin, bone );
+			TransInverse( bone, bone );
+			TransCombine( bone, &entityBone->t, bone );
+			TransAddScale( entityScale, bone );
+			TransInsScale( modelScale, bone );
 		}
+	}
+	else if ( tess.skipTangentSpaces )
+	{
+		md5Bone_t *modelBone = model->bones;
 
-		// deform the vertices by the lerped bones
-		numVertexes = srf->numVerts;
-
-		for ( j = 0, v = srf->verts; j < numVertexes; j++, v++ )
+		for ( ; bone < lastBone; bone++,
+			modelBone++ )
 		{
-			vec3_t tmp; vec3_t pos;
-
-			VectorClear( pos );
-			for (unsigned k = 0; k < v->numWeights; k++ ) {
-				TransformPoint( &bones[ v->boneIndexes[ k ] ],
-						v->position, tmp );
-				VectorMA( pos,
-					  v->boneWeights[ k ], tmp,
-					  pos );
-
-			}
-
-			VectorCopy(pos, tess.verts[tess.numVertexes + j].xyz);
-			tess.verts[ tess.numVertexes + j ].texCoords[ 0 ] = floatToHalf( v->texCoords[ 0 ] );
-			tess.verts[ tess.numVertexes + j ].texCoords[ 1 ] = floatToHalf( v->texCoords[ 1 ] );
+			TransInitRotationQuat( modelBone->rotation, bone );
+			TransAddTranslation( modelBone->origin, bone );
+			TransInsScale( modelScale, bone );
 		}
 	}
 	else
 	{
-		tess.attribsSet |= ATTR_QTANGENT;
-
-		// convert bones back to matrices
-		for (unsigned i = 0; i < model->numBones; i++ )
+		for ( ; bone < lastBone; bone++ )
 		{
-			if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
-			{
-				refBone_t *bone = &backEnd.currentEntity->e.skeleton.bones[ i ];
-				TransInitRotationQuat( model->bones[ i ].rotation, &bones[ i ] );
-				TransAddTranslation( model->bones[ i ].origin, &bones[ i ] );
-				TransInverse( &bones[ i ], &bones[ i ] );
-
-				TransCombine( &bones[ i ], &bone->t, &bones[ i ] );
-				TransAddScale( backEnd.currentEntity->e.skeleton.scale, &bones[ i ] );
-			}
-			else
-			{
-				TransInitScale( backEnd.currentEntity->e.skeleton.scale, &bones[ i ] );
-			}
-			TransInsScale( model->internalScale, &bones[ i ] );
+			TransInitScale( entityScale, bone );
+			TransInsScale( modelScale, bone );
 		}
+	}
 
-		// deform the vertices by the lerped bones
-		numVertexes = srf->numVerts;
+	glIndex_t *tessIndex = tess.indexes + tess.numIndexes;
+	srfTriangle_t *surfaceTriangle = srf->triangles;
+	srfTriangle_t *lastTriangle = surfaceTriangle + srf->numTriangles;
+	md5Vertex_t *surfaceVertex = srf->verts;
 
-		for ( j = 0, v = srf->verts; j < numVertexes; j++, v++ )
+	for ( ; surfaceTriangle < lastTriangle; surfaceTriangle++,
+		tessIndex += 3 )
+	{
+		tessIndex[ 0 ] = tess.numVertexes + surfaceTriangle->indexes[ 0 ];
+		tessIndex[ 1 ] = tess.numVertexes + surfaceTriangle->indexes[ 1 ];
+		tessIndex[ 2 ] = tess.numVertexes + surfaceTriangle->indexes[ 2 ];
+	}
+
+	shaderVertex_t *tessVertex = tess.verts + tess.numVertexes;
+	shaderVertex_t *lastVertex = tessVertex + srf->numVerts;
+
+	// Deform the vertices by the lerped bones.
+	if ( tess.skipTangentSpaces )
+	{
+		for ( ; tessVertex < lastVertex; tessVertex++,
+			surfaceVertex++ )
 		{
-			vec3_t tangent, binormal, normal, tmp, pos;
+			vec3_t position, tmp;
 
-			VectorClear( pos );
+			VectorClear( position );
+
+			float *boneWeight = surfaceVertex->boneWeights;
+			float *lastWeight = boneWeight + surfaceVertex->numWeights;
+			uint32_t *boneIndex = surfaceVertex->boneIndexes;
+			vec4_t *surfacePosition = &surfaceVertex->position;
+
+			for ( ; boneWeight < lastWeight; boneWeight++,
+				boneIndex++ )
+			{
+				TransformPoint( &bones[ *boneIndex ], *surfacePosition, tmp );
+				VectorMA( position, *boneWeight, tmp, position );
+			}
+
+			VectorCopy( position, tessVertex->xyz );
+
+			Vector2Set( tessVertex->texCoords,
+			floatToHalf( surfaceVertex->texCoords[ 0 ] ),
+			floatToHalf( surfaceVertex->texCoords[ 1 ] ) );
+		}
+	}
+	else
+	{
+		for ( ; tessVertex < lastVertex; tessVertex++,
+			surfaceVertex++ )
+		{
+			vec3_t tangent, binormal, normal, position, tmp;
+
+			VectorClear( position );
 			VectorClear( normal );
 			VectorClear( binormal );
 			VectorClear( tangent );
 
-			for(unsigned k = 0; k < v->numWeights; k++ ) {
-				TransformPoint( &bones[ v->boneIndexes[ k ] ],
-						v->position, tmp );
-				VectorMA( pos,
-					  v->boneWeights[ k ], tmp,
-					  pos );
+			float *boneWeight = surfaceVertex->boneWeights;
+			float *lastWeight = boneWeight + surfaceVertex->numWeights;
+			uint32_t *boneIndex = surfaceVertex->boneIndexes;
+			vec4_t *surfacePosition = &surfaceVertex->position;
+			vec4_t *surfaceNormal = &surfaceVertex->normal;
+			vec4_t *surfaceTangent = &surfaceVertex->tangent;
+			vec4_t *surfaceBinormal = &surfaceVertex->binormal;
 
-				TransformNormalVector( &bones[ v->boneIndexes[ k ] ],
-						       v->normal, tmp );
-				VectorMA( normal, v->boneWeights[ k ], tmp, normal );
+			for ( ; boneWeight < lastWeight; boneWeight++,
+				boneIndex++ )
+			{
+				TransformPoint( &bones[ *boneIndex ], *surfacePosition, tmp );
+				VectorMA( position, *boneWeight, tmp, position );
 
-				TransformNormalVector( &bones[ v->boneIndexes[ k ] ],
-						       v->tangent, tmp );
-				VectorMA( tangent, v->boneWeights[ k ], tmp, tangent );
+				TransformNormalVector( &bones[ *boneIndex ], *surfaceNormal, tmp );
+				VectorMA( normal, *boneWeight, tmp, normal );
 
-				TransformNormalVector( &bones[ v->boneIndexes[ k ] ],
-						       v->binormal, tmp );
-				VectorMA( binormal, v->boneWeights[ k ], tmp, binormal );
+				TransformNormalVector( &bones[ *boneIndex ], *surfaceTangent, tmp );
+				VectorMA( tangent, *boneWeight, tmp, tangent );
+
+				TransformNormalVector( &bones[ *boneIndex ], *surfaceBinormal, tmp );
+				VectorMA( binormal, *boneWeight, tmp, binormal );
 			}
+
 			VectorNormalize( normal );
 			VectorNormalize( tangent );
 			VectorNormalize( binormal );
+			VectorCopy( position, tessVertex->xyz );
 
-			VectorCopy(pos, tess.verts[tess.numVertexes + j].xyz);
-			R_TBNtoQtangents( tangent, binormal, normal, tess.verts[ tess.numVertexes + j ].qtangents );
+			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
 
-			tess.verts[ tess.numVertexes + j ].texCoords[ 0 ] = floatToHalf( v->texCoords[ 0 ] );
-			tess.verts[ tess.numVertexes + j ].texCoords[ 1 ] = floatToHalf( v->texCoords[ 1 ] );
+			Vector2Set( tessVertex->texCoords,
+			floatToHalf( surfaceVertex->texCoords[ 0 ] ),
+			floatToHalf( surfaceVertex->texCoords[ 1 ] ) );
 		}
 	}
 
 	tess.numIndexes += numIndexes;
-	tess.numVertexes += numVertexes;
+	tess.numVertexes += srf->numVerts;
 }
 
 /*
