@@ -1123,7 +1123,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_vboTriangles = ri.Cvar_Get( "r_vboTriangles", "1", CVAR_CHEAT );
 		r_vboShadows = ri.Cvar_Get( "r_vboShadows", "1", CVAR_CHEAT );
 		r_vboLighting = ri.Cvar_Get( "r_vboLighting", "1", CVAR_CHEAT );
-		r_vboModels = ri.Cvar_Get( "r_vboModels", "1", 0 );
+		r_vboModels = ri.Cvar_Get( "r_vboModels", "1", CVAR_LATCH );
 		r_vboVertexSkinning = ri.Cvar_Get( "r_vboVertexSkinning", "1",  CVAR_LATCH );
 		r_vboDeformVertexes = ri.Cvar_Get( "r_vboDeformVertexes", "1",  CVAR_LATCH );
 
