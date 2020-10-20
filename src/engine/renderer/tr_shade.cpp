@@ -93,11 +93,8 @@ static void GLSL_InitGPUShadersOrError()
 	// global fog post process effect
 	gl_shaderManager.load( gl_fogGlobalShader );
 
-	if ( r_heatHaze->integer != 0 )
-	{
-		// heatHaze post process effect
-		gl_shaderManager.load( gl_heatHazeShader );
-	}
+	// heatHaze post process effect
+	gl_shaderManager.load( gl_heatHazeShader );
 
 	// NOTE: screen shader seems to be only used by bloom post process effect.
 	if ( r_bloom->integer != 0 )
@@ -2013,6 +2010,11 @@ static void Render_heatHaze( int stage )
 	shaderStage_t *pStage = tess.surfaceStages[ stage ];
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
+
+	if ( r_heatHaze->integer == 0 )
+	{
+		return;
+	}
 
 	// remove alpha test
 	stateBits = pStage->stateBits;
