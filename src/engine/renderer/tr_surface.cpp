@@ -1202,131 +1202,177 @@ Compute vertices for this model surface
 =================
 */
 void Tess_SurfaceIQM( srfIQModel_t *surf ) {
-	IQModel_t       *model = surf->data;
-	int             i, j;
-	int             offset = tess.numVertexes - surf->first_vertex;
+	IQModel_t *model = surf->data;
+	int offset = tess.numVertexes - surf->first_vertex;
 
 	GLimp_LogComment( "--- Tess_SurfaceIQM ---\n" );
 
-	Tess_CheckOverflow( surf->num_vertexes, surf->num_triangles * 3 );
+	int numIndexes = surf->num_triangles * 3;
 
-	// compute bones
-	for ( i = 0; i < model->num_joints; i++ )
-	{
-
-		if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
-		{
-			refBone_t *bone = &backEnd.currentEntity->e.skeleton.bones[ i ];
-
-			TransInverse( &model->joints[ i ], &bones[ i ] );
-			TransCombine( &bones[ i ], &bone->t, &bones[ i ] );
-		}
-		else
-		{
-			TransInit( &bones[ i ] );
-		}
-		TransAddScale( backEnd.currentEntity->e.skeleton.scale, &bones[ i ] );
-		TransInsScale( model->internalScale, &bones[ i ] );
-	}
-
-	if( surf->vbo && surf->ibo ) {
-		if( model->num_joints > 0 ) {
-			Com_Memcpy( tess.bones, bones, model->num_joints * sizeof(transform_t) );
-			tess.numBones = model->num_joints;
-		} else {
-			TransInitScale( model->internalScale * backEnd.currentEntity->e.skeleton.scale, &tess.bones[ 0 ] );
-			tess.numBones = 1;
-		}
-		R_BindVBO( surf->vbo );
-		R_BindIBO( surf->ibo );
-		tess.vboVertexSkinning = true;
-
-		tess.multiDrawIndexes[ tess.multiDrawPrimitives ] = reinterpret_cast<glIndex_t*>( sizeof(glIndex_t) * surf->first_triangle * 3 );
-		tess.multiDrawCounts[ tess.multiDrawPrimitives ] = surf->num_triangles * 3;
-		tess.multiDrawPrimitives++;
-
-		Tess_End();
-		return;
-	}
-
-	for ( i = 0; i < surf->num_triangles; i++ )
-	{
-		tess.indexes[ tess.numIndexes + i * 3 + 0 ] = offset + model->triangles[ 3 * ( surf->first_triangle + i ) + 0 ];
-		tess.indexes[ tess.numIndexes + i * 3 + 1 ] = offset + model->triangles[ 3 * ( surf->first_triangle + i ) + 1 ];
-		tess.indexes[ tess.numIndexes + i * 3 + 2 ] = offset + model->triangles[ 3 * ( surf->first_triangle + i ) + 2 ];
-	}
+	Tess_CheckOverflow( surf->num_vertexes, numIndexes );
 
 	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT;
 
-	if( model->num_joints > 0 && model->blendWeights && model->blendIndexes ) {
-		// deform the vertices by the lerped bones
-		for ( i = 0; i < surf->num_vertexes; i++ )
+	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
+	float modelScale = model->internalScale;
+	transform_t *bone = bones;
+	transform_t *lastBone = bones + model->num_joints;
+
+	// Convert bones back to matrices.
+	if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
+	{
+		refBone_t *entityBone = backEnd.currentEntity->e.skeleton.bones;
+		transform_t *modelJoint = model->joints;
+
+		for ( ; bone < lastBone; bone++,
+			modelJoint++, entityBone++ )
 		{
-			int    idxIn = surf->first_vertex + i;
-			int    idxOut = tess.numVertexes + i;
-			const float weightFactor = 1.0f / 255.0f;
-			vec3_t tangent, binormal, normal, tmp;
-			vec3_t pos;
-
-			if( model->blendWeights[ 4 * idxIn + 0 ] == 0 &&
-			    model->blendWeights[ 4 * idxIn + 1 ] == 0 &&
-			    model->blendWeights[ 4 * idxIn + 2 ] == 0 &&
-			    model->blendWeights[ 4 * idxIn + 3 ] == 0 )
-				model->blendWeights[ 4 * idxIn + 0 ] = 255;
-
-			VectorClear( pos );
-			VectorClear( normal );
-			VectorClear( tangent );
-			VectorClear( binormal );
-			for ( j = 0; j < 4; j++ ) {
-				int bone = model->blendIndexes[ 4 * idxIn + j ];
-				float weight = weightFactor * model->blendWeights[ 4 * idxIn + j ];
-
-				TransformPoint( &bones[ bone ],
-						&model->positions[ 3 * idxIn ], tmp );
-				VectorMA( pos, weight, tmp,
-					  pos );
-
-				TransformNormalVector( &bones[ bone ],
-						       &model->normals[ 3 * idxIn ], tmp );
-				VectorMA( normal, weight, tmp, normal );
-				TransformNormalVector( &bones[ bone ],
-						       &model->tangents[ 3 * idxIn ], tmp );
-				VectorMA( tangent, weight, tmp, tangent );
-				TransformNormalVector( &bones[ bone ],
-						       &model->bitangents[ 3 * idxIn ], tmp );
-				VectorMA( binormal, weight, tmp, binormal );
-			}
-			VectorNormalize( normal );
-			VectorNormalize( tangent );
-			VectorNormalize( binormal );
-
-			VectorCopy(pos, tess.verts[idxOut].xyz);
-
-			R_TBNtoQtangents( tangent, binormal, normal, tess.verts[ idxOut ].qtangents );
-
-			tess.verts[ idxOut ].texCoords[ 0 ] = model->texcoords[ 2 * idxIn + 0 ];
-			tess.verts[ idxOut ].texCoords[ 1 ] = model->texcoords[ 2 * idxIn + 1 ];
+			TransInverse( modelJoint, bone );
+			TransCombine( bone, &entityBone->t, bone );
+			TransAddScale( entityScale, bone );
+			TransInsScale( modelScale, bone );
 		}
-	} else {
-		for ( i = 0; i < surf->num_vertexes; i++ )
+	}
+	else
+	{
+		for ( ; bone < lastBone; bone++ )
 		{
-			int    idxIn = surf->first_vertex + i;
-			int    idxOut = tess.numVertexes + i;
-			float  scale = model->internalScale * backEnd.currentEntity->e.skeleton.scale;
-
-			VectorScale( &model->positions[ 3 * idxIn ], scale, tess.verts[ idxOut ].xyz );
-			R_TBNtoQtangents( &model->tangents[ 3 * idxIn ],
-					  &model->bitangents[ 3 * idxIn ],
-					  &model->normals[ 3 * idxIn ],
-					  tess.verts[ idxOut ].qtangents );
-
-			tess.verts[ idxOut ].texCoords[ 0 ] = model->texcoords[ 2 * idxIn + 0 ];
-			tess.verts[ idxOut ].texCoords[ 1 ] = model->texcoords[ 2 * idxIn + 1 ];
+			TransInit( bone );
+			TransAddScale( entityScale, bone );
+			TransInsScale( modelScale, bone );
 		}
 	}
 
-	tess.numIndexes  += 3 * surf->num_triangles;
+	/* This must run after the bone computation code or rendering
+	will be buggy, and must run before the other loops because it
+	returns early and then save CPU time.
+
+	This test is false when r_vboModels is disabled, or when
+	glConfig2.vboVertexSkinningAvailable is false because related
+	OpenGL extensions are unsupported, or the model has too much
+	bones for the hardware, or r_vboVertexSkinning is disabled.
+
+	See https://github.com/Unvanquished/Unvanquished/issues/1207 */
+	if( surf->vbo && surf->ibo )
+	{
+		if( model->num_joints > 0 )
+		{
+			Com_Memcpy( tess.bones, bones, model->num_joints * sizeof(transform_t) );
+			tess.numBones = model->num_joints;
+		}
+		else
+		{
+			TransInitScale( model->internalScale * backEnd.currentEntity->e.skeleton.scale, &tess.bones[ 0 ] );
+			tess.numBones = 1;
+		}
+
+		R_BindVBO( surf->vbo );
+		R_BindIBO( surf->ibo );
+
+		tess.vboVertexSkinning = true;
+		tess.multiDrawIndexes[ tess.multiDrawPrimitives ] = reinterpret_cast<glIndex_t*>( sizeof(glIndex_t) * 3 * surf->first_triangle );
+		tess.multiDrawCounts[ tess.multiDrawPrimitives ] = numIndexes;
+		tess.multiDrawPrimitives++;
+
+		Tess_End();
+
+		return;
+	}
+
+	glIndex_t *tessIndex = tess.indexes + tess.numIndexes;
+	int *modelTriangle = model->triangles + 3 * surf->first_triangle;
+	int *lastModelTriangle = modelTriangle + 3 * surf->num_triangles;
+
+	for ( ; modelTriangle < lastModelTriangle; modelTriangle++,
+		tessIndex++ )
+	{
+		*tessIndex = offset + *modelTriangle;
+	}
+
+	int firstVertex = surf->first_vertex;
+	float *modelPosition = model->positions + 3 * firstVertex;
+	float *modelNormal = model->normals + 3 * firstVertex;
+	float *modelTangent = model->tangents + 3 * firstVertex;
+	float *modelBitangent = model->bitangents + 3 * firstVertex;
+	int16_t *modelTexcoord = model->texcoords + 2 * firstVertex;
+	shaderVertex_t *tessVertex = tess.verts + tess.numVertexes;
+	shaderVertex_t *lastVertex = tessVertex + surf->num_vertexes;
+
+	// Deform the vertices by the lerped bones.
+	if ( model->num_joints > 0 && model->blendWeights && model->blendIndexes )
+	{
+		byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
+		byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
+
+		for ( ; tessVertex < lastVertex; tessVertex++,
+			modelPosition += 3, modelNormal += 3,
+			modelTangent += 3, modelBitangent += 3,
+			modelTexcoord += 2 )
+		{
+			const float weightFactor = 1.0f / 255.0f;
+			vec3_t position, tangent, binormal, normal, tmp;
+
+			if( modelBlendWeight[ 0 ] == 0 &&
+				modelBlendWeight[ 1 ] == 0 &&
+				modelBlendWeight[ 2 ] == 0 &&
+				modelBlendWeight[ 3 ] == 0 )
+			{
+				modelBlendWeight[ 0 ] = 255;
+			}
+
+			VectorClear( position );
+			VectorClear( normal );
+			VectorClear( tangent );
+			VectorClear( binormal );
+
+			byte *lastBlendIndex = modelBlendIndex + 4;
+
+			for ( ; modelBlendIndex < lastBlendIndex; modelBlendIndex++,
+				modelBlendWeight++ )
+			{
+				float weight = *modelBlendWeight * weightFactor;
+
+				TransformPoint( &bones[ *modelBlendIndex ], modelPosition, tmp );
+				VectorMA( position, weight, tmp, position );
+
+				TransformNormalVector( &bones[ *modelBlendIndex ], modelNormal, tmp );
+				VectorMA( normal, weight, tmp, normal );
+
+				TransformNormalVector( &bones[ *modelBlendIndex ], modelTangent, tmp );
+				VectorMA( tangent, weight, tmp, tangent );
+
+				TransformNormalVector( &bones[ *modelBlendIndex ], modelBitangent, tmp );
+				VectorMA( binormal, weight, tmp, binormal );
+			}
+
+			VectorNormalize( normal );
+			VectorNormalize( tangent );
+			VectorNormalize( binormal );
+			VectorCopy( position, tessVertex->xyz );
+
+			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
+
+			Vector2Copy( modelTexcoord, tessVertex->texCoords );
+		}
+	}
+	else
+	{
+		float modelScale = model->internalScale * backEnd.currentEntity->e.skeleton.scale;
+
+		for ( ; tessVertex < lastVertex; tessVertex++,
+			modelPosition += 3, modelNormal += 3,
+			modelTangent += 3, modelBitangent += 3,
+			modelTexcoord += 2 )
+		{
+			VectorScale( modelPosition, modelScale, tessVertex->xyz );
+
+			R_TBNtoQtangents( modelTangent, modelBitangent, modelNormal, tessVertex->qtangents );
+
+			Vector2Copy( modelTexcoord, tessVertex->texCoords );
+		}
+	}
+
+	tess.numIndexes  += numIndexes;
 	tess.numVertexes += surf->num_vertexes;
 }
 
