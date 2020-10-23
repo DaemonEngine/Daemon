@@ -1223,7 +1223,12 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 	Tess_CheckOverflow( surf->num_vertexes, numIndexes );
 
-	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT;
+	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
+
+	if ( !tess.skipTangentSpaces )
+	{
+		tess.attribsSet |= ATTR_QTANGENT;
+	}
 
 	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
 	float modelScale = model->internalScale;
@@ -1242,6 +1247,17 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			TransInverse( modelJoint, bone );
 			TransCombine( bone, &entityBone->t, bone );
 			TransAddScale( entityScale, bone );
+			TransInsScale( modelScale, bone );
+		}
+	}
+	else if ( tess.skipTangentSpaces )
+	{
+		transform_t *modelJoint = model->joints;
+
+		for ( ; bone < lastBone; bone++,
+			modelJoint++ )
+		{
+			TransCopy( modelJoint, bone );
 			TransInsScale( modelScale, bone );
 		}
 	}
@@ -1313,58 +1329,100 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	// Deform the vertices by the lerped bones.
 	if ( model->num_joints > 0 && model->blendWeights && model->blendIndexes )
 	{
-		byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
-		byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
+		const float weightFactor = 1.0f / 255.0f;
 
-		for ( ; tessVertex < lastVertex; tessVertex++,
-			modelPosition += 3, modelNormal += 3,
-			modelTangent += 3, modelBitangent += 3,
-			modelTexcoord += 2 )
+		if ( tess.skipTangentSpaces )
 		{
-			const float weightFactor = 1.0f / 255.0f;
-			vec3_t position, tangent, binormal, normal, tmp;
+			byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
+			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
 
-			if( modelBlendWeight[ 0 ] == 0 &&
-				modelBlendWeight[ 1 ] == 0 &&
-				modelBlendWeight[ 2 ] == 0 &&
-				modelBlendWeight[ 3 ] == 0 )
+			for ( ; tessVertex < lastVertex; tessVertex++,
+				modelPosition += 3, modelNormal += 3,
+				modelTangent += 3, modelBitangent += 3,
+				modelTexcoord += 2 )
 			{
-				modelBlendWeight[ 0 ] = 255;
+				vec3_t position, tmp;
+
+				if( modelBlendWeight[ 0 ] == 0 &&
+					modelBlendWeight[ 1 ] == 0 &&
+					modelBlendWeight[ 2 ] == 0 &&
+					modelBlendWeight[ 3 ] == 0 )
+				{
+					modelBlendWeight[ 0 ] = 255;
+				}
+
+				VectorClear( position );
+
+				byte *lastBlendIndex = modelBlendIndex + 4;
+
+				for ( ; modelBlendIndex < lastBlendIndex; modelBlendIndex++,
+					modelBlendWeight++ )
+				{
+					float weight = *modelBlendWeight * weightFactor;
+
+					TransformPoint( &bones[ *modelBlendIndex ], modelPosition, tmp );
+					VectorMA( position, weight, tmp, position );
+				}
+
+				VectorCopy( position, tessVertex->xyz );
+
+				Vector2Copy( modelTexcoord, tessVertex->texCoords );
 			}
+		}
+		else
+		{
+			byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
+			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
 
-			VectorClear( position );
-			VectorClear( normal );
-			VectorClear( tangent );
-			VectorClear( binormal );
-
-			byte *lastBlendIndex = modelBlendIndex + 4;
-
-			for ( ; modelBlendIndex < lastBlendIndex; modelBlendIndex++,
-				modelBlendWeight++ )
+			for ( ; tessVertex < lastVertex; tessVertex++,
+				modelPosition += 3, modelNormal += 3,
+				modelTangent += 3, modelBitangent += 3,
+				modelTexcoord += 2 )
 			{
-				float weight = *modelBlendWeight * weightFactor;
+				vec3_t position, tangent, binormal, normal, tmp;
 
-				TransformPoint( &bones[ *modelBlendIndex ], modelPosition, tmp );
-				VectorMA( position, weight, tmp, position );
+				if( modelBlendWeight[ 0 ] == 0 &&
+					modelBlendWeight[ 1 ] == 0 &&
+					modelBlendWeight[ 2 ] == 0 &&
+					modelBlendWeight[ 3 ] == 0 )
+				{
+					modelBlendWeight[ 0 ] = 255;
+				}
 
-				TransformNormalVector( &bones[ *modelBlendIndex ], modelNormal, tmp );
-				VectorMA( normal, weight, tmp, normal );
+				VectorClear( position );
+				VectorClear( normal );
+				VectorClear( tangent );
+				VectorClear( binormal );
 
-				TransformNormalVector( &bones[ *modelBlendIndex ], modelTangent, tmp );
-				VectorMA( tangent, weight, tmp, tangent );
+				byte *lastBlendIndex = modelBlendIndex + 4;
 
-				TransformNormalVector( &bones[ *modelBlendIndex ], modelBitangent, tmp );
-				VectorMA( binormal, weight, tmp, binormal );
+				for ( ; modelBlendIndex < lastBlendIndex; modelBlendIndex++,
+					modelBlendWeight++ )
+				{
+					float weight = *modelBlendWeight * weightFactor;
+
+					TransformPoint( &bones[ *modelBlendIndex ], modelPosition, tmp );
+					VectorMA( position, weight, tmp, position );
+
+					TransformNormalVector( &bones[ *modelBlendIndex ], modelNormal, tmp );
+					VectorMA( normal, weight, tmp, normal );
+
+					TransformNormalVector( &bones[ *modelBlendIndex ], modelTangent, tmp );
+					VectorMA( tangent, weight, tmp, tangent );
+
+					TransformNormalVector( &bones[ *modelBlendIndex ], modelBitangent, tmp );
+					VectorMA( binormal, weight, tmp, binormal );
+				}
+
+				VectorNormalize( normal );
+				VectorNormalize( tangent );
+				VectorNormalize( binormal );
+				VectorCopy( position, tessVertex->xyz );
+
+				R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
+
+				Vector2Copy( modelTexcoord, tessVertex->texCoords );
 			}
-
-			VectorNormalize( normal );
-			VectorNormalize( tangent );
-			VectorNormalize( binormal );
-			VectorCopy( position, tessVertex->xyz );
-
-			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
-
-			Vector2Copy( modelTexcoord, tessVertex->texCoords );
 		}
 	}
 	else
