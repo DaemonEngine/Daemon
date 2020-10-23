@@ -193,6 +193,10 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 		VectorCopy( boneOrigin, bone->origin );
 		QuatCopy( boneQuat, bone->rotation );
 
+		// Precompute transform like IQM.
+		TransInitRotationQuat( bone->rotation, &bone->joint );
+		TransAddTranslation( bone->origin, &bone->joint );
+
 		// skip )
 		token = COM_ParseExt2( &buf_p, false );
 

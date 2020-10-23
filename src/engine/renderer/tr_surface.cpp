@@ -1082,9 +1082,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 		for ( ; bone < lastBone; bone++,
 			modelBone++, entityBone++ )
 		{
-			TransInitRotationQuat( modelBone->rotation, bone );
-			TransAddTranslation( modelBone->origin, bone );
-			TransInverse( bone, bone );
+			TransInverse( &modelBone->joint, bone );
 			TransCombine( bone, &entityBone->t, bone );
 			TransAddScale( entityScale, bone );
 			TransInsScale( modelScale, bone );
@@ -1097,8 +1095,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 		for ( ; bone < lastBone; bone++,
 			modelBone++ )
 		{
-			TransInitRotationQuat( modelBone->rotation, bone );
-			TransAddTranslation( modelBone->origin, bone );
+			TransCopy( &modelBone->joint, bone );
 			TransInsScale( modelScale, bone );
 		}
 	}

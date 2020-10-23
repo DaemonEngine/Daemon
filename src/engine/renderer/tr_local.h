@@ -2208,6 +2208,9 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int8_t   parentIndex; // parent index (-1 if root)
 		vec3_t   origin;
 		quat_t   rotation;
+
+		// Precompute transform like IQM.
+		transform_t joint;
 	};
 
 	struct md5Model_t
