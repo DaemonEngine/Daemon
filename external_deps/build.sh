@@ -27,7 +27,6 @@ OPENAL_VERSION=1.16.0
 OGG_VERSION=1.3.2
 VORBIS_VERSION=1.3.5
 SPEEX_VERSION=1.2rc1
-THEORA_VERSION=1.1.1
 OPUS_VERSION=1.1
 OPUSFILE_VERSION=0.6
 LUA_VERSION=5.3.1
@@ -369,31 +368,6 @@ build_speex() {
 	make install || make install
 }
 
-# Build Theora
-build_theora() {
-	download "libtheora-${THEORA_VERSION}.tar.bz2" "http://downloads.xiph.org/releases/theora/libtheora-${THEORA_VERSION}.tar.bz2" theora
-	cd "libtheora-${THEORA_VERSION}"
-	case "${PLATFORM}" in
-	mingw*|msvc*)
-		local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
-		sed "s,EXPORTS,," "win32/xmingw32/libtheoradec-all.def" > "${TMP_FILE}"
-		mv "${TMP_FILE}" "win32/xmingw32/libtheoradec-all.def"
-		local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
-		sed "s,EXPORTS,," "win32/xmingw32/libtheoraenc-all.def" > "${TMP_FILE}"
-		mv "${TMP_FILE}" "win32/xmingw32/libtheoraenc-all.def"
-		;;
-	macosx*)
-		local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
-		sed "s/-fforce-addr //" "configure" > "${TMP_FILE}"
-		mv "${TMP_FILE}" "configure"
-		chmod +x "configure"
-		;;
-	esac
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-examples --disable-encode
-	make
-	make install
-}
-
 # Build Opus
 build_opus() {
 	download "opus-${OPUS_VERSION}.tar.gz" "http://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" opus
@@ -728,16 +702,16 @@ if [ "${#}" -lt "2" ]; then
 	echo "usage: ${0} <platform> <package[s]...>"
 	echo "Script to build dependencies for platforms which do not provide them"
 	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx32 macosx64 linux32 linux64"
-	echo "Packages: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex theora opus opusfile lua naclsdk naclports"
+	echo "Packages: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
 	echo "Virtual packages:"
 	echo "  install - create a stripped down version of the built packages that CMake can use"
 	echo "  package - create a zip/tarball of the dependencies so they can be distributed"
 	echo
 	echo "Packages requires for each platform:"
 	echo "Linux native compile: naclsdk naclports (and possibly others depending on what packages your distribution provides)"
-	echo "Linux to Windows cross-compile: zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex theora opus opusfile lua naclsdk naclports"
-	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex theora opus opusfile lua naclsdk naclports"
-	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle geoip sdl2 glew png jpeg webp freetype openal ogg vorbis speex theora opus opusfile lua naclsdk naclports"
+	echo "Linux to Windows cross-compile: zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle geoip sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
 	exit 1
 fi
 

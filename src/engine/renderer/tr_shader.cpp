@@ -2214,26 +2214,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		}
 		else if ( !Q_stricmp( token, "videoMap" ) )
 		{
-			if ( stage->collapseType != collapseType_t::COLLAPSE_none )
-			{
-				Log::Warn("keyword '%s' cannot be used in collapsed shader '%s'", token, shader.name );
-			}
-
-			token = COM_ParseExt2( text, false );
-
-			if ( !token[ 0 ] )
-			{
-				Log::Warn("missing parameter for 'videoMap' keyword in shader '%s'", shader.name );
-				return false;
-			}
-
-			stage->bundle[ 0 ].videoMapHandle = ri.CIN_PlayCinematic( token, 0, 0, 512, 512, ( CIN_loop | CIN_silent | CIN_shader ) );
-
-			if ( stage->bundle[ 0 ].videoMapHandle != -1 )
-			{
-				stage->bundle[ 0 ].isVideoMap = true;
-				stage->bundle[ 0 ].image[ 0 ] = tr.scratchImage[ stage->bundle[ 0 ].videoMapHandle ];
-			}
+			Log::Warn("videoMap unsupported");
+			// Discussion about video support: https://github.com/DaemonEngine/Daemon/pull/391
+			COM_ParseExt2( text, false );
 		}
 		// cubeMap <map>
 		else if ( !Q_stricmp( token, "cubeMap" ) || !Q_stricmp( token, "cameraCubeMap" ) )

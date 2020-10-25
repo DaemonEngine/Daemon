@@ -1037,9 +1037,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		uint8_t      numTexMods;
 		texModInfo_t *texMods;
-
-		int          videoMapHandle;
-		bool     isVideoMap;
 	};
 
 	enum class stageType_t
@@ -2612,7 +2609,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
 
 		image_t    *defaultImage;
-		image_t    *scratchImage[ 32 ];
 		image_t    *fogImage;
 		image_t    *quadraticImage;
 		image_t    *whiteImage; // full of 0xff
@@ -3160,7 +3156,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	*/
 
 	void      RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, int client, bool dirty );
-	void      RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty );
 
 	void      RE_BeginFrame();
 	bool  RE_BeginRegistration( glconfig_t *glconfig, glconfig2_t *glconfig2 );

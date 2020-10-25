@@ -2840,13 +2840,6 @@ void R_CreateBuiltinImages()
 	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr,
 				      8, 8, 1, IF_NOPICMIP | IF_NORMALMAP, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_REPEAT );
 
-	for ( x = 0; x < 32; x++ )
-	{
-		// scratchimage is usually used for cinematic drawing
-		tr.scratchImage[ x ] = R_CreateImage( "_scratch", ( const byte ** ) &dataPtr,
-						      DEFAULT_SIZE, DEFAULT_SIZE, 1, IF_NONE, filterType_t::FT_LINEAR, wrapTypeEnum_t::WT_CLAMP );
-	}
-
 	out = &data[ 0 ][ 0 ][ 0 ];
 
 	for ( y = 0; y < DEFAULT_SIZE; y++ )

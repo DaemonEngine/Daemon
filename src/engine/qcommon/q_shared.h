@@ -227,12 +227,6 @@ using clipHandle_t = int;
 void *Com_Allocate_Aligned( size_t alignment, size_t size );
 void  Com_Free_Aligned( void *ptr );
 
-#define CIN_system   1
-#define CIN_loop     2
-#define CIN_hold     4
-#define CIN_silent   8
-#define CIN_shader   16
-
 	/*
 	==============================================================
 
@@ -2022,7 +2016,6 @@ union OpaquePlayerState {
 	  CA_LOADING, // only during cgame initialization, never during main loop
 	  CA_PRIMED, // got gamestate, waiting for first frame
 	  CA_ACTIVE, // game views should be displayed
-	  CA_CINEMATIC // playing a cinematic or a static pic, not connected to a server
 	};
 
 // font support
@@ -2095,18 +2088,6 @@ int        Com_GMTime( qtime_t *qtime );
 #define AS_LOCAL     0
 #define AS_GLOBAL    1 // NERVE - SMF - modified
 #define AS_FAVORITES 2
-
-// cinematic states
-	enum class e_status
-	{
-	  FMV_IDLE,
-	  FMV_PLAY, // play
-	  FMV_EOF, // all other conditions, i.e. stop/EOF/abort
-	  FMV_ID_BLT,
-	  FMV_ID_IDLE,
-	  FMV_LOOPED,
-	  FMV_ID_WAIT
-	};
 
 #define MAX_GLOBAL_SERVERS       4096
 #define MAX_OTHER_SERVERS        128
