@@ -270,10 +270,6 @@ void SCR_DrawScreenField()
 			default:
 				Sys::Error( "SCR_DrawScreenField: bad cls.state" );
 
-			case connstate_t::CA_CINEMATIC:
-				SCR_DrawCinematic();
-				break;
-
 			case connstate_t::CA_DISCONNECTED:
 				break;
 

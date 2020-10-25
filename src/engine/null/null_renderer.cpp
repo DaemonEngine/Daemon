@@ -95,8 +95,6 @@ void RE_StretchPic( float, float, float, float, float, float, float, float, qhan
 void RE_RotatedPic( float, float, float, float, float, float, float, float, qhandle_t, float ) { }
 void RE_StretchPicGradient( float, float, float, float, float, float, float, float, qhandle_t, const Color::Color&, int ) { }
 void RE_2DPolyies( polyVert_t*, int, qhandle_t ) { }
-void RE_StretchRaw( int, int, int, int, int, int, const byte*, int, bool ) { }
-void RE_UploadCinematic( int, int, const byte*, int, bool ) { }
 void RE_BeginFrame() { }
 void RE_EndFrame( int*, int* ) { }
 int R_MarkFragments( int, const vec3_t*, const vec3_t, int, vec3_t, int, markFragment_t* )
@@ -239,8 +237,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.DrawRotatedPic = RE_RotatedPic; // NERVE - SMF
     re.DrawStretchPicGradient = RE_StretchPicGradient;
     re.Add2dPolys = RE_2DPolyies;
-    re.DrawStretchRaw = RE_StretchRaw;
-    re.UploadCinematic = RE_UploadCinematic;
     re.BeginFrame = RE_BeginFrame;
     re.EndFrame = RE_EndFrame;
 

@@ -432,11 +432,6 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	PrintBanner( "Server Initialization" )
 	Log::Notice( "Map: %s", mapname );
 
-#ifndef BUILD_SERVER
-	void CIN_CloseAllVideos();
-	CIN_CloseAllVideos();
-#endif
-
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
 	// also print some status stuff
 	CL_MapLoading();

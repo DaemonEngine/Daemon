@@ -314,11 +314,9 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/botlib/bot_nav_edit.cpp
     ${ENGINE_DIR}/client/cg_api.h
     ${ENGINE_DIR}/client/cg_msgdef.h
-    ${ENGINE_DIR}/client/cin_ogm.cpp
     ${ENGINE_DIR}/client/client.h
     ${ENGINE_DIR}/client/cl_avi.cpp
     ${ENGINE_DIR}/client/cl_cgame.cpp
-    ${ENGINE_DIR}/client/cl_cin.cpp
     ${ENGINE_DIR}/client/cl_console.cpp
     ${ENGINE_DIR}/client/cl_download.cpp
     ${ENGINE_DIR}/client/cl_input.cpp
