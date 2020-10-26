@@ -2771,7 +2771,7 @@ void RB_RenderPostDepthLightTile()
 
 	GLimp_LogComment( "--- RB_RenderPostDepthLightTile ---\n" );
 
-	if ( r_dynamicLight->integer != 2 )
+	if ( r_dynamicLight->integer < 1 )
 	{
 		/* Do not run lightTile code when the tiled renderer is not used.
 

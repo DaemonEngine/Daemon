@@ -2363,14 +2363,16 @@ void R_AddLightInteractions()
 				continue;
 			}
 		} else if ( light->l.inverseShadows ) {
-			if( !r_dynamicLight->integer ) {
+			if( r_dynamicLight->integer == 0 ) {
 				light->cull = CULL_OUT;
 				continue;
 			}
 		} else {
-			if ( r_dynamicLight->integer != 1 )
+			// Deprecated forward renderer uses r_dynamicLight -1
+			if ( r_dynamicLight->integer > -1 )
 			{
-				if( r_dynamicLight->integer == 2 ) {
+				if( r_dynamicLight->integer > 0 )
+				{
 					tr.refdef.numShaderLights++;
 					tr.pc.c_dlights++;
 				}
@@ -2561,7 +2563,8 @@ void R_AddLightBoundsToVisBounds()
 		}
 		else
 		{
-			if ( r_dynamicLight->integer != 1 )
+			// Deprecated forward renderer uses r_dynamicLight -1
+			if ( r_dynamicLight->integer > -1 )
 			{
 				continue;
 			}
