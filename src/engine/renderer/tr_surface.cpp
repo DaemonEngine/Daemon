@@ -1358,6 +1358,11 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 				for ( ; modelBlendIndex < lastBlendIndex; modelBlendIndex++,
 					modelBlendWeight++ )
 				{
+					if ( *modelBlendWeight == 0 )
+					{
+						continue;
+					}
+
 					float weight = *modelBlendWeight * weightFactor;
 
 					TransformPoint( &bones[ *modelBlendIndex ], modelPosition, tmp );
@@ -1399,6 +1404,11 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 				for ( ; modelBlendIndex < lastBlendIndex; modelBlendIndex++,
 					modelBlendWeight++ )
 				{
+					if ( *modelBlendWeight == 0 )
+					{
+						continue;
+					}
+
 					float weight = *modelBlendWeight * weightFactor;
 
 					TransformPoint( &bones[ *modelBlendIndex ], modelPosition, tmp );
