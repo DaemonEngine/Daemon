@@ -48,7 +48,8 @@ static void GLSL_InitGPUShadersOrError()
 	// standard light mapping
 	gl_shaderManager.load( gl_lightMappingShader );
 
-	if ( r_dynamicLight->integer == 1 )
+	// Deprecated forward renderer uses r_dynamicLight -1
+	if ( r_dynamicLight->integer < 0 )
 	{
 		// omni-directional specular bump mapping ( Doom3 style )
 		gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
@@ -59,7 +60,7 @@ static void GLSL_InitGPUShadersOrError()
 		// directional sun lighting ( Doom3 style )
 		gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
 	}
-	else if ( r_dynamicLight->integer == 2 )
+	else if ( r_dynamicLight->integer > 0 )
 	{
 		gl_shaderManager.load( gl_depthtile1Shader );
 		gl_shaderManager.load( gl_depthtile2Shader );
