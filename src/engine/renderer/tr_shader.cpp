@@ -1451,6 +1451,8 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 
 	imageParams_t imageParams = {};
 	imageParams.bits = 0;
+	imageParams.minDimension = shader.imageMinDimension;
+	imageParams.maxDimension = shader.imageMaxDimension;
 
 	// determine image options
 	if ( stage->overrideNoPicMip || shader.noPicMip || stage->highQuality || stage->forceHighQuality )
@@ -2163,6 +2165,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			imageParams.bits = imageBits;
 			imageParams.filterType = filterType;
 			imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+			imageParams.minDimension = shader.imageMinDimension;
+			imageParams.maxDimension = shader.imageMaxDimension;
 
 			stage->bundle[ 0 ].image[ 0 ] = R_FindImageFile( token, &imageParams );
 
@@ -2210,6 +2214,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 					imageParams.bits = IF_NONE;
 					imageParams.filterType = filterType_t::FT_DEFAULT;
 					imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
+					imageParams.minDimension = shader.imageMinDimension;
+					imageParams.maxDimension = shader.imageMaxDimension;
 
 					stage->bundle[ 0 ].image[ num ] = R_FindImageFile( token, &imageParams );
 
@@ -2266,6 +2272,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			imageParams.bits = imageBits;
 			imageParams.filterType = filterType;
 			imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+			imageParams.minDimension = shader.imageMinDimension;
+			imageParams.maxDimension = shader.imageMaxDimension;
 
 			stage->bundle[ 0 ].image[ 0 ] = R_FindCubeImage( token, &imageParams );
 
@@ -3455,6 +3463,8 @@ static void ParseSkyParms( const char **text )
 		imageParams.bits = IF_NONE;
 		imageParams.filterType = filterType_t::FT_DEFAULT;
 		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+		imageParams.minDimension = shader.imageMinDimension;
+		imageParams.maxDimension = shader.imageMaxDimension;
 
 		shader.sky.outerbox = R_FindCubeImage( prefix, &imageParams );
 
@@ -3500,6 +3510,8 @@ static void ParseSkyParms( const char **text )
 		imageParams.bits = IF_NONE;
 		imageParams.filterType = filterType_t::FT_DEFAULT;
 		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+		imageParams.minDimension = shader.imageMinDimension;
+		imageParams.maxDimension = shader.imageMaxDimension;
 
 		shader.sky.innerbox = R_FindCubeImage( prefix, &imageParams );
 
@@ -3960,6 +3972,30 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "nopicmip" ) )
 		{
 			shader.noPicMip = true;
+			continue;
+		}
+		// imageMinDimension enforcement
+		else if ( !Q_stricmp( token, "imageMinDimension" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( token[ 0 ] )
+			{
+				shader.imageMinDimension = atof( token );
+			}
+
+			continue;
+		}
+		// imageMaxDimension enforcement
+		else if ( !Q_stricmp( token, "imageMaxDimension" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( token[ 0 ] )
+			{
+				shader.imageMaxDimension = atof( token );
+			}
+
 			continue;
 		}
 		// RF, allow each shader to permit compression if available (removed option)

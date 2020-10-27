@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_image.c
 #include <common/FileSystem.h>
+#include "InternalImage.h"
 #include "tr_local.h"
 
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
@@ -812,7 +813,6 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 {
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
-	int        scaledWidth, scaledHeight;
 	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize;
 	int        i, j, c;
 	const byte *scan;
@@ -829,35 +829,10 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 
 	GL_Bind( image );
 
-	scaledWidth = image->width;
-	scaledHeight = image->height;
-
-	// perform optional picmip operation
-	if ( !( image->bits & IF_NOPICMIP ) )
-	{
-		int picmip = r_picmip->integer;
-		if( picmip < 0 )
-			picmip = 0;
-
-		scaledWidth >>= picmip;
-		scaledHeight >>= picmip;
-
-		if( dataArray && numMips > picmip ) {
-			dataArray += numLayers * picmip;
-			numMips -= picmip;
-		}
-	}
-
-	// clamp to minimum size
-	if ( scaledWidth < 1 )
-	{
-		scaledWidth = 1;
-	}
-
-	if ( scaledHeight < 1 )
-	{
-		scaledHeight = 1;
-	}
+	int scaledWidth = image->width;
+	int scaledHeight = image->height;
+	int customScalingStep = R_GetImageCustomScalingStep( image, imageParams );
+	R_DownscaleImageDimensions( customScalingStep, &scaledWidth, &scaledHeight, &dataArray, numLayers, &numMips );
 
 	// clamp to the current upper OpenGL limit
 	// scale both axis down equally so we don't have to
@@ -1443,7 +1418,7 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 	{
 		return nullptr;
 	}
-
+	
 	image->type = GL_TEXTURE_2D;
 
 	image->width = width;
