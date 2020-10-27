@@ -1051,6 +1051,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_picmip = ri.Cvar_Get( "r_picmip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_imageMinDimension = ri.Cvar_Get( "r_imageMinDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_imageMaxDimension = ri.Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_imageMinDimension = ri.Cvar_Get( "r_imageMinDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_imageMaxDimension = ri.Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_colorMipLevels = ri.Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
 		r_colorbits = ri.Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
 		r_alphabits = ri.Cvar_Get( "r_alphabits", "0",  CVAR_LATCH );
