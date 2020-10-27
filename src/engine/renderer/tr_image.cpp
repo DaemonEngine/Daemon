@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_image.c
 #include <common/FileSystem.h>
+#include "InternalImage.h"
 #include "tr_local.h"
 
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
@@ -808,11 +809,10 @@ level 1 has only numLayers/2 layers. There are still numLayers pointers in
 the dataArray for every mip level, the unneeded elements at the end aren't used.
 ===============
 */
-void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image )
+void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams )
 {
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
-	int        scaledWidth, scaledHeight;
 	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize;
 	int        i, j, c;
 	const byte *scan;
@@ -829,35 +829,10 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 
 	GL_Bind( image );
 
-	scaledWidth = image->width;
-	scaledHeight = image->height;
-
-	// perform optional picmip operation
-	if ( !( image->bits & IF_NOPICMIP ) )
-	{
-		int picmip = r_picmip->integer;
-		if( picmip < 0 )
-			picmip = 0;
-
-		scaledWidth >>= picmip;
-		scaledHeight >>= picmip;
-
-		if( dataArray && numMips > picmip ) {
-			dataArray += numLayers * picmip;
-			numMips -= picmip;
-		}
-	}
-
-	// clamp to minimum size
-	if ( scaledWidth < 1 )
-	{
-		scaledWidth = 1;
-	}
-
-	if ( scaledHeight < 1 )
-	{
-		scaledHeight = 1;
-	}
+	int scaledWidth = image->width;
+	int scaledHeight = image->height;
+	int customScalingStep = R_GetImageCustomScalingStep( image, imageParams );
+	R_DownscaleImageDimensions( customScalingStep, &scaledWidth, &scaledHeight, &dataArray, numLayers, &numMips );
 
 	// clamp to the current upper OpenGL limit
 	// scale both axis down equally so we don't have to
@@ -1443,7 +1418,7 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 	{
 		return nullptr;
 	}
-
+	
 	image->type = GL_TEXTURE_2D;
 
 	image->width = width;
@@ -1453,7 +1428,7 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( pic, 1, numMips, image );
+	R_UploadImage( pic, 1, numMips, image, imageParams );
 
 	if( r_exportTextures->integer ) {
 		R_ExportTexture( image );
@@ -1531,7 +1506,7 @@ image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, i
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( pic, 6, 1, image );
+	R_UploadImage( pic, 6, 1, image, imageParams );
 
 	if( r_exportTextures->integer ) {
 		R_ExportTexture( image );
@@ -1576,7 +1551,7 @@ image_t *R_Create3DImage( const char *name, const byte *pic, int width, int heig
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( pics, depth, 1, image );
+	R_UploadImage( pics, depth, 1, image, imageParams );
 
 	if( pics ) {
 		ri.Hunk_FreeTempMemory( pics );

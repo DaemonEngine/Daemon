@@ -149,6 +149,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_singleShader;
 	cvar_t      *r_colorMipLevels;
 	cvar_t      *r_picMip;
+	cvar_t      *r_imageMaxDimension;
+	cvar_t      *r_ignoreMaterialMinDimension;
+	cvar_t      *r_ignoreMaterialMaxDimension;
+	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	cvar_t      *r_finish;
 	cvar_t      *r_clear;
 	cvar_t      *r_swapInterval;
@@ -945,6 +949,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Log::Debug("texturemode: %s", r_textureMode->string );
 		Log::Debug("picmip: %d", r_picMip->integer );
+		Log::Debug("imageMaxDimension: %d", r_imageMaxDimension->integer );
+		Log::Debug("ignoreMaterialMinDimension: %d", r_ignoreMaterialMinDimension->integer );
+		Log::Debug("ignoreMaterialMaxDimension: %d", r_ignoreMaterialMaxDimension->integer );
+		Log::Debug("replaceMaterialMinDimensionIfPresentWithMaxDimension: %d", r_replaceMaterialMinDimensionIfPresentWithMaxDimension->integer );
 
 		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 		{
@@ -1046,6 +1054,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_picMip = ri.Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		AssertCvarRange( r_picmip, 0, 3, true );
+		r_imageMaxDimension = ri.Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_ignoreMaterialMinDimension = ri.Cvar_Get( "r_ignoreMaterialMinDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_ignoreMaterialMaxDimension = ri.Cvar_Get( "r_ignoreMaterialMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_replaceMaterialMinDimensionIfPresentWithMaxDimension
+			= ri.Cvar_Get( "r_replaceMaterialMinDimensionIfPresentWithMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_colorMipLevels = ri.Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
 		r_colorbits = ri.Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
 		r_alphabits = ri.Cvar_Get( "r_alphabits", "0",  CVAR_LATCH );
