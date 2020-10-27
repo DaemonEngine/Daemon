@@ -335,7 +335,7 @@ endif()
 if (APPLE)
     add_definitions(-DMACOS_X)
     set_linker_flag("-Wl,-no_pie")
-    set(CMAKE_INSTALL_RPATH "@executable_path/;${DEPS_DIR};${DEPS_DIR}/lib")
+    set(CMAKE_INSTALL_RPATH "@executable_path")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 endif()
 
