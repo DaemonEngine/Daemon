@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INTERNAL_IMAGE_H
 #include "tr_local.h"
 
+int R_GetInternalImageSize( const image_t *image );
 int R_GetImageCustomScalingStep( const image_t *image, imageParams_t *imageParams );
 void R_DownscaleImageDimensions( int scalingStep, int *scaledWidth, int *scaledHeight, const byte ***dataArray, int numLayers, int *numMips );
 
