@@ -586,6 +586,12 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	static inline bool operator ==( const wrapType_t &a, const wrapType_t &b ) { return a.s == b.s && a.t == b.t; }
 	static inline bool operator !=( const wrapType_t &a, const wrapType_t &b ) { return a.s != b.s || a.t != b.t; }
 
+	struct imageParams_t
+	{
+		int bits = 0;
+		filterType_t filterType;
+		wrapType_t wrapType;
+	};
 
 	struct image_t
 	{
@@ -3197,27 +3203,19 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void    R_ShutdownImages();
 
 	int R_FindImageLoader( const char *baseName );
-	image_t *R_FindImageFile( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
-	image_t *R_FindCubeImage( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
+	image_t *R_FindImageFile( const char *name, imageParams_t &imageParams );
+	image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams );
 
-	image_t *R_CreateImage( const char *name, const byte **pic,
-				int width, int height, int bits, int numMips,
-				filterType_t filterType, wrapType_t wrapType );
+	image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams );
 
-	image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ],
-	                            int width, int height, int bits,
-				    filterType_t filterType, wrapType_t wrapType );
-	image_t        *R_Create3DImage( const char *name,
-					 const byte *pic,
-					 int width, int height, int depth,
-					 int bits, filterType_t filterType,
-					 wrapType_t wrapType );
+	image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, int height, const imageParams_t &imageParams );
+	image_t *R_Create3DImage( const char *name, const byte *pic, int width, int height, int depth, const imageParams_t &imageParams );
 
 	image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height );
 	qhandle_t RE_GenerateTexture( const byte *pic, int width, int height );
 
 	image_t *R_AllocImage( const char *name, bool linkIntoHashTable );
-	void    R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image );
+	void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image );
 
 	void    RE_GetTextureSize( int textureID, int *width, int *height );
 
