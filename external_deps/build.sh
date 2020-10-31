@@ -51,7 +51,7 @@ extract() {
 	*.cygtar.bz2)
 		# Some Windows NaCl SDK packages have incorrect symlinks, so use
 		# cygtar to extract them.
-		"${ROOT_DIR}/cygtar.py" -xjf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		"${SCRIPT_DIR}/cygtar.py" -xjf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
 		;;
 	*.dmg)
 		mkdir -p "${BUILD_DIR}/${2}-dmg"
@@ -531,7 +531,7 @@ build_gendef() {
 
 # Install all the necessary files to the location expected by CMake
 build_install() {
-	PKG_PREFIX="${ROOT_DIR}/${PLATFORM}-${DEPS_VERSION}"
+	PKG_PREFIX="${WORK_DIR}/${PLATFORM}-${DEPS_VERSION}"
 	rm -rf "${PKG_PREFIX}"
 	rsync -a --link-dest="${PREFIX}" "${PREFIX}/" "${PKG_PREFIX}"
 
@@ -565,7 +565,7 @@ build_install() {
 
 # Create a redistributable package for the dependencies
 build_package() {
-	cd "${ROOT_DIR}"
+	cd "${WORK_DIR}"
 	case "${PLATFORM}" in
 	mingw*|msvc*)
 		rm -f "${PLATFORM}-${DEPS_VERSION}.zip"
@@ -580,9 +580,10 @@ build_package() {
 
 # Common setup code
 common_setup() {
-	ROOT_DIR="${PWD}"
-	DOWNLOAD_DIR="${PWD}/download_cache"
-	BUILD_DIR="${PWD}/build-${PLATFORM}-${DEPS_VERSION}"
+	WORK_DIR="${PWD}"
+	SCRIPT_DIR=$(realpath "$(dirname "$0")")
+	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
+	BUILD_DIR="${WORK_DIR}/build-${PLATFORM}-${DEPS_VERSION}"
 	PREFIX="${BUILD_DIR}/prefix"
 	export PATH="${PATH}:${PREFIX}/bin"
 	export PKG_CONFIG="pkg-config"
@@ -725,6 +726,6 @@ PLATFORM="${1}"
 # Build packages
 shift
 for pkg in "${@}"; do
-	cd "${ROOT_DIR}"
+	cd "${WORK_DIR}"
 	"build_${pkg}"
 done
