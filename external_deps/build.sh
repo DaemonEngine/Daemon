@@ -310,14 +310,7 @@ build_openal() {
 	macosx*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "http://kcat.strangesoft.net/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
-		case "${PLATFORM}" in
-		macosx32)
-			cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_ARCHITECTURES=i386 -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release
-			;;
-		macosx64)
-			cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
-			;;
-		esac
+		cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
 		make
 		make install
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
@@ -477,9 +470,6 @@ build_naclsdk() {
 	mingw32|msvc32)
 		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/sel_ldr64.exe"
 		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-x86_64.nexe"
-		;;
-	linux32)
-		cp pepper_*"/tools/nacl_helper_bootstrap_x86_32" "${PREFIX}/nacl_helper_bootstrap"
 		;;
 	linux64)
 		cp pepper_*"/tools/nacl_helper_bootstrap_x86_64" "${PREFIX}/nacl_helper_bootstrap"
@@ -646,20 +636,6 @@ setup_mingw64() {
 	common_setup
 }
 
-# Set up environment for Mac OS X 32-bit
-setup_macosx32() {
-	HOST=i686-apple-darwin11
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export MACOSX_DEPLOYMENT_TARGET=10.7
-	export CC=clang
-	export CXX=clang++
-	export CFLAGS="-arch i386"
-	export CXXFLAGS="-arch i386"
-	export LDFLAGS="-arch i386"
-	common_setup
-}
-
 # Set up environment for Mac OS X 64-bit
 setup_macosx64() {
 	HOST=x86_64-apple-darwin11
@@ -672,17 +648,6 @@ setup_macosx64() {
 	export CFLAGS="-arch x86_64"
 	export CXXFLAGS="-arch x86_64"
 	export LDFLAGS="-arch x86_64"
-	common_setup
-}
-
-# Set up environment for 32-bit Linux
-setup_linux32() {
-	HOST=i686-pc-linux-gnu
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m32"
-	export CXXFLAGS="-m32"
-	export LDFLAGS="-m32"
 	common_setup
 }
 
@@ -701,7 +666,7 @@ setup_linux64() {
 if [ "${#}" -lt "2" ]; then
 	echo "usage: ${0} <platform> <package[s]...>"
 	echo "Script to build dependencies for platforms which do not provide them"
-	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx32 macosx64 linux32 linux64"
+	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx64 linux64"
 	echo "Packages: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
 	echo "Virtual packages:"
 	echo "  install - create a stripped down version of the built packages that CMake can use"
