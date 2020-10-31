@@ -72,7 +72,7 @@ extract() {
 # Usage: download <filename> <URL> <dir>
 download() {
 	if [ ! -f "${DOWNLOAD_DIR}/${1}" ]; then
-		curl -L -o "${DOWNLOAD_DIR}/${1}" "${2}"
+		curl -L --fail -o "${DOWNLOAD_DIR}/${1}" "${2}"
 	fi
 	extract "${1}" "${3}"
 }
