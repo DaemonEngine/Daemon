@@ -384,6 +384,11 @@ void R_ImageList_f()
 				out += buffer;
 				break;
 
+			case wrapTypeEnum_t::WT_ONE_CLAMP:
+				Com_sprintf( buffer, sizeof( buffer ), "t.1clmp  " );
+				out+= buffer;
+				break;
+
 			default:
 				Log::Debug( "Undocumented wrapType.s %i for image %s", Util::ordinal(image->wrapType.s), image->name );
 				Com_sprintf( buffer, sizeof( buffer ), "s.%4i   ", Util::ordinal(image->wrapType.s) );
@@ -416,6 +421,11 @@ void R_ImageList_f()
 			case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
 				Com_sprintf( buffer, sizeof( buffer ), "t.a0clmp " );
 				out += buffer;
+				break;
+
+			case wrapTypeEnum_t::WT_ONE_CLAMP:
+				Com_sprintf( buffer, sizeof( buffer ), "t.1clmp  " );
+				out+= buffer;
 				break;
 
 			default:
