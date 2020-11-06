@@ -208,9 +208,13 @@ else()
     endif()
 
     # Hardening, don't set _FORTIFY_SOURCE in debug builds
-    set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELEASE)
-    set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELWITHDEBINFO)
-    set_c_cxx_flag("-D_FORTIFY_SOURCE=2" MINSIZEREL)
+    if (USE_HARDENING OR NOT MINGW)
+        # MinGW with _FORTIFY_SOURCE and without -fstack-protector causes unsatisfied dependency on libssp
+        # https://github.com/msys2/MINGW-packages/issues/5868
+        set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELEASE)
+        set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELWITHDEBINFO)
+        set_c_cxx_flag("-D_FORTIFY_SOURCE=2" MINSIZEREL)
+    endif()
     if (USE_HARDENING)
         try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
         if (NOT FLAG_FSTACK_PROTECTOR_STRONG)
