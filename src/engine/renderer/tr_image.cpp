@@ -1013,7 +1013,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 
 		for( i = 0; i < numMips; i++ )
 		{
-			glTexImage3D( GL_TEXTURE_3D, i, internalFormat, scaledWidth, scaledHeight, mipLayers, 0, format, GL_UNSIGNED_BYTE, nullptr );
+			glTexImage3D( GL_TEXTURE_3D, i, internalFormat, mipWidth, mipHeight, mipLayers, 0, format, GL_UNSIGNED_BYTE, nullptr );
 
 			if( mipWidth  > 1 )
 			{
@@ -1173,7 +1173,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 				switch ( image->type )
 				{
 					case GL_TEXTURE_3D:
-						glCompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j, scaledWidth, scaledHeight, 1, internalFormat, mipSize, data );
+						glCompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j, mipWidth, mipHeight, 1, internalFormat, mipSize, data );
 					break;
 
 					case GL_TEXTURE_CUBE_MAP:
