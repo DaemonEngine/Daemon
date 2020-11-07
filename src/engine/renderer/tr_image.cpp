@@ -1081,6 +1081,15 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 				}
 			}
 
+			if ( image->width == scaledWidth || image->height == scaledHeight )
+			{
+				Log::Debug( "Uploading image %s with %d×%d original size, layer %d", image->name, image->width, image->height, i );
+			}
+			else
+			{
+				Log::Debug( "Uploading image %s with %d×%d size, downscaled from %d×%d size, layer %d", image->name, scaledWidth, scaledHeight, image->width, image->height, i );
+			}
+
 			image->uploadWidth = scaledWidth;
 			image->uploadHeight = scaledHeight;
 			image->internalFormat = internalFormat;
@@ -1146,6 +1155,19 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 				else
 				{
 					data = nullptr;
+				}
+
+				if ( i != 0 )
+				{
+					Log::Debug( "Uploading compressed image %s with %d×%d size, mip %d, layer %d", image->name, mipWidth, mipHeight, image->width, image->height, i, j );
+				}
+				if ( image->width == mipWidth || image->height == mipHeight )
+				{
+					Log::Debug( "Uploading compressed image %s with %d×%d original size, mip %d, layer %d", image->name, image->width, image->height, i, j );
+				}
+				else
+				{
+					Log::Debug( "Uploading compressed image %s with %d×%d size, downscaled from %d×%d size, mip %d, layer %d", image->name, mipWidth, mipHeight, image->width, image->height, i, j );
 				}
 
 				switch ( image->type )
