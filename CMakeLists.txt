@@ -620,7 +620,7 @@ if (USE_BREAKPAD)
             srclibs-breakpad-crash_generation_server srclibs-breakpad-common)
         target_compile_definitions(crash_server PRIVATE UNICODE)
 
-        set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-breakpad-exception_handler
+        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-breakpad-exception_handler
             srclibs-breakpad-crash_generation_client srclibs-breakpad-common)
 
     elseif (LINUX)
