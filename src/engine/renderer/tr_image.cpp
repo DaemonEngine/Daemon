@@ -801,7 +801,6 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 {
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
-	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize;
 	int        i, j, c;
 	const byte *scan;
 	GLenum     target;
@@ -821,26 +820,6 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 	int scaledHeight = image->height;
 	int customScalingStep = R_GetImageCustomScalingStep( image, imageParams );
 	R_DownscaleImageDimensions( customScalingStep, &scaledWidth, &scaledHeight, &dataArray, numLayers, &numMips );
-
-	// clamp to the current upper OpenGL limit
-	// scale both axis down equally so we don't have to
-	// deal with a half mip resampling
-	if ( image->type == GL_TEXTURE_CUBE_MAP )
-	{
-		while ( scaledWidth > glConfig2.maxCubeMapTextureSize || scaledHeight > glConfig2.maxCubeMapTextureSize )
-		{
-			scaledWidth >>= 1;
-			scaledHeight >>= 1;
-		}
-	}
-	else
-	{
-		while ( scaledWidth > glConfig.maxTextureSize || scaledHeight > glConfig.maxTextureSize )
-		{
-			scaledWidth >>= 1;
-			scaledHeight >>= 1;
-		}
-	}
 
 	// set target
 	switch ( image->type )
@@ -937,23 +916,19 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		else if( image->bits & IF_BC1 ) {
 			format = GL_NONE;
 			internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-			blockSize = 8;
 		}
 		else if ( image->bits & IF_BC2 ) {
 			format = GL_NONE;
 			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-			blockSize = 16;
 		}
 		else if ( image->bits & IF_BC3 ) {
 			format = GL_NONE;
 			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			blockSize = 16;
 		}
 		else if ( image->bits & IF_BC4 ) {
 			if( !glConfig2.textureCompressionRGTCAvailable ) {
 				format = GL_NONE;
 				internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-				blockSize = 8;
 
 				if( dataArray ) {
 					// convert to BC1/dxt1
@@ -962,14 +937,12 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			else {
 				format = GL_NONE;
 				internalFormat = GL_COMPRESSED_RED_RGTC1;
-				blockSize = 8;
 			}
 		}
 		else if ( image->bits & IF_BC5 ) {
 			if( !glConfig2.textureCompressionRGTCAvailable ) {
 				format = GL_NONE;
 				internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-				blockSize = 16;
 
 				R_ConvertBC5Image( dataArray, &scaledBuffer,
 						   numMips, numLayers,
@@ -979,7 +952,6 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			else {
 				format = GL_NONE;
 				internalFormat = GL_COMPRESSED_RG_RGTC2;
-				blockSize = 16;
 			}
 		}
 	}
@@ -1017,6 +989,18 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 				}
 			}
 		}
+	}
+
+	image->uploadWidth = scaledWidth;
+	image->uploadHeight = scaledHeight;
+	image->internalFormat = internalFormat;
+	int hardwareScalingStep = R_GetImageHardwareScalingStep( image, format );
+
+	if ( hardwareScalingStep > 0 )
+	{
+		Log::Warn( "Image %s too large, downscaling %d time(s) to fit the hardware limits", image->name, hardwareScalingStep );
+
+		R_DownscaleImageDimensions( hardwareScalingStep, &scaledWidth, &scaledHeight, &dataArray, numLayers, &numMips );
 	}
 
 	// 3D textures are uploaded in slices via glTexSubImage3D,
@@ -1143,14 +1127,15 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		image->uploadHeight = scaledHeight;
 		image->internalFormat = internalFormat;
 
-		mipWidth = scaledWidth;
-		mipHeight = scaledHeight;
-		mipLayers = numLayers;
+		int mipWidth = scaledWidth;
+		int mipHeight = scaledHeight;
+		int mipLayers = numLayers;
+
+		int blockSize = R_GetBlockSize( image );
 
 		for ( i = 0; i < numMips; i++ )
 		{
-			mipSize = ((mipWidth + 3) >> 2)
-			  * ((mipHeight + 3) >> 2) * blockSize;
+			int mipSize = R_GetMipSize( mipWidth, mipHeight, blockSize );
 
 			for ( j = 0; j < mipLayers; j++ )
 			{

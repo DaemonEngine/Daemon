@@ -38,7 +38,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "tr_local.h"
 
 int R_GetInternalImageSize( const image_t *image );
+int R_GetBlockSize( const image_t *image );
+int R_GetMipSize( int imageWidth, int imageHeight, int blockSize );
+int R_GetMipSize( const image_t *image );
 int R_GetImageCustomScalingStep( const image_t *image, imageParams_t *imageParams );
+int R_GetImageHardwareScalingStep( image_t *image, GLenum format );
 void R_DownscaleImageDimensions( int scalingStep, int *scaledWidth, int *scaledHeight, const byte ***dataArray, int numLayers, int *numMips );
 
 #endif // INTERNAL_IMAGE_H

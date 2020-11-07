@@ -761,6 +761,163 @@ int R_GetInternalImageSize( const image_t *image )
 	return 8 > imageSize ? 8 : imageSize;
 }
 
+int R_GetBlockSize( const image_t *image )
+{
+	switch ( image->internalFormat )
+	{
+		// S3TC formats
+
+		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+		case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+			return 8;
+
+		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+		case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+			return 16;
+
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+		case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+			return 16;
+
+		// RGTC formats
+
+		case GL_COMPRESSED_RED_RGTC1:
+			return 8;
+		case GL_COMPRESSED_RG_RGTC2:
+			return 16;
+
+		/* Others
+
+		Assume 16 so it may be large enough. */
+
+		default:
+			Log::Debug( "Unknown block size for undocumented internal format %i for image %s", image->internalFormat, image->name );
+			return 16;
+	}
+}
+
+int R_GetMipSize( int imageWidth, int imageHeight, int blockSize )
+{
+	return ( ( imageWidth + 3 ) >> 2 ) * ( ( imageHeight + 3 ) >> 2 ) * blockSize;
+}
+
+int R_GetMipSize( const image_t *image )
+{
+	int imageWidth = image->uploadWidth;
+	int imageHeight = image->uploadHeight;
+	int blockSize = R_GetBlockSize( image );
+
+	return R_GetMipSize( imageWidth, imageHeight, blockSize );
+}
+
+int R_GetImageHardwareScalingStep( image_t *image, GLenum format )
+{
+	/* From https://www.khronos.org/opengl/wiki/GLAPI/glTexImage3D
+
+	> If target is GL_PROXY_TEXTURE_3D, no data is read from data,
+	> but all of the texture image state is recalculated, checked
+	> for consistency, and checked against the implementation's
+	> capabilities. If the implementation cannot handle a texture
+	> of the requested texture size, it sets all of the image state
+	> to 0, but does not generate an error (see glGetError).
+	> To query for an entire mipmap array, use an image array level
+	> greater than or equal to 1.
+
+	From https://www.khronos.org/opengl/wiki/GLAPI/glTexImage3D
+
+	> To then query this state, call glGetTexLevelParameter. */
+
+	void ( *functionCompressed3D ) (GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLint, GLsizei, const GLvoid*);
+	void ( *function3D ) (GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid*);
+	void ( *functionCompressed2D ) (GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid*);
+	void ( *function2D ) (GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid*);
+
+	GLenum target;
+
+	constexpr GLint border = 0;
+	constexpr GLenum type = GL_UNSIGNED_BYTE;
+
+	bool texture3D = false;
+	bool textureCompressed = format == GL_NONE;
+
+	int mipSize = R_GetMipSize( image );
+
+	switch ( image->type )
+	{
+		case GL_TEXTURE_3D:
+			texture3D = true;
+			functionCompressed3D = glCompressedTexImage3D;
+			function3D = glTexImage3D;
+			target = GL_PROXY_TEXTURE_3D;
+			break;
+
+		case GL_TEXTURE_2D:
+			functionCompressed2D = glCompressedTexImage2D;
+			function2D = glTexImage2D;
+			target = GL_PROXY_TEXTURE_2D;
+			break;
+
+		case GL_TEXTURE_CUBE_MAP:
+			functionCompressed2D = glCompressedTexImage2D;
+			function2D = glTexImage2D;
+			target = GL_PROXY_TEXTURE_CUBE_MAP;
+			break;
+
+		default:
+			ASSERT_UNREACHABLE();
+			return 0;
+	}
+
+	if ( texture3D )
+	{
+		if ( textureCompressed )
+		{
+			functionCompressed3D( target, 0, image->internalFormat, image->uploadWidth, image->uploadHeight, 0, border, mipSize, nullptr );
+
+			GL_CheckErrors();
+		}
+		else
+		{
+			function3D( target, 0, image->internalFormat, image->uploadWidth, image->uploadHeight, 0, border, format, type, nullptr );
+
+			GL_CheckErrors();
+		}
+	}
+	else
+	{
+		if ( textureCompressed )
+		{
+			functionCompressed2D( target, 0, image->internalFormat, image->uploadWidth, image->uploadHeight, border, mipSize, nullptr );
+
+			GL_CheckErrors();
+		}
+		else
+		{
+			function2D( target, 0, image->internalFormat, image->uploadWidth, image->uploadHeight, border, format, type, nullptr );
+
+			GL_CheckErrors();
+		}
+	}
+
+	GLint finalWidth;
+	glGetTexLevelParameteriv( target, 0, GL_TEXTURE_WIDTH, &finalWidth );
+
+	if ( finalWidth == 0 )
+	{
+		image->uploadWidth >>= 1;
+		image->uploadHeight >>= 1;
+
+		if ( image->uploadWidth <= 1 || image->uploadHeight <= 1 )
+		{
+			return 1;
+		}
+
+		return 1 + R_GetImageHardwareScalingStep( image, format );
+	}
+
+	return 0;
+}
+
 int R_GetImageCustomScalingStep( const image_t *image, imageParams_t *imageParams )
 {
 	int scalingStep = 0;
