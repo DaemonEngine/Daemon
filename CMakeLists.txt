@@ -710,6 +710,7 @@ if (NOT NACL)
         AddApplication(
             Target dummyapp
             ExecutableName dummyapp
+            Definitions USELESS_DEFINITION_TO_AVOID_PCH_ISSUE
             Flags ${WARNINGS}
             Files ${ENGINE_DIR}/null/NullApplication.cpp
         )
