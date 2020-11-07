@@ -1021,32 +1021,50 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 
 	// 3D textures are uploaded in slices via glTexSubImage3D,
 	// so the storage has to be allocated before the loop
-	if( image->type == GL_TEXTURE_3D ) {
-		mipWidth = scaledWidth;
-		mipHeight = scaledHeight;
-		mipLayers = numLayers;
+	if( image->type == GL_TEXTURE_3D )
+	{
+		int mipWidth = scaledWidth;
+		int mipHeight = scaledHeight;
+		int mipLayers = numLayers;
 
-		for( i = 0; i < numMips; i++ ) {
-			glTexImage3D( GL_TEXTURE_3D, i, internalFormat,
-				      scaledWidth, scaledHeight, mipLayers,
-				      0, format, GL_UNSIGNED_BYTE, nullptr );
+		for( i = 0; i < numMips; i++ )
+		{
+			glTexImage3D( GL_TEXTURE_3D, i, internalFormat, scaledWidth, scaledHeight, mipLayers, 0, format, GL_UNSIGNED_BYTE, nullptr );
 
-			if( mipWidth  > 1 ) mipWidth  >>= 1;
-			if( mipHeight > 1 ) mipHeight >>= 1;
-			if( mipLayers > 1 ) mipLayers >>= 1;
+			if( mipWidth  > 1 )
+			{
+				mipWidth  >>= 1;
+			}
+
+			if( mipHeight > 1 )
+			{
+				mipHeight >>= 1;
+			}
+
+			if( mipLayers > 1 )
+			{
+				mipLayers >>= 1;
+			}
 		}
 	}
 
-	if( format != GL_NONE ) {
+	if( format != GL_NONE )
+	{
 		if( dataArray )
+		{
 			scaledBuffer = (byte*) ri.Hunk_AllocateTempMemory( sizeof( byte ) * scaledWidth * scaledHeight * 4 );
+		}
 
 		for ( i = 0; i < numLayers; i++ )
 		{
 			if( dataArray )
+			{
 				data = dataArray[ i ];
+			}
 			else
+			{
 				data = nullptr;
+			}
 
 			if( scaledBuffer )
 			{
@@ -1057,8 +1075,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 				}
 				else
 				{
-					ResampleTexture( ( unsigned * ) data, image->width, image->height, ( unsigned * ) scaledBuffer, scaledWidth, scaledHeight,
-							 ( image->bits & IF_NORMALMAP ) );
+					ResampleTexture( ( unsigned * ) data, image->width, image->height, ( unsigned * ) scaledBuffer, scaledWidth, scaledHeight, ( image->bits & IF_NORMALMAP ) );
 				}
 
 				if( image->bits & IF_NORMALMAP ) {
@@ -1086,41 +1103,40 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 
 			switch ( image->type )
 			{
-			case GL_TEXTURE_3D:
-				if( scaledBuffer ) {
-					glTexSubImage3D( GL_TEXTURE_3D, 0, 0, 0, i,
-							 scaledWidth, scaledHeight, 1,
-							 format, GL_UNSIGNED_BYTE,
-							 scaledBuffer );
-				}
-				break;
-			case GL_TEXTURE_CUBE_MAP:
-				glTexImage2D( target + i, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE,
-				              scaledBuffer );
-				break;
+				case GL_TEXTURE_3D:
+					if( scaledBuffer ) {
+						glTexSubImage3D( GL_TEXTURE_3D, 0, 0, 0, i, scaledWidth, scaledHeight, 1, format, GL_UNSIGNED_BYTE, scaledBuffer );
+					}
+					break;
 
-			default:
-				if ( image->bits & IF_PACKED_DEPTH24_STENCIL8 )
-				{
-					glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr );
-				}
-				else
-				{
-					glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer );
-				}
+				case GL_TEXTURE_CUBE_MAP:
+					glTexImage2D( target + i, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer );
+					break;
 
-				break;
+				default:
+					if ( image->bits & IF_PACKED_DEPTH24_STENCIL8 )
+					{
+						glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr );
+					}
+					else
+					{
+						glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer );
+					}
+					break;
 			}
 
 			if ( image->filterType == filterType_t::FT_DEFAULT )
 			{
-				if( image->type != GL_TEXTURE_CUBE_MAP || i == 5 ) {
+				if( image->type != GL_TEXTURE_CUBE_MAP || i == 5 )
+				{
 					glGenerateMipmap( image->type );
 					glTexParameteri( image->type, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );  // default to trilinear
 				}
 			}
 		}
-	} else {
+	}
+	else
+	{
 		// already compressed texture data, precomputed mipmaps must be
 		// in the data array
 		image->uploadWidth = scaledWidth;
@@ -1136,34 +1152,46 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			mipSize = ((mipWidth + 3) >> 2)
 			  * ((mipHeight + 3) >> 2) * blockSize;
 
-			for ( j = 0; j < mipLayers; j++ ) {
+			for ( j = 0; j < mipLayers; j++ )
+			{
 				if( dataArray )
+				{
 					data = dataArray[ j * numMips + i ];
+				}
 				else
+				{
 					data = nullptr;
+				}
 
 				switch ( image->type )
 				{
-				case GL_TEXTURE_3D:
-					glCompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j,
-								   scaledWidth, scaledHeight, 1,
-								   internalFormat, mipSize, data );
-					break;
-				case GL_TEXTURE_CUBE_MAP:
-					glCompressedTexImage2D( target + j, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+					case GL_TEXTURE_3D:
+						glCompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j, scaledWidth, scaledHeight, 1, internalFormat, mipSize, data );
 					break;
 
-				default:
-					glCompressedTexImage2D( target, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
-					break;
+					case GL_TEXTURE_CUBE_MAP:
+						glCompressedTexImage2D( target + j, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+						break;
+
+					default:
+						glCompressedTexImage2D( target, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+						break;
 				}
 
 				if( mipWidth > 1 )
+				{
 					mipWidth >>= 1;
+				}
+
 				if( mipHeight > 1 )
+				{
 					mipHeight >>= 1;
+				}
+
 				if( image->type == GL_TEXTURE_3D && mipLayers > 1 )
+				{
 					mipLayers >>= 1;
+				}
 			}
 		}
 	}
