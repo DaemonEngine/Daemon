@@ -385,53 +385,50 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			return;
 		}
 
-		err = glGetError();
-
-		if ( err == GL_NO_ERROR )
+		while ( ( err = glGetError() ) != GL_NO_ERROR )
 		{
-			return;
+			switch ( err )
+			{
+				case GL_INVALID_ENUM:
+					strcpy( s, "GL_INVALID_ENUM" );
+					break;
+
+				case GL_INVALID_VALUE:
+					strcpy( s, "GL_INVALID_VALUE" );
+					break;
+
+				case GL_INVALID_OPERATION:
+					strcpy( s, "GL_INVALID_OPERATION" );
+					break;
+
+				case GL_STACK_OVERFLOW:
+					strcpy( s, "GL_STACK_OVERFLOW" );
+					break;
+
+				case GL_STACK_UNDERFLOW:
+					strcpy( s, "GL_STACK_UNDERFLOW" );
+					break;
+
+				case GL_OUT_OF_MEMORY:
+					strcpy( s, "GL_OUT_OF_MEMORY" );
+					break;
+
+				case GL_TABLE_TOO_LARGE:
+					strcpy( s, "GL_TABLE_TOO_LARGE" );
+					break;
+
+				case GL_INVALID_FRAMEBUFFER_OPERATION:
+					strcpy( s, "GL_INVALID_FRAMEBUFFER_OPERATION" );
+					break;
+
+				default:
+					Com_sprintf( s, sizeof( s ), "0x%X", err );
+					break;
+			}
+			// Pre-format the string so that each callsite counts separately for log suppression
+			std::string error = Str::Format("OpenGL error %s detected at %s:%d", s, fileName, line);
+			Log::Warn(error);
 		}
-
-		switch ( err )
-		{
-			case GL_INVALID_ENUM:
-				strcpy( s, "GL_INVALID_ENUM" );
-				break;
-
-			case GL_INVALID_VALUE:
-				strcpy( s, "GL_INVALID_VALUE" );
-				break;
-
-			case GL_INVALID_OPERATION:
-				strcpy( s, "GL_INVALID_OPERATION" );
-				break;
-
-			case GL_STACK_OVERFLOW:
-				strcpy( s, "GL_STACK_OVERFLOW" );
-				break;
-
-			case GL_STACK_UNDERFLOW:
-				strcpy( s, "GL_STACK_UNDERFLOW" );
-				break;
-
-			case GL_OUT_OF_MEMORY:
-				strcpy( s, "GL_OUT_OF_MEMORY" );
-				break;
-
-			case GL_TABLE_TOO_LARGE:
-				strcpy( s, "GL_TABLE_TOO_LARGE" );
-				break;
-
-			case GL_INVALID_FRAMEBUFFER_OPERATION:
-				strcpy( s, "GL_INVALID_FRAMEBUFFER_OPERATION" );
-				break;
-
-			default:
-				Com_sprintf( s, sizeof( s ), "0x%X", err );
-				break;
-		}
-
-		Sys::Error( "caught OpenGL error: %s in file %s line %i", s, fileName, line );
 	}
 
 	/*
@@ -1106,7 +1103,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_lodBias = ri.Cvar_Get( "r_lodBias", "0", 0 );
 		r_znear = ri.Cvar_Get( "r_znear", "3", CVAR_CHEAT );
 		r_zfar = ri.Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
-		r_ignoreGLErrors = ri.Cvar_Get( "r_ignoreGLErrors", "1", 0 );
+		r_ignoreGLErrors = ri.Cvar_Get( "r_ignoreGLErrors", "0", 0 );
 		r_fastsky = ri.Cvar_Get( "r_fastsky", "0", 0 );
 		r_drawSun = ri.Cvar_Get( "r_drawSun", "0", 0 );
 		r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_CHEAT );
