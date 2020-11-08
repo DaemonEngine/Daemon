@@ -959,6 +959,13 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 	// find output size
 	binarySize += sizeof( shaderHeader );
 	glGetProgramiv( shaderProgram->program, GL_PROGRAM_BINARY_LENGTH, &binaryLength );
+
+	// The binary length may be 0 if there is an error.
+	if ( binaryLength <= 0 )
+	{
+		return;
+	}
+
 	binarySize += binaryLength;
 
 	binaryptr = binary = ( byte* )ri.Hunk_AllocateTempMemory( binarySize );
