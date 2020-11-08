@@ -794,6 +794,12 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 		else if ( !LoadShaderBinary( shader, i ) )
 		{
 			CompileAndLinkGPUShaderProgram(	shader, shaderProgram, compileMacros, deformIndex );
+
+			if ( shaderProgram->unusedPermutation )
+			{
+				return true;
+			}
+
 			SaveShaderBinary( shader, i );
 		}
 
