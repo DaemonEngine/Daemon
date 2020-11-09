@@ -813,55 +813,8 @@ void RE_BeginFrame()
 	// check for errors
 	if ( !r_ignoreGLErrors->integer )
 	{
-		int  err;
-		char s[ 128 ];
-
 		R_SyncRenderThread();
-
-		if ( ( err = glGetError() ) != GL_NO_ERROR )
-		{
-			switch ( err )
-			{
-				case GL_INVALID_ENUM:
-					strcpy( s, "GL_INVALID_ENUM" );
-					break;
-
-				case GL_INVALID_VALUE:
-					strcpy( s, "GL_INVALID_VALUE" );
-					break;
-
-				case GL_INVALID_OPERATION:
-					strcpy( s, "GL_INVALID_OPERATION" );
-					break;
-
-				case GL_STACK_OVERFLOW:
-					strcpy( s, "GL_STACK_OVERFLOW" );
-					break;
-
-				case GL_STACK_UNDERFLOW:
-					strcpy( s, "GL_STACK_UNDERFLOW" );
-					break;
-
-				case GL_OUT_OF_MEMORY:
-					strcpy( s, "GL_OUT_OF_MEMORY" );
-					break;
-
-				case GL_TABLE_TOO_LARGE:
-					strcpy( s, "GL_TABLE_TOO_LARGE" );
-					break;
-
-				case GL_INVALID_FRAMEBUFFER_OPERATION:
-					strcpy( s, "GL_INVALID_FRAMEBUFFER_OPERATION" );
-					break;
-
-				default:
-					Com_sprintf( s, sizeof( s ), "0x%X", err );
-					break;
-			}
-
-			//Sys::Error("caught OpenGL error: %s in file %s line %i", s, filename, line);
-			Sys::Error( "RE_BeginFrame() - glGetError() failed (%s)!", s );
-		}
+		GL_CheckErrors_( __FILE__, __LINE__ );
 	}
 
 	// draw buffer stuff

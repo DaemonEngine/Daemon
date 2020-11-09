@@ -367,18 +367,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	/*
 	==================
 	GL_CheckErrors
+
+	Must not be called while the backend rendering thread is running
 	==================
 	*/
 	void GL_CheckErrors_( const char *fileName, int line )
 	{
 		int  err;
 		char s[ 128 ];
-
-		if ( glConfig.smpActive )
-		{
-			// we can't print onto the console while rendering in another thread
-			return;
-		}
 
 		if ( r_ignoreGLErrors->integer )
 		{
