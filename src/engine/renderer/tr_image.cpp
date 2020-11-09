@@ -1098,7 +1098,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			{
 				case GL_TEXTURE_3D:
 					if( scaledBuffer ) {
-						glTexSubImage3D( GL_TEXTURE_3D, 0, 0, 0, i, scaledWidth, scaledHeight, 1, format, GL_UNSIGNED_BYTE, scaledBuffer );
+						glTexSubImage3D( target, 0, 0, 0, i, scaledWidth, scaledHeight, 1, format, GL_UNSIGNED_BYTE, scaledBuffer );
 					}
 					break;
 
