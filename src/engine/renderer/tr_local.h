@@ -3139,7 +3139,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	void GL_CheckErrors_( const char *filename, int line );
 
-#define         GL_CheckErrors() GL_CheckErrors_(__FILE__, __LINE__)
+#define GL_CheckErrors() do { if (!glConfig.smpActive) GL_CheckErrors_(__FILE__, __LINE__); } while (false)
 
 	void GL_State( uint32_t stateVector );
 	void GL_VertexAttribsState( uint32_t stateBits );
