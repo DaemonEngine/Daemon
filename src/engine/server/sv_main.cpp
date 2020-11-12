@@ -67,7 +67,6 @@ cvar_t         *sv_mapname;
 cvar_t         *sv_serverid;
 cvar_t         *sv_maxRate;
 
-cvar_t         *sv_pure;
 cvar_t         *sv_floodProtect;
 cvar_t         *sv_lanForceRate; // TTimo - dedicated 1 (LAN) server forces local client rates to 99999 (bug #491)
 
@@ -596,7 +595,6 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 	// Satisfies (number of open public slots) = (displayed max clients) - (number of clients).
 	info_map["sv_maxclients"] = std::to_string(
 	    std::max( 0, sv_maxclients->integer - sv_privateClients.Get() ) + privateSlotHumans );
-	info_map["pure"] = std::to_string( sv_pure->integer );
 
 	if ( sv_statsURL->string[0] )
 	{

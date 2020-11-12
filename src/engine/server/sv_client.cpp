@@ -735,20 +735,10 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		{
 			Log::Notice( "clientDownload: %d : \"%s\" download disabled\n", ( int )( cl - svs.clients ), cl->downloadName );
 
-			if ( sv_pure->integer )
-			{
-				Com_sprintf( errorMessage, sizeof( errorMessage ),
-							 "Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
-							 "You will need to get this file elsewhere before you " "can connect to this pure server.\n",
-							 cl->downloadName );
-			}
-			else
-			{
-				Com_sprintf( errorMessage, sizeof( errorMessage ),
-							 "Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
-							 "Set autodownload to No in your settings and you might be "
-							 "able to connect even if you don't have the file.\n", cl->downloadName );
-			}
+			Com_sprintf( errorMessage, sizeof( errorMessage ),
+							"Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
+							"You will need to get this file elsewhere before you can connect to this server.\n",
+							cl->downloadName );
 
 			SV_BadDownload( cl, msg );
 			MSG_WriteString( msg, errorMessage );  // (could SV_DropClient instead?)
