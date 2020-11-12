@@ -618,13 +618,6 @@ void SV_Init()
 
 	// systeminfo
 	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
-#ifdef BUILD_SERVER
-	sv_pure = Cvar_Get( "sv_pure", "1", CVAR_SYSTEMINFO );
-#else
-	// Use OS shared libs for the client at startup. This prevents crashes due to mismatching syscall ABIs
-	// from loading outdated vms dpks. The correct vms dpk will be loaded upon connecting to a pure server.
-	sv_pure = Cvar_Get( "sv_pure", "0", CVAR_SYSTEMINFO );
-#endif
 	Cvar_Get( "sv_paks", "", CVAR_SYSTEMINFO | CVAR_ROM );
 
 	// server vars
