@@ -56,7 +56,7 @@ bool CreateCrashDumpPath() {
     crashDumpLogs.Debug("Creating crash dump path: %s", CrashDumpPath());
     std::error_code createDirError;
     FS::RawPath::CreatePathTo(FS::Path::Build(CrashDumpPath(), "x"), createDirError);
-    bool success = createDirError == createDirError.default_error_condition();
+    bool success = !createDirError;
     if (!success) {
 #ifdef _WIN32
         crashDumpLogs.Warn("Failed to create crash dump directory: %s", Win32StrError(GetLastError()));
