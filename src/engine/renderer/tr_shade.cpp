@@ -39,6 +39,8 @@ static void GLSL_InitGPUShadersOrError()
 
 	GL_CheckErrors();
 
+	gl_shaderManager.InitDriverInfo();
+
 	// single texture rendering
 	gl_shaderManager.GenerateBuiltinHeaders();
 

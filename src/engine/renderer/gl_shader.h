@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // *INDENT-OFF*
 static const unsigned int MAX_SHADER_MACROS = 9;
-static const unsigned int GL_SHADER_VERSION = 3;
+static const unsigned int GL_SHADER_VERSION = 4;
 
 class ShaderException : public std::runtime_error
 {
@@ -51,6 +51,7 @@ struct GLBinaryHeader
 {
 	unsigned int version;
 	unsigned int checkSum; // checksum of shader source this was built from
+	unsigned int driverVersionHash; // detect if the graphics driver was different
 
 	unsigned int macros[ MAX_SHADER_MACROS ]; // macros the shader uses ( may or may not be enabled )
 	unsigned int numMacros;
@@ -275,6 +276,8 @@ class GLShaderManager
 	std::unordered_map< std::string, int > _deformShaderLookup;
 	std::vector< GLint > _deformShaders;
 	int       _totalBuildTime;
+	unsigned int _driverVersionHash; // For cache invalidation if hardware changes
+	bool _shaderBinaryCacheInvalidated;
 
 public:
 	GLHeader GLVersionDeclaration;
@@ -287,6 +290,8 @@ public:
 	{
 	}
 	~GLShaderManager();
+
+	void InitDriverInfo();
 
 	void GenerateBuiltinHeaders();
 
