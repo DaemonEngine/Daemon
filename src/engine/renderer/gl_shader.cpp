@@ -629,6 +629,13 @@ static std::string GenEngineConstants() {
 	return str;
 }
 
+void GLShaderManager::InitDriverInfo()
+{
+	std::string driverInfo = std::string(glConfig.renderer_string) + glConfig.version_string;
+	_driverVersionHash = Com_BlockChecksum(driverInfo.c_str(), static_cast<int>(driverInfo.size()));
+	_shaderBinaryCacheInvalidated = false;
+}
+
 void GLShaderManager::GenerateBuiltinHeaders() {
 	GLVersionDeclaration = GLHeader("GLVersionDeclaration", GenVersionDeclaration(), this);
 	GLCompatHeader = GLHeader("GLCompatHeader", GenCompatHeader(), this);
@@ -885,6 +892,9 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	if( !glConfig2.getProgramBinaryAvailable )
 		return false;
 
+	if (_shaderBinaryCacheInvalidated)
+		return false;
+
 	std::error_code err;
 
 	std::string shaderFilename = Str::Format("glsl/%s/%s_%u.bin", shader->GetName(), shader->GetName(), (unsigned int)programNum);
@@ -909,9 +919,16 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	memcpy( &shaderHeader, binaryptr, sizeof( shaderHeader ) );
 	binaryptr += sizeof( shaderHeader );
 
-	// check if this shader binary is the correct format
-	if ( shaderHeader.version != GL_SHADER_VERSION )
+	// check if the header struct is the correct format
+	// and the binary was produced by the same gl driver
+	if (shaderHeader.version != GL_SHADER_VERSION || shaderHeader.driverVersionHash != _driverVersionHash)
+	{
+		// These two fields should be the same for all shaders. So if there is a mismatch,
+		// don't bother opening any of the remaining files.
+		Log::Notice("Invalidating shader binary cache");
+		_shaderBinaryCacheInvalidated = true;
 		return false;
+	}
 
 	// make sure this shader uses the same number of macros
 	if ( shaderHeader.numMacros != shader->GetNumOfCompiledMacros() )
@@ -993,6 +1010,7 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 
 	shaderHeader.binaryLength = binaryLength;
 	shaderHeader.checkSum = shader->_checkSum;
+	shaderHeader.driverVersionHash = _driverVersionHash;
 
 	// write the header to the buffer
 	memcpy(binary, &shaderHeader, sizeof( shaderHeader ) );
