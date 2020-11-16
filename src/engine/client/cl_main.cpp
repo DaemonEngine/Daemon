@@ -2733,7 +2733,7 @@ static bool CL_InitRef()
 	ri.Cmd_Argv = Cmd_Argv;
 	ri.Cmd_QuoteString = Cmd_QuoteString;
 
-	ri.Milliseconds = CL_ScaledMilliseconds;
+	ri.Milliseconds = Sys::Milliseconds;
 	ri.RealTime = Com_RealTime;
 
 	ri.Z_Malloc = CL_RefMalloc;
