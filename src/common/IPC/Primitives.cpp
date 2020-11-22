@@ -321,12 +321,16 @@ static void FreeHandles(const NaClHandle* h)
 }
 #endif
 
+static thread_local std::unique_ptr<char[]> recvBuffer;
+
 bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 {
 	NaClMessageHeader hdr;
 	NaClIOVec iov[2];
 	NaClHandle h[NACL_ABI_IMC_DESC_MAX];
-	std::unique_ptr<char[]> recvBuffer(new char[NACL_ABI_IMC_BYTES_MAX]);
+	if (!recvBuffer) {
+		recvBuffer.reset(new char[NACL_ABI_IMC_BYTES_MAX]);
+	}
 
 	for (size_t i = 0; i < NACL_ABI_IMC_DESC_MAX; i++)
 		h[i] = NACL_INVALID_HANDLE;
