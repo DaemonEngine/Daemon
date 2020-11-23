@@ -472,8 +472,12 @@ void VMBase::Free()
 	// been closed.
 	Util::Writer writer;
 	writer.Write<uint32_t>(IPC::ID_EXIT);
-	rootChannel.SendMsg(writer);
-
+	try {
+		rootChannel.SendMsg(writer);
+	} catch (Sys::DropErr& err) {
+		// Verbose, since an error was probably already logged when sending the shutdown message
+		Log::Verbose("Error sending exit message to %s: %s", name, err.what());
+	}
 	rootChannel = IPC::Channel();
 
 	if (type != TYPE_NATIVE_DLL) {
