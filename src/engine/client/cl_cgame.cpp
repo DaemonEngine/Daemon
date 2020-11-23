@@ -1032,11 +1032,7 @@ void CGameVM::CGameShutdown()
 	} catch (Sys::DropErr& err) {
 		Log::Notice("Error during cgame shutdown: %s", err.what());
 	}
-	try {
-		this->Free();
-	} catch (Sys::DropErr& err) {
-		Log::Notice("Error while freeing cgame: %s", err.what());
-	}
+	this->Free();
 	services = nullptr;
 }
 
