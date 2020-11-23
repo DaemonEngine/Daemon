@@ -1234,6 +1234,11 @@ void SV_CheckTimeouts()
 			cl->lastPacketTime = svs.time;
 		}
 
+		if ( SV_IsBot( cl ) )
+		{
+			continue;
+		}
+
 		if ( cl->state == clientState_t::CS_ZOMBIE && cl->lastPacketTime < zombiepoint )
 		{
 			// using the client id cause the cl->name is empty at this point
