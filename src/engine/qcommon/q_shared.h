@@ -1121,6 +1121,10 @@ void         ByteToDir( int b, vec3_t dir );
 		v = _mm_loadl_pi( v, (__m64 *)vec );
 		return v;
 	}
+	ATTRIBUTE_NO_SANITIZE_ADDRESS inline __m128 sseLoadVec3Unsafe( const vec3_t vec ) {
+		// Returns garbage in 4th element
+		return _mm_loadu_ps( vec );
+	}
 	inline void sseStoreVec3( __m128 in, vec3_t out ) {
 		_mm_storel_pi( (__m64 *)out, in );
 		__m128 v = sseSwizzle( in, ZZZZ );
@@ -1135,39 +1139,38 @@ void         ByteToDir( int b, vec3_t dir );
 		out->sseRot = in->sseRot;
 		out->sseTransScale = in->sseTransScale;
 	}
-	inline void TransformPoint( const transform_t *t,
-					   const vec3_t in, vec3_t out ) {
+	inline void TransformPoint(
+			const transform_t *t, const vec3_t in, vec3_t out ) {
 		__m128 ts = t->sseTransScale;
-		__m128 tmp = sseQuatTransform( t->sseRot, _mm_loadu_ps( in ) );
+		__m128 tmp = sseQuatTransform( t->sseRot, sseLoadVec3Unsafe( in ) );
 		tmp = _mm_mul_ps( tmp, sseSwizzle( ts, WWWW ) );
 		tmp = _mm_add_ps( tmp, ts );
 		sseStoreVec3( tmp, out );
 	}
-	inline void TransformPointInverse( const transform_t *t,
-						  const vec3_t in, vec3_t out ) {
+	inline void TransformPointInverse(
+			const transform_t *t, const vec3_t in, vec3_t out ) {
 		__m128 ts = t->sseTransScale;
-		__m128 v = _mm_sub_ps( _mm_loadu_ps( in ), ts );
+		__m128 v = _mm_sub_ps( sseLoadVec3Unsafe( in ), ts );
 		v = _mm_mul_ps( v, _mm_rcp_ps( sseSwizzle( ts, WWWW ) ) );
 		v = sseQuatTransformInverse( t->sseRot, v );
 		sseStoreVec3( v, out );
 	}
-	inline void TransformNormalVector( const transform_t *t,
-						  const vec3_t in, vec3_t out ) {
-		__m128 v = _mm_loadu_ps( in );
+	inline void TransformNormalVector(
+			const transform_t *t, const vec3_t in, vec3_t out ) {
+		__m128 v = sseLoadVec3Unsafe( in );
 		v = sseQuatTransform( t->sseRot, v );
 		sseStoreVec3( v, out );
 	}
 	inline void TransformNormalVectorInverse( const transform_t *t,
 							 const vec3_t in, vec3_t out ) {
-		__m128 v = _mm_loadu_ps( in );
+		__m128 v = sseLoadVec3Unsafe( in );
 		v = sseQuatTransformInverse( t->sseRot, v );
 		sseStoreVec3( v, out );
 	}
 	inline __m128 sseAxisAngleToQuat( const vec3_t axis, float angle ) {
 		__m128 sa = _mm_set1_ps( sin( 0.5f * angle ) );
 		__m128 ca = _mm_set1_ps( cos( 0.5f * angle ) );
-		__m128 a = _mm_loadu_ps( axis );
-		a = _mm_and_ps( a, mask_XYZ0() );
+		__m128 a = sseLoadVec3( axis );
 		a = _mm_mul_ps( a, sa );
 		return _mm_or_ps( a, _mm_and_ps( ca, mask_000W() ) );
 	}
@@ -1182,8 +1185,7 @@ void         ByteToDir( int b, vec3_t dir );
 		t->sseTransScale = unitQuat();
 	}
 	inline void TransInitTranslation( const vec3_t vec, transform_t *t ) {
-		__m128 v = _mm_loadu_ps( vec );
-		v = _mm_and_ps( v, mask_XYZ0() );
+		__m128 v = sseLoadVec3( vec );
 		t->sseRot = unitQuat();
 		t->sseTransScale = _mm_or_ps( v, unitQuat() );
 	}
@@ -1224,19 +1226,18 @@ void         ByteToDir( int b, vec3_t dir );
 		__m128 f = _mm_set1_ps( factor );
 		t->sseTransScale = _mm_mul_ps( f, t->sseTransScale );
 	}
-	inline void TransInsTranslation( const vec3_t vec,
-						transform_t *t ) {
-		__m128 v = _mm_loadu_ps( vec );
+	inline void TransInsTranslation(
+			const vec3_t vec, transform_t *t ) {
+		__m128 v = sseLoadVec3Unsafe( vec );
 		__m128 ts = t->sseTransScale;
 		v = sseQuatTransform( t->sseRot, v );
 		v = _mm_mul_ps( v, sseSwizzle( ts, WWWW ) );
 		v = _mm_and_ps( v, mask_XYZ0() );
 		t->sseTransScale = _mm_add_ps( ts, v );
 	}
-	inline void TransAddTranslation( const vec3_t vec,
-						transform_t *t ) {
-		__m128 v = _mm_loadu_ps( vec );
-		v = _mm_and_ps( v, mask_XYZ0() );
+	inline void TransAddTranslation(
+			const vec3_t vec, transform_t *t ) {
+		__m128 v = sseLoadVec3( vec );
 		t->sseTransScale = _mm_add_ps( t->sseTransScale, v );
 	}
 	inline void TransCombine( const transform_t *a,
