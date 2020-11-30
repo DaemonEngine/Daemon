@@ -7,29 +7,29 @@ set -u
 
 # Dependencies version. This number must be updated every time the version
 # numbers below change, or packages are added/removed.
-DEPS_VERSION=4
+DEPS_VERSION=5
 
 # Package versions
-PKGCONFIG_VERSION=0.28
-NASM_VERSION=2.11.08
-ZLIB_VERSION=1.2.8
-GMP_VERSION=6.0.0
-NETTLE_VERSION=3.1.1
-GEOIP_VERSION=1.6.4
-CURL_VERSION=7.43.0
-SDL2_VERSION=2.0.3
-GLEW_VERSION=1.12.0
-PNG_VERSION=1.6.18
-JPEG_VERSION=1.4.1
-WEBP_VERSION=0.4.3
-FREETYPE_VERSION=2.6
-OPENAL_VERSION=1.16.0
-OGG_VERSION=1.3.2
-VORBIS_VERSION=1.3.5
-SPEEX_VERSION=1.2rc1
-OPUS_VERSION=1.1
-OPUSFILE_VERSION=0.6
-LUA_VERSION=5.3.1
+PKGCONFIG_VERSION=0.29.2
+NASM_VERSION=2.15.05
+ZLIB_VERSION=1.2.11
+GMP_VERSION=6.2.0
+NETTLE_VERSION=3.6
+GEOIP_VERSION=1.6.12
+CURL_VERSION=7.73.0
+SDL2_VERSION=2.0.12
+GLEW_VERSION=2.2.0
+PNG_VERSION=1.6.37
+JPEG_VERSION=2.0.5
+WEBP_VERSION=1.1.0
+FREETYPE_VERSION=2.10.4
+OPENAL_VERSION=1.18.2
+OGG_VERSION=1.3.4
+VORBIS_VERSION=1.3.7
+SPEEX_VERSION=1.2.0
+OPUS_VERSION=1.3.1
+OPUSFILE_VERSION=0.12
+LUA_VERSION=5.4.1
 NACLSDK_VERSION=44.0.2403.155
 NCURSES_VERSION=6.0
 
@@ -90,11 +90,11 @@ build_pkgconfig() {
 build_nasm() {
 	case "${PLATFORM}" in
 	macosx*)
-		download "nasm-${NASM_VERSION}-macosx.zip" "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/nasm-${NASM_VERSION}-macosx.zip" nasm
+		download "nasm-${NASM_VERSION}-macosx.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/nasm-${NASM_VERSION}-macosx.zip" nasm
 		cp "nasm-${NASM_VERSION}/nasm" "${PREFIX}/bin"
 		;;
 	mingw*|msvc*)
-		download "nasm-${NASM_VERSION}-win32.zip" "http://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/win32/nasm-${NASM_VERSION}-win32.zip" nasm
+		download "nasm-${NASM_VERSION}-win32.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/win32/nasm-${NASM_VERSION}-win32.zip" nasm
 		cp "nasm-${NASM_VERSION}/nasm.exe" "${PREFIX}/bin"
 		;;
 	*)
@@ -106,11 +106,11 @@ build_nasm() {
 
 # Build zlib
 build_zlib() {
-	download "zlib-${ZLIB_VERSION}.tar.gz" "http://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" zlib
+	download "zlib-${ZLIB_VERSION}.tar.gz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" zlib
 	cd "zlib-${ZLIB_VERSION}"
 	case "${PLATFORM}" in
 	mingw*|msvc*)
-		make -f win32/Makefile.gcc PREFIX="${CROSS}"
+		LOC="${CFLAGS:-}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
 	linux*)
@@ -127,7 +127,7 @@ build_zlib() {
 
 # Build GMP
 build_gmp() {
-	download "gmp-${GMP_VERSION}a.tar.bz2" "https://gmplib.org/download/gmp/gmp-${GMP_VERSION}a.tar.bz2" gmp
+	download "gmp-${GMP_VERSION}.tar.bz2" "https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.bz2" gmp
 	cd "gmp-${GMP_VERSION}"
 	case "${PLATFORM}" in
 	msvc*)
@@ -139,7 +139,8 @@ build_gmp() {
 		unset CXX
 		;;
 	esac
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 	make
 	make install
 	case "${PLATFORM}" in
@@ -152,9 +153,10 @@ build_gmp() {
 
 # Build Nettle
 build_nettle() {
-	download "nettle-${NETTLE_VERSION}.tar.gz" "http://www.lysator.liu.se/~nisse/archive/nettle-${NETTLE_VERSION}.tar.gz" nettle
+	download "nettle-${NETTLE_VERSION}.tar.gz" "https://www.lysator.liu.se/~nisse/archive/nettle-${NETTLE_VERSION}.tar.gz" nettle
 	cd "nettle-${NETTLE_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --enable-static
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 	make
 	make install
 }
@@ -173,16 +175,17 @@ build_geoip() {
 		TEMP_LDFLAGS="${LDFLAGS} -lws2_32"
 		;;
 	esac
-	LDFLAGS="${TEMP_LDFLAGS}" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS:-} -O2" LDFLAGS="${TEMP_LDFLAGS}" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 	make
 	make install
 }
 
 # Build cURL
 build_curl() {
-	download "curl-${CURL_VERSION}.tar.bz2" "http://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
+	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
 	cd "curl-${CURL_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn --disable-file --disable-ldap --disable-crypto-auth ${MSVC_SHARED[@]}
+	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn --disable-file --disable-ldap --disable-crypto-auth --disable-threaded-resolver ${MSVC_SHARED[@]}
 	make
 	make install
 }
@@ -191,12 +194,12 @@ build_curl() {
 build_sdl2() {
 	case "${PLATFORM}" in
 	mingw*)
-		download "SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" "http://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" sdl2
+		download "SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		make install-package arch="${HOST}" prefix="${PREFIX}"
 		;;
 	msvc*)
-		download "SDL2-devel-${SDL2_VERSION}-VC.zip" "http://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-VC.zip" sdl2
+		download "SDL2-devel-${SDL2_VERSION}-VC.zip" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-VC.zip" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		mkdir -p "${PREFIX}/include/SDL2"
 		cp include/* "${PREFIX}/include/SDL2"
@@ -212,7 +215,7 @@ build_sdl2() {
 		esac
 		;;
 	macosx*)
-		download "SDL2-${SDL2_VERSION}.dmg" "http://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
+		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
 		cp -R "SDL2.framework" "${PREFIX}"
 		;;
 	linux*)
@@ -227,12 +230,15 @@ build_sdl2() {
 
 # Build GLEW
 build_glew() {
-	download "glew-${GLEW_VERSION}.tgz" "http://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz" glew
+	download "glew-${GLEW_VERSION}.tgz" "https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz" glew
 	cd "glew-${GLEW_VERSION}"
 	case "${PLATFORM}" in
 	mingw*|msvc*)
-		make SYSTEM=mingw GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}gcc" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install SYSTEM=mingw GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}gcc" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
+		rm "${PREFIX}/lib/libglew32.a"
+		cp lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
 	macosx*)
 		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="clang" LD="clang" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
@@ -252,37 +258,49 @@ build_glew() {
 
 # Build PNG
 build_png() {
-	download "libpng-${PNG_VERSION}.tar.gz" "http://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
+	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
 	cd "libpng-${PNG_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 	make
 	make install
 }
 
 # Build JPEG
 build_jpeg() {
-	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "http://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
+	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
 	cd "libjpeg-turbo-${JPEG_VERSION}"
-	# JPEG doesn't set -O3 if CFLAGS is defined
-	CFLAGS="${CFLAGS:-} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --with-jpeg8
-	make
-	make install
+	case "${PLATFORM}" in
+	mingw*)
+		cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
+		;;
+	msvc*)
+		CFLAGS="${CFLAGS:-} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
+		;;
+	macosx*)
+		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
+		;;
+	esac
+	cmake --build build
+	cmake --install build
 }
 
 # Build WebP
 build_webp() {
-	download "libwebp-${WEBP_VERSION}.tar.gz" "http://downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
+	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
 	cd "libwebp-${WEBP_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --disable-libwebpdemux ${MSVC_SHARED[@]}
 	make
 	make install
 }
 
 # Build FreeType
 build_freetype() {
-	download "freetype-${FREETYPE_VERSION}.tar.bz2" "http://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.bz2" freetype
+	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
 	cd "freetype-${FREETYPE_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --without-bzip2 --without-png --with-harfbuzz=no
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
 	make
 	make install
 	cp -a "${PREFIX}/include/freetype2" "${PREFIX}/include/freetype"
@@ -293,7 +311,7 @@ build_freetype() {
 build_openal() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
-		download "openal-soft-${OPENAL_VERSION}-bin.zip" "http://kcat.strangesoft.net/openal-soft-${OPENAL_VERSION}-bin.zip" openal
+		download "openal-soft-${OPENAL_VERSION}-bin.zip" "https://openal-soft.org/openal-binaries/openal-soft-${OPENAL_VERSION}-bin.zip" openal
 		cd "openal-soft-${OPENAL_VERSION}-bin"
 		cp -r "include/AL" "${PREFIX}/include"
 		case "${PLATFORM}" in
@@ -308,7 +326,7 @@ build_openal() {
 		esac
 		;;
 	macosx*)
-		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "http://kcat.strangesoft.net/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
+		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
 		case "${PLATFORM}" in
 		macosx32)
@@ -323,7 +341,7 @@ build_openal() {
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
 		;;
 	linux*)
-		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "http://kcat.strangesoft.net/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
+		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://kcat.strangesoft.net/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
 		cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DALSOFT_EXAMPLES=OFF -DLIBTYPE=STATIC .
 		make
@@ -340,8 +358,11 @@ build_openal() {
 
 # Build Ogg
 build_ogg() {
-	download "libogg-${OGG_VERSION}.tar.gz" "http://downloads.xiph.org/releases/ogg/libogg-${OGG_VERSION}.tar.gz" ogg
+	download "libogg-${OGG_VERSION}.tar.gz" "https://downloads.xiph.org/releases/ogg/libogg-${OGG_VERSION}.tar.gz" ogg
 	cd "libogg-${OGG_VERSION}"
+	# This header breaks the vorbis and opusfile Mac builds
+	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
+	mv os_types.tmp include/ogg/os_types.h
 	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 	make
 	make install
@@ -349,7 +370,7 @@ build_ogg() {
 
 # Build Vorbis
 build_vorbis() {
-	download "libvorbis-${VORBIS_VERSION}.tar.gz" "http://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
+	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
 	cd "libvorbis-${VORBIS_VERSION}"
 	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-examples
 	make
@@ -358,9 +379,10 @@ build_vorbis() {
 
 # Build Speex
 build_speex() {
-	download "speex-${SPEEX_VERSION}.tar.gz" "http://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz" speex
+	download "speex-${SPEEX_VERSION}.tar.gz" "https://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz" speex
 	cd "speex-${SPEEX_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 	local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
 	sed "s/deplibs_check_method=.*/deplibs_check_method=pass_all/g" libtool > "${TMP_FILE}"
 	mv "${TMP_FILE}" libtool
@@ -370,18 +392,28 @@ build_speex() {
 
 # Build Opus
 build_opus() {
-	download "opus-${OPUS_VERSION}.tar.gz" "http://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" opus
+	download "opus-${OPUS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" opus
 	cd "opus-${OPUS_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	case "${PLATFORM}" in
+	mingw*|msvc*)
+		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
+		CFLAGS="${CFLAGS:-} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		;;
+	*)
+		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		;;
+	esac
 	make
 	make install
 }
 
 # Build OpusFile
 build_opusfile() {
-	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "http://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
+	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
 	cd "opusfile-${OPUSFILE_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-http
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-http
 	make
 	make install
 }
@@ -389,7 +421,7 @@ build_opusfile() {
 
 # Build Lua
 build_lua() {
-	download "lua-${LUA_VERSION}.tar.gz" "http://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" lua
+	download "lua-${LUA_VERSION}.tar.gz" "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" lua
 	cd "lua-${LUA_VERSION}"
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -406,14 +438,14 @@ build_lua() {
 		exit 1
 		;;
 	esac
-	make "${LUA_PLATFORM}" CC="${CROSS}gcc" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS}" MYLDFLAGS="${LDFLAGS}"
+	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS:-}" MYLDFLAGS="${LDFLAGS}"
 	case "${PLATFORM}" in
 	mingw*)
 		make install TO_BIN="lua.exe luac.exe" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
 		;;
 	msvc*)
-		make install TO_BIN="lua.exe luac.exe lua53.dll" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
-		touch "${PREFIX}/lib/lua53.dll.a"
+		make install TO_BIN="lua.exe luac.exe lua54.dll" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
+		touch "${PREFIX}/lib/lua54.dll.a"
 		;;
 	*)
 		make install INSTALL_TOP="${PREFIX}"
@@ -423,7 +455,7 @@ build_lua() {
 
 # Build ncurses
 build_ncurses() {
-	download "ncurses-${NCURSES_VERSION}.tar.gz" "http://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" ncurses
+	download "ncurses-${NCURSES_VERSION}.tar.gz" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" ncurses
 	cd "ncurses-${NCURSES_VERSION}"
 	./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${MSVC_SHARED[@]}
 	make
@@ -540,6 +572,7 @@ build_install() {
 	rm -rf "${PKG_PREFIX}/def"
 	rm -rf "${PKG_PREFIX}/share"
 	rm -f "${PKG_PREFIX}/genlib.bat"
+	rm -rf "${PKG_PREFIX}/lib/cmake"
 	rm -rf "${PKG_PREFIX}/lib/pkgconfig"
 	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.la' -execdir rm -f -- {} \;
@@ -586,7 +619,7 @@ build_clean() {
 # Common setup code
 common_setup() {
 	WORK_DIR="${PWD}"
-	SCRIPT_DIR=$(realpath "$(dirname "$0")")
+	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	BUILD_DIR="${WORK_DIR}/build-${PLATFORM}-${DEPS_VERSION}"
 	PREFIX="${BUILD_DIR}/prefix"
@@ -606,13 +639,13 @@ common_setup() {
 setup_msvc32() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
+	BITNESS=32
 	MSVC_SHARED=(--enable-shared --disable-static)
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
 	export CC="i686-w64-mingw32-gcc -static-libgcc"
 	export CXX="i686-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-m32 -msse2 -mpreferred-stack-boundary=2"
-	export CXXFLAGS="-m32 -msse2 -mpreferred-stack-boundary=2"
-	export LDFLAGS="-m32"
+	export CFLAGS="-msse2 -mpreferred-stack-boundary=2 -D__USE_MINGW_ANSI_STDIO=0"
+	export CXXFLAGS="-msse2 -mpreferred-stack-boundary=2"
 	common_setup
 }
 
@@ -620,13 +653,12 @@ setup_msvc32() {
 setup_msvc64() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
+	BITNESS=64
 	MSVC_SHARED=(--enable-shared --disable-static)
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
 	export CC="x86_64-w64-mingw32-gcc -static-libgcc"
 	export CXX="x86_64-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-m64"
-	export CXXFLAGS="-m64"
-	export LDFLAGS="-m64"
+	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
 	common_setup
 }
 
@@ -634,10 +666,10 @@ setup_msvc64() {
 setup_mingw32() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
+	BITNESS=32
 	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m32 -msse2"
+	export CFLAGS="-m32 -msse2 -D__USE_MINGW_ANSI_STDIO=0"
 	export CXXFLAGS="-m32 -msse2"
-	export LDFLAGS="-m32"
 	common_setup
 }
 
@@ -645,10 +677,10 @@ setup_mingw32() {
 setup_mingw64() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
+	BITNESS=64
 	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m64"
+	export CFLAGS="-m64 -D__USE_MINGW_ANSI_STDIO=0"
 	export CXXFLAGS="-m64"
-	export LDFLAGS="-m64"
 	common_setup
 }
 
@@ -671,7 +703,7 @@ setup_macosx64() {
 	HOST=x86_64-apple-darwin11
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
-	export MACOSX_DEPLOYMENT_TARGET=10.7
+	export MACOSX_DEPLOYMENT_TARGET=10.9
 	export NASM="${PWD}/build-${PLATFORM}-${DEPS_VERSION}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 	export CC=clang
 	export CXX=clang++

@@ -39,6 +39,9 @@ Maryland 20850 USA.
 
 #include "common/Common.h"
 
+#ifdef __MINGW32__
+#define CURL_STATICLIB
+#endif
 #include <curl/curl.h>
 
 #include "common/FileSystem.h"
