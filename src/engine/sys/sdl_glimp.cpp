@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "sdl_icon.h"
 #include "SDL_syswm.h"
 #include "framework/CommandSystem.h"
+#include "framework/CvarSystem.h"
 
 static Log::Logger logger("glconfig", "", Log::Level::NOTICE);
 
@@ -561,8 +562,13 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	}
 
 	logger.Notice(" %d %d", glConfig.vidWidth, glConfig.vidHeight );
+	// HACK: We want to set the current value, not the latched value
+	Cvar::ClearFlags("r_customwidth", CVAR_LATCH);
+	Cvar::ClearFlags("r_customheight", CVAR_LATCH);
 	Cvar_Set( "r_customwidth", va("%d", glConfig.vidWidth ) );
 	Cvar_Set( "r_customheight", va("%d", glConfig.vidHeight ) );
+	Cvar::AddFlags("r_customwidth", CVAR_LATCH);
+	Cvar::AddFlags("r_customheight", CVAR_LATCH);
 
 	sscanf( ( const char * ) glewGetString( GLEW_VERSION ), "%d.%d.%d",
 		&GLEWmajor, &GLEWminor, &GLEWmicro );
