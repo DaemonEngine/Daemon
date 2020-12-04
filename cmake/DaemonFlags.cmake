@@ -224,6 +224,14 @@ else()
         try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
         try_c_cxx_flag(FPIE "-fPIE")
         try_linker_flag(LINKER_PIE "-pie")
+        if (${FLAG_LINKER_PIE} AND MINGW)
+            # https://github.com/msys2/MINGW-packages/issues/4100
+            if (ARCH STREQUAL "x86")
+                set_linker_flag("-Wl,-e,_mainCRTStartup")
+            else()
+                set_linker_flag("-Wl,-e,mainCRTStartup")
+            endif()
+        endif()
     endif()
 
     # Linker flags
