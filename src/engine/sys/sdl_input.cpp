@@ -74,33 +74,36 @@ IN_PrintKey
 */
 static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key keycodeKey, bool down )
 {
-	if ( keysym->mod & KMOD_LSHIFT ) { Log::Notice( " KMOD_LSHIFT" ); }
+	std::string kmods;
 
-	if ( keysym->mod & KMOD_RSHIFT ) { Log::Notice( " KMOD_RSHIFT" ); }
+	if ( keysym->mod & KMOD_LSHIFT ) { kmods += "KMOD_LSHIFT "; }
 
-	if ( keysym->mod & KMOD_LCTRL ) { Log::Notice( " KMOD_LCTRL" ); }
+	if ( keysym->mod & KMOD_RSHIFT ) { kmods += "KMOD_RSHIFT "; }
 
-	if ( keysym->mod & KMOD_RCTRL ) { Log::Notice( " KMOD_RCTRL" ); }
+	if ( keysym->mod & KMOD_LCTRL ) { kmods += "KMOD_LCTRL "; }
 
-	if ( keysym->mod & KMOD_LALT ) { Log::Notice( " KMOD_LALT" ); }
+	if ( keysym->mod & KMOD_RCTRL ) { kmods += "KMOD_RCTRL "; }
 
-	if ( keysym->mod & KMOD_RALT ) { Log::Notice( " KMOD_RALT" ); }
+	if ( keysym->mod & KMOD_LALT ) { kmods += "KMOD_LALT "; }
 
-	if ( keysym->mod & KMOD_LGUI ) { Log::Notice( " KMOD_LGUI" ); }
+	if ( keysym->mod & KMOD_RALT ) { kmods += "KMOD_RALT "; }
 
-	if ( keysym->mod & KMOD_RGUI ) { Log::Notice( " KMOD_RGUI" ); }
+	if ( keysym->mod & KMOD_LGUI ) { kmods += "KMOD_LGUI "; }
 
-	if ( keysym->mod & KMOD_NUM ) { Log::Notice( " KMOD_NUM" ); }
+	if ( keysym->mod & KMOD_RGUI ) { kmods += "KMOD_RGUI "; }
 
-	if ( keysym->mod & KMOD_CAPS ) { Log::Notice( " KMOD_CAPS" ); }
+	if ( keysym->mod & KMOD_NUM ) { kmods += "KMOD_NUM" ; }
 
-	if ( keysym->mod & KMOD_MODE ) { Log::Notice( " KMOD_MODE" ); }
+	if ( keysym->mod & KMOD_CAPS ) { kmods += "KMOD_CAPS "; }
 
-	if ( keysym->mod & KMOD_RESERVED ) { Log::Notice( " KMOD_RESERVED" ); }
+	if ( keysym->mod & KMOD_MODE ) { kmods += "KMOD_MODE "; }
 
-	Log::Notice( "%c scancode = 0x%03x | SDL name = \"%s\" | keycode bind = %s | scancode bind = %s\n", down ? '+' : '-',
-	    keysym->scancode, SDL_GetKeyName( keysym->sym ), KeyToString( keycodeKey ),
-	    KeyToString( Keyboard::Key::FromScancode( keysym->scancode )));
+	if ( keysym->mod & KMOD_RESERVED ) { kmods += "KMOD_RESERVED "; }
+
+	Log::defaultLogger.WithoutSuppression().Notice(
+	    "%s%c scancode = 0x%03x | SDL name = \"%s\" | keycode bind = %s | scancode bind = %s",
+	    kmods, down ? '+' : '-', keysym->scancode, SDL_GetKeyName( keysym->sym ),
+	    KeyToString( keycodeKey ),  KeyToString( Keyboard::Key::FromScancode( keysym->scancode )));
 }
 
 /*
