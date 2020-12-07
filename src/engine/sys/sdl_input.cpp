@@ -72,7 +72,7 @@ static SDL_Window *window = nullptr;
 IN_PrintKey
 ===============
 */
-static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key key, bool down )
+static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key keycodeKey, bool down )
 {
 	if ( keysym->mod & KMOD_LSHIFT ) { Log::Notice( " KMOD_LSHIFT" ); }
 
@@ -98,8 +98,9 @@ static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key key, bool down 
 
 	if ( keysym->mod & KMOD_RESERVED ) { Log::Notice( " KMOD_RESERVED" ); }
 
-	Log::Notice( "%c scancode = 0x%03x \"%s\" engine keycode name = %s\n", down ? '+' : '-',
-	    keysym->scancode, SDL_GetKeyName( keysym->sym ), KeyToString( key ) );
+	Log::Notice( "%c scancode = 0x%03x | SDL name = \"%s\" | keycode bind = %s | scancode bind = %s\n", down ? '+' : '-',
+	    keysym->scancode, SDL_GetKeyName( keysym->sym ), KeyToString( keycodeKey ),
+	    KeyToString( Keyboard::Key::FromScancode( keysym->scancode )));
 }
 
 /*
