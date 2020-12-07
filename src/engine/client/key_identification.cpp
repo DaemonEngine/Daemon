@@ -41,6 +41,19 @@ Maryland 20850 USA.
 
 namespace Keyboard {
 
+static const struct {
+	Str::StringRef name;
+	int scancode;
+} leftRightFunctionKeys[] = {
+	{"hw:LALT", SDL_SCANCODE_LALT},
+	{"hw:RALT", SDL_SCANCODE_RALT},
+	{"hw:ALTGR", SDL_SCANCODE_RALT},
+	{"hw:LSHIFT", SDL_SCANCODE_LSHIFT},
+	{"hw:RSHIFT", SDL_SCANCODE_RSHIFT},
+	{"hw:LCTRL", SDL_SCANCODE_LCTRL},
+	{"hw:RCTRL", SDL_SCANCODE_RCTRL},
+};
+
 // Returns the scancode of a char for a QWERTY keyboard
 static int AsciiToScancode(int ch)
 {
@@ -102,7 +115,7 @@ char ScancodeToAscii(int sc)
 
 
 static const Str::StringRef CHARACTER_BIND_PREFIX = "char:";
-static const Str::StringRef SCANCODE_ASCII_BIND_PREFIX = "hw:";
+static const Str::StringRef SCANCODE_BIND_PREFIX = "hw:";
 
 static int ParseCharacter(Str::StringRef s)
 {
@@ -153,9 +166,14 @@ Key StringToKey(Str::StringRef str)
     }
 
     // Physical key by QWERTY location, from ascii char
-    size_t prefixLen = SCANCODE_ASCII_BIND_PREFIX.size();
-    if ( Str::IsIPrefix( SCANCODE_ASCII_BIND_PREFIX, str ) )
+    size_t prefixLen = SCANCODE_BIND_PREFIX.size();
+    if ( Str::IsIPrefix( SCANCODE_BIND_PREFIX, str ) )
     {
+        for (auto& functionKey : leftRightFunctionKeys) {
+            if ( Str::IsIEqual( str, functionKey.name ) ) {
+                return Key::FromScancode( functionKey.scancode );
+            }
+        }
         return Key::FromScancode( AsciiToScancode( ParseCharacter ( str.substr( prefixLen ) ) ) );
     }
 
@@ -188,11 +206,15 @@ std::string KeyToString(Key key)
     if ( key.kind() == Key::Kind::SCANCODE ) {
         int sc = key.AsScancode();
         if ( char c = ScancodeToAscii(sc) ) {
-            return std::string(SCANCODE_ASCII_BIND_PREFIX) + CharToString(c);
-        } else {
-            // make a hex string
-            return Str::Format("0x%02x", key.AsScancode());
+            return std::string(SCANCODE_BIND_PREFIX) + CharToString(c);
         }
+        for (auto& functionKey : leftRightFunctionKeys) {
+            if (sc == functionKey.scancode) {
+                return functionKey.name;
+            }
+        }
+        // make a hex string
+        return Str::Format("0x%02x", key.AsScancode());
     }
 
     return "<INVALID KEY>";
@@ -212,6 +234,10 @@ void CompleteKeyName(Cmd::CompletionResult& completions, Str::StringRef prefix)
     for (auto& kv : keynames)
     {
         Cmd::AddToCompletion(completions, prefix, {{kv.first, ""}});
+    }
+    for (auto& functionKey : leftRightFunctionKeys)
+    {
+        Cmd::AddToCompletion(completions, prefix, {{functionKey.name, ""}});
     }
 }
 
