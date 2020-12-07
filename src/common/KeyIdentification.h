@@ -41,6 +41,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace Keyboard {
+
+// These must be equal to SDL_SCANCODE_xxx. This is enforced by
+// assertions in engine/client/key_identification.cpp.
+namespace Scancode {
+    constexpr int LALT = 226;
+    constexpr int RALT = 230;
+    constexpr int LSHIFT = 225;
+    constexpr int RSHIFT = 229;
+    constexpr int LCTRL = 224;
+    constexpr int RCTRL = 228;
+};
+
 class Key
 {
 public:
@@ -160,6 +172,13 @@ extern const std::unordered_map<char, Str::StringRef> SPECIAL_CHARACTER_NAMES;
 
 // "SHIFT" -> K_SHIFT etc.
 extern const std::unordered_map<Str::StringRef, keyNum_t, Str::IHash, Str::IEqual> keynames;
+
+// "hw:LSHIFT" -> Scancode::LSHIFT etc.
+struct ScancodeName {
+	Str::StringRef name;
+	int scancode;
+};
+extern const std::vector<ScancodeName> leftRightFunctionKeys;
 
 } // namespace Keyboard
 

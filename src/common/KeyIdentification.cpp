@@ -212,6 +212,16 @@ const std::unordered_map<char, Str::StringRef> SPECIAL_CHARACTER_NAMES {
     {'"', "DOUBLEQUOTE"},
 };
 
+const std::vector<ScancodeName> leftRightFunctionKeys = {
+    {"hw:LALT", Scancode::LALT},
+    {"hw:RALT", Scancode::RALT},
+    {"hw:ALTGR", Scancode::RALT},
+    {"hw:LSHIFT", Scancode::LSHIFT},
+    {"hw:RSHIFT", Scancode::RSHIFT},
+    {"hw:LCTRL", Scancode::LCTRL},
+    {"hw:RCTRL", Scancode::RCTRL},
+};
+
 std::string CharToString(int ch)
 {
     auto it = SPECIAL_CHARACTER_NAMES.find(ch);
