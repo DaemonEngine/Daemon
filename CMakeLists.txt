@@ -134,7 +134,7 @@ include(DaemonPlatform)
 ################################################################################
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 4)
+set(DEPS_VERSION 5)
 
 set(MOUNT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(MOUNT_DIR ${MOUNT_DIR} PARENT_SCOPE)
@@ -678,10 +678,7 @@ function(AddApplication)
     set(multiValueArgs Definitions Flags Files Libs)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    # HACK: Because of the linking rules on Windows, linking SDLCompat in engine-lib is not
-    # enough for SDLMain to see __iob_func so we add SDLCompat to the executable source
-    # list directly.
-    add_executable(${A_Target} ${A_Files} ${ENGINE_DIR}/framework/SDLCompat.cpp ${PCH_FILE})
+    add_executable(${A_Target} ${A_Files} ${PCH_FILE})
     target_link_libraries(${A_Target} engine-lib ${A_Libs})
 
     set_property(TARGET ${A_Target} APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
