@@ -1265,8 +1265,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	{
 		for ( ; bone < lastBone; bone++ )
 		{
-			TransInit( bone );
-			TransAddScale( entityScale, bone );
+			TransInitScale( entityScale, bone );
 			TransInsScale( modelScale, bone );
 		}
 	}
@@ -1635,8 +1634,7 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 	{
 		for ( ; bone < lastBone; bone++ )
 		{
-			TransInit( bone );
-			TransAddScale( entityScale, bone );
+			TransInitScale( entityScale, bone );
 			TransInsScale( modelScale, bone );
 		}
 	}
