@@ -1607,9 +1607,7 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 			refBone_t *entityBone = &backEnd.currentEntity->e.skeleton.bones[ *boneRemapInverse ];
 			md5Bone_t *modelBone = &model->bones[ *boneRemapInverse ];
 
-			TransInitRotationQuat( modelBone->rotation, bone );
-			TransAddTranslation( modelBone->origin, bone );
-			TransInverse( bone, bone );
+			TransInverse( &modelBone->joint, bone );
 			TransCombine( bone, &entityBone->t, bone );
 			TransAddScale( entityScale, bone );
 			TransInsScale( modelScale, bone );
