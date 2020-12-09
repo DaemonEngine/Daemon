@@ -1572,8 +1572,7 @@ Tess_SurfaceVBOMD5Mesh
 */
 static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 {
-	int        i;
-	md5Model_t *model;
+	md5Model_t *model = srf->md5Model;
 
 	GLimp_LogComment( "--- Tess_SurfaceVBOMD5Mesh ---\n" );
 
@@ -1589,27 +1588,41 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 
 	tess.numIndexes = srf->numIndexes;
 	tess.numVertexes = srf->numVerts;
-
-	model = srf->md5Model;
-
-	tess.vboVertexSkinning = true;
 	tess.numBones = srf->numBoneRemap;
+	tess.vboVertexSkinning = true;
 
-	for ( i = 0; i < srf->numBoneRemap; i++ )
+	vec_t entityScale = backEnd.currentEntity->e.skeleton.scale;
+	float modelScale = model->internalScale;
+	transform_t *bone = tess.bones;
+	transform_t *lastBone = bone + tess.numBones;
+
+	// Convert bones back to matrices.
+	if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
 	{
-		refBone_t *bone = &backEnd.currentEntity->e.skeleton.bones[ srf->boneRemapInverse[ i ] ];
+		int *boneRemapInverse = srf->boneRemapInverse;
 
-		if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
+		for ( ; bone < lastBone; bone++,
+			boneRemapInverse++ )
 		{
-			TransInitRotationQuat( model->bones[ srf->boneRemapInverse[ i ] ].rotation, &tess.bones[ i ] );
-			TransAddTranslation( model->bones[ srf->boneRemapInverse[ i ] ].origin, &tess.bones[ i ] );
-			TransInverse( &tess.bones[ i ], &tess.bones[ i ] );
-			TransCombine( &tess.bones[ i ], &bone->t, &tess.bones[ i ] );
-		} else {
-			TransInit( &tess.bones[ i ] );
+			refBone_t *entityBone = &backEnd.currentEntity->e.skeleton.bones[ *boneRemapInverse ];
+			md5Bone_t *modelBone = &model->bones[ *boneRemapInverse ];
+
+			TransInitRotationQuat( modelBone->rotation, bone );
+			TransAddTranslation( modelBone->origin, bone );
+			TransInverse( bone, bone );
+			TransCombine( bone, &entityBone->t, bone );
+			TransAddScale( entityScale, bone );
+			TransInsScale( modelScale, bone );
 		}
-		TransAddScale( backEnd.currentEntity->e.skeleton.scale, &tess.bones[ i ] );
-		TransInsScale( model->internalScale, &tess.bones[ i ] );
+	}
+	else
+	{
+		for ( ; bone < lastBone; bone++ )
+		{
+			TransInit( bone );
+			TransAddScale( entityScale, bone );
+			TransInsScale( modelScale, bone );
+		}
 	}
 
 	Tess_End();
