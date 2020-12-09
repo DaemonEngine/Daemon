@@ -1586,6 +1586,14 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 	R_BindVBO( srf->vbo );
 	R_BindIBO( srf->ibo );
 
+	// Tess_SurfaceMD5 has this, is it useful?
+	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
+
+	if ( !tess.skipTangentSpaces )
+	{
+		tess.attribsSet |= ATTR_QTANGENT;
+	}
+
 	tess.numIndexes = srf->numIndexes;
 	tess.numVertexes = srf->numVerts;
 	tess.numBones = srf->numBoneRemap;
@@ -1596,7 +1604,6 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 	transform_t *bone = tess.bones;
 	transform_t *lastBone = bone + tess.numBones;
 
-	// Convert bones back to matrices.
 	if ( backEnd.currentEntity->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE )
 	{
 		int *boneRemapInverse = srf->boneRemapInverse;
@@ -1610,6 +1617,17 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 			TransInverse( &modelBone->joint, bone );
 			TransCombine( bone, &entityBone->t, bone );
 			TransAddScale( entityScale, bone );
+			TransInsScale( modelScale, bone );
+		}
+	}
+	else if ( tess.skipTangentSpaces )
+	{
+		md5Bone_t *modelBone = model->bones;
+
+		for ( ; bone < lastBone; bone++,
+			modelBone++ )
+		{
+			TransCopy( &modelBone->joint, bone );
 			TransInsScale( modelScale, bone );
 		}
 	}
