@@ -61,7 +61,6 @@ static cvar_t       *in_joystickNo = nullptr;
 static cvar_t       *in_joystickUseAnalog = nullptr;
 static cvar_t       *in_gameControllerTriggerDeadzone = nullptr;
 
-static cvar_t *in_gameController = nullptr;
 static cvar_t *in_gameControllerDebug = nullptr;
 
 static SDL_Window *window = nullptr;
@@ -1261,7 +1260,6 @@ void IN_Init( void *windowData )
 	in_joystickThreshold = Cvar_Get( "in_joystickThreshold", "0.15", 0 );
 	in_gameControllerTriggerDeadzone = Cvar_Get( "in_gameControllerTriggerDeadzone", "0.5", 0);
 
-	in_gameController = Cvar_Get( "in_gameController", "1", CVAR_TEMP );
 	in_gameControllerDebug = Cvar_Get( "in_gameControllerDebug", "0", CVAR_TEMP );
 	SDL_StartTextInput();
 	mouseAvailable = ( in_mouse->value != 0 );
