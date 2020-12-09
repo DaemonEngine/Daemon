@@ -1342,14 +1342,6 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			{
 				vec3_t position, tmp;
 
-				if( modelBlendWeight[ 0 ] == 0 &&
-					modelBlendWeight[ 1 ] == 0 &&
-					modelBlendWeight[ 2 ] == 0 &&
-					modelBlendWeight[ 3 ] == 0 )
-				{
-					modelBlendWeight[ 0 ] = 255;
-				}
-
 				VectorClear( position );
 
 				byte *lastBlendIndex = modelBlendIndex + 4;
@@ -1384,14 +1376,6 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 				modelTexcoord += 2 )
 			{
 				vec3_t position, tangent, binormal, normal, tmp;
-
-				if( modelBlendWeight[ 0 ] == 0 &&
-					modelBlendWeight[ 1 ] == 0 &&
-					modelBlendWeight[ 2 ] == 0 &&
-					modelBlendWeight[ 3 ] == 0 )
-				{
-					modelBlendWeight[ 0 ] = 255;
-				}
 
 				VectorClear( position );
 				VectorClear( normal );
