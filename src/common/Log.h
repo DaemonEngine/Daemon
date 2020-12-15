@@ -75,6 +75,8 @@ namespace Log {
      * To intentionally print a message repeatedly at high volume without getting it blocked as
      * log spam, do like thus:
      * logger.WithoutSuppression().Notice("my message that prints every frame");
+     * Alternatively, use the DEBUG level, for which log suppression is disabled since
+     * Debug() messages are often intentionally verbose.
      */
 
     class Logger {
