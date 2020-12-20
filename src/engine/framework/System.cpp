@@ -665,6 +665,11 @@ static void Init(int argc, char** argv)
 
 } // namespace Sys
 
+#ifdef __MINGW64__
+// https://www.kb.cert.org/vuls/id/307144
+__declspec(dllexport) void DummyPreventingLinkerFromBreakingASLR() {}
+#endif
+
 // Program entry point. On Windows, main is #defined to SDL_main which is invoked by SDLmain.
 // This is why ALIGN_STACK_FOR_MINGW is needed (normally gcc would generate alignment code in main()).
 ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
