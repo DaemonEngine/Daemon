@@ -249,6 +249,7 @@ else()
         try_linker_flag(LINKER_DYNAMICBASE "-Wl,--dynamicbase")
         try_linker_flag(LINKER_NXCOMPAT "-Wl,--nxcompat")
         try_linker_flag(LINKER_LARGE_ADDRESS_AWARE "-Wl,--large-address-aware")
+        try_linker_flag(LINKER_HIGH_ENTROPY_VA "-Wl,--high-entropy-va")
     endif()
 
     # The -pthread flag sets some preprocessor defines,
