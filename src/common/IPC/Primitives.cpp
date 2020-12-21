@@ -321,7 +321,10 @@ static void FreeHandles(const NaClHandle* h)
 }
 #endif
 
-static thread_local std::unique_ptr<char[]> recvBuffer;
+#ifndef __native_client__
+thread_local
+#endif
+static std::unique_ptr<char[]> recvBuffer;
 
 bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 {
