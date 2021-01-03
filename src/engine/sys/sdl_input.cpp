@@ -1157,7 +1157,18 @@ static void IN_ProcessEvents( bool dropInput )
 					case SDL_WINDOWEVENT_RESTORED:
 					case SDL_WINDOWEVENT_MAXIMIZED:    Cvar_SetValue( "com_minimized", 0 ); break;
 					case SDL_WINDOWEVENT_FOCUS_LOST:   Cvar_SetValue( "com_unfocused", 1 ); break;
-					case SDL_WINDOWEVENT_FOCUS_GAINED: Cvar_SetValue( "com_unfocused", 0 ); break;
+					case SDL_WINDOWEVENT_FOCUS_GAINED:
+
+						Cvar_SetValue( "com_unfocused", 0 );
+
+						// HACK: if the window is focused, it can't be minimized.
+						// fixes
+						//  * https://github.com/DaemonEngine/Daemon/issues/408
+						//  * https://github.com/Unvanquished/Unvanquished/issues/1136
+						// and maybe others
+						Cvar_SetValue( "com_minimized", 0 );
+
+						break;
 				}
 				break;
 			case SDL_QUIT:
@@ -1202,7 +1213,7 @@ void IN_Frame()
 		// Console is down in windowed mode
 		IN_SetFocus( false );
 	}
-	else if ( !( SDL_GetWindowFlags( window ) & SDL_WINDOW_INPUT_FOCUS ) )
+	else if ( com_unfocused->integer )
 	{
 		// Window doesn't have focus
 		IN_SetFocus( false );
