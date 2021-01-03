@@ -342,10 +342,8 @@ void  Com_Free_Aligned( void *ptr );
 
 #include "logging.h"
 
-#define DEG2RAD( a )                  ( ( ( a ) * M_PI ) / 180.0F )
+#define DEG2RAD( a )                  ( ( ( a ) * M_PI ) / 180.0f )
 #define RAD2DEG( a )                  ( ( ( a ) * 180.0f ) / M_PI )
-
-#define Q_clamp( a, b, c )            Math::Clamp( (a), (b), (c) )
 
 struct cplane_t;
 
