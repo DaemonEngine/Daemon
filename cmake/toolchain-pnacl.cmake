@@ -35,10 +35,9 @@ set(PLATFORM_EXE_SUFFIX ".pexe")
 
 set(CMAKE_SYSTEM_NAME "Generic")
 
-include(CMakeForceCompiler)
-CMAKE_FORCE_C_COMPILER(   "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-clang${PNACL_BIN_EXT}" Clang)
-CMAKE_FORCE_CXX_COMPILER( "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-clang++${PNACL_BIN_EXT}" Clang)
-set(CMAKE_AR              "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-ar${PNACL_BIN_EXT}" CACHE FILEPATH "Archiver" FORCE)
+set(CMAKE_C_COMPILER      "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-clang${PNACL_BIN_EXT}")
+set(CMAKE_CXX_COMPILER    "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-clang++${PNACL_BIN_EXT}")
+set(CMAKE_AR              "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-ar${PNACL_BIN_EXT}")
 set(CMAKE_RANLIB          "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-ranlib${PNACL_BIN_EXT}")
 set(CMAKE_FIND_ROOT_PATH  "${PLATFORM_PREFIX}/../le32-nacl")
 
@@ -61,20 +60,11 @@ if (NOT CMAKE_HOST_WIN32)
 endif()
 
 # These commands can fail on windows if there is a space at the beginning
-
 set(CMAKE_C_CREATE_STATIC_LIBRARY "${PNACLPYTHON_PREFIX}<CMAKE_AR> rc <TARGET> <LINK_FLAGS> <OBJECTS>")
 set(CMAKE_CXX_CREATE_STATIC_LIBRARY "${PNACLPYTHON_PREFIX}<CMAKE_AR> rc <TARGET> <LINK_FLAGS> <OBJECTS>")
 
-# CMake 3.4 introduced an <INCLUDES> substituion that didn't exist before. It will fail on older versions with it
-# and fail on newer versions without it.
-if (${CMAKE_VERSION} VERSION_LESS "3.4")
-    set(TOOLCHAIN_INCLUDE "")
-else()
-    set(TOOLCHAIN_INCLUDE "<INCLUDES>")
-endif()
-
-set(CMAKE_C_COMPILE_OBJECT "${PNACLPYTHON_PREFIX}<CMAKE_C_COMPILER> <DEFINES> ${TOOLCHAIN_INCLUDE} <FLAGS> -o <OBJECT> -c <SOURCE>")
-set(CMAKE_CXX_COMPILE_OBJECT "${PNACLPYTHON_PREFIX}<CMAKE_CXX_COMPILER> <DEFINES> ${TOOLCHAIN_INCLUDE} <FLAGS> -o <OBJECT> -c <SOURCE>")
+set(CMAKE_C_COMPILE_OBJECT "${PNACLPYTHON_PREFIX}<CMAKE_C_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -o <OBJECT> -c <SOURCE>")
+set(CMAKE_CXX_COMPILE_OBJECT "${PNACLPYTHON_PREFIX}<CMAKE_CXX_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -o <OBJECT> -c <SOURCE>")
 
 set(CMAKE_C_LINK_EXECUTABLE "${PNACLPYTHON_PREFIX}<CMAKE_C_COMPILER> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 set(CMAKE_CXX_LINK_EXECUTABLE "${PNACLPYTHON_PREFIX}<CMAKE_CXX_COMPILER> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
@@ -109,40 +99,35 @@ set(NACL_TRANSLATE_OPTIONS
     $<$<CONFIG:MinSizeRel>:-O2>
 )
 
-function(pnacl_translate target arch suffix)
-    cmake_policy(PUSH)
-        if (POLICY CMP0026)
-            cmake_policy(SET CMP0026 OLD)
-        endif()
-        get_target_property(FILE ${target} LOCATION)
-    cmake_policy(POP)
-    get_filename_component(DIRNAME ${FILE} PATH)
-    get_filename_component(BASENAME ${FILE} NAME_WE)
+function(pnacl_translate dir module arch suffix)
+    set(PEXE ${dir}/${module}.pexe)
+    set(NEXE ${dir}/${module}${suffix}.nexe)
+    set(STRIPPED_NEXE ${dir}/${module}${suffix}-stripped.nexe)
+
     add_custom_command(
-        OUTPUT ${DIRNAME}/${BASENAME}${suffix}.nexe
+        OUTPUT ${NEXE}
         COMMENT "Translating ${target} (${arch})"
-        DEPENDS ${FILE}
+        DEPENDS ${PEXE}
         COMMAND
             ${PNACLPYTHON_PREFIX2}
             "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-translate${PNACL_BIN_EXT}"
             ${NACL_TRANSLATE_OPTIONS}
             -arch ${arch}
-            ${FILE}
-            -o ${DIRNAME}/${BASENAME}${suffix}.nexe
+            ${PEXE}
+            -o ${NEXE}
     )
     add_custom_command(
-        OUTPUT ${DIRNAME}/${BASENAME}${suffix}-stripped.nexe
+        OUTPUT ${STRIPPED_NEXE}
         COMMENT "Stripping ${target} (${arch})"
-        DEPENDS ${DIRNAME}/${BASENAME}${suffix}.nexe
+        DEPENDS ${NEXE}
         COMMAND
             ${PNACLPYTHON_PREFIX2}
             "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-strip${PNACL_BIN_EXT}"
             -s
-            ${DIRNAME}/${BASENAME}${suffix}.nexe
-            -o ${DIRNAME}/${BASENAME}${suffix}-stripped.nexe
+            ${NEXE}
+            -o ${STRIPPED_NEXE}
     )
-    add_custom_target(${target}${suffix} ALL
-        DEPENDS ${DIRNAME}/${BASENAME}${suffix}-stripped.nexe
-    )
-    add_dependencies(${target}${suffix} ${target})
+
+    add_custom_target(${module}${suffix} ALL DEPENDS ${STRIPPED_NEXE})
+    add_dependencies(${module}${suffix} ${module}-nacl)
 endfunction()
