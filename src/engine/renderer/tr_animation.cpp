@@ -1268,8 +1268,8 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 		startFrame %= anim->num_frames;
 		endFrame %= anim->num_frames;
 	} else {
-		Q_clamp( startFrame, 0, anim->num_frames - 1 );
-		Q_clamp( endFrame, 0, anim->num_frames - 1 );
+		startFrame = Math::Clamp( startFrame, 0, anim->num_frames - 1 );
+		endFrame   = Math::Clamp( endFrame,   0, anim->num_frames - 1 );
 	}
 
 	// compute frame pointers
