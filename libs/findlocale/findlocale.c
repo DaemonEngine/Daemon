@@ -109,14 +109,10 @@ accumulate_locstring(const char *str, FL_Locale *l) {
 static int
 accumulate_env(const char *name, FL_Locale *l) {
   char *env;
-  char *lang = NULL;
-  char *country = NULL;
-  char *variant = NULL;
   env = getenv(name);
   if (env) {
     return accumulate_locstring(env, l);
   }
-  free(lang); free(country); free(variant);
   return 0;
 }
 

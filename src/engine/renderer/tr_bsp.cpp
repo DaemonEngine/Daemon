@@ -218,7 +218,7 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 
 	if ( !buffer )
 	{
-		Sys::Drop( "LoadRGBE: '%s' not found", name );
+		Sys::Drop( "RGBE image '%s' is not found", name );
 	}
 
 	buf_p = buffer;
@@ -257,22 +257,23 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 						}
 						else
 						{
-							Log::Warn("LoadRGBE: Expected 'bit_rle_rgbe' found instead '%s'", token );
+							Log::Warn("RGBE image '%s' has expected 'bit_rle_rgbe' but found '%s' instead",
+								name, token );
 						}
 					}
 					else
 					{
-						Log::Warn("LoadRGBE: Expected '-' found instead '%s'", token );
+						Log::Warn("RGBE image '%s' has expected '-' but found '%s' instead", name, token );
 					}
 				}
 				else
 				{
-					Log::Warn("LoadRGBE: Expected '32' found instead '%s'", token );
+					Log::Warn("RGBE image '%s' has expected '32' but found '%s' instead", name, token );
 				}
 			}
 			else
 			{
-				Log::Warn("LoadRGBE: Expected '=' found instead '%s'", token );
+				Log::Warn("RGBE image '%s' has expected '=' but found '%s' instead", name, token );
 			}
 		}
 
@@ -299,17 +300,17 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 					}
 					else
 					{
-						Log::Warn("LoadRGBE: Expected 'X' found instead '%s'", token );
+						Log::Warn("RGBE image '%s' has expected 'X' but found '%s' instead", name, token );
 					}
 				}
 				else
 				{
-					Log::Warn("LoadRGBE: Expected '+' found instead '%s'", token );
+					Log::Warn("RGBE image '%s' has expected '+' but found '%s' instead", name, token );
 				}
 			}
 			else
 			{
-				Log::Warn("LoadRGBE: Expected 'Y' found instead '%s'", token );
+				Log::Warn("RGBE image '%s' has expected 'Y' but found '%s' instead", name, token );
 			}
 		}
 	}
@@ -336,13 +337,13 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 	if ( !formatFound )
 	{
 		ri.FS_FreeFile( buffer );
-		Sys::Drop( "LoadRGBE: %s has no format", name );
+		Sys::Drop( "RGBE image '%s' has no format", name );
 	}
 
 	if ( !w || !h )
 	{
 		ri.FS_FreeFile( buffer );
-		Sys::Drop( "LoadRGBE: %s has an invalid image size", name );
+		Sys::Drop( "RGBE image '%s' has an invalid image size", name );
 	}
 
 	*pic = (float*) Com_Allocate( w * h * 3 * sizeof( float ) );

@@ -2168,7 +2168,7 @@ int PDC_scr_open( int argc, char **argv)
         PDC_argv = (char **)calloc( argc + 1, sizeof( char *));
         for( i = 0; i < argc; i++)
         {
-            PDC_argv[i] = (char *)malloc( strlen( argv[i] + 1));
+            PDC_argv[i] = (char *)malloc( strlen( argv[i] ) + 1 );
             strcpy( PDC_argv[i], argv[i]);
         }
     }

@@ -208,7 +208,7 @@ int NaClSocketPair(NaClHandle pair[2]) {
   char name[kPipePathMax];
 
   do {
-    sprintf_s(name, kPipePathMax, "%s%u.%lu",
+    sprintf_s(name, kPipePathMax, "%s%lu.%ld",
               kPipePrefix, GetCurrentProcessId(),
               AtomicIncrement(&socket_pair_count, 1));
     pair[0] = CreateNamedPipeW(

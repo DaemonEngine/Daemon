@@ -1418,14 +1418,10 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 static void R_ExportTexture( image_t *image )
 {
 	char path[ 1024 ];
-	int i;
-
-
-	Com_sprintf( path, sizeof( path ), "texexp/%s.ktx",
-		     image->name );
+	Com_sprintf( path, sizeof( path ), "texexp/%s.ktx", image->name );
 
 	// quick and dirty sanitize path name
-	for( i = strlen( path ) - 1; i >= 7; i-- ) {
+	for( size_t i = strlen( path ) - 1; i >= 7; i-- ) {
 		if( !Str::cisalnum( path[ i ] ) && path[ i ] != '.' && path[ i ] != '-' ) {
 			path[ i ] = 'z';
 		}
