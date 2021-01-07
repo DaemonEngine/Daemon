@@ -52,13 +52,12 @@ set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
 
 if (NOT CMAKE_HOST_WIN32)
-    set(PythonInterp_FIND_VERSION 2)
-    find_package(PythonInterp 2)
-    if (NOT PYTHONINTERP_FOUND)
-        message(FATAL_ERROR "Please set the PNACLPYTHON environment variable to your Python2 executable")
+    find_package(Python2)
+    if (NOT Python2_Interpreter_FOUND)
+        message(FATAL_ERROR "Please install python2 and/or set the PYTHON_EXECUTABLE CMake variable.")
     endif()
-    set(PNACLPYTHON_PREFIX "env PNACLPYTHON=${PYTHON_EXECUTABLE} ")
-    set(PNACLPYTHON_PREFIX2 env "PNACLPYTHON=${PYTHON_EXECUTABLE} ")
+    set(PNACLPYTHON_PREFIX "env PNACLPYTHON=${Python2_EXECUTABLE} ")
+    set(PNACLPYTHON_PREFIX2 env "PNACLPYTHON=${Python2_EXECUTABLE} ")
 endif()
 
 # These commands can fail on windows if there is a space at the beginning
