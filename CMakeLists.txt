@@ -24,9 +24,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.0)
-if (POLICY CMP0017)
-    cmake_policy(SET CMP0017 NEW)
+cmake_minimum_required (VERSION 3.12)
+
+# Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
+# Can be removed once we require CMake 3.15
+if (POLICY CMP0094)
+    cmake_policy(SET CMP0094 NEW)
+endif()
+
+if (POLICY CMP0072)
+    cmake_policy(SET CMP0072 NEW)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
@@ -110,7 +117,6 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
     BUILD_CGAME
     BUILD_SGAME
     CMAKE_BUILD_TYPE
-    PYTHON_EXECUTABLE
     USE_PEDANTIC
     USE_PRECOMPILED_HEADER
     USE_WERROR
@@ -207,6 +213,8 @@ try_flag(WARNINGS           "-Wno-error=unused-but-set-variable")
 try_flag(WARNINGS           "-Wno-error=unused-function")
 try_flag(WARNINGS           "-Wno-error=unused-parameter")
 try_flag(WARNINGS           "-Wno-error=unused-variable")
+try_flag(WARNINGS           "-Wno-error=format-truncation")
+try_flag(WARNINGS           "-Wno-error=deprecated-copy") # TODO: Fix these errors.
 
 ################################################################################
 # Git revision info
@@ -282,7 +290,7 @@ function(ADD_PRECOMPILED_HEADER Target)
     endif()
 
     # Get the common compile flags
-    set(Flags ${CMAKE_CXX_FLAGS})
+    set(Flags ${CMAKE_CXX_FLAGS} ${WARNINGS})
     get_target_property(Type ${Target} TYPE)
     if (Type STREQUAL MODULE_LIBRARY)
         set(Flags ${Flags} ${CMAKE_SHARED_MODULE_CXX_FLAGS})
