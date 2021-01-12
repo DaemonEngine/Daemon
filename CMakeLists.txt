@@ -95,7 +95,7 @@ if(NOT DAEMON_EXTERNAL_APP)
 endif()
 
 option(USE_LTO "Use link-time optimization for release builds" 0)
-cmake_dependent_option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" 1 "USE_LTO AND ${CMAKE_CXX_COMPILER_ID} STREQUAL GNU" 0)
+cmake_dependent_option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" 1 "USE_LTO AND \"${CMAKE_CXX_COMPILER_ID}\" STREQUAL GNU" 0)
 option(USE_HARDENING "Use stack protection and other hardening flags" 0)
 option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" 0)
 option(USE_PEDANTIC "Tell the compiler to be pedantic" 0)
@@ -132,7 +132,6 @@ else()
 endif()
 set(WARNMODE ${WARNMODE} PARENT_SCOPE)
 
-include(CMakeParseArguments)
 include(DaemonPlatform)
 
 ################################################################################
@@ -334,7 +333,7 @@ function(ADD_PRECOMPILED_HEADER Target)
     set(Header ${COMMON_DIR}/Common.h)
 
     # Compiler-specific PCH support
-    if (CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    if (CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR NACL)
         add_custom_command(OUTPUT "${OBJ_DIR}/${Target}.h.gch"
             COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
             DEPENDS ${Header}
@@ -345,7 +344,7 @@ function(ADD_PRECOMPILED_HEADER Target)
         add_dependencies(${Target} ${Target}-pch)
 
         # PNaCl clang doesn't support -include-pch properly
-        if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND NOT NACL)
+        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT NACL)
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
         else()
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
