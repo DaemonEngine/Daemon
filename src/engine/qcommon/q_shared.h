@@ -76,8 +76,6 @@ void ignore_result(T) {}
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
-#include <setjmp.h>
-#include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -115,13 +113,20 @@ void ignore_result(T) {}
 #include <iterator>
 #include <random>
 #include <numeric>
-#include <thread>
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
 #include <valarray>
 #include <sstream>
 #include <iostream>
+
+// C/C++ headers not supported in WASM builds
+#if !defined(__wasm__)
+    #include <setjmp.h>
+    #include <signal.h>
+
+    #include <thread>
+    #include <atomic>
+    #include <mutex>
+    #include <condition_variable>
+#endif
 
 // vsnprintf is ISO/IEC 9899:1999
 // abstracting this to make it portable

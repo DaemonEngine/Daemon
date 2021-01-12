@@ -49,6 +49,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PLATFORM_STRING "Linux"
 #elif defined(__native_client__)
 #define PLATFORM_STRING "Native Client"
+#elif defined(__wasm__)
+#define PLATFORM_STRING "WASM"
 #else
 #error "Platform not supported"
 #endif
@@ -64,6 +66,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ARCH_STRING "x86_64"
 #elif defined(__pnacl__)
 #define ARCH_STRING "PNaCl"
+#elif defined(__wasm__)
+#define ARCH_STRING "WASM"
 #else
 #error "Architecture not supported"
 #endif
