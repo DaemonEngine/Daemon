@@ -166,7 +166,8 @@ else()
     set_c_cxx_flag("-fno-strict-aliasing")
 
     # Set arch on x86 to SSE2 minimum and enable CMPXCHG16B
-    if (ARCH STREQUAL "x86")
+    # TODO(WASM) How do we tell CMake WASM is not x86?
+    if (ARCH STREQUAL "x86" AND NOT WASM)
         set_c_cxx_flag("-m32")
         set_c_cxx_flag("-msse2")
         set_c_cxx_flag("-mtune=generic")

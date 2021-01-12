@@ -36,7 +36,7 @@ function(GAMEMODULE)
     set(oneValueArgs NAME)
     set(multiValueArgs DEFINITIONS FLAGS FILES LIBS)
     cmake_parse_arguments(GAMEMODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-    if (NOT NACL)
+    if (NOT NACL AND NOT WASM)
         if (BUILD_GAME_NATIVE_DLL)
             add_library(${GAMEMODULE_NAME}-native-dll MODULE ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${COMMONLIST})
             target_link_libraries(${GAMEMODULE_NAME}-native-dll ${GAMEMODULE_LIBS} ${LIBS_BASE})
@@ -102,7 +102,50 @@ function(GAMEMODULE)
             )
 
         endif()
-    else()
+
+        if (NOT FORK AND BUILD_GAME_WASM)
+            if (CMAKE_GENERATOR MATCHES "Visual Studio")
+                set(VM_GENERATOR "NMake Makefiles")
+            else()
+                set(VM_GENERATOR ${CMAKE_GENERATOR})
+            endif()
+            set(FORK 1 PARENT_SCOPE)
+            include(ExternalProject)
+            set(vm wasm-vms)
+            set(inherited_option_args)
+            foreach(inherited_option ${NACL_VM_INHERITED_OPTIONS})
+                set(inherited_option_args ${inherited_option_args}
+                    "-D${inherited_option}=${${inherited_option}}")
+            endforeach(inherited_option)
+            ExternalProject_Add(${vm}
+                SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+                BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${vm}
+                CMAKE_GENERATOR ${VM_GENERATOR}
+                CMAKE_ARGS
+                    -DFORK=2
+                    -DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-wasi.cmake
+                    -DWASI_SDK_DIR=${DEPS_DIR}//wasi-sdk
+                    -DDAEMON_DIR=${Daemon_SOURCE_DIR}
+                    -DDEPS_DIR=${DEPS_DIR}
+                    -DBUILD_GAME_WASM=1
+                    -DBUILD_GAME_NATIVE_DLL=0
+                    -DBUILD_GAME_NATIVE_EXE=0
+                    -DBUILD_CLIENT=0
+                    -DBUILD_TTY_CLIENT=0
+                    -DBUILD_SERVER=0
+                    ${inherited_option_args}
+                INSTALL_COMMAND ""
+            )
+            ExternalProject_Add_Step(${vm} forcebuild
+                COMMAND ${CMAKE_COMMAND} -E remove
+                    ${CMAKE_CURRENT_BINARY_DIR}/${vm}-prefix/src/${vm}-stamp/${vm}-configure
+                COMMENT "Forcing build step for '${vm}'"
+                DEPENDEES build
+                ALWAYS 1
+            )
+
+        endif()
+    elseif(NACL)
         if (FORK EQUAL 2)
             # Put the .nexe and .pexe files in the same directory as the engine
             set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
@@ -123,5 +166,20 @@ function(GAMEMODULE)
             pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} i686 "-x86")
             pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} x86-64 "-x86_64")
         endif()
+    elseif(WASM)
+        if (FORK EQUAL 2)
+            # Put the .wasm files in the same directory as the engine
+            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
+        endif()
+
+        add_executable(${GAMEMODULE_NAME}-wasm ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${COMMONLIST})
+        target_link_libraries(${GAMEMODULE_NAME}-wasm ${GAMEMODULE_LIBS} ${LIBS_BASE})
+        set_target_properties(${GAMEMODULE_NAME}-wasm PROPERTIES
+            OUTPUT_NAME ${GAMEMODULE_NAME}.wasm
+            COMPILE_DEFINITIONS "VM_NAME=${GAMEMODULE_NAME};${GAMEMODULE_DEFINITIONS};BUILD_VM"
+            COMPILE_OPTIONS "${GAMEMODULE_FLAGS}"
+            FOLDER ${GAMEMODULE_NAME}
+        )
+        ADD_PRECOMPILED_HEADER(${GAMEMODULE_NAME}-wasm)
     endif()
 endfunction()
