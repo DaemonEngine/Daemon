@@ -1,5 +1,5 @@
 # Daemon BSD Source Code
-# Copyright (c) 2013-2016, Daemon Developers
+# Copyright (c) 2021, Daemon Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,30 +24,28 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-################################################################################
-# Determine platform
-################################################################################
+cmake_minimum_required (VERSION 3.13)
 
-# When adding a new platform, look at all the places WIN32, APPLE and LINUX are used
-if( CMAKE_SYSTEM_NAME MATCHES "Linux" )
-  set( LINUX ON )
-elseif( WIN32 )
-elseif( APPLE )
-elseif( NACL )
-elseif( WASM )
+if (WIN32)
+    set(WASI_EXE_SUFFIX ".exe")
 else()
-  message( FATAL_ERROR "Platform not supported" )
+    set(WASI_EXE_SUFFIX "")
 endif()
 
-################################################################################
-# Determine architecture
-################################################################################
+# TODO(WASM) change to WASI? Does we need to set other CMAKE_SYSTEM_*?
+set(CMAKE_SYSTEM_NAME "Generic")
 
-# When adding a new architecture, look at all the places ARCH is used
-if( WASM )
-  set( ARCH "WASM" )
-elseif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
-  set( ARCH "x86_64" )
-else()
-  set( ARCH "x86" )
-endif()
+set(CMAKE_C_COMPILER "${WASI_SDK_DIR}/bin/clang${WASI_EXE_SUFFIX}")
+set(CMAKE_CXX_COMPILER "${WASI_SDK_DIR}/bin/clang++${WASI_EXE_SUFFIX}")
+set(CMAKE_AR "${WASI_SDK_DIR}/bin/ar${WASI_EXE_SUFFIX}")
+set(CMAKE_RANLIB "${WASI_SDK_DIR}/bin/ranlib${WASI_EXE_SUFFIX}")
+
+set(CMAKE_C_FLAGS "--sysroot=${WASI_SDK_DIR}/share/wasi-sysroot")
+set(CMAKE_CXX_FLAGS "--sysroot=${WASI_SDK_DIR}/share/wasi-sysroot -fno-exceptions")
+
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+
+set(WASM ON)
