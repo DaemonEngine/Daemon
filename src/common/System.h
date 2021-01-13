@@ -127,7 +127,7 @@ inline bool IsValidHandle(OSHandle handle)
 }
 #endif
 
-#ifndef __native_client__
+#if !defined(__native_client__) && !defined(__wasm__)
 // Class representing a loadable .dll/.so
 class DynamicLib {
 public:
@@ -176,7 +176,7 @@ private:
 	// OS-specific handle
 	void* handle;
 };
-#endif // __native_client__
+#endif // !defined(__native_client__) && !defined(__wasm__)
 
 NORETURN void OSExit(int exitCode);
 

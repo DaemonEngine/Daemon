@@ -70,16 +70,26 @@ static void CommonInit(Sys::OSHandle rootSocket)
 void Sys::Error(Str::StringRef message)
 {
 	// Only try sending an ErrorMsg once
+#if defined(__wasm__)
+    static bool errorEntered = false;
+    if (!errorEntered) {
+        errorEntered = true;
+#else
 	static std::atomic_flag errorEntered;
 	if (!errorEntered.test_and_set()) {
+#endif
 		// Disable checks for sending sync messages when handling async messages.
 		// At this point we don't really care since this is an error.
 		VM::rootChannel.canSendSyncMsg = true;
 
 		// Try to tell the engine about the error, but ignore errors doing so.
+#if defined(__wasm__)
+        VM::SendMsg<VM::ErrorMsg>(message);
+#else
 		try {
 			VM::SendMsg<VM::ErrorMsg>(message);
 		} catch (...) {}
+#endif
 	}
 
 #ifdef BUILD_VM_IN_PROCESS
@@ -99,6 +109,9 @@ void Sys::Error(Str::StringRef message)
 // Entry point called in a new thread inside the existing process
 extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 {
+#if defined(__wasm__)
+			CommonInit(rootSocket);
+#else
 	try {
 		try {
 			CommonInit(rootSocket);
@@ -112,6 +125,7 @@ extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 			Sys::Error("Unhandled exception of unknown type");
 		}
 	} catch (...) {}
+#endif
 }
 
 #else
@@ -139,6 +153,9 @@ int main(int argc, char** argv)
 	// sent back to the engine and reported to the user.
 	Sys::SetupCrashHandler();
 
+#if defined(__wasm__)
+    CommonInit(rootSocket);
+#else
 	try {
 		CommonInit(rootSocket);
 	} catch (Sys::DropErr& err) {
@@ -148,6 +165,7 @@ int main(int argc, char** argv)
 	} catch (...) {
 		Sys::Error("Unhandled exception of unknown type");
 	}
+#endif
 }
 
 #endif

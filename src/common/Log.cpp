@@ -144,7 +144,9 @@ namespace Log {
                 int intervalStartTime = -2000000;
             };
             std::vector<MessageStatistics> buf;
+#if !defined(__wasm__)
             std::mutex mutex;
+#endif
         public:
             enum Result {
                 OK, // not log spam
@@ -152,7 +154,9 @@ namespace Log {
                 KNOWN_SPAM
             };
             Result UpdateAndEvaluate(Str::StringRef messageFormat) {
+#if !defined(__wasm__)
                 std::lock_guard<std::mutex> lock(mutex);
+#endif
                 int intervalMs = GetCvarOrDie<int>("logs.suppression.interval");
                 int maxOccurrences = GetCvarOrDie<int>("logs.suppression.count");
                 int bufferSize = GetCvarOrDie<int>("logs.suppression.bufferSize");

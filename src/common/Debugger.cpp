@@ -124,6 +124,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         }
     }
 
+#elif defined(__wasm__)
+
+    // For now, assume there is no debugger attached for WASM VMs at very few developers use that.
+    // TODO: when starting the VM in VMMain get data from the engine saying if we are in debug mode or not.
+    namespace Sys {
+        bool IsDebuggerAttached() {
+            return false;
+        }
+    }
+
 #else
 #error "Debugger.cpp unimplemented for this platform"
 #endif

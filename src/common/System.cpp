@@ -29,32 +29,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Common.h"
-#ifdef _WIN32
-#include <windows.h>
+#   ifdef _WIN32
+#   include <windows.h>
 #else
-#include <unistd.h>
-#include <fcntl.h>
-#include <signal.h>
-#ifdef __linux__
-#include <linux/version.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)
-#include <sys/syscall.h>
-#include <linux/random.h>
-#define HAS_GETRANDOM_SYSCALL 1
-#endif
-#endif
-#ifdef __native_client__
-#include <nacl/nacl_exception.h>
-#include <nacl/nacl_minidump.h>
-#include <nacl/nacl_random.h>
-#else
-#include <dlfcn.h>
-#endif
+#   include <unistd.h>
+#   include <fcntl.h>
+#   ifdef __linux__
+#       include <linux/version.h>
+#       if LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)
+#           include <sys/syscall.h>
+#           include <linux/random.h>
+#           define HAS_GETRANDOM_SYSCALL 1
+#       endif
+#   endif
+#   ifdef __native_client__
+#       include <nacl/nacl_exception.h>
+#       include <nacl/nacl_minidump.h>
+#       include <nacl/nacl_random.h>
+#   elif !defined(__wasm__)
+#       include <signal.h>
+#       include <dlfcn.h>
+#   endif
 #endif
 #ifdef BUILD_VM
-#include "shared/CommonProxies.h"
+#   include "shared/CommonProxies.h"
 #else
-#include "qcommon/sys.h"
+#   include "qcommon/sys.h"
 #endif
 
 namespace Sys {
@@ -119,7 +119,7 @@ void SleepFor(SteadyClock::duration time)
 
 	// Restore timer resolution after sleeping
 	pNtSetTimerResolution(maxRes, FALSE, &curRes);
-#else
+#elif !defined(__wasm__)
 	std::this_thread::sleep_for(time);
 #endif
 }
@@ -166,7 +166,10 @@ void Drop(Str::StringRef message)
 		errorCount = 0;
 	lastError = now;
 
+    // TODO(WASM): Find a replacement to DropErr.
+#if !defined(__wasm__)
 	throw DropErr(true, message);
+#endif
 }
 
 #ifdef _WIN32
@@ -255,7 +258,7 @@ void SetupCrashHandler()
 {
 	SetUnhandledExceptionFilter(CrashHandler);
 }
-#elif defined(__native_client__)
+#elif defined(__native_client__) || defined(__wasm__)
 static void CrashHandler(const void* data, size_t n)
 {
     VM::CrashDump(static_cast<const uint8_t*>(data), n);
@@ -264,8 +267,10 @@ static void CrashHandler(const void* data, size_t n)
 
 void SetupCrashHandler()
 {
+#if !defined(__wasm__)
     nacl_minidump_register_crash_handler();
     nacl_minidump_set_callback(CrashHandler);
+#endif
 }
 #else
 static void CrashHandler(int sig)
@@ -285,7 +290,7 @@ void SetupCrashHandler()
 }
 #endif
 
-#ifndef __native_client__
+#if !defined(__native_client__) && !defined(__wasm__)
 void DynamicLib::Close()
 {
 	if (!handle)
@@ -338,7 +343,7 @@ intptr_t DynamicLib::InternalLoadSym(Str::StringRef sym, std::string& errorStrin
 	return p;
 #endif
 }
-#endif // __native_client__
+#endif // !defined(__native_client__) && !defined(__wasm__)
 
 bool processTerminating = false;
 

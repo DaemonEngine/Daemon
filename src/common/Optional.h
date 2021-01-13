@@ -31,6 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_OPTIONAL_H_
 #define COMMON_OPTIONAL_H_
 
+#include "common/Assert.h"
+
 // optional class based on http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3793.html
 // The implementation is heavily based on experimental/optional in libc++, but
 // rewritten to work with older compilers.
@@ -225,13 +227,21 @@ public:
 	value_type& value()
 	{
 		if (!engaged)
+#if defined(__cpp_exceptions)
 			throw bad_optional_access("optional<T>::value: not engaged");
+#else
+            ASSERT_UNREACHABLE();
+#endif
 		return storage.get();
 	}
 	const value_type& value() const
 	{
 		if (!engaged)
+#if defined(__cpp_exceptions)
 			throw bad_optional_access("optional<T>::value: not engaged");
+#else
+            ASSERT_UNREACHABLE();
+#endif
 		return storage.get();
 	}
 

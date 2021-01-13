@@ -102,12 +102,22 @@ namespace IPC {
 
         // We assume these structure will be packed, and static assert on it.
         struct SharedWriterData {
+// TODO(WASM) make WASM only consume what it is told to consume instead.
+#if defined(__wasm__)
+            uint32_t offset;
+#else
             std::atomic<uint32_t> offset;
+#endif
         };
         static_assert(offsetof(SharedWriterData, offset) == 0, "Wrong packing on SharedWriterData");
 
         struct SharedReaderData {
+// TODO(WASM) make WASM only consume what it is told to consume instead.
+#if defined(__wasm__)
+            uint32_t offset;
+#else
             std::atomic<uint32_t> offset;
+#endif
         };
         static_assert(offsetof(SharedReaderData, offset) == 0, "Wrong packing on SharedReaderData");
 

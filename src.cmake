@@ -35,12 +35,8 @@ set(COMMONLIST
     ${COMMON_DIR}/FileSystem.cpp
     ${COMMON_DIR}/FileSystem.h
     ${COMMON_DIR}/IPC/Channel.h
-    ${COMMON_DIR}/IPC/CommandBuffer.cpp
-    ${COMMON_DIR}/IPC/CommandBuffer.h
     ${COMMON_DIR}/IPC/Common.h
     ${COMMON_DIR}/IPC/CommonSyscalls.h
-    ${COMMON_DIR}/IPC/Primitives.cpp
-    ${COMMON_DIR}/IPC/Primitives.h
     ${COMMON_DIR}/KeyIdentification.cpp
     ${COMMON_DIR}/KeyIdentification.h
     ${COMMON_DIR}/LineEditData.cpp
@@ -76,6 +72,17 @@ set(COMMONLIST
     ${ENGINE_DIR}/qcommon/q_unicode.h
     ${ENGINE_DIR}/qcommon/unicode_data.h
 )
+
+# TODO(WASM): Make these files work in WASM or replace them.
+if (NOT WASM)
+    list(APPEND COMMONLIST
+        ${COMMON_DIR}/IPC/CommandBuffer.cpp
+        ${COMMON_DIR}/IPC/CommandBuffer.h
+        ${COMMON_DIR}/IPC/Primitives.cpp
+        ${COMMON_DIR}/IPC/Primitives.h
+    )
+endif()
+
 set(COMMONLIST ${COMMONLIST} PARENT_SCOPE)
 
 set(RENDERERLIST

@@ -191,7 +191,7 @@ inline int my_open(Str::StringRef path, openMode_t mode)
 	int fd = open(path.c_str(), modes[mode_] | O_CLOEXEC, 0666);
 #elif defined(__linux__)
 	int fd = open64(path.c_str(), modes[mode_] | O_CLOEXEC | O_LARGEFILE, 0666);
-#elif defined(__native_client__)
+#elif defined(__native_client__) || defined(__wasm__)
 	// This doesn't actually work, but it's not used anyways
 	int fd = open(path.c_str(), modes[mode_], 0666);
 #endif
@@ -232,7 +232,7 @@ inline offset_t my_ftell(FILE* fd)
 {
 #ifdef _WIN32
 	return _ftelli64(fd);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__APPLE__) || defined(__native_client__) || defined(__wasm__)
 	return ftello(fd);
 #elif defined(__linux__)
 	return ftello64(fd);
@@ -242,7 +242,7 @@ inline int my_fseek(FILE* fd, offset_t off, int whence)
 {
 #ifdef _WIN32
 	return _fseeki64(fd, off, whence);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__APPLE__) || defined(__native_client__) || defined(__wasm__)
 	return fseeko(fd, off, whence);
 #elif defined(__linux__)
 	return fseeko64(fd, off, whence);
@@ -250,7 +250,7 @@ inline int my_fseek(FILE* fd, offset_t off, int whence)
 }
 #ifdef _WIN32
 typedef struct _stati64 my_stat_t;
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__APPLE__) || defined(__native_client__) || defined(__wasm__)
 using my_stat_t = struct stat;
 #elif defined(__linux__)
 using my_stat_t = struct stat64;
@@ -259,7 +259,7 @@ inline int my_fstat(int fd, my_stat_t* st)
 {
 #ifdef _WIN32
 	return _fstati64(fd, st);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__APPLE__) || defined(__native_client__) || defined(__wasm__)
 	return fstat(fd, st);
 #elif defined(__linux__)
 	return fstat64(fd, st);
@@ -269,7 +269,7 @@ inline int my_stat(Str::StringRef path, my_stat_t* st)
 {
 #ifdef _WIN32
 	return _wstati64(Str::UTF8To16(path).c_str(), st);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__APPLE__) || defined(__native_client__) || defined(__wasm__)
 	return stat(path.c_str(), st);
 #elif defined(__linux__)
 	return stat64(path.c_str(), st);
@@ -288,7 +288,7 @@ inline intptr_t my_pread(int fd, void* buf, size_t count, offset_t offset)
 		return -1;
 	}
 	return bytesRead;
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__APPLE__) || defined(__native_client__) || defined(__wasm__)
 	return pread(fd, buf, count, offset);
 #elif defined(__linux__)
 	return pread64(fd, buf, count, offset);
@@ -381,10 +381,15 @@ static const filesystem_category_impl& filesystem_category()
 static void SetErrorCode(std::error_code& err, int ec, const std::error_category& ecat)
 {
 	std::error_code ecode(ec, ecat);
-	if (&err == &throws())
+	if (&err == &throws()) {
+#if defined(__wasm__)
+        ASSERT_UNREACHABLE();
+#else
 		throw std::system_error(ecode);
-	else
+#endif
+    } else {
 		err = ecode;
+    }
 }
 static void ClearErrorCode(std::error_code& err)
 {
