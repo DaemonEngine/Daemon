@@ -129,7 +129,10 @@ namespace IPC {
 			return *this;
 		}
 		~SharedMemory() {
+            // TODO(WASM): remove the need for SharedMemory in WASM
+#if !defined(__wasm__)
 			Close();
+#endif
 		}
 		explicit operator bool() const {
 			return Sys::IsValidHandle(handle);

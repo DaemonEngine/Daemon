@@ -1,12 +1,18 @@
 set(SHAREDLIST
-    ${MOUNT_DIR}/shared/CommandBufferClient.cpp
-    ${MOUNT_DIR}/shared/CommandBufferClient.h
     ${MOUNT_DIR}/shared/CommonProxies.cpp
     ${MOUNT_DIR}/shared/CommonProxies.h
     ${MOUNT_DIR}/shared/VMMain.cpp
     ${MOUNT_DIR}/shared/VMMain.h
     PARENT_SCOPE
 )
+
+# TODO(WASM): Port the CommandBuffer to WASM for CGAME
+if (NOT WASM)
+    list(APPEND SHAREDLIST
+        ${MOUNT_DIR}/shared/CommandBufferClient.cpp
+        ${MOUNT_DIR}/shared/CommandBufferClient.h
+    )
+endif()
 
 set(SHAREDLIST_cgame
     ${MOUNT_DIR}/shared/client/cg_api.cpp ${MOUNT_DIR}/shared/client/cg_api.h

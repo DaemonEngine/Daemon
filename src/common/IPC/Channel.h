@@ -81,6 +81,11 @@ namespace IPC {
         static const bool TOPLEVEL_MSG_ALLOWED = false;
     #endif
 
+#if defined(__wasm__)
+    // TODO(WASM) reimplement the Channel for WASM (or remove the need for it).
+    class Channel {
+    };
+#else
     class Channel {
     public:
         Channel()
@@ -132,7 +137,24 @@ namespace IPC {
         bool canSendSyncMsg;
         bool canSendAsyncMsg;
     };
+#endif // defined(__wasm__)
 
+#if defined(__wasm__)
+    // TODO(WASM): reimplement for WASM
+
+    // Send a message to the given channel. If the message is synchronous then messageHandler is invoked for all
+    // message that are received until ID_RETURN is received. Values returned by a synchronous message are
+    // returned through reference parameters.
+    template<typename Msg, typename Func, typename... Args> void SendMsg(Channel& channel, Func&& messageHandler, Args&&... args)
+    {
+    }
+
+    // Handle an incoming message using a callback function (which can just be a lambda). If the message is
+    // synchronous then outputs values are written to using reference parameters.
+    template<typename Msg, typename Func> void HandleMsg(Channel& channel, Util::Reader reader, Func&& func)
+    {
+    }
+#else
     namespace detail {
 
         // Implementations of SendMsg for Message and SyncMessage
@@ -240,6 +262,7 @@ namespace IPC {
     {
         detail::HandleMsg(channel, Msg(), std::move(reader), std::forward<Func>(func));
     }
+#endif // defined(__wasm__)
 
 } // namespace IPC
 

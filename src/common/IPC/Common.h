@@ -58,8 +58,13 @@ namespace IPC {
      * IPC descriptor which can be sent over a socket. You should treat this as an
      * opaque type and not access any of the fields directly.
      */
+
 	struct FileDesc {
 		Sys::OSHandle handle;
+#if defined(__wasm__)
+        // Use fake FileDesc for WASM so that Utils::Reader/Writer compile.
+        void Close() const { UNREACHABLE(); }
+#else
 		#ifndef __native_client__
 		int type;
 		union {
@@ -68,6 +73,7 @@ namespace IPC {
 		};
 		#endif
         void Close() const;
+#endif // !defined(__wasm__)
 	};
 
     /*

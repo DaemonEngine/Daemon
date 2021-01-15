@@ -49,6 +49,9 @@ class ExitException {};
 // Common initialization code for both VM types
 static void CommonInit(Sys::OSHandle rootSocket)
 {
+#if defined(__wasm__)
+    // TODO(WASM): Reimplement the initialization for WASM
+#else
 	VM::rootChannel = IPC::Channel(IPC::Socket::FromHandle(rootSocket));
 
 	// Send syscall ABI version, also acts as a sign that the module loaded
@@ -65,6 +68,7 @@ static void CommonInit(Sys::OSHandle rootSocket)
 		}
 		VM::VMHandleSyscall(id, std::move(reader));
 	}
+#endif
 }
 
 void Sys::Error(Str::StringRef message)
@@ -77,10 +81,10 @@ void Sys::Error(Str::StringRef message)
 #else
 	static std::atomic_flag errorEntered;
 	if (!errorEntered.test_and_set()) {
-#endif
 		// Disable checks for sending sync messages when handling async messages.
 		// At this point we don't really care since this is an error.
 		VM::rootChannel.canSendSyncMsg = true;
+#endif
 
 		// Try to tell the engine about the error, but ignore errors doing so.
 #if defined(__wasm__)
