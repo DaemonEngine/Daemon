@@ -82,8 +82,15 @@ namespace IPC {
     #endif
 
 #if defined(__wasm__)
-    // TODO(WASM) reimplement the Channel for WASM (or remove the need for it).
+    // TODO(WASM) Remove Channel when no longer needed by NaCl
     class Channel {
+    public:
+        // Dummy variables not used by WASM
+        bool canSendSyncMsg;
+        bool canSendAsyncMsg;
+
+        // Writer used to serialize the result of VM::HandleSyscall.
+        Util::Writer reply;
     };
 #else
     class Channel {
@@ -139,24 +146,9 @@ namespace IPC {
     };
 #endif // defined(__wasm__)
 
-#if defined(__wasm__)
-    // TODO(WASM): reimplement for WASM
-
-    // Send a message to the given channel. If the message is synchronous then messageHandler is invoked for all
-    // message that are received until ID_RETURN is received. Values returned by a synchronous message are
-    // returned through reference parameters.
-    template<typename Msg, typename Func, typename... Args> void SendMsg(Channel& channel, Func&& messageHandler, Args&&... args)
-    {
-    }
-
-    // Handle an incoming message using a callback function (which can just be a lambda). If the message is
-    // synchronous then outputs values are written to using reference parameters.
-    template<typename Msg, typename Func> void HandleMsg(Channel& channel, Util::Reader reader, Func&& func)
-    {
-    }
-#else
     namespace detail {
 
+#if !defined(__wasm__)
         // Implementations of SendMsg for Message and SyncMessage
         template<typename Func, typename Id, typename... MsgArgs, typename... Args> void SendMsg(Channel& channel, Func&&, Message<Id, MsgArgs...>, Args&&... args)
         {
@@ -196,6 +188,7 @@ namespace IPC {
                 messageHandler(id, std::move(reader));
             }
         }
+#endif // !defined(__wasm__)
 
         // Map a tuple to get the actual types returned by SerializeTraits::Read instead of the declared types
         template<typename T> struct MapTupleHelper {
@@ -241,13 +234,19 @@ namespace IPC {
             channel.canSendAsyncMsg = oldAsync;
 
             Util::Writer writer;
+#if defined(__wasm__)
+            writer.WriteTuple(Util::TypeListFromTuple<typename Message::Outputs>(), std::move(outputs));
+            channel.reply = std::move(writer);
+#else
             writer.Write<uint32_t>(ID_RETURN);
             writer.WriteTuple(Util::TypeListFromTuple<typename Message::Outputs>(), std::move(outputs));
             channel.SendMsg(writer);
+#endif // defined(__wasm__)
         }
 
     } // namespace detail
 
+#if !defined(__wasm__)
     // Send a message to the given channel. If the message is synchronous then messageHandler is invoked for all
     // message that are received until ID_RETURN is received. Values returned by a synchronous message are
     // returned through reference parameters.
@@ -255,6 +254,7 @@ namespace IPC {
     {
         detail::SendMsg(channel, messageHandler, Msg(), std::forward<Args>(args)...);
     }
+#endif // !defined(__wasm__)
 
     // Handle an incoming message using a callback function (which can just be a lambda). If the message is
     // synchronous then outputs values are written to using reference parameters.
@@ -262,7 +262,6 @@ namespace IPC {
     {
         detail::HandleMsg(channel, Msg(), std::move(reader), std::forward<Func>(func));
     }
-#endif // defined(__wasm__)
 
 } // namespace IPC
 

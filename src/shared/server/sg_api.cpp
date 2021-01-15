@@ -40,8 +40,12 @@ void trap_LocateGameData(int numGEntities, int sizeofGEntity_t, int sizeofGClien
 {
     static bool firstTime = true;
     if (firstTime) {
+#if defined(__wasm__)
+        // TODO(WASM) find a suitable replacement for shmRegion for WASM
+#else
         VM::SendMsg<LocateGameDataMsg1>(shmRegion, numGEntities, sizeofGEntity_t, sizeofGClient);
         firstTime = false;
+#endif // defined(__wasm__)
     } else
         VM::SendMsg<LocateGameDataMsg2>(numGEntities, sizeofGEntity_t, sizeofGClient);
 }

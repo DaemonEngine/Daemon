@@ -108,13 +108,22 @@ void Sys::Error(Str::StringRef message)
 #endif
 }
 
+#if defined(__wasm__)
+namespace VM {
+    std::vector<char> SendRawMsg(const Util::Writer& message) {
+        // TODO(WASM): Implement syscall with an extern function.
+        return {};
+    }
+}
+#endif // defined(__wasm__)
+
 #ifdef BUILD_VM_IN_PROCESS
 
 // Entry point called in a new thread inside the existing process
 extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 {
 #if defined(__wasm__)
-			CommonInit(rootSocket);
+    CommonInit(rootSocket);
 #else
 	try {
 		try {

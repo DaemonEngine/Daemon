@@ -35,19 +35,63 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace VM {
 
-	// Root channel used to communicate with the engine
-	extern IPC::Channel rootChannel;
-
 	// Functions each specific gamelogic should implement
 	void VMInit();
 	void VMHandleSyscall(uint32_t id, Util::Reader reader);
 	void GetNetcodeTables(NetcodeTable& playerStateTable, int& playerStateSize);
 	extern int VM_API_VERSION;
 
+    // TODO(WASM): Remove it once NaCl is removed.
+	// Root channel used to communicate with the engine
+	extern IPC::Channel rootChannel;
+
+#if !defined(__wasm__)
 	// Send a message to the engine
 	template<typename Msg, typename... Args> void SendMsg(Args&&... args) {
 		IPC::SendMsg<Msg>(rootChannel, VMHandleSyscall, std::forward<Args>(args)...);
 	}
+
+#else
+    std::vector<char> SendRawMsg(const Util::Writer& message);
+
+    namespace detail {
+        // Implementations of SendMsg for Message and SyncMessage
+        template<typename Id, typename... MsgArgs, typename... Args>
+        void SendMsg(IPC::Message<Id, MsgArgs...>, Args&&... args) {
+            using Message = IPC::Message<Id, MsgArgs...>;
+            static_assert(sizeof...(Args) == std::tuple_size<typename Message::Inputs>::value, "Incorrect number of arguments for IPC::SendMsg");
+
+            Util::Writer writer;
+            writer.Write<uint32_t>(Message::id);
+            writer.WriteArgs(Util::TypeListFromTuple<typename Message::Inputs>(), std::forward<Args>(args)...);
+            auto reply = SendRawMsg(writer);
+            ASSERT(reply.GetData().empty());
+        }
+
+        template<typename Msg, typename Reply, typename... Args>
+        void SendMsg(IPC::SyncMessage<Msg, Reply>, Args&&... args) {
+            using Message = IPC::SyncMessage<Msg, Reply>;
+            static_assert(sizeof...(Args) == std::tuple_size<typename Message::Inputs>::value + std::tuple_size<typename Message::Outputs>::value, "Incorrect number of arguments for IPC::SendMsg");
+
+            Util::Writer writer;
+            writer.Write<uint32_t>(Message::id);
+            writer.WriteArgs(Util::TypeListFromTuple<typename Message::Inputs>(), std::forward<Args>(args)...);
+
+            SendRawMsg(writer);
+            auto reply = SendRawMsg(writer);
+
+            Util::Reader reader;
+            std::swap(reader.GetData(), reply);
+            auto out = std::forward_as_tuple(std::forward<Args>(args)...);
+            reader.FillTuple<std::tuple_size<typename Message::Inputs>::value>(Util::TypeListFromTuple<typename Message::Outputs>(), out);
+        }
+    }
+
+	template<typename Msg, typename... Args>
+    void SendMsg(Args&&... args) {
+        detail::SendMsg(Msg(), std::forward<Args>(args)...);
+	}
+#endif // !defined(__wasm__)
 
 }
 
