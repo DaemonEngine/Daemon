@@ -31,6 +31,8 @@ OPUS_VERSION=1.3.1
 OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.1
 NACLSDK_VERSION=44.0.2403.155
+WASISDK_VERSION_MAJOR=12
+WASISDK_VERSION=${WASISDK_VERSION_MAJOR}.0
 NCURSES_VERSION=6.0
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
@@ -456,6 +458,23 @@ build_ncurses() {
 	make install
 }
 
+# "Builds" (downloads) the WASI SDK
+build_wasisdk() {
+	case "${PLATFORM}" in
+	mingw*|msvc*)
+		local WASISDK_PLATFORM=mingw
+		;;
+	macosx*)
+		local WASISDK_PLATFORM=macos
+		;;
+	linux*)
+		local WASISDK_PLATFORM=linux
+		;;
+	esac
+    download "wasi-sdk_${WASISDK_PLATFORM}.tar.gz" "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/wasi-sdk-${WASISDK_VERSION}-${WASISDK_PLATFORM}.tar.gz" wasisdk
+    mv "wasi-sdk-${WASISDK_VERSION}" "${PREFIX}/wasi-sdk"
+}
+
 # Build the NaCl SDK
 build_naclsdk() {
 	case "${PLATFORM}" in
@@ -713,10 +732,10 @@ if [ "${#}" -lt "2" ]; then
 	echo "  clean - remove products of build process, excepting download cache. Must be last"
 	echo
 	echo "Packages requires for each platform:"
-	echo "Linux native compile: naclsdk naclports (and possibly others depending on what packages your distribution provides)"
-	echo "Linux to Windows cross-compile: zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle geoip sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Linux native compile: naclsdk naclports wasisdk (and possibly others depending on what packages your distribution provides)"
+	echo "Linux to Windows cross-compile: zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk"
+	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk"
+	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle geoip sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk"
 	exit 1
 fi
 
