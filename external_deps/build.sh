@@ -32,6 +32,8 @@ OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.1
 NACLSDK_VERSION=44.0.2403.155
 NCURSES_VERSION=6.2
+WASISDK_VERSION_MAJOR=12
+WASISDK_VERSION=${WASISDK_VERSION_MAJOR}.0
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
@@ -467,6 +469,23 @@ build_ncurses() {
 	make install
 }
 
+# "Builds" (downloads) the WASI SDK
+build_wasisdk() {
+	case "${PLATFORM}" in
+	mingw*|msvc*)
+		local WASISDK_PLATFORM=mingw
+		;;
+	macosx*)
+		local WASISDK_PLATFORM=macos
+		;;
+	linux*)
+		local WASISDK_PLATFORM=linux
+		;;
+	esac
+	download "wasi-sdk_${WASISDK_PLATFORM}.tar.gz" "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/wasi-sdk-${WASISDK_VERSION}-${WASISDK_PLATFORM}.tar.gz" wasisdk
+	cp -r "wasi-sdk-${WASISDK_VERSION}" "${PREFIX}/wasi-sdk"
+}
+
 # Build the NaCl SDK
 build_naclsdk() {
 	case "${PLATFORM}" in
@@ -720,7 +739,7 @@ if [ "${#}" -lt "2" ]; then
 	echo "usage: ${0} <platform> <package[s]...>"
 	echo "Script to build dependencies for platforms which do not provide them"
 	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx64 linux64"
-	echo "Packages: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Packages: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk"
 	echo "Virtual packages:"
 	echo "  install - create a stripped down version of the built packages that CMake can use"
 	echo "  package - create a zip/tarball of the dependencies so they can be distributed"
