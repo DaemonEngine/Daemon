@@ -46,6 +46,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#include <wasm.h>
+#include <wasmtime.h>
+
 // File handle for the root socket
 #define ROOT_SOCKET_FD 100
 
@@ -392,6 +395,81 @@ IPC::Socket CreateInProcessNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, St
 	return std::move(pair.first);
 }
 
+uint32_t CreateWasmVM(Str::StringRef name, bool pakpath) {
+    std::string moduleName = name + ".wasm";
+
+    std::string wasmFileContent;
+    if (pakpath) {
+        try {
+            wasmFileContent = FS::PakPath::ReadFile(moduleName);
+        } catch(std::system_error& err) {
+            Sys::Drop("VM: Filed to extract VM module %s: %s", moduleName, err.what());
+        }
+    } else {
+        std::string modulePath = FS::Path::Build(FS::GetLibPath(), moduleName);
+        try {
+            wasmFileContent = FS::RawPath::OpenRead(modulePath).ReadAll();
+        } catch(std::system_error& err) {
+            Sys::Drop("VM: Filed to extract VM module %s: %s", modulePath, err.what());
+        }
+    }
+
+    auto HandleWASMError = [](wasmtime_error_t* error) {
+        if (error != nullptr) {
+            wasm_byte_vec_t error_message;
+            wasmtime_error_message(error, &error_message);
+            wasmtime_error_delete(error);
+
+            std::string errorStr(static_cast<const char*>(error_message.data), error_message.size);
+
+            wasm_byte_vec_delete(&error_message);
+
+            Sys::Drop("WASM: %s", errorStr);
+        }
+    };
+
+    wasm_engine_t* engine = wasm_engine_new();
+    wasm_store_t* store = wasm_store_new(engine);
+
+    wasm_byte_vec_t wasmBytecode;
+    wasm_byte_vec_new_uninitialized(&wasmBytecode, wasmFileContent.size());
+    memcpy(wasmBytecode.data, wasmFileContent.data(), wasmFileContent.size());
+
+    wasm_module_t* wasmModule = NULL;
+    HandleWASMError(wasmtime_module_new(engine, &wasmBytecode, &wasmModule)); 
+    wasm_byte_vec_delete(&wasmBytecode);
+
+    wasm_trap_t *trap = NULL;
+    wasm_instance_t *instance = NULL;
+    HandleWASMError(wasmtime_instance_new(store, wasmModule, nullptr, 0, &instance, &trap));
+
+  // (type $t0 (func (param i32)))
+  // (import "wasi_snapshot_preview1" "proc_exit" (func $__wasi_proc_exit (type $t0)))
+  //
+  // (type $t7 (func (param i32 i32)))
+  // (import "env" "EngineSyscall" (func $WASM::EngineSyscall_void_const*__unsigned_long_ (type $t7)))
+  //
+  // (type $t18 (func (param i32 i64 i32) (result i32)))
+  // (import "wasi_snapshot_preview1" "clock_time_get" (func $__wasi_clock_time_get (type $t18)))
+  //
+  // (type $t1 (func (param i32) (result i32)))
+  // (import "wasi_snapshot_preview1" "fd_close" (func $__wasi_fd_close (type $t1)))
+  //
+  // (type $t19 (func (param i32 i64 i32 i32) (result i32)))
+  // (import "wasi_snapshot_preview1" "fd_seek" (func $__wasi_fd_seek (type $t19)))
+  //
+  // (type $t8 (func (param i32 i32 i32 i32) (result i32)))
+  // (import "wasi_snapshot_preview1" "fd_write" (func $__wasi_fd_write (type $t8)))
+  //
+  // (type $t3 (func (param i32 i32) (result i32)))
+  // (import "wasi_snapshot_preview1" "environ_sizes_get" (func $__wasi_environ_sizes_get (type $t3)))
+  //
+  // (type $t3 (func (param i32 i32) (result i32)))
+  // (import "wasi_snapshot_preview1" "environ_get" (func $__wasi_environ_get (type $t3)))
+
+    return 0;
+}
+
 uint32_t VMBase::Create()
 {
 	type = static_cast<vmType_t>(params.vmType.Get());
@@ -412,6 +490,11 @@ uint32_t VMBase::Create()
 		if (err)
 			Log::Warn("Couldn't open %s: %s", filename, err.message());
 	}
+
+    // Early out for WASM to not go through the socket logic.
+    if (type == TYPE_WASM || type == TYPE_WASM_LIBPATH) {
+        return CreateWasmVM(name, type == TYPE_WASM);
+    }
 
 	// Create the socket pair to get the handle for the root socket
 	std::pair<IPC::Socket, IPC::Socket> pair = IPC::Socket::CreatePair();
@@ -491,6 +574,8 @@ void VMBase::Free()
 
 	if (!IsActive())
 		return;
+
+    return;
 
 	// First send a message signaling an exit to the VM
 	// then delete the socket. This is needed because
