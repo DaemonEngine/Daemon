@@ -467,6 +467,9 @@ else()
     if (APPLE)
         set(LIBS_CLIENT ${LIBS_CLIENT} "-framework Carbon" "-framework IOKit" "-framework Cocoa")
     endif()
+    find_package(Wasmtime REQUIRED)
+    set(LIBS_BASE ${LIBS_BASE} ${Wasmtime_LIBRARIES})
+    include_directories(${Wasmtime_INCLUDE_DIRS})
 endif()
 
 # Minizip
