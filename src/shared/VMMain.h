@@ -65,7 +65,7 @@ namespace VM {
             writer.Write<uint32_t>(Message::id);
             writer.WriteArgs(Util::TypeListFromTuple<typename Message::Inputs>(), std::forward<Args>(args)...);
             auto reply = SendRawMsg(writer);
-            ASSERT(reply.GetData().empty());
+            ASSERT(reply.empty());
         }
 
         template<typename Msg, typename Reply, typename... Args>
