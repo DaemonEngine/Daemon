@@ -76,17 +76,24 @@ namespace VM {
 enum vmType_t {
 	// Loads the VM as an nacl executable from the homepath, potentially from a dpk
 	// USE THIS BY DEFAULT FOR PROD
-	TYPE_NACL,
+	TYPE_NACL = 0,
 
 	// Loads the VM as an nacl executable from the libpath, for freshly compiled NaCl VMs (no need to put it in a dpk)
-	TYPE_NACL_LIBPATH,
+	TYPE_NACL_LIBPATH = 1,
 
 	// Loads the VM as a native exe from the libpath
-	TYPE_NATIVE_EXE,
+	TYPE_NATIVE_EXE = 2,
 
 	// Loads the VM as a native DLL from the libpath
 	// USE THIS FOR DEVELOPMENT
-	TYPE_NATIVE_DLL,
+	TYPE_NATIVE_DLL = 3,
+
+    // Loads the VM as a WASM module from the homepath, potentially from a dpk
+    TYPE_WASM = 4,
+
+    // Loads the VM as a WASM module from the libpath
+    TYPE_WASM_LIBPATH = 5,
+
 	TYPE_END,
 	TYPE_BEGIN = TYPE_NACL
 };
