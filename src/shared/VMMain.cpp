@@ -46,31 +46,6 @@ class ExitException {};
 }
 #endif
 
-// Common initialization code for both VM types
-static void CommonInit(Sys::OSHandle rootSocket)
-{
-#if defined(__wasm__)
-    // TODO(WASM): Reimplement the initialization for WASM
-#else
-	VM::rootChannel = IPC::Channel(IPC::Socket::FromHandle(rootSocket));
-
-	// Send syscall ABI version, also acts as a sign that the module loaded
-	Util::Writer writer;
-	writer.Write<uint32_t>(VM::VM_API_VERSION);
-	VM::rootChannel.SendMsg(writer);
-
-	// Start the main loop
-	while (true) {
-		Util::Reader reader = VM::rootChannel.RecvMsg();
-		uint32_t id = reader.Read<uint32_t>();
-		if (id == IPC::ID_EXIT) {
-			return;
-		}
-		VM::VMHandleSyscall(id, std::move(reader));
-	}
-#endif
-}
-
 void Sys::Error(Str::StringRef message)
 {
 	// Only try sending an ErrorMsg once
@@ -109,22 +84,66 @@ void Sys::Error(Str::StringRef message)
 }
 
 #if defined(__wasm__)
+
+namespace WASM {
+    static std::vector<char> serializationSpace;
+
+    [[clang::export_name("VMGetVersion")]] uint32_t VMGetVersion() {
+        return VM::VM_API_VERSION;
+    }
+    [[clang::export_name("VMMain")]] void VMMain() {
+    }
+    [[clang::export_name("VMSyscall")]] void VMSyscall(uint32_t id) {
+        Util::Reader reader;
+        reader.GetData() = std::move(serializationSpace);
+        VM::VMHandleSyscall(id, std::move(reader));
+    }
+    [[clang::export_name("VMReserveSpace")]] void* VMReserveSpace(size_t size) {
+        serializationSpace.resize(size);
+        return serializationSpace.data();
+    }
+
+    [[clang::import_name("EngineSyscall")]] void EngineSyscall(const void* data, size_t size);
+}
+
 namespace VM {
     std::vector<char> SendRawMsg(const Util::Writer& message) {
-        // TODO(WASM): Implement syscall with an extern function.
-        return {};
+        WASM::EngineSyscall(message.GetData().data(), message.GetData().size());
+        return std::move(WASM::serializationSpace);
     }
 }
-#endif // defined(__wasm__)
+
+int main() {
+}
+
+#else // defined(__wasm__)
+
+// Common initialization code for both VM types
+static void CommonInit(Sys::OSHandle rootSocket)
+{
+	VM::rootChannel = IPC::Channel(IPC::Socket::FromHandle(rootSocket));
+
+	// Send syscall ABI version, also acts as a sign that the module loaded
+	Util::Writer writer;
+	writer.Write<uint32_t>(VM::VM_API_VERSION);
+	VM::rootChannel.SendMsg(writer);
+
+	// Start the main loop
+	while (true) {
+		Util::Reader reader = VM::rootChannel.RecvMsg();
+		uint32_t id = reader.Read<uint32_t>();
+		if (id == IPC::ID_EXIT) {
+			return;
+		}
+		VM::VMHandleSyscall(id, std::move(reader));
+	}
+}
 
 #ifdef BUILD_VM_IN_PROCESS
 
 // Entry point called in a new thread inside the existing process
 extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 {
-#if defined(__wasm__)
-    CommonInit(rootSocket);
-#else
 	try {
 		try {
 			CommonInit(rootSocket);
@@ -138,7 +157,6 @@ extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 			Sys::Error("Unhandled exception of unknown type");
 		}
 	} catch (...) {}
-#endif
 }
 
 #else
@@ -166,9 +184,6 @@ int main(int argc, char** argv)
 	// sent back to the engine and reported to the user.
 	Sys::SetupCrashHandler();
 
-#if defined(__wasm__)
-    CommonInit(rootSocket);
-#else
 	try {
 		CommonInit(rootSocket);
 	} catch (Sys::DropErr& err) {
@@ -178,7 +193,8 @@ int main(int argc, char** argv)
 	} catch (...) {
 		Sys::Error("Unhandled exception of unknown type");
 	}
-#endif
 }
 
 #endif
+
+#endif // defined(__wasm__)

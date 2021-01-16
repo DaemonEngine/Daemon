@@ -59,7 +59,14 @@ namespace IPC {
 		}
 
 		FileDesc GetDesc() const;
+#if defined(__wasm__)
+        // TODO(WASM): Find what to do for WASI file handles.
+		static FileHandle FromDesc(const FileDesc&) {
+            return {};
+        }
+#else
 		static FileHandle FromDesc(const FileDesc& desc);
+#endif // defined(__wasm__)
 
 		int GetHandle() const {
 			return handle;
