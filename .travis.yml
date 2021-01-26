@@ -19,6 +19,7 @@ matrix:
     - name: "Linux build using clang"
       os: linux
       compiler: clang
+  allow_failures:
     - name: "osx build"
       os: osx
       compiler: clang
