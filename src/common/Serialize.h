@@ -376,7 +376,7 @@ namespace Util {
 		static void Write(Writer& stream, const std::map<T, U>& value)
 		{
 			stream.WriteSize(value.size());
-			for (const std::pair<T, U>& x: value)
+			for (const std::pair<const T, U>& x: value)
 				stream.Write<std::pair<T, U>>(x);
 		}
 		static std::map<T, U> Read(Reader& stream)
@@ -393,7 +393,7 @@ namespace Util {
 		static void Write(Writer& stream, const std::unordered_map<T, U>& value)
 		{
 			stream.WriteSize(value.size());
-			for (const std::pair<T, U>& x: value)
+			for (const std::pair<const T, U>& x: value)
 				stream.Write<std::pair<T, U>>(x);
 		}
 		static std::unordered_map<T, U> Read(Reader& stream)
