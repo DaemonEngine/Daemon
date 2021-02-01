@@ -185,6 +185,9 @@ static bool BreakpadInitInternal() {
 		snprintf(pidStr, sizeof(pidStr), "%d", pid);
         const char* args[] = { exePath.c_str(), fdServerStr.c_str(), crashDir.c_str(), pidStr, nullptr };
         execv(exePath.c_str(), const_cast<char * const *>(args));
+        // Kill daemon if crash_server couldn't be started
+        kill(pid, SIGKILL);
+        fprintf(stderr, "Failed to exec crash_server\n");
         _exit(1);
     }
 
