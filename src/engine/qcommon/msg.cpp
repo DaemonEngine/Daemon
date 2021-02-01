@@ -1246,7 +1246,7 @@ player_state_t communication
 */
 
 static bool IsValid(const NetcodeTable& table, int size) {
-	if (size % PLAYERSTATE_FIELD_SIZE != 0 || size < offsetof(OpaquePlayerState, END) || size > MAX_PLAYERSTATE_SIZE)
+	if (size % PLAYERSTATE_FIELD_SIZE != 0 || size < int(offsetof(OpaquePlayerState, END)) || size > MAX_PLAYERSTATE_SIZE)
 		return false;
 	for (const netField_t& f : table) {
 		if (f.offset < 0 || f.offset % PLAYERSTATE_FIELD_SIZE != 0)
@@ -1417,7 +1417,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlaye
 
 	MSG_WriteByte( msg, lc );  // # of changes
 
-	for ( size_t i = 0; i < lc; i++ )
+	for ( int i = 0; i < lc; i++ )
 	{
 		netField_t* field = &playerStateFields[i];
 		fromF = ( int * )( ( byte * ) from + field->offset );

@@ -238,7 +238,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int                 coords[ 4 ];
 	};
 
-	enum frustumBits_t
+	enum frustumBits_t : int
 	{
 	  FRUSTUM_LEFT,
 	  FRUSTUM_RIGHT,
