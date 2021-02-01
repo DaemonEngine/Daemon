@@ -436,11 +436,11 @@ void Con_Linefeed()
 	//fall down to input line if scroll lock is configured to do so
 	if(scrollLockMode <= 0)
 	{
-		consoleState.scrollLineIndex = consoleState.lines.size()-1;
+		consoleState.scrollLineIndex = static_cast<int>(consoleState.lines.size()) - 1;
 	}
 
 	//dont scroll a line down on a scrollock configured to do so
-	if ( consoleState.scrollLineIndex >= consoleState.lines.size() - 1 && scrollLockMode < 3 )
+	if ( consoleState.scrollLineIndex >= static_cast<int>(consoleState.lines.size()) - 1 && scrollLockMode < 3 )
 	{
 		consoleState.scrollLineIndex++;
 	}
@@ -524,7 +524,7 @@ bool CL_InternalConsolePrint( const char *text )
 			}
 
 			// word wrap
-			if ( consoleState.lines.back().size() + wordLen >= consoleState.textWidthInChars )
+			if ( consoleState.lines.back().size() + wordLen >= size_t(consoleState.textWidthInChars) )
 			{
 				Con_Linefeed();
 			}
@@ -543,7 +543,7 @@ bool CL_InternalConsolePrint( const char *text )
 					--wordLen;
 				}
 
-				if ( consoleState.lines.back().size() >= consoleState.textWidthInChars )
+				if ( consoleState.lines.back().size() >= size_t(consoleState.textWidthInChars) )
 				{
 					Con_Linefeed();
 				}
@@ -872,7 +872,7 @@ void Con_DrawConsoleContent()
 	for ( ; row >= 0 && lineDrawPosition > textDistanceToTop; lineDrawPosition -= charHeight, row-- )
 	{
 		if ( row == consoleState.lastReadLineIndex - 1
-			&& consoleState.lastReadLineIndex != consoleState.lines.size() - 1 )
+			&& consoleState.lastReadLineIndex != static_cast<int>(consoleState.lines.size()) - 1 )
 		{
 			Con_DrawScrollbackMarkerline( lineDrawPosition );
 		}
@@ -1237,7 +1237,7 @@ void Con_PageDown()
 void Con_ScrollUp( int lines )
 {
 	//do not scroll if there isn't enough to scroll
-	if(consoleState.lines.size() < consoleState.visibleAmountOfLines)
+	if (consoleState.lines.size() < size_t(consoleState.visibleAmountOfLines))
 		return;
 
 	consoleState.scrollLineIndex -= lines;
@@ -1252,7 +1252,7 @@ void Con_ScrollDown( int lines )
 {
 	consoleState.scrollLineIndex += lines;
 
-	if ( consoleState.scrollLineIndex >= consoleState.lines.size() )
+	if ( consoleState.scrollLineIndex >= static_cast<int>(consoleState.lines.size()) )
 	{
 		consoleState.scrollLineIndex = consoleState.lines.size() - 1;
 	}

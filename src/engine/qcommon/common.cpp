@@ -393,7 +393,7 @@ static void HandlePacketEvent(const Sys::PacketEvent& event)
 	// the event buffers are only large enough to hold the
 	// exact payload, but channel messages need to be large
 	// enough to hold fragment reassembly
-	if ( event.data.size() > buf.maxsize )
+	if ( event.data.size() > static_cast<size_t>(buf.maxsize) )
 	{
 		Log::Notice( "Com_EventLoop: oversize packet\n" );
 		return;
