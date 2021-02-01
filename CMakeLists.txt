@@ -433,6 +433,10 @@ if (NACL)
 else()
     add_library(srclibs-nacl-native EXCLUDE_FROM_ALL ${NACLLIST_NATIVE})
     set_target_properties(srclibs-nacl-native PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    if (APPLE)
+        # Do not error for OSAtomic* deprecation notices
+        target_compile_options(srclibs-nacl-native PRIVATE "-Wno-error=deprecated-declarations")
+    endif()
     set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-native)
 endif()
 
