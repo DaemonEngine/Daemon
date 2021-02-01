@@ -6,10 +6,6 @@ cache: ccache
 addons:
   apt:
     update: true
-  homebrew:
-    packages:
-    - ninja
-    - ccache
 
 matrix:
   include:
@@ -19,11 +15,6 @@ matrix:
     - name: "Linux build using clang"
       os: linux
       compiler: clang
-  allow_failures:
-    - name: "osx build"
-      os: osx
-      compiler: clang
-    # osx links gcc to clang; so skip
 
 install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -35,20 +26,11 @@ install:
         libfreetype6-dev libglew-dev libopenal-dev
         liblua5.2-dev ninja-build;
     fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      brew update;
-      touch BrewFile;
-      echo 'brew "ccache"' >> BrewFile;
-      echo 'brew "ninja"' >> BrewFile;
-      brew bundle;
-    fi
   - |
     # workarounds to make ccache work
     if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$CXX" == "clang++" ]; then
       sudo ln -s $(which ccache) /usr/lib/ccache/clang
       sudo ln -s $(which ccache) /usr/lib/ccache/clang++
-    elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
-      export PATH="/usr/local/opt/ccache/libexec:$PATH"
     fi
 
 before_script:
