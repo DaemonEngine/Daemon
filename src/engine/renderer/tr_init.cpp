@@ -1053,7 +1053,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_arb_gpu_shader5 = ri.Cvar_Get( "r_arb_gpu_shader5", "1", CVAR_CHEAT | CVAR_LATCH );
 
 		r_picMip = ri.Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		AssertCvarRange( r_picmip, 0, 3, true );
 		r_imageMaxDimension = ri.Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_ignoreMaterialMinDimension = ri.Cvar_Get( "r_ignoreMaterialMinDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_ignoreMaterialMaxDimension = ri.Cvar_Get( "r_ignoreMaterialMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
