@@ -170,9 +170,8 @@ void R_ImageList_f()
 	for ( i = 0; i < tr.images.currentElements; i++ )
 	{
 		image = (image_t*) Com_GrowListElement( &tr.images, i );
-		char buffer[ MAX_TOKEN_CHARS ];
-		char imageType[ MAX_TOKEN_CHARS ];
 		int sizeFactor = 1;
+		std::string imageType;
 		std::string out;
 
 		if ( filter && !Com_Filter( filter, image->name, true ) )
@@ -183,17 +182,17 @@ void R_ImageList_f()
 		switch ( image->type )
 		{
 			case GL_TEXTURE_2D:
-				Com_sprintf( imageType, sizeof( imageType ),  "2D    " );
+				imageType = "2D    ";
 				break;
 
 			case GL_TEXTURE_CUBE_MAP:
 				sizeFactor = 6;
-				Com_sprintf( imageType, sizeof( imageType ),  "CUBE  " );
+				imageType = "CUBE  ";
 				break;
 
 			default:
 				Log::Debug( "Undocumented image imageType %i for image %s", image->type, image->name );
-				Com_sprintf( imageType, sizeof( imageType ),  "%5i ", image->type );
+				imageType = Str::Format( "%5i ", image->type );
 				break;
 		}
 
@@ -202,7 +201,7 @@ void R_ImageList_f()
 		int texelCount = image->uploadWidth * image->uploadHeight * sizeFactor;
 		int imagePixelSize = imageDataSize * 8 / texelCount;
 
-		Com_sprintf( buffer, sizeof( buffer ), "%4i: %4i %4i %4i   %9i %s  %s ",
+		out += Str::Format( "%4i: %4i %4i %4i   %9i %s  %s ",
 			i,
 			image->uploadWidth,
 			image->uploadHeight,
@@ -211,227 +210,183 @@ void R_ImageList_f()
 			yesno[ image->filterType == filterType_t::FT_DEFAULT ],
 			imageType );
 
-		out += buffer;
-
 		switch ( image->internalFormat )
 		{
 			case GL_RGB8:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB8     " );
-				out += buffer;
+				out += "RGB8     ";
 				break;
 
 			case GL_RGBA8:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA8    " );
-				out += buffer;
+				out += "RGBA8    ";
 				break;
 
 			case GL_RGB16:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB      " );
-				out += buffer;
+				out += "RGB      ";
 				break;
 
 			case GL_RGB16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB16F   " );
-				out += buffer;
+				out += "RGB16F   ";
 				break;
 
 			case GL_RGB32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB32F   " );
-				out += buffer;
+				out += "RGB32F   ";
 				break;
 
 			case GL_RGBA16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA16F  " );
-				out += buffer;
+				out += "RGBA16F  ";
 				break;
 
 			case GL_RGBA32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA32F  " );
-				out += buffer;
+				out += "RGBA32F  ";
 				break;
 
 			case GL_ALPHA16F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "A16F     " );
-				out += buffer;
+				out += "A16F     ";
 				break;
 
 			case GL_ALPHA32F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "A32F     " );
-				out += buffer;
+				out += "A32F     ";
 				break;
 
 			case GL_R16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "R16F     " );
-				out += buffer;
+				out += "R16F     ";
 				break;
 
 			case GL_R32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "R32F     " );
-				out += buffer;
+				out += "R32F     ";
 				break;
 
 			case GL_LUMINANCE_ALPHA16F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "LA16F    " );
-				out += buffer;
+				out += "LA16F    ";
 				break;
 
 			case GL_LUMINANCE_ALPHA32F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "LA32F    " );
-				out += buffer;
+				out += "LA32F    ";
 				break;
 
 			case GL_RG16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RG16F    " );
-				out += buffer;
+				out += "RG16F    ";
 				break;
 
 			case GL_RG32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RG32F    " );
-				out += buffer;
+				out += "RG32F    ";
 				break;
 
 			case GL_COMPRESSED_RGBA:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBAC " );
-				out += buffer;
+				out += "RGBAC ";
 				break;
 
 			case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT1     " );
-				out += buffer;
+				out += "DXT1     ";
 				break;
 
 			case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT1a    " );
-				out += buffer;
+				out += "DXT1a    ";
 				break;
 
 			case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT3     " );
-				out += buffer;
+				out += "DXT3     ";
 				break;
 
 			case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT5     " );
-				out += buffer;
+				out += "DXT5     ";
 				break;
 
 			case GL_COMPRESSED_RED_RGTC1:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC1r   " );
-				out += buffer;
+				out += "RGTC1r   ";
 				break;
 
 			case GL_COMPRESSED_SIGNED_RED_RGTC1:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC1Sr  " );
-				out += buffer;
+				out += "RGTC1Sr  ";
 				break;
 
 			case GL_COMPRESSED_RG_RGTC2:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC2rg  " );
-				out += buffer;
+				out += "RGTC2rg  ";
 				break;
 
 			case GL_COMPRESSED_SIGNED_RG_RGTC2:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC2Srg " );
-				out += buffer;
+				out += "RGTC2Srg ";
 				break;
 
 			case GL_DEPTH_COMPONENT16:
-				Com_sprintf( buffer, sizeof( buffer ),  "D16      " );
-				out += buffer;
+				out += "D16      ";
 				break;
 
 			case GL_DEPTH_COMPONENT24:
-				Com_sprintf( buffer, sizeof( buffer ),  "D24      " );
-				out += buffer;
+				out += "D24      ";
 				break;
 
 			case GL_DEPTH_COMPONENT32:
-				Com_sprintf( buffer, sizeof( buffer ),  "D32      " );
-				out += buffer;
+				out += "D32      ";
 				break;
 
 			default:
 				Log::Debug( "Undocumented image format %i for image %s", image->internalFormat, image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "%5i    ", image->internalFormat );
-				out += buffer;
+				out += Str::Format( "%5i    ", image->internalFormat );
 				break;
 		}
 
 		switch ( image->wrapType.s )
 		{
 			case wrapTypeEnum_t::WT_REPEAT:
-				Com_sprintf( buffer, sizeof( buffer ), "s.rept   " );
-				out += buffer;
+				out += "s.rept   ";
 				break;
 
 			case wrapTypeEnum_t::WT_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "s.clmp   " );
-				out += buffer;
+				out += "s.clmp   ";
 				break;
 
 			case wrapTypeEnum_t::WT_EDGE_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "s.eclmp  " );
-				out += buffer;
+				out += "s.eclmp  ";
 				break;
 
 			case wrapTypeEnum_t::WT_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "s.0clmp  " );
-				out += buffer;
+				out += "s.0clmp  ";
 				break;
 
 			case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "s.a0clmp " );
-				out += buffer;
+				out += "s.a0clmp ";
 				break;
 
 			case wrapTypeEnum_t::WT_ONE_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "t.1clmp  " );
-				out+= buffer;
+				out += "t.1clmp  ";
 				break;
 
 			default:
 				Log::Debug( "Undocumented wrapType.s %i for image %s", Util::ordinal(image->wrapType.s), image->name );
-				Com_sprintf( buffer, sizeof( buffer ), "s.%4i   ", Util::ordinal(image->wrapType.s) );
-				out += buffer;
+				out += Str::Format( "s.%4i   ", Util::ordinal(image->wrapType.s) );
 				break;
 		}
 
 		switch ( image->wrapType.t )
 		{
 			case wrapTypeEnum_t::WT_REPEAT:
-				Com_sprintf( buffer, sizeof( buffer ), "t.rept   " );
-				out += buffer;
+				out += "t.rept   ";
 				break;
 
 			case wrapTypeEnum_t::WT_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "t.clmp   " );
-				out += buffer;
+				out += "t.clmp   ";
 				break;
 
 			case wrapTypeEnum_t::WT_EDGE_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "t.eclmp  " );
-				out += buffer;
+				out += "t.eclmp  ";
 				break;
 
 			case wrapTypeEnum_t::WT_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "t.0clmp  " );
-				out += buffer;
+				out += "t.0clmp  ";
 				break;
 
 			case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "t.a0clmp " );
-				out += buffer;
+				out += "t.a0clmp ";
 				break;
 
 			case wrapTypeEnum_t::WT_ONE_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ), "t.1clmp  " );
-				out+= buffer;
+				out += "t.1clmp  ";
 				break;
 
 			default:
 				Log::Debug( "Undocumented wrapType.t %i for image %s", Util::ordinal(image->wrapType.t), image->name );
-				Com_sprintf( buffer, sizeof( buffer ), "t.%4i   ", Util::ordinal(image->wrapType.t));
-				out += buffer;
+				out += Str::Format( "t.%4i   ", Util::ordinal(image->wrapType.t) );
 				break;
 		}
 
