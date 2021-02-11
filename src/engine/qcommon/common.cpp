@@ -802,7 +802,7 @@ void Com_WriteBindings_f()
 Com_ModifyMsec
 ================
 */
-static Cvar::Cvar<int> fixedtime("common.framerate.fixed", "in milliseconds, forces the frame time, 0 for no effect", Cvar::CHEAT, 0);
+static Cvar::Cvar<int> fixedtime("common.fixedFrameTime", "in milliseconds, forces the frame time, 0 for no effect", Cvar::CHEAT, 0);
 
 int Com_ModifyMsec( int msec )
 {
