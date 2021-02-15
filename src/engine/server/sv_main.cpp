@@ -86,6 +86,8 @@ cvar_t *sv_packetdelay;
 // fretn
 cvar_t *sv_fullmsg;
 
+// Network stuff other than communication with connected clients
+static Log::Logger netLog("server.net", "", Log::Level::NOTICE);
 
 namespace Cvar {
 template<>
@@ -312,7 +314,7 @@ static void SV_ResolveMasterServers()
 
 		if ( netenabled & NET_ENABLEV4 )
 		{
-			Log::Notice( "Resolving %s (IPv4)\n", master.Cvar()->string );
+			netLog.Verbose( "Resolving %s (IPv4)", master.Cvar()->string );
 			int res = NET_StringToAdr( master.Cvar()->string, &master.ipv4, netadrtype_t::NA_IP );
 
 			if ( res == 2 )
@@ -323,17 +325,17 @@ static void SV_ResolveMasterServers()
 
 			if ( res )
 			{
-				Log::Notice( "%s resolved to %s\n", master.Cvar()->string, Net::AddressToString(master.ipv4, true) );
+				netLog.Notice( "%s resolved to %s", master.Cvar()->string, Net::AddressToString(master.ipv4, true) );
 			}
 			else
 			{
-				Log::Notice( "%s has no IPv4 address.\n", master.Cvar()->string );
+				netLog.Notice( "%s has no IPv4 address.", master.Cvar()->string );
 			}
 		}
 
 		if ( netenabled & NET_ENABLEV6 )
 		{
-			Log::Notice( "Resolving %s (IPv6)\n", master.Cvar()->string );
+			netLog.Verbose( "Resolving %s (IPv6)", master.Cvar()->string );
 			int res = NET_StringToAdr( master.Cvar()->string, &master.ipv6, netadrtype_t::NA_IP6 );
 
 			if ( res == 2 )
@@ -344,11 +346,11 @@ static void SV_ResolveMasterServers()
 
 			if ( res )
 			{
-				Log::Notice( "%s resolved to %s\n", master.Cvar()->string, Net::AddressToString(master.ipv6, true) );
+				netLog.Notice( "%s resolved to %s", master.Cvar()->string, Net::AddressToString(master.ipv6, true) );
 			}
 			else
 			{
-				Log::Notice( "%s has no IPv6 address.\n", master.Cvar()->string );
+				netLog.Notice( "%s has no IPv6 address.", master.Cvar()->string );
 			}
 		}
 
@@ -356,7 +358,7 @@ static void SV_ResolveMasterServers()
 		{
 			// if the address failed to resolve, clear it
 			// so we don't take repeated dns hits
-			Log::Notice( "Couldn't resolve address: %s\n", master.Cvar()->string );
+			netLog.Warn( "Couldn't resolve address: %s", master.Cvar()->string );
 			Cvar_Set( master.Cvar()->name, "" );
 			continue;
 		}
@@ -421,7 +423,7 @@ void SV_MasterHeartbeat( const char *hbname )
 			continue;
 		}
 
-		Log::Notice( "Sending heartbeat to %s", master.Cvar()->string );
+		netLog.Notice( "Sending heartbeat to %s", master.Cvar()->string );
 
 		// this command should be changed if the server info / status format
 		// ever incompatibly changes
@@ -708,7 +710,7 @@ bool SV_CheckDRDoS( netadr_t from )
 	{
 		if ( lastGlobalLogTime + 1000 <= svs.time ) // Limit one log every second.
 		{
-			Log::Notice( "Detected flood of getinfo/getstatus connectionless packets" );
+			netLog.Notice( "Detected flood of getinfo/getstatus connectionless packets" );
 			lastGlobalLogTime = svs.time;
 		}
 
@@ -719,8 +721,8 @@ bool SV_CheckDRDoS( netadr_t from )
 	{
 		if ( lastSpecificLogTime + 1000 <= svs.time ) // Limit one log every second.
 		{
-			Log::Notice( "Possible DRDoS attack to address %i.%i.%i.%i, ignoring getinfo/getstatus connectionless packet",
-			            exactFrom.ip[ 0 ], exactFrom.ip[ 1 ], exactFrom.ip[ 2 ], exactFrom.ip[ 3 ] );
+			netLog.Notice( "Possible DRDoS attack to address %i.%i.%i.%i, ignoring getinfo/getstatus connectionless packet",
+			               exactFrom.ip[ 0 ], exactFrom.ip[ 1 ], exactFrom.ip[ 2 ], exactFrom.ip[ 3 ] );
 			lastSpecificLogTime = svs.time;
 		}
 
@@ -941,7 +943,7 @@ static void SVC_RemoteCommand( const netadr_t& from, const Cmd::Args& args )
 			return;
 		}
 
-		Log::Notice( "Bad rcon from %s:\n%s\n%s\n",
+		netLog.Notice( "Bad rcon from %s:\n%s\n%s",
 			Net::AddressToString( from ),
 			invalid_reason.c_str(),
 			args.ConcatArgs(2).c_str() );
@@ -953,7 +955,7 @@ static void SVC_RemoteCommand( const netadr_t& from, const Cmd::Args& args )
 	}
 	else
 	{
-		Log::Notice( "Rcon from %s:\n%s\n", Net::AddressToString( from ), message.command.c_str() );
+		netLog.Notice( "Rcon from %s:\n%s", Net::AddressToString( from ), message.command.c_str() );
 
 		// start redirecting all print outputs to the packet
 		auto env = RconEnvironment(from);
@@ -1010,7 +1012,7 @@ static void SV_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		return;
 	}
 
-	Log::Debug( "SV packet %s : %s", Net::AddressToString( from ), args.Argv(0) );
+	netLog.Debug( "SV packet %s : %s", Net::AddressToString( from ), args.Argv(0) );
 
 	if ( args.Argv(0) == "getstatus" )
 	{
@@ -1052,7 +1054,7 @@ static void SV_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	}
 	else
 	{
-		Log::Debug( "bad connectionless packet from %s: %s", Net::AddressToString( from ), args.ConcatArgs(0) );
+		netLog.Verbose( "bad connectionless packet from %s: %s", Net::AddressToString( from ), args.ConcatArgs(0) );
 	}
 }
 
@@ -1107,7 +1109,7 @@ void SV_PacketEvent( const netadr_t& from, msg_t *msg )
 		// port assignments
 		if ( cl->netchan.remoteAddress.port != from.port )
 		{
-			Log::Notice( "SV_PacketEvent: fixing up a translated port" );
+			netLog.Notice( "SV_PacketEvent: fixing up a translated port" );
 			cl->netchan.remoteAddress.port = from.port;
 		}
 
