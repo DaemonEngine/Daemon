@@ -717,7 +717,7 @@ bool SV_CheckDRDoS( netadr_t from )
 		return true;
 	}
 
-	if ( specificCount >= 3 ) // Already sent 3 to this IP address in last 2 seconds.
+	if ( specificCount >= 5 ) // Already sent 5 to this IP address in last 2 seconds.
 	{
 		if ( lastSpecificLogTime + 1000 <= svs.time ) // Limit one log every second.
 		{
