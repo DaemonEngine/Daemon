@@ -31,7 +31,7 @@ OPUS_VERSION=1.3.1
 OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.1
 NACLSDK_VERSION=44.0.2403.155
-NCURSES_VERSION=6.0
+NCURSES_VERSION=6.2
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
@@ -222,7 +222,8 @@ build_sdl2() {
 	linux*)
 		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
-		./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		# The default -O3 is dropped when there's user-provided CFLAGS.
+		CFLAGS="${CFLAGS:-} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 		make
 		make install
 		;;
@@ -335,13 +336,11 @@ build_openal() {
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
 		;;
 	linux*)
-		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://kcat.strangesoft.net/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
+		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
 		cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DALSOFT_EXAMPLES=OFF -DLIBTYPE=STATIC .
 		make
 		make install
-		echo -ne "create libopenal-combined.a\naddlib libopenal.a\naddlib libcommon.a\nsave\nend\n" | ar -M
-		cp "libopenal-combined.a" "${PREFIX}/lib/libopenal.a"
 		;;
 	*)
 		echo "Unsupported platform for OpenAL"
@@ -451,7 +450,9 @@ build_lua() {
 build_ncurses() {
 	download "ncurses-${NCURSES_VERSION}.tar.gz" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" ncurses
 	cd "ncurses-${NCURSES_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${MSVC_SHARED[@]}
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
+	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${MSVC_SHARED[@]} --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
 	make
 	make install
 }
@@ -506,6 +507,9 @@ build_naclsdk() {
 		;;
 	linux64)
 		cp pepper_*"/tools/nacl_helper_bootstrap_x86_64" "${PREFIX}/nacl_helper_bootstrap"
+		# Fix permissions on a few files which deny access to non-owner
+		chmod 644 "${PREFIX}/irt_core-x86_64.nexe"
+		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
 		;;
 	esac
 }
