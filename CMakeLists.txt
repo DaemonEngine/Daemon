@@ -478,7 +478,7 @@ set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
 if (BUILD_CLIENT)
     find_package(OpenGL REQUIRED)
     include_directories(${OPENGL_INCLUDE_DIR})
-    set(LIBS_CLIENT ${LIBS_CLIENT} ${OPENGL_LIBRARIES})
+    set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
 endif()
 
 # Prefer static libs
