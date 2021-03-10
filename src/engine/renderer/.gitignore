@@ -1,1 +1,3 @@
-glsl
+# glsl/ contained generated headers for embedding GLSL before the switch to
+# the new method with cmake/EmbedText.cmake.
+glsl/

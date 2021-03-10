@@ -737,26 +737,21 @@ if (BUILD_CLIENT)
     )
 
     # generate glsl include files
-    set(GLSL_INCLUDE_DIR ${ENGINE_DIR}/renderer/glsl)
     set(GLSL_SOURCE_DIR ${ENGINE_DIR}/renderer/glsl_source)
-
-    add_executable(include-bin ${LIB_DIR}/include-bin/main.cpp)
-
-    # create the glsl include directory if it doesn't exist
-    add_custom_command(OUTPUT ${GLSL_INCLUDE_DIR}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${GLSL_INCLUDE_DIR}
-    )
+    set(EMBED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/embed_data)
+    file(MAKE_DIRECTORY ${EMBED_INCLUDE_DIR})
+    set_property(TARGET client APPEND PROPERTY INCLUDE_DIRECTORIES ${EMBED_INCLUDE_DIR})
 
     foreach(res ${GLSLSOURCELIST})
-        set(in ${res})
-        get_filename_component(filename ${in} NAME)
-        get_filename_component(filename_no_ext ${in} NAME_WE)
-        set(outpath ${GLSL_INCLUDE_DIR}/${filename_no_ext}.h)
-        add_custom_command(OUTPUT "${outpath}"
-            WORKING_DIRECTORY "${GLSL_SOURCE_DIR}"
-            COMMAND include-bin "${filename}" "${outpath}"
-            DEPENDS "${res}" "${GLSL_INCLUDE_DIR}"
+        get_filename_component(filename_no_ext ${res} NAME_WE)
+        set(outpath ${EMBED_INCLUDE_DIR}/${filename_no_ext}.glsl.h)
+        add_custom_command(
+            OUTPUT ${outpath}
+            COMMAND ${CMAKE_COMMAND} "-DINPUT_FILE=${res}" "-DOUTPUT_FILE=${outpath}"
+                "-DVARIABLE_NAME=${filename_no_ext}_glsl" -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake
+            MAIN_DEPENDENCY ${res}
         )
+        set_property(TARGET client APPEND PROPERTY SOURCES ${outpath})
     endforeach()
 endif()
 
