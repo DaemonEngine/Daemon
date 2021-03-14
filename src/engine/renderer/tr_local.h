@@ -2876,7 +2876,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader
 	extern cvar_t *r_colorMipLevels; // development aid to see texture mip usage
-	extern cvar_t *r_picmip; // controls picmip values
+	extern cvar_t *r_picMip; // controls picmip values
 	extern cvar_t *r_finish;
 	extern cvar_t *r_drawBuffer;
 	extern cvar_t *r_swapInterval;
