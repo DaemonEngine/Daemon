@@ -40,13 +40,14 @@ namespace VM {
 
     class CommonVMServices {
         public:
-            CommonVMServices(VMBase& vm, Str::StringRef vmName, int commandFlag);
+            CommonVMServices(VMBase& vm, Str::StringRef vmName, FS::Owner fileOwnership, int commandFlag);
             ~CommonVMServices();
 
             void Syscall(int major, int minor, Util::Reader reader, IPC::Channel& channel);
 
         private:
             std::string vmName;
+            FS::Owner fileOwnership;
             VMBase& vm;
 
             VMBase& GetVM();

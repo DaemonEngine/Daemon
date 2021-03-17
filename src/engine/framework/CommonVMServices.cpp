@@ -252,6 +252,8 @@ namespace VM {
                 IPC::HandleMsg<FSFOpenFileMsg>(channel, std::move(reader), [this](const std::string& filename, bool open, int fsMode, int& length, int& handle) {
                     fsMode_t mode = static_cast<fsMode_t>(fsMode);
                     length = FS_Game_FOpenFileByMode(filename.c_str(), open ? &handle : nullptr, mode);
+                    if (handle > 0)
+                        FS_SetOwner(handle, fileOwnership);
                 });
                 break;
 
@@ -344,11 +346,12 @@ namespace VM {
 
     // Misc, Dispatch
 
-    CommonVMServices::CommonVMServices(VMBase& vm, Str::StringRef vmName, int commandFlag)
-    :vmName(vmName), vm(vm), commandProxy(new ProxyCmd(*this, commandFlag)) {
+    CommonVMServices::CommonVMServices(VMBase& vm, Str::StringRef vmName, FS::Owner fileOwnership, int commandFlag)
+    :vmName(vmName), fileOwnership(fileOwnership), vm(vm), commandProxy(new ProxyCmd(*this, commandFlag)) {
     }
 
     CommonVMServices::~CommonVMServices() {
+        FS_CloseAllForOwner(fileOwnership);
         //FIXME or iterate over the commands we registered, or add Cmd::RemoveByProxy()
         Cmd::RemoveSameCommands(*commandProxy.get());
         //TODO unregister cvars

@@ -50,6 +50,15 @@ const char PAK_DIR_EXT[] = ".dpkdir/";
 // File offset type. Using 64bit to allow large files.
 using offset_t = int64_t;
 
+// Track ownership of old-style file handles
+enum class Owner
+{
+	UNKNOWN,
+	ENGINE, // TODO: use
+	CGAME,
+	SGAME,
+};
+
 // Special value to indicate the function should throw a system_error instead
 // of returning an error code. This avoids the need to have 2 overloads for each
 // function.

@@ -380,6 +380,10 @@ fileHandle_t FS_SV_FOpenFileWrite( const char *filename );
 void         FS_SV_Rename( const char *from, const char *to );
 int          FS_FOpenFileRead( const char *qpath, fileHandle_t *file );
 
+namespace FS { enum class Owner; }
+void FS_SetOwner( fileHandle_t f, FS::Owner owner );
+void FS_CloseAllForOwner( FS::Owner owner );
+
 /*
 if uniqueFILE is true, then a new FILE will be fopened even if the file
 is found in an already open pak file.  If uniqueFILE is false, you must call
