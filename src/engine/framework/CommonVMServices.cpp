@@ -259,6 +259,7 @@ namespace VM {
 
             case QVM_COMMON_FS_READ:
                 IPC::HandleMsg<FSReadMsg>(channel, std::move(reader), [this](int handle, int len, std::string& res, int& ret) {
+                    FS_CheckOwnership(handle, fileOwnership);
                     std::unique_ptr<char[]> buffer(new char[len]);
                     buffer[0] = '\0';
                     ret = FS_Read(buffer.get(), len, handle);
@@ -268,23 +269,27 @@ namespace VM {
 
             case QVM_COMMON_FS_WRITE:
                 IPC::HandleMsg<FSWriteMsg>(channel, std::move(reader), [this](int handle, const std::string& text, int& res) {
+                    FS_CheckOwnership(handle, fileOwnership);
                     res = FS_Write(text.c_str(), text.size(), handle);
                 });
                 break;
 
             case QVM_COMMON_FS_SEEK:
                 IPC::HandleMsg<VM::FSSeekMsg>(channel, std::move(reader), [this] (int f, long offset, int origin, int& res) {
+                    FS_CheckOwnership(f, fileOwnership);
                     res = FS_Seek(f, offset, Util::enum_cast<fsOrigin_t>(origin));
                 });
                 break;
 
             case QVM_COMMON_FS_TELL:
                 IPC::HandleMsg<VM::FSTellMsg>(channel, std::move(reader), [this] (fileHandle_t f, int& res) {
+                    FS_CheckOwnership(f, fileOwnership);
                     res = FS_FTell(f);
                 });
                 break;
 			case QVM_COMMON_FS_FILELENGTH:
 				IPC::HandleMsg<VM::FSFileLengthMsg>(channel, std::move(reader), [this] (fileHandle_t f, int& res) {
+					FS_CheckOwnership(f, fileOwnership);
 					res = FS_filelength(f);
 				});
 				break;
@@ -296,6 +301,7 @@ namespace VM {
 
             case QVM_COMMON_FS_FCLOSE_FILE:
                 IPC::HandleMsg<FSFCloseFileMsg>(channel, std::move(reader), [this](int handle) {
+                    FS_CheckOwnership(handle, fileOwnership);
                     FS_FCloseFile(handle);
                 });
                 break;

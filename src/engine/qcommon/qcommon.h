@@ -382,6 +382,7 @@ int          FS_FOpenFileRead( const char *qpath, fileHandle_t *file );
 
 namespace FS { enum class Owner; }
 void FS_SetOwner( fileHandle_t f, FS::Owner owner );
+void FS_CheckOwnership( fileHandle_t f, FS::Owner owner );
 void FS_CloseAllForOwner( FS::Owner owner );
 
 /*

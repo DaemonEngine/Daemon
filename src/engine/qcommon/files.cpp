@@ -236,6 +236,15 @@ void FS_SetOwner(fileHandle_t f, FS::Owner owner)
 	handleTable[f].owner = owner;
 }
 
+void FS_CheckOwnership(fileHandle_t f, FS::Owner owner)
+{
+	if (f == 0)
+		return;
+	FS_CheckHandle(f, false);
+	if (handleTable[f].owner != owner)
+		Sys::Drop("VM %d tried to access file handle it doesn't own", Util::ordinal(owner));
+}
+
 void FS_CloseAllForOwner(FS::Owner owner)
 {
 	int numClosed = 0;
