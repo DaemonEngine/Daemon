@@ -1003,7 +1003,7 @@ CGameVM::CGameVM(): VM::VMBase("cgame", Cvar::CHEAT), services(nullptr), cmdBuff
 
 void CGameVM::Start()
 {
-	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "CGame", Cmd::CGAME_VM));
+	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "CGame", FS::Owner::CGAME, Cmd::CGAME_VM));
 	uint32_t version = this->Create();
 	if ( version != CGAME_API_VERSION ) {
 		Sys::Drop( "CGame ABI mismatch, expected %d, got %d", CGAME_API_VERSION, version );
