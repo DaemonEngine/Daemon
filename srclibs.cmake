@@ -218,19 +218,33 @@ elseif (LINUX)
         ${LIB_DIR}/breakpad/src/client/linux/dump_writer_common/thread_info.cc
         ${LIB_DIR}/breakpad/src/client/linux/dump_writer_common/ucontext_reader.cc
         ${LIB_DIR}/breakpad/src/client/linux/handler/exception_handler.cc
+        ${LIB_DIR}/breakpad/src/client/linux/handler/exception_handler.h
         ${LIB_DIR}/breakpad/src/client/linux/handler/minidump_descriptor.cc
+        ${LIB_DIR}/breakpad/src/client/linux/handler/minidump_descriptor.h
         ${LIB_DIR}/breakpad/src/client/linux/log/log.cc
+        ${LIB_DIR}/breakpad/src/client/linux/log/log.h
         ${LIB_DIR}/breakpad/src/client/linux/microdump_writer/microdump_writer.cc
+        ${LIB_DIR}/breakpad/src/client/linux/microdump_writer/microdump_writer.h
+        ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/linux_core_dumper.cc
         ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/linux_dumper.cc
         ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/linux_ptrace_dumper.cc
         ${LIB_DIR}/breakpad/src/client/linux/minidump_writer/minidump_writer.cc
+        ${LIB_DIR}/breakpad/src/client/minidump_file_writer-inl.h
         ${LIB_DIR}/breakpad/src/client/minidump_file_writer.cc
-        ${LIB_DIR}/breakpad/src/common/convert_UTF.c
+        ${LIB_DIR}/breakpad/src/client/minidump_file_writer.h
+        ${LIB_DIR}/breakpad/src/common/convert_UTF.cc
+        ${LIB_DIR}/breakpad/src/common/convert_UTF.h
         ${LIB_DIR}/breakpad/src/common/md5.cc
+        ${LIB_DIR}/breakpad/src/common/md5.h
         ${LIB_DIR}/breakpad/src/common/string_conversion.cc
+        ${LIB_DIR}/breakpad/src/common/string_conversion.h
+        ${LIB_DIR}/breakpad/src/common/linux/elf_core_dump.cc
         ${LIB_DIR}/breakpad/src/common/linux/elfutils.cc
+        ${LIB_DIR}/breakpad/src/common/linux/elfutils.h
         ${LIB_DIR}/breakpad/src/common/linux/file_id.cc
+        ${LIB_DIR}/breakpad/src/common/linux/file_id.h
         ${LIB_DIR}/breakpad/src/common/linux/guid_creator.cc
+        ${LIB_DIR}/breakpad/src/common/linux/guid_creator.h
         ${LIB_DIR}/breakpad/src/common/linux/linux_libc_support.cc
         ${LIB_DIR}/breakpad/src/common/linux/memory_mapped_file.cc
         ${LIB_DIR}/breakpad/src/common/linux/safe_readlink.cc
