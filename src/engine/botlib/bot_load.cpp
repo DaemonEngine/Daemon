@@ -38,6 +38,9 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 #include "bot_local.h"
 #include "nav.h"
 
+static Cvar::Range<Cvar::Cvar<int>> maxNavNodes(
+	"bot_maxNavNodes", "maximum number of nodes in navmesh", Cvar::LATCH, 4096, 0, 65535);
+
 int numNavData = 0;
 NavData_t BotNavData[ MAX_NAV_DATA ];
 
@@ -67,12 +70,11 @@ void BotInit()
 
 void BotSaveOffMeshConnections( NavData_t *nav )
 {
-	char mapname[ MAX_QPATH ];
 	char filePath[ MAX_QPATH ];
 	fileHandle_t f = 0;
 
-	Cvar_VariableStringBuffer( "mapname", mapname, sizeof( mapname ) );
-	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navcon", mapname, nav->name );
+	std::string mapname = Cvar::GetValue( "mapname" );
+	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navcon", mapname.c_str(), nav->name );
 	f = FS_FOpenFileWrite( filePath );
 
 	if ( !f )
@@ -122,12 +124,11 @@ void BotSaveOffMeshConnections( NavData_t *nav )
 
 void BotLoadOffMeshConnections( const char *filename, NavData_t *nav )
 {
-	char mapname[ MAX_QPATH ];
 	char filePath[ MAX_QPATH ];
 	fileHandle_t f = 0;
 
-	Cvar_VariableStringBuffer( "mapname", mapname, sizeof( mapname ) );
-	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navcon", mapname, filename );
+	std::string mapname = Cvar::GetValue("mapname");
+	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navcon", mapname.c_str(), filename );
 	FS_FOpenFileRead( filePath, &f );
 
 	if ( !f )
@@ -177,16 +178,13 @@ void BotLoadOffMeshConnections( const char *filename, NavData_t *nav )
 
 bool BotLoadNavMesh( const char *filename, NavData_t &nav )
 {
-	char mapname[ MAX_QPATH ];
 	char filePath[ MAX_QPATH ];
-	char gameName[ MAX_STRING_CHARS ];
 	fileHandle_t f = 0;
 
 	BotLoadOffMeshConnections( filename, &nav );
 
-	Cvar_VariableStringBuffer( "mapname", mapname, sizeof( mapname ) );
-	Cvar_VariableStringBuffer( "fs_game", gameName, sizeof( gameName ) );
-	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navMesh", mapname, filename );
+	std::string mapname = Cvar::GetValue("mapname");
+	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navMesh", mapname.c_str(), filename );
 	Log::Notice( " loading navigation mesh file '%s'...", filePath );
 
 	int len = FS_FOpenFileRead( filePath, &f );
@@ -379,8 +377,6 @@ void BotShutdownNav()
 
 bool BotSetupNav( const botClass_t *botClass, qhandle_t *navHandle )
 {
-	cvar_t *maxNavNodes = Cvar_Get( "bot_maxNavNodes", "4096",  CVAR_LATCH );
-
 	if ( !numNavData )
 	{
 		vec3_t clearVec = { 0, 0, 0 };
@@ -435,7 +431,7 @@ bool BotSetupNav( const botClass_t *botClass, qhandle_t *navHandle )
 		return false;
 	}
 
-	if ( dtStatusFailed( nav->query->init( nav->mesh, maxNavNodes->integer ) ) )
+	if ( dtStatusFailed( nav->query->init( nav->mesh, maxNavNodes.Get() ) ) )
 	{
 		Log::Notice( "Could not init Detour Navigation Mesh Query for navmesh %s", filename );
 		BotShutdownNav();

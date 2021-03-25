@@ -218,13 +218,13 @@ void Cmd_NavEdit()
 		if ( cmd.nav && cmd.nav->mesh && cmd.nav->cache && cmd.nav->query )
 		{
 			cmd.enabled = true;
-			Cvar_Set( "r_debugSurface", "1" );
+			Cvar::SetValue( "r_debugSurface", "1" );
 		}
 	}
 	else if ( !Q_stricmp( arg, "disable" ) )
 	{
 		cmd.enabled = false;
-		Cvar_Set( "r_debugSurface", "0" );
+		Cvar::SetValue( "r_debugSurface", "0" );
 	}
 	else if ( !Q_stricmp( arg, "save" ) )
 	{
@@ -420,7 +420,7 @@ void NavEditInit()
 {
 #ifndef BUILD_SERVER
 	memset( &cmd, 0, sizeof( cmd ) );
-	Cvar_Set( "r_debugSurface", "0" );
+	Cvar::SetValue( "r_debugSurface", "0" );
 	Cmd_AddCommand( "navedit", Cmd_NavEdit );
 	Cmd_AddCommand( "addcon", Cmd_AddConnection );
 	Cmd_AddCommand( "navtest", Cmd_NavTest );
