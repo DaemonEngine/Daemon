@@ -275,7 +275,6 @@ public:
 	void GameClientCommand(int clientNum, const char* command);
 	void GameClientThink(int clientNum);
 	void GameRunFrame(int levelTime);
-	bool GameSnapshotCallback(int entityNum, int clientNum);
 	NORETURN void BotAIStartFrame(int levelTime);
 
 private:

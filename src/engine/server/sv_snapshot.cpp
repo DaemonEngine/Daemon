@@ -313,7 +313,7 @@ static int SV_QsortEntityNumbers( const void *a, const void *b )
 SV_AddEntToSnapshot
 ===============
 */
-static void SV_AddEntToSnapshot( sharedEntity_t *clientEnt, svEntity_t *svEnt, sharedEntity_t *gEnt,
+static void SV_AddEntToSnapshot( svEntity_t *svEnt, sharedEntity_t *gEnt,
                                  snapshotEntityNumbers_t *eNums )
 {
 	// if we have already added this entity to this snapshot, don't add again
@@ -328,14 +328,6 @@ static void SV_AddEntToSnapshot( sharedEntity_t *clientEnt, svEntity_t *svEnt, s
 	if ( eNums->numSnapshotEntities == MAX_SNAPSHOT_ENTITIES )
 	{
 		return;
-	}
-
-	if ( gEnt->r.snapshotCallback )
-	{
-		if ( !gvm.GameSnapshotCallback( gEnt->s.number, clientEnt->s.number ) )
-		{
-			return;
-		}
 	}
 
 	eNums->snapshotEntities[ eNums->numSnapshotEntities ] = gEnt->s.number;
@@ -458,7 +450,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		// broadcast entities are always sent
 		if ( ent->r.svFlags & SVF_BROADCAST )
 		{
-			SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
 			continue;
 		}
 
@@ -466,7 +458,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		if ( (ent->r.svFlags & SVF_CLIENTS_IN_RANGE) &&
 		     Distance( ent->s.origin, playerEnt->s.origin ) <= ent->r.clientRadius )
 		{
-			SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
 			continue;
 		}
 
@@ -477,7 +469,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		{
 			if ( bitvector[ ent->r.originCluster >> 3 ] & ( 1 << ( ent->r.originCluster & 7 ) ) )
 			{
-				SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+				SV_AddEntToSnapshot( svEnt, ent, eNums );
 			}
 
 			continue;
@@ -557,7 +549,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 					continue;
 				}
 
-				SV_AddEntToSnapshot( playerEnt, master, ment, eNums );
+				SV_AddEntToSnapshot( master, ment, eNums );
 			}
 
 			continue; // master needs to be added, but not this dummy ent
@@ -611,7 +603,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 
 					if ( ment->s.otherEntityNum == ent->s.number )
 					{
-						SV_AddEntToSnapshot( playerEnt, master, ment, eNums );
+						SV_AddEntToSnapshot( master, ment, eNums );
 					}
 				}
 
@@ -620,7 +612,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		}
 
 		// add it
-		SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+		SV_AddEntToSnapshot( svEnt, ent, eNums );
 
 		// if it's a portal entity, add everything visible from its camera position
 		if ( ent->r.svFlags & SVF_PORTAL )
