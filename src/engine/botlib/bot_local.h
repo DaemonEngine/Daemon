@@ -34,8 +34,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 #ifndef __BOT_LOCAL_H
 #define __BOT_LOCAL_H
 
-#include "qcommon/q_shared.h"
-#include "qcommon/qcommon.h"
+#include "engine/qcommon/q_shared.h"
 
 #include "DetourNavMeshBuilder.h"
 #include "DetourNavMeshQuery.h"

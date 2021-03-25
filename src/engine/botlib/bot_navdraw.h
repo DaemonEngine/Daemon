@@ -33,14 +33,15 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 #include "DetourDebugDraw.h"
 #include "DebugDraw.h"
-#include "bot_debug.h"
 #include "bot_local.h"
 
 class DebugDrawQuake : public duDebugDraw
 {
-	BotDebugInterface_t *re;
+	Util::Writer commands;
 public:
-	void init(BotDebugInterface_t *in);
+	void init();
+	void sendCommands();
+
 	void depthMask(bool state);
 	void texture(bool) {};
 	void begin(duDebugDrawPrimitives prim, float size = 1.0f);
@@ -50,5 +51,3 @@ public:
 	void vertex(const float x, const float y, const float z, unsigned int color, const float u, const float v);
 	void end();
 };
-
-void BotDrawNavEdit( NavData_t *nav, DebugDrawQuake *dd );

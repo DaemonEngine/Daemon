@@ -41,6 +41,10 @@ Maryland 20850 USA.
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
 
+#ifndef BUILD_SERVER
+#include "client/client.h" // For bot debug draw
+#endif
+
 // Suppress warnings for unused [this] lambda captures.
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wunused-lambda-capture"
@@ -601,78 +605,15 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		});
 		break;
 
-	case BOT_NAV_SETUP:
-		IPC::HandleMsg<BotNavSetupMsg>(channel, std::move(reader), [this](botClass_t botClass, int& res, int& handle) {
-			res = BotSetupNav(&botClass, &handle);
+	case BOT_DEBUG_DRAW:
+		IPC::HandleMsg<BotDebugDrawMsg>(channel, std::move(reader), [this](std::vector<char> commands) {
+#ifdef BUILD_SERVER
+			Q_UNUSED(commands);
+			Sys::Drop("Can't use BotDebugDrawMsg in a dedicated server");
+#else
+			re.SendBotDebugDrawCommands(std::move(commands));
+#endif
 		});
-		break;
-
-	case BOT_NAV_SHUTDOWN:
-		BotShutdownNav();
-		break;
-
-	case BOT_SET_NAVMESH:
-		IPC::HandleMsg<BotSetNavmeshMsg>(channel, std::move(reader), [this](int clientNum, int navHandle) {
-			BotSetNavMesh(clientNum, navHandle);
-		});
-		break;
-
-	case BOT_FIND_ROUTE:
-		IPC::HandleMsg<BotFindRouteMsg>(channel, std::move(reader), [this](int clientNum, botRouteTarget_t target, bool allowPartial, int& res) {
-			res = BotFindRouteExt(clientNum, &target, allowPartial);
-		});
-		break;
-
-	case BOT_UPDATE_PATH:
-		IPC::HandleMsg<BotUpdatePathMsg>(channel, std::move(reader), [this](int clientNum, botRouteTarget_t target, botNavCmd_t& cmd) {
-			BotUpdateCorridor(clientNum, &target, &cmd);
-		});
-		break;
-
-	case BOT_NAV_RAYCAST:
-		IPC::HandleMsg<BotNavRaycastMsg>(channel, std::move(reader), [this](int clientNum, std::array<float, 3> start, std::array<float, 3> end, int& res, botTrace_t& botTrace) {
-			res = BotNavTrace(clientNum, &botTrace, start.data(), end.data());
-		});
-		break;
-
-	case BOT_NAV_RANDOMPOINT:
-		IPC::HandleMsg<BotNavRandomPointMsg>(channel, std::move(reader), [this](int clientNum, std::array<float, 3>& point) {
-			BotFindRandomPoint(clientNum, point.data());
-		});
-		break;
-
-	case BOT_NAV_RANDOMPOINTRADIUS:
-		IPC::HandleMsg<BotNavRandomPointRadiusMsg>(channel, std::move(reader), [this](int clientNum, std::array<float, 3> origin, float radius, int& res, std::array<float, 3>& point) {
-			res = BotFindRandomPointInRadius(clientNum, origin.data(), point.data(), radius);
-		});
-		break;
-
-	case BOT_ENABLE_AREA:
-		IPC::HandleMsg<BotEnableAreaMsg>(channel, std::move(reader), [this](std::array<float, 3> origin, std::array<float, 3> mins, std::array<float, 3> maxs) {
-			BotEnableArea(origin.data(), mins.data(), maxs.data());
-		});
-		break;
-
-	case BOT_DISABLE_AREA:
-		IPC::HandleMsg<BotDisableAreaMsg>(channel, std::move(reader), [this](std::array<float, 3> origin, std::array<float, 3> mins, std::array<float, 3> maxs) {
-			BotDisableArea(origin.data(), mins.data(), maxs.data());
-		});
-		break;
-
-	case BOT_ADD_OBSTACLE:
-		IPC::HandleMsg<BotAddObstacleMsg>(channel, std::move(reader), [this](std::array<float, 3> mins, std::array<float, 3> maxs, int& handle) {
-			BotAddObstacle(mins.data(), maxs.data(), &handle);
-		});
-		break;
-
-	case BOT_REMOVE_OBSTACLE:
-		IPC::HandleMsg<BotRemoveObstacleMsg>(channel, std::move(reader), [this](int handle) {
-			BotRemoveObstacle(handle);
-		});
-		break;
-
-	case BOT_UPDATE_OBSTACLES:
-		BotUpdateObstacles();
 		break;
 
 	default:

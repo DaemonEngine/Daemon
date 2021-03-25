@@ -1617,6 +1617,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.Add2dPolysIndexed = RE_2DPolyiesIndexed;
 		re.GenerateTexture = RE_GenerateTexture;
 		re.ShaderNameFromHandle = RE_GetShaderNameFromHandle;
+		re.SendBotDebugDrawCommands = RE_SendBotDebugDrawCommands;
 
 		return &re;
 	}

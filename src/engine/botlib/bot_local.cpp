@@ -32,7 +32,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 */
 
 #include "bot_local.h"
-#include "server/server.h"
+#include "sgame/sg_local.h"
 
 /*
 ====================
@@ -116,7 +116,8 @@ bool PointInPolyExtents( Bot_t *bot, dtPolyRef ref, rVec point, rVec extents )
 
 bool PointInPoly( Bot_t *bot, dtPolyRef ref, rVec point )
 {
-	sharedEntity_t *ent = SV_GentityNum( bot->clientNum );
+	gentity_t *ent = g_entities + bot->clientNum;
+
 	return PointInPolyExtents( bot, ref, point, ent->r.maxs );
 }
 
@@ -153,7 +154,7 @@ static void InvalidateRouteResults( Bot_t *bot )
 			continue;
 		}
 
-		if ( svs.time - res.time > ROUTE_CACHE_TIME )
+		if ( level.time - res.time > ROUTE_CACHE_TIME )
 		{
 			res.invalid = true;
 			continue;
@@ -229,7 +230,7 @@ static void AddRouteResult( Bot_t *bot, dtPolyRef start, dtPolyRef end, dtStatus
 	bestPos->endRef = end;
 	bestPos->startRef = start;
 	bestPos->invalid = false;
-	bestPos->time = svs.time;
+	bestPos->time = level.time;
 	bestPos->status = status;
 }
 

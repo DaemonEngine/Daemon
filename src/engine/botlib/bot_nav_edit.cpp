@@ -31,7 +31,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 ===========================================================================
 */
 
-#include "client/client.h"
+#include "common/cm/cm_public.h"
+#include "sgame/sg_local.h"
 #include "DetourDebugDraw.h"
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -57,10 +58,13 @@ bool GetPointPointedTo( NavData_t *nav, rVec &p )
 
 	VectorSet( extents, 640, 96, 640 );
 
-	AngleVectors( cl.snap.ps.viewangles, forward, nullptr, nullptr );
-	VectorMA( cl.snap.ps.origin, 8096, forward, end );
+	// Nav edit commands are only allowed in a local game, where the host is guaranteed to be in slot 0
+	const playerState_t *ps = &g_clients[ 0 ].ps;
 
-	CM_BoxTrace( &trace, cl.snap.ps.origin, end, nullptr, nullptr, 0,
+	AngleVectors( ps->viewangles, forward, nullptr, nullptr );
+	VectorMA( ps->origin, 8096, forward, end );
+
+	CM_BoxTrace( &trace, ps->origin, end, nullptr, nullptr, 0,
 	             CONTENTS_SOLID | CONTENTS_PLAYERCLIP, 0, traceType_t::TT_AABB );
 
 	pos = qVec( trace.endpos );
@@ -125,11 +129,11 @@ void DrawPath( Bot_t *bot, DebugDrawQuake &dd )
 	dd.depthMask(true);
 }
 
-void BotDebugDrawMesh( BotDebugInterface_t *in )
+void BotDebugDrawMesh()
 {
 	static DebugDrawQuake dd;
 
-	dd.init( in );
+	dd.init();
 
 	if ( !cmd.enabled )
 	{
@@ -168,19 +172,34 @@ void BotDebugDrawMesh( BotDebugInterface_t *in )
 			DrawPath( bot, dd );
 		}
 	}
+
+	dd.sendCommands();
 }
 
-void Cmd_NavEdit()
+static bool CheckHost( gentity_t *ent )
 {
+	if ( level.inClient && ent->client->ps.clientNum == 0 )
+	{
+		// It's ok for further messages from commands to use Log::Notice since we have established
+		// that the client console is the server console
+		return true;
+	}
+
+	trap_SendServerCommand(
+		ent - g_entities,
+		"print_tr " QQ( "you must be the host of a local devmap to use this command" ) );
+	return false;
+}
+
+#define Cmd_Argc trap_Argc
+#define Cmd_Argv(i) (trap_Args().Argv(i).c_str())
+
+void Cmd_NavEdit( gentity_t *ent )
+{
+	if ( !CheckHost( ent ) ) return;
 	int argc = Cmd_Argc();
 	const char *arg = nullptr;
 	const char usage[] = "Usage: navedit enable/disable/save <navmesh>";
-
-	if ( !Cvar_VariableIntegerValue( "sv_cheats" ) )
-	{
-		Log::Notice( "navedit only available in local devmap" );
-		return;
-	}
 
 	if ( argc < 2 )
 	{
@@ -241,8 +260,9 @@ void Cmd_NavEdit()
 	}
 }
 
-void Cmd_AddConnection()
+void Cmd_AddConnection( gentity_t *ent )
 {
+	if ( !CheckHost( ent ) ) return;
 	const char usage[] = "Usage: addcon start <dir> (radius)\n"
 	                     " addcon end";
 	const char *arg = nullptr;
@@ -344,8 +364,9 @@ void Cmd_AddConnection()
 	}
 }
 
-void Cmd_NavTest()
+void Cmd_NavTest( gentity_t *ent )
 {
+	if ( !CheckHost( ent ) ) return;
 	const char usage[] = "Usage: navtest shownodes/hidenodes/showportals/hideportals/startpath/endpath";
 	const char *arg = nullptr;
 	int argc = Cmd_Argc();
@@ -418,20 +439,13 @@ void Cmd_NavTest()
 
 void NavEditInit()
 {
-#ifndef BUILD_SERVER
 	memset( &cmd, 0, sizeof( cmd ) );
-	Cvar::SetValue( "r_debugSurface", "0" );
-	Cmd_AddCommand( "navedit", Cmd_NavEdit );
-	Cmd_AddCommand( "addcon", Cmd_AddConnection );
-	Cmd_AddCommand( "navtest", Cmd_NavTest );
-#endif
 }
 
 void NavEditShutdown()
 {
-#ifndef BUILD_SERVER
-	Cmd_RemoveCommand( "navedit" );
-	Cmd_RemoveCommand( "addcon" );
-	Cmd_RemoveCommand( "navtest" );
-#endif
+	if ( cmd.enabled )
+	{
+		Cvar::SetValue( "r_debugSurface", "0" );
+	}
 }

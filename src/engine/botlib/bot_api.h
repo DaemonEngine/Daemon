@@ -32,10 +32,15 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 */
 
 #include "bot_types.h"
+#include "sgame/sg_typedef.h"
 
 void BotInit();
 bool     BotSetupNav( const botClass_t *botClass, qhandle_t *navHandle );
 void         BotShutdownNav();
+void BotDebugDrawMesh();
+void Cmd_NavEdit( gentity_t *ent );
+void Cmd_AddConnection( gentity_t *ent );
+void Cmd_NavTest( gentity_t *ent );
 
 void         BotDisableArea( const vec3_t origin, const vec3_t mins, const vec3_t maxs );
 void         BotEnableArea( const vec3_t origin, const vec3_t mins, const vec3_t maxs );

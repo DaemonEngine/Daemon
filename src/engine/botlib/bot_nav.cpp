@@ -32,7 +32,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 */
 
 #include "bot_local.h"
-#include "server/server.h"
+#include "sgame/sg_local.h"
 
 Bot_t agents[ MAX_CLIENTS ];
 
@@ -127,12 +127,12 @@ void BotSetNavMesh( int botClientNum, qhandle_t nav )
 
 void GetEntPosition( int num, rVec &pos )
 {
-	pos = qVec( SV_GentityNum( num )->s.origin );
+	pos = qVec( g_entities[ num ].s.origin );
 }
 
 void GetEntPosition( int num, qVec &pos )
 {
-	pos = SV_GentityNum( num )->s.origin;
+	pos = g_entities[ num ].s.origin;
 }
 
 bool BotFindRouteExt( int botClientNum, const botRouteTarget_t *target, bool allowPartial )
@@ -327,7 +327,7 @@ float frand()
 
 void BotFindRandomPoint( int botClientNum, vec3_t point )
 {
-	qVec origin = SV_GentityNum( botClientNum )->s.origin;
+	qVec origin = g_entities[ botClientNum ].s.origin;
 
 	if ( !BotFindRandomPointInRadius( botClientNum, origin, point, 2000 ) )
 	{

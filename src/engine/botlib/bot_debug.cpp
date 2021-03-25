@@ -31,7 +31,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 ===========================================================================
 */
 
-#include "client/client.h"
+#include "engine/server/sg_msgdef.h"
+#include "shared/VMMain.h"
 #include "DetourDebugDraw.h"
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -43,57 +44,64 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 #endif
 #include "bot_local.h"
 #include "nav.h"
-#include "bot_debug.h"
+#include "engine/botlib/bot_debug.h"
 #include "bot_navdraw.h"
 
-void DebugDrawQuake::init(BotDebugInterface_t *ref)
+void DebugDrawQuake::init()
 {
-	re = ref;
+	commands = {};
+}
+
+void DebugDrawQuake::sendCommands()
+{
+	commands.Write<debugDrawCommand_t>(debugDrawCommand_t::EOC);
+	VM::SendMsg<BotDebugDrawMsg>(commands.GetData());
 }
 
 void DebugDrawQuake::depthMask(bool state)
 {
-	re->DebugDrawDepthMask( ( bool ) ( int ) state );
+	commands.Write<debugDrawCommand_t>(debugDrawCommand_t::DEPTHMASK);
+	commands.Write<bool>(state);
 }
 
 void DebugDrawQuake::begin(duDebugDrawPrimitives prim, float s)
 {
-	re->DebugDrawBegin( ( debugDrawMode_t ) prim, s );
+	commands.Write<debugDrawCommand_t>(debugDrawCommand_t::BEGIN);
+	commands.Write<debugDrawMode_t>(static_cast<debugDrawMode_t>(prim));
+	commands.Write<float>(s);
 }
 
 void DebugDrawQuake::vertex(const float* pos, unsigned int c)
 {
-	vertex( pos, c, nullptr );
+	vertex( pos[0], pos[1], pos[2], c );
 }
 
 void DebugDrawQuake::vertex(const float x, const float y, const float z, unsigned int color)
 {
-	vec3_t vert;
-	VectorSet( vert, x, y, z );
-	recast2quake( vert );
-	re->DebugDrawVertex( vert, color, nullptr );
+	Vec3 vert{ x, y, z };
+	recast2quake( vert.Data() );
+	commands.Write<debugDrawCommand_t>(debugDrawCommand_t::VERTEX);
+	commands.Write<Vec3>(vert);
+	commands.Write<unsigned int>(color);
 }
 
 void DebugDrawQuake::vertex(const float *pos, unsigned int color, const float* uv)
 {
-	vec3_t vert;
-	VectorCopy( pos, vert );
-	recast2quake( vert );
-	re->DebugDrawVertex( vert, color, uv );
+	vertex(pos[0], pos[1], pos[2], color, uv[0], uv[1]);
 }
 
 void DebugDrawQuake::vertex(const float x, const float y, const float z, unsigned int color, const float u, const float v)
 {
-	vec3_t vert;
-	vec2_t uv;
-	uv[0] = u;
-	uv[1] = v;
-	VectorSet( vert, x, y, z );
-	recast2quake( vert );
-	re->DebugDrawVertex( vert, color, uv );
+	Vec3 vert{ x, y, z };
+	Vec2 uv{ u, v };
+	recast2quake( vert.Data() );
+	commands.Write<debugDrawCommand_t>(debugDrawCommand_t::VERTEX_UV);
+	commands.Write<Vec3>(vert);
+	commands.Write<unsigned int>(color);
+	commands.Write<Vec2>(uv);
 }
 
 void DebugDrawQuake::end()
 {
-	re->DebugDrawEnd();
+	commands.Write<debugDrawCommand_t>(debugDrawCommand_t::END);
 }

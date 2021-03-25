@@ -35,11 +35,12 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 #include "DetourAssert.h"
 
+#include "sgame/sg_local.h"
 #include "bot_local.h"
 #include "nav.h"
 
 static Cvar::Range<Cvar::Cvar<int>> maxNavNodes(
-	"bot_maxNavNodes", "maximum number of nodes in navmesh", Cvar::LATCH, 4096, 0, 65535);
+	"bot_maxNavNodes", "maximum number of nodes in navmesh", Cvar::NONE, 4096, 0, 65535);
 
 int numNavData = 0;
 NavData_t BotNavData[ MAX_NAV_DATA ];
@@ -68,6 +69,11 @@ void BotInit()
 #endif
 }
 
+#define FS_Read trap_FS_Read
+#define FS_Write trap_FS_Write
+#define FS_FCloseFile trap_FS_FCloseFile
+#define FS_FOpenFileRead(name, handle) trap_FS_FOpenFile((name), (handle), fsMode_t::FS_READ)
+
 void BotSaveOffMeshConnections( NavData_t *nav )
 {
 	char filePath[ MAX_QPATH ];
@@ -75,7 +81,7 @@ void BotSaveOffMeshConnections( NavData_t *nav )
 
 	std::string mapname = Cvar::GetValue( "mapname" );
 	Com_sprintf( filePath, sizeof( filePath ), "maps/%s-%s.navcon", mapname.c_str(), nav->name );
-	f = FS_FOpenFileWrite( filePath );
+	trap_FS_FOpenFile( filePath, &f, fsMode_t::FS_WRITE );
 
 	if ( !f )
 	{
@@ -359,9 +365,7 @@ void BotShutdownNav()
 		memset( nav->name, 0, sizeof( nav->name ) );
 	}
 
-#ifndef BUILD_SERVER
 	NavEditShutdown();
-#endif
 	numNavData = 0;
 }
 
@@ -389,9 +393,7 @@ bool BotSetupNav( const botClass_t *botClass, qhandle_t *navHandle )
 			agents[ i ].offMesh = false;
 			memset( agents[ i ].routeResults, 0, sizeof( agents[ i ].routeResults ) );
 		}
-#ifndef BUILD_SERVER
 		NavEditInit();
-#endif
 	}
 
 	if ( numNavData == MAX_NAV_DATA )

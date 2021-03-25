@@ -97,6 +97,7 @@ void RE_StretchPicGradient( float, float, float, float, float, float, float, flo
 void RE_2DPolyies( polyVert_t*, int, qhandle_t ) { }
 void RE_BeginFrame() { }
 void RE_EndFrame( int*, int* ) { }
+void RE_SendBotDebugDrawCommands( std::vector<char> ) { }
 int R_MarkFragments( int, const vec3_t*, const vec3_t, int, vec3_t, int, markFragment_t* )
 {
 	return 0;
@@ -238,6 +239,7 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.Add2dPolys = RE_2DPolyies;
     re.BeginFrame = RE_BeginFrame;
     re.EndFrame = RE_EndFrame;
+    re.SendBotDebugDrawCommands = RE_SendBotDebugDrawCommands;
 
     re.MarkFragments = R_MarkFragments;
     re.ProjectDecal = RE_ProjectDecal;

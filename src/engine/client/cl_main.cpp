@@ -43,8 +43,6 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
-#include "botlib/bot_debug.h"
-
 #include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 #include "framework/Rcon.h"
@@ -2771,8 +2769,6 @@ static bool CL_InitRef()
 	ri.IN_Init = IN_Init;
 	ri.IN_Shutdown = IN_Shutdown;
 	ri.IN_Restart = IN_Restart;
-
-	ri.Bot_DrawDebugMesh = BotDebugDrawMesh;
 
 	Log::Notice("Calling GetRefAPI…" );
 	ret = GetRefAPI( REF_API_VERSION, &ri );
