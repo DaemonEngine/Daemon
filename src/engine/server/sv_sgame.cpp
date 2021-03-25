@@ -417,11 +417,6 @@ void GameVM::GameRunFrame(int levelTime)
 	this->SendMsg<GameRunFrameMsg>(levelTime);
 }
 
-bool GameVM::GameSnapshotCallback(int, int)
-{
-	Sys::Drop("GameVM::GameSnapshotCallback not implemented");
-}
-
 void GameVM::BotAIStartFrame(int)
 {
 	Sys::Drop("GameVM::BotAIStartFrame not implemented");

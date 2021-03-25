@@ -90,8 +90,6 @@ struct entityShared_t
 	//     ( ent->r.ownerNum != ENTITYNUM_NONE && ent->r.ownerNum == entities[passEntityNum].r.ownerNum ) ) )
 	int      ownerNum;
 
-	bool snapshotCallback;
-
 	int numClusters; // if -1, use headnode instead
 	int clusternums[ MAX_ENT_CLUSTERS ];
 	int lastCluster; // if all the clusters don't fit in clusternums
