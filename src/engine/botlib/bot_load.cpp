@@ -331,16 +331,6 @@ bool BotLoadNavMesh( const char *filename, NavData_t &nav )
 	return true;
 }
 
-inline void *dtAllocCustom( size_t size, dtAllocHint )
-{
-	return Z_TagMalloc( size, memtag_t::TAG_BOTLIB );
-}
-
-inline void dtFreeCustom( void *ptr )
-{
-	Z_Free( ptr );
-}
-
 void BotShutdownNav()
 {
 	for ( int i = 0; i < numNavData; i++ )
@@ -380,8 +370,6 @@ bool BotSetupNav( const botClass_t *botClass, qhandle_t *navHandle )
 	if ( !numNavData )
 	{
 		vec3_t clearVec = { 0, 0, 0 };
-
-		dtAllocSetCustom( dtAllocCustom, dtFreeCustom );
 
 		for ( int i = 0; i < MAX_CLIENTS; i++ )
 		{
