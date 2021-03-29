@@ -3948,6 +3948,7 @@ void R_LoadLightGrid( lump_t *l )
 			  w->lightGridGLOrigin );
 
 		VectorSet( w->lightGridBounds, 1, 1, 1 );
+		w->numLightGridPoints = 1;
 
 		w->lightGridGLScale[ 0 ] = w->lightGridInverseSize[ 0 ];
 		w->lightGridGLScale[ 1 ] = w->lightGridInverseSize[ 1 ];
