@@ -3671,6 +3671,10 @@ static void R_LoadMarksurfaces( lump_t *l )
 	for ( i = 0; i < count; i++ )
 	{
 		j = LittleLong( in[ i ] );
+		if ( j < 0 || j >= s_worldData.numSurfaces )
+		{
+			Sys::Drop( "LoadMap: invalid surface number %d", j );
+		}
 		out[ i ] = s_worldData.surfaces + j;
 		s_worldData.viewSurfaces[ i ] = out[ i ];
 	}
