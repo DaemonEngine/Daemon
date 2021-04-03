@@ -37,7 +37,6 @@ Maryland 20850 USA.
 
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
-#include "botlib/bot_api.h"
 #include "sg_api.h"
 #include "framework/VirtualMachine.h"
 #include "framework/CommonVMServices.h"

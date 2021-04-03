@@ -34,7 +34,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 #ifndef BOT_DEBUG_H
 #define BOT_DEBUG_H
 
-enum class debugDrawMode_t
+enum class debugDrawMode_t : uint8_t
 {
 	D_DRAW_POINTS,
 	D_DRAW_LINES,
@@ -42,13 +42,14 @@ enum class debugDrawMode_t
 	D_DRAW_QUADS
 };
 
-struct BotDebugInterface_t
+enum class debugDrawCommand_t : uint8_t
 {
-	void ( *DebugDrawBegin ) ( debugDrawMode_t mode, float size );
-	void ( *DebugDrawDepthMask )( bool state );
-	void ( *DebugDrawVertex ) ( const vec3_t pos, unsigned int color,const vec2_t uv );
-	void ( *DebugDrawEnd ) ();
+	BEGIN,
+	END,
+	DEPTHMASK,
+	VERTEX,
+	VERTEX_UV, // WTF is the meaning of a texture coordinate when you are drawing in one color?
+	EOC
 };
 
-void     BotDebugDrawMesh(BotDebugInterface_t *in);
 #endif

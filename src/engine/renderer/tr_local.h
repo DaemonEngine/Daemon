@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "qcommon/q_shared.h"
 #include "qcommon/qfiles.h"
 #include "qcommon/qcommon.h"
+#include "botlib/bot_debug.h"
 #include "tr_public.h"
 #include "iqm.h"
 
@@ -3100,6 +3101,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void     DebugDrawBegin( debugDrawMode_t mode, float size );
 	void     DebugDrawDepthMask(bool state);
 	void     DebugDrawEnd();
+	void RE_SendBotDebugDrawCommands( std::vector<char> commands );
 	/*
 	====================================================================
 

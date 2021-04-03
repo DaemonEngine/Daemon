@@ -43,7 +43,6 @@ Maryland 20850 USA.
 #include "CryptoChallenge.h"
 #include "common/Defs.h"
 #include "qcommon/sys.h"
-#include "botlib/bot_api.h"
 
 /*
 ===============
@@ -599,7 +598,6 @@ Only called at main exe startup, not for each game
 void SV_Init()
 {
 	SV_AddOperatorCommands();
-	BotInit();
 
 	// serverinfo vars
 	Cvar_Get( "timelimit", "0", CVAR_SERVERINFO );

@@ -37,7 +37,6 @@ Maryland 20850 USA.
 #define __TR_PUBLIC_H
 
 #include "tr_types.h"
-#include "engine/botlib/bot_debug.h"
 
 #define REF_API_VERSION 10
 
@@ -211,6 +210,7 @@ struct refexport_t
 	void ( *Add2dPolysIndexed )( polyVert_t *polys, int numverts, int *indexes, int numindexes, int trans_x, int trans_y, qhandle_t shader );
 	qhandle_t ( *GenerateTexture )( const byte *pic, int width, int height );
 	const char *( *ShaderNameFromHandle )( qhandle_t shader );
+	void ( *SendBotDebugDrawCommands )( std::vector<char> commands );
 };
 
 //
@@ -275,7 +275,6 @@ struct refimport_t
 	void ( *IN_Init )( void *windowData );
 	void ( *IN_Shutdown )();
 	void ( *IN_Restart )();
-	void ( *Bot_DrawDebugMesh )( BotDebugInterface_t *in );
 };
 
 // this is the only function actually exported at the linker level

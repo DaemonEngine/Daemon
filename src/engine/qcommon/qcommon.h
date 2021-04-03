@@ -585,7 +585,6 @@ enum class memtag_t
 {
   TAG_FREE,
   TAG_GENERAL,
-  TAG_BOTLIB,
   TAG_RENDERER,
   TAG_SMALL,
   TAG_CRYPTO,

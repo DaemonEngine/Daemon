@@ -3,28 +3,6 @@ set(CRUNCHLIST
     ${LIB_DIR}/crunch/inc/crnlib.h
 )
 
-set(DETOURLIST
-    ${LIB_DIR}/recastnavigation/DebugUtils/Source/DebugDraw.cpp
-    ${LIB_DIR}/recastnavigation/Detour/Source/DetourAlloc.cpp
-    ${LIB_DIR}/recastnavigation/Detour/Include/DetourAssert.h
-    ${LIB_DIR}/recastnavigation/Detour/Source/DetourAssert.cpp
-    ${LIB_DIR}/recastnavigation/Detour/Source/DetourCommon.cpp
-    ${LIB_DIR}/recastnavigation/DebugUtils/Source/DetourDebugDraw.cpp
-    ${LIB_DIR}/recastnavigation/Detour/Source/DetourNavMesh.cpp
-    ${LIB_DIR}/recastnavigation/Detour/Source/DetourNavMeshBuilder.cpp
-    ${LIB_DIR}/recastnavigation/Detour/Source/DetourNavMeshQuery.cpp
-    ${LIB_DIR}/recastnavigation/Detour/Include/DetourMath.h
-    ${LIB_DIR}/recastnavigation/Detour/Source/DetourNode.cpp
-    ${LIB_DIR}/recastnavigation/DetourCrowd/Source/DetourPathCorridor.cpp
-    ${LIB_DIR}/recastnavigation/Detour/Include/DetourStatus.h
-    ${LIB_DIR}/recastnavigation/DetourTileCache/Source/DetourTileCache.cpp
-    ${LIB_DIR}/recastnavigation/DetourTileCache/Source/DetourTileCacheBuilder.cpp
-)
-
-set(FASTLZLIST
-    ${LIB_DIR}/fastlz/fastlz.c
-)
-
 set(FINDLOCALELIST
     ${LIB_DIR}/findlocale/findlocale.c
 )
