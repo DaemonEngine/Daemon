@@ -139,8 +139,18 @@ build_gmp() {
 		unset CXX
 		;;
 	esac
+
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	case "${PLATFORM}" in
+	macosx64)
+		# The assembler objects are incompatible with PIE
+		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-assembly
+		;;
+	*)
+		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		;;
+	esac
+
 	make
 	make install
 	case "${PLATFORM}" in
