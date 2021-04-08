@@ -1107,7 +1107,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_znear = ri.Cvar_Get( "r_znear", "3", CVAR_CHEAT );
 		r_zfar = ri.Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
 		r_ignoreGLErrors = ri.Cvar_Get( "r_ignoreGLErrors", "0", 0 );
-		r_fastsky = ri.Cvar_Get( "r_fastsky", "0", 0 );
+		r_fastsky = ri.Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE );
 		r_drawSun = ri.Cvar_Get( "r_drawSun", "0", 0 );
 		r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_CHEAT );
 		r_textureMode = ri.Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE );
