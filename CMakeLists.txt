@@ -375,7 +375,7 @@ if (DEPS_DIR)
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
         get_filename_component(BASENAME ${DEPS_DIR} NAME)
-        set(REMOTE "http://dl.unvanquished.net/deps/${BASENAME}${DEPS_EXT}")
+        set(REMOTE "https://dl.unvanquished.net/deps/${BASENAME}${DEPS_EXT}")
         message(STATUS "Downloading dependencies from '${REMOTE}'")
         file(DOWNLOAD ${REMOTE} ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
             SHOW_PROGRESS
