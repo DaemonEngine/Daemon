@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_public.h"
 #include "iqm.h"
 
+#define GLEW_NO_GLU
 #include <GL/glew.h>
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
@@ -239,7 +240,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int                 coords[ 4 ];
 	};
 
-	enum frustumBits_t
+	enum frustumBits_t : int
 	{
 	  FRUSTUM_LEFT,
 	  FRUSTUM_RIGHT,
