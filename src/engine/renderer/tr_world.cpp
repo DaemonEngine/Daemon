@@ -830,6 +830,12 @@ static void R_MarkLeaves()
 			}
 		}
 
+		// check if outside map
+		if (leaf->area == -1) {
+			// can't be visible
+			continue;
+		}
+
 		// check for door connection
 		if ( ( tr.refdef.areamask[ leaf->area >> 3 ] & ( 1 << ( leaf->area & 7 ) ) ) )
 		{
