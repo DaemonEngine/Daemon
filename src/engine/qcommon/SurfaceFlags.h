@@ -57,7 +57,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // undefined                        BIT( 11 ) // 0x800
 // undefined                        BIT( 12 ) // 0x1000     // Unvanquished stores CONTENTS_NOALIENBUILD there
 // undefined                        BIT( 13 ) // 0x2000     // Unvanquished stores CONTENTS_NOHUMANBUILD there
-#define CONTENTS_MOVER              BIT( 14 ) // 0x4000     // Unvanquished stores CONTENTS_NOBUILD there
+#define CONTENTS_MOVER              BIT( 14 ) // 0x4000     // Wolf:ET stores CONTENTS_MOVER there; Unvanquished stores CONTENTS_NOBUILD there
 #define CONTENTS_AREAPORTAL         BIT( 15 ) // 0x8000
 #define CONTENTS_PLAYERCLIP         BIT( 16 ) // 0x10000
 #define CONTENTS_MONSTERCLIP        BIT( 17 ) // 0x20000
@@ -66,7 +66,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONTENTS_CLUSTERPORTAL      BIT( 20 ) // 0x100000
 #define CONTENTS_DONOTENTER         BIT( 21 ) // 0x200000
 #define CONTENTS_DONOTENTER_LARGE   BIT( 22 ) // 0x400000
-// undefined                        BIT( 23 ) // 0x800000
+// undefined                        BIT( 23 ) // 0x800000   // Q3 stores CONTENTS_MOVER there
 #define CONTENTS_ORIGIN             BIT( 24 ) // 0x1000000  // removed from entity before BSP computation
 #define CONTENTS_BODY               BIT( 25 ) // 0x2000000  // not used by brushes (must not), used by game entities
 #define CONTENTS_CORPSE             BIT( 26 ) // 0x4000000
@@ -74,7 +74,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONTENTS_STRUCTURAL         BIT( 28 ) // 0x10000000 // solid brushes from BSP
 #define CONTENTS_TRANSLUCENT        BIT( 29 ) // 0x20000000 // contained surfaces will not be consumed
 #define CONTENTS_TRIGGER            BIT( 30 ) // 0x40000000
-#define CONTENTS_NODROP             BIT( 31 ) // 0x80000000 // delete bodies or items whean dropped, used on things like lava or pit of death to prevent unnecessary polygon pileups
+#define CONTENTS_NODROP             BIT( 31 ) // 0x80000000 // delete bodies or items when dropped, used on things like lava or pit of death to prevent unnecessary polygon pileups
 
 // content flags
 #define SURF_NODAMAGE               BIT( 0 )  // 0x1        // falling on this surface does not give damage
@@ -111,6 +111,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SURF_LANDMINE               BIT( 31 ) // 0x80000000 // Wolf:ET, landmines can be placed on this surface
 
 // Note about other idTech 3 based games:
-// Jedi Knights games (see OpenJK) also define a third bitfield for flags with MATERIAL prefix to tell surface is water, snow, sand, glass, sort grasss, long grass, etc.
+// Jedi Knights games (see OpenJK) also define a third bitfield for flags with MATERIAL prefix to tell surface is water, snow, sand, glass, short grasss, long grass, etc.
 // Jedi Knights games also redefine a lot of CONTENTS flags (introducing things like CONTENTS_LADDER) and SURF FLAGS (moving SURF_SKY to BIT(13) for example)
 // Smokin'Guns uses a special .tex sidecar files to tweak surfaces flags
