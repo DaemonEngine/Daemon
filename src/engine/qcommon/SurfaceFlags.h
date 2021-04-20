@@ -57,7 +57,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // undefined                        BIT( 11 ) // 0x800
 // undefined                        BIT( 12 ) // 0x1000     // Unvanquished stores CONTENTS_NOALIENBUILD there
 // undefined                        BIT( 13 ) // 0x2000     // Unvanquished stores CONTENTS_NOHUMANBUILD there
-#define CONTENTS_MOVER              BIT( 14 ) // 0x4000     // Wolf:ET stores CONTENTS_MOVER there; Unvanquished stores CONTENTS_NOBUILD there
+// undefined                        BIT( 14 ) // 0x4000     // Unvanquished stores CONTENTS_NOBUILD there; RTCW and Wolf:ET store CONTENTS_MOVER there
 #define CONTENTS_AREAPORTAL         BIT( 15 ) // 0x8000
 #define CONTENTS_PLAYERCLIP         BIT( 16 ) // 0x10000
 #define CONTENTS_MONSTERCLIP        BIT( 17 ) // 0x20000
@@ -66,7 +66,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONTENTS_CLUSTERPORTAL      BIT( 20 ) // 0x100000
 #define CONTENTS_DONOTENTER         BIT( 21 ) // 0x200000
 #define CONTENTS_DONOTENTER_LARGE   BIT( 22 ) // 0x400000
-// undefined                        BIT( 23 ) // 0x800000   // Q3 stores CONTENTS_MOVER there
+#define CONTENTS_MOVER              BIT( 23 ) // 0x800000   // Q3 and Tremulous store CONTENTS_MOVER there
 #define CONTENTS_ORIGIN             BIT( 24 ) // 0x1000000  // removed from entity before BSP computation
 #define CONTENTS_BODY               BIT( 25 ) // 0x2000000  // not used by brushes (must not), used by game entities
 #define CONTENTS_CORPSE             BIT( 26 ) // 0x4000000
