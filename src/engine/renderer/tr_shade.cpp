@@ -688,7 +688,7 @@ static void Render_generic( int stage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	if ( r_dynamicLight->integer == 2 )
+	if ( r_dynamicLight->integer > 0 )
 	{
 		GL_BindToTMU( 8, tr.lighttileRenderImage );
 	}
@@ -907,7 +907,7 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_LightTiles
-	if ( r_dynamicLight->integer == 2 )
+	if ( r_dynamicLight->integer > 0 )
 	{
 		GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage );
 	}
