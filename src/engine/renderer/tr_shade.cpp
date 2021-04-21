@@ -897,8 +897,9 @@ static void Render_lightMapping( int stage )
 
 	gl_lightMappingShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
+	gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
+
 	if( backEnd.refdef.numShaderLights > 0 ) {
-		gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
 		if( glConfig2.uniformBufferObjectAvailable ) {
 			gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 		} else {
