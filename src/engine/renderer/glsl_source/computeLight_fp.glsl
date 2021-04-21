@@ -209,7 +209,7 @@ void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 mater
     for( int i = 0; i < lightsPerLayer; i++ ) {
       int idx = numLayers * nextIdx( idxs ) + layer;
 
-      if( idx > u_numLights )
+      if( idx >= u_numLights )
       {
 #if defined(r_showLightTiles)
         if (numLights > 0.0)
