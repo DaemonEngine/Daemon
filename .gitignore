@@ -14,7 +14,6 @@ vm
 Release
 Debug
 build
-*.vcxproj.user
 *.kdev4
 *.dll
 *.exe
@@ -46,3 +45,15 @@ external_deps/*
 #never ignore these in subdirectories by accident
 !.gitattributes
 !.gitignore
+
+#ignore Visual Studio generated project files
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+#ignore Visual Studio / Visual Studio Code settings
+.vs
+
+#ignore removed recastnavigation submodule
+libs/recastnavigation
