@@ -1,22 +1,24 @@
-set(SHAREDLIST
-    ${MOUNT_DIR}/shared/CommandBufferClient.cpp
-    ${MOUNT_DIR}/shared/CommandBufferClient.h
-    ${MOUNT_DIR}/shared/CommonProxies.cpp
-    ${MOUNT_DIR}/shared/CommonProxies.h
-    ${MOUNT_DIR}/shared/VMMain.cpp
-    ${MOUNT_DIR}/shared/VMMain.h
-    PARENT_SCOPE
-)
+if (DAEMON_PARENT_SCOPE_DIR)
+    set(SHAREDLIST
+        ${MOUNT_DIR}/shared/CommandBufferClient.cpp
+        ${MOUNT_DIR}/shared/CommandBufferClient.h
+        ${MOUNT_DIR}/shared/CommonProxies.cpp
+        ${MOUNT_DIR}/shared/CommonProxies.h
+        ${MOUNT_DIR}/shared/VMMain.cpp
+        ${MOUNT_DIR}/shared/VMMain.h
+        PARENT_SCOPE
+    )
 
-set(SHAREDLIST_cgame
-    ${MOUNT_DIR}/shared/client/cg_api.cpp ${MOUNT_DIR}/shared/client/cg_api.h
-    PARENT_SCOPE
-)
+    set(SHAREDLIST_cgame
+        ${MOUNT_DIR}/shared/client/cg_api.cpp ${MOUNT_DIR}/shared/client/cg_api.h
+        PARENT_SCOPE
+    )
 
-set(SHAREDLIST_sgame
-    ${MOUNT_DIR}/shared/server/sg_api.cpp ${MOUNT_DIR}/shared/server/sg_api.h
-    PARENT_SCOPE
-)
+    set(SHAREDLIST_sgame
+        ${MOUNT_DIR}/shared/server/sg_api.cpp ${MOUNT_DIR}/shared/server/sg_api.h
+        PARENT_SCOPE
+    )
+endif()
 
 set(COMMONLIST
     ${COMMON_DIR}/Assert.h
@@ -76,7 +78,9 @@ set(COMMONLIST
     ${ENGINE_DIR}/qcommon/q_unicode.h
     ${ENGINE_DIR}/qcommon/unicode_data.h
 )
-set(COMMONLIST ${COMMONLIST} PARENT_SCOPE)
+if (DAEMON_PARENT_SCOPE_DIR)
+    set(COMMONLIST ${COMMONLIST} PARENT_SCOPE)
+endif()
 
 set(RENDERERLIST
     ${ENGINE_DIR}/renderer/gl_shader.cpp
