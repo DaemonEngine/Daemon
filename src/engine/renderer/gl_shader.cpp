@@ -523,16 +523,16 @@ static std::string GenEngineConstants() {
 		}
 
 		if ( r_lightBleedReduction->value )
-			AddConst( str, "r_LightBleedReduction", r_lightBleedReduction->value );
+			AddConst( str, "r_lightBleedReduction", r_lightBleedReduction->value );
 
 		if ( r_overDarkeningFactor->value )
-			AddConst( str, "r_OverDarkeningFactor", r_overDarkeningFactor->value );
+			AddConst( str, "r_overDarkeningFactor", r_overDarkeningFactor->value );
 
 		if ( r_shadowMapDepthScale->value )
-			AddConst( str, "r_ShadowMapDepthScale", r_shadowMapDepthScale->value );
+			AddConst( str, "r_shadowMapDepthScale", r_shadowMapDepthScale->value );
 
 		if ( r_debugShadowMaps->integer )
-			AddDefine( str, "r_DebugShadowMaps", r_debugShadowMaps->integer );
+			AddDefine( str, "r_debugShadowMaps", r_debugShadowMaps->integer );
 
 		if ( r_softShadows->integer == 6 )
 			AddDefine( str, "PCSS", 1 );
@@ -540,10 +540,10 @@ static std::string GenEngineConstants() {
 			AddConst( str, "r_PCFSamples", r_softShadows->value + 1.0f );
 
 		if ( r_parallelShadowSplits->integer )
-			AddDefine( str, Str::Format( "r_ParallelShadowSplits_%d", r_parallelShadowSplits->integer ) );
+			AddDefine( str, Str::Format( "r_parallelShadowSplits_%d", r_parallelShadowSplits->integer ) );
 
 		if ( r_showParallelShadowSplits->integer )
-			AddDefine( str, "r_ShowParallelShadowSplits", 1 );
+			AddDefine( str, "r_showParallelShadowSplits", 1 );
 	}
 
 	if ( r_dynamicLight->integer != 0 )
@@ -576,7 +576,7 @@ static std::string GenEngineConstants() {
 
 	if ( glConfig2.vboVertexSkinningAvailable )
 	{
-		AddDefine( str, "r_VertexSkinning", 1 );
+		AddDefine( str, "r_vertexSkinning", 1 );
 		AddConst( str, "MAX_GLSL_BONES", glConfig2.maxVertexSkinningBones );
 	}
 	else
@@ -585,14 +585,14 @@ static std::string GenEngineConstants() {
 	}
 
 	if ( r_wrapAroundLighting->value )
-		AddConst( str, "r_WrapAroundLighting", r_wrapAroundLighting->value );
+		AddConst( str, "r_wrapAroundLighting", r_wrapAroundLighting->value );
 
 	if ( r_halfLambertLighting->integer )
-		AddDefine( str, "r_HalfLambertLighting", 1 );
+		AddDefine( str, "r_halfLambertLighting", 1 );
 
 	if ( r_rimLighting->integer )
 	{
-		AddDefine( str, "r_RimLighting", 1 );
+		AddDefine( str, "r_rimLighting", 1 );
 		AddConst( str, "r_RimExponent", r_rimExponent->value );
 	}
 

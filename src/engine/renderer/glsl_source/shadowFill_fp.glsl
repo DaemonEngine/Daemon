@@ -98,14 +98,14 @@ void	main()
 	float distance;
 #if defined(LIGHT_DIRECTIONAL)
 	{
-		distance = gl_FragCoord.z;// * r_ShadowMapDepthScale;
+		distance = gl_FragCoord.z;// * r_shadowMapDepthScale;
 		//distance /= gl_FragCoord.w;
 		//distance = var_Position.z / var_Position.w;
 		//distance = var_Position.z;
 	}
 #else
 	{
-		distance = (length(var_Position - u_LightOrigin) / u_LightRadius); // * r_ShadowMapDepthScale;
+		distance = (length(var_Position - u_LightOrigin) / u_LightRadius); // * r_shadowMapDepthScale;
 	}
 #endif
 

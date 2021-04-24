@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 IN vec3 		attr_Position;
 IN vec3			attr_Normal;
-#if defined(r_VertexSkinning)
+#if defined(r_vertexSkinning)
 IN vec4			attr_BoneIndexes;
 IN vec4			attr_BoneWeights;
 uniform int		u_VertexSkinning;
@@ -39,7 +39,7 @@ OUT(smooth) vec3	var_Normal;
 
 void	main()
 {
-#if defined(r_VertexSkinning)
+#if defined(r_vertexSkinning)
 	if(bool(u_VertexSkinning))
 	{
 		vec4 vertex = vec4(0.0);
