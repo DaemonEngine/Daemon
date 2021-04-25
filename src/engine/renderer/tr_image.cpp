@@ -813,7 +813,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 {
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
-	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize;
+	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize = 0;
 	int        i, j, c;
 	const byte *scan;
 	GLenum     target;
