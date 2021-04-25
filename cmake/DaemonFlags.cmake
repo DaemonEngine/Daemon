@@ -55,7 +55,7 @@ endmacro()
 function(try_flag LIST FLAG)
     string(REGEX REPLACE "[/=-]" "_" TEST ${FLAG})
     if (MSVC) # check_CXX_compiler_flag apparently always fails for MSVC.
-              # MSVC ignores unknown uptions, so just check if it begins with '/'.
+              # MSVC ignores unknown options, so just check if it begins with '/'.
         string(SUBSTRING "${FLAG}" 0 1 FLAG_FIRST_CHAR)
         if ("${FLAG_FIRST_CHAR}" STREQUAL "/")
             set(${TEST} 1)
@@ -120,6 +120,21 @@ if (MSVC)
     set_c_cxx_flag("/MP")
     set_c_cxx_flag("/fp:fast")
     set_c_cxx_flag("/d2Zi+" RELWITHDEBINFO)
+
+    # At least Ninja doesn't remove the /W3 flag when we add /W4|/Wall one, which
+    # leads to compilation warnings.  Remove /W3 entirely, as /W4|/Wall be used.
+    foreach(flag_var
+        CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+        CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+      if (${flag_var} MATCHES "/W3")
+        string(REGEX REPLACE "/W3" "" ${flag_var} "${${flag_var}}")
+      endif()
+    endforeach()
+
+    set_c_cxx_flag("/W4")
+
     if (ARCH STREQUAL "x86")
         set_c_cxx_flag("/arch:SSE2")
     endif()
