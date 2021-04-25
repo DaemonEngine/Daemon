@@ -250,14 +250,14 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 	char rootSocketRedir[32];
 	std::string module, nacl_loader, irt, bootstrap, modulePath, verbosity;
 	FS::File stderrRedirect;
-	bool win32Force64Bit = false;
-
+#if !defined(_WIN32) || defined(_WIN64)
+	constexpr bool win32Force64Bit = false;
+#else
 	// On Windows, even if we are running a 32-bit engine, we must use the
 	// 64-bit nacl_loader if the host operating system is 64-bit.
-#if defined(_WIN32) && !defined(_WIN64)
 	SYSTEM_INFO systemInfo;
 	GetNativeSystemInfo(&systemInfo);
-	win32Force64Bit = systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64;
+	const bool win32Force64Bit = systemInfo.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64;
 #endif
 
 	// Extract the nexe from the pak so that nacl_loader can load it
