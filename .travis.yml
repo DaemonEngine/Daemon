@@ -41,8 +41,12 @@ before_script:
   - export CXXFLAGS="$CXXFLAGS -D__extern_always_inline=inline"
 
 script:
-  - cmake -DUSE_PRECOMPILED_HEADER=0
-    -DUSE_WERROR=1 -DBE_VERBOSE=1 -G "Ninja" -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_OPTIMIZE=0
+  - cmake
+    -Wdev -Wdeprecated
+    -G "Ninja"
+    -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1
+    -DUSE_DEBUG_OPTIMIZE=0
+    -DCMAKE_BUILD_TYPE=Debug
     -H. -Bbuild
   - cmake --build build -- -j8
 
