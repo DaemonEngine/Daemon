@@ -6559,16 +6559,14 @@ R_SetAltShaderTokens
 */
 void R_SetAltShaderTokens( const char *list )
 {
-	char *p;
-
 	memset( whenTokens, 0, sizeof( whenTokens ) );
 	Q_strncpyz( whenTokens, list, sizeof( whenTokens ) - 1 ); // will have double-NUL termination
 
-	p = whenTokens - 1;
+	char* p = whenTokens - 1;
 
 	while ( ( p = strchr( p + 1, ',' ) ) )
 	{
-		*p = 0;
+		*p = '\0';
 	}
 }
 
