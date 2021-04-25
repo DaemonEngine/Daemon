@@ -1275,9 +1275,7 @@ int SV_FrameMsec()
 {
 	if( sv_fps )
 	{
-		int frameMsec;
-
-		frameMsec = 1000.0f / sv_fps->value;
+		const int frameMsec = static_cast<int>(1000.0f / sv_fps->value);
 
 		if( frameMsec < sv.timeResidual )
 		{
@@ -1462,7 +1460,7 @@ void SV_Frame( int msec )
 
 			averageFrameTime = totalTime / SERVER_PERFORMANCECOUNTER_SAMPLES;
 
-			svs.serverLoad = ( averageFrameTime / ( float ) frameMsec ) * 100;
+			svs.serverLoad = static_cast<int>(( averageFrameTime / static_cast<float>(frameMsec) ) * 100.0F);
 		}
 
 		//Log::Notice( "serverload: %i (%i/%i)\n", svs.serverLoad, averageFrameTime, frameMsec );
