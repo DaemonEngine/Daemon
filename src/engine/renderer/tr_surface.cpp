@@ -1370,7 +1370,7 @@ static void Tess_SurfaceFlare( srfFlare_t *surf )
 
 	Tess_CheckVBOAndIBO( tess.vbo, tess.ibo );
 
-	VectorMA( surf->origin, 2.0, surf->normal, origin );
+	VectorMA( surf->origin, 2.0F, surf->normal, origin );
 	VectorSubtract( origin, backEnd.viewParms.orientation.origin, dir );
 	VectorNormalize( dir );
 	d = -DotProduct( dir, surf->normal );
@@ -1430,7 +1430,7 @@ void Tess_SurfaceVBOMDVMesh( srfVBOMDVMesh_t *surface )
 	}
 	else
 	{
-		glState.vertexAttribsInterpolation = ( 1.0 - refEnt->backlerp );
+		glState.vertexAttribsInterpolation = ( 1.0F - refEnt->backlerp );
 	}
 
 	glState.vertexAttribsOldFrame = refEnt->oldframe;

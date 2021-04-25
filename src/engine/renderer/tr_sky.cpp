@@ -376,7 +376,7 @@ static void MakeSkyVec( float s, float t, int axis, vec2_t outSt, vec4_t outXYZ 
 	int        j, k;
 	float      boxSize;
 
-	boxSize = backEnd.viewParms.zFar / 1.75; // div sqrt(3)
+	boxSize = backEnd.viewParms.zFar / 1.75F; // div sqrt(3)
 	b[ 0 ] = s * boxSize;
 	b[ 1 ] = t * boxSize;
 	b[ 2 ] = boxSize;
@@ -398,8 +398,8 @@ static void MakeSkyVec( float s, float t, int axis, vec2_t outSt, vec4_t outXYZ 
 	outXYZ[ 3 ] = 1;
 
 	// avoid bilerp seam
-	s = ( s + 1 ) * 0.5;
-	t = ( t + 1 ) * 0.5;
+	s = ( s + 1 ) * 0.5F;
+	t = ( t + 1 ) * 0.5F;
 
 	if ( s < sky_min )
 	{
@@ -419,7 +419,7 @@ static void MakeSkyVec( float s, float t, int axis, vec2_t outSt, vec4_t outXYZ 
 		t = sky_max;
 	}
 
-	t = 1.0 - t;
+	t = 1.0F - t;
 
 	if ( outSt )
 	{

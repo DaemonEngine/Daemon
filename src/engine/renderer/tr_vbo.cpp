@@ -307,7 +307,7 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 // index has to be in range 0-255, weight has to be >= 0 and <= 1
 static unsigned short
 boneFactor( int index, float weight ) {
-	int scaledWeight = lrintf( weight * 255.0 );
+	int scaledWeight = lrintf( weight * 255.0F );
 	return (unsigned short)( ( scaledWeight << 8 ) | index );
 }
 
