@@ -766,8 +766,16 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 				if (pak) {
 					try {
-						downloadSize = FS::RawPath::OpenRead(pak->path).Length();
-					} catch (std::system_error&) {
+						const FS::offset_t length{FS::RawPath::OpenRead(pak->path).Length()};
+
+						if (length > std::numeric_limits<decltype(downloadSize)>::max()) {
+							throw std::system_error{Util::ordinal(std::errc::value_too_large), std::system_category(),
+								"Pak file '" + pak->path + "' size '" + std::to_string(length) + "' is larger than max client download size"};
+						}
+
+						downloadSize = length;
+					} catch (std::system_error& ex) {
+						Log::Warn("Client '%s': couldn't extract file size for %s - %s", cl->name, cl->downloadName, ex.what());
 						success = false;
 					}
 				} else
@@ -832,15 +840,24 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 		if (success) {
 			// legacy paks have empty version but no checksum
-			// looking for that speical version ensures the client load the legacy pk3 if server is using it, even if client has non-legacy dpk
+			// looking for that special version ensures the client load the legacy pk3 if server is using it, even if client has non-legacy dpk
 			// dpks have version and can have checksum
 			pak = checksum ? FS::FindPak(name, version) : FS::FindPak(name, version, *checksum);
 
 			if (pak) {
 				try {
 					cl->download = new FS::File(FS::RawPath::OpenRead(pak->path));
-					cl->downloadSize = cl->download->Length();
-				} catch (std::system_error&) {
+
+					const FS::offset_t length{cl->download->Length()};
+
+					if (length > std::numeric_limits<decltype(cl->downloadSize)>::max()) {
+						throw std::system_error{Util::ordinal(std::errc::value_too_large), std::system_category(),
+							"Pak file '" + pak->path + "' size '" + std::to_string(length) + "' is larger than max client download size"};
+					}
+
+					cl->downloadSize = length;
+				} catch (std::system_error& ex) {
+					Log::Notice("clientDownload: %d : \"%s\" file download failed - %s\n", (int)(cl - svs.clients), cl->downloadName, ex.what());
 					success = false;
 				}
 			} else {
