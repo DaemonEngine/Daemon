@@ -611,20 +611,20 @@ temp file loading
 */
 
 // Use malloc instead of the zone allocator
-static inline void* Z_TagMalloc(size_t size, memtag_t tag)
+static inline MALLOC_LIKE void* Z_TagMalloc(size_t size, memtag_t tag)
 {
   Q_UNUSED(tag);
   return calloc(size, 1);
 }
-static inline void* Z_Malloc(size_t size)
+static inline MALLOC_LIKE void* Z_Malloc(size_t size)
 {
   return calloc(size, 1);
 }
-static inline void* S_Malloc(size_t size)
+static inline MALLOC_LIKE void* S_Malloc(size_t size)
 {
   return malloc(size);
 }
-static inline char* CopyString(const char* str)
+static inline ALLOCATOR char* CopyString(const char* str)
 {
   return strdup(str);
 }

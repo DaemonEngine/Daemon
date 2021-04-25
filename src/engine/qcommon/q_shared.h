@@ -224,7 +224,7 @@ using clipHandle_t = int;
 #define Com_Allocate malloc
 #define Com_Dealloc  free
 
-void *Com_Allocate_Aligned( size_t alignment, size_t size );
+MALLOC_LIKE void *Com_Allocate_Aligned( size_t alignment, size_t size );
 void  Com_Free_Aligned( void *ptr );
 
 	/*

@@ -211,7 +211,7 @@ Com_Allocate_Aligned
 Aligned Memory Allocations for Posix and Win32
 =================
 */
-void *Com_Allocate_Aligned( size_t alignment, size_t size )
+MALLOC_LIKE void *Com_Allocate_Aligned( size_t alignment, size_t size )
 {
 #ifdef _WIN32
 	return _aligned_malloc( size, alignment );

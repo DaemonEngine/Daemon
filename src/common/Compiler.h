@@ -57,6 +57,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // other pointer
 #define MALLOC_LIKE __attribute__((__malloc__))
 
+// Marks this function as memory allocator
+#define ALLOCATOR
+
 // Align the address of a variable to a certain value
 #define ALIGNED(a, x) x __attribute__((__aligned__(a)))
 
@@ -149,7 +152,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PRINTF_LIKE(n)
 #define VPRINTF_LIKE(n)
 #define PRINTF_TRANSLATE_ARG(a)
-#define MALLOC_LIKE __declspec(restrict)
+#if _MSC_VER >= 1900 && !defined( _CORECRT_BUILD )
+#define ALLOCATOR __declspec(allocator)
+#else
+#define ALLOCATOR
+#endif
+#define MALLOC_LIKE ALLOCATOR __declspec(restrict)
 #define ALIGNED(a,x) __declspec(align(a)) x
 #define DLLEXPORT __declspec(dllexport)
 #define DLLIMPORT __declspec(dllimport)
@@ -170,6 +178,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define VPRINTF_LIKE(n)
 #define PRINTF_TRANSLATE_ARG(a)
 #define MALLOC_LIKE
+#define ALLOCATOR
 #define ALIGNED(a,x) x
 #define DLLEXPORT
 #define DLLIMPORT

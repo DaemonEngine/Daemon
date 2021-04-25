@@ -2694,7 +2694,7 @@ void CL_StartHunkUsers()
 CL_RefMalloc
 ============
 */
-void           *CL_RefMalloc( int size )
+MALLOC_LIKE void           *CL_RefMalloc( int size )
 {
 	return Z_TagMalloc( size, memtag_t::TAG_RENDERER );
 }
