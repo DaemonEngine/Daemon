@@ -684,6 +684,17 @@ function(AddApplication)
     set_property(TARGET ${A_Target} APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
     set_target_properties(${A_Target} PROPERTIES OUTPUT_NAME "${A_ExecutableName}" PREFIX "" FOLDER "engine")
 
+    # Append Windows specific manifests.
+    if (WIN32)
+        set(WINDOWS_MANIFESTS_DIR ${ENGINE_DIR}/sys/manifests)
+        target_sources(${A_Target} PRIVATE
+            # App is DPI aware, so Windows doesn't try to scale UI.
+            ${WINDOWS_MANIFESTS_DIR}/dpi-aware.manifest
+            # App supports Windows Vista+, no quirks required.
+            ${WINDOWS_MANIFESTS_DIR}/supported-os.manifest
+        )
+    endif()
+
     message(STATUS ${A_Target})
     ADD_PRECOMPILED_HEADER(${A_Target})
 endfunction()
