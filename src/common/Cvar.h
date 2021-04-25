@@ -298,8 +298,8 @@ namespace Cvar {
     }
 
     template<typename T>
-    bool Cvar<T>::Parse(std::string text, T& value) {
-        return ParseCvarValue(std::move(text), value);
+    bool Cvar<T>::Parse(std::string text, T& rawValue) {
+        return ParseCvarValue(std::move(text), rawValue);
     }
 
     template<typename T>
@@ -399,12 +399,12 @@ namespace Cvar {
     }
 
     template <typename Base>
-    OnValueChangedResult Range<Base>::Validate(const value_type& value) {
-        bool inBounds = value <= max and value >= min;
+    OnValueChangedResult Range<Base>::Validate(const value_type& cvarValue) {
+        bool inBounds = cvarValue <= max and cvarValue >= min;
         if (inBounds) {
             return OnValueChangedResult{true, ""};
         } else {
-            return OnValueChangedResult{false, Str::Format("%s is not between %s and %s", SerializeCvarValue(value), SerializeCvarValue(min), SerializeCvarValue(max))};
+            return OnValueChangedResult{false, Str::Format("%s is not between %s and %s", SerializeCvarValue(cvarValue), SerializeCvarValue(min), SerializeCvarValue(max))};
         }
     }
 
