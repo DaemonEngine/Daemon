@@ -108,41 +108,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #elif defined( _MSC_VER )
 
 // Disable some warnings
-#pragma warning(disable : 4018) // signed/unsigned mismatch
-#pragma warning(disable : 4032)
-#pragma warning(disable : 4051)
-#pragma warning(disable : 4057) // slightly different base types
 #pragma warning(disable : 4100) // unreferenced formal parameter
-#pragma warning(disable : 4115)
 #pragma warning(disable : 4125) // decimal digit terminates octal escape sequence
 #pragma warning(disable : 4127) // conditional expression is constant
-#pragma warning(disable : 4136)
-#pragma warning(disable : 4152) // nonstandard extension, function/data pointer conversion in expression
-#pragma warning(disable : 4201)
-#pragma warning(disable : 4214)
-#pragma warning(disable : 4244)
-//#pragma warning(disable : 4142)   // benign redefinition
-#pragma warning(disable : 4305) // truncation from const double to float
-//#pragma warning(disable : 4310)   // cast truncates constant value
-//#pragma warning(disable : 4505)   // unreferenced local function has been removed
-#pragma warning(disable : 4514)
-#pragma warning(disable : 4702) // unreachable code
-#pragma warning(disable : 4711) // selected for automatic inline expansion
-#pragma warning(disable : 4220) // varargs matches remaining parameters
-#pragma warning(disable : 4706) // assignment within conditional expression // cs: probably should correct all of these at some point
-#pragma warning(disable : 4005) // macro redefinition
-#pragma warning(disable : 4996) // This function or variable may be unsafe. Consider using 'function_s' instead
-#pragma warning(disable : 4075) // initializers put in unrecognized initialization area
-#pragma warning(disable : 4355) // 'this': used in member initializer list
-#pragma warning(disable : 4305) // signed unsigned mismatch
-#pragma warning(disable : 4554) // qualifier applied to reference type; ignored
-#pragma warning(disable : 4800) // forcing bool variable to one or zero, possible performance loss
-#pragma warning(disable : 4090) // 'function' : different 'const' qualifiers
+
+#pragma warning(disable : 4201) // nonstandard extension used: nameless struct / union
+#pragma warning(disable : 4244) // 'XXX': conversion from 'YYY' to 'ZZZ', possible loss of data
 #pragma warning(disable : 4267) // 'initializing' : conversion from 'size_t' to 'int', possible loss of data
-#pragma warning(disable : 4146) // unary minus operator applied to unsigned type, result still unsigned
-#pragma warning(disable : 4133) // 'function' : incompatible types - from 'unsigned long *' to 'const time_t *'
-#pragma warning(disable : 4127) // conditional expression is constant
-#pragma warning(disable : 4389) // '==' : signed/unsigned mismatch
+
+#pragma warning(disable : 4456) // declaration of 'XXX' hides previous local declaration
+#pragma warning(disable : 4457) // declaration of 'XXX' hides function member
+#pragma warning(disable : 4458) // declaration of 'XXX' hides class member
+#pragma warning(disable : 4459) // declaration of 'XXX' hides global declaration
+
+#pragma warning(disable : 4706) // assignment within conditional expression
 
 // See descriptions above
 #define DEPRECATED __declspec(deprecated)
