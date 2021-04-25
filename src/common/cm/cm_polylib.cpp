@@ -213,7 +213,7 @@ void ChopWindingInPlace( winding_t **inout, vec3_t normal, vec_t dist, vec_t eps
 // This is required to load oasis (Wolf:ET) and  moteof (Q3) maps.
 // Maps requiring this workaround are usually large and detailed maps
 // but some very large maps do not require such workaround.
-#define WORKAROUND_MAX_POINTS_ON_WINDING 4 * MAX_POINTS_ON_WINDING
+#define WORKAROUND_MAX_POINTS_ON_WINDING (4 * MAX_POINTS_ON_WINDING)
 	winding_t    *in;
 	vec_t        dists[ WORKAROUND_MAX_POINTS_ON_WINDING + 4 ];
 	planeSide_t  sides[ WORKAROUND_MAX_POINTS_ON_WINDING + 4 ];
