@@ -38,7 +38,7 @@ static const char *TranslateText_Internal( bool plural, int firstTextArg )
 	static char str[ MAX_STRING_CHARS ];
 	char        buf[ MAX_STRING_CHARS ];
 	const char  *in;
-	int         c, i = 0, totalArgs;
+	int         i = 0, totalArgs;
 
 	totalArgs = Cmd_Argc();
 
@@ -57,6 +57,7 @@ static const char *TranslateText_Internal( bool plural, int firstTextArg )
 	in = buf;
 	memset( &str, 0, sizeof( str ) );
 
+	char c;
 	while( *in )
 	{
 		c = *in;
