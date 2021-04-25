@@ -31,9 +31,11 @@ build_script:
       if not "x%generator:Visual Studio=%"=="x%generator%"
       set cmake=%cmake% -A"%platform%"
 
-      %cmake% -G"%generator%"
-      -DUSE_WERROR=1 -DBE_VERBOSE=1
-      -DUSE_PRECOMPILED_HEADER=0 -DBUILD_GAME_NACL=0
+      %cmake%
+      -Wdev -Wdeprecated
+      -G"%generator%"
+      -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1
+      -DBUILD_GAME_NACL=0
       -DCMAKE_BUILD_TYPE="%configuration%"
       -S. -Bbuild
 
