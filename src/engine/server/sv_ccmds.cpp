@@ -243,7 +243,7 @@ public:
 			return;
 		}
 
-		float cpu = ( svs.stats.latched_active + svs.stats.latched_idle );
+		double cpu = ( svs.stats.latched_active + svs.stats.latched_idle );
 
 		if ( cpu )
 		{
