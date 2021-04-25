@@ -588,11 +588,9 @@ static void FillCloudBox( int stage )
 	{
 		int   sky_mins_subd[ 2 ], sky_maxs_subd[ 2 ];
 		int   s, t;
-		float MIN_T;
+		const int MIN_T{-HALF_SKY_SUBDIVISIONS};
 
 		{
-			MIN_T = -HALF_SKY_SUBDIVISIONS;
-
 			// still don't want to draw the bottom, even if fullClouds
 			if ( i == 5 )
 			{
