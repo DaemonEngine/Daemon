@@ -705,23 +705,23 @@ namespace Cvar {
                     const std::string& name = matchesNames[i];
                     cvarRecord_t* var = matches[i];
 
-                    std::string flags = "";
-                    flags += (var->flags & SERVERINFO) ? "S" : "_";
-                    flags += (var->flags & SYSTEMINFO) ? "s" : "_";
-                    flags += (var->flags & USERINFO) ? "U" : "_";
-                    flags += (var->flags & ROM) ? "R" : "_";
-                    flags += (var->flags & CVAR_INIT) ? "I" : "_";
-                    flags += (var->flags & TEMPORARY) ? "T" : (var->flags & USER_ARCHIVE) ? "A" : "_";
-                    flags += (var->flags & (CVAR_LATCH | LATCH)) ? "L" : "_";
-                    flags += (var->flags & CHEAT) ? "C" : "_";
-                    flags += (var->flags & CVAR_USER_CREATED) ? "?" : "_";
+                    std::string cvarFlags = "";
+                    cvarFlags += (var->flags & SERVERINFO) ? "S" : "_";
+                    cvarFlags += (var->flags & SYSTEMINFO) ? "s" : "_";
+                    cvarFlags += (var->flags & USERINFO) ? "U" : "_";
+                    cvarFlags += (var->flags & ROM) ? "R" : "_";
+                    cvarFlags += (var->flags & CVAR_INIT) ? "I" : "_";
+                    cvarFlags += (var->flags & TEMPORARY) ? "T" : (var->flags & USER_ARCHIVE) ? "A" : "_";
+                    cvarFlags += (var->flags & (CVAR_LATCH | LATCH)) ? "L" : "_";
+                    cvarFlags += (var->flags & CHEAT) ? "C" : "_";
+                    cvarFlags += (var->flags & CVAR_USER_CREATED) ? "?" : "_";
 
                     // this is going to 'break' (wrong output) if the description contains any ^s other than in the variable value(s)
                     if (raw) {
-                        Print("  %-*s %s %s", maxNameLength, name, flags, Raw(var->description));
+                        Print("  %-*s %s %s", maxNameLength, name, cvarFlags, Raw(var->description));
                     }
                     else {
-                        Print("  %-*s %s %s", maxNameLength, name, flags, var->description);
+                        Print("  %-*s %s %s", maxNameLength, name, cvarFlags, var->description);
                     }
                 }
 
@@ -733,7 +733,7 @@ namespace Cvar {
                 int argc = args.Argc();
 
                 // FIXME: translation
-                static const std::initializer_list<Cmd::CompletionItem> flags = {
+                static const std::initializer_list<Cmd::CompletionItem> cvarFlags = {
                     {"-raw", "display colour controls"},
                 };
 
@@ -744,7 +744,7 @@ namespace Cvar {
 
                 if (argNum == 1) {
                     auto completion = ::Cvar::Complete(prefix);
-                    Cmd::AddToCompletion(completion, prefix, flags);
+                    Cmd::AddToCompletion(completion, prefix, cvarFlags);
                     return completion;
                 }
 
