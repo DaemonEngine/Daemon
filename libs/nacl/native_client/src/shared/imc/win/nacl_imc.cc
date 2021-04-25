@@ -270,7 +270,7 @@ int NaClSendDatagram(NaClHandle handle, const NaClMessageHeader* message,
     return -1;
   }
   if (0 < message->handle_count && message->handles) {
-    HANDLE target;
+    HANDLE target = NULL;
     /*
      * TODO(shiki): On Windows Vista, we can use GetNamedPipeClientProcessId()
      * and GetNamedPipeServerProcessId() and probably we can remove
