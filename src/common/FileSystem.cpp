@@ -124,7 +124,7 @@ namespace FS {
 
 #ifdef BUILD_ENGINE
 static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "also load pk3s, ignoring version", Cvar::NONE, false);
-static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 0);
+static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 1);
 
 bool UseLegacyPaks()
 {
