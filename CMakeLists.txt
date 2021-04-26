@@ -31,6 +31,7 @@ cmake_minimum_required (VERSION 3.12)
 if (POLICY CMP0094)
     cmake_policy(SET CMP0094 NEW)
 endif()
+
 if (POLICY CMP0072)
     cmake_policy(SET CMP0072 NEW)
 endif()
@@ -116,6 +117,7 @@ set(DEFAULT_NACL_VM_INHERITED_OPTIONS
     BUILD_CGAME
     BUILD_SGAME
     CMAKE_BUILD_TYPE
+    DAEMON_CBSE_PYTHON_PATH
     USE_PEDANTIC
     USE_PRECOMPILED_HEADER
     USE_WERROR
@@ -138,7 +140,7 @@ include(DaemonPlatform)
 ################################################################################
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 4)
+set(DEPS_VERSION 5)
 
 set(MOUNT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(MOUNT_DIR ${MOUNT_DIR} PARENT_SCOPE)
@@ -174,20 +176,14 @@ elseif (WIN32)
     endif()
 elseif (APPLE)
     set(DEPS_EXT ".tar.bz2")
-    if (ARCH STREQUAL "x86_64")
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/macosx64-${DEPS_VERSION})
-    else()
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/macosx32-${DEPS_VERSION})
-    endif()
+    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/macosx64-${DEPS_VERSION})
 elseif (LINUX)
     set(DEPS_EXT ".tar.bz2")
     # Our minimal NaCl .debs put the files in /usr/lib/nacl, so check that first
     if (EXISTS "/usr/lib/nacl/nacl_loader")
         set(DEPS_DIR "/usr/lib/nacl")
-    elseif (ARCH STREQUAL "x86_64")
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/linux64-${DEPS_VERSION})
     else()
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/linux32-${DEPS_VERSION})
+        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/linux64-${DEPS_VERSION})
     endif()
 endif()
 set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
@@ -379,7 +375,7 @@ if (DEPS_DIR)
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
         get_filename_component(BASENAME ${DEPS_DIR} NAME)
-        set(REMOTE "http://dl.unvanquished.net/deps/${BASENAME}${DEPS_EXT}")
+        set(REMOTE "https://dl.unvanquished.net/deps/${BASENAME}${DEPS_EXT}")
         message(STATUS "Downloading dependencies from '${REMOTE}'")
         file(DOWNLOAD ${REMOTE} ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
             SHOW_PROGRESS
@@ -438,6 +434,10 @@ if (NACL)
 else()
     add_library(srclibs-nacl-native EXCLUDE_FROM_ALL ${NACLLIST_NATIVE})
     set_target_properties(srclibs-nacl-native PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    if (APPLE)
+        # Do not error for OSAtomic* deprecation notices
+        target_compile_options(srclibs-nacl-native PRIVATE "-Wno-error=deprecated-declarations")
+    endif()
     set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-native)
 endif()
 
@@ -479,7 +479,7 @@ set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
 if (BUILD_CLIENT)
     find_package(OpenGL REQUIRED)
     include_directories(${OPENGL_INCLUDE_DIR})
-    set(LIBS_CLIENT ${LIBS_CLIENT} ${OPENGL_LIBRARIES})
+    set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
 endif()
 
 # Prefer static libs
@@ -532,20 +532,6 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER)
     add_library(srclibs-tinygettext EXCLUDE_FROM_ALL ${TINYGETTEXTLIST})
     set_target_properties(srclibs-tinygettext PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
     set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-tinygettext)
-
-    # Fastlz
-    add_library(srclibs-fastlz EXCLUDE_FROM_ALL ${FASTLZLIST})
-    set_target_properties(srclibs-fastlz PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-fastlz)
-
-    # Detour
-    add_library(srclibs-detour EXCLUDE_FROM_ALL ${DETOURLIST})
-    set_target_properties(srclibs-detour PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    include_directories(${LIB_DIR}/recastnavigation/Detour/Include
-                        ${LIB_DIR}/recastnavigation/DetourTileCache/Include
-                        ${LIB_DIR}/recastnavigation/DebugUtils/Include
-                        ${LIB_DIR}/recastnavigation/DetourCrowd/Include)
-    set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-detour)
 
     # GeoIP
     if (USE_GEOIP)
@@ -627,7 +613,7 @@ if (USE_BREAKPAD)
             srclibs-breakpad-crash_generation_server srclibs-breakpad-common)
         target_compile_definitions(crash_server PRIVATE UNICODE)
 
-        set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-breakpad-exception_handler
+        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-breakpad-exception_handler
             srclibs-breakpad-crash_generation_client srclibs-breakpad-common)
 
     elseif (LINUX)
@@ -656,10 +642,6 @@ if (BUILD_CLIENT)
     find_package(Opus REQUIRED)
     include_directories(${OPUS_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${OPUS_LIBRARIES})
-
-    find_package(Theora REQUIRED)
-    include_directories(${THEORA_INCLUDE_DIRS})
-    set(LIBS_CLIENT ${LIBS_CLIENT} ${THEORA_LIBRARIES})
 
     find_package(WebP REQUIRED)
     include_directories(${WEBP_INCLUDE_DIRS})
@@ -694,10 +676,7 @@ function(AddApplication)
     set(multiValueArgs Definitions Flags Files Libs)
     cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    # HACK: Because of the linking rules on Windows, linking SDLCompat in engine-lib is not
-    # enough for SDLMain to see __iob_func so we add SDLCompat to the executable source
-    # list directly.
-    add_executable(${A_Target} ${A_Files} ${ENGINE_DIR}/framework/SDLCompat.cpp ${PCH_FILE})
+    add_executable(${A_Target} ${A_Files} ${PCH_FILE})
     target_link_libraries(${A_Target} engine-lib ${A_Libs})
 
     set_property(TARGET ${A_Target} APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
@@ -721,6 +700,7 @@ if (NOT NACL)
         AddApplication(
             Target dummyapp
             ExecutableName dummyapp
+            Definitions USELESS_DEFINITION_TO_AVOID_PCH_ISSUE
             Flags ${WARNINGS}
             Files ${ENGINE_DIR}/null/NullApplication.cpp
         )

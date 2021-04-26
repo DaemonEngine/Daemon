@@ -56,7 +56,7 @@ bool CreateCrashDumpPath() {
     crashDumpLogs.Debug("Creating crash dump path: %s", CrashDumpPath());
     std::error_code createDirError;
     FS::RawPath::CreatePathTo(FS::Path::Build(CrashDumpPath(), "x"), createDirError);
-    bool success = createDirError == createDirError.default_error_condition();
+    bool success = !createDirError;
     if (!success) {
 #ifdef _WIN32
         crashDumpLogs.Warn("Failed to create crash dump directory: %s", Win32StrError(GetLastError()));
@@ -185,6 +185,9 @@ static bool BreakpadInitInternal() {
 		snprintf(pidStr, sizeof(pidStr), "%d", pid);
         const char* args[] = { exePath.c_str(), fdServerStr.c_str(), crashDir.c_str(), pidStr, nullptr };
         execv(exePath.c_str(), const_cast<char * const *>(args));
+        // Kill daemon if crash_server couldn't be started
+        kill(pid, SIGKILL);
+        fprintf(stderr, "Failed to exec crash_server\n");
         _exit(1);
     }
 

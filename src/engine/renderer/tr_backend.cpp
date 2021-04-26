@@ -77,13 +77,6 @@ void BindAnimatedImage( textureBundle_t *bundle )
 {
 	int index;
 
-	if ( bundle->isVideoMap )
-	{
-		ri.CIN_RunCinematic( bundle->videoMapHandle );
-		ri.CIN_UploadCinematic( bundle->videoMapHandle );
-		return;
-	}
-
 	if ( bundle->numImages <= 1 )
 	{
 		GL_Bind( bundle->image[ 0 ] );
@@ -2758,7 +2751,7 @@ void RB_RunVisTests( )
 	}
 }
 
-void RB_RenderPostDepth()
+void RB_RenderPostDepthLightTile()
 {
 	static vec4_t quadVerts[4] = {
 		{ -1.0f, -1.0f, 0.0f, 1.0f },
@@ -2769,7 +2762,31 @@ void RB_RenderPostDepth()
 	vec3_t zParams;
 	int w, h;
 
-	GLimp_LogComment( "--- RB_RenderPostDepth ---\n" );
+	GLimp_LogComment( "--- RB_RenderPostDepthLightTile ---\n" );
+
+	if ( r_dynamicLight->integer < 1 )
+	{
+		/* Do not run lightTile code when the tiled renderer is not used.
+
+		This computation is part of the tiled dynamic lighting renderer,
+		it's better to not run it and save CPU cycles when such effects
+		are disabled.
+
+		Disabling this code also make possible to not compile the related
+		GLSL shaders at all when such effects are disabled.
+
+		Not running the related GLSL shaders also helps older hardware to
+		run the game, for example the Radeon R300 Arithmetic Logic Unit is
+		too small to run the related GLSL code even if the shader itself
+		can be compiled. Such GPU are so old and slow that	any kind of
+		dynamic lighting including the tiled implementation is expected to
+		be disabled anyway. Saving CPU cycles when a feature is not used is
+		welcome in any case.
+
+		See https://github.com/DaemonEngine/Daemon/issues/344 */
+
+		return;
+	}
 
 	if ( ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
@@ -2843,7 +2860,10 @@ void RB_RenderPostDepth()
 		if( !glConfig2.glCoreProfile )
 			glEnable( GL_POINT_SPRITE );
 		glEnable( GL_PROGRAM_POINT_SIZE );
+
+		// Radeon R300 small ALU is known to fail on this.
 		Tess_DrawArrays( GL_POINTS );
+
 		glDisable( GL_PROGRAM_POINT_SIZE );
 		if( !glConfig2.glCoreProfile )
 			glDisable( GL_POINT_SPRITE );
@@ -2972,8 +2992,6 @@ void RB_RenderBloom()
 	GL_LoadProjectionMatrix( ortho );
 	GL_LoadModelViewMatrix( matrixIdentity );
 
-	// FIXME
-	//if(glConfig.hardwareType != GLHW_ATI && glConfig.hardwareType != GLHW_ATI_DX10)
 	{
 		GL_State( GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -4658,7 +4676,7 @@ static void RB_RenderView( bool depthPass )
 	if( depthPass ) {
 		RB_RenderDrawSurfaces( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, DRAWSURFACES_ALL );
 		RB_RunVisTests();
-		RB_RenderPostDepth();
+		RB_RenderPostDepthLightTile();
 		return;
 	}
 
@@ -4777,193 +4795,6 @@ RENDER BACK END THREAD FUNCTIONS
 
 ============================================================================
 */
-
-/*
-=============
-RE_StretchRaw
-
-FIXME: not exactly backend
-Stretches a raw 32 bit power of 2 bitmap image over the given screen rectangle.
-Used for cinematics.
-=============
-*/
-void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, int client, bool dirty )
-{
-	int i, j;
-	int start, end;
-
-	if ( !tr.registered )
-	{
-		return;
-	}
-
-	R_SyncRenderThread();
-
-	// we definitely want to sync every frame for the cinematics
-	glFinish();
-
-	start = end = 0;
-
-	if ( r_speeds->integer )
-	{
-		glFinish();
-		start = ri.Milliseconds();
-	}
-
-	// make sure rows and cols are powers of 2
-	for ( i = 0; ( 1 << i ) < cols; i++ )
-	{
-	}
-
-	for ( j = 0; ( 1 << j ) < rows; j++ )
-	{
-	}
-
-	if ( ( 1 << i ) != cols || ( 1 << j ) != rows )
-	{
-		Sys::Drop( "RE_StretchRaw: size not a power of 2: %i by %i", cols, rows );
-	}
-
-	RB_SetGL2D();
-
-	glVertexAttrib4f( ATTR_INDEX_QTANGENT, 0.0f, 0.0f, 0.0f, 1.0f );
-	glVertexAttrib4f( ATTR_INDEX_COLOR, tr.identityLight, tr.identityLight, tr.identityLight, 1 );
-
-	gl_genericShader->SetVertexSkinning( false );
-	gl_genericShader->SetVertexAnimation( false );
-	gl_genericShader->SetVertexSprite( false );
-	gl_genericShader->SetTCGenEnvironment( false );
-	gl_genericShader->SetTCGenLightmap( false );
-	gl_genericShader->SetDepthFade( false );
-	gl_genericShader->SetAlphaTesting( false );
-	gl_genericShader->BindProgram( 0 );
-
-	// set uniforms
-	//gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-	gl_genericShader->SetUniform_Color( Color::Black );
-
-	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	// bind u_ColorMap
-	GL_BindToTMU( 0, tr.scratchImage[ client ] );
-	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
-
-	// if the scratchImage isn't in the format we want, specify it as a new texture
-	if ( cols != tr.scratchImage[ client ]->width || rows != tr.scratchImage[ client ]->height )
-	{
-		tr.scratchImage[ client ]->width = tr.scratchImage[ client ]->uploadWidth = cols;
-		tr.scratchImage[ client ]->height = tr.scratchImage[ client ]->uploadHeight = rows;
-
-		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
-
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	}
-	else
-	{
-		if ( dirty )
-		{
-			// otherwise, just subimage upload it so that drivers can tell we are going to be changing
-			// it and don't try and do a texture compression
-			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, cols, rows, GL_RGBA, GL_UNSIGNED_BYTE, data );
-		}
-	}
-
-	if ( r_speeds->integer )
-	{
-		glFinish();
-		end = ri.Milliseconds();
-		Log::Debug("glTexSubImage2D %i, %i: %i msec", cols, rows, end - start );
-	}
-
-	tess.multiDrawPrimitives = 0;
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
-
-	tess.verts[ tess.numVertexes ].xyz[ 0 ] = x;
-	tess.verts[ tess.numVertexes ].xyz[ 1 ] = y;
-	tess.verts[ tess.numVertexes ].xyz[ 2 ] = 0.0f;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 0.5f / cols );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 0.5f / rows );
-	tess.numVertexes++;
-
-	tess.verts[ tess.numVertexes ].xyz[ 0 ] = x + w;
-	tess.verts[ tess.numVertexes ].xyz[ 1 ] = y;
-	tess.verts[ tess.numVertexes ].xyz[ 2 ] = 0.0f;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( ( cols - 0.5f ) / cols );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 0.5f / rows );
-	tess.numVertexes++;
-
-	tess.verts[ tess.numVertexes ].xyz[ 0 ] = x + w;
-	tess.verts[ tess.numVertexes ].xyz[ 1 ] = y + h;
-	tess.verts[ tess.numVertexes ].xyz[ 2 ] = 0.0f;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( ( cols - 0.5f ) / cols );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( ( rows - 0.5f ) / rows );
-	tess.numVertexes++;
-
-	tess.verts[ tess.numVertexes ].xyz[ 0 ] = x;
-	tess.verts[ tess.numVertexes ].xyz[ 1 ] = y + h;
-	tess.verts[ tess.numVertexes ].xyz[ 2 ] = 0.0f;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 0.5f / cols );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( ( rows - 0.5f ) / rows );
-	tess.numVertexes++;
-
-	tess.indexes[ tess.numIndexes++ ] = 0;
-	tess.indexes[ tess.numIndexes++ ] = 1;
-	tess.indexes[ tess.numIndexes++ ] = 2;
-	tess.indexes[ tess.numIndexes++ ] = 0;
-	tess.indexes[ tess.numIndexes++ ] = 2;
-	tess.indexes[ tess.numIndexes++ ] = 3;
-
-	Tess_UpdateVBOs( );
-	GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
-
-	Tess_DrawElements();
-
-	tess.multiDrawPrimitives = 0;
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
-
-	GL_CheckErrors();
-}
-
-void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty )
-{
-	R_SyncRenderThread();
-
-	GL_Bind( tr.scratchImage[ client ] );
-
-	// if the scratchImage isn't in the format we want, specify it as a new texture
-	if ( cols != tr.scratchImage[ client ]->width || rows != tr.scratchImage[ client ]->height )
-	{
-		tr.scratchImage[ client ]->width = tr.scratchImage[ client ]->uploadWidth = cols;
-		tr.scratchImage[ client ]->height = tr.scratchImage[ client ]->uploadHeight = rows;
-
-		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB8, cols, rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
-
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-		glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, Color::Black.ToArray() );
-	}
-	else
-	{
-		if ( dirty )
-		{
-			// otherwise, just subimage upload it so that drivers can tell we are going to be changing
-			// it and don't try and do a texture compression
-			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, cols, rows, GL_RGBA, GL_UNSIGNED_BYTE, data );
-		}
-	}
-
-	GL_CheckErrors();
-}
 
 /*
 =============

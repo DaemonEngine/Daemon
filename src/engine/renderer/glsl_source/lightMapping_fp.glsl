@@ -181,11 +181,13 @@ void main()
 		computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 	#endif
 
-	// Blend dynamic lights.
-	computeDLights(var_Position, normal, viewDir, diffuse, material, color);
+	#if defined(r_dynamicLight)
+		// Blend dynamic lights.
+		computeDLights(var_Position, normal, viewDir, diffuse, material, color);
+	#endif
 
 	// Add Rim Lighting to highlight the edges on model entities.
-	#if defined(r_RimLighting) && !defined(USE_BSP_SURFACE) && !defined(USE_LIGHT_MAPPING)
+	#if defined(r_rimLighting) && !defined(USE_BSP_SURFACE) && !defined(USE_LIGHT_MAPPING)
 		float rim = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), r_RimExponent);
 		vec3 emission = ambientColor * rim * rim * 0.2;
 		color.rgb += 0.7 * emission;

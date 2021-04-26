@@ -36,7 +36,7 @@ IPC::SharedMemory shmRegion;
 // Definition of the VM->Engine calls
 
 // The actual shared memory region is handled in this file, and is pretty much invisible to the rest of the code
-void trap_LocateGameData(int numGEntities, int sizeofGEntity_t, playerState_t*, int sizeofGClient)
+void trap_LocateGameData(int numGEntities, int sizeofGEntity_t, int sizeofGClient)
 {
     static bool firstTime = true;
     if (firstTime) {
@@ -107,7 +107,7 @@ bool trap_GetEntityToken(char *buffer, int bufferSize)
 {
     std::string text;
     bool res;
-    VM::SendMsg<GetEntityTokenMsg>(res, text);
+    VM::SendMsg<SgGetEntityTokenMsg>(res, text);
     Q_strncpyz(buffer, text.c_str(), bufferSize);
     return res;
 }
@@ -169,97 +169,4 @@ int trap_BotGetServerCommand(int clientNum, char *message, int size)
     VM::SendMsg<BotGetConsoleMessageMsg>(clientNum, size, res, message2);
     Q_strncpyz(message, message2.c_str(), size);
     return res;
-}
-
-bool trap_BotSetupNav(const botClass_t *botClass, qhandle_t *navHandle)
-{
-    int res;
-    VM::SendMsg<BotNavSetupMsg>(*botClass, res, *navHandle);
-    return res;
-}
-
-void trap_BotShutdownNav()
-{
-    VM::SendMsg<BotNavShutdownMsg>();
-}
-
-void trap_BotSetNavMesh(int botClientNum, qhandle_t navHandle)
-{
-    VM::SendMsg<BotSetNavmeshMsg>(botClientNum, navHandle);
-}
-
-bool trap_BotFindRoute(int botClientNum, const botRouteTarget_t *target, bool allowPartial)
-{
-    int res;
-    VM::SendMsg<BotFindRouteMsg>(botClientNum, *target, allowPartial, res);
-    return res;
-}
-
-bool trap_BotUpdatePath(int botClientNum, const botRouteTarget_t *target, botNavCmd_t *cmd)
-{
-    VM::SendMsg<BotUpdatePathMsg>(botClientNum, *target, *cmd);
-    return false; // Amanieu: This always returns false, but the value isn't used
-}
-
-bool trap_BotNavTrace(int botClientNum, botTrace_t *botTrace, const vec3_t start, const vec3_t end)
-{
-    std::array<float, 3> start2, end2;
-    VectorCopy(start, start2.data());
-    VectorCopy(end, end2.data());
-    int res;
-    VM::SendMsg<BotNavRaycastMsg>(botClientNum, start2, end2, res, *botTrace);
-    return res;
-}
-
-void trap_BotFindRandomPoint(int botClientNum, vec3_t point)
-{
-    std::array<float, 3> point2;
-    VM::SendMsg<BotNavRandomPointMsg>(botClientNum, point2);
-    VectorCopy(point2.data(), point);
-}
-
-bool trap_BotFindRandomPointInRadius(int botClientNum, const vec3_t origin, vec3_t point, float radius)
-{
-    std::array<float, 3> point2, origin2;
-    VectorCopy(origin, origin2.data());
-    int res;
-    VM::SendMsg<BotNavRandomPointRadiusMsg>(botClientNum, origin2, radius, res, point2);
-    VectorCopy(point2.data(), point);
-    return res;
-}
-
-void trap_BotEnableArea(const vec3_t origin, const vec3_t mins, const vec3_t maxs)
-{
-    std::array<float, 3> origin2, mins2, maxs2;
-    VectorCopy(origin, origin2.data());
-    VectorCopy(mins, mins2.data());
-    VectorCopy(maxs, maxs2.data());
-    VM::SendMsg<BotEnableAreaMsg>(origin2, mins2, maxs2);
-}
-
-void trap_BotDisableArea(const vec3_t origin, const vec3_t mins, const vec3_t maxs)
-{
-    std::array<float, 3> origin2, mins2, maxs2;
-    VectorCopy(origin, origin2.data());
-    VectorCopy(mins, mins2.data());
-    VectorCopy(maxs, maxs2.data());
-    VM::SendMsg<BotDisableAreaMsg>(origin2, mins2, maxs2);
-}
-
-void trap_BotAddObstacle(const vec3_t mins, const vec3_t maxs, qhandle_t *handle)
-{
-    std::array<float, 3> mins2, maxs2;
-    VectorCopy(mins, mins2.data());
-    VectorCopy(maxs, maxs2.data());
-    VM::SendMsg<BotAddObstacleMsg>(mins2, maxs2, *handle);
-}
-
-void trap_BotRemoveObstacle(qhandle_t handle)
-{
-    VM::SendMsg<BotRemoveObstacleMsg>(handle);
-}
-
-void trap_BotUpdateObstacles()
-{
-    VM::SendMsg<BotUpdateObstaclesMsg>();
 }

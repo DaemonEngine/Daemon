@@ -27,6 +27,8 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #include "qcommon.h"
 #include "common/Defs.h"
 
+extern Log::Logger fsLogs;
+
 // There must be some limit for the APIs in this file since they use 'int' for lengths which can be overflowed by large files.
 constexpr FS::offset_t MAX_FILE_LENGTH = 1000 * 1000 * 1000;
 
@@ -41,6 +43,7 @@ struct handleData_t {
 	bool isOpen;
 	bool isPakFile;
 	Util::optional<std::string> renameTo;
+	FS::Owner owner;
 
 	// Normal file info
 	bool forceFlush;
@@ -66,8 +69,10 @@ static fileHandle_t FS_AllocHandle()
 {
 	// Don't use handle 0 because it is used to indicate failures
 	for (int i = 1; i < MAX_FILE_HANDLES; i++) {
-		if (!handleTable[i].isOpen)
+		if (!handleTable[i].isOpen) {
+			handleTable[i].owner = FS::Owner::UNKNOWN;
 			return i;
+		}
 	}
 	Sys::Drop("FS_AllocHandle: none free");
 }
@@ -222,6 +227,34 @@ int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mod
 	default:
 		Sys::Drop("FS_Game_FOpenFileByMode: bad mode %s", Util::enum_str(mode));
 	}
+}
+
+void FS_SetOwner(fileHandle_t f, FS::Owner owner)
+{
+	FS_CheckHandle(f, false);
+	ASSERT_EQ(handleTable[f].owner, FS::Owner::UNKNOWN);
+	handleTable[f].owner = owner;
+}
+
+void FS_CheckOwnership(fileHandle_t f, FS::Owner owner)
+{
+	if (f == 0)
+		return;
+	FS_CheckHandle(f, false);
+	if (handleTable[f].owner != owner)
+		Sys::Drop("VM %d tried to access file handle it doesn't own", Util::ordinal(owner));
+}
+
+void FS_CloseAllForOwner(FS::Owner owner)
+{
+	int numClosed = 0;
+	for (int f = 1; f < MAX_FILE_HANDLES; f++) {
+		if (handleTable[f].owner == owner && handleTable[f].isOpen) {
+			FS_FCloseFile(f);
+			++numClosed;
+		}
+	}
+	fsLogs.Verbose("Closed %d outstanding handles for owner %d", numClosed, Util::ordinal(owner));
 }
 
 int FS_FCloseFile(fileHandle_t handle)

@@ -43,8 +43,6 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
-#include "botlib/bot_debug.h"
-
 #include "mumblelink/libmumblelink.h"
 #include "qcommon/crypto.h"
 #include "framework/Rcon.h"
@@ -675,12 +673,9 @@ static void StopDemos()
 
 //======================================================================
 
-// stop video recording and playback
+// stop video recording
 static void StopVideo()
 {
-	SCR_StopCinematic();
-	CIN_CloseAllVideos();
-
 	// stop recording any video
 	if ( CL_VideoRecording() )
 	{
@@ -802,7 +797,7 @@ void CL_ClearState()
 =====================
 CL_Disconnect
 
-Called when a connection, demo, or cinematic is being terminated.
+Called when a connection or demo is being terminated.
 Goes from a connected state to either a menu state or a console state
 Sends a disconnect message to the server
 This is also called on Com_Error and Com_Quit, so it shouldn't cause any errors
@@ -1498,7 +1493,7 @@ void CL_Vid_Restart_f()
 #endif
 
 	// start the cgame if connected
-	if ( cls.state > connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC )
+	if ( cls.state > connstate_t::CA_CONNECTED )
 	{
 		cls.cgameStarted = true;
 		CL_InitCGame();
@@ -2449,7 +2444,7 @@ void CL_CheckTimeout()
 	//
 	// check timeout
 	//
-	if ( cls.state >= connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
 	{
 		if ( ++cl.timeoutcount > 5 )
 		{
@@ -2559,9 +2554,6 @@ void CL_Frame( int msec )
 	Audio::Update();
 
 	CL_UpdateMumble();
-
-	// advance local effects for next frame
-	SCR_RunCinematic();
 
 	Con_RunConsole();
 
@@ -2739,7 +2731,7 @@ static bool CL_InitRef()
 	ri.Cmd_Argv = Cmd_Argv;
 	ri.Cmd_QuoteString = Cmd_QuoteString;
 
-	ri.Milliseconds = CL_ScaledMilliseconds;
+	ri.Milliseconds = Sys::Milliseconds;
 	ri.RealTime = Com_RealTime;
 
 	ri.Z_Malloc = CL_RefMalloc;
@@ -2769,12 +2761,6 @@ static bool CL_InitRef()
 
 	ri.Cvar_VariableIntegerValue = Cvar_VariableIntegerValue;
 
-	// cinematic stuff
-
-	ri.CIN_UploadCinematic = CIN_UploadCinematic;
-	ri.CIN_PlayCinematic = CIN_PlayCinematic;
-	ri.CIN_RunCinematic = CIN_RunCinematic;
-
 	// XreaL BEGIN
 	ri.CL_VideoRecording = CL_VideoRecording;
 	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;
@@ -2783,8 +2769,6 @@ static bool CL_InitRef()
 	ri.IN_Init = IN_Init;
 	ri.IN_Shutdown = IN_Shutdown;
 	ri.IN_Restart = IN_Restart;
-
-	ri.Bot_DrawDebugMesh = BotDebugDrawMesh;
 
 	Log::Notice("Calling GetRefAPI…" );
 	ret = GetRefAPI( REF_API_VERSION, &ri );
@@ -2950,7 +2934,6 @@ void CL_Init()
 	Cmd_AddCommand( "snd_restart", CL_Snd_Restart_f );
 	Cmd_AddCommand( "vid_restart", CL_Vid_Restart_f );
 	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
-	Cmd_AddCommand( "cinematic", CL_PlayCinematic_f );
 	Cmd_AddCommand( "connect", CL_Connect_f );
 	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
 	Cmd_AddCommand( "localservers", CL_LocalServers_f );
@@ -3020,7 +3003,6 @@ void CL_Shutdown()
 	Cmd_RemoveCommand( "snd_restart" );
 	Cmd_RemoveCommand( "vid_restart" );
 	Cmd_RemoveCommand( "disconnect" );
-	Cmd_RemoveCommand( "cinematic" );
 	Cmd_RemoveCommand( "connect" );
 	Cmd_RemoveCommand( "localservers" );
 	Cmd_RemoveCommand( "globalservers" );

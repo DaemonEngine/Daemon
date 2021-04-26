@@ -1003,7 +1003,7 @@ CGameVM::CGameVM(): VM::VMBase("cgame", Cvar::CHEAT), services(nullptr), cmdBuff
 
 void CGameVM::Start()
 {
-	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "CGame", Cmd::CGAME_VM));
+	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "CGame", FS::Owner::CGAME, Cmd::CGAME_VM));
 	uint32_t version = this->Create();
 	if ( version != CGAME_API_VERSION ) {
 		Sys::Drop( "CGame ABI mismatch, expected %d, got %d", CGAME_API_VERSION, version );
@@ -1019,6 +1019,10 @@ void CGameVM::CGameStaticInit()
 void CGameVM::CGameInit(int serverMessageNum, int clientNum)
 {
 	this->SendMsg<CGameInitMsg>(serverMessageNum, clientNum, cls.glconfig, cl.gameState);
+	NetcodeTable psTable;
+	size_t psSize;
+	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
+	MSG_InitNetcodeTables(std::move(psTable), psSize);
 }
 
 void CGameVM::CGameShutdown()
@@ -1028,24 +1032,13 @@ void CGameVM::CGameShutdown()
 	} catch (Sys::DropErr& err) {
 		Log::Notice("Error during cgame shutdown: %s", err.what());
 	}
-	try {
-		this->Free();
-	} catch (Sys::DropErr& err) {
-		Log::Notice("Error while freeing cgame: %s", err.what());
-	}
+	this->Free();
 	services = nullptr;
 }
 
 void CGameVM::CGameDrawActiveFrame(int serverTime,  bool demoPlayback)
 {
 	this->SendMsg<CGameDrawActiveFrameMsg>(serverTime, demoPlayback);
-}
-
-int CGameVM::CGameCrosshairPlayer()
-{
-	int player;
-	this->SendMsg<CGameCrosshairPlayerMsg>(player);
-	return player;
 }
 
 void CGameVM::CGameKeyEvent(Keyboard::Key key, bool down)
@@ -1174,7 +1167,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			break;
 
 		case CG_GET_ENTITY_TOKEN:
-			IPC::HandleMsg<GetEntityTokenMsg>(channel, std::move(reader), [this] (int len, bool& res, std::string& token) {
+			IPC::HandleMsg<CgGetEntityTokenMsg>(channel, std::move(reader), [this] (int len, bool& res, std::string& token) {
 				std::unique_ptr<char[]> buffer(new char[len]);
 				buffer[0] = '\0';
 				res = re.GetEntityToken(buffer.get(), len);
@@ -1185,13 +1178,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_REGISTER_BUTTON_COMMANDS:
 			IPC::HandleMsg<RegisterButtonCommandsMsg>(channel, std::move(reader), [this] (const std::string& commands) {
 				CL_RegisterButtonCommands(commands.c_str());
-			});
-			break;
-
-		case CG_GETCLIPBOARDDATA:
-			IPC::HandleMsg<GetClipboardDataMsg>(channel, std::move(reader), [this] (int len, std::string& data) {
-				// TODO(slipher): Remove GetClipboardDataMsg.
-				data.clear();
 			});
 			break;
 
@@ -1290,12 +1276,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		case CG_R_REGISTERSHADER:
 			IPC::HandleMsg<Render::RegisterShaderMsg>(channel, std::move(reader), [this] (const std::string& name, int flags, int& handle) {
 				handle = re.RegisterShader(name.c_str(), (RegisterShaderFlags_t) flags);
-			});
-			break;
-
-		case CG_R_REGISTERFONT:
-			IPC::HandleMsg<Render::RegisterFontMsg>(channel, std::move(reader), [this] (const std::string&, const std::string&, int, fontMetrics_t&) {
-				Log::Warn("TODO(0.52): remove");
 			});
 			break;
 
@@ -1425,6 +1405,18 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			});
 			break;
 
+		case CG_KEY_GETCONSOLEKEYS:
+			IPC::HandleMsg<Keyboard::GetConsoleKeysMsg>(channel, std::move(reader), [this] (std::vector<Keyboard::Key>& keys) {
+				keys = Keyboard::GetConsoleKeys();
+			});
+			break;
+
+		case CG_KEY_SETCONSOLEKEYS:
+			IPC::HandleMsg<Keyboard::SetConsoleKeysMsg>(channel, std::move(reader), [this] (const std::vector<Keyboard::Key>& keys) {
+				Keyboard::SetConsoleKeys(keys);
+			});
+			break;
+
 		case CG_KEY_CLEARCMDBUTTONS:
 			IPC::HandleMsg<Keyboard::ClearCmdButtonsMsg>(channel, std::move(reader), [this] {
 				CL_ClearCmdButtons();
@@ -1521,21 +1513,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 				CL_ServerStatus(nullptr, nullptr, 0);
 			});
 			break;
-
-		case CG_SEND_MESSAGE:
-			IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](std::vector<uint8_t>) {
-				Log::Warn("unsupported SendMessageMsg");
-			});
-			break;
-
-		case CG_MESSAGE_STATUS:
-			IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](messageStatus_t& status) {
-				Log::Warn("unsupported MessageStatusMsg");
-				status = {};
-			});
-			break;
-
-
 
 	default:
 		Sys::Drop("Bad CGame QVM syscall minor number: %d", index);

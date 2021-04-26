@@ -148,7 +148,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_nobind;
 	cvar_t      *r_singleShader;
 	cvar_t      *r_colorMipLevels;
-	cvar_t      *r_picmip;
+	cvar_t      *r_picMip;
+	cvar_t      *r_imageMaxDimension;
+	cvar_t      *r_ignoreMaterialMinDimension;
+	cvar_t      *r_ignoreMaterialMaxDimension;
+	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	cvar_t      *r_finish;
 	cvar_t      *r_clear;
 	cvar_t      *r_swapInterval;
@@ -185,11 +189,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_subdivisions;
 	cvar_t      *r_stitchCurves;
 
+	cvar_t      *r_noBorder;
 	cvar_t      *r_fullscreen;
 
 	cvar_t      *r_customwidth;
 	cvar_t      *r_customheight;
-	cvar_t      *r_customaspect;
 
 	cvar_t      *r_debugSurface;
 	cvar_t      *r_simpleMipMaps;
@@ -366,6 +370,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	/*
 	==================
 	GL_CheckErrors
+
+	Must not be called while the backend rendering thread is running
 	==================
 	*/
 	void GL_CheckErrors_( const char *fileName, int line )
@@ -373,64 +379,55 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		int  err;
 		char s[ 128 ];
 
-		if ( glConfig.smpActive )
-		{
-			// we can't print onto the console while rendering in another thread
-			return;
-		}
-
 		if ( r_ignoreGLErrors->integer )
 		{
 			return;
 		}
 
-		err = glGetError();
-
-		if ( err == GL_NO_ERROR )
+		while ( ( err = glGetError() ) != GL_NO_ERROR )
 		{
-			return;
+			switch ( err )
+			{
+				case GL_INVALID_ENUM:
+					strcpy( s, "GL_INVALID_ENUM" );
+					break;
+
+				case GL_INVALID_VALUE:
+					strcpy( s, "GL_INVALID_VALUE" );
+					break;
+
+				case GL_INVALID_OPERATION:
+					strcpy( s, "GL_INVALID_OPERATION" );
+					break;
+
+				case GL_STACK_OVERFLOW:
+					strcpy( s, "GL_STACK_OVERFLOW" );
+					break;
+
+				case GL_STACK_UNDERFLOW:
+					strcpy( s, "GL_STACK_UNDERFLOW" );
+					break;
+
+				case GL_OUT_OF_MEMORY:
+					strcpy( s, "GL_OUT_OF_MEMORY" );
+					break;
+
+				case GL_TABLE_TOO_LARGE:
+					strcpy( s, "GL_TABLE_TOO_LARGE" );
+					break;
+
+				case GL_INVALID_FRAMEBUFFER_OPERATION:
+					strcpy( s, "GL_INVALID_FRAMEBUFFER_OPERATION" );
+					break;
+
+				default:
+					Com_sprintf( s, sizeof( s ), "0x%X", err );
+					break;
+			}
+			// Pre-format the string so that each callsite counts separately for log suppression
+			std::string error = Str::Format("OpenGL error %s detected at %s:%d", s, fileName, line);
+			Log::Warn(error);
 		}
-
-		switch ( err )
-		{
-			case GL_INVALID_ENUM:
-				strcpy( s, "GL_INVALID_ENUM" );
-				break;
-
-			case GL_INVALID_VALUE:
-				strcpy( s, "GL_INVALID_VALUE" );
-				break;
-
-			case GL_INVALID_OPERATION:
-				strcpy( s, "GL_INVALID_OPERATION" );
-				break;
-
-			case GL_STACK_OVERFLOW:
-				strcpy( s, "GL_STACK_OVERFLOW" );
-				break;
-
-			case GL_STACK_UNDERFLOW:
-				strcpy( s, "GL_STACK_UNDERFLOW" );
-				break;
-
-			case GL_OUT_OF_MEMORY:
-				strcpy( s, "GL_OUT_OF_MEMORY" );
-				break;
-
-			case GL_TABLE_TOO_LARGE:
-				strcpy( s, "GL_TABLE_TOO_LARGE" );
-				break;
-
-			case GL_INVALID_FRAMEBUFFER_OPERATION:
-				strcpy( s, "GL_INVALID_FRAMEBUFFER_OPERATION" );
-				break;
-
-			default:
-				Com_sprintf( s, sizeof( s ), "0x%X", err );
-				break;
-		}
-
-		Sys::Error( "caught OpenGL error: %s in file %s line %i", s, fileName, line );
 	}
 
 	/*
@@ -468,7 +465,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	};
 	static const int s_numVidModes = ARRAY_LEN( r_vidModes );
 
-	bool R_GetModeInfo( int *width, int *height, float *windowAspect, int mode )
+	bool R_GetModeInfo( int *width, int *height, int mode )
 	{
 		const vidmode_t *vm;
 
@@ -485,13 +482,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		if( mode == -2)
 		{
 			// Must set width and height to display size before calling this function!
-			*windowAspect = ( float ) *width / *height;
 		}
 		else if ( mode == -1 )
 		{
 			*width = r_customwidth->integer;
 			*height = r_customheight->integer;
-			*windowAspect = r_customaspect->value;
 		}
 		else
 		{
@@ -499,7 +494,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 			*width = vm->width;
 			*height = vm->height;
-			*windowAspect = ( float ) vm->width / ( vm->height * vm->pixelAspect );
 		}
 
 		return true;
@@ -954,7 +948,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		}
 
 		Log::Debug("texturemode: %s", r_textureMode->string );
-		Log::Debug("picmip: %d", r_picmip->integer );
+		Log::Debug("picmip: %d", r_picMip->integer );
+		Log::Debug("imageMaxDimension: %d", r_imageMaxDimension->integer );
+		Log::Debug("ignoreMaterialMinDimension: %d", r_ignoreMaterialMinDimension->integer );
+		Log::Debug("ignoreMaterialMaxDimension: %d", r_ignoreMaterialMaxDimension->integer );
+		Log::Debug("replaceMaterialMinDimensionIfPresentWithMaxDimension: %d", r_replaceMaterialMinDimensionIfPresentWithMaxDimension->integer );
 
 		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 		{
@@ -987,24 +985,14 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			}
 		}
 
-		if ( glConfig.hardwareType == glHardwareType_t::GLHW_ATI )
+		if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
 		{
-			Log::Debug("HACK: ATI approximations" );
+			Log::Debug("HACK: ATI R300 approximations" );
 		}
 
 		if ( glConfig.textureCompression != textureCompression_t::TC_NONE )
 		{
 			Log::Debug("Using S3TC (DXTC) texture compression" );
-		}
-
-		if ( glConfig.hardwareType == glHardwareType_t::GLHW_ATI_DX10 )
-		{
-			Log::Debug("Using ATI DirectX 10 hardware features" );
-		}
-
-		if ( glConfig.hardwareType == glHardwareType_t::GLHW_NV_DX10 )
-		{
-			Log::Debug("Using NVIDIA DirectX 10 hardware features" );
 		}
 
 		if ( glConfig2.vboVertexSkinningAvailable )
@@ -1064,8 +1052,12 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_arb_texture_gather = ri.Cvar_Get( "r_arb_texture_gather", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_gpu_shader5 = ri.Cvar_Get( "r_arb_gpu_shader5", "1", CVAR_CHEAT | CVAR_LATCH );
 
-		r_picmip = ri.Cvar_Get( "r_picmip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		AssertCvarRange( r_picmip, 0, 3, true );
+		r_picMip = ri.Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_imageMaxDimension = ri.Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_ignoreMaterialMinDimension = ri.Cvar_Get( "r_ignoreMaterialMinDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_ignoreMaterialMaxDimension = ri.Cvar_Get( "r_ignoreMaterialMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		r_replaceMaterialMinDimensionIfPresentWithMaxDimension
+			= ri.Cvar_Get( "r_replaceMaterialMinDimensionIfPresentWithMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_colorMipLevels = ri.Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
 		r_colorbits = ri.Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
 		r_alphabits = ri.Cvar_Get( "r_alphabits", "0",  CVAR_LATCH );
@@ -1073,17 +1065,17 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_depthbits = ri.Cvar_Get( "r_depthbits", "0",  CVAR_LATCH );
 		r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_mode = ri.Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
+		r_noBorder = ri.Cvar_Get( "r_noBorder", "0", CVAR_ARCHIVE );
 		r_fullscreen = ri.Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE );
 		r_customwidth = ri.Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customheight = ri.Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
-		r_customaspect = ri.Cvar_Get( "r_customaspect", "1", CVAR_LATCH );
 		r_simpleMipMaps = ri.Cvar_Get( "r_simpleMipMaps", "0", CVAR_LATCH );
 		r_subdivisions = ri.Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
 		r_dynamicLightCastShadows = ri.Cvar_Get( "r_dynamicLightCastShadows", "1", 0 );
 		r_precomputedLighting = ri.Cvar_Get( "r_precomputedLighting", "1", CVAR_LATCH );
 		r_vertexLighting = ri.Cvar_Get( "r_vertexLighting", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_exportTextures = ri.Cvar_Get( "r_exportTextures", "0", 0 );
-		r_heatHaze = ri.Cvar_Get( "r_heatHaze", "1", 0 );
+		r_heatHaze = ri.Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_noMarksOnTrisurfs = ri.Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
 		r_lazyShaders = ri.Cvar_Get( "r_lazyShaders", "0", 0 );
 
@@ -1114,8 +1106,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_lodBias = ri.Cvar_Get( "r_lodBias", "0", 0 );
 		r_znear = ri.Cvar_Get( "r_znear", "3", CVAR_CHEAT );
 		r_zfar = ri.Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
-		r_ignoreGLErrors = ri.Cvar_Get( "r_ignoreGLErrors", "1", 0 );
-		r_fastsky = ri.Cvar_Get( "r_fastsky", "0", 0 );
+		r_ignoreGLErrors = ri.Cvar_Get( "r_ignoreGLErrors", "0", 0 );
+		r_fastsky = ri.Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE );
 		r_drawSun = ri.Cvar_Get( "r_drawSun", "0", 0 );
 		r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_CHEAT );
 		r_textureMode = ri.Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE );
@@ -1141,11 +1133,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_printShaders = ri.Cvar_Get( "r_printShaders", "0", 0 );
 
-		r_bloom = ri.Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE );
+		r_bloom = ri.Cvar_Get( "r_bloom", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_bloomBlur = ri.Cvar_Get( "r_bloomBlur", "1.0", CVAR_CHEAT );
 		r_bloomPasses = ri.Cvar_Get( "r_bloomPasses", "2", CVAR_CHEAT );
-		r_FXAA = ri.Cvar_Get( "r_FXAA", "0", 0 );
-		r_ssao = ri.Cvar_Get( "r_ssao", "0", CVAR_LATCH );
+		r_FXAA = ri.Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		r_ssao = ri.Cvar_Get( "r_ssao", "0", CVAR_LATCH | CVAR_ARCHIVE );
 
 		// temporary variables that can change at any time
 		r_showImages = ri.Cvar_Get( "r_showImages", "0", CVAR_TEMP );
@@ -1158,7 +1150,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_noLightVisCull = ri.Cvar_Get( "r_noLightVisCull", "0", CVAR_CHEAT );
 		r_noInteractionSort = ri.Cvar_Get( "r_noInteractionSort", "0", CVAR_CHEAT );
-		r_dynamicLight = ri.Cvar_Get( "r_dynamicLight", "2", CVAR_ARCHIVE );
+		r_dynamicLight = ri.Cvar_Get( "r_dynamicLight", "2", CVAR_LATCH | CVAR_ARCHIVE );
+
 		r_staticLight = ri.Cvar_Get( "r_staticLight", "2", CVAR_ARCHIVE );
 		r_drawworld = ri.Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
 		r_portalOnly = ri.Cvar_Get( "r_portalOnly", "0", CVAR_CHEAT );
@@ -1184,7 +1177,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_logFile = ri.Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
 		r_debugSurface = ri.Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 		r_nobind = ri.Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
-		r_clear = ri.Cvar_Get( "r_clear", "0", CVAR_CHEAT );
+		r_clear = ri.Cvar_Get( "r_clear", "1", 0 );
 		r_offsetFactor = ri.Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );
 		r_offsetUnits = ri.Cvar_Get( "r_offsetUnits", "-2", CVAR_CHEAT );
 
@@ -1197,14 +1190,14 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_normalScale = ri.Cvar_Get( "r_normalScale", "1.0", CVAR_ARCHIVE );
 		r_normalMapping = ri.Cvar_Get( "r_normalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_highQualityNormalMapping = ri.Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
-		r_liquidMapping = ri.Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH );
+		r_liquidMapping = ri.Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_reliefDepthScale = ri.Cvar_Get( "r_reliefDepthScale", "0.03", CVAR_CHEAT );
 		r_reliefMapping = ri.Cvar_Get( "r_reliefMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_glowMapping = ri.Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
-		r_reflectionMapping = ri.Cvar_Get( "r_reflectionMapping", "0", CVAR_CHEAT );
+		r_reflectionMapping = ri.Cvar_Get( "r_reflectionMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 
 		r_wrapAroundLighting = ri.Cvar_Get( "r_wrapAroundLighting", "0.7", CVAR_CHEAT | CVAR_LATCH );
-		r_halfLambertLighting = ri.Cvar_Get( "r_halfLambertLighting", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_halfLambertLighting = ri.Cvar_Get( "r_halfLambertLighting", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimLighting = ri.Cvar_Get( "r_rimLighting", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimExponent = ri.Cvar_Get( "r_rimExponent", "3", CVAR_CHEAT | CVAR_LATCH );
 		AssertCvarRange( r_rimExponent, 0.5, 8.0, false );
@@ -1582,8 +1575,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.SetColor = RE_SetColor;
 		re.SetClipRegion = RE_SetClipRegion;
 		re.DrawStretchPic = RE_StretchPic;
-		re.DrawStretchRaw = RE_StretchRaw;
-		re.UploadCinematic = RE_UploadCinematic;
 
 		re.DrawRotatedPic = RE_RotatedPic;
 		re.Add2dPolys = RE_2DPolyies;
@@ -1638,6 +1629,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.Add2dPolysIndexed = RE_2DPolyiesIndexed;
 		re.GenerateTexture = RE_GenerateTexture;
 		re.ShaderNameFromHandle = RE_GetShaderNameFromHandle;
+		re.SendBotDebugDrawCommands = RE_SendBotDebugDrawCommands;
 
 		return &re;
 	}

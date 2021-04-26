@@ -124,7 +124,7 @@ namespace FS {
 
 #ifdef BUILD_ENGINE
 static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "also load pk3s, ignoring version", Cvar::NONE, false);
-static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 0);
+static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 1);
 
 bool UseLegacyPaks()
 {
@@ -2643,12 +2643,6 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 		});
 		break;
 
-	case VM::FS_HOMEPATH_OPENMODE:
-		IPC::HandleMsg<VM::FSHomePathOpenModeMsg>(channel, std::move(reader), [](std::string, uint32_t) {
-			Sys::Drop("FSHomePathOpenModeMsg not implemented");
-		});
-		break;
-
 	case VM::FS_HOMEPATH_FILEEXISTS:
 		IPC::HandleMsg<VM::FSHomePathFileExistsMsg>(channel, std::move(reader), [](std::string path, bool& out) {
 			out = HomePath::FileExists(Path::Build("game", path));
@@ -2699,12 +2693,6 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 					vec.push_back(std::move(x));
 				out = std::move(vec);
 			} catch (std::system_error&) {}
-		});
-		break;
-
-	case VM::FS_PAKPATH_OPEN:
-		IPC::HandleMsg<VM::FSPakPathOpenMsg>(channel, std::move(reader), [](uint32_t, std::string) {
-			Sys::Drop("FSPakPathOpenMsg not implemented");
 		});
 		break;
 

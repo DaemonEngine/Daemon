@@ -220,9 +220,11 @@ namespace Util {
 		size_t handles_pos;
 	};
 
-    // Implementation of the serialization traits for common types and std containers
+	// Implementation of the serialization traits for common types and std containers
 
 	// Simple implementation for POD types
+	// This is only safe to use if every possible byte sequence represents a valid value for the
+	// object. So it cannot be used for bool or a struct containing a bool.
 	template<typename T>
 	struct SerializeTraits<T, typename std::enable_if<std::is_pod<T>::value && !std::is_array<T>::value>::type> {
 		static void Write(Writer& stream, const T& value)
@@ -234,6 +236,19 @@ namespace Util {
 			T value;
 			stream.ReadData(std::addressof(value), sizeof(value));
 			return value;
+		}
+	};
+
+	// bool
+	template<>
+	struct SerializeTraits<bool> {
+		static void Write(Writer& stream, bool value)
+		{
+			stream.Write<uint8_t>(+value);
+		}
+		static bool Read(Reader& stream)
+		{
+			return static_cast<bool>(stream.Read<uint8_t>() & 1);
 		}
 	};
 
@@ -361,7 +376,7 @@ namespace Util {
 		static void Write(Writer& stream, const std::map<T, U>& value)
 		{
 			stream.WriteSize(value.size());
-			for (const std::pair<T, U>& x: value)
+			for (const std::pair<const T, U>& x: value)
 				stream.Write<std::pair<T, U>>(x);
 		}
 		static std::map<T, U> Read(Reader& stream)
@@ -378,7 +393,7 @@ namespace Util {
 		static void Write(Writer& stream, const std::unordered_map<T, U>& value)
 		{
 			stream.WriteSize(value.size());
-			for (const std::pair<T, U>& x: value)
+			for (const std::pair<const T, U>& x: value)
 				stream.Write<std::pair<T, U>>(x);
 		}
 		static std::unordered_map<T, U> Read(Reader& stream)

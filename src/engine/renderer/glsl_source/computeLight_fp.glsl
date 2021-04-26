@@ -27,13 +27,13 @@ uniform samplerCube u_EnvironmentMap1;
 uniform float u_EnvironmentInterpolation;
 #endif // USE_REFLECTIVE_SPECULAR
 
+#ifdef HAVE_ARB_uniform_buffer_object
 struct light {
   vec4  center_radius;
   vec4  color_type;
   vec4  direction_angle;
 };
 
-#ifdef HAVE_ARB_uniform_buffer_object
 layout(std140) uniform u_Lights {
   light lights[ MAX_REF_LIGHTS ];
 };
@@ -67,9 +67,12 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 		   vec4 diffuseColor, vec4 materialColor,
 		   inout vec4 color ) {
   vec3 H = normalize( lightDir + viewDir );
-  float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
 
-#if defined(r_physicalMapping) && defined(USE_PHYSICAL_SHADING)
+#if defined(USE_PHYSICAL_MAPPING) || defined(r_specularMapping)
+  float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
+#endif // USE_PHYSICAL_MAPPING || r_specularMapping
+
+#if defined(USE_PHYSICAL_MAPPING)
   // Daemon PBR packing defaults to ORM like glTF 2.0 defines
   // https://www.khronos.org/blog/art-pipeline-for-gltf
   // > ORM texture for Occlusion, Roughness, and Metallic
@@ -103,14 +106,14 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   color.rgb += lightColor.rgb * (1.0 - metalness) * NdotL * diffuseColor.rgb;
   color.rgb += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
   color.a = mix(diffuseColor.a, 1.0, FexpNV);
-#else // !r_physicalMapping || !USE_PHYSICAL_SHADING
+#else // !USE_PHYSICAL_MAPPING
   float NdotL = dot( normal, lightDir );
-#if defined(r_HalfLambertLighting)
+#if defined(r_halfLambertLighting)
   // http://developer.valvesoftware.com/wiki/Half_Lambert
   NdotL = NdotL * 0.5 + 0.5;
   NdotL *= NdotL;
-#elif defined(r_WrapAroundLighting)
-  NdotL = clamp( NdotL + r_WrapAroundLighting, 0.0, 1.0) / clamp(1.0 + r_WrapAroundLighting, 0.0, 1.0);
+#elif defined(r_wrapAroundLighting)
+  NdotL = clamp( NdotL + r_wrapAroundLighting, 0.0, 1.0) / clamp(1.0 + r_wrapAroundLighting, 0.0, 1.0);
 #else
   NdotL = clamp( NdotL, 0.0, 1.0 );
 #endif
@@ -124,10 +127,10 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 #endif // USE_REFLECTIVE_SPECULAR
 
   color.rgb += diffuseColor.rgb * lightColor.rgb * NdotL;
-#if defined(r_specularMapping) && !defined(USE_PHYSICAL_SHADING)
+#if defined(r_specularMapping)
   color.rgb += materialColor.rgb * lightColor.rgb * pow( NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
-#endif // r_specularMapping && !USE_PHYSICAL_SHADING&
-#endif // !r_physicalMapping || !USE_PHYSICAL_SHADING
+#endif // r_specularMapping
+#endif // !USE_PHYSICAL_MAPPING
 }
 
 #if defined(TEXTURE_INTEGER)
@@ -159,6 +162,7 @@ int nextIdx( inout idxs_t idxs ) {
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
+#if defined(r_dynamicLight)
 void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 		    vec4 material, inout vec4 color ) {
   vec4 center_radius = GetLight( idx, center_radius );
@@ -205,7 +209,7 @@ void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 mater
     for( int i = 0; i < lightsPerLayer; i++ ) {
       int idx = numLayers * nextIdx( idxs ) + layer;
 
-      if( idx > u_numLights )
+      if( idx >= u_numLights )
       {
 #if defined(r_showLightTiles)
         if (numLights > 0.0)
@@ -231,3 +235,4 @@ void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 mater
   }
 #endif
 }
+#endif

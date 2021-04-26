@@ -507,26 +507,32 @@ static std::string GenEngineConstants() {
 		{
 			AddDefine( str, "VSM", 1 );
 
-			if ( glConfig.hardwareType == glHardwareType_t::GLHW_ATI )
+			if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+			{
 				AddDefine( str, "VSM_CLAMP", 1 );
+			}
 		}
 
-		if ( ( glConfig.hardwareType == glHardwareType_t::GLHW_NV_DX10 || glConfig.hardwareType == glHardwareType_t::GLHW_ATI_DX10 ) && r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM32) )
+		if ( ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 ) && r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM32) )
+		{
 			AddConst( str, "VSM_EPSILON", 0.000001f );
-		else
+		}
+		else // also required by GLHW_R300 which is not GLDRV_OPENGL3 anyway
+		{
 			AddConst( str, "VSM_EPSILON", 0.0001f );
+		}
 
 		if ( r_lightBleedReduction->value )
-			AddConst( str, "r_LightBleedReduction", r_lightBleedReduction->value );
+			AddConst( str, "r_lightBleedReduction", r_lightBleedReduction->value );
 
 		if ( r_overDarkeningFactor->value )
-			AddConst( str, "r_OverDarkeningFactor", r_overDarkeningFactor->value );
+			AddConst( str, "r_overDarkeningFactor", r_overDarkeningFactor->value );
 
 		if ( r_shadowMapDepthScale->value )
-			AddConst( str, "r_ShadowMapDepthScale", r_shadowMapDepthScale->value );
+			AddConst( str, "r_shadowMapDepthScale", r_shadowMapDepthScale->value );
 
 		if ( r_debugShadowMaps->integer )
-			AddDefine( str, "r_DebugShadowMaps", r_debugShadowMaps->integer );
+			AddDefine( str, "r_debugShadowMaps", r_debugShadowMaps->integer );
 
 		if ( r_softShadows->integer == 6 )
 			AddDefine( str, "PCSS", 1 );
@@ -534,10 +540,15 @@ static std::string GenEngineConstants() {
 			AddConst( str, "r_PCFSamples", r_softShadows->value + 1.0f );
 
 		if ( r_parallelShadowSplits->integer )
-			AddDefine( str, Str::Format( "r_ParallelShadowSplits_%d", r_parallelShadowSplits->integer ) );
+			AddDefine( str, Str::Format( "r_parallelShadowSplits_%d", r_parallelShadowSplits->integer ) );
 
 		if ( r_showParallelShadowSplits->integer )
-			AddDefine( str, "r_ShowParallelShadowSplits", 1 );
+			AddDefine( str, "r_showParallelShadowSplits", 1 );
+	}
+
+	if ( r_dynamicLight->integer != 0 )
+	{
+		AddDefine( str, "r_dynamicLight", r_dynamicLight->integer );
 	}
 
 	if ( r_precomputedLighting->integer )
@@ -565,7 +576,7 @@ static std::string GenEngineConstants() {
 
 	if ( glConfig2.vboVertexSkinningAvailable )
 	{
-		AddDefine( str, "r_VertexSkinning", 1 );
+		AddDefine( str, "r_vertexSkinning", 1 );
 		AddConst( str, "MAX_GLSL_BONES", glConfig2.maxVertexSkinningBones );
 	}
 	else
@@ -574,14 +585,14 @@ static std::string GenEngineConstants() {
 	}
 
 	if ( r_wrapAroundLighting->value )
-		AddConst( str, "r_WrapAroundLighting", r_wrapAroundLighting->value );
+		AddConst( str, "r_wrapAroundLighting", r_wrapAroundLighting->value );
 
 	if ( r_halfLambertLighting->integer )
-		AddDefine( str, "r_HalfLambertLighting", 1 );
+		AddDefine( str, "r_halfLambertLighting", 1 );
 
 	if ( r_rimLighting->integer )
 	{
-		AddDefine( str, "r_RimLighting", 1 );
+		AddDefine( str, "r_rimLighting", 1 );
 		AddConst( str, "r_RimExponent", r_rimExponent->value );
 	}
 
@@ -616,6 +627,13 @@ static std::string GenEngineConstants() {
 	}
 
 	return str;
+}
+
+void GLShaderManager::InitDriverInfo()
+{
+	std::string driverInfo = std::string(glConfig.renderer_string) + glConfig.version_string;
+	_driverVersionHash = Com_BlockChecksum(driverInfo.c_str(), static_cast<int>(driverInfo.size()));
+	_shaderBinaryCacheInvalidated = false;
 }
 
 void GLShaderManager::GenerateBuiltinHeaders() {
@@ -726,24 +744,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 
 	AddDefine( env, "r_tileStep", glState.tileStep[ 0 ], glState.tileStep[ 1 ] );
 
-	if ( glConfig.driverType == glDriverType_t::GLDRV_MESA )
-		AddDefine( env, "GLDRV_MESA", 1 );
-
-	switch (glConfig.hardwareType)
-	{
-		case glHardwareType_t::GLHW_ATI:
-		AddDefine(env, "GLHW_ATI", 1);
-		break;
-	case glHardwareType_t::GLHW_ATI_DX10:
-		AddDefine(env, "GLHW_ATI_DX10", 1);
-		break;
-	case glHardwareType_t::GLHW_NV_DX10:
-		AddDefine(env, "GLHW_NV_DX10", 1);
-		break;
-	default:
-		break;
-	}
-
 	// We added a lot of stuff but if we do something bad
 	// in the GLSL shaders then we want the proper line
 	// so we have to reset the line counting.
@@ -786,6 +786,11 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 			if( !baseShader->VS || !baseShader->FS )
 				CompileGPUShaders( shader, baseShader, compileMacros );
 
+			if ( baseShader->unusedPermutation )
+			{
+				return true;
+			}
+
 			glAttachShader( shaderProgram->program, baseShader->VS );
 			glAttachShader( shaderProgram->program, _deformShaders[ deformIndex ] );
 			glAttachShader( shaderProgram->program, baseShader->FS );
@@ -796,6 +801,12 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 		else if ( !LoadShaderBinary( shader, i ) )
 		{
 			CompileAndLinkGPUShaderProgram(	shader, shaderProgram, compileMacros, deformIndex );
+
+			if ( shaderProgram->unusedPermutation )
+			{
+				return true;
+			}
+
 			SaveShaderBinary( shader, i );
 		}
 
@@ -818,6 +829,9 @@ void GLShaderManager::buildAll()
 	while ( !_shaderBuildQueue.empty() )
 	{
 		GLShader& shader = *_shaderBuildQueue.front();
+
+		std::string shaderName = shader.GetMainShaderName();
+
 		size_t numPermutations = static_cast<size_t>(1) << shader.GetNumOfCompiledMacros();
 		size_t i;
 
@@ -878,6 +892,9 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	if( !glConfig2.getProgramBinaryAvailable )
 		return false;
 
+	if (_shaderBinaryCacheInvalidated)
+		return false;
+
 	std::error_code err;
 
 	std::string shaderFilename = Str::Format("glsl/%s/%s_%u.bin", shader->GetName(), shader->GetName(), (unsigned int)programNum);
@@ -902,9 +919,16 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	memcpy( &shaderHeader, binaryptr, sizeof( shaderHeader ) );
 	binaryptr += sizeof( shaderHeader );
 
-	// check if this shader binary is the correct format
-	if ( shaderHeader.version != GL_SHADER_VERSION )
+	// check if the header struct is the correct format
+	// and the binary was produced by the same gl driver
+	if (shaderHeader.version != GL_SHADER_VERSION || shaderHeader.driverVersionHash != _driverVersionHash)
+	{
+		// These two fields should be the same for all shaders. So if there is a mismatch,
+		// don't bother opening any of the remaining files.
+		Log::Notice("Invalidating shader binary cache");
+		_shaderBinaryCacheInvalidated = true;
 		return false;
+	}
 
 	// make sure this shader uses the same number of macros
 	if ( shaderHeader.numMacros != shader->GetNumOfCompiledMacros() )
@@ -958,6 +982,13 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 	// find output size
 	binarySize += sizeof( shaderHeader );
 	glGetProgramiv( shaderProgram->program, GL_PROGRAM_BINARY_LENGTH, &binaryLength );
+
+	// The binary length may be 0 if there is an error.
+	if ( binaryLength <= 0 )
+	{
+		return;
+	}
+
 	binarySize += binaryLength;
 
 	binaryptr = binary = ( byte* )ri.Hunk_AllocateTempMemory( binarySize );
@@ -979,6 +1010,7 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 
 	shaderHeader.binaryLength = binaryLength;
 	shaderHeader.checkSum = shader->_checkSum;
+	shaderHeader.driverVersionHash = _driverVersionHash;
 
 	// write the header to the buffer
 	memcpy(binary, &shaderHeader, sizeof( shaderHeader ) );
@@ -1002,6 +1034,7 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 		const char **compileMacrosP = &compileMacros_;
 		char       *token;
 
+		// Do not build shader macro permutations that will never be used.
 		while ( true )
 		{
 			token = COM_ParseExt2( compileMacrosP, false );
@@ -1011,9 +1044,57 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 				break;
 			}
 
+			/* FIXME: add this test: ( strcmp( token, "USE_TCGEN_LIGHTMAP" ) == 0 && r_lightMapping->integer == 0 )
+			when lightmaps are never used when lightmapping is disabled
+			see https://github.com/DaemonEngine/Daemon/issues/296 is fixed */
+			if ( strcmp( token, "USE_LIGHT_MAPPING" ) == 0 && r_vertexLighting->integer != 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 && r_normalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 && r_deluxeMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 && r_physicalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			/* FIXME: add to the following test: && r_physicalMapping->integer == 0
+			when reflective specular is implemented for physical mapping too
+			see https://github.com/DaemonEngine/Daemon/issues/355 */
+			else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 && r_specularMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_RELIEF_MAPPING" ) == 0 && r_reliefMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+			else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 && r_reliefMapping->integer == 0 && r_normalMapping->integer == 0 )
+			{
+				program->unusedPermutation = true;
+				return;
+			}
+
 			macrosString += Str::Format( "#ifndef %s\n#define %s 1\n#endif\n", token, token );
 		}
 	}
+
+	program->unusedPermutation = false;
+
+	Log::Debug( "building %s shader permutation with macro: %s",
+		shader->GetMainShaderName(),
+		compileMacros.empty() ? "none" : compileMacros );
 
 	// add them
 	std::string vertexShaderTextWithMacros = macrosString + shader->_vertexShaderText;
@@ -1038,6 +1119,11 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 						      Str::StringRef compileMacros, int deformIndex )
 {
 	GLShaderManager::CompileGPUShaders( shader, program, compileMacros );
+
+	if ( program->unusedPermutation )
+	{
+		return;
+	}
 
 	glAttachShader( program->program, program->VS );
 	glAttachShader( program->program, _deformShaders[ deformIndex ] );
@@ -1213,7 +1299,7 @@ bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permut
 {
 	for (const GLCompileMacro* macro : macros)
 	{
-		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_SHADING || macro->GetType() == USE_VERTEX_SPRITE) )
+		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_MAPPING || macro->GetType() == USE_VERTEX_SPRITE) )
 		{
 			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
 			return true;
@@ -1498,7 +1584,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
-	GLCompileMacro_USE_PHYSICAL_SHADING( this )
+	GLCompileMacro_USE_PHYSICAL_MAPPING( this )
 {
 }
 

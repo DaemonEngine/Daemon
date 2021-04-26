@@ -34,6 +34,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Primitives.h"
 #include <common/FileSystem.h>
 
+namespace Util {
+    template<> struct SerializeTraits<netField_t> {
+        static void Write(Writer& stream, const netField_t& field)
+        {
+            stream.Write<int>(field.bits);
+            stream.Write<int>(field.offset);
+            stream.Write<std::string>(field.name);
+        }
+        static netField_t Read(Reader& stream)
+        {
+            netField_t field;
+            field.bits = stream.Read<int>();
+            field.offset = stream.Read<int>();
+            field.name = stream.Read<std::string>();
+            field.used = 0;
+            return field;
+        }
+    };
+} // namespace Util
+
 namespace VM {
 
     /*
@@ -69,7 +89,7 @@ namespace VM {
         QVM_COMMON_FS_WRITE,
         QVM_COMMON_FS_SEEK,
         QVM_COMMON_FS_TELL,
-		QVM_COMMON_FS_FILELENGTH,
+        QVM_COMMON_FS_FILELENGTH,
         QVM_COMMON_FS_RENAME,
         QVM_COMMON_FS_FCLOSE_FILE,
         QVM_COMMON_FS_GET_FILE_LIST,
@@ -77,12 +97,6 @@ namespace VM {
         QVM_COMMON_FS_FIND_PAK,
         QVM_COMMON_FS_LOAD_PAK,
         QVM_COMMON_FS_LOAD_MAP_METADATA,
-
-        QVM_COMMON_PARSE_ADD_GLOBAL_DEFINE,
-        QVM_COMMON_PARSE_LOAD_SOURCE,
-        QVM_COMMON_PARSE_FREE_SOURCE,
-        QVM_COMMON_PARSE_READ_TOKEN,
-        QVM_COMMON_PARSE_SOURCE_FILE_AND_LINE,
     };
 
     using ErrorMsg = IPC::SyncMessage<
@@ -136,27 +150,6 @@ namespace VM {
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_LOAD_MAP_METADATA>>
     >;
 
-    using ParseAddGlobalDefineMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_ADD_GLOBAL_DEFINE>, std::string>,
-        IPC::Reply<int>
-    > ;
-    using ParseLoadSourceMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_LOAD_SOURCE>, std::string>,
-        IPC::Reply<int>
-    >;
-    using ParseFreeSourceMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_FREE_SOURCE>, int>,
-        IPC::Reply<int>
-    >;
-    using ParseReadTokenMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_READ_TOKEN>, int>,
-        IPC::Reply<bool, pc_token_t>
-    >;
-    using ParseSourceFileAndLineMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_PARSE_SOURCE_FILE_AND_LINE>, int>,
-        IPC::Reply<int, std::string, int>
-    >;
-
     // Misc Syscall Definitions
 
     enum EngineMiscMessages {
@@ -172,6 +165,16 @@ namespace VM {
     // CrashDumpMsg
     using CrashDumpMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<MISC, CRASH_DUMP>, std::vector<uint8_t>>
+    >;
+
+    enum VMMiscMessages {
+        GET_NETCODE_TABLES,
+    };
+
+    // GetNetcodeTablesMsg
+    using GetNetcodeTablesMsg = IPC::SyncMessage <
+        IPC::Message<IPC::Id<MISC, GET_NETCODE_TABLES>>,
+        IPC::Reply<NetcodeTable, int>
     >;
 
     // Command-Related Syscall Definitions
@@ -246,14 +249,12 @@ namespace VM {
 
     enum EngineFileSystemMessages {
         FS_INITIALIZE,
-        FS_HOMEPATH_OPENMODE, // TODO(0.52) remove
         FS_HOMEPATH_FILEEXISTS,
         FS_HOMEPATH_TIMESTAMP,
         FS_HOMEPATH_MOVEFILE,
         FS_HOMEPATH_DELETEFILE,
         FS_HOMEPATH_LISTFILES,
         FS_HOMEPATH_LISTFILESRECURSIVE,
-        FS_PAKPATH_OPEN, // TODO(0.52) remove
         FS_PAKPATH_TIMESTAMP,
         FS_PAKPATH_LOADPAK
     };
@@ -261,10 +262,6 @@ namespace VM {
     using FSInitializeMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_INITIALIZE>>,
         IPC::Reply<std::string, std::string, std::vector<FS::PakInfo>, std::vector<FS::LoadedPakInfo>, std::unordered_map<std::string, std::pair<uint32_t, FS::offset_t>>>
-    >;
-    using FSHomePathOpenModeMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_OPENMODE>, std::string, uint32_t>,
-        IPC::Reply<>
     >;
     using FSHomePathFileExistsMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_FILEEXISTS>, std::string>,
@@ -289,10 +286,6 @@ namespace VM {
     using FSHomePathListFilesRecursiveMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_HOMEPATH_LISTFILESRECURSIVE>, std::string>,
         IPC::Reply<Util::optional<std::vector<std::string>>>
-    >;
-    using FSPakPathOpenMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_OPEN>, uint32_t, std::string>,
-        IPC::Reply<>
     >;
     using FSPakPathTimestampMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_TIMESTAMP>, uint32_t, std::string>,

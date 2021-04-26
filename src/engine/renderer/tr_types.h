@@ -39,6 +39,12 @@ Maryland 20850 USA.
 #ifndef __TR_TYPES_H
 #define __TR_TYPES_H
 
+// bool can't be safely deserialized by memcpy
+#pragma push_macro("bool")
+#undef bool
+#define bool DO_NOT_USE_BOOL_IN_IPC_MESSAGE_TYPES
+using bool8_t = uint8_t;
+
 // XreaL BEGIN
 #define MAX_REF_LIGHTS     1024
 #define MAX_REF_ENTITIES   1023 // can't be increased without changing drawsurf bit packing
@@ -168,7 +174,7 @@ struct refEntity_t
 	vec3_t    lightingOrigin; // so multi-part models can be lit identically (RF_LIGHTING_ORIGIN)
 
 	vec3_t    axis[ 3 ]; // rotation vectors
-	bool  nonNormalizedAxes; // axis are not normalized, i.e. they have scale
+	bool8_t  nonNormalizedAxes; // axis are not normalized, i.e. they have scale
 	vec3_t    origin;
 	int       frame;
 
@@ -190,11 +196,6 @@ struct refEntity_t
 	// extra sprite information
 	float radius;
 	float rotation;
-
-	// Ridah, entity fading (gibs, debris, etc)
-	int   fadeStartTime, fadeEndTime;
-
-	int   entityNum; // currentState.number, so we can attach rendering effects to specific entities (Zombie)
 
 #if defined( USE_REFENTITY_NOSHADOWID )
 	// extra light interaction information
@@ -247,10 +248,10 @@ struct refLight_t
 	vec3_t   projStart;
 	vec3_t   projEnd;
 
-	bool noShadows;
+	bool8_t noShadows;
 	short    noShadowID; // don't cast shadows of all entities with this id
 
-	bool inverseShadows; // don't cast light and draw shadows by darken the scene
+	bool8_t inverseShadows; // don't cast light and draw shadows by darken the scene
 	// this is useful for drawing player shadows with shadow mapping
 };
 
@@ -310,7 +311,6 @@ enum class glDriverType_t
 
 // XreaL BEGIN
   GLDRV_OPENGL3, // new driver system
-  GLDRV_MESA, // crap
 // XreaL END
 };
 
@@ -321,9 +321,7 @@ enum class glHardwareType_t
   GLHW_GENERIC, // where everthing works the way it should
 
 // XreaL BEGIN
-  GLHW_ATI, // where you don't have proper GLSL support
-  GLHW_ATI_DX10, // ATI Radeon HD series DX10 hardware
-  GLHW_NV_DX10 // Geforce 8/9 class DX10 hardware
+  GLHW_R300, // pre-GL3 ATI hack
 // XreaL END
 };
 
@@ -348,65 +346,17 @@ struct glconfig_t
 	glHardwareType_t     hardwareType;
 
 	textureCompression_t textureCompression;
-	bool             textureEnvAddAvailable;
-	bool             anisotropicAvailable; //----(SA)  added
+	bool8_t             textureEnvAddAvailable;
+	bool8_t             anisotropicAvailable; //----(SA)  added
 	float                maxAnisotropy; //----(SA)  added
 
 	int      vidWidth, vidHeight;
-	// aspect is the screen's physical width / height, which may be different
-	// than scrWidth / scrHeight if the pixels are non-square
-	float windowAspect;
 
 	int   displayFrequency;
 
-	// synonymous with "does rendering consume the entire screen?", therefore
-	// a Win32 ICD that used CDS will have this set to TRUE
-	bool isFullscreen;
-	bool smpActive; // dual processor
+	bool8_t smpActive; // dual processor
 };
 
-// XreaL BEGIN
-struct glconfig2_t
-{
-	bool textureCompressionRGTCAvailable;
-
-	bool glCoreProfile;
-
-	int      maxCubeMapTextureSize;
-
-	bool occlusionQueryAvailable;
-	int      occlusionQueryBits;
-
-	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
-	int      shadingLanguageVersion;
-
-	int      maxVertexUniforms;
-//	int             maxVaryingFloats;
-	int      maxVertexAttribs;
-	bool vboVertexSkinningAvailable;
-	int      maxVertexSkinningBones;
-
-	bool drawBuffersAvailable;
-	bool textureHalfFloatAvailable;
-	bool textureFloatAvailable;
-	bool textureIntegerAvailable;
-	bool textureRGAvailable;
-	bool gpuShader4Available;
-	bool textureGatherAvailable;
-	int      maxDrawBuffers;
-
-	float    maxTextureAnisotropy;
-	bool textureAnisotropyAvailable;
-
-	int      maxRenderbufferSize;
-	int      maxColorAttachments;
-
-	bool getProgramBinaryAvailable;
-	bool bufferStorageAvailable;
-	bool uniformBufferObjectAvailable;
-	bool mapBufferRangeAvailable;
-	bool syncAvailable;
-};
-// XreaL END
+#pragma pop_macro("bool")
 
 #endif // __TR_TYPES_H

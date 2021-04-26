@@ -61,7 +61,6 @@ static cvar_t       *in_joystickNo = nullptr;
 static cvar_t       *in_joystickUseAnalog = nullptr;
 static cvar_t       *in_gameControllerTriggerDeadzone = nullptr;
 
-static cvar_t *in_gameController = nullptr;
 static cvar_t *in_gameControllerDebug = nullptr;
 
 static SDL_Window *window = nullptr;
@@ -72,34 +71,38 @@ static SDL_Window *window = nullptr;
 IN_PrintKey
 ===============
 */
-static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key key, bool down )
+static void IN_PrintKey( const SDL_Keysym *keysym, Keyboard::Key keycodeKey, bool down )
 {
-	if ( keysym->mod & KMOD_LSHIFT ) { Log::Notice( " KMOD_LSHIFT" ); }
+	std::string kmods;
 
-	if ( keysym->mod & KMOD_RSHIFT ) { Log::Notice( " KMOD_RSHIFT" ); }
+	if ( keysym->mod & KMOD_LSHIFT ) { kmods += "KMOD_LSHIFT "; }
 
-	if ( keysym->mod & KMOD_LCTRL ) { Log::Notice( " KMOD_LCTRL" ); }
+	if ( keysym->mod & KMOD_RSHIFT ) { kmods += "KMOD_RSHIFT "; }
 
-	if ( keysym->mod & KMOD_RCTRL ) { Log::Notice( " KMOD_RCTRL" ); }
+	if ( keysym->mod & KMOD_LCTRL ) { kmods += "KMOD_LCTRL "; }
 
-	if ( keysym->mod & KMOD_LALT ) { Log::Notice( " KMOD_LALT" ); }
+	if ( keysym->mod & KMOD_RCTRL ) { kmods += "KMOD_RCTRL "; }
 
-	if ( keysym->mod & KMOD_RALT ) { Log::Notice( " KMOD_RALT" ); }
+	if ( keysym->mod & KMOD_LALT ) { kmods += "KMOD_LALT "; }
 
-	if ( keysym->mod & KMOD_LGUI ) { Log::Notice( " KMOD_LGUI" ); }
+	if ( keysym->mod & KMOD_RALT ) { kmods += "KMOD_RALT "; }
 
-	if ( keysym->mod & KMOD_RGUI ) { Log::Notice( " KMOD_RGUI" ); }
+	if ( keysym->mod & KMOD_LGUI ) { kmods += "KMOD_LGUI "; }
 
-	if ( keysym->mod & KMOD_NUM ) { Log::Notice( " KMOD_NUM" ); }
+	if ( keysym->mod & KMOD_RGUI ) { kmods += "KMOD_RGUI "; }
 
-	if ( keysym->mod & KMOD_CAPS ) { Log::Notice( " KMOD_CAPS" ); }
+	if ( keysym->mod & KMOD_NUM ) { kmods += "KMOD_NUM" ; }
 
-	if ( keysym->mod & KMOD_MODE ) { Log::Notice( " KMOD_MODE" ); }
+	if ( keysym->mod & KMOD_CAPS ) { kmods += "KMOD_CAPS "; }
 
-	if ( keysym->mod & KMOD_RESERVED ) { Log::Notice( " KMOD_RESERVED" ); }
+	if ( keysym->mod & KMOD_MODE ) { kmods += "KMOD_MODE "; }
 
-	Log::Notice( "%c scancode = 0x%03x \"%s\" engine keycode name = %s\n", down ? '+' : '-',
-	    keysym->scancode, SDL_GetKeyName( keysym->sym ), KeyToString( key ) );
+	if ( keysym->mod & KMOD_RESERVED ) { kmods += "KMOD_RESERVED "; }
+
+	Log::defaultLogger.WithoutSuppression().Notice(
+	    "%s%c scancode = 0x%03x | SDL name = \"%s\" | keycode bind = %s | scancode bind = %s",
+	    kmods, down ? '+' : '-', keysym->scancode, SDL_GetKeyName( keysym->sym ),
+	    KeyToString( keycodeKey ),  KeyToString( Keyboard::Key::FromScancode( keysym->scancode )));
 }
 
 /*
@@ -611,7 +614,10 @@ static void IN_ShutdownJoystick()
 		stick = nullptr;
 	}
 
-	SDL_QuitSubSystem( SDL_INIT_JOYSTICK );
+	if ( SDL_WasInit( SDL_INIT_JOYSTICK ) )
+	{
+		SDL_QuitSubSystem( SDL_INIT_JOYSTICK );
+	}
 }
 
 static void QueueKeyEvent(Keyboard::Key key, bool down)
@@ -1133,6 +1139,10 @@ static void IN_ProcessEvents( bool dropInput )
 				switch( e.window.event )
 				{
 					case SDL_WINDOWEVENT_RESIZED:
+						extern cvar_t* r_allowResize;
+						// Toggling r_fullscreen does not work well when r_allowResize is enabled -
+						// it generates spurious resize events.
+						if ( r_allowResize->integer )
 						{
 							char width[32], height[32];
 							Com_sprintf( width, sizeof( width ), "%d", e.window.data1 );
@@ -1147,7 +1157,18 @@ static void IN_ProcessEvents( bool dropInput )
 					case SDL_WINDOWEVENT_RESTORED:
 					case SDL_WINDOWEVENT_MAXIMIZED:    Cvar_SetValue( "com_minimized", 0 ); break;
 					case SDL_WINDOWEVENT_FOCUS_LOST:   Cvar_SetValue( "com_unfocused", 1 ); break;
-					case SDL_WINDOWEVENT_FOCUS_GAINED: Cvar_SetValue( "com_unfocused", 0 ); break;
+					case SDL_WINDOWEVENT_FOCUS_GAINED:
+
+						Cvar_SetValue( "com_unfocused", 0 );
+
+						// HACK: if the window is focused, it can't be minimized.
+						// fixes
+						//  * https://github.com/DaemonEngine/Daemon/issues/408
+						//  * https://github.com/Unvanquished/Unvanquished/issues/1136
+						// and maybe others
+						Cvar_SetValue( "com_minimized", 0 );
+
+						break;
 				}
 				break;
 			case SDL_QUIT:
@@ -1192,7 +1213,7 @@ void IN_Frame()
 		// Console is down in windowed mode
 		IN_SetFocus( false );
 	}
-	else if ( !( SDL_GetWindowFlags( window ) & SDL_WINDOW_INPUT_FOCUS ) )
+	else if ( com_unfocused->integer )
 	{
 		// Window doesn't have focus
 		IN_SetFocus( false );
@@ -1250,7 +1271,6 @@ void IN_Init( void *windowData )
 	in_joystickThreshold = Cvar_Get( "in_joystickThreshold", "0.15", 0 );
 	in_gameControllerTriggerDeadzone = Cvar_Get( "in_gameControllerTriggerDeadzone", "0.5", 0);
 
-	in_gameController = Cvar_Get( "in_gameController", "1", CVAR_TEMP );
 	in_gameControllerDebug = Cvar_Get( "in_gameControllerDebug", "0", CVAR_TEMP );
 	SDL_StartTextInput();
 	mouseAvailable = ( in_mouse->value != 0 );

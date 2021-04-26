@@ -969,7 +969,10 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	//
 	R_CullIQM( ent );
 
-	if ( ent->cull == cullResult_t::CULL_OUT )
+	// HACK: Never cull first-person models, due to issues with a certain model's bounds
+	// A first-person model not in the player's sight seems like something that should not happen in any case
+	// But R_CullIQM is always called because it sets some fields used by other code
+	if ( ent->cull == cullResult_t::CULL_OUT && !( ent->e.renderfx & RF_FIRST_PERSON ) )
 	{
 		return;
 	}

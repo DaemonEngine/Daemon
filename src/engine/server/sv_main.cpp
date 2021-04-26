@@ -67,7 +67,6 @@ cvar_t         *sv_mapname;
 cvar_t         *sv_serverid;
 cvar_t         *sv_maxRate;
 
-cvar_t         *sv_pure;
 cvar_t         *sv_floodProtect;
 cvar_t         *sv_lanForceRate; // TTimo - dedicated 1 (LAN) server forces local client rates to 99999 (bug #491)
 
@@ -502,7 +501,7 @@ static void SVC_Status( const netadr_t& from, const Cmd::Args& args )
 
 		if ( cl->state >= clientState_t::CS_CONNECTED )
 		{
-			playerState_t* ps = SV_GameClientNum( i );
+			OpaquePlayerState* ps = SV_GameClientNum( i );
 			status +=  Str::Format( "%i %i \"%s\"\n", ps->persistant[ PERS_SCORE ], cl->ping, cl->name );
 		}
 	}
@@ -598,7 +597,6 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 	// Satisfies (number of open public slots) = (displayed max clients) - (number of clients).
 	info_map["sv_maxclients"] = std::to_string(
 	    std::max( 0, sv_maxclients->integer - sv_privateClients.Get() ) + privateSlotHumans );
-	info_map["pure"] = std::to_string( sv_pure->integer );
 
 	if ( sv_statsURL->string[0] )
 	{
@@ -1147,7 +1145,6 @@ void SV_CalcPings()
 	client_t      *cl;
 	int           total, count;
 	int           delta;
-	playerState_t *ps;
 
 	for ( i = 0; i < sv_maxclients->integer; i++ )
 	{
@@ -1201,7 +1198,7 @@ void SV_CalcPings()
 		}
 
 		// let the game module know about the ping
-		ps = SV_GameClientNum( i );
+		OpaquePlayerState* ps = SV_GameClientNum( i );
 		ps->ping = cl->ping;
 	}
 }
@@ -1235,6 +1232,11 @@ void SV_CheckTimeouts()
 		if ( cl->lastPacketTime > svs.time )
 		{
 			cl->lastPacketTime = svs.time;
+		}
+
+		if ( SV_IsBot( cl ) )
+		{
+			continue;
 		}
 
 		if ( cl->state == clientState_t::CS_ZOMBIE && cl->lastPacketTime < zombiepoint )

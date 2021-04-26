@@ -1402,8 +1402,6 @@ static bool ParseMap( const char **text, char *buffer, int bufferSize )
 static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleIndex = TB_COLORMAP )
 {
 	char         *token;
-	int          imageBits = 0;
-	filterType_t filterType;
 	const char         *buffer_p = &buffer[ 0 ];
 
 	if ( !buffer || !buffer[ 0 ] )
@@ -1413,6 +1411,17 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	}
 
 	token = COM_ParseExt2( &buffer_p, false );
+
+	// NOTE: Normal map can ship height map in alpha channel.
+	if ( ( stage->type == stageType_t::ST_NORMALMAP && !r_normalMapping->integer && !r_reliefMapping->integer )
+		|| ( stage->type == stageType_t::ST_HEIGHTMAP && !r_reliefMapping->integer )
+		|| ( stage->type == stageType_t::ST_SPECULARMAP && !r_specularMapping->integer )
+		|| ( stage->type == stageType_t::ST_PHYSICALMAP && !r_physicalMapping->integer )
+		|| ( stage->type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
+		|| ( stage->type == stageType_t::ST_REFLECTIONMAP && !r_reflectionMapping->integer ) )
+	{
+		return true;
+	}
 
 	if ( !Q_stricmp( token, "$whiteimage" ) || !Q_stricmp( token, "$white" ) || !Q_stricmp( token, "_white" ) ||
 	     !Q_stricmp( token, "*white" ) )
@@ -1439,10 +1448,14 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		return true;
 	}
 
+	imageParams_t imageParams = {};
+	imageParams.minDimension = shader.imageMinDimension;
+	imageParams.maxDimension = shader.imageMaxDimension;
+
 	// determine image options
 	if ( stage->overrideNoPicMip || shader.noPicMip || stage->highQuality || stage->forceHighQuality )
 	{
-		imageBits |= IF_NOPICMIP;
+		imageParams.bits |= IF_NOPICMIP;
 	}
 
 	switch ( stage->type )
@@ -1450,7 +1463,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		case stageType_t::ST_NORMALMAP:
 		case stageType_t::ST_HEATHAZEMAP:
 		case stageType_t::ST_LIQUIDMAP:
-			imageBits |= IF_NORMALMAP;
+			imageParams.bits |= IF_NORMALMAP;
 		default:
 			// silence warning for other types, we don't have to take care of them:
 			//    warning: enumeration value ‘ST_GLOWMAP’ not handled in switch [-Wswitch]
@@ -1459,24 +1472,24 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 
 	if ( stage->stateBits & ( GLS_ATEST_BITS ) )
 	{
-		imageBits |= IF_ALPHATEST; // FIXME: this is unused
+		imageParams.bits |= IF_ALPHATEST; // FIXME: this is unused
 	}
 
 	if ( stage->overrideFilterType )
 	{
-		filterType = stage->filterType;
+		imageParams.filterType = stage->filterType;
 	}
 	else
 	{
-		filterType = shader.filterType;
+		imageParams.filterType = shader.filterType;
 	}
 
-	wrapType_t wrapType = stage->overrideWrapType ? stage->wrapType : shader.wrapType;
+	imageParams.wrapType = stage->overrideWrapType ? stage->wrapType : shader.wrapType;
 
 	// try to load the image
 	if ( stage->isCubeMap )
 	{
-		stage->bundle[ bundleIndex ].image[ 0 ] = R_FindCubeImage( buffer, imageBits, filterType, wrapType );
+		stage->bundle[ bundleIndex ].image[ 0 ] = R_FindCubeImage( buffer, imageParams );
 
 		if ( !stage->bundle[ bundleIndex ].image[ 0 ] )
 		{
@@ -1486,23 +1499,13 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	}
 	else
 	{
-		stage->bundle[ bundleIndex ].image[ 0 ] = R_FindImageFile( buffer, imageBits, filterType, wrapType );
+		stage->bundle[ bundleIndex ].image[ 0 ] = R_FindImageFile( buffer, imageParams );
 
 		if ( !stage->bundle[ bundleIndex ].image[ 0 ] )
 		{
 			Log::Warn("R_FindImageFile could not find image '%s' in shader '%s'", buffer, shader.name );
 			return false;
 		}
-	}
-
-	// tell renderer to enable relief mapping since an heightmap is found
-	// also tell renderer to not abuse normalmap alpha channel because it's an heightmap
-	// https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252
-	if ( stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP
-		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_ALPHA )
-	{
-		Log::Debug("found heightmap embedded in normalmap '%s'", buffer);
-		stage->isHeightMapInNormalMap = true;
 	}
 
 	return true;
@@ -1584,6 +1587,49 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
 		LoadMap( stage, buffer, bundleIndex );
+	}
+}
+
+static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_NORMALMAP )
+{
+	/* Always call this function on assets known to never use RGTC format
+	or the engine running on hardware with driver not implementing the
+	GL_ARB_texture_compression_rgtc extension will wrongly assume a normal
+	component stored in alpha channel is an heightmap and the renderer will
+	select the wrong GLSL code for it, resulting in serious graphical issues.
+
+	See https://github.com/DaemonEngine/Daemon/issues/375
+
+	This code is meant to be used as compatibility code for games known
+	to not use RGTC format and to requires alpha channel detection,
+	like Xonotic/Darkplaces.
+
+	Please do not implement material keyword for this function, never. */
+
+	const char* initialText = *text;
+
+	ParseNormalMap( stage, text, bundleIndex );
+
+	/* Tell renderer to enable relief mapping since an heightmap is found,
+	also tell renderer to not abuse normalmap alpha channel because it's an heightmap.
+
+	See https://github.com/DaemonEngine/Daemon/issues/183#issuecomment-473691252 */
+
+	if ( stage->bundle[ bundleIndex ].image[ 0 ]
+		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP
+		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_ALPHA )
+	{
+		Log::defaultLogger.DoDebugCode([&] {
+			char buffer[ 1024 ];
+			buffer[ 0 ] = '\0';
+			if ( !ParseMap( &initialText, buffer, sizeof( buffer ) ) )
+			{
+				ASSERT( false );
+			}
+			Log::Debug("Found heightmap embedded in normalmap '%s'", buffer);
+		});
+
+		stage->isHeightMapInNormalMap = true;
 	}
 }
 
@@ -1758,7 +1804,7 @@ struct extraMapParser_t
 
 static const extraMapParser_t dpExtraMapParsers[] =
 {
-	{ "_norm",    "DarkPlaces normal map",     ParseNormalMap,     TB_NORMALMAP, },
+	{ "_norm",    "DarkPlaces normal map",     ParseNormalMapDetectHeightMap,   TB_NORMALMAP, },
 	{ "_bump",    "DarkPlaces height map",     ParseHeightMap,     TB_HEIGHTMAP, },
 	{ "_gloss",   "DarkPlaces specular map",   ParseSpecularMap,   TB_SPECULARMAP, },
 	{ "_glow",    "DarkPlaces glow map",       ParseGlowMap,       TB_GLOWMAP, },
@@ -2113,7 +2159,14 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				filterType = shader.filterType;
 			}
 
-			stage->bundle[ 0 ].image[ 0 ] = R_FindImageFile( token, imageBits, filterType, wrapTypeEnum_t::WT_CLAMP );
+			imageParams_t imageParams = {};
+			imageParams.bits = imageBits;
+			imageParams.filterType = filterType;
+			imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+			imageParams.minDimension = shader.imageMinDimension;
+			imageParams.maxDimension = shader.imageMaxDimension;
+
+			stage->bundle[ 0 ].image[ 0 ] = R_FindImageFile( token, imageParams );
 
 			if ( !stage->bundle[ 0 ].image[ 0 ] )
 			{
@@ -2155,7 +2208,14 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 				if ( num < MAX_IMAGE_ANIMATIONS )
 				{
-					stage->bundle[ 0 ].image[ num ] = R_FindImageFile( token, IF_NONE, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_REPEAT );
+					imageParams_t imageParams = {};
+					imageParams.bits = IF_NONE;
+					imageParams.filterType = filterType_t::FT_DEFAULT;
+					imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
+					imageParams.minDimension = shader.imageMinDimension;
+					imageParams.maxDimension = shader.imageMaxDimension;
+
+					stage->bundle[ 0 ].image[ num ] = R_FindImageFile( token, imageParams );
 
 					if ( !stage->bundle[ 0 ].image[ num ] )
 					{
@@ -2170,26 +2230,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		}
 		else if ( !Q_stricmp( token, "videoMap" ) )
 		{
-			if ( stage->collapseType != collapseType_t::COLLAPSE_none )
-			{
-				Log::Warn("keyword '%s' cannot be used in collapsed shader '%s'", token, shader.name );
-			}
-
-			token = COM_ParseExt2( text, false );
-
-			if ( !token[ 0 ] )
-			{
-				Log::Warn("missing parameter for 'videoMap' keyword in shader '%s'", shader.name );
-				return false;
-			}
-
-			stage->bundle[ 0 ].videoMapHandle = ri.CIN_PlayCinematic( token, 0, 0, 512, 512, ( CIN_loop | CIN_silent | CIN_shader ) );
-
-			if ( stage->bundle[ 0 ].videoMapHandle != -1 )
-			{
-				stage->bundle[ 0 ].isVideoMap = true;
-				stage->bundle[ 0 ].image[ 0 ] = tr.scratchImage[ stage->bundle[ 0 ].videoMapHandle ];
-			}
+			Log::Warn("videoMap unsupported");
+			// Discussion about video support: https://github.com/DaemonEngine/Daemon/pull/391
+			COM_ParseExt2( text, false );
 		}
 		// cubeMap <map>
 		else if ( !Q_stricmp( token, "cubeMap" ) || !Q_stricmp( token, "cameraCubeMap" ) )
@@ -2223,7 +2266,14 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				filterType = shader.filterType;
 			}
 
-			stage->bundle[ 0 ].image[ 0 ] = R_FindCubeImage( token, imageBits, filterType, wrapTypeEnum_t::WT_EDGE_CLAMP );
+			imageParams_t imageParams = {};
+			imageParams.bits = imageBits;
+			imageParams.filterType = filterType;
+			imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+			imageParams.minDimension = shader.imageMinDimension;
+			imageParams.maxDimension = shader.imageMaxDimension;
+
+			stage->bundle[ 0 ].image[ 0 ] = R_FindCubeImage( token, imageParams );
 
 			if ( !stage->bundle[ 0 ].image[ 0 ] )
 			{
@@ -2776,6 +2826,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 			else if ( !Q_stricmp( token, "lightmap" ) )
 			{
+				imageBits |= IF_NOPICMIP;
 				stage->tcGen_Lightmap = true;
 				stage->tcGen_Environment = false;
 			}
@@ -3161,6 +3212,14 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	// compute state bits
 	stage->stateBits = colorMaskBits | depthMaskBits | blendSrcBits | blendDstBits | atestBits | depthFuncBits | polyModeBits;
 
+	/* If light style external light map and light mapping is disabled,
+	do not load the image and disable the stage */
+	if ( r_vertexLighting->integer && stage->tcGen_Lightmap == true )
+	{
+		stage->active = false;
+		return true;
+	}
+
 	// load image
 	if ( loadMap && !LoadMap( stage, buffer ) )
 	{
@@ -3398,7 +3457,14 @@ static void ParseSkyParms( const char **text )
 	{
 		Q_strncpyz( prefix, token, sizeof( prefix ) );
 
-		shader.sky.outerbox = R_FindCubeImage( prefix, IF_NONE, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_EDGE_CLAMP );
+		imageParams_t imageParams = {};
+		imageParams.bits = IF_NONE;
+		imageParams.filterType = filterType_t::FT_DEFAULT;
+		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+		imageParams.minDimension = shader.imageMinDimension;
+		imageParams.maxDimension = shader.imageMaxDimension;
+
+		shader.sky.outerbox = R_FindCubeImage( prefix, imageParams );
 
 		if ( !shader.sky.outerbox )
 		{
@@ -3438,7 +3504,14 @@ static void ParseSkyParms( const char **text )
 	{
 		Q_strncpyz( prefix, token, sizeof( prefix ) );
 
-		shader.sky.innerbox = R_FindCubeImage( prefix, IF_NONE, filterType_t::FT_DEFAULT, wrapTypeEnum_t::WT_EDGE_CLAMP );
+		imageParams_t imageParams = {};
+		imageParams.bits = IF_NONE;
+		imageParams.filterType = filterType_t::FT_DEFAULT;
+		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+		imageParams.minDimension = shader.imageMinDimension;
+		imageParams.maxDimension = shader.imageMaxDimension;
+
+		shader.sky.innerbox = R_FindCubeImage( prefix, imageParams );
 
 		if ( !shader.sky.innerbox )
 		{
@@ -3899,6 +3972,30 @@ static bool ParseShader( const char *_text )
 			shader.noPicMip = true;
 			continue;
 		}
+		// imageMinDimension enforcement
+		else if ( !Q_stricmp( token, "imageMinDimension" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( token[ 0 ] )
+			{
+				shader.imageMinDimension = atoi( token );
+			}
+
+			continue;
+		}
+		// imageMaxDimension enforcement
+		else if ( !Q_stricmp( token, "imageMaxDimension" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( token[ 0 ] )
+			{
+				shader.imageMaxDimension = atoi( token );
+			}
+
+			continue;
+		}
 		// RF, allow each shader to permit compression if available (removed option)
 		else if ( !Q_stricmp( token, "allowcompress" ) )
 		{
@@ -3926,29 +4023,37 @@ static bool ParseShader( const char *_text )
 		// relief mapping
 		else if ( !Q_stricmp( token, "parallax" ) )
 		{
-			// legacy lone “parallax” XreaL keyword was
-			// never used, it had purpose to enable relief
-			// mapping for the current shader
-			//
-			// the engine also relied on this to know
-			// that heightmap was stored in normalmap
-			// but there was no other storage options
-			//
-			// the engine also had to rely on this to know
-			// that heightmap was stored in normalmap
-			// because of a design flaw that used depthmap
-			// instead of heightmap, meaning missing depthmap
-			// would cause a wrong displacement if not discarded
-			//
-			// so that option was there to tell the engine to
-			// not discard heightmap when mapper knows it is
-			// not flat
-			//
-			// since engine now automatically loads
-			// and enables heightmap stored in normalmap,
-			// and has not problem with flat heightmap
-			// in any way because of better design
-			// this seems pretty useless
+			/* Legacy lone “parallax” XreaL material keyword was never used,
+			its purpose was to enable relief mapping for the current shader.
+
+			The engine relied on it to know the heightmap was stored in
+			normalmap alpha channel but there was no other storage options.
+
+			The engine also had to rely on it to know that heightmap
+			was stored in normalmap because of a design flaw that used
+			depthmap (black is up) instead of heightmap (black is down).
+			I meant a missing depthmap would cause a wrong displacement
+			if not discarded.
+
+			So that option was there to tell the engine to not discard
+			heightmap when the artist knew it was not flat.
+
+			Since the engine knows how to automatically load and enable
+			heightmap stored in normalmap if detection is required, and
+			has not problem with flat heightmap in any way because of a
+			better design, this keyword is now pretty useless.
+
+			Artists can use “normalMap” material keyword for normalmap
+			without heightmap, and can use “normalHeightMap” keyword for
+			normalmap with heightmap in alpha channel.
+
+			Developers can use ParseNormalMapDetectHeightMap function to detect
+			heightmap in normal map alpha channel, please never add a material
+			keyword for this behaviour because some texture format can lead to
+			wrong detection when GL_ARB_texture_compression_rgtc extension is
+			missing. Only use this function for compatibility layers for games
+			that relies on detection (and were already unable to use such
+			texture format because of that). */
 
 			Log::Warn("deprecated keyword '%s' in shader '%s', this was a workaround for a design flaw, there is no need for it", token, shader.name );
 
@@ -4466,6 +4571,8 @@ static void CollapseStages()
 	int lightStage = -1;
 	int glowStage = -1;
 
+	int lightMapCount = 0;
+
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
 		if ( !stages[ i ].active )
@@ -4545,11 +4652,9 @@ static void CollapseStages()
 		}
 		else if ( stages[ i ].type == stageType_t::ST_LIGHTMAP )
 		{
-			if ( lightStage != -1 )
-			{
-				Log::Warn( "more than one light map stage in shader '%s'", shader.name );
-			}
-			else
+			lightMapCount++;
+
+			if ( lightStage == -1 )
 			{
 				lightStage = i;
 			}
@@ -4565,6 +4670,11 @@ static void CollapseStages()
 				glowStage = i;
 			}
 		}
+	}
+
+	if ( lightMapCount > 1 )
+	{
+		Log::Debug( "found %d light map stages in shader '%s'", lightMapCount, shader.name );
 	}
 
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
@@ -4793,6 +4903,20 @@ static void CollapseStages()
 		stage->enablePhysicalMapping = r_physicalMapping->integer && stage->hasMaterialMap && stage->isMaterialPhysical;
 		stage->enableSpecularMapping = r_specularMapping->integer && stage->hasMaterialMap && !stage->isMaterialPhysical;
 		stage->enableGlowMapping = r_glowMapping->integer && stage->hasGlowMap;
+
+		// FIXME: Workaround for textures having both an alpha mask (like gratings) with an height map,
+		// The engine does not displace the depth test map yet so we disable relief mapping to prevent garbage
+		// to appears between the displaced diffuse map and the non-displaced alpha mask.
+		// See https://github.com/DaemonEngine/Daemon/issues/334
+		if ( stage->enableReliefMapping && stage->stateBits & ~GLS_DEPTHMASK_TRUE )
+		{
+			Log::Debug( "Workaround: disabling relief mapping for stage %d in shader '%s' because of alpha mask", s, shader.name );
+			stage->enableReliefMapping = false;
+		}
+
+		// Finally disable useless heightMapInNormalMap if both normal and relief mapping are disabled.
+		// see https://github.com/DaemonEngine/Daemon/issues/376
+		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && ( stage->enableNormalMapping || stage->enableReliefMapping );
 
 		// Bind fallback textures if required.
 		if ( !stage->enableNormalMapping && !( stage->enableReliefMapping && stage->isHeightMapInNormalMap) )
@@ -5667,11 +5791,19 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	if( !(bits & RSF_NOMIP) ) {
 		LoadExtraMaps( &stages[ 0 ], fileName );
 
-		image = R_FindImageFile( fileName, bits, filterType_t::FT_DEFAULT,
-					 wrapTypeEnum_t::WT_REPEAT );
+		imageParams_t imageParams = {};
+		imageParams.bits = bits;
+		imageParams.filterType = filterType_t::FT_DEFAULT;
+		imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
+
+		image = R_FindImageFile( fileName, imageParams );
 	} else {
-		image = R_FindImageFile( fileName, bits, filterType_t::FT_LINEAR,
-					 wrapTypeEnum_t::WT_CLAMP );
+		imageParams_t imageParams = {};
+		imageParams.bits = bits;
+		imageParams.filterType = filterType_t::FT_LINEAR;
+		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
+		image = R_FindImageFile( fileName, imageParams );
 	}
 
 	if ( !image )

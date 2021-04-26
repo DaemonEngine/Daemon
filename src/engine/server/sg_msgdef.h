@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "common/IPC/CommonSyscalls.h"
-#include "engine/botlib/bot_types.h"
 
 // game-module-to-engine calls
 enum gameImport_t
@@ -42,8 +41,6 @@ enum gameImport_t
   G_GET_SERVERINFO,
   G_GET_USERCMD,
   G_GET_ENTITY_TOKEN,
-  G_SEND_MESSAGE, // TODO(0.52): Remove these two
-  G_MESSAGE_STATUS,
   G_RSA_GENMSG, // ( const char *public_key, char *cleartext, char *encrypted )
   G_GEN_FINGERPRINT,
   G_GET_PLAYER_PUBKEY,
@@ -52,19 +49,7 @@ enum gameImport_t
   BOT_ALLOCATE_CLIENT,
   BOT_FREE_CLIENT,
   BOT_GET_CONSOLE_MESSAGE,
-  BOT_NAV_SETUP,
-  BOT_NAV_SHUTDOWN,
-  BOT_SET_NAVMESH,
-  BOT_FIND_ROUTE,
-  BOT_UPDATE_PATH,
-  BOT_NAV_RAYCAST,
-  BOT_NAV_RANDOMPOINT,
-  BOT_NAV_RANDOMPOINTRADIUS,
-  BOT_ENABLE_AREA,
-  BOT_DISABLE_AREA,
-  BOT_ADD_OBSTACLE,
-  BOT_REMOVE_OBSTACLE,
-  BOT_UPDATE_OBSTACLES
+  BOT_DEBUG_DRAW,
 };
 
 using LocateGameDataMsg1 = IPC::Message<IPC::Id<VM::QVM, G_LOCATE_GAME_DATA1>, IPC::SharedMemory, int, int, int>;
@@ -97,14 +82,9 @@ using GetUsercmdMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_USERCMD>, int>,
     IPC::Reply<usercmd_t>
 >;
-using GetEntityTokenMsg = IPC::SyncMessage<
+using SgGetEntityTokenMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_ENTITY_TOKEN>>,
     IPC::Reply<bool, std::string>
->;
-using SendMessageMsg = IPC::Message<IPC::Id<VM::QVM, G_SEND_MESSAGE>, int, std::vector<uint8_t>>;
-using MessageStatusMsg = IPC::SyncMessage<
-    IPC::Message<IPC::Id<VM::QVM, G_MESSAGE_STATUS>, int>,
-    IPC::Reply<messageStatus_t>
 >;
 using RSAGenMsgMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_RSA_GENMSG>, std::string>,
@@ -132,40 +112,8 @@ using BotGetConsoleMessageMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, BOT_GET_CONSOLE_MESSAGE>, int, int>,
 	IPC::Reply<int, std::string>
 >;
-using BotNavSetupMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, BOT_NAV_SETUP>, botClass_t>,
-	IPC::Reply<int, int>
->;
-using BotNavShutdownMsg = IPC::Message<IPC::Id<VM::QVM, BOT_NAV_SHUTDOWN>>;
-using BotSetNavmeshMsg = IPC::Message<IPC::Id<VM::QVM, BOT_SET_NAVMESH>, int, int>;
-using BotFindRouteMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, BOT_FIND_ROUTE>, int, botRouteTarget_t, bool>,
-	IPC::Reply<int>
->;
-using BotUpdatePathMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, BOT_UPDATE_PATH>, int, botRouteTarget_t>,
-	IPC::Reply<botNavCmd_t>
->;
-using BotNavRaycastMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, BOT_NAV_RAYCAST>, int, std::array<float, 3>, std::array<float, 3>>,
-	IPC::Reply<int, botTrace_t>
->;
-using BotNavRandomPointMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, BOT_NAV_RANDOMPOINT>, int>,
-	IPC::Reply<std::array<float, 3>>
->;
-using BotNavRandomPointRadiusMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, BOT_NAV_RANDOMPOINTRADIUS>, int, std::array<float, 3>, float>,
-	IPC::Reply<int, std::array<float, 3>>
->;
-using BotEnableAreaMsg = IPC::Message<IPC::Id<VM::QVM, BOT_ENABLE_AREA>, std::array<float, 3>, std::array<float, 3>, std::array<float, 3>>;
-using BotDisableAreaMsg = IPC::Message<IPC::Id<VM::QVM, BOT_DISABLE_AREA>, std::array<float, 3>, std::array<float, 3>, std::array<float, 3>>;
-using BotAddObstacleMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, BOT_ADD_OBSTACLE>, std::array<float, 3>, std::array<float, 3>>,
-	IPC::Reply<int>
->;
-using BotRemoveObstacleMsg = IPC::Message<IPC::Id<VM::QVM, BOT_REMOVE_OBSTACLE>, int>;
-using BotUpdateObstaclesMsg = IPC::Message<IPC::Id<VM::QVM, BOT_UPDATE_OBSTACLES>>;
+// HACK: sgame message that only works when running in a client
+using BotDebugDrawMsg = IPC::Message<IPC::Id<VM::QVM, BOT_DEBUG_DRAW>, std::vector<char>>;
 
 
 
@@ -207,8 +155,6 @@ enum gameExport_t
   BOT_VISIBLEFROMPOS, // bool ()( vec3_t srcOrig, int srcNum, dstOrig, int dstNum, bool isDummy );
   BOT_CHECKATTACKATPOS, // bool ()( int entityNum, int enemyNum, vec3_t position,
   //              bool ducking, bool allowWorldHit );
-
-  GAME_MESSAGERECEIVED, // TODO(0.52) remove
 };
 
 using GameStaticInitMsg = IPC::SyncMessage<

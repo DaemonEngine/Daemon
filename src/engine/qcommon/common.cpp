@@ -100,7 +100,6 @@ bool com_fullyInitialized;
 
 void     Com_WriteConfig_f();
 void     Com_WriteBindings_f();
-void     CIN_CloseAllVideos();
 
 //============================================================================
 
@@ -394,7 +393,7 @@ static void HandlePacketEvent(const Sys::PacketEvent& event)
 	// the event buffers are only large enough to hold the
 	// exact payload, but channel messages need to be large
 	// enough to hold fragment reassembly
-	if ( event.data.size() > buf.maxsize )
+	if ( event.data.size() > static_cast<size_t>(buf.maxsize) )
 	{
 		Log::Notice( "Com_EventLoop: oversize packet\n" );
 		return;
@@ -803,7 +802,7 @@ void Com_WriteBindings_f()
 Com_ModifyMsec
 ================
 */
-static Cvar::Cvar<int> fixedtime("common.framerate.fixed", "in milliseconds, forces the frame time, 0 for no effect", Cvar::CHEAT, 0);
+static Cvar::Cvar<int> fixedtime("common.fixedFrameTime", "in milliseconds, forces the frame time, 0 for no effect", Cvar::CHEAT, 0);
 
 int Com_ModifyMsec( int msec )
 {

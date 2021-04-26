@@ -37,7 +37,6 @@ Maryland 20850 USA.
 
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
-#include "botlib/bot_api.h"
 #include "sg_api.h"
 #include "framework/VirtualMachine.h"
 #include "framework/CommonVMServices.h"
@@ -85,7 +84,7 @@ struct server_t
 	int            gentitySize;
 	int            num_entities; // current number, <= MAX_GENTITIES
 
-	playerState_t  *gameClients;
+	OpaquePlayerState *gameClients;
 	int            gameClientSize; // will be > sizeof(playerState_t) due to game private data
 
 	int            restartTime;
@@ -116,7 +115,7 @@ struct clientSnapshot_t
 {
 	int           areabytes;
 	byte          areabits[ MAX_MAP_AREA_BYTES ]; // portalarea visibility bits
-	playerState_t ps;
+	OpaquePlayerState ps;
 	int           num_entities;
 	int           first_entity; // into the circular sv_packet_entities[]
 	// the entities MUST be in increasing state number
@@ -314,7 +313,6 @@ extern cvar_t         *sv_mapChecksum;
 extern cvar_t         *sv_serverid;
 extern cvar_t         *sv_maxRate;
 
-extern cvar_t *sv_pure;
 extern cvar_t *sv_floodProtect;
 extern cvar_t *sv_lanForceRate;
 
@@ -410,7 +408,7 @@ void SV_SendClientIdle( client_t *client );
 // sv_sgame.c
 //
 sharedEntity_t *SV_GentityNum( int num );
-playerState_t  *SV_GameClientNum( int num );
+OpaquePlayerState *SV_GameClientNum( int num );
 
 svEntity_t     *SV_SvEntityForGentity( sharedEntity_t *gEnt );
 void           SV_InitGameProgs();

@@ -92,6 +92,8 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_fbo.cpp
     ${ENGINE_DIR}/renderer/tr_flares.cpp
     ${ENGINE_DIR}/renderer/tr_font.cpp
+    ${ENGINE_DIR}/renderer/InternalImage.cpp
+    ${ENGINE_DIR}/renderer/InternalImage.h
     ${ENGINE_DIR}/renderer/tr_image.cpp
     ${ENGINE_DIR}/renderer/tr_image.h
     ${ENGINE_DIR}/renderer/tr_image_crn.cpp
@@ -198,17 +200,6 @@ set(GLSLSOURCELIST
 )
 
 set(SERVERLIST
-    ${ENGINE_DIR}/botlib/bot_api.h
-    ${ENGINE_DIR}/botlib/bot_convert.cpp
-    ${ENGINE_DIR}/botlib/bot_convert.h
-    ${ENGINE_DIR}/botlib/bot_debug.h
-    ${ENGINE_DIR}/botlib/bot_load.cpp
-    ${ENGINE_DIR}/botlib/bot_local.cpp
-    ${ENGINE_DIR}/botlib/bot_local.h
-    ${ENGINE_DIR}/botlib/bot_nav.cpp
-    ${ENGINE_DIR}/botlib/bot_navdraw.h
-    ${ENGINE_DIR}/botlib/bot_types.h
-    ${ENGINE_DIR}/botlib/nav.h
     ${ENGINE_DIR}/server/server.h
     ${ENGINE_DIR}/server/sg_api.h
     ${ENGINE_DIR}/server/sg_msgdef.h
@@ -286,7 +277,6 @@ set(QCOMMONLIST
     ${ENGINE_DIR}/qcommon/net_chan.cpp
     ${ENGINE_DIR}/qcommon/net_ip.cpp
     ${ENGINE_DIR}/qcommon/net_types.h
-    ${ENGINE_DIR}/qcommon/parse.cpp
     ${ENGINE_DIR}/qcommon/print_translated.h
     ${ENGINE_DIR}/qcommon/qcommon.h
     ${ENGINE_DIR}/qcommon/qfiles.h
@@ -302,15 +292,11 @@ if (USE_CURSES)
 endif()
 
 set(CLIENTBASELIST
-    ${ENGINE_DIR}/botlib/bot_debug.cpp
-    ${ENGINE_DIR}/botlib/bot_nav_edit.cpp
     ${ENGINE_DIR}/client/cg_api.h
     ${ENGINE_DIR}/client/cg_msgdef.h
-    ${ENGINE_DIR}/client/cin_ogm.cpp
     ${ENGINE_DIR}/client/client.h
     ${ENGINE_DIR}/client/cl_avi.cpp
     ${ENGINE_DIR}/client/cl_cgame.cpp
-    ${ENGINE_DIR}/client/cl_cin.cpp
     ${ENGINE_DIR}/client/cl_console.cpp
     ${ENGINE_DIR}/client/cl_download.cpp
     ${ENGINE_DIR}/client/cl_input.cpp
@@ -343,6 +329,7 @@ set(CLIENTLIST
     ${ENGINE_DIR}/audio/SoundCodec.cpp
     ${ENGINE_DIR}/audio/SoundCodec.h
     ${ENGINE_DIR}/audio/WavCodec.cpp
+    ${ENGINE_DIR}/botlib/bot_debug.h
     ${ENGINE_DIR}/client/cl_keys.cpp
     ${ENGINE_DIR}/client/key_binding.cpp
     ${ENGINE_DIR}/client/key_identification.cpp

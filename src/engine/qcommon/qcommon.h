@@ -64,8 +64,6 @@ struct usercmd_t;
 
 struct entityState_t;
 
-struct playerState_t;
-
 void  MSG_WriteBits( msg_t *msg, int value, int bits );
 
 void  MSG_WriteChar( msg_t *sb, int c );
@@ -99,8 +97,9 @@ void  MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to );
 void  MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, bool force );
 void  MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number );
 
-void  MSG_WriteDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *to );
-void  MSG_ReadDeltaPlayerstate( msg_t *msg, playerState_t *from, playerState_t *to );
+void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int playerStateSize);
+void  MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to );
+void  MSG_ReadDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to );
 
 //============================================================================
 
@@ -381,6 +380,11 @@ fileHandle_t FS_SV_FOpenFileWrite( const char *filename );
 void         FS_SV_Rename( const char *from, const char *to );
 int          FS_FOpenFileRead( const char *qpath, fileHandle_t *file );
 
+namespace FS { enum class Owner; }
+void FS_SetOwner( fileHandle_t f, FS::Owner owner );
+void FS_CheckOwnership( fileHandle_t f, FS::Owner owner );
+void FS_CloseAllForOwner( FS::Owner owner );
+
 /*
 if uniqueFILE is true, then a new FILE will be fopened even if the file
 is found in an already open pak file.  If uniqueFILE is false, you must call
@@ -581,7 +585,6 @@ enum class memtag_t
 {
   TAG_FREE,
   TAG_GENERAL,
-  TAG_BOTLIB,
   TAG_RENDERER,
   TAG_SMALL,
   TAG_CRYPTO,
@@ -809,12 +812,6 @@ void             Huff_offsetReceive( node_t *node, int *ch, byte *fin, int *offs
 void             Huff_offsetTransmit( huff_t *huff, int ch, byte *fout, int *offset );
 void             Huff_putBit( int bit, byte *fout, int *offset );
 int              Huff_getBit( byte *fout, int *offset );
-
-int  Parse_AddGlobalDefine( const char *string );
-int  Parse_LoadSourceHandle( const char *filename );
-int  Parse_FreeSourceHandle( int handle );
-bool  Parse_ReadTokenHandle( int handle, pc_token_t *pc_token );
-int  Parse_SourceFileAndLine( int handle, char *filename, int *line );
 
 #define _(x) Trans_Gettext(x)
 #define C_(x, y) Trans_Pgettext(x, y)

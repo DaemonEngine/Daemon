@@ -43,7 +43,6 @@ Maryland 20850 USA.
 #include "CryptoChallenge.h"
 #include "common/Defs.h"
 #include "qcommon/sys.h"
-#include "botlib/bot_api.h"
 
 /*
 ===============
@@ -432,11 +431,6 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	PrintBanner( "Server Initialization" )
 	Log::Notice( "Map: %s", mapname );
 
-#ifndef BUILD_SERVER
-	void CIN_CloseAllVideos();
-	CIN_CloseAllVideos();
-#endif
-
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
 	// also print some status stuff
 	CL_MapLoading();
@@ -604,7 +598,6 @@ Only called at main exe startup, not for each game
 void SV_Init()
 {
 	SV_AddOperatorCommands();
-	BotInit();
 
 	// serverinfo vars
 	Cvar_Get( "timelimit", "0", CVAR_SERVERINFO );
@@ -623,13 +616,6 @@ void SV_Init()
 
 	// systeminfo
 	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
-#ifdef BUILD_SERVER
-	sv_pure = Cvar_Get( "sv_pure", "1", CVAR_SYSTEMINFO );
-#else
-	// Use OS shared libs for the client at startup. This prevents crashes due to mismatching syscall ABIs
-	// from loading outdated vms dpks. The correct vms dpk will be loaded upon connecting to a pure server.
-	sv_pure = Cvar_Get( "sv_pure", "0", CVAR_SYSTEMINFO );
-#endif
 	Cvar_Get( "sv_paks", "", CVAR_SYSTEMINFO | CVAR_ROM );
 
 	// server vars

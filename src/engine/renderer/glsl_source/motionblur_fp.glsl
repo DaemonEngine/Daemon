@@ -43,9 +43,11 @@ void	main()
 	float depth = texture2D( u_DepthMap, st ).r;
 
 	if( depth >= 1.0 ) {
-		discard;
+		// keep the original color
+		outputColor = texture2D( u_ColorMap, st );
 		return;
-        }
+	}
+
 	depth /= 1.0 - depth;
 
 	vec3 start = vec3(st * 2.0 - 1.0, 1.0) * depth;
@@ -61,7 +63,7 @@ void	main()
 		color += weight * texture2D( u_ColorMap, 0.5 * pos.xy + 0.5 );
 		total += weight;
 		weight *= 0.5;
-        }
+	}
 
 	outputColor = color / total;
 }

@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2013 Daemon Developers
+Copyright (c) 2013-2016 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -27,24 +27,17 @@ DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
+// InternalImage.h
 
-#include "bot_types.h"
+#ifndef INTERNAL_IMAGE_H
+#define INTERNAL_IMAGE_H
+#include "tr_local.h"
 
-void BotInit();
-bool     BotSetupNav( const botClass_t *botClass, qhandle_t *navHandle );
-void         BotShutdownNav();
+int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imageParams );
+void R_DownscaleImageDimensions( int scalingStep, int *scaledWidth, int *scaledHeight, const byte ***dataArray, int numLayers, int *numMips );
 
-void         BotDisableArea( const vec3_t origin, const vec3_t mins, const vec3_t maxs );
-void         BotEnableArea( const vec3_t origin, const vec3_t mins, const vec3_t maxs );
-void         BotSetNavMesh( int botClientNum, qhandle_t nav );
-bool     BotFindRouteExt( int botClientNum, const botRouteTarget_t *target, bool allowPartial );
-void         BotUpdateCorridor( int botClientNum, const botRouteTarget_t *target, botNavCmd_t *cmd );
-void         BotFindRandomPoint( int botClientNum, vec3_t point );
-bool     BotFindRandomPointInRadius( int botClientNum, const vec3_t origin, vec3_t point, float radius );
-bool     BotNavTrace( int botClientNum, botTrace_t *trace, const vec3_t start, const vec3_t end );
-void         BotAddObstacle( const vec3_t mins, const vec3_t maxs, qhandle_t *obstacleHandle );
-void         BotRemoveObstacle( qhandle_t obstacleHandle );
-void         BotUpdateObstacles();
+#endif // INTERNAL_IMAGE_H

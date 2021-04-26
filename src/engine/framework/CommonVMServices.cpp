@@ -252,11 +252,14 @@ namespace VM {
                 IPC::HandleMsg<FSFOpenFileMsg>(channel, std::move(reader), [this](const std::string& filename, bool open, int fsMode, int& length, int& handle) {
                     fsMode_t mode = static_cast<fsMode_t>(fsMode);
                     length = FS_Game_FOpenFileByMode(filename.c_str(), open ? &handle : nullptr, mode);
+                    if (handle > 0)
+                        FS_SetOwner(handle, fileOwnership);
                 });
                 break;
 
             case QVM_COMMON_FS_READ:
                 IPC::HandleMsg<FSReadMsg>(channel, std::move(reader), [this](int handle, int len, std::string& res, int& ret) {
+                    FS_CheckOwnership(handle, fileOwnership);
                     std::unique_ptr<char[]> buffer(new char[len]);
                     buffer[0] = '\0';
                     ret = FS_Read(buffer.get(), len, handle);
@@ -266,23 +269,27 @@ namespace VM {
 
             case QVM_COMMON_FS_WRITE:
                 IPC::HandleMsg<FSWriteMsg>(channel, std::move(reader), [this](int handle, const std::string& text, int& res) {
+                    FS_CheckOwnership(handle, fileOwnership);
                     res = FS_Write(text.c_str(), text.size(), handle);
                 });
                 break;
 
             case QVM_COMMON_FS_SEEK:
                 IPC::HandleMsg<VM::FSSeekMsg>(channel, std::move(reader), [this] (int f, long offset, int origin, int& res) {
+                    FS_CheckOwnership(f, fileOwnership);
                     res = FS_Seek(f, offset, Util::enum_cast<fsOrigin_t>(origin));
                 });
                 break;
 
             case QVM_COMMON_FS_TELL:
                 IPC::HandleMsg<VM::FSTellMsg>(channel, std::move(reader), [this] (fileHandle_t f, int& res) {
+                    FS_CheckOwnership(f, fileOwnership);
                     res = FS_FTell(f);
                 });
                 break;
 			case QVM_COMMON_FS_FILELENGTH:
 				IPC::HandleMsg<VM::FSFileLengthMsg>(channel, std::move(reader), [this] (fileHandle_t f, int& res) {
+					FS_CheckOwnership(f, fileOwnership);
 					res = FS_filelength(f);
 				});
 				break;
@@ -294,6 +301,7 @@ namespace VM {
 
             case QVM_COMMON_FS_FCLOSE_FILE:
                 IPC::HandleMsg<FSFCloseFileMsg>(channel, std::move(reader), [this](int handle) {
+                    FS_CheckOwnership(handle, fileOwnership);
                     FS_FCloseFile(handle);
                 });
                 break;
@@ -337,38 +345,6 @@ namespace VM {
                 });
                 break;
 
-            case QVM_COMMON_PARSE_ADD_GLOBAL_DEFINE:
-                IPC::HandleMsg<ParseAddGlobalDefineMsg>(channel, std::move(reader), [this](const std::string& define, int& res) {
-                    res = Parse_AddGlobalDefine(define.c_str());
-                });
-                break;
-
-            case QVM_COMMON_PARSE_LOAD_SOURCE:
-                IPC::HandleMsg<ParseLoadSourceMsg>(channel, std::move(reader), [this](const std::string& name, int& res) {
-                    res = Parse_LoadSourceHandle(name.c_str());
-                });
-                break;
-
-            case QVM_COMMON_PARSE_FREE_SOURCE:
-                IPC::HandleMsg<ParseFreeSourceMsg>(channel, std::move(reader), [this](int source, int& res) {
-                    res = Parse_FreeSourceHandle(source);
-                });
-                break;
-
-            case QVM_COMMON_PARSE_READ_TOKEN:
-                IPC::HandleMsg<ParseReadTokenMsg>(channel, std::move(reader), [this](int source, bool& res, pc_token_t& token) {
-                    res = Parse_ReadTokenHandle(source, &token);
-                });
-                break;
-
-            case QVM_COMMON_PARSE_SOURCE_FILE_AND_LINE:
-                IPC::HandleMsg<ParseSourceFileAndLineMsg>(channel, std::move(reader), [this](int source, int& res, std::string& file, int& line) {
-                    char buffer[128] = {0};
-                    res = Parse_SourceFileAndLine(source, buffer, &line);
-                    file = buffer;
-                });
-                break;
-
             default:
                 Sys::Drop("Bad log syscall number '%d' for VM '%s'", minor, vmName.c_str());
         }
@@ -376,11 +352,12 @@ namespace VM {
 
     // Misc, Dispatch
 
-    CommonVMServices::CommonVMServices(VMBase& vm, Str::StringRef vmName, int commandFlag)
-    :vmName(vmName), vm(vm), commandProxy(new ProxyCmd(*this, commandFlag)) {
+    CommonVMServices::CommonVMServices(VMBase& vm, Str::StringRef vmName, FS::Owner fileOwnership, int commandFlag)
+    :vmName(vmName), fileOwnership(fileOwnership), vm(vm), commandProxy(new ProxyCmd(*this, commandFlag)) {
     }
 
     CommonVMServices::~CommonVMServices() {
+        FS_CloseAllForOwner(fileOwnership);
         //FIXME or iterate over the commands we registered, or add Cmd::RemoveByProxy()
         Cmd::RemoveSameCommands(*commandProxy.get());
         //TODO unregister cvars

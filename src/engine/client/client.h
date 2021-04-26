@@ -64,7 +64,7 @@ struct clSnapshot_t
 	byte          areamask[ MAX_MAP_AREA_BYTES ]; // portalarea visibility bits
 
 	int           cmdNum; // the next cmdNum the server is expecting
-	playerState_t ps; // complete information about the current player at this time
+	OpaquePlayerState ps; // complete information about the current player at this time
 
 	int           serverCommandNum; // execute all commands up to this before
 	// making the snapshot current
@@ -351,7 +351,6 @@ public:
 	void CGameInit(int serverMessageNum, int clientNum);
 	void CGameShutdown();
 	void CGameDrawActiveFrame(int serverTime, bool demoPlayback);
-	int CGameCrosshairPlayer();
 	void CGameKeyEvent(Keyboard::Key key, bool down);
 	void CGameMouseEvent(int dx, int dy);
 	void CGameMousePosEvent(int x, int y);
@@ -682,35 +681,6 @@ float SCR_ConsoleFontUnicharWidth( int ch );
 float SCR_ConsoleFontCharHeight();
 float SCR_ConsoleFontCharVPadding();
 float SCR_ConsoleFontStringWidth( const char *s, int len );
-
-//
-// cl_cin.c
-//
-
-void     CL_PlayCinematic_f();
-void     SCR_DrawCinematic();
-void     SCR_RunCinematic();
-void     SCR_StopCinematic();
-int      CIN_PlayCinematic( const char *arg0, int xpos, int ypos, int width, int height, int bits );
-e_status CIN_RunCinematic( int handle );
-void     CIN_DrawCinematic( int handle );
-void     CIN_UploadCinematic( int handle );
-void     CIN_CloseAllVideos();
-
-// yuv->rgb will be used for Theora(ogm)
-void     ROQ_GenYUVTables();
-void     Frame_yuv_to_rgb24( const unsigned char *y, const unsigned char *u, const unsigned char *v,
-                             int width, int height, int y_stride, int uv_stride,
-                             int yWShift, int uvWShift, int yHShift, int uvHShift, unsigned int *output );
-
-//
-// cin_ogm.c
-//
-
-int           Cin_OGM_Init( const char *filename );
-int           Cin_OGM_Run( int time );
-unsigned char *Cin_OGM_GetOutput( int *outWidth, int *outHeight );
-void          Cin_OGM_Shutdown();
 
 //
 // cl_cgame.c

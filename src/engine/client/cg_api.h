@@ -28,6 +28,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "engine/renderer/tr_types.h"
 #include "common/KeyIdentification.h"
 #include "common/cm/cm_public.h"
+#ifdef BUILD_CGAME
+// TODO: find a better way that does not depend on a gamelogic file from an engine file
+#include "shared/bg_public.h"
+#endif
 
 #define CGAME_API_VERSION 3
 
@@ -53,7 +57,11 @@ struct snapshot_t
 
 	byte          areamask[ MAX_MAP_AREA_BYTES ]; // portalarea visibility bits
 
+#ifdef BUILD_CGAME
 	playerState_t ps; // complete information about the current player at this time
+#else
+	OpaquePlayerState ps;
+#endif
 
 	// all of the entities that need to be presented at the time of this snapshot
 	std::vector<entityState_t> entities;
@@ -166,7 +174,6 @@ void            trap_R_LoadWorldMap( const char *mapname );
 qhandle_t       trap_R_RegisterModel( const char *name );
 qhandle_t       trap_R_RegisterSkin( const char *name );
 qhandle_t       trap_R_RegisterShader( const char *name, RegisterShaderFlags_t flags );
-void            trap_R_RegisterFont( const char *fontName, const char *fallbackName, int pointSize, fontMetrics_t * );
 
 void            trap_R_ClearScene();
 void            trap_R_AddRefEntityToScene( const refEntity_t *re );
@@ -197,6 +204,8 @@ void            trap_SetUserCmdValue( int stateValue, int flags, float sensitivi
 int             trap_Key_GetCatcher();
 void            trap_Key_SetCatcher( int catcher );
 void            trap_Key_SetBinding( Keyboard::Key key, int team, const char *cmd );
+std::vector<Keyboard::Key> trap_Key_GetConsoleKeys();
+void trap_Key_SetConsoleKeys(const std::vector<Keyboard::Key>& keys);
 void            trap_Key_ClearCmdButtons();
 void            trap_Key_ClearStates();
 std::vector<bool> trap_Key_KeysDown( const std::vector<Keyboard::Key>& keys );
@@ -205,11 +214,6 @@ void            trap_S_StopBackgroundTrack();
 void            trap_R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
 bool        trap_GetEntityToken( char *buffer, int bufferSize );
 std::vector<std::vector<Keyboard::Key>> trap_Key_GetKeysForBinds(int team, const std::vector<std::string>& binds);
-int             trap_Parse_AddGlobalDefine( const char *define );
-int             trap_Parse_LoadSource( const char *filename );
-int             trap_Parse_FreeSource( int handle );
-bool             trap_Parse_ReadToken( int handle, pc_token_t *pc_token );
-int             trap_Parse_SourceFileAndLine( int handle, char *filename, int *line );
 int             trap_Key_GetCharForScancode( int scancode );
 bool        trap_R_inPVS( const vec3_t p1, const vec3_t p2 );
 bool        trap_R_inPVVS( const vec3_t p1, const vec3_t p2 );

@@ -27,9 +27,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "qcommon/q_shared.h"
 #include "qcommon/qfiles.h"
 #include "qcommon/qcommon.h"
+#include "botlib/bot_debug.h"
 #include "tr_public.h"
 #include "iqm.h"
 
+#define GLEW_NO_GLU
 #include <GL/glew.h>
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
@@ -238,7 +240,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int                 coords[ 4 ];
 	};
 
-	enum frustumBits_t
+	enum frustumBits_t : int
 	{
 	  FRUSTUM_LEFT,
 	  FRUSTUM_RIGHT,
@@ -584,6 +586,14 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	static inline bool operator ==( const wrapType_t &a, const wrapType_t &b ) { return a.s == b.s && a.t == b.t; }
 	static inline bool operator !=( const wrapType_t &a, const wrapType_t &b ) { return a.s != b.s || a.t != b.t; }
 
+	struct imageParams_t
+	{
+		int bits = 0;
+		filterType_t filterType;
+		wrapType_t wrapType;
+		int minDimension = 0;
+		int maxDimension = 0;
+	};
 
 	struct image_t
 	{
@@ -1037,9 +1047,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		uint8_t      numTexMods;
 		texModInfo_t *texMods;
-
-		int          videoMapHandle;
-		bool     isVideoMap;
 	};
 
 	enum class stageType_t
@@ -1265,6 +1272,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		float          polygonOffsetValue;
 
 		bool       noPicMip; // for images that must always be full resolution
+		int        imageMinDimension;   // for images that must not be loaded with smaller size
+		int        imageMaxDimension;   // for images that must not be loaded with larger size
 		filterType_t   filterType; // for console fonts, 2D elements, etc.
 		wrapType_t     wrapType;
 
@@ -1372,6 +1381,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 // GLSL vertex and one GLSL fragment shader
 	struct shaderProgram_t
 	{
+		/* If this shader program permutation implements a disabled feature,
+		it will not be built. This boolean makes possible to ignore such
+		programs at link time. */
+		bool      unusedPermutation;
+
 		GLuint    program;
 		GLuint    VS, FS;
 		uint32_t  attribs; // vertex array attributes
@@ -2607,7 +2621,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
 
 		image_t    *defaultImage;
-		image_t    *scratchImage[ 32 ];
 		image_t    *fogImage;
 		image_t    *quadraticImage;
 		image_t    *whiteImage; // full of 0xff
@@ -2850,6 +2863,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_showcluster;
 
 	extern cvar_t *r_mode; // video mode
+	extern cvar_t *r_noBorder;
 	extern cvar_t *r_fullscreen;
 	extern cvar_t *r_gamma;
 
@@ -2872,7 +2886,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader
 	extern cvar_t *r_colorMipLevels; // development aid to see texture mip usage
-	extern cvar_t *r_picmip; // controls picmip values
+	extern cvar_t *r_picMip; // controls picmip values
+	extern cvar_t *r_imageMaxDimension;
+	extern cvar_t *r_ignoreMaterialMinDimension;
+	extern cvar_t *r_ignoreMaterialMaxDimension;
+	extern cvar_t *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	extern cvar_t *r_finish;
 	extern cvar_t *r_drawBuffer;
 	extern cvar_t *r_swapInterval;
@@ -3097,6 +3115,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void     DebugDrawBegin( debugDrawMode_t mode, float size );
 	void     DebugDrawDepthMask(bool state);
 	void     DebugDrawEnd();
+	void RE_SendBotDebugDrawCommands( std::vector<char> commands );
 	/*
 	====================================================================
 
@@ -3137,7 +3156,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	void GL_CheckErrors_( const char *filename, int line );
 
-#define         GL_CheckErrors() GL_CheckErrors_(__FILE__, __LINE__)
+#define GL_CheckErrors() do { if (!glConfig.smpActive) GL_CheckErrors_(__FILE__, __LINE__); } while (false)
 
 	void GL_State( uint32_t stateVector );
 	void GL_VertexAttribsState( uint32_t stateBits );
@@ -3154,7 +3173,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	*/
 
 	void      RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, int client, bool dirty );
-	void      RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty );
 
 	void      RE_BeginFrame();
 	bool  RE_BeginRegistration( glconfig_t *glconfig, glconfig2_t *glconfig2 );
@@ -3171,7 +3189,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	bool   R_Init();
 
-	bool   R_GetModeInfo( int *width, int *height, float *windowAspect, int mode );
+	bool   R_GetModeInfo( int *width, int *height, int mode );
 
 	void       R_ImageList_f();
 	void       R_SkinList_f();
@@ -3193,27 +3211,19 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	void    R_ShutdownImages();
 
 	int R_FindImageLoader( const char *baseName );
-	image_t *R_FindImageFile( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
-	image_t *R_FindCubeImage( const char *name, int bits, filterType_t filterType, wrapType_t wrapType );
+	image_t *R_FindImageFile( const char *name, imageParams_t &imageParams );
+	image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams );
 
-	image_t *R_CreateImage( const char *name, const byte **pic,
-				int width, int height, int bits, int numMips,
-				filterType_t filterType, wrapType_t wrapType );
+	image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams );
 
-	image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ],
-	                            int width, int height, int bits,
-				    filterType_t filterType, wrapType_t wrapType );
-	image_t        *R_Create3DImage( const char *name,
-					 const byte *pic,
-					 int width, int height, int depth,
-					 int bits, filterType_t filterType,
-					 wrapType_t wrapType );
+	image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, int height, const imageParams_t &imageParams );
+	image_t *R_Create3DImage( const char *name, const byte *pic, int width, int height, int depth, const imageParams_t &imageParams );
 
 	image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height );
 	qhandle_t RE_GenerateTexture( const byte *pic, int width, int height );
 
 	image_t *R_AllocImage( const char *name, bool linkIntoHashTable );
-	void    R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image );
+	void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams );
 
 	void    RE_GetTextureSize( int textureID, int *width, int *height );
 

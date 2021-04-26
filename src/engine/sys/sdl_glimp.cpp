@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "sdl_icon.h"
 #include "SDL_syswm.h"
 #include "framework/CommandSystem.h"
+#include "framework/CvarSystem.h"
 
 static Log::Logger logger("glconfig", "", Log::Level::NOTICE);
 
@@ -553,18 +554,21 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 			glConfig.vidHeight = 480;
 			logger.Notice("Cannot determine display resolution, assuming 640x480" );
 		}
-
-		glConfig.windowAspect = ( float ) glConfig.vidWidth / ( float ) glConfig.vidHeight;
 	}
-	else if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, &glConfig.windowAspect, mode ) )
+	else if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, mode ) )
 	{
 		logger.Notice(" invalid mode" );
 		return rserr_t::RSERR_INVALID_MODE;
 	}
 
 	logger.Notice(" %d %d", glConfig.vidWidth, glConfig.vidHeight );
+	// HACK: We want to set the current value, not the latched value
+	Cvar::ClearFlags("r_customwidth", CVAR_LATCH);
+	Cvar::ClearFlags("r_customheight", CVAR_LATCH);
 	Cvar_Set( "r_customwidth", va("%d", glConfig.vidWidth ) );
 	Cvar_Set( "r_customheight", va("%d", glConfig.vidHeight ) );
+	Cvar::AddFlags("r_customwidth", CVAR_LATCH);
+	Cvar::AddFlags("r_customheight", CVAR_LATCH);
 
 	sscanf( ( const char * ) glewGetString( GLEW_VERSION ), "%d.%d.%d",
 		&GLEWmajor, &GLEWminor, &GLEWmicro );
@@ -593,16 +597,11 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 		if ( fullscreen )
 		{
 			flags |= SDL_WINDOW_FULLSCREEN;
-			glConfig.isFullscreen = true;
 		}
-		else
-		{
-			if ( noborder )
-			{
-				flags |= SDL_WINDOW_BORDERLESS;
-			}
 
-			glConfig.isFullscreen = false;
+		if ( noborder )
+		{
+			flags |= SDL_WINDOW_BORDERLESS;
 		}
 
 		colorBits = r_colorbits->integer;
@@ -699,12 +698,16 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 			{
 				SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
 			}
-			window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
 
 			if ( !window )
 			{
-				logger.Warn("SDL_CreateWindow failed: %s\n", SDL_GetError() );
-				continue;
+				window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
+
+				if ( !window )
+				{
+					logger.Warn("SDL_CreateWindow failed: %s\n", SDL_GetError() );
+					continue;
+				}
 			}
 
 			SDL_SetWindowIcon( window, icon );
@@ -717,6 +720,11 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 				continue;
 			}
 			SDL_GL_SetSwapInterval( r_swapInterval->integer );
+
+			// Fill window with a dark grey (#141414) background.
+			glClearColor( 0.08f, 0.08f, 0.08f, 1.0f );
+			glClear( GL_COLOR_BUFFER_BIT );
+			GLimp_EndFrame();
 
 			glConfig.colorBits = testColorBits;
 			glConfig.depthBits = depthBits;
@@ -958,73 +966,57 @@ GLimp_InitExtensions
 ===============
 */
 
-static void RequireExt( bool hasExt, const char* name )
-{
-	if ( hasExt )
-	{
-		logger.WithoutSuppression().Notice("...using GL_%s", name );
-	}
-	else
-	{
-		logger.WithoutSuppression().Notice("...GL_%s not found", name );
-	}
-}
+/* ExtFlag_CORE means the extension is known to be an OpenGL 3 core extension.
+The code considers the extension is available even if the extension is not listed
+if the driver pretends to support OpenGL Core 3 and we know this extension is part
+of OpenGL Core 3. */
 
-static bool LoadExtWithCvar( bool hasExt, const char* name, bool cvarValue )
+enum {
+	ExtFlag_NONE,
+	ExtFlag_REQUIRED = BIT( 1 ),
+	ExtFlag_CORE = BIT( 2 ),
+};
+
+static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true )
 {
-	if ( hasExt )
+	if ( hasExt || ( flags & ExtFlag_CORE && glConfig2.glCoreProfile) )
 	{
-		if ( cvarValue )
+		if ( test )
 		{
-			logger.WithoutSuppression().Notice("...using GL_%s", name );
+			logger.WithoutSuppression().Notice( "...using GL_%s", name );
 			return true;
 		}
 		else
 		{
-			logger.WithoutSuppression().Notice("...ignoring GL_%s", name );
+			// Required extension can't be made optional
+			ASSERT( !( flags & ExtFlag_REQUIRED ) );
+
+			logger.WithoutSuppression().Notice( "...ignoring GL_%s", name );
 		}
 	}
 	else
 	{
-		logger.WithoutSuppression().Notice("...GL_%s not found", name );
-	}
-	return false;
-}
-
-/*
-	load extensions that were made a required part of OpenGL core profile by version 3.2
-*/
-static bool LoadCoreExtWithCvar(bool hasExt, const char* name, bool cvarValue)
-{
-	if (hasExt || glConfig2.glCoreProfile)
-	{
-		if (cvarValue)
+		if ( flags & ExtFlag_REQUIRED )
 		{
-			logger.WithoutSuppression().Notice("...using GL_%s", name);
-			return true;
+			Sys::Error( "Required extension GL_%s is missing", name );
 		}
 		else
 		{
-			logger.WithoutSuppression().Notice("...ignoring GL_%s", name);
+			logger.WithoutSuppression().Notice( "...GL_%s not found", name );
 		}
-	}
-	else
-	{
-		logger.WithoutSuppression().Notice("...GL_%s not found", name);
 	}
 	return false;
 }
-#define REQUIRE_EXTENSION(ext) RequireExt(GLEW_##ext, #ext)
 
-#define LOAD_EXTENSION_WITH_CVAR(ext, cvar) LoadExtWithCvar(GLEW_##ext, #ext, cvar->value)
+#define LOAD_EXTENSION(flags, ext) LoadExt(flags, GLEW_##ext, #ext)
 
-#define LOAD_CORE_EXTENSION_WITH_CVAR(ext, cvar) LoadCoreExtWithCvar(GLEW_##ext, #ext, cvar->value)
+#define LOAD_EXTENSION_WITH_TEST(flags, ext, test) LoadExt(flags, GLEW_##ext, #ext, test)
 
 static void GLimp_InitExtensions()
 {
 	logger.Notice("Initializing OpenGL extensions" );
 
-	if ( LOAD_EXTENSION_WITH_CVAR(ARB_debug_output, r_glDebugProfile) )
+	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output, r_glDebugProfile->value ) )
 	{
 		glDebugMessageCallbackARB( (GLDEBUGPROCARB)GLimp_DebugCallback, nullptr );
 		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
@@ -1055,56 +1047,79 @@ static void GLimp_InitExtensions()
 	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureHalfFloatAvailable =  LOAD_CORE_EXTENSION_WITH_CVAR(ARB_half_float_pixel, r_ext_half_float_pixel);
+	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_ext_half_float_pixel->value );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureFloatAvailable = LOAD_CORE_EXTENSION_WITH_CVAR(ARB_texture_float, r_ext_texture_float);
+	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float->value );
 
 	// made required in OpenGL 3.0
-	glConfig2.gpuShader4Available = LOAD_CORE_EXTENSION_WITH_CVAR(EXT_gpu_shader4, r_ext_gpu_shader4);
+	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4->value );
 
 	// made required in OpenGL 3.0
 	// GL_EXT_texture_integer can be used in shaders only if GL_EXT_gpu_shader4 is also available
-	glConfig2.textureIntegerAvailable = LOAD_CORE_EXTENSION_WITH_CVAR(EXT_texture_integer, r_ext_texture_integer)
+	glConfig2.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer->value )
 	  && glConfig2.gpuShader4Available;
 
 	// made required in OpenGL 3.0
-	glConfig2.textureRGAvailable = LOAD_CORE_EXTENSION_WITH_CVAR(ARB_texture_rg, r_ext_texture_rg);
+	glConfig2.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg->value );
 
-	// made required in OpenGL 4.0
-	if( Q_stristr( glConfig.renderer_string, "geforce" ) ) {
-		glConfig2.textureGatherAvailable = false; // disabled on nVidia because some driver versions are bugged
-	} else {
-		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_CVAR(ARB_texture_gather, r_arb_texture_gather);
+	{
+		/* GT218-based GPU with Nvidia 340.108 driver advertising
+		ARB_texture_gather extension is know to fail to compile
+		the depthtile1 GLSL shader.
+
+		See https://github.com/DaemonEngine/Daemon/issues/368
+
+		Unfortunately this workaround may also disable the feature for
+		all GPUs using this driver even if we don't know if some of them
+		are not affected by the bug while advertising this extension, but
+		there is no known easy way to detect GT218-based cards. Not all cards
+		using 340 driver supports this extension anyway, like the G92 one.
+
+		We can assume cards not using the 340 driver are not GT218 ones and
+		are not affected.
+
+		Usually, those GT218 cards are not powerful enough for dynamic
+		lighting so it is likely this feature would be disabled to
+		get acceptable framerate on this hardware anyway, making the
+		need for such extension and the related shader code useless. */
+		bool foundNvidia340 = ( Q_stristr( glConfig.vendor_string, "NVIDIA Corporation" ) && Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
+
+		if ( foundNvidia340 )
+		{
+			// No need for WithoutSuppression for something which can only be printed once per renderer restart.
+			logger.Notice("...found buggy Nvidia 340 driver");
+		}
+
+		// made required in OpenGL 4.0
+		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather->value && !foundNvidia340 );
 	}
 
 	// made required in OpenGL 1.3
 	glConfig.textureCompression = textureCompression_t::TC_NONE;
-	if( GLEW_EXT_texture_compression_s3tc )
+	if( LOAD_EXTENSION( ExtFlag_NONE, EXT_texture_compression_s3tc ) )
 	{
 		glConfig.textureCompression = textureCompression_t::TC_S3TC;
 	}
 
 	// made required in OpenGL 3.0
-	glConfig2.textureCompressionRGTCAvailable = glConfig2.glCoreProfile || GLEW_ARB_texture_compression_rgtc;
+	glConfig2.textureCompressionRGTCAvailable = LOAD_EXTENSION( ExtFlag_CORE, ARB_texture_compression_rgtc );
 
 	// Texture - others
 	glConfig2.textureAnisotropyAvailable = false;
-	if ( LOAD_EXTENSION_WITH_CVAR(EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic) )
+	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic->value ) )
 	{
 		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig2.maxTextureAnisotropy );
 		glConfig2.textureAnisotropyAvailable = true;
 	}
 
 	// VAO and VBO
-	if( !glConfig2.glCoreProfile )
-	{
-		// made required in OpenGL 3.0
-		REQUIRE_EXTENSION( ARB_half_float_vertex );
+	// made required in OpenGL 3.0
 
-		// made required in OpenGL 3.0
-		REQUIRE_EXTENSION( ARB_framebuffer_object );
-	}
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
+
+	// made required in OpenGL 3.0
+	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_framebuffer_object );
 
 	// FBO
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );
@@ -1127,60 +1142,31 @@ static void GLimp_InitExtensions()
 		glConfig2.drawBuffersAvailable = true;
 	}
 
-#ifdef GL_ARB_get_program_binary
-	if( GLEW_ARB_get_program_binary )
 	{
 		int formats = 0;
 
 		glGetIntegerv( GL_NUM_PROGRAM_BINARY_FORMATS, &formats );
 
-		if ( !formats )
+		if ( formats == 0 )
 		{
-			logger.Notice("...GL_ARB_get_program_binary found, but with no binary formats");
-			glConfig2.getProgramBinaryAvailable = false;
+			// No need for WithoutSuppression for something which can only be printed once per renderer restart.
+			logger.Notice("...no program binary formats");
 		}
-		else
-		{
-			logger.Notice("...using GL_ARB_get_program_binary");
-			glConfig2.getProgramBinaryAvailable = true;
-		}
-	}
-	else
-#endif
-	{
-		logger.Notice("...GL_ARB_get_program_binary not found");
-		glConfig2.getProgramBinaryAvailable = false;
+
+		glConfig2.getProgramBinaryAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_get_program_binary, formats > 0 );
 	}
 
-#ifdef GL_ARB_buffer_storage
-	if ( GLEW_ARB_buffer_storage )
-	{
-		if ( r_arb_buffer_storage->integer )
-		{
-			logger.Notice("...using GL_ARB_buffer_storage" );
-			glConfig2.bufferStorageAvailable = true;
-		}
-		else
-		{
-			logger.Notice("...ignoring GL_ARB_buffer_storage" );
-			glConfig2.bufferStorageAvailable = false;
-		}
-	}
-	else
-#endif
-	{
-		logger.Notice("...GL_ARB_buffer_storage not found" );
-		glConfig2.bufferStorageAvailable = false;
-	}
+	glConfig2.bufferStorageAvailable = false;
+	glConfig2.bufferStorageAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_buffer_storage, r_arb_buffer_storage->integer > 0 );
 
 	// made required since OpenGL 3.1
-	glConfig2.uniformBufferObjectAvailable = LOAD_CORE_EXTENSION_WITH_CVAR( ARB_uniform_buffer_object, r_arb_uniform_buffer_object );
+	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object->value );
 
 	// made required in OpenGL 3.0
-	glConfig2.mapBufferRangeAvailable = LOAD_CORE_EXTENSION_WITH_CVAR( ARB_map_buffer_range, r_arb_map_buffer_range );
+	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range->value );
 
 	// made required in OpenGL 3.2
-	glConfig2.syncAvailable = LOAD_CORE_EXTENSION_WITH_CVAR( ARB_sync, r_arb_sync );
+	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync->value );
 
 	GL_CheckErrors();
 }
@@ -1205,7 +1191,7 @@ static void reportDriverType( bool force )
 static void reportHardwareType( bool force )
 {
 	static const char *const hardware[] = {
-		"generic", "ATI Radeon", "AMD Radeon DX10-class", "nVidia DX10-class"
+		"generic", "ATI R300"
 	};
 	if (glConfig.hardwareType > glHardwareType_t::GLHW_UNKNOWN && (unsigned) glConfig.hardwareType < ARRAY_LEN( hardware ) )
 	{
@@ -1228,7 +1214,7 @@ bool GLimp_Init()
 	glConfig.driverType = glDriverType_t::GLDRV_ICD;
 
 	r_sdlDriver = ri.Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
-	r_allowResize = ri.Cvar_Get( "r_allowResize", "0", 0 );
+	r_allowResize = ri.Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
 	r_centerWindow = ri.Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = ri.Cvar_Get( "r_displayIndex", "0", 0 );
 	ri.Cvar_Get( "r_availableModes", "", CVAR_ROM );
@@ -1240,11 +1226,12 @@ bool GLimp_Init()
 		ri.Cvar_Set( "r_mode", va( "%d", R_MODE_FALLBACK ) );
 		ri.Cvar_Set( "r_fullscreen", "0" );
 		ri.Cvar_Set( "r_centerWindow", "0" );
+		ri.Cvar_Set( "r_noBorder", "0" );
 		ri.Cvar_Set( "com_abnormalExit", "0" );
 	}
 
 	// Create the window and set up the context
-	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen->integer, false ) )
+	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen->integer, r_noBorder->value ) )
 	{
 		goto success;
 	}
@@ -1287,89 +1274,26 @@ success:
 
 		glConfig.extensions_string[ 0 ] = '\0';
 		for ( i = 0; i < numExts; ++i )
+		{
+			if ( i != 0 )
+			{
+				Q_strcat( glConfig.extensions_string, sizeof( glConfig.extensions_string ), ( char * ) " " );
+			}
 			Q_strcat( glConfig.extensions_string, sizeof( glConfig.extensions_string ), ( char * ) glGetStringi( GL_EXTENSIONS, i ) );
+		}
 	}
 	else
 	{
 		Q_strncpyz( glConfig.extensions_string, ( char * ) glGetString( GL_EXTENSIONS ), sizeof( glConfig.extensions_string ) );
 	}
 
-	if ( Q_stristr( glConfig.renderer_string, "mesa" ) ||
-	     Q_stristr( glConfig.renderer_string, "gallium" ) ||
-	     Q_stristr( glConfig.vendor_string, "nouveau" ) ||
-	     Q_stristr( glConfig.vendor_string, "mesa" ) )
+	if ( Q_stristr( glConfig.renderer_string, "amd " ) ||
+	     Q_stristr( glConfig.renderer_string, "ati " ) )
 	{
-		// suckage
-		glConfig.driverType = glDriverType_t::GLDRV_MESA;
-	}
-
-	if ( Q_stristr( glConfig.renderer_string, "geforce" ) )
-	{
-		if ( Q_stristr( glConfig.renderer_string, "8400" ) ||
-		     Q_stristr( glConfig.renderer_string, "8500" ) ||
-		     Q_stristr( glConfig.renderer_string, "8600" ) ||
-		     Q_stristr( glConfig.renderer_string, "8800" ) ||
-		     Q_stristr( glConfig.renderer_string, "9500" ) ||
-		     Q_stristr( glConfig.renderer_string, "9600" ) ||
-		     Q_stristr( glConfig.renderer_string, "9800" ) ||
-		     Q_stristr( glConfig.renderer_string, "gts 240" ) ||
-		     Q_stristr( glConfig.renderer_string, "gts 250" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 260" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 275" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 280" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 285" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 295" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 320" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 330" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 340" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 415" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 420" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 425" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 430" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 435" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 440" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 520" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 525" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 540" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 550" ) ||
-		     Q_stristr( glConfig.renderer_string, "gt 555" ) ||
-		     Q_stristr( glConfig.renderer_string, "gts 450" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 460" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 470" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 480" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 485" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 560" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 570" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 580" ) ||
-		     Q_stristr( glConfig.renderer_string, "gtx 590" ) )
+		if ( glConfig.driverType != glDriverType_t::GLDRV_OPENGL3 )
 		{
-			glConfig.hardwareType = glHardwareType_t::GLHW_NV_DX10;
+			glConfig.hardwareType = glHardwareType_t::GLHW_R300;
 		}
-	}
-	else if ( Q_stristr( glConfig.renderer_string, "quadro fx" ) )
-	{
-		if ( Q_stristr( glConfig.renderer_string, "3600" ) )
-		{
-			glConfig.hardwareType = glHardwareType_t::GLHW_NV_DX10;
-		}
-	}
-	else if ( Q_stristr( glConfig.renderer_string, "gallium" ) &&
-	          Q_stristr( glConfig.renderer_string, " amd " ) )
-	{
-		// anything prior to R600 is listed as ATI.
-		glConfig.hardwareType = glHardwareType_t::GLHW_ATI_DX10;
-	}
-	else if ( Q_stristr( glConfig.renderer_string, "rv770" ) ||
-	          Q_stristr( glConfig.renderer_string, "eah4850" ) ||
-	          Q_stristr( glConfig.renderer_string, "eah4870" ) ||
-	          // previous three are too specific?
-	          Q_stristr( glConfig.renderer_string, "radeon hd" ) )
-	{
-		glConfig.hardwareType = glHardwareType_t::GLHW_ATI_DX10;
-	}
-	else if ( Q_stristr( glConfig.renderer_string, "radeon" ) )
-	{
-		glConfig.hardwareType = glHardwareType_t::GLHW_ATI;
 	}
 
 	reportDriverType( false );
@@ -1394,10 +1318,6 @@ success:
 		{
 			driverType = glDriverType_t::GLDRV_OPENGL3;
 		}
-		else if ( !Q_stricmp( forceGL->string, "mesa" ))
-		{
-			driverType = glDriverType_t::GLDRV_MESA;
-		}
 
 		forceGL = ri.Cvar_Get( "r_glForceHardware", "", CVAR_LATCH );
 
@@ -1405,18 +1325,9 @@ success:
 		{
 			hardwareType = glHardwareType_t::GLHW_GENERIC;
 		}
-		else if ( !Q_stricmp( forceGL->string, "ati" ))
+		else if ( !Q_stricmp( forceGL->string, "r300" ))
 		{
-			hardwareType = glHardwareType_t::GLHW_ATI;
-		}
-		else if ( !Q_stricmp( forceGL->string, "atidx10" ) ||
-		          !Q_stricmp( forceGL->string, "radeonhd" ))
-		{
-			hardwareType = glHardwareType_t::GLHW_ATI_DX10;
-		}
-		else if ( !Q_stricmp( forceGL->string, "nvdx10" ))
-		{
-			hardwareType = glHardwareType_t::GLHW_NV_DX10;
+			hardwareType = glHardwareType_t::GLHW_R300;
 		}
 
 		if ( driverType != glDriverType_t::GLDRV_UNKNOWN )
@@ -1477,10 +1388,9 @@ void GLimp_HandleCvars()
 
 	if ( r_fullscreen->modified )
 	{
-		bool    fullscreen;
-		bool    needToToggle = true;
-		int     sdlToggled = false;
-		fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
+		int sdlToggled = false;
+		bool needToToggle = true;
+		bool fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
 
 		if ( r_fullscreen->integer && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
 		{
@@ -1494,7 +1404,8 @@ void GLimp_HandleCvars()
 
 		if ( needToToggle )
 		{
-			sdlToggled = SDL_SetWindowFullscreen( window, r_fullscreen->integer );
+			Uint32 flags = r_fullscreen->integer == 0 ? 0 : SDL_WINDOW_FULLSCREEN;
+			sdlToggled = SDL_SetWindowFullscreen( window, flags );
 
 			if ( sdlToggled < 0 )
 			{
@@ -1506,6 +1417,16 @@ void GLimp_HandleCvars()
 
 		r_fullscreen->modified = false;
 	}
+
+	if ( r_noBorder->modified )
+	{
+		SDL_bool bordered = r_noBorder->integer == 0 ? SDL_TRUE : SDL_FALSE;
+		SDL_SetWindowBordered( window, bordered );
+
+		r_noBorder->modified = false;
+	}
+
+	// TODO: Update r_allowResize using SDL_SetWindowResizable when we have SDL 2.0.5
 }
 
 void GLimp_LogComment( const char *comment )

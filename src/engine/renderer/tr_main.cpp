@@ -2363,14 +2363,16 @@ void R_AddLightInteractions()
 				continue;
 			}
 		} else if ( light->l.inverseShadows ) {
-			if( !r_dynamicLight->integer ) {
+			if( r_dynamicLight->integer == 0 ) {
 				light->cull = CULL_OUT;
 				continue;
 			}
 		} else {
-			if ( r_dynamicLight->integer != 1 )
+			// Deprecated forward renderer uses r_dynamicLight -1
+			if ( r_dynamicLight->integer > -1 )
 			{
-				if( r_dynamicLight->integer == 2 ) {
+				if( r_dynamicLight->integer > 0 )
+				{
 					tr.refdef.numShaderLights++;
 					tr.pc.c_dlights++;
 				}
@@ -2561,7 +2563,8 @@ void R_AddLightBoundsToVisBounds()
 		}
 		else
 		{
-			if ( r_dynamicLight->integer != 1 )
+			// Deprecated forward renderer uses r_dynamicLight -1
+			if ( r_dynamicLight->integer > -1 )
 			{
 				continue;
 			}
@@ -2680,8 +2683,60 @@ void R_AddLightBoundsToVisBounds()
 	}
 }
 
-static BotDebugInterface_t bi = { DebugDrawBegin, DebugDrawDepthMask, DebugDrawVertex, DebugDrawEnd };
+static std::vector<char> botDebugDrawCommands;
+void RE_SendBotDebugDrawCommands( std::vector<char> commands )
+{
+	botDebugDrawCommands = std::move(commands);
+}
+static void RunBotDebugDrawCommands()
+{
+	if ( botDebugDrawCommands.empty() )
+	{
+		return;
+	}
 
+	Util::Reader r;
+	std::swap( r.GetData(), botDebugDrawCommands );
+	while ( true )
+	{
+		debugDrawMode_t mode;
+		float size;
+		bool state;
+		Vec3 pos;
+		unsigned int color;
+		Vec2 uv;
+		switch ( r.Read<debugDrawCommand_t>() )
+		{
+			case debugDrawCommand_t::BEGIN:
+				mode = r.Read<debugDrawMode_t>();
+				size = r.Read<float>();
+				DebugDrawBegin( mode, size );
+				continue;
+			case debugDrawCommand_t::END:
+				DebugDrawEnd();
+				continue;
+			case debugDrawCommand_t::DEPTHMASK:
+				state = r.Read<bool>();
+				DebugDrawDepthMask( state );
+				continue;
+			case debugDrawCommand_t::VERTEX:
+				pos = r.Read<Vec3>();
+				color = r.Read<unsigned int>();
+				DebugDrawVertex(pos.Data(), color, nullptr);
+				continue;
+			case debugDrawCommand_t::VERTEX_UV:
+				pos = r.Read<Vec3>();
+				color = r.Read<unsigned int>();
+				uv = r.Read<Vec2>();
+				DebugDrawVertex(pos.Data(), color, uv.Data());
+				continue;
+			case debugDrawCommand_t::EOC:
+				return;
+		}
+		Log::Warn("malformed bot debug draw commands");
+		return;
+	}
+}
 /*
 ====================
 R_DebugGraphics
@@ -2704,7 +2759,7 @@ static void R_DebugGraphics()
 		GL_Cull( cullType_t::CT_FRONT_SIDED );
 		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
-		ri.Bot_DrawDebugMesh( &bi );
+		RunBotDebugDrawCommands();
 	}
 }
 

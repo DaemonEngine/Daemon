@@ -171,8 +171,8 @@ float ChebyshevUpperBound(vec2 shadowMoments, float vertexDistance, float minVar
 	float d = vertexDistance - shadowDistance;
 	float pMax = variance / (variance + (d * d));
 
-#if defined(r_LightBleedReduction)
-	pMax = linstep(r_LightBleedReduction, 1.0, pMax);
+#if defined(r_lightBleedReduction)
+	pMax = linstep(r_lightBleedReduction, 1.0, pMax);
 #endif
 
 	// one-tailed Chebyshev with k > 0
@@ -217,7 +217,7 @@ void FetchShadowMoments(vec3 Pworld, out vec4 shadowVert,
 	vec4 Pcam = u_ViewMatrix * vec4(Pworld.xyz, 1.0);
 	float vertexDistanceToCamera = -Pcam.z;
 
-#if defined(r_ParallelShadowSplits_1)
+#if defined(r_parallelShadowSplits_1)
 	if(vertexDistanceToCamera < u_ShadowParallelSplitDistances.x)
 	{
 		shadowVert = u_ShadowMatrix[0] * vec4(Pworld.xyz, 1.0);
@@ -230,7 +230,7 @@ void FetchShadowMoments(vec3 Pworld, out vec4 shadowVert,
 		shadowMoments = texture2DProj(u_ShadowMap1, shadowVert.xyw);
 		shadowClipMoments = texture2DProj(u_ShadowClipMap1, shadowVert.xyw);
 	}
-#elif defined(r_ParallelShadowSplits_2)
+#elif defined(r_parallelShadowSplits_2)
 	if(vertexDistanceToCamera < u_ShadowParallelSplitDistances.x)
 	{
 		shadowVert = u_ShadowMatrix[0] * vec4(Pworld.xyz, 1.0);
@@ -249,7 +249,7 @@ void FetchShadowMoments(vec3 Pworld, out vec4 shadowVert,
 		shadowMoments = texture2DProj(u_ShadowMap2, shadowVert.xyw);
 		shadowClipMoments = texture2DProj(u_ShadowClipMap2, shadowVert.xyw);
 	}
-#elif defined(r_ParallelShadowSplits_3)
+#elif defined(r_parallelShadowSplits_3)
 	if(vertexDistanceToCamera < u_ShadowParallelSplitDistances.x)
 	{
 		shadowVert = u_ShadowMatrix[0] * vec4(Pworld.xyz, 1.0);
@@ -274,7 +274,7 @@ void FetchShadowMoments(vec3 Pworld, out vec4 shadowVert,
 		shadowMoments = texture2DProj(u_ShadowMap3, shadowVert.xyw);
 		shadowClipMoments = texture2DProj(u_ShadowClipMap3, shadowVert.xyw);
 	}
-#elif defined(r_ParallelShadowSplits_4)
+#elif defined(r_parallelShadowSplits_4)
 	if(vertexDistanceToCamera < u_ShadowParallelSplitDistances.x)
 	{
 		shadowVert = u_ShadowMatrix[0] * vec4(Pworld.xyz, 1.0);
@@ -643,14 +643,14 @@ float ShadowTest( float vertexDistance, vec4 shadowMoments, vec4 shadowClipMomen
 
 	//shadow = vertexDistance <= shadowDistance ? 1.0 : 0.0;
 	// exponential shadow mapping
-	// shadow = clamp(exp(r_OverDarkeningFactor * (shadowDistance - log(vertexDistance))), 0.0, 1.0);
-	// shadow = clamp(exp(r_OverDarkeningFactor * shadowDistance) * exp(-r_OverDarkeningFactor * vertexDistance), 0.0, 1.0);
+	// shadow = clamp(exp(r_overDarkeningFactor * (shadowDistance - log(vertexDistance))), 0.0, 1.0);
+	// shadow = clamp(exp(r_overDarkeningFactor * shadowDistance) * exp(-r_overDarkeningFactor * vertexDistance), 0.0, 1.0);
 	// shadow = smoothstep(0.0, 1.0, shadow);
 
-#if defined(r_DebugShadowMaps) && defined( HAVE_EXT_gpu_shader4 )
-	outputColor.r = (r_DebugShadowMaps & 1) != 0 ? shadowDistance : 0.0;
-	outputColor.g = (r_DebugShadowMaps & 2) != 0 ? -(shadowDistance - vertexDistance) : 0.0;
-	outputColor.b = (r_DebugShadowMaps & 4) != 0 ? shadow : 0.0;
+#if defined(r_debugShadowMaps) && defined( HAVE_EXT_gpu_shader4 )
+	outputColor.r = (r_debugShadowMaps & 1) != 0 ? shadowDistance : 0.0;
+	outputColor.g = (r_debugShadowMaps & 2) != 0 ? -(shadowDistance - vertexDistance) : 0.0;
+	outputColor.b = (r_debugShadowMaps & 4) != 0 ? shadow : 0.0;
 	outputColor.a = 1.0;
 #endif
 		
@@ -677,10 +677,10 @@ float ShadowTest( float vertexDistance, vec4 shadowMoments, vec4 shadowClipMomen
 
 	shadow = min(posContrib, negContrib);
 	
-#if defined(r_DebugShadowMaps) && defined( HAVE_EXT_gpu_shader4 )
-	outputColor.r = (r_DebugShadowMaps & 1) != 0 ? posContrib : 0.0;
-	outputColor.g = (r_DebugShadowMaps & 2) != 0 ? negContrib : 0.0;
-	outputColor.b = (r_DebugShadowMaps & 4) != 0 ? shadow : 0.0;
+#if defined(r_debugShadowMaps) && defined( HAVE_EXT_gpu_shader4 )
+	outputColor.r = (r_debugShadowMaps & 1) != 0 ? posContrib : 0.0;
+	outputColor.g = (r_debugShadowMaps & 2) != 0 ? negContrib : 0.0;
+	outputColor.b = (r_debugShadowMaps & 4) != 0 ? shadow : 0.0;
 	outputColor.a = 1.0;
 #endif
 
@@ -778,12 +778,12 @@ void	main()
 	return;
 #endif
 
-#if defined(r_ShowParallelShadowSplits)
+#if defined(r_showParallelShadowSplits)
 	// transform to camera space
 	vec4 Pcam = u_ViewMatrix * vec4(var_Position.xyz, 1.0);
 	float vertexDistanceToCamera = -Pcam.z;
 
-#if defined(r_ParallelShadowSplits_1)
+#if defined(r_parallelShadowSplits_1)
 	if(vertexDistanceToCamera < u_ShadowParallelSplitDistances.x)
 	{
 		outputColor = vec4(1.0, 0.0, 0.0, 1.0);
@@ -794,7 +794,7 @@ void	main()
 		outputColor = vec4(1.0, 0.0, 1.0, 1.0);
 		return;
 	}
-#elif defined(r_ParallelShadowSplits_2)
+#elif defined(r_parallelShadowSplits_2)
 	if(vertexDistanceToCamera < u_ShadowParallelSplitDistances.x)
 	{
 		outputColor = vec4(1.0, 0.0, 0.0, 1.0);
@@ -810,7 +810,7 @@ void	main()
 		outputColor = vec4(1.0, 0.0, 1.0, 1.0);
 		return;
 	}
-#elif defined(r_ParallelShadowSplits_3)
+#elif defined(r_parallelShadowSplits_3)
 	if(vertexDistanceToCamera < u_ShadowParallelSplitDistances.x)
 	{
 		outputColor = vec4(1.0, 0.0, 0.0, 1.0);
@@ -831,7 +831,7 @@ void	main()
 		outputColor = vec4(1.0, 0.0, 1.0, 1.0);
 		return;
 	}
-#elif defined(r_ParallelShadowSplits_4)
+#elif defined(r_parallelShadowSplits_4)
 	if(vertexDistanceToCamera < u_ShadowParallelSplitDistances.x)
 	{
 		outputColor = vec4(1.0, 0.0, 0.0, 1.0);
@@ -863,7 +863,7 @@ void	main()
 		return;
 	}
 #endif
-#endif // #if defined(r_ShowParallelShadowSplits)
+#endif // #if defined(r_showParallelShadowSplits)
 
 #elif defined(LIGHT_PROJ)
 
@@ -920,7 +920,7 @@ void	main()
 #endif
 	shadow = ShadowTest(vertexDistance, shadowMoments, shadowClipMoments);
 	
-#if defined(r_DebugShadowMaps)
+#if defined(r_debugShadowMaps)
 	return;
 #endif
 	
@@ -960,7 +960,7 @@ void	main()
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute the light term
-#if defined(r_WrapAroundLighting)
+#if defined(r_wrapAroundLighting)
 	float NL = clamp(dot(normal, lightDir) + u_LightWrapAround, 0.0, 1.0) / clamp(1.0 + u_LightWrapAround, 0.0, 1.0);
 #else
 	float NL = clamp(dot(normal, lightDir), 0.0, 1.0);
@@ -975,13 +975,13 @@ void	main()
 	}
 	diffuse.rgb *= u_LightColor * NL;
 
-#if !defined(USE_PHYSICAL_SHADING)
+#if !defined(USE_PHYSICAL_MAPPING)
 #if defined(r_specularMapping)
 	// compute the specular term
 	vec4 spec = texture2D(u_MaterialMap, texCoords).rgba;
 	vec3 specular = spec.rgb * u_LightColor * pow(clamp(dot(normal, H), 0.0, 1.0), u_SpecularExponent.x * spec.a + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping
-#endif // !USE_PHYSICAL_SHADING
+#endif // !USE_PHYSICAL_MAPPING
 
 	// compute light attenuation
 #if defined(LIGHT_PROJ)
@@ -1000,11 +1000,11 @@ void	main()
 	// compute final color
 	vec4 color = diffuse;
 
-#if !defined(USE_PHYSICAL_SHADING)
+#if !defined(USE_PHYSICAL_MAPPING)
 #if defined(r_specularMapping)
 	color.rgb += specular;
 #endif // r_specularMapping
-#endif // !USE_PHYSICAL_SHADING
+#endif // !USE_PHYSICAL_MAPPING
 
 #if !defined(LIGHT_DIRECTIONAL)
 	color.rgb *= attenuationXY;

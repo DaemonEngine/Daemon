@@ -41,6 +41,10 @@ Maryland 20850 USA.
 #include "framework/CommonVMServices.h"
 #include "framework/CommandSystem.h"
 
+#ifndef BUILD_SERVER
+#include "client/client.h" // For bot debug draw
+#endif
+
 // Suppress warnings for unused [this] lambda captures.
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wunused-lambda-capture"
@@ -59,14 +63,14 @@ sharedEntity_t *SV_GentityNum( int num )
 	return ( sharedEntity_t * )( ( byte * ) sv.gentities + sv.gentitySize * ( num ) );
 }
 
-playerState_t  *SV_GameClientNum( int num )
+OpaquePlayerState *SV_GameClientNum( int num )
 {
 	if ( num < 0 || num >= sv_maxclients->integer || sv.gameClients == nullptr )
 	{
 		Sys::Drop( "SV_GameClientNum: bad num" );
 	}
 
-	return ( playerState_t * )( ( byte * ) sv.gameClients + sv.gameClientSize * ( num ) );
+	return ( OpaquePlayerState * )( ( byte * ) sv.gameClients + sv.gameClientSize * ( num ) );
 }
 
 svEntity_t     *SV_SvEntityForGentity( sharedEntity_t *gEnt )
@@ -183,8 +187,9 @@ SV_LocateGameData
 void SV_LocateGameData( const IPC::SharedMemory& shmRegion, int numGEntities, int sizeofGEntity_t,
                         int sizeofGameClient )
 {
+	constexpr size_t playerStateAlignment = 4;
 	if ( numGEntities < 0 || numGEntities > MAX_GENTITIES || sizeofGEntity_t < 0 || sizeofGameClient < 0
-	     || sizeofGEntity_t % alignof(sharedEntity_t) || sizeofGEntity_t % alignof(playerState_t) )
+	     || sizeofGEntity_t % alignof(sharedEntity_t) || sizeofGEntity_t % playerStateAlignment )
 		Sys::Drop( "SV_LocateGameData: Invalid game data parameters" );
 	if ( int64_t(shmRegion.GetSize()) < int64_t(MAX_GENTITIES) * sizeofGEntity_t + int64_t(sv_maxclients->integer) * sizeofGameClient )
 		Sys::Drop( "SV_LocateGameData: Shared memory region too small" );
@@ -194,7 +199,7 @@ void SV_LocateGameData( const IPC::SharedMemory& shmRegion, int numGEntities, in
 	sv.gentitySize = sizeofGEntity_t;
 	sv.num_entities = numGEntities;
 
-	sv.gameClients = reinterpret_cast<playerState_t*>(base + MAX_GENTITIES * size_t(sizeofGEntity_t));
+	sv.gameClients = reinterpret_cast<OpaquePlayerState*>(base + MAX_GENTITIES * size_t(sizeofGEntity_t));
 	sv.gameClientSize = sizeofGameClient;
 }
 
@@ -339,7 +344,7 @@ GameVM::GameVM(): VM::VMBase("sgame", Cvar::NONE), services(nullptr) {
 
 void GameVM::Start()
 {
-	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "SGame", Cmd::SGAME_VM));
+	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "SGame", FS::Owner::SGAME, Cmd::SGAME_VM));
 
 	uint32_t version = this->Create();
 	if ( version != GAME_API_VERSION ) {
@@ -357,6 +362,10 @@ void GameVM::GameStaticInit()
 void GameVM::GameInit(int levelTime, int randomSeed)
 {
 	this->SendMsg<GameInitMsg>(levelTime, randomSeed, Com_AreCheatsAllowed(), Com_IsClient());
+	NetcodeTable psTable;
+	size_t psSize;
+	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
+	MSG_InitNetcodeTables(std::move(psTable), psSize);
 }
 
 void GameVM::GameShutdown(bool restart)
@@ -532,22 +541,9 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		break;
 
 	case G_GET_ENTITY_TOKEN:
-		IPC::HandleMsg<GetEntityTokenMsg>(channel, std::move(reader), [this](bool& boolRes, std::string& res) {
+		IPC::HandleMsg<SgGetEntityTokenMsg>(channel, std::move(reader), [this](bool& boolRes, std::string& res) {
 			res = COM_Parse(&sv.entityParsePoint);
 			boolRes = sv.entityParsePoint or res.size() > 0;
-		});
-		break;
-
-	case G_SEND_MESSAGE:
-		IPC::HandleMsg<SendMessageMsg>(channel, std::move(reader), [this](int, std::vector<uint8_t>) {
-			Log::Warn("SendMessageMsg unsupported");
-		});
-		break;
-
-	case G_MESSAGE_STATUS:
-		IPC::HandleMsg<MessageStatusMsg>(channel, std::move(reader), [this](int, messageStatus_t& status) {
-			Log::Warn("MessageStatusMsg unsupported");
-			status = {};
 		});
 		break;
 
@@ -609,78 +605,15 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		});
 		break;
 
-	case BOT_NAV_SETUP:
-		IPC::HandleMsg<BotNavSetupMsg>(channel, std::move(reader), [this](botClass_t botClass, int& res, int& handle) {
-			res = BotSetupNav(&botClass, &handle);
+	case BOT_DEBUG_DRAW:
+		IPC::HandleMsg<BotDebugDrawMsg>(channel, std::move(reader), [this](std::vector<char> commands) {
+#ifdef BUILD_SERVER
+			Q_UNUSED(commands);
+			Sys::Drop("Can't use BotDebugDrawMsg in a dedicated server");
+#else
+			re.SendBotDebugDrawCommands(std::move(commands));
+#endif
 		});
-		break;
-
-	case BOT_NAV_SHUTDOWN:
-		BotShutdownNav();
-		break;
-
-	case BOT_SET_NAVMESH:
-		IPC::HandleMsg<BotSetNavmeshMsg>(channel, std::move(reader), [this](int clientNum, int navHandle) {
-			BotSetNavMesh(clientNum, navHandle);
-		});
-		break;
-
-	case BOT_FIND_ROUTE:
-		IPC::HandleMsg<BotFindRouteMsg>(channel, std::move(reader), [this](int clientNum, botRouteTarget_t target, bool allowPartial, int& res) {
-			res = BotFindRouteExt(clientNum, &target, allowPartial);
-		});
-		break;
-
-	case BOT_UPDATE_PATH:
-		IPC::HandleMsg<BotUpdatePathMsg>(channel, std::move(reader), [this](int clientNum, botRouteTarget_t target, botNavCmd_t& cmd) {
-			BotUpdateCorridor(clientNum, &target, &cmd);
-		});
-		break;
-
-	case BOT_NAV_RAYCAST:
-		IPC::HandleMsg<BotNavRaycastMsg>(channel, std::move(reader), [this](int clientNum, std::array<float, 3> start, std::array<float, 3> end, int& res, botTrace_t& botTrace) {
-			res = BotNavTrace(clientNum, &botTrace, start.data(), end.data());
-		});
-		break;
-
-	case BOT_NAV_RANDOMPOINT:
-		IPC::HandleMsg<BotNavRandomPointMsg>(channel, std::move(reader), [this](int clientNum, std::array<float, 3>& point) {
-			BotFindRandomPoint(clientNum, point.data());
-		});
-		break;
-
-	case BOT_NAV_RANDOMPOINTRADIUS:
-		IPC::HandleMsg<BotNavRandomPointRadiusMsg>(channel, std::move(reader), [this](int clientNum, std::array<float, 3> origin, float radius, int& res, std::array<float, 3>& point) {
-			res = BotFindRandomPointInRadius(clientNum, origin.data(), point.data(), radius);
-		});
-		break;
-
-	case BOT_ENABLE_AREA:
-		IPC::HandleMsg<BotEnableAreaMsg>(channel, std::move(reader), [this](std::array<float, 3> origin, std::array<float, 3> mins, std::array<float, 3> maxs) {
-			BotEnableArea(origin.data(), mins.data(), maxs.data());
-		});
-		break;
-
-	case BOT_DISABLE_AREA:
-		IPC::HandleMsg<BotDisableAreaMsg>(channel, std::move(reader), [this](std::array<float, 3> origin, std::array<float, 3> mins, std::array<float, 3> maxs) {
-			BotDisableArea(origin.data(), mins.data(), maxs.data());
-		});
-		break;
-
-	case BOT_ADD_OBSTACLE:
-		IPC::HandleMsg<BotAddObstacleMsg>(channel, std::move(reader), [this](std::array<float, 3> mins, std::array<float, 3> maxs, int& handle) {
-			BotAddObstacle(mins.data(), maxs.data(), &handle);
-		});
-		break;
-
-	case BOT_REMOVE_OBSTACLE:
-		IPC::HandleMsg<BotRemoveObstacleMsg>(channel, std::move(reader), [this](int handle) {
-			BotRemoveObstacle(handle);
-		});
-		break;
-
-	case BOT_UPDATE_OBSTACLES:
-		BotUpdateObstacles();
 		break;
 
 	default:

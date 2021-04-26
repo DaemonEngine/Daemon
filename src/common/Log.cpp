@@ -186,7 +186,7 @@ namespace Log {
 
     void DispatchWithSuppression(std::string message, Log::Level level, Str::StringRef format) {
         static LogSpamSuppressor suppressor;
-        if (!GetCvarOrDie<bool>("logs.suppression.enabled")) {
+        if (level == Level::DEBUG || !GetCvarOrDie<bool>("logs.suppression.enabled")) {
             DispatchByLevel(std::move(message), level);
             return;
         }

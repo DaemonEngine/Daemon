@@ -56,6 +56,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace VM {
 
+// https://github.com/Unvanquished/Unvanquished/issues/944#issuecomment-744454772
+static void CheckMinAddressSysctlTooLarge()
+{
+#ifdef __linux__
+	static const bool problemDetected = [] {
+		try {
+			FS::File file = FS::RawPath::OpenRead("/proc/sys/vm/mmap_min_addr");
+			char buf[20];
+			buf[file.Read(&buf, sizeof(buf) - 1)] = '\0';
+			int minAddr;
+			return sscanf(buf, "%d", &minAddr) == 1  && minAddr > 0x10000;
+		} catch (std::system_error&) {
+			return false;
+		}
+	}();
+	if (problemDetected) {
+		Sys::Error("Your system is configured with a sysctl option which makes the game unable to run.\n"
+		           "To permanently fix the configuration, run the following commands:\n"
+		           "\n"
+		           "    echo vm.mmap_min_addr=65536 | sudo dd of=/etc/sysctl.d/daemonengine-nacl-mmap.conf\n"
+		           "    sudo /sbin/sysctl --system");
+	}
+#endif // __linux__
+}
+
 // Platform-specific code to load a module
 static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::Socket, IPC::Socket> pair, const char* const* args, bool reserve_mem, FS::File stderrRedirect = FS::File())
 {
@@ -214,6 +239,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 }
 
 std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
+	CheckMinAddressSysctlTooLarge();
 	const std::string& libPath = FS::GetLibPath();
 #ifdef NACL_RUNTIME_PATH
 	const char* naclPath = XSTRING(NACL_RUNTIME_PATH);
@@ -472,8 +498,12 @@ void VMBase::Free()
 	// been closed.
 	Util::Writer writer;
 	writer.Write<uint32_t>(IPC::ID_EXIT);
-	rootChannel.SendMsg(writer);
-
+	try {
+		rootChannel.SendMsg(writer);
+	} catch (Sys::DropErr& err) {
+		// Verbose, since an error was probably already logged when sending the shutdown message
+		Log::Verbose("Error sending exit message to %s: %s", name, err.what());
+	}
 	rootChannel = IPC::Channel();
 
 	if (type != TYPE_NATIVE_DLL) {

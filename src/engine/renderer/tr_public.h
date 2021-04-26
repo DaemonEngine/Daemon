@@ -37,11 +37,50 @@ Maryland 20850 USA.
 #define __TR_PUBLIC_H
 
 #include "tr_types.h"
-#include "engine/botlib/bot_debug.h"
 
 #define REF_API_VERSION 10
 
-// *INDENT-OFF*
+struct glconfig2_t
+{
+	bool textureCompressionRGTCAvailable;
+
+	bool glCoreProfile;
+
+	int      maxCubeMapTextureSize;
+
+	bool occlusionQueryAvailable;
+	int      occlusionQueryBits;
+
+	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
+	int      shadingLanguageVersion;
+
+	int      maxVertexUniforms;
+//	int             maxVaryingFloats;
+	int      maxVertexAttribs;
+	bool vboVertexSkinningAvailable;
+	int      maxVertexSkinningBones;
+
+	bool drawBuffersAvailable;
+	bool textureHalfFloatAvailable;
+	bool textureFloatAvailable;
+	bool textureIntegerAvailable;
+	bool textureRGAvailable;
+	bool gpuShader4Available;
+	bool textureGatherAvailable;
+	int      maxDrawBuffers;
+
+	float    maxTextureAnisotropy;
+	bool textureAnisotropyAvailable;
+
+	int      maxRenderbufferSize;
+	int      maxColorAttachments;
+
+	bool getProgramBinaryAvailable;
+	bool bufferStorageAvailable;
+	bool uniformBufferObjectAvailable;
+	bool mapBufferRangeAvailable;
+	bool syncAvailable;
+};
 
 //
 // these are the functions exported by the refresh module
@@ -109,11 +148,6 @@ struct refexport_t
 	                                  qhandle_t hShader, const Color::Color& gradientColor, int gradientType );
 	void ( *Add2dPolys )( polyVert_t *polys, int numverts, qhandle_t hShader );
 
-	// Draw images for cinematic rendering, pass as 32 bit rgba
-	void ( *DrawStretchRaw )( int x, int y, int w, int h, int cols, int rows, const byte *data, int client,
-	                          bool dirty );
-	void ( *UploadCinematic )( int cols, int rows, const byte *data, int client, bool dirty );
-
 	void ( *BeginFrame )();
 
 	// if the pointers are not nullptr, timing info will be returned
@@ -176,6 +210,7 @@ struct refexport_t
 	void ( *Add2dPolysIndexed )( polyVert_t *polys, int numverts, int *indexes, int numindexes, int trans_x, int trans_y, qhandle_t shader );
 	qhandle_t ( *GenerateTexture )( const byte *pic, int width, int height );
 	const char *( *ShaderNameFromHandle )( qhandle_t shader );
+	void ( *SendBotDebugDrawCommands )( std::vector<char> commands );
 };
 
 //
@@ -231,11 +266,6 @@ struct refimport_t
 	int ( *FS_FCloseFile )( fileHandle_t f );
 	int ( *FS_FOpenFileRead )( const char *qpath, fileHandle_t *file );
 
-	// cinematic stuff
-	void ( *CIN_UploadCinematic )( int handle );
-	int ( *CIN_PlayCinematic )( const char *arg0, int xpos, int ypos, int width, int height, int bits );
-	e_status( *CIN_RunCinematic )( int handle );
-
 	// XreaL BEGIN
 	bool( *CL_VideoRecording )();
 	void ( *CL_WriteAVIVideoFrame )( const byte *buffer, int size );
@@ -245,7 +275,6 @@ struct refimport_t
 	void ( *IN_Init )( void *windowData );
 	void ( *IN_Shutdown )();
 	void ( *IN_Restart )();
-	void ( *Bot_DrawDebugMesh )( BotDebugInterface_t *in );
 };
 
 // this is the only function actually exported at the linker level

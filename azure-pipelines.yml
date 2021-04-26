@@ -1,0 +1,10 @@
+pool:
+  vmImage: 'macOS-10.15'
+
+steps:
+- script: |
+    set -e
+    git submodule update --init --recursive
+    cmake -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DCMAKE_BUILD_TYPE=Debug -DUSE_DEBUG_OPTIMIZE=0 -H. -Bbuild
+    cmake --build build -- -j`sysctl -n hw.logicalcpu`
+  displayName: 'Build'

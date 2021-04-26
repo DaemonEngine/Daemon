@@ -29,16 +29,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace Util {
 	template<> struct SerializeTraits<snapshot_t> {
+#ifdef BUILD_ENGINE
 		static void Write(Writer& stream, const snapshot_t& snap)
 		{
+
 			stream.Write<uint32_t>(snap.snapFlags);
 			stream.Write<uint32_t>(snap.ping);
 			stream.Write<uint32_t>(snap.serverTime);
 			stream.WriteData(&snap.areamask, MAX_MAP_AREA_BYTES);
-			stream.Write<playerState_t>(snap.ps);
+			stream.Write<OpaquePlayerState>(snap.ps);
 			stream.Write<std::vector<entityState_t>>(snap.entities);
 			stream.Write<std::vector<std::string>>(snap.serverCommands);
 		}
+#endif
+#ifdef BUILD_CGAME
 		static snapshot_t Read(Reader& stream)
 		{
 			snapshot_t snap;
@@ -46,11 +50,13 @@ namespace Util {
 			snap.ping = stream.Read<uint32_t>();
 			snap.serverTime = stream.Read<uint32_t>();
 			stream.ReadData(&snap.areamask, MAX_MAP_AREA_BYTES);
-			snap.ps = stream.Read<playerState_t>();
+			auto ops = stream.Read<OpaquePlayerState>();
+			memcpy(&snap.ps, &ops, sizeof(snap.ps));
 			snap.entities = stream.Read<std::vector<entityState_t>>();
 			snap.serverCommands = stream.Read<std::vector<std::string>>();
 			return snap;
 		}
+#endif
 	};
 
 	// For skeletons, only send the bones which are used
@@ -133,7 +139,6 @@ enum cgameImport_t
   CG_SETUSERCMDVALUE,
   CG_GET_ENTITY_TOKEN,
   CG_REGISTER_BUTTON_COMMANDS,
-  CG_GETCLIPBOARDDATA,
   CG_QUOTESTRING,
   CG_GETTEXT,
   CG_PGETTEXT,
@@ -203,6 +208,8 @@ enum cgameImport_t
   CG_KEY_GETCATCHER,
   CG_KEY_SETCATCHER,
   CG_KEY_GETKEYSFORBINDS,
+  CG_KEY_GETCONSOLEKEYS,
+  CG_KEY_SETCONSOLEKEYS,
   CG_KEY_GETCHARFORSCANCODE,
   CG_KEY_SETBINDING,
   CG_KEY_CLEARSTATES,
@@ -222,10 +229,6 @@ enum cgameImport_t
   CG_LAN_RESETPINGS,
   CG_LAN_SERVERSTATUS,
   CG_LAN_RESETSERVERSTATUS,
-
-  // TODO(0.52) Remove these two.
-  CG_SEND_MESSAGE = 125,
-  CG_MESSAGE_STATUS,
 };
 
 // All Miscs
@@ -262,15 +265,11 @@ using GetUserCmdMsg = IPC::SyncMessage<
 >;
 using SetUserCmdValueMsg = IPC::Message<IPC::Id<VM::QVM, CG_SETUSERCMDVALUE>, int, int, float>;
 // TODO what?
-using GetEntityTokenMsg =  IPC::SyncMessage<
+using CgGetEntityTokenMsg =  IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_GET_ENTITY_TOKEN>, int>,
 	IPC::Reply<bool, std::string>
 >;
 using RegisterButtonCommandsMsg = IPC::Message<IPC::Id<VM::QVM, CG_REGISTER_BUTTON_COMMANDS>, std::string>;
-using GetClipboardDataMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_GETCLIPBOARDDATA>, int>,
-	IPC::Reply<std::string>
->;
 // TODO using Command.h for that ?
 using QuoteStringMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_QUOTESTRING>, int, std::string>,
@@ -293,12 +292,6 @@ using NotifyTeamChangeMsg = IPC::SyncMessage<
 >;
 using PrepareKeyUpMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_PREPAREKEYUP>>
->;
-
-using SendMessageMsg = IPC::Message<IPC::Id<VM::QVM, CG_SEND_MESSAGE>, std::vector<uint8_t>>;
-using MessageStatusMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_MESSAGE_STATUS>>,
-		IPC::Reply<messageStatus_t>
 >;
 
 // All Sounds
@@ -350,10 +343,6 @@ namespace Render {
 	using RegisterShaderMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_REGISTERSHADER>, std::string, int>,
 		IPC::Reply<int>
-	>;
-	using RegisterFontMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_R_REGISTERFONT>, std::string, std::string, int>,
-		IPC::Reply<fontMetrics_t>
 	>;
 	using ModelBoundsMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_MODELBOUNDS>, int>,
@@ -442,6 +431,11 @@ namespace Keyboard {
 		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETKEYSFORBINDS>, int, std::vector<std::string>>,
 		IPC::Reply<std::vector<std::vector<Key>>>
 	>;
+	using GetConsoleKeysMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETCONSOLEKEYS>>,
+		IPC::Reply<std::vector<Key>>
+	>;
+	using SetConsoleKeysMsg = IPC::Message<IPC::Id<VM::QVM, CG_KEY_SETCONSOLEKEYS>, std::vector<Key>>;
 	using GetCharForScancodeMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_KEY_GETCHARFORSCANCODE>, int>,
 		IPC::Reply<int>
@@ -512,9 +506,6 @@ enum cgameExport_t
   // If demoPlayback is set, local movement prediction will not be enabled
   CG_DRAW_ACTIVE_FRAME,
 
-//  int (*CG_CrosshairPlayer)();
-  CG_CROSSHAIR_PLAYER,
-
 //  void    (*CG_KeyEvent)( Keyboard::Key key, bool down );
   CG_KEY_EVENT,
 
@@ -550,10 +541,6 @@ using CGameShutdownMsg = IPC::SyncMessage<
 >;
 using CGameDrawActiveFrameMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_DRAW_ACTIVE_FRAME>, int, bool>
->;
-using CGameCrosshairPlayerMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_CROSSHAIR_PLAYER>>,
-	IPC::Reply<int>
 >;
 using CGameKeyEventMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_KEY_EVENT>, Keyboard::Key, bool>

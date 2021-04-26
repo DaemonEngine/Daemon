@@ -735,20 +735,10 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		{
 			Log::Notice( "clientDownload: %d : \"%s\" download disabled\n", ( int )( cl - svs.clients ), cl->downloadName );
 
-			if ( sv_pure->integer )
-			{
-				Com_sprintf( errorMessage, sizeof( errorMessage ),
-							 "Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
-							 "You will need to get this file elsewhere before you " "can connect to this pure server.\n",
-							 cl->downloadName );
-			}
-			else
-			{
-				Com_sprintf( errorMessage, sizeof( errorMessage ),
-							 "Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
-							 "Set autodownload to No in your settings and you might be "
-							 "able to connect even if you don't have the file.\n", cl->downloadName );
-			}
+			Com_sprintf( errorMessage, sizeof( errorMessage ),
+							"Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
+							"You will need to get this file elsewhere before you can connect to this server.\n",
+							cl->downloadName );
 
 			SV_BadDownload( cl, msg );
 			MSG_WriteString( msg, errorMessage );  // (could SV_DropClient instead?)
@@ -808,12 +798,8 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					// download URL, size of the download file, download flags
 					MSG_WriteString( msg, cl->downloadURL );
 					MSG_WriteLong( msg, downloadSize );
-#if 0 // TODO(0.52) switch on
 					// Base URL length. The base prefix is expected to end with '/'
 					MSG_WriteLong( msg, strlen( sv_wwwBaseURL->string ) + 1 );
-#else
-					MSG_WriteLong( msg, 0 );  // flags
-#endif
 					return;
 				}
 				else

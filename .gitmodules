@@ -4,6 +4,3 @@
 [submodule "libs/crunch"]
 	path = libs/crunch
 	url = https://github.com/DaemonEngine/crunch.git
-[submodule "libs/recastnavigation"]
-	path = libs/recastnavigation
-	url = https://github.com/DaemonEngine/recastnavigation.git

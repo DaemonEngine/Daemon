@@ -39,6 +39,8 @@ static void GLSL_InitGPUShadersOrError()
 
 	GL_CheckErrors();
 
+	gl_shaderManager.InitDriverInfo();
+
 	// single texture rendering
 	gl_shaderManager.GenerateBuiltinHeaders();
 
@@ -48,14 +50,24 @@ static void GLSL_InitGPUShadersOrError()
 	// standard light mapping
 	gl_shaderManager.load( gl_lightMappingShader );
 
-	// omni-directional specular bump mapping ( Doom3 style )
-	gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
+	// Deprecated forward renderer uses r_dynamicLight -1
+	if ( r_dynamicLight->integer < 0 )
+	{
+		// omni-directional specular bump mapping ( Doom3 style )
+		gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
 
-	// projective lighting ( Doom3 style )
-	gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
+		// projective lighting ( Doom3 style )
+		gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
 
-	// directional sun lighting ( Doom3 style )
-	gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
+		// directional sun lighting ( Doom3 style )
+		gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
+	}
+	else if ( r_dynamicLight->integer > 0 )
+	{
+		gl_shaderManager.load( gl_depthtile1Shader );
+		gl_shaderManager.load( gl_depthtile2Shader );
+		gl_shaderManager.load( gl_lighttileShader );
+	}
 
 #if !defined( GLSL_COMPILE_STARTUP_ONLY )
 
@@ -66,8 +78,11 @@ static void GLSL_InitGPUShadersOrError()
 	// shadowmap distance compression
 	gl_shaderManager.load( gl_shadowFillShader );
 
-	// bumped cubemap reflection for abitrary polygons ( EMBM )
-	gl_shaderManager.load( gl_reflectionShader );
+	if ( r_reflectionMapping->integer != 0 )
+	{
+		// bumped cubemap reflection for abitrary polygons ( EMBM )
+		gl_shaderManager.load( gl_reflectionShader );
+	}
 
 	// skybox drawing for abitrary polygons
 	gl_shaderManager.load( gl_skyboxShader );
@@ -81,8 +96,12 @@ static void GLSL_InitGPUShadersOrError()
 	// heatHaze post process effect
 	gl_shaderManager.load( gl_heatHazeShader );
 
-	// screen post process effect
-	gl_shaderManager.load( gl_screenShader );
+	// NOTE: screen shader seems to be only used by bloom post process effect.
+	if ( r_bloom->integer != 0 )
+	{
+		// screen post process effect
+		gl_shaderManager.load( gl_screenShader );
+	}
 
 	// portal process effect
 	gl_shaderManager.load( gl_portalShader );
@@ -101,7 +120,10 @@ static void GLSL_InitGPUShadersOrError()
 	// debug utils
 	gl_shaderManager.load( gl_debugShadowMapShader );
 
-	gl_shaderManager.load( gl_liquidShader );
+	if ( r_liquidMapping->integer != 0 )
+	{
+		gl_shaderManager.load( gl_liquidShader );
+	}
 
 #if !defined( GLSL_COMPILE_STARTUP_ONLY )
 
@@ -109,6 +131,8 @@ static void GLSL_InitGPUShadersOrError()
 
 #endif // #if !defined(GLSL_COMPILE_STARTUP_ONLY)
 
+	/* NOTE: motionblur is enabled by cg_motionblur which is a client cvar
+	so we have to build it in all cases. */
 	gl_shaderManager.load( gl_motionblurShader );
 
 	if (GLEW_ARB_texture_gather)
@@ -123,10 +147,10 @@ static void GLSL_InitGPUShadersOrError()
 		Log::Warn("SSAO not used because GL_ARB_texture_gather is not available.");
 	}
 
-	gl_shaderManager.load( gl_depthtile1Shader );
-	gl_shaderManager.load( gl_depthtile2Shader );
-	gl_shaderManager.load( gl_lighttileShader );
-	gl_shaderManager.load( gl_fxaaShader );
+	if ( r_FXAA->integer != 0 )
+	{
+		gl_shaderManager.load( gl_fxaaShader );
+	}
 
 	if ( !r_lazyShaders->integer )
 	{
@@ -320,7 +344,19 @@ void Tess_DrawArrays( GLenum elementType )
 		return;
 	}
 
-	// move tess data through the GPU, finally
+	/* Move tess data through the GPU, finally.
+
+	Radeon R300 small ALU is known to fail on this glDrawArrays call:
+
+	> r300 FP: Compiler Error:
+	> ../src/gallium/drivers/r300/compiler/r300_fragprog_emit.c::emit_alu(): Too many ALU instructions
+	> Using a dummy shader instead.
+	> r300 FP: Compiler Error:
+	> build_loop_info: Cannot find condition for if
+	> Using a dummy shader instead.
+
+	See https://github.com/DaemonEngine/Daemon/issues/344 */
+
 	glDrawArrays( elementType, 0, tess.numVertexes );
 
 	backEnd.pc.c_drawElements++;
@@ -652,7 +688,10 @@ static void Render_generic( int stage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	GL_BindToTMU( 8, tr.lighttileRenderImage );
+	if ( r_dynamicLight->integer > 0 )
+	{
+		GL_BindToTMU( 8, tr.lighttileRenderImage );
+	}
 
 	gl_genericShader->SetRequiredVertexPointers();
 
@@ -858,8 +897,9 @@ static void Render_lightMapping( int stage )
 
 	gl_lightMappingShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
+	gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
+
 	if( backEnd.refdef.numShaderLights > 0 ) {
-		gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
 		if( glConfig2.uniformBufferObjectAvailable ) {
 			gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 		} else {
@@ -868,7 +908,10 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_LightTiles
-	GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage );
+	if ( r_dynamicLight->integer > 0 )
+	{
+		GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage );
+	}
 
 	// u_DeformGen
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
@@ -920,7 +963,10 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_NormalMap
-	GL_BindToTMU( BIND_NORMALMAP, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+	if ( !!r_normalMapping->integer || pStage->isHeightMapInNormalMap )
+	{
+		GL_BindToTMU( BIND_NORMALMAP, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
+	}
 
 	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
@@ -932,7 +978,10 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_MaterialMap
-	GL_BindToTMU( BIND_MATERIALMAP, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+	if ( !!r_specularMapping->integer || pStage->enablePhysicalMapping )
+	{
+		GL_BindToTMU( BIND_MATERIALMAP, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
+	}
 
 	if ( pStage->enableSpecularMapping )
 	{
@@ -1054,7 +1103,10 @@ static void Render_lightMapping( int stage )
 	GL_BindToTMU( BIND_DELUXEMAP, deluxemap );
 
 	// bind u_GlowMap
-	GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
+	if ( !!r_glowMapping->integer )
+	{
+		GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[ TB_GLOWMAP ].image[ 0 ] );
+	}
 
 	gl_lightMappingShader->SetRequiredVertexPointers();
 
@@ -1959,6 +2011,11 @@ static void Render_heatHaze( int stage )
 	shaderStage_t *pStage = tess.surfaceStages[ stage ];
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
+
+	if ( r_heatHaze->integer == 0 )
+	{
+		return;
+	}
 
 	// remove alpha test
 	stateBits = pStage->stateBits;

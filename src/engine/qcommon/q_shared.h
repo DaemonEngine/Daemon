@@ -206,14 +206,6 @@ using clipHandle_t = int;
 
 #define MAX_SAY_TEXT       400
 
-// TODO(0.52): remove
-	enum class messageStatus_t : uint8_t
-	{
-	  MESSAGE_EMPTY,
-	  MESSAGE_WAITING, // rate/packet limited
-	  MESSAGE_WAITING_OVERFLOW, // packet too large with message
-	};
-
 //
 // these aren't needed by any of the VMs.  put in another header?
 //
@@ -234,12 +226,6 @@ using clipHandle_t = int;
 
 void *Com_Allocate_Aligned( size_t alignment, size_t size );
 void  Com_Free_Aligned( void *ptr );
-
-#define CIN_system   1
-#define CIN_loop     2
-#define CIN_hold     4
-#define CIN_silent   8
-#define CIN_shader   16
 
 	/*
 	==============================================================
@@ -356,10 +342,8 @@ void  Com_Free_Aligned( void *ptr );
 
 #include "logging.h"
 
-#define DEG2RAD( a )                  ( ( ( a ) * M_PI ) / 180.0F )
+#define DEG2RAD( a )                  ( ( ( a ) * M_PI ) / 180.0f )
 #define RAD2DEG( a )                  ( ( ( a ) * 180.0f ) / M_PI )
-
-#define Q_clamp( a, b, c )            Math::Clamp( (a), (b), (c) )
 
 struct cplane_t;
 
@@ -1395,28 +1379,6 @@ void         ByteToDir( int b, vec3_t dir );
 
 	int        Com_HashKey( char *string, int maxlen );
 
-#define MAX_TOKENLENGTH 1024
-
-//token types
-enum class tokenType_t {
-    TT_STRING, // string
-    TT_LITERAL, // literal
-    TT_NUMBER, // number
-    TT_NAME, // name
-    TT_PUNCTUATION, // punctuation
-};
-
-	struct pc_token_t
-	{
-		tokenType_t type;
-		int   subtype;
-		int   intvalue;
-		float floatvalue;
-		char  string[ MAX_TOKENLENGTH ];
-		int   line;
-		int   linescrossed;
-	};
-
 // data is an in/out parm, returns a parsed out token
 
 	void      COM_MatchToken( char **buf_p, char *match );
@@ -1769,100 +1731,50 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 
 #define PS_PMOVEFRAMECOUNTBITS 6
 
+struct netField_t
+{
+	std::string name;
+	int  offset;
+	int  bits;
+	int  used;
+};
+#define STATS_GROUP_FIELD 99 // magic number in `bits` for 'int stats[16]' (but these ints must fit in a signed short)
+#define STATS_GROUP_NUM_STATS 16
+#define MAX_PLAYERSTATE_SIZE 600 // HACK: limit size
+#define PLAYERSTATE_FIELD_SIZE 4
+using NetcodeTable = std::vector<netField_t>;
+
 // playerState_t is the information needed by both the client and server
 // to predict player motion and actions
 // nothing outside of pmove should modify these, or some degree of prediction error
 // will occur
 
-// you can't add anything to this without modifying the code in msg.c
-// (Gordon: unless it doesn't need transmission over the network, in which case it should probably go into the new pmext struct anyway)
+// the full definition of playerState_t is found in the gamelogic. The OpaquePlayerState
+// struct includes only player state fields which are used by the engine.
 
 // playerState_t is a full superset of entityState_t as it is used by players,
 // so if a playerState_t is transmitted, the entityState_t can be fully derived
 // from it.
 //
 // NOTE: all fields in here must be 32 bits (or those within sub-structures)
-	struct playerState_t
-	{
-		int    commandTime; // cmd->serverTime of last executed command
-		int    pm_type;
-		int    bobCycle; // for view bobbing and footstep generation
-		int    pm_flags; // ducked, jump_held, etc
-		int    pm_time;
 
+union OpaquePlayerState {
+	byte storage[MAX_PLAYERSTATE_SIZE];
+	struct {
+		// These fields must be identical to ones at the start of playerState_t
 		vec3_t origin;
-		vec3_t velocity;
-		int    weaponTime;
-		int    gravity;
-
-		int   speed;
-		int   delta_angles[ 3 ]; // add to command angles to get view direction
-		// changed by spawns, rotating objects, and teleporters
-
-		int groundEntityNum; // ENTITYNUM_NONE = in air
-
-		int legsTimer; // don't change low priority animations until this runs out
-		int legsAnim; // mask off ANIM_TOGGLEBIT
-
-		int torsoTimer; // don't change low priority animations until this runs out
-		int torsoAnim; // mask off ANIM_TOGGLEBIT
-
-		int movementDir; // a number 0 to 7 that represents the relative angle
-		// of movement to the view angle (axial and diagonals)
-		// when at rest, the value will remain unchanged
-		// used to twist the legs during strafing
-
-		int eFlags; // copied to entityState_t->eFlags
-
-		int eventSequence; // pmove generated events
-		int events[ MAX_EVENTS ];
-		int eventParms[ MAX_EVENTS ];
-		int oldEventSequence; // so we can see which events have been added since we last converted to entityState_t
-
-		int externalEvent; // events set on player from another source
-		int externalEventParm;
-		int externalEventTime;
-
-		int clientNum; // ranges from 0 to MAX_CLIENTS-1
-
-		// weapon info
-		int weapon; // copied to entityState_t->weapon
-		int weaponstate;
-
-		vec3_t viewangles; // for fixed views
+		int ping; // shouldn't even be here?
+		int persistant[16];
 		int    viewheight;
+		int clientNum;
+		int   delta_angles[3]; // add to command angles to get view direction
+		vec3_t viewangles; // for fixed views
+		int    commandTime; // cmd->serverTime of last executed command
 
-		// damage feedback
-		int damageEvent; // when it changes, latch the other parms
-		int damageYaw;
-		int damagePitch;
-		int damageCount;
-
-		int stats[ MAX_STATS ];
-		int persistant[ MAX_PERSISTANT ]; // stats that aren't cleared on death
-
-		// ----------------------------------------------------------------------
-		// So to use persistent variables here, which don't need to come from the server,
-		// we could use a marker variable, and use that to store everything after it
-		// before we read in the new values for the predictedPlayerState, then restore them
-		// after copying the structure received from the server.
-
-		// Arnout: use the pmoveExt_t structure in bg_public.h to store this kind of data now (presistant on client, not network transmitted)
-
-		int ping; // server to game info for scoreboard
-		int pmove_framecount;
-		int entityEventSequence;
-
-		int           generic1;
-		int           loopSound;
-		int           otherEntityNum;
-		vec3_t        grapplePoint; // location of grapple to pull towards if PMF_GRAPPLE_PULL
-		int           weaponAnim; // mask off ANIM_TOGGLEBIT
-		int           ammo;
-		int           clips; // clips held
-		int           tauntTimer; // don't allow another taunt until this runs out
-		int           misc[ MAX_MISC ]; // misc data
+		// this is just for determining the size of the unnamed struct
+		int END;
 	};
+};
 
 //====================================================================
 
@@ -1886,13 +1798,13 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 #define BUTTON_ACTIVATE     6
 #define BUTTON_ANY          7  // if any key is pressed
 #define BUTTON_ATTACK2      8
-//                          9
+// BUTTON_ATTACK3           9  // defined in game code
 //                          10
 //                          11
 //                          12
-//                          13
+// BUTTON_DECONSTRUCT       13 // defined in game code
 #define BUTTON_RALLY        14
-#define BUTTON_DODGE        15
+//                          15
 
 #define MOVE_RUN          120 // if forwardmove or rightmove are >= MOVE_RUN,
 // then BUTTON_WALKING should be set
@@ -2102,7 +2014,6 @@ using GameStateCSs = std::array<std::string, MAX_CONFIGSTRINGS>;
 	  CA_LOADING, // only during cgame initialization, never during main loop
 	  CA_PRIMED, // got gamestate, waiting for first frame
 	  CA_ACTIVE, // game views should be displayed
-	  CA_CINEMATIC // playing a cinematic or a static pic, not connected to a server
 	};
 
 // font support
@@ -2144,16 +2055,6 @@ struct fontInfo_t
 	char          name[ MAX_QPATH ];
 };
 
-// TODO(0.52) remove.
-struct fontMetrics_t
-{
-	fontHandle_t  handle;
-	bool      isBitmap;
-	int           pointSize;
-	int           height;
-	float         glyphScale;
-};
-
 #define Square( x ) ( ( x ) * ( x ) )
 
 // real time
@@ -2185,18 +2086,6 @@ int        Com_GMTime( qtime_t *qtime );
 #define AS_LOCAL     0
 #define AS_GLOBAL    1 // NERVE - SMF - modified
 #define AS_FAVORITES 2
-
-// cinematic states
-	enum class e_status
-	{
-	  FMV_IDLE,
-	  FMV_PLAY, // play
-	  FMV_EOF, // all other conditions, i.e. stop/EOF/abort
-	  FMV_ID_BLT,
-	  FMV_ID_IDLE,
-	  FMV_LOOPED,
-	  FMV_ID_WAIT
-	};
 
 #define MAX_GLOBAL_SERVERS       4096
 #define MAX_OTHER_SERVERS        128

@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
 #include <string>
 
 #include "breakpad/src/client/linux/crash_generation/crash_generation_server.h"
@@ -64,13 +65,29 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // Start queueing SIGCHLD signals, instead of ignoring them
     sigset_t set;
     if (0 != sigemptyset(&set) ||
         0 != sigaddset(&set, SIGCHLD) ||
         0 != sigprocmask(SIG_BLOCK, &set, nullptr)) {
         return 1;
     }
+
+    // Do a nonblocking wait in case the process already exited before we enabled SIGCHLD.
+    // We can't use use waitpid with an indefinite wait because CrashGenerationServer also
+    // uses it and will eat the signal.
     int _;
+    switch (waitpid(pid, &_, WNOHANG)) {
+        case -1:
+            fprintf(stderr, "Crash server: wait for child process failed\n");
+            return 1;
+        case 0:
+            break;
+        default:
+            return 0; // Child already exited
+    }
+
+    // Wait indefinitely for SIGCHLD.
     sigwait(&set, &_);
     return 0;
 }
