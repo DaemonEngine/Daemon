@@ -420,8 +420,6 @@ static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int 
 	Com_Dealloc( hdrImage );
 }
 
-void LoadRGBEToHalfs( const char *name, unsigned short **halfImage, int *width, int *height );
-
 static char **R_LoadExternalLightmaps(
 		const char *mapName,
 		int *numLightmaps,
