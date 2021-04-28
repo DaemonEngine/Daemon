@@ -376,8 +376,6 @@ namespace Cmd {
                 const std::string& value2 = args.Argv(3);
                 const std::string& relation = args.Argv(2);
 
-                int intValue1, intValue2;
-
                 bool result;
 
                 if (relation == "eq") {
@@ -392,33 +390,37 @@ namespace Cmd {
                 } else if (relation == "!in") {
                     result = value2.find(value1) == std::string::npos;
 
-                } else if (!Str::ParseInt(intValue1, value1) || !Str::ParseInt(intValue2, value2)) {
-                    Usage(args);
-                    return;
-                
-
-                } else if (relation == "=" or relation == "==") {
-                    result = intValue1 == intValue2;
-
-                } else if (relation == "!=" or relation == "≠") {
-                    result = intValue1 != intValue2;
-
-                } else if (relation == "<") {
-                    result = intValue1 < intValue2;
-
-                } else if (relation == "<=" or relation == "≤" ) {
-                    result = intValue1 <= intValue2;
-
-                } else if (relation == ">") {
-                    result = intValue1 > intValue2;
-
-                } else if (relation == ">=" or relation == "≥") {
-                    result = intValue1 >= intValue2;
-
                 } else {
-                    Print( "invalid relation operator in if command. valid relation operators are = != ≠ < > ≥ >= ≤ <= eq ne in !in" );
-                    Usage(args);
-                    return;
+                    int intValue1, intValue2;
+
+                    bool parseError = !(Str::ParseInt(intValue1, value1) && Str::ParseInt(intValue2, value2));
+                    if (parseError) {
+                        Usage(args);
+                        return;
+                    }
+                    if (relation == "=" or relation == "==") {
+                        result = intValue1 == intValue2;
+
+                    } else if (relation == "!=" or relation == "≠") {
+                        result = intValue1 != intValue2;
+
+                    } else if (relation == "<") {
+                        result = intValue1 < intValue2;
+
+                    } else if (relation == "<=" or relation == "≤" ) {
+                        result = intValue1 <= intValue2;
+
+                    } else if (relation == ">") {
+                        result = intValue1 > intValue2;
+
+                    } else if (relation == ">=" or relation == "≥") {
+                        result = intValue1 >= intValue2;
+
+                    } else {
+                        Print( "invalid relation operator in if command. valid relation operators are = != ≠ < > ≥ >= ≤ <= eq ne in !in" );
+                        Usage(args);
+                        return;
+                    }
                 }
 
                 if (!result && args.Argc() != 6) {
@@ -541,8 +543,8 @@ namespace Cmd {
                     return;
                 }
 
-                int step;
-                if (args.Argc() != 5 || !Str::ParseInt(step, args.Argv(4))) {
+                int step = 1; //default and fallback values (in case of error) are 1
+                if (args.Argc() == 5 && !Str::ParseInt(step, args.Argv(4))) {
                     step = 1;
                 }
                 if (std::abs(end - start) < step) {
@@ -639,8 +641,8 @@ namespace Cmd {
                 int argc = args.Argc();
 
                 if (argc < 3) {
-		            PrintUsage(args, "delay (name) <delay in milliseconds> <command>\n  delay (name) <delay in frames>f <command>", "executes <command> after the delay" );
-		            return;
+                    PrintUsage(args, "delay (name) <delay in milliseconds> <command>\n  delay (name) <delay in frames>f <command>", "executes <command> after the delay" );
+                    return;
                 }
 
                 //Get all the parameters!
