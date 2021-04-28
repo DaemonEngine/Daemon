@@ -589,7 +589,7 @@ protected:
 #if defined( USE_UNIFORM_FIREWALL )
 		vec4_t *firewall = ( vec4_t * ) &p->uniformFirewall[ _firewallIndex ];
 
-		if ( Vector4Compare( *firewall, v ) )
+		if ( !memcmp( *firewall, v, sizeof( *firewall ) ) )
 		{
 			return;
 		}
