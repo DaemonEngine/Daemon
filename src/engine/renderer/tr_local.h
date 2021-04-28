@@ -247,7 +247,11 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  FRUSTUM_BOTTOM,
 	  FRUSTUM_TOP,
 	  FRUSTUM_NEAR,
-	  FRUSTUM_FAR,
+	  // seems intentionnal to have twice the value 5, except that, quote:
+	  // There is at least one minor mistake in the usage of FRUSTUM_PLANES though.
+	  // The signature of R_CalcFrustumFarCorners suggests that an array of length
+	  // 5 is a good input, but it reads from the 6th element"
+	  FRUSTUM_FAR = 5,
 	  FRUSTUM_PLANES = 5,
 	  FRUSTUM_CLIPALL = 1 | 2 | 4 | 8 | 16 //| 32
 	};
