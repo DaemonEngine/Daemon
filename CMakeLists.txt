@@ -627,10 +627,6 @@ if (USE_BREAKPAD)
 endif()
 
 if (BUILD_CLIENT)
-    add_library(srclibs-openexr EXCLUDE_FROM_ALL ${OPENEXRLIST})
-    set_target_properties(srclibs-openexr PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    set(LIBS_CLIENT ${LIBS_CLIENT} srclibs-openexr)
-
     find_package(Ogg REQUIRED)
     include_directories(${OGG_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${OGG_LIBRARIES})

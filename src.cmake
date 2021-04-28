@@ -98,7 +98,6 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_image.h
     ${ENGINE_DIR}/renderer/tr_image_crn.cpp
     ${ENGINE_DIR}/renderer/tr_image_dds.cpp
-    ${ENGINE_DIR}/renderer/tr_image_exr.cpp
     ${ENGINE_DIR}/renderer/tr_image_jpg.cpp
     ${ENGINE_DIR}/renderer/tr_image_ktx.cpp
     ${ENGINE_DIR}/renderer/tr_image_png.cpp

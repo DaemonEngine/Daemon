@@ -51,10 +51,6 @@ elseif (WIN32)
     )
 endif()
 
-set(OPENEXRLIST
-    ${LIB_DIR}/openexr/half.cpp
-)
-
 set(PDCURSESLIST
     ${LIB_DIR}/pdcurses/pdcurses/addch.c
     ${LIB_DIR}/pdcurses/pdcurses/addchstr.c
