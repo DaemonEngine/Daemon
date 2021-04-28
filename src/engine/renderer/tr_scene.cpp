@@ -684,15 +684,16 @@ so the result may be available delayed.
 */
 qhandle_t RE_RegisterVisTest()
 {
-	int hTest;
 	visTest_t *test;
 
 	if ( tr.numVisTests >= MAX_VISTESTS )
 	{
 		Log::Warn("RE_RegisterVisTest - MAX_VISTESTS hit" );
+		return 0;
 	}
 
-	for ( hTest = 0; hTest < MAX_VISTESTS; hTest++ )
+	int hTest;
+	for ( hTest = 1; hTest < MAX_VISTESTS; hTest++ )
 	{
 		test = &tr.visTests[ hTest ];
 		if ( !test->registered )
@@ -700,6 +701,7 @@ qhandle_t RE_RegisterVisTest()
 			break;
 		}
 	}
+	ASSERT ( !test->registered );
 
 	memset( test, 0, sizeof( *test ) );
 	test->registered = true;
