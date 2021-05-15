@@ -285,11 +285,13 @@ void Trans_LoadDefaultLanguage()
 		{
 			Cvar_Set( "language", "en" );
 		}
+		else if ( locale->country && locale->country[0] )
+		{
+			Cvar_Set( "language", va( "%s_%s", locale->lang, locale->country ) );
+		}
 		else
 		{
-			Cvar_Set( "language", va( "%s%s%s", locale->lang,
-						  locale->country[0] ? "_" : "",
-						  locale->country ) );
+			Cvar_Set( "language", locale->lang );
 		}
 
 		FL_FreeLocale( &locale );
