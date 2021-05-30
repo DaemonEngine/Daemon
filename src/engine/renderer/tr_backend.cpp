@@ -5622,8 +5622,8 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	// ensures that depth writes are enabled for the depth clear
 	GL_State( GLS_DEFAULT );
 
-	// clear relevant buffers
-	if ( r_clear->integer ) {
+	// Clear relevant buffers, r_fastsky always require clearing.
+	if ( r_clear->integer || r_fastsky->integer ) {
 		clearBits |= GL_COLOR_BUFFER_BIT;
 	}
 
