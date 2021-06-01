@@ -24,12 +24,23 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 2.8.12)
 
-# Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
-# Can be removed once we require CMake 3.15
-if (POLICY CMP0094)
-    cmake_policy(SET CMP0094 NEW)
+# 3.12 is needed for FindPython.cmake
+if (${CMAKE_VERSION} VERSION_LESS "3.12")
+    message(WARNING "CMake 3.12 or higher is recommended.  You are running version ${CMAKE_VERSION}")
+endif ()
+
+if (${CMAKE_VERSION} VERSION_LESS "3.12")
+    if (POLICY CMP0017)
+        cmake_policy(SET CMP0017 NEW)
+    endif()
+else()
+    # Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
+    # Can be removed once we require CMake 3.15
+    if (POLICY CMP0094)
+        cmake_policy(SET CMP0094 NEW)
+    endif()
 endif()
 
 if (POLICY CMP0072)
