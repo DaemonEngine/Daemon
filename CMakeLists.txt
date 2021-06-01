@@ -26,6 +26,7 @@
 
 cmake_minimum_required (VERSION 2.8.12)
 
+# 3.8 is needed for OpenGL::GL target
 # 3.12 is needed for FindPython.cmake
 if (${CMAKE_VERSION} VERSION_LESS "3.12")
     message(WARNING "CMake 3.12 or higher is recommended.  You are running version ${CMAKE_VERSION}")
@@ -490,7 +491,11 @@ set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
 if (BUILD_CLIENT)
     find_package(OpenGL REQUIRED)
     include_directories(${OPENGL_INCLUDE_DIR})
-    set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
+    if (${CMAKE_VERSION} VERSION_LESS "3.8")
+        set(LIBS_CLIENT ${LIBS_CLIENT} ${OPENGL_LIBRARIES})
+    else()
+        set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
+    endif()
 endif()
 
 # Prefer static libs
