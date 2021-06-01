@@ -27,8 +27,13 @@
 # Allow overriding the python path with a cached variable.
 set(DAEMON_CBSE_PYTHON_PATH "NOTFOUND" CACHE FILEPATH "Python executable for CBSE code generation")
 if (NOT DAEMON_CBSE_PYTHON_PATH)
-    find_package(Python REQUIRED)
-    set(DAEMON_CBSE_PYTHON_PATH "${Python_EXECUTABLE}" CACHE FILEPATH "Python executable for CBSE code generation" FORCE)
+    if (${CMAKE_VERSION} VERSION_LESS "3.12")
+        find_package(PythonInterp REQUIRED)
+        set(DAEMON_CBSE_PYTHON_PATH "${PYTHON_EXECUTABLE}" CACHE FILEPATH "Python executable for CBSE code generation" FORCE)
+    else()
+        find_package(Python REQUIRED)
+        set(DAEMON_CBSE_PYTHON_PATH "${Python_EXECUTABLE}" CACHE FILEPATH "Python executable for CBSE code generation" FORCE)
+    endif()
 endif()
 message(STATUS "Using CBSE Python executable: ${DAEMON_CBSE_PYTHON_PATH}")
 
