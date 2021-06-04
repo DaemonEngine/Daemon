@@ -36,9 +36,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static Log::Logger logger("glconfig", "", Log::Level::NOTICE);
 
-SDL_Window         *window = nullptr;
+SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
-static int colorBits = 0;
 
 #ifdef USE_SMP
 static void GLimp_SetCurrentContext( bool enable )
@@ -316,6 +315,7 @@ enum class rserr_t
 
   RSERR_INVALID_FULLSCREEN,
   RSERR_INVALID_MODE,
+  RSERR_MISSING_GL,
   RSERR_OLD_GL,
 
   RSERR_UNKNOWN
@@ -325,6 +325,9 @@ cvar_t                     *r_allowResize; // make window resizable
 cvar_t                     *r_centerWindow;
 cvar_t                     *r_displayIndex;
 cvar_t                     *r_sdlDriver;
+
+static void GLimp_DestroyContextIfExists();
+static void GLimp_DestroyWindowIfExists();
 
 /*
 ===============
@@ -347,17 +350,8 @@ void GLimp_Shutdown()
 
 #endif
 
-	if ( glContext )
-	{
-		SDL_GL_DeleteContext( glContext );
-		glContext = nullptr;
-	}
-
-	if ( window )
-	{
-		SDL_DestroyWindow( window );
-		window = nullptr;
-	}
+	GLimp_DestroyContextIfExists();
+	GLimp_DestroyWindowIfExists();
 
 	SDL_QuitSubSystem( SDL_INIT_VIDEO );
 
@@ -407,7 +401,7 @@ static int GLimp_CompareModes( const void *a, const void *b )
 GLimp_DetectAvailableModes
 ===============
 */
-static void GLimp_DetectAvailableModes()
+static bool GLimp_DetectAvailableModes()
 {
 	char     buf[ MAX_STRING_CHARS ] = { 0 };
 	SDL_Rect modes[ 128 ];
@@ -421,7 +415,7 @@ static void GLimp_DetectAvailableModes()
 	if ( SDL_GetWindowDisplayMode( window, &windowMode ) < 0 )
 	{
 		logger.Warn("Couldn't get window display mode: %s", SDL_GetError() );
-		return;
+		return false;
 	}
 
 	for ( i = 0; i < SDL_GetNumDisplayModes( display ); i++ )
@@ -436,7 +430,7 @@ static void GLimp_DetectAvailableModes()
 		if ( !mode.w || !mode.h )
 		{
 			logger.Notice("Display supports any resolution" );
-			return;
+			return true;
 		}
 
 		if ( windowMode.format != mode.format || windowMode.refresh_rate != mode.refresh_rate )
@@ -473,35 +467,122 @@ static void GLimp_DetectAvailableModes()
 		logger.Notice("Available modes: '%s'", buf );
 		ri.Cvar_Set( "r_availableModes", buf );
 	}
+
+	return true;
 }
 
-/*
-===============
-GLimp_SetMode
-===============
-*/
-static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
-{
-	const char  *glstring;
-	int         perChannelColorBits;
-	int         alphaBits, depthBits, stencilBits;
-	int         samples;
-	int         i = 0;
-	SDL_Surface *icon = nullptr;
-	SDL_DisplayMode desktopMode;
-	Uint32      flags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
-	int         x, y;
-	GLenum      glewResult;
-	int         GLmajor, GLminor;
-	int         GLEWmajor, GLEWminor, GLEWmicro;
+enum class glProfile {
+	UNDEFINED = 0,
+	COMPATIBILITY = 1,
+	CORE = 2,
+};
 
-	logger.Notice("Initializing OpenGL display" );
+struct glConfiguration {
+	int major;
+	int minor;
+	glProfile profile;
+	int colorBits;
+};
+
+static bool operator!=(const glConfiguration& c1, const glConfiguration& c2) {
+	return c1.major != c2.major
+		|| c1.minor != c2.minor
+		|| c1.profile != c2.profile
+		|| c1.colorBits != c2.colorBits;
+}
+
+static const char* GLimp_getProfileName( glProfile profile )
+{
+	ASSERT(profile != glProfile::UNDEFINED);
+	return profile == glProfile::CORE ? "core" : "compatibility";
+}
+
+static void GLimp_SetAttributes( const glConfiguration &configuration )
+{
+	int perChannelColorBits = configuration.colorBits == 24 ? 8 : 4;
+
+	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, perChannelColorBits );
+	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, perChannelColorBits );
+	SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, perChannelColorBits );
+	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+
+	if ( !r_glAllowSoftware->integer )
+	{
+		SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
+	}
+
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, configuration.major );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, configuration.minor );
+
+	if ( configuration.profile == glProfile::CORE )
+	{
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+	}
+	else
+	{
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
+	}
+
+	if ( r_glDebugProfile->integer )
+	{
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
+	}
+}
+
+static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfiguration &configuration )
+{
+	/* The requested attributes should be set before creating
+	an OpenGL window.
+
+	-- http://wiki.libsdl.org/SDL_GL_SetAttribute */
+	GLimp_SetAttributes( configuration );
+
+	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
 
 	if ( r_allowResize->integer )
 	{
 		flags |= SDL_WINDOW_RESIZABLE;
 	}
 
+	SDL_Surface *icon = nullptr;
+
+	icon = SDL_CreateRGBSurfaceFrom( ( void * ) CLIENT_WINDOW_ICON.pixel_data,
+		CLIENT_WINDOW_ICON.width,
+		CLIENT_WINDOW_ICON.height,
+		CLIENT_WINDOW_ICON.bytes_per_pixel * 8,
+		CLIENT_WINDOW_ICON.bytes_per_pixel * CLIENT_WINDOW_ICON.width,
+#ifdef Q3_LITTLE_ENDIAN
+		0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000
+#else
+		0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF
+#endif
+	);
+
+	const char *windowType = nullptr;
+
+	if ( fullscreen )
+	{
+		flags |= SDL_WINDOW_FULLSCREEN;
+		windowType = "fullscreen";
+	}
+
+	/* We need to set borderless flag even when fullscreen
+	because otherwise when disabling fullscreen the window
+	will be bordered while the borderless option is enabled. */
+
+	if ( !bordered )
+	{
+		flags |= SDL_WINDOW_BORDERLESS;
+
+		/* Don't tell fullscreen window is borderless,
+		it's meaningless. */
+		if ( ! fullscreen )
+		{
+			windowType = "borderless";
+		}
+	}
+
+	int x, y;
 	if ( r_centerWindow->integer )
 	{
 		// center window on specified display
@@ -514,32 +595,168 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 		y = SDL_WINDOWPOS_UNDEFINED_DISPLAY( r_displayIndex->integer );
 	}
 
-	icon = SDL_CreateRGBSurfaceFrom( ( void * ) CLIENT_WINDOW_ICON.pixel_data,
-			        CLIENT_WINDOW_ICON.width,
-			        CLIENT_WINDOW_ICON.height,
-			        CLIENT_WINDOW_ICON.bytes_per_pixel * 8,
-			        CLIENT_WINDOW_ICON.bytes_per_pixel * CLIENT_WINDOW_ICON.width,
-#ifdef Q3_LITTLE_ENDIAN
-			        0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000
-#else
-			        0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF
-#endif
-					);
+	window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
+
+	if ( window )
+	{
+		int w, h;
+		SDL_GetWindowPosition( window, &x, &y );
+		SDL_GetWindowSize( window, &w, &h );
+		logger.Debug( "SDL %s%swindow created at %d,%d with %d×%d size",
+			windowType ? windowType : "",
+			windowType ? " ": "",
+			x, y, w, h );
+	}
+	else
+	{
+		logger.Warn( "SDL %d×%d %s%swindow not created",
+			glConfig.vidWidth, glConfig.vidHeight,
+			windowType ? windowType : "",
+			windowType ? " ": "" );
+		logger.Warn("SDL_CreateWindow failed: %s", SDL_GetError() );
+		return false;
+	}
+
+	SDL_SetWindowIcon( window, icon );
+
+	SDL_FreeSurface( icon );
+
+	return true;
+}
+
+static void GLimp_DestroyContextIfExists()
+{
+	if ( glContext != nullptr )
+	{
+		SDL_GL_DeleteContext( glContext );
+		glContext = nullptr;
+	}
+}
+
+static void GLimp_DestroyWindowIfExists()
+{
+	// Do not let orphaned context alive.
+	GLimp_DestroyContextIfExists();
+
+	if ( window != nullptr )
+	{
+		int x, y, w, h;
+		SDL_GetWindowPosition( window, &x, &y );
+		SDL_GetWindowSize( window, &w, &h );
+		logger.Debug("Destroying %d×%d SDL window at %d,%d", w, h, x, y );
+		SDL_DestroyWindow( window );
+		window = nullptr;
+	}
+}
+
+static bool GLimp_CreateContext( const glConfiguration &configuration )
+{
+	GLimp_DestroyContextIfExists();
+	glContext = SDL_GL_CreateContext( window );
+
+	const char* profileName = GLimp_getProfileName( configuration.profile );
+	if ( glContext != nullptr )
+	{
+		logger.Debug( "Valid context: %d-bit OpenGL %d.%d %s",
+			configuration.colorBits,
+			configuration.major,
+			configuration.minor,
+			profileName );
+	}
+	else
+	{
+		logger.Debug( "Invalid context: %d-bit OpenGL %d.%d %s",
+			configuration.colorBits,
+			configuration.major,
+			configuration.minor,
+			profileName );
+	}
+
+	return glContext != nullptr;
+}
+
+/* GLimp_DestroyWindowIfExists checks if window exists before
+destroying it so we can call GLimp_RecreateWindowWhenChange even
+if no window is created yet.
+
+It is assumed width, height and other things like that are unchanged,
+given vid_restart is called when changing those and then destroying
+the window before calling this. */
+static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bordered, const glConfiguration &configuration )
+{
+	static bool currentFullscreen = false;
+	static bool currentBordered = false;
+	static glConfiguration currentConfiguration = {};
+
+	if ( window == nullptr
+		|| configuration != currentConfiguration )
+	{
+		currentConfiguration = configuration;
+
+		GLimp_DestroyWindowIfExists();
+
+		if ( !GLimp_CreateWindow( fullscreen, bordered, configuration ) )
+		{
+			return false;
+		}
+	}
+
+	if ( fullscreen != currentFullscreen )
+	{
+		Uint32 flags = fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
+		int sdlToggled = SDL_SetWindowFullscreen( window, flags );
+
+		if ( sdlToggled < 0 )
+		{
+			GLimp_DestroyWindowIfExists();
+
+			if ( !GLimp_CreateWindow( fullscreen, bordered, configuration ) )
+			{
+				return false;
+			}
+
+			const char* windowType = fullscreen ? "fullscreen" : "windowed";
+			logger.Debug( "SDL window recreated as %s.", windowType );
+		}
+		else
+		{
+			const char* windowType = fullscreen ? "fullscreen" : "windowed";
+			logger.Debug( "SDL window set as %s.", windowType );
+		}
+	}
+
+	if ( bordered != currentBordered )
+	{
+		SDL_bool sdlBordered = bordered ? SDL_TRUE : SDL_FALSE;
+
+		SDL_SetWindowBordered( window, sdlBordered );
+
+		const char* windowType = bordered ? "bordered" : "borderless";
+		logger.Debug( "SDL window set as %s.", windowType );
+	}
+
+	currentFullscreen = fullscreen;
+	currentBordered = bordered;
+
+	return true;
+}
+
+static rserr_t GLimp_SetModeAndResolution( const int mode )
+{
+	SDL_DisplayMode desktopMode;
 
 	if ( SDL_GetDesktopDisplayMode( r_displayIndex->integer, &desktopMode ) == 0 )
 	{
 		displayAspect = ( float ) desktopMode.w / ( float ) desktopMode.h;
-
-		logger.Notice("Display aspect: %.3f", displayAspect );
 	}
 	else
 	{
 		memset( &desktopMode, 0, sizeof( SDL_DisplayMode ) );
-
-		logger.Notice("Cannot determine display aspect (%s), assuming 1.333", SDL_GetError() );
+		displayAspect = 1.333f;
+		logger.Warn("Cannot determine display aspect, assuming %.3f: %s", displayAspect, SDL_GetError() );
 	}
 
-	logger.Notice("...setting mode %d:", mode );
+	logger.Notice("Display aspect: %.3f", displayAspect );
 
 	if ( mode == -2 )
 	{
@@ -553,201 +770,432 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 		{
 			glConfig.vidWidth = 640;
 			glConfig.vidHeight = 480;
-			logger.Notice("Cannot determine display resolution, assuming 640x480" );
+			logger.Warn("Cannot determine display resolution, assuming %dx%d", glConfig.vidWidth, glConfig.vidHeight );
 		}
+
+		logger.Notice("Display resolution: %dx%d", glConfig.vidWidth, glConfig.vidHeight);
 	}
 	else if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, mode ) )
 	{
-		logger.Notice(" invalid mode" );
+		logger.Notice("Invalid mode %d", mode );
 		return rserr_t::RSERR_INVALID_MODE;
 	}
 
-	logger.Notice(" %d %d", glConfig.vidWidth, glConfig.vidHeight );
-	// HACK: We want to set the current value, not the latched value
-	Cvar::ClearFlags("r_customwidth", CVAR_LATCH);
-	Cvar::ClearFlags("r_customheight", CVAR_LATCH);
-	Cvar_Set( "r_customwidth", va("%d", glConfig.vidWidth ) );
-	Cvar_Set( "r_customheight", va("%d", glConfig.vidHeight ) );
-	Cvar::AddFlags("r_customwidth", CVAR_LATCH);
-	Cvar::AddFlags("r_customheight", CVAR_LATCH);
+	logger.Notice("...setting mode %d: %d×%d", mode, glConfig.vidWidth, glConfig.vidHeight );
 
-	sscanf( ( const char * ) glewGetString( GLEW_VERSION ), "%d.%d.%d",
-		&GLEWmajor, &GLEWminor, &GLEWmicro );
-	if( GLEWmajor < 2 ) {
-		logger.Warn( "GLEW version < 2.0.0 doesn't support GL core profiles" );
-	}
+	return rserr_t::RSERR_OK;
+}
 
-	do
+static rserr_t GLimp_ValidateBestContext(
+	const int GLEWmajor, glConfiguration &bestValidatedConfiguration, glConfiguration& extendedValidationConfiguration )
+{
+	/* We iterate known OpenGL versions from highest to lowest,
+	iterating core profiles first, then compatibility profile,
+	iterating 24-bit display first, then 16-bit.
+
+	Once we get a core profile working, we stop and attempt
+	to use 3.2 core whatever the highest version we validated.
+	The 3.2 is the oldest version with core profile, meaning
+	every extension not in 3.2 code are expected to be loaded
+	explicitely. This may make extension loading more predictable.
+
+	For debugging and knowledge purpose we log the best supported
+	version even if we're not gonna use it.
+
+	User can request explicit version or profile with related cvars.
+
+	We test down to the lowest known OpenGL version so we can provide
+	useful and precise error message when an OpenGL version is too low.
+
+	The idea of going from high to low is to make the engine load fast
+	on actual hardware likely to support highest core profile version,
+	then spend more time on more rarest configuration. The highest
+	loading time affects hardware and related drivers that can't run
+	then engine anyway.
+
+	For known OpenGL version,
+	see https://en.wikipedia.org/wiki/OpenGL#Version_history
+
+	For information about core, compatibility and forward profiles,
+	see https://www.khronos.org/opengl/wiki/OpenGL_Context */
+
+	struct {
+		int major;
+		int minor;
+		glProfile profile;
+		bool testByDefault;
+	} glSupportArray[] {
+		{ 4, 6, glProfile::CORE, false },
+		{ 4, 5, glProfile::CORE, false },
+		{ 4, 4, glProfile::CORE, false },
+		{ 4, 3, glProfile::CORE, false },
+		{ 4, 2, glProfile::CORE, false },
+		{ 4, 1, glProfile::CORE, false },
+		{ 4, 0, glProfile::CORE, false },
+		{ 3, 3, glProfile::CORE, false },
+		{ 3, 2, glProfile::CORE, true },
+		{ 3, 1, glProfile::COMPATIBILITY, false },
+		{ 3, 0, glProfile::COMPATIBILITY, false },
+		{ 2, 1, glProfile::COMPATIBILITY, true },
+		{ 2, 0, glProfile::COMPATIBILITY, true },
+		{ 1, 5, glProfile::COMPATIBILITY, true },
+		{ 1, 4, glProfile::COMPATIBILITY, true },
+		{ 1, 3, glProfile::COMPATIBILITY, true },
+		{ 1, 2, glProfile::COMPATIBILITY, true },
+		{ 1, 1, glProfile::COMPATIBILITY, true },
+		{ 1, 0, glProfile::COMPATIBILITY, true },
+	};
+
+	logger.Debug( "Validating best OpenGL context." );
+
+	bool needHighestExtended = !!r_glExtendedValidation->integer;
+	for ( int colorBits : {24, 16} )
 	{
-		if ( glContext != nullptr )
+		for ( auto& row : glSupportArray )
 		{
-			SDL_GL_DeleteContext( glContext );
-			glContext = nullptr;
-		}
-
-		if ( window != nullptr )
-		{
-			SDL_GetWindowPosition( window, &x, &y );
-			logger.Debug("Existing window at %dx%d before being destroyed", x, y );
-			SDL_DestroyWindow( window );
-			window = nullptr;
-		}
-		// we come back here if we couldn't get a visual and there's
-		// something we can switch off
-
-		if ( fullscreen )
-		{
-			flags |= SDL_WINDOW_FULLSCREEN;
-		}
-
-		if ( noborder )
-		{
-			flags |= SDL_WINDOW_BORDERLESS;
-		}
-
-		colorBits = r_colorbits->integer;
-
-		if ( ( !colorBits ) || ( colorBits >= 32 ) )
-		{
-			colorBits = 24;
-		}
-
-		alphaBits = r_alphabits->integer;
-
-		if ( alphaBits < 0 )
-		{
-			alphaBits = 0;
-		}
-
-		depthBits = r_depthbits->integer;
-
-		if ( !depthBits )
-		{
-			depthBits = 24;
-		}
-
-		stencilBits = r_stencilbits->integer;
-		samples = r_ext_multisample->integer;
-
-		for ( i = 0; i < 4; i++ )
-		{
-			int testColorBits, testCore;
-			int major = r_glMajorVersion->integer;
-			int minor = r_glMinorVersion->integer;
-
-			// 0 - 24 bit color, core
-			// 1 - 24 bit color, compat
-			// 2 - 16 bit color, core
-			// 3 - 16 bit color, compat
-			testColorBits = (i >= 2) ? 16 : 24;
-			testCore = ((i & 1) == 0);
-
-			if( testCore && !Q_stricmp(r_glProfile->string, "compat") )
+			if ( GLEWmajor < 2 && row.profile == glProfile::CORE )
+			{
+				// GLEW version < 2.0.0 doesn't support OpenGL core profiles.
 				continue;
+			}
 
-			if( testCore && GLEWmajor < 2 )
+			if ( !needHighestExtended && !row.testByDefault )
+			{
 				continue;
+			}
 
-			if( !testCore && !Q_stricmp(r_glProfile->string, "core") )
-				continue;
+			glConfiguration testConfiguration;
+			testConfiguration.major = row.major;
+			testConfiguration.minor = row.minor;
+			testConfiguration.profile = row.profile;
+			testConfiguration.colorBits = colorBits;
 
-			if( testColorBits > colorBits )
-				continue;
-
-			if ( testColorBits == 24 )
+			if ( !GLimp_RecreateWindowWhenChange( false, false, testConfiguration ) )
 			{
-				perChannelColorBits = 8;
+				return rserr_t::RSERR_INVALID_MODE;
 			}
-			else
+
+			if ( GLimp_CreateContext( testConfiguration ) )
 			{
-				perChannelColorBits = 4;
-			}
-
-			SDL_GL_SetAttribute( SDL_GL_RED_SIZE, perChannelColorBits );
-			SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, perChannelColorBits );
-			SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, perChannelColorBits );
-			SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-
-			if ( !r_glAllowSoftware->integer )
-			{
-				SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
-			}
-
-			if( testCore && (major < 3 || (major == 3 && minor < 2)) ) {
-				major = 3;
-				minor = 2;
-			}
-
-			if( major < 2 || (major == 2 && minor < 1)) {
-				major = 2;
-				minor = 1;
-			}
-
-			SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, major );
-			SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, minor );
-
-			if ( testCore )
-			{
-				SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
-			}
-			else
-			{
-				SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
-			}
-
-			if ( r_glDebugProfile->integer )
-			{
-				SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
-			}
-
-			if ( !window )
-			{
-				window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
-
-				if ( !window )
+				if ( needHighestExtended )
 				{
-					logger.Warn("SDL_CreateWindow failed: %s\n", SDL_GetError() );
-					continue;
+					needHighestExtended = false;
+					extendedValidationConfiguration = testConfiguration;
+				}
+
+				if ( row.testByDefault )
+				{
+					bestValidatedConfiguration = testConfiguration;
+					return rserr_t::RSERR_OK;
 				}
 			}
-
-			SDL_SetWindowIcon( window, icon );
-
-			glContext = SDL_GL_CreateContext( window );
-
-			if ( !glContext )
-			{
-				logger.Warn("SDL_GL_CreateContext failed: %s\n", SDL_GetError() );
-				continue;
-			}
-			SDL_GL_SetSwapInterval( r_swapInterval->integer );
-
-			// Fill window with a dark grey (#141414) background.
-			glClearColor( 0.08f, 0.08f, 0.08f, 1.0f );
-			glClear( GL_COLOR_BUFFER_BIT );
-			GLimp_EndFrame();
-
-			glConfig.colorBits = testColorBits;
-			glConfig.depthBits = depthBits;
-			glConfig.stencilBits = stencilBits;
-			glConfig2.glCoreProfile = testCore;
-
-			logger.Notice("Using %d Color bits, %d depth, %d stencil display.",
-				glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );
-
-			break;
 		}
+	}
 
-		if ( samples && ( !glContext || !window ) )
+	if ( bestValidatedConfiguration.major == 0 )
+	{
+
+		return rserr_t::RSERR_MISSING_GL;
+	}
+
+	return rserr_t::RSERR_OLD_GL;
+}
+
+static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glConfiguration &bestConfiguration )
+{
+	glConfiguration customConfiguration = {};
+
+	if ( bestConfiguration.profile == glProfile::CORE && !Q_stricmp( r_glProfile->string, "compat" ) )
+	{
+		logger.Debug( "Compatibility profile is forced by r_glProfile" );
+
+		customConfiguration.profile = glProfile::COMPATIBILITY;
+	}
+
+	if ( bestConfiguration.profile == glProfile::COMPATIBILITY && !Q_stricmp( r_glProfile->string, "core" ) )
+	{
+		if ( GLEWmajor < 2 )
 		{
-			r_ext_multisample->integer = 0;
+			// GLEW version < 2.0.0 doesn't support OpenGL core profiles.
+			logger.Debug( "Core profile is ignored from r_glProfile" );
+		}
+		else
+		{
+			logger.Debug( "Core profile is forced by r_glProfile" );
+
+			customConfiguration.profile = glProfile::CORE;
+		}
+	}
+
+	customConfiguration.major = std::max( 0, r_glMajorVersion->integer );
+	customConfiguration.minor = std::max( 0, r_glMinorVersion->integer );
+
+	if ( customConfiguration.major == 0 )
+	{
+		customConfiguration.major = bestConfiguration.major;
+		customConfiguration.minor = bestConfiguration.minor;
+	}
+	else if ( customConfiguration.major == 1 )
+	{
+		logger.Warn( "OpenGL %d.%d is not supported, trying %d.%d instead",
+			customConfiguration.major,
+			customConfiguration.minor,
+			bestConfiguration.major,
+			bestConfiguration.minor );
+
+		customConfiguration.major = bestConfiguration.major;
+		customConfiguration.minor = bestConfiguration.minor;
+	}
+	else
+	{
+		if ( customConfiguration.major == 3
+			&& customConfiguration.minor < 2
+			&& customConfiguration.profile == glProfile::UNDEFINED )
+		{
+			customConfiguration.profile = glProfile::COMPATIBILITY;
+		}
+		else if ( customConfiguration.major == 2 )
+		{
+			if ( customConfiguration.profile == glProfile::UNDEFINED )
+			{
+				customConfiguration.profile = glProfile::COMPATIBILITY;
+			}
+
+			if ( customConfiguration.minor == 0 )
+			{
+				logger.Warn( "OpenGL 2.0 is not supported, trying 2.1 instead" );
+
+				customConfiguration.minor = 1;
+			}
 		}
 
-	} while ( ( !glContext || !window ) && samples );
+		logger.Debug( "GL version %d.%d is forced by r_glMajorVersion and r_glMinorVersion",
+			customConfiguration.major,
+			customConfiguration.minor );
+	}
 
-	SDL_FreeSurface( icon );
+	if ( customConfiguration.profile == glProfile::UNDEFINED )
+	{
+		customConfiguration.profile = bestConfiguration.profile;
+	}
 
-	glewResult = glewInit();
+	customConfiguration.colorBits = std::max( 0, r_colorbits->integer );
+
+	if ( customConfiguration.colorBits == 0 )
+	{
+		customConfiguration.colorBits = bestConfiguration.colorBits;
+	}
+	else
+	{
+		if ( customConfiguration.colorBits != bestConfiguration.colorBits )
+		{
+			logger.Debug( "Color framebuffer bitness %d is forced by r_colorbits",
+				customConfiguration.colorBits );
+		}
+	}
+
+	return customConfiguration;
+}
+
+static std::string ContextDescription( const glConfiguration& configuration )
+{
+	return Str::Format( "%d-bit OpenGL %d.%d %s",
+		configuration.colorBits,
+		configuration.major,
+		configuration.minor,
+		GLimp_getProfileName( configuration.profile ) );
+}
+
+static bool CreateWindowAndContext(
+	bool fullscreen, bool bordered,
+	Str::StringRef contextAdjective,
+	const glConfiguration& customConfiguration)
+{
+	if ( !GLimp_RecreateWindowWhenChange( fullscreen, bordered, customConfiguration ) )
+	{
+		logger.Warn( "Failed to create window for %s context - %s",
+			contextAdjective,
+			ContextDescription( customConfiguration ) );
+		return false;
+	}
+
+	if ( !GLimp_CreateContext( customConfiguration ) )
+	{
+		logger.Warn( "Failed to initialize %s context - %s",
+			contextAdjective,
+			ContextDescription( customConfiguration ) );
+		logger.Warn( "SDL_GL_CreateContext failed: %s", SDL_GetError() );
+		return false;
+	}
+
+	logger.Notice( "Using %s context - %s",
+		contextAdjective,
+		ContextDescription( customConfiguration ) );
+	return true;
+}
+
+static void GLimp_RegisterConfiguration( const glConfiguration& highestConfiguration, const glConfiguration &requestedConfiguration )
+{
+	glConfig2.glHighestMajor = highestConfiguration.major;
+	glConfig2.glHighestMinor = highestConfiguration.minor;
+
+	glConfig2.glRequestedMajor = requestedConfiguration.major;
+	glConfig2.glRequestedMinor = requestedConfiguration.minor;
+
+	SDL_GL_SetSwapInterval( r_swapInterval->integer );
+
+	{
+		/* Make sure we don't silence any useful error that would
+		already have happened. */
+		GL_CheckErrors();
+
+		// Check if we have a core profile.
+		int profileBit;
+		glGetIntegerv( GL_CONTEXT_PROFILE_MASK, &profileBit );
+
+		/* OpenGL implementations not supporting core profile like the ones only
+		implementing OpenGL version older than 3.2 may raise a GL_INVALID_ENUM
+		error while implementations supporting core profile may not raise the
+		error when forcing an OpenGL version older than 3.2, so we better want
+		to catch and silence this expected error. */
+
+		if ( glGetError() != GL_NO_ERROR )
+		{
+			glConfig2.glCoreProfile = false;
+		}
+		else
+		{
+			glConfig2.glCoreProfile = ( profileBit == GL_CONTEXT_CORE_PROFILE_BIT );
+		}
+
+		glProfile providedProfile = glConfig2.glCoreProfile ? glProfile::CORE : glProfile::COMPATIBILITY ;
+		const char *providedProfileName = GLimp_getProfileName( providedProfile );
+
+		if ( providedProfile != requestedConfiguration.profile )
+		{
+			const char *requestedProfileName = GLimp_getProfileName( requestedConfiguration.profile );
+
+			logger.Warn( "Provided OpenGL %s profile is not the same as requested %s profile.",
+				providedProfileName,
+				requestedProfileName );
+		}
+		else
+		{
+			logger.Debug( "Provided OpenGL context uses %s profile.",
+			providedProfileName );
+		}
+	}
+
+	{
+		int providedRedChannelColorBits;
+		SDL_GL_GetAttribute( SDL_GL_RED_SIZE, &providedRedChannelColorBits );
+
+		glConfig.colorBits = providedRedChannelColorBits == 8 ? 24 : 16;
+
+		if ( requestedConfiguration.colorBits != glConfig.colorBits )
+		{
+			logger.Warn( "Provided OpenGL %d-bit channel depth is not the same as requested %d-bit depth.",
+				glConfig.colorBits, requestedConfiguration.colorBits );
+		}
+		else
+		{
+			logger.Debug( "Provided OpenGL context uses %d-bit channel depth.", glConfig.colorBits );
+		}
+	}
+
+	if ( requestedConfiguration.profile == glProfile::CORE )
+	{
+		// Check if context is forward compatible.
+		int contextFlags;
+		glGetIntegerv( GL_CONTEXT_FLAGS, &contextFlags );
+
+		glConfig2.glForwardCompatibleContext = contextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT;
+
+		if ( glConfig2.glForwardCompatibleContext )
+		{
+			logger.Debug( "Provided OpenGL core context is forward compatible." );
+		}
+		else
+		{
+			logger.Debug( "Provided OpenGL core context is not forward compatible." );
+		}
+	}
+	else
+	{
+		glConfig2.glForwardCompatibleContext = false;
+	}
+
+	// alphaBits was used by legacy renderer, do we need it for anything?
+	// int alphaBits = std::max( 0, r_alphabits->integer );
+
+	/* FIXME: It looks like MSAA was only implemented in legacy renderer.
+	int samples = std::max( 0, r_ext_multisample->integer ); */
+
+	{
+		int GLmajor, GLminor;
+		sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
+
+		glConfig2.glMajor = GLmajor;
+		glConfig2.glMinor = GLminor;
+	}
+
+	/* FIXME: a duplicate of this is done in GLimp_Init, also storing it
+	for gfxinfo command. */
+	const char *glstring = ( char * ) glGetString( GL_RENDERER );
+	logger.Notice("OpenGL Renderer: %s", glstring );
+}
+
+static void GLimp_DrawWindowContent()
+{
+	// Fill window with a dark grey (#141414) background.
+	glClearColor( 0.08f, 0.08f, 0.08f, 1.0f );
+	glClear( GL_COLOR_BUFFER_BIT );
+	GLimp_EndFrame();
+}
+
+static rserr_t GLimp_CheckOpenGLVersion( const glConfiguration &requestedConfiguration )
+{
+	if ( glConfig2.glMajor != requestedConfiguration.major
+		|| glConfig2.glMinor != requestedConfiguration.minor )
+	{
+		logger.Warn( "Provided OpenGL %d.%d is not the same as requested %d.%d version",
+			glConfig2.glMajor,
+			glConfig2.glMinor,
+			requestedConfiguration.major,
+			requestedConfiguration.minor );
+	}
+	else
+	{
+		logger.Debug( "Provided OpenGL %d.%d version.",
+			glConfig2.glMajor,
+			glConfig2.glMinor );
+	}
+
+	if ( glConfig2.glMajor < 2 || ( glConfig2.glMajor == 2 && glConfig2.glMinor < 1 ) )
+	{
+		GLimp_DestroyWindowIfExists();
+
+		// Missing shader support, there is no OpenGL 1.x renderer anymore.
+		return rserr_t::RSERR_OLD_GL;
+	}
+
+	if ( glConfig2.glMajor < 3 || ( glConfig2.glMajor == 3 && glConfig2.glMinor < 2 ) )
+	{
+		// Shaders are supported, but not all OpenGL 3.x features
+		logger.Notice("Using GL3 Renderer in OpenGL 2.x mode..." );
+	}
+	else
+	{
+		logger.Notice("Using GL3 Renderer in OpenGL 3.x mode..." );
+		glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
+	}
+
+	return rserr_t::RSERR_OK;
+}
+
+static void GLimp_CheckGLEW( const glConfiguration &requestedConfiguration )
+{
+	GLenum glewResult = glewInit();
 
 #ifdef GLEW_ERROR_NO_GLX_DISPLAY
 	if ( glewResult != GLEW_OK && glewResult != GLEW_ERROR_NO_GLX_DISPLAY )
@@ -756,36 +1204,165 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 #endif
 	{
 		// glewInit failed, something is seriously wrong
-		Sys::Error( "GLW_StartOpenGL() - could not load OpenGL subsystem: %s", glewGetErrorString( glewResult ) );
+
+		GLimp_DestroyWindowIfExists();
+
+		const char* requestedProfileName = GLimp_getProfileName( requestedConfiguration.profile );
+
+		Sys::Error( "GLEW initialization failed: %s.\n\n"
+			"Engine successfully created\n"
+			"%d-bit OpenGL %d.%d %d context,\n"
+			"This is a GLEW issue.",
+			glewGetErrorString( glewResult ),
+			requestedConfiguration.colorBits,
+			requestedConfiguration.major,
+			requestedConfiguration.minor,
+			requestedProfileName );
 	}
-	else
+}
+
+/*
+===============
+GLimp_SetMode
+===============
+*/
+static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool bordered )
+{
+	logger.Notice("Initializing OpenGL display" );
+
+	int GLEWmajor;
+
 	{
-		logger.Notice("Using GLEW %s", glewGetString( GLEW_VERSION ) );
+		const GLubyte * glewVersion = glewGetString( GLEW_VERSION );
+
+		logger.Notice("Using GLEW version %s", glewVersion );
+
+		int GLEWminor, GLEWmicro;
+
+		sscanf( ( const char * ) glewVersion, "%d.%d.%d",
+			&GLEWmajor, &GLEWminor, &GLEWmicro );
+
+		if ( GLEWmajor < 2 )
+		{
+			logger.Warn( "GLEW version < 2.0.0 doesn't support OpenGL core profiles." );
+		}
 	}
 
-	sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
-	if ( GLmajor < 2 || ( GLmajor == 2 && GLminor < 1 ) )
 	{
-		// missing shader support, there is no 1.x renderer anymore
-		return rserr_t::RSERR_OLD_GL;
+		rserr_t err = GLimp_SetModeAndResolution( mode );
+
+		if ( err != rserr_t::RSERR_OK )
+		{
+			return err;
+		}
 	}
 
-	if ( GLmajor < 3 || ( GLmajor == 3 && GLminor < 2 ) )
-	{
-		// shaders are supported, but not all GL3.x features
-		logger.Notice("Using enhanced (GL3) Renderer in GL 2.x mode..." );
-	}
-	else
-	{
-		logger.Notice("Using enhanced (GL3) Renderer in GL 3.x mode..." );
-		glConfig.driverType = glDriverType_t::GLDRV_OPENGL3;
-	}
-	GLimp_DetectAvailableModes();
+	// HACK: We want to set the current value, not the latched value
+	Cvar::ClearFlags("r_customwidth", CVAR_LATCH);
+	Cvar::ClearFlags("r_customheight", CVAR_LATCH);
+	Cvar_Set( "r_customwidth", va("%d", glConfig.vidWidth ) );
+	Cvar_Set( "r_customheight", va("%d", glConfig.vidHeight ) );
+	Cvar::AddFlags("r_customwidth", CVAR_LATCH);
+	Cvar::AddFlags("r_customheight", CVAR_LATCH);
 
-	glstring = ( char * ) glGetString( GL_RENDERER );
-	logger.Notice("GL_RENDERER: %s", glstring );
+	// Reuse best configuration on vid_restart
+	// unless glExtendedValidation is modified.
+	static glConfiguration bestValidatedConfiguration = {}; // considering only up to OpenGL 3.2
+	static glConfiguration extendedValidationResult = {}; // max available OpenGL version for diagnostic purposes
 
-	return rserr_t::RSERR_OK;
+	if ( r_glExtendedValidation->integer && extendedValidationResult.major != 0 )
+	{
+		logger.Debug( "Previously best validated context: %s", ContextDescription( extendedValidationResult ) );
+	}
+	else if ( bestValidatedConfiguration.major == 0 || r_glExtendedValidation->integer )
+	{
+		// Detect best configuration.
+		rserr_t err = GLimp_ValidateBestContext( GLEWmajor, bestValidatedConfiguration, extendedValidationResult );
+
+		if ( err != rserr_t::RSERR_OK )
+		{
+			if ( err == rserr_t::RSERR_OLD_GL )
+			{
+				// Used by error message.
+				glConfig2.glMajor = bestValidatedConfiguration.major;
+				glConfig2.glMinor = bestValidatedConfiguration.minor;
+			}
+
+			GLimp_DestroyWindowIfExists();
+			return err;
+		}
+	}
+
+	if ( r_glExtendedValidation->integer )
+	{
+		logger.Notice( "Highest available context: %s", ContextDescription( extendedValidationResult ) );
+	}
+
+	glConfiguration requestedConfiguration = {}; // The one we end up using in CreateContext calls etc.
+
+	// Attempt to apply custom configuration if exists.
+	glConfiguration customConfiguration = GLimp_ApplyCustomOptions( GLEWmajor, bestValidatedConfiguration );
+	if ( customConfiguration != bestValidatedConfiguration &&
+	     CreateWindowAndContext( fullscreen, bordered, "custom", customConfiguration ) )
+	{
+		requestedConfiguration = customConfiguration;
+	}
+
+	if ( requestedConfiguration.major == 0 )
+	{
+		if ( !CreateWindowAndContext(fullscreen, bordered, "preferred", bestValidatedConfiguration ) )
+		{
+			GLimp_DestroyWindowIfExists();
+			return rserr_t::RSERR_INVALID_MODE;
+		}
+		requestedConfiguration = bestValidatedConfiguration;
+	}
+
+	GLimp_DrawWindowContent();
+
+	GLimp_RegisterConfiguration( extendedValidationResult, requestedConfiguration );
+
+	{
+		rserr_t err = GLimp_CheckOpenGLVersion( requestedConfiguration );
+
+		if ( err != rserr_t::RSERR_OK )
+		{
+			return err;
+		}
+	}
+
+	/* GLimp_CheckGLEW() calls Sys::Error directly so it does not return
+	in case of error. */
+
+	GLimp_CheckGLEW( requestedConfiguration );
+
+	/* When calling GLimp_CreateContext() some drivers may provide a valid
+	context that is unusable while GL_CheckErrors() catches nothing.
+
+	For example 3840×2160 is too large for the Radeon 9700 and
+	the Mesa r300 driver may print this error when the requested
+	resolution is higher than what is supported by hardware:
+
+	> r300: Implementation error: Render targets are too big in r300_set_framebuffer_state, refusing to bind framebuffer state!
+
+	The engine would later make a segfault when calling GL_SetDefaultState
+	from tr_init.cpp if we don't do anything.
+
+	Hopefully it looks like SDL_GetWindowDisplayMode can raise this error:
+
+	> Couldn't find display mode match
+
+	so we catch this SDL error when calling GLimp_DetectAvailableModes()
+	and force a safe lower resolution before we start to draw to prevent
+	an engine segfault when calling GL_SetDefaultState(). */
+
+	if ( GLimp_DetectAvailableModes() )
+	{
+		return rserr_t::RSERR_OK;
+	}
+
+	// The engine will retry with a default mode.
+	return rserr_t::RSERR_UNKNOWN;
 }
 
 /*
@@ -793,7 +1370,7 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 GLimp_StartDriverAndSetMode
 ===============
 */
-static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborder )
+static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
 {
 	int numDisplays;
 
@@ -804,11 +1381,21 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 		SDL_GetVersion( &v );
 
 		logger.Notice("SDL_Init( SDL_INIT_VIDEO )... " );
-		logger.Notice("Using SDL Version %u.%u.%u", v.major, v.minor, v.patch );
+		logger.Notice("Using SDL version %u.%u.%u", v.major, v.minor, v.patch );
 
-		if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE ) == -1 )
+		/* It is recommended to test for negative value and not just -1.
+
+		> Returns 0 on success or a negative error code on failure;
+		> call SDL_GetError() for more information.
+		> -- https://wiki.libsdl.org/SDL_Init
+
+		the SDL_GetError page also gives a sample of code testing for < 0
+		> if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+		> -- https://wiki.libsdl.org/SDL_GetError */
+
+		if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 		{
-			logger.Notice("SDL_Init(SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE) FAILED (%s)", SDL_GetError() );
+			logger.Notice("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
 			return false;
 		}
 
@@ -827,7 +1414,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 
 	if ( numDisplays <= 0 )
 	{
-		Sys::Error( "SDL_GetNumVideoDisplays FAILED (%s)\n", SDL_GetError() );
+		Sys::Error( "SDL_GetNumVideoDisplays failed: %s\n", SDL_GetError() );
 	}
 
 	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
@@ -840,27 +1427,48 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 		fullscreen = false;
 	}
 
-	rserr_t err = GLimp_SetMode(mode, fullscreen, noborder);
+	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
 	switch ( err )
 	{
+		case rserr_t::RSERR_OK:
+			return true;
+
 		case rserr_t::RSERR_INVALID_FULLSCREEN:
 			logger.Warn("GLimp: Fullscreen unavailable in this mode" );
-			return false;
+			break;
 
 		case rserr_t::RSERR_INVALID_MODE:
-			logger.Warn("GLimp: Could not set the given mode (%d)", mode );
-			return false;
+			logger.Warn("GLimp: Could not set mode %d", mode );
+			break;
+
+		case rserr_t::RSERR_MISSING_GL:
+			Sys::Error(
+				"OpenGL is not available.\n\n"
+				"You need a graphic card with drivers supporting\n"
+				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
+				"ARB_half_float_vertex and ARB_framebuffer_object." );
+
+			// Sys:Error calls OSExit() so the break and the return is unreachable.
+			break;
 
 		case rserr_t::RSERR_OLD_GL:
-			logger.Warn("GLimp: OpenGL too old" );
-			return false;
+			Sys::Error(
+				"OpenGL %d.%d is too old.\n\n"
+				"You need a graphic card with drivers supporting\n"
+				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
+				"ARB_half_float_vertex and ARB_framebuffer_object." );
 
+			// Sys:Error calls OSExit() so the break and the return is unreachable.
+			break;
+
+		case rserr_t::RSERR_UNKNOWN:
 		default:
+			logger.Warn("GLimp: Unknown error for mode %d", mode );
 			break;
 	}
 
-	return true;
+	return false;
 }
 
 static GLenum debugTypes[] =
@@ -966,6 +1574,15 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 		if ( test )
 		{
 			logger.WithoutSuppression().Notice( "...using GL_%s", name );
+
+			if ( glConfig2.glEnabledExtensionsString.length() != 0 )
+			{
+				glConfig2.glEnabledExtensionsString += " ";
+			}
+
+			glConfig2.glEnabledExtensionsString += "GL_";
+			glConfig2.glEnabledExtensionsString += name;
+
 			return true;
 		}
 		else
@@ -980,11 +1597,19 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 	{
 		if ( flags & ExtFlag_REQUIRED )
 		{
-			Sys::Error( "Required extension GL_%s is missing", name );
+			Sys::Error( "Required extension GL_%s is missing.", name );
 		}
 		else
 		{
-			logger.WithoutSuppression().Notice( "...GL_%s not found", name );
+			logger.WithoutSuppression().Notice( "...GL_%s not found.", name );
+
+			if ( glConfig2.glMissingExtensionsString.length() != 0 )
+			{
+				glConfig2.glMissingExtensionsString += " ";
+			}
+
+			glConfig2.glMissingExtensionsString += "GL_";
+			glConfig2.glMissingExtensionsString += name;
 		}
 	}
 	return false;
@@ -997,6 +1622,9 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 static void GLimp_InitExtensions()
 {
 	logger.Notice("Initializing OpenGL extensions" );
+
+	glConfig2.glEnabledExtensionsString = std::string();
+	glConfig2.glMissingExtensionsString = std::string();
 
 	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output, r_glDebugProfile->value ) )
 	{
@@ -1213,7 +1841,7 @@ bool GLimp_Init()
 	}
 
 	// Create the window and set up the context
-	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen->integer, r_noBorder->value ) )
+	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen->integer, !r_noBorder->value ) )
 	{
 		goto success;
 	}
@@ -1223,7 +1851,7 @@ bool GLimp_Init()
 	{
 		logger.Notice("Setting r_mode %d failed, falling back on r_mode %d", r_mode->integer, R_MODE_FALLBACK );
 
-		if ( GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, false ) )
+		if ( GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, true ) )
 		{
 			goto success;
 		}
@@ -1248,25 +1876,67 @@ success:
 
 	Q_strncpyz( glConfig.version_string, ( char * ) glGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
 
+	glConfig2.glExtensionsString = std::string();
+
 	if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 	{
 		GLint numExts, i;
 
 		glGetIntegerv( GL_NUM_EXTENSIONS, &numExts );
 
-		glConfig.extensions_string[ 0 ] = '\0';
+		logger.Debug( "Found %d OpenGL extensions.", numExts );
+
+		std::string glExtensionsString = std::string();
+
 		for ( i = 0; i < numExts; ++i )
 		{
-			if ( i != 0 )
+			char* s = ( char * ) glGetStringi( GL_EXTENSIONS, i );
+
+			/* Check for errors when fetching string.
+
+			> If an error is generated, glGetString returns 0. 
+			> -- https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetString.xhtml */
+			if ( s == nullptr )
 			{
-				Q_strcat( glConfig.extensions_string, sizeof( glConfig.extensions_string ), ( char * ) " " );
+				logger.Warn( "Error when fetching OpenGL extension list." );
 			}
-			Q_strcat( glConfig.extensions_string, sizeof( glConfig.extensions_string ), ( char * ) glGetStringi( GL_EXTENSIONS, i ) );
+			else
+			{
+				std::string extensionName = s;
+
+				if ( i != 0 )
+				{
+					glExtensionsString += " ";
+				}
+
+				glExtensionsString += extensionName;
+			}
 		}
+
+		logger.Debug( "OpenGL extensions found: %s", glExtensionsString );
+
+		glConfig2.glExtensionsString = glExtensionsString;
 	}
 	else
 	{
-		Q_strncpyz( glConfig.extensions_string, ( char * ) glGetString( GL_EXTENSIONS ), sizeof( glConfig.extensions_string ) );
+		char* extensions_string = ( char * ) glGetString( GL_EXTENSIONS );
+
+		if ( extensions_string == nullptr )
+		{
+			logger.Warn( "Error when fetching OpenGL extension list." );
+		}
+		else
+		{
+			std::string glExtensionsString = extensions_string;
+
+			int numExts = std::count(glExtensionsString.begin(), glExtensionsString.end(), ' ');
+
+			logger.Debug( "Found %d OpenGL extensions.", numExts );
+
+			logger.Debug( "OpenGL extensions found: %s", glExtensionsString );
+
+			glConfig2.glExtensionsString = glExtensionsString;
+		}
 	}
 
 	if ( Q_stristr( glConfig.renderer_string, "amd " ) ||
@@ -1354,15 +2024,15 @@ void GLimp_EndFrame()
 ===============
 GLimp_HandleCvars
 
-Responsible for handling cvars that change the window or GL state
-Should only be called by the main thread
+Responsible for handling cvars that change the window or OpenGL state,
+should only be called by the main thread.
 ===============
 */
 void GLimp_HandleCvars()
 {
 	if ( r_swapInterval->modified )
 	{
-		/* Set the swap interval for the GL context.
+		/* Set the swap interval for the OpenGL context.
 
 		* -1 : adaptive sync
 		* 0 : immediate update

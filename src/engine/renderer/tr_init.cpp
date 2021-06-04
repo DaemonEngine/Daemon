@@ -38,6 +38,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_glDebugProfile;
 	cvar_t      *r_glDebugMode;
 	cvar_t      *r_glAllowSoftware;
+	cvar_t      *r_glExtendedValidation;
 
 	cvar_t      *r_verbose;
 	cvar_t      *r_ignore;
@@ -101,7 +102,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
 
-	cvar_t      *r_stencilbits;
 	cvar_t      *r_depthbits;
 	cvar_t      *r_colorbits;
 	cvar_t      *r_alphabits;
@@ -801,11 +801,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		GLimp_LogComment( "--- GL_SetDefaultState ---\n" );
 
 		GL_ClearDepth( 1.0f );
-
-		if ( glConfig.stencilBits >= 4 )
-		{
-			GL_ClearStencil( 0 );
-		}
+		GL_ClearStencil( 0 );
 
 		GL_FrontFace( GL_CCW );
 		GL_CullFace( GL_FRONT );
@@ -905,44 +901,142 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Notice("GL_VENDOR: %s", glConfig.vendor_string );
 		Log::Notice("GL_RENDERER: %s", glConfig.renderer_string );
 		Log::Notice("GL_VERSION: %s", glConfig.version_string );
-		Log::Debug("GL_EXTENSIONS: %s", glConfig.extensions_string );
-		Log::Debug("GL_MAX_TEXTURE_SIZE: %d", glConfig.maxTextureSize );
+		Log::Debug("GL_EXTENSIONS: %s", glConfig2.glExtensionsString );
+		Log::Notice("GL_MAX_TEXTURE_SIZE: %d", glConfig.maxTextureSize );
 
 		Log::Notice("GL_SHADING_LANGUAGE_VERSION: %s", glConfig2.shadingLanguageVersionString );
 
 		Log::Notice("GL_MAX_VERTEX_UNIFORM_COMPONENTS %d", glConfig2.maxVertexUniforms );
-		Log::Debug("GL_MAX_VERTEX_ATTRIBS %d", glConfig2.maxVertexAttribs );
+		Log::Notice("GL_MAX_VERTEX_ATTRIBS %d", glConfig2.maxVertexAttribs );
 
 		if ( glConfig2.occlusionQueryAvailable )
 		{
-			Log::Debug("%d occlusion query bits", glConfig2.occlusionQueryBits );
+			Log::Notice("Occlusion query bits: %d", glConfig2.occlusionQueryBits );
 		}
 
 		if ( glConfig2.drawBuffersAvailable )
 		{
-			Log::Debug("GL_MAX_DRAW_BUFFERS: %d", glConfig2.maxDrawBuffers );
+			Log::Notice("GL_MAX_DRAW_BUFFERS: %d", glConfig2.maxDrawBuffers );
 		}
 
 		if ( glConfig2.textureAnisotropyAvailable )
 		{
-			Log::Debug("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig2.maxTextureAnisotropy );
+			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig2.maxTextureAnisotropy );
 		}
 
-		Log::Debug("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig2.maxRenderbufferSize );
-		Log::Debug("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig2.maxColorAttachments );
+		Log::Notice("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig2.maxRenderbufferSize );
+		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig2.maxColorAttachments );
 
-		Log::Debug("\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)", glConfig.colorBits,
-		           glConfig.depthBits, glConfig.stencilBits );
-		Log::Debug("MODE: %d, %d x %d %s hz:", r_mode->integer, glConfig.vidWidth, glConfig.vidHeight,
-		           fsstrings[ r_fullscreen->integer == 1 ] );
+		Log::Notice("PIXELFORMAT: color(%d-bits)", glConfig.colorBits );
 
-		if ( glConfig.displayFrequency )
 		{
-			Log::Debug("%d", glConfig.displayFrequency );
+			std::string out;
+			if ( glConfig.displayFrequency )
+			{
+				out = Str::Format("%d", glConfig.displayFrequency );
+			}
+			else
+			{
+				out = "N/A";
+			}
+
+			Log::Notice("MODE: %d, %d x %d %s hz: %s",
+				r_mode->integer,
+				glConfig.vidWidth, glConfig.vidHeight,
+				fsstrings[ r_fullscreen->integer == 1 ],
+				out
+				);
+		}
+
+		if ( !!r_glExtendedValidation->integer )
+		{
+			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d, highest: %d.%d",
+				glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor,
+				glConfig2.glHighestMajor, glConfig2.glHighestMinor );
 		}
 		else
 		{
-			Log::Debug("N/A" );
+			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor );
+		}
+
+		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+		{
+			Log::Notice("%sUsing OpenGL 3.x context.", Color::ToString( Color::Green ) );
+
+			/* See https://www.khronos.org/opengl/wiki/OpenGL_Context
+			for information about core, compatibility and forward context. */
+
+			if ( glConfig2.glCoreProfile )
+			{
+				Log::Notice("%sUsing an OpenGL core profile.", Color::ToString( Color::Green ) );
+			}
+			else
+			{
+				Log::Notice("%sUsing an OpenGL compatibility profile.", Color::ToString( Color::Red ) );
+			}
+
+			if ( glConfig2.glForwardCompatibleContext )
+			{
+				Log::Notice("OpenGL 3.x context is forward compatible.");
+			}
+			else
+			{
+				Log::Notice("OpenGL 3.x context is not forward compatible.");
+			}
+		}
+		else
+		{
+			Log::Notice("%sUsing OpenGL 2.x context.", Color::ToString( Color::Red ) );
+		}
+
+		if ( glConfig2.glEnabledExtensionsString.length() != 0 )
+		{
+			Log::Notice("%sUsing OpenGL extensions: %s", Color::ToString( Color::Green ), glConfig2.glEnabledExtensionsString );
+		}
+
+		if ( glConfig2.glMissingExtensionsString.length() != 0 )
+		{
+			Log::Notice("%sMissing OpenGL extensions: %s", Color::ToString( Color::Red ), glConfig2.glMissingExtensionsString );
+		}
+
+		if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+		{
+			Log::Notice("%sUsing ATI R300 approximations.", Color::ToString( Color::Red ));
+		}
+
+		if ( glConfig.textureCompression != textureCompression_t::TC_NONE )
+		{
+			Log::Notice("%sUsing S3TC (DXTC) texture compression.", Color::ToString( Color::Green ) );
+		}
+
+		if ( glConfig2.vboVertexSkinningAvailable )
+		{
+			/* Mesa drivers usually support 256 bones, Nvidia proprietary drivers
+			usually support 233 bones, OpenGL 2.1 hardware usually supports no more
+			than 41 bones which may not be enough to use hardware acceleration on
+			models from games like Unvanquished. */
+			if ( glConfig2.maxVertexSkinningBones < 233 )
+			{
+				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, some models may not be hardware accelerated.", Color::ToString( Color::Red ), glConfig2.maxVertexSkinningBones );
+			}
+			else
+			{
+				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, models are hardware accelerated.", Color::ToString( Color::Green ), glConfig2.maxVertexSkinningBones );
+			}
+		}
+		else
+		{
+			Log::Notice("%sMissing GPU vertex skinning, models are not hardware-accelerated.", Color::ToString( Color::Red ) );
+		}
+
+		if ( glConfig.smpActive )
+		{
+			Log::Notice("Using dual processor acceleration." );
+		}
+
+		if ( r_finish->integer )
+		{
+			Log::Notice("Forcing glFinish." );
 		}
 
 		Log::Debug("texturemode: %s", r_textureMode->string );
@@ -951,62 +1045,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Debug("ignoreMaterialMinDimension: %d", r_ignoreMaterialMinDimension->integer );
 		Log::Debug("ignoreMaterialMaxDimension: %d", r_ignoreMaterialMaxDimension->integer );
 		Log::Debug("replaceMaterialMinDimensionIfPresentWithMaxDimension: %d", r_replaceMaterialMinDimensionIfPresentWithMaxDimension->integer );
-
-		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
-		{
-			int contextFlags, profile;
-
-			Log::Notice("%sUsing OpenGL 3.x context", Color::ToString( Color::Green ) );
-
-			// check if we have a core-profile
-			glGetIntegerv( GL_CONTEXT_PROFILE_MASK, &profile );
-
-			if ( profile == GL_CONTEXT_CORE_PROFILE_BIT )
-			{
-				Log::Debug("%sHaving a core profile", Color::ToString( Color::Green ) );
-			}
-			else
-			{
-				Log::Debug("%sHaving a compatibility profile", Color::ToString( Color::Red ) );
-			}
-
-			// check if context is forward compatible
-			glGetIntegerv( GL_CONTEXT_FLAGS, &contextFlags );
-
-			if ( contextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT )
-			{
-				Log::Debug("%sContext is forward compatible", Color::ToString( Color::Green ) );
-			}
-			else
-			{
-				Log::Debug("%sContext is NOT forward compatible", Color::ToString( Color::Red  ));
-			}
-		}
-
-		if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
-		{
-			Log::Debug("HACK: ATI R300 approximations" );
-		}
-
-		if ( glConfig.textureCompression != textureCompression_t::TC_NONE )
-		{
-			Log::Debug("Using S3TC (DXTC) texture compression" );
-		}
-
-		if ( glConfig2.vboVertexSkinningAvailable )
-		{
-			Log::Notice("Using GPU vertex skinning with max %i bones in a single pass", glConfig2.maxVertexSkinningBones );
-		}
-
-		if ( glConfig.smpActive )
-		{
-			Log::Debug("Using dual processor acceleration" );
-		}
-
-		if ( r_finish->integer )
-		{
-			Log::Debug("Forcing glFinish" );
-		}
 	}
 
 	static void GLSL_restart_f()
@@ -1032,6 +1070,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_glDebugProfile = ri.Cvar_Get( "r_glDebugProfile", "", CVAR_LATCH );
 		r_glDebugMode = ri.Cvar_Get( "r_glDebugMode", "0", CVAR_CHEAT );
 		r_glAllowSoftware = ri.Cvar_Get( "r_glAllowSoftware", "0", CVAR_LATCH );
+		r_glExtendedValidation = ri.Cvar_Get( "r_glExtendedValidation", "0", CVAR_LATCH );
 
 		// latched and archived variables
 		r_ext_occlusion_query = ri.Cvar_Get( "r_ext_occlusion_query", "1", CVAR_CHEAT | CVAR_LATCH );
@@ -1059,7 +1098,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_colorMipLevels = ri.Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
 		r_colorbits = ri.Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
 		r_alphabits = ri.Cvar_Get( "r_alphabits", "0",  CVAR_LATCH );
-		r_stencilbits = ri.Cvar_Get( "r_stencilbits", "8",  CVAR_LATCH );
 		r_depthbits = ri.Cvar_Get( "r_depthbits", "0",  CVAR_LATCH );
 		r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_mode = ri.Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
@@ -1428,7 +1466,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		// print info
 		GfxInfo_f();
-		GL_CheckErrors();
 
 		Log::Debug("----- finished R_Init -----" );
 
