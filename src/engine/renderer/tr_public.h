@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #define __TR_PUBLIC_H
 
 #include "tr_types.h"
+#include <string>
 
 #define REF_API_VERSION 10
 
@@ -44,7 +45,21 @@ struct glconfig2_t
 {
 	bool textureCompressionRGTCAvailable;
 
+	int glHighestMajor;
+	int glHighestMinor;
+
+	int glRequestedMajor;
+	int glRequestedMinor;
+
+	int glMajor;
+	int glMinor;
+
 	bool glCoreProfile;
+	bool glForwardCompatibleContext;
+
+	std::string glExtensionsString;
+	std::string glEnabledExtensionsString;
+	std::string glMissingExtensionsString;
 
 	int      maxCubeMapTextureSize;
 

@@ -2662,7 +2662,7 @@ void CL_StartHunkUsers()
 	if ( !cls.rendererStarted )
 	{
 		CL_ShutdownRef();
-		Sys::Error( "Couldn't load a renderer" );
+		Sys::Error( "Couldn't load a renderer." );
 	}
 
 	if ( !Audio::Init() ) {
@@ -3023,7 +3023,9 @@ void CL_Shutdown()
 
 	recursive = false;
 
-	memset( &cls, 0, sizeof( cls ) );
+	// do not leak.
+	cls.~clientStatic_t();
+	new(&cls) clientStatic_t{};
 
 	Log::Debug( "-----------------------" );
 
