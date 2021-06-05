@@ -54,7 +54,6 @@ GLShader_blurX                           *gl_blurXShader = nullptr;
 GLShader_blurY                           *gl_blurYShader = nullptr;
 GLShader_debugShadowMap                  *gl_debugShadowMapShader = nullptr;
 GLShader_depthToColor                    *gl_depthToColorShader = nullptr;
-GLShader_lightVolume_omni                *gl_lightVolumeShader_omni = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
 GLShader_volumetricFog                   *gl_volumetricFogShader = nullptr;
 GLShader_motionblur                      *gl_motionblurShader = nullptr;
@@ -2076,29 +2075,6 @@ GLShader_depthToColor::GLShader_depthToColor( GLShaderManager *manager ) :
 void GLShader_depthToColor::BuildShaderVertexLibNames( std::string& vertexInlines )
 {
 	vertexInlines += "vertexSimple vertexSkinning ";
-}
-
-GLShader_lightVolume_omni::GLShader_lightVolume_omni( GLShaderManager *manager ) :
-	GLShader( "lightVolume_omni", ATTR_POSITION, manager ),
-	u_ViewOrigin( this ),
-	u_LightOrigin( this ),
-	u_LightColor( this ),
-	u_LightRadius( this ),
-	u_LightScale( this ),
-	u_LightAttenuationMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_UnprojectMatrix( this ),
-	GLCompileMacro_USE_SHADOWING( this )
-{
-}
-
-void GLShader_lightVolume_omni::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_AttenuationMapXY" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_AttenuationMapZ" ), 2 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowMap" ), 3 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ShadowClipMap" ), 4 );
 }
 
 GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :

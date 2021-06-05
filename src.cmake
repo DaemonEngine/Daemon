@@ -182,8 +182,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/lightMapping_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/lighttile_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/lighttile_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lightVolume_omni_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/lightVolume_omni_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/liquid_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/liquid_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/motionblur_fp.glsl
