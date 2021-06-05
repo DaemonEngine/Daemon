@@ -2577,17 +2577,6 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
 
-class GLShader_depthToColor :
-	public GLShader,
-	public u_ModelViewProjectionMatrix,
-	public u_Bones,
-	public GLCompileMacro_USE_VERTEX_SKINNING
-{
-public:
-	GLShader_depthToColor( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-};
-
 class GLShader_liquid :
 	public GLShader,
 	public u_TextureMatrix,
@@ -2708,7 +2697,6 @@ extern GLShader_cameraEffects                   *gl_cameraEffectsShader;
 extern GLShader_blurX                           *gl_blurXShader;
 extern GLShader_blurY                           *gl_blurYShader;
 extern GLShader_debugShadowMap                  *gl_debugShadowMapShader;
-extern GLShader_depthToColor                    *gl_depthToColorShader;
 extern GLShader_liquid                          *gl_liquidShader;
 extern GLShader_volumetricFog                   *gl_volumetricFogShader;
 extern GLShader_motionblur                      *gl_motionblurShader;

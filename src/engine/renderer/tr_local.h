@@ -2645,8 +2645,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		image_t    *lighttileRenderImage;
 		image_t    *portalRenderImage;
 
-		image_t    *depthToColorBackFacesFBOImage;
-		image_t    *depthToColorFrontFacesFBOImage;
 		image_t    *downScaleFBOImage_quarter;
 		image_t    *downScaleFBOImage_64x64;
 		image_t *shadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];

@@ -69,12 +69,6 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_lighttileShader );
 	}
 
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
-
-	gl_shaderManager.load( gl_depthToColorShader );
-
-#endif // #if !defined(GLSL_COMPILE_STARTUP_ONLY)
-
 	// shadowmap distance compression
 	gl_shaderManager.load( gl_shadowFillShader );
 
@@ -236,7 +230,6 @@ void GLSL_ShutdownGPUShaders()
 	gl_forwardLightingShader_omniXYZ = nullptr;
 	gl_forwardLightingShader_projXYZ = nullptr;
 	gl_forwardLightingShader_directionalSun = nullptr;
-	gl_depthToColorShader = nullptr;
 	gl_shadowFillShader = nullptr;
 	gl_reflectionShader = nullptr;
 	gl_skyboxShader = nullptr;
