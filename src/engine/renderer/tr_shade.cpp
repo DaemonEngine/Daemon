@@ -238,7 +238,6 @@ void GLSL_ShutdownGPUShaders()
 	gl_forwardLightingShader_directionalSun = nullptr;
 	gl_depthToColorShader = nullptr;
 	gl_shadowFillShader = nullptr;
-	gl_lightVolumeShader_omni = nullptr;
 	gl_reflectionShader = nullptr;
 	gl_skyboxShader = nullptr;
 	gl_fogQuake3Shader = nullptr;

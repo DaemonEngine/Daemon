@@ -46,8 +46,6 @@
 #include "lightMapping_vp.glsl.h"
 #include "lighttile_fp.glsl.h"
 #include "lighttile_vp.glsl.h"
-#include "lightVolume_omni_fp.glsl.h"
-#include "lightVolume_omni_vp.glsl.h"
 #include "liquid_fp.glsl.h"
 #include "liquid_vp.glsl.h"
 #include "motionblur_fp.glsl.h"
@@ -101,8 +99,6 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/heatHaze_vp.glsl", std::string(reinterpret_cast<const char*>(heatHaze_vp_glsl), sizeof(heatHaze_vp_glsl)) },
 	{ "glsl/lightMapping_fp.glsl", std::string(reinterpret_cast<const char*>(lightMapping_fp_glsl), sizeof(lightMapping_fp_glsl)) },
 	{ "glsl/lightMapping_vp.glsl", std::string(reinterpret_cast<const char*>(lightMapping_vp_glsl), sizeof(lightMapping_vp_glsl)) },
-	{ "glsl/lightVolume_omni_fp.glsl", std::string(reinterpret_cast<const char*>(lightVolume_omni_fp_glsl), sizeof(lightVolume_omni_fp_glsl)) },
-	{ "glsl/lightVolume_omni_vp.glsl", std::string(reinterpret_cast<const char*>(lightVolume_omni_vp_glsl), sizeof(lightVolume_omni_vp_glsl)) },
 	{ "glsl/lighttile_fp.glsl", std::string(reinterpret_cast<const char*>(lighttile_fp_glsl), sizeof(lighttile_fp_glsl)) },
 	{ "glsl/lighttile_vp.glsl", std::string(reinterpret_cast<const char*>(lighttile_vp_glsl), sizeof(lighttile_vp_glsl)) },
 	{ "glsl/liquid_fp.glsl", std::string(reinterpret_cast<const char*>(liquid_fp_glsl), sizeof(liquid_fp_glsl)) },
