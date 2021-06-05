@@ -53,7 +53,6 @@ GLShader_cameraEffects                   *gl_cameraEffectsShader = nullptr;
 GLShader_blurX                           *gl_blurXShader = nullptr;
 GLShader_blurY                           *gl_blurYShader = nullptr;
 GLShader_debugShadowMap                  *gl_debugShadowMapShader = nullptr;
-GLShader_depthToColor                    *gl_depthToColorShader = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
 GLShader_volumetricFog                   *gl_volumetricFogShader = nullptr;
 GLShader_motionblur                      *gl_motionblurShader = nullptr;
@@ -2062,19 +2061,6 @@ GLShader_debugShadowMap::GLShader_debugShadowMap( GLShaderManager *manager ) :
 void GLShader_debugShadowMap::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 0 );
-}
-
-GLShader_depthToColor::GLShader_depthToColor( GLShaderManager *manager ) :
-	GLShader( "depthToColor", ATTR_POSITION | ATTR_QTANGENT, manager ),
-	u_ModelViewProjectionMatrix( this ),
-	u_Bones( this ),
-	GLCompileMacro_USE_VERTEX_SKINNING( this )
-{
-}
-
-void GLShader_depthToColor::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning ";
 }
 
 GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :

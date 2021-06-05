@@ -25,8 +25,6 @@
 #include "depthtile1_vp.glsl.h"
 #include "depthtile2_fp.glsl.h"
 #include "depthtile2_vp.glsl.h"
-#include "depthToColor_fp.glsl.h"
-#include "depthToColor_vp.glsl.h"
 #include "dispersion_C_fp.glsl.h"
 #include "dispersion_C_vp.glsl.h"
 #include "fogGlobal_fp.glsl.h"
@@ -76,8 +74,6 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/debugShadowMap_fp.glsl", std::string(reinterpret_cast<const char*>(debugShadowMap_fp_glsl), sizeof(debugShadowMap_fp_glsl)) },
 	{ "glsl/debugShadowMap_vp.glsl", std::string(reinterpret_cast<const char*>(debugShadowMap_vp_glsl), sizeof(debugShadowMap_vp_glsl)) },
 	{ "glsl/deformVertexes_vp.glsl", std::string(reinterpret_cast<const char*>(deformVertexes_vp_glsl), sizeof(deformVertexes_vp_glsl)) },
-	{ "glsl/depthToColor_fp.glsl", std::string(reinterpret_cast<const char*>(depthToColor_fp_glsl), sizeof(depthToColor_fp_glsl)) },
-	{ "glsl/depthToColor_vp.glsl", std::string(reinterpret_cast<const char*>(depthToColor_vp_glsl), sizeof(depthToColor_vp_glsl)) },
 	{ "glsl/depthtile1_fp.glsl", std::string(reinterpret_cast<const char*>(depthtile1_fp_glsl), sizeof(depthtile1_fp_glsl)) },
 	{ "glsl/depthtile1_vp.glsl", std::string(reinterpret_cast<const char*>(depthtile1_vp_glsl), sizeof(depthtile1_vp_glsl)) },
 	{ "glsl/depthtile2_fp.glsl", std::string(reinterpret_cast<const char*>(depthtile2_fp_glsl), sizeof(depthtile2_fp_glsl)) },

@@ -161,8 +161,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/depthtile1_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/depthtile2_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/depthtile2_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthToColor_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/depthToColor_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/dispersion_C_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/dispersion_C_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fogGlobal_fp.glsl

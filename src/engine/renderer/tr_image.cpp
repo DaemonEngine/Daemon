@@ -2550,9 +2550,6 @@ static void R_CreateDepthToColorFBOImages()
 	imageParams.bits = IF_NOPICMIP;
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	tr.depthToColorBackFacesFBOImage = R_CreateImage( "_depthToColorBackFacesFBORender", nullptr, width, height, 1, imageParams );
-	tr.depthToColorFrontFacesFBOImage = R_CreateImage( "_depthToColorFrontFacesFBORender", nullptr, width, height, 1, imageParams );
 }
 
 // Tr3B: clean up this mess some day ...
