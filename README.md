@@ -72,7 +72,7 @@ cd Daemon/
 git submodule update --init --recursive
 ```
 
-If cmake complains about missing files in `recastnavigation/` folder or similar issue then you have skipped this step.
+If cmake complains about missing files in `libs/crunch/` folder or similar issue then you have skipped this step.
 
 ## Build Instructions
 
