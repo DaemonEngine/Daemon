@@ -41,9 +41,8 @@ void VertexFetch(out vec4 position,
 	const float scale = 1.0 / 256.0;
 	localBasis inLB;
 
-	ivec4 idx = 2 * ivec4( floor( attr_BoneFactors * scale ) );
-	vec4  weights = fract( attr_BoneFactors * scale );
-	weights.x = 1.0 - weights.x;
+	ivec4 idx = 2 * ( ivec4(attr_BoneFactors) >> 8 );
+	vec4 weights = ( ivec4(attr_BoneFactors) & 0xFF ) / 255.0;
 
 	vec4 quat = u_Bones[ idx.x ];
 	vec4 trans = u_Bones[ idx.x + 1 ];
