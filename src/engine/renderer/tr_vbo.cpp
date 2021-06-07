@@ -304,11 +304,11 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	}
 }
 
-// index has to be in range 0-255, weight has to be >= 0 and < 1
+// index has to be in range 0-255, weight has to be >= 0 and <= 1
 static inline unsigned short
 boneFactor( int index, float weight ) {
-	int scaledWeight = lrintf( weight * 256.0 );
-	return (unsigned short)( ( index << 8 ) | std::min( scaledWeight, 255 ) );
+	int scaledWeight = lrintf( weight * 255.0 );
+	return (unsigned short)( ( index << 8 ) | scaledWeight );
 }
 
 static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
@@ -370,9 +370,7 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 			{
 				uint32_t j;
 
-				ptr[ v ].boneFactors[ 0 ] = boneFactor( inData.boneIndexes[ v ][ 0 ],
-									1.0f - inData.boneWeights[ v ][ 0 ]);
-				for ( j = 1; j < 4; j++ ) {
+				for ( j = 0; j < 4; j++ ) {
 					ptr[ v ].boneFactors[ j ] = boneFactor( inData.boneIndexes[ v ][ j ],
 										inData.boneWeights[ v ][ j ] );
 				}
