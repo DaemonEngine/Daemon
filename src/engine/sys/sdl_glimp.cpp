@@ -748,7 +748,11 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 
 	glewResult = glewInit();
 
+#ifdef GLEW_ERROR_NO_GLX_DISPLAY
+	if ( glewResult != GLEW_OK && glewResult != GLEW_ERROR_NO_GLX_DISPLAY )
+#else
 	if ( glewResult != GLEW_OK )
+#endif
 	{
 		// glewInit failed, something is seriously wrong
 		Sys::Error( "GLW_StartOpenGL() - could not load OpenGL subsystem: %s", glewGetErrorString( glewResult ) );
