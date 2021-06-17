@@ -1626,10 +1626,6 @@ void         ByteToDir( int b, vec3_t dir );
 #define KEYCATCH_CONSOLE 0x0001
 #define KEYCATCH_UI      0x0002
 
-#define KEYEVSTATE_DOWN 1
-#define KEYEVSTATE_CHAR 2
-#define KEYEVSTATE_SUP  8
-
 // sound channels
 // channel 0 never willingly overrides
 // other channels will always override a playing sound on that channel
