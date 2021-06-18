@@ -495,8 +495,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		Tess_MapVBOs( false );
 	}
 
-	bool isSky = ( state != nullptr && state->isSky != false );
-
 	tess.lightShader = lightShader;
 
 	tess.stageIteratorFunc = stageIteratorFunc;
@@ -507,17 +505,16 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
-	if ( tess.stageIteratorFunc == &Tess_StageIteratorGeneric )
+	bool isSky = ( state != nullptr && state->isSky != false );
+
+	if ( isSky )
 	{
-		if ( isSky )
+		if ( tess.stageIteratorFunc == &Tess_StageIteratorGeneric )
 		{
 			tess.stageIteratorFunc = &Tess_StageIteratorSky;
 			tess.stageIteratorFunc2 = &Tess_StageIteratorGeneric;
 		}
-	}
-	else if ( tess.stageIteratorFunc == &Tess_StageIteratorDepthFill )
-	{
-		if ( isSky )
+		else if ( tess.stageIteratorFunc == &Tess_StageIteratorDepthFill )
 		{
 			tess.stageIteratorFunc = &Tess_StageIteratorSky;
 			tess.stageIteratorFunc2 = &Tess_StageIteratorDepthFill;
