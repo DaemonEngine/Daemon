@@ -58,6 +58,14 @@ public:
 };
 inline EventBase::~EventBase() = default;
 
+class ConsoleKeyEvent: public EventBase {
+public:
+    static constexpr sysEventType_t ClassType() { return sysEventType_t::SE_CONSOLE_KEY; }
+
+    ConsoleKeyEvent():
+        EventBase(ClassType()) {}
+};
+
 class KeyEvent: public EventBase {
 public:
     static constexpr sysEventType_t ClassType() { return sysEventType_t::SE_KEY; }

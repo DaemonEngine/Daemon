@@ -659,6 +659,7 @@ void     CL_Init();
 void     CL_Disconnect( bool showMainMenu );
 void     CL_Shutdown();
 void     CL_Frame( int msec );
+void     CL_ConsoleKeyEvent();
 namespace Keyboard { class Key; }
 void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
 
@@ -728,6 +729,7 @@ enum class joystickAxis_t
 
 enum class sysEventType_t
 {
+  SE_CONSOLE_KEY,
   SE_KEY,
   SE_CHAR,
   SE_MOUSE,

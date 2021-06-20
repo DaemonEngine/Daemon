@@ -1035,7 +1035,7 @@ static void IN_ProcessEvents( bool dropInput )
 						if ( IN_IsConsoleKey( k ) && !keys[ Key(K_ALT) ].down) {
 							// Console keys can't be bound or generate characters
 							// (but allow Alt+key for text input)
-							QueueKeyEvent( Key::CONSOLE, true );
+							Com_QueueEvent( Util::make_unique<Sys::ConsoleKeyEvent>() );
 							consoleFound = true;
 							break;
 						}
