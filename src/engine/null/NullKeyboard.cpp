@@ -123,6 +123,9 @@ void CL_InitKeyCommands() {
 void CL_ClearKeyBinding() {
 }
 
+void CL_ConsoleKeyEvent() {
+}
+
 void CL_KeyEvent( const Key&, bool, unsigned ) {
 }
 
