@@ -671,7 +671,7 @@ return true when a redirect URL message was filled up
 when the cvar is set to something, the download server will effectively never use a legacy download strategy
 ==================
 */
-static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, msg_t *msg )
+static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, int downloadSize, msg_t *msg )
 {
 	if ( !sv_wwwFallbackURL->string || !sv_wwwFallbackURL->string[0] )
 	{
@@ -685,8 +685,8 @@ static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, msg_t *msg )
 	MSG_WriteByte( msg, svc_download );
 	MSG_WriteShort( msg, -1 );  // block -1 means ftp/http download
 	MSG_WriteString( msg, va( "%s/%s", sv_wwwFallbackURL->string, pakName ) );
-	MSG_WriteLong( msg, 0 );
-	MSG_WriteLong( msg, 0 );
+	MSG_WriteLong( msg, downloadSize );
+	MSG_WriteLong( msg, strlen( sv_wwwBaseURL->string ) + 1 );
 
 	return true;
 }
@@ -802,8 +802,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					cl->bWWWDl = true;
 					MSG_WriteByte( msg, svc_download );
 					MSG_WriteShort( msg, -1 );  // block -1 means ftp/http download
-					// compatible with legacy svc_download protocol: [size] [size bytes]
-					// download URL, size of the download file, download flags
+					// download URL, size of the download file
 					MSG_WriteString( msg, cl->downloadURL );
 					MSG_WriteLong( msg, downloadSize );
 					// Base URL length. The base prefix is expected to end with '/'
@@ -821,7 +820,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 				cl->bFallback = false;
 				cl->bWWWDl = true;
 
-				if ( SV_CheckFallbackURL( cl, pakName.c_str(), msg ) )
+				if ( SV_CheckFallbackURL( cl, pakName.c_str(), downloadSize, msg ) )
 				{
 					return;
 				}
