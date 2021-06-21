@@ -180,10 +180,7 @@ enum keyNum_t
   K_CONTROLLER_RT,
   K_CONTROLLER_MAX,
 
-  // Pseudo-key that brings the console down
-  K_CONSOLE = K_CONTROLLER_MAX,
-
-  MAX_KEYS
+  MAX_KEYS = K_CONTROLLER_MAX,
 };
 
 #endif

@@ -74,14 +74,11 @@ private:
 
 public:
     static const Key NONE;
-    static const Key CONSOLE;
 
     constexpr Key(): Key(Kind::INVALID, 0) { }
     explicit Key(keyNum_t key) {
         if (key <= 0 || key >= MAX_KEYS)
             *this = Key();
-        else if (key == K_CONSOLE)
-            *this = CONSOLE;
         else
             *this = Key(Kind::KEYNUM, Util::ordinal<keyNum_t>(key));
     }
@@ -143,16 +140,12 @@ public:
 
     // TODO(slipher): remove need for all of the following
     int AsLegacyInt() const {
-        if (kind_ == Kind::CONSOLE)
-            return Util::ordinal(K_CONSOLE);
-        else if (kind_ == Kind::KEYNUM || (kind_ == Kind::UNICODE_CHAR && id_ < 127))
+        if (kind_ == Kind::KEYNUM || (kind_ == Kind::UNICODE_CHAR && id_ < 127))
             return id_;
         else
             return K_NONE;
     }
     static Key FromLegacyInt(int k) {
-        if (k == K_CONSOLE)
-            return CONSOLE;
         if (MIN_PRINTABLE_ASCII <= k && k <= MAX_PRINTABLE_ASCII)
             return FromCharacter(k);
         if (k > 0 && k < keyNum_t::MAX_KEYS)
@@ -195,17 +188,13 @@ template<> struct SerializeTraits<Keyboard::Key> {
         using Keyboard::Key;
         auto kind = stream.Read<Key::Kind>();
         auto id = stream.Read<int>();
-        // CONSOLE is an engine implementation detail so we don't deserialize it.
         switch (kind) {
         case Key::Kind::UNICODE_CHAR:
             return Key::FromCharacter(id);
         case Key::Kind::SCANCODE:
             return Key::FromScancode(id);
         case Key::Kind::KEYNUM:
-            if (id != Util::ordinal(keyNum_t::K_CONSOLE)) {
-                return Key(Util::enum_cast<keyNum_t>(id));
-            }
-            return Key::NONE;
+            return Key(Util::enum_cast<keyNum_t>(id));
         default:
             return Key::NONE;
         }
