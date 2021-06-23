@@ -47,12 +47,9 @@ class ServerApplication : public Application {
             traits.uniqueHomepathSuffix = "-server";
         }
 
-        void LoadInitialConfig(bool resetConfig) override {
+        void LoadInitialConfig(bool /*resetConfig*/) override {
             //TODO(kangz) move this functions and its friends to FileSystem.cpp
 	        FS_LoadBasePak();
-	        if (!resetConfig) {
-		        Cmd::BufferCommandText("exec -f " SERVERCONFIG_NAME);
-	        }
         }
 
         void Initialize(Str::StringRef) override {
