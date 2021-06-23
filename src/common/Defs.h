@@ -60,7 +60,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONFIG_NAME         "autogen.cfg"
 #define KEYBINDINGS_NAME    "keybindings.cfg"
 #define TEAMCONFIG_NAME     "teamconfig.cfg"
-#define SERVERCONFIG_NAME   "autogen_server.cfg"
 
 #define UNNAMED_PLAYER      "UnnamedPlayer"
 #define UNNAMED_SERVER      PRODUCT_NAME " " PRODUCT_VERSION " Server"
