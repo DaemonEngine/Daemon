@@ -22,6 +22,9 @@ build
 *.so
 *.a
 
+#ignore removed submodules
+libs/recastnavigation/
+
 #ignore editor temporary files
 .*.swp
 .#*
