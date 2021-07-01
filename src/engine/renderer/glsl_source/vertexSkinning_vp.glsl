@@ -41,8 +41,20 @@ void VertexFetch(out vec4 position,
 	const float scale = 1.0 / 256.0;
 	localBasis inLB;
 
-	ivec4 idx = 2 * ( ivec4(attr_BoneFactors) >> 8 );
-	vec4 weights = ( ivec4(attr_BoneFactors) & 0xFF ) / 255.0;
+	#if __VERSION__ > 120
+		/* This code works on GL 3 GPUs and later including the
+		Nvidia proprietary driver but does not work on GL 2 GPUs.
+		See https://github.com/DaemonEngine/Daemon/issues/490 */
+		ivec4 idx = 2 * ( ivec4(attr_BoneFactors) >> 8 );
+		vec4 weights = ( ivec4(attr_BoneFactors) & 0xFF ) / 255.0;
+	#else
+		/* This code works on GL 2 GPUs and later but the Nvidia
+		proprietary driver is affected by a bug starting with GL 3 GPUs.
+		See https://github.com/DaemonEngine/Daemon/issues/472 */
+		ivec4 idx = 2 * ivec4( floor( attr_BoneFactors * scale ) );
+		vec4  weights = fract( attr_BoneFactors * scale );
+		weights.x = 1.0 - weights.x;
+	#endif
 
 	vec4 quat = u_Bones[ idx.x ];
 	vec4 trans = u_Bones[ idx.x + 1 ];

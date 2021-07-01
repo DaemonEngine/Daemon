@@ -304,11 +304,28 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	}
 }
 
-// index has to be in range 0-255, weight has to be >= 0 and <= 1
 static inline unsigned short
 boneFactor( int index, float weight ) {
-	int scaledWeight = lrintf( weight * 255.0 );
-	return (unsigned short)( ( index << 8 ) | scaledWeight );
+	if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+	{
+		/* This code works on GL 3 GPUs and later including the
+		Nvidia proprietary driver but does not work on GL 2 GPUs.
+		See https://github.com/DaemonEngine/Daemon/issues/490 */
+
+		// index has to be in range 0-255, weight has to be >= 0 and <= 1
+		int scaledWeight = lrintf( weight * 255.0 );
+		return (unsigned short)( ( index << 8 ) | scaledWeight );
+	}
+	else
+	{
+		/* This code works on GL 2 GPUs and later but the Nvidia
+		proprietary driver is affected by a bug starting with GL 3 GPUs.
+		See https://github.com/DaemonEngine/Daemon/issues/472 */
+
+		// index has to be in range 0-255, weight has to be >= 0 and < 1
+		int scaledWeight = lrintf( weight * 256.0 );
+		return (unsigned short)( ( index << 8 ) | std::min( scaledWeight, 255 ) );
+	}
 }
 
 static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
@@ -369,8 +386,26 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 			if ( ( vbo->attribBits & ATTR_BONE_FACTORS ) )
 			{
 				uint32_t j;
+				int start;
 
-				for ( j = 0; j < 4; j++ ) {
+				if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
+				{
+					/* This code works on GL 3 GPUs and later including the
+					Nvidia proprietary driver but does not work on GL 2 GPUs.
+					See https://github.com/DaemonEngine/Daemon/issues/490 */
+					start = 0;
+				}
+				else
+				{
+					/* This code works on GL 2 GPUs and later but the Nvidia
+					proprietary driver is affected by a bug starting with GL 3 GPUs.
+					See https://github.com/DaemonEngine/Daemon/issues/472 */
+					ptr[ v ].boneFactors[ 0 ] = boneFactor( inData.boneIndexes[ v ][ 0 ],
+					1.0f - inData.boneWeights[ v ][ 0 ]);
+					start = 1;
+				}
+
+				for ( j = start; j < 4; j++ ) {
 					ptr[ v ].boneFactors[ j ] = boneFactor( inData.boneIndexes[ v ][ j ],
 										inData.boneWeights[ v ][ j ] );
 				}
