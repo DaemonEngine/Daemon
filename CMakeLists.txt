@@ -70,19 +70,31 @@ project(Daemon C CXX)
 ################################################################################
 
 if(NOT DAEMON_EXTERNAL_APP)
-    option(BUILD_CLIENT "Build Daemon client" 1)
-    option(BUILD_SERVER "Build Daemonded server" 1)
-    option(BUILD_GAME_NATIVE_EXE "Build native executable game logic" 1)
-    option(BUILD_GAME_NATIVE_DLL "Build native shared library game logic" 1)
+    option(BUILD_CLIENT "Engine client executable, required to play" ON)
+    option(BUILD_SERVER "Engine server executable, required to host servers" ON)
+
+    ## About the different ways to host/play games:
+    ## Native DLL: no sandboxing, no cleaning up but debugger support. Use for dev.
+    ## NaCl exe: sandboxing, no leaks, slightly slower, hard to debug. Use for regular players.
+    ## Native exe: no sandboxing, no leaks, hard to debug. Might be used by server owners for perf.
+    ## see VirtualMachine.h for code
+
+    # can be loaded by daemon with vm.[sc]game.type 3
+    option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for debugging changes locally." ON)
+
+    # can be loaded by daemon with vm.[sc]game.type 2
+    option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" ON)
+
     if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)
-        option(BUILD_GAME_NACL "Build PNaCl game logic" 1)
-        option(BUILD_GAME_NACL_NEXE "Build NaCl game logic" 1)
+        # can be loaded by daemon with vm.[sc]game.type 0 or 1
+        option(BUILD_GAME_NACL "Build the \"pexe\" files, required to build the \"nexe\" files which are required to host servers." ON)
+        option(BUILD_GAME_NACL_NEXE "Build the \"nexe\" files from the \"pexe\" files, required to host servers." ON)
     else()
         set(BUILD_GAME_NACL 0)
         set(BUILD_GAME_NACL_NEXE 0)
     endif()
-    option(BUILD_TTY_CLIENT "Build Daemon headless client" 1)
-    option(BUILD_DUMMY_APP "Build the dummy app for daemon" 0)
+    option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
+    option(BUILD_DUMMY_APP "Stripped-down engine executable, mostly used to ease incremental porting and debugging" OFF)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
@@ -92,11 +104,11 @@ if(NOT DAEMON_EXTERNAL_APP)
     elseif(WIN32)
         set(USE_CURSES ON)
     else()
-	option(USE_CURSES "Compile with curses support" 1)
+        option(USE_CURSES "Enable fancy colors in terminal's output" ON)
     endif()
     cmake_dependent_option(USE_SMP "Compile with support for running the renderer in a separate thread" 1 BUILD_CLIENT 0)
-    cmake_dependent_option(USE_GEOIP "Use libgeoip" 1 "BUILD_SERVER OR BUILD_CLIENT OR BUILD_TTY_CLIENT" 0)
-    option(USE_BREAKPAD "Use Breakpad crash logging" 0)
+    cmake_dependent_option(USE_GEOIP "Allows server to show from which coutry a player logs from" 1 "BUILD_SERVER OR BUILD_CLIENT OR BUILD_TTY_CLIENT" 0)
+    option(USE_BREAKPAD "Allows to generate Daemon-specific crash dumps, requires specific tooling to exploit them" OFF)
 endif()
 
 option(USE_LTO "Use link-time optimization for release builds" 0)
