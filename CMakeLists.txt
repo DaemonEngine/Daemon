@@ -111,21 +111,22 @@ if(NOT DAEMON_EXTERNAL_APP)
     option(USE_BREAKPAD "Allows to generate Daemon-specific crash dumps, requires specific tooling to exploit them" OFF)
 endif()
 
-option(USE_LTO "Use link-time optimization for release builds" 0)
+option(USE_LTO "Use link-time optimization for release builds" OFF)
 cmake_dependent_option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" 1 "USE_LTO AND \"${CMAKE_CXX_COMPILER_ID}\" STREQUAL GNU" 0)
-option(USE_HARDENING "Use stack protection and other hardening flags" 0)
-option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" 0)
-option(USE_PEDANTIC "Tell the compiler to be pedantic" 0)
-option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" 1)
+option(USE_HARDENING "Use stack protection and other hardening flags" OFF)
+option(USE_WERROR "Tell the compiler to make the build fail when warnings are present" OFF)
+option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
+option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
+
 if (APPLE)
     # Turn off by default because it is reportedly broken
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" 0)
+    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
 else()
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" 1)
+    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
 endif()
-option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" 0)
-option(BE_VERBOSE "Tell the compiler to report all warnings" 0)
-option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" 0)
+option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" OFF)
+option(BE_VERBOSE "Tell the compiler to report all warnings" OFF)
+option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" OFF)
 
 # Game VM modules are built with a recursive invocation of CMake, by which all the configuration
 # options are lost, except ones we explicitly choose to pass.
