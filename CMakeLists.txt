@@ -81,14 +81,14 @@ if(NOT DAEMON_EXTERNAL_APP)
 
     # can be loaded by daemon with vm.[sc]game.type 0 or 1
     # TODO (maybe): those could probably be merged as a single option "BUILD_DISTRIBUTED_FILES"
-    option(BUILD_GAME_NACL "Build the \"pexe\" files, required to build the \"nexe\" files which are required to host servers." ON)
-    option(BUILD_GAME_NACL_NEXE "Build the \"nexe\" files from the \"pexe\" files, required to host servers." ON)
+    option(BUILD_GAME_NACL "Build the \"pexe\" files, required to build the \"nexe\" files which are required to host servers." OFF)
+    option(BUILD_GAME_NACL_NEXE "Build the \"nexe\" files from the \"pexe\" files, required to host servers." OFF)
 
     # can be loaded by daemon with vm.[sc]game.type 3
     option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for debugging changes locally." ON)
 
     # can be loaded by daemon with vm.[sc]game.type 2
-    option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" ON)
+    option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
     if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)
         option(BUILD_GAME_NACL ON)
