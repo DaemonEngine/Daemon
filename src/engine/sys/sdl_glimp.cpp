@@ -1384,9 +1384,108 @@ void GLimp_HandleCvars()
 {
 	if ( r_swapInterval->modified )
 	{
-		AssertCvarRange( r_swapInterval, -1, 1, true );
+		/* Set the swap interval for the GL context.
+
+		* -1 : adaptive sync
+		* 0 : immediate update
+		* 1 : generic sync, updates synchronized with the vertical refresh
+		* N : generic sync occurring on Nth vertical refresh
+		* -N : adaptive sync occurring on Nth vertical refresh
+
+		For example if screen has 60 Hz refresh rate:
+
+		* -1 will update the screen 60 times per second,
+		  using adaptive sync if supported,
+		* 0 will update the screen as soon as it can,
+		* 1 will update the screen 60 times per second,
+		* 2 will update the screen 30 times per second.
+		* 3 will update the screen 20 times per second,
+		* 4 will update the screen 15 times per second,
+		* -4 will update the screen 15 times per second,
+		  using adaptive sync if supported,
+
+		About adaptive sync:
+
+		> Some systems allow specifying -1 for the interval,
+		> to enable adaptive vsync.
+		> Adaptive vsync works the same as vsync, but if you've
+		> already missed the vertical retrace for a given frame,
+		> it swaps buffers immediately, which might be less
+		> jarring for the user during occasional framerate drops.
+		> -- https://wiki.libsdl.org/SDL_GL_SetSwapInterval
+
+		About the accepted values:
+
+		> A swap interval greater than 0 means that the GPU may force
+		> the CPU to wait due to previously issued buffer swaps.
+		> -- https://www.khronos.org/opengl/wiki/Swap_Interval
+
+		> If <interval> is negative, the minimum number of video frames
+		> between buffer swaps is the absolute value of <interval>.
+		> -- https://www.khronos.org/registry/OpenGL/extensions/EXT/GLX_EXT_swap_control_tear.txt
+
+		The max value is said to be implementation-dependent:
+
+		> The current swap interval and implementation-dependent max
+		> swap interval for a particular drawable can be obtained by
+		> calling glXQueryDrawable with the attribute […]
+		> -- https://www.khronos.org/registry/OpenGL/extensions/EXT/GLX_EXT_swap_control_tear.txt
+
+		About how to deal with errors:
+
+		> If an application requests adaptive vsync and the system
+		> does not support it, this function will fail and return -1.
+		> In such a case, you should probably retry the call with 1
+		> for the interval.
+		> -- https://wiki.libsdl.org/SDL_GL_SetSwapInterval
+
+		Given what's written in Swap Interval Khronos page, setting r_finish
+		to 1 or 0 to call or not call glFinish may impact the behaviour.
+		See https://www.khronos.org/opengl/wiki/Swap_Interval#GPU_vs_CPU_synchronization
+
+		According to the SDL documentation, only arguments from -1 to 1
+		are allowed to SDL_GL_SetSwapInterval. But investigation of SDL
+		internals shows that larger intervals should work on Linux and
+		Windows. See https://github.com/DaemonEngine/Daemon/pull/497
+		Only 0 and 1 work on Mac.
+
+		5 and -5 are arbitrarily set as ceiling and floor value
+		to prevent mistakes making the game unresponsive. */
+
+		AssertCvarRange( r_swapInterval, -5, 5, true );
+
 		R_SyncRenderThread();
-		SDL_GL_SetSwapInterval( r_swapInterval->integer );
+
+		int sign = r_swapInterval->integer < 0 ? -1 : 1;
+		int interval = std::abs( r_swapInterval->integer );
+
+		while ( SDL_GL_SetSwapInterval( sign * interval ) == -1 )
+		{
+			if ( sign == -1 )
+			{
+				logger.Warn("Adaptive sync is unsupported, fallback to generic sync: %s", SDL_GetError() );
+				sign = 1;
+			}
+			else
+			{
+				if ( interval > 1 )
+				{
+					logger.Warn("Sync interval %d is unsupported, fallback to 1: %s", interval, SDL_GetError() );
+					interval = 1;
+				}
+				else if ( interval == 1 )
+				{
+					logger.Warn("Sync is unsupported, disabling sync: %s", SDL_GetError() );
+					interval = 0;
+				}
+				else if ( interval == 0 )
+				{
+					logger.Warn("Can't disable sync, something is wrong: %s", SDL_GetError() );
+					break;
+				}
+			}
+		}
+
 		r_swapInterval->modified = false;
 	}
 
