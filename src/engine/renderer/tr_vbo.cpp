@@ -305,10 +305,10 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 }
 
 // index has to be in range 0-255, weight has to be >= 0 and <= 1
-static inline unsigned short
+static unsigned short
 boneFactor( int index, float weight ) {
 	int scaledWeight = lrintf( weight * 255.0 );
-	return (unsigned short)( ( index << 8 ) | scaledWeight );
+	return (unsigned short)( ( scaledWeight << 8 ) | index );
 }
 
 static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
