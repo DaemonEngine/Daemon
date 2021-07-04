@@ -39,10 +39,17 @@ void VertexFetch(out vec4 position,
 		 out vec2 lmCoord)
 {
 	const float scale = 1.0 / 256.0;
+	const float weightScale = 1.0 / 255.0;
 	localBasis inLB;
 
-	ivec4 idx = 2 * ( ivec4(attr_BoneFactors) >> 8 );
-	vec4 weights = ( ivec4(attr_BoneFactors) & 0xFF ) / 255.0;
+	// Unpack data from "bone factors". This used to have the index in the high byte and the weight
+	// in the low byte, which may seem a bit more logical, but it triggered issues with some
+	// Nvidia shader compilers (https://github.com/DaemonEngine/Daemon/issues/472).
+	vec4 ipart = floor( attr_BoneFactors * scale );
+	vec4 fpart = attr_BoneFactors * scale - ipart;
+	// idx = 2 times the original bone index (the index input to boneFactor)
+	ivec4 idx = ivec4( fpart * 512.0 );
+	vec4 weights = ipart * weightScale;
 
 	vec4 quat = u_Bones[ idx.x ];
 	vec4 trans = u_Bones[ idx.x + 1 ];
