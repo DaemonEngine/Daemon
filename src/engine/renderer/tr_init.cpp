@@ -98,7 +98,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_arb_texture_gather;
 	cvar_t      *r_arb_gpu_shader5;
 
-	cvar_t      *r_ignoreGLErrors;
+	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
 
 	cvar_t      *r_stencilbits;
@@ -379,7 +379,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		int  err;
 		char s[ 128 ];
 
-		if ( r_ignoreGLErrors->integer )
+		if ( !checkGLErrors() )
 		{
 			return;
 		}
@@ -1106,7 +1106,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_lodBias = ri.Cvar_Get( "r_lodBias", "0", 0 );
 		r_znear = ri.Cvar_Get( "r_znear", "3", CVAR_CHEAT );
 		r_zfar = ri.Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
-		r_ignoreGLErrors = ri.Cvar_Get( "r_ignoreGLErrors", "0", 0 );
+		r_checkGLErrors = ri.Cvar_Get( "r_checkGLErrors", "-1", 0 );
 		r_fastsky = ri.Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE );
 		r_drawSun = ri.Cvar_Get( "r_drawSun", "0", 0 );
 		r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_CHEAT );

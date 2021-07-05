@@ -1368,7 +1368,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 							      tr.shadowCubeFBOImage[ light->shadowLOD ]->texnum, 0 );
 				}
 
-				if ( !r_ignoreGLErrors->integer )
+				if ( checkGLErrors() )
 				{
 					R_CheckFBO( tr.shadowMapFBO[ light->shadowLOD ] );
 				}
@@ -1488,7 +1488,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 					R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.shadowMapFBOImage[ light->shadowLOD ]->texnum, 0 );
 				}
 
-				if ( !r_ignoreGLErrors->integer )
+				if ( checkGLErrors() )
 				{
 					R_CheckFBO( tr.shadowMapFBO[ light->shadowLOD ] );
 				}
@@ -1540,7 +1540,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 					R_AttachFBOTextureDepth( tr.sunShadowMapFBOImage[ splitFrustumIndex ]->texnum );
 				}
 
-				if ( !r_ignoreGLErrors->integer )
+				if ( checkGLErrors() )
 				{
 					R_CheckFBO( tr.sunShadowMapFBO[ splitFrustumIndex ] );
 				}
@@ -1983,7 +1983,7 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	R_BindFBO( fbos[ index ] );
 	R_AttachFBOTexture2D( images[ index + MAX_SHADOWMAPS ]->type, images[ index + MAX_SHADOWMAPS ]->texnum, 0 );
 
-	if ( !r_ignoreGLErrors->integer )
+	if ( checkGLErrors() )
 	{
 		R_CheckFBO( fbos[ index ] );
 	}

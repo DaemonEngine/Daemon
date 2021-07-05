@@ -811,7 +811,7 @@ void RE_BeginFrame()
 	}
 
 	// check for errors
-	if ( !r_ignoreGLErrors->integer )
+	if ( checkGLErrors() )
 	{
 		R_SyncRenderThread();
 		GL_CheckErrors_( __FILE__, __LINE__ );
