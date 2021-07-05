@@ -51,7 +51,7 @@ struct cvar_t
 {
 	char *name;
 	char *string;
-	char *resetString; // cvar_restart will reset to this value
+	char *resetString; // default value
 	char *latchedString; // for CVAR_LATCH vars
 	int flags;
 	bool modified; // set each time the cvar is changed
