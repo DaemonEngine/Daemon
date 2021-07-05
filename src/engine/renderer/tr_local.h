@@ -2973,7 +2973,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_skipBackEnd;
 	extern cvar_t *r_skipLightBuffer;
 
-	extern cvar_t *r_ignoreGLErrors;
+	extern cvar_t *r_checkGLErrors;
 
 	extern cvar_t *r_debugSurface;
 	extern cvar_t *r_simpleMipMaps;
@@ -3032,6 +3032,19 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_fontScale;
 
 //====================================================================
+
+/* r_checkGLErrors values:
+- -1: check for GL errors on debug build only
+- 0: never check for GL errors
+- 1: always check for GL errors */
+inline bool checkGLErrors()
+{
+#ifdef DEBUG_BUILD
+	return r_checkGLErrors->integer != 0;
+#else
+	return r_checkGLErrors->integer > 0;
+#endif
+}
 
 #define IMAGE_FILE_HASH_SIZE 4096
 	extern image_t *r_imageHashTable[ IMAGE_FILE_HASH_SIZE ];
