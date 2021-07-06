@@ -787,29 +787,6 @@ static rserr_t GLimp_SetMode( int mode, bool fullscreen, bool noborder )
 	return rserr_t::RSERR_OK;
 }
 
-static void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral )
-{
-	if ( shouldBeIntegral )
-	{
-		if ( ( int ) cv->value != cv->integer )
-		{
-			logger.Warn("cvar '%s' must be integral (%f)", cv->name, cv->value );
-			ri.Cvar_Set( cv->name, va( "%d", cv->integer ) );
-		}
-	}
-
-	if ( cv->value < minVal )
-	{
-		logger.Warn("cvar '%s' out of range (%f < %f)", cv->name, cv->value, minVal );
-		ri.Cvar_Set( cv->name, va( "%f", minVal ) );
-	}
-	else if ( cv->value > maxVal )
-	{
-		logger.Warn("cvar '%s' out of range (%f > %f)", cv->name, cv->value, maxVal );
-		ri.Cvar_Set( cv->name, va( "%f", maxVal ) );
-	}
-}
-
 /*
 ===============
 GLimp_StartDriverAndSetMode

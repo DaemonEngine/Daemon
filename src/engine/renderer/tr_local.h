@@ -3207,6 +3207,8 @@ inline bool checkGLErrors()
 
 	bool   R_Init();
 
+	void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral );
+
 	bool   R_GetModeInfo( int *width, int *height, int mode );
 
 	void       R_ImageList_f();

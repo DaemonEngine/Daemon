@@ -258,11 +258,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_fontScale;
 
-	static void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral )
+	void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral )
 	{
 		if ( shouldBeIntegral )
 		{
-			if ( ( int ) cv->value != cv->integer )
+			if ( cv->value != static_cast<float>(cv->integer) )
 			{
 				Log::Warn("cvar '%s' must be integral (%f)", cv->name, cv->value );
 				ri.Cvar_Set( cv->name, va( "%d", cv->integer ) );
@@ -271,12 +271,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 		if ( cv->value < minVal )
 		{
-			Log::Warn("cvar '%s' out of range (%f < %f)", cv->name, cv->value, minVal );
+			Log::Warn("cvar '%s' out of range (%g < %g)", cv->name, cv->value, minVal );
 			ri.Cvar_Set( cv->name, va( "%f", minVal ) );
 		}
 		else if ( cv->value > maxVal )
 		{
-			Log::Warn("cvar '%s' out of range (%f > %f)", cv->name, cv->value, maxVal );
+			Log::Warn("cvar '%s' out of range (%g > %g)", cv->name, cv->value, maxVal );
 			ri.Cvar_Set( cv->name, va( "%f", maxVal ) );
 		}
 	}
