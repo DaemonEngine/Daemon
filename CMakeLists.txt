@@ -109,7 +109,7 @@ if(NOT DAEMON_EXTERNAL_APP)
     endif()
     cmake_dependent_option(USE_SMP "Compile with support for running the renderer in a separate thread" 1 BUILD_CLIENT 0)
     cmake_dependent_option(USE_GEOIP "Allows server to show from which coutry a player logs from" 1 "BUILD_SERVER OR BUILD_CLIENT OR BUILD_TTY_CLIENT" 0)
-    option(USE_BREAKPAD "Allows to generate Daemon-specific crash dumps, requires specific tooling to exploit them" OFF)
+    option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
 
 option(USE_LTO "Use link-time optimization for release builds" OFF)
@@ -119,10 +119,11 @@ option(USE_WERROR "Tell the compiler to make the build fail when warnings are pr
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
 option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
 
-option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
 if (APPLE)
     # Turn off by default because it is reportedly broken
-    option(USE_PRECOMPILED_HEADER OFF)
+    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
+else()
+    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
 endif()
 option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" OFF)
 option(BE_VERBOSE "Tell the compiler to report all warnings" OFF)
