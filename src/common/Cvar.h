@@ -80,6 +80,10 @@ namespace Cvar {
                 return name;
             }
 
+            void Reset() {
+                SetValue(defaultValue);
+            }
+
         protected:
             std::string name;
 
