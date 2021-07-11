@@ -5749,7 +5749,6 @@ static void R_CreateVBOShadowCubeMeshes( trRefLight_t *light )
 	for ( cubeSide = 0; cubeSide < 6; cubeSide++ )
 	{
 		shader = oldShader = nullptr;
-		// oldAlphaTest = alphaTest = -1;
 		oldAlphaTest = alphaTest = true;
 
 		for ( k = 0; k < numCaches; k++ )
