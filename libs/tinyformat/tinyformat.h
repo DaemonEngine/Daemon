@@ -115,7 +115,7 @@ namespace tfm = tinyformat;
 //------------------------------------------------------------------------------
 // Implementation details.
 #include <algorithm>
-#include <iostream>
+#include <iosfwd>
 #include <sstream>
 
 #include "common/Compiler.h"
@@ -792,20 +792,6 @@ std::string format(const char* fmt, const Args&... args)
     std::ostringstream oss;
     format(oss, fmt, args...);
     return oss.str();
-}
-
-/// Format list of arguments to std::cout, according to the given format string
-template<typename... Args>
-void printf(const char* fmt, const Args&... args)
-{
-    format(std::cout, fmt, args...);
-}
-
-template<typename... Args>
-void printfln(const char* fmt, const Args&... args)
-{
-    format(std::cout, fmt, args...);
-    std::cout << '\n';
 }
 
 } // namespace tinyformat
