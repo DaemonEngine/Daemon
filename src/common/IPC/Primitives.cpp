@@ -499,7 +499,7 @@ static void* MapSharedMemory(Sys::OSHandle handle, size_t size)
 #ifdef _WIN32
 	void* base = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, size);
 	if (base == nullptr)
-		Sys::Drop("IPC: Failed to map shared memory object of size %zu: %s", size, Sys::Win32StrError(GetLastError()));
+		Sys::Drop("IPC: Failed to map shared memory object of size %zu: %s", size, Sys::SystemErrorStr());
 	return base;
 #else
 	void* base = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle, 0);

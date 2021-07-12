@@ -86,7 +86,7 @@ static void CreateSingletonSocket()
 #ifdef _WIN32
 	singletonSocket = CreateNamedPipeA(singletonSocketPath.c_str(), PIPE_ACCESS_INBOUND | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 4096, 4096, 1000, nullptr);
 	if (singletonSocket == INVALID_HANDLE_VALUE)
-		Sys::Error("Could not create singleton socket: %s", Sys::Win32StrError(GetLastError()));
+		Sys::Error("Could not create singleton socket: %s", Sys::SystemErrorStr());
 #else
 	// Grab a lock to avoid race conditions. This lock is automatically released when
 	// the process quits, but it may remain if the homepath is on a network filesystem.
@@ -137,9 +137,10 @@ static bool ConnectSingletonSocket()
 		singletonSocket = CreateFileA(singletonSocketPath.c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 		if (singletonSocket != INVALID_HANDLE_VALUE)
 			break;
-		if (GetLastError() != ERROR_PIPE_BUSY) {
-			if (GetLastError() != ERROR_FILE_NOT_FOUND)
-				Log::Warn("Could not connect to existing instance: %s", Sys::Win32StrError(GetLastError()));
+		const int rc = Sys::GetLastSystemError();
+		if (rc != ERROR_PIPE_BUSY) {
+			if (rc != ERROR_FILE_NOT_FOUND)
+				Log::Warn("Could not connect to existing instance: %s", Sys::SystemErrorStr(rc));
 			return false;
 		}
 		WaitNamedPipeA(singletonSocketPath.c_str(), NMPWAIT_WAIT_FOREVER);
@@ -171,7 +172,7 @@ static void WriteSingletonSocket(Str::StringRef commands)
 #ifdef _WIN32
 	DWORD result = 0;
 	if (!WriteFile(singletonSocket, commands.data(), commands.size(), &result, nullptr))
-		Log::Warn("Could not send commands through socket: %s", Sys::Win32StrError(GetLastError()));
+		Log::Warn("Could not send commands through socket: %s", Sys::SystemErrorStr());
 	else if (result != commands.size())
 		Log::Warn("Could not send commands through socket: Short write");
 #else
@@ -190,8 +191,9 @@ static void ReadSingletonSocketCommands()
 	while (true) {
 		DWORD result = 0;
 		if (!ReadFile(singletonSocket, buffer, sizeof(buffer), &result, nullptr)) {
-			if (GetLastError() != ERROR_NO_DATA && GetLastError() != ERROR_BROKEN_PIPE) {
-				Log::Warn("Singleton socket ReadFile() failed: %s", Sys::Win32StrError(GetLastError()));
+			const int rc = Sys::GetLastSystemError();
+			if (rc != ERROR_NO_DATA && rc != ERROR_BROKEN_PIPE) {
+				Log::Warn("Singleton socket ReadFile() failed: %s", Sys::SystemErrorStr(rc));
 				return;
 			} else
 				break;
@@ -227,7 +229,7 @@ void ReadSingletonSocket()
 #ifdef _WIN32
 	while (true) {
 		if (!ConnectNamedPipe(singletonSocket, nullptr)) {
-			Log::Warn("Singleton socket ConnectNamedPipe() failed: %s", Sys::Win32StrError(GetLastError()));
+			Log::Warn("Singleton socket ConnectNamedPipe() failed: %s", Sys::SystemErrorStr());
 
 			// Stop handling incoming commands if an error occured
 			CloseHandle(singletonSocket);

@@ -87,12 +87,12 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 #ifdef _WIN32
 	// Inherit the socket in the child process
 	if (!SetHandleInformation(pair.second.GetHandle(), HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT))
-		Sys::Drop("VM: Could not make socket inheritable: %s", Sys::Win32StrError(GetLastError()));
+		Sys::Drop("VM: Could not make socket inheritable: %s", Sys::SystemErrorStr());
 
 	// Inherit the stderr redirect in the child process
 	HANDLE stderrRedirectHandle = stderrRedirect ? reinterpret_cast<HANDLE>(_get_osfhandle(fileno(stderrRedirect.GetHandle()))) : nullptr;
 	if (stderrRedirect && !SetHandleInformation(stderrRedirectHandle, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT))
-		Sys::Drop("VM: Could not make stderr redirect inheritable: %s", Sys::Win32StrError(GetLastError()));
+		Sys::Drop("VM: Could not make stderr redirect inheritable: %s", Sys::SystemErrorStr());
 
 	// Escape command line arguments
 	std::string cmdline;
@@ -134,12 +134,12 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	// Create a job object to ensure the process is terminated if the parent dies
 	HANDLE job = CreateJobObject(nullptr, nullptr);
 	if (!job)
-		Sys::Drop("VM: Could not create job object: %s", Sys::Win32StrError(GetLastError()));
+		Sys::Drop("VM: Could not create job object: %s", Sys::SystemErrorStr());
 	JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli;
 	memset(&jeli, 0, sizeof(jeli));
 	jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 	if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
-		Sys::Drop("VM: Could not set job object information: %s", Sys::Win32StrError(GetLastError()));
+		Sys::Drop("VM: Could not set job object information: %s", Sys::SystemErrorStr());
 
 	STARTUPINFOW startupInfo;
 	PROCESS_INFORMATION processInfo;
@@ -151,7 +151,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	startupInfo.cb = sizeof(startupInfo);
 	if (!CreateProcessW(nullptr, &wcmdline[0], nullptr, nullptr, TRUE, CREATE_SUSPENDED | CREATE_BREAKAWAY_FROM_JOB | CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, &processInfo)) {
 		CloseHandle(job);
-		Sys::Drop("VM: Could not create child process: %s", Sys::Win32StrError(GetLastError()));
+		Sys::Drop("VM: Could not create child process: %s", Sys::SystemErrorStr());
 	}
 
 	if (!AssignProcessToJobObject(job, processInfo.hProcess)) {
@@ -159,7 +159,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 		CloseHandle(job);
 		CloseHandle(processInfo.hThread);
 		CloseHandle(processInfo.hProcess);
-		Sys::Drop("VM: Could not assign process to job object: %s", Sys::Win32StrError(GetLastError()));
+		Sys::Drop("VM: Could not assign process to job object: %s", Sys::SystemErrorStr());
 	}
 
 #ifndef _WIN64

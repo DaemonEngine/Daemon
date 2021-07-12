@@ -179,7 +179,7 @@ inline int my_open(Str::StringRef path, openMode_t mode)
 	DWORD create[] = {OPEN_EXISTING, CREATE_ALWAYS, OPEN_ALWAYS, OPEN_ALWAYS};
 	HANDLE h = CreateFileW(Str::UTF8To16(path).c_str(), access[mode_], FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, create[mode_], FILE_ATTRIBUTE_NORMAL, NULL);
 	if (h == INVALID_HANDLE_VALUE) {
-		_doserrno = GetLastError();
+		_doserrno = Sys::GetLastSystemError();
 		errno = _doserrno == ERROR_FILE_NOT_FOUND || _doserrno == ERROR_PATH_NOT_FOUND ? ENOENT : 0; // Needed to check if we need to create the path
 		return -1;
 	}
@@ -284,7 +284,7 @@ inline intptr_t my_pread(int fd, void* buf, size_t count, offset_t offset)
 	overlapped.Offset = offset & 0xffffffff;
 	overlapped.OffsetHigh = offset >> 32;
 	if (!ReadFile(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), buf, count, &bytesRead, &overlapped)) {
-		_doserrno = GetLastError();
+		_doserrno = Sys::GetLastSystemError();
 		return -1;
 	}
 	return bytesRead;
@@ -394,7 +394,7 @@ static void ClearErrorCode(std::error_code& err)
 static void SetErrorCodeSystem(std::error_code& err)
 {
 #ifdef _WIN32
-	SetErrorCode(err, _doserrno, std::system_category());
+	SetErrorCode(err, _doserrno, Sys::SystemCategory());
 #else
 	SetErrorCode(err, errno, std::generic_category());
 #endif
@@ -1729,7 +1729,7 @@ void MoveFile(Str::StringRef dest, Str::StringRef src, std::error_code& err)
 #ifdef _WIN32
 	// _wrename doesn't follow the POSIX standard because it will fail if the target already exists
 	if (!MoveFileExW(Str::UTF8To16(src).c_str(), Str::UTF8To16(dest).c_str(), MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
-		SetErrorCode(err, GetLastError(), std::system_category());
+		SetErrorCode(err, Sys::GetLastSystemError(), Sys::SystemCategory());
 	else
 		ClearErrorCode(err);
 #else
@@ -1757,7 +1757,7 @@ void DeleteFile(Str::StringRef path, std::error_code& err)
 {
 #ifdef _WIN32
 	if (!DeleteFileW(Str::UTF8To16(path).c_str()))
-		SetErrorCode(err, GetLastError(), std::system_category());
+		SetErrorCode(err, Sys::GetLastSystemError(), Sys::SystemCategory());
 	else
 		ClearErrorCode(err);
 #else
@@ -1774,11 +1774,11 @@ bool DirectoryRange::Advance(std::error_code& err)
 	WIN32_FIND_DATAW findData;
 	do {
 		if (!FindNextFileW(handle.get(), &findData)) {
-			int ec = GetLastError();
+			int ec = Sys::GetLastSystemError();
 			if (ec == ERROR_NO_MORE_FILES)
 				ClearErrorCode(err);
 			else
-				SetErrorCode(err, ec, std::system_category());
+				SetErrorCode(err, ec, Sys::SystemCategory());
 			handle = nullptr;
 			return false;
 		}
@@ -1821,11 +1821,11 @@ DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
 	WIN32_FIND_DATAW findData;
 	HANDLE handle = FindFirstFileW(Str::UTF8To16(dirPath + "/*").c_str(), &findData);
 	if (handle == INVALID_HANDLE_VALUE) {
-		int ec = GetLastError();
+		int ec = Sys::GetLastSystemError();
 		if (ec == ERROR_FILE_NOT_FOUND || ec == ERROR_NO_MORE_FILES)
 			ClearErrorCode(err);
 		else
-			SetErrorCode(err, GetLastError(), std::system_category());
+			SetErrorCode(err, Sys::GetLastSystemError(), Sys::SystemCategory());
 		return {};
 	}
 
@@ -2186,18 +2186,18 @@ static Util::optional<std::string> GetRealPath(Str::StringRef path, std::string&
 	std::wstring path_u16 = Str::UTF8To16(path);
 	DWORD attr = GetFileAttributesW(path_u16.c_str());
 	if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-		error = attr == INVALID_FILE_ATTRIBUTES ? Sys::Win32StrError(GetLastError()) : "Not a directory";
+		error = attr == INVALID_FILE_ATTRIBUTES ? Sys::SystemErrorStr() : "Not a directory";
 		return {};
 	}
 
 	size_t len = GetFullPathNameW(path_u16.c_str(), 0, nullptr, nullptr);
 	if (!len) {
-		error = Sys::Win32StrError(GetLastError());
+		error = Sys::SystemErrorStr();
 		return {};
 	}
 	std::unique_ptr<wchar_t[]> realPath(new wchar_t[len]);
 	if (!GetFullPathNameW(path_u16.c_str(), len, realPath.get(), nullptr)) {
-		error = Sys::Win32StrError(GetLastError());
+		error = Sys::SystemErrorStr();
 		return {};
 	}
 

@@ -173,7 +173,7 @@ void Drop(Str::StringRef message)
 std::string Win32StrError(uint32_t error)
 {
 	std::string out;
-	char* message;
+	char* message = nullptr;
 	if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM, nullptr, error, MAKELANGID(LANG_NEUTRAL,SUBLANG_DEFAULT), reinterpret_cast<char *>(&message), 0, nullptr)) {
 		out = message;
 
@@ -190,6 +190,90 @@ std::string Win32StrError(uint32_t error)
 	return out;
 }
 #endif
+
+#ifdef __MINGW32__
+const std::error_category& SystemCategory() noexcept;
+
+class MinGwSystemCategory : public std::error_category
+{
+public:
+	MinGwSystemCategory() noexcept : native_system_category{ std::system_category() }
+	{
+	}
+
+	const char* name() const noexcept override
+	{
+		return native_system_category.name();
+	}
+
+	std::string message(int error_code) const override
+	{
+#ifdef _WIN32
+		if (!IsWinsockErrorCode(error_code))
+		{
+			// Not Winsock errors means handle by default.
+			return native_system_category.message(error_code);
+		}
+
+		// Winsock errors are system errors too.
+		return SystemCategory().message(error_code);
+#else
+		return native_system_category.message(error_code);
+#endif
+	}
+
+	std::error_condition default_error_condition(int error_code) const noexcept override
+	{
+#ifdef _WIN32
+		if (!IsWinsockErrorCode(error_code))
+		{
+			// Not Winsock errors means handle by default.
+			return native_system_category.default_error_condition(error_code);
+		}
+
+		// Winsock errors are system errors too.
+		return std::error_condition{ error_code, SystemCategory() };
+#else
+		return native_system_category.default_error_condition(error_code);
+#endif
+	}
+
+private:
+	const std::error_category& native_system_category;
+
+#ifdef _WIN32
+	static constexpr int winsock_last_error_code{ 11999 };
+
+	static bool IsWinsockErrorCode(int error_code) noexcept
+	{
+		return error_code >= WSABASEERR && error_code <= winsock_last_error_code;
+	}
+#endif
+};
+
+// Both MinGW32 and MinGW-w64 system_category.
+// Lets MinGW handle Winsock errors as system ones (MSVC does).
+const std::error_category& SystemCategory() noexcept
+{
+	static MinGwSystemCategory system_category;
+	return system_category;
+}
+#else
+// Default system_category.
+const std::error_category& SystemCategory() noexcept
+{
+	return std::system_category();
+}
+#endif
+
+int GetLastSystemError() noexcept
+{
+#ifdef _WIN32
+	return static_cast<int>(GetLastError());
+#else
+	return errno;
+#endif
+}
 
 // Setup crash handling
 #ifdef _WIN32
@@ -304,7 +388,7 @@ DynamicLib DynamicLib::Open(Str::StringRef filename, std::string& errorString)
 #ifdef _WIN32
 	void* handle = LoadLibraryW(Str::UTF8To16(filename).c_str());
 	if (!handle)
-		errorString = Win32StrError(GetLastError());
+		errorString = SystemErrorStr();
 #else
 	// Handle relative paths correctly
 	const char* dlopenFilename = filename.c_str();
@@ -329,7 +413,7 @@ intptr_t DynamicLib::InternalLoadSym(Str::StringRef sym, std::string& errorStrin
 #ifdef _WIN32
 	intptr_t p = reinterpret_cast<intptr_t>(GetProcAddress(static_cast<HMODULE>(handle), sym.c_str()));
 	if (!p)
-		errorString = Win32StrError(GetLastError());
+		errorString = SystemErrorStr();
 	return p;
 #else
 	intptr_t p = reinterpret_cast<intptr_t>(dlsym(handle, sym.c_str()));
@@ -356,10 +440,10 @@ void GenRandomBytes(void* dest, size_t size)
 #ifdef _WIN32
 	HCRYPTPROV prov;
 	if (!CryptAcquireContext(&prov, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
-		Sys::Error("CryptAcquireContext failed: %s", Win32StrError(GetLastError()));
+		Sys::Error("CryptAcquireContext failed: %s", SystemErrorStr());
 
 	if (!CryptGenRandom(prov, size, (BYTE*)dest))
-		Sys::Error("CryptGenRandom failed: %s", Win32StrError(GetLastError()));
+		Sys::Error("CryptGenRandom failed: %s", SystemErrorStr());
 
 	CryptReleaseContext(prov, 0);
 #elif defined(__native_client__)

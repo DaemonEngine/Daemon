@@ -769,7 +769,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 						const FS::offset_t length{FS::RawPath::OpenRead(pak->path).Length()};
 
 						if (length > std::numeric_limits<decltype(downloadSize)>::max()) {
-							throw std::system_error{Util::ordinal(std::errc::value_too_large), std::system_category(),
+							throw std::system_error{Util::ordinal(std::errc::value_too_large), Sys::SystemCategory(),
 								"Pak file '" + pak->path + "' size '" + std::to_string(length) + "' is larger than max client download size"};
 						}
 
@@ -850,7 +850,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					const FS::offset_t length{cl->download->Length()};
 
 					if (length > std::numeric_limits<decltype(cl->downloadSize)>::max()) {
-						throw std::system_error{Util::ordinal(std::errc::value_too_large), std::system_category(),
+						throw std::system_error{Util::ordinal(std::errc::value_too_large), Sys::SystemCategory(),
 							"Pak file '" + pak->path + "' size '" + std::to_string(length) + "' is larger than max client download size"};
 					}
 

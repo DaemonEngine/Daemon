@@ -35,6 +35,7 @@ Maryland 20850 USA.
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
 #include <common/FileSystem.h>
+#include <common/System.h>
 #include <system_error>
 
 #ifdef BUILD_SERVER
@@ -204,7 +205,7 @@ const char *NET_ErrorString()
 
 	static thread_local std::string errorMessage;
 	
-	errorMessage = std::system_category().message( errorCode );
+	errorMessage = Sys::SystemErrorStr( errorCode );
 
 	return errorMessage.c_str();
 }

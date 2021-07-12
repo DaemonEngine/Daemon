@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <chrono>
 #include <stdexcept>
+#include <system_error>
 
 #include "Compiler.h"
 #include "String.h"
@@ -100,10 +101,17 @@ template<typename ... Args> NORETURN void Drop(Str::StringRef format, Args&& ...
 	Drop(Str::Format(format, std::forward<Args>(args)...));
 }
 
-#ifdef _WIN32
-// strerror() equivalent for Win32 API error values, as returned by GetLastError
-std::string Win32StrError(uint32_t error);
-#endif
+// Error category for system errors.
+const std::error_category& SystemCategory() noexcept;
+
+// Last system error.
+int GetLastSystemError() noexcept;
+
+// System error description.
+inline std::string SystemErrorStr(int error_code = GetLastSystemError())
+{
+	return SystemCategory().message(error_code);
+}
 
 // Initialize crash handling for the current process
 void SetupCrashHandler();

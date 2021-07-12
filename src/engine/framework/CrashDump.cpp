@@ -59,7 +59,7 @@ bool CreateCrashDumpPath() {
     bool success = !createDirError;
     if (!success) {
 #ifdef _WIN32
-        crashDumpLogs.Warn("Failed to create crash dump directory: %s", Win32StrError(GetLastError()));
+        crashDumpLogs.Warn("Failed to create crash dump directory: %s", SystemErrorStr());
 #else
         crashDumpLogs.Warn("Failed to create crash dump directory: %s", strerror(errno));
 #endif
@@ -123,7 +123,7 @@ static bool BreakpadInitInternal() {
         NULL, NULL, FALSE, 0, NULL, NULL,
         &startInfo, &procInfo))
     {
-        crashDumpLogs.Warn("Failed to start crash logging server: %s", Win32StrError(GetLastError()));
+        crashDumpLogs.Warn("Failed to start crash logging server: %s", SystemErrorStr());
         return false;
     }
 
