@@ -121,7 +121,7 @@ void ignore_result(T) {}
 #include <condition_variable>
 #include <valarray>
 #include <sstream>
-#include <iostream>
+#include <iosfwd>
 
 // vsnprintf is ISO/IEC 9899:1999
 // abstracting this to make it portable
