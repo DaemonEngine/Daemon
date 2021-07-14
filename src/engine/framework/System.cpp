@@ -137,9 +137,10 @@ static bool ConnectSingletonSocket()
 		singletonSocket = CreateFileA(singletonSocketPath.c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 		if (singletonSocket != INVALID_HANDLE_VALUE)
 			break;
-		if (GetLastError() != ERROR_PIPE_BUSY) {
-			if (GetLastError() != ERROR_FILE_NOT_FOUND)
-				Log::Warn("Could not connect to existing instance: %s", Sys::Win32StrError(GetLastError()));
+		const DWORD rc = GetLastError();
+		if (rc != ERROR_PIPE_BUSY) {
+			if (rc != ERROR_FILE_NOT_FOUND)
+				Log::Warn("Could not connect to existing instance: %s", Sys::Win32StrError(rc));
 			return false;
 		}
 		WaitNamedPipeA(singletonSocketPath.c_str(), NMPWAIT_WAIT_FOREVER);
@@ -190,8 +191,9 @@ static void ReadSingletonSocketCommands()
 	while (true) {
 		DWORD result = 0;
 		if (!ReadFile(singletonSocket, buffer, sizeof(buffer), &result, nullptr)) {
-			if (GetLastError() != ERROR_NO_DATA && GetLastError() != ERROR_BROKEN_PIPE) {
-				Log::Warn("Singleton socket ReadFile() failed: %s", Sys::Win32StrError(GetLastError()));
+			const DWORD rc = GetLastError();
+			if (rc != ERROR_NO_DATA && rc != ERROR_BROKEN_PIPE) {
+				Log::Warn("Singleton socket ReadFile() failed: %s", Sys::Win32StrError(rc));
 				return;
 			} else
 				break;
