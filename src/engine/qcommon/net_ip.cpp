@@ -62,14 +62,17 @@ using socklen_t = int;
 #       else
 using sa_family_t = unsigned short;
 #       endif
-// HACK: Redefine these constants to their windows equivalents
-// TODO: Figure out a cleaner way to do this. Perhaps write a set of
-//       compatibility constants.
-#       define EAGAIN        WSAEWOULDBLOCK
-#       define EADDRNOTAVAIL WSAEADDRNOTAVAIL
-#       define EAFNOSUPPORT  WSAEAFNOSUPPORT
-#       define ECONNRESET    WSAECONNRESET
+
 #       define socketError   WSAGetLastError()
+
+namespace net {
+	namespace errc {
+		constexpr auto resource_unavailable_try_again = WSAEWOULDBLOCK;
+		constexpr auto address_not_available = WSAEADDRNOTAVAIL;
+		constexpr auto address_family_not_supported = WSAEAFNOSUPPORT;
+		constexpr auto connection_reset = WSAECONNRESET;
+	}  // namespace errc
+}  // namespace net
 
 static WSADATA  winsockdata;
 static bool winsockInitialized = false;
@@ -99,11 +102,21 @@ static bool winsockInitialized = false;
 #       endif
 
 using SOCKET = int;
-#       define INVALID_SOCKET -1
-#       define SOCKET_ERROR   -1
+constexpr SOCKET INVALID_SOCKET{-1};
+constexpr SOCKET SOCKET_ERROR{-1};
+
 #       define closesocket    close
 #       define ioctlsocket    ioctl
 #       define socketError    errno
+
+namespace net {
+	namespace errc {
+		constexpr auto resource_unavailable_try_again = EWOULDBLOCK;
+		constexpr auto address_not_available = EADDRNOTAVAIL;
+		constexpr auto address_family_not_supported = EAFNOSUPPORT;
+		constexpr auto connection_reset = ECONNRESET;
+	}  // namespace errc
+}  // namespace net
 
 #endif
 
@@ -179,151 +192,19 @@ static int             numIP;
 NET_ErrorString
 ====================
 */
-const char *NET_ErrorString()
+static std::string NET_ErrorString()
 {
-#ifdef _WIN32
+	const auto errorCode = socketError;
 
-	//FIXME: replace with FormatMessage?
-	switch ( socketError )
+	if (errorCode == 0)
 	{
-		case WSAEINTR:
-			return "WSAEINTR";
-
-		case WSAEBADF:
-			return "WSAEBADF";
-
-		case WSAEACCES:
-			return "WSAEACCES";
-
-		case WSAEDISCON:
-			return "WSAEDISCON";
-
-		case WSAEFAULT:
-			return "WSAEFAULT";
-
-		case WSAEINVAL:
-			return "WSAEINVAL";
-
-		case WSAEMFILE:
-			return "WSAEMFILE";
-
-		case WSAEWOULDBLOCK:
-			return "WSAEWOULDBLOCK";
-
-		case WSAEINPROGRESS:
-			return "WSAEINPROGRESS";
-
-		case WSAEALREADY:
-			return "WSAEALREADY";
-
-		case WSAENOTSOCK:
-			return "WSAENOTSOCK";
-
-		case WSAEDESTADDRREQ:
-			return "WSAEDESTADDRREQ";
-
-		case WSAEMSGSIZE:
-			return "WSAEMSGSIZE";
-
-		case WSAEPROTOTYPE:
-			return "WSAEPROTOTYPE";
-
-		case WSAENOPROTOOPT:
-			return "WSAENOPROTOOPT";
-
-		case WSAEPROTONOSUPPORT:
-			return "WSAEPROTONOSUPPORT";
-
-		case WSAESOCKTNOSUPPORT:
-			return "WSAESOCKTNOSUPPORT";
-
-		case WSAEOPNOTSUPP:
-			return "WSAEOPNOTSUPP";
-
-		case WSAEPFNOSUPPORT:
-			return "WSAEPFNOSUPPORT";
-
-		case WSAEAFNOSUPPORT:
-			return "WSAEAFNOSUPPORT";
-
-		case WSAEADDRINUSE:
-			return "WSAEADDRINUSE";
-
-		case WSAEADDRNOTAVAIL:
-			return "WSAEADDRNOTAVAIL";
-
-		case WSAENETDOWN:
-			return "WSAENETDOWN";
-
-		case WSAENETUNREACH:
-			return "WSAENETUNREACH";
-
-		case WSAENETRESET:
-			return "WSAENETRESET";
-
-		case WSAECONNABORTED:
-			return "WSWSAECONNABORTEDAEINTR";
-
-		case WSAECONNRESET:
-			return "WSAECONNRESET";
-
-		case WSAENOBUFS:
-			return "WSAENOBUFS";
-
-		case WSAEISCONN:
-			return "WSAEISCONN";
-
-		case WSAENOTCONN:
-			return "WSAENOTCONN";
-
-		case WSAESHUTDOWN:
-			return "WSAESHUTDOWN";
-
-		case WSAETOOMANYREFS:
-			return "WSAETOOMANYREFS";
-
-		case WSAETIMEDOUT:
-			return "WSAETIMEDOUT";
-
-		case WSAECONNREFUSED:
-			return "WSAECONNREFUSED";
-
-		case WSAELOOP:
-			return "WSAELOOP";
-
-		case WSAENAMETOOLONG:
-			return "WSAENAMETOOLONG";
-
-		case WSAEHOSTDOWN:
-			return "WSAEHOSTDOWN";
-
-		case WSASYSNOTREADY:
-			return "WSASYSNOTREADY";
-
-		case WSAVERNOTSUPPORTED:
-			return "WSAVERNOTSUPPORTED";
-
-		case WSANOTINITIALISED:
-			return "WSANOTINITIALISED";
-
-		case WSAHOST_NOT_FOUND:
-			return "WSAHOST_NOT_FOUND";
-
-		case WSATRY_AGAIN:
-			return "WSATRY_AGAIN";
-
-		case WSANO_RECOVERY:
-			return "WSANO_RECOVERY";
-
-		case WSANO_DATA:
-			return "WSANO_DATA";
-
-		default:
-			return "NO ERROR";
+		return "NO ERROR";
 	}
 
+#ifdef _WIN32
+	return Sys::Win32StrError(errorCode);
 #else
-	return strerror( errno );
+	return strerror(errorCode);
 #endif
 }
 
@@ -726,7 +607,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 		{
 			err = socketError;
 
-			if ( err != EAGAIN && err != ECONNRESET )
+			if ( err != net::errc::resource_unavailable_try_again && err != net::errc::connection_reset )
 			{
 				Log::Notice( "NET_GetPacket: %s\n", NET_ErrorString() );
 			}
@@ -776,7 +657,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 		{
 			err = socketError;
 
-			if ( err != EAGAIN && err != ECONNRESET )
+			if ( err != net::errc::resource_unavailable_try_again && err != net::errc::connection_reset )
 			{
 				Log::Notice( "NET_GetPacket: %s\n", NET_ErrorString() );
 			}
@@ -806,7 +687,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 		{
 			err = socketError;
 
-			if ( err != EAGAIN && err != ECONNRESET )
+			if ( err != net::errc::resource_unavailable_try_again && err != net::errc::connection_reset )
 			{
 				Log::Notice( "NET_GetPacket: %s\n", NET_ErrorString() );
 			}
@@ -893,13 +774,13 @@ void Sys_SendPacket( int length, const void *data, const netadr_t& to )
 		int err = socketError;
 
 		// wouldblock is silent
-		if ( err == EAGAIN )
+		if ( err == net::errc::resource_unavailable_try_again )
 		{
 			return;
 		}
 
 		// some PPP links do not allow broadcasts and return an error
-		if ( ( err == EADDRNOTAVAIL ) && ( ( to.type == netadrtype_t::NA_BROADCAST ) ) )
+		if ( ( err == net::errc::address_not_available ) && ( ( to.type == netadrtype_t::NA_BROADCAST ) ) )
 		{
 			return;
 		}
@@ -1747,7 +1628,7 @@ static void NET_OpenIP()
 				port6 = ntohs( boundto.sin6_port );
 				break;
 			}
-			else if ( err == EAFNOSUPPORT )
+			else if ( err == net::errc::address_family_not_supported )
 			{
 				port6 = PORT_ANY;
 				break;
@@ -1756,7 +1637,7 @@ static void NET_OpenIP()
 			port6 = ( port6 == PORT_ANY ) ? port6 : NET_EnsureValidPortNo( port6 + 1 );
 		}
 
-		if ( ip6_socket == INVALID_SOCKET || err == EAFNOSUPPORT )
+		if ( ip6_socket == INVALID_SOCKET || err == net::errc::address_family_not_supported )
 		{
 			Log::Warn( "Couldn't bind to an IPv6 address." );
 			port6 = PORT_ANY;
@@ -1774,7 +1655,7 @@ static void NET_OpenIP()
 				port = ntohs( boundto4.sin_port );
 				break;
 			}
-			else if ( err == EAFNOSUPPORT )
+			else if ( err == net::errc::address_family_not_supported )
 			{
 				port = PORT_ANY;
 				break;
