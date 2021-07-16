@@ -84,6 +84,7 @@ namespace Str {
     bool ToFloat(Str::StringRef text, float& result) {
         char* end;
         const char* start = text.c_str();
+        errno = 0;
         result = strtof(start, &end);
         if (errno == ERANGE)
             return false;
