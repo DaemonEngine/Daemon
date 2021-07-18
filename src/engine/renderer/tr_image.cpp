@@ -2075,7 +2075,7 @@ image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
 		pic[ i ] = nullptr;
 	}
 
-	for ( const multifileCubeMapFormat_t format : multifileCubeMapFormats )
+	for ( const multifileCubeMapFormat_t &format : multifileCubeMapFormats )
 	{
 		int greatestEdge = 0;
 		face_t faces[6];
