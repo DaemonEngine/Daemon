@@ -175,7 +175,7 @@ static void CM_SetBorderInward( cFacet_t *facet, cTriangleSoup_t *triSoup, int i
 		else
 		{
 			// bisecting side border
-			cmLog.Debug( "WARNING: CM_SetBorderInward: mixed plane sides" );
+			cmLog.Warn( "CM_SetBorderInward: mixed plane sides" );
 			facet->borderInward[ k ] = false;
 		}
 	}

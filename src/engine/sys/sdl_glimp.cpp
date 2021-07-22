@@ -844,15 +844,15 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool noborde
 	switch ( err )
 	{
 		case rserr_t::RSERR_INVALID_FULLSCREEN:
-			logger.Notice("...WARNING: fullscreen unavailable in this mode" );
+			logger.Warn("GLimp: Fullscreen unavailable in this mode" );
 			return false;
 
 		case rserr_t::RSERR_INVALID_MODE:
-			logger.Notice("...WARNING: could not set the given mode (%d)", mode );
+			logger.Warn("GLimp: Could not set the given mode (%d)", mode );
 			return false;
 
 		case rserr_t::RSERR_OLD_GL:
-			logger.Notice("...WARNING: OpenGL too old" );
+			logger.Warn("GLimp: OpenGL too old" );
 			return false;
 
 		default:
