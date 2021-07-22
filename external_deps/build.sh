@@ -626,6 +626,11 @@ build_install() {
 	rm -rf "${PKG_PREFIX}"
 	rsync -a --link-dest="${PREFIX}" "${PREFIX}/" "${PKG_PREFIX}"
 
+	# Ensure existence in case the selected set of deps didn't have these
+	mkdir -p "${PKG_PREFIX}/bin"
+	mkdir -p "${PKG_PREFIX}/include"
+	mkdir -p "${PKG_PREFIX}/lib"
+
 	# Remove all unneeded files
 	rm -rf "${PKG_PREFIX}/man"
 	rm -rf "${PKG_PREFIX}/def"
@@ -637,9 +642,6 @@ build_install() {
 	find "${PKG_PREFIX}/lib" -name '*.la' -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.dll.a' -execdir bash -c 'rm -f -- "`basename "{}" .dll.a`.a"' \;
 	find "${PKG_PREFIX}/lib" -name '*.dylib' -execdir bash -c 'rm -f -- "`basename "{}" .dylib`.a"' \;
-	rmdir "${PKG_PREFIX}/bin" 2> /dev/null || true
-	rmdir "${PKG_PREFIX}/include" 2> /dev/null || true
-	rmdir "${PKG_PREFIX}/lib" 2> /dev/null || true
 
 	# Strip libraries
 	case "${PLATFORM}" in
@@ -653,6 +655,10 @@ build_install() {
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
 		;;
 	esac
+
+	rmdir "${PKG_PREFIX}/bin" 2> /dev/null || true
+	rmdir "${PKG_PREFIX}/include" 2> /dev/null || true
+	rmdir "${PKG_PREFIX}/lib" 2> /dev/null || true
 }
 
 # Create a redistributable package for the dependencies
