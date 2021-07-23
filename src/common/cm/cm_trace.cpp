@@ -459,7 +459,10 @@ void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf )
 ==================
 CM_TestCapsuleInCapsule
 
-capsule inside capsule check
+Capsule inside capsule check
+
+A capsule is a vertical "pill" shaped volume. It is made of a cylinder with
+a tangent sphere at the top and the bottom that has the same radius.
 ==================
 */
 void CM_TestCapsuleInCapsule( traceWork_t *tw, clipHandle_t model )
