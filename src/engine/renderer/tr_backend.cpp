@@ -98,35 +98,6 @@ void BindAnimatedImage( textureBundle_t *bundle )
 	GL_Bind( bundle->image[ index ] );
 }
 
-void GL_BindProgram( shaderProgram_t *program )
-{
-	if ( !program )
-	{
-		GL_BindNullProgram();
-		return;
-	}
-
-	if ( glState.currentProgram != program )
-	{
-		glUseProgram( program->program );
-		glState.currentProgram = program;
-	}
-}
-
-void GL_BindNullProgram()
-{
-	if ( r_logFile->integer )
-	{
-		GLimp_LogComment( "--- GL_BindNullProgram ---\n" );
-	}
-
-	if ( glState.currentProgram )
-	{
-		glUseProgram( 0 );
-		glState.currentProgram = nullptr;
-	}
-}
-
 void GL_SelectTexture( int unit )
 {
 	if ( glState.currenttmu == unit )

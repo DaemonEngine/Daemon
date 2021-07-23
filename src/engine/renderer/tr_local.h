@@ -2880,6 +2880,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_showcluster;
 
 	extern cvar_t *r_mode; // video mode
+	extern cvar_t *r_customwidth;
+	extern cvar_t *r_customheight;
 	extern cvar_t *r_noBorder;
 	extern cvar_t *r_fullscreen;
 	extern cvar_t *r_gamma;
@@ -3218,6 +3220,7 @@ inline bool checkGLErrors()
 	model_t    *R_AllocModel();
 
 	bool   R_Init();
+	void R_RegisterCvars();
 
 	void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral );
 
@@ -3293,6 +3296,7 @@ inline bool checkGLErrors()
 	*/
 
 	bool GLimp_Init();
+	void GLimp_InitExtensions();
 	void     GLimp_Shutdown();
 	void     GLimp_EndFrame();
 	void     GLimp_HandleCvars();
