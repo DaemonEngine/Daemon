@@ -1418,7 +1418,7 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 	{
 		return nullptr;
 	}
-	
+
 	image->type = GL_TEXTURE_2D;
 
 	image->width = width;
@@ -1496,7 +1496,7 @@ image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, i
 	{
 		return nullptr;
 	}
-	
+
 	image->type = GL_TEXTURE_CUBE_MAP;
 
 	image->width = width;
@@ -2251,14 +2251,15 @@ float R_FogFactor( float s, float t )
 R_CreateFogImage
 ================
 */
-static const int FOG_S = 256;
-static const int FOG_T = 32;
 static void R_CreateFogImage()
 {
 	int   x, y;
 	byte  *data, *ptr;
 	float d;
 	float borderColor[ 4 ];
+
+	constexpr int FOG_S = 256;
+	constexpr int FOG_T = 32;
 
 	ptr = data = (byte*) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
 
@@ -2517,7 +2518,7 @@ static void R_CreateDepthRenderImage()
 
 	if( !glConfig2.uniformBufferObjectAvailable ) {
 		w = 64; h = 3 * MAX_REF_LIGHTS / w;
-	
+
 		imageParams.bits = IF_NOPICMIP | IF_RGBA32F;
 
 		tr.dlightImage = R_CreateImage("_dlightImage", nullptr, w, h, 4, imageParams );
@@ -2537,19 +2538,6 @@ static void R_CreatePortalRenderImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, imageParams );
-}
-
-static void R_CreateDepthToColorFBOImages()
-{
-	int  width, height;
-
-	width = glConfig.vidWidth;
-	height = glConfig.vidHeight;
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_NEAREST;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 }
 
 // Tr3B: clean up this mess some day ...
@@ -2920,7 +2908,6 @@ void R_CreateBuiltinImages()
 	R_CreateCurrentRenderImage();
 	R_CreateDepthRenderImage();
 	R_CreatePortalRenderImage();
-	R_CreateDepthToColorFBOImages();
 	R_CreateDownScaleFBOImages();
 	R_CreateShadowMapFBOImage();
 	R_CreateShadowCubeFBOImage();
