@@ -960,9 +960,6 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 {
 #ifdef GL_ARB_get_program_binary
 	GLint                 binaryLength;
-	GLuint                binarySize = 0;
-	byte                  *binary;
-	byte                  *binaryptr;
 	GLBinaryHeader        shaderHeader{}; // Zero init.
 	shaderProgram_t       *shaderProgram;
 
@@ -977,8 +974,6 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 
 	shaderProgram = &shader->_shaderPrograms[ programNum ];
 
-	// find output size
-	binarySize += sizeof( shaderHeader );
 	glGetProgramiv( shaderProgram->program, GL_PROGRAM_BINARY_LENGTH, &binaryLength );
 
 	// The binary length may be 0 if there is an error.
@@ -987,15 +982,10 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 		return;
 	}
 
-	binarySize += binaryLength;
-
-	binaryptr = binary = ( byte* )ri.Hunk_AllocateTempMemory( binarySize );
-
-	// reserve space for the header
-	binaryptr += sizeof( shaderHeader );
+	std::unique_ptr<byte[]> binary( new byte[binaryLength] );
 
 	// get the program binary and write it to the buffer
-	glGetProgramBinary( shaderProgram->program, binaryLength, nullptr, &shaderHeader.binaryFormat, binaryptr );
+	glGetProgramBinary( shaderProgram->program, binaryLength, nullptr, &shaderHeader.binaryFormat, binary.get() );
 
 	// set the header
 	shaderHeader.version = GL_SHADER_VERSION;
@@ -1010,13 +1000,14 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 	shaderHeader.checkSum = shader->_checkSum;
 	shaderHeader.driverVersionHash = _driverVersionHash;
 
-	// write the header to the buffer
-	memcpy(binary, &shaderHeader, sizeof( shaderHeader ) );
-
 	auto fileName = Str::Format("glsl/%s/%s_%u.bin", shader->GetName(), shader->GetName(), (unsigned int)programNum);
-	ri.FS_WriteFile(fileName.c_str(), binary, binarySize);
-
-	ri.Hunk_FreeTempMemory( binary );
+	try {
+		FS::File file = FS::HomePath::OpenWrite(fileName);
+		file.Write(&shaderHeader, sizeof(shaderHeader));
+		file.Write(binary.get(), binaryLength);
+	} catch (const std::system_error& err) {
+		Log::Notice("Failed to cache shader binary %s: %s", fileName, err.what());
+	}
 #endif
 }
 
