@@ -755,7 +755,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
 {
 	std::string compileMacros;
-	int  startTime = ri.Milliseconds();
+	int  startTime = Sys::Milliseconds();
 	int  endTime;
 	size_t i = macroIndex + ( deformIndex << shader->_compileMacros.size() );
 
@@ -815,7 +815,7 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 
 		GL_CheckErrors();
 
-		endTime = ri.Milliseconds();
+		endTime = Sys::Milliseconds();
 		_totalBuildTime += ( endTime - startTime );
 		return true;
 	}
@@ -1169,20 +1169,17 @@ GLuint GLShaderManager::CompileShader( Str::StringRef programName,
 
 void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint object ) const
 {
-	char        *dump;
 	int         maxLength = 0;
 
 	glGetShaderiv( object, GL_SHADER_SOURCE_LENGTH, &maxLength );
 
-	dump = ( char * ) ri.Hunk_AllocateTempMemory( maxLength );
-
-	glGetShaderSource( object, maxLength, &maxLength, dump );
+	std::string src;
+	src.resize(maxLength);
+	glGetShaderSource( object, maxLength, &maxLength, &src[0] );
+	src.resize(maxLength);
 
 	std::string buffer;
 	std::string delim("\n");
-	std::string src(dump);
-
-	ri.Hunk_FreeTempMemory( dump );
 
 	int i = 0;
 	size_t pos = 0;
@@ -1215,7 +1212,6 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 
 void GLShaderManager::PrintInfoLog( GLuint object) const
 {
-	char        *msg;
 	int         maxLength = 0;
 	std::string msgText;
 
@@ -1233,24 +1229,24 @@ void GLShaderManager::PrintInfoLog( GLuint object) const
 		return;
 	}
 
-	msg = ( char * ) ri.Hunk_AllocateTempMemory( maxLength );
+	std::string msg;
+	msg.resize(maxLength);
 
 	if ( glIsShader( object ) )
 	{
-		glGetShaderInfoLog( object, maxLength, &maxLength, msg );
+		glGetShaderInfoLog( object, maxLength, &maxLength, &msg[0] );
 		msgText = "Compile log:";
 	}
 	else if ( glIsProgram( object ) )
 	{
-		glGetProgramInfoLog( object, maxLength, &maxLength, msg );
+		glGetProgramInfoLog( object, maxLength, &maxLength, &msg[0] );
 		msgText = "Link log:";
 	}
+	msg.resize(maxLength);
 	if (maxLength > 0)
 		msgText += '\n';
 	msgText += msg;
 	Log::Warn(msgText);
-
-	ri.Hunk_FreeTempMemory( msg );
 }
 
 void GLShaderManager::LinkProgram( GLuint program ) const
