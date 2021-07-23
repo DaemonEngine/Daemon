@@ -83,6 +83,7 @@ if(NOT DAEMON_EXTERNAL_APP)
     endif()
     option(BUILD_TTY_CLIENT "Build Daemon headless client" 1)
     option(BUILD_DUMMY_APP "Build the dummy app for daemon" 0)
+    option(BUILD_TEST_COMPILE_GLSL "Build OSMesa-based GLSL compilation tester (Linux only)" 0)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
@@ -501,7 +502,6 @@ set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
 # Look for OpenGL here before we potentially switch to looking for static libs.
 if (BUILD_CLIENT)
     find_package(OpenGL REQUIRED)
-    include_directories(${OPENGL_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
 endif()
 
@@ -739,6 +739,8 @@ if (NOT NACL)
     endif()
 endif()
 
+set(EMBED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/embed_data)
+
 if (BUILD_CLIENT)
     set(Definitions
         BUILD_ENGINE BUILD_GRAPHICAL_CLIENT
@@ -754,12 +756,25 @@ if (BUILD_CLIENT)
         Files WIN32 ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
     )
+    target_include_directories(client PRIVATE ${OPENGL_INCLUDE_DIR} ${EMBED_INCLUDE_DIR})
+endif()
 
+if (BUILD_TEST_COMPILE_GLSL)
+    AddApplication(
+        Target test-compile-glsl
+        ExecutableName test-compile-glsl
+        Definitions BUILD_ENGINE USE_OSMESA
+        Flags ${WARNINGS}
+        Files ${TESTCOMPILEGLSLLIST}
+        Libs ${LIBS_ENGINE} OSMesa # TODO "FindOSMesa" etc.
+    )
+    target_include_directories(test-compile-glsl PRIVATE ${EMBED_INCLUDE_DIR})
+endif()
+
+if (BUILD_CLIENT OR BUILD_TEST_COMPILE_GLSL)
     # generate glsl include files
     set(GLSL_SOURCE_DIR ${ENGINE_DIR}/renderer/glsl_source)
-    set(EMBED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/embed_data)
     file(MAKE_DIRECTORY ${EMBED_INCLUDE_DIR})
-    set_property(TARGET client APPEND PROPERTY INCLUDE_DIRECTORIES ${EMBED_INCLUDE_DIR})
 
     foreach(res ${GLSLSOURCELIST})
         get_filename_component(filename_no_ext ${res} NAME_WE)
@@ -770,7 +785,12 @@ if (BUILD_CLIENT)
                 "-DVARIABLE_NAME=${filename_no_ext}_glsl" -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake
             MAIN_DEPENDENCY ${res}
         )
-        set_property(TARGET client APPEND PROPERTY SOURCES ${outpath})
+        if (BUILD_CLIENT)
+            set_property(TARGET client APPEND PROPERTY SOURCES ${outpath})
+        endif()
+        if (BUILD_TEST_COMPILE_GLSL)
+            set_property(TARGET test-compile-glsl APPEND PROPERTY SOURCES ${outpath})
+        endif()
     endforeach()
 endif()
 

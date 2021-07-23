@@ -31,8 +31,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_public.h"
 #include "iqm.h"
 
+#ifdef USE_OSMESA
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
+// TODO get rid of GLEW_xxx references outside of glimp_loadextensions?
+#define GLEW_ARB_texture_gather 1
+#define GLEW_ARB_gpu_shader5 0 // must be 0
+#define GLEW_EXT_gpu_shader4 0 // 0 to disable bitwise operations
+#define GLEW_ARB_uniform_buffer_object 1
+#define GLEW_ARB_debug_output 1
+#else //USE_OS_MESA
 #define GLEW_NO_GLU
 #include <GL/glew.h>
+#endif //USE_OS_MESA
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
 #define DYN_BUFFER_SEGMENTS 4

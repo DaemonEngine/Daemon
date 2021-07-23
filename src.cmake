@@ -83,6 +83,7 @@ if (DAEMON_PARENT_SCOPE_DIR)
 endif()
 
 set(RENDERERLIST
+    ${ENGINE_DIR}/renderer/gl_config.cpp
     ${ENGINE_DIR}/renderer/gl_shader.cpp
     ${ENGINE_DIR}/renderer/gl_shader.h
     ${ENGINE_DIR}/renderer/iqm.h
@@ -348,6 +349,15 @@ set(DEDSERVERLIST
     ${ENGINE_DIR}/null/null_client.cpp
     ${ENGINE_DIR}/null/null_input.cpp
     ${ENGINE_DIR}/server/ServerApplication.cpp
+)
+
+set(TESTCOMPILEGLSLLIST
+    ${ENGINE_DIR}/qcommon/cvar.cpp
+    ${ENGINE_DIR}/qcommon/files.cpp
+    ${ENGINE_DIR}/renderer/gl_config.cpp
+    ${ENGINE_DIR}/renderer/gl_shader.cpp
+    ${ENGINE_DIR}/renderer/shader_test_app.cpp
+    ${ENGINE_DIR}/renderer/shaders.cpp
 )
 
 set(WIN_RC ${ENGINE_DIR}/sys/daemon.rc)
