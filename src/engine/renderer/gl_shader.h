@@ -168,20 +168,9 @@ protected:
 				glDeleteShader( p->FS );
 			}
 
-			if ( p->uniformFirewall )
-			{
-				ri.Free( p->uniformFirewall );
-			}
-
-			if ( p->uniformLocations )
-			{
-				ri.Free( p->uniformLocations );
-			}
-
-			if ( p->uniformBlockIndexes )
-			{
-				ri.Free( p->uniformBlockIndexes );
-			}
+			delete[] p->uniformFirewall;
+			delete[] p->uniformLocations;
+			delete[] p->uniformBlockIndexes;
 		}
 	}
 
