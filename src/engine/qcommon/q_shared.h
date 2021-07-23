@@ -320,9 +320,6 @@ void  Com_Free_Aligned( void *ptr );
 	  SIDE_CROSS = 3
 	};
 
-#define NUMVERTEXNORMALS 162
-	extern vec3_t bytedirs[ NUMVERTEXNORMALS ];
-
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution
 #define SCREEN_WIDTH     640
@@ -347,10 +344,10 @@ void  Com_Free_Aligned( void *ptr );
 
 struct cplane_t;
 
-extern vec3_t   vec3_origin;
-extern vec3_t   axisDefault[ 3 ];
-extern matrix_t matrixIdentity;
-extern quat_t   quatIdentity;
+extern const vec3_t   vec3_origin;
+extern const vec3_t   axisDefault[ 3 ];
+extern const matrix_t matrixIdentity;
+extern const quat_t   quatIdentity;
 
 #define nanmask ( 255 << 23 )
 
@@ -532,7 +529,7 @@ void         ByteToDir( int b, vec3_t dir );
 	float VectorDistanceSquared( vec3_t v1, vec3_t v2 );
 
 	void  AxisClear( vec3_t axis[ 3 ] );
-	void  AxisCopy( vec3_t in[ 3 ], vec3_t out[ 3 ] );
+	void  AxisCopy( const vec3_t in[ 3 ], vec3_t out[ 3 ] );
 
 	void  SetPlaneSignbits( struct cplane_t *out );
 	int   BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_t *plane );
@@ -577,14 +574,14 @@ void         ByteToDir( int b, vec3_t dir );
 // RB: NOTE renamed MatrixMultiply to AxisMultiply because it conflicts with most new matrix functions
 // It is important for mod developers to do this change as well or they risk a memory corruption by using
 // the other MatrixMultiply function.
-	void  AxisMultiply( float in1[ 3 ][ 3 ], float in2[ 3 ][ 3 ], float out[ 3 ][ 3 ] );
+	void  AxisMultiply( const float in1[ 3 ][ 3 ], const float in2[ 3 ][ 3 ], float out[ 3 ][ 3 ] );
 	void  PerpendicularVector( vec3_t dst, const vec3_t src );
 
 // Ridah
 	void  GetPerpendicularViewVector( const vec3_t point, const vec3_t p1, const vec3_t p2, vec3_t up );
-	void  ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vEnd, vec3_t vProj );
-	void  ProjectPointOntoVectorBounded( vec3_t point, vec3_t vStart, vec3_t vEnd, vec3_t vProj );
-	float DistanceFromLineSquared( vec3_t p, vec3_t lp1, vec3_t lp2 );
+	void  ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3_t vEnd, vec3_t vProj );
+	void  ProjectPointOntoVectorBounded( const vec3_t point, const vec3_t vStart, const vec3_t vEnd, vec3_t vProj );
+	float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2 );
 
 // done.
 

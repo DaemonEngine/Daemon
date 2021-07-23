@@ -100,7 +100,7 @@ void CreateRotationMatrix( const vec3_t angles, vec3_t matrix[ 3 ] )
 CM_ProjectPointOntoVector
 ================
 */
-void CM_ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vDir, vec3_t vProj )
+static void CM_ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3_t vDir, vec3_t vProj )
 {
 	vec3_t pVec;
 
@@ -2059,8 +2059,8 @@ static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f,
 CM_Trace
 ==================
 */
-static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mins,
-                      vec3_t maxs, clipHandle_t model, const vec3_t origin, int brushmask,
+static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, const vec3_t mins,
+                      const vec3_t maxs, clipHandle_t model, const vec3_t origin, int brushmask,
                       int skipmask, traceType_t type, sphere_t *sphere )
 {
 	int         i;

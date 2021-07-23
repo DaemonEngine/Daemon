@@ -36,19 +36,19 @@
 
 #include "q_shared.h"
 
-// *INDENT-OFF*
-vec3_t   vec3_origin = { 0, 0, 0 };
-vec3_t   axisDefault[ 3 ] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
+const vec3_t vec3_origin = { 0, 0, 0 };
 
-matrix_t matrixIdentity = {     1, 0, 0, 0,
-                                0, 1, 0, 0,
-                                0, 0, 1, 0,
-                                0, 0, 0, 1
-                          };
+const vec3_t axisDefault[ 3 ] = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
 
-quat_t   quatIdentity = { 0, 0, 0, 1 };
+const matrix_t matrixIdentity = {
+	1, 0, 0, 0,
+	0, 1, 0, 0,
+	0, 0, 1, 0,
+	0, 0, 0, 1 };
 
-vec3_t   bytedirs[ NUMVERTEXNORMALS ] =
+const quat_t quatIdentity = { 0, 0, 0, 1 };
+
+static constexpr vec3_t bytedirs[] =
 {
 	{ -0.525731, 0.000000,  0.850651  }, { -0.442863, 0.238856,  0.864188  },
 	{ -0.295242, 0.000000,  0.955423  }, { -0.309017, 0.500000,  0.809017  },
@@ -132,7 +132,7 @@ vec3_t   bytedirs[ NUMVERTEXNORMALS ] =
 	{ -0.425325, 0.688191,  -0.587785 }, { -0.425325, -0.688191, -0.587785 },
 	{ -0.587785, -0.425325, -0.688191 }, { -0.688191, -0.587785, -0.425325 }
 };
-// *INDENT-ON*
+constexpr int NUMVERTEXNORMALS = ARRAY_LEN(bytedirs);
 
 //==============================================================
 
@@ -189,7 +189,7 @@ signed char ClampChar( int i )
 // this isn't a real cheap function to call!
 int DirToByte( vec3_t dir )
 {
-	int   i, best;
+	int best;
 	float d, bestd;
 
 	if ( !dir )
@@ -200,7 +200,7 @@ int DirToByte( vec3_t dir )
 	bestd = 0;
 	best = 0;
 
-	for ( i = 0; i < NUMVERTEXNORMALS; i++ )
+	for ( int i = 0; i < NUMVERTEXNORMALS; i++ )
 	{
 		d = DotProduct( dir, bytedirs[ i ] );
 
@@ -479,7 +479,7 @@ void AxisClear( vec3_t axis[ 3 ] )
 	axis[ 2 ][ 2 ] = 1;
 }
 
-void AxisCopy( vec3_t in[ 3 ], vec3_t out[ 3 ] )
+void AxisCopy( const vec3_t in[ 3 ], vec3_t out[ 3 ] )
 {
 	VectorCopy( in[ 0 ], out[ 0 ] );
 	VectorCopy( in[ 1 ], out[ 1 ] );
@@ -1041,7 +1041,7 @@ int NearestPowerOfTwo( int val )
  * AxisMultiply
  * ================
  */
-void AxisMultiply( float in1[ 3 ][ 3 ], float in2[ 3 ][ 3 ], float out[ 3 ][ 3 ] )
+void AxisMultiply( const float in1[ 3 ][ 3 ], const float in2[ 3 ][ 3 ], float out[ 3 ][ 3 ] )
 {
 	out[ 0 ][ 0 ] = in1[ 0 ][ 0 ] * in2[ 0 ][ 0 ] + in1[ 0 ][ 1 ] * in2[ 1 ][ 0 ] + in1[ 0 ][ 2 ] * in2[ 2 ][ 0 ];
 	out[ 0 ][ 1 ] = in1[ 0 ][ 0 ] * in2[ 0 ][ 1 ] + in1[ 0 ][ 1 ] * in2[ 1 ][ 1 ] + in1[ 0 ][ 2 ] * in2[ 2 ][ 1 ];
@@ -1163,7 +1163,7 @@ void GetPerpendicularViewVector( const vec3_t point, const vec3_t p1, const vec3
  * ProjectPointOntoVector
  * ================
  */
-void ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vEnd, vec3_t vProj )
+void ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, const vec3_t vEnd, vec3_t vProj )
 {
 	vec3_t pVec, vec;
 
@@ -1298,7 +1298,7 @@ vec_t DistanceBetweenLineSegmentsSquared( const vec3_t sP0, const vec3_t sP1,
  * ProjectPointOntoVectorBounded
  * ================
  */
-void ProjectPointOntoVectorBounded( vec3_t point, vec3_t vStart, vec3_t vEnd, vec3_t vProj )
+void ProjectPointOntoVectorBounded( const vec3_t point, const vec3_t vStart, const vec3_t vEnd, vec3_t vProj )
 {
 	vec3_t pVec, vec;
 	int    j;
@@ -1337,7 +1337,7 @@ void ProjectPointOntoVectorBounded( vec3_t point, vec3_t vStart, vec3_t vEnd, ve
  * DistanceFromLineSquared
  * ================
  */
-float DistanceFromLineSquared( vec3_t p, vec3_t lp1, vec3_t lp2 )
+float DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2 )
 {
 	vec3_t proj, t;
 	int    j;
