@@ -119,12 +119,6 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_liquidShader );
 	}
 
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
-
-	gl_shaderManager.load( gl_volumetricFogShader );
-
-#endif // #if !defined(GLSL_COMPILE_STARTUP_ONLY)
-
 	/* NOTE: motionblur is enabled by cg_motionblur which is a client cvar
 	so we have to build it in all cases. */
 	gl_shaderManager.load( gl_motionblurShader );
@@ -244,7 +238,6 @@ void GLSL_ShutdownGPUShaders()
 	gl_blurYShader = nullptr;
 	gl_debugShadowMapShader = nullptr;
 	gl_liquidShader = nullptr;
-	gl_volumetricFogShader = nullptr;
 	gl_motionblurShader = nullptr;
 	gl_ssaoShader = nullptr;
 	gl_depthtile1Shader = nullptr;

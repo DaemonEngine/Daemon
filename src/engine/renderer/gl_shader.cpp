@@ -54,7 +54,6 @@ GLShader_blurX                           *gl_blurXShader = nullptr;
 GLShader_blurY                           *gl_blurYShader = nullptr;
 GLShader_debugShadowMap                  *gl_debugShadowMapShader = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
-GLShader_volumetricFog                   *gl_volumetricFogShader = nullptr;
 GLShader_motionblur                      *gl_motionblurShader = nullptr;
 GLShader_ssao                            *gl_ssaoShader = nullptr;
 GLShader_depthtile1                      *gl_depthtile1Shader = nullptr;
@@ -2101,23 +2100,6 @@ void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid1" ), 6 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid2" ), 7 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
-}
-
-GLShader_volumetricFog::GLShader_volumetricFog( GLShaderManager *manager ) :
-	GLShader( "volumetricFog", ATTR_POSITION, manager ),
-	u_ViewOrigin( this ),
-	u_UnprojectMatrix( this ),
-	u_ModelViewMatrix( this ),
-	u_FogDensity( this ),
-	u_FogColor( this )
-{
-}
-
-void GLShader_volumetricFog::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMapBack" ), 1 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMapFront" ), 2 );
 }
 
 GLShader_motionblur::GLShader_motionblur( GLShaderManager *manager ) :

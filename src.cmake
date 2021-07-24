@@ -143,8 +143,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/vertexSimple_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSkinning_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSprite_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/volumetricFog_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/volumetricFog_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/blurX_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/blurX_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/blurY_fp.glsl
