@@ -2605,19 +2605,6 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
 };
 
-class GLShader_volumetricFog :
-	public GLShader,
-	public u_ViewOrigin,
-	public u_UnprojectMatrix,
-	public u_ModelViewMatrix,
-	public u_FogDensity,
-	public u_FogColor
-{
-public:
-	GLShader_volumetricFog( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
-};
-
 class GLShader_motionblur :
 	public GLShader,
 	public u_blurVec
@@ -2698,7 +2685,6 @@ extern GLShader_blurX                           *gl_blurXShader;
 extern GLShader_blurY                           *gl_blurYShader;
 extern GLShader_debugShadowMap                  *gl_debugShadowMapShader;
 extern GLShader_liquid                          *gl_liquidShader;
-extern GLShader_volumetricFog                   *gl_volumetricFogShader;
 extern GLShader_motionblur                      *gl_motionblurShader;
 extern GLShader_ssao                            *gl_ssaoShader;
 extern GLShader_depthtile1                      *gl_depthtile1Shader;

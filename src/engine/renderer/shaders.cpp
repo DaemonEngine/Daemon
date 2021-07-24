@@ -7,8 +7,6 @@
 #include "vertexSimple_vp.glsl.h"
 #include "vertexSkinning_vp.glsl.h"
 #include "vertexSprite_vp.glsl.h"
-#include "volumetricFog_fp.glsl.h"
-#include "volumetricFog_vp.glsl.h"
 #include "blurX_fp.glsl.h"
 #include "blurX_vp.glsl.h"
 #include "blurY_fp.glsl.h"
@@ -120,6 +118,4 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/vertexSimple_vp.glsl", std::string(reinterpret_cast<const char*>(vertexSimple_vp_glsl), sizeof(vertexSimple_vp_glsl)) },
 	{ "glsl/vertexSkinning_vp.glsl", std::string(reinterpret_cast<const char*>(vertexSkinning_vp_glsl), sizeof(vertexSkinning_vp_glsl)) },
 	{ "glsl/vertexSprite_vp.glsl", std::string(reinterpret_cast<const char*>(vertexSprite_vp_glsl), sizeof(vertexSprite_vp_glsl)) },
-	{ "glsl/volumetricFog_fp.glsl", std::string(reinterpret_cast<const char*>(volumetricFog_fp_glsl), sizeof(volumetricFog_fp_glsl)) },
-	{ "glsl/volumetricFog_vp.glsl", std::string(reinterpret_cast<const char*>(volumetricFog_vp_glsl), sizeof(volumetricFog_vp_glsl)) },
 	});
