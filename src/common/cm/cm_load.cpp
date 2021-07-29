@@ -1001,8 +1001,6 @@ cmodel_t       *CM_ClipHandleToModel( clipHandle_t handle )
 	}
 
 	Sys::Drop( "CM_ClipHandleToModel: bad handle %i (max %d)", handle, cm.numSubModels );
-
-	return nullptr;
 }
 
 /*
