@@ -1949,6 +1949,8 @@ union OpaquePlayerState {
 		int          time2;
 
 		vec3_t       origin;
+		// this can be the point from where bullets are shot,
+		// the position of the second side of a portal, etc.
 		vec3_t       origin2;
 
 		vec3_t       angles;

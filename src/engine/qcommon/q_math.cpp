@@ -252,6 +252,22 @@ vec_t PlaneNormalize( vec4_t plane )
  *
  * Returns false if the triangle is degenerate.
  * The normal will point out of the clock for clockwise ordered points
+ *
+ * The plane will pass by the three points and is of the form
+ *     a*x + b*y + c*z = d,
+ * that means, in C notation:
+ *     plane[0]*a[0] + plane[1]*a[1] + plane[2]*a[2] == plane[3]
+ *     plane[0]*b[0] + plane[1]*b[1] + plane[2]*b[2] == plane[3]
+ *     plane[0]*c[0] + plane[1]*c[1] + plane[2]*c[2] == plane[3]
+ *
+ * Some example values:
+ *  a b c  d1  d2  plane  |  a b c  d1  d2  plane
+ *  0 1 0  1   0    0     |  0 1 0  1   0    0
+ *  0 0 1  0   1    0     |  0 0 1  0   1    0
+ *  0 0 0  0   0    1     |  1 1 1  0   0    1
+ *                  0     |                  1
+ *
+ * See the function below if you want the normal to be on the other side
  * =====================
  */
 bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c )
