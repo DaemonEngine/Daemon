@@ -70,9 +70,8 @@ struct netadr_t
 
 struct msg_t
 {
-    bool allowoverflow; // if false, do a Com_Error
-    bool overflowed; // set to true if the buffer size failed (with allowoverflow set)
-    bool oob; // set to true if the buffer size failed (with allowoverflow set)
+    bool overflowed; // set to true if the buffer size failed
+    bool oob;
     byte     *data;
     int      maxsize;
     int      cursize;

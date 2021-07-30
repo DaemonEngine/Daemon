@@ -889,7 +889,6 @@ void SV_SendClientIdle( client_t *client )
 	msg_t msg;
 
 	MSG_Init( &msg, msg_buf, sizeof( msg_buf ) );
-	msg.allowoverflow = true;
 
 	// NOTE, MRE: all server->client messages now acknowledge
 	// let the client know which reliable clientCommands we have received
@@ -957,7 +956,6 @@ void SV_SendClientSnapshot( client_t *client )
 	}
 
 	MSG_Init( &msg, msg_buf, sizeof( msg_buf ) );
-	msg.allowoverflow = true;
 
 	// NOTE, MRE: all server->client messages now acknowledge
 	// let the client know which reliable clientCommands we have received
