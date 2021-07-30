@@ -664,7 +664,6 @@ void CL_InitKeyCommands();
 
 void     CL_Init();
 void     CL_Disconnect( bool showMainMenu );
-void     CL_SendDisconnect();
 void     CL_Shutdown();
 void     CL_Frame( int msec );
 namespace Keyboard { class Key; }
