@@ -801,7 +801,7 @@ Sends a disconnect message to the server
 This is also called on Com_Error and Com_Quit, so it shouldn't cause any errors
 =====================
 */
-void CL_SendDisconnect()
+static void CL_SendDisconnect()
 {
 	// send a disconnect message to the server
 	// send it a few times in case one is dropped
