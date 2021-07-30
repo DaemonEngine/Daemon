@@ -94,7 +94,7 @@ static void CON_SetColor( WINDOW *win, const Color::Color& color )
 	}
 }
 
-static INLINE void CON_UpdateCursor()
+static void CON_UpdateCursor()
 {
 // pdcurses uses a different mechanism to move the cursor than ncurses
 #ifdef _WIN32

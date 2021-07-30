@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Various utilities
 
-char     *QDECL PRINTF_LIKE(1) va( const char *format, ... );
+char     *PRINTF_LIKE(1) va( const char *format, ... );
 
 namespace Util {
 

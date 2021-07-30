@@ -36,7 +36,7 @@ Maryland 20850 USA.
 
 #define	LL(x) x=LittleLong(x)
 
-static INLINE void *IQMPtr( iqmHeader_t *header, int offset ) {
+static inline void *IQMPtr( iqmHeader_t *header, int offset ) {
 	return ( (byte *)header ) + offset;
 }
 

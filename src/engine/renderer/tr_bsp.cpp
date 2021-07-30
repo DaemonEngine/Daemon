@@ -145,7 +145,7 @@ float R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int b
 	return maxIntensity;
 }
 
-static int QDECL LightmapNameCompare( const void *a, const void *b )
+static int LightmapNameCompare( const void *a, const void *b )
 {
 	char *s1, *s2;
 	int  c1, c2;

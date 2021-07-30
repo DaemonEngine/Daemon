@@ -78,7 +78,7 @@ static int  bufIndex;
 SafeFS_Write
 ===============
 */
-static INLINE void SafeFS_Write( const void *buffer, int len, fileHandle_t f )
+static inline void SafeFS_Write( const void *buffer, int len, fileHandle_t f )
 {
 	if ( FS_Write( buffer, len, f ) < len )
 	{
@@ -91,10 +91,11 @@ static INLINE void SafeFS_Write( const void *buffer, int len, fileHandle_t f )
 WRITE_STRING
 ===============
 */
-static INLINE void WRITE_STRING( const char *s )
+static inline void WRITE_STRING( const char *s )
 {
-	Com_Memcpy( &buffer[ bufIndex ], s, strlen( s ) );
-	bufIndex += strlen( s );
+	size_t len = strlen(s);
+	Com_Memcpy( &buffer[ bufIndex ], s, len );
+	bufIndex += len;
 }
 
 /*
@@ -102,13 +103,12 @@ static INLINE void WRITE_STRING( const char *s )
 WRITE_4BYTES
 ===============
 */
-static INLINE void WRITE_4BYTES( int x )
+static inline void WRITE_4BYTES( int x )
 {
-	buffer[ bufIndex + 0 ] = ( byte )( ( x >> 0 ) & 0xFF );
-	buffer[ bufIndex + 1 ] = ( byte )( ( x >> 8 ) & 0xFF );
-	buffer[ bufIndex + 2 ] = ( byte )( ( x >> 16 ) & 0xFF );
-	buffer[ bufIndex + 3 ] = ( byte )( ( x >> 24 ) & 0xFF );
-	bufIndex += 4;
+	buffer[ bufIndex++ ] = ( byte )( ( x >> 0 ) & 0xFF );
+	buffer[ bufIndex++ ] = ( byte )( ( x >> 8 ) & 0xFF );
+	buffer[ bufIndex++ ] = ( byte )( ( x >> 16 ) & 0xFF );
+	buffer[ bufIndex++ ] = ( byte )( ( x >> 24 ) & 0xFF );
 }
 
 /*
@@ -116,11 +116,10 @@ static INLINE void WRITE_4BYTES( int x )
 WRITE_2BYTES
 ===============
 */
-static INLINE void WRITE_2BYTES( int x )
+static inline void WRITE_2BYTES( int x )
 {
-	buffer[ bufIndex + 0 ] = ( byte )( ( x >> 0 ) & 0xFF );
-	buffer[ bufIndex + 1 ] = ( byte )( ( x >> 8 ) & 0xFF );
-	bufIndex += 2;
+	buffer[ bufIndex++ ] = ( byte )( ( x >> 0 ) & 0xFF );
+	buffer[ bufIndex++ ] = ( byte )( ( x >> 8 ) & 0xFF );
 }
 
 /*
@@ -128,7 +127,7 @@ static INLINE void WRITE_2BYTES( int x )
 START_CHUNK
 ===============
 */
-static INLINE void START_CHUNK( const char *s )
+static inline void START_CHUNK( const char *s )
 {
 	if ( afd.chunkStackTop == MAX_RIFF_CHUNKS )
 	{
@@ -146,7 +145,7 @@ static INLINE void START_CHUNK( const char *s )
 END_CHUNK
 ===============
 */
-static INLINE void END_CHUNK()
+static inline void END_CHUNK()
 {
 	int endIndex = bufIndex;
 

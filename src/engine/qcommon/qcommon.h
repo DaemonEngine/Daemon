@@ -434,9 +434,9 @@ int FS_FTell( fileHandle_t f );
 
 // where are we?
 
-void       FS_Flush( fileHandle_t f );
+void FS_Flush( fileHandle_t f );
 
-void QDECL FS_Printf( fileHandle_t f, const char *fmt, ... ) PRINTF_LIKE(2);
+void FS_Printf( fileHandle_t f, const char *fmt, ... ) PRINTF_LIKE(2);
 
 // like fprintf
 

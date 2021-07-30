@@ -172,10 +172,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #   define ALIGN_STACK_FOR_MINGW
 #endif
 
-// Compat macros
-#define QDECL
-#define INLINE inline
-
 // Uses SD-6 Feature Test Recommendations
 #ifdef __cpp_constexpr
 #   if __cpp_constexpr >= 201304
