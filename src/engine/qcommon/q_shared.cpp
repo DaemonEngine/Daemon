@@ -116,21 +116,6 @@ void           *Com_GrowListElement( const growList_t *list, int index )
 
 //=============================================================================
 
-float Com_Clamp( float min, float max, float value )
-{
-	if ( value < min )
-	{
-		return min;
-	}
-
-	if ( value > max )
-	{
-		return max;
-	}
-
-	return value;
-}
-
 /*
 COM_FixPath()
 unixifies a pathname
