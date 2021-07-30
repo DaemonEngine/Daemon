@@ -1376,7 +1376,7 @@ void         ByteToDir( int b, vec3_t dir );
 	void      Parse2DMatrix( const char **buf_p, int y, int x, float *m );
 	void      Parse3DMatrix( const char **buf_p, int z, int y, int x, float *m );
 
-	int QDECL Com_sprintf( char *dest, int size, const char *fmt, ... ) PRINTF_LIKE(3);
+	int Com_sprintf( char *dest, int size, const char *fmt, ... ) PRINTF_LIKE(3);
 
 // mode parm for FS_FOpenFile
 	enum class fsMode_t
@@ -1428,7 +1428,7 @@ void         ByteToDir( int b, vec3_t dir );
 
 //=============================================
 
-	char     *QDECL va( const char *format, ... ) PRINTF_LIKE(1);
+	char     *va( const char *format, ... ) PRINTF_LIKE(1);
 
 //=============================================
 

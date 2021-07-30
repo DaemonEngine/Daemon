@@ -404,7 +404,7 @@ void operator delete(void* p) NOEXCEPT
  * Both client and server can use this, and it will
  * do the appropriate things.
  */
-void QDECL PRINTF_LIKE(2) Com_Error(errorParm_t code, const char *fmt, ...)
+void PRINTF_LIKE(2) Com_Error(errorParm_t code, const char *fmt, ...)
 {
 	char buf[4096];
 	va_list argptr;

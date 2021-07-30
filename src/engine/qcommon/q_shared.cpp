@@ -1795,7 +1795,7 @@ int Q_CountChar( const char *string, char tocount )
 	return count;
 }
 
-int QDECL PRINTF_LIKE(3) Com_sprintf( char *dest, int size, const char *fmt, ... )
+int PRINTF_LIKE(3) Com_sprintf( char *dest, int size, const char *fmt, ... )
 {
 	int     len;
 	va_list argptr;
@@ -1829,7 +1829,7 @@ Ridah, modified this into a circular list, to further prevent stepping on
 previous strings
 ============
 */
-char     *QDECL PRINTF_LIKE(1) va( const char *format, ... )
+char     *PRINTF_LIKE(1) va( const char *format, ... )
 {
 	va_list     argptr;
 	const int MAX_VA_STRING = 32000;

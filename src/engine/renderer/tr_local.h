@@ -276,19 +276,19 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		link_t *prev, *next;
 	};
 
-	static INLINE void InitLink( link_t *l, void *data )
+	static inline void InitLink( link_t *l, void *data )
 	{
 		l->data = data;
 		l->prev = l->next = l;
 	}
 
-	static INLINE void ClearLink( link_t *l )
+	static inline void ClearLink( link_t *l )
 	{
 		l->data = nullptr;
 		l->prev = l->next = l;
 	}
 
-	static INLINE void RemoveLink( link_t *l )
+	static inline void RemoveLink( link_t *l )
 	{
 		l->next->prev = l->prev;
 		l->prev->next = l->next;
@@ -296,7 +296,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		l->prev = l->next = nullptr;
 	}
 
-	static INLINE void InsertLink( link_t *l, link_t *sentinel )
+	static inline void InsertLink( link_t *l, link_t *sentinel )
 	{
 		l->next = sentinel->next;
 		l->prev = sentinel;
@@ -305,17 +305,17 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		l->prev->next = l;
 	}
 
-	static INLINE bool StackEmpty( link_t *l )
+	static inline bool StackEmpty( link_t *l )
 	{
 		return l->next == l;
 	}
 
-	static INLINE link_t *StackTop( link_t *l )
+	static inline link_t *StackTop( link_t *l )
 	{
 		return l->next;
 	}
 
-	static INLINE void StackPush( link_t *sentinel, void *data )
+	static inline void StackPush( link_t *sentinel, void *data )
 	{
 		link_t *l;
 
@@ -325,7 +325,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		InsertLink( l, sentinel );
 	}
 
-	static INLINE void *StackPop( link_t *l )
+	static inline void *StackPop( link_t *l )
 	{
 		link_t *top;
 		void  *data;
@@ -344,24 +344,24 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		return data;
 	}
 
-	static INLINE void QueueInit( link_t *l )
+	static inline void QueueInit( link_t *l )
 	{
 		l->data = nullptr;
 		l->numElements = 0;
 		l->prev = l->next = l;
 	}
 
-	static INLINE int QueueSize( link_t *l )
+	static inline int QueueSize( link_t *l )
 	{
 		return l->numElements;
 	}
 
-	static INLINE bool QueueEmpty( link_t *l )
+	static inline bool QueueEmpty( link_t *l )
 	{
 		return l->prev == l;
 	}
 
-	static INLINE void EnQueue( link_t *sentinel, void *data )
+	static inline void EnQueue( link_t *sentinel, void *data )
 	{
 		link_t *l;
 
@@ -373,7 +373,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		sentinel->numElements++;
 	}
 
-	static INLINE void *DeQueue( link_t *l )
+	static inline void *DeQueue( link_t *l )
 	{
 		link_t *tail;
 		void  *data;
@@ -389,7 +389,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		return data;
 	}
 
-	static INLINE link_t *QueueFront( link_t *l )
+	static inline link_t *QueueFront( link_t *l )
 	{
 		return l->prev;
 	}

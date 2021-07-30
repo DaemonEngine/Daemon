@@ -52,7 +52,4 @@ enum class errorParm_t
 	ERR_SERVERDISCONNECT, // don't kill server
 };
 
-// this is only here so the functions in q_shared.c and bg_*.c can link
-void QDECL NORETURN Com_Error( errorParm_t level, const char *error, ... ) PRINTF_LIKE(2);
-
 #endif /* LOGGING_H_ */

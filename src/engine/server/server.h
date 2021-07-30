@@ -339,7 +339,7 @@ extern cvar_t *sv_fullmsg;
 // sv_main.c
 //
 void       SV_FinalCommand( char *cmd, bool disconnect );  // ydnar: added disconnect flag so map changes can use this function as well
-void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ) PRINTF_LIKE(2);
+void       SV_SendServerCommand( client_t *cl, const char *fmt, ... ) PRINTF_LIKE(2);
 void       SV_PrintTranslatedText( const char *text, bool broadcast, bool plural );
 
 void       SV_AddOperatorCommands();

@@ -847,7 +847,7 @@ static netField_t entityStateFields[] =
 	{ NETF( weaponAnim ),        ANIM_BITS      , 0 },
 };
 
-static int QDECL qsort_entitystatefields( const void *a, const void *b )
+static int qsort_entitystatefields( const void *a, const void *b )
 {
 	int aa, bb;
 
@@ -1278,7 +1278,7 @@ void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int psSize) {
 // TODO: add function to clear
 
 
-static int QDECL qsort_playerstatefields( const void *a, const void *b )
+static int qsort_playerstatefields( const void *a, const void *b )
 {
 	int aa, bb;
 
