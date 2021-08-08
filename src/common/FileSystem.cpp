@@ -1166,7 +1166,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 		if (err)
 			return;
 		for (auto it = dirRange.begin(); it != dirRange.end();) {
-			if (*it == PAK_DEPS_FILE)
+			if (!isLegacy && (*it == PAK_DEPS_FILE))
 				hasDeps = true;
 			else if (!Str::IsSuffix("/", *it) && Str::IsPrefix(pathPrefix, *it)) {
 				fileMap.emplace(*it, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, 0));
