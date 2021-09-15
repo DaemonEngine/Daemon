@@ -656,9 +656,8 @@ build_install() {
 		;;
 	esac
 
-	rmdir "${PKG_PREFIX}/bin" 2> /dev/null || true
-	rmdir "${PKG_PREFIX}/include" 2> /dev/null || true
-	rmdir "${PKG_PREFIX}/lib" 2> /dev/null || true
+	# Remove empty directories
+	find "${PKG_PREFIX}/" -mindepth 1 -type d -empty -delete
 }
 
 # Create a redistributable package for the dependencies
