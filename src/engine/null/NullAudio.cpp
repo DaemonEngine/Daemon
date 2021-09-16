@@ -31,6 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common/Common.h"
 
 namespace Audio {
+    /* When adding an entry point to the audio subsystem,
+    make sure the non-null implementation returns early
+    when audio subsystem is not initialized.
+    See https://github.com/DaemonEngine/Daemon/pull/524 */
 
     bool Init() {
         return true;

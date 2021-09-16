@@ -31,6 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AudioPrivate.h"
 
 namespace Audio {
+    /* When adding an entry point to the audio subsystem,
+    make sure the non-null implementation returns early
+    when audio subsystem is not initialized.
+    See https://github.com/DaemonEngine/Daemon/pull/524 */
 
     //TODO lazily check for the values
     static Cvar::Range<Cvar::Cvar<float>> effectsVolume("audio.volume.effects", "the volume of the effects", Cvar::NONE, 0.8f, 0.0f, 1.0f);
@@ -77,6 +81,10 @@ namespace Audio {
     }
 
     void UpdateSounds() {
+        if (not initialized) {
+            return;
+        }
+
         for (int i = 0; i < nSources; i++) {
             if (sources[i].active) {
                 auto sound = sources[i].usingSound;
@@ -99,6 +107,10 @@ namespace Audio {
     }
 
     void StopSounds() {
+        if (not initialized) {
+            return;
+        }
+
         for (int i = 0; i < nSources; i++) {
             if (sources[i].active) {
                 sources[i].usingSound->Stop();
@@ -107,6 +119,10 @@ namespace Audio {
     }
 
     void AddSound(std::shared_ptr<Emitter> emitter, std::shared_ptr<Sound> sound, int priority) {
+        if (not initialized) {
+            return;
+        }
+
         sourceRecord_t* source = GetSource(priority);
 
         if (source) {

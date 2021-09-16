@@ -33,6 +33,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "AudioData.h"
 
 namespace Audio {
+    /* When adding an entry point to the audio subsystem,
+    make sure the non-null implementation returns early
+    when audio subsystem is not initialized.
+    See https://github.com/DaemonEngine/Daemon/pull/524 */
 
     Log::Logger audioLogs("audio");
 
@@ -229,15 +233,27 @@ namespace Audio {
     }
 
     void BeginRegistration() {
+        if (not initialized) {
+            return;
+        }
+
         BeginSampleRegistration();
     }
 
     sfxHandle_t RegisterSFX(Str::StringRef filename) {
+        if (not initialized) {
+            return 0;
+        }
+
         // TODO: what should we do if we aren't initialized?
         return RegisterSample(filename)->GetHandle();
     }
 
     void EndRegistration() {
+        if (not initialized) {
+            return;
+        }
+
         EndSampleRegistration();
     }
 
@@ -340,6 +356,10 @@ namespace Audio {
     }
 
     void StopAllSounds() {
+        if (not initialized) {
+            return;
+        }
+
         StopMusic();
         StopSounds();
     }
@@ -409,6 +429,10 @@ namespace Audio {
     }
 
     void SetReverb(int slotNum, std::string name, float ratio) {
+        if (not initialized) {
+            return;
+        }
+
         if (slotNum < 0 or slotNum >= N_REVERB_SLOTS or std::isnan(ratio)) {
             return;
         }
