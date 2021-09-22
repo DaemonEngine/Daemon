@@ -27,7 +27,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "q_shared.h"
 #include "qcommon.h"
 
+#pragma warning(push)
+#pragma warning(disable : 4146) // "unary minus operator applied to unsigned type, result still unsigned"
 #include <gmp.h>
+#pragma warning(pop)
+
 #include <nettle/bignum.h>
 #include <nettle/rsa.h>
 #include <nettle/buffer.h>

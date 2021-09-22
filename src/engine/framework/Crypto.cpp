@@ -30,6 +30,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "common/Common.h"
 #include "Crypto.h"
+
+#pragma warning(push)
+#pragma warning(disable : 4146) // "unary minus operator applied to unsigned type, result still unsigned" in gmp.h
 #include <nettle/aes.h>
 #include <nettle/base64.h>
 #include <nettle/md5.h>
@@ -37,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // HACK: include this because this pulls in nettle/version.h, which does not
 //       exist in older versions of nettle.
 #include <nettle/bignum.h>
+#pragma warning(pop)
 
 // Compatibility with old nettle versions
 #if !defined(AES256_KEY_SIZE)
