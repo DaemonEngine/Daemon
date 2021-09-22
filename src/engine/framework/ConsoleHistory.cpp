@@ -87,7 +87,7 @@ History::History()
 	: current_line( std::numeric_limits<Container::size_type>::max() )
 {}
 
-void History::Add( const Line& text )
+void History::Add( Line text )
 {
 	auto lock = Lock();
 

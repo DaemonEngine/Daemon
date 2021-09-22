@@ -47,7 +47,7 @@ namespace Console {
         static void Save();
         static void Load();
 
-        void Add(const Line& text);
+        void Add(Line text);
         void PrevLine(Line& text);
         void NextLine(Line& text);
 
