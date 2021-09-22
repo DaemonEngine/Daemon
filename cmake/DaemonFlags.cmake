@@ -284,12 +284,6 @@ else()
     if (USE_PEDANTIC)
         try_flag(WARNINGS       "-pedantic")
     endif()
-    if (USE_WERROR)
-        try_flag(WARNINGS       "-Werror")
-        if (USE_PEDANTIC)
-            try_flag(WARNINGS   "-pedantic-errors")
-        endif()
-    endif()
 
     if (USE_ADDRESS_SANITIZER)
         set_cxx_flag("-fsanitize=address")
@@ -345,6 +339,14 @@ else()
         endif()
     endif()
 
+endif()
+
+if (USE_WERROR)
+    try_flag(WARNINGS "-Werror")
+    try_flag(WARNINGS "/WX")
+    if (USE_PEDANTIC)
+        try_flag(WARNINGS "-pedantic-errors")
+    endif()
 endif()
 
 # Windows-specific definitions
