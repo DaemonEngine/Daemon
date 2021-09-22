@@ -1,3 +1,5 @@
+# Documentation: https://wiki.unvanquished.net/wiki/Continuous_integration
+
 branches:
   except:
     - debian
@@ -10,8 +12,8 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       generator: Visual Studio 16 2019
       platform: x64
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      generator: Visual Studio 15 2017
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      generator: Visual Studio 16 2019
       platform: win32
 
 build:
@@ -26,16 +28,18 @@ build_script:
   - cmd: >
       cmake --version
 
-      set cmake=cmake
+      :: These env vars *prepend* to CMAKE_<lang>_FLAGS rather than overwriting.
+      :: /Wv pins warnings to a specific compiler version so that new ones
+      :: don't make the build error after Appveyor updates the compiler.
 
-      if not "x%generator:Visual Studio=%"=="x%generator%"
-      set cmake=%cmake% -A"%platform%"
+      set CFLAGS=/Wv:19.29.30037
 
-      %cmake%
+      set CXXFLAGS=/Wv:19.29.30037
+
+      cmake
       -Wdev -Wdeprecated
       -G"%generator%"
       -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1
-      -DBUILD_GAME_NACL=0
       -DCMAKE_BUILD_TYPE="%configuration%"
       -S. -Bbuild
 
