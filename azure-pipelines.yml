@@ -1,10 +1,39 @@
-pool:
-  vmImage: 'macOS-10.15'
+# Documentation: https://wiki.unvanquished.net/wiki/Continuous_integration
 
-steps:
-- script: |
-    set -e
-    git submodule update --init --recursive
-    cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_DEBUG_OPTIMIZE=0 -DCMAKE_BUILD_TYPE=Debug -H. -Bbuild
-    cmake --build build -- -j`sysctl -n hw.logicalcpu`
-  displayName: 'Build'
+jobs:
+  - job: Mac
+    pool:
+      vmImage: 'macOS-10.15'
+    steps:
+    - bash: |
+        set -e
+        git submodule update --init --recursive
+        cmake --version
+        cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_DEBUG_OPTIMIZE=0 -DCMAKE_BUILD_TYPE=Debug -H. -Bbuild
+        cmake --build build -- -j`sysctl -n hw.logicalcpu`
+      displayName: 'Build'
+
+  - job: Linux
+    pool:
+      vmImage: 'ubuntu-18.04'
+    strategy:
+      matrix:
+        GCC:
+          C_COMPILER: gcc
+          CXX_COMPILER: g++
+        Clang:
+          C_COMPILER: clang
+          CXX_COMPILER: clang++
+    steps:
+    - bash: |
+        set -e
+        sudo apt-get update
+        sudo apt-get -y -q --no-install-recommends install zlib1g-dev libncursesw5-dev libgeoip-dev nettle-dev libgmp-dev libcurl4-gnutls-dev libsdl2-dev libogg-dev libvorbis-dev libopusfile-dev libtheora-dev libwebp-dev libjpeg8-dev libpng-dev libfreetype6-dev libglew-dev libopenal-dev liblua5.2-dev ninja-build
+      displayName: 'Install deps'
+    - bash: |
+        set -e
+        git submodule update --init --recursive
+        cmake --version
+        cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_DEBUG_OPTIMIZE=0 -DCMAKE_BUILD_TYPE=Debug -H. -Bbuild
+        cmake --build build -- -j`nproc`
+      displayName: 'Build'
