@@ -95,7 +95,6 @@ namespace IPC {
 
         if (!buffer.CanRead(size + sizeof(uint32_t))) {
             Sys::Drop("Command buffer for %s had an incomplete message write", name);
-            return false;
         }
         std::vector<char>& readerData = reader.GetData();
         readerData.resize(size);

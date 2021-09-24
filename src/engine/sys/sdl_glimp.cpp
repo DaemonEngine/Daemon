@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+#include "qcommon/q_shared.h" // Include before SDL.h due to M_PI issue...
 #include <SDL.h>
 
 #ifdef USE_SMP

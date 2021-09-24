@@ -121,7 +121,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable : 4458) // declaration of 'XXX' hides class member
 #pragma warning(disable : 4459) // declaration of 'XXX' hides global declaration
 
+#pragma warning(disable : 4701) // potentially uninitialized local variable 'XXX' used
 #pragma warning(disable : 4706) // assignment within conditional expression
+
+#pragma warning(disable : 26495) // Variable 'XXX' is uninitialized. Always initialize a member variable.
 
 // See descriptions above
 #define DEPRECATED __declspec(deprecated)

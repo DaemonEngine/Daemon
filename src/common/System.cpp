@@ -248,8 +248,6 @@ static const char *WindowsExceptionString(DWORD code)
 	// TODO: backtrace
 
 	Sys::Error("Crashed with exception 0x%lx: %s", ExceptionInfo->ExceptionRecord->ExceptionCode, WindowsExceptionString(ExceptionInfo->ExceptionRecord->ExceptionCode));
-
-	return EXCEPTION_CONTINUE_EXECUTION;
 }
 void SetupCrashHandler()
 {

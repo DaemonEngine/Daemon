@@ -328,8 +328,6 @@ static          boolean empty_output_buffer( j_compress_ptr cinfo )
 
 	// Make crash fatal or we would probably leak memory.
 	Sys::Error( "Output buffer for encoded JPEG image has insufficient size of %d bytes", dest->size );
-
-	return FALSE;
 }
 
 /*

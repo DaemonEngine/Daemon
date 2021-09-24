@@ -59,8 +59,8 @@ namespace Str {
                 return false;
 
             // Check for overflow when multiplying
-            int min = std::numeric_limits<int>::min();
-            int max = std::numeric_limits<int>::max();
+            constexpr int min = std::numeric_limits<int>::min();
+            constexpr int max = std::numeric_limits<int>::max();
             if (neg ? value < (min + 1) / 10 : value > max / 10)
                 return false;
             value *= 10;
@@ -161,7 +161,8 @@ namespace Str {
     static const uint32_t UNICODE_SURROGATE_TAIL_START = 0xdc00;
     static const uint32_t UNICODE_SURROGATE_MASK = 0x3ff;
 #endif
-    static std::initializer_list<char> UNICODE_REPLACEMENT_CHAR_UTF8 = {char(0xef), char(0xbf), char(0xbd)};
+    static std::initializer_list<char> UNICODE_REPLACEMENT_CHAR_UTF8 =
+        {static_cast<char>(0xef), static_cast<char>(0xbf), static_cast<char>(0xbd)};
 
     static bool UTF8_IsOverlongSequence(uint32_t cp, int length)
     {

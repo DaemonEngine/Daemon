@@ -510,6 +510,9 @@ endif()
 add_library(srclibs-minizip EXCLUDE_FROM_ALL ${MINIZIPLIST})
 set_target_properties(srclibs-minizip PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
 set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
+if (MSVC)
+    target_compile_options(srclibs-minizip PRIVATE "/wd4100") # disable "unreferenced formal parameter"
+endif()
 
 # Look for OpenGL here before we potentially switch to looking for static libs.
 if (BUILD_CLIENT)
@@ -549,6 +552,9 @@ if (USE_CURSES AND NOT NACL)
 
         add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DUSE_CURSES)
         add_library(srclibs-pdcurses EXCLUDE_FROM_ALL ${PDCURSESLIST})
+        if (MSVC)
+            target_compile_options(srclibs-pdcurses PRIVATE "/W2") # decrease warning level
+        endif()
         set_target_properties(srclibs-pdcurses PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-pdcurses)
         include_directories(${LIB_DIR}/pdcurses)

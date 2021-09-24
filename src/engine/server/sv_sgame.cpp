@@ -229,32 +229,24 @@ void SV_GetUsercmd( int clientNum, usercmd_t *cmd )
 ====================
 SV_GetTimeString
 
-Returns 0 if we have a representable time
 Truncation is ignored
 ====================
 */
 static void SV_GetTimeString( char *buffer, int length, const char *format, const qtime_t *tm )
 {
-	if ( tm )
-	{
-		struct tm t;
+	struct tm t;
 
-		t.tm_sec   = tm->tm_sec;
-		t.tm_min   = tm->tm_min;
-		t.tm_hour  = tm->tm_hour;
-		t.tm_mday  = tm->tm_mday;
-		t.tm_mon   = tm->tm_mon;
-		t.tm_year  = tm->tm_year;
-		t.tm_wday  = tm->tm_wday;
-		t.tm_yday  = tm->tm_yday;
-		t.tm_isdst = tm->tm_isdst;
+	t.tm_sec   = tm->tm_sec;
+	t.tm_min   = tm->tm_min;
+	t.tm_hour  = tm->tm_hour;
+	t.tm_mday  = tm->tm_mday;
+	t.tm_mon   = tm->tm_mon;
+	t.tm_year  = tm->tm_year;
+	t.tm_wday  = tm->tm_wday;
+	t.tm_yday  = tm->tm_yday;
+	t.tm_isdst = tm->tm_isdst;
 
-		strftime ( buffer, length, format, &t );
-	}
-	else
-	{
-		strftime( buffer, length, format, gmtime( nullptr ) );
-	}
+	strftime ( buffer, length, format, &t );
 }
 
 /*

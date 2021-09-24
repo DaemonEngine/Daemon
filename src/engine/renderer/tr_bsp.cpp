@@ -3952,7 +3952,7 @@ void R_LoadLightGrid( lump_t *l )
 	Log::Debug("grid bounds (%i %i %i)", w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ],
 			   w->lightGridBounds[ 2 ]);
 
-	if ( l->filelen != w->numLightGridPoints * sizeof( dgridPoint_t ) )
+	if ( static_cast<size_t>(l->filelen) != w->numLightGridPoints * sizeof( dgridPoint_t ) )
 	{
 		Log::Warn("light grid mismatch, default light grid used\n" );
 

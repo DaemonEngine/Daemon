@@ -54,10 +54,12 @@ endmacro()
 
 function(try_flag LIST FLAG)
     string(REGEX REPLACE "[/=-]" "_" TEST ${FLAG})
-    if (MSVC) # check_CXX_compiler_flag apparently always fails for MSVC.
-              # MSVC ignores unknown options, so just check if it begins with '/'.
-        string(SUBSTRING "${FLAG}" 0 1 FLAG_FIRST_CHAR)
-        if ("${FLAG_FIRST_CHAR}" STREQUAL "/")
+    # Check if the flag begins with '/', meaning it is for MSVC.
+    # check_CXX_compiler_flag apparently always fails for MSVC, so accept it without testing.
+    # Other compilers might interpret it as a filename so reject without testing.
+    string(SUBSTRING "${FLAG}" 0 1 FLAG_FIRST_CHAR)
+    if ("${FLAG_FIRST_CHAR}" STREQUAL "/")
+        if (MSVC)
             set(${TEST} 1)
         else()
             set(${TEST} 0)
@@ -282,12 +284,6 @@ else()
     if (USE_PEDANTIC)
         try_flag(WARNINGS       "-pedantic")
     endif()
-    if (USE_WERROR)
-        try_flag(WARNINGS       "-Werror")
-        if (USE_PEDANTIC)
-            try_flag(WARNINGS   "-pedantic-errors")
-        endif()
-    endif()
 
     if (USE_ADDRESS_SANITIZER)
         set_cxx_flag("-fsanitize=address")
@@ -343,6 +339,14 @@ else()
         endif()
     endif()
 
+endif()
+
+if (USE_WERROR)
+    try_flag(WARNINGS "-Werror")
+    try_flag(WARNINGS "/WX")
+    if (USE_PEDANTIC)
+        try_flag(WARNINGS "-pedantic-errors")
+    endif()
 endif()
 
 # Windows-specific definitions
