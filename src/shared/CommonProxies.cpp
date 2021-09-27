@@ -629,3 +629,10 @@ void trap_FS_LoadAllMapMetadata()
 {
 	VM::SendMsg<VM::FSLoadMapMetadataMsg>();
 }
+
+bool trap_ImageExists( const char *filename )
+{
+	bool test;
+	VM::SendMsg<VM::ImageExists>( filename, test );
+	return test;
+}

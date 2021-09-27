@@ -42,6 +42,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wunused-lambda-capture"
 #endif
 
+// From engine/renderer/tr_local.h
+int R_FindImageLoader( const char *baseName );
+
 namespace VM {
 
     // Misc Related
@@ -342,6 +345,12 @@ namespace VM {
             case QVM_COMMON_FS_LOAD_MAP_METADATA:
                 IPC::HandleMsg<FSLoadMapMetadataMsg>(channel, std::move(reader), [this] {
                     FS_LoadAllMapMetadata();
+                });
+                break;
+
+            case QVM_COMMON_IMAGE_EXISTS:
+                IPC::HandleMsg<ImageExists>(channel, std::move(reader), [this](const std::string& filename, bool& test) {
+                    test = R_FindImageLoader( filename.c_str() ) >= 0;
                 });
                 break;
 
