@@ -660,12 +660,18 @@ void FS_LoadBasePak()
 		}
 	}
 
-	if (!FS_LoadPak(fs_basepak.Get().c_str())) {
+	if (FS_LoadPak(fs_basepak.Get().c_str())) {
+		return; // success
+	}
+
+	if (fs_basepak.Get() != DEFAULT_BASE_PAK) {
 		Log::Notice("Could not load base pak '%s', falling back to default: '%s'", fs_basepak.Get().c_str(), DEFAULT_BASE_PAK);
-		if (!FS_LoadPak(DEFAULT_BASE_PAK)) {
-			Sys::Error("Could not load default base pak '%s'", DEFAULT_BASE_PAK);
+		if (FS_LoadPak(DEFAULT_BASE_PAK)) {
+			return; // success
 		}
 	}
+
+	Sys::Error("Could not load default base pak '%s'", DEFAULT_BASE_PAK);
 }
 
 void FS_LoadAllMapMetadata()
