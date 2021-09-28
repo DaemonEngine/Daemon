@@ -492,9 +492,17 @@ static keyNum_t hat_keys[ 16 ] =
 	K_JOY19, K_JOY20
 };
 
+// TODO(C++14): remove and use std::max instead
+static constexpr int max(int a, int b) { return a>b ? a : b; }
+
 struct
 {
-	bool     buttons[ 16 ]; // !!! FIXME: these might be too many.
+	// FIXME: this used to be 16, and was looped over up to
+	// SDL_CONTROLLER_BUTTON_MAX but neither look correct. At least this
+	// avoid memory corruption, but I'd be surprised if the code around
+	// this works correctly.
+	bool     buttons[ max(32, (int)SDL_CONTROLLER_BUTTON_MAX) ];
+
 	unsigned int oldaxes;
 	int          oldaaxes[ 16 ];
 	unsigned int oldhats;
