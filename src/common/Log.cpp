@@ -110,16 +110,19 @@ namespace Log {
     void DispatchByLevel(std::string message, Log::Level level) {
         switch (level) {
         case Level::DEBUG:
-            Log::Dispatch({"^5Debug: " + message}, debugTargets);
+            message.insert(0, "^5Debug: ");
+            Log::Dispatch(std::move(message), debugTargets);
             break;
         case Level::VERBOSE:
-            Log::Dispatch({std::move(message)}, verboseTargets);
+            Log::Dispatch(std::move(message), verboseTargets);
             break;
         case Level::NOTICE:
-            Log::Dispatch({std::move(message)}, noticeTargets);
+            Log::Dispatch(std::move(message), noticeTargets);
             break;
         case Level::WARNING:
-            Log::Dispatch({"^3Warn: " + message}, warnTargets);
+            message.insert(0, "^3Warn: ");
+            Log::Dispatch(std::move(message), warnTargets);
+            break;
         }
     }
 

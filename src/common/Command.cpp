@@ -319,8 +319,8 @@ namespace Cmd {
 
     Args::Args() = default;
 
-    Args::Args(std::vector<std::string> args_) {
-        args = std::move(args_);
+    Args::Args(std::vector<std::string> args_)
+	    : args(std::move(args_)) {
     }
 
     Args::Args(Str::StringRef cmd) {
