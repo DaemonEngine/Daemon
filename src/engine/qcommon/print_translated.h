@@ -38,9 +38,7 @@ static const char *TranslateText_Internal( bool plural, int firstTextArg )
 	static char str[ MAX_STRING_CHARS ];
 	char        buf[ MAX_STRING_CHARS ];
 	const char  *in;
-	int         i = 0, totalArgs;
-
-	totalArgs = Cmd_Argc();
+	unsigned i = 0;
 
 	if ( plural )
 	{
@@ -54,108 +52,66 @@ static const char *TranslateText_Internal( bool plural, int firstTextArg )
 		Q_strncpyz( buf, TRANSLATE_FUNC( Cmd_Argv( firstTextArg ) ), sizeof( buf ) );
 	}
 
+	int maxArgnum = Cmd_Argc() - firstTextArg - 1;
+
 	in = buf;
-	memset( &str, 0, sizeof( str ) );
 
-	char c;
-	while( *in )
+	while( *in && i < sizeof( str ) - 1 )
 	{
-		c = *in;
-
-		if( c == '$' )
+		if ( *in != '$' ) // regular character
 		{
-			const char *number = ++in;
+			str[ i++ ] = *in++;
+			continue;
+		}
 
-			if( *in == '$' )
-			{
-				goto literal;
-			}
+		++in;
 
-			while( *in )
-			{
-				if( Str::cisdigit( *in ) )
-				{
-					in++;
+		if( *in == '$' ) // escaped '$'
+		{
+			str[ i++ ] = *in++;
+			continue;
+		}
 
-					if( *in == 't' && *(in+1) == '$' )
-					{
-						int num = atoi( number );
+		if ( !Str::cisdigit( *in ) )
+		{
+			str[ i++ ] = '$'; // stray '$', treat as normal char
+			continue;
+		}
 
-						if( num >= 0 && num < totalArgs )
-						{
-							const char *translated = TRANSLATE_FUNC( Cmd_Argv( num + firstTextArg ) );
-							int         length = strlen( translated );
+		const char* number = in;
+		do { ++in; } while ( Str::cisdigit( *in ) );
+		int argnum = atoi( number );
 
-							i += length;
+		if ( argnum <= 0 || argnum > maxArgnum )
+		{
+			str[ i++ ] = '$'; // substitution parsing failed
+			in = number;
+			continue;
+		}
 
-							if( i >= MAX_STRING_CHARS )
-							{
-								Log::Notice( str );
-								memset( &str, 0, sizeof( str ) );
-								i = length;
-							}
+		const char* substitution;
 
-							Q_strcat( str, sizeof( str ), translated );
-						}
-
-						in += 2;
-						break;
-					}
-					else if( *in == '$' )
-					{
-						int num = atoi( number );
-
-						if( num >= 0 && num < totalArgs )
-						{
-							const char *translated = TRANSLATE_FUNC( Cmd_Argv( num + firstTextArg ) );
-							int         length = strlen( translated );
-
-							i += length;
-
-							if( i >= MAX_STRING_CHARS )
-							{
-								Log::Notice( str );
-								memset( &str, 0, sizeof( str ) );
-								i = length;
-							}
-
-							Q_strcat( str, sizeof( str ), translated );
-						}
-
-						in++;
-						break;
-					}
-				}
-				else
-				{
-					// invalid sequence
-					c = '$';
-					goto literal;
-				}
-			}
+		if ( in[ 0 ] == '$' )
+		{
+			in += 1;
+			substitution = Cmd_Argv( argnum + firstTextArg );
+		}
+		else if ( in[ 0 ] == 't' && in[ 1 ] == '$' )
+		{
+			in += 2;
+			substitution = TRANSLATE_FUNC( Cmd_Argv( argnum + firstTextArg ) );
 		}
 		else
 		{
-			// arrive here for literal '$' or invalid sequence
-			// in has not yet been incremented
-			// c contains the character to be appended
-			literal:
-
-			if( i < MAX_STRING_CHARS )
-			{
-				str[ i++ ] = c;
-			}
-			else
-			{
-				Log::Notice( str );
-				memset( &str, 0, sizeof( str ) );
-				str[ 0 ] = c;
-				i = 1;
-			}
-
-			++in;
+			str[ i++ ] = '$'; // substitution parsing failed
+			in = number; // go back and print everything literally
+			continue;
 		}
+
+		Q_strncpyz( str + i, substitution, sizeof( str ) - i );
+		i += strlen( str + i );
 	}
 
+	str[ i ] = '\0';
 	return str;
 }
