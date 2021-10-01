@@ -1497,7 +1497,7 @@ void SV_Frame( int msec )
 ========================
  */
 #define TRANSLATE_FUNC(msg) (msg)
-#define PLURAL_TRANSLATE_FUNC(msg, msg2, num) (msg)
+#define PLURAL_TRANSLATE_FUNC(msg, msg2, num) (Q_UNUSED(msg2), Q_UNUSED(num), msg)
 #include "qcommon/print_translated.h"
 
 void SV_PrintTranslatedText( const char *text, bool broadcast, bool plural )
