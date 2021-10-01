@@ -812,17 +812,5 @@ void             Huff_offsetTransmit( huff_t *huff, int ch, byte *fout, int *off
 void             Huff_putBit( int bit, byte *fout, int *offset );
 int              Huff_getBit( byte *fout, int *offset );
 
-#define _(x) Trans_Gettext(x)
-#define C_(x, y) Trans_Pgettext(x, y)
-#define N_(x) (x)
-#define P_(x, y, c) Trans_GettextPlural(x, y, c)
-
-void Trans_Init();
 void Trans_LoadDefaultLanguage();
-const char* Trans_Gettext( const char *msgid ) PRINTF_TRANSLATE_ARG(1);
-const char* Trans_Pgettext( const char *ctxt, const char *msgid ) PRINTF_TRANSLATE_ARG(2);
-const char* Trans_GettextPlural( const char *msgid, const char *msgid_plural, int num ) PRINTF_TRANSLATE_ARG(1) PRINTF_TRANSLATE_ARG(2);
-const char* Trans_GettextGame( const char *msgid ) PRINTF_TRANSLATE_ARG(1);
-const char* Trans_PgettextGame( const char *ctxt, const char *msgid ) PRINTF_TRANSLATE_ARG(2);
-const char* Trans_GettextGamePlural( const char *msgid, const char *msgid_plural, int num ) PRINTF_TRANSLATE_ARG(1) PRINTF_TRANSLATE_ARG(2);
 #endif // QCOMMON_H_

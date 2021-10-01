@@ -633,7 +633,6 @@ void Com_Init()
 	char              *s;
 	int               qport;
 
-	Trans_Init();
 	Trans_LoadDefaultLanguage();
 
 	// if any archived cvars are modified after this, we will trigger a writing

@@ -36,12 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 bool ConsoleCommand();
 void CompleteCommand(int);
 
-const char* Trans_Gettext(const char* text) {
-    return text;
-}
-
-//TODO END HACK
-
 // Command related syscall handling
 
 namespace Cmd {

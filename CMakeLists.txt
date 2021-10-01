@@ -572,10 +572,10 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER)
         add_definitions("-DNACL_RUNTIME_PATH=${NACL_RUNTIME_PATH}")
     endif()
 
-    # Tinygettext
-    add_library(srclibs-tinygettext EXCLUDE_FROM_ALL ${TINYGETTEXTLIST})
-    set_target_properties(srclibs-tinygettext PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-tinygettext)
+    # FindLocale
+    add_library(srclibs-findlocale EXCLUDE_FROM_ALL ${FINDLOCALELIST})
+    set_target_properties(srclibs-findlocale PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-findlocale)
 
     # GeoIP
     if (USE_GEOIP)
@@ -618,10 +618,6 @@ if (BUILD_CLIENT OR WIN32)
         set(LIBS_CLIENT ${LIBS_CLIENT} ${SDL2_LIBRARY})
     endif()
 
-    # Used by tinygettext to use SDL_iconv instead of base iconv
-    if (WIN32)
-        add_definitions(-DHAVE_SDL)
-    endif()
     mark_as_advanced(SDL2MAIN_LIBRARY SDL2_LIBRARY SDL2_INCLUDE_DIR)
 endif()
 

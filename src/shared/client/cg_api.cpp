@@ -116,27 +116,6 @@ void trap_QuoteString( const char *str, char *buffer, int size )
 	Q_strncpyz(buffer, quoted.c_str(), size);
 }
 
-void trap_Gettext( char *buffer, const char *msgid, int bufferLength )
-{
-	std::string result;
-	VM::SendMsg<GettextMsg>(bufferLength, msgid, result);
-	Q_strncpyz(buffer, result.c_str(), bufferLength);
-}
-
-void trap_Pgettext( char *buffer, const char *ctxt, const char *msgid, int bufferLength )
-{
-	std::string result;
-	VM::SendMsg<PGettextMsg>(bufferLength, ctxt, msgid, result);
-	Q_strncpyz(buffer, result.c_str(), bufferLength);
-}
-
-void trap_GettextPlural( char *buffer, const char *msgid, const char *msgid2, int number, int bufferLength )
-{
-	std::string result;
-	VM::SendMsg<GettextPluralMsg>(bufferLength, msgid, msgid2, number, result);
-	Q_strncpyz(buffer, result.c_str(), bufferLength);
-}
-
 void trap_notify_onTeamChange( int newTeam )
 {
 	VM::SendMsg<NotifyTeamChangeMsg>(newTeam);
