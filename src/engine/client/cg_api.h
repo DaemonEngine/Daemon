@@ -233,9 +233,6 @@ void            trap_RegisterButtonCommands( const char *cmds );
 
 void            trap_GetClipboardData( char *, int);
 void            trap_QuoteString( const char *, char*, int );
-void            trap_Gettext( char *buffer, const char *msgid, int bufferLength );
-void            trap_Pgettext( char *buffer, const char *ctxt, const char *msgid, int bufferLength );
-void            trap_GettextPlural( char *buffer, const char *msgid, const char *msgid2, int number, int bufferLength );
 
 void            trap_notify_onTeamChange( int newTeam );
 

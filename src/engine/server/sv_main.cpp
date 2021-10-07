@@ -1488,10 +1488,16 @@ void SV_Frame( int msec )
 /*
 ========================
  SV_PrintTranslatedText
+
+ Translation for print_tr and friends is currently disabled for the *dedicated server console*.
+ But we need TranslateText_Internal to interpret the format substitutions like $1$.
+
+ TODO: move this substitution stuff into the sgame since print_tr etc. is really
+ a gamelogic-internal concept.
 ========================
  */
-#define TRANSLATE_FUNC        Trans_GettextGame
-#define PLURAL_TRANSLATE_FUNC Trans_GettextGamePlural
+#define TRANSLATE_FUNC(msg) (msg)
+#define PLURAL_TRANSLATE_FUNC(msg, msg2, num) (Q_UNUSED(msg2), Q_UNUSED(num), msg)
 #include "qcommon/print_translated.h"
 
 void SV_PrintTranslatedText( const char *text, bool broadcast, bool plural )

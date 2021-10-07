@@ -51,10 +51,6 @@ Maryland 20850 USA.
 #pragma clang diagnostic ignored "-Wunused-lambda-capture"
 #endif
 
-#define __(x) Trans_GettextGame(x)
-#define C__(x, y) Trans_PgettextGame(x, y)
-#define P__(x, y, c) Trans_GettextGamePlural(x, y, c)
-
 
 /*
 ====================
@@ -1189,27 +1185,21 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			});
 			break;
 
-		case CG_GETTEXT:
+		case CG_GETTEXT: // TODO(0.53): remove
 			IPC::HandleMsg<GettextMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				Q_strncpyz(buffer.get(), __(input.c_str()), len);
-				output.assign(buffer.get());
+				output = input.substr(0, len);
 			});
 			break;
 
-		case CG_PGETTEXT:
-			IPC::HandleMsg<PGettextMsg>(channel, std::move(reader), [this] (int len, const std::string& context, const std::string& input, std::string& output) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				Q_strncpyz(buffer.get(), C__(context.c_str(), input.c_str()), len);
-				output.assign(buffer.get());
+		case CG_PGETTEXT: // TODO(0.53): remove
+			IPC::HandleMsg<PGettextMsg>(channel, std::move(reader), [this] (int len, const std::string&, const std::string& input, std::string& output) {
+				output = input.substr(0, len);
 			});
 			break;
 
-		case CG_GETTEXT_PLURAL:
-			IPC::HandleMsg<GettextPluralMsg>(channel, std::move(reader), [this] (int len, const std::string& input1, const std::string& input2, int number, std::string& output) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				Q_strncpyz(buffer.get(), P__(input1.c_str(), input2.c_str(), number), len);
-				output.assign(buffer.get());
+		case CG_GETTEXT_PLURAL: // TODO(0.53): remove
+			IPC::HandleMsg<GettextPluralMsg>(channel, std::move(reader), [this] (int len, const std::string& input1, const std::string&, int, std::string& output) {
+				output = input1.substr(0, len);
 			});
 			break;
 
