@@ -264,6 +264,7 @@ struct MasterServer
 	netadr_t ipv6;
 	std::string challenge;
 	netadrtype_t challenge_address_type;
+	bool dnsFailed;
 
 	MasterServer()
 	{
@@ -299,8 +300,26 @@ struct MasterServer
 
 static std::array<MasterServer, MAX_MASTER_SERVERS> masterServers;
 
+void SV_ResetMasterServersFailureStates()
+{
+	for ( MasterServer& master : masterServers )
+	{
+		// Reset the master server failure state.
+		master.dnsFailed = false;
+	}
+}
+
 static void SV_ResolveMasterServers()
 {
+	/* SV_ResolveMasterServers is called on heartbeats or when a `getinfo`
+	connectionless packet is received.
+
+	If the address failed to resolve, the master server is marked as failed,
+	So we don't try to send heart beats to it until the next map load.
+
+	This is only called by server, the client resolves master servers
+	in CL_GlobalServers_f() from engine/client/cl_main.cpp file. */
+
 	int netenabled = Cvar_VariableIntegerValue( "net_enabled" );
 
 	for ( MasterServer& master : masterServers )
@@ -355,10 +374,9 @@ static void SV_ResolveMasterServers()
 
 		if ( master.Empty() )
 		{
-			// if the address failed to resolve, clear it
-			// so we don't take repeated dns hits
+			// Mark the master server as failed until the next resolve.
 			netLog.Warn( "Couldn't resolve address: %s", master.Cvar()->string );
-			Cvar_Set( master.Cvar()->name, "" );
+			master.dnsFailed = true;
 			continue;
 		}
 	}
@@ -418,6 +436,11 @@ void SV_MasterHeartbeat( const char *hbname )
 	for ( MasterServer& master : masterServers )
 	{
 		if ( master.Empty() )
+		{
+			continue;
+		}
+
+		if ( master.dnsFailed )
 		{
 			continue;
 		}

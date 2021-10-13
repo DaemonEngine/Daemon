@@ -347,6 +347,7 @@ void       SV_RemoveOperatorCommands();
 
 void       SV_NET_Config();
 
+void       SV_ResetMasterServersFailureStates();
 void       SV_MasterHeartbeat( const char *hbname );
 void       SV_MasterShutdown();
 

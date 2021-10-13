@@ -431,6 +431,8 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	PrintBanner( "Server Initialization" )
 	Log::Notice( "Map: %s", mapname );
 
+	SV_ResetMasterServersFailureStates();
+
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
 	// also print some status stuff
 	CL_MapLoading();
