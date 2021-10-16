@@ -677,6 +677,9 @@ static void IN_JoyMove()
 
 		if ( balldx || balldy )
 		{
+			// CHECKME: are these >1 really intended? Also,
+			// the mouse code doesn't contain such code nowadays.
+
 			// !!! FIXME: is this good for stick balls, or just mice?
 			// Scale like the mouse input...
 			if ( abs( balldx ) > 1 )
