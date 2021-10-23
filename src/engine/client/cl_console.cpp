@@ -188,10 +188,10 @@ static Iterator Con_Search_f_Helper( const Iterator& begin, const Iterator& end,
 {
 	return std::find_if( begin, end, [&search_terms]( const std::string& line )
 	{
-		std::string stripped = Color::StripColors( line );
+		std::string stripped = Str::ToLower( Color::StripColors( line ) );
 		for ( const std::string& term : search_terms )
 		{
-			if ( stripped.find( term ) != std::string::npos )
+			if ( stripped.find( Str::ToLower( term ) ) != std::string::npos )
 			{
 				return true;
 			}
