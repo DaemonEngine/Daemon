@@ -492,16 +492,13 @@ static keyNum_t hat_keys[ 16 ] =
 	K_JOY19, K_JOY20
 };
 
-// TODO(C++14): remove and use std::max instead
-static constexpr int max(int a, int b) { return a>b ? a : b; }
-
 struct
 {
-	// FIXME: this used to be 16, and was looped over up to
-	// SDL_CONTROLLER_BUTTON_MAX but neither look correct. At least this
-	// avoid memory corruption, but I'd be surprised if the code around
-	// this works correctly.
-	bool     buttons[ max(32, (int)SDL_CONTROLLER_BUTTON_MAX) ];
+	// The array is used by both IN_JoyMove, generating keyNum_t's [K_JOY1, K_JOY32]
+	// and IN_GameControllerMove, generating keyNum_t's [K_CONTROLLER_A, K_CONTROLLER_MAX)
+	bool buttons[ 32 ];
+
+	static_assert(ARRAY_LEN(buttons) >= K_CONTROLLER_MAX - K_CONTROLLER_A, "not enough buttons for IN_GameControllerMove");
 
 	unsigned int oldaxes;
 	int          oldaaxes[ 16 ];
@@ -968,7 +965,7 @@ static void IN_GameControllerMove()
 
 	SDL_GameControllerUpdate();
 
-	for ( i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++ )
+	for ( i = 0; i < (K_CONTROLLER_MAX - K_CONTROLLER_A); i++ )
 	{
 		bool pressed = SDL_GameControllerGetButton( gamepad, Util::enum_cast<SDL_GameControllerButton>(i) );
 

@@ -178,9 +178,10 @@ enum keyNum_t
   K_CONTROLLER_DPAD_RIGHT,
   K_CONTROLLER_LT,
   K_CONTROLLER_RT,
+  K_CONTROLLER_MAX,
 
   // Pseudo-key that brings the console down
-  K_CONSOLE,
+  K_CONSOLE = K_CONTROLLER_MAX,
 
   MAX_KEYS
 };
