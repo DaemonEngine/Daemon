@@ -32,6 +32,7 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#include <stddef.h>
 #include "qcommon/q_shared.h"
 #include "qcommon.h"
 
@@ -780,7 +781,7 @@ entityState_t communication
 =============================================================================
 */
 
-#define NETF( x ) # x,int((size_t)&( (entityState_t*)0 )->x)
+#define NETF( x ) # x, offsetof( entityState_t, x )
 
 static netField_t entityStateFields[] =
 {
