@@ -299,9 +299,22 @@ struct MasterServer
 
 static std::array<MasterServer, MAX_MASTER_SERVERS> masterServers;
 
+constexpr int MASTER_RESOLUTION_MSEC = 60 * 1000;
+
 static void SV_ResolveMasterServers()
 {
+	if ( svs.time < svs.nextMasterResolutionTime )
+	{
+		return;
+	}
+
 	int netenabled = Cvar_VariableIntegerValue( "net_enabled" );
+	if ( !( netenabled & ( NET_ENABLEV4 | NET_ENABLEV6 ) ) )
+	{
+		return;
+	}
+
+	svs.nextMasterResolutionTime = svs.time + MASTER_RESOLUTION_MSEC;
 
 	for ( MasterServer& master : masterServers )
 	{
@@ -358,8 +371,6 @@ static void SV_ResolveMasterServers()
 			// if the address failed to resolve, clear it
 			// so we don't take repeated dns hits
 			netLog.Warn( "Couldn't resolve address: %s", master.Cvar()->string );
-			Cvar_Set( master.Cvar()->name, "" );
-			continue;
 		}
 	}
 }

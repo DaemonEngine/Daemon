@@ -250,6 +250,7 @@ struct serverStatic_t
 	int           nextSnapshotEntities; // next snapshotEntities to use
 	std::unique_ptr<entityState_t[]> snapshotEntities; // [numSnapshotEntities]
 	int           nextHeartbeatTime;
+	int nextMasterResolutionTime;
 	receipt_t     infoReceipts[ MAX_INFO_RECEIPTS ];
 
 	int       sampleTimes[ SERVER_PERFORMANCECOUNTER_SAMPLES ];
