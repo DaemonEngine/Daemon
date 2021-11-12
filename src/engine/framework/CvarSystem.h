@@ -77,7 +77,7 @@ namespace Cvar {
 
     // Used by statically defined cvar.
     bool Register(CvarProxy* proxy, const std::string& name, std::string description, int flags, const std::string& defaultValue);
-    void Unregister(const std::string& cvarName);
+    void Unregister(CvarProxy* proxy);
 
     // Used by the C API
     cvar_t* FindCCvar(const std::string& cvarName);
