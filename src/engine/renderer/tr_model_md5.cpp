@@ -578,7 +578,7 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
         tri = surf->triangles;
 		for (unsigned j = 0; j < surf->numTriangles; j++, tri++ )
 		{
-			skelTriangle_t *sortTri = (skelTriangle_t*) Com_Allocate( sizeof( *sortTri ) );
+			skelTriangle_t *sortTri = (skelTriangle_t*) malloc( sizeof( *sortTri ) );
 
 			for (unsigned k = 0; k < 3; k++ )
 			{
@@ -596,7 +596,7 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 		while ( numRemaining )
 		{
 			numBoneReferences = 0;
-			Com_Memset( boneReferences, 0, sizeof( boneReferences ) );
+			memset( boneReferences, 0, sizeof( boneReferences ) );
 
 			Com_InitGrowList( &vboTriangles, 1000 );
 
@@ -632,7 +632,7 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 		{
 			skelTriangle_t *sortTri = (skelTriangle_t*) Com_GrowListElement( &sortedTriangles, j );
 
-			Com_Dealloc( sortTri );
+			free( sortTri );
 		}
 
 		Com_DestroyGrowList( &sortedTriangles );

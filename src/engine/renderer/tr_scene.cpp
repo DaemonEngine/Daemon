@@ -189,7 +189,7 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 		poly->numVerts = numVerts;
 		poly->verts = &backEndData[ tr.smpFrame ]->polyVerts[ r_numPolyVerts ];
 
-		Com_Memcpy( poly->verts, &verts[ numVerts * j ], numVerts * sizeof( *verts ) );
+		memcpy( poly->verts, &verts[ numVerts * j ], numVerts * sizeof( *verts ) );
 
 		// done.
 		r_numPolys++;
@@ -281,7 +281,7 @@ void RE_AddRefEntityToScene( const refEntity_t *ent )
 		Sys::Drop("RE_AddRefEntityToScene: bad reType %s", Util::enum_str(ent->reType));
 	}
 
-	Com_Memcpy( &backEndData[ tr.smpFrame ]->entities[ r_numEntities ].e, ent, sizeof( refEntity_t ) );
+	memcpy( &backEndData[ tr.smpFrame ]->entities[ r_numEntities ].e, ent, sizeof( refEntity_t ) );
 	backEndData[ tr.smpFrame ]->entities[ r_numEntities ].lightingCalculated = false;
 
 	r_numEntities++;
@@ -317,7 +317,7 @@ void RE_AddRefLightToScene( const refLight_t *l )
 	}
 
 	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
-	Com_Memcpy( &light->l, l, sizeof( light->l ) );
+	memcpy( &light->l, l, sizeof( light->l ) );
 
 	light->isStatic = false;
 	light->additive = true;
@@ -373,7 +373,7 @@ static void R_AddWorldLightsToScene()
 			continue;
 		}
 
-		Com_Memcpy( &backEndData[ tr.smpFrame ]->lights[ r_numLights ], light, sizeof( trRefLight_t ) );
+		memcpy( &backEndData[ tr.smpFrame ]->lights[ r_numLights ], light, sizeof( trRefLight_t ) );
 		r_numLights++;
 	}
 }
@@ -578,7 +578,7 @@ void RE_RenderScene( const refdef_t *fd )
 	// The refdef takes 0-at-the-top y coordinates, so
 	// convert to GL's 0-at-the-bottom space
 	//
-	Com_Memset( &parms, 0, sizeof( parms ) );
+	memset( &parms, 0, sizeof( parms ) );
 
 	if ( tr.refdef.pixelTarget == nullptr )
 	{

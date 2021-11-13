@@ -408,7 +408,7 @@ void SV_ClearServer()
 		}
 	}
 
-	Com_Memset( &sv, 0, sizeof( sv ) );
+	memset( &sv, 0, sizeof( sv ) );
 }
 
 /*

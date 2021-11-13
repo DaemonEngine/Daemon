@@ -94,7 +94,7 @@ WRITE_STRING
 static inline void WRITE_STRING( const char *s )
 {
 	size_t len = strlen(s);
-	Com_Memcpy( &buffer[ bufIndex ], s, len );
+	memcpy( &buffer[ bufIndex ], s, len );
 	bufIndex += len;
 }
 
@@ -331,7 +331,7 @@ bool CL_OpenAVIForWriting( const char *fileName )
 		return false;
 	}
 
-	Com_Memset( &afd, 0, sizeof( aviFileData_t ) );
+	memset( &afd, 0, sizeof( aviFileData_t ) );
 
 	// Don't start if a framerate has not been chosen
 	if ( cl_aviFrameRate->integer <= 0 )

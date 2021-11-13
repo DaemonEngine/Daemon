@@ -567,7 +567,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 	for(unsigned i = 0; i < header->num_joints; i++, joint++ ) {
 		name = ( char* )IQMPtr( header, header->ofs_text + joint->name );
 		len = strlen( name ) + 1;
-		Com_Memcpy( str, name, len );
+		memcpy( str, name, len );
 		str += len;
 	}
 
@@ -595,7 +595,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 
 		name = ( char* )IQMPtr( header, header->ofs_text + anim->name );
 		len = strlen( name ) + 1;
-		Com_Memcpy( str, name, len );
+		memcpy( str, name, len );
 		str += len;
 	}
 
@@ -687,7 +687,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 		switch( vertexarray->type ) {
 		case IQM_POSITION:
 			ClearBounds( IQModel->bounds[ 0 ], IQModel->bounds[ 1 ] );
-			Com_Memcpy( IQModel->positions,
+			memcpy( IQModel->positions,
 				    IQMPtr( header, vertexarray->offset ),
 				    n * sizeof(float) );
 			for( int j = 0; j < n; j += vertexarray->size ) {
@@ -707,7 +707,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 
 			break;
 		case IQM_NORMAL:
-			Com_Memcpy( IQModel->normals,
+			memcpy( IQModel->normals,
 				    IQMPtr( header, vertexarray->offset ),
 				    n * sizeof(float) );
 			break;
@@ -723,7 +723,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 			}
 			break;
 		case IQM_BLENDINDEXES:
-			Com_Memcpy( IQModel->blendIndexes,
+			memcpy( IQModel->blendIndexes,
 				    IQMPtr( header, vertexarray->offset ),
 				    n * sizeof(byte) );
 			break;
@@ -737,7 +737,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 			}
 			break;
 		case IQM_COLOR:
-			Com_Memcpy( IQModel->colors,
+			memcpy( IQModel->colors,
 				    IQMPtr( header, vertexarray->offset ),
 				    n * sizeof(byte) );
 			break;
@@ -848,7 +848,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 			surface->name = str;
 			name = ( char* )IQMPtr( header, header->ofs_text + mesh->name );
 			len = strlen( name ) + 1;
-			Com_Memcpy( str, name, len );
+			memcpy( str, name, len );
 			str += len;
 		} else {
 			surface->name = nullptr;

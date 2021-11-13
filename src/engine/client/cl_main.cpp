@@ -3445,11 +3445,11 @@ void CL_LocalServers_f()
 	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
 	{
 		bool b = cls.localServers[ i ].visible;
-		Com_Memset( &cls.localServers[ i ], 0, sizeof( cls.localServers[ i ] ) );
+		memset( &cls.localServers[ i ], 0, sizeof( cls.localServers[ i ] ) );
 		cls.localServers[ i ].visible = b;
 	}
 
-	Com_Memset( &to, 0, sizeof( to ) );
+	memset( &to, 0, sizeof( to ) );
 
 	// The 'xxx' in the message is a challenge that will be echoed back
 	// by the server.  We don't care about that here, but master servers
@@ -3763,7 +3763,7 @@ void CL_Ping_f()
 		server = Cmd_Argv( 2 );
 	}
 
-	Com_Memset( &to, 0, sizeof( netadr_t ) );
+	memset( &to, 0, sizeof( netadr_t ) );
 
 	if ( !NET_StringToAdr( server, &to, family ) )
 	{
@@ -3948,7 +3948,7 @@ void CL_ServerStatus_f()
 
 	if ( !toptr )
 	{
-		Com_Memset( &to, 0, sizeof( netadr_t ) );
+		memset( &to, 0, sizeof( netadr_t ) );
 
 		if ( argc == 2 )
 		{

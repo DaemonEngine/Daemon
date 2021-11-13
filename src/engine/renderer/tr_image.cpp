@@ -778,7 +778,7 @@ R_ConvertBC5Image(const byte **in, byte **out, int numMips, int numLayers,
 
 			for( k = 0; k < mipSize; k++ ) {
 				// red channel is unchanged
-				Com_Memcpy( to, from, 8 );
+				memcpy( to, from, 8 );
 
 				// green channel is converted to DXT1
 				R_UnpackDXT5A( from + 8, data );
@@ -1065,7 +1065,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 				// copy or resample data as appropriate for first MIP level
 				if ( ( scaledWidth == image->width ) && ( scaledHeight == image->height ) )
 				{
-					Com_Memcpy( scaledBuffer, data, scaledWidth * scaledHeight * 4 );
+					memcpy( scaledBuffer, data, scaledWidth * scaledHeight * 4 );
 				}
 				else
 				{
@@ -1366,7 +1366,7 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 	}
 
 	image = (image_t*) ri.Hunk_Alloc( sizeof( image_t ), ha_pref::h_low );
-	Com_Memset( image, 0, sizeof( image_t ) );
+	memset( image, 0, sizeof( image_t ) );
 
 	glGenTextures( 1, &image->texnum );
 
@@ -2307,7 +2307,7 @@ static void R_CreateDefaultImage()
 	byte *dataPtr = &data[0][0][0];
 
 	// the default image will be a box, to allow you to see the mapping coordinates
-	Com_Memset( data, 32, sizeof( data ) );
+	memset( data, 32, sizeof( data ) );
 
 	for ( x = 0; x < DEFAULT_SIZE; x++ )
 	{
@@ -2334,7 +2334,7 @@ static void R_CreateRandomNormalsImage()
 	int  x, y;
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
 	// the default image will be a box, to allow you to see the mapping coordinates
-	Com_Memset(data, 32, sizeof(data));
+	memset(data, 32, sizeof(data));
 
 	byte *ptr = &data[0][0][0];
 	byte *dataPtr = &data[0][0][0];
@@ -2372,7 +2372,7 @@ static void R_CreateNoFalloffImage()
 {
 	byte data[ DEFAULT_SIZE ][ DEFAULT_SIZE ][ 4 ];
 	// we use a solid white image instead of disabling texturing
-	Com_Memset(data, 255, sizeof(data));
+	memset(data, 255, sizeof(data));
 
 	byte *dataPtr = &data[0][0][0];
 
@@ -2720,7 +2720,7 @@ static void R_CreateBlackCubeImage()
 	for ( i = 0; i < 6; i++ )
 	{
 		data[ i ] = (byte*) ri.Hunk_AllocateTempMemory( width * height * 4 );
-		Com_Memset( data[ i ], 0, width * height * 4 );
+		memset( data[ i ], 0, width * height * 4 );
 	}
 
 	imageParams_t imageParams = {};
@@ -2752,7 +2752,7 @@ static void R_CreateWhiteCubeImage()
 	for ( i = 0; i < 6; i++ )
 	{
 		data[ i ] = (byte*) ri.Hunk_AllocateTempMemory( width * height * 4 );
-		Com_Memset( data[ i ], 0xFF, width * height * 4 );
+		memset( data[ i ], 0xFF, width * height * 4 );
 	}
 
 	imageParams_t imageParams = {};
@@ -2820,7 +2820,7 @@ void R_CreateBuiltinImages()
 	R_CreateDefaultImage();
 
 	// we use a solid white image instead of disabling texturing
-	Com_Memset( data, 255, sizeof( data ) );
+	memset( data, 255, sizeof( data ) );
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
@@ -2830,7 +2830,7 @@ void R_CreateBuiltinImages()
 	tr.whiteImage = R_CreateImage( "_white", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
 
 	// we use a solid black image instead of disabling texturing
-	Com_Memset( data, 0, sizeof( data ) );
+	memset( data, 0, sizeof( data ) );
 	tr.blackImage = R_CreateImage( "_black", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
 
 	// red
@@ -2924,7 +2924,7 @@ void R_InitImages()
 {
 	Log::Debug("------- R_InitImages -------" );
 
-	Com_Memset( r_imageHashTable, 0, sizeof( r_imageHashTable ) );
+	memset( r_imageHashTable, 0, sizeof( r_imageHashTable ) );
 	Com_InitGrowList( &tr.images, 4096 );
 	Com_InitGrowList( &tr.lightmaps, 128 );
 	Com_InitGrowList( &tr.deluxemaps, 128 );
@@ -2967,7 +2967,7 @@ void R_ShutdownImages()
 		glDeleteTextures( 1, &image->texnum );
 	}
 
-	Com_Memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
+	memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
 
 	Com_DestroyGrowList( &tr.images );
 	Com_DestroyGrowList( &tr.lightmaps );
