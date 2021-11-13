@@ -695,7 +695,7 @@ void R_RotateEntityForLight( const trRefEntity_t *ent, const trRefLight_t *light
 
 	if ( ent->e.reType != refEntityType_t::RT_MODEL )
 	{
-		Com_Memset( orientation , 0, sizeof( * orientation ) );
+		memset( orientation , 0, sizeof( * orientation ) );
 
 		orientation ->axis[ 0 ][ 0 ] = 1;
 		orientation ->axis[ 1 ][ 1 ] = 1;
@@ -785,7 +785,7 @@ void R_RotateForViewer()
 {
 	matrix_t transformMatrix;
 
-	Com_Memset( &tr.orientation, 0, sizeof( tr.orientation ) );
+	memset( &tr.orientation, 0, sizeof( tr.orientation ) );
 	tr.orientation.axis[ 0 ][ 0 ] = 1;
 	tr.orientation.axis[ 1 ][ 1 ] = 1;
 	tr.orientation.axis[ 2 ][ 2 ] = 1;
@@ -1217,7 +1217,7 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane )
 
 	if ( !surfType )
 	{
-		Com_Memset( plane, 0, sizeof( *plane ) );
+		memset( plane, 0, sizeof( *plane ) );
 		plane->normal[ 0 ] = 1;
 		return;
 	}
@@ -1246,7 +1246,7 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane )
 			return;
 
 		default:
-			Com_Memset( plane, 0, sizeof( *plane ) );
+			memset( plane, 0, sizeof( *plane ) );
 			plane->normal[ 0 ] = 1;
 			return;
 	}

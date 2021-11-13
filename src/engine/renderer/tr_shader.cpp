@@ -5074,7 +5074,7 @@ static shader_t *GeneratePermanentShader()
 		{
 			size = newShader->stages[ i ]->bundle[ b ].numTexMods * sizeof( texModInfo_t );
 			newShader->stages[ i ]->bundle[ b ].texMods = (texModInfo_t*) ri.Hunk_Alloc( size, ha_pref::h_low );
-			Com_Memcpy( newShader->stages[ i ]->bundle[ b ].texMods, stages[ i ].bundle[ b ].texMods, size );
+			memcpy( newShader->stages[ i ]->bundle[ b ].texMods, stages[ i ].bundle[ b ].texMods, size );
 		}
 	}
 
@@ -5709,8 +5709,8 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	}
 
 	// clear the global shader
-	Com_Memset( &shader, 0, sizeof( shader ) );
-	Com_Memset( &stages, 0, sizeof( stages ) );
+	memset( &shader, 0, sizeof( shader ) );
+	memset( &stages, 0, sizeof( stages ) );
 	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
 	shader.type = type;
 
@@ -5907,8 +5907,8 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 	}
 
 	// clear the global shader
-	Com_Memset( &shader, 0, sizeof( shader ) );
-	Com_Memset( &stages, 0, sizeof( stages ) );
+	memset( &shader, 0, sizeof( shader ) );
+	memset( &stages, 0, sizeof( stages ) );
 	Q_strncpyz( shader.name, name, sizeof( shader.name ) );
 	shader.type = shaderType_t::SHADER_2D;
 	shader.cullType = CT_TWO_SIDED;
@@ -6355,7 +6355,7 @@ static void ScanAndLoadShaderFiles()
 	// free up memory
 	ri.FS_FreeFileList( shaderFiles );
 
-	Com_Memset( shaderTextHashTableSizes, 0, sizeof( shaderTextHashTableSizes ) );
+	memset( shaderTextHashTableSizes, 0, sizeof( shaderTextHashTableSizes ) );
 	size = 0;
 
 	p = s_shaderText;
@@ -6397,7 +6397,7 @@ static void ScanAndLoadShaderFiles()
 		hashMem += shaderTextHashTableSizes[ i ] + 1;
 	}
 
-	Com_Memset( shaderTextHashTableSizes, 0, sizeof( shaderTextHashTableSizes ) );
+	memset( shaderTextHashTableSizes, 0, sizeof( shaderTextHashTableSizes ) );
 
 	p = s_shaderText;
 
@@ -6422,7 +6422,7 @@ static void ScanAndLoadShaderFiles()
 			bool      alreadyCreated;
 
 			// zeroes all shaders, booleans can be assumed as false
-			Com_Memset( &table, 0, sizeof( table ) );
+			memset( &table, 0, sizeof( table ) );
 
 			token = COM_ParseExt2( &p, true );
 
@@ -6510,8 +6510,8 @@ static void CreateInternalShaders()
 	tr.numShaders = 0;
 
 	// init the default shader
-	Com_Memset( &shader, 0, sizeof( shader ) );
-	Com_Memset( &stages, 0, sizeof( stages ) );
+	memset( &shader, 0, sizeof( shader ) );
+	memset( &stages, 0, sizeof( stages ) );
 
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
@@ -6542,8 +6542,8 @@ R_InitShaders
 */
 void R_InitShaders()
 {
-	Com_Memset( shaderTableHashTable, 0, sizeof( shaderTableHashTable ) );
-	Com_Memset( shaderHashTable, 0, sizeof( shaderHashTable ) );
+	memset( shaderTableHashTable, 0, sizeof( shaderTableHashTable ) );
+	memset( shaderHashTable, 0, sizeof( shaderHashTable ) );
 
 	CreateInternalShaders();
 

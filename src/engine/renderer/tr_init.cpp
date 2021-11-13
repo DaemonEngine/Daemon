@@ -562,7 +562,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 		// with 18 bytes for the TGA file header
 		buffer = RB_ReadPixels( x, y, width, height, 18 );
-		Com_Memset( buffer, 0, 18 );
+		memset( buffer, 0, 18 );
 
 		buffer[ 2 ] = 2; // uncompressed type
 		buffer[ 12 ] = width & 255;
@@ -1528,7 +1528,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Log::Debug("GetRefAPI()" );
 
-		Com_Memset( &re, 0, sizeof( re ) );
+		memset( &re, 0, sizeof( re ) );
 
 		if ( apiVersion != REF_API_VERSION )
 		{

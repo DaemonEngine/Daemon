@@ -190,10 +190,10 @@ const char *RE_ShaderNameFromHandle( qhandle_t )
 
 bool RE_BeginRegistration( glconfig_t *config, glconfig2_t *glconfig2 )
 {
-	Com_Memset( config, 0, sizeof( glconfig_t ) );
+	memset( config, 0, sizeof( glconfig_t ) );
 	config->vidWidth = 640;
 	config->vidHeight = 480;
-	Com_Memset( glconfig2, 0, sizeof( glconfig2_t ) );
+	memset( glconfig2, 0, sizeof( glconfig2_t ) );
 
 	return true;
 }

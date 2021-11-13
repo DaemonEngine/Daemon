@@ -246,12 +246,12 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 	uint32_t imageSize{ GetImageSize( ptr, needReverseBytes ) };
 	ptr += sizeof(uint32_t);
 
-	Com_Memcpy( data[ 0 ], ptr, imageSize );
+	memcpy( data[ 0 ], ptr, imageSize );
 	ptr += imageSize;
 
 	for(uint32_t j{ 1 }; j < hdr->numberOfFaces; j++) {
 		data[ j ] = data[ j - 1 ] + imageSize;
-		Com_Memcpy( data[ j ], ptr, imageSize );
+		memcpy( data[ j ], ptr, imageSize );
 
 		ptr += imageSize;
 	}
@@ -264,7 +264,7 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 			const uint32_t idx{ i * hdr->numberOfFaces + j };
 
 			data[ idx ] = data[ idx - 1 ] + imageSize;
-			Com_Memcpy( data[ idx ], ptr, imageSize );
+			memcpy( data[ idx ], ptr, imageSize );
 
 			ptr += imageSize;
 		}
@@ -770,8 +770,8 @@ void LoadKTX( const char *name, byte **pic, int *width, int *height,
 void SaveImageKTX( const char *path, image_t *img )
 {
 	KTX_header_t hdr;
-	Com_Memset( &hdr, 0, sizeof(hdr) );
-	Com_Memcpy( &hdr.identifier, KTX_identifier, sizeof( KTX_identifier ) );
+	memset( &hdr, 0, sizeof(hdr) );
+	memcpy( &hdr.identifier, KTX_identifier, sizeof( KTX_identifier ) );
 	hdr.endianness = KTX_endianness;
 
 	GLenum target;
@@ -861,7 +861,7 @@ void SaveImageKTX( const char *path, image_t *img )
 	
 	byte *data = (byte *)ri.Hunk_AllocateTempMemory( size + sizeof( hdr ) );
 	byte *ptr = data;
-	Com_Memcpy( ptr, &hdr, sizeof( hdr ) );
+	memcpy( ptr, &hdr, sizeof( hdr ) );
 	ptr += sizeof( hdr );
 
 	mipWidth = std::max(hdr.pixelWidth, 1U);

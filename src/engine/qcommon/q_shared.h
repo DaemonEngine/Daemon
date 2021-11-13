@@ -218,12 +218,6 @@ using clipHandle_t = int;
 	  h_dontcare
 	};
 
-#define Com_Memset   memset
-#define Com_Memcpy   memcpy
-
-#define Com_Allocate malloc
-#define Com_Dealloc  free
-
 MALLOC_LIKE void *Com_Allocate_Aligned( size_t alignment, size_t size );
 void  Com_Free_Aligned( void *ptr );
 

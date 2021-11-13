@@ -114,7 +114,7 @@ void CMod_LoadShaders(const byte *const cmod_base, lump_t *l)
 	cm.shaders = ( dshader_t * ) CM_Alloc( count * sizeof( *cm.shaders ) );
 	cm.numShaders = count;
 
-	Com_Memcpy( cm.shaders, in, count * sizeof( *cm.shaders ) );
+	memcpy( cm.shaders, in, count * sizeof( *cm.shaders ) );
 
 	if ( LittleLong( 1 ) != 1 )
 	{
@@ -651,7 +651,7 @@ static void CMod_CreateBrushSideWindings()
 		brush->edges = ( cbrushedge_t * ) CM_Alloc( edgesAlloc );
 
 		// Copy temporary buffer to permanent buffer
-		Com_Memcpy( brush->edges, tempEdges, edgesAlloc );
+		memcpy( brush->edges, tempEdges, edgesAlloc );
 
 		// Free temporary buffer
 		free( tempEdges );
@@ -675,7 +675,7 @@ void CMod_LoadEntityString(const byte *const cmod_base, lump_t *l)
 
 	cm.entityString = ( char * ) CM_Alloc( l->filelen + 1);
 	cm.numEntityChars = l->filelen;
-	Com_Memcpy( cm.entityString, cmod_base + l->fileofs, l->filelen );
+	memcpy( cm.entityString, cmod_base + l->fileofs, l->filelen );
 	cm.entityString[l->filelen] = '\0';
 
 	p = cm.entityString;
@@ -754,7 +754,7 @@ void CMod_LoadVisibility(const byte *const cmod_base, lump_t *l)
 	cm.visibility = ( byte * ) CM_Alloc( len - VIS_HEADER );
 	cm.numClusters = LittleLong( ( ( int * ) buf ) [ 0 ] );
 	cm.clusterBytes = LittleLong( ( ( int * ) buf ) [ 1 ] );
-	Com_Memcpy( cm.visibility, buf + VIS_HEADER, len - VIS_HEADER );
+	memcpy( cm.visibility, buf + VIS_HEADER, len - VIS_HEADER );
 }
 
 //==================================================================
@@ -974,7 +974,7 @@ CM_ClearMap
 */
 void CM_ClearMap()
 {
-	Com_Memset( &cm, 0, sizeof( cm ) );
+	memset( &cm, 0, sizeof( cm ) );
 	CM_ClearLevelPatches();
 }
 
