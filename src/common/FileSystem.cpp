@@ -1341,6 +1341,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err) {
 	std::string content;
 	int lengthRead;
 	VM::SendMsg<VM::FSReadMsg>(h, length, content, lengthRead);
+	VM::SendMsg<VM::FSFCloseFileMsg>(h);
 	if (lengthRead != length) {
 		SetErrorCodeFilesystem(err, filesystem_error::io_error);
 		return "";
