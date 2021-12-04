@@ -2915,10 +2915,6 @@ void CL_Init()
 
 	cl_useMumble = Cvar_Get( "cl_useMumble", "0",  CVAR_LATCH );
 	cl_mumbleScale = Cvar_Get( "cl_mumbleScale", "0.0254", 0 );
-
-	// cgame might not be initialized before menu is used
-	Cvar_Get( "cg_viewsize", "100", 0 );
-
 	cl_cgameSyscallStats = Cvar_Get( "cl_cgameSyscallStats", "0", 0 );
 
 	//
