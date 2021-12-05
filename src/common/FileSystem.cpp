@@ -331,16 +331,6 @@ static const minizip_category_impl& minizip_category()
 	return instance;
 }
 
-// Filesystem-specific error codes
-enum class filesystem_error {
-	no_filesystem_error,
-	invalid_filename,
-	no_such_file,
-	no_such_directory,
-	wrong_pak_checksum,
-	missing_dependency,
-	io_error, // Unspecified I/O error. Sometimes it's a hack because more specific values aren't plumbed
-};
 class filesystem_category_impl: public std::error_category
 {
 public:
@@ -368,7 +358,7 @@ public:
 		}
 	}
 };
-static const filesystem_category_impl& filesystem_category()
+const std::error_category& filesystem_category()
 {
 	static filesystem_category_impl instance;
 	return instance;
