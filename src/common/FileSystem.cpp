@@ -339,8 +339,7 @@ enum class filesystem_error {
 	no_such_directory,
 	wrong_pak_checksum,
 	missing_dependency,
-	handle_exhaustion,
-	io_error,
+	io_error, // Unspecified I/O error. Sometimes it's a hack because more specific values aren't plumbed
 };
 class filesystem_category_impl: public std::error_category
 {
@@ -364,8 +363,6 @@ public:
 			return "Missing dependency";
 		case filesystem_error::io_error:
 			return "I/O error";
-		case filesystem_error::handle_exhaustion:
-			return "No file handles available";
 		default:
 			return "Unknown error";
 		}
@@ -1335,7 +1332,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err) {
 	const int mode = 0; // fsMode_t::FS_READ
 	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, mode, length, h);
 	if (!h) {
-		SetErrorCodeFilesystem(err, filesystem_error::handle_exhaustion);
+		SetErrorCodeFilesystem(err, filesystem_error::io_error);
 		return "";
 	}
 	std::string content;
