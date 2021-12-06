@@ -223,10 +223,8 @@ int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mod
 		*handle = FS_FOpenFileAppend(FS::Path::Build("game", path).c_str());
 		handleTable[*handle].forceFlush = mode == fsMode_t::FS_APPEND_SYNC;
 		return *handle == 0 ? -1 : 0;
-
-	default:
-		Sys::Drop("FS_Game_FOpenFileByMode: bad mode %s", Util::enum_str(mode));
 	}
+	Sys::Drop("FS_Game_FOpenFileByMode: bad mode %s", Util::enum_str(mode));
 }
 
 void FS_SetOwner(fileHandle_t f, FS::Owner owner)
