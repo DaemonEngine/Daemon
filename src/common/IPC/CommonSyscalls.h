@@ -90,7 +90,6 @@ namespace VM {
         QVM_COMMON_FS_SEEK,
         QVM_COMMON_FS_TELL,
         QVM_COMMON_FS_FILELENGTH,
-        QVM_COMMON_FS_RENAME,
         QVM_COMMON_FS_FCLOSE_FILE,
         QVM_COMMON_FS_GET_FILE_LIST,
         QVM_COMMON_FS_GET_FILE_LIST_RECURSIVE,
@@ -128,7 +127,6 @@ namespace VM {
 		IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_FILELENGTH>, fileHandle_t>,
 		IPC::Reply<int>
 	>;
-    using FSRenameMsg = IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_RENAME>, std::string, std::string>;
     using FSFCloseFileMsg = IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_FCLOSE_FILE>, int>;
     using FSGetFileListMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_GET_FILE_LIST>, std::string, std::string, int>,
