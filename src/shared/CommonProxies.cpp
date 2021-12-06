@@ -530,6 +530,7 @@ void trap_SendConsoleCommand(const char *text)
 	VM::SendMsg<VM::SendConsoleCommandMsg>(text);
 }
 
+// Open a file in <homepath>/game/
 int trap_FS_FOpenFile(const char *qpath, fileHandle_t *f, fsMode_t mode)
 {
 	int length, handle;
@@ -542,12 +543,8 @@ int trap_FS_FOpenFile(const char *qpath, fileHandle_t *f, fsMode_t mode)
 // Open for reading
 int trap_FS_OpenPakFile(Str::StringRef path, fileHandle_t &f)
 {
-	if (!FS::PakPath::FileExists(path)) {
-		f = 0;
-		return -1;
-	}
 	int length;
-	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, Util::ordinal(fsMode_t::FS_READ), length, f);
+	VM::SendMsg<VM::FSOpenPakFileReadMsg>(path, length, f);
 	return length;
 }
 

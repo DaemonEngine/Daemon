@@ -85,6 +85,7 @@ namespace VM {
         QVM_COMMON_SEND_CONSOLE_COMMAND,
 
         QVM_COMMON_FS_FOPEN_FILE,
+        QVM_COMMON_FS_OPEN_PAK_FILE_READ,
         QVM_COMMON_FS_READ,
         QVM_COMMON_FS_WRITE,
         QVM_COMMON_FS_SEEK,
@@ -105,6 +106,10 @@ namespace VM {
 
     using FSFOpenFileMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_FOPEN_FILE>, std::string, bool, int>,
+        IPC::Reply<int, int>
+    >;
+    using FSOpenPakFileReadMsg = IPC::SyncMessage<
+        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_OPEN_PAK_FILE_READ>, std::string>,
         IPC::Reply<int, int>
     >;
     using FSReadMsg = IPC::SyncMessage<

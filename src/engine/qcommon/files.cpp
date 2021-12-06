@@ -202,25 +202,25 @@ static int FS_SV_FOpenFileRead(const char* path, fileHandle_t* handle)
 	return length;
 }
 
+// Opens a file in <homepath>/game/
 int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mode)
 {
+	std::string path2 = FS::Path::Build("game", path);
 	switch (mode) {
 	case fsMode_t::FS_READ:
-		if (FS::PakPath::FileExists(path))
-			return FS_FOpenFileRead(path, handle);
-		else {
-			int size = FS_SV_FOpenFileRead(FS::Path::Build("game", path).c_str(), handle);
-			return (!handle || *handle) ? size : -1;
-		}
+	{
+		int size = FS_SV_FOpenFileRead(path2.c_str(), handle);
+		return (!handle || *handle) ? size : -1;
+	}
 
 	case fsMode_t::FS_WRITE:
 	case fsMode_t::FS_WRITE_VIA_TEMPORARY:
-		*handle = FS_FOpenFileWrite_internal(FS::Path::Build("game", path).c_str(), mode == fsMode_t::FS_WRITE_VIA_TEMPORARY);
+		*handle = FS_FOpenFileWrite_internal(path2.c_str(), mode == fsMode_t::FS_WRITE_VIA_TEMPORARY);
 		return *handle == 0 ? -1 : 0;
 
 	case fsMode_t::FS_APPEND:
 	case fsMode_t::FS_APPEND_SYNC:
-		*handle = FS_FOpenFileAppend(FS::Path::Build("game", path).c_str());
+		*handle = FS_FOpenFileAppend(path2.c_str());
 		handleTable[*handle].forceFlush = mode == fsMode_t::FS_APPEND_SYNC;
 		return *handle == 0 ? -1 : 0;
 	}
