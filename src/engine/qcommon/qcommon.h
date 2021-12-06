@@ -462,8 +462,6 @@ bool     FS_LoadServerPaks( const char* paks, bool isDemo );
 void FS_DeletePaksWithBadChecksum();
 bool FS_ComparePaks(char* neededpaks, int len);
 
-void       FS_Rename( const char *from, const char *to );
-
 /*
 ==============================================================
 

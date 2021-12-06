@@ -430,18 +430,13 @@ int FS_Delete(const char* path)
 	return 0;
 }
 
-void FS_Rename(const char* from, const char* to)
+void FS_SV_Rename(const char* from, const char* to)
 {
 	try {
 		FS::HomePath::MoveFile(to, from);
 	} catch (std::system_error& err) {
 		Log::Notice("Failed to move '%s' to '%s': %s\n", from, to, err.what());
 	}
-}
-
-void FS_SV_Rename(const char* from, const char* to)
-{
-	FS_Rename(from, to);
 }
 
 void FS_WriteFile(const char* path, const void* buffer, int size)

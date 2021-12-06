@@ -293,11 +293,6 @@ namespace VM {
 					res = FS_filelength(f);
 				});
 				break;
-            case QVM_COMMON_FS_RENAME:
-                IPC::HandleMsg<FSRenameMsg>(channel, std::move(reader), [this](const std::string& from, const std::string& to) {
-                    FS_Rename(from.c_str(), to.c_str());
-                });
-                break;
 
             case QVM_COMMON_FS_FCLOSE_FILE:
                 IPC::HandleMsg<FSFCloseFileMsg>(channel, std::move(reader), [this](int handle) {
