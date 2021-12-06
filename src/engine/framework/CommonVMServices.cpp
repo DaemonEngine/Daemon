@@ -257,6 +257,19 @@ namespace VM {
                 });
                 break;
 
+            case QVM_COMMON_FS_OPEN_PAK_FILE_READ:
+                IPC::HandleMsg<FSOpenPakFileReadMsg>(channel, std::move(reader), [this](const std::string& filename, int& length, int& handle) {
+                    if (!FS::PakPath::FileExists(filename)) {
+                        handle = 0;
+                        length = -1;
+                        return;
+                    }
+                    length = FS_FOpenFileRead(filename.c_str(), &handle);
+                    if (handle > 0)
+                        FS_SetOwner(handle, fileOwnership);
+                });
+                break;
+
             case QVM_COMMON_FS_READ:
                 IPC::HandleMsg<FSReadMsg>(channel, std::move(reader), [this](int handle, int len, std::string& res, int& ret) {
                     FS_CheckOwnership(handle, fileOwnership);
