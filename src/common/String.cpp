@@ -77,10 +77,6 @@ namespace Str {
         return true;
     }
 
-    float ToFloat(Str::StringRef text) {
-        return atof(text.c_str());
-    }
-
     bool ToFloat(Str::StringRef text, float& result) {
         char* end;
         const char* start = text.c_str();

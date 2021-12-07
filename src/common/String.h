@@ -208,7 +208,6 @@ namespace Str {
 
     bool ParseInt(int& value, Str::StringRef text);
 
-    float ToFloat(Str::StringRef text);
     bool ToFloat(Str::StringRef text, float& result);
 
     // Locale-independent versions of ctype
