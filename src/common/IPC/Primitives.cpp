@@ -379,6 +379,12 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 
 	int result = NaClReceiveDatagram(handle, &hdr, 0);
 	if (result == -1) {
+#ifndef _WIN32
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			// A timeout is set by Socket::SetRecvTimeout
+			Sys::Drop("IPC: Timed out while waiting for VM message");
+		}
+#endif
 		char error[256];
 		NaClGetLastErrorString(error, sizeof(error));
 		Sys::Drop("IPC: Failed to receive message: %s", error);
