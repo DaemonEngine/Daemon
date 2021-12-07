@@ -2401,7 +2401,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 					glow = RB_EvalWaveForm( wf ) * tr.identityLight;
 				}
 
-				glow = Math::Clamp( 0.0f, 1.0f, glow );
+				glow = Math::Clamp( glow, 0.0f, 1.0f );
 
 				tess.svars.color = Color::White * glow;
 				break;

@@ -3036,8 +3036,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 	extern cvar_t *r_evsmPostProcess;
 
-	extern cvar_t *r_fontScale;
-
 //====================================================================
 
 /* r_checkGLErrors values:
