@@ -256,8 +256,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_evsmPostProcess;
 
-	cvar_t      *r_fontScale;
-
 	void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, bool shouldBeIntegral )
 	{
 		if ( shouldBeIntegral )
@@ -1301,8 +1299,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showBspNodes = ri.Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		r_showParallelShadowSplits = ri.Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showDecalProjectors = ri.Cvar_Get( "r_showDecalProjectors", "0", CVAR_CHEAT );
-
-		r_fontScale = ri.Cvar_Get( "r_fontScale", "36",  CVAR_LATCH );
 
 		// make sure all the commands added here are also removed in R_Shutdown
 		ri.Cmd_AddCommand( "imagelist", R_ImageList_f );

@@ -804,7 +804,7 @@ fontInfo_t* RE_RegisterFont( const char *fontName, const char *fallbackName, int
 	font->fallback = fallback;
 	font->fallbackData = fallbackData;
 	font->pointSize = pointSize;
-	font->glyphScale = Math::Clamp( 24.0f, 64.0f, r_fontScale->value ) / pointSize;
+	font->glyphScale = 64.0f / pointSize;
 	font->height = ceil( ( face->height / 64.0 ) * ( face->size->metrics.y_scale / 65536.0 ) * font->glyphScale );
 
 	RE_RenderChunk( font, 0 );
