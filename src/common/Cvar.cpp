@@ -79,8 +79,14 @@ namespace Cvar {
         return "int";
     }
 
+    // Don't allow NaN or infinities in cvars
     bool ParseCvarValue(Str::StringRef value, float& result) {
-        return Str::ToFloat(std::move(value), result);
+        float temp;
+        if (Str::ToFloat(value, temp) && isfinite(temp)) {
+            result = temp;
+            return true;
+        }
+        return false;
     }
 
 
