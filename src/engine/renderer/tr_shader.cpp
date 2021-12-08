@@ -5092,7 +5092,7 @@ static shader_t *GeneratePermanentShader()
 GeneratePermanentShaderTable
 ====================
 */
-static void GeneratePermanentShaderTable( float *values, int numValues )
+static void GeneratePermanentShaderTable( const float *values, int numValues )
 {
 	shaderTable_t *newTable;
 	int           i;
@@ -5102,6 +5102,14 @@ static void GeneratePermanentShaderTable( float *values, int numValues )
 	{
 		Log::Warn("GeneratePermanentShaderTable - MAX_SHADER_TABLES hit" );
 		return;
+	}
+
+	const float emptyTable[] = { 0.0f };
+	if ( numValues == 0)
+	{
+		Log::Warn("Empty shader table");
+		values = emptyTable;
+		numValues = 1;
 	}
 
 	newTable = (shaderTable_t*) ri.Hunk_Alloc( sizeof( shaderTable_t ), ha_pref::h_low );

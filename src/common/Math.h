@@ -35,11 +35,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Math {
 
-	template<typename T> static inline T Clamp(T value, T min, T max)
-	{
-		// if min > max, use min instead of max
-		return std::max(min, std::min(std::max(min, max), value));
-	}
+    // Returns min if value is NaN
+    template<typename T> T Clamp(T value, T min, T max)
+    {
+        ASSERT_LE(min, max);
+        if (!(value >= min))
+            return min;
+        if (!(value <= max))
+            return max;
+        return value;
+    }
 
 }
 

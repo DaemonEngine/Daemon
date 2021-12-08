@@ -111,6 +111,11 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *
 
 	token = COM_ParseExt2( &buf_p, false );
 	anim->numFrames = atoi( token );
+	if ( anim->numFrames <= 0 )
+	{
+		Log::Warn("model '%s' has animation with no frames", name);
+		return false;
+	}
 
 	// parse numJoints <number>
 	token = COM_ParseExt2( &buf_p, true );
