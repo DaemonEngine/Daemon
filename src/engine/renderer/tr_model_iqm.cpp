@@ -575,6 +575,10 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 	IQAnim = IQModel->anims;
 	anim = ( iqmAnim_t* )IQMPtr( header, header->ofs_anims );
 	for(int i = 0; i < IQModel->num_anims; i++, IQAnim++, anim++ ) {
+		if ( anim->num_frames <= 0 ) {
+			Log::Warn("file %s has animation with no frames", mod_name);
+			return false;
+		}
 		IQAnim->num_frames   = anim->num_frames;
 		IQAnim->framerate    = anim->framerate;
 		IQAnim->num_joints   = header->num_joints;
