@@ -250,7 +250,7 @@ struct leafList_t
 #define PLANE_TRI_EPSILON  0.1
 #define WRAP_POINT_EPSILON 0.1
 
-cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, vec3_t *points );
+cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
 void              CM_ClearLevelPatches();
 
 // cm_trisoup.c
