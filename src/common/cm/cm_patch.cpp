@@ -803,7 +803,7 @@ collision detection with a patch mesh.
 Points is packed as concatenated rows.
 ===================
 */
-cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, vec3_t *points )
+cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points )
 {
 	cSurfaceCollide_t *sc;
 	cGrid_t         grid;

@@ -82,4 +82,4 @@ struct cGrid_t
 	vec3_t   points[ MAX_GRID_SIZE ][ MAX_GRID_SIZE ]; // [width][height]
 };
 
-//struct patchCollide_t *CM_GeneratePatchCollide(int width, int height, vec3_t * points, bool addBevels);
+//struct patchCollide_t *CM_GeneratePatchCollide(int width, int height, const vec3_t * points, bool addBevels);

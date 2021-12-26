@@ -113,7 +113,7 @@ void WindingBounds( winding_t *w, vec3_t mins, vec3_t maxs )
 BaseWindingForPlane
 =================
 */
-winding_t      *BaseWindingForPlane( vec3_t normal, vec_t dist )
+winding_t      *BaseWindingForPlane( const vec3_t normal, const vec_t dist )
 {
 	int       i, x;
 	vec_t     max, v;
@@ -207,7 +207,7 @@ winding_t      *CopyWinding( winding_t *w )
 ChopWindingInPlace
 =============
 */
-void ChopWindingInPlace( winding_t **inout, vec3_t normal, vec_t dist, vec_t epsilon )
+void ChopWindingInPlace( winding_t **inout, const vec3_t normal, const vec_t dist, const vec_t epsilon )
 {
 // FIXME: https://github.com/DaemonEngine/Daemon/issues/169
 // This is required to load oasis (Wolf:ET) and  moteof (Q3) maps.
