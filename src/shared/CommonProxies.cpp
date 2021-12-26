@@ -539,6 +539,18 @@ int trap_FS_FOpenFile(const char *qpath, fileHandle_t *f, fsMode_t mode)
 	return length;
 }
 
+// Open for reading
+int trap_FS_OpenPakFile(Str::StringRef path, fileHandle_t &f)
+{
+	if (!FS::PakPath::FileExists(path)) {
+		f = 0;
+		return -1;
+	}
+	int length;
+	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, Util::ordinal(fsMode_t::FS_READ), length, f);
+	return length;
+}
+
 int trap_FS_Read(void *buffer, int len, fileHandle_t f)
 {
 	std::string res;

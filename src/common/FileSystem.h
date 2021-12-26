@@ -50,6 +50,18 @@ const char PAK_DIR_EXT[] = ".dpkdir/";
 // File offset type. Using 64bit to allow large files.
 using offset_t = int64_t;
 
+// Filesystem-specific error codes
+enum class filesystem_error {
+	no_filesystem_error,
+	invalid_filename,
+	no_such_file,
+	no_such_directory,
+	wrong_pak_checksum,
+	missing_dependency,
+	io_error, // Unspecified I/O error. Sometimes it's a hack because more specific values aren't plumbed
+};
+const std::error_category& filesystem_category();
+
 // Track ownership of old-style file handles
 enum class Owner
 {

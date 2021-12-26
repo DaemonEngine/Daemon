@@ -331,17 +331,6 @@ static const minizip_category_impl& minizip_category()
 	return instance;
 }
 
-// Filesystem-specific error codes
-enum class filesystem_error {
-	no_filesystem_error,
-	invalid_filename,
-	no_such_file,
-	no_such_directory,
-	wrong_pak_checksum,
-	missing_dependency,
-	handle_exhaustion,
-	io_error,
-};
 class filesystem_category_impl: public std::error_category
 {
 public:
@@ -364,18 +353,32 @@ public:
 			return "Missing dependency";
 		case filesystem_error::io_error:
 			return "I/O error";
-		case filesystem_error::handle_exhaustion:
-			return "No file handles available";
 		default:
 			return "Unknown error";
 		}
 	}
 };
-static const filesystem_category_impl& filesystem_category()
+const std::error_category& filesystem_category()
 {
 	static filesystem_category_impl instance;
 	return instance;
 }
+
+// To show the path in exceptions
+class filesystem_exception : public std::system_error
+{
+public:
+	filesystem_exception(filesystem_error ec, Str::StringRef filename) : std::system_error(Util::ordinal(ec), filesystem_category())
+	{
+		message = Str::Format("%s [%s]", filesystem_category().message(Util::ordinal(ec)), filename);
+	}
+	const char* what() const noexcept override
+	{
+		return message.c_str();
+	}
+private:
+	std::string message;
+};
 
 // Support code for error handling
 static void SetErrorCode(std::error_code& err, int ec, const std::error_category& ecat)
@@ -402,6 +405,14 @@ static void SetErrorCodeSystem(std::error_code& err)
 static void SetErrorCodeFilesystem(std::error_code& err, filesystem_error ec)
 {
 	SetErrorCode(err, Util::ordinal(ec), filesystem_category());
+}
+static void SetErrorCodeFilesystem(std::error_code& err, filesystem_error ec, Str::StringRef filename)
+{
+	if (&err == &throws()) {
+		throw filesystem_exception(ec, filename);
+	} else {
+		SetErrorCodeFilesystem(err, ec);
+	}
 }
 static void SetErrorCodeZlib(std::error_code& err, int num)
 {
@@ -900,7 +911,7 @@ public:
 				if (err)
 					return 0;
 				// TODO: find better error code?
-				SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+				SetErrorCodeFilesystem(err, filesystem_error::no_such_file, name);
 				return 0;
 			}
 			++depth;
@@ -1238,7 +1249,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 	if (!isLegacy) {
 		// If an explicit checksum was requested, verify that the pak we loaded is the one we are expecting
 		if (expectedChecksum && realChecksum != *expectedChecksum) {
-			SetErrorCodeFilesystem(err, filesystem_error::wrong_pak_checksum);
+			SetErrorCodeFilesystem(err, filesystem_error::wrong_pak_checksum, pak.path);
 			return;
 		}
 
@@ -1328,21 +1339,22 @@ const std::vector<LoadedPakInfo>& GetLoadedPaks()
 #ifdef BUILD_VM
 std::string ReadFile(Str::StringRef path, std::error_code& err) {
 	if (!PakPath::FileExists(path)) {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 		return "";
 	}
 	int length, h;
 	const int mode = 0; // fsMode_t::FS_READ
 	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, mode, length, h);
 	if (!h) {
-		SetErrorCodeFilesystem(err, filesystem_error::handle_exhaustion);
+		SetErrorCodeFilesystem(err, filesystem_error::io_error, path);
 		return "";
 	}
 	std::string content;
 	int lengthRead;
 	VM::SendMsg<VM::FSReadMsg>(h, length, content, lengthRead);
+	VM::SendMsg<VM::FSFCloseFileMsg>(h);
 	if (lengthRead != length) {
-		SetErrorCodeFilesystem(err, filesystem_error::io_error);
+		SetErrorCodeFilesystem(err, filesystem_error::io_error, path);
 		return "";
 	}
 	ClearErrorCode(err);
@@ -1355,7 +1367,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 {
 	auto it = fileMap.find(path);
 	if (it == fileMap.end()) {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 		return "";
 	}
 
@@ -1410,7 +1422,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 {
 	auto it = fileMap.find(path);
 	if (it == fileMap.end()) {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 		return;
 	}
 
@@ -1478,7 +1490,7 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 {
 	auto it = fileMap.find(path);
 	if (it == fileMap.end()) {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 		return {};
 	}
 
@@ -1491,7 +1503,7 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 			ClearErrorCode(err);
 			return std::chrono::system_clock::from_time_t(*result);
 		} else {
-			SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+			SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 			return {};
 		}
 #else
@@ -1542,7 +1554,7 @@ DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
 	state.iter = fileMap.begin();
 	state.iter_end = fileMap.end();
 	if (!state.InternalAdvance())
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory, path);
 	else
 		ClearErrorCode(err);
 	return state;
@@ -1558,7 +1570,7 @@ DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err)
 	state.iter = fileMap.begin();
 	state.iter_end = fileMap.end();
 	if (!state.InternalAdvance())
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory, path);
 	else
 		ClearErrorCode(err);
 	return state;
@@ -1924,7 +1936,7 @@ namespace HomePath {
 static File OpenMode(Str::StringRef path, openMode_t mode, std::error_code& err)
 {
 	if (!Path::IsValid(path, false)) {
-		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
+		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename, path);
 		return {};
 	}
 	return RawPath::OpenMode(Path::Build(homePath, path), mode, err);
@@ -1969,12 +1981,12 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 		ClearErrorCode(err);
 		return std::chrono::system_clock::from_time_t(*result);
 	} else {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 		return {};
 	}
 #else
 	if (!Path::IsValid(path, false)) {
-		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
+		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename, path);
 		return {};
 	}
 	return RawPath::FileTimestamp(Path::Build(homePath, path), err);
@@ -1989,10 +2001,14 @@ void MoveFile(Str::StringRef dest, Str::StringRef src, std::error_code& err)
 	if (success)
 		ClearErrorCode(err);
 	else
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, src);
 #else
-	if (!Path::IsValid(dest, false) || !Path::IsValid(src, false)) {
-		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
+	if (!Path::IsValid(dest, false)) {
+		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename, dest);
+		return;
+	}
+	if (!Path::IsValid(src, false)) {
+		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename, src);
 		return;
 	}
 	RawPath::MoveFile(Path::Build(homePath, dest), Path::Build(homePath, src), err);
@@ -2006,10 +2022,10 @@ void DeleteFile(Str::StringRef path, std::error_code& err)
 	if (success)
 		ClearErrorCode(err);
 	else
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 #else
 	if (!Path::IsValid(path, false)) {
-		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
+		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename, path);
 		return;
 	}
 	RawPath::DeleteFile(Path::Build(homePath, path), err);
@@ -2025,12 +2041,12 @@ DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
 		ClearErrorCode(err);
 		return *out;
 	} else {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory, path);
 		return {};
 	}
 #else
 	if (!Path::IsValid(path, true)) {
-		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
+		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename, path);
 		return {};
 	}
 	return RawPath::ListFiles(Path::Build(homePath, path), err);
@@ -2046,12 +2062,12 @@ RecursiveDirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code&
 		ClearErrorCode(err);
 		return *out;
 	} else {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory, path);
 		return {};
 	}
 #else
 	if (!Path::IsValid(path, true)) {
-		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename);
+		SetErrorCodeFilesystem(err, filesystem_error::invalid_filename, path);
 		return {};
 	}
 	return RawPath::ListFilesRecursive(Path::Build(homePath, path), err);
