@@ -2768,21 +2768,45 @@ const std::vector<PakInfo>& GetAvailablePaks()
 	return availablePaks;
 }
 
-
-std::vector<PakInfo> GetAvailableMapPaks()
+// mapName is optional and set to "" by default (list paks for all map names)
+std::vector<PakInfo> GetAvailableMapPaks( std::string mapName )
 {
 	std::vector<PakInfo> infos;
 	for ( const auto& pak : FS::GetAvailablePaks() )
 	{
-		if (UseLegacyPaks() || Str::IsPrefix("map-", pak.name))
+		// Legacy pak has empty version string
+		if ( pak.version.empty() )
 		{
-			infos.push_back(pak);
+			if ( UseLegacyPaks() )
+			{
+				infos.push_back(pak);
+			}
+		}
+		else
+		{
+			std::string mapPrefix = "map-";
+			if ( mapName.empty() )
+			{
+				if ( Str::IsPrefix( mapPrefix, pak.name ) )
+				{
+					infos.push_back(pak);
+				}
+			}
+			else
+			{
+				std::string mapBasename = mapPrefix + mapName;
+				if ( mapBasename == pak.name )
+				{
+					infos.push_back(pak);
+				}
+			}
 		}
 	}
 	return infos;
 }
 
-std::set<std::string> GetAvailableMaps()
+// mapName is optional and set to "" by default (list all map names)
+std::set<std::string> GetAvailableMaps( std::string mapName )
 {
 	std::set<std::string> maps;
 
@@ -2790,7 +2814,7 @@ std::set<std::string> GetAvailableMaps()
 		RefreshPaks();
 	#endif
 	std::error_code ignore;
-	for ( const auto& pak : GetAvailableMapPaks() )
+	for ( const auto& pak : GetAvailableMapPaks( mapName ) )
 	{
 		FS::PakPath::LoadPakPrefix(pak, "maps", ignore);
 	}

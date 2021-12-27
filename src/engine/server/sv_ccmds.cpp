@@ -59,7 +59,7 @@ class MapCmd: public Cmd::StaticCmd {
             const std::string& mapName = args.Argv(1);
 
             //Make sure the map exists to avoid typos that would kill the game
-            FS::GetAvailableMaps();
+            FS::GetAvailableMaps(mapName);
             const auto loadedPakInfo = FS::PakPath::LocateFile(Str::Format("maps/%s.bsp", mapName));
             if (!loadedPakInfo) {
                 Print("Can't find map %s", mapName);

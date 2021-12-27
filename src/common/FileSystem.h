@@ -267,7 +267,7 @@ struct PakInfo {
 	// Base name of the pak, may include directories
 	std::string name;
 
-	// Version of the pak
+	// Version of the pak, empty if legacy pak
 	std::string version;
 
 	// CRC32 checksum of the pak, if given in the pak filename. Note that it
@@ -536,10 +536,12 @@ std::string MakePakName(Str::StringRef name, Str::StringRef version, Util::optio
 const std::vector<PakInfo>& GetAvailablePaks();
 
 // Get the list of available paks that contain maps
-std::vector<PakInfo> GetAvailableMapPaks();
+// Optional mapName to only list paks for this map name
+std::vector<PakInfo> GetAvailableMapPaks( std::string mapName = "" );
 
 // Get the list of available map names
-std::set<std::string> GetAvailableMaps();
+// Optional mapName to only list paks for this map name
+std::set<std::string> GetAvailableMaps( std::string mapName = "" );
 
 // Get the home path
 const std::string& GetHomePath();
