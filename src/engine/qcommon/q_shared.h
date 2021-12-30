@@ -331,7 +331,9 @@ void  Com_Free_Aligned( void *ptr );
 #define GAME_INIT_FRAMES 6
 #define FRAMETIME        100 // msec
 
-#include "logging.h"
+// keyword currently used to mark a line as having to be appended to the log, but not notify about it on the HUD
+// FIXME/KILLME: not implemented!
+#define S_SKIPNOTIFY "[skipnotify]"
 
 #define DEG2RAD( a )                  ( ( ( a ) * M_PI ) / 180.0f )
 #define RAD2DEG( a )                  ( ( ( a ) * 180.0f ) / M_PI )
