@@ -5,8 +5,16 @@
 set -e
 set -u
 
-# Dependencies version. This number must be updated every time the version
-# numbers below change, or packages are added/removed.
+# /!\ Please do not use bash associative arrays,
+# obsolete macOS GPLv2 bash 3.2.57 does not support them.
+# /!\ Please do not use bash arrays for command,
+# platform, and package lists,
+# obsolete macOS GPLv2 bash 3.2.57 does not fully support them,
+# and bash arrays do not preserve ordering anyway.
+
+# Dependencies version. This number must be updated every time the
+# version numbers below change, or packages are added/removed, or
+# packages are rebuilt.
 DEPS_VERSION=5
 
 # Package versions
@@ -36,9 +44,42 @@ WASISDK_VERSION_MAJOR=12
 WASISDK_VERSION=${WASISDK_VERSION_MAJOR}.0
 WASMTIME_VERSION=0.28.0
 
+error() { echo "ERROR: ${@}" >&2; exit 1; }
+
+to_lines() { echo "${@// /$'\n'}"; }
+
+register_command() {
+	if ! to_lines "${commands:-}" | egrep -q "^${1}"; then
+		commands+="${commands:+ }${1}"
+		eval "command_${1}='${2}'"
+	fi
+}
+
+register_platform() {
+	if ! to_lines "${platforms:-}" | egrep -q "^${1}"; then
+		platforms+="${platforms:+ }${1}"
+		eval "platform_${1}='${2}'"
+	fi
+}
+
+register_package() {
+	local package="${1}"; shift
+	if ! to_lines "${packages:-}" | egrep -q "^${package}$"; then
+		packages+="${packages:+ }${package}"
+	fi
+	while [ -n "${1:-}" ]; do
+		if ! to_lines "${package_platforms:-}" | egrep -q "^${1}$"; then
+			package_platforms+="${package_platforms:+ }${1}"
+		fi
+		eval "packages_${1}+=\"\${packages_${1}:+ }${package}\""
+		shift
+	done
+}
+
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
+	echo "Extracting: ${1}"
 	rm -rf "${BUILD_DIR}/${2}"
 	mkdir -p "${BUILD_DIR}/${2}"
 	case "${1}" in
@@ -60,6 +101,9 @@ extract() {
 		"${SCRIPT_DIR}/cygtar.py" -xjf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
 		;;
 	*.dmg)
+		# Mounting .dmg files requires filesystem locking feature.
+		# If building on NFS and locking features does not work,
+		# one may emulate locking feature with locallocks mount option.
 		mkdir -p "${BUILD_DIR}/${2}-dmg"
 		hdiutil attach -mountpoint "${BUILD_DIR}/${2}-dmg" "${DOWNLOAD_DIR}/${1}"
 		cp -R "${BUILD_DIR}/${2}-dmg/"* "${BUILD_DIR}/${2}/"
@@ -67,8 +111,7 @@ extract() {
 		rmdir "${BUILD_DIR}/${2}-dmg"
 		;;
 	*)
-		echo "Unknown archive type for ${1}"
-		exit 1
+		error "Unknown archive type for ${1}"
 		;;
 	esac
 	cd "${BUILD_DIR}/${2}"
@@ -77,13 +120,19 @@ extract() {
 # Download a file if it doesn't exist yet, and extract it into the build dir
 # Usage: download <filename> <URL> <dir>
 download() {
+	echo "Downloading: ${2}"
 	if [ ! -f "${DOWNLOAD_DIR}/${1}" ]; then
-		curl -L --fail -o "${DOWNLOAD_DIR}/${1}" "${2}"
+		# Retry download with wget if curl fails because
+		# macOS curl, Homebrew curl and own build curl were
+		# seen as failing to download Ogg tarball from Xiph.
+		curl -L --fail -o "${DOWNLOAD_DIR}/${1}" "${2}" \
+		|| wget --continue -O "${DOWNLOAD_DIR}/${1}" "${2}"
 	fi
 	extract "${1}" "${3}"
 }
 
 # Build pkg-config
+register_package pkgconfig msvc32 msvc64 macosx64
 build_pkgconfig() {
 	download "pkg-config-${PKGCONFIG_VERSION}.tar.gz" "http://pkgconfig.freedesktop.org/releases/pkg-config-${PKGCONFIG_VERSION}.tar.gz" pkgconfig
 	cd "pkg-config-${PKGCONFIG_VERSION}"
@@ -93,6 +142,7 @@ build_pkgconfig() {
 }
 
 # Build NASM
+register_package nasm mingw32 mingw64 msvc32 msvc64 macosx64
 build_nasm() {
 	case "${PLATFORM}" in
 	macosx*)
@@ -104,13 +154,13 @@ build_nasm() {
 		cp "nasm-${NASM_VERSION}/nasm.exe" "${PREFIX}/bin"
 		;;
 	*)
-		echo "Unsupported platform for NASM"
-		exit 1
+		error "Unsupported platform for NASM"
 		;;
 	esac
 }
 
 # Build zlib
+register_package zlib linux64 mingw32 mingw64 msvc32 msvc64
 build_zlib() {
 	download "zlib-${ZLIB_VERSION}.tar.gz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" zlib
 	cd "zlib-${ZLIB_VERSION}"
@@ -125,13 +175,13 @@ build_zlib() {
 		make install
 		;;
 	*)
-		echo "Unsupported platform for zlib"
-		exit 1
+		error "Unsupported platform for zlib"
 		;;
 	esac
 }
 
 # Build GMP
+register_package gmp mingw32 mingw64 msvc32 msvc64 macosx64
 build_gmp() {
 	download "gmp-${GMP_VERSION}.tar.bz2" "https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.bz2" gmp
 	cd "gmp-${GMP_VERSION}"
@@ -168,6 +218,7 @@ build_gmp() {
 }
 
 # Build Nettle
+register_package nettle mingw32 mingw64 msvc32 msvc64 macosx64
 build_nettle() {
 	# download "nettle-${NETTLE_VERSION}.tar.gz" "https://www.lysator.liu.se/~nisse/archive/nettle-${NETTLE_VERSION}.tar.gz" nettle
 	download "nettle-${NETTLE_VERSION}.tar.gz" "https://ftp.gnu.org/gnu/nettle/nettle-${NETTLE_VERSION}.tar.gz" nettle
@@ -179,7 +230,14 @@ build_nettle() {
 }
 
 # Build GeoIP
+register_package geoip mingw32 mingw64 msvc32 msvc64 macosx64
 build_geoip() {
+	# Building GeoIP requires filesystem locking feature,
+	# because autom4te uses it to control build jobs (which can
+	# be worked around with MAKEFLAGS='-j1') and also uses it
+	# to create temporary files (which can't be worked around).
+	# If building on NFS and locking features does not work,
+	# one may emulate locking feature with locallocks mount option.
 	download "GeoIP-${GEOIP_VERSION}.tar.gz" "https://github.com/maxmind/geoip-api-c/archive/v${GEOIP_VERSION}.tar.gz" geoip
 	cd "geoip-api-c-${GEOIP_VERSION}"
 	autoreconf -vi
@@ -199,6 +257,7 @@ build_geoip() {
 }
 
 # Build cURL
+register_package curl mingw32 mingw64 msvc32 msvc64
 build_curl() {
 	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
 	cd "curl-${CURL_VERSION}"
@@ -208,6 +267,7 @@ build_curl() {
 }
 
 # Build SDL2
+register_package sdl2 mingw32 mingw64 msvc32 msvc64 macosx64
 build_sdl2() {
 	case "${PLATFORM}" in
 	mingw*)
@@ -233,7 +293,14 @@ build_sdl2() {
 		;;
 	macosx*)
 		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
-		cp -R "SDL2.framework" "${PREFIX}"
+		# macOS produces weird issue on NFS:
+		# > cp: cannot overwrite directory external_deps/build-macosx64-5/prefix/SDL2.framework/Headers with non-directory SDL2.framework/Headers
+		# while both look to be directories, so it's better to clean-up
+		# before to prevent any issue occurring when overwriting.
+		if [ -d "${PREFIX}/SDL2.framework" ]; then
+			rm -r "${PREFIX}/SDL2.framework"
+		fi
+		cp -R 'SDL2.framework' "${PREFIX}"
 		;;
 	linux*)
 		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
@@ -247,6 +314,7 @@ build_sdl2() {
 }
 
 # Build GLEW
+register_package glew mingw32 mingw64 msvc32 msvc64 macosx64
 build_glew() {
 	download "glew-${GLEW_VERSION}.tgz" "https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz" glew
 	cd "glew-${GLEW_VERSION}"
@@ -275,6 +343,7 @@ build_glew() {
 }
 
 # Build PNG
+register_package png mingw32 mingw64 msvc32 msvc64 macosx64
 build_png() {
 	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
 	cd "libpng-${PNG_VERSION}"
@@ -285,7 +354,9 @@ build_png() {
 }
 
 # Build JPEG
+register_package jpeg mingw32 mingw64 msvc32 msvc64 macosx64
 build_jpeg() {
+	echo $PATH
 	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
 	cd "libjpeg-turbo-${JPEG_VERSION}"
 	case "${PLATFORM}" in
@@ -296,7 +367,9 @@ build_jpeg() {
 		CFLAGS="${CFLAGS:-} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
 		;;
 	macosx*)
-		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
+		# A newer version of nasm is required for 64-bit
+		local NASM="${PREFIX}/bin/nasm"
+		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0 -DCMAKE_ASM_NASM_COMPILER="${NASM}"
 		;;
 	esac
 	cmake --build build
@@ -304,6 +377,7 @@ build_jpeg() {
 }
 
 # Build WebP
+register_package webp mingw32 mingw64 msvc32 msvc64 macosx64
 build_webp() {
 	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
 	cd "libwebp-${WEBP_VERSION}"
@@ -314,6 +388,7 @@ build_webp() {
 }
 
 # Build FreeType
+register_package freetype mingw32 mingw64 msvc32 msvc64 macosx64
 build_freetype() {
 	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
 	cd "freetype-${FREETYPE_VERSION}"
@@ -326,6 +401,7 @@ build_freetype() {
 }
 
 # Build OpenAL
+register_package openal mingw32 mingw64 msvc32 msvc64 macosx64
 build_openal() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -366,6 +442,7 @@ build_openal() {
 }
 
 # Build Ogg
+register_package ogg mingw32 mingw64 msvc32 msvc64 macosx64
 build_ogg() {
 	download "libogg-${OGG_VERSION}.tar.gz" "https://downloads.xiph.org/releases/ogg/libogg-${OGG_VERSION}.tar.gz" ogg
 	cd "libogg-${OGG_VERSION}"
@@ -378,6 +455,7 @@ build_ogg() {
 }
 
 # Build Vorbis
+register_package vorbis mingw32 mingw64 msvc32 msvc64 macosx64
 build_vorbis() {
 	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
 	cd "libvorbis-${VORBIS_VERSION}"
@@ -387,6 +465,7 @@ build_vorbis() {
 }
 
 # Build Speex
+register_package speex mingw32 mingw64 msvc32 msvc64 macosx64
 build_speex() {
 	download "speex-${SPEEX_VERSION}.tar.gz" "https://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz" speex
 	cd "speex-${SPEEX_VERSION}"
@@ -400,6 +479,7 @@ build_speex() {
 }
 
 # Build Opus
+register_package opus mingw32 mingw64 msvc32 msvc64 macosx64
 build_opus() {
 	download "opus-${OPUS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" opus
 	cd "opus-${OPUS_VERSION}"
@@ -418,6 +498,7 @@ build_opus() {
 }
 
 # Build OpusFile
+register_package opusfile mingw32 mingw64 msvc32 msvc64 macosx64
 build_opusfile() {
 	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
 	cd "opusfile-${OPUSFILE_VERSION}"
@@ -427,8 +508,8 @@ build_opusfile() {
 	make install
 }
 
-
 # Build Lua
+register_package lua mingw32 mingw64 msvc32 msvc64 macosx64
 build_lua() {
 	download "lua-${LUA_VERSION}.tar.gz" "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" lua
 	cd "lua-${LUA_VERSION}"
@@ -463,6 +544,7 @@ build_lua() {
 }
 
 # Build ncurses
+register_package ncurses unused
 build_ncurses() {
 	download "ncurses-${NCURSES_VERSION}.tar.gz" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" ncurses
 	cd "ncurses-${NCURSES_VERSION}"
@@ -474,6 +556,7 @@ build_ncurses() {
 }
 
 # "Builds" (downloads) the WASI SDK
+register_package wasisdk unused
 build_wasisdk() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -491,6 +574,7 @@ build_wasisdk() {
 }
 
 # "Builds" (downloads) wasmtime
+register_package wasmtime unused
 build_wasmtime() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -522,6 +606,7 @@ build_wasmtime() {
 }
 
 # Build the NaCl SDK
+register_package naclsdk linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_naclsdk() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -578,6 +663,7 @@ build_naclsdk() {
 	esac
 }
 
+register_package naclports linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_naclports() {
 	download "naclports-${NACLSDK_VERSION}.tar.bz2" "https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclports.tar.bz2" naclports
 	mkdir -p "${PREFIX}/pnacl_deps/"{include,lib}
@@ -589,6 +675,7 @@ build_naclports() {
 # For MSVC, we need to use the Microsoft LIB tool to generate import libraries,
 # the import libraries generated by MinGW seem to have issues. Instead we
 # generate a .bat file to be run using the Visual Studio tools command shell.
+register_package gendef unused
 build_gendef() {
 	case "${PLATFORM}" in
 	msvc*)
@@ -620,8 +707,33 @@ build_gendef() {
 	esac
 }
 
+build_defaults() {
+	local package; for package in $(eval "echo \"\${packages_${PLATFORM}}\""); do
+		run_build "${package}"
+	done
+}
+
+run_setup() {
+	if ! to_lines "${platforms}" | egrep -q "^${PLATFORM}$"; then
+		error "Unknown platform ${PLATFORM}"
+	fi
+	echo "Setting up: ${PLATFORM}"
+	"setup_${PLATFORM}"
+}
+
+run_build() {
+	if ! to_lines defaults "${packages}" | egrep -q "^${1}$"; then
+		error "Unknown package ${1}"
+	fi
+	echo "Building: ${1}"
+	cd "${WORK_DIR}"
+	"build_${1}"
+}
+
 # Install all the necessary files to the location expected by CMake
-build_install() {
+register_command install 'Create a stripped down version of the built packages that CMake can use.'
+run_install() {
+	echo "Installing: ${PLATFORM}"
 	PKG_PREFIX="${WORK_DIR}/${PLATFORM}-${DEPS_VERSION}"
 	rm -rf "${PKG_PREFIX}"
 	rsync -a --link-dest="${PREFIX}" "${PREFIX}/" "${PKG_PREFIX}"
@@ -661,7 +773,9 @@ build_install() {
 }
 
 # Create a redistributable package for the dependencies
-build_package() {
+register_command package 'Create a zip/tarball of the dependencies so they can be distributed.'
+run_package() {
+	echo "Packaging: ${PLATFORM}"
 	cd "${WORK_DIR}"
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -675,7 +789,9 @@ build_package() {
 	esac
 }
 
-build_clean() {
+register_command clean 'Remove products of build process, excepting download cache. Must be last.'
+run_clean() {
+	echo "Cleaning: ${PLATFORM}"
 	local NAME="${PLATFORM}-${DEPS_VERSION}"
 	rm -rf "build-${NAME}/" "${NAME}/" "${NAME}.zip"
 }
@@ -692,6 +808,7 @@ common_setup() {
 	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
 	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
+	export MAKEFLAGS="-j$(nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)"
 	mkdir -p "${DOWNLOAD_DIR}"
 	mkdir -p "${PREFIX}"
 	mkdir -p "${PREFIX}/bin"
@@ -700,6 +817,7 @@ common_setup() {
 }
 
 # Set up environment for 32-bit Windows for Visual Studio (compile all as .dll)
+register_platform msvc32 'Windows i686 native compilation'
 setup_msvc32() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
@@ -714,6 +832,7 @@ setup_msvc32() {
 }
 
 # Set up environment for 64-bit Windows for Visual Studio (compile all as .dll)
+register_platform msvc64 'Windows amd64 native compilation'
 setup_msvc64() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
@@ -727,6 +846,7 @@ setup_msvc64() {
 }
 
 # Set up environment for 32-bit Windows for MinGW (compile all as .a)
+register_platform mingw32 'Windows i686 cross-compilation from Linux'
 setup_mingw32() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
@@ -738,6 +858,7 @@ setup_mingw32() {
 }
 
 # Set up environment for 64-bit Windows for MinGW (compile all as .a)
+register_platform mingw64 'Windows amd64 cross-compilation from Linux'
 setup_mingw64() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
@@ -749,12 +870,12 @@ setup_mingw64() {
 }
 
 # Set up environment for Mac OS X 64-bit
+register_platform macosx64 'macOS amd64 native compilation'
 setup_macosx64() {
 	HOST=x86_64-apple-darwin11
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
 	export MACOSX_DEPLOYMENT_TARGET=10.9
-	export NASM="${PWD}/build-${PLATFORM}-${DEPS_VERSION}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 	export CC=clang
 	export CXX=clang++
 	export CFLAGS="-arch x86_64"
@@ -764,6 +885,7 @@ setup_macosx64() {
 }
 
 # Set up environment for 64-bit Linux
+register_platform linux64 'Linux amd64 native compilation'
 setup_linux64() {
 	HOST=x86_64-unknown-linux-gnu
 	CROSS=
@@ -774,35 +896,79 @@ setup_linux64() {
 	common_setup
 }
 
+print_commands() {
+	local command; for command in ${commands}; do
+		printf '\t%s: ' "${command}"
+		eval "echo \"\${command_${command}}\""
+	done
+}
+
+print_platforms() {
+	local platform; for platform in $(to_lines "${platforms}" | sort -u); do
+		printf '\t%s: ' "${platform}"
+		eval "echo \"\${platform_${platform}}\""
+	done
+}
+
+print_packages_per_platform() {
+	local platform; for platform in $(to_lines "${package_platforms}" | sort -u); do
+		printf '\t%s: ' "${platform}"
+		eval "echo \"\${packages_${platform}}\""
+	done
+}
+
+print_help() {
+	local tab=$'\t'
+	cat <<-EOF
+	Usage: $(basename "${0}") <platform> <package[s]…|command[s]…>
+
+	Script to build dependencies for platforms which do not provide them.
+
+	Platforms:
+	$(print_platforms)
+
+	Packages:
+	${tab}${packages}
+
+	Packages required for each platform:
+	$(print_packages_per_platform)
+
+	Meta-package (build all required packages for the given platform):
+	${tab}defaults
+
+	Commands:
+	$(print_commands)
+
+	EOF
+}
+
 # Usage
-if [ "${#}" -lt "2" ]; then
-	echo "usage: ${0} <platform> <package[s]...>"
-	echo "Script to build dependencies for platforms which do not provide them"
-	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx64 linux64"
-	echo "Packages: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk wasmtime"
-	echo "Virtual packages:"
-	echo "  install - create a stripped down version of the built packages that CMake can use"
-	echo "  package - create a zip/tarball of the dependencies so they can be distributed"
-	echo "  clean - remove products of build process, excepting download cache. Must be last"
-	echo
-	echo "Packages requires for each platform:"
-	echo "Linux native compile: naclsdk naclports (and possibly others depending on what packages your distribution provides)"
-	echo "Linux to Windows cross-compile: zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle geoip sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	exit 1
+if [ "${1:-}" = '-h' -o "${1:-}" = '--help' ]; then
+	print_help
+	exit
+elif [ "${#}" -lt "1" ]; then
+	error 'Missing platform name'
+elif [ "${#}" -lt "2" ]; then
+	error 'Missing package name or command name'
 fi
 
-# Enable parallel build
-export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
-
 # Setup platform
-PLATFORM="${1}"
-"setup_${PLATFORM}"
+PLATFORM="${1}"; shift
+run_setup
 
-# Build packages
-shift
-for pkg in "${@}"; do
-	cd "${WORK_DIR}"
-	"build_${pkg}"
+# Build packages or run commands
+while [ -n "${1:-}" ]; do
+	case "${1}" in
+	install|package|clean)
+		"run_${1}"
+		;;
+	*)
+		run_build "${1}"
+		;;
+	esac
+	shift
 done
+
+# /!\ Please do not remove this line, it makes easy
+# to figure out if the script silently failed or not.
+echo 'Done'
