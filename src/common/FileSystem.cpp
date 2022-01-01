@@ -527,8 +527,33 @@ std::string StripExtension(Str::StringRef path)
 	for (const char* p = path.end(); p != path.begin(); p--) {
 		if (p[-1] == '/')
 			return path;
-		if (p[-1] == '.')
+		if (p[-1] == '.') {
+			/* According to https://www.cplusplus.com/reference/string/string/string/
+			one of the string(a, b) constructor is a sequence constructor:
+			> string (const char* s, size_t n);
+
+			and another string(a, b) constructor is a range constructor:
+			> template <class InputIterator>
+			>  string (InputIterator first, InputIterator last);
+			
+			But if b is a char*, the compiler may decide it's an iterator
+			and select the first range constructor to compute a substring
+			from a to b (what is expected there), but the compiler may
+			also decide b is a size and select the sequence constructor
+			to compute a substring starting from a with length of b.
+
+			The issue was reproduced on macOS with shared library game virtual
+			machine built with Apple clang.
+
+			See https://github.com/DaemonEngine/Daemon/issues/564 */
+			#if defined(__APPLE__) && defined(__clang__)
+			// Use sequence constructor
+			return std::string(path.begin(), size_t(p - 1 - path.begin()));
+			#else
+			// Use range constructor
 			return std::string(path.begin(), p - 1);
+			#endif
+		}
 	}
 	return path;
 }
