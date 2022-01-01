@@ -510,8 +510,14 @@ std::string Extension(Str::StringRef path)
 	for (const char* p = path.end(); p != path.begin(); p--) {
 		if (p[-1] == '/')
 			return "";
-		if (p[-1] == '.')
+		if (p[-1] == '.') {
+			// See comment in StripExtension()
+			#if defined(__APPLE__) && defined(__clang__)
+			return std::string(p - 1, size_t(path.end() - path.begin()));
+			#else
 			return std::string(p - 1, path.end());
+			#endif
+		}
 	}
 	return "";
 }
@@ -572,7 +578,12 @@ std::string BaseNameStripExtension(Str::StringRef path)
 		if (p[-1] == '.' && end == path.end())
 			end = p - 1;
 	}
+	// See comment in StripExtension()
+	#if defined(__APPLE__) && defined(__clang__)
+	return std::string(path.begin(), size_t(end - path.begin()));
+	#else
 	return std::string(path.begin(), end);
+	#endif
 }
 
 } // namespace Path
