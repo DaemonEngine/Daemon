@@ -508,6 +508,9 @@ std::string Extension(Str::StringRef path)
 
 	// Find a dot or slash, searching from the end of the string
 	for (const char* p = path.end(); p != path.begin(); p--) {
+		// The cgame dll crashes on macOS if we don't skip null terminator
+		if (p == path.end())
+			continue;
 		if (p[-1] == '/')
 			return "";
 		if (p[-1] == '.')
@@ -525,6 +528,9 @@ std::string StripExtension(Str::StringRef path)
 
 	// Find a dot or slash, searching from the end of the string
 	for (const char* p = path.end(); p != path.begin(); p--) {
+		// The cgame dll crashes on macOS if we don't skip null terminator
+		if (p == path.end())
+			continue;
 		if (p[-1] == '/')
 			return path;
 		if (p[-1] == '.')
@@ -532,6 +538,7 @@ std::string StripExtension(Str::StringRef path)
 	}
 	return path;
 }
+
 std::string BaseNameStripExtension(Str::StringRef path)
 {
 	if (path.empty())
@@ -542,6 +549,9 @@ std::string BaseNameStripExtension(Str::StringRef path)
 	if (path.back() == '/')
 		end = path.end() - 1;
 	for (const char* p = end; p != path.begin(); p--) {
+		// The cgame dll crashes on macOS if we don't skip null terminator
+		if (p == path.end())
+			continue;
 		if (p[-1] == '/')
 			return std::string(p, end);
 		if (p[-1] == '.' && end == path.end())
