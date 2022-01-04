@@ -68,7 +68,9 @@ register_package() {
 		packages+="${packages:+ }${package}"
 	fi
 	while [ -n "${1:-}" ]; do
-		if ! to_lines "${package_platforms:-}" | egrep -q "^${1}$"; then
+		if ! to_lines unused "${platforms:-}" | egrep -q "^${1}$"; then
+			error "Unknown platform ${1}"
+		elif ! to_lines "${package_platforms:-}" | egrep -q "^${1}$"; then
 			package_platforms+="${package_platforms:+ }${1}"
 		fi
 		eval "packages_${1}+=\"\${packages_${1}:+ }${package}\""
