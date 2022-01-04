@@ -131,6 +131,106 @@ download() {
 	extract "${1}" "${3}"
 }
 
+# Common setup code
+setup_common() {
+	WORK_DIR="${PWD}"
+	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
+	BUILD_DIR="${WORK_DIR}/build-${PLATFORM}-${DEPS_VERSION}"
+	PREFIX="${BUILD_DIR}/prefix"
+	export PATH="${PATH}:${PREFIX}/bin"
+	export PKG_CONFIG="pkg-config"
+	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
+	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
+	export MAKEFLAGS="-j$(nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)"
+	mkdir -p "${DOWNLOAD_DIR}"
+	mkdir -p "${PREFIX}"
+	mkdir -p "${PREFIX}/bin"
+	mkdir -p "${PREFIX}/include"
+	mkdir -p "${PREFIX}/lib"
+}
+
+# Set up environment for 32-bit Windows for Visual Studio (compile all as .dll)
+register_platform msvc32 'Windows i686 native compilation'
+setup_msvc32() {
+	HOST=i686-w64-mingw32
+	CROSS="${HOST}-"
+	BITNESS=32
+	MSVC_SHARED=(--enable-shared --disable-static)
+	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
+	export CC="i686-w64-mingw32-gcc -static-libgcc"
+	export CXX="i686-w64-mingw32-g++ -static-libgcc"
+	export CFLAGS="-msse2 -mpreferred-stack-boundary=2 -D__USE_MINGW_ANSI_STDIO=0"
+	export CXXFLAGS="-msse2 -mpreferred-stack-boundary=2"
+	setup_common
+}
+
+# Set up environment for 64-bit Windows for Visual Studio (compile all as .dll)
+register_platform msvc64 'Windows amd64 native compilation'
+setup_msvc64() {
+	HOST=x86_64-w64-mingw32
+	CROSS="${HOST}-"
+	BITNESS=64
+	MSVC_SHARED=(--enable-shared --disable-static)
+	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
+	export CC="x86_64-w64-mingw32-gcc -static-libgcc"
+	export CXX="x86_64-w64-mingw32-g++ -static-libgcc"
+	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
+	setup_common
+}
+
+# Set up environment for 32-bit Windows for MinGW (compile all as .a)
+register_platform mingw32 'Windows i686 cross-compilation from Linux'
+setup_mingw32() {
+	HOST=i686-w64-mingw32
+	CROSS="${HOST}-"
+	BITNESS=32
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export CFLAGS="-m32 -msse2 -D__USE_MINGW_ANSI_STDIO=0"
+	export CXXFLAGS="-m32 -msse2"
+	setup_common
+}
+
+# Set up environment for 64-bit Windows for MinGW (compile all as .a)
+register_platform mingw64 'Windows amd64 cross-compilation from Linux'
+setup_mingw64() {
+	HOST=x86_64-w64-mingw32
+	CROSS="${HOST}-"
+	BITNESS=64
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export CFLAGS="-m64 -D__USE_MINGW_ANSI_STDIO=0"
+	export CXXFLAGS="-m64"
+	setup_common
+}
+
+# Set up environment for Mac OS X 64-bit
+register_platform macosx64 'macOS amd64 native compilation'
+setup_macosx64() {
+	HOST=x86_64-apple-darwin11
+	CROSS=
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export MACOSX_DEPLOYMENT_TARGET=10.9
+	export CC=clang
+	export CXX=clang++
+	export CFLAGS="-arch x86_64"
+	export CXXFLAGS="-arch x86_64"
+	export LDFLAGS="-arch x86_64"
+	setup_common
+}
+
+# Set up environment for 64-bit Linux
+register_platform linux64 'Linux amd64 native compilation'
+setup_linux64() {
+	HOST=x86_64-unknown-linux-gnu
+	CROSS=
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export CFLAGS="-m64 -fPIC"
+	export CXXFLAGS="-m64 -fPIC"
+	export LDFLAGS="-m64"
+	setup_common
+}
+
 # Build pkg-config
 register_package pkgconfig msvc32 msvc64 macosx64
 build_pkgconfig() {
@@ -794,106 +894,6 @@ run_clean() {
 	echo "Cleaning: ${PLATFORM}"
 	local NAME="${PLATFORM}-${DEPS_VERSION}"
 	rm -rf "build-${NAME}/" "${NAME}/" "${NAME}.zip"
-}
-
-# Common setup code
-common_setup() {
-	WORK_DIR="${PWD}"
-	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
-	BUILD_DIR="${WORK_DIR}/build-${PLATFORM}-${DEPS_VERSION}"
-	PREFIX="${BUILD_DIR}/prefix"
-	export PATH="${PATH}:${PREFIX}/bin"
-	export PKG_CONFIG="pkg-config"
-	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
-	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
-	export MAKEFLAGS="-j$(nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)"
-	mkdir -p "${DOWNLOAD_DIR}"
-	mkdir -p "${PREFIX}"
-	mkdir -p "${PREFIX}/bin"
-	mkdir -p "${PREFIX}/include"
-	mkdir -p "${PREFIX}/lib"
-}
-
-# Set up environment for 32-bit Windows for Visual Studio (compile all as .dll)
-register_platform msvc32 'Windows i686 native compilation'
-setup_msvc32() {
-	HOST=i686-w64-mingw32
-	CROSS="${HOST}-"
-	BITNESS=32
-	MSVC_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="i686-w64-mingw32-gcc -static-libgcc"
-	export CXX="i686-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-msse2 -mpreferred-stack-boundary=2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-msse2 -mpreferred-stack-boundary=2"
-	common_setup
-}
-
-# Set up environment for 64-bit Windows for Visual Studio (compile all as .dll)
-register_platform msvc64 'Windows amd64 native compilation'
-setup_msvc64() {
-	HOST=x86_64-w64-mingw32
-	CROSS="${HOST}-"
-	BITNESS=64
-	MSVC_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="x86_64-w64-mingw32-gcc -static-libgcc"
-	export CXX="x86_64-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
-	common_setup
-}
-
-# Set up environment for 32-bit Windows for MinGW (compile all as .a)
-register_platform mingw32 'Windows i686 cross-compilation from Linux'
-setup_mingw32() {
-	HOST=i686-w64-mingw32
-	CROSS="${HOST}-"
-	BITNESS=32
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m32 -msse2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-m32 -msse2"
-	common_setup
-}
-
-# Set up environment for 64-bit Windows for MinGW (compile all as .a)
-register_platform mingw64 'Windows amd64 cross-compilation from Linux'
-setup_mingw64() {
-	HOST=x86_64-w64-mingw32
-	CROSS="${HOST}-"
-	BITNESS=64
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m64 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-m64"
-	common_setup
-}
-
-# Set up environment for Mac OS X 64-bit
-register_platform macosx64 'macOS amd64 native compilation'
-setup_macosx64() {
-	HOST=x86_64-apple-darwin11
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export MACOSX_DEPLOYMENT_TARGET=10.9
-	export CC=clang
-	export CXX=clang++
-	export CFLAGS="-arch x86_64"
-	export CXXFLAGS="-arch x86_64"
-	export LDFLAGS="-arch x86_64"
-	common_setup
-}
-
-# Set up environment for 64-bit Linux
-register_platform linux64 'Linux amd64 native compilation'
-setup_linux64() {
-	HOST=x86_64-unknown-linux-gnu
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m64 -fPIC"
-	export CXXFLAGS="-m64 -fPIC"
-	export LDFLAGS="-m64"
-	common_setup
 }
 
 print_commands() {
