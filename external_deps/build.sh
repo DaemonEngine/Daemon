@@ -371,7 +371,7 @@ build_speex() {
 	cd "speex-${SPEEX_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
+	local TMP_FILE="$(mktemp /tmp/config.XXXXXXXXXX)"
 	sed "s/deplibs_check_method=.*/deplibs_check_method=pass_all/g" libtool > "${TMP_FILE}"
 	mv "${TMP_FILE}" libtool
 	make
@@ -575,16 +575,16 @@ build_gendef() {
 		cd "${PREFIX}/def"
 		echo 'cd /d "%~dp0"' > "${PREFIX}/genlib.bat"
 		for DLL_A in "${PREFIX}"/lib/*.dll.a; do
-			DLL=`${CROSS}dlltool -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll`
-			DEF=`basename ${DLL} .dll`.def
-			LIB=`basename ${DLL_A} .dll.a`.lib
-			MACHINE=`[ "${PLATFORM}" = msvc32 ] && echo x86 || echo x64`
+			DLL="$(${CROSS}dlltool -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
+			DEF="$(basename ${DLL} .dll).def"
+			LIB="$(basename ${DLL_A} .dll.a).lib"
+			MACHINE="$([ "${PLATFORM}" = msvc32 ] && echo x86 || echo x64)"
 
 			# Using gendef from mingw-w64-tools
 			gendef "${PREFIX}/bin/${DLL}"
 
 			# Fix some issues with gendef output
-			TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
+			TMP_FILE="$(mktemp /tmp/config.XXXXXXXXXX)"
 			sed "s/\(glew.*\)@4@4/\1@4/" "${DEF}" > "${TMP_FILE}"
 			sed "s/ov_halfrate_p@0/ov_halfrate_p/" "${TMP_FILE}" > "${DEF}"
 			rm -f "${TMP_FILE}"
@@ -619,8 +619,8 @@ build_install() {
 	rm -rf "${PKG_PREFIX}/lib/pkgconfig"
 	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.la' -execdir rm -f -- {} \;
-	find "${PKG_PREFIX}/lib" -name '*.dll.a' -execdir bash -c 'rm -f -- "`basename "{}" .dll.a`.a"' \;
-	find "${PKG_PREFIX}/lib" -name '*.dylib' -execdir bash -c 'rm -f -- "`basename "{}" .dylib`.a"' \;
+	find "${PKG_PREFIX}/lib" -name '*.dll.a' -execdir bash -c 'rm -f -- "$(basename "{}" .dll.a).a"' \;
+	find "${PKG_PREFIX}/lib" -name '*.dylib' -execdir bash -c 'rm -f -- "$(basename "{}" .dylib).a"' \;
 
 	# Strip libraries
 	case "${PLATFORM}" in
