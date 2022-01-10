@@ -2711,7 +2711,19 @@ void Tess_StageIteratorGeneric()
 
 			case stageType_t::ST_LIQUIDMAP:
 				{
-					Render_liquid( stage );
+					if ( r_liquidMapping->integer )
+					{
+						Render_liquid( stage );
+					}
+					else
+					{
+						/* FIXME: workaround to display something and not crash
+						when liquidMapping is enabled, until we fix liquidMap. */
+						pStage->type = stageType_t::ST_DIFFUSEMAP;
+						pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
+						Render_lightMapping( stage );
+					}
+
 					break;
 				}
 
