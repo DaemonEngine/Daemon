@@ -1338,15 +1338,11 @@ const std::vector<LoadedPakInfo>& GetLoadedPaks()
 
 #ifdef BUILD_VM
 std::string ReadFile(Str::StringRef path, std::error_code& err) {
-	if (!PakPath::FileExists(path)) {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
-		return "";
-	}
 	int length, h;
 	const int mode = 0; // fsMode_t::FS_READ
 	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, mode, length, h);
 	if (!h) {
-		SetErrorCodeFilesystem(err, filesystem_error::io_error, path);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 		return "";
 	}
 	std::string content;
