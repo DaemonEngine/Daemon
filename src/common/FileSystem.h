@@ -330,6 +330,7 @@ namespace PakPath {
 	void CopyFile(Str::StringRef path, const File& dest, std::error_code& err = throws());
 
 	// Check if a file exists
+	// BEWARE: this doesn't work inside a VM if a pak was loaded after the VM starts!
 	bool FileExists(Str::StringRef path);
 
 	// Get the pak a file is in, or null if the file does not exist
