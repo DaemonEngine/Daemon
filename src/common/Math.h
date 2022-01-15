@@ -36,7 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Math {
 
     // Returns min if value is NaN
-    template<typename T> T Clamp(T value, T min, T max)
+    template<typename T> inline WARN_UNUSED_RESULT
+    T Clamp(T value, T min, T max)
     {
         ASSERT_LE(min, max);
         if (!(value >= min))
