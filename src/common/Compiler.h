@@ -39,6 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Emit a nice warning when a function is used
 #define DEPRECATED __attribute__((__deprecated__))
 
+// Warn when a function's return argument must be used, but isn't
+// Caution: to keep MSVC compat, this must be put before the function name
+#define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+
 // A cold function is rarely called, so branches that lead to one are assumed
 // to be unlikely
 #define COLD __attribute__((__cold__))
@@ -128,6 +132,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // See descriptions above
 #define DEPRECATED __declspec(deprecated)
+#define WARN_UNUSED_RESULT _Check_return_
 #define COLD
 #define NORETURN __declspec(noreturn)
 #define NORETURN_PTR
@@ -154,6 +159,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #warning "Unsupported compiler"
 #define DEPRECATED
+#define WARN_UNUSED_RESULT
 #define COLD
 #define NORETURN
 #define PRINTF_LIKE(n)
