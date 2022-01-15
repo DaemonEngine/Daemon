@@ -562,9 +562,6 @@ R_CreateVBO
 */
 VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 {
-	VBO_t *vbo;
-	byte *outData;
-
 	if ( strlen( name ) >= MAX_QPATH )
 	{
 		Sys::Drop( "R_CreateVBO: \"%s\" is too long", name );
@@ -573,7 +570,7 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
-	vbo = (VBO_t*) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
+	VBO_t *vbo = (VBO_t*) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
 	memset( vbo, 0, sizeof( *vbo ) );
 
 	Com_AddToGrowList( &tr.vbos, vbo );
@@ -591,6 +588,7 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 	glGenBuffers( 1, &vbo->vertexesVBO );
 	R_BindVBO( vbo );
 
+	byte *outData;
 #ifdef GL_ARB_buffer_storage
 	if( glConfig2.bufferStorageAvailable ) {
 		outData = (byte *)ri.Hunk_AllocateTempMemory( vbo->vertexesSize );
