@@ -92,19 +92,6 @@ struct hunkUsed_t
 	int tempHighwater;
 };
 
-struct hunkblock_t
-{
-	int                size;
-	byte               printed;
-	hunkblock_t *next;
-
-	const char         *label;
-	const char         *file;
-	int                line;
-};
-// for alignment purposes
-#define SIZEOF_HUNKBLOCK_T ( ( sizeof( hunkblock_t ) + 31 ) & ~31 )
-
 static hunkUsed_t  hunk_low, hunk_high;
 static hunkUsed_t  *hunk_permanent, *hunk_temp;
 
