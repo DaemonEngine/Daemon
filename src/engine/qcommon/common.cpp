@@ -47,22 +47,10 @@ Maryland 20850 USA.
 #include "framework/BaseCommands.h"
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
-#include "framework/ConsoleHistory.h"
 #include "framework/LogSystem.h"
 #include "framework/System.h"
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
-
-// htons
-#ifdef _WIN32
-#include <winsock.h>
-#else
-#include <arpa/inet.h>
-#endif
-
-#ifdef USE_SMP
-#include <SDL_mutex.h>
-#endif
 
 static fileHandle_t logfile;
 
