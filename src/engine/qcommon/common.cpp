@@ -576,10 +576,9 @@ Com_Crash_f
 A way to force a bus error for development reasons
 =================
 */
-static void NORETURN Com_Crash_f()
+static void Com_Crash_f()
 {
 	* ( volatile int * ) 0 = 0x12345678;
-	Sys::OSExit(1); // silence warning
 }
 
 void Com_SetRecommended()
