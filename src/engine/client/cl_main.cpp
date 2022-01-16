@@ -1486,10 +1486,6 @@ void CL_Vid_Restart_f()
 	// startup all the client stuff
 	CL_StartHunkUsers();
 
-#ifdef _WIN32
-	IN_Restart(); // fretn
-#endif
-
 	// start the cgame if connected
 	if ( cls.state > connstate_t::CA_CONNECTED )
 	{
