@@ -101,7 +101,7 @@ namespace Audio {
     class OneShotSound : public Sound {
         public:
             OneShotSound(std::shared_ptr<Sample> sample);
-            virtual ~OneShotSound();
+            virtual ~OneShotSound() override;
 
             virtual void SetupSource(AL::Source& source) override;
             virtual void InternalUpdate() override;
@@ -114,7 +114,7 @@ namespace Audio {
     class LoopingSound : public Sound {
         public:
             LoopingSound(std::shared_ptr<Sample> loopingSample, std::shared_ptr<Sample> leadingSample = nullptr);
-            virtual ~LoopingSound();
+            virtual ~LoopingSound() override;
 
             void FadeOutAndDie();
 
@@ -133,7 +133,7 @@ namespace Audio {
     class StreamingSound : public Sound {
         public:
             StreamingSound();
-            virtual ~StreamingSound();
+            virtual ~StreamingSound() override;
 
             virtual void SetupSource(AL::Source& source) override;
             virtual void InternalUpdate() override;
