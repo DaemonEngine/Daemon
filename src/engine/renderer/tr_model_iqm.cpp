@@ -184,7 +184,6 @@ static bool LoadIQMFile( void *buffer, unsigned filesize, const char *mod_name,
 			Log::Warn("R_LoadIQM: file %s uses an unsupported vertex format.",
 				  mod_name );
 			return false;
-			break;
 		}
 
 		switch( vertexarray->type ) {
