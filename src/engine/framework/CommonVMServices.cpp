@@ -149,7 +149,7 @@ namespace VM {
             :CvarProxy(std::move(name), flags, std::move(defaultValue)), services(services) {
                 wasAdded = Register(std::move(description));
             }
-            virtual ~ProxyCvar() {
+            virtual ~ProxyCvar() override {
                 if (wasAdded) {
                     Cvar::Unregister(name);
                 }
