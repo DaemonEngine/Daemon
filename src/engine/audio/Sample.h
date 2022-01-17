@@ -96,7 +96,7 @@ namespace Audio {
     template<typename T>
     std::vector<int> HandledResource<T>::inactiveHandles;
 
-    class Sample: public HandledResource<Sample>, public Resource::Resource {
+    class Sample final: public HandledResource<Sample>, public Resource::Resource {
         public:
             explicit Sample(std::string name);
             virtual ~Sample() override final;
