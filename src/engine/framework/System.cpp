@@ -713,6 +713,5 @@ ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 		Sys::Error("Unhandled exception of unknown type");
 	}
 
-	// Should be unreachable
-	return 0;
+	ASSERT_UNREACHABLE();
 }
