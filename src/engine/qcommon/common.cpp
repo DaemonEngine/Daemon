@@ -521,7 +521,7 @@ Just throw a fatal error to
 test error shutdown procedures
 =============
 */
-static void Com_Error_f()
+NORETURN static void Com_Error_f()
 {
 	if ( Cmd_Argc() > 1 )
 	{

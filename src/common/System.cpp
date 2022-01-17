@@ -278,7 +278,7 @@ void SetupCrashHandler()
     nacl_minidump_set_callback(CrashHandler);
 }
 #else
-static void CrashHandler(int sig)
+NORETURN static void CrashHandler(int sig)
 {
 	// TODO: backtrace
 

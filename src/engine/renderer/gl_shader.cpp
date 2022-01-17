@@ -64,7 +64,7 @@ GLShaderManager                           gl_shaderManager;
 
 namespace // Implementation details
 {
-	inline void ThrowShaderError(Str::StringRef msg)
+	NORETURN inline void ThrowShaderError(Str::StringRef msg)
 	{
 		throw ShaderException(msg.c_str());
 	}
