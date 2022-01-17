@@ -200,10 +200,7 @@ namespace // Implementation details
 
 			return shaderText;
 		}
-		// Will never reach here.
-		ASSERT(false);
 		ThrowShaderError("Internal error. ShaderKind not set.");
-		return std::string();
 	}
 }
 

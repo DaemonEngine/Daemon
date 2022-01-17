@@ -316,16 +316,16 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 		qtangent[ 3 ] = resqtangent[ 3 ];
 	}
 
-	if (false) {
-		vec3_t T, B, N;
-		R_QtangentsToTBN( qtangent, T, B, N );
-		ASSERT_LT(Distance(N, normal2), 0.01f);
-		if( flipped ) {
-			VectorNegate( T, T );
-		}
-		ASSERT_LT(Distance(T, tangent2), 0.01f);
-		ASSERT_LT(Distance(B, binormal2), 0.01f);
+#if 0
+	vec3_t T, B, N;
+	R_QtangentsToTBN( qtangent, T, B, N );
+	ASSERT_LT(Distance(N, normal2), 0.01f);
+	if( flipped ) {
+		VectorNegate( T, T );
 	}
+	ASSERT_LT(Distance(T, tangent2), 0.01f);
+	ASSERT_LT(Distance(B, binormal2), 0.01f);
+#endif
 }
 
 /*

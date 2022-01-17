@@ -116,6 +116,7 @@ void CMod_LoadShaders(const byte *const cmod_base, lump_t *l)
 
 	memcpy( cm.shaders, in, count * sizeof( *cm.shaders ) );
 
+	//FIXME: use a saner way to act on endianness, please
 	if ( LittleLong( 1 ) != 1 )
 	{
 		out = cm.shaders;
