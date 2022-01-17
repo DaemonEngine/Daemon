@@ -366,7 +366,7 @@ static void SignalHandler(int sig)
 
 	Sys::Error("Forcing shutdown from signal: %s", strsignal(sig));
 }
-static void SignalThread()
+NORETURN static void SignalThread()
 {
 	// Unblock the signals we are interested in and handle them in this thread
 	sigset_t sigset;

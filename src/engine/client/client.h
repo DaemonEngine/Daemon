@@ -485,7 +485,7 @@ void        CL_RegisterButtonCommands( const char *cmdList );
 
 void        CL_StartHunkUsers();
 
-void        CL_Disconnect_f();
+NORETURN void CL_Disconnect_f();
 void        CL_Vid_Restart_f();
 void        CL_Snd_Restart_f();
 

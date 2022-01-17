@@ -278,7 +278,7 @@ public:
 	void GameClientThink(int clientNum);
 	void GameRunFrame(int levelTime);
 	bool GameSnapshotCallback(int entityNum, int clientNum);
-	void BotAIStartFrame(int levelTime);
+	NORETURN void BotAIStartFrame(int levelTime);
 
 private:
 	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) override final;
