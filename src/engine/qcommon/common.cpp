@@ -52,8 +52,6 @@ Maryland 20850 USA.
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
 
-static fileHandle_t logfile;
-
 cvar_t *com_pid; // bani - process id
 
 cvar_t *com_speeds;
@@ -1093,11 +1091,5 @@ Com_Shutdown
 void Com_Shutdown()
 {
 	NET_Shutdown();
-	if ( logfile )
-	{
-		FS_FCloseFile( logfile );
-		logfile = 0;
-	}
-
 	FS::FlushAll();
 }
