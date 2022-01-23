@@ -1082,14 +1082,3 @@ void Com_Frame()
 
 	com_frameNumber++;
 }
-
-/*
-=================
-Com_Shutdown
-=================
-*/
-void Com_Shutdown()
-{
-	NET_Shutdown();
-	FS::FlushAll();
-}

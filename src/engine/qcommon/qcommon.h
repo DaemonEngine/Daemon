@@ -644,7 +644,6 @@ void   Hunk_FreeTempMemory( void *buf );
 // commandLine should not include the executable name (argv[0])
 void   Com_Init();
 void   Com_Frame();
-void   Com_Shutdown();
 
 /*
 ==============================================================

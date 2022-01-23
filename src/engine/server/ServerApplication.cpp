@@ -70,7 +70,7 @@ class ServerApplication : public Application {
             TRY_SHUTDOWN(
                 SV_Shutdown(error ? Str::Format("Server fatal crashed: %s", message).c_str() : message.c_str())
             );
-            TRY_SHUTDOWN(Com_Shutdown());
+            TRY_SHUTDOWN(NET_Shutdown());
         }
 };
 

@@ -104,7 +104,7 @@ class ClientApplication : public Application {
             TRY_SHUTDOWN(
                 SV_Shutdown(error ? Str::Format("Server fatal crashed: %s", message).c_str() : message.c_str())
             );
-            TRY_SHUTDOWN(Com_Shutdown());
+            TRY_SHUTDOWN(NET_Shutdown());
 
             #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
                 // Always run SDL_Quit, because it restores system resolution and gamma.
