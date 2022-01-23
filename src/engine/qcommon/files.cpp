@@ -250,7 +250,15 @@ void FS_CloseAllForOwner(FS::Owner owner)
 	int numClosed = 0;
 	for (int f = 1; f < MAX_FILE_HANDLES; f++) {
 		if (handleTable[f].owner == owner && handleTable[f].isOpen) {
-			FS_FCloseFile(f);
+			if (handleTable[f].renameTo) {
+				// Delete the temp file without renaming
+				std::error_code err;
+				handleTable[f].file.Close(err); // ignore error
+				FS_Delete((*handleTable[f].renameTo + TEMP_SUFFIX).c_str());
+			} else {
+				FS_FCloseFile(f);
+			}
+			++numClosed;
 		}
 	}
 	fsLogs.Verbose("Closed %d outstanding handles for owner %d", numClosed, Util::ordinal(owner));
