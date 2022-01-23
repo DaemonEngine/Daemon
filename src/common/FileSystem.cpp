@@ -2297,6 +2297,8 @@ void Initialize(Str::StringRef homePath, Str::StringRef libPath, const std::vect
 
 void FlushAll()
 {
+	// Works (in the engine) as both FS::File and the older files.cpp (FS_FOpenFileWrite etc.)
+	// are ultimately based on FILE*
 	fflush(nullptr);
 }
 

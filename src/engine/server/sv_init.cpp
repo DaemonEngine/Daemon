@@ -725,8 +725,7 @@ void SV_QuickShutdown( const char *finalmsg )
 ================
 SV_Shutdown
 
-Called when each game quits,
-before Sys_Quit or Sys_Error
+Called to shut down the sgame VM, or to clean up after the VM shut down on its own
 ================
 */
 void SV_Shutdown( const char *finalmsg )

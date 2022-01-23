@@ -2949,6 +2949,7 @@ void CL_Init()
 ===============
 CL_Shutdown
 
+Called only when Daemon is exiting
 ===============
 */
 void CL_Shutdown()

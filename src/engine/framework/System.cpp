@@ -275,7 +275,7 @@ static void CloseSingletonSocket()
 }
 
 // Common code for fatal and non-fatal exit
-// TODO: Handle shutdown requests coming from multiple threads
+// TODO: Handle shutdown requests coming from multiple threads (could happen from the *nix signal thread)
 static void Shutdown(bool error, Str::StringRef message)
 {
 	FS::FlushAll();
