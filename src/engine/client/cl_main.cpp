@@ -2970,6 +2970,17 @@ void CL_Shutdown()
 
 	recursive = true;
 
+	// quick version
+	if ( !Sys::PedanticShutdown() )
+	{
+		CL_ShutdownCGame();
+		CL_SendDisconnect();
+		CL_StopRecord();
+		StopVideo();
+		// TODO: call DL_StopDownload when deleting the temp file is implemented
+		return;
+	}
+
 	CL_Disconnect( true );
 
 	CL_ShutdownCGame();

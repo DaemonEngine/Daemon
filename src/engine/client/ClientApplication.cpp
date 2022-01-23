@@ -101,10 +101,13 @@ class ClientApplication : public Application {
             #endif
 
             TRY_SHUTDOWN(CL_Shutdown());
-            TRY_SHUTDOWN(
-                SV_Shutdown(error ? Str::Format("Server fatal crashed: %s", message).c_str() : message.c_str())
-            );
-            TRY_SHUTDOWN(NET_Shutdown());
+            std::string serverMessage = error ? "Server fatal error: " + message : std::string(message);
+            if (Sys::PedanticShutdown()) {
+                TRY_SHUTDOWN(SV_Shutdown(message.c_str()));
+                TRY_SHUTDOWN(NET_Shutdown());
+            } else {
+                TRY_SHUTDOWN(SV_QuickShutdown(message.c_str()));
+            }
 
             #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
                 // Always run SDL_Quit, because it restores system resolution and gamma.

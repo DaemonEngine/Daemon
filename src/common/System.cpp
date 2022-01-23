@@ -59,6 +59,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Sys {
 
+// https://devblogs.microsoft.com/oldnewthing/20120105-00/?p=8683
+// TODO: also use in VMs when cvars can be observed from multiple modules
+// This option can be turned on when debugging memory management
+#ifdef BUILD_ENGINE
+Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE,
+#ifdef __SANITIZE_ADDRESS__
+	true);
+#else
+	false);
+#endif
+#endif // BUILD_ENGINE
+
 #ifdef _WIN32
 SteadyClock::time_point SteadyClock::now() NOEXCEPT
 {
@@ -338,16 +350,28 @@ intptr_t DynamicLib::InternalLoadSym(Str::StringRef sym, std::string& errorStrin
 }
 #endif // __native_client__
 
+#ifdef BUILD_ENGINE
 bool processTerminating = false;
 
 void OSExit(int exitCode) {
-    processTerminating = true;
-    exit(exitCode);
+	processTerminating = true;
+	if (PedanticShutdown()) {
+		exit(exitCode);
+	} else {
+		// mingw does not have std::quick_exit
+		_exit(exitCode);
+	}
 }
 
 bool IsProcessTerminating() {
 	return processTerminating;
 }
+
+bool PedanticShutdown()
+{
+	return pedanticShutdown.Get();
+}
+#endif // BUILD_ENGINE
 
 void GenRandomBytes(void* dest, size_t size)
 {
@@ -393,7 +417,5 @@ void* operator new(size_t n)
 }
 void operator delete(void* p) NOEXCEPT
 {
-	if (!Sys::processTerminating) {
-		free(p);
-	}
+	free(p);
 }

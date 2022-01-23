@@ -251,7 +251,6 @@ void FS_CloseAllForOwner(FS::Owner owner)
 	for (int f = 1; f < MAX_FILE_HANDLES; f++) {
 		if (handleTable[f].owner == owner && handleTable[f].isOpen) {
 			FS_FCloseFile(f);
-			++numClosed;
 		}
 	}
 	fsLogs.Verbose("Closed %d outstanding handles for owner %d", numClosed, Util::ordinal(owner));

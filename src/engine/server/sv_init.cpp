@@ -701,6 +701,26 @@ void SV_FinalCommand( char *cmd, bool disconnect )
 	}
 }
 
+// Used instead of SV_Shutdown when Daemon is exiting
+void SV_QuickShutdown( const char *finalmsg )
+{
+	if ( !com_sv_running || !com_sv_running->integer )
+	{
+		return;
+	}
+
+	PrintBanner( "Server Shutdown" )
+
+	if ( svs.clients )
+	{
+		SV_FinalCommand( va( "print %s", Cmd_QuoteString( finalmsg ) ), true );
+	}
+
+	SV_ShutdownGameProgs();
+
+	// TODO: call SV_MasterShutdown but make it not block on DNS resolution
+}
+
 /*
 ================
 SV_Shutdown
@@ -716,18 +736,12 @@ void SV_Shutdown( const char *finalmsg )
 		return;
 	}
 
-	PrintBanner( "Server Shutdown" )
+	SV_QuickShutdown( finalmsg );
 
 	NET_LeaveMulticast6();
 
-	if ( svs.clients )
-	{
-		SV_FinalCommand( va( "print %s", Cmd_QuoteString( finalmsg ) ), true );
-	}
-
 	SV_RemoveOperatorCommands();
 	SV_MasterShutdown();
-	SV_ShutdownGameProgs();
 
 	// free current level
 	SV_ClearServer();

@@ -283,12 +283,12 @@ static void Shutdown(bool error, Str::StringRef message)
 	// Stop accepting commands from other instances
 	CloseSingletonSocket();
 
-    Application::Shutdown(error, message);
+	Application::Shutdown(error, message);
 
-	if ( !error)
-	{
+	if (PedanticShutdown()) {
 		Cvar::Shutdown();
 	}
+
 	// Always run CON_Shutdown, because it restores the terminal to a usable state.
 	CON_Shutdown();
 
