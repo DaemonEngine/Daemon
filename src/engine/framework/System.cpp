@@ -301,6 +301,11 @@ static void Shutdown(bool error, Str::StringRef message)
 
 void Quit(Str::StringRef message)
 {
+	if (message.empty()) {
+		Log::Notice("Quitting");
+	} else {
+		Log::Notice("Quitting: %s", message);
+	}
 	Shutdown(false, message);
 
 	OSExit(0);
