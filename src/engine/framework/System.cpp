@@ -286,6 +286,9 @@ static void Shutdown(bool error, Str::StringRef message)
 	Application::Shutdown(error, message);
 
 	if (PedanticShutdown()) {
+		// could be interesting to see if there are some we forgot to close
+		FS_CloseAllForOwner(FS::Owner::ENGINE);
+
 		Cvar::Shutdown();
 	}
 
