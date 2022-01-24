@@ -70,7 +70,7 @@ namespace Log {
      *   });
      *
      * In addition the user/developer can control the filtering level with
-     *   /set logs.logLevel.foo.bar {warning, info, verbose, debug}
+     *   /set logs.level.foo.bar {warning, info, verbose, debug}
      *
      * To intentionally print a message repeatedly at high volume without getting it blocked as
      * log spam, do like thus:
@@ -114,7 +114,7 @@ namespace Log {
 
             std::string Prefix(std::string message) const;
 
-            // the cvar logs.logLevel.<name>
+            // the cvar logs.level.<name>
             std::shared_ptr<Cvar::Cvar<Level>> filterLevel;
 
             // a prefix appended to all the messages of this logger
