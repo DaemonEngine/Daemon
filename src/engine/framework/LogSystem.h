@@ -50,6 +50,8 @@ namespace Log {
     // Open the log file and start writing to it
     void OpenLogFile();
 
+    void FlushLogFile();
+
     class Target {
         public:
             Target();

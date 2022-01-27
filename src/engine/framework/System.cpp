@@ -275,25 +275,37 @@ static void CloseSingletonSocket()
 }
 
 // Common code for fatal and non-fatal exit
-// TODO: Handle shutdown requests coming from multiple threads
-// TODO: Dump log files & other stuff
+// TODO: Handle shutdown requests coming from multiple threads (could happen from the *nix signal thread)
 static void Shutdown(bool error, Str::StringRef message)
 {
+	FS::FlushAll();
+
 	// Stop accepting commands from other instances
 	CloseSingletonSocket();
 
-    Application::Shutdown(error, message);
+	Application::Shutdown(error, message);
 
-	if ( !error)
-	{
+	if (PedanticShutdown()) {
+		// could be interesting to see if there are some we forgot to close
+		FS_CloseAllForOwner(FS::Owner::ENGINE);
+
 		Cvar::Shutdown();
 	}
+
 	// Always run CON_Shutdown, because it restores the terminal to a usable state.
 	CON_Shutdown();
+
+	// Flush the logs one last time. Logs are turned off when OSExit is called.
+	Log::FlushLogFile();
 }
 
 void Quit(Str::StringRef message)
 {
+	if (message.empty()) {
+		Log::Notice("Quitting");
+	} else {
+		Log::Notice("Quitting: %s", message);
+	}
 	Shutdown(false, message);
 
 	OSExit(0);

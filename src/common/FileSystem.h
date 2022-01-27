@@ -65,8 +65,7 @@ const std::error_category& filesystem_category();
 // Track ownership of old-style file handles
 enum class Owner
 {
-	UNKNOWN,
-	ENGINE, // TODO: use
+	ENGINE,
 	CGAME,
 	SGAME,
 };
