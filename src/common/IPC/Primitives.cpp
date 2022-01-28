@@ -321,7 +321,7 @@ static void FreeHandles(const NaClHandle* h)
 }
 #endif
 
-#ifndef __native_client__
+#ifdef BUILD_ENGINE
 thread_local
 #endif
 static std::unique_ptr<char[]> recvBuffer;
