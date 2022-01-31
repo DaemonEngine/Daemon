@@ -42,6 +42,8 @@ namespace Audio {
 
     static Cvar::Range<Cvar::Cvar<float>> masterVolume("audio.volume.master", "the global audio volume", Cvar::ARCHIVE, 0.8f, 0.0f, 1.0f);
 
+    static Cvar::Range<Cvar::Cvar<float>> musicVolume("audio.volume.music", "the volume of the music", Cvar::NONE, 0.8f, 0.0f, 1.0f);
+
     static Cvar::Cvar<bool> muteWhenMinimized("audio.muteWhenMinimized", "should the game be muted when minimized", Cvar::NONE, false);
     static Cvar::Cvar<bool> muteWhenUnfocused("audio.muteWhenUnfocused", "should the game be muted when not focused", Cvar::NONE, false);
 
@@ -341,6 +343,7 @@ namespace Audio {
 
         StopMusic();
         music = std::make_shared<LoopingSound>(loopingSample, leadingSample);
+        music->SetVolumeModifier(musicVolume);
         AddSound(GetLocalEmitter(), music, 1);
     }
 

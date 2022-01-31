@@ -68,6 +68,10 @@ namespace Audio {
             void SetSoundGain(float gain);
             float GetCurrentGain();
 
+            // sfx vs. music
+            void SetVolumeModifier(const Cvar::Range<Cvar::Cvar<float>>& volumeMod);
+            float GetVolumeModifier() const;
+
             void SetEmitter(std::shared_ptr<Emitter> emitter);
             std::shared_ptr<Emitter> GetEmitter();
 
@@ -89,6 +93,7 @@ namespace Audio {
 
             bool playing;
             std::shared_ptr<Emitter> emitter;
+            const Cvar::Range<Cvar::Cvar<float>>* volumeModifier;
             AL::Source* source;
     };
 
