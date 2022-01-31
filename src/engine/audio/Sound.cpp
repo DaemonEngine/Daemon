@@ -36,9 +36,7 @@ namespace Audio {
     when audio subsystem is not initialized.
     See https://github.com/DaemonEngine/Daemon/pull/524 */
 
-    //TODO lazily check for the values
     static Cvar::Range<Cvar::Cvar<float>> effectsVolume("audio.volume.effects", "the volume of the effects", Cvar::NONE, 0.8f, 0.0f, 1.0f);
-    static Cvar::Range<Cvar::Cvar<float>> musicVolume("audio.volume.music", "the volume of the music", Cvar::NONE, 0.8f, 0.0f, 1.0f);
 
     // We have a big, fixed number of source to avoid rendering too many sounds and slowing down the rest of the engine.
     struct sourceRecord_t {
@@ -175,8 +173,8 @@ namespace Audio {
 
     // Implementation of Sound
 
-    Sound::Sound(): positionalGain(1.0f), soundGain(1.0f), currentGain(1.0f), playing(false), source(nullptr) {
-    }
+    Sound::Sound() : positionalGain(1.0f), soundGain(1.0f), currentGain(1.0f),
+                     playing(false), volumeModifier(&effectsVolume), source(nullptr) {}
 
     Sound::~Sound() = default;
 
@@ -206,6 +204,16 @@ namespace Audio {
         return currentGain;
     }
 
+    void Sound::SetVolumeModifier(const Cvar::Range<Cvar::Cvar<float>>& volumeMod)
+    {
+        this->volumeModifier = &volumeMod;
+    }
+
+    float Sound::GetVolumeModifier() const
+    {
+        return volumeModifier->Get();
+    }
+
     void Sound::SetEmitter(std::shared_ptr<Emitter> emitter) {
         this->emitter = emitter;
     }
@@ -229,13 +237,13 @@ namespace Audio {
 
     // Set the gain before the source is started to avoid having a few milliseconds of very loud sound
     void Sound::FinishSetup() {
-        currentGain = positionalGain * soundGain * SliderToAmplitude(effectsVolume.Get());
+        currentGain = positionalGain * soundGain * SliderToAmplitude(GetVolumeModifier());
         source->SetGain(currentGain);
     }
 
     void Sound::Update() {
         // Fade the Gain update to avoid "ticking" sounds when there is a gain discontinuity
-        float targetGain = positionalGain * soundGain * SliderToAmplitude(effectsVolume.Get());
+        float targetGain = positionalGain * soundGain * SliderToAmplitude(GetVolumeModifier());
 
         //TODO make it framerate independent and fade out in about 1/8 seconds ?
         if (currentGain > targetGain) {
@@ -259,7 +267,7 @@ namespace Audio {
 
     void OneShotSound::SetupSource(AL::Source& source) {
         source.SetBuffer(sample->GetBuffer());
-        SetSoundGain(effectsVolume.Get());
+        SetSoundGain(GetVolumeModifier());
     }
 
     void OneShotSound::InternalUpdate() {
@@ -267,7 +275,7 @@ namespace Audio {
             Stop();
             return;
         }
-        SetSoundGain(effectsVolume.Get());
+        SetSoundGain(GetVolumeModifier());
     }
 
     // Implementation of LoopingSound
@@ -290,7 +298,7 @@ namespace Audio {
         } else {
             SetupLoopingSound(source);
         }
-        SetSoundGain(effectsVolume.Get());
+        SetSoundGain(GetVolumeModifier());
     }
 
     void LoopingSound::InternalUpdate() {
@@ -306,7 +314,7 @@ namespace Audio {
                     leadingSample = nullptr;
                 }
             }
-            SetSoundGain(effectsVolume.Get());
+            SetSoundGain(GetVolumeModifier());
         }
     }
 
