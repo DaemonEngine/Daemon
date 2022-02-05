@@ -63,7 +63,9 @@ class ClientApplication : public Application {
 	        Cmd::BufferCommandText("preset default.cfg");
 	        if (!resetConfig) {
                 Cmd::BufferCommandText("exec -f " CONFIG_NAME);
-                Cmd::BufferCommandText("exec -f " KEYBINDINGS_NAME);
+                if (traits.isClient) {
+                    Cmd::BufferCommandText("exec -f " KEYBINDINGS_NAME);
+                }
                 Cmd::BufferCommandText("exec -f " AUTOEXEC_NAME);
 	        }
         }
