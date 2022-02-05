@@ -520,12 +520,10 @@ if a user is interested in a server to do a full status
 */
 static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 {
-	if ( SV_Private(ServerPrivate::NoStatus) )
+	if ( SV_Private(ServerPrivate::NoStatus) || !com_sv_running || !com_sv_running->integer )
 	{
 		return;
 	}
-
-	SV_ResolveMasterServers();
 
 	int bots = 0; // Bots always use public slots.
 	int publicSlotHumans = 0;
