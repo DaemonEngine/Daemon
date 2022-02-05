@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "framework/CommandSystem.h"
 #include "qcommon/qcommon.h"
 
+void FS_CloseAllForOwner(FS::Owner) {}
+
 namespace Application {
 
 class NullApplication : public Application {
