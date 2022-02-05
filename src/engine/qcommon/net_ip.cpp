@@ -289,7 +289,7 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 	memset( &hints, '\0', sizeof( hints ) );
 
 	hintsp = &hints;
-	hintsp->ai_family = family;
+	hintsp->ai_family = family; // FIXME: all protocols are queried with AF_UNSPEC even if some are disabled by net_enabled
 	hintsp->ai_socktype = SOCK_DGRAM;
 
 	retval = getaddrinfo( s, nullptr, hintsp, &res );
@@ -298,27 +298,29 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 	{
 		if ( family == AF_UNSPEC )
 		{
+			int netEnabled = net_enabled->integer;
+
 			// Decide here and now which protocol family to use
-			if ( net_enabled->integer & NET_PRIOV6 )
+			if ( netEnabled & NET_PRIOV6 )
 			{
-				if ( net_enabled->integer & NET_ENABLEV6 )
+				if ( netEnabled & NET_ENABLEV6 )
 				{
 					search = SearchAddrInfo( res, AF_INET6 );
 				}
 
-				if ( !search && ( net_enabled->integer & NET_ENABLEV4 ) )
+				if ( !search && ( netEnabled & NET_ENABLEV4 ) )
 				{
 					search = SearchAddrInfo( res, AF_INET );
 				}
 			}
 			else
 			{
-				if ( net_enabled->integer & NET_ENABLEV4 )
+				if ( netEnabled & NET_ENABLEV4 )
 				{
 					search = SearchAddrInfo( res, AF_INET );
 				}
 
-				if ( !search && ( net_enabled->integer & NET_ENABLEV6 ) )
+				if ( !search && ( netEnabled & NET_ENABLEV6 ) )
 				{
 					search = SearchAddrInfo( res, AF_INET6 );
 				}
@@ -348,7 +350,14 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 	}
 	else
 	{
-		Log::Notice( "Sys_StringToSockaddr: Error resolving %s: %s\n", s, gai_strerror( retval ) );
+#ifdef _WIN32
+		// "The gai_strerror function is provided for compliance with IETF recommendations, but it is not thread
+		// safe. Therefore, use of traditional Windows Sockets functions such as WSAGetLastError is recommended."
+		std::string error = Sys::Win32StrError( WSAGetLastError() );
+#else
+		std::string error = gai_strerror( retval );
+#endif
+		Log::Notice( "Sys_StringToSockaddr: Error resolving %s: %s", s, error );
 	}
 
 	if ( res )
