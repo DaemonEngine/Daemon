@@ -295,13 +295,12 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 	hintsp->ai_socktype = SOCK_DGRAM;
 
 	retval = getaddrinfo( s, nullptr, hintsp, &res );
+	int netEnabled = net_enabled->integer;
 
 	if ( !retval )
 	{
 		if ( family == AF_UNSPEC )
 		{
-			int netEnabled = net_enabled->integer;
-
 			// Decide here and now which protocol family to use
 			if ( netEnabled & NET_PRIOV6 )
 			{
@@ -352,14 +351,19 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 	}
 	else
 	{
+		// Don't warn if both protocols are enabled but we looked up only a specific one
+		bool skipWarn = family != AF_UNSPEC && ( netEnabled & NET_ENABLEV4 ) && ( netEnabled & NET_ENABLEV6 );
+		if ( !skipWarn )
+		{
 #ifdef _WIN32
-		// "The gai_strerror function is provided for compliance with IETF recommendations, but it is not thread
-		// safe. Therefore, use of traditional Windows Sockets functions such as WSAGetLastError is recommended."
-		std::string error = Sys::Win32StrError( WSAGetLastError() );
+			// "The gai_strerror function is provided for compliance with IETF recommendations, but it is not thread
+			// safe. Therefore, use of traditional Windows Sockets functions such as WSAGetLastError is recommended."
+			std::string error = Sys::Win32StrError( WSAGetLastError() );
 #else
-		std::string error = gai_strerror( retval );
+			std::string error = gai_strerror( retval );
 #endif
-		Log::Notice( "Sys_StringToSockaddr: Error resolving %s: %s", s, error );
+			Log::Notice( "Sys_StringToSockaddr: Error resolving %s: %s", s, error );
+		}
 	}
 
 	if ( res )
