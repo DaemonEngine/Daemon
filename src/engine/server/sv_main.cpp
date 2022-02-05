@@ -59,7 +59,6 @@ Cvar::Range<Cvar::Cvar<int>> sv_privateClients("sv_privateClients",
     "number of password-protected client slots", CVAR_SERVERINFO, 0, 0, MAX_CLIENTS);
 cvar_t         *sv_hostname;
 cvar_t         *sv_statsURL;
-cvar_t         *sv_master[ MAX_MASTER_SERVERS ]; // master server IP addresses
 cvar_t         *sv_reconnectlimit; // minimum seconds between connect messages
 cvar_t         *sv_padPackets; // add nop bytes to messages
 cvar_t         *sv_killserver; // menu system can set to 1 to shut server down
@@ -86,7 +85,7 @@ cvar_t *sv_packetdelay;
 cvar_t *sv_fullmsg;
 
 // Network stuff other than communication with connected clients
-static Log::Logger netLog("server.net", "", Log::Level::NOTICE);
+Log::Logger netLog("server.net", "", Log::Level::NOTICE);
 
 namespace Cvar {
 template<>
@@ -257,111 +256,77 @@ MASTER SERVER FUNCTIONS
 
 ==============================================================================
 */
-struct MasterServer
+namespace {
+
+struct MasterServer;
+extern MasterServer masterServers[MAX_MASTER_SERVERS];
+
+struct MasterQuery
 {
-	int index;
-	netadr_t ipv4;
-	netadr_t ipv6;
-	std::string challenge;
-	netadrtype_t challenge_address_type;
-
-	MasterServer()
-	{
-		static int cvar_index = 0;
-		ASSERT_LT(cvar_index, MAX_MASTER_SERVERS);
-		index = cvar_index++;
-		Clear();
-	}
-
-	void Clear()
-	{
-		challenge_address_type = netadrtype_t::NA_BAD;
-		ipv4.type = netadrtype_t::NA_BAD;
-		ipv6.type = netadrtype_t::NA_BAD;
-		challenge.clear();
-	}
-
-	bool Empty() const
-	{
-		return ipv4.type == netadrtype_t::NA_BAD && ipv6.type == netadrtype_t::NA_BAD;
-	}
-
-	cvar_t* Cvar() const
-	{
-		return sv_master[index];
-	}
-
-	bool CvarIsSet() const
-	{
-		return sv_master[index]->string && sv_master[index]->string[0];
-	}
+	Net::DNSQueryHandle handle = 0;
+	bool active = false;
 };
 
-static std::array<MasterServer, MAX_MASTER_SERVERS> masterServers;
-
-static void SV_ResolveMasterServers()
+struct MasterServer
 {
-	int netenabled = Cvar_VariableIntegerValue( "net_enabled" );
+	Net::DNSQueryHandle query = 0;
+	int nextHeartbeatTime = 0;
+	std::string challenge;
+	netadrtype_t challenge_address_type;
+	Cvar::Modified<Cvar::Cvar<std::string>> addressCvar;
+
+	MasterServer(const char* cvarName, const char* defaultHostname)
+		: addressCvar(cvarName, "address of a master server", Cvar::NONE, defaultHostname )
+	{}
+};
+
+MasterServer masterServers[MAX_MASTER_SERVERS] = {
+	{"sv_master1", MASTER1_SERVER_NAME},
+	{"sv_master2", MASTER2_SERVER_NAME},
+	{"sv_master3", MASTER3_SERVER_NAME},
+	{"sv_master4", MASTER4_SERVER_NAME},
+	{"sv_master5", MASTER5_SERVER_NAME},
+};
+} // namespace
+
+// Enqueue queries for the DNS resolution thread
+static void SV_ResolveMasterServers( int netMask )
+{
+	static int oldNetMask = 0;
 
 	for ( MasterServer& master : masterServers )
 	{
-		if ( !master.CvarIsSet() )
+		Util::optional<std::string> address = master.addressCvar.GetModifiedValue();
+		if ( !address )
 		{
-			master.Clear();
-			continue;
+			if ( netMask == oldNetMask )
+			{
+				continue; // Continue if nothing changed
+			}
+			address = master.addressCvar.Get();
 		}
 
-		if ( netenabled & NET_ENABLEV4 )
+		// Something changed, reset the heartbeat timer
+		master.nextHeartbeatTime = 0;
+
+		if ( netMask != 0 && !address->empty() )
 		{
-			netLog.Verbose( "Resolving %s (IPv4)", master.Cvar()->string );
-			int res = NET_StringToAdr( master.Cvar()->string, &master.ipv4, netadrtype_t::NA_IP );
-
-			if ( res == 2 )
+			if ( master.query == 0 )
 			{
-				// if no port was specified, use the default master port
-				master.ipv4.port = BigShort( PORT_MASTER );
+				master.query = Net::AllocDNSQuery();
 			}
-
-			if ( res )
-			{
-				netLog.Notice( "%s resolved to %s", master.Cvar()->string, Net::AddressToString(master.ipv4, true) );
-			}
-			else
-			{
-				netLog.Notice( "%s has no IPv4 address.", master.Cvar()->string );
-			}
+			Net::SetDNSQuery( master.query, *address, netMask );
 		}
-
-		if ( netenabled & NET_ENABLEV6 )
+		else
 		{
-			netLog.Verbose( "Resolving %s (IPv6)", master.Cvar()->string );
-			int res = NET_StringToAdr( master.Cvar()->string, &master.ipv6, netadrtype_t::NA_IP6 );
-
-			if ( res == 2 )
+			if ( master.query != 0 )
 			{
-				// if no port was specified, use the default master port
-				master.ipv6.port = BigShort( PORT_MASTER );
+				Net::SetDNSQuery( master.query, "", 0 );
 			}
-
-			if ( res )
-			{
-				netLog.Notice( "%s resolved to %s", master.Cvar()->string, Net::AddressToString(master.ipv6, true) );
-			}
-			else
-			{
-				netLog.Notice( "%s has no IPv6 address.", master.Cvar()->string );
-			}
-		}
-
-		if ( master.Empty() )
-		{
-			// if the address failed to resolve, clear it
-			// so we don't take repeated dns hits
-			netLog.Warn( "Couldn't resolve address: %s", master.Cvar()->string );
-			Cvar_Set( master.Cvar()->name, "" );
-			continue;
 		}
 	}
+
+	oldNetMask = netMask;
 }
 
 /*
@@ -373,10 +338,7 @@ Network connections being reconfigured. May need to redo some lookups.
 */
 void SV_NET_Config()
 {
-	for ( MasterServer& master : masterServers )
-	{
-		master.Clear();
-	}
+	SV_ResolveMasterServers( 0 );
 }
 
 /*
@@ -398,44 +360,58 @@ void SV_MasterHeartbeat( const char *hbname )
 {
 	int netenabled = Cvar_VariableIntegerValue( "net_enabled" );
 
-	if ( SV_Private(ServerPrivate::NoAdvertise)
-		|| !( netenabled & ( NET_ENABLEV4 | NET_ENABLEV6 ) ) )
+	if ( SV_Private(ServerPrivate::NoAdvertise) )
 	{
+		SV_ResolveMasterServers( 0 );
 		return; // only dedicated servers send heartbeats
 	}
 
-	// if not time yet, don't send anything
-	if ( svs.time < svs.nextHeartbeatTime )
-	{
-		return;
-	}
-
-	svs.nextHeartbeatTime = svs.time + HEARTBEAT_MSEC;
-
-	SV_ResolveMasterServers();
+	SV_ResolveMasterServers( netenabled );
 
 	// send to group masters
 	for ( MasterServer& master : masterServers )
 	{
-		if ( master.Empty() )
-		{
+		if (svs.time < master.nextHeartbeatTime) {
 			continue;
 		}
 
-		netLog.Notice( "Sending heartbeat to %s", master.Cvar()->string );
-
-		// this command should be changed if the server info / status format
-		// ever incompatibly changes
-
-		if ( master.ipv4.type != netadrtype_t::NA_BAD )
+		Net::DNSResult adrs = Net::GetAddresses(master.query);
+		if (adrs.ipv4.type == netadrtype_t::NA_BAD && adrs.ipv6.type == netadrtype_t::NA_BAD)
 		{
-			Net::OutOfBandPrint( netsrc_t::NS_SERVER, master.ipv4, "heartbeat %s\n", hbname );
+			continue;
+		}
+		master.nextHeartbeatTime = svs.time + HEARTBEAT_MSEC;
+
+		if ( adrs.ipv4.type != netadrtype_t::NA_BAD )
+		{
+			if (adrs.ipv4.port == 0) {
+				adrs.ipv4.port = BigShort( PORT_MASTER );
+			}
+			netLog.Notice( "Sending heartbeat (IPv4) to %s", master.addressCvar.Get() );
+			// this command should be changed if the server info / status format
+			// ever incompatibly changes
+			Net::OutOfBandPrint( netsrc_t::NS_SERVER, adrs.ipv4, "heartbeat %s\n", hbname );
 		}
 
-		if ( master.ipv6.type != netadrtype_t::NA_BAD )
+		if ( adrs.ipv6.type != netadrtype_t::NA_BAD )
 		{
-			Net::OutOfBandPrint( netsrc_t::NS_SERVER, master.ipv6, "heartbeat %s\n", hbname );
+			if (adrs.ipv6.port == 0) {
+				adrs.ipv6.port = BigShort( PORT_MASTER );
+			}
+			netLog.Notice( "Sending heartbeat (IPv6) to %s", master.addressCvar.Get() );
+			// this command should be changed if the server info / status format
+			// ever incompatibly changes
+			Net::OutOfBandPrint( netsrc_t::NS_SERVER, adrs.ipv6, "heartbeat %s\n", hbname );
 		}
+	}
+}
+
+// Also called by SV_DropClient, SV_DirectConnect, and SV_SpawnServer
+void SV_Heartbeat_f()
+{
+	for (MasterServer& master : masterServers)
+	{
+		master.nextHeartbeatTime = 0;
 	}
 }
 
@@ -449,11 +425,11 @@ Informs all masters that this server is going down
 void SV_MasterShutdown()
 {
 	// send a heartbeat right now
-	svs.nextHeartbeatTime = -9999;
+	SV_Heartbeat_f();
 	SV_MasterHeartbeat( HEARTBEAT_DEAD );  // NERVE - SMF - changed to flatline
 
 	// send it again to minimize chance of drops
-//  svs.nextHeartbeatTime = -9999;
+//  SV_Heartbeat_f();
 //  SV_MasterHeartbeat( HEARTBEAT_DEAD );
 
 	// when the master tries to poll the server, it won't respond, so
@@ -562,7 +538,8 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 		for ( MasterServer& master : masterServers )
 		{
 			// First, see if the challenge was sent by this master server
-			if ( !NET_CompareBaseAdr( from, master.ipv4 ) && !NET_CompareBaseAdr( from, master.ipv6 ) )
+			Net::DNSResult adrs = Net::GetAddresses( master.query );
+			if ( !NET_CompareBaseAdr( from, adrs.ipv4 ) && !NET_CompareBaseAdr( from, adrs.ipv6 ) )
 			{
 				continue;
 			}

@@ -273,6 +273,8 @@ static struct addrinfo *SearchAddrInfo( struct addrinfo *hints, sa_family_t fami
 /*
 =============
 Sys_StringToSockaddr
+
+Must be thread safe - DNS thread calls via NET_StringToAdr
 =============
 */
 static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned sadr_len, sa_family_t family )

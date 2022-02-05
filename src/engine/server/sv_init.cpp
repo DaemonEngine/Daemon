@@ -42,6 +42,7 @@ Maryland 20850 USA.
 #include "server.h"
 #include "CryptoChallenge.h"
 #include "common/Defs.h"
+#include "framework/Network.h"
 #include "qcommon/sys.h"
 
 /*
@@ -625,11 +626,6 @@ void SV_Init()
 	sv_zombietime = Cvar_Get( "sv_zombietime", "2", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", 0 );
-	sv_master[ 0 ] = Cvar_Get( "sv_master1", MASTER1_SERVER_NAME, 0 );
-	sv_master[ 1 ] = Cvar_Get( "sv_master2", MASTER2_SERVER_NAME, 0 );
-	sv_master[ 2 ] = Cvar_Get( "sv_master3", MASTER3_SERVER_NAME, 0 );
-	sv_master[ 3 ] = Cvar_Get( "sv_master4", MASTER4_SERVER_NAME, 0 );
-	sv_master[ 4 ] = Cvar_Get( "sv_master5", MASTER5_SERVER_NAME, 0 );
 	sv_reconnectlimit = Cvar_Get( "sv_reconnectlimit", "3", 0 );
 	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
@@ -717,8 +713,7 @@ void SV_QuickShutdown( const char *finalmsg )
 	}
 
 	SV_ShutdownGameProgs();
-
-	// TODO: call SV_MasterShutdown but make it not block on DNS resolution
+	SV_MasterShutdown();
 }
 
 /*
@@ -740,7 +735,6 @@ void SV_Shutdown( const char *finalmsg )
 	NET_LeaveMulticast6();
 
 	SV_RemoveOperatorCommands();
-	SV_MasterShutdown();
 
 	// free current level
 	SV_ClearServer();
@@ -767,6 +761,7 @@ void SV_Shutdown( const char *finalmsg )
 #ifndef BUILD_SERVER
 	NET_Config( true );
 #endif
+	Net::ShutDownDNS();
 
 	Log::Notice( "---------------------------\n" );
 }
