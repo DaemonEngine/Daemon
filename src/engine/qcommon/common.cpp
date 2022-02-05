@@ -716,12 +716,14 @@ void Com_WriteConfiguration()
 		return;
 	}
 
+#if defined(BUILD_GRAPHICAL_CLIENT) || defined(BUILD_TTY_CLIENT)
 	if ( cvar_modifiedFlags & CVAR_ARCHIVE_BITS )
 	{
 		cvar_modifiedFlags &= ~CVAR_ARCHIVE_BITS;
 
 		Com_WriteConfigToFile( CONFIG_NAME, Cvar_WriteVariables );
 	}
+#endif
 
 #ifdef BUILD_GRAPHICAL_CLIENT
 	if ( bindingsModified )
