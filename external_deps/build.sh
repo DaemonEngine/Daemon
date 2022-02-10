@@ -429,8 +429,7 @@ build_sdl2() {
 		make install
 		;;
 	*)
-		echo "Unsupported platform for GLEW"
-		exit 1
+		error "Unsupported platform for GLEW"
 		;;
 	esac
 }
@@ -458,8 +457,7 @@ build_glew() {
 		make install GLEW_DEST="${PREFIX}"
 		;;
 	*)
-		echo "Unsupported platform for GLEW"
-		exit 1
+		error "Unsupported platform for GLEW"
 		;;
 	esac
 }
@@ -497,8 +495,7 @@ build_jpeg() {
 		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
 		;;
 	*)
-		echo "Unsupported platform for OpenAL"
-		exit 1
+		error "Unsupported platform for OpenAL"
 		;;
 	esac
 	cmake --build build
@@ -564,8 +561,7 @@ build_openal() {
 		make install
 		;;
 	*)
-		echo "Unsupported platform for OpenAL"
-		exit 1
+		error "Unsupported platform for OpenAL"
 		;;
 	esac
 }
@@ -653,8 +649,7 @@ build_lua() {
 		local LUA_PLATFORM=linux
 		;;
 	*)
-		echo "Unsupported platform for Lua"
-		exit 1
+		error "Unsupported platform for Lua"
 		;;
 	esac
 	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS:-}" MYLDFLAGS="${LDFLAGS}"
@@ -721,8 +716,7 @@ build_wasmtime() {
 	esac
 	case "${PLATFORM}" in
 	*32)
-		echo "wasmtime doesn't have releasese for x86"
-		exit 1
+		error "wasmtime doesn't have releasese for x86"
 		;;
 	*64)
 		local WASMTIME_ARCH=x86_64
@@ -830,8 +824,7 @@ build_gendef() {
 		done
 		;;
 	*)
-		echo "Unsupported platform for gendef"
-		exit 1
+		error "Unsupported platform for gendef"
 		;;
 	esac
 }
