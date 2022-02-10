@@ -7,10 +7,14 @@ set -u
 
 # /!\ Please do not use bash associative arrays,
 # obsolete macOS GPLv2 bash 3.2.57 does not support them.
+
 # /!\ Please do not use bash arrays for command,
 # platform, and package lists,
 # obsolete macOS GPLv2 bash 3.2.57 does not fully support them,
 # and bash arrays do not preserve ordering anyway.
+
+# When declaring a platform for a package, prefix it with : character
+# to mark it as optional.
 
 # Dependencies version. This number must be updated every time the
 # version numbers below change, or packages are added/removed, or
@@ -68,14 +72,26 @@ register_package() {
 		packages+="${packages:+ }${package}"
 	fi
 	while [ -n "${1:-}" ]; do
-		if ! to_lines unused "${platforms:-}" | egrep -q "^${1}$"; then
-			error "Unknown platform ${1}"
-		elif ! to_lines "${package_platforms:-}" | egrep -q "^${1}$"; then
-			package_platforms+="${package_platforms:+ }${1}"
+		local platform="${1}"
+		local selection='required'
+		if echo "${platform}" | egrep -q '^:'; then
+			platform="${platform:1}"
+			selection='optional'
+		else
+			local used='true'
 		fi
-		eval "packages_${1}+=\"\${packages_${1}:+ }${package}\""
+		if ! to_lines "${platforms:-}" | egrep -q "^${platform}$"; then
+			error "Unknown platform ${platform}"
+		elif ! to_lines "${package_platforms:-}" | egrep -q "^${platform}$"; then
+			package_platforms+="${package_platforms:+ }${platform}"
+		fi
+		eval "all_packages_${platform}+=\"\${all_packages_${platform}:+ }${package}\""
+		eval "${selection}_packages_${platform}+=\"\${${selection}_packages_${platform}:+ }${package}\""
 		shift
 	done
+	if [ -z "${used:-}" ]; then
+		packages_unused+="${packages_unused:+ }${package}"
+	fi
 }
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
@@ -234,7 +250,7 @@ setup_linux64() {
 }
 
 # Build pkg-config
-register_package pkgconfig msvc32 msvc64 macosx64
+register_package pkgconfig :linux64 :mingw32 :mingw64 msvc32 msvc64 macosx64
 build_pkgconfig() {
 	download "pkg-config-${PKGCONFIG_VERSION}.tar.gz" "http://pkgconfig.freedesktop.org/releases/pkg-config-${PKGCONFIG_VERSION}.tar.gz" pkgconfig
 	cd "pkg-config-${PKGCONFIG_VERSION}"
@@ -262,7 +278,7 @@ build_nasm() {
 }
 
 # Build zlib
-register_package zlib linux64 mingw32 mingw64 msvc32 msvc64
+register_package zlib linux64 mingw32 mingw64 msvc32 msvc64 :macosx64
 build_zlib() {
 	download "zlib-${ZLIB_VERSION}.tar.gz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" zlib
 	cd "zlib-${ZLIB_VERSION}"
@@ -271,7 +287,7 @@ build_zlib() {
 		LOC="${CFLAGS:-}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
-	linux*)
+	macosx*|linux*)
 		./configure --prefix="${PREFIX}" --static --const
 		make
 		make install
@@ -283,7 +299,7 @@ build_zlib() {
 }
 
 # Build GMP
-register_package gmp mingw32 mingw64 msvc32 msvc64 macosx64
+register_package gmp :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_gmp() {
 	download "gmp-${GMP_VERSION}.tar.bz2" "https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.bz2" gmp
 	cd "gmp-${GMP_VERSION}"
@@ -320,7 +336,7 @@ build_gmp() {
 }
 
 # Build Nettle
-register_package nettle mingw32 mingw64 msvc32 msvc64 macosx64
+register_package nettle :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_nettle() {
 	# download "nettle-${NETTLE_VERSION}.tar.gz" "https://www.lysator.liu.se/~nisse/archive/nettle-${NETTLE_VERSION}.tar.gz" nettle
 	download "nettle-${NETTLE_VERSION}.tar.gz" "https://ftp.gnu.org/gnu/nettle/nettle-${NETTLE_VERSION}.tar.gz" nettle
@@ -332,7 +348,7 @@ build_nettle() {
 }
 
 # Build GeoIP
-register_package geoip mingw32 mingw64 msvc32 msvc64 macosx64
+register_package geoip :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_geoip() {
 	# Building GeoIP requires filesystem locking feature,
 	# because autom4te uses it to control build jobs (which can
@@ -359,7 +375,7 @@ build_geoip() {
 }
 
 # Build cURL
-register_package curl mingw32 mingw64 msvc32 msvc64
+register_package curl :linux64 mingw32 mingw64 msvc32 msvc64 :macosx64
 build_curl() {
 	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
 	cd "curl-${CURL_VERSION}"
@@ -369,7 +385,7 @@ build_curl() {
 }
 
 # Build SDL2
-register_package sdl2 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package sdl2 :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_sdl2() {
 	case "${PLATFORM}" in
 	mingw*)
@@ -412,11 +428,15 @@ build_sdl2() {
 		make
 		make install
 		;;
+	*)
+		echo "Unsupported platform for GLEW"
+		exit 1
+		;;
 	esac
 }
 
 # Build GLEW
-register_package glew mingw32 mingw64 msvc32 msvc64 macosx64
+register_package glew :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_glew() {
 	download "glew-${GLEW_VERSION}.tgz" "https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz" glew
 	cd "glew-${GLEW_VERSION}"
@@ -445,7 +465,7 @@ build_glew() {
 }
 
 # Build PNG
-register_package png mingw32 mingw64 msvc32 msvc64 macosx64
+register_package png :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_png() {
 	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
 	cd "libpng-${PNG_VERSION}"
@@ -456,7 +476,7 @@ build_png() {
 }
 
 # Build JPEG
-register_package jpeg mingw32 mingw64 msvc32 msvc64 macosx64
+register_package jpeg :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_jpeg() {
 	echo $PATH
 	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
@@ -473,13 +493,20 @@ build_jpeg() {
 		local NASM="${PREFIX}/bin/nasm"
 		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0 -DCMAKE_ASM_NASM_COMPILER="${NASM}"
 		;;
+	linux*)
+		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
+		;;
+	*)
+		echo "Unsupported platform for OpenAL"
+		exit 1
+		;;
 	esac
 	cmake --build build
 	cmake --install build
 }
 
 # Build WebP
-register_package webp mingw32 mingw64 msvc32 msvc64 macosx64
+register_package webp :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_webp() {
 	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
 	cd "libwebp-${WEBP_VERSION}"
@@ -490,7 +517,7 @@ build_webp() {
 }
 
 # Build FreeType
-register_package freetype mingw32 mingw64 msvc32 msvc64 macosx64
+register_package freetype :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_freetype() {
 	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
 	cd "freetype-${FREETYPE_VERSION}"
@@ -503,7 +530,7 @@ build_freetype() {
 }
 
 # Build OpenAL
-register_package openal mingw32 mingw64 msvc32 msvc64 macosx64
+register_package openal :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_openal() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -544,7 +571,7 @@ build_openal() {
 }
 
 # Build Ogg
-register_package ogg mingw32 mingw64 msvc32 msvc64 macosx64
+register_package ogg :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_ogg() {
 	download "libogg-${OGG_VERSION}.tar.gz" "https://downloads.xiph.org/releases/ogg/libogg-${OGG_VERSION}.tar.gz" ogg
 	cd "libogg-${OGG_VERSION}"
@@ -557,7 +584,7 @@ build_ogg() {
 }
 
 # Build Vorbis
-register_package vorbis mingw32 mingw64 msvc32 msvc64 macosx64
+register_package vorbis :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_vorbis() {
 	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
 	cd "libvorbis-${VORBIS_VERSION}"
@@ -567,7 +594,7 @@ build_vorbis() {
 }
 
 # Build Speex
-register_package speex mingw32 mingw64 msvc32 msvc64 macosx64
+register_package speex :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_speex() {
 	download "speex-${SPEEX_VERSION}.tar.gz" "https://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz" speex
 	cd "speex-${SPEEX_VERSION}"
@@ -581,7 +608,7 @@ build_speex() {
 }
 
 # Build Opus
-register_package opus mingw32 mingw64 msvc32 msvc64 macosx64
+register_package opus :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_opus() {
 	download "opus-${OPUS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" opus
 	cd "opus-${OPUS_VERSION}"
@@ -600,7 +627,7 @@ build_opus() {
 }
 
 # Build OpusFile
-register_package opusfile mingw32 mingw64 msvc32 msvc64 macosx64
+register_package opusfile :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_opusfile() {
 	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
 	cd "opusfile-${OPUSFILE_VERSION}"
@@ -611,7 +638,7 @@ build_opusfile() {
 }
 
 # Build Lua
-register_package lua mingw32 mingw64 msvc32 msvc64 macosx64
+register_package lua :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
 build_lua() {
 	download "lua-${LUA_VERSION}.tar.gz" "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" lua
 	cd "lua-${LUA_VERSION}"
@@ -646,7 +673,7 @@ build_lua() {
 }
 
 # Build ncurses
-register_package ncurses unused
+register_package ncurses :linux64 :mingw32 :mingw64 :msvc32 :msvc64 :macosx64
 build_ncurses() {
 	download "ncurses-${NCURSES_VERSION}.tar.gz" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" ncurses
 	cd "ncurses-${NCURSES_VERSION}"
@@ -658,7 +685,7 @@ build_ncurses() {
 }
 
 # "Builds" (downloads) the WASI SDK
-register_package wasisdk unused
+register_package wasisdk :linux64 :mingw32 :mingw64 :msvc32 :msvc64 :macosx64
 build_wasisdk() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -676,7 +703,7 @@ build_wasisdk() {
 }
 
 # "Builds" (downloads) wasmtime
-register_package wasmtime unused
+register_package wasmtime :linux64 :mingw32 :mingw64 :msvc32 :msvc64 :macosx64
 build_wasmtime() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
@@ -777,7 +804,7 @@ build_naclports() {
 # For MSVC, we need to use the Microsoft LIB tool to generate import libraries,
 # the import libraries generated by MinGW seem to have issues. Instead we
 # generate a .bat file to be run using the Visual Studio tools command shell.
-register_package gendef unused
+register_package gendef :msvc32 :msvc64
 build_gendef() {
 	case "${PLATFORM}" in
 	msvc*)
@@ -809,8 +836,8 @@ build_gendef() {
 	esac
 }
 
-build_defaults() {
-	local package; for package in $(eval "echo \"\${packages_${PLATFORM}}\""); do
+build_selection() {
+	local package; for package in $(eval "echo \"\${${1}_packages_${PLATFORM}}\""); do
 		run_build "${package}"
 	done
 }
@@ -824,7 +851,7 @@ run_setup() {
 }
 
 run_build() {
-	if ! to_lines defaults "${packages}" | egrep -q "^${1}$"; then
+	if ! to_lines "${packages}" | egrep -q "^${1}$"; then
 		error "Unknown package ${1}"
 	fi
 	echo "Building: ${1}"
@@ -912,34 +939,46 @@ print_platforms() {
 	done
 }
 
-print_packages_per_platform() {
+print_selection_packages_per_platform() {
 	local platform; for platform in $(to_lines "${package_platforms}" | sort -u); do
 		printf '\t%s: ' "${platform}"
-		eval "echo \"\${packages_${platform}}\""
+		eval "echo \"\${${1}_packages_${platform}}\""
 	done
 }
 
 print_help() {
+	local basename="$(basename "${0}")"
 	local tab=$'\t'
 	cat <<-EOF
-	Usage: $(basename "${0}") <platform> <package[s]…|command[s]…>
+	Usage: ${basename} [PLATFORM] [SELECTION]… [PACKAGE]… [COMMAND]…
 
 	Script to build dependencies for platforms which do not provide them.
 
 	Platforms:
 	$(print_platforms)
 
+	Selections:
+	${tab}required  (build required packages for the given platform)
+	${tab}optional  (build optional packages for the given platform)
+	${tab}all       (build all available packages for the given platform)
+
 	Packages:
 	${tab}${packages}
 
-	Packages required for each platform:
-	$(print_packages_per_platform)
+	Required packages per platform:
+	$(print_selection_packages_per_platform required)
 
-	Meta-package (build all required packages for the given platform):
-	${tab}defaults
+	Optional packages per platform:
+	$(print_selection_packages_per_platform optional)
+
+	Unused packages:
+	${tab}${packages_unused:-}
 
 	Commands:
 	$(print_commands)
+
+	Example:
+	${tab}${basename} linux64 required ncurses install package clean
 
 	EOF
 }
@@ -958,11 +997,14 @@ fi
 PLATFORM="${1}"; shift
 run_setup
 
-# Build packages or run commands
+# Build packages, selection or run commands
 while [ -n "${1:-}" ]; do
 	case "${1}" in
 	install|package|clean)
 		"run_${1}"
+		;;
+	required|optional|all)
+		build_selection "${1}"
 		;;
 	*)
 		run_build "${1}"
