@@ -21,9 +21,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "con_common.h"
+#include "framework/CommandSystem.h"
 #include "framework/ConsoleField.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+extern "C" {
+#include <pdcurses/win32a/pdcwin.h> // for PDC_set_function_key
+}
+#else
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -40,6 +45,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 static const int LOG_SCROLL    = 5;
 static const int MAX_LOG_LINES = 1024;
 static const int LOG_BUF_SIZE  = 65536;
+
+#ifdef _WIN32
+constexpr int QUIT_KEY = 0xACEBEEF; // arbitrary
+#endif
 
 // TTY Console prototypes
 void CON_Shutdown_TTY();
@@ -337,7 +346,10 @@ void CON_Init()
 	// Initialize curses and set up the root window
 	if ( !curses_on )
 	{
-#ifndef _WIN32
+#ifdef _WIN32
+		// Let us handle this to do /quit instead of exit()
+		PDC_set_function_key(FUNCTION_KEY_SHUT_DOWN, QUIT_KEY);
+#else
 		// Enable more colors
 		const char* term = getenv("TERM");
 		if (!strncmp(term, "xterm", 5) || !strncmp(term, "screen", 6))
@@ -450,6 +462,12 @@ char *CON_Input()
 				}
 
 				return nullptr;
+
+#ifdef _WIN32
+			case QUIT_KEY:
+				Cmd::BufferCommandText("quit");
+				return nullptr;
+#endif
 
 			case '\n':
 			case '\r':

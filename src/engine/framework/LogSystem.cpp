@@ -160,4 +160,12 @@ namespace Log {
             Sys::Error("Could not open log file %s: %s", logFileName.Get(), err.what());
         }
     }
+
+    void FlushLogFile() {
+        std::error_code err;
+        logfile.logFile.Flush(err);
+        if (err) {
+            Log::Warn("Error flushing log file");
+        }
+    }
 }

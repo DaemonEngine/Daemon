@@ -642,7 +642,6 @@ void   Hunk_FreeTempMemory( void *buf );
 // commandLine should not include the executable name (argv[0])
 void   Com_Init();
 void   Com_Frame();
-void   Com_Shutdown();
 
 /*
 ==============================================================
@@ -707,6 +706,7 @@ void CL_ShutdownAll();
 //
 void     SV_Init();
 void     SV_Shutdown( const char *finalmsg );
+void     SV_QuickShutdown( const char *finalmsg );
 void     SV_Frame( int msec );
 void     SV_PacketEvent( const netadr_t& from, msg_t *msg );
 int      SV_FrameMsec();

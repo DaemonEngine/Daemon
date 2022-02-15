@@ -1486,10 +1486,6 @@ void CL_Vid_Restart_f()
 	// startup all the client stuff
 	CL_StartHunkUsers();
 
-#ifdef _WIN32
-	IN_Restart(); // fretn
-#endif
-
 	// start the cgame if connected
 	if ( cls.state > connstate_t::CA_CONNECTED )
 	{
@@ -2953,6 +2949,7 @@ void CL_Init()
 ===============
 CL_Shutdown
 
+Called only when Daemon is exiting
 ===============
 */
 void CL_Shutdown()
@@ -2973,6 +2970,17 @@ void CL_Shutdown()
 	}
 
 	recursive = true;
+
+	// quick version
+	if ( !Sys::PedanticShutdown() )
+	{
+		CL_ShutdownCGame();
+		CL_SendDisconnect();
+		CL_StopRecord();
+		StopVideo();
+		// TODO: call DL_StopDownload when deleting the temp file is implemented
+		return;
+	}
 
 	CL_Disconnect( true );
 

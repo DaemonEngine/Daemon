@@ -188,6 +188,8 @@ void GenRandomBytes(void* dest, size_t size);
 
 bool IsDebuggerAttached();
 
+bool PedanticShutdown();
+
 } // namespace Sys
 
 #endif // COMMON_SYSTEM_H_

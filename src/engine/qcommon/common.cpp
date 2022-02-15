@@ -47,24 +47,10 @@ Maryland 20850 USA.
 #include "framework/BaseCommands.h"
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
-#include "framework/ConsoleHistory.h"
 #include "framework/LogSystem.h"
 #include "framework/System.h"
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
-
-// htons
-#ifdef _WIN32
-#include <winsock.h>
-#else
-#include <arpa/inet.h>
-#endif
-
-#ifdef USE_SMP
-#include <SDL_mutex.h>
-#endif
-
-static fileHandle_t logfile;
 
 cvar_t *com_pid; // bani - process id
 
@@ -588,10 +574,9 @@ Com_Crash_f
 A way to force a bus error for development reasons
 =================
 */
-static void NORETURN Com_Crash_f()
+static void Com_Crash_f()
 {
 	* ( volatile int * ) 0 = 0x12345678;
-	Sys::OSExit(1); // silence warning
 }
 
 void Com_SetRecommended()
@@ -731,12 +716,14 @@ void Com_WriteConfiguration()
 		return;
 	}
 
+#if defined(BUILD_GRAPHICAL_CLIENT) || defined(BUILD_TTY_CLIENT)
 	if ( cvar_modifiedFlags & CVAR_ARCHIVE_BITS )
 	{
 		cvar_modifiedFlags &= ~CVAR_ARCHIVE_BITS;
 
 		Com_WriteConfigToFile( CONFIG_NAME, Cvar_WriteVariables );
 	}
+#endif
 
 #ifdef BUILD_GRAPHICAL_CLIENT
 	if ( bindingsModified )
@@ -1096,21 +1083,4 @@ void Com_Frame()
 	//key = lastTime * 0x87243987;
 
 	com_frameNumber++;
-}
-
-/*
-=================
-Com_Shutdown
-=================
-*/
-void Com_Shutdown()
-{
-	NET_Shutdown();
-	if ( logfile )
-	{
-		FS_FCloseFile( logfile );
-		logfile = 0;
-	}
-
-	FS::FlushAll();
 }

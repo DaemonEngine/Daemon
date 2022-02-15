@@ -1341,14 +1341,10 @@ std::string ReadFile(Str::StringRef path, std::error_code& err) {
 	// The VM has a list of all the pak files, so this may save a round trip
 	// if the file doesn't exist, as well as allowing a more specific error.
 	// It may be wrong if more paks are loaded after initialization though?
-	if (!PakPath::FileExists(path)) {
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
-		return "";
-	}
 	int length, h;
 	VM::SendMsg<VM::FSOpenPakFileReadMsg>(path, length, h);
 	if (!h) {
-		SetErrorCodeFilesystem(err, filesystem_error::io_error, path);
+		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 		return "";
 	}
 	std::string content;
@@ -2299,6 +2295,8 @@ void Initialize(Str::StringRef homePath, Str::StringRef libPath, const std::vect
 
 void FlushAll()
 {
+	// Works (in the engine) as both FS::File and the older files.cpp (FS_FOpenFileWrite etc.)
+	// are ultimately based on FILE*
 	fflush(nullptr);
 }
 

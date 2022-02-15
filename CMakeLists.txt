@@ -87,8 +87,9 @@ if(NOT DAEMON_EXTERNAL_APP)
 
     if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)
         # can be loaded by daemon with vm.[sc]game.type 0 or 1
-        option(BUILD_GAME_NACL "Build the \"pexe\" files, required to build the \"nexe\" files which are required to host servers." OFF)
-        option(BUILD_GAME_NACL_NEXE "Build the \"nexe\" files from the \"pexe\" files, required to host servers." OFF)
+	option(BUILD_GAME_NACL "Build the NaCl gamelogic modules, required to host mods." OFF)
+	option(BUILD_GAME_NACL_NEXE "Build the NaCl \"nexe\" files from the \"pexe\" files." ON)
+	mark_as_advanced(BUILD_GAME_NACL_NEXE)
     else()
         set(BUILD_GAME_NACL 0)
         set(BUILD_GAME_NACL_NEXE 0)

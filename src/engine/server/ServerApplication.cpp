@@ -67,10 +67,13 @@ class ServerApplication : public Application {
         }
 
         void Shutdown(bool error, Str::StringRef message) override {
-            TRY_SHUTDOWN(
-                SV_Shutdown(error ? Str::Format("Server fatal crashed: %s", message).c_str() : message.c_str())
-            );
-            TRY_SHUTDOWN(Com_Shutdown());
+            std::string serverMessage = error ? "Server fatal error: " + message : std::string(message);
+            if (Sys::PedanticShutdown()) {
+                TRY_SHUTDOWN(SV_Shutdown(message.c_str()));
+                TRY_SHUTDOWN(NET_Shutdown());
+            } else {
+                TRY_SHUTDOWN(SV_QuickShutdown(message.c_str()));
+            }
         }
 };
 
