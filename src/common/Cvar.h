@@ -123,7 +123,7 @@ namespace Cvar {
             void Set(T newValue);
 
             //Called by the cvar system when the value is changed
-            virtual OnValueChangedResult OnValueChanged(Str::StringRef text);
+            OnValueChangedResult OnValueChanged(Str::StringRef text) override;
 
         protected:
             // Used by classes that extend Cvar<T>
@@ -168,7 +168,7 @@ namespace Cvar {
             template <typename ... Args>
             Callback(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, std::function<void(value_type)> callback, Args&& ... args);
 
-            virtual OnValueChangedResult OnValueChanged(Str::StringRef newValue);
+            OnValueChangedResult OnValueChanged(Str::StringRef newValue) override;
 
         private:
             std::function<void(value_type)> callback;
@@ -189,7 +189,7 @@ namespace Cvar {
             template<typename ... Args>
             Modified(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, Args&& ... args);
 
-            virtual OnValueChangedResult OnValueChanged(Str::StringRef newValue);
+            OnValueChangedResult OnValueChanged(Str::StringRef newValue) override;
 
             Util::optional<value_type> GetModifiedValue();
 
@@ -211,8 +211,8 @@ namespace Cvar {
             Range(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue, value_type min, value_type max, Args&& ... args);
 
         private:
-            virtual OnValueChangedResult Validate(const value_type& value);
-            virtual std::string GetAdditionalDescription();
+            OnValueChangedResult Validate(const value_type& value) override;
+            std::string GetAdditionalDescription() override;
 
             value_type min;
             value_type max;
