@@ -187,7 +187,7 @@ signed char ClampChar( int i )
 }
 
 // this isn't a real cheap function to call!
-int DirToByte( vec3_t dir )
+int DirToByte( vec3_t const dir )
 {
 	int best;
 	float d, bestd;
