@@ -413,7 +413,7 @@ protected:
 		glUniform1i( p->uniformLocations[ _locationIndex ], value );
 	}
 public:
-	size_t GetSize()
+	size_t GetSize() override
 	{
 		return sizeof( int );
 	}
@@ -453,7 +453,7 @@ protected:
 		glUniform1f( p->uniformLocations[ _locationIndex ], value );
 	}
 public:
-	size_t GetSize()
+	size_t GetSize() override
 	{
 		return sizeof( float );
 	}
@@ -519,7 +519,7 @@ protected:
 		glUniform2f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ] );
 	}
 
-	size_t GetSize()
+	size_t GetSize() override
 	{
 		return sizeof( vec2_t );
 	}
@@ -559,7 +559,7 @@ protected:
 		glUniform3f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ] );
 	}
 public:
-	size_t GetSize()
+	size_t GetSize() override
 	{
 		return sizeof( vec3_t );
 	}
@@ -599,7 +599,7 @@ protected:
 		glUniform4f( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
 	}
 public:
-	size_t GetSize()
+	size_t GetSize() override
 	{
 		return sizeof( vec4_t );
 	}
@@ -666,7 +666,7 @@ protected:
 		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], 1, transpose, m );
 	}
 public:
-	size_t GetSize()
+	size_t GetSize() override
 	{
 		return sizeof( matrix_t );
 	}
@@ -853,12 +853,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_BSP_SURFACE";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_BSP_SURFACE;
 	}
@@ -878,20 +878,20 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_VERTEX_SKINNING";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_VERTEX_SKINNING;
 	}
 
-	bool HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const;
-	bool MissesRequiredMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const;
+	bool HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
+	bool MissesRequiredMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 
-	uint32_t        GetRequiredVertexAttributes() const
+	uint32_t        GetRequiredVertexAttributes() const override
 	{
 		return ATTR_BONE_FACTORS;
 	}
@@ -911,18 +911,18 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_VERTEX_ANIMATION";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_VERTEX_ANIMATION;
 	}
 
-	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const;
-	uint32_t GetRequiredVertexAttributes() const;
+	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
+	uint32_t GetRequiredVertexAttributes() const override;
 
 	void SetVertexAnimation( bool enable )
 	{
@@ -939,18 +939,19 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_VERTEX_SPRITE";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_VERTEX_SPRITE;
 	}
 
-	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const;
-	uint32_t GetRequiredVertexAttributes() const {
+	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
+	uint32_t GetRequiredVertexAttributes() const override
+	{
 		return ATTR_QTANGENT;
 	}
 
@@ -969,18 +970,18 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_TCGEN_ENVIRONMENT";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_TCGEN_ENVIRONMENT;
 	}
 
-	bool     HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const;
-	uint32_t        GetRequiredVertexAttributes() const
+	bool     HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	uint32_t        GetRequiredVertexAttributes() const override
 	{
 		return ATTR_QTANGENT;
 	}
@@ -1000,13 +1001,13 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_TCGEN_LIGHTMAP";
 	}
 
-	bool     HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const;
-	EGLCompileMacro GetType() const
+	bool     HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_TCGEN_LIGHTMAP;
 	}
@@ -1026,12 +1027,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_LIGHT_MAPPING";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_LIGHT_MAPPING;
 	}
@@ -1051,12 +1052,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_DELUXE_MAPPING";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_DELUXE_MAPPING;
 	}
@@ -1076,12 +1077,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_HEIGHTMAP_IN_NORMALMAP";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_HEIGHTMAP_IN_NORMALMAP;
 	}
@@ -1101,12 +1102,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_RELIEF_MAPPING";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_RELIEF_MAPPING;
 	}
@@ -1126,14 +1127,14 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_REFLECTIVE_SPECULAR";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const;
+	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_REFLECTIVE_SPECULAR;
 	}
@@ -1153,12 +1154,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "LIGHT_DIRECTIONAL";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::LIGHT_DIRECTIONAL;
 	}
@@ -1178,12 +1179,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_SHADOWING";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_SHADOWING;
 	}
@@ -1203,13 +1204,13 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_DEPTH_FADE";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const;
-	EGLCompileMacro GetType() const
+	bool HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const override;
+	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_DEPTH_FADE;
 	}
@@ -1229,12 +1230,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_PHYSICAL_MAPPING";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return USE_PHYSICAL_MAPPING;
 	}
@@ -1254,12 +1255,12 @@ public:
 	{
 	}
 
-	const char *GetName() const
+	const char *GetName() const override
 	{
 		return "USE_ALPHA_TESTING";
 	}
 
-	EGLCompileMacro GetType() const
+	EGLCompileMacro GetType() const override
 	{
 		return USE_ALPHA_TESTING;
 	}
@@ -2218,8 +2219,8 @@ class GLShader_generic :
 {
 public:
 	GLShader_generic( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_lightMapping :
@@ -2256,10 +2257,10 @@ class GLShader_lightMapping :
 {
 public:
 	GLShader_lightMapping( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void BuildShaderCompileMacros( std::string& compileMacros );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_forwardLighting_omniXYZ :
@@ -2294,10 +2295,10 @@ class GLShader_forwardLighting_omniXYZ :
 {
 public:
 	GLShader_forwardLighting_omniXYZ( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void BuildShaderCompileMacros( std::string& compileMacros );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_forwardLighting_projXYZ :
@@ -2333,10 +2334,10 @@ class GLShader_forwardLighting_projXYZ :
 {
 public:
 	GLShader_forwardLighting_projXYZ( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void BuildShaderCompileMacros( std::string& compileMacros );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_forwardLighting_directionalSun :
@@ -2374,10 +2375,10 @@ class GLShader_forwardLighting_directionalSun :
 {
 public:
 	GLShader_forwardLighting_directionalSun( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void BuildShaderCompileMacros( std::string& compileMacros );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_shadowFill :
@@ -2399,8 +2400,8 @@ class GLShader_shadowFill :
 {
 public:
 	GLShader_shadowFill( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_reflection :
@@ -2422,10 +2423,10 @@ class GLShader_reflection :
 {
 public:
 	GLShader_reflection( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void BuildShaderCompileMacros( std::string& compileMacros );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_skybox :
@@ -2439,7 +2440,7 @@ class GLShader_skybox :
 {
 public:
 	GLShader_skybox( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_fogQuake3 :
@@ -2458,8 +2459,8 @@ class GLShader_fogQuake3 :
 {
 public:
 	GLShader_fogQuake3( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_fogGlobal :
@@ -2474,7 +2475,7 @@ class GLShader_fogGlobal :
 {
 public:
 	GLShader_fogGlobal( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_heatHaze :
@@ -2499,9 +2500,9 @@ class GLShader_heatHaze :
 {
 public:
 	GLShader_heatHaze( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_screen :
@@ -2510,7 +2511,7 @@ class GLShader_screen :
 {
 public:
 	GLShader_screen( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_portal :
@@ -2521,7 +2522,7 @@ class GLShader_portal :
 {
 public:
 	GLShader_portal( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_contrast :
@@ -2530,7 +2531,7 @@ class GLShader_contrast :
 {
 public:
 	GLShader_contrast( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_cameraEffects :
@@ -2543,7 +2544,7 @@ class GLShader_cameraEffects :
 {
 public:
 	GLShader_cameraEffects( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_blurX :
@@ -2554,7 +2555,7 @@ class GLShader_blurX :
 {
 public:
 	GLShader_blurX( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_blurY :
@@ -2565,7 +2566,7 @@ class GLShader_blurY :
 {
 public:
 	GLShader_blurY( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_debugShadowMap :
@@ -2574,7 +2575,7 @@ class GLShader_debugShadowMap :
 {
 public:
 	GLShader_debugShadowMap( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_liquid :
@@ -2601,8 +2602,8 @@ class GLShader_liquid :
 {
 public:
 	GLShader_liquid( GLShaderManager *manager );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_motionblur :
@@ -2611,7 +2612,7 @@ class GLShader_motionblur :
 {
 public:
 	GLShader_motionblur( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_ssao :
@@ -2620,7 +2621,7 @@ class GLShader_ssao :
 {
 public:
 	GLShader_ssao( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_depthtile1 :
@@ -2629,7 +2630,7 @@ class GLShader_depthtile1 :
 {
 public:
 	GLShader_depthtile1( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_depthtile2 :
@@ -2637,7 +2638,7 @@ class GLShader_depthtile2 :
 {
 public:
 	GLShader_depthtile2( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_lighttile :
@@ -2650,7 +2651,7 @@ class GLShader_lighttile :
 {
 public:
 	GLShader_lighttile( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
 class GLShader_fxaa :
@@ -2658,8 +2659,8 @@ class GLShader_fxaa :
 {
 public:
 	GLShader_fxaa( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 };
 
 std::string GetShaderPath();
