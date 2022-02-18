@@ -401,7 +401,7 @@ byte         ClampByte( int i );
 signed char  ClampChar( int i );
 
 // this isn't a real cheap function to call!
-int          DirToByte( vec3_t dir );
+int          DirToByte( vec3_t const dir );
 void         ByteToDir( int b, vec3_t dir );
 
 #define DotProduct( x,y )            ( ( x )[ 0 ] * ( y )[ 0 ] + ( x )[ 1 ] * ( y )[ 1 ] + ( x )[ 2 ] * ( y )[ 2 ] )
