@@ -144,7 +144,7 @@ static bool LoadIQMFile( void *buffer, unsigned filesize, const char *mod_name,
 			    mod_name, "vertexarray" ) ) {
 		return false;
 	}
-	vertexarray = ( iqmVertexArray_t* )IQMPtr( header, header->ofs_vertexarrays );
+	vertexarray = static_cast<iqmVertexArray_t*>( IQMPtr( header, header->ofs_vertexarrays ) );
 	for(unsigned i = 0; i < header->num_vertexarrays; i++, vertexarray++ ) {
 		int	j, n, *intPtr;
 
@@ -239,7 +239,7 @@ static bool LoadIQMFile( void *buffer, unsigned filesize, const char *mod_name,
 			    mod_name, "triangle" ) ) {
 		return false;
 	}
-	triangle = ( iqmTriangle_t* )IQMPtr( header, header->ofs_triangles );
+	triangle = static_cast<iqmTriangle_t*>( IQMPtr( header, header->ofs_triangles ) );
 	for(unsigned i = 0; i < header->num_triangles; i++, triangle++ ) {
 		LL( triangle->vertex[0] );
 		LL( triangle->vertex[1] );
@@ -260,7 +260,7 @@ static bool LoadIQMFile( void *buffer, unsigned filesize, const char *mod_name,
 			    mod_name, "mesh" ) ) {
 		return false;
 	}
-	mesh = ( iqmMesh_t* )IQMPtr( header, header->ofs_meshes );
+	mesh = static_cast<iqmMesh_t*>( IQMPtr( header, header->ofs_meshes ) );
 	for(unsigned i = 0; i < header->num_meshes; i++, mesh++) {
 		LL( mesh->name );
 		LL( mesh->material );
@@ -290,7 +290,7 @@ static bool LoadIQMFile( void *buffer, unsigned filesize, const char *mod_name,
 			    mod_name, "joint" ) ) {
 		return false;
 	}
-	joint = ( iqmJoint_t* )IQMPtr( header, header->ofs_joints );
+	joint = static_cast<iqmJoint_t*>( IQMPtr( header, header->ofs_joints ) );
 	for(unsigned i = 0; i < header->num_joints; i++, joint++ ) {
 		LL( joint->name );
 		LL( joint->parent );
@@ -681,7 +681,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 	}
 
 	// copy vertexarrays and indexes
-	vertexarray = ( iqmVertexArray_t* )IQMPtr( header, header->ofs_vertexarrays );
+	vertexarray = static_cast<iqmVertexArray_t*>( IQMPtr( header, header->ofs_vertexarrays ) );
 	for(unsigned i = 0; i < header->num_vertexarrays; i++, vertexarray++ ) {
 		int	n;
 
@@ -732,7 +732,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 				    n * sizeof(byte) );
 			break;
 		case IQM_BLENDWEIGHTS:
-			weights = (u8vec4_t *)IQMPtr( header, vertexarray->offset );
+			weights = static_cast<u8vec4_t *>( IQMPtr( header, vertexarray->offset ) );
 			for(unsigned j = 0; j < header->num_vertexes; j++ ) {
 				IQModel->blendWeights[ 4 * j + 0 ] = 255 - weights[ j ][ 1 ] - weights[ j ][ 2 ] - weights[ j ][ 3 ];
 				IQModel->blendWeights[ 4 * j + 1 ] = weights[ j ][ 1 ];
@@ -749,7 +749,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 	}
 
 	// copy triangles
-	triangle = ( iqmTriangle_t* )IQMPtr( header, header->ofs_triangles );
+	triangle = static_cast<iqmTriangle_t*>( IQMPtr( header, header->ofs_triangles ) );
 	for(unsigned i = 0; i < header->num_triangles; i++, triangle++ ) {
 		IQModel->triangles[3*i+0] = triangle->vertex[0];
 		IQModel->triangles[3*i+1] = triangle->vertex[1];
@@ -791,7 +791,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 			weightbuf = nullptr;
 		}
 		
-		qtangentbuf = (i16vec4_t *)ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * IQModel->num_vertexes );
+		qtangentbuf = static_cast<i16vec4_t *>( ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * IQModel->num_vertexes ) );
 
 		for(int i = 0; i < IQModel->num_vertexes; i++ ) {
 			R_TBNtoQtangents( &IQModel->tangents[ 3 * i ],
@@ -843,7 +843,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 
 	// register shaders
 	// overwrite the material offset with the shader index
-	mesh = ( iqmMesh_t* )IQMPtr( header, header->ofs_meshes );
+	mesh = static_cast<iqmMesh_t*>( IQMPtr( header, header->ofs_meshes ) );
 	surface = IQModel->surfaces;
 	for(unsigned i = 0; i < header->num_meshes; i++, mesh++, surface++ ) {
 		surface->surfaceType = surfaceType_t::SF_IQM;
