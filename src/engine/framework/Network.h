@@ -60,6 +60,37 @@ std::string AddressToString( const netadr_t& address, bool with_port = false );
  */
 unsigned short GetPort(const netadr_t& address);
 
+// --- ASYNC DNS RESOLUTION ---
+// This API wraps the synchronous DNS resolution (NET_StringToAdr),
+// running it in a separate thread.
+
+// 0 can be used as an invalid value
+using DNSQueryHandle = size_t;
+
+struct DNSResult
+{
+	netadr_t ipv4;
+	netadr_t ipv6;
+
+	DNSResult()
+	{
+		ipv4.type = netadrtype_t::NA_BAD;
+		ipv6.type = netadrtype_t::NA_BAD;
+	}
+};
+
+DNSQueryHandle AllocDNSQuery();
+
+// The resolver thread will start working on the query and periodically
+// refresh it in the background.
+// protocolMask considers NET_ENABLEV4 and NET_ENABLEV6
+void SetDNSQuery(DNSQueryHandle query, std::string hostname, int protocolMask);
+
+// type == NA_BAD if the query is still running or failed, or for a disabled protocol
+DNSResult GetAddresses(DNSQueryHandle query);
+
+// Stop the resolver thread
+void ShutDownDNS();
 
 } // namespace Net
 

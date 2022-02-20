@@ -249,7 +249,6 @@ struct serverStatic_t
 	int           numSnapshotEntities; // sv_maxclients->integer*PACKET_BACKUP*MAX_PACKET_ENTITIES
 	int           nextSnapshotEntities; // next snapshotEntities to use
 	std::unique_ptr<entityState_t[]> snapshotEntities; // [numSnapshotEntities]
-	int           nextHeartbeatTime;
 	receipt_t     infoReceipts[ MAX_INFO_RECEIPTS ];
 
 	int       sampleTimes[ SERVER_PERFORMANCECOUNTER_SAMPLES ];
@@ -347,6 +346,7 @@ void       SV_RemoveOperatorCommands();
 
 void       SV_NET_Config();
 
+void       SV_Heartbeat_f();
 void       SV_MasterHeartbeat( const char *hbname );
 void       SV_MasterShutdown();
 
@@ -386,11 +386,6 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool p
 void SV_ClientThink( client_t *cl, usercmd_t *cmd );
 
 void SV_WriteDownloadToClient( client_t *cl, msg_t *msg );
-
-//
-// sv_ccmds.c
-//
-void     SV_Heartbeat_f();
 
 //
 // sv_snapshot.c
