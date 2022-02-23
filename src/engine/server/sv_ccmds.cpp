@@ -334,19 +334,6 @@ public:
 };
 static StatusCmd StatusCmdRegistration;
 
-
-/*
-==================
-SV_Heartbeat_f
-
-Also called by SV_DropClient, SV_DirectConnect, and SV_SpawnServer
-==================
-*/
-void SV_Heartbeat_f()
-{
-	svs.nextHeartbeatTime = -9999999;
-}
-
 /*
 ===========
 SV_Serverinfo_f

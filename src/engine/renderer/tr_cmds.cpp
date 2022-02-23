@@ -773,21 +773,12 @@ void RE_BeginFrame()
 	// do overdraw measurement
 	if ( r_measureOverdraw->integer )
 	{
-		if ( glConfig.stencilBits < 4 )
-		{
-			Log::Warn("not enough stencil bits to measure overdraw: %d", glConfig.stencilBits );
-			ri.Cvar_Set( "r_measureOverdraw", "0" );
-		}
-		else
-		{
-			R_SyncRenderThread();
-			glEnable( GL_STENCIL_TEST );
-			glStencilMask( ~0U );
-			GL_ClearStencil( 0U );
-			glStencilFunc( GL_ALWAYS, 0U, ~0U );
-			glStencilOp( GL_KEEP, GL_INCR, GL_INCR );
-		}
-
+		R_SyncRenderThread();
+		glEnable( GL_STENCIL_TEST );
+		glStencilMask( ~0U );
+		GL_ClearStencil( 0U );
+		glStencilFunc( GL_ALWAYS, 0U, ~0U );
+		glStencilOp( GL_KEEP, GL_INCR, GL_INCR );
 		r_measureOverdraw->modified = false;
 	}
 	else
