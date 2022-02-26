@@ -2,7 +2,7 @@
 
 [![GitHub tag](https://img.shields.io/github/tag/DaemonEngine/Daemon.svg)](https://github.com/DaemonEngine/Daemon/tags)
 
-[![IRC](https://img.shields.io/badge/irc-%23daemon--engine%2C%23unvanquished--dev-4cc51c.svg)](https://webchat.freenode.net/?channels=%23daemon-engine%2C%23unvanquished-dev)
+[![IRC](https://img.shields.io/badge/irc-%23daemon--engine%2C%23unvanquished--dev-4cc51c.svg)](https://web.libera.chat/#daemon-engine,#unvanquished-dev)
 
 | Windows | OSX | Linux |
 |---------|-----|-------|
