@@ -3752,26 +3752,26 @@ inline bool checkGLErrors()
 	};
 
 	struct SetColorCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		Color::Color color;
 	};
 	struct SetColorGradingCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		image_t *image;
 		int     slot;
 	};
 	struct DrawBufferCommand : public RenderCommand	{
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		int buffer;
 	};
 	struct SwapBuffersCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 	};
 	struct StretchPicCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		shader_t *shader;
 		float    x, y;
@@ -3780,25 +3780,25 @@ inline bool checkGLErrors()
 		float    s2, t2;
 	};
 	struct RotatedPicCommand : public StretchPicCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		float    angle;
 	};
 	struct GradientPicCommand : public StretchPicCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		Color::Color32Bit gradientColor; // color values 0-255
 		int               gradientType;
 	};
 	struct Poly2dCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		polyVert_t *verts;
 		int        numverts;
 		shader_t   *shader;
 	};
 	struct Poly2dIndexedCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		polyVert_t *verts;
 		int        numverts;
@@ -3808,7 +3808,7 @@ inline bool checkGLErrors()
 		int         translation[2];
 	};
 	struct ScissorSetCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		int       x;
 		int       y;
@@ -3816,14 +3816,14 @@ inline bool checkGLErrors()
 		int       h;
 	};
 	struct DrawViewCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t  refdef;
 		viewParms_t viewParms;
 		bool        depthPass;
 	};
 	struct SetupLightsCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t  refdef;
 	};
@@ -3834,7 +3834,7 @@ inline bool checkGLErrors()
 	  SSF_PNG
 	};
 	struct ScreenshotCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		int        x;
 		int        y;
@@ -3844,7 +3844,7 @@ inline bool checkGLErrors()
 		ssFormat_t format;
 	};
 	struct VideoFrameCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		int      width;
 		int      height;
@@ -3853,36 +3853,36 @@ inline bool checkGLErrors()
 		bool motionJpeg;
 	};
 	struct RenderFinishCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 	};
 	struct RenderPostProcessCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t      refdef;
 		viewParms_t     viewParms;
 	};
 	struct ClearBufferCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t      refdef;
 		viewParms_t     viewParms;
 	};
 	struct PreparePortalCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t      refdef;
 		viewParms_t     viewParms;
 		drawSurf_t     *surface;
 	};
 	struct FinalisePortalCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 
 		trRefdef_t      refdef;
 		viewParms_t     viewParms;
 		drawSurf_t     *surface;
 	};
 	struct EndOfListCommand : public RenderCommand {
-		const RenderCommand *ExecuteSelf() const;
+		const RenderCommand *ExecuteSelf() const override;
 	};
 
 // ydnar: max decal projectors per frame, each can generate lots of polys

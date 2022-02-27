@@ -1967,6 +1967,7 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 					GL_PopMatrix();
 				}
 			}
+			break;
 
 		default:
 			break;

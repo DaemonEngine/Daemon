@@ -115,38 +115,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         auto&& expected = (a); auto&& actual = (b), \
         expected == actual, \
         Str::Format("\"%s == %s\" expected: %s, actual: %s", #a, #b, AssertDetail::Printable(expected), AssertDetail::Printable(actual)) \
-    );
+    )
 #define DAEMON_ASSERT_NQ(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) != (b), \
         auto&& notExpected = (a); auto&& actual = (b), \
         notExpected != actual, \
         Str::Format("\"%s != %s\" not expected: %s, actual: %s", #a, #b, AssertDetail::Printable(notExpected), AssertDetail::Printable(actual)) \
-    );
+    )
 
 #define DAEMON_ASSERT_LT(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) < (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound < actual, \
         Str::Format("\"%s < %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
-    );
+    )
 #define DAEMON_ASSERT_LE(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) <= (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound <= actual, \
         Str::Format("\"%s <= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
-    );
+    )
 #define DAEMON_ASSERT_GT(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) > (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound > actual, \
         Str::Format("\"%s > %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
-    );
+    )
 #define DAEMON_ASSERT_GE(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) >= (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound >= actual, \
         Str::Format("\"%s >= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
-    );
+    )
 
 #if !defined(DAEMON_SKIP_ASSERT_SHORTHANDS)
     #define ASSERT DAEMON_ASSERT

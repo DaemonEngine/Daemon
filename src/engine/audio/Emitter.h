@@ -75,7 +75,7 @@ namespace Audio {
     class EntityEmitter : public Emitter {
         public:
             EntityEmitter(int entityNum);
-            virtual ~EntityEmitter();
+            virtual ~EntityEmitter() override;
 
             void virtual Update() override;
             virtual void UpdateSound(Sound& sound) override;
@@ -89,7 +89,7 @@ namespace Audio {
     class PositionEmitter : public Emitter {
         public:
             PositionEmitter(Vec3 position);
-            virtual ~PositionEmitter();
+            virtual ~PositionEmitter() override;
 
             void virtual Update() override;
             virtual void UpdateSound(Sound& sound) override;
@@ -105,7 +105,7 @@ namespace Audio {
     class LocalEmitter: public Emitter {
         public:
             LocalEmitter();
-            virtual ~LocalEmitter();
+            virtual ~LocalEmitter() override;
 
             void virtual Update() override;
             virtual void UpdateSound(Sound& sound) override;

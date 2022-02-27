@@ -565,6 +565,7 @@ void R_TessLight( const trRefLight_t *light, const Color::Color& color, bool use
 					Tess_AddQuadStamp2( quadVerts, use_default_color ? Color::Red : color );
 				}
 			}
+			break;
 		default:
 			break;
 	}

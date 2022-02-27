@@ -91,13 +91,13 @@ namespace VM {
         public:
             ProxyCmd(CommonVMServices& services, int flag): Cmd::CmdBase(flag), services(services) {
             }
-            virtual ~ProxyCmd() = default;
+            ~ProxyCmd() override = default;
 
-            virtual void Run(const Cmd::Args& args) const {
+            void Run(const Cmd::Args& args) const override {
                 services.GetVM().SendMsg<ExecuteMsg>(args.EscapedArgs(0));
             }
 
-            virtual Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const {
+            Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
                 Cmd::CompletionResult res;
                 services.GetVM().SendMsg<CompleteMsg>(argNum, args.EscapedArgs(0), prefix, res);
                 return res;
@@ -149,7 +149,7 @@ namespace VM {
             :CvarProxy(std::move(name), flags, std::move(defaultValue)), services(services) {
                 wasAdded = Register(std::move(description));
             }
-            virtual ~ProxyCvar() {
+            virtual ~ProxyCvar() override {
                 if (wasAdded) {
                     Cvar::Unregister(name);
                 }

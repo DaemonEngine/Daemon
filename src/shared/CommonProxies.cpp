@@ -44,10 +44,10 @@ namespace Cmd {
     // Calls to its methods will be proxied to Cmd::GetEnv() in the engine.
     class ProxyEnvironment: public Cmd::Environment {
         public:
-            virtual void Print(Str::StringRef text) {
+            void Print(Str::StringRef text) override {
                 VM::SendMsg<VM::EnvPrintMsg>(text);
             }
-            virtual void ExecuteAfter(Str::StringRef text, bool parseCvars) {
+            void ExecuteAfter(Str::StringRef text, bool parseCvars) override {
                 VM::SendMsg<VM::EnvExecuteAfterMsg>(text, parseCvars);
             }
     };
@@ -176,7 +176,7 @@ class TrapProxyCommand: public Cmd::CmdBase {
     public:
         TrapProxyCommand() : Cmd::CmdBase(0) {
         }
-        virtual void Run(const Cmd::Args& args) const override {
+        void Run(const Cmd::Args& args) const override {
             // Push a pointer to args, it is fine because we remove the pointer before args goes out of scope
             argStack.push_back(&args);
             ConsoleCommand();
@@ -376,7 +376,7 @@ class VMCvarProxy : public Cvar::CvarProxy {
             Register("");
         }
 
-        virtual Cvar::OnValueChangedResult OnValueChanged(Str::StringRef newValue) override {
+        Cvar::OnValueChangedResult OnValueChanged(Str::StringRef newValue) override {
             value = newValue;
             modificationCount++;
             return Cvar::OnValueChangedResult{true, ""};
