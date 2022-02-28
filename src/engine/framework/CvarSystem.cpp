@@ -210,7 +210,10 @@ namespace Cvar {
                 cvarRecord_t* var = cvars[name];
 
                 if (args.Argc() < 2) {
-                    Print("\"%s\" - %s^* - default: \"%s^*\"", name.c_str(), var->description.c_str(), var->resetValue.c_str());
+                    Print("\"%s\" - %s^* - default: \"%s^*\"%s",
+                        name.c_str(), var->description.c_str(),
+                        var->resetValue.c_str(),
+                        var->ccvar.modified ? " (modified)" : "");
                 } else {
                     //TODO forward the print part of the environment
                     SetValue(name, args.Argv(1));
