@@ -1130,12 +1130,6 @@ static void Render_depthFill(int stage)
 		gl_genericShader->SetUniform_ViewOrigin(backEnd.orientation.viewOrigin);
 	}
 
-	// u_AlphaTest
-	if (alphaBits != 0)
-	{
-		gl_genericShader->SetUniform_AlphaTest(pStage->stateBits);
-	}
-
 	// u_ColorModulate
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
 
@@ -1157,15 +1151,17 @@ static void Render_depthFill(int stage)
 	gl_genericShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
+	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+
 	if ( alphaBits != 0 )
 	{
-		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 		gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+
+		// u_AlphaTest
+		gl_genericShader->SetUniform_AlphaTest( pStage->stateBits );
 	}
 	else
 	{
-		//GL_Bind(tr.defaultImage);
-		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 	}
 
