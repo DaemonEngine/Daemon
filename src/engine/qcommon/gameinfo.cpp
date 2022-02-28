@@ -26,8 +26,8 @@ along with Daemon Source Code.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 
 #include "gameinfo.h"
+#include "framework/CvarSystem.h"
 #include "common/FileSystem.h"
-
 
 Gameinfo& Gameinfo::getInstance()
 {
@@ -145,6 +145,7 @@ void Gameinfo::parse(std::string fname)
 		else if(argvec[i] == "MASTERSERVER1")
 		{
 			_masterserver1 = argvec[i+1];
+			Cvar::SetDefaultValue("sv_master1", _masterserver1);
 		}
 		/* Fully qualified domain name of the secondary master server.
 
@@ -152,21 +153,25 @@ void Gameinfo::parse(std::string fname)
 		else if(argvec[i] == "MASTERSERVER2")
 		{
 			_masterserver2 = argvec[i+1];
+			Cvar::SetDefaultValue("sv_master2", _masterserver2);
 		}
 		/* Fully qualified domain name of the third master server. */
 		else if(argvec[i] == "MASTERSERVER3")
 		{
 			_masterserver3 = argvec[i+1];
+			Cvar::SetDefaultValue("sv_master3", _masterserver3);
 		}
 		/* Fully qualified domain name of the fourth master server. */
 		else if(argvec[i] == "MASTERSERVER4")
 		{
 			_masterserver4 = argvec[i+1];
+			Cvar::SetDefaultValue("sv_master4", _masterserver4);
 		}
 		/* Fully qualified domain name of the fifth master server. */
 		else if(argvec[i] == "MASTERSERVER5")
 		{
 			_masterserver5 = argvec[i+1];
+			Cvar::SetDefaultValue("sv_master5", _masterserver5);
 		}
 		/* URL to download missing packages when joining a server.
 

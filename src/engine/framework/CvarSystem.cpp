@@ -324,6 +324,24 @@ namespace Cvar {
         return result;
     }
 
+    void SetDefaultValue(const std::string &cvarName, const std::string& defaultValue) {
+        CvarMap& cvars = GetCvarMap();
+        auto it = cvars.find(cvarName);
+        cvarRecord_t *cvar = it->second;
+        GetCCvar(cvarName, *cvar);
+
+        /* HACK: Rewrite me when this issue is fixed:
+        https://github.com/DaemonEngine/Daemon/issues/590
+        Until that the cvar->ccvar.modified value can't be trusted. */
+
+        cvar->resetValue = defaultValue;
+        cvar->ccvar.resetString = CopyString(defaultValue.c_str());
+
+        if (!Q_stricmp(cvar->value.c_str(), "")) {
+            SetValue(cvarName, defaultValue);
+        }
+    }
+
     bool Register(CvarProxy* proxy, const std::string& name, std::string description, int flags, const std::string& defaultValue) {
         CvarMap& cvars = GetCvarMap();
         cvarRecord_t* cvar;

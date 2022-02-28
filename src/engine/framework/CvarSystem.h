@@ -75,6 +75,9 @@ namespace Cvar {
     bool AddFlags(const std::string& cvarName, int flags);
     bool ClearFlags(const std::string& cvarName, int flags);
 
+    // Change default value.
+    void SetDefaultValue(const std::string &cvarName, const std::string& defaultValue);
+
     // Used by statically defined cvar.
     bool Register(CvarProxy* proxy, const std::string& name, std::string description, int flags, const std::string& defaultValue);
     void Unregister(const std::string& cvarName);

@@ -280,25 +280,12 @@ struct MasterServer
 	{}
 };
 
-// FIXME: still unvanquished specific
-/*
-	sv_master[ 0 ] = Cvar_Get( "sv_master1", Gameinfo::getInstance().masterserver1().c_str(), 0 );
-	sv_master[ 1 ] = Cvar_Get( "sv_master2", Gameinfo::getInstance().masterserver2().c_str(), 0 );
-	sv_master[ 2 ] = Cvar_Get( "sv_master3", Gameinfo::getInstance().masterserver3().c_str(), 0 );
-	sv_master[ 3 ] = Cvar_Get( "sv_master4", Gameinfo::getInstance().masterserver4().c_str(), 0 );
-	sv_master[ 4 ] = Cvar_Get( "sv_master5", Gameinfo::getInstance().masterserver5().c_str(), 0 );
-*/
-#define MASTER1_SERVER_NAME "master.unvanquished.net"
-#define MASTER2_SERVER_NAME "master2.unvanquished.net"
-#define MASTER3_SERVER_NAME ""
-#define MASTER4_SERVER_NAME ""
-#define MASTER5_SERVER_NAME ""
 MasterServer masterServers[MAX_MASTER_SERVERS] = {
-	{"sv_master1", MASTER1_SERVER_NAME},
-	{"sv_master2", MASTER2_SERVER_NAME},
-	{"sv_master3", MASTER3_SERVER_NAME},
-	{"sv_master4", MASTER4_SERVER_NAME},
-	{"sv_master5", MASTER5_SERVER_NAME},
+	{"sv_master1", ""},
+	{"sv_master2", ""},
+	{"sv_master3", ""},
+	{"sv_master4", ""},
+	{"sv_master5", ""},
 };
 } // namespace
 
