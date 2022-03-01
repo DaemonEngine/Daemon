@@ -1523,21 +1523,6 @@ void         ByteToDir( int b, vec3_t dir );
 
 #define MAX_CVAR_VALUE_STRING 256
 
-	using cvarHandle_t = int;
-
-/**
- * the modules that run in the virtual machine can't access the cvar_t directly,
- * so they must ask for structured updates
- */
-	struct vmCvar_t
-	{
-		cvarHandle_t handle;
-		int          modificationCount;
-		float        value;
-		int          integer;
-		char         string[ MAX_CVAR_VALUE_STRING ];
-	};
-
 	/*
 	==============================================================
 
