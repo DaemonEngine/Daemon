@@ -55,7 +55,6 @@ struct cvar_t
 	char *latchedString; // for CVAR_LATCH vars
 	int flags;
 	bool modified; // set each time the cvar is changed
-	int modificationCount; // incremented each time the cvar is changed
 	float value; // atof( string )
 	int integer; // atoi( string )
 };
