@@ -134,8 +134,6 @@ cvar_t                 *cl_consoleFontScaling;
 cvar_t                 *cl_consoleFontKerning;
 cvar_t                 *cl_consoleCommand; //see also com_consoleCommand for terminal consoles
 
-cvar_t             *p_team; /*<team id without team semantics (to not break the relationship between client and cgame)*/
-
 struct rsa_public_key  public_key;
 struct rsa_private_key private_key;
 
@@ -2891,8 +2889,6 @@ void CL_Init()
 	cl_consoleFontKerning = Cvar_Get( "cl_consoleFontKerning", "0", 0 );
 
 	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );
-
-	p_team = Cvar_Get("p_team", "0", CVAR_ROM );
 
 	cl_gamename = Cvar_Get( "cl_gamename", GAMENAME_FOR_MASTER, CVAR_TEMP );
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
