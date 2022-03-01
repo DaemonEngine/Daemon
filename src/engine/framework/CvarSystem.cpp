@@ -336,10 +336,11 @@ namespace Cvar {
             }
 
             //Create the cvar and parse its default value
+            description = Str::Format("\"%s\" - %s", defaultValue, description);
             cvar = new cvarRecord_t{defaultValue, defaultValue, Util::nullopt, flags, description, proxy, {}};
             cvars[name] = cvar;
 
-            Cmd::AddCommand(name, cvarCommand, "cvar - \"" + defaultValue + "\" - " + description);
+            Cmd::AddCommand(name, cvarCommand, "cvar - " + description);
 
         } else {
             cvar = it->second;
