@@ -104,7 +104,6 @@ namespace Cvar {
         }
 
         var.modified = modified;
-        var.modificationCount++;
         var.value = atof(var.string);
         var.integer = atoi(var.string);
 
@@ -120,7 +119,6 @@ namespace Cvar {
 
         if (not var.name) {
             var.name = CopyString(name.c_str());
-            var.modificationCount = -1;
         }
 
         if (var.resetString) Z_Free(var.resetString);
@@ -147,7 +145,6 @@ namespace Cvar {
         }
 
         var.modified |= modified;
-        var.modificationCount++;
         var.value = atof(var.string);
         var.integer = atoi(var.string);
 
