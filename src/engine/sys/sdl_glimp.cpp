@@ -1831,15 +1831,6 @@ bool GLimp_Init()
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
-	if ( ri.Cvar_VariableIntegerValue( "com_abnormalExit" ) )
-	{
-		ri.Cvar_Set( "r_mode", va( "%d", R_MODE_FALLBACK ) );
-		ri.Cvar_Set( "r_fullscreen", "0" );
-		ri.Cvar_Set( "r_centerWindow", "0" );
-		ri.Cvar_Set( "r_noBorder", "0" );
-		ri.Cvar_Set( "com_abnormalExit", "0" );
-	}
-
 	// Create the window and set up the context
 	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen->integer, !r_noBorder->value ) )
 	{
