@@ -41,6 +41,8 @@ Maryland 20850 USA.
 
 #define REF_API_VERSION 10
 
+extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
+
 struct glconfig2_t
 {
 	bool textureCompressionRGTCAvailable;
