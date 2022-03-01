@@ -553,7 +553,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		{
 			if ( keys[ Key(K_ALT) ].down )
 			{
-				Cvar_SetValue( "r_fullscreen", !Cvar_VariableIntegerValue( "r_fullscreen" ) );
+				r_fullscreen.Set( !r_fullscreen.Get() );
 				return;
 			}
 		}

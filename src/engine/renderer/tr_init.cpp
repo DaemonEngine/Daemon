@@ -68,7 +68,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_novis;
 	cvar_t      *r_nocull;
 	cvar_t      *r_facePlaneCull;
-	cvar_t      *r_showcluster;
 	cvar_t      *r_nocurves;
 	cvar_t      *r_lightScissors;
 	cvar_t      *r_noLightVisCull;
@@ -155,7 +154,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	cvar_t      *r_finish;
 	cvar_t      *r_clear;
-	cvar_t      *r_swapInterval;
 	cvar_t      *r_textureMode;
 	cvar_t      *r_offsetFactor;
 	cvar_t      *r_offsetUnits;
@@ -189,8 +187,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_subdivisions;
 	cvar_t      *r_stitchCurves;
 
-	cvar_t      *r_noBorder;
-	cvar_t      *r_fullscreen;
+	Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen(
+		"r_fullscreen", "use full-screen window", CVAR_ARCHIVE, true );
 
 	cvar_t      *r_customwidth;
 	cvar_t      *r_customheight;
@@ -943,7 +941,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("MODE: %d, %d x %d %s hz: %s",
 				r_mode->integer,
 				glConfig.vidWidth, glConfig.vidHeight,
-				fsstrings[ r_fullscreen->integer == 1 ],
+				fsstrings[ +r_fullscreen.Get() ],
 				out
 				);
 		}
@@ -1101,8 +1099,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_depthbits = ri.Cvar_Get( "r_depthbits", "0",  CVAR_LATCH );
 		r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_mode = ri.Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
-		r_noBorder = ri.Cvar_Get( "r_noBorder", "0", CVAR_ARCHIVE );
-		r_fullscreen = ri.Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE );
 		r_customwidth = ri.Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customheight = ri.Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
 		r_simpleMipMaps = ri.Cvar_Get( "r_simpleMipMaps", "0", CVAR_LATCH );
@@ -1147,7 +1143,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_drawSun = ri.Cvar_Get( "r_drawSun", "0", 0 );
 		r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_CHEAT );
 		r_textureMode = ri.Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE );
-		r_swapInterval = ri.Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE );
 		r_gamma = ri.Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE );
 		r_facePlaneCull = ri.Cvar_Get( "r_facePlaneCull", "1", 0 );
 
@@ -1207,7 +1202,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_ignore = ri.Cvar_Get( "r_ignore", "1", CVAR_CHEAT );
 		r_nocull = ri.Cvar_Get( "r_nocull", "0", CVAR_CHEAT );
 		r_novis = ri.Cvar_Get( "r_novis", "0", CVAR_CHEAT );
-		r_showcluster = ri.Cvar_Get( "r_showcluster", "0", CVAR_CHEAT );
 		r_speeds = ri.Cvar_Get( "r_speeds", "0", 0 );
 		r_verbose = ri.Cvar_Get( "r_verbose", "0", CVAR_CHEAT );
 		r_logFile = ri.Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
