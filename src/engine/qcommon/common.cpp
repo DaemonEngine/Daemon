@@ -912,25 +912,28 @@ void Com_Frame()
 		{
 			if ( com_minimized->integer && maxfpsMinimized.Get() > 0 )
 			{
-				minMsec = 1000 / maxfpsMinimized.Get();
+				minMsec = 1000 / std::min(maxfpsMinimized.Get(), 333);
 			}
 			else if ( com_unfocused->integer && maxfpsUnfocused.Get() > 0 )
 			{
-				minMsec = 1000 / maxfpsUnfocused.Get();
+				minMsec = 1000 / std::min(maxfpsUnfocused.Get(), 333);
 			}
 			else if ( maxfps.Get() > 0 )
 			{
-				minMsec = 1000 / maxfps.Get();
+				minMsec = 1000 / std::min(maxfps.Get(), 333);
 			}
 			else
 			{
-				minMsec = 1;
+				minMsec = 3;
 			}
 		}
 	}
 	else
 	{
-		minMsec = 1; // Bad things happen if this is 0
+		// Bad things happen if this is 0.
+		// At 1 or 2, the game still runs but exhibits various issues
+		// (such as the first-person weapon model flickering).
+		minMsec = 3;
 	}
 
 	Com_EventLoop();
