@@ -166,7 +166,7 @@ void GLSL_InitGPUShaders()
 
 	 Note that unv will respond by listing the files it thinks are different.
 	 If this matches your expectations then it's not an error.
-	 Note foward slashes (like those used in windows pathnames are processed
+	 Note foward slashes (like those used in windows pathnames) are processed
 	 as escape characters by the Unvanquished command processor,
 	 so use two forward slashes in that case.
 	 */

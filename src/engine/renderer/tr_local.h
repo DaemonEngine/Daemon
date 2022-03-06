@@ -119,7 +119,7 @@ static inline int16_t floatToHalf( float in ) {
 	floatint_t fi;
 
 	fi.f = in * scale;
-	
+
 	return (int16_t)(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13));
 }
 static inline void floatToHalf( const vec4_t in, f16vec4_t out )
@@ -2983,7 +2983,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_checkGLErrors;
 
 	extern cvar_t *r_debugSurface;
-	extern cvar_t *r_simpleMipMaps;
 
 	extern cvar_t *r_showImages;
 	extern cvar_t *r_debugSort;
@@ -3391,7 +3390,7 @@ inline bool checkGLErrors()
 		int           numSurfaceStages;
 		shaderStage_t **surfaceStages;
 
-		// preallocated host buffers for verts and indexes 
+		// preallocated host buffers for verts and indexes
 		shaderVertex_t *vertsBuffer;
 		glIndex_t      *indexesBuffer;
 

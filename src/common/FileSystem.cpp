@@ -146,6 +146,9 @@ std::error_code throw_err;
 // Dependencies file in packages
 #define PAK_DEPS_FILE "DEPS"
 
+// Deleted file list in packages
+#define PAK_DELETED_FILE "DELETED"
+
 // Whether the search paths have been initialized yet. This can be used to delay
 // writing log files until the filesystem is initialized.
 static bool isInitialized = false;
@@ -1052,11 +1055,91 @@ struct LoadedPakGuard {
 };
 static LoadedPakGuard loadedPaksGuard;
 
+// std::unordered_set uses std::hash which does not
+// hash pair of std::string.
+struct stdStringPairHasher
+{
+	std::size_t operator()(const std::pair<std::string, std::string>& p) const
+	{
+		std::hash<std::string> string_hasher;
+		return string_hasher(p.first) ^ string_hasher(p.second);
+	}
+};
+
+// List of deleted filenames per pak files.
+// first string is pak name, second string is deleted file name
+static std::unordered_set<std::pair<std::string, std::string>, stdStringPairHasher> deletedFileSet;
+
 // Map of filenames to pak files. The size_t is an offset into loadedPaks and
 // the offset_t is the position within the zip archive (unused for PAK_DIR).
 static std::unordered_map<std::string, std::pair<uint32_t, offset_t>> fileMap;
 
 #ifndef BUILD_VM
+/* Parse the deleted file list file of a package.
+
+Each line of the file is the pak basename a file must
+be deleted from, followed by the deleted file name.
+
+Example:
+  map-chasm chasm-level0.navMesh
+
+This would prevent loading any chasm-level0.navMesh file
+from any dependencies with map-chasm basename.
+
+Current pak name is known as parent.name so it would be
+possible to implement a format variant that assumes pak name
+to be the same as the one containing the DELETED file. */
+static void ParseDeleted(const PakInfo& parent, Str::StringRef deletedData)
+{
+	auto lineStart = deletedData.begin();
+	int line = 0;
+	while (lineStart != deletedData.end()) {
+		// Get the end of the line or the end of the file.
+		line++;
+		auto lineEnd = std::find(lineStart, deletedData.end(), '\n');
+
+		// Skip spaces.
+		while (lineStart != lineEnd && Str::cisspace(*lineStart)) {
+			lineStart++;
+		}
+
+		if (lineStart == lineEnd) {
+			lineStart = lineEnd == deletedData.end() ? lineEnd : lineEnd + 1;
+			continue;
+		}
+
+		// Read the pak name.
+		std::string pakName;
+		while (lineStart != lineEnd && !Str::cisspace(*lineStart)) {
+			pakName.push_back(*lineStart++);
+		}
+
+		// Skip spaces.
+		while (lineStart != lineEnd && Str::cisspace(*lineStart)) {
+			lineStart++;
+		}
+
+		if (lineStart != lineEnd) {
+			// Read the file name.
+			std::string fileName;
+
+			while (lineStart != lineEnd) {
+				fileName.push_back(*lineStart++);
+			}
+
+			// If this is the end of the line, add the path to the deleted file list.
+			if (lineStart == lineEnd) {
+				fsLogs.Debug("Deleted file %s from %s in %s", fileName, pakName, parent.path);
+				deletedFileSet.emplace(std::pair<std::string, std::string>(pakName, fileName));
+				continue;
+			}
+		}
+
+		fsLogs.Warn("Invalid deleted file list specification on line %d in %s", line, Path::Build(parent.path, PAK_DELETED_FILE));
+		lineStart = lineEnd == deletedData.end() ? lineEnd : lineEnd + 1;
+	}
+}
+
 // Parse the dependencies file of a package
 // Each line of the dependencies file is a name followed by an optional version
 static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, std::error_code& err)
@@ -1130,9 +1213,34 @@ static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, std::error
 	}
 }
 
+/* The code is expected to be only reliable for ignoring deleted files
+in dependencies. For example if the unvanquished_0.52.2.dpk pak lists the
+scripts/colors.shader file in the DELETED file and has unvanquished_0.52.1.dpk
+in DEPS, the scripts/colors.shader file from unvanquished_0.52.1.dpk will
+be ignored.
+
+If the scripts/colors.shader file is still shipped in unvanquished_0.52.2.dpk
+and listed in the DELETED file from unvanquished_0.52.2.dpk you cannot expect
+the file to be ignored, it is expected the user deletes the file for real in
+the parent pak. Making sure the DELETED file applies on files of the same pak
+would increase code complexity while packager can just delete the file, in
+some cases the file may be ignored (if DELETED file is read first) but you
+must not rely on it and not expect it.
+
+This feature means it's possible to only delete a file from a repository but
+also to move a file from a pak repository to another pak repository and not
+get the older version of the file being loaded from the old pak instead of
+the new file from the new pak. */
+static bool FileIsDeleted(const PakInfo& pak, Str::StringRef filename)
+{
+	return deletedFileSet.find(std::pair<std::string, std::string>(pak.name, filename)) != deletedFileSet.end();
+}
+
 static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expectedChecksum, Str::StringRef pathPrefix, std::error_code& err)
 {
 	Util::optional<uint32_t> realChecksum;
+	bool hasDeleted = false;
+	offset_t deletedOffset = 0;
 	bool hasDeps = false;
 	offset_t depsOffset = 0;
 	ZipArchive zipFile;
@@ -1177,10 +1285,19 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 		if (err)
 			return;
 		for (auto it = dirRange.begin(); it != dirRange.end();) {
-			if (!isLegacy && (*it == PAK_DEPS_FILE))
+			if (!isLegacy && *it == PAK_DELETED_FILE) {
+				hasDeleted = true;
+			}
+			else if (!isLegacy && *it == PAK_DEPS_FILE) {
 				hasDeps = true;
+			}
 			else if (!Str::IsSuffix("/", *it) && Str::IsPrefix(pathPrefix, *it)) {
-				fileMap.emplace(*it, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, 0));
+				if (FileIsDeleted(pak, *it)) {
+					Log::Debug("Ignoring deleted file %s from %s", *it, pak.path);
+				}
+				else {
+					fileMap.emplace(*it, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, 0));
+				}
 			}
 			it.increment(err);
 			if (err)
@@ -1201,9 +1318,11 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 
 		// Get the file list and calculate the checksum of the package (checksum of all file checksums)
 		realChecksum = crc32(0, Z_NULL, 0);
-		zipFile.ForEachFile([&pak, &realChecksum, &pathPrefix, &hasDeps, &depsOffset, &isLegacy](Str::StringRef filename, offset_t offset, uint32_t crc) {
+		zipFile.ForEachFile([&pak, &realChecksum, &pathPrefix, &hasDeps, &hasDeleted, &depsOffset, &deletedOffset, &isLegacy](Str::StringRef filename, offset_t offset, uint32_t crc) {
 			// Note that 'return' is effectively 'continue' since we are in a lambda
-			if (!Str::IsPrefix(pathPrefix, filename) && filename != PAK_DEPS_FILE)
+			if (!Str::IsPrefix(pathPrefix, filename)
+				&& filename != PAK_DELETED_FILE
+				&& filename != PAK_DEPS_FILE)
 				return;
 			if (Str::IsSuffix("/", filename))
 				return;
@@ -1217,12 +1336,23 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 				realChecksum = crc32(*realChecksum, reinterpret_cast<const Bytef*>(&crc), sizeof(crc));
 			}
 
-			if (!isLegacy && (filename == PAK_DEPS_FILE)) {
+			if (!isLegacy && filename == PAK_DELETED_FILE) {
+				hasDeleted = true;
+				deletedOffset = offset;
+				return;
+			}
+			else if (!isLegacy && filename == PAK_DEPS_FILE) {
 				hasDeps = true;
 				depsOffset = offset;
 				return;
 			}
-			fileMap.emplace(filename, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, offset));
+
+			if (FileIsDeleted(pak, filename)) {
+				Log::Debug("Ignoring deleted file %s from %s", filename, pak.path);
+			}
+			else {
+				fileMap.emplace(filename, std::pair<uint32_t, offset_t>(loadedPaks.size() - 1, offset));
+			}
 		}, err);
 		if (err)
 			return;
@@ -1258,33 +1388,64 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			fsLogs.Warn("Pak checksum doesn't match filename: %s", pak.path);
 	}
 
-	// Load dependencies, but not if a checksum was specified
-	// Do not look for dependencies if it's a legacy pak (pk3)
-	if (!isLegacy && hasDeps && !expectedChecksum) {
-		std::string depsData;
-		if (pak.type == pakType_t::PAK_DIR) {
-			File depsFile = RawPath::OpenRead(Path::Build(pak.path, PAK_DEPS_FILE), err);
-			if (err)
-				return;
-			depsData = depsFile.ReadAll(err);
-			if (err)
-				return;
-		} else if (pak.type == pakType_t::PAK_ZIP) {
-			zipFile.OpenFile(depsOffset, err);
-			if (err)
-				return;
-			offset_t length = zipFile.FileLength(err);
-			if (err)
-				return;
-			depsData.resize(length);
-			auto read = zipFile.ReadFile(&depsData[0], length, err);
-			depsData.resize(read);
-			if (err)
-				return;
-		} else {
-			ASSERT_UNREACHABLE();
+	// Load deleted file list
+	// Do not look for deleted file list if it's a legacy pak (pk3)
+	if (!isLegacy) {
+		if (hasDeleted) {
+			std::string deletedData;
+			if (pak.type == pakType_t::PAK_DIR) {
+				File depsFile = RawPath::OpenRead(Path::Build(pak.path, PAK_DELETED_FILE), err);
+				if (err)
+					return;
+				deletedData = depsFile.ReadAll(err);
+				if (err)
+					return;
+			} else if (pak.type == pakType_t::PAK_ZIP) {
+				zipFile.OpenFile(depsOffset, err);
+				if (err)
+					return;
+				offset_t length = zipFile.FileLength(err);
+				if (err)
+					return;
+				deletedData.resize(length);
+				auto read = zipFile.ReadFile(&deletedData[0], length, err);
+				deletedData.resize(read);
+				if (err)
+					return;
+			} else {
+				ASSERT_UNREACHABLE();
+			}
+			ParseDeleted(pak, deletedData);
 		}
-		ParseDeps(pak, depsData, err);
+
+		// Load dependencies, but not if a checksum was specified
+		// Do not look for dependencies if it's a legacy pak (pk3)
+		if (hasDeps && !expectedChecksum) {
+			std::string depsData;
+			if (pak.type == pakType_t::PAK_DIR) {
+				File depsFile = RawPath::OpenRead(Path::Build(pak.path, PAK_DEPS_FILE), err);
+				if (err)
+					return;
+				depsData = depsFile.ReadAll(err);
+				if (err)
+					return;
+			} else if (pak.type == pakType_t::PAK_ZIP) {
+				zipFile.OpenFile(depsOffset, err);
+				if (err)
+					return;
+				offset_t length = zipFile.FileLength(err);
+				if (err)
+					return;
+				depsData.resize(length);
+				auto read = zipFile.ReadFile(&depsData[0], length, err);
+				depsData.resize(read);
+				if (err)
+					return;
+			} else {
+				ASSERT_UNREACHABLE();
+			}
+			ParseDeps(pak, depsData, err);
+		}
 	}
 }
 
@@ -1306,6 +1467,7 @@ void LoadPakExplicit(const PakInfo& pak, uint32_t expectedChecksum, std::error_c
 void ClearPaks()
 {
 	fsLogs.Verbose("^5Unloading all paks");
+	deletedFileSet.clear();
 	fileMap.clear();
 	for (LoadedPakInfo& x: loadedPaks) {
 		if (x.fd != -1)
