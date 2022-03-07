@@ -57,11 +57,26 @@ class MapCmd: public Cmd::StaticCmd {
             }
 
             const std::string& mapName = args.Argv(1);
+            // For non-legacy paks, a map named "foo" must be in the pak "map-foo"
+            std::string pakName;
 
             //Make sure the map exists to avoid typos that would kill the game
-            FS::GetAvailableMaps();
-            const auto loadedPakInfo = FS::PakPath::LocateFile(Str::Format("maps/%s.bsp", mapName));
-            if (!loadedPakInfo) {
+            if (FS::FindPak("map-" + mapName) != nullptr) {
+                pakName = "map-" + mapName;
+            } else if (FS::UseLegacyPaks()) {
+                // Load all legacy paks
+                for (const FS::PakInfo& pak : FS::GetAvailablePaks()) {
+                    if (pak.version.empty()) {
+                        std::error_code ignored;
+                        FS::PakPath::LoadPakPrefix(pak, "maps/", ignored);
+                    }
+                }
+                if (const FS::PakInfo* pak = FS::PakPath::LocateFile(Str::Format("maps/%s.bsp", mapName))) {
+                    pakName = pak->name;
+                }
+            }
+
+            if (pakName.empty()) {
                 Print("Can't find map %s", mapName);
                 return;
             }
@@ -73,7 +88,7 @@ class MapCmd: public Cmd::StaticCmd {
             }
 
             Cvar::SetValueForce("sv_cheats", cheat ? "1" : "0");
-            SV_SpawnServer(loadedPakInfo->name, mapName);
+            SV_SpawnServer(pakName, mapName);
         }
 
         Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
