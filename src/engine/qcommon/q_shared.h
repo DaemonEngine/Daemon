@@ -36,6 +36,7 @@ Maryland 20850 USA.
 #define Q_SHARED_H_
 
 #include "common/Defs.h"
+#include "gameinfo.h"
 
 // math.h/cmath uses _USE_MATH_DEFINES to decide if to define M_PI etc or not.
 // So define _USE_MATH_DEFINES early before including math.h/cmath
@@ -44,25 +45,15 @@ Maryland 20850 USA.
 #define _USE_MATH_DEFINES
 #endif
 
-
 // q_shared.h -- included first by ALL program modules.
 // A user mod should never modify this file
 
-#define ENGINE_NAME             "Daemon Engine"
-#define ENGINE_VERSION          PRODUCT_VERSION
+#define GAME_NAME_VERSION va("%s %s", Gameinfo::getInstance().name().c_str(), Gameinfo::getInstance().version().c_str())
 
-#ifdef REVISION
-# define Q3_VERSION             PRODUCT_NAME " " PRODUCT_VERSION " " REVISION
-#else
-# define Q3_VERSION             PRODUCT_NAME " " PRODUCT_VERSION
-#endif
+#define ENGINE_NAME_VERSION ENGINE_NAME " " ENGINE_VERSION
 
-#define Q3_ENGINE               ENGINE_NAME " " ENGINE_VERSION
-#define Q3_ENGINE_DATE          __DATE__
-
-#define CLIENT_WINDOW_TITLE     PRODUCT_NAME
-#define CLIENT_WINDOW_MIN_TITLE PRODUCT_NAME_LOWER
-
+#define CLIENT_WINDOW_TITLE     Gameinfo::getInstance().name().c_str()
+#define CLIENT_WINDOW_MIN_TITLE Gameinfo::getInstance().name_lower().c_str()
 
 #define Q_UNUSED(x) (void)(x)
 

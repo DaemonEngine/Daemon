@@ -169,8 +169,8 @@ if (curl_easy_setopt(request_, option, value) != CURLE_OK) { \
 	return false; \
 }
 
-		SETOPT( CURLOPT_USERAGENT, Str::Format( "%s %s", PRODUCT_NAME "/" PRODUCT_VERSION, curl_version() ).c_str() )
-		SETOPT( CURLOPT_REFERER, Str::Format("%s%s", URI_SCHEME, Cvar::GetValue("cl_currentServerIP")).c_str() )
+		SETOPT( CURLOPT_USERAGENT, Str::Format( "%s %s", ENGINE_NAME "/" ENGINE_VERSION, curl_version() ).c_str() )
+		SETOPT( CURLOPT_REFERER, Str::Format("%s://%s", Gameinfo::getInstance().uriprotocol().c_str(), Cvar::GetValue("cl_currentServerIP")).c_str() )
 		SETOPT( CURLOPT_URL, url.c_str() )
 		SETOPT( CURLOPT_PROTOCOLS, long(CURLPROTO_HTTP) )
 		SETOPT( CURLOPT_WRITEFUNCTION, curl_write_callback(LibcurlWriteCallback) )

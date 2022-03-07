@@ -1,0 +1,16 @@
+NAME               Unknown Daemon Game
+VERSION            0.0
+WINDOWSDIRNAME     UnknownDaemonGame
+MACOSDIRNAME       UnknownDaemonGame
+XDGDIRNAME         unknowndaemongame
+BASENAME           unknowngame
+BASEPAK            unknowngame
+MASTERSERVER1      master.example.net
+MASTERSERVER2      master2.example.net
+MASTERSERVER3      master3.example.net
+MASTERSERVER4      master4.example.net
+MASTERSERVER5      master5.example.net
+WWWBASEURL         dl.example.net/pkg
+MASTERGAMENAME     UNKNOWN
+SERVERGAMENAME     unknown
+URIPROTOCOL        game

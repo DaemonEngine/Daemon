@@ -281,11 +281,11 @@ struct MasterServer
 };
 
 MasterServer masterServers[MAX_MASTER_SERVERS] = {
-	{"sv_master1", MASTER1_SERVER_NAME},
-	{"sv_master2", MASTER2_SERVER_NAME},
-	{"sv_master3", MASTER3_SERVER_NAME},
-	{"sv_master4", MASTER4_SERVER_NAME},
-	{"sv_master5", MASTER5_SERVER_NAME},
+	{"sv_master1", ""},
+	{"sv_master2", ""},
+	{"sv_master3", ""},
+	{"sv_master4", ""},
+	{"sv_master5", ""},
 };
 } // namespace
 
@@ -353,8 +353,8 @@ but not on every player enter or exit.
 ================
 */
 static const int HEARTBEAT_MSEC = (300 * 1000);
-#define HEARTBEAT_GAME PRODUCT_NAME
-#define HEARTBEAT_DEAD PRODUCT_NAME "-dead"
+#define HEARTBEAT_GAME ENGINE_NAME
+#define HEARTBEAT_DEAD HEARTBEAT_GAME "-dead"
 
 void SV_MasterHeartbeat( const char *hbname )
 {
@@ -578,7 +578,7 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 		info_map["stats"] = sv_statsURL->string;
 	}
 
-	info_map["gamename"] = GAMENAME_STRING;  // Arnout: to be able to filter out Quake servers
+	info_map["gamename"] = Gameinfo::getInstance().mastergamename();  // Arnout: to be able to filter out Quake servers
 
 	Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "infoResponse\n%s", InfoMapToString( info_map ) );
 }
