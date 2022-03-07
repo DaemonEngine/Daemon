@@ -2791,19 +2791,13 @@ std::set<std::string> GetAvailableMaps()
 	#ifndef BUILD_VM
 		RefreshPaks();
 	#endif
-	std::error_code ignore;
-	for ( const auto& pak : GetAvailableMapPaks() )
-	{
-		FS::PakPath::LoadPakPrefix(pak, "maps", ignore);
-	}
 
-	static const std::string map_suffix = ".bsp";
-
-	for ( const auto& file : FS::PakPath::ListFiles("maps", ignore) )
+	for (const auto& pak : FS::GetAvailablePaks())
 	{
-		if ( Str::IsSuffix(map_suffix, file) )
+		const std::string prefix = "map-";
+		if (Str::IsPrefix(prefix, pak.name) && pak.name.size() > prefix.size())
 		{
-			maps.insert( file.substr(0, file.size() - map_suffix.size()) );
+			maps.insert(pak.name.substr(prefix.size()));
 		}
 	}
 

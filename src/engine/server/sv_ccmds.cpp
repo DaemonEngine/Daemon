@@ -100,6 +100,7 @@ class MapCmd: public Cmd::StaticCmd {
                 }
                 return out;
             } else if (argNum > 1) {
+                // FIXME: a layout could also be in a pak?
                 return FS::HomePath::CompleteFilename(prefix, "game/layouts/" + args.Argv(1), ".dat", false, true);
             }
 
