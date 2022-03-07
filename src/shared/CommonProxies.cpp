@@ -557,8 +557,3 @@ bool trap_FS_LoadPak( const char *pak, const char* prefix )
 	VM::SendMsg<VM::FSLoadPakMsg>(pak, prefix, res);
 	return res;
 }
-
-void trap_FS_LoadAllMapMetadata()
-{
-	VM::SendMsg<VM::FSLoadMapMetadataMsg>();
-}

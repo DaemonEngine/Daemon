@@ -96,7 +96,6 @@ namespace VM {
         QVM_COMMON_FS_GET_FILE_LIST_RECURSIVE,
         QVM_COMMON_FS_FIND_PAK,
         QVM_COMMON_FS_LOAD_PAK,
-        QVM_COMMON_FS_LOAD_MAP_METADATA,
     };
 
     using ErrorMsg = IPC::SyncMessage<
@@ -148,9 +147,6 @@ namespace VM {
     using FSLoadPakMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_LOAD_PAK>, std::string, std::string>,
         IPC::Reply<bool>
-    >;
-    using FSLoadMapMetadataMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_LOAD_MAP_METADATA>>
     >;
 
     // Misc Syscall Definitions

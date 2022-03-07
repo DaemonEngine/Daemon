@@ -676,28 +676,6 @@ void FS_LoadBasePak()
 	Sys::Error("Could not load default base pak '%s'", DEFAULT_BASE_PAK);
 }
 
-void FS_LoadAllMapMetadata()
-{
-	const std::string pak_map_prefix("map-");
-
-	for (const auto& pak: FS::GetAvailableMapPaks()) {
-		try {
-			// If pak name is long enough to have “map-” prefix,
-			// and pak name without ”map-” prefix is not empty string.
-			if (pak.name.length() > pak_map_prefix.length())
-			{
-				// If pak name starts with “map-” prefix
-				if (Str::IsPrefix(pak_map_prefix, pak.name))
-				{
-					// FIXME: This looks to be game-specific,
-					// not all games use “meta/” mechanism.
-					FS::PakPath::LoadPakPrefix(pak, va("meta/%s/", pak.name.substr(pak_map_prefix.length()).c_str()));
-				}
-			}
-		} catch (std::system_error&) {} // ignore and move on
-	}
-}
-
 bool FS_LoadServerPaks(const char* paks, bool isDemo)
 {
 	Cmd::Args args(paks);
