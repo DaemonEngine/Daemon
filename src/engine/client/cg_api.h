@@ -138,7 +138,6 @@ void            trap_FS_FCloseFile( fileHandle_t f );
 int             trap_FS_GetFileList( const char *path, const char *extension, char *listbuf, int bufsize );
 int             trap_FS_GetFileListRecursive( const char *path, const char *extension, char *listbuf, int bufsize );
 bool        trap_FS_LoadPak( const char *pak, const char *prefix );
-void            trap_FS_LoadAllMapMetadata();
 void            trap_SendConsoleCommand( const char *text );
 void            trap_AddCommand( const char *cmdName );
 void            trap_RemoveCommand( const char *cmdName );

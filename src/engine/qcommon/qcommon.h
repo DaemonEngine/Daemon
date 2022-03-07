@@ -454,7 +454,6 @@ const char* FS_LoadedPaks();
 
 bool     FS_LoadPak( const char *name );
 void     FS_LoadBasePak();
-void     FS_LoadAllMapMetadata();
 bool     FS_LoadServerPaks( const char* paks, bool isDemo );
 
 // shutdown and restart the filesystem so changes to fs_gamedir can take effect

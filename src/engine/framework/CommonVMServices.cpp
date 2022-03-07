@@ -352,12 +352,6 @@ namespace VM {
                 });
                 break;
 
-            case QVM_COMMON_FS_LOAD_MAP_METADATA:
-                IPC::HandleMsg<FSLoadMapMetadataMsg>(channel, std::move(reader), [this] {
-                    FS_LoadAllMapMetadata();
-                });
-                break;
-
             default:
                 Sys::Drop("Bad log syscall number '%d' for VM '%s'", minor, vmName.c_str());
         }
