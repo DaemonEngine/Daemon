@@ -291,7 +291,7 @@ namespace VM {
         IPC::Reply<Util::optional<uint64_t>>
     >;
     using FSPakPathLoadPakMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_LOADPAK>, uint32_t, Util::optional<uint32_t>, std::string>
+        IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_LOADPAK>, uint32_t, Util::optional<uint32_t>, std::string, bool>
     >;
 
 }

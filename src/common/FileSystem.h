@@ -310,7 +310,7 @@ namespace PakPath {
 	void LoadPak(const PakInfo& pak, std::error_code& err = throws());
 
 	// Load a subset of a pak, only loading subpaths starting with the given prefix
-	// Includes dependency paks
+	// Does not load dependencies.
 	void LoadPakPrefix(const PakInfo& pak, Str::StringRef pathPrefix, std::error_code& err = throws());
 
 	// Load a pak into the namespace and verify its checksum but *don't* load its dependencies
