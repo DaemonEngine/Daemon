@@ -2775,20 +2775,6 @@ const std::vector<PakInfo>& GetAvailablePaks()
 	return availablePaks;
 }
 
-
-std::vector<PakInfo> GetAvailableMapPaks()
-{
-	std::vector<PakInfo> infos;
-	for ( const auto& pak : FS::GetAvailablePaks() )
-	{
-		if (UseLegacyPaks() || Str::IsPrefix("map-", pak.name))
-		{
-			infos.push_back(pak);
-		}
-	}
-	return infos;
-}
-
 std::set<std::string> GetAvailableMaps()
 {
 	std::set<std::string> maps;
