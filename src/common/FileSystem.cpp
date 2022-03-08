@@ -1142,7 +1142,7 @@ static void ParseDeleted(const PakInfo& parent, Str::StringRef deletedData)
 
 // Parse the dependencies file of a package
 // Each line of the dependencies file is a name followed by an optional version
-static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, std::error_code& err)
+static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, Str::StringRef prefix, std::error_code& err)
 {
 	auto lineStart = depsData.begin();
 	int line = 0;
@@ -1176,7 +1176,7 @@ static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, std::error
 				SetErrorCodeFilesystem(err, filesystem_error::missing_dependency);
 				return;
 			}
-			LoadPak(*pak, err);
+			LoadPakPrefix(*pak, prefix, err);
 			if (err)
 				return;
 			lineStart = lineEnd == depsData.end() ? lineEnd : lineEnd + 1;
@@ -1200,7 +1200,7 @@ static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, std::error
 				SetErrorCodeFilesystem(err, filesystem_error::missing_dependency);
 				return;
 			}
-			LoadPak(*pak, err);
+			LoadPakPrefix(*pak, prefix, err);
 			if (err)
 				return;
 			lineStart = lineEnd == depsData.end() ? lineEnd : lineEnd + 1;
@@ -1444,7 +1444,7 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			} else {
 				ASSERT_UNREACHABLE();
 			}
-			ParseDeps(pak, depsData, err);
+			ParseDeps(pak, depsData, pathPrefix, err);
 		}
 	}
 }
