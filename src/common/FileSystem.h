@@ -536,9 +536,6 @@ std::string MakePakName(Str::StringRef name, Str::StringRef version, Util::optio
 // Get the list of available paks
 const std::vector<PakInfo>& GetAvailablePaks();
 
-// Get the list of available paks that contain maps
-std::vector<PakInfo> GetAvailableMapPaks();
-
 // Get the list of available map names
 std::set<std::string> GetAvailableMaps();
 
