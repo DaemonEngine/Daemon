@@ -61,6 +61,7 @@ class MapCmd: public Cmd::StaticCmd {
             std::string pakName;
 
             //Make sure the map exists to avoid typos that would kill the game
+            // The map searching algorithms here should be in sync with GetAvailableMaps()
             if (FS::FindPak("map-" + mapName) != nullptr) {
                 pakName = "map-" + mapName;
             } else if (FS::UseLegacyPaks()) {
@@ -94,7 +95,7 @@ class MapCmd: public Cmd::StaticCmd {
         Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
             if (argNum == 1) {
                 Cmd::CompletionResult out;
-                for (auto& map: FS::GetAvailableMaps()) {
+                for (auto& map: FS::GetAvailableMaps(true)) {
                     if (Str::IsPrefix(prefix, map))
                         out.push_back({map, ""});
                 }
@@ -399,7 +400,7 @@ public:
 
 	void Run(const Cmd::Args&) const override
 	{
-		auto maps = FS::GetAvailableMaps();
+		auto maps = FS::GetAvailableMaps(true);
 
 		Print("Listing %d maps:", maps.size());
 
