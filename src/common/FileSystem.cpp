@@ -2775,7 +2775,9 @@ const std::vector<PakInfo>& GetAvailablePaks()
 	return availablePaks;
 }
 
-std::set<std::string> GetAvailableMaps()
+// This should be in sync with how maps are found by MapCmd
+// Used for /listmaps and tab completion
+std::set<std::string> GetAvailableMaps(bool allowLegacyPaks)
 {
 	std::set<std::string> maps;
 
@@ -2783,12 +2785,30 @@ std::set<std::string> GetAvailableMaps()
 		RefreshPaks();
 	#endif
 
+	const std::string pakPrefix = "map-";
 	for (const auto& pak : FS::GetAvailablePaks())
 	{
-		const std::string prefix = "map-";
-		if (Str::IsPrefix(prefix, pak.name) && pak.name.size() > prefix.size())
-		{
-			maps.insert(pak.name.substr(prefix.size()));
+		if (pak.version.empty()) {
+			if (allowLegacyPaks) {
+				// Load legacy pak, to be used in the ListFiles call below
+				// (UseLegacyPaks() is implied to have been turned on by the existence of the pak in availablePaks)
+				std::error_code ignored;
+				FS::PakPath::LoadPakPrefix(pak, "maps/", ignored);
+			}
+		} else {
+			if (Str::IsPrefix(pakPrefix, pak.name) && pak.name.size() > pakPrefix.size()) {
+				maps.insert(pak.name.substr(pakPrefix.size()));
+			}
+		}
+	}
+
+	if (allowLegacyPaks && UseLegacyPaks()) {
+		const std::string pathSuffix = ".bsp";
+		std::error_code ignored;
+		for (const std::string& path : FS::PakPath::ListFiles("maps/", ignored)) {
+			if (Str::IsSuffix(pathSuffix, path) && path.size() > pathSuffix.size()) {
+				maps.insert(path.substr(0, path.size() - pathSuffix.size()));
+			}
 		}
 	}
 

@@ -537,7 +537,7 @@ std::string MakePakName(Str::StringRef name, Str::StringRef version, Util::optio
 const std::vector<PakInfo>& GetAvailablePaks();
 
 // Get the list of available map names
-std::set<std::string> GetAvailableMaps();
+std::set<std::string> GetAvailableMaps(bool allowLegacyPaks);
 
 // Get the home path
 const std::string& GetHomePath();
