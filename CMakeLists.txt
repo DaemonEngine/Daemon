@@ -119,12 +119,8 @@ option(USE_WERROR "Tell the compiler to make the build fail when warnings are pr
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
 option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
 
-if (APPLE)
-    # Turn off by default because it is reportedly broken
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
-else()
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
-endif()
+# Turn off by default because it is not handling dependencies correctly
+option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header WARNING: using with partial rebuild is not handling dependencies correctly" OFF)
 option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" OFF)
 option(BE_VERBOSE "Tell the compiler to report all warnings" OFF)
 option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" OFF)
