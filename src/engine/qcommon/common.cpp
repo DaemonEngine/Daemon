@@ -910,18 +910,36 @@ void Com_Frame()
 		}
 		else
 		{
-			if ( com_minimized->integer && maxfpsMinimized.Get() > 0 )
+			int max;
+
+			if ( com_minimized->integer )
 			{
-				minMsec = 1000 / maxfpsMinimized.Get();
+				max = maxfpsMinimized.Get();
 			}
-			else if ( com_unfocused->integer && maxfpsUnfocused.Get() > 0 )
+			else if ( com_unfocused->integer )
 			{
-				minMsec = 1000 / maxfpsUnfocused.Get();
+				max = maxfpsUnfocused.Get();
 			}
-			else if ( maxfps.Get() > 0 )
+			else
 			{
-				minMsec = 1000 / maxfps.Get();
+				max = maxfps.Get();
 			}
+
+			// A positive maxfps caps the fps to the given number, with an implicit
+			// cap at 333fps to avoid bugs. Above 333fps minMsec is less than 3.
+			// At 1 or 2 minMsec, the game still runs but exhibits various issues
+			// such as first-person weapon model flickering, or client having
+			// connection issues with server.
+			if ( max > 0 )
+			{
+				minMsec = std::max( 1000 / max, 3 );
+			}
+			// A zero maxfps unlocks fps but still cap it to 333 to avoid bugs.
+			else if ( max == 0 )
+			{
+				minMsec = 3;
+			}
+			// A negative maxfps really unlocks fps (and bugs).
 			else
 			{
 				minMsec = 1;
@@ -930,7 +948,11 @@ void Com_Frame()
 	}
 	else
 	{
-		minMsec = 1; // Bad things happen if this is 0
+		// Bad things happen if minMsec is 0.
+		// It looks like demo played with cvar_demo_timedemo enabled
+		// are not affected by the rendering bugs related to having
+		// minMsec being lower than 3.
+		minMsec = 1;
 	}
 
 	Com_EventLoop();

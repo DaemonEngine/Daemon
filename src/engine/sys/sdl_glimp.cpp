@@ -36,6 +36,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static Log::Logger logger("glconfig", "", Log::Level::NOTICE);
 
+static Cvar::Modified<Cvar::Cvar<bool>> r_noBorder(
+	"r_noBorder", "draw window without border", Cvar::ARCHIVE, false);
+static Cvar::Modified<Cvar::Range<Cvar::Cvar<int>>> r_swapInterval(
+	"r_swapInterval", "enable vsync on every Nth frame, negative for apdative", Cvar::ARCHIVE, 0, -5, 5 );
+
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
 
@@ -1042,7 +1047,8 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 	glConfig2.glRequestedMajor = requestedConfiguration.major;
 	glConfig2.glRequestedMinor = requestedConfiguration.minor;
 
-	SDL_GL_SetSwapInterval( r_swapInterval->integer );
+	// FIXME: this is missing all the checks and fallbacks that occur when the cvar is modified?
+	SDL_GL_SetSwapInterval( r_swapInterval.Get() );
 
 	{
 		/* Make sure we don't silence any useful error that would
@@ -1422,8 +1428,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 	if ( fullscreen && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
 	{
 		logger.Notice("Fullscreen not allowed with in_nograb 1" );
-		ri.Cvar_Set( "r_fullscreen", "0" );
-		r_fullscreen->modified = false;
+		r_fullscreen.Set( false );
 		fullscreen = false;
 	}
 
@@ -1831,17 +1836,8 @@ bool GLimp_Init()
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
-	if ( ri.Cvar_VariableIntegerValue( "com_abnormalExit" ) )
-	{
-		ri.Cvar_Set( "r_mode", va( "%d", R_MODE_FALLBACK ) );
-		ri.Cvar_Set( "r_fullscreen", "0" );
-		ri.Cvar_Set( "r_centerWindow", "0" );
-		ri.Cvar_Set( "r_noBorder", "0" );
-		ri.Cvar_Set( "com_abnormalExit", "0" );
-	}
-
 	// Create the window and set up the context
-	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen->integer, !r_noBorder->value ) )
+	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen.Get(), !r_noBorder.Get() ) )
 	{
 		goto success;
 	}
@@ -2030,7 +2026,7 @@ should only be called by the main thread.
 */
 void GLimp_HandleCvars()
 {
-	if ( r_swapInterval->modified )
+	if ( Util::optional<int> swapInterval = r_swapInterval.GetModifiedValue() )
 	{
 		/* Set the swap interval for the OpenGL context.
 
@@ -2100,12 +2096,10 @@ void GLimp_HandleCvars()
 		5 and -5 are arbitrarily set as ceiling and floor value
 		to prevent mistakes making the game unresponsive. */
 
-		AssertCvarRange( r_swapInterval, -5, 5, true );
-
 		R_SyncRenderThread();
 
-		int sign = r_swapInterval->integer < 0 ? -1 : 1;
-		int interval = std::abs( r_swapInterval->integer );
+		int sign = *swapInterval < 0 ? -1 : 1;
+		int interval = std::abs( *swapInterval );
 
 		while ( SDL_GL_SetSwapInterval( sign * interval ) == -1 )
 		{
@@ -2133,29 +2127,27 @@ void GLimp_HandleCvars()
 				}
 			}
 		}
-
-		r_swapInterval->modified = false;
 	}
 
-	if ( r_fullscreen->modified )
+	if ( Util::optional<bool> wantFullscreen = r_fullscreen.GetModifiedValue() )
 	{
 		int sdlToggled = false;
 		bool needToToggle = true;
 		bool fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
 
-		if ( r_fullscreen->integer && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
+		if ( *wantFullscreen && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
 		{
 			logger.Notice("Fullscreen not allowed with in_nograb 1" );
-			ri.Cvar_Set( "r_fullscreen", "0" );
-			r_fullscreen->modified = false;
+			*wantFullscreen = false;
+			r_fullscreen.Set( false );
 		}
 
 		// Is the state we want different from the current state?
-		needToToggle = !!r_fullscreen->integer != fullscreen;
+		needToToggle = *wantFullscreen != fullscreen;
 
 		if ( needToToggle )
 		{
-			Uint32 flags = r_fullscreen->integer == 0 ? 0 : SDL_WINDOW_FULLSCREEN;
+			Uint32 flags = *wantFullscreen ? SDL_WINDOW_FULLSCREEN : 0;
 			sdlToggled = SDL_SetWindowFullscreen( window, flags );
 
 			if ( sdlToggled < 0 )
@@ -2165,16 +2157,12 @@ void GLimp_HandleCvars()
 
 			ri.IN_Restart();
 		}
-
-		r_fullscreen->modified = false;
 	}
 
-	if ( r_noBorder->modified )
+	if ( Util::optional<bool> noBorder = r_noBorder.GetModifiedValue() )
 	{
-		SDL_bool bordered = r_noBorder->integer == 0 ? SDL_TRUE : SDL_FALSE;
+		SDL_bool bordered = *noBorder ? SDL_FALSE : SDL_TRUE;
 		SDL_SetWindowBordered( window, bordered );
-
-		r_noBorder->modified = false;
 	}
 
 	// TODO: Update r_allowResize using SDL_SetWindowResizable when we have SDL 2.0.5

@@ -51,6 +51,15 @@ Maryland 20850 USA.
 #pragma clang diagnostic ignored "-Wunused-lambda-capture"
 #endif
 
+/**
+ * Independently of the gamelogic, we can assume the game to have "teams" with an id,
+ * as long as we don't assume any semantics on that
+ * we can assume however that "0" is some form of "neutral" or "non" team,
+ * most likely a non-playing client that e.g. observes the game or hasn't joined yet.
+ * even in a deathmatch or singleplayer game, joining would start with team 1, even though there might not be another one
+ * this allows several client logic (like team specific binds or configurations) to work no matter how the team is called or what its attributes are
+ */
+static Cvar::Cvar<int> p_team("p_team", "team number of your team", Cvar::ROM, 0);
 
 /*
 ====================
@@ -962,13 +971,14 @@ void CL_SetCGameTime()
  */
 void  CL_OnTeamChanged( int newTeam )
 {
-	if(p_team->integer == newTeam
-			&& p_team->modificationCount > 0 ) //to make sure, we run the hook initially as well
+	static bool first = true;
+	if ( p_team.Get() == newTeam && !first )
 	{
 		return;
 	}
+	first = false;
 
-	Cvar_SetValue( p_team->name, newTeam );
+	Cvar::SetValueForce( "p_team", std::to_string( newTeam ) );
 
 	/* set all team specific teambindings */
 	Keyboard::SetTeam( newTeam );

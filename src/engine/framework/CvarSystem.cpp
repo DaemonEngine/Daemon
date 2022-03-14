@@ -104,7 +104,6 @@ namespace Cvar {
         }
 
         var.modified = modified;
-        var.modificationCount++;
         var.value = atof(var.string);
         var.integer = atoi(var.string);
 
@@ -120,7 +119,6 @@ namespace Cvar {
 
         if (not var.name) {
             var.name = CopyString(name.c_str());
-            var.modificationCount = -1;
         }
 
         if (var.resetString) Z_Free(var.resetString);
@@ -147,7 +145,6 @@ namespace Cvar {
         }
 
         var.modified |= modified;
-        var.modificationCount++;
         var.value = atof(var.string);
         var.integer = atoi(var.string);
 
@@ -336,10 +333,11 @@ namespace Cvar {
             }
 
             //Create the cvar and parse its default value
+            description = Str::Format("\"%s\" - %s", defaultValue, description);
             cvar = new cvarRecord_t{defaultValue, defaultValue, Util::nullopt, flags, description, proxy, {}};
             cvars[name] = cvar;
 
-            Cmd::AddCommand(name, cvarCommand, "cvar - \"" + defaultValue + "\" - " + description);
+            Cmd::AddCommand(name, cvarCommand, "cvar - " + description);
 
         } else {
             cvar = it->second;

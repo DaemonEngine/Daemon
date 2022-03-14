@@ -2865,11 +2865,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_lightScissors;
 	extern cvar_t *r_noLightVisCull;
 	extern cvar_t *r_noInteractionSort;
-	extern cvar_t *r_showcluster;
 
 	extern cvar_t *r_mode; // video mode
-	extern cvar_t *r_noBorder;
-	extern cvar_t *r_fullscreen;
 	extern cvar_t *r_gamma;
 
 	extern cvar_t *r_ext_occlusion_query; // these control use of specific extensions
@@ -2898,7 +2895,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	extern cvar_t *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	extern cvar_t *r_finish;
 	extern cvar_t *r_drawBuffer;
-	extern cvar_t *r_swapInterval;
 	extern cvar_t *r_textureMode;
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;

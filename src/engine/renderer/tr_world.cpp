@@ -25,6 +25,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "gl_shader.h"
 
+static Cvar::Modified<Cvar::Cvar<bool>> r_showCluster(
+	"r_showCluster", "print PVS cluster at current location", Cvar::CHEAT, false );
+
 /*
 ================
 R_CullSurface
@@ -759,6 +762,8 @@ static void R_MarkLeaves()
 	leaf = R_PointInLeaf( tr.viewParms.pvsOrigin );
 	cluster = leaf->cluster;
 
+	bool showClusterModified = !!r_showCluster.GetModifiedValue();
+
 	// if the cluster is the same and the area visibility matrix
 	// hasn't changed, we don't need to mark everything again
 	if( tr.refdef.areamaskModified ) {
@@ -771,9 +776,9 @@ static void R_MarkLeaves()
 		for ( i = 0; i < MAX_VISCOUNTS; i++ ) {
 			if ( tr.visClusters[ i ] == cluster ) {
 				// if r_showcluster was just turned on, remark everything
-				if ( !r_showcluster->modified )
+				if ( !showClusterModified )
 				{
-					if ( tr.visClusters[ i ] != tr.visClusters[ tr.visIndex ] && r_showcluster->integer )
+					if ( tr.visClusters[ i ] != tr.visClusters[ tr.visIndex ] && r_showCluster.Get() )
 					{
 						Log::Notice("found cluster:%i  area:%i  index:%i", cluster, leaf->area, i );
 					}
@@ -789,14 +794,9 @@ static void R_MarkLeaves()
 	tr.visClusters[ tr.visIndex ] = cluster;
 	tr.visCounts[ tr.visIndex ]++;
 
-	if ( r_showcluster->modified || r_showcluster->integer )
+	if ( r_showCluster.Get() )
 	{
-		r_showcluster->modified = false;
-
-		if ( r_showcluster->integer )
-		{
-			Log::Notice("update cluster:%i  area:%i  index:%i", cluster, leaf->area, tr.visIndex );
-		}
+		Log::Notice("update cluster:%i  area:%i  index:%i", cluster, leaf->area, tr.visIndex );
 	}
 
 	if ( r_novis->integer || tr.visClusters[ tr.visIndex ] == -1 )

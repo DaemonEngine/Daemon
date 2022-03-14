@@ -361,76 +361,11 @@ namespace Cvar{
     }
 }
 
-// In the QVMs are used registered through vmCvar_t which contains a copy of the values of the cvar
-// each frame will call Cvar_Update for each cvar. Previously the cvar system would use a modification
-// count in both the engine cvar and the vmcvar to update the latter lazily. However we cannot afford
-// that many roundtrips anymore.
-// The following code registers a special CvarProxy for each vmCvar_t and will cache the new value.
-// That way we are able to update vmcvars lazily without roundtrips. See qcommon/cmd.cpp for the
-// legacy implementation.
-
-class VMCvarProxy : public Cvar::CvarProxy {
-    public:
-        VMCvarProxy(Str::StringRef name, int flags, Str::StringRef defaultValue)
-        : Cvar::CvarProxy(name, flags, defaultValue), modificationCount(0), value(defaultValue) {
-            Register("");
-        }
-
-        Cvar::OnValueChangedResult OnValueChanged(Str::StringRef newValue) override {
-            value = newValue;
-            modificationCount++;
-            return Cvar::OnValueChangedResult{true, ""};
-        }
-
-        void Update(vmCvar_t* cvar) {
-            if (cvar->modificationCount == modificationCount) {
-                return;
-            }
-
-            Q_strncpyz(cvar->string, value.c_str(), MAX_CVAR_VALUE_STRING);
-
-            if (not Str::ToFloat(value, cvar->value)) {
-                cvar->value = 0.0;
-            }
-            if (not Str::ParseInt(cvar->integer, value)) {
-                cvar->integer = 0;
-            }
-
-            cvar->modificationCount = modificationCount;
-        }
-
-    private:
-        int modificationCount;
-        std::string value;
-};
-
-std::vector<VMCvarProxy*> vmCvarProxies;
-
-static void UpdateVMCvar(vmCvar_t* cvar) {
-    vmCvarProxies[cvar->handle]->Update(cvar);
-}
-
-void trap_Cvar_Register(vmCvar_t *cvar, const char *varName, const char *value, int flags) {
-    vmCvarProxies.push_back(new VMCvarProxy(varName, flags, value));
-
-    if (!cvar) {
-        return;
-    }
-
-    cvar->modificationCount = -1;
-    cvar->handle = vmCvarProxies.size() - 1;
-    UpdateVMCvar(cvar);
-}
-
 void trap_Cvar_Set(const char *varName, const char *value) {
     if (!value) {
         value = "";
     }
     Cvar::SetValue(varName, value);
-}
-
-void trap_Cvar_Update(vmCvar_t *cvar) {
-    UpdateVMCvar(cvar);
 }
 
 int trap_Cvar_VariableIntegerValue(const char *varName) {

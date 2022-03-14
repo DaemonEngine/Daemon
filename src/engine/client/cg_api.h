@@ -119,8 +119,6 @@ enum class MouseMode
 };
 
 int             trap_Milliseconds(); // TODO: Rely on CommonProxies.h declaration instead of this one.
-void            trap_Cvar_Register( vmCvar_t *vmCvar, const char *varName, const char *defaultValue, int flags );
-void            trap_Cvar_Update( vmCvar_t *vmCvar );
 void            trap_Cvar_Set( const char *var_name, const char *value );
 void            trap_Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize );
 int             trap_Cvar_VariableIntegerValue( const char *var_name );
