@@ -3948,7 +3948,8 @@ static void RB_RenderDebugUtils()
 		GL_PopMatrix();
 	}
 
-	if ( r_showCubeProbes->integer )
+	// GLSL shader isn't built when reflection mapping is disabled.
+	if ( r_showCubeProbes->integer && gl_reflectionShader != nullptr )
 	{
 		cubemapProbe_t *cubeProbe;
 		int            j;
