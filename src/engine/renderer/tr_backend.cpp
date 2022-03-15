@@ -3987,6 +3987,13 @@ static void RB_RenderDebugUtils()
 		{
 			cubeProbe = ( cubemapProbe_t * ) Com_GrowListElement( &tr.cubeProbes, j );
 
+			/* Do not crash when cubemaps are being generated,
+			it's also possible to set a default texture instead. */
+			if ( cubeProbe->cubemap == nullptr )
+			{
+				continue;
+			}
+
 			// bind u_ColorMap
 			GL_BindToTMU( 0, cubeProbe->cubemap );
 
