@@ -70,16 +70,12 @@ class ClientApplication : public Application {
 	        }
         }
 
-        void Initialize(Str::StringRef uri) override {
+        void Initialize() override {
             Hunk_Init();
 
             Com_Init();
 
             CL_StartHunkUsers();
-
-            if (!uri.empty()) {
-                Cmd::BufferCommandTextAfter(std::string("connect ") + Cmd::Escape(uri));
-            }
         }
 
         void Frame() override {
