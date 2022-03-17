@@ -419,7 +419,6 @@ struct cmdlineArgs_t {
 
 	std::unordered_map<std::string, std::string> cvars;
 	std::string commands;
-    std::string uriText;
 };
 
 // Parse the command line arguments
@@ -457,7 +456,12 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				Log::Warn("Missing command line parameter for -connect");
 				break;
 			}
-			cmdlineArgs.uriText = argv[i + 1];
+
+			// Make it forwardable.
+			cmdlineArgs.commands.append(argv[i] + 1);
+			cmdlineArgs.commands.push_back(' ');
+			cmdlineArgs.commands.append(Cmd::Escape(argv[i + 1]));
+
 			if (argc > i + 2) {
 				// It is necessary to ignore following arguments because the command line may have
 				// arbitrary unescaped text when the program is used as a protocol handler on Windows.
@@ -692,7 +696,7 @@ static void Init(int argc, char** argv)
 	// Legacy initialization code, needs to be replaced
 	// TODO: eventually move all of Com_Init into here
 
-    Application::Initialize(cmdlineArgs.uriText);
+	Application::Initialize();
 
 	// Buffer the commands that were specified on the command line so they are
 	// executed in the first frame.
