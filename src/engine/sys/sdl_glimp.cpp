@@ -502,6 +502,15 @@ static const char* GLimp_getProfileName( glProfile profile )
 	return profile == glProfile::CORE ? "core" : "compatibility";
 }
 
+static std::string ContextDescription( const glConfiguration& configuration )
+{
+	return Str::Format( "%d-bit OpenGL %d.%d %s",
+		configuration.colorBits,
+		configuration.major,
+		configuration.minor,
+		GLimp_getProfileName( configuration.profile ) );
+}
+
 static void GLimp_SetAttributes( const glConfiguration &configuration )
 {
 	int perChannelColorBits = configuration.colorBits == 24 ? 8 : 4;
@@ -659,22 +668,13 @@ static bool GLimp_CreateContext( const glConfiguration &configuration )
 	GLimp_DestroyContextIfExists();
 	glContext = SDL_GL_CreateContext( window );
 
-	const char* profileName = GLimp_getProfileName( configuration.profile );
 	if ( glContext != nullptr )
 	{
-		logger.Debug( "Valid context: %d-bit OpenGL %d.%d %s",
-			configuration.colorBits,
-			configuration.major,
-			configuration.minor,
-			profileName );
+		logger.Debug( "Valid context: %s", ContextDescription( configuration ) );
 	}
 	else
 	{
-		logger.Debug( "Invalid context: %d-bit OpenGL %d.%d %s",
-			configuration.colorBits,
-			configuration.major,
-			configuration.minor,
-			profileName );
+		logger.Debug( "Invalid context: %s", ContextDescription( configuration ) );
 	}
 
 	return glContext != nullptr;
@@ -1002,15 +1002,6 @@ static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glCo
 	return customConfiguration;
 }
 
-static std::string ContextDescription( const glConfiguration& configuration )
-{
-	return Str::Format( "%d-bit OpenGL %d.%d %s",
-		configuration.colorBits,
-		configuration.major,
-		configuration.minor,
-		GLimp_getProfileName( configuration.profile ) );
-}
-
 static bool CreateWindowAndContext(
 	bool fullscreen, bool bordered,
 	Str::StringRef contextAdjective,
@@ -1213,17 +1204,12 @@ static void GLimp_CheckGLEW( const glConfiguration &requestedConfiguration )
 
 		GLimp_DestroyWindowIfExists();
 
-		const char* requestedProfileName = GLimp_getProfileName( requestedConfiguration.profile );
-
 		Sys::Error( "GLEW initialization failed: %s.\n\n"
 			"Engine successfully created\n"
-			"%d-bit OpenGL %d.%d %d context,\n"
+			"%s context,\n"
 			"This is a GLEW issue.",
 			glewGetErrorString( glewResult ),
-			requestedConfiguration.colorBits,
-			requestedConfiguration.major,
-			requestedConfiguration.minor,
-			requestedProfileName );
+			ContextDescription( requestedConfiguration ) );
 	}
 }
 
