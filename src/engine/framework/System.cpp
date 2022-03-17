@@ -470,22 +470,32 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			break;
 		}
 
-		if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-help")) {
-			std::string helpUrl = Application::GetTraits().supportsUri ? " | -connect " URI_SCHEME "ADDRESS[:PORT]" : "";
-			printf("Usage: %s [-OPTION]... [+COMMAND...%s]\n", argv[0], helpUrl.c_str());
-			printf("Possible options are:\n"
-			       "  -homepath <path>         set the path used for user-specific configuration files and downloaded dpk files\n"
-			       "  -libpath <path>          set the path containing additional executables and libraries\n"
-			       "  -pakpath <path>          add another path from which dpk files are loaded\n"
-			       "  -resetconfig             reset all cvars and keybindings to their default value\n"
+		if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-help") || !strcmp(argv[i], "-h")) {
+			printf("Usage: %s [-OPTION]... [%s+COMMAND...]\n", argv[0], Application::GetTraits().supportsUri ? "-connect <uri> | " : "");
+			printf("\n"
+				"Possible options are:\n"
+				"  -h, -help                print this help and exit\n"
+				"  -v, -version             print version and exit\n"
+				"  -homepath <path>         set the path used for user-specific configuration files and downloaded dpk files\n"
+				"  -libpath <path>          set the path containing additional executables and libraries\n"
+				"  -pakpath <path>          add another path from which dpk files are loaded\n"
+				"  -resetconfig             reset all cvars and keybindings to their default value\n"
 #ifdef USE_CURSES
-			       "  -curses                  activate the curses interface\n"
+				"  -curses                  activate the curses interface\n"
 #endif
-			       "  -set <variable> <value>  set the value of a cvar\n"
-			       "  +<command> <args>        execute an ingame command after startup\n"
+				"  -set <variable> <value>  set the value of a cvar\n");
+			printf("%s", Application::GetTraits().supportsUri ?
+				"  -connect " URI_SCHEME "<address>[:<port>]>\n"
+				"                           connect to server at startup\n" : "");
+			printf(
+				"  +<command> <args>        execute an ingame command after startup\n"
+				"\n"
+				"Order is important, -options must be set before +commands.\n"
+				"Nothing is read and executed after -connect option and the following URI.\n"
+				"If another instance is already running, commands will be forwarded to it.\n"
 			);
 			OSExit(0);
-		} else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-version")) {
+		} else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-version") || !strcmp(argv[i], "-v")) {
 			printf(PRODUCT_NAME " " PRODUCT_VERSION "\n");
 			OSExit(0);
 		} else if (!strcmp(argv[i], "-set")) {
