@@ -56,7 +56,7 @@ class Application {
         virtual ~Application() = default;
 
         virtual void LoadInitialConfig(bool resetConfig);
-        virtual void Initialize(Str::StringRef uri);
+        virtual void Initialize();
         virtual void Frame() {}
 
         virtual void OnDrop(bool error, Str::StringRef reason);
@@ -71,7 +71,7 @@ class Application {
 };
 
 void LoadInitialConfig(bool resetConfig);
-void Initialize(Str::StringRef uri);
+void Initialize();
 void Frame();
 
 void OnDrop(bool error, Str::StringRef reason);

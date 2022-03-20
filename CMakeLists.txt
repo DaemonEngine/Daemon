@@ -122,6 +122,18 @@ option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
 if (APPLE)
     # Turn off by default because it is reportedly broken
     option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
+elseif (CMAKE_GENERATOR EQUAL "Ninja")
+    # It isn't currently supported with Ninja yet:
+    #
+    # > Note that the IMPLICIT_DEPENDS option is currently supported only for
+    # > Makefile generators and will be ignored by other generators. Note that
+    # > the IMPLICIT_DEPENDS option is currently supported only for Makefile
+    # > generators and will be ignored by other generators.
+    # > -- https://cmake.org/cmake/help/latest/command/add_custom_command.html
+    #
+    # It would be better to be able to know if IMPLICIT_DEPENDS is supported
+    # by the current generator instead of comparing generator name.
+    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
 else()
     option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" ON)
 endif()

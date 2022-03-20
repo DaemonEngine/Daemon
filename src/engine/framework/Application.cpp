@@ -44,7 +44,7 @@ namespace Application {
     void Application::LoadInitialConfig(bool) {
     }
 
-    void Application::Initialize(Str::StringRef) {
+    void Application::Initialize() {
     }
 
     void Application::OnDrop(bool, Str::StringRef) {
@@ -65,8 +65,8 @@ namespace Application {
         GetApp().LoadInitialConfig(resetConfig);
     }
 
-    void Initialize(Str::StringRef uri) {
-        GetApp().Initialize(uri);
+    void Initialize() {
+        GetApp().Initialize();
     }
 
     void Frame() {

@@ -50,14 +50,28 @@ static void GLSL_InitGPUShadersOrError()
 	// standard light mapping
 	gl_shaderManager.load( gl_lightMappingShader );
 
+	/* Deprecated forward renderer uses r_dynamicLight -1
+
+	Dynamic shadowing code also needs this shader.
+	This code is not well known, so there may be a bug,
+	but commit a09f03bc8e775d83ac5e057593eff4e88cdea7eb mentions this:
+
+	> Use conventional shadow mapping code for inverse lights.
+	> This re-enables shadows for players in the tiled renderer.
+	> -- @gimhael
+
+	See also https://github.com/DaemonEngine/Daemon/pull/606#pullrequestreview-912402293 */
+	if ( r_dynamicLight->integer < 0 || ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) ) )
+	{
+		// projective lighting ( Doom3 style )
+		gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
+	}
+
 	// Deprecated forward renderer uses r_dynamicLight -1
 	if ( r_dynamicLight->integer < 0 )
 	{
 		// omni-directional specular bump mapping ( Doom3 style )
 		gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
-
-		// projective lighting ( Doom3 style )
-		gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
 
 		// directional sun lighting ( Doom3 style )
 		gl_shaderManager.load( gl_forwardLightingShader_directionalSun );

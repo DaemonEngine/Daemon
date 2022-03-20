@@ -41,6 +41,7 @@ namespace Application {
 class ClientApplication : public Application {
     public:
         ClientApplication() {
+            traits.supportsUri = true;
             #if defined(_WIN32) && defined(BUILD_TTY_CLIENT)
                 // The windows dedicated server and tty client must enable the
                 // curses interface because they have no other usable interface.
@@ -70,16 +71,12 @@ class ClientApplication : public Application {
 	        }
         }
 
-        void Initialize(Str::StringRef uri) override {
+        void Initialize() override {
             Hunk_Init();
 
             Com_Init();
 
             CL_StartHunkUsers();
-
-            if (!uri.empty()) {
-                Cmd::BufferCommandTextAfter(std::string("connect ") + Cmd::Escape(uri));
-            }
         }
 
         void Frame() override {

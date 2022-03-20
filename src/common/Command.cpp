@@ -50,6 +50,10 @@ namespace Cmd {
                 res.append("\\\"");
             } else if (c == '$') {
                 res.append("\\$");
+            } else if (c == '\n') {
+                // It's impossible to quote this
+                Log::Warn("Truncating command with newline");
+                break;
             } else {
                 if (Str::cisspace(c) || c == ';') {
                     escaped = true;

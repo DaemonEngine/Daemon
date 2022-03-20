@@ -419,7 +419,6 @@ struct cmdlineArgs_t {
 
 	std::unordered_map<std::string, std::string> cvars;
 	std::string commands;
-    std::string uriText;
 };
 
 // Parse the command line arguments
@@ -457,7 +456,12 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				Log::Warn("Missing command line parameter for -connect");
 				break;
 			}
-			cmdlineArgs.uriText = argv[i + 1];
+
+			// Make it forwardable.
+			cmdlineArgs.commands.append(argv[i] + 1);
+			cmdlineArgs.commands.push_back(' ');
+			cmdlineArgs.commands.append(Cmd::Escape(argv[i + 1]));
+
 			if (argc > i + 2) {
 				// It is necessary to ignore following arguments because the command line may have
 				// arbitrary unescaped text when the program is used as a protocol handler on Windows.
@@ -466,22 +470,32 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			break;
 		}
 
-		if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-help")) {
-			std::string helpUrl = Application::GetTraits().supportsUri ? " | -connect " URI_SCHEME "ADDRESS[:PORT]" : "";
-			printf("Usage: %s [-OPTION]... [+COMMAND...%s]\n", argv[0], helpUrl.c_str());
-			printf("Possible options are:\n"
-			       "  -homepath <path>         set the path used for user-specific configuration files and downloaded dpk files\n"
-			       "  -libpath <path>          set the path containing additional executables and libraries\n"
-			       "  -pakpath <path>          add another path from which dpk files are loaded\n"
-			       "  -resetconfig             reset all cvars and keybindings to their default value\n"
+		if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-help") || !strcmp(argv[i], "-h")) {
+			printf("Usage: %s [-OPTION]... [%s+COMMAND...]\n", argv[0], Application::GetTraits().supportsUri ? "-connect <uri> | " : "");
+			printf("\n"
+				"Possible options are:\n"
+				"  -h, -help                print this help and exit\n"
+				"  -v, -version             print version and exit\n"
+				"  -homepath <path>         set the path used for user-specific configuration files and downloaded dpk files\n"
+				"  -libpath <path>          set the path containing additional executables and libraries\n"
+				"  -pakpath <path>          add another path from which dpk files are loaded\n"
+				"  -resetconfig             reset all cvars and keybindings to their default value\n"
 #ifdef USE_CURSES
-			       "  -curses                  activate the curses interface\n"
+				"  -curses                  activate the curses interface\n"
 #endif
-			       "  -set <variable> <value>  set the value of a cvar\n"
-			       "  +<command> <args>        execute an ingame command after startup\n"
+				"  -set <variable> <value>  set the value of a cvar\n");
+			printf("%s", Application::GetTraits().supportsUri ?
+				"  -connect " URI_SCHEME "<address>[:<port>]>\n"
+				"                           connect to server at startup\n" : "");
+			printf(
+				"  +<command> <args>        execute an ingame command after startup\n"
+				"\n"
+				"Order is important, -options must be set before +commands.\n"
+				"Nothing is read and executed after -connect option and the following URI.\n"
+				"If another instance is already running, commands will be forwarded to it.\n"
 			);
 			OSExit(0);
-		} else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-version")) {
+		} else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-version") || !strcmp(argv[i], "-v")) {
 			printf(PRODUCT_NAME " " PRODUCT_VERSION "\n");
 			OSExit(0);
 		} else if (!strcmp(argv[i], "-set")) {
@@ -692,7 +706,7 @@ static void Init(int argc, char** argv)
 	// Legacy initialization code, needs to be replaced
 	// TODO: eventually move all of Com_Init into here
 
-    Application::Initialize(cmdlineArgs.uriText);
+	Application::Initialize();
 
 	// Buffer the commands that were specified on the command line so they are
 	// executed in the first frame.

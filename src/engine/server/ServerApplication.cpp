@@ -52,7 +52,7 @@ class ServerApplication : public Application {
 	        FS_LoadBasePak();
         }
 
-        void Initialize(Str::StringRef) override {
+        void Initialize() override {
             Com_Init();
         }
 
