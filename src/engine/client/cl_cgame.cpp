@@ -1184,24 +1184,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			});
 			break;
 
-		case CG_GETTEXT: // TODO(0.53): remove
-			IPC::HandleMsg<GettextMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
-				output = input.substr(0, len);
-			});
-			break;
-
-		case CG_PGETTEXT: // TODO(0.53): remove
-			IPC::HandleMsg<PGettextMsg>(channel, std::move(reader), [this] (int len, const std::string&, const std::string& input, std::string& output) {
-				output = input.substr(0, len);
-			});
-			break;
-
-		case CG_GETTEXT_PLURAL: // TODO(0.53): remove
-			IPC::HandleMsg<GettextPluralMsg>(channel, std::move(reader), [this] (int len, const std::string& input1, const std::string&, int, std::string& output) {
-				output = input1.substr(0, len);
-			});
-			break;
-
 		case CG_NOTIFY_TEAMCHANGE:
 			IPC::HandleMsg<NotifyTeamChangeMsg>(channel, std::move(reader), [this] (int team) {
 				CL_OnTeamChanged(team);
