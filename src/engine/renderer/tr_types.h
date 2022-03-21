@@ -336,21 +336,9 @@ struct glconfig_t
 	char                 vendor_string[ MAX_STRING_CHARS ];
 	char                 version_string[ MAX_STRING_CHARS ];
 
-	// TODO(0.53): Delete, moved to glconfig2_t.
-	char extensions_string[ MAX_STRING_CHARS * 4 ]; // TTimo - bumping, some cards have a big extension string
-
 	int                  maxTextureSize; // queried from GL
 
-	// TODO(0.53): Delete, unused.
-	int unused;
-
 	int colorBits;
-
-	// TODO(0.53): Delete, unused.
-	int stencilBits;
-
-	// TODO(0.53): Delete, unused.
-	int depthBits;
 
 	glDriverType_t       driverType;
 	glHardwareType_t     hardwareType;
