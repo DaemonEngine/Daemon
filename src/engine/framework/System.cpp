@@ -52,6 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace Sys {
+Cvar::Cvar<bool> cvar_common_shutdownOnDrop("common.shutdownOnDrop", "shut down engine on game drop", Cvar::TEMPORARY, false);
 
 #ifdef _WIN32
 static HANDLE singletonSocket;
@@ -748,6 +749,28 @@ ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 					Log::Notice(err.what());
 				}
 				Application::OnDrop(err.is_error(), err.what());
+
+				if (Sys::cvar_common_shutdownOnDrop.Get()) {
+					/* Sys::Quit and Sys::Error are not reused because here,
+					quitting is never an error even if an error happened and
+					even if we still want to return an error code.
+
+					Also, the error message is already displayed as an error
+					message and the message we pass to Shutdown is not that
+					error message. */
+
+					/* False because quitting is not an error, do not display
+					the error window requiring manual action to complete the
+					shutdown. */
+					Sys::Shutdown(false, "Quitting: shut down engine on game drop");
+
+					/* Return an error code if there was an error anyway, this
+					can be used for scripting where a calling script runs the
+					engine with a game with explicit option to shut down engine
+					on game drop but wants to know if game dropped with an error
+					or not. */
+					Sys::OSExit(err.is_error() ? 1 : 0);
+				}
 			}
 		}
 	} catch (Sys::DropErr& err) {
