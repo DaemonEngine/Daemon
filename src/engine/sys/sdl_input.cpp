@@ -545,9 +545,9 @@ static void IN_InitJoystick()
 	{
 		Log::Debug( "Calling SDL_Init(SDL_INIT_JOYSTICK)..." );
 
-		if ( SDL_Init( SDL_INIT_JOYSTICK ) == -1 )
+		if ( SDL_Init( SDL_INIT_JOYSTICK ) < 0 )
 		{
-			Log::Debug( "SDL_Init(SDL_INIT_JOYSTICK) failed: %s", SDL_GetError() );
+			Log::Warn( "SDL_Init(SDL_INIT_JOYSTICK) failed: %s", SDL_GetError() );
 			return;
 		}
 
@@ -575,7 +575,7 @@ static void IN_InitJoystick()
 
 	if ( stick == nullptr )
 	{
-		Log::Debug( "No joystick opened." );
+		Log::Debug( "No joystick opened: %s.", SDL_GetError() );
 		return;
 	}
 

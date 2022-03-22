@@ -1107,7 +1107,16 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_exportTextures = ri.Cvar_Get( "r_exportTextures", "0", 0 );
 		r_heatHaze = ri.Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_noMarksOnTrisurfs = ri.Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
-		r_lazyShaders = ri.Cvar_Get( "r_lazyShaders", "0", 0 );
+
+		/* 1: Delay GLSL shader build until first map load.
+
+		This makes possible for the user to quickly reach the game main menu
+		without building all GLSL shaders and set a low graphics preset before
+		joining a game and loading a map.
+
+		Doing so prevents building unwanted or unsupported GLSL shaders on slow
+		and/or old hardware and drastically reduce first startup time. */
+		r_lazyShaders = ri.Cvar_Get( "r_lazyShaders", "1", 0 );
 
 		r_forceFog = ri.Cvar_Get( "r_forceFog", "0", CVAR_CHEAT /* | CVAR_LATCH */ );
 		AssertCvarRange( r_forceFog, 0.0f, 1.0f, false );
