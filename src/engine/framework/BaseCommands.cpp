@@ -641,7 +641,10 @@ namespace Cmd {
                 int argc = args.Argc();
 
                 if (argc < 3) {
-                    PrintUsage(args, "delay (name) <delay in milliseconds> <command>\n  delay (name) <delay in frames>f <command>", "executes <command> after the delay" );
+                    PrintUsage(args, "(name) <delay>(unit) <command>\n"
+                        "  executes <command> after the delay,\n"
+                        "  no unit means a time in millisecond,\n"
+                        "  unit can be ms (millisecond), s (second), m (minute), h (hour), f (frame)");
                     return;
                 }
 
@@ -650,10 +653,45 @@ namespace Cmd {
                 const std::string& name = isNamed ? args.Argv(1) : "";
                 const std::string& command = args.EscapedArgs(2 + +isNamed);
                 std::string delay = args.Argv(1 + +isNamed);
-                bool frames = delay.back() == 'f';
 
-                if (frames) {
-                    delay.erase(--delay.end()); //FIXME-gcc-4.6 delay.pop_back()
+                const char front = !!delay.size() ? delay.front() : '\0';
+
+                if (front < '0' || front > '9') {
+                    Print("delay: missing delay");
+                    return;
+                }
+
+                enum class delayUnit {
+                    MILLISECOND = 0,
+                    SECOND = 's',
+                    MINUTE = 'm',
+                    HOUR = 'h',
+                    FRAME = 'f',
+                };
+
+                delayUnit unit = delayUnit::MILLISECOND;
+                char back = !!delay.size() ? delay.back() : '\0';
+
+                switch(static_cast<delayUnit>(back)) {
+                    case delayUnit::SECOND:
+                    case delayUnit::MINUTE:
+                    case delayUnit::HOUR:
+                    case delayUnit::FRAME:
+                        unit = delayUnit(back);
+                        delay.erase(--delay.end()); //FIXME-gcc-4.6 delay.pop_back()
+                        back = !!delay.size() ? delay.back() : '\0';
+                        if (back == 'm' && unit == delayUnit::SECOND)
+                        {
+                            unit = delayUnit::MILLISECOND;
+                            delay.erase(--delay.end()); //FIXME-gcc-4.6 delay.pop_back()
+                            back = !!delay.size() ? delay.back() : '\0';
+                        }
+                        DAEMON_FALLTHROUGH;
+                    default:
+                        if (back < '0' || back > '9') {
+                            Print("delay: optional unit suffixes are ms (millisecond), s (second), m (minute), h (hour), f (frame)");
+                            return;
+                        }
                 }
 
                 int target;
@@ -662,10 +700,24 @@ namespace Cmd {
                     return;
                 }
 
-                if (frames) {
+                if (unit == delayUnit::FRAME) {
                     int targetFrame = target + delayFrame;
                     delays.emplace_back(delayRecord_t{name, command, {}, targetFrame, delayType_t::FRAME});
                 } else {
+                    switch (unit) {
+                        case delayUnit::HOUR:
+                            target *= 60;
+                            DAEMON_FALLTHROUGH;
+                        case delayUnit::MINUTE:
+                            target *= 60;
+                            DAEMON_FALLTHROUGH;
+                        case delayUnit::SECOND:
+                            target *= 1000;
+                            DAEMON_FALLTHROUGH;
+                        default:
+                            break;
+                    }
+
                     auto targetTime = Sys::SteadyClock::now() + std::chrono::milliseconds(target);
                     delays.emplace_back(delayRecord_t{name, command, targetTime, 0, delayType_t::MSEC});
                 }
