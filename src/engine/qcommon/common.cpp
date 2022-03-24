@@ -62,7 +62,7 @@ cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
 Cvar::Cvar<bool> cvar_demo_timedemo(
     "demo.timedemo",
     "Whether to show timing statistics at the end of a demo",
-    Cvar::CHEAT,
+    Cvar::CHEAT | Cvar::TEMPORARY,
     false
 );
 cvar_t *com_sv_running;
