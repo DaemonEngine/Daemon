@@ -31,8 +31,7 @@ OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.1
 NACLSDK_VERSION=44.0.2403.155
 NCURSES_VERSION=6.2
-WASISDK_VERSION_MAJOR=12
-WASISDK_VERSION=${WASISDK_VERSION_MAJOR}.0
+WASISDK_VERSION=12.0
 WASMTIME_VERSION=0.28.0
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
@@ -465,6 +464,7 @@ build_wasisdk() {
 		local WASISDK_PLATFORM=linux
 		;;
 	esac
+	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 	download "wasi-sdk_${WASISDK_PLATFORM}.tar.gz" "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/wasi-sdk-${WASISDK_VERSION}-${WASISDK_PLATFORM}.tar.gz" wasisdk
 	cp -r "wasi-sdk-${WASISDK_VERSION}" "${PREFIX}/wasi-sdk"
 }
