@@ -672,22 +672,26 @@ static void Init(int argc, char** argv)
 		OSExit(0);
 	}
 
-	// Create the singleton socket and a thread to watch it
+	// Create the singleton socket
 	CreateSingletonSocket();
-	try {
-		std::thread(ReadSingletonSocket).detach();
-	} catch (std::system_error& err) {
-		Sys::Error("Could not create singleton socket thread: %s", err.what());
-	}
 
 	// At this point we can safely open the log file since there are no existing
 	// instances running on this homepath.
 	Log::OpenLogFile();
 
-    if (CreateCrashDumpPath()) {
-        EarlyCvar("common.breakpad.enabled", cmdlineArgs);
-        BreakpadInit();
-    }
+	if (CreateCrashDumpPath()) {
+		EarlyCvar("common.breakpad.enabled", cmdlineArgs);
+		// This may fork(), and then exec() *in the parent process*,
+		// so threads must not be created before this point.
+		BreakpadInit();
+	}
+
+	// Start a thread which reads commands from the singleton socket
+	try {
+		std::thread(ReadSingletonSocket).detach();
+	} catch (std::system_error& err) {
+		Sys::Error("Could not create singleton socket thread: %s", err.what());
+	}
 
 	// Load the base paks
 	// TODO: cvar names and FS_* stuff needs to be properly integrated
