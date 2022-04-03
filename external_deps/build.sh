@@ -51,6 +51,10 @@ error() { echo "ERROR: ${@}" >&2; exit 1; }
 
 to_lines() { echo "${@// /$'\n'}"; }
 
+# Implements kind of associative array of command name and command description.
+#   register_command install 'Create a stripped down version of the built packages that CMake can use.'
+# is like:
+#   command['install']='Create a stripped down version of the built packages that CMake can use.'
 register_command() {
 	if ! to_lines "${commands:-}" | egrep -q "^${1}"; then
 		commands+="${commands:+ }${1}"
@@ -58,6 +62,10 @@ register_command() {
 	fi
 }
 
+# Implement a kind of associative array of platform name and platform description.
+#   register_platform linux64 'Linux amd64 native compilation'
+# is like:
+#   platform['linux64']='Linux amd64 native compilation'
 register_platform() {
 	if ! to_lines "${platforms:-}" | egrep -q "^${1}"; then
 		platforms+="${platforms:+ }${1}"
@@ -65,6 +73,25 @@ register_platform() {
 	fi
 }
 
+# Implement a kind of associative array of platform name and associative array
+# of sorted list of required, optional, unused and all packages.
+#  register_package pkgconfig :linux64 :mingw32 :mingw64 msvc32 msvc64 macosx64
+# is like:
+#   package['linux64']['optional'].append('pkgconfig')
+#   package['mingw32']['optional'].append('pkgconfig')
+#   package['mingw64']['optional'].append('pkgconfig')
+#   package['msvc32']['required'].append('pkgconfig')
+#   package['msvc64']['required'].append('pkgconfig')
+#   package['macosx64']['required'].append('pkgconfig')
+#   package['linux64']['all'].append('pkgconfig')
+#   package['mingw32']['all'].append('pkgconfig')
+#   package['mingw64']['all'].append('pkgconfig')
+#   package['msvc32']['all'].append('pkgconfig')
+#   package['msvc64']['all'].append('pkgconfig')
+#   package['macosx64']['all'].append('pkgconfig')
+# if the package wasn't required by any platform, it would also do:
+#   package['unused'].append('pkgconfig')
+# It also checks for the platform having been declared before.
 register_package() {
 	local package="${1}"; shift
 	if ! to_lines "${packages:-}" | egrep -q "^${package}$"; then
