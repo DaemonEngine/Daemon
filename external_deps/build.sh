@@ -487,7 +487,7 @@ build_wasmtime() {
 	esac
 	case "${PLATFORM}" in
 	*32)
-		echo "wasmtime doesn't have releasese for x86"
+		echo "wasmtime doesn't have release for x86"
 		exit 1
 		;;
 	*64)
