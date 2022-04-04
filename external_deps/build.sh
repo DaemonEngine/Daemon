@@ -743,7 +743,7 @@ build_wasmtime() {
 	esac
 	case "${PLATFORM}" in
 	*32)
-		error "wasmtime doesn't have releasese for x86"
+		error "wasmtime doesn't have release for x86"
 		;;
 	*64)
 		local WASMTIME_ARCH=x86_64
