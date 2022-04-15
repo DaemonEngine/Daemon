@@ -19,7 +19,7 @@ set -u
 # Dependencies version. This number must be updated every time the
 # version numbers below change, or packages are added/removed, or
 # packages are rebuilt.
-DEPS_VERSION=5
+DEPS_VERSION=6
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2

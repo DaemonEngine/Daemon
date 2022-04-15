@@ -173,7 +173,7 @@ include(DaemonPlatform)
 ################################################################################
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 5)
+set(DEPS_VERSION 6)
 
 set(MOUNT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if (DAEMON_PARENT_SCOPE_DIR)
