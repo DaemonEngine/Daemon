@@ -63,32 +63,34 @@ register_command() {
 }
 
 # Implement a kind of associative array of platform name and platform description.
-#   register_platform linux64 'Linux amd64 native compilation'
+#   register_platform linux-amd64-default 'Linux amd64 native compilation'
 # is like:
-#   platform['linux64']='Linux amd64 native compilation'
+#   platform['linux-amd64-default']='Linux amd64 native compilation'
 register_platform() {
-	if ! to_lines "${platforms:-}" | egrep -q "^${1}"; then
-		platforms+="${platforms:+ }${1}"
-		eval "platform_${1}='${2}'"
+	# Bash variable names can't contain any hyphen.
+	local platform="${1//-/_}"
+	if ! to_lines "${platforms:-}" | egrep -q "^${platform}"; then
+		platforms+="${platforms:+ }${platform}"
+		eval "platform_${platform}='${2}'"
 	fi
 }
 
 # Implement a kind of associative array of platform name and associative array
 # of sorted list of required, optional, unused and all packages.
-#  register_package pkgconfig :linux64 :mingw32 :mingw64 msvc32 msvc64 macosx64
+#  register_package pkgconfig :linux-amd64-default :windows-i686-mingw :windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 # is like:
-#   package['linux64']['optional'].append('pkgconfig')
-#   package['mingw32']['optional'].append('pkgconfig')
-#   package['mingw64']['optional'].append('pkgconfig')
-#   package['msvc32']['required'].append('pkgconfig')
-#   package['msvc64']['required'].append('pkgconfig')
-#   package['macosx64']['required'].append('pkgconfig')
-#   package['linux64']['all'].append('pkgconfig')
-#   package['mingw32']['all'].append('pkgconfig')
-#   package['mingw64']['all'].append('pkgconfig')
-#   package['msvc32']['all'].append('pkgconfig')
-#   package['msvc64']['all'].append('pkgconfig')
-#   package['macosx64']['all'].append('pkgconfig')
+#   package['linux-amd64-default']['optional'].append('pkgconfig')
+#   package['windows-i686-mingw']['optional'].append('pkgconfig')
+#   package['windows-amd64-mingw']['optional'].append('pkgconfig')
+#   package['windows-i686-msvc']['required'].append('pkgconfig')
+#   package['windows-amd64-msvc']['required'].append('pkgconfig')
+#   package['macos-amd64-default']['required'].append('pkgconfig')
+#   package['linux-amd64-default']['all'].append('pkgconfig')
+#   package['windows-i686-mingw']['all'].append('pkgconfig')
+#   package['windows-amd64-mingw']['all'].append('pkgconfig')
+#   package['windows-i686-msvc']['all'].append('pkgconfig')
+#   package['windows-amd64-msvc']['all'].append('pkgconfig')
+#   package['macos-amd64-default']['all'].append('pkgconfig')
 # if the package wasn't required by any platform, it would also do:
 #   package['unused'].append('pkgconfig')
 # It also checks for the platform having been declared before.
@@ -98,7 +100,7 @@ register_package() {
 		packages+="${packages:+ }${package}"
 	fi
 	while [ -n "${1:-}" ]; do
-		local platform="${1}"
+		local platform="${1//-/_}"
 		local selection='required'
 		if echo "${platform}" | egrep -q '^:'; then
 			platform="${platform:1}"
@@ -180,7 +182,7 @@ setup_common() {
 	WORK_DIR="${PWD}"
 	SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
-	BUILD_DIR="${WORK_DIR}/build-${PLATFORM}-${DEPS_VERSION}"
+	BUILD_DIR="${WORK_DIR}/build-${PLATFORM}_${DEPS_VERSION}"
 	PREFIX="${BUILD_DIR}/prefix"
 	export PATH="${PATH}:${PREFIX}/bin"
 	export PKG_CONFIG="pkg-config"
@@ -196,8 +198,8 @@ setup_common() {
 }
 
 # Set up environment for 32-bit Windows for Visual Studio (compile all as .dll)
-register_platform msvc32 'Windows i686 native compilation'
-setup_msvc32() {
+register_platform windows-i686-msvc 'Windows i686 native compilation'
+setup_windows_i686_msvc() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
 	BITNESS=32
@@ -211,8 +213,8 @@ setup_msvc32() {
 }
 
 # Set up environment for 64-bit Windows for Visual Studio (compile all as .dll)
-register_platform msvc64 'Windows amd64 native compilation'
-setup_msvc64() {
+register_platform windows-amd64-msvc 'Windows amd64 native compilation'
+setup_windows_amd64_msvc() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
 	BITNESS=64
@@ -225,8 +227,8 @@ setup_msvc64() {
 }
 
 # Set up environment for 32-bit Windows for MinGW (compile all as .a)
-register_platform mingw32 'Windows i686 MingW compilation or cross-compilation from Linux'
-setup_mingw32() {
+register_platform windows-i686-mingw 'Windows i686 MingW compilation or cross-compilation from Linux'
+setup_windows_i686_mingw() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
 	BITNESS=32
@@ -237,8 +239,8 @@ setup_mingw32() {
 }
 
 # Set up environment for 64-bit Windows for MinGW (compile all as .a)
-register_platform mingw64 'Windows amd64 MingW compilation or cross-compilation from Linux'
-setup_mingw64() {
+register_platform windows-amd64-mingw 'Windows amd64 MingW compilation or cross-compilation from Linux'
+setup_windows_amd64_mingw() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
 	BITNESS=64
@@ -249,8 +251,8 @@ setup_mingw64() {
 }
 
 # Set up environment for Mac OS X 64-bit
-register_platform macosx64 'macOS amd64 native compilation'
-setup_macosx64() {
+register_platform macos-amd64-default 'macOS amd64 native compilation'
+setup_macos_amd64_default() {
 	HOST=x86_64-apple-darwin11
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
@@ -264,8 +266,8 @@ setup_macosx64() {
 }
 
 # Set up environment for 64-bit Linux
-register_platform linux64 'Linux amd64 native compilation'
-setup_linux64() {
+register_platform linux-amd64-default 'Linux amd64 native compilation'
+setup_linux_amd64_default() {
 	HOST=x86_64-unknown-linux-gnu
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
@@ -276,7 +278,7 @@ setup_linux64() {
 }
 
 # Build pkg-config
-register_package pkgconfig :linux64 :mingw32 :mingw64 msvc32 msvc64 macosx64
+register_package pkgconfig :linux-amd64-default :windows-i686-mingw :windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_pkgconfig() {
 	download "pkg-config-${PKGCONFIG_VERSION}.tar.gz" "http://pkgconfig.freedesktop.org/releases/pkg-config-${PKGCONFIG_VERSION}.tar.gz" pkgconfig
 	cd "pkg-config-${PKGCONFIG_VERSION}"
@@ -286,14 +288,14 @@ build_pkgconfig() {
 }
 
 # Build NASM
-register_package nasm mingw32 mingw64 msvc32 msvc64 macosx64
+register_package nasm windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_nasm() {
 	case "${PLATFORM}" in
-	macosx*)
+	macos-*-*)
 		download "nasm-${NASM_VERSION}-macosx.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/nasm-${NASM_VERSION}-macosx.zip" nasm
 		cp "nasm-${NASM_VERSION}/nasm" "${PREFIX}/bin"
 		;;
-	mingw*|msvc*)
+	windows-*-*)
 		download "nasm-${NASM_VERSION}-win32.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/win32/nasm-${NASM_VERSION}-win32.zip" nasm
 		cp "nasm-${NASM_VERSION}/nasm.exe" "${PREFIX}/bin"
 		;;
@@ -304,16 +306,16 @@ build_nasm() {
 }
 
 # Build zlib
-register_package zlib linux64 mingw32 mingw64 msvc32 msvc64 :macosx64
+register_package zlib linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc :macos-amd64-default
 build_zlib() {
 	download "zlib-${ZLIB_VERSION}.tar.gz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" zlib
 	cd "zlib-${ZLIB_VERSION}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		LOC="${CFLAGS:-}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
-	macosx*|linux*)
+	macos-*-*|linux-*-*)
 		./configure --prefix="${PREFIX}" --static --const
 		make
 		make install
@@ -325,12 +327,12 @@ build_zlib() {
 }
 
 # Build GMP
-register_package gmp :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package gmp :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_gmp() {
 	download "gmp-${GMP_VERSION}.tar.bz2" "https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.bz2" gmp
 	cd "gmp-${GMP_VERSION}"
 	case "${PLATFORM}" in
-	msvc*)
+	*-*-msvc)
 		# Configure script gets confused if we override the compiler. Shouldn't
 		# matter since gmp doesn't use anything from libgcc.
 		local CC_BACKUP="${CC}"
@@ -342,7 +344,7 @@ build_gmp() {
 
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	case "${PLATFORM}" in
-	macosx64)
+	macos-*-*)
 		# The assembler objects are incompatible with PIE
 		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-assembly
 		;;
@@ -362,7 +364,7 @@ build_gmp() {
 }
 
 # Build Nettle
-register_package nettle :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package nettle :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_nettle() {
 	# download "nettle-${NETTLE_VERSION}.tar.gz" "https://www.lysator.liu.se/~nisse/archive/nettle-${NETTLE_VERSION}.tar.gz" nettle
 	download "nettle-${NETTLE_VERSION}.tar.gz" "https://ftp.gnu.org/gnu/nettle/nettle-${NETTLE_VERSION}.tar.gz" nettle
@@ -374,7 +376,7 @@ build_nettle() {
 }
 
 # Build GeoIP
-register_package geoip :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package geoip :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_geoip() {
 	# Building GeoIP requires filesystem locking feature,
 	# because autom4te uses it to control build jobs (which can
@@ -390,7 +392,7 @@ build_geoip() {
 	# GeoIP needs -lws2_32 in LDFLAGS
 	local TEMP_LDFLAGS="${LDFLAGS}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-mingw|windows-*-msvc)
 		TEMP_LDFLAGS="${LDFLAGS} -lws2_32"
 		;;
 	esac
@@ -401,7 +403,7 @@ build_geoip() {
 }
 
 # Build cURL
-register_package curl :linux64 mingw32 mingw64 msvc32 msvc64 :macosx64
+register_package curl :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc :macos-amd64-default
 build_curl() {
 	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
 	cd "curl-${CURL_VERSION}"
@@ -411,34 +413,34 @@ build_curl() {
 }
 
 # Build SDL2
-register_package sdl2 :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package sdl2 :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_sdl2() {
 	case "${PLATFORM}" in
-	mingw*)
+	windows-*-mingw)
 		download "SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		make install-package arch="${HOST}" prefix="${PREFIX}"
 		;;
-	msvc*)
+	windows-*-msvc)
 		download "SDL2-devel-${SDL2_VERSION}-VC.zip" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-VC.zip" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		mkdir -p "${PREFIX}/include/SDL2"
 		cp include/* "${PREFIX}/include/SDL2"
 		case "${PLATFORM}" in
-		msvc32)
+		windows-i686-msvc)
 			cp lib/x86/*.lib "${PREFIX}/lib"
 			cp lib/x86/*.dll "${PREFIX}/bin"
 			;;
-		msvc64)
+		windows-amd64-msvc)
 			cp lib/x64/*.lib "${PREFIX}/lib"
 			cp lib/x64/*.dll "${PREFIX}/bin"
 			;;
 		esac
 		;;
-	macosx*)
+	macos-*-*)
 		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
 		# macOS produces weird issue on NFS:
-		# > cp: cannot overwrite directory external_deps/build-macosx64-5/prefix/SDL2.framework/Headers with non-directory SDL2.framework/Headers
+		# > cp: cannot overwrite directory external_deps/build-macos-amd64-default-5/prefix/SDL2.framework/Headers with non-directory SDL2.framework/Headers
 		# while both look to be directories, so it's better to clean-up
 		# before to prevent any issue occurring when overwriting.
 		if [ -d "${PREFIX}/SDL2.framework" ]; then
@@ -446,7 +448,7 @@ build_sdl2() {
 		fi
 		cp -R 'SDL2.framework' "${PREFIX}"
 		;;
-	linux*)
+	linux-*-*)
 		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		# The default -O3 is dropped when there's user-provided CFLAGS.
@@ -461,24 +463,24 @@ build_sdl2() {
 }
 
 # Build GLEW
-register_package glew :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package glew :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_glew() {
 	download "glew-${GLEW_VERSION}.tgz" "https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz" glew
 	cd "glew-${GLEW_VERSION}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
-	macosx*)
+	macos-*-*)
 		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="clang" LD="clang" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="clang" LD="clang" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
-	linux*)
+	linux-*-*)
 		make GLEW_DEST="${PREFIX}"
 		make install GLEW_DEST="${PREFIX}"
 		;;
@@ -489,7 +491,7 @@ build_glew() {
 }
 
 # Build PNG
-register_package png :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package png :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_png() {
 	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
 	cd "libpng-${PNG_VERSION}"
@@ -500,24 +502,24 @@ build_png() {
 }
 
 # Build JPEG
-register_package jpeg :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package jpeg :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_jpeg() {
 	echo $PATH
 	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
 	cd "libjpeg-turbo-${JPEG_VERSION}"
 	case "${PLATFORM}" in
-	mingw*)
+	windows-*-mingw)
 		cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
 		;;
-	msvc*)
+	windows-*-msvc)
 		CFLAGS="${CFLAGS:-} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
 		;;
-	macosx*)
+	macos-*-*)
 		# A newer version of nasm is required for 64-bit
 		local NASM="${PREFIX}/bin/nasm"
 		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0 -DCMAKE_ASM_NASM_COMPILER="${NASM}"
 		;;
-	linux*)
+	linux-*-*)
 		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
 		;;
 	*)
@@ -529,7 +531,7 @@ build_jpeg() {
 }
 
 # Build WebP
-register_package webp :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package webp :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_webp() {
 	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
 	cd "libwebp-${WEBP_VERSION}"
@@ -540,7 +542,7 @@ build_webp() {
 }
 
 # Build FreeType
-register_package freetype :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package freetype :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_freetype() {
 	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
 	cd "freetype-${FREETYPE_VERSION}"
@@ -553,25 +555,25 @@ build_freetype() {
 }
 
 # Build OpenAL
-register_package openal :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package openal :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_openal() {
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		download "openal-soft-${OPENAL_VERSION}-bin.zip" "https://openal-soft.org/openal-binaries/openal-soft-${OPENAL_VERSION}-bin.zip" openal
 		cd "openal-soft-${OPENAL_VERSION}-bin"
 		cp -r "include/AL" "${PREFIX}/include"
 		case "${PLATFORM}" in
-		*32)
+		windows-i686-*)
 			cp "libs/Win32/libOpenAL32.dll.a" "${PREFIX}/lib"
 			cp "bin/Win32/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
 			;;
-		*64)
+		windows-amd64-*)
 			cp "libs/Win64/libOpenAL32.dll.a" "${PREFIX}/lib"
 			cp "bin/Win64/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
 			;;
 		esac
 		;;
-	macosx*)
+	macos-*-*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
 		cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
@@ -579,7 +581,7 @@ build_openal() {
 		make install
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
 		;;
-	linux*)
+	linux-*-*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
 		cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DALSOFT_EXAMPLES=OFF -DLIBTYPE=STATIC -DCMAKE_BUILD_TYPE=Release .
@@ -593,7 +595,7 @@ build_openal() {
 }
 
 # Build Ogg
-register_package ogg :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package ogg :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_ogg() {
 	download "libogg-${OGG_VERSION}.tar.gz" "https://downloads.xiph.org/releases/ogg/libogg-${OGG_VERSION}.tar.gz" ogg
 	cd "libogg-${OGG_VERSION}"
@@ -606,7 +608,7 @@ build_ogg() {
 }
 
 # Build Vorbis
-register_package vorbis :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package vorbis :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_vorbis() {
 	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
 	cd "libvorbis-${VORBIS_VERSION}"
@@ -616,7 +618,7 @@ build_vorbis() {
 }
 
 # Build Speex
-register_package speex :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package speex :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_speex() {
 	download "speex-${SPEEX_VERSION}.tar.gz" "https://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz" speex
 	cd "speex-${SPEEX_VERSION}"
@@ -630,13 +632,13 @@ build_speex() {
 }
 
 # Build Opus
-register_package opus :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package opus :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_opus() {
 	download "opus-${OPUS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" opus
 	cd "opus-${OPUS_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
 		CFLAGS="${CFLAGS:-} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 		;;
@@ -649,7 +651,7 @@ build_opus() {
 }
 
 # Build OpusFile
-register_package opusfile :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package opusfile :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_opusfile() {
 	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
 	cd "opusfile-${OPUSFILE_VERSION}"
@@ -660,18 +662,18 @@ build_opusfile() {
 }
 
 # Build Lua
-register_package lua :linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package lua :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_lua() {
 	download "lua-${LUA_VERSION}.tar.gz" "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" lua
 	cd "lua-${LUA_VERSION}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		local LUA_PLATFORM=mingw
 		;;
-	macosx*)
+	macos-*-*)
 		local LUA_PLATFORM=macosx
 		;;
-	linux*)
+	linux-*-*)
 		local LUA_PLATFORM=linux
 		;;
 	*)
@@ -680,10 +682,10 @@ build_lua() {
 	esac
 	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS:-}" MYLDFLAGS="${LDFLAGS}"
 	case "${PLATFORM}" in
-	mingw*)
+	windows-*-mingw)
 		make install TO_BIN="lua.exe luac.exe" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
 		;;
-	msvc*)
+	windows-*-msvc)
 		make install TO_BIN="lua.exe luac.exe lua54.dll" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
 		touch "${PREFIX}/lib/lua54.dll.a"
 		;;
@@ -694,7 +696,7 @@ build_lua() {
 }
 
 # Build ncurses
-register_package ncurses :linux64 :mingw32 :mingw64 :msvc32 :msvc64 :macosx64
+register_package ncurses :linux-amd64-default :windows-i686-mingw :windows-amd64-mingw :windows-i686-msvc :windows-amd64-msvc :macos-amd64-default
 build_ncurses() {
 	download "ncurses-${NCURSES_VERSION}.tar.gz" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" ncurses
 	cd "ncurses-${NCURSES_VERSION}"
@@ -706,16 +708,16 @@ build_ncurses() {
 }
 
 # "Builds" (downloads) the WASI SDK
-register_package wasisdk :linux64 :mingw32 :mingw64 :msvc32 :msvc64 :macosx64
+register_package wasisdk :linux-amd64-default :windows-i686-mingw :windows-amd64-mingw :windows-i686-msvc :windows-amd64-msvc :macos-amd64-default
 build_wasisdk() {
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		local WASISDK_PLATFORM=mingw
 		;;
-	macosx*)
+	macos-*-*)
 		local WASISDK_PLATFORM=macos
 		;;
-	linux*)
+	linux-*-*)
 		local WASISDK_PLATFORM=linux
 		;;
 	esac
@@ -725,27 +727,27 @@ build_wasisdk() {
 }
 
 # "Builds" (downloads) wasmtime
-register_package wasmtime :linux64 :mingw32 :mingw64 :msvc32 :msvc64 :macosx64
+register_package wasmtime :linux-amd64-default :windows-i686-mingw :windows-amd64-mingw :windows-i686-msvc :windows-amd64-msvc :macos-amd64-default
 build_wasmtime() {
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		local WASMTIME_PLATFORM=windows
 		local ARCHIVE_EXT=zip
 		;;
-	macosx*)
+	macos-*-*)
 		local WASMTIME_PLATFORM=macos
 		local ARCHIVE_EXT=tar.xz
 		;;
-	linux*)
+	linux-*-*)
 		local WASMTIME_PLATFORM=linux
 		local ARCHIVE_EXT=tar.xz
 		;;
 	esac
 	case "${PLATFORM}" in
-	*32)
+	*-i686-*)
 		error "wasmtime doesn't have release for x86"
 		;;
-	*64)
+	*-amd64-*)
 		local WASMTIME_ARCH=x86_64
 		;;
 	esac
@@ -756,31 +758,31 @@ build_wasmtime() {
 }
 
 # Build the NaCl SDK
-register_package naclsdk linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package naclsdk linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_naclsdk() {
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		local NACLSDK_PLATFORM=win
 		local EXE=.exe
 		local TAR_EXT=cygtar
 		;;
-	macosx*)
+	macos-*-*)
 		local NACLSDK_PLATFORM=mac
 		local EXE=
 		local TAR_EXT=tar
 		;;
-	linux*)
+	linux-*-*)
 		local NACLSDK_PLATFORM=linux
 		local EXE=
 		local TAR_EXT=tar
 		;;
 	esac
 	case "${PLATFORM}" in
-	*32)
+	*-i686-*)
 		local NACLSDK_ARCH=x86_32
 		local DAEMON_ARCH=x86
 		;;
-	*64)
+	*-amd64-*)
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=x86_64
 		;;
@@ -800,11 +802,11 @@ build_naclsdk() {
 	rm -rf "${PREFIX}/pnacl/x86_64-nacl"
 	rm -rf "${PREFIX}/pnacl/x86_64_bc-nacl"
 	case "${PLATFORM}" in
-	mingw32|msvc32)
+	windows-i686-*)
 		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/sel_ldr64.exe"
 		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-x86_64.nexe"
 		;;
-	linux64)
+	linux-amd64-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_x86_64" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-x86_64.nexe"
@@ -813,7 +815,7 @@ build_naclsdk() {
 	esac
 }
 
-register_package naclports linux64 mingw32 mingw64 msvc32 msvc64 macosx64
+register_package naclports linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 build_naclports() {
 	download "naclports-${NACLSDK_VERSION}.tar.bz2" "https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclports.tar.bz2" naclports
 	mkdir -p "${PREFIX}/pnacl_deps/"{include,lib}
@@ -825,10 +827,10 @@ build_naclports() {
 # For MSVC, we need to use the Microsoft LIB tool to generate import libraries,
 # the import libraries generated by MinGW seem to have issues. Instead we
 # generate a .bat file to be run using the Visual Studio tools command shell.
-register_package gendef :msvc32 :msvc64
+register_package gendef :windows-i686-msvc :windows-amd64-msvc
 build_gendef() {
 	case "${PLATFORM}" in
-	msvc*)
+	windows-*-msvc)
 		mkdir -p "${PREFIX}/def"
 		cd "${PREFIX}/def"
 		echo 'cd /d "%~dp0"' > "${PREFIX}/genlib.bat"
@@ -836,7 +838,7 @@ build_gendef() {
 			local DLL="$(${CROSS}dlltool -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
 			local DEF="$(basename ${DLL} .dll).def"
 			local LIB="$(basename ${DLL_A} .dll.a).lib"
-			local MACHINE="$([ "${PLATFORM}" = msvc32 ] && echo x86 || echo x64)"
+			local MACHINE="$([ "${PLATFORM}" = windows-i686-msvc ] && echo x86 || echo x64)"
 
 			# Using gendef from mingw-w64-tools
 			gendef "${PREFIX}/bin/${DLL}"
@@ -857,17 +859,17 @@ build_gendef() {
 }
 
 build_selection() {
-	local package; for package in $(eval "echo \"\${${1}_packages_${PLATFORM}}\""); do
+	local package; for package in $(eval "echo \"\${${1}_packages_${PLATFORM//-/_}}\""); do
 		run_build "${package}"
 	done
 }
 
 run_setup() {
-	if ! to_lines "${platforms}" | egrep -q "^${PLATFORM}$"; then
+	if ! to_lines "${platforms}" | egrep -q "^${PLATFORM//-/_}$"; then
 		error "Unknown platform ${PLATFORM}"
 	fi
 	echo "Setting up: ${PLATFORM}"
-	"setup_${PLATFORM}"
+	"setup_${PLATFORM//-/_}"
 }
 
 run_build() {
@@ -883,7 +885,7 @@ run_build() {
 register_command install 'Create a stripped down version of the built packages that CMake can use.'
 run_install() {
 	echo "Installing: ${PLATFORM}"
-	PKG_PREFIX="${WORK_DIR}/${PLATFORM}-${DEPS_VERSION}"
+	PKG_PREFIX="${WORK_DIR}/${PLATFORM}_${DEPS_VERSION}"
 	rm -rf "${PKG_PREFIX}"
 	rsync -a --link-dest="${PREFIX}" "${PREFIX}/" "${PKG_PREFIX}"
 
@@ -906,11 +908,11 @@ run_install() {
 
 	# Strip libraries
 	case "${PLATFORM}" in
-	mingw*)
+	windows-*-mingw)
 		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
 		;;
-	msvc*)
+	windows-*-msvc)
 		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
@@ -927,13 +929,13 @@ run_package() {
 	echo "Packaging: ${PLATFORM}"
 	cd "${WORK_DIR}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
-		rm -f "${PLATFORM}-${DEPS_VERSION}.zip"
-		zip -r "${PLATFORM}-${DEPS_VERSION}.zip" "${PLATFORM}-${DEPS_VERSION}"
+	windows-*-*)
+		rm -f "${PLATFORM}_${DEPS_VERSION}.zip"
+		zip -r "${PLATFORM}_${DEPS_VERSION}.zip" "${PLATFORM}_${DEPS_VERSION}"
 		;;
 	*)
-		rm -f "${PLATFORM}-${DEPS_VERSION}.tar.bz2"
-		tar cvjf "${PLATFORM}-${DEPS_VERSION}.tar.bz2" "${PLATFORM}-${DEPS_VERSION}"
+		rm -f "${PLATFORM}_${DEPS_VERSION}.tar.bz2"
+		tar cvjf "${PLATFORM}_${DEPS_VERSION}.tar.bz2" "${PLATFORM}_${DEPS_VERSION}"
 		;;
 	esac
 }
@@ -954,14 +956,14 @@ print_commands() {
 
 print_platforms() {
 	local platform; for platform in $(to_lines "${platforms}" | sort -u); do
-		printf '\t%s: ' "${platform}"
+		printf '\t%s: ' "${platform//_/-}"
 		eval "echo \"\${platform_${platform}}\""
 	done
 }
 
 print_selection_packages_per_platform() {
 	local platform; for platform in $(to_lines "${package_platforms}" | sort -u); do
-		printf '\t%s: ' "${platform}"
+		printf '\t%s: ' "${platform//_/-}"
 		eval "echo \"\${${1}_packages_${platform}}\""
 	done
 }
@@ -998,7 +1000,7 @@ print_help() {
 	$(print_commands)
 
 	Example:
-	${tab}${basename} linux64 required ncurses install package clean
+	${tab}${basename} linux-amd64-default required ncurses install package clean
 
 	EOF
 }
