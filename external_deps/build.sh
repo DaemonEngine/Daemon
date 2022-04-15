@@ -27,7 +27,6 @@ NASM_VERSION=2.15.05
 ZLIB_VERSION=1.2.11
 GMP_VERSION=6.2.0
 NETTLE_VERSION=3.6
-GEOIP_VERSION=1.6.12
 CURL_VERSION=7.73.0
 SDL2_VERSION=2.0.12
 GLEW_VERSION=2.2.0
@@ -370,33 +369,6 @@ build_nettle() {
 	cd "nettle-${NETTLE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	make
-	make install
-}
-
-# Build GeoIP
-register_package geoip :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
-build_geoip() {
-	# Building GeoIP requires filesystem locking feature,
-	# because autom4te uses it to control build jobs (which can
-	# be worked around with MAKEFLAGS='-j1') and also uses it
-	# to create temporary files (which can't be worked around).
-	# If building on NFS and locking features does not work,
-	# one may emulate locking feature with locallocks mount option.
-	download "GeoIP-${GEOIP_VERSION}.tar.gz" "https://github.com/maxmind/geoip-api-c/archive/v${GEOIP_VERSION}.tar.gz" geoip
-	cd "geoip-api-c-${GEOIP_VERSION}"
-	autoreconf -vi
-	export ac_cv_func_malloc_0_nonnull=yes
-	export ac_cv_func_realloc_0_nonnull=yes
-	# GeoIP needs -lws2_32 in LDFLAGS
-	local TEMP_LDFLAGS="${LDFLAGS}"
-	case "${PLATFORM}" in
-	windows-*-mingw|windows-*-msvc)
-		TEMP_LDFLAGS="${LDFLAGS} -lws2_32"
-		;;
-	esac
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" LDFLAGS="${TEMP_LDFLAGS}" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 	make
 	make install
 }
