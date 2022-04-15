@@ -225,7 +225,7 @@ setup_msvc64() {
 }
 
 # Set up environment for 32-bit Windows for MinGW (compile all as .a)
-register_platform mingw32 'Windows i686 cross-compilation from Linux'
+register_platform mingw32 'Windows i686 MingW compilation or cross-compilation from Linux'
 setup_mingw32() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
@@ -237,7 +237,7 @@ setup_mingw32() {
 }
 
 # Set up environment for 64-bit Windows for MinGW (compile all as .a)
-register_platform mingw64 'Windows amd64 cross-compilation from Linux'
+register_platform mingw64 'Windows amd64 MingW compilation or cross-compilation from Linux'
 setup_mingw64() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
