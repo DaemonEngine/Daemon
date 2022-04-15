@@ -25,7 +25,6 @@ FREETYPE_VERSION=2.10.4
 OPENAL_VERSION=1.21.1
 OGG_VERSION=1.3.4
 VORBIS_VERSION=1.3.7
-SPEEX_VERSION=1.2.0
 OPUS_VERSION=1.3.1
 OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.1
@@ -362,19 +361,6 @@ build_vorbis() {
 	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-examples
 	make
 	make install
-}
-
-# Build Speex
-build_speex() {
-	download "speex-${SPEEX_VERSION}.tar.gz" "https://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz" speex
-	cd "speex-${SPEEX_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	local TMP_FILE="$(mktemp /tmp/config.XXXXXXXXXX)"
-	sed "s/deplibs_check_method=.*/deplibs_check_method=pass_all/g" libtool > "${TMP_FILE}"
-	mv "${TMP_FILE}" libtool
-	make
-	make install || make install
 }
 
 # Build Opus
@@ -758,7 +744,7 @@ if [ "${#}" -lt "2" ]; then
 	echo "usage: ${0} <platform> <package[s]...>"
 	echo "Script to build dependencies for platforms which do not provide them"
 	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx64 linux64"
-	echo "Packages: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk wasmtime"
+	echo "Packages: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime"
 	echo "Virtual packages:"
 	echo "  install - create a stripped down version of the built packages that CMake can use"
 	echo "  package - create a zip/tarball of the dependencies so they can be distributed"
@@ -766,9 +752,9 @@ if [ "${#}" -lt "2" ]; then
 	echo
 	echo "Packages requires for each platform:"
 	echo "Linux native compile: naclsdk naclports (and possibly others depending on what packages your distribution provides)"
-	echo "Linux to Windows cross-compile: zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Linux to Windows cross-compile: zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
+	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
+	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
 	exit 1
 fi
 
