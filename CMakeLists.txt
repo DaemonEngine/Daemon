@@ -221,7 +221,7 @@ elseif (APPLE)
     set(DEPS_EXT ".tar.bz2")
     set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/macos-amd64-default_${DEPS_VERSION})
 elseif (LINUX)
-    set(DEPS_EXT ".tar.bz2")
+    set(DEPS_EXT ".tar.xz")
     # Our minimal NaCl .debs put the files in /usr/lib/nacl, so check that first
     if (EXISTS "/usr/lib/nacl/nacl_loader")
         set(DEPS_DIR "/usr/lib/nacl")

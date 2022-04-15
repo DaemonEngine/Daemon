@@ -890,9 +890,13 @@ run_package() {
 		rm -f "${PLATFORM}_${DEPS_VERSION}.zip"
 		zip -r "${PLATFORM}_${DEPS_VERSION}.zip" "${PLATFORM}_${DEPS_VERSION}"
 		;;
-	*)
+	macos-*-*)
 		rm -f "${PLATFORM}_${DEPS_VERSION}.tar.bz2"
 		tar cvjf "${PLATFORM}_${DEPS_VERSION}.tar.bz2" "${PLATFORM}_${DEPS_VERSION}"
+		;;
+	*)
+		rm -f "${PLATFORM}_${DEPS_VERSION}.tar.xz"
+		tar cvJf "${PLATFORM}_${DEPS_VERSION}.tar.xz" "${PLATFORM}_${DEPS_VERSION}"
 		;;
 	esac
 }
