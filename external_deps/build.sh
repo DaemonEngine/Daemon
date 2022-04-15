@@ -38,7 +38,6 @@ FREETYPE_VERSION=2.10.4
 OPENAL_VERSION=1.21.1
 OGG_VERSION=1.3.4
 VORBIS_VERSION=1.3.7
-SPEEX_VERSION=1.2.0
 OPUS_VERSION=1.3.1
 OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.1
@@ -615,20 +614,6 @@ build_vorbis() {
 	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-examples
 	make
 	make install
-}
-
-# Build Speex
-register_package speex :linux-amd64-default windows-i686-mingw windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
-build_speex() {
-	download "speex-${SPEEX_VERSION}.tar.gz" "https://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz" speex
-	cd "speex-${SPEEX_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	local TMP_FILE="$(mktemp /tmp/config.XXXXXXXXXX)"
-	sed "s/deplibs_check_method=.*/deplibs_check_method=pass_all/g" libtool > "${TMP_FILE}"
-	mv "${TMP_FILE}" libtool
-	make
-	make install || make install
 }
 
 # Build Opus
