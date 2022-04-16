@@ -188,22 +188,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 	memset( new_client, 0, sizeof( client_t ) );
 	int clientNum = new_client - svs.clients;
 
-
-#ifdef HAVE_GEOIP
-		const char * country = NET_GeoIP_Country( &from );
-
-		if ( country )
-		{
-			Log::Notice( "Client %i connecting from %s\n", clientNum, country );
-			userinfo["geoip"] = country;
-		}
-		else
-		{
-			Log::Notice( "Client %i connecting from somewhere unknown\n", clientNum );
-		}
-#else
-		Log::Notice( "Client %i connecting\n", clientNum );
-#endif
+	Log::Notice( "Client %i connecting", clientNum );
 
 	new_client->gentity = SV_GentityNum( clientNum );
 	new_client->gentity->r.svFlags = 0;
@@ -1104,17 +1089,11 @@ void SV_UserinfoChanged( client_t *cl )
 	if ( !NET_IsLocalAddress( cl->netchan.remoteAddress ) )
 	{
 		Info_SetValueForKey( cl->userinfo, "ip", NET_AdrToString( cl->netchan.remoteAddress ), false );
-#ifdef HAVE_GEOIP
-		Info_SetValueForKey( cl->userinfo, "geoip", NET_GeoIP_Country( &cl->netchan.remoteAddress ), false );
-#endif
 	}
 	else
 	{
 		// force the "ip" info key to "loopback" for local clients
 		Info_SetValueForKey( cl->userinfo, "ip", "loopback", false );
-#ifdef HAVE_GEOIP
-		Info_SetValueForKey( cl->userinfo, "geoip", nullptr, false );
-#endif
 	}
 }
 
