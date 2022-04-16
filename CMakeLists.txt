@@ -108,7 +108,6 @@ if(NOT DAEMON_EXTERNAL_APP)
         option(USE_CURSES "Enable fancy colors in terminal's output" ON)
     endif()
     cmake_dependent_option(USE_SMP "Compile with support for running the renderer in a separate thread" 1 BUILD_CLIENT 0)
-    option(USE_GEOIP "Allows server to show from which coutry a player logs from" OFF)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
 
@@ -589,14 +588,6 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER)
     add_library(srclibs-findlocale EXCLUDE_FROM_ALL ${FINDLOCALELIST})
     set_target_properties(srclibs-findlocale PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
     set(LIBS_ENGINE ${LIBS_ENGINE} srclibs-findlocale)
-
-    # GeoIP
-    if (USE_GEOIP)
-        find_package(GeoIP REQUIRED)
-        add_definitions(-DHAVE_GEOIP)
-        set(LIBS_ENGINE ${LIBS_ENGINE} ${GeoIP_LIBRARIES})
-        include_directories(${GeoIP_INCLUDE_DIRS})
-    endif()
 
     # Nettle
     find_package(Nettle REQUIRED)

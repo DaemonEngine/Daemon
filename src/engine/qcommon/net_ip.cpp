@@ -120,12 +120,6 @@ namespace net {
 
 #endif
 
-#ifdef HAVE_GEOIP
-#include <GeoIP.h>
-static GeoIP *geoip_data_4 = nullptr;
-static GeoIP *geoip_data_6 = nullptr;
-#endif
-
 static bool            usingSocks = false;
 static bool            networkingEnabled = false;
 #ifndef BUILD_SERVER
@@ -1862,49 +1856,6 @@ void NET_Config( bool enableNetworking )
 }
 
 /*
-==================
-NET_GeoIP_Country
-==================
-*/
-#ifdef HAVE_GEOIP
-const char *NET_GeoIP_Country( const netadr_t *from )
-{
-	switch ( from->type )
-	{
-	case netadrtype_t::NA_IP:
-		return geoip_data_4 ? GeoIP_country_name_by_ipnum( geoip_data_4, htonl( *(uint32_t *)from->ip ) ) : nullptr;
-
-	case netadrtype_t::NA_IP6:
-		return geoip_data_6 ? GeoIP_country_name_by_ipnum_v6( geoip_data_6, *(struct in6_addr *)from->ip6 ) : nullptr;
-
-	default:
-		return nullptr;
-	}
-}
-
-static GeoIP *NET_GeoIP_LoadData (int db)
-{
-	GeoIP *data = GeoIP_open_type (db, GEOIP_MEMORY_CACHE);
-
-	if (data == nullptr)
-	{
-		if (db == GEOIP_COUNTRY_EDITION)
-		{
-			std::string dbPath = FS::Path::Build(FS::GetLibPath(), "GeoIP.dat");
-			data = GeoIP_open (dbPath.c_str(), GEOIP_MEMORY_CACHE);
-		}
-		else if (db == GEOIP_COUNTRY_EDITION_V6)
-		{
-			std::string dbPath = FS::Path::Build(FS::GetLibPath(), "GeoIPv6.dat");
-			data = GeoIP_open (dbPath.c_str(), GEOIP_MEMORY_CACHE);
-		}
-	}
-
-	return data;
-}
-#endif
-
-/*
 ====================
 NET_Init
 ====================
@@ -1926,19 +1877,6 @@ void NET_Init()
 	Log::Notice( "Winsock Initialized\n" );
 #endif
 
-#ifdef HAVE_GEOIP
-	if (geoip_data_4 == nullptr)
-	{
-		geoip_data_4 = NET_GeoIP_LoadData( GEOIP_COUNTRY_EDITION );
-	}
-
-	if (geoip_data_6 == nullptr)
-	{
-		geoip_data_6 = NET_GeoIP_LoadData( GEOIP_COUNTRY_EDITION_V6 );
-	}
-	Log::Notice( "Loaded GeoIP data: ^%dIPv4 ^%dIPv6", geoip_data_4 ? 2 : 1, geoip_data_6 ? 2 : 1 );
-#endif
-
 	NET_Config( true );
 
 	Cmd_AddCommand( "net_restart", NET_Restart_f );
@@ -1957,22 +1895,6 @@ void NET_Shutdown()
 	}
 
 	NET_Config( false );
-
-#ifdef HAVE_GEOIP
-    if ( geoip_data_6 )
-	{
-		GeoIP_delete(geoip_data_6);
-		geoip_data_6 = nullptr;
-	}
-
-	if ( geoip_data_4 )
-	{
-		GeoIP_delete(geoip_data_4);
-		geoip_data_4 = nullptr;
-	}
-
-	GeoIP_cleanup();
-#endif
 
 #ifdef _WIN32
 	WSACleanup();
