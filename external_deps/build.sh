@@ -248,7 +248,7 @@ setup_windows_amd64_mingw() {
 	setup_common
 }
 
-# Set up environment for Mac OS X 64-bit
+# Set up environment for 64-bit macOS
 register_platform macos-amd64-default 'macOS amd64 native compilation'
 setup_macos_amd64_default() {
 	HOST=x86_64-apple-darwin11
