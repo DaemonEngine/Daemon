@@ -878,6 +878,10 @@ run_install() {
 
 	# Remove empty directories
 	find "${PKG_PREFIX}/" -mindepth 1 -type d -empty -delete
+
+	# Same timestamp everywhere
+	touch "${PKG_PREFIX}"
+	find "${PKG_PREFIX}" -depth -exec touch -r "${PKG_PREFIX}" {} \;
 }
 
 # Create a redistributable package for the dependencies
