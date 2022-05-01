@@ -904,7 +904,7 @@ run_package() {
 	case "${PLATFORM}" in
 	windows-*-*)
 		rm -f "${PLATFORM}_${DEPS_VERSION}.zip"
-		zip -r "${PLATFORM}_${DEPS_VERSION}.zip" "${PLATFORM}_${DEPS_VERSION}"
+		7z -t'zip' -mx=9 -mfb=258 -mpass=15 a "${PLATFORM}_${DEPS_VERSION}.zip" "${PLATFORM}_${DEPS_VERSION}"
 		;;
 	macos-*-*)
 		rm -f "${PLATFORM}_${DEPS_VERSION}.tar.bz2"
