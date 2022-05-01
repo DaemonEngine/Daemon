@@ -108,7 +108,7 @@ if(NOT DAEMON_EXTERNAL_APP)
         option(USE_CURSES "Enable fancy colors in terminal's output" ON)
     endif()
     cmake_dependent_option(USE_SMP "Compile with support for running the renderer in a separate thread" 1 BUILD_CLIENT 0)
-    cmake_dependent_option(USE_GEOIP "Allows server to show from which coutry a player logs from" 1 "BUILD_SERVER OR BUILD_CLIENT OR BUILD_TTY_CLIENT" 0)
+    option(USE_GEOIP "Allows server to show from which coutry a player logs from" OFF)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
 
