@@ -842,7 +842,8 @@ run_build() {
 register_command install 'Create a stripped down version of the built packages that CMake can use.'
 run_install() {
 	echo "Installing: ${PLATFORM}"
-	PKG_PREFIX="${WORK_DIR}/${PLATFORM}_${DEPS_VERSION}"
+	cd "${WORK_DIR}"
+	local PKG_PREFIX="${PLATFORM}_${DEPS_VERSION}"
 	rm -rf "${PKG_PREFIX}"
 
 	case "${PLATFORM}" in
@@ -901,20 +902,21 @@ register_command package 'Create a zip/tarball of the dependencies so they can b
 run_package() {
 	echo "Packaging: ${PLATFORM}"
 	cd "${WORK_DIR}"
+	local PKG_PREFIX="${PLATFORM}_${DEPS_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
-		rm -f "${PLATFORM}_${DEPS_VERSION}.zip"
-		7z -t'zip' -mx=9 -mfb=258 -mpass=15 a "${PLATFORM}_${DEPS_VERSION}.zip" "${PLATFORM}_${DEPS_VERSION}"
+		rm -f "${PKG_PREFIX}.zip"
+		7z -t'zip' -mx=9 -mfb=258 -mpass=15 a "${PKG_PREFIX}.zip" "${PKG_PREFIX}"
 		;;
 	macos-*-*)
-		rm -f "${PLATFORM}_${DEPS_VERSION}.tar.bz2"
+		rm -f "${PKG_PREFIX}.tar.bz2"
 		BZIP2='-9'
-		tar cvjf "${PLATFORM}_${DEPS_VERSION}.tar.bz2" "${PLATFORM}_${DEPS_VERSION}"
+		tar cvjf "${PKG_PREFIX}.tar.bz2" "${PKG_PREFIX}"
 		;;
 	*)
-		rm -f "${PLATFORM}_${DEPS_VERSION}.tar.xz"
+		rm -f "${PKG_PREFIX}.tar.xz"
 		XZ_OPT='-9'
-		tar cvJf "${PLATFORM}_${DEPS_VERSION}.tar.xz" "${PLATFORM}_${DEPS_VERSION}"
+		tar cvJf "${PKG_PREFIX}.tar.xz" "${PKG_PREFIX}"
 		;;
 	esac
 }
