@@ -822,7 +822,7 @@ build_selection() {
 }
 
 run_setup() {
-	if ! to_lines "${platforms}" | egrep -q "^${PLATFORM//-/_}$"; then
+	if ! list_platforms | egrep -q "^${PLATFORM}$"; then
 		error "Unknown platform ${PLATFORM}"
 	fi
 	echo "Setting up: ${PLATFORM}"
@@ -935,9 +935,15 @@ print_commands() {
 	done
 }
 
+list_platforms() {
+	local platform; for platform in $(to_lines "${platforms}" | sort -u); do
+		printf '%s\n' "${platform//_/-}"
+	done
+}
+
 print_platforms() {
 	local platform; for platform in $(to_lines "${platforms}" | sort -u); do
-		printf '\t%s: ' "${platform//_/-}"
+		printf '\t%s: ' "${platform}"
 		eval "echo \"\${platform_${platform}}\""
 	done
 }
@@ -989,6 +995,9 @@ print_help() {
 # Usage
 if [ "${1:-}" = '-h' -o "${1:-}" = '--help' ]; then
 	print_help
+	exit
+elif [ "${1:-}" = '--list-platforms' ]; then
+	list_platforms
 	exit
 elif [ "${#}" -lt "1" ]; then
 	error 'Missing platform name'
