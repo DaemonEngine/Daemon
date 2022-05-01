@@ -623,8 +623,27 @@ endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
-    find_package(SDL2 REQUIRED)
+    if(LINUX)
+        find_package(SDL2 QUIET CONFIG)
+        if(SDL2_VERSION)
+            if (SDL2_VERSION VERSION_GREATER_EQUAL "2.16"
+                AND SDL2_VERSION VERSION_LESS_EQUAL "2.20")
+                message(WARNING "SDL ${SDL2_VERSION} between version 2.16 and 2.20 is known to be buggy, see https://github.com/DaemonEngine/Daemon/issues/600")
+            endif()
+        else()
+            # CMake may be able to find SDL2 without supporting CONFIG
+            # If sdl2-config.cmake or SDL2Config.cmake isn't provided.
+            find_package(SDL2 REQUIRED)
+            message(STATUS "SDL version is unknown, version can't be checked for known bugs")
+        endif()
+    else()
+        # Non-Linux systems use pre-compiled SDL we provide,
+        # so no one is using unapproved version.
+        find_package(SDL2 REQUIRED)
+    endif()
+
     include_directories(${SDL2_INCLUDE_DIR})
+
     if (WIN32)
         set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${SDL2_LIBRARY})
     else()

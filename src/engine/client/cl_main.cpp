@@ -392,11 +392,11 @@ std::string GenerateDemoName()
         map_name.erase(0, last_slash + 1);
 
     return Str::Format(
-        "%s-%s_%04i-%02i-%02i_%02i%02i%02i",
-        NET_AdrToString(clc.serverAddress),
-        map_name,
+        "%04i-%02i-%02i_%02i%02i%02i_%s_%s",
         1900 + time.tm_year, time.tm_mon + 1, time.tm_mday,
-        time.tm_hour, time.tm_min, time.tm_sec
+        time.tm_hour, time.tm_min, time.tm_sec,
+        NET_AdrToString(clc.serverAddress),
+        map_name
     );
 }
 

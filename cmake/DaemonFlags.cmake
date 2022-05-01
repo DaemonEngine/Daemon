@@ -197,6 +197,10 @@ else()
     # Use hidden symbol visibility if possible
     try_c_cxx_flag(FVISIBILITY_HIDDEN "-fvisibility=hidden")
 
+    # Prevent the generation of STB_GNU_UNIQUE symbols on templated functions on Linux.
+    # STB_GNU_UNIQUE renders dlclose() inoperative.
+    try_cxx_flag(FNO_GNU_UNIQUE "-fno-gnu-unique")
+
     # Extra debug flags
     set_c_cxx_flag("-g3" DEBUG)
     set_c_cxx_flag("-g3" RELWITHDEBINFO)
