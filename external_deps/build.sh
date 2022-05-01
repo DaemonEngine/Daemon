@@ -908,10 +908,12 @@ run_package() {
 		;;
 	macos-*-*)
 		rm -f "${PLATFORM}_${DEPS_VERSION}.tar.bz2"
+		BZIP2='-9'
 		tar cvjf "${PLATFORM}_${DEPS_VERSION}.tar.bz2" "${PLATFORM}_${DEPS_VERSION}"
 		;;
 	*)
 		rm -f "${PLATFORM}_${DEPS_VERSION}.tar.xz"
+		XZ_OPT='-9'
 		tar cvJf "${PLATFORM}_${DEPS_VERSION}.tar.xz" "${PLATFORM}_${DEPS_VERSION}"
 		;;
 	esac
