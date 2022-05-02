@@ -623,6 +623,9 @@ endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
+    find_package(SDL2 REQUIRED)
+    # Non-Linux systems use pre-compiled SDL we provide,
+    # so no one of them is using unapproved version.
     if(LINUX)
         find_package(SDL2 QUIET CONFIG)
         if(SDL2_VERSION)
@@ -633,13 +636,8 @@ if (BUILD_CLIENT OR WIN32)
         else()
             # CMake may be able to find SDL2 without supporting CONFIG
             # If sdl2-config.cmake or SDL2Config.cmake isn't provided.
-            find_package(SDL2 REQUIRED)
             message(STATUS "SDL version is unknown, version can't be checked for known bugs")
         endif()
-    else()
-        # Non-Linux systems use pre-compiled SDL we provide,
-        # so no one is using unapproved version.
-        find_package(SDL2 REQUIRED)
     endif()
 
     include_directories(${SDL2_INCLUDE_DIR})
