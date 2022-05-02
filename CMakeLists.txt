@@ -626,9 +626,9 @@ if (BUILD_CLIENT OR WIN32)
     if(LINUX)
         find_package(SDL2 QUIET CONFIG)
         if(SDL2_VERSION)
-            if (SDL2_VERSION VERSION_GREATER_EQUAL "2.16"
-                AND SDL2_VERSION VERSION_LESS_EQUAL "2.20")
-                message(WARNING "SDL ${SDL2_VERSION} between version 2.16 and 2.20 is known to be buggy, see https://github.com/DaemonEngine/Daemon/issues/600")
+            if (SDL2_VERSION VERSION_GREATER_EQUAL "2.0.16"
+                AND SDL2_VERSION VERSION_LESS_EQUAL "2.0.20")
+                message(WARNING "SDL ${SDL2_VERSION} between version 2.0.16 and 2.0.20 is known to be buggy, see https://github.com/DaemonEngine/Daemon/issues/600")
             endif()
         else()
             # CMake may be able to find SDL2 without supporting CONFIG
