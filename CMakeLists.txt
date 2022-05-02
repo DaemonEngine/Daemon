@@ -108,7 +108,7 @@ if(NOT DAEMON_EXTERNAL_APP)
         option(USE_CURSES "Enable fancy colors in terminal's output" ON)
     endif()
     cmake_dependent_option(USE_SMP "Compile with support for running the renderer in a separate thread" 1 BUILD_CLIENT 0)
-    cmake_dependent_option(USE_GEOIP "Allows server to show from which coutry a player logs from" 1 "BUILD_SERVER OR BUILD_CLIENT OR BUILD_TTY_CLIENT" 0)
+    option(USE_GEOIP "Allows server to show from which coutry a player logs from" OFF)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
 
@@ -623,23 +623,21 @@ endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
+    find_package(SDL2 REQUIRED)
+    # Non-Linux systems use pre-compiled SDL we provide,
+    # so no one of them is using unapproved version.
     if(LINUX)
         find_package(SDL2 QUIET CONFIG)
         if(SDL2_VERSION)
-            if (SDL2_VERSION VERSION_GREATER_EQUAL "2.16"
-                AND SDL2_VERSION VERSION_LESS_EQUAL "2.20")
-                message(WARNING "SDL ${SDL2_VERSION} between version 2.16 and 2.20 is known to be buggy, see https://github.com/DaemonEngine/Daemon/issues/600")
+            if (SDL2_VERSION VERSION_GREATER_EQUAL "2.0.16"
+                AND SDL2_VERSION VERSION_LESS_EQUAL "2.0.20")
+                message(WARNING "SDL ${SDL2_VERSION} between version 2.0.16 and 2.0.20 is known to be buggy, see https://github.com/DaemonEngine/Daemon/issues/600")
             endif()
         else()
             # CMake may be able to find SDL2 without supporting CONFIG
             # If sdl2-config.cmake or SDL2Config.cmake isn't provided.
-            find_package(SDL2 REQUIRED)
             message(STATUS "SDL version is unknown, version can't be checked for known bugs")
         endif()
-    else()
-        # Non-Linux systems use pre-compiled SDL we provide,
-        # so no one is using unapproved version.
-        find_package(SDL2 REQUIRED)
     endif()
 
     include_directories(${SDL2_INCLUDE_DIR})
