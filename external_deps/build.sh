@@ -844,7 +844,19 @@ run_install() {
 	echo "Installing: ${PLATFORM}"
 	PKG_PREFIX="${WORK_DIR}/${PLATFORM}_${DEPS_VERSION}"
 	rm -rf "${PKG_PREFIX}"
-	rsync -a --link-dest="${PREFIX}" "${PREFIX}/" "${PKG_PREFIX}"
+
+	case "${PLATFORM}" in
+	windows-*-*)
+		# CMake for Windows may not know how to extract symbolic links
+		# and user may not have permission to do so.
+		# 7z does not dereference symbolic links so we have to dereference
+		# them at install time.
+		rsync -a --copy-links --link-dest="${PREFIX}" "${PREFIX}/" "${PKG_PREFIX}"
+		;;
+	*)
+		rsync -a --link-dest="${PREFIX}" "${PREFIX}/" "${PKG_PREFIX}"
+		;;
+	esac
 
 	# Ensure existence in case the selected set of deps didn't have these
 	mkdir -p "${PKG_PREFIX}/bin"
