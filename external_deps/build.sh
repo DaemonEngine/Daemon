@@ -5,8 +5,9 @@
 set -e
 set -u
 
-# Dependencies version. This number must be updated every time the version
-# numbers below change, or packages are added/removed.
+# This should match the DEPS_VERSION in CMakeLists.txt.
+# This is mostly to ensure the path the files end up at if you build deps yourself
+# are the same as the ones when extracting from the downloaded packages.
 DEPS_VERSION=5
 
 # Package versions
@@ -670,6 +671,14 @@ setup_msvc32() {
 	export CXXFLAGS="-msse2 -mpreferred-stack-boundary=2"
 	common_setup
 }
+
+# Note about -D__USE_MINGW_ANSI_STDIO=0 - this instructs MinGW to *not* use its own implementation
+# of printf and instead use the system one. It's bad when MinGW uses its own implementation because
+# this can cause extra DLL dependencies.
+# The separate implementation exists because Microsoft's implementation at some point did not
+# implement certain printf specifiers, in particular %lld (long long). Lua does use this one, which
+# results in compiler warnings. But this is OK because the Windows build of Lua is only used in
+# developer gamelogic builds, and Microsoft supports %lld since Visual Studio 2013.
 
 # Set up environment for 64-bit Windows for Visual Studio (compile all as .dll)
 setup_msvc64() {
