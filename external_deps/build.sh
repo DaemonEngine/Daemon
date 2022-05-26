@@ -601,7 +601,6 @@ build_install() {
 	rm -rf "${PKG_PREFIX}/def"
 	rm -rf "${PKG_PREFIX}/share"
 	rm -f "${PKG_PREFIX}/genlib.bat"
-	rm -rf "${PKG_PREFIX}/lib/cmake"
 	rm -rf "${PKG_PREFIX}/lib/pkgconfig"
 	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.la' -execdir rm -f -- {} \;
