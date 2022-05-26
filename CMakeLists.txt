@@ -422,6 +422,22 @@ include(src.cmake)
 
 # Import external dependencies
 if (DEPS_DIR)
+    # Warn on old version of deps
+    get_cmake_property(cacheVariableNames CACHE_VARIABLES)
+    foreach(cacheVariableName ${cacheVariableNames})
+        set(cacheVariableValue "${${cacheVariableName}}")
+        if (cacheVariableValue MATCHES "/(linux64|macosx64|mingw32|mingw64|msvc32|msvc64)-([0-9]+)/")
+            if (NOT ${CMAKE_MATCH_2} EQUAL ${DEPS_VERSION})
+                message(WARNING "You seem to be using a dependency from version ${CMAKE_MATCH_2}"
+                                " of the external_deps package, but the latest version is"
+                                " ${DEPS_VERSION}. Please delete the build directory and"
+                                " reconfigure to upgrade to the latest dependencies. (Based on"
+                                " ${cacheVariableName}=${cacheVariableValue})")
+                break()
+            endif()
+        endif()
+    endforeach()
+
     # Download them if they not available
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
