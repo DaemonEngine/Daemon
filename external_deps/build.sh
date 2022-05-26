@@ -323,7 +323,7 @@ build_openal() {
 	macosx*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
-		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
+		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
 		make
 		make install
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
@@ -725,6 +725,7 @@ setup_macosx64() {
 	export CFLAGS="-arch x86_64"
 	export CXXFLAGS="-arch x86_64"
 	export LDFLAGS="-arch x86_64"
+	export CMAKE_OSX_ARCHITECTURES="x86_64"
 	common_setup
 }
 
