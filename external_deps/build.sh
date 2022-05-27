@@ -47,15 +47,15 @@ WASMTIME_VERSION=0.28.0
 
 error() { echo "ERROR: ${@}" >&2; exit 1; }
 
-to_lines() { echo "${@// /$'\n'}"; }
+# Ordered lists are implemented as string variables using '\n' (new line) character as separator.
 
 # Implements kind of associative array of command name and command description.
 #   register_command install 'Create a stripped down version of the built packages that CMake can use.'
 # is like:
 #   command['install']='Create a stripped down version of the built packages that CMake can use.'
 register_command() {
-	if ! to_lines "${commands:-}" | egrep -q "^${1}"; then
-		commands+="${commands:+ }${1}"
+	if ! echo "${commands:-}" | egrep -q "^${1}"; then
+		commands+="${commands:+$'\n'}${1}"
 		eval "command_${1}='${2}'"
 	fi
 }
@@ -67,8 +67,8 @@ register_command() {
 register_platform() {
 	# Bash variable names can't contain any hyphen.
 	local platform="${1//-/_}"
-	if ! to_lines "${platforms:-}" | egrep -q "^${platform}"; then
-		platforms+="${platforms:+ }${platform}"
+	if ! echo "${platforms:-}" | egrep -q "^${platform}"; then
+		platforms+="${platforms:+$'\n'}${platform}"
 		eval "platform_${platform}='${2}'"
 	fi
 }
@@ -95,8 +95,8 @@ register_platform() {
 # It also checks for the platform having been declared before.
 register_package() {
 	local package="${1}"; shift
-	if ! to_lines "${packages:-}" | egrep -q "^${package}$"; then
-		packages+="${packages:+ }${package}"
+	if ! echo "${packages:-}" | egrep -q "^${package}$"; then
+		packages+="${packages:+$'\n'}${package}"
 	fi
 	while [ -n "${1:-}" ]; do
 		local platform="${1//-/_}"
@@ -107,17 +107,17 @@ register_package() {
 		else
 			local used='true'
 		fi
-		if ! to_lines "${platforms:-}" | egrep -q "^${platform}$"; then
+		if ! echo "${platforms:-}" | egrep -q "^${platform}$"; then
 			error "Unknown platform ${platform}"
-		elif ! to_lines "${package_platforms:-}" | egrep -q "^${platform}$"; then
-			package_platforms+="${package_platforms:+ }${platform}"
+		elif ! echo "${package_platforms:-}" | egrep -q "^${platform}$"; then
+			package_platforms+="${package_platforms:+$'\n'}${platform}"
 		fi
-		eval "all_packages_${platform}+=\"\${all_packages_${platform}:+ }${package}\""
-		eval "${selection}_packages_${platform}+=\"\${${selection}_packages_${platform}:+ }${package}\""
+		eval "all_packages_${platform}+=\"\${all_packages_${platform}:+$'\n'}${package}\""
+		eval "${selection}_packages_${platform}+=\"\${${selection}_packages_${platform}:+$'\n'}${package}\""
 		shift
 	done
 	if [ -z "${used:-}" ]; then
-		packages_unused+="${packages_unused:+ }${package}"
+		packages_unused+="${packages_unused:+$'\n'}${package}"
 	fi
 }
 
@@ -831,7 +831,7 @@ run_setup() {
 }
 
 run_build() {
-	if ! to_lines "${packages}" | egrep -q "^${1}$"; then
+	if ! echo "${packages}" | egrep -q "^${1}$"; then
 		error "Unknown package ${1}"
 	fi
 	echo "Building: ${1}"
@@ -937,22 +937,31 @@ print_commands() {
 }
 
 list_platforms() {
-	local platform; for platform in $(to_lines "${platforms}" | sort -u); do
+	local platform; for platform in $(echo "${platforms}" | sort -u); do
 		printf '%s\n' "${platform//_/-}"
 	done
 }
 
 print_platforms() {
-	local platform; for platform in $(to_lines "${platforms}" | sort -u); do
+	local platform; for platform in $(echo "${platforms}" | sort -u); do
 		printf '\t%s: ' "${platform}"
 		eval "echo \"\${platform_${platform}}\""
 	done
 }
 
+print_packages() {
+	echo "${packages//$'\n'/ }"
+}
+
+print_unused_packages() {
+	packages_unused="${packages_unused:-}"
+	echo "${packages_unused//$'\n'/ }"
+}
+
 print_selection_packages_per_platform() {
-	local platform; for platform in $(to_lines "${package_platforms}" | sort -u); do
+	local platform; for platform in $(echo "${package_platforms}" | sort -u); do
 		printf '\t%s: ' "${platform//_/-}"
-		eval "echo \"\${${1}_packages_${platform}}\""
+		eval "echo \"\${${1}_packages_${platform}//\$'\\n'/ }\""
 	done
 }
 
@@ -973,7 +982,7 @@ print_help() {
 	${tab}all       (build all available packages for the given platform)
 
 	Packages:
-	${tab}${packages}
+	${tab}$(print_packages)
 
 	Required packages per platform:
 	$(print_selection_packages_per_platform required)
@@ -982,7 +991,7 @@ print_help() {
 	$(print_selection_packages_per_platform optional)
 
 	Unused packages:
-	${tab}${packages_unused:-}
+	${tab}$(print_unused_packages)
 
 	Commands:
 	$(print_commands)
