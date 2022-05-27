@@ -54,7 +54,7 @@ error() { echo "ERROR: ${@}" >&2; exit 1; }
 # is like:
 #   command['install']='Create a stripped down version of the built packages that CMake can use.'
 register_command() {
-	if ! echo "${commands:-}" | egrep -q "^${1}"; then
+	if ! echo "${commands:-}" | egrep -q "^${1}$"; then
 		commands+="${commands:+$'\n'}${1}"
 		eval "command_${1}='${2}'"
 	fi
@@ -67,7 +67,7 @@ register_command() {
 register_platform() {
 	# Bash variable names can't contain any hyphen.
 	local platform="${1//-/_}"
-	if ! echo "${platforms:-}" | egrep -q "^${platform}"; then
+	if ! echo "${platforms:-}" | egrep -q "^${platform}$"; then
 		platforms+="${platforms:+$'\n'}${platform}"
 		eval "platform_${platform}='${2}'"
 	fi
