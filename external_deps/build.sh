@@ -75,6 +75,7 @@ register_platform() {
 
 # Implement a kind of associative array of platform name and associative array
 # of sorted list of required, optional, unused and all packages.
+# Platform names prefixed by ':' means the package is optional for this platform.
 #  register_package pkgconfig :linux-amd64-default :windows-i686-mingw :windows-amd64-mingw windows-i686-msvc windows-amd64-msvc macos-amd64-default
 # is like:
 #   package['linux-amd64-default']['optional'].append('pkgconfig')
