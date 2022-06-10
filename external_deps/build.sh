@@ -15,7 +15,6 @@ NASM_VERSION=2.15.05
 ZLIB_VERSION=1.2.11
 GMP_VERSION=6.2.0
 NETTLE_VERSION=3.6
-GEOIP_VERSION=1.6.12
 CURL_VERSION=7.73.0
 SDL2_VERSION=2.0.12
 GLEW_VERSION=2.2.0
@@ -174,26 +173,6 @@ build_nettle() {
 	cd "nettle-${NETTLE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	make
-	make install
-}
-
-# Build GeoIP
-build_geoip() {
-	download "GeoIP-${GEOIP_VERSION}.tar.gz" "https://github.com/maxmind/geoip-api-c/archive/v${GEOIP_VERSION}.tar.gz" geoip
-	cd "geoip-api-c-${GEOIP_VERSION}"
-	autoreconf -vi
-	export ac_cv_func_malloc_0_nonnull=yes
-	export ac_cv_func_realloc_0_nonnull=yes
-	# GeoIP needs -lws2_32 in LDFLAGS
-	local TEMP_LDFLAGS="${LDFLAGS}"
-	case "${PLATFORM}" in
-	mingw*|msvc*)
-		TEMP_LDFLAGS="${LDFLAGS} -lws2_32"
-		;;
-	esac
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" LDFLAGS="${TEMP_LDFLAGS}" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 	make
 	make install
 }
@@ -779,7 +758,7 @@ if [ "${#}" -lt "2" ]; then
 	echo "usage: ${0} <platform> <package[s]...>"
 	echo "Script to build dependencies for platforms which do not provide them"
 	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx64 linux64"
-	echo "Packages: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk wasmtime"
+	echo "Packages: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk wasmtime"
 	echo "Virtual packages:"
 	echo "  install - create a stripped down version of the built packages that CMake can use"
 	echo "  package - create a zip/tarball of the dependencies so they can be distributed"
@@ -787,9 +766,9 @@ if [ "${#}" -lt "2" ]; then
 	echo
 	echo "Packages requires for each platform:"
 	echo "Linux native compile: naclsdk naclports (and possibly others depending on what packages your distribution provides)"
-	echo "Linux to Windows cross-compile: zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle geoip curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle geoip sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Linux to Windows cross-compile: zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
 	exit 1
 fi
 
