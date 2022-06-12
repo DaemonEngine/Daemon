@@ -1082,15 +1082,6 @@ static void IN_ProcessEvents( bool dropInput )
 					else
 					{
 						Com_QueueEvent( Util::make_unique<Sys::MouseEvent>(e.motion.xrel, e.motion.yrel) );
-#if defined( __linux__ ) || defined( __BSD__ )
-						if ( !in_nograb->integer && ( e.motion.xrel || e.motion.yrel ) )
-						{
-							// work around X window managers and edge-based workspace flipping
-							// - without this, we get LeaveNotify, no mouse button events, EnterNotify;
-							//   we would likely miss some button presses and releases.
-							IN_CenterMouse();
-						}
-#endif
 					}
 				}
 				break;
