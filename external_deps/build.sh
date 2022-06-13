@@ -570,10 +570,7 @@ build_gendef() {
 			gendef "${PREFIX}/bin/${DLL}"
 
 			# Fix some issues with gendef output
-			local TMP_FILE="$(mktemp /tmp/config.XXXXXXXXXX)"
-			sed "s/\(glew.*\)@4@4/\1@4/" "${DEF}" > "${TMP_FILE}"
-			sed "s/ov_halfrate_p@0/ov_halfrate_p/" "${TMP_FILE}" > "${DEF}"
-			rm -f "${TMP_FILE}"
+			sed -i "s/\(glew.*\)@4@4/\1@4/;s/ov_halfrate_p@0/ov_halfrate_p/" "${DEF}"
 
 			echo "lib /def:def\\${DEF} /machine:${MACHINE} /out:lib\\${LIB}" >> "${PREFIX}/genlib.bat"
 		done
