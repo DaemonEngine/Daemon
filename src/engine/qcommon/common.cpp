@@ -912,11 +912,11 @@ void Com_Frame()
 		{
 			int max;
 
-			if ( com_minimized->integer )
+			if ( com_minimized->integer && maxfpsMinimized.Get() != 0 )
 			{
 				max = maxfpsMinimized.Get();
 			}
-			else if ( com_unfocused->integer )
+			else if ( com_unfocused->integer && maxfpsUnfocused.Get() != 0 )
 			{
 				max = maxfpsUnfocused.Get();
 			}
