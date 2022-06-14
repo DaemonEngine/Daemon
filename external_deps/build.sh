@@ -96,10 +96,6 @@ build_nasm() {
 		download "nasm-${NASM_VERSION}-macosx.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/nasm-${NASM_VERSION}-macosx.zip" nasm
 		cp "nasm-${NASM_VERSION}/nasm" "${PREFIX}/bin"
 		;;
-	mingw*|msvc*)
-		download "nasm-${NASM_VERSION}-win32.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/win32/nasm-${NASM_VERSION}-win32.zip" nasm
-		cp "nasm-${NASM_VERSION}/nasm.exe" "${PREFIX}/bin"
-		;;
 	*)
 		echo "Unsupported platform for NASM"
 		exit 1
@@ -264,6 +260,10 @@ build_png() {
 # Build JPEG
 build_jpeg() {
 	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
+
+	# Ensure NASM is available
+	"${NASM:-nasm}" --help >/dev/null
+
 	cd "libjpeg-turbo-${JPEG_VERSION}"
 	case "${PLATFORM}" in
 	mingw*)
@@ -747,7 +747,7 @@ if [ "${#}" -lt "2" ]; then
 	echo "Packages requires for each platform:"
 	echo "Linux native compile: naclsdk naclports (and possibly others depending on what packages your distribution provides)"
 	echo "Linux to Windows cross-compile: zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
-	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib"
+	echo "Native Windows compile: pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib"
 	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
 	exit 1
 fi
