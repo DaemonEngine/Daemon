@@ -97,6 +97,8 @@ namespace VM {
         QVM_COMMON_FS_FIND_PAK,
         QVM_COMMON_FS_LOAD_PAK,
         QVM_COMMON_FS_LOAD_MAP_METADATA,
+
+        QVM_COMMON_IMAGE_EXISTS,
     };
 
     using ErrorMsg = IPC::SyncMessage<
@@ -148,6 +150,11 @@ namespace VM {
     >;
     using FSLoadMapMetadataMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_LOAD_MAP_METADATA>>
+    >;
+
+    using ImageExists = IPC::SyncMessage<
+        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_IMAGE_EXISTS>, std::string>,
+        IPC::Reply<bool>
     >;
 
     // Misc Syscall Definitions
