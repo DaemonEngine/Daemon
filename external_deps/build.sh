@@ -195,11 +195,11 @@ build_sdl2() {
 		cp include/* "${PREFIX}/include/SDL2"
 		case "${PLATFORM}" in
 		msvc32)
-			cp lib/x86/*.lib "${PREFIX}/lib"
+			cp lib/x86/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
 			cp lib/x86/*.dll "${PREFIX}/bin"
 			;;
 		msvc64)
-			cp lib/x64/*.lib "${PREFIX}/lib"
+			cp lib/x64/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
 			cp lib/x64/*.dll "${PREFIX}/bin"
 			;;
 		esac
