@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <locale.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -81,26 +82,15 @@ int NaClWouldBlock(void) {
 }
 
 int NaClGetLastErrorString(char* buffer, size_t length) {
-#if NACL_LINUX && !NACL_ANDROID
-  char* message;
-  /*
-   * Note some Linux distributions provide only GNU version of strerror_r().
-   */
   if (buffer == NULL || length == 0) {
     errno = ERANGE;
     return -1;
   }
-  message = strerror_r(errno, buffer, length);
-  if (message != buffer) {
-    size_t message_bytes = strlen(message) + 1;
-    length = std::min(message_bytes, length);
-    memmove(buffer, message, length);
-    buffer[length - 1] = '\0';
-  }
+  /* strerror_l is 2008 POSIX C */
+  const char *message = strerror_l(errno, uselocale((locale_t)0));
+  strncpy(buffer, message, length);
+  buffer[length - 1] = '\0';
   return 0;
-#else
-  return strerror_r(errno, buffer, length);
-#endif
 }
 
 #if !NACL_ANDROID
