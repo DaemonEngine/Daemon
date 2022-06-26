@@ -5,34 +5,33 @@
 set -e
 set -u
 
-# Dependencies version. This number must be updated every time the version
-# numbers below change, or packages are added/removed.
-DEPS_VERSION=5
+# This should match the DEPS_VERSION in CMakeLists.txt.
+# This is mostly to ensure the path the files end up at if you build deps yourself
+# are the same as the ones when extracting from the downloaded packages.
+DEPS_VERSION=6
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
 NASM_VERSION=2.15.05
-ZLIB_VERSION=1.2.11
-GMP_VERSION=6.2.0
-NETTLE_VERSION=3.6
-CURL_VERSION=7.73.0
-SDL2_VERSION=2.0.12
+ZLIB_VERSION=1.2.12
+GMP_VERSION=6.2.1
+NETTLE_VERSION=3.7.3
+CURL_VERSION=7.83.1
+SDL2_VERSION=2.0.12  # Holding back due to https://github.com/DaemonEngine/Daemon/issues/628
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.37
-JPEG_VERSION=2.0.5
-WEBP_VERSION=1.1.0
-FREETYPE_VERSION=2.10.4
-OPENAL_VERSION=1.21.1
-OGG_VERSION=1.3.4
+JPEG_VERSION=2.1.3
+WEBP_VERSION=1.2.2
+FREETYPE_VERSION=2.12.1
+OPENAL_VERSION=1.21.1  # Not using 1.22.0 due to https://github.com/kcat/openal-soft/issues/719
+OGG_VERSION=1.3.5
 VORBIS_VERSION=1.3.7
-SPEEX_VERSION=1.2.0
 OPUS_VERSION=1.3.1
 OPUSFILE_VERSION=0.12
-LUA_VERSION=5.4.1
+LUA_VERSION=5.4.4
 NACLSDK_VERSION=44.0.2403.155
 NCURSES_VERSION=6.2
-WASISDK_VERSION_MAJOR=12
-WASISDK_VERSION=${WASISDK_VERSION_MAJOR}.0
+WASISDK_VERSION=12.0
 WASMTIME_VERSION=0.28.0
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
@@ -97,10 +96,6 @@ build_nasm() {
 	macosx*)
 		download "nasm-${NASM_VERSION}-macosx.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/nasm-${NASM_VERSION}-macosx.zip" nasm
 		cp "nasm-${NASM_VERSION}/nasm" "${PREFIX}/bin"
-		;;
-	mingw*|msvc*)
-		download "nasm-${NASM_VERSION}-win32.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/win32/nasm-${NASM_VERSION}-win32.zip" nasm
-		cp "nasm-${NASM_VERSION}/nasm.exe" "${PREFIX}/bin"
 		;;
 	*)
 		echo "Unsupported platform for NASM"
@@ -181,7 +176,7 @@ build_nettle() {
 build_curl() {
 	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
 	cd "curl-${CURL_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn --disable-file --disable-ldap --disable-crypto-auth --disable-threaded-resolver ${MSVC_SHARED[@]}
+	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc ${MSVC_SHARED[@]}
 	make
 	make install
 }
@@ -201,11 +196,11 @@ build_sdl2() {
 		cp include/* "${PREFIX}/include/SDL2"
 		case "${PLATFORM}" in
 		msvc32)
-			cp lib/x86/*.lib "${PREFIX}/lib"
+			cp lib/x86/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
 			cp lib/x86/*.dll "${PREFIX}/bin"
 			;;
 		msvc64)
-			cp lib/x64/*.lib "${PREFIX}/lib"
+			cp lib/x64/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
 			cp lib/x64/*.dll "${PREFIX}/bin"
 			;;
 		esac
@@ -266,6 +261,10 @@ build_png() {
 # Build JPEG
 build_jpeg() {
 	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
+
+	# Ensure NASM is available
+	"${NASM:-nasm}" --help >/dev/null
+
 	cd "libjpeg-turbo-${JPEG_VERSION}"
 	case "${PLATFORM}" in
 	mingw*)
@@ -325,7 +324,7 @@ build_openal() {
 	macosx*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
-		cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
+		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
 		make
 		make install
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
@@ -333,7 +332,7 @@ build_openal() {
 	linux*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
-		cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DALSOFT_EXAMPLES=OFF -DLIBTYPE=STATIC -DCMAKE_BUILD_TYPE=Release .
+		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DALSOFT_EXAMPLES=OFF -DLIBTYPE=STATIC -DCMAKE_BUILD_TYPE=Release .
 		make
 		make install
 		;;
@@ -363,19 +362,6 @@ build_vorbis() {
 	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-examples
 	make
 	make install
-}
-
-# Build Speex
-build_speex() {
-	download "speex-${SPEEX_VERSION}.tar.gz" "https://downloads.xiph.org/releases/speex/speex-${SPEEX_VERSION}.tar.gz" speex
-	cd "speex-${SPEEX_VERSION}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
-	local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
-	sed "s/deplibs_check_method=.*/deplibs_check_method=pass_all/g" libtool > "${TMP_FILE}"
-	mv "${TMP_FILE}" libtool
-	make
-	make install || make install
 }
 
 # Build Opus
@@ -465,6 +451,7 @@ build_wasisdk() {
 		local WASISDK_PLATFORM=linux
 		;;
 	esac
+	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 	download "wasi-sdk_${WASISDK_PLATFORM}.tar.gz" "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/wasi-sdk-${WASISDK_VERSION}-${WASISDK_PLATFORM}.tar.gz" wasisdk
 	cp -r "wasi-sdk-${WASISDK_VERSION}" "${PREFIX}/wasi-sdk"
 }
@@ -487,7 +474,7 @@ build_wasmtime() {
 	esac
 	case "${PLATFORM}" in
 	*32)
-		echo "wasmtime doesn't have releasese for x86"
+		echo "wasmtime doesn't have release for x86"
 		exit 1
 		;;
 	*64)
@@ -565,35 +552,30 @@ build_naclports() {
 	cp pepper_*"/ports/lib/newlib_pnacl/Release/"{liblua.a,libfreetype.a,libpng16.a} "${PREFIX}/pnacl_deps/lib"
 }
 
-# For MSVC, we need to use the Microsoft LIB tool to generate import libraries,
-# the import libraries generated by MinGW seem to have issues. Instead we
-# generate a .bat file to be run using the Visual Studio tools command shell.
-build_gendef() {
+# The import libraries generated by MinGW seem to have issues, so we use LLVM's version instead.
+# So LLVM must be installed, e.g. 'sudo apt install llvm'
+build_genlib() {
 	case "${PLATFORM}" in
 	msvc*)
 		mkdir -p "${PREFIX}/def"
 		cd "${PREFIX}/def"
-		echo 'cd /d "%~dp0"' > "${PREFIX}/genlib.bat"
 		for DLL_A in "${PREFIX}"/lib/*.dll.a; do
-			DLL=`${CROSS}dlltool -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll`
-			DEF=`basename ${DLL} .dll`.def
-			LIB=`basename ${DLL_A} .dll.a`.lib
-			MACHINE=`[ "${PLATFORM}" = msvc32 ] && echo x86 || echo x64`
+			local DLL="$(${CROSS}dlltool -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
+			local DEF="$(basename ${DLL} .dll).def"
+			local LIB="$(basename ${DLL_A} .dll.a).lib"
+			local MACHINE="$([ "${PLATFORM}" = msvc32 ] && echo i386 || echo i386:x86-64)"
 
 			# Using gendef from mingw-w64-tools
 			gendef "${PREFIX}/bin/${DLL}"
 
 			# Fix some issues with gendef output
-			TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
-			sed "s/\(glew.*\)@4@4/\1@4/" "${DEF}" > "${TMP_FILE}"
-			sed "s/ov_halfrate_p@0/ov_halfrate_p/" "${TMP_FILE}" > "${DEF}"
-			rm -f "${TMP_FILE}"
+			sed -i "s/\(glew.*\)@4@4/\1@4/;s/ov_halfrate_p@0/ov_halfrate_p/" "${DEF}"
 
-			echo "lib /def:def\\${DEF} /machine:${MACHINE} /out:lib\\${LIB}" >> "${PREFIX}/genlib.bat"
+			llvm-dlltool -d "${DEF}" -D "$(basename "${DLL}")" -m "${MACHINE}" -l "../lib/${LIB}"
 		done
 		;;
 	*)
-		echo "Unsupported platform for gendef"
+		echo "Unsupported platform for genlib"
 		exit 1
 		;;
 	esac
@@ -614,13 +596,11 @@ build_install() {
 	rm -rf "${PKG_PREFIX}/man"
 	rm -rf "${PKG_PREFIX}/def"
 	rm -rf "${PKG_PREFIX}/share"
-	rm -f "${PKG_PREFIX}/genlib.bat"
-	rm -rf "${PKG_PREFIX}/lib/cmake"
 	rm -rf "${PKG_PREFIX}/lib/pkgconfig"
 	find "${PKG_PREFIX}/bin" -not -type d -not -name '*.dll' -execdir rm -f -- {} \;
 	find "${PKG_PREFIX}/lib" -name '*.la' -execdir rm -f -- {} \;
-	find "${PKG_PREFIX}/lib" -name '*.dll.a' -execdir bash -c 'rm -f -- "`basename "{}" .dll.a`.a"' \;
-	find "${PKG_PREFIX}/lib" -name '*.dylib' -execdir bash -c 'rm -f -- "`basename "{}" .dylib`.a"' \;
+	find "${PKG_PREFIX}/lib" -name '*.dll.a' -execdir bash -c 'rm -f -- "$(basename "{}" .dll.a).a"' \;
+	find "${PKG_PREFIX}/lib" -name '*.dylib' -execdir bash -c 'rm -f -- "$(basename "{}" .dylib).a"' \;
 
 	# Strip libraries
 	case "${PLATFORM}" in
@@ -692,6 +672,14 @@ setup_msvc32() {
 	common_setup
 }
 
+# Note about -D__USE_MINGW_ANSI_STDIO=0 - this instructs MinGW to *not* use its own implementation
+# of printf and instead use the system one. It's bad when MinGW uses its own implementation because
+# this can cause extra DLL dependencies.
+# The separate implementation exists because Microsoft's implementation at some point did not
+# implement certain printf specifiers, in particular %lld (long long). Lua does use this one, which
+# results in compiler warnings. But this is OK because the Windows build of Lua is only used in
+# developer gamelogic builds, and Microsoft supports %lld since Visual Studio 2013.
+
 # Set up environment for 64-bit Windows for Visual Studio (compile all as .dll)
 setup_msvc64() {
 	HOST=x86_64-w64-mingw32
@@ -739,6 +727,7 @@ setup_macosx64() {
 	export CFLAGS="-arch x86_64"
 	export CXXFLAGS="-arch x86_64"
 	export LDFLAGS="-arch x86_64"
+	export CMAKE_OSX_ARCHITECTURES="x86_64"
 	common_setup
 }
 
@@ -758,7 +747,7 @@ if [ "${#}" -lt "2" ]; then
 	echo "usage: ${0} <platform> <package[s]...>"
 	echo "Script to build dependencies for platforms which do not provide them"
 	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx64 linux64"
-	echo "Packages: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports wasisdk wasmtime"
+	echo "Packages: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime"
 	echo "Virtual packages:"
 	echo "  install - create a stripped down version of the built packages that CMake can use"
 	echo "  package - create a zip/tarball of the dependencies so they can be distributed"
@@ -766,9 +755,9 @@ if [ "${#}" -lt "2" ]; then
 	echo
 	echo "Packages requires for each platform:"
 	echo "Linux native compile: naclsdk naclports (and possibly others depending on what packages your distribution provides)"
-	echo "Linux to Windows cross-compile: zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Windows compile: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
-	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis speex opus opusfile lua naclsdk naclports"
+	echo "Linux to Windows cross-compile: zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
+	echo "Native Windows compile: pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib"
+	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
 	exit 1
 fi
 
