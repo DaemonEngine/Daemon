@@ -8,7 +8,7 @@ set -u
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
-DEPS_VERSION=5
+DEPS_VERSION=6
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
