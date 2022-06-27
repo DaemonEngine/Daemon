@@ -742,6 +742,12 @@ setup_linux64() {
 	common_setup
 }
 
+if [ "${1}" = '--print-version' ]
+then
+	eval "echo \"\${${2}_VERSION}\""
+	exit
+fi
+
 # Usage
 if [ "${#}" -lt "2" ]; then
 	echo "usage: ${0} <platform> <package[s]...>"
