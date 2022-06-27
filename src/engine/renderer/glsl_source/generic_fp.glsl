@@ -34,6 +34,7 @@ uniform sampler2D       u_DepthMap;
 #endif
 
 DECLARE_OUTPUT(vec4)
+out float gl_FragDepth;
 
 void	main()
 {
@@ -55,4 +56,7 @@ void	main()
 
 	color *= var_Color;
 	outputColor = color;
+#if defined(USE_DEPTH_FLATTEN)
+	gl_FragDepth = 0;
+#endif
 }

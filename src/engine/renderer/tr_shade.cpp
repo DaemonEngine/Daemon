@@ -584,7 +584,7 @@ static void Render_generic( int stage )
 	GLimp_LogComment( "--- Render_generic ---\n" );
 
 	pStage = tess.surfaceStages[ stage ];
-	
+
 	GL_State( pStage->stateBits );
 
 	hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
@@ -674,6 +674,17 @@ static void Render_generic( int stage )
 	BindAnimatedImage( &pStage->bundle[ TB_COLORMAP ] );
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
+	if ( backEnd.projection2D )
+	{
+		gl_genericShader->SetDepthFlatten( true );
+		glEnable( GL_DEPTH_CLAMP );
+	}
+	else
+	{
+		gl_genericShader->SetDepthFlatten( false );
+	}
+
+
 	if ( hasDepthFade )
 	{
 		gl_genericShader->SetUniform_DepthScale( pStage->depthFadeValue );
@@ -692,6 +703,8 @@ static void Render_generic( int stage )
 	gl_genericShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
+
+	glDisable( GL_DEPTH_CLAMP );
 
 	GL_CheckErrors();
 }
@@ -1278,7 +1291,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
 
 	gl_forwardLightingShader_omniXYZ->SetReliefMapping( pStage->enableReliefMapping );
-	
+
 	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_omniXYZ->BindProgram( pStage->deformIndex );
@@ -1463,7 +1476,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
 
 	gl_forwardLightingShader_projXYZ->SetReliefMapping( pStage->enableReliefMapping );
-	
+
 	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_projXYZ->BindProgram( pStage->deformIndex );

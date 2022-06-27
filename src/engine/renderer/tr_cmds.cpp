@@ -686,6 +686,41 @@ void RE_ScissorSet( int x, int y, int w, int h )
 
 /*
 =============
+RE_SetMatrixTransform
+
+Set the 2D matrix transform. Will override the previous matrix transform if called in
+succession. Latest call of SetMatrixTransform's matrix will continue to take effect until
+ResetMatrixTransform is called.
+=============
+*/
+void RE_SetMatrixTransform(const matrix_t matrix)
+{
+	SetMatrixTransformCommand *cmd;
+	cmd = R_GetRenderCommand<SetMatrixTransformCommand>();
+
+	if ( !cmd )
+	{
+		return;
+	}
+
+	MatrixCopy(matrix, cmd->matrix);
+}
+
+/*
+============
+RE_PopMatrix
+
+Resets the 2D matrix transform that was set with RE_SetMatrixTransform.
+============
+*/
+void RE_ResetMatrixTransform()
+{
+	// This allocates the command and adds it to the queue to run.
+	R_GetRenderCommand<ResetMatrixTransformCommand>();
+}
+
+/*
+=============
 RE_RotatedPic
 =============
 */

@@ -117,9 +117,9 @@ protected:
 	std::vector< GLUniformBlock * > _uniformBlocks;
 	std::vector< GLCompileMacro * > _compileMacros;
 
-	
 
-	
+
+
 
 	GLShader( const std::string &name, uint32_t vertexAttribsRequired, GLShaderManager *manager ) :
 		_name( name ),
@@ -797,6 +797,7 @@ protected:
 	  USE_SHADOWING,
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
+	  USE_DEPTH_FLATTEN,
 	  USE_PHYSICAL_MAPPING,
 	  USE_ALPHA_TESTING
 	};
@@ -1216,6 +1217,31 @@ public:
 	}
 
 	void SetDepthFade( bool enable )
+	{
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_USE_DEPTH_FLATTEN :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_DEPTH_FLATTEN( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const
+	{
+		return "USE_DEPTH_FLATTEN";
+	}
+
+	EGLCompileMacro GetType() const
+	{
+		return USE_DEPTH_FLATTEN;
+	}
+
+	void SetDepthFlatten( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -2215,6 +2241,7 @@ class GLShader_generic :
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
 	public GLCompileMacro_USE_DEPTH_FADE,
+	public GLCompileMacro_USE_DEPTH_FLATTEN,
 	public GLCompileMacro_USE_ALPHA_TESTING
 {
 public:

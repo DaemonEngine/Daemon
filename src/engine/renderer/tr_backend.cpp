@@ -5103,6 +5103,37 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 	return this + 1;
 }
 
+static bool pushed = false;
+const RenderCommand *SetMatrixTransformCommand::ExecuteSelf() const {
+	Tess_End();
+	// HACK: Currently, this is only used for RmlUI. We have a maximum
+	// of MAX_GLSTACK matrices we can have on our matrix stack. RmlUI can
+	// sometimes push more than 4 causing a crash. However, RmlUI doesn't
+	// need the push/pop nature, since it sends premultiplied matrices.
+	// Therefore, we only need to push one matrix, and overwrite it every
+	// new call, until we get a call to reset, then we pop it.
+	if (!pushed)
+	{
+		GL_PushMatrix();
+		pushed = true;
+	}
+	// Copy the previous project matrix to the current stack.
+	MatrixCopy( glState.projectionMatrix[ glState.stackIndex - 1 ],
+	            glState.projectionMatrix[ glState.stackIndex ] );
+	// Load our new transformation matrix.
+	GL_LoadModelViewMatrix( this->matrix );
+	tess.surfaceShader = nullptr;
+	return this + 1;
+}
+
+const RenderCommand *ResetMatrixTransformCommand::ExecuteSelf() const {
+	if (!pushed) return this + 1;
+	Tess_End();
+	GL_PopMatrix();
+	pushed = false;
+	return this + 1;
+}
+
 // NERVE - SMF
 
 /*
@@ -5515,7 +5546,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	if( backEnd.viewParms.portalLevel == 0 ) {
 		glDisable( GL_STENCIL_TEST );
 	}
-	
+
 	return this + 1;
 }
 

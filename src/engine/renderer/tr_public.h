@@ -228,6 +228,8 @@ struct refexport_t
 	qhandle_t ( *GenerateTexture )( const byte *pic, int width, int height );
 	const char *( *ShaderNameFromHandle )( qhandle_t shader );
 	void ( *SendBotDebugDrawCommands )( std::vector<char> commands );
+	void ( *SetMatrixTransform )( const matrix_t matrix );
+	void ( *ResetMatrixTransform )();
 };
 
 //
