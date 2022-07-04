@@ -1180,7 +1180,8 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		}
 	}
 
-	GL_CheckErrors();
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	// set filter type
 	switch ( image->filterType )
@@ -1465,7 +1466,8 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
 
-	GL_CheckErrors();
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );

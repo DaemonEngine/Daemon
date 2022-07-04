@@ -550,7 +550,8 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 	}
 	R_BindNullVBO();
 
-	GL_CheckErrors();
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	return vbo;
 }
@@ -607,7 +608,8 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 
 	R_BindNullVBO();
 
-	GL_CheckErrors();
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	return vbo;
 }
@@ -662,9 +664,10 @@ VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *ve
 		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize,
 			      verts, vbo->usage );
 	}
-
 	R_BindNullVBO();
-	GL_CheckErrors();
+
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	return vbo;
 }
@@ -710,7 +713,8 @@ IBO_t *R_CreateDynamicIBO( const char *name, int numIndexes )
 	}
 	R_BindNullIBO();
 
-	GL_CheckErrors();
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	return ibo;
 }
@@ -759,7 +763,8 @@ IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 	}
 	R_BindNullIBO();
 
-	GL_CheckErrors();
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	return ibo;
 }
@@ -802,6 +807,9 @@ IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexe
 			      indexes, GL_STATIC_DRAW );
 	}
 	R_BindNullIBO();
+
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	return ibo;
 }
@@ -1041,7 +1049,8 @@ void R_InitVBOs()
 		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
 	}
 
-	GL_CheckErrors();
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 }
 
 /*
@@ -1155,6 +1164,9 @@ void Tess_MapVBOs( bool forceCPU ) {
 				// buffer is full, allocate a new one
 				glBufferData( GL_ARRAY_BUFFER, vertexCapacity * sizeof( shaderVertex_t ), nullptr, GL_DYNAMIC_DRAW );
 				tess.vertsWritten = 0;
+
+				// Always look for GL_OUT_OF_MEMORY after an upload.
+				GL_CheckErrorsForced();
 			}
 			tess.verts = ( shaderVertex_t *) glMapBufferRange( 
 				GL_ARRAY_BUFFER, tess.vertsWritten * sizeof( shaderVertex_t ),
@@ -1182,6 +1194,9 @@ void Tess_MapVBOs( bool forceCPU ) {
 				// buffer is full, allocate a new one
 				glBufferData( GL_ELEMENT_ARRAY_BUFFER, indexCapacity * sizeof( glIndex_t ), nullptr, GL_DYNAMIC_DRAW );
 				tess.indexesWritten = 0;
+
+				// Always look for GL_OUT_OF_MEMORY after an upload.
+				GL_CheckErrorsForced();
 			}
 			tess.indexes = ( glIndex_t *) glMapBufferRange( 
 				GL_ELEMENT_ARRAY_BUFFER, tess.indexesWritten * sizeof( glIndex_t ),
