@@ -56,6 +56,11 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
 endif()
 
+# On Mac, default to x86_64 unless user requests something else
+if (NOT CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_OSX_ARCHITECTURES x86_64)
+endif()
+
 if (Daemon_OUT)
     set(CMAKE_CURRENT_BINARY_DIR ${Daemon_OUT})
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Daemon_OUT})
@@ -172,7 +177,7 @@ include(DaemonPlatform)
 ################################################################################
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 5)
+set(DEPS_VERSION 6)
 
 set(MOUNT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if (DAEMON_PARENT_SCOPE_DIR)
@@ -417,6 +422,22 @@ include(src.cmake)
 
 # Import external dependencies
 if (DEPS_DIR)
+    # Warn on old version of deps
+    get_cmake_property(cacheVariableNames CACHE_VARIABLES)
+    foreach(cacheVariableName ${cacheVariableNames})
+        set(cacheVariableValue "${${cacheVariableName}}")
+        if (cacheVariableValue MATCHES "/(linux64|macosx64|mingw32|mingw64|msvc32|msvc64)-([0-9]+)/")
+            if (NOT ${CMAKE_MATCH_2} EQUAL ${DEPS_VERSION})
+                message(WARNING "You seem to be using a dependency from version ${CMAKE_MATCH_2}"
+                                " of the external_deps package, but the latest version is"
+                                " ${DEPS_VERSION}. Please delete the build directory and"
+                                " reconfigure to upgrade to the latest dependencies. (Based on"
+                                " ${cacheVariableName}=${cacheVariableValue})")
+                break()
+            endif()
+        endif()
+    endforeach()
+
     # Download them if they not available
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
