@@ -797,7 +797,6 @@ protected:
 	  USE_SHADOWING,
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
-	  USE_DEPTH_FLATTEN,
 	  USE_PHYSICAL_MAPPING,
 	  USE_ALPHA_TESTING
 	};
@@ -1217,31 +1216,6 @@ public:
 	}
 
 	void SetDepthFade( bool enable )
-	{
-		SetMacro( enable );
-	}
-};
-
-class GLCompileMacro_USE_DEPTH_FLATTEN :
-	GLCompileMacro
-{
-public:
-	GLCompileMacro_USE_DEPTH_FLATTEN( GLShader *shader ) :
-		GLCompileMacro( shader )
-	{
-	}
-
-	const char *GetName() const
-	{
-		return "USE_DEPTH_FLATTEN";
-	}
-
-	EGLCompileMacro GetType() const
-	{
-		return USE_DEPTH_FLATTEN;
-	}
-
-	void SetDepthFlatten( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -2220,6 +2194,34 @@ class u_Lights :
 	}
 };
 
+class GLShader_generic2D :
+	public GLShader,
+	public u_TextureMatrix,
+	public u_ViewOrigin,
+	public u_ViewUp,
+	public u_AlphaThreshold,
+	public u_ModelMatrix,
+ 	public u_ProjectionMatrixTranspose,
+	public u_ModelViewProjectionMatrix,
+	public u_ColorModulate,
+	public u_Color,
+	public u_Bones,
+	public u_VertexInterpolation,
+	public u_DepthScale,
+	public GLDeformStage,
+	public GLCompileMacro_USE_VERTEX_SKINNING,
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_VERTEX_SPRITE,
+	public GLCompileMacro_USE_DEPTH_FADE,
+	public GLCompileMacro_USE_ALPHA_TESTING
+{
+public:
+	GLShader_generic2D( GLShaderManager *manager );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& vertexInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
+};
+
 class GLShader_generic :
 	public GLShader,
 	public u_TextureMatrix,
@@ -2241,7 +2243,6 @@ class GLShader_generic :
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
 	public GLCompileMacro_USE_DEPTH_FADE,
-	public GLCompileMacro_USE_DEPTH_FLATTEN,
 	public GLCompileMacro_USE_ALPHA_TESTING
 {
 public:
@@ -2694,6 +2695,7 @@ std::string GetShaderPath();
 
 extern ShaderKind shaderKind;
 
+extern GLShader_generic2D                       *gl_generic2DShader;
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
 extern GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ;

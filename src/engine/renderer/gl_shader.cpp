@@ -35,6 +35,7 @@ ShaderKind shaderKind = ShaderKind::Unknown;
 
 // *INDENT-OFF*
 
+GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
 GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ = nullptr;
@@ -1511,6 +1512,45 @@ void GLShader::SetRequiredVertexPointers()
 	GL_VertexAttribsState( ( _vertexAttribsRequired | _vertexAttribs | macroVertexAttribs ) );  // & ~_vertexAttribsUnsupported);
 }
 
+GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
+	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_TextureMatrix( this ),
+	u_ViewOrigin( this ),
+	u_ViewUp( this ),
+	u_AlphaThreshold( this ),
+	u_ModelMatrix( this ),
+	u_ProjectionMatrixTranspose( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_ColorModulate( this ),
+	u_Color( this ),
+	u_Bones( this ),
+	u_VertexInterpolation( this ),
+	u_DepthScale( this ),
+	GLDeformStage( this ),
+	GLCompileMacro_USE_VERTEX_SKINNING( this ),
+	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_VERTEX_SPRITE( this ),
+	GLCompileMacro_USE_DEPTH_FADE( this ),
+	GLCompileMacro_USE_ALPHA_TESTING( this )
+{
+}
+
+void GLShader_generic2D::BuildShaderVertexLibNames( std::string& vertexInlines )
+{
+	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
+}
+
+void GLShader_generic2D::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "generic2D";
+}
+
+void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
+}
+
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_TextureMatrix( this ),
@@ -1532,7 +1572,6 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this ),
-	GLCompileMacro_USE_DEPTH_FLATTEN( this ),
 	GLCompileMacro_USE_ALPHA_TESTING( this )
 {
 }

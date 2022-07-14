@@ -20,47 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-/* generic_fp.glsl */
+/* generic2D_fp.glsl */
 
-uniform sampler2D	u_ColorMap;
-uniform float		u_AlphaThreshold;
+#define GENERIC_2D 1
 
-IN(smooth) vec2		var_TexCoords;
-IN(smooth) vec4		var_Color;
-
-#if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
-IN(smooth) vec2         var_FadeDepth;
-uniform sampler2D       u_DepthMap;
-#endif
-
-DECLARE_OUTPUT(vec4)
-
-#if defined(GENERIC_2D)
-out float gl_FragDepth;
-#endif
-
-void	main()
-{
-	vec4 color = texture2D(u_ColorMap, var_TexCoords);
-
-#if defined(USE_ALPHA_TESTING)
-	if( abs(color.a + u_AlphaThreshold) <= 1.0 )
-	{
-		discard;
-		return;
-	}
-#endif
-
-#if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
-	float depth = texture2D(u_DepthMap, gl_FragCoord.xy / r_FBufSize).x;
-	float fadeDepth = 0.5 * var_FadeDepth.x / var_FadeDepth.y + 0.5;
-	color.a *= smoothstep(gl_FragCoord.z, fadeDepth, depth);
-#endif
-
-	color *= var_Color;
-	outputColor = color;
-
-#if defined(GENERIC_2D)
-	gl_FragDepth = 0;
-#endif
-}
