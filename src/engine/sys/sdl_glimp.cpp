@@ -790,15 +790,27 @@ if no window is created yet.
 It is assumed width, height and other things like that are unchanged,
 given vid_restart is called when changing those and then destroying
 the window before calling this. */
-static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bordered, const glConfiguration &configuration )
+static bool GLimp_RecreateWindowWhenChange( const int mode, const bool fullscreen, const bool bordered,
+	const glConfiguration &configuration )
 {
 	static bool currentFullscreen = false;
 	static bool currentBordered = false;
+
+	/* Values of currentMode and currentConfiguration doesn't
+	contribute to anything when the window is't created yet,
+	but we need them to be set to silence warnings about
+	comparing undefined variables. */
+	static int currentMode = 0;
 	static glConfiguration currentConfiguration = {};
 
 	if ( window == nullptr
+		/* We don't care if comparing default values
+		is wrong if window isn't created yet as the
+		first thing we do is to overwrite them. */
+		|| mode != currentMode
 		|| configuration != currentConfiguration )
 	{
+		currentMode = mode;
 		currentConfiguration = configuration;
 
 		GLimp_DestroyWindowIfExists();
@@ -894,8 +906,8 @@ static rserr_t GLimp_SetModeAndResolution( const int mode )
 	return rserr_t::RSERR_OK;
 }
 
-static rserr_t GLimp_ValidateBestContext(
-	const int GLEWmajor, glConfiguration &bestValidatedConfiguration, glConfiguration& extendedValidationConfiguration )
+static rserr_t GLimp_ValidateBestContext( const int mode, const int GLEWmajor,
+	glConfiguration &bestValidatedConfiguration, glConfiguration& extendedValidationConfiguration )
 {
 	/* We iterate known OpenGL versions from highest to lowest,
 	iterating core profiles first, then compatibility profile,
@@ -978,7 +990,7 @@ static rserr_t GLimp_ValidateBestContext(
 			testConfiguration.profile = row.profile;
 			testConfiguration.colorBits = colorBits;
 
-			if ( !GLimp_RecreateWindowWhenChange( false, false, testConfiguration ) )
+			if ( !GLimp_RecreateWindowWhenChange( mode, false, false, testConfiguration ) )
 			{
 				return rserr_t::RSERR_INVALID_MODE;
 			}
@@ -1105,12 +1117,10 @@ static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glCo
 	return customConfiguration;
 }
 
-static bool CreateWindowAndContext(
-	bool fullscreen, bool bordered,
-	Str::StringRef contextAdjective,
-	const glConfiguration& customConfiguration)
+static bool CreateWindowAndContext( int mode, bool fullscreen, bool bordered,
+	Str::StringRef contextAdjective, const glConfiguration& customConfiguration )
 {
-	if ( !GLimp_RecreateWindowWhenChange( fullscreen, bordered, customConfiguration ) )
+	if ( !GLimp_RecreateWindowWhenChange( mode, fullscreen, bordered, customConfiguration ) )
 	{
 		logger.Warn( "Failed to create window for %s context - %s",
 			contextAdjective,
@@ -1372,7 +1382,7 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 	else if ( bestValidatedConfiguration.major == 0 || r_glExtendedValidation->integer )
 	{
 		// Detect best configuration.
-		rserr_t err = GLimp_ValidateBestContext( GLEWmajor, bestValidatedConfiguration, extendedValidationResult );
+		rserr_t err = GLimp_ValidateBestContext( mode, GLEWmajor, bestValidatedConfiguration, extendedValidationResult );
 
 		if ( err != rserr_t::RSERR_OK )
 		{
@@ -1398,14 +1408,14 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 	// Attempt to apply custom configuration if exists.
 	glConfiguration customConfiguration = GLimp_ApplyCustomOptions( GLEWmajor, bestValidatedConfiguration );
 	if ( customConfiguration != bestValidatedConfiguration &&
-	     CreateWindowAndContext( fullscreen, bordered, "custom", customConfiguration ) )
+	     CreateWindowAndContext( mode, fullscreen, bordered, "custom", customConfiguration ) )
 	{
 		requestedConfiguration = customConfiguration;
 	}
 
 	if ( requestedConfiguration.major == 0 )
 	{
-		if ( !CreateWindowAndContext(fullscreen, bordered, "preferred", bestValidatedConfiguration ) )
+		if ( !CreateWindowAndContext( mode, fullscreen, bordered, "preferred", bestValidatedConfiguration ) )
 		{
 			GLimp_DestroyWindowIfExists();
 			return rserr_t::RSERR_INVALID_MODE;
