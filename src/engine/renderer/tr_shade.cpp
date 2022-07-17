@@ -593,24 +593,14 @@ static void Render_generic2D( int stage )
 	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
 	// choose right shader program ----------------------------------
-	gl_generic2DShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_generic2DShader->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_generic2DShader->SetDepthFade( hasDepthFade );
-	gl_generic2DShader->SetVertexSprite( tess.vboVertexSprite );
 	gl_generic2DShader->SetAlphaTesting(alphaTestBits != 0);
 
 	gl_generic2DShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
-	if ( pStage->tcGen_Environment || tess.vboVertexSprite )
-	{
-		// calculate the environment texcoords in object space
-		gl_generic2DShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-		gl_generic2DShader->SetUniform_ViewUp( backEnd.orientation.axis[ 2 ] );
-	}
-
 	// u_AlphaTest
 	if (alphaTestBits != 0)
 	{
@@ -651,18 +641,6 @@ static void Render_generic2D( int stage )
 
 	gl_generic2DShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_generic2DShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
-	{
-		gl_generic2DShader->SetUniform_Bones( tess.numBones, tess.bones );
-	}
-
-	// u_VertexInterpolation
-	if ( tess.vboVertexAnimation )
-	{
-		gl_generic2DShader->SetUniform_VertexInterpolation( glState.vertexAttribsInterpolation );
-	}
 
 	// u_DeformGen
 	gl_generic2DShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );

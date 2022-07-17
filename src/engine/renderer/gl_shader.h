@@ -2194,24 +2194,20 @@ class u_Lights :
 	}
 };
 
+// This is just a copy of the GLShader_generic, but with a special
+// define for RmlUI transforms. It probably has a lot of unnecessary
+// code that could be pruned.
+// TODO: Write a more minimal 2D rendering shader.
 class GLShader_generic2D :
 	public GLShader,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
- 	public u_ProjectionMatrixTranspose,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorModulate,
 	public u_Color,
-	public u_Bones,
-	public u_VertexInterpolation,
 	public u_DepthScale,
 	public GLDeformStage,
-	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_VERTEX_SPRITE,
 	public GLCompileMacro_USE_DEPTH_FADE,
 	public GLCompileMacro_USE_ALPHA_TESTING
 {

@@ -1515,21 +1515,13 @@ void GLShader::SetRequiredVertexPointers()
 GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
-	u_ViewUp( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
-	u_ProjectionMatrixTranspose( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
-	u_Bones( this ),
-	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
 	GLDeformStage( this ),
-	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_VERTEX_SPRITE( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this ),
 	GLCompileMacro_USE_ALPHA_TESTING( this )
 {
