@@ -41,10 +41,10 @@ static void GLSL_InitGPUShadersOrError()
 
 	gl_shaderManager.InitDriverInfo();
 
-	// single texture rendering
 	gl_shaderManager.GenerateBuiltinHeaders();
 
 	// single texture rendering
+	gl_shaderManager.load( gl_generic2DShader );
 	gl_shaderManager.load( gl_genericShader );
 
 	// standard light mapping
@@ -574,6 +574,108 @@ void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale )
 
 // *INDENT-ON*
 
+static void Render_generic2D( int stage )
+{
+	shaderStage_t *pStage;
+	colorGen_t    rgbGen;
+	alphaGen_t    alphaGen;
+	bool      needDepthMap = false;
+	bool      hasDepthFade = false;
+	GLimp_LogComment( "--- Render_generic2D ---\n" );
+
+	pStage = tess.surfaceStages[ stage ];
+
+	GL_State( pStage->stateBits );
+
+	hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
+	needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
+	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
+
+	// choose right shader program ----------------------------------
+
+	gl_generic2DShader->SetDepthFade( hasDepthFade );
+	gl_generic2DShader->SetAlphaTesting(alphaTestBits != 0);
+
+	gl_generic2DShader->BindProgram( pStage->deformIndex );
+	// end choose right shader program ------------------------------
+
+	// set uniforms
+	// u_AlphaTest
+	if (alphaTestBits != 0)
+	{
+		gl_generic2DShader->SetUniform_AlphaTest(pStage->stateBits);
+	}
+
+	// u_ColorGen
+	switch ( pStage->rgbGen )
+	{
+		case colorGen_t::CGEN_VERTEX:
+		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
+			rgbGen = pStage->rgbGen;
+			break;
+
+		default:
+			rgbGen = colorGen_t::CGEN_CONST;
+			break;
+	}
+
+	// u_AlphaGen
+	switch ( pStage->alphaGen )
+	{
+		case alphaGen_t::AGEN_VERTEX:
+		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
+			alphaGen = pStage->alphaGen;
+			break;
+
+		default:
+			alphaGen = alphaGen_t::AGEN_CONST;
+			break;
+	}
+
+	// u_ColorModulate
+	gl_generic2DShader->SetUniform_ColorModulate( rgbGen, alphaGen );
+
+	// u_Color
+	gl_generic2DShader->SetUniform_Color( tess.svars.color );
+
+	gl_generic2DShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_generic2DShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+	// u_DeformGen
+	gl_generic2DShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+
+	// bind u_ColorMap
+	GL_SelectTexture( 0 );
+	BindAnimatedImage( &pStage->bundle[ TB_COLORMAP ] );
+	gl_generic2DShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+
+	glEnable( GL_DEPTH_CLAMP );
+
+	if ( hasDepthFade )
+	{
+		gl_generic2DShader->SetUniform_DepthScale( pStage->depthFadeValue );
+	}
+
+	if ( needDepthMap )
+	{
+		GL_BindToTMU( 1, tr.currentDepthImage );
+	}
+
+	if ( r_dynamicLight->integer > 0 )
+	{
+		GL_BindToTMU( 8, tr.lighttileRenderImage );
+	}
+
+	gl_generic2DShader->SetRequiredVertexPointers();
+
+	Tess_DrawElements();
+
+	glDisable( GL_DEPTH_CLAMP );
+
+	GL_CheckErrors();
+}
+
 static void Render_generic( int stage )
 {
 	shaderStage_t *pStage;
@@ -584,7 +686,7 @@ static void Render_generic( int stage )
 	GLimp_LogComment( "--- Render_generic ---\n" );
 
 	pStage = tess.surfaceStages[ stage ];
-	
+
 	GL_State( pStage->stateBits );
 
 	hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
@@ -1278,7 +1380,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
 
 	gl_forwardLightingShader_omniXYZ->SetReliefMapping( pStage->enableReliefMapping );
-	
+
 	gl_forwardLightingShader_omniXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_omniXYZ->BindProgram( pStage->deformIndex );
@@ -1463,7 +1565,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
 
 	gl_forwardLightingShader_projXYZ->SetReliefMapping( pStage->enableReliefMapping );
-	
+
 	gl_forwardLightingShader_projXYZ->SetShadowing( shadowCompare );
 
 	gl_forwardLightingShader_projXYZ->BindProgram( pStage->deformIndex );
@@ -2645,7 +2747,14 @@ void Tess_StageIteratorGeneric()
 		{
 			case stageType_t::ST_COLORMAP:
 				{
-					Render_generic( stage );
+					if ( backEnd.projection2D )
+					{
+						Render_generic2D( stage );
+					}
+					else
+					{
+						Render_generic( stage );
+					}
 					break;
 				}
 

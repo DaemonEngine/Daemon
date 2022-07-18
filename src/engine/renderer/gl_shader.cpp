@@ -35,6 +35,7 @@ ShaderKind shaderKind = ShaderKind::Unknown;
 
 // *INDENT-OFF*
 
+GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
 GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ = nullptr;
@@ -120,7 +121,7 @@ namespace // Implementation details
 	{
 		// A windows user changing the shader file can put
 		// Windows can put CRLF's in the file. Make them LF's.
-		CRLFToLF(text); 
+		CRLFToLF(text);
 	}
 
 	std::string GetShaderFilename(Str::StringRef filename)
@@ -164,11 +165,11 @@ namespace // Implementation details
 			// Alert the user when a file does not match it's built-in version.
 			// There should be no differences in normal conditions.
 			// When testing shader file changes this is an expected message
-			// and helps the tester track which files have changed and need 
+			// and helps the tester track which files have changed and need
 			// to be recommitted to git.
 			// If one is not making shader files changes this message
 			// indicates there is a mismatch between disk changes and builtins
-			// which the application is out of sync with it's files 
+			// which the application is out of sync with it's files
 			// and he translation script needs to be run.
 			auto textPtr = GetInternalShader(filename);
 			std::string internalShaderText;
@@ -1509,6 +1510,37 @@ void GLShader::SetRequiredVertexPointers()
 	}
 
 	GL_VertexAttribsState( ( _vertexAttribsRequired | _vertexAttribs | macroVertexAttribs ) );  // & ~_vertexAttribsUnsupported);
+}
+
+GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
+	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_TextureMatrix( this ),
+	u_AlphaThreshold( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_ColorModulate( this ),
+	u_Color( this ),
+	u_DepthScale( this ),
+	GLDeformStage( this ),
+	GLCompileMacro_USE_DEPTH_FADE( this ),
+	GLCompileMacro_USE_ALPHA_TESTING( this )
+{
+}
+
+void GLShader_generic2D::BuildShaderVertexLibNames( std::string& vertexInlines )
+{
+	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
+}
+
+void GLShader_generic2D::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+{
+	fragmentInlines += "generic2D";
+}
+
+void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
 }
 
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
