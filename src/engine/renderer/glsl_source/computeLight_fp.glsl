@@ -86,6 +86,8 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   NdotL = clamp( NdotL, 0.0, 1.0 );
 #endif
 
+  vec3 light = lightColor.rgb * NdotL * diffuseColor.rgb;
+
 #if defined(USE_PHYSICAL_MAPPING)
   // Daemon PBR packing defaults to ORM like glTF 2.0 defines
   // https://www.khronos.org/blog/art-pipeline-for-gltf
@@ -116,8 +118,8 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   float G = NdotL / (NdotL * (1.0 - k) + k);
   G *= NdotV / (NdotV * (1.0 - k) + k);
 
-  color.rgb += lightColor.rgb * NdotL * diffuseColor.rgb * (1.0 - metalness);
-  color.rgb += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
+  light *= (1.0 - metalness);
+  light += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
   color.a = mix(diffuseColor.a, 1.0, FexpNV);
 #else // !USE_PHYSICAL_MAPPING
 
@@ -129,12 +131,13 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 	materialColor.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
 #endif // USE_REFLECTIVE_SPECULAR
 
-  color.rgb += lightColor.rgb * NdotL * diffuseColor.rgb;
 #if defined(r_specularMapping)
   // The minimal specular exponent should preferably be nonzero to avoid the undefined pow(0, 0)
-  color.rgb += lightColor.rgb * materialColor.rgb * pow( NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
+  light += lightColor.rgb * materialColor.rgb * pow(NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping
 #endif // !USE_PHYSICAL_MAPPING
+
+  color.rgb += light;
 }
 
 #if defined(TEXTURE_INTEGER)
