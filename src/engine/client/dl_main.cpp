@@ -108,7 +108,7 @@ public:
 			msg = curl_multi_info_read(multi_, &ignored);
 		} while (msg && msg->msg != CURLMSG_DONE);
 
-		if (!msg) {
+		if (!msg || msg->msg != CURLMSG_DONE) {
 			status_ = dlStatus_t::DL_FAILED;
 			downloadLogger.Warn("Unexpected lack of CURLMSG_DONE");
 			return;
@@ -159,7 +159,7 @@ private:
 	static size_t LibcurlWriteCallback(char* data, size_t, size_t len, void* object) {
 		auto* download = static_cast<CurlDownload*>(object);
 		download->status_ = download->WriteCallback(data, len);
-		return download->status_ == dlStatus_t::DL_CONTINUE ? len : ~size_t(0);
+		return download->status_ == dlStatus_t::DL_CONTINUE ? len : ~ (size_t)0;
 	}
 
 	bool SetOptions(Str::StringRef url) {
