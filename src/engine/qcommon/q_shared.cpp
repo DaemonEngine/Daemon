@@ -410,6 +410,7 @@ const char *Com_EntityTypeName(entityType_t entityType)
 	case entityType_t::ET_MODELDOOR:        return "MODELDOOR";
 	case entityType_t::ET_LIGHTFLARE:       return "LIGHTFLARE";
 	case entityType_t::ET_LEV2_ZAP_CHAIN:   return "LEV2_ZAP_CHAIN";
+	case entityType_t::ET_BEACON:   	return "BEACON";
 	default:
 		if(entityType >= entityType_t::ET_EVENTS)
 			return "EVENT";
