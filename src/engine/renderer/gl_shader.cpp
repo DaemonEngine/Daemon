@@ -770,8 +770,6 @@ void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 			shader->_shaderPrograms.resize( (deformIndex + 1) << shader->_compileMacros.size() );
 
 		shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ i ];
-
-		shaderProgram->program = glCreateProgram();
 		shaderProgram->attribs = shader->_vertexAttribsRequired; // | _vertexAttribsOptional;
 
 		if( deformIndex > 0 )
@@ -785,6 +783,7 @@ void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 				return;
 			}
 
+			shaderProgram->program = glCreateProgram();
 			glAttachShader( shaderProgram->program, baseShader->VS );
 			glAttachShader( shaderProgram->program, _deformShaders[ deformIndex ] );
 			glAttachShader( shaderProgram->program, baseShader->FS );
@@ -939,6 +938,7 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 
 	// load the shader
 	shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ programNum ];
+	shaderProgram->program = glCreateProgram();
 	glProgramBinary( shaderProgram->program, shaderHeader.binaryFormat, binaryptr, shaderHeader.binaryLength );
 	glGetProgramiv( shaderProgram->program, GL_LINK_STATUS, &success );
 
@@ -1117,6 +1117,7 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 		return;
 	}
 
+	program->program = glCreateProgram();
 	glAttachShader( program->program, program->VS );
 	glAttachShader( program->program, _deformShaders[ deformIndex ] );
 	glAttachShader( program->program, program->FS );
