@@ -748,7 +748,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	return shaderText;
 }
 
-bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
+void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
 {
 	std::string compileMacros;
 	int  startTime = ri.Milliseconds();
@@ -759,7 +759,7 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 	if ( i < shader->_shaderPrograms.size() &&
 	     shader->_shaderPrograms[ i ].program )
 	{
-		return false;
+		return;
 	}
 
 	if( shader->GetCompileMacrosString( macroIndex, compileMacros ) )
@@ -782,7 +782,7 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 
 			if ( baseShader->unusedPermutation )
 			{
-				return true;
+				return;
 			}
 
 			glAttachShader( shaderProgram->program, baseShader->VS );
@@ -798,7 +798,7 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 
 			if ( shaderProgram->unusedPermutation )
 			{
-				return true;
+				return;
 			}
 
 			SaveShaderBinary( shader, i );
@@ -813,9 +813,7 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 
 		endTime = ri.Milliseconds();
 		_totalBuildTime += ( endTime - startTime );
-		return true;
 	}
-	return false;
 }
 
 void GLShaderManager::buildAll()
