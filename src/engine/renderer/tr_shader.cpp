@@ -3890,8 +3890,7 @@ static bool ParseShader( const char *_text )
 				continue;
 			}
 
-			a = atof( token );
-			a = a / 180 * M_PI;
+			a = DEG2RAD( atof( token ) );
 
 			token = COM_ParseExt2( text, false );
 
@@ -3901,8 +3900,7 @@ static bool ParseShader( const char *_text )
 				continue;
 			}
 
-			b = atof( token );
-			b = b / 180 * M_PI;
+			b = DEG2RAD( atof( token ) );
 
 			tr.sunDirection[ 0 ] = cos( a ) * cos( b );
 			tr.sunDirection[ 1 ] = sin( a ) * cos( b );
