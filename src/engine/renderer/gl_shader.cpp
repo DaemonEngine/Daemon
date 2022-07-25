@@ -1035,15 +1035,6 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 			{
 				break;
 			}
-
-			/* FIXME: add this test: ( strcmp( token, "USE_TCGEN_LIGHTMAP" ) == 0 && r_lightMapping->integer == 0 )
-			when lightmaps are never used when lightmapping is disabled
-			see https://github.com/DaemonEngine/Daemon/issues/296 is fixed */
-			if ( strcmp( token, "USE_LIGHT_MAPPING" ) == 0 && r_vertexLighting->integer != 0 )
-			{
-				program->unusedPermutation = true;
-				return;
-			}
 			else if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 && r_normalMapping->integer == 0 )
 			{
 				program->unusedPermutation = true;
