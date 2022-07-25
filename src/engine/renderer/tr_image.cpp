@@ -116,7 +116,7 @@ void GL_TextureMode( const char *string )
 		{
 			Cvar_Set( "r_ext_texture_filter_anisotropic", va( "%f", glConfig2.maxTextureAnisotropy ) );
 		}
-		else if ( r_ext_texture_filter_anisotropic->value < 1.0 )
+		else if ( r_ext_texture_filter_anisotropic->value < 1.0f )
 		{
 			Cvar_Set( "r_ext_texture_filter_anisotropic", "1.0" );
 		}
@@ -2215,19 +2215,19 @@ float R_FogFactor( float s, float t )
 {
 	float d;
 
-	s -= 1.0 / 512;
+	s -= 1.0f / 512.0f;
 
 	if ( s < 0 )
 	{
 		return 0;
 	}
 
-	if ( t < 1.0 / 32 )
+	if ( t < 1.0f / 32.0f )
 	{
 		return 0;
 	}
 
-	if ( t < 31.0 / 32 )
+	if ( t < 31.0f / 320.0f )
 	{
 		s *= ( t - 1.0f / 32.0f ) / ( 30.0f / 32.0f );
 	}
@@ -2235,9 +2235,9 @@ float R_FogFactor( float s, float t )
 	// we need to leave a lot of clamp range
 	s *= 8;
 
-	if ( s > 1.0 )
+	if ( s > 1.0f )
 	{
-		s = 1.0;
+		s = 1.0f;
 	}
 
 	d = tr.fogTable[( int )( s * ( FOG_TABLE_SIZE - 1 ) ) ];
@@ -2347,9 +2347,9 @@ static void R_CreateRandomNormalsImage()
 			float  r, angle;
 
 			r = random();
-			angle = 2.0 * M_PI * r; // / 360.0;
+			angle = 2.0f * M_PI * r; // / 360.0f;
 
-			VectorSet( n, cos( angle ), sin( angle ), r );
+			VectorSet( n, cosf( angle ), sinf( angle ), r );
 			VectorNormalize( n );
 
 			ptr[ 0 ] = ( byte )( 128 + 127 * n[ 0 ] );

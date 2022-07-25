@@ -732,11 +732,11 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 					wf = &bundle->texMods[ j ].wave;
 
-					x = ( 1.0 / 4.0 );
+					x = ( 1.0f / 4.0f );
 					y = ( wf->phase + backEnd.refdef.floatTime * wf->frequency );
 
-					MatrixMultiplyScale( matrix, 1 + ( wf->amplitude * sin( y ) + wf->base ) * x,
-					                     1 + ( wf->amplitude * sin( y + 0.25 ) + wf->base ) * x, 0.0 );
+					MatrixMultiplyScale( matrix, 1.0f + ( wf->amplitude * sinf( y ) + wf->base ) * x,
+					                     1.0f + ( wf->amplitude * sinf( y + 0.25f ) + wf->base ) * x, 0.0 );
 					break;
 				}
 

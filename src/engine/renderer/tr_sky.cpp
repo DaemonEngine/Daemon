@@ -87,9 +87,9 @@ static void AddSkyPolygon( int nump, vec3_t vecs )
 		VectorAdd( vp, v, v );
 	}
 
-	av[ 0 ] = fabs( v[ 0 ] );
-	av[ 1 ] = fabs( v[ 1 ] );
-	av[ 2 ] = fabs( v[ 2 ] );
+	av[ 0 ] = fabsf( v[ 0 ] );
+	av[ 1 ] = fabsf( v[ 1 ] );
+	av[ 2 ] = fabsf( v[ 2 ] );
 
 	if ( av[ 0 ] > av[ 1 ] && av[ 0 ] > av[ 2 ] )
 	{
@@ -139,7 +139,7 @@ static void AddSkyPolygon( int nump, vec3_t vecs )
 			dv = -vecs[ -j - 1 ];
 		}
 
-		if ( dv < 0.001 )
+		if ( dv < 0.001f )
 		{
 			continue; // don't divide by zero
 		}
@@ -672,8 +672,8 @@ static void BuildCloudData()
 
 	ASSERT(tess.surfaceShader->isSky);
 
-	sky_min = 1.0 / 256.0f; // FIXME: not correct?
-	sky_max = 255.0 / 256.0f;
+	sky_min = 1.0f / 256.0f; // FIXME: not correct?
+	sky_max = 255.0f / 256.0f;
 
 	// set up for drawing
 	tess.multiDrawPrimitives = 0;

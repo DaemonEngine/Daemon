@@ -1374,17 +1374,17 @@ int R_MergedWidthPoints( srfGridMesh_t *grid, int offset )
 	{
 		for ( j = i + 1; j < grid->width - 1; j++ )
 		{
-			if ( fabs( grid->verts[ i + offset ].xyz[ 0 ] - grid->verts[ j + offset ].xyz[ 0 ] ) > .1 )
+			if ( fabsf( grid->verts[ i + offset ].xyz[ 0 ] - grid->verts[ j + offset ].xyz[ 0 ] ) > 0.1f )
 			{
 				continue;
 			}
 
-			if ( fabs( grid->verts[ i + offset ].xyz[ 1 ] - grid->verts[ j + offset ].xyz[ 1 ] ) > .1 )
+			if ( fabsf( grid->verts[ i + offset ].xyz[ 1 ] - grid->verts[ j + offset ].xyz[ 1 ] ) > 0.1f )
 			{
 				continue;
 			}
 
-			if ( fabs( grid->verts[ i + offset ].xyz[ 2 ] - grid->verts[ j + offset ].xyz[ 2 ] ) > .1 )
+			if ( fabsf( grid->verts[ i + offset ].xyz[ 2 ] - grid->verts[ j + offset ].xyz[ 2 ] ) > 0.1f )
 			{
 				continue;
 			}
@@ -1411,17 +1411,17 @@ int R_MergedHeightPoints( srfGridMesh_t *grid, int offset )
 	{
 		for ( j = i + 1; j < grid->height - 1; j++ )
 		{
-			if ( fabs( grid->verts[ grid->width * i + offset ].xyz[ 0 ] - grid->verts[ grid->width * j + offset ].xyz[ 0 ] ) > .1 )
+			if ( fabsf( grid->verts[ grid->width * i + offset ].xyz[ 0 ] - grid->verts[ grid->width * j + offset ].xyz[ 0 ] ) > 0.1f )
 			{
 				continue;
 			}
 
-			if ( fabs( grid->verts[ grid->width * i + offset ].xyz[ 1 ] - grid->verts[ grid->width * j + offset ].xyz[ 1 ] ) > .1 )
+			if ( fabsf( grid->verts[ grid->width * i + offset ].xyz[ 1 ] - grid->verts[ grid->width * j + offset ].xyz[ 1 ] ) > 0.1f )
 			{
 				continue;
 			}
 
-			if ( fabs( grid->verts[ grid->width * i + offset ].xyz[ 2 ] - grid->verts[ grid->width * j + offset ].xyz[ 2 ] ) > .1 )
+			if ( fabsf( grid->verts[ grid->width * i + offset ].xyz[ 2 ] - grid->verts[ grid->width * j + offset ].xyz[ 2 ] ) > 0.1f )
 			{
 				continue;
 			}
@@ -1527,17 +1527,17 @@ void R_FixSharedVertexLodError_r( int start, srfGridMesh_t *grid1 )
 					for ( l = 1; l < grid2->width - 1; l++ )
 					{
 						//
-						if ( fabs( grid1->verts[ k + offset1 ].xyz[ 0 ] - grid2->verts[ l + offset2 ].xyz[ 0 ] ) > .1 )
+						if ( fabsf( grid1->verts[ k + offset1 ].xyz[ 0 ] - grid2->verts[ l + offset2 ].xyz[ 0 ] ) > 0.1f )
 						{
 							continue;
 						}
 
-						if ( fabs( grid1->verts[ k + offset1 ].xyz[ 1 ] - grid2->verts[ l + offset2 ].xyz[ 1 ] ) > .1 )
+						if ( fabsf( grid1->verts[ k + offset1 ].xyz[ 1 ] - grid2->verts[ l + offset2 ].xyz[ 1 ] ) > 0.1f )
 						{
 							continue;
 						}
 
-						if ( fabs( grid1->verts[ k + offset1 ].xyz[ 2 ] - grid2->verts[ l + offset2 ].xyz[ 2 ] ) > .1 )
+						if ( fabsf( grid1->verts[ k + offset1 ].xyz[ 2 ] - grid2->verts[ l + offset2 ].xyz[ 2 ] ) > 0.1f )
 						{
 							continue;
 						}
@@ -1567,17 +1567,17 @@ void R_FixSharedVertexLodError_r( int start, srfGridMesh_t *grid1 )
 					for ( l = 1; l < grid2->height - 1; l++ )
 					{
 						//
-						if ( fabs( grid1->verts[ k + offset1 ].xyz[ 0 ] - grid2->verts[ grid2->width * l + offset2 ].xyz[ 0 ] ) > .1 )
+						if ( fabsf( grid1->verts[ k + offset1 ].xyz[ 0 ] - grid2->verts[ grid2->width * l + offset2 ].xyz[ 0 ] ) > 0.1f )
 						{
 							continue;
 						}
 
-						if ( fabs( grid1->verts[ k + offset1 ].xyz[ 1 ] - grid2->verts[ grid2->width * l + offset2 ].xyz[ 1 ] ) > .1 )
+						if ( fabsf( grid1->verts[ k + offset1 ].xyz[ 1 ] - grid2->verts[ grid2->width * l + offset2 ].xyz[ 1 ] ) > 0.1f )
 						{
 							continue;
 						}
 
-						if ( fabs( grid1->verts[ k + offset1 ].xyz[ 2 ] - grid2->verts[ grid2->width * l + offset2 ].xyz[ 2 ] ) > .1 )
+						if ( fabsf( grid1->verts[ k + offset1 ].xyz[ 2 ] - grid2->verts[ grid2->width * l + offset2 ].xyz[ 2 ] ) > 0.1f )
 						{
 							continue;
 						}
@@ -1628,17 +1628,17 @@ void R_FixSharedVertexLodError_r( int start, srfGridMesh_t *grid1 )
 					for ( l = 1; l < grid2->width - 1; l++ )
 					{
 						//
-						if ( fabs( grid1->verts[ grid1->width * k + offset1 ].xyz[ 0 ] - grid2->verts[ l + offset2 ].xyz[ 0 ] ) > .1 )
+						if ( fabsf( grid1->verts[ grid1->width * k + offset1 ].xyz[ 0 ] - grid2->verts[ l + offset2 ].xyz[ 0 ] ) > 0.1f )
 						{
 							continue;
 						}
 
-						if ( fabs( grid1->verts[ grid1->width * k + offset1 ].xyz[ 1 ] - grid2->verts[ l + offset2 ].xyz[ 1 ] ) > .1 )
+						if ( fabsf( grid1->verts[ grid1->width * k + offset1 ].xyz[ 1 ] - grid2->verts[ l + offset2 ].xyz[ 1 ] ) > 0.1f )
 						{
 							continue;
 						}
 
-						if ( fabs( grid1->verts[ grid1->width * k + offset1 ].xyz[ 2 ] - grid2->verts[ l + offset2 ].xyz[ 2 ] ) > .1 )
+						if ( fabsf( grid1->verts[ grid1->width * k + offset1 ].xyz[ 2 ] - grid2->verts[ l + offset2 ].xyz[ 2 ] ) > 0.1f )
 						{
 							continue;
 						}
@@ -1668,23 +1668,23 @@ void R_FixSharedVertexLodError_r( int start, srfGridMesh_t *grid1 )
 					for ( l = 1; l < grid2->height - 1; l++ )
 					{
 						//
-						if ( fabs
+						if ( fabsf
 						     ( grid1->verts[ grid1->width * k + offset1 ].xyz[ 0 ] -
-						       grid2->verts[ grid2->width * l + offset2 ].xyz[ 0 ] ) > .1 )
+						       grid2->verts[ grid2->width * l + offset2 ].xyz[ 0 ] ) > 0.1f )
 						{
 							continue;
 						}
 
-						if ( fabs
+						if ( fabsf
 						     ( grid1->verts[ grid1->width * k + offset1 ].xyz[ 1 ] -
-						       grid2->verts[ grid2->width * l + offset2 ].xyz[ 1 ] ) > .1 )
+						       grid2->verts[ grid2->width * l + offset2 ].xyz[ 1 ] ) > 0.1f )
 						{
 							continue;
 						}
 
-						if ( fabs
+						if ( fabsf
 						     ( grid1->verts[ grid1->width * k + offset1 ].xyz[ 2 ] -
-						       grid2->verts[ grid2->width * l + offset2 ].xyz[ 2 ] ) > .1 )
+						       grid2->verts[ grid2->width * l + offset2 ].xyz[ 2 ] ) > 0.1f )
 						{
 							continue;
 						}
@@ -1798,17 +1798,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ k + offset1 ].xyz;
 					v2 = grid2->verts[ l + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -1816,17 +1816,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ k + 2 + offset1 ].xyz;
 					v2 = grid2->verts[ l + 1 + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -1835,7 +1835,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid2->verts[ l + offset2 ].xyz;
 					v2 = grid2->verts[ l + 1 + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) < .01 && fabs( v1[ 1 ] - v2[ 1 ] ) < .01 && fabs( v1[ 2 ] - v2[ 2 ] ) < .01 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) < 0.01f && fabsf( v1[ 1 ] - v2[ 1 ] ) < 0.01f && fabsf( v1[ 2 ] - v2[ 2 ] ) < 0.01f )
 					{
 						continue;
 					}
@@ -1880,17 +1880,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ k + offset1 ].xyz;
 					v2 = grid2->verts[ grid2->width * l + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -1898,17 +1898,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ k + 2 + offset1 ].xyz;
 					v2 = grid2->verts[ grid2->width * ( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -1917,7 +1917,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid2->verts[ grid2->width * l + offset2 ].xyz;
 					v2 = grid2->verts[ grid2->width * ( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) < .01 && fabs( v1[ 1 ] - v2[ 1 ] ) < .01 && fabs( v1[ 2 ] - v2[ 2 ] ) < .01 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) < 0.01f && fabsf( v1[ 1 ] - v2[ 1 ] ) < 0.01f && fabsf( v1[ 2 ] - v2[ 2 ] ) < 0.01f )
 					{
 						continue;
 					}
@@ -1983,17 +1983,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ grid1->width * k + offset1 ].xyz;
 					v2 = grid2->verts[ l + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2001,17 +2001,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ grid1->width * ( k + 2 ) + offset1 ].xyz;
 					v2 = grid2->verts[ l + 1 + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2020,7 +2020,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid2->verts[ l + offset2 ].xyz;
 					v2 = grid2->verts[( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) < .01 && fabs( v1[ 1 ] - v2[ 1 ] ) < .01 && fabs( v1[ 2 ] - v2[ 2 ] ) < .01 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) < 0.01f && fabsf( v1[ 1 ] - v2[ 1 ] ) < 0.01f && fabsf( v1[ 2 ] - v2[ 2 ] ) < 0.01f )
 					{
 						continue;
 					}
@@ -2066,17 +2066,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ grid1->width * k + offset1 ].xyz;
 					v2 = grid2->verts[ grid2->width * l + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2084,17 +2084,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ grid1->width * ( k + 2 ) + offset1 ].xyz;
 					v2 = grid2->verts[ grid2->width * ( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2103,7 +2103,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid2->verts[ grid2->width * l + offset2 ].xyz;
 					v2 = grid2->verts[ grid2->width * ( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) < .01 && fabs( v1[ 1 ] - v2[ 1 ] ) < .01 && fabs( v1[ 2 ] - v2[ 2 ] ) < .01 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) < 0.01f && fabsf( v1[ 1 ] - v2[ 1 ] ) < 0.01f && fabsf( v1[ 2 ] - v2[ 2 ] ) < 0.01f )
 					{
 						continue;
 					}
@@ -2170,17 +2170,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ k + offset1 ].xyz;
 					v2 = grid2->verts[ l + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2188,17 +2188,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ k - 2 + offset1 ].xyz;
 					v2 = grid2->verts[ l + 1 + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2207,7 +2207,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid2->verts[ l + offset2 ].xyz;
 					v2 = grid2->verts[( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) < .01 && fabs( v1[ 1 ] - v2[ 1 ] ) < .01 && fabs( v1[ 2 ] - v2[ 2 ] ) < .01 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) < 0.01f && fabsf( v1[ 1 ] - v2[ 1 ] ) < 0.01f && fabsf( v1[ 2 ] - v2[ 2 ] ) < 0.01f )
 					{
 						continue;
 					}
@@ -2252,17 +2252,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ k + offset1 ].xyz;
 					v2 = grid2->verts[ grid2->width * l + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2270,17 +2270,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ k - 2 + offset1 ].xyz;
 					v2 = grid2->verts[ grid2->width * ( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2289,7 +2289,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid2->verts[ grid2->width * l + offset2 ].xyz;
 					v2 = grid2->verts[ grid2->width * ( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) < .01 && fabs( v1[ 1 ] - v2[ 1 ] ) < .01 && fabs( v1[ 2 ] - v2[ 2 ] ) < .01 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) < 0.01f && fabsf( v1[ 1 ] - v2[ 1 ] ) < 0.01f && fabsf( v1[ 2 ] - v2[ 2 ] ) < 0.01f )
 					{
 						continue;
 					}
@@ -2361,17 +2361,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ grid1->width * k + offset1 ].xyz;
 					v2 = grid2->verts[ l + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2379,17 +2379,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ grid1->width * ( k - 2 ) + offset1 ].xyz;
 					v2 = grid2->verts[ l + 1 + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2398,7 +2398,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid2->verts[ l + offset2 ].xyz;
 					v2 = grid2->verts[( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) < .01 && fabs( v1[ 1 ] - v2[ 1 ] ) < .01 && fabs( v1[ 2 ] - v2[ 2 ] ) < .01 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) < 0.01f && fabsf( v1[ 1 ] - v2[ 1 ] ) < 0.01f && fabsf( v1[ 2 ] - v2[ 2 ] ) < 0.01f )
 					{
 						continue;
 					}
@@ -2444,17 +2444,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ grid1->width * k + offset1 ].xyz;
 					v2 = grid2->verts[ grid2->width * l + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2462,17 +2462,17 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid1->verts[ grid1->width * ( k - 2 ) + offset1 ].xyz;
 					v2 = grid2->verts[ grid2->width * ( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) > .1 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 1 ] - v2[ 1 ] ) > .1 )
+					if ( fabsf( v1[ 1 ] - v2[ 1 ] ) > 0.1f )
 					{
 						continue;
 					}
 
-					if ( fabs( v1[ 2 ] - v2[ 2 ] ) > .1 )
+					if ( fabsf( v1[ 2 ] - v2[ 2 ] ) > 0.1f )
 					{
 						continue;
 					}
@@ -2481,7 +2481,7 @@ int R_StitchPatches( int grid1num, int grid2num )
 					v1 = grid2->verts[ grid2->width * l + offset2 ].xyz;
 					v2 = grid2->verts[ grid2->width * ( l + 1 ) + offset2 ].xyz;
 
-					if ( fabs( v1[ 0 ] - v2[ 0 ] ) < .01 && fabs( v1[ 1 ] - v2[ 1 ] ) < .01 && fabs( v1[ 2 ] - v2[ 2 ] ) < .01 )
+					if ( fabsf( v1[ 0 ] - v2[ 0 ] ) < 0.01f && fabsf( v1[ 1 ] - v2[ 1 ] ) < 0.01f && fabsf( v1[ 2 ] - v2[ 2 ] ) < 0.01f )
 					{
 						continue;
 					}
@@ -4008,9 +4008,9 @@ void R_LoadLightGrid( lump_t *l )
 		lat = DEG2RAD( in->latLong[ 1 ] * ( 360.0f / 255.0f ) );
 		lng = DEG2RAD( in->latLong[ 0 ] * ( 360.0f / 255.0f ) );
 
-		direction[ 0 ] = cos( lat ) * sin( lng );
-		direction[ 1 ] = sin( lat ) * sin( lng );
-		direction[ 2 ] = cos( lng );
+		direction[ 0 ] = cosf( lat ) * sinf( lng );
+		direction[ 1 ] = sinf( lat ) * sinf( lng );
+		direction[ 2 ] = cosf( lng );
 
 		// Pack data into an bspGridPoint
 		gridPoint1->color[ 0 ] = floatToUnorm8( 0.5f * (ambientColor[ 0 ] + directedColor[ 0 ]) );
@@ -6189,9 +6189,9 @@ vertexHash_t *FindVertexInHashTable( vertexHash_t **hashTable, const vec3_t xyz,
 
 #else
 
-		if ( ( fabs( xyz[ 0 ] - vertexHash->vcd.xyz[ 0 ] ) ) > HASH_XYZ_EPSILON ||
-		     ( fabs( xyz[ 1 ] - vertexHash->vcd.xyz[ 1 ] ) ) > HASH_XYZ_EPSILON ||
-		     ( fabs( xyz[ 2 ] - vertexHash->vcd.xyz[ 2 ] ) ) > HASH_XYZ_EPSILON )
+		if ( ( fabsf( xyz[ 0 ] - vertexHash->vcd.xyz[ 0 ] ) ) > HASH_XYZ_EPSILON ||
+		     ( fabsf( xyz[ 1 ] - vertexHash->vcd.xyz[ 1 ] ) ) > HASH_XYZ_EPSILON ||
+		     ( fabsf( xyz[ 2 ] - vertexHash->vcd.xyz[ 2 ] ) ) > HASH_XYZ_EPSILON )
 		{
 			continue;
 		}

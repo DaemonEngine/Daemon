@@ -242,8 +242,8 @@ int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, ve
 	if( lightDir[ 2 ] < 0.0f ) {
 		float X = lightDir[ 0 ];
 		float Y = lightDir[ 1 ];
-		lightDir[ 0 ] = copysignf( 1.0f - fabs( Y ), X );
-		lightDir[ 1 ] = copysignf( 1.0f - fabs( X ), Y );
+		lightDir[ 0 ] = copysignf( 1.0f - fabsf( Y ), X );
+		lightDir[ 1 ] = copysignf( 1.0f - fabsf( X ), Y );
 	}
 
 	VectorNormalize( lightDir );
@@ -631,7 +631,7 @@ void R_SetupLightFrustum( trRefLight_t *light )
 
 					if ( length )
 					{
-						ilength = 1.0 / length;
+						ilength = 1.0f / length;
 						light->frustum[ i ].normal[ 0 ] *= ilength;
 						light->frustum[ i ].normal[ 1 ] *= ilength;
 						light->frustum[ i ].normal[ 2 ] *= ilength;
@@ -727,7 +727,7 @@ void R_SetupLightProjection( trRefLight_t *light )
 		case refLightType_t::RL_OMNI:
 		case refLightType_t::RL_DIRECTIONAL:
 			{
-				MatrixSetupScale( light->projectionMatrix, 1.0 / light->l.radius, 1.0 / light->l.radius, 1.0 / light->l.radius );
+				MatrixSetupScale( light->projectionMatrix, 1.0f / light->l.radius, 1.0f / light->l.radius, 1.0f / light->l.radius );
 				break;
 			}
 
@@ -1074,8 +1074,8 @@ static int R_ClipEdgeToPlane( cplane_t plane, const vec3_t in_world1, const vec3
 	vec3_t intersect;
 
 	// check edge to frustrum plane
-	int side1 = ( ( DotProduct( plane.normal, in_world1 ) - plane.dist ) >= 0.0 );
-	int side2 = ( ( DotProduct( plane.normal, in_world2 ) - plane.dist ) >= 0.0 );
+	int side1 = ( ( DotProduct( plane.normal, in_world1 ) - plane.dist ) >= 0.0f );
+	int side2 = ( ( DotProduct( plane.normal, in_world2 ) - plane.dist ) >= 0.0f );
 
 	int sides = side1 | ( side2 << 1 );
 
@@ -1381,13 +1381,13 @@ byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 		fovX = 90;
 		fovY = 90;
 
-		zNear = 1.0;
+		zNear = 1.0f;
 		zFar = light->sphereRadius;
 
-		xMax = zNear * tan( fovX * M_PI / 360.0f );
+		xMax = zNear * tanf( fovX * M_PI / 360.0f );
 		xMin = -xMax;
 
-		yMax = zNear * tan( fovY * M_PI / 360.0f );
+		yMax = zNear * tanf( fovY * M_PI / 360.0f );
 		yMin = -yMax;
 
 		MatrixPerspectiveProjection( projectionMatrix, xMin, xMax, yMin, yMax, zNear, zFar );

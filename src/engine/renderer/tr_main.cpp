@@ -217,7 +217,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 
 			VectorMA(tangent2, -DotProduct(mid, tangent2), mid, tangent3 );
 			VectorMA(binormal2, -DotProduct(mid, binormal2), mid, binormal3 );
-			
+
 			if( VectorLengthSquared( tangent3 ) < 0.001f ) {
 				CrossProduct( mid, normal2, tangent3 );
 				VectorNegate( tangent3, binormal3 );
@@ -299,7 +299,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 	if( resqtangent[ 3 ] == 0 )
 	{
 		resqtangent[ 3 ] = 1;
-	} 
+	}
 
 	if( flipped )
 	{
@@ -585,7 +585,7 @@ float R_ProjectRadius( float r, vec3_t location )
 	}
 
 	p[ 0 ] = 0;
-	p[ 1 ] = fabs( r );
+	p[ 1 ] = fabsf( r );
 	p[ 2 ] = -dist;
 
 	projected[ 0 ] = p[ 0 ] * tr.viewParms.projectionMatrix[ 0 ] +
@@ -977,8 +977,8 @@ static void R_SetupFrustum()
 	else
 	{
 		ang = DEG2RAD( tr.viewParms.fovX * 0.5f );
-		xs = sin( ang );
-		xc = cos( ang );
+		xs = sinf( ang );
+		xc = cosf( ang );
 
 		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 0 ].normal );
 		VectorMA( tr.viewParms.frustums[ 0 ][ 0 ].normal, xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustums[ 0 ][ 0 ].normal );
@@ -987,8 +987,8 @@ static void R_SetupFrustum()
 		VectorMA( tr.viewParms.frustums[ 0 ][ 1 ].normal, -xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustums[ 0 ][ 1 ].normal );
 
 		ang = DEG2RAD( tr.viewParms.fovY * 0.5f );
-		xs = sin( ang );
-		xc = cos( ang );
+		xs = sinf( ang );
+		xc = cosf( ang );
 
 		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 2 ].normal );
 		VectorMA( tr.viewParms.frustums[ 0 ][ 2 ].normal, xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustums[ 0 ][ 2 ].normal );
@@ -1073,7 +1073,7 @@ void R_SetupFrustum2( frustum_t frustum, const matrix_t mvp )
 
 		if ( length )
 		{
-			ilength = 1.0 / length;
+			ilength = 1.0f / length;
 			frustum[ i ].normal[ 0 ] *= ilength;
 			frustum[ i ].normal[ 1 ] *= ilength;
 			frustum[ i ].normal[ 2 ] *= ilength;
@@ -1360,7 +1360,7 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 			else
 			{
 				// bobbing rotate, with skinNum being the rotation offset
-				d = sin( tr.refdef.time * 0.003f );
+				d = sinf( tr.refdef.time * 0.003f );
 				d = e->e.skinNum + d * 4;
 				VectorCopy( camera->axis[ 1 ], transformed );
 				RotatePointAroundVector( camera->axis[ 1 ], camera->axis[ 0 ], transformed, d );
