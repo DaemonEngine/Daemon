@@ -34,6 +34,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
 #include <SDL.h>
+#ifdef BUILD_GRAPHICAL_CLIENT
+extern SDL_Window *window;
+#else
+#define window nullptr
+#endif
 #endif
 
 namespace Application {
@@ -95,7 +100,7 @@ class ClientApplication : public Application {
         void Shutdown(bool error, Str::StringRef message) override {
             #if defined(_WIN32) || defined(BUILD_GRAPHICAL_CLIENT)
                 if (error) {
-                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, PRODUCT_NAME, message.c_str(), nullptr);
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, PRODUCT_NAME, message.c_str(), window);
                 }
             #endif
 
