@@ -436,7 +436,7 @@ void vectoangles( const vec3_t value1, vec3_t angles )
 	{
 		if ( value1[ 0 ] )
 		{
-			yaw = ( atan2( value1[ 1 ], value1[ 0 ] ) * 180 / M_PI );
+			yaw = RAD2DEG( atan2( value1[ 1 ], value1[ 0 ] ) );
 		}
 
 		else if ( value1[ 1 ] > 0 )
@@ -455,7 +455,7 @@ void vectoangles( const vec3_t value1, vec3_t angles )
 		}
 
 		forward = sqrt( value1[ 0 ] * value1[ 0 ] + value1[ 1 ] * value1[ 1 ] );
-		pitch = ( atan2( value1[ 2 ], forward ) * 180 / M_PI );
+		pitch = RAD2DEG( atan2( value1[ 2 ], forward ) );
 
 		if ( pitch < 0 )
 		{
@@ -1077,15 +1077,15 @@ void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up 
 
 	// static to help MS compiler fp bugs
 
-	angle = angles[ YAW ] * ( M_PI * 2 / 360 );
+	angle = DEG2RAD( angles[ YAW ] );
 	sy = sin( angle );
 	cy = cos( angle );
 
-	angle = angles[ PITCH ] * ( M_PI * 2 / 360 );
+	angle = DEG2RAD( angles[ PITCH ] );
 	sp = sin( angle );
 	cp = cos( angle );
 
-	angle = angles[ ROLL ] * ( M_PI * 2 / 360 );
+	angle = DEG2RAD( angles[ ROLL ] );
 	sr = sin( angle );
 	cr = cos( angle );
 
@@ -1421,7 +1421,7 @@ void AxisToAngles( /*const*/ vec3_t axis[ 3 ], vec3_t angles )
 	{
 		if ( axis[ 0 ][ 0 ] )
 		{
-			yaw = ( atan2( axis[ 0 ][ 1 ], axis[ 0 ][ 0 ] ) * 180 / M_PI );
+			yaw = RAD2DEG( atan2( axis[ 0 ][ 1 ], axis[ 0 ][ 0 ] ) );
 		}
 
 		else if ( axis[ 0 ][ 1 ] > 0 )
@@ -1440,14 +1440,14 @@ void AxisToAngles( /*const*/ vec3_t axis[ 3 ], vec3_t angles )
 		}
 
 		length1 = sqrt( axis[ 0 ][ 0 ] * axis[ 0 ][ 0 ] + axis[ 0 ][ 1 ] * axis[ 0 ][ 1 ] );
-		pitch = ( atan2( axis[ 0 ][ 2 ], length1 ) * 180 / M_PI );
+		pitch = RAD2DEG( atan2( axis[ 0 ][ 2 ], length1 ) );
 
 		if ( pitch < 0 )
 		{
 			pitch += 360;
 		}
 
-		roll = ( atan2( axis[ 1 ][ 2 ], axis[ 2 ][ 2 ] ) * 180 / M_PI );
+		roll = RAD2DEG( atan2( axis[ 1 ][ 2 ], axis[ 2 ][ 2 ] ) );
 
 		if ( roll < 0 )
 		{

@@ -976,7 +976,7 @@ static void R_SetupFrustum()
 	}
 	else
 	{
-		ang = tr.viewParms.fovX / 180 * M_PI * 0.5f;
+		ang = DEG2RAD( tr.viewParms.fovX * 0.5f );
 		xs = sin( ang );
 		xc = cos( ang );
 
@@ -986,7 +986,7 @@ static void R_SetupFrustum()
 		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 1 ].normal );
 		VectorMA( tr.viewParms.frustums[ 0 ][ 1 ].normal, -xc, tr.viewParms.orientation.axis[ 1 ], tr.viewParms.frustums[ 0 ][ 1 ].normal );
 
-		ang = tr.viewParms.fovY / 180 * M_PI * 0.5f;
+		ang = DEG2RAD( tr.viewParms.fovY * 0.5f );
 		xs = sin( ang );
 		xc = cos( ang );
 
