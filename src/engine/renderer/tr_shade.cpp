@@ -804,6 +804,9 @@ static void Render_lightMapping( int stage )
 
 	if ( noLightMap )
 	{
+		// TODO: do this in a different way so that when lightmapping is disabled,
+		// we could disable building shader permutations with USE_LIGHT_MAPPING.
+		// See https://github.com/DaemonEngine/Daemon/issues/500
 		lightmap = tr.whiteImage;
 		enableLightMapping = true;
 	}
