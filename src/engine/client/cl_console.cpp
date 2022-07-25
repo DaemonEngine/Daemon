@@ -1014,7 +1014,7 @@ void Con_UpdateConsoleState()
 	/*
 	 * calculate current console height
 	 */
-	consoleState.height = con_height->integer * 0.01 * (cls.glconfig.vidHeight
+	consoleState.height = con_height->integer * 0.01f * (cls.glconfig.vidHeight
 						- consoleState.margin.top - consoleState.margin.bottom
 						- consoleState.border.top - consoleState.border.bottom
 						);
@@ -1131,7 +1131,7 @@ void Con_RunConsole()
 
 	if ( !consoleState.isOpened && consoleState.currentAnimationFraction >= 0.0f )
 	{
-		consoleState.currentAnimationFraction -= con_animationSpeed->value * cls.realFrametime * 0.001;
+		consoleState.currentAnimationFraction -= con_animationSpeed->value * cls.realFrametime * 0.001f;
 
 		if ( consoleState.currentAnimationFraction <= 0.0f  || con_animationType->integer == ANIMATION_TYPE_NONE )
 		{	//we are closed, do some last onClose work
@@ -1141,7 +1141,7 @@ void Con_RunConsole()
 	}
 	else if ( consoleState.isOpened && consoleState.currentAnimationFraction <= 1.0f)
 	{
-		consoleState.currentAnimationFraction += con_animationSpeed->value * cls.realFrametime * 0.001;
+		consoleState.currentAnimationFraction += con_animationSpeed->value * cls.realFrametime * 0.001f;
 
 		if ( consoleState.currentAnimationFraction > 1.0f  || con_animationType->integer == ANIMATION_TYPE_NONE  )
 		{
@@ -1154,7 +1154,7 @@ void Con_RunConsole()
 		const float scrollDifference = std::max( 0.5f, fabsf( consoleState.bottomDisplayedLine - consoleState.scrollLineIndex ) );
 		if( consoleState.bottomDisplayedLine < consoleState.scrollLineIndex )
 		{
-			consoleState.bottomDisplayedLine += con_animationSpeed->value * cls.realFrametime * 0.005 * scrollDifference;
+			consoleState.bottomDisplayedLine += con_animationSpeed->value * cls.realFrametime * 0.005f * scrollDifference;
 			if( consoleState.bottomDisplayedLine > consoleState.scrollLineIndex || con_animationType->integer == ANIMATION_TYPE_NONE )
 			{
 				consoleState.bottomDisplayedLine = consoleState.scrollLineIndex;
@@ -1162,7 +1162,7 @@ void Con_RunConsole()
 		}
 		else if ( consoleState.bottomDisplayedLine > consoleState.scrollLineIndex )
 		{
-			consoleState.bottomDisplayedLine -= con_animationSpeed->value * cls.realFrametime * 0.005 * scrollDifference;
+			consoleState.bottomDisplayedLine -= con_animationSpeed->value * cls.realFrametime * 0.005f * scrollDifference;
 			if( consoleState.bottomDisplayedLine < consoleState.scrollLineIndex || con_animationType->integer == ANIMATION_TYPE_NONE )
 			{
 				consoleState.bottomDisplayedLine = consoleState.scrollLineIndex;

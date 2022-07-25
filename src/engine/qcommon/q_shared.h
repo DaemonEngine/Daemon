@@ -470,9 +470,9 @@ void         ByteToDir( int b, vec3_t dir );
 		vec3_t d;
 
 		VectorSubtract( v1, v2, d );
-		d[ 0 ] = fabs( d[ 0 ] );
-		d[ 1 ] = fabs( d[ 1 ] );
-		d[ 2 ] = fabs( d[ 2 ] );
+		d[ 0 ] = fabsf( d[ 0 ] );
+		d[ 1 ] = fabsf( d[ 1 ] );
+		d[ 2 ] = fabsf( d[ 2 ] );
 
 		if ( d[ 0 ] > epsilon || d[ 1 ] > epsilon || d[ 2 ] > epsilon )
 		{
@@ -513,7 +513,7 @@ void         ByteToDir( int b, vec3_t dir );
 	float Q_crandom( int *seed );
 
 #define random()  ( ( rand() & 0x7fff ) / ( (float)0x7fff ) )
-#define crandom() ( 2.0 * ( random() - 0.5 ) )
+#define crandom() ( 2.0f * ( random() - 0.5f ) )
 
 	void vectoangles( const vec3_t value1, vec3_t angles );
 
@@ -703,9 +703,9 @@ void         ByteToDir( int b, vec3_t dir );
 	{
 		vec_t term = 1.0f - ( q[ 0 ] * q[ 0 ] + q[ 1 ] * q[ 1 ] + q[ 2 ] * q[ 2 ] );
 
-		if ( term < 0.0 )
+		if ( term < 0.0f )
 		{
-			q[ 3 ] = 0.0;
+			q[ 3 ] = 0.0f;
 		}
 		else
 		{
@@ -1168,8 +1168,8 @@ void         ByteToDir( int b, vec3_t dir );
 		sseStoreVec3( v, out );
 	}
 	inline __m128 sseAxisAngleToQuat( const vec3_t axis, float angle ) {
-		__m128 sa = _mm_set1_ps( sin( 0.5f * angle ) );
-		__m128 ca = _mm_set1_ps( cos( 0.5f * angle ) );
+		__m128 sa = _mm_set1_ps( sinf( 0.5f * angle ) );
+		__m128 ca = _mm_set1_ps( cosf( 0.5f * angle ) );
 		__m128 a = sseLoadVec3( axis );
 		a = _mm_mul_ps( a, sa );
 		return _mm_or_ps( a, _mm_and_ps( ca, mask_000W() ) );
@@ -1545,7 +1545,7 @@ void         ByteToDir( int b, vec3_t dir );
 	=================
 	*/
 
-#define PlaneTypeForNormal( x ) ( x[ 0 ] == 1.0 ? PLANE_X : ( x[ 1 ] == 1.0 ? PLANE_Y : ( x[ 2 ] == 1.0 ? PLANE_Z : ( x[ 0 ] == 0.f && x[ 1 ] == 0.f && x[ 2 ] == 0.f ? PLANE_NON_PLANAR : PLANE_NON_AXIAL ) ) ) )
+#define PlaneTypeForNormal( x ) ( x[ 0 ] == 1.0f ? PLANE_X : ( x[ 1 ] == 1.0f ? PLANE_Y : ( x[ 2 ] == 1.0f ? PLANE_Z : ( x[ 0 ] == 0.f && x[ 1 ] == 0.f && x[ 2 ] == 0.f ? PLANE_NON_PLANAR : PLANE_NON_AXIAL ) ) ) )
 
 // plane_t structure
 	struct cplane_t
@@ -1631,7 +1631,7 @@ void         ByteToDir( int b, vec3_t dir );
 #define ANIM_BITS 10
 
 #define ANGLE2SHORT( x ) ( (int)( ( x ) * 65536 / 360 ) & 65535 )
-#define SHORT2ANGLE( x ) ( ( x ) * ( 360.0 / 65536 ) )
+#define SHORT2ANGLE( x ) ( ( x ) * ( 360.0f / 65536 ) )
 
 #define SNAPFLAG_RATE_DELAYED 1
 #define SNAPFLAG_NOT_ACTIVE   2 // snapshot used during connection and for zombies

@@ -237,11 +237,11 @@ void CL_AdjustAngles()
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		speed = 0.001 * cls.frametime * cl_anglespeedkey->value;
+		speed = 0.001f * cls.frametime * cl_anglespeedkey->value;
 	}
 	else
 	{
-		speed = 0.001 * cls.frametime;
+		speed = 0.001f * cls.frametime;
 	}
 
 	if ( !kb[ KB_STRAFE ].active )
@@ -448,11 +448,11 @@ void CL_JoystickMove( usercmd_t *cmd )
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		anglespeed = 0.001 * cls.frametime * cl_anglespeedkey->value;
+		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey->value;
 	}
 	else
 	{
-		anglespeed = 0.001 * cls.frametime;
+		anglespeed = 0.001f * cls.frametime;
 	}
 
 #ifdef __MACOS__
@@ -504,11 +504,11 @@ void CL_GameControllerMove( usercmd_t *cmd )
 
 	if ( kb[ KB_SPEED ].active )
 	{
-		anglespeed = 0.001 * cls.frametime * cl_anglespeedkey->value;
+		anglespeed = 0.001f * cls.frametime * cl_anglespeedkey->value;
 	}
 	else
 	{
-		anglespeed = 0.001 * cls.frametime;
+		anglespeed = 0.001f * cls.frametime;
 	}
 
 	cl.viewangles[ PITCH ] += anglespeed * cl_pitchspeed->value * ( cl.joystickAxis[ Util::ordinal(joystickAxis_t::AXIS_PITCH) ] / 127.0f );
@@ -577,8 +577,8 @@ void CL_MouseMove( usercmd_t *cmd )
 			// cl_mouseAccelOffset is the rate for which the acceleration will have doubled the non accelerated amplification
 			// NOTE: decouple the config cvars for independent acceleration setup along X and Y?
 
-			rate[ 0 ] = fabs( mx ) / ( float ) frame_msec;
-			rate[ 1 ] = fabs( my ) / ( float ) frame_msec;
+			rate[ 0 ] = fabsf( mx ) / ( float ) frame_msec;
+			rate[ 1 ] = fabsf( my ) / ( float ) frame_msec;
 			power[ 0 ] = powf( rate[ 0 ] / cl_mouseAccelOffset->value, cl_mouseAccel->value );
 			power[ 1 ] = powf( rate[ 1 ] / cl_mouseAccelOffset->value, cl_mouseAccel->value );
 

@@ -339,7 +339,7 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 			{
 				// NOTE: this works even though the plane might be flipped because the bbox is centered
 				offset = DotProduct( tw->offsets[ planes->signbits ], plane );
-				plane[ 3 ] += fabs( offset );
+				plane[ 3 ] += fabsf( offset );
 				VectorCopy( tw->start, startp );
 			}
 
@@ -851,8 +851,8 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 
 	for ( i = 0, facet = sc->facets; i < sc->numFacets; i++, facet++ )
 	{
-		enterFrac = -1.0;
-		leaveFrac = 1.0;
+		enterFrac = -1.0f;
+		leaveFrac = 1.0f;
 		hitnum = -1;
 
 		planes = &sc->planes[ facet->surfacePlane ];
@@ -934,7 +934,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 			{
 				// NOTE: this works even though the plane might be flipped because the bbox is centered
 				offset = DotProduct( tw->offsets[ planes->signbits ], plane );
-				plane[ 3 ] += fabs( offset );
+				plane[ 3 ] += fabsf( offset );
 				VectorCopy( tw->start, startp );
 				VectorCopy( tw->end, endp );
 			}
@@ -1031,8 +1031,8 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 	vec3_t       startp;
 	vec3_t       endp;
 
-	enterFrac = -1.0;
-	leaveFrac = 1.0;
+	enterFrac = -1.0f;
+	leaveFrac = 1.0f;
 	clipplane = nullptr;
 
 	if ( !brush->numsides )
@@ -1994,14 +1994,14 @@ static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f,
 	// put the crosspoint SURFACE_CLIP_EPSILON pixels on the near side
 	if ( t1 < t2 )
 	{
-		idist = 1.0 / ( t1 - t2 );
+		idist = 1.0f / ( t1 - t2 );
 		side = 1;
 		frac2 = ( t1 + offset + SURFACE_CLIP_EPSILON ) * idist;
 		frac = ( t1 - offset + SURFACE_CLIP_EPSILON ) * idist;
 	}
 	else if ( t1 > t2 )
 	{
-		idist = 1.0 / ( t1 - t2 );
+		idist = 1.0f / ( t1 - t2 );
 		side = 0;
 		frac2 = ( t1 - offset - SURFACE_CLIP_EPSILON ) * idist;
 		frac = ( t1 + offset + SURFACE_CLIP_EPSILON ) * idist;
@@ -2170,13 +2170,13 @@ static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, co
 		{
 			if ( tw.start[ i ] < tw.end[ i ] )
 			{
-				tw.bounds[ 0 ][ i ] = tw.start[ i ] - fabs( tw.sphere.offset[ i ] ) - tw.sphere.radius;
-				tw.bounds[ 1 ][ i ] = tw.end[ i ] + fabs( tw.sphere.offset[ i ] ) + tw.sphere.radius;
+				tw.bounds[ 0 ][ i ] = tw.start[ i ] - fabsf( tw.sphere.offset[ i ] ) - tw.sphere.radius;
+				tw.bounds[ 1 ][ i ] = tw.end[ i ] + fabsf( tw.sphere.offset[ i ] ) + tw.sphere.radius;
 			}
 			else
 			{
-				tw.bounds[ 0 ][ i ] = tw.end[ i ] - fabs( tw.sphere.offset[ i ] ) - tw.sphere.radius;
-				tw.bounds[ 1 ][ i ] = tw.start[ i ] + fabs( tw.sphere.offset[ i ] ) + tw.sphere.radius;
+				tw.bounds[ 0 ][ i ] = tw.end[ i ] - fabsf( tw.sphere.offset[ i ] ) - tw.sphere.radius;
+				tw.bounds[ 1 ][ i ] = tw.start[ i ] + fabsf( tw.sphere.offset[ i ] ) + tw.sphere.radius;
 			}
 		}
 	}
@@ -2418,7 +2418,7 @@ void CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const vec3_t 
 			  brushmask, skipmask, type, &sphere );
 
 	// if the bmodel was rotated and there was a collision
-	if ( rotated && trace.fraction != 1.0 )
+	if ( rotated && trace.fraction != 1.0f )
 	{
 		// rotation of bmodel collision plane
 		TransposeMatrix( matrix, transpose );

@@ -3130,7 +3130,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 				float j = atof( token );
 
-				if ( j < 0.0 )
+				if ( j < 0.0f )
 				{
 					Log::Warn("not recommended negative normalScale parm in shader '%s': '%f', better use 'normalFormat' to swap normal map channel direction", shader.name, j );
 				}
@@ -3902,9 +3902,9 @@ static bool ParseShader( const char *_text )
 
 			b = DEG2RAD( atof( token ) );
 
-			tr.sunDirection[ 0 ] = cos( a ) * cos( b );
-			tr.sunDirection[ 1 ] = sin( a ) * cos( b );
-			tr.sunDirection[ 2 ] = sin( b );
+			tr.sunDirection[ 0 ] = cosf( a ) * cosf( b );
+			tr.sunDirection[ 1 ] = sinf( a ) * cosf( b );
+			tr.sunDirection[ 2 ] = sinf( b );
 			continue;
 		}
 		// noShadows

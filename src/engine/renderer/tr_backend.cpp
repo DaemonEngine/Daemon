@@ -1811,8 +1811,8 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 		case refLightType_t::RL_OMNI:
 			{
 				MatrixAffineInverse( light->transformMatrix, light->viewMatrix );
-				MatrixSetupScale( light->projectionMatrix, 1.0 / light->l.radius, 1.0 / light->l.radius,
-							        1.0 / light->l.radius );
+				MatrixSetupScale( light->projectionMatrix, 1.0f / light->l.radius, 1.0f / light->l.radius,
+							        1.0f / light->l.radius );
 				break;
 			}
 
@@ -5182,8 +5182,8 @@ const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 
 	mx = x + ( w / 2 );
 	my = y + ( h / 2 );
-	cosA = cos( DEG2RAD( angle ) );
-	sinA = sin( DEG2RAD( angle ) );
+	cosA = cosf( DEG2RAD( angle ) );
+	sinA = sinf( DEG2RAD( angle ) );
 	cw = cosA * ( w / 2 );
 	ch = cosA * ( h / 2 );
 	sw = sinA * ( w / 2 );

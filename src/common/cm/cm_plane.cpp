@@ -102,8 +102,8 @@ bool CM_PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec
 	return true;
 }
 
-static const double NORMAL_EPSILON    = 0.0001;
-static const double DIST_EPSILON      = 0.02;
+static constexpr float NORMAL_EPSILON    = 0.0001f;
+static constexpr float DIST_EPSILON      = 0.02f;
 
 /*
 ==================
@@ -114,9 +114,9 @@ int CM_PlaneEqual( cPlane_t *p, float plane[ 4 ], bool *flipped )
 {
 	float invplane[ 4 ];
 
-	if ( fabs( p->plane[ 0 ] - plane[ 0 ] ) < NORMAL_EPSILON
-	     && fabs( p->plane[ 1 ] - plane[ 1 ] ) < NORMAL_EPSILON
-	     && fabs( p->plane[ 2 ] - plane[ 2 ] ) < NORMAL_EPSILON && fabs( p->plane[ 3 ] - plane[ 3 ] ) < DIST_EPSILON )
+	if ( fabsf( p->plane[ 0 ] - plane[ 0 ] ) < NORMAL_EPSILON
+	     && fabsf( p->plane[ 1 ] - plane[ 1 ] ) < NORMAL_EPSILON
+	     && fabsf( p->plane[ 2 ] - plane[ 2 ] ) < NORMAL_EPSILON && fabsf( p->plane[ 3 ] - plane[ 3 ] ) < DIST_EPSILON )
 	{
 		*flipped = false;
 		return true;
@@ -125,9 +125,9 @@ int CM_PlaneEqual( cPlane_t *p, float plane[ 4 ], bool *flipped )
 	VectorNegate( plane, invplane );
 	invplane[ 3 ] = -plane[ 3 ];
 
-	if ( fabs( p->plane[ 0 ] - invplane[ 0 ] ) < NORMAL_EPSILON
-	     && fabs( p->plane[ 1 ] - invplane[ 1 ] ) < NORMAL_EPSILON
-	     && fabs( p->plane[ 2 ] - invplane[ 2 ] ) < NORMAL_EPSILON && fabs( p->plane[ 3 ] - invplane[ 3 ] ) < DIST_EPSILON )
+	if ( fabsf( p->plane[ 0 ] - invplane[ 0 ] ) < NORMAL_EPSILON
+	     && fabsf( p->plane[ 1 ] - invplane[ 1 ] ) < NORMAL_EPSILON
+	     && fabsf( p->plane[ 2 ] - invplane[ 2 ] ) < NORMAL_EPSILON && fabsf( p->plane[ 3 ] - invplane[ 3 ] ) < DIST_EPSILON )
 	{
 		*flipped = true;
 		return true;
@@ -147,14 +147,14 @@ void CM_SnapVector( vec3_t normal )
 
 	for ( i = 0; i < 3; i++ )
 	{
-		if ( fabs( normal[ i ] - 1 ) < NORMAL_EPSILON )
+		if ( fabsf( normal[ i ] - 1 ) < NORMAL_EPSILON )
 		{
 			VectorClear( normal );
 			normal[ i ] = 1;
 			break;
 		}
 
-		if ( fabs( normal[ i ] - -1 ) < NORMAL_EPSILON )
+		if ( fabsf( normal[ i ] - -1 ) < NORMAL_EPSILON )
 		{
 			VectorClear( normal );
 			normal[ i ] = -1;
@@ -174,7 +174,7 @@ static long CM_GenerateHashValue( vec4_t plane )
 {
 	long hash;
 
-	hash = ( int ) fabs( plane[ 3 ] );
+	hash = ( int ) fabsf( plane[ 3 ] );
 	hash &= ( PLANE_HASHES - 1 );
 
 	return hash;

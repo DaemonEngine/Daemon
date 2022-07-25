@@ -72,7 +72,7 @@ static bool MakeTextureMatrix( vec4_t texMat[ 2 ], vec4_t projection, decalVert_
 	/* calculate barycentric basis for the triangle */
 	bb = ( b->st[ 0 ] - a->st[ 0 ] ) * ( c->st[ 1 ] - a->st[ 1 ] ) - ( c->st[ 0 ] - a->st[ 0 ] ) * ( b->st[ 1 ] - a->st[ 1 ] );
 
-	if ( fabs( bb ) < 0.00000001f )
+	if ( std::abs( bb ) < 0.00000001 )
 	{
 		return false;
 	}
@@ -527,7 +527,7 @@ static void ProjectDecalOntoWinding( decalProjector_t *dp, int numPoints, vec3_t
 
 		/* fade by distance from plane */
 		d = DotProduct( dp->center, plane ) - plane[ 3 ];
-		alpha = 1.0f - ( fabs( d ) / dp->radius );
+		alpha = 1.0f - ( fabsf( d ) / dp->radius );
 
 		if ( alpha < 0.0f )
 		{
@@ -540,9 +540,9 @@ static void ProjectDecalOntoWinding( decalProjector_t *dp, int numPoints, vec3_t
 		}
 
 		/* set projection axis */
-		absNormal[ 0 ] = fabs( plane[ 0 ] );
-		absNormal[ 1 ] = fabs( plane[ 1 ] );
-		absNormal[ 2 ] = fabs( plane[ 2 ] );
+		absNormal[ 0 ] = fabsf( plane[ 0 ] );
+		absNormal[ 1 ] = fabsf( plane[ 1 ] );
+		absNormal[ 2 ] = fabsf( plane[ 2 ] );
 
 		if ( absNormal[ 2 ] >= absNormal[ 0 ] && absNormal[ 2 ] >= absNormal[ 1 ] )
 		{
@@ -800,7 +800,7 @@ void R_ProjectDecalOntoSurface( decalProjector_t *dp, bspSurface_t *surf, bspMod
 			/* backface check */
 			d = DotProduct( dp->planes[ 0 ], srf->plane.normal );
 
-			if ( d < -0.0001 )
+			if ( d < -0.0001f )
 			{
 				return;
 			}
@@ -808,7 +808,7 @@ void R_ProjectDecalOntoSurface( decalProjector_t *dp, bspSurface_t *surf, bspMod
 			/* plane-sphere check */
 			d = DotProduct( dp->center, srf->plane.normal ) - srf->plane.dist;
 
-			if ( fabs( d ) >= dp->radius )
+			if ( fabsf( d ) >= dp->radius )
 			{
 				return;
 			}
