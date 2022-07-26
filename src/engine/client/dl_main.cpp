@@ -110,12 +110,12 @@ public:
 
 		if (!msg) {
 			status_ = dlStatus_t::DL_FAILED;
-			downloadLogger.Warn("Unexpected lack of CURLMSG_DONE");
+			downloadLogger.Warn("Unexpected lack of msg");
 			return;
 		}
 
 		if (msg->data.result != CURLE_OK) {
-			downloadLogger.Notice("Download request terminated with failure status '%s'", err);
+			downloadLogger.Notice("Download request terminated with error: %s", curl_easy_strerror(msg->data.result));
 			status_ = dlStatus_t::DL_FAILED;
 			return;
 		}
