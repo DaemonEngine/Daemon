@@ -450,6 +450,10 @@ void Com_EventLoop()
 			default:
 				Sys::Error( "Com_EventLoop: bad event type %s", Util::enum_str(ev->type) );
 
+			case sysEventType_t::SE_CONSOLE_KEY:
+				CL_ConsoleKeyEvent();
+				break;
+
 			case sysEventType_t::SE_KEY:
 			{
 				auto& keyEvent = ev->Cast<Sys::KeyEvent>();

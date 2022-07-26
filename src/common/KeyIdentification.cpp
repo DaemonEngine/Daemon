@@ -39,7 +39,6 @@ Maryland 20850 USA.
 namespace Keyboard {
 
 const Key Key::NONE = Key();
-const Key Key::CONSOLE = Key(Key::Kind::CONSOLE, 0);
 
 const std::unordered_map<Str::StringRef, keyNum_t, Str::IHash, Str::IEqual> keynames
 {

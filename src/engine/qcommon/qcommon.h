@@ -656,6 +656,7 @@ void     CL_Init();
 void     CL_Disconnect( bool showMainMenu );
 void     CL_Shutdown();
 void     CL_Frame( int msec );
+void     CL_ConsoleKeyEvent();
 namespace Keyboard { class Key; }
 void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
 
@@ -725,16 +726,15 @@ enum class joystickAxis_t
 
 enum class sysEventType_t
 {
-  // bk001129 - make sure SE_NONE is zero
-  SE_NONE = 0, // evTime is still valid
-  SE_KEY, // evValue is a key code, evValue2 is the down flag
-  SE_CHAR, // evValue is an ascii char
-  SE_MOUSE, // evValue and evValue2 are relative, signed x / y moves
-  SE_MOUSE_POS, // evValue and evValue2 are (x, y) coordinates
-  SE_JOYSTICK_AXIS, // evValue is an axis number and evValue2 is the current state (-127 to 127)
-  SE_CONSOLE, // evPtr is a char*
-  SE_PACKET, // evPtr is a netadr_t followed by data bytes to evPtrLength
-  SE_FOCUS, // evValue is a boolean indicating whether the game has focus
+  SE_CONSOLE_KEY,
+  SE_KEY,
+  SE_CHAR,
+  SE_MOUSE,
+  SE_MOUSE_POS,
+  SE_JOYSTICK_AXIS,
+  SE_CONSOLE, // terminal input
+  SE_PACKET,
+  SE_FOCUS,
 };
 
 namespace Sys {

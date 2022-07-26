@@ -457,6 +457,12 @@ void CL_InitKeyCommands()
 }
 
 
+void CL_ConsoleKeyEvent()
+{
+	Con_ToggleConsole_f();
+	Key_ClearStates();
+}
+
 /*
 ===================
 CL_KeyEvent
@@ -567,16 +573,15 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 	}
 #endif
 
-	// console key is hardcoded, so the user can never unbind it
-	if ( key == Key(K_CONSOLE) || ( keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) ) )
+	// console key combination is hardcoded, so the user can never unbind it
+	if ( keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) )
 	{
 		if ( !down )
 		{
 			return;
 		}
 
-		Con_ToggleConsole_f();
-		Key_ClearStates();
+		CL_ConsoleKeyEvent();
 		return;
 	}
 

@@ -1102,9 +1102,8 @@ runs each render-frame
 */
 void Con_DrawConsole()
 {
-	// render console only if flag is set or is within an animation but also in special disconnected states
-	if ( !consoleState.isOpened && consoleState.currentAnimationFraction <= 0
-		&& !( cls.state == connstate_t::CA_DISCONNECTED && !( cls.keyCatchers & KEYCATCH_UI ) ) )
+	// render console only if flag is set or is within an animation
+	if ( !consoleState.isOpened && consoleState.currentAnimationFraction <= 0 )
 		return;
 
 
