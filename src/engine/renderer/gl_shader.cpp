@@ -749,7 +749,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	return shaderText;
 }
 
-bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
+void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
 {
 	std::string compileMacros;
 	int  startTime = ri.Milliseconds();
@@ -760,7 +760,7 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 	if ( i < shader->_shaderPrograms.size() &&
 	     shader->_shaderPrograms[ i ].program )
 	{
-		return false;
+		return;
 	}
 
 	if( shader->GetCompileMacrosString( macroIndex, compileMacros ) )
@@ -771,8 +771,6 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 			shader->_shaderPrograms.resize( (deformIndex + 1) << shader->_compileMacros.size() );
 
 		shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ i ];
-
-		shaderProgram->program = glCreateProgram();
 		shaderProgram->attribs = shader->_vertexAttribsRequired; // | _vertexAttribsOptional;
 
 		if( deformIndex > 0 )
@@ -783,9 +781,10 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 
 			if ( baseShader->unusedPermutation )
 			{
-				return true;
+				return;
 			}
 
+			shaderProgram->program = glCreateProgram();
 			glAttachShader( shaderProgram->program, baseShader->VS );
 			glAttachShader( shaderProgram->program, _deformShaders[ deformIndex ] );
 			glAttachShader( shaderProgram->program, baseShader->FS );
@@ -799,7 +798,7 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 
 			if ( shaderProgram->unusedPermutation )
 			{
-				return true;
+				return;
 			}
 
 			SaveShaderBinary( shader, i );
@@ -814,9 +813,7 @@ bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 
 		endTime = ri.Milliseconds();
 		_totalBuildTime += ( endTime - startTime );
-		return true;
 	}
-	return false;
 }
 
 void GLShaderManager::buildAll()
@@ -942,6 +939,7 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 
 	// load the shader
 	shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ programNum ];
+	shaderProgram->program = glCreateProgram();
 	glProgramBinary( shaderProgram->program, shaderHeader.binaryFormat, binaryptr, shaderHeader.binaryLength );
 	glGetProgramiv( shaderProgram->program, GL_LINK_STATUS, &success );
 
@@ -1038,15 +1036,6 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 			{
 				break;
 			}
-
-			/* FIXME: add this test: ( strcmp( token, "USE_TCGEN_LIGHTMAP" ) == 0 && r_lightMapping->integer == 0 )
-			when lightmaps are never used when lightmapping is disabled
-			see https://github.com/DaemonEngine/Daemon/issues/296 is fixed */
-			if ( strcmp( token, "USE_LIGHT_MAPPING" ) == 0 && r_vertexLighting->integer != 0 )
-			{
-				program->unusedPermutation = true;
-				return;
-			}
 			else if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 && r_normalMapping->integer == 0 )
 			{
 				program->unusedPermutation = true;
@@ -1120,6 +1109,7 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 		return;
 	}
 
+	program->program = glCreateProgram();
 	glAttachShader( program->program, program->VS );
 	glAttachShader( program->program, _deformShaders[ deformIndex ] );
 	glAttachShader( program->program, program->FS );
