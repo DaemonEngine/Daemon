@@ -523,7 +523,7 @@ static bool GLimp_DetectAvailableModes()
 	if ( SDL_GetWindowDisplayMode( window, &windowMode ) < 0 )
 	{
 		logger.Warn("Couldn't get window display mode: %s", SDL_GetError() );
-		return false;
+		return true;
 	}
 
 	for ( i = 0; i < SDL_GetNumDisplayModes( display ); i++ )
