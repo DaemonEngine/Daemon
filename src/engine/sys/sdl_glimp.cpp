@@ -523,7 +523,10 @@ static bool GLimp_DetectAvailableModes()
 	if ( SDL_GetWindowDisplayMode( window, &windowMode ) < 0 )
 	{
 		logger.Warn("Couldn't get window display mode: %s", SDL_GetError() );
-		return false;
+		/* FIXME: returning true means the engine will crash if the window size is
+		larger than what the GPU can support, but we need to not fail to open a window
+		with a size the GPU can handle even if not using native screen resolutions. */
+		return true;
 	}
 
 	for ( i = 0; i < SDL_GetNumDisplayModes( display ); i++ )
