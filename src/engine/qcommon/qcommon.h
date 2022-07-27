@@ -494,7 +494,7 @@ enum class dlStatus_t
 };
 
 int        DL_BeginDownload( const char *localName, const char *remoteName, int basePathLen );
-dlStatus_t DL_DownloadLoop();
+dlStatus_t DL_DownloadStatus();
 
 void       DL_Shutdown();
 

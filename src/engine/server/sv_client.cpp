@@ -72,7 +72,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 	InfoMap userinfo = InfoStringToMap(args.Argv(1));
 
 	// DHM - Nerve :: Update Server allows any protocol to connect
-	// NOTE TTimo: but we might need to store the protocol around for potential non http/ftp clients
+	// NOTE TTimo: but we might need to store the protocol around for potential non http clients
 	int version = atoi( userinfo["protocol"].c_str() );
 
 	if ( version != PROTOCOL_VERSION )
@@ -651,7 +651,7 @@ void SV_BadDownload( client_t *cl, msg_t *msg )
 ==================
 SV_CheckFallbackURL
 
-sv_wwwFallbackURL can be used to redirect clients to a web URL in case direct ftp/http didn't work (or is disabled on client's end)
+sv_wwwFallbackURL can be used to redirect clients to a web URL in case direct http didn't work (or is disabled on client's end)
 return true when a redirect URL message was filled up
 when the cvar is set to something, the download server will effectively never use a legacy download strategy
 ==================
@@ -668,7 +668,7 @@ static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, int download
 	Q_strncpyz(cl->downloadURL, va("%s/%s", sv_wwwFallbackURL->string, pakName), sizeof(cl->downloadURL));
 
 	MSG_WriteByte( msg, svc_download );
-	MSG_WriteShort( msg, -1 );  // block -1 means ftp/http download
+	MSG_WriteShort( msg, -1 );  // block -1 means http download
 	MSG_WriteString( msg, va( "%s/%s", sv_wwwFallbackURL->string, pakName ) );
 	MSG_WriteLong( msg, downloadSize );
 	MSG_WriteLong( msg, strlen( sv_wwwBaseURL->string ) + 1 );
@@ -702,7 +702,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 	if ( cl->bWWWing )
 	{
-		return; // The client acked and is downloading with ftp/http
+		return; // The client acked and is downloading with http
 	}
 
 	if ( !cl->download )
@@ -786,7 +786,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					// once cl->downloadName is set (and possibly we have our listening socket), let the client know
 					cl->bWWWDl = true;
 					MSG_WriteByte( msg, svc_download );
-					MSG_WriteShort( msg, -1 );  // block -1 means ftp/http download
+					MSG_WriteShort( msg, -1 );  // block -1 means http download
 					// download URL, size of the download file
 					MSG_WriteString( msg, cl->downloadURL );
 					MSG_WriteLong( msg, downloadSize );

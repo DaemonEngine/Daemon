@@ -264,7 +264,7 @@ void CL_WWWDownload()
 		bAbort = false;
 	}
 
-	ret = DL_DownloadLoop();
+	ret = DL_DownloadStatus();
 
 	if ( ret == dlStatus_t::DL_CONTINUE )
 	{

@@ -38,6 +38,7 @@ Maryland 20850 USA.
 */
 
 #include "common/Common.h"
+#include "common/Util.h"
 
 #ifdef __MINGW32__
 #define CURL_STATICLIB
@@ -86,6 +87,14 @@ public:
 
 	CurlDownload(CurlDownload&&) = delete; // Disallow copy construction and assignment (yes this is a move constructor)
 
+	void Pool() {
+		CURLMcode err = curl_multi_wait(multi_, nullptr, 0, 100, nullptr);
+		if (err != CURLM_OK) {
+			downloadLogger.Warn("curl_multi_wait error: %s", curl_multi_strerror(err));
+			status_ = dlStatus_t::DL_FAILED;
+		}
+	}
+
 	void Advance() {
 		if (status_ != dlStatus_t::DL_CONTINUE) {
 			return;
@@ -108,7 +117,7 @@ public:
 			msg = curl_multi_info_read(multi_, &ignored);
 		} while (msg && msg->msg != CURLMSG_DONE);
 
-		if (!msg) {
+		if (!msg || msg->msg != CURLMSG_DONE) {
 			status_ = dlStatus_t::DL_FAILED;
 			downloadLogger.Warn("Unexpected lack of CURLMSG_DONE");
 			return;
@@ -159,7 +168,7 @@ private:
 	static size_t LibcurlWriteCallback(char* data, size_t, size_t len, void* object) {
 		auto* download = static_cast<CurlDownload*>(object);
 		download->status_ = download->WriteCallback(data, len);
-		return download->status_ == dlStatus_t::DL_CONTINUE ? len : ~size_t(0);
+		return download->status_ == dlStatus_t::DL_CONTINUE ? len : ~ (size_t)0;
 	}
 
 	bool SetOptions(Str::StringRef url) {
@@ -239,10 +248,12 @@ struct DownloadState {
 // initialize once
 static int   dl_initialized = 0;
 
-static DownloadState download;
+static std::atomic<bool> stop_download(false);
+static std::unique_ptr<std::thread> thread;
+static std::atomic<dlStatus_t> status;
 
 
-void DL_InitDownload()
+static void DL_InitDownload()
 {
 	if ( dl_initialized )
 	{
@@ -264,13 +275,13 @@ void DL_InitDownload()
 // TODO: call this function whenever a download is cancelled
 static void DL_StopDownload()
 {
-	if (download.actualDownload)
+	stop_download = true;
+	if (thread)
 	{
-		download.actualDownload = Util::nullopt;
-		// TODO: kill temp file
+		thread->join();
+		thread = nullptr;
 	}
-	download.~DownloadState();
-	new (&download) DownloadState();
+	// TODO: kill temp file
 }
 
 /*
@@ -291,6 +302,72 @@ void DL_Shutdown()
 	curl_global_cleanup();
 
 	dl_initialized = 0;
+}
+
+static void StartRealDownload(DownloadState &download) {
+	FS::File file;
+	//TODO: handle this properly
+	try {
+		file = FS::HomePath::OpenWrite(download.homepathPath);
+	} catch (std::system_error& e) {
+		downloadLogger.Notice( "DL_BeginDownload unable to open '%s' for writing: %s", download.homepathPath, e.what() );
+		return;
+	}
+	downloadLogger.Debug("Starting HTTP download of %s", download.url);
+	download.actualDownload.emplace(download.url, std::move(file));
+}
+
+static void ThreadDowload( std::string urlDir, const char *remoteName, const char *localName )
+{
+	DownloadState download;
+	download.pakserverCheck.emplace(urlDir + PAKSERVER_FILE_NAME);
+	download.url = remoteName;
+	download.homepathPath = localName;
+
+	while (true)
+	{
+		if ( stop_download )
+		{
+			status = dlStatus_t::DL_DONE;
+			return;
+		}
+
+		ASSERT ( (bool)download.pakserverCheck ^ (bool)download.actualDownload );
+
+		if ( download.pakserverCheck )
+		{
+			download.pakserverCheck->Pool();
+			download.pakserverCheck->Advance();
+			switch (download.pakserverCheck->Status()) {
+			case dlStatus_t::DL_CONTINUE:
+				status = dlStatus_t::DL_CONTINUE;
+				break;
+			case dlStatus_t::DL_DONE:
+				download.pakserverCheck = Util::nullopt;
+				StartRealDownload(download);
+				if (!download.actualDownload)
+				{
+					status = dlStatus_t::DL_FAILED;
+					return;
+				}
+				break;
+			case dlStatus_t::DL_FAILED:
+				downloadLogger.Notice("Download server failed PAKSERVER check");
+				status = dlStatus_t::DL_FAILED;
+				return;
+			}
+		}
+		else
+		{
+			download.actualDownload->Pool();
+			download.actualDownload->Advance();
+			status = download.actualDownload->Status();
+			if ( status != dlStatus_t::DL_CONTINUE )
+			{
+				return;
+			}
+		}
+	}
 }
 
 /*
@@ -318,64 +395,18 @@ int DL_BeginDownload( const char *localName, const char *remoteName, int basePat
 		return 0;
 	}
 	urlDir = urlDir.substr(0, basePathLen);
-
 	downloadLogger.Debug("Checking for PAKSERVER file in %s", urlDir);
-	download.pakserverCheck.emplace(urlDir + PAKSERVER_FILE_NAME);
-	download.url = remoteName;
-	download.homepathPath = localName;
+
+	// spawn the downloader thread
+	stop_download = false;
+	thread = Util::make_unique<std::thread>(ThreadDowload, std::move(urlDir), remoteName, localName);
+
 	Cvar_Set( "cl_downloadName", remoteName );
 	return 1;
 }
 
-static void StartRealDownload() {
-	FS::File file;
-	try {
-		file = FS::HomePath::OpenWrite(download.homepathPath);
-	} catch (std::system_error& e) {
-		downloadLogger.Notice( "DL_BeginDownload unable to open '%s' for writing: %s", download.homepathPath, e.what() );
-		return;
-	}
-	downloadLogger.Debug("Starting HTTP download of %s", download.url);
-	download.actualDownload.emplace(download.url, std::move(file));
-}
-
 // (maybe this should be CL_DL_DownloadLoop)
-dlStatus_t DL_DownloadLoop()
+dlStatus_t DL_DownloadStatus()
 {
-	if ( !download.pakserverCheck && !download.actualDownload )
-	{
-		downloadLogger.Warn( "DL_DownloadLoop: unexpected call with no active request" );
-		return dlStatus_t::DL_DONE;
-	}
-
-	if ( download.pakserverCheck )
-	{
-		download.pakserverCheck->Advance();
-		switch (download.pakserverCheck->Status()) {
-		case dlStatus_t::DL_CONTINUE:
-			return dlStatus_t::DL_CONTINUE;
-		case dlStatus_t::DL_DONE:
-			download.pakserverCheck = Util::nullopt;
-			StartRealDownload();
-			if (!download.actualDownload)
-			{
-				DL_StopDownload();
-				return dlStatus_t::DL_FAILED;
-			}
-			break;
-		case dlStatus_t::DL_FAILED:
-			DL_StopDownload();
-			downloadLogger.Notice("Download server failed PAKSERVER check");
-			return dlStatus_t::DL_FAILED;
-		}
-	}
-
-	download.actualDownload->Advance();
-	dlStatus_t status = download.actualDownload->Status();
-	if ( status != dlStatus_t::DL_CONTINUE )
-	{
-		DL_StopDownload();
-	}
-
 	return status;
 }
