@@ -72,6 +72,22 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   float NdotH = clamp( dot( normal, H ), 0.0, 1.0 );
 #endif // USE_PHYSICAL_MAPPING || r_specularMapping
 
+  // clamp( NdotL, 0.0, 1.0 ) is done below
+  // if no r_halfLambertLighting and no r_wrapAroundLighting.
+  float NdotL = dot( normal, lightDir );
+
+#if defined(r_halfLambertLighting)
+  // http://developer.valvesoftware.com/wiki/Half_Lambert
+  NdotL = NdotL * 0.5 + 0.5;
+  NdotL *= NdotL;
+#elif defined(r_wrapAroundLighting)
+  NdotL = clamp( NdotL + r_wrapAroundLighting, 0.0, 1.0) / clamp(1.0 + r_wrapAroundLighting, 0.0, 1.0);
+#else
+  NdotL = clamp( NdotL, 0.0, 1.0 );
+#endif
+
+  vec3 light = lightColor.rgb * NdotL * diffuseColor.rgb;
+
 #if defined(USE_PHYSICAL_MAPPING)
   // Daemon PBR packing defaults to ORM like glTF 2.0 defines
   // https://www.khronos.org/blog/art-pipeline-for-gltf
@@ -87,7 +103,6 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 
   float NdotV = clamp( dot( normal, viewDir ), 0.0, 1.0);
   float VdotH = clamp( dot( viewDir, H ), 0.0, 1.0);
-  float NdotL = clamp( dot( normal, lightDir ), 0.0, 1.0 );
 
   float alpha = roughness * roughness;
   float k = 0.125 * (roughness + 1.0) * (roughness + 1.0);
@@ -103,20 +118,10 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
   float G = NdotL / (NdotL * (1.0 - k) + k);
   G *= NdotV / (NdotV * (1.0 - k) + k);
 
-  color.rgb += lightColor.rgb * (1.0 - metalness) * NdotL * diffuseColor.rgb;
-  color.rgb += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
+  light *= (1.0 - metalness);
+  light += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
   color.a = mix(diffuseColor.a, 1.0, FexpNV);
 #else // !USE_PHYSICAL_MAPPING
-  float NdotL = dot( normal, lightDir );
-#if defined(r_halfLambertLighting)
-  // http://developer.valvesoftware.com/wiki/Half_Lambert
-  NdotL = NdotL * 0.5 + 0.5;
-  NdotL *= NdotL;
-#elif defined(r_wrapAroundLighting)
-  NdotL = clamp( NdotL + r_wrapAroundLighting, 0.0, 1.0) / clamp(1.0 + r_wrapAroundLighting, 0.0, 1.0);
-#else
-  NdotL = clamp( NdotL, 0.0, 1.0 );
-#endif
 
 #if defined(USE_REFLECTIVE_SPECULAR)
 	// not implemented for PBR yet
@@ -126,11 +131,13 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 	materialColor.rgb *= mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb;
 #endif // USE_REFLECTIVE_SPECULAR
 
-  color.rgb += diffuseColor.rgb * lightColor.rgb * NdotL;
 #if defined(r_specularMapping)
-  color.rgb += materialColor.rgb * lightColor.rgb * pow( NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
+  // The minimal specular exponent should preferably be nonzero to avoid the undefined pow(0, 0)
+  light += lightColor.rgb * materialColor.rgb * pow(NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
 #endif // r_specularMapping
 #endif // !USE_PHYSICAL_MAPPING
+
+  color.rgb += light;
 }
 
 #if defined(TEXTURE_INTEGER)

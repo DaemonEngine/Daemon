@@ -523,7 +523,10 @@ static bool GLimp_DetectAvailableModes()
 	if ( SDL_GetWindowDisplayMode( window, &windowMode ) < 0 )
 	{
 		logger.Warn("Couldn't get window display mode: %s", SDL_GetError() );
-		return false;
+		/* FIXME: returning true means the engine will crash if the window size is
+		larger than what the GPU can support, but we need to not fail to open a window
+		with a size the GPU can handle even if not using native screen resolutions. */
+		return true;
 	}
 
 	for ( i = 0; i < SDL_GetNumDisplayModes( display ); i++ )
@@ -785,20 +788,27 @@ static bool GLimp_CreateContext( const glConfiguration &configuration )
 
 /* GLimp_DestroyWindowIfExists checks if window exists before
 destroying it so we can call GLimp_RecreateWindowWhenChange even
-if no window is created yet.
-
-It is assumed width, height and other things like that are unchanged,
-given vid_restart is called when changing those and then destroying
-the window before calling this. */
+if no window is created yet. */
 static bool GLimp_RecreateWindowWhenChange( const bool fullscreen, const bool bordered, const glConfiguration &configuration )
 {
+	/* Those values doen't contribute to anything
+	when the window isn't created yet. */
 	static bool currentFullscreen = false;
 	static bool currentBordered = false;
+	static int currentWidth = 0;
+	static int currentHeight = 0;
 	static glConfiguration currentConfiguration = {};
 
 	if ( window == nullptr
+		/* We don't care if comparing default values
+		is wrong when the window isn't created yet as
+		the first thing we do is to overwrite them. */
+		|| glConfig.vidWidth != currentWidth
+		|| glConfig.vidHeight != currentHeight
 		|| configuration != currentConfiguration )
 	{
+		currentWidth = glConfig.vidWidth;
+		currentHeight = glConfig.vidHeight;
 		currentConfiguration = configuration;
 
 		GLimp_DestroyWindowIfExists();
