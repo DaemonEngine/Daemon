@@ -35,10 +35,6 @@ uniform sampler2D       u_DepthMap;
 
 DECLARE_OUTPUT(vec4)
 
-#if defined(GENERIC_2D)
-out float gl_FragDepth;
-#endif
-
 void	main()
 {
 	vec4 color = texture2D(u_ColorMap, var_TexCoords);
