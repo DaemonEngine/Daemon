@@ -4246,27 +4246,6 @@ static bool ParseShader( const char *_text )
 			ParseSkyParms( text );
 			continue;
 		}
-		// ET sunshader <name>
-		else if ( !Q_stricmp( token, "sunshader" ) )
-		{
-			int tokenLen;
-
-			token = COM_ParseExt2( text, false );
-
-			if ( !token[ 0 ] )
-			{
-				Log::Warn("missing shader name for 'sunshader'" );
-				continue;
-			}
-
-			/*
-			RB: don't call tr.sunShader = R_FindShader(token, SHADER_3D_STATIC, RSF_DEFAULT);
-			        because it breaks the computation of the current shader
-			*/
-			tokenLen = strlen( token ) + 1;
-			tr.sunShaderName = (char*) ri.Hunk_Alloc( sizeof( char ) * tokenLen, ha_pref::h_low );
-			Q_strncpyz( tr.sunShaderName, token, tokenLen );
-		}
 		// light <value> determines flaring in q3map, not needed here
 		else if ( !Q_stricmp( token, "light" ) )
 		{
@@ -6535,9 +6514,6 @@ static void CreateInternalShaders()
 static void CreateExternalShaders()
 {
 	Log::Debug("----- CreateExternalShaders -----" );
-
-	tr.flareShader = R_FindShader( "flareShader", shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
-	tr.sunShader = R_FindShader( "sun", shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
 
 	tr.defaultPointLightShader = R_FindShader( "lights/defaultPointLight", shaderType_t::SHADER_LIGHT, RSF_DEFAULT );
 	tr.defaultProjectedLightShader = R_FindShader( "lights/defaultProjectedLight", shaderType_t::SHADER_LIGHT, RSF_DEFAULT );

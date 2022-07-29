@@ -6824,14 +6824,6 @@ void RE_LoadWorldMap( const char *name )
 	// only set tr.world now that we know the entire level has loaded properly
 	tr.world = &s_worldData;
 
-	//----(SA)  set the sun shader if there is one
-	if ( tr.sunShaderName )
-	{
-		tr.sunShader = R_FindShader( tr.sunShaderName, shaderType_t::SHADER_3D_STATIC, RSF_DEFAULT );
-	}
-
-	//----(SA)  end
-
 	// build cubemaps after the necessary vbo stuff is done
 	//R_BuildCubeMaps();
 
