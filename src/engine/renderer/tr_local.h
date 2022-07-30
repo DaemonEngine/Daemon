@@ -2692,11 +2692,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		shader_t *defaultProjectedLightShader;
 		shader_t *defaultDynamicLightShader;
 
-		// external shaders
-		shader_t   *flareShader;
-		shader_t   *sunShader;
-		char       *sunShaderName;
-
 		growList_t lightmaps;
 		growList_t deluxemaps;
 
