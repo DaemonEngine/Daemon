@@ -34,7 +34,7 @@ namespace Log {
 
     Logger::Logger(Str::StringRef name, std::string prefix, Level defaultLevel)
         : filterLevel(new Cvar::Cvar<Log::Level>(
-              "logs.logLevel." + name, "Log::Level - logs from '" + name + "' below the level specified are filtered", 0, defaultLevel)),
+              "logs.level." + name, "Log::Level - logs from '" + name + "' below the level specified are filtered", 0, defaultLevel)),
           prefix(prefix), enableSuppression(true) {
     }
 

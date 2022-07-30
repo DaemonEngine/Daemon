@@ -465,6 +465,7 @@ void trap_SendConsoleCommand(const char *text)
 	VM::SendMsg<VM::SendConsoleCommandMsg>(text);
 }
 
+// Open a file in <homepath>/game/
 int trap_FS_FOpenFile(const char *qpath, fileHandle_t *f, fsMode_t mode)
 {
 	int length, handle;
@@ -477,12 +478,8 @@ int trap_FS_FOpenFile(const char *qpath, fileHandle_t *f, fsMode_t mode)
 // Open for reading
 int trap_FS_OpenPakFile(Str::StringRef path, fileHandle_t &f)
 {
-	if (!FS::PakPath::FileExists(path)) {
-		f = 0;
-		return -1;
-	}
 	int length;
-	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, Util::ordinal(fsMode_t::FS_READ), length, f);
+	VM::SendMsg<VM::FSOpenPakFileReadMsg>(path, length, f);
 	return length;
 }
 
@@ -524,11 +521,6 @@ int trap_FS_FileLength( fileHandle_t f )
 	return ret;
 }
 
-void trap_FS_Rename(const char *from, const char *to)
-{
-	VM::SendMsg<VM::FSRenameMsg>(from, to);
-}
-
 void trap_FS_FCloseFile(fileHandle_t f)
 {
 	VM::SendMsg<VM::FSFCloseFileMsg>(f);
@@ -564,9 +556,4 @@ bool trap_FS_LoadPak( const char *pak, const char* prefix )
 	bool res;
 	VM::SendMsg<VM::FSLoadPakMsg>(pak, prefix, res);
 	return res;
-}
-
-void trap_FS_LoadAllMapMetadata()
-{
-	VM::SendMsg<VM::FSLoadMapMetadataMsg>();
 }

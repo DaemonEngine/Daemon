@@ -34,6 +34,7 @@
 #include "fxaa_fp.glsl.h"
 #include "fxaa_vp.glsl.h"
 #include "fxaa3_11_fp.glsl.h"
+#include "generic2D_fp.glsl.h"
 #include "generic_fp.glsl.h"
 #include "generic_vp.glsl.h"
 #include "heatHaze_fp.glsl.h"
@@ -87,6 +88,7 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/fxaa3_11_fp.glsl", std::string(reinterpret_cast<const char*>(fxaa3_11_fp_glsl), sizeof(fxaa3_11_fp_glsl)) },
 	{ "glsl/fxaa_fp.glsl", std::string(reinterpret_cast<const char*>(fxaa_fp_glsl), sizeof(fxaa_fp_glsl)) },
 	{ "glsl/fxaa_vp.glsl", std::string(reinterpret_cast<const char*>(fxaa_vp_glsl), sizeof(fxaa_vp_glsl)) },
+	{ "glsl/generic2D_fp.glsl", std::string(reinterpret_cast<const char*>(generic2D_fp_glsl), sizeof(generic2D_fp_glsl)) },
 	{ "glsl/generic_fp.glsl", std::string(reinterpret_cast<const char*>(generic_fp_glsl), sizeof(generic_fp_glsl)) },
 	{ "glsl/generic_vp.glsl", std::string(reinterpret_cast<const char*>(generic_vp_glsl), sizeof(generic_vp_glsl)) },
 	{ "glsl/heatHaze_fp.glsl", std::string(reinterpret_cast<const char*>(heatHaze_fp_glsl), sizeof(heatHaze_fp_glsl)) },

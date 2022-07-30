@@ -315,6 +315,21 @@ void trap_R_Add2dPolysIndexedToScene( polyVert_t* polys, int numPolys, int* inde
 	cmdBuffer.SendMsg<Render::Add2dPolysIndexedMsg>(mypolys, numPolys, myindices, numIndexes, trans_x, trans_y, shader);
 }
 
+// Used exclusively for RmlUI's transformations. Other usecases might
+// not work as expected.
+void trap_R_SetMatrixTransform( const matrix_t matrix )
+{
+	std::array<float, 16> mymatrix;
+	memcpy(mymatrix.data(), matrix, 16 * sizeof(float));
+	cmdBuffer.SendMsg<Render::SetMatrixTransformMsg>(mymatrix);
+}
+
+// Used exclusively for RmlUI's transformations. Other usecases might
+// not work as expected.
+void trap_R_ResetMatrixTransform()
+{
+	cmdBuffer.SendMsg<Render::ResetMatrixTransformMsg>();
+}
 
 void trap_R_AddLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags )
 {

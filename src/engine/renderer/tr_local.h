@@ -3805,6 +3805,14 @@ inline bool checkGLErrors()
 		int       w;
 		int       h;
 	};
+	struct SetMatrixTransformCommand : public RenderCommand {
+		const RenderCommand *ExecuteSelf() const override;
+
+		matrix_t matrix;
+	};
+	struct ResetMatrixTransformCommand : public RenderCommand {
+		const RenderCommand *ExecuteSelf() const override;
+	};
 	struct DrawViewCommand : public RenderCommand {
 		const RenderCommand *ExecuteSelf() const override;
 
@@ -3938,6 +3946,8 @@ inline bool checkGLErrors()
 	void                                RE_2DPolyiesIndexed( polyVert_t *verts, int numverts, int *indexes, int numindexes, int trans_x, int trans_y, qhandle_t hShader );
 	void                                RE_ScissorEnable( bool enable );
 	void                                RE_ScissorSet( int x, int y, int w, int h );
+	void                                RE_SetMatrixTransform( const matrix_t matrix );
+	void                                RE_ResetMatrixTransform();
 
 	void                                RE_BeginFrame();
 	void                                RE_EndFrame( int *frontEndMsec, int *backEndMsec );

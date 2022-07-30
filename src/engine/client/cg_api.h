@@ -136,7 +136,6 @@ void            trap_FS_FCloseFile( fileHandle_t f );
 int             trap_FS_GetFileList( const char *path, const char *extension, char *listbuf, int bufsize );
 int             trap_FS_GetFileListRecursive( const char *path, const char *extension, char *listbuf, int bufsize );
 bool        trap_FS_LoadPak( const char *pak, const char *prefix );
-void            trap_FS_LoadAllMapMetadata();
 void            trap_SendConsoleCommand( const char *text );
 void            trap_AddCommand( const char *cmdName );
 void            trap_RemoveCommand( const char *cmdName );
@@ -181,6 +180,8 @@ void            trap_R_AddPolysToScene( qhandle_t hShader, int numVerts, const p
 void            trap_R_AddLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
 void            trap_R_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, float g, float b );
 void            trap_R_Add2dPolysIndexedToScene( polyVert_t *polys, int numVerts, int *indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader );
+void            trap_R_SetMatrixTransform( const matrix_t matrix );
+void            trap_R_ResetMatrixTransform();
 int             trap_FS_Seek( fileHandle_t f, int offset, fsOrigin_t origin );
 int             trap_FS_Tell( fileHandle_t f );
 int             trap_FS_FileLength( fileHandle_t f );

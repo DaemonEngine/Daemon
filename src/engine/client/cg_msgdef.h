@@ -140,9 +140,6 @@ enum cgameImport_t
   CG_GET_ENTITY_TOKEN,
   CG_REGISTER_BUTTON_COMMANDS,
   CG_QUOTESTRING,
-  CG_GETTEXT,
-  CG_PGETTEXT,
-  CG_GETTEXT_PLURAL,
   CG_NOTIFY_TEAMCHANGE,
   CG_PREPAREKEYUP,
 
@@ -181,6 +178,8 @@ enum cgameImport_t
   CG_R_ADDADDITIVELIGHTTOSCENE,
   CG_R_RENDERSCENE,
   CG_R_ADD2DPOLYSINDEXED,
+  CG_R_SETMATRIXTRANSFORM,
+  CG_R_RESETMATRIXTRANSFORM,
   CG_R_SETCOLOR,
   CG_R_SETCLIPREGION,
   CG_R_RESETCLIPREGION,
@@ -273,18 +272,6 @@ using RegisterButtonCommandsMsg = IPC::Message<IPC::Id<VM::QVM, CG_REGISTER_BUTT
 // TODO using Command.h for that ?
 using QuoteStringMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_QUOTESTRING>, int, std::string>,
-	IPC::Reply<std::string>
->;
-using GettextMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_GETTEXT>, int, std::string>,
-	IPC::Reply<std::string>
->;
-using PGettextMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_PGETTEXT>, int, std::string, std::string>,
-	IPC::Reply<std::string>
->;
-using GettextPluralMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_GETTEXT_PLURAL>, int, std::string, std::string, int>,
 	IPC::Reply<std::string>
 >;
 using NotifyTeamChangeMsg = IPC::SyncMessage<
@@ -419,6 +406,8 @@ namespace Render {
 	using SetColorGradingMsg = IPC::Message<IPC::Id<VM::QVM, CG_SETCOLORGRADING>, int, int>;
 	using RenderSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_RENDERSCENE>, refdef_t>;
 	using Add2dPolysIndexedMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADD2DPOLYSINDEXED>, std::vector<polyVert_t>, int, std::vector<int>, int, int, int, qhandle_t>;
+	using SetMatrixTransformMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_SETMATRIXTRANSFORM>, std::array<float, 16>>;
+	using ResetMatrixTransformMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_RESETMATRIXTRANSFORM>>;
 }
 
 namespace Keyboard {

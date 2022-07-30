@@ -1184,24 +1184,6 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			});
 			break;
 
-		case CG_GETTEXT: // TODO(0.53): remove
-			IPC::HandleMsg<GettextMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
-				output = input.substr(0, len);
-			});
-			break;
-
-		case CG_PGETTEXT: // TODO(0.53): remove
-			IPC::HandleMsg<PGettextMsg>(channel, std::move(reader), [this] (int len, const std::string&, const std::string& input, std::string& output) {
-				output = input.substr(0, len);
-			});
-			break;
-
-		case CG_GETTEXT_PLURAL: // TODO(0.53): remove
-			IPC::HandleMsg<GettextPluralMsg>(channel, std::move(reader), [this] (int len, const std::string& input1, const std::string&, int, std::string& output) {
-				output = input1.substr(0, len);
-			});
-			break;
-
 		case CG_NOTIFY_TEAMCHANGE:
 			IPC::HandleMsg<NotifyTeamChangeMsg>(channel, std::move(reader), [this] (int team) {
 				CL_OnTeamChanged(team);
@@ -1719,6 +1701,16 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 					re.Add2dPolysIndexed(polys.data(), numPolys, indicies.data(), numIndicies, trans_x, trans_y, shader);
 				});
                 break;
+			case CG_R_SETMATRIXTRANSFORM:
+				HandleMsg<Render::SetMatrixTransformMsg>(std::move(reader), [this] (const std::array<float, 16>& matrix) {
+					re.SetMatrixTransform(matrix.data());
+				});
+				break;
+			case CG_R_RESETMATRIXTRANSFORM:
+				HandleMsg<Render::ResetMatrixTransformMsg>(std::move(reader), [this] {
+					re.ResetMatrixTransform();
+				});
+				break;
 
 		default:
 			Sys::Drop("Bad minor CGame QVM Command Buffer number: %d", minor);
@@ -1728,4 +1720,3 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 		Sys::Drop("Bad major CGame Command Buffer number: %d", major);
 	}
 }
-

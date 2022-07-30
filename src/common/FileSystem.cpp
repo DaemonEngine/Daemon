@@ -1140,9 +1140,13 @@ static void ParseDeleted(const PakInfo& parent, Str::StringRef deletedData)
 	}
 }
 
+static void InternalLoadPak(
+	const PakInfo& pak, Util::optional<uint32_t> expectedChecksum, Str::StringRef pathPrefix,
+	bool loadDeps, std::error_code& err);
+
 // Parse the dependencies file of a package
 // Each line of the dependencies file is a name followed by an optional version
-static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, std::error_code& err)
+static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, Str::StringRef prefix, std::error_code& err)
 {
 	auto lineStart = depsData.begin();
 	int line = 0;
@@ -1176,7 +1180,7 @@ static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, std::error
 				SetErrorCodeFilesystem(err, filesystem_error::missing_dependency);
 				return;
 			}
-			LoadPak(*pak, err);
+			InternalLoadPak(*pak, Util::nullopt, prefix, true, err);
 			if (err)
 				return;
 			lineStart = lineEnd == depsData.end() ? lineEnd : lineEnd + 1;
@@ -1200,7 +1204,7 @@ static void ParseDeps(const PakInfo& parent, Str::StringRef depsData, std::error
 				SetErrorCodeFilesystem(err, filesystem_error::missing_dependency);
 				return;
 			}
-			LoadPak(*pak, err);
+			InternalLoadPak(*pak, Util::nullopt, prefix, true, err);
 			if (err)
 				return;
 			lineStart = lineEnd == depsData.end() ? lineEnd : lineEnd + 1;
@@ -1236,7 +1240,9 @@ static bool FileIsDeleted(const PakInfo& pak, Str::StringRef filename)
 	return deletedFileSet.find(std::pair<std::string, std::string>(pak.name, filename)) != deletedFileSet.end();
 }
 
-static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expectedChecksum, Str::StringRef pathPrefix, std::error_code& err)
+static void InternalLoadPak(
+	const PakInfo& pak, Util::optional<uint32_t> expectedChecksum, Str::StringRef pathPrefix,
+	bool loadDeps, std::error_code& err)
 {
 	Util::optional<uint32_t> realChecksum;
 	bool hasDeleted = false;
@@ -1418,9 +1424,8 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			ParseDeleted(pak, deletedData);
 		}
 
-		// Load dependencies, but not if a checksum was specified
-		// Do not look for dependencies if it's a legacy pak (pk3)
-		if (hasDeps && !expectedChecksum) {
+		// Load dependencies (non-legacy paks (pk3) only)
+		if (loadDeps && hasDeps) {
 			std::string depsData;
 			if (pak.type == pakType_t::PAK_DIR) {
 				File depsFile = RawPath::OpenRead(Path::Build(pak.path, PAK_DEPS_FILE), err);
@@ -1444,24 +1449,24 @@ static void InternalLoadPak(const PakInfo& pak, Util::optional<uint32_t> expecte
 			} else {
 				ASSERT_UNREACHABLE();
 			}
-			ParseDeps(pak, depsData, err);
+			ParseDeps(pak, depsData, pathPrefix, err);
 		}
 	}
 }
 
 void LoadPak(const PakInfo& pak, std::error_code& err)
 {
-	InternalLoadPak(pak, Util::nullopt, "", err);
+	InternalLoadPak(pak, Util::nullopt, "", true, err);
 }
 
 void LoadPakPrefix(const PakInfo& pak, Str::StringRef pathPrefix, std::error_code& err)
 {
-	InternalLoadPak(pak, Util::nullopt, pathPrefix, err);
+	InternalLoadPak(pak, Util::nullopt, pathPrefix, false, err);
 }
 
 void LoadPakExplicit(const PakInfo& pak, uint32_t expectedChecksum, std::error_code& err)
 {
-	InternalLoadPak(pak, expectedChecksum, "", err);
+	InternalLoadPak(pak, expectedChecksum, "", false, err);
 }
 
 void ClearPaks()
@@ -1479,17 +1484,17 @@ void ClearPaks()
 #else // BUILD_VM
 void LoadPak(const PakInfo& pak, std::error_code&)
 {
-	VM::SendMsg<VM::FSPakPathLoadPakMsg>(&pak - availablePaks.data(), Util::nullopt, "");
+	VM::SendMsg<VM::FSPakPathLoadPakMsg>(&pak - availablePaks.data(), Util::nullopt, "", true);
 }
 
 void LoadPakPrefix(const PakInfo& pak, Str::StringRef pathPrefix, std::error_code&)
 {
-	VM::SendMsg<VM::FSPakPathLoadPakMsg>(&pak - availablePaks.data(), Util::nullopt, pathPrefix);
+	VM::SendMsg<VM::FSPakPathLoadPakMsg>(&pak - availablePaks.data(), Util::nullopt, pathPrefix, false);
 }
 
 void LoadPakExplicit(const PakInfo& pak, uint32_t expectedChecksum, std::error_code&)
 {
-	VM::SendMsg<VM::FSPakPathLoadPakMsg>(&pak - availablePaks.data(), expectedChecksum, "");
+	VM::SendMsg<VM::FSPakPathLoadPakMsg>(&pak - availablePaks.data(), expectedChecksum, "", false);
 }
 #endif // BUILD_VM
 
@@ -1500,9 +1505,11 @@ const std::vector<LoadedPakInfo>& GetLoadedPaks()
 
 #ifdef BUILD_VM
 std::string ReadFile(Str::StringRef path, std::error_code& err) {
+	// The VM has a list of all the pak files, so this may save a round trip
+	// if the file doesn't exist, as well as allowing a more specific error.
+	// It may be wrong if more paks are loaded after initialization though?
 	int length, h;
-	const int mode = 0; // fsMode_t::FS_READ
-	VM::SendMsg<VM::FSFOpenFileMsg>(path, true, mode, length, h);
+	VM::SendMsg<VM::FSOpenPakFileReadMsg>(path, length, h);
 	if (!h) {
 		SetErrorCodeFilesystem(err, filesystem_error::no_such_file, path);
 		return "";
@@ -2768,40 +2775,40 @@ const std::vector<PakInfo>& GetAvailablePaks()
 	return availablePaks;
 }
 
-
-std::vector<PakInfo> GetAvailableMapPaks()
-{
-	std::vector<PakInfo> infos;
-	for ( const auto& pak : FS::GetAvailablePaks() )
-	{
-		if (UseLegacyPaks() || Str::IsPrefix("map-", pak.name))
-		{
-			infos.push_back(pak);
-		}
-	}
-	return infos;
-}
-
-std::set<std::string> GetAvailableMaps()
+// This should be in sync with how maps are found by MapCmd
+// Used for /listmaps and tab completion
+std::set<std::string> GetAvailableMaps(bool allowLegacyPaks)
 {
 	std::set<std::string> maps;
 
 	#ifndef BUILD_VM
 		RefreshPaks();
 	#endif
-	std::error_code ignore;
-	for ( const auto& pak : GetAvailableMapPaks() )
+
+	const std::string pakPrefix = "map-";
+	for (const auto& pak : FS::GetAvailablePaks())
 	{
-		FS::PakPath::LoadPakPrefix(pak, "maps", ignore);
+		if (pak.version.empty()) {
+			if (allowLegacyPaks) {
+				// Load legacy pak, to be used in the ListFiles call below
+				// (UseLegacyPaks() is implied to have been turned on by the existence of the pak in availablePaks)
+				std::error_code ignored;
+				FS::PakPath::LoadPakPrefix(pak, "maps/", ignored);
+			}
+		} else {
+			if (Str::IsPrefix(pakPrefix, pak.name) && pak.name.size() > pakPrefix.size()) {
+				maps.insert(pak.name.substr(pakPrefix.size()));
+			}
+		}
 	}
 
-	static const std::string map_suffix = ".bsp";
-
-	for ( const auto& file : FS::PakPath::ListFiles("maps", ignore) )
-	{
-		if ( Str::IsSuffix(map_suffix, file) )
-		{
-			maps.insert( file.substr(0, file.size() - map_suffix.size()) );
+	if (allowLegacyPaks && UseLegacyPaks()) {
+		const std::string pathSuffix = ".bsp";
+		std::error_code ignored;
+		for (const std::string& path : FS::PakPath::ListFiles("maps/", ignored)) {
+			if (Str::IsSuffix(pathSuffix, path) && path.size() > pathSuffix.size()) {
+				maps.insert(path.substr(0, path.size() - pathSuffix.size()));
+			}
 		}
 	}
 
@@ -2902,11 +2909,12 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 		break;
 
 	case VM::FS_PAKPATH_LOADPAK:
-		IPC::HandleMsg<VM::FSPakPathLoadPakMsg>(channel, std::move(reader), [](uint32_t pakIndex, Util::optional<uint32_t> expectedChecksum, std::string pathPrefix) {
+		IPC::HandleMsg<VM::FSPakPathLoadPakMsg>(channel, std::move(reader), [](uint32_t pakIndex, Util::optional<uint32_t> expectedChecksum,
+		                                                                       std::string pathPrefix, bool loadDeps) {
 			if (availablePaks.size() <= pakIndex)
 				return;
 			try {
-				FS::PakPath::InternalLoadPak(availablePaks[pakIndex], expectedChecksum, pathPrefix, FS::throws());
+				FS::PakPath::InternalLoadPak(availablePaks[pakIndex], expectedChecksum, pathPrefix, loadDeps, FS::throws());
 			} catch (std::system_error& err) {
 				fsLogs.Warn("Could not load pak %s: %s", availablePaks[pakIndex].path, err.what());
 			}

@@ -85,18 +85,17 @@ namespace VM {
         QVM_COMMON_SEND_CONSOLE_COMMAND,
 
         QVM_COMMON_FS_FOPEN_FILE,
+        QVM_COMMON_FS_OPEN_PAK_FILE_READ,
         QVM_COMMON_FS_READ,
         QVM_COMMON_FS_WRITE,
         QVM_COMMON_FS_SEEK,
         QVM_COMMON_FS_TELL,
         QVM_COMMON_FS_FILELENGTH,
-        QVM_COMMON_FS_RENAME,
         QVM_COMMON_FS_FCLOSE_FILE,
         QVM_COMMON_FS_GET_FILE_LIST,
         QVM_COMMON_FS_GET_FILE_LIST_RECURSIVE,
         QVM_COMMON_FS_FIND_PAK,
         QVM_COMMON_FS_LOAD_PAK,
-        QVM_COMMON_FS_LOAD_MAP_METADATA,
     };
 
     using ErrorMsg = IPC::SyncMessage<
@@ -106,6 +105,10 @@ namespace VM {
 
     using FSFOpenFileMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_FOPEN_FILE>, std::string, bool, int>,
+        IPC::Reply<int, int>
+    >;
+    using FSOpenPakFileReadMsg = IPC::SyncMessage<
+        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_OPEN_PAK_FILE_READ>, std::string>,
         IPC::Reply<int, int>
     >;
     using FSReadMsg = IPC::SyncMessage<
@@ -128,7 +131,6 @@ namespace VM {
 		IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_FILELENGTH>, fileHandle_t>,
 		IPC::Reply<int>
 	>;
-    using FSRenameMsg = IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_RENAME>, std::string, std::string>;
     using FSFCloseFileMsg = IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_FCLOSE_FILE>, int>;
     using FSGetFileListMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_GET_FILE_LIST>, std::string, std::string, int>,
@@ -145,9 +147,6 @@ namespace VM {
     using FSLoadPakMsg = IPC::SyncMessage<
         IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_LOAD_PAK>, std::string, std::string>,
         IPC::Reply<bool>
-    >;
-    using FSLoadMapMetadataMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<VM::QVM_COMMON, QVM_COMMON_FS_LOAD_MAP_METADATA>>
     >;
 
     // Misc Syscall Definitions
@@ -292,7 +291,7 @@ namespace VM {
         IPC::Reply<Util::optional<uint64_t>>
     >;
     using FSPakPathLoadPakMsg = IPC::SyncMessage<
-        IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_LOADPAK>, uint32_t, Util::optional<uint32_t>, std::string>
+        IPC::Message<IPC::Id<FILESYSTEM, FS_PAKPATH_LOADPAK>, uint32_t, Util::optional<uint32_t>, std::string, bool>
     >;
 
 }

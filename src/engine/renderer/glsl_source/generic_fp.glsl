@@ -55,4 +55,8 @@ void	main()
 
 	color *= var_Color;
 	outputColor = color;
+
+#if defined(GENERIC_2D)
+	gl_FragDepth = 0;
+#endif
 }

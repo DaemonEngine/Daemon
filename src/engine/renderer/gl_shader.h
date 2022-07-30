@@ -117,9 +117,9 @@ protected:
 	std::vector< GLUniformBlock * > _uniformBlocks;
 	std::vector< GLCompileMacro * > _compileMacros;
 
-	
 
-	
+
+
 
 	GLShader( const std::string &name, uint32_t vertexAttribsRequired, GLShaderManager *manager ) :
 		_name( name ),
@@ -2194,6 +2194,30 @@ class u_Lights :
 	}
 };
 
+// This is just a copy of the GLShader_generic, but with a special
+// define for RmlUI transforms. It probably has a lot of unnecessary
+// code that could be pruned.
+// TODO: Write a more minimal 2D rendering shader.
+class GLShader_generic2D :
+	public GLShader,
+	public u_TextureMatrix,
+	public u_AlphaThreshold,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_ColorModulate,
+	public u_Color,
+	public u_DepthScale,
+	public GLDeformStage,
+	public GLCompileMacro_USE_DEPTH_FADE,
+	public GLCompileMacro_USE_ALPHA_TESTING
+{
+public:
+	GLShader_generic2D( GLShaderManager *manager );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& vertexInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
+};
+
 class GLShader_generic :
 	public GLShader,
 	public u_TextureMatrix,
@@ -2667,6 +2691,7 @@ std::string GetShaderPath();
 
 extern ShaderKind shaderKind;
 
+extern GLShader_generic2D                       *gl_generic2DShader;
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
 extern GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ;

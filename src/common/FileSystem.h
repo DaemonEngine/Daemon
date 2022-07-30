@@ -310,6 +310,7 @@ namespace PakPath {
 	void LoadPak(const PakInfo& pak, std::error_code& err = throws());
 
 	// Load a subset of a pak, only loading subpaths starting with the given prefix
+	// Does not load dependencies.
 	void LoadPakPrefix(const PakInfo& pak, Str::StringRef pathPrefix, std::error_code& err = throws());
 
 	// Load a pak into the namespace and verify its checksum but *don't* load its dependencies
@@ -535,11 +536,8 @@ std::string MakePakName(Str::StringRef name, Str::StringRef version, Util::optio
 // Get the list of available paks
 const std::vector<PakInfo>& GetAvailablePaks();
 
-// Get the list of available paks that contain maps
-std::vector<PakInfo> GetAvailableMapPaks();
-
 // Get the list of available map names
-std::set<std::string> GetAvailableMaps();
+std::set<std::string> GetAvailableMaps(bool allowLegacyPaks);
 
 // Get the home path
 const std::string& GetHomePath();

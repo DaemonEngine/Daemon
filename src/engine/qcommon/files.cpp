@@ -202,31 +202,29 @@ static int FS_SV_FOpenFileRead(const char* path, fileHandle_t* handle)
 	return length;
 }
 
+// Opens a file in <homepath>/game/
 int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mode)
 {
+	std::string path2 = FS::Path::Build("game", path);
 	switch (mode) {
 	case fsMode_t::FS_READ:
-		if (FS::PakPath::FileExists(path))
-			return FS_FOpenFileRead(path, handle);
-		else {
-			int size = FS_SV_FOpenFileRead(FS::Path::Build("game", path).c_str(), handle);
-			return (!handle || *handle) ? size : -1;
-		}
+	{
+		int size = FS_SV_FOpenFileRead(path2.c_str(), handle);
+		return (!handle || *handle) ? size : -1;
+	}
 
 	case fsMode_t::FS_WRITE:
 	case fsMode_t::FS_WRITE_VIA_TEMPORARY:
-		*handle = FS_FOpenFileWrite_internal(FS::Path::Build("game", path).c_str(), mode == fsMode_t::FS_WRITE_VIA_TEMPORARY);
+		*handle = FS_FOpenFileWrite_internal(path2.c_str(), mode == fsMode_t::FS_WRITE_VIA_TEMPORARY);
 		return *handle == 0 ? -1 : 0;
 
 	case fsMode_t::FS_APPEND:
 	case fsMode_t::FS_APPEND_SYNC:
-		*handle = FS_FOpenFileAppend(FS::Path::Build("game", path).c_str());
+		*handle = FS_FOpenFileAppend(path2.c_str());
 		handleTable[*handle].forceFlush = mode == fsMode_t::FS_APPEND_SYNC;
 		return *handle == 0 ? -1 : 0;
-
-	default:
-		Sys::Drop("FS_Game_FOpenFileByMode: bad mode %s", Util::enum_str(mode));
 	}
+	Sys::Drop("FS_Game_FOpenFileByMode: bad mode %s", Util::enum_str(mode));
 }
 
 // Set a VM as the owner
@@ -441,18 +439,13 @@ int FS_Delete(const char* path)
 	return 0;
 }
 
-void FS_Rename(const char* from, const char* to)
+void FS_SV_Rename(const char* from, const char* to)
 {
 	try {
 		FS::HomePath::MoveFile(to, from);
 	} catch (std::system_error& err) {
 		Log::Notice("Failed to move '%s' to '%s': %s\n", from, to, err.what());
 	}
-}
-
-void FS_SV_Rename(const char* from, const char* to)
-{
-	FS_Rename(from, to);
 }
 
 void FS_WriteFile(const char* path, const void* buffer, int size)
@@ -681,28 +674,6 @@ void FS_LoadBasePak()
 	}
 
 	Sys::Error("Could not load default base pak '%s'", DEFAULT_BASE_PAK);
-}
-
-void FS_LoadAllMapMetadata()
-{
-	const std::string pak_map_prefix("map-");
-
-	for (const auto& pak: FS::GetAvailableMapPaks()) {
-		try {
-			// If pak name is long enough to have “map-” prefix,
-			// and pak name without ”map-” prefix is not empty string.
-			if (pak.name.length() > pak_map_prefix.length())
-			{
-				// If pak name starts with “map-” prefix
-				if (Str::IsPrefix(pak_map_prefix, pak.name))
-				{
-					// FIXME: This looks to be game-specific,
-					// not all games use “meta/” mechanism.
-					FS::PakPath::LoadPakPrefix(pak, va("meta/%s/", pak.name.substr(pak_map_prefix.length()).c_str()));
-				}
-			}
-		} catch (std::system_error&) {} // ignore and move on
-	}
 }
 
 bool FS_LoadServerPaks(const char* paks, bool isDemo)

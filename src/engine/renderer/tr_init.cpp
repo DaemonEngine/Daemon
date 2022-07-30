@@ -1615,6 +1615,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.ScissorEnable = RE_ScissorEnable;
 		re.ScissorSet = RE_ScissorSet;
 		re.DrawStretchPicGradient = RE_StretchPicGradient;
+		re.SetMatrixTransform = RE_SetMatrixTransform;
+		re.ResetMatrixTransform = RE_ResetMatrixTransform;
 
 		re.Glyph = RE_Glyph;
 		re.GlyphChar = RE_GlyphChar;

@@ -257,6 +257,19 @@ namespace VM {
                 });
                 break;
 
+            case QVM_COMMON_FS_OPEN_PAK_FILE_READ:
+                IPC::HandleMsg<FSOpenPakFileReadMsg>(channel, std::move(reader), [this](const std::string& filename, int& length, int& handle) {
+                    if (!FS::PakPath::FileExists(filename)) {
+                        handle = 0;
+                        length = -1;
+                        return;
+                    }
+                    length = FS_FOpenFileRead(filename.c_str(), &handle);
+                    if (handle > 0)
+                        FS_SetOwner(handle, fileOwnership);
+                });
+                break;
+
             case QVM_COMMON_FS_READ:
                 IPC::HandleMsg<FSReadMsg>(channel, std::move(reader), [this](int handle, int len, std::string& res, int& ret) {
                     FS_CheckOwnership(handle, fileOwnership);
@@ -293,11 +306,6 @@ namespace VM {
 					res = FS_filelength(f);
 				});
 				break;
-            case QVM_COMMON_FS_RENAME:
-                IPC::HandleMsg<FSRenameMsg>(channel, std::move(reader), [this](const std::string& from, const std::string& to) {
-                    FS_Rename(from.c_str(), to.c_str());
-                });
-                break;
 
             case QVM_COMMON_FS_FCLOSE_FILE:
                 IPC::HandleMsg<FSFCloseFileMsg>(channel, std::move(reader), [this](int handle) {
@@ -341,12 +349,6 @@ namespace VM {
                     FS::PakPath::LoadPakPrefix(*FS::FindPak(pakName), prefix, err);
                     // found if no error
                     found = !err;
-                });
-                break;
-
-            case QVM_COMMON_FS_LOAD_MAP_METADATA:
-                IPC::HandleMsg<FSLoadMapMetadataMsg>(channel, std::move(reader), [this] {
-                    FS_LoadAllMapMetadata();
                 });
                 break;
 
