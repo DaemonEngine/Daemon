@@ -54,7 +54,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_measureOverdraw;
 
 	cvar_t      *r_fastsky;
-	cvar_t      *r_drawSun;
 
 	cvar_t      *r_lodBias;
 	cvar_t      *r_lodScale;
@@ -1147,7 +1146,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_zfar = Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
 		r_checkGLErrors = Cvar_Get( "r_checkGLErrors", "-1", 0 );
 		r_fastsky = Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE );
-		r_drawSun = Cvar_Get( "r_drawSun", "0", 0 );
 		r_finish = Cvar_Get( "r_finish", "0", CVAR_CHEAT );
 		r_textureMode = Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE );
 		r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE );
