@@ -576,7 +576,7 @@ static bool GLimp_DetectAvailableModes()
 	if ( *buf )
 	{
 		logger.Notice("Available modes: '%s'", buf );
-		ri.Cvar_Set( "r_availableModes", buf );
+		Cvar_Set( "r_availableModes", buf );
 	}
 
 	return true;
@@ -1512,7 +1512,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 		}
 
 		logger.Notice("SDL using driver \"%s\"", driverName );
-		ri.Cvar_Set( "r_sdlDriver", driverName );
+		Cvar_Set( "r_sdlDriver", driverName );
 	}
 
 	numDisplays = SDL_GetNumVideoDisplays();
@@ -1524,7 +1524,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 
 	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
 
-	if ( fullscreen && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
+	if ( fullscreen && Cvar_VariableIntegerValue( "in_nograb" ) )
 	{
 		logger.Notice("Fullscreen not allowed with in_nograb 1" );
 		r_fullscreen.Set( false );
@@ -1927,11 +1927,11 @@ bool GLimp_Init()
 {
 	glConfig.driverType = glDriverType_t::GLDRV_ICD;
 
-	r_sdlDriver = ri.Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
-	r_allowResize = ri.Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
-	r_centerWindow = ri.Cvar_Get( "r_centerWindow", "0", 0 );
-	r_displayIndex = ri.Cvar_Get( "r_displayIndex", "0", 0 );
-	ri.Cvar_Get( "r_availableModes", "", CVAR_ROM );
+	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ROM );
+	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
+	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
+	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
+	Cvar_Get( "r_availableModes", "", CVAR_ROM );
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
@@ -2051,7 +2051,7 @@ success:
 		glDriverType_t   driverType   = glDriverType_t::GLDRV_UNKNOWN;
 		glHardwareType_t hardwareType = glHardwareType_t::GLHW_UNKNOWN;
 
-		forceGL = ri.Cvar_Get( "r_glForceDriver", "", CVAR_LATCH );
+		forceGL = Cvar_Get( "r_glForceDriver", "", CVAR_LATCH );
 
 		if      ( !Q_stricmp( forceGL->string, "icd" ))
 		{
@@ -2066,7 +2066,7 @@ success:
 			driverType = glDriverType_t::GLDRV_OPENGL3;
 		}
 
-		forceGL = ri.Cvar_Get( "r_glForceHardware", "", CVAR_LATCH );
+		forceGL = Cvar_Get( "r_glForceHardware", "", CVAR_LATCH );
 
 		if      ( !Q_stricmp( forceGL->string, "generic" ))
 		{
@@ -2136,7 +2136,7 @@ void GLimp_HandleCvars()
 		bool needToToggle = true;
 		bool fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
 
-		if ( *wantFullscreen && ri.Cvar_VariableIntegerValue( "in_nograb" ) )
+		if ( *wantFullscreen && Cvar_VariableIntegerValue( "in_nograb" ) )
 		{
 			logger.Notice("Fullscreen not allowed with in_nograb 1" );
 			*wantFullscreen = false;

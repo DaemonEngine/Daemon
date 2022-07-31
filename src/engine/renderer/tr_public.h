@@ -254,9 +254,6 @@ struct refimport_t
 	void ( *Free )( void *buf );
 	void ( *Tag_Free )();
 
-	cvar_t          *( *Cvar_Get )( const char *name, const char *value, int flags );
-	void ( *Cvar_Set )( const char *name, const char *value );
-
 	void ( *Cmd_AddCommand )( const char *name, void ( *cmd )() );
 	void ( *Cmd_RemoveCommand )( const char *name );
 
@@ -264,8 +261,6 @@ struct refimport_t
 	const char *( *Cmd_Argv )( int i );
 
 	const char *( *Cmd_QuoteString )( const char *text );
-
-	int ( *Cvar_VariableIntegerValue )( const char *var_name );
 
 	// visualization for debugging collision detection
 	int ( *CM_PointContents )( const vec3_t p, clipHandle_t model );
