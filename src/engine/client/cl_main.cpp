@@ -2748,11 +2748,6 @@ static bool CL_InitRef()
 	ri.FS_FCloseFile = FS_FCloseFile;
 	ri.FS_FOpenFileRead = FS_FOpenFileRead;
 
-	ri.Cvar_Get = Cvar_Get;
-	ri.Cvar_Set = Cvar_Set;
-
-	ri.Cvar_VariableIntegerValue = Cvar_VariableIntegerValue;
-
 	// XreaL BEGIN
 	ri.CL_VideoRecording = CL_VideoRecording;
 	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;

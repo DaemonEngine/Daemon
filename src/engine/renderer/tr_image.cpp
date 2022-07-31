@@ -114,11 +114,11 @@ void GL_TextureMode( const char *string )
 	{
 		if ( r_ext_texture_filter_anisotropic->value > glConfig2.maxTextureAnisotropy )
 		{
-			ri.Cvar_Set( "r_ext_texture_filter_anisotropic", va( "%f", glConfig2.maxTextureAnisotropy ) );
+			Cvar_Set( "r_ext_texture_filter_anisotropic", va( "%f", glConfig2.maxTextureAnisotropy ) );
 		}
 		else if ( r_ext_texture_filter_anisotropic->value < 1.0 )
 		{
-			ri.Cvar_Set( "r_ext_texture_filter_anisotropic", "1.0" );
+			Cvar_Set( "r_ext_texture_filter_anisotropic", "1.0" );
 		}
 	}
 
