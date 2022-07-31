@@ -1407,7 +1407,7 @@ static void InternalLoadPak(
 				if (err)
 					return;
 			} else if (pak.type == pakType_t::PAK_ZIP) {
-				zipFile.OpenFile(depsOffset, err);
+				zipFile.OpenFile(deletedOffset, err);
 				if (err)
 					return;
 				offset_t length = zipFile.FileLength(err);
