@@ -226,7 +226,8 @@ void PRINTF_LIKE(2) SV_SendServerCommand( client_t *cl, const char *fmt, ... )
 		// hack to echo broadcast prints to console
 		else if ( !strncmp( ( char * ) message, "print ", 6 ) )
 		{
-			Log::Notice( "Broadcast: %s", Cmd_UnquoteString( ( char * ) message + 6 ) );
+			// Don't use "Broadcast: %s" as this format string is too unspecific for log suppression
+			Log::Notice( std::string("Broadcast: ") + Cmd_UnquoteString( ( const char * ) message + 6 ) );
 		}
 	}
 
@@ -1479,7 +1480,15 @@ void SV_PrintTranslatedText( const char *text, bool broadcast, bool plural )
 {
 	Cmd_SaveCmdContext();
 	Cmd_TokenizeString( text );
-	Log::Notice( "%s%s", broadcast ? "Broadcast: " : "", TranslateText_Internal( plural, 1 ) );
+	if ( broadcast )
+	{
+		// Don't use "Broadcast: %s" as this format string is too unspecific for log suppression
+		Log::Notice( std::string("Broadcast: ") + TranslateText_Internal( plural, 1 ) );
+	}
+	else
+	{
+		Log::CommandInteractionMessage( TranslateText_Internal( plural, 1 ) );
+	}
 	Cmd_RestoreCmdContext();
 }
 
