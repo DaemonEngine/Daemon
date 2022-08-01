@@ -3,7 +3,7 @@
 jobs:
   - job: Mac
     pool:
-      vmImage: 'macOS-10.15'
+      vmImage: 'macOS-11'
     steps:
     - bash: |
         set -e
