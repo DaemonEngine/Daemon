@@ -1897,7 +1897,7 @@ CL_ServerLinksResponsePacket
 */
 void CL_ServerLinksResponsePacket( msg_t *msg )
 {
-	unsigned short      port;
+	uint16_t      port;
 	byte      *buffptr;
 	byte      *buffend;
 
@@ -2013,7 +2013,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		bool duplicate = false;
 		byte ip6[16];
 		byte ip[4];
-		unsigned short port;
+		uint16_t port;
 
 		// IPv4 address
 		if ( *buffptr == '\\' )
