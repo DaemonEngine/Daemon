@@ -149,6 +149,28 @@ inline int64_t Swap64(int64_t x)
 	        (x >> 56);
 }
 
+inline uint16_t USwap16(uint16_t x)
+{
+	return (x >> 8) | (x << 8);
+}
+
+inline uint32_t USwap32(uint32_t x)
+{
+	return (x << 24) | ((x << 8) & 0xff0000) | ((x >> 8) & 0xff00) | (x >> 24);
+}
+
+inline uint64_t USwap64(uint64_t x)
+{
+	return  (x << 56) |
+	       ((x << 40) & 0xff000000000000ULL) |
+	       ((x << 24) & 0xff0000000000ULL) |
+	       ((x <<  8) & 0xff00000000ULL) |
+	       ((x >>  8) & 0xff000000ULL) |
+	       ((x >> 24) & 0xff0000ULL) |
+	       ((x >> 40) & 0xff00ULL) |
+	        (x >> 56);
+}
+
 inline float SwapFloat(float x)
 {
 	union
@@ -173,6 +195,13 @@ inline float SwapFloat(float x)
 #define Big64(x) Swap64(x)
 #define BigFloat(x) SwapFloat(x)
 
+#define ULittleShort(x) (x)
+#define ULittleLong(x) (x)
+#define ULittle64(x) (x)
+#define UBigShort(x) USwap16(x)
+#define UBigLong(x) USwap32(x)
+#define UBig64(x) USwap64(x)
+
 #elif defined(Q3_BIG_ENDIAN)
 
 #define LittleShort(x) Swap16(x)
@@ -183,6 +212,13 @@ inline float SwapFloat(float x)
 #define BigLong(x) (x)
 #define Big64(x) (x)
 #define BigFloat(x) (x)
+
+#define ULittleShort(x) USwap16(x)
+#define ULittleLong(x) USwap32(x)
+#define ULittle64(x) USwap64(x)
+#define UBigShort(x) (x)
+#define UBigLong(x) (x)
+#define UBig64(x) (x)
 
 #else
 
