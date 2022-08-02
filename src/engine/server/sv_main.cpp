@@ -386,7 +386,7 @@ void SV_MasterHeartbeat( const char *hbname )
 		if ( adrs.ipv4.type != netadrtype_t::NA_BAD )
 		{
 			if (adrs.ipv4.port == 0) {
-				adrs.ipv4.port = BigShort( PORT_MASTER );
+				adrs.ipv4.port = UBigShort( PORT_MASTER );
 			}
 			netLog.Notice( "Sending heartbeat (IPv4) to %s", master.addressCvar.Get() );
 			// this command should be changed if the server info / status format
@@ -397,7 +397,7 @@ void SV_MasterHeartbeat( const char *hbname )
 		if ( adrs.ipv6.type != netadrtype_t::NA_BAD )
 		{
 			if (adrs.ipv6.port == 0) {
-				adrs.ipv6.port = BigShort( PORT_MASTER );
+				adrs.ipv6.port = UBigShort( PORT_MASTER );
 			}
 			netLog.Notice( "Sending heartbeat (IPv6) to %s", master.addressCvar.Get() );
 			// this command should be changed if the server info / status format

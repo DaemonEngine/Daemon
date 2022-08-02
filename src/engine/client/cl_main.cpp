@@ -1070,7 +1070,7 @@ void CL_Connect_f()
 
 	if ( clc.serverAddress.port == 0 )
 	{
-		clc.serverAddress.port = BigShort( PORT_SERVER );
+		clc.serverAddress.port = UBigShort( PORT_SERVER );
 	}
 
 	serverString = NET_AdrToStringwPort( clc.serverAddress );
@@ -1238,7 +1238,7 @@ static netadr_t CL_RconDestinationAddress()
 
 	if ( to.port == 0 )
 	{
-		to.port = BigShort( PORT_SERVER );
+		to.port = UBigShort( PORT_SERVER );
 	}
 
 	return to;
@@ -1897,7 +1897,7 @@ CL_ServerLinksResponsePacket
 */
 void CL_ServerLinksResponsePacket( msg_t *msg )
 {
-	int      port;
+	unsigned short      port;
 	byte      *buffptr;
 	byte      *buffend;
 
@@ -1923,13 +1923,13 @@ void CL_ServerLinksResponsePacket( msg_t *msg )
 		// IPv4 address
 		memcpy( cls.serverLinks[ cls.numserverLinks ].ip, buffptr, 4 );
 		port = buffptr[ 4 ] << 8 | buffptr[ 5 ];
-		cls.serverLinks[ cls.numserverLinks ].port4 = BigShort( port );
+		cls.serverLinks[ cls.numserverLinks ].port4 = UBigShort( port );
 		buffptr += 6;
 
 		// IPv4 address
 		memcpy( cls.serverLinks[ cls.numserverLinks ].ip6, buffptr, 16 );
 		port = buffptr[ 16 ] << 8 | buffptr[ 17 ];
-		cls.serverLinks[ cls.numserverLinks ].port6 = BigShort( port );
+		cls.serverLinks[ cls.numserverLinks ].port6 = UBigShort( port );
 		buffptr += 18;
 
 		++cls.numserverLinks;
@@ -2013,7 +2013,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		bool duplicate = false;
 		byte ip6[16];
 		byte ip[4];
-		short port;
+		unsigned short port;
 
 		// IPv4 address
 		if ( *buffptr == '\\' )
@@ -2032,7 +2032,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 			// parse out port
 			port = ( *buffptr++ ) << 8;
 			port += *buffptr++;
-			port = BigShort( port );;
+			port = UBigShort( port );;
 
 			// deduplicate server list, do not add known server
 			for ( int i = 0; i < cls.numglobalservers; i++ )
@@ -2102,7 +2102,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 			// parse out port
 			port = ( *buffptr++ ) << 8;
 			port += *buffptr++;
-			port = BigShort( port );;
+			port = UBigShort( port );;
 
 			// deduplicate server list, do not add known server
 			for ( int i = 0; i < cls.numglobalservers; i++ )
@@ -3467,7 +3467,7 @@ void CL_LocalServers_f()
 		// can nicely run multiple servers
 		for ( j = 0; j < NUM_SERVER_PORTS; j++ )
 		{
-			to.port = BigShort( ( short )( PORT_SERVER + j ) );
+			to.port = UBigShort( ( short )( PORT_SERVER + j ) );
 
 			to.type = netadrtype_t::NA_BROADCAST;
 			NET_SendPacket( netsrc_t::NS_CLIENT, messageLen, message, to );
@@ -3545,7 +3545,7 @@ void CL_GlobalServers_f()
 		}
 		else if ( i == 2 )
 		{
-			to.port = BigShort( PORT_MASTER );
+			to.port = UBigShort( PORT_MASTER );
 		}
 
 		Log::Debug( "CL_GlobalServers_f: %s resolved to %s", masteraddress,
