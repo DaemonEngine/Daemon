@@ -3467,7 +3467,7 @@ void CL_LocalServers_f()
 		// can nicely run multiple servers
 		for ( j = 0; j < NUM_SERVER_PORTS; j++ )
 		{
-			to.port = UBigShort( ( short )( PORT_SERVER + j ) );
+			to.port = UBigShort( ( uint16_t )( PORT_SERVER + j ) );
 
 			to.type = netadrtype_t::NA_BROADCAST;
 			NET_SendPacket( netsrc_t::NS_CLIENT, messageLen, message, to );
