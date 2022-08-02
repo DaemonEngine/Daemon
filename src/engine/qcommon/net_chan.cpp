@@ -650,12 +650,12 @@ int NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family )
 
 	if ( port )
 	{
-		a->port = BigShort( ( short ) atoi( port ) );
+		a->port = UBigShort( ( unsigned short ) atoi( port ) );
 		return 1;
 	}
 	else
 	{
-		a->port = BigShort( PORT_SERVER );
+		a->port = UBigShort( PORT_SERVER );
 		return 2;
 	}
 }
