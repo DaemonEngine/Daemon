@@ -1084,7 +1084,7 @@ static void Render_lightMapping( int stage )
 		GL_BindToTMU( BIND_MATERIALMAP, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 	}
 
-	if ( pStage->enableSpecularMapping )
+	if ( !pStage->enablePhysicalMapping && r_specularMapping->integer )
 	{
 		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
 		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
