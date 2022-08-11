@@ -1939,8 +1939,8 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 
 		if ( foundExtraMap )
 		{
-			stage->type = stageType_t::ST_COLLAPSE_lighting_PHONG;
-			stage->collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
+			stage->type = stageType_t::ST_COLLAPSE_lighting_SPECULAR;
+			stage->collapseType = collapseType_t::COLLAPSE_lighting_SPECULAR;
 			stage->dpMaterial = true;
 		}
 	}
@@ -2041,17 +2041,17 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			if ( stage->collapseType == collapseType_t::COLLAPSE_reflection_CB )
 			{
 				Log::Warn("Supposedly you shouldn't have a physicalMap after a reflectionMap (in shader '%s')?", shader.name);
-				// use PHONG instead
+				// use SPECULAR instead
 			}
 
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR )
+			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PHYSICAL )
 			{
 				Log::Warn("Supposedly you shouldn't have a specularMap after a physicalMap (in shader '%s')?", shader.name);
-				// keep PBR instead
+				// keep PHYSICAL instead
 			}
 			else
 			{
-				stage->collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
+				stage->collapseType = collapseType_t::COLLAPSE_lighting_SPECULAR;
 				ParseSpecularMap( stage, text );
 			}
 		}
@@ -2060,16 +2060,17 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			if ( stage->collapseType == collapseType_t::COLLAPSE_reflection_CB )
 			{
 				Log::Warn("Supposedly you shouldn't have a physicalMap after a reflectionMap (in shader '%s')?", shader.name);
-				// use PBR instead
+				// use PHYSICAL instead
 			}
-			else if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+			else if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_SPECULAR )
 			{
 				Log::Warn("Supposedly you shouldn't have a physicalMap after a specularMap (in shader '%s')?", shader.name);
-				// use PBR instead
+				// use PHYSICAL instead
 			}
 
-			// Daemon PBR packing defaults to ORM like glTF 2.0
-			stage->collapseType = collapseType_t::COLLAPSE_lighting_PBR;
+			/* Daemon texture packing for PBR (Physically Based Rendering)
+			defaults to ORM (Occlusion, Roughness, Metallic) like glTF 2.0. */
+			stage->collapseType = collapseType_t::COLLAPSE_lighting_PHYSICAL;
 			ParsePhysicalMap( stage, text );
 		}
 		else if ( !Q_stricmp( token, "glowMap" ) )
@@ -2083,8 +2084,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		}
 		else if ( !Q_stricmp( token, "reflectionMap" ) )
 		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR
-				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_SPECULAR
+				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHYSICAL )
 			{
 				Log::Warn("Supposedly you shouldn't have a reflectionMap after a physicalMap or a specularMap (in shader '%s')?", shader.name);
 				// use reflectionMap instead
@@ -2095,8 +2096,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		}
 		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
 		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR
-				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_SPECULAR
+				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHYSICAL )
 			{
 				Log::Warn("Supposedly you shouldn't have a reflectionMapBlended after a physicalMap or a specularMap (in shader '%s')?", shader.name);
 				// use reflectionMapBlended instead
@@ -4559,15 +4560,15 @@ static void CollapseStages()
 		{
 			continue;
 		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_generic
-			|| stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PBR )
+		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_SPECULAR )
 		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PBR;
+			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_SPECULAR;
 			continue;
 		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_generic
+			|| stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PHYSICAL )
 		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PHONG;
+			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PHYSICAL;
 			continue;
 		}
 		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_reflection_CB )
@@ -4700,7 +4701,6 @@ static void CollapseStages()
 		// note that if uncollapsed reflectionStage had to be merged in another stage
 		// it would have to be backed-up somewhere
 
-
 		Log::Debug("found reflection collapsable stage in shader '%s':", shader.name);
 		stages[ reflectionStage ].collapseType = collapseType_t::COLLAPSE_reflection_CB;
 		stages[ reflectionStage ].type = stageType_t::ST_COLLAPSE_reflection_CB;
@@ -4721,7 +4721,6 @@ static void CollapseStages()
 		// note that if uncollapsed diffuseStage had to be merged in another stage
 		// it would have to be backed-up somewhere
 
-
 		if ( specularStage != -1 && physicalStage != -1 )
 		{
 			Log::Warn("Supposedly you shouldn't have both specularMap and physicalMap (in shader '%s')?", shader.name);
@@ -4730,15 +4729,18 @@ static void CollapseStages()
 		{
 			if ( physicalStage != -1 )
 			{
-				Log::Debug("found PBR lighting collapsible stage in shader '%s'", shader.name);
-				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_PBR;
-				stages[ diffuseStage ].type = stageType_t::ST_COLLAPSE_lighting_PBR;
+				Log::Debug("found physical lighting collapsible stage in shader '%s'", shader.name);
+				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_PHYSICAL;
+				stages[ diffuseStage ].type = stageType_t::ST_COLLAPSE_lighting_PHYSICAL;
 			}
 			else
 			{
-				Log::Debug("found Phong lighting collapsible stage in shader '%s'", shader.name);
-				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
-				stages[ diffuseStage ].type = stageType_t::ST_COLLAPSE_lighting_PHONG;
+				/* The stage is processed as specular stage
+				if there is no physical map and no specular map,
+				a full black specular map will be used. */
+				Log::Debug("found specular lighting collapsible stage in shader '%s'", shader.name);
+				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_SPECULAR;
+				stages[ diffuseStage ].type = stageType_t::ST_COLLAPSE_lighting_SPECULAR;
 			}
 
 			if ( normalStage != -1 )
@@ -4874,7 +4876,7 @@ static void CollapseStages()
 		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && stage->hasNormalMap;
 		stage->hasMaterialMap = stage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 		stage->hasGlowMap = stage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
-		stage->isMaterialPhysical = stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+		stage->isMaterialPhysical = stage->collapseType == collapseType_t::COLLAPSE_lighting_PHYSICAL;
 
 		// Available features.
 		stage->enableNormalMapping = r_normalMapping->integer && stage->hasNormalMap;
@@ -6050,21 +6052,21 @@ void R_ShaderList_f()
 		{
 			if ( shader->stages[ i ]->active )
 			{
-				if ( shader->stages[ i ]->collapseType == collapseType_t::COLLAPSE_lighting_PBR )
+				if ( shader->stages[ i ]->collapseType == collapseType_t::COLLAPSE_lighting_PHYSICAL )
 				{
-					str += "lighting_PBR   ";
+					str += "lighting_PHYSICAL ";
 					foundCollapseType = true;
 					break;
 				}
-				else if ( shader->stages[ i ]->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+				else if ( shader->stages[ i ]->collapseType == collapseType_t::COLLAPSE_lighting_SPECULAR )
 				{
-					str += "lighting_PHONG ";
+					str += "lighting_SPECULAR ";
 					foundCollapseType = true;
 					break;
 				}
 				else if ( shader->stages[ i ]->collapseType == collapseType_t::COLLAPSE_reflection_CB )
 				{
-					str += "reflection_CB  ";
+					str += "reflection_CB     ";
 					foundCollapseType = true;
 					break;
 				}
@@ -6072,7 +6074,7 @@ void R_ShaderList_f()
 		}
 		if ( !foundCollapseType )
 		{
-			str += "               ";
+			str += "                  ";
 		}
 
 		if ( shader->sort == Util::ordinal(shaderSort_t::SS_BAD) )

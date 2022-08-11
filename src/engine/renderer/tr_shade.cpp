@@ -2768,8 +2768,8 @@ void Tess_StageIteratorGeneric()
 				}
 
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_PHONG:
-			case stageType_t::ST_COLLAPSE_lighting_PBR:
+			case stageType_t::ST_COLLAPSE_lighting_SPECULAR:
+			case stageType_t::ST_COLLAPSE_lighting_PHYSICAL:
 				{
 					if ( r_precomputedLighting->integer || r_vertexLighting->integer )
 					{
@@ -2941,7 +2941,7 @@ void Tess_StageIteratorDepthFill()
 				}
 
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_PHONG:
+			case stageType_t::ST_COLLAPSE_lighting_SPECULAR:
 				{
 					Render_depthFill( stage );
 					break;
@@ -3021,7 +3021,7 @@ void Tess_StageIteratorShadowFill()
 
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_PHONG:
+			case stageType_t::ST_COLLAPSE_lighting_SPECULAR:
 				{
 					Render_shadowFill( stage );
 					break;
@@ -3136,8 +3136,8 @@ void Tess_StageIteratorLighting()
 			switch ( pStage->type )
 			{
 				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_lighting_PBR:
-				case stageType_t::ST_COLLAPSE_lighting_PHONG:
+				case stageType_t::ST_COLLAPSE_lighting_SPECULAR:
+				case stageType_t::ST_COLLAPSE_lighting_PHYSICAL:
 					if ( light->l.rlType == refLightType_t::RL_OMNI )
 					{
 						Render_forwardLighting_DBS_omni( pStage, attenuationXYStage, attenuationZStage, light );

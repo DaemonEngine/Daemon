@@ -1037,8 +1037,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  TB_NORMALMAP,
 	  TB_HEIGHTMAP,
 	  TB_MATERIALMAP,
-	  TB_PHYSICALMAP = TB_MATERIALMAP,
 	  TB_SPECULARMAP = TB_MATERIALMAP,
+	  TB_PHYSICALMAP = TB_MATERIALMAP,
 	  TB_GLOWMAP,
 	  MAX_TEXTURE_BUNDLES
 	};
@@ -1061,8 +1061,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  ST_DIFFUSEMAP,
 	  ST_NORMALMAP,
 	  ST_HEIGHTMAP,
-	  ST_PHYSICALMAP,
 	  ST_SPECULARMAP,
+	  ST_PHYSICALMAP,
 	  ST_REFLECTIONMAP, // cubeMap based reflection
 	  ST_REFRACTIONMAP,
 	  ST_DISPERSIONMAP,
@@ -1072,8 +1072,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_LIGHTMAP,
-	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:physicalmap
-	  ST_COLLAPSE_lighting_PHONG, // map|diffusemap + opt:normalmap + opt:glowmap + specularmap
+	  ST_COLLAPSE_lighting_SPECULAR, // map|diffusemap + opt:normalmap + opt:glowmap + opt:specularmap
+	  ST_COLLAPSE_lighting_PHYSICAL, // map|diffusemap + opt:normalmap + opt:glowmap + physicalmap
 	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
 
 	  // light shader stage types
@@ -1085,8 +1085,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 	{
 	  COLLAPSE_none,
 	  COLLAPSE_generic, // used before we know it's another one
-	  COLLAPSE_lighting_PHONG,
-	  COLLAPSE_lighting_PBR,
+	  COLLAPSE_lighting_SPECULAR,
+	  COLLAPSE_lighting_PHYSICAL,
 	  COLLAPSE_reflection_CB,
 	};
 

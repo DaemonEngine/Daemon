@@ -87,15 +87,23 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 #endif
 
 #if defined(USE_PHYSICAL_MAPPING)
-  // Daemon PBR packing defaults to ORM like glTF 2.0 defines
-  // https://www.khronos.org/blog/art-pipeline-for-gltf
-  // > ORM texture for Occlusion, Roughness, and Metallic
-  // https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/schema/material.pbrMetallicRoughness.schema.json
-  // > The metalness values are sampled from the B channel. The roughness values are sampled from the G channel.
-  // > These values are linear. If other channels are present (R or A), they are ignored for metallic-roughness calculations.
-  // https://docs.blender.org/manual/en/2.80/addons/io_scene_gltf2.html
-  // > glTF stores occlusion in the red (R) channel, allowing it to optionally share the same image
-  // > with the roughness and metallic channels.
+  /* Daemon texture packing for PBR (Physically Based Rendering)
+  defaults to ORM (Occlusion, Roughness, Metallic) like glTF 2.0:
+
+  > ORM texture for Occlusion, Roughness, and Metallic
+  -- https://www.khronos.org/blog/art-pipeline-for-gltf
+
+  > The metalness values are sampled from the B channel.
+  > The roughness values are sampled from the G channel.
+  > These values are linear.
+  > If other channels are present (R or A), they are ignored
+  > for metallic-roughness calculations.
+  -- https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/schema/material.pbrMetallicRoughness.schema.json
+
+  > glTF stores occlusion in the red (R) channel, allowing it
+  > to optionally share the same image with the roughness and
+  > metallic channels.
+  -- https://docs.blender.org/manual/en/2.80/addons/io_scene_gltf2.html */
   float roughness = materialColor.g;
   float metalness = materialColor.b;
 
@@ -122,7 +130,7 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 #else // !USE_PHYSICAL_MAPPING
 
 #if defined(USE_REFLECTIVE_SPECULAR)
-	// not implemented for PBR yet
+	// Reflective specular not implemented for physically based rendering yet.
 	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal));
 	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal));
 

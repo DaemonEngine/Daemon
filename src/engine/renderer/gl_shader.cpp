@@ -1279,7 +1279,7 @@ void GLShaderManager::BindAttribLocations( GLuint program ) const
 	}
 }
 
-// reflective specular not implemented for PBR yet
+// Reflective specular not implemented for physically based rendering yet.
 bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
