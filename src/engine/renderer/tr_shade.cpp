@@ -2935,11 +2935,6 @@ void Tess_StageIteratorDepthFill()
 				}
 
 			case stageType_t::ST_LIGHTMAP:
-				{
-					Render_depthFill( stage );
-					break;
-				}
-
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_lighting_SPECULAR:
 			case stageType_t::ST_COLLAPSE_lighting_PHYSICAL:
