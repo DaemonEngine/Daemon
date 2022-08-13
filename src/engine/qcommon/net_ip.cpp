@@ -274,8 +274,7 @@ Must be thread safe - DNS thread calls via NET_StringToAdr
 static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned sadr_len, sa_family_t family )
 {
 	struct addrinfo hints;
-
-	struct addrinfo *res = nullptr;
+	std::unique_ptr<struct addrinfo, decltype(&freeaddrinfo)> res( nullptr, freeaddrinfo );
 	struct addrinfo *search = nullptr;
 	struct addrinfo *hintsp;
 
@@ -288,10 +287,16 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 	hintsp->ai_family = family; // FIXME: all protocols are queried with AF_UNSPEC even if some are disabled by net_enabled
 	hintsp->ai_socktype = SOCK_DGRAM;
 
-	retval = getaddrinfo( s, nullptr, hintsp, &res );
+	struct addrinfo* tmp = nullptr;
+	retval = getaddrinfo( s, nullptr, hintsp, &tmp );
+	if (tmp)
+	{
+		res.reset( tmp );
+	}
+
 	int netEnabled = net_enabled->integer;
 
-	if ( !retval )
+	if ( retval == 0 )
 	{
 		if ( family == AF_UNSPEC )
 		{
@@ -300,30 +305,30 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 			{
 				if ( netEnabled & NET_ENABLEV6 )
 				{
-					search = SearchAddrInfo( res, AF_INET6 );
+					search = SearchAddrInfo( res.get(), AF_INET6 );
 				}
 
 				if ( !search && ( netEnabled & NET_ENABLEV4 ) )
 				{
-					search = SearchAddrInfo( res, AF_INET );
+					search = SearchAddrInfo( res.get(), AF_INET );
 				}
 			}
 			else
 			{
 				if ( netEnabled & NET_ENABLEV4 )
 				{
-					search = SearchAddrInfo( res, AF_INET );
+					search = SearchAddrInfo( res.get(), AF_INET );
 				}
 
 				if ( !search && ( netEnabled & NET_ENABLEV6 ) )
 				{
-					search = SearchAddrInfo( res, AF_INET6 );
+					search = SearchAddrInfo( res.get(), AF_INET6 );
 				}
 			}
 		}
 		else
 		{
-			search = SearchAddrInfo( res, family );
+			search = SearchAddrInfo( res.get(), family );
 		}
 
 		if ( search )
@@ -334,8 +339,6 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 			}
 
 			memcpy( sadr, search->ai_addr, search->ai_addrlen );
-			freeaddrinfo( res );
-
 			return true;
 		}
 		else
@@ -359,12 +362,6 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 			Log::Notice( "Sys_StringToSockaddr: Error resolving %s: %s", s, error );
 		}
 	}
-
-	if ( res )
-	{
-		freeaddrinfo( res );
-	}
-
 	return false;
 }
 
