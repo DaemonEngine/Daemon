@@ -930,7 +930,7 @@ Also called by SV_FinalCommand
 */
 void SV_SendClientSnapshot( client_t *client )
 {
-	byte  msg_buf[ MAX_MSGLEN ];
+	byte  msg_buf[ MAX_MSGLEN ] = {0};
 	msg_t msg;
 
 	//bani

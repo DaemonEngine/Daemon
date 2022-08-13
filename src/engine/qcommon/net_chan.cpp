@@ -117,7 +117,7 @@ Send one fragment of the current message
 void Netchan_TransmitNextFragment( netchan_t *chan )
 {
 	msg_t send;
-	byte  send_buf[ MAX_PACKETLEN ];
+	byte  send_buf[ MAX_PACKETLEN ] = {0};
 	int   fragmentLength;
 
 	// write the packet header
