@@ -74,6 +74,10 @@ namespace Util {
 	public:
 		void WriteData(const void* p, size_t len)
 		{
+			if (data.capacity() < data.size() + len)
+			{
+				data.reserve(data.size() + len);
+			}
 			data.insert(data.end(), static_cast<const char*>(p), static_cast<const char*>(p) + len);
 		}
 		void WriteSize(size_t size)
