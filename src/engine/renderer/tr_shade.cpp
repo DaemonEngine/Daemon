@@ -2942,6 +2942,7 @@ void Tess_StageIteratorDepthFill()
 
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
+			case stageType_t::ST_COLLAPSE_lighting_PBR:
 				{
 					Render_depthFill( stage );
 					break;
@@ -3022,6 +3023,7 @@ void Tess_StageIteratorShadowFill()
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
+			case stageType_t::ST_COLLAPSE_lighting_PBR:
 				{
 					Render_shadowFill( stage );
 					break;
