@@ -847,17 +847,17 @@ static void Render_lightMapping( int stage )
 
 	shaderStage_t *pStage = tess.surfaceStages[ stage ];
 
-	bool enableLightMapping = !r_vertexLighting->integer \
-		&& tess.bspSurface \
+	bool enableLightMapping = !r_vertexLighting->integer
+		&& tess.bspSurface
 		&& tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements;
 
-	bool enableDeluxeMapping = pStage->enableDeluxeMapping \
-		&& tess.bspSurface \
+	bool enableDeluxeMapping = pStage->enableDeluxeMapping
+		&& tess.bspSurface
 		&& tr.worldDeluxeMapping;
 
 	bool noLightMap = !pStage->implicitLightmap
-	&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
-	&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
+		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
+		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
 
 	uint32_t stateBits = pStage->stateBits;
 
