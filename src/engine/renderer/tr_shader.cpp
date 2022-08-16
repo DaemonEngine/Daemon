@@ -4700,7 +4700,6 @@ static void CollapseStages()
 		// note that if uncollapsed reflectionStage had to be merged in another stage
 		// it would have to be backed-up somewhere
 
-
 		Log::Debug("found reflection collapsable stage in shader '%s':", shader.name);
 		stages[ reflectionStage ].collapseType = collapseType_t::COLLAPSE_reflection_CB;
 		stages[ reflectionStage ].type = stageType_t::ST_COLLAPSE_reflection_CB;
@@ -4720,7 +4719,6 @@ static void CollapseStages()
 	{
 		// note that if uncollapsed diffuseStage had to be merged in another stage
 		// it would have to be backed-up somewhere
-
 
 		if ( specularStage != -1 && physicalStage != -1 )
 		{
@@ -5992,209 +5990,154 @@ A second parameter will cause it to print in sorted order
 */
 void R_ShaderList_f()
 {
-	int      i;
-	int      count;
-	shader_t *shader;
-	const char *s = nullptr;
+	const char *prefix = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv( 1 ) : nullptr;
 
-	Log::Notice("-----------------------" );
+	std::unordered_map<shaderType_t, std::string> shaderTypeStrings;
+	shaderTypeStrings[shaderType_t::SHADER_2D] = "2D";
+	shaderTypeStrings[shaderType_t::SHADER_3D_DYNAMIC] = "3D_DYNAMIC";
+	shaderTypeStrings[shaderType_t::SHADER_3D_STATIC] = "3D_STATIC";
+	shaderTypeStrings[shaderType_t::SHADER_LIGHT] = "LIGHT";
 
-	if ( ri.Cmd_Argc() > 1 )
+	std::string shaderTypeHeader = "shaderType";
+	size_t maxShaderTypeStringLen = shaderTypeHeader.length();
+
+	for ( const auto& kv : shaderTypeStrings )
 	{
-		s = ri.Cmd_Argv( 1 );
+		maxShaderTypeStringLen = std::max( maxShaderTypeStringLen, kv.second.length() );
 	}
 
-	count = 0;
+	std::unordered_map<shaderSort_t, std::string> shaderSortStrings;
+	shaderSortStrings[shaderSort_t::SS_BAD] = "BAD";
+	shaderSortStrings[shaderSort_t::SS_PORTAL] = "PORTAL";
+	shaderSortStrings[shaderSort_t::SS_DEPTH] = "DEPTH";
+	shaderSortStrings[shaderSort_t::SS_ENVIRONMENT_FOG] = "ENVIRONMENT_FOG";
+	shaderSortStrings[shaderSort_t::SS_ENVIRONMENT_NOFOG] = "ENVIRONMENT_NOFOG";
+	shaderSortStrings[shaderSort_t::SS_OPAQUE] = "OPAQUE";
+	shaderSortStrings[shaderSort_t::SS_DECAL] = "DECAL";
+	shaderSortStrings[shaderSort_t::SS_SEE_THROUGH] = "SEE_THROUGH";
+	shaderSortStrings[shaderSort_t::SS_BANNER] = "BANNER";
+	shaderSortStrings[shaderSort_t::SS_FOG] = "FOG";
+	shaderSortStrings[shaderSort_t::SS_UNDERWATER] = "UNDERWATER";
+	shaderSortStrings[shaderSort_t::SS_WATER] = "WATER";
+	shaderSortStrings[shaderSort_t::SS_FAR] = "FAR";
+	shaderSortStrings[shaderSort_t::SS_MEDIUM] = "MEDIUM";
+	shaderSortStrings[shaderSort_t::SS_CLOSE] = "CLOSE";
+	shaderSortStrings[shaderSort_t::SS_BLEND0] = "BLEND0";
+	shaderSortStrings[shaderSort_t::SS_BLEND1] = "BLEND1";
+	shaderSortStrings[shaderSort_t::SS_BLEND2] = "BLEND2";
+	shaderSortStrings[shaderSort_t::SS_BLEND3] = "BLEND3";
+	shaderSortStrings[shaderSort_t::SS_BLEND6] = "BLEND6";
+	shaderSortStrings[shaderSort_t::SS_ALMOST_NEAREST] = "ALMOST_NEAREST";
+	shaderSortStrings[shaderSort_t::SS_NEAREST] = "NEAREST";
+	shaderSortStrings[shaderSort_t::SS_POST_PROCESS] = "POST_PROCESS";
 
-	for ( i = 0; i < tr.numShaders; i++ )
+	std::string shaderSortHeader = "shaderSort";
+	size_t maxShaderSortStringLen = shaderSortHeader.length();
+
+	for ( const auto& kv : shaderSortStrings )
 	{
-		if ( ri.Cmd_Argc() > 2 )
-		{
-			shader = tr.sortedShaders[ i ];
-		}
-		else
-		{
-			shader = tr.shaders[ i ];
-		}
+		maxShaderSortStringLen = std::max( maxShaderSortStringLen, kv.second.length() );
+	}
 
-		if ( s && !Com_Filter( s, shader->name, false ) )
+	std::unordered_map<stageType_t, std::string> stageTypeStrings;
+	stageTypeStrings[stageType_t::ST_COLORMAP] = "COLORMAP";
+	stageTypeStrings[stageType_t::ST_GLOWMAP] = "GLOWMAP";
+	stageTypeStrings[stageType_t::ST_DIFFUSEMAP] = "DIFFUSEMAP";
+	stageTypeStrings[stageType_t::ST_NORMALMAP] = "NORMALMAP";
+	stageTypeStrings[stageType_t::ST_HEIGHTMAP] = "HEIGHTMAP";
+	stageTypeStrings[stageType_t::ST_PHYSICALMAP] = "PHYSICALMAP";
+	stageTypeStrings[stageType_t::ST_SPECULARMAP] = "SPECULARMAP";
+	stageTypeStrings[stageType_t::ST_REFLECTIONMAP] = "REFLECTIONMAP";
+	stageTypeStrings[stageType_t::ST_REFRACTIONMAP] = "REFRACTIONMAP";
+	stageTypeStrings[stageType_t::ST_DISPERSIONMAP] = "DISPERSIONMAP";
+	stageTypeStrings[stageType_t::ST_SKYBOXMAP] = "SKYBOXMAP";
+	stageTypeStrings[stageType_t::ST_SCREENMAP] = "SCREENMAP";
+	stageTypeStrings[stageType_t::ST_PORTALMAP] = "PORTALMAP";
+	stageTypeStrings[stageType_t::ST_HEATHAZEMAP] = "HEATHAZEMAP";
+	stageTypeStrings[stageType_t::ST_LIQUIDMAP] = "LIQUIDMAP";
+	stageTypeStrings[stageType_t::ST_LIGHTMAP] = "LIGHTMAP";
+	stageTypeStrings[stageType_t::ST_COLLAPSE_lighting_PBR] = "LIGHTING_PBR";
+	stageTypeStrings[stageType_t::ST_COLLAPSE_lighting_PHONG] = "LIGHTING_PHONG";
+	stageTypeStrings[stageType_t::ST_COLLAPSE_reflection_CB] = "REFLECTION_CB";
+	stageTypeStrings[stageType_t::ST_ATTENUATIONMAP_XY] = "ATTENUATIONMAP_XY";
+	stageTypeStrings[stageType_t::ST_ATTENUATIONMAP_Z] = "ATTENUATIONMAP_XZ";
+
+	std::string stageTypeHeader = "stageType";
+	size_t maxStageTypeStringLen = stageTypeHeader.length();
+
+	for ( const auto& kv : stageTypeStrings )
+	{
+		maxStageTypeStringLen = std::max( maxStageTypeStringLen, kv.second.length() );
+	}
+
+	std::string interactLightHeader = "interactLight";
+	int maxInteractLightStringLen = interactLightHeader.length();
+
+	std::string separator = " ";
+
+	std::string header = Str::Format(
+		"%-*s" "%s%-*s" "%s%-*s" "%s%-*s" "%s%s",
+		maxShaderTypeStringLen, shaderTypeHeader,
+		separator, maxShaderSortStringLen, shaderSortHeader,
+		separator, maxInteractLightStringLen, interactLightHeader,
+		separator, maxStageTypeStringLen, stageTypeHeader,
+		separator, "stageNumber:shaderName" );
+
+	std::string lineSeparator( header.length(), '-' );
+
+	Log::CommandInteractionMessage( lineSeparator );
+	Log::CommandInteractionMessage( header );
+	Log::CommandInteractionMessage( lineSeparator );
+
+	int stageCount = 0;
+	uint8_t highestShaderStageCount = 0;
+
+	for ( int i = 0; i < tr.numShaders; i++ )
+	{
+		shader_t *shader = ri.Cmd_Argc() > 2 ? tr.sortedShaders[ i ] : tr.shaders[ i ];
+
+		// Only display shaders starting with prefix if prefix is not empty.
+		if ( prefix && !Com_Filter( prefix, shader->name, false ) )
 		{
 			continue;
 		}
 
-		std::string str;
+		stageCount += shader->numStages;
+		highestShaderStageCount = std::max( highestShaderStageCount, shader->numStages );
 
-		switch ( shader->type )
-		{
-			case shaderType_t::SHADER_2D:
-				str += "2D   ";
-				break;
+		std::string foundShaderTypeString = shaderTypeStrings[ shader->type ];
+		std::string foundShaderSortString = shaderSortStrings[ (shaderSort_t) shader->sort ];
 
-			case shaderType_t::SHADER_3D_DYNAMIC:
-				str += "3D_D ";
-				break;
+		std::string foundInteractLightString = shader->interactLight ? "INTERACTLIGHT" : "";
 
-			case shaderType_t::SHADER_3D_STATIC:
-				str += "3D_S ";
-				break;
+		std::string shaderNameString = shader->name;
+		shaderNameString += shader->defaultShader ? " (DEFAULTED)" : "";
 
-			case shaderType_t::SHADER_LIGHT:
-				str += "ATTN ";
-				break;
-		}
+		for ( int j = 0; j < shader->numStages; j++ )
+		{
+			shaderStage_t *stage = shader->stages[ j ];
 
-		// there may be multiple kind of collapse stage in one shader,
-		// display first one since there is only one column to tell about it
-		bool foundCollapseType = false;
-		for ( int i = 0; i < shader->numStages; i++ )
-		{
-			if ( shader->stages[ i ]->active )
-			{
-				if ( shader->stages[ i ]->collapseType == collapseType_t::COLLAPSE_lighting_PBR )
-				{
-					str += "lighting_PBR   ";
-					foundCollapseType = true;
-					break;
-				}
-				else if ( shader->stages[ i ]->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
-				{
-					str += "lighting_PHONG ";
-					foundCollapseType = true;
-					break;
-				}
-				else if ( shader->stages[ i ]->collapseType == collapseType_t::COLLAPSE_reflection_CB )
-				{
-					str += "reflection_CB  ";
-					foundCollapseType = true;
-					break;
-				}
-			}
-		}
-		if ( !foundCollapseType )
-		{
-			str += "               ";
-		}
+			std::string foundStageTypeString = stageTypeStrings[ stage->type ];
 
-		if ( shader->sort == Util::ordinal(shaderSort_t::SS_BAD) )
-		{
-			str += "SS_BAD              ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_PORTAL) )
-		{
-			str += "SS_PORTAL           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_DEPTH) )
-		{
-			str += "SS_DEPTH            ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_ENVIRONMENT_FOG) )
-		{
-			str += "SS_ENVIRONMENT_FOG  ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG) )
-		{
-			str += "SS_ENVIRONMENT_NOFOG";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_OPAQUE) )
-		{
-			str += "SS_OPAQUE           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_DECAL) )
-		{
-			str += "SS_DECAL            ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_SEE_THROUGH) )
-		{
-			str += "SS_SEE_THROUGH      ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_BANNER) )
-		{
-			str += "SS_BANNER           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_FOG) )
-		{
-			str += "SS_FOG              ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_UNDERWATER) )
-		{
-			str += "SS_UNDERWATER       ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_WATER) )
-		{
-			str += "SS_WATER            ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_FAR) )
-		{
-			str += "SS_FAR              ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_MEDIUM) )
-		{
-			str += "SS_MEDIUM           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_CLOSE) )
-		{
-			str += "SS_CLOSE            ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_BLEND0) )
-		{
-			str += "SS_BLEND0           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_BLEND1) )
-		{
-			str += "SS_BLEND1           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_BLEND2) )
-		{
-			str += "SS_BLEND2           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_BLEND3) )
-		{
-			str += "SS_BLEND3           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_BLEND6) )
-		{
-			str += "SS_BLEND6           ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_ALMOST_NEAREST) )
-		{
-			str += "SS_ALMOST_NEAREST   ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_NEAREST) )
-		{
-			str += "SS_NEAREST          ";
-		}
-		else if ( shader->sort == Util::ordinal(shaderSort_t::SS_POST_PROCESS) )
-		{
-			str += "SS_POST_PROCESS     ";
-		}
-		else
-		{
-			str += "                    ";
-		}
+			std::string line = Str::Format(
+				"%-*s" "%s%-*s" "%s%-*s" "%s%-*s" "%s%i:%s",
+				maxShaderTypeStringLen, foundShaderTypeString,
+				separator, maxShaderSortStringLen, foundShaderSortString,
+				separator, maxInteractLightStringLen, foundInteractLightString,
+				separator, maxStageTypeStringLen, foundStageTypeString,
+				separator, j, shaderNameString );
 
-		if ( shader->interactLight )
-		{
-			str += "IA ";
+			Log::CommandInteractionMessage( line );
 		}
-		else
-		{
-			str += "   ";
-		}
-
-		if ( shader->defaultShader )
-		{
-			Log::Notice("%s: %s (DEFAULTED)", str.c_str(), shader->name );
-		}
-		else
-		{
-			Log::Notice("%s: %s", str.c_str(), shader->name );
-		}
-
-		count++;
 	}
 
-	Log::Notice("%i total shaders", count );
-	Log::Notice("------------------" );
+	Log::CommandInteractionMessage( lineSeparator );
+
+	std::string summary = Str::Format(
+		"%i total shaders, %i total stages, largest shader has %i stages",
+		tr.numShaders, stageCount, highestShaderStageCount );
+
+	Log::CommandInteractionMessage( summary );
 }
 
 void R_ShaderExp_f()
