@@ -1021,7 +1021,53 @@ static void Render_lightMapping( int stage )
 	gl_lightMappingShader->SetUniform_ColorModulate( colorGen, alphaGen );
 
 	// u_Color
-	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
+	Color::Color color = tess.svars.color;
+
+	/* Do not multiply standalone lightmap by rgbGen or alphaGen
+	unless they're set as const.
+
+	In lightMapping_fp.glsl we do:
+
+	  diffuse *= var_Color;
+
+	This is needed to be able to blend two multitextured collapsed
+	stage like when doing terrain blending (blending rock and sand).
+
+	But we should not do it with standalone lightmap stages,
+	otherwise it would break q3map2 light styles, likely
+	because in such situation we do not blend a lightmap
+	on a diffusemap but we blend a white texture passed as
+	a lightmap on the lightmap passed as a diffusemap and
+	then we would not multiply a diffuse but a lightmap.
+
+	To avoid the lightmap-as-a-diffuse being multiplied
+	by some values intended for diffuse maps, we can simply
+	set the color to white as diffuse * 1.0  == diffuse.
+
+	But we should still pass the color and do the multiplication
+	if the rgbGen is const as in such situation the mapper
+	explicitly requested the lightmap stage to be multiplied by
+	the values the mapper have set when creating the materials. */
+
+	if ( pStage->type == stageType_t::ST_LIGHTMAP )
+	{
+		// The colorGen and alphaGen local variables are also set with those
+		// types in other situations as a default. We should not compare
+		// with the default but with what the mapper explicitely asked for.
+		if ( pStage->rgbGen != colorGen_t::CGEN_CONST )
+		{
+			color.SetRed( 1.0f );
+			color.SetBlue( 1.0f );
+			color.SetGreen( 1.0f );
+		}
+
+		if ( pStage->alphaGen != alphaGen_t::AGEN_CONST )
+		{
+			color.SetAlpha( 1.0f );
+		}
+	}
+
+	gl_lightMappingShader->SetUniform_Color( color );
 
 	if ( tess.bspSurface && !enableLightMapping )
 	{
