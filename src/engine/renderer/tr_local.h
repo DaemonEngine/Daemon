@@ -2695,10 +2695,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		growList_t lightmaps;
 		growList_t deluxemaps;
 
-		image_t    *fatLightmap;
-		int        fatLightmapSize;
-		int        fatLightmapStep;
-
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
 

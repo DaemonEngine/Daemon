@@ -451,7 +451,6 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 		return;
 	}
 
-	tr.fatLightmapSize = 0;
 	int len = l->filelen;
 	if ( !len )
 	{
@@ -555,18 +554,6 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			}
 		}
 	} else {
-		byte *buf, *buf_p;
-
-		//int       BIGSIZE=2048;
-		//int       BIGNUM=16;
-
-		byte *fatbuffer;
-		int  xoff, yoff, x, y;
-		//float           scale = 0.9f;
-
-		tr.fatLightmapSize = 2048;
-		tr.fatLightmapStep = 16;
-
 		len = l->filelen;
 
 		if ( !len )
@@ -574,7 +561,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			return;
 		}
 
-		buf = fileBase + l->fileofs;
+		byte *buf = fileBase + l->fileofs;
 
 		// we are about to upload textures
 		R_SyncRenderThread();
@@ -595,75 +582,40 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			numLightmaps = MAX_LIGHTMAPS;
 		}
 
-		if ( numLightmaps < 65 )
-		{
-			// optimize: use a 1024 if we can get away with it
-			tr.fatLightmapSize = 1024;
-			tr.fatLightmapStep = 8;
-		}
-
-		fatbuffer = (byte*) ri.Hunk_AllocateTempMemory( sizeof( byte ) * tr.fatLightmapSize * tr.fatLightmapSize * 4 );
-
-		memset( fatbuffer, 128, tr.fatLightmapSize * tr.fatLightmapSize * 4 );
-
 		for ( int i = 0; i < numLightmaps; i++ )
 		{
+			byte *lightMapBuffer = (byte*) ri.Hunk_AllocateTempMemory( sizeof( byte ) * LIGHTMAP_SIZE * LIGHTMAP_SIZE * 4 );
+
+			memset( lightMapBuffer, 128, LIGHTMAP_SIZE * LIGHTMAP_SIZE * 4 );
+
 			// expand the 24 bit on-disk to 32 bit
-			buf_p = buf + i * LIGHTMAP_SIZE * LIGHTMAP_SIZE * 3;
+			byte *buf_p = buf + i * LIGHTMAP_SIZE * LIGHTMAP_SIZE * 3;
 
-			xoff = i % tr.fatLightmapStep;
-			yoff = i / tr.fatLightmapStep;
-
-			for ( y = 0; y < LIGHTMAP_SIZE; y++ )
+			for ( int y = 0; y < LIGHTMAP_SIZE; y++ )
 			{
-				for ( x = 0; x < LIGHTMAP_SIZE; x++ )
+				for ( int x = 0; x < LIGHTMAP_SIZE; x++ )
 				{
-					int index =
-					  ( x + ( y * tr.fatLightmapSize ) ) + ( ( xoff * LIGHTMAP_SIZE ) + ( yoff * tr.fatLightmapSize * LIGHTMAP_SIZE ) );
-					fatbuffer[( index * 4 ) + 0 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 0 ];
-					fatbuffer[( index * 4 ) + 1 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 1 ];
-					fatbuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 2 ];
-					fatbuffer[( index * 4 ) + 3 ] = 255;
+					int index = x + ( y * LIGHTMAP_SIZE );
+					lightMapBuffer[( index * 4 ) + 0 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 0 ];
+					lightMapBuffer[( index * 4 ) + 1 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 1 ];
+					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 2 ];
+					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
-					R_ColorShiftLightingBytes( &fatbuffer[( index * 4 ) + 0 ], &fatbuffer[( index * 4 ) + 0 ] );
+					R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ], &lightMapBuffer[( index * 4 ) + 0 ] );
 				}
 			}
+
+			imageParams_t imageParams = {};
+			imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
+			imageParams.filterType = filterType_t::FT_DEFAULT;
+			imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
+			image_t *internalLightMap = R_CreateImage( va( "_internalLightMap%d", i ), (const byte **)&lightMapBuffer, LIGHTMAP_SIZE, LIGHTMAP_SIZE, 1, imageParams );
+			Com_AddToGrowList( &tr.lightmaps, internalLightMap );
+
+			ri.Hunk_FreeTempMemory( lightMapBuffer );
 		}
-
-		imageParams_t imageParams = {};
-		imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
-		imageParams.filterType = filterType_t::FT_DEFAULT;
-		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-		tr.fatLightmap = R_CreateImage( va( "_fatlightmap%d", 0 ), (const byte **)&fatbuffer, tr.fatLightmapSize, tr.fatLightmapSize, 1, imageParams );
-		Com_AddToGrowList( &tr.lightmaps, tr.fatLightmap );
-
-		ri.Hunk_FreeTempMemory( fatbuffer );
 	}
-}
-
-static float FatPackU( float input, int lightmapnum )
-{
-	if ( tr.fatLightmapSize > 0 )
-	{
-		int x = lightmapnum % tr.fatLightmapStep;
-
-		return ( input / ( ( float ) tr.fatLightmapStep ) ) + ( ( 1.0 / ( ( float ) tr.fatLightmapStep ) ) * ( float ) x );
-	}
-
-	return input;
-}
-
-static float FatPackV( float input, int lightmapnum )
-{
-	if ( tr.fatLightmapSize > 0 )
-	{
-		int y = lightmapnum / ( ( float ) tr.fatLightmapStep );
-
-		return ( input / ( ( float ) tr.fatLightmapStep ) ) + ( ( 1.0 / ( ( float ) tr.fatLightmapStep ) ) * ( float ) y );
-	}
-
-	return input;
 }
 
 /*
@@ -863,7 +815,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 
 	if ( r_precomputedLighting->integer && ( !r_vertexLighting->integer || ( r_deluxeMapping->integer && tr.worldDeluxeMapping ) ) )
 	{
-		surf->lightmapNum = tr.fatLightmapSize ? 0 : realLightmapNum;
+		surf->lightmapNum = realLightmapNum;
 	}
 	else
 	{
@@ -928,8 +880,8 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 			components[ i ].stBounds[ 1 ][ j ] = cv->verts[ i ].st[ j ];
 		}
 
-		cv->verts[ i ].lightmap[ 0 ] = FatPackU( LittleFloat( verts[ i ].lightmap[ 0 ] ), realLightmapNum );
-		cv->verts[ i ].lightmap[ 1 ] = FatPackV( LittleFloat( verts[ i ].lightmap[ 1 ] ), realLightmapNum );
+		cv->verts[ i ].lightmap[ 0 ] = LittleFloat( verts[ i ].lightmap[ 0 ] );
+		cv->verts[ i ].lightmap[ 1 ] = LittleFloat( verts[ i ].lightmap[ 1 ] );
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
@@ -1071,7 +1023,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 	if ( r_precomputedLighting->integer && ( !r_vertexLighting->integer || ( r_deluxeMapping->integer && tr.worldDeluxeMapping ) ) )
 	{
-		surf->lightmapNum = tr.fatLightmapSize ? 0 : realLightmapNum;
+		surf->lightmapNum = realLightmapNum;
 	}
 	else
 	{
@@ -1136,8 +1088,8 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 			stBounds[ 1 ][ j ] = std::max( stBounds[ 1 ][ j ], points[ i ].st[ j ] );
 		}
 
-		points[ i ].lightmap[ 0 ] = FatPackU( LittleFloat( verts[ i ].lightmap[ 0 ] ), realLightmapNum );
-		points[ i ].lightmap[ 1 ] = FatPackV( LittleFloat( verts[ i ].lightmap[ 1 ] ), realLightmapNum );
+		points[ i ].lightmap[ 0 ] = LittleFloat( verts[ i ].lightmap[ 0 ] );
+		points[ i ].lightmap[ 1 ] = LittleFloat( verts[ i ].lightmap[ 1 ] );
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 

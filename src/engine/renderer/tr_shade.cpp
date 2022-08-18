@@ -809,10 +809,6 @@ static image_t* GetLightMap()
 	{
 		return tr.whiteImage;
 	}
-	else if ( tr.fatLightmap )
-	{
-		return tr.fatLightmap;
-	}
 	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
 	{
 		return ( image_t * ) Com_GrowListElement( &tr.lightmaps, tess.lightmapNum );
@@ -2714,14 +2710,6 @@ static void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 		matrix = tess.svars.texMatrices[ i ];
 
 		RB_CalcTexMatrix( &pStage->bundle[ i ], matrix );
-
-		if ( pStage->tcGen_Lightmap && i == TB_COLORMAP )
-		{
-			MatrixMultiplyScale( matrix,
-			                     tr.fatLightmapStep,
-			                     tr.fatLightmapStep,
-			                     tr.fatLightmapStep );
-		}
 	}
 }
 
