@@ -1033,21 +1033,27 @@ static void Render_lightMapping( int stage )
 	This is needed to be able to blend two multitextured collapsed
 	stage like when doing terrain blending (blending rock and sand).
 
-	But we should not do it with standalone lightmap stages,
-	otherwise it would break q3map2 light styles, likely
-	because in such situation we do not blend a lightmap
-	on a diffusemap but we blend a white texture passed as
-	a lightmap on the lightmap passed as a diffusemap and
-	then we would not multiply a diffuse but a lightmap.
-
-	To avoid the lightmap-as-a-diffuse being multiplied
-	by some values intended for diffuse maps, we can simply
-	set the color to white as diffuse * 1.0  == diffuse.
+	But doing this with standalone lightmap stages breaks q3map2 light
+	styles. To prevent the multiplication we we can simply set the
+	color to white as diffuse * 1.0  == diffuse.
 
 	But we should still pass the color and do the multiplication
 	if the rgbGen is const as in such situation the mapper
 	explicitly requested the lightmap stage to be multiplied by
-	the values the mapper have set when creating the materials. */
+	the values the mapper have set when creating the materials.
+
+	FIXME: It is possible that preventing the multiplication to be
+	done in some cases may prevent some extra lightmaps to be blend
+	but if this happens it will never prevent the default lightmap
+	to be blend so the surface will never look bad. On the contrary
+	not preventing the multiplication to be done produces many very
+	visible glitches affecting dozens of textures.
+
+	More investigations are needed. For now those tests takes care
+	of only allowing operations that are known to not glitch.
+
+	We may also investigate about processing all standalone lightmap
+	stages with Render_generic() instead. */
 
 	if ( pStage->type == stageType_t::ST_LIGHTMAP )
 	{
