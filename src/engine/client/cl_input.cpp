@@ -84,7 +84,7 @@ void IN_KeyDown( kbutton_t *b )
 	bool nokey = ( Cmd_Argc() > 1 );
 	Key k = nokey ? Key::NONE : Key_GetKeyNumber(); // NONE if typed manually at the console for continuous down
 
-	if ( k == b->down[ 0 ] || k == b->down[ 1 ] )
+	if ( k.IsValid() && ( k == b->down[ 0 ] || k == b->down[ 1 ] ) )
 	{
 		return; // repeating key
 	}
