@@ -637,10 +637,6 @@ void SV_Init()
 	// the download netcode tops at 18/20 kb/s, no need to make you think you can go above
 	sv_dl_maxRate = Cvar_Get( "sv_dl_maxRate", "42000", 0 );
 
-	sv_wwwDownload = Cvar_Get( "sv_wwwDownload", "0", 0 );
-	sv_wwwBaseURL = Cvar_Get( "sv_wwwBaseURL", WWW_BASEURL, 0 );
-	sv_wwwFallbackURL = Cvar_Get( "sv_wwwFallbackURL", "", 0 );
-
 	//bani
 	sv_packetdelay = Cvar_Get( "sv_packetdelay", "0", CVAR_CHEAT );
 

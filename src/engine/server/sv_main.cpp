@@ -73,11 +73,6 @@ cvar_t         *sv_dl_maxRate;
 
 cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
 
-cvar_t *sv_wwwDownload; // server does a www dl redirect
-cvar_t *sv_wwwBaseURL; // base URL for redirect
-
-cvar_t *sv_wwwFallbackURL; // URL to send to if an http/ftp fails or is refused client side
-
 //bani
 cvar_t *sv_packetdelay;
 
