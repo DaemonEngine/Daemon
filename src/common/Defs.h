@@ -53,6 +53,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MASTER4_SERVER_NAME ""
 #define MASTER5_SERVER_NAME ""
 
+#define WWW_BASEURL         "dl.unvanquished.net/pkg"
+
 #define AUTOEXEC_NAME       "autoexec.cfg"
 
 #define CONFIG_NAME         "autogen.cfg"
