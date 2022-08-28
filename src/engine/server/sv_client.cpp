@@ -41,7 +41,7 @@ Maryland 20850 USA.
 #include <common/FileSystem.h>
 
 Cvar::Cvar<bool> sv_wwwDownload("sv_wwwDownload", "server does a www dl redirect", Cvar::NONE, "");
-Cvar::Cvar<std::string> sv_wwwBaseURL("sv_wwwBaseURL", "base URL for redirect", Cvar::NONE, "");
+Cvar::Cvar<std::string> sv_wwwBaseURL("sv_wwwBaseURL", "base URL for redirect", Cvar::NONE, "dl.unvanquished.net/pkg");
 Cvar::Cvar<std::string> sv_wwwFallbackURL("sv_wwwFallbackURL", "URL to send to if an http/ftp fails or is refused client side", Cvar::NONE, "");
 
 static void SV_CloseDownload( client_t *cl );
