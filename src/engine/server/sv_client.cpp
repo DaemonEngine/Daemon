@@ -40,9 +40,9 @@ Maryland 20850 USA.
 #include "qcommon/sys.h"
 #include <common/FileSystem.h>
 
-Cvar::Cvar<bool> sv_wwwDownload("sv_wwwDownload", "server does a www dl redirect", Cvar::NONE, "");
-Cvar::Cvar<std::string> sv_wwwBaseURL("sv_wwwBaseURL", "base URL for redirect", Cvar::NONE, WWW_BASEURL);
-Cvar::Cvar<std::string> sv_wwwFallbackURL("sv_wwwFallbackURL", "URL to send to if an http/ftp fails or is refused client side", Cvar::NONE, "");
+Cvar::Cvar<bool> sv_wwwDownload("sv_wwwDownload", "have clients download missing paks via HTTP", Cvar::NONE, "");
+Cvar::Cvar<std::string> sv_wwwBaseURL("sv_wwwBaseURL", "where clients download paks (must NOT be HTTPS, must contain PAKSERVER)", Cvar::NONE, WWW_BASEURL);
+Cvar::Cvar<std::string> sv_wwwFallbackURL("sv_wwwFallbackURL", "alternative download site to sv_wwwBaseURL", Cvar::NONE, "");
 
 static void SV_CloseDownload( client_t *cl );
 
@@ -667,7 +667,7 @@ static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, int download
 		return false;
 	}
 
-	Log::Notice( "clientDownload: sending client '%s' to fallback URL '%s'\n", cl->name, sv_wwwFallbackURL.Get().c_str() );
+	Log::Notice( "clientDownload: sending client '%s' to fallback URL '%s'\n", cl->name, sv_wwwFallbackURL.Get() );
 
 	Q_strncpyz(cl->downloadURL, va("%s/%s", sv_wwwFallbackURL.Get().c_str(), pakName), sizeof(cl->downloadURL));
 
