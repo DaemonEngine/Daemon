@@ -40,6 +40,10 @@ Maryland 20850 USA.
 #include "qcommon/sys.h"
 #include <common/FileSystem.h>
 
+Cvar::Cvar<bool> sv_wwwDownload("sv_wwwDownload", "have clients download missing paks via HTTP", Cvar::NONE, "");
+Cvar::Cvar<std::string> sv_wwwBaseURL("sv_wwwBaseURL", "where clients download paks (must NOT be HTTPS, must contain PAKSERVER)", Cvar::NONE, WWW_BASEURL);
+Cvar::Cvar<std::string> sv_wwwFallbackURL("sv_wwwFallbackURL", "alternative download site to sv_wwwBaseURL", Cvar::NONE, "");
+
 static void SV_CloseDownload( client_t *cl );
 
 void SV_GetChallenge( const netadr_t& from )
@@ -658,20 +662,20 @@ when the cvar is set to something, the download server will effectively never us
 */
 static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, int downloadSize, msg_t *msg )
 {
-	if ( !sv_wwwFallbackURL->string || !sv_wwwFallbackURL->string[0] )
+	if ( sv_wwwFallbackURL.Get().empty() )
 	{
 		return false;
 	}
 
-	Log::Notice( "clientDownload: sending client '%s' to fallback URL '%s'\n", cl->name, sv_wwwFallbackURL->string );
+	Log::Notice( "clientDownload: sending client '%s' to fallback URL '%s'\n", cl->name, sv_wwwFallbackURL.Get() );
 
-	Q_strncpyz(cl->downloadURL, va("%s/%s", sv_wwwFallbackURL->string, pakName), sizeof(cl->downloadURL));
+	Q_strncpyz(cl->downloadURL, va("%s/%s", sv_wwwFallbackURL.Get().c_str(), pakName), sizeof(cl->downloadURL));
 
 	MSG_WriteByte( msg, svc_download );
 	MSG_WriteShort( msg, -1 );  // block -1 means ftp/http download
-	MSG_WriteString( msg, va( "%s/%s", sv_wwwFallbackURL->string, pakName ) );
+	MSG_WriteString( msg, va( "%s/%s", sv_wwwFallbackURL.Get().c_str(), pakName ) );
 	MSG_WriteLong( msg, downloadSize );
-	MSG_WriteLong( msg, strlen( sv_wwwBaseURL->string ) + 1 );
+	MSG_WriteLong( msg, sv_wwwFallbackURL.Get().size() + 1 );
 
 	return true;
 }
@@ -735,7 +739,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		// NOTE: this is called repeatedly while a client connects. Maybe we should sort of cache the message or something
 		// FIXME: we need to abstract this to an independent module for maximum configuration/usability by server admins
 		// FIXME: I could rework that, it's crappy
-		if ( sv_wwwDownload->integer )
+		if ( sv_wwwDownload.Get() )
 		{
 			std::string name, version;
 			Util::optional<uint32_t> checksum;
@@ -773,7 +777,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 			{
 				if ( success )
 				{
-					Q_strncpyz( cl->downloadURL, va("%s/%s", sv_wwwBaseURL->string, pakName.c_str()),
+					Q_strncpyz( cl->downloadURL, va("%s/%s", sv_wwwBaseURL.Get().c_str(), pakName.c_str()),
 								sizeof( cl->downloadURL ) );
 
 					//bani - prevent multiple download notifications
@@ -791,7 +795,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					MSG_WriteString( msg, cl->downloadURL );
 					MSG_WriteLong( msg, downloadSize );
 					// Base URL length. The base prefix is expected to end with '/'
-					MSG_WriteLong( msg, strlen( sv_wwwBaseURL->string ) + 1 );
+					MSG_WriteLong( msg, sv_wwwBaseURL.Get().size() + 1 );
 					return;
 				}
 				else
