@@ -339,7 +339,7 @@ namespace Cmd {
                     return;
                 }
 
-                Cvar::SetValue(targetName, std::to_string(newValue));
+                Cvar::SetValue(targetName, Str::Format("%g", newValue));
             }
 
             void Usage(const Cmd::Args& args) const{
