@@ -2163,7 +2163,7 @@ static void RB_RenderInteractionsShadowMapped()
 					continue;
 				}
 
-				if ( shader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE) )
+				if ( shader->sort > shaderSort_t::SS_OPAQUE )
 				{
 					continue;
 				}
@@ -2346,7 +2346,7 @@ static void RB_RenderInteractionsShadowMapped()
 						continue;
 					}
 
-					if ( shader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE) )
+					if ( shader->sort > shaderSort_t::SS_OPAQUE )
 					{
 						continue;
 					}

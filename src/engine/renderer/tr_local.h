@@ -1235,7 +1235,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		int          index; // this shader == tr.shaders[index]
 		int          sortedIndex; // this shader == tr.sortedShaders[sortedIndex]
 
-		float        sort; // lower numbered shaders draw before higher numbered
+		shaderSort_t sort; // lower numbered shaders draw before higher numbered
 
 		bool     defaultShader; // we want to return index 0 if the shader failed to
 		// load for some reason, but R_FindShader should

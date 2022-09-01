@@ -3543,63 +3543,63 @@ static void ParseSort( const char **text )
 
 	if ( !Q_stricmp( token, "portal" ) || !Q_stricmp( token, "subview" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_PORTAL);
+		shader.sort = shaderSort_t::SS_PORTAL;
 	}
 	else if ( !Q_stricmp( token, "sky" ) || !Q_stricmp( token, "environment" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_FOG);
+		shader.sort = shaderSort_t::SS_ENVIRONMENT_FOG;
 	}
 	else if ( !Q_stricmp( token, "opaque" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_OPAQUE);
+		shader.sort = shaderSort_t::SS_OPAQUE;
 	}
 	else if ( !Q_stricmp( token, "decal" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
+		shader.sort = shaderSort_t::SS_DECAL;
 	}
 	else if ( !Q_stricmp( token, "seeThrough" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_SEE_THROUGH);
+		shader.sort = shaderSort_t::SS_SEE_THROUGH;
 	}
 	else if ( !Q_stricmp( token, "banner" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_BANNER);
+		shader.sort = shaderSort_t::SS_BANNER;
 	}
 	else if ( !Q_stricmp( token, "underwater" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_UNDERWATER);
+		shader.sort = shaderSort_t::SS_UNDERWATER;
 	}
 	else if ( !Q_stricmp( token, "far" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_FAR);
+		shader.sort = shaderSort_t::SS_FAR;
 	}
 	else if ( !Q_stricmp( token, "medium" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_MEDIUM);
+		shader.sort = shaderSort_t::SS_MEDIUM;
 	}
 	else if ( !Q_stricmp( token, "close" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_CLOSE);
+		shader.sort = shaderSort_t::SS_CLOSE;
 	}
 	else if ( !Q_stricmp( token, "additive" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_BLEND1);
+		shader.sort = shaderSort_t::SS_BLEND1;
 	}
 	else if ( !Q_stricmp( token, "almostNearest" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_ALMOST_NEAREST);
+		shader.sort = shaderSort_t::SS_ALMOST_NEAREST;
 	}
 	else if ( !Q_stricmp( token, "nearest" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_NEAREST);
+		shader.sort = shaderSort_t::SS_NEAREST;
 	}
 	else if ( !Q_stricmp( token, "postProcess" ) )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_POST_PROCESS);
+		shader.sort = shaderSort_t::SS_POST_PROCESS;
 	}
 	else
 	{
-		shader.sort = atof( token );
+		shader.sort = (shaderSort_t) atoi( token );
 	}
 }
 
@@ -4202,7 +4202,7 @@ static bool ParseShader( const char *_text )
 
 			shader.fogParms.depthForOpaque = atof( token );
 
-			shader.sort = Util::ordinal(shaderSort_t::SS_FOG);
+			shader.sort = shaderSort_t::SS_FOG;
 
 			// skip any old gradient directions
 			SkipRestOfLine( text );
@@ -4217,7 +4217,7 @@ static bool ParseShader( const char *_text )
 		// portal
 		else if ( !Q_stricmp( token, "portal" ) )
 		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_PORTAL);
+			shader.sort = shaderSort_t::SS_PORTAL;
 			shader.isPortal = true;
 
 			token = COM_ParseExt2( text, false );
@@ -4236,7 +4236,7 @@ static bool ParseShader( const char *_text )
 		// portal or mirror
 		else if ( !Q_stricmp( token, "mirror" ) )
 		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_PORTAL);
+			shader.sort = shaderSort_t::SS_PORTAL;
 			shader.isPortal = true;
 			continue;
 		}
@@ -4437,7 +4437,7 @@ static bool ParseShader( const char *_text )
 		{
 			shader.polygonOffset = true;
 			shader.polygonOffsetValue = 1;
-			shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
+			shader.sort = shaderSort_t::SS_DECAL;
 			SurfaceParm( "discrete" );
 			SurfaceParm( "noShadows" );
 			continue;
@@ -4448,7 +4448,7 @@ static bool ParseShader( const char *_text )
 			// what's different?
 			shader.polygonOffset = true;
 			shader.polygonOffsetValue = 1;
-			shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
+			shader.sort = shaderSort_t::SS_DECAL;
 			SurfaceParm( "discrete" );
 			SurfaceParm( "noShadows" );
 			continue;
@@ -4979,7 +4979,7 @@ Sets shader->sortedIndex
 static void SortNewShader()
 {
 	int      i;
-	float    sort;
+	shaderSort_t sort;
 	shader_t *newShader;
 
 	newShader = tr.shaders[ tr.numShaders - 1 ];
@@ -5021,7 +5021,7 @@ static shader_t *GeneratePermanentShader()
 
 	*newShader = shader;
 
-	if ( shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
+	if ( shader.sort <= shaderSort_t::SS_OPAQUE )
 	{
 		newShader->fogPass = fogPass_t::FP_EQUAL;
 	}
@@ -5130,23 +5130,23 @@ static shader_t *FinishShader()
 	{
 		if ( shader.noFog )
 		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
+			shader.sort = shaderSort_t::SS_ENVIRONMENT_NOFOG;
 		}
 		else
 		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_FOG);
+			shader.sort = shaderSort_t::SS_ENVIRONMENT_FOG;
 		}
 	}
 
 	if ( shader.forceOpaque )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_OPAQUE);
+		shader.sort = shaderSort_t::SS_OPAQUE;
 	}
 
 	// set polygon offset
-	if ( shader.polygonOffset && !shader.sort )
+	if ( shader.polygonOffset && shader.sort == shaderSort_t::SS_BAD )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
+		shader.sort = shaderSort_t::SS_DECAL;
 	}
 
 	// all light materials need at least one z attenuation stage as first stage
@@ -5289,7 +5289,7 @@ static shader_t *FinishShader()
 
 		if ( shader.isSky && pStage->noFog )
 		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
+			shader.sort = shaderSort_t::SS_ENVIRONMENT_NOFOG;
 		}
 
 		// determine sort order and fog color adjustment
@@ -5297,16 +5297,16 @@ static shader_t *FinishShader()
 		     ( stages[ 0 ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) )
 		{
 			// don't screw with sort order if this is a portal or environment
-			if ( !shader.sort )
+			if ( shader.sort == shaderSort_t::SS_BAD )
 			{
 				// see through item, like a grill or grate
 				if ( pStage->stateBits & GLS_DEPTHMASK_TRUE )
 				{
-					shader.sort = Util::ordinal(shaderSort_t::SS_SEE_THROUGH);
+					shader.sort = shaderSort_t::SS_SEE_THROUGH;
 				}
 				else
 				{
-					shader.sort = Util::ordinal(shaderSort_t::SS_BLEND0);
+					shader.sort = shaderSort_t::SS_BLEND0;
 				}
 			}
 		}
@@ -5316,15 +5316,15 @@ static shader_t *FinishShader()
 
 	// there are times when you will need to manually apply a sort to
 	// opaque alpha tested shaders that have later blend passes
-	if ( !shader.sort )
+	if ( shader.sort == shaderSort_t::SS_BAD )
 	{
 		if ( shader.translucent && !shader.forceOpaque )
 		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
+			shader.sort = shaderSort_t::SS_DECAL;
 		}
 		else
 		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_OPAQUE);
+			shader.sort = shaderSort_t::SS_OPAQUE;
 		}
 	}
 
@@ -5343,7 +5343,7 @@ static shader_t *FinishShader()
 	// fogonly shaders don't have any stage passes
 	if ( shader.numStages == 0 && !shader.isSky )
 	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_FOG);
+		shader.sort = shaderSort_t::SS_FOG;
 	}
 
 	if ( shader.numDeforms > 0 ) {
@@ -5368,7 +5368,7 @@ static shader_t *FinishShader()
 
 		if( stages[0].stateBits & GLS_ATEST_BITS ) {
 			// alpha test requires a custom depth shader
-			shader.sort = Util::ordinal( shaderSort_t::SS_DEPTH );
+			shader.sort = shaderSort_t::SS_DEPTH;
 			stages[0].stateBits &= ~GLS_SRCBLEND_BITS & ~GLS_DSTBLEND_BITS;
 			stages[0].stateBits |= GLS_COLORMASK_BITS;
 			stages[0].type = stageType_t::ST_COLORMAP;
@@ -5382,7 +5382,7 @@ static shader_t *FinishShader()
 		} else {
 			// requires a custom depth shader, but can skip
 			// the texturing
-			shader.sort = Util::ordinal( shaderSort_t::SS_DEPTH );
+			shader.sort = shaderSort_t::SS_DEPTH;
 			stages[0].stateBits &= ~GLS_SRCBLEND_BITS & ~GLS_DSTBLEND_BITS;
 			stages[0].stateBits |= GLS_COLORMASK_BITS;
 			stages[0].type = stageType_t::ST_COLORMAP;
@@ -6106,7 +6106,7 @@ void R_ShaderList_f()
 		highestShaderStageCount = std::max( highestShaderStageCount, shader->numStages );
 
 		std::string foundShaderTypeString = shaderTypeStrings[ shader->type ];
-		std::string foundShaderSortString = shaderSortStrings[ (shaderSort_t) shader->sort ];
+		std::string foundShaderSortString = shaderSortStrings[ shader->sort ];
 
 		std::string foundInteractLightString = shader->interactLight ? "INTERACTLIGHT" : "";
 

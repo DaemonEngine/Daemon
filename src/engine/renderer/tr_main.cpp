@@ -1974,7 +1974,7 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 		entityNum = tr.currentEntity - tr.refdef.entities;
 	}
 
-	if (shader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE))
+	if ( shader->sort > shaderSort_t::SS_OPAQUE )
 	{
 		index = MAX_DRAWSURFS - index; // reverse the sorting (front:back -> back:front)
 	}
@@ -2042,12 +2042,12 @@ static void R_SortDrawSurfs()
 		shader = drawSurf->shader;
 
 		// no shader should ever have this sort type
-		if ( shader->sort == Util::ordinal(shaderSort_t::SS_BAD) )
+		if ( shader->sort == shaderSort_t::SS_BAD )
 		{
 			Sys::Drop( "Shader '%s'with sort == SS_BAD", shader->name );
 		}
 
-		while ( sort < Util::ordinal( shaderSort_t::SS_NUM_SORTS ) - 1 && shader->sort > sort ) {
+		while ( sort < Util::ordinal( shaderSort_t::SS_NUM_SORTS ) - 1 && Util::ordinal( shader->sort ) > sort ) {
 			tr.viewParms.firstDrawSurf[ ++sort ] = i;
 		}
 	}

@@ -5276,7 +5276,7 @@ static void R_CreateVBOShadowMeshes( trRefLight_t *light )
 			continue;
 		}
 
-		if (surface->shader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE))
+		if ( surface->shader->sort > shaderSort_t::SS_OPAQUE )
 		{
 			continue;
 		}
@@ -5318,7 +5318,7 @@ static void R_CreateVBOShadowMeshes( trRefLight_t *light )
 			continue;
 		}
 
-		if ( surface->shader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE) )
+		if ( surface->shader->sort > shaderSort_t::SS_OPAQUE )
 		{
 			continue;
 		}
@@ -5638,7 +5638,7 @@ static void R_CreateVBOShadowCubeMeshes( trRefLight_t *light )
 			continue;
 		}
 
-		if ( surface->shader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE))
+		if ( surface->shader->sort > shaderSort_t::SS_OPAQUE )
 		{
 			continue;
 		}
@@ -5680,7 +5680,7 @@ static void R_CreateVBOShadowCubeMeshes( trRefLight_t *light )
 			continue;
 		}
 
-		if ( surface->shader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE) )
+		if ( surface->shader->sort > shaderSort_t::SS_OPAQUE )
 		{
 			continue;
 		}

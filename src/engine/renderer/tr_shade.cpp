@@ -2368,7 +2368,7 @@ static void Render_fog()
 	fog = tr.world->fogs + tess.fogNum;
 
 	// Tr3B: use this only to render fog brushes
-	if ( fog->originalBrushNumber < 0 && tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
+	if ( fog->originalBrushNumber < 0 && tess.surfaceShader->sort <= shaderSort_t::SS_OPAQUE )
 	{
 		return;
 	}
@@ -2966,7 +2966,7 @@ void Tess_StageIteratorDepthFill()
 		{
 			case stageType_t::ST_COLORMAP:
 				{
-					if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
+					if ( tess.surfaceShader->sort <= shaderSort_t::SS_OPAQUE )
 					{
 						Render_depthFill( stage );
 					}
@@ -3047,7 +3047,7 @@ void Tess_StageIteratorShadowFill()
 		{
 			case stageType_t::ST_COLORMAP:
 				{
-					if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
+					if ( tess.surfaceShader->sort <= shaderSort_t::SS_OPAQUE )
 					{
 						Render_shadowFill( stage );
 					}
@@ -3106,7 +3106,7 @@ void Tess_StageIteratorLighting()
 	}
 	else
 	{
-		if ( tess.surfaceShader->sort > Util::ordinal(shaderSort_t::SS_OPAQUE) )
+		if ( tess.surfaceShader->sort > shaderSort_t::SS_OPAQUE )
 		{
 			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
 		}
@@ -3222,7 +3222,7 @@ void Tess_End()
 	}
 
 	// for debugging of sort order issues, stop rendering after a given sort value
-	if ( r_debugSort->integer && r_debugSort->integer < tess.surfaceShader->sort )
+	if ( r_debugSort->integer && r_debugSort->integer < Util::ordinal( tess.surfaceShader->sort ) )
 	{
 		return;
 	}
