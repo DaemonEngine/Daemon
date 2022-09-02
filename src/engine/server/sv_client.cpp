@@ -40,9 +40,15 @@ Maryland 20850 USA.
 #include "qcommon/sys.h"
 #include <common/FileSystem.h>
 
+static void CheckURL(std::string url) {
+	if (url.rfind("https://", 0) == 0) {
+		Log::Warn("Can't set to something starting with an URL starting with https://");
+	}
+}
+
 Cvar::Cvar<bool> sv_wwwDownload("sv_wwwDownload", "have clients download missing paks via HTTP", Cvar::NONE, "");
-Cvar::Cvar<std::string> sv_wwwBaseURL("sv_wwwBaseURL", "where clients download paks (must NOT be HTTPS, must contain PAKSERVER)", Cvar::NONE, WWW_BASEURL);
-Cvar::Cvar<std::string> sv_wwwFallbackURL("sv_wwwFallbackURL", "alternative download site to sv_wwwBaseURL", Cvar::NONE, "");
+Cvar::Callback<Cvar::Cvar<std::string>> sv_wwwBaseURL("sv_wwwBaseURL", "where clients download paks (must NOT be HTTPS, must contain PAKSERVER)", Cvar::NONE, WWW_BASEURL, CheckURL);
+Cvar::Callback<Cvar::Cvar<std::string>> sv_wwwFallbackURL("sv_wwwFallbackURL", "alternative download site to sv_wwwBaseURL", Cvar::NONE, "", CheckURL);
 
 static void SV_CloseDownload( client_t *cl );
 
