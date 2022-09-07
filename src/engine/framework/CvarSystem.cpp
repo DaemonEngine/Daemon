@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CvarSystem.h"
 #include "CommandSystem.h"
+#include "common/FileSystem.h"
 
 #include "qcommon/qcommon.h"
 #include "qcommon/cvar.h"
@@ -50,7 +51,7 @@ namespace Cvar {
 
         // The first one in the list, if any, is the "owner" who sets the description and default
         // value and can reject changes. Subsequent ones just receive changes.
-        std::forward_list<CvarProxy*> watchers;
+        CvarProxy* proxies[3];
 
         cvar_t ccvar; // The state of the cvar_t used to emulate the C API
         //DO: mutex?
@@ -58,12 +59,31 @@ namespace Cvar {
         inline bool IsArchived() const {
             return (flags & USER_ARCHIVE) && !(flags & TEMPORARY);
         }
+
+        CvarProxy*& GetProxy(Sys::Module source) {
+            switch (source) {
+                case Sys::Module::ENGINE: return proxies[0];
+                case Sys::Module::SGAME: return proxies[1];
+                case Sys::Module::CGAME: return proxies[2];
+            }
+            ASSERT_UNREACHABLE();
+        }
+
+        CvarProxy* GetOwner() const {
+            for (CvarProxy* proxy : proxies) {
+                if (proxy) {
+                    return proxy;
+                }
+            }
+            return nullptr;
+        }
     };
 
     //Functions that emulate the C API
     void SetCStyleDescription(cvarRecord_t& cvar) {
-        if (!cvar.watchers.empty()) {
-            return;
+        for (CvarProxy* proxy : cvar.proxies) {
+            if (proxy)
+                return;
         }
 
         if (cvar.flags & CVAR_LATCH and cvar.ccvar.latchedString) {
@@ -274,37 +294,42 @@ namespace Cvar {
                 cvar->flags |= USER_ARCHIVE;
             }
 
-            if (!cvar->watchers.empty()) {
-                auto proxy = cvar->watchers.begin();
-                //Tell the owning cvar proxy about the new value
-                OnValueChangedResult result = (*proxy)->OnValueChanged(value);
+            bool ownerFound = false;
+            for (CvarProxy*& proxy : cvar->proxies) {
+                if (!proxy)
+                    continue;
+
+                //Tell the cvar proxy about the new value
+                OnValueChangedResult result = proxy->OnValueChanged(value);
 
                 if (result.success) {
                     if (cvar->flags & LATCH && value != cvar->value) {
                         ChangeCvarDescription(cvarName, cvar, Str::Format("%s - latched value \"%s^*\"", result.description, value));
-                        OnValueChangedResult undo = (*proxy)->OnValueChanged(cvar->value);
+                        OnValueChangedResult undo = proxy->OnValueChanged(cvar->value);
                         ASSERT(undo.success);
                         if (setLatchedValuesCalled) {
                             Log::Notice("The change to %s will take effect after restart.", cvarName);
                         }
                         cvar->latchedValue = value;
-                        return;
+                        return; // Non-owners don't hear about the change
                     }
-                    cvar->latchedValue = Util::nullopt;
-                    cvar->value = std::move(value);
-                    ChangeCvarDescription(cvarName, cvar, result.description);
 
-                    // Tell other cvar proxies about the new value
-                    while (++proxy != cvar->watchers.end()) {
-                        if (!(*proxy)->OnValueChanged(cvar->value).success) {
-                            Log::Warn("Something didn't like the new value for cvar '%s'", cvarName);
-                        }
+                    if (!ownerFound) {
+                        ownerFound = true;
+                        cvar->latchedValue = Util::nullopt;
+                        cvar->value = std::move(value);
+                        ChangeCvarDescription(cvarName, cvar, result.description);
                     }
                 } else {
-                    Log::Notice("Value '%s' is not valid for cvar %s: %s", value, cvarName, result.description);
-                    return;
+                    if (!ownerFound) {
+                        Log::Notice("Value '%s' is not valid for cvar %s: %s", value, cvarName, result.description);
+                        return;
+                    }
+                    Log::Warn("%s doesn't like the new value of cvar '%s'", Sys::ModuleName(proxy->Owner()), cvarName);
                 }
-            } else {
+            }
+            
+            if (!ownerFound) {
                 cvar->value = std::move(value);
             }
             SetCCvar(*cvar);
@@ -348,7 +373,7 @@ namespace Cvar {
             description = Str::Format("\"%s\" - %s", defaultValue, description);
             cvar = new cvarRecord_t{defaultValue, defaultValue, Util::nullopt, flags, description, {}, {}};
             if (proxy) {
-                cvar->watchers.push_front(proxy);
+                cvar->GetProxy(proxy->Owner()) = proxy;
             }
             cvars[name] = cvar;
 
@@ -356,16 +381,42 @@ namespace Cvar {
 
         } else {
             cvar = it->second;
-            if (!cvar->watchers.empty()) {
-                // multiple registration
-                if (proxy) {
-                    auto it = cvar->watchers.begin();
-                    while (std::next(it) != cvar->watchers.end()) {
-                        ++it;
+            if (cvar->flags & (LATCH | CVAR_LATCH | ROM | CVAR_ROM)
+                && proxy && proxy->Owner() != Sys::Module::ENGINE) {
+                // HACK: forbid multi-registering cvars with restrictions on setting because it's too complicated
+                // (LATCH and ROM only work in the engine currently)
+                Log::Warn("Multiple registration for cvar %s not allowed", name);
+                return false;
+            }
+            CvarProxy** proxySlot = &cvar->GetProxy(proxy->Owner());
+            if (*proxySlot) {
+                Log::Warn("Cvar %s cannot be registered twice by %s", name, ModuleName(proxy->Owner()));
+                return false;
+            }
+            CvarProxy* owner = cvar->GetOwner(); // potentially the newly registered one
+            OnValueChangedResult result = proxy->OnValueChanged(cvar->value);
+            if (!result.success) {
+                if (owner == proxy) {
+                    result = proxy->OnValueChanged(defaultValue);
+                    if (result.success) {
+                        for (CvarProxy* p : cvar->proxies) {
+                            if (!p || p == owner) continue;
+                            OnValueChangedResult otherResult = p->OnValueChanged(defaultValue);
+                            if (!otherResult.success) {
+                                Log::Warn("%s does not like the value of cvar %s", ModuleName(p->Owner()), name);
+                            }
+                        }
+                    } else {
+                        Log::Notice("Default value '%s' is not correct for cvar '%s': %s",
+                            defaultValue, name, result.description);
                     }
-                    cvar->watchers.insert_after(it, proxy);
+                } else {
+                    Log::Warn("%s does not like the value of cvar %s", ModuleName(proxy->Owner()), name);
                 }
-                return true; // Keep the original default value
+            }
+
+            if (owner != proxy) {
+                return;
             }
 
             // Register the cvar with the previous user_created value
@@ -376,7 +427,7 @@ namespace Cvar {
             }
 
             cvar->resetValue = defaultValue;
-            cvar->description.clear();
+            ChangeCvarDescription(name, cvar, result.description)
 
             if (proxy) { //TODO replace me with an assert once we do not need to support the C API
                 cvar->watchers.push_front(proxy);
@@ -404,20 +455,15 @@ namespace Cvar {
         auto it = cvars.find(proxy->Name());
         if (it != cvars.end()) {
             cvarRecord_t* cvar = it->second;
-            bool found = false;
-            for (auto prev = cvar->watchers.before_begin(), cur = cvar->watchers.begin(); cur != cvar->watchers.end(); ++prev, ++cur) {
-                if (*cur == proxy) {
-                    cvar->watchers.erase_after(prev);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
+            CvarProxy*& registered = cvar->GetProxy(proxy->Owner());
+            if (registered != proxy) {
                 Sys::Error("Invalid proxy in Cvar::Unregister");
             }
-            if (cvar->watchers.empty()) {
-                cvar->flags |= CVAR_USER_CREATED;
+            for (CvarProxy* p : cvar->proxies) {
+                if (p)
+                    return;
             }
+            cvar->flags |= CVAR_USER_CREATED;
         } //TODO else what?
     }
 
@@ -494,7 +540,8 @@ namespace Cvar {
                 SetCCvar(*cvar);
 
                 bool first = true;
-                for (CvarProxy* proxy : cvar->watchers) {
+                for (CvarProxy* proxy : cvar->proxies) {
+                    if (!proxy) continue;
                     OnValueChangedResult result = proxy->OnValueChanged(cvar->resetValue);
                     if (result.success) {
                         if (first) {
@@ -520,9 +567,9 @@ namespace Cvar {
             cvar->value = std::move(*cvar->latchedValue);
             cvar->latchedValue = Util::nullopt;
             SetCCvar(*cvar);
-            ASSERT(!cvar->watchers.empty());
             bool first = true;
-            for (CvarProxy* proxy : cvar->watchers) {
+            for (CvarProxy* proxy : cvar->proxies) {
+                if (!proxy) continue;
                 OnValueChangedResult result = proxy->OnValueChanged(cvar->value);
                 if (result.success) {
                     if (first) {
@@ -532,6 +579,7 @@ namespace Cvar {
                     Log::Warn("BUG: failed setting cvar %s to latched value", entry.first);
                 }
             }
+            ASSERT(!first); // because only new-style cvars use this one, CVAR_LATCH is a different path
         }
         setLatchedValuesCalled = true;
     }

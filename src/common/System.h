@@ -40,6 +40,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Low-level system functions
 namespace Sys {
 
+enum class Module
+{
+	ENGINE,
+	SGAME,
+	CGAME,
+};
+
+Str::StringRef ModuleName(Module module);
+
 // The Windows implementation of steady_clock is really bad, use our own
 #ifdef _WIN32
 class SteadyClock {

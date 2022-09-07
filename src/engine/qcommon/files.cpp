@@ -43,7 +43,7 @@ struct handleData_t {
 	bool isOpen;
 	bool isPakFile;
 	Util::optional<std::string> renameTo;
-	FS::Owner owner;
+	Sys::Module owner;
 
 	// Normal file info
 	bool forceFlush;
@@ -70,7 +70,7 @@ static fileHandle_t FS_AllocHandle()
 	// Don't use handle 0 because it is used to indicate failures
 	for (int i = 1; i < MAX_FILE_HANDLES; i++) {
 		if (!handleTable[i].isOpen) {
-			handleTable[i].owner = FS::Owner::ENGINE;
+			handleTable[i].owner = Sys::Module::ENGINE;
 			return i;
 		}
 	}
@@ -228,15 +228,15 @@ int FS_Game_FOpenFileByMode(const char* path, fileHandle_t* handle, fsMode_t mod
 }
 
 // Set a VM as the owner
-void FS_SetOwner(fileHandle_t f, FS::Owner owner)
+void FS_SetOwner(fileHandle_t f, Sys::Module owner)
 {
 	FS_CheckHandle(f, false);
-	ASSERT_EQ(handleTable[f].owner, FS::Owner::ENGINE);
-	ASSERT_NQ(owner, FS::Owner::ENGINE);
+	ASSERT_EQ(handleTable[f].owner, Sys::Module::ENGINE);
+	ASSERT_NQ(owner, Sys::Module::ENGINE);
 	handleTable[f].owner = owner;
 }
 
-void FS_CheckOwnership(fileHandle_t f, FS::Owner owner)
+void FS_CheckOwnership(fileHandle_t f, Sys::Module owner)
 {
 	if (f == 0)
 		return;
@@ -245,7 +245,7 @@ void FS_CheckOwnership(fileHandle_t f, FS::Owner owner)
 		Sys::Drop("VM %d tried to access file handle it doesn't own", Util::ordinal(owner));
 }
 
-void FS_CloseAllForOwner(FS::Owner owner)
+void FS_CloseAllForOwner(Sys::Module owner)
 {
 	int numClosed = 0;
 	for (int f = 1; f < MAX_FILE_HANDLES; f++) {
@@ -261,7 +261,7 @@ void FS_CloseAllForOwner(FS::Owner owner)
 			++numClosed;
 		}
 	}
-	fsLogs.Verbose("Closed %d outstanding handles for owner %d", numClosed, Util::ordinal(owner));
+	fsLogs.Verbose("Closed %d outstanding handles for %s", numClosed, OwnerName(owner));
 }
 
 int FS_FCloseFile(fileHandle_t handle)

@@ -62,14 +62,6 @@ enum class filesystem_error {
 };
 const std::error_category& filesystem_category();
 
-// Track ownership of old-style file handles
-enum class Owner
-{
-	ENGINE,
-	CGAME,
-	SGAME,
-};
-
 // Special value to indicate the function should throw a system_error instead
 // of returning an error code. This avoids the need to have 2 overloads for each
 // function.

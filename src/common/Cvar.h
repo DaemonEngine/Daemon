@@ -59,7 +59,7 @@ namespace Cvar {
     /*
      * All cvars created by the code inherit from this class although most of the time you'll
      * want to use Cvar::Cvar. It is basically a callback for when the value of the cvar changes.
-     * A single CvarProxy can be registered for a given cvar name.
+     * Each system from {engine, sgame, cgame} can register one CvarProxy for a given cvar name.
      * When extending CvarProxy you should call Register in the constructor to perform the registration
      * of the proxy. It should be done by the first class of the inheritance chain in order to have the
      * right vtable when the Cvar system tries to validate the value it already has for that cvar.
@@ -75,6 +75,11 @@ namespace Cvar {
             // value. And the description will be the description of the problem printed to
             // the user.
             virtual OnValueChangedResult OnValueChanged(Str::StringRef newValue) = 0;
+
+#ifdef BUILD_ENGINE
+            // Which part of the system the cvar calls back to
+            virtual Sys::Module Owner() const = 0;
+#endif
 
             const std::string& Name() const {
                 return name;
@@ -124,6 +129,10 @@ namespace Cvar {
 
             //Called by the cvar system when the value is changed
             OnValueChangedResult OnValueChanged(Str::StringRef text) override;
+
+#ifdef BUILD_ENGINE
+            Sys::Module Owner() const override { return Sys::Module::ENGINE; }
+#endif
 
         protected:
             // Used by classes that extend Cvar<T>

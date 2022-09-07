@@ -159,6 +159,10 @@ namespace VM {
                 return result;
             }
 
+            Sys::Module Owner() const override {
+                return services->fileOwnership;
+            }
+
         private:
             CommonVMServices* services;
     };
@@ -356,7 +360,7 @@ namespace VM {
 
     // Misc, Dispatch
 
-    CommonVMServices::CommonVMServices(VMBase& vm, Str::StringRef vmName, FS::Owner fileOwnership, int commandFlag)
+    CommonVMServices::CommonVMServices(VMBase& vm, Str::StringRef vmName, Sys::Module fileOwnership, int commandFlag)
     :vmName(vmName), fileOwnership(fileOwnership), vm(vm), commandProxy(new ProxyCmd(*this, commandFlag)) {
     }
 
