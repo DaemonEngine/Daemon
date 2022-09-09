@@ -93,6 +93,7 @@ void            trap_Cvar_VariableStringBuffer( const char *var_name, char *buff
 int             trap_Cvar_VariableIntegerValue( const char *var_name );
 float           trap_Cvar_VariableValue( const char *var_name );
 void            trap_Cvar_AddFlags( const char *var_name, int flags );
+const Cmd::Args& trap_Args();
 int             trap_Argc();
 void            trap_Argv( int n, char *buffer, int bufferLength );
 void            trap_EscapedArgs( char *buffer, int bufferLength );
