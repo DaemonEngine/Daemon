@@ -628,8 +628,9 @@ build_package() {
 		zip -r "${PLATFORM}-${DEPS_VERSION}.zip" "${PLATFORM}-${DEPS_VERSION}"
 		;;
 	*)
-		rm -f "${PLATFORM}-${DEPS_VERSION}.tar.bz2"
-		tar cvjf "${PLATFORM}-${DEPS_VERSION}.tar.bz2" "${PLATFORM}-${DEPS_VERSION}"
+		export XZ_OPT='-9'
+		rm -f "${PLATFORM}-${DEPS_VERSION}.tar.xz"
+		tar cvJf "${PLATFORM}-${DEPS_VERSION}.tar.xz" "${PLATFORM}-${DEPS_VERSION}"
 		;;
 	esac
 }
