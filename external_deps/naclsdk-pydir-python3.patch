@@ -1,0 +1,532 @@
+diff --git a/artools.py b/artools.py
+index 6fa6785..8552c8a 100755
+--- a/artools.py
++++ b/artools.py
+@@ -12,11 +12,11 @@ import elftools
+ import pathtools
+ 
+ # See above link to wiki entry on archive format.
+-AR_MAGIC = '!<arch>\n'
++AR_MAGIC = b'!<arch>\n'
+ # Thin archives are like normal archives except that there are only
+ # indirect references to each member (the data is not embedded).
+ # See manpage for a description of this.
+-THIN_MAGIC = '!<thin>\n'
++THIN_MAGIC = b'!<thin>\n'
+ 
+ # filetype.IsArchive calls this IsArchive. Top-level tools should prefer
+ # filetype.IsArchive, both for consistency (i.e., all checks for file type come
+@@ -85,7 +85,7 @@ def GetArchiveType(filename):
+         # We instead must get at the member indirectly.
+         data = GetThinArchiveData(filename, member, strtab_data)
+ 
+-      if data.startswith('BC'):
++      if data.startswith(b'BC'):
+         found_type = 'archive-bc'
+       else:
+         elf_header = elftools.DecodeELFHeader(data, filename)
+@@ -127,7 +127,7 @@ class MemberHeader(object):
+     self.size = header[48:48 + 10]
+     self.fmag = header[58:60]
+ 
+-    if self.fmag != '`\n':
++    if self.fmag != b'`\n':
+       self.error = 'Invalid archive member header magic string %s' % header
+       return
+ 
+@@ -143,12 +143,12 @@ class MemberHeader(object):
+                                 self.is_strtab)
+ 
+     # BSD style long names (not supported)
+-    if self.name.startswith('#1/'):
++    if self.name.startswith(b'#1/'):
+       self.error = "BSD-style long file names not supported"
+       return
+ 
+     # If it's a GNU long filename, note this.  We use this for thin archives.
+-    self.is_long_name = (self.is_regular_file and self.name.startswith('/'))
++    self.is_long_name = (self.is_regular_file and self.name.startswith(b'/'))
+ 
+     if self.is_regular_file and not self.is_long_name:
+       # Filenames end with '/' and are padded with spaces up to 16 bytes
+diff --git a/driver_env.py b/driver_env.py
+index 7353770..a295103 100755
+--- a/driver_env.py
++++ b/driver_env.py
+@@ -244,8 +244,8 @@ class Environment(object):
+     self.data.update(extra)
+ 
+   def dump(self):
+-    for (k,v) in self.data.iteritems():
+-      print '%s == %s' % (k,v)
++    for (k,v) in self.data.items():
++      print('%s == %s' % (k,v))
+ 
+   def push(self):
+     self.stack.append(self.data)
+@@ -285,10 +285,10 @@ class Environment(object):
+ 
+   # Set one or more variables using named arguments
+   def setmany(self, **kwargs):
+-    for k,v in kwargs.iteritems():
+-      if isinstance(v, types.StringTypes):
++    for k,v in kwargs.items():
++      if isinstance(v, (type(b''), type(u''))):
+         self.set(k, v)
+-      elif isinstance(v, types.ListType):
++      elif isinstance(v, list):
+         self.set(k, *v)
+       else:
+         Log.Fatal('env.setmany given a non-string and non-list value')
+diff --git a/driver_log.py b/driver_log.py
+index e593215..b41051f 100755
+--- a/driver_log.py
++++ b/driver_log.py
+@@ -3,6 +3,7 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++from __future__ import print_function
+ import sys
+ import pathtools
+ 
+@@ -139,7 +140,7 @@ class LogManager(object):
+     if args:
+       m = m % args
+     for o in outs:
+-      print >> o, m
++      print(m, file=o)
+ 
+ def EscapeEcho(s):
+   """ Quick and dirty way of escaping characters that may otherwise be
+diff --git a/driver_tools.py b/driver_tools.py
+index 863c84d..47d3633 100755
+--- a/driver_tools.py
++++ b/driver_tools.py
+@@ -27,6 +27,8 @@ from driver_log import Log, DriverOpen, DriverClose, StringifyCommand, DriverExi
+ from driver_temps import TempFiles
+ from shelltools import shell
+ 
++from functools import reduce
++
+ def ParseError(s, leftpos, rightpos, msg):
+   Log.Error("Parse Error: %s", msg)
+   Log.Error('  ' + s)
+@@ -50,7 +52,7 @@ def SetExecutableMode(path):
+     # There's no way to get it without setting it.
+     umask = os.umask(0)
+     os.umask(umask)
+-    os.chmod(realpath, 0755 & ~umask)
++    os.chmod(realpath, 0o0755 & ~umask)
+ 
+ 
+ def FilterOutArchArgs(args):
+@@ -368,7 +370,7 @@ def ParseArgsBase(argv, patternlist):
+     matched += argv[i:i+num_matched]
+     if isinstance(action, str):
+       # Perform $N substitution
+-      for g in xrange(0, len(groups)):
++      for g in range(0, len(groups)):
+         action = action.replace('$%d' % g, 'groups[%d]' % g)
+     try:
+       if isinstance(action, str):
+@@ -378,7 +380,7 @@ def ParseArgsBase(argv, patternlist):
+         exec(action)
+       else:
+         action(*groups)
+-    except Exception, err:
++    except Exception as err:
+       Log.Fatal('ParseArgs action [%s] failed with: %s', action, err)
+     i += num_matched
+   return (matched, unmatched)
+@@ -520,7 +522,7 @@ class TempNameGen(object):
+       # Find conflicts
+       ConflictMap = dict()
+       Conflicts = set()
+-      for (f, [n, path]) in self.TempMap.iteritems():
++      for (f, [n, path]) in self.TempMap.items():
+         candidate = output + '---' + '_'.join(path[-n:]) + '---'
+         if candidate in ConflictMap:
+           Conflicts.add(ConflictMap[candidate])
+@@ -540,7 +542,7 @@ class TempNameGen(object):
+ 
+     # Clean up the map
+     NewMap = dict()
+-    for (f, [n, path]) in self.TempMap.iteritems():
++    for (f, [n, path]) in self.TempMap.items():
+       candidate = output + '---' + '_'.join(path[-n:]) + '---'
+       NewMap[f] = candidate
+     self.TempMap = NewMap
+@@ -616,7 +618,7 @@ def ConvertArgsToFile(args):
+   TempFiles.add(outfile)
+   cmd = args[0]
+   other_args = args[1:]
+-  os.write(fd, ' '.join(other_args))
++  os.write(fd, ' '.join(other_args).encode('utf8'))
+   os.close(fd)
+   return [cmd, '@' + outfile]
+ 
+@@ -688,10 +690,10 @@ def Run(args,
+                          stdout=redirect_stdout,
+                          stderr=redirect_stderr)
+     result_stdout, result_stderr = p.communicate(input=stdin_contents)
+-  except Exception, e:
++  except Exception as e:
+     msg =  '%s\nCommand was: %s' % (str(e),
+                                     StringifyCommand(args, stdin_contents))
+-    print msg
++    print(msg)
+     DriverExit(1)
+ 
+   Log.Info('Return Code: ' + str(p.returncode))
+@@ -758,7 +760,7 @@ def DriverMain(module, argv):
+     if not help_func:
+       Log.Fatal(HelpNotAvailable())
+     helpstr = help_func(argv)
+-    print helpstr
++    print(helpstr)
+     return 0
+ 
+   return module.main(argv)
+@@ -870,6 +872,8 @@ class DriverChain(object):
+       self.use_names_for_input = False
+       self.input = [pathtools.normpath(p) if p else p for p in self.input]
+       for path in self.input:
++        if isinstance(path, bytes):
++          path = path.decode('utf8')
+         CheckPathLength(path)
+     CheckPathLength(output)
+ 
+diff --git a/elftools.py b/elftools.py
+index 6349e1d..4cc7e90 100755
+--- a/elftools.py
++++ b/elftools.py
+@@ -10,8 +10,15 @@ from collections import namedtuple
+ 
+ from driver_log import DriverOpen, DriverClose, Log, FixArch
+ 
++
++def to_byte(ch):
++  if isinstance(ch, int):
++    return ch
++  return ord(ch)
++
++
+ class ELFHeader(object):
+-  ELF_MAGIC = '\x7fELF'
++  ELF_MAGIC = b'\x7fELF'
+   ELF_TYPES = { 1: 'REL',  # .o
+                 2: 'EXEC', # .exe
+                 3: 'DYN' } # .so
+@@ -51,7 +58,7 @@ class ELFHeader(object):
+ 
+   def __init__(self, header, filename):
+     pack_format = ''.join(fmt for fmt, _ in self.ELF_HEADER_FORMAT)
+-    e_class = ord(header[4])
++    e_class = to_byte(header[4])
+     if e_class == ELFHeader.ELFCLASS32:
+       pack_format = pack_format.replace('P', 'I')
+     elif e_class == ELFHeader.ELFCLASS64:
+@@ -60,8 +67,8 @@ class ELFHeader(object):
+       Log.Fatal('%s: ELF file has unknown class (%d)', filename, e_class)
+ 
+     ehdr = self.Ehdr(*struct.unpack_from(pack_format, header))
+-    e_osabi = ord(header[7])
+-    e_abiver = ord(header[8])
++    e_osabi = to_byte(header[7])
++    e_abiver = to_byte(header[8])
+ 
+     if e_osabi not in ELFHeader.ELF_OSABI:
+       Log.Fatal('%s: ELF file has unknown OS ABI (%d)', filename, e_osabi)
+diff --git a/filetype.py b/filetype.py
+index a186729..0c9f94f 100644
+--- a/filetype.py
++++ b/filetype.py
+@@ -12,9 +12,9 @@ import artools
+ import driver_log
+ import elftools
+ 
+-LLVM_BITCODE_MAGIC = 'BC\xc0\xde'
+-LLVM_WRAPPER_MAGIC = '\xde\xc0\x17\x0b'
+-PNACL_BITCODE_MAGIC = 'PEXE'
++LLVM_BITCODE_MAGIC = b'BC\xc0\xde'
++LLVM_WRAPPER_MAGIC = b'\xde\xc0\x17\x0b'
++PNACL_BITCODE_MAGIC = b'PEXE'
+ 
+ class SimpleCache(object):
+   """ Cache results of a function using a dictionary. """
+@@ -140,11 +140,11 @@ def GetELFType(filename):
+ #
+ # Returns None on any parse error.
+ def ParseLinkerScript(filename):
+-  fp = driver_log.DriverOpen(filename, 'r')
++  fp = driver_log.DriverOpen(filename, 'rb')
+ 
+   ret = []
+   stack = []
+-  expect = ''  # Expected next token
++  expect = b''  # Expected next token
+   while True:
+     token = GetNextToken(fp)
+     if token is None:
+@@ -157,47 +157,47 @@ def ParseLinkerScript(filename):
+ 
+     if expect:
+       if token == expect:
+-        expect = ''
++        expect = b''
+         continue
+       else:
+         return None
+ 
+     if not stack:
+-      if token == 'INPUT':
+-        expect = '('
++      if token == b'INPUT':
++        expect = b'('
+         stack.append(token)
+-      elif token == 'GROUP':
+-        expect = '('
+-        ret.append('--start-group')
++      elif token == b'GROUP':
++        expect = b'('
++        ret.append(b'--start-group')
+         stack.append(token)
+-      elif token == 'OUTPUT_FORMAT':
+-        expect = '('
++      elif token == b'OUTPUT_FORMAT':
++        expect = b'('
+         stack.append(token)
+-      elif token == 'EXTERN':
+-        expect = '('
++      elif token == b'EXTERN':
++        expect = b'('
+         stack.append(token)
+-      elif token == ';':
++      elif token == b';':
+         pass
+       else:
+         return None
+     else:
+-      if token == ')':
++      if token == b')':
+         section = stack.pop()
+-        if section == 'AS_NEEDED':
+-          ret.append('--no-as-needed')
+-        elif section == 'GROUP':
+-          ret.append('--end-group')
+-      elif token == 'AS_NEEDED':
+-        expect = '('
+-        ret.append('--as-needed')
+-        stack.append('AS_NEEDED')
+-      elif stack[-1] == 'OUTPUT_FORMAT':
++        if section == b'AS_NEEDED':
++          ret.append(b'--no-as-needed')
++        elif section == b'GROUP':
++          ret.append(b'--end-group')
++      elif token == b'AS_NEEDED':
++        expect = b'('
++        ret.append(b'--as-needed')
++        stack.append(b'AS_NEEDED')
++      elif stack[-1] == b'OUTPUT_FORMAT':
+         # Ignore stuff inside OUTPUT_FORMAT
+         pass
+-      elif stack[-1] == 'EXTERN':
+-        ret.append('--undefined=' + token)
++      elif stack[-1] == b'EXTERN':
++        ret.append(b'--undefined=' + token)
+       else:
+-        ret.append('-l:' + token)
++        ret.append(b'-l:' + token)
+ 
+   fp.close()
+   return ret
+@@ -207,7 +207,7 @@ def ParseLinkerScript(filename):
+ # Returns: ''   for EOF.
+ #          None on error.
+ def GetNextToken(fp):
+-  token = ''
++  token = b''
+   while True:
+     ch = fp.read(1)
+ 
+@@ -216,14 +216,14 @@ def GetNextToken(fp):
+ 
+     # Whitespace terminates a token
+     # (but ignore whitespace before the token)
+-    if ch in (' ', '\t', '\n'):
++    if ch in (b' ', b'\t', b'\n'):
+       if token:
+         break
+       else:
+         continue
+ 
+     # ( and ) are tokens themselves (or terminate existing tokens)
+-    if ch in ('(',')'):
++    if ch in (b'(',b')'):
+       if token:
+         fp.seek(-1, os.SEEK_CUR)
+         break
+@@ -232,15 +232,15 @@ def GetNextToken(fp):
+         break
+ 
+     token += ch
+-    if token.endswith('/*'):
+-      if not ReadPastComment(fp, '*/'):
++    if token.endswith(b'/*'):
++      if not ReadPastComment(fp, b'*/'):
+         return None
+       token = token[:-2]
+ 
+   return token
+ 
+ def ReadPastComment(fp, terminator):
+-  s = ''
++  s = b''
+   while True:
+     ch = fp.read(1)
+     if not ch:
+diff --git a/ldtools.py b/ldtools.py
+index b84937e..30e4168 100755
+--- a/ldtools.py
++++ b/ldtools.py
+@@ -19,7 +19,7 @@ class LibraryTypes(object):
+ 
+ 
+ def FindFirstLinkerScriptInput(inputs):
+-  for i in xrange(len(inputs)):
++  for i in range(len(inputs)):
+     f = inputs[i]
+     if IsFlag(f):
+       continue
+@@ -45,7 +45,7 @@ def ExpandLinkerScripts(inputs, searchdirs, static_only):
+ def ExpandLibFlags(inputs, searchdirs, static_only, acceptable_types):
+   """ Given an input list, expand -lfoo or -l:foo.so
+       into a full filename. Returns the new input list """
+-  for i in xrange(len(inputs)):
++  for i in range(len(inputs)):
+     f = inputs[i]
+     if IsFlag(f):
+       continue
+@@ -53,9 +53,17 @@ def ExpandLibFlags(inputs, searchdirs, static_only, acceptable_types):
+       inputs[i] = FindLib(f, searchdirs, static_only, acceptable_types)
+ 
+ def IsFlag(arg):
++  # Because of filetype.py reading bytes
++  if isinstance(arg, bytes):
++    arg = arg.decode()
++
+   return arg.startswith('-') and not IsLib(arg)
+ 
+ def IsLib(arg):
++  # Because of filetype.py reading bytes
++  if isinstance(arg, bytes):
++    arg = arg.decode()
++
+   return arg.startswith('-l')
+ 
+ def FindLib(arg, searchdirs, static_only, acceptable_types):
+diff --git a/loader.py b/loader.py
+index 5373611..6c6978c 100644
+--- a/loader.py
++++ b/loader.py
+@@ -1,17 +1,10 @@
++#!/usr/bin/python
+ # Copyright (c) 2012 The Native Client Authors. All rights reserved.
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+ import os, sys
+ 
+-# Enforce Python version. This has to be done before importing driver_tools,
+-# which won't import with Python 2.5 and earlier
+-python_major_version = sys.version_info[:2]
+-if not python_major_version in ((2, 6), (2, 7)):
+-  print '''Python version 2.6 or 2.7 required!
+-The environment variable PNACLPYTHON can override the python found in PATH'''
+-  sys.exit(1)
+-
+ import driver_tools
+ 
+ # This is called with:
+diff --git a/pathtools.py b/pathtools.py
+index 4a406bc..0391a10 100755
+--- a/pathtools.py
++++ b/pathtools.py
+@@ -62,7 +62,7 @@ def tosys(npath):
+     else:
+       # Work around for an issue that windows has opening long
+       # relative paths.  http://bugs.python.org/issue4071
+-      npath = os.path.abspath(unicode(npath))
++      npath = os.path.abspath(u'' + npath)
+       return npath.replace('/', '\\')
+   else:
+     return npath
+diff --git a/pnacl-ar.py b/pnacl-ar.py
+index 19c7c46..3647dd8 100755
+--- a/pnacl-ar.py
++++ b/pnacl-ar.py
+@@ -15,7 +15,7 @@ PATTERNS = [ ( '(.*)',  "env.append('ARGS', $0)") ]
+ 
+ def main(argv):
+   if len(argv) ==  0:
+-    print get_help(argv)
++    print(get_help(argv))
+     return 1
+ 
+   env.update(EXTRA_ENV)
+diff --git a/pnacl-driver.py b/pnacl-driver.py
+index dd0775f..10ead77 100755
+--- a/pnacl-driver.py
++++ b/pnacl-driver.py
+@@ -469,7 +469,7 @@ def main(argv):
+       nacl_version = ReadDriverRevision()
+       out[0] += ' nacl-version=%s' % nacl_version
+       stdout = '\n'.join(out)
+-      print stdout,
++      print(stdout)
+     else:
+       Run(env.get('CC') + env.get('CC_FLAGS'))
+     return 0
+@@ -565,7 +565,7 @@ def main(argv):
+   namegen = TempNameGen(flags_and_inputs, output)
+ 
+   # Compile all source files (c/c++/ll) to .po
+-  for i in xrange(0, len(flags_and_inputs)):
++  for i in range(0, len(flags_and_inputs)):
+     if IsFlag(flags_and_inputs[i]):
+       continue
+     intype = filetype.FileType(flags_and_inputs[i])
+@@ -574,7 +574,7 @@ def main(argv):
+ 
+   # Compile all .s/.S to .o
+   if env.getbool('ALLOW_NATIVE'):
+-    for i in xrange(0, len(flags_and_inputs)):
++    for i in range(0, len(flags_and_inputs)):
+       if IsFlag(flags_and_inputs[i]):
+         continue
+       intype = filetype.FileType(flags_and_inputs[i])
+diff --git a/shelltools.py b/shelltools.py
+index 62088ac..1427cd9 100755
+--- a/shelltools.py
++++ b/shelltools.py
+@@ -32,7 +32,7 @@ class shell(object):
+     For example: split('cmd -arg1 -arg2="a b c"')
+     Returns ['cmd', '-arg1', '-arg2=a b c']
+     """
+-    assert(isinstance(s, types.StringTypes))
++    assert(isinstance(s, str))
+     out = []
+     inspace = True
+     inquote = False
+@@ -76,6 +76,10 @@ class shell(object):
+     """Shell-escape special characters in a string
+        Surround with quotes if necessary
+     """
++    # Because of artools.py reading bytes.
++    if isinstance(s, bytes) and not isinstance(s, str):
++      s = s.decode()
++
+     s = s.replace('\\', '\\\\')
+     s = s.replace('"', '\\"')
+     if ' ' in s:
