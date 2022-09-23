@@ -8,7 +8,7 @@ set -u
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
-DEPS_VERSION=6
+DEPS_VERSION=7
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
@@ -93,7 +93,7 @@ build_pkgconfig() {
 # Build NASM
 build_nasm() {
 	case "${PLATFORM}" in
-	macosx*)
+	macos-*-*)
 		download "nasm-${NASM_VERSION}-macosx.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/nasm-${NASM_VERSION}-macosx.zip" nasm
 		cp "nasm-${NASM_VERSION}/nasm" "${PREFIX}/bin"
 		;;
@@ -109,11 +109,11 @@ build_zlib() {
 	download "zlib-${ZLIB_VERSION}.tar.gz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" zlib
 	cd "zlib-${ZLIB_VERSION}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		LOC="${CFLAGS:-}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
-	linux*)
+	linux-*-*)
 		./configure --prefix="${PREFIX}" --static --const
 		make
 		make install
@@ -130,7 +130,7 @@ build_gmp() {
 	download "gmp-${GMP_VERSION}.tar.bz2" "https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.bz2" gmp
 	cd "gmp-${GMP_VERSION}"
 	case "${PLATFORM}" in
-	msvc*)
+	windows-*-msvc)
 		# Configure script gets confused if we override the compiler. Shouldn't
 		# matter since gmp doesn't use anything from libgcc.
 		local CC_BACKUP="${CC}"
@@ -142,7 +142,7 @@ build_gmp() {
 
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	case "${PLATFORM}" in
-	macosx64)
+	macos-*-*)
 		# The assembler objects are incompatible with PIE
 		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-assembly
 		;;
@@ -184,32 +184,32 @@ build_curl() {
 # Build SDL2
 build_sdl2() {
 	case "${PLATFORM}" in
-	mingw*)
+	windows-*-mingw)
 		download "SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		make install-package arch="${HOST}" prefix="${PREFIX}"
 		;;
-	msvc*)
+	windows-*-msvc)
 		download "SDL2-devel-${SDL2_VERSION}-VC.zip" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-VC.zip" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		mkdir -p "${PREFIX}/include/SDL2"
 		cp include/* "${PREFIX}/include/SDL2"
 		case "${PLATFORM}" in
-		msvc32)
+		windows-i686-msvc)
 			cp lib/x86/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
 			cp lib/x86/*.dll "${PREFIX}/bin"
 			;;
-		msvc64)
+		windows-amd64-msvc)
 			cp lib/x64/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
 			cp lib/x64/*.dll "${PREFIX}/bin"
 			;;
 		esac
 		;;
-	macosx*)
+	macos-*-*)
 		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
 		cp -R "SDL2.framework" "${PREFIX}"
 		;;
-	linux*)
+	linux-*-*)
 		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		# The default -O3 is dropped when there's user-provided CFLAGS.
@@ -225,19 +225,19 @@ build_glew() {
 	download "glew-${GLEW_VERSION}.tgz" "https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz" glew
 	cd "glew-${GLEW_VERSION}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
-	macosx*)
+	macos-*-*)
 		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="clang" LD="clang" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="clang" LD="clang" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
-	linux*)
+	linux-*-*)
 		make GLEW_DEST="${PREFIX}"
 		make install GLEW_DEST="${PREFIX}"
 		;;
@@ -267,13 +267,13 @@ build_jpeg() {
 
 	cd "libjpeg-turbo-${JPEG_VERSION}"
 	case "${PLATFORM}" in
-	mingw*)
+	windows-*-mingw)
 		cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
 		;;
-	msvc*)
+	windows-*-msvc)
 		CFLAGS="${CFLAGS:-} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
 		;;
-	macosx*)
+	macos-*-*)
 		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
 		;;
 	esac
@@ -306,22 +306,22 @@ build_freetype() {
 # Build OpenAL
 build_openal() {
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		download "openal-soft-${OPENAL_VERSION}-bin.zip" "https://openal-soft.org/openal-binaries/openal-soft-${OPENAL_VERSION}-bin.zip" openal
 		cd "openal-soft-${OPENAL_VERSION}-bin"
 		cp -r "include/AL" "${PREFIX}/include"
 		case "${PLATFORM}" in
-		*32)
+		windows-i686-*)
 			cp "libs/Win32/libOpenAL32.dll.a" "${PREFIX}/lib"
 			cp "bin/Win32/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
 			;;
-		*64)
+		windows-amd64-*)
 			cp "libs/Win64/libOpenAL32.dll.a" "${PREFIX}/lib"
 			cp "bin/Win64/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
 			;;
 		esac
 		;;
-	macosx*)
+	macos-*-*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
 		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
@@ -329,7 +329,7 @@ build_openal() {
 		make install
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
 		;;
-	linux*)
+	linux-*-*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
 		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DALSOFT_EXAMPLES=OFF -DLIBTYPE=STATIC -DCMAKE_BUILD_TYPE=Release .
@@ -370,7 +370,7 @@ build_opus() {
 	cd "opus-${OPUS_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
 		CFLAGS="${CFLAGS:-} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
 		;;
@@ -398,13 +398,13 @@ build_lua() {
 	download "lua-${LUA_VERSION}.tar.gz" "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" lua
 	cd "lua-${LUA_VERSION}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		local LUA_PLATFORM=mingw
 		;;
-	macosx*)
+	macos-*-*)
 		local LUA_PLATFORM=macosx
 		;;
-	linux*)
+	linux-*-*)
 		local LUA_PLATFORM=linux
 		;;
 	*)
@@ -414,10 +414,10 @@ build_lua() {
 	esac
 	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS:-}" MYLDFLAGS="${LDFLAGS}"
 	case "${PLATFORM}" in
-	mingw*)
+	windows-*-mingw)
 		make install TO_BIN="lua.exe luac.exe" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
 		;;
-	msvc*)
+	windows-*-msvc)
 		make install TO_BIN="lua.exe luac.exe lua54.dll" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
 		touch "${PREFIX}/lib/lua54.dll.a"
 		;;
@@ -441,13 +441,13 @@ build_ncurses() {
 # "Builds" (downloads) the WASI SDK
 build_wasisdk() {
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		local WASISDK_PLATFORM=mingw
 		;;
-	macosx*)
+	macos-*-*)
 		local WASISDK_PLATFORM=macos
 		;;
-	linux*)
+	linux-*-*)
 		local WASISDK_PLATFORM=linux
 		;;
 	esac
@@ -459,25 +459,25 @@ build_wasisdk() {
 # "Builds" (downloads) wasmtime
 build_wasmtime() {
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		local WASMTIME_PLATFORM=windows
 		local ARCHIVE_EXT=zip
 		;;
-	macosx*)
+	macos-*-*)
 		local WASMTIME_PLATFORM=macos
 		local ARCHIVE_EXT=tar.xz
 		;;
-	linux*)
+	linux-*-*)
 		local WASMTIME_PLATFORM=linux
 		local ARCHIVE_EXT=tar.xz
 		;;
 	esac
 	case "${PLATFORM}" in
-	*32)
+	*-i686-*)
 		echo "wasmtime doesn't have release for x86"
 		exit 1
 		;;
-	*64)
+	*-amd64-*)
 		local WASMTIME_ARCH=x86_64
 		;;
 	esac
@@ -490,28 +490,28 @@ build_wasmtime() {
 # Build the NaCl SDK
 build_naclsdk() {
 	case "${PLATFORM}" in
-	mingw*|msvc*)
+	windows-*-*)
 		local NACLSDK_PLATFORM=win
 		local EXE=.exe
 		local TAR_EXT=cygtar
 		;;
-	macosx*)
+	macos-*-*)
 		local NACLSDK_PLATFORM=mac
 		local EXE=
 		local TAR_EXT=tar
 		;;
-	linux*)
+	linux-*-*)
 		local NACLSDK_PLATFORM=linux
 		local EXE=
 		local TAR_EXT=tar
 		;;
 	esac
 	case "${PLATFORM}" in
-	*32)
+	*-i686-*)
 		local NACLSDK_ARCH=x86_32
 		local DAEMON_ARCH=x86
 		;;
-	*64)
+	*-amd64-*)
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=x86_64
 		;;
@@ -535,11 +535,11 @@ build_naclsdk() {
 	rm -rf "${PREFIX}/pnacl/x86_64-nacl"
 	rm -rf "${PREFIX}/pnacl/x86_64_bc-nacl"
 	case "${PLATFORM}" in
-	mingw32|msvc32)
+	windows-i686-*)
 		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/sel_ldr64.exe"
 		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-x86_64.nexe"
 		;;
-	linux64)
+	linux-amd64-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_x86_64" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-x86_64.nexe"
@@ -587,7 +587,7 @@ build_genlib() {
 
 # Install all the necessary files to the location expected by CMake
 build_install() {
-	PKG_PREFIX="${WORK_DIR}/${PLATFORM}-${DEPS_VERSION}"
+	PKG_PREFIX="${WORK_DIR}/${PKG_BASEDIR}"
 	rm -rf "${PKG_PREFIX}"
 	rsync -a --link-dest="${PREFIX}" "${PREFIX}/" "${PKG_PREFIX}"
 
@@ -608,11 +608,11 @@ build_install() {
 
 	# Strip libraries
 	case "${PLATFORM}" in
-	mingw*)
+	windows-*-mingw)
 		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
 		;;
-	msvc*)
+	windows-*-msvc)
 		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
@@ -626,21 +626,12 @@ build_install() {
 # Create a redistributable package for the dependencies
 build_package() {
 	cd "${WORK_DIR}"
-	case "${PLATFORM}" in
-	mingw*|msvc*)
-		rm -f "${PLATFORM}-${DEPS_VERSION}.zip"
-		zip -r "${PLATFORM}-${DEPS_VERSION}.zip" "${PLATFORM}-${DEPS_VERSION}"
-		;;
-	*)
-		rm -f "${PLATFORM}-${DEPS_VERSION}.tar.bz2"
-		tar cvjf "${PLATFORM}-${DEPS_VERSION}.tar.bz2" "${PLATFORM}-${DEPS_VERSION}"
-		;;
-	esac
+	rm -f "${PKG_BASEDIR}.tar.xz"
+	XZ_OPT='-9' tar cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
 }
 
 build_clean() {
-	local NAME="${PLATFORM}-${DEPS_VERSION}"
-	rm -rf "build-${NAME}/" "${NAME}/" "${NAME}.zip"
+	rm -rf "${BUILD_BASEDIR}/" "${PKG_BASEDIR}/" "${PKG_BASEDIR}.tar.xz"
 }
 
 # Common setup code
@@ -648,7 +639,9 @@ common_setup() {
 	WORK_DIR="${PWD}"
 	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
-	BUILD_DIR="${WORK_DIR}/build-${PLATFORM}-${DEPS_VERSION}"
+	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
+	BUILD_BASEDIR="build-${PKG_BASEDIR}"
+	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 	PREFIX="${BUILD_DIR}/prefix"
 	export PATH="${PATH}:${PREFIX}/bin"
 	export PKG_CONFIG="pkg-config"
@@ -663,7 +656,7 @@ common_setup() {
 }
 
 # Set up environment for 32-bit Windows for Visual Studio (compile all as .dll)
-setup_msvc32() {
+setup_windows-i686-msvc() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
 	BITNESS=32
@@ -685,7 +678,7 @@ setup_msvc32() {
 # developer gamelogic builds, and Microsoft supports %lld since Visual Studio 2013.
 
 # Set up environment for 64-bit Windows for Visual Studio (compile all as .dll)
-setup_msvc64() {
+setup_windows-amd64-msvc() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
 	BITNESS=64
@@ -698,7 +691,7 @@ setup_msvc64() {
 }
 
 # Set up environment for 32-bit Windows for MinGW (compile all as .a)
-setup_mingw32() {
+setup_windows-i686-mingw() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
 	BITNESS=32
@@ -709,7 +702,7 @@ setup_mingw32() {
 }
 
 # Set up environment for 64-bit Windows for MinGW (compile all as .a)
-setup_mingw64() {
+setup_windows-amd64-mingw() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
 	BITNESS=64
@@ -720,12 +713,11 @@ setup_mingw64() {
 }
 
 # Set up environment for Mac OS X 64-bit
-setup_macosx64() {
+setup_macos-amd64-default() {
 	HOST=x86_64-apple-darwin11
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
 	export MACOSX_DEPLOYMENT_TARGET=10.9
-	export NASM="${PWD}/build-${PLATFORM}-${DEPS_VERSION}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 	export CC=clang
 	export CXX=clang++
 	export CFLAGS="-arch x86_64"
@@ -733,10 +725,11 @@ setup_macosx64() {
 	export LDFLAGS="-arch x86_64"
 	export CMAKE_OSX_ARCHITECTURES="x86_64"
 	common_setup
+	export NASM="${PWD}/${BUILD_BASEDIR}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 }
 
 # Set up environment for 64-bit Linux
-setup_linux64() {
+setup_linux-amd64-default() {
 	HOST=x86_64-unknown-linux-gnu
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
@@ -748,20 +741,37 @@ setup_linux64() {
 
 # Usage
 if [ "${#}" -lt "2" ]; then
-	echo "usage: ${0} <platform> <package[s]...>"
-	echo "Script to build dependencies for platforms which do not provide them"
-	echo "Platforms: msvc32 msvc64 mingw32 mingw64 macosx64 linux64"
-	echo "Packages: pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime"
-	echo "Virtual packages:"
-	echo "  install - create a stripped down version of the built packages that CMake can use"
-	echo "  package - create a zip/tarball of the dependencies so they can be distributed"
-	echo "  clean - remove products of build process, excepting download cache. Must be last"
-	echo
-	echo "Packages requires for each platform:"
-	echo "Linux native compile: naclsdk naclports (and possibly others depending on what packages your distribution provides)"
-	echo "Linux to Windows cross-compile: zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
-	echo "Native Windows compile: pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib"
-	echo "Native Mac OS X compile: pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports"
+	cat <<-EOF
+	usage: ${0} <platform> <package[s]...>
+
+	Script to build dependencies for platforms which do not provide them
+
+	Platforms:
+	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default
+
+	Packages:
+	  pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
+
+	Virtual packages:
+	  install - create a stripped down version of the built packages that CMake can use
+	  package - create a zip/tarball of the dependencies so they can be distributed
+	  clean - remove products of build process, excepting download cache. Must be last
+
+	Packages requires for each platform:
+
+	Native Windows compile:
+	  pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib
+
+	Linux to Windows cross-compile:
+	  zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports
+
+	Native macOS compile:
+	  pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports
+
+	Linux native compile:
+	  naclsdk naclports (and possibly others depending on what packages your distribution provides)
+
+	EOF
 	exit 1
 fi
 

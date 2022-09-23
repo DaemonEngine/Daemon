@@ -176,9 +176,6 @@ include(DaemonPlatform)
 # Directories
 ################################################################################
 
-# Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 6)
-
 set(MOUNT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if (DAEMON_PARENT_SCOPE_DIR)
     set(MOUNT_DIR ${MOUNT_DIR} PARENT_SCOPE)
@@ -206,30 +203,42 @@ if (CMAKE_CFG_INTDIR STREQUAL ".")
 else()
     set(FULL_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 endif()
-set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
-if (MSVC)
-    set(DEPS_EXT ".zip")
+
+# Dependencies version, this must match the number in external_deps/build.sh
+set(DEPS_VERSION 7)
+
+if (NOT NACL)
+    set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
+
+    set(DEPS_EXT ".tar.xz")
+
     if (ARCH STREQUAL "x86_64")
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/msvc64-${DEPS_VERSION})
+        set(DEPS_ARCH amd64)
     else()
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/msvc32-${DEPS_VERSION})
+        set(DEPS_ARCH i686)
     endif()
-elseif (WIN32)
-    set(DEPS_EXT ".zip")
-    if (ARCH STREQUAL "x86_64")
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/mingw64-${DEPS_VERSION})
+
+    if (WIN32)
+        set(DEPS_SYSTEM windows)
+    elseif (APPLE)
+        set(DEPS_SYSTEM macos)
+    elseif (LINUX)
+        set(DEPS_SYSTEM linux)
+    endif()
+
+    if (MSVC)
+        set(DEPS_COMPILER msvc)
+    elseif (WIN32)
+        set(DEPS_COMPILER mingw)
     else()
-        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/mingw32-${DEPS_VERSION})
+        set(DEPS_COMPILER default)
     endif()
-elseif (APPLE)
-    set(DEPS_EXT ".tar.bz2")
-    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/macosx64-${DEPS_VERSION})
-elseif (LINUX)
-    set(DEPS_EXT ".tar.bz2")
-    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/linux64-${DEPS_VERSION})
-endif()
-if (DAEMON_PARENT_SCOPE_DIR)
-    set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
+
+    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${DEPS_ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
+
+	if (DAEMON_PARENT_SCOPE_DIR)
+		set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
+	endif()
 endif()
 
 ################################################################################
@@ -420,16 +429,28 @@ if (DEPS_DIR)
     # Warn on old version of deps
     get_cmake_property(cacheVariableNames CACHE_VARIABLES)
     foreach(cacheVariableName ${cacheVariableNames})
+        set(OLD_VERSION "NOTFOUND")
         set(cacheVariableValue "${${cacheVariableName}}")
+
         if (cacheVariableValue MATCHES "/(linux64|macosx64|mingw32|mingw64|msvc32|msvc64)-([0-9]+)/")
             if (NOT ${CMAKE_MATCH_2} EQUAL ${DEPS_VERSION})
-                message(WARNING "You seem to be using a dependency from version ${CMAKE_MATCH_2}"
-                                " of the external_deps package, but the latest version is"
-                                " ${DEPS_VERSION}. Please delete the build directory and"
-                                " reconfigure to upgrade to the latest dependencies. (Based on"
-                                " ${cacheVariableName}=${cacheVariableValue})")
-                break()
+                set(OLD_VERSION ${CMAKE_MATCH_2})
             endif()
+        endif()
+
+        if (cacheVariableValue MATCHES "/(linux|windows|macos)-(i686|amd64)-(default|mingw|msvc)_([0-9]+)/")
+            if (NOT ${CMAKE_MATCH_4} EQUAL ${DEPS_VERSION})
+                set(OLD_VERSION ${CMAKE_MATCH_4})
+            endif()
+        endif()
+
+        if(OLD_VERSION)
+            message(WARNING "You seem to be using a dependency from version ${OLD_VERSION}"
+                            " of the external_deps package, but the latest version is"
+                            " ${DEPS_VERSION}. Please delete the build directory and"
+                            " reconfigure to upgrade to the latest dependencies. (Based on"
+                            " ${cacheVariableName}=${cacheVariableValue})")
+            break()
         endif()
     endforeach()
 
@@ -457,7 +478,7 @@ if (DEPS_DIR)
 
         # Extract the downloaded archive
         execute_process(
-            COMMAND ${CMAKE_COMMAND} -E tar xzf ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
+            COMMAND ${CMAKE_COMMAND} -E tar xJf ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
             WORKING_DIRECTORY ${EXTERNAL_DEPS_DIR}
             RESULT_VARIABLE EXTRACT_RESULT
         )
