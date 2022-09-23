@@ -521,6 +521,10 @@ build_naclsdk() {
 	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 	cp pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE}" "${PREFIX}/nacl-gdb${EXE}"
 	rm -rf "${PREFIX}/pnacl"
+
+	patch -d pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl/bin/pydir" \
+		-p1 < "${SCRIPT_DIR}/naclsdk-pydir-python3.patch" >/dev/null
+
 	cp -a pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl" "${PREFIX}/pnacl"
 	rm -rf "${PREFIX}/pnacl/bin/"{i686,x86_64}-nacl-*
 	rm -rf "${PREFIX}/pnacl/arm-nacl"
