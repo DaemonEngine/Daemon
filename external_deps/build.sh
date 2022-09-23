@@ -625,7 +625,7 @@ build_package() {
 	case "${PLATFORM}" in
 	mingw*|msvc*)
 		rm -f "${PLATFORM}-${DEPS_VERSION}.zip"
-		zip -r "${PLATFORM}-${DEPS_VERSION}.zip" "${PLATFORM}-${DEPS_VERSION}"
+		zip -9 -r "${PLATFORM}-${DEPS_VERSION}.zip" "${PLATFORM}-${DEPS_VERSION}"
 		;;
 	*)
 		export XZ_OPT='-9'
