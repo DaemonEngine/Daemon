@@ -623,10 +623,6 @@ build_install() {
 build_package() {
 	cd "${WORK_DIR}"
 	case "${PLATFORM}" in
-	mingw*|msvc*)
-		rm -f "${PLATFORM}-${DEPS_VERSION}.zip"
-		zip -9 -r "${PLATFORM}-${DEPS_VERSION}.zip" "${PLATFORM}-${DEPS_VERSION}"
-		;;
 	*)
 		export XZ_OPT='-9'
 		rm -f "${PLATFORM}-${DEPS_VERSION}.tar.xz"
