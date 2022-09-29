@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #include <unistd.h>
 #include <signal.h>
+#include <spawn.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 #ifdef __linux__
@@ -176,62 +177,21 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 #else
 	Q_UNUSED(reserve_mem);
 
-	// Create a pipe to report errors from the child process
-	int pipefds[2];
-	if (pipe(pipefds) == -1 || fcntl(pipefds[1], F_SETFD, FD_CLOEXEC))
-		Sys::Drop("VM: Failed to create pipe: %s", strerror(errno));
-
-	int pid = vfork();
-	if (pid == -1)
-		Sys::Drop("VM: Failed to fork process: %s", strerror(errno));
-	if (pid == 0) {
-		// Close the other end of the pipe
-		close(pipefds[0]);
-
-		// Explicitly destroy the local socket, since destructors are not called
-		close(pair.first.GetHandle());
-
-		// This seems to be required, otherwise killing the child process will
-		// also kill the parent process.
-		setsid();
-
-#ifdef __linux__
-		// Kill child process if the parent dies. This avoid left-over processes
-		// when using the debug stub. Sadly it is Linux-only.
-		prctl(PR_SET_PDEATHSIG, SIGKILL);
-#endif
-
-		// Close standard input/output descriptors
-		close(0);
-		close(1);
-
-		// If an stderr redirect is provided, set it now
-		if (stderrRedirect)
-			dup2(fileno(stderrRedirect.GetHandle()), 2);
-
-		// Load the target executable
-		char* env[] = {nullptr};
-		execve(args[0], const_cast<char* const*>(args), env);
-
-		// If the exec fails, return errno to the parent through the pipe
-
-		ssize_t wrote = write(pipefds[1], &errno, sizeof(int));
-		Q_UNUSED(wrote);
-		_exit(-1);
+	posix_spawn_file_actions_t fileActions;
+	if (0 != posix_spawn_file_actions_init(&fileActions) ||
+	    0 != posix_spawn_file_actions_addclose(&fileActions, pair.first.GetHandle()) ||
+	    0 != posix_spawn_file_actions_addclose(&fileActions, STDIN_FILENO) ||
+	    0 != posix_spawn_file_actions_addclose(&fileActions, STDOUT_FILENO) ||
+	    (stderrRedirect &&
+	     0 != posix_spawn_file_actions_adddup2(&fileActions, fileno(stderrRedirect.GetHandle()), STDERR_FILENO))) {
+		Sys::Error("VM: failed to construct posix_spawn_file_actions_t");
 	}
 
-	// Try to read from the pipe to see if the child successfully exec'd
-	close(pipefds[1]);
-	ssize_t count;
-	int err;
-	while ((count = read(pipefds[0], &err, sizeof(int))) == -1) {
-		if (errno != EAGAIN && errno != EINTR)
-			break;
-	}
-	close(pipefds[0]);
-	if (count) {
-		waitpid(pid, nullptr, 0);
-		Sys::Drop("VM: Failed to exec: %s", strerror(err));
+	pid_t pid;
+	int err = posix_spawn(&pid, args[0], &fileActions, nullptr, const_cast<char* const*>(args), nullptr);
+	posix_spawn_file_actions_destroy(&fileActions);
+	if (err != 0) {
+		Sys::Drop("VM: Failed to spawn process: %s", strerror(err));
 	}
 
 	return std::make_pair(pid, std::move(pair.first));
