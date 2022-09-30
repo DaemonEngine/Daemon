@@ -4274,7 +4274,6 @@ static bool ParseShader( const char *_text )
 		}
 		else if ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) )
 		{
-			char* keyword = token;
 			token = COM_ParseExt2( text, false );
 
 			if ( !Q_stricmp( token, "none" ) )
@@ -4300,7 +4299,7 @@ static bool ParseShader( const char *_text )
 			else if ( !Q_stricmp( token, "linear" ) )
 			{
 				// not implemented yet
-				Log::Warn("unsupported parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("unsupported parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 			}
 			else if ( !Q_stricmp( token, "relief" ) )
 			{
@@ -4314,7 +4313,7 @@ static bool ParseShader( const char *_text )
 			}
 			else
 			{
-				Log::Warn("invalid parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("invalid parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				SkipRestOfLine( text );
 				continue;
 			}
@@ -4323,7 +4322,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("missing parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -4363,7 +4362,7 @@ static bool ParseShader( const char *_text )
 			}
 			else
 			{
-				Log::Warn("invalid parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("invalid parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				SkipRestOfLine( text );
 				continue;
 			}
@@ -4372,7 +4371,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("missing parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				continue;
 			}
 
