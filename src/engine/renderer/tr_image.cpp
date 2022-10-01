@@ -1592,13 +1592,11 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 			 int *numLayers, int *numMips,
 			 int *bits )
 {
-	char *token;
-
 	*pic = nullptr;
 	*width = 0;
 	*height = 0;
 
-	token = COM_ParseExt2( buffer, false );
+	const char *token = COM_ParseExt2( buffer, false );
 
 	if ( !token[ 0 ] )
 	{

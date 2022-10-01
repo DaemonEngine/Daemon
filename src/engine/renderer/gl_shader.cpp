@@ -705,7 +705,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
     GLenum shaderType ) const
 {
 	char        filename[ MAX_QPATH ];
-	char        *token;
 
 	const char        *libNames = libShaderNames.c_str();
 
@@ -715,7 +714,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	libs.reserve(8192); // Might help, just an estimate.
 	while ( true )
 	{
-		token = COM_ParseExt2( &libNames, false );
+		const char *token = COM_ParseExt2( &libNames, false );
 
 		if ( !token[ 0 ] )
 		{

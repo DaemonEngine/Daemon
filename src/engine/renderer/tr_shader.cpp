@@ -191,7 +191,7 @@ ParseVector
 */
 static bool ParseVector( const char **text, int count, float *v )
 {
-	char *token;
+	const char *token;
 	int  i;
 
 	token = COM_ParseExt2( text, false );
@@ -1058,7 +1058,7 @@ ParseWaveForm
 */
 static void ParseWaveForm( const char **text, waveForm_t *wave )
 {
-	char *token;
+	const char *token;
 
 	token = COM_ParseExt2( text, false );
 
@@ -1374,14 +1374,13 @@ static bool ParseTexMod( const char **text, shaderStage_t *stage )
 static bool ParseMap( const char **text, char *buffer, int bufferSize )
 {
 	int  len;
-	char *token;
 
 	// example
 	// map textures/caves/tembrick1crum_local.tga
 
 	while ( true )
 	{
-		token = COM_ParseExt2( text, false );
+		const char *token = COM_ParseExt2( text, false );
 
 		if ( !token[ 0 ] )
 		{
@@ -1407,7 +1406,6 @@ static bool ParseMap( const char **text, char *buffer, int bufferSize )
 
 static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type, const int bundleIndex = TB_COLORMAP )
 {
-	char         *token;
 	const char         *buffer_p = &buffer[ 0 ];
 
 	if ( !buffer || !buffer[ 0 ] )
@@ -1416,7 +1414,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		return false;
 	}
 
-	token = COM_ParseExt2( &buffer_p, false );
+	const char *token = COM_ParseExt2( &buffer_p, false );
 
 	// NOTE: Normal map can ship height map in alpha channel.
 	if ( ( type == stageType_t::ST_NORMALMAP && !r_normalMapping->integer && !r_reliefMapping->integer )
@@ -1540,7 +1538,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 ParseClampType
 ===================
 */
-static bool ParseClampType( char *token, wrapType_t *clamp )
+static bool ParseClampType( const char *token, wrapType_t *clamp )
 {
 	bool s = true, t = true;
 	wrapTypeEnum_t type;
@@ -1997,7 +1995,7 @@ ParseStage
 */
 static bool ParseStage( shaderStage_t *stage, const char **text )
 {
-	char         *token;
+	const char *token;
 	int          colorMaskBits = 0;
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0, polyModeBits = 0;
 	bool     depthMaskExplicit = false;
@@ -3296,7 +3294,7 @@ deformVertexes autoSprite2
 */
 static void ParseDeform( const char **text )
 {
-	char          *token;
+	const char *token;
 	deformStage_t *ds;
 
 	token = COM_ParseExt2( text, false );
@@ -3493,7 +3491,7 @@ skyParms <outerbox> <cloudheight> <innerbox>
 */
 static void ParseSkyParms( const char **text )
 {
-	char *token;
+	const char *token;
 	char prefix[ MAX_QPATH ];
 
 	// outerbox
@@ -3581,7 +3579,7 @@ ParseSort
 */
 static void ParseSort( const char **text )
 {
-	char *token;
+	const char *token;
 
 	token = COM_ParseExt2( text, false );
 
@@ -3795,9 +3793,7 @@ static bool SurfaceParm( const char *token )
 
 static void ParseSurfaceParm( const char **text )
 {
-	char *token;
-
-	token = COM_ParseExt2( text, false );
+	const char *token = COM_ParseExt2( text, false );
 	SurfaceParm( token );
 }
 
@@ -3813,7 +3809,7 @@ will optimize it.
 static bool ParseShader( const char *_text )
 {
 	const char **text;
-	char *token;
+	const char *token;
 	int  s;
 
 	s = 0;
