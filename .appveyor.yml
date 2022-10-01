@@ -38,7 +38,7 @@ build_script:
 
       cmake
       -Wdev -Wdeprecated
-      -G"%generator%"
+      -G"%generator%" -A"%platform%"
       -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1
       -DCMAKE_BUILD_TYPE="%configuration%"
       -S. -Bbuild
