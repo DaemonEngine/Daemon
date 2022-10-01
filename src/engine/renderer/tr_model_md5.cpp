@@ -97,7 +97,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 	int           version;
 	shader_t      *sh;
 	const char    *buf_p;
-	char          *token;
+	const char *token;
 	vec3_t        boneOrigin;
 	quat_t        boneQuat;
 	matrix_t      boneMat;

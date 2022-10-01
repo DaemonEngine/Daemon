@@ -249,7 +249,6 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 	int      i, j;
 	const byte *buf_p;
 	float    *floatbuf;
-	char     *token;
 	int      w, h, c;
 	bool formatFound;
 
@@ -277,7 +276,7 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 
 	while ( true )
 	{
-		token = COM_ParseExt2( ( const char ** ) &buf_p, true );
+		const char *token = COM_ParseExt2( ( const char ** ) &buf_p, true );
 
 		if ( !token[ 0 ] )
 		{
