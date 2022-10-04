@@ -48,6 +48,7 @@ namespace Cvar {
         USER_ARCHIVE = BIT(14), // The cvar is saved to the configuration file at user request
         LATCH      = BIT(15), // The cvar's value can be changed only after a cgame restart.
                               // Different value from CVAR_LATCH since a separate implementation is used.
+        ONCE       = BIT(16), // Cvar will be reset after the next registration.
     };
 
     // Internal to the Cvar system

@@ -351,9 +351,10 @@ namespace Cvar {
             cvar->flags &= ~CVAR_USER_CREATED;
             cvar->flags |= flags;
             cvar->proxy = proxy;
-            if ((flags & ROM) || (!cheatsAllowed && (flags & CHEAT))) {
+            if ((flags & ROM) || (!cheatsAllowed && (flags & CHEAT)) || (flags & ONCE)) {
                 cvar->value = defaultValue;
             }
+            cvar->flags &= ~ONCE;
 
             cvar->resetValue = defaultValue;
             cvar->description.clear();
@@ -601,6 +602,7 @@ namespace Cvar {
     static SetCmd SetuCmdRegistration("setu", "sets the value of a cvar", USERINFO);
     static SetCmd SetsCmdRegistration("sets", "sets the value of a cvar", SERVERINFO);
     static SetCmd SetaCmdRegistration("seta", "sets the value of a cvar and marks the cvar as archived", USER_ARCHIVE);
+    static SetCmd SetoCmdRegistration("seto", "sets the value of a cvar and marks the cvar as once", ONCE);
 
     class ResetCmd: public Cmd::StaticCmd {
         public:
@@ -713,6 +715,7 @@ namespace Cvar {
                     cvarFlags += (var->flags & (CVAR_LATCH | LATCH)) ? "L" : "_";
                     cvarFlags += (var->flags & CHEAT) ? "C" : "_";
                     cvarFlags += (var->flags & CVAR_USER_CREATED) ? "?" : "_";
+                    cvarFlags += (var->flags & ONCE) ? "O" : "_";
 
                     // this is going to 'break' (wrong output) if the description contains any ^s other than in the variable value(s)
                     if (raw) {
