@@ -139,14 +139,19 @@ int main(int argc, char** argv)
 	// sent back to the engine and reported to the user.
 	Sys::SetupCrashHandler();
 
+	// For NaCl avoid catching the exceptions so we can get a crash dump. You get have either
+	// the exception message or a crash dump with a useful backtrace, not both. The trace
+	// seems more informative on average.
 	try {
 		CommonInit(rootSocket);
 	} catch (Sys::DropErr& err) {
 		Sys::Error(err.what());
+#ifndef __native_client__
 	} catch (std::exception& err) {
 		Sys::Error("Unhandled exception (%s): %s", typeid(err).name(), err.what());
 	} catch (...) {
 		Sys::Error("Unhandled exception of unknown type");
+#endif
 	}
 }
 
