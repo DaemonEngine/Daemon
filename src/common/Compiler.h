@@ -120,8 +120,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable : 4244) // 'XXX': conversion from 'YYY' to 'ZZZ', possible loss of data
 #pragma warning(disable : 4267) // 'initializing' : conversion from 'size_t' to 'int', possible loss of data
 
-#pragma warning(disable : 4456) // declaration of 'XXX' hides previous local declaration
-#pragma warning(disable : 4457) // declaration of 'XXX' hides function member
 #pragma warning(disable : 4458) // declaration of 'XXX' hides class member
 #pragma warning(disable : 4459) // declaration of 'XXX' hides global declaration
 

@@ -244,7 +244,7 @@ endif()
 include(DaemonFlags)
 
 # Warning options
-# keep
+try_flag(WARNINGS           "-Wshadow=local")
 try_flag(WARNINGS           "-Wno-pragmas")
 try_flag(WARNINGS           "-Wno-unknown-pragmas")
 try_flag(WARNINGS           "-W${WARNMODE}old-style-cast")
@@ -253,7 +253,6 @@ try_flag(WARNINGS           "-Wstrict-null-sentinel")
 try_flag(WARNINGS           "-Wno-error=sign-promo")
 try_flag(WARNINGS           "-Wno-error=extern-c-compat")
 try_flag(WARNINGS           "-Wno-error=stringop-overflow=")
-# remove
 try_flag(WARNINGS           "-Wno-error=maybe-uninitialized")
 try_flag(WARNINGS           "-W${WARNMODE}missing-field-initializers")
 try_flag(WARNINGS           "-W${WARNMODE}sign-compare")

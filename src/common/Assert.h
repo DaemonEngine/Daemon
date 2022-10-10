@@ -70,12 +70,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         do { \
             code; \
             if (!(condition)) { \
-                std::string msg = Str::Format("Assertion failure at %s:%s (%s): %s", file, line, func, message); \
+                std::string msg__ = Str::Format("Assertion failure at %s:%s (%s): %s", file, line, func, message); \
                 if (Sys::IsDebuggerAttached()) { \
-                    Log::Warn(msg); \
+                    Log::Warn(msg__); \
                     BREAKPOINT(); \
                 } \
-                Sys::Error(msg); \
+                Sys::Error(msg__); \
             } \
         } while(DAEMON_ASSERT_LOOP_CONDITION)
 #else
@@ -95,10 +95,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     - directExpression should be the condition expression, evaluating to a bool. It is used
  *       when hinting the compiler optimizer
  *     - code should be used to defined variables that will appear in condition and message. Operands
- *       should be evaluated once here using "auto&& var = (op)" so that functions are not called
+ *       should be evaluated once here using "auto&& var__ = (op)" so that functions are not called
  *       multiple times
  *     - condition is the same expression as directExpression but using variables defined in code instead
  *     - message should evaluate to a string explaining the error and dumping the variables defined in code.
+ * The trailing underscores on variable names are to avoid local variable shadowing warnings.
  */
 #define DAEMON_ASSERT_CALLSITE(directExpression, code, condition, message) \
     DAEMON_ASSERT_CALLSITE_HELPER(__FILE__, __func__, __LINE__, directExpression, code, condition, message)
@@ -112,40 +113,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define DAEMON_ASSERT_EQ(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) == (b), \
-        auto&& expected = (a); auto&& actual = (b), \
-        expected == actual, \
-        Str::Format("\"%s == %s\" expected: %s, actual: %s", #a, #b, AssertDetail::Printable(expected), AssertDetail::Printable(actual)) \
+        auto&& expected__ = (a); auto&& actual__ = (b), \
+        expected__ == actual__, \
+        Str::Format("\"%s == %s\" expected: %s, actual: %s", #a, #b, AssertDetail::Printable(expected__), AssertDetail::Printable(actual__)) \
     )
 #define DAEMON_ASSERT_NQ(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) != (b), \
-        auto&& notExpected = (a); auto&& actual = (b), \
-        notExpected != actual, \
-        Str::Format("\"%s != %s\" not expected: %s, actual: %s", #a, #b, AssertDetail::Printable(notExpected), AssertDetail::Printable(actual)) \
+        auto&& notExpected__ = (a); auto&& actual__ = (b), \
+        notExpected__ != actual__, \
+        Str::Format("\"%s != %s\" not expected: %s, actual: %s", #a, #b, AssertDetail::Printable(notExpected__), AssertDetail::Printable(actual__)) \
     )
 
 #define DAEMON_ASSERT_LT(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) < (b), \
-        auto&& bound = (a); auto&& actual = (b), \
-        bound < actual, \
-        Str::Format("\"%s < %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound), AssertDetail::Printable(actual)) \
+        auto&& bound__ = (a); auto&& actual__ = (b), \
+        bound__ < actual__, \
+        Str::Format("\"%s < %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound__), AssertDetail::Printable(actual__)) \
     )
 #define DAEMON_ASSERT_LE(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) <= (b), \
-        auto&& bound = (a); auto&& actual = (b), \
-        bound <= actual, \
-        Str::Format("\"%s <= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound), AssertDetail::Printable(actual)) \
+        auto&& bound__ = (a); auto&& actual__ = (b), \
+        bound__ <= actual__, \
+        Str::Format("\"%s <= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound__), AssertDetail::Printable(actual__)) \
     )
 #define DAEMON_ASSERT_GT(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) > (b), \
-        auto&& bound = (a); auto&& actual = (b), \
-        bound > actual, \
-        Str::Format("\"%s > %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound), AssertDetail::Printable(actual)) \
+        auto&& bound__ = (a); auto&& actual__ = (b), \
+        bound__ > actual__, \
+        Str::Format("\"%s > %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound__), AssertDetail::Printable(actual__)) \
     )
 #define DAEMON_ASSERT_GE(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) >= (b), \
-        auto&& bound = (a); auto&& actual = (b), \
-        bound >= actual, \
-        Str::Format("\"%s >= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound), AssertDetail::Printable(actual)) \
+        auto&& bound__ = (a); auto&& actual__ = (b), \
+        bound__ >= actual__, \
+        Str::Format("\"%s >= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound__), AssertDetail::Printable(actual__)) \
     )
 
 #if !defined(DAEMON_SKIP_ASSERT_SHORTHANDS)
