@@ -2015,9 +2015,7 @@ DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
 	}
 
 	DirectoryRange state;
-	state.handle = std::shared_ptr<void>(handle, [](void* handle) {
-		FindClose(handle);
-	});
+	state.handle = std::shared_ptr<void>(handle, FindClose);
 	state.current = Str::UTF16To8(findData.cFileName);
 	if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 		state.current.push_back('/');
@@ -2035,9 +2033,7 @@ DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
 	}
 
 	DirectoryRange state;
-	state.handle = std::shared_ptr<DIR>(handle, [](DIR* handle) {
-		closedir(handle);
-	});
+	state.handle = std::shared_ptr<DIR>(handle, closedir);
 	state.path = std::move(dirPath);
 	if (state.Advance(err))
 		return state;
@@ -2630,8 +2626,8 @@ void RefreshPaks()
 const PakInfo* FindPak(Str::StringRef name)
 {
 	// Find the latest version with the matching name
-	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [](Str::StringRef name, const PakInfo& pakInfo) -> bool {
-		return name < pakInfo.name;
+	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
+		return name1 < pakInfo.name;
 	});
 
 	if (iter == availablePaks.begin() || (iter - 1)->name != name)
@@ -2643,8 +2639,8 @@ const PakInfo* FindPak(Str::StringRef name)
 const PakInfo* FindPak(Str::StringRef name, Str::StringRef version)
 {
 	// Find a matching name and version, but prefer the last matching element since that is usually the one with no checksum
-	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version](Str::StringRef name, const PakInfo& pakInfo) -> bool {
-		int result = name.compare(pakInfo.name);
+	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
+		int result = name1.compare(pakInfo.name);
 		if (result != 0)
 			return result < 0;
 		return VersionCmp(version, pakInfo.version) < 0;
@@ -2659,8 +2655,8 @@ const PakInfo* FindPak(Str::StringRef name, Str::StringRef version)
 const PakInfo* FindPak(Str::StringRef name, Str::StringRef version, uint32_t checksum)
 {
 	// Try to find an exact match
-	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version, checksum](Str::StringRef name, const PakInfo& pakInfo) -> bool {
-		int result = name.compare(pakInfo.name);
+	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version, checksum](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
+		int result = name1.compare(pakInfo.name);
 		if (result != 0)
 			return result < 0;
 		result = VersionCmp(version, pakInfo.version);
@@ -2671,8 +2667,8 @@ const PakInfo* FindPak(Str::StringRef name, Str::StringRef version, uint32_t che
 
 	if (iter == availablePaks.begin() || (iter - 1)->name != name || (iter - 1)->version != version || !(iter - 1)->checksum || *(iter - 1)->checksum != checksum) {
 		// Try again, but this time look for the pak without a checksum. We will verify the checksum later.
-		iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version](Str::StringRef name, const PakInfo& pakInfo) -> bool {
-			int result = name.compare(pakInfo.name);
+		iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
+			int result = name1.compare(pakInfo.name);
 			if (result != 0)
 				return result < 0;
 			result = VersionCmp(version, pakInfo.version);

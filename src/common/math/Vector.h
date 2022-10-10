@@ -876,17 +876,6 @@ namespace Math {
 		return init;
 	}
 
-	// Vector minimum/maximum and clamping
-	template<size_t Dimension, typename Type>
-	Vector<Dimension, Type> Min(Vector<Dimension, Type> a, Vector<Dimension, Type> b)
-	{
-		return a.Apply2([](Type a, Type b) {return std::min(a, b);}, b);
-	}
-	template<size_t Dimension, typename Type>
-	Vector<Dimension, Type> Max(Vector<Dimension, Type> a, Vector<Dimension, Type> b)
-	{
-		return a.Apply2([](Type a, Type b) {return std::max(a, b);}, b);
-	}
 	template<size_t Dimension, typename Type>
 	Vector<Dimension, Type> Clamp(Vector<Dimension, Type> x, Vector<Dimension, Type> low, Vector<Dimension, Type> high)
 	{
@@ -896,33 +885,6 @@ namespace Math {
 	Vector<Dimension, Type> Clamp(Vector<Dimension, Type> x, Type low, Type high)
 	{
 		return Clamp(x, Vector<Dimension, Type>(low), Vector<Dimension, Type>(high));
-	}
-
-	// Vector dot product, length and distance
-	template<size_t Dimension, typename Type, typename Enable = typename std::enable_if<std::is_floating_point<Type>::value>::type>
-	Type Dot(Vector<Dimension, Type> a, Vector<Dimension, Type> b)
-	{
-		return (a * b).Reduce(0, [](Type a, Type b) {return a + b;});
-	}
-	template<size_t Dimension, typename Type, typename Enable = typename std::enable_if<std::is_floating_point<Type>::value>::type>
-	Type LengthSq(Vector<Dimension, Type> x)
-	{
-		return Dot(x, x);
-	}
-	template<size_t Dimension, typename Type, typename Enable = typename std::enable_if<std::is_floating_point<Type>::value>::type>
-	Type Length(Vector<Dimension, Type> x)
-	{
-		return sqrt(LengthSq(x));
-	}
-	template<size_t Dimension, typename Type, typename Enable = typename std::enable_if<std::is_floating_point<Type>::value>::type>
-	Type DistanceSq(Vector<Dimension, Type> a, Vector<Dimension, Type> b)
-	{
-		return LengthSq(a - b);
-	}
-	template<size_t Dimension, typename Type, typename Enable = typename std::enable_if<std::is_floating_point<Type>::value>::type>
-	Type Distance(Vector<Dimension, Type> a, Vector<Dimension, Type> b)
-	{
-		return sqrt(DistanceSq(a, b));
 	}
 
 	// Vector cross product
@@ -949,11 +911,6 @@ namespace Math {
 	Vector<Dimension, Type> Mix(Vector<Dimension, Type> a, Vector<Dimension, Type> b, Type frac)
 	{
 		return a + (b - a) * frac;
-	}
-	template<size_t Dimension, typename Type, typename Enable = typename std::enable_if<std::is_floating_point<Type>::value>::type>
-	Vector<Dimension, Type> Mix(Vector<Dimension, Type> a, Vector<Dimension, Type> b, Vector<Dimension, bool> sel)
-	{
-		return a.Apply3([](Type a, Type b, bool sel) {return sel ? b : a;}, b, sel);
 	}
 
 	// Vector projection

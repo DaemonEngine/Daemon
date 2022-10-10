@@ -176,7 +176,7 @@ namespace Audio {
 
     std::shared_ptr<Emitter> GetEmitterForPosition(Vec3 position) {
         for (auto emitter : posEmitters) {
-            if (Distance(emitter->GetPosition(), position) <= 1.0f) {
+            if (Distance(emitter->GetPosition().Data(), position.Data()) <= 1.0f) {
                 return emitter;
             }
         }
