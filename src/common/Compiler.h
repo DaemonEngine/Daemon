@@ -33,6 +33,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_COMPILER_H_
 #define COMMON_COMPILER_H_
 
+// CountTrailingZeroes returns the number of trailing zeroes of the argument in binary.
+// The result is unspecified if the input is 0.
+int CountTrailingZeroes(unsigned int x);
+int CountTrailingZeroes(unsigned long x);
+int CountTrailingZeroes(unsigned long long x);
+
 // GCC and Clang
 #ifdef __GNUC__
 
@@ -117,6 +123,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # define ATTRIBUTE_NO_SANITIZE_ADDRESS
 #endif
 
+inline int CountTrailingZeroes(unsigned int x) { return __builtin_ctz(x); }
+inline int CountTrailingZeroes(unsigned long x) { return __builtin_ctzl(x); }
+inline int CountTrailingZeroes(unsigned long long x) { return __builtin_ctzll(x); }
+
 // Microsoft Visual C++
 #elif defined( _MSC_VER )
 
@@ -162,6 +172,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONSTEXPR constexpr
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS
 
+inline int CountTrailingZeroes(unsigned int x) { unsigned long ans; _BitScanForward(&ans, x); return ans; }
+inline int CountTrailingZeroes(unsigned long x) { unsigned long ans; _BitScanForward(&ans, x); return ans; }
+#ifdef _WIN64
+inline int CountTrailingZeroes(unsigned long long x) { unsigned long ans; _BitScanForward64(&ans, x); return ans; }
+#else
+inline int CountTrailingZeroes(unsigned long long x)
+{
+    unsigned long ans;
+    bool nonzero =  _BitScanForward(&ans, static_cast<unsigned long>(x));
+    if (!nonzero) {
+        _BitScanForward(&ans, x >> 32);
+    }
+    return ans;
+}
+#endif
+
 // Other compilers, unsupported
 #else
 #warning "Unsupported compiler"
@@ -178,6 +204,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DLLEXPORT
 #define DLLIMPORT
 #define BREAKPOINT()
+
+inline int CountTrailingZeroes(unsigned int x) { int i = 0; while (i < 32 && !(x & 1)) { ++i; x >>= 1; } return i; }
+inline int CountTrailingZeroes(unsigned long x) { int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i; }
+inline int CountTrailingZeroes(unsigned long long x) { int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i; }
 #endif
 
 #if defined(__MINGW32__) && defined(__i386__)
