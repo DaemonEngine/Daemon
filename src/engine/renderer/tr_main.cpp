@@ -2696,7 +2696,7 @@ static void RunBotDebugDrawCommands()
 	}
 
 	Util::Reader r;
-	std::swap( r.GetData(), botDebugDrawCommands );
+	r.GetData() = botDebugDrawCommands;
 	while ( true )
 	{
 		debugDrawMode_t mode;
