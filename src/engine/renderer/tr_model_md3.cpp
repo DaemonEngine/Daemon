@@ -311,13 +311,13 @@ bool R_LoadMD3( model_t *mod, int lod, void *buffer, const char *modName )
 
 						for ( k = 0; k < 3; k++ )
 						{
-							float *v;
+							float *w;
 
-							v = tangents[ tri->indexes[ k ] ];
-							VectorAdd( v, tangent, v );
+							w = tangents[ tri->indexes[ k ] ];
+							VectorAdd( w, tangent, w );
 
-							v = binormals[ tri->indexes[ k ] ];
-							VectorAdd( v, binormal, v );
+							w = binormals[ tri->indexes[ k ] ];
+							VectorAdd( w, binormal, w );
 						}
 					}
 

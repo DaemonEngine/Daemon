@@ -527,16 +527,16 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 
 				for (unsigned k = 0; k < 3; k++ )
 				{
-					float *v;
+					float *w;
 
-					v = surf->verts[ tri->indexes[ k ] ].tangent;
-					VectorAdd( v, tangent, v );
+					w = surf->verts[ tri->indexes[ k ] ].tangent;
+					VectorAdd( w, tangent, w );
 
-					v = surf->verts[ tri->indexes[ k ] ].binormal;
-					VectorAdd( v, binormal, v );
+					w = surf->verts[ tri->indexes[ k ] ].binormal;
+					VectorAdd( w, binormal, w );
 
-					v = surf->verts[ tri->indexes[ k ] ].normal;
-					VectorAdd( v, normal, v );
+					w = surf->verts[ tri->indexes[ k ] ].normal;
+					VectorAdd( w, normal, w );
 				}
 			}
             v = surf->verts;
