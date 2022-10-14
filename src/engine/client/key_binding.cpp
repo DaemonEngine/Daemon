@@ -385,34 +385,18 @@ namespace { // Key binding commands
 static const char *const teamName[] = { "default", "aliens", "humans", "spectators" };
 int GetTeam(Str::StringRef arg)
 {
-	int t, l;
-
 	if ( arg.empty() )
 	{
 		return -1;
 	}
 
-	for ( t = 0; arg[ t ]; ++t )
+	int team;
+	if ( Str::ParseInt( team, arg ) )
 	{
-		if ( !Str::cisdigit( arg[ t ] ) )
-		{
-			break;
-		}
+		return IsValidTeamNumber( team ) ? team : -1;
 	}
 
-	if ( !arg[ t ] )
-	{
-		t = atoi( arg.c_str() );
-
-		if ( !IsValidTeamNumber( t ) )
-		{
-			return -1;
-		}
-
-		return Util::enum_cast<BindTeam>(t);
-	}
-
-	l = arg.size();
+	size_t l = arg.size();
 
 	for ( unsigned t = 0; t < ARRAY_LEN( teamName ); ++t )
 	{
