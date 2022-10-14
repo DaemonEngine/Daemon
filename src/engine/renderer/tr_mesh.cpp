@@ -252,10 +252,8 @@ R_AddMDVSurfaces
 */
 void R_AddMDVSurfaces( trRefEntity_t *ent )
 {
-	int          i;
 	mdvModel_t   *model = nullptr;
 	mdvSurface_t *mdvSurface = nullptr;
-	shader_t     *shader = nullptr;
 	int          lod;
 	bool     personalModel;
 	int          fogNum;
@@ -316,16 +314,14 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 	// draw all surfaces
 	if ( r_vboModels->integer && model->numVBOSurfaces )
 	{
-		int             i;
 		srfVBOMDVMesh_t *vboSurface;
-		shader_t        *shader;
 
-		for ( i = 0; i < model->numVBOSurfaces; i++ )
+		for ( int i = 0; i < model->numVBOSurfaces; i++ )
 		{
 			vboSurface = model->vboSurfaces[ i ];
 			mdvSurface = vboSurface->mdvSurface;
 
-			shader = GetMDVSurfaceShader( ent, mdvSurface );
+			shader_t *shader = GetMDVSurfaceShader( ent, mdvSurface );
 
 			// don't add third_person objects if not viewing through a portal
 			if ( !personalModel )
@@ -336,9 +332,10 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 	}
 	else
 	{
+		int i;
 		for ( i = 0, mdvSurface = model->surfaces; i < model->numSurfaces; i++, mdvSurface++ )
 		{
-			shader = GetMDVSurfaceShader( ent, mdvSurface );
+			shader_t *shader = GetMDVSurfaceShader( ent, mdvSurface );
 
 			// we will add shadows even if the main object isn't visible in the view
 
@@ -358,10 +355,8 @@ R_AddMDVInteractions
 */
 void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType )
 {
-	int               i;
 	mdvModel_t        *model = nullptr;
 	mdvSurface_t      *mdvSurface = nullptr;
-	shader_t          *shader = nullptr;
 	int               lod;
 	bool          personalModel;
 	byte              cubeSideBits;
@@ -430,17 +425,15 @@ void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 	if ( r_vboModels->integer && model->numVBOSurfaces )
 	{
 		// new brute force method: just render everthing with static VBOs
-		int             i;
 		srfVBOMDVMesh_t *vboSurface;
-		shader_t        *shader;
 
 		// static VBOs are fine for lighting and shadow mapping
-		for ( i = 0; i < model->numVBOSurfaces; i++ )
+		for ( int i = 0; i < model->numVBOSurfaces; i++ )
 		{
 			vboSurface = model->vboSurfaces[ i ];
 			mdvSurface = vboSurface->mdvSurface;
 
-			shader = GetMDVSurfaceShader( ent, mdvSurface );
+			shader_t *shader = GetMDVSurfaceShader( ent, mdvSurface );
 
 			// skip all surfaces that don't matter for lighting only pass
 			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )
@@ -460,9 +453,10 @@ void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 	}
 	else
 	{
+		int i;
 		for ( i = 0, mdvSurface = model->surfaces; i < model->numSurfaces; i++, mdvSurface++ )
 		{
-			shader = GetMDVSurfaceShader( ent, mdvSurface );
+			shader_t *shader = GetMDVSurfaceShader( ent, mdvSurface );
 
 			// skip all surfaces that don't matter for lighting only pass
 			if ( shader->isSky || ( !shader->interactLight && shader->noShadows ) )

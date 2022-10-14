@@ -814,7 +814,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
 	int        mipWidth, mipHeight, mipLayers, mipSize, blockSize = 0;
-	int        i, j, c;
+	int        i, c;
 	const byte *scan;
 	GLenum     target;
 	GLenum     format = GL_RGBA;
@@ -1148,7 +1148,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			mipSize = ((mipWidth + 3) >> 2)
 			  * ((mipHeight + 3) >> 2) * blockSize;
 
-			for ( j = 0; j < mipLayers; j++ ) {
+			for ( int j = 0; j < mipLayers; j++ ) {
 				if( dataArray )
 					data = dataArray[ j * numMips + i ];
 				else

@@ -357,8 +357,8 @@ static void SignalHandler(int sig)
 
 	sigset_t sigset;
 	sigemptyset(&sigset);
-	for (int sig: {SIGTERM, SIGINT, SIGQUIT, SIGPIPE, SIGHUP})
-		sigaddset(&sigset, sig);
+	for (int signal: {SIGTERM, SIGINT, SIGQUIT, SIGPIPE, SIGHUP})
+		sigaddset(&sigset, signal);
 	sigwait(&sigset, &sig);
 
 	// Allow aborting shutdown if it gets stuck

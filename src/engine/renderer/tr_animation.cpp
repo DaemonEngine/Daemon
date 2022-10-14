@@ -70,7 +70,7 @@ void R_InitAnimations()
 
 static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *name )
 {
-	int            i, j;
+	int            i;
 	md5Animation_t *anim;
 	md5Frame_t     *frame;
 	md5Channel_t   *channel;
@@ -236,7 +236,7 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *
 			return false;
 		}
 
-		for ( j = 0; j < 3; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
 			token = COM_ParseExt2( &buf_p, false );
 			frame->bounds[ 0 ][ j ] = atof( token );
@@ -260,7 +260,7 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *
 			return false;
 		}
 
-		for ( j = 0; j < 3; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
 			token = COM_ParseExt2( &buf_p, false );
 			frame->bounds[ 1 ][ j ] = atof( token );
@@ -313,7 +313,7 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *
 			return false;
 		}
 
-		for ( j = 0; j < 3; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
 			token = COM_ParseExt2( &buf_p, false );
 			channel->baseOrigin[ j ] = atof( token );
@@ -337,7 +337,7 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *
 			return false;
 		}
 
-		for ( j = 0; j < 3; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
 			token = COM_ParseExt2( &buf_p, false );
 			channel->baseQuat[ j ] = atof( token );
@@ -661,7 +661,6 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 {
 	md5Model_t   *model;
 	md5Surface_t *surface;
-	int          i;
 	bool     personalModel;
 	int          fogNum;
 
@@ -695,6 +694,7 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 		shader_t *shader;
 
 		// finally add surfaces
+		int i;
 		for ( i = 0, surface = model->surfaces; i < model->numSurfaces; i++, surface++ )
 		{
 			if ( ent->e.customShader )
@@ -747,11 +747,10 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 	}
 	else
 	{
-		int             i;
 		srfVBOMD5Mesh_t *vboSurface;
 		shader_t        *shader;
 
-		for ( i = 0; i < model->numVBOSurfaces; i++ )
+		for ( int i = 0; i < model->numVBOSurfaces; i++ )
 		{
 			vboSurface = model->vboSurfaces[ i ];
 
@@ -927,7 +926,6 @@ R_AddMD5Interactions
 */
 void R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType )
 {
-	int               i;
 	md5Model_t        *model;
 	md5Surface_t      *surface;
 	bool          personalModel;
@@ -996,6 +994,7 @@ void R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 		shader_t *shader = nullptr;
 
 		// generate interactions with all surfaces
+		int i;
 		for ( i = 0, surface = model->surfaces; i < model->numSurfaces; i++, surface++ )
 		{
 			if ( ent->e.customShader )

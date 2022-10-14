@@ -444,7 +444,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 	iqmPose_t		*pose;
 	iqmAnim_t		*anim;
 	unsigned short		*framedata;
-	char			*str, *name;
+	char			*str;
 	int		len;
 	transform_t		*trans, *poses;
 	float			*bounds;
@@ -564,7 +564,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 	// copy joint names
 	joint = ( iqmJoint_t* )IQMPtr( header, header->ofs_joints );
 	for(unsigned i = 0; i < header->num_joints; i++, joint++ ) {
-		name = ( char* )IQMPtr( header, header->ofs_text + joint->name );
+		auto name = ( char* )IQMPtr( header, header->ofs_text + joint->name );
 		len = strlen( name ) + 1;
 		memcpy( str, name, len );
 		str += len;
@@ -596,7 +596,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 		IQAnim->name         = str;
 		IQAnim->jointNames   = IQModel->jointNames;
 
-		name = ( char* )IQMPtr( header, header->ofs_text + anim->name );
+		auto name = ( char* )IQMPtr( header, header->ofs_text + anim->name );
 		len = strlen( name ) + 1;
 		memcpy( str, name, len );
 		str += len;
@@ -849,7 +849,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 
 		if( mesh->name ) {
 			surface->name = str;
-			name = ( char* )IQMPtr( header, header->ofs_text + mesh->name );
+			auto name = ( char* )IQMPtr( header, header->ofs_text + mesh->name );
 			len = strlen( name ) + 1;
 			memcpy( str, name, len );
 			str += len;
@@ -873,15 +873,15 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 	// copy model bounds
 	if(header->ofs_bounds)
 	{
-		iqmBounds_t *ptr = ( iqmBounds_t* )IQMPtr( header, header->ofs_bounds );
+		iqmBounds_t *boundsPtr = ( iqmBounds_t* )IQMPtr( header, header->ofs_bounds );
 		for(unsigned i = 0; i < header->num_frames; i++)
 		{
-			VectorCopy( ptr->bbmin, bounds );
+			VectorCopy( boundsPtr->bbmin, bounds );
 			bounds += 3;
-			VectorCopy( ptr->bbmax, bounds );
+			VectorCopy( boundsPtr->bbmax, bounds );
 			bounds += 3;
 
-			ptr++;
+			boundsPtr++;
 		}
 	}
 

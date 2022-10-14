@@ -1101,9 +1101,9 @@ void CGameVM::Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel)
 	}
 }
 
-void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
+void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& channel)
 {
-	switch (index) {
+	switch (syscallNum) {
 		case CG_SENDCLIENTCOMMAND:
 			IPC::HandleMsg<SendClientCommandMsg>(channel, std::move(reader), [this] (const std::string& command) {
 				CL_AddReliableCommand(command.c_str());
@@ -1485,7 +1485,7 @@ void CGameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 			break;
 
 	default:
-		Sys::Drop("Bad CGame QVM syscall minor number: %d", index);
+		Sys::Drop("Bad CGame QVM syscall minor number: %d", syscallNum);
 	}
 }
 

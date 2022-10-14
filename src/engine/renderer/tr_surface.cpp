@@ -952,7 +952,6 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 	else
 	{
 		// calc tangent spaces
-		int         i;
 		float       *v;
 		const float *v0, *v1, *v2;
 		const float *t0, *t1, *t2;
@@ -1412,14 +1411,14 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	}
 	else
 	{
-		float modelScale = model->internalScale * backEnd.currentEntity->e.skeleton.scale;
+		float scale = model->internalScale * backEnd.currentEntity->e.skeleton.scale;
 
 		for ( ; tessVertex < lastVertex; tessVertex++,
 			modelPosition += 3, modelNormal += 3,
 			modelTangent += 3, modelBitangent += 3,
 			modelTexcoord += 2 )
 		{
-			VectorScale( modelPosition, modelScale, tessVertex->xyz );
+			VectorScale( modelPosition, scale, tessVertex->xyz );
 
 			R_TBNtoQtangents( modelTangent, modelBitangent, modelNormal, tessVertex->qtangents );
 

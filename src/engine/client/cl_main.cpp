@@ -1945,7 +1945,7 @@ CL_ServersResponsePacket
 */
 void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 {
-	int      i, count, duplicate_count, parsed_count, total;
+	int      count, duplicate_count, parsed_count, total;
 	netadr_t addresses[ MAX_SERVERSPERPACKET ];
 	int      numservers;
 	byte     *buffptr;
@@ -2064,7 +2064,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 					strcpy( s, NET_AdrToStringwPort( cls.serverLinks[ j ] ) );
 					cls.serverLinks[j].type = netadrtype_t::NA_IP_DUAL;
 
-					for ( i = 0; i < numservers; ++i )
+					for ( int i = 0; i < numservers; ++i )
 					{
 						if ( !strcmp( s, NET_AdrToStringwPort( addresses[ i ] ) ) )
 						{
@@ -2135,7 +2135,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 					strcpy( s, NET_AdrToStringwPort( cls.serverLinks[ j ] ) );
 					cls.serverLinks[j].type = netadrtype_t::NA_IP_DUAL;
 
-					for ( i = 0; i < numservers; ++i )
+					for ( int i = 0; i < numservers; ++i )
 					{
 						if ( !strcmp( s, NET_AdrToStringwPort( addresses[ i ] ) ) )
 						{
@@ -2176,6 +2176,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 
 	count = cls.numglobalservers;
 
+	int i;
 	for ( i = 0; i < numservers && count < MAX_GLOBAL_SERVERS; i++ )
 	{
 		// build net address
