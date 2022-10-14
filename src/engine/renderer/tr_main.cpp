@@ -947,7 +947,6 @@ Setup that culling frustum planes for the current view
 */
 static void R_SetupFrustum()
 {
-	int    i;
 	float  xs, xc;
 	float  ang;
 	vec3_t planeOrigin;
@@ -996,7 +995,7 @@ static void R_SetupFrustum()
 		VectorScale( tr.viewParms.orientation.axis[ 0 ], xs, tr.viewParms.frustums[ 0 ][ 3 ].normal );
 		VectorMA( tr.viewParms.frustums[ 0 ][ 3 ].normal, -xc, tr.viewParms.orientation.axis[ 2 ], tr.viewParms.frustums[ 0 ][ 3 ].normal );
 
-		for ( i = 0; i < 4; i++ )
+		for ( int i = 0; i < 4; i++ )
 		{
 			tr.viewParms.frustums[ 0 ][ i ].type = PLANE_NON_AXIAL;
 			tr.viewParms.frustums[ 0 ][ i ].dist = DotProduct( tr.viewParms.orientation.origin, tr.viewParms.frustums[ 0 ][ i ].normal );

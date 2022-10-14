@@ -362,7 +362,7 @@ public:
 
 private:
 	virtual void Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel) override final;
-	void QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel);
+	void QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& channel);
 
 	std::unique_ptr<VM::CommonVMServices> services;
 

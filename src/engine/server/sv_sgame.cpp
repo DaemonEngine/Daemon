@@ -446,9 +446,9 @@ void GameVM::Syscall(uint32_t id, Util::Reader reader, IPC::Channel& channel)
 	}
 }
 
-void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
+void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& channel)
 {
-	switch (index) {
+	switch (syscallNum) {
 	case G_LOCATE_GAME_DATA1:
 		IPC::HandleMsg<LocateGameDataMsg1>(channel, std::move(reader), [this](IPC::SharedMemory shm, int numEntities, int entitySize, int playerSize) {
 			shmRegion = std::move(shm);
@@ -609,6 +609,6 @@ void GameVM::QVMSyscall(int index, Util::Reader& reader, IPC::Channel& channel)
 		break;
 
 	default:
-		Sys::Drop("Bad game system trap: %d", index);
+		Sys::Drop("Bad game system trap: %d", syscallNum);
 	}
 }

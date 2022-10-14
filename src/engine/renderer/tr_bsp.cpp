@@ -3141,8 +3141,8 @@ static void R_CreateWorldVBO()
 		for ( i = 0; i < numSurfaces; i++ )
 		{
 			vec3_t bounds[ 2 ];
-			int numVerts = 0;
-			int numIndexes = 0;
+			int surfVerts = 0;
+			int surfIndexes = 0;
 			int firstIndex = numTriangles * 3;
 			srfVBOMesh_t *vboSurf;
 			bspSurface_t *surf1 = surfaces[ i ];
@@ -3192,27 +3192,27 @@ static void R_CreateWorldVBO()
 				if ( *surf2->data == surfaceType_t::SF_FACE )
 				{
 					srfSurfaceFace_t *face = ( srfSurfaceFace_t * ) surf2->data;
-					numIndexes += face->numTriangles * 3;
-					numVerts += face->numVerts;
+					surfIndexes += face->numTriangles * 3;
+					surfVerts += face->numVerts;
 					BoundsAdd( bounds[ 0 ], bounds[ 1 ], face->bounds[ 0 ], face->bounds[ 1 ] );
 				}
 				else if ( *surf2->data == surfaceType_t::SF_TRIANGLES )
 				{
 					srfTriangles_t *tris = ( srfTriangles_t * ) surf2->data;
-					numIndexes += tris->numTriangles * 3;
-					numVerts += tris->numVerts;
+					surfIndexes += tris->numTriangles * 3;
+					surfVerts += tris->numVerts;
 					BoundsAdd( bounds[ 0 ], bounds[ 1 ], tris->bounds[ 0 ], tris->bounds[ 1 ] );
 				}
 				else if ( *surf2->data == surfaceType_t::SF_GRID )
 				{
 					srfGridMesh_t *grid = ( srfGridMesh_t * ) surf2->data;
-					numIndexes += grid->numTriangles * 3;
-					numVerts += grid->numVerts;
+					surfIndexes += grid->numTriangles * 3;
+					surfVerts += grid->numVerts;
 					BoundsAdd( bounds[ 0 ], bounds[ 1 ], grid->bounds[ 0 ], grid->bounds[ 1 ] );
 				}
 			}
 
-			if ( !numIndexes || !numVerts )
+			if ( !surfIndexes || !surfVerts )
 			{
 				continue;
 			}
@@ -3221,8 +3221,8 @@ static void R_CreateWorldVBO()
 			memset( vboSurf, 0, sizeof( *vboSurf ) );
 			vboSurf->surfaceType = surfaceType_t::SF_VBO_MESH;
 
-			vboSurf->numIndexes = numIndexes;
-			vboSurf->numVerts = numVerts;
+			vboSurf->numIndexes = surfIndexes;
+			vboSurf->numVerts = surfVerts;
 			vboSurf->firstIndex = firstIndex;
 
 			vboSurf->shader = surf1->shader;
@@ -6734,9 +6734,9 @@ void RE_LoadWorldMap( const char *name )
 	}
 
 	// swap all the lumps
-	for ( unsigned i = 0; i < sizeof( dheader_t ) / 4; i++ )
+	for ( unsigned j = 0; j < sizeof( dheader_t ) / 4; j++ )
 	{
-		( ( int * ) header ) [ i ] = LittleLong( ( ( int * ) header ) [ i ] );
+		( ( int * ) header ) [ j ] = LittleLong( ( ( int * ) header ) [ j ] );
 	}
 
 	// load into heap
