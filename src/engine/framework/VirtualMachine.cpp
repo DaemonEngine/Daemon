@@ -163,7 +163,9 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 		Sys::Drop("VM: Could not assign process to job object: %s", Sys::Win32StrError(GetLastError()));
 	}
 
-#ifndef _WIN64
+#ifdef _WIN64
+	Q_UNUSED(reserve_mem);
+#else
 	// Attempt to reserve 1GB of address space for the NaCl sandbox
 	if (reserve_mem)
 		VirtualAllocEx(processInfo.hProcess, nullptr, 1 << 30, MEM_RESERVE, PAGE_NOACCESS);
