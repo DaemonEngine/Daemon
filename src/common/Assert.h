@@ -127,25 +127,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         (a) < (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound < actual, \
-        Str::Format("\"%s < %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
+        Str::Format("\"%s < %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound), AssertDetail::Printable(actual)) \
     )
 #define DAEMON_ASSERT_LE(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) <= (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound <= actual, \
-        Str::Format("\"%s <= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
+        Str::Format("\"%s <= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound), AssertDetail::Printable(actual)) \
     )
 #define DAEMON_ASSERT_GT(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) > (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound > actual, \
-        Str::Format("\"%s > %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
+        Str::Format("\"%s > %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound), AssertDetail::Printable(actual)) \
     )
 #define DAEMON_ASSERT_GE(a, b) DAEMON_ASSERT_CALLSITE( \
         (a) >= (b), \
         auto&& bound = (a); auto&& actual = (b), \
         bound >= actual, \
-        Str::Format("\"%s >= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(a), AssertDetail::Printable(b)) \
+        Str::Format("\"%s >= %s\" bound: %s, actual: %s", #a, #b, AssertDetail::Printable(bound), AssertDetail::Printable(actual)) \
     )
 
 #if !defined(DAEMON_SKIP_ASSERT_SHORTHANDS)
