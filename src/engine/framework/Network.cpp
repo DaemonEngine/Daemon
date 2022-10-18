@@ -297,9 +297,9 @@ DNSQueryHandle AllocDNSQuery()
     return resolver.AllocQuery();
 }
 
-void SetDNSQuery(DNSQueryHandle query, std::string hostname, int priorityMask)
+void SetDNSQuery(DNSQueryHandle query, std::string hostname, int protocolMask)
 {
-    resolver.SetQuery(query, hostname, priorityMask);
+    resolver.SetQuery(query, hostname, protocolMask);
 }
 
 DNSResult GetAddresses(DNSQueryHandle query)
