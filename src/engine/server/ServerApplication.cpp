@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <common/FileSystem.h>
-#include "framework/Application.h"
+#include "framework/ApplicationInternals.h"
 #include "framework/CommandSystem.h"
 #include "qcommon/qcommon.h"
 

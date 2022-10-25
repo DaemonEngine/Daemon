@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //TODO(kangz)
 #include "common/Common.h"
 #include "common/System.h"
-#include "framework/Application.h"
+#include "framework/ApplicationInternals.h"
 #include "framework/BaseCommands.h"
 #include "framework/CommandSystem.h"
 #include "qcommon/qcommon.h"

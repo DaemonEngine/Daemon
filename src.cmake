@@ -215,6 +215,7 @@ set(SERVERLIST
 set(ENGINELIST
     ${ENGINE_DIR}/framework/Application.cpp
     ${ENGINE_DIR}/framework/Application.h
+    ${ENGINE_DIR}/framework/ApplicationInternals.h
     ${ENGINE_DIR}/framework/BaseCommands.cpp
     ${ENGINE_DIR}/framework/BaseCommands.h
     ${ENGINE_DIR}/framework/CommandBufferHost.cpp
@@ -261,6 +262,11 @@ else()
     )
 endif()
 
+# Tests for engine-lib
+set(ENGINETESTLIST
+    ${ENGINE_DIR}/framework/CommandSystemTest.cpp
+)
+
 set(QCOMMONLIST
     ${ENGINE_DIR}/qcommon/cmd.cpp
     ${ENGINE_DIR}/qcommon/common.cpp
@@ -305,7 +311,6 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/key_identification.h
     ${ENGINE_DIR}/client/keycodes.h
     ${ENGINE_DIR}/client/keys.h
-    ${ENGINE_DIR}/client/ClientApplication.cpp
 )
 
 set(CLIENTLIST
@@ -345,7 +350,6 @@ set(DEDSERVERLIST
     ${ENGINE_DIR}/null/NullKeyboard.cpp
     ${ENGINE_DIR}/null/null_client.cpp
     ${ENGINE_DIR}/null/null_input.cpp
-    ${ENGINE_DIR}/server/ServerApplication.cpp
 )
 
 set(WIN_RC ${ENGINE_DIR}/sys/daemon.rc)

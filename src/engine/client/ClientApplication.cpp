@@ -28,7 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#include "framework/Application.h"
+#include "common/Common.h"
+#include "framework/ApplicationInternals.h"
 #include "framework/CommandSystem.h"
 #include "client.h"
 

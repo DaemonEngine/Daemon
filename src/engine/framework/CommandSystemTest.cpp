@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2013-2016, Daemon Developers
+Copyright (c) 2022, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,59 +28,55 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#ifndef FRAMEWORK_APPLICATION_H_
-#define FRAMEWORK_APPLICATION_H_
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "CommandSystem.h"
 
-#include <string>
-#include <common/String.h>
-#include <common/Command.h>
+namespace Cmd {
+namespace {
+using ::testing::Eq;
 
-namespace Application {
-
-struct Traits {
-    Traits();
-
-    // TODO remove the need for these target traits
-    bool isClient;
-    bool isTTYClient;
-    bool isServer;
-
-    std::string uniqueHomepathSuffix;
-    bool useCurses;
-    bool supportsUri;
-};
-
-class Application {
-    public:
-        Application();
-        virtual ~Application() = default;
-
-        virtual void LoadInitialConfig(bool resetConfig);
-        virtual void Initialize();
-        virtual void Frame() {}
-
-        virtual void OnDrop(bool error, Str::StringRef reason);
-        virtual void Shutdown(bool error, Str::StringRef message);
-
-        virtual void OnUnhandledCommand(const Cmd::Args& args);
-
-        const Traits& GetTraits() const;
-
-    protected:
-        Traits traits;
-};
-
-void LoadInitialConfig(bool resetConfig);
-void Initialize();
-void Frame();
-
-void OnDrop(bool error, Str::StringRef reason);
-void Shutdown(bool error, Str::StringRef message);
-
-void OnUnhandledCommand(const Cmd::Args& args);
-
-const Traits& GetTraits();
-
+TEST(NamespaceFold, Empty)
+{
+    CompletionResult input = {};
+    CompletionResult expected = {};
+    NamespaceFold(input);
+    ASSERT_THAT(input, Eq(expected));
 }
 
-#endif // FRAMEWORK_APPLICATION_H_
+TEST(NamespaceFold, NoFoldSharedPrefix)
+{
+    CompletionResult input = {{"a.c", "description of a.c"}, {"a.b", "description of a.b"}};
+    CompletionResult expected = {{"a.b", "description of a.b"}, {"a.c", "description of a.c"}};
+    NamespaceFold(input);
+    ASSERT_THAT(input, Eq(expected));
+}
+
+TEST(NamespaceFold, MultipleNamespacesDots)
+{
+    CompletionResult input =
+        {{"dretch.speed", "dretch speed"}, {"mara.voltage", "mara voltage"},
+        {"dretch.strength", "dretch strength"}, {"granger.size.x", "granger size x"},
+        {"granger.size.z", "granger size z"}};
+    CompletionResult expected =
+        {{"dretch.", ""}, {"granger.", ""}, {"mara.voltage", "mara voltage"}};
+    NamespaceFold(input);
+    ASSERT_THAT(input, Eq(expected));
+}
+
+TEST(NamespaceFold, MultipleNamespacesUnderscores)
+{
+    CompletionResult input =
+        {{"g_bot_skill_climbing", "bot climbing skill"},
+        {"g_bot_skill_crawling", "bot crawling skill"}, {"g_bot_buy", "bot buy"},
+        {"g_bot_infinite_funds", "bot infinite funds"}};
+    CompletionResult expected =
+        {{"g_bot_buy", "bot buy"}, {"g_bot_infinite_funds", "bot infinite funds"},
+        {"g_bot_skill_", ""}};
+    NamespaceFold(input);
+    ASSERT_THAT(input, Eq(expected));
+}
+
+} // namespace
+} // namespace Cmd
+
