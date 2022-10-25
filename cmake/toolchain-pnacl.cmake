@@ -51,12 +51,15 @@ set(CMAKE_C_RESPONSE_FILE_LINK_FLAG "@")
 set(CMAKE_CXX_RESPONSE_FILE_LINK_FLAG "@")
 
 if (NOT CMAKE_HOST_WIN32)
-    find_package(Python2)
-    if (NOT Python2_Interpreter_FOUND)
-        message(FATAL_ERROR "Please install python2 (and run in a python2 virtualenv if that's not enough).")
+    find_package(Python)
+
+    if (Python_Interpreter_FOUND)
+        set(PNACLPYTHON_PREFIX "env PNACLPYTHON=${Python_EXECUTABLE} ")
+        set(PNACLPYTHON_PREFIX2 env "PNACLPYTHON=${Python_EXECUTABLE} ")
+        message(STATUS "Using PNACL Python executable: ${Python_EXECUTABLE}")
+    else()
+        message(FATAL_ERROR "Please install python (and run in a python virtualenv if that's not enough).")
     endif()
-    set(PNACLPYTHON_PREFIX "env PNACLPYTHON=${Python2_EXECUTABLE} ")
-    set(PNACLPYTHON_PREFIX2 env "PNACLPYTHON=${Python2_EXECUTABLE} ")
 endif()
 
 # These commands can fail on windows if there is a space at the beginning
