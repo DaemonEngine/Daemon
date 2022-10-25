@@ -399,6 +399,7 @@ namespace Cvar {
             }
         }
 
+        Cmd::NamespaceFold(res);
         return res;
     }
 

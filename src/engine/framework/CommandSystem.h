@@ -98,6 +98,11 @@ namespace Cmd {
     //Completion stuff, highly unstable :-)
     CompletionResult CompleteArgument(const Args& args, int argNum);
     CompletionResult CompleteCommandNames(Str::StringRef prefix = "");
+    // Trims each completion item after the first namespace separator (dot, underscore) beyond the common
+    // prefix of all completion items, IF there is at least one other item matching the current item
+    // up to the separator. Deduplicates trimmed items and remove their descriptions.  Also sorts items
+    // as a side effect.
+    void NamespaceFold(CompletionResult& completions);
 
     //Function to ease the transition to C++
     bool CommandExists(const std::string& name);
