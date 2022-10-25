@@ -116,6 +116,8 @@ if(NOT DAEMON_EXTERNAL_APP)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
 
+option(BUILD_TESTS "Build unit test applications" OFF)
+
 option(USE_LTO "Use link-time optimization for release builds" OFF)
 cmake_dependent_option(USE_SLIM_LTO "Generate slim LTO objects, improves build times" 1 "USE_LTO AND \"${CMAKE_CXX_COMPILER_ID}\" STREQUAL GNU" 0)
 option(USE_HARDENING "Use stack protection and other hardening flags" OFF)
@@ -491,13 +493,13 @@ if (DEPS_DIR)
     set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
     set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
     set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH})
-    set(CMAKE_LIBRARY_PATH ${DEPS_DIR}/lib ${CMAKE_LIBRARY_PATH})
+    set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
     if (DAEMON_PARENT_SCOPE_DIR)
         # Also set parent scope so the top level CMakeLists can find precompiled deps
         set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH} PARENT_SCOPE)
         set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH} PARENT_SCOPE)
         set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH} PARENT_SCOPE)
-        set(CMAKE_LIBRARY_PATH ${DEPS_DIR}/lib ${CMAKE_LIBRARY_PATH} PARENT_SCOPE)
+        set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH} PARENT_SCOPE)
     endif()
 
     # Force OpenAL Soft on Mac, otherwise the system framework will be selected
@@ -747,26 +749,31 @@ if (BUILD_CLIENT)
     set(LIBS_CLIENT ${LIBS_CLIENT} ${OPENAL_LIBRARY})
 endif()
 
+if (BUILD_TESTS)
+    set(BUILD_GMOCK ON)
+    set(INSTALL_GTEST OFF)
+    set(gtest_force_shared_crt ON)
+    add_subdirectory(${LIB_DIR}/googletest EXCLUDE_FROM_ALL)
+    unset(BUILD_GMOCK CACHE)
+    unset(INSTALL_GTEST CACHE)
+endif()
+
 ################################################################################
 # Engine
 ################################################################################
-function(AddApplication)
-    set(oneValueArgs Target ExecutableName)
-    set(multiValueArgs Definitions Flags Files Libs)
-    cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    add_executable(${A_Target} ${A_Files} ${PCH_FILE})
-    target_link_libraries(${A_Target} engine-lib ${A_Libs})
-
-    set_property(TARGET ${A_Target} APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
-    set_property(TARGET ${A_Target} APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
-    set_property(TARGET ${A_Target} APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
-    set_target_properties(${A_Target} PROPERTIES OUTPUT_NAME "${A_ExecutableName}" PREFIX "" FOLDER "engine")
+macro(AddApplicationInternal Target Executable)
+    add_executable(${Target} ${Sources})
+    target_link_libraries(${Target} ${A_Target}-objects)
+    add_dependencies(${Target} runtime_deps)
+    set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
+    set_property(TARGET ${Target} APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
+    set_property(TARGET ${Target} APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
+    set_target_properties(${Target} PROPERTIES OUTPUT_NAME "${Executable}" PREFIX "" FOLDER "engine")
 
     # Append Windows specific manifests.
     if (WIN32)
         set(WINDOWS_MANIFESTS_DIR ${ENGINE_DIR}/sys/manifests)
-        target_sources(${A_Target} PRIVATE
+        target_sources(${Target} PRIVATE
             # App is DPI aware, so Windows doesn't try to scale UI.
             ${WINDOWS_MANIFESTS_DIR}/dpi-aware.manifest
             # App supports Windows Vista+, no quirks required.
@@ -774,8 +781,36 @@ function(AddApplication)
         )
     endif()
 
-    message(STATUS ${A_Target})
-    ADD_PRECOMPILED_HEADER(${A_Target})
+    message(STATUS ${Target})
+endmacro()
+
+function(AddApplication)
+    set(oneValueArgs Target ExecutableName)
+    set(multiValueArgs ApplicationMain Definitions Flags Files Libs Tests)
+    cmake_parse_arguments(A "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    # Reuse object files between the real application and the test one
+    add_library(${A_Target}-objects OBJECT EXCLUDE_FROM_ALL ${A_Files} ${PCH_FILE})
+    target_link_libraries(${A_Target}-objects engine-lib ${A_Libs} ${LIBS_BASE})
+    set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
+    set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
+    set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
+
+    set(Sources WIN32 ${A_ApplicationMain})
+    AddApplicationInternal(${A_Target} ${A_ExecutableName})
+    if (BUILD_TESTS)
+        # TODO disable dameon assert macros in test files
+        set(A_Definitions ${A_Definitions} PRODUCE_TEST_APPLICATION DAEMON_SKIP_ASSERT_SHORTHANDS)
+        # Note that unit tests must be added directly as sources to the executable, not via
+        # a static library, because when GCC is linking a library, it drops
+        # object files without a referenced symbol, unless you prevent it with
+        # -Wl,--whole-archive -l<library path> -Wl,--no-whole-archive
+        set(Sources ${A_ApplicationMain} ${A_Tests})
+        AddApplicationInternal(test-${A_Target} test-${A_Target})
+        target_link_libraries(test-${A_Target} GTest::gmock)
+    endif()
+
+    ADD_PRECOMPILED_HEADER(${A_Target}-objects)
 endfunction()
 
 if (NOT NACL)
@@ -791,8 +826,10 @@ if (NOT NACL)
             Target dummyapp
             ExecutableName dummyapp
             Definitions USELESS_DEFINITION_TO_AVOID_PCH_ISSUE
+            ApplicationMain ${ENGINE_DIR}/null/NullApplication.cpp
             Flags ${WARNINGS}
-            Files ${ENGINE_DIR}/null/NullApplication.cpp
+            Files ${COMMON_DIR}/Util.h  # must be nonempty
+            Tests ${ENGINETESTLIST}
         )
     endif()
 endif()
@@ -807,17 +844,19 @@ if (BUILD_CLIENT)
     AddApplication(
         Target client
         ExecutableName daemon
+        ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
         Flags ${WARNINGS}
-        Files WIN32 ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
+        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
+        Tests ${ENGINETESTLIST}
     )
 
     # generate glsl include files
     set(GLSL_SOURCE_DIR ${ENGINE_DIR}/renderer/glsl_source)
     set(EMBED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/embed_data)
     file(MAKE_DIRECTORY ${EMBED_INCLUDE_DIR})
-    set_property(TARGET client APPEND PROPERTY INCLUDE_DIRECTORIES ${EMBED_INCLUDE_DIR})
+    set_property(TARGET client-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${EMBED_INCLUDE_DIR})
 
     foreach(res ${GLSLSOURCELIST})
         get_filename_component(filename_no_ext ${res} NAME_WE)
@@ -828,7 +867,7 @@ if (BUILD_CLIENT)
                 "-DVARIABLE_NAME=${filename_no_ext}_glsl" -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedText.cmake
             MAIN_DEPENDENCY ${res}
         )
-        set_property(TARGET client APPEND PROPERTY SOURCES ${outpath})
+        set_property(TARGET client-objects APPEND PROPERTY SOURCES ${outpath})
     endforeach()
 endif()
 
@@ -836,10 +875,12 @@ if (BUILD_SERVER)
     AddApplication(
         Target server
         ExecutableName daemonded
+        ApplicationMain ${ENGINE_DIR}/server/ServerApplication.cpp
         Definitions BUILD_ENGINE BUILD_SERVER
         Flags ${WARNINGS}
-        Files WIN32 ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST}
+        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST}
         Libs ${LIBS_ENGINE}
+        Tests ${ENGINETESTLIST}
     )
 endif()
 
@@ -847,10 +888,12 @@ if (BUILD_TTY_CLIENT)
     AddApplication(
         Target ttyclient
         ExecutableName daemon-tty
+        ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions BUILD_ENGINE BUILD_TTY_CLIENT
         Flags ${WARNINGS}
-        Files WIN32 ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST}
+        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST}
         Libs ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
+        Tests ${ENGINETESTLIST}
     )
 endif()
 
@@ -924,15 +967,5 @@ if (BUILD_CLIENT OR BUILD_SERVER OR BUILD_TTY_CLIENT)
                     ${FULL_OUTPUT_DIR}
             )
         endforeach()
-    endif()
-
-    if (BUILD_CLIENT)
-        add_dependencies(client runtime_deps)
-    endif()
-    if (BUILD_SERVER)
-        add_dependencies(server runtime_deps)
-    endif()
-    if (BUILD_TTY_CLIENT)
-        add_dependencies(ttyclient runtime_deps)
     endif()
 endif()
