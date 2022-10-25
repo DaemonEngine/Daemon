@@ -259,7 +259,42 @@ namespace Cmd {
                 res.push_back({entry.first, entry.second.description});
             }
         }
+        // Commands in general don't have namespaces; this is for the cvar printing/setting commands
+        // which take the names of cvars.
+        NamespaceFold(res);
+
         return res;
+    }
+
+    void NamespaceFold(CompletionResult& completions) {
+        if (completions.empty()) return;
+        std::sort(completions.begin(), completions.end());
+        size_t commonLen = Str::LongestPrefixSize(completions.front().first, completions.back().first);
+        auto out = completions.begin();
+        for (auto i = completions.begin(); i != completions.end(); ) {
+            size_t nextSeparator = i->first.find_first_of("._", commonLen);
+            auto j = i + 1;
+            if (nextSeparator != i->first.npos) {
+                size_t nextNamespaceLen = nextSeparator + 1 - commonLen;
+                for (; j != completions.end(); ++j) {
+                    bool namespaceMatch = 0 == i->first.compare(
+                        commonLen, nextNamespaceLen, j->first, commonLen, nextNamespaceLen);
+                    if (!namespaceMatch) {
+                        break;
+                    }
+                }
+                if (j > i + 1) {
+                    i->first.erase(i->first.begin() + nextSeparator + 1, i->first.end());
+                    i->second.clear(); // Erase description
+                }
+            }
+            if (out != i) {
+                *out = std::move(*i);
+            }
+            ++out;
+            i = j; // j is at the first element without a matching namespace
+        }
+        completions.erase(out, completions.end());
     }
 
     const Args& GetCurrentArgs() {
