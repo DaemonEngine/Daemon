@@ -45,6 +45,7 @@ struct Traits {
     bool isTTYClient;
     bool isServer;
 
+    std::string defaultHomepath;
     std::string uniqueHomepathSuffix;
     bool useCurses;
     bool supportsUri;

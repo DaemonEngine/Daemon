@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include "common/Cvar.h"
+#include "common/FileSystem.h"
 #include "System.h"
 #endif
 
@@ -48,6 +49,55 @@ template<typename ApplicationT>
 class TestApplication : public ApplicationT
 {
     static Cvar::Cvar<std::string> gtestFlags;
+
+    static void RecursiveDelete(const std::string& dir)
+    {
+        std::vector<std::string> files;
+        // TODO: does this recurse in the right order?
+        for (const std::string& s : FS::RawPath::ListFilesRecursive(dir)) {
+            files.push_back(FS::Path::Build(dir, s));
+        }
+        files.push_back(dir + '/');
+        for (const std::string& s : files) {
+            if (s.back() == '/') {
+                if (0 != rmdir(s.c_str()))
+                    Log::Warn("Couldn't remove %s: %s", s, strerror(errno));
+            } else {
+                std::error_code err;
+                try {
+                    FS::RawPath::DeleteFile(s);
+                } catch (std::system_error& e) {
+                    Log::Warn("Couldn't remove %s: %s", s, e.what());
+                }
+            }
+        }
+    }
+
+public:
+    TestApplication()
+    {
+        this->traits.supportsUri = false;
+        this->traits.useCurses = false;
+
+#ifdef _WIN32
+        char* name = tempnam(nullptr, nullptr);
+        if (!name) {
+            Sys::Error("tempnam for temporary test directory failed");
+        }
+        // This is just a name; Daemon will automatically create it
+        this->traits.defaultHomepath = name;
+        free(name);
+#else
+        const char* tmpdir = getenv("TMPDIR");
+        tmpdir = tmpdir ? tmpdir : "/tmp";
+        std::string name = FS::Path::Build(tmpdir, "daemon-test-homepath.XXXXXX");
+        // mktempd creates the directory
+        if (mkdtemp(&name[0]) == nullptr) {
+            Sys::Error("Couldn't create temp dir for test: %s", strerror(errno));
+        }
+        this->traits.defaultHomepath = name;
+#endif
+    }
 
     void Frame() override
     {
@@ -67,6 +117,13 @@ class TestApplication : public ApplicationT
             Sys::Error("Unknown Googletest flag: '%s'", argv[1]);
         }
         bool success = 0 == RUN_ALL_TESTS();
+#ifdef _WIN32
+        if (FS::GetHomePath() == this->traits.defaultHomepath)
+#endif
+        {
+            Log::Notice("Removing temp homepath: %s", this->traits.defaultHomepath);
+            RecursiveDelete(this->traits.defaultHomepath);
+        }
         if (success) {
             Sys::Quit("Passed all tests");
         }

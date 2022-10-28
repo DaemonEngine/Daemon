@@ -29,11 +29,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Application.h"
+#include "common/FileSystem.h"
 
 namespace Application {
 
     Traits::Traits()
-    : isClient(false), isTTYClient(false), isServer(false), useCurses(false), supportsUri(false) {
+    : isClient(false), isTTYClient(false), isServer(false),
+      defaultHomepath(FS::DefaultHomePath()), useCurses(false), supportsUri(false) {
     }
 
     // Forward declaration of the function declared by INSTANTIATE_APPLICATION
