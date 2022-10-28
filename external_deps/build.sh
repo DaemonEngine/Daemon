@@ -324,7 +324,7 @@ build_openal() {
 	macos-*-*)
 		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
 		cd "openal-soft-${OPENAL_VERSION}"
-		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
+		cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF
 		make
 		make install
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
@@ -717,7 +717,7 @@ setup_macos-amd64-default() {
 	HOST=x86_64-apple-darwin11
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
-	export MACOSX_DEPLOYMENT_TARGET=10.9
+	export MACOSX_DEPLOYMENT_TARGET=10.9 # works with CMake
 	export CC=clang
 	export CXX=clang++
 	export CFLAGS="-arch x86_64"
