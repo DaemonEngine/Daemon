@@ -630,7 +630,7 @@ build_package() {
 	XZ_OPT='-9' tar cvJf "${PKG_BASEDIR}.tar.xz" "${PKG_BASEDIR}"
 }
 
-build_clean() {
+build_wipe() {
 	rm -rf "${BUILD_BASEDIR}/" "${PKG_BASEDIR}/" "${PKG_BASEDIR}.tar.xz"
 }
 
@@ -755,7 +755,7 @@ if [ "${#}" -lt "2" ]; then
 	Virtual packages:
 	  install - create a stripped down version of the built packages that CMake can use
 	  package - create a zip/tarball of the dependencies so they can be distributed
-	  clean - remove products of build process, excepting download cache. Must be last
+	  wipe - remove products of build process, excepting download cache but INCLUDING installed files. Must be last
 
 	Packages requires for each platform:
 
