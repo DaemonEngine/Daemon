@@ -648,6 +648,12 @@ common_setup() {
 	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
 	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
+	if [[ "${MSYSTEM:-}" = MINGW* ]]; then
+		# Experimental MSYS2 support. Most packages won't work;
+		# you need to cross-compile from Linux
+		export CMAKE_GENERATOR="MSYS Makefiles"
+		CROSS= # Doing this because there is no ${CROSS}strip
+	fi
 	mkdir -p "${DOWNLOAD_DIR}"
 	mkdir -p "${PREFIX}"
 	mkdir -p "${PREFIX}/bin"
