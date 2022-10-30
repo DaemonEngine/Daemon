@@ -55,6 +55,7 @@ external_deps/*
 
 #ignore Visual Studio / Visual Studio Code settings
 .vs
+.vscode
 
 #ignore removed recastnavigation submodule
 libs/recastnavigation
