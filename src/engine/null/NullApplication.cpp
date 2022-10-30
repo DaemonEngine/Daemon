@@ -43,6 +43,9 @@ namespace Application {
 class NullApplication : public Application {
     public:
         NullApplication() {
+#ifdef _WIN32
+            traits.useCurses = true;
+#endif
         }
 
         void Frame() override {
