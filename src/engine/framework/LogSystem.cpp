@@ -106,9 +106,7 @@ namespace Log {
 
     static TTYTarget tty;
 
-    //TODO for now these change nothing because the file is opened before the cvars are read.
-    //TODO add a Callback on these that will make the logFile open a new file or something
-    //Or maybe have Com_Init start it ?
+    //TODO add a Callback on these that will make the logFile open a new file or something?
     Cvar::Cvar<bool> useLogFile("logs.logFile.active", "are the logs sent in the logfile", Cvar::NONE, true);
     Cvar::Cvar<std::string> logFileName("logs.logFile.filename", "the name of the logfile", Cvar::NONE, "daemon.log");
     Cvar::Cvar<bool> overwrite("logs.logFile.overwrite", "if true the logfile is deleted at each run else the logs are just appended", Cvar::NONE, true);
