@@ -560,7 +560,7 @@ build_naclports() {
 # So LLVM must be installed, e.g. 'sudo apt install llvm'
 build_genlib() {
 	case "${PLATFORM}" in
-	msvc*)
+	windows-*-msvc)
 		mkdir -p "${PREFIX}/def"
 		cd "${PREFIX}/def"
 		for DLL_A in "${PREFIX}"/lib/*.dll.a; do
