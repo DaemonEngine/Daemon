@@ -804,6 +804,9 @@ void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 	{
 		shader->BuildShaderCompileMacros( compileMacros );
 
+		if ( IsUnusedPermutation( compileMacros.c_str() ) )
+			return;
+
 		if( i >= shader->_shaderPrograms.size() )
 			shader->_shaderPrograms.resize( (deformIndex + 1) << shader->_compileMacros.size() );
 
@@ -816,11 +819,6 @@ void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 			if( !baseShader->VS || !baseShader->FS )
 				CompileGPUShaders( shader, baseShader, compileMacros );
 
-			if ( baseShader->unusedPermutation )
-			{
-				return;
-			}
-
 			shaderProgram->program = glCreateProgram();
 			glAttachShader( shaderProgram->program, baseShader->VS );
 			glAttachShader( shaderProgram->program, _deformShaders[ deformIndex ] );
@@ -832,12 +830,6 @@ void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 		else if ( !LoadShaderBinary( shader, i ) )
 		{
 			CompileAndLinkGPUShaderProgram(	shader, shaderProgram, compileMacros, deformIndex );
-
-			if ( shaderProgram->unusedPermutation )
-			{
-				return;
-			}
-
 			SaveShaderBinary( shader, i );
 		}
 
@@ -1054,13 +1046,6 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 	// permutation macros
 	std::string macrosString;
 
-	// Do not build shader macro permutations that will never be used.
-	if ( IsUnusedPermutation( compileMacros.c_str() ) )
-	{
-		program->unusedPermutation = true;
-		return;
-	}
-
 	const char* compileMacrosP = compileMacros.c_str();
 	while ( true )
 	{
@@ -1073,8 +1058,6 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 
 		macrosString += Str::Format( "#ifndef %s\n#define %s 1\n#endif\n", token, token );
 	}
-
-	program->unusedPermutation = false;
 
 	Log::Debug( "building %s shader permutation with macro: %s",
 		shader->GetMainShaderName(),
@@ -1103,11 +1086,6 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 						      Str::StringRef compileMacros, int deformIndex )
 {
 	GLShaderManager::CompileGPUShaders( shader, program, compileMacros );
-
-	if ( program->unusedPermutation )
-	{
-		return;
-	}
 
 	program->program = glCreateProgram();
 	glAttachShader( program->program, program->VS );
