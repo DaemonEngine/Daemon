@@ -749,6 +749,43 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	return shaderText;
 }
 
+static bool IsUnusedPermutation( const char *compileMacros )
+{
+	const char* token;
+	while ( *( token = COM_ParseExt2( &compileMacros, false ) ) )
+	{
+		if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 )
+		{
+			if ( r_normalMapping->integer == 0 ) return true;
+		}
+		else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
+		{
+			if ( r_deluxeMapping->integer == 0 ) return true;
+		}
+		else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 )
+		{
+			if ( r_physicalMapping->integer == 0 ) return true;
+		}
+		else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 )
+		{
+			/* FIXME: add to the following test: && r_physicalMapping->integer == 0
+			when reflective specular is implemented for physical mapping too
+			see https://github.com/DaemonEngine/Daemon/issues/355 */
+			if ( r_specularMapping->integer == 0 ) return true;
+		}
+		else if ( strcmp( token, "USE_RELIEF_MAPPING" ) == 0 )
+		{
+			if ( r_reliefMapping->integer == 0 ) return true;
+		}
+		else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 )
+		{
+			if ( r_reliefMapping->integer == 0 && r_normalMapping->integer == 0 ) return true;
+		}
+	}
+
+	return false;
+}
+
 void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
 {
 	std::string compileMacros;
@@ -1017,57 +1054,24 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 	// permutation macros
 	std::string macrosString;
 
-	if ( !compileMacros.empty() )
+	// Do not build shader macro permutations that will never be used.
+	if ( IsUnusedPermutation( compileMacros.c_str() ) )
 	{
-		const char *compileMacros_ = compileMacros.c_str();
-		const char **compileMacrosP = &compileMacros_;
-		char       *token;
+		program->unusedPermutation = true;
+		return;
+	}
 
-		// Do not build shader macro permutations that will never be used.
-		while ( true )
+	const char* compileMacrosP = compileMacros.c_str();
+	while ( true )
+	{
+		const char *token = COM_ParseExt2( &compileMacrosP, false );
+
+		if ( !token[ 0 ] )
 		{
-			token = COM_ParseExt2( compileMacrosP, false );
-
-			if ( !token[ 0 ] )
-			{
-				break;
-			}
-			else if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 && r_normalMapping->integer == 0 )
-			{
-				program->unusedPermutation = true;
-				return;
-			}
-			else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 && r_deluxeMapping->integer == 0 )
-			{
-				program->unusedPermutation = true;
-				return;
-			}
-			else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 && r_physicalMapping->integer == 0 )
-			{
-				program->unusedPermutation = true;
-				return;
-			}
-			/* FIXME: add to the following test: && r_physicalMapping->integer == 0
-			when reflective specular is implemented for physical mapping too
-			see https://github.com/DaemonEngine/Daemon/issues/355 */
-			else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 && r_specularMapping->integer == 0 )
-			{
-				program->unusedPermutation = true;
-				return;
-			}
-			else if ( strcmp( token, "USE_RELIEF_MAPPING" ) == 0 && r_reliefMapping->integer == 0 )
-			{
-				program->unusedPermutation = true;
-				return;
-			}
-			else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 && r_reliefMapping->integer == 0 && r_normalMapping->integer == 0 )
-			{
-				program->unusedPermutation = true;
-				return;
-			}
-
-			macrosString += Str::Format( "#ifndef %s\n#define %s 1\n#endif\n", token, token );
+			break;
 		}
+
+		macrosString += Str::Format( "#ifndef %s\n#define %s 1\n#endif\n", token, token );
 	}
 
 	program->unusedPermutation = false;
