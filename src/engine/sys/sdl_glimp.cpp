@@ -1551,7 +1551,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 				"OpenGL is not available.\n\n"
 				"You need a graphic card with drivers supporting\n"
 				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
-				"ARB_half_float_vertex and ARB_framebuffer_object." );
+				"ARB_half_float_vertex and EXT_framebuffer_object." );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
@@ -1561,7 +1561,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 				"OpenGL %d.%d is too old.\n\n"
 				"You need a graphic card with drivers supporting\n"
 				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
-				"ARB_half_float_vertex and ARB_framebuffer_object." );
+				"ARB_half_float_vertex and EXT_framebuffer_object." );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
@@ -1723,6 +1723,8 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 
 #define LOAD_EXTENSION_WITH_TEST(flags, ext, test) LoadExt(flags, GLEW_##ext, #ext, test)
 
+glFboShim_t GL_fboShim;
+
 static void GLimp_InitExtensions()
 {
 	logger.Notice("Initializing OpenGL extensions" );
@@ -1832,7 +1834,15 @@ static void GLimp_InitExtensions()
 	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
 
 	// made required in OpenGL 3.0
-	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_framebuffer_object );
+	if ( LOAD_EXTENSION( ExtFlag_CORE, ARB_framebuffer_object ) )
+	{
+		glFboSetArb();
+	}
+	else
+	{
+		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_object );
+		glFboSetExt();
+	}
 
 	// FBO
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );

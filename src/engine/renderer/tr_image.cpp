@@ -1127,7 +1127,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			if ( image->filterType == filterType_t::FT_DEFAULT )
 			{
 				if( image->type != GL_TEXTURE_CUBE_MAP || i == 5 ) {
-					glGenerateMipmap( image->type );
+					GL_fboShim.glGenerateMipmap( image->type );
 					glTexParameteri( image->type, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );  // default to trilinear
 				}
 			}
