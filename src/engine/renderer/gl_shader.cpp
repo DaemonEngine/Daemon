@@ -898,11 +898,7 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	if (err)
 		return false;
 
-	auto fileLength = shaderData.length();
-	if (fileLength <= 0)
-		return false;
-
-	if (fileLength < sizeof(shaderHeader))
+	if (shaderData.size() < sizeof(shaderHeader))
 		return false;
 
 	binaryptr = reinterpret_cast<const byte*>(shaderData.data());
