@@ -193,6 +193,91 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 // max. 16 dynamic lights per plane
 #define LIGHT_PLANES ( MAX_REF_LIGHTS / 16 )
 
+struct glFboShim_t
+{
+	/* Functions with same signature and similar purpose can be provided by:
+	- ARB_framebuffer_object
+	- EXT_framebuffer_object
+	- OES_framebuffer_object
+
+	They are not 100% equivalent, for example the ARB fbo provides more
+	features than the EXT fbo, but the EXT fbo subset of the ARB fbo looks
+	to be enough for us. */
+
+	// void (*glBindFramebuffer) (GLenum target, GLuint framebuffer);
+	PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+	// void (*glBindRenderbuffer) (GLenum target, GLuint renderbuffer);
+	PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;
+	// GLenum (*glCheckFramebufferStatus) (GLenum target);
+	PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;
+	// void (*glDeleteFramebuffers) (GLsizei n, const GLuint *framebuffers);
+	PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;
+	// void (*glDeleteRenderbuffers) (GLsizei n, const GLuint *renderbuffers);
+	PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;
+	// void (*glFramebufferRenderbuffer) (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
+	PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;
+	// void (*glFramebufferTexture2D) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+	PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;
+	// void (*glGenerateMipmap) (GLenum target);
+	PFNGLGENERATEMIPMAPPROC glGenerateMipmap;
+	// void (*glGenFramebuffers) (GLsizei n, GLuint *framebuffers);
+	PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
+	// void (*glGenRenderbuffers) (GLsizei n, GLuint *renderbuffers);
+	PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;
+	// void (*glRenderbufferStorage) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
+	PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
+
+	/* Unused for now:
+	// void (*glRenderbufferStorageMultisample) (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
+	PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC glRenderbufferStorageMultisample; */
+
+	/* Those three values are the same:
+	- GL_FRAMEBUFFER_COMPLETE
+	- GL_FRAMEBUFFER_COMPLETE_EXT
+	- GL_FRAMEBUFFER_COMPLETE_OES
+
+	So there is no need to abstract them and GL_FRAMEBUFFER_COMPLETE can be
+	used in all cases. */
+};
+
+extern glFboShim_t GL_fboShim;
+
+static inline void glFboSetArb()
+{
+	GL_fboShim.glBindFramebuffer =  glBindFramebuffer;
+	GL_fboShim.glBindRenderbuffer = glBindRenderbuffer;
+	GL_fboShim.glCheckFramebufferStatus = glCheckFramebufferStatus;
+	GL_fboShim.glDeleteFramebuffers = glDeleteFramebuffers;
+	GL_fboShim.glDeleteRenderbuffers = glDeleteRenderbuffers;
+	GL_fboShim.glFramebufferRenderbuffer = glFramebufferRenderbuffer;
+	GL_fboShim.glFramebufferTexture2D = glFramebufferTexture2D;
+	GL_fboShim.glGenerateMipmap = glGenerateMipmap;
+	GL_fboShim.glGenFramebuffers = glGenFramebuffers;
+	GL_fboShim.glGenRenderbuffers = glGenRenderbuffers;
+	GL_fboShim.glRenderbufferStorage = glRenderbufferStorage;
+
+	/* Unused for now:
+	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisample; */
+}
+
+static inline void glFboSetExt()
+{
+	GL_fboShim.glBindFramebuffer = glBindFramebufferEXT;
+	GL_fboShim.glBindRenderbuffer = glBindRenderbufferEXT;
+	GL_fboShim.glCheckFramebufferStatus = glCheckFramebufferStatusEXT;
+	GL_fboShim.glDeleteFramebuffers = glDeleteFramebuffersEXT;
+	GL_fboShim.glDeleteRenderbuffers = glDeleteRenderbuffersEXT;
+	GL_fboShim.glFramebufferRenderbuffer = glFramebufferRenderbufferEXT;
+	GL_fboShim.glFramebufferTexture2D = glFramebufferTexture2DEXT;
+	GL_fboShim.glGenerateMipmap = glGenerateMipmapEXT;
+	GL_fboShim.glGenFramebuffers = glGenFramebuffersEXT;
+	GL_fboShim.glGenRenderbuffers = glGenRenderbuffersEXT;
+	GL_fboShim.glRenderbufferStorage = glRenderbufferStorageEXT;
+
+	/* Unused for now:
+	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisampleEXT; */
+}
+
 	enum class renderSpeeds_t
 	{
 	  RSPEEDS_GENERAL = 1,
