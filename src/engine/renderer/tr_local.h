@@ -44,7 +44,10 @@ using i16vec4_t = int16_t[4];
 using u16vec4_t = uint16_t[4];
 using i16vec2_t = int16_t[2];
 using u16vec2_t = uint16_t[2];
-using f16vec4_t = int16_t[4]; // half float vector
+
+using f16_t = int16_t; // half float
+using f16vec2_t = f16_t[2]; // half float vector
+using f16vec4_t = f16_t[4]; // half float vector
 
 // GL conversion helpers
 static inline float unorm8ToFloat(byte unorm8) {
@@ -114,13 +117,13 @@ static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
 	out[ 3 ] = snorm16ToFloat( in[ 3 ] );
 }
 
-static inline int16_t floatToHalf( float in ) {
+static inline f16_t floatToHalf( float in ) {
 	static float scale = powf(2.0f, 15 - 127);
 	floatint_t fi;
 
 	fi.f = in * scale;
 
-	return (int16_t)(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13));
+	return (f16_t)(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13));
 }
 static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 {
@@ -129,7 +132,7 @@ static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 	out[ 2 ] = floatToHalf( in[ 2 ] );
 	out[ 3 ] = floatToHalf( in[ 3 ] );
 }
-static inline float halfToFloat( int16_t in ) {
+static inline float halfToFloat( f16_t in ) {
 	static float scale = powf(2.0f, 127 - 15);
 	floatint_t fi;
 
@@ -813,10 +816,10 @@ static inline void glFboSetExt()
 		vec3_t *xyz;
 		i16vec4_t *qtangent;
 		u8vec4_t *color;
-		union { i16vec2_t *st; i16vec4_t *stpq; vec2_t *stf; };
+		union { f16vec2_t *st; f16vec4_t *stpq; vec2_t *stf; };
 		int    (*boneIndexes)[ 4 ];
 		vec4_t *boneWeights;
-		vec4_t *spriteOrientation;
+		f16vec4_t *spriteOrientation;
 
 		int	numFrames;
 		int     numVerts;
@@ -2394,10 +2397,10 @@ static inline void glFboSetExt()
 
 		// vertex data
 		float           *positions;
-		int16_t         *texcoords;
 		float           *normals;
 		float           *tangents;
 		float           *bitangents;
+		f16_t           *texcoords;
 		byte            *blendIndexes;
 		byte            *blendWeights;
 		byte            *colors;
@@ -3181,7 +3184,7 @@ inline bool checkGLErrors()
 
 	void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 			     const vec3_t v0, const vec3_t v1, const vec3_t v2,
-			     const i16vec2_t t0, const i16vec2_t t1, const i16vec2_t t2 );
+			     const f16vec2_t t0, const f16vec2_t t1, const f16vec2_t t2 );
 
 	/*
 	 * QTangent representation of tangentspace:
@@ -3398,7 +3401,7 @@ inline bool checkGLErrors()
 			i16vec4_t qtangents;
 			f16vec4_t spriteOrientation;
 		};
-		i16vec4_t texCoords;
+		f16vec4_t texCoords;
 	};
 
 #ifdef GL_ARB_sync

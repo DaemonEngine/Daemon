@@ -102,7 +102,7 @@ void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 
 void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 		     const vec3_t v0, const vec3_t v1, const vec3_t v2,
-		     const i16vec2_t t0, const i16vec2_t t1, const i16vec2_t t2 )
+		     const f16vec2_t t0, const f16vec2_t t1, const f16vec2_t t2 )
 {
 	vec2_t t0f, t1f, t2f;
 

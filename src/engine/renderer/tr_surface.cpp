@@ -1317,7 +1317,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	float *modelNormal = model->normals + 3 * firstVertex;
 	float *modelTangent = model->tangents + 3 * firstVertex;
 	float *modelBitangent = model->bitangents + 3 * firstVertex;
-	int16_t *modelTexcoord = model->texcoords + 2 * firstVertex;
+	f16_t *modelTexcoord = model->texcoords + 2 * firstVertex;
 	shaderVertex_t *tessVertex = tess.verts + tess.numVertexes;
 	shaderVertex_t *lastVertex = tessVertex + surf->num_vertexes;
 

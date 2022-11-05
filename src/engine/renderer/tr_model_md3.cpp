@@ -259,7 +259,7 @@ bool R_LoadMD3( model_t *mod, int lod, void *buffer, const char *modName )
 			data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.xyz ) * mdvModel->numFrames * surf->numVerts );
 			data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * mdvModel->numFrames * surf->numVerts );
 			data.numFrames = mdvModel->numFrames;
-			data.st = ( i16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec2_t ) * surf->numVerts );
+			data.st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * surf->numVerts );
 			data.noLightCoords = true;
 			data.numVerts = surf->numVerts;
 
