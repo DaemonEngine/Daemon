@@ -543,7 +543,10 @@ static void AutospriteDeform( int firstVertex, int numVertexes, int numIndexes )
 		for ( j = 0; j < 4; j++ ) {
 			VectorCopy( mid, v[ j ].xyz );
 			Vector4Set( v[ j ].spriteOrientation,
-				    0, 0, 0, floatToHalf( radius ) );
+				floatToHalf( 0 ),
+				floatToHalf( 0 ),
+				floatToHalf( 0 ),
+				floatToHalf( radius ) );
 		}
 	}
 }
