@@ -1147,9 +1147,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 			VectorCopy( position, tessVertex->xyz );
 
-			Vector2Set( tessVertex->texCoords,
-			floatToHalf( surfaceVertex->texCoords[ 0 ] ),
-			floatToHalf( surfaceVertex->texCoords[ 1 ] ) );
+			floatToHalf( surfaceVertex->texCoordsF, tessVertex->texCoords );
 		}
 	}
 	else
@@ -1192,9 +1190,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
 
-			Vector2Set( tessVertex->texCoords,
-			floatToHalf( surfaceVertex->texCoords[ 0 ] ),
-			floatToHalf( surfaceVertex->texCoords[ 1 ] ) );
+			floatToHalf( surfaceVertex->texCoordsF, tessVertex->texCoords );
 		}
 	}
 
