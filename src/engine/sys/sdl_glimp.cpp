@@ -1829,7 +1829,6 @@ static void GLimp_InitExtensions()
 
 	// VAO and VBO
 	// made required in OpenGL 3.0
-
 	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
 
 	// made required in OpenGL 3.0
