@@ -45,7 +45,12 @@ using u16vec4_t = uint16_t[4];
 using i16vec2_t = int16_t[2];
 using u16vec2_t = uint16_t[2];
 
-using f16_t = int16_t; // half float
+// The struct has the same memory layout as a half-float
+struct f16_t
+{
+	uint16_t bits;
+};
+
 using f16vec2_t = f16_t[2]; // half float vector
 using f16vec4_t = f16_t[4]; // half float vector
 
@@ -123,7 +128,7 @@ static inline f16_t floatToHalf( float in ) {
 
 	fi.f = in * scale;
 
-	return (f16_t)(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13));
+	return { uint16_t(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13)) };
 }
 static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 {
@@ -136,7 +141,7 @@ static inline float halfToFloat( f16_t in ) {
 	static float scale = powf(2.0f, 127 - 15);
 	floatint_t fi;
 
-	fi.ui = (((unsigned int)in & 0x8000) << 16) | (((unsigned int)in & 0x7fff) << 13);
+	fi.ui = (((unsigned int)in.bits & 0x8000) << 16) | (((unsigned int)in.bits & 0x7fff) << 13);
 	return fi.f * scale;
 }
 static inline void halfToFloat( const f16vec4_t in, vec4_t out )
