@@ -124,7 +124,7 @@ srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
 	data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * vertexesNum );
 	data.boneIndexes = ( int (*)[ 4 ] ) ri.Hunk_AllocateTempMemory( sizeof( *data.boneIndexes ) * vertexesNum );
 	data.boneWeights = ( vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.boneWeights ) * vertexesNum );
-	data.st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * vertexesNum );
+	data.f16st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * vertexesNum );
 	data.numVerts = vertexesNum;
 
 	indexes = ( glIndex_t * ) ri.Hunk_AllocateTempMemory( indexesNum * sizeof( glIndex_t ) );
@@ -160,7 +160,8 @@ srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
 		R_TBNtoQtangents( surf->verts[ j ].tangent, surf->verts[ j ].binormal,
 				  surf->verts[ j ].normal, data.qtangent[ j ] );
 		
-		Vector2Copy( surf->verts[ j ].texCoords, data.st[ j ] );
+		// Model only supports half float for now.
+		Vector2Copy( surf->verts[ j ].f16TexCoords, data.f16st[ j ] );
 
 		for (unsigned k = 0; k < MAX_WEIGHTS; k++ )
 		{
@@ -186,7 +187,7 @@ srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
 	vboSurf->vbo->attribBits |= ATTR_COLOR;
 
 	ri.Hunk_FreeTempMemory( indexes );
-	ri.Hunk_FreeTempMemory( data.st );
+	ri.Hunk_FreeTempMemory( data.f16st );
 	ri.Hunk_FreeTempMemory( data.boneWeights );
 	ri.Hunk_FreeTempMemory( data.boneIndexes );
 	ri.Hunk_FreeTempMemory( data.qtangent );

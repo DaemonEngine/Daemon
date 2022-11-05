@@ -47,6 +47,7 @@ extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
 struct glconfig2_t
 {
 	bool textureCompressionRGTCAvailable;
+	bool halfFloatVertexAvailable;
 
 	int glHighestMajor;
 	int glHighestMinor;

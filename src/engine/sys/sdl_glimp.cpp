@@ -78,6 +78,8 @@ static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
 	"Use GL_ARB_gpu_shader5 if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_half_float_pixel( "r_arb_half_float_pixel",
 	"Use GL_ARB_half_float_pixel if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_half_float_vertex( "r_arb_half_float_vertex",
+	"Use GL_ARB_half_float_vertex if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_indirect_parameters( "r_arb_indirect_parameters",
 	"Use GL_ARB_indirect_parameters if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_internalformat_query2( "r_arb_internalformat_query2",
@@ -1943,6 +1945,7 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 
 #define LOAD_EXTENSION_WITH_TEST(flags, ext, test) LoadExt(flags, GLEW_##ext, #ext, test)
 
+glVertexShim_t GL_vertexShim;
 glFboShim_t GL_fboShim;
 
 static void GLimp_InitExtensions()
@@ -1956,6 +1959,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_gpu_shader5 );
 	Cvar::Latch( r_arb_half_float_pixel );
+	Cvar::Latch( r_arb_half_float_vertex );
 	Cvar::Latch( r_arb_indirect_parameters );
 	Cvar::Latch( r_arb_internalformat_query2 );
 	Cvar::Latch( r_arb_map_buffer_range );
@@ -2194,7 +2198,16 @@ static void GLimp_InitExtensions()
 
 	// VAO and VBO
 	// made required in OpenGL 3.0
-	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
+	glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, r_arb_half_float_vertex.Get() );
+
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		glVertexSetHalfFloat();
+	}
+	else
+	{
+		glVertexSetFloat();
+	}
 
 	{
 		int flag = ExtFlag_CORE | ( workaround_glExtension_missingArbFbo_useExtFbo.Get() ? 0 : ExtFlag_REQUIRED );

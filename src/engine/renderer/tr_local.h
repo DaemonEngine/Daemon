@@ -131,6 +131,13 @@ static inline f16_t floatToHalf( float in ) {
 
 	return { uint16_t(((ui & 0x80000000) >> 16) | ((ui & 0x0fffe000) >> 13)) };
 }
+
+static inline void floatToHalf2( const vec2_t in, f16vec2_t out )
+{
+	out[ 0 ] = floatToHalf( in[ 0 ] );
+	out[ 1 ] = floatToHalf( in[ 1 ] );
+}
+
 static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 {
 	out[ 0 ] = floatToHalf( in[ 0 ] );
@@ -138,12 +145,20 @@ static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 	out[ 2 ] = floatToHalf( in[ 2 ] );
 	out[ 3 ] = floatToHalf( in[ 3 ] );
 }
+
 static inline float halfToFloat( f16_t in ) {
 	static float scale = powf(2.0f, 127 - 15);
 
 	uint32_t ui = (((unsigned int)in.bits & 0x8000) << 16) | (((unsigned int)in.bits & 0x7fff) << 13);
 	return Util::bit_cast<float>(ui) * scale;
 }
+
+static inline void halfToFloat2( const f16vec2_t in, vec2_t out )
+{
+	out[ 0 ] = halfToFloat( in[ 0 ] );
+	out[ 1 ] = halfToFloat( in[ 1 ] );
+}
+
 static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 {
 	out[ 0 ] = halfToFloat( in[ 0 ] );
@@ -200,6 +215,23 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 // max. 16 dynamic lights per plane
 #define LIGHT_PLANES ( MAX_REF_LIGHTS / 16 )
+
+struct glVertexShim_t
+{
+	GLenum floatFormat;
+};
+
+extern glVertexShim_t GL_vertexShim;
+
+static inline void glVertexSetHalfFloat()
+{
+	GL_vertexShim.floatFormat = GL_HALF_FLOAT;
+}
+
+static inline void glVertexSetFloat()
+{
+	GL_vertexShim.floatFormat = GL_FLOAT;
+}
 
 struct glFboShim_t
 {
@@ -723,7 +755,12 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		vec3_t *xyz;
 		i16vec4_t *qtangent;
 		u8vec4_t *color;
-		union { f16vec2_t *st; vec2_t *stf; };
+
+		union {
+			f16vec2_t *f16st;
+			vec2_t *st;
+		};
+
 		int    (*boneIndexes)[ 4 ];
 		vec4_t *boneWeights;
 
@@ -2158,7 +2195,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		vec4_t      binormal;
 		vec4_t      normal;
 
-		f16vec2_t texCoords;
+		f16vec2_t f16TexCoords;
 		char _pad[ 4 ];
 		uint32_t    firstWeight;
 		uint32_t    numWeights;
@@ -2292,7 +2329,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		float           *normals;
 		float           *tangents;
 		float           *bitangents;
-		f16_t           *texcoords;
+		f16_t           *f16TexCoords;
 		byte            *blendIndexes;
 		byte            *blendWeights;
 		byte            *colors;
@@ -3275,11 +3312,17 @@ inline bool checkGLErrors()
 	struct shaderVertex_t {
 		vec3_t    xyz;
 		Color::Color32Bit color;
+
 		union {
 			i16vec4_t qtangents;
-			f16vec4_t spriteOrientation;
+			f16vec4_t f16SpriteOrientation;
+			vec4_t spriteOrientation;
 		};
-		f16vec4_t texCoords;
+
+		union {
+			f16vec4_t f16TexCoords;
+			vec4_t texCoords;
+		};
 	};
 
 #ifdef GL_ARB_sync

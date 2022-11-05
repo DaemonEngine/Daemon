@@ -159,11 +159,22 @@ static void Tess_SurfaceVertsAndTris( const srfVert_t *verts, const srfTriangle_
 		VectorCopy( vert->xyz, tess.verts[ tess.numVertexes + i ].xyz );
 		Vector4Copy( vert->qtangent, tess.verts[ tess.numVertexes + i ].qtangents );
 
-		tess.verts[ tess.numVertexes + i ].texCoords[ 0 ] = floatToHalf( vert->st[ 0 ] );
-		tess.verts[ tess.numVertexes + i ].texCoords[ 1 ] = floatToHalf( vert->st[ 1 ] );
+		if ( glConfig2.halfFloatVertexAvailable )
+		{
+			tess.verts[ tess.numVertexes + i ].f16TexCoords[ 0 ] = floatToHalf( vert->st[ 0 ] );
+			tess.verts[ tess.numVertexes + i ].f16TexCoords[ 1 ] = floatToHalf( vert->st[ 1 ] );
 
-		tess.verts[ tess.numVertexes + i ].texCoords[ 2 ] = floatToHalf( vert->lightmap[ 0 ] );
-		tess.verts[ tess.numVertexes + i ].texCoords[ 3 ] = floatToHalf( vert->lightmap[ 1 ] );
+			tess.verts[ tess.numVertexes + i ].f16TexCoords[ 2 ] = floatToHalf( vert->lightmap[ 0 ] );
+			tess.verts[ tess.numVertexes + i ].f16TexCoords[ 3 ] = floatToHalf( vert->lightmap[ 1 ] );
+		}
+		else
+		{
+			tess.verts[ tess.numVertexes + i ].texCoords[ 0 ] = vert->st[ 0 ];
+			tess.verts[ tess.numVertexes + i ].texCoords[ 1 ] = vert->st[ 1 ];
+
+			tess.verts[ tess.numVertexes + i ].texCoords[ 2 ] = vert->lightmap[ 0 ];
+			tess.verts[ tess.numVertexes + i ].texCoords[ 3 ] = vert->lightmap[ 1 ];
+		}
 
 		tess.verts[ tess.numVertexes + i ].color = vert->lightColor;
 	}
@@ -280,17 +291,27 @@ void Tess_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, const Color::C
 	Vector4Copy( qtangents, tess.verts[ ndx + 3 ].qtangents );
 
 	// standard square texture coordinates
-	tess.verts[ ndx ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ ndx ].texCoords[ 1 ] = floatToHalf( t1 );
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		tess.verts[ ndx ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ ndx ].f16TexCoords[ 1 ] = floatToHalf( t1 );
 
-	tess.verts[ ndx + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ ndx + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
+		tess.verts[ ndx + 1 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ ndx + 1 ].f16TexCoords[ 1 ] = floatToHalf( t1 );
 
-	tess.verts[ ndx + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ ndx + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
+		tess.verts[ ndx + 2 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ ndx + 2 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
 
-	tess.verts[ ndx + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ ndx + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+		tess.verts[ ndx + 3 ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ ndx + 3 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
+	}
+	else
+	{
+		Vector2Set( tess.verts[ ndx ].texCoords, s1, t1 );
+		Vector2Set( tess.verts[ ndx + 1 ].texCoords, s2, t1 );
+		Vector2Set( tess.verts[ ndx + 2 ].texCoords, s2, t2 );
+		Vector2Set( tess.verts[ ndx + 3 ].texCoords, s1, t2 );
+	}
 
 	// constant color all the way around
 	// should this be identity and let the shader specify from entity?
@@ -370,17 +391,27 @@ void Tess_AddQuadStampExt2( vec4_t quadVerts[ 4 ], const Color::Color& color, fl
 	Vector4Copy( qtangents, tess.verts[ ndx + 3 ].qtangents );
 
 	// standard square texture coordinates
-	tess.verts[ ndx ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ ndx ].texCoords[ 1 ] = floatToHalf( t1 );
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		tess.verts[ ndx ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ ndx ].f16TexCoords[ 1 ] = floatToHalf( t1 );
 
-	tess.verts[ ndx + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ ndx + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
+		tess.verts[ ndx + 1 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ ndx + 1 ].f16TexCoords[ 1 ] = floatToHalf( t1 );
 
-	tess.verts[ ndx + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ ndx + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
+		tess.verts[ ndx + 2 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ ndx + 2 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
 
-	tess.verts[ ndx + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ ndx + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+		tess.verts[ ndx + 3 ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ ndx + 3 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
+	}
+	else
+	{
+		Vector2Set( tess.verts[ ndx ].texCoords, s1, t1 );
+		Vector2Set( tess.verts[ ndx + 1 ].texCoords, s2, t1 );
+		Vector2Set( tess.verts[ ndx + 2 ].texCoords, s2, t2 );
+		Vector2Set( tess.verts[ ndx + 3 ].texCoords, s1, t2 );
+	}
 
 	// constant color all the way around
 	// should this be identity and let the shader specify from entity?
@@ -434,16 +465,25 @@ void Tess_AddSprite( const vec3_t center, const Color::Color32Bit color, float r
 	for ( i = 0; i < 4; i++ )
 	{
 		vec4_t texCoord;
-		vec4_t orientation;
-
 		Vector4Set( texCoord, 0.5f * (i & 2), 0.5f * ( (i + 1) & 2 ),
 			    (i & 2) - 1.0f, ( (i + 1) & 2 ) - 1.0f );
 
 		VectorCopy( center, tess.verts[ ndx + i ].xyz );
 		tess.verts[ ndx + i ].color = color;
-		floatToHalf( texCoord, tess.verts[ ndx + i ].texCoords );
+
+		vec4_t orientation;
 		Vector4Set( orientation, rotation, 0.0f, 0.0f, radius );
-		floatToHalf( orientation, tess.verts[ ndx + i ].spriteOrientation );
+
+		if ( glConfig2.halfFloatVertexAvailable )
+		{
+			floatToHalf( texCoord, tess.verts[ ndx + i ].f16TexCoords );
+			floatToHalf( orientation, tess.verts[ ndx + i ].f16SpriteOrientation );
+		}
+		else
+		{
+			Vector4Copy( texCoord, tess.verts[ ndx + i ].texCoords );
+			Vector4Copy( orientation, tess.verts[ ndx + i ].spriteOrientation );
+		}
 	}
 
 	tess.numVertexes += 4;
@@ -692,8 +732,15 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
 
 			tess.verts[tess.numVertexes + i].color = Color::Adapt(p->verts[i].modulate);
-			tess.verts[tess.numVertexes + i].texCoords[0] = floatToHalf(p->verts[i].st[0]);
-			tess.verts[tess.numVertexes + i].texCoords[1] = floatToHalf(p->verts[i].st[1]);
+
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				floatToHalf2( p->verts[i].st, tess.verts[tess.numVertexes + i].f16TexCoords );
+			}
+			else
+			{
+				Vector2Copy( p->verts[i].st, tess.verts[tess.numVertexes + i].texCoords );
+			}
 		}
 
 		// generate fan indexes into the tess array
@@ -761,8 +808,15 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 			VectorCopy(p->verts[i].xyz, tess.verts[tess.numVertexes + i].xyz);
 			tess.verts[tess.numVertexes + i].color = Color::Adapt(p->verts[i].modulate);
 			Vector4Copy(qtangents, tess.verts[tess.numVertexes + i].qtangents);
-			tess.verts[tess.numVertexes + i].texCoords[0] = floatToHalf(p->verts[i].st[0]);
-			tess.verts[tess.numVertexes + i].texCoords[1] = floatToHalf(p->verts[i].st[1]);
+
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				floatToHalf2( p->verts[i].st, tess.verts[tess.numVertexes + i].f16TexCoords );
+			}
+			else
+			{
+				Vector2Copy( p->verts[i].st, tess.verts[tess.numVertexes + i].texCoords );
+			}
 		}
 
 		ri.Hunk_FreeTempMemory( normals );
@@ -895,8 +949,14 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 			tess.verts[tess.numVertexes + j].xyz[1] = tmpVert[1];
 			tess.verts[tess.numVertexes + j].xyz[2] = tmpVert[2];
 
-			tess.verts[tess.numVertexes + j].texCoords[0] = floatToHalf(st->st[0]);
-			tess.verts[tess.numVertexes + j].texCoords[1] = floatToHalf(st->st[1]);
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				floatToHalf2( st->st, tess.verts[tess.numVertexes + j].f16TexCoords );
+			}
+			else
+			{
+				Vector2Copy( st->st, tess.verts[tess.numVertexes + j].texCoords );
+			}
 		}
 	}
 	else
@@ -979,8 +1039,15 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 
 			VectorCopy(xyz[i], tess.verts[tess.numVertexes + i].xyz);
 			Vector4Copy(qtangents, tess.verts[tess.numVertexes + i].qtangents);
-			tess.verts[tess.numVertexes + i].texCoords[0] = floatToHalf(st[i].st[0]);
-			tess.verts[tess.numVertexes + i].texCoords[1] = floatToHalf(st[i].st[1]);
+
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				floatToHalf2( st[i].st, tess.verts[tess.numVertexes + i].f16TexCoords );
+			}
+			else
+			{
+				Vector2Copy( st[i].st, tess.verts[tess.numVertexes + i].texCoords );
+			}
 		}
 
 		ri.Hunk_FreeTempMemory( normals );
@@ -1090,7 +1157,14 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 			VectorCopy( position, tessVertex->xyz );
 
-			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				Vector2Copy( surfaceVertex->f16TexCoords, tessVertex->f16TexCoords );
+			}
+			else
+			{
+				halfToFloat2( surfaceVertex->f16TexCoords, tessVertex->texCoords );
+			}
 		}
 	}
 	else
@@ -1133,7 +1207,14 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
 
-			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				Vector2Copy( surfaceVertex->f16TexCoords, tessVertex->f16TexCoords );
+			}
+			else
+			{
+				halfToFloat2( surfaceVertex->f16TexCoords, tessVertex->texCoords );
+			}
 		}
 	}
 
@@ -1250,7 +1331,8 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	float *modelNormal = model->normals + 3 * firstVertex;
 	float *modelTangent = model->tangents + 3 * firstVertex;
 	float *modelBitangent = model->bitangents + 3 * firstVertex;
-	f16_t *modelTexcoord = model->texcoords + 2 * firstVertex;
+	// Model only supports half float for now.
+	f16_t *f16ModelTexCoords = model->f16TexCoords + 2 * firstVertex;
 	shaderVertex_t *tessVertex = tess.verts + tess.numVertexes;
 	shaderVertex_t *lastVertex = tessVertex + surf->num_vertexes;
 
@@ -1267,7 +1349,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			for ( ; tessVertex < lastVertex; tessVertex++,
 				modelPosition += 3, modelNormal += 3,
 				modelTangent += 3, modelBitangent += 3,
-				modelTexcoord += 2 )
+				f16ModelTexCoords += 2 )
 			{
 				vec3_t position = {};
 
@@ -1290,7 +1372,14 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 				VectorCopy( position, tessVertex->xyz );
 
-				Vector2Copy( modelTexcoord, tessVertex->texCoords );
+				if ( glConfig2.halfFloatVertexAvailable )
+				{
+					Vector2Copy( f16ModelTexCoords, tessVertex->f16TexCoords );
+				}
+				else
+				{
+					halfToFloat2( f16ModelTexCoords, tessVertex->texCoords );
+				}
 			}
 		}
 		else
@@ -1301,7 +1390,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			for ( ; tessVertex < lastVertex; tessVertex++,
 				modelPosition += 3, modelNormal += 3,
 				modelTangent += 3, modelBitangent += 3,
-				modelTexcoord += 2 )
+				f16ModelTexCoords += 2 )
 			{
 				vec3_t position = {}, tangent = {}, binormal = {}, normal = {};
 
@@ -1338,7 +1427,14 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 				R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
 
-				Vector2Copy( modelTexcoord, tessVertex->texCoords );
+				if ( glConfig2.halfFloatVertexAvailable )
+				{
+					Vector2Copy( f16ModelTexCoords, tessVertex->f16TexCoords );
+				}
+				else
+				{
+					halfToFloat2( f16ModelTexCoords, tessVertex->texCoords );
+				}
 			}
 		}
 	}
@@ -1349,13 +1445,20 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 		for ( ; tessVertex < lastVertex; tessVertex++,
 			modelPosition += 3, modelNormal += 3,
 			modelTangent += 3, modelBitangent += 3,
-			modelTexcoord += 2 )
+			f16ModelTexCoords += 2 )
 		{
 			VectorScale( modelPosition, scale, tessVertex->xyz );
 
 			R_TBNtoQtangents( modelTangent, modelBitangent, modelNormal, tessVertex->qtangents );
 
-			Vector2Copy( modelTexcoord, tessVertex->texCoords );
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				Vector2Copy( f16ModelTexCoords, tessVertex->f16TexCoords );
+			}
+			else
+			{
+				halfToFloat2( f16ModelTexCoords, tessVertex->texCoords );
+			}
 		}
 	}
 

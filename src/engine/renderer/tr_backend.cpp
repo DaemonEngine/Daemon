@@ -4615,10 +4615,18 @@ void DebugDrawVertex(const vec3_t pos, unsigned int color, const vec2_t uv) {
 	tess.verts[ tess.numVertexes ].xyz[ 1 ] = pos[ 1 ];
 	tess.verts[ tess.numVertexes ].xyz[ 2 ] = pos[ 2 ];
 	tess.verts[ tess.numVertexes ].color = colors;
+
 	if( uv ) {
-		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( uv[ 0 ] );
-		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( uv[ 1 ] );
+		if ( glConfig2.halfFloatVertexAvailable )
+		{
+			floatToHalf2( uv, tess.verts[ tess.numVertexes ].f16TexCoords );
+		}
+		else
+		{
+			Vector2Copy( uv, tess.verts[ tess.numVertexes ].texCoords );
+		}
 	}
+
 	tess.indexes[ tess.numIndexes ] = tess.numVertexes;
 	tess.numVertexes++;
 	tess.numIndexes++;
@@ -5006,32 +5014,42 @@ const RenderCommand *StretchPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 0 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( t1 );
-
 	tess.verts[ numVerts + 1 ].xyz[ 0 ] = x + w;
 	tess.verts[ numVerts + 1 ].xyz[ 1 ] = y;
 	tess.verts[ numVerts + 1 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 1 ].color = backEnd.color2D;
-
-	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
 
 	tess.verts[ numVerts + 2 ].xyz[ 0 ] = x + w;
 	tess.verts[ numVerts + 2 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 2 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 2 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
-
 	tess.verts[ numVerts + 3 ].xyz[ 0 ] = x;
 	tess.verts[ numVerts + 3 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 3 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 3 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		tess.verts[ numVerts ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ numVerts ].f16TexCoords[ 1 ] = floatToHalf( t1 );
+
+		tess.verts[ numVerts + 1 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ numVerts + 1 ].f16TexCoords[ 1 ] = floatToHalf( t1 );
+
+		tess.verts[ numVerts + 2 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ numVerts + 2 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
+
+		tess.verts[ numVerts + 3 ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ numVerts + 3 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
+	}
+	else
+	{
+		Vector2Set( tess.verts[ numVerts ].texCoords, s1, t1 );
+		Vector2Set( tess.verts[ numVerts + 1 ].texCoords, s2, t1 );
+		Vector2Set( tess.verts[ numVerts + 2 ].texCoords, s2, t2 );
+		Vector2Set( tess.verts[ numVerts + 3 ].texCoords, s1, t2 );
+	}
 
 	return this + 1;
 }
@@ -5085,8 +5103,14 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].xyz[ 1 ] = verts[ i ].xyz[ 1 ];
 		tess.verts[ tess.numVertexes ].xyz[ 2 ] = 0.0f;
 
-		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( verts[ i ].st[ 0 ] );
-		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( verts[ i ].st[ 1 ] );
+		if ( glConfig2.halfFloatVertexAvailable )
+		{
+			floatToHalf2( verts[ i ].st, tess.verts[ tess.numVertexes ].f16TexCoords );
+		}
+		else
+		{
+			Vector2Copy( verts[ i ].st, tess.verts[ tess.numVertexes ].texCoords );
+		}
 
 		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
 		tess.numVertexes++;
@@ -5142,8 +5166,14 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].xyz[ 1 ] = verts[ i ].xyz[ 1 ] + translation[ 1 ];
 		tess.verts[ tess.numVertexes ].xyz[ 2 ] = 0.0f;
 
-		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( verts[ i ].st[ 0 ] );
-		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( verts[ i ].st[ 1 ] );
+		if ( glConfig2.halfFloatVertexAvailable )
+		{
+			floatToHalf2( verts[ i ].st, tess.verts[ tess.numVertexes ].f16TexCoords );
+		}
+		else
+		{
+			Vector2Copy( verts[ i ].st, tess.verts[ tess.numVertexes ].texCoords );
+		}
 
 		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
 		tess.numVertexes++;
@@ -5245,32 +5275,42 @@ const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 0 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( t1 );
-
 	tess.verts[ numVerts + 1 ].xyz[ 0 ] = mx + cw - sh;
 	tess.verts[ numVerts + 1 ].xyz[ 1 ] = my - sw - ch;
 	tess.verts[ numVerts + 1 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 1 ].color = backEnd.color2D;
-
-	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
 
 	tess.verts[ numVerts + 2 ].xyz[ 0 ] = mx + cw + sh;
 	tess.verts[ numVerts + 2 ].xyz[ 1 ] = my - sw + ch;
 	tess.verts[ numVerts + 2 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 2 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
-
 	tess.verts[ numVerts + 3 ].xyz[ 0 ] = mx - cw + sh;
 	tess.verts[ numVerts + 3 ].xyz[ 1 ] = my + sw + ch;
 	tess.verts[ numVerts + 3 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 3 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		tess.verts[ numVerts ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ numVerts ].f16TexCoords[ 1 ] = floatToHalf( t1 );
+
+		tess.verts[ numVerts + 1 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ numVerts + 1 ].f16TexCoords[ 1 ] = floatToHalf( t1 );
+
+		tess.verts[ numVerts + 2 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ numVerts + 2 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
+
+		tess.verts[ numVerts + 3 ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ numVerts + 3 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
+	}
+	else
+	{
+		Vector2Set( tess.verts[ numVerts ].texCoords, s1, t1 );
+		Vector2Set( tess.verts[ numVerts + 1 ].texCoords, s2, t1 );
+		Vector2Set( tess.verts[ numVerts + 2 ].texCoords, s2, t2 );
+		Vector2Set( tess.verts[ numVerts + 3 ].texCoords, s1, t2 );
+	}
 
 	return this + 1;
 }
@@ -5329,29 +5369,39 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts ].xyz[ 1 ] = y;
 	tess.verts[ numVerts ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( t1 );
-
 	tess.verts[ numVerts + 1 ].xyz[ 0 ] = x + w;
 	tess.verts[ numVerts + 1 ].xyz[ 1 ] = y;
 	tess.verts[ numVerts + 1 ].xyz[ 2 ] = 0.0f;
-
-	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
 
 	tess.verts[ numVerts + 2 ].xyz[ 0 ] = x + w;
 	tess.verts[ numVerts + 2 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 2 ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
-
 	tess.verts[ numVerts + 3 ].xyz[ 0 ] = x;
 	tess.verts[ numVerts + 3 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 3 ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		tess.verts[ numVerts ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ numVerts ].f16TexCoords[ 1 ] = floatToHalf( t1 );
+
+		tess.verts[ numVerts + 1 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ numVerts + 1 ].f16TexCoords[ 1 ] = floatToHalf( t1 );
+
+		tess.verts[ numVerts + 2 ].f16TexCoords[ 0 ] = floatToHalf( s2 );
+		tess.verts[ numVerts + 2 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
+
+		tess.verts[ numVerts + 3 ].f16TexCoords[ 0 ] = floatToHalf( s1 );
+		tess.verts[ numVerts + 3 ].f16TexCoords[ 1 ] = floatToHalf( t2 );
+	}
+	else
+	{
+		Vector2Set( tess.verts[ numVerts ].texCoords, s1, t1 );
+		Vector2Set( tess.verts[ numVerts + 1 ].texCoords, s2, t1 );
+		Vector2Set( tess.verts[ numVerts + 2 ].texCoords, s2, t2 );
+		Vector2Set( tess.verts[ numVerts + 3 ].texCoords, s1, t2 );
+	}
 
 	return this + 1;
 }
