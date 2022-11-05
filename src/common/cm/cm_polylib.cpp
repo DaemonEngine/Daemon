@@ -228,7 +228,9 @@ void ChopWindingInPlace( winding_t **inout, const vec3_t normal, const vec_t dis
 	in = *inout;
 	counts[ 0 ] = counts[ 1 ] = counts[ 2 ] = 0;
 
-// determine sides for each point
+	ASSERT(in->numpoints >= 3);
+
+	// determine sides for each point
 	for ( i = 0; i < in->numpoints; i++ )
 	{
 		dot = DotProduct( in->p[ i ], normal );
@@ -251,8 +253,11 @@ void ChopWindingInPlace( winding_t **inout, const vec3_t normal, const vec_t dis
 		counts[ Util::ordinal(sides[ i ]) ]++;
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized" // sides[0] will always be copied in the loop above, because numpoints is never null
 	sides[ i ] = sides[ 0 ];
 	dists[ i ] = dists[ 0 ];
+#pragma GCC diagnostic pop
 
 	if ( !counts[ 0 ] )
 	{
