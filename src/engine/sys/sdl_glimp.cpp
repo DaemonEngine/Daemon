@@ -1740,6 +1740,7 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 
 #define LOAD_EXTENSION_WITH_TEST(flags, ext, test) LoadExt(flags, GLEW_##ext, #ext, test)
 
+glVertexShim_t GL_vertexShim;
 glFboShim_t GL_fboShim;
 
 static void GLimp_InitExtensions()
@@ -1869,7 +1870,16 @@ static void GLimp_InitExtensions()
 
 	// VAO and VBO
 	// made required in OpenGL 3.0
-	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
+	glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, r_arb_half_float_vertex.Get() );
+
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		glVertexSetHalfFloat();
+	}
+	else
+	{
+		glVertexSetFloat();
+	}
 
 	// made required in OpenGL 3.0
 	if ( LOAD_EXTENSION( ExtFlag_CORE, ARB_framebuffer_object ) )

@@ -32,7 +32,10 @@ struct fmtVertexAnim1 {
 const GLsizei sizeVertexAnim1 = sizeof( struct fmtVertexAnim1 );
 // interleaved texcoords and colour in part 2
 struct fmtVertexAnim2 {
-	f16vec2_t texcoord;
+	union {
+		f16vec2_t f16TexCoords;
+		vec2_t texCoords;
+	};
 	Color::Color32Bit colour;
 };
 const GLsizei sizeVertexAnim2 = sizeof( struct fmtVertexAnim2 );
@@ -40,7 +43,10 @@ const GLsizei sizeVertexAnim2 = sizeof( struct fmtVertexAnim2 );
 // interleaved data: position, texcoord, colour, qtangent, bonefactors
 struct fmtSkeletal {
 	i16vec4_t position;
-	f16vec2_t texcoord;
+	union {
+		f16vec2_t f16TexCoords;
+		vec2_t texCoords;
+	};
 	Color::Color32Bit colour;
 	i16vec4_t qtangents;
 	u16vec4_t boneFactors;
@@ -70,7 +76,7 @@ static uint32_t R_DeriveAttrBits( const vboData_t &data )
 		stateBits |= ATTR_COLOR;
 	}
 
-	if ( data.st )
+	if ( data.f16st || data.st )
 	{
 		stateBits |= ATTR_TEXCOORD;
 	}
@@ -80,7 +86,7 @@ static uint32_t R_DeriveAttrBits( const vboData_t &data )
 		stateBits |= ATTR_BONE_FACTORS;
 	}
 
-	if ( data.spriteOrientation )
+	if ( data.f16SpriteOrientation || data.spriteOrientation )
 	{
 		stateBits |= ATTR_ORIENTATION;
 	}
@@ -127,10 +133,16 @@ static void R_SetAttributeLayoutsVertexAnimation( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_POSITION2 ] = vbo->attribs[ ATTR_INDEX_POSITION ];
 	vbo->attribs[ ATTR_INDEX_QTANGENT2 ] = vbo->attribs[ ATTR_INDEX_QTANGENT ];
 
+	size_t texCoordsOffset = glConfig2.halfFloatVertexAvailable
+		? offsetof( struct fmtVertexAnim2, f16TexCoords )
+		: offsetof( struct fmtVertexAnim2, texCoords );
+	
+	texCoordsOffset += sizePart1;
+
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].numComponents = 2;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
+	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_vertexShim.floatFormat;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs          = sizePart1 + offsetof( struct fmtVertexAnim2, texcoord );
+	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs = texCoordsOffset;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].realStride   = sizeVertexAnim2;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride       = sizeVertexAnim2;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset  = 0;
@@ -157,10 +169,14 @@ static void R_SetAttributeLayoutsSkeletal( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = 0;
 
+	size_t texCoordsOffset = glConfig2.halfFloatVertexAvailable
+		? offsetof( struct fmtSkeletal, f16TexCoords )
+		: offsetof( struct fmtSkeletal, texCoords );
+
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].numComponents = 2;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
+	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_vertexShim.floatFormat;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs          = offsetof( struct fmtSkeletal, texcoord );
+	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs = texCoordsOffset;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].realStride   = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride       = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset  = 0;
@@ -219,18 +235,26 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].stride        = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].frameOffset   = 0;
 
+	size_t texCoordsOffset = glConfig2.halfFloatVertexAvailable
+		? offsetof( struct shaderVertex_t, f16TexCoords )
+		: offsetof( struct shaderVertex_t, texCoords );
+
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
+	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_vertexShim.floatFormat;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs           = offsetof( shaderVertex_t, texCoords );
+	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs = texCoordsOffset;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].realStride    = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride        = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset   = 0;
 
+	size_t spriteOrientationOffset = glConfig2.halfFloatVertexAvailable
+		? offsetof( struct shaderVertex_t, f16SpriteOrientation )
+		: offsetof( struct shaderVertex_t, spriteOrientation );
+
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].componentType = GL_HALF_FLOAT;
+	vbo->attribs[ ATTR_INDEX_ORIENTATION ].componentType = GL_vertexShim.floatFormat;
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].ofs           = offsetof( shaderVertex_t, spriteOrientation );
+	vbo->attribs[ ATTR_INDEX_ORIENTATION ].ofs = spriteOrientationOffset;
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].realStride    = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].stride        = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].frameOffset   = 0;
@@ -353,7 +377,15 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 
 			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
 			{
-				Vector2Copy( inData.st[ v ], ptr[ v ].texcoord );
+				if ( glConfig2.halfFloatVertexAvailable )
+				{
+					Vector2Copy( inData.f16st[ v ], ptr[ v ].f16TexCoords );
+				}
+				else
+				{
+					// Model only supports half float for now.
+					halfToFloat2( inData.f16st[ v ], ptr[ v ].texCoords );
+				}
 			}
 
 			if ( ( vbo->attribBits & ATTR_COLOR ) )
@@ -394,12 +426,27 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 
 			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
 			{
-				Vector4Copy( inData.stpq[ v ], ptr[ v ].texCoords );
+				// What is this?
+				if ( glConfig2.halfFloatVertexAvailable )
+				{
+					Vector4Copy( inData.f16stpq[ v ], ptr[ v ].f16TexCoords );
+				}
+				else
+				{
+					Vector4Copy( inData.stpq[ v ], ptr[ v ].texCoords );
+				}
 			}
 
 			if ( ( vbo->attribBits & ATTR_ORIENTATION ) )
 			{
-				Vector4Copy( inData.spriteOrientation[ v ], ptr[ v ].spriteOrientation );
+				if ( glConfig2.halfFloatVertexAvailable )
+				{
+					Vector4Copy( inData.f16SpriteOrientation[ v ], ptr[ v ].f16SpriteOrientation );
+				}
+				else
+				{
+					Vector4Copy( inData.spriteOrientation[ v ], ptr[ v ].spriteOrientation );
+				}
 			}
 		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_POSITION ) {
 			vec3_t *ptr = ( vec3_t * )outData;
@@ -416,14 +463,23 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 
 			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
 			{
-				Vector2Copy( inData.stf[ v ], ptr[ 2 * v + 1 ] );
+				// This is always float, only usage of st.
+				Vector2Copy( inData.st[ v ], ptr[ 2 * v + 1 ] );
 			}
 		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION ) {
 			struct fmtVertexAnim2 *ptr = ( struct fmtVertexAnim2 * )( outData + ( vbo->framesNum * vbo->vertexesNum ) * sizeVertexAnim1 );
 
 			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
 			{
-				Vector2Copy( inData.st[ v ], ptr[ v ].texcoord );
+				if ( glConfig2.halfFloatVertexAvailable )
+				{
+					Vector2Copy( inData.f16st[ v ], ptr[ v ].f16TexCoords );
+				}
+				else
+				{
+					// Model only supports half float for now.
+					halfToFloat2( inData.f16st[ v ], ptr[ v ].texCoords );
+				}
 			}
 
 			if ( ( vbo->attribBits & ATTR_COLOR ) )
@@ -946,11 +1002,25 @@ static void R_InitGenericVBOs() {
 	VectorCopy( v2, verts[2].xyz );
 	VectorCopy( v3, verts[3].xyz );
 	
-	for ( int i = 0; i < 4; i++ ) {
-		verts[i].color = Color::White;
-		verts[i].texCoords[0] = floatToHalf( i < 2 ? 0.0f : 1.0f );
-		verts[i].texCoords[1] = floatToHalf( i > 0 && i < 3 ? 1.0f : 0.0f );
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		for ( int i = 0; i < 4; i++ )
+		{
+			verts[i].color = Color::White;
+			verts[i].f16TexCoords[0] = floatToHalf( i < 2 ? 0.0f : 1.0f );
+			verts[i].f16TexCoords[1] = floatToHalf( i > 0 && i < 3 ? 1.0f : 0.0f );
+		}
 	}
+	else
+	{
+		for ( int i = 0; i < 4; i++ )
+		{
+			verts[i].color = Color::White;
+			verts[i].texCoords[0] = i < 2 ? 0.0f : 1.0f;
+			verts[i].texCoords[1] = i > 0 && i < 3 ? 1.0f : 0.0f;
+		}
+	}
+
 	surface->vbo = R_CreateStaticVBO2( "generic_VBO", surface->numVerts, verts, ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
 
 	glIndex_t indexes[6] = { 0, 2, 1,  0, 3, 2 }; // Front
@@ -1027,7 +1097,7 @@ static void R_InitTileVBO()
 	data.numVerts = w * h;
 
 	data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( data.numVerts * sizeof( *data.xyz ) );
-	data.stf = ( vec2_t * ) ri.Hunk_AllocateTempMemory( data.numVerts * sizeof( *data.stf ) );
+	data.st = ( vec2_t * ) ri.Hunk_AllocateTempMemory( data.numVerts * sizeof( *data.st ) );
 
 	for (y = 0; y < h; y++ ) {
 		for (x = 0; x < w; x++ ) {
@@ -1035,7 +1105,9 @@ static void R_InitTileVBO()
 				   (2 * x - w + 1) * (1.0f / w),
 				   (2 * y - h + 1) * (1.0f / h),
 				   0.0f );
-			Vector2Set( data.stf[ y * w + x ],
+
+			// This is always float, only usage of st.
+			Vector2Set( data.st[ y * w + x ],
 				    2 * x * glState.tileStep[ 0 ] + glState.tileStep[ 0 ] - 1.0f,
 				    2 * y * glState.tileStep[ 1 ] + glState.tileStep[ 1 ] - 1.0f );
 		}
@@ -1043,7 +1115,7 @@ static void R_InitTileVBO()
 
 	tr.lighttileVBO = R_CreateStaticVBO( "lighttile_VBO", data, vboLayout_t::VBO_LAYOUT_XYST );
 
-	ri.Hunk_FreeTempMemory( data.stf );
+	ri.Hunk_FreeTempMemory( data.st );
 	ri.Hunk_FreeTempMemory( data.xyz );
 }
 
