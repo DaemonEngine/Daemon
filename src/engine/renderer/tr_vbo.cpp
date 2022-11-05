@@ -32,7 +32,7 @@ struct fmtVertexAnim1 {
 const GLsizei sizeVertexAnim1 = sizeof( struct fmtVertexAnim1 );
 // interleaved texcoords and colour in part 2
 struct fmtVertexAnim2 {
-	i16vec2_t texcoord;
+	f16vec2_t texcoord;
 	Color::Color32Bit colour;
 };
 const GLsizei sizeVertexAnim2 = sizeof( struct fmtVertexAnim2 );
@@ -40,7 +40,7 @@ const GLsizei sizeVertexAnim2 = sizeof( struct fmtVertexAnim2 );
 // interleaved data: position, texcoord, colour, qtangent, bonefactors
 struct fmtSkeletal {
 	i16vec4_t position;
-	i16vec2_t texcoord;
+	f16vec2_t texcoord;
 	Color::Color32Bit colour;
 	i16vec4_t qtangents;
 	u16vec4_t boneFactors;
