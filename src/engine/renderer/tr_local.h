@@ -38,13 +38,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define DYN_BUFFER_SEGMENTS 4
 #define BUFFER_OFFSET(i) (reinterpret_cast<const void*>( i ))
 
+// The struct has the same memory layout as a half-float
+struct f16_t
+{
+	uint16_t bits;
+};
+
 using i8vec4_t = int8_t[4];
 using u8vec4_t = uint8_t[4];
 using i16vec4_t = int16_t[4];
 using u16vec4_t = uint16_t[4];
 using i16vec2_t = int16_t[2];
 using u16vec2_t = uint16_t[2];
-using f16vec4_t = int16_t[4]; // half float vector
+using f16vec2_t = f16_t[2];
+using f16vec4_t = f16_t[4];
 
 // GL conversion helpers
 static inline float unorm8ToFloat(byte unorm8) {
@@ -114,13 +121,13 @@ static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
 	out[ 3 ] = snorm16ToFloat( in[ 3 ] );
 }
 
-static inline int16_t floatToHalf( float in ) {
+static inline f16_t floatToHalf( float in ) {
 	static float scale = powf(2.0f, 15 - 127);
 	floatint_t fi;
 
 	fi.f = in * scale;
 
-	return (int16_t)(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13));
+	return { uint16_t(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13)) };
 }
 static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 {
@@ -129,11 +136,11 @@ static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 	out[ 2 ] = floatToHalf( in[ 2 ] );
 	out[ 3 ] = floatToHalf( in[ 3 ] );
 }
-static inline float halfToFloat( int16_t in ) {
+static inline float halfToFloat( f16_t in ) {
 	static float scale = powf(2.0f, 127 - 15);
 	floatint_t fi;
 
-	fi.ui = (((unsigned int)in & 0x8000) << 16) | (((unsigned int)in & 0x7fff) << 13);
+	fi.ui = (((unsigned int)in.bits & 0x8000) << 16) | (((unsigned int)in.bits & 0x7fff) << 13);
 	return fi.f * scale;
 }
 static inline void halfToFloat( const f16vec4_t in, vec4_t out )
@@ -728,7 +735,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 		vec3_t *xyz;
 		i16vec4_t *qtangent;
 		u8vec4_t *color;
-		union { i16vec2_t *st; i16vec4_t *stpq; vec2_t *stf; };
+		union { f16vec2_t *st; f16vec4_t *stpq; vec2_t *stf; };
 		int    (*boneIndexes)[ 4 ];
 		vec4_t *boneWeights;
 		vec4_t *spriteOrientation;
@@ -2309,7 +2316,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 		// vertex data
 		float           *positions;
-		int16_t         *texcoords;
+		f16_t         *texcoords;
 		float           *normals;
 		float           *tangents;
 		float           *bitangents;
@@ -3096,7 +3103,7 @@ inline bool checkGLErrors()
 
 	void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 			     const vec3_t v0, const vec3_t v1, const vec3_t v2,
-			     const i16vec2_t t0, const i16vec2_t t1, const i16vec2_t t2 );
+			     const f16vec2_t t0, const f16vec2_t t1, const f16vec2_t t2 );
 
 	/*
 	 * QTangent representation of tangentspace:
@@ -3313,7 +3320,7 @@ inline bool checkGLErrors()
 			i16vec4_t qtangents;
 			f16vec4_t spriteOrientation;
 		};
-		i16vec4_t texCoords;
+		f16vec4_t texCoords;
 	};
 
 #ifdef GL_ARB_sync

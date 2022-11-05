@@ -543,7 +543,7 @@ static void AutospriteDeform( int firstVertex, int numVertexes, int numIndexes )
 		for ( j = 0; j < 4; j++ ) {
 			VectorCopy( mid, v[ j ].xyz );
 			Vector4Set( v[ j ].spriteOrientation,
-				    0, 0, 0, floatToHalf( radius ) );
+				floatToHalf( 0 ), floatToHalf( 0 ), floatToHalf( 0 ), floatToHalf( radius ) );
 		}
 	}
 }
@@ -664,7 +664,8 @@ static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes 
 				k = 1;
 
 			VectorSubtract( v1->xyz, mid[ k ], minor );
-			if ( ( DotProduct( cross, minor ) *  v1->texCoords[ 3 ] ) < 0  ) {
+			// I guess this works, since the sign bit is the MSB for both floating point and integers
+			if ( ( DotProduct( cross, minor ) * static_cast<int16_t>(v1->texCoords[ 3 ].bits) ) < 0  ) {
 				VectorNegate( major, orientation );
 			} else {
 				VectorCopy( major, orientation );

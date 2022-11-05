@@ -131,7 +131,7 @@ void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriang
 	data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * vertexesNum );
 	data.boneIndexes = ( int (*)[ 4 ] ) ri.Hunk_AllocateTempMemory( sizeof( *data.boneIndexes ) * vertexesNum );
 	data.boneWeights = ( vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.boneWeights ) * vertexesNum );
-	data.st = ( i16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec2_t ) * vertexesNum );
+	data.st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * vertexesNum );
 	data.noLightCoords = true;
 	data.numVerts = vertexesNum;
 

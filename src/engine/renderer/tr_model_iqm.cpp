@@ -540,7 +540,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 	IQModel->bitangents = (float *)ptr;
 	ptr = IQModel->bitangents + 3 * header->num_vertexes;
 
-	IQModel->texcoords = (int16_t *)ptr;
+	IQModel->texcoords = (f16_t *)ptr;
 	ptr = IQModel->texcoords + 2 * header->num_vertexes;
 
 	IQModel->blendIndexes = (byte *)ptr;
@@ -803,7 +803,7 @@ bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
 		vboData.qtangent = qtangentbuf;
 		vboData.numFrames = 0;
 		vboData.color = (u8vec4_t *)IQModel->colors;
-		vboData.st = (i16vec2_t *)IQModel->texcoords;
+		vboData.st = (f16vec2_t *)IQModel->texcoords;
 		vboData.noLightCoords = true;
 		vboData.boneIndexes = (int (*)[4])indexbuf;
 		vboData.boneWeights = (vec4_t *)weightbuf;
