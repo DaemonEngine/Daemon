@@ -325,7 +325,7 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 			for (unsigned k = 0; k < 2; k++ )
 			{
 				token = COM_ParseExt2( &buf_p, false );
-				v->texCoords[ k ] = atof( token );
+				v->texCoordsF[ k ] = atof( token );
 			}
 
 			// skip )
@@ -518,9 +518,9 @@ bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
 				v1 = surf->verts[ tri->indexes[ 1 ] ].position;
 				v2 = surf->verts[ tri->indexes[ 2 ] ].position;
 
-				t0 = surf->verts[ tri->indexes[ 0 ] ].texCoords;
-				t1 = surf->verts[ tri->indexes[ 1 ] ].texCoords;
-				t2 = surf->verts[ tri->indexes[ 2 ] ].texCoords;
+				t0 = surf->verts[ tri->indexes[ 0 ] ].texCoordsF;
+				t1 = surf->verts[ tri->indexes[ 1 ] ].texCoordsF;
+				t2 = surf->verts[ tri->indexes[ 2 ] ].texCoordsF;
 
 				R_CalcFaceNormal( normal, v0, v1, v2 );
 				R_CalcTangents( tangent, binormal, v0, v1, v2, t0, t1, t2 );
