@@ -78,7 +78,7 @@ static bool IQM_CheckRange( iqmHeader_t *header, int offset,
 	return false;
 }
 
-static bool LoadIQMFile( void *buffer, unsigned filesize, const char *mod_name,
+static bool LoadIQMFile( const void *buffer, unsigned filesize, const char *mod_name,
 			     size_t *len_names )
 {
 	iqmHeader_t		*header;
@@ -440,7 +440,7 @@ R_LoadIQModel
 Load an IQM model and compute the joint matrices for every frame.
 =================
 */
-bool R_LoadIQModel( model_t *mod, void *buffer, int filesize,
+bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 			const char *mod_name ) {
 	iqmHeader_t		*header;
 	iqmVertexArray_t	*vertexarray;
