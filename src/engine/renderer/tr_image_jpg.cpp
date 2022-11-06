@@ -93,24 +93,11 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 	unsigned int          pixelcount, memcount;
 	unsigned int          sindex, dindex;
 	byte                  *out;
-	int                   len;
-	union
-	{
-		byte *b;
-		void *v;
-	} fbuffer;
-
 	byte *buf;
 
-	/* In this example we want to open the input file before doing anything else,
-	 * so that the setjmp() error recovery below can assume the file is open.
-	 * VERY IMPORTANT: use "b" option to fopen() if you are on a machine that
-	 * requires it in order to read binary files.
-	 */
-
-	len = ri.FS_ReadFile( ( char * ) filename, &fbuffer.v );
-
-	if ( !fbuffer.b || len < 0 )
+	std::error_code err;
+	std::string data = FS::PakPath::ReadFile( filename, err );
+	if ( err )
 	{
 		return;
 	}
@@ -131,7 +118,7 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 
 	/* Step 2: specify data source (eg, a file) */
 
-	jpeg_mem_src( &cinfo, fbuffer.b, len );
+	jpeg_mem_src( &cinfo, reinterpret_cast<const unsigned char*>(data.data()), data.size() );
 
 	/* Step 3: read file parameters with jpeg_read_header() */
 
@@ -174,7 +161,6 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 	     || pixelcount > 0x1FFFFFFF || cinfo.output_components != 3 )
 	{
 		// Free the memory to make sure we don't leak memory
-		ri.FS_FreeFile( fbuffer.v );
 		jpeg_destroy_decompress( &cinfo );
 
 		Sys::Drop( "JPG image '%s' has an invalid format: %dx%d*4=%d, components: %d", filename,
@@ -235,8 +221,6 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 
 	/* This is an important step since it will release a good deal of memory. */
 	jpeg_destroy_decompress( &cinfo );
-
-	ri.FS_FreeFile( fbuffer.v );
 
 	/* At this point you may want to check to see whether any corrupt-data
 	 * warnings occurred (test whether jerr.pub.num_warnings is nonzero).

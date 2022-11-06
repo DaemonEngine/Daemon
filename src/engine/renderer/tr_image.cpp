@@ -1690,7 +1690,7 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 				// that, and by the way if there is no alternative an error will be raised
 				// because of missing texture so we don't have to let the ImageLoader says
 				// it failed to read the file using this filename
-				if (FS_FileExists( filename ))
+				if ( FS::PakPath::FileExists( filename ) )
 				{
 					// load
 					imageLoaders[ i ].ImageLoader( filename, pic, width, height, numLayers, numMips, bits, alphaByte );
