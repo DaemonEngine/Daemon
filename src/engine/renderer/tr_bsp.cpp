@@ -145,13 +145,9 @@ float R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int b
 	return maxIntensity;
 }
 
-static int LightmapNameCompare( const void *a, const void *b )
+static int LightmapNameCompare( const char *s1, const char *s2 )
 {
-	char *s1, *s2;
 	int  c1, c2;
-
-	s1 = * ( char ** ) a;
-	s2 = * ( char ** ) b;
 
 	do
 	{
@@ -195,11 +191,15 @@ static int LightmapNameCompare( const void *a, const void *b )
 	return 0;
 }
 
+static bool LightmapNameLess( const std::string& a, const std::string& b)
+{
+	return LightmapNameCompare( a.c_str(), b.c_str() ) < 0;
+}
+
 void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 {
 	int      i, j;
-	byte     *buf_p;
-	byte     *buffer;
+	const byte *buf_p;
 	float    *floatbuf;
 	char     *token;
 	int      w, h, c;
@@ -214,14 +214,15 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 	*pic = nullptr;
 
 	// load the file
-	ri.FS_ReadFile( ( char * ) name, ( void ** ) &buffer );
+	std::error_code err;
+	std::string buffer = FS::PakPath::ReadFile( name, err );
 
-	if ( !buffer )
+	if ( err )
 	{
 		Sys::Drop( "RGBE image '%s' is not found", name );
 	}
 
-	buf_p = buffer;
+	buf_p = reinterpret_cast<const byte*>(buffer.c_str());
 
 	formatFound = false;
 	w = h = 0;
@@ -336,13 +337,11 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 
 	if ( !formatFound )
 	{
-		ri.FS_FreeFile( buffer );
 		Sys::Drop( "RGBE image '%s' has no format", name );
 	}
 
 	if ( !w || !h )
 	{
-		ri.FS_FreeFile( buffer );
 		Sys::Drop( "RGBE image '%s' has an invalid image size", name );
 	}
 
@@ -361,8 +360,6 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 			*floatbuf++ = sample.f / 255.0f; // FIXME XMap2's output is 255 times too high
 		}
 	}
-
-	ri.FS_FreeFile( buffer );
 }
 
 static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int *height )
@@ -420,22 +417,28 @@ static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int 
 	free( hdrImage );
 }
 
-static char **R_LoadExternalLightmaps(
-		const char *mapName,
-		int *numLightmaps,
-		const std::initializer_list<char const *> &extensions = std::initializer_list<char const *>{".png", ".tga", ".webp", ".crn", ".jpg", ".jpeg"})
+static std::vector<std::string> R_LoadExternalLightmaps( const char *mapName )
 {
-	int count = 0;
-	char **lightmapFiles = nullptr;
-	for (auto it : extensions) {
-		lightmapFiles = ri.FS_ListFiles(mapName, it, &count);
-		if (count && lightmapFiles) {
-			qsort(lightmapFiles, count, sizeof(char *), LightmapNameCompare);
-			break;
+	const char *const extensions[] {".png", ".tga", ".webp", ".crn", ".jpg", ".jpeg"};
+	std::vector<std::string> files[ ARRAY_LEN( extensions ) ];
+	for ( const std::string& filename : FS::PakPath::ListFiles( mapName ) ) {
+		for ( int i = 0; i < ARRAY_LEN( extensions ); i++ )
+		{
+			if ( Str::IsISuffix( extensions[ i ], filename ) )
+			{
+				files[ i ].push_back( filename );
+			}
 		}
 	}
-	*numLightmaps = count;
-	return lightmapFiles;
+	for ( auto& fileList : files )
+	{
+		if ( !fileList.empty() )
+		{
+			std::sort( fileList.begin(), fileList.end(), LightmapNameLess );
+			return std::move( fileList );
+		}
+	}
+	return {};
 }
 
 /*
@@ -465,29 +468,37 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			R_SyncRenderThread();
 
 			// load HDR lightmaps
-			int numLightmaps;
-			auto lightmapFiles = R_LoadExternalLightmaps(mapName, &numLightmaps, {".hdr"});
-			if (!lightmapFiles || !numLightmaps) {
-				Log::Warn("no lightmap files found");
-				return;
-			}
-
 			int  width, height;
 			byte *ldrImage;
 
-			for ( int i = 0; i < numLightmaps; i++ )
+			std::vector<std::string> hdrFiles;
+			for ( const std::string& filename : FS::PakPath::ListFiles( mapName ) )
 			{
-				Log::Debug("...loading external lightmap as RGB8 LDR '%s/%s'", mapName, lightmapFiles[ i ] );
+				if ( Str::IsISuffix( ".hdr", filename ) )
+				{
+					hdrFiles.push_back( filename );
+				}
+			}
+			if ( hdrFiles.empty() )
+			{
+				Log::Warn("no lightmap files found");
+				return;
+			}
+			std::sort( hdrFiles.begin(), hdrFiles.end(), LightmapNameLess );
+
+			for ( const std::string& filename : hdrFiles )
+			{
+				Log::Debug("...loading external lightmap as RGB8 LDR '%s/%s'", mapName, filename );
 
 				width = height = 0;
-				LoadRGBEToBytes( va( "%s/%s", mapName, lightmapFiles[ i ] ), &ldrImage, &width, &height );
+				LoadRGBEToBytes( va( "%s/%s", mapName, filename.c_str() ), &ldrImage, &width, &height );
 
 				imageParams_t imageParams = {};
 				imageParams.bits = IF_NOPICMIP | IF_LIGHTMAP;
 				imageParams.filterType = filterType_t::FT_DEFAULT;
 				imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-				auto image = R_CreateImage( va( "%s/%s", mapName, lightmapFiles[ i ] ), (const byte **)&ldrImage, width, height, 1, imageParams );
+				auto image = R_CreateImage( va( "%s/%s", mapName, filename.c_str() ), (const byte **)&ldrImage, width, height, 1, imageParams );
 
 				Com_AddToGrowList( &tr.lightmaps, image );
 
@@ -496,42 +507,41 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 			if (tr.worldDeluxeMapping && r_deluxeMapping->integer != 0) {
 				// load deluxemaps
-				lightmapFiles = R_LoadExternalLightmaps(mapName, &numLightmaps);
-				if (!lightmapFiles || !numLightmaps) {
+				std::vector<std::string> lightmapFiles = R_LoadExternalLightmaps(mapName);
+				if (lightmapFiles.empty()) {
 					Log::Warn("no lightmap files found");
 					return;
 				}
 
-				Log::Debug("...loading %i deluxemaps", numLightmaps);
+				Log::Debug("...loading %i deluxemaps", lightmapFiles.size());
 
-				for (int i = 0; i < numLightmaps; i++) {
-					Log::Debug("...loading external lightmap '%s/%s'", mapName, lightmapFiles[i]);
+				for (const std::string& filename : lightmapFiles) {
+					Log::Debug("...loading external lightmap '%s/%s'", mapName, filename);
 
 					imageParams_t imageParams = {};
 					imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 					imageParams.filterType = filterType_t::FT_DEFAULT;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), imageParams);
+					auto image = R_FindImageFile(va("%s/%s", mapName, filename.c_str()), imageParams);
 					Com_AddToGrowList(&tr.deluxemaps, image);
 				}
 			}
 		}
 		else
 		{
-			int numLightmaps;
-			auto lightmapFiles = R_LoadExternalLightmaps(mapName, &numLightmaps);
-			if (!lightmapFiles || !numLightmaps) {
+			std::vector<std::string> lightmapFiles = R_LoadExternalLightmaps(mapName);
+			if (lightmapFiles.empty()) {
 				Log::Warn("no lightmap files found");
 				return;
 			}
 
-			Log::Debug("...loading %i lightmaps", numLightmaps );
+			Log::Debug("...loading %i lightmaps", lightmapFiles.size() );
 
 			// we are about to upload textures
 			R_SyncRenderThread();
 
-			for (int i = 0; i < numLightmaps; i++) {
+			for (size_t i = 0; i < lightmapFiles.size(); i++) {
 				Log::Debug("...loading external lightmap '%s/%s'", mapName, lightmapFiles[i]);
 
 				if (!tr.worldDeluxeMapping || i % 2 == 0) {
@@ -540,7 +550,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.filterType = filterType_t::FT_LINEAR;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), imageParams);
+					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
 					Com_AddToGrowList(&tr.lightmaps, image);
 				}
 				else if (r_deluxeMapping->integer != 0)
@@ -550,7 +560,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.filterType = filterType_t::FT_LINEAR;
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), imageParams);
+					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
 					Com_AddToGrowList(&tr.deluxemaps, image);
 				}
 			}
