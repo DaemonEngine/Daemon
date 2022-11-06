@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 R_LoadMD5
 =================
 */
-bool R_LoadMD5( model_t *mod, void *buffer, const char *modName )
+bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 {
 	md5Model_t    *md5;
 	md5Bone_t     *bone;
