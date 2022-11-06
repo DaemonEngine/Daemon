@@ -139,6 +139,10 @@ namespace Str {
         return IsPrefix(ToLower(prefix), ToLower(text));
     }
 
+    bool IsISuffix(Str::StringRef suffix, Str::StringRef text) {
+        return IsSuffix(ToLower(suffix), ToLower(text));
+    }
+
     int LongestIPrefixSize(Str::StringRef text1, Str::StringRef text2) {
         return LongestPrefixSize(ToLower(text1), ToLower(text2));
     }

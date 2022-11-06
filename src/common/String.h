@@ -296,6 +296,7 @@ namespace Str {
 
     // Case insensitive versions
     bool IsIPrefix(Str::StringRef prefix, Str::StringRef text);
+    bool IsISuffix(Str::StringRef suffix, Str::StringRef text);
     int LongestIPrefixSize(Str::StringRef text1, Str::StringRef text2);
     bool IsIEqual(Str::StringRef text1, Str::StringRef text2);
 
