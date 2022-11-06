@@ -66,7 +66,7 @@ std::string CRNFormatToString(crn_format format)
   }
 }
 
-bool LoadInMemoryCRN(const char* name, void* buff, size_t buffLen, byte **data, int *width, int *height,
+bool LoadInMemoryCRN(const char* name, const void* buff, size_t buffLen, byte **data, int *width, int *height,
                      int *numLayers, int *numMips, int *bits)
 {
     if (crnd::crnd_validate_file(buff, buffLen, nullptr)) { // Checks the header, not the whole file.
@@ -153,17 +153,16 @@ bool LoadInMemoryCRN(const char* name, void* buff, size_t buffLen, byte **data, 
 void LoadCRN(const char* name, byte **data, int *width, int *height,
              int *numLayers, int *numMips, int *bits, byte)
 {
-    void* buff;
-    size_t buffLen = ri.FS_ReadFile(name, &buff);
+    std::error_code err;
+    std::string buff = FS::PakPath::ReadFile( name, err );
     *numLayers = 0;
-    if (!buff) {
+    if ( err ) {
         return;
     }
-    if (!LoadInMemoryCRN(name, buff, buffLen, data, width, height, numLayers, numMips, bits)) {
+    if (!LoadInMemoryCRN(name, buff.data(), buff.size(), data, width, height, numLayers, numMips, bits)) {
         if (*data) {
             ri.Free(*data);
             *data = nullptr; // This signals failure.
         }
     }
-    ri.FS_FreeFile(buff);
 }

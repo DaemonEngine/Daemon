@@ -137,7 +137,7 @@ struct DDSHEADER_t
 #define FOURCC_BC4U             MAKEFOURCC( 'B', 'C', '4', 'U' )
 #define FOURCC_BC5U             MAKEFOURCC( 'B', 'C', '5', 'U' )
 
-void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
+void R_LoadDDSImageData( const void *pImageData, const char *name, byte **data,
 			 int *width, int *height, int *numLayers,
 			 int *numMips, int *bits )
 {
@@ -358,17 +358,14 @@ void R_LoadDDSImageData( void *pImageData, const char *name, byte **data,
 void LoadDDS( const char *name, byte **data, int *width, int *height,
 	      int *numLayers, int *numMips, int *bits, byte )
 {
-	byte    *buff;
+	std::error_code err;
+	std::string buff = FS::PakPath::ReadFile( name, err );
 
-	ri.FS_ReadFile( name, ( void ** ) &buff );
-
-	if ( !buff )
+	if ( err )
 	{
 		return;
 	}
 
-	R_LoadDDSImageData( buff, name, data, width, height,
+	R_LoadDDSImageData( buff.data(), name, data, width, height,
 			    numLayers, numMips, bits );
-
-	ri.FS_FreeFile( buff );
 }

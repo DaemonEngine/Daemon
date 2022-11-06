@@ -753,18 +753,17 @@ void LoadKTX( const char *name, byte **pic, int *width, int *height,
 	*pic = nullptr;
 	*numLayers = 0;
 
-	void *ktxData{ nullptr };
-	const size_t ktxSize = ri.FS_ReadFile( name, &ktxData );
-	if (!ktxData) {
+	std::error_code err;
+	std::string ktxData = FS::PakPath::ReadFile( name, err );
+	if ( err ) {
 		return;
 	}
-	if ( !LoadInMemoryKTX( name, ktxData, ktxSize, pic, width, height, numLayers, numMips, bits ) ) {
+	if ( !LoadInMemoryKTX( name, &ktxData[0], ktxData.size(), pic, width, height, numLayers, numMips, bits ) ) {
 		if (*pic) {
 			ri.Free(*pic);
 		}
 		*pic = nullptr; // This signals failure.
 	}
-	ri.FS_FreeFile( ktxData );
 }
 
 void SaveImageKTX( const char *path, image_t *img )

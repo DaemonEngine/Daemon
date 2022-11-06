@@ -66,13 +66,13 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 	png_infop    info;
 	png_structp  png;
 	png_bytep    *row_pointers;
-	byte         *data;
 	byte         *out;
 
 	// load png
-	ri.FS_ReadFile( name, ( void ** ) &data );
+	std::error_code err;
+	std::string data = FS::PakPath::ReadFile(name, err);
 
-	if ( !data )
+	if ( err )
 	{
 		return;
 	}
@@ -83,7 +83,6 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 	{
 		Log::Warn("PNG image '%s' has failed png_create_write_struct() [libpng v.'%s']",
 			name, PNG_LIBPNG_VER_STRING );
-		ri.FS_FreeFile( data );
 		return;
 	}
 
@@ -94,7 +93,6 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 	{
 		Log::Warn("PNG image '%s' has failed png_create_info_struct() [libpng v.'%s']",
 			name, PNG_LIBPNG_VER_STRING );
-		ri.FS_FreeFile( data );
 		png_destroy_read_struct( &png, ( png_infopp ) nullptr, ( png_infopp ) nullptr );
 		return;
 	}
@@ -109,12 +107,11 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 		// if we get here, we had a problem reading the file
 		Log::Warn("PNG image '%s' has first exception handler called [libpng v.'%s']",
 			name, PNG_LIBPNG_VER_STRING );
-		ri.FS_FreeFile( data );
 		png_destroy_read_struct( &png, ( png_infopp ) & info, ( png_infopp ) nullptr );
 		return;
 	}
 
-	png_set_read_fn( png, data, png_read_data );
+	png_set_read_fn( png, &data[ 0 ], png_read_data );
 
 	png_set_sig_bytes( png, 0 );
 
@@ -179,7 +176,6 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 		Log::Warn("PNG image '%s' has second exception handler called [libpng v.'%s']",
 			name, PNG_LIBPNG_VER_STRING );
 		ri.Hunk_FreeTempMemory( row_pointers );
-		ri.FS_FreeFile( data );
 		png_destroy_read_struct( &png, ( png_infopp ) & info, ( png_infopp ) nullptr );
 		return;
 	}
@@ -199,7 +195,6 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 	png_destroy_read_struct( &png, &info, ( png_infopp ) nullptr );
 
 	ri.Hunk_FreeTempMemory( row_pointers );
-	ri.FS_FreeFile( data );
 }
 
 /*
