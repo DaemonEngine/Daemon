@@ -84,12 +84,12 @@ function(GAMEMODULE)
                     -DDAEMON_DIR=${Daemon_SOURCE_DIR}
                     -DDEPS_DIR=${DEPS_DIR}
                     -DBUILD_GAME_NACL_NEXE=${BUILD_GAME_NACL_NEXE}
-                    -DBUILD_GAME_NACL=1
-                    -DBUILD_GAME_NATIVE_DLL=0
-                    -DBUILD_GAME_NATIVE_EXE=0
-                    -DBUILD_CLIENT=0
-                    -DBUILD_TTY_CLIENT=0
-                    -DBUILD_SERVER=0
+                    -DBUILD_GAME_NACL=ON
+                    -DBUILD_GAME_NATIVE_DLL=OFF
+                    -DBUILD_GAME_NATIVE_EXE=OFF
+                    -DBUILD_CLIENT=OFF
+                    -DBUILD_TTY_CLIENT=OFF
+                    -DBUILD_SERVER=OFF
                     ${inherited_option_args}
                 INSTALL_COMMAND ""
             )
