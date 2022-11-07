@@ -55,6 +55,8 @@ set(MSVC_INCREMENTAL_DEFAULT ON)
 # Enable the creation of project folders for Visual Studio projects
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+project(Daemon C CXX)
+
 # Default to Release builds. To use system CFLAGS only (for distro builds), set CMAKE_BUILD_TYPE to None
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
@@ -65,14 +67,14 @@ if (NOT CMAKE_OSX_ARCHITECTURES)
     set(CMAKE_OSX_ARCHITECTURES x86_64)
 endif()
 
+include(DaemonPlatform)
+
 if (Daemon_OUT)
     set(CMAKE_CURRENT_BINARY_DIR ${Daemon_OUT})
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Daemon_OUT})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Daemon_OUT})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
-
-project(Daemon C CXX)
 
 ################################################################################
 # Configuration options
@@ -94,15 +96,45 @@ if(NOT DAEMON_EXTERNAL_APP)
     # can be loaded by daemon with vm.[sc]game.type 2
     option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
-    if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)
+    # The NaCl SDK only runs on amd64 or i686.
+    if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
+    AND (ARCH STREQUAL "amd64" OR ARCH STREQUAL "i686"))
         # can be loaded by daemon with vm.[sc]game.type 0 or 1
-        option(BUILD_GAME_NACL "Build the NaCl gamelogic modules, required to host mods." OFF)
-        option(BUILD_GAME_NACL_NEXE "Build the NaCl \"nexe\" files from the \"pexe\" files." ON)
-        mark_as_advanced(BUILD_GAME_NACL_NEXE)
+        option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
+
+        set(NACL_ALL_TARGETS "amd64;i686;armhf")
+        set(BUILD_GAME_NACL_TARGETS "all" CACHE STRING "Enabled NaCl \"nexe\" architecture targets, values: ${NACL_ALL_TARGETS}, all, native, none.")
+        mark_as_advanced(BUILD_GAME_NACL_TARGETS)
+
+        if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
+            set(NACL_TARGETS "${NACL_ALL_TARGETS}")
+        elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
+            set(NACL_TARGETS "${ARCH}")
+        elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
+            set(NACL_TARGETS "")
+        else()
+            set(NACL_TARGETS "${BUILD_GAME_NACL_TARGETS}")
+        endif()
+
+        foreach(NACL_TARGET ${NACL_TARGETS})
+            set(IS_NACL_VALID_TARGET OFF)
+            foreach(NACL_VALID_TARGET ${NACL_ALL_TARGETS})
+                if(NACL_TARGET STREQUAL NACL_VALID_TARGET)
+                    set(IS_NACL_VALID_TARGET ON)
+                endif()
+            endforeach()
+
+            if (NOT IS_NACL_VALID_TARGET)
+                message(FATAL_ERROR "Invalid NaCl target ${NACL_TARGET}, must be one of ${NACL_ALL_TARGETS}")
+            endif()
+        endforeach()
     else()
         set(BUILD_GAME_NACL OFF)
-        set(BUILD_GAME_NACL_NEXE OFF)
+        set(NACL_TARGETS "")
     endif()
+	
+    set(NACL_TARGETS "${NACL_TARGETS}" PARENT_SCOPE)
+
     option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
     option(BUILD_DUMMY_APP "Stripped-down engine executable, mostly used to ease incremental porting and debugging" OFF)
     mark_as_advanced(BUILD_DUMMY_APP)
@@ -175,15 +207,6 @@ else()
 endif()
 if (DAEMON_PARENT_SCOPE_DIR)
     set(WARNMODE ${WARNMODE} PARENT_SCOPE)
-endif()
-
-include(DaemonPlatform)
-
-if (ARCH STREQUAL "armhf")
-    if (BUILD_GAME_NACL)
-        message(WARNING "Building of NaCL \"nexe\" files is not supported on armhf, disabling")
-        set(BUILD_GAME_NACL OFF CACHE BOOL "Unsupported on armhf" FORCE)
-    endif()
 endif()
 
 ################################################################################
