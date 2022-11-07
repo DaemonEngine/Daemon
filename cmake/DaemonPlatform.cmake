@@ -38,13 +38,4 @@ else()
   message( FATAL_ERROR "Platform not supported" )
 endif()
 
-################################################################################
-# Determine architecture
-################################################################################
-
-# When adding a new architecture, look at all the places ARCH is used
-if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
-  set( ARCH "x86_64" )
-else()
-  set( ARCH "x86" )
-endif()
+include("${DAEMON_DIR}/tools/DaemonArchitecture/DaemonArchitecture.cmake")

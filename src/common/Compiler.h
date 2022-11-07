@@ -77,13 +77,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // Raise an exception and break in the debugger
-#if defined(__i386__) || defined(__x86_64__)
-#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
-#elif defined(__pnacl__)
-// TODO find how to implement breakpoint on PNaCl
-#define BREAKPOINT()
+#if defined(DAEMON_ARCH_i686) || defined(DAEMON_ARCH_amd64)
+	#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
+#elif defined(DAEMON_ARCH_armhf)
+	// TODO find how to implement breakpoint on armhf
+	#define BREAKPOINT()
+#elif defined(DAEMON_ARCH_pnacl)
+	// TODO find how to implement breakpoint on PNaCl
+	#define BREAKPOINT()
+#elif defined(DAEMON_ARCH_wasm)
+	// TODO find how to implement breakpoint on Wasm
+	#define BREAKPOINT()
 #else
-#error "Implement BREAKPOINT on your platform"
+	#error Implement BREAKPOINT on platform
 #endif
 
 // noexcept keyword, this should be used on all move constructors and move

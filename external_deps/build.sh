@@ -509,10 +509,12 @@ build_naclsdk() {
 	case "${PLATFORM}" in
 	*-i686-*)
 		local NACLSDK_ARCH=x86_32
+		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
 		local DAEMON_ARCH=x86
 		;;
 	*-amd64-*)
 		local NACLSDK_ARCH=x86_64
+		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
 		local DAEMON_ARCH=x86_64
 		;;
 	*-armhf-*)
@@ -545,6 +547,7 @@ build_naclsdk() {
 	case "${PLATFORM}" in
 	windows-i686-*)
 		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/sel_ldr64.exe"
+		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
 		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-x86_64.nexe"
 		;;
 	linux-amd64-*)

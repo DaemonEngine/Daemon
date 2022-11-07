@@ -36,6 +36,10 @@ if (POLICY CMP0072)
     cmake_policy(SET CMP0072 NEW)
 endif()
 
+if(NOT DAEMON_DIR)
+    set(DAEMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 get_directory_property(DAEMON_PARENT_SCOPE_DIR PARENT_DIRECTORY)
 if (DAEMON_PARENT_SCOPE_DIR)
@@ -174,6 +178,13 @@ endif()
 
 include(DaemonPlatform)
 
+if (ARCH STREQUAL "armhf")
+    if (BUILD_GAME_NACL)
+        message(WARNING "Building of NaCL \"nexe\" files is not supported on armhf, disabling")
+        set(BUILD_GAME_NACL OFF CACHE BOOL "Unsupported on armhf" FORCE)
+    endif()
+endif()
+
 ################################################################################
 # Directories
 ################################################################################
@@ -214,12 +225,6 @@ if (NOT NACL)
 
     set(DEPS_EXT ".tar.xz")
 
-    if (ARCH STREQUAL "x86_64")
-        set(DEPS_ARCH amd64)
-    else()
-        set(DEPS_ARCH i686)
-    endif()
-
     if (WIN32)
         set(DEPS_SYSTEM windows)
     elseif (APPLE)
@@ -236,7 +241,7 @@ if (NOT NACL)
         set(DEPS_COMPILER default)
     endif()
 
-    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${DEPS_ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
+    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
 
 	if (DAEMON_PARENT_SCOPE_DIR)
 		set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
@@ -911,10 +916,11 @@ if (BUILD_CLIENT OR BUILD_SERVER OR BUILD_TTY_CLIENT)
             ${DEPS_DIR}/sel_ldr${CMAKE_EXECUTABLE_SUFFIX}
             ${FULL_OUTPUT_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
     )
+
     add_custom_command(TARGET runtime_deps PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/irt_core-${ARCH}.nexe
-            ${FULL_OUTPUT_DIR}/irt_core-${ARCH}.nexe
+            ${DEPS_DIR}/irt_core-${NACL_ARCH}.nexe
+            ${FULL_OUTPUT_DIR}/irt_core-${NACL_ARCH}.nexe
     )
 
     # Linux uses a bootstrap program to reserve address space
@@ -927,7 +933,7 @@ if (BUILD_CLIENT OR BUILD_SERVER OR BUILD_TTY_CLIENT)
     endif()
 
     # Win32 requires nacl_loader64.exe in order to run on Win64
-    if (WIN32 AND ARCH STREQUAL x86)
+    if (WIN32 AND ARCH STREQUAL i686)
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${DEPS_DIR}/sel_ldr64${CMAKE_EXECUTABLE_SUFFIX}
