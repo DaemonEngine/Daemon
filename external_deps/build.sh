@@ -515,25 +515,33 @@ build_naclsdk() {
 		local NACLSDK_ARCH=x86_64
 		local DAEMON_ARCH=x86_64
 		;;
+	*-armhf-*)
+		local NACLSDK_ARCH=arm
+		local DAEMON_ARCH=armhf
+		;;
 	esac
 	download "naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2" "https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2" naclsdk
 	cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/sel_ldr${EXE}"
 	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-	cp pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE}" "${PREFIX}/nacl-gdb${EXE}"
-	rm -rf "${PREFIX}/pnacl"
+	case "${PLATFORM}" in
+	windows-i686-*|*-amd64-*)
+		cp pepper_*"/toolchain/${NACLSDK_PLATFORM}_x86_newlib/bin/x86_64-nacl-gdb${EXE}" "${PREFIX}/nacl-gdb${EXE}"
 
-	patch -d pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl/bin/pydir" \
-		-p1 < "${SCRIPT_DIR}/naclsdk-pydir-python3.patch" >/dev/null
+		rm -rf "${PREFIX}/pnacl"
 
-	cp -a pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl" "${PREFIX}/pnacl"
-	rm -rf "${PREFIX}/pnacl/bin/"{i686,x86_64}-nacl-*
-	rm -rf "${PREFIX}/pnacl/arm-nacl"
-	rm -rf "${PREFIX}/pnacl/arm_bc-nacl"
-	rm -rf "${PREFIX}/pnacl/docs"
-	rm -rf "${PREFIX}/pnacl/i686_bc-nacl"
-	rm -rf "${PREFIX}/pnacl/include"
-	rm -rf "${PREFIX}/pnacl/x86_64-nacl"
-	rm -rf "${PREFIX}/pnacl/x86_64_bc-nacl"
+		patch -d pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl/bin/pydir" \
+			-p1 < "${SCRIPT_DIR}/naclsdk-pydir-python3.patch" >/dev/null
+
+		cp -a pepper_*"/toolchain/${NACLSDK_PLATFORM}_pnacl" "${PREFIX}/pnacl"
+		rm -rf "${PREFIX}/pnacl/bin/"{i686,x86_64}-nacl-*
+		rm -rf "${PREFIX}/pnacl/arm-nacl"
+		rm -rf "${PREFIX}/pnacl/arm_bc-nacl"
+		rm -rf "${PREFIX}/pnacl/docs"
+		rm -rf "${PREFIX}/pnacl/i686_bc-nacl"
+		rm -rf "${PREFIX}/pnacl/include"
+		rm -rf "${PREFIX}/pnacl/x86_64-nacl"
+		rm -rf "${PREFIX}/pnacl/x86_64_bc-nacl"
+	esac
 	case "${PLATFORM}" in
 	windows-i686-*)
 		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/sel_ldr64.exe"
@@ -541,6 +549,12 @@ build_naclsdk() {
 		;;
 	linux-amd64-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_x86_64" "${PREFIX}/nacl_helper_bootstrap"
+		# Fix permissions on a few files which deny access to non-owner
+		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
+		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
+		;;
+	linux-armhf-*)
+		cp pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
@@ -745,6 +759,17 @@ setup_linux-amd64-default() {
 	common_setup
 }
 
+# Set up environment for 32-bit armhf Linux
+setup_linux-armhf-default() {
+	HOST=arm-unknown-linux-gnueabihf
+	CROSS=
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export CFLAGS="-fPIC"
+	export CXXFLAGS="-fPIC"
+	export LDFLAGS=""
+	common_setup
+}
+
 # Usage
 if [ "${#}" -lt "2" ]; then
 	cat <<-EOF
@@ -753,7 +778,7 @@ if [ "${#}" -lt "2" ]; then
 	Script to build dependencies for platforms which do not provide them
 
 	Platforms:
-	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default
+	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-armhf-default
 
 	Packages:
 	  pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
@@ -774,8 +799,11 @@ if [ "${#}" -lt "2" ]; then
 	Native macOS compile:
 	  pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports
 
-	Linux native compile:
+	Linux amd64 native compile:
 	  naclsdk naclports (and possibly others depending on what packages your distribution provides)
+
+	Linux armhf native compile:
+	  naclsdk (and possibly others depending on what packages your distribution provides)
 
 	EOF
 	exit 1
