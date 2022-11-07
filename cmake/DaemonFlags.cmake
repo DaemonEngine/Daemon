@@ -140,6 +140,7 @@ if (MSVC)
     if (ARCH STREQUAL "x86")
         set_c_cxx_flag("/arch:SSE2")
     endif()
+
     if (USE_LTO)
         set_c_cxx_flag("/GL" MINSIZEREL)
         set_c_cxx_flag("/GL" RELWITHDEBINFO)
