@@ -542,7 +542,7 @@ build_naclsdk() {
 	linux-amd64-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_x86_64" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
-		chmod 644 "${PREFIX}/irt_core-x86_64.nexe"
+		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
 		;;
 	esac
@@ -661,7 +661,7 @@ common_setup() {
 	mkdir -p "${PREFIX}/lib"
 }
 
-# Set up environment for 32-bit Windows for Visual Studio (compile all as .dll)
+# Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
 setup_windows-i686-msvc() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
@@ -683,7 +683,7 @@ setup_windows-i686-msvc() {
 # results in compiler warnings. But this is OK because the Windows build of Lua is only used in
 # developer gamelogic builds, and Microsoft supports %lld since Visual Studio 2013.
 
-# Set up environment for 64-bit Windows for Visual Studio (compile all as .dll)
+# Set up environment for 64-bit amd64 Windows for Visual Studio (compile all as .dll)
 setup_windows-amd64-msvc() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
@@ -696,7 +696,7 @@ setup_windows-amd64-msvc() {
 	common_setup
 }
 
-# Set up environment for 32-bit Windows for MinGW (compile all as .a)
+# Set up environment for 32-bit i686 Windows for MinGW (compile all as .a)
 setup_windows-i686-mingw() {
 	HOST=i686-w64-mingw32
 	CROSS="${HOST}-"
@@ -707,7 +707,7 @@ setup_windows-i686-mingw() {
 	common_setup
 }
 
-# Set up environment for 64-bit Windows for MinGW (compile all as .a)
+# Set up environment for 64-bit amd64 Windows for MinGW (compile all as .a)
 setup_windows-amd64-mingw() {
 	HOST=x86_64-w64-mingw32
 	CROSS="${HOST}-"
@@ -718,7 +718,7 @@ setup_windows-amd64-mingw() {
 	common_setup
 }
 
-# Set up environment for Mac OS X 64-bit
+# Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
 	HOST=x86_64-apple-darwin11
 	CROSS=
@@ -734,7 +734,7 @@ setup_macos-amd64-default() {
 	export NASM="${PWD}/${BUILD_BASEDIR}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 }
 
-# Set up environment for 64-bit Linux
+# Set up environment for 64-bit amd64 Linux
 setup_linux-amd64-default() {
 	HOST=x86_64-unknown-linux-gnu
 	CROSS=
@@ -785,11 +785,10 @@ fi
 export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 
 # Setup platform
-PLATFORM="${1}"
+PLATFORM="${1}"; shift
 "setup_${PLATFORM}"
 
 # Build packages
-shift
 for pkg in "${@}"; do
 	cd "${WORK_DIR}"
 	"build_${pkg}"
