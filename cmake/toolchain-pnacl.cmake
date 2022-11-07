@@ -102,26 +102,26 @@ set(NACL_TRANSLATE_OPTIONS
     $<$<CONFIG:MinSizeRel>:-O2>
 )
 
-function(pnacl_translate dir module arch suffix)
+function(pnacl_translate dir module nacl_option arch)
     set(PEXE ${dir}/${module}.pexe)
-    set(NEXE ${dir}/${module}${suffix}.nexe)
-    set(STRIPPED_NEXE ${dir}/${module}${suffix}-stripped.nexe)
+    set(NEXE ${dir}/${module}-${arch}.nexe)
+    set(STRIPPED_NEXE ${dir}/${module}-${arch}-stripped.nexe)
 
     add_custom_command(
         OUTPUT ${NEXE}
-        COMMENT "Translating ${target} (${arch})"
+        COMMENT "Translating ${module} (${arch})"
         DEPENDS ${PEXE}
         COMMAND
             ${PNACLPYTHON_PREFIX2}
             "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-translate${PNACL_BIN_EXT}"
             ${NACL_TRANSLATE_OPTIONS}
-            -arch ${arch}
+            -arch ${nacl_option}
             ${PEXE}
             -o ${NEXE}
     )
     add_custom_command(
         OUTPUT ${STRIPPED_NEXE}
-        COMMENT "Stripping ${target} (${arch})"
+        COMMENT "Stripping ${module} (${arch})"
         DEPENDS ${NEXE}
         COMMAND
             ${PNACLPYTHON_PREFIX2}
@@ -131,6 +131,6 @@ function(pnacl_translate dir module arch suffix)
             -o ${STRIPPED_NEXE}
     )
 
-    add_custom_target(${module}${suffix} ALL DEPENDS ${STRIPPED_NEXE})
-    add_dependencies(${module}${suffix} ${module}-nacl)
+    add_custom_target(${module}-${arch} ALL DEPENDS ${STRIPPED_NEXE})
+    add_dependencies(${module}-${arch} ${module}-nacl)
 endfunction()
