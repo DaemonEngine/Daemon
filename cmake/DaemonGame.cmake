@@ -84,6 +84,7 @@ function(GAMEMODULE)
                     -DDAEMON_DIR=${Daemon_SOURCE_DIR}
                     -DDEPS_DIR=${DEPS_DIR}
                     -DBUILD_GAME_NACL_NEXE=${BUILD_GAME_NACL_NEXE}
+                    -DBUILD_GAME_NACL_NEXE_ARMHF=${BUILD_GAME_NACL_NEXE_ARMHF}
                     -DBUILD_GAME_NACL=ON
                     -DBUILD_GAME_NATIVE_DLL=OFF
                     -DBUILD_GAME_NATIVE_EXE=OFF
@@ -119,9 +120,11 @@ function(GAMEMODULE)
         ADD_PRECOMPILED_HEADER(${GAMEMODULE_NAME}-nacl)
 
         if (BUILD_GAME_NACL_NEXE)
-            # Generate NaCl executables for x86 and x86_64
+            # Generate NaCl executables for supported architectures.
+            # TODO(0.54): Unify all arch strings using i686 and amd64 strings.
             pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "i686" "x86")
             pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "x86-64" "x86_64")
+            pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "arm" "armhf")
         endif()
     endif()
 endfunction()

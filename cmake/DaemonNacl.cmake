@@ -25,21 +25,35 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Native client
-if( APPLE )
-  add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_OSX=1 )
-elseif( LINUX )
-  add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=1 -DNACL_ANDROID=0 -DNACL_OSX=0 )
-elseif( WIN32 )
-  add_definitions( -DNACL_WINDOWS=1 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_OSX=0 )
-endif()
-if( ARCH STREQUAL "x86" OR ARCH STREQUAL "x86_64" )
+
+if( NACL )
+  # Build nexe binary.
+  # Those defines looks to be meaningless to produce arch-independent pexe,
+  # but they must be set to anything supported by native builds. this
+  # requirement looks to be a NaCl bug.
   add_definitions( -DNACL_BUILD_ARCH=x86 )
-else()
-  add_definitions( -DNACL_BUILD_ARCH=${ARCH} )
-endif()
-if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
   add_definitions( -DNACL_BUILD_SUBARCH=64 )
 else()
-  add_definitions( -DNACL_BUILD_SUBARCH=32 )
+  # Build native dll or native exe.
+  if( APPLE )
+    add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_OSX=1 )
+  elseif( LINUX )
+    add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=1 -DNACL_ANDROID=0 -DNACL_OSX=0 )
+  elseif( WIN32 )
+    add_definitions( -DNACL_WINDOWS=1 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_OSX=0 )
+  endif()
+
+  if( ARCH STREQUAL "amd64" )
+    add_definitions( -DNACL_BUILD_ARCH=x86 )
+    add_definitions( -DNACL_BUILD_SUBARCH=64 )
+  elseif( ARCH STREQUAL "i686" )
+    add_definitions( -DNACL_BUILD_ARCH=x86 )
+    add_definitions( -DNACL_BUILD_SUBARCH=32 )
+  elseif( ARCH STREQUAL "armhf" )
+    add_definitions( -DNACL_BUILD_ARCH=arm )
+  else()
+    message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+  endif()
 endif()
+
 include_directories( ${LIB_DIR}/nacl )

@@ -53,19 +53,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error "Platform not supported"
 #endif
 
-// Architecture-specific configuration
-#if defined(__i386__) || defined(_M_IX86)
+#if defined(DAEMON_ARCH_i686)
 #undef __i386__
 #define __i386__ 1
-#define ARCH_STRING "x86"
-#elif defined(__amd64) || defined(__amd64__) || defined(_M_AMD64) || defined(__x86_64__) || defined(_M_X64)
+#elif defined(DAEMON_ARCH_amd64)
 #undef __x86_64__
 #define __x86_64__ 1
-#define ARCH_STRING "x86_64"
-#elif defined(__pnacl__)
-#define ARCH_STRING "PNaCl"
-#else
-#error "Architecture not supported"
 #endif
 
 // SSE support
