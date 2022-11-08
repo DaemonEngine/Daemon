@@ -131,8 +131,11 @@ static bool MakeTextureMatrix( vec4_t texMat[ 2 ], vec4_t projection, decalVert_
 		}
 	}
 
-	texMat[ 0 ][ 3 ] = a->st[ 0 ] - DotProduct( pa, texMat[ 0 ] );
-	texMat[ 1 ][ 3 ] = a->st[ 1 ] - DotProduct( pa, texMat[ 1 ] );
+	for ( int k : {0, 1} )
+	{
+		float dot = pa[ 0 ] * texMat[ k ][ 0 ] + pa[ 1 ] * texMat[ k ][ 1 ] + pa[ 2 ] * texMat[ k ][ 2 ];
+		texMat[ k ][ 3 ] = a->st[ k ] - dot;
+	}
 
 	/* disco */
 	return true;
