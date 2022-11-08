@@ -31,6 +31,7 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#include "common/Common.h"
 #include "con_common.h"
 
 Cvar::Cvar<bool> com_ansiColor("com_ansiColor", "", Cvar::NONE, true);

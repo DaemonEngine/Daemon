@@ -351,8 +351,8 @@ bool Con_CheckResize()
 					}
 					if ( len > consoleState.textWidthInChars )
 					{
-						consoleState.lines.emplace_back( begin, token.Begin() );
-						begin = token.Begin();
+						consoleState.lines.emplace_back( begin, token.RawToken().begin() );
+						begin = token.RawToken().begin();
 						len = 0;
 					}
 				}
@@ -500,14 +500,15 @@ bool CL_InternalConsolePrint( const char *text )
 	{
 		if ( token.Type() == Color::Token::TokenType::COLOR )
 		{
-			consoleState.lines.back().append( token.Begin(), token.Size() );
+			Str::StringView colorToken = token.RawToken();
+			consoleState.lines.back().append( colorToken.begin(), colorToken.end() );
 			continue;
 		}
 
 		if ( !wordLen )
 		{
 			// count word length
-			for ( const auto& wordtoken : Color::Parser( token.Begin() ) )
+			for ( const auto& wordtoken : Color::Parser( token.RawToken().begin() ) )
 			{
 				if ( wordtoken.Type() == Color::Token::TokenType::ESCAPE )
 				{
@@ -515,7 +516,7 @@ bool CL_InternalConsolePrint( const char *text )
 				}
 				else if ( wordtoken.Type() == Color::Token::TokenType::CHARACTER )
 				{
-					if ( Str::cisspace( *wordtoken.Begin() ) )
+					if ( Str::cisspace( *wordtoken.RawToken().begin() ) )
 					{
 						break;
 					}
@@ -530,14 +531,14 @@ bool CL_InternalConsolePrint( const char *text )
 			}
 		}
 
-		switch ( *token.Begin() )
+		switch ( *token.RawToken().begin() )
 		{
 			case '\n':
 				Con_Linefeed();
 				break;
 
 			default: // display character and advance
-				consoleState.lines.back().append( token.Begin(), token.Size() );
+				consoleState.lines.back().append( token.RawToken().begin(), token.RawToken().end() );
 				if ( wordLen > 0 )
 				{
 					--wordLen;
@@ -892,15 +893,9 @@ void Con_DrawConsoleContent()
 				color.SetAlpha( console_color_alpha.Alpha() );
 				re.SetColor( color );
 			}
-			else if ( token.Type() == Color::Token::TokenType::CHARACTER )
+			else
 			{
-				int ch = Q_UTF8_CodePoint( token.Begin() );
-				SCR_DrawConsoleFontUnichar( currentWidthLocation, floor( lineDrawPosition + 0.5 ), ch );
-				currentWidthLocation += SCR_ConsoleFontUnicharWidth( ch );
-			}
-			else if ( token.Type() == Color::Token::TokenType::ESCAPE )
-			{
-				int ch = Color::Constants::ESCAPE;
+				int ch = Q_UTF8_CodePoint( token.PlainText().begin() );
 				SCR_DrawConsoleFontUnichar( currentWidthLocation, floor( lineDrawPosition + 0.5 ), ch );
 				currentWidthLocation += SCR_ConsoleFontUnicharWidth( ch );
 			}

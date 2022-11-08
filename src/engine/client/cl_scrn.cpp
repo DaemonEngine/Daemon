@@ -190,38 +190,17 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string,
 
 	for ( const auto& token : Color::Parser( string, setColor ) )
 	{
-		if ( token.Type() == Color::Token::TokenType::COLOR )
+		if ( !forceColor && token.Type() == Color::Token::TokenType::COLOR )
 		{
-			if ( !forceColor )
-			{
-				Color::Color color = token.Color();
-				color.SetAlpha( setColor.Alpha() );
-				re.SetColor( color );
-			}
-
-			if ( noColorEscape )
-			{
-				for ( const char *c = token.Begin(); c != token.End(); c++ )
-				{
-					SCR_DrawConsoleFontUnichar( xx, y, *c );
-					xx += SCR_ConsoleFontUnicharWidth( *c );
-				}
-			}
+			Color::Color color = token.Color();
+			color.SetAlpha( setColor.Alpha() );
+			re.SetColor( color );
 		}
-		else if ( token.Type() == Color::Token::TokenType::ESCAPE )
-		{
-			SCR_DrawConsoleFontUnichar( xx, y, Color::Constants::ESCAPE );
-			xx += SCR_ConsoleFontUnicharWidth( Color::Constants::ESCAPE );
 
-			if ( noColorEscape )
-			{
-				SCR_DrawConsoleFontUnichar( xx, y, Color::Constants::ESCAPE );
-				xx += SCR_ConsoleFontUnicharWidth( Color::Constants::ESCAPE );
-			}
-		}
-		else
+		Str::StringView text = noColorEscape ? token.RawToken() : token.PlainText();
+		for ( const char *p = text.begin(); p < text.end(); p += Q_UTF8_Width( p ) )
 		{
-			int ch = Q_UTF8_CodePoint( token.Begin() );
+			int ch = Q_UTF8_CodePoint( p );
 			SCR_DrawConsoleFontUnichar( xx, y, ch );
 			xx += SCR_ConsoleFontUnicharWidth( ch );
 		}
