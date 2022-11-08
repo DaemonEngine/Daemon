@@ -204,7 +204,28 @@ namespace Str {
         const T* ptr;
         size_t len;
     };
+
+    // StringRef is a reference to a null-terminated string ("C string") with length included.
     using StringRef = BasicStringRef<char>;
+
+    // std::string_view equivalent - a non-null-terminated sequence of chars.
+    // In most cases you should use StringRef since we have a lot of code that works with C strings.
+    class StringView {
+    private:
+        const char* begin_;
+        const char* end_;
+
+    public:
+        StringView() : begin_(nullptr), end_(nullptr) {}
+        StringView(const char* begin, const char* end) : begin_(begin), end_(end) {}
+
+        const char* begin() const { return begin_; }
+        const char* end() const { return end_; }
+        size_t size() const { return end_ - begin_; }
+
+        const char& operator[] (size_t i) const { return begin_[i]; }
+    };
+
 
     bool ParseInt(int& value, Str::StringRef text);
 
