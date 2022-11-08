@@ -398,33 +398,50 @@ public:
 	{}
 
 	/*
-	 * Pointer to the first character of this token in the input sequence
+	 * RawToken defines the extent of the token as it was written in the original string. It
+	 * may have escaping deficiencies (namely an unescaped '^') which make it unsafe to concatenate
+	 * with other text. RawBegin/RawEnd point into the original string.
+	 *
+	 * Prefer RawToken over NormalizedToken when you need pointers to the original string or
+	 * if you want to preserve the exact character sequence of the input.
 	 */
-	const char* Begin() const
+	Str::StringView RawToken() const
 	{
-		return begin;
+		return { begin, end };
 	}
 
 	/*
-	 * Pointer to the last character of this token in the input sequence
+	 * NormalizedToken provides a normalized version of the token with everything
+	 * correctly escaped. To wit, a lone "^" is converted to "^^". May point outside the input
+	 * string.
 	 */
-	const char* End() const
+	Str::StringView NormalizedToken() const
 	{
-		return end;
-	}
-
-	/*
-	 * Distance between Begin and End
-	 */
-	std::size_t Size() const
-	{
-		return end - begin;
+		static const char ESCAPED_ESCAPE[] = { Constants::ESCAPE, Constants::ESCAPE };
+		if ( type == TokenType::ESCAPE ) {
+			return { std::begin( ESCAPED_ESCAPE ), std::end( ESCAPED_ESCAPE ) };
+		}
+		return { begin, end };
 	}
 
 	// Token Type
 	TokenType Type() const
 	{
 		return type;
+	}
+
+	/*
+	 * Token as plain text, for contexts where color codes aren't interpreted.
+	 * A color token gives the empty string.
+	 */
+	Str::StringView PlainText() const
+	{
+		switch (type)
+		{
+			case TokenType::ESCAPE: return { begin, begin + 1 };
+			case TokenType::CHARACTER: return { begin, end };
+			default: return {};
+		}
 	}
 
 	/*
@@ -491,25 +508,25 @@ public:
 
 	TokenIterator& operator++()
 	{
-		token = NextToken( token.End() );
+		token = NextToken( token.RawToken().end() );
 		return *this;
 	}
 
 	TokenIterator operator++(int)
 	{
 		auto copy = *this;
-		token = NextToken( token.End() );
+		token = NextToken( token.RawToken().end() );
 		return copy;
 	}
 
 	bool operator==( const TokenIterator& rhs ) const
 	{
-		return token.Begin() == rhs.token.Begin();
+		return token.RawToken().begin() == rhs.token.RawToken().begin();
 	}
 
 	bool operator!=( const TokenIterator& rhs ) const
 	{
-		return token.Begin() != rhs.token.Begin();
+		return token.RawToken().begin() != rhs.token.RawToken().begin();
 	}
 
 private:

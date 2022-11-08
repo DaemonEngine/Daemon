@@ -32,6 +32,7 @@ Maryland 20850 USA.
 ===========================================================================
 */
 
+#include "common/Common.h"
 #include "con_common.h"
 
 #include <unistd.h>
@@ -124,13 +125,10 @@ static void CON_AnsiColorPrint( const char *msg )
 				fputs( ansi.c_str(), stderr );
 			}
 		}
-		else if ( token.Type() == Color::Token::TokenType::ESCAPE )
+		else
 		{
-			buffer += Color::Constants::ESCAPE;
-		}
-		else if ( token.Type() == Color::Token::TokenType::CHARACTER )
-		{
-			if ( *token.Begin() == '\n' )
+			Str::StringView text = token.PlainText();
+			if ( text[ 0 ] == '\n' )
 			{
 				fputs( buffer.c_str(), stderr );
 				buffer.clear();
@@ -138,7 +136,7 @@ static void CON_AnsiColorPrint( const char *msg )
 			}
 			else
 			{
-				buffer.append( token.Begin(), token.Size() );
+				buffer.append( text.begin(), text.end() );
 			}
 		}
 	}

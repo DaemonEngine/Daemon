@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+#include "common/Common.h"
 #include "con_common.h"
 #include "framework/CommandSystem.h"
 #include "framework/ConsoleField.h"
@@ -145,36 +146,24 @@ static void CON_ColorPrint( WINDOW *win, const char *msg, bool stripcodes )
 			{
 				CON_SetColor( win, token.Color() );
 			}
+		}
 
-			if ( !stripcodes )
-			{
-				buffer.append( token.Begin(), token.Size() );
-			}
-		}
-		else if ( token.Type() == Color::Token::TokenType::ESCAPE )
+		if ( *token.RawToken().begin() == '\n' )
 		{
-			if ( !stripcodes )
-			{
-				buffer.append( token.Begin(), token.Size() );
-			}
-			else
-			{
-				buffer += Color::Constants::ESCAPE;
-			}
+			waddstr( win, buffer.c_str() );
+			buffer.clear();
+			Con_ClearColor( win );
+			waddch( win, '\n' );
 		}
-		else if ( token.Type() == Color::Token::TokenType::CHARACTER )
+		else if ( stripcodes )
 		{
-			if ( *token.Begin() == '\n' )
-			{
-				waddstr( win, buffer.c_str() );
-				buffer.clear();
-				Con_ClearColor( win );
-				waddch( win, '\n' );
-			}
-			else
-			{
-				buffer.append( token.Begin(), token.Size() );
-			}
+			Str::StringView text = token.PlainText();
+			buffer.append( text.begin(), text.end() );
+		}
+		else
+		{
+			Str::StringView raw = token.RawToken();
+			buffer.append( raw.begin(), raw.end() );
 		}
 	}
 

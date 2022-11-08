@@ -90,14 +90,8 @@ char *StripColors( char *string )
 
 	for ( const auto& token : Parser( string ) )
 	{
-		if ( token.Type() == Token::TokenType::CHARACTER )
-		{
-			output.append( token.Begin(), token.Size() );
-		}
-		else if ( token.Type() == Token::TokenType::ESCAPE )
-		{
-			output.push_back(Constants::ESCAPE);
-		}
+		Str::StringView text = token.PlainText();
+		output.append( text.begin(), text.end() );
 	}
 
 	strcpy( string, output.c_str() );
@@ -107,29 +101,16 @@ char *StripColors( char *string )
 
 void StripColors( const char *in, char *out, size_t len )
 {
-	--len;
-
 	for ( const auto& token : Parser( in ) )
 	{
-		if ( token.Type() == Token::TokenType::CHARACTER )
+		Str::StringView text = token.PlainText();
+		if ( text.size() >= len )
 		{
-			if ( len < token.Size() )
-			{
-				break;
-			}
-			
-			strncpy( out, token.Begin(), token.Size() );
-			out += token.Size();
-			len -= token.Size();
+			break;
 		}
-		else if ( token.Type() == Token::TokenType::ESCAPE )
-		{
-			if ( len < 1 )
-			{
-				break;
-			}
-			*out++ = Constants::ESCAPE;
-		}
+		memcpy( out, text.begin(), text.size() );
+		out += text.size();
+		len -= text.size();
 	}
 
 	*out = '\0';
@@ -141,14 +122,8 @@ std::string StripColors( const std::string& input )
 
 	for ( const auto& token : Parser( input.c_str() ) )
 	{
-		if ( token.Type() == Token::TokenType::CHARACTER )
-		{
-			output.append( token.Begin(), token.Size() );
-		}
-		else if ( token.Type() == Token::TokenType::ESCAPE )
-		{
-			output.push_back(Constants::ESCAPE);
-		}
+		Str::StringView text = token.PlainText();
+		output.append( text.begin(), text.end() );
 	}
 
 	return output;
