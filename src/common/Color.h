@@ -512,15 +512,6 @@ public:
 		return token.Begin() != rhs.token.Begin();
 	}
 
-	// Skips the current token by "count" number of input elements
-	void Skip( difference_type count )
-	{
-		if ( count != 0 )
-		{
-			token = NextToken( token.Begin() + count );
-		}
-	}
-
 private:
 	// Returns the token corresponding to the given input string
 	value_type NextToken(const char* input);
