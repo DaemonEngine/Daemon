@@ -429,6 +429,9 @@ public:
 
 	/*
 	 * Parsed color
+	 * If the token is the reset color code "^*", then the alpha channel is 0 and the RGB comes
+	 * from the Parser's default color. Otherwise, the alpha channel is 1 and the RGB comes from
+	 * parsing the token.
 	 * Pre: Type() == COLOR
 	 */
 	::Color::Color Color() const
