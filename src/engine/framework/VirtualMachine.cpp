@@ -256,6 +256,25 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 	args.push_back(nacl_loader.c_str());
 	args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
 	args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
+
+	#if defined(DAEMON_ARCH_armhf)
+		/* This is required to run on Raspberry Pi 4,
+		otherwise nexe loading fails with this message:
+
+		  Error while loading "sgame-armhf.nexe": CPU model is not supported
+
+		From nacl_loader --help we can read:
+
+		  -Q disable platform qualification (dangerous!)
+
+		When this option is enabled, nacl_loader will print:
+
+		  PLATFORM QUALIFICATION DISABLED BY -Q - Native Client's sandbox will be unreliable!
+
+		But the nexe will load and run. */
+
+		args.push_back("-Q");
+	#endif
 #else
 	Q_UNUSED(bootstrap);
 	args.push_back(nacl_loader.c_str());
