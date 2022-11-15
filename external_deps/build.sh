@@ -517,7 +517,7 @@ build_naclsdk() {
 		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
 		local DAEMON_ARCH=x86_64
 		;;
-	*-armhf-*)
+	*-armhf-*|linux-arm64-*)
 		local NACLSDK_ARCH=arm
 		local DAEMON_ARCH=armhf
 		;;
@@ -556,7 +556,7 @@ build_naclsdk() {
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
 		;;
-	linux-armhf-*)
+	linux-armhf-*|linux-arm64-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
@@ -773,6 +773,17 @@ setup_linux-armhf-default() {
 	common_setup
 }
 
+# Set up environment for 64-bit arm Linux
+setup_linux-arm64-default() {
+	HOST=aarch64-linux-gnu-gcc
+	CROSS=
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export CFLAGS="-fPIC"
+	export CXXFLAGS="-fPIC"
+	export LDFLAGS=""
+	common_setup
+}
+
 # Usage
 if [ "${#}" -lt "2" ]; then
 	cat <<-EOF
@@ -781,7 +792,7 @@ if [ "${#}" -lt "2" ]; then
 	Script to build dependencies for platforms which do not provide them
 
 	Platforms:
-	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-armhf-default
+	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-arm64-default linux-armhf-default
 
 	Packages:
 	  pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
@@ -805,7 +816,7 @@ if [ "${#}" -lt "2" ]; then
 	Linux amd64 native compile:
 	  naclsdk naclports (and possibly others depending on what packages your distribution provides)
 
-	Linux armhf native compile:
+	Linux arm64 and armhf native compile:
 	  naclsdk (and possibly others depending on what packages your distribution provides)
 
 	EOF
