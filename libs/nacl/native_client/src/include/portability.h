@@ -66,29 +66,6 @@
 #define GG_ULONGLONG(x) x##ULL
 #endif
 
-
-/**
- * Processor architecture detection. This code was derived from
- * Chromium's build/build_config.h.
- * For more info on what's defined, see:
- * http://msdn.microsoft.com/en-us/library/b0084kay.aspx
- * http://www.agner.org/optimize/calling_conventions.pdf
- * r with gcc, run: "echo | gcc -E -dM -"
- */
-#if defined(_M_X64) || defined(__x86_64__)
-#define NACL_HOST_WORDSIZE 64
-#elif defined(_M_IX86) || defined(__i386__)
-#define NACL_HOST_WORDSIZE 32
-#elif defined(__ARMEL__)
-#define NACL_HOST_WORDSIZE 32
-#elif defined(__mips__)
-#define NACL_HOST_WORDSIZE 32
-#elif defined(__pnacl__)
-#define NACL_HOST_WORDSIZE 32
-#else
-#error Unrecognized host architecture
-#endif
-
 #ifndef SIZE_T_MAX
 # define SIZE_T_MAX ((size_t) -1)
 #endif
