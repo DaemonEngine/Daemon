@@ -257,7 +257,7 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 	args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
 	args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
 
-	#if defined(DAEMON_ARCH_armhf)
+	#if defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf)
 		/* This is required to run on Raspberry Pi 4,
 		otherwise nexe loading fails with this message:
 

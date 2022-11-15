@@ -79,6 +79,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Raise an exception and break in the debugger
 #if defined(DAEMON_ARCH_i686) || defined(DAEMON_ARCH_amd64)
 	#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
+#elif defined(DAEMON_ARCH_arm64)
+	// TODO find how to implement breakpoint on arm64
+	#define BREAKPOINT()
 #elif defined(DAEMON_ARCH_armhf)
 	// TODO find how to implement breakpoint on armhf
 	#define BREAKPOINT()

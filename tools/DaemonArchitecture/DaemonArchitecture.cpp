@@ -88,8 +88,8 @@ platform variants we cannot support anyway. */
  - Raspberry Pi 4,
  - Apple M1-based mac… */
 
-//#elif defined(Q_PROCESSOR_ARM_64)
-//	#pragma message("DAEMON_ARCH_arm64")
+#elif defined(Q_PROCESSOR_ARM_64)
+	#pragma message("DAEMON_ARCH_arm64")
 
 #elif defined(Q_PROCESSOR_ARM_32) && Q_PROCESSOR_ARM == 7
 	#pragma message("DAEMON_ARCH_armhf")
