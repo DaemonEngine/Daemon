@@ -32,14 +32,6 @@
 #define NACL_ABI_SIGNED_WORD            NACL_ABI_MAKE_WORDSIZE_TYPE(int)
 #define NACL_ABI_UNSIGNED_WORD          NACL_ABI_MAKE_WORDSIZE_TYPE(uint)
 
-#ifndef __native_client__
-# if (NACL_ABI_WORDSIZE == NACL_HOST_WORDSIZE)
-#   define NACL_ABI_WORDSIZE_IS_NATIVE 1
-# else
-#   define NACL_ABI_WORDSIZE_IS_NATIVE 0
-# endif
-#endif
-
 #define NACL_CONCAT3_(a, b, c) a ## b ## c
 #ifdef __native_client__
 #define NACL_PRI_(fmt, size) NACL_CONCAT3_(PRI, fmt, size)
