@@ -34,6 +34,12 @@ Maryland 20850 USA.
 
 #include "tr_local.h"
 
+/* Flags -O2, -O3 and -0s produce SIGBUS in R_LoadIQModel() on armhf,
+see https://github.com/DaemonEngine/Daemon/issues/736 */
+#if defined(DAEMON_ARCH_armhf) && !defined(DAEMON_BUILD_Debug) && __GNUC__
+	#pragma GCC optimize("O1")
+#endif
+
 #define	LL(x) x=LittleLong(x)
 
 static inline void *IQMPtr( iqmHeader_t *header, int offset ) {
