@@ -563,6 +563,14 @@ build_naclsdk() {
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
 		;;
 	esac
+	case "${PLATFORM}" in
+	linux-arm64-*)
+		mkdir -p "${PREFIX}/lib-armhf"
+		cp -a pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
+		mv "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
+		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/sel_ldr"
+		;;
+	esac
 }
 
 build_naclports() {
