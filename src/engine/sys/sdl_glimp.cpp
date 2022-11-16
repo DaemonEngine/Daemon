@@ -1807,7 +1807,9 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 1.3
 	glConfig.textureCompression = textureCompression_t::TC_NONE;
-	if( LOAD_EXTENSION( ExtFlag_NONE, EXT_texture_compression_s3tc ) )
+	/* ExtFlag_REQUIRED could be turned into ExtFlag_NONE if s3tc-to-rgba is implemented.
+	See https://github.com/DaemonEngine/Daemon/pull/738 */
+	if( LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_texture_compression_s3tc ) )
 	{
 		glConfig.textureCompression = textureCompression_t::TC_S3TC;
 	}
