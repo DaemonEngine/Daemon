@@ -249,7 +249,11 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 	if (!FS::RawPath::FileExists(irt))
 		Log::Warn("NaCl integrated runtime not found: %s", irt);
 #ifdef __linux__
-	bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
+	#if defined(DAEMON_ARCH_arm64)
+		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
+	#else
+		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
+	#endif
 	if (!FS::RawPath::FileExists(bootstrap))
 		Log::Warn("NaCl bootstrap helper not found: %s", bootstrap);
 	args.push_back(bootstrap.c_str());
