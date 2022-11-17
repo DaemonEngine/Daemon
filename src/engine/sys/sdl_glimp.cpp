@@ -1841,6 +1841,20 @@ static void GLimp_InitExtensions()
 	else
 	{
 		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_object );
+
+		/* Both EXT_framebuffer_object and EXT_framebuffer_blit are said to be
+		parts of ARB_framebuffer_object:
+
+		> So there may be hardware that supports EXT_FBO and not ARB_FBO,
+		> even thought they support things like EXT_FBO_blit and other parts
+		> of ARB_FBO.
+		-- https://www.khronos.org/opengl/wiki/Framebuffer_Object
+
+		Our code is known to require EXT_framebuffer_blit so if we don't find
+		ARB_framebuffer_object but find EXT_framebuffer_object we must
+		check for EXT_framebuffer_blit too. */
+		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_blit );
+
 		glFboSetExt();
 	}
 
