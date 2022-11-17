@@ -204,6 +204,7 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 struct glFboShim_t
 {
 	/* Functions with same signature and similar purpose can be provided by:
+
 	- ARB_framebuffer_object
 	- EXT_framebuffer_object
 	- OES_framebuffer_object
@@ -235,14 +236,18 @@ struct glFboShim_t
 	// void (*glRenderbufferStorage) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 	PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;
 
-	/* Unused for now:
+	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	// void (*glRenderbufferStorageMultisample) (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
 	PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC glRenderbufferStorageMultisample; */
 
 	/* Those three values are the same:
+
 	- GL_FRAMEBUFFER_COMPLETE
 	- GL_FRAMEBUFFER_COMPLETE_EXT
 	- GL_FRAMEBUFFER_COMPLETE_OES
+
+	The same happens with other GL_FRAMEBUFFER_* defines, we can expect the
+	various names for various the extension variants to share the same values.
 
 	So there is no need to abstract them and GL_FRAMEBUFFER_COMPLETE can be
 	used in all cases. */
@@ -264,7 +269,7 @@ static inline void glFboSetArb()
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffers;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorage;
 
-	/* Unused for now:
+	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisample; */
 }
 
@@ -282,7 +287,7 @@ static inline void glFboSetExt()
 	GL_fboShim.glGenRenderbuffers = glGenRenderbuffersEXT;
 	GL_fboShim.glRenderbufferStorage = glRenderbufferStorageEXT;
 
-	/* Unused for now:
+	/* Unused for now, part of GL_EXT_framebuffer_multisample:
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisampleEXT; */
 }
 
