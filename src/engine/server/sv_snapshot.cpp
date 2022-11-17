@@ -503,7 +503,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 
 		l = 0;
 
-		for ( i = 0; i < std::min(std::max(0, ent->r.numClusters), MAX_ENT_CLUSTERS); i++ )
+		for ( i = 0; i < Math::Clamp(ent->r.numClusters, 0, MAX_ENT_CLUSTERS); i++ )
 		{
 			l = ent->r.clusternums[ i ];
 
