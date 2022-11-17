@@ -173,7 +173,7 @@ namespace VM {
     // GetNetcodeTablesMsg
     using GetNetcodeTablesMsg = IPC::SyncMessage <
         IPC::Message<IPC::Id<MISC, GET_NETCODE_TABLES>>,
-        IPC::Reply<NetcodeTable, int>
+        IPC::Reply<NetcodeTable, NetcodeTable, int, int>
     >;
 
     // Command-Related Syscall Definitions

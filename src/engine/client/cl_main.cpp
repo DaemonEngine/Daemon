@@ -451,12 +451,12 @@ void CL_Record(std::string demo_name)
     }
 
     // baselines
-    entityState_t nullstate;
+    OpaqueEntityState nullstate;
     memset( &nullstate, 0, sizeof( nullstate ) );
 
     for ( int i = 0; i < MAX_GENTITIES; i++ )
     {
-        entityState_t *ent = &cl.entityBaselines[ i ];
+        OpaqueEntityState *ent = &cl.entityBaselines[ i ];
 
         if ( !ent->number )
         {

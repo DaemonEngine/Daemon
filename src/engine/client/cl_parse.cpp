@@ -67,9 +67,10 @@ MESSAGE PARSING
 
 // TODO(kangz) if we can make sure that the baseline entities have the correct entity
 // number, then we could grab the entity number from old directly, simplifying code a bit.
-void CL_DeltaEntity( msg_t *msg, clSnapshot_t *snapshot, int entityNum, const entityState_t &oldEntity)
+void CL_DeltaEntity( msg_t *msg, clSnapshot_t *snapshot, int entityNum, const OpaqueEntityState &oldEntity)
 {
-    entityState_t entity;
+    OpaqueEntityState entity;
+    memset(&entity, 0, sizeof(entity));
     MSG_ReadDeltaEntity(msg, &oldEntity, &entity, entityNum);
 
     if (entity.number != MAX_GENTITIES - 1) {
@@ -101,7 +102,7 @@ void CL_ParsePacketEntities( msg_t *msg, const clSnapshot_t *oldSnapshot, clSnap
 
     // Likewise when we don't have an old snapshot, oldEntities just has to be an empty
     // vector so that we skip step (4)
-    std::vector<entityState_t> dummyEntities;
+    std::vector<OpaqueEntityState> dummyEntities;
     auto& oldEntities = oldSnapshot? oldSnapshot->entities : dummyEntities;
     auto& newEntities = newSnapshot->entities;
 
@@ -395,9 +396,8 @@ The server normally sends this for a new map or when a download operation comple
 void CL_ParseGamestate( msg_t *msg )
 {
 	int           i;
-	entityState_t *es;
+	OpaqueEntityState *es;
 	int           newnum;
-	entityState_t nullstate;
 	int           cmd;
 
 	Con_Close();
@@ -441,6 +441,7 @@ void CL_ParseGamestate( msg_t *msg )
 				Sys::Drop( "Baseline number out of range: %i", newnum );
 			}
 
+			OpaqueEntityState nullstate;
 			memset( &nullstate, 0, sizeof( nullstate ) );
 			es = &cl.entityBaselines[ newnum ];
 			MSG_ReadDeltaEntity( msg, &nullstate, es, newnum );

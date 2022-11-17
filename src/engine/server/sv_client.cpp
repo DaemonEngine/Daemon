@@ -335,7 +335,7 @@ the wrong gamestate.
 void SV_SendClientGameState( client_t *client )
 {
 	int           start;
-	entityState_t *base, nullstate;
+	OpaqueEntityState *base;
 	msg_t         msg;
 	byte          msgBuffer[ MAX_MSGLEN ];
 
@@ -376,6 +376,7 @@ void SV_SendClientGameState( client_t *client )
 	}
 
 	// write the baselines
+	OpaqueEntityState nullstate;
 	memset( &nullstate, 0, sizeof( nullstate ) );
 
 	for ( start = 0; start < MAX_GENTITIES; start++ )

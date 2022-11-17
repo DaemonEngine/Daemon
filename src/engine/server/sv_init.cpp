@@ -464,7 +464,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	}
 
 	// allocate the snapshot entities
-	svs.snapshotEntities.reset(new entityState_t[svs.numSnapshotEntities]);
+	svs.snapshotEntities.reset(new OpaqueEntityState[svs.numSnapshotEntities]);
 	svs.nextSnapshotEntities = 0;
 
 	// toggle the server bit so clients can detect that a

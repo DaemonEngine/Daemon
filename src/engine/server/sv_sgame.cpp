@@ -356,8 +356,10 @@ void GameVM::GameInit(int levelTime, int randomSeed)
 	this->SendMsg<GameInitMsg>(levelTime, randomSeed, Com_AreCheatsAllowed(), Com_IsClient());
 	NetcodeTable psTable;
 	size_t psSize;
-	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, psSize);
-	MSG_InitNetcodeTables(std::move(psTable), psSize);
+	NetcodeTable esTable;
+	size_t esSize;
+	this->SendMsg<VM::GetNetcodeTablesMsg>(psTable, esTable, psSize, esSize);
+	MSG_InitNetcodeTables(std::move(psTable), std::move(esTable), psSize, esSize);
 }
 
 void GameVM::GameShutdown(bool restart)

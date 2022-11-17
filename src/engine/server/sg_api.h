@@ -101,8 +101,15 @@ struct entityShared_t
 // the server looks at a sharedEntity_t structure, which must be at the start of a gentity_t structure
 struct sharedEntity_t
 {
-	entityState_t  s; // communicated by the server to clients
 	entityShared_t r; // shared by both the server and game module
+	OpaqueEntityState s; // communicated by the server to clients
+
+	// Note that OpaqueEntityState is bigger than the gamelogic
+	// entityShared_t. This is why this is the second field in this struct.
+	//
+	// To extract the entityShared_t gamelogic information from it without
+	// grabbing random bytes from the private gentity_t, read only the
+	// first `entityStateSize` bytes of OpaqueEntityState.
 };
 
 #endif

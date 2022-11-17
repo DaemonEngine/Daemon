@@ -68,8 +68,7 @@ struct clSnapshot_t
 
 	int           serverCommandNum; // execute all commands up to this before
 	// making the snapshot current
-
-	std::vector<entityState_t> entities;
+	std::vector<OpaqueEntityState> entities;
 };
 
 // Arnout: for double tapping
@@ -152,7 +151,7 @@ struct clientActive_t
 	// big stuff at end of structure so most offsets are 15 bits or less
 	clSnapshot_t  snapshots[ PACKET_BACKUP ];
 
-	entityState_t entityBaselines[ MAX_GENTITIES ]; // for delta compression when not in previous frame
+	OpaqueEntityState entityBaselines[ MAX_GENTITIES ]; // for delta compression when not in previous frame
 };
 
 extern clientActive_t cl;

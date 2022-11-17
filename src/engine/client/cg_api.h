@@ -57,14 +57,19 @@ struct snapshot_t
 
 	byte          areamask[ MAX_MAP_AREA_BYTES ]; // portalarea visibility bits
 
+	// playerState contains complete information about the current player at this time
 #ifdef BUILD_CGAME
-	playerState_t ps; // complete information about the current player at this time
+	playerState_t ps;
 #else
 	OpaquePlayerState ps;
 #endif
 
 	// all of the entities that need to be presented at the time of this snapshot
+#ifdef BUILD_CGAME
 	std::vector<entityState_t> entities;
+#else
+	std::vector<OpaqueEntityState> entities;
+#endif
 
 	// text based server commands to execute when this snapshot becomes current
 	std::vector<std::string> serverCommands;

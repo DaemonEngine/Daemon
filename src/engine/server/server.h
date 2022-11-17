@@ -50,7 +50,7 @@ Maryland 20850 USA.
 
 struct svEntity_t
 {
-	entityState_t        baseline; // for delta compression of initial sighting
+	OpaqueEntityState baseline; // for delta compression of initial sighting
 	int                  snapshotCounter; // used to prevent double adding from portal views
 };
 
@@ -247,7 +247,7 @@ struct serverStatic_t
 	client_t      *clients; // [sv_maxclients->integer];
 	int           numSnapshotEntities; // sv_maxclients->integer*PACKET_BACKUP*MAX_PACKET_ENTITIES
 	int           nextSnapshotEntities; // next snapshotEntities to use
-	std::unique_ptr<entityState_t[]> snapshotEntities; // [numSnapshotEntities]
+	std::unique_ptr<OpaqueEntityState[]> snapshotEntities; // [numSnapshotEntities]
 	receipt_t     infoReceipts[ MAX_INFO_RECEIPTS ];
 
 	int       sampleTimes[ SERVER_PERFORMANCECOUNTER_SAMPLES ];

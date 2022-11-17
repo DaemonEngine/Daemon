@@ -429,8 +429,8 @@ namespace VM {
     static void HandleMiscSyscall(int minor, Util::Reader& reader, IPC::Channel& channel) {
         switch (minor) {
             case VM::GET_NETCODE_TABLES:
-                IPC::HandleMsg<GetNetcodeTablesMsg>(VM::rootChannel, std::move(reader), [](NetcodeTable& playerStateTable, int& playerStateSize) {
-                    GetNetcodeTables(playerStateTable, playerStateSize);
+                IPC::HandleMsg<GetNetcodeTablesMsg>(VM::rootChannel, std::move(reader), [](NetcodeTable& playerStateTable, NetcodeTable& entityStateTable, int& playerStateSize, int& entityStateSize) {
+                    GetNetcodeTables(playerStateTable, entityStateTable, playerStateSize, entityStateSize);
                 });
                 break;
             default:

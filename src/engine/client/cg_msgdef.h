@@ -38,7 +38,7 @@ namespace Util {
 			stream.Write<uint32_t>(snap.serverTime);
 			stream.WriteData(&snap.areamask, MAX_MAP_AREA_BYTES);
 			stream.Write<OpaquePlayerState>(snap.ps);
-			stream.Write<std::vector<entityState_t>>(snap.entities);
+			stream.Write<std::vector<OpaqueEntityState>>(snap.entities);
 			stream.Write<std::vector<std::string>>(snap.serverCommands);
 		}
 #endif
@@ -50,9 +50,22 @@ namespace Util {
 			snap.ping = stream.Read<uint32_t>();
 			snap.serverTime = stream.Read<uint32_t>();
 			stream.ReadData(&snap.areamask, MAX_MAP_AREA_BYTES);
+
 			auto ops = stream.Read<OpaquePlayerState>();
+			// we use memcopy to handle the size difference between playerState_t and OpaquePlayerState
+			static_assert(std::is_pod<playerState_t>::value, "entityState_t must be plain old data in order to be memcpy-able");
+			static_assert(std::is_pod<OpaquePlayerState>::value, "OpaquePlayerState must be plain old data in order to be memcpy-able");
 			memcpy(&snap.ps, &ops, sizeof(snap.ps));
-			snap.entities = stream.Read<std::vector<entityState_t>>();
+
+			auto oes = stream.Read<std::vector<OpaqueEntityState>>();
+			snap.entities.resize(oes.size());
+			// we use memcopy to handle the size difference between entityState_t and OpaqueEntityState
+			static_assert(std::is_pod<entityState_t>::value, "entityState_t must be plain old data in order to be memcpy-able");
+			static_assert(std::is_pod<OpaqueEntityState>::value, "OpaqueEntityState must be plain old data in order to be memcpy-able");
+			for (size_t i = 0; i < oes.size(); i++) {
+				memcpy(&snap.entities[i], &oes[i], sizeof(entityState_t));
+			}
+
 			snap.serverCommands = stream.Read<std::vector<std::string>>();
 			return snap;
 		}

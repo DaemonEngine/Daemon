@@ -781,72 +781,8 @@ entityState_t communication
 =============================================================================
 */
 
-#define NETF( x ) # x, offsetof( entityState_t, x )
-
-static netField_t entityStateFields[] =
-{
-	{ NETF( eType ),             8              , 0 },
-	{ NETF( eFlags ),            24             , 0 },
-	{ NETF( pos.trType ),        8              , 0 },
-	{ NETF( pos.trTime ),        32             , 0 },
-	{ NETF( pos.trDuration ),    32             , 0 },
-	{ NETF( pos.trBase[ 0 ] ),   0              , 0 },
-	{ NETF( pos.trBase[ 1 ] ),   0              , 0 },
-	{ NETF( pos.trBase[ 2 ] ),   0              , 0 },
-	{ NETF( pos.trDelta[ 0 ] ),  0              , 0 },
-	{ NETF( pos.trDelta[ 1 ] ),  0              , 0 },
-	{ NETF( pos.trDelta[ 2 ] ),  0              , 0 },
-	{ NETF( apos.trType ),       8              , 0 },
-	{ NETF( apos.trTime ),       32             , 0 },
-	{ NETF( apos.trDuration ),   32             , 0 },
-	{ NETF( apos.trBase[ 0 ] ),  0              , 0 },
-	{ NETF( apos.trBase[ 1 ] ),  0              , 0 },
-	{ NETF( apos.trBase[ 2 ] ),  0              , 0 },
-	{ NETF( apos.trDelta[ 0 ] ), 0              , 0 },
-	{ NETF( apos.trDelta[ 1 ] ), 0              , 0 },
-	{ NETF( apos.trDelta[ 2 ] ), 0              , 0 },
-	{ NETF( time ),              32             , 0 },
-	{ NETF( time2 ),             32             , 0 },
-	{ NETF( origin[ 0 ] ),       0              , 0 },
-	{ NETF( origin[ 1 ] ),       0              , 0 },
-	{ NETF( origin[ 2 ] ),       0              , 0 },
-	{ NETF( origin2[ 0 ] ),      0              , 0 },
-	{ NETF( origin2[ 1 ] ),      0              , 0 },
-	{ NETF( origin2[ 2 ] ),      0              , 0 },
-	{ NETF( angles[ 0 ] ),       0              , 0 },
-	{ NETF( angles[ 1 ] ),       0              , 0 },
-	{ NETF( angles[ 2 ] ),       0              , 0 },
-	{ NETF( angles2[ 0 ] ),      0              , 0 },
-	{ NETF( angles2[ 1 ] ),      0              , 0 },
-	{ NETF( angles2[ 2 ] ),      0              , 0 },
-	{ NETF( otherEntityNum ),    GENTITYNUM_BITS, 0 },
-	{ NETF( otherEntityNum2 ),   GENTITYNUM_BITS, 0 },
-	{ NETF( groundEntityNum ),   GENTITYNUM_BITS, 0 },
-	{ NETF( loopSound ),         8              , 0 },
-	{ NETF( constantLight ),     32             , 0 },
-	{ NETF( modelindex ),        MODELINDEX_BITS, 0 },
-	{ NETF( modelindex2 ),       MODELINDEX_BITS, 0 },
-	{ NETF( frame ),             16             , 0 },
-	{ NETF( clientNum ),         8              , 0 },
-	{ NETF( solid ),             24             , 0 },
-	{ NETF( event ),             10             , 0 },
-	{ NETF( eventParm ),         8              , 0 },
-	{ NETF( eventSequence ),     8              , 0 },  // warning: need to modify cg_event.c at "// check the sequencial list" if you change this
-	{ NETF( events[ 0 ] ),       8              , 0 },
-	{ NETF( events[ 1 ] ),       8              , 0 },
-	{ NETF( events[ 2 ] ),       8              , 0 },
-	{ NETF( events[ 3 ] ),       8              , 0 },
-	{ NETF( eventParms[ 0 ] ),   8              , 0 },
-	{ NETF( eventParms[ 1 ] ),   8              , 0 },
-	{ NETF( eventParms[ 2 ] ),   8              , 0 },
-	{ NETF( eventParms[ 3 ] ),   8              , 0 },
-	{ NETF( weapon ),            8              , 0 },
-	{ NETF( legsAnim ),          ANIM_BITS      , 0 },
-	{ NETF( torsoAnim ),         ANIM_BITS      , 0 },
-	{ NETF( generic1 ),          10             , 0 },
-	{ NETF( misc ),              MAX_MISC       , 0 },
-	{ NETF( weaponAnim ),        ANIM_BITS      , 0 },
-};
+static NetcodeTable entityStateFields;
+size_t entityStateSize;
 
 // if (int)f == f and (int)f + ( 1<<(FLOAT_INT_BITS-1) ) < ( 1 << FLOAT_INT_BITS )
 // the float will be sent with FLOAT_INT_BITS, otherwise all 32 bits will be sent
@@ -864,21 +800,19 @@ If force is not set, then nothing at all will be generated if the entity is
 identical, under the assumption that the in-order delta code will catch it.
 ==================
 */
-void MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, bool force )
+void MSG_WriteDeltaEntity( msg_t *msg, OpaqueEntityState *from, OpaqueEntityState *to, bool force )
 {
-	int        i, lc;
-	netField_t *field;
+	int        lc;
 	int        trunc;
 	float      fullFloat;
 	int        *fromF, *toF;
 
-	const int numFields = ARRAY_LEN(entityStateFields);
+	const int numFields = entityStateFields.size();
 
-	// all fields should be 32 bits to avoid any compiler packing issues
-	// the "number" field is not part of the field list
-	// if this assert fails, someone added a field to the entityState_t
-	// struct without updating the message fields
-	static_assert(numFields + 1 == sizeof(*from) / 4, "entityState_t out of sync with entityStateFields");
+	if ( entityStateFields.empty() )
+	{
+		Sys::Drop( "no netcode table" );
+	}
 
 	// a nullptr to is a delta remove message
 	if ( to == nullptr )
@@ -906,8 +840,9 @@ void MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, b
 	lc = 0;
 
 	// build the change vector as bytes so it is endian independent
-	for ( i = 0, field = entityStateFields; i < numFields; i++, field++ )
+	for ( int i = 0; i < numFields; i++ )
 	{
+		netField_t* field = &entityStateFields[i];
 		fromF = ( int * )( ( byte * ) from + field->offset );
 		toF = ( int * )( ( byte * ) to + field->offset );
 
@@ -942,8 +877,9 @@ void MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, b
 
 //  Log::Notice( "Delta for ent %i: ", to->number );
 
-	for ( i = 0, field = entityStateFields; i < lc; i++, field++ )
+	for ( int i = 0; i < numFields; i++ )
 	{
+		netField_t* field = &entityStateFields[i];
 		fromF = ( int * )( ( byte * ) from + field->offset );
 		toF = ( int * )( ( byte * ) to + field->offset );
 
@@ -1037,15 +973,19 @@ Can go from either a baseline or a previous packet_entity
 */
 extern cvar_t *cl_shownet;
 
-void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number )
+void MSG_ReadDeltaEntity( msg_t *msg, const OpaqueEntityState *from, OpaqueEntityState *to, int number )
 {
-	int        i, lc;
+	int        lc;
 	int        numFields;
-	netField_t *field;
 	int        *fromF, *toF;
 	int        print;
 	int        trunc;
 	int        startBit, endBit;
+
+	if ( entityStateFields.empty() )
+	{
+		Sys::Drop( "no netcode table" );
+	}
 
 	if ( number < 0 || number >= MAX_GENTITIES )
 	{
@@ -1083,7 +1023,7 @@ void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 		return;
 	}
 
-	numFields = ARRAY_LEN( entityStateFields );
+	numFields = entityStateFields.size();
 	lc = MSG_ReadByte( msg );
 
 	if ( lc > numFields || lc < 0 )
@@ -1105,8 +1045,9 @@ void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 
 	to->number = number;
 
-	for ( i = 0, field = entityStateFields; i < lc; i++, field++ )
+	for ( int i = 0; i < numFields; i++ )
 	{
+		netField_t* field = &entityStateFields[i];
 		fromF = ( int * )( ( byte * ) from + field->offset );
 		toF = ( int * )( ( byte * ) to + field->offset );
 
@@ -1171,8 +1112,9 @@ void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 		}
 	}
 
-	for ( i = lc, field = &entityStateFields[ lc ]; i < numFields; i++, field++ )
+	for ( int i = lc; i < numFields; i++ )
 	{
+		netField_t* field = &entityStateFields[i];
 		fromF = ( int * )( ( byte * ) from + field->offset );
 		toF = ( int * )( ( byte * ) to + field->offset );
 		// no change
@@ -1194,27 +1136,22 @@ void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 	}
 }
 
-/*
-============================================================================
-
-player_state_t communication
-
-============================================================================
-*/
-
-static bool IsValid(const NetcodeTable& table, int size) {
-	if (size % PLAYERSTATE_FIELD_SIZE != 0 || size < int(offsetof(OpaquePlayerState, END)) || size > MAX_PLAYERSTATE_SIZE)
+template <typename T>
+static bool IsValid(const NetcodeTable& table, size_t size, size_t maxsize)
+{
+	if (size % NETCODE_FIELD_SIZE != 0 || size < int(offsetof(T, END)) || size > maxsize)
 		return false;
+
 	for (const netField_t& f : table) {
 		if (f.offset < 0 || f.offset % PLAYERSTATE_FIELD_SIZE != 0)
 			return false;
 		if (f.bits == STATS_GROUP_FIELD) {
-			if (f.offset > size - STATS_GROUP_NUM_STATS * PLAYERSTATE_FIELD_SIZE)
+			if ((size_t)f.offset > size - STATS_GROUP_NUM_STATS * PLAYERSTATE_FIELD_SIZE)
 				return false;
 		} else {
 			if (f.bits < -31 || f.bits > 32)
 				return false;
-			if (f.offset >= size)
+			if ((size_t)f.offset >= size)
 				return false;
 		}
 	}
@@ -1223,17 +1160,27 @@ static bool IsValid(const NetcodeTable& table, int size) {
 
 static NetcodeTable playerStateFields;
 static size_t playerStateSize;
+
 // This will be called twice (with what should be the same data both times) in a local
 // game where both the cgame and sgame are running.
-void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int psSize) {
-	if (!IsValid(playerStateTable, psSize))
-		Sys::Drop("bad playerstate netcode table");
+void MSG_InitNetcodeTables(NetcodeTable playerStateTable, NetcodeTable entityStateTable, int psSize, int esSize)
+{
+	if (!IsValid<OpaquePlayerState>(playerStateTable, psSize, MAX_PLAYERSTATE_SIZE))
+	{
+		Sys::Drop("bad playerState netcode table");
+	}
+
+	if (!IsValid<OpaqueEntityState>(entityStateTable, esSize, MAX_ENTITYSTATE_SIZE))
+	{
+		Sys::Drop("bad entityState netcode table");
+	}
 
 	playerStateFields = std::move(playerStateTable);
 	playerStateSize = psSize;
-}
-// TODO: add function to clear
 
+	entityStateFields = std::move(entityStateTable);
+	entityStateSize = esSize;
+}
 
 // includes presence bit
 static void WriteStatsGroup(msg_t* msg, const int* from, const int* to)
