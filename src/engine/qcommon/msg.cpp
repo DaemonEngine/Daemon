@@ -1280,7 +1280,9 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlaye
 	int        print;
 
 	if ( playerStateFields.empty() )
+	{
 		Sys::Drop( "no netcode table" );
+	}
 
 	OpaquePlayerState dummy;
 	if ( !from )
@@ -1428,8 +1430,10 @@ void MSG_ReadDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayer
 	int           *fromF, *toF;
 	int           trunc;
 
-	if (playerStateFields.empty())
+	if ( playerStateFields.empty() )
+	{
 		Sys::Drop("no netcode table");
+	}
 
 	OpaquePlayerState dummy;
 	if ( !from )
