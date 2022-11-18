@@ -848,50 +848,6 @@ static netField_t entityStateFields[] =
 	{ NETF( weaponAnim ),        ANIM_BITS      , 0 },
 };
 
-static int qsort_entitystatefields( const void *a, const void *b )
-{
-	int aa, bb;
-
-	aa = * ( ( int * ) a );
-	bb = * ( ( int * ) b );
-
-	if ( entityStateFields[ aa ].used > entityStateFields[ bb ].used )
-	{
-		return -1;
-	}
-
-	if ( entityStateFields[ bb ].used > entityStateFields[ aa ].used )
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-void MSG_PrioritiseEntitystateFields()
-{
-	int fieldorders[ ARRAY_LEN( entityStateFields ) ];
-	int numfields = ARRAY_LEN( entityStateFields );
-	int i;
-
-	for ( i = 0; i < numfields; i++ )
-	{
-		fieldorders[ i ] = i;
-	}
-
-	qsort( fieldorders, numfields, sizeof( int ), qsort_entitystatefields );
-
-	Log::Notice( "Entitystate fields in order of priority\n" );
-	Log::Notice( "netField_t entityStateFields[] = {\n" );
-
-	for ( i = 0; i < numfields; i++ )
-	{
-		Log::Notice( "{ NETF (%s), %i },\n", entityStateFields[ fieldorders[ i ] ].name, entityStateFields[ fieldorders[ i ] ].bits );
-	}
-
-	Log::Notice( "};\n" );
-}
-
 // if (int)f == f and (int)f + ( 1<<(FLOAT_INT_BITS-1) ) < ( 1 << FLOAT_INT_BITS )
 // the float will be sent with FLOAT_INT_BITS, otherwise all 32 bits will be sent
 static const int FLOAT_INT_BITS = 13;
@@ -1278,48 +1234,6 @@ void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int psSize) {
 }
 // TODO: add function to clear
 
-
-static int qsort_playerstatefields( const void *a, const void *b )
-{
-	int aa, bb;
-
-	aa = * ( ( int * ) a );
-	bb = * ( ( int * ) b );
-
-	if ( playerStateFields[ aa ].used > playerStateFields[ bb ].used )
-	{
-		return -1;
-	}
-
-	if ( playerStateFields[ bb ].used > playerStateFields[ aa ].used )
-	{
-		return 1;
-	}
-
-	return 0;
-}
-
-void MSG_PrioritisePlayerStateFields()
-{
-	std::vector<int> fieldorders(playerStateFields.size());
-
-	for ( size_t i = 0; i < fieldorders.size(); i++ )
-	{
-		fieldorders[ i ] = i;
-	}
-
-	qsort( &fieldorders[ 0 ], fieldorders.size(), sizeof( int ), qsort_playerstatefields );
-
-	Log::Notice( "Playerstate fields in order of priority\n" );
-	Log::Notice( "netField_t playerStateFields[] = {\n" );
-
-	for ( size_t i = 0; i < fieldorders.size(); i++ )
-	{
-		Log::Notice( "{ PSF(%s), %i },\n", playerStateFields[ fieldorders[ i ] ].name, playerStateFields[ fieldorders[ i ] ].bits );
-	}
-
-	Log::Notice( "};\n" );
-}
 
 // includes presence bit
 static void WriteStatsGroup(msg_t* msg, const int* from, const int* to)

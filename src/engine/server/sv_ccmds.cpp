@@ -121,15 +121,6 @@ class MapCmd: public Cmd::StaticCmd {
 static MapCmd MapCmdRegistration("map", "starts a new map", false);
 static MapCmd DevmapCmdRegistration("devmap", "starts a new map with cheats enabled", true);
 
-void MSG_PrioritiseEntitystateFields();
-void MSG_PrioritisePlayerStateFields();
-
-static void SV_FieldInfo_f()
-{
-	MSG_PrioritiseEntitystateFields();
-	MSG_PrioritisePlayerStateFields();
-}
-
 /*
 ================
 SV_MapRestart_f
@@ -432,7 +423,6 @@ void SV_AddOperatorCommands()
 	if ( com_sv_running->integer )
 	{
 		// These commands should only be available while the server is running.
-		Cmd_AddCommand( "fieldinfo",   SV_FieldInfo_f );
 		Cmd_AddCommand( "heartbeat",   SV_Heartbeat_f );
 		Cmd_AddCommand( "map_restart", SV_MapRestart_f );
 		Cmd_AddCommand( "serverinfo",  SV_Serverinfo_f );
@@ -447,7 +437,6 @@ SV_RemoveOperatorCommands
 */
 void SV_RemoveOperatorCommands()
 {
-	Cmd_RemoveCommand( "fieldinfo" );
 	Cmd_RemoveCommand( "heartbeat" );
 	Cmd_RemoveCommand( "map_restart" );
 	Cmd_RemoveCommand( "serverinfo" );
