@@ -1137,22 +1137,48 @@ void MSG_ReadDeltaEntity( msg_t *msg, const OpaqueEntityState *from, OpaqueEntit
 }
 
 template <typename T>
-static bool IsValid(const NetcodeTable& table, size_t size, size_t maxsize)
+static bool IsValid(Str::StringRef name, Str::StringRef tablename, const NetcodeTable& table, size_t size, size_t maxsize)
 {
 	if (size % NETCODE_FIELD_SIZE != 0 || size < int(offsetof(T, END)) || size > maxsize)
+	{
+		Log::Warn("gamelogic netcode table has incorrect size");
 		return false;
+	}
+
+	// all fields should be 32 bits to avoid any compiler packing issues
+	// the "number" field is not part of the field list
+	// if this assert fails, someone added a field to the entityState_t
+	// struct without updating the message fields
+	if (table.size() + 1 != size / 4)
+	{
+		Log::Warn("%s is out of sync with %s", name, tablename);
+		// TODO(0.54) add a "return false;" here
+	}
 
 	for (const netField_t& f : table) {
-		if (f.offset < 0 || f.offset % PLAYERSTATE_FIELD_SIZE != 0)
+		if (f.offset < 0) {
+			Log::Warn("%s: field \"%s\" offset is negative", tablename, f.name);
 			return false;
+		}
+		if (f.offset % NETCODE_FIELD_SIZE != 0) {
+			Log::Warn("%s: field \"%s\" offset is not a multiple of %i", f.name, (int)NETCODE_FIELD_SIZE);
+			return false;
+		}
 		if (f.bits == STATS_GROUP_FIELD) {
-			if ((size_t)f.offset > size - STATS_GROUP_NUM_STATS * PLAYERSTATE_FIELD_SIZE)
+			if ((size_t)f.offset > size - STATS_GROUP_NUM_STATS * NETCODE_FIELD_SIZE) {
+				// Note STATS_GROUP_FIELD fields are currently not supported for entityState_t
+				Log::Warn("%s: grouped fields %s would overflow struct", tablename, f.name);
 				return false;
+			}
 		} else {
-			if (f.bits < -31 || f.bits > 32)
+			if (f.bits < -31 || f.bits > 32) {
+				Log::Warn("%s: field \"%s\" has incorrect bit size", tablename, f.name);
 				return false;
-			if ((size_t)f.offset >= size)
+			}
+			if ((size_t)f.offset >= size) {
+				Log::Warn("%s: field \"%s\" offset is beside struct size", tablename, f.name);
 				return false;
+			}
 		}
 	}
 	return true;
@@ -1165,12 +1191,12 @@ size_t playerStateSize;
 // game where both the cgame and sgame are running.
 void MSG_InitNetcodeTables(NetcodeTable playerStateTable, NetcodeTable entityStateTable, int psSize, int esSize)
 {
-	if (!IsValid<OpaquePlayerState>(playerStateTable, psSize, MAX_PLAYERSTATE_SIZE))
+	if (!IsValid<OpaquePlayerState>("playerState_t", "playerStateTable", playerStateTable, psSize, MAX_PLAYERSTATE_SIZE))
 	{
 		Sys::Drop("bad playerState netcode table");
 	}
 
-	if (!IsValid<OpaqueEntityState>(entityStateTable, esSize, MAX_ENTITYSTATE_SIZE))
+	if (!IsValid<OpaqueEntityState>("entityState_t", "entityStateTable", entityStateTable, esSize, MAX_ENTITYSTATE_SIZE))
 	{
 		Sys::Drop("bad entityState netcode table");
 	}
