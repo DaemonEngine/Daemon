@@ -657,6 +657,8 @@ currently doesn't.
 For viewing through other player's eyes, clent can be something other than client->gentity
 =============
 */
+extern size_t entityStateSize;
+extern size_t playerStateSize;
 static void SV_BuildClientSnapshot( client_t *client )
 {
 	vec3_t                  org;
@@ -691,7 +693,7 @@ static void SV_BuildClientSnapshot( client_t *client )
 
 	// grab the current playerState_t
 	OpaquePlayerState* ps = SV_GameClientNum( client - svs.clients );
-	memcpy(&frame->ps, ps, sizeof(frame->ps));
+	memcpy(&frame->ps, ps, playerStateSize);
 
 	// never send client's own entity, because it can
 	// be regenerated from the playerstate
@@ -744,7 +746,7 @@ static void SV_BuildClientSnapshot( client_t *client )
 	{
 		ent = SV_GentityNum( entityNumbers.snapshotEntities[ i ] );
 		state = &svs.snapshotEntities[ svs.nextSnapshotEntities % svs.numSnapshotEntities ];
-		*state = ent->s;
+		memcpy(state, (const char*)&ent->s, entityStateSize);
 		svs.nextSnapshotEntities++;
 
 		// this should never hit, map should always be restarted first in SV_Frame

@@ -1159,7 +1159,7 @@ static bool IsValid(const NetcodeTable& table, size_t size, size_t maxsize)
 }
 
 static NetcodeTable playerStateFields;
-static size_t playerStateSize;
+size_t playerStateSize;
 
 // This will be called twice (with what should be the same data both times) in a local
 // game where both the cgame and sgame are running.
