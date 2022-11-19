@@ -2483,6 +2483,22 @@ static void R_CreateCurrentRenderImage()
 
 static void R_CreateDepthRenderImage()
 {
+	if ( glConfig2.dynamicLight < 1 )
+	{
+		/* Do not create lightTile images when the tiled renderer is not used.
+
+		Those images are part of the tiled dynamic lighting renderer,
+		it's better to not create them and save memory when such effects
+		are disabled.
+
+		Some hardware not powerful enough to supported dynamic lighting may
+		even not support the related formats.
+
+		See https://github.com/DaemonEngine/Daemon/issues/745 */
+
+		return;
+	}
+
 	int  width, height, w, h;
 
 	width = glConfig.vidWidth;
