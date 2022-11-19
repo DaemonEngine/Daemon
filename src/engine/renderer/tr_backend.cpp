@@ -2789,7 +2789,7 @@ void RB_RenderPostDepthLightTile()
 
 	GLimp_LogComment( "--- RB_RenderPostDepthLightTile ---\n" );
 
-	if ( r_dynamicLight->integer < 1 )
+	if ( glConfig2.dynamicLight < 1 )
 	{
 		/* Do not run lightTile code when the tiled renderer is not used.
 
@@ -5315,6 +5315,20 @@ RB_SetupLights
 */
 const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 {
+	if ( glConfig2.dynamicLight < 1 )
+	{
+		/* Do not run lightTile code when the tiled renderer is not used.
+
+		This computation is part of the tiled dynamic lighting renderer,
+		it's better to not run it and save CPU cycles when such effects
+		are disabled.
+
+		The tr.dlightImage image is also not created when the tiled renderer
+		is not used, meaning this code would crash. */
+
+		return this + 1;
+	}
+
 	int numLights;
 	GLenum bufferTarget = glConfig2.uniformBufferObjectAvailable ? GL_UNIFORM_BUFFER : GL_PIXEL_UNPACK_BUFFER;
 

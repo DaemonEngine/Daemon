@@ -541,9 +541,9 @@ static std::string GenEngineConstants() {
 			AddDefine( str, "r_showParallelShadowSplits", 1 );
 	}
 
-	if ( r_dynamicLight->integer != 0 )
+	if ( glConfig2.dynamicLight != 0 )
 	{
-		AddDefine( str, "r_dynamicLight", r_dynamicLight->integer );
+		AddDefine( str, "r_dynamicLight", glConfig2.dynamicLight );
 	}
 
 	if ( r_precomputedLighting->integer )

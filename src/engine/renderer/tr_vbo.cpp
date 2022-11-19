@@ -945,7 +945,7 @@ static void R_InitTileVBO()
 	int       x, y, w, h;
 	vboData_t data;
 
-	if ( r_dynamicLight->integer < 1 ) {
+	if ( glConfig2.dynamicLight < 1 ) {
 		/* This computation is part of the tiled dynamic lighting renderer,
 		it's better to not run it and save CPU cycles when such effects
 		are disabled.
