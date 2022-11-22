@@ -494,7 +494,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				ri.Free( ldrImage );
 			}
 
-			if (tr.worldDeluxeMapping) {
+			if (tr.worldDeluxeMapping && r_deluxeMapping->integer != 0) {
 				// load deluxemaps
 				lightmapFiles = R_LoadExternalLightmaps(mapName, &numLightmaps);
 				if (!lightmapFiles || !numLightmaps) {
@@ -542,7 +542,9 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i]), imageParams);
 					Com_AddToGrowList(&tr.lightmaps, image);
-				} else {
+				}
+				else if (r_deluxeMapping->integer != 0)
+				{
 					imageParams_t imageParams = {};
 					imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
 					imageParams.filterType = filterType_t::FT_LINEAR;
