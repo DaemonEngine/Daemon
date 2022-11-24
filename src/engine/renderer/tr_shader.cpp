@@ -1454,7 +1454,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	So we don't load extra light maps when light styles are not supported.
 
 	The disablement of the stage is done in the ParseShader() function. */
-	if ( r_vertexLighting->integer != 0
+	if ( ( r_vertexLighting->integer != 0 || r_lightStyles->integer == 0 )
 		&& stage->tcGen_Lightmap )
 	{
 		return true;
@@ -3822,7 +3822,7 @@ static bool ParseShader( const char *_text )
 			The first light map stage can be rendered using grid lighting,
 			the other ones have no way to be rendered. */
 			if ( stages[ s ].active 
-				&& r_vertexLighting->integer != 0 )
+				&& ( r_vertexLighting->integer != 0 || r_lightStyles->integer == 0 ) )
 			{
 				if ( stages[ s ].type == stageType_t::ST_LIGHTMAP )
 				{

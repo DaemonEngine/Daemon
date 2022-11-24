@@ -2931,6 +2931,7 @@ static inline void glFboSetExt()
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern cvar_t *r_vertexLighting;
+	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
 	extern cvar_t *r_noMarksOnTrisurfs;
