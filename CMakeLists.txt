@@ -563,11 +563,13 @@ else()
 endif()
 
 # Minizip
-add_library(srclibs-minizip EXCLUDE_FROM_ALL ${MINIZIPLIST})
-set_target_properties(srclibs-minizip PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
-if (MSVC)
-    target_compile_options(srclibs-minizip PRIVATE "/wd4100") # disable "unreferenced formal parameter"
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER)
+    add_library(srclibs-minizip EXCLUDE_FROM_ALL ${MINIZIPLIST})
+    set_target_properties(srclibs-minizip PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
+    if (MSVC)
+        target_compile_options(srclibs-minizip PRIVATE "/wd4100") # disable "unreferenced formal parameter"
+    endif()
 endif()
 
 # Look for OpenGL here before we potentially switch to looking for static libs.
@@ -586,16 +588,18 @@ endif()
 
 
 # zlib
-if (NOT NACL)
-    find_package(ZLIB REQUIRED)
-else()
-    add_library(srclibs-zlib EXCLUDE_FROM_ALL ${ZLIBLIST})
-    set_target_properties(srclibs-zlib PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    set(ZLIB_INCLUDE_DIRS ${LIB_DIR}/zlib)
-    set(ZLIB_LIBRARIES srclibs-zlib)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR NACL)
+    if (NOT NACL)
+        find_package(ZLIB REQUIRED)
+    else()
+        add_library(srclibs-zlib EXCLUDE_FROM_ALL ${ZLIBLIST})
+        set_target_properties(srclibs-zlib PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+        set(ZLIB_INCLUDE_DIRS ${LIB_DIR}/zlib)
+        set(ZLIB_LIBRARIES srclibs-zlib)
+    endif()
+    set(LIBS_BASE ${LIBS_BASE} ${ZLIB_LIBRARIES})
+    include_directories(${ZLIB_INCLUDE_DIRS})
 endif()
-set(LIBS_BASE ${LIBS_BASE} ${ZLIB_LIBRARIES})
-include_directories(${ZLIB_INCLUDE_DIRS})
 
 if (DAEMON_PARENT_SCOPE_DIR)
     set(LIBS_BASE ${LIBS_BASE} PARENT_SCOPE)
