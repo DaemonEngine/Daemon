@@ -13,7 +13,7 @@ DEPS_VERSION=7
 # Package versions
 PKGCONFIG_VERSION=0.29.2
 NASM_VERSION=2.15.05
-ZLIB_VERSION=1.2.12
+ZLIB_VERSION=1.2.13
 GMP_VERSION=6.2.1
 NETTLE_VERSION=3.7.3
 CURL_VERSION=7.83.1
@@ -106,7 +106,7 @@ build_nasm() {
 
 # Build zlib
 build_zlib() {
-	download "zlib-${ZLIB_VERSION}.tar.gz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" zlib
+	download "zlib-${ZLIB_VERSION}.tar.xz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.xz" zlib
 	cd "zlib-${ZLIB_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
