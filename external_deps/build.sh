@@ -783,7 +783,7 @@ setup_linux-armhf-default() {
 
 # Set up environment for 64-bit arm Linux
 setup_linux-arm64-default() {
-	HOST=aarch64-linux-gnu
+	HOST=aarch64-unknown-linux-gnu
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
 	export CFLAGS="-fPIC"
