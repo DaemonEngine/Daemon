@@ -28,7 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
+#if defined(BUILD_ENGINE)
 #include "minizip/unzip.h"
+#endif
 
 #ifdef BUILD_VM
 #include "shared/VMMain.h"
@@ -298,6 +300,7 @@ inline intptr_t my_pread(int fd, void* buf, size_t count, offset_t offset)
 #endif
 }
 
+#if defined(BUILD_ENGINE)
 // std::error_code support for minizip
 class minizip_category_impl: public std::error_category
 {
@@ -333,6 +336,7 @@ static const minizip_category_impl& minizip_category()
 	static minizip_category_impl instance;
 	return instance;
 }
+#endif // defined(BUILD_ENGINE)
 
 class filesystem_category_impl: public std::error_category
 {
@@ -417,6 +421,7 @@ static void SetErrorCodeFilesystem(std::error_code& err, filesystem_error ec, St
 		SetErrorCodeFilesystem(err, ec);
 	}
 }
+#if defined(BUILD_ENGINE)
 static void SetErrorCodeZlib(std::error_code& err, int num)
 {
 	if (num == UNZ_ERRNO)
@@ -424,6 +429,7 @@ static void SetErrorCodeZlib(std::error_code& err, int num)
 	else
 		SetErrorCode(err, num, minizip_category());
 }
+#endif // defined(BUILD_ENGINE)
 
 // Determine whether a character is a OS-dependent path separator
 inline bool isdirsep(unsigned int c)
@@ -674,6 +680,7 @@ void File::SetLineBuffered(bool enable, std::error_code& err) const
 		ClearErrorCode(err);
 }
 
+#if defined(BUILD_ENGINE)
 // Workaround for GCC 4.7.2 bug: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=55015
 namespace {
 
@@ -886,11 +893,7 @@ public:
 	offset_t OpenFileWithSymlinkResolution(Str::StringRef name, offset_t offset, std::error_code& err)
 	{
 		int depth = 0;
-#ifdef BUILD_ENGINE
 		int maxDepth = fs_maxSymlinkDepth.Get();
-#else
-		int maxDepth = 0; // TODO(slipher): Stop building unzip code in the gamelogic.
-#endif
 		std::string resolvedName;
 		std::error_code ignored;
 		for (;;) {
@@ -1038,6 +1041,7 @@ private:
 };
 
 } // GCC bug workaround
+#endif // defined(BUILD_ENGINE)
 
 namespace PakPath {
 
