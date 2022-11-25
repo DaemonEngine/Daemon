@@ -446,7 +446,7 @@ R_LoadLightmaps
 static const int LIGHTMAP_SIZE = 128;
 static void R_LoadLightmaps( lump_t *l, const char *bspName )
 {
-	if ( r_vertexLighting->integer )
+	if ( r_vertexLighting->integer != 0 )
 	{
 		return;
 	}
