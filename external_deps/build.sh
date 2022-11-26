@@ -238,8 +238,8 @@ build_glew() {
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
 	linux-*-*)
-		make GLEW_DEST="${PREFIX}"
-		make install GLEW_DEST="${PREFIX}"
+		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		;;
 	*)
 		echo "Unsupported platform for GLEW"
@@ -764,6 +764,8 @@ setup_linux-amd64-default() {
 	HOST=x86_64-unknown-linux-gnu
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
+	export CC='x86_64-linux-gnu-gcc'
+	export CXX='x86_64-linux-gnu-g++'
 	export CFLAGS="-m64 -fPIC"
 	export CXXFLAGS="-m64 -fPIC"
 	export LDFLAGS="-m64"
@@ -775,6 +777,8 @@ setup_linux-armhf-default() {
 	HOST=arm-unknown-linux-gnueabihf
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
+	export CC='arm-linux-gnueabihf-gcc'
+	export CXX='arm-linux-gnueabihf-g++'
 	export CFLAGS="-fPIC"
 	export CXXFLAGS="-fPIC"
 	export LDFLAGS=""
@@ -786,6 +790,8 @@ setup_linux-arm64-default() {
 	HOST=aarch64-unknown-linux-gnu
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
+	export CC='aarch64-linux-gnu-gcc'
+	export CXX='aarch64-linux-gnu-g++'
 	export CFLAGS="-fPIC"
 	export CXXFLAGS="-fPIC"
 	export LDFLAGS=""
