@@ -563,7 +563,7 @@ else()
 endif()
 
 # Minizip
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     add_library(srclibs-minizip EXCLUDE_FROM_ALL ${MINIZIPLIST})
     set_target_properties(srclibs-minizip PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
     set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
@@ -588,7 +588,7 @@ endif()
 
 
 # zlib
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR NACL)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP OR NACL)
     if (NOT NACL)
         find_package(ZLIB REQUIRED)
     else()
@@ -629,7 +629,7 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     endif()
 endif()
 
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (NACL_RUNTIME_PATH)
         add_definitions("-DNACL_RUNTIME_PATH=${NACL_RUNTIME_PATH}")
     endif()
@@ -912,7 +912,7 @@ endif()
 # Runtime dependencies
 ################################################################################
 
-if (BUILD_CLIENT OR BUILD_SERVER OR BUILD_TTY_CLIENT)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     add_custom_target(runtime_deps)
     set_target_properties(runtime_deps PROPERTIES FOLDER "CMakePlumbing")
 
