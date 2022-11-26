@@ -105,6 +105,7 @@ if(NOT DAEMON_EXTERNAL_APP)
     endif()
     option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
     option(BUILD_DUMMY_APP "Stripped-down engine executable, mostly used to ease incremental porting and debugging" OFF)
+    mark_as_advanced(BUILD_DUMMY_APP)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
