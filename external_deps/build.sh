@@ -550,8 +550,8 @@ build_naclsdk() {
 		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
 		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-x86_64.nexe"
 		;;
-	linux-amd64-*)
-		cp pepper_*"/tools/nacl_helper_bootstrap_x86_64" "${PREFIX}/nacl_helper_bootstrap"
+	linux-amd64-*|linux-i686-*)
+		cp pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
@@ -757,6 +757,19 @@ setup_macos-amd64-default() {
 	export CMAKE_OSX_ARCHITECTURES="x86_64"
 	common_setup
 	export NASM="${PWD}/${BUILD_BASEDIR}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
+}
+
+# Set up environment for 32-bit i686 Linux
+setup_linux-i686-default() {
+	HOST=i386-unknown-linux-gnu
+	CROSS=
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export CC='i686-linux-gnu-gcc'
+	export CXX='i686-linux-gnu-g++'
+	export CFLAGS='-fPIC'
+	export CXXFLAGS='-fPIC'
+	export LDFLAGS=''
+	common_setup
 }
 
 # Set up environment for 64-bit amd64 Linux
