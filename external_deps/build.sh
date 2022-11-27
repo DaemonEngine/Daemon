@@ -31,8 +31,8 @@ OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.4
 NACLSDK_VERSION=44.0.2403.155
 NCURSES_VERSION=6.2
-WASISDK_VERSION=12.0
-WASMTIME_VERSION=0.28.0
+WASISDK_VERSION=16.0
+WASMTIME_VERSION=2.0.2
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
@@ -451,6 +451,14 @@ build_wasisdk() {
 		local WASISDK_PLATFORM=linux
 		;;
 	esac
+	case "${PLATFORM}" in
+	*-amd64-*)
+		;;
+	*)
+		echo "wasi doesn't have release for ${PLATFORM}"
+		exit 1
+		;;
+	esac
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 	download "wasi-sdk_${WASISDK_PLATFORM}.tar.gz" "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/wasi-sdk-${WASISDK_VERSION}-${WASISDK_PLATFORM}.tar.gz" wasisdk
 	cp -r "wasi-sdk-${WASISDK_VERSION}" "${PREFIX}/wasi-sdk"
@@ -473,16 +481,21 @@ build_wasmtime() {
 		;;
 	esac
 	case "${PLATFORM}" in
-	*-i686-*)
-		echo "wasmtime doesn't have release for x86"
-		exit 1
-		;;
 	*-amd64-*)
 		local WASMTIME_ARCH=x86_64
 		;;
+	linux-arm64-*|macos-arm64-*)
+		local WASMTIME_ARCH=aarch64
+		;;
+	*)
+		echo "wasmtime doesn't have release for ${PLATFORM}"
+		exit 1
+		;;
 	esac
-	download "wasmtime_${WASMTIME_PLATFORM}.${ARCHIVE_EXT}" "https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api.${ARCHIVE_EXT}" wasmtime
-	cd "wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
+	local folder_name="wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
+	local archive_name="${folder_name}.${ARCHIVE_EXT}"
+	download "${archive_name}" "https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}" wasmtime
+	cd "${folder_name}"
 	cp -r include/* "${PREFIX}/include"
 	cp -r lib/* "${PREFIX}/lib"
 }
