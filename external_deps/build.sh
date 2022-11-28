@@ -712,7 +712,6 @@ common_setup() {
 		;;
 	esac
 	mkdir -p "${DOWNLOAD_DIR}"
-	mkdir -p "${PREFIX}"
 	mkdir -p "${PREFIX}/bin"
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
