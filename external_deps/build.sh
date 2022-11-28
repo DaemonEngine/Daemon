@@ -740,8 +740,8 @@ setup_windows-i686-mingw() {
 	CROSS="${HOST}-"
 	BITNESS=32
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m32 -msse2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-m32 -msse2"
+	export CFLAGS="-msse2 -D__USE_MINGW_ANSI_STDIO=0"
+	export CXXFLAGS="-msse2"
 	common_setup
 }
 
@@ -751,8 +751,7 @@ setup_windows-amd64-mingw() {
 	CROSS="${HOST}-"
 	BITNESS=64
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m64 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-m64"
+	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
 	common_setup
 }
 
@@ -791,9 +790,8 @@ setup_linux-amd64-default() {
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
 	export CC='x86_64-linux-gnu-gcc'
 	export CXX='x86_64-linux-gnu-g++'
-	export CFLAGS="-m64 -fPIC"
-	export CXXFLAGS="-m64 -fPIC"
-	export LDFLAGS="-m64"
+	export CFLAGS="-fPIC"
+	export CXXFLAGS="-fPIC"
 	common_setup
 }
 
