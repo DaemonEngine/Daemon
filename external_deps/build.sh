@@ -674,6 +674,8 @@ build_wipe() {
 
 # Common setup code
 common_setup() {
+	HOST="${2}"
+	"common_setup_${1}"
 	WORK_DIR="${PWD}"
 	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
@@ -707,123 +709,103 @@ common_setup() {
 	mkdir -p "${PREFIX}/lib"
 }
 
-# Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
-setup_windows-i686-msvc() {
-	HOST=i686-w64-mingw32
+# -D__USE_MINGW_ANSI_STDIO=0 instructs MinGW to *not* use its own implementation
+# of printf and instead use the system one. It's bad when MinGW uses its own
+# implementation because this can cause extra DLL dependencies.
+# The separate implementation exists because Microsoft's implementation at some
+# point did not implement certain printf specifiers, in particular %lld (long long).
+# Lua does use this one, which results in compiler warnings. But this is OK because
+# the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
+# supports %lld since Visual Studio 2013.
+common_setup_msvc() {
 	CROSS="${HOST}-"
-	BITNESS=32
 	CONFIGURE_SHARED=(--enable-shared --disable-static)
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="i686-w64-mingw32-gcc -static-libgcc"
-	export CXX="i686-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS='-mpreferred-stack-boundary=2 -D__USE_MINGW_ANSI_STDIO=0'
-	export CXXFLAGS='-mpreferred-stack-boundary=2'
-	common_setup
+	export CC="${CROSS}gcc -static-libgcc"
+	export CXX="${CROSS}g++ -static-libgcc"
+	export CFLAGS="${CFLAGS} -D__USE_MINGW_ANSI_STDIO=0"
 }
 
-# Note about -D__USE_MINGW_ANSI_STDIO=0 - this instructs MinGW to *not* use its own implementation
-# of printf and instead use the system one. It's bad when MinGW uses its own implementation because
-# this can cause extra DLL dependencies.
-# The separate implementation exists because Microsoft's implementation at some point did not
-# implement certain printf specifiers, in particular %lld (long long). Lua does use this one, which
-# results in compiler warnings. But this is OK because the Windows build of Lua is only used in
-# developer gamelogic builds, and Microsoft supports %lld since Visual Studio 2013.
+common_setup_mingw() {
+	CROSS="${HOST}-"
+	CONFIGURE_SHARED=(--disable-shared --enable-static)
+	export CC="${CROSS}gcc"
+	export CXX="${CROSS}g++"
+	export CFLAGS="${CFLAGS} -D__USE_MINGW_ANSI_STDIO=0"
+}
+
+common_setup_macos() {
+	CROSS=''
+	CONFIGURE_SHARED=(--disable-shared --enable-static)
+	export CC='clang'
+	export CXX='clang++'
+	export CFLAGS="-arch ${MACOS_ARCH}"
+	export CXXFLAGS="-arch ${MACOS_ARCH}"
+	export LDFLAGS="-arch ${MACOS_ARCH}"
+	export CMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
+}
+
+common_setup_linux() {
+	CROSS=''
+	CONFIGURE_SHARED=(--disable-shared --enable-static)
+	export CC="${HOST/-unknown-/-}-gcc"
+	export CXX="${HOST/-unknown-/-}-g++"
+	export CFLAGS='-fPIC'
+	export CXXFLAGS='-fPIC'
+}
+
+# Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
+setup_windows-i686-msvc() {
+	BITNESS=32
+	export CFLAGS='-mpreferred-stack-boundary=2'
+	export CXXFLAGS='-mpreferred-stack-boundary=2'
+	common_setup msvc i686-w64-mingw32
+}
 
 # Set up environment for 64-bit amd64 Windows for Visual Studio (compile all as .dll)
 setup_windows-amd64-msvc() {
-	HOST=x86_64-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=64
-	CONFIGURE_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="x86_64-w64-mingw32-gcc -static-libgcc"
-	export CXX="x86_64-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
-	common_setup
+	common_setup msvc x86_64-w64-mingw32
 }
 
 # Set up environment for 32-bit i686 Windows for MinGW (compile all as .a)
 setup_windows-i686-mingw() {
-	HOST=i686-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=32
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
-	common_setup
+	common_setup mingw i686-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 Windows for MinGW (compile all as .a)
 setup_windows-amd64-mingw() {
-	HOST=x86_64-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=64
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
-	common_setup
+	common_setup mingw x86_64-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
-	HOST=x86_64-apple-darwin11
-	CROSS=
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
+	MACOS_ARCH=x86_64
 	export MACOSX_DEPLOYMENT_TARGET=10.9 # works with CMake
-	export CC=clang
-	export CXX=clang++
-	export CFLAGS="-arch x86_64"
-	export CXXFLAGS="-arch x86_64"
-	export LDFLAGS="-arch x86_64"
-	export CMAKE_OSX_ARCHITECTURES="x86_64"
-	common_setup
+	common_setup macos x86_64-apple-darwin11
 	export NASM="${PWD}/${BUILD_BASEDIR}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 }
 
 # Set up environment for 32-bit i686 Linux
 setup_linux-i686-default() {
-	HOST=i386-unknown-linux-gnu
-	CROSS=
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CC='i686-linux-gnu-gcc'
-	export CXX='i686-linux-gnu-g++'
-	export CFLAGS='-fPIC'
-	export CXXFLAGS='-fPIC'
-	common_setup
+	common_setup linux i386-unknown-linux-gnu
 }
 
 # Set up environment for 64-bit amd64 Linux
 setup_linux-amd64-default() {
-	HOST=x86_64-unknown-linux-gnu
-	CROSS=
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CC='x86_64-linux-gnu-gcc'
-	export CXX='x86_64-linux-gnu-g++'
-	export CFLAGS="-fPIC"
-	export CXXFLAGS="-fPIC"
-	common_setup
+	common_setup linux x86_64-unknown-linux-gnu
 }
 
 # Set up environment for 32-bit armhf Linux
 setup_linux-armhf-default() {
-	HOST=arm-unknown-linux-gnueabihf
-	CROSS=
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CC='arm-linux-gnueabihf-gcc'
-	export CXX='arm-linux-gnueabihf-g++'
-	export CFLAGS="-fPIC"
-	export CXXFLAGS="-fPIC"
-	common_setup
+	common_setup linux arm-unknown-linux-gnueabihf
 }
 
 # Set up environment for 64-bit arm Linux
 setup_linux-arm64-default() {
-	HOST=aarch64-unknown-linux-gnu
-	CROSS=
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CC='aarch64-linux-gnu-gcc'
-	export CXX='aarch64-linux-gnu-g++'
-	export CFLAGS="-fPIC"
-	export CXXFLAGS="-fPIC"
-	common_setup
+	common_setup linux aarch64-unknown-linux-gnu
 }
 
 # Usage
