@@ -781,7 +781,6 @@ setup_linux-i686-default() {
 	export CXX='i686-linux-gnu-g++'
 	export CFLAGS='-fPIC'
 	export CXXFLAGS='-fPIC'
-	export LDFLAGS=''
 	common_setup
 }
 
@@ -807,7 +806,6 @@ setup_linux-armhf-default() {
 	export CXX='arm-linux-gnueabihf-g++'
 	export CFLAGS="-fPIC"
 	export CXXFLAGS="-fPIC"
-	export LDFLAGS=""
 	common_setup
 }
 
@@ -820,7 +818,6 @@ setup_linux-arm64-default() {
 	export CXX='aarch64-linux-gnu-g++'
 	export CFLAGS="-fPIC"
 	export CXXFLAGS="-fPIC"
-	export LDFLAGS=""
 	common_setup
 }
 
