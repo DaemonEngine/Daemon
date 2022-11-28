@@ -110,7 +110,7 @@ build_zlib() {
 	cd "zlib-${ZLIB_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
-		LOC="${CFLAGS:-}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
+		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
 	linux-*-*)
@@ -144,10 +144,10 @@ build_gmp() {
 	case "${PLATFORM}" in
 	macos-*-*)
 		# The assembler objects are incompatible with PIE
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-assembly
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-assembly
 		;;
 	*)
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 		;;
 	esac
 
@@ -167,7 +167,7 @@ build_nettle() {
 	download "nettle-${NETTLE_VERSION}.tar.gz" "https://ftp.gnu.org/gnu/nettle/nettle-${NETTLE_VERSION}.tar.gz" nettle
 	cd "nettle-${NETTLE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 	make
 	make install
 }
@@ -213,7 +213,7 @@ build_sdl2() {
 		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS:-} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+		CFLAGS="${CFLAGS} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 		make
 		make install
 		;;
@@ -226,20 +226,20 @@ build_glew() {
 	cd "glew-${GLEW_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
-		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
 	macos-*-*)
-		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS}"
+		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS}"
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
 	linux-*-*)
-		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
 		;;
 	*)
 		echo "Unsupported platform for GLEW"
@@ -253,7 +253,7 @@ build_png() {
 	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
 	cd "libpng-${PNG_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 	make
 	make install
 }
@@ -271,7 +271,7 @@ build_jpeg() {
 		cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
 		;;
 	windows-*-msvc)
-		CFLAGS="${CFLAGS:-} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
+		CFLAGS="${CFLAGS} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
 		;;
 	macos-*-*)
 		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
@@ -286,7 +286,7 @@ build_webp() {
 	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
 	cd "libwebp-${WEBP_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --disable-libwebpdemux ${CONFIGURE_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --disable-libwebpdemux ${CONFIGURE_SHARED[@]}
 	make
 	make install
 }
@@ -296,7 +296,7 @@ build_freetype() {
 	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
 	cd "freetype-${FREETYPE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
 	make
 	make install
 	cp -a "${PREFIX}/include/freetype2" "${PREFIX}/include/freetype"
@@ -372,10 +372,10 @@ build_opus() {
 	case "${PLATFORM}" in
 	windows-*-*)
 		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
-		CFLAGS="${CFLAGS:-} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 		;;
 	*)
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 		;;
 	esac
 	make
@@ -387,7 +387,7 @@ build_opusfile() {
 	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
 	cd "opusfile-${OPUSFILE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-http
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-http
 	make
 	make install
 }
@@ -412,7 +412,7 @@ build_lua() {
 		exit 1
 		;;
 	esac
-	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS:-}" MYLDFLAGS="${LDFLAGS}"
+	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS}" MYLDFLAGS="${LDFLAGS}"
 	case "${PLATFORM}" in
 	windows-*-mingw)
 		make install TO_BIN="lua.exe luac.exe" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
@@ -433,7 +433,7 @@ build_ncurses() {
 	cd "ncurses-${NCURSES_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${CONFIGURE_SHARED[@]} --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${CONFIGURE_SHARED[@]} --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
 	make
 	make install
 }
@@ -684,6 +684,8 @@ common_setup() {
 	export PATH="${PATH}:${PREFIX}/bin"
 	export PKG_CONFIG="pkg-config"
 	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+	export CFLAGS="${CFLAGS:-}"
+	export CXXFLAGS="${CXXFLAGS:-}"
 	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
 	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
 	if [[ "${MSYSTEM:-}" = MINGW* ]]; then
