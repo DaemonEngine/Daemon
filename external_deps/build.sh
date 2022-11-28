@@ -42,6 +42,7 @@ CXX='false'
 LD='ld'
 AR='ar'
 RANLIB='ranlib'
+CONFIGURE_SHARED=(--disable-shared --enable-static)
 # Always reset flags, we heavily cross-compile and must not inherit any stray flag
 # from environment.
 CFLAGS=''
@@ -733,7 +734,6 @@ common_setup_msvc() {
 }
 
 common_setup_mingw() {
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
 	CC="${HOST}-gcc"
 	CXX="${HOST}-g++"
 	LD="${HOST}-ld"
@@ -743,7 +743,6 @@ common_setup_mingw() {
 }
 
 common_setup_macos() {
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
 	CC='clang'
 	CXX='clang++'
 	CFLAGS+=" -arch ${MACOS_ARCH}"
@@ -753,7 +752,6 @@ common_setup_macos() {
 }
 
 common_setup_linux() {
-	CONFIGURE_SHARED=(--disable-shared --enable-static)
 	CC="${HOST/-unknown-/-}-gcc"
 	CXX="${HOST/-unknown-/-}-g++"
 	CFLAGS+=' -fPIC'
