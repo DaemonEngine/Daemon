@@ -688,6 +688,12 @@ common_setup() {
 	export CXXFLAGS="${CXXFLAGS:-}"
 	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
 	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
+	case "${PLATFORM}" in
+	*-i686)
+		export CFLAGS="${CFLAGS} -msse2"
+		export CXXFLAGS="${CXXFLAGS} -msse2"
+		;;
+	esac
 	if [[ "${MSYSTEM:-}" = MINGW* ]]; then
 		# Experimental MSYS2 support. Most packages won't work;
 		# you need to cross-compile from Linux
@@ -710,8 +716,8 @@ setup_windows-i686-msvc() {
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
 	export CC="i686-w64-mingw32-gcc -static-libgcc"
 	export CXX="i686-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-msse2 -mpreferred-stack-boundary=2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-msse2 -mpreferred-stack-boundary=2"
+	export CFLAGS='-mpreferred-stack-boundary=2 -D__USE_MINGW_ANSI_STDIO=0'
+	export CXXFLAGS='-mpreferred-stack-boundary=2'
 	common_setup
 }
 
@@ -742,8 +748,7 @@ setup_windows-i686-mingw() {
 	CROSS="${HOST}-"
 	BITNESS=32
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-msse2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-msse2"
+	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
 	common_setup
 }
 
