@@ -34,6 +34,11 @@ NCURSES_VERSION=6.2
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
+# Set defaults.
+export LD='ld'
+export AR='ar'
+export RANLIB='ranlib'
+
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
@@ -110,7 +115,7 @@ build_zlib() {
 	cd "zlib-${ZLIB_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
-		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
+		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
 	linux-*-*)
@@ -226,8 +231,8 @@ build_glew() {
 	cd "glew-${GLEW_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
-		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
-		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
@@ -412,7 +417,7 @@ build_lua() {
 		exit 1
 		;;
 	esac
-	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS}" MYLDFLAGS="${LDFLAGS}"
+	make "${LUA_PLATFORM}" CC="${CC}" AR="${AR} rcu" RANLIB="${RANLIB}" MYCFLAGS="${CFLAGS}" MYLDFLAGS="${LDFLAGS}"
 	case "${PLATFORM}" in
 	windows-*-mingw)
 		make install TO_BIN="lua.exe luac.exe" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
@@ -602,7 +607,7 @@ build_genlib() {
 		mkdir -p "${PREFIX}/def"
 		cd "${PREFIX}/def"
 		for DLL_A in "${PREFIX}"/lib/*.dll.a; do
-			local DLL="$(${CROSS}dlltool -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
+			local DLL="$("${HOST}-dlltool" -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
 			local DEF="$(basename ${DLL} .dll).def"
 			local LIB="$(basename ${DLL_A} .dll.a).lib"
 			local MACHINE="$([ "${PLATFORM}" = msvc32 ] && echo i386 || echo i386:x86-64)"
@@ -647,11 +652,11 @@ build_install() {
 	# Strip libraries
 	case "${PLATFORM}" in
 	windows-*-mingw)
-		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
-		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
 		;;
 	windows-*-msvc)
-		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
 		;;
@@ -712,24 +717,24 @@ common_setup() {
 # the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
 # supports %lld since Visual Studio 2013.
 common_setup_msvc() {
-	CROSS="${HOST}-"
 	CONFIGURE_SHARED=(--enable-shared --disable-static)
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="${CROSS}gcc -static-libgcc"
-	export CXX="${CROSS}g++ -static-libgcc"
+	export CC="${HOST}-gcc -static-libgcc"
+	export CXX="${HOST}-g++ -static-libgcc"
 	export CFLAGS="${CFLAGS} -D__USE_MINGW_ANSI_STDIO=0"
 }
 
 common_setup_mingw() {
-	CROSS="${HOST}-"
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CC="${CROSS}gcc"
-	export CXX="${CROSS}g++"
+	export CC="${HOST}-gcc"
+	export CXX="${HOST}-g++"
+	export LD="${HOST}-ld"
+	export AR="${HOST}-ar"
+	export RANLIB="${HOST}-ranlib"
 	export CFLAGS="${CFLAGS} -D__USE_MINGW_ANSI_STDIO=0"
 }
 
 common_setup_macos() {
-	CROSS=''
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
 	export CC='clang'
 	export CXX='clang++'
@@ -740,7 +745,6 @@ common_setup_macos() {
 }
 
 common_setup_linux() {
-	CROSS=''
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
 	export CC="${HOST/-unknown-/-}-gcc"
 	export CXX="${HOST/-unknown-/-}-g++"
