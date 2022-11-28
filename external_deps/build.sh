@@ -38,6 +38,12 @@ WASMTIME_VERSION=2.0.2
 export LD='ld'
 export AR='ar'
 export RANLIB='ranlib'
+# Always reset flags, we heavily cross-compile and must not inherit any stray flag
+# from environment.
+export CFLAGS=''
+export CXXFLAGS=''
+export CPPFLAGS=''
+export LDFLAGS=''
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
@@ -691,10 +697,10 @@ common_setup() {
 	export PATH="${PATH}:${PREFIX}/bin"
 	export PKG_CONFIG="pkg-config"
 	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-	export CFLAGS="${CFLAGS:-}"
-	export CXXFLAGS="${CXXFLAGS:-}"
-	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
-	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
+	export CFLAGS
+	export CXXFLAGS
+	export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+	export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 	case "${PLATFORM}" in
 	*-i686)
 		export CFLAGS="${CFLAGS} -msse2"
