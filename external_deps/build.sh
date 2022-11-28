@@ -34,6 +34,10 @@ NCURSES_VERSION=6.2
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
+# Require the compiler names to be explicitly hardcoded, we should not inherit them
+# from environment as we heavily cross-compile.
+export CC='false'
+export CXX='false'
 # Set defaults.
 export LD='ld'
 export AR='ar'
