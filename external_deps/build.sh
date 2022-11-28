@@ -36,18 +36,18 @@ WASMTIME_VERSION=2.0.2
 
 # Require the compiler names to be explicitly hardcoded, we should not inherit them
 # from environment as we heavily cross-compile.
-export CC='false'
-export CXX='false'
+CC='false'
+CXX='false'
 # Set defaults.
-export LD='ld'
-export AR='ar'
-export RANLIB='ranlib'
+LD='ld'
+AR='ar'
+RANLIB='ranlib'
 # Always reset flags, we heavily cross-compile and must not inherit any stray flag
 # from environment.
-export CFLAGS=''
-export CXXFLAGS=''
-export CPPFLAGS=''
-export LDFLAGS=''
+CFLAGS=''
+CXXFLAGS=''
+CPPFLAGS=''
+LDFLAGS=''
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
@@ -698,23 +698,22 @@ common_setup() {
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
 	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 	PREFIX="${BUILD_DIR}/prefix"
-	export PATH="${PATH}:${PREFIX}/bin"
-	export PKG_CONFIG="pkg-config"
-	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-	export CFLAGS
-	export CXXFLAGS
-	export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
-	export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+	PATH="${PATH}:${PREFIX}/bin"
+	PKG_CONFIG="pkg-config"
+	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+	CPPFLAGS+=" -I${PREFIX}/include"
+	LDFLAGS+=" -L${PREFIX}/lib"
 	case "${PLATFORM}" in
 	*-i686)
-		export CFLAGS="${CFLAGS} -msse2"
-		export CXXFLAGS="${CXXFLAGS} -msse2"
+		CFLAGS+=" -msse2"
+		CXXFLAGS+=" -msse2"
 		;;
 	esac
 	mkdir -p "${DOWNLOAD_DIR}"
 	mkdir -p "${PREFIX}/bin"
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
+	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
 }
 
 # -D__USE_MINGW_ANSI_STDIO=0 instructs MinGW to *not* use its own implementation
@@ -728,44 +727,44 @@ common_setup() {
 common_setup_msvc() {
 	CONFIGURE_SHARED=(--enable-shared --disable-static)
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="${HOST}-gcc -static-libgcc"
-	export CXX="${HOST}-g++ -static-libgcc"
-	export CFLAGS="${CFLAGS} -D__USE_MINGW_ANSI_STDIO=0"
+	CC="${HOST}-gcc -static-libgcc"
+	CXX="${HOST}-g++ -static-libgcc"
+	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
 }
 
 common_setup_mingw() {
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CC="${HOST}-gcc"
-	export CXX="${HOST}-g++"
-	export LD="${HOST}-ld"
-	export AR="${HOST}-ar"
-	export RANLIB="${HOST}-ranlib"
-	export CFLAGS="${CFLAGS} -D__USE_MINGW_ANSI_STDIO=0"
+	CC="${HOST}-gcc"
+	CXX="${HOST}-g++"
+	LD="${HOST}-ld"
+	AR="${HOST}-ar"
+	RANLIB="${HOST}-ranlib"
+	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
 }
 
 common_setup_macos() {
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CC='clang'
-	export CXX='clang++'
-	export CFLAGS="-arch ${MACOS_ARCH}"
-	export CXXFLAGS="-arch ${MACOS_ARCH}"
-	export LDFLAGS="-arch ${MACOS_ARCH}"
+	CC='clang'
+	CXX='clang++'
+	CFLAGS+=" -arch ${MACOS_ARCH}"
+	CXXFLAGS+=" -arch ${MACOS_ARCH}"
+	LDFLAGS+=" -arch ${MACOS_ARCH}"
 	export CMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
 }
 
 common_setup_linux() {
 	CONFIGURE_SHARED=(--disable-shared --enable-static)
-	export CC="${HOST/-unknown-/-}-gcc"
-	export CXX="${HOST/-unknown-/-}-g++"
-	export CFLAGS='-fPIC'
-	export CXXFLAGS='-fPIC'
+	CC="${HOST/-unknown-/-}-gcc"
+	CXX="${HOST/-unknown-/-}-g++"
+	CFLAGS+=' -fPIC'
+	CXXFLAGS+=' -fPIC'
 }
 
 # Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
 setup_windows-i686-msvc() {
 	BITNESS=32
-	export CFLAGS='-mpreferred-stack-boundary=2'
-	export CXXFLAGS='-mpreferred-stack-boundary=2'
+	CFLAGS+=' -mpreferred-stack-boundary=2'
+	CXXFLAGS+=' -mpreferred-stack-boundary=2'
 	common_setup msvc i686-w64-mingw32
 }
 
