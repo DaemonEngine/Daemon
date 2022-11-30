@@ -757,6 +757,8 @@ void SV_Shutdown( const char *finalmsg )
 #ifndef BUILD_SERVER
 	NET_Config( true );
 #endif
+
+	SV_NET_Config(); // clear master server DNS queries
 	Net::ShutDownDNS();
 
 	Log::Notice( "---------------------------\n" );
