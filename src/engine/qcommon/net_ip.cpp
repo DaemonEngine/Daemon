@@ -35,6 +35,7 @@ Maryland 20850 USA.
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
 #include <common/FileSystem.h>
+#include "engine/framework/Network.h"
 #include "server/server.h"
 
 #ifdef _WIN32
@@ -1952,5 +1953,8 @@ NET_Restart_f
 */
 void NET_Restart_f()
 {
+	NET_Config( false );
+	SV_NET_Config();
+	Net::ShutDownDNS();
 	NET_Config( true );
 }
