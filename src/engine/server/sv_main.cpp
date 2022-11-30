@@ -257,12 +257,6 @@ namespace {
 struct MasterServer;
 extern MasterServer masterServers[MAX_MASTER_SERVERS];
 
-struct MasterQuery
-{
-	Net::DNSQueryHandle handle = 0;
-	bool active = false;
-};
-
 struct MasterServer
 {
 	Net::DNSQueryHandle query = 0;
