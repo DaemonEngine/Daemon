@@ -45,6 +45,4 @@ bool Sys_StringToAdr(const char *s, netadr_t *a, netadrtype_t family);
 bool Sys_IsLANAddress(const netadr_t& adr);
 void Sys_ShowIP();
 
-#define Sys_Milliseconds Sys::Milliseconds
-
 #endif // ENGINE_QCOMMON_SYS_H_

@@ -508,7 +508,7 @@ NORETURN static void CL_DemoCompleted()
 	{
 		int time;
 
-		time = Sys_Milliseconds() - clc.timeDemoStart;
+		time = Sys::Milliseconds() - clc.timeDemoStart;
 
 		if ( time > 0 )
 		{
@@ -2703,7 +2703,7 @@ void CL_RefTagFree()
 
 int CL_ScaledMilliseconds()
 {
-	return Sys_Milliseconds() * com_timescale->value;
+	return Sys::Milliseconds() * com_timescale->value;
 }
 
 extern refexport_t *GetRefAPI( int apiVersion, refimport_t *rimp );
@@ -3116,7 +3116,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 		if ( cl_pinglist[ i ].adr.port && !cl_pinglist[ i ].time && NET_CompareAdr( from, cl_pinglist[ i ].adr ) )
 		{
 			// calc ping time
-			cl_pinglist[ i ].time = Sys_Milliseconds() - cl_pinglist[ i ].start;
+			cl_pinglist[ i ].time = Sys::Milliseconds() - cl_pinglist[ i ].start;
 
 			Log::Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
 
@@ -3302,13 +3302,13 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 			return true;
 		}
 		// resend the request regularly
-		else if ( serverStatus->startTime < Sys_Milliseconds() - cl_serverStatusResendTime->integer )
+		else if ( serverStatus->startTime < Sys::Milliseconds() - cl_serverStatusResendTime->integer )
 		{
 			serverStatus->print = false;
 			serverStatus->pending = true;
 			serverStatus->retrieved = false;
 			serverStatus->time = 0;
-			serverStatus->startTime = Sys_Milliseconds();
+			serverStatus->startTime = Sys::Milliseconds();
 			Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getstatus" );
 			return false;
 		}
@@ -3320,7 +3320,7 @@ int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int ma
 		serverStatus->print = false;
 		serverStatus->pending = true;
 		serverStatus->retrieved = false;
-		serverStatus->startTime = Sys_Milliseconds();
+		serverStatus->startTime = Sys::Milliseconds();
 		serverStatus->time = 0;
 		Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getstatus" );
 		return false;
@@ -3413,7 +3413,7 @@ void CL_ServerStatusResponse( const netadr_t& from, msg_t *msg )
 	len = strlen( serverStatus->string );
 	Com_sprintf( &serverStatus->string[ len ], sizeof( serverStatus->string ) - len, "\\" );
 
-	serverStatus->time = Sys_Milliseconds();
+	serverStatus->time = Sys::Milliseconds();
 	serverStatus->address = from;
 	serverStatus->pending = false;
 
@@ -3598,7 +3598,7 @@ void CL_GetPing( int n, char *buf, int buflen, int *pingtime )
 	if ( !time )
 	{
 		// check for timeout
-		time = Sys_Milliseconds() - cl_pinglist[ n ].start;
+		time = Sys::Milliseconds() - cl_pinglist[ n ].start;
 		maxPing = Cvar_VariableIntegerValue( "cl_maxPing" );
 
 		if ( maxPing < 100 )
@@ -3680,7 +3680,7 @@ ping_t         *CL_GetFreePing()
 		{
 			if ( !pingptr->time )
 			{
-				if ( Sys_Milliseconds() - pingptr->start < 500 )
+				if ( Sys::Milliseconds() - pingptr->start < 500 )
 				{
 					// still waiting for response
 					continue;
@@ -3706,7 +3706,7 @@ ping_t         *CL_GetFreePing()
 	for ( i = 0; i < MAX_PINGREQUESTS; i++, pingptr++ )
 	{
 		// scan for oldest
-		time = Sys_Milliseconds() - pingptr->start;
+		time = Sys::Milliseconds() - pingptr->start;
 
 		if ( time > oldest )
 		{
@@ -3771,7 +3771,7 @@ void CL_Ping_f()
 	pingptr = CL_GetFreePing();
 
 	memcpy( &pingptr->adr, &to, sizeof( netadr_t ) );
-	pingptr->start = Sys_Milliseconds();
+	pingptr->start = Sys::Milliseconds();
 	pingptr->time = 0;
 
 	CL_SetServerInfoByAddress( pingptr->adr, nullptr, 0 );
@@ -3863,7 +3863,7 @@ bool CL_UpdateVisiblePings_f( int source )
 							if ( !cl_pinglist[ j ].adr.port )
 							{
 								memcpy( &cl_pinglist[ j ].adr, &server[ i ].adr, sizeof( netadr_t ) );
-								cl_pinglist[ j ].start = Sys_Milliseconds();
+								cl_pinglist[ j ].start = Sys::Milliseconds();
 								cl_pinglist[ j ].time = 0;
 								Net::OutOfBandPrint( netsrc_t::NS_CLIENT, cl_pinglist[ j ].adr, "getinfo xxx" );
 								slots++;

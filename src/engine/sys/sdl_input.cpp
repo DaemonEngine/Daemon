@@ -630,7 +630,7 @@ static void QueueKeyEvent(Keyboard::Key key, bool down)
 	if (!key.IsValid()) {
 		return;
 	}
-	Com_QueueEvent( Util::make_unique<Sys::KeyEvent>(key, down, Sys_Milliseconds()) );
+	Com_QueueEvent( Util::make_unique<Sys::KeyEvent>(key, down, Sys::Milliseconds()) );
 }
 static void QueueKeyEvent(keyNum_t key, bool down) {
 	QueueKeyEvent(Keyboard::Key(key), down);

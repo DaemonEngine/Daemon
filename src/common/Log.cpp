@@ -106,7 +106,7 @@ namespace Log {
     static const int noticeTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE) | (1 << LOGFILE);
     static const int warnTargets = (1 << GRAPHICAL_CONSOLE) | (1 << TTY_CONSOLE) | (1 << LOGFILE);
 
-    //TODO add the time (broken for now because it is journaled) use Sys_Milliseconds instead (Utils::Milliseconds ?)
+    //TODO add the time (broken for now because it is journaled) use Sys::Milliseconds instead
     void DispatchByLevel(std::string message, Log::Level level) {
         switch (level) {
         case Level::DEBUG:

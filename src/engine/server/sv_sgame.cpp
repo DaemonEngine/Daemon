@@ -348,7 +348,7 @@ void GameVM::Start()
 
 void GameVM::GameStaticInit()
 {
-	this->SendMsg<GameStaticInitMsg>(Sys_Milliseconds());
+	this->SendMsg<GameStaticInitMsg>(Sys::Milliseconds());
 }
 
 void GameVM::GameInit(int levelTime, int randomSeed)
