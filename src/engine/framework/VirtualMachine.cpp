@@ -384,7 +384,7 @@ uint32_t VMBase::Create()
 	if (type < TYPE_BEGIN || type >= TYPE_END)
 		Sys::Drop("VM: Invalid type %d", type);
 
-	int loadStartTime = Sys_Milliseconds();
+	int loadStartTime = Sys::Milliseconds();
 
 	// Free the VM if it exists
 	Free();
@@ -422,7 +422,7 @@ uint32_t VMBase::Create()
 	// Read the ABI version from the root socket.
 	// If this fails, we assume the remote process failed to start
 	Util::Reader reader = rootChannel.RecvMsg();
-	Log::Notice("Loaded VM module in %d msec", Sys_Milliseconds() - loadStartTime);
+	Log::Notice("Loaded VM module in %d msec", Sys::Milliseconds() - loadStartTime);
 	return reader.Read<uint32_t>();
 }
 

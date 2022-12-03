@@ -1279,7 +1279,7 @@ void SV_Frame( int msec )
 	int        frameStartTime = 0, frameEndTime;
 	static int start, end;
 
-	start = Sys_Milliseconds();
+	start = Sys::Milliseconds();
 	svs.stats.idle += ( double )( start - end ) / 1000;
 
 	// the menu kills the server with this cvar
@@ -1295,7 +1295,7 @@ void SV_Frame( int msec )
 		return;
 	}
 
-	frameStartTime = Sys_Milliseconds();
+	frameStartTime = Sys::Milliseconds();
 
 	// if it isn't time for the next frame, do nothing
 	if ( sv_fps->integer < 1 )
@@ -1361,7 +1361,7 @@ void SV_Frame( int msec )
 
 	if ( com_speeds->integer )
 	{
-		startTime = Sys_Milliseconds();
+		startTime = Sys::Milliseconds();
 	}
 	else
 	{
@@ -1384,7 +1384,7 @@ void SV_Frame( int msec )
 
 	if ( com_speeds->integer )
 	{
-		time_game = Sys_Milliseconds() - startTime;
+		time_game = Sys::Milliseconds() - startTime;
 	}
 
 	// check timeouts
@@ -1396,7 +1396,7 @@ void SV_Frame( int msec )
 	// send a heartbeat to the master if needed
 	SV_MasterHeartbeat( HEARTBEAT_GAME );
 
-	frameEndTime = Sys_Milliseconds();
+	frameEndTime = Sys::Milliseconds();
 
 	svs.totalFrameTime += ( frameEndTime - frameStartTime );
 	svs.currentFrameIndex++;
@@ -1441,7 +1441,7 @@ void SV_Frame( int msec )
 	}
 
 	// collect timing statistics
-	end = Sys_Milliseconds();
+	end = Sys::Milliseconds();
 	svs.stats.active += ( ( double )( end - start ) ) / 1000;
 
 	if ( ++svs.stats.count == STATFRAMES )

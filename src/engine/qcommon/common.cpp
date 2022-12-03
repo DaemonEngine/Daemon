@@ -323,14 +323,14 @@ static void Com_RunAndTimeServerPacket( const netadr_t *evFrom, msg_t *buf )
 
 	if ( com_speeds->integer )
 	{
-		t1 = Sys_Milliseconds();
+		t1 = Sys::Milliseconds();
 	}
 
 	SV_PacketEvent( *evFrom, buf );
 
 	if ( com_speeds->integer )
 	{
-		t2 = Sys_Milliseconds();
+		t2 = Sys::Milliseconds();
 		msec = t2 - t1;
 
 		if ( com_speeds->integer == 3 )
@@ -512,7 +512,7 @@ Can be used for profiling, but will be journaled accurately
 */
 int Com_Milliseconds()
 {
-    return Sys_Milliseconds();
+    return Sys::Milliseconds();
 }
 
 //============================================================================
@@ -902,7 +902,7 @@ void Com_Frame()
 	//
 	if ( com_speeds->integer )
 	{
-		timeBeforeFirstEvents = Sys_Milliseconds();
+		timeBeforeFirstEvents = Sys::Milliseconds();
 	}
 
 	// we may want to spin here if things are going too fast
@@ -960,7 +960,7 @@ void Com_Frame()
 	}
 
 	Com_EventLoop();
-	com_frameTime = Sys_Milliseconds();
+	com_frameTime = Sys::Milliseconds();
 
 	if ( lastTime > com_frameTime )
 	{
@@ -978,7 +978,7 @@ void Com_Frame()
 		IN_Frame();
 
 		Com_EventLoop();
-		com_frameTime = Sys_Milliseconds();
+		com_frameTime = Sys::Milliseconds();
 		msec = com_frameTime - lastTime;
 	}
 
@@ -998,7 +998,7 @@ void Com_Frame()
 	//
 	if ( com_speeds->integer )
 	{
-		timeBeforeServer = Sys_Milliseconds();
+		timeBeforeServer = Sys::Milliseconds();
 	}
 
 	SV_Frame( msec );
@@ -1011,7 +1011,7 @@ void Com_Frame()
 	//
 	if ( com_speeds->integer )
 	{
-		timeBeforeEvents = Sys_Milliseconds();
+		timeBeforeEvents = Sys::Milliseconds();
 	}
 
 	Com_EventLoop();
@@ -1020,14 +1020,14 @@ void Com_Frame()
 
 	if ( com_speeds->integer )
 	{
-		timeBeforeClient = Sys_Milliseconds();
+		timeBeforeClient = Sys::Milliseconds();
 	}
 
 	CL_Frame( msec );
 
 	if ( com_speeds->integer )
 	{
-		timeAfter = Sys_Milliseconds();
+		timeAfter = Sys::Milliseconds();
 	}
 
 	//
@@ -1037,16 +1037,16 @@ void Com_Frame()
 	{
 		if ( watchdogTime == 0 )
 		{
-			watchdogTime = Sys_Milliseconds();
+			watchdogTime = Sys::Milliseconds();
 		}
 		else
 		{
-			if ( !watchWarn && Sys_Milliseconds() - watchdogTime > ( watchdogThreshold.Get() - 4 ) * 1000 )
+			if ( !watchWarn && Sys::Milliseconds() - watchdogTime > ( watchdogThreshold.Get() - 4 ) * 1000 )
 			{
 				Log::Warn("watchdog will trigger in 4 seconds" );
 				watchWarn = true;
 			}
-			else if ( Sys_Milliseconds() - watchdogTime > watchdogThreshold.Get() * 1000 )
+			else if ( Sys::Milliseconds() - watchdogTime > watchdogThreshold.Get() * 1000 )
 			{
 				Log::Notice( "Idle server with no map — triggering watchdog\n" );
 				watchdogTime = 0;
