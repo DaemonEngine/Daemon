@@ -1312,8 +1312,9 @@ void SV_Frame( int msec )
 	// if time is about to hit the 32nd bit, kick all clients
 	// and clear sv.time, rather
 	// than checking for negative time wraparound everywhere.
-	// 2giga-milliseconds = 23 days, so it won't be too often
-	if ( svs.time > 0x70000000 )
+	// This generally won't happen because the engine will exit earlier to prevent
+	// Sys::Milliseconds overflow, but maybe with timescale > 1 or something
+	if ( svs.time > 0x78000000 )
 	{
 		// TTimo
 		// show_bug.cgi?id=388

@@ -905,6 +905,11 @@ void Com_Frame()
 		timeBeforeFirstEvents = Sys::Milliseconds();
 	}
 
+	if ( timeBeforeFirstEvents < 0 || timeBeforeFirstEvents > 0x7F000000 )
+	{
+		Sys::Error( "Shutting down to prevent time overflow" );
+	}
+
 	// we may want to spin here if things are going too fast
 	if ( !cvar_demo_timedemo.Get() )
 	{
