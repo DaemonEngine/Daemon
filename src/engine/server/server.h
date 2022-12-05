@@ -67,7 +67,6 @@ struct server_t
 	bool      restarting; // if true, send configstring changes during SS_LOADING
 	int           serverId; // changes each server start
 	int           restartedServerId; // serverId before a map_restart
-	int           checksumFeed; // the feed key that we use to compute the pure checksum strings
 	int             snapshotCounter; // incremented for each snapshot built
 	int             timeResidual; // <= 1000 / sv_frame->value
 	int             nextFrameTime; // when time > nextFrameTime, process world

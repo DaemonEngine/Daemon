@@ -471,8 +471,6 @@ void CL_Record(std::string demo_name)
 
     // write the client num
     MSG_WriteLong( &buf, clc.clientNum );
-    // write the checksum feed
-    MSG_WriteLong( &buf, clc.checksumFeed );
 
     // finished writing the client packet
     MSG_WriteByte( &buf, svc_EOF );

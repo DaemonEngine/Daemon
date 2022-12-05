@@ -181,7 +181,6 @@ struct clientConnection_t
 	char     serverMessage[ MAX_STRING_TOKENS ]; // for display on connection dialog
 
 	std::string challenge; // from the server to use for connecting
-	int      checksumFeed; // from the server for checksum calculations
 
 	// these are our reliable messages that go to the server
 	int  reliableSequence;
