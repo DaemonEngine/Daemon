@@ -518,7 +518,7 @@ static void NET_QueuePacket( int length, const void *data, const netadr_t& to,
 	memcpy( newp->data, data, length );
 	newp->length = length;
 	newp->to = to;
-	newp->release = Sys_Milliseconds() + ( int )( ( float ) offset / com_timescale->value );
+	newp->release = Sys::Milliseconds() + ( int )( ( float ) offset / com_timescale->value );
 	newp->next = nullptr;
 
 	if ( !packetQueue )

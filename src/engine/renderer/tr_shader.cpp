@@ -1448,6 +1448,18 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		return true;
 	}
 
+	/* Light styles are only compatible with light mapping as light styles
+	are just extra light map stages with special effects.
+
+	So we don't load extra light maps when light styles are not supported.
+
+	The disablement of the stage is done in the ParseShader() function. */
+	if ( ( r_vertexLighting->integer != 0 || r_lightStyles->integer == 0 )
+		&& stage->tcGen_Lightmap )
+	{
+		return true;
+	}
+
 	imageParams_t imageParams = {};
 	imageParams.minDimension = shader.imageMinDimension;
 	imageParams.maxDimension = shader.imageMaxDimension;
@@ -3213,14 +3225,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	// compute state bits
 	stage->stateBits = colorMaskBits | depthMaskBits | blendSrcBits | blendDstBits | atestBits | depthFuncBits | polyModeBits;
 
-	/* If light style external light map and light mapping is disabled,
-	do not load the image and disable the stage */
-	if ( r_vertexLighting->integer && stage->tcGen_Lightmap == true )
-	{
-		stage->active = false;
-		return true;
-	}
-
 	// load image
 	if ( loadMap && !LoadMap( stage, buffer ) )
 	{
@@ -3777,6 +3781,8 @@ static bool ParseShader( const char *_text )
 		return false;
 	}
 
+	bool lightmap_found = false;
+
 	while ( true )
 	{
 		token = COM_ParseExt2( text, true );
@@ -3807,6 +3813,34 @@ static bool ParseShader( const char *_text )
 			}
 
 			stages[ s ].active = true;
+
+			/* Light styles are only compatible with light mapping as light styles
+			are just extra light map stages with special effects.
+
+			So we disable extra light map stages when light styles are not supported.
+
+			The first light map stage can be rendered using grid lighting,
+			the other ones have no way to be rendered. */
+			if ( stages[ s ].active 
+				&& ( r_vertexLighting->integer != 0 || r_lightStyles->integer == 0 ) )
+			{
+				if ( stages[ s ].type == stageType_t::ST_LIGHTMAP )
+				{
+					if ( !lightmap_found )
+					{
+						lightmap_found = true;
+					}
+					else
+					{
+						stages[ s ].active = false;
+					}
+				}
+				else if ( stages[ s ].tcGen_Lightmap )
+				{
+					stages[ s ].active = false;
+				}
+			}
+
 			s++;
 			continue;
 		}

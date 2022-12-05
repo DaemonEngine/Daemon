@@ -90,6 +90,7 @@ void SetDNSQuery(DNSQueryHandle query, std::string hostname, int protocolMask);
 DNSResult GetAddresses(DNSQueryHandle query);
 
 // Stop the resolver thread
+// You should clear any queries when you do this, so you won't get stale results
 void ShutDownDNS();
 
 } // namespace Net

@@ -55,6 +55,8 @@ set(MSVC_INCREMENTAL_DEFAULT ON)
 # Enable the creation of project folders for Visual Studio projects
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+project(Daemon C CXX)
+
 # Default to Release builds. To use system CFLAGS only (for distro builds), set CMAKE_BUILD_TYPE to None
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
@@ -65,14 +67,14 @@ if (NOT CMAKE_OSX_ARCHITECTURES)
     set(CMAKE_OSX_ARCHITECTURES x86_64)
 endif()
 
+include(DaemonPlatform)
+
 if (Daemon_OUT)
     set(CMAKE_CURRENT_BINARY_DIR ${Daemon_OUT})
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${Daemon_OUT})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Daemon_OUT})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
-
-project(Daemon C CXX)
 
 ################################################################################
 # Configuration options
@@ -94,17 +96,48 @@ if(NOT DAEMON_EXTERNAL_APP)
     # can be loaded by daemon with vm.[sc]game.type 2
     option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
-    if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)
+    # The NaCl SDK only runs on amd64 or i686.
+    if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
+    AND (ARCH STREQUAL "amd64" OR ARCH STREQUAL "i686"))
         # can be loaded by daemon with vm.[sc]game.type 0 or 1
-        option(BUILD_GAME_NACL "Build the NaCl gamelogic modules, required to host mods." OFF)
-        option(BUILD_GAME_NACL_NEXE "Build the NaCl \"nexe\" files from the \"pexe\" files." ON)
-        mark_as_advanced(BUILD_GAME_NACL_NEXE)
+        option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
+
+        set(NACL_ALL_TARGETS "amd64;i686;armhf")
+        set(BUILD_GAME_NACL_TARGETS "all" CACHE STRING "Enabled NaCl \"nexe\" architecture targets, values: ${NACL_ALL_TARGETS}, all, native, none.")
+        mark_as_advanced(BUILD_GAME_NACL_TARGETS)
+
+        if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
+            set(NACL_TARGETS "${NACL_ALL_TARGETS}")
+        elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
+            set(NACL_TARGETS "${ARCH}")
+        elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
+            set(NACL_TARGETS "")
+        else()
+            set(NACL_TARGETS "${BUILD_GAME_NACL_TARGETS}")
+        endif()
+
+        foreach(NACL_TARGET ${NACL_TARGETS})
+            set(IS_NACL_VALID_TARGET OFF)
+            foreach(NACL_VALID_TARGET ${NACL_ALL_TARGETS})
+                if(NACL_TARGET STREQUAL NACL_VALID_TARGET)
+                    set(IS_NACL_VALID_TARGET ON)
+                endif()
+            endforeach()
+
+            if (NOT IS_NACL_VALID_TARGET)
+                message(FATAL_ERROR "Invalid NaCl target ${NACL_TARGET}, must be one of ${NACL_ALL_TARGETS}")
+            endif()
+        endforeach()
     else()
         set(BUILD_GAME_NACL OFF)
-        set(BUILD_GAME_NACL_NEXE OFF)
+        set(NACL_TARGETS "")
     endif()
+	
+    set(NACL_TARGETS "${NACL_TARGETS}" PARENT_SCOPE)
+
     option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
     option(BUILD_DUMMY_APP "Stripped-down engine executable, mostly used to ease incremental porting and debugging" OFF)
+    mark_as_advanced(BUILD_DUMMY_APP)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
@@ -174,15 +207,6 @@ else()
 endif()
 if (DAEMON_PARENT_SCOPE_DIR)
     set(WARNMODE ${WARNMODE} PARENT_SCOPE)
-endif()
-
-include(DaemonPlatform)
-
-if (ARCH STREQUAL "armhf")
-    if (BUILD_GAME_NACL)
-        message(WARNING "Building of NaCL \"nexe\" files is not supported on armhf, disabling")
-        set(BUILD_GAME_NACL OFF CACHE BOOL "Unsupported on armhf" FORCE)
-    endif()
 endif()
 
 ################################################################################
@@ -563,11 +587,13 @@ else()
 endif()
 
 # Minizip
-add_library(srclibs-minizip EXCLUDE_FROM_ALL ${MINIZIPLIST})
-set_target_properties(srclibs-minizip PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
-if (MSVC)
-    target_compile_options(srclibs-minizip PRIVATE "/wd4100") # disable "unreferenced formal parameter"
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
+    add_library(srclibs-minizip EXCLUDE_FROM_ALL ${MINIZIPLIST})
+    set_target_properties(srclibs-minizip PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
+    if (MSVC)
+        target_compile_options(srclibs-minizip PRIVATE "/wd4100") # disable "unreferenced formal parameter"
+    endif()
 endif()
 
 # Look for OpenGL here before we potentially switch to looking for static libs.
@@ -586,44 +612,48 @@ endif()
 
 
 # zlib
-if (NOT NACL)
-    find_package(ZLIB REQUIRED)
-else()
-    add_library(srclibs-zlib EXCLUDE_FROM_ALL ${ZLIBLIST})
-    set_target_properties(srclibs-zlib PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    set(ZLIB_INCLUDE_DIRS ${LIB_DIR}/zlib)
-    set(ZLIB_LIBRARIES srclibs-zlib)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP OR NACL)
+    if (NOT NACL)
+        find_package(ZLIB REQUIRED)
+    else()
+        add_library(srclibs-zlib EXCLUDE_FROM_ALL ${ZLIBLIST})
+        set_target_properties(srclibs-zlib PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+        set(ZLIB_INCLUDE_DIRS ${LIB_DIR}/zlib)
+        set(ZLIB_LIBRARIES srclibs-zlib)
+    endif()
+    set(LIBS_BASE ${LIBS_BASE} ${ZLIB_LIBRARIES})
+    include_directories(${ZLIB_INCLUDE_DIRS})
 endif()
-set(LIBS_BASE ${LIBS_BASE} ${ZLIB_LIBRARIES})
-include_directories(${ZLIB_INCLUDE_DIRS})
 
 if (DAEMON_PARENT_SCOPE_DIR)
     set(LIBS_BASE ${LIBS_BASE} PARENT_SCOPE)
 endif()
 
 # Curses, pdcurses on Windows and ncursesw on Unix
-if (USE_CURSES AND NOT NACL)
-    if (WIN32)
-        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
+    if (USE_CURSES)
+        if (WIN32)
+            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
 
-        add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DUSE_CURSES)
-        add_library(srclibs-pdcurses EXCLUDE_FROM_ALL ${PDCURSESLIST})
-        if (MSVC)
-            target_compile_options(srclibs-pdcurses PRIVATE "/W2") # decrease warning level
+            add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DUSE_CURSES)
+            add_library(srclibs-pdcurses EXCLUDE_FROM_ALL ${PDCURSESLIST})
+            if (MSVC)
+                target_compile_options(srclibs-pdcurses PRIVATE "/W2") # decrease warning level
+            endif()
+            set_target_properties(srclibs-pdcurses PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-pdcurses)
+            include_directories(${LIB_DIR}/pdcurses)
+        else ()
+            add_definitions(-DUSE_CURSES)
+            set(CURSES_NEED_NCURSES 1) # Tells FindCurses that ncurses is required
+            find_package(CursesW REQUIRED)
+            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
+            include_directories(${CURSESW_INCLUDE_DIR})
         endif()
-        set_target_properties(srclibs-pdcurses PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-pdcurses)
-        include_directories(${LIB_DIR}/pdcurses)
-    else ()
-        add_definitions(-DUSE_CURSES)
-        set(CURSES_NEED_NCURSES 1) # Tells FindCurses that ncurses is required
-        find_package(CursesW REQUIRED)
-        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
-        include_directories(${CURSESW_INCLUDE_DIR})
     endif()
 endif()
 
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (NACL_RUNTIME_PATH)
         add_definitions("-DNACL_RUNTIME_PATH=${NACL_RUNTIME_PATH}")
     endif()
@@ -906,7 +936,7 @@ endif()
 # Runtime dependencies
 ################################################################################
 
-if (BUILD_CLIENT OR BUILD_SERVER OR BUILD_TTY_CLIENT)
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     add_custom_target(runtime_deps)
     set_target_properties(runtime_deps PROPERTIES FOLDER "CMakePlumbing")
 
@@ -925,6 +955,22 @@ if (BUILD_CLIENT OR BUILD_SERVER OR BUILD_TTY_CLIENT)
 
     # Linux uses a bootstrap program to reserve address space
     if (LINUX)
+        if (ARCH STREQUAL "arm64")
+            add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
+            add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
+
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory
+                    ${FULL_OUTPUT_DIR}/lib-armhf
+            )
+
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${DEPS_DIR}/lib-armhf
+                    ${FULL_OUTPUT_DIR}/lib-armhf
+            )
+        endif()
+
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 ${DEPS_DIR}/nacl_helper_bootstrap

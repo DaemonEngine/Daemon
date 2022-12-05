@@ -97,6 +97,8 @@ struct glconfig2_t
 	bool uniformBufferObjectAvailable;
 	bool mapBufferRangeAvailable;
 	bool syncAvailable;
+
+	int dynamicLight;
 };
 
 //

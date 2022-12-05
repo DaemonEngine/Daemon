@@ -13,7 +13,7 @@ DEPS_VERSION=7
 # Package versions
 PKGCONFIG_VERSION=0.29.2
 NASM_VERSION=2.15.05
-ZLIB_VERSION=1.2.12
+ZLIB_VERSION=1.2.13
 GMP_VERSION=6.2.1
 NETTLE_VERSION=3.7.3
 CURL_VERSION=7.83.1
@@ -31,8 +31,8 @@ OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.4
 NACLSDK_VERSION=44.0.2403.155
 NCURSES_VERSION=6.2
-WASISDK_VERSION=12.0
-WASMTIME_VERSION=0.28.0
+WASISDK_VERSION=16.0
+WASMTIME_VERSION=2.0.2
 
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
@@ -106,7 +106,7 @@ build_nasm() {
 
 # Build zlib
 build_zlib() {
-	download "zlib-${ZLIB_VERSION}.tar.gz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz" zlib
+	download "zlib-${ZLIB_VERSION}.tar.xz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.xz" zlib
 	cd "zlib-${ZLIB_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
@@ -233,13 +233,13 @@ build_glew() {
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
 	macos-*-*)
-		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="clang" LD="clang" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="clang" LD="clang" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
 	linux-*-*)
-		make GLEW_DEST="${PREFIX}"
-		make install GLEW_DEST="${PREFIX}"
+		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
 		;;
 	*)
 		echo "Unsupported platform for GLEW"
@@ -451,6 +451,14 @@ build_wasisdk() {
 		local WASISDK_PLATFORM=linux
 		;;
 	esac
+	case "${PLATFORM}" in
+	*-amd64-*)
+		;;
+	*)
+		echo "wasi doesn't have release for ${PLATFORM}"
+		exit 1
+		;;
+	esac
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 	download "wasi-sdk_${WASISDK_PLATFORM}.tar.gz" "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/wasi-sdk-${WASISDK_VERSION}-${WASISDK_PLATFORM}.tar.gz" wasisdk
 	cp -r "wasi-sdk-${WASISDK_VERSION}" "${PREFIX}/wasi-sdk"
@@ -473,16 +481,21 @@ build_wasmtime() {
 		;;
 	esac
 	case "${PLATFORM}" in
-	*-i686-*)
-		echo "wasmtime doesn't have release for x86"
-		exit 1
-		;;
 	*-amd64-*)
 		local WASMTIME_ARCH=x86_64
 		;;
+	linux-arm64-*|macos-arm64-*)
+		local WASMTIME_ARCH=aarch64
+		;;
+	*)
+		echo "wasmtime doesn't have release for ${PLATFORM}"
+		exit 1
+		;;
 	esac
-	download "wasmtime_${WASMTIME_PLATFORM}.${ARCHIVE_EXT}" "https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api.${ARCHIVE_EXT}" wasmtime
-	cd "wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
+	local folder_name="wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
+	local archive_name="${folder_name}.${ARCHIVE_EXT}"
+	download "${archive_name}" "https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}" wasmtime
+	cd "${folder_name}"
 	cp -r include/* "${PREFIX}/include"
 	cp -r lib/* "${PREFIX}/lib"
 }
@@ -517,7 +530,7 @@ build_naclsdk() {
 		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
 		local DAEMON_ARCH=x86_64
 		;;
-	*-armhf-*)
+	*-armhf-*|linux-arm64-*)
 		local NACLSDK_ARCH=arm
 		local DAEMON_ARCH=armhf
 		;;
@@ -550,17 +563,25 @@ build_naclsdk() {
 		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
 		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-x86_64.nexe"
 		;;
-	linux-amd64-*)
-		cp pepper_*"/tools/nacl_helper_bootstrap_x86_64" "${PREFIX}/nacl_helper_bootstrap"
+	linux-amd64-*|linux-i686-*)
+		cp pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
 		;;
-	linux-armhf-*)
+	linux-armhf-*|linux-arm64-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
+		;;
+	esac
+	case "${PLATFORM}" in
+	linux-arm64-*)
+		mkdir -p "${PREFIX}/lib-armhf"
+		cp -a pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
+		mv "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
+		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/sel_ldr"
 		;;
 	esac
 }
@@ -751,11 +772,26 @@ setup_macos-amd64-default() {
 	export NASM="${PWD}/${BUILD_BASEDIR}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 }
 
+# Set up environment for 32-bit i686 Linux
+setup_linux-i686-default() {
+	HOST=i386-unknown-linux-gnu
+	CROSS=
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export CC='i686-linux-gnu-gcc'
+	export CXX='i686-linux-gnu-g++'
+	export CFLAGS='-fPIC'
+	export CXXFLAGS='-fPIC'
+	export LDFLAGS=''
+	common_setup
+}
+
 # Set up environment for 64-bit amd64 Linux
 setup_linux-amd64-default() {
 	HOST=x86_64-unknown-linux-gnu
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
+	export CC='x86_64-linux-gnu-gcc'
+	export CXX='x86_64-linux-gnu-g++'
 	export CFLAGS="-m64 -fPIC"
 	export CXXFLAGS="-m64 -fPIC"
 	export LDFLAGS="-m64"
@@ -767,6 +803,21 @@ setup_linux-armhf-default() {
 	HOST=arm-unknown-linux-gnueabihf
 	CROSS=
 	MSVC_SHARED=(--disable-shared --enable-static)
+	export CC='arm-linux-gnueabihf-gcc'
+	export CXX='arm-linux-gnueabihf-g++'
+	export CFLAGS="-fPIC"
+	export CXXFLAGS="-fPIC"
+	export LDFLAGS=""
+	common_setup
+}
+
+# Set up environment for 64-bit arm Linux
+setup_linux-arm64-default() {
+	HOST=aarch64-unknown-linux-gnu
+	CROSS=
+	MSVC_SHARED=(--disable-shared --enable-static)
+	export CC='aarch64-linux-gnu-gcc'
+	export CXX='aarch64-linux-gnu-g++'
 	export CFLAGS="-fPIC"
 	export CXXFLAGS="-fPIC"
 	export LDFLAGS=""
@@ -781,7 +832,7 @@ if [ "${#}" -lt "2" ]; then
 	Script to build dependencies for platforms which do not provide them
 
 	Platforms:
-	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-armhf-default
+	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-arm64-default linux-armhf-default
 
 	Packages:
 	  pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
@@ -805,7 +856,7 @@ if [ "${#}" -lt "2" ]; then
 	Linux amd64 native compile:
 	  naclsdk naclports (and possibly others depending on what packages your distribution provides)
 
-	Linux armhf native compile:
+	Linux arm64 and armhf native compile:
 	  naclsdk (and possibly others depending on what packages your distribution provides)
 
 	EOF

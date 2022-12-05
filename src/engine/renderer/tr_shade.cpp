@@ -32,6 +32,17 @@ This file deals with applying shaders to surface data in the tess struct.
 =================================================================================
 */
 
+static void EnableAvailableFeatures()
+{
+	glConfig2.dynamicLight = r_dynamicLight->integer;
+
+	if ( glConfig2.dynamicLight > 0 && !glConfig2.textureFloatAvailable )
+	{
+		Log::Warn("Tiled dynamic light renderer not used because GL_ARB_texture_float is not available.");
+		glConfig2.dynamicLight = 0;
+	}
+}
+
 static void GLSL_InitGPUShadersOrError()
 {
 	// make sure the render thread is stopped
@@ -40,6 +51,10 @@ static void GLSL_InitGPUShadersOrError()
 	GL_CheckErrors();
 
 	gl_shaderManager.InitDriverInfo();
+
+	/* It must be done before GenerateBuiltinHeaders() because glConfig2.dynamicLight
+	is read in GenEngineConstants(). */
+	EnableAvailableFeatures();
 
 	gl_shaderManager.GenerateBuiltinHeaders();
 
@@ -61,14 +76,14 @@ static void GLSL_InitGPUShadersOrError()
 	> -- @gimhael
 
 	See also https://github.com/DaemonEngine/Daemon/pull/606#pullrequestreview-912402293 */
-	if ( r_dynamicLight->integer < 0 || ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) ) )
+	if ( glConfig2.dynamicLight < 0 || ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) ) )
 	{
 		// projective lighting ( Doom3 style )
 		gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
 	}
 
 	// Deprecated forward renderer uses r_dynamicLight -1
-	if ( r_dynamicLight->integer < 0 )
+	if ( glConfig2.dynamicLight < 0 )
 	{
 		// omni-directional specular bump mapping ( Doom3 style )
 		gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
@@ -76,7 +91,7 @@ static void GLSL_InitGPUShadersOrError()
 		// directional sun lighting ( Doom3 style )
 		gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
 	}
-	else if ( r_dynamicLight->integer > 0 )
+	else if ( glConfig2.dynamicLight > 0 )
 	{
 		gl_shaderManager.load( gl_depthtile1Shader );
 		gl_shaderManager.load( gl_depthtile2Shader );
@@ -662,7 +677,7 @@ static void Render_generic2D( int stage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	if ( r_dynamicLight->integer > 0 )
+	if ( glConfig2.dynamicLight > 0 )
 	{
 		GL_BindToTMU( 8, tr.lighttileRenderImage );
 	}
@@ -786,7 +801,7 @@ static void Render_generic( int stage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	if ( r_dynamicLight->integer > 0 )
+	if ( glConfig2.dynamicLight > 0 )
 	{
 		GL_BindToTMU( 8, tr.lighttileRenderImage );
 	}
@@ -996,7 +1011,7 @@ static void Render_lightMapping( int stage )
 
 	gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
 
-	if( backEnd.refdef.numShaderLights > 0 ) {
+	if( glConfig2.dynamicLight > 0 && backEnd.refdef.numShaderLights > 0 ) {
 		if( glConfig2.uniformBufferObjectAvailable ) {
 			gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 		} else {
@@ -1005,7 +1020,7 @@ static void Render_lightMapping( int stage )
 	}
 
 	// bind u_LightTiles
-	if ( r_dynamicLight->integer > 0 )
+	if ( glConfig2.dynamicLight > 0 )
 	{
 		GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage );
 	}

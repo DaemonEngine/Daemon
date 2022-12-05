@@ -74,6 +74,10 @@ function(GAMEMODULE)
                 set(inherited_option_args ${inherited_option_args}
                     "-D${inherited_option}=${${inherited_option}}")
             endforeach(inherited_option)
+
+            # Workaround a bug where CMake ExternalProject lists-as-args are cut on first “;”
+            string(REPLACE ";" "," NACL_TARGETS_STRING "${NACL_TARGETS}")
+
             ExternalProject_Add(${vm}
                 SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
                 BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${vm}
@@ -83,9 +87,8 @@ function(GAMEMODULE)
                     -DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-pnacl.cmake
                     -DDAEMON_DIR=${Daemon_SOURCE_DIR}
                     -DDEPS_DIR=${DEPS_DIR}
-                    -DBUILD_GAME_NACL_NEXE=${BUILD_GAME_NACL_NEXE}
-                    -DBUILD_GAME_NACL_NEXE_ARMHF=${BUILD_GAME_NACL_NEXE_ARMHF}
                     -DBUILD_GAME_NACL=ON
+                    -DNACL_TARGETS_STRING=${NACL_TARGETS_STRING}
                     -DBUILD_GAME_NATIVE_DLL=OFF
                     -DBUILD_GAME_NATIVE_EXE=OFF
                     -DBUILD_CLIENT=OFF
@@ -119,12 +122,21 @@ function(GAMEMODULE)
         )
         ADD_PRECOMPILED_HEADER(${GAMEMODULE_NAME}-nacl)
 
-        if (BUILD_GAME_NACL_NEXE)
-            # Generate NaCl executables for supported architectures.
-            # TODO(0.54): Unify all arch strings using i686 and amd64 strings.
-            pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "i686" "x86")
-            pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "x86-64" "x86_64")
-            pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "arm" "armhf")
-        endif()
+        # Revert a workaround for a bug where CMake ExternalProject lists-as-args are cut on first “;”
+        string(REPLACE "," ";" NACL_TARGETS "${NACL_TARGETS_STRING}")
+
+        # Generate NaCl executables for supported architectures.
+        # TODO(0.54): Unify all arch strings using i686 and amd64 strings.
+        foreach(NACL_TARGET ${NACL_TARGETS})
+            if (NACL_TARGET STREQUAL "i686")
+                pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "i686" "x86")
+            elseif (NACL_TARGET STREQUAL "amd64")
+                pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "x86-64" "x86_64")
+            elseif (NACL_TARGET STREQUAL "armhf")
+                pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "arm" "armhf")
+            else()
+                message(FATAL_ERROR "Unknown NaCl architecture ${NACL_TARGET}")
+            endif()
+        endforeach()
     endif()
 endfunction()

@@ -472,7 +472,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	svs.snapFlagServerBit ^= SNAPFLAG_SERVERCOUNT;
 
 	// Seed the RNG
-	srand( Sys_Milliseconds() );
+	srand( Sys::Milliseconds() );
 
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
@@ -756,6 +756,8 @@ void SV_Shutdown( const char *finalmsg )
 #ifndef BUILD_SERVER
 	NET_Config( true );
 #endif
+
+	SV_NET_Config(); // clear master server DNS queries
 	Net::ShutDownDNS();
 
 	Log::Notice( "---------------------------\n" );

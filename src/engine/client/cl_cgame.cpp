@@ -648,7 +648,7 @@ void CL_InitCGame()
 	const char *mapname;
 	int        t1, t2;
 
-	t1 = Sys_Milliseconds();
+	t1 = Sys::Milliseconds();
 
 	// put away the console
 	Con_Close();
@@ -668,7 +668,7 @@ void CL_InitCGame()
 	// will cause the server to send us the first snapshot
 	cls.state = connstate_t::CA_PRIMED;
 
-	t2 = Sys_Milliseconds();
+	t2 = Sys::Milliseconds();
 
 	Log::Debug( "CL_InitCGame: %5.2fs", ( t2 - t1 ) / 1000.0 );
 
@@ -943,7 +943,7 @@ void CL_SetCGameTime()
 	{
 		if ( !clc.timeDemoStart )
 		{
-			clc.timeDemoStart = Sys_Milliseconds();
+			clc.timeDemoStart = Sys::Milliseconds();
 		}
 
 		clc.timeDemoFrames++;
@@ -1007,7 +1007,7 @@ void CGameVM::Start()
 
 void CGameVM::CGameStaticInit()
 {
-	this->SendMsg<CGameStaticInitMsg>(Sys_Milliseconds());
+	this->SendMsg<CGameStaticInitMsg>(Sys::Milliseconds());
 }
 
 void CGameVM::CGameInit(int serverMessageNum, int clientNum)

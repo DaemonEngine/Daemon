@@ -257,12 +257,6 @@ namespace {
 struct MasterServer;
 extern MasterServer masterServers[MAX_MASTER_SERVERS];
 
-struct MasterQuery
-{
-	Net::DNSQueryHandle handle = 0;
-	bool active = false;
-};
-
 struct MasterServer
 {
 	Net::DNSQueryHandle query = 0;
@@ -1279,7 +1273,7 @@ void SV_Frame( int msec )
 	int        frameStartTime = 0, frameEndTime;
 	static int start, end;
 
-	start = Sys_Milliseconds();
+	start = Sys::Milliseconds();
 	svs.stats.idle += ( double )( start - end ) / 1000;
 
 	// the menu kills the server with this cvar
@@ -1295,7 +1289,7 @@ void SV_Frame( int msec )
 		return;
 	}
 
-	frameStartTime = Sys_Milliseconds();
+	frameStartTime = Sys::Milliseconds();
 
 	// if it isn't time for the next frame, do nothing
 	if ( sv_fps->integer < 1 )
@@ -1318,8 +1312,9 @@ void SV_Frame( int msec )
 	// if time is about to hit the 32nd bit, kick all clients
 	// and clear sv.time, rather
 	// than checking for negative time wraparound everywhere.
-	// 2giga-milliseconds = 23 days, so it won't be too often
-	if ( svs.time > 0x70000000 )
+	// This generally won't happen because the engine will exit earlier to prevent
+	// Sys::Milliseconds overflow, but maybe with timescale > 1 or something
+	if ( svs.time > 0x78000000 )
 	{
 		// TTimo
 		// show_bug.cgi?id=388
@@ -1361,7 +1356,7 @@ void SV_Frame( int msec )
 
 	if ( com_speeds->integer )
 	{
-		startTime = Sys_Milliseconds();
+		startTime = Sys::Milliseconds();
 	}
 	else
 	{
@@ -1384,7 +1379,7 @@ void SV_Frame( int msec )
 
 	if ( com_speeds->integer )
 	{
-		time_game = Sys_Milliseconds() - startTime;
+		time_game = Sys::Milliseconds() - startTime;
 	}
 
 	// check timeouts
@@ -1396,7 +1391,7 @@ void SV_Frame( int msec )
 	// send a heartbeat to the master if needed
 	SV_MasterHeartbeat( HEARTBEAT_GAME );
 
-	frameEndTime = Sys_Milliseconds();
+	frameEndTime = Sys::Milliseconds();
 
 	svs.totalFrameTime += ( frameEndTime - frameStartTime );
 	svs.currentFrameIndex++;
@@ -1441,7 +1436,7 @@ void SV_Frame( int msec )
 	}
 
 	// collect timing statistics
-	end = Sys_Milliseconds();
+	end = Sys::Milliseconds();
 	svs.stats.active += ( ( double )( end - start ) ) / 1000;
 
 	if ( ++svs.stats.count == STATFRAMES )

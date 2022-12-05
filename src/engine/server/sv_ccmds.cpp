@@ -56,6 +56,13 @@ class MapCmd: public Cmd::StaticCmd {
                 return;
             }
 
+            // An immediate shutdown occurs if the time hits 0x7F000000. Check for a smaller time
+            // here to try to shut down a server only at the end of a game. This will happen
+            // after 21.7 days uptime
+            if (Sys::Milliseconds() > 0x70000000) {
+                Sys::Error("Shutting down to prevent time overflow");
+            }
+
             const std::string& mapName = args.Argv(1);
             // For non-legacy paks, a map named "foo" must be in the pak "map-foo"
             std::string pakName;

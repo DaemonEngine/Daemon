@@ -67,6 +67,18 @@ bool R_CheckFBO( const FBO_t *fbo )
 			Log::Warn("R_CheckFBO: (%s) Framebuffer incomplete, missing read buffer", fbo->name );
 			break;
 
+		/* Errors specific to EXT_framebuffer_object. Some headers may also define
+		the names without _EXT suffix but that's for GLES so those names may only
+		be available when GLES is available. The GL/glext.h header for desktop
+		OpenGL uses _EXT suffixed names. */
+		case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
+			Log::Warn("R_CheckFBO: (%s) Framebuffer incomplete, attached images must have same dimensions", fbo->name );
+			break;
+
+		case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
+			Log::Warn("R_CheckFBO: (%s) Framebuffer incomplete, attached images must have same format", fbo->name );
+			break;
+
 		default:
 			Log::Warn("R_CheckFBO: (%s) unknown error 0x%X", fbo->name, code );
 			break;
@@ -424,7 +436,7 @@ void R_InitFBOs()
 	R_AttachFBOTexturePackedDepthStencil( tr.currentDepthImage->texnum );
 	R_CheckFBO( tr.mainFBO[1] );
 
-	if ( r_dynamicLight->integer > 0 )
+	if ( glConfig2.dynamicLight > 0 )
 	{
 		/* It's only required to create frame buffers only used by the
 		tiled dynamic lighting renderer when this feature is enabled. */

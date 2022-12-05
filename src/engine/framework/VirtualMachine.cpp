@@ -249,7 +249,11 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 	if (!FS::RawPath::FileExists(irt))
 		Log::Warn("NaCl integrated runtime not found: %s", irt);
 #ifdef __linux__
-	bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
+	#if defined(DAEMON_ARCH_arm64)
+		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
+	#else
+		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
+	#endif
 	if (!FS::RawPath::FileExists(bootstrap))
 		Log::Warn("NaCl bootstrap helper not found: %s", bootstrap);
 	args.push_back(bootstrap.c_str());
@@ -257,7 +261,7 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 	args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
 	args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
 
-	#if defined(DAEMON_ARCH_armhf)
+	#if defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf)
 		/* This is required to run on Raspberry Pi 4,
 		otherwise nexe loading fails with this message:
 
@@ -380,7 +384,7 @@ uint32_t VMBase::Create()
 	if (type < TYPE_BEGIN || type >= TYPE_END)
 		Sys::Drop("VM: Invalid type %d", type);
 
-	int loadStartTime = Sys_Milliseconds();
+	int loadStartTime = Sys::Milliseconds();
 
 	// Free the VM if it exists
 	Free();
@@ -418,7 +422,7 @@ uint32_t VMBase::Create()
 	// Read the ABI version from the root socket.
 	// If this fails, we assume the remote process failed to start
 	Util::Reader reader = rootChannel.RecvMsg();
-	Log::Notice("Loaded VM module in %d msec", Sys_Milliseconds() - loadStartTime);
+	Log::Notice("Loaded VM module in %d msec", Sys::Milliseconds() - loadStartTime);
 	return reader.Read<uint32_t>();
 }
 
