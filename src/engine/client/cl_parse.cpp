@@ -452,8 +452,6 @@ void CL_ParseGamestate( msg_t *msg )
 	}
 
 	clc.clientNum = MSG_ReadLong( msg );
-	// read the checksum feed
-	clc.checksumFeed = MSG_ReadLong( msg );
 
 	// parse serverId and other cvars
 	CL_SystemInfoChanged();

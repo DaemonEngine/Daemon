@@ -471,9 +471,8 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	// server has changed
 	svs.snapFlagServerBit ^= SNAPFLAG_SERVERCOUNT;
 
-	// get a new checksum feed and restart the file system
+	// Seed the RNG
 	srand( Sys_Milliseconds() );
-	sv.checksumFeed = ( ( rand() << 16 ) ^ rand() ) ^ Sys_Milliseconds();
 
 	FS::PakPath::ClearPaks();
 	FS_LoadBasePak();
