@@ -1645,7 +1645,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 //
 #define MAX_CLIENTS         64 // JPW NERVE back to q3ta default was 128    // absolute limit
 
-#define GENTITYNUM_BITS     10 // JPW NERVE put q3ta default back for testing // don't need to send any more
+#define GENTITYNUM_BITS     13 // This is a large number, typically we don't need more than 10 (1024 entities)
 
 #define MAX_GENTITIES       ( 1 << GENTITYNUM_BITS )
 
