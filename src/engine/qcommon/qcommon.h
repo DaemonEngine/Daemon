@@ -360,8 +360,6 @@ char **FS_ListFiles( const char *directory, const char *extension, int *numfiles
 
 void         FS_FreeFileList( char **list );
 
-bool     FS_FileExists( const char *file );
-
 int          FS_GetFileList( const char *path, const char *extension, char *listbuf, int bufsize );
 int          FS_GetFileListRecursive( const char* path, const char* extension, char* listBuf, int bufSize );
 

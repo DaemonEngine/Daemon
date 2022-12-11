@@ -275,7 +275,6 @@ struct refimport_t
 	char           **( *FS_ListFiles )( const char *name, const char *extension, int *numfilesfound );
 	void ( *FS_FreeFileList )( char **filelist );
 	void ( *FS_WriteFile )( const char *qpath, const void *buffer, int size );
-	bool( *FS_FileExists )( const char *file );
 	int ( *FS_Seek )( fileHandle_t f, long offset, fsOrigin_t origin );
 	int ( *FS_FTell )( fileHandle_t f );
 	int ( *FS_Read )( void *buffer, int len, fileHandle_t f );

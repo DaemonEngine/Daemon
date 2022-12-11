@@ -2742,7 +2742,6 @@ static bool CL_InitRef()
 	ri.FS_WriteFile = FS_WriteFile;
 	ri.FS_FreeFileList = FS_FreeFileList;
 	ri.FS_ListFiles = FS_ListFiles;
-	ri.FS_FileExists = FS_FileExists;
 	ri.FS_Seek = FS_Seek;
 	ri.FS_FTell = FS_FTell;
 	ri.FS_Read = FS_Read;
