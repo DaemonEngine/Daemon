@@ -694,7 +694,7 @@ public:
 				fileName = Str::Format( "screenshots/" PRODUCT_NAME_LOWER "_%04d-%02d-%02d_%02d%02d%02d_%03d.%s",
 					                    1900 + t.tm_year, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, lastNumber, fileExtension );
 
-				if ( !ri.FS_FileExists( fileName.c_str() ) )
+				if ( !FS::HomePath::FileExists( fileName.c_str() ) )
 				{
 					break; // file doesn't exist
 				}
