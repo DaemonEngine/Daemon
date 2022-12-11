@@ -173,6 +173,7 @@ elseif (NACL)
     set_cxx_flag("-std=gnu++14")
 
     set_c_cxx_flag("-ffast-math")
+    set_c_cxx_flag("-fno-finite-math-only")
     set_c_cxx_flag("-fvisibility=hidden")
     set_c_cxx_flag("-stdlib=libc++")
     set_c_cxx_flag("--pnacl-allow-exceptions")
@@ -183,6 +184,7 @@ elseif (NACL)
     set_c_cxx_flag("-O0          -g3"   DEBUG)
 else()
     set_c_cxx_flag("-ffast-math")
+    set_c_cxx_flag("-fno-finite-math-only")
     set_c_cxx_flag("-fno-strict-aliasing")
 
     # Set arch on x86 to SSE2 minimum and enable CMPXCHG16B
