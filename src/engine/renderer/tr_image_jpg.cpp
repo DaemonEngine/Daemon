@@ -101,9 +101,6 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 	} fbuffer;
 
 	byte *buf;
-#if JPEG_LIB_VERSION < 80
-	FILE *jpegfd;
-#endif
 
 	/* In this example we want to open the input file before doing anything else,
 	 * so that the setjmp() error recovery below can assume the file is open.
@@ -134,12 +131,7 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 
 	/* Step 2: specify data source (eg, a file) */
 
-#if JPEG_LIB_VERSION < 80
-	jpegfd = fmemopen( fbuffer.b, len, "r" );
-	jpeg_stdio_src( &cinfo, jpegfd );
-#else
 	jpeg_mem_src( &cinfo, fbuffer.b, len );
-#endif
 
 	/* Step 3: read file parameters with jpeg_read_header() */
 
@@ -184,9 +176,6 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 		// Free the memory to make sure we don't leak memory
 		ri.FS_FreeFile( fbuffer.v );
 		jpeg_destroy_decompress( &cinfo );
-#if JPEG_LIB_VERSION < 80
-		fclose( jpegfd );
-#endif
 
 		Sys::Drop( "JPG image '%s' has an invalid format: %dx%d*4=%d, components: %d", filename,
 		          cinfo.output_width, cinfo.output_height, pixelcount * 4, cinfo.output_components );
@@ -247,14 +236,6 @@ void LoadJPG( const char *filename, unsigned char **pic, int *width, int *height
 	/* This is an important step since it will release a good deal of memory. */
 	jpeg_destroy_decompress( &cinfo );
 
-	/* After finish_decompress, we can close the input file.
-	 * Here we postpone it until after no more JPEG errors are possible,
-	 * so as to simplify the setjmp error logic above.  (Actually, I don't
-	 * think that jpeg_destroy can do an error exit, but why assume anything...)
-	 */
-#if JPEG_LIB_VERSION < 80
-	fclose( jpegfd );
-#endif
 	ri.FS_FreeFile( fbuffer.v );
 
 	/* At this point you may want to check to see whether any corrupt-data
