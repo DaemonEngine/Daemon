@@ -41,10 +41,10 @@ This is unfortunate, but the skin files aren't
 compatible with our engine's main script/source parsing rules.
 ==================
 */
-static const char *CommaParse( char **data_p )
+static const char *CommaParse( const char **data_p )
 {
 	int         c = 0, len;
-	char        *data;
+	const char  *data;
 	static char com_token[ MAX_TOKEN_CHARS ];
 
 	data = *data_p;
@@ -166,7 +166,7 @@ qhandle_t RE_RegisterSkin( const char *name )
 	skin_t        *skin;
 	skinSurface_t *surf;
 	skinModel_t   *model; //----(SA) added
-	char          *text, *text_p;
+	const char    *text_p;
 	const char    *token;
 	char          surfName[ MAX_QPATH ];
 
@@ -213,9 +213,10 @@ qhandle_t RE_RegisterSkin( const char *name )
 	R_SyncRenderThread();
 
 	// load and parse the skin file
-	ri.FS_ReadFile( name, ( void ** ) &text );
+	std::error_code err;
+	std::string text = FS::PakPath::ReadFile( name, err );
 
-	if ( !text )
+	if ( err )
 	{
 		return 0;
 	}
@@ -229,7 +230,7 @@ qhandle_t RE_RegisterSkin( const char *name )
 
 //----(SA)  end
 
-	text_p = text;
+	text_p = text.c_str();
 
 	while ( text_p && *text_p )
 	{
@@ -281,8 +282,6 @@ qhandle_t RE_RegisterSkin( const char *name )
 		surf->shader = R_FindShader( token, shaderType_t::SHADER_3D_DYNAMIC, RSF_DEFAULT );
 		skin->numSurfaces++;
 	}
-
-	ri.FS_FreeFile( text );
 
 	// never let a skin have 0 shaders
 	if ( skin->numSurfaces == 0 )
