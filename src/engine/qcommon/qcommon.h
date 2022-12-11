@@ -381,14 +381,6 @@ void FS_SetOwner( fileHandle_t f, FS::Owner owner );
 void FS_CheckOwnership( fileHandle_t f, FS::Owner owner );
 void FS_CloseAllForOwner( FS::Owner owner );
 
-/*
-if uniqueFILE is true, then a new FILE will be fopened even if the file
-is found in an already open pak file.  If uniqueFILE is false, you must call
-FS_FCloseFile instead of fclose, otherwise the pak FILE would be improperly closed
-It is generally safe to always set uniqueFILE to true, because the majority of
-file IO goes through FS_ReadFile, which Does The Right Thing already.
-*/
-
 int FS_Delete( const char *filename );  // only works inside the 'save' directory (for deleting savegames/images)
 
 int FS_Write( const void *buffer, int len, fileHandle_t f );
