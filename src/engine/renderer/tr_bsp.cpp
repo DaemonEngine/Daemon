@@ -6684,7 +6684,6 @@ void RE_LoadWorldMap( const char *name )
 {
 	int       i;
 	dheader_t *header;
-	byte      *buffer;
 	byte      *startMarker;
 
 	if ( tr.worldMapLoaded )
@@ -6710,9 +6709,10 @@ void RE_LoadWorldMap( const char *name )
 	tr.worldMapLoaded = true;
 
 	// load it
-	ri.FS_ReadFile( name, ( void ** ) &buffer );
+	std::error_code err;
+	std::string buffer = FS::PakPath::ReadFile( name, err );
 
-	if ( !buffer )
+	if ( err )
 	{
 		Sys::Drop( "RE_LoadWorldMap: %s not found", name );
 	}
@@ -6733,14 +6733,13 @@ void RE_LoadWorldMap( const char *name )
 
 	startMarker = (byte*) ri.Hunk_Alloc( 0, ha_pref::h_low );
 
-	header = ( dheader_t * ) buffer;
+	header = ( dheader_t * ) buffer.data();
 	fileBase = ( byte * ) header;
 
 	i = LittleLong( header->version );
 
 	if ( i != BSP_VERSION && i != BSP_VERSION_Q3 )
 	{
-		ri.FS_FreeFile( buffer );
 		Sys::Drop( "RE_LoadWorldMap: %s has wrong version number (%i should be %i for ET or %i for Q3)",
 		           name, i, BSP_VERSION, BSP_VERSION_Q3 );
 	}
@@ -6790,6 +6789,4 @@ void RE_LoadWorldMap( const char *name )
 
 	// build cubemaps after the necessary vbo stuff is done
 	//R_BuildCubeMaps();
-
-	ri.FS_FreeFile( buffer );
 }
