@@ -264,6 +264,7 @@ endif()
 
 # Tests for engine-lib
 set(ENGINETESTLIST
+    ${COMMON_DIR}/StringTest.cpp
     ${ENGINE_DIR}/framework/CommandSystemTest.cpp
 )
 
