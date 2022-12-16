@@ -314,11 +314,6 @@ void Cmd_RemoveCommand( const char *cmd_name );
 
 using completionFunc_t = void (*)(char *args, int argNum);
 
-void Cmd_OnCompleteMatch(const char* s);
-
-void Cmd_SetCommandCompletionFunc( const char *command,
-                                   completionFunc_t complete );
-
 // callback with each valid string
 
 void Cmd_PrintUsage( const char *syntax, const char *description );
