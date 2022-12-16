@@ -118,8 +118,17 @@ namespace Str {
         return res;
     }
 
+    static bool CharIEqual(char a, char b) {
+        return ctolower(a) == ctolower(b);
+    }
+
     bool IsPrefix(Str::StringRef prefix, Str::StringRef text) {
         auto res = std::mismatch(prefix.begin(), prefix.end(), text.begin());
+        return res.first == prefix.end();
+    }
+
+    bool IsIPrefix(Str::StringRef prefix, Str::StringRef text) {
+        auto res = std::mismatch(prefix.begin(), prefix.end(), text.begin(), CharIEqual);
         return res.first == prefix.end();
     }
 
@@ -129,22 +138,20 @@ namespace Str {
         return std::equal(text.begin() + text.size() - suffix.size(), text.end(), suffix.begin());
     }
 
+    bool IsISuffix(Str::StringRef suffix, Str::StringRef text) {
+        if (text.size() < suffix.size())
+            return false;
+        return std::equal(text.begin() + text.size() - suffix.size(), text.end(), suffix.begin(), CharIEqual);
+    }
+
     int LongestPrefixSize(Str::StringRef text1, Str::StringRef text2) {
         auto res = std::mismatch(text1.begin(), text1.end(), text2.begin());
-
         return res.first - text1.begin();
     }
 
-    bool IsIPrefix(Str::StringRef prefix, Str::StringRef text) {
-        return IsPrefix(ToLower(prefix), ToLower(text));
-    }
-
-    bool IsISuffix(Str::StringRef suffix, Str::StringRef text) {
-        return IsSuffix(ToLower(suffix), ToLower(text));
-    }
-
     int LongestIPrefixSize(Str::StringRef text1, Str::StringRef text2) {
-        return LongestPrefixSize(ToLower(text1), ToLower(text2));
+        auto res = std::mismatch(text1.begin(), text1.end(), text2.begin(), CharIEqual);
+        return res.first - text1.begin();
     }
 
     bool IsIEqual(Str::StringRef text1, Str::StringRef text2) {
