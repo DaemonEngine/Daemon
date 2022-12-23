@@ -171,8 +171,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 
 #define MAX_SHADOWMAPS        5
 
-#define GLSL_COMPILE_STARTUP_ONLY  1
-
 #define MAX_TEXTURE_MIPS      16
 #define MAX_TEXTURE_LAYERS    256
 
