@@ -332,9 +332,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			// handle any OpenGL/GLSL brokenness here...
 			// nothing at present
 
-#if defined( GLSL_COMPILE_STARTUP_ONLY )
 			GLSL_InitGPUShaders();
-#endif
 			glConfig.smpActive = false;
 
 			if ( r_smp->integer )
@@ -1417,10 +1415,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			return false;
 		}
 
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
-		GLSL_InitGPUShaders();
-#endif
-
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );
 		backEndData[ 0 ]->polys = ( srfPoly_t * ) ri.Hunk_Alloc( r_maxPolys->integer * sizeof( srfPoly_t ), ha_pref::h_low );
 		backEndData[ 0 ]->polyVerts = ( polyVert_t * ) ri.Hunk_Alloc( r_maxPolyVerts->integer * sizeof( polyVert_t ), ha_pref::h_low );
@@ -1507,10 +1501,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			R_ShutdownVBOs();
 			R_ShutdownFBOs();
 			R_ShutdownVisTests();
-
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
-			GLSL_ShutdownGPUShaders();
-#endif
 		}
 
 		R_DoneFreeType();
@@ -1518,9 +1508,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )
 		{
-#if defined( GLSL_COMPILE_STARTUP_ONLY )
 			GLSL_ShutdownGPUShaders();
-#endif
 			if( glConfig2.glCoreProfile ) {
 				glBindVertexArray( 0 );
 				glDeleteVertexArrays( 1, &backEnd.currentVAO );
