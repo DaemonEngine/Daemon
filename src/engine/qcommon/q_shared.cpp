@@ -419,19 +419,10 @@ static char com_token[ MAX_TOKEN_CHARS ];
 static char com_parsename[ MAX_TOKEN_CHARS ];
 static int  com_lines;
 
-static int  backup_lines;
-static const char *backup_text;
-
 void COM_BeginParseSession( const char *name )
 {
 	com_lines = 0;
 	Com_sprintf( com_parsename, sizeof( com_parsename ), "%s", name );
-}
-
-void COM_BackupParseSession( const char **data_p )
-{
-	backup_lines = com_lines;
-	backup_text = *data_p;
 }
 
 char *COM_Parse( const char **data_p )
@@ -584,9 +575,6 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 		*data_p = nullptr;
 		return com_token;
 	}
-
-	// RF, backup the session data so we can unget easily
-	COM_BackupParseSession( data_p );
 
 	while (true)
 	{
@@ -771,9 +759,6 @@ char           *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
 		*data_p = nullptr;
 		return com_token;
 	}
-
-	// RF, backup the session data so we can unget easily
-	COM_BackupParseSession( data_p );
 
 	// skip whitespace
 	while (true)
@@ -1014,23 +999,6 @@ char           *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
 }
 
 // *INDENT-ON*
-
-/*
-==================
-COM_MatchToken
-==================
-*/
-void COM_MatchToken( const char **buf_p, const char *match )
-{
-	char *token;
-
-	token = COM_Parse( buf_p );
-
-	if ( strcmp( token, match ) )
-	{
-        Sys::Drop( "MatchToken: %s != %s", token, match );
-	}
-}
 
 /*
 =================
