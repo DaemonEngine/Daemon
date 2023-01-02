@@ -104,7 +104,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_depthbits;
 	cvar_t      *r_colorbits;
 	cvar_t      *r_alphabits;
-	cvar_t      *r_ext_multisample;
 
 	cvar_t      *r_drawBuffer;
 	cvar_t      *r_shadows;
@@ -1099,7 +1098,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_colorbits = Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
 		r_alphabits = Cvar_Get( "r_alphabits", "0",  CVAR_LATCH );
 		r_depthbits = Cvar_Get( "r_depthbits", "0",  CVAR_LATCH );
-		r_ext_multisample = Cvar_Get( "r_ext_multisample", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_mode = Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customwidth = Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customheight = Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );

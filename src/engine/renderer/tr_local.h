@@ -2908,8 +2908,6 @@ static inline void glFboSetExt()
 	extern cvar_t *r_colorbits; // number of desired color bits, only relevant for fullscreen
 	extern cvar_t *r_alphabits; // number of desired depth bits
 
-	extern cvar_t *r_ext_multisample;  // desired number of MSAA samples
-
 	extern cvar_t *r_measureOverdraw; // enables stencil buffer overdraw measurement
 
 	extern cvar_t *r_lodBias; // push/pull LOD transitions

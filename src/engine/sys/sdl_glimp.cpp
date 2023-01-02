@@ -1238,9 +1238,6 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 	// alphaBits was used by legacy renderer, do we need it for anything?
 	// int alphaBits = std::max( 0, r_alphabits->integer );
 
-	/* FIXME: It looks like MSAA was only implemented in legacy renderer.
-	int samples = std::max( 0, r_ext_multisample->integer ); */
-
 	{
 		int GLmajor, GLminor;
 		sscanf( ( const char * ) glGetString( GL_VERSION ), "%d.%d", &GLmajor, &GLminor );
