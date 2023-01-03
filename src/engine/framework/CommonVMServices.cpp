@@ -274,7 +274,6 @@ namespace VM {
                 IPC::HandleMsg<FSReadMsg>(channel, std::move(reader), [this](int handle, int len, std::string& res, int& ret) {
                     FS_CheckOwnership(handle, fileOwnership);
                     std::unique_ptr<char[]> buffer(new char[len]);
-                    buffer[0] = '\0';
                     ret = FS_Read(buffer.get(), len, handle);
                     res.assign(buffer.get(), ret >= 0 ? ret : 0);
                 });
@@ -317,7 +316,6 @@ namespace VM {
             case QVM_COMMON_FS_GET_FILE_LIST:
                 IPC::HandleMsg<FSGetFileListMsg>(channel, std::move(reader), [this](const std::string& path, std::string extension, int len, int& intRes, std::string& res) {
                     std::unique_ptr<char[]> buffer(new char[len]);
-                    buffer[0] = '\0';
                     intRes = FS_GetFileList(path.c_str(), extension.c_str(), buffer.get(), len);
                     res.assign(buffer.get(), len);
                 });
@@ -326,7 +324,6 @@ namespace VM {
             case QVM_COMMON_FS_GET_FILE_LIST_RECURSIVE:
                 IPC::HandleMsg<FSGetFileListRecursiveMsg>(channel, std::move(reader), [this](const std::string& path, std::string extension, int len, int& intRes, std::string& res) {
                     std::unique_ptr<char[]> buffer(new char[len]);
-                    buffer[0] = '\0';
                     intRes = FS_GetFileListRecursive(path.c_str(), extension.c_str(), buffer.get(), len);
                     res.assign(buffer.get(), len);
                 });
