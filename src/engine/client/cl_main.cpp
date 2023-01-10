@@ -1851,7 +1851,6 @@ int CL_GSRSequenceInformation( byte **data )
 		Log::Debug( "Master changed its mind about packet count!" );
 		cls.receivedMasterPackets = 0;
 		cls.numglobalservers = 0;
-		cls.numGlobalServerAddresses = 0;
 	}
 
 	cls.numMasterPackets = num;
@@ -1949,7 +1948,7 @@ CL_ServersResponsePacket
 */
 void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 {
-	int      count, duplicate_count, parsed_count, total;
+	int      count, duplicate_count, parsed_count;
 	netadr_t addresses[ MAX_SERVERSPERPACKET ];
 	int      numservers;
 	byte     *buffptr;
@@ -1964,7 +1963,6 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 	{
 		// state to detect lack of servers or lack of response
 		cls.numglobalservers = 0;
-		cls.numGlobalServerAddresses = 0;
 		cls.numMasterPackets = 0;
 		cls.receivedMasterPackets = 0;
 	}
@@ -2192,22 +2190,10 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		count++;
 	}
 
-	// if getting the global list
-	if ( count >= MAX_GLOBAL_SERVERS && cls.numGlobalServerAddresses < MAX_GLOBAL_SERVERS )
-	{
-		// if we couldn't store the servers in the main list anymore
-		for ( ; i < numservers && cls.numGlobalServerAddresses < MAX_GLOBAL_SERVERS; i++ )
-		{
-			// just store the addresses in an additional list
-			cls.globalServerAddresses[ cls.numGlobalServerAddresses++ ] = addresses[ i ];
-		}
-	}
-
 	cls.numglobalservers = count;
-	total = count + cls.numGlobalServerAddresses;
 	parsed_count = numservers + duplicate_count;
 
-	Log::Debug( "%d servers parsed, %s new, %d duplicate (total %d)", parsed_count, numservers, duplicate_count, total );
+	Log::Debug( "%d servers parsed, %s new, %d duplicate (total %d)", parsed_count, numservers, duplicate_count, count );
 }
 
 /*
@@ -3867,23 +3853,6 @@ bool CL_UpdateVisiblePings_f( int source )
 								slots++;
 								break;
 							}
-						}
-					}
-				}
-				// if the server has a ping higher than cl_maxPing or
-				// the ping packet got lost
-				else if ( server[ i ].ping == 0 )
-				{
-					// if we are updating global servers
-					if ( source == AS_GLOBAL )
-					{
-						//
-						if ( cls.numGlobalServerAddresses > 0 )
-						{
-							// overwrite this server with one from the additional global servers
-							cls.numGlobalServerAddresses--;
-							CL_InitServerInfo( &server[ i ], &cls.globalServerAddresses[ cls.numGlobalServerAddresses ] );
-							// NOTE: the server[i].visible flag stays untouched
 						}
 					}
 				}

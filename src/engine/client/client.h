@@ -300,9 +300,6 @@ struct clientStatic_t
 
 	int          numglobalservers;
 	serverInfo_t globalServers[ MAX_GLOBAL_SERVERS ];
-	// additional global servers
-	int          numGlobalServerAddresses;
-	netadr_t     globalServerAddresses[ MAX_GLOBAL_SERVERS ];
 
 	unsigned     numserverLinks;
 	netadr_t     serverLinks[ MAX_GLOBAL_SERVERS ];
