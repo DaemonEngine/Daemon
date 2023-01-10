@@ -3065,14 +3065,6 @@ static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, i
 			CL_SetServerInfo( &cls.globalServers[ i ], info, ping );
 		}
 	}
-
-	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
-	{
-		if ( NET_CompareAdr( from, cls.favoriteServers[ i ].adr ) )
-		{
-			CL_SetServerInfo( &cls.favoriteServers[ i ], info, ping );
-		}
-	}
 }
 
 /*
@@ -3791,7 +3783,7 @@ bool CL_UpdateVisiblePings_f( int source )
 	int      max;
 	bool status = false;
 
-	if ( source < 0 || source > AS_FAVORITES )
+	if ( source < 0 || source >= AS_NUM_TYPES )
 	{
 		return false;
 	}
@@ -3816,11 +3808,6 @@ bool CL_UpdateVisiblePings_f( int source )
 			case AS_GLOBAL:
 				server = &cls.globalServers[ 0 ];
 				max = cls.numglobalservers;
-				break;
-
-			case AS_FAVORITES:
-				server = &cls.favoriteServers[ 0 ];
-				max = cls.numfavoriteservers;
 				break;
 		}
 
