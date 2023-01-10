@@ -56,6 +56,8 @@ Maryland 20850 USA.
 #include <SDL.h>
 #endif
 
+static Log::Logger serverInfoLog("client.serverinfo", "");
+
 cvar_t *cl_useMumble;
 cvar_t *cl_mumbleScale;
 
@@ -3089,7 +3091,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 
 	if ( prot != PROTOCOL_VERSION )
 	{
-		Log::Debug( "Different protocol info packet: %s", infoString );
+		serverInfoLog.Verbose( "Different protocol info packet: %s", infoString );
 		return;
 	}
 
@@ -3098,7 +3100,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 
 	if ( !gameName[ 0 ] || Q_stricmp( gameName, GAMENAME_STRING ) )
 	{
-		Log::Debug( "Different game info packet: %s", infoString );
+		serverInfoLog.Verbose( "Different game info packet: %s", infoString );
 		return;
 	}
 
@@ -3110,7 +3112,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 			// calc ping time
 			cl_pinglist[ i ].time = Sys_Milliseconds() - cl_pinglist[ i ].start;
 
-			Log::Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
+			serverInfoLog.Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
 
 			// save of info
 			Q_strncpyz( cl_pinglist[ i ].info, infoString, sizeof( cl_pinglist[ i ].info ) );
@@ -3165,7 +3167,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 
 	if ( i == MAX_OTHER_SERVERS )
 	{
-		Log::Debug("MAX_OTHER_SERVERS hit, dropping infoResponse" );
+		serverInfoLog.Notice("MAX_OTHER_SERVERS hit, dropping infoResponse" );
 		return;
 	}
 
@@ -3426,7 +3428,7 @@ void CL_LocalServers_f()
 	int      i, j;
 	netadr_t to;
 
-	Log::Debug( "Scanning for servers on the local network…" );
+	serverInfoLog.Verbose( "Scanning for servers on the local network…" );
 
 	// reset the list, waiting for response
 	cls.numlocalservers = 0;
@@ -3519,7 +3521,7 @@ void CL_GlobalServers_f()
 			continue;
 		}
 
-		Log::Debug( "CL_GlobalServers_f: Resolving %s", masteraddress );
+		serverInfoLog.Debug( "CL_GlobalServers_f: Resolving %s", masteraddress );
 
 		// reset the list, waiting for response
 		// -1 is used to distinguish a "no response"
@@ -3528,7 +3530,7 @@ void CL_GlobalServers_f()
 
 		if ( !i )
 		{
-			Log::Warn( "CL_GlobalServers_f: Could not resolve address of master %s\n", masteraddress );
+			serverInfoLog.Warn( "CL_GlobalServers_f: Could not resolve address of master %s", masteraddress );
 			continue;
 		}
 		else if ( i == 2 )
@@ -3536,10 +3538,10 @@ void CL_GlobalServers_f()
 			to.port = UBigShort( PORT_MASTER );
 		}
 
-		Log::Debug( "CL_GlobalServers_f: %s resolved to %s", masteraddress,
-		             NET_AdrToStringwPort( to ) );
+		serverInfoLog.Verbose(
+			"CL_GlobalServers_f: %s resolved to %s", masteraddress, NET_AdrToStringwPort( to ) );
 
-		Log::Debug( "CL_GlobalServers_f: Requesting servers from master %s…", masteraddress );
+		serverInfoLog.Debug( "CL_GlobalServers_f: Requesting servers from master %s…", masteraddress );
 
 		cls.numglobalservers = -1;
 		cls.numserverLinks = 0;
