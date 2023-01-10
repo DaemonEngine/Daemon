@@ -3189,12 +3189,16 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 
 	Q_strncpyz( info, MSG_ReadString( msg ), MAX_INFO_STRING );
 
+	// TODO when does this happen?
 	if ( info[ 0 ] )
 	{
-		if ( info[ strlen( info ) - 1 ] == '\n' )
-			Log::Notice( "%s: %s", NET_AdrToStringwPort( from ), info );
-		else
-			Log::Notice( "%s: %s\n", NET_AdrToStringwPort( from ), info );
+		char *last = info + strlen( info ) - 1;
+		if ( *last == '\n' )
+		{
+			*last = '\0';
+		}
+
+		Log::Notice( "%s: %s", NET_AdrToStringwPort( from ), info );
 	}
 }
 

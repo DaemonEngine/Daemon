@@ -87,11 +87,11 @@ void Cmd_PrintUsage( const char *syntax, const char *description )
 {
 	if(!description)
 	{
-		Log::Notice( "%s: %s %s\n", "usage", Cmd_Argv( 0 ), syntax );
+		Log::CommandInteractionMessage( Str::Format( "%s: %s %s", "usage", Cmd_Argv( 0 ), syntax ) );
 	}
 	else
 	{
-		Log::Notice( "%s: %s %s — %s\n", "usage",  Cmd_Argv( 0 ), syntax, description );
+		Log::CommandInteractionMessage( Str::Format( "%s: %s %s — %s", "usage",  Cmd_Argv( 0 ), syntax, description ) );
 	}
 }
 
