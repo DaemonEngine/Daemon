@@ -159,23 +159,9 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 
 		if ( new_client == clients_end )
 		{
-			// This is a bizarre special case, in which if you have a local address and EVERY
-			// non-private client is a bot (and there is at least 1), you can boot one of them off.
 			if ( NET_IsLocalAddress( from ) && sv_privateClients.Get() < sv_maxclients->integer )
 			{
-				bool all_bots = std::all_of(allowed_clients_begin, clients_end,
-					[](const client_t& client) { return SV_IsBot(&client); }
-				);
-
-				if ( all_bots )
-				{
-					SV_DropClient( &svs.clients[ sv_maxclients->integer - 1 ], "only bots on server" );
-					new_client = &svs.clients[ sv_maxclients->integer - 1 ];
-				}
-				else
-				{
-					Sys::Error( "server is full on local connect" );
-				}
+				Sys::Error( "server is full on local connect" );
 			}
 			else
 			{
