@@ -786,7 +786,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 				}
 				else
 				{
-					// that should NOT happen - even regular download would fail then anyway
+					// that should NOT happen - even udp download would fail then anyway
 					Log::Warn("Client '%s': couldn't extract file size for %s", cl->name, cl->downloadName );
 				}
 			}
