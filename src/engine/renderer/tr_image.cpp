@@ -1846,50 +1846,47 @@ static void R_Flop( byte *in, int width, int height )
 	}
 }
 
-static void R_Rotate( byte *in, int width, int height, int degrees )
+static void R_Rotate( byte *in, int dim, int degrees )
 {
 	byte color[ 4 ];
 	int  x, y, x2, y2;
 	byte *out, *tmp;
 
-	tmp = (byte*) ri.Hunk_AllocateTempMemory( width * height * 4 );
+	tmp = (byte*) ri.Hunk_AllocateTempMemory( dim * dim * 4 );
 
 	// rotate into tmp buffer
-	for ( y = 0; y < height; y++ )
+	for ( y = 0; y < dim; y++ )
 	{
-		for ( x = 0; x < width; x++ )
+		for ( x = 0; x < dim; x++ )
 		{
-			color[ 0 ] = in[ 4 * ( y * width + x ) + 0 ];
-			color[ 1 ] = in[ 4 * ( y * width + x ) + 1 ];
-			color[ 2 ] = in[ 4 * ( y * width + x ) + 2 ];
-			color[ 3 ] = in[ 4 * ( y * width + x ) + 3 ];
+			color[ 0 ] = in[ 4 * ( y * dim + x ) + 0 ];
+			color[ 1 ] = in[ 4 * ( y * dim + x ) + 1 ];
+			color[ 2 ] = in[ 4 * ( y * dim + x ) + 2 ];
+			color[ 3 ] = in[ 4 * ( y * dim + x ) + 3 ];
 
 			if ( degrees == 90 )
 			{
 				x2 = y;
-				y2 = ( height - ( 1 + x ) );
+				y2 = ( dim - ( 1 + x ) );
 
-				tmp[ 4 * ( y2 * width + x2 ) + 0 ] = color[ 0 ];
-				tmp[ 4 * ( y2 * width + x2 ) + 1 ] = color[ 1 ];
-				tmp[ 4 * ( y2 * width + x2 ) + 2 ] = color[ 2 ];
-				tmp[ 4 * ( y2 * width + x2 ) + 3 ] = color[ 3 ];
+				tmp[ 4 * ( y2 * dim + x2 ) + 0 ] = color[ 0 ];
+				tmp[ 4 * ( y2 * dim + x2 ) + 1 ] = color[ 1 ];
+				tmp[ 4 * ( y2 * dim + x2 ) + 2 ] = color[ 2 ];
+				tmp[ 4 * ( y2 * dim + x2 ) + 3 ] = color[ 3 ];
 			}
 			else if ( degrees == -90 )
 			{
-				x2 = ( width - ( 1 + y ) );
+				x2 = ( dim - ( 1 + y ) );
 				y2 = x;
 
-				tmp[ 4 * ( y2 * width + x2 ) + 0 ] = color[ 0 ];
-				tmp[ 4 * ( y2 * width + x2 ) + 1 ] = color[ 1 ];
-				tmp[ 4 * ( y2 * width + x2 ) + 2 ] = color[ 2 ];
-				tmp[ 4 * ( y2 * width + x2 ) + 3 ] = color[ 3 ];
+				tmp[ 4 * ( y2 * dim + x2 ) + 0 ] = color[ 0 ];
+				tmp[ 4 * ( y2 * dim + x2 ) + 1 ] = color[ 1 ];
+				tmp[ 4 * ( y2 * dim + x2 ) + 2 ] = color[ 2 ];
+				tmp[ 4 * ( y2 * dim + x2 ) + 3 ] = color[ 3 ];
 			}
 			else
 			{
-				tmp[ 4 * ( y * width + x ) + 0 ] = color[ 0 ];
-				tmp[ 4 * ( y * width + x ) + 1 ] = color[ 1 ];
-				tmp[ 4 * ( y * width + x ) + 2 ] = color[ 2 ];
-				tmp[ 4 * ( y * width + x ) + 3 ] = color[ 3 ];
+				ASSERT_UNREACHABLE();
 			}
 		}
 	}
@@ -1897,14 +1894,14 @@ static void R_Rotate( byte *in, int width, int height, int degrees )
 	// copy back to input
 	out = in;
 
-	for ( y = 0; y < height; y++ )
+	for ( y = 0; y < dim; y++ )
 	{
-		for ( x = 0; x < width; x++ )
+		for ( x = 0; x < dim; x++ )
 		{
-			out[ 4 * ( y * width + x ) + 0 ] = tmp[ 4 * ( y * width + x ) + 0 ];
-			out[ 4 * ( y * width + x ) + 1 ] = tmp[ 4 * ( y * width + x ) + 1 ];
-			out[ 4 * ( y * width + x ) + 2 ] = tmp[ 4 * ( y * width + x ) + 2 ];
-			out[ 4 * ( y * width + x ) + 3 ] = tmp[ 4 * ( y * width + x ) + 3 ];
+			out[ 4 * ( y * dim + x ) + 0 ] = tmp[ 4 * ( y * dim + x ) + 0 ];
+			out[ 4 * ( y * dim + x ) + 1 ] = tmp[ 4 * ( y * dim + x ) + 1 ];
+			out[ 4 * ( y * dim + x ) + 2 ] = tmp[ 4 * ( y * dim + x ) + 2 ];
+			out[ 4 * ( y * dim + x ) + 3 ] = tmp[ 4 * ( y * dim + x ) + 3 ];
 		}
 	}
 
@@ -2147,12 +2144,6 @@ image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
 					badSize = true;
 				}
 
-				// make face square before doing other operations like rotation
-				if ( badSize )
-				{
-					pic[ j ] = R_Resize( pic[ j ], width, height, greatestEdge, greatestEdge );
-				}
-
 				if ( format.flipX[ j ] )
 				{
 					R_Flip( pic[ j ], width, height );
@@ -2163,9 +2154,15 @@ image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
 					R_Flop( pic[ j ], width, height );
 				}
 
+				// make face square before doing rotation
+				if ( badSize )
+				{
+					pic[ j ] = R_Resize( pic[ j ], width, height, greatestEdge, greatestEdge );
+				}
+
 				if ( format.rot[ j ] != 0 )
 				{
-					R_Rotate( pic[ j ], width, height, format.rot[ j ] );
+					R_Rotate( pic[ j ], greatestEdge, format.rot[ j ] );
 				}
 			}
 
