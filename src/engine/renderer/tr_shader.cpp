@@ -5396,7 +5396,18 @@ static shader_t *FinishShader()
 		// keep only the first stage
 		stages[1].active = false;
 		shader.numStages = 1;
-		strcat(shader.name, "$depth");
+
+		const char* depthShaderSuffix = "$depth";
+
+		if ( strlen( shader.name ) + strlen( depthShaderSuffix ) >= MAX_QPATH )
+		{
+			Log::Warn( "Shader name %s%s length longer than MAX_QPATH %d", shader.name, depthShaderSuffix, MAX_QPATH );
+			
+			ret->depthShader = nullptr;
+			return ret;
+		}
+
+		strcat( shader.name, depthShaderSuffix );
 
 		if( stages[0].stateBits & GLS_ATEST_BITS ) {
 			// alpha test requires a custom depth shader
