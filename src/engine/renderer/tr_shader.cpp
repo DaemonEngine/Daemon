@@ -5144,6 +5144,17 @@ static void GeneratePermanentShaderTable( const float *values, int numValues )
 	shaderTableHashTable[ hash ] = newTable;
 }
 
+bool CheckShaderNameLength( const char* func_err, const char* name, const char* suffix )
+{
+	if ( strlen( name ) + strlen( suffix ) >= MAX_QPATH )
+	{
+		Log::Warn("%s Shader name %s%s length longer than MAX_QPATH %d", func_err, name, suffix, MAX_QPATH );
+		return false;
+	}
+
+	return true;
+}
+
 /*
 =========================
 FinishShader
@@ -5399,10 +5410,8 @@ static shader_t *FinishShader()
 
 		const char* depthShaderSuffix = "$depth";
 
-		if ( strlen( shader.name ) + strlen( depthShaderSuffix ) >= MAX_QPATH )
+		if ( !CheckShaderNameLength( "FinishShader", shader.name, depthShaderSuffix ) )
 		{
-			Log::Warn( "Shader name %s%s length longer than MAX_QPATH %d", shader.name, depthShaderSuffix, MAX_QPATH );
-			
 			ret->depthShader = nullptr;
 			return ret;
 		}
@@ -5496,9 +5505,8 @@ bool RE_LoadDynamicShader( const char *shadername, const char *shadertext )
 		return false;
 	}
 
-	if ( shadername && strlen( shadername ) >= MAX_QPATH )
+	if ( shadername && !CheckShaderNameLength( func_err, shadername, "" ) )
 	{
-		Log::Warn("%s shadername %s exceeds MAX_QPATH", func_err, shadername );
 		return false;
 	}
 
@@ -5975,9 +5983,8 @@ qhandle_t RE_RegisterShader( const char *name, RegisterShaderFlags_t flags )
 {
 	shader_t *sh;
 
-	if ( strlen( name ) >= MAX_QPATH )
+	if ( !CheckShaderNameLength( "RE_RegisterShader", name, "" ) )
 	{
-		Log::Notice( "Shader name exceeds MAX_QPATH\n" );
 		return 0;
 	}
 
