@@ -184,7 +184,7 @@ qhandle_t RE_RegisterModel( const char *name )
 		filename[ strlen( filename ) - 1 ] = '3';  // try MD3 first
 
 		std::error_code err;
-		std::string buffer = FS::PakPath::ReadFile( name, err );
+		std::string buffer = FS::PakPath::ReadFile( filename, err );
 
 		// LoDs are optional
 		if ( err )
