@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef TR_LOCAL_H
 #define TR_LOCAL_H
 
+#include "common/FileSystem.h"
 #include "qcommon/q_shared.h"
 #include "qcommon/qfiles.h"
 #include "qcommon/qcommon.h"
@@ -169,8 +170,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define MAX_VIEWS             10
 
 #define MAX_SHADOWMAPS        5
-
-#define GLSL_COMPILE_STARTUP_ONLY  1
 
 #define MAX_TEXTURE_MIPS      16
 #define MAX_TEXTURE_LAYERS    256
@@ -2907,9 +2906,6 @@ static inline void glFboSetExt()
 
 	extern cvar_t *r_depthbits; // number of desired depth bits
 	extern cvar_t *r_colorbits; // number of desired color bits, only relevant for fullscreen
-	extern cvar_t *r_alphabits; // number of desired depth bits
-
-	extern cvar_t *r_ext_multisample;  // desired number of MSAA samples
 
 	extern cvar_t *r_measureOverdraw; // enables stencil buffer overdraw measurement
 

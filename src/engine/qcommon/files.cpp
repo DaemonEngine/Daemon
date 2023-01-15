@@ -87,15 +87,10 @@ static void FS_CheckHandle(fileHandle_t handle, bool write)
 		Sys::Drop("FS_CheckHandle: writing to file in pak");
 }
 
-bool FS_FileExists(const char* path)
-{
-	return FS::PakPath::FileExists(path) || FS::HomePath::FileExists(path);
-}
-
 int FS_FOpenFileRead(const char* path, fileHandle_t* handle)
 {
 	if (!handle)
-		return FS_FileExists(path);
+		return FS::PakPath::FileExists(path) || FS::HomePath::FileExists(path);
 
 	*handle = FS_AllocHandle();
 	int length = -1;

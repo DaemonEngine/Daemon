@@ -87,11 +87,11 @@ void Cmd_PrintUsage( const char *syntax, const char *description )
 {
 	if(!description)
 	{
-		Log::Notice( "%s: %s %s\n", "usage", Cmd_Argv( 0 ), syntax );
+		Log::CommandInteractionMessage( Str::Format( "%s: %s %s", "usage", Cmd_Argv( 0 ), syntax ) );
 	}
 	else
 	{
-		Log::Notice( "%s: %s %s — %s\n", "usage",  Cmd_Argv( 0 ), syntax, description );
+		Log::CommandInteractionMessage( Str::Format( "%s: %s %s — %s", "usage",  Cmd_Argv( 0 ), syntax, description ) );
 	}
 }
 
@@ -425,13 +425,8 @@ const char *Cmd_UnquoteString( const char *str )
 	return escapeBuffer;
 }
 
-struct proxyInfo_t{
-	xcommand_t cmd;
-	completionFunc_t complete;
-};
-
 //Contains the commands given through the C interface
-std::unordered_map<std::string, proxyInfo_t, Str::IHash, Str::IEqual> proxies;
+std::unordered_map<std::string, xcommand_t, Str::IHash, Str::IEqual> proxies;
 
 Cmd::CompletionResult completeMatches;
 std::string completedPrefix;
@@ -442,46 +437,12 @@ class ProxyCmd: public Cmd::CmdBase {
 		ProxyCmd(): Cmd::CmdBase(Cmd::PROXY_FOR_OLD) {}
 
 		void Run(const Cmd::Args& args) const override {
-			proxyInfo_t proxy = proxies[args.Argv(0)];
-			proxy.cmd();
-		}
-
-		Cmd::CompletionResult Complete(int argNum, const Cmd::Args& args, Str::StringRef prefix) const override {
-			static char buffer[4096];
-			proxyInfo_t proxy = proxies[args.Argv(0)];
-
-			if (!proxy.complete) {
-				return {};
-			}
-			completedPrefix = prefix;
-			completeMatches.clear();
-
-			//Completing an empty arg, we add a space to mimic the old autocompletion behavior
-			if (args.Argc() == argNum) {
-				Q_strncpyz(buffer, (args.ConcatArgs(0) + " ").c_str(), sizeof(buffer));
-			} else {
-				Q_strncpyz(buffer, args.ConcatArgs(0).c_str(), sizeof(buffer));
-			}
-
-			//Some completion handlers expect tokenized arguments
-			Cmd::Args savedArgs = Cmd::GetCurrentArgs();
-			Cmd::SetCurrentArgs(args);
-
-			proxy.complete(buffer, argNum + 1);
-
-			Cmd::SetCurrentArgs(savedArgs);
-
-			return completeMatches;
+			proxies[args.Argv(0)]();
 		}
 };
 
 ProxyCmd myProxyCmd;
 
-void Cmd_OnCompleteMatch(const char* s) {
-    if (Str::IsIPrefix(completedPrefix, s)) {
-        completeMatches.push_back({s, ""});
-    }
-}
 /*
 ============
 Cmd_AddCommand
@@ -489,22 +450,12 @@ Cmd_AddCommand
 */
 void Cmd_AddCommand( const char *cmd_name, xcommand_t function )
 {
-	proxies[cmd_name] = proxyInfo_t{function, nullptr};
+	proxies[cmd_name] = function;
 
 	//VMs do not properly clean up commands so we avoid creating a command if there is already one
 	if (not Cmd::CommandExists(cmd_name)) {
 		Cmd::AddCommand(cmd_name, myProxyCmd, "--");
 	}
-}
-
-/*
-============
-Cmd_SetCommandCompletionFunc
-============
-*/
-void Cmd_SetCommandCompletionFunc( const char *command, completionFunc_t complete )
-{
-	proxies[command].complete = complete;
 }
 
 /*

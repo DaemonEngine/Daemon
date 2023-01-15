@@ -103,8 +103,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_depthbits;
 	cvar_t      *r_colorbits;
-	cvar_t      *r_alphabits;
-	cvar_t      *r_ext_multisample;
 
 	cvar_t      *r_drawBuffer;
 	cvar_t      *r_shadows;
@@ -332,9 +330,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			// handle any OpenGL/GLSL brokenness here...
 			// nothing at present
 
-#if defined( GLSL_COMPILE_STARTUP_ONLY )
 			GLSL_InitGPUShaders();
-#endif
 			glConfig.smpActive = false;
 
 			if ( r_smp->integer )
@@ -351,6 +347,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 					Log::Notice("...failed." );
 				}
 			}
+		}
+		else
+		{
+			GLSL_ShutdownGPUShaders();
+			GLSL_InitGPUShaders();
 		}
 
 		GL_CheckErrors();
@@ -694,7 +695,7 @@ public:
 				fileName = Str::Format( "screenshots/" PRODUCT_NAME_LOWER "_%04d-%02d-%02d_%02d%02d%02d_%03d.%s",
 					                    1900 + t.tm_year, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, lastNumber, fileExtension );
 
-				if ( !ri.FS_FileExists( fileName.c_str() ) )
+				if ( !FS::HomePath::FileExists( fileName.c_str() ) )
 				{
 					break; // file doesn't exist
 				}
@@ -1094,9 +1095,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			= Cvar_Get( "r_replaceMaterialMinDimensionIfPresentWithMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_colorMipLevels = Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
 		r_colorbits = Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
-		r_alphabits = Cvar_Get( "r_alphabits", "0",  CVAR_LATCH );
 		r_depthbits = Cvar_Get( "r_depthbits", "0",  CVAR_LATCH );
-		r_ext_multisample = Cvar_Get( "r_ext_multisample", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_mode = Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customwidth = Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customheight = Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
@@ -1417,10 +1416,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			return false;
 		}
 
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
-		GLSL_InitGPUShaders();
-#endif
-
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );
 		backEndData[ 0 ]->polys = ( srfPoly_t * ) ri.Hunk_Alloc( r_maxPolys->integer * sizeof( srfPoly_t ), ha_pref::h_low );
 		backEndData[ 0 ]->polyVerts = ( polyVert_t * ) ri.Hunk_Alloc( r_maxPolyVerts->integer * sizeof( polyVert_t ), ha_pref::h_low );
@@ -1507,10 +1502,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			R_ShutdownVBOs();
 			R_ShutdownFBOs();
 			R_ShutdownVisTests();
-
-#if !defined( GLSL_COMPILE_STARTUP_ONLY )
-			GLSL_ShutdownGPUShaders();
-#endif
 		}
 
 		R_DoneFreeType();
@@ -1518,9 +1509,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )
 		{
-#if defined( GLSL_COMPILE_STARTUP_ONLY )
 			GLSL_ShutdownGPUShaders();
-#endif
 			if( glConfig2.glCoreProfile ) {
 				glBindVertexArray( 0 );
 				glDeleteVertexArrays( 1, &backEnd.currentVAO );

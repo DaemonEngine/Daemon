@@ -2050,7 +2050,7 @@ int        Com_GMTime( qtime_t *qtime );
 // server browser sources
 #define AS_LOCAL     0
 #define AS_GLOBAL    1 // NERVE - SMF - modified
-#define AS_FAVORITES 2
+#define AS_NUM_TYPES 2
 
 #define MAX_GLOBAL_SERVERS       4096
 #define MAX_OTHER_SERVERS        128

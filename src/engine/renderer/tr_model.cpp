@@ -26,9 +26,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define LL(x) x = LittleLong(x)
 #define LF(x) x = LittleFloat(x)
 
-bool R_LoadMD3( model_t *mod, int lod, void *buffer, const char *name );
-bool R_LoadMD5( model_t *mod, void *buffer, const char *name );
-bool R_LoadIQModel( model_t *mod, void *buffer, int bufferSize, const char *name );
+bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *name );
+bool R_LoadMD5( model_t *mod, const char *buffer, const char *name );
+bool R_LoadIQModel( model_t *mod, const void *buffer, int bufferSize, const char *name );
 
 /*
 ** R_GetModelByHandle
@@ -86,10 +86,7 @@ asked for again.
 qhandle_t RE_RegisterModel( const char *name )
 {
 	model_t   *mod;
-	unsigned  *buffer;
-	int       bufferLen = 0;
 	int       lod;
-	int       ident;
 	bool  loaded;
 	qhandle_t hModel;
 	int       numLoaded;
@@ -145,21 +142,18 @@ qhandle_t RE_RegisterModel( const char *name )
 		// try loading skeletal file
 
 		loaded = false;
-		bufferLen = ri.FS_ReadFile( name, ( void ** ) &buffer );
+		std::error_code err;
+		std::string buffer = FS::PakPath::ReadFile( name, err );
 
-		if ( buffer )
+		if ( !err )
 		{
-			ident = LittleLong( * ( unsigned * ) buffer );
-
-			if ( !Q_strnicmp( ( const char * ) buffer, "MD5Version", 10 ) )
+			if ( Str::IsIPrefix( "MD5Version", buffer ) )
 			{
-				loaded = R_LoadMD5( mod, buffer, name );
+				loaded = R_LoadMD5( mod, buffer.c_str(), name );
 			}
-			else if ( !Q_strnicmp( ( const char * ) buffer, "INTERQUAKEMODEL", 15 ) ) {
-				loaded = R_LoadIQModel( mod, buffer, bufferLen, name );
+			else if ( Str::IsIPrefix( "INTERQUAKEMODEL", buffer ) ) {
+				loaded = R_LoadIQModel( mod, buffer.data(), buffer.size(), name );
 			}
-
-			ri.FS_FreeFile( buffer );
 		}
 
 		if ( loaded )
@@ -168,7 +162,6 @@ qhandle_t RE_RegisterModel( const char *name )
 		}
 	}
 
-	bool isOptional = false;
 	for ( lod = MD3_MAX_LODS - 1; lod >= 0; lod-- )
 	{
 		char filename[ 1024 ];
@@ -186,35 +179,25 @@ qhandle_t RE_RegisterModel( const char *name )
 
 			sprintf( namebuf, "_%d.md3", lod );
 			strcat( filename, namebuf );
-			isOptional = true;
 		}
 
 		filename[ strlen( filename ) - 1 ] = '3';  // try MD3 first
 
-		// LoD are optionals
-		if (isOptional && !ri.FS_FileExists( filename ))
+		std::error_code err;
+		std::string buffer = FS::PakPath::ReadFile( name, err );
+
+		// LoDs are optional
+		if ( err )
 		{
 			continue;
 		}
 
-		ri.FS_ReadFile( filename, ( void ** ) &buffer );
-
-		if ( !buffer )
+		if ( Str::IsPrefix( "IDP3", buffer ) )
 		{
-			continue;
-		}
-
-		ident = LittleLong( * ( unsigned * ) buffer );
-
-		if ( ident == MD3_IDENT )
-		{
-			loaded = R_LoadMD3( mod, lod, buffer, name );
-			ri.FS_FreeFile( buffer );
+			loaded = R_LoadMD3( mod, lod, buffer.data(), name );
 		}
 		else
 		{
-			ri.FS_FreeFile( buffer );
-
 			Log::Warn("RE_RegisterModel: unknown fileid for %s", name );
 			goto fail;
 		}

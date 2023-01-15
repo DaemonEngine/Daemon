@@ -56,6 +56,8 @@ Maryland 20850 USA.
 #include <SDL.h>
 #endif
 
+static Log::Logger serverInfoLog("client.serverinfo", "");
+
 cvar_t *cl_useMumble;
 cvar_t *cl_mumbleScale;
 
@@ -2740,7 +2742,6 @@ static bool CL_InitRef()
 	ri.FS_WriteFile = FS_WriteFile;
 	ri.FS_FreeFileList = FS_FreeFileList;
 	ri.FS_ListFiles = FS_ListFiles;
-	ri.FS_FileExists = FS_FileExists;
 	ri.FS_Seek = FS_Seek;
 	ri.FS_FTell = FS_FTell;
 	ri.FS_Read = FS_Read;
@@ -3064,14 +3065,6 @@ static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, i
 			CL_SetServerInfo( &cls.globalServers[ i ], info, ping );
 		}
 	}
-
-	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
-	{
-		if ( NET_CompareAdr( from, cls.favoriteServers[ i ].adr ) )
-		{
-			CL_SetServerInfo( &cls.favoriteServers[ i ], info, ping );
-		}
-	}
 }
 
 /*
@@ -3095,7 +3088,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 
 	if ( prot != PROTOCOL_VERSION )
 	{
-		Log::Debug( "Different protocol info packet: %s", infoString );
+		serverInfoLog.Verbose( "Different protocol info packet: %s", infoString );
 		return;
 	}
 
@@ -3104,7 +3097,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 
 	if ( !gameName[ 0 ] || Q_stricmp( gameName, GAMENAME_STRING ) )
 	{
-		Log::Debug( "Different game info packet: %s", infoString );
+		serverInfoLog.Verbose( "Different game info packet: %s", infoString );
 		return;
 	}
 
@@ -3116,7 +3109,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 			// calc ping time
 			cl_pinglist[ i ].time = Sys::Milliseconds() - cl_pinglist[ i ].start;
 
-			Log::Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
+			serverInfoLog.Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
 
 			// save of info
 			Q_strncpyz( cl_pinglist[ i ].info, infoString, sizeof( cl_pinglist[ i ].info ) );
@@ -3171,7 +3164,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 
 	if ( i == MAX_OTHER_SERVERS )
 	{
-		Log::Debug("MAX_OTHER_SERVERS hit, dropping infoResponse" );
+		serverInfoLog.Notice("MAX_OTHER_SERVERS hit, dropping infoResponse" );
 		return;
 	}
 
@@ -3193,12 +3186,16 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 
 	Q_strncpyz( info, MSG_ReadString( msg ), MAX_INFO_STRING );
 
+	// TODO when does this happen?
 	if ( info[ 0 ] )
 	{
-		if ( info[ strlen( info ) - 1 ] == '\n' )
-			Log::Notice( "%s: %s", NET_AdrToStringwPort( from ), info );
-		else
-			Log::Notice( "%s: %s\n", NET_AdrToStringwPort( from ), info );
+		char *last = info + strlen( info ) - 1;
+		if ( *last == '\n' )
+		{
+			*last = '\0';
+		}
+
+		Log::Notice( "%s: %s", NET_AdrToStringwPort( from ), info );
 	}
 }
 
@@ -3432,7 +3429,7 @@ void CL_LocalServers_f()
 	int      i, j;
 	netadr_t to;
 
-	Log::Debug( "Scanning for servers on the local network…" );
+	serverInfoLog.Verbose( "Scanning for servers on the local network…" );
 
 	// reset the list, waiting for response
 	cls.numlocalservers = 0;
@@ -3525,7 +3522,7 @@ void CL_GlobalServers_f()
 			continue;
 		}
 
-		Log::Debug( "CL_GlobalServers_f: Resolving %s", masteraddress );
+		serverInfoLog.Debug( "CL_GlobalServers_f: Resolving %s", masteraddress );
 
 		// reset the list, waiting for response
 		// -1 is used to distinguish a "no response"
@@ -3534,7 +3531,7 @@ void CL_GlobalServers_f()
 
 		if ( !i )
 		{
-			Log::Warn( "CL_GlobalServers_f: Could not resolve address of master %s\n", masteraddress );
+			serverInfoLog.Warn( "CL_GlobalServers_f: Could not resolve address of master %s", masteraddress );
 			continue;
 		}
 		else if ( i == 2 )
@@ -3542,10 +3539,10 @@ void CL_GlobalServers_f()
 			to.port = UBigShort( PORT_MASTER );
 		}
 
-		Log::Debug( "CL_GlobalServers_f: %s resolved to %s", masteraddress,
-		             NET_AdrToStringwPort( to ) );
+		serverInfoLog.Verbose(
+			"CL_GlobalServers_f: %s resolved to %s", masteraddress, NET_AdrToStringwPort( to ) );
 
-		Log::Debug( "CL_GlobalServers_f: Requesting servers from master %s…", masteraddress );
+		serverInfoLog.Debug( "CL_GlobalServers_f: Requesting servers from master %s…", masteraddress );
 
 		cls.numglobalservers = -1;
 		cls.numserverLinks = 0;
@@ -3790,7 +3787,7 @@ bool CL_UpdateVisiblePings_f( int source )
 	int      max;
 	bool status = false;
 
-	if ( source < 0 || source > AS_FAVORITES )
+	if ( source < 0 || source >= AS_NUM_TYPES )
 	{
 		return false;
 	}
@@ -3815,11 +3812,6 @@ bool CL_UpdateVisiblePings_f( int source )
 			case AS_GLOBAL:
 				server = &cls.globalServers[ 0 ];
 				max = cls.numglobalservers;
-				break;
-
-			case AS_FAVORITES:
-				server = &cls.favoriteServers[ 0 ];
-				max = cls.numfavoriteservers;
 				break;
 		}
 

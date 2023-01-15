@@ -6208,51 +6208,41 @@ Finds and loads all .shader files, combining them into
 a single large text block that can be scanned for shader names
 =====================
 */
-static const int MAX_SHADER_FILES = 4096;
 static void ScanAndLoadShaderFiles()
 {
-	char **shaderFiles;
-	char *buffers[ MAX_SHADER_FILES ];
+	std::vector<std::string> buffers;
 	const char *p;
-	int  numShaderFiles;
-	int  i;
 	const char *oldp, *token;
 	char *textEnd;
 	const char **hashMem;
 	int  shaderTextHashTableSizes[ MAX_SHADERTEXT_HASH ], hash, size;
 	char filename[ MAX_QPATH ];
-	size_t sum = 0, summand;
+	size_t sum = 0;
 
 	Log::Debug("----- ScanAndLoadShaderFiles -----" );
 
-	// scan for shader files
-	shaderFiles = ri.FS_ListFiles( "scripts", ".shader", &numShaderFiles );
-
-	if ( !shaderFiles || !numShaderFiles )
-	{
-		Log::Warn("no shader files found" );
-	}
-
-	if ( numShaderFiles > MAX_SHADER_FILES )
-	{
-		numShaderFiles = MAX_SHADER_FILES;
-	}
-
 	// load and parse shader files
-	for ( i = 0; i < numShaderFiles; i++ )
+	for ( const std::string& basename : FS::PakPath::ListFiles("scripts") )
 	{
-		Com_sprintf( filename, sizeof( filename ), "scripts/%s", shaderFiles[ i ] );
+		if ( !Str::IsISuffix( ".shader", basename ) )
+		{
+			continue;
+		}
+
+		Com_sprintf( filename, sizeof( filename ), "scripts/%s", basename.c_str() );
 
 		Log::Debug("loading '%s' shader file", filename );
-		summand = ri.FS_ReadFile( filename, ( void ** ) &buffers[ i ] );
+		std::error_code err;
+		std::string buffer = FS::PakPath::ReadFile( filename, err );
 
-		if ( !buffers[ i ] )
+		if ( err )
 		{
 			Log::Warn( "Couldn't load shader file %s", filename );
 			continue;
 		}
 
-		p = buffers[ i ];
+		p = buffer.c_str();
+		bool syntaxError = false;
 
 		while ( true )
 		{
@@ -6279,44 +6269,34 @@ static void ScanAndLoadShaderFiles()
 			if ( token[ 0 ] != '{' || token[ 1 ] != '\0' || !SkipBracedSection_Depth( &p, 1 ) )
 			{
 				Log::Warn("Bad shader file %s has incorrect syntax.", filename );
-				ri.FS_FreeFile( buffers[ i ] );
-				buffers[ i ] = nullptr;
+				syntaxError = true;
 				break;
 			}
 		}
 
-		if ( buffers[ i ] )
+		if ( !syntaxError )
 		{
-			sum += summand;
+			sum += buffer.size();
+			buffers.push_back( std::move( buffer ) );
 		}
 	}
 
 	// build single large buffer
-	s_shaderText = (char*) ri.Hunk_Alloc( sum + numShaderFiles * 2, ha_pref::h_low );
+	s_shaderText = (char*) ri.Hunk_Alloc( sum + buffers.size() * 2, ha_pref::h_low );
 	s_shaderText[ 0 ] = '\0';
 	textEnd = s_shaderText;
 
-	// free in reverse order, so the temp files are all dumped
-	for ( i = numShaderFiles - 1; i >= 0; i-- )
+	for ( auto i = buffers.rbegin(); i != buffers.rend(); ++i )
 	{
-		if ( !buffers[ i ] )
-		{
-			continue;
-		}
-
-		strcat( textEnd, buffers[ i ] );
+		strcat( textEnd, i->c_str() );
 		strcat( textEnd, "\n" );
 		textEnd += strlen( textEnd );
-		ri.FS_FreeFile( buffers[ i ] );
 	}
 
 	// ydnar: unixify all shaders
 	COM_FixPath( s_shaderText );
 
 	COM_Compress( s_shaderText );
-
-	// free up memory
-	ri.FS_FreeFileList( shaderFiles );
 
 	memset( shaderTextHashTableSizes, 0, sizeof( shaderTextHashTableSizes ) );
 	size = 0;
@@ -6354,7 +6334,7 @@ static void ScanAndLoadShaderFiles()
 
 	hashMem = (const char**) ri.Hunk_Alloc( size * sizeof( char * ), ha_pref::h_low );
 
-	for ( i = 0; i < MAX_SHADERTEXT_HASH; i++ )
+	for ( int i = 0; i < MAX_SHADERTEXT_HASH; i++ )
 	{
 		shaderTextHashTable[ i ] = hashMem;
 		hashMem += shaderTextHashTableSizes[ i ] + 1;

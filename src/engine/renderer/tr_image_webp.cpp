@@ -60,14 +60,13 @@ void LoadWEBP( const char *path, byte **pic, int *width, int *height, int *, int
 {
 	*pic = nullptr;
 	
-	void *webpData{ nullptr };
-	const size_t webpSize = ri.FS_ReadFile( path, &webpData );
-	if (!webpData) {
+	std::error_code err;
+	std::string webpData = FS::PakPath::ReadFile( path, err );
+	if ( err ) {
 		return;
 	}
-	if ( !LoadInMemoryWEBP( path, static_cast<const uint8_t*>(webpData), webpSize, pic, width, height ) ) {
+	if ( !LoadInMemoryWEBP( path, reinterpret_cast<const uint8_t*>(webpData.data()), webpData.size(), pic, width, height ) ) {
 		ri.Free( *pic );
 		*pic = nullptr; // This signals failure.
 	}
-	ri.FS_FreeFile( webpData );
 }

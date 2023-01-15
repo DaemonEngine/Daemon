@@ -68,7 +68,7 @@ void R_InitAnimations()
 	strcpy( anim->name, "<default animation>" );
 }
 
-static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *name )
+static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, const char *buffer, const char *name )
 {
 	int            i;
 	md5Animation_t *anim;
@@ -78,7 +78,7 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, void *buffer, const char *
 	int            version;
 	const char     *buf_p;
 
-	buf_p = (char*) buffer;
+	buf_p = buffer;
 
 	skelAnim->type = animType_t::AT_MD5;
 	skelAnim->md5 = anim = (md5Animation_t*) ri.Hunk_Alloc( sizeof( *anim ), ha_pref::h_low );
@@ -477,7 +477,6 @@ qhandle_t RE_RegisterAnimation( const char *name )
 {
 	qhandle_t       hAnim;
 	skelAnimation_t *anim;
-	char            *buffer;
 	bool        loaded = false;
 
 	if ( !name || !name[ 0 ] )
@@ -532,23 +531,22 @@ qhandle_t RE_RegisterAnimation( const char *name )
 	}
 
 	// load and parse the .md5anim file
-	int bufferLen = ri.FS_ReadFile( name, ( void ** ) &buffer );
+	std::error_code err;
+	std::string buffer = FS::PakPath::ReadFile( name, err );
 
-	if ( !buffer )
+	if ( err )
 	{
 		return 0;
 	}
 
-	if ( bufferLen >= 10 && !Q_strnicmp( ( const char * ) buffer, "MD5Version", 10 ) )
+	if ( Str::IsPrefix( "MD5Version", buffer ) )
 	{
-		loaded = R_LoadMD5Anim( anim, buffer, name );
+		loaded = R_LoadMD5Anim( anim, buffer.c_str(), name );
 	}
 	else
 	{
 		Log::Warn("RE_RegisterAnimation: unknown fileid for '%s'", name );
 	}
-
-	ri.FS_FreeFile( buffer );
 
 	if ( !loaded )
 	{
