@@ -1713,7 +1713,7 @@ bool DirectoryRange::Advance(std::error_code& err)
 	return InternalAdvance();
 }
 
-DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
+DirectoryRange ListFiles(Str::StringRef path)
 {
 	DirectoryRange state;
 	state.recursive = false;
@@ -1722,14 +1722,11 @@ DirectoryRange ListFiles(Str::StringRef path, std::error_code& err)
 		state.prefix.push_back('/');
 	state.iter = fileMap.begin();
 	state.iter_end = fileMap.end();
-	if (!state.InternalAdvance())
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory, path);
-	else
-		ClearErrorCode(err);
+	state.InternalAdvance();
 	return state;
 }
 
-DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err)
+DirectoryRange ListFilesRecursive(Str::StringRef path)
 {
 	DirectoryRange state;
 	state.recursive = true;
@@ -1738,10 +1735,7 @@ DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err)
 		state.prefix.push_back('/');
 	state.iter = fileMap.begin();
 	state.iter_end = fileMap.end();
-	if (!state.InternalAdvance())
-		SetErrorCodeFilesystem(err, filesystem_error::no_such_directory, path);
-	else
-		ClearErrorCode(err);
+	state.InternalAdvance();
 	return state;
 }
 
@@ -1765,11 +1759,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 
 	// ListFiles doesn't return directories for PakPath, so use a recursive
 	// search to get directory names.
-	std::error_code err;
-	DirectoryRange range = ListFilesRecursive(Path::Build(root, prefixDir), err);
-	if (err) {
-		return {};
-	}
+	DirectoryRange range = ListFilesRecursive(Path::Build(root, prefixDir));
 
 	Cmd::CompletionResult out;
 
@@ -2804,8 +2794,7 @@ std::set<std::string> GetAvailableMaps(bool allowLegacyPaks)
 
 	if (allowLegacyPaks && UseLegacyPaks()) {
 		const std::string pathSuffix = ".bsp";
-		std::error_code ignored;
-		for (const std::string& path : FS::PakPath::ListFiles("maps/", ignored)) {
+		for (const std::string& path : FS::PakPath::ListFiles("maps/")) {
 			if (Str::IsSuffix(pathSuffix, path) && path.size() > pathSuffix.size()) {
 				maps.insert(path.substr(0, path.size() - pathSuffix.size()));
 			}

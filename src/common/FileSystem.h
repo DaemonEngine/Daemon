@@ -343,8 +343,8 @@ namespace PakPath {
 	// List all files in the given subdirectory, optionally recursing into subdirectories
 	// Note that unlike RawPath/HomePath, directories are *not* returned by ListFiles
 	class DirectoryRange;
-	DirectoryRange ListFiles(Str::StringRef path, std::error_code& err = throws());
-	DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err = throws());
+	DirectoryRange ListFiles(Str::StringRef path);
+	DirectoryRange ListFilesRecursive(Str::StringRef path);
 
 	// Helper function to complete a filename. The root is prepended to the path but not included
 	// in the completion results.
@@ -368,8 +368,8 @@ namespace PakPath {
 
 	private:
 		friend class DirectoryIterator<DirectoryRange>;
-		friend DirectoryRange ListFiles(Str::StringRef path, std::error_code& err);
-		friend DirectoryRange ListFilesRecursive(Str::StringRef path, std::error_code& err);
+		friend DirectoryRange ListFiles(Str::StringRef path);
+		friend DirectoryRange ListFilesRecursive(Str::StringRef path);
 		bool Advance(std::error_code& err);
 		bool InternalAdvance();
 		std::string current;
