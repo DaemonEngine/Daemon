@@ -1849,7 +1849,6 @@ int CL_GSRSequenceInformation( byte **data )
 		// Assume we sent two getservers and somehow they changed in
 		// between - only use the results that arrive later
 		Log::Debug( "Master changed its mind about packet count!" );
-		cls.receivedMasterPackets = 0;
 		cls.numglobalservers = 0;
 	}
 
@@ -1964,7 +1963,6 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		// state to detect lack of servers or lack of response
 		cls.numglobalservers = 0;
 		cls.numMasterPackets = 0;
-		cls.receivedMasterPackets = 0;
 	}
 
 	// parse through server response string
@@ -2000,7 +1998,6 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 			// request
 			Log::Debug( "CL_ServersResponsePacket: packet "
 			             "%d of %d", ind, cls.numMasterPackets );
-			cls.receivedMasterPackets |= ( 1 << ( ind - 1 ) );
 
 			CL_GSRFeaturedLabel( &buffptr, label, sizeof( label ) );
 		}

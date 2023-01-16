@@ -293,7 +293,6 @@ struct clientStatic_t
 
 	// master server sequence information
 	int          numMasterPackets;
-	unsigned int receivedMasterPackets; // bitfield
 
 	int          numlocalservers;
 	serverInfo_t localServers[ MAX_OTHER_SERVERS ];
