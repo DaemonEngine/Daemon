@@ -1364,10 +1364,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 	int        Com_HashKey( char *string, int maxlen );
 
-// data is an in/out parm, returns a parsed out token
-
-	void      COM_MatchToken( char **buf_p, char *match );
-
 	bool  SkipBracedSection( const char **program );
 	bool  SkipBracedSection_Depth( const char **program, int depth );  // start at given depth if already
 	void      SkipRestOfLine( const char **data );
