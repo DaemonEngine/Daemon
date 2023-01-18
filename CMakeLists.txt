@@ -285,20 +285,7 @@ try_flag(WARNINGS           "-Wno-unknown-pragmas")
 try_flag(WARNINGS           "-W${WARNMODE}old-style-cast")
 try_flag(WARNINGS           "-Woverloaded-virtual")
 try_flag(WARNINGS           "-Wstrict-null-sentinel")
-try_flag(WARNINGS           "-Wno-error=sign-promo")
-try_flag(WARNINGS           "-Wno-error=extern-c-compat")
-try_flag(WARNINGS           "-Wno-error=stringop-overflow=")
-try_flag(WARNINGS           "-Wno-error=maybe-uninitialized")
-try_flag(WARNINGS           "-W${WARNMODE}missing-field-initializers")
 try_flag(WARNINGS           "-W${WARNMODE}sign-compare")
-try_flag(WARNINGS           "-Wno-error=switch")
-try_flag(WARNINGS           "-Wno-error=unused-but-set-parameter")
-try_flag(WARNINGS           "-Wno-error=unused-but-set-variable")
-try_flag(WARNINGS           "-Wno-error=unused-function")
-try_flag(WARNINGS           "-Wno-error=unused-parameter")
-try_flag(WARNINGS           "-Wno-error=unused-variable")
-try_flag(WARNINGS           "-Wno-error=format-truncation")
-try_flag(WARNINGS           "-Wno-error=deprecated-copy") # TODO: Fix these errors.
 
 ################################################################################
 # Git revision info
