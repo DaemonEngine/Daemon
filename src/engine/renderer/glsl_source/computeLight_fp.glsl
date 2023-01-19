@@ -215,13 +215,7 @@ void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 mater
 
       if( idx >= u_numLights )
       {
-#if defined(r_showLightTiles)
-        if (numLights > 0.0)
-        {
-          color = vec4(numLights/(lightsPerLayer*numLayers), numLights/(lightsPerLayer*numLayers), numLights/(lightsPerLayer*numLayers), 1.0);
-        }
-#endif
-        return;
+        break;
       }
 
       computeDLight( idx, P, normal, viewDir, diffuse, material, color );
