@@ -25,6 +25,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 cmake_minimum_required (VERSION 3.12)
+find_package(PkgConfig)
 
 # Choose Python versions by location instead of getting whatever is in PYTHON_EXECUTABLE
 # Can be removed once we require CMake 3.15
@@ -646,9 +647,8 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
         else ()
             add_definitions(-DUSE_CURSES)
             set(CURSES_NEED_NCURSES 1) # Tells FindCurses that ncurses is required
-            find_package(CursesW REQUIRED)
+            pkg_check_modules(CURSESW REQUIRED ncursesw)
             set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
-            include_directories(${CURSESW_INCLUDE_DIR})
         endif()
     endif()
 endif()
