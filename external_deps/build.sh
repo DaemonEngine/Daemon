@@ -34,6 +34,22 @@ NCURSES_VERSION=6.2
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
+# Require the compiler names to be explicitly hardcoded, we should not inherit them
+# from environment as we heavily cross-compile.
+CC='false'
+CXX='false'
+# Set defaults.
+LD='ld'
+AR='ar'
+RANLIB='ranlib'
+CONFIGURE_SHARED=(--disable-shared --enable-static)
+# Always reset flags, we heavily cross-compile and must not inherit any stray flag
+# from environment.
+CFLAGS=''
+CXXFLAGS=''
+CPPFLAGS=''
+LDFLAGS=''
+
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
@@ -110,7 +126,7 @@ build_zlib() {
 	cd "zlib-${ZLIB_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
-		LOC="${CFLAGS:-}" make -f win32/Makefile.gcc PREFIX="${CROSS}"
+		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
 	linux-*-*)
@@ -144,10 +160,10 @@ build_gmp() {
 	case "${PLATFORM}" in
 	macos-*-*)
 		# The assembler objects are incompatible with PIE
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-assembly
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-assembly
 		;;
 	*)
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 		;;
 	esac
 
@@ -167,7 +183,7 @@ build_nettle() {
 	download "nettle-${NETTLE_VERSION}.tar.gz" "https://ftp.gnu.org/gnu/nettle/nettle-${NETTLE_VERSION}.tar.gz" nettle
 	cd "nettle-${NETTLE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 	make
 	make install
 }
@@ -176,7 +192,7 @@ build_nettle() {
 build_curl() {
 	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
 	cd "curl-${CURL_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc ${MSVC_SHARED[@]}
+	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc ${CONFIGURE_SHARED[@]}
 	make
 	make install
 }
@@ -213,7 +229,7 @@ build_sdl2() {
 		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS:-} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		CFLAGS="${CFLAGS} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 		make
 		make install
 		;;
@@ -226,20 +242,20 @@ build_glew() {
 	cd "glew-${GLEW_VERSION}"
 	case "${PLATFORM}" in
 	windows-*-*)
-		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CROSS}gcc" AR="${CROSS}ar" RANLIB="${CROSS}ranlib" STRIP="${CROSS}strip" LD="${CROSS}ld" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		make install SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
 		mv "${PREFIX}/lib/glew32.dll" "${PREFIX}/bin/"
 		rm "${PREFIX}/lib/libglew32.a"
 		cp lib/libglew32.dll.a "${PREFIX}/lib/"
 		;;
 	macos-*-*)
-		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS}"
+		make install SYSTEM=darwin GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS} -dynamic -fno-common" LDFLAGS.EXTRA="${LDFLAGS}"
 		install_name_tool -id "@rpath/libGLEW.${GLEW_VERSION}.dylib" "${PREFIX}/lib/libGLEW.${GLEW_VERSION}.dylib"
 		;;
 	linux-*-*)
-		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
-		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS:-}" LDFLAGS.EXTRA="${LDFLAGS:-}"
+		make GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
+		make install GLEW_DEST="${PREFIX}" CC="${CC}" LD="${CC}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
 		;;
 	*)
 		echo "Unsupported platform for GLEW"
@@ -253,7 +269,7 @@ build_png() {
 	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
 	cd "libpng-${PNG_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 	make
 	make install
 }
@@ -271,7 +287,7 @@ build_jpeg() {
 		cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
 		;;
 	windows-*-msvc)
-		CFLAGS="${CFLAGS:-} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
+		CFLAGS="${CFLAGS} " cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=1
 		;;
 	macos-*-*)
 		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
@@ -286,7 +302,7 @@ build_webp() {
 	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
 	cd "libwebp-${WEBP_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --disable-libwebpdemux ${MSVC_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --disable-libwebpdemux ${CONFIGURE_SHARED[@]}
 	make
 	make install
 }
@@ -296,7 +312,7 @@ build_freetype() {
 	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
 	cd "freetype-${FREETYPE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
 	make
 	make install
 	cp -a "${PREFIX}/include/freetype2" "${PREFIX}/include/freetype"
@@ -350,7 +366,7 @@ build_ogg() {
 	# This header breaks the vorbis and opusfile Mac builds
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+	./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 	make
 	make install
 }
@@ -359,7 +375,7 @@ build_ogg() {
 build_vorbis() {
 	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
 	cd "libvorbis-${VORBIS_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-examples
+	./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-examples
 	make
 	make install
 }
@@ -372,10 +388,10 @@ build_opus() {
 	case "${PLATFORM}" in
 	windows-*-*)
 		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
-		CFLAGS="${CFLAGS:-} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 		;;
 	*)
-		CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
 		;;
 	esac
 	make
@@ -387,7 +403,7 @@ build_opusfile() {
 	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
 	cd "opusfile-${OPUSFILE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-http
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-http
 	make
 	make install
 }
@@ -412,7 +428,7 @@ build_lua() {
 		exit 1
 		;;
 	esac
-	make "${LUA_PLATFORM}" CC="${CC:-${CROSS}gcc}" AR="${CROSS}ar rcu" RANLIB="${CROSS}ranlib" MYCFLAGS="${CFLAGS:-}" MYLDFLAGS="${LDFLAGS}"
+	make "${LUA_PLATFORM}" CC="${CC}" AR="${AR} rcu" RANLIB="${RANLIB}" MYCFLAGS="${CFLAGS}" MYLDFLAGS="${LDFLAGS}"
 	case "${PLATFORM}" in
 	windows-*-mingw)
 		make install TO_BIN="lua.exe luac.exe" TO_LIB="liblua.a" INSTALL_TOP="${PREFIX}"
@@ -433,7 +449,7 @@ build_ncurses() {
 	cd "ncurses-${NCURSES_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
-	CFLAGS="${CFLAGS:-} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${MSVC_SHARED[@]} --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${CONFIGURE_SHARED[@]} --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
 	make
 	make install
 }
@@ -602,7 +618,7 @@ build_genlib() {
 		mkdir -p "${PREFIX}/def"
 		cd "${PREFIX}/def"
 		for DLL_A in "${PREFIX}"/lib/*.dll.a; do
-			local DLL="$(${CROSS}dlltool -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
+			local DLL="$("${HOST}-dlltool" -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
 			local DEF="$(basename ${DLL} .dll).def"
 			local LIB="$(basename ${DLL_A} .dll.a).lib"
 			local MACHINE="$([ "${PLATFORM}" = msvc32 ] && echo i386 || echo i386:x86-64)"
@@ -647,11 +663,11 @@ build_install() {
 	# Strip libraries
 	case "${PLATFORM}" in
 	windows-*-mingw)
-		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
-		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/lib" -name '*.a' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
 		;;
 	windows-*-msvc)
-		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${CROSS}strip" --strip-unneeded -- {} \;
+		find "${PKG_PREFIX}/bin" -name '*.dll' -execdir "${HOST}-strip" --strip-unneeded -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.a' -execdir rm -f -- {} \;
 		find "${PKG_PREFIX}/lib" -name '*.exp' -execdir rm -f -- {} \;
 		;;
@@ -674,6 +690,8 @@ build_wipe() {
 
 # Common setup code
 common_setup() {
+	HOST="${2}"
+	"common_setup_${1}"
 	WORK_DIR="${PWD}"
 	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
@@ -681,147 +699,117 @@ common_setup() {
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
 	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 	PREFIX="${BUILD_DIR}/prefix"
-	export PATH="${PATH}:${PREFIX}/bin"
-	export PKG_CONFIG="pkg-config"
-	export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-	export CPPFLAGS="${CPPFLAGS:-} -I${PREFIX}/include"
-	export LDFLAGS="${LDFLAGS:-} -L${PREFIX}/lib"
-	if [[ "${MSYSTEM:-}" = MINGW* ]]; then
-		# Experimental MSYS2 support. Most packages won't work;
-		# you need to cross-compile from Linux
-		export CMAKE_GENERATOR="MSYS Makefiles"
-		CROSS= # Doing this because there is no ${CROSS}strip
-	fi
+	PATH="${PATH}:${PREFIX}/bin"
+	PKG_CONFIG="pkg-config"
+	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+	CPPFLAGS+=" -I${PREFIX}/include"
+	LDFLAGS+=" -L${PREFIX}/lib"
+	case "${PLATFORM}" in
+	*-i686)
+		CFLAGS+=" -msse2"
+		CXXFLAGS+=" -msse2"
+		;;
+	esac
 	mkdir -p "${DOWNLOAD_DIR}"
-	mkdir -p "${PREFIX}"
 	mkdir -p "${PREFIX}/bin"
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
+	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+}
+
+# -D__USE_MINGW_ANSI_STDIO=0 instructs MinGW to *not* use its own implementation
+# of printf and instead use the system one. It's bad when MinGW uses its own
+# implementation because this can cause extra DLL dependencies.
+# The separate implementation exists because Microsoft's implementation at some
+# point did not implement certain printf specifiers, in particular %lld (long long).
+# Lua does use this one, which results in compiler warnings. But this is OK because
+# the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
+# supports %lld since Visual Studio 2013.
+common_setup_msvc() {
+	CONFIGURE_SHARED=(--enable-shared --disable-static)
+	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
+	CC="${HOST}-gcc -static-libgcc"
+	CXX="${HOST}-g++ -static-libgcc"
+	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+}
+
+common_setup_mingw() {
+	CC="${HOST}-gcc"
+	CXX="${HOST}-g++"
+	LD="${HOST}-ld"
+	AR="${HOST}-ar"
+	RANLIB="${HOST}-ranlib"
+	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+}
+
+common_setup_macos() {
+	CC='clang'
+	CXX='clang++'
+	CFLAGS+=" -arch ${MACOS_ARCH}"
+	CXXFLAGS+=" -arch ${MACOS_ARCH}"
+	LDFLAGS+=" -arch ${MACOS_ARCH}"
+	export CMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
+}
+
+common_setup_linux() {
+	CC="${HOST/-unknown-/-}-gcc"
+	CXX="${HOST/-unknown-/-}-g++"
+	CFLAGS+=' -fPIC'
+	CXXFLAGS+=' -fPIC'
 }
 
 # Set up environment for 32-bit i686 Windows for Visual Studio (compile all as .dll)
 setup_windows-i686-msvc() {
-	HOST=i686-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=32
-	MSVC_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="i686-w64-mingw32-gcc -static-libgcc"
-	export CXX="i686-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-msse2 -mpreferred-stack-boundary=2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-msse2 -mpreferred-stack-boundary=2"
-	common_setup
+	CFLAGS+=' -mpreferred-stack-boundary=2'
+	CXXFLAGS+=' -mpreferred-stack-boundary=2'
+	common_setup msvc i686-w64-mingw32
 }
-
-# Note about -D__USE_MINGW_ANSI_STDIO=0 - this instructs MinGW to *not* use its own implementation
-# of printf and instead use the system one. It's bad when MinGW uses its own implementation because
-# this can cause extra DLL dependencies.
-# The separate implementation exists because Microsoft's implementation at some point did not
-# implement certain printf specifiers, in particular %lld (long long). Lua does use this one, which
-# results in compiler warnings. But this is OK because the Windows build of Lua is only used in
-# developer gamelogic builds, and Microsoft supports %lld since Visual Studio 2013.
 
 # Set up environment for 64-bit amd64 Windows for Visual Studio (compile all as .dll)
 setup_windows-amd64-msvc() {
-	HOST=x86_64-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=64
-	MSVC_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	export CC="x86_64-w64-mingw32-gcc -static-libgcc"
-	export CXX="x86_64-w64-mingw32-g++ -static-libgcc"
-	export CFLAGS="-D__USE_MINGW_ANSI_STDIO=0"
-	common_setup
+	common_setup msvc x86_64-w64-mingw32
 }
 
 # Set up environment for 32-bit i686 Windows for MinGW (compile all as .a)
 setup_windows-i686-mingw() {
-	HOST=i686-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=32
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m32 -msse2 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-m32 -msse2"
-	common_setup
+	common_setup mingw i686-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 Windows for MinGW (compile all as .a)
 setup_windows-amd64-mingw() {
-	HOST=x86_64-w64-mingw32
-	CROSS="${HOST}-"
 	BITNESS=64
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CFLAGS="-m64 -D__USE_MINGW_ANSI_STDIO=0"
-	export CXXFLAGS="-m64"
-	common_setup
+	common_setup mingw x86_64-w64-mingw32
 }
 
 # Set up environment for 64-bit amd64 macOS
 setup_macos-amd64-default() {
-	HOST=x86_64-apple-darwin11
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
+	MACOS_ARCH=x86_64
 	export MACOSX_DEPLOYMENT_TARGET=10.9 # works with CMake
-	export CC=clang
-	export CXX=clang++
-	export CFLAGS="-arch x86_64"
-	export CXXFLAGS="-arch x86_64"
-	export LDFLAGS="-arch x86_64"
-	export CMAKE_OSX_ARCHITECTURES="x86_64"
-	common_setup
+	common_setup macos x86_64-apple-darwin11
 	export NASM="${PWD}/${BUILD_BASEDIR}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 }
 
 # Set up environment for 32-bit i686 Linux
 setup_linux-i686-default() {
-	HOST=i386-unknown-linux-gnu
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CC='i686-linux-gnu-gcc'
-	export CXX='i686-linux-gnu-g++'
-	export CFLAGS='-fPIC'
-	export CXXFLAGS='-fPIC'
-	export LDFLAGS=''
-	common_setup
+	common_setup linux i386-unknown-linux-gnu
 }
 
 # Set up environment for 64-bit amd64 Linux
 setup_linux-amd64-default() {
-	HOST=x86_64-unknown-linux-gnu
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CC='x86_64-linux-gnu-gcc'
-	export CXX='x86_64-linux-gnu-g++'
-	export CFLAGS="-m64 -fPIC"
-	export CXXFLAGS="-m64 -fPIC"
-	export LDFLAGS="-m64"
-	common_setup
+	common_setup linux x86_64-unknown-linux-gnu
 }
 
 # Set up environment for 32-bit armhf Linux
 setup_linux-armhf-default() {
-	HOST=arm-unknown-linux-gnueabihf
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CC='arm-linux-gnueabihf-gcc'
-	export CXX='arm-linux-gnueabihf-g++'
-	export CFLAGS="-fPIC"
-	export CXXFLAGS="-fPIC"
-	export LDFLAGS=""
-	common_setup
+	common_setup linux arm-unknown-linux-gnueabihf
 }
 
 # Set up environment for 64-bit arm Linux
 setup_linux-arm64-default() {
-	HOST=aarch64-unknown-linux-gnu
-	CROSS=
-	MSVC_SHARED=(--disable-shared --enable-static)
-	export CC='aarch64-linux-gnu-gcc'
-	export CXX='aarch64-linux-gnu-g++'
-	export CFLAGS="-fPIC"
-	export CXXFLAGS="-fPIC"
-	export LDFLAGS=""
-	common_setup
+	common_setup linux aarch64-unknown-linux-gnu
 }
 
 # Usage
