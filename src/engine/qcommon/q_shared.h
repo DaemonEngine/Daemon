@@ -1962,6 +1962,9 @@ union OpaquePlayerState {
 		int           misc; // bit flags
 		int           generic1;
 		int           weaponAnim; // mask off ANIM_TOGGLEBIT
+
+		int debugColor;
+		int debugNumbers;
 	};
 
 	enum class connstate_t
