@@ -1473,6 +1473,11 @@ void LoadPakExplicit(const PakInfo& pak, uint32_t expectedChecksum, std::error_c
 	InternalLoadPak(pak, expectedChecksum, "", false, err);
 }
 
+void LoadPakExplicitWithoutChecksum(const PakInfo& pak, std::error_code& err)
+{
+	InternalLoadPak(pak, {}, "", false, err);
+}
+
 void ClearPaks()
 {
 	fsLogs.Verbose("^5Unloading all paks");

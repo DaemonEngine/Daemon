@@ -682,10 +682,19 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 		if (!FS::ParsePakName(x.data(), x.data() + x.size(), name, version, checksum)) {
 			Sys::Drop("Invalid pak reference from server: %s", x.c_str());
 		} else if (!version.empty() && !checksum) {
-			// non-legacy paks (with non empty version) must have a checksum
 			if (isDemo || allowRemotePakDir.Get()) {
+				const FS::PakInfo* pak = FS::FindPak(name, version);
+				if (!pak) {
+					Sys::Drop("Pak %s version %s not found", name, version);
+				}
+				try {
+					FS::PakPath::LoadPakExplicitWithoutChecksum(*pak); // FIXME bogus checksum argument
+				} catch (const std::system_error& e) {
+					Sys::Drop("Failed to load pak %s version %s: %s", name, version, e.what());
+				}
 				continue;
 			}
+			// non-legacy paks (with non empty version) must have a checksum
 			Sys::Drop("The server is configured to load game data from a directory which makes it incompatible with remote clients.");
 		}
 
