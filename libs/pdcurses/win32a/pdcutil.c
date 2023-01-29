@@ -12,28 +12,21 @@ void PDC_beep(void)
     MessageBeep(0XFFFFFFFF);
 }
 
-
+// This used to call Sleep() hence "nap" but that has been removed
+// It is abused to process the event loop
 void PDC_napms(int ms)
 {
+    (void)ms;
     /* RR: keep GUI window responsive while PDCurses sleeps */
     MSG msg;
-    DWORD ms_sleep_limit = ms + GetTickCount();
-    extern BOOL PDC_bDone;
 
     PDC_LOG(("PDC_napms() - called: ms=%d\n", ms));
 
-    /* Pump all pending messages from WIN32 to the window handler */
-    while( !PDC_bDone && GetTickCount() < ms_sleep_limit )
+    while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
     {
-        while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
-        {
-           TranslateMessage(&msg);
-           DispatchMessage(&msg);
-        }
-        Sleep(1);
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
-
-    /* Sleep(ms); */
 }
 
 const char *PDC_sysname(void)
