@@ -242,7 +242,7 @@ else()
 endif()
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 7)
+set(DEPS_VERSION 8)
 
 if (NOT NACL)
     set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
@@ -930,7 +930,7 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     # The NaCl loader and IRT are required to load .nexe files
     add_custom_command(TARGET runtime_deps PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${DEPS_DIR}/sel_ldr${CMAKE_EXECUTABLE_SUFFIX}
+            ${DEPS_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
             ${FULL_OUTPUT_DIR}/nacl_loader${CMAKE_EXECUTABLE_SUFFIX}
     )
 
@@ -965,17 +965,17 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
         )
     endif()
 
-    # Win32 requires nacl_loader64.exe in order to run on Win64
+    # Win32 requires nacl_loader_amd64.exe in order to run on Win64
     if (WIN32 AND ARCH STREQUAL i686)
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/sel_ldr64${CMAKE_EXECUTABLE_SUFFIX}
-                ${FULL_OUTPUT_DIR}/nacl_loader64${CMAKE_EXECUTABLE_SUFFIX}
+                ${DEPS_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
+                ${FULL_OUTPUT_DIR}/nacl_loader-amd64${CMAKE_EXECUTABLE_SUFFIX}
         )
         add_custom_command(TARGET runtime_deps PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${DEPS_DIR}/irt_core-x86_64.nexe
-                ${FULL_OUTPUT_DIR}/irt_core-x86_64.nexe
+                ${DEPS_DIR}/irt_core-amd64.nexe
+                ${FULL_OUTPUT_DIR}/irt_core-amd64.nexe
         )
     endif()
 

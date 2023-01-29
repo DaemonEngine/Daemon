@@ -77,11 +77,7 @@ add_definitions(-DARCH_STRING=${ARCH})
 # them breaks engine compatibility with published nexe game binaries.
 # TODO(0.54): Unify all arch strings using i686 and amd64 strings by using
 # ARCH_STRING define and setting NACL_ARCH to ARCH in all cases.
-if (ARCH STREQUAL "i686")
-	set(NACL_ARCH "x86")
-elseif(ARCH STREQUAL "amd64")
-	set(NACL_ARCH "x86_64")
-elseif(ARCH STREQUAL "arm64")
+if(ARCH STREQUAL "arm64")
 	if (LINUX)
 		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
 		set(NACL_ARCH "armhf")

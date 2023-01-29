@@ -8,7 +8,7 @@ set -u
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
-DEPS_VERSION=7
+DEPS_VERSION=8
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
@@ -538,13 +538,11 @@ build_naclsdk() {
 	case "${PLATFORM}" in
 	*-i686-*)
 		local NACLSDK_ARCH=x86_32
-		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
-		local DAEMON_ARCH=x86
+		local DAEMON_ARCH=i686
 		;;
 	*-amd64-*)
 		local NACLSDK_ARCH=x86_64
-		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
-		local DAEMON_ARCH=x86_64
+		local DAEMON_ARCH=amd64
 		;;
 	*-armhf-*|linux-arm64-*)
 		local NACLSDK_ARCH=arm
@@ -552,7 +550,7 @@ build_naclsdk() {
 		;;
 	esac
 	download "naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2" "https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2" naclsdk
-	cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/sel_ldr${EXE}"
+	cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
 	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 	case "${PLATFORM}" in
 	windows-i686-*|*-amd64-*)
@@ -575,21 +573,20 @@ build_naclsdk() {
 	esac
 	case "${PLATFORM}" in
 	windows-i686-*)
-		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/sel_ldr64.exe"
-		# TODO(0.54): Unify all arch strings using i686 and amd64 strings.
-		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-x86_64.nexe"
+		cp pepper_*"/tools/sel_ldr_x86_64.exe" "${PREFIX}/nacl_loader-amd64.exe"
+		cp pepper_*"/tools/irt_core_x86_64.nexe" "${PREFIX}/irt_core-amd64.nexe"
 		;;
 	linux-amd64-*|linux-i686-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_${NACLSDK_ARCH}" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
+		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
 		;;
 	linux-armhf-*|linux-arm64-*)
 		cp pepper_*"/tools/nacl_helper_bootstrap_arm" "${PREFIX}/nacl_helper_bootstrap"
 		# Fix permissions on a few files which deny access to non-owner
 		chmod 644 "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
-		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/sel_ldr"
+		chmod 755 "${PREFIX}/nacl_helper_bootstrap" "${PREFIX}/nacl_loader"
 		;;
 	esac
 	case "${PLATFORM}" in
@@ -597,7 +594,7 @@ build_naclsdk() {
 		mkdir -p "${PREFIX}/lib-armhf"
 		cp -a pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
 		mv "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
-		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/sel_ldr"
+		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/nacl_loader"
 		;;
 	esac
 }

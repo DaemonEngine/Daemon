@@ -223,7 +223,7 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 #endif
 
 	// Extract the nexe from the pak so that nacl_loader can load it
-	module = win32Force64Bit ? name + "-x86_64.nexe" : name + "-" XSTRING(NACL_ARCH_STRING) ".nexe";
+	module = win32Force64Bit ? name + "-amd64.nexe" : name + "-" XSTRING(NACL_ARCH_STRING) ".nexe";
 	if (extract) {
 		try {
 			FS::File out = FS::HomePath::OpenWrite(module);
@@ -240,8 +240,8 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 
 	// Generate command line
 	Q_snprintf(rootSocketRedir, sizeof(rootSocketRedir), "%d:%d", ROOT_SOCKET_FD, (int)(intptr_t)pair.second.GetHandle());
-	irt = FS::Path::Build(naclPath, win32Force64Bit ? "irt_core-x86_64.nexe" : "irt_core-" XSTRING(NACL_ARCH_STRING) ".nexe");
-	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader64" EXE_EXT : "nacl_loader" EXE_EXT);
+	irt = FS::Path::Build(naclPath, win32Force64Bit ? "irt_core-amd64.nexe" : "irt_core-" XSTRING(NACL_ARCH_STRING) ".nexe");
+	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader-amd64" EXE_EXT : "nacl_loader" EXE_EXT);
 	if (!FS::RawPath::FileExists(modulePath))
 		Log::Warn("VM module file not found: %s", modulePath);
 	if (!FS::RawPath::FileExists(nacl_loader))
