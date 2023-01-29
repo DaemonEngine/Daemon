@@ -316,6 +316,8 @@ namespace PakPath {
 	// Load a pak into the namespace and verify its checksum but *don't* load its dependencies
 	void LoadPakExplicit(const PakInfo& pak, uint32_t expectedChecksum, std::error_code& err = throws());
 
+	void LoadPakExplicitWithoutChecksum(const PakInfo& pak, std::error_code& err = throws());
+
 #ifndef BUILD_VM
 	// Remove all loaded paks
 	void ClearPaks();
