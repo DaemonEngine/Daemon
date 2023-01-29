@@ -794,7 +794,7 @@ setup_macos-amd64-default() {
 
 # Set up environment for 32-bit i686 Linux
 setup_linux-i686-default() {
-	common_setup linux i386-unknown-linux-gnu
+	common_setup linux i686-unknown-linux-gnu
 }
 
 # Set up environment for 64-bit amd64 Linux
