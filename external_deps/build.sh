@@ -820,7 +820,7 @@ if [ "${#}" -lt "2" ]; then
 	Script to build dependencies for platforms which do not provide them
 
 	Platforms:
-	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-arm64-default linux-armhf-default
+	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-i686-default linux-arm64-default linux-armhf-default
 
 	Packages:
 	  pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
@@ -841,7 +841,7 @@ if [ "${#}" -lt "2" ]; then
 	Native macOS compile:
 	  pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports
 
-	Linux amd64 native compile:
+	Linux amd64 and i686 native compile:
 	  naclsdk naclports (and possibly others depending on what packages your distribution provides)
 
 	Linux arm64 and armhf native compile:
