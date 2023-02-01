@@ -124,7 +124,7 @@ CM_TransposeGrid
 Swaps the rows and columns in place
 =================
 */
-static void CM_TransposeGrid( cGrid_t *grid )
+void CM_TransposeGrid( cGrid_t *grid )
 {
 	int      i, j, l;
 	vec3_t   temp;
@@ -189,7 +189,7 @@ CM_SetGridWrapWidth
 If the left and right columns are exactly equal, set grid->wrapWidth true
 ===================
 */
-static void CM_SetGridWrapWidth( cGrid_t *grid )
+void CM_SetGridWrapWidth( cGrid_t *grid )
 {
 	int   i, j;
 	float d;
@@ -231,7 +231,7 @@ all the approximating points are within SUBDIVIDE_DISTANCE
 from the true curve
 =================
 */
-static void CM_SubdivideGridColumns( cGrid_t *grid )
+void CM_SubdivideGridColumns( cGrid_t *grid )
 {
 	int i, j, k;
 
@@ -344,7 +344,7 @@ CM_RemoveDegenerateColumns
 If there are any identical columns, remove them
 =================
 */
-static void CM_RemoveDegenerateColumns( cGrid_t *grid )
+void CM_RemoveDegenerateColumns( cGrid_t *grid )
 {
 	int i, j, k;
 
