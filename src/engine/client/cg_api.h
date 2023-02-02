@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "engine/renderer/tr_types.h"
 #include "common/KeyIdentification.h"
 #include "common/cm/cm_public.h"
+#include "../../shared/CommonProxies.h"
 #ifdef BUILD_CGAME
 // TODO: find a better way that does not depend on a gamelogic file from an engine file
 #include "shared/bg_public.h"
@@ -87,28 +88,6 @@ enum class MouseMode
 	SystemCursor, // The input is sent as positions, the cursor should be rendered by the system
 };
 
-int             trap_Milliseconds(); // TODO: Rely on CommonProxies.h declaration instead of this one.
-void            trap_Cvar_Set( const char *var_name, const char *value );
-void            trap_Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize );
-int             trap_Cvar_VariableIntegerValue( const char *var_name );
-float           trap_Cvar_VariableValue( const char *var_name );
-void            trap_Cvar_AddFlags( const char *var_name, int flags );
-const Cmd::Args& trap_Args();
-int             trap_Argc();
-void            trap_Argv( int n, char *buffer, int bufferLength );
-void            trap_EscapedArgs( char *buffer, int bufferLength );
-void            trap_LiteralArgs( char *buffer, int bufferLength );
-int             trap_FS_FOpenFile( const char *qpath, fileHandle_t *f, fsMode_t mode );
-int trap_FS_OpenPakFile( Str::StringRef path, fileHandle_t &f );
-int             trap_FS_Read( void *buffer, int len, fileHandle_t f );
-int             trap_FS_Write( const void *buffer, int len, fileHandle_t f );
-void            trap_FS_FCloseFile( fileHandle_t f );
-int             trap_FS_GetFileList( const char *path, const char *extension, char *listbuf, int bufsize );
-int             trap_FS_GetFileListRecursive( const char *path, const char *extension, char *listbuf, int bufsize );
-bool        trap_FS_LoadPak( const char *pak, const char *prefix );
-void            trap_SendConsoleCommand( const char *text );
-void            trap_AddCommand( const char *cmdName );
-void            trap_RemoveCommand( const char *cmdName );
 void            trap_SendClientCommand( const char *s );
 void            trap_UpdateScreen();
 int             trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
@@ -138,9 +117,6 @@ void            trap_R_AddAdditiveLightToScene( const vec3_t org, float intensit
 void            trap_R_Add2dPolysIndexedToScene( polyVert_t *polys, int numVerts, int *indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader );
 void            trap_R_SetMatrixTransform( const matrix_t matrix );
 void            trap_R_ResetMatrixTransform();
-int             trap_FS_Seek( fileHandle_t f, int offset, fsOrigin_t origin );
-int             trap_FS_Tell( fileHandle_t f );
-int             trap_FS_FileLength( fileHandle_t f );
 void            trap_R_RenderScene( const refdef_t *fd );
 void            trap_R_ClearColor();
 void            trap_R_SetColor( const Color::Color &rgba );

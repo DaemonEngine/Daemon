@@ -526,6 +526,7 @@ void trap_FS_FCloseFile(fileHandle_t f)
 	VM::SendMsg<VM::FSFCloseFileMsg>(f);
 }
 
+// TODO: in many cases we want only VFS (pakpath) files, not VFS + gamepath which this gives
 int trap_FS_GetFileList(const char *path, const char *extension, char *listbuf, int bufsize)
 {
 	int res;
