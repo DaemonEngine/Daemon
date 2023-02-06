@@ -307,6 +307,9 @@ struct clientStatic_t
 	unsigned     numserverLinks;
 	netadr_t     serverLinks[ MAX_GLOBAL_SERVERS ];
 
+	int          numfavoriteservers;
+	serverInfo_t favoriteServers[ MAX_OTHER_SERVERS ];
+
 	int          pingUpdateSource; // source currently pinging or updating
 
 	int          masterNum;

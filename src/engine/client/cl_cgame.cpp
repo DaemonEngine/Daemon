@@ -353,6 +353,11 @@ static void LAN_ResetPings( int source )
 			servers = &cls.globalServers[ 0 ];
 			count = MAX_GLOBAL_SERVERS;
 			break;
+
+		case AS_FAVORITES:
+			servers = &cls.favoriteServers[ 0 ];
+			count = MAX_OTHER_SERVERS;
+			break;
 	}
 
 	if ( servers )
@@ -378,6 +383,9 @@ static int LAN_GetServerCount( int source )
 
 		case AS_GLOBAL:
 			return cls.numglobalservers;
+
+		case AS_FAVORITES:
+			return cls.numfavoriteservers;
 	}
 
 	return 0;
@@ -409,6 +417,14 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
 			if ( n >= 0 && n < MAX_GLOBAL_SERVERS )
 			{
 				server = &cls.globalServers[ n ];
+			}
+
+			break;
+
+		case AS_FAVORITES:
+			if ( n >= 0 && n < MAX_OTHER_SERVERS )
+			{
+				server = &cls.favoriteServers[ n ];
 			}
 
 			break;
@@ -469,6 +485,14 @@ static int LAN_GetServerPing( int source, int n )
 			}
 
 			break;
+
+		case AS_FAVORITES:
+			if ( n >= 0 && n < MAX_OTHER_SERVERS )
+			{
+				server = &cls.favoriteServers[ n ];
+			}
+
+			break;
 	}
 
 	if ( server )
@@ -501,6 +525,10 @@ static void LAN_MarkServerVisible( int source, int n, bool visible )
 				server = &cls.globalServers[ 0 ];
 				count = MAX_GLOBAL_SERVERS;
 				break;
+
+			case AS_FAVORITES:
+				server = &cls.favoriteServers[ 0 ];
+				break;
 		}
 
 		if ( server )
@@ -530,6 +558,14 @@ static void LAN_MarkServerVisible( int source, int n, bool visible )
 				}
 
 				break;
+
+			case AS_FAVORITES:
+				if ( n >= 0 && n < MAX_OTHER_SERVERS )
+				{
+					cls.favoriteServers[ n ].visible = visible;
+				}
+
+				break;
 		}
 	}
 }
@@ -555,6 +591,14 @@ static int LAN_ServerIsVisible( int source, int n )
 			if ( n >= 0 && n < MAX_GLOBAL_SERVERS )
 			{
 				return cls.globalServers[ n ].visible;
+			}
+
+			break;
+
+		case AS_FAVORITES:
+			if ( n >= 0 && n < MAX_OTHER_SERVERS )
+			{
+				return cls.favoriteServers[ n ].visible;
 			}
 
 			break;
