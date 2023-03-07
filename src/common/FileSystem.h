@@ -509,6 +509,9 @@ void Initialize();
 #else
 std::string DefaultBasePath();
 std::string DefaultHomePath();
+#ifndef _WIN32
+std::string DefaultTempPath();
+#endif
 void Initialize(Str::StringRef homePath, Str::StringRef libPath, const std::vector<std::string>& paths);
 #endif
 

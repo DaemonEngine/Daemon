@@ -72,13 +72,14 @@ std::string GetSingletonSocketPath()
 	char homePathHash[33] = "";
 	Com_MD5Buffer(homePath.data(), homePath.size(), homePathHash, sizeof(homePathHash));
 #ifdef _WIN32
-	return std::string("\\\\.\\pipe\\" PRODUCT_NAME) + suffix + "-" + homePathHash;
+	std::string base = "\\\\.\\pipe\\" PRODUCT_NAME;
 #else
 	// We use a temporary directory rather that using the homepath because
 	// socket paths are limited to about 100 characters. This also avoids issues
 	// when the homepath is on a network filesystem.
-	return std::string("/tmp/." PRODUCT_NAME_LOWER) +  suffix + "-" + homePathHash + "/socket";
+	std::string base = FS::Path::Build(FS::DefaultTempPath(), "." PRODUCT_NAME_LOWER);
 #endif
+	return base + suffix + "-" + homePathHash;
 }
 
 // Create a socket to listen for commands from other instances

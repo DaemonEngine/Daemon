@@ -2353,6 +2353,18 @@ std::string DefaultHomePath()
 #endif
 }
 
+// Determine path to temporary directory
+#ifndef _WIN32
+std::string DefaultTempPath()
+{
+	const char* tmpDir = getenv("TMPDIR");
+	if (!tmpDir || !tmpDir[0]) {
+		tmpDir = "/tmp";
+	}
+	return tmpDir;
+}
+#endif
+
 #endif // BUILD_VM
 
 #ifdef BUILD_VM
