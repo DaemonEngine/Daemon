@@ -209,7 +209,7 @@ unset(_lua_library_names)
 
 if (LUA_LIBRARY)
   # include the math library for Unix
-  if (UNIX AND NOT APPLE AND NOT BEOS)
+  if (UNIX AND NOT APPLE AND NOT BEOS AND NOT ANDROID)
     find_library(LUA_MATH_LIBRARY m)
     mark_as_advanced(LUA_MATH_LIBRARY)
     set(LUA_LIBRARIES "${LUA_LIBRARY};${LUA_MATH_LIBRARY}")
