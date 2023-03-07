@@ -270,11 +270,15 @@ if (NOT NACL)
         set(DEPS_COMPILER default)
     endif()
 
-    set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
+    if (DEPS_SYSTEM)
+        set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
 
-	if (DAEMON_PARENT_SCOPE_DIR)
-		set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
-	endif()
+        if (DAEMON_PARENT_SCOPE_DIR)
+            set(DEPS_DIR ${DEPS_DIR} PARENT_SCOPE)
+        endif()
+    else()
+        message(WARNING "No dependencies are provided for this system, Native Client is likely unsupported.")
+    endif()
 endif()
 
 ################################################################################
@@ -793,7 +797,11 @@ endif()
 macro(AddApplicationInternal Target Executable)
     add_executable(${Target} ${Sources})
     target_link_libraries(${Target} ${A_Target}-objects)
-    add_dependencies(${Target} runtime_deps)
+
+    if (DEPS_DIR)
+        add_dependencies(${Target} runtime_deps)
+    endif()
+
     set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${Target} APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${Target} APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
@@ -930,7 +938,7 @@ endif()
 # Runtime dependencies
 ################################################################################
 
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
+if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
     add_custom_target(runtime_deps)
     set_target_properties(runtime_deps PROPERTIES FOLDER "CMakePlumbing")
 
