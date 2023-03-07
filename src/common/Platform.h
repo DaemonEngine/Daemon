@@ -41,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DLL_EXT ".so"
 #define EXE_EXT ""
 #define PATH_SEP '/'
-#define PLATFORM_STRING "Mac OS X"
+#define PLATFORM_STRING "macOS"
 #elif defined(__linux__)
 #define DLL_EXT ".so"
 #define EXE_EXT ""
