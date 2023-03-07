@@ -454,8 +454,10 @@ extern cvar_t *cl_aviFrameRate;
 extern cvar_t *cl_aviMotionJpeg;
 // XreaL END
 
+#if defined(USE_MUMBLE)
 extern cvar_t *cl_useMumble;
 extern cvar_t *cl_mumbleScale;
+#endif
 
 //=================================================
 

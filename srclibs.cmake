@@ -14,10 +14,12 @@ set(MINIZIPLIST
     ${LIB_DIR}/minizip/unzip.h
 )
 
+if (USE_MUMBLE)
 set(MUMBLELINKLIST
     ${LIB_DIR}/mumblelink/libmumblelink.cpp
     ${LIB_DIR}/mumblelink/libmumblelink.h
 )
+endif()
 
 set(NACLLIST_MODULE
     ${LIB_DIR}/nacl/native_client/src/shared/imc/nacl/nacl_imc.cc

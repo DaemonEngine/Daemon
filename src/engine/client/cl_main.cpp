@@ -43,7 +43,10 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
+#if defined(USE_MUMBLE)
 #include "mumblelink/libmumblelink.h"
+#endif
+
 #include "qcommon/crypto.h"
 #include "framework/Rcon.h"
 #include "framework/Crypto.h"
@@ -58,8 +61,10 @@ Maryland 20850 USA.
 
 static Log::Logger serverInfoLog("client.serverinfo", "");
 
+#if defined(USE_MUMBLE)
 cvar_t *cl_useMumble;
 cvar_t *cl_mumbleScale;
+#endif
 
 cvar_t *cl_nodelta;
 
@@ -179,6 +184,7 @@ void        CL_ShowIP_f();
 void        CL_ServerStatus_f();
 void        CL_ServerStatusResponse( const netadr_t& from, msg_t *msg );
 
+#if defined(USE_MUMBLE)
 static void CL_UpdateMumble()
 {
 	vec3_t pos, forward, up;
@@ -215,6 +221,7 @@ static void CL_UpdateMumble()
 
 	mumble_update_coordinates( pos, forward, up );
 }
+#endif
 
 /*
 =======================================================================
@@ -821,11 +828,13 @@ void CL_Disconnect( bool showMainMenu )
 
 	CL_SendDisconnect();
 
+#if defined(USE_MUMBLE)
 	if ( cl_useMumble->integer && mumble_islinked() )
 	{
 		Log::Notice("Mumble: Unlinking from Mumble application" );
 		mumble_unlink();
 	}
+#endif
 
 	if ( clc.download )
 	{
@@ -2546,7 +2555,9 @@ void CL_Frame( int msec )
 	// update the sound
 	Audio::Update();
 
+#if defined(USE_MUMBLE)
 	CL_UpdateMumble();
+#endif
 
 	Con_RunConsole();
 
@@ -2900,8 +2911,11 @@ void CL_Init()
 
 	Cvar_Get( "password", "", CVAR_USERINFO );
 
+#if defined(USE_MUMBLE)
 	cl_useMumble = Cvar_Get( "cl_useMumble", "0",  CVAR_LATCH );
 	cl_mumbleScale = Cvar_Get( "cl_mumbleScale", "0.0254", 0 );
+#endif
+
 	cl_cgameSyscallStats = Cvar_Get( "cl_cgameSyscallStats", "0", 0 );
 
 	//
