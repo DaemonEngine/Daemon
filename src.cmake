@@ -1,3 +1,7 @@
+if (USE_MUMBLE)
+    add_definitions("-DUSE_MUMBLE")
+endif()
+
 if (DAEMON_PARENT_SCOPE_DIR)
     set(SHAREDLIST
         ${MOUNT_DIR}/shared/CommandBufferClient.cpp

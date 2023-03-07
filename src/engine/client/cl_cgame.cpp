@@ -38,7 +38,11 @@ Maryland 20850 USA.
 #include "cg_msgdef.h"
 
 #include "key_identification.h"
+
+#if defined(USE_MUMBLE)
 #include "mumblelink/libmumblelink.h"
+#endif
+
 #include "qcommon/crypto.h"
 #include "qcommon/sys.h"
 
@@ -780,11 +784,13 @@ void CL_FirstSnapshot()
 		Cvar_Set( "activeAction", "" );
 	}
 
+#if defined(USE_MUMBLE)
 	if ( ( cl_useMumble->integer ) && !mumble_islinked() )
 	{
 		int ret = mumble_link( CLIENT_WINDOW_TITLE );
 		Log::Notice(ret == 0 ? "Mumble: Linking to Mumble application okay" : "Mumble: Linking to Mumble application failed" );
 	}
+#endif
 
 	// resend userinfo upon entering the game, as some cvars may
     // not have had the CVAR_USERINFO flag set until loading cgame

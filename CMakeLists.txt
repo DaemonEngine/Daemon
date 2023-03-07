@@ -149,6 +149,11 @@ if(NOT DAEMON_EXTERNAL_APP)
     else()
         option(USE_CURSES "Enable fancy colors in terminal's output" ON)
     endif()
+
+    if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
+        option(USE_MUMBLE "Build Daemon with mumblelink sumpport" ON)
+    endif()
+
     cmake_dependent_option(USE_SMP "Compile with support for running the renderer in a separate thread" 1 BUILD_CLIENT 0)
     option(USE_BREAKPAD "Generate Daemon crash dumps (which require Breakpad tools to read)" OFF)
 endif()
@@ -667,10 +672,12 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
     include_directories(${CURL_INCLUDE_DIRS})
     set(LIBS_CLIENTBASE ${LIBS_CLIENTBASE} ${CURL_LIBRARIES})
 
-    # Mumble link
-    add_library(srclibs-mumblelink EXCLUDE_FROM_ALL ${MUMBLELINKLIST})
-    set_target_properties(srclibs-mumblelink PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    set(LIBS_CLIENTBASE ${LIBS_CLIENTBASE} srclibs-mumblelink)
+    if (USE_MUMBLE)
+        # Mumble link
+        add_library(srclibs-mumblelink EXCLUDE_FROM_ALL ${MUMBLELINKLIST})
+        set_target_properties(srclibs-mumblelink PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+        set(LIBS_CLIENTBASE ${LIBS_CLIENTBASE} srclibs-mumblelink)
+    endif()
 endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
