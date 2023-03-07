@@ -77,7 +77,7 @@ add_definitions(-DARCH_STRING=${ARCH})
 # since NACL_ARCH contributes to the nexe file name.
 set(ARMHF_USAGE arm64 armel)
 if(ARCH IN_LIST ARMHF_USAGE)
-	if (LINUX)
+	if (LINUX OR ANDROID)
 		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
 		# The nexe is system agnostic so there should be no difference with armel.
 		set(NACL_ARCH "armhf")
