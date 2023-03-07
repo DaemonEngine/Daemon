@@ -39,7 +39,7 @@ if (APPLE)
         ${LIB_DIR}/nacl/native_client/src/shared/imc/posix/nacl_imc_posix.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/osx/nacl_imc.cc
     )
-elseif (LINUX)
+elseif (LINUX OR ANDROID)
     set(NACLLIST_NATIVE
         ${LIB_DIR}/nacl/native_client/src/shared/imc/nacl_imc_common.cc
         ${LIB_DIR}/nacl/native_client/src/shared/imc/posix/nacl_imc_posix.cc
