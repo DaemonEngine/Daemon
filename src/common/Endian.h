@@ -84,13 +84,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  define Q3_BYTE_ORDER 1234
 # endif // __ARMEB__
 
-#elif defined( _XBOX )
-//
-// XBox is always big endian??
-//
-# define Q3_BIG_ENDIAN
-# define Q3_BYTE_ORDER 4321
-
 #elif defined(_BIG_ENDIAN) && !defined(_LITTLE_ENDIAN) || \
     defined(__BIG_ENDIAN__) && !defined(__LITTLE_ENDIAN__) || \
     defined(__BIGENDIAN__) && !defined(__LITTLEENDIAN__) || \
