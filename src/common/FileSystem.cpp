@@ -2332,25 +2332,28 @@ std::string DefaultHomePath()
 {
 #ifdef _WIN32
 	wchar_t buffer[MAX_PATH];
-	if (!SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_PERSONAL, nullptr, SHGFP_TYPE_CURRENT, buffer)))
-		return "";
-	return Str::UTF16To8(buffer) + "\\My Games\\" PRODUCT_NAME;
-#else
+	if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_PERSONAL, nullptr, SHGFP_TYPE_CURRENT, buffer))) {
+		return Path::Build(Path::Build(Str::UTF16To8(buffer), "My Games"), PRODUCT_NAME);
+	}
+#elif defined(__APPLE__)
 	const char* home = getenv("HOME");
-	if (!home)
-		return "";
-#ifdef __APPLE__
-	return std::string(home) + "/Library/Application Support/" PRODUCT_NAME;
+	if (home && home[0]) {
+		return Path::Build(Path::Build(Path::Build(home, "Library"), "Application Support"), PRODUCT_NAME);
+	}
 #else
-	const char* _xdgDataHome = getenv("XDG_DATA_HOME");
-	std::string xdgDataHome = _xdgDataHome == nullptr ? Path::Build(Path::Build(std::string(home), ".local") ,"share") : std::string(_xdgDataHome);
-	std::string xdgHomePath;
-
-	xdgHomePath = Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
-
-	return xdgHomePath;
+	const char* xdgDataHome_ = getenv("XDG_DATA_HOME");
+	if (xdgDataHome_ && xdgDataHome_[0]) {
+		return Path::Build(xdgDataHome_, PRODUCT_NAME_LOWER);
+	}
+	else {
+		const char* home = getenv("HOME");
+		if (home && home[0]) {
+			std::string xdgDataHome = Path::Build(Path::Build(home, ".local") ,"share");
+			return Path::Build(xdgDataHome, PRODUCT_NAME_LOWER);
+		}
+	}
 #endif
-#endif
+	return "";
 }
 
 // Determine path to temporary directory
