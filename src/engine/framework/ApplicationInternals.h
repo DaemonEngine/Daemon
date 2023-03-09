@@ -89,7 +89,7 @@ public:
         free(name);
 #else
         std::string name = FS::Path::Build(FS::DefaultTempPath(), "daemon-test-homepath.XXXXXX");
-        // mktempd creates the directory
+        // mkdtemp creates the directory
         if (mkdtemp(&name[0]) == nullptr) {
             Sys::Error("Couldn't create temp dir for test: %s", strerror(errno));
         }
