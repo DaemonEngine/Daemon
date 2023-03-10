@@ -33,24 +33,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Platform-specific configuration
 #if defined(_WIN32)
-#define DLL_EXT ".dll"
-#define EXE_EXT ".exe"
-#define PATH_SEP '\\'
 #define PLATFORM_STRING "Windows"
 #elif defined(__APPLE__)
-#define DLL_EXT ".so"
-#define EXE_EXT ""
-#define PATH_SEP '/'
 #define PLATFORM_STRING "macOS"
 #elif defined(__linux__)
-#define DLL_EXT ".so"
-#define EXE_EXT ""
-#define PATH_SEP '/'
 #define PLATFORM_STRING "Linux"
 #elif defined(__native_client__)
 #define PLATFORM_STRING "Native Client"
 #else
 #error "Platform not supported"
+#endif
+
+#if defined(__native_client__)
+#elif defined(_WIN32)
+#define DLL_EXT ".dll"
+#define EXE_EXT ".exe"
+#define PATH_SEP '\\'
+#else
+#define DLL_EXT ".so"
+#define EXE_EXT ""
+#define PATH_SEP '/'
 #endif
 
 #if defined(DAEMON_ARCH_i686)
