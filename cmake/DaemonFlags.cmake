@@ -185,24 +185,54 @@ else()
     set_c_cxx_flag("-ffast-math")
     set_c_cxx_flag("-fno-strict-aliasing")
 
-    # Set arch on x86 to SSE2 minimum and enable CMPXCHG16B
-    if (ARCH STREQUAL "i686")
-        set_c_cxx_flag("-m32")
-        set_c_cxx_flag("-msse2")
-        set_c_cxx_flag("-mtune=generic")
-        try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
-    elseif (ARCH STREQUAL "amd64")
-        set_c_cxx_flag("-m64")
-        set_c_cxx_flag("-mtune=generic")
-        try_c_cxx_flag_werror(MCX16 "-mcx16")
+    # Among the required hardware features, the NX bit (No eXecute bit)
+    # feature may be required for NativeClient to work. Some early
+    # Intel EM64T processors are known to not implement the NX bit.
+    # Some ARM CPUs may not implement the similar “execute never” feature.
+    # While this is an hardware feature, this isn't a build option because it's
+    # not used by the engine itself but by the NaCl loader. The engine will be
+    # built but the game may or may not run. The NX bit feature may also be
+    # disabled in the BIOS while the hardware supports it, so even if we would
+    # detect the lack of it such knowledge would be useless at build time.
+    # Running a server with a native executable game is also a valid usage
+    # not requiring the NX bit.
+
+    if (ARCH STREQUAL "amd64")
+        # K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
+        set(GCC_GENERIC_ARCH "x86-64")
+    elseif (ARCH STREQUAL "i686")
+        # P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
+        set(GCC_GENERIC_ARCH "i686")
     elseif (ARCH STREQUAL "arm64")
-        set_c_cxx_flag("-march=armv8-a")
+        # Armv8-A minimum: Cortex-A50.
+        set(GCC_GENERIC_ARCH "armv8-a")
     elseif (ARCH STREQUAL "armhf")
-        set_c_cxx_flag("-march=armv7")
-        set_c_cxx_flag("-mfloat-abi=hard")
-        set_c_cxx_flag("-mfpu=neon")
+        # Armv7-A with VFP minimum: Cortex-A5.
+        # Hard float ABI (mainstream 32-bit ARM Linux distributions).
+        set(GCC_GENERIC_ARCH "armv7-a")
     else()
         message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+    endif()
+
+    option(USE_CPU_GENERIC_ARCHITECTURE "Enforce generic -march and -mtune compiler options" ON)
+    if (USE_CPU_GENERIC_ARCHITECTURE)
+        set_c_cxx_flag("-march=${GCC_GENERIC_ARCH}")
+        set_c_cxx_flag("-mtune=generic")
+    endif()
+
+    option(USE_CPU_RECOMMENDED_FEATURES "Enforce usage of hardware features like SSE, NEON, VFP, MCX16, etc." ON)
+    if (USE_CPU_RECOMMENDED_FEATURES)
+        if (ARCH STREQUAL "amd64")
+            # CMPXCHG16B minimum (x86-64-v2): AMD64 revision F.
+            try_c_cxx_flag_werror(MCX16 "-mcx16")
+        elseif (ARCH STREQUAL "i686")
+            # SSE2 minimum: Intel Pentium 4 (Prescott), Intel Pentium M (Banias), AMD K8, Via C7.
+            set_c_cxx_flag("-msse2")
+            try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
+        elseif (ARCH STREQUAL "armhf")
+            # NEON minimum.
+            set_c_cxx_flag("-mfpu=neon")
+        endif()
     endif()
 
     # Use hidden symbol visibility if possible
