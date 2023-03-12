@@ -75,12 +75,14 @@ add_definitions(-DARCH_STRING=${ARCH})
 
 # Modifying NACL_ARCH breaks engine compatibility with nexe game binaries
 # since NACL_ARCH contributes to the nexe file name.
-if(ARCH STREQUAL "arm64")
+set(ARMHF_USAGE arm64 armel)
+if(ARCH IN_LIST ARMHF_USAGE)
 	if (LINUX)
 		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
+		# The nexe is system agnostic so there should be no difference with armel.
 		set(NACL_ARCH "armhf")
 	else()
-		message(FATAL_ERROR "arm64 architecture is not supported on this system")
+		message(FATAL_ERROR "${ARCH} architecture is not supported on this system")
 	endif()
 else()
 	set(NACL_ARCH "${ARCH}")

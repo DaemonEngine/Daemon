@@ -210,6 +210,10 @@ else()
         # Armv7-A with VFP minimum: Cortex-A5.
         # Hard float ABI (mainstream 32-bit ARM Linux distributions).
         set(GCC_GENERIC_ARCH "armv7-a")
+    elseif (ARCH STREQUAL "armel")
+        # Armv6 minimum, optional VFP: ARM11.
+        # Soft float ABI (mainstream 32-bit ARM Android distributions).
+        set(GCC_GENERIC_ARCH "armv6")
     else()
         message(FATAL_ERROR "Unsupported architecture ${ARCH}")
     endif()
@@ -232,6 +236,9 @@ else()
         elseif (ARCH STREQUAL "armhf")
             # NEON minimum.
             set_c_cxx_flag("-mfpu=neon")
+        elseif (ARCH STREQUAL "armel")
+            # VFP minimum, hardware float with soft float ABI
+            set_c_cxx_flag("-mfloat-abi=softfp")
         endif()
     endif()
 
