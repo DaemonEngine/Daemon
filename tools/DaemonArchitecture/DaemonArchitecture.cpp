@@ -91,8 +91,11 @@ platform variants we cannot support anyway. */
 #elif defined(Q_PROCESSOR_ARM_64)
 	#pragma message("DAEMON_ARCH_arm64")
 
-#elif defined(Q_PROCESSOR_ARM_32) && Q_PROCESSOR_ARM == 7
+#elif defined(Q_PROCESSOR_ARM_32) && Q_PROCESSOR_ARM >= 7 && defined(__ARM_PCS_VFP)
 	#pragma message("DAEMON_ARCH_armhf")
+
+#elif defined(Q_PROCESSOR_ARM_32) && Q_PROCESSOR_ARM >= 6 && !defined(__ARM_PCS_VFP)
+	#pragma message("DAEMON_ARCH_armel")
 
 /* Devices like:
  - Raptor Computing Systems Talos, Blackbird… */
