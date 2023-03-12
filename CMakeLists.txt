@@ -270,7 +270,9 @@ if (NOT NACL)
         set(DEPS_COMPILER default)
     endif()
 
-    if (DEPS_SYSTEM)
+    set(SUPPORTED_ARCH amd64 i686 arm64 armhf)
+
+    if (DEPS_SYSTEM AND ARCH IN_LIST SUPPORTED_ARCH)
         set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
 
         if (DAEMON_PARENT_SCOPE_DIR)
