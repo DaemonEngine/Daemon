@@ -73,10 +73,8 @@ add_definitions(-D${ARCH_DEFINE})
 # See: https://cmake.org/cmake/help/latest/prop_dir/COMPILE_DEFINITIONS.html
 add_definitions(-DARCH_STRING=${ARCH})
 
-# Compatibility with historical NACL_ARCH suffixes for .nexe file, modifying
-# them breaks engine compatibility with published nexe game binaries.
-# TODO(0.54): Unify all arch strings using i686 and amd64 strings by using
-# ARCH_STRING define and setting NACL_ARCH to ARCH in all cases.
+# Modifying NACL_ARCH breaks engine compatibility with nexe game binaries
+# since NACL_ARCH contributes to the nexe file name.
 if(ARCH STREQUAL "arm64")
 	if (LINUX)
 		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
