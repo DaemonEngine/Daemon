@@ -126,7 +126,6 @@ function(GAMEMODULE)
         string(REPLACE "," ";" NACL_TARGETS "${NACL_TARGETS_STRING}")
 
         # Generate NaCl executables for supported architectures.
-        # TODO(0.54): Unify all arch strings using i686 and amd64 strings.
         foreach(NACL_TARGET ${NACL_TARGETS})
             if (NACL_TARGET STREQUAL "i686")
                 pnacl_translate(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} "i686" "i686")
