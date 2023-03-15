@@ -124,10 +124,10 @@ static void CreateSingletonSocket()
 	addr.sun_family = AF_UNIX;
 	Q_strncpyz(addr.sun_path, singletonSocketPath.c_str(), sizeof(addr.sun_path));
 	if (bind(singletonSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1)
-		Sys::Error("Could not bind singleton socket: %s", strerror(errno));
+		Sys::Error("Could not bind singleton socket at file: \"%s\", error: \"%s\"", singletonSocketPath, strerror(errno) );
 
 	if (listen(singletonSocket, SOMAXCONN) == -1)
-		Sys::Error("Could not listen on singleton socket: %s", strerror(errno));
+		Sys::Error("Could not listen on singleton socket file \"%s\", error: \"%s\"", singletonSocketPath, strerror(errno) );
 #endif
 }
 
