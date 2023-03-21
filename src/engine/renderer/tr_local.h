@@ -1124,7 +1124,7 @@ static inline void glFboSetExt()
 		expression_t rExp;
 	};
 
-#define MAX_IMAGE_ANIMATIONS 24
+#define MAX_IMAGE_ANIMATIONS 32
 
 	enum
 	{
