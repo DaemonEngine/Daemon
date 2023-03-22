@@ -4054,7 +4054,12 @@ void R_LoadLightGrid( lump_t *l )
 		gridPoint1->color[ 0 ] = floatToUnorm8( 0.5f * (ambientColor[ 0 ] + directedColor[ 0 ]) );
 		gridPoint1->color[ 1 ] = floatToUnorm8( 0.5f * (ambientColor[ 1 ] + directedColor[ 1 ]) );
 		gridPoint1->color[ 2 ] = floatToUnorm8( 0.5f * (ambientColor[ 2 ] + directedColor[ 2 ]) );
-		gridPoint1->ambientPart = floatToUnorm8( VectorLength(ambientColor) / (VectorLength(ambientColor) + VectorLength(directedColor)) );
+
+		// Avoid division-by-zero.
+		float ambientLength = VectorLength(ambientColor);
+		float directedLength = VectorLength(directedColor);
+		float length = ambientLength + directedLength;
+		gridPoint1->ambientPart = length ? floatToUnorm8( ambientLength / length ) : 0;
 
 		gridPoint2->direction[0] = 128 + floatToSnorm8( direction[ 0 ] );
 		gridPoint2->direction[1] = 128 + floatToSnorm8( direction[ 1 ] );
