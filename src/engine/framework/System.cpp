@@ -66,20 +66,20 @@ static std::string singletonSocketPath;
 // Get the path of a singleton socket
 std::string GetSingletonSocketPath()
 {
-    auto& suffix = Application::GetTraits().uniqueHomepathSuffix;
+    auto& homePathSuffix = Application::GetTraits().uniqueHomepathSuffix;
 	// Use the hash of the homepath to identify instances sharing a homepath
 	const std::string& homePath = FS::GetHomePath();
 	char homePathHash[33] = "";
 	Com_MD5Buffer(homePath.data(), homePath.size(), homePathHash, sizeof(homePathHash));
+	std::string suffix = homePathSuffix + "-" + homePathHash;
 #ifdef _WIN32
-	std::string base = "\\\\.\\pipe\\" PRODUCT_NAME;
+	return "\\\\.\\pipe\\" PRODUCT_NAME + suffix;
 #else
 	// We use a temporary directory rather that using the homepath because
 	// socket paths are limited to about 100 characters. This also avoids issues
 	// when the homepath is on a network filesystem.
-	std::string base = FS::Path::Build(FS::DefaultTempPath(), "." PRODUCT_NAME_LOWER);
+	return FS::Path::Build(FS::Path::Build(FS::DefaultTempPath(), "." PRODUCT_NAME_LOWER + suffix), "socket");
 #endif
-	return base + suffix + "-" + homePathHash;
 }
 
 // Create a socket to listen for commands from other instances
