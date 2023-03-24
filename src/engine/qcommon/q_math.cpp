@@ -562,8 +562,14 @@ float ProjectPointOntoRectangleOutwards( vec2_t out, const vec2_t point, const v
 	dsign[ 0 ] = ( dir[ 0 ] < 0.0f );
 	dsign[ 1 ] = ( dir[ 1 ] < 0.0f );
 
-	t = ( bounds[ 1 - dsign[ 0 ] ][ 0 ] - point[ 0 ] ) / dir[ 0 ];
-	ty = ( bounds[ 1 - dsign[ 1 ] ][ 1 ] - point[ 1 ] ) / dir[ 1 ];
+	/* Avoids division-by-zero.
+	Valid values are like 1153.3669 or 0.0027. */
+	vec2_t div;
+	div[ 0 ] = dir[ 0 ] ? dir[ 0 ] : 0.0001f;
+	div[ 1 ] = dir[ 1 ] ? dir[ 1 ] : 0.0001f;
+
+	t = ( bounds[ 1 - dsign[ 0 ] ][ 0 ] - point[ 0 ] ) / div[ 0 ];
+	ty = ( bounds[ 1 - dsign[ 1 ] ][ 1 ] - point[ 1 ] ) / div[ 1 ];
 
 	if( ty < t )
 		t = ty;
