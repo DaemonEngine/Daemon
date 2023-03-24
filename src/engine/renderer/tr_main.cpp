@@ -1841,7 +1841,10 @@ static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	if ( tr.viewParms.portalLevel >= r_max_portal_levels->integer &&
 	     tr.viewParms.portalLevel > 0 )
 	{
-		Log::Warn("recursive mirror/portal found");
+		/* Having more than one mirror in a scene is not a bug,
+		we just need to prevent infinite recursion.
+
+		Log::Warn("recursive mirror/portal found"); */
 		return false;
 	}
 
@@ -2071,8 +2074,6 @@ static void R_SortDrawSurfs()
 			{
 				return;
 			}
-
-			break; // only one mirror view at a time
 		}
 	}
 
