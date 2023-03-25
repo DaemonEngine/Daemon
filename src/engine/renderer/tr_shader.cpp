@@ -2796,7 +2796,19 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				//stage->type = ST_PORTALMAP;
 				stage->alphaGen = alphaGen_t::AGEN_CONST;
 				stage->constantColor.SetAlpha( 0 );
-				SkipRestOfLine( text );
+
+				token = COM_ParseExt2( text, false );
+
+				/* Until we implement “alphaGen portal” to blend textures on them
+				we are still rendering portals so we need to parse the range. */
+				if ( token[ 0 ] )
+				{
+					shader.portalRange = atof( token );
+				}
+
+				/* Quake3 shaders made the portalRange a requirement, we choose
+				to make it optional and fallback later on the default value or the
+				value that is previously set as “portal <range>” at shader level. */
 			}
 			else
 			{
@@ -4252,17 +4264,17 @@ static bool ParseShader( const char *_text )
 			shader.sort = Util::ordinal(shaderSort_t::SS_PORTAL);
 			shader.isPortal = true;
 
+			/* Quake3 shaders required the portalRange to be set at stage level
+			as “alphaGen portal <range>”, we choose to make it totally optional,
+			allowing to set it there or fallback to the default value if is set
+			nowhere. Allowing to set the portal range ther allows to set the
+			range for portals that don't blend with textures. */
 			token = COM_ParseExt2( text, false );
 
 			if ( token[ 0 ] )
 			{
 				shader.portalRange = atof( token );
 			}
-			else
-			{
-				shader.portalRange = 256;
-			}
-
 			continue;
 		}
 		// portal or mirror
@@ -4270,6 +4282,11 @@ static bool ParseShader( const char *_text )
 		{
 			shader.sort = Util::ordinal(shaderSort_t::SS_PORTAL);
 			shader.isPortal = true;
+
+			/* Mirrors don't use any portal range, probably because they always
+			render the room the mirror is in, and then the renderer processes the
+			same geometry that would be processed with or without mirror. In case
+			there is more than a mirror visible, there is a recursion limit. */
 			continue;
 		}
 		// skyparms <cloudheight> <outerbox> <innerbox>
@@ -5167,6 +5184,13 @@ static shader_t *FinishShader()
 {
 	int      stage, i;
 	shader_t *ret;
+
+	if ( !shader.portalRange )
+	{
+		/* Mirrors will not use that range but we need all
+		other portals to have it set. */
+		shader.portalRange = r_portalDefaultRange.Get();
+	}
 
 	// set sky stuff appropriate
 	if ( shader.isSky )

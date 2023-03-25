@@ -3043,6 +3043,7 @@ static inline void glFboSetExt()
 	extern cvar_t *r_lockpvs;
 	extern cvar_t *r_noportals;
 	extern cvar_t *r_portalOnly;
+	extern Cvar::Modified<Cvar::Cvar<int>> r_portalDefaultRange;
 	extern cvar_t *r_portalSky;
 	extern cvar_t *r_max_portal_levels;
 
