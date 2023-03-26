@@ -790,7 +790,7 @@ fontInfo_t* RE_RegisterFont( const char *fontName, const char *fallbackName, int
 
 		if ( FT_Set_Char_Size( fallback, pointSize << 6, pointSize << 6, 72, 72 ) )
 		{
-			Log::Warn("RE_RegisterFont: FreeType2, Unable to set face char size.\n" );
+			Log::Warn("RE_RegisterFont: FreeType2, Unable to set face char size." );
 			FT_Done_Face( fallback );
 			RE_FreeFontFile( fallbackData );
 			FT_Done_Face( face );

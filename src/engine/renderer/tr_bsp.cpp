@@ -3918,7 +3918,7 @@ void R_LoadLightGrid( lump_t *l )
 
 	if ( static_cast<size_t>(l->filelen) != w->numLightGridPoints * sizeof( dgridPoint_t ) )
 	{
-		Log::Warn("light grid mismatch, default light grid used\n" );
+		Log::Warn("light grid mismatch, default light grid used" );
 
 		// generate default 1x1x1 light grid
 		w->lightGridSize[ 0 ] = 100000.0f;
@@ -4459,7 +4459,7 @@ void R_LoadEntities( lump_t *l )
 				vec_t rad_y, rad_z;
 				sscanf( value, "%f %f %f", &light->l.radius, &rad_y, &rad_z );
 				if( rad_y != light->l.radius || rad_z != light->l.radius )
-					Log::Warn( "non-spherical light\n" );
+					Log::Warn( "non-spherical light" );
 				s = &value[ 0 ];
 			}
 			// check for light_target
