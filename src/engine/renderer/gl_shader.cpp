@@ -1203,7 +1203,7 @@ void GLShaderManager::PrintInfoLog( GLuint object) const
 	}
 	else
 	{
-		Log::Warn( "object is not a shader or program\n" );
+		Log::Warn( "object is not a shader or program" );
 		return;
 	}
 

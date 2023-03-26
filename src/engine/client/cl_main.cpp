@@ -3531,7 +3531,7 @@ void CL_GlobalServers_f()
 		{
 			if ( !wildcard )
 			{
-				Log::Warn( "CL_GlobalServers_f: No master server address given.\n" );
+				Log::Warn( "CL_GlobalServers_f: No master server address given." );
 			}
 			continue;
 		}

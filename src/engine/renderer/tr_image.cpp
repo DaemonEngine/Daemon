@@ -934,7 +934,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 	else if ( image->bits & ( IF_RGBA32UI ) )
 	{
 		if( !glConfig2.textureIntegerAvailable ) {
-			Log::Warn( "integer image '%s' cannot be loaded\n", image->name );
+			Log::Warn( "integer image '%s' cannot be loaded", image->name );
 		}
 		internalFormat = GL_RGBA32UI;
 		format = GL_RGBA_INTEGER;

@@ -288,7 +288,7 @@ void CL_WWWDownload()
 		if ( strlen( clc.redirectedList ) + strlen( cls.originalDownloadName ) + 1 >= sizeof( clc.redirectedList ) )
 		{
 			// just to be safe
-			Log::Warn( "redirectedList overflow (%s)\n", clc.redirectedList );
+			Log::Warn( "redirectedList overflow (%s)", clc.redirectedList );
 		}
 		else
 		{

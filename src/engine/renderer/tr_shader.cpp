@@ -3218,7 +3218,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 	// check that depthFade and depthWrite are mutually exclusive
 	if ( depthMaskBits && stage->hasDepthFade ) {
-		Log::Warn( "depth fade conflicts with depth mask in shader '%s'\n", shader.name );
+		Log::Warn( "depth fade conflicts with depth mask in shader '%s'", shader.name );
 		stage->hasDepthFade = false;
 	}
 

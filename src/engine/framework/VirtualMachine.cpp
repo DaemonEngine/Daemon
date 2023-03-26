@@ -499,9 +499,9 @@ void VMBase::Free()
 		int status;
 		if (waitpid(processHandle, &status, WNOHANG) != 0) {
 			if (WIFSIGNALED(status))
-				Log::Warn("VM exited with signal %d: %s\n", WTERMSIG(status), strsignal(WTERMSIG(status)));
+				Log::Warn("VM exited with signal %d: %s", WTERMSIG(status), strsignal(WTERMSIG(status)));
 			else if (WIFEXITED(status))
-				Log::Warn("VM exited with non-zero exit code %d\n", WEXITSTATUS(status));
+				Log::Warn("VM exited with non-zero exit code %d", WEXITSTATUS(status));
 		}
 		kill(processHandle, SIGKILL);
 		waitpid(processHandle, nullptr, 0);

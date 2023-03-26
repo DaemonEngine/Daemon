@@ -1091,7 +1091,7 @@ SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *
 
 	if ( bind( newsocket, ( struct sockaddr * ) &address, sizeof( address ) ) == SOCKET_ERROR )
 	{
-		Log::Warn( "NET_IP6Socket: bind: %s\n", NET_ErrorString() );
+		Log::Warn( "NET_IP6Socket: bind: %s", NET_ErrorString() );
 		*err = socketError;
 		closesocket( newsocket );
 		return INVALID_SOCKET;

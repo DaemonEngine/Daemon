@@ -1500,10 +1500,10 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg )
 	} else if (c == clc_moveNoDelta) {
 		SV_UserMove(cl, msg, false);
 	} else if (c != clc_EOF) {
-		Log::Warn("bad command byte for client %i\n", (int) (cl - svs.clients));
+		Log::Warn("bad command byte for client %i", (int) (cl - svs.clients));
 	}
 	if (c != clc_EOF && MSG_ReadByte(msg) != clc_EOF) {
-		Log::Warn("missing clc_EOF byte for client %i\n", (int) (cl - svs.clients));
+		Log::Warn("missing clc_EOF byte for client %i", (int) (cl - svs.clients));
 	}
 
 //  TODO: track bytes read
