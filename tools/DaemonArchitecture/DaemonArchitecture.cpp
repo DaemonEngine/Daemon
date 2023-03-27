@@ -80,7 +80,7 @@ platform variants we cannot support anyway. */
 #elif defined(Q_PROCESSOR_X86_64)
 	#pragma message("DAEMON_ARCH_amd64")
 
-#elif defined(Q_PROCESSOR_X86_32) && Q_PROCESSOR_X86 == 6
+#elif defined(Q_PROCESSOR_X86_32) && Q_PROCESSOR_X86 >= 6
 	#pragma message("DAEMON_ARCH_i686")
 
 /* Devices like:
