@@ -1285,8 +1285,6 @@ static inline void glFboSetExt()
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
 	};
 
-	struct shaderCommands_t;
-
 	enum cullType_t : int
 	{
 		CT_FRONT_SIDED = 0,
