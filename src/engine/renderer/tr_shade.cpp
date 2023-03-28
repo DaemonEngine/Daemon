@@ -2816,23 +2816,11 @@ void Tess_StageIteratorGeneric()
 				}
 
 			case stageType_t::ST_LIGHTMAP:
-				{
-					Render_lightMapping( stage );
-					break;
-				}
-
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 			case stageType_t::ST_COLLAPSE_lighting_PBR:
 				{
-					if ( r_precomputedLighting->integer )
-					{
-						Render_lightMapping( stage );
-					}
-					else
-					{
-						Render_depthFill( stage );
-					}
+					Render_lightMapping( stage );
 					break;
 				}
 
