@@ -1101,7 +1101,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_customheight = Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
 		r_subdivisions = Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
 		r_dynamicLightCastShadows = Cvar_Get( "r_dynamicLightCastShadows", "1", 0 );
-		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_LATCH );
+		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_vertexLighting = Cvar_Get( "r_vertexLighting", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_lightStyles = Cvar_Get( "r_lightStyles", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_exportTextures = Cvar_Get( "r_exportTextures", "0", 0 );
