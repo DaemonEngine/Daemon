@@ -693,6 +693,12 @@ static void Render_generic2D( int stage )
 
 static void Render_generic( int stage )
 {
+	if ( backEnd.projection2D )
+	{
+		Render_generic2D( stage );
+		return;
+	}
+
 	shaderStage_t *pStage;
 	colorGen_t    rgbGen;
 	alphaGen_t    alphaGen;
@@ -2804,14 +2810,7 @@ void Tess_StageIteratorGeneric()
 		{
 			case stageType_t::ST_COLORMAP:
 				{
-					if ( backEnd.projection2D )
-					{
-						Render_generic2D( stage );
-					}
-					else
-					{
-						Render_generic( stage );
-					}
+					Render_generic( stage );
 					break;
 				}
 
