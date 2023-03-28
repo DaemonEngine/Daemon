@@ -446,7 +446,6 @@ static std::vector<std::string> R_LoadExternalLightmaps( const char *mapName )
 R_LoadLightmaps
 ===============
 */
-static const int LIGHTMAP_SIZE = 128;
 static void R_LoadLightmaps( lump_t *l, const char *bspName )
 {
 	tr.worldLightMapping = r_precomputedLighting->integer && !r_vertexLighting->integer;
@@ -591,8 +590,10 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 		// we are about to upload textures
 		R_SyncRenderThread();
 
+		const int internalLightMapSize = 128;
+
 		// create all the lightmaps
-		int numLightmaps = len / ( LIGHTMAP_SIZE * LIGHTMAP_SIZE * 3 );
+		int numLightmaps = len / ( internalLightMapSize * internalLightMapSize * 3 );
 
 		if ( numLightmaps == 1 )
 		{
@@ -609,21 +610,21 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 		for ( int i = 0; i < numLightmaps; i++ )
 		{
-			byte *lightMapBuffer = (byte*) ri.Hunk_AllocateTempMemory( sizeof( byte ) * LIGHTMAP_SIZE * LIGHTMAP_SIZE * 4 );
+			byte *lightMapBuffer = (byte*) ri.Hunk_AllocateTempMemory( sizeof( byte ) * internalLightMapSize * internalLightMapSize * 4 );
 
-			memset( lightMapBuffer, 128, LIGHTMAP_SIZE * LIGHTMAP_SIZE * 4 );
+			memset( lightMapBuffer, 128, internalLightMapSize * internalLightMapSize * 4 );
 
 			// expand the 24 bit on-disk to 32 bit
-			byte *buf_p = buf + i * LIGHTMAP_SIZE * LIGHTMAP_SIZE * 3;
+			byte *buf_p = buf + i * internalLightMapSize * internalLightMapSize * 3;
 
-			for ( int y = 0; y < LIGHTMAP_SIZE; y++ )
+			for ( int y = 0; y < internalLightMapSize; y++ )
 			{
-				for ( int x = 0; x < LIGHTMAP_SIZE; x++ )
+				for ( int x = 0; x < internalLightMapSize; x++ )
 				{
-					int index = x + ( y * LIGHTMAP_SIZE );
-					lightMapBuffer[( index * 4 ) + 0 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 0 ];
-					lightMapBuffer[( index * 4 ) + 1 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 1 ];
-					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * LIGHTMAP_SIZE ) ) * 3 ) + 2 ];
+					int index = x + ( y * internalLightMapSize );
+					lightMapBuffer[( index * 4 ) + 0 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 0 ];
+					lightMapBuffer[( index * 4 ) + 1 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 1 ];
+					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 2 ];
 					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
 					R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ], &lightMapBuffer[( index * 4 ) + 0 ] );
@@ -635,7 +636,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			imageParams.filterType = filterType_t::FT_DEFAULT;
 			imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-			image_t *internalLightMap = R_CreateImage( va( "_internalLightMap%d", i ), (const byte **)&lightMapBuffer, LIGHTMAP_SIZE, LIGHTMAP_SIZE, 1, imageParams );
+			image_t *internalLightMap = R_CreateImage( va( "_internalLightMap%d", i ), (const byte **)&lightMapBuffer, internalLightMapSize, internalLightMapSize, 1, imageParams );
 			Com_AddToGrowList( &tr.lightmaps, internalLightMap );
 
 			ri.Hunk_FreeTempMemory( lightMapBuffer );
