@@ -3876,6 +3876,55 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	Log::Debug("%i fog volumes loaded", s_worldData.numFogs );
 }
 
+static void R_SetDefaultLightGrid()
+{
+	world_t *w = &s_worldData;
+
+	// generate default 1x1x1 light grid
+	w->lightGridSize[ 0 ] = 100000.0f;
+	w->lightGridSize[ 1 ] = 100000.0f;
+	w->lightGridSize[ 2 ] = 100000.0f;
+	w->lightGridInverseSize[ 0 ] = 1.0f / w->lightGridSize[ 0 ];
+	w->lightGridInverseSize[ 1 ] = 1.0f / w->lightGridSize[ 1 ];
+	w->lightGridInverseSize[ 2 ] = 1.0f / w->lightGridSize[ 2 ];
+
+	VectorSet( w->lightGridOrigin, 0.0f, 0.0f, 0.0f );
+
+	VectorMA( w->lightGridOrigin, -0.5f, w->lightGridSize,
+		  w->lightGridGLOrigin );
+
+	VectorSet( w->lightGridBounds, 1, 1, 1 );
+	w->numLightGridPoints = 1;
+
+	w->lightGridGLScale[ 0 ] = w->lightGridInverseSize[ 0 ];
+	w->lightGridGLScale[ 1 ] = w->lightGridInverseSize[ 1 ];
+	w->lightGridGLScale[ 2 ] = w->lightGridInverseSize[ 2 ];
+
+	bspGridPoint1_t *gridPoint1 = (bspGridPoint1_t *) ri.Hunk_Alloc( sizeof( bspGridPoint1_t ) + sizeof( bspGridPoint2_t ), ha_pref::h_low );
+	bspGridPoint2_t *gridPoint2 = (bspGridPoint2_t *) (gridPoint1 + w->numLightGridPoints);
+
+	// default some white light from above
+	gridPoint1->color[ 0 ] = 64;
+	gridPoint1->color[ 1 ] = 64;
+	gridPoint1->color[ 2 ] = 64;
+	gridPoint1->ambientPart = 128;
+	gridPoint2->direction[ 0 ] = floatToSnorm8(0.0f);
+	gridPoint2->direction[ 1 ] = floatToSnorm8(0.0f);
+	gridPoint2->direction[ 2 ] = floatToSnorm8(1.0f);
+	gridPoint2->unused = 0;
+
+	w->lightGridData1 = gridPoint1;
+	w->lightGridData2 = gridPoint2;
+
+	imageParams_t imageParams = {};
+	imageParams.bits = IF_NOPICMIP | IF_NOLIGHTSCALE;
+	imageParams.filterType = filterType_t::FT_DEFAULT;
+	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+
+	tr.lightGrid1Image = R_Create3DImage("<lightGrid1>", (const byte *)w->lightGridData1, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+	tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+}
+
 /*
 ================
 R_LoadLightGrid
@@ -3897,6 +3946,11 @@ void R_LoadLightGrid( lump_t *l )
 	vec3_t         ambientColor, directedColor, direction;
 	float          scale;
 
+	if ( !r_precomputedLighting->integer )
+	{
+		R_SetDefaultLightGrid();
+		return;
+	}
 
 	Log::Debug("...loading light grid" );
 
@@ -3934,49 +3988,7 @@ void R_LoadLightGrid( lump_t *l )
 	{
 		Log::Warn("light grid mismatch, default light grid used" );
 
-		// generate default 1x1x1 light grid
-		w->lightGridSize[ 0 ] = 100000.0f;
-		w->lightGridSize[ 1 ] = 100000.0f;
-		w->lightGridSize[ 2 ] = 100000.0f;
-		w->lightGridInverseSize[ 0 ] = 1.0f / w->lightGridSize[ 0 ];
-		w->lightGridInverseSize[ 1 ] = 1.0f / w->lightGridSize[ 1 ];
-		w->lightGridInverseSize[ 2 ] = 1.0f / w->lightGridSize[ 2 ];
-
-		VectorSet( w->lightGridOrigin, 0.0f, 0.0f, 0.0f );
-
-		VectorMA( w->lightGridOrigin, -0.5f, w->lightGridSize,
-			  w->lightGridGLOrigin );
-
-		VectorSet( w->lightGridBounds, 1, 1, 1 );
-		w->numLightGridPoints = 1;
-
-		w->lightGridGLScale[ 0 ] = w->lightGridInverseSize[ 0 ];
-		w->lightGridGLScale[ 1 ] = w->lightGridInverseSize[ 1 ];
-		w->lightGridGLScale[ 2 ] = w->lightGridInverseSize[ 2 ];
-
-		gridPoint1 = (bspGridPoint1_t *) ri.Hunk_Alloc( sizeof( *gridPoint1 ) + sizeof( *gridPoint2 ), ha_pref::h_low );
-		gridPoint2 = (bspGridPoint2_t *) (gridPoint1 + w->numLightGridPoints);
-
-		// default some white light from above
-		gridPoint1->color[ 0 ] = 64;
-		gridPoint1->color[ 1 ] = 64;
-		gridPoint1->color[ 2 ] = 64;
-		gridPoint1->ambientPart = 128;
-		gridPoint2->direction[ 0 ] = floatToSnorm8(0.0f);
-		gridPoint2->direction[ 1 ] = floatToSnorm8(0.0f);
-		gridPoint2->direction[ 2 ] = floatToSnorm8(1.0f);
-		gridPoint2->unused = 0;
-
-		w->lightGridData1 = gridPoint1;
-		w->lightGridData2 = gridPoint2;
-
-		imageParams_t imageParams = {};
-		imageParams.bits = IF_NOPICMIP | IF_NOLIGHTSCALE;
-		imageParams.filterType = filterType_t::FT_DEFAULT;
-		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
-
-		tr.lightGrid1Image = R_Create3DImage("<lightGrid1>", (const byte *)w->lightGridData1, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
-		tr.lightGrid2Image = R_Create3DImage("<lightGrid2>", (const byte *)w->lightGridData2, w->lightGridBounds[ 0 ], w->lightGridBounds[ 1 ], w->lightGridBounds[ 2 ], imageParams );
+		R_SetDefaultLightGrid();
 
 		return;
 	}
