@@ -4995,6 +4995,9 @@ static void CollapseStages()
 
 		// Set shader stage renderer functions.
 		SetShaderStageRenderers( &shader, stage );
+
+		// Set shader stage colorGen and alphaGen.
+		SetShaderStageColorAlphaGen( stage );
 	}
 }
 

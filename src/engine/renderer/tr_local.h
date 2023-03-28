@@ -1222,6 +1222,9 @@ static inline void glFboSetExt()
 		alphaGen_t      alphaGen;
 		expression_t    alphaExp;
 
+		colorGen_t computedColorGen;
+		alphaGen_t computedAlphaGen;
+
 		expression_t    alphaTestExp;
 
 		bool        tcGen_Environment;
@@ -1296,6 +1299,7 @@ static inline void glFboSetExt()
 	};
 
 	void SetShaderStageRenderers( shader_t*, shaderStage_t* );
+	void SetShaderStageColorAlphaGen( shaderStage_t* );
 
 	enum cullType_t : int
 	{
