@@ -4992,6 +4992,9 @@ static void CollapseStages()
 				stage->normalScale[ i ] = 1.0;
 			}
 		}
+
+		// Set shader stage renderer functions.
+		SetShaderStageRenderers( &shader, stage );
 	}
 }
 
