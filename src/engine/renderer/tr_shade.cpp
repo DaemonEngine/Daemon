@@ -862,13 +862,12 @@ static void Render_lightMapping( int stage )
 
 	shaderStage_t *pStage = tess.surfaceStages[ stage ];
 
-	bool enableLightMapping = !r_vertexLighting->integer
-		&& tess.bspSurface
-		&& tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements;
+	bool enableLightMapping = tr.worldLightMapping
+		&& tess.bspSurface;
 
-	bool enableDeluxeMapping = pStage->enableDeluxeMapping
+	bool enableDeluxeMapping = tr.worldDeluxeMapping
 		&& tess.bspSurface
-		&& tr.worldDeluxeMapping;
+		&& pStage->enableDeluxeMapping;
 
 	bool noLightMap = !pStage->implicitLightmap
 		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
@@ -2826,7 +2825,7 @@ void Tess_StageIteratorGeneric()
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 			case stageType_t::ST_COLLAPSE_lighting_PBR:
 				{
-					if ( r_precomputedLighting->integer || r_vertexLighting->integer )
+					if ( r_precomputedLighting->integer )
 					{
 						Render_lightMapping( stage );
 					}

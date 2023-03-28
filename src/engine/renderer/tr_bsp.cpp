@@ -449,7 +449,11 @@ R_LoadLightmaps
 static const int LIGHTMAP_SIZE = 128;
 static void R_LoadLightmaps( lump_t *l, const char *bspName )
 {
-	if ( r_vertexLighting->integer != 0 )
+	tr.worldLightMapping = r_precomputedLighting->integer && !r_vertexLighting->integer;
+
+	/* All lightmaps will be loaded if either light mapping
+	or deluxe mapping is enabled. */
+	if ( !tr.worldLightMapping && !tr.worldDeluxeMapping )
 	{
 		return;
 	}
@@ -482,6 +486,8 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			if ( hdrFiles.empty() )
 			{
 				Log::Warn("no lightmap files found");
+				tr.worldLightMapping = false;
+				tr.worldDeluxeMapping = false;
 				return;
 			}
 			std::sort( hdrFiles.begin(), hdrFiles.end(), LightmapNameLess );
@@ -505,11 +511,13 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 				ri.Free( ldrImage );
 			}
 
-			if (tr.worldDeluxeMapping && r_deluxeMapping->integer != 0) {
+			if (tr.worldDeluxeMapping) {
 				// load deluxemaps
 				std::vector<std::string> lightmapFiles = R_LoadExternalLightmaps(mapName);
 				if (lightmapFiles.empty()) {
 					Log::Warn("no lightmap files found");
+					tr.worldLightMapping = false;
+					tr.worldDeluxeMapping = false;
 					return;
 				}
 
@@ -533,6 +541,8 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			std::vector<std::string> lightmapFiles = R_LoadExternalLightmaps(mapName);
 			if (lightmapFiles.empty()) {
 				Log::Warn("no lightmap files found");
+				tr.worldLightMapping = false;
+				tr.worldDeluxeMapping = false;
 				return;
 			}
 
@@ -553,7 +563,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
 					Com_AddToGrowList(&tr.lightmaps, image);
 				}
-				else if (r_deluxeMapping->integer != 0)
+				else if (tr.worldDeluxeMapping)
 				{
 					imageParams_t imageParams = {};
 					imageParams.bits = IF_NOPICMIP | IF_NORMALMAP;
@@ -570,6 +580,9 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 		if ( !len )
 		{
+			Log::Warn("no lightmap files found");
+			tr.worldLightMapping = false;
+			tr.worldDeluxeMapping = false;
 			return;
 		}
 
@@ -825,7 +838,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 	// get lightmap
 	realLightmapNum = LittleLong( ds->lightmapNum );
 
-	if ( r_precomputedLighting->integer && ( !r_vertexLighting->integer || ( r_deluxeMapping->integer && tr.worldDeluxeMapping ) ) )
+	if ( tr.worldLightMapping || tr.worldDeluxeMapping )
 	{
 		surf->lightmapNum = realLightmapNum;
 	}
@@ -1033,7 +1046,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	// get lightmap
 	realLightmapNum = LittleLong( ds->lightmapNum );
 
-	if ( r_precomputedLighting->integer && ( !r_vertexLighting->integer || ( r_deluxeMapping->integer && tr.worldDeluxeMapping ) ) )
+	if ( tr.worldLightMapping || tr.worldDeluxeMapping )
 	{
 		surf->lightmapNum = realLightmapNum;
 	}
@@ -4224,7 +4237,8 @@ void R_LoadEntities( lump_t *l )
 		if ( !Q_stricmp( keyname, "deluxeMapping" ) && !Q_stricmp( value, "1" ) )
 		{
 			Log::Debug("map features directional light mapping" );
-			tr.worldDeluxeMapping = true;
+			// This will be disabled if the engine fails to load the lightmaps.
+			tr.worldDeluxeMapping = r_deluxeMapping->integer != 0;
 			continue;
 		}
 
@@ -4242,7 +4256,8 @@ void R_LoadEntities( lump_t *l )
 			if ( s )
 			{
 				Log::Debug("map features directional light mapping" );
-				tr.worldDeluxeMapping = true;
+				// This will be disabled if the engine fails to load the lightmaps.
+				tr.worldDeluxeMapping = r_deluxeMapping->integer != 0;
 			}
 
 			continue;
@@ -6013,7 +6028,7 @@ void R_PrecacheInteractions()
 	{
 		light = &s_worldData.lights[ i ];
 
-		if ( ( r_precomputedLighting->integer || r_vertexLighting->integer ) && !light->noRadiosity )
+		if ( tr.worldLightMapping && !light->noRadiosity )
 		{
 			continue;
 		}
@@ -6721,6 +6736,8 @@ void RE_LoadWorldMap( const char *name )
 	// try will not look at the partially loaded version
 	tr.world = nullptr;
 
+	// tr.worldDeluxeMapping will be set by R_LoadLightmaps()
+	tr.worldLightMapping = false;
 	// tr.worldDeluxeMapping will be set by R_LoadEntities()
 	tr.worldDeluxeMapping = false;
 	tr.worldHDR_RGBE = false;

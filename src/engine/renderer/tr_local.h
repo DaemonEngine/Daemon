@@ -2713,6 +2713,7 @@ static inline void glFboSetExt()
 		int        frameSceneNum; // zeroed at RE_BeginFrame
 
 		bool   worldMapLoaded;
+		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
 		world_t    *world;
