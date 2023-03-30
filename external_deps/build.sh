@@ -593,7 +593,11 @@ build_naclsdk() {
 	linux-arm64-*)
 		mkdir -p "${PREFIX}/lib-armhf"
 		cp -a pepper_*"/tools/lib/arm_trusted/lib/." "${PREFIX}/lib-armhf/."
-		mv "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
+		# Copy the library loader instead of renaming it because there may still be some
+		# references to ld-linux-armhf.so.3 in binaries.
+		cp "${PREFIX}/lib-armhf/ld-linux-armhf.so.3" "${PREFIX}/lib-armhf/ld-linux-armhf"
+		# We can't use patchelf or 'nacl_helper_bootstrap nacl_loader' will complain:
+		#   bootstrap_helper: nacl_loader: ELF file has unreasonable e_phnum=13
 		sed -e 's|/lib/ld-linux-armhf.so.3|lib-armhf/ld-linux-armhf|' -i "${PREFIX}/nacl_loader"
 		;;
 	esac
