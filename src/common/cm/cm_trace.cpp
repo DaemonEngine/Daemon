@@ -162,11 +162,8 @@ CM_TestBoxInBrush
 */
 static void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush )
 {
-	int          i;
-	cplane_t     *plane;
 	float        dist;
 	float        d1;
-	cbrushside_t *side;
 	float        t;
 	vec3_t       startp;
 
@@ -186,14 +183,18 @@ static void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush )
 		return;
 	}
 
+	const cbrushside_t *firstSide = brush->sides;
+	const cbrushside_t *endSide = firstSide + brush->numsides;
+	
+	// the first six planes are the axial planes, so we only
+	// need to test the remainder
+	firstSide += 6;
+
 	if ( tw->type == traceType_t::TT_CAPSULE )
 	{
-		// the first six planes are the axial planes, so we only
-		// need to test the remainder
-		for ( i = 6; i < brush->numsides; i++ )
+		for ( const cbrushside_t *side = firstSide; side < endSide; side++ )
 		{
-			side = brush->sides + i;
-			plane = side->plane;
+			const cplane_t *plane = side->plane;
 
 			// adjust the plane distance appropriately for radius
 			dist = plane->dist + tw->sphere.radius;
@@ -220,12 +221,9 @@ static void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush )
 	}
 	else
 	{
-		// the first six planes are the axial planes, so we only
-		// need to test the remainder
-		for ( i = 6; i < brush->numsides; i++ )
+		for ( const cbrushside_t *side = firstSide; side < endSide; side++ )
 		{
-			side = brush->sides + i;
-			plane = side->plane;
+			const cplane_t *plane = side->plane;
 
 			// adjust the plane distance appropriately for mins/maxs
 			dist = plane->dist - DotProduct( tw->offsets[ plane->signbits ], plane->normal );
@@ -1017,21 +1015,17 @@ CM_TraceThroughBrush
 */
 void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 {
-	int          i;
-	cplane_t     *plane, *clipplane;
 	float        dist;
 	float        enterFrac, leaveFrac;
 	float        d1, d2;
 	bool     getout, startout;
 	float        f;
-	cbrushside_t *side, *leadside;
 	float        t;
 	vec3_t       startp;
 	vec3_t       endp;
 
 	enterFrac = -1.0f;
 	leaveFrac = 1.0f;
-	clipplane = nullptr;
 
 	if ( !brush->numsides )
 	{
@@ -1043,7 +1037,11 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 	getout = false;
 	startout = false;
 
-	leadside = nullptr;
+	const cplane_t *clipplane = nullptr;
+	const cbrushside_t *leadside = nullptr;
+
+	const cbrushside_t *firstSide = brush->sides;
+	const cbrushside_t *endSide = firstSide + brush->numsides;
 
 	if ( tw->type == traceType_t::TT_BISPHERE )
 	{
@@ -1052,10 +1050,9 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 		// find the latest time the trace crosses a plane towards the interior
 		// and the earliest time the trace crosses a plane towards the exterior
 		//
-		for ( i = 0; i < brush->numsides; i++ )
+		for ( const cbrushside_t *side = firstSide; side < endSide; side++ )
 		{
-			side = brush->sides + i;
-			plane = side->plane;
+			const cplane_t *plane = side->plane;
 
 			// adjust the plane distance appropriately for radius
 			d1 = DotProduct( tw->start, plane->normal ) - ( plane->dist + tw->biSphere.startRadius );
@@ -1127,10 +1124,9 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 		// find the latest time the trace crosses a plane towards the interior
 		// and the earliest time the trace crosses a plane towards the exterior
 		//
-		for ( i = 0; i < brush->numsides; i++ )
+		for ( const cbrushside_t *side = firstSide; side < endSide; side++ )
 		{
-			side = brush->sides + i;
-			plane = side->plane;
+			const cplane_t *plane = side->plane;
 
 			// adjust the plane distance appropriately for radius
 			dist = plane->dist + tw->sphere.radius;
@@ -1218,10 +1214,9 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 		// find the latest time the trace crosses a plane towards the interior
 		// and the earliest time the trace crosses a plane towards the exterior
 		//
-		for ( i = 0; i < brush->numsides; i++ )
+		for ( const cbrushside_t *side = firstSide; side < endSide; side++ )
 		{
-			side = brush->sides + i;
-			plane = side->plane;
+			const cplane_t *plane = side->plane;
 
 			// adjust the plane distance appropriately for mins/maxs
 			dist = plane->dist - DotProduct( tw->offsets[ plane->signbits ], plane->normal );
@@ -2553,21 +2548,19 @@ void CM_TransformedBiSphereTrace( trace_t *results, const vec3_t start, const ve
 
 static float CM_DistanceToBrush( const vec3_t loc, cbrush_t *brush )
 {
-	int          i;
-	cplane_t     *plane;
 	float        dist = -999999.0f;
 	float        d1;
-	cbrushside_t *side;
 
 	if ( !brush->numsides )
 	{
 		return 999999.0f;
 	}
 
-	for ( i = 0; i < brush->numsides; i++ )
+	const cbrushside_t *firstSide = brush->sides;
+	const cbrushside_t *endSide = firstSide + brush->numsides;
+	for ( const cbrushside_t *side = firstSide; side < endSide; side++ )
 	{
-		side = brush->sides + i;
-		plane = side->plane;
+		const cplane_t *plane = side->plane;
 
 		d1 = DotProduct( loc, plane->normal ) - plane->dist;
 
