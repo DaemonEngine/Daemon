@@ -196,10 +196,8 @@ CM_PointContents
 int CM_PointContents( const vec3_t p, clipHandle_t model )
 {
 	int      leafnum;
-	int      i, k;
-	int      brushnum;
+	int      i;
 	cLeaf_t  *leaf;
-	cbrush_t *b;
 	int      contents;
 	float    d;
 	cmodel_t *clipm;
@@ -233,10 +231,11 @@ int CM_PointContents( const vec3_t p, clipHandle_t model )
 
 	contents = 0;
 
-	for ( k = 0; k < leaf->numLeafBrushes; k++ )
+	const int *firstBrushNum = leaf->firstLeafBrush;
+	const int *endBrushNum = firstBrushNum + leaf->numLeafBrushes;
+	for ( const int *brushNum = firstBrushNum; brushNum < endBrushNum; brushNum++ )
 	{
-		brushnum = leaf->firstLeafBrush[ k ];
-		b = &cm.brushes[ brushnum ];
+		cbrush_t *b = &cm.brushes[ *brushNum ];
 
 		// XreaL BEGIN
 		if ( !CM_BoundsIntersectPoint( b->bounds[ 0 ], b->bounds[ 1 ], p ) )
