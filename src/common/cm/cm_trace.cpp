@@ -1834,7 +1834,8 @@ void CM_TraceCapsuleThroughCapsule( traceWork_t *tw, clipHandle_t model )
 	     || tw->bounds[ 0 ][ 1 ] > maxs[ 1 ] + RADIUS_EPSILON
 	     || tw->bounds[ 0 ][ 2 ] > maxs[ 2 ] + RADIUS_EPSILON
 	     || tw->bounds[ 1 ][ 0 ] < mins[ 0 ] - RADIUS_EPSILON
-	     || tw->bounds[ 1 ][ 1 ] < mins[ 1 ] - RADIUS_EPSILON || tw->bounds[ 1 ][ 2 ] < mins[ 2 ] - RADIUS_EPSILON )
+	     || tw->bounds[ 1 ][ 1 ] < mins[ 1 ] - RADIUS_EPSILON
+	     || tw->bounds[ 1 ][ 2 ] < mins[ 2 ] - RADIUS_EPSILON )
 	{
 		return;
 	}
