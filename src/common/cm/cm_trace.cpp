@@ -465,7 +465,6 @@ a tangent sphere at the top and the bottom that has the same radius.
 */
 void CM_TestCapsuleInCapsule( traceWork_t *tw, clipHandle_t model )
 {
-	int    i;
 	vec3_t mins, maxs;
 	vec3_t top, bottom;
 	vec3_t p1, p2, tmp;
@@ -477,11 +476,18 @@ void CM_TestCapsuleInCapsule( traceWork_t *tw, clipHandle_t model )
 	VectorAdd( tw->start, tw->sphere.offset, top );
 	VectorSubtract( tw->start, tw->sphere.offset, bottom );
 
-	for ( i = 0; i < 3; i++ )
 	{
-		offset[ i ] = ( mins[ i ] + maxs[ i ] ) * 0.5;
-		symetricSize[ 0 ][ i ] = mins[ i ] - offset[ i ];
-		symetricSize[ 1 ][ i ] = maxs[ i ] - offset[ i ];
+		offset[ 0 ] = ( mins[ 0 ] + maxs[ 0 ] ) * 0.5;
+		offset[ 1 ] = ( mins[ 1 ] + maxs[ 1 ] ) * 0.5;
+		offset[ 2 ] = ( mins[ 2 ] + maxs[ 2 ] ) * 0.5;
+
+		symetricSize[ 0 ][ 0 ] = mins[ 0 ] - offset[ 0 ];
+		symetricSize[ 0 ][ 1 ] = mins[ 1 ] - offset[ 1 ];
+		symetricSize[ 0 ][ 2 ] = mins[ 2 ] - offset[ 2 ];
+
+		symetricSize[ 1 ][ 0 ] = maxs[ 0 ] - offset[ 0 ];
+		symetricSize[ 1 ][ 1 ] = maxs[ 1 ] - offset[ 1 ];
+		symetricSize[ 1 ][ 2 ] = maxs[ 2 ] - offset[ 2 ];
 	}
 
 	halfwidth = symetricSize[ 1 ][ 0 ];
@@ -555,19 +561,31 @@ void CM_TestBoundingBoxInCapsule( traceWork_t *tw, clipHandle_t model )
 	vec3_t       mins, maxs, offset, size[ 2 ];
 	clipHandle_t h;
 	cmodel_t     *cmod;
-	int          i;
 
 	// mins maxs of the capsule
 	CM_ModelBounds( model, mins, maxs );
 
 	// offset for capsule center
-	for ( i = 0; i < 3; i++ )
 	{
-		offset[ i ] = ( mins[ i ] + maxs[ i ] ) * 0.5;
-		size[ 0 ][ i ] = mins[ i ] - offset[ i ];
-		size[ 1 ][ i ] = maxs[ i ] - offset[ i ];
-		tw->start[ i ] -= offset[ i ];
-		tw->end[ i ] -= offset[ i ];
+		offset[ 0 ] = ( mins[ 0 ] + maxs[ 0 ] ) * 0.5;
+		offset[ 1 ] = ( mins[ 1 ] + maxs[ 1 ] ) * 0.5;
+		offset[ 2 ] = ( mins[ 2 ] + maxs[ 2 ] ) * 0.5;
+
+		size[ 0 ][ 0 ] = mins[ 0 ] - offset[ 0 ];
+		size[ 0 ][ 1 ] = mins[ 1 ] - offset[ 1 ];
+		size[ 0 ][ 2 ] = mins[ 2 ] - offset[ 2 ];
+
+		size[ 1 ][ 0 ] = maxs[ 0 ] - offset[ 0 ];
+		size[ 1 ][ 1 ] = maxs[ 1 ] - offset[ 1 ];
+		size[ 1 ][ 2 ] = maxs[ 2 ] - offset[ 2 ];
+
+		tw->start[ 0 ] -= offset[ 0 ];
+		tw->start[ 1 ] -= offset[ 1 ];
+		tw->start[ 2 ] -= offset[ 2 ];
+
+		tw->end[ 0 ] -= offset[ 0 ];
+		tw->end[ 1 ] -= offset[ 1 ];
+		tw->end[ 2 ] -= offset[ 2 ];
 	}
 
 	// replace the bounding box with the capsule
@@ -599,10 +617,14 @@ void CM_PositionTest( traceWork_t *tw )
 	VectorAdd( tw->start, tw->size[ 0 ], ll.bounds[ 0 ] );
 	VectorAdd( tw->start, tw->size[ 1 ], ll.bounds[ 1 ] );
 
-	for ( i = 0; i < 3; i++ )
 	{
-		ll.bounds[ 0 ][ i ] -= 1;
-		ll.bounds[ 1 ][ i ] += 1;
+		ll.bounds[ 0 ][ 0 ] -= 1;
+		ll.bounds[ 0 ][ 1 ] -= 1;
+		ll.bounds[ 0 ][ 2 ] -= 1;
+
+		ll.bounds[ 1 ][ 0 ] += 1;
+		ll.bounds[ 1 ][ 1 ] += 1;
+		ll.bounds[ 1 ][ 2 ] += 1;
 	}
 
 	ll.count = 0;
@@ -1800,7 +1822,6 @@ capsule vs. capsule collision (not rotated)
 */
 void CM_TraceCapsuleThroughCapsule( traceWork_t *tw, clipHandle_t model )
 {
-	int    i;
 	vec3_t mins, maxs;
 	vec3_t top, bottom, starttop, startbottom, endtop, endbottom;
 	vec3_t offset, symetricSize[ 2 ];
@@ -1825,11 +1846,18 @@ void CM_TraceCapsuleThroughCapsule( traceWork_t *tw, clipHandle_t model )
 	VectorSubtract( tw->end, tw->sphere.offset, endbottom );
 
 	// calculate top and bottom of the capsule spheres to collide with
-	for ( i = 0; i < 3; i++ )
 	{
-		offset[ i ] = ( mins[ i ] + maxs[ i ] ) * 0.5;
-		symetricSize[ 0 ][ i ] = mins[ i ] - offset[ i ];
-		symetricSize[ 1 ][ i ] = maxs[ i ] - offset[ i ];
+		offset[ 0 ] = ( mins[ 0 ] + maxs[ 0 ] ) * 0.5;
+		offset[ 1 ] = ( mins[ 1 ] + maxs[ 1 ] ) * 0.5;
+		offset[ 2 ] = ( mins[ 2 ] + maxs[ 2 ] ) * 0.5;
+
+		symetricSize[ 0 ][ 0 ] = mins[ 0 ] - offset[ 0 ];
+		symetricSize[ 0 ][ 1 ] = mins[ 1 ] - offset[ 1 ];
+		symetricSize[ 0 ][ 2 ] = mins[ 2 ] - offset[ 2 ];
+
+		symetricSize[ 1 ][ 0 ] = maxs[ 0 ] - offset[ 0 ];
+		symetricSize[ 1 ][ 1 ] = maxs[ 1 ] - offset[ 1 ];
+		symetricSize[ 1 ][ 2 ] = maxs[ 2 ] - offset[ 2 ];
 	}
 
 	halfwidth = symetricSize[ 1 ][ 0 ];
@@ -1874,19 +1902,31 @@ void CM_TraceBoundingBoxThroughCapsule( traceWork_t *tw, clipHandle_t model )
 	vec3_t       mins, maxs, offset, size[ 2 ];
 	clipHandle_t h;
 	cmodel_t     *cmod;
-	int          i;
 
 	// mins maxs of the capsule
 	CM_ModelBounds( model, mins, maxs );
 
 	// offset for capsule center
-	for ( i = 0; i < 3; i++ )
 	{
-		offset[ i ] = ( mins[ i ] + maxs[ i ] ) * 0.5;
-		size[ 0 ][ i ] = mins[ i ] - offset[ i ];
-		size[ 1 ][ i ] = maxs[ i ] - offset[ i ];
-		tw->start[ i ] -= offset[ i ];
-		tw->end[ i ] -= offset[ i ];
+		offset[ 0 ] = ( mins[ 0 ] + maxs[ 0 ] ) * 0.5;
+		offset[ 1 ] = ( mins[ 1 ] + maxs[ 1 ] ) * 0.5;
+		offset[ 2 ] = ( mins[ 2 ] + maxs[ 2 ] ) * 0.5;
+
+		size[ 0 ][ 0 ] = mins[ 0 ] - offset[ 0 ];
+		size[ 0 ][ 1 ] = mins[ 1 ] - offset[ 1 ];
+		size[ 0 ][ 2 ] = mins[ 2 ] - offset[ 2 ];
+
+		size[ 1 ][ 0 ] = maxs[ 0 ] - offset[ 0 ];
+		size[ 1 ][ 1 ] = maxs[ 1 ] - offset[ 1 ];
+		size[ 1 ][ 2 ] = maxs[ 2 ] - offset[ 2 ];
+
+		tw->start[ 0 ] -= offset[ 0 ];
+		tw->start[ 1 ] -= offset[ 1 ];
+		tw->start[ 2 ] -= offset[ 2 ];
+
+		tw->end[ 0 ] -= offset[ 0 ];
+		tw->end[ 1 ] -= offset[ 1 ];
+		tw->end[ 2 ] -= offset[ 2 ];
 	}
 
 	// replace the bounding box with the capsule
@@ -2095,13 +2135,26 @@ static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, co
 	// adjust so that mins and maxs are always symmetric, which
 	// avoids some complications with plane expanding of rotated
 	// bmodels
-	for ( i = 0; i < 3; i++ )
 	{
-		offset[ i ] = ( mins[ i ] + maxs[ i ] ) * 0.5;
-		tw.size[ 0 ][ i ] = mins[ i ] - offset[ i ];
-		tw.size[ 1 ][ i ] = maxs[ i ] - offset[ i ];
-		tw.start[ i ] = start[ i ] + offset[ i ];
-		tw.end[ i ] = end[ i ] + offset[ i ];
+		offset[ 0 ] = ( mins[ 0 ] + maxs[ 0 ] ) * 0.5;
+		offset[ 1 ] = ( mins[ 1 ] + maxs[ 1 ] ) * 0.5;
+		offset[ 2 ] = ( mins[ 2 ] + maxs[ 2 ] ) * 0.5;
+
+		tw.size[ 0 ][ 0 ] = mins[ 0 ] - offset[ 0 ];
+		tw.size[ 0 ][ 1 ] = mins[ 1 ] - offset[ 1 ];
+		tw.size[ 0 ][ 2 ] = mins[ 2 ] - offset[ 2 ];
+
+		tw.size[ 1 ][ 0 ] = maxs[ 0 ] - offset[ 0 ];
+		tw.size[ 1 ][ 1 ] = maxs[ 1 ] - offset[ 1 ];
+		tw.size[ 1 ][ 2 ] = maxs[ 2 ] - offset[ 2 ];
+
+		tw.start[ 0 ] = start[ 0 ] + offset[ 0 ];
+		tw.start[ 1 ] = start[ 1 ] + offset[ 1 ];
+		tw.start[ 2 ] = start[ 2 ] + offset[ 2 ];
+
+		tw.end[ 0 ] = end[ 0 ] + offset[ 0 ];
+		tw.end[ 1 ] = end[ 1 ] + offset[ 1 ];
+		tw.end[ 2 ] = end[ 2 ] + offset[ 2 ];
 	}
 
 	// if a sphere is already specified
@@ -2333,7 +2386,6 @@ void CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const vec3_t 
 	vec3_t   offset;
 	vec3_t   symetricSize[ 2 ];
 	vec3_t   matrix[ 3 ], transpose[ 3 ];
-	int      i;
 	float    halfwidth;
 	float    halfheight;
 	float    t;
@@ -2352,13 +2404,26 @@ void CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const vec3_t 
 	// adjust so that mins and maxs are always symmetric, which
 	// avoids some complications with plane expanding of rotated
 	// bmodels
-	for ( i = 0; i < 3; i++ )
 	{
-		offset[ i ] = ( mins[ i ] + maxs[ i ] ) * 0.5;
-		symetricSize[ 0 ][ i ] = mins[ i ] - offset[ i ];
-		symetricSize[ 1 ][ i ] = maxs[ i ] - offset[ i ];
-		start_l[ i ] = start[ i ] + offset[ i ];
-		end_l[ i ] = end[ i ] + offset[ i ];
+		offset[ 0 ] = ( mins[ 0 ] + maxs[ 0 ] ) * 0.5;
+		offset[ 1 ] = ( mins[ 1 ] + maxs[ 1 ] ) * 0.5;
+		offset[ 2 ] = ( mins[ 2 ] + maxs[ 2 ] ) * 0.5;
+
+		symetricSize[ 0 ][ 0 ] = mins[ 0 ] - offset[ 0 ];
+		symetricSize[ 0 ][ 1 ] = mins[ 1 ] - offset[ 1 ];
+		symetricSize[ 0 ][ 2 ] = mins[ 2 ] - offset[ 2 ];
+
+		symetricSize[ 1 ][ 0 ] = maxs[ 0 ] - offset[ 0 ];
+		symetricSize[ 1 ][ 1 ] = maxs[ 1 ] - offset[ 1 ];
+		symetricSize[ 1 ][ 2 ] = maxs[ 2 ] - offset[ 2 ];
+
+		start_l[ 0 ] = start[ 0 ] + offset[ 0 ];
+		start_l[ 1 ] = start[ 1 ] + offset[ 1 ];
+		start_l[ 2 ] = start[ 2 ] + offset[ 2 ];
+
+		end_l[ 0 ] = end[ 0 ] + offset[ 0 ];
+		end_l[ 1 ] = end[ 1 ] + offset[ 1 ];
+		end_l[ 2 ] = end[ 2 ] + offset[ 2 ];
 	}
 
 	// subtract origin offset
@@ -2509,10 +2574,9 @@ void CM_BiSphereTrace( trace_t *results, const vec3_t start, const vec3_t end, f
 	}
 	else
 	{
-		for ( i = 0; i < 3; i++ )
-		{
-			tw.trace.endpos[ i ] = start[ i ] + tw.trace.fraction * ( end[ i ] - start[ i ] );
-		}
+		tw.trace.endpos[ 0 ] = start[ 0 ] + tw.trace.fraction * ( end[ 0 ] - start[ 0 ] );
+		tw.trace.endpos[ 1 ] = start[ 1 ] + tw.trace.fraction * ( end[ 1 ] - start[ 1 ] );
+		tw.trace.endpos[ 2 ] = start[ 2 ] + tw.trace.fraction * ( end[ 2 ] - start[ 2 ] );
 	}
 
 	*results = tw.trace;
