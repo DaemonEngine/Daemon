@@ -368,16 +368,12 @@ CM_TestInLeaf
 */
 void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf )
 {
-	int        k;
-	int        brushnum;
-	cbrush_t   *b;
-	cSurface_t *surface;
-
 	// test box position against all brushes in the leaf
-	for ( k = 0; k < leaf->numLeafBrushes; k++ )
+	const int *firstBrushNum = leaf->firstLeafBrush;
+	const int *endBrushNum = firstBrushNum + leaf->numLeafBrushes;
+	for ( const int *brushNum = firstBrushNum; brushNum < endBrushNum; brushNum++ )
 	{
-		brushnum = leaf->firstLeafBrush[ k ];
-		b = &cm.brushes[ brushnum ];
+		cbrush_t *b = &cm.brushes[ *brushNum ];
 
 		if ( b->checkcount == cm.checkcount )
 		{
@@ -405,9 +401,11 @@ void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf )
 	}
 
 	// test against all surfaces
-	for ( k = 0; k < leaf->numLeafSurfaces; k++ )
+	const int *firstSurfaceNum = leaf->firstLeafSurface;
+	const int *endSurfaceNum = firstSurfaceNum + leaf->numLeafSurfaces;
+	for ( const int *surfaceNum = firstSurfaceNum; surfaceNum < endSurfaceNum; surfaceNum++ )
 	{
-		surface = cm.surfaces[ leaf->firstLeafSurface[ k ] ];
+		cSurface_t *surface = cm.surfaces[ *surfaceNum ];
 
 		if ( !surface )
 		{
@@ -1433,17 +1431,12 @@ CM_TraceThroughLeaf
 */
 void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 {
-	int        k;
-	int        brushnum;
-	cbrush_t   *b;
-	cSurface_t *surface;
-
 	// trace line against all brushes in the leaf
-	for ( k = 0; k < leaf->numLeafBrushes; k++ )
+	const int *firstBrushNum = leaf->firstLeafBrush;
+	const int *endBrushNum = firstBrushNum + leaf->numLeafBrushes;
+	for ( const int *brushNum = firstBrushNum; brushNum < endBrushNum; brushNum++ )
 	{
-		brushnum = leaf->firstLeafBrush[ k ];
-
-		b = &cm.brushes[ brushnum ];
+		cbrush_t *b = &cm.brushes[ *brushNum ];
 
 		if ( b->checkcount == cm.checkcount )
 		{
@@ -1479,9 +1472,11 @@ void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 	}
 
 	// trace line against all surfaces in the leaf
-	for ( k = 0; k < leaf->numLeafSurfaces; k++ )
+	const int *firstSurfaceNum = leaf->firstLeafSurface;
+	const int *endSurfaceNum = firstSurfaceNum + leaf->numLeafSurfaces;
+	for ( const int *surfaceNum = firstSurfaceNum; surfaceNum < endSurfaceNum; surfaceNum++ )
 	{
-		surface = cm.surfaces[ leaf->firstLeafSurface[ k ] ];
+		cSurface_t *surface = cm.surfaces[ *surfaceNum ];
 
 		if ( !surface )
 		{
@@ -1521,11 +1516,9 @@ void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 
 	if ( tw->testLateralCollision && tw->trace.fraction < 1.0f )
 	{
-		for ( k = 0; k < leaf->numLeafBrushes; k++ )
+		for ( const int *brushNum = firstBrushNum; brushNum < endBrushNum; brushNum++ )
 		{
-			brushnum = leaf->firstLeafBrush[ k ];
-
-			b = &cm.brushes[ brushnum ];
+			cbrush_t *b = &cm.brushes[ *brushNum ];
 
 			// This brush never collided, so don't bother
 			if ( !b->collided )
@@ -1551,9 +1544,9 @@ void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 			}
 		}
 
-		for ( k = 0; k < leaf->numLeafSurfaces; k++ )
+		for ( const int *surfaceNum = firstSurfaceNum; surfaceNum < endSurfaceNum; surfaceNum++ )
 		{
-			surface = cm.surfaces[ leaf->firstLeafSurface[ k ] ];
+			cSurface_t *surface = cm.surfaces[ *surfaceNum ];
 
 			if ( !surface )
 			{
@@ -2592,19 +2585,18 @@ static float CM_DistanceToBrush( const vec3_t loc, cbrush_t *brush )
 
 float CM_DistanceToModel( const vec3_t loc, clipHandle_t model ) {
 	cmodel_t    *cmod;
-	int        k;
-	int        brushnum;
-	cbrush_t   *b;
 	float      dist = 999999.0f;
 	float      d1;
 
 	cmod = CM_ClipHandleToModel( model );
 
 	// test box position against all brushes in the leaf
-	for ( k = 0; k < cmod->leaf.numLeafBrushes; k++ )
+	const cLeaf_t *leaf = &cmod->leaf;
+	const int *firstBrushNum = leaf->firstLeafBrush;
+	const int *endBrushNum = firstBrushNum + leaf->numLeafBrushes;
+	for ( const int *brushNum = firstBrushNum; brushNum < endBrushNum; brushNum++ )
 	{
-		brushnum = cmod->leaf.firstLeafBrush[ k ];
-		b = &cm.brushes[ brushnum ];
+		cbrush_t *b = &cm.brushes[ *brushNum ];
 
 		d1 = CM_DistanceToBrush( loc, b );
 		if( d1 < dist )
