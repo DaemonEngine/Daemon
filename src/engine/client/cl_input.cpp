@@ -172,7 +172,6 @@ Returns the fraction of the frame that the key was down
 */
 float CL_KeyState( kbutton_t *key )
 {
-	float val;
 	int   msec;
 
 	msec = key->msec;
@@ -193,19 +192,7 @@ float CL_KeyState( kbutton_t *key )
 		key->downtime = com_frameTime;
 	}
 
-	val = ( float ) msec / frame_msec;
-
-	if ( val < 0 )
-	{
-		val = 0;
-	}
-
-	if ( val > 1 )
-	{
-		val = 1;
-	}
-
-	return val;
+	return Math::Clamp( static_cast<float>( msec ) / frame_msec, 0.0f, 1.0f );
 }
 
 void IN_CenterView ()
