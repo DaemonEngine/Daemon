@@ -196,10 +196,8 @@ CM_PointContents
 int CM_PointContents( const vec3_t p, clipHandle_t model )
 {
 	int      leafnum;
-	int      i;
 	cLeaf_t  *leaf;
 	int      contents;
-	float    d;
 	cmodel_t *clipm;
 
 	if ( !cm.numNodes )
@@ -246,19 +244,22 @@ int CM_PointContents( const vec3_t p, clipHandle_t model )
 		// XreaL END
 
 		// see if the point is in the brush
-		for ( i = 0; i < b->numsides; i++ )
+		const cbrushside_t *firstSide = b->sides;
+		const cbrushside_t *endSide = firstSide + b->numsides;
+		const cbrushside_t *side;
+		for ( side = firstSide; side < endSide; side++ )
 		{
-			d = DotProduct( p, b->sides[ i ].plane->normal );
+			float d = DotProduct( p, side->plane->normal );
 
 // FIXME test for Cash
-//          if ( d >= b->sides[i].plane->dist ) {
-			if ( d > b->sides[ i ].plane->dist )
+//          if ( d >= side->plane->dist ) {
+			if ( d > side->plane->dist )
 			{
 				break;
 			}
 		}
 
-		if ( i == b->numsides )
+		if ( side == endSide )
 		{
 			contents |= b->contents;
 		}
