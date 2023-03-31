@@ -73,15 +73,17 @@ TransposeMatrix
 */
 void TransposeMatrix( const vec3_t matrix[ 3 ], vec3_t transpose[ 3 ] )
 {
-	int i, j;
+	transpose[ 0 ][ 0 ] = matrix[ 0 ][ 0 ];
+	transpose[ 0 ][ 1 ] = matrix[ 1 ][ 0 ];
+	transpose[ 0 ][ 2 ] = matrix[ 2 ][ 0 ];
 
-	for ( i = 0; i < 3; i++ )
-	{
-		for ( j = 0; j < 3; j++ )
-		{
-			transpose[ i ][ j ] = matrix[ j ][ i ];
-		}
-	}
+	transpose[ 1 ][ 0 ] = matrix[ 0 ][ 1 ];
+	transpose[ 1 ][ 1 ] = matrix[ 1 ][ 1 ];
+	transpose[ 1 ][ 2 ] = matrix[ 2 ][ 1 ];
+
+	transpose[ 2 ][ 0 ] = matrix[ 0 ][ 2 ];
+	transpose[ 2 ][ 1 ] = matrix[ 1 ][ 2 ];
+	transpose[ 2 ][ 2 ] = matrix[ 2 ][ 2 ];
 }
 
 /*
