@@ -6,9 +6,9 @@ Dæmon is the standalone engine that powers the multiplayer first person shooter
 
 [![IRC](https://img.shields.io/badge/irc-%23daemon--engine%2C%23unvanquished--dev-4cc51c.svg)](https://web.libera.chat/#daemon-engine,#unvanquished-dev)
 
-| Windows | OSX | Linux |
+| Windows | macOS | Linux |
 |---------|-----|-------|
-| [![AppVeyor branch](https://img.shields.io/appveyor/ci/DolceTriade/daemon/master.svg)](https://ci.appveyor.com/project/DolceTriade/daemon/history) | [![Travis branch](https://img.shields.io/travis/DaemonEngine/Daemon/master.svg)](https://travis-ci.org/DaemonEngine/Daemon/branches) | [![Travis branch](https://img.shields.io/travis/DaemonEngine/Daemon/master.svg)](https://travis-ci.org/DaemonEngine/Daemon/branches) |
+| [![AppVeyor branch](https://img.shields.io/appveyor/ci/DolceTriade/daemon/master.svg)](https://ci.appveyor.com/project/DolceTriade/daemon/history) | [![Azure branch](https://img.shields.io/azure-devops/build/UnvanquishedDevelopment/51482765-8c0b-4b28-a82c-09554ed6887e/1/master.svg)](https://dev.azure.com/UnvanquishedDevelopment/Daemon/_build?definitionId=1) | [![Azure branch](https://img.shields.io/azure-devops/build/UnvanquishedDevelopment/51482765-8c0b-4b28-a82c-09554ed6887e/1/master.svg)](https://dev.azure.com/UnvanquishedDevelopment/Daemon/_build?definitionId=1) |
 
 ℹ️ We provide ready-to-use downloads for the Unvanquished game on the Unvanquished [download page](https://unvanquished.net/download/), builds of the Dæmon engine are included.
 
