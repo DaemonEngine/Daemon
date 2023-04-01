@@ -1187,6 +1187,11 @@ static inline void glFboSetExt()
 	  COLLAPSE_reflection_CB,
 	};
 
+	struct shaderStage_t;
+
+	using shaderRendererFunc_t = void( shaderStage_t* );
+	using shaderForwardRendererFunc_t = void( shaderStage_t*, shaderStage_t*, shaderStage_t*, trRefLight_t* );
+
 	struct shaderStage_t
 	{
 		stageType_t     type;
@@ -1196,6 +1201,11 @@ static inline void glFboSetExt()
 		bool        active;
 
 		bool            dpMaterial;
+
+		shaderRendererFunc_t *genericRenderer;
+		shaderRendererFunc_t *depthFillRenderer;
+		shaderRendererFunc_t *shadowFillRenderer;
+		shaderForwardRendererFunc_t *forwardRenderer;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
@@ -1211,6 +1221,9 @@ static inline void glFboSetExt()
 		waveForm_t      alphaWave;
 		alphaGen_t      alphaGen;
 		expression_t    alphaExp;
+
+		colorGen_t computedColorGen;
+		alphaGen_t computedAlphaGen;
 
 		expression_t    alphaTestExp;
 
@@ -1285,7 +1298,8 @@ static inline void glFboSetExt()
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
 	};
 
-	struct shaderCommands_t;
+	void SetShaderStageRenderers( shader_t*, shaderStage_t* );
+	void SetShaderStageColorAlphaGen( shaderStage_t* );
 
 	enum cullType_t : int
 	{
@@ -2713,6 +2727,7 @@ static inline void glFboSetExt()
 		int        frameSceneNum; // zeroed at RE_BeginFrame
 
 		bool   worldMapLoaded;
+		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
 		world_t    *world;
