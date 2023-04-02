@@ -1834,8 +1834,6 @@ Returns true if another view has been rendered
 */
 static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 {
-	viewParms_t   newParms;
-	viewParms_t   oldParms;
 	orientation_t surface, camera;
 	screenRect_t  surfRect;
 
@@ -1858,20 +1856,20 @@ static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 		return false;
 	}
 
-	// save old viewParms so we can return to it after the mirror view
-	oldParms = tr.viewParms;
+	viewParms_t newParms = tr.viewParms;
+
+	if ( !R_GetPortalOrientations( drawSurf, &surface, &camera, newParms.pvsOrigin, &newParms.isMirror) )
+	{
+		return false; // bad portal, no portalentity
+	}
 
 	// draw stencil mask
 	R_AddPreparePortalCmd( drawSurf );
 
-	tr.viewParms.portalLevel++;
+	// save old viewParms so we can return to it after the mirror view
+	viewParms_t oldParms = tr.viewParms;
 
-	newParms = tr.viewParms;
-
-	if (!R_GetPortalOrientations(drawSurf, &surface, &camera, newParms.pvsOrigin, &newParms.isMirror))
-	{
-		return false; // bad portal, no portalentity
-	}
+	newParms.portalLevel++;
 
 	// convert screen rectangle to scissor test
 	// OPTIMIZE: could do better with stencil test in renderer backend
