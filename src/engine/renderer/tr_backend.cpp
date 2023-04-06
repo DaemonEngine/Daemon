@@ -3683,8 +3683,8 @@ static void RB_RenderDebugUtils()
 
 		for ( i = 0; i < backEnd.refdef.numEntities; i++, ent++ )
 		{
-			if ( ( ent->e.renderfx & RF_THIRD_PERSON ) &&
-			     backEnd.viewParms.portalLevel == 0 )
+			if ( ( ent->e.renderfx & RF_THIRD_PERSON && backEnd.viewParms.portalLevel == 0 ) ||
+			     ( ent->e.renderfx & RF_FIRST_PERSON && backEnd.viewParms.portalLevel != 0 ) )
 			{
 				continue;
 			}
