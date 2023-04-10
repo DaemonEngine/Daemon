@@ -127,7 +127,7 @@ struct refexport_t
 	qhandle_t ( *RegisterSkin )( const char *name );
 	qhandle_t ( *RegisterShader )( const char *name,
 								   RegisterShaderFlags_t flags );
-	fontInfo_t* ( *RegisterFont )( const char *fontName, const char *fallbackName, int pointSize );
+	fontInfo_t* ( *RegisterFont )( const char *fontName, int pointSize );
 	void   ( *UnregisterFont )( fontInfo_t *font );
 	void   ( *Glyph )( fontInfo_t *font, const char *str, glyphInfo_t *glyph );
 	void   ( *GlyphChar )( fontInfo_t *font, int ch, glyphInfo_t *glyph );
