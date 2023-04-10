@@ -50,7 +50,7 @@ qhandle_t RE_RegisterShader( const char *, RegisterShaderFlags_t )
 {
 	return 1;
 }
-fontInfo_t* RE_RegisterFont( const char *, const char *, int )
+fontInfo_t* RE_RegisterFont( const char *, int )
 {
 	return nullptr;
 }

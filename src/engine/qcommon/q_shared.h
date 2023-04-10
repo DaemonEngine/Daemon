@@ -2008,7 +2008,7 @@ using glyphBlock_t = glyphInfo_t[256];
 
 struct fontInfo_t
 {
-	void         *face, *faceData, *fallback, *fallbackData;
+	void         *face, *faceData;
 	glyphInfo_t  *glyphBlock[0x110000 / 256]; // glyphBlock_t
 	int           pointSize;
 	int           height;

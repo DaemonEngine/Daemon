@@ -2611,7 +2611,7 @@ bool CL_InitRenderer()
 		{
 			if ( cl_consoleFontScaling->value == 0 )
 			{
-				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer );
+				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer );
 			}
 			else
 			{
@@ -2619,7 +2619,7 @@ bool CL_InitRenderer()
 				int fontScale = std::min(cls.glconfig.vidWidth, cls.glconfig.vidHeight) / 90;
 
 				// fontScale / 12px gets 1px on 1920×1080 screen
-				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, nullptr, cl_consoleFontSize->integer * fontScale / 12 );
+				cls.consoleFont = re.RegisterFont( cl_consoleFont->string, cl_consoleFontSize->integer * fontScale / 12 );
 			}
 
 			if ( cls.consoleFont != nullptr )
