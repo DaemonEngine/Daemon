@@ -627,7 +627,7 @@ fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 		Com_sprintf( fileName, sizeof( fileName ), "fonts/%s_%i.dat", strippedName, pointSize );
 	}
 
-	Q_snprintf( registeredName, sizeof( registeredName ), "%s#%d", strippedName, pointSize );
+	Com_sprintf( registeredName, sizeof( registeredName ), "%s#%d", strippedName, pointSize );
 
 	fontNo = -1;
 
