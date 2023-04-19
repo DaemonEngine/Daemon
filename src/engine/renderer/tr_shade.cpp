@@ -589,16 +589,13 @@ void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale )
 
 // *INDENT-ON*
 
-static void Render_generic2D( int stage )
+static void Render_generic2D( shaderStage_t *pStage )
 {
-	shaderStage_t *pStage;
 	colorGen_t    rgbGen;
 	alphaGen_t    alphaGen;
 	bool      needDepthMap = false;
 	bool      hasDepthFade = false;
 	GLimp_LogComment( "--- Render_generic2D ---\n" );
-
-	pStage = tess.surfaceStages[ stage ];
 
 	GL_State( pStage->stateBits );
 
@@ -691,16 +688,13 @@ static void Render_generic2D( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_generic( int stage )
+static void Render_generic( shaderStage_t *pStage )
 {
-	shaderStage_t *pStage;
 	colorGen_t    rgbGen;
 	alphaGen_t    alphaGen;
 	bool      needDepthMap = false;
 	bool      hasDepthFade = false;
 	GLimp_LogComment( "--- Render_generic ---\n" );
-
-	pStage = tess.surfaceStages[ stage ];
 
 	GL_State( pStage->stateBits );
 
@@ -856,11 +850,9 @@ static image_t* GetDeluxeMap()
 	}
 }
 
-static void Render_lightMapping( int stage )
+static void Render_lightMapping( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
-
-	shaderStage_t *pStage = tess.surfaceStages[ stage ];
 
 	bool enableLightMapping = tr.worldLightMapping
 		&& tess.bspSurface;
@@ -1278,13 +1270,9 @@ static void Render_lightMapping( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_depthFill(int stage)
+static void Render_depthFill( shaderStage_t *pStage )
 {
-	shaderStage_t *pStage;
-
 	GLimp_LogComment("--- Render_depthFill ---\n");
-
-	pStage = tess.surfaceStages[stage];
 
 	uint32_t stateBits = pStage->stateBits;
 	stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
@@ -1353,14 +1341,11 @@ static void Render_depthFill(int stage)
 	GL_CheckErrors();
 }
 
-static void Render_shadowFill( int stage )
+static void Render_shadowFill( shaderStage_t *pStage )
 {
-	shaderStage_t *pStage;
 	uint32_t      stateBits;
 
 	GLimp_LogComment( "--- Render_shadowFill ---\n" );
-
-	pStage = tess.surfaceStages[ stage ];
 
 	// remove blend modes
 	stateBits = pStage->stateBits;
@@ -1995,10 +1980,8 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GL_CheckErrors();
 }
 
-static void Render_reflection_CB( int stage )
+static void Render_reflection_CB( shaderStage_t *pStage )
 {
-	shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
 	GLimp_LogComment( "--- Render_reflection_CB ---\n" );
 
 	GL_State( pStage->stateBits );
@@ -2082,10 +2065,8 @@ static void Render_reflection_CB( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_skybox( int stage )
+static void Render_skybox( shaderStage_t *pStage )
 {
-	shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
 	GLimp_LogComment( "--- Render_skybox ---\n" );
 
 	GL_State( pStage->stateBits );
@@ -2107,10 +2088,8 @@ static void Render_skybox( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_screen( int stage )
+static void Render_screen( shaderStage_t *pStage )
 {
-	shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
 	GLimp_LogComment( "--- Render_screen ---\n" );
 
 	GL_State( pStage->stateBits );
@@ -2133,10 +2112,8 @@ static void Render_screen( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_portal( int stage )
+static void Render_portal( shaderStage_t *pStage )
 {
-	shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
 	GLimp_LogComment( "--- Render_portal ---\n" );
 
 	GL_State( pStage->stateBits );
@@ -2163,11 +2140,10 @@ static void Render_portal( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_heatHaze( int stage )
+static void Render_heatHaze( shaderStage_t *pStage )
 {
 	uint32_t      stateBits;
 	float         deformMagnitude;
-	shaderStage_t *pStage = tess.surfaceStages[ stage ];
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
 
@@ -2264,12 +2240,11 @@ static void Render_heatHaze( int stage )
 	GL_CheckErrors();
 }
 
-static void Render_liquid( int stage )
+static void Render_liquid( shaderStage_t *pStage )
 {
 	vec3_t        viewOrigin;
 	float         fogDensity;
 	vec3_t        fogColor;
-	shaderStage_t *pStage = tess.surfaceStages[ stage ];
 
 	GLimp_LogComment( "--- Render_liquid ---\n" );
 
@@ -2806,11 +2781,11 @@ void Tess_StageIteratorGeneric()
 				{
 					if ( backEnd.projection2D )
 					{
-						Render_generic2D( stage );
+						Render_generic2D( pStage );
 					}
 					else
 					{
-						Render_generic( stage );
+						Render_generic( pStage );
 					}
 					break;
 				}
@@ -2820,7 +2795,7 @@ void Tess_StageIteratorGeneric()
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 			case stageType_t::ST_COLLAPSE_lighting_PBR:
 				{
-					Render_lightMapping( stage );
+					Render_lightMapping( pStage );
 					break;
 				}
 
@@ -2829,7 +2804,7 @@ void Tess_StageIteratorGeneric()
 				{
 					if ( r_reflectionMapping->integer )
 					{
-						Render_reflection_CB( stage );
+						Render_reflection_CB( pStage );
 					}
 
 					break;
@@ -2847,19 +2822,19 @@ void Tess_StageIteratorGeneric()
 
 			case stageType_t::ST_SKYBOXMAP:
 				{
-					Render_skybox( stage );
+					Render_skybox( pStage );
 					break;
 				}
 
 			case stageType_t::ST_SCREENMAP:
 				{
-					Render_screen( stage );
+					Render_screen( pStage );
 					break;
 				}
 
 			case stageType_t::ST_PORTALMAP:
 				{
-					Render_portal( stage );
+					Render_portal( pStage );
 					break;
 				}
 
@@ -2867,7 +2842,7 @@ void Tess_StageIteratorGeneric()
 				{
 					if ( r_heatHaze->integer )
 					{
-						Render_heatHaze( stage );
+						Render_heatHaze( pStage );
 					}
 
 					break;
@@ -2877,7 +2852,7 @@ void Tess_StageIteratorGeneric()
 				{
 					if ( r_liquidMapping->integer )
 					{
-						Render_liquid( stage );
+						Render_liquid( pStage );
 					}
 					else
 					{
@@ -2885,7 +2860,7 @@ void Tess_StageIteratorGeneric()
 						when liquidMapping is enabled, until we fix liquidMap. */
 						pStage->type = stageType_t::ST_DIFFUSEMAP;
 						pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
-						Render_lightMapping( stage );
+						Render_lightMapping( pStage );
 					}
 
 					break;
@@ -2970,7 +2945,7 @@ void Tess_StageIteratorDepthFill()
 				{
 					if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
 					{
-						Render_depthFill( stage );
+						Render_depthFill( pStage );
 					}
 
 					break;
@@ -2981,7 +2956,7 @@ void Tess_StageIteratorDepthFill()
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 			case stageType_t::ST_COLLAPSE_lighting_PBR:
 				{
-					Render_depthFill( stage );
+					Render_depthFill( pStage );
 					break;
 				}
 
@@ -3051,7 +3026,7 @@ void Tess_StageIteratorShadowFill()
 				{
 					if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
 					{
-						Render_shadowFill( stage );
+						Render_shadowFill( pStage );
 					}
 
 					break;
@@ -3062,7 +3037,7 @@ void Tess_StageIteratorShadowFill()
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 			case stageType_t::ST_COLLAPSE_lighting_PBR:
 				{
-					Render_shadowFill( stage );
+					Render_shadowFill( pStage );
 					break;
 				}
 
