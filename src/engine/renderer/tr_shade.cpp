@@ -2778,93 +2778,72 @@ void Tess_StageIteratorGeneric()
 		switch ( pStage->type )
 		{
 			case stageType_t::ST_COLORMAP:
+				if ( backEnd.projection2D )
 				{
-					if ( backEnd.projection2D )
-					{
-						Render_generic2D( pStage );
-					}
-					else
-					{
-						Render_generic( pStage );
-					}
-					break;
+					Render_generic2D( pStage );
 				}
+				else
+				{
+					Render_generic( pStage );
+				}
+
+				break;
 
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 			case stageType_t::ST_COLLAPSE_lighting_PBR:
-				{
-					Render_lightMapping( pStage );
-					break;
-				}
+				Render_lightMapping( pStage );
+
+				break;
 
 			case stageType_t::ST_COLLAPSE_reflection_CB:
 			case stageType_t::ST_REFLECTIONMAP:
+				if ( r_reflectionMapping->integer )
 				{
-					if ( r_reflectionMapping->integer )
-					{
-						Render_reflection_CB( pStage );
-					}
-
-					break;
+					Render_reflection_CB( pStage );
 				}
+
+				break;
 
 			case stageType_t::ST_REFRACTIONMAP:
-				{
-					break;
-				}
-
 			case stageType_t::ST_DISPERSIONMAP:
-				{
-					break;
-				}
+				break;
 
 			case stageType_t::ST_SKYBOXMAP:
-				{
-					Render_skybox( pStage );
-					break;
-				}
+				Render_skybox( pStage );
+				break;
 
 			case stageType_t::ST_SCREENMAP:
-				{
-					Render_screen( pStage );
-					break;
-				}
+				Render_screen( pStage );
+				break;
 
 			case stageType_t::ST_PORTALMAP:
-				{
-					Render_portal( pStage );
-					break;
-				}
+				Render_portal( pStage );
+				break;
 
 			case stageType_t::ST_HEATHAZEMAP:
+				if ( r_heatHaze->integer )
 				{
-					if ( r_heatHaze->integer )
-					{
-						Render_heatHaze( pStage );
-					}
-
-					break;
+					Render_heatHaze( pStage );
 				}
+				break;
 
 			case stageType_t::ST_LIQUIDMAP:
+				if ( r_liquidMapping->integer )
 				{
-					if ( r_liquidMapping->integer )
-					{
-						Render_liquid( pStage );
-					}
-					else
-					{
-						/* FIXME: workaround to display something and not crash
-						when liquidMapping is enabled, until we fix liquidMap. */
-						pStage->type = stageType_t::ST_DIFFUSEMAP;
-						pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
-						Render_lightMapping( pStage );
-					}
-
-					break;
+					Render_liquid( pStage );
 				}
+				else
+				{
+					/* FIXME: workaround to display something and not crash
+					when liquidMapping is enabled, until we fix liquidMap. */
+					pStage->type = stageType_t::ST_DIFFUSEMAP;
+					pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
+					Render_lightMapping( pStage );
+				}
+
+				break;
 
 			default:
 				break;
@@ -2942,23 +2921,19 @@ void Tess_StageIteratorDepthFill()
 		switch ( pStage->type )
 		{
 			case stageType_t::ST_COLORMAP:
+				if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
 				{
-					if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-					{
-						Render_depthFill( pStage );
-					}
-
-					break;
+					Render_depthFill( pStage );
 				}
+
+				break;
 
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 			case stageType_t::ST_COLLAPSE_lighting_PBR:
-				{
-					Render_depthFill( pStage );
-					break;
-				}
+				Render_depthFill( pStage );
+				break;
 
 			default:
 				break;
@@ -3023,23 +2998,19 @@ void Tess_StageIteratorShadowFill()
 		switch ( pStage->type )
 		{
 			case stageType_t::ST_COLORMAP:
+				if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
 				{
-					if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-					{
-						Render_shadowFill( pStage );
-					}
-
-					break;
+					Render_shadowFill( pStage );
 				}
+
+				break;
 
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_lighting_PHONG:
 			case stageType_t::ST_COLLAPSE_lighting_PBR:
-				{
-					Render_shadowFill( pStage );
-					break;
-				}
+				Render_shadowFill( pStage );
+				break;
 
 			default:
 				break;
@@ -3158,15 +3129,11 @@ void Tess_StageIteratorLighting()
 					}
 					else if ( light->l.rlType == refLightType_t::RL_PROJ )
 					{
-						{
-							Render_forwardLighting_DBS_proj( pStage, attenuationXYStage, attenuationZStage, light );
-						}
+						Render_forwardLighting_DBS_proj( pStage, attenuationXYStage, attenuationZStage, light );
 					}
 					else if ( light->l.rlType == refLightType_t::RL_DIRECTIONAL )
 					{
-						{
-							Render_forwardLighting_DBS_directional( pStage, light );
-						}
+						Render_forwardLighting_DBS_directional( pStage, light );
 					}
 
 					break;
