@@ -1212,7 +1212,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_drawpolies = Cvar_Get( "r_drawpolies", "1", CVAR_CHEAT );
 		r_ignore = Cvar_Get( "r_ignore", "1", CVAR_CHEAT );
 		r_nocull = Cvar_Get( "r_nocull", "0", CVAR_CHEAT );
-		r_novis = Cvar_Get( "r_novis", "0", CVAR_CHEAT );
+		r_novis = Cvar_Get( "r_novis", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_speeds = Cvar_Get( "r_speeds", "0", 0 );
 		r_verbose = Cvar_Get( "r_verbose", "0", CVAR_CHEAT );
 		r_logFile = Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
