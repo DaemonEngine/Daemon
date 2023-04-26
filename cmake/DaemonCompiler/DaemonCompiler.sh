@@ -1,5 +1,7 @@
+#! /usr/bin/env bash
+
 # Daemon BSD Source Code
-# Copyright (c) 2013-2016, Daemon Developers
+# Copyright (c) 2024, Daemon Developers
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,19 +26,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-################################################################################
-# Determine platform
-################################################################################
+# Test script not used by the CMake build system. Usage example:
+# ./DaemonCompiler.sh gcc
 
-# When adding a new platform, look at all the places WIN32, APPLE and LINUX are used
-if( CMAKE_SYSTEM_NAME MATCHES "Linux" )
-  set( LINUX ON )
-elseif( WIN32 )
-elseif( APPLE )
-elseif( NACL )
-else()
-  message( FATAL_ERROR "Platform not supported" )
-endif()
+set -ueo pipefail
 
-include(DaemonArchitecture)
-include(DaemonCompiler)
+"${1}" DaemonCompiler.cpp -o /dev/null 2>&1 \
+	| grep '###REPORT###' \
+	| sed -e 's/.*(###REPORT###(//;s/)###REPORT###(/=/;s/)###REPORT###).*//' \
+|| "${1}" DaemonCompiler.cpp -o /dev/null
