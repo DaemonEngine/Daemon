@@ -262,4 +262,28 @@ inline int CountTrailingZeroes(unsigned long long x) { int i = 0; while (i < 64 
 	#define UNREACHABLE()
 #endif // UNREACHABLE
 
+/* Use a C++11 braced initializer on MSVC instead of a bracket initializer
+when zeroing a struct. This works around a bug in how MSVC generates implicit
+default constructors. -- Amanieu
+
+The MSVC workaround is known to crash ICC, there is no reason to apply MSVC
+workarounds on non-MSVC compilers. -- illwieckz
+
+I believe GCC, Clang, and MSVC have all been seen to crash during compilation
+on either the () or {} forms of these constructors. -- slipher
+
+The actual occasion for using this function is when you want to clear a struct
+with a very large size. Supposedly with some compiler this could cause a
+temporary copy to be placed on the stack and cause a stack overflow if you did
+it the normal way like foo = {}. -- slipher */
+template<typename T>
+void ResetStruct( T& object ) {
+	object.~T();
+#if defined(_MSC_VER)
+	new( &object ) T{};
+#else
+	new( &object ) T();
+#endif
+}
+
 #endif // COMMON_COMPILER_H_

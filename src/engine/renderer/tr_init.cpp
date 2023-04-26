@@ -1371,14 +1371,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Debug("----- R_Init -----" );
 
 		// clear all our internal state
-		tr.~trGlobals_t();
-		new(&tr) trGlobals_t{};
-
-		backEnd.~backEndState_t();
-		new(&backEnd) backEndState_t{};
-
-		tess.~shaderCommands_t();
-		new(&tess) shaderCommands_t{};
+		ResetStruct( tr );
+		ResetStruct( backEnd );
+		ResetStruct( tess );
 
 		if ( ( intptr_t ) tess.verts & 15 )
 		{

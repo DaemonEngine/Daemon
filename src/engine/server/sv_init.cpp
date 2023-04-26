@@ -747,8 +747,8 @@ void SV_Shutdown( const char *finalmsg )
 		free( svs.clients );
 	}
 
-	svs.~serverStatic_t();
-	new(&svs) serverStatic_t{};
+	ResetStruct( svs );
+
 	svs.serverLoad = -1;
 	ChallengeManager::Clear();
 

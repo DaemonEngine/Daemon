@@ -792,8 +792,7 @@ Called before parsing a gamestate
 */
 void CL_ClearState()
 {
-	cl.~clientActive_t();
-	new(&cl) clientActive_t{}; // Using {} instead of () to work around MSVC bug
+	ResetStruct( cl );
 }
 
 /*
@@ -856,8 +855,7 @@ void CL_Disconnect( bool showMainMenu )
 	CL_ClearState();
 
 	// wipe the client connection
-	clc.~clientConnection_t();
-	new(&clc) clientConnection_t{}; // Using {} instead of () to work around MSVC bug
+	ResetStruct( clc );
 
 	CL_ClearStaticDownload();
 
@@ -3029,8 +3027,7 @@ void CL_Shutdown()
 	recursive = false;
 
 	// do not leak.
-	cls.~clientStatic_t();
-	new(&cls) clientStatic_t{};
+	ResetStruct( cls );
 
 	Log::Debug( "-----------------------" );
 
