@@ -235,9 +235,11 @@ inline int CountTrailingZeroes(unsigned long long x) { int i = 0; while (i < 64 
 #endif
 
 // The new -Wimplicit-fallthrough warning...
-#if defined(__clang__) && __clang_major__ >= 6
+#if defined(__INTEL_COMPILER)
+#   define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
+#elif defined(__clang__) && __clang_major__ >= 6
 #   define DAEMON_FALLTHROUGH [[clang::fallthrough]]
-#elif __GNUC__ >= 7
+#elif defined(__GNUC__) && __GNUC__ >= 7
 #   define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
 #else
 #   define DAEMON_FALLTHROUGH

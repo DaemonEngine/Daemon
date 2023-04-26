@@ -199,7 +199,11 @@ else()
 
     if (ARCH STREQUAL "amd64")
         # K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
-        set(GCC_GENERIC_ARCH "x86-64")
+        if ("${DAEMON_CXX_COMPILER_ID}" STREQUAL "Intel")
+            set(GCC_GENERIC_ARCH "pentium4")
+        else()
+	        set(GCC_GENERIC_ARCH "x86-64")
+        endif()
         set(GCC_GENERIC_TUNE "generic")
     elseif (ARCH STREQUAL "i686")
         # P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
