@@ -27,7 +27,13 @@
 include_directories(${MOUNT_DIR} ${LIB_DIR} ${LIB_DIR}/zlib)
 include(DaemonPlatform)
 include(DaemonNacl)
-include(DaemonFlags)
+
+# Do not report unused native compiler if native vms are not built.
+# If only NACL vms are built, this will be reported in chainloaded build.
+if (BUILD_GAME_NATIVE_DLL OR BUILD_GAME_NATIVE_EXE OR NACL)
+    include(DaemonCompiler)
+    include(DaemonFlags)
+endif()
 
 # Function to setup all the Sgame/Cgame libraries
 include(CMakeParseArguments)

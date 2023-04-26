@@ -567,6 +567,7 @@ static void Init(int argc, char** argv)
 
 	// Print a banner and a copy of the command-line arguments
 	Log::Notice(Q3_VERSION " " PLATFORM_STRING " " XSTRING(ARCH_STRING) " " __DATE__);
+
 	std::string argsString = "cmdline:";
 	for (int i = 1; i < argc; i++) {
 		argsString.push_back(' ');
