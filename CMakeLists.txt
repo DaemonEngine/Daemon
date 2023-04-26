@@ -428,10 +428,10 @@ function(ADD_PRECOMPILED_HEADER Target)
         add_dependencies(${Target} ${Target}-pch)
 
         # PNaCl clang doesn't support -include-pch properly
-        if (NOT DAEMON_CXX_COMPILER_NAME STREQUAL "PNaCl")
-            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
-        else()
+        if (DAEMON_CXX_COMPILER_NAME STREQUAL "PNaCl")
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
+        else()
+            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
         endif()
     elseif (MSVC)
         # /Fp sets the PCH path used by either of the /Yc and /Yu options.
