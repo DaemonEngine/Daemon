@@ -36,11 +36,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <signal.h>
 #ifdef __linux__
+#if !defined(DAEMON_CXX_COMPILER_Zig)
 #include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0)
 #include <sys/syscall.h>
 #include <linux/random.h>
 #define HAS_GETRANDOM_SYSCALL 1
+#endif
 #endif
 #endif
 #ifdef __native_client__
