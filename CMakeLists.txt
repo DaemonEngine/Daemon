@@ -418,8 +418,13 @@ function(ADD_PRECOMPILED_HEADER Target)
     try_c_cxx_flag(PCH "-pch")
 
     if (PCH)
+        # CMAKE_CXX_COMPILER_ARG1 is used with compilers using subcommands.
+        # For example when doing: cmake -D'CMAKE_CXX_COMPILER'='zig;c++'
+        # CMAKE_CXX_COMPILER will be "zig",
+        # CMAKE_CXX_COMPILER_ARG1 will be "c++".
         add_custom_command(OUTPUT "${OBJ_DIR}/${Target}.h.gch"
-            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
+            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ARG1}
+                ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
             DEPENDS ${Header}
             IMPLICIT_DEPENDS CXX ${Header}
         )
