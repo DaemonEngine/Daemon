@@ -92,6 +92,29 @@ bool CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd )
 	return true;
 }
 
+bool CL_GetUserCmds( int cmdNumber, int amount, usercmds_t *ucmds )
+{
+	// can't return anything that we haven't created yet
+	if ( cmdNumber > cl.cmdNumber )
+	{
+		Sys::Drop( "CL_GetUserCmd: %i >= %i", cmdNumber, cl.cmdNumber );
+	}
+
+	// the usercmd has been overwritten in the wrapping
+	// buffer because it is too far out of date
+	if ( cmdNumber <= cl.cmdNumber - CMD_BACKUP )
+	{
+		return false;
+	}
+
+	for ( int i = 0; i < amount; i++ )
+	{
+		*ucmds[ i ] = cl.cmds[ ( cmdNumber + i ) & CMD_MASK ];
+	}
+
+	return true;	
+}
+
 int CL_GetCurrentCmdNumber()
 {
 	return cl.cmdNumber;
@@ -1111,6 +1134,12 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 		case CG_GETUSERCMD:
 			IPC::HandleMsg<GetUserCmdMsg>(channel, std::move(reader), [this] (int number, bool& res, usercmd_t& cmd) {
 				res = CL_GetUserCmd(number, &cmd);
+			});
+			break;
+
+		case CG_GETUSERCMDS:
+			IPC::HandleMsg<GetUserCmdsMsg>(channel, std::move(reader), [this] (int number, int amount, bool& res, usercmds_t& cmds) {
+				res = CL_GetUserCmds(number, amount, &cmds);
 			});
 			break;
 

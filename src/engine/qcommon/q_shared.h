@@ -1795,6 +1795,8 @@ union OpaquePlayerState {
 		byte        buttons[ USERCMD_BUTTONS / 8 ];
 	};
 
+	typedef usercmd_t usercmds_t[ 64 ]; // CMD_BACKUP
+
 // Some functions for buttons manipulation & testing
 	inline void usercmdPressButton( byte *buttons, int bit )
 	{
