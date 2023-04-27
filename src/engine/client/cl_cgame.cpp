@@ -98,6 +98,16 @@ int CL_GetCurrentCmdNumber()
 	return cl.cmdNumber;
 }
 
+int CL_GetUserCmds( userCmds_t& userCmds )
+{
+	for ( int i = 0; i < CMD_BACKUP ; i++ )
+	{
+		userCmds[ i ] = cl.cmds[ ( cl.cmdNumber - i ) & CMD_MASK ];
+	}
+
+	return cl.cmdNumber;
+}
+
 /*
 =====================
 CL_ConfigstringModified
@@ -1124,6 +1134,12 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 		case CG_GETUSERCMD:
 			IPC::HandleMsg<GetUserCmdMsg>(channel, std::move(reader), [this] (int number, bool& res, usercmd_t& cmd) {
 				res = CL_GetUserCmd(number, &cmd);
+			});
+			break;
+
+		case CG_BATCHGETUSERCMDS:
+			IPC::HandleMsg<BatchGetUserCmdsMsg>(channel, std::move(reader), [this] (int& number, userCmds_t& userCmds) {
+				number = CL_GetUserCmds(userCmds);
 			});
 			break;
 

@@ -136,6 +136,7 @@ enum cgameImport_t
   CG_GETSNAPSHOT,
   CG_GETCURRENTCMDNUMBER,
   CG_GETUSERCMD,
+  CG_BATCHGETUSERCMDS,
   CG_SETUSERCMDVALUE,
   CG_GET_ENTITY_TOKEN,
   CG_REGISTER_BUTTON_COMMANDS,
@@ -262,6 +263,10 @@ using GetCurrentCmdNumberMsg = IPC::SyncMessage<
 using GetUserCmdMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_GETUSERCMD>, int>,
 	IPC::Reply<bool, usercmd_t>
+>;
+using BatchGetUserCmdsMsg = IPC::SyncMessage<
+	IPC::Message<IPC::Id<VM::QVM, CG_BATCHGETUSERCMDS>>,
+	IPC::Reply<int, userCmds_t>
 >;
 using SetUserCmdValueMsg = IPC::Message<IPC::Id<VM::QVM, CG_SETUSERCMDVALUE>, int, int, float>;
 // TODO what?

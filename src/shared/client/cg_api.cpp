@@ -115,6 +115,13 @@ bool trap_GetUserCmd( int cmdNumber, usercmd_t *ucmd )
 	return res;
 }
 
+int trap_BatchGetUserCmds( userCmds_t& userCmds )
+{
+	int number;
+	VM::SendMsg<BatchGetUserCmdsMsg>(number, userCmds);
+	return number;
+}
+
 void trap_SetUserCmdValue( int stateValue, int flags, float sensitivityScale )
 {
 	VM::SendMsg<SetUserCmdValueMsg>(stateValue, flags, sensitivityScale);
