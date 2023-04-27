@@ -52,6 +52,16 @@ function(detect_custom_compiler lang)
 
 			return()
 		endif()
+
+		# AOCC
+		if ("${CUSTOM_${lang}_COMPILER_OUTPUT}" MATCHES "CLANG: AOCC")
+			set(CUSTOM_${lang}_COMPILER_ID "AOCC" PARENT_SCOPE)
+
+			string(REGEX REPLACE ".*CLANG: AOCC_([^ \"]+).*" "\\1" CUSTOM_${lang}_COMPILER_VERSION "${CUSTOM_${lang}_COMPILER_OUTPUT}")
+			set(CUSTOM_${lang}_COMPILER_VERSION "${CUSTOM_${lang}_COMPILER_VERSION}" PARENT_SCOPE)
+
+			return()
+		endif()
 	endif()
 endfunction()
 
