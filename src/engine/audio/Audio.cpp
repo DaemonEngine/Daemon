@@ -147,8 +147,8 @@ namespace Audio {
 
         UpdateListenerGain();
 
-        for (int i = 0; i < MAX_GENTITIES; i++) {
-            entityLoops[i] = {false, nullptr, -1, -1};
+        for (auto &loop : entityLoops) {
+            loop = {false, nullptr, -1, -1};
         }
 
         return true;
@@ -160,11 +160,11 @@ namespace Audio {
         }
 
         // Shuts down the wrapper
-        for (int i = 0; i < MAX_GENTITIES; i++) {
-            if (entityLoops[i].sound) {
-                entityLoops[i].sound->Stop();
+        for (auto &loop : entityLoops) {
+            if (loop.sound) {
+                loop.sound->Stop();
             }
-            entityLoops[i] = {false, nullptr, -1, -1};
+            loop = {false, nullptr, -1, -1};
         }
 
         StopMusic();
@@ -219,17 +219,17 @@ namespace Audio {
         UpdateEmitters();
         UpdateSounds();
 
-        for (int i = 0; i < MAX_GENTITIES; i++) {
-            entityLoops[i].addedThisFrame = false;
+        for (auto &loop : entityLoops) {
+            loop.addedThisFrame = false;
             // if we are the unique owner of a loop pointer, then it means it was stopped, free it.
-            if (entityLoops[i].sound.unique()) {
-                entityLoops[i] = {false, nullptr, -1, -1};
+            if (loop.sound.unique()) {
+                loop = {false, nullptr, -1, -1};
             }
         }
 
-        for (int i = 0; i < N_STREAMS; i++) {
-            if (streams[i] and streams[i].unique()) {
-                streams[i] = nullptr;
+        for (auto &stream : streams) {
+            if (stream and stream.unique()) {
+                stream = nullptr;
             }
         }
     }
