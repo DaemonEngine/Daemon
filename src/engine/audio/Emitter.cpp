@@ -124,9 +124,7 @@ namespace Audio {
         // Both PositionEmitters and EntityEmitters are ref-counted.
         // If we hold the only reference to them then no sound is still using
         // the Emitter that can be destroyed.
-        for (int i = 0; i < MAX_GENTITIES; i++) {
-            auto emitter = entityEmitters[i];
-
+        for (auto &emitter : entityEmitters) {
             if (not emitter) {
                 continue;
             }
@@ -135,7 +133,7 @@ namespace Audio {
 
             // No sound is using this emitter, destroy it
             if (emitter.unique()) {
-                entityEmitters[i] = nullptr;
+                emitter = nullptr;
             }
         }
 
