@@ -472,6 +472,17 @@ bool trap_R_inPVS( const vec3_t p1, const vec3_t p2 )
 	return res;
 }
 
+std::vector<bool> trap_R_BatchInPVS(
+	const vec3_t origin,
+	const std::vector<std::array<float, 3>>& posEntities )
+{
+	std::array<float, 3> myOrigin;
+	VectorCopy(origin, myOrigin);
+	std::vector<bool> inPVS;
+	VM::SendMsg<Render::BatchInPVSMsg>(myOrigin, posEntities, inPVS);
+	return inPVS;
+}
+
 int trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir )
 {
 	int result;

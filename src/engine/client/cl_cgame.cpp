@@ -1287,6 +1287,21 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
+		case CG_R_BATCHINPVS:
+			IPC::HandleMsg<Render::BatchInPVSMsg>(channel, std::move(reader), [this] (
+				const std::array<float, 3>& origin,
+				const std::vector<std::array<float, 3>>& posEntities,
+				std::vector<bool>& inPVS)
+			{
+				inPVS.reserve(posEntities.size());
+
+				for (const auto& posEntity : posEntities)
+				{
+					inPVS.push_back(re.inPVS(origin.data(), posEntity.data()));
+				}
+			});
+			break;
+
 		case CG_R_LIGHTFORPOINT:
 			IPC::HandleMsg<Render::LightForPointMsg>(channel, std::move(reader), [this] (std::array<float, 3> point, std::array<float, 3>& ambient, std::array<float, 3>& directed, std::array<float, 3>& dir, int& res) {
 				res = re.LightForPoint(point.data(), ambient.data(), directed.data(), dir.data());
