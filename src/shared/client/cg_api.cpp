@@ -410,6 +410,24 @@ bool trap_R_inPVS( const vec3_t p1, const vec3_t p2 )
 	return res;
 }
 
+void trap_R_inPVSArray( const vec3_t origin, const std::array<vec3_t, MAX_ENTITIES> posEntities, std::array<bool, MAX_ENTITIES> validEntities )
+{
+	std::array<float, 3> myOrigin;
+	std::array<std::array<float, 3>, MAX_ENTITIES> myPosEntities;
+	VectorCopy( origin, myOrigin.data() );
+	for ( int i = 0; i < MAX_ENTITIES; i++ )
+	{
+		/* As input, validEntities tells if there is compute to do for this slot,
+		as output, validEntities tells if the entity of this slot is in PVS. */
+		if ( !validEntities[ i ] )
+		{
+			continue;
+		}
+		VectorCopy( posEntities[ i ], myPosEntities[ i ].data() );
+	}
+	VM::SendMsg<Render::InPVSArrayMsg>(myOrigin, myPosEntities, validEntities);
+}
+
 int trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir )
 {
 	int result;

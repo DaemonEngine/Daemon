@@ -1235,6 +1235,23 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
+		case CG_R_INPVSARRAY:
+			IPC::HandleMsg<Render::InPVSArrayMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& origin, const std::array<std::array<float, 3>, MAX_ENTITIES>& posEntities, std::array<bool, MAX_ENTITIES>& validEntities) {
+				for ( int i = 0; i < MAX_ENTITIES; i++ )
+				{
+					/* As input, validEntities tells if there is compute to do for this slot,
+					as output, validEntities tells if the entity of this slot is in PVS. */
+					if ( !validEntities[ i ] )
+					{
+						continue;
+					}
+					std::array<float, 3> posEntity;
+					VectorCopy( posEntities[ i ], posEntity.data() );
+					validEntities[ i ] = re.inPVS( origin.data(), posEntity.data() );
+				}
+			});
+			break;
+
 		case CG_R_LIGHTFORPOINT:
 			IPC::HandleMsg<Render::LightForPointMsg>(channel, std::move(reader), [this] (std::array<float, 3> point, std::array<float, 3>& ambient, std::array<float, 3>& directed, std::array<float, 3>& dir, int& res) {
 				res = re.LightForPoint(point.data(), ambient.data(), directed.data(), dir.data());
