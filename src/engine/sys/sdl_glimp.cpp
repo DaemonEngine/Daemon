@@ -1518,13 +1518,6 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 
 	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
 
-	if ( fullscreen && Cvar_VariableIntegerValue( "in_nograb" ) )
-	{
-		logger.Notice("Fullscreen not allowed with in_nograb 1" );
-		r_fullscreen.Set( false );
-		fullscreen = false;
-	}
-
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
 	switch ( err )
@@ -2154,13 +2147,6 @@ void GLimp_HandleCvars()
 		int sdlToggled = false;
 		bool needToToggle = true;
 		bool fullscreen = !!( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN );
-
-		if ( *wantFullscreen && Cvar_VariableIntegerValue( "in_nograb" ) )
-		{
-			logger.Notice("Fullscreen not allowed with in_nograb 1" );
-			*wantFullscreen = false;
-			r_fullscreen.Set( false );
-		}
 
 		// Is the state we want different from the current state?
 		needToToggle = *wantFullscreen != fullscreen;
