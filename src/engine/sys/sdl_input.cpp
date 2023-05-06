@@ -48,8 +48,6 @@ static cvar_t       *in_keyboardDebug = nullptr;
 static SDL_Joystick *stick = nullptr;
 static SDL_GameController *gamepad = nullptr;
 
-static bool     mouseAvailable = false;
-
 static cvar_t       *in_mouse = nullptr;
 
 static cvar_t       *in_nograb;
@@ -405,36 +403,91 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, bool down )
 
 // Whether the cursor is enabled
 static MouseMode mouse_mode = MouseMode::SystemCursor;
-
-/*
- * Returns whether the cursor is enabled
- */
-MouseMode IN_GetMouseMode()
-{
-    return mouse_mode;
-}
+static bool mouse_mode_unset = true;
 
 /*
  * Enables or disables the cursor
  */
 void IN_SetMouseMode(MouseMode newMode)
 {
-	if ( newMode != mouse_mode )
+	if ( newMode != mouse_mode || mouse_mode_unset )
 	{
-		if ( !mouseAvailable || !SDL_WasInit( SDL_INIT_VIDEO ) )
+		if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 		{
+			mouse_mode_unset = true;
 			return;
 		}
 
-		SDL_ShowCursor( newMode == MouseMode::SystemCursor ? SDL_ENABLE : SDL_DISABLE );
-		auto grab = newMode != MouseMode::Deltas || in_nograb->integer ? SDL_FALSE : SDL_TRUE;
-		SDL_SetRelativeMouseMode( grab );
-		SDL_SetWindowGrab( window, grab );
+		mouse_mode_unset = false;
 
+		int appState = SDL_GetWindowFlags( window );
+		bool unfocused = !( appState & SDL_WINDOW_INPUT_FOCUS );
+		bool minimized = ( appState & SDL_WINDOW_MINIMIZED );
+
+		if ( unfocused || minimized )
+		{
+			SDL_SetWindowGrab( window, SDL_FALSE );
+			SDL_SetRelativeMouseMode( SDL_FALSE );
+			SDL_ShowCursor( SDL_ENABLE );
+			mouse_mode = MouseMode::SystemCursor;
+			return;
+		}
+
+		if ( !in_mouse->integer )
+		{
+			SDL_SetWindowGrab( window, SDL_FALSE );
+			SDL_SetRelativeMouseMode( SDL_FALSE );
+			SDL_ShowCursor( SDL_ENABLE );
+			return;
+		}
+
+		if ( in_nograb->integer )
+		{
+			SDL_SetWindowGrab( window, SDL_FALSE );
+			SDL_SetRelativeMouseMode( SDL_FALSE );
+
+			switch ( newMode )
+			{
+				case MouseMode::CustomCursor:
+					SDL_ShowCursor( SDL_DISABLE );
+					break;
+
+				default:
+					SDL_ShowCursor( SDL_ENABLE );
+			}
+
+			mouse_mode = newMode;
+
+			return;
+		}
+
+		switch ( newMode )
+		{
+			case MouseMode::SystemCursor:
+				SDL_ShowCursor( SDL_ENABLE );
+				SDL_SetWindowGrab( window, SDL_FALSE );
+				SDL_SetRelativeMouseMode( SDL_FALSE );
+				break;
+
+			case MouseMode::CustomCursor:
+				SDL_ShowCursor( SDL_DISABLE );
+				SDL_SetWindowGrab( window, SDL_FALSE );
+				SDL_SetRelativeMouseMode( SDL_FALSE );
+				break;
+
+			case MouseMode::Deltas:
+				SDL_ShowCursor( SDL_DISABLE );
+				SDL_SetWindowGrab( window, SDL_TRUE );
+				SDL_SetRelativeMouseMode( SDL_TRUE );
+				break;
+		}
+
+		/* Only center mouse when leaving the Delta mode. */
 		if ( mouse_mode == MouseMode::Deltas )
 		{
 			IN_CenterMouse();
 		}
+
 		mouse_mode = newMode;
 	}
 #ifdef __APPLE__
@@ -1276,8 +1329,7 @@ void IN_Init( void *windowData )
 
 	in_gameControllerDebug = Cvar_Get( "in_gameControllerDebug", "0", CVAR_TEMP );
 	SDL_StartTextInput();
-	mouseAvailable = ( in_mouse->value != 0 );
-	IN_SetMouseMode( MouseMode::CustomCursor );
+	IN_SetMouseMode( MouseMode::SystemCursor );
 
 	appState = SDL_GetWindowFlags( window );
 	Cvar_SetValue( "com_unfocused", !( appState & SDL_WINDOW_INPUT_FOCUS ) );
@@ -1301,7 +1353,7 @@ void IN_Shutdown()
 {
 	SDL_StopTextInput();
 	IN_SetMouseMode(MouseMode::SystemCursor);
-	mouseAvailable = false;
+	mouse_mode_unset = true;
 
 	IN_ShutdownJoystick();
 
