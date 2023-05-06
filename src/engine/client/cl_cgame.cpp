@@ -1102,6 +1102,45 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
+		case CG_CM_BATCHMARKFRAGMENTS:
+			IPC::HandleMsg<CMBatchMarkFragments>(channel, std::move(reader), [this] (
+				unsigned maxPoints,
+				unsigned maxFragments,
+				const std::vector<markMsgInput_t>& inputs,
+				std::vector<markMsgOutput_t>& outputs)
+			{
+				outputs.reserve(inputs.size());
+				std::vector<std::array<float, 3>> pointBuf(maxPoints);
+				std::vector<markFragment_t> fragmentBuf(maxFragments);
+
+				for (const markMsgInput_t& input : inputs)
+				{
+					auto& inputPoints = input.first;
+					auto& projection = input.second;
+					size_t numFragments = re.MarkFragments(
+						inputPoints.size(),
+						reinterpret_cast<const vec3_t*>(inputPoints.data()),
+						projection.data(),
+						maxPoints,
+						reinterpret_cast<float*>(pointBuf.data()),
+						maxFragments,
+						fragmentBuf.data());
+					size_t numPoints;
+					if (numFragments == 0) {
+						numPoints = 0;
+					} else {
+						// HACK: assume last fragment is last
+						const markFragment_t& lastFragment = fragmentBuf[numFragments - 1];
+						numPoints = lastFragment.firstPoint + lastFragment.numPoints;
+					}
+					outputs.emplace_back(
+						std::vector<std::array<float, 3>>(pointBuf.data(), pointBuf.data() + numPoints),
+						std::vector<markFragment_t>(fragmentBuf.data(), fragmentBuf.data() + numFragments)
+					);
+				}
+			});
+			break;
+
 		case CG_GETCURRENTSNAPSHOTNUMBER:
 			IPC::HandleMsg<GetCurrentSnapshotNumberMsg>(channel, std::move(reader), [this] (int& number, int& serverTime) {
 				number = cl.snap.messageNum;

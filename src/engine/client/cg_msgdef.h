@@ -132,6 +132,7 @@ enum cgameImport_t
   CG_SENDCLIENTCOMMAND,
   CG_UPDATESCREEN,
   CG_CM_MARKFRAGMENTS,
+  CG_CM_BATCHMARKFRAGMENTS,
   CG_GETCURRENTSNAPSHOTNUMBER,
   CG_GETSNAPSHOT,
   CG_GETCURRENTCMDNUMBER,
@@ -245,6 +246,15 @@ using UpdateScreenMsg = IPC::SyncMessage<
 using CMMarkFragmentsMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_CM_MARKFRAGMENTS>, std::vector<std::array<float, 3>>, std::array<float, 3>, int, int>,
 	IPC::Reply<std::vector<std::array<float, 3>>, std::vector<markFragment_t>>
+>;
+using CMBatchMarkFragments = IPC::SyncMessage<
+	IPC::Message<
+		IPC::Id<VM::QVM, CG_CM_BATCHMARKFRAGMENTS>,
+		unsigned,
+		unsigned,
+		std::vector<markMsgInput_t>>,
+	IPC::Reply<
+		std::vector<markMsgOutput_t>>
 >;
 // TODO send all snapshots at the beginning of the frame
 using GetCurrentSnapshotNumberMsg = IPC::SyncMessage<
