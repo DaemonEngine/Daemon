@@ -155,6 +155,7 @@ enum cgameImport_t
   CG_S_STARTBACKGROUNDTRACK,
   CG_S_STOPBACKGROUNDTRACK,
   CG_S_UPDATEENTITYVELOCITY,
+  CG_S_UPDATEENTITYPOSITIONVELOCITY,
   CG_S_SETREVERB,
   CG_S_BEGINREGISTRATION,
   CG_S_ENDREGISTRATION,
@@ -301,6 +302,7 @@ namespace Audio {
 	using StartBackgroundTrackMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STARTBACKGROUNDTRACK>, std::string, std::string>;
 	using StopBackgroundTrackMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_STOPBACKGROUNDTRACK>>;
 	using UpdateEntityVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYVELOCITY>, int, Vec3>;
+	using UpdateEntityPositionVelocityMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_UPDATEENTITYPOSITIONVELOCITY>, int, Vec3, Vec3>;
 	using SetReverbMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_SETREVERB>, int, std::string, float>;
 	using BeginRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_BEGINREGISTRATION>>;
 	using EndRegistrationMsg = IPC::Message<IPC::Id<VM::QVM, CG_S_ENDREGISTRATION>>;

@@ -187,6 +187,7 @@ void            trap_R_GetShaderNameFromHandle( const qhandle_t shader, char *ou
 void            trap_PrepareKeyUp();
 void            trap_R_SetAltShaderTokens( const char * );
 void            trap_S_UpdateEntityVelocity( int entityNum, const vec3_t velocity );
+void trap_S_UpdateEntityPositionVelocity( int entityNum, const vec3_t position, const vec3_t velocity );
 void            trap_S_SetReverb( int slotNum, const char* presetName, float ratio );
 void            trap_S_BeginRegistration();
 void            trap_S_EndRegistration();

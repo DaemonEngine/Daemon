@@ -232,6 +232,11 @@ void trap_S_UpdateEntityVelocity( int entityNum, const vec3_t velocity )
 	cmdBuffer.SendMsg<Audio::UpdateEntityVelocityMsg>(entityNum, Vec3::Load(velocity));
 }
 
+void trap_S_UpdateEntityPositionVelocity( int entityNum, const vec3_t origin, const vec3_t velocity )
+{
+	cmdBuffer.SendMsg<Audio::UpdateEntityPositionVelocityMsg>(entityNum, Vec3::Load(origin), Vec3::Load(velocity));
+}
+
 void trap_S_SetReverb( int slotNum, const char* name, float ratio )
 {
 	cmdBuffer.SendMsg<Audio::SetReverbMsg>(slotNum, name, ratio);
