@@ -1102,6 +1102,38 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
+		case CG_CM_BATCHMARKFRAGMENTS:
+			IPC::HandleMsg<CMBatchMarkFragments>(channel, std::move(reader), [this] (
+				const std::vector<markMsgInput_t>& markMsgInput,
+				std::vector<markMsgOutput_t>& markMsgOutput)
+			{
+				size_t numMarks = markMsgInput.size();
+
+				markMsgOutput.reserve(MAX_MARK_FRAGMENTS);
+				markMsgOutput.resize(numMarks);
+
+				for ( size_t m = 0; m < numMarks; m++ )
+				{
+					const markMsgInput_t& input = markMsgInput[ m ];
+					const markOriginalPoints_t& originalPoints = input.first;
+					const markProjection_t& projection = input.second;
+
+					markMsgOutput_t& output = markMsgOutput[ m ];
+					markPoints_t& markPoints = output.markPoints;
+					markFragments_t& markFragments = output.markFragments;
+
+					output.numFragments = re.MarkFragments(
+						4,
+						(const vec3_t*) originalPoints.data(),
+						projection.data(),
+						MAX_MARK_POINTS,
+						markPoints[ 0 ].data(),
+						MAX_MARK_FRAGMENTS,
+						markFragments.data());
+				}
+			});
+			break;
+
 		case CG_GETCURRENTSNAPSHOTNUMBER:
 			IPC::HandleMsg<GetCurrentSnapshotNumberMsg>(channel, std::move(reader), [this] (int& number, int& serverTime) {
 				number = cl.snap.messageNum;

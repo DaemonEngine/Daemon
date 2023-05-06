@@ -64,6 +64,13 @@ int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t pro
 	return myfragmentBuffer.size();
 }
 
+void trap_CM_BatchMarkFragments(
+	const std::vector<markMsgInput_t> &markMsgInput,
+	std::vector<markMsgOutput_t> &markMsgOutput )
+{
+	VM::SendMsg<CMBatchMarkFragments>(markMsgInput, markMsgOutput);
+}
+
 void trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime )
 {
 	VM::SendMsg<GetCurrentSnapshotNumberMsg>(*snapshotNumber, *serverTime);

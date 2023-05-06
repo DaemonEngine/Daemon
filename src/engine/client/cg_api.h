@@ -86,9 +86,33 @@ enum class MouseMode
 	SystemCursor, // The input is sent as positions, the cursor should be rendered by the system
 };
 
+#define MAX_MARK_FRAGMENTS 128
+#define MAX_MARK_POINTS 384
+
+using markPoint_t = std::array<float, 3>;
+using markOriginalPoints_t = std::array<markPoint_t, 4>;
+using markProjection_t = std::array<float, 3>;
+using markPoints_t = std::array<markPoint_t, MAX_MARK_POINTS>;
+using markFragments_t = std::array<markFragment_t, MAX_MARK_FRAGMENTS>;
+
+using markMsgInput_t = std::pair<markOriginalPoints_t, markProjection_t>;
+
+// TODO: use a pair of vectors
+struct markMsgOutput_t
+{
+	markPoints_t markPoints;
+	markFragments_t markFragments;
+	int numFragments;
+};
+
 void            trap_SendClientCommand( const char *s );
 void            trap_UpdateScreen();
 int             trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+
+void trap_CM_BatchMarkFragments(
+	const std::vector<markMsgInput_t> &markMsgInput,
+	std::vector<markMsgOutput_t> &markMsgOutput );
+
 void            trap_S_StartSound( vec3_t origin, int entityNum, soundChannel_t entchannel, sfxHandle_t sfx );
 void            trap_S_StartLocalSound( sfxHandle_t sfx, soundChannel_t channelNum );
 void            trap_S_ClearLoopingSounds( bool killall );
