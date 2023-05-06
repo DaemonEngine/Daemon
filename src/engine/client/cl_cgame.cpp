@@ -1536,6 +1536,13 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
 				});
 				break;
 
+			case CG_S_UPDATEENTITYPOSITIONVELOCITY:
+				HandleMsg<Audio::UpdateEntityPositionVelocityMsg>(std::move(reader), [this] (int entityNum, Vec3 position, Vec3 velocity) {
+					Audio::UpdateEntityPosition(entityNum, position);
+					Audio::UpdateEntityVelocity(entityNum, velocity);
+				});
+				break;
+
 			case CG_S_SETREVERB:
 				HandleMsg<Audio::SetReverbMsg>(std::move(reader), [this] (int slotNum, const std::string& name, float ratio) {
 					Audio::SetReverb(slotNum, name, ratio);
