@@ -83,10 +83,35 @@ int trap_GetCurrentCmdNumber()
 	return res;
 }
 
+// Use a local cache to reduce IPC traffic. We assume that the user command number never decreases as
+// the command number only resets on an svc_gamestate command, and this command is only sent once
+// per cgame lifetime when the user enters the game (it's not even used for map_restart).
 bool trap_GetUserCmd( int cmdNumber, usercmd_t *ucmd )
 {
+	static usercmd_t cache[ CMD_BACKUP ];
+	static int latestInCache = -1;
+
+	if ( cmdNumber <= latestInCache - CMD_BACKUP )
+	{
+		// Either the cgame is buggy and trying to request really old stuff, or there is some case
+		// of additional calls to CL_ClearState that I didn't know about. Reset the cache in case
+		// it's legit.
+		Log::Warn( "Unexpectedly old command number requested in trap_GetUserCmd" );
+		latestInCache = -1;
+	}
+	else if ( cmdNumber <= latestInCache )
+	{
+		*ucmd = cache[ cmdNumber & CMD_MASK ];
+		return true;
+	}
+
 	bool res;
 	VM::SendMsg<GetUserCmdMsg>(cmdNumber, res, *ucmd);
+	if ( res )
+	{
+		latestInCache = cmdNumber;
+		cache[ cmdNumber & CMD_MASK ] = *ucmd;
+	}
 	return res;
 }
 
