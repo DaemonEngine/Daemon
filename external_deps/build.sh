@@ -884,7 +884,7 @@ if [ "${#}" -lt "2" ]; then
 	  package - create a zip/tarball of the dependencies so they can be distributed
 	  wipe - remove products of build process, excepting download cache but INCLUDING installed files. Must be last
 
-	Packages requires for each platform:
+	Packages required for each platform:
 
 	Native Windows compile:
 	  pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib
