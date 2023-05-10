@@ -743,6 +743,9 @@ common_setup_msvc() {
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
 	CC="${HOST}-gcc -static-libgcc"
 	CXX="${HOST}-g++ -static-libgcc"
+	LD="${HOST}-ld"
+	AR="${HOST}-ar"
+	RANLIB="${HOST}-ranlib"
 	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
 }
 
