@@ -20,7 +20,7 @@ CURL_VERSION=7.83.1
 SDL2_VERSION=2.26.5
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.37
-JPEG_VERSION=2.1.3
+JPEG_VERSION=2.1.5.1
 WEBP_VERSION=1.2.2
 FREETYPE_VERSION=2.12.1
 OPENAL_VERSION=1.21.1  # Not using 1.22.0 due to https://github.com/kcat/openal-soft/issues/719
@@ -287,14 +287,50 @@ build_jpeg() {
 	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
 
 	case "${PLATFORM}" in
-	*-amd64-*|*-i686-*)
+	windows-*-*)
+		local SYSTEM_NAME='Windows'
+		;;
+	macos-*-*)
+		local SYSTEM_NAME='Darwin'
+		;;
+	linux-*-*)
+		local SYSTEM_NAME='Linux'
+		;;
+	*)
+		# Other platforms can build but we need need to explicitly
+		# set CMAKE_SYSTEM_NAME for CMAKE_CROSSCOMPILING to be set
+		# and CMAKE_SYSTEM_PROCESSOR to not be ignored by cmake.
+		echo "Unsupported platform for JPEG"
+		exit 1
+		;;
+	esac
+
+	case "${PLATFORM}" in
+	*-amd64-*)
+		local SYSTEM_PROCESSOR='x86_64'
 		# Ensure NASM is available
 		nasm --help >/dev/null
+		;;
+	*-i686-*)
+		local SYSTEM_PROCESSOR='i386'
+		# Ensure NASM is available
+		nasm --help >/dev/null
+		;;
+	*-arm64-*)
+		local SYSTEM_PROCESSOR='aarch64'
+		;;
+	*-armhf-*)
+		local SYSTEM_PROCESSOR='arm'
+		;;
+	*)
+		echo "Unsupported platform for JPEG"
+		exit 1
 		;;
 	esac
 
 	local jpeg_cmake_call=(cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 		-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" -DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
 		-DWITH_JPEG8=1)
 	cd "libjpeg-turbo-${JPEG_VERSION}"
 	case "${PLATFORM}" in
