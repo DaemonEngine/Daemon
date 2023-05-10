@@ -285,8 +285,12 @@ build_png() {
 build_jpeg() {
 	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
 
-	# Ensure NASM is available
-	"${NASM:-nasm}" --help >/dev/null
+	case "${PLATFORM}" in
+	*-amd64-*|*-i686-*)
+		# Ensure NASM is available
+		"${NASM:-nasm}" --help >/dev/null
+		;;
+	esac
 
 	local jpeg_cmake_call=(cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 		-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
