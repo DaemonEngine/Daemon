@@ -293,8 +293,8 @@ build_jpeg() {
 		cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DWITH_JPEG8=1 -DENABLE_SHARED=0
 		;;
 	esac
-	cmake --build build
-	cmake --install build
+	make -C build
+	make -C build install
 }
 
 # Build WebP
