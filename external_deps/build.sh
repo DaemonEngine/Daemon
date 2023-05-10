@@ -288,7 +288,7 @@ build_jpeg() {
 	case "${PLATFORM}" in
 	*-amd64-*|*-i686-*)
 		# Ensure NASM is available
-		"${NASM:-nasm}" --help >/dev/null
+		nasm --help >/dev/null
 		;;
 	esac
 
@@ -732,7 +732,7 @@ common_setup() {
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
 	BUILD_DIR="${WORK_DIR}/${BUILD_BASEDIR}"
 	PREFIX="${BUILD_DIR}/prefix"
-	PATH="${PATH}:${PREFIX}/bin"
+	PATH="${PREFIX}/bin:${PATH}"
 	PKG_CONFIG="pkg-config"
 	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 	CPPFLAGS+=" -I${PREFIX}/include"
@@ -844,7 +844,6 @@ setup_macos-amd64-default() {
 	MACOS_ARCH=x86_64
 	export MACOSX_DEPLOYMENT_TARGET=10.9 # works with CMake
 	common_setup macos x86_64-apple-darwin11
-	export NASM="${PWD}/${BUILD_BASEDIR}/prefix/bin/nasm" # A newer version of nasm is required for 64-bit
 }
 
 # Set up environment for 32-bit i686 Linux
