@@ -618,7 +618,7 @@ build_genlib() {
 	windows-*-msvc)
 		mkdir -p "${PREFIX}/def"
 		cd "${PREFIX}/def"
-		for DLL_A in "${PREFIX}"/lib/*.dll.a; do
+		for DLL_A in $(find "${PREFIX}/lib" -type f -name '*.dll.a'); do
 			local DLL="$("${HOST}-dlltool" -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
 			local DEF="$(basename ${DLL} .dll).def"
 			local LIB="$(basename ${DLL_A} .dll.a).lib"
