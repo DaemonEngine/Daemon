@@ -688,17 +688,31 @@ endif()
 
 # SDL, required for all targets on win32 because of iconv and SDL_SetHint(SDL_TIMER_RESOLUTION, 0)
 if (BUILD_CLIENT OR WIN32)
-    find_package(SDL2 REQUIRED)
+    find_package(SDL2 CONFIG)
 
-    include_directories(${SDL2_INCLUDE_DIR})
+    if (SDL2_SDL2main_FOUND)
+        mark_as_advanced(SDL2_DIR)
+    else()
+        # We cannot use REQUIRED because it would look
+        # for OldSDL2_FOUND instead of SDL2_FOUND.
+        find_package(OldSDL2)
+
+        if (NOT SDL2_FOUND)
+            message(FATAL_ERROR "Could NOT find SDL2")
+        endif()
+
+        include_directories(${SDL2_INCLUDE_DIR})
+
+        mark_as_advanced(SDL2MAIN_LIBRARY SDL2_LIBRARY SDL2_INCLUDE_DIR)
+    endif ()
 
     if (WIN32)
-        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${SDL2_LIBRARY})
+        set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE}
+            $<$<TARGET_EXISTS:SDL2::SDL2main>:SDL2::SDL2main> SDL2::SDL2)
     else()
-        set(LIBS_CLIENT ${LIBS_CLIENT} ${SDL2_LIBRARY})
+        set(LIBS_CLIENT ${LIBS_CLIENT}
+            $<$<TARGET_EXISTS:SDL2::SDL2main>:SDL2::SDL2main> SDL2::SDL2)
     endif()
-
-    mark_as_advanced(SDL2MAIN_LIBRARY SDL2_LIBRARY SDL2_INCLUDE_DIR)
 endif()
 
 # Breakpad

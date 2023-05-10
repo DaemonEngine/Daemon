@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <common/FileSystem.h>
 #ifdef _WIN32
 #include <windows.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #else
 #include <unistd.h>
 #include <signal.h>

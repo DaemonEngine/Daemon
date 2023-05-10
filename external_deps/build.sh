@@ -17,7 +17,7 @@ ZLIB_VERSION=1.2.13
 GMP_VERSION=6.2.1
 NETTLE_VERSION=3.7.3
 CURL_VERSION=7.83.1
-SDL2_VERSION=2.0.12  # Holding back due to https://github.com/DaemonEngine/Daemon/issues/628
+SDL2_VERSION=2.26.5
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.37
 JPEG_VERSION=2.1.3
@@ -135,7 +135,6 @@ build_zlib() {
 		CFLAGS="${CFLAGS} -O3" ./configure --prefix="${PREFIX}" --static --const
 		make
 		make install
-		;;
 	esac
 }
 
@@ -207,8 +206,10 @@ build_sdl2() {
 	windows-*-msvc)
 		download "SDL2-devel-${SDL2_VERSION}-VC.zip" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-VC.zip" sdl2
 		cd "SDL2-${SDL2_VERSION}"
-		mkdir -p "${PREFIX}/include/SDL2"
-		cp include/* "${PREFIX}/include/SDL2"
+		mkdir -p "${PREFIX}/SDL2/cmake"
+		cp "cmake/"* "${PREFIX}/SDL2/cmake"
+		mkdir -p "${PREFIX}/SDL2/include"
+		cp "include/"* "${PREFIX}/SDL2/include"
 
 		case "${PLATFORM}" in
 		*-i686-*)
@@ -223,9 +224,9 @@ build_sdl2() {
 			;;
 		esac
 
-		mkdir -p "${PREFIX}/lib"
-		cp "${sdl2_lib_dir}/"{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
-		cp "${sdl2_lib_dir}/"*.dll "${PREFIX}/lib"
+		mkdir -p "${PREFIX}/SDL2/${sdl2_lib_dir}"
+		cp "${sdl2_lib_dir}/"{SDL2.lib,SDL2main.lib} "${PREFIX}/SDL2/${sdl2_lib_dir}"
+		cp "${sdl2_lib_dir}/"*.dll "${PREFIX}/SDL2/${sdl2_lib_dir}"
 		;;
 	macos-*-*)
 		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
