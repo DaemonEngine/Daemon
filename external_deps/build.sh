@@ -170,7 +170,7 @@ build_gmp() {
 	make
 	make install
 	case "${PLATFORM}" in
-	msvc*)
+	windows-*-msvc)
 		export CC="${CC_BACKUP}"
 		export CXX="${CXX_BACKUP}"
 		;;
