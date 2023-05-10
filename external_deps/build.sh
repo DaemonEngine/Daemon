@@ -622,7 +622,19 @@ build_genlib() {
 			local DLL="$("${HOST}-dlltool" -I "${DLL_A}" 2> /dev/null || echo $(basename ${DLL_A} .dll.a).dll)"
 			local DEF="$(basename ${DLL} .dll).def"
 			local LIB="$(basename ${DLL_A} .dll.a).lib"
-			local MACHINE="$([ "${PLATFORM}" = msvc32 ] && echo i386 || echo i386:x86-64)"
+
+			case "${PLATFORM}" in
+			*-i686-*)
+				local MACHINE='i386'
+				;;
+			*-amd64-*)
+				local MACHINE='i386:x86-64'
+				;;
+			*)
+				echo "Unsupported platform for genlib"
+				exit 1
+				;;
+			esac
 
 			# Using gendef from mingw-w64-tools
 			gendef "${PREFIX}/bin/${DLL}"
