@@ -233,7 +233,7 @@ build_sdl2() {
 		rm -rf "${PREFIX}/SDL2.framework"
 		cp -R "SDL2.framework" "${PREFIX}"
 		;;
-	linux-*-*)
+	*)
 		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		# The default -O3 is dropped when there's user-provided CFLAGS.
