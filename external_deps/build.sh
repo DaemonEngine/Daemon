@@ -160,10 +160,10 @@ build_gmp() {
 	case "${PLATFORM}" in
 	macos-*-*)
 		# The assembler objects are incompatible with PIE
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-assembly
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}" --disable-assembly
 		;;
 	*)
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}"
 		;;
 	esac
 
@@ -183,7 +183,7 @@ build_nettle() {
 	download "nettle-${NETTLE_VERSION}.tar.gz" "https://ftp.gnu.org/gnu/nettle/nettle-${NETTLE_VERSION}.tar.gz" nettle
 	cd "nettle-${NETTLE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}"
 	make
 	make install
 }
@@ -192,7 +192,7 @@ build_nettle() {
 build_curl() {
 	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
 	cd "curl-${CURL_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc ${CONFIGURE_SHARED[@]}
+	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc "${CONFIGURE_SHARED[@]}"
 	make
 	make install
 }
@@ -237,7 +237,7 @@ build_sdl2() {
 		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
 		cd "SDL2-${SDL2_VERSION}"
 		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+		CFLAGS="${CFLAGS} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}"
 		make
 		make install
 		;;
@@ -277,7 +277,7 @@ build_png() {
 	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
 	cd "libpng-${PNG_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}"
 	make
 	make install
 }
@@ -313,7 +313,7 @@ build_webp() {
 	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
 	cd "libwebp-${WEBP_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --disable-libwebpdemux ${CONFIGURE_SHARED[@]}
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --disable-libwebpdemux "${CONFIGURE_SHARED[@]}"
 	make
 	make install
 }
@@ -323,7 +323,7 @@ build_freetype() {
 	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
 	cd "freetype-${FREETYPE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}" --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
 	make
 	make install
 	cp -a "${PREFIX}/include/freetype2" "${PREFIX}/include/freetype"
@@ -380,7 +380,7 @@ build_ogg() {
 	# This header breaks the vorbis and opusfile Mac builds
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+	./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}"
 	make
 	make install
 }
@@ -389,7 +389,7 @@ build_ogg() {
 build_vorbis() {
 	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
 	cd "libvorbis-${VORBIS_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-examples
+	./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}" --disable-examples
 	make
 	make install
 }
@@ -402,10 +402,10 @@ build_opus() {
 	case "${PLATFORM}" in
 	windows-*-*)
 		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
-		CFLAGS="${CFLAGS} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}"
 		;;
 	*)
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]}
+		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}"
 		;;
 	esac
 	make
@@ -417,7 +417,7 @@ build_opusfile() {
 	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
 	cd "opusfile-${OPUSFILE_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" ${CONFIGURE_SHARED[@]} --disable-http
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}" --disable-http
 	make
 	make install
 }
@@ -463,7 +463,7 @@ build_ncurses() {
 	cd "ncurses-${NCURSES_VERSION}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec ${CONFIGURE_SHARED[@]} --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --enable-widec "${CONFIGURE_SHARED[@]}" --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
 	make
 	make install
 }
