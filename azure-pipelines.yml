@@ -21,19 +21,33 @@ jobs:
         GCC:
           C_COMPILER: gcc
           CXX_COMPILER: g++
+          EXTRA_PACKAGES:
+          EXTRA_INSTALLS:
+          TOOLCHAIN_FILE:
         Clang:
           C_COMPILER: clang
           CXX_COMPILER: clang++
+          EXTRA_PACKAGES:
+          EXTRA_INSTALLS:
+          TOOLCHAIN_FILE:
+        Mingw:
+          C_COMPILER: x86_64-w64-mingw32-gcc
+          CXX_COMPILER: x86_64-w64-mingw32-g++
+          EXTRA_PACKAGES: gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
+          EXTRA_INSTALLS: sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix ; sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+          TOOLCHAIN_FILE: cmake/cross-toolchain-mingw64.cmake
+
     steps:
     - bash: |
         set -e
         sudo apt-get update
-        sudo apt-get -y -q --no-install-recommends install zlib1g-dev libncursesw5-dev libgeoip-dev nettle-dev libgmp-dev libcurl4-gnutls-dev libsdl2-dev libogg-dev libvorbis-dev libopusfile-dev libwebp-dev libjpeg8-dev libpng-dev libfreetype6-dev libglew-dev libopenal-dev liblua5.2-dev ninja-build
+        sudo apt-get -y -q --no-install-recommends install zlib1g-dev libncursesw5-dev libgeoip-dev nettle-dev libgmp-dev libcurl4-gnutls-dev libsdl2-dev libogg-dev libvorbis-dev libopusfile-dev libwebp-dev libjpeg8-dev libpng-dev libfreetype6-dev libglew-dev libopenal-dev liblua5.2-dev ninja-build $(EXTRA_PACKAGES)
+        $(EXTRA_INSTALLS)
       displayName: 'Install deps'
     - bash: |
         set -e
         git submodule update --init --recursive
         cmake --version
-        cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_DEBUG_OPTIMIZE=0 -DCMAKE_BUILD_TYPE=Debug -H. -Bbuild
+        cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DUSE_DEBUG_OPTIMIZE=0 -DCMAKE_BUILD_TYPE=Debug -H. -Bbuild
         cmake --build build -- -j`nproc`
       displayName: 'Build'
