@@ -705,6 +705,7 @@ build_wipe() {
 common_setup() {
 	HOST="${2}"
 	"common_setup_${1}"
+	common_setup_arch
 	WORK_DIR="${PWD}"
 	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
@@ -717,17 +718,36 @@ common_setup() {
 	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
-	case "${PLATFORM}" in
-	*-i686)
-		CFLAGS+=" -msse2"
-		CXXFLAGS+=" -msse2"
-		;;
-	esac
 	mkdir -p "${DOWNLOAD_DIR}"
 	mkdir -p "${PREFIX}/bin"
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
 	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+}
+
+common_setup_arch () {
+	case "${PLATFORM}" in
+	*-amd64-*)
+		CLFLAGS+=' -march=x86-64 -mcx16'
+		CXXFLAGS+=' -march=x86-64 -mcx16'
+		;;
+	*-i686-*)
+		CFLAGS+=' -march=i686 -msse2 -mfpmath=sse'
+		CXXFLAGS+=' -march=i686 -msse2 -mfpmath=sse'
+		;;
+	*-arm64-*)
+		CFLAGS+=' -march=armv8-a'
+		CXXFLAGS+=' -march=armv8-a'
+		;;
+	*-armhf-*)
+		CFLAGS+=' -march=armv7-a -mfpu=neon'
+		CXXFLAGS+=' -march=armv7-a -mfpu=neon'
+		;;
+	*)
+		echo "Unsupported platform"
+		exit 1
+		;;
+	esac
 }
 
 # -D__USE_MINGW_ANSI_STDIO=0 instructs MinGW to *not* use its own implementation
