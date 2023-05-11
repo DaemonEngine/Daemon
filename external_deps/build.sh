@@ -223,6 +223,7 @@ build_sdl2() {
 		;;
 	macos-*-*)
 		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
+		rm -rf "${PREFIX}/SDL2.framework"
 		cp -R "SDL2.framework" "${PREFIX}"
 		;;
 	linux-*-*)
