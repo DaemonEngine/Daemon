@@ -210,16 +210,23 @@ build_sdl2() {
 		cd "SDL2-${SDL2_VERSION}"
 		mkdir -p "${PREFIX}/include/SDL2"
 		cp include/* "${PREFIX}/include/SDL2"
+
 		case "${PLATFORM}" in
-		windows-i686-msvc)
-			cp lib/x86/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
-			cp lib/x86/*.dll "${PREFIX}/bin"
+		*-i686-*)
+			local sdl2_lib_dir='lib/x86'
 			;;
-		windows-amd64-msvc)
-			cp lib/x64/{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
-			cp lib/x64/*.dll "${PREFIX}/bin"
+		*-amd64-*)
+			local sdl2_lib_dir='lib/x64'
+			;;
+		*)
+			echo "Unsupported platform for SDL2"
+			exit 1
 			;;
 		esac
+
+		mkdir -p "${PREFIX}/lib"
+		cp "${sdl2_lib_dir}/"{SDL2.lib,SDL2main.lib} "${PREFIX}/lib"
+		cp "${sdl2_lib_dir}/"*.dll "${PREFIX}/lib"
 		;;
 	macos-*-*)
 		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
