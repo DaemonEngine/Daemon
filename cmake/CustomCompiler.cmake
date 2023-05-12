@@ -53,6 +53,16 @@ function(detect_custom_compiler lang)
 			return()
 		endif()
 
+		# Saigo
+		if ("${CUSTOM_${lang}_COMPILER_OUTPUT}" MATCHES "\#define __saigo__ 1")
+			set(CUSTOM_${lang}_COMPILER_ID "Saigo" PARENT_SCOPE)
+
+			string(REGEX REPLACE ".*#define __VERSION__ \"Clang ([^ \"]+).*" "\\1" CUSTOM_${lang}_COMPILER_VERSION "${CUSTOM_${lang}_COMPILER_OUTPUT}")
+			set(CUSTOM_${lang}_COMPILER_VERSION "${CUSTOM_${lang}_COMPILER_VERSION}" PARENT_SCOPE)
+
+			return()
+		endif()
+
 		# AOCC
 		if ("${CUSTOM_${lang}_COMPILER_OUTPUT}" MATCHES "CLANG: AOCC")
 			set(CUSTOM_${lang}_COMPILER_ID "AOCC" PARENT_SCOPE)
