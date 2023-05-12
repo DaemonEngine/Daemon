@@ -73,6 +73,28 @@ function(detect_custom_compiler lang)
 			return()
 		endif()
 	endif()
+
+	# Parse “<compiler> --help”
+	# There is a bug in cmake: if we set CMAKE_C_COMPILER to "zig:cc",
+	# only "zig" is returned when using the ${CMAKE_C_COMPILER} variable,
+	# so here the command will be "zig --help".
+	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" --help
+		OUTPUT_VARIABLE CUSTOM_${lang}_COMPILER_OUTPUT
+		RESULT_VARIABLE CUSTOM_${lang}_RETURN_CODE
+		ERROR_QUIET)
+
+	if (NOT CUSTOM_${lang}_RETURN_CODE) # Success
+		# Zig
+		if ("${CUSTOM_${lang}_COMPILER_OUTPUT}" MATCHES ": zig ")
+			set(CUSTOM_${lang}_COMPILER_ID "Zig" PARENT_SCOPE)
+
+			execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" version OUTPUT_VARIABLE CUSTOM_${lang}_COMPILER_VERSION)
+			string(STRIP "${CUSTOM_${lang}_COMPILER_VERSION}" CUSTOM_${lang}_COMPILER_VERSION)
+			set(CUSTOM_${lang}_COMPILER_VERSION "${CUSTOM_${lang}_COMPILER_VERSION}" PARENT_SCOPE)
+
+			return()
+		endif()
+	endif()
 endfunction()
 
 detect_custom_compiler("C")
