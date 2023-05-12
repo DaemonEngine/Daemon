@@ -24,11 +24,33 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+include(CustomCompiler)
+
 function(detect_daemon_compiler lang)
 	set(C_NAME "C")
 	set(CXX_NAME "C++")
 
 	get_filename_component(DAEMON_${LANG}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
+
+	if (CUSTOM_${lang}_COMPILER_ID)
+		set(DAEMON_${lang}_COMPILER_ID "${CUSTOM_${lang}_COMPILER_ID}")
+	elseif (CMAKE_${lang}_COMPILER_ID)
+		set(DAEMON_${lang}_COMPILER_ID "${CMAKE_${lang}_COMPILER_ID}")
+	else()
+		message(WARNING "Unknown ${${lang}_NAME} compiler")
+		set(DAEMON_${lang}_COMPILER_ID "Unknown")
+	endif()
+
+	set(DAEMON_${lang}_COMPILER_ID "${DAEMON_${lang}_COMPILER_ID}" PARENT_SCOPE)
+
+	if (CUSTOM_${lang}_COMPILER_VERSION)
+		set(DAEMON_${lang}_COMPILER_VERSION "${CUSTOM_${lang}_COMPILER_VERSION}")
+	elseif (CMAKE_${lang}_COMPILER_VERSION)
+		set(DAEMON_${lang}_COMPILER_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
+	else()
+		message(WARNING "Unknown ${${lang}_NAME} compiler version")
+		set(DAEMON_${lang}_COMPILER_VERSION "Unknown")
+	endif()
 
 	set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_ID} ${DAEMON_${lang}_COMPILER_VERSION} ${DAEMON_${lang}_COMPILER_BASENAME}")
 	set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_STRING}" PARENT_SCOPE)
