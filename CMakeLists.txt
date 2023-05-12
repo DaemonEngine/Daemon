@@ -911,7 +911,7 @@ if (NOT NACL)
             Definitions USELESS_DEFINITION_TO_AVOID_PCH_ISSUE
             ApplicationMain ${ENGINE_DIR}/null/NullApplication.cpp
             Flags ${WARNINGS}
-            Files ${COMMON_DIR}/Util.h  # must be nonempty
+            Files ${ENGINE_DIR}/qcommon/PrintDepVersions.cpp
             Tests ${ENGINETESTLIST}
         )
     endif()

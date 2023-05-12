@@ -291,6 +291,7 @@ set(ENGINETESTLIST
 )
 
 set(QCOMMONLIST
+    ${ENGINE_DIR}/qcommon/PrintDepVersions.cpp
     ${ENGINE_DIR}/qcommon/cmd.cpp
     ${ENGINE_DIR}/qcommon/common.cpp
     ${ENGINE_DIR}/qcommon/crypto.cpp
