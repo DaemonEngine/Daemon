@@ -101,7 +101,8 @@ download() {
 build_pkgconfig() {
 	download "pkg-config-${PKGCONFIG_VERSION}.tar.gz" "http://pkgconfig.freedesktop.org/releases/pkg-config-${PKGCONFIG_VERSION}.tar.gz" pkgconfig
 	cd "pkg-config-${PKGCONFIG_VERSION}"
-	./configure --host="${HOST}" --prefix="${PREFIX}" --with-internal-glib
+	# The default -O2 is dropped when there's user-provided CFLAGS.
+	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --with-internal-glib
 	make
 	make install
 }
@@ -130,7 +131,8 @@ build_zlib() {
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
 	linux-*-*)
-		./configure --prefix="${PREFIX}" --static --const
+		# The default -O3 is dropped when there's user-provided CFLAGS.
+		CFLAGS="${CFLAGS} -O3" ./configure --prefix="${PREFIX}" --static --const
 		make
 		make install
 		;;
@@ -192,6 +194,7 @@ build_nettle() {
 build_curl() {
 	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
 	cd "curl-${CURL_VERSION}"
+	# The user-provided CFLAGS doesn't drop the default -O2
 	./configure --host="${HOST}" --prefix="${PREFIX}" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc "${CONFIGURE_SHARED[@]}"
 	make
 	make install
@@ -380,6 +383,7 @@ build_ogg() {
 	# This header breaks the vorbis and opusfile Mac builds
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
+	# The user-provided CFLAGS doesn't drop the default -O2
 	./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}"
 	make
 	make install
@@ -389,6 +393,7 @@ build_ogg() {
 build_vorbis() {
 	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
 	cd "libvorbis-${VORBIS_VERSION}"
+	# The user-provided CFLAGS doesn't drop the default -O3
 	./configure --host="${HOST}" --prefix="${PREFIX}" "${CONFIGURE_SHARED[@]}" --disable-examples
 	make
 	make install
