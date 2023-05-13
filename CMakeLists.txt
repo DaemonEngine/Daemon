@@ -618,6 +618,7 @@ endif()
 if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     add_library(srclibs-minizip EXCLUDE_FROM_ALL ${MINIZIPLIST})
     set_target_properties(srclibs-minizip PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    target_link_libraries(srclibs-minizip "${LIBS_BASE}")
     set(LIBS_BASE ${LIBS_BASE} srclibs-minizip)
     if (MSVC)
         target_compile_options(srclibs-minizip PRIVATE "/wd4100") # disable "unreferenced formal parameter"
