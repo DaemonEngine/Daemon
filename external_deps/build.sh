@@ -130,15 +130,11 @@ build_zlib() {
 		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
-	linux-*-*)
+	*)
 		# The default -O3 is dropped when there's user-provided CFLAGS.
 		CFLAGS="${CFLAGS} -O3" ./configure --prefix="${PREFIX}" --static --const
 		make
 		make install
-		;;
-	*)
-		echo "Unsupported platform for zlib"
-		exit 1
 		;;
 	esac
 }
