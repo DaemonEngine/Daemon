@@ -132,7 +132,7 @@ if(NOT DAEMON_EXTERNAL_APP)
         set(BUILD_GAME_NACL OFF)
         set(NACL_TARGETS "")
     endif()
-	
+
     set(NACL_TARGETS "${NACL_TARGETS}" PARENT_SCOPE)
 
     option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
@@ -536,24 +536,22 @@ if (DEPS_DIR)
     endif()
 endif()
 
+# Look for OpenGL here before we potentially switch to looking for static libs.
+if (BUILD_CLIENT)
+    find_package(OpenGL REQUIRED)
+    include_directories(${OPENGL_INCLUDE_DIR})
+    set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
+endif()
+
+# Prefer static libs
+if ( USE_STATIC_LIBS )
+    if ( LINUX )
+        set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    endif()
+endif()
+
 # These variables are defined:
 # LIBS_BASE, LIBS_ENGINE_BASE LIBS_ENGINE, LIBS_BASECLIENT, LIBS_CLIENT
-
-# Native client
-include(DaemonNacl)
-if (NACL)
-    add_library(srclibs-nacl-module EXCLUDE_FROM_ALL ${NACLLIST_MODULE})
-    set_target_properties(srclibs-nacl-module PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-module)
-else()
-    add_library(srclibs-nacl-native EXCLUDE_FROM_ALL ${NACLLIST_NATIVE})
-    set_target_properties(srclibs-nacl-native PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-    if (APPLE)
-        # Do not error for OSAtomic* deprecation notices
-        target_compile_options(srclibs-nacl-native PRIVATE "-Wno-error=deprecated-declarations")
-    endif()
-    set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-native)
-endif()
 
 # Base OS libs
 if (WIN32)
@@ -570,6 +568,9 @@ else()
     find_library(LIBRT rt)
     if (LIBRT)
         set(LIBS_BASE ${LIBS_BASE} ${LIBRT})
+    elseif(NOT APPLE)
+        # We assume all Linux systems provide librt.
+        set(LIBS_BASE ${LIBS_BASE} rt)
     endif()
     find_library(LIBICONV iconv)
     if (LIBICONV)
@@ -584,6 +585,35 @@ else()
     endif()
 endif()
 
+# zlib
+if (NACL)
+    add_library(srclibs-zlib EXCLUDE_FROM_ALL ${ZLIBLIST})
+    set_target_properties(srclibs-zlib PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    set(ZLIB_INCLUDE_DIRS ${LIB_DIR}/zlib)
+    set(ZLIB_LIBRARIES srclibs-zlib)
+else()
+    find_package(ZLIB REQUIRED)
+endif()
+set(LIBS_BASE ${LIBS_BASE} ${ZLIB_LIBRARIES})
+include_directories(${ZLIB_INCLUDE_DIRS})
+
+# Native client
+include(DaemonNacl)
+if (NACL)
+    add_library(srclibs-nacl-module EXCLUDE_FROM_ALL ${NACLLIST_MODULE})
+    set_target_properties(srclibs-nacl-module PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-module)
+else()
+    add_library(srclibs-nacl-native EXCLUDE_FROM_ALL ${NACLLIST_NATIVE})
+    target_link_libraries(srclibs-nacl-native "${LIBS_BASE}")
+    set_target_properties(srclibs-nacl-native PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
+    if (APPLE)
+        # Do not error for OSAtomic* deprecation notices
+        target_compile_options(srclibs-nacl-native PRIVATE "-Wno-error=deprecated-declarations")
+    endif()
+    set(LIBS_BASE ${LIBS_BASE} srclibs-nacl-native)
+endif()
+
 # Minizip
 if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     add_library(srclibs-minizip EXCLUDE_FROM_ALL ${MINIZIPLIST})
@@ -592,35 +622,6 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (MSVC)
         target_compile_options(srclibs-minizip PRIVATE "/wd4100") # disable "unreferenced formal parameter"
     endif()
-endif()
-
-# Look for OpenGL here before we potentially switch to looking for static libs.
-if (BUILD_CLIENT)
-    find_package(OpenGL REQUIRED)
-    include_directories(${OPENGL_INCLUDE_DIR})
-    set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
-endif()
-
-# Prefer static libs
-if ( USE_STATIC_LIBS )
-    if ( LINUX )
-        set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-    endif()
-endif()
-
-
-# zlib
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP OR NACL)
-    if (NOT NACL)
-        find_package(ZLIB REQUIRED)
-    else()
-        add_library(srclibs-zlib EXCLUDE_FROM_ALL ${ZLIBLIST})
-        set_target_properties(srclibs-zlib PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
-        set(ZLIB_INCLUDE_DIRS ${LIB_DIR}/zlib)
-        set(ZLIB_LIBRARIES srclibs-zlib)
-    endif()
-    set(LIBS_BASE ${LIBS_BASE} ${ZLIB_LIBRARIES})
-    include_directories(${ZLIB_INCLUDE_DIRS})
 endif()
 
 if (DAEMON_PARENT_SCOPE_DIR)
@@ -681,6 +682,8 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT)
     if (USE_MUMBLE)
         # Mumble link
         add_library(srclibs-mumblelink EXCLUDE_FROM_ALL ${MUMBLELINKLIST})
+        target_link_libraries(srclibs-mumblelink "${LIBS_BASE}")
+        target_link_libraries(srclibs-mumblelink "")
         set_target_properties(srclibs-mumblelink PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
         set(LIBS_CLIENTBASE ${LIBS_CLIENTBASE} srclibs-mumblelink)
     endif()
