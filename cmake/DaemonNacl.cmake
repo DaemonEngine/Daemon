@@ -37,6 +37,8 @@ else()
   # Build native dll or native exe.
   if( APPLE )
     add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=0 -DNACL_ANDROID=0 -DNACL_OSX=1 )
+  elseif( ANDROID )
+    add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=0 -DNACL_ANDROID=1 -DNACL_OSX=0 )
   elseif( LINUX )
     add_definitions( -DNACL_WINDOWS=0 -DNACL_LINUX=1 -DNACL_ANDROID=0 -DNACL_OSX=0 )
   elseif( WIN32 )

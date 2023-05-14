@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PLATFORM_STRING "Windows"
 #elif defined(__APPLE__)
 #define PLATFORM_STRING "macOS"
+#elif defined(__ANDROID__)
+#define PLATFORM_STRING "Android"
 #elif defined(__linux__)
 #define PLATFORM_STRING "Linux"
 #elif defined(__native_client__)

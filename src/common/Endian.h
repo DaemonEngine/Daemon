@@ -75,7 +75,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Android specific code, see: https://svn.boost.org/trac/boost/ticket/7528
 // Here we can use machine/_types.h, see:
 // http://stackoverflow.com/questions/6212951/endianness-of-android-ndk
-# include "machine/_types.h"
 # ifdef __ARMEB__
 #  define Q3_BIG_ENDIAN
 #  define Q3_BYTE_ORDER 4321

@@ -81,7 +81,7 @@ int NaClWouldBlock(void) {
 }
 
 int NaClGetLastErrorString(char* buffer, size_t length) {
-#if NACL_LINUX && !NACL_ANDROID
+#if NACL_LINUX || (NACL_ANDROID && _GNU_SOURCE)
   char* message;
   /*
    * Note some Linux distributions provide only GNU version of strerror_r().

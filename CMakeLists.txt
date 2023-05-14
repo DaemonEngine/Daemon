@@ -958,7 +958,7 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
     )
 
     # Linux uses a bootstrap program to reserve address space
-    if (LINUX)
+    if (LINUX OR ANDROID)
         if (ARCH STREQUAL "arm64")
             add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
             add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
