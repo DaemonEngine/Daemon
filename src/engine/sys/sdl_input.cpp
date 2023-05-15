@@ -437,6 +437,10 @@ void IN_SetMouseMode(MouseMode newMode)
 		}
 		mouse_mode = newMode;
 	}
+#ifdef __APPLE__
+	// This prevents the system cursor from disappearing in the loading screen
+	SDL_PumpEvents();
+#endif
 }
 
 static bool in_focus = false;
