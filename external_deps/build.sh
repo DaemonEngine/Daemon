@@ -709,6 +709,24 @@ build_genlib() {
 	esac
 }
 
+list_build() {
+	local list_name="${1}"
+	local package_list
+	eval "package_list=(\${${list_name}_${PLATFORM//-/_}_packages})"
+	for pkg in "${package_list[@]}"; do
+		cd "${WORK_DIR}"
+		"build_${pkg}"
+	done
+}
+
+build_base() {
+	list_build base
+}
+
+build_all() {
+	list_build all
+}
+
 # Install all the necessary files to the location expected by CMake
 build_install() {
 	PKG_PREFIX="${WORK_DIR}/${PKG_BASEDIR}"
@@ -902,40 +920,78 @@ setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
 
+base_windows_amd64_msvc_packages='pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib'
+all_windows_amd64_msvc_packages="${base_windows_amd64_msvc_packages}"
+
+base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
+all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
+
+base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports'
+all_mingw_packages="${base_windows_amd64_mingw_packages}"
+
+base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
+all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
+
+base_macos_amd64_default_packages='pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports'
+all_macos_amd64_default_packages="${base_macos_amd64_default_packages}"
+
+base_linux_amd64_default_packages='naclsdk naclports'
+all_linux_amd64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports'
+
+base_linux_i686_default_packages="${base_linux_amd64_default_packages}"
+all_linux_i686_default_packages="${all_linux_amd64_default_packages}"
+
+base_linux_arm64_default_packages='naclsdk'
+all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk'
+
+base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
+all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
+
 # Usage
 if [ "${#}" -lt "2" ]; then
-	cat <<-EOF
-	usage: ${0} <platform> <package[s]...>
+	sed -e 's/\\t/\t/g' <<-EOF
+	usage: $(basename "${BASH_SOURCE[0]}") <platform> <package[s]...>
 
 	Script to build dependencies for platforms which do not provide them
 
 	Platforms:
-	  windows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-i686-default linux-arm64-default linux-armhf-default
+	\twindows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-i686-default linux-arm64-default linux-armhf-default
 
 	Packages:
-	  pkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
+	\tpkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
 
 	Virtual packages:
-	  install - create a stripped down version of the built packages that CMake can use
-	  package - create a zip/tarball of the dependencies so they can be distributed
-	  wipe - remove products of build process, excepting download cache but INCLUDING installed files. Must be last
+	\tbase — build packages for pre-built binaries to be downloaded when building the game
+	\tall — build all supported packages that can possibly be involved in building the game
+	\tinstall — create a stripped down version of the built packages that CMake can use
+	\tpackage — create a zip/tarball of the dependencies so they can be distributed
+	\twipe — remove products of build process, excepting download cache but INCLUDING installed files. Must be last
 
 	Packages required for each platform:
 
-	Native Windows compile:
-	  pkgconfig zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports genlib
+	windows-amd64-msvc:
+	windows-i686-msvc:
+	\tbase: ${base_windows_amd64_msvc_packages}
+	\tall: same
 
-	Linux to Windows cross-compile:
-	  zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports
+	windows-amd64-mingw:
+	windows-i686-mingw:
+	\tbase: ${base_windows_amd64_mingw_packages}
+	\tall: same
 
-	Native macOS compile:
-	  pkgconfig nasm gmp nettle sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports
+	macos-amd64-default:
+	\tbase: ${base_macos_amd64_default_packages}
+	\tall: same
 
-	Linux amd64 and i686 native compile:
-	  naclsdk naclports (and possibly others depending on what packages your distribution provides)
+	linux-amd64-default:
+	linux-i686-default:
+	\tbase: ${base_linux_amd64_default_packages}
+	\tall: ${all_linux_amd64_default_packages}
 
-	Linux arm64 and armhf native compile:
-	  naclsdk (and possibly others depending on what packages your distribution provides)
+	linux-arm64-default:
+	linux-armhf-default:
+	\tbase: ${base_linux_arm64_default_packages}
+	\tall: ${all_linux_arm64_default_packages}
 
 	EOF
 	exit 1
