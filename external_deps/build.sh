@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-# Exit on error
-# Error on undefined variable
-set -e
-set -u
+# Exit on undefined variable and error.
+set -u -e -o pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+WORK_DIR="${PWD}"
 
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
@@ -762,8 +763,6 @@ common_setup() {
 	HOST="${2}"
 	"common_setup_${1}"
 	common_setup_arch
-	WORK_DIR="${PWD}"
-	SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
@@ -781,7 +780,7 @@ common_setup() {
 	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
 }
 
-common_setup_arch () {
+common_setup_arch() {
 	case "${PLATFORM}" in
 	*-amd64-*)
 		CLFLAGS+=' -march=x86-64 -mcx16'
