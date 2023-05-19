@@ -39,7 +39,7 @@ extern "C" {
     #include "findlocale/findlocale.h"
 }
 
-static Cvar::Cvar<std::string> language("language", "language for UI text", Cvar::ARCHIVE, "");
+static Cvar::Cvar<std::string> language("language", "language for UI text", Cvar::NONE, "");
 
 void Trans_LoadDefaultLanguage()
 {
