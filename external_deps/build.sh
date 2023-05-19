@@ -10,6 +10,9 @@ WORK_DIR="${PWD}"
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
 DEPS_VERSION=9
+# This should match the TOOLCHAINS_VERSION in build-toolchains.sh.
+# This is only used with --toolchain option.
+TOOLCHAINS_VERSION=1
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
@@ -762,6 +765,7 @@ build_wipe() {
 common_setup() {
 	HOST="${2}"
 	"common_setup_${1}"
+	common_setup_toolchain
 	common_setup_arch
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
@@ -778,6 +782,18 @@ common_setup() {
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
 	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+}
+
+common_setup_toolchain() {
+	if "${with_toolchain}"
+	then
+		local toolchain_system="$(echo "${PLATFORM}" | cut -f1 -d-)"
+		local toolchain_arch="$(echo "${PLATFORM}" | cut -f2 -d-)"
+		local toolchain_platform="${toolchain_system}-${toolchain_arch}"
+		PATH="${WORK_DIR}/toolchains_${TOOLCHAINS_VERSION}/${toolchain_platform}/bin:${PATH}"
+		CC="${CC/-linux-/-unknown-linux-}"
+		CXX="${CXX/-linux-/-unknown-linux-}"
+	fi
 }
 
 common_setup_arch() {
@@ -901,6 +917,13 @@ setup_linux-armhf-default() {
 setup_linux-arm64-default() {
 	common_setup linux aarch64-unknown-linux-gnu
 }
+
+with_toolchain=false
+if [ "${1:-}" = '--with-toolchain' ]
+then
+	with_toolchain=true
+	shift
+fi
 
 # Usage
 if [ "${#}" -lt "2" ]; then
