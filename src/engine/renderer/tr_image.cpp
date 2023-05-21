@@ -2048,7 +2048,7 @@ image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
 	char cubeMapBaseName[ MAX_QPATH ];
 	COM_StripExtension3( buffer, cubeMapBaseName, sizeof( cubeMapBaseName ) );
 
-	for ( const cubeMapLoader_t loader : cubeMapLoaders )
+	for ( const cubeMapLoader_t &loader : cubeMapLoaders )
 	{
 		std::string cubeMapName = Str::Format( "%s.%s", cubeMapBaseName, loader.ext );
 		if( R_FindImageLoader( cubeMapName.c_str() ) >= 0 )
