@@ -221,6 +221,11 @@ void GLShaderManager::freeAll()
 {
 	for ( GLShader* &shader : _shaders )
 	{
+		shader->_vertexShaderText.clear();
+		shader->_vertexShaderText.shrink_to_fit();
+		shader->_fragmentShaderText.clear();
+		shader->_fragmentShaderText.shrink_to_fit();
+
 		for ( shaderProgram_t &shaderProgram : shader->_shaderPrograms )
 		{
 			if ( shaderProgram.uniformLocations )
