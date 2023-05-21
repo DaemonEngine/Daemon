@@ -805,6 +805,8 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 					  qtangentbuf[ i ] );
 		}
 
+		memset( &vboData, 0, sizeof( vboData ) );
+
 		vboData.xyz = (vec3_t *)IQModel->positions;
 		vboData.qtangent = qtangentbuf;
 		vboData.numFrames = 0;
@@ -814,7 +816,6 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		vboData.boneIndexes = (int (*)[4])indexbuf;
 		vboData.boneWeights = (vec4_t *)weightbuf;
 		vboData.numVerts = IQModel->num_vertexes;
-
 
 		vbo = R_CreateStaticVBO( "IQM surface VBO", vboData,
 					 vboLayout_t::VBO_LAYOUT_SKELETAL );
