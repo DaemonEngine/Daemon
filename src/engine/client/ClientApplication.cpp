@@ -110,6 +110,7 @@ class ClientApplication : public Application {
             if (Sys::PedanticShutdown()) {
                 TRY_SHUTDOWN(SV_Shutdown(message.c_str()));
                 TRY_SHUTDOWN(NET_Shutdown());
+                Hunk_Shutdown();
             } else {
                 TRY_SHUTDOWN(SV_QuickShutdown(message.c_str()));
             }

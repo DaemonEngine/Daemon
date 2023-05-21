@@ -199,6 +199,11 @@ void Hunk_Clear()
 	Log::Debug( "Hunk_Clear: reset the hunk ok" );
 }
 
+void Hunk_Shutdown()
+{
+	Com_Free_Aligned( s_hunkData );
+}
+
 static void Hunk_SwapBanks()
 {
 	hunkUsed_t *swap;
