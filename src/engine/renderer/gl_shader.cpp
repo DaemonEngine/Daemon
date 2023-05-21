@@ -219,6 +219,22 @@ GLShaderManager::~GLShaderManager()
 
 void GLShaderManager::freeAll()
 {
+	for ( GLShader* &shader : _shaders )
+	{
+		for ( shaderProgram_t &shaderProgram : shader->_shaderPrograms )
+		{
+			if ( shaderProgram.uniformLocations )
+			{
+				Z_Free( shaderProgram.uniformLocations );
+			}
+
+			if ( shaderProgram.uniformFirewall )
+			{
+				Z_Free( shaderProgram.uniformFirewall );
+			}
+		}
+	}
+
 	_shaders.clear();
 
 	for ( GLint sh : _deformShaders )
