@@ -726,9 +726,6 @@ void CL_ShutdownAll()
 	{
 		void SV_ShutdownGameProgs();
 		SV_ShutdownGameProgs();
-
-		// clear collision map data
-		CM_ClearMap();
 	}
 
 	Hunk_Clear();

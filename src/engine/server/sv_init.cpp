@@ -734,6 +734,9 @@ void SV_Shutdown( const char *finalmsg )
 	// free current level
 	SV_ClearServer();
 
+	// clear collision map data
+	CM_ClearMap();
+
 	// free server static data
 	if ( svs.clients )
 	{

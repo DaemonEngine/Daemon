@@ -918,8 +918,7 @@ void CM_LoadMap(Str::StringRef name)
 		Sys::Drop("Could not load %s", mapFile.c_str());
 	}
 
-	// free old stuff
-	CM_FreeAll();
+	// clear collision map data
 	CM_ClearMap();
 
 	if ( !name[ 0 ] )
@@ -975,6 +974,7 @@ CM_ClearMap
 */
 void CM_ClearMap()
 {
+	CM_FreeAll();
 	memset( &cm, 0, sizeof( cm ) );
 	CM_ClearLevelPatches();
 }
