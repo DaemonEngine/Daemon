@@ -169,27 +169,30 @@ namespace Cvar {
 		CvarMap &cvars = GetCvarMap();
 
 		for (const auto &it: cvars) {
-			cvar_t &cvar = it.second->ccvar;
+			cvarRecord_t *cvar = it.second;
+			cvar_t &ccvar = cvar->ccvar;
 
-			if (cvar.name)
+			if (ccvar.name)
 			{
-				Z_Free(cvar.name);
+				Z_Free(ccvar.name);
 			}
 
-			if (cvar.resetString)
+			if (ccvar.resetString)
 			{
-				Z_Free(cvar.resetString);
+				Z_Free(ccvar.resetString);
 			}
 
-			if (cvar.latchedString)
+			if (ccvar.latchedString)
 			{
-				Z_Free(cvar.latchedString);
+				Z_Free(ccvar.latchedString);
 			}
 
-			if (cvar.string)
+			if (ccvar.string)
 			{
-				Z_Free(cvar.string);
+				Z_Free(ccvar.string);
 			}
+
+			delete cvar;
 		}
 
 		cvars.clear();
