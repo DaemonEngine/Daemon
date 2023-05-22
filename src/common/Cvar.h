@@ -103,6 +103,9 @@ namespace Cvar {
      * be accessed with .Get() and .Set() will serialize T before setting the value.
      * It is also automatically registered when created so you can write:
      *   static Cvar<bool> my_bool_cvar("my_bool_cvar", "bool - a cvar", Cvar::NONE, false);
+     * Auto-registering cvars should only be declared in static storage (i.e. like global variables)
+     * because they do *not* automatically unregister, so if the cvar can be destroyed before the
+     * program ends you'll have a dangling pointer in the cvar table.
      *
      * The functions bool ParseCvarValue(string, T& res), string SerializeCvarValue(T)
      * and string GetCvarTypeName<T>() must be implemented for Cvar<T> to work.
