@@ -147,6 +147,7 @@ protected:
 	{
 	}
 
+public:
 	virtual ~GLShader()
 	{
 		for ( std::size_t i = 0; i < _shaderPrograms.size(); i++ )
@@ -184,8 +185,6 @@ protected:
 			}
 		}
 	}
-
-public:
 
 	void RegisterUniform( GLUniform *uniform )
 	{
@@ -272,7 +271,7 @@ public:
 class GLShaderManager
 {
 	std::queue< GLShader* > _shaderBuildQueue;
-	std::vector< GLShader* > _shaders;
+	std::vector< std::unique_ptr< GLShader > > _shaders;
 	std::unordered_map< std::string, int > _deformShaderLookup;
 	std::vector< GLint > _deformShaders;
 	int       _totalBuildTime;
@@ -304,7 +303,7 @@ public:
 
 		shader = new T( this );
 		InitShader( shader );
-		_shaders.push_back( shader );
+		_shaders.emplace_back( shader );
 		_shaderBuildQueue.push( shader );
 	}
 	void freeAll();
