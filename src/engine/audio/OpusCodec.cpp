@@ -156,6 +156,7 @@ AudioData LoadOpusCodec(std::string filename)
 		std::copy_n(buffer, samplesPerChannelRead * numberOfChannels, std::back_inserter(samples));
 	}
 
+	delete[] buffer;
 	op_free(opusFile);
 
 	char* rawSamples = new char[sampleWidth * samples.size()];
