@@ -1481,7 +1481,7 @@ void GLShader::SetRequiredVertexPointers()
 }
 
 GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
-	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	GLShader( "generic2D", "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_TextureMatrix( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
