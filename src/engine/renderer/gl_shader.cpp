@@ -1500,9 +1500,9 @@ void GLShader_generic2D::BuildShaderVertexLibNames( std::string& vertexInlines )
 	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
 }
 
-void GLShader_generic2D::BuildShaderFragmentLibNames( std::string& fragmentInlines )
+void GLShader_generic2D::BuildShaderCompileMacros( std::string& compileMacros )
 {
-	fragmentInlines += "generic2D";
+	compileMacros += "GENERIC_2D ";
 }
 
 void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
