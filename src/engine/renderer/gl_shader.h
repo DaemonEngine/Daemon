@@ -2213,7 +2213,7 @@ class GLShader_generic2D :
 public:
 	GLShader_generic2D( GLShaderManager *manager );
 	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& vertexInlines ) override;
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 

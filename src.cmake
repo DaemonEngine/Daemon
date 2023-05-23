@@ -173,7 +173,6 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/fxaa_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fxaa_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/fxaa3_11_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/generic2D_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/generic_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/generic_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/heatHaze_fp.glsl
