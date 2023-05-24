@@ -406,12 +406,9 @@ void GenRandomBytes(void* dest, size_t size)
 
 } // namespace Sys
 
-#ifndef __SANITIZE_ADDRESS__
-#if defined(__has_feature)
-#if !__has_feature(address_sanitizer)
 // Global operator new/delete override to not throw an exception when out of
 // memory. Instead, it is preferable to simply crash with an error.
-void* operator new(size_t n)
+void* operator new(size_t n) ATTRIBUTE_NO_SANITIZE_ADDRESS
 {
 	void* p = malloc(n);
 	if (!p)
@@ -419,15 +416,12 @@ void* operator new(size_t n)
 	return p;
 }
 
-void operator delete(void* p) NOEXCEPT
+void operator delete(void* p) NOEXCEPT ATTRIBUTE_NO_SANITIZE_ADDRESS
 {
 	free(p);
 }
 
-void operator delete(void* p, size_t) NOEXCEPT
+void operator delete(void* p, size_t) NOEXCEPT ATTRIBUTE_NO_SANITIZE_ADDRESS
 {
 	free(p);
 }
-#endif
-#endif
-#endif
