@@ -396,9 +396,9 @@ void Con_Init()
 
 	con_height = Cvar_Get( "con_height", "55", 0 );
 	con_colorRed = Cvar_Get( "con_colorRed", "0", 0 );
-	con_colorBlue = Cvar_Get( "con_colorBlue", "0.3", 0 );
-	con_colorGreen = Cvar_Get( "con_colorGreen", "0.18", 0 );
-	con_colorAlpha = Cvar_Get( "con_colorAlpha", "0.5", 0 );
+	con_colorBlue = Cvar_Get( "con_colorBlue", "0.0", 0 );
+	con_colorGreen = Cvar_Get( "con_colorGreen", "0.0", 0 );
+	con_colorAlpha = Cvar_Get( "con_colorAlpha", "0.75", 0 );
 
 	con_margin = Cvar_Get( "con_margin", "10", 0 );
 	con_horizontalPadding = Cvar_Get( "con_horizontalPadding", "0", 0 );
