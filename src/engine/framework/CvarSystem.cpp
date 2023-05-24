@@ -161,8 +161,8 @@ namespace Cvar {
     // can be registered before main. The first time this function is called the cvar map
     // is initialized so we are sure it is initialized as soon as we need it.
     CvarMap& GetCvarMap() {
-        static CvarMap* cvars = new CvarMap();
-        return *cvars;
+        static CvarMap cvars;
+        return cvars;
     }
 
 	void Shutdown() {
