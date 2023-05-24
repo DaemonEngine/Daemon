@@ -115,8 +115,8 @@ namespace Cmd {
     // can be registered before main. The first time this function is called the command map
     // is initialized so we are sure it is initialized as soon as we need it.
     CommandMap& GetCommandMap() {
-        static CommandMap* commands = new CommandMap();
-        return *commands;
+        static CommandMap commands;
+        return commands;
     }
 
     // Used to emulate the C API
