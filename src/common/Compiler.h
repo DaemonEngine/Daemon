@@ -114,6 +114,7 @@ int CountTrailingZeroes(unsigned long long x);
 #if __clang__
 #if __has_attribute(no_sanitize_address)
 # define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
+# define __SANITIZE_ADDRESS__
 #else
 # define ATTRIBUTE_NO_SANITIZE_ADDRESS
 #endif
