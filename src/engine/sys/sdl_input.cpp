@@ -48,8 +48,6 @@ static cvar_t       *in_keyboardDebug = nullptr;
 static SDL_Joystick *stick = nullptr;
 static SDL_GameController *gamepad = nullptr;
 
-static cvar_t       *in_mouse = nullptr;
-
 static cvar_t       *in_nograb;
 
 static cvar_t       *in_joystick = nullptr;
@@ -430,14 +428,6 @@ void IN_SetMouseMode(MouseMode newMode)
 			SDL_SetRelativeMouseMode( SDL_FALSE );
 			SDL_ShowCursor( SDL_ENABLE );
 			mouse_mode = MouseMode::SystemCursor;
-			return;
-		}
-
-		if ( !in_mouse->integer )
-		{
-			SDL_SetWindowGrab( window, SDL_FALSE );
-			SDL_SetRelativeMouseMode( SDL_FALSE );
-			SDL_ShowCursor( SDL_ENABLE );
 			return;
 		}
 
@@ -1319,7 +1309,6 @@ void IN_Init( void *windowData )
 	in_keyboardDebug = Cvar_Get( "in_keyboardDebug", "0", CVAR_TEMP );
 
 	// mouse variables
-	in_mouse = Cvar_Get( "in_mouse", "1", 0 );
 	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
 
 	in_joystick = Cvar_Get( "in_joystick", "0",  CVAR_LATCH );
