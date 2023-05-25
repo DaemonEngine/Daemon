@@ -110,17 +110,19 @@ int CountTrailingZeroes(unsigned long long x);
 // Work around lack of constexpr
 #define CONSTEXPR constexpr
 
-// To mark functions which cause issues with address sanitizer
-#if __clang__
-#if __has_attribute(no_sanitize_address)
-# define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
-#else
-# define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#ifdef __SANITIZE_ADDRESS__ // Detects GCC asan
+#   define USING_ADDRESS_SANITIZER
+#elif defined(__has_feature)
+#   if __has_feature(address_sanitizer) // Detects Clang asan
+#       define USING_ADDRESS_SANITIZER
+#   endif
 #endif
-#elif __SANITIZE_ADDRESS__
-# define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
+
+// To mark functions which cause issues with address sanitizer
+#ifdef USING_ADDRESS_SANITIZER
+#   define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
 #else
-# define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#   define ATTRIBUTE_NO_SANITIZE_ADDRESS
 #endif
 
 inline int CountTrailingZeroes(unsigned int x) { return __builtin_ctz(x); }
