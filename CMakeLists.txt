@@ -1029,7 +1029,7 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
 
     # Windows requires some libraries from external_deps
     if (WIN32)
-        file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll)
+        file(GLOB RUNTIME_LIBS ${DEPS_DIR}/bin/*.dll ${DEPS_DIR}/lib/*/SDL2.dll)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
