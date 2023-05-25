@@ -43,6 +43,8 @@ Maryland 20850 USA.
 #include "framework/CommandSystem.h"
 #include "sys/sys_events.h"
 
+static Log::Logger mouseLog("client.mouse", "");
+
 static cvar_t       *in_keyboardDebug = nullptr;
 
 static SDL_Joystick *stick = nullptr;
@@ -403,53 +405,52 @@ static Keyboard::Key IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, bool down )
 static MouseMode mouse_mode = MouseMode::SystemCursor;
 static bool mouse_mode_unset = true;
 
+static bool MouseModeAllowed( MouseMode mode )
+{
+	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
+	{
+		return false;
+	}
+
+	switch ( mode )
+	{
+		case MouseMode::Deltas:
+		case MouseMode::CustomCursor:
+		{
+			int appState = SDL_GetWindowFlags( window );
+			bool unfocused = !( appState & SDL_WINDOW_INPUT_FOCUS );
+			bool minimized = ( appState & SDL_WINDOW_MINIMIZED );
+			return !unfocused && !minimized;
+		}
+		case MouseMode::SystemCursor:
+			return true;
+	}
+	mouseLog.Warn( "Invalid mouse mode requested" );
+	return false;
+}
+
 /*
  * Enables or disables the cursor
  */
 void IN_SetMouseMode(MouseMode newMode)
 {
-	if ( newMode != mouse_mode || mouse_mode_unset )
+	if ( in_nograb->integer && newMode == MouseMode::Deltas )
 	{
-		if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
-		{
-			mouse_mode_unset = true;
-			return;
-		}
+		newMode = MouseMode::SystemCursor;
+	}
 
+	if ( newMode == mouse_mode && !mouse_mode_unset )
+	{
+		mouseLog.Debug( "Mouse mode: already in mode %d", Util::ordinal( mouse_mode ) );
+	}
+	else if ( !MouseModeAllowed( newMode ) )
+	{
+		mouseLog.Debug( "Mouse mode: mode %d not allowed now", Util::ordinal( newMode ) );
+	}
+	else
+	{
+		mouseLog.Verbose( "Mouse mode: changing to %d", Util::ordinal( newMode ) );
 		mouse_mode_unset = false;
-
-		int appState = SDL_GetWindowFlags( window );
-		bool unfocused = !( appState & SDL_WINDOW_INPUT_FOCUS );
-		bool minimized = ( appState & SDL_WINDOW_MINIMIZED );
-
-		if ( unfocused || minimized )
-		{
-			SDL_SetWindowGrab( window, SDL_FALSE );
-			SDL_SetRelativeMouseMode( SDL_FALSE );
-			SDL_ShowCursor( SDL_ENABLE );
-			mouse_mode = MouseMode::SystemCursor;
-			return;
-		}
-
-		if ( in_nograb->integer )
-		{
-			SDL_SetWindowGrab( window, SDL_FALSE );
-			SDL_SetRelativeMouseMode( SDL_FALSE );
-
-			switch ( newMode )
-			{
-				case MouseMode::CustomCursor:
-					SDL_ShowCursor( SDL_DISABLE );
-					break;
-
-				default:
-					SDL_ShowCursor( SDL_ENABLE );
-			}
-
-			mouse_mode = newMode;
-
-			return;
-		}
 
 		switch ( newMode )
 		{
