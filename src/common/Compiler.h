@@ -111,7 +111,7 @@ int CountTrailingZeroes(unsigned long long x);
 #define CONSTEXPR constexpr
 
 // To mark functions which cause issues with address sanitizer
-#if __clang__
+#if defined(__has_feature)
 #if __has_attribute(no_sanitize_address)
 # define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
 // Some parts of the code may rely on thimay rely on thiss
