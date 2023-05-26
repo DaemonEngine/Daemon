@@ -49,10 +49,19 @@ namespace Str {
     public:
         static CONSTEXPR size_t npos = std::numeric_limits<size_t>::max();
 
+        BasicStringRef() noexcept = default;
+        BasicStringRef( BasicStringRef<T> const& ) noexcept = default;
+        BasicStringRef( BasicStringRef<T> && ) noexcept = default;
+        BasicStringRef& operator=( BasicStringRef<T> const& ) noexcept = default;
+        BasicStringRef& operator=( BasicStringRef<T> && ) noexcept = default;
+        ~BasicStringRef() noexcept = default;
+
         BasicStringRef(const std::basic_string<T>& other)
             : ptr(other.c_str()), len(other.size()) {}
         BasicStringRef(const T* other)
             : ptr(other), len(std::char_traits<T>::length(other)) {}
+        BasicStringRef(const T* other, size_t len_)
+            : ptr(other), len(len_) { ASSERT( len_ <= std::char_traits<T>::length(other) ); }
 
         const T& operator[](size_t pos) const
         {
@@ -201,8 +210,8 @@ namespace Str {
         }
 
     private:
-        const T* ptr;
-        size_t len;
+        const T* ptr = nullptr;
+        size_t len = 0;
     };
 
     // StringRef is a reference to a null-terminated string ("C string") with length included.
