@@ -573,7 +573,7 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t
 	}
 	else
 #endif
-	if ( sock == netsrc_t::NS_SERVER && sv_packetdelay.Get() > 0 )
+	if ( sock == netsrc_t::NS_SERVER && sv_packetdelay.Get() )
 	{
 		NET_QueuePacket( length, data, to, sv_packetdelay.Get() );
 	}
