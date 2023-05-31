@@ -636,9 +636,6 @@ void SV_Init()
 	// the download netcode tops at 18/20 kb/s, no need to make you think you can go above
 	sv_dl_maxRate = Cvar_Get( "sv_dl_maxRate", "42000", 0 );
 
-	//bani
-	sv_packetdelay = Cvar_Get( "sv_packetdelay", "0", CVAR_CHEAT );
-
 	// fretn - note: redirecting of clients to other servers relies on this,
 	// ET://someserver.com
 	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", 0 );
@@ -695,7 +692,7 @@ void SV_FinalCommand( char *cmd, bool disconnect )
 // Used instead of SV_Shutdown when Daemon is exiting
 void SV_QuickShutdown( const char *finalmsg )
 {
-	if ( !com_sv_running || !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -720,7 +717,7 @@ Called to shut down the sgame VM, or to clean up after the VM shut down on its o
 */
 void SV_Shutdown( const char *finalmsg )
 {
-	if ( !com_sv_running || !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}

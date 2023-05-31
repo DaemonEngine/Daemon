@@ -408,7 +408,7 @@ namespace Audio {
     }
 
     void UpdateListenerGain() {
-        if ((muteWhenMinimized.Get() and com_minimized->integer) or (muteWhenUnfocused.Get() and com_unfocused->integer)) {
+        if ((muteWhenMinimized.Get() and com_minimized.Get()) or (muteWhenUnfocused.Get() and com_unfocused.Get())) {
             AL::SetListenerGain(0.0f);
         } else {
             AL::SetListenerGain(SliderToAmplitude(masterVolume.Get()));

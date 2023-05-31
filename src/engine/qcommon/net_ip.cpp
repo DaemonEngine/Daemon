@@ -1779,7 +1779,7 @@ void NET_Config( bool enableNetworking )
 	// get any latched changes to cvars
 	modified = NET_GetCvars();
 #ifndef BUILD_SERVER
-	svRunning = !!com_sv_running->integer;
+	svRunning = com_sv_running.Get();
 	modified |= ( svRunning != serverMode );
 #endif
 

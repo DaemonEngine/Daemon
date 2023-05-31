@@ -324,9 +324,6 @@ extern Cvar::Cvar<bool> sv_wwwDownload;
 extern Cvar::Cvar<std::string> sv_wwwBaseURL;
 extern Cvar::Cvar<std::string> sv_wwwFallbackURL;
 
-//bani
-extern cvar_t *sv_packetdelay;
-
 //fretn
 extern cvar_t *sv_fullmsg;
 

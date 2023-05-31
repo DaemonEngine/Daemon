@@ -133,7 +133,6 @@ cvar_t *cl_inGameVideo;
 cvar_t *cl_serverStatusResendTime;
 
 cvar_t                 *cl_packetloss; //bani
-cvar_t                 *cl_packetdelay; //bani
 
 cvar_t                 *cl_consoleFont;
 cvar_t                 *cl_consoleFontSize;
@@ -722,7 +721,7 @@ void CL_ShutdownAll()
 	// Gordon: stop recording on map change etc, demos aren't valid over map changes anyway
 	CL_StopRecord();
 
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		void SV_ShutdownGameProgs();
 		SV_ShutdownGameProgs();
@@ -745,7 +744,7 @@ memory on the hunk from cgame, ui, and renderer
 */
 void CL_MapLoading()
 {
-	if ( !com_cl_running->integer )
+	if ( !com_cl_running.Get() )
 	{
 		return;
 	}
@@ -809,7 +808,7 @@ static void CL_SendDisconnect()
 {
 	// send a disconnect message to the server
 	// send it a few times in case one is dropped
-	if ( com_cl_running && com_cl_running->integer && cls.state >= connstate_t::CA_CONNECTED )
+	if ( com_cl_running.Get() && cls.state >= connstate_t::CA_CONNECTED )
 	{
 		CL_AddReliableCommand( "disconnect" );
 		CL_WritePacket();
@@ -820,7 +819,7 @@ static void CL_SendDisconnect()
 
 void CL_Disconnect( bool showMainMenu )
 {
-	if ( !com_cl_running || !com_cl_running->integer )
+	if ( !com_cl_running.Get() )
 	{
 		return;
 	}
@@ -1051,7 +1050,7 @@ void CL_Connect_f()
 	// clear any previous "server full" type messages
 	clc.serverMessage[ 0 ] = 0;
 
-	if ( com_sv_running->integer && !strcmp( server, "loopback" ) )
+	if ( com_sv_running.Get() && !strcmp( server, "loopback" ) )
 	{
 		// if running a local server, kill it
 		SV_Shutdown( "Server quit" );
@@ -2492,7 +2491,7 @@ CL_Frame
 */
 void CL_Frame( int msec )
 {
-	if ( !com_cl_running->integer )
+	if ( !com_cl_running.Get() )
 	{
 		return;
 	}
@@ -2506,7 +2505,7 @@ void CL_Frame( int msec )
 			CL_TakeVideoFrame();
 
 			// fixed time for next frame
-			msec = ( int ) ceil( ( 1000.0f / cl_aviFrameRate->value ) * com_timescale->value );
+			msec = ( int ) ceil( ( 1000.0f / cl_aviFrameRate->value ) * com_timescale.Get() );
 
 			if ( msec == 0 )
 			{
@@ -2650,12 +2649,7 @@ Only the renderer is really a hunk user.
 */
 void CL_StartHunkUsers()
 {
-	if ( !com_cl_running )
-	{
-		return;
-	}
-
-	if ( !com_cl_running->integer )
+	if ( !com_cl_running.Get() )
 	{
 		return;
 	}
@@ -2712,7 +2706,7 @@ void CL_RefTagFree()
 
 int CL_ScaledMilliseconds()
 {
-	return Sys::Milliseconds() * com_timescale->value;
+	return Sys::Milliseconds() * com_timescale.Get();
 }
 
 extern refexport_t *GetRefAPI( int apiVersion, refimport_t *rimp );
@@ -2899,7 +2893,6 @@ void CL_Init()
 
 	//bani
 	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
-	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
 
 	Cvar_Get( "cl_maxPing", "800", 0 );
 	// userinfo
@@ -2960,7 +2953,7 @@ void CL_Shutdown()
 	static bool recursive = false;
 
 	// check whether the client is running at all.
-	if ( !( com_cl_running && com_cl_running->integer ) )
+	if ( !com_cl_running.Get() )
 	{
 		return;
 	}

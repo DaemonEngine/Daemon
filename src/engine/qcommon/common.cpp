@@ -52,12 +52,13 @@ Maryland 20850 USA.
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
 
+Cvar::Cvar<bool> com_developer = Cvar::Cvar<bool>( "developer", "", Cvar::TEMPORARY, false );
+Cvar::Cvar<int> com_speeds = Cvar::Cvar<int>( "com_speeds", "", Cvar::NONE, 0 );
+Cvar::Cvar<float> com_timescale( "timescale", "", Cvar::CHEAT | Cvar::SYSTEMINFO, 1.0f );
+
 cvar_t *com_pid; // bani - process id
 
-cvar_t *com_speeds;
-cvar_t *com_developer;
-cvar_t *com_timescale;
-cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
+Cvar::Range<Cvar::Cvar<float>> com_dropsim = Cvar::Range<Cvar::Cvar<float>>( "com_dropsim", "simulated packet drop", Cvar::CHEAT, 0.0f, 0.0f, 1.0f );
 
 Cvar::Cvar<bool> cvar_demo_timedemo(
     "demo.timedemo",
@@ -65,12 +66,13 @@ Cvar::Cvar<bool> cvar_demo_timedemo(
     Cvar::CHEAT | Cvar::TEMPORARY,
     false
 );
-cvar_t *com_sv_running;
-cvar_t *com_cl_running;
-cvar_t *com_version;
 
-cvar_t *com_unfocused;
-cvar_t *com_minimized;
+cvar_t *com_version;
+Cvar::Cvar<bool> com_sv_running = Cvar::Cvar<bool>( "sv_running", "", Cvar::ROM, false );
+Cvar::Cvar<bool> com_unfocused = Cvar::Cvar<bool>( "com_unfocused", "", Cvar::ROM, false );
+Cvar::Cvar<bool> com_minimized = Cvar::Cvar<bool>( "com_minimized", "", Cvar::ROM, false );
+//NOTE: this one is never used in that file, this may belong somewhere else
+Cvar::Cvar<bool> com_cl_running = Cvar::Cvar<bool>( "cl_running", "", Cvar::ROM, false );
 
 
 // com_speeds times
@@ -187,7 +189,7 @@ bool Com_IsDedicatedServer()
 
 bool Com_ServerRunning()
 {
-	return com_sv_running->integer;
+	return com_sv_running.Get();
 }
 
 /*
@@ -321,19 +323,19 @@ static void Com_RunAndTimeServerPacket( const netadr_t *evFrom, msg_t *buf )
 
 	t1 = 0;
 
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		t1 = Sys::Milliseconds();
 	}
 
 	SV_PacketEvent( *evFrom, buf );
 
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		t2 = Sys::Milliseconds();
 		msec = t2 - t1;
 
-		if ( com_speeds->integer == 3 )
+		if ( com_speeds.Get() == 3 )
 		{
 			Log::Notice( "SV_PacketEvent time: %i\n", msec );
 		}
@@ -362,11 +364,11 @@ static void HandlePacketEvent(const Sys::PacketEvent& event)
 	// this cvar allows simulation of connections that
 	// drop a lot of packets.  Note that loopback connections
 	// don't go through here at all.
-	if ( com_dropsim->value > 0 )
+	if ( com_dropsim.Get() > 0 )
 	{
 		static int seed;
 
-		if ( Q_random( &seed ) < com_dropsim->value )
+		if ( Q_random( &seed ) < com_dropsim.Get() )
 		{
 			return; // drop this packet
 		}
@@ -388,7 +390,7 @@ static void HandlePacketEvent(const Sys::PacketEvent& event)
 	buf.cursize = event.data.size();
 	memcpy( buf.data, event.data.data(), buf.cursize );
 
-	if ( com_sv_running->integer )
+	if ( com_sv_running.Get() )
 	{
 		Com_RunAndTimeServerPacket( &event.adr, &buf );
 	}
@@ -436,7 +438,7 @@ void Com_EventLoop()
 			while ( NET_GetLoopPacket( netsrc_t::NS_SERVER, &evFrom, &buf ) )
 			{
 				// if the server just shut down, flush the events
-				if ( com_sv_running->integer )
+				if ( com_sv_running.Get() )
 				{
 					Com_RunAndTimeServerPacket( &evFrom, &buf );
 				}
@@ -631,19 +633,8 @@ void Com_Init()
 	//
 	// init commands and vars
 	//
-	com_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
 
-	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
-	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
-	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
-
-	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM );
-	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM );
-
-	com_unfocused = Cvar_Get( "com_unfocused", "0", CVAR_ROM );
-	com_minimized = Cvar_Get( "com_minimized", "0", CVAR_ROM );
-
-	if ( com_developer && com_developer->integer )
+	if ( com_developer.Get() )
 	{
 		Cmd_AddCommand( "error", Com_Error_f );
 		Cmd_AddCommand( "crash", Com_Crash_f );
@@ -805,14 +796,13 @@ int Com_ModifyMsec( int msec )
 	{
 		msec = fixedtime.Get();
 	}
-	else if ( com_timescale->value )
+	else if ( com_timescale.Get() )
 	{
-		msec *= com_timescale->value;
+		msec *= com_timescale.Get();
 	}
 
 	// don't let it scale below 1 msec
-	if ( msec < 1 && com_timescale->value )
-	{
+	if ( msec < 1 && com_timescale.Get() ) {
 		msec = 1;
 	}
 
@@ -900,7 +890,7 @@ void Com_Frame()
 	//
 	// main event loop
 	//
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		timeBeforeFirstEvents = Sys::Milliseconds();
 	}
@@ -921,11 +911,11 @@ void Com_Frame()
 		{
 			int max;
 
-			if ( com_minimized->integer && maxfpsMinimized.Get() != 0 )
+			if ( com_minimized.Get() && maxfpsMinimized.Get() != 0 )
 			{
 				max = maxfpsMinimized.Get();
 			}
-			else if ( com_unfocused->integer && maxfpsUnfocused.Get() != 0 )
+			else if ( com_unfocused.Get() && maxfpsUnfocused.Get() != 0 )
 			{
 				max = maxfpsUnfocused.Get();
 			}
@@ -1001,7 +991,7 @@ void Com_Frame()
 	//
 	// server side
 	//
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		timeBeforeServer = Sys::Milliseconds();
 	}
@@ -1014,7 +1004,7 @@ void Com_Frame()
 	// run event loop a second time to get server to client packets
 	// without a frame of latency
 	//
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		timeBeforeEvents = Sys::Milliseconds();
 	}
@@ -1023,14 +1013,14 @@ void Com_Frame()
 	Cmd::DelayFrame();
 	Cmd::ExecuteCommandBuffer();
 
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		timeBeforeClient = Sys::Milliseconds();
 	}
 
 	CL_Frame( msec );
 
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		timeAfter = Sys::Milliseconds();
 	}
@@ -1077,7 +1067,7 @@ void Com_Frame()
 	//
 	// report timing information
 	//
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		int all, sv, sev, cev, cl;
 

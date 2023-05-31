@@ -732,7 +732,7 @@ void CL_AdjustTimeDelta()
 		// if any of the frames between this and the previous snapshot
 		// had to be extrapolated, nudge our sense of time back a little
 		// the granularity of +1 / -2 is too high for timescale modified frametimes
-		if ( com_timescale->value == 0 || com_timescale->value == 1 )
+		if ( com_timescale.Get() == 0.0f || com_timescale.Get() == 1.0f )
 		{
 			if ( cl.extrapolatedSnapshot )
 			{

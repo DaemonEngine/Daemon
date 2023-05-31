@@ -1289,7 +1289,7 @@ void Con_JumpUp()
 
 void Con_Close()
 {
-	if ( !com_cl_running->integer )
+	if ( !com_cl_running.Get() )
 	{
 		return;
 	}

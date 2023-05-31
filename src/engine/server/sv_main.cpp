@@ -73,9 +73,6 @@ cvar_t         *sv_dl_maxRate;
 
 cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
 
-//bani
-cvar_t *sv_packetdelay;
-
 // fretn
 cvar_t *sv_fullmsg;
 
@@ -486,7 +483,7 @@ if a user is interested in a server to do a full status
 */
 static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 {
-	if ( SV_Private(ServerPrivate::NoStatus) || !com_sv_running || !com_sv_running->integer )
+	if ( SV_Private(ServerPrivate::NoStatus) || !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -1284,7 +1281,7 @@ void SV_Frame( int msec )
 		return;
 	}
 
-	if ( !com_sv_running->integer )
+	if ( !com_sv_running.Get() )
 	{
 		return;
 	}
@@ -1354,7 +1351,7 @@ void SV_Frame( int msec )
 		cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
 	}
 
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		startTime = Sys::Milliseconds();
 	}
@@ -1377,7 +1374,7 @@ void SV_Frame( int msec )
 		gvm.GameRunFrame( sv.time );
 	}
 
-	if ( com_speeds->integer )
+	if ( com_speeds.Get() )
 	{
 		time_game = Sys::Milliseconds() - startTime;
 	}

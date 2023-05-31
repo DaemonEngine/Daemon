@@ -1216,12 +1216,12 @@ void IN_Frame()
 		// Console is down in windowed mode
 		IN_SetFocus( false );
 	}
-	else if ( com_unfocused->integer )
+	else if ( com_unfocused.Get() )
 	{
 		// Window doesn't have focus
 		IN_SetFocus( false );
 	}
-	else if ( com_minimized->integer )
+	else if ( com_minimized.Get() )
 	{
 		// Minimized
 		IN_SetFocus( false );

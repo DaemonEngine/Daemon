@@ -318,7 +318,7 @@ void SCR_UpdateScreen()
 		SCR_DrawScreenField();
 		SCR_DrawConsoleAndPointer();
 
-		if ( com_speeds->integer )
+		if ( com_speeds.Get() )
 		{
 			re.EndFrame( &time_frontend, &time_backend );
 		}

@@ -1227,7 +1227,7 @@ static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 	// but not other people
 	// We don't do this when the client hasn't been active yet, since it is
 	// by protocol to spam a lot of commands when downloading
-	if ( !com_cl_running->integer && cl->state >= clientState_t::CS_ACTIVE && // (SA) this was commented out in Wolf.  Did we do that?
+	if ( !com_cl_running.Get() && cl->state >= clientState_t::CS_ACTIVE && // (SA) this was commented out in Wolf.  Did we do that?
 	     sv_floodProtect->integer && svs.time < cl->nextReliableTime && floodprotect )
 	{
 		// ignore any other text messages from this client but let them keep playing

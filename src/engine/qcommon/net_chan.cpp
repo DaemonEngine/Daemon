@@ -59,6 +59,9 @@ to the new value before sending out any replies.
 
 */
 
+static Cvar::Cvar<bool> sv_packetdelay = Cvar::Cvar<bool>( "sv_packetdelay", "", CVAR_CHEAT, false );
+static Cvar::Cvar<int> cl_packetdelay = Cvar::Cvar<int>( "cl_packetdelay", "", Cvar::CHEAT, 0 );
+
 static const int MAX_PACKETLEN = 1400; // max size of a network packet
 
 static const int FRAGMENT_SIZE = ( MAX_PACKETLEN - 100 );
@@ -518,7 +521,7 @@ static void NET_QueuePacket( int length, const void *data, const netadr_t& to,
 	memcpy( newp->data, data, length );
 	newp->length = length;
 	newp->to = to;
-	newp->release = Sys::Milliseconds() + ( int )( ( float ) offset / com_timescale->value );
+	newp->release = Sys::Milliseconds() + ( int )( ( float ) offset / com_timescale.Get() );
 	newp->next = nullptr;
 
 	if ( !packetQueue )
@@ -564,15 +567,15 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t
 	}
 
 #ifndef BUILD_SERVER
-	if ( sock == netsrc_t::NS_CLIENT && cl_packetdelay->integer > 0 )
+	if ( sock == netsrc_t::NS_CLIENT && cl_packetdelay.Get() > 0 )
 	{
-		NET_QueuePacket( length, data, to, cl_packetdelay->integer );
+		NET_QueuePacket( length, data, to, cl_packetdelay.Get() );
 	}
 	else
 #endif
-	if ( sock == netsrc_t::NS_SERVER && sv_packetdelay->integer > 0 )
+	if ( sock == netsrc_t::NS_SERVER && sv_packetdelay.Get() > 0 )
 	{
-		NET_QueuePacket( length, data, to, sv_packetdelay->integer );
+		NET_QueuePacket( length, data, to, sv_packetdelay.Get() );
 	}
 	else
 	{

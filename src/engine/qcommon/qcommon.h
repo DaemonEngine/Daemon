@@ -532,22 +532,18 @@ bool       Com_ServerRunning();
 // if match is nullptr, all set commands will be executed, otherwise
 // only a set with the exact name.  Only used during startup.
 
-extern cvar_t       *com_developer;
-extern cvar_t       *com_speeds;
-extern cvar_t       *com_timescale;
-extern cvar_t       *com_sv_running;
-extern cvar_t       *com_cl_running;
+extern Cvar::Cvar<int> com_speeds;
+extern Cvar::Cvar<float> com_timescale;
 extern cvar_t       *com_version;
+extern Cvar::Cvar<bool> com_sv_running;
+extern Cvar::Cvar<bool> com_cl_running;
 
 extern Cvar::Cvar<std::string> com_consoleCommand;
 
 extern Cvar::Cvar<bool> com_ansiColor;
 
-extern cvar_t       *com_unfocused;
-extern cvar_t       *com_minimized;
-
-extern cvar_t       *cl_packetdelay;
-extern cvar_t       *sv_packetdelay;
+extern Cvar::Cvar<bool> com_unfocused;
+extern Cvar::Cvar<bool> com_minimized;
 
 // com_speeds times
 extern int          time_game;
