@@ -136,6 +136,7 @@ build_zlib() {
 		CFLAGS="${CFLAGS} -O3" ./configure --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --static --const
 		make
 		make install
+		;;
 	esac
 }
 
