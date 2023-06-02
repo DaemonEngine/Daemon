@@ -358,8 +358,15 @@ void OSExit(int exitCode) {
 	if (PedanticShutdown()) {
 		exit(exitCode);
 	} else {
-		// mingw does not have std::quick_exit
+#ifdef _WIN32
+		// _exit runs full shutdown for DLLs including global destructors, ewww
+		TerminateProcess(GetCurrentProcess(), exitCode);
+		// There are rumors of TerminateProcess returning: https://crbug.com/820518. Crash to be sure
+		*(volatile char*)1 = 123;
+		ASSERT_UNREACHABLE();
+#else
 		_exit(exitCode);
+#endif
 	}
 }
 
