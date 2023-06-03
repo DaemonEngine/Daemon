@@ -1903,7 +1903,7 @@ void CL_ServerLinksResponsePacket( msg_t *msg )
 	byte      *buffptr;
 	byte      *buffend;
 
-	Log::Debug( "CL_ServerLinksResponsePacket" );
+	serverInfoLog.Debug( "CL_ServerLinksResponsePacket" );
 
 	if ( msg->data[ 30 ] != 0 )
 	{
@@ -1937,7 +1937,7 @@ void CL_ServerLinksResponsePacket( msg_t *msg )
 		++cls.numserverLinks;
 	}
 
-	Log::Debug( "%d server address pairs parsed", cls.numserverLinks );
+	serverInfoLog.Debug( "%d server address pairs parsed", cls.numserverLinks );
 }
 
 /*
@@ -1954,7 +1954,7 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 	byte     *buffend;
 	char     label[ MAX_FEATLABEL_CHARS ] = "";
 
-	Log::Debug( "CL_ServersResponsePacket" );
+	serverInfoLog.Debug( "CL_ServersResponsePacket" );
 
 	duplicate_count = 0;
 
@@ -1996,8 +1996,8 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 
 			// TODO: detect dropped packets and make another
 			// request
-			Log::Debug( "CL_ServersResponsePacket: packet "
-			             "%d of %d", ind, cls.numMasterPackets );
+			serverInfoLog.Debug(
+				"CL_ServersResponsePacket: packet %d of %d", ind, cls.numMasterPackets );
 
 			CL_GSRFeaturedLabel( &buffptr, label, sizeof( label ) );
 		}
@@ -2190,7 +2190,8 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 	cls.numglobalservers = count;
 	parsed_count = numservers + duplicate_count;
 
-	Log::Debug( "%d servers parsed, %s new, %d duplicate (total %d)", parsed_count, numservers, duplicate_count, count );
+	serverInfoLog.Debug( "%d servers parsed, %s new, %d duplicate (total %d)",
+		parsed_count, numservers, duplicate_count, count );
 }
 
 /*
@@ -3505,7 +3506,7 @@ void CL_GlobalServers_f()
 		{
 			if ( !wildcard )
 			{
-				Log::Warn( "CL_GlobalServers_f: No master server address given." );
+				serverInfoLog.Warn( "CL_GlobalServers_f: No master server address given" );
 			}
 			continue;
 		}
