@@ -476,8 +476,8 @@ if (DEPS_DIR)
         if(OLD_VERSION)
             message(WARNING "You seem to be using a dependency from version ${OLD_VERSION}"
                             " of the external_deps package, but the latest version is"
-                            " ${DEPS_VERSION}. Please delete the build directory and"
-                            " reconfigure to upgrade to the latest dependencies. (Based on"
+                            " ${DEPS_VERSION}. Please delete the build directory (${CMAKE_BINARY_DIR})"
+                            " and reconfigure to upgrade to the latest dependencies. (Based on"
                             " ${cacheVariableName}=${cacheVariableValue})")
             break()
         endif()
