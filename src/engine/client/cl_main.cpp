@@ -3559,22 +3559,17 @@ void CL_GlobalServers_f()
 CL_GetPing
 ==================
 */
-void CL_GetPing( int n, char *buf, int buflen, int *pingtime )
+void CL_GetPing( int n, int *pingtime )
 {
-	const char *str;
 	int        time;
 	int        maxPing;
 
 	if ( n < 0 || n >= MAX_PINGREQUESTS || !cl_pinglist[ n ].adr.port )
 	{
 		// invalid or empty slot
-		buf[ 0 ] = '\0';
 		*pingtime = 0;
 		return;
 	}
-
-	str = NET_AdrToStringwPort( cl_pinglist[ n ].adr );
-	Q_strncpyz( buf, str, buflen );
 
 	time = cl_pinglist[ n ].time;
 
@@ -3770,7 +3765,6 @@ CL_UpdateVisiblePings_f
 bool CL_UpdateVisiblePings_f( int source )
 {
 	int      slots, i;
-	char     buff[ MAX_STRING_CHARS ];
 	int      pingTime;
 	int      max;
 	bool status = false;
@@ -3866,7 +3860,7 @@ bool CL_UpdateVisiblePings_f( int source )
 			continue;
 		}
 
-		CL_GetPing( i, buff, MAX_STRING_CHARS, &pingTime );
+		CL_GetPing( i, &pingTime );
 
 		if ( pingTime != 0 )
 		{
