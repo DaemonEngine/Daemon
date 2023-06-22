@@ -475,7 +475,7 @@ void        CL_Snd_Restart_f();
 
 void        CL_ReadDemoMessage();
 
-void        CL_GetPing( int n, char *buf, int buflen, int *pingtime );
+void        CL_GetPing( int n, int *pingtime );
 void        CL_ClearPing( int n );
 int         CL_GetPingQueueCount();
 
