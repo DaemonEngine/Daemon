@@ -986,7 +986,6 @@ void CL_Connect_f()
 {
 	char         *server;
 	char password[ 64 ];
-	const char   *serverString;
 	char         *offset;
 	int          argc = Cmd_Argc();
 	netadrtype_t family = netadrtype_t::NA_UNSPEC;
@@ -1077,7 +1076,7 @@ void CL_Connect_f()
 		clc.serverAddress.port = UBigShort( PORT_SERVER );
 	}
 
-	serverString = NET_AdrToStringwPort( clc.serverAddress );
+	std::string serverString = Net::AddressToString( clc.serverAddress, true );
 
 	Log::Debug( "%s resolved to %s", cls.servername, serverString );
 
@@ -1101,7 +1100,7 @@ void CL_Connect_f()
 
 	// server connection string
 	Cvar_Set( "cl_currentServerAddress", server );
-	Cvar_Set( "cl_currentServerIP", serverString );
+	Cvar_Set( "cl_currentServerIP", serverString.c_str() );
 }
 
 
@@ -2055,17 +2054,16 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port4 && !memcmp( addresses[ numservers ].ip, cls.serverLinks[ j ].ip, sizeof( addresses[ numservers ].ip ) ) )
 				{
 					// found it, so look up the corresponding address
-					char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
 
 					// hax to get the IP address & port as a string (memcmp etc. SHOULD work, but...)
 					cls.serverLinks[ j ].type = netadrtype_t::NA_IP6;
 					cls.serverLinks[ j ].port = cls.serverLinks[ j ].port6;
-					strcpy( s, NET_AdrToStringwPort( cls.serverLinks[ j ] ) );
+					std::string s = Net::AddressToString( cls.serverLinks[ j ], true );
 					cls.serverLinks[j].type = netadrtype_t::NA_IP_DUAL;
 
 					for ( int i = 0; i < numservers; ++i )
 					{
-						if ( !strcmp( s, NET_AdrToStringwPort( addresses[ i ] ) ) )
+						if ( s == Net::AddressToString( addresses[ i ], true ) )
 						{
 							// found: replace with the preferred address, exit both loops
 							addresses[ i ] = cls.serverLinks[ j ];
@@ -2126,17 +2124,16 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 				if ( addresses[ numservers ].port == cls.serverLinks[ j ].port6 && !memcmp( addresses[ numservers ].ip6, cls.serverLinks[ j ].ip6, sizeof( addresses[ numservers ].ip6 ) ) )
 				{
 					// found it, so look up the corresponding address
-					char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
 
 					// hax to get the IP address & port as a string (memcmp etc. SHOULD work, but...)
 					cls.serverLinks[ j ].type = netadrtype_t::NA_IP;
 					cls.serverLinks[ j ].port = cls.serverLinks[ j ].port4;
-					strcpy( s, NET_AdrToStringwPort( cls.serverLinks[ j ] ) );
+					std::string s = Net::AddressToString( cls.serverLinks[ j ], true );
 					cls.serverLinks[j].type = netadrtype_t::NA_IP_DUAL;
 
 					for ( int i = 0; i < numservers; ++i )
 					{
-						if ( !strcmp( s, NET_AdrToStringwPort( addresses[ i ] ) ) )
+						if ( s == Net::AddressToString( addresses[ i ], true ) )
 						{
 							// found: replace with the preferred address, exit both loops
 							addresses[ i ] = cls.serverLinks[ j ];
@@ -2213,7 +2210,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		return;
 	}
 
-	Log::Debug( "CL packet %s: %s", NET_AdrToStringwPort( from ), args.Argv(0).c_str() );
+	Log::Debug( "CL packet %s: %s", Net::AddressToString( from, true ), args.Argv(0).c_str() );
 
 	// challenge from the server we are connecting to
 
@@ -2263,7 +2260,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		{
 			Log::Notice( "connectResponse from a different address. Ignored." );
 			Log::Notice( "%s should have been %s", NET_AdrToString( from ),
-			            NET_AdrToStringwPort( clc.serverAddress ) );
+			             Net::AddressToString( clc.serverAddress, true ) );
 			return;
 		}
 
@@ -2373,7 +2370,7 @@ void CL_PacketEvent( const netadr_t& from, msg_t *msg )
 
 	if ( msg->cursize < 4 )
 	{
-		Log::Notice( "%s: Runt packet", NET_AdrToStringwPort( from ) );
+		Log::Notice( "%s: Runt packet", Net::AddressToString( from, true ) );
 		return;
 	}
 
@@ -2382,7 +2379,7 @@ void CL_PacketEvent( const netadr_t& from, msg_t *msg )
 	//
 	if ( !NET_CompareAdr( from, clc.netchan.remoteAddress ) )
 	{
-		Log::Debug( "%s: sequenced packet without connection", NET_AdrToStringwPort( from ) );
+		Log::Debug( "%s: sequenced packet without connection", Net::AddressToString( from, true ) );
 		// FIXME: send a client disconnect?
 		return;
 	}
@@ -3184,7 +3181,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 			*last = '\0';
 		}
 
-		Log::Notice( "%s: %s", NET_AdrToStringwPort( from ), info );
+		Log::Notice( "%s: %s", Net::AddressToString( from, true ), info );
 	}
 }
 
@@ -3529,7 +3526,7 @@ void CL_GlobalServers_f()
 		}
 
 		serverInfoLog.Verbose(
-			"CL_GlobalServers_f: %s resolved to %s", masteraddress, NET_AdrToStringwPort( to ) );
+			"CL_GlobalServers_f: %s resolved to %s", masteraddress, Net::AddressToString( to, true ) );
 
 		serverInfoLog.Debug( "CL_GlobalServers_f: Requesting servers from master %s…", masteraddress );
 
