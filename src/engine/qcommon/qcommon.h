@@ -160,8 +160,6 @@ bool   NET_CompareBaseAdr( const netadr_t& a, const netadr_t& b );
 bool   NET_IsLocalAddress( const netadr_t& adr );
 // DEPRECATED: Use Net::AddressToString
 const char *NET_AdrToString( const netadr_t& a );
-// DEPRECATED: Use Net::AddressToString
-const char *NET_AdrToStringwPort( const netadr_t& a );
 int        NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family );
 bool   NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message );
 void       NET_JoinMulticast6();

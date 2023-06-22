@@ -538,29 +538,6 @@ const char      *NET_AdrToString( const netadr_t& a )
 	return s;
 }
 
-const char      *NET_AdrToStringwPort( const netadr_t& a )
-{
-	static  char s[ NET_ADDR_W_PORT_STR_MAX_LEN ];
-
-	if ( a.type == netadrtype_t::NA_LOOPBACK )
-	{
-		Com_sprintf( s, sizeof( s ), "loopback" );
-	}
-	else if ( a.type == netadrtype_t::NA_BOT )
-	{
-		Com_sprintf( s, sizeof( s ), "bot" );
-	}
-	else if ( NET_IS_IPv4( a.type ) )
-	{
-		Com_sprintf( s, sizeof( s ), "%s:%hu", NET_AdrToString( a ), ntohs( a.type == netadrtype_t::NA_IP_DUAL ? a.port4 : a.port ) );
-	}
-	else if ( NET_IS_IPv6( a.type ) )
-	{
-		Com_sprintf( s, sizeof( s ), "[%s]:%hu", NET_AdrToString( a ), ntohs( a.type == netadrtype_t::NA_IP_DUAL ? a.port6 : a.port ) );
-	}
-	return s;
-}
-
 bool        NET_CompareAdr( const netadr_t& a, const netadr_t& b )
 {
 	if ( !NET_CompareBaseAdr( a, b ) )
