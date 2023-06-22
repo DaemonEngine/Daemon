@@ -1087,15 +1087,7 @@ void SV_UserinfoChanged( client_t *cl )
 	// zinx - modified to always keep this consistent, instead of only
 	// when "ip" is 0-length, so users can't supply their own IP address
 	//Log::Debug("Maintain IP address in userinfo for '%s'", cl->name);
-	if ( !NET_IsLocalAddress( cl->netchan.remoteAddress ) )
-	{
-		Info_SetValueForKey( cl->userinfo, "ip", NET_AdrToString( cl->netchan.remoteAddress ), false );
-	}
-	else
-	{
-		// force the "ip" info key to "loopback" for local clients
-		Info_SetValueForKey( cl->userinfo, "ip", "loopback", false );
-	}
+	Info_SetValueForKey( cl->userinfo, "ip", NET_AdrToString( cl->netchan.remoteAddress ), false );
 }
 
 /*
