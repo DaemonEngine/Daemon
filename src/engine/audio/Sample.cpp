@@ -82,8 +82,8 @@ namespace Audio {
         sampleManager = new Resource::Manager<Sample>(errorSampleName);
 
         // Work around for the lack of VM Handles, initiliaze the HandledResource
-        auto errorSample = sampleManager->GetResource(errorSampleName).Get();
-        errorSample->InitHandle(errorSample);
+        auto errorSample_ = sampleManager->GetResource(errorSampleName).Get();
+        errorSample_->InitHandle(errorSample_);
 
         initialized = true;
     }

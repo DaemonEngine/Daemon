@@ -2419,22 +2419,22 @@ static Util::optional<std::string> GetRealPath(Str::StringRef path, std::string&
 #endif
 }
 
-void Initialize(Str::StringRef homePath, Str::StringRef libPath, const std::vector<std::string>& paths)
+void Initialize(Str::StringRef homePath_, Str::StringRef libPath_, const std::vector<std::string>& paths)
 {
 	// Create the homepath and its pkg directory to avoid any issues later on
 	std::error_code err;
-	RawPath::CreatePathTo(FS::Path::Build(homePath, "pkg") + "/", err);
+	RawPath::CreatePathTo(FS::Path::Build(homePath_, "pkg") + "/", err);
 	if (err)
 		Sys::Error("Could not create homepath: %s", err.message());
 
 	std::string error;
 	try {
-		FS::homePath = GetRealPath(homePath, error).value();
+		FS::homePath = GetRealPath(homePath_, error).value();
 	} catch (Util::bad_optional_access&) {
 		Sys::Error("Invalid homepath: %s", error);
 	}
 	try {
-		FS::libPath = GetRealPath(libPath, error).value();
+		FS::libPath = GetRealPath(libPath_, error).value();
 	} catch (Util::bad_optional_access&) {
 		Sys::Error("Invalid libpath: %s", error);
 	}

@@ -6168,28 +6168,28 @@ void R_ShaderList_f()
 
 	for ( int i = 0; i < tr.numShaders; i++ )
 	{
-		shader_t *shader = ri.Cmd_Argc() > 2 ? tr.sortedShaders[ i ] : tr.shaders[ i ];
+		shader_t *shader_ = ri.Cmd_Argc() > 2 ? tr.sortedShaders[ i ] : tr.shaders[ i ];
 
 		// Only display shaders starting with prefix if prefix is not empty.
-		if ( prefix && !Com_Filter( prefix, shader->name, false ) )
+		if ( prefix && !Com_Filter( prefix, shader_->name, false ) )
 		{
 			continue;
 		}
 
-		stageCount += shader->numStages;
-		highestShaderStageCount = std::max( highestShaderStageCount, shader->numStages );
+		stageCount += shader_->numStages;
+		highestShaderStageCount = std::max( highestShaderStageCount, shader_->numStages );
 
-		std::string foundShaderTypeString = shaderTypeStrings[ shader->type ];
-		std::string foundShaderSortString = shaderSortStrings[ (shaderSort_t) shader->sort ];
+		std::string foundShaderTypeString = shaderTypeStrings[ shader_->type ];
+		std::string foundShaderSortString = shaderSortStrings[ (shaderSort_t) shader_->sort ];
 
-		std::string foundInteractLightString = shader->interactLight ? "INTERACTLIGHT" : "";
+		std::string foundInteractLightString = shader_->interactLight ? "INTERACTLIGHT" : "";
 
-		std::string shaderNameString = shader->name;
-		shaderNameString += shader->defaultShader ? " (DEFAULTED)" : "";
+		std::string shaderNameString = shader_->name;
+		shaderNameString += shader_->defaultShader ? " (DEFAULTED)" : "";
 
-		for ( int j = 0; j < shader->numStages; j++ )
+		for ( int j = 0; j < shader_->numStages; j++ )
 		{
-			shaderStage_t *stage = shader->stages[ j ];
+			shaderStage_t *stage = shader_->stages[ j ];
 
 			std::string foundStageTypeString = stageTypeStrings[ stage->type ];
 
@@ -6558,7 +6558,7 @@ RE_GetShaderNameFromHandle
 ==================
 */
 
-const char *RE_GetShaderNameFromHandle( qhandle_t shader )
+const char *RE_GetShaderNameFromHandle( qhandle_t shader_ )
 {
-	return R_GetShaderByHandle( shader )->name;
+	return R_GetShaderByHandle( shader_ )->name;
 }

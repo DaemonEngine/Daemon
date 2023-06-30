@@ -214,20 +214,20 @@ namespace Audio {
         return volumeModifier->Get();
     }
 
-    void Sound::SetEmitter(std::shared_ptr<Emitter> emitter) {
-        this->emitter = emitter;
+    void Sound::SetEmitter(std::shared_ptr<Emitter> emitter_) {
+        emitter = emitter_;
     }
 
     std::shared_ptr<Emitter> Sound::GetEmitter() {
         return emitter;
     }
 
-    void Sound::AcquireSource(AL::Source& source) {
-        this->source = &source;
+    void Sound::AcquireSource(AL::Source& source_) {
+        source = &source_;
 
-        source.SetLooping(false);
+        source->SetLooping(false);
 
-        SetupSource(source);
+        SetupSource(*source);
         emitter->SetupSound(*this);
     }
 

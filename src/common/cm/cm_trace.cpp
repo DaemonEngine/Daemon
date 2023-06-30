@@ -255,7 +255,7 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 {
 	int      i, j;
 	float    offset, t;
-	cPlane_t *planes;
+	cPlane_t *planes_;
 	cFacet_t *facet;
 	float    plane[ 4 ];
 	vec3_t   startp;
@@ -270,9 +270,9 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 
 	for ( i = 0; i < sc->numFacets; i++, facet++ )
 	{
-		planes = &sc->planes[ facet->surfacePlane ];
-		VectorCopy( planes->plane, plane );
-		plane[ 3 ] = planes->plane[ 3 ];
+		planes_ = &sc->planes[ facet->surfacePlane ];
+		VectorCopy( planes_->plane, plane );
+		plane[ 3 ] = planes_->plane[ 3 ];
 
 		if ( tw->type == traceType_t::TT_CAPSULE )
 		{
@@ -293,7 +293,7 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 		}
 		else
 		{
-			offset = DotProduct( tw->offsets[ planes->signbits ], plane );
+			offset = DotProduct( tw->offsets[ planes_->signbits ], plane );
 			plane[ 3 ] -= offset;
 			VectorCopy( tw->start, startp );
 		}
@@ -305,17 +305,17 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 
 		for ( j = 0; j < facet->numBorders; j++ )
 		{
-			planes = &sc->planes[ facet->borderPlanes[ j ] ];
+			planes_ = &sc->planes[ facet->borderPlanes[ j ] ];
 
 			if ( facet->borderInward[ j ] )
 			{
-				VectorNegate( planes->plane, plane );
-				plane[ 3 ] = -planes->plane[ 3 ];
+				VectorNegate( planes_->plane, plane );
+				plane[ 3 ] = -planes_->plane[ 3 ];
 			}
 			else
 			{
-				VectorCopy( planes->plane, plane );
-				plane[ 3 ] = planes->plane[ 3 ];
+				VectorCopy( planes_->plane, plane );
+				plane[ 3 ] = planes_->plane[ 3 ];
 			}
 
 			if ( tw->type == traceType_t::TT_CAPSULE )
@@ -338,7 +338,7 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 			else
 			{
 				// NOTE: this works even though the plane might be flipped because the bbox is centered
-				offset = DotProduct( tw->offsets[ planes->signbits ], plane );
+				offset = DotProduct( tw->offsets[ planes_->signbits ], plane );
 				plane[ 3 ] += fabsf( offset );
 				VectorCopy( tw->start, startp );
 			}
@@ -672,7 +672,7 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 	static bool frontFacing[ SHADER_MAX_TRIANGLES ];
 	static float    intersection[ SHADER_MAX_TRIANGLES ];
 	float           intersect;
-	const cPlane_t  *planes;
+	const cPlane_t  *planes_;
 	const cFacet_t  *facet;
 	int             i, j, k;
 	float           offset;
@@ -684,13 +684,13 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 	}
 
 	// determine the trace's relationship to all planes
-	planes = sc->planes;
+	planes_ = sc->planes;
 
-	for ( i = 0; i < sc->numPlanes; i++, planes++ )
+	for ( i = 0; i < sc->numPlanes; i++, planes_++ )
 	{
-		offset = DotProduct( tw->offsets[ planes->signbits ], planes->plane );
-		d1 = DotProduct( tw->start, planes->plane ) - planes->plane[ 3 ] + offset;
-		d2 = DotProduct( tw->end, planes->plane ) - planes->plane[ 3 ] + offset;
+		offset = DotProduct( tw->offsets[ planes_->signbits ], planes_->plane );
+		d1 = DotProduct( tw->start, planes_->plane ) - planes_->plane[ 3 ] + offset;
+		d2 = DotProduct( tw->end, planes_->plane ) - planes_->plane[ 3 ] + offset;
 
 		if ( d1 <= 0 )
 		{
@@ -761,12 +761,12 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 			debugSurfaceCollide = sc;
 			debugFacet = facet;
 
-			planes = &sc->planes[ facet->surfacePlane ];
+			planes_ = &sc->planes[ facet->surfacePlane ];
 
 			// calculate intersection with a slight pushoff
-			offset = DotProduct( tw->offsets[ planes->signbits ], planes->plane );
-			d1 = DotProduct( tw->start, planes->plane ) - planes->plane[ 3 ] + offset;
-			d2 = DotProduct( tw->end, planes->plane ) - planes->plane[ 3 ] + offset;
+			offset = DotProduct( tw->offsets[ planes_->signbits ], planes_->plane );
+			d1 = DotProduct( tw->start, planes_->plane ) - planes_->plane[ 3 ] + offset;
+			d2 = DotProduct( tw->end, planes_->plane ) - planes_->plane[ 3 ] + offset;
 			tw->trace.fraction = ( d1 - SURFACE_CLIP_EPSILON ) / ( d1 - d2 );
 
 			if ( tw->trace.fraction < 0 )
@@ -774,8 +774,8 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 				tw->trace.fraction = 0;
 			}
 
-			VectorCopy( planes->plane, tw->trace.plane.normal );
-			tw->trace.plane.dist = planes->plane[ 3 ];
+			VectorCopy( planes_->plane, tw->trace.plane.normal );
+			tw->trace.plane.dist = planes_->plane[ 3 ];
 		}
 	}
 }
@@ -852,7 +852,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 {
 	int           i, j, hit, hitnum;
 	float         offset, enterFrac, leaveFrac, t;
-	cPlane_t      *planes;
+	cPlane_t      *planes_;
 	cFacet_t      *facet;
 	float         plane[ 4 ] = { 0, 0, 0, 0 };
 	float         bestplane[ 4 ] = { 0, 0, 0, 0 };
@@ -875,9 +875,9 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 		leaveFrac = 1.0f;
 		hitnum = -1;
 
-		planes = &sc->planes[ facet->surfacePlane ];
-		VectorCopy( planes->plane, plane );
-		plane[ 3 ] = planes->plane[ 3 ];
+		planes_ = &sc->planes[ facet->surfacePlane ];
+		VectorCopy( planes_->plane, plane );
+		plane[ 3 ] = planes_->plane[ 3 ];
 
 		if ( tw->type == traceType_t::TT_CAPSULE )
 		{
@@ -900,7 +900,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 		}
 		else
 		{
-			offset = DotProduct( tw->offsets[ planes->signbits ], plane );
+			offset = DotProduct( tw->offsets[ planes_->signbits ], plane );
 			plane[ 3 ] -= offset;
 			VectorCopy( tw->start, startp );
 			VectorCopy( tw->end, endp );
@@ -918,17 +918,17 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 
 		for ( j = 0; j < facet->numBorders; j++ )
 		{
-			planes = &sc->planes[ facet->borderPlanes[ j ] ];
+			planes_ = &sc->planes[ facet->borderPlanes[ j ] ];
 
 			if ( facet->borderInward[ j ] )
 			{
-				VectorNegate( planes->plane, plane );
-				plane[ 3 ] = -planes->plane[ 3 ];
+				VectorNegate( planes_->plane, plane );
+				plane[ 3 ] = -planes_->plane[ 3 ];
 			}
 			else
 			{
-				VectorCopy( planes->plane, plane );
-				plane[ 3 ] = planes->plane[ 3 ];
+				VectorCopy( planes_->plane, plane );
+				plane[ 3 ] = planes_->plane[ 3 ];
 			}
 
 			if ( tw->type == traceType_t::TT_CAPSULE )
@@ -953,7 +953,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 			else
 			{
 				// NOTE: this works even though the plane might be flipped because the bbox is centered
-				offset = DotProduct( tw->offsets[ planes->signbits ], plane );
+				offset = DotProduct( tw->offsets[ planes_->signbits ], plane );
 				plane[ 3 ] += fabsf( offset );
 				VectorCopy( tw->start, startp );
 				VectorCopy( tw->end, endp );

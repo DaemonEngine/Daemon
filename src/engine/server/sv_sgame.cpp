@@ -137,7 +137,7 @@ Generate an encrypted RSA message
 */
 int SV_RSAGenMsg( const char *pubkey, char *cleartext, char *encrypted )
 {
-	struct rsa_public_key public_key;
+	struct rsa_public_key public_key_;
 
 	mpz_t                 message;
 	unsigned char         buffer[ RSA_KEY_LENGTH / 8 - 11 ];
@@ -145,17 +145,17 @@ int SV_RSAGenMsg( const char *pubkey, char *cleartext, char *encrypted )
 	Sys::GenRandomBytes( buffer, RSA_KEY_LENGTH / 8 - 11 );
 	nettle_mpz_init_set_str_256_u( message, RSA_KEY_LENGTH / 8 - 11, buffer );
 	mpz_get_str( cleartext, 16, message );
-	rsa_public_key_init( &public_key );
-	mpz_set_ui( public_key.e, RSA_PUBLIC_EXPONENT );
-	retval = mpz_set_str( public_key.n, pubkey, 16 ) + 1;
+	rsa_public_key_init( &public_key_ );
+	mpz_set_ui( public_key_.e, RSA_PUBLIC_EXPONENT );
+	retval = mpz_set_str( public_key_.n, pubkey, 16 ) + 1;
 
 	if ( retval )
 	{
-		rsa_public_key_prepare( &public_key );
-		retval = rsa_encrypt( &public_key, nullptr, qnettle_random, RSA_KEY_LENGTH / 8 - 11, buffer, message );
+		rsa_public_key_prepare( &public_key_ );
+		retval = rsa_encrypt( &public_key_, nullptr, qnettle_random, RSA_KEY_LENGTH / 8 - 11, buffer, message );
 	}
 
-	rsa_public_key_clear( &public_key );
+	rsa_public_key_clear( &public_key_ );
 	mpz_get_str( encrypted, 16, message );
 	mpz_clear( message );
 	return retval;

@@ -96,13 +96,13 @@ Netchan_Setup
 called to open a channel to a remote system
 ==============
 */
-void Netchan_Setup( netsrc_t sock, netchan_t *chan, const netadr_t& adr, int qport )
+void Netchan_Setup( netsrc_t sock, netchan_t *chan, const netadr_t& adr, int qport_ )
 {
 	memset( chan, 0, sizeof( *chan ) );
 
 	chan->sock = sock;
 	chan->remoteAddress = adr;
-	chan->qport = qport;
+	chan->qport = qport_;
 	chan->incomingSequence = 0;
 	chan->outgoingSequence = 1;
 }

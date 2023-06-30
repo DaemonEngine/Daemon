@@ -32,12 +32,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace IPC {
 
-    void CommandBuffer::Init(void* memory, size_t size) {
-        if (size < DATA_OFFSET) {
-            Sys::Drop("Buffer is too small, size is %i", size);
+    void CommandBuffer::Init(void* memory, size_t size_) {
+        if (size_ < DATA_OFFSET) {
+            Sys::Drop("Buffer is too small, size is %i", size_);
         }
 
-        this->size = size - DATA_OFFSET;
+        size = size_ - DATA_OFFSET;
         base = reinterpret_cast<char*>(memory);
         writerOffset = SAFETY_OFFSET;
         readerOffset = 0;
