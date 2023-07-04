@@ -130,7 +130,7 @@ static fileHandle_t FS_FOpenFileWrite_internal(const char* path, bool temporary)
 	try {
 		handleTable[handle].file = FS::HomePath::OpenWrite(temporary ? std::string(path) + TEMP_SUFFIX : path);
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to open '%s' for writing: %s\n", path, err.what());
+		Log::Notice("Failed to open '%s' for writing: %s", path, err.what());
 		return 0;
 	}
 	handleTable[handle].forceFlush = false;
@@ -158,7 +158,7 @@ fileHandle_t FS_FOpenFileAppend(const char* path)
 	try {
 		handleTable[handle].file = FS::HomePath::OpenAppend(path);
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to open '%s' for appending: %s\n", path, err.what());
+		Log::Notice("Failed to open '%s' for appending: %s", path, err.what());
 		return 0;
 	}
 	handleTable[handle].forceFlush = false;
@@ -277,13 +277,13 @@ int FS_FCloseFile(fileHandle_t handle)
 				try {
 					FS::RawPath::MoveFile(renameTo, renameTo + TEMP_SUFFIX);
 				} catch (std::system_error& err) {
-					Log::Notice("Failed to replace file %s: %s\n", renameTo.c_str(), err.what());
+					Log::Notice("Failed to replace file %s: %s", renameTo.c_str(), err.what());
 					return -1;
 				}
 			}
 			return 0;
 		} catch (std::system_error& err) {
-			Log::Notice("Failed to close file: %s\n", err.what());
+			Log::Notice("Failed to close file: %s", err.what());
 			return -1;
 		}
 	}
@@ -298,7 +298,7 @@ int FS_filelength(fileHandle_t handle)
 		std::error_code err;
 		int length = handleTable[handle].file.Length(err);
 		if (err) {
-			Log::Notice("Failed to get file length: %s\n", err.message().c_str());
+			Log::Notice("Failed to get file length: %s", err.message().c_str());
 			return 0;
 		}
 		return length;
@@ -355,7 +355,7 @@ int FS_Seek(fileHandle_t handle, long offset, fsOrigin_t origin)
 			}
 			return 0;
 		} catch (std::system_error& err) {
-			Log::Notice("FS_Seek failed: %s\n", err.what());
+			Log::Notice("FS_Seek failed: %s", err.what());
 			return -1;
 		}
 	}
@@ -372,7 +372,7 @@ void FS_Flush(fileHandle_t handle)
 	try {
 		handleTable[handle].file.Flush();
 	} catch (std::system_error& err) {
-		Log::Notice("FS_Flush failed: %s\n", err.what());
+		Log::Notice("FS_Flush failed: %s", err.what());
 	}
 }
 
@@ -385,7 +385,7 @@ int FS_Write(const void* buffer, int len, fileHandle_t handle)
 			handleTable[handle].file.Flush();
 		return len;
 	} catch (std::system_error& err) {
-		Log::Notice("FS_Write failed: %s\n", err.what());
+		Log::Notice("FS_Write failed: %s", err.what());
 		return 0;
 	}
 }
@@ -406,7 +406,7 @@ int FS_Read(void* buffer, int len, fileHandle_t handle)
 		try {
 			return handleTable[handle].file.Read(buffer, len);
 		} catch (std::system_error& err) {
-			Log::Notice("FS_Read failed: %s\n", err.what());
+			Log::Notice("FS_Read failed: %s", err.what());
 			return 0;
 		}
 	}
@@ -429,7 +429,7 @@ int FS_Delete(const char* path)
 	try {
 		FS::HomePath::DeleteFile(path);
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to delete file '%s': %s\n", path, err.what());
+		Log::Notice("Failed to delete file '%s': %s", path, err.what());
 	}
 	return 0;
 }
@@ -439,7 +439,7 @@ void FS_SV_Rename(const char* from, const char* to)
 	try {
 		FS::HomePath::MoveFile(to, from);
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to move '%s' to '%s': %s\n", from, to, err.what());
+		Log::Notice("Failed to move '%s' to '%s': %s", from, to, err.what());
 	}
 }
 
@@ -450,7 +450,7 @@ void FS_WriteFile(const char* path, const void* buffer, int size)
 		f.Write(buffer, size);
 		f.Close();
 	} catch (std::system_error& err) {
-		Log::Notice("Failed to write file '%s': %s\n", path, err.what());
+		Log::Notice("Failed to write file '%s': %s", path, err.what());
 	}
 }
 
