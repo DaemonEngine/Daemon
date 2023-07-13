@@ -2592,7 +2592,7 @@ bool CL_InitRenderer()
 
 	cl_consoleFont = Cvar_Get( "cl_consoleFont", "fonts/unifont.ttf",  CVAR_LATCH );
 	cl_consoleFontSize = Cvar_Get( "cl_consoleFontSize", "16",  CVAR_LATCH );
-	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "1", CVAR_LATCH );
+	cl_consoleFontScaling = Cvar_Get( "cl_consoleFontScaling", "0", CVAR_LATCH );
 
 	// load character sets
 	cls.charSetShader = re.RegisterShader( "gfx/2d/bigchars", RSF_DEFAULT );
