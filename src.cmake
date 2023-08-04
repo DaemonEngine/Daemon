@@ -267,6 +267,7 @@ endif()
 
 # Tests for engine-lib
 set(ENGINETESTLIST
+    ${LIB_DIR}/tinyformat/TinyformatTest.cpp
     ${COMMON_DIR}/StringTest.cpp
     ${ENGINE_DIR}/framework/CommandSystemTest.cpp
 )
