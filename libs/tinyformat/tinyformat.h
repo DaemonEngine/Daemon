@@ -70,6 +70,13 @@
 // convenience function printfln() which appends a newline to the usual result
 // of printf() for super simple logging.
 //
+// Besides C99 printf functionality, there is also support for POSIX-style numbered
+// arguments as described in
+// https://pubs.opengroup.org/onlinepubs/9699919799/functions/printf.html.
+// Numbered and unnumbered arguments may NOT be mixed in a single format string.
+//
+//   tfm::format("Wrote %2$d bytes to %1$s", filename, numBytes);
+//
 //
 // User defined format functions
 // -----------------------------
@@ -440,6 +447,25 @@ inline const char* printFormatStringLiteral(std::ostream& out, const char* fmt)
     }
 }
 
+// Consumes a sequence of a natural number and a dollar sign such as "3$"
+// Used for a numbered argument specifier after '%' or '*'
+// Returns whether a numbered argument specifier was found
+inline bool checkNumberedArgumentSpecifier(const char*& c, int numFormatters, int& argIndex)
+{
+    if (*c < '0' || *c > '9')
+        return false;
+    const char* tmp = c;
+    do { ++tmp; } while (*tmp >= '0' && *tmp <= '9');
+    if (*tmp != '$')
+        return false;
+    int index = parseIntAndAdvance(c);
+    ++c;
+    if (index > 0 && index <= numFormatters)
+        argIndex = index - 1;
+    else
+        TINYFORMAT_ERROR("tinyformat: Numbered argument specifier out of range");
+    return true;
+}
 
 // Parse a format string and set the stream state accordingly.
 //
@@ -456,11 +482,6 @@ inline const char* streamStateFromFormat(std::ostream& out, bool& spacePadPositi
                                          const detail::FormatArg* formatters,
                                          int& argIndex, int numFormatters)
 {
-    if(*fmtStart != '%')
-    {
-        TINYFORMAT_ERROR("tinyformat: Not enough conversion specifiers in format string");
-        return fmtStart;
-    }
     // Reset stream state to defaults.
     out.width(0);
     out.precision(6);
@@ -472,7 +493,7 @@ inline const char* streamStateFromFormat(std::ostream& out, bool& spacePadPositi
     bool precisionSet = false;
     bool widthSet = false;
     int widthExtra = 0;
-    const char* c = fmtStart + 1;
+    const char* c = fmtStart;
     // 1) Parse flags
     for(;; ++c)
     {
@@ -518,9 +539,13 @@ inline const char* streamStateFromFormat(std::ostream& out, bool& spacePadPositi
     }
     if(*c == '*')
     {
+        ++c;
         widthSet = true;
         int width = 0;
-        if(argIndex < numFormatters)
+        int numberedIndex = 0;
+        if(checkNumberedArgumentSpecifier(c, numFormatters, numberedIndex))
+            width = formatters[numberedIndex].toInt();
+        else if(argIndex < numFormatters)
             width = formatters[argIndex++].toInt();
         else
             TINYFORMAT_ERROR("tinyformat: Not enough arguments to read variable width");
@@ -532,7 +557,6 @@ inline const char* streamStateFromFormat(std::ostream& out, bool& spacePadPositi
             width = -width;
         }
         out.width(width);
-        ++c;
     }
     // 3) Parse precision
     if(*c == '.')
@@ -542,7 +566,10 @@ inline const char* streamStateFromFormat(std::ostream& out, bool& spacePadPositi
         if(*c == '*')
         {
             ++c;
-            if(argIndex < numFormatters)
+            int numberedIndex = 0;
+            if(checkNumberedArgumentSpecifier(c, numFormatters, numberedIndex))
+                precision = formatters[numberedIndex].toInt();
+            else if(argIndex < numFormatters)
                 precision = formatters[argIndex++].toInt();
             else
                 TINYFORMAT_ERROR("tinyformat: Not enough arguments to read variable precision");
@@ -652,15 +679,21 @@ inline void formatImpl(std::ostream& out, const char* fmt,
     std::ios::fmtflags origFlags = out.flags();
     char origFill = out.fill();
 
-    for (int argIndex = 0; argIndex < numFormatters; ++argIndex)
+    int argIndex = 0;
+    // This exists to report unused arguments in format strings without numbered arguments
+    bool usesNumberedArgSpecifiers = false;
+    for (; *(fmt = printFormatStringLiteral(out, fmt)); ++argIndex)
     {
-        // Parse the format string
-        fmt = printFormatStringLiteral(out, fmt);
+        // *fmt is now '%'. Skip it
+        ++fmt;
+
+        usesNumberedArgSpecifiers = checkNumberedArgumentSpecifier(fmt, numFormatters, argIndex);
+
         bool spacePadPositive = false;
         int ntrunc = -1;
         const char* fmtEnd = streamStateFromFormat(out, spacePadPositive, ntrunc, fmt,
                                                    formatters, argIndex, numFormatters);
-        if (argIndex >= numFormatters)
+        if (!usesNumberedArgSpecifiers && argIndex >= numFormatters)
         {
             // Check args remain after reading any variable width/precision
             TINYFORMAT_ERROR("tinyformat: Not enough format arguments");
@@ -688,9 +721,7 @@ inline void formatImpl(std::ostream& out, const char* fmt,
         fmt = fmtEnd;
     }
 
-    // Print remaining part of format string.
-    fmt = printFormatStringLiteral(out, fmt);
-    if(*fmt != '\0')
+    if(argIndex != numFormatters && !usesNumberedArgSpecifiers)
         TINYFORMAT_ERROR("tinyformat: Too many conversion specifiers in format string");
 
     // Restore stream state
