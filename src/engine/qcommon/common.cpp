@@ -897,10 +897,7 @@ void Com_Frame()
 	//
 	// main event loop
 	//
-	if ( com_speeds->integer )
-	{
-		timeBeforeFirstEvents = Sys::Milliseconds();
-	}
+	timeBeforeFirstEvents = Sys::Milliseconds();
 
 	if ( timeBeforeFirstEvents < 0 || timeBeforeFirstEvents > 0x7F000000 )
 	{
