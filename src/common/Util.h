@@ -172,6 +172,14 @@ std::unique_ptr<T> make_unique(U&&... args)
 	return std::unique_ptr<T>(new T(std::forward<U>(args)...));
 }
 
+// Maintains an FPS counter using an exponential moving average algorithm.
+// More recently completed frames are given more weight in the counter. 50% of the weight is given
+// to the framerate during the last `halfLife` seconds. halfLife should be the same for every call
+// for a given counter.
+// frameMs is the duration in milliseconds of the latest completed frame. It is assumed that the
+// latest frame began at the same time the previous one ended.
+void UpdateFPSCounter(float halfLife, int frameMs, float& fps);
+
 } // namespace Util
 
 #endif // COMMON_UTIL_H_

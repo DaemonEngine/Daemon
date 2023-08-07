@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2013-2016, Daemon Developers
+Copyright (c) 2023, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,49 +28,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-//TODO(kangz)
-#include "common/Common.h"
-#include "common/System.h"
-#include "framework/ApplicationInternals.h"
-#include "framework/BaseCommands.h"
-#include "framework/CommandSystem.h"
-#include "qcommon/qcommon.h"
+#include "Common.h"
 
-void FS_CloseAllForOwner(FS::Owner) {}
+namespace Util {
 
-namespace Application {
-
-class NullApplication : public Application {
-    public:
-        NullApplication() {
-#ifdef _WIN32
-            traits.useCurses = true;
-#endif
-        }
-
-        void Frame() override {
-            while (true) {
-                const char* command = CON_Input();
-                if (command == nullptr) {
-                    break;
-                }
-
-                if (command[0] == '/' || command[0] == '\\') {
-                    Cmd::BufferCommandTextAfter(command + 1, true);
-                } else {
-                    Cmd::BufferCommandTextAfter(command, true);
-                }
-            }
-
-            Cmd::DelayFrame();
-            Cmd::ExecuteCommandBuffer();
-
-            ::Application::Application::Frame(); // call base class
-
-            Sys::SleepFor(std::chrono::milliseconds(60));
-        }
-};
-
-INSTANTIATE_APPLICATION(NullApplication);
-
+// Exponential moving average FPS counter
+//
+// weight t seconds ago = e^-at
+// weight of the last q seconds: integral from 0 to q of e^-at
+// antiderivative -1/a e^-at
+// -1/a (e^-aq - e^0) = (1 - e^-aq)/a
+void UpdateFPSCounter(float halfLife, int frameMs, float& fps)
+{
+	if (frameMs <= 0) {
+		// act as if we have found out that a frame was processed 0.5 ms in the past
+		// to avoid the discontinuity of a 0-length frame
+		float weight = 1.0f - exp2f(-0.0005f / halfLife);
+		fps += weight / 0.0005f;
+	}
+	else {
+		float frameLen = frameMs * 0.001f;
+		float oldWeight = exp2f(-frameLen / halfLife);
+		float newWeight = 1.0f - oldWeight;
+		fps = oldWeight * fps + newWeight / frameLen;
+	}
 }
+
+} // namespace Util
