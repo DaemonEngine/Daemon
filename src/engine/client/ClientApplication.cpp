@@ -94,6 +94,7 @@ class ClientApplication : public Application {
 
         void Frame() override {
             Com_Frame();
+            ::Application::Application::Frame(); // call base class
         }
 
         void OnDrop(bool error, Str::StringRef reason) override {

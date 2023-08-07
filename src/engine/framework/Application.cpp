@@ -60,6 +60,17 @@ namespace Application {
         Log::Notice("Unknown command '%s'", args[0]);
     }
 
+    // Update FPS
+    void Application::Frame() {
+        int time = Sys::Milliseconds();
+        Util::UpdateFPSCounter(1.0f, time - lastFrame_, fps_);
+        lastFrame_ = time;
+    }
+
+    float Application::GetFPS() const {
+        return fps_;
+    }
+
     const Traits& Application::GetTraits() const {
         return traits;
     }
@@ -74,6 +85,10 @@ namespace Application {
 
     void Frame() {
         GetApp().Frame();
+    }
+
+    float GetFPS() {
+        return GetApp().GetFPS();
     }
 
     void OnDrop(bool error, Str::StringRef reason) {
