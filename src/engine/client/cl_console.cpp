@@ -642,9 +642,10 @@ void Con_DrawInput( int linePosition, float overrideAlpha )
 
 	SCR_DrawSmallStringExt( consoleState.margin.sides + consoleState.padding.sides, linePosition, prompt, color, false, false );
 
-	Color::StripColors( prompt );
+	std::string decoloredPrompt = Color::StripColors( prompt );
 	Field_Draw( g_consoleField,
-		consoleState.margin.sides + consoleState.padding.sides + SCR_ConsoleFontStringWidth( prompt, strlen( prompt ) ),
+		consoleState.margin.sides + consoleState.padding.sides +
+			SCR_ConsoleFontStringWidth( decoloredPrompt.c_str(), decoloredPrompt.size() ),
 		linePosition, true, true, color.Alpha() );
 }
 
