@@ -449,6 +449,9 @@ endfunction()
 include(srclibs.cmake)
 include(src.cmake)
 
+# tinyformat is a header-only library
+set(COMMONLIST ${COMMONLIST} ${TINYFORMATLIST})
+
 ################################################################################
 # Libraries
 ################################################################################
