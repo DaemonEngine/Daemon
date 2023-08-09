@@ -577,15 +577,12 @@ private:
 // UTF-8 sequences are counted as a single character
 int StrlenNocolor( const char* string );
 
-// Removes the color codes from string (in place)
-char* StripColors( char* string );
+// Returns the plain text of the possibly color-coded string
+std::string StripColors( Str::StringRef string );
 
-// Removes color codes from in, writing to out
+// Removes color codes from in, writing its plain text to out
 // Pre: in NUL terminated and out can contain at least len characters
 void StripColors( const char *in, char *out, size_t len );
-
-// Overload for C++ strings
-std::string StripColors( const std::string& input );
 
 } // namespace Color
 
