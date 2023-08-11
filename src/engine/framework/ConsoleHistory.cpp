@@ -66,7 +66,8 @@ void History::Load() {
 		FS::File f = FS::HomePath::OpenRead(GetFilename());
 		buffer = f.ReadAll();
 	} catch (const std::system_error& error) {
-		Log::Warn("Couldn't read %s: %s", GetFilename(), error.what());
+		if (error.code().value() != static_cast<int>(std::errc::no_such_file_or_directory))
+			Log::Warn("Couldn't read %s: %s", GetFilename(), error.what());
 	}
 
 	auto lock = Lock();
