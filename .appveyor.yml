@@ -5,7 +5,6 @@ branches:
     - debian
 
 environment:
-  configuration: Debug
   matrix:
     # see 96d5c1f3ed77b09c64ce7c3c7cbd37c70456b3db
     # for NMake template
@@ -40,7 +39,9 @@ build_script:
       -Wdev -Wdeprecated
       -G"%generator%" -A"%platform%"
       -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1
-      -DCMAKE_BUILD_TYPE="%configuration%"
+      -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1
       -S. -Bbuild
 
-      cmake --build build
+      cmake --build build --config Release
+
+      build\Release\test-dummyapp
