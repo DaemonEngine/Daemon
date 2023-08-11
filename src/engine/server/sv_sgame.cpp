@@ -601,7 +601,7 @@ void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& chan
 		IPC::HandleMsg<BotDebugDrawMsg>(channel, std::move(reader), [this](std::vector<char> commands) {
 #ifdef BUILD_SERVER
 			Q_UNUSED(commands);
-			Sys::Drop("Can't use BotDebugDrawMsg in a dedicated server");
+			Log::Warn("Can't use BotDebugDrawMsg in a dedicated server");
 #else
 			re.SendBotDebugDrawCommands(std::move(commands));
 #endif
