@@ -4634,7 +4634,14 @@ void DebugDrawEnd() {
 
 	if ( glState.currentVBO && glState.currentIBO )
 	{
-		glDrawElements( drawMode, tess.numIndexes, GL_INDEX_TYPE, BUFFER_OFFSET( 0 ) );
+		uintptr_t base = 0;
+		if ( glState.currentIBO == tess.ibo )
+		{
+			base = tess.indexBase * sizeof(glIndex_t);
+		}
+
+		glDrawElements( drawMode, tess.numIndexes, GL_INDEX_TYPE, BUFFER_OFFSET( base ) );
+		GL_CheckErrors();
 
 		backEnd.pc.c_drawElements++;
 
