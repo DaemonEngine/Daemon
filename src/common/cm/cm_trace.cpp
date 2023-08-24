@@ -783,7 +783,7 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 CM_CheckFacetPlane
 ====================
 */
-int CM_CheckFacetPlane( const float *plane, const vec3_t start, const vec3_t end, float *enterFrac, float *leaveFrac, int *hit )
+static bool CM_CheckFacetPlane( const float *plane, const vec3_t start, const vec3_t end, float *enterFrac, float *leaveFrac, bool *hit )
 {
 	float d1, d2, f;
 
@@ -848,7 +848,7 @@ CM_TraceThroughSurfaceCollide
 */
 void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc )
 {
-	int           i, j, hit, hitnum;
+	int           i, j, hitnum;
 	float         offset, enterFrac, leaveFrac, t;
 	cPlane_t      *planes;
 	cFacet_t      *facet;
@@ -903,6 +903,8 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 			VectorCopy( tw->start, startp );
 			VectorCopy( tw->end, endp );
 		}
+
+		bool hit;
 
 		if ( !CM_CheckFacetPlane( plane, startp, endp, &enterFrac, &leaveFrac, &hit ) )
 		{
