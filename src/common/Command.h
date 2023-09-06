@@ -204,6 +204,11 @@ namespace Cmd {
      */
     class Environment {
         public:
+            Environment() = default;
+            Environment( Environment const& ) = default;
+            Environment& operator=( Environment const& ) = default;
+            Environment( Environment && ) = default;
+            Environment& operator=( Environment && ) = default;
             virtual ~Environment() = default;
 
             virtual void Print(Str::StringRef text) = 0;
