@@ -557,4 +557,6 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 
 } // namespace FS
 
+extern Log::Logger fsLogs;
+
 #endif // COMMON_FILESYSTEM_H_
