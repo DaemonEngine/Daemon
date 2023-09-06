@@ -78,43 +78,43 @@ struct DDSHEADER_t
 //
 // DDSURFACEDESC2 flags that mark the validity of the struct data
 //
-#define DDSD_CAPS        0x00000001l // default
-#define DDSD_HEIGHT      0x00000002l // default
-#define DDSD_WIDTH       0x00000004l // default
-#define DDSD_PIXELFORMAT 0x00001000l // default
-#define DDSD_PITCH       0x00000008l // For uncompressed formats
+//#define DDSD_CAPS        0x00000001l // default
+//#define DDSD_HEIGHT      0x00000002l // default
+//#define DDSD_WIDTH       0x00000004l // default
+//#define DDSD_PIXELFORMAT 0x00001000l // default
+//#define DDSD_PITCH       0x00000008l // For uncompressed formats
 #define DDSD_MIPMAPCOUNT 0x00020000l
-#define DDSD_LINEARSIZE  0x00080000l // For compressed formats
+//#define DDSD_LINEARSIZE  0x00080000l // For compressed formats
 #define DDSD_DEPTH       0x00800000l // Volume Textures
 
 //
 // DDPIXELFORMAT flags
 //
-#define DDPF_ALPHAPIXELS       0x00000001l
+//#define DDPF_ALPHAPIXELS       0x00000001l
 #define DDPF_FOURCC            0x00000004l // Compressed formats
 #define DDPF_RGB               0x00000040l // Uncompressed formats
-#define DDPF_ALPHA             0x00000002l
-#define DDPF_COMPRESSED        0x00000080l
-#define DDPF_LUMINANCE         0x00020000l
-#define DDPF_PALETTEINDEXED4   0x00000008l
-#define DDPF_PALETTEINDEXEDTO8 0x00000010l
-#define DDPF_PALETTEINDEXED8   0x00000020l
+//#define DDPF_ALPHA             0x00000002l
+//#define DDPF_COMPRESSED        0x00000080l
+//#define DDPF_LUMINANCE         0x00020000l
+//#define DDPF_PALETTEINDEXED4   0x00000008l
+//#define DDPF_PALETTEINDEXEDTO8 0x00000010l
+//#define DDPF_PALETTEINDEXED8   0x00000020l
 
 //
 // DDSCAPS flags
 //
-#define DDSCAPS_COMPLEX            0x00000008l
-#define DDSCAPS_TEXTURE            0x00001000l // default
-#define DDSCAPS_MIPMAP             0x00400000l
+//#define DDSCAPS_COMPLEX            0x00000008l
+//#define DDSCAPS_TEXTURE            0x00001000l // default
+//#define DDSCAPS_MIPMAP             0x00400000l
 
 #define DDSCAPS2_VOLUME            0x00200000l
 #define DDSCAPS2_CUBEMAP           0x00000200L
-#define DDSCAPS2_CUBEMAP_POSITIVEX 0x00000400L
-#define DDSCAPS2_CUBEMAP_NEGATIVEX 0x00000800L
-#define DDSCAPS2_CUBEMAP_POSITIVEY 0x00001000L
-#define DDSCAPS2_CUBEMAP_NEGATIVEY 0x00002000L
-#define DDSCAPS2_CUBEMAP_POSITIVEZ 0x00004000L
-#define DDSCAPS2_CUBEMAP_NEGATIVEZ 0x00008000L
+//#define DDSCAPS2_CUBEMAP_POSITIVEX 0x00000400L
+//#define DDSCAPS2_CUBEMAP_NEGATIVEX 0x00000800L
+//#define DDSCAPS2_CUBEMAP_POSITIVEY 0x00001000L
+//#define DDSCAPS2_CUBEMAP_NEGATIVEY 0x00002000L
+//#define DDSCAPS2_CUBEMAP_POSITIVEZ 0x00004000L
+//#define DDSCAPS2_CUBEMAP_NEGATIVEZ 0x00008000L
 
 #ifndef MAKEFOURCC
 
@@ -124,13 +124,13 @@ struct DDSHEADER_t
 
 #endif
 
-#define FOURCC_DDS              MAKEFOURCC( 'D', 'D', 'S', ' ' )
+//#define FOURCC_DDS              MAKEFOURCC( 'D', 'D', 'S', ' ' )
 
 //FOURCC codes for DXTn compressed-texture pixel formats
 #define FOURCC_DXT1             MAKEFOURCC( 'D', 'X', 'T', '1' )
-#define FOURCC_DXT2             MAKEFOURCC( 'D', 'X', 'T', '2' )
+//#define FOURCC_DXT2             MAKEFOURCC( 'D', 'X', 'T', '2' )
 #define FOURCC_DXT3             MAKEFOURCC( 'D', 'X', 'T', '3' )
-#define FOURCC_DXT4             MAKEFOURCC( 'D', 'X', 'T', '4' )
+//#define FOURCC_DXT4             MAKEFOURCC( 'D', 'X', 'T', '4' )
 #define FOURCC_DXT5             MAKEFOURCC( 'D', 'X', 'T', '5' )
 #define FOURCC_ATI1             MAKEFOURCC( 'A', 'T', 'I', '1' )
 #define FOURCC_ATI2             MAKEFOURCC( 'A', 'T', 'I', '2' )

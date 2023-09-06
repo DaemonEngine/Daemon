@@ -50,9 +50,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // File handle for the root socket
 #define ROOT_SOCKET_FD 100
 
+#ifdef _WIN32
 // MinGW doesn't define JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 #ifndef JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 #define JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 0x2000
+#endif
 #endif
 
 namespace VM {
