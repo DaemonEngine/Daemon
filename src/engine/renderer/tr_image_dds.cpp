@@ -118,9 +118,11 @@ struct DDSHEADER_t
 
 #ifndef MAKEFOURCC
 
-#define MAKEFOURCC(ch0, ch1, ch2, ch3)                                                                                  \
-        ((unsigned int)(char)( ch0 ) | ((unsigned int)(char)( ch1 ) << 8 ) |                     \
-         ((unsigned int)(char)( ch2 ) << 16 ) | ((unsigned int)(char)( ch3 ) << 24 ))
+#define MAKEFOURCC(ch0, ch1, ch2, ch3)                    \
+        ((unsigned int)(char)( ch0 )                      \
+        | ((unsigned int)(char)( ch1 ) << 8 )             \
+        | ((unsigned int)(char)( ch2 ) << 16 )            \
+        | ((unsigned int)(char)( ch3 ) << 24 ))
 
 #endif
 
