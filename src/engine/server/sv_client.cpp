@@ -40,9 +40,10 @@ Maryland 20850 USA.
 #include "qcommon/sys.h"
 #include <common/FileSystem.h>
 
-Cvar::Cvar<bool> sv_wwwDownload("sv_wwwDownload", "have clients download missing paks via HTTP", Cvar::NONE, "");
-Cvar::Cvar<std::string> sv_wwwBaseURL("sv_wwwBaseURL", "where clients download paks (must NOT be HTTPS, must contain PAKSERVER)", Cvar::NONE, WWW_BASEURL);
-Cvar::Cvar<std::string> sv_wwwFallbackURL("sv_wwwFallbackURL", "alternative download site to sv_wwwBaseURL", Cvar::NONE, "");
+// HTTP download params
+static Cvar::Cvar<bool> sv_wwwDownload("sv_wwwDownload", "have clients download missing paks via HTTP", Cvar::NONE, true);
+static Cvar::Cvar<std::string> sv_wwwBaseURL("sv_wwwBaseURL", "where clients download paks (must NOT be HTTPS, must contain PAKSERVER)", Cvar::NONE, WWW_BASEURL);
+static Cvar::Cvar<std::string> sv_wwwFallbackURL("sv_wwwFallbackURL", "alternative download site to sv_wwwBaseURL", Cvar::NONE, "");
 
 static void SV_CloseDownload( client_t *cl );
 
