@@ -154,7 +154,7 @@ namespace Cvar {
         SetCStyleDescription(cvar);
     }
 
-    using CvarMap = std::unordered_map<std::string, cvarRecord_t*, Str::IHash, Str::IEqual>;
+    using CvarMap = std::unordered_map<std::string, std::unique_ptr<cvarRecord_t>, Str::IHash, Str::IEqual>;
     static bool cheatsAllowed = true;
 
     // The order in which static global variables are initialized is undefined and cvar
@@ -169,30 +169,13 @@ namespace Cvar {
 		CvarMap &cvars = GetCvarMap();
 
 		for (const auto &it: cvars) {
-			cvarRecord_t *cvar = it.second;
-			cvar_t &ccvar = cvar->ccvar;
+			cvarRecord_t& cvar = *it.second;
+			cvar_t &ccvar = cvar.ccvar;
 
-			if (ccvar.name)
-			{
-				Z_Free(ccvar.name);
-			}
-
-			if (ccvar.resetString)
-			{
-				Z_Free(ccvar.resetString);
-			}
-
-			if (ccvar.latchedString)
-			{
-				Z_Free(ccvar.latchedString);
-			}
-
-			if (ccvar.string)
-			{
-				Z_Free(ccvar.string);
-			}
-
-			delete cvar;
+			ccvar.name.clear();
+			ccvar.resetString.clear();
+			ccvar.latchedString.clear();
+			ccvar.string.clear();
 		}
 
 		cvars.clear();
@@ -207,10 +190,9 @@ namespace Cvar {
             void Run(const Cmd::Args& args) const override {
                 CvarMap& cvars = GetCvarMap();
                 const std::string& name = args.Argv(0);
-                cvarRecord_t* var = cvars[name];
 
                 if (args.Argc() < 2) {
-                    Print("\"%s\" - %s^* - default: \"%s^*\"", name.c_str(), var->description.c_str(), var->resetValue.c_str());
+                    Print("\"%s\" - %s^* - default: \"%s^*\"", name.c_str(), cvars[name]->description.c_str(), cvars[name]->resetValue.c_str());
                 } else {
                     //TODO forward the print part of the environment
                     SetValue(name, args.Argv(1));
@@ -219,10 +201,10 @@ namespace Cvar {
     };
     static CvarCommand cvarCommand;
 
-    void ChangeCvarDescription(Str::StringRef cvarName, cvarRecord_t* cvar, Str::StringRef description) {
-        std::string realDescription = Str::Format("\"%s\" - %s", cvar->value, description);
+    void ChangeCvarDescription(Str::StringRef cvarName, cvarRecord_t& cvar, Str::StringRef description) {
+        std::string realDescription = Str::Format("\"%s\" - %s", cvar.value, description);
         Cmd::ChangeDescription(cvarName, "cvar - " + realDescription);
-        cvar->description = std::move(realDescription);
+        cvar.description = std::move(realDescription);
     }
 
     // To avoid "change will take effect after restart" messages during initialization, when
@@ -242,12 +224,12 @@ namespace Cvar {
             }
 
             //The user creates a new cvar through a command.
-            cvars[cvarName] = new cvarRecord_t{value, value, Util::nullopt, flags | CVAR_USER_CREATED, "user created", nullptr, {}};
+            cvars[cvarName].reset( new cvarRecord_t{value, value, Util::nullopt, flags | CVAR_USER_CREATED, "user created", nullptr, {}} );
             Cmd::AddCommand(cvarName, cvarCommand, "cvar - user created");
             GetCCvar(cvarName, *cvars[cvarName]);
 
         } else {
-            cvarRecord_t* cvar = it->second;
+            auto& cvar = it->second;
 
             if (not (cvar->flags & CVAR_USER_CREATED)) {
                 if (cvar->flags & (CVAR_ROM | CVAR_INIT) and not rom) {
@@ -278,7 +260,7 @@ namespace Cvar {
 
                 if (result.success) {
                     if (cvar->flags & LATCH && value != cvar->value) {
-                        ChangeCvarDescription(cvarName, cvar, Str::Format("%s - latched value \"%s^*\"", result.description, value));
+                        ChangeCvarDescription(cvarName, *cvar, Str::Format("%s - latched value \"%s^*\"", result.description, value));
                         OnValueChangedResult undo = cvar->proxy->OnValueChanged(cvar->value);
                         ASSERT(undo.success);
                         if (setLatchedValuesCalled) {
@@ -289,7 +271,7 @@ namespace Cvar {
                     }
                     cvar->latchedValue = Util::nullopt;
                     cvar->value = std::move(value);
-                    ChangeCvarDescription(cvarName, cvar, result.description);
+                    ChangeCvarDescription(cvarName, *cvar, result.description);
                 } else {
                     Log::Notice("Value '%s' is not valid for cvar %s: %s", value, cvarName, result.description);
                     return;
@@ -325,7 +307,6 @@ namespace Cvar {
 
     bool Register(CvarProxy* proxy, const std::string& name, std::string description, int flags, const std::string& defaultValue) {
         CvarMap& cvars = GetCvarMap();
-        cvarRecord_t* cvar;
 
         auto it = cvars.find(name);
         if (it == cvars.end()) {
@@ -336,32 +317,33 @@ namespace Cvar {
 
             //Create the cvar and parse its default value
             description = Str::Format("\"%s\" - %s", defaultValue, description);
-            cvar = new cvarRecord_t{defaultValue, defaultValue, Util::nullopt, flags, description, proxy, {}};
-            cvars[name] = cvar;
+            cvars[name].reset( new cvarRecord_t{defaultValue, defaultValue, Util::nullopt, flags, description, proxy, {}} );
 
             Cmd::AddCommand(name, cvarCommand, "cvar - " + description);
+            GetCCvar(name, *cvars[name]);
+            return true;
 
         } else {
-            cvar = it->second;
+            cvarRecord_t& cvar = *it->second;
 
-            if (proxy && cvar->proxy) {
+            if (proxy && cvar.proxy) {
                 Log::Warn("Cvar %s cannot be registered twice", name.c_str());
                 return false;
             }
 
             // Register the cvar with the previous user_created value
-            cvar->flags &= ~CVAR_USER_CREATED;
-            cvar->flags |= flags;
-            cvar->proxy = proxy;
+            cvar.flags &= ~CVAR_USER_CREATED;
+            cvar.flags |= flags;
+            cvar.proxy = proxy;
             if ((flags & ROM) || (!cheatsAllowed && (flags & CHEAT))) {
-                cvar->value = defaultValue;
+                cvar.value = defaultValue;
             }
 
-            cvar->resetValue = defaultValue;
-            cvar->description.clear();
+            cvar.resetValue = defaultValue;
+            cvar.description.clear();
 
             if (proxy) { //TODO replace me with an assert once we do not need to support the C API
-                OnValueChangedResult result = proxy->OnValueChanged(cvar->value);
+                OnValueChangedResult result = proxy->OnValueChanged(cvar.value);
                 if (result.success) {
                     ChangeCvarDescription(name, cvar, result.description);
                 } else {
@@ -374,9 +356,9 @@ namespace Cvar {
                     }
                 }
             }
+            GetCCvar(name, cvar);
+            return true;
         }
-        GetCCvar(name, *cvar);
-        return true;
     }
 
     void Unregister(const std::string& cvarName) {
@@ -384,10 +366,10 @@ namespace Cvar {
 
         auto it = cvars.find(cvarName);
         if (it != cvars.end()) {
-            cvarRecord_t* cvar = it->second;
+            cvarRecord_t& cvar = *it->second;
 
-            cvar->proxy = nullptr;
-            cvar->flags |= CVAR_USER_CREATED;
+            cvar.proxy = nullptr;
+            cvar.flags |= CVAR_USER_CREATED;
         } //TODO else what?
     }
 
@@ -410,16 +392,16 @@ namespace Cvar {
 
         auto it = cvars.find(cvarName);
         if (it != cvars.end()) {
-            cvarRecord_t* cvar = it->second;
+            cvarRecord_t& cvar = *it->second;
 
             // User error. Possibly coder error too, but unlikely
-            if ((cvar->flags & TEMPORARY) && (flags & (ARCHIVE | USER_ARCHIVE)))
+            if ((cvar.flags & TEMPORARY) && (flags & (ARCHIVE | USER_ARCHIVE)))
             {
                 Log::Notice("Cvar '%s' is temporary and will not be archived", cvarName.c_str());
                 flags &= ~(ARCHIVE | USER_ARCHIVE);
             }
 
-            cvar->flags |= flags;
+            cvar.flags |= flags;
 
             //TODO: remove it, overkill ?
             //Make sure to trigger the event as if this variable was changed
@@ -435,8 +417,8 @@ namespace Cvar {
 
         auto it = cvars.find(cvarName);
         if (it != cvars.end()) {
-            cvarRecord_t* cvar = it->second;
-            cvar->flags &= ~flags;
+            cvarRecord_t& cvar = *it->second;
+            cvar.flags &= ~flags;
 
             //TODO: remove it, overkill ?
             //Make sure to trigger the event as if this variable was changed
@@ -458,19 +440,19 @@ namespace Cvar {
 
         // Reset all the CHEAT cvars to their default value
         for (auto& entry : cvars) {
-            cvarRecord_t* cvar = entry.second;
+            cvarRecord_t& cvar = *entry.second;
 
-            if (cvar->flags & CHEAT && cvar->value != cvar->resetValue) {
-                cvar->value = cvar->resetValue;
-                SetCCvar(*cvar);
+            if (cvar.flags & CHEAT && cvar.value != cvar.resetValue) {
+                cvar.value = cvar.resetValue;
+                SetCCvar(cvar);
 
-                if (cvar->proxy) {
-                    OnValueChangedResult result = cvar->proxy->OnValueChanged(cvar->resetValue);
+                if (cvar.proxy) {
+                    OnValueChangedResult result = cvar.proxy->OnValueChanged(cvar.resetValue);
                     if(result.success) {
                         ChangeCvarDescription(entry.first, cvar, result.description);
                     } else {
                         Log::Notice("Default value '%s' is not correct for cvar '%s': %s",
-                                cvar->resetValue.c_str(), entry.first.c_str(), result.description.c_str());
+                                cvar.resetValue.c_str(), entry.first.c_str(), result.description.c_str());
                     }
                 }
             }
@@ -480,15 +462,15 @@ namespace Cvar {
     void SetLatchedValues()
     {
         for (auto& entry : GetCvarMap()) {
-            cvarRecord_t* cvar = entry.second;
-            if (!cvar->latchedValue) {
+            cvarRecord_t& cvar = *entry.second;
+            if (!cvar.latchedValue) {
                 continue;
             }
-            cvar->value = std::move(*cvar->latchedValue);
-            cvar->latchedValue = Util::nullopt;
-            SetCCvar(*cvar);
-            ASSERT_NQ(cvar->proxy, nullptr);
-            OnValueChangedResult result = cvar->proxy->OnValueChanged(cvar->value);
+            cvar.value = std::move(*cvar.latchedValue);
+            cvar.latchedValue = Util::nullopt;
+            SetCCvar(cvar);
+            ASSERT_NQ(cvar.proxy, nullptr);
+            OnValueChangedResult result = cvar.proxy->OnValueChanged(cvar.value);
             if (result.success) {
                 ChangeCvarDescription(entry.first, cvar, result.description);
             } else {
@@ -516,14 +498,14 @@ namespace Cvar {
         std::ostringstream result;
 
         for (auto& entry : cvars) {
-            cvarRecord_t* cvar = entry.second;
+            cvarRecord_t& cvar = *entry.second;
 
-            if (cvar->IsArchived()) {
+            if (cvar.IsArchived()) {
                 const char* value;
-                if (cvar->ccvar.latchedString) {
-                    value = cvar->ccvar.latchedString;
+                if (cvar.ccvar.latchedString) {
+                    value = cvar.ccvar.latchedString;
                 } else {
-                    value = cvar->value.c_str();
+                    value = cvar.value.c_str();
                 }
                 result << Str::Format("seta %s %s\n", entry.first.c_str(), Cmd::Escape(value).c_str());
             }
@@ -538,10 +520,10 @@ namespace Cvar {
         CvarMap& cvars = GetCvarMap();
 
         for (auto& entry : cvars) {
-            cvarRecord_t* cvar = entry.second;
+            cvarRecord_t& cvar = *entry.second;
 
-            if (cvar->flags & flag) {
-                Info_SetValueForKey(info, entry.first.c_str(), cvar->value.c_str(), big);
+            if (cvar.flags & flag) {
+                Info_SetValueForKey(info, entry.first.c_str(), cvar.value.c_str(), big);
             }
         }
 
@@ -551,10 +533,10 @@ namespace Cvar {
     void PopulateInfoMap(int flag, InfoMap& map) {
 
         for (auto& entry : GetCvarMap()) {
-            cvarRecord_t* cvar = entry.second;
+            cvarRecord_t& cvar = *entry.second;
 
-            if (cvar->flags & flag) {
-                map[entry.first] = cvar->value;
+            if (cvar.flags & flag) {
+                map[entry.first] = cvar.value;
             }
         }
     }
@@ -627,8 +609,8 @@ namespace Cvar {
 
                     auto iter = cvars.find(name);
                     if (iter != cvars.end()) {
-                        cvarRecord_t* cvar = iter->second;
-                        ::Cvar::SetValue(name, cvar->resetValue);
+                        cvarRecord_t& cvar = *iter->second;
+                        ::Cvar::SetValue(name, cvar.resetValue);
                         if (clearArchive) {
                             ::Cvar::ClearFlags(name, USER_ARCHIVE);
                         }
@@ -681,7 +663,7 @@ namespace Cvar {
                     }
                 }
 
-                std::vector<cvarRecord_t*> matches;
+                std::vector<cvarRecord_t*> matches;//TODO: stop using raw pointers (but here at least it is not meant to own the data)
 
                 std::vector<std::string> matchesNames;
                 size_t maxNameLength = 0;
@@ -693,7 +675,7 @@ namespace Cvar {
                     if (Com_Filter(match.c_str(), entry.first.c_str(), false)) {
                         matchesNames.push_back(entry.first);
 
-                        matches.push_back(entry.second);
+                        matches.push_back(entry.second.get());
                         matchesValues.push_back(entry.second->value);
 
                         //TODO: the raw parameter is not handled, need a function to escape carets
