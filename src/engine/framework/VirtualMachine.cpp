@@ -200,7 +200,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 #endif
 }
 
-std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
+static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
 	CheckMinAddressSysctlTooLarge();
 	const std::string& libPath = FS::GetLibPath();
 #ifdef NACL_RUNTIME_PATH
@@ -323,7 +323,7 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 	return InternalLoadModule(std::move(pair), args.data(), true, std::move(stderrRedirect));
 }
 
-std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug) {
+static std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug) {
 	const std::string& libPath = FS::GetLibPath();
 	std::vector<const char*> args;
 
@@ -343,7 +343,7 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNativeVM(std::pair<IPC::Socket, IPC:
 	return InternalLoadModule(std::move(pair), args.data(), true);
 }
 
-IPC::Socket CreateInProcessNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, VM::VMBase::InProcessInfo& inProcess) {
+static IPC::Socket CreateInProcessNativeVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, VM::VMBase::InProcessInfo& inProcess) {
 	std::string filename = FS::Path::Build(FS::GetLibPath(), name + "-native-dll" + DLL_EXT);
 
 	Log::Notice("Loading VM module %s...", filename.c_str());
