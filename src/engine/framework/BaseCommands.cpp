@@ -192,7 +192,7 @@ namespace Cmd {
             }
 
             void Run(const Cmd::Args& args) const override {
-                int min, max;
+                int min = INT_MAX, max = INT_MIN; //init to silence warnings
                 if (args.Argc() != 4 or !Str::ParseInt(min, args.Argv(2)) or !Str::ParseInt(max, args.Argv(3)) or min >= max) {
                     PrintUsage(args, "<variableToSet> <minNumber> <maxNumber>", "sets a variable to a random integer between minNumber and maxNumber");
                     return;
@@ -391,7 +391,7 @@ namespace Cmd {
                     result = value2.find(value1) == std::string::npos;
 
                 } else {
-                    int intValue1, intValue2;
+                    int intValue1 = 0, intValue2 = 0; //silence warning
 
                     bool parseError = !(Str::ParseInt(intValue1, value1) && Str::ParseInt(intValue2, value2));
                     if (parseError) {
