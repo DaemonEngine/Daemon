@@ -52,8 +52,6 @@ Maryland 20850 USA.
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
 
-cvar_t *com_pid; // bani - process id
-
 cvar_t *com_speeds;
 cvar_t *com_developer;
 cvar_t *com_timescale;
