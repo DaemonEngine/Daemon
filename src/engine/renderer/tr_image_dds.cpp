@@ -137,7 +137,7 @@ struct DDSHEADER_t
 #define FOURCC_BC4U             MAKEFOURCC( 'B', 'C', '4', 'U' )
 #define FOURCC_BC5U             MAKEFOURCC( 'B', 'C', '5', 'U' )
 
-void R_LoadDDSImageData( const void *pImageData, const char *name, byte **data,
+static void R_LoadDDSImageData( const void *pImageData, const char *name, byte **data,
 			 int *width, int *height, int *numLayers,
 			 int *numMips, int *bits )
 {
