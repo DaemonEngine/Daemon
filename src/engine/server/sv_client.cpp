@@ -1136,7 +1136,7 @@ Also called by bot code
 ==================
 */
 
-Log::Logger clientCommands("server.clientCommands");
+static Log::Logger clientCommands("server.clientCommands");
 void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool premaprestart )
 {
 	ucmd_t   *u;

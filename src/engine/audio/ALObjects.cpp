@@ -204,7 +204,7 @@ namespace AL {
         decayHFLimit(builtinPreset.iDecayHFLimit) {
     }
 
-    std::unordered_map<std::string, ReverbEffectPreset> presets;
+    static std::unordered_map<std::string, ReverbEffectPreset> presets;
     static bool presetsInitialized = false;
     void InitEffectPresets() {
         if (presetsInitialized) {

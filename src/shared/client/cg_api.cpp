@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <engine/client/cg_msgdef.h>
 #include <shared/VMMain.h>
 #include <shared/CommandBufferClient.h>
+#include <shared/client/cg_api.h>
 
 IPC::CommandBufferClient cmdBuffer("cgame");
 

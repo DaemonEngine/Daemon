@@ -40,8 +40,8 @@ Maryland 20850 USA.
 #include "engine/qcommon/sys.h"
 #include "framework/CommandSystem.h"
 
-unsigned frame_msec;
-int      old_com_frameTime;
+static unsigned frame_msec;
+static int      old_com_frameTime;
 
 /*
 ===============================================================================

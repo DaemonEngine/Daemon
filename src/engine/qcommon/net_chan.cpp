@@ -65,9 +65,9 @@ static const int FRAGMENT_SIZE = ( MAX_PACKETLEN - 100 );
 
 static const int FRAGMENT_BIT  = ( 1 << 31 );
 
-cvar_t      *showpackets;
-cvar_t      *showdrop;
-cvar_t      *qport;
+static cvar_t      *showpackets;
+static cvar_t      *showdrop;
+static cvar_t      *qport;
 
 static const char *const netsrcString[ 2 ] =
 {
@@ -446,7 +446,7 @@ struct loopback_t
 	int       get, send;
 };
 
-loopback_t loopbacks[ 2 ];
+static loopback_t loopbacks[ 2 ];
 
 bool        NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message )
 {
@@ -501,7 +501,7 @@ struct packetQueue_t
 	int                  release;
 };
 
-packetQueue_t *packetQueue = nullptr;
+static packetQueue_t *packetQueue = nullptr;
 
 static void NET_QueuePacket( int length, const void *data, const netadr_t& to,
                              int offset )

@@ -50,10 +50,10 @@ console_t consoleState;
 
 Console::Field g_consoleField(INT_MAX);
 
-cvar_t    *con_animationSpeed;
-cvar_t    *con_animationType;
+static cvar_t    *con_animationSpeed;
+static cvar_t    *con_animationType;
 
-cvar_t    *con_autoclear;
+static cvar_t    *con_autoclear;
 
 /**
  * 0: no scroll lock at all, scroll down on any message arriving
@@ -63,28 +63,28 @@ cvar_t    *con_autoclear;
  */
 cvar_t    *con_scrollLock;
 
-cvar_t	  *con_prompt;
+static cvar_t	  *con_prompt;
 
-cvar_t    *con_borderWidth;
-cvar_t    *con_borderColorAlpha;
-cvar_t    *con_borderColorRed;
-cvar_t    *con_borderColorBlue;
-cvar_t    *con_borderColorGreen;
+static cvar_t    *con_borderWidth;
+static cvar_t    *con_borderColorAlpha;
+static cvar_t    *con_borderColorRed;
+static cvar_t    *con_borderColorBlue;
+static cvar_t    *con_borderColorGreen;
 
-cvar_t    *con_margin;
-cvar_t    *con_horizontalPadding;
+static cvar_t    *con_margin;
+static cvar_t    *con_horizontalPadding;
 
-cvar_t    *con_height;
-cvar_t    *con_colorAlpha;
-cvar_t    *con_colorRed;
-cvar_t    *con_colorBlue;
-cvar_t    *con_colorGreen;
+static cvar_t    *con_height;
+static cvar_t    *con_colorAlpha;
+static cvar_t    *con_colorRed;
+static cvar_t    *con_colorBlue;
+static cvar_t    *con_colorGreen;
 
 /**
  * allows for debugging the console without using the consoles scrollback,
  * which might otherwise end in loops or unnecessary verbose output
  */
-cvar_t    *con_debug;
+static cvar_t    *con_debug;
 
 static const int ANIMATION_TYPE_NONE   = 0;
 static const int ANIMATION_TYPE_SCROLL_DOWN = 1;

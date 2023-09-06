@@ -68,7 +68,7 @@ cvar_t *cl_nodelta;
 
 cvar_t *cl_noprint;
 
-cvar_t *cl_timeout;
+static cvar_t *cl_timeout;
 cvar_t *cl_maxpackets;
 cvar_t *cl_packetdup;
 cvar_t *cl_timeNudge;
@@ -79,14 +79,14 @@ cvar_t *cl_shownuments; // DHM - Nerve
 cvar_t *cl_showSend;
 cvar_t *cl_showServerCommands; // NERVE - SMF
 
-Cvar::Cvar<bool> cvar_demo_status_isrecording(
+static Cvar::Cvar<bool> cvar_demo_status_isrecording(
     "demo.status.isrecording",
     "(Read-only) Whether there is a demo currently being recorded",
     Cvar::ROM,
     false
 );
 
-Cvar::Cvar<std::string> cvar_demo_status_filename(
+static Cvar::Cvar<std::string> cvar_demo_status_filename(
     "demo.status.filename",
     "(Read-only) Name of the demo currently being recorded",
     Cvar::ROM,
@@ -128,7 +128,7 @@ cvar_t *cl_autorecord;
 cvar_t *cl_allowDownload;
 cvar_t *cl_inGameVideo;
 
-cvar_t                 *cl_packetloss; //bani
+static cvar_t *cl_packetloss; //bani
 cvar_t                 *cl_packetdelay; //bani
 
 cvar_t                 *cl_consoleFont;
@@ -146,7 +146,7 @@ cvar_t             *cl_altTab;
 cvar_t             *cl_aviMotionJpeg;
 // XreaL END
 
-cvar_t             *cl_rate;
+static cvar_t             *cl_rate;
 
 cvar_t             *cl_cgameSyscallStats;
 

@@ -77,8 +77,8 @@ struct flare_t
 
 static const int MAX_FLARES = 128;
 
-flare_t r_flareStructs[ MAX_FLARES ];
-flare_t *r_activeFlares, *r_inactiveFlares;
+static flare_t r_flareStructs[ MAX_FLARES ];
+static flare_t *r_activeFlares, *r_inactiveFlares;
 
 /*
 ==================

@@ -36,7 +36,7 @@ Maryland 20850 USA.
 
 #include "cm_patch.h"
 
-int                     c_totalPatchBlocks;
+static int                     c_totalPatchBlocks;
 
 const cSurfaceCollide_t *debugSurfaceCollide;
 const cFacet_t          *debugFacet;

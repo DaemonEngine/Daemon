@@ -35,17 +35,20 @@ static int r_firstSceneEntity;
 static int r_numPolys;
 static int r_firstScenePoly;
 
+extern int r_numPolyVerts;
+extern int r_numPolyIndexes;
 int        r_numPolyVerts;
 int        r_numPolyIndexes;
 
 // ydnar: decals
-int        r_firstSceneDecalProjector;
+static int        r_firstSceneDecalProjector;
+extern int r_numDecalProjectors;
 int        r_numDecalProjectors;
-int        r_firstSceneDecal;
-int        r_numDecals;
+static int        r_firstSceneDecal;
+static int        r_numDecals;
 
-int r_numVisTests;
-int r_firstSceneVisTest;
+static int r_numVisTests;
+static int r_firstSceneVisTest;
 
 /*
 ====================

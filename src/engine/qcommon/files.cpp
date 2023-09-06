@@ -61,7 +61,7 @@ struct missingPak_t {
 
 static const int MAX_FILE_HANDLES = 64;
 static handleData_t handleTable[MAX_FILE_HANDLES];
-std::vector<missingPak_t> fs_missingPaks;
+static std::vector<missingPak_t> fs_missingPaks;
 
 static Cvar::Cvar<bool> allowRemotePakDir("client.allowRemotePakDir", "Connect to servers that load game data from directories", Cvar::TEMPORARY, false);
 

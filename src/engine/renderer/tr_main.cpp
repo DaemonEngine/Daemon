@@ -42,7 +42,7 @@ refimport_t    ri;
 
 // entities that will have procedurally generated surfaces will just
 // point at this for their sorting surface
-surfaceType_t entitySurface = surfaceType_t::SF_ENTITY;
+static surfaceType_t entitySurface = surfaceType_t::SF_ENTITY;
 
 /*
 =============

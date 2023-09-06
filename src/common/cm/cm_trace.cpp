@@ -41,7 +41,7 @@ Maryland 20850 USA.
 // always use capsule vs. capsule collision and never capsule vs. bbox or vice versa
 //#define ALWAYS_CAPSULE_VS_CAPSULE
 
-Cvar::Cvar<bool> cm_noCurves(VM_STRING_PREFIX "cm_noCurves",
+static Cvar::Cvar<bool> cm_noCurves(VM_STRING_PREFIX "cm_noCurves",
 	"treat BSP patches as empty space for collision detection", Cvar::CHEAT, false);
 
 /*

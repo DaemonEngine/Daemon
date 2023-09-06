@@ -71,7 +71,7 @@ struct ping_t
 	char     info[ MAX_INFO_STRING ];
 };
 
-ping_t             cl_pinglist[ MAX_PINGREQUESTS ];
+static ping_t cl_pinglist[ MAX_PINGREQUESTS ];
 static int lastPingSendTime = -99999;
 
 /*

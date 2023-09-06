@@ -41,6 +41,7 @@ static Cvar::Modified<Cvar::Cvar<bool>> r_noBorder(
 static Cvar::Modified<Cvar::Range<Cvar::Cvar<int>>> r_swapInterval(
 	"r_swapInterval", "enable vsync on every Nth frame, negative for apdative", Cvar::ARCHIVE, 0, -5, 5 );
 
+extern SDL_Window *window;
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
 
@@ -326,10 +327,12 @@ enum class rserr_t
   RSERR_UNKNOWN
 };
 
-cvar_t                     *r_allowResize; // make window resizable
-cvar_t                     *r_centerWindow;
-cvar_t                     *r_displayIndex;
-cvar_t                     *r_sdlDriver;
+extern cvar_t *r_allowResize; // make window resizable
+cvar_t *r_allowResize;
+
+static cvar_t                     *r_centerWindow;
+static cvar_t                     *r_displayIndex;
+static cvar_t                     *r_sdlDriver;
 
 static void GLimp_DestroyContextIfExists();
 static void GLimp_DestroyWindowIfExists();

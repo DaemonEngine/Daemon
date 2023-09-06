@@ -63,8 +63,8 @@ namespace Audio {
         float ratio;
         float askedRatio;
     };
-    ReverbSlot reverbSlots[N_REVERB_SLOTS];
-    bool testingReverb = false;
+    static ReverbSlot reverbSlots[N_REVERB_SLOTS];
+    static bool testingReverb = false;
 
     static bool initialized = false;
 
