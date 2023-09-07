@@ -90,7 +90,6 @@ struct cbrush_t
 	int          numsides;
 	cbrushside_t *sides;
 	int          checkcount; // to avoid repeated testings
-	bool     collided; // marker for optimisation
 	cbrushedge_t *edges;
 	int          numEdges;
 };

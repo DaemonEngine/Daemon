@@ -116,7 +116,7 @@ static void CM_ProjectPointOntoVector( const vec3_t point, const vec3_t vStart, 
 CM_DistanceFromLineSquared
 ================
 */
-float CM_DistanceFromLineSquared( vec3_t p, vec3_t lp1, vec3_t lp2, vec3_t dir )
+float CM_DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const vec3_t lp2, vec3_t const dir )
 {
 	vec3_t proj, t;
 	int    j;
@@ -162,7 +162,7 @@ POSITION TESTING
 CM_TestBoxInBrush
 ================
 */
-static void CM_TestBoxInBrush( traceWork_t *tw, cbrush_t *brush )
+static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush )
 {
 	float        dist;
 	float        d1;
@@ -366,7 +366,7 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 CM_TestInLeaf
 ================
 */
-void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf )
+void CM_TestInLeaf( traceWork_t *tw, const cLeaf_t *leaf )
 {
 	// test box position against all brushes in the leaf
 	const int *firstBrushNum = leaf->firstLeafBrush;
@@ -785,7 +785,7 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 CM_CheckFacetPlane
 ====================
 */
-int CM_CheckFacetPlane( float *plane, vec3_t start, vec3_t end, float *enterFrac, float *leaveFrac, int *hit )
+int CM_CheckFacetPlane( const float *plane, const vec3_t start, const vec3_t end, float *enterFrac, float *leaveFrac, int *hit )
 {
 	float d1, d2, f;
 
@@ -1007,7 +1007,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 CM_TraceThroughSurface
 ================
 */
-void CM_TraceThroughSurface( traceWork_t *tw, cSurface_t *surface )
+void CM_TraceThroughSurface( traceWork_t *tw, const cSurface_t *surface )
 {
 	float oldFrac;
 
@@ -1037,7 +1037,7 @@ void CM_TraceThroughSurface( traceWork_t *tw, cSurface_t *surface )
 CM_TraceThroughBrush
 ================
 */
-void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
+void CM_TraceThroughBrush( traceWork_t *tw, const cbrush_t *brush )
 {
 	float        dist;
 	float        enterFrac, leaveFrac;
@@ -1120,8 +1120,6 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 				continue;
 			}
 
-			brush->collided = true;
-
 			// crosses face
 			if ( d1 > d2 )
 			{
@@ -1195,8 +1193,6 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 			{
 				continue;
 			}
-
-			brush->collided = true;
 
 			// crosses face
 			if ( d1 > d2 )
@@ -1275,7 +1271,7 @@ void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush )
 CM_TraceThroughLeaf
 ================
 */
-void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
+void CM_TraceThroughLeaf( traceWork_t *tw, const cLeaf_t *leaf )
 {
 	// trace line against all brushes in the leaf
 	const int *firstBrushNum = leaf->firstLeafBrush;
@@ -1300,8 +1296,6 @@ void CM_TraceThroughLeaf( traceWork_t *tw, cLeaf_t *leaf )
 		{
 			continue;
 		}
-
-		b->collided = false;
 
 		if ( !CM_BoundsIntersect( tw->bounds[ 0 ], tw->bounds[ 1 ], b->bounds[ 0 ], b->bounds[ 1 ] ) )
 		{
@@ -1368,7 +1362,7 @@ CM_TraceThroughSphere
 get the first intersection of the ray with the sphere
 ================
 */
-void CM_TraceThroughSphere( traceWork_t *tw, vec3_t origin, float radius, vec3_t start, vec3_t end )
+void CM_TraceThroughSphere( traceWork_t *tw, const vec3_t origin, float radius, const vec3_t start, const vec3_t end )
 {
 	float  l1, l2, length, scale, fraction;
 	float  b, c, d, sqrtd;
@@ -1469,7 +1463,7 @@ get the first intersection of the ray with the cylinder
 the cylinder extends halfheight above and below the origin
 ================
 */
-void CM_TraceThroughVerticalCylinder( traceWork_t *tw, vec3_t origin, float radius, float halfheight, vec3_t start, vec3_t end )
+void CM_TraceThroughVerticalCylinder( traceWork_t *tw, const vec3_t origin, float radius, float halfheight, const vec3_t start, const vec3_t end )
 {
 	float  length, scale, fraction, l1, l2;
 	float  b, c, d, sqrtd;
@@ -1723,7 +1717,7 @@ trace volumes it is possible to hit something in a later leaf with
 a smaller intercept fraction.
 ==================
 */
-static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f, vec3_t p1, vec3_t p2 )
+static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f, const vec3_t p1, const vec3_t p2 )
 {
 	cNode_t  *node;
 	cplane_t *plane;
@@ -1859,7 +1853,7 @@ CM_Trace
 */
 static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, const vec3_t mins,
                       const vec3_t maxs, clipHandle_t model, const vec3_t origin, int brushmask,
-                      int skipmask, traceType_t type, sphere_t *sphere )
+                      int skipmask, traceType_t type, const sphere_t *sphere )
 {
 	int         i;
 	traceWork_t tw;
@@ -2257,7 +2251,7 @@ void CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const vec3_t 
 	*results = trace;
 }
 
-static float CM_DistanceToBrush( const vec3_t loc, cbrush_t *brush )
+static float CM_DistanceToBrush( const vec3_t loc, const cbrush_t *brush )
 {
 	float        dist = -999999.0f;
 	float        d1;
@@ -2300,7 +2294,7 @@ float CM_DistanceToModel( const vec3_t loc, clipHandle_t model ) {
 	const int *endBrushNum = firstBrushNum + leaf->numLeafBrushes;
 	for ( const int *brushNum = firstBrushNum; brushNum < endBrushNum; brushNum++ )
 	{
-		cbrush_t *b = &cm.brushes[ *brushNum ];
+		const cbrush_t *b = &cm.brushes[ *brushNum ];
 
 		d1 = CM_DistanceToBrush( loc, b );
 		if( d1 < dist )
