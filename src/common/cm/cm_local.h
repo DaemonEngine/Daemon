@@ -201,12 +201,6 @@ extern Log::Logger cmLog;
 
 // cm_test.c
 
-struct biSphere_t
-{
-	float startRadius;
-	float endRadius;
-};
-
 // Used for oriented capsule collision detection
 struct sphere_t
 {
@@ -231,8 +225,6 @@ struct traceWork_t
 	bool    isPoint; // optimized case
 	trace_t     trace; // returned from trace call
 	sphere_t    sphere; // sphere for oriendted capsule collision
-	biSphere_t  biSphere;
-	bool    testLateralCollision; // whether or not to test for lateral collision
 };
 
 struct leafList_t

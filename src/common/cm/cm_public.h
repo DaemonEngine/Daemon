@@ -58,12 +58,6 @@ void         CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const
                                      const vec3_t mins, const vec3_t maxs, clipHandle_t model,
                                      int brushmask, int skipmask, const vec3_t origin,
                                      const vec3_t angles, traceType_t type );
-void         CM_BiSphereTrace( trace_t *results, const vec3_t start,
-                               const vec3_t end, float startRad, float endRad,
-                               clipHandle_t model, int mask, int skipmask );
-void         CM_TransformedBiSphereTrace( trace_t *results, const vec3_t start, const vec3_t end,
-                                          float startRad, float endRad, clipHandle_t model,
-                                          int mask, int skipmask, const vec3_t origin );
 
 float CM_DistanceToModel( const vec3_t loc, clipHandle_t model );
 
