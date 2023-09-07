@@ -1562,7 +1562,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 	  TT_AABB,
 	  TT_CAPSULE,
-	  TT_BISPHERE,
 
 	  TT_NUM_TRACE_TYPES
 	};
@@ -1578,7 +1577,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		int      surfaceFlags; // surface hit
 		int      contents; // contents on other side of surface hit
 		int      entityNum; // entity the contacted surface is a part of
-		float    lateralFraction; // fraction of collision tangetially to the trace direction
 	};
 
 // trace->entityNum can also be 0 to (MAX_GENTITIES-1)
