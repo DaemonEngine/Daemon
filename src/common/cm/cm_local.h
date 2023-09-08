@@ -189,6 +189,11 @@ struct clipMap_t
 
 // keep 1/8 unit away to keep the position valid before network snapping
 // and to avoid various numeric issues
+// FIXME: it seems like the way this is used just makes brushes 0.1 unit bigger and does not
+// actually fix numerical stability. For example in PM_GroundTrace(), a trace against the
+// ground the player is standing on frequently has a spurious startsolid=true. What we would
+// want is for traces to stop 0.1 unit away from the world (as they do now), but for the
+// startsolid flag *not* to be set when there is something 0.1 unit away.
 #define SURFACE_CLIP_EPSILON ( 0.125 )
 
 extern clipMap_t cm;
