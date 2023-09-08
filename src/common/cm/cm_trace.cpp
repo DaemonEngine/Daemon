@@ -1305,10 +1305,16 @@ void CM_TraceThroughLeaf( traceWork_t *tw, const cLeaf_t *leaf )
 
 		CM_TraceThroughBrush( tw, b );
 
-		if ( !tw->trace.fraction )
+		if ( tw->trace.allsolid )
 		{
 			return;
 		}
+	}
+
+	// CM_TraceThroughSurface does not set startsolid/allsolid so 0 fraction is the most we'll know
+	if ( !tw->trace.fraction )
+	{
+		return;
 	}
 
 	// trace line against all surfaces in the leaf
@@ -1729,7 +1735,7 @@ static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f,
 	int      side;
 	float    midf;
 
-	if ( tw->trace.fraction <= p1f )
+	if ( tw->trace.fraction < p1f )
 	{
 		return; // already hit something nearer
 	}
