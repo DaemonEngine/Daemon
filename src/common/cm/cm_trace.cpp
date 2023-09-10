@@ -2282,6 +2282,88 @@ void CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const vec3_t 
 	*results = trace;
 }
 
+// Checks the invariants of a trace - that the trace_t result is
+// consistent with itself and the arguments.
+// Returns a string describing a problem if there is one, or the empty string if not.
+std::string CM_CheckTraceConsistency( const vec3_t start, const vec3_t end, int contentmask, int skipmask, const trace_t &tr )
+{
+	if ( !( tr.fraction >= 0.0f && tr.fraction <= 1.0f ) )
+	{
+		return "fraction out of range";
+	}
+
+	if ( tr.allsolid )
+	{
+		if ( !tr.startsolid )
+		{
+			return "allsolid without startsolid";
+		}
+		if ( tr.fraction != 0.0f )
+		{
+			return "with allsolid fraction should be 0";
+		}
+	}
+
+	// check contents
+	if ( tr.fraction == 1.0f )
+	{
+		if ( tr.contents != 0 )
+		{
+			return "should not have content flags with fraction==1";
+		}
+	}
+	else
+	{
+		if ( !( tr.contents & contentmask) )
+		{
+			return "trace has collision but no matching content flags";
+		}
+		if ( tr.contents & skipmask )
+		{
+			return "skipmask not respected";
+		}
+	}
+
+	// check endpos. Special cases for exact equality
+	if ( tr.allsolid )
+	{
+		if ( !VectorCompare( tr.endpos, start ) )
+		{
+			return "endpos not exactly equal to start with allsolid=true";
+		}
+	}
+	else if ( tr.fraction == 1.0f )
+	{
+		if ( !VectorCompare( tr.endpos, end ) )
+		{
+			return "endpos not exactly equal to end with fraction=1";
+		}
+	}
+	else
+	{
+		vec3_t expectedEndpos;
+		VectorScale( end, tr.fraction, expectedEndpos );
+		VectorMA( expectedEndpos, 1.0f - tr.fraction, start, expectedEndpos );
+		if ( DistanceSquared( tr.endpos, expectedEndpos ) > Square( 0.001f ) )
+		{
+			return "endpos significantly different from expected";
+		}
+	}
+
+	// If the trace "hit" something (excluding allsolid), then plane and surfaceFlags are valid
+	// (but there is no way to verify surfaceFlags)
+	if ( !tr.allsolid && ( tr.fraction != 1.0f ) )
+	{
+		float normalLength = VectorLength( tr.plane.normal );
+		if ( normalLength < 0.999999f || normalLength > 1.000001f )
+		{
+			return "plane normal has wrong length";
+		}
+	}
+
+	return "";
+}
+
 static float CM_DistanceToBrush( const vec3_t loc, const cbrush_t *brush )
 {
 	float        dist = -999999.0f;
