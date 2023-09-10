@@ -270,6 +270,7 @@ set(ENGINETESTLIST
     ${LIB_DIR}/tinyformat/TinyformatTest.cpp
     ${COMMON_DIR}/ColorTest.cpp
     ${COMMON_DIR}/StringTest.cpp
+    ${COMMON_DIR}/cm/unittest.cpp
     ${ENGINE_DIR}/framework/CommandSystemTest.cpp
 )
 
