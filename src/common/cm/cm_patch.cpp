@@ -703,13 +703,9 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 4;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
-				facet->borderNoAdjust[ 0 ] = noAdjust[ EN_TOP ];
 				facet->borderPlanes[ 1 ] = borders[ EN_RIGHT ];
-				facet->borderNoAdjust[ 1 ] = noAdjust[ EN_RIGHT ];
 				facet->borderPlanes[ 2 ] = borders[ EN_BOTTOM ];
-				facet->borderNoAdjust[ 2 ] = noAdjust[ EN_BOTTOM ];
 				facet->borderPlanes[ 3 ] = borders[ EN_LEFT ];
-				facet->borderNoAdjust[ 3 ] = noAdjust[ EN_LEFT ];
 				CM_SetBorderInward( facet, grid, i, j, -1 );
 
 				if ( CM_ValidateFacet( facet ) )
@@ -724,9 +720,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 0 ];
 				facet->numBorders = 3;
 				facet->borderPlanes[ 0 ] = borders[ EN_TOP ];
-				facet->borderNoAdjust[ 0 ] = noAdjust[ EN_TOP ];
 				facet->borderPlanes[ 1 ] = borders[ EN_RIGHT ];
-				facet->borderNoAdjust[ 1 ] = noAdjust[ EN_RIGHT ];
 				facet->borderPlanes[ 2 ] = gridPlanes[ i ][ j ][ 1 ];
 
 				if ( facet->borderPlanes[ 2 ] == -1 )
@@ -758,9 +752,7 @@ static void CM_SurfaceCollideFromGrid( cGrid_t *grid, cSurfaceCollide_t *sc )
 				facet->surfacePlane = gridPlanes[ i ][ j ][ 1 ];
 				facet->numBorders = 3;
 				facet->borderPlanes[ 0 ] = borders[ EN_BOTTOM ];
-				facet->borderNoAdjust[ 0 ] = noAdjust[ EN_BOTTOM ];
 				facet->borderPlanes[ 1 ] = borders[ EN_LEFT ];
-				facet->borderNoAdjust[ 1 ] = noAdjust[ EN_LEFT ];
 				facet->borderPlanes[ 2 ] = gridPlanes[ i ][ j ][ 0 ];
 
 				if ( facet->borderPlanes[ 2 ] == -1 )

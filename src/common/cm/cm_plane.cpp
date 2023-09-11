@@ -502,7 +502,6 @@ void CM_AddFacetBevels( cFacet_t *facet )
 				}
 
 				facet->borderPlanes[ facet->numBorders ] = CM_FindPlane2( plane, &flipped );
-				facet->borderNoAdjust[ facet->numBorders ] = false;
 				facet->borderInward[ facet->numBorders ] = flipped;
 				facet->numBorders++;
 			}
@@ -606,7 +605,6 @@ void CM_AddFacetBevels( cFacet_t *facet )
 						}
 					}
 
-					facet->borderNoAdjust[ facet->numBorders ] = false;
 					facet->borderInward[ facet->numBorders ] = flipped;
 					//
 					w2 = CopyWinding( w );
@@ -647,7 +645,6 @@ void CM_AddFacetBevels( cFacet_t *facet )
 		return;
 	}
 	facet->borderPlanes[ facet->numBorders ] = facet->surfacePlane;
-	facet->borderNoAdjust[ facet->numBorders ] = false;
 	facet->borderInward[ facet->numBorders ] = true;
 	facet->numBorders++;
 }
@@ -686,10 +683,6 @@ bool CM_GenerateFacetFor3Points( cFacet_t *facet, const vec3_t p1, const vec3_t 
 	Vector4Copy( planes[ facet->surfacePlane ].plane, plane );
 
 	facet->numBorders = 3;
-
-	facet->borderNoAdjust[ 0 ] = false;
-	facet->borderNoAdjust[ 1 ] = false;
-	facet->borderNoAdjust[ 2 ] = false;
 
 	facet->borderPlanes[ 0 ] = CM_GenerateBoundaryForPoints( plane, p1, p2 );
 	facet->borderPlanes[ 1 ] = CM_GenerateBoundaryForPoints( plane, p2, p3 );
