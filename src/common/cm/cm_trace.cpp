@@ -1259,7 +1259,8 @@ void CM_TraceThroughBrush( traceWork_t *tw, const cbrush_t *brush )
 			}
 
 			tw->trace.fraction = enterFrac;
-			tw->trace.plane = *clipplane;
+			VectorCopy(clipplane->normal, tw->trace.plane.normal);
+			tw->trace.plane.dist = clipplane->dist;
 			tw->trace.surfaceFlags = leadside->surfaceFlags;
 			tw->trace.contents = brush->contents;
 		}
