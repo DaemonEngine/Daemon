@@ -1566,24 +1566,78 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	  TT_NUM_TRACE_TYPES
 	};
 
-// a trace is returned when a box is swept through the world
+// A trace sweeps a (possibly zero-sized) box along a (possibly zero-length) line segment and
+// reports when the box hits something. BUT a thing that overlaps the box at the starting point
+// is *ignored*, UNLESS that thing still overlaps the box at the ending point. Got it?
+//
+// The idea is that if you are overlapping a wall a little bit due to numerical difficulties, then
+// you can run out of it (because your end point is not overlapping the wall), but you can't run
+// further into it (because then the entire path overlaps the wall). Additionally, these
+// semantics allow you to test whether there is anything at a given stationary point, or in a given
+// box, by using a trace with zero length (start = end).
+//
+// I said that a thing that overlaps the start is ignored. This is not entirely true as it results
+// in the startsolid flag being set. But otherwise the thing is ignored.
+//
+// Trace results can be divided into three classes.
+// - If there exists a single geometry element that the box overlaps throughout the entire trace:
+//   * allsolid = startsolid = true
+//   * fraction = 0
+//   * contents pertains to a geometry element that overlaps the entire trace path
+//   * plane and surfaceFlags are not valid
+// - Otherwise if the trace hit something:
+//   * allsolid = false
+//   * startsolid could be either true or false
+//   * 0 <= fraction < 1
+//   * contents, plane, and surfaceFlags pertain to the geometry that the trace hit
+// - If the trace does not hit anything:
+//   * allsolid = false
+//   * startsolid could be either true or false
+//   * fraction = 1
+//   * contents and surfaceFlags are 0
+//   * plane is not valid
+//
+// endpos is always valid. It is just for convenience; it can be rederived by interpolating
+// start and end by fraction.
+//
+// What do we know about whether certain points on the trace are free vs. obstructed?
+// - If allsolid is true, everywhere from start to end is obstructed.
+// - if startsolid is false, the start is unobstructed.
+// - if startsolid is true and fraction is not 1.0, we do not know whether there is any unobstructed point.
+// - if startsolid is false, the entire path from start to endpos is unobustructed. (*)
+// - if fraction is 1.0, end/endpos is unobstructed (*)
+// (*) There is one case where this does not hold: if the trace starts behind the back side of a facet
+// (one of the polygons used to approximate a patch) and passes into the facet, a hit is not reported
+// and thus part of the trace path could be obstructed by the facet. This should only happen if the
+// trace started outside of the level's playable area, so it's fine to ignore this unless you or the
+// mapper does something stupid.
+//
+// startsolid should be used with caution. It means that start is supposedly obstructed, but it is
+// prone to false positives due to numerical issues. Sometimes an entity that is just touching
+// geometry is falsely reported to overlap it.
+//
+// allsolid is not prone to false positives, as long as the trace has nonzero length. However if
+// it is false, that does not necessarily mean there is any unobstructed part of the path because
+// it is only true if a single brush (or entity bounding box) or patch facet obstructs the entire
+// path. All of the path could still be blocked by multiple brushes together.
+//
+// Note: in all of the above discussion I have ignored the possibilities of capsule traces and
+// triangle soup surfaces, which are apparently supported by the code. I believe that these are
+// not used in Unvanquished.
 	struct trace_t
 	{
 		bool allsolid; // if true, plane is not valid
 		bool startsolid; // if true, the initial point was in a solid area
-		float    fraction; // time completed, 1.0 = didn't hit anything
+		float    fraction; // portion of line traversed 0-1. 1.0 = didn't hit anything
 		vec3_t   endpos; // final position
 		struct {
 			vec3_t normal; // surface normal at impact, transformed to world space
 			float dist; // DO NOT USE - not yet implemented correctly
-		} plane;
-		int      surfaceFlags; // surface hit
-		int      contents; // contents on other side of surface hit
-		int      entityNum; // entity the contacted surface is a part of
+		} plane; // valid if !allsolid && fraction < 1
+		int      surfaceFlags; // surface hit. valid if !allsolid && fraction < 1
+		int      contents; // contents on other side of surface hit (or intersecting contents if allsolid). valid if fraction < 1
+		int      entityNum; // entity the contacted surface is a part of. Not set by CM_xxx, only gamelogic tracing functions
 	};
-
-// trace->entityNum can also be 0 to (MAX_GENTITIES-1)
-// or ENTITYNUM_NONE, ENTITYNUM_WORLD
 
 // markfragments are returned by CM_MarkFragments()
 	struct markFragment_t

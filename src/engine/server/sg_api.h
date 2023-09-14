@@ -65,8 +65,11 @@ struct entityShared_t
 	bool bmodel; // if false, assume an explicit mins/maxs bounding box
 	// only set by trap_SetBrushModel
 	vec3_t   mins, maxs;
-	int      contents; // CONTENTS_TRIGGER, CONTENTS_SOLID, CONTENTS_BODY, etc.
+
+	// CONTENTS_TRIGGER, CONTENTS_SOLID, CONTENTS_BODY, etc.
+	// used when tracing other entities against this one
 	// a non-solid entity should have this set to 0
+	int contents;
 
 	vec3_t absmin, absmax; // derived from mins/maxs and origin + rotation
 
