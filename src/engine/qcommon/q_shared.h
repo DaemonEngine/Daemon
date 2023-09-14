@@ -1573,7 +1573,10 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		bool startsolid; // if true, the initial point was in a solid area
 		float    fraction; // time completed, 1.0 = didn't hit anything
 		vec3_t   endpos; // final position
-		cplane_t plane; // surface normal at impact, transformed to world space
+		struct {
+			vec3_t normal; // surface normal at impact, transformed to world space
+			float dist; // DO NOT USE - not yet implemented correctly
+		} plane;
 		int      surfaceFlags; // surface hit
 		int      contents; // contents on other side of surface hit
 		int      entityNum; // entity the contacted surface is a part of
