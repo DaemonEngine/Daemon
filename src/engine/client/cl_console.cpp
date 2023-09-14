@@ -858,7 +858,7 @@ void Con_DrawConsoleContent()
 
 	lineDrawPosition -= charHeight;
 
-	row = consoleState.bottomDisplayedLine;
+	row = floor( consoleState.bottomDisplayedLine );
 
 	lineDrawLowestPosition = lineDrawPosition;
 
