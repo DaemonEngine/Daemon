@@ -97,14 +97,30 @@ struct cbrush_t
 struct cPlane_t
 {
 	float           plane[ 4 ];
-	int             signbits; // signx + (signy<<1) + (signz<<2), used as lookup during collision
+	// signx + (signy<<1) + (signz<<2), used as lookup during collision
+	// used to determine which corner of a box would pass through a plane first/last
+	int             signbits;
 	cPlane_t *hashChain;
 };
 
 // 3 or four + 6 axial bevels + 4 or 3 * 4 edge bevels
 #define MAX_FACET_BEVELS ( 4 + 6 + 16 )
 
-// a facet is a subdivided element of a patch approximation or model
+// a facet is a subdivided element of a patch approximation or model, used for collisions
+// It's basically a 2-dimensional degenerate brush. Like a brush, it encompasses a region
+// defined by bounding planes, but surfacePlane and borderPlanes[numBorders-1] are always the
+// same except with opposite normals. So the region is a convex polygon on the surface plane.
+//
+// There is a difference with how it is treated compared to brushes - a trace that hits the
+// "back" side can pass through without colliding. This detail probably doesn't matter much,
+// but the idea may be to make the patch surface (approximated by one or more facets), in the
+// case that the facets enclose some space and form a complete "object",
+// behave as a whole more similarly to a brush, in that a trace that starts
+// overlapping and ends completely outside does not hit anything. However, a patch surface
+// is still different from a brush in that the interior is not solid. The design of making
+// the inward-facing plane non-collidable makes the trace API a bit less semantically
+// consistent since a trace starting in the interior and ending outside will say that the
+// path is completely free, while reversing the direction will hit something.
 struct cFacet_t
 {
 	int      surfacePlane;
