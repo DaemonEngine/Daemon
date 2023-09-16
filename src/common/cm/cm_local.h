@@ -43,18 +43,10 @@ Maryland 20850 USA.
 #define CAPSULE_MODEL_HANDLE ( MAX_SUBMODELS )
 #define BOX_MODEL_HANDLE     ( MAX_SUBMODELS + 1)
 
-struct cbrushedge_t
-{
-	vec3_t p0;
-	vec3_t p1;
-};
-
 struct cNode_t
 {
 	cplane_t  *plane;
-	int       planeNum;
 	int       children[ 2 ]; // negative numbers are leafs
-	winding_t *winding;
 };
 
 struct cLeaf_t
@@ -78,9 +70,7 @@ struct cmodel_t
 struct cbrushside_t
 {
 	cplane_t  *plane;
-	int       planeNum;
 	int       surfaceFlags;
-	winding_t *winding;
 };
 
 struct cbrush_t
@@ -90,8 +80,6 @@ struct cbrush_t
 	int          numsides;
 	cbrushside_t *sides;
 	int          checkcount; // to avoid repeated testings
-	cbrushedge_t *edges;
-	int          numEdges;
 };
 
 struct cPlane_t
