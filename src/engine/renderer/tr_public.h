@@ -264,10 +264,6 @@ struct refimport_t
 
 	const char *( *Cmd_QuoteString )( const char *text );
 
-	// visualization for debugging collision detection
-	int ( *CM_PointContents )( const vec3_t p, clipHandle_t model );
-	void ( *CM_DrawDebugSurface )( void ( *drawPoly )( int color, int numPoints, float *points ) );
-
 	// a -1 return means the file does not exist
 	// nullptr can be passed for buf to just determine existence
 	int ( *FS_ReadFile )( const char *name, void **buf );

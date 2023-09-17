@@ -38,22 +38,6 @@ Maryland 20850 USA.
 
 int                     c_totalPatchBlocks;
 
-const cSurfaceCollide_t *debugSurfaceCollide;
-const cFacet_t          *debugFacet;
-bool                debugBlock;
-vec3_t                  debugBlockPoints[ 4 ];
-
-/*
-=================
-CM_ClearLevelPatches
-=================
-*/
-void CM_ClearLevelPatches()
-{
-	debugSurfaceCollide = nullptr;
-	debugFacet = nullptr;
-}
-
 /*
 ================================================================================
 
@@ -554,15 +538,6 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid,
 			// bisecting side border
 			cmLog.Warn( "CM_SetBorderInward: mixed plane sides" );
 			facet->borderInward[ k ] = false;
-
-			if ( !debugBlock )
-			{
-				debugBlock = true;
-				VectorCopy( grid->points[ i ][ j ], debugBlockPoints[ 0 ] );
-				VectorCopy( grid->points[ i + 1 ][ j ], debugBlockPoints[ 1 ] );
-				VectorCopy( grid->points[ i + 1 ][ j + 1 ], debugBlockPoints[ 2 ] );
-				VectorCopy( grid->points[ i ][ j + 1 ], debugBlockPoints[ 3 ] );
-			}
 		}
 	}
 }
