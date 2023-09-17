@@ -1760,16 +1760,7 @@ static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f,
 	{
 		t1 = DotProduct( plane->normal, p1 ) - plane->dist;
 		t2 = DotProduct( plane->normal, p2 ) - plane->dist;
-
-		if ( tw->isPoint )
-		{
-			offset = 0;
-		}
-		else
-		{
-			// FIXME: this is silly !!!
-			offset = 2048;
-		}
+		offset = tw->maxOffset;
 	}
 
 	// see which sides we need to consider
@@ -1933,7 +1924,7 @@ static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, co
 		VectorSet( tw.sphere.offset, 0, 0, tw.size[ 1 ][ 2 ] - tw.sphere.radius );
 	}
 
-	tw.maxOffset = tw.size[ 1 ][ 0 ] + tw.size[ 1 ][ 1 ] + tw.size[ 1 ][ 2 ];
+	tw.maxOffset = VectorLength( tw.size[ 1 ] );
 
 	// tw.offsets[signbits] = vector to appropriate corner from origin
 	tw.offsets[ 0 ][ 0 ] = tw.size[ 0 ][ 0 ];
