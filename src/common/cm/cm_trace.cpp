@@ -759,9 +759,6 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 
 		if ( j == facet->numBorders )
 		{
-			debugSurfaceCollide = sc;
-			debugFacet = facet;
-
 			planes = &sc->planes[ facet->surfacePlane ];
 
 			// calculate intersection with a slight pushoff
@@ -991,9 +988,6 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 				{
 					enterFrac = 0;
 				}
-
-				debugSurfaceCollide = sc;
-				debugFacet = facet;
 
 				tw->trace.fraction = enterFrac;
 				VectorCopy( bestplane, tw->trace.plane.normal );
@@ -2392,161 +2386,4 @@ float CM_DistanceToModel( const vec3_t loc, clipHandle_t model ) {
 	}
 
 	return dist;
-}
-
-/*
-=======================================================================
-
-DEBUGGING
-
-=======================================================================
-*/
-
-/*
-==================
-CM_DrawDebugSurface
-
-Called from the renderer
-==================
-*/
-void CM_DrawDebugSurface( void ( *drawPoly )( int color, int numPoints, float *points ) )
-{
-	const cSurfaceCollide_t *pc;
-	cFacet_t                *facet;
-	winding_t               *w;
-	int                     i, j, k;
-	int                     curplanenum, planenum, curinward, inward;
-	float                   plane[ 4 ];
-
-//  vec3_t          mins = { -15, -15, -28 }, maxs = {15, 15, 28};
-//  vec3_t mins = {0, 0, 0}, maxs = {0, 0, 0};
-//  vec3_t          v1, v2;
-
-	if ( !debugSurfaceCollide )
-	{
-		return;
-	}
-
-	pc = debugSurfaceCollide;
-
-	for ( i = 0, facet = pc->facets; i < pc->numFacets; i++, facet++ )
-	{
-		for ( k = 0; k < facet->numBorders + 1; k++ )
-		{
-			//
-			if ( k < facet->numBorders )
-			{
-				planenum = facet->borderPlanes[ k ];
-				inward = facet->borderInward[ k ];
-			}
-			else
-			{
-				planenum = facet->surfacePlane;
-				inward = false;
-				//continue;
-			}
-
-			Vector4Copy( pc->planes[ planenum ].plane, plane );
-
-			if ( inward )
-			{
-				VectorInverse( plane );
-				plane[ 3 ] = -plane[ 3 ];
-			}
-
-			w = BaseWindingForPlane( plane, plane[ 3 ] );
-
-			for ( j = 0; j < facet->numBorders + 1 && w; j++ )
-			{
-				//
-				if ( j < facet->numBorders )
-				{
-					curplanenum = facet->borderPlanes[ j ];
-					curinward = facet->borderInward[ j ];
-				}
-				else
-				{
-					curplanenum = facet->surfacePlane;
-					curinward = false;
-					//continue;
-				}
-
-				//
-				if ( curplanenum == planenum )
-				{
-					continue;
-				}
-
-				Vector4Copy( pc->planes[ curplanenum ].plane, plane );
-
-				if ( !curinward )
-				{
-					VectorInverse( plane );
-					plane[ 3 ] = -plane[ 3 ];
-				}
-
-				ChopWindingInPlace( &w, plane, plane[ 3 ], 0.1f );
-			}
-
-			if ( w )
-			{
-				if ( facet == debugFacet )
-				{
-					drawPoly( 4, w->numpoints, w->p[ 0 ] );
-					//Log::Notice( "blue facet has %d border planes", facet->numBorders );
-				}
-				else
-				{
-					drawPoly( 1, w->numpoints, w->p[ 0 ] );
-				}
-
-				FreeWinding( w );
-			}
-			else
-			{
-				//Log::Notice( "Winding chopped away by border planes" );
-			}
-		}
-	}
-
-#if 0
-	// draw the debug block
-	{
-		vec3_t v[ 3 ];
-
-		VectorCopy( debugBlockPoints[ 0 ], v[ 0 ] );
-		VectorCopy( debugBlockPoints[ 1 ], v[ 1 ] );
-		VectorCopy( debugBlockPoints[ 2 ], v[ 2 ] );
-		drawPoly( 2, 3, v[ 0 ] );
-
-		VectorCopy( debugBlockPoints[ 2 ], v[ 0 ] );
-		VectorCopy( debugBlockPoints[ 3 ], v[ 1 ] );
-		VectorCopy( debugBlockPoints[ 0 ], v[ 2 ] );
-		drawPoly( 2, 3, v[ 0 ] );
-	}
-#endif
-
-#if 0
-	{
-		vec3_t v[ 4 ];
-
-		v[ 0 ][ 0 ] = pc->bounds[ 1 ][ 0 ];
-		v[ 0 ][ 1 ] = pc->bounds[ 1 ][ 1 ];
-		v[ 0 ][ 2 ] = pc->bounds[ 1 ][ 2 ];
-
-		v[ 1 ][ 0 ] = pc->bounds[ 1 ][ 0 ];
-		v[ 1 ][ 1 ] = pc->bounds[ 0 ][ 1 ];
-		v[ 1 ][ 2 ] = pc->bounds[ 1 ][ 2 ];
-
-		v[ 2 ][ 0 ] = pc->bounds[ 0 ][ 0 ];
-		v[ 2 ][ 1 ] = pc->bounds[ 0 ][ 1 ];
-		v[ 2 ][ 2 ] = pc->bounds[ 1 ][ 2 ];
-
-		v[ 3 ][ 0 ] = pc->bounds[ 0 ][ 0 ];
-		v[ 3 ][ 1 ] = pc->bounds[ 1 ][ 1 ];
-		v[ 3 ][ 2 ] = pc->bounds[ 1 ][ 2 ];
-
-		drawPoly( 2, 4, v[ 0 ] );
-	}
-#endif
 }

@@ -262,7 +262,6 @@ struct leafList_t
 #define WRAP_POINT_EPSILON 0.1
 
 cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
-void              CM_ClearLevelPatches();
 
 // cm_trisoup.c
 
@@ -300,11 +299,6 @@ bool CM_GenerateFacetFor4Points( cFacet_t *facet, const vec3_t p1, const vec3_t 
 
 
 // cm_test.c
-extern const cSurfaceCollide_t *debugSurfaceCollide;
-extern const cFacet_t          *debugFacet;
-extern bool                debugBlock;
-extern vec3_t                  debugBlockPoints[ 4 ];
-
 void                           CM_StoreLeafs( leafList_t *ll, int nodenum );
 
 void                           CM_BoxLeafnums_r( leafList_t *ll, int nodenum );
