@@ -92,7 +92,7 @@ void CM_FreeAll()
 CMod_LoadShaders
 =================
 */
-void CMod_LoadShaders(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadShaders(const byte *const cmod_base, const lump_t *l)
 {
 	dshader_t *in, *out;
 	int       i, count;
@@ -134,7 +134,7 @@ void CMod_LoadShaders(const byte *const cmod_base, lump_t *l)
 CMod_LoadSubmodels
 =================
 */
-void CMod_LoadSubmodels(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadSubmodels(const byte *const cmod_base, const lump_t *l)
 {
 	dmodel_t *in;
 	cmodel_t *out;
@@ -201,7 +201,7 @@ CMod_LoadNodes
 
 =================
 */
-void CMod_LoadNodes(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadNodes(const byte *const cmod_base, const lump_t *l)
 {
 	dnode_t *in;
 	int     child;
@@ -263,7 +263,7 @@ CMod_LoadBrushes
 
 =================
 */
-void CMod_LoadBrushes(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadBrushes(const byte *const cmod_base, const lump_t *l)
 {
 	dbrush_t *in;
 	cbrush_t *out;
@@ -307,7 +307,7 @@ void CMod_LoadBrushes(const byte *const cmod_base, lump_t *l)
 CMod_LoadLeafs
 =================
 */
-void CMod_LoadLeafs(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadLeafs(const byte *const cmod_base, const lump_t *l)
 {
 	int     i;
 	cLeaf_t *out;
@@ -362,7 +362,7 @@ void CMod_LoadLeafs(const byte *const cmod_base, lump_t *l)
 CMod_LoadPlanes
 =================
 */
-void CMod_LoadPlanes(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadPlanes(const byte *const cmod_base, const lump_t *l)
 {
 	int      i, j;
 	cplane_t *out;
@@ -406,7 +406,7 @@ void CMod_LoadPlanes(const byte *const cmod_base, lump_t *l)
 CMod_LoadLeafBrushes
 =================
 */
-void CMod_LoadLeafBrushes(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadLeafBrushes(const byte *const cmod_base, const lump_t *l)
 {
 	int i;
 	int *out;
@@ -439,7 +439,7 @@ void CMod_LoadLeafBrushes(const byte *const cmod_base, lump_t *l)
 CMod_LoadLeafSurfaces
 =================
 */
-void CMod_LoadLeafSurfaces(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadLeafSurfaces(const byte *const cmod_base, const lump_t *l)
 {
 	int i;
 	int *out;
@@ -471,7 +471,7 @@ void CMod_LoadLeafSurfaces(const byte *const cmod_base, lump_t *l)
 CMod_LoadBrushSides
 =================
 */
-void CMod_LoadBrushSides(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadBrushSides(const byte *const cmod_base, const lump_t *l)
 {
 	int          i;
 	cbrushside_t *out;
@@ -514,7 +514,7 @@ void CMod_LoadBrushSides(const byte *const cmod_base, lump_t *l)
 CMod_LoadEntityString
 =================
 */
-void CMod_LoadEntityString(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadEntityString(const byte *const cmod_base, const lump_t *l)
 {
 	const char *p, *token;
 	char keyname[ MAX_TOKEN_CHARS ];
@@ -583,7 +583,7 @@ CMod_LoadVisibility
 =================
 */
 static const int VIS_HEADER = 8;
-void CMod_LoadVisibility(const byte *const cmod_base, lump_t *l)
+static void CMod_LoadVisibility(const byte *const cmod_base, const lump_t *l)
 {
 	int len = l->filelen;
 
@@ -613,7 +613,7 @@ CMod_LoadSurfaces
 */
 static const int MAX_PATCH_SIZE  = 64;
 static const int MAX_PATCH_VERTS = ( MAX_PATCH_SIZE * MAX_PATCH_SIZE );
-void CMod_LoadSurfaces(const byte *const cmod_base, lump_t *surfs, lump_t *verts, lump_t *indexesLump)
+static void CMod_LoadSurfaces(const byte *const cmod_base, const lump_t *surfs, const lump_t *verts, const lump_t *indexesLump)
 {
 	drawVert_t    *dv, *dv_p;
 	dsurface_t    *in;
