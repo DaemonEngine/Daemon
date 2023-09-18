@@ -84,13 +84,13 @@ GLimp_RenderThreadWrapper
 ALIGN_STACK_FOR_MINGW static int GLimp_RenderThreadWrapper( void* )
 {
 	// These printfs cause race conditions which mess up the console output
-	logger.Notice( "Render thread starting\n" );
+	logger.Notice( "Render thread starting" );
 
 	renderThreadFunction();
 
 	GLimp_SetCurrentContext( false );
 
-	logger.Notice( "Render thread terminating\n" );
+	logger.Notice( "Render thread terminating" );
 
 	return 0;
 }
@@ -106,13 +106,13 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( !warned )
 	{
-		logger.Warn( "You enable r_smp at your own risk!\n" );
+		logger.Warn( "You enable r_smp at your own risk!" );
 		warned = true;
 	}
 
 	if ( renderThread != nullptr ) /* hopefully just a zombie at this point... */
 	{
-		logger.Notice( "Already a render thread? Trying to clean it up...\n" );
+		logger.Notice( "Already a render thread? Trying to clean it up..." );
 		GLimp_ShutdownRenderThread();
 	}
 
@@ -120,7 +120,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( smpMutex == nullptr )
 	{
-		logger.Notice( "smpMutex creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "smpMutex creation failed: %s", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
@@ -129,7 +129,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( renderCommandsEvent == nullptr )
 	{
-		logger.Notice( "renderCommandsEvent creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "renderCommandsEvent creation failed: %s", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
@@ -138,7 +138,7 @@ bool GLimp_SpawnRenderThread( void ( *function )() )
 
 	if ( renderCompletedEvent == nullptr )
 	{
-		logger.Notice( "renderCompletedEvent creation failed: %s\n", SDL_GetError() );
+		logger.Notice( "renderCompletedEvent creation failed: %s", SDL_GetError() );
 		GLimp_ShutdownRenderThread();
 		return false;
 	}
@@ -349,7 +349,7 @@ void GLimp_Shutdown()
 
 	if ( renderThread != nullptr )
 	{
-		logger.Notice( "Destroying renderer thread...\n" );
+		logger.Notice( "Destroying renderer thread..." );
 		GLimp_ShutdownRenderThread();
 	}
 

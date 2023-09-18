@@ -251,16 +251,16 @@ namespace Cvar {
 
             if (not (cvar->flags & CVAR_USER_CREATED)) {
                 if (cvar->flags & (CVAR_ROM | CVAR_INIT) and not rom) {
-                    Log::Notice("%s is read only.\n", cvarName.c_str());
+                    Log::Notice("%s is read only.", cvarName.c_str());
                     return;
                 }
 
                 if (rom and warnRom and not (cvar->flags & (CVAR_ROM | CVAR_INIT))) {
-                    Log::Notice("SetValueForce called on non-ROM cvar '%s'\n", cvarName.c_str());
+                    Log::Notice("SetValueForce called on non-ROM cvar '%s'", cvarName.c_str());
                 }
 
                 if (not cheatsAllowed && cvar->flags & CHEAT) {
-                    Log::Notice("%s is cheat-protected.\n", cvarName.c_str());
+                    Log::Notice("%s is cheat-protected.", cvarName.c_str());
                     return;
                 }
             }
@@ -369,7 +369,7 @@ namespace Cvar {
                     if (defaultValueResult.success) {
                         ChangeCvarDescription(name, cvar, result.description);
                     } else {
-                        Log::Notice("Default value '%s' is not correct for cvar '%s': %s\n",
+                        Log::Notice("Default value '%s' is not correct for cvar '%s': %s",
                                 defaultValue.c_str(), name.c_str(), defaultValueResult.description.c_str());
                     }
                 }
@@ -415,7 +415,7 @@ namespace Cvar {
             // User error. Possibly coder error too, but unlikely
             if ((cvar->flags & TEMPORARY) && (flags & (ARCHIVE | USER_ARCHIVE)))
             {
-                Log::Notice("Cvar '%s' is temporary and will not be archived\n", cvarName.c_str());
+                Log::Notice("Cvar '%s' is temporary and will not be archived", cvarName.c_str());
                 flags &= ~(ARCHIVE | USER_ARCHIVE);
             }
 
@@ -469,7 +469,7 @@ namespace Cvar {
                     if(result.success) {
                         ChangeCvarDescription(entry.first, cvar, result.description);
                     } else {
-                        Log::Notice("Default value '%s' is not correct for cvar '%s': %s\n",
+                        Log::Notice("Default value '%s' is not correct for cvar '%s': %s",
                                 cvar->resetValue.c_str(), entry.first.c_str(), result.description.c_str());
                     }
                 }

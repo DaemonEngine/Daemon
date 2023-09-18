@@ -457,7 +457,7 @@ void R_ImageList_f()
 	Log::Notice(" %i total texels (not including mipmaps)", texels );
 	Log::Notice(" %d.%02d MB total image memory", dataSize / ( 1024 * 1024 ),
 	           ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	Log::Notice(" %i total images\n", tr.images.currentElements );
+	Log::Notice(" %i total images", tr.images.currentElements );
 }
 
 //=======================================================================

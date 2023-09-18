@@ -228,7 +228,7 @@ std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::S
 		try {
 			FS::File out = FS::HomePath::OpenWrite(module);
 			if (const FS::LoadedPakInfo* pak = FS::PakPath::LocateFile(module))
-				Log::Notice("Extracting VM module %s from %s...\n", module.c_str(), pak->path.c_str());
+				Log::Notice("Extracting VM module %s from %s...", module.c_str(), pak->path.c_str());
 			FS::PakPath::CopyFile(module, out);
 			out.Close();
 		} catch (std::system_error& err) {
@@ -412,7 +412,7 @@ uint32_t VMBase::Create()
 	rootChannel = IPC::Channel(std::move(rootSocket));
 
 	if (type != TYPE_NATIVE_DLL && params.debug.Get())
-		Log::Notice("Waiting for GDB connection on localhost:4014\n");
+		Log::Notice("Waiting for GDB connection on localhost:4014");
 
 	// Only set a receive timeout for non-debug configurations, otherwise it
 	// would get triggered by breakpoints.

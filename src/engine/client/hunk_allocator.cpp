@@ -105,27 +105,27 @@ Com_Meminfo_f
 */
 static void Com_Meminfo_f()
 {
-	Log::Notice( "%9i bytes (%6.2f MB) total hunk\n", s_hunkTotal, s_hunkTotal / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) low permanent\n", hunk_low.permanent, hunk_low.permanent / Square( 1024.f ) );
+	Log::Notice( "%9i bytes (%6.2f MB) total hunk", s_hunkTotal, s_hunkTotal / Square( 1024.f ) );
+	Log::Notice( "" );
+	Log::Notice( "%9i bytes (%6.2f MB) low permanent", hunk_low.permanent, hunk_low.permanent / Square( 1024.f ) );
 
 	if ( hunk_low.temp != hunk_low.permanent )
 	{
-		Log::Notice( "%9i bytes (%6.2f MB) low temp\n", hunk_low.temp, hunk_low.temp / Square( 1024.f ) );
+		Log::Notice( "%9i bytes (%6.2f MB) low temp", hunk_low.temp, hunk_low.temp / Square( 1024.f ) );
 	}
 
-	Log::Notice( "%9i bytes (%6.2f MB) low tempHighwater\n", hunk_low.tempHighwater, hunk_low.tempHighwater / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) high permanent\n", hunk_high.permanent, hunk_high.permanent / Square( 1024.f ) );
+	Log::Notice( "%9i bytes (%6.2f MB) low tempHighwater", hunk_low.tempHighwater, hunk_low.tempHighwater / Square( 1024.f ) );
+	Log::Notice( "" );
+	Log::Notice( "%9i bytes (%6.2f MB) high permanent", hunk_high.permanent, hunk_high.permanent / Square( 1024.f ) );
 
 	if ( hunk_high.temp != hunk_high.permanent )
 	{
-		Log::Notice( "%9i bytes (%6.2f MB) high temp\n", hunk_high.temp, hunk_high.temp / Square( 1024.f ) );
+		Log::Notice( "%9i bytes (%6.2f MB) high temp", hunk_high.temp, hunk_high.temp / Square( 1024.f ) );
 	}
 
-	Log::Notice( "%9i bytes (%6.2f MB) high tempHighwater\n", hunk_high.tempHighwater, hunk_high.tempHighwater / Square( 1024.f ) );
-	Log::Notice( "\n" );
-	Log::Notice( "%9i bytes (%6.2f MB) total hunk in use\n", hunk_low.permanent + hunk_high.permanent,
+	Log::Notice( "%9i bytes (%6.2f MB) high tempHighwater", hunk_high.tempHighwater, hunk_high.tempHighwater / Square( 1024.f ) );
+	Log::Notice( "" );
+	Log::Notice( "%9i bytes (%6.2f MB) total hunk in use", hunk_low.permanent + hunk_high.permanent,
 	            ( hunk_low.permanent + hunk_high.permanent ) / Square( 1024.f ) );
 	int unused = 0;
 
@@ -139,7 +139,7 @@ static void Com_Meminfo_f()
 		unused += hunk_high.tempHighwater - hunk_high.permanent;
 	}
 
-	Log::Notice( "%9i bytes (%6.2f MB) unused highwater\n", unused, unused / Square( 1024.f ) );
+	Log::Notice( "%9i bytes (%6.2f MB) unused highwater", unused, unused / Square( 1024.f ) );
 }
 
 /*
@@ -370,7 +370,7 @@ void Hunk_FreeTempMemory( void *buf )
 		}
 		else
 		{
-			Log::Notice( "Hunk_FreeTempMemory: not the final block\n" );
+			Log::Notice( "Hunk_FreeTempMemory: not the final block" );
 		}
 	}
 	else
@@ -381,7 +381,7 @@ void Hunk_FreeTempMemory( void *buf )
 		}
 		else
 		{
-			Log::Notice( "Hunk_FreeTempMemory: not the final block\n" );
+			Log::Notice( "Hunk_FreeTempMemory: not the final block" );
 		}
 	}
 }

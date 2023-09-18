@@ -6471,7 +6471,7 @@ void R_BuildCubeMaps()
 					Log::Notice("*");
 				}
 
-				Log::Notice("\n");
+				Log::Notice("");
 			}
 		}
 
@@ -6695,7 +6695,7 @@ void R_BuildCubeMaps()
 		R_UploadImage( ( const byte ** ) tr.cubeTemp, 6, 1, cubeProbe->cubemap, imageParams );
 	}
 
-	Log::Notice("\n");
+	Log::Notice("");
 
 	// turn pixel targets off
 	tr.refdef.pixelTarget = nullptr;

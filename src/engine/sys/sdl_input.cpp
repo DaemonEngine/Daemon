@@ -950,7 +950,7 @@ static void IN_GameControllerAxis( SDL_GameControllerAxis controllerAxis, joysti
 	{
 		if ( in_gameControllerDebug->integer )
 		{
-			Log::Notice( "GameController axis %i = %f\n", controllerAxis, f );
+			Log::Notice( "GameController axis %i = %f", controllerAxis, f );
 		}
 
 		Com_QueueEvent( Util::make_unique<Sys::JoystickEvent>(Util::ordinal(gameAxis), static_cast<int>(f * scale)) );
@@ -975,7 +975,7 @@ static int IN_GameControllerAxisToButton( SDL_GameControllerAxis controllerAxis,
 		QueueKeyEvent( key, true );
 		if ( in_gameControllerDebug->integer )
 		{
-			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f\n",
+			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f",
 						 SDL_GameControllerGetStringForAxis( controllerAxis ), key,
 						 Keyboard::KeyToString( Key(key) ), f );
 		}
@@ -986,7 +986,7 @@ static int IN_GameControllerAxisToButton( SDL_GameControllerAxis controllerAxis,
 		QueueKeyEvent( key, false );
 		if ( in_gameControllerDebug->integer )
 		{
-			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f\n",
+			Log::Notice( "GameController axis = %s to key = Q:0x%02x(%s), value = %f",
 						 SDL_GameControllerGetStringForAxis( controllerAxis ), key,
 						 Keyboard::KeyToString( Key(key) ), f );
 		}
@@ -1023,7 +1023,7 @@ static void IN_GameControllerMove()
 
 			if ( in_gameControllerDebug->integer )
 			{
-				Log::Notice( "GameController button %s = %s\n",
+				Log::Notice( "GameController button %s = %s",
 							 SDL_GameControllerGetStringForButton( Util::enum_cast<SDL_GameControllerButton>(i) ),
 							 pressed ? "Pressed" : "Released" );
 			}

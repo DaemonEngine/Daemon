@@ -222,7 +222,7 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 		mpz_t        message;
 
 		if (argc == 1) {
-			Log::Notice("^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!\n");
+			Log::Notice("^3Server sent a pubkey_decrypt command, but sent nothing to decrypt!");
 			return false;
 		}
 

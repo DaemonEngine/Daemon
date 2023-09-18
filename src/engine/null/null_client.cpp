@@ -67,7 +67,7 @@ void CL_MapLoading()
 
 void CL_ForwardCommandToServer( const char *cmd )
 {
-	Log::Notice( "Unknown command \"%s\"\n", cmd );
+	Log::Notice( "Unknown command \"%s\"", cmd );
 }
 
 void CL_ConsolePrint( std::string )

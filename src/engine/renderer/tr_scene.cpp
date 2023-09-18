@@ -179,7 +179,7 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 			   since we don't plan on changing the const and making for room for those effects
 			   simply cut this message to developer only
 			 */
-			Log::Debug("RE_AddPolyToScene: r_max_polys or r_max_polyverts reached\n" );
+			Log::Debug("RE_AddPolyToScene: r_max_polys or r_max_polyverts reached" );
 			return;
 		}
 

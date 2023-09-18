@@ -155,7 +155,7 @@ static void SV_MapRestart_f()
 	// make sure server is running
 	if ( !com_sv_running->integer )
 	{
-		Log::Notice( "Server is not running.\n" );
+		Log::Notice( "Server is not running." );
 		return;
 	}
 
@@ -166,7 +166,7 @@ static void SV_MapRestart_f()
 		char mapname[ MAX_QPATH ];
 		char pakname[ MAX_OSPATH ];
 
-		Log::Notice( "sv_maxclients variable change — restarting.\n" );
+		Log::Notice( "sv_maxclients variable change — restarting." );
 		// restart the map the slow way
 		Q_strncpyz( mapname, Cvar_VariableString( "mapname" ), sizeof( mapname ) );
 		Q_strncpyz( pakname, Cvar_VariableString( "pakname" ), sizeof( pakname ) );
@@ -234,7 +234,7 @@ static void SV_MapRestart_f()
 
 			if ( !isBot )
 			{
-				Log::Notice( "SV_MapRestart_f: dropped client %i: denied!\n", i );
+				Log::Notice( "SV_MapRestart_f: dropped client %i: denied!", i );
 			}
 
 			continue;
@@ -263,7 +263,7 @@ public:
 		// make sure server is running
 		if ( !com_sv_running->integer )
 		{
-			Log::Notice( "Server is not running.\n" );
+			Log::Notice( "Server is not running." );
 			return;
 		}
 
@@ -370,11 +370,11 @@ static void SV_Serverinfo_f()
 	// make sure server is running
 	if ( !com_sv_running->integer )
 	{
-		Log::Notice( "Server is not running.\n" );
+		Log::Notice( "Server is not running." );
 		return;
 	}
 
-	Log::Notice( "Server info settings:\n" );
+	Log::Notice( "Server info settings:" );
 	Info_Print( Cvar_InfoString( CVAR_SERVERINFO, false ) );
 }
 
@@ -390,11 +390,11 @@ static void SV_Systeminfo_f()
 	// make sure server is running
 	if ( !com_sv_running->integer )
 	{
-		Log::Notice( "Server is not running.\n" );
+		Log::Notice( "Server is not running." );
 		return;
 	}
 
-	Log::Notice( "System info settings:\n" );
+	Log::Notice( "System info settings:" );
 	Info_Print( Cvar_InfoString( CVAR_SYSTEMINFO, false ) );
 }
 

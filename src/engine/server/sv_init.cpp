@@ -585,7 +585,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 
 	SV_AddOperatorCommands();
 
-	Log::Notice( "-----------------------------------\n" );
+	Log::Notice( "-----------------------------------" );
 }
 
 /*
@@ -763,5 +763,5 @@ void SV_Shutdown( const char *finalmsg )
 	SV_NET_Config(); // clear master server DNS queries
 	Net::ShutDownDNS();
 
-	Log::Notice( "---------------------------\n" );
+	Log::Notice( "---------------------------" );
 }
