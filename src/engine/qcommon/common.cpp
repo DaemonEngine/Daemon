@@ -132,7 +132,7 @@ void Info_Print( const char *s )
 
 		if ( !*s )
 		{
-			Log::Notice( "MISSING VALUE\n" );
+			Log::Notice( "MISSING VALUE" );
 			return;
 		}
 
@@ -151,7 +151,7 @@ void Info_Print( const char *s )
 			s++;
 		}
 
-		Log::Notice( "%s\n", value );
+		Log::Notice( "%s", value );
 	}
 }
 
@@ -335,7 +335,7 @@ static void Com_RunAndTimeServerPacket( const netadr_t *evFrom, msg_t *buf )
 
 		if ( com_speeds->integer == 3 )
 		{
-			Log::Notice( "SV_PacketEvent time: %i\n", msec );
+			Log::Notice( "SV_PacketEvent time: %i", msec );
 		}
 	}
 }
@@ -381,7 +381,7 @@ static void HandlePacketEvent(const Sys::PacketEvent& event)
 	// enough to hold fragment reassembly
 	if ( event.data.size() > static_cast<size_t>(buf.maxsize) )
 	{
-		Log::Notice( "Com_EventLoop: oversize packet\n" );
+		Log::Notice( "Com_EventLoop: oversize packet" );
 		return;
 	}
 
@@ -552,7 +552,7 @@ static void Com_Freeze_f()
 
 	if ( Cmd_Argc() != 2 )
 	{
-		Log::Notice( "freeze <seconds>\n" );
+		Log::Notice( "freeze <seconds>" );
 		return;
 	}
 
@@ -594,12 +594,12 @@ void Com_SetRecommended()
 
 	if ( goodVideo )
 	{
-		Log::Notice( "Found high quality video and slow CPU\n" );
+		Log::Notice( "Found high quality video and slow CPU" );
 		Cmd::BufferCommandText("preset preset_fast.cfg");
 	}
 	else
 	{
-		Log::Notice( "Found low quality video and slow CPU\n" );
+		Log::Notice( "Found low quality video and slow CPU" );
 		Cmd::BufferCommandText("preset preset_fastest.cfg");
 	}
 }
@@ -695,7 +695,7 @@ void Com_WriteConfigToFile( const char *filename, void (*writeConfig)( fileHandl
 
 	if ( !f )
 	{
-		Log::Notice( "Couldn't write %s.\n", filename );
+		Log::Notice( "Couldn't write %s.", filename );
 		return;
 	}
 
@@ -758,7 +758,7 @@ void Com_WriteConfig_f()
 
 	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
 	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
-	Log::Notice( "Writing %s.\n", filename );
+	Log::Notice( "Writing %s.", filename );
 	Com_WriteConfigToFile( filename, Cvar_WriteVariables );
 }
 
@@ -782,7 +782,7 @@ void Com_WriteBindings_f()
 
 	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
 	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
-	Log::Notice( "Writing %s.\n", filename );
+	Log::Notice( "Writing %s.", filename );
 	Com_WriteConfigToFile( filename, Keyboard::WriteBindings );
 }
 #endif
@@ -1053,7 +1053,7 @@ void Com_Frame()
 			}
 			else if ( Sys::Milliseconds() - watchdogTime > watchdogThreshold.Get() * 1000 )
 			{
-				Log::Notice( "Idle server with no map — triggering watchdog\n" );
+				Log::Notice( "Idle server with no map — triggering watchdog" );
 				watchdogTime = 0;
 				watchWarn = false;
 
@@ -1089,7 +1089,7 @@ void Com_Frame()
 		sv -= time_game;
 		cl -= time_frontend + time_backend;
 
-		Log::Notice( "frame:%i all:%3i sv:%3i sev:%3i cev:%3i cl:%3i gm:%3i rf:%3i bk:%3i\n",
+		Log::Notice( "frame:%i all:%3i sv:%3i sev:%3i cev:%3i cl:%3i gm:%3i rf:%3i bk:%3i",
 		            com_frameNumber, all, sv, sev, cev, cl, time_game, time_frontend, time_backend );
 	}
 
@@ -1101,7 +1101,7 @@ void Com_Frame()
 		extern int c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces;
 		extern int c_pointcontents;
 
-		Log::Notice( "%4i traces  (%ib %ip %it) %4i points\n", c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces,
+		Log::Notice( "%4i traces  (%ib %ip %it) %4i points", c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces,
 		            c_pointcontents );
 		c_traces = 0;
 		c_brush_traces = 0;

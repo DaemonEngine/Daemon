@@ -338,7 +338,7 @@ static bool Sys_StringToSockaddr( const char *s, struct sockaddr *sadr, unsigned
 		}
 		else
 		{
-			Log::Notice( "Sys_StringToSockaddr: Error resolving %s: No address of required type found.\n", s );
+			Log::Notice( "Sys_StringToSockaddr: Error resolving %s: No address of required type found.", s );
 		}
 	}
 	else
@@ -471,7 +471,7 @@ bool NET_CompareBaseAdrMask( const netadr_t& a, const netadr_t& b, int netmask )
 	}
 	else
 	{
-		Log::Notice( "NET_CompareBaseAdr: bad address type\n" );
+		Log::Notice( "NET_CompareBaseAdr: bad address type" );
 		return false;
 	}
 
@@ -616,7 +616,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 
 			if ( err != net::errc::resource_unavailable_try_again && err != net::errc::connection_reset )
 			{
-				Log::Notice( "NET_GetPacket: %s\n", NET_ErrorString() );
+				Log::Notice( "NET_GetPacket: %s", NET_ErrorString() );
 			}
 		}
 		else
@@ -646,7 +646,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 
 			if ( ret == net_message->maxsize )
 			{
-				Log::Notice( "Oversize packet from %s\n", NET_AdrToString( *net_from ) );
+				Log::Notice( "Oversize packet from %s", NET_AdrToString( *net_from ) );
 				return false;
 			}
 
@@ -666,7 +666,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 
 			if ( err != net::errc::resource_unavailable_try_again && err != net::errc::connection_reset )
 			{
-				Log::Notice( "NET_GetPacket: %s\n", NET_ErrorString() );
+				Log::Notice( "NET_GetPacket: %s", NET_ErrorString() );
 			}
 		}
 		else
@@ -676,7 +676,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 
 			if ( ret == net_message->maxsize )
 			{
-				Log::Notice( "Oversize packet from %s\n", NET_AdrToString( *net_from ) );
+				Log::Notice( "Oversize packet from %s", NET_AdrToString( *net_from ) );
 				return false;
 			}
 
@@ -696,7 +696,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 
 			if ( err != net::errc::resource_unavailable_try_again && err != net::errc::connection_reset )
 			{
-				Log::Notice( "NET_GetPacket: %s\n", NET_ErrorString() );
+				Log::Notice( "NET_GetPacket: %s", NET_ErrorString() );
 			}
 		}
 		else
@@ -706,7 +706,7 @@ bool Sys_GetPacket( netadr_t *net_from, msg_t *net_message )
 
 			if ( ret == net_message->maxsize )
 			{
-				Log::Notice( "Oversize packet from %s\n", NET_AdrToString( *net_from ) );
+				Log::Notice( "Oversize packet from %s", NET_AdrToString( *net_from ) );
 				return false;
 			}
 
@@ -794,15 +794,15 @@ void Sys_SendPacket( int length, const void *data, const netadr_t& to )
 
 		if ( addr.ss_family == AF_INET )
 		{
-			Log::Notice( "Sys_SendPacket (ipv4): %s\n", NET_ErrorString() );
+			Log::Notice( "Sys_SendPacket (ipv4): %s", NET_ErrorString() );
 		}
 		else if ( addr.ss_family == AF_INET6 )
 		{
-			Log::Notice( "Sys_SendPacket (ipv6): %s\n", NET_ErrorString() );
+			Log::Notice( "Sys_SendPacket (ipv6): %s", NET_ErrorString() );
 		}
 		else
 		{
-			Log::Notice( "Sys_SendPacket (%i): %s\n", addr.ss_family , NET_ErrorString() );
+			Log::Notice( "Sys_SendPacket (%i): %s", addr.ss_family , NET_ErrorString() );
 		}
 	}
 }
@@ -1186,7 +1186,7 @@ void NET_JoinMulticast6()
 		if ( setsockopt( multicast6_socket, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 		                 ( char * ) &curgroup.ipv6mr_interface, sizeof( curgroup.ipv6mr_interface ) ) < 0 )
 		{
-			Log::Notice( "NET_JoinMulticast6: Couldn't set scope on multicast socket: %s\n", NET_ErrorString() );
+			Log::Notice( "NET_JoinMulticast6: Couldn't set scope on multicast socket: %s", NET_ErrorString() );
 
 			if ( multicast6_socket != ip6_socket )
 			{
@@ -1199,7 +1199,7 @@ void NET_JoinMulticast6()
 
 	if ( setsockopt( multicast6_socket, IPPROTO_IPV6, IPV6_JOIN_GROUP, ( char * ) &curgroup, sizeof( curgroup ) ) )
 	{
-		Log::Notice( "NET_JoinMulticast6: Couldn't join multicast group: %s\n", NET_ErrorString() );
+		Log::Notice( "NET_JoinMulticast6: Couldn't join multicast group: %s", NET_ErrorString() );
 
 		if ( multicast6_socket != ip6_socket )
 		{
@@ -1244,7 +1244,7 @@ void NET_OpenSocks( int port )
 
 	usingSocks = false;
 
-	Log::Notice( "Opening connection to SOCKS server.\n" );
+	Log::Notice( "Opening connection to SOCKS server." );
 
 	if ( ( socks_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ) == INVALID_SOCKET )
 	{
@@ -1273,7 +1273,7 @@ void NET_OpenSocks( int port )
 
 	if ( connect( socks_socket, ( struct sockaddr * ) &address, sizeof( address ) ) == SOCKET_ERROR )
 	{
-		Log::Notice( "NET_OpenSocks: connect: %s\n", NET_ErrorString() );
+		Log::Notice( "NET_OpenSocks: connect: %s", NET_ErrorString() );
 		return;
 	}
 
@@ -1310,7 +1310,7 @@ void NET_OpenSocks( int port )
 
 	if ( send( socks_socket, ( char * ) buf, len, 0 ) == SOCKET_ERROR )
 	{
-		Log::Notice( "NET_OpenSocks: send: %s\n", NET_ErrorString() );
+		Log::Notice( "NET_OpenSocks: send: %s", NET_ErrorString() );
 		return;
 	}
 
@@ -1319,13 +1319,13 @@ void NET_OpenSocks( int port )
 
 	if ( len == SOCKET_ERROR )
 	{
-		Log::Notice( "NET_OpenSocks: recv: %s\n", NET_ErrorString() );
+		Log::Notice( "NET_OpenSocks: recv: %s", NET_ErrorString() );
 		return;
 	}
 
 	if ( len != 2 || buf[ 0 ] != 5 )
 	{
-		Log::Notice( "NET_OpenSocks: bad response\n" );
+		Log::Notice( "NET_OpenSocks: bad response" );
 		return;
 	}
 
@@ -1338,7 +1338,7 @@ void NET_OpenSocks( int port )
 			break;
 
 		default:
-			Log::Notice( "NET_OpenSocks: request denied\n" );
+			Log::Notice( "NET_OpenSocks: request denied" );
 			return;
 	}
 
@@ -1370,7 +1370,7 @@ void NET_OpenSocks( int port )
 		// send it
 		if ( send( socks_socket, ( char * ) buf, 3 + ulen + plen, 0 ) == SOCKET_ERROR )
 		{
-			Log::Notice( "NET_OpenSocks: send: %s\n", NET_ErrorString() );
+			Log::Notice( "NET_OpenSocks: send: %s", NET_ErrorString() );
 			return;
 		}
 
@@ -1379,19 +1379,19 @@ void NET_OpenSocks( int port )
 
 		if ( len == SOCKET_ERROR )
 		{
-			Log::Notice( "NET_OpenSocks: recv: %s\n", NET_ErrorString() );
+			Log::Notice( "NET_OpenSocks: recv: %s", NET_ErrorString() );
 			return;
 		}
 
 		if ( len != 2 || buf[ 0 ] != 1 )
 		{
-			Log::Notice( "NET_OpenSocks: bad response\n" );
+			Log::Notice( "NET_OpenSocks: bad response" );
 			return;
 		}
 
 		if ( buf[ 1 ] != 0 )
 		{
-			Log::Notice( "NET_OpenSocks: authentication failed\n" );
+			Log::Notice( "NET_OpenSocks: authentication failed" );
 			return;
 		}
 	}
@@ -1406,7 +1406,7 @@ void NET_OpenSocks( int port )
 
 	if ( send( socks_socket, ( char * ) buf, 10, 0 ) == SOCKET_ERROR )
 	{
-		Log::Notice( "NET_OpenSocks: send: %s\n", NET_ErrorString() );
+		Log::Notice( "NET_OpenSocks: send: %s", NET_ErrorString() );
 		return;
 	}
 
@@ -1415,26 +1415,26 @@ void NET_OpenSocks( int port )
 
 	if ( len == SOCKET_ERROR )
 	{
-		Log::Notice( "NET_OpenSocks: recv: %s\n", NET_ErrorString() );
+		Log::Notice( "NET_OpenSocks: recv: %s", NET_ErrorString() );
 		return;
 	}
 
 	if ( len < 2 || buf[ 0 ] != 5 )
 	{
-		Log::Notice( "NET_OpenSocks: bad response\n" );
+		Log::Notice( "NET_OpenSocks: bad response" );
 		return;
 	}
 
 	// check completion code
 	if ( buf[ 1 ] != 0 )
 	{
-		Log::Notice( "NET_OpenSocks: request denied: %i\n", buf[ 1 ] );
+		Log::Notice( "NET_OpenSocks: request denied: %i", buf[ 1 ] );
 		return;
 	}
 
 	if ( buf[ 3 ] != 1 )
 	{
-		Log::Notice( "NET_OpenSocks: relay address is not IPV4: %i\n", buf[ 3 ] );
+		Log::Notice( "NET_OpenSocks: relay address is not IPV4: %i", buf[ 3 ] );
 		return;
 	}
 
@@ -1502,7 +1502,7 @@ static void NET_GetLocalAddress()
 
 	if ( getifaddrs( &ifap ) )
 	{
-		Log::Notice( "NET_GetLocalAddress: Unable to get list of network interfaces: %s\n", NET_ErrorString() );
+		Log::Notice( "NET_GetLocalAddress: Unable to get list of network interfaces: %s", NET_ErrorString() );
 	}
 	else
 	{
@@ -1536,7 +1536,7 @@ static void NET_GetLocalAddress()
 		return;
 	}
 
-	Log::Notice( "Hostname: %s\n", hostname );
+	Log::Notice( "Hostname: %s", hostname );
 
 	memset( &hint, 0, sizeof( hint ) );
 
@@ -1870,7 +1870,7 @@ void NET_Init()
 	}
 
 	winsockInitialized = true;
-	Log::Notice( "Winsock Initialized\n" );
+	Log::Notice( "Winsock Initialized" );
 #endif
 
 	NET_Config( true );

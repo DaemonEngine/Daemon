@@ -721,7 +721,7 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 
 	if ( len == MAX_TOKEN_CHARS )
 	{
-//		Log::Notice ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
+//		Log::Notice ("Token exceeded %i chars, discarded.", MAX_TOKEN_CHARS);
 		len = 0;
 	}
 
@@ -1117,13 +1117,13 @@ int Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] )
 
 		if ( strcmp( token, "{" ) )
 		{
-            Log::Notice( "Missing { in info file\n" );
+            Log::Notice( "Missing { in info file" );
 			break;
 		}
 
 		if ( count == max )
 		{
-            Log::Notice( "Max infos exceeded\n" );
+            Log::Notice( "Max infos exceeded" );
 			break;
 		}
 
@@ -1135,7 +1135,7 @@ int Com_ParseInfos( const char *buf, int max, char infos[][ MAX_INFO_STRING ] )
 
 			if ( !token[ 0 ] )
 			{
-                Log::Notice( "Unexpected end of info file\n" );
+                Log::Notice( "Unexpected end of info file" );
 				break;
 			}
 
@@ -1771,12 +1771,12 @@ int PRINTF_LIKE(3) Com_sprintf( char *dest, int size, const char *fmt, ... )
 
 	if ( len >= size )
 	{
-        Log::Notice( "Com_sprintf: Output length %d too short, %d bytes required.\n", size, len + 1 );
+        Log::Notice( "Com_sprintf: Output length %d too short, %d bytes required.", size, len + 1 );
 	}
 
 	if ( len == -1 )
 	{
-        Log::Notice( "Com_sprintf: overflow of %i bytes buffer\n", size );
+        Log::Notice( "Com_sprintf: overflow of %i bytes buffer", size );
 	}
 
 	return len;
@@ -1843,7 +1843,7 @@ std::string InfoMapToString( const InfoMap& map )
 		if ( pair.first.find( INFO_SEPARATOR ) != std::string::npos ||
 			pair.second.find( INFO_SEPARATOR ) != std::string::npos )
 		{
-			Log::Notice( "Can't use keys or values with a \\\n" );
+			Log::Notice( "Can't use keys or values with a \\" );
 			continue;
 		}
 
@@ -2134,19 +2134,19 @@ void Info_SetValueForKey( char *s, const char *key, const char *value, bool big 
 
 	if ( strchr( key, '\\' ) || ( value && strchr( value, '\\' ) ) )
 	{
-        Log::Notice( "Can't use keys or values with a \\\n" );
+        Log::Notice( "Can't use keys or values with a \\" );
 		return;
 	}
 
 	if ( strchr( key, ';' ) || ( value && strchr( value, ';' ) ) )
 	{
-        Log::Notice( "Can't use keys or values with a semicolon\n" );
+        Log::Notice( "Can't use keys or values with a semicolon" );
 		return;
 	}
 
 	if ( strchr( key, '\"' ) || ( value && strchr( value, '\"' ) ) )
 	{
-        Log::Notice( "Can't use keys or values with a \"\n" );
+        Log::Notice( "Can't use keys or values with a \"" );
 		return;
 	}
 
@@ -2161,7 +2161,7 @@ void Info_SetValueForKey( char *s, const char *key, const char *value, bool big 
 
 	if ( strlen( newi ) + slen >= (unsigned) maxlen )
 	{
-        Log::Notice( "Info string length exceeded\n" );
+        Log::Notice( "Info string length exceeded" );
 		return;
 	}
 
@@ -2181,7 +2181,7 @@ void Info_SetValueForKeyRocket( char *s, const char *key, const char *value, boo
 
 	if ( strchr( key, '\\' ) || ( value && strchr( value, '\\' ) ) )
 	{
-        Log::Notice( "Can't use keys or values with a \\\n" );
+        Log::Notice( "Can't use keys or values with a \\" );
 		return;
 	}
 
@@ -2196,7 +2196,7 @@ void Info_SetValueForKeyRocket( char *s, const char *key, const char *value, boo
 
 	if ( strlen( newi ) + slen >= (unsigned) maxlen )
 	{
-        Log::Notice( "Info string length exceeded\n" );
+        Log::Notice( "Info string length exceeded" );
 		return;
 	}
 

@@ -99,7 +99,7 @@ qhandle_t RE_RegisterModel( const char *name )
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		Log::Notice( "Model name exceeds MAX_QPATH\n" );
+		Log::Notice( "Model name exceeds MAX_QPATH" );
 		return 0;
 	}
 
@@ -380,7 +380,7 @@ void R_Modellist_f()
 
 	Log::Notice(" %d.%02d MB total model memory", totalDataSize / ( 1024 * 1024 ),
 	           ( totalDataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	Log::Notice(" %i total models\n", total );
+	Log::Notice(" %i total models", total );
 }
 
 //=============================================================================

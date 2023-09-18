@@ -902,7 +902,7 @@ void CL_ForwardCommandToServer( const char *string )
 
 	if ( clc.demoplaying || cls.state < connstate_t::CA_CONNECTED || cmd[ 0 ] == '+' || cmd[ 0 ] == '\0' )
 	{
-		Log::Notice( "Unknown command \"%s\"\n", cmd );
+		Log::Notice( "Unknown command \"%s\"", cmd );
 		return;
 	}
 
@@ -1171,7 +1171,7 @@ static void CL_RconSend(const Rcon::Message &message)
 	}
 	else
 	{
-		Log::Notice("Invalid rcon message: %s\n", invalid_reason.c_str());
+		Log::Notice("Invalid rcon message: %s", invalid_reason.c_str());
 	}
 }
 
@@ -1373,7 +1373,7 @@ static void CL_GenerateRSAKeys( const char *fileName )
 		Sys::Error( "Error converting RSA keypair to sexp" );
 	}
 
-	Log::Notice( "^5Regenerating RSA keypair; writing to %s\n" , fileName );
+	Log::Notice( "^5Regenerating RSA keypair; writing to %s" , fileName );
 
 #ifndef _WIN32
 	int old_umask = umask(0077);
@@ -1549,7 +1549,7 @@ void CL_Configstrings_f()
 			continue;
 		}
 
-		Log::Notice( "%4i: %s\n", i, cl.gameState[i].c_str() );
+		Log::Notice( "%4i: %s", i, cl.gameState[i].c_str() );
 	}
 }
 
@@ -1779,7 +1779,7 @@ void CL_PrintPacket( msg_t *msg )
 		Q_strncpyz( clc.serverMessage, s, sizeof( clc.serverMessage ) );
 	}
 
-	Log::Notice("%s\n", clc.serverMessage );
+	Log::Notice("%s", clc.serverMessage );
 }
 
 /*
@@ -2238,7 +2238,7 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		}
 		else if ( !RconCmdRegistration.HandleChallenge(from, args.Argv(1)) )
 		{
-			Log::Notice( "Unwanted challenge response received.  Ignored.\n" );
+			Log::Notice( "Unwanted challenge response received.  Ignored." );
 		}
 
 		return;
@@ -2249,20 +2249,20 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	{
 		if ( cls.state >= connstate_t::CA_CONNECTED )
 		{
-			Log::Notice( "Dup connect received. Ignored.\n" );
+			Log::Notice( "Dup connect received. Ignored." );
 			return;
 		}
 
 		if ( cls.state != connstate_t::CA_CHALLENGING )
 		{
-			Log::Notice( "connectResponse packet while not connecting. Ignored.\n" );
+			Log::Notice( "connectResponse packet while not connecting. Ignored." );
 			return;
 		}
 
 		if ( !NET_CompareAdr( from, clc.serverAddress ) )
 		{
-			Log::Notice( "connectResponse from a different address. Ignored.\n" );
-			Log::Notice( "%s should have been %s\n", NET_AdrToString( from ),
+			Log::Notice( "connectResponse from a different address. Ignored." );
+			Log::Notice( "%s should have been %s", NET_AdrToString( from ),
 			            NET_AdrToStringwPort( clc.serverAddress ) );
 			return;
 		}
@@ -2373,7 +2373,7 @@ void CL_PacketEvent( const netadr_t& from, msg_t *msg )
 
 	if ( msg->cursize < 4 )
 	{
-		Log::Notice( "%s: Runt packet\n", NET_AdrToStringwPort( from ) );
+		Log::Notice( "%s: Runt packet", NET_AdrToStringwPort( from ) );
 		return;
 	}
 
@@ -2752,7 +2752,7 @@ static bool CL_InitRef()
 
 	if ( !ret )
 	{
-		Log::Notice( "Couldn't initialize refresh module\n" );
+		Log::Notice( "Couldn't initialize refresh module" );
 		return false;
 	}
 
@@ -3898,7 +3898,7 @@ void CL_ServerStatus_f()
 	{
 		if ( cls.state != connstate_t::CA_ACTIVE || clc.demoplaying )
 		{
-			Log::Notice( "Not connected to a server.\n" );
+			Log::Notice( "Not connected to a server." );
 			Cmd_PrintUsage("[-4|-6] <server>", nullptr);
 			return;
 		}

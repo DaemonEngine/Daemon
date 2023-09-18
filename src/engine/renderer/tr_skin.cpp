@@ -172,13 +172,13 @@ qhandle_t RE_RegisterSkin( const char *name )
 
 	if ( !name || !name[ 0 ] )
 	{
-		Log::Notice( "Empty name passed to RE_RegisterSkin\n" );
+		Log::Notice( "Empty name passed to RE_RegisterSkin" );
 		return 0;
 	}
 
 	if ( strlen( name ) >= MAX_QPATH )
 	{
-		Log::Notice( "Skin name exceeds MAX_QPATH\n" );
+		Log::Notice( "Skin name exceeds MAX_QPATH" );
 		return 0;
 	}
 

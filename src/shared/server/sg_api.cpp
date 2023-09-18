@@ -54,8 +54,8 @@ void trap_DropClient(int clientNum, const char *reason)
 void trap_SendServerCommand(int clientNum, const char *text)
 {
     if (strlen(text) > 1022) {
-        Log::Notice("trap_SendServerCommand( %d, ... ) length exceeds 1022.\n", clientNum);
-        Log::Notice("text [%.950s]... truncated\n", text);
+        Log::Notice("trap_SendServerCommand( %d, ... ) length exceeds 1022.", clientNum);
+        Log::Notice("text [%.950s]... truncated", text);
         return;
     }
 

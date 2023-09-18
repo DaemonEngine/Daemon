@@ -129,7 +129,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 	// if there is already a slot for this IP address, reuse it
 	if ( reconnecting != clients_end )
 	{
-		Log::Notice( "%s:reconnect\n", NET_AdrToString( from ) );
+		Log::Notice( "%s:reconnect", NET_AdrToString( from ) );
 		new_client = reconnecting;
 	}
 	else
@@ -526,7 +526,7 @@ void SV_NextDownload_f( client_t *cl, const Cmd::Args& args )
 		// Find out if we are done.  A zero-length block indicates EOF
 		if ( cl->downloadBlockSize[ cl->downloadClientBlock % MAX_DOWNLOAD_WINDOW ] == 0 )
 		{
-			Log::Notice( "clientDownload: %d : file \"%s\" completed\n", ( int )( cl - svs.clients ), cl->downloadName );
+			Log::Notice( "clientDownload: %d : file \"%s\" completed", ( int )( cl - svs.clients ), cl->downloadName );
 			SV_CloseDownload( cl );
 			return;
 		}
@@ -583,7 +583,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	// only accept wwwdl commands for clients which we first flagged as wwwdl ourselves
 	if ( !cl->bWWWDl )
 	{
-		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s' for client '%s'\n", subcmd, cl->name );
+		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s' for client '%s'", subcmd, cl->name );
 		SV_DropClient( cl, va( "SV_WWWDownload: unexpected wwwdl %s", subcmd ) );
 		return;
 	}
@@ -602,7 +602,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	// below for messages that only happen during/after download
 	if ( !cl->bWWWing )
 	{
-		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s' for client '%s'\n", subcmd, cl->name );
+		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s' for client '%s'", subcmd, cl->name );
 		SV_DropClient( cl, va( "SV_WWWDownload: unexpected wwwdl %s", subcmd ) );
 		return;
 	}
@@ -634,7 +634,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 		return;
 	}
 
-	Log::Notice("SV_WWWDownload: unknown wwwdl subcommand '%s' for client '%s'\n", subcmd, cl->name );
+	Log::Notice("SV_WWWDownload: unknown wwwdl subcommand '%s' for client '%s'", subcmd, cl->name );
 	SV_DropClient( cl, va( "SV_WWWDownload: unknown wwwdl subcommand '%s'", subcmd ) );
 }
 
@@ -664,7 +664,7 @@ static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, int download
 		return false;
 	}
 
-	Log::Notice( "clientDownload: sending client '%s' to fallback URL '%s'\n", cl->name, sv_wwwFallbackURL.Get() );
+	Log::Notice( "clientDownload: sending client '%s' to fallback URL '%s'", cl->name, sv_wwwFallbackURL.Get() );
 
 	Q_strncpyz(cl->downloadURL, va("%s/%s", sv_wwwFallbackURL.Get().c_str(), pakName), sizeof(cl->downloadURL));
 
@@ -714,12 +714,12 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		if ( cl->downloadnotify & DLNOTIFY_BEGIN )
 		{
 			cl->downloadnotify &= ~DLNOTIFY_BEGIN;
-			Log::Notice( "clientDownload: %d : beginning \"%s\"\n", ( int )( cl - svs.clients ), cl->downloadName );
+			Log::Notice( "clientDownload: %d : beginning \"%s\"", ( int )( cl - svs.clients ), cl->downloadName );
 		}
 
 		if ( !sv_allowDownload->integer )
 		{
-			Log::Notice( "clientDownload: %d : \"%s\" download disabled\n", ( int )( cl - svs.clients ), cl->downloadName );
+			Log::Notice( "clientDownload: %d : \"%s\" download disabled", ( int )( cl - svs.clients ), cl->downloadName );
 
 			Com_sprintf( errorMessage, sizeof( errorMessage ),
 							"Could not download \"%s\" because autodownloading is disabled on the server.\n\n"
@@ -781,7 +781,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					if ( cl->downloadnotify & DLNOTIFY_REDIRECT )
 					{
 						cl->downloadnotify &= ~DLNOTIFY_REDIRECT;
-						Log::Notice( "Redirecting client '%s' to %s\n", cl->name, cl->downloadURL );
+						Log::Notice( "Redirecting client '%s' to %s", cl->name, cl->downloadURL );
 					}
 
 					// once cl->downloadName is set (and possibly we have our listening socket), let the client know
@@ -842,7 +842,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 					cl->downloadSize = length;
 				} catch (std::system_error& ex) {
-					Log::Notice("clientDownload: %d : \"%s\" file download failed - %s\n", (int)(cl - svs.clients), cl->downloadName, ex.what());
+					Log::Notice("clientDownload: %d : \"%s\" file download failed - %s", (int)(cl - svs.clients), cl->downloadName, ex.what());
 					success = false;
 				}
 			} else {
@@ -852,7 +852,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 		if ( !success )
 		{
-			Log::Notice( "clientDownload: %d : \"%s\" file not found on server\n", ( int )( cl - svs.clients ), cl->downloadName );
+			Log::Notice( "clientDownload: %d : \"%s\" file not found on server", ( int )( cl - svs.clients ), cl->downloadName );
 			Com_sprintf( errorMessage, sizeof( errorMessage ), "File \"%s\" not found on server for autodownloading.\n",
 			             cl->downloadName );
 			SV_BadDownload( cl, msg );
@@ -917,12 +917,12 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 		if ( bTellRate )
 		{
-			Log::Notice( "'%s' downloading at sv_dl_maxrate (%d)\n", cl->name, sv_dl_maxRate->integer );
+			Log::Notice( "'%s' downloading at sv_dl_maxrate (%d)", cl->name, sv_dl_maxRate->integer );
 		}
 	}
 	else if ( bTellRate )
 	{
-		Log::Notice( "'%s' downloading at rate %d\n", cl->name, rate );
+		Log::Notice( "'%s' downloading at rate %d", cl->name, rate );
 	}
 
 	if ( !rate )
@@ -1207,7 +1207,7 @@ static bool SV_ClientCommand( client_t *cl, msg_t *msg, bool premaprestart )
 	// drop the connection if we have somehow lost commands
 	if ( seq > cl->lastClientCommand + 1 )
 	{
-		Log::Notice( "Client %s lost %i clientCommands\n", cl->name, seq - cl->lastClientCommand + 1 );
+		Log::Notice( "Client %s lost %i clientCommands", cl->name, seq - cl->lastClientCommand + 1 );
 		SV_DropClient( cl, "Lost reliable commands" );
 		return false;
 	}
@@ -1303,13 +1303,13 @@ static void SV_UserMove( client_t *cl, msg_t *msg, bool delta )
 
 	if ( cmdCount < 1 )
 	{
-		Log::Notice( "cmdCount < 1\n" );
+		Log::Notice( "cmdCount < 1" );
 		return;
 	}
 
 	if ( cmdCount > MAX_PACKET_USERCMDS )
 	{
-		Log::Notice( "cmdCount > MAX_PACKET_USERCMDS\n" );
+		Log::Notice( "cmdCount > MAX_PACKET_USERCMDS" );
 		return;
 	}
 

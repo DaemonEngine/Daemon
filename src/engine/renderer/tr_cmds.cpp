@@ -949,7 +949,7 @@ void RE_Finish()
 {
 	RenderFinishCommand *cmd;
 
-	Log::Notice("RE_Finish\n" );
+	Log::Notice("RE_Finish" );
 
 	cmd = R_GetRenderCommand<RenderFinishCommand>();
 

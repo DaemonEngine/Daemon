@@ -602,7 +602,7 @@ bool CL_CloseAVI()
 	Z_Free( afd.eBuffer );
 	FS_FCloseFile( afd.f );
 
-	Log::Notice( "Wrote %d:%d frames to %s\n", afd.numVideoFrames, afd.numAudioFrames, afd.fileName );
+	Log::Notice( "Wrote %d:%d frames to %s", afd.numVideoFrames, afd.numAudioFrames, afd.fileName );
 
 	return true;
 }

@@ -1397,7 +1397,7 @@ void SV_Frame( int msec )
 	svs.currentFrameIndex++;
 
 	//if( svs.currentFrameIndex % 50 == 0 )
-	//  Log::Notice( "currentFrameIndex: %i\n", svs.currentFrameIndex );
+	//  Log::Notice( "currentFrameIndex: %i", svs.currentFrameIndex );
 
 	if ( svs.currentFrameIndex == SERVER_PERFORMANCECOUNTER_FRAMES )
 	{
@@ -1429,7 +1429,7 @@ void SV_Frame( int msec )
 			svs.serverLoad = static_cast<int>(( averageFrameTime / static_cast<float>(frameMsec) ) * 100.0F);
 		}
 
-		//Log::Notice( "serverload: %i (%i/%i)\n", svs.serverLoad, averageFrameTime, frameMsec );
+		//Log::Notice( "serverload: %i (%i/%i)", svs.serverLoad, averageFrameTime, frameMsec );
 
 		svs.totalFrameTime = 0;
 		svs.currentFrameIndex = 0;

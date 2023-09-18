@@ -170,7 +170,7 @@ void Con_Dump_f()
 		return;
 	}
 
-	Log::Notice( "Dumped console text to %s.\n", name.c_str() );
+	Log::Notice( "Dumped console text to %s.", name.c_str() );
 
 	// write the remaining lines
 	for ( const std::string& line : consoleState.lines )

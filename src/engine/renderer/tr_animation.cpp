@@ -1343,7 +1343,7 @@ int RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t hAnim, int startFrame, int 
 		/*
 		   if((startFrame >= anim->numFrames) || (startFrame < 0) || (endFrame >= anim->numFrames) || (endFrame < 0))
 		   {
-		   Log::Debug("RE_BuildSkeleton: no such frame %d to %d for '%s'\n", startFrame, endFrame, anim->name);
+		   Log::Debug("RE_BuildSkeleton: no such frame %d to %d for '%s'", startFrame, endFrame, anim->name);
 		   //startFrame = 0;
 		   //endFrame = 0;
 		   }
