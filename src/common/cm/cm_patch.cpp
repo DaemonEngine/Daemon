@@ -54,7 +54,7 @@ Returns true if the given quadratic curve is not flat enough for our
 collision detection purposes
 =================
 */
-static bool CM_NeedsSubdivision( vec3_t a, vec3_t b, vec3_t c )
+static bool CM_NeedsSubdivision( const vec3_t a, const vec3_t b, const vec3_t c )
 {
 	vec3_t cmid;
 	vec3_t lmid;
@@ -89,7 +89,7 @@ a, b, and c are control points.
 the subdivided sequence will be: a, out1, out2, out3, c
 ===============
 */
-static void CM_Subdivide( vec3_t a, vec3_t b, vec3_t c, vec3_t out1, vec3_t out2, vec3_t out3 )
+static void CM_Subdivide( const vec3_t a, const vec3_t b, const vec3_t c, vec3_t out1, vec3_t out2, vec3_t out3 )
 {
 	int i;
 
