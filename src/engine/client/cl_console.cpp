@@ -333,31 +333,32 @@ bool Con_CheckResize()
 			// Copy the lines, wrapping them when needed
 			for ( const std::string& line : old_lines )
 			{
-				// Quick case for empty lines
-				if ( line.empty() )
-				{
-					consoleState.lines.emplace_back();
-					continue;
-				}
+				consoleState.lines.emplace_back();
 
 				// Count the number of visible characters, adding a new line when too long
 				const char* begin = line.c_str();
 				int len = 0;
+				Str::StringView lastColorToken;
 				for ( const auto& token : Color::Parser( line.c_str() ) )
 				{
-					if ( token.Type() == Color::Token::TokenType::CHARACTER || token.Type() == Color::Token::TokenType::ESCAPE )
+					if ( token.Type() == Color::Token::TokenType::COLOR )
+					{
+						lastColorToken = token.RawToken();
+					}
+					else
 					{
 						len++;
-					}
-					if ( len > consoleState.textWidthInChars )
-					{
-						consoleState.lines.emplace_back( begin, token.RawToken().begin() );
-						begin = token.RawToken().begin();
-						len = 0;
+						if ( len > consoleState.textWidthInChars )
+						{
+							consoleState.lines.back().append( begin, token.RawToken().begin() );
+							begin = token.RawToken().begin();
+							len = 0;
+							consoleState.lines.emplace_back( lastColorToken.begin(), lastColorToken.end() );
+						}
 					}
 				}
 				// add the remainder of the line
-				consoleState.lines.emplace_back( begin, (&line.back()) + 1 );
+				consoleState.lines.back().append( begin, line.data() + line.size() );
 			}
 		}
 		else
