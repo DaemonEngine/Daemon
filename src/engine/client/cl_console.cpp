@@ -496,12 +496,13 @@ bool CL_InternalConsolePrint( const char *text )
 
 	Con_Linefeed();
 
+	Str::StringView activeColorToken;
 	for ( const auto& token : Color::Parser( text ) )
 	{
 		if ( token.Type() == Color::Token::TokenType::COLOR )
 		{
-			Str::StringView colorToken = token.RawToken();
-			consoleState.lines.back().append( colorToken.begin(), colorToken.end() );
+			activeColorToken = token.RawToken();
+			consoleState.lines.back().append( activeColorToken.begin(), activeColorToken.end() );
 			continue;
 		}
 
@@ -528,6 +529,7 @@ bool CL_InternalConsolePrint( const char *text )
 			if ( consoleState.lines.back().size() + wordLen >= size_t(consoleState.textWidthInChars) )
 			{
 				Con_Linefeed();
+				consoleState.lines.back().append( activeColorToken.begin(), activeColorToken.end() );
 			}
 		}
 
@@ -535,6 +537,7 @@ bool CL_InternalConsolePrint( const char *text )
 		{
 			case '\n':
 				Con_Linefeed();
+				activeColorToken = {};
 				break;
 
 			default: // display character and advance
@@ -547,6 +550,7 @@ bool CL_InternalConsolePrint( const char *text )
 				if ( consoleState.lines.back().size() >= size_t(consoleState.textWidthInChars) )
 				{
 					Con_Linefeed();
+					consoleState.lines.back().append( activeColorToken.begin(), activeColorToken.end() );
 				}
 
 				break;
