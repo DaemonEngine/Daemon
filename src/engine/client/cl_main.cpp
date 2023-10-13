@@ -1771,8 +1771,7 @@ void CL_PrintPacket( msg_t *msg )
 	if ( !Q_strnicmp( s, "[err_dialog]", 12 ) )
 	{
 		Q_strncpyz( clc.serverMessage, s + 12, sizeof( clc.serverMessage ) );
-		// Cvar_Set("com_errorMessage", clc.serverMessage );
-		Sys::Drop( "%s", clc.serverMessage );
+		Sys::Drop( "^3Server disconnected:\n^7%s", clc.serverMessage );
 	}
 	else
 	{
