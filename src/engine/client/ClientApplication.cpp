@@ -95,6 +95,10 @@ class ClientApplication : public Application {
             SV_Shutdown(Str::Format("Server %s: %s", error ? "crashed" : "shutdown", reason).c_str());
             CL_Disconnect(true);
             CL_ShutdownAll();
+            if (error)
+            {
+                Cvar::SetValue("com_errorMessage", Str::Format("^3%s", reason));
+            }
             CL_StartHunkUsers();
         }
 

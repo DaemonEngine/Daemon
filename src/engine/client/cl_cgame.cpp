@@ -149,9 +149,9 @@ bool CL_HandleServerCommand(Str::StringRef text, std::string& newText) {
 	if (cmd == "disconnect") {
 		// NERVE - SMF - allow server to indicate why they were disconnected
 		if (argc >= 2) {
-			Sys::Drop("Server disconnected: %s", args.Argv(1).c_str());
+			Sys::Drop("^3Server disconnected:\n^7%s", args.Argv(1).c_str());
 		} else {
-			Sys::Drop("Server disconnected");
+			Sys::Drop("^3Server disconnected:\n^7(reason unknown)");
 		}
 	}
 
