@@ -3738,13 +3738,12 @@ void CL_Ping_f()
 /*
 ==================
 CL_UpdateVisiblePings_f
+
+Returns true if there are any newly completed pings or any outstanding pings
 ==================
 */
 bool CL_UpdateVisiblePings_f( int source )
 {
-	int      slots, i;
-	int      pingTime;
-	int      max;
 	bool status = false;
 
 	if ( source < 0 || source >= AS_NUM_TYPES )
@@ -3754,13 +3753,12 @@ bool CL_UpdateVisiblePings_f( int source )
 
 	cls.pingUpdateSource = source;
 
-	slots = CL_GetPingQueueCount();
+	int usedSlots = CL_GetPingQueueCount();
 
-	if ( slots < MAX_PINGREQUESTS )
+	if ( usedSlots < MAX_PINGREQUESTS )
 	{
-		serverInfo_t *server = nullptr;
-
-		max = ( source == AS_GLOBAL ) ? MAX_GLOBAL_SERVERS : MAX_OTHER_SERVERS;
+		serverInfo_t *server;
+		int max;
 
 		switch ( source )
 		{
@@ -3773,71 +3771,72 @@ bool CL_UpdateVisiblePings_f( int source )
 				server = &cls.globalServers[ 0 ];
 				max = cls.numglobalservers;
 				break;
+
+			default:
+				ASSERT_UNREACHABLE();
 		}
 
-		for ( i = 0; i < max; i++ )
+		for ( int i = 0; i < max; i++ )
 		{
-			if ( server[ i ].visible )
+			if ( !server[ i ].visible )
 			{
-				if ( server[ i ].ping == -1 )
+				continue;
+			}
+
+			if ( server[ i ].ping != -1 )
+			{
+				continue;
+			}
+
+			int j;
+
+			for ( j = 0; j < MAX_PINGREQUESTS; j++ )
+			{
+				if ( !cl_pinglist[ j ].adr.port )
 				{
-					int j;
+					continue;
+				}
 
-					if ( slots >= MAX_PINGREQUESTS )
-					{
-						break;
-					}
+				if ( NET_CompareAdr( cl_pinglist[ j ].adr, server[ i ].adr ) )
+				{
+					// already on the list
+					break;
+				}
+			}
 
-					for ( j = 0; j < MAX_PINGREQUESTS; j++ )
-					{
-						if ( !cl_pinglist[ j ].adr.port )
-						{
-							continue;
-						}
+			// Not in the list, so find and use a free slot.
+			if ( j >= MAX_PINGREQUESTS )
+			{
+				status = true;
 
-						if ( NET_CompareAdr( cl_pinglist[ j ].adr, server[ i ].adr ) )
-						{
-							// already on the list
-							break;
-						}
-					}
+				ping_t &ping = CL_GetFreePing();
+				ping.adr = server[ i ].adr;
+				ping.start = Sys::Milliseconds();
+				ping.time = 0;
+				Net::OutOfBandPrint( netsrc_t::NS_CLIENT, ping.adr, "getinfo xxx" );
 
-					// Not in the list, so find and use a free slot.
-					// If all slots are full, the server won't be pinged.
-					if ( j >= MAX_PINGREQUESTS )
-					{
-						status = true;
-
-						for ( j = 0; j < MAX_PINGREQUESTS; j++ )
-						{
-							if ( !cl_pinglist[ j ].adr.port )
-							{
-								memcpy( &cl_pinglist[ j ].adr, &server[ i ].adr, sizeof( netadr_t ) );
-								cl_pinglist[ j ].start = Sys::Milliseconds();
-								cl_pinglist[ j ].time = 0;
-								Net::OutOfBandPrint( netsrc_t::NS_CLIENT, cl_pinglist[ j ].adr, "getinfo xxx" );
-								slots++;
-								break;
-							}
-						}
-					}
+				if ( ++usedSlots >= MAX_PINGREQUESTS )
+				{
+					break;
 				}
 			}
 		}
 	}
 
-	if ( slots )
+	if ( usedSlots > 0 )
 	{
 		status = true;
 	}
 
-	for ( i = 0; i < MAX_PINGREQUESTS; i++ )
+	// Harvest completed pings (TODO: do this at the beginning of the function?)
+	for ( int i = 0; i < MAX_PINGREQUESTS; i++ )
 	{
 		if ( !cl_pinglist[ i ].adr.port )
 		{
 			continue;
 		}
 
+		int pingTime;
 		CL_GetPing( i, &pingTime );
 
 		if ( pingTime != 0 )
