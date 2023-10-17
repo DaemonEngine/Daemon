@@ -3638,59 +3638,40 @@ int CL_GetPingQueueCount()
 CL_GetFreePing
 ==================
 */
-ping_t         *CL_GetFreePing()
+static ping_t &CL_GetFreePing()
 {
-	ping_t *pingptr;
-	ping_t *best;
-	int    oldest;
-	int    i;
-	int    time;
-
-	pingptr = cl_pinglist;
-
-	for ( i = 0; i < MAX_PINGREQUESTS; i++, pingptr++ )
+	// Look for a free slot
+	for ( ping_t &ping : cl_pinglist )
 	{
-		// find free ping slot
-		if ( pingptr->adr.port )
+		if ( !ping.adr.port )
 		{
-			if ( !pingptr->time )
-			{
-				if ( Sys::Milliseconds() - pingptr->start < 500 )
-				{
-					// still waiting for response
-					continue;
-				}
-			}
-			else if ( pingptr->time < 500 )
-			{
-				// results have not been queried
-				continue;
-			}
-		}
-
-		// clear it
-		pingptr->adr.port = 0;
-		return ( pingptr );
-	}
-
-	// use oldest entry
-	pingptr = cl_pinglist;
-	best = cl_pinglist;
-	oldest = INT_MIN;
-
-	for ( i = 0; i < MAX_PINGREQUESTS; i++, pingptr++ )
-	{
-		// scan for oldest
-		time = Sys::Milliseconds() - pingptr->start;
-
-		if ( time > oldest )
-		{
-			oldest = time;
-			best = pingptr;
+			return ping;
 		}
 	}
 
-	return ( best );
+	// Look for an existing ping to cancel
+	ping_t *best = nullptr;
+	int oldestStart = std::numeric_limits<int>::max();
+
+	for ( ping_t &ping : cl_pinglist )
+	{
+		if ( ping.start <= oldestStart )
+		{
+			best = &ping;
+			oldestStart = ping.start;
+		}
+	}
+
+	if ( best->time )
+	{
+		serverInfoLog.Verbose( "CL_GetFreePing: evicting completed ping record" );
+	}
+	else
+	{
+		serverInfoLog.Verbose( "CL_GetFreePing: evicting outstanding ping request" );
+	}
+
+	return *best;
 }
 
 /*
@@ -3743,7 +3724,7 @@ void CL_Ping_f()
 		return;
 	}
 
-	pingptr = CL_GetFreePing();
+	pingptr = &CL_GetFreePing();
 
 	memcpy( &pingptr->adr, &to, sizeof( netadr_t ) );
 	pingptr->start = Sys::Milliseconds();
