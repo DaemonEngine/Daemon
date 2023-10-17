@@ -248,6 +248,7 @@ struct ping_t
 	netadr_t adr;
 	int      start;
 	int      time;
+	char     challenge[ 9 ]; // 8-character challenge string
 	char     info[ MAX_INFO_STRING ];
 };
 

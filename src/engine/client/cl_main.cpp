@@ -3091,6 +3091,12 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	{
 		if ( cl_pinglist[ i ].adr.port && !cl_pinglist[ i ].time && NET_CompareAdr( from, cl_pinglist[ i ].adr ) )
 		{
+			if ( strcmp( cl_pinglist[ i ].challenge, Info_ValueForKey( infoString, "challenge" ) ) )
+			{
+				serverInfoLog.Verbose( "wrong challenge for ping response from %s", NET_AdrToString( from ) );
+				return;
+			}
+
 			// calc ping time
 			cl_pinglist[ i ].time = Sys::Milliseconds() - cl_pinglist[ i ].start;
 
@@ -3674,6 +3680,14 @@ static ping_t &CL_GetFreePing()
 	return *best;
 }
 
+static void GeneratePingChallenge( ping_t &ping )
+{
+	Crypto::Data bytes( 6 );
+	Sys::GenRandomBytes( bytes.data(), bytes.size() );
+	Crypto::Data base64 = Crypto::Encoding::Base64Encode( bytes );
+	Q_strncpyz( ping.challenge, Crypto::ToString( base64 ).c_str(), sizeof(ping.challenge) );
+}
+
 /*
 ==================
 CL_Ping_f
@@ -3729,10 +3743,11 @@ void CL_Ping_f()
 	memcpy( &pingptr->adr, &to, sizeof( netadr_t ) );
 	pingptr->start = Sys::Milliseconds();
 	pingptr->time = 0;
+	GeneratePingChallenge( *pingptr );
 
 	CL_SetServerInfoByAddress( pingptr->adr, nullptr, 0 );
 
-	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getinfo xxx" );
+	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getinfo %s", pingptr->challenge );
 }
 
 /*
@@ -3813,7 +3828,8 @@ bool CL_UpdateVisiblePings_f( int source )
 				ping.adr = server[ i ].adr;
 				ping.start = Sys::Milliseconds();
 				ping.time = 0;
-				Net::OutOfBandPrint( netsrc_t::NS_CLIENT, ping.adr, "getinfo xxx" );
+				GeneratePingChallenge( ping );
+				Net::OutOfBandPrint( netsrc_t::NS_CLIENT, ping.adr, "getinfo %s", ping.challenge );
 
 				if ( ++usedSlots >= MAX_PINGREQUESTS )
 				{
