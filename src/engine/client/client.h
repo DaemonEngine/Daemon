@@ -252,6 +252,13 @@ struct ping_t
 	char     info[ MAX_INFO_STRING ];
 };
 
+enum class pingStatus_t
+{
+	WAITING,
+	COMPLETE,
+	TIMEOUT,
+};
+
 #define MAX_FEATLABEL_CHARS 32
 struct serverInfo_t
 {
@@ -267,6 +274,7 @@ struct serverInfo_t
 	int      maxClients;
 	int      minPing;
 	int      maxPing;
+	pingStatus_t pingStatus;
 	int      ping;
 	bool visible;
 	int      needpass;
@@ -476,7 +484,6 @@ void        CL_Snd_Restart_f();
 
 void        CL_ReadDemoMessage();
 
-void        CL_GetPing( int n, int *pingtime );
 void        CL_ClearPing( int n );
 int         CL_GetPingQueueCount();
 
