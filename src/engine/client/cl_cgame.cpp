@@ -364,6 +364,7 @@ static void LAN_ResetPings( int source )
 	{
 		for ( i = 0; i < count; i++ )
 		{
+			servers[ i ].pingStatus = pingStatus_t::WAITING;
 			servers[ i ].ping = -1;
 		}
 	}

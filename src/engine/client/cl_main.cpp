@@ -156,6 +156,9 @@ cvar_t             *cl_rate;
 
 cvar_t             *cl_cgameSyscallStats;
 
+static Cvar::Range<Cvar::Cvar<int>> cl_maxPing(
+	"cl_maxPing", "ping timeout for server list", Cvar::NONE, 800, 100, 9999);
+
 clientActive_t     cl;
 clientConnection_t clc;
 clientStatic_t     cls;
@@ -1795,6 +1798,7 @@ void CL_InitServerInfo( serverInfo_t *server, netadr_t *address )
 	server->maxClients = 0;
 	server->maxPing = 0;
 	server->minPing = 0;
+	server->pingStatus = pingStatus_t::WAITING;
 	server->ping = -1;
 	server->game[ 0 ] = '\0';
 	server->netType = netadrtype_t::NA_BOT;
@@ -2878,7 +2882,6 @@ void CL_Init()
 	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
 	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
 
-	Cvar_Get( "cl_maxPing", "800", 0 );
 	// userinfo
 	Cvar_Get( "name", UNNAMED_PLAYER, CVAR_USERINFO | CVAR_ARCHIVE );
 	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );
@@ -3010,7 +3013,7 @@ void CL_Shutdown()
 
 }
 
-static void CL_SetServerInfo( serverInfo_t *server, const char *info, int ping )
+static void CL_SetServerInfo( serverInfo_t *server, const char *info, pingStatus_t pingStatus, int ping )
 {
 	if ( info )
 	{
@@ -3028,10 +3031,11 @@ static void CL_SetServerInfo( serverInfo_t *server, const char *info, int ping )
 		Q_strncpyz( server->gameName, Info_ValueForKey( info, "gamename" ), MAX_NAME_LENGTH );   // Arnout
 	}
 
+	server->pingStatus = pingStatus;
 	server->ping = ping;
 }
 
-static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, int ping )
+static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, pingStatus_t pingStatus, int ping )
 {
 	int i;
 
@@ -3039,7 +3043,7 @@ static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, i
 	{
 		if ( NET_CompareAdr( from, cls.localServers[ i ].adr ) )
 		{
-			CL_SetServerInfo( &cls.localServers[ i ], info, ping );
+			CL_SetServerInfo( &cls.localServers[ i ], info, pingStatus, ping );
 		}
 	}
 
@@ -3047,7 +3051,7 @@ static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, i
 	{
 		if ( NET_CompareAdr( from, cls.globalServers[ i ].adr ) )
 		{
-			CL_SetServerInfo( &cls.globalServers[ i ], info, ping );
+			CL_SetServerInfo( &cls.globalServers[ i ], info, pingStatus, ping );
 		}
 	}
 }
@@ -3089,7 +3093,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	// iterate servers waiting for ping response
 	for ( i = 0; i < MAX_PINGREQUESTS; i++ )
 	{
-		if ( cl_pinglist[ i ].adr.port && !cl_pinglist[ i ].time && NET_CompareAdr( from, cl_pinglist[ i ].adr ) )
+		if ( cl_pinglist[ i ].adr.port && cl_pinglist[ i ].time == -1 && NET_CompareAdr( from, cl_pinglist[i].adr ) )
 		{
 			if ( strcmp( cl_pinglist[ i ].challenge, Info_ValueForKey( infoString, "challenge" ) ) )
 			{
@@ -3126,7 +3130,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 			}
 
 			Info_SetValueForKey( cl_pinglist[ i ].info, "nettype", va( "%d", type ), false );
-			CL_SetServerInfoByAddress( from, infoString, cl_pinglist[ i ].time );
+			CL_SetServerInfoByAddress( from, infoString, pingStatus_t::COMPLETE, cl_pinglist[ i ].time );
 
 			return;
 		}
@@ -3170,6 +3174,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	cls.localServers[ i ].maxPing = 0;
 	cls.localServers[ i ].minPing = 0;
 	cls.localServers[ i ].ping = -1;
+	cls.localServers[ i ].pingStatus = pingStatus_t::WAITING;
 	cls.localServers[ i ].game[ 0 ] = '\0';
 	cls.localServers[ i ].netType = from.type;
 	cls.localServers[ i ].needpass = 0;
@@ -3562,41 +3567,40 @@ void CL_GlobalServers_f()
 CL_GetPing
 ==================
 */
-void CL_GetPing( int n, int *pingtime )
+static pingStatus_t CL_GetPing( int n )
 {
-	int        time;
-	int        maxPing;
+	ASSERT( n >= 0 && n < MAX_PINGREQUESTS );
+	ASSERT( cl_pinglist[ n ].adr.port );
 
-	if ( n < 0 || n >= MAX_PINGREQUESTS || !cl_pinglist[ n ].adr.port )
+	pingStatus_t status;
+	// FIXME: don't use 0 for timed out or waiting in cgame ABI
+	int time;
+
+	if ( cl_pinglist[ n ].time >= 0 )
 	{
-		// invalid or empty slot
-		*pingtime = 0;
-		return;
+		time = cl_pinglist[ n ].time;
+		status = pingStatus_t::COMPLETE;
 	}
-
-	time = cl_pinglist[ n ].time;
-
-	if ( !time )
+	else
 	{
 		// check for timeout
-		time = Sys::Milliseconds() - cl_pinglist[ n ].start;
-		maxPing = Cvar_VariableIntegerValue( "cl_maxPing" );
+		int elapsed = Sys::Milliseconds() - cl_pinglist[ n ].start;
 
-		if ( maxPing < 100 )
+		if ( elapsed >= cl_maxPing.Get() )
 		{
-			maxPing = 100;
-		}
-
-		if ( time < maxPing )
-		{
-			// not timed out yet
 			time = 0;
+			status = pingStatus_t::TIMEOUT;
+		}
+		else
+		{
+			time = 0;
+			status = pingStatus_t::WAITING;
 		}
 	}
 
-	CL_SetServerInfoByAddress( cl_pinglist[ n ].adr, cl_pinglist[ n ].info, cl_pinglist[ n ].time );
+	CL_SetServerInfoByAddress( cl_pinglist[ n ].adr, cl_pinglist[ n ].info, status, time );
 
-	*pingtime = time;
+	return status;
 }
 
 /*
@@ -3668,7 +3672,7 @@ static ping_t &CL_GetFreePing()
 		}
 	}
 
-	if ( best->time )
+	if ( best->time >= 0 )
 	{
 		serverInfoLog.Verbose( "CL_GetFreePing: evicting completed ping record" );
 	}
@@ -3742,10 +3746,10 @@ void CL_Ping_f()
 
 	memcpy( &pingptr->adr, &to, sizeof( netadr_t ) );
 	pingptr->start = Sys::Milliseconds();
-	pingptr->time = 0;
+	pingptr->time = -1;
 	GeneratePingChallenge( *pingptr );
 
-	CL_SetServerInfoByAddress( pingptr->adr, nullptr, 0 );
+	CL_SetServerInfoByAddress( pingptr->adr, nullptr, pingStatus_t::WAITING, 0 );
 
 	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getinfo %s", pingptr->challenge );
 }
@@ -3798,7 +3802,7 @@ bool CL_UpdateVisiblePings_f( int source )
 				continue;
 			}
 
-			if ( server[ i ].ping != -1 )
+			if ( server[ i ].pingStatus != pingStatus_t::WAITING )
 			{
 				continue;
 			}
@@ -3827,7 +3831,7 @@ bool CL_UpdateVisiblePings_f( int source )
 				ping_t &ping = CL_GetFreePing();
 				ping.adr = server[ i ].adr;
 				ping.start = Sys::Milliseconds();
-				ping.time = 0;
+				ping.time = -1;
 				GeneratePingChallenge( ping );
 				Net::OutOfBandPrint( netsrc_t::NS_CLIENT, ping.adr, "getinfo %s", ping.challenge );
 
@@ -3852,10 +3856,7 @@ bool CL_UpdateVisiblePings_f( int source )
 			continue;
 		}
 
-		int pingTime;
-		CL_GetPing( i, &pingTime );
-
-		if ( pingTime != 0 )
+		if ( CL_GetPing( i ) != pingStatus_t::WAITING )
 		{
 			CL_ClearPing( i );
 			status = true;
