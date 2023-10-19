@@ -846,6 +846,8 @@ static netField_t entityStateFields[] =
 	{ NETF( generic1 ),          10             , 0 },
 	{ NETF( misc ),              MAX_MISC       , 0 },
 	{ NETF( weaponAnim ),        ANIM_BITS      , 0 },
+	{ NETF( debugColor ),        32             , 0 },
+	{ NETF( debugNumbers ),      32             , 0 },
 };
 
 static int qsort_entitystatefields( const void *a, const void *b )
