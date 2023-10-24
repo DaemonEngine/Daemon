@@ -159,6 +159,14 @@ cvar_t             *cl_cgameSyscallStats;
 static Cvar::Range<Cvar::Cvar<int>> cl_maxPing(
 	"cl_maxPing", "ping timeout for server list", Cvar::NONE, 800, 100, 9999);
 
+constexpr int PING_MAX_ATTEMPTS = 3;
+// TODO(0.55): enable retries by default
+static Cvar::Range<Cvar::Cvar<int>> pingSpacing[ 3 ] {
+	{"cl_pingSpacing", "milliseconds between ping packets (1st attempt)", Cvar::NONE, 0, 0, 5000},
+	{"cl_pingSpacingRetry1", "milliseconds between ping packets for 1st retry or -1 to disable retry", Cvar::NONE, -1, -1, 5000},
+	{"cl_pingSpacingRetry2", "milliseconds between ping packets for 2nd retry or -1 to disable retry", Cvar::NONE, -1, -1, 5000},
+};
+
 clientActive_t     cl;
 clientConnection_t clc;
 clientStatic_t     cls;
@@ -168,6 +176,7 @@ CGameVM            cgvm;
 refexport_t        re;
 
 ping_t             cl_pinglist[ MAX_PINGREQUESTS ];
+static int lastPingSendTime = -99999;
 
 struct serverStatus_t
 {
@@ -1799,6 +1808,7 @@ void CL_InitServerInfo( serverInfo_t *server, netadr_t *address )
 	server->maxPing = 0;
 	server->minPing = 0;
 	server->pingStatus = pingStatus_t::WAITING;
+	server->pingAttempts = 0;
 	server->ping = -1;
 	server->game[ 0 ] = '\0';
 	server->netType = netadrtype_t::NA_BOT;
@@ -3175,6 +3185,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	cls.localServers[ i ].minPing = 0;
 	cls.localServers[ i ].ping = -1;
 	cls.localServers[ i ].pingStatus = pingStatus_t::WAITING;
+	cls.localServers[ i ].pingAttempts = 0;
 	cls.localServers[ i ].game[ 0 ] = '\0';
 	cls.localServers[ i ].netType = from.type;
 	cls.localServers[ i ].needpass = 0;
@@ -3754,6 +3765,42 @@ void CL_Ping_f()
 	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getinfo %s", pingptr->challenge );
 }
 
+// complete all of the 1st tries before starting 2nd tries, etc.
+static int PingAttemptNum( const serverInfo_t *servers, int count )
+{
+	int result = PING_MAX_ATTEMPTS;
+	for ( int i = 0; i < count; i++ )
+	{
+		if ( servers[ i ].visible && servers[ i ].pingStatus != pingStatus_t::COMPLETE )
+		{
+			result = std::min( result, servers[ i ].pingAttempts );
+		}
+	}
+
+	while ( result < PING_MAX_ATTEMPTS && pingSpacing[ result ].Get() < 0 )
+	{
+		++result;
+	}
+
+	return result;
+}
+
+static void HarvestCompletedPings()
+{
+	for ( int i = 0; i < MAX_PINGREQUESTS; i++ )
+	{
+		if ( !cl_pinglist[ i ].adr.port )
+		{
+			continue;
+		}
+
+		if ( CL_GetPing( i ) != pingStatus_t::WAITING )
+		{
+			CL_ClearPing( i );
+		}
+	}
+}
+
 /*
 ==================
 CL_UpdateVisiblePings_f
@@ -3763,16 +3810,15 @@ Returns true if there are any newly completed pings or any outstanding pings
 */
 bool CL_UpdateVisiblePings_f( int source )
 {
-	bool status = false;
-
 	if ( source < 0 || source >= AS_NUM_TYPES )
 	{
 		return false;
 	}
 
 	cls.pingUpdateSource = source;
-
 	int usedSlots = CL_GetPingQueueCount();
+	bool status = usedSlots > 0;
+	HarvestCompletedPings();
 
 	if ( usedSlots < MAX_PINGREQUESTS )
 	{
@@ -3795,6 +3841,18 @@ bool CL_UpdateVisiblePings_f( int source )
 				ASSERT_UNREACHABLE();
 		}
 
+		int attempt = PingAttemptNum( server, max );
+
+		if ( attempt >= PING_MAX_ATTEMPTS )
+		{
+			return status; // all pings are complete
+		}
+
+		if ( Sys::Milliseconds() < lastPingSendTime + pingSpacing[ attempt ].Get() )
+		{
+			return true; // rate limited
+		}
+
 		for ( int i = 0; i < max; i++ )
 		{
 			if ( !server[ i ].visible )
@@ -3802,7 +3860,12 @@ bool CL_UpdateVisiblePings_f( int source )
 				continue;
 			}
 
-			if ( server[ i ].pingStatus != pingStatus_t::WAITING )
+			if ( server[ i ].pingStatus == pingStatus_t::COMPLETE )
+			{
+				continue;
+			}
+
+			if ( server[ i ].pingAttempts > attempt )
 			{
 				continue;
 			}
@@ -3834,8 +3897,15 @@ bool CL_UpdateVisiblePings_f( int source )
 				ping.time = -1;
 				GeneratePingChallenge( ping );
 				Net::OutOfBandPrint( netsrc_t::NS_CLIENT, ping.adr, "getinfo %s", ping.challenge );
+				lastPingSendTime = ping.start;
+				server[ i ].pingAttempts = attempt + 1;
 
 				if ( ++usedSlots >= MAX_PINGREQUESTS )
+				{
+					break;
+				}
+
+				if ( pingSpacing[ attempt ].Get() > 0 )
 				{
 					break;
 				}
@@ -3846,21 +3916,6 @@ bool CL_UpdateVisiblePings_f( int source )
 	if ( usedSlots > 0 )
 	{
 		status = true;
-	}
-
-	// Harvest completed pings (TODO: do this at the beginning of the function?)
-	for ( int i = 0; i < MAX_PINGREQUESTS; i++ )
-	{
-		if ( !cl_pinglist[ i ].adr.port )
-		{
-			continue;
-		}
-
-		if ( CL_GetPing( i ) != pingStatus_t::WAITING )
-		{
-			CL_ClearPing( i );
-			status = true;
-		}
 	}
 
 	return status;

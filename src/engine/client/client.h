@@ -276,6 +276,7 @@ struct serverInfo_t
 	int      maxPing;
 	pingStatus_t pingStatus;
 	int      ping;
+	int      pingAttempts;
 	bool visible;
 	int      needpass;
 	char     gameName[ MAX_NAME_LENGTH ]; // Arnout
