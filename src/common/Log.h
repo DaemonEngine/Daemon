@@ -64,7 +64,7 @@ namespace Log {
      *
      *   // However functions calls will still be performed.
      *   // To run code depending on the logger state use the following:
-     *   fooLog.DoNoticeCode([&](){
+     *   if (fooLog.ShowNotice()) {
      *       ExpensiveCall();
      *       fooLog.Notice("Printing the expensive expression %s", <the expression>);
      *   });
@@ -95,17 +95,21 @@ namespace Log {
             template<typename ... Args>
             void Debug(Str::StringRef format, Args&& ... args);
 
-            template<typename F>
-            void DoWarnCode(F&& code);
+            bool ShowWarn() const {
+                return filterLevel->Get() >= Level::WARNING;
+            }
 
-            template<typename F>
-            void DoNoticeCode(F&& code);
+            bool ShowNotice() const {
+                return filterLevel->Get() >= Level::NOTICE;
+            }
 
-            template<typename F>
-            void DoVerboseCode(F&& code);
+            bool ShowVerbose() const {
+                return filterLevel->Get() >= Level::VERBOSE;
+            }
 
-            template<typename F>
-            void DoDebugCode(F&& code);
+            bool ShowDebug() const {
+                return filterLevel->Get() >= Level::DEBUG;
+            }
 
             Logger WithoutSuppression();
 
@@ -218,34 +222,6 @@ namespace Log {
     void Logger::Debug(Str::StringRef format, Args&& ... args) {
         if (filterLevel->Get() <= Level::DEBUG) {
             this->Dispatch(Prefix(Str::Format(format, std::forward<Args>(args) ...)), Level::DEBUG, format);
-        }
-    }
-
-    template<typename F>
-    inline void Logger::DoWarnCode(F&& code) {
-        if (filterLevel->Get() <= Level::WARNING) {
-            code();
-        }
-    }
-
-    template<typename F>
-    inline void Logger::DoNoticeCode(F&& code) {
-        if (filterLevel->Get() <= Level::NOTICE) {
-            code();
-        }
-    }
-
-    template<typename F>
-    inline void Logger::DoVerboseCode(F&& code) {
-        if (filterLevel->Get() <= Level::VERBOSE) {
-            code();
-        }
-    }
-
-    template<typename F>
-    inline void Logger::DoDebugCode(F&& code) {
-        if (filterLevel->Get() <= Level::DEBUG) {
-            code();
         }
     }
 

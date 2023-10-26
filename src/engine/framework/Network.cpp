@@ -210,14 +210,14 @@ private:
                 if (result.ipv4.type == netadrtype_t::NA_BAD && result.ipv6.type == netadrtype_t::NA_BAD) {
                     netLog.Notice("Failed to resolve hostname %s", hostname);
                 } else {
-                    netLog.DoVerboseCode([&hostname, &result] {
+                    if (netLog.ShowVerbose()) {
                         if (result.ipv4.type != netadrtype_t::NA_BAD) {
                             netLog.Verbose("Resolved %s (IPv4) to %s", hostname, AddressToString(result.ipv4));
                         }
                         if (result.ipv6.type != netadrtype_t::NA_BAD) {
                             netLog.Verbose("Resolved %s (IPv6) to %s", hostname, AddressToString(result.ipv6));
                         }
-                    });
+                    }
                 }
                 lock.lock();
                 if (hostname == queries_[next].hostname && mask == queries_[next].protocolMask) {
