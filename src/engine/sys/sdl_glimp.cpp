@@ -719,13 +719,16 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 
 	if ( window )
 	{
-		int w, h;
-		SDL_GetWindowPosition( window, &x, &y );
-		SDL_GetWindowSize( window, &w, &h );
-		logger.Debug( "SDL %s%swindow created at %d,%d with %d×%d size",
-			windowType ? windowType : "",
-			windowType ? " ": "",
-			x, y, w, h );
+		if ( logger.ShowDebug() )
+		{
+			int w, h;
+			SDL_GetWindowPosition( window, &x, &y );
+			SDL_GetWindowSize( window, &w, &h );
+			logger.Debug( "SDL %s%swindow created at %d,%d with %d×%d size",
+				windowType ? windowType : "",
+				windowType ? " ": "",
+				x, y, w, h );
+		}
 	}
 	else
 	{

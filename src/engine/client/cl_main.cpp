@@ -2209,7 +2209,10 @@ static void CL_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		return;
 	}
 
-	Log::Debug( "CL packet %s: %s", Net::AddressToString( from, true ), args.Argv(0).c_str() );
+	if ( Log::defaultLogger.ShowDebug() )
+	{
+		Log::Debug( "CL packet %s: %s", Net::AddressToString( from, true ), args.Argv( 0 ) );
+	}
 
 	// challenge from the server we are connecting to
 
@@ -2378,7 +2381,10 @@ void CL_PacketEvent( const netadr_t& from, msg_t *msg )
 	//
 	if ( !NET_CompareAdr( from, clc.netchan.remoteAddress ) )
 	{
-		Log::Debug( "%s: sequenced packet without connection", Net::AddressToString( from, true ) );
+		if ( Log::defaultLogger.ShowDebug() )
+		{
+			Log::Debug( "%s: sequenced packet without connection", Net::AddressToString( from, true ) );
+		}
 		// FIXME: send a client disconnect?
 		return;
 	}
@@ -3094,7 +3100,10 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 			// calc ping time
 			cl_pinglist[ i ].time = Sys::Milliseconds() - cl_pinglist[ i ].start;
 
-			serverInfoLog.Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
+			if ( serverInfoLog.ShowDebug() )
+			{
+				serverInfoLog.Debug( "ping time %dms from %s", cl_pinglist[ i ].time, NET_AdrToString( from ) );
+			}
 
 			// save of info
 			Q_strncpyz( cl_pinglist[ i ].info, infoString, sizeof( cl_pinglist[ i ].info ) );
