@@ -313,6 +313,7 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/cl_main.cpp
     ${ENGINE_DIR}/client/cl_parse.cpp
     ${ENGINE_DIR}/client/cl_scrn.cpp
+    ${ENGINE_DIR}/client/cl_serverlist.cpp
     ${ENGINE_DIR}/client/cl_serverstatus.cpp
     ${ENGINE_DIR}/client/dl_main.cpp
     ${ENGINE_DIR}/client/hunk_allocator.cpp

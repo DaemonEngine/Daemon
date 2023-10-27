@@ -243,15 +243,6 @@ no client connection is active at all
 ==================================================================
 */
 
-struct ping_t
-{
-	netadr_t adr;
-	int      start;
-	int      time;
-	char     challenge[ 9 ]; // 8-character challenge string
-	char     info[ MAX_INFO_STRING ];
-};
-
 enum class pingStatus_t
 {
 	WAITING,
@@ -485,9 +476,6 @@ void        CL_Snd_Restart_f();
 
 void        CL_ReadDemoMessage();
 
-void        CL_ClearPing( int n );
-int         CL_GetPingQueueCount();
-
 void        CL_ShutdownRef();
 
 void CL_Record(std::string demo_name);
@@ -569,9 +557,12 @@ float    CL_KeyState( kbutton_t *key );
 void CL_SystemInfoChanged();
 void CL_ParseServerMessage( msg_t *msg );
 
-//====================================================================
-
+//
+// cl_serverlist.cpp
+//
 void     CL_ServerInfoPacket( const netadr_t& from, msg_t *msg );
+void CL_ServerLinksResponsePacket( msg_t *msg );
+void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended );
 void     CL_LocalServers_f();
 void     CL_GlobalServers_f();
 void     CL_Ping_f();
