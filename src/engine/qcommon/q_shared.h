@@ -2106,7 +2106,6 @@ int        Com_GMTime( qtime_t *qtime );
 #define MAX_GLOBAL_SERVERS       4096
 #define MAX_OTHER_SERVERS        128
 #define MAX_PINGREQUESTS         16
-#define MAX_SERVERSTATUSREQUESTS 16
 
 #define GENTITYNUM_MASK           ( MAX_GENTITIES - 1 )
 
