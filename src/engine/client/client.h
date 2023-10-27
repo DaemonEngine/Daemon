@@ -490,9 +490,14 @@ int         CL_GetPingQueueCount();
 
 void        CL_ShutdownRef();
 
-int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
-
 void CL_Record(std::string demo_name);
+
+//
+// cl_serverstatus.cpp
+//
+int         CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
+void        CL_ServerStatus_f();
+void        CL_ServerStatusResponse( const netadr_t& from, msg_t *msg );
 
 //
 // cl_keys (for input usage)
