@@ -1632,7 +1632,8 @@ static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **te
 		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_NORMALMAP
 		&& stage->bundle[ bundleIndex ].image[ 0 ]->bits & IF_ALPHA )
 	{
-		Log::defaultLogger.DoDebugCode([&] {
+		if ( Log::defaultLogger.ShowDebug() )
+		{
 			char buffer[ 1024 ];
 			buffer[ 0 ] = '\0';
 			if ( !ParseMap( &initialText, buffer, sizeof( buffer ) ) )
@@ -1640,7 +1641,7 @@ static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **te
 				ASSERT( false );
 			}
 			Log::Debug("Found heightmap embedded in normalmap '%s'", buffer);
-		});
+		}
 
 		stage->isHeightMapInNormalMap = true;
 	}

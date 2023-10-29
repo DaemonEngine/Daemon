@@ -975,7 +975,10 @@ static void SV_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 		return;
 	}
 
-	netLog.Debug( "SV packet %s : %s", Net::AddressToString( from ), args.Argv(0) );
+	if ( netLog.ShowDebug() )
+	{
+		netLog.Debug( "SV packet %s : %s", Net::AddressToString( from ), args.Argv(0) );
+	}
 
 	if ( args.Argv(0) == "getstatus" )
 	{
@@ -1017,7 +1020,10 @@ static void SV_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 	}
 	else
 	{
-		netLog.Verbose( "bad connectionless packet from %s: %s", Net::AddressToString( from ), args.ConcatArgs(0) );
+		if ( netLog.ShowVerbose() )
+		{
+			netLog.Verbose( "bad connectionless packet from %s: %s", Net::AddressToString( from ), args.ConcatArgs(0) );
+		}
 	}
 }
 

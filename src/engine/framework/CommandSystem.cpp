@@ -223,9 +223,9 @@ namespace Cmd {
     CompletionResult CompleteArgument(const Args& args, int argNum) {
         CommandMap& commands = GetCommandMap();
 
-        commandLog.DoDebugCode([&]() {
+        if (commandLog.ShowDebug()) {
             commandLog.Debug("Completing argument %i of '%s'", argNum, args.ConcatArgs(0));
-        });
+        }
 
         if (args.Argc() == 0) {
             return {};

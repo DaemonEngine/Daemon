@@ -603,11 +603,15 @@ static void IN_InitJoystick()
 	}
 
 	total = SDL_NumJoysticks();
-	Log::Debug( "%d possible joysticks", total );
 
-	for ( i = 0; i < total; i++ )
+	if ( Log::defaultLogger.ShowDebug() )
 	{
-		Log::Debug( "[%d] %s", i, JoystickNameForIndex( i ) );
+		Log::Debug( "%d possible joysticks", total );
+
+		for ( i = 0; i < total; i++ )
+		{
+			Log::Debug( "[%d] %s", i, JoystickNameForIndex( i ) );
+		}
 	}
 
 	in_joystickNo = Cvar_Get( "in_joystickNo", "0", 0 );
@@ -637,14 +641,17 @@ static void IN_InitJoystick()
 		}
 	}
 
-	Log::Debug( "Joystick %d opened", in_joystickNo->integer );
-	Log::Debug( "Name:    %s", JoystickNameForIndex( in_joystickNo->integer ) );
-	Log::Debug( "Axes:    %d", SDL_JoystickNumAxes( stick ) );
-	Log::Debug( "Hats:    %d", SDL_JoystickNumHats( stick ) );
-	Log::Debug( "Buttons: %d", SDL_JoystickNumButtons( stick ) );
-	Log::Debug( "Balls: %d", SDL_JoystickNumBalls( stick ) );
-	Log::Debug( "Use Analog: %s", in_joystickUseAnalog->integer ? "Yes" : "No" );
-	Log::Debug( "Use SDL2 GameController mappings: %s", gamepad ? "Yes" : "No" );
+	if ( Log::defaultLogger.ShowDebug() )
+	{
+		Log::Debug( "Joystick %d opened", in_joystickNo->integer );
+		Log::Debug( "Name:    %s", JoystickNameForIndex( in_joystickNo->integer ) );
+		Log::Debug( "Axes:    %d", SDL_JoystickNumAxes( stick ) );
+		Log::Debug( "Hats:    %d", SDL_JoystickNumHats( stick ) );
+		Log::Debug( "Buttons: %d", SDL_JoystickNumButtons( stick ) );
+		Log::Debug( "Balls: %d", SDL_JoystickNumBalls( stick ) );
+		Log::Debug( "Use Analog: %s", in_joystickUseAnalog->integer ? "Yes" : "No" );
+		Log::Debug( "Use SDL2 GameController mappings: %s", gamepad ? "Yes" : "No" );
+	}
 
 	SDL_JoystickEventState( SDL_QUERY );
 }
