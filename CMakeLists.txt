@@ -827,14 +827,12 @@ macro(AddApplicationInternal Target Executable)
     set_target_properties(${Target} PROPERTIES OUTPUT_NAME "${Executable}" PREFIX "" FOLDER "engine")
 
     # Append Windows specific manifests.
-    if (WIN32)
-        set(WINDOWS_MANIFESTS_DIR ${ENGINE_DIR}/sys/manifests)
-        target_sources(${Target} PRIVATE
-            # App is DPI aware, so Windows doesn't try to scale UI.
-            ${WINDOWS_MANIFESTS_DIR}/dpi-aware.manifest
-            # App supports Windows Vista+, no quirks required.
-            ${WINDOWS_MANIFESTS_DIR}/supported-os.manifest
-        )
+    # Adding the .manifest as a source works better for MSVC, but it has no
+    # effect for MinGW (https://gitlab.kitware.com/cmake/cmake/-/issues/23244).
+    if (MINGW)
+        target_sources(${Target} PRIVATE ${ENGINE_DIR}/sys/windows-resource/manifest.rc)
+    elseif (WIN32)
+        target_sources(${Target} PRIVATE ${ENGINE_DIR}/sys/windows-resource/supported-os.manifest)
     endif()
 
     message(STATUS ${Target})
