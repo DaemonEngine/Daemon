@@ -78,6 +78,13 @@ class ClientApplication : public Application {
         }
 
         void Initialize() override {
+#if defined(_WIN32) && defined(BUILD_GRAPHICAL_CLIENT)
+            // If not set, the size of the screen may be determined incorrectly for r_mode -2.
+            // E.g. with 125% scaling on a 1920x1080 screen, the size will be determined to be 1536x864
+            // and there will be blank space on the top and right.
+            // Don't set this for TTY applications as they really aren't DPI aware. Let them scale.
+            SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "system");
+#endif
             Hunk_Init();
 
             Com_Init();
