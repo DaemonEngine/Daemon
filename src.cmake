@@ -361,4 +361,4 @@ set(DEDSERVERLIST
     ${ENGINE_DIR}/null/null_input.cpp
 )
 
-set(WIN_RC ${ENGINE_DIR}/sys/daemon.rc)
+set(WIN_RC ${ENGINE_DIR}/sys/windows-resource/icon.rc)
