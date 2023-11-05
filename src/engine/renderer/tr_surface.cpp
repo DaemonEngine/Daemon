@@ -1183,9 +1183,9 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 				VectorMA( binormal, *boneWeight, tmp, binormal );
 			}
 
-			VectorNormalize( normal );
-			VectorNormalize( tangent );
-			VectorNormalize( binormal );
+			VectorNormalizeFast( normal );
+			VectorNormalizeFast( tangent );
+			VectorNormalizeFast( binormal );
 			VectorCopy( position, tessVertex->xyz );
 
 			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
@@ -1394,9 +1394,9 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 					VectorMA( binormal, weight, tmp, binormal );
 				}
 
-				VectorNormalize( normal );
-				VectorNormalize( tangent );
-				VectorNormalize( binormal );
+				VectorNormalizeFast( normal );
+				VectorNormalizeFast( tangent );
+				VectorNormalizeFast( binormal );
 				VectorCopy( position, tessVertex->xyz );
 
 				R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
