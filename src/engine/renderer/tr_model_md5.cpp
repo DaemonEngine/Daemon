@@ -325,7 +325,9 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			for (unsigned k = 0; k < 2; k++ )
 			{
 				token = COM_ParseExt2( &buf_p, false );
-				v->texCoordsF[ k ] = atof( token );
+				// We better want to waste time to convert back and forth when
+				// loading the file than doing it on every frame at render time.
+				v->texCoords[ k ] = floatToHalf( atof( token ) );
 			}
 
 			// skip )
@@ -498,7 +500,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		// calc tangent spaces
 		{
 			const float *v0, *v1, *v2;
-			const float *t0, *t1, *t2;
+			vec2_t t0, t1, t2;
 			vec3_t      tangent;
 			vec3_t      binormal;
 			vec3_t      normal;
@@ -518,9 +520,14 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 				v1 = surf->verts[ tri->indexes[ 1 ] ].position;
 				v2 = surf->verts[ tri->indexes[ 2 ] ].position;
 
-				t0 = surf->verts[ tri->indexes[ 0 ] ].texCoordsF;
-				t1 = surf->verts[ tri->indexes[ 1 ] ].texCoordsF;
-				t2 = surf->verts[ tri->indexes[ 2 ] ].texCoordsF;
+				// We better want to waste time to convert back and forth when
+				// loading the file than doing it on every frame at render time.
+				t0[ 0 ] = halfToFloat( surf->verts[ tri->indexes[ 0 ] ].texCoords[ 0 ] );
+				t0[ 1 ] = halfToFloat( surf->verts[ tri->indexes[ 0 ] ].texCoords[ 1 ] );
+				t1[ 0 ] = halfToFloat( surf->verts[ tri->indexes[ 1 ] ].texCoords[ 0 ] );
+				t1[ 1 ] = halfToFloat( surf->verts[ tri->indexes[ 1 ] ].texCoords[ 1 ] );
+				t2[ 0 ] = halfToFloat( surf->verts[ tri->indexes[ 2 ] ].texCoords[ 0 ] );
+				t2[ 1 ] = halfToFloat( surf->verts[ tri->indexes[ 2 ] ].texCoords[ 1 ] );
 
 				R_CalcFaceNormal( normal, v0, v1, v2 );
 				R_CalcTangents( tangent, binormal, v0, v1, v2, t0, t1, t2 );

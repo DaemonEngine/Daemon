@@ -2269,7 +2269,7 @@ static inline void glFboSetExt()
 		vec4_t      tangent;
 		vec4_t      binormal;
 		vec4_t      normal;
-		vec2_t      texCoordsF;
+		f16vec2_t texCoords;
 
 		uint32_t    firstWeight;
 		uint32_t    numWeights;
