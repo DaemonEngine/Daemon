@@ -2269,12 +2269,14 @@ static inline void glFboSetExt()
 		vec4_t      tangent;
 		vec4_t      binormal;
 		vec4_t      normal;
+
+		uint32_t    boneIndexes[ MAX_WEIGHTS ];
+		float       boneWeights[ MAX_WEIGHTS ];
+
 		f16vec2_t texCoords;
 
 		uint32_t    firstWeight;
 		uint32_t    numWeights;
-		uint32_t    boneIndexes[ MAX_WEIGHTS ];
-		float       boneWeights[ MAX_WEIGHTS ];
 	});
 
 	struct md5Surface_t
