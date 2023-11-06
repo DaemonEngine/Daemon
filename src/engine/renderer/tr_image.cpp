@@ -2885,6 +2885,13 @@ void R_CreateBuiltinImages()
 
 	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
 
+	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+	for ( x = 0; x < 32; x++ )
+	{
+		// scratchimage is usually used for cinematic drawing
+		tr.scratchImage[ x ] = R_CreateImage( "_scratch", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );//IF_NONE );
+	}
+
 	out = &data[ 0 ][ 0 ][ 0 ];
 
 	for ( y = 0; y < DEFAULT_SIZE; y++ )

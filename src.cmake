@@ -307,6 +307,7 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/client.h
     ${ENGINE_DIR}/client/cl_avi.cpp
     ${ENGINE_DIR}/client/cl_cgame.cpp
+    ${ENGINE_DIR}/client/cl_cin.cpp
     ${ENGINE_DIR}/client/cl_console.cpp
     ${ENGINE_DIR}/client/cl_download.cpp
     ${ENGINE_DIR}/client/cl_input.cpp
