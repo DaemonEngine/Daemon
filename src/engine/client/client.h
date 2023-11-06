@@ -672,10 +672,6 @@ float SCR_ConsoleFontStringWidth( const char *s, int len );
 // cl_cin.c
 //
 
-void     CL_PlayCinematic_f();
-void     SCR_DrawCinematic();
-void     SCR_RunCinematic();
-void     SCR_StopCinematic();
 int      CIN_PlayCinematic( const char *arg0, int xpos, int ypos, int width, int height, int bits );
 e_status CIN_StopCinematic( int handle );
 e_status CIN_RunCinematic( int handle );

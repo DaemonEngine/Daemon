@@ -177,14 +177,6 @@ e_status CIN_StopCinematic( int handle )
 		return e_status::FMV_EOF;
 	}
 
-	if ( cinTable[ currentHandle ].alterGameState )
-	{
-		if ( cls.state != connstate_t::CA_CINEMATIC )
-		{
-			return cinTable[ currentHandle ].status;
-		}
-	}
-
 	cinTable[ currentHandle ].status = e_status::FMV_EOF;
 	RoQShutdown();
 
@@ -1570,14 +1562,6 @@ e_status CIN_RunCinematic( int handle )
 
 	currentHandle = handle;
 
-	if ( cinTable[ currentHandle ].alterGameState )
-	{
-		if ( cls.state != connstate_t::CA_CINEMATIC )
-		{
-			return cinTable[ currentHandle ].status;
-		}
-	}
-
 	if ( cinTable[ currentHandle ].status == e_status::FMV_IDLE )
 	{
 		return cinTable[ currentHandle ].status;
@@ -1836,11 +1820,6 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 		cinTable[ currentHandle ].status = FMV_PLAY;
 		Log::Debug( "trFMV::play(), playing %s\n", arg );
 
-		if ( cinTable[ currentHandle ].alterGameState )
-		{
-			cls.state = connstate_t::CA_CINEMATIC;
-		}
-
 		Con_Close();
 
 		//TODO
@@ -1976,79 +1955,6 @@ void CIN_DrawCinematic( int handle )
 
 	re.DrawStretchRaw( x, y, w, h, cinTable[ handle ].drawX, cinTable[ handle ].drawY, buf, handle, cinTable[ handle ].dirty );
 	cinTable[ handle ].dirty = false;
-}
-
-void CL_PlayCinematic_f()
-{
-	const char *arg, *s;
-//	bool holdatend;
-	int  bits = CIN_system;
-
-	// don't allow this while on server
-	if ( cls.state > connstate_t::CA_DISCONNECTED && cls.state <= connstate_t::CA_ACTIVE )
-	{
-		return;
-	}
-
-	Log::Debug( "CL_PlayCinematic_f" );
-
-	if ( cls.state == connstate_t::CA_CINEMATIC )
-	{
-		SCR_StopCinematic();
-	}
-
-	arg = Cmd_Argv( 1 );
-	s = Cmd_Argv( 2 );
-
-//	holdatend = false;
-	if ( ( s && s[ 0 ] == '1' ) || Q_stricmp( arg, "demoend.roq" ) == 0 || Q_stricmp( arg, "end.roq" ) == 0 )
-	{
-		bits |= CIN_hold;
-	}
-
-	if ( s && s[ 0 ] == '2' )
-	{
-		bits |= CIN_loop;
-	}
-
-	Audio::StopAllSounds();
-
-	CL_handle = CIN_PlayCinematic( arg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, bits );
-
-	if ( CL_handle >= 0 )
-	{
-		do
-		{
-			SCR_RunCinematic();
-		}
-		while ( cinTable[ currentHandle ].buf == nullptr && cinTable[ currentHandle ].status == e_status::FMV_PLAY ); // wait for first frame (load codebook and sound)
-	}
-}
-
-void SCR_DrawCinematic()
-{
-	if ( CL_handle >= 0 && CL_handle < MAX_VIDEO_HANDLES )
-	{
-		CIN_DrawCinematic( CL_handle );
-	}
-}
-
-void SCR_RunCinematic()
-{
-	if ( CL_handle >= 0 && CL_handle < MAX_VIDEO_HANDLES )
-	{
-		CIN_RunCinematic( CL_handle );
-	}
-}
-
-void SCR_StopCinematic()
-{
-	if ( CL_handle >= 0 && CL_handle < MAX_VIDEO_HANDLES )
-	{
-		CIN_StopCinematic( CL_handle );
-		Audio::StopAllSounds();
-		CL_handle = -1;
-	}
 }
 
 void CIN_UploadCinematic( int handle )

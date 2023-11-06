@@ -653,10 +653,9 @@ static void StopDemos()
 
 //======================================================================
 
-// stop video recording and playback
+// stop video recording
 static void StopVideo()
 {
-	SCR_StopCinematic();
 	CIN_CloseAllVideos();
 
 	// stop recording any video
@@ -776,7 +775,7 @@ void CL_ClearState()
 =====================
 CL_Disconnect
 
-Called when a connection, demo, or cinematic is being terminated.
+Called when a connection or demo is being terminated.
 Goes from a connected state to either a menu state or a console state
 Sends a disconnect message to the server
 This is also called on Com_Error and Com_Quit, so it shouldn't cause any errors
@@ -1468,7 +1467,7 @@ void CL_Vid_Restart_f()
 	CL_StartHunkUsers();
 
 	// start the cgame if connected
-	if ( cls.state > connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC )
+	if ( cls.state > connstate_t::CA_CONNECTED )
 	{
 		cls.cgameStarted = true;
 		CL_InitCGame();
@@ -1991,7 +1990,7 @@ void CL_CheckTimeout()
 	//
 	// check timeout
 	//
-	if ( cls.state >= connstate_t::CA_CONNECTED && cls.state != connstate_t::CA_CINEMATIC && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
+	if ( cls.state >= connstate_t::CA_CONNECTED && cls.realtime - clc.lastPacketTime > cl_timeout->value * 1000 )
 	{
 		if ( ++cl.timeoutcount > 5 )
 		{
@@ -2103,9 +2102,6 @@ void CL_Frame( int msec )
 #if defined(USE_MUMBLE)
 	CL_UpdateMumble();
 #endif
-
-	// advance local effects for next frame
-	SCR_RunCinematic();
 
 	Con_RunConsole();
 
@@ -2477,7 +2473,6 @@ void CL_Init()
 	Cmd_AddCommand( "snd_restart", CL_Snd_Restart_f );
 	Cmd_AddCommand( "vid_restart", CL_Vid_Restart_f );
 	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
-	Cmd_AddCommand( "cinematic", CL_PlayCinematic_f );
 	Cmd_AddCommand( "connect", CL_Connect_f );
 	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
 	Cmd_AddCommand( "localservers", CL_LocalServers_f );
