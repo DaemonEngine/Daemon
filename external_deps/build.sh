@@ -27,6 +27,7 @@ FREETYPE_VERSION=2.13.0
 OPENAL_VERSION=1.23.1
 OGG_VERSION=1.3.5
 VORBIS_VERSION=1.3.7
+THEORA_VERSION=1.1.1
 OPUS_VERSION=1.4
 OPUSFILE_VERSION=0.12
 LUA_VERSION=5.4.4
@@ -439,6 +440,31 @@ build_vorbis() {
 	cd "libvorbis-${VORBIS_VERSION}"
 	# The user-provided CFLAGS doesn't drop the default -O3
 	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-examples
+	make
+	make install
+}
+
+# Build Theora
+build_theora() {
+	download "libtheora-${THEORA_VERSION}.tar.bz2" "http://downloads.xiph.org/releases/theora/libtheora-${THEORA_VERSION}.tar.bz2" theora
+	cd "libtheora-${THEORA_VERSION}"
+	case "${PLATFORM}" in
+	windows-*-*)
+		local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
+		sed "s,EXPORTS,," "win32/xmingw32/libtheoradec-all.def" > "${TMP_FILE}"
+		mv "${TMP_FILE}" "win32/xmingw32/libtheoradec-all.def"
+		local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
+		sed "s,EXPORTS,," "win32/xmingw32/libtheoraenc-all.def" > "${TMP_FILE}"
+		mv "${TMP_FILE}" "win32/xmingw32/libtheoraenc-all.def"
+		;;
+	macos-*-*)
+		local TMP_FILE="`mktemp /tmp/config.XXXXXXXXXX`"
+		sed "s/-fforce-addr //" "configure" > "${TMP_FILE}"
+		mv "${TMP_FILE}" "configure"
+		chmod +x "configure"
+		;;
+	esac
+	./configure --host="${HOST}" --prefix="${PREFIX}" ${MSVC_SHARED[@]} --disable-examples --disable-encode --disable-spec
 	make
 	make install
 }

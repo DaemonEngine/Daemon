@@ -86,6 +86,7 @@ bool com_fullyInitialized;
 
 void     Com_WriteConfig_f();
 void     Com_WriteBindings_f();
+void     CIN_CloseAllVideos();
 
 //============================================================================
 

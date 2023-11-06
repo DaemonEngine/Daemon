@@ -776,6 +776,10 @@ if (BUILD_CLIENT)
     include_directories(${OPUS_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${OPUS_LIBRARIES})
 
+    find_package(Theora REQUIRED)
+    include_directories(${THEORA_INCLUDE_DIRS})
+    set(LIBS_CLIENT ${LIBS_CLIENT} ${THEORA_LIBRARIES})
+
     find_package(WebP REQUIRED)
     include_directories(${WEBP_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${WEBP_LIBRARIES})

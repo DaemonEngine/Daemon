@@ -793,7 +793,7 @@ bool CL_ReadyToSendPacket()
 	int delta;
 
 	// don't send anything if playing back a demo
-	if ( clc.demoplaying )
+	if ( clc.demoplaying || cls.state == connstate_t::CA_CINEMATIC )
 	{
 		return false;
 	}
@@ -878,7 +878,7 @@ void CL_WritePacket()
 	int       count;
 
 	// don't send anything if playing back a demo
-	if ( clc.demoplaying )
+	if ( clc.demoplaying || cls.state == connstate_t::CA_CINEMATIC )
 	{
 		return;
 	}
