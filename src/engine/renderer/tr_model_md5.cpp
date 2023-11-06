@@ -25,6 +25,27 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "tr_model_skel.h"
 
+// We store half floats in md5.surfaces[i].verts[j].texCoords but we better
+// want to use floats for for full-precision computations at load time.
+// We build similar structures of data to temporary store floats.
+struct vertexF_t {
+	vec2_t texCoordsF;
+};
+
+struct surfaceF_t {
+	vertexF_t *vertsF;
+};
+
+void freeSurfacesF( const md5Model_t *md5, surfaceF_t *surfacesF )
+{
+	for ( unsigned i = 0; i < md5->numSurfaces; i++ )
+	{
+		free( surfacesF[ i ].vertsF );
+	}
+
+	free( surfacesF );
+}
+
 /*
 =================
 R_LoadMD5
@@ -223,10 +244,14 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		return false;
 	}
 
+	// Use temporary array for full-precision computations at load time.
+	surfaceF_t *surfacesF = (surfaceF_t*) malloc( sizeof( surfaceF_t* ) * md5->numSurfaces );
+
 	md5->surfaces = (md5Surface_t*) ri.Hunk_Alloc( sizeof( *surf ) * md5->numSurfaces, ha_pref::h_low );
 
     surf = md5->surfaces;
-	for ( unsigned i = 0; i < md5->numSurfaces; i++, surf++ )
+	surfaceF_t *surfF = surfacesF;
+	for ( unsigned i = 0; i < md5->numSurfaces; i++, surf++, surfF++ )
 	{
 		// parse mesh {
 		token = COM_ParseExt2( &buf_p, true );
@@ -296,11 +321,15 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			           modName, SHADER_MAX_VERTEXES, surf->numVerts );
 		}
 
+		// Use temporary array for full-precision computations at load time.
+		surfF->vertsF = (vertexF_t*) malloc( sizeof( vertexF_t* ) * surf->numVerts );
+
 		surf->verts = (md5Vertex_t*) ri.Hunk_Alloc( sizeof( *v ) * surf->numVerts, ha_pref::h_low );
 		ASSERT_EQ(((intptr_t) surf->verts & 15), 0);
 
         v = surf->verts;
-		for (unsigned j = 0; j < surf->numVerts; j++, v++ )
+		vertexF_t *vertsF = surfF->vertsF;
+		for (unsigned j = 0; j < surf->numVerts; j++, v++, vertsF++ )
 		{
 			// skip vert <number>
 			token = COM_ParseExt2( &buf_p, true );
@@ -308,6 +337,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			if ( Q_stricmp( token, "vert" ) )
 			{
 				Log::Warn("R_LoadMD5: expected 'vert' found '%s' in model '%s'", token, modName );
+				freeSurfacesF( md5, surfacesF );
 				return false;
 			}
 
@@ -319,15 +349,18 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			if ( Q_stricmp( token, "(" ) )
 			{
 				Log::Warn("R_LoadMD5: expected '(' found '%s' in model '%s'", token, modName );
+				freeSurfacesF( md5, surfacesF );
 				return false;
 			}
 
 			for (unsigned k = 0; k < 2; k++ )
 			{
 				token = COM_ParseExt2( &buf_p, false );
-				// We better want to waste time to convert back and forth when
-				// loading the file than doing it on every frame at render time.
-				v->texCoords[ k ] = floatToHalf( atof( token ) );
+				float f = atof( token );
+				v->texCoords[ k ] = floatToHalf( f );
+
+				// Use temporary array for full-precision computations at load time.
+				vertsF->texCoordsF[ k ] = f;
 			}
 
 			// skip )
@@ -336,6 +369,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			if ( Q_stricmp( token, ")" ) )
 			{
 				Log::Warn("R_LoadMD5: expected ')' found '%s' in model '%s'", token, modName );
+				freeSurfacesF( md5, surfacesF );
 				return false;
 			}
 
@@ -358,6 +392,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		if ( Q_stricmp( token, "numTris" ) )
 		{
 			Log::Warn("R_LoadMD5: expected 'numTris' found '%s' in model '%s'", token, modName );
+			freeSurfacesF( md5, surfacesF );
 			return false;
 		}
 
@@ -381,6 +416,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			if ( Q_stricmp( token, "tri" ) )
 			{
 				Log::Warn("R_LoadMD5: expected 'tri' found '%s' in model '%s'", token, modName );
+				freeSurfacesF( md5, surfacesF );
 				return false;
 			}
 
@@ -399,6 +435,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		if ( Q_stricmp( token, "numWeights" ) )
 		{
 			Log::Warn("R_LoadMD5: expected 'numWeights' found '%s' in model '%s'", token, modName );
+			freeSurfacesF( md5, surfacesF );
 			return false;
 		}
 
@@ -416,6 +453,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			if ( Q_stricmp( token, "weight" ) )
 			{
 				Log::Warn("R_LoadMD5: expected 'weight' found '%s' in model '%s'", token, modName );
+				freeSurfacesF( md5, surfacesF );
 				return false;
 			}
 
@@ -433,6 +471,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			if ( Q_stricmp( token, "(" ) )
 			{
 				Log::Warn("R_LoadMD5: expected '(' found '%s' in model '%s'", token, modName );
+				freeSurfacesF( md5, surfacesF );
 				return false;
 			}
 
@@ -448,6 +487,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			if ( Q_stricmp( token, ")" ) )
 			{
 				Log::Warn("R_LoadMD5: expected ')' found '%s' in model '%s'", token, modName );
+				freeSurfacesF( md5, surfacesF );
 				return false;
 			}
 		}
@@ -458,6 +498,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		if ( Q_stricmp( token, "}" ) )
 		{
 			Log::Warn("R_LoadMD5: expected '}' found '%s' in model '%s'", token, modName );
+			freeSurfacesF( md5, surfacesF );
 			return false;
 		}
 
@@ -489,7 +530,8 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 	ClearBounds( md5->bounds[ 0 ], md5->bounds[ 1 ] );
 
     surf = md5->surfaces;
-	for (unsigned i = 0; i < md5->numSurfaces; i++, surf++ )
+	surfF = surfacesF;
+	for (unsigned i = 0; i < md5->numSurfaces; i++, surf++, surfF++ )
 	{
         v = surf->verts;
 		for (unsigned j = 0; j < surf->numVerts; j++, v++ )
@@ -500,7 +542,6 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		// calc tangent spaces
 		{
 			const float *v0, *v1, *v2;
-			vec2_t t0, t1, t2;
 			vec3_t      tangent;
 			vec3_t      binormal;
 			vec3_t      normal;
@@ -520,17 +561,15 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 				v1 = surf->verts[ tri->indexes[ 1 ] ].position;
 				v2 = surf->verts[ tri->indexes[ 2 ] ].position;
 
-				// We better want to waste time to convert back and forth when
-				// loading the file than doing it on every frame at render time.
-				t0[ 0 ] = halfToFloat( surf->verts[ tri->indexes[ 0 ] ].texCoords[ 0 ] );
-				t0[ 1 ] = halfToFloat( surf->verts[ tri->indexes[ 0 ] ].texCoords[ 1 ] );
-				t1[ 0 ] = halfToFloat( surf->verts[ tri->indexes[ 1 ] ].texCoords[ 0 ] );
-				t1[ 1 ] = halfToFloat( surf->verts[ tri->indexes[ 1 ] ].texCoords[ 1 ] );
-				t2[ 0 ] = halfToFloat( surf->verts[ tri->indexes[ 2 ] ].texCoords[ 0 ] );
-				t2[ 1 ] = halfToFloat( surf->verts[ tri->indexes[ 2 ] ].texCoords[ 1 ] );
+				const vec2_t *t0, *t1, *t2;
+
+				// Use temporary array for full-precision computations at load time.
+				t0 = &surfF->vertsF[ tri->indexes[ 0 ] ].texCoordsF;
+				t1 = &surfF->vertsF[ tri->indexes[ 1 ] ].texCoordsF;
+				t2 = &surfF->vertsF[ tri->indexes[ 2 ] ].texCoordsF;
 
 				R_CalcFaceNormal( normal, v0, v1, v2 );
-				R_CalcTangents( tangent, binormal, v0, v1, v2, t0, t1, t2 );
+				R_CalcTangents( tangent, binormal, v0, v1, v2, *t0, *t1, *t2 );
 
 				for (unsigned k = 0; k < 3; k++ )
 				{
@@ -546,6 +585,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 					VectorAdd( w, normal, w );
 				}
 			}
+
             v = surf->verts;
 			for (unsigned j = 0; j < surf->numVerts; j++, v++ )
 			{
@@ -558,6 +598,9 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			}
 		}
 	}
+	
+	freeSurfacesF( md5, surfacesF );
+
 	md5->internalScale = BoundsMaxExtent( md5->bounds[ 0 ], md5->bounds[ 1 ] );
 	if( md5->internalScale > 0.0f ) {
 		float invScale = 1.0f / md5->internalScale;
