@@ -30,6 +30,62 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 R_LoadMD5
 =================
 */
+static void CalcTangentSpaces( md5Surface_t &surf )
+{
+	const float *v0, *v1, *v2;
+	const float *t0, *t1, *t2;
+	vec3_t      tangent;
+	vec3_t      binormal;
+	vec3_t      normal;
+
+	md5Vertex_t *v = surf.verts;
+	for (unsigned j = 0; j < surf.numVerts; j++, v++ )
+	{
+		VectorClear( v->tangent );
+		VectorClear( v->binormal );
+		VectorClear( v->normal );
+	}
+
+	const srfTriangle_t *tri = surf.triangles;
+	for (unsigned j = 0; j < surf.numTriangles; j++, tri++ )
+	{
+		v0 = surf.verts[ tri->indexes[ 0 ] ].position;
+		v1 = surf.verts[ tri->indexes[ 1 ] ].position;
+		v2 = surf.verts[ tri->indexes[ 2 ] ].position;
+
+		t0 = surf.verts[ tri->indexes[ 0 ] ].texCoordsF;
+		t1 = surf.verts[ tri->indexes[ 1 ] ].texCoordsF;
+		t2 = surf.verts[ tri->indexes[ 2 ] ].texCoordsF;
+
+		R_CalcFaceNormal( normal, v0, v1, v2 );
+		R_CalcTangents( tangent, binormal, v0, v1, v2, t0, t1, t2 );
+
+		for (unsigned k = 0; k < 3; k++ )
+		{
+			float *w;
+
+			w = surf.verts[ tri->indexes[ k ] ].tangent;
+			VectorAdd( w, tangent, w );
+
+			w = surf.verts[ tri->indexes[ k ] ].binormal;
+			VectorAdd( w, binormal, w );
+
+			w = surf.verts[ tri->indexes[ k ] ].normal;
+			VectorAdd( w, normal, w );
+		}
+	}
+	v = surf.verts;
+	for ( unsigned j = 0; j < surf.numVerts; j++, v++ )
+	{
+		VectorNormalize( v->tangent );
+		v->tangent[ 3 ] = 0;
+		VectorNormalize( v->binormal );
+		v->binormal[ 3 ] = 0;
+		VectorNormalize( v->normal );
+		v->normal[ 3 ] = 0;
+	}
+}
+
 bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 {
 	md5Model_t    *md5;
@@ -481,9 +537,12 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 				VectorMA( v->position, w->boneWeight, offsetVec, v->position );
 			}
 		}
+
+		// sets tangent, normal and binormal fields of md5Vertex_t
+		CalcTangentSpaces( *surf );
 	}
 
-	// loading is done now calculate the bounding box and tangent spaces
+	// loading is done now calculate the bounding box
 	ClearBounds( md5->bounds[ 0 ], md5->bounds[ 1 ] );
 
     surf = md5->surfaces;
@@ -494,63 +553,8 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		{
 			AddPointToBounds( v->position, md5->bounds[ 0 ], md5->bounds[ 1 ] );
 		}
-
-		// calc tangent spaces
-		{
-			const float *v0, *v1, *v2;
-			const float *t0, *t1, *t2;
-			vec3_t      tangent;
-			vec3_t      binormal;
-			vec3_t      normal;
-
-            v = surf->verts;
-			for (unsigned j = 0; j < surf->numVerts; j++, v++ )
-			{
-				VectorClear( v->tangent );
-				VectorClear( v->binormal );
-				VectorClear( v->normal );
-			}
-
-            tri = surf->triangles;
-			for (unsigned j = 0; j < surf->numTriangles; j++, tri++ )
-			{
-				v0 = surf->verts[ tri->indexes[ 0 ] ].position;
-				v1 = surf->verts[ tri->indexes[ 1 ] ].position;
-				v2 = surf->verts[ tri->indexes[ 2 ] ].position;
-
-				t0 = surf->verts[ tri->indexes[ 0 ] ].texCoordsF;
-				t1 = surf->verts[ tri->indexes[ 1 ] ].texCoordsF;
-				t2 = surf->verts[ tri->indexes[ 2 ] ].texCoordsF;
-
-				R_CalcFaceNormal( normal, v0, v1, v2 );
-				R_CalcTangents( tangent, binormal, v0, v1, v2, t0, t1, t2 );
-
-				for (unsigned k = 0; k < 3; k++ )
-				{
-					float *w;
-
-					w = surf->verts[ tri->indexes[ k ] ].tangent;
-					VectorAdd( w, tangent, w );
-
-					w = surf->verts[ tri->indexes[ k ] ].binormal;
-					VectorAdd( w, binormal, w );
-
-					w = surf->verts[ tri->indexes[ k ] ].normal;
-					VectorAdd( w, normal, w );
-				}
-			}
-            v = surf->verts;
-			for (unsigned j = 0; j < surf->numVerts; j++, v++ )
-			{
-				VectorNormalize( v->tangent );
-				v->tangent[ 3 ] = 0;
-				VectorNormalize( v->binormal );
-				v->binormal[ 3 ] = 0;
-				VectorNormalize( v->normal );
-				v->normal[ 3 ] = 0;
-			}
-		}
 	}
+
 	md5->internalScale = BoundsMaxExtent( md5->bounds[ 0 ], md5->bounds[ 1 ] );
 	if( md5->internalScale > 0.0f ) {
 		float invScale = 1.0f / md5->internalScale;
