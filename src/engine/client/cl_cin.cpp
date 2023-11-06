@@ -105,7 +105,8 @@ struct cinematics_t
 	int   mcomp[ 256 ];
 	byte  *qStatus[ 2 ][ 32768 ];
 
-	long  oldXOff, oldYOff, oldysize, oldxsize;
+	long  oldXOff, oldYOff;
+	unsigned long oldysize, oldxsize;
 
 	int   currentHandle;
 };
@@ -137,7 +138,7 @@ struct cin_cache
 
 	long         samplesPerPixel; // defaults to 2
 	byte         *gray;
-	unsigned int xsize, ysize, maxsize, minsize;
+	unsigned long xsize, ysize, maxsize, minsize;
 
 	bool     half, smootheddouble, inMemory;
 	long         normalBuffer0;
