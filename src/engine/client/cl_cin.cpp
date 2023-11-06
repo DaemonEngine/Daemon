@@ -94,7 +94,6 @@ static long ROQ_VR_tab[ 256 ];
 enum filetype_t
 {
   FT_ROQ = 0, // roq (vq3 stuff)
-  FT_OGM // ogm (ogg wrapper, vorbis audio, xvid/theora video) for WoP
 };
 
 struct cinematics_t
@@ -1527,12 +1526,6 @@ static void RoQShutdown()
 
 	cinTable[ currentHandle ].fileName[ 0 ] = 0;
 
-	if ( cinTable[ currentHandle ].fileType == FT_OGM )
-	{
-		Cin_OGM_Shutdown();
-		cinTable[ currentHandle ].buf = nullptr;
-	}
-
 	currentHandle = -1;
 }
 
@@ -1564,70 +1557,6 @@ e_status CIN_RunCinematic( int handle )
 
 	if ( cinTable[ currentHandle ].status == e_status::FMV_IDLE )
 	{
-		return cinTable[ currentHandle ].status;
-	}
-
-	if ( cinTable[ currentHandle ].fileType == filetype_t::FT_OGM )
-	{
-		if ( Cin_OGM_Run( cinTable[ currentHandle ].startTime == 0 ? 0 : CL_ScaledMilliseconds() - cinTable[ currentHandle ].startTime ) )
-		{
-			cinTable[ currentHandle ].status = e_status::FMV_EOF;
-		}
-		else
-		{
-			int      newW, newH;
-			bool resolutionChange = false;
-
-			cinTable[ currentHandle ].buf = Cin_OGM_GetOutput( &newW, &newH );
-
-			if ( newW != cinTable[ currentHandle ].CIN_WIDTH )
-			{
-				cinTable[ currentHandle ].CIN_WIDTH = newW;
-				resolutionChange = true;
-			}
-
-			if ( newH != cinTable[ currentHandle ].CIN_HEIGHT )
-			{
-				cinTable[ currentHandle ].CIN_HEIGHT = newH;
-				resolutionChange = true;
-			}
-
-			if ( resolutionChange )
-			{
-				cinTable[ currentHandle ].drawX = cinTable[ currentHandle ].CIN_WIDTH;
-				cinTable[ currentHandle ].drawY = cinTable[ currentHandle ].CIN_HEIGHT;
-			}
-
-			cinTable[ currentHandle ].status = e_status::FMV_PLAY;
-			cinTable[ currentHandle ].dirty = true;
-		}
-
-		if ( !cinTable[ currentHandle ].startTime )
-		{
-			cinTable[ currentHandle ].startTime = CL_ScaledMilliseconds();
-		}
-
-		if ( cinTable[ currentHandle ].status == e_status::FMV_EOF )
-		{
-			if ( cinTable[ currentHandle ].holdAtEnd )
-			{
-				cinTable[ currentHandle ].status = e_status::FMV_IDLE;
-			}
-			else if ( cinTable[ currentHandle ].looping )
-			{
-				Cin_OGM_Shutdown();
-				Cin_OGM_Init( cinTable[ currentHandle ].fileName );
-				cinTable[ currentHandle ].buf = nullptr;
-				cinTable[ currentHandle ].startTime = 0;
-				cinTable[ currentHandle ].status = e_status::FMV_PLAY;
-			}
-			else
-			{
-				RoQShutdown();
-//              Cin_OGM_Shutdown();
-			}
-		}
-
 		return cinTable[ currentHandle ].status;
 	}
 
@@ -1726,53 +1655,6 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 	while ( fileextPtr && *fileextPtr != '.' )
 	{
 		fileextPtr++;
-	}
-
-	if ( !Q_stricmp( fileextPtr, ".ogm" ) )
-	{
-		if ( Cin_OGM_Init( name ) )
-		{
-			Log::Notice( "failed to start OGM playback (%s)\n", arg );
-			cinTable[ currentHandle ].fileName[ 0 ] = 0;
-			Cin_OGM_Shutdown();
-			return -1;
-		}
-
-		cinTable[ currentHandle ].fileType = filetype_t::FT_OGM;
-
-		CIN_SetExtents( currentHandle, x, y, w, h );
-		cinTable[ currentHandle ].dirty = true;
-		cinTable[ currentHandle ].looping = (systemBits & CIN_loop) != 0;
-
-		cinTable[ currentHandle ].holdAtEnd = ( systemBits & CIN_hold ) != 0;
-		cinTable[ currentHandle ].alterGameState = ( systemBits & CIN_system ) != 0;
-		cinTable[ currentHandle ].playonwalls = 1;
-		cinTable[ currentHandle ].silent = ( systemBits & CIN_silent ) != 0;
-		cinTable[ currentHandle ].shader = ( systemBits & CIN_shader ) != 0;
-
-		/* we will set this info after the first xvid-frame
-		                cinTable[currentHandle].CIN_HEIGHT = DEFAULT_CIN_HEIGHT;
-		                cinTable[currentHandle].CIN_WIDTH  =  DEFAULT_CIN_WIDTH;
-		*/
-
-		if ( cinTable[ currentHandle ].alterGameState )
-		{
-			// close the menu
-			// TODO: Rocket: Close all menus
-		}
-		else
-		{
-			cinTable[ currentHandle ].playonwalls = cl_inGameVideo->integer;
-		}
-
-		if ( cinTable[ currentHandle ].alterGameState )
-		{
-			cls.state = connstate_t::CA_CINEMATIC;
-		}
-
-		cinTable[ currentHandle ].status = e_status::FMV_PLAY;
-
-		return currentHandle;
 	}
 
 	cinTable[ currentHandle ].ROQSize = 0;

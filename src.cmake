@@ -304,7 +304,6 @@ endif()
 set(CLIENTBASELIST
     ${ENGINE_DIR}/client/cg_api.h
     ${ENGINE_DIR}/client/cg_msgdef.h
-    ${ENGINE_DIR}/client/cin_ogm.cpp
     ${ENGINE_DIR}/client/client.h
     ${ENGINE_DIR}/client/cl_avi.cpp
     ${ENGINE_DIR}/client/cl_cgame.cpp

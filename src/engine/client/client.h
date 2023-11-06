@@ -688,15 +688,6 @@ void     Frame_yuv_to_rgb24( const unsigned char *y, const unsigned char *u, con
                              int yWShift, int uvWShift, int yHShift, int uvHShift, unsigned int *output );
 
 //
-// cin_ogm.c
-//
-
-int           Cin_OGM_Init( const char *filename );
-int           Cin_OGM_Run( int time );
-unsigned char *Cin_OGM_GetOutput( int *outWidth, int *outHeight );
-void          Cin_OGM_Shutdown();
-
-//
 // cl_cgame.c
 //
 void     CL_InitCGame();
