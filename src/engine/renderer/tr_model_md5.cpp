@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 R_LoadMD5
 =================
 */
-static void CalcTangentSpaces( md5Surface_t &surf )
+static void CalcTangentSpaces( md5Surface_t &surf, const vec2_t *texCoords )
 {
 	const float *v0, *v1, *v2;
 	const float *t0, *t1, *t2;
@@ -53,9 +53,9 @@ static void CalcTangentSpaces( md5Surface_t &surf )
 		v1 = surf.verts[ tri->indexes[ 1 ] ].position;
 		v2 = surf.verts[ tri->indexes[ 2 ] ].position;
 
-		t0 = surf.verts[ tri->indexes[ 0 ] ].texCoordsF;
-		t1 = surf.verts[ tri->indexes[ 1 ] ].texCoordsF;
-		t2 = surf.verts[ tri->indexes[ 2 ] ].texCoordsF;
+		t0 = texCoords[ tri->indexes[ 0 ] ];
+		t1 = texCoords[ tri->indexes[ 1 ] ];
+		t2 = texCoords[ tri->indexes[ 2 ] ];
 
 		R_CalcFaceNormal( normal, v0, v1, v2 );
 		R_CalcTangents( tangent, binormal, v0, v1, v2, t0, t1, t2 );
@@ -355,7 +355,11 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		surf->verts = (md5Vertex_t*) ri.Hunk_Alloc( sizeof( *v ) * surf->numVerts, ha_pref::h_low );
 		ASSERT_EQ(((intptr_t) surf->verts & 15), 0);
 
-        v = surf->verts;
+		v = surf->verts;
+
+		// Full precision tc are temporarily kept during surface loading for the tangent calculation
+		auto texCoords = std::make_unique<vec2_t[]>( surf->numVerts );
+
 		for (unsigned j = 0; j < surf->numVerts; j++, v++ )
 		{
 			// skip vert <number>
@@ -381,7 +385,8 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			for (unsigned k = 0; k < 2; k++ )
 			{
 				token = COM_ParseExt2( &buf_p, false );
-				v->texCoordsF[ k ] = atof( token );
+				texCoords[ j ][ k ] = atof( token );
+				v->texCoords[ k ] = floatToHalf( texCoords[ j ][ k ] );
 			}
 
 			// skip )
@@ -539,7 +544,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		}
 
 		// sets tangent, normal and binormal fields of md5Vertex_t
-		CalcTangentSpaces( *surf );
+		CalcTangentSpaces( *surf, texCoords.get() );
 	}
 
 	// loading is done now calculate the bounding box
