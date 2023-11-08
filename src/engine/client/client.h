@@ -681,11 +681,7 @@ void     CIN_SetLooping( int handle, bool loop );
 void     CIN_UploadCinematic( int handle );
 void     CIN_CloseAllVideos();
 
-// yuv->rgb will be used for Theora(ogm)
 void     ROQ_GenYUVTables();
-void     Frame_yuv_to_rgb24( const unsigned char *y, const unsigned char *u, const unsigned char *v,
-                             int width, int height, int y_stride, int uv_stride,
-                             int yWShift, int uvWShift, int yHShift, int uvHShift, unsigned int *output );
 
 //
 // cl_cgame.c

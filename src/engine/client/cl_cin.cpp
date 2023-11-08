@@ -606,66 +606,6 @@ static unsigned short yuv_to_rgb( long y, long u, long v )
 	return ( unsigned short )( ( r << 11 ) + ( g << 5 ) + ( b ) );
 }
 
-/*
-Frame_yuv_to_rgb24
-is used by the Theora(ogm) code
-
-  moved the convertion into one function, to reduce the number of function-calls
-*/
-void Frame_yuv_to_rgb24( const unsigned char *y, const unsigned char *u, const unsigned char *v,
-                         int width, int height, int y_stride, int uv_stride,
-                         int yWShift, int uvWShift, int yHShift, int uvHShift, unsigned int *output )
-{
-	int  i, j, uvI;
-	long r, g, b, YY;
-
-	for ( j = 0; j < height; ++j )
-	{
-		for ( i = 0; i < width; ++i )
-		{
-			YY = ROQ_YY_tab[( y[( i >> yWShift ) + ( j >> yHShift ) * y_stride ] ) ];
-			uvI = ( i >> uvWShift ) + ( j >> uvHShift ) * uv_stride;
-
-			r = ( YY + ROQ_VR_tab[ v[ uvI ] ] ) >> 6;
-			g = ( YY + ROQ_UG_tab[ u[ uvI ] ] + ROQ_VG_tab[ v[ uvI ] ] ) >> 6;
-			b = ( YY + ROQ_UB_tab[ u[ uvI ] ] ) >> 6;
-
-			if ( r < 0 )
-			{
-				r = 0;
-			}
-
-			if ( g < 0 )
-			{
-				g = 0;
-			}
-
-			if ( b < 0 )
-			{
-				b = 0;
-			}
-
-			if ( r > 255 )
-			{
-				r = 255;
-			}
-
-			if ( g > 255 )
-			{
-				g = 255;
-			}
-
-			if ( b > 255 )
-			{
-				b = 255;
-			}
-
-			*output = LittleLong( ( r ) | ( g << 8 ) | ( b << 16 ) | ( 255 << 24 ) );
-			++output;
-		}
-	}
-}
-
 /******************************************************************************
 *
 * Function:
