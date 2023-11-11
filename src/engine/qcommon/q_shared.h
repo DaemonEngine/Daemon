@@ -367,18 +367,20 @@ extern const quat_t   quatIdentity;
 		return t.f;
 	}
 
+	// Overall relative error bound (ignoring unknown powerpc case): 5 * 10^-6
+	// https://en.wikipedia.org/wiki/Fast_inverse_square_root#/media/File:2nd-iter.png
 	inline float Q_rsqrt( float number )
 	{
 		float x = 0.5f * number;
 		float y;
 
-		Q_UNUSED(x);
-
 		// compute approximate inverse square root
 #if defined( idx86_sse )
+		// SSE rsqrt relative error bound: 3.7 * 10^-4
 		_mm_store_ss( &y, _mm_rsqrt_ss( _mm_load_ss( &number ) ) );
 #elif idppc
 
+		// error bound: ???
 #ifdef __GNUC__
 		asm( "frsqrte %0, %1" : "=f"( y ) : "f"( number ) );
 #else
@@ -387,6 +389,7 @@ extern const quat_t   quatIdentity;
 #else
 		y = Q_uintBitsToFloat( 0x5f3759df - (Q_floatBitsToUint( number ) >> 1) );
 		y *= ( 1.5f - ( x * y * y ) ); // initial iteration
+		// relative error bound after the initial iteration: 1.8 * 10^-3
 #endif
 		y *= ( 1.5f - ( x * y * y ) ); // second iteration for higher precision
 		return y;
