@@ -1568,7 +1568,8 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 // A trace sweeps a (possibly zero-sized) box along a (possibly zero-length) line segment and
 // reports when the box hits something. BUT a thing that overlaps the box at the starting point
-// is *ignored*, UNLESS that thing still overlaps the box at the ending point. Got it?
+// is *ignored*, UNLESS that thing is not a patch facet and still overlaps the box at the ending
+// point. Got it?
 //
 // The idea is that if you are overlapping a wall a little bit due to numerical difficulties, then
 // you can run out of it (because your end point is not overlapping the wall), but you can't run
@@ -1577,7 +1578,8 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 // box, by using a trace with zero length (start = end).
 //
 // I said that a thing that overlaps the start is ignored. This is not entirely true as it results
-// in the startsolid flag being set. But otherwise the thing is ignored.
+// in the startsolid flag being set, if it is a brush or entity and not a patch surface.
+// But otherwise the thing is ignored.
 //
 // Trace results can be divided into three classes.
 // - If there exists a single geometry element that the box overlaps throughout the entire trace:
@@ -1602,15 +1604,16 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 //
 // What do we know about whether certain points on the trace are free vs. obstructed?
 // - If allsolid is true, everywhere from start to end is obstructed.
-// - if startsolid is false, the start is unobstructed.
+// - if startsolid is false, the start is unobstructed (*)
 // - if startsolid is true and fraction is not 1.0, we do not know whether there is any unobstructed point.
 // - if startsolid is false, the entire path from start to endpos is unobustructed. (*)
 // - if fraction is 1.0, end/endpos is unobstructed (*)
-// (*) There is one case where this does not hold: if the trace starts behind the back side of a facet
-// (one of the polygons used to approximate a patch) and passes into the facet, a hit is not reported
-// and thus part of the trace path could be obstructed by the facet. This should only happen if the
-// trace started outside of the level's playable area, so it's fine to ignore this unless you or the
-// mapper does something stupid.
+// (*) The guarantee of being unobstructed does not hold with facets (the polygons used to
+// approximate patches) when the trace is nonzero-length. If (a) the trace starts behind the back
+// side of a facet and passes into the facet, or (b) the trace starts overlapping a facet,
+// a hit is not reported, and thus part of the trace path could be obstructed by the facet.
+// On most maps this only happens if the trace started outside of the level's playable area,
+// so it's probably fine to ignore this.
 //
 // startsolid should be used with caution. It means that start is supposedly obstructed, but it is
 // prone to false positives due to numerical issues. Sometimes an entity that is just touching

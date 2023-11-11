@@ -786,7 +786,7 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 CM_CheckFacetPlane
 ====================
 */
-int CM_CheckFacetPlane( const float *plane, const vec3_t start, const vec3_t end, float *enterFrac, float *leaveFrac, int *hit, bool *startout, bool *getout )
+int CM_CheckFacetPlane( const float *plane, const vec3_t start, const vec3_t end, float *enterFrac, float *leaveFrac, int *hit )
 {
 	float d1, d2, f;
 
@@ -794,16 +794,6 @@ int CM_CheckFacetPlane( const float *plane, const vec3_t start, const vec3_t end
 
 	d1 = DotProduct( start, plane ) - plane[ 3 ];
 	d2 = DotProduct( end, plane ) - plane[ 3 ];
-
-	if ( d1 > 0 )
-	{
-		*startout = true;
-	}
-
-	if ( d2 > 0 )
-	{
-		*getout = true;
-	}
 
 	// if completely in front of face, no intersection with the entire facet
 	if ( d1 > 0 && ( d2 >= SURFACE_CLIP_EPSILON || d2 >= d1 ) )
@@ -917,9 +907,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 			VectorCopy( tw->end, endp );
 		}
 
-		bool startout = false, getout = false;
-
-		if ( !CM_CheckFacetPlane( plane, startp, endp, &enterFrac, &leaveFrac, &hit, &startout, &getout ) )
+		if ( !CM_CheckFacetPlane( plane, startp, endp, &enterFrac, &leaveFrac, &hit ) )
 		{
 			continue;
 		}
@@ -972,7 +960,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 				VectorCopy( tw->end, endp );
 			}
 
-			if ( !CM_CheckFacetPlane( plane, startp, endp, &enterFrac, &leaveFrac, &hit, &startout, &getout ) )
+			if ( !CM_CheckFacetPlane( plane, startp, endp, &enterFrac, &leaveFrac, &hit ) )
 			{
 				break;
 			}
@@ -995,18 +983,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 			continue;
 		}
 
-		if ( !startout )
-		{
-			tw->trace.startsolid = true;
-
-			if ( !getout )
-			{
-				tw->trace.allsolid = true;
-				tw->trace.fraction = 0;
-				return;
-			}
-		}
-		else if ( enterFrac < leaveFrac && enterFrac >= 0 )
+		if ( enterFrac < leaveFrac && enterFrac >= 0 )
 		{
 			if ( enterFrac < tw->trace.fraction )
 			{
@@ -1033,7 +1010,6 @@ CM_TraceThroughSurface
 */
 void CM_TraceThroughSurface( traceWork_t *tw, const cSurface_t *surface )
 {
-	ASSERT( !tw->trace.allsolid );
 	float oldFrac;
 
 	oldFrac = tw->trace.fraction;
@@ -1050,7 +1026,7 @@ void CM_TraceThroughSurface( traceWork_t *tw, const cSurface_t *surface )
 		c_trisoup_traces++;
 	}
 
-	if ( tw->trace.fraction < oldFrac || tw->trace.allsolid )
+	if ( tw->trace.fraction < oldFrac )
 	{
 		tw->trace.surfaceFlags = surface->surfaceFlags;
 		tw->trace.contents = surface->contents;
@@ -1336,6 +1312,12 @@ void CM_TraceThroughLeaf( traceWork_t *tw, const cLeaf_t *leaf )
 		}
 	}
 
+	// CM_TraceThroughSurface does not set startsolid/allsolid so 0 fraction is the most we'll know
+	if ( !tw->trace.fraction )
+	{
+		return;
+	}
+
 	// trace line against all surfaces in the leaf
 	const int *firstSurfaceNum = leaf->firstLeafSurface;
 	const int *endSurfaceNum = firstSurfaceNum + leaf->numLeafSurfaces;
@@ -1372,7 +1354,7 @@ void CM_TraceThroughLeaf( traceWork_t *tw, const cLeaf_t *leaf )
 
 		CM_TraceThroughSurface( tw, surface );
 
-		if ( tw->trace.allsolid )
+		if ( !tw->trace.fraction )
 		{
 			return;
 		}
@@ -1849,11 +1831,6 @@ static void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f,
 	mid[ 2 ] = p1[ 2 ] + frac * ( p2[ 2 ] - p1[ 2 ] );
 
 	CM_TraceThroughTree( tw, node->children[ side ], p1f, midf, p1, mid );
-
-	if ( tw->trace.allsolid )
-	{
-		return;
-	}
 
 	// go past the node
 	if ( frac2 < 0 )

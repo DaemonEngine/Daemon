@@ -112,7 +112,7 @@ struct cPlane_t
 // same except with opposite normals. So the region is a convex polygon on the surface plane.
 //
 // There is a difference with how it is treated compared to brushes - a trace that hits the
-// "back" side can pass through without colliding. This detail probably doesn't matter much,
+// "back" side can pass through without colliding. This detail usually doesn't matter much,
 // but the idea may be to make the patch surface (approximated by one or more facets), in the
 // case that the facets enclose some space and form a complete "object",
 // behave as a whole more similarly to a brush, in that a trace that starts
@@ -121,6 +121,15 @@ struct cPlane_t
 // the inward-facing plane non-collidable makes the trace API a bit less semantically
 // consistent since a trace starting in the interior and ending outside will say that the
 // path is completely free, while reversing the direction will hit something.
+//
+// For nonzero-length traces, a facet that overlaps the start position is always completely ignored.
+// Thus it is impossible to get the startsolid or allsolid flags from a patch. But for a zero-length
+// trace, a patch does set allsolid. So there is some inconsistency between the zero- and nonzero-
+// length cases.
+//
+// A few mappers have exploited the patch back-side behavior to construct one-way doors. These
+// consist of a planar patch that is converted to a single facet. Players can pass into the patch
+// (and then move freely due to the overlap behavior) from one side, but not the other.
 struct cFacet_t
 {
 	int      surfacePlane;
@@ -210,6 +219,9 @@ struct clipMap_t
 // ground the player is standing on frequently has a spurious startsolid=true. What we would
 // want is for traces to stop 0.1 unit away from the world (as they do now), but for the
 // startsolid flag *not* to be set when there is something 0.1 unit away.
+// TODO: find out why this happens and see if it might affect patches at well. Since
+// a movement trace that starts inside a patch always ignores the patch completely,
+// this might allow going through patches when it shouldn't be possible.
 #define SURFACE_CLIP_EPSILON ( 0.125 )
 
 extern clipMap_t cm;

@@ -91,7 +91,7 @@ TEST_F(TraceTest, StartsolidWithZeroFraction2)
 }
 
 // box starts overlapping a facet then gets out of it (going through the front side)
-TEST_F(TraceTest, StartsolidInPatch)
+TEST_F(TraceTest, StartInPatch)
 {
     trace_t tr;
     vec3_t start{ 1617, 2020, 115 };
@@ -102,7 +102,7 @@ TEST_F(TraceTest, StartsolidInPatch)
     CM_BoxTrace(&tr, start, end, mins, maxs, CM_InlineModel(0), contentmask, skipmask, traceType_t::TT_AABB);
     EXPECT_EQ(CM_CheckTraceConsistency(start, end, contentmask, skipmask, tr), "");
 
-    EXPECT_TRUE(tr.startsolid);
+    EXPECT_FALSE(tr.startsolid); // startsolid not implemented for patces
     EXPECT_EQ(1.0f, tr.fraction);
 }
 
@@ -123,7 +123,8 @@ TEST_F(TraceTest, GoThroughPatchBackSide)
     EXPECT_EQ(1.0f, tr.fraction);
 }
 
-TEST_F(TraceTest, AllsolidInPatch)
+// once inside a facet you can move freely
+TEST_F(TraceTest, AllInPatch)
 {
     trace_t tr;
     vec3_t start{ 1774.7, 1113.7, 150.1 };
@@ -134,7 +135,8 @@ TEST_F(TraceTest, AllsolidInPatch)
     CM_BoxTrace(&tr, start, end, mins, maxs, CM_InlineModel(0), contentmask, skipmask, traceType_t::TT_AABB);
     EXPECT_EQ(CM_CheckTraceConsistency(start, end, contentmask, skipmask, tr), "");
 
-    EXPECT_TRUE(tr.allsolid);
+    EXPECT_FALSE(tr.startsolid);
+    EXPECT_EQ(1.0f, tr.fraction);
 }
 
 TEST_F(TraceTest, PointHitPatch)
