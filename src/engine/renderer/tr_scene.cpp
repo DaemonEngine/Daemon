@@ -693,7 +693,7 @@ qhandle_t RE_RegisterVisTest()
 	}
 
 	int hTest;
-	for ( hTest = 1; hTest < MAX_VISTESTS; hTest++ )
+	for ( hTest = 0; hTest < MAX_VISTESTS; hTest++ )
 	{
 		test = &tr.visTests[ hTest ];
 		if ( !test->registered )
@@ -780,7 +780,7 @@ float RE_CheckVisibility( qhandle_t hTest )
 
 void RE_UnregisterVisTest( qhandle_t hTest )
 {
-	if ( hTest <= 0 || hTest > MAX_VISTESTS )
+	if ( hTest <= 0 || hTest > MAX_VISTESTS || !tr.visTests[ hTest - 1 ].registered )
 	{
 		return;
 	}
