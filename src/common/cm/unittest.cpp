@@ -38,6 +38,8 @@ namespace {
 constexpr int contentmask = ~0;
 constexpr int skipmask = 0;
 
+// To check whether some patch tests are really hitting patches and not brushes,
+// it can be helpful to run the tests with `-set cm_noCurves 1` on the command line
 class TraceTest : public ::testing::Test
 {
 protected:
@@ -88,14 +90,14 @@ TEST_F(TraceTest, StartsolidWithZeroFraction2)
     EXPECT_TRUE(tr.allsolid);
 }
 
-// box starts overlapping the facets, then gets out of it
+// box starts overlapping a facet then gets out of it (going through the front side)
 TEST_F(TraceTest, StartsolidInPatch)
 {
     trace_t tr;
-    vec3_t start{ -2495, 1329, 248 };
-    vec3_t end{ -2470, 1329, 248 };
-    vec3_t mins{ -4, -4, -4 };
-    vec3_t maxs{ 4, 4, 4 };
+    vec3_t start{ 1617, 2020, 115 };
+    vec3_t end{ 1617, 2020, 125 };
+    vec3_t mins{ -1, -1, -1 };
+    vec3_t maxs{ 1, 1, 5 };
 
     CM_BoxTrace(&tr, start, end, mins, maxs, CM_InlineModel(0), contentmask, skipmask, traceType_t::TT_AABB);
     EXPECT_EQ(CM_CheckTraceConsistency(start, end, contentmask, skipmask, tr), "");
@@ -109,23 +111,15 @@ TEST_F(TraceTest, StartsolidInPatch)
 TEST_F(TraceTest, GoThroughPatchBackSide)
 {
     trace_t tr;
-    vec3_t start{ -2510, 1329, 248 };
-    vec3_t end{ -2470, 1329, 248 };
-    vec3_t mins{ -4, -4, -4 };
-    vec3_t maxs{ 4, 4, 4 };
+    vec3_t start{ 1617, 2020, 125 };
+    vec3_t end{ 1617, 2020, 80 };
+    vec3_t mins{ -1, -1, -1 };
+    vec3_t maxs{ 1, 1, 5 };
 
     CM_BoxTrace(&tr, start, end, mins, maxs, CM_InlineModel(0), contentmask, skipmask, traceType_t::TT_AABB);
     EXPECT_EQ(CM_CheckTraceConsistency(start, end, contentmask, skipmask, tr), "");
 
-    EXPECT_TRUE(tr.startsolid);
-    EXPECT_EQ(1.0f, tr.fraction);
-
-    // repeat with point instead of box
-
-    CM_BoxTrace(&tr, start, end, nullptr, nullptr, CM_InlineModel(0), contentmask, skipmask, traceType_t::TT_AABB);
-    EXPECT_EQ(CM_CheckTraceConsistency(start, end, contentmask, skipmask, tr), "");
-
-    EXPECT_TRUE(tr.startsolid);
+    EXPECT_FALSE(tr.startsolid);
     EXPECT_EQ(1.0f, tr.fraction);
 }
 
