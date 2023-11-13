@@ -632,13 +632,15 @@ const char* FS_LoadedPaks()
 	return info;
 }
 
-bool FS_LoadPak(const char* name)
+bool FS_LoadPak(const Str::StringRef name)
 {
 	const FS::PakInfo* pak = FS::FindPak(name);
+
 	if (!pak) {
 		Log::Warn("Pak not found: '%s'", name);
 		return false;
 	}
+
 	try {
 		FS::PakPath::LoadPak(*pak);
 		return true;
@@ -651,13 +653,14 @@ bool FS_LoadPak(const char* name)
 void FS_LoadBasePak()
 {
 	Cmd::Args extrapaks(fs_extrapaks.Get());
-	for (const auto& x: extrapaks) {
-		if (!FS_LoadPak(x.c_str())) {
+	for (auto& x: extrapaks) {
+		if (!FS_LoadPak(x)) {
+
 			Sys::Error("Could not load extra pak '%s'", x.c_str());
 		}
 	}
 
-	if (FS_LoadPak(fs_basepak.Get().c_str())) {
+	if (FS_LoadPak(fs_basepak.Get())) {
 		return; // success
 	}
 
@@ -715,7 +718,7 @@ bool FS_LoadServerPaks(const char* paks, bool isDemo)
 	if (isDemo) {
 		Cmd::Args extrapaks(fs_extrapaks.Get());
 		for (auto& x: extrapaks) {
-			if (!FS_LoadPak(x.c_str()))
+			if (!FS_LoadPak(x))
 				Sys::Error("Could not load extra pak '%s'\n", x.c_str());
 		}
 	}

@@ -431,7 +431,7 @@ const char* FS_LoadedPaks();
 
 // Returns a space separated string containing all loaded dpk/pk3 files.
 
-bool     FS_LoadPak( const char *name );
+bool FS_LoadPak( const Str::StringRef name );
 void     FS_LoadBasePak();
 bool     FS_LoadServerPaks( const char* paks, bool isDemo );
 
