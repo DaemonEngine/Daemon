@@ -127,6 +127,7 @@ namespace FS {
 #ifdef BUILD_ENGINE
 static Cvar::Cvar<bool> fs_legacypaks("fs_legacypaks", "also load pk3s, ignoring version", Cvar::NONE, false);
 static Cvar::Cvar<int> fs_maxSymlinkDepth("fs_maxSymlinkDepth", "max depth of symlinks in zip paks (0 means disabled)", Cvar::NONE, 1);
+static Cvar::Cvar<std::string> fs_pakprefixes("fs_pakprefixes", "prefixes to look for paks to load", 0, "");
 
 bool UseLegacyPaks()
 {
@@ -2637,7 +2638,7 @@ void RefreshPaks()
 }
 #endif
 
-const PakInfo* FindPak(Str::StringRef name)
+static const PakInfo* FindPakNoPrefix(Str::StringRef name)
 {
 	// Find the latest version with the matching name
 	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
@@ -2650,7 +2651,21 @@ const PakInfo* FindPak(Str::StringRef name)
 		return &*(iter - 1);
 }
 
-const PakInfo* FindPak(Str::StringRef name, Str::StringRef version)
+const PakInfo* FindPak(Str::StringRef name)
+{
+	Cmd::Args pakprefixes(Cvar::GetValue("fs_pakprefixes"));
+	for (const std::string &pakprefix: pakprefixes)
+	{
+		const FS::PakInfo* pak = FS::FindPakNoPrefix(Path::Build(pakprefix, name));
+		if (pak) {
+			return pak;
+		}
+	}
+
+	return FS::FindPakNoPrefix(name);
+}
+
+static const PakInfo* FindPakNoPrefix(Str::StringRef name, Str::StringRef version)
 {
 	// Find a matching name and version, but prefer the last matching element since that is usually the one with no checksum
 	auto iter = std::upper_bound(availablePaks.begin(), availablePaks.end(), name, [version](Str::StringRef name1, const PakInfo& pakInfo) -> bool {
@@ -2664,6 +2679,20 @@ const PakInfo* FindPak(Str::StringRef name, Str::StringRef version)
 		return nullptr;
 	else
 		return &*(iter - 1);
+}
+
+const PakInfo* FindPak(Str::StringRef name, Str::StringRef version)
+{
+	Cmd::Args pakprefixes(Cvar::GetValue("fs_pakprefixes"));
+	for (const std::string &pakprefix: pakprefixes)
+	{
+		const FS::PakInfo* pak = FS::FindPakNoPrefix(Path::Build(pakprefix, name), version);
+		if (pak) {
+			return pak;
+		}
+	}
+
+	return FS::FindPakNoPrefix(name, version);
 }
 
 const PakInfo* FindPak(Str::StringRef name, Str::StringRef version, uint32_t checksum)

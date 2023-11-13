@@ -703,6 +703,7 @@ static void Init(int argc, char** argv)
 	// TODO: cvar names and FS_* stuff needs to be properly integrated
 	EarlyCvar("fs_basepak", cmdlineArgs);
 	EarlyCvar("fs_extrapaks", cmdlineArgs);
+	EarlyCvar("fs_pakprefixes", cmdlineArgs);
 
     Application::LoadInitialConfig(cmdlineArgs.reset_config);
 	Cmd::ExecuteCommandBuffer();
