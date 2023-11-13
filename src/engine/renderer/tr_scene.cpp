@@ -35,17 +35,20 @@ static int r_firstSceneEntity;
 static int r_numPolys;
 static int r_firstScenePoly;
 
+extern int r_numPolyVerts;
+extern int r_numPolyIndexes;
 int        r_numPolyVerts;
 int        r_numPolyIndexes;
 
 // ydnar: decals
-int        r_firstSceneDecalProjector;
+static int        r_firstSceneDecalProjector;
+extern int r_numDecalProjectors;
 int        r_numDecalProjectors;
-int        r_firstSceneDecal;
-int        r_numDecals;
+static int        r_firstSceneDecal;
+static int        r_numDecals;
 
-int r_numVisTests;
-int r_firstSceneVisTest;
+static int r_numVisTests;
+static int r_firstSceneVisTest;
 
 /*
 ====================
@@ -684,30 +687,25 @@ so the result may be available delayed.
 */
 qhandle_t RE_RegisterVisTest()
 {
-	visTest_t *test;
-
 	if ( tr.numVisTests >= MAX_VISTESTS )
 	{
 		Log::Warn("RE_RegisterVisTest - MAX_VISTESTS hit" );
 		return 0;
 	}
 
-	int hTest;
-	for ( hTest = 1; hTest < MAX_VISTESTS; hTest++ )
+	for ( int hTest = 1; hTest < MAX_VISTESTS; hTest++ )
 	{
-		test = &tr.visTests[ hTest ];
+		visTest_t *test = &tr.visTests[ hTest ];
 		if ( !test->registered )
 		{
-			break;
+			memset( test, 0, sizeof( *test ) );
+			test->registered = true;
+			tr.numVisTests++;
+
+			return hTest + 1;
 		}
 	}
-	ASSERT ( !test->registered );
-
-	memset( test, 0, sizeof( *test ) );
-	test->registered = true;
-	tr.numVisTests++;
-
-	return hTest + 1;
+	ASSERT_UNREACHABLE();
 }
 
 /*

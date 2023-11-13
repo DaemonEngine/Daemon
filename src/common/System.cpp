@@ -63,7 +63,7 @@ namespace Sys {
 // TODO: also use in VMs when cvars can be observed from multiple modules
 // This option can be turned on when debugging memory management
 #ifdef BUILD_ENGINE
-Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE,
+static Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE,
 #ifdef __SANITIZE_ADDRESS__
 	true);
 #else
@@ -351,7 +351,7 @@ intptr_t DynamicLib::InternalLoadSym(Str::StringRef sym, std::string& errorStrin
 #endif // __native_client__
 
 #ifdef BUILD_ENGINE
-bool processTerminating = false;
+static bool processTerminating = false;
 
 void OSExit(int exitCode) {
 	processTerminating = true;

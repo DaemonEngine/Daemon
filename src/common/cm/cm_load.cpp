@@ -44,15 +44,13 @@ static const int BOX_SIDES        = 6;
 static const int BOX_LEAFS        = 2;
 static const int BOX_PLANES       = 12;
 
-#define LL( x ) x = LittleLong( x )
-
 clipMap_t cm;
 int       c_pointcontents;
 int       c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces;
 
-cmodel_t  box_model;
-cplane_t  *box_planes;
-cbrush_t  *box_brush;
+static cmodel_t  box_model;
+static cplane_t  *box_planes;
+static cbrush_t  *box_brush;
 
 void      CM_InitBoxHull();
 void      CM_FloodAreaConnections();

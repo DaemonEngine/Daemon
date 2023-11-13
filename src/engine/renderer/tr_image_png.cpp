@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 
 // Work around bug in old versions of libpng
-#define PNG_SKIP_SETJMP_CHECK
+//#define PNG_SKIP_SETJMP_CHECK
 #include <png.h>
 
 // Warning is broken. https://stackoverflow.com/questions/45384718/msvc-warning-4611-regarding-setjmp-w-pod-struct

@@ -515,7 +515,7 @@ the same as cl->downloadClientBlock
 */
 void SV_NextDownload_f( client_t *cl, const Cmd::Args& args )
 {
-	int block;
+	int block = 0; //init silence warning
 	if (args.Argc() < 2 or not Str::ParseInt(block, args.Argv(1))) {
 		return;
 	}
@@ -1136,7 +1136,7 @@ Also called by bot code
 ==================
 */
 
-Log::Logger clientCommands("server.clientCommands");
+static Log::Logger clientCommands("server.clientCommands");
 void SV_ExecuteClientCommand( client_t *cl, const char *s, bool clientOK, bool premaprestart )
 {
 	ucmd_t   *u;

@@ -76,7 +76,7 @@ namespace Audio {
     void CaptureTestUpdate();
 
     // Like in the previous sound system, we only have a single music
-    std::shared_ptr<LoopingSound> music;
+    static std::shared_ptr<LoopingSound> music;
 
     bool IsValidEntity(int entityNum) {
         return entityNum >= 0 and entityNum < MAX_GENTITIES;
@@ -486,7 +486,7 @@ namespace Audio {
         capture = nullptr;
     }
 
-    bool doingCaptureTest = false;
+    static bool doingCaptureTest = false;
 
     void CaptureTestStart() {
         if (not initialized or capture or doingCaptureTest) {

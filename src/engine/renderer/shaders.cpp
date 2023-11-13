@@ -59,6 +59,8 @@
 #include "shadowFill_vp.glsl.h"
 #include "skybox_fp.glsl.h"
 
+extern std::unordered_map<std::string, std::string> shadermap;
+
 std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/blurX_fp.glsl", std::string(reinterpret_cast<const char*>(blurX_fp_glsl), sizeof(blurX_fp_glsl)) },
 	{ "glsl/blurX_vp.glsl", std::string(reinterpret_cast<const char*>(blurX_vp_glsl), sizeof(blurX_vp_glsl)) },

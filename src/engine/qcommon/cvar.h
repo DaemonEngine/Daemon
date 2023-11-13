@@ -49,10 +49,10 @@
  */
 struct cvar_t
 {
-	char *name;
-	char *string;
-	char *resetString; // default value
-	char *latchedString; // for CVAR_LATCH vars
+	std::string name;
+	std::string string;
+	std::string resetString; // default value
+	std::string latchedString; // for CVAR_LATCH vars
 	int flags;
 	bool modified; // set each time the cvar is changed
 	float value; // atof( string )
@@ -71,22 +71,26 @@ cvar_t *Cvar_Get(const char *var_name, const char *value, int flags);
  * will create the variable with no flags if it doesn't exist
  */
 void Cvar_Set(const char *var_name, const char *value);
+inline void Cvar_Set(std::string const& var_name, const char *value) { Cvar_Set(var_name.c_str(), value); }
 
 /**
  * expands value to a string and calls Cvar_Set
  */
 void Cvar_SetValue(const char *var_name, float value);
+inline void Cvar_SetValue(std::string const& var_name, float value) { Cvar_SetValue(var_name.c_str(), value); }
 
 // returns 0 if not defined or non numeric
 float Cvar_VariableValue(const char *var_name);
 int Cvar_VariableIntegerValue(const char *var_name);
 
 // returns an empty string if not defined
-char *Cvar_VariableString(const char *var_name);
+char const *Cvar_VariableString(const char *var_name);
+inline char const *Cvar_VariableString(std::string const& var_name) { return Cvar_VariableString(var_name.c_str());}
 void Cvar_VariableStringBuffer(const char *var_name, char *buffer, int bufsize);
 
 // reset all testing vars to a safe value
 void Cvar_Reset(const char *var_name);
+inline void Cvar_Reset(std::string const&var_name) { Cvar_Reset(var_name.c_str()); }
 
 /**
  * writes lines containing "set variable value" for all variables

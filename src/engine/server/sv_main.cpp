@@ -80,6 +80,7 @@ cvar_t *sv_packetdelay;
 cvar_t *sv_fullmsg;
 
 // Network stuff other than communication with connected clients
+extern Log::Logger netLog;
 Log::Logger netLog("server.net", "", Log::Level::NOTICE);
 
 namespace Cvar {
@@ -109,7 +110,7 @@ std::string SerializeCvarValue(ServerPrivate value)
 	return std::to_string(int(value));
 }
 
-Cvar::Cvar<ServerPrivate> isPrivate(
+static Cvar::Cvar<ServerPrivate> isPrivate(
 	"server.private",
 	"Controls how much the server advertises: "
 	"0 - Advertise everything, "

@@ -74,9 +74,9 @@ int Cvar_VariableIntegerValue( const char* name ) {
 Cvar_VariableString
 ============
 */
-char* Cvar_VariableString(const char* name) {
+char const* Cvar_VariableString(const char* name) {
     cvar_t* var = Cvar_FindVar(name);
-    return var ? var->string : (char*)"";
+    return var ? var->string.c_str() : "";
 }
 
 /*
@@ -90,7 +90,7 @@ void Cvar_VariableStringBuffer(const char* name, char* buffer, int bufsize) {
     if (not var) {
         buffer[0] = '\0';
     } else {
-        Q_strncpyz(buffer, var->string, bufsize);
+        Q_strncpyz(buffer, var->string.c_str(), bufsize);
     }
 }
 
@@ -141,7 +141,7 @@ Cvar_Reset
 void Cvar_Reset(const char* name) {
     cvar_t* var = Cvar::FindCCvar(name);
     if (var != nullptr) {
-        Cvar_Set(name, var->resetString);
+        Cvar_Set(name, var->resetString.c_str());
     }
 }
 

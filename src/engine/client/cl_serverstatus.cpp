@@ -52,8 +52,8 @@ struct serverStatus_t
 	bool retrieved;
 };
 
-serverStatus_t cl_serverStatusList[ MAX_SERVERSTATUSREQUESTS ];
-int            serverStatusCount;
+static serverStatus_t cl_serverStatusList[ MAX_SERVERSTATUSREQUESTS ];
+static int            serverStatusCount;
 
 static Cvar::Range<Cvar::Cvar<int>> cl_serverStatusResendTime(
 	"cl_serverStatusResendTime", "timeout (ms) for serverstatus requests",

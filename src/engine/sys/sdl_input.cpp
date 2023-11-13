@@ -61,7 +61,7 @@ static cvar_t       *in_gameControllerTriggerDeadzone = nullptr;
 
 static cvar_t *in_gameControllerDebug = nullptr;
 
-static SDL_Window *window = nullptr;
+extern SDL_Window *window;
 
 
 /*

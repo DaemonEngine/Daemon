@@ -126,8 +126,8 @@ void R_PerformanceCounters()
 R_IssueRenderCommands
 ====================
 */
-int c_blockedOnRender;
-int c_blockedOnMain;
+static int c_blockedOnRender;
+static int c_blockedOnMain;
 
 void R_IssueRenderCommands( bool runPerformanceCounters )
 {
@@ -832,7 +832,7 @@ void RE_BeginFrame()
 	if ( r_textureMode->modified )
 	{
 		R_SyncRenderThread();
-		GL_TextureMode( r_textureMode->string );
+		GL_TextureMode( r_textureMode->string.c_str() );
 		r_textureMode->modified = false;
 	}
 

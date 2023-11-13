@@ -3023,7 +3023,7 @@ void RE_GetTextureSize( int textureID, int *width, int *height )
 }
 
 // This code is used to upload images produced by the game (like GUI elements produced by libRocket in Unvanquished)
-int numTextures = 0;
+static int numTextures = 0;
 
 qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 {

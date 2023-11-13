@@ -193,8 +193,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen(
 		"r_fullscreen", "use full-screen window", CVAR_ARCHIVE, true );
 
-	cvar_t      *r_customwidth;
-	cvar_t      *r_customheight;
+	static cvar_t      *r_customwidth;
+	static cvar_t      *r_customheight;
 
 	cvar_t      *r_debugSurface;
 
@@ -825,7 +825,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			for ( i = 31; i >= 0; i-- )
 			{
 				GL_SelectTexture( i );
-				GL_TextureMode( r_textureMode->string );
+				GL_TextureMode( r_textureMode->string.c_str() );
 			}
 		}
 

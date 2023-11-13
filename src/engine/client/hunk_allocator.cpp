@@ -74,7 +74,7 @@ Goals:
 #define MIN_COMHUNKMEGS 256
 #define DEF_COMHUNKMEGS 512
 
-cvar_t *com_hunkused; // Ridah
+static cvar_t *com_hunkused; // Ridah
 
 static const int HUNK_MAGIC      = 0x89537892;
 static const int HUNK_FREE_MAGIC = 0x89537893;

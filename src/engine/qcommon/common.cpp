@@ -51,11 +51,12 @@ Maryland 20850 USA.
 #include "framework/System.h"
 #include "sys/sys_events.h"
 #include <common/FileSystem.h>
+#include "engine/client/client.h"
 
 cvar_t *com_speeds;
 cvar_t *com_developer;
 cvar_t *com_timescale;
-cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
+static cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
 
 Cvar::Cvar<bool> cvar_demo_timedemo(
     "demo.timedemo",
@@ -78,9 +79,9 @@ int      time_backend; // renderer backend time
 
 int      com_frameTime;
 int      com_frameMsec;
-int      com_frameNumber;
+static int      com_frameNumber;
 
-bool com_fullyInitialized;
+static bool com_fullyInitialized;
 
 void     Com_WriteConfig_f();
 void     Com_WriteBindings_f();
@@ -165,7 +166,7 @@ void SetCheatMode(bool allowed)
 }
 
 //The server gives the sv_cheats cvar to the client, on 'off' it prevents the user from changing Cvar::CHEAT cvars
-Cvar::Callback<Cvar::Cvar<bool>> cvar_cheats("sv_cheats", "can cheats be used in the current game", Cvar::SYSTEMINFO | Cvar::ROM, true, SetCheatMode);
+static Cvar::Callback<Cvar::Cvar<bool>> cvar_cheats("sv_cheats", "can cheats be used in the current game", Cvar::SYSTEMINFO | Cvar::ROM, true, SetCheatMode);
 
 bool Com_AreCheatsAllowed()
 {

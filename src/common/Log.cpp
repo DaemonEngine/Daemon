@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Log {
 
     Logger::Logger(Str::StringRef name, std::string prefix, Level defaultLevel)
-        : filterLevel(new Cvar::Cvar<Log::Level>(
+        : filterLevel(std::make_shared<Cvar::Cvar<Log::Level>>(
               "logs.level." + name, "Log::Level - logs from '" + name + "' below the level specified are filtered", 0, defaultLevel)),
           prefix(prefix), enableSuppression(true) {
     }

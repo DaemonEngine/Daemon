@@ -37,7 +37,7 @@ Maryland 20850 USA.
 #include "client.h"
 #include "qcommon/q_unicode.h"
 
-bool scr_initialized; // ready to draw
+static bool scr_initialized; // ready to draw
 
 /*
 ================

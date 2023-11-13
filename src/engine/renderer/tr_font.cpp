@@ -93,7 +93,7 @@ Maryland 20850 USA.
 #define _CEIL( x )  ( ( ( x ) + 63 ) & - 64 )
 #define _TRUNC( x ) ( ( x ) >> 6 )
 
-FT_Library ftLibrary = nullptr;
+static FT_Library ftLibrary = nullptr;
 
 static const int FONT_SIZE = 512;
 

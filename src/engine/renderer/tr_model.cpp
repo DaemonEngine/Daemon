@@ -23,9 +23,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_models.c -- model loading and caching
 #include "tr_local.h"
 
-#define LL(x) x = LittleLong(x)
-#define LF(x) x = LittleFloat(x)
-
 bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *name );
 bool R_LoadMD5( model_t *mod, const char *buffer, const char *name );
 bool R_LoadIQModel( model_t *mod, const void *buffer, int bufferSize, const char *name );

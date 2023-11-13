@@ -145,11 +145,13 @@ bool UseLegacyPaks()
 // represents a success value.
 std::error_code throw_err;
 
+#ifndef BUILD_VM
 // Dependencies file in packages
 #define PAK_DEPS_FILE "DEPS"
 
 // Deleted file list in packages
 #define PAK_DELETED_FILE "DELETED"
+#endif
 
 // Whether the search paths have been initialized yet. This can be used to delay
 // writing log files until the filesystem is initialized.

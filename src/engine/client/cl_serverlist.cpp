@@ -71,7 +71,7 @@ struct ping_t
 	char     info[ MAX_INFO_STRING ];
 };
 
-ping_t             cl_pinglist[ MAX_PINGREQUESTS ];
+static ping_t cl_pinglist[ MAX_PINGREQUESTS ];
 static int lastPingSendTime = -99999;
 
 /*
@@ -729,7 +729,7 @@ void CL_GlobalServers_f()
 {
 	netadr_t to;
 	int      count, i, masterNum, protocol;
-	char     command[ 1024 ], *masteraddress;
+	char     command[ 1024 ];
 	bool     wildcard = false;
 	bool     active_master_servers[MAX_MASTER_SERVERS] = { false, false, false, false, false };
 
@@ -762,7 +762,7 @@ void CL_GlobalServers_f()
 		}
 
 		sprintf( command, "sv_master%d", masterNum + 1 );
-		masteraddress = Cvar_VariableString( command );
+		char const* masteraddress = Cvar_VariableString( command );
 
 		if ( !*masteraddress )
 		{

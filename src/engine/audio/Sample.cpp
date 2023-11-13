@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Audio {
 
-    Resource::Manager<Sample>* sampleManager;
+    static Resource::Manager<Sample>* sampleManager;
 
     // Implementation of Sample
 
@@ -72,7 +72,7 @@ namespace Audio {
 
     static const char errorSampleName[] = "sound/null";
     static std::shared_ptr<Sample> errorSample = nullptr;
-    bool initialized = false;
+    static bool initialized = false;
 
     void InitSamples() {
         if (initialized) {

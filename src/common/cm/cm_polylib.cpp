@@ -38,10 +38,10 @@ Maryland 20850 USA.
 
 // counters are only bumped when running single threaded,
 // because they are an awefull coherence problem
-int c_active_windings;
-int c_peak_windings;
-int c_winding_allocs;
-int c_winding_points;
+static int c_active_windings;
+static int c_peak_windings;
+static int c_winding_allocs;
+static int c_winding_points;
 
 /*
 =============
