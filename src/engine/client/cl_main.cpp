@@ -126,7 +126,6 @@ cvar_t *cl_activeAction;
 cvar_t *cl_autorecord;
 
 cvar_t *cl_allowDownload;
-cvar_t *cl_inGameVideo;
 
 cvar_t                 *cl_packetloss; //bani
 cvar_t                 *cl_packetdelay; //bani
@@ -656,8 +655,6 @@ static void StopDemos()
 // stop video recording
 static void StopVideo()
 {
-	CIN_CloseAllVideos();
-
 	// stop recording any video
 	if ( CL_VideoRecording() )
 	{
@@ -775,7 +772,7 @@ void CL_ClearState()
 =====================
 CL_Disconnect
 
-Called when a connectioni or demo is being terminated.
+Called when a connection or demo is being terminated.
 Goes from a connected state to either a menu state or a console state
 Sends a disconnect message to the server
 This is also called on Com_Error and Com_Quit, so it shouldn't cause any errors
@@ -2303,12 +2300,6 @@ static bool CL_InitRef()
 	ri.FS_FCloseFile = FS_FCloseFile;
 	ri.FS_FOpenFileRead = FS_FOpenFileRead;
 
-	// cinematic stuff
-
-	ri.CIN_UploadCinematic = CIN_UploadCinematic;
-	ri.CIN_PlayCinematic = CIN_PlayCinematic;
-	ri.CIN_RunCinematic = CIN_RunCinematic;
-
 	// XreaL BEGIN
 	ri.CL_VideoRecording = CL_VideoRecording;
 	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;
@@ -2418,8 +2409,6 @@ void CL_Init()
 	cl_showMouseRate = Cvar_Get( "cl_showmouserate", "0", 0 );
 
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", 0 );
-
-	cl_inGameVideo = Cvar_Get( "r_inGameVideo", "1", 0 );
 
 	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "250", 0 );  // Arnout: double tap
 	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE );
@@ -2554,7 +2543,6 @@ void CL_Shutdown()
 	Cmd_RemoveCommand( "snd_restart" );
 	Cmd_RemoveCommand( "vid_restart" );
 	Cmd_RemoveCommand( "disconnect" );
-	Cmd_RemoveCommand( "cinematic" );
 	Cmd_RemoveCommand( "connect" );
 	Cmd_RemoveCommand( "localservers" );
 	Cmd_RemoveCommand( "globalservers" );

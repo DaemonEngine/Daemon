@@ -185,6 +185,8 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define MAX_LIGHTMAPS      256
 #define MAX_SKINS          1024
 
+#define MAX_IN_GAME_VIDEOS 32
+
 #define MAX_DRAWSURFS      0x10000
 #define DRAWSURF_MASK      ( MAX_DRAWSURFS - 1 )
 
@@ -1149,8 +1151,8 @@ static inline void glFboSetExt()
 		uint8_t      numTexMods;
 		texModInfo_t *texMods;
 
-		int          videoMapHandle;
-		bool     isVideoMap;
+		int videoMapHandle;
+		bool isVideoMap;
 	};
 
 	enum class stageType_t
@@ -2724,7 +2726,7 @@ static inline void glFboSetExt()
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
 
 		image_t    *defaultImage;
-		image_t    *scratchImage[ 32 ];
+		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
 		image_t    *fogImage;
 		image_t    *quadraticImage;
 		image_t    *whiteImage; // full of 0xff
@@ -3281,7 +3283,6 @@ inline bool checkGLErrors()
 	====================================================================
 	*/
 
-	void      RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *data, int client, bool dirty );
 	void      RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty );
 
 	void      RE_BeginFrame();
@@ -3798,6 +3799,21 @@ inline bool checkGLErrors()
 	float    RB_EvalExpression( const expression_t *exp, float defaultValue );
 
 	void     RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix );
+
+	/*
+	=============================================================
+
+	IN-GAME VIDEO PLAYBACK ON A SURFACE (tr_video.cpp)
+
+	=============================================================
+	*/
+
+	using videoHandle_t = int; // 0 is valid; -1 is the invalid handle
+
+	videoHandle_t CIN_PlayCinematic( std::string name );
+	bool CIN_RunCinematic( videoHandle_t handle );
+	void CIN_UploadCinematic( videoHandle_t handle );
+	void CIN_CloseAllVideos();
 
 	/*
 	=============================================================

@@ -167,11 +167,6 @@ struct refexport_t
 	                                  qhandle_t hShader, const Color::Color& gradientColor, int gradientType );
 	void ( *Add2dPolys )( polyVert_t *polys, int numverts, qhandle_t hShader );
 
-	// Draw images for cinematic rendering, pass as 32 bit rgba
-	void ( *DrawStretchRaw )( int x, int y, int w, int h, int cols, int rows, const byte *data, int client,
-	                          bool dirty );
-	void ( *UploadCinematic )( int cols, int rows, const byte *data, int client, bool dirty );
-
 	void ( *BeginFrame )();
 
 	// if the pointers are not nullptr, timing info will be returned
@@ -285,11 +280,6 @@ struct refimport_t
 	int ( *FS_Read )( void *buffer, int len, fileHandle_t f );
 	int ( *FS_FCloseFile )( fileHandle_t f );
 	int ( *FS_FOpenFileRead )( const char *qpath, fileHandle_t *file );
-
-	// cinematic stuff
-	void ( *CIN_UploadCinematic )( int handle );
-	int ( *CIN_PlayCinematic )( const char *arg0, int xpos, int ypos, int width, int height, int bits );
-	e_status( *CIN_RunCinematic )( int handle );
 
 	// XreaL BEGIN
 	bool( *CL_VideoRecording )();
