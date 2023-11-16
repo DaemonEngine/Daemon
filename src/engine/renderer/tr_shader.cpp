@@ -2245,24 +2245,21 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			if ( stage->collapseType != collapseType_t::COLLAPSE_none )
 			{
-				Log::Warn("keyword '%s' cannot be used in collapsed shader '%s'", token, shader.name );
+				Log::Warn( "keyword '%s' cannot be used in collapsed shader '%s'",
+					token, shader.name );
 			}
 
 			token = COM_ParseExt2( text, false );
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parameter for 'videoMap' keyword in shader '%s'", shader.name );
+				Log::Warn( "missing parameter for 'videoMap' keyword in shader '%s'", shader.name );
 				return false;
 			}
 
-			stage->bundle[ 0 ].videoMapHandle = ri.CIN_PlayCinematic( token, 0, 0, 512, 512, ( CIN_loop | CIN_silent | CIN_shader ) );
-
-			if ( stage->bundle[ 0 ].videoMapHandle != -1 )
-			{
-				stage->bundle[ 0 ].isVideoMap = true;
-				stage->bundle[ 0 ].image[ 0 ] = tr.scratchImage[ stage->bundle[ 0 ].videoMapHandle ];
-			}
+			stage->bundle[ 0 ].videoMapHandle = CIN_PlayCinematic( token );
+			stage->bundle[ 0 ].isVideoMap = true;
+			stage->bundle[ 0 ].image[ 0 ] = tr.cinematicImage[ stage->bundle[ 0 ].videoMapHandle ];
 		}
 		// cubeMap <map>
 		else if ( !Q_stricmp( token, "cubeMap" ) || !Q_stricmp( token, "cameraCubeMap" ) )

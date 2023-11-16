@@ -133,6 +133,7 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_surface.cpp
     ${ENGINE_DIR}/renderer/tr_types.h
     ${ENGINE_DIR}/renderer/tr_vbo.cpp
+    ${ENGINE_DIR}/renderer/tr_video.cpp
     ${ENGINE_DIR}/renderer/tr_world.cpp
     ${ENGINE_DIR}/sys/sdl_glimp.cpp
     ${ENGINE_DIR}/sys/sdl_icon.h
@@ -307,7 +308,6 @@ set(CLIENTBASELIST
     ${ENGINE_DIR}/client/client.h
     ${ENGINE_DIR}/client/cl_avi.cpp
     ${ENGINE_DIR}/client/cl_cgame.cpp
-    ${ENGINE_DIR}/client/cl_cin.cpp
     ${ENGINE_DIR}/client/cl_console.cpp
     ${ENGINE_DIR}/client/cl_download.cpp
     ${ENGINE_DIR}/client/cl_input.cpp

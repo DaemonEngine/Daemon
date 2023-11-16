@@ -1497,6 +1497,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		{
 			R_SyncRenderThread();
 
+			CIN_CloseAllVideos();
 			R_ShutdownBackend();
 			R_ShutdownImages();
 			R_ShutdownVBOs();
@@ -1598,8 +1599,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.SetColor = RE_SetColor;
 		re.SetClipRegion = RE_SetClipRegion;
 		re.DrawStretchPic = RE_StretchPic;
-		re.DrawStretchRaw = RE_StretchRaw;
-		re.UploadCinematic = RE_UploadCinematic;
 
 		re.DrawRotatedPic = RE_RotatedPic;
 		re.Add2dPolys = RE_2DPolyies;

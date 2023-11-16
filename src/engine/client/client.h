@@ -430,7 +430,6 @@ extern cvar_t *cl_activeAction;
 extern cvar_t *cl_autorecord;
 
 extern cvar_t *cl_allowDownload;
-extern cvar_t *cl_inGameVideo;
 
 extern cvar_t *cl_altTab;
 
@@ -667,21 +666,6 @@ float SCR_ConsoleFontUnicharWidth( int ch );
 float SCR_ConsoleFontCharHeight();
 float SCR_ConsoleFontCharVPadding();
 float SCR_ConsoleFontStringWidth( const char *s, int len );
-
-//
-// cl_cin.c
-//
-
-int      CIN_PlayCinematic( const char *arg0, int xpos, int ypos, int width, int height, int bits );
-e_status CIN_StopCinematic( int handle );
-e_status CIN_RunCinematic( int handle );
-void     CIN_DrawCinematic( int handle );
-void     CIN_SetExtents( int handle, int x, int y, int w, int h );
-void     CIN_SetLooping( int handle, bool loop );
-void     CIN_UploadCinematic( int handle );
-void     CIN_CloseAllVideos();
-
-void     ROQ_GenYUVTables();
 
 //
 // cl_cgame.c

@@ -221,12 +221,6 @@ using clipHandle_t = int;
 MALLOC_LIKE void *Com_Allocate_Aligned( size_t alignment, size_t size );
 void  Com_Free_Aligned( void *ptr );
 
-#define CIN_system   1
-#define CIN_loop     2
-#define CIN_hold     4
-#define CIN_silent   8
-#define CIN_shader   16
-
 	/*
 	==============================================================
 
@@ -2114,18 +2108,6 @@ int        Com_GMTime( qtime_t *qtime );
 #define AS_LOCAL     0
 #define AS_GLOBAL    1 // NERVE - SMF - modified
 #define AS_NUM_TYPES 2
-
-// cinematic states
-typedef enum
-{
-	FMV_IDLE,
-	FMV_PLAY, // play
-	FMV_EOF, // all other conditions, i.e. stop/EOF/abort
-	FMV_ID_BLT,
-	FMV_ID_IDLE,
-	FMV_LOOPED,
-	FMV_ID_WAIT
-} e_status;
 
 #define MAX_GLOBAL_SERVERS       4096
 #define MAX_OTHER_SERVERS        128
