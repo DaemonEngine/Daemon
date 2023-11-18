@@ -326,7 +326,7 @@ struct clientStatic_t
 	// if new stuff gets added, CL_ClearStaticDownload code needs to be updated for clear up
 	char     downloadName[ MAX_OSPATH ];
 	char     downloadTempName[ MAX_OSPATH ]; // in wwwdl mode, this is OS path (it's a qpath otherwise)
-	char     originalDownloadName[ MAX_QPATH ]; // if we get a redirect, keep a copy of the original file path
+	char     originalDownloadName[ MAX_OSPATH ]; // if we get a redirect, keep a copy of the original file path
 	bool downloadRestart; // if true, we need to do another FS_Restart because we downloaded a pak
 };
 
