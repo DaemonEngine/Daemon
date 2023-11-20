@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <limits>
+#include <cstdint>
 #include "Compiler.h"
 
 namespace Str {
