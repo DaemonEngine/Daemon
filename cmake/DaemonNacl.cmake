@@ -26,6 +26,8 @@
 
 # Native client
 
+option(USE_NACL_SAIGO "Use Saigo toolchain to build NaCl executables" OFF)
+
 if( NACL )
   # Build nexe binary.
   # Those defines looks to be meaningless to produce arch-independent pexe,

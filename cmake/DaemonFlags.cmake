@@ -174,8 +174,11 @@ elseif (NACL)
 
     set_c_cxx_flag("-ffast-math")
     set_c_cxx_flag("-fvisibility=hidden")
-    set_c_cxx_flag("-stdlib=libc++")
-    set_c_cxx_flag("--pnacl-allow-exceptions")
+
+    if (NOT USE_NACL_SAIGO)
+        set_c_cxx_flag("-stdlib=libc++")
+        set_c_cxx_flag("--pnacl-allow-exceptions")
+    endif()
 
     set_c_cxx_flag("-Os -DNDEBUG"       MINSIZEREL)
     set_c_cxx_flag("-O3 -DNDEBUG"       RELEASE)

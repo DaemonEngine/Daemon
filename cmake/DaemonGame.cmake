@@ -75,41 +75,80 @@ function(GAMEMODULE)
                     "-D${inherited_option}=${${inherited_option}}")
             endforeach(inherited_option)
 
-            # Workaround a bug where CMake ExternalProject lists-as-args are cut on first “;”
-            string(REPLACE ";" "," NACL_TARGETS_STRING "${NACL_TARGETS}")
+            if (USE_NACL_SAIGO)
+                foreach(NACL_TARGET ${NACL_TARGETS})
+                    if (NACL_TARGET STREQUAL "i686")
+                        set(SAIGO_ARCH "i686")
+                    elseif (NACL_TARGET STREQUAL "amd64")
+                        set(SAIGO_ARCH "x86_64")
+                    elseif (NACL_TARGET STREQUAL "armhf")
+                        set(SAIGO_ARCH "arm")
+                    else()
+                        message(FATAL_ERROR "Unknown NaCl architecture ${NACL_TARGET}")
+                    endif()
 
-            ExternalProject_Add(${vm}
-                SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-                BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${vm}
-                CMAKE_GENERATOR ${VM_GENERATOR}
-                CMAKE_ARGS
-                    -DFORK=2
-                    -DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-pnacl.cmake
-                    -DDAEMON_DIR=${Daemon_SOURCE_DIR}
-                    -DDEPS_DIR=${DEPS_DIR}
-                    -DBUILD_GAME_NACL=ON
-                    -DNACL_TARGETS_STRING=${NACL_TARGETS_STRING}
-                    -DBUILD_GAME_NATIVE_DLL=OFF
-                    -DBUILD_GAME_NATIVE_EXE=OFF
-                    -DBUILD_CLIENT=OFF
-                    -DBUILD_TTY_CLIENT=OFF
-                    -DBUILD_SERVER=OFF
-                    ${inherited_option_args}
-                INSTALL_COMMAND ""
-            )
-            ExternalProject_Add_Step(${vm} forcebuild
-                COMMAND ${CMAKE_COMMAND} -E remove
-                    ${CMAKE_CURRENT_BINARY_DIR}/${vm}-prefix/src/${vm}-stamp/${vm}-configure
-                COMMENT "Forcing build step for '${vm}'"
-                DEPENDEES build
-                ALWAYS 1
-            )
+                    ExternalProject_Add(${vm}-${NACL_TARGET}
+                        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+                        BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${vm}-${NACL_TARGET}
+                        CMAKE_GENERATOR ${VM_GENERATOR}
+                        CMAKE_ARGS
+                            -DFORK=2
+                            -DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-saigo.cmake
+                            -DDAEMON_DIR=${Daemon_SOURCE_DIR}
+                            -DDEPS_DIR=${DEPS_DIR}
+                            -DBUILD_GAME_NACL=ON
+                            -DUSE_NACL_SAIGO=ON
+                            -DNACL_TARGET=${NACL_TARGET}
+                            -DSAIGO_ARCH=${SAIGO_ARCH}
+                            -DBUILD_GAME_NATIVE_DLL=OFF
+                            -DBUILD_GAME_NATIVE_EXE=OFF
+                            -DBUILD_CLIENT=OFF
+                            -DBUILD_TTY_CLIENT=OFF
+                            -DBUILD_SERVER=OFF
+                            ${inherited_option_args}
+                        INSTALL_COMMAND ""
+                    )
+                endforeach()
+            else()
+                # Workaround a bug where CMake ExternalProject lists-as-args are cut on first “;”
+                string(REPLACE ";" "," NACL_TARGETS_STRING "${NACL_TARGETS}")
 
+                ExternalProject_Add(${vm}
+                    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+                    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${vm}
+                    CMAKE_GENERATOR ${VM_GENERATOR}
+                    CMAKE_ARGS
+                        -DFORK=2
+                        -DCMAKE_TOOLCHAIN_FILE=${Daemon_SOURCE_DIR}/cmake/toolchain-pnacl.cmake
+                        -DDAEMON_DIR=${Daemon_SOURCE_DIR}
+                        -DDEPS_DIR=${DEPS_DIR}
+                        -DBUILD_GAME_NACL=ON
+                        -DNACL_TARGETS_STRING=${NACL_TARGETS_STRING}
+                        -DBUILD_GAME_NATIVE_DLL=OFF
+                        -DBUILD_GAME_NATIVE_EXE=OFF
+                        -DBUILD_CLIENT=OFF
+                        -DBUILD_TTY_CLIENT=OFF
+                        -DBUILD_SERVER=OFF
+                        ${inherited_option_args}
+                    INSTALL_COMMAND ""
+                )
+                ExternalProject_Add_Step(${vm} forcebuild
+                    COMMAND ${CMAKE_COMMAND} -E remove
+                        ${CMAKE_CURRENT_BINARY_DIR}/${vm}-prefix/src/${vm}-stamp/${vm}-configure
+                    COMMENT "Forcing build step for '${vm}'"
+                    DEPENDEES build
+                    ALWAYS 1
+                )
+            endif()
         endif()
     else()
         if (FORK EQUAL 2)
-            # Put the .nexe and .pexe files in the same directory as the engine
-            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
+            if(USE_NACL_SAIGO)
+                set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+            else()
+                # Put the .nexe and .pexe files in the same directory as the engine
+                set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
+            endif()
         endif()
 
         add_executable(${GAMEMODULE_NAME}-nacl ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${COMMONLIST})
@@ -127,9 +166,14 @@ function(GAMEMODULE)
         # Revert a workaround for a bug where CMake ExternalProject lists-as-args are cut on first “;”
         string(REPLACE "," ";" NACL_TARGETS "${NACL_TARGETS_STRING}")
 
-        # Generate NaCl executables for supported architectures.
-        foreach(NACL_TARGET ${NACL_TARGETS})
-            pnacl_finalize(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} ${NACL_TARGET})
-        endforeach()
+        if (USE_NACL_SAIGO)
+            # Finalize NaCl executables for supported architectures.
+            saigo_finalize(${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/.. ${GAMEMODULE_NAME} ${SAIGO_ARCH} ${NACL_TARGET})
+        else()
+            # Generate NaCl executables for supported architectures.
+            foreach(NACL_TARGET ${NACL_TARGETS})
+                pnacl_finalize(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} ${NACL_TARGET})
+            endforeach()
+        endif()
     endif()
 endfunction()
