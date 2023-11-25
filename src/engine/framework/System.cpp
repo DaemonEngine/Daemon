@@ -650,7 +650,7 @@ static void Init(int argc, char** argv)
 
 	// Initialize the filesystem. For pakpaths, the libpath is added first and has the
 	// lowest priority, while the homepath is added last and has the highest.
-	cmdlineArgs.pakPaths.insert(cmdlineArgs.pakPaths.begin(), FS::Path::Build(FS::DefaultLibPath(), "pkg"));
+	cmdlineArgs.pakPaths.insert(cmdlineArgs.pakPaths.begin(), FS::Path::Build(cmdlineArgs.libPath, "pkg"));
 	cmdlineArgs.pakPaths.push_back(FS::Path::Build(cmdlineArgs.homePath, "pkg"));
 	EarlyCvar("fs_legacypaks", cmdlineArgs);
 	FS::Initialize(cmdlineArgs.homePath, cmdlineArgs.libPath, cmdlineArgs.pakPaths);
