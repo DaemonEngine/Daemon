@@ -2281,7 +2281,7 @@ Cmd::CompletionResult CompleteFilename(Str::StringRef prefix, Str::StringRef roo
 
 #ifndef BUILD_VM
 // Determine path to the executable, default to current directory
-std::string DefaultBasePath()
+std::string DefaultLibPath()
 {
 #ifdef _WIN32
 	wchar_t buffer[MAX_PATH];

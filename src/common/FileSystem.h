@@ -507,7 +507,7 @@ namespace HomePath {
 #ifdef BUILD_VM
 void Initialize();
 #else
-std::string DefaultBasePath();
+std::string DefaultLibPath();
 std::string DefaultHomePath();
 #ifndef _WIN32
 std::string DefaultTempPath();
