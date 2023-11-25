@@ -410,12 +410,12 @@ static void StartSignalThread()
 // Command line arguments
 struct cmdlineArgs_t {
 	cmdlineArgs_t()
-		: homePath(Application::GetTraits().defaultHomepath), libPath(FS::DefaultBasePath()),
+		: homePath(Application::GetTraits().defaultHomepath), libPath(FS::DefaultLibPath()),
 		  reset_config(false), use_curses(Application::GetTraits().useCurses) {}
 
 	std::string homePath;
 	std::string libPath;
-	std::vector<std::string> paths;
+	std::vector<std::string> pakPaths;
 
 	bool reset_config;
 	bool use_curses;
@@ -513,7 +513,7 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				Log::Warn("Missing argument for -pakpath");
 				continue;
 			}
-			cmdlineArgs.paths.push_back(argv[i + 1]);
+			cmdlineArgs.pakPaths.push_back(argv[i + 1]);
 			i++;
 		} else if (!strcmp(argv[i], "-libpath")) {
 			if (i == argc - 1) {
@@ -648,12 +648,12 @@ static void Init(int argc, char** argv)
 	else
 		CON_Init_TTY();
 
-	// Initialize the filesystem. The base path is added first and has the
+	// Initialize the filesystem. For pakpaths, the libpath is added first and has the
 	// lowest priority, while the homepath is added last and has the highest.
-	cmdlineArgs.paths.insert(cmdlineArgs.paths.begin(), FS::Path::Build(FS::DefaultBasePath(), "pkg"));
-	cmdlineArgs.paths.push_back(FS::Path::Build(cmdlineArgs.homePath, "pkg"));
+	cmdlineArgs.pakPaths.insert(cmdlineArgs.pakPaths.begin(), FS::Path::Build(FS::DefaultLibPath(), "pkg"));
+	cmdlineArgs.pakPaths.push_back(FS::Path::Build(cmdlineArgs.homePath, "pkg"));
 	EarlyCvar("fs_legacypaks", cmdlineArgs);
-	FS::Initialize(cmdlineArgs.homePath, cmdlineArgs.libPath, cmdlineArgs.paths);
+	FS::Initialize(cmdlineArgs.homePath, cmdlineArgs.libPath, cmdlineArgs.pakPaths);
 
 	// Look for an existing instance of the engine running on the same homepath.
 	// If there is one, forward any +commands to it and exit.
