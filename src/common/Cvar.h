@@ -252,6 +252,8 @@ namespace Cvar {
     bool Register(CvarProxy* proxy, const std::string& name, std::string description, int flags, const std::string& defaultValue);
     std::string GetValue(const std::string& cvarName);
     void SetValue(const std::string& cvarName, const std::string& value);
+
+    // Alter flags, returns true if the variable exists
     bool AddFlags(const std::string& cvarName, int flags);
 
     // Implementation of templates

@@ -63,16 +63,13 @@ namespace Cvar {
 
     // Generic ways to access cvars, might specialize it to parse and serialize automatically
 
-    void SetValue(const std::string& cvarName, const std::string& value);
     //Used for ROM cvars, will trigger a warning if the cvar is not ROM
     void SetValueForce(const std::string& cvarName, const std::string& value);
-    std::string GetValue(const std::string& cvarName);
 
     // Returns a list of cvars matching the prefix as well as their description
     Cmd::CompletionResult Complete(Str::StringRef prefix);
 
     // Alter flags, returns true if the variable exists
-    bool AddFlags(const std::string& cvarName, int flags);
     bool ClearFlags(const std::string& cvarName, int flags);
 
     // Used by statically defined cvar.
