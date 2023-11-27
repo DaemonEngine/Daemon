@@ -225,11 +225,6 @@ namespace Cvar {
         cvar->description = std::move(realDescription);
     }
 
-    // To avoid "change will take effect after restart" messages during initialization, when
-    // variables are set by autogen.cfg or command line.
-    // Note that SetLatchedValues is never called in a dedicated server.
-    static bool setLatchedValuesCalled = false;
-
     void InternalSetValue(const std::string& cvarName, std::string value, int flags, bool rom, bool warnRom) {
         CvarMap& cvars = GetCvarMap();
 
@@ -277,13 +272,13 @@ namespace Cvar {
                 OnValueChangedResult result = cvar->proxy->OnValueChanged(value);
 
                 if (result.success) {
-                    if (cvar->flags & LATCH && value != cvar->value) {
+                    if (cvar->flags & INTERNAL_LATCH && value != cvar->value) {
                         ChangeCvarDescription(cvarName, cvar, Str::Format("%s - latched value \"%s^*\"", result.description, value));
                         OnValueChangedResult undo = cvar->proxy->OnValueChanged(cvar->value);
-                        ASSERT(undo.success);
-                        if (setLatchedValuesCalled) {
-                            Log::Notice("The change to %s will take effect after restart.", cvarName);
+                        if (!undo.success) {
+                            Sys::Error("error testing new value for latched cvar %s", cvarName);
                         }
+                        Log::Notice("The change to %s will take effect after restart.", cvarName);
                         cvar->latchedValue = value;
                         return;
                     }
@@ -477,25 +472,32 @@ namespace Cvar {
         }
     }
 
-    void SetLatchedValues()
+    // Activates the new value of a latched cvar, like Cvar_Get for an old-style cvar with
+    // CVAR_LATCH. By adding the latch flag here rather than in the cvar's constructor, we avoid
+    // 'change will take effect after restart' messages during initialization. Also we avoid
+    // the programming error of setting the latch flag but never reloading the value.
+    void Latch(CvarProxy& cvar)
     {
-        for (auto& entry : GetCvarMap()) {
-            cvarRecord_t* cvar = entry.second;
-            if (!cvar->latchedValue) {
-                continue;
-            }
-            cvar->value = std::move(*cvar->latchedValue);
-            cvar->latchedValue = Util::nullopt;
-            SetCCvar(*cvar);
-            ASSERT_NQ(cvar->proxy, nullptr);
-            OnValueChangedResult result = cvar->proxy->OnValueChanged(cvar->value);
+        CvarMap& map = GetCvarMap();
+        auto it = map.find(cvar.Name());
+
+        if (it == map.end() || !it->second->proxy) {
+            Sys::Error("cvar %s not registered", cvar.Name());
+        }
+
+        it->second->flags |= INTERNAL_LATCH;
+
+        if (it->second->latchedValue) {
+            it->second->value = std::move(*it->second->latchedValue);
+            it->second->latchedValue = Util::nullopt;
+            SetCCvar(*it->second);
+            OnValueChangedResult result = it->second->proxy->OnValueChanged(it->second->value);
             if (result.success) {
-                ChangeCvarDescription(entry.first, cvar, result.description);
+                ChangeCvarDescription(it->first, it->second, result.description);
             } else {
-                Log::Warn("BUG: failed setting cvar %s to latched value", entry.first);
+                Log::Warn("BUG: failed setting cvar %s to latched value", cvar.Name());
             }
         }
-        setLatchedValuesCalled = true;
     }
 
     // Used by the C API
@@ -713,7 +715,7 @@ namespace Cvar {
                     cvarFlags += (var->flags & ROM) ? "R" : "_";
                     cvarFlags += (var->flags & CVAR_INIT) ? "I" : "_";
                     cvarFlags += (var->flags & TEMPORARY) ? "T" : (var->flags & USER_ARCHIVE) ? "A" : "_";
-                    cvarFlags += (var->flags & (CVAR_LATCH | LATCH)) ? "L" : "_";
+                    cvarFlags += (var->flags & (CVAR_LATCH | INTERNAL_LATCH)) ? "L" : "_";
                     cvarFlags += (var->flags & CHEAT) ? "C" : "_";
                     cvarFlags += (var->flags & CVAR_USER_CREATED) ? "?" : "_";
 

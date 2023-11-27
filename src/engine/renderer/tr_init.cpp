@@ -180,10 +180,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_noportals;
 	cvar_t      *r_portalOnly;
 
-	/* Quake3 used 256 as default portal range. */
-	Cvar::Modified<Cvar::Cvar<int>> r_portalDefaultRange(
-		"r_portalDefaultRange", "Default portal range", Cvar::LATCH, 1024 );
-
 	cvar_t      *r_portalSky;
 	cvar_t      *r_max_portal_levels;
 
