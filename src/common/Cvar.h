@@ -300,7 +300,8 @@ namespace Cvar {
                 return validationResult;
             }
         } else {
-            return OnValueChangedResult{false, Str::Format("value \"%s\" is not of type '%s' as expected", text, GetCvarTypeName<T>())};
+            return OnValueChangedResult{false, Str::Format(
+                "value \"%s^*\" is not of type '%s' as expected", text, GetCvarTypeName<T>())};
         }
     }
 
