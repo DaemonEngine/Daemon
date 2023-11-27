@@ -76,6 +76,10 @@ namespace Cvar {
     bool Register(CvarProxy* proxy, const std::string& name, std::string description, int flags, const std::string& defaultValue);
     void Unregister(const std::string& cvarName);
 
+    // Marks the cvar as latch and sets the new value if any
+    // TODO: support it in gamelogic too
+    void Latch(CvarProxy& cvar);
+
     // Used by the C API
     cvar_t* FindCCvar(const std::string& cvarName);
     std::string GetCvarConfigText();
@@ -86,7 +90,6 @@ namespace Cvar {
 
     void SetCheatsAllowed(bool allowed);
     // Use the stored values for new-style cvars with LATCH flag
-    void SetLatchedValues();
     void Shutdown();
 
     //Kept as a reference for cvar flags

@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_shader.c -- this file deals with the parsing and definition of shaders
 #include "tr_local.h"
 #include "gl_shader.h"
+#include "framework/CvarSystem.h"
 
 static const int MAX_SHADERTABLE_HASH = 1024;
 static shaderTable_t *shaderTableHashTable[ MAX_SHADERTABLE_HASH ];
@@ -71,8 +72,12 @@ static const vec3_t glNormalFormat = {  1.0,  1.0,  1.0 };
 static const vec3_t dxNormalFormat = {  1.0, -1.0,  1.0 };
 
 // DarkPlaces material compatibility
-static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::LATCH, false);
+static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::NONE, false);
 Cvar::Cvar<bool> r_dpBlend("r_dpBlend", "Enable DarkPlaces blend compatibility, process GT0 as GE128", Cvar::NONE, false);
+
+/* Quake3 used 256 as default portal range. */
+static Cvar::Cvar<float> r_portalDefaultRange(
+	"r_portalDefaultRange", "Default portal range", Cvar::NONE, 1024);
 
 /*
 ================
@@ -6538,6 +6543,9 @@ R_InitShaders
 */
 void R_InitShaders()
 {
+	Cvar::Latch(r_dpMaterial);
+	Cvar::Latch(r_portalDefaultRange);
+
 	memset( shaderTableHashTable, 0, sizeof( shaderTableHashTable ) );
 	memset( shaderHashTable, 0, sizeof( shaderHashTable ) );
 
