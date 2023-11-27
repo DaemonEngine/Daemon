@@ -210,7 +210,7 @@ namespace Cvar {
                 cvarRecord_t* var = cvars[name];
 
                 if (args.Argc() < 2) {
-                    Print("\"%s\" - %s^* - default: \"%s^*\"", name.c_str(), var->description.c_str(), var->resetValue.c_str());
+                    Print("\"%s\" - %s ^*- default: \"%s^*\"", name, var->description, var->resetValue);
                 } else {
                     //TODO forward the print part of the environment
                     SetValue(name, args.Argv(1));
@@ -220,7 +220,7 @@ namespace Cvar {
     static CvarCommand cvarCommand;
 
     void ChangeCvarDescription(Str::StringRef cvarName, cvarRecord_t* cvar, Str::StringRef description) {
-        std::string realDescription = Str::Format("\"%s\" - %s", cvar->value, description);
+        std::string realDescription = Str::Format("\"%s^*\" - %s", cvar->value, description);
         Cmd::ChangeDescription(cvarName, "cvar - " + realDescription);
         cvar->description = std::move(realDescription);
     }
@@ -291,7 +291,7 @@ namespace Cvar {
                     cvar->value = std::move(value);
                     ChangeCvarDescription(cvarName, cvar, result.description);
                 } else {
-                    Log::Notice("Value '%s' is not valid for cvar %s: %s", value, cvarName, result.description);
+                    Log::Notice("Value '%s^*' is not valid for cvar %s: %s", value, cvarName, result.description);
                     return;
                 }
             } else {
@@ -335,7 +335,7 @@ namespace Cvar {
             }
 
             //Create the cvar and parse its default value
-            description = Str::Format("\"%s\" - %s", defaultValue, description);
+            description = Str::Format("\"%s^*\" - %s", defaultValue, description);
             cvar = new cvarRecord_t{defaultValue, defaultValue, Util::nullopt, flags, description, proxy, {}};
             cvars[name] = cvar;
 
