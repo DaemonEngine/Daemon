@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <common/FileSystem.h>
+#include "framework/CvarSystem.h"
 #include "AudioPrivate.h"
 #include "AudioData.h"
 
@@ -47,12 +48,10 @@ namespace Audio {
     static Cvar::Cvar<bool> muteWhenMinimized("audio.muteWhenMinimized", "should the game be muted when minimized", Cvar::NONE, false);
     static Cvar::Cvar<bool> muteWhenUnfocused("audio.muteWhenUnfocused", "should the game be muted when not focused", Cvar::NONE, false);
 
-    //TODO make them the equivalent of LATCH and ROM for available*
     static Cvar::Cvar<std::string> deviceString("audio.al.device", "the OpenAL device to use", Cvar::ARCHIVE, "");
-    static Cvar::Cvar<std::string> availableDevices("audio.al.availableDevices", "the available OpenAL devices", Cvar::NONE, "");
+    static Cvar::Cvar<std::string> availableDevices("audio.al.availableDevices", "the available OpenAL devices", Cvar::ROM, "");
 
-    static Cvar::Cvar<std::string> captureDeviceString("audio.al.captureDevice", "the OpenAL capture device to use", Cvar::ARCHIVE, "");
-    static Cvar::Cvar<std::string> availableCaptureDevices("audio.al.availableCaptureDevices", "the available capture OpenAL devices", Cvar::NONE, "");
+    static Cvar::Cvar<std::string> availableCaptureDevices("audio.al.availableCaptureDevices", "the available capture OpenAL devices", Cvar::ROM, "");
 
     // We mimic the behavior of the previous sound system by allowing only one looping sound per entity.
     // (and only one entities) CGame will add at each frame all the loops: if a loop hasn't been given
@@ -92,6 +91,7 @@ namespace Audio {
         }
 
         // Initializes a device
+        Cvar::Latch(deviceString);
         std::string deviceToTry = deviceString.Get();
         if (not deviceToTry.empty()) {
             device = AL::Device::FromName(deviceToTry);
@@ -123,7 +123,7 @@ namespace Audio {
         for (const auto& deviceName : AL::Device::ListByName()) {
             deviceList << deviceName << "\n";
         }
-        availableDevices.Set(deviceList.str());
+        Cvar::SetValueForce(availableDevices.Name(), deviceList.str());
 
         context->MakeCurrent();
 
@@ -133,7 +133,7 @@ namespace Audio {
         for (const auto& captureDeviceName : AL::CaptureDevice::ListByName()) {
             captureDeviceList << captureDeviceName << "\n";
         }
-        availableCaptureDevices.Set(captureDeviceList.str());
+        Cvar::SetValueForce(availableCaptureDevices.Name(), captureDeviceList.str());
 
         audioLogs.Notice(AL::GetSystemInfo(device, nullptr));
 
