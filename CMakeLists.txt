@@ -167,10 +167,7 @@ option(USE_WERROR "Tell the compiler to make the build fail when warnings are pr
 option(USE_PEDANTIC "Tell the compiler to be pedantic" OFF)
 option(USE_DEBUG_OPTIMIZE "Try to optimize the debug build" ON)
 
-if (APPLE)
-    # Turn off by default because it is reportedly broken
-    option(USE_PRECOMPILED_HEADER "Improve build times by using a precompiled header" OFF)
-elseif (CMAKE_GENERATOR EQUAL "Ninja")
+if (CMAKE_GENERATOR MATCHES "^Ninja")
     # It isn't currently supported with Ninja yet:
     #
     # > Note that the IMPLICIT_DEPENDS option is currently supported only for
