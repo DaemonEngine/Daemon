@@ -234,7 +234,7 @@ static void CON_Redraw()
 	{
 		scrollline = 0;
 	}
-	pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS );
+	pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS - 1 );
 
 	// Create the input field
 	inputwin = newwin( 1, COLS - Color::StrlenNocolor( PROMPT ) - 8, LINES - 1, Color::StrlenNocolor( PROMPT ) + 8 );
@@ -522,7 +522,7 @@ char *CON_Input()
 						scrollline = lastline - NumLogLines();
 					}
 
-					pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS );
+					pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS - 1 );
 				}
 				if (scrollline >= lastline - NumLogLines()) {
 					CON_SetColor( stdscr, Color::Green );
@@ -542,7 +542,7 @@ char *CON_Input()
 						scrollline = 0;
 					}
 
-					pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS );
+					pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS - 1 );
 				}
 				if (scrollline < lastline - NumLogLines()) {
 					CON_SetColor( stdscr, Color::Red );
@@ -701,8 +701,7 @@ void CON_Print( const char *msg )
 		{
 			scrollline = 0;
 		}
-
-		pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS );
+		pnoutrefresh( logwin, scrollline, 0, 1, 0, NumLogLines(), COLS - 1 );
 	}
 
 	// Add the message to the log buffer
