@@ -774,16 +774,21 @@ static bool GLimp_CreateContext( const glConfiguration &configuration )
 	GLimp_DestroyContextIfExists();
 	glContext = SDL_GL_CreateContext( window );
 
-	if ( glContext != nullptr )
-	{
-		logger.Debug( "Valid context: %s", ContextDescription( configuration ) );
-	}
-	else
+	if ( glContext == nullptr )
 	{
 		logger.Debug( "Invalid context: %s", ContextDescription( configuration ) );
+		return false;
 	}
 
-	return glContext != nullptr;
+	if ( glGetString( GL_VERSION ) == nullptr )
+	{
+		Sys::Error(
+			"SDL returned a broken OpenGL context.\n\n"
+			"Please report the bug and tell us what is your operating system,\n"
+			"OpenGL driver, graphic card, and if you built the game yourself." );
+	}
+
+	return true;
 }
 
 /* GLimp_DestroyWindowIfExists checks if window exists before
@@ -1012,7 +1017,6 @@ static rserr_t GLimp_ValidateBestContext(
 
 	if ( bestValidatedConfiguration.major == 0 )
 	{
-
 		return rserr_t::RSERR_MISSING_GL;
 	}
 
@@ -1140,6 +1144,7 @@ static bool CreateWindowAndContext(
 	logger.Notice( "Using %s context - %s",
 		contextAdjective,
 		ContextDescription( customConfiguration ) );
+
 	return true;
 }
 
