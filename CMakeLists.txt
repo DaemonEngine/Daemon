@@ -599,6 +599,32 @@ if (BUILD_CLIENT)
     find_package(OpenGL REQUIRED)
     include_directories(${OPENGL_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
+
+    # When OpenGL_GL_PREFERENCE is set but neither GLVND nor LEGACY are available,
+    # This code is unreachable since it already errored out at find_package time.
+    # This code only executes if OpenGL is supported, either because the GLVND ABI
+    # is available, either because the LEGACY ABI is available.
+    if (LINUX)
+        if (NOT OPENGL_gl_LIBRARY)
+            # When OpenGL_GL_PREFERENCE is supported and GLVND is available
+            # OPENGL_gl_LIBRARY is expected to be empty. So we can use the
+            # emptyness of OPENGL_gl_LIBRARY to detect that CMake supports
+            # OpenGL_GL_PREFERENCE and GLVND is used:
+            # > If the GLVND OpenGL and GLX libraries are available, prefer them.
+            # > This forces OPENGL_gl_LIBRARY to be empty.
+            # -- https://cmake.org/cmake/help/latest/module/FindOpenGL.html
+            set(OpenGL_selected_ABI "GLVND")
+        else()
+            # When OpenGL_GL_PREFERENCE is not supported or GLVND is not available
+            # the OPENGL_gl_LIBRARY is always set, so if it is set, it means the ABI
+            # is the LEGACY one.
+            set(OpenGL_selected_ABI "LEGACY")
+        endif()
+
+        message(STATUS "Found OpenGL ABI: ${OpenGL_selected_ABI}")
+        add_definitions("-DDAEMON_OpenGL_ABI=${OpenGL_selected_ABI}")
+        add_definitions("-DDAEMON_OpenGL_ABI_${OpenGL_selected_ABI}")
+    endif()
 endif()
 
 # Prefer static libs
