@@ -6,6 +6,11 @@ set -u -e -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 WORK_DIR="${PWD}"
 
+# Do not reuse self-built curl from external_deps custom PATH
+# to download source archives or we would get errors like:
+#   curl: (1) Protocol "https" not supported or disabled in libcurl
+CURL="$(command -v curl)"
+
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
@@ -93,7 +98,7 @@ extract() {
 # Usage: download <filename> <URL> <dir>
 download() {
 	if [ ! -f "${DOWNLOAD_DIR}/${1}" ]; then
-		curl -L --fail -o "${DOWNLOAD_DIR}/${1}" "${2}"
+		"${CURL}" -L --fail -o "${DOWNLOAD_DIR}/${1}" "${2}"
 	fi
 	extract "${1}" "${3}"
 }
