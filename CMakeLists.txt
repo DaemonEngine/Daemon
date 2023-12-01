@@ -638,12 +638,9 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
 
             add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DUSE_CURSES)
             add_library(srclibs-pdcurses EXCLUDE_FROM_ALL ${PDCURSESLIST})
-            if (MSVC)
-                target_compile_options(srclibs-pdcurses PRIVATE "/W2") # decrease warning level
-            endif()
             set_target_properties(srclibs-pdcurses PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
             set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-pdcurses)
-            include_directories(${LIB_DIR}/pdcurses)
+            include_directories(${LIB_DIR}/pdcursesmod)
         else ()
             add_definitions(-DUSE_CURSES)
             set(CURSES_NEED_NCURSES 1) # Tells FindCurses that ncurses is required
