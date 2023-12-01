@@ -687,7 +687,7 @@ if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
         if (WIN32)
             set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
 
-            add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DUSE_CURSES)
+            add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DPDC_RGB -DUSE_CURSES)
             add_library(srclibs-pdcurses EXCLUDE_FROM_ALL ${PDCURSESLIST})
             set_target_properties(srclibs-pdcurses PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
             set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-pdcurses)
