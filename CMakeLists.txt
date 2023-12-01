@@ -596,6 +596,14 @@ endif()
 
 # Look for OpenGL here before we potentially switch to looking for static libs.
 if (BUILD_CLIENT)
+    if (LINUX)
+        # Set LEGACY OpenGL ABI if the variable is not explictly set.
+        # The backward-incompatible GLVND OpenGL ABI should only be used
+        # by developers who have a good reason to require it.
+        # See: https://github.com/DaemonEngine/Daemon/issues/945#issuecomment-1835091256
+        set(OpenGL_GL_PREFERENCE "LEGACY" CACHE STRING "Linux OpenGL ABI (LEGACY or GLVND).")
+    endif()
+
     find_package(OpenGL REQUIRED)
     include_directories(${OPENGL_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} OpenGL::GL)
@@ -614,14 +622,34 @@ if (BUILD_CLIENT)
             # > This forces OPENGL_gl_LIBRARY to be empty.
             # -- https://cmake.org/cmake/help/latest/module/FindOpenGL.html
             set(OpenGL_selected_ABI "GLVND")
+            set(OpenGL_selected_LIBRARY "${OPENGL_opengl_LIBRARY}")
         else()
             # When OpenGL_GL_PREFERENCE is not supported or GLVND is not available
             # the OPENGL_gl_LIBRARY is always set, so if it is set, it means the ABI
             # is the LEGACY one.
             set(OpenGL_selected_ABI "LEGACY")
+            set(OpenGL_selected_LIBRARY "${OPENGL_gl_LIBRARY}")
+        endif()
+
+        if (OpenGL_selected_ABI STREQUAL "GLVND")
+            message(WARNING "The GLVND OpenGL ABI is backward incompatible with legacy drivers.\nSee https://github.com/DaemonEngine/Daemon/issues/945")
+        endif()
+
+        if (OpenGL_GL_PREFERENCE STREQUAL "GLVND")
+            if (NOT OPENGL_opengl_LIBRARY)
+                message(WARNING "GLVND OpenGL ABI not available but LEGACY is.\nTry OpenGL_GL_PREFERENCE=LEGACY")
+                message(FATAL_ERROR "Could NOT find GLVND libOpenGL.so")
+            endif()
+        else()
+            if (NOT OPENGL_gl_LIBRARY)
+                message(WARNING "LEGACY OpenGL ABI not available but GLVND is.\nTry OpenGL_GL_PREFERENCE=GLVND")
+                message(FATAL_ERROR "Could NOT find LEGACY libGL.so")
+            endif()
         endif()
 
         message(STATUS "Found OpenGL ABI: ${OpenGL_selected_ABI}")
+        message(STATUS "Found OpenGL library: ${OpenGL_selected_LIBRARY}")
+
         add_definitions("-DDAEMON_OpenGL_ABI=${OpenGL_selected_ABI}")
         add_definitions("-DDAEMON_OpenGL_ABI_${OpenGL_selected_ABI}")
     endif()
