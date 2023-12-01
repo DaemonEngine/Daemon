@@ -7,3 +7,6 @@
 [submodule "libs/googletest"]
 	path = libs/googletest
 	url = https://github.com/DaemonEngine/googletest.git
+[submodule "libs/pdcursesmod"]
+	path = libs/pdcursesmod
+	url = https://github.com/DaemonEngine/PDCursesMod.git

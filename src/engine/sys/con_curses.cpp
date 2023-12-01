@@ -25,11 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "framework/CommandSystem.h"
 #include "framework/ConsoleField.h"
 
-#ifdef _WIN32
-extern "C" {
-#include <pdcurses/win32a/pdcwin.h> // for PDC_set_function_key
-}
-#else
+#ifndef _WIN32
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -46,10 +42,6 @@ extern "C" {
 static const int LOG_SCROLL    = 5;
 static const int MAX_LOG_LINES = 1024;
 static const int LOG_BUF_SIZE  = 65536;
-
-#ifdef _WIN32
-constexpr int QUIT_KEY = 0xACEBEEF; // arbitrary
-#endif
 
 // TTY Console prototypes
 void CON_Shutdown_TTY();
@@ -337,7 +329,9 @@ void CON_Init()
 	{
 #ifdef _WIN32
 		// Let us handle this to do /quit instead of exit()
-		PDC_set_function_key(FUNCTION_KEY_SHUT_DOWN, QUIT_KEY);
+		// We have to translate it to a key rather than handling it directly
+		// I've never heard of the "abort/terminate" key but it sounds reasonable?
+		PDC_set_function_key(FUNCTION_KEY_SHUT_DOWN, KEY_ABORT);
 #else
 		// Enable more colors
 		const char* term = getenv("TERM");
@@ -453,7 +447,7 @@ char *CON_Input()
 				return nullptr;
 
 #ifdef _WIN32
-			case QUIT_KEY:
+			case KEY_ABORT:
 				Cmd::BufferCommandText("quit");
 				return nullptr;
 #endif
