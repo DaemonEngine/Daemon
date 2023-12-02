@@ -44,8 +44,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 #ifdef __native_client__
+#if !defined(USE_NACL_SAIGO)
 #include <nacl/nacl_exception.h>
 #include <nacl/nacl_minidump.h>
+#endif
 #include <nacl/nacl_random.h>
 #else
 #include <dlfcn.h>
@@ -274,8 +276,10 @@ static void CrashHandler(const void* data, size_t n)
 
 void SetupCrashHandler()
 {
+#if !defined(USE_NACL_SAIGO)
     nacl_minidump_register_crash_handler();
     nacl_minidump_set_callback(CrashHandler);
+#endif
 }
 #else
 NORETURN static void CrashHandler(int sig)
