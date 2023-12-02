@@ -129,17 +129,7 @@ function(GAMEMODULE)
 
         # Generate NaCl executables for supported architectures.
         foreach(NACL_TARGET ${NACL_TARGETS})
-            if (NACL_TARGET STREQUAL "i686")
-                set(PNACL_ARCH "i686")
-            elseif (NACL_TARGET STREQUAL "amd64")
-                set(PNACL_ARCH "x86-64")
-            elseif (NACL_TARGET STREQUAL "armhf")
-                set(PNACL_ARCH "arm")
-            else()
-                message(FATAL_ERROR "Unknown NaCl architecture ${NACL_TARGET}")
-            endif()
-
-            pnacl_finalize(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} ${PNACL_ARCH} ${NACL_TARGET})
+            pnacl_finalize(${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${GAMEMODULE_NAME} ${NACL_TARGET})
         endforeach()
     endif()
 endfunction()
