@@ -805,6 +805,7 @@ if (BUILD_TESTS)
     add_subdirectory(${LIB_DIR}/googletest EXCLUDE_FROM_ALL)
     unset(BUILD_GMOCK CACHE)
     unset(INSTALL_GTEST CACHE)
+    set_target_properties(gmock PROPERTIES FOLDER "libs")
 endif()
 
 ################################################################################
@@ -846,6 +847,7 @@ function(AddApplication)
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_OPTIONS ${A_Flags})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET ${A_Target}-objects APPEND PROPERTY COMPILE_DEFINITIONS ${A_Definitions})
+    set_target_properties(${A_Target}-objects PROPERTIES FOLDER "engine/objects")
 
     set(Sources WIN32 ${A_ApplicationMain})
     AddApplicationInternal(${A_Target} ${A_ExecutableName})
@@ -870,6 +872,7 @@ if (NOT NACL)
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_OPTIONS ${WARNINGS})
+    set_target_properties(engine-lib PROPERTIES FOLDER "engine/objects")
     ADD_PRECOMPILED_HEADER(engine-lib)
 
     if (BUILD_DUMMY_APP)
