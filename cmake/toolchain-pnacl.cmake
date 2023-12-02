@@ -96,10 +96,20 @@ set(PNACL_TRANSLATE_OPTIONS
     $<$<CONFIG:MinSizeRel>:-O2>
 )
 
-function(pnacl_finalize dir module pnacl_arch arch)
+function(pnacl_finalize dir module arch)
     set(PEXE ${dir}/${module}.pexe)
     set(NEXE ${dir}/${module}-${arch}.nexe)
     set(STRIPPED_NEXE ${dir}/${module}-${arch}-stripped.nexe)
+
+    if (arch STREQUAL "i686")
+        set(PNACL_ARCH "i686")
+    elseif (arch STREQUAL "amd64")
+        set(PNACL_ARCH "x86-64")
+    elseif (arch STREQUAL "armhf")
+        set(PNACL_ARCH "arm")
+    else()
+        message(FATAL_ERROR "Unknown NaCl architecture ${arch}")
+    endif()
 
     add_custom_command(
         OUTPUT ${NEXE}
@@ -109,7 +119,7 @@ function(pnacl_finalize dir module pnacl_arch arch)
             ${PNACLPYTHON_PREFIX2}
             "${PNACL_TRANSLATE}"
             ${PNACL_TRANSLATE_OPTIONS}
-            -arch ${pnacl_arch}
+            -arch ${PNACL_ARCH}
             ${PEXE}
             -o ${NEXE}
     )
