@@ -86,16 +86,6 @@ set(NACL ON)
 set(CMAKE_C_FLAGS "")
 set(CMAKE_CXX_FLAGS "")
 
-function(pnacl_finalize target)
-    add_custom_command(TARGET ${target} POST_BUILD
-        COMMENT "Finalising ${target}"
-        COMMAND
-            ${PNACLPYTHON_PREFIX2}
-            "${PLATFORM_PREFIX}/${PLATFORM_TRIPLET}-finalize${PNACL_BIN_EXT}"
-            "$<TARGET_FILE:${target}>"
-    )
-endfunction()
-
 set(PNACL_TRANSLATE_OPTIONS
     --allow-llvm-bitcode-input # FIXME: finalize as part of the build process
     --pnacl-allow-exceptions
