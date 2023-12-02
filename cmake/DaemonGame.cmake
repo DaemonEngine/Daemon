@@ -114,8 +114,10 @@ function(GAMEMODULE)
 
         add_executable(${GAMEMODULE_NAME}-nacl ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${COMMONLIST})
         target_link_libraries(${GAMEMODULE_NAME}-nacl ${GAMEMODULE_LIBS} ${LIBS_BASE})
+        # PLATFORM_EXE_SUFFIX is .pexe when building with PNaCl
+        # as translating to .nexe is a separate task.
         set_target_properties(${GAMEMODULE_NAME}-nacl PROPERTIES
-            OUTPUT_NAME ${GAMEMODULE_NAME}.pexe
+            OUTPUT_NAME ${GAMEMODULE_NAME}${PLATFORM_EXE_SUFFIX}
             COMPILE_DEFINITIONS "VM_NAME=${GAMEMODULE_NAME};${GAMEMODULE_DEFINITIONS};BUILD_VM"
             COMPILE_OPTIONS "${GAMEMODULE_FLAGS}"
             FOLDER ${GAMEMODULE_NAME}
