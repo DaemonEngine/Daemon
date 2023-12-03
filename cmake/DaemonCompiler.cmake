@@ -71,6 +71,14 @@ message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 detect_daemon_compiler("C")
 detect_daemon_compiler("CXX")
 
+if (CMAKE_COMPILER_IS_GNUCXX)
+	set(DAEMON_COMPILER_IS_GNUCXX ON)
+endif()
+
+if ("${DAEMON_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CUSTOM_CXX_CLANG_VERSION}")
+	set(DAEMON_COMPILER_IS_CLANGCXX ON)
+endif()
+
 # We only pass the C++ compiler string to the game for now.
 # We may later print in the game log all language compiler and
 # interpreter versions used to build the game or embedded in the

@@ -402,9 +402,10 @@ function(ADD_PRECOMPILED_HEADER Target)
     set(Header ${COMMON_DIR}/Common.h)
 
     # Compiler-specific PCH support
-    if (CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR NACL)
+    if (DAEMON_COMPILER_IS_GNUCXX OR DAEMON_COMPILER_IS_CLANGCXX OR NACL)
         add_custom_command(OUTPUT "${OBJ_DIR}/${Target}.h.gch"
-            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
+            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${CUSTOM_CXX_COMPILER_SUBCOMMAND}
+            ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
             DEPENDS ${Header}
             IMPLICIT_DEPENDS CXX ${Header}
         )
@@ -413,7 +414,7 @@ function(ADD_PRECOMPILED_HEADER Target)
         add_dependencies(${Target} ${Target}-pch)
 
         # PNaCl clang doesn't support -include-pch properly
-        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT NACL)
+        if (DAEMON_COMPILER_IS_CLANGCXX AND NOT NACL)
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
         else()
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
