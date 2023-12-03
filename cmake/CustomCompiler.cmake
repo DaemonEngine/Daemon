@@ -24,6 +24,32 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+function(detect_custom_clang lang)
+	set(C_EXT ".c")
+	set(CXX_EXT ".cpp")
+
+	string(RANDOM RANDOM_SUFFIX)
+
+	set(COMPILER_TEST_FILE "${PROJECT_BINARY_DIR}/test_compiler_${RANDOM_SUFFIX}${${lang}_EXT}")
+
+	file(TOUCH "${COMPILER_TEST_FILE}")
+
+	# Parse “<compiler> -E -dM <source file>”
+	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" -E -dM "${COMPILER_TEST_FILE}"
+		OUTPUT_VARIABLE CUSTOM_${lang}_CLANG_OUTPUT
+		RESULT_VARIABLE CUSTOM_${lang}_RETURN_CODE
+		ERROR_QUIET)
+
+	file(REMOVE "${COMPILER_TEST_FILE}")
+
+	if (NOT CUSTOM_${lang}_RETURN_CODE) # Success
+		if ("${CUSTOM_${lang}_CLANG_OUTPUT}" MATCHES "\#define __clang_version__ ")
+			string(REGEX REPLACE ".*#define __clang_version__ \"([^ ]+)[\" ]*.*" "\\1" CUSTOM_${lang}_CLANG_VERSION "${CUSTOM_${lang}_CLANG_OUTPUT}")
+			set(CUSTOM_${lang}_CLANG_VERSION "${CUSTOM_${lang}_CLANG_VERSION}" PARENT_SCOPE)
+		endif()
+	endif()
+endfunction()
+
 function(detect_custom_compiler lang)
 	set(C_EXT ".c")
 	set(CXX_EXT ".cpp")
@@ -99,3 +125,6 @@ endfunction()
 
 detect_custom_compiler("C")
 detect_custom_compiler("CXX")
+
+detect_custom_clang("C")
+detect_custom_clang("CXX")
