@@ -27,10 +27,10 @@
 include(CustomCompiler)
 
 function(detect_daemon_compiler lang)
+	detect_custom_compiler("${lang}")
+
 	set(C_NAME "C")
 	set(CXX_NAME "C++")
-
-	get_filename_component(DAEMON_${LANG}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
 
 	if (CUSTOM_${lang}_COMPILER_ID)
 		set(DAEMON_${lang}_COMPILER_ID "${CUSTOM_${lang}_COMPILER_ID}")
@@ -60,6 +60,8 @@ function(detect_daemon_compiler lang)
 		set(DAEMON_${lang}_COMPILER_VERSION "${DAEMON_${lang}_COMPILER_VERSION}/gcc-${CUSTOM_${lang}_GCC_VERSION}")
 	endif()
 
+	get_filename_component(DAEMON_${LANG}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
+
 	set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_ID} ${DAEMON_${lang}_COMPILER_VERSION} ${DAEMON_${lang}_COMPILER_BASENAME}")
 	set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_STRING}" PARENT_SCOPE)
 
@@ -68,8 +70,9 @@ endfunction()
 
 message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
 
-detect_daemon_compiler("C")
-detect_daemon_compiler("CXX")
+foreach(lang C;CXX)
+	detect_daemon_compiler("${lang}")
+endforeach()
 
 if (CMAKE_COMPILER_IS_GNUCXX)
 	set(DAEMON_COMPILER_IS_GNUCXX ON)

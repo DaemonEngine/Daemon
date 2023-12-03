@@ -24,23 +24,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-function(detect_custom_clang lang)
-	set(C_EXT ".c")
-	set(CXX_EXT ".cpp")
-
-	string(RANDOM RANDOM_SUFFIX)
-
-	set(COMPILER_TEST_FILE "${PROJECT_BINARY_DIR}/test_compiler_${RANDOM_SUFFIX}${${lang}_EXT}")
-
-	file(TOUCH "${COMPILER_TEST_FILE}")
-
+function(detect_custom_clang_version lang file)
 	# Parse “<compiler> -E -dM <source file>”
-	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" ${CUSTOM_${lang}_COMPILER_SUBCOMMAND} -E -dM "${COMPILER_TEST_FILE}"
+	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" ${CUSTOM_${lang}_COMPILER_SUBCOMMAND} -E -dM "${file}"
 		OUTPUT_VARIABLE CUSTOM_${lang}_CLANG_OUTPUT
 		RESULT_VARIABLE CUSTOM_${lang}_RETURN_CODE
 		ERROR_QUIET)
-
-	file(REMOVE "${COMPILER_TEST_FILE}")
 
 	if (NOT CUSTOM_${lang}_RETURN_CODE) # Success
 		if ("${CUSTOM_${lang}_CLANG_OUTPUT}" MATCHES "\#define __clang_version__ ")
@@ -50,7 +39,7 @@ function(detect_custom_clang lang)
 	endif()
 endfunction()
 
-function(detect_custom_gcc lang)
+function(detect_custom_gcc_version lang)
 	# This will only set the GCC version if the custom compiler is detected
 	# as GCC by CMake.
 	if(CUSTOM_${lang}_COMPILER_ID AND CMAKE_${lang}_COMPILER_ID STREQUAL "GNU")
@@ -59,23 +48,12 @@ function(detect_custom_gcc lang)
 	endif()
 endfunction()
 
-function(detect_custom_compiler lang)
-	set(C_EXT ".c")
-	set(CXX_EXT ".cpp")
-
-	string(RANDOM RANDOM_SUFFIX)
-
-	set(COMPILER_TEST_FILE "${PROJECT_BINARY_DIR}/test_compiler_${RANDOM_SUFFIX}${${lang}_EXT}")
-
-	file(TOUCH "${COMPILER_TEST_FILE}")
-
+function(detect_custom_compiler_id_version lang file)
 	# Parse “<compiler> -E -dM <source file>”
-	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" -E -dM "${COMPILER_TEST_FILE}"
+	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" -E -dM "${file}"
 		OUTPUT_VARIABLE CUSTOM_${lang}_COMPILER_OUTPUT
 		RESULT_VARIABLE CUSTOM_${lang}_RETURN_CODE
 		ERROR_QUIET)
-
-	file(REMOVE "${COMPILER_TEST_FILE}")
 
 	if (NOT CUSTOM_${lang}_RETURN_CODE) # Success
 		# PNaCL
@@ -161,11 +139,24 @@ function(detect_custom_compiler lang)
 	endif()
 endfunction()
 
-detect_custom_compiler("C")
-detect_custom_compiler("CXX")
+function(detect_custom_compiler lang)
+	set(C_EXT ".c")
+	set(CXX_EXT ".cpp")
 
-detect_custom_clang("C")
-detect_custom_clang("CXX")
+	string(RANDOM RANDOM_SUFFIX)
+	set(COMPILER_TEST_FILE "${PROJECT_BINARY_DIR}/test_compiler_${RANDOM_SUFFIX}${${lang}_EXT}")
+	file(TOUCH "${COMPILER_TEST_FILE}")
 
-detect_custom_gcc("C")
-detect_custom_gcc("CXX")
+	detect_custom_compiler_id_version("${lang}" "${COMPILER_TEST_FILE}")
+	detect_custom_clang_version("${lang}" "${COMPILER_TEST_FILE}")
+	detect_custom_gcc_version("${lang}")
+
+	file(REMOVE "${COMPILER_TEST_FILE}")
+
+	set(CUSTOM_${lang}_COMPILER_ID "${CUSTOM_${lang}_COMPILER_ID}" PARENT_SCOPE)
+	set(CUSTOM_${lang}_COMPILER_VERSION "${CUSTOM_${lang}_COMPILER_VERSION}" PARENT_SCOPE)
+	set(CUSTOM_${lang}_COMPILER_SUBCOMMAND "${CUSTOM_${lang}_COMPILER_SUBCOMMAND}" PARENT_SCOPE)
+
+	set(CUSTOM_${lang}_CLANG_VERSION "${CUSTOM_${lang}_CLANG_VERSION}" PARENT_SCOPE)
+	set(CUSTOM_${lang}_GCC_VERSION "${CUSTOM_${lang}_GCC_VERSION}" PARENT_SCOPE)
+endfunction()
