@@ -30,11 +30,27 @@ option(USE_NACL_SAIGO "Use Saigo toolchain to build NaCl executables" OFF)
 
 if( NACL )
   # Build nexe binary.
-  # Those defines looks to be meaningless to produce arch-independent pexe,
-  # but they must be set to anything supported by native builds. this
-  # requirement looks to be a NaCl bug.
-  add_definitions( -DNACL_BUILD_ARCH=x86 )
-  add_definitions( -DNACL_BUILD_SUBARCH=64 )
+  if(USE_NACL_SAIGO)
+    # NACL_ARCH is "pnacl" here, NACL_TARGET carries the architecture.
+    if (NACL_TARGET STREQUAL "amd64")
+      add_definitions(-DNACL_BUILD_ARCH=x86)
+      add_definitions(-DNACL_BUILD_SUBARCH=64)
+    elseif (NACL_TARGET STREQUAL "i686")
+      add_definitions(-DNACL_BUILD_ARCH=x86)
+      add_definitions(-DNACL_BUILD_SUBARCH=32)
+    elseif (NACL_TARGET STREQUAL "armhf")
+      add_definitions(-DNACL_BUILD_ARCH=arm)
+    else()
+      message(FATAL_ERROR "Unsupported architecture ${NACL_TARGET}")
+    endif()
+  else()
+    # Those defines looks to be meaningless to produce arch-independent pexe
+    # with PNaCl but they must be set to anything supported by native builds.
+    # This requirement looks to be a PNaCl bug.
+    # NACL_ARCH is "pnacl" here, NACL_TARGET is not set.
+    add_definitions( -DNACL_BUILD_ARCH=x86 )
+    add_definitions( -DNACL_BUILD_SUBARCH=64 )
+  endif()
 else()
   # Build native dll or native exe.
   if( APPLE )
