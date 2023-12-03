@@ -35,7 +35,7 @@ function(detect_custom_clang lang)
 	file(TOUCH "${COMPILER_TEST_FILE}")
 
 	# Parse “<compiler> -E -dM <source file>”
-	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" -E -dM "${COMPILER_TEST_FILE}"
+	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" ${CUSTOM_${lang}_COMPILER_SUBCOMMAND} -E -dM "${COMPILER_TEST_FILE}"
 		OUTPUT_VARIABLE CUSTOM_${lang}_CLANG_OUTPUT
 		RESULT_VARIABLE CUSTOM_${lang}_RETURN_CODE
 		ERROR_QUIET)
@@ -117,6 +117,14 @@ function(detect_custom_compiler lang)
 			execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" version OUTPUT_VARIABLE CUSTOM_${lang}_COMPILER_VERSION)
 			string(STRIP "${CUSTOM_${lang}_COMPILER_VERSION}" CUSTOM_${lang}_COMPILER_VERSION)
 			set(CUSTOM_${lang}_COMPILER_VERSION "${CUSTOM_${lang}_COMPILER_VERSION}" PARENT_SCOPE)
+
+			# There is a bug in CMake: if we set CMAKE_C_COMPILER to "zig;cc",
+			# only "zig" is returned when using the ${CMAKE_C_COMPILER} variable.
+			set(C_SUBCOMMAND "cc")
+			set(CXX_SUBCOMMAND "c++")
+
+			set(CUSTOM_${lang}_COMPILER_SUBCOMMAND "${${lang}_SUBCOMMAND}")
+			set(CUSTOM_${lang}_COMPILER_SUBCOMMAND "${CUSTOM_${lang}_COMPILER_SUBCOMMAND}" PARENT_SCOPE)
 
 			return()
 		endif()
