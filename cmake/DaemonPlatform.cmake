@@ -38,4 +38,17 @@ else()
   message( FATAL_ERROR "Platform not supported" )
 endif()
 
+if (USE_NACL_SAIGO)
+	# Saigo clang reports weird errors when building some cgame and sgame arm nexe with PIE.
+	# Saigo clang crashes when building amd64 cgame with PIE, sgame builds properly though.
+	if (NACL_TARGET STREQUAL "armhf" OR NACL_TARGET STREQUAL "amd64")
+		set(GAME_PIE 0)
+	else()
+		set(GAME_PIE 1)
+	endif()
+else()
+	set(GAME_PIE 1)
+endif()
+
+
 include("${DAEMON_DIR}/tools/DaemonArchitecture/DaemonArchitecture.cmake")

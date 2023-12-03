@@ -31,6 +31,7 @@ include(DaemonFlags)
 
 # Function to setup all the Sgame/Cgame libraries
 include(CMakeParseArguments)
+
 function(GAMEMODULE)
     # ParseArguments setup
     set(oneValueArgs NAME)
