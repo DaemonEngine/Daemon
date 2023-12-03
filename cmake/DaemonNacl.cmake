@@ -70,7 +70,7 @@ else()
   elseif( NACL_ARCH STREQUAL "armhf" )
     add_definitions( -DNACL_BUILD_ARCH=arm )
   else()
-    message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+    message(FATAL_ERROR "Unsupported architecture ${NACL_ARCH}")
   endif()
 endif()
 
