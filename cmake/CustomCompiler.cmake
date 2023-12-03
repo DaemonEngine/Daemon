@@ -25,6 +25,14 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 function(detect_custom_clang_version lang file)
+	# If CMake already detected the compiler as Clang but we know
+	# it's something else.
+	if(CUSTOM_${lang}_COMPILER_ID AND CMAKE_${lang}_COMPILER_ID STREQUAL "Clang")
+		set(CUSTOM_${lang}_CLANG_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
+		set(CUSTOM_${lang}_CLANG_VERSION "${CUSTOM_${lang}_CLANG_VERSION}" PARENT_SCOPE)
+		return()
+	endif()
+
 	# Parse “<compiler> -E -dM <source file>”
 	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" ${CUSTOM_${lang}_COMPILER_SUBCOMMAND} -E -dM "${file}"
 		OUTPUT_VARIABLE CUSTOM_${lang}_CLANG_OUTPUT
@@ -39,12 +47,46 @@ function(detect_custom_clang_version lang file)
 	endif()
 endfunction()
 
-function(detect_custom_gcc_version lang)
-	# This will only set the GCC version if the custom compiler is detected
-	# as GCC by CMake.
+function(detect_custom_gcc_version lang file)
+	# If CMake already detected the compiler as GCC but we know
+	# it's something else.
 	if(CUSTOM_${lang}_COMPILER_ID AND CMAKE_${lang}_COMPILER_ID STREQUAL "GNU")
 		set(CUSTOM_${lang}_GCC_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
 		set(CUSTOM_${lang}_GCC_VERSION "${CUSTOM_${lang}_GCC_VERSION}" PARENT_SCOPE)
+		return()
+	endif()
+
+	# Almost all compilers on Earth define __GNUC__, __GNUC_MINOR__, and __GNUC_PATCHLEVEL__,
+	# So we first have to check it's really a GCC variant.
+	# Parse “<compiler> -v”
+	execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" -v
+		ERROR_VARIABLE CUSTOM_${lang}_GCC_OUTPUT
+		RESULT_VARIABLE CUSTOM_${lang}_RETURN_CODE
+		OUTPUT_QUIET)
+
+	if (NOT CUSTOM_${lang}_RETURN_CODE) # Success
+		# The existence of this string tells us it's a GCC variant.
+		# The version in this string is the same as __VERSION__,
+		# the version of the GCC variant, not the version of the upstream
+		# GCC we are looking for.
+		if ("${CUSTOM_${lang}_GCC_OUTPUT}" MATCHES "\ngcc version ")
+			# Parse “<compiler> -E -dM <source file>”
+			# No subcommand implemented for now, there may be no usage.
+			execute_process(COMMAND "${CMAKE_${lang}_COMPILER}" -E -dM "${file}"
+			OUTPUT_VARIABLE CUSTOM_${lang}_GCC_OUTPUT
+			RESULT_VARIABLE CUSTOM_${lang}_RETURN_CODE
+			ERROR_QUIET)
+
+			if (NOT CUSTOM_${lang}_RETURN_CODE) # Success
+				string(REGEX REPLACE ".*#define __GNUC__ ([^ \n]+).*" "\\1" CUSTOM_${lang}_GCC_MAJOR "${CUSTOM_${lang}_GCC_OUTPUT}")
+				string(REGEX REPLACE ".*#define __GNUC_MINOR__ ([^ \n]+).*" "\\1" CUSTOM_${lang}_GCC_MINOR "${CUSTOM_${lang}_GCC_OUTPUT}")
+				string(REGEX REPLACE ".*#define __GNUC_PATCHLEVEL__ ([^ \n]+).*" "\\1" CUSTOM_${lang}_GCC_PATCHLEVEL "${CUSTOM_${lang}_GCC_OUTPUT}")
+
+				set(CUSTOM_${lang}_GCC_VERSION "${CUSTOM_${lang}_GCC_MAJOR}.${CUSTOM_${lang}_GCC_MINOR}.${CUSTOM_${lang}_GCC_PATCHLEVEL}")
+				set(CUSTOM_${lang}_GCC_VERSION "${CUSTOM_${lang}_GCC_VERSION}" PARENT_SCOPE)
+				return()
+			endif()
+		endif()
 	endif()
 endfunction()
 
@@ -149,7 +191,7 @@ function(detect_custom_compiler lang)
 
 	detect_custom_compiler_id_version("${lang}" "${COMPILER_TEST_FILE}")
 	detect_custom_clang_version("${lang}" "${COMPILER_TEST_FILE}")
-	detect_custom_gcc_version("${lang}")
+	detect_custom_gcc_version("${lang}" "${COMPILER_TEST_FILE}")
 
 	file(REMOVE "${COMPILER_TEST_FILE}")
 

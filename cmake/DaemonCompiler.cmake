@@ -60,7 +60,7 @@ function(detect_daemon_compiler lang)
 		set(DAEMON_${lang}_COMPILER_VERSION "${DAEMON_${lang}_COMPILER_VERSION}/gcc-${CUSTOM_${lang}_GCC_VERSION}")
 	endif()
 
-	get_filename_component(DAEMON_${LANG}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
+	get_filename_component(DAEMON_${lang}_COMPILER_BASENAME "${CMAKE_${lang}_COMPILER}" NAME)
 
 	set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_ID} ${DAEMON_${lang}_COMPILER_VERSION} ${DAEMON_${lang}_COMPILER_BASENAME}")
 	set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_STRING}" PARENT_SCOPE)
@@ -74,7 +74,7 @@ foreach(lang C;CXX)
 	detect_daemon_compiler("${lang}")
 endforeach()
 
-if (CMAKE_COMPILER_IS_GNUCXX)
+if (CMAKE_COMPILER_IS_GNUCXX OR "${CUSTOM_CXX_GCC_VERSION}")
 	set(DAEMON_COMPILER_IS_GNUCXX ON)
 endif()
 
