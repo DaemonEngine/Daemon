@@ -50,6 +50,15 @@ function(detect_custom_clang lang)
 	endif()
 endfunction()
 
+function(detect_custom_gcc lang)
+	# This will only set the GCC version if the custom compiler is detected
+	# as GCC by CMake.
+	if(CUSTOM_${lang}_COMPILER_ID AND CMAKE_${lang}_COMPILER_ID STREQUAL "GNU")
+		set(CUSTOM_${lang}_GCC_VERSION "${CMAKE_${lang}_COMPILER_VERSION}")
+		set(CUSTOM_${lang}_GCC_VERSION "${CUSTOM_${lang}_GCC_VERSION}" PARENT_SCOPE)
+	endif()
+endfunction()
+
 function(detect_custom_compiler lang)
 	set(C_EXT ".c")
 	set(CXX_EXT ".cpp")
@@ -157,3 +166,6 @@ detect_custom_compiler("CXX")
 
 detect_custom_clang("C")
 detect_custom_clang("CXX")
+
+detect_custom_gcc("C")
+detect_custom_gcc("CXX")

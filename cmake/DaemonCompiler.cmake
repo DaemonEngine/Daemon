@@ -56,6 +56,10 @@ function(detect_daemon_compiler lang)
 		set(DAEMON_${lang}_COMPILER_VERSION "${DAEMON_${lang}_COMPILER_VERSION}/clang-${CUSTOM_${lang}_CLANG_VERSION}")
 	endif()
 
+	if(CUSTOM_${lang}_GCC_VERSION AND NOT DAEMON_${lang}_COMPILER_ID STREQUAL "GNU")
+		set(DAEMON_${lang}_COMPILER_VERSION "${DAEMON_${lang}_COMPILER_VERSION}/gcc-${CUSTOM_${lang}_GCC_VERSION}")
+	endif()
+
 	set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_ID} ${DAEMON_${lang}_COMPILER_VERSION} ${DAEMON_${lang}_COMPILER_BASENAME}")
 	set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_STRING}" PARENT_SCOPE)
 
