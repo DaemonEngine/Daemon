@@ -70,18 +70,14 @@ endif()
 # FIXME: this reports an unused architecture if only vms are built.
 # We may not be able to avoid this for now without doing a huge rewrite
 # of this file.
-if (NOT (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
-    message(NOTICE "You can safely ignore the following reported architecture, it is not used.")
-endif()
-include(DaemonPlatform)
-
 # FIXME: this reports an unused compiler if only vms are built.
 # We cannot avoid this for now without doing a huge rewrite of this files
 # since we also set useless flags using informations provided by this.
 if (NOT (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
+    message(NOTICE "You can safely ignore the following reported architecture, it is not used.")
     message(NOTICE "You can safely ignore the following reported compilers, they are unused.")
 endif()
-include(DaemonCompiler)
+include(DaemonPlatform)
 
 if (Daemon_OUT)
     set(CMAKE_CURRENT_BINARY_DIR ${Daemon_OUT})
@@ -402,9 +398,11 @@ function(ADD_PRECOMPILED_HEADER Target)
     set(Header ${COMMON_DIR}/Common.h)
 
     # Compiler-specific PCH support
-    if (DAEMON_COMPILER_IS_GNUCXX OR DAEMON_COMPILER_IS_CLANGCXX OR NACL)
+    if (DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY)
+        # There is a bug in CMake: if we set CMAKE_CXX_COMPILER to "zig;c++",
+        # only "zig" is returned when using the ${CMAKE_CXX_COMPILER} variable.
         add_custom_command(OUTPUT "${OBJ_DIR}/${Target}.h.gch"
-            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${CUSTOM_CXX_COMPILER_SUBCOMMAND}
+            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${DAEMON_CXX_COMPILER_SUBCOMMAND}
             ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
             DEPENDS ${Header}
             IMPLICIT_DEPENDS CXX ${Header}
@@ -414,7 +412,7 @@ function(ADD_PRECOMPILED_HEADER Target)
         add_dependencies(${Target} ${Target}-pch)
 
         # PNaCl clang doesn't support -include-pch properly
-        if (DAEMON_COMPILER_IS_CLANGCXX AND NOT NACL)
+        if (NOT DAEMON_CXX_COMPILER_NAME STREQUAL "PNaCl")
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
         else()
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")

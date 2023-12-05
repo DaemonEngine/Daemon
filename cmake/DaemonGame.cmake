@@ -25,13 +25,12 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 include_directories(${MOUNT_DIR} ${LIB_DIR} ${LIB_DIR}/zlib)
-include(DaemonPlatform)
-include(DaemonNacl)
 
 # Do not report unused native compiler if native vms are not built.
 # If only NACL vms are built, this will be reported in chainloaded build.
 if (BUILD_GAME_NATIVE_DLL OR BUILD_GAME_NATIVE_EXE OR NACL)
-    include(DaemonCompiler)
+	include(DaemonPlatform)
+	include(DaemonNacl)
     include(DaemonFlags)
 endif()
 

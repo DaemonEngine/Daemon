@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+
+# test script
+
+set -u -e -o pipefail
+
+if ! "${1}" DaemonCompiler.cpp -o /dev/null 2>&1 \
+	| grep '###REPORT###' \
+	| sed -e 's/.*(###REPORT###(//;s/)###REPORT###(/=/;s/)###REPORT###).*//'
+then
+	"${1}" DaemonCompiler.cpp -o /dev/null 
+fi
