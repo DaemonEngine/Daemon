@@ -428,21 +428,6 @@ void MSG_WriteBigString( msg_t *sb, const char *s )
 // reading functions
 //
 
-// returns -1 if no more characters are available
-int MSG_ReadChar( msg_t *msg )
-{
-	int c;
-
-	c = ( signed char ) MSG_ReadBits( msg, 8 );
-
-	if ( msg->readcount > msg->cursize )
-	{
-		c = -1;
-	}
-
-	return c;
-}
-
 int MSG_ReadByte( msg_t *msg )
 {
 	int c;
@@ -583,11 +568,6 @@ char           *MSG_ReadStringLine( msg_t *msg )
 	string[ l ] = 0;
 
 	return string;
-}
-
-float MSG_ReadAngle16( msg_t *msg )
-{
-	return SHORT2ANGLE( MSG_ReadShort( msg ) );
 }
 
 void MSG_ReadData( msg_t *msg, void *data, int len )
