@@ -200,20 +200,25 @@ else()
     if (ARCH STREQUAL "amd64")
         # K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
         set(GCC_GENERIC_ARCH "x86-64")
+        set(GCC_GENERIC_TUNE "generic")
     elseif (ARCH STREQUAL "i686")
         # P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
         set(GCC_GENERIC_ARCH "i686")
+        set(GCC_GENERIC_TUNE "generic")
     elseif (ARCH STREQUAL "arm64")
         # Armv8-A minimum: Cortex-A50.
         set(GCC_GENERIC_ARCH "armv8-a")
+        set(GCC_GENERIC_TUNE "generic")
     elseif (ARCH STREQUAL "armhf")
         # Armv7-A with VFP minimum: Cortex-A5.
         # Hard float ABI (mainstream 32-bit ARM Linux distributions).
         set(GCC_GENERIC_ARCH "armv7-a")
+        set(GCC_GENERIC_TUNE "generic-armv7-a")
     elseif (ARCH STREQUAL "armel")
         # Armv6 minimum, optional VFP: ARM11.
         # Soft float ABI (mainstream 32-bit ARM Android distributions).
         set(GCC_GENERIC_ARCH "armv6")
+        set(GCC_GENERIC_TUNE "generic")
     else()
         message(FATAL_ERROR "Unsupported architecture ${ARCH}")
     endif()
@@ -221,7 +226,7 @@ else()
     option(USE_CPU_GENERIC_ARCHITECTURE "Enforce generic -march and -mtune compiler options" ON)
     if (USE_CPU_GENERIC_ARCHITECTURE)
         set_c_cxx_flag("-march=${GCC_GENERIC_ARCH}")
-        set_c_cxx_flag("-mtune=generic")
+        set_c_cxx_flag("-mtune=${GCC_GENERIC_TUNE}")
     endif()
 
     option(USE_CPU_RECOMMENDED_FEATURES "Enforce usage of hardware features like SSE, NEON, VFP, MCX16, etc." ON)
