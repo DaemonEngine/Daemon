@@ -14,7 +14,7 @@ CURL="$(command -v curl)"
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
-DEPS_VERSION=9
+DEPS_VERSION=10
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
@@ -27,7 +27,7 @@ SDL2_VERSION=2.26.5
 GLEW_VERSION=2.2.0
 PNG_VERSION=1.6.39
 JPEG_VERSION=2.1.5.1
-WEBP_VERSION=1.3.0
+WEBP_VERSION=1.3.2
 FREETYPE_VERSION=2.13.0
 OPENAL_VERSION=1.23.1
 OGG_VERSION=1.3.5
