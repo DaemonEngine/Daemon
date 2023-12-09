@@ -55,11 +55,10 @@ static Cvar::Range<Cvar::Cvar<int>> cl_maxPing(
 	"cl_maxPing", "ping timeout for server list", Cvar::NONE, 800, 100, 9999);
 
 constexpr int PING_MAX_ATTEMPTS = 3;
-// TODO(0.55): enable retries by default
-static Cvar::Range<Cvar::Cvar<int>> pingSpacing[ 3 ] {
-	{"cl_pingSpacing", "milliseconds between ping packets (1st attempt)", Cvar::NONE, 0, 0, 5000},
-	{"cl_pingSpacingRetry1", "milliseconds between ping packets for 1st retry or -1 to disable retry", Cvar::NONE, -1, -1, 5000},
-	{"cl_pingSpacingRetry2", "milliseconds between ping packets for 2nd retry or -1 to disable retry", Cvar::NONE, -1, -1, 5000},
+static Cvar::Range<Cvar::Cvar<int>> pingSpacing[ PING_MAX_ATTEMPTS ] {
+	{"cl_pingSpacing", "milliseconds between ping packets (1st attempt)", Cvar::NONE, 5, 0, 5000},
+	{"cl_pingSpacingRetry1", "milliseconds between ping packets for 1st retry or -1 to disable retry", Cvar::NONE, 50, -1, 5000},
+	{"cl_pingSpacingRetry2", "milliseconds between ping packets for 2nd retry or -1 to disable retry", Cvar::NONE, 125, -1, 5000},
 };
 
 struct ping_t
