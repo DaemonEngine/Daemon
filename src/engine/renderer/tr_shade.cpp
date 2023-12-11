@@ -855,7 +855,8 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
 
 	bool enableLightMapping = tr.worldLightMapping
-		&& tess.bspSurface;
+		&& tess.bspSurface
+		&& tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements;
 
 	bool enableDeluxeMapping = tr.worldDeluxeMapping
 		&& tess.bspSurface
