@@ -2350,7 +2350,7 @@ void R_AddLightInteractions()
 		light = tr.currentLight = &tr.refdef.lights[ i ];
 
 		if ( light->isStatic ) {
-			if ( r_staticLight->integer != 1 || ( ( r_precomputedLighting->integer || r_vertexLighting->integer ) && !light->noRadiosity ) )
+			if ( r_staticLight->integer != 1 || ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity ) )
 			{
 				if( r_staticLight->integer == 2 ) {
 					tr.refdef.numShaderLights++;
@@ -2554,7 +2554,7 @@ void R_AddLightBoundsToVisBounds()
 
 		if ( light->isStatic )
 		{
-			if ( r_staticLight->integer != 1 || ( ( r_precomputedLighting->integer || r_vertexLighting->integer ) && !light->noRadiosity ) )
+			if ( r_staticLight->integer != 1 || ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity ) )
 			{
 				continue;
 			}
