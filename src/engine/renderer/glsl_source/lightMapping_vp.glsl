@@ -22,9 +22,17 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_vp.glsl */
 
+#if !defined(USE_BSP_SURFACE)
+	#define USE_MODEL_SURFACE
+#endif
+
+#if !defined(USE_GRID_LIGHTING)
+	#define USE_LIGHT_MAPPING
+#endif
+
 uniform mat4		u_TextureMatrix;
 
-#if !defined(USE_BSP_SURFACE)
+#if defined(USE_MODEL_SURFACE)
 	uniform mat4 u_ModelMatrix;
 #endif
 
