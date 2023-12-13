@@ -2885,7 +2885,9 @@ void R_CreateBuiltinImages()
 
 	tr.flatImage = R_CreateImage( "_flat", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
 
+	imageParams.bits = IF_NOPICMIP;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
 	for ( image_t * &image : tr.cinematicImage )
 	{
 		image = R_CreateImage( "_cinematic", ( const byte ** ) &dataPtr, 1, 1, 1, imageParams );
@@ -2911,9 +2913,6 @@ void R_CreateBuiltinImages()
 			out[ 3 ] = intensity;
 		}
 	}
-
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.quadraticImage = R_CreateImage( "_quadratic", ( const byte ** ) &dataPtr, DEFAULT_SIZE, DEFAULT_SIZE, 1, imageParams );
 
