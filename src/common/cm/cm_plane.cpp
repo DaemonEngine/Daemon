@@ -34,6 +34,8 @@ Maryland 20850 USA.
 
 #include "cm_local.h"
 
+constexpr float PLANE_TRI_EPSILON = 0.1f;
+
 static const int PLANE_HASHES = 8192;
 static cPlane_t *planeHashTable[ PLANE_HASHES ];
 
