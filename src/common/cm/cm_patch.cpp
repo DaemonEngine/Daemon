@@ -175,6 +175,8 @@ If the left and right columns are exactly equal, set grid->wrapWidth true
 */
 void CM_SetGridWrapWidth( cGrid_t *grid )
 {
+	constexpr float WRAP_POINT_EPSILON = 0.1f;
+
 	int   i, j;
 	float d;
 

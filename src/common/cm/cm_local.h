@@ -210,7 +210,7 @@ struct clipMap_t
 // TODO: find out why this happens and see if it might affect patches at well. Since
 // a movement trace that starts inside a patch always ignores the patch completely,
 // this might allow going through patches when it shouldn't be possible.
-#define SURFACE_CLIP_EPSILON ( 0.125 )
+#define SURFACE_CLIP_EPSILON ( 0.125f )
 
 extern clipMap_t cm;
 extern int       c_pointcontents;
@@ -258,8 +258,6 @@ struct leafList_t
 };
 
 #define SUBDIVIDE_DISTANCE 16 //4 // never more than this units away from curve
-#define PLANE_TRI_EPSILON  0.1
-#define WRAP_POINT_EPSILON 0.1
 
 cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
 
