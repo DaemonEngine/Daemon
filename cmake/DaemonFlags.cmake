@@ -241,15 +241,15 @@ else()
             try_c_cxx_flag_werror(MCX16 "-mcx16")
         elseif (ARCH STREQUAL "i686")
             # SSE2 minimum: Intel Pentium 4 (Prescott), Intel Pentium M (Banias), AMD K8, Via C7.
-            set_c_cxx_flag("-msse2")
+            try_c_cxx_flag_werror(MSSE2 "-msse2")
             try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
         elseif (ARCH STREQUAL "armhf")
             # NEONv1 minimum.
-            set_c_cxx_flag("-mfpu=neon")
+            try_c_cxx_flag_werror(MFPU_NEON "-mfpu=neon")
         elseif (ARCH STREQUAL "armel")
             # VFP minimum, hard float with soft float ABI.
-            set_c_cxx_flag("-mfpu=vfp")
-            set_c_cxx_flag("-mfloat-abi=softfp")
+            try_c_cxx_flag_werror(MFPU_VFP "-mfpu=vfp")
+            try_c_cxx_flag_werror(MFLOAT_ABI_SOFTFP "-mfloat-abi=softfp")
         endif()
     endif()
 
