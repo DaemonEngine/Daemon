@@ -36,12 +36,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define CGAME_API_VERSION 3
 
-#define CMD_BACKUP               64
-#define CMD_MASK                 ( CMD_BACKUP - 1 )
-// allow a lot of command backups for very fast systems
-// multiple commands may be combined into a single packet, so this
-// needs to be larger than PACKET_BACKUP
-
 #define MAX_ENTITIES_IN_SNAPSHOT 512
 
 // snapshots are a view of the server at a given time
@@ -132,6 +126,7 @@ void            trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverT
 bool        trap_GetSnapshot( int snapshotNumber, snapshot_t *snapshot );
 int             trap_GetCurrentCmdNumber();
 bool        trap_GetUserCmd( int cmdNumber, usercmd_t *ucmd );
+int trap_GetUserCmdArray( userCmdArray_t& userCmdArray );
 void            trap_SetUserCmdValue( int stateValue, int flags, float sensitivityScale );
 int             trap_Key_GetCatcher();
 void            trap_Key_SetCatcher( int catcher );
