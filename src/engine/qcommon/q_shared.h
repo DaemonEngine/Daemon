@@ -51,11 +51,7 @@ Maryland 20850 USA.
 #define ENGINE_NAME             "Daemon Engine"
 #define ENGINE_VERSION          PRODUCT_VERSION
 
-#ifdef REVISION
-# define Q3_VERSION             PRODUCT_NAME " " PRODUCT_VERSION " " REVISION
-#else
-# define Q3_VERSION             PRODUCT_NAME " " PRODUCT_VERSION
-#endif
+#define Q3_VERSION              PRODUCT_NAME " " PRODUCT_VERSION
 
 #define Q3_ENGINE               ENGINE_NAME " " ENGINE_VERSION
 #define Q3_ENGINE_DATE          __DATE__
