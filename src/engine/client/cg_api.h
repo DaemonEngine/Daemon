@@ -34,8 +34,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "shared/bg_public.h"
 #endif
 
-#define CGAME_API_VERSION 3
-
 #define CMD_BACKUP               64
 #define CMD_MASK                 ( CMD_BACKUP - 1 )
 // allow a lot of command backups for very fast systems

@@ -338,11 +338,7 @@ void GameVM::Start()
 {
 	services = std::unique_ptr<VM::CommonVMServices>(new VM::CommonVMServices(*this, "SGame", FS::Owner::SGAME, Cmd::SGAME_VM));
 
-	uint32_t version = this->Create();
-	if ( version != GAME_API_VERSION ) {
-		Sys::Drop( "SGame ABI mismatch, expected %d, got %d", GAME_API_VERSION, version );
-	}
-
+	this->Create();
 	this->GameStaticInit();
 }
 
