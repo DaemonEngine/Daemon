@@ -85,20 +85,13 @@ int CountTrailingZeroes(unsigned long long x);
 // Raise an exception and break in the debugger
 #if defined(DAEMON_ARCH_i686) || defined(DAEMON_ARCH_amd64)
 	#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
-#elif defined(DAEMON_ARCH_arm64)
-	// TODO find how to implement breakpoint on arm64
-	#define BREAKPOINT()
-#elif defined(DAEMON_ARCH_armhf)
-	// TODO find how to implement breakpoint on armhf
-	#define BREAKPOINT()
 #elif defined(DAEMON_ARCH_pnacl)
-	// TODO find how to implement breakpoint on PNaCl
-	#define BREAKPOINT()
-#elif defined(DAEMON_ARCH_wasm)
-	// TODO find how to implement breakpoint on Wasm
+	// TODO: find how to implement breakpoint on PNaCl
+	// Accept our fate, do not raise a warning.
 	#define BREAKPOINT()
 #else
-	#error Implement BREAKPOINT on platform
+	#warning BREAKPOINT is not implemented for this platform
+	#define BREAKPOINT()
 #endif
 
 // noexcept keyword, this should be used on all move constructors and move
