@@ -210,9 +210,11 @@ else()
         set(GCC_GENERIC_ARCH "armv8-a")
         set(GCC_GENERIC_TUNE "generic")
     elseif (ARCH STREQUAL "armhf")
-        # Armv7-A with VFP minimum: Cortex-A5.
+        # Armv7-A minimum with VFPv3 and optional NEONv1: Cortex-A5.
         # Hard float ABI (mainstream 32-bit ARM Linux distributions).
-        set(GCC_GENERIC_ARCH "armv7-a")
+        # An FPU should be explicitly set on recent compilers or this error would be raised:
+        #   cc1: error: ‘-mfloat-abi=hard’: selected architecture lacks an FPU
+        set(GCC_GENERIC_ARCH "armv7-a+fp")
         set(GCC_GENERIC_TUNE "generic-armv7-a")
     elseif (ARCH STREQUAL "armel")
         # Armv6 minimum, optional VFP: ARM11.
@@ -239,7 +241,7 @@ else()
             set_c_cxx_flag("-msse2")
             try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
         elseif (ARCH STREQUAL "armhf")
-            # NEON minimum.
+            # NEONv1 minimum.
             set_c_cxx_flag("-mfpu=neon")
         elseif (ARCH STREQUAL "armel")
             # VFP minimum, hardware float with soft float ABI
