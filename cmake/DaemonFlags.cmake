@@ -217,10 +217,11 @@ else()
         set(GCC_GENERIC_ARCH "armv7-a+fp")
         set(GCC_GENERIC_TUNE "generic-armv7-a")
     elseif (ARCH STREQUAL "armel")
-        # Armv6 minimum, optional VFP: ARM11.
-        # Soft float ABI (mainstream 32-bit ARM Android distributions).
+        # Armv6 minimum with optional VFP: ARM11.
+        # Soft float ABI (previous mainstream 32-bit ARM Linux distributions, mainstream 32-bit ARM Android distributions).
         set(GCC_GENERIC_ARCH "armv6")
-        set(GCC_GENERIC_TUNE "generic")
+        # There is no generic tuning option for armv6.
+        unset(GCC_GENERIC_TUNE)
     else()
         message(FATAL_ERROR "Unsupported architecture ${ARCH}")
     endif()
@@ -246,7 +247,8 @@ else()
             # NEONv1 minimum.
             set_c_cxx_flag("-mfpu=neon")
         elseif (ARCH STREQUAL "armel")
-            # VFP minimum, hardware float with soft float ABI
+            # VFP minimum, hard float with soft float ABI.
+            set_c_cxx_flag("-mfpu=vfp")
             set_c_cxx_flag("-mfloat-abi=softfp")
         endif()
     endif()
