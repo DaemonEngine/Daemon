@@ -377,7 +377,7 @@ static IPC::Socket CreateInProcessNativeVM(std::pair<IPC::Socket, IPC::Socket> p
 	return std::move(pair.first);
 }
 
-uint32_t VMBase::Create()
+void VMBase::Create()
 {
 	type = static_cast<vmType_t>(params.vmType.Get());
 
@@ -419,11 +419,36 @@ uint32_t VMBase::Create()
 	if (type != TYPE_NATIVE_DLL && !params.debug.Get())
 		rootChannel.SetRecvTimeout(std::chrono::seconds(2));
 
-	// Read the ABI version from the root socket.
+	// Read the ABI version detection ABI version from the root socket.
 	// If this fails, we assume the remote process failed to start
 	Util::Reader reader = rootChannel.RecvMsg();
-	Log::Notice("Loaded VM module in %d msec", Sys::Milliseconds() - loadStartTime);
-	return reader.Read<uint32_t>();
+
+	// VM version incompatibility detection...
+
+	uint32_t magic = reader.Read<uint32_t>();
+	if (magic != IPC::ABI_VERSION_DETECTION_ABI_VERSION) {
+		Sys::Drop("Couldn't load the %s gamelogic module: it is built for %s version of Daemon engine",
+		          this->name, magic > IPC::ABI_VERSION_DETECTION_ABI_VERSION ? "a newer" : "an older");
+	}
+
+	std::string vmABI = reader.Read<std::string>();
+	if (vmABI != IPC::SYSCALL_ABI_VERSION) {
+		Sys::Drop("Couldn't load the %s gamelogic module: it uses ABI version %s but this Daemon engine uses %s",
+		          vmABI, IPC::SYSCALL_ABI_VERSION);
+	}
+
+	bool vmCompatBreaking = reader.Read<bool>();
+	if (vmCompatBreaking && !IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
+		Sys::Drop("Couldn't load the %s gamelogic module: it has compatibility-breaking ABI changes but Daemon engine uses the vanilla %s ABI",
+		          this->name, IPC::SYSCALL_ABI_VERSION);
+	} else if (!vmCompatBreaking && IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
+		Sys::Drop("Couldn't load the %s gamelogic module: Daemon has compatibility-breaking ABI changes but the VM uses the vanilla %s ABI",
+		          this->name, IPC::SYSCALL_ABI_VERSION);
+	} else if (IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES) {
+		Log::Notice("^6Using %s VM with unreleased ABI changes", this->name);
+	}
+
+	Log::Notice("Loaded %s VM module in %d msec", this->name, Sys::Milliseconds() - loadStartTime);
 }
 
 void VMBase::FreeInProcessVM() {

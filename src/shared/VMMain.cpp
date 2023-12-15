@@ -51,9 +51,11 @@ static void CommonInit(Sys::OSHandle rootSocket)
 {
 	VM::rootChannel = IPC::Channel(IPC::Socket::FromHandle(rootSocket));
 
-	// Send syscall ABI version, also acts as a sign that the module loaded
+	// Send ABI version information, also acts as a sign that the module loaded
 	Util::Writer writer;
-	writer.Write<uint32_t>(VM::VM_API_VERSION);
+	writer.Write<uint32_t>(IPC::ABI_VERSION_DETECTION_ABI_VERSION);
+	writer.Write<std::string>(IPC::SYSCALL_ABI_VERSION);
+	writer.Write<bool>(IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES);
 	VM::rootChannel.SendMsg(writer);
 
 	// Start the main loop

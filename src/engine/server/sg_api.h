@@ -25,8 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "engine/qcommon/q_shared.h"
 
-#define GAME_API_VERSION          3
-
 #define SVF_NOCLIENT              0x00000001
 #define SVF_CLIENTMASK            0x00000002
 #define SVF_VISDUMMY              0x00000004

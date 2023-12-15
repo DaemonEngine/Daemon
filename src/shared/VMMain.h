@@ -42,7 +42,6 @@ namespace VM {
 	void VMInit();
 	void VMHandleSyscall(uint32_t id, Util::Reader reader);
 	void GetNetcodeTables(NetcodeTable& playerStateTable, int& playerStateSize);
-	extern int VM_API_VERSION;
 
 	// Send a message to the engine
 	template<typename Msg, typename... Args> void SendMsg(Args&&... args) {
