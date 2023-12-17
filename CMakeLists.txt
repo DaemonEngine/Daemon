@@ -398,7 +398,9 @@ function(ADD_PRECOMPILED_HEADER Target)
     set(Header ${COMMON_DIR}/Common.h)
 
     # Compiler-specific PCH support
-    if (DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY)
+    try_c_cxx_flag(PCH "-pch")
+
+    if (PCH)
         # There is a bug in CMake: if we set CMAKE_CXX_COMPILER to "zig;c++",
         # only "zig" is returned when using the ${CMAKE_CXX_COMPILER} variable.
         add_custom_command(OUTPUT "${OBJ_DIR}/${Target}.h.gch"
