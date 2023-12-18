@@ -68,6 +68,7 @@ void  MSG_WriteBits( msg_t *msg, int value, int bits );
 
 void  MSG_WriteByte( msg_t *sb, int c );
 void  MSG_WriteShort( msg_t *sb, int c );
+void  MSG_WriteUShort( msg_t *sb, int c );
 void  MSG_WriteLong( msg_t *sb, int c );
 void  MSG_WriteString( msg_t *sb, const char *s );
 void  MSG_WriteBigString( msg_t *sb, const char *s );
@@ -80,6 +81,7 @@ int   MSG_ReadBits( msg_t *msg, int bits );
 
 int   MSG_ReadByte( msg_t *sb );
 int   MSG_ReadShort( msg_t *sb );
+int   MSG_ReadUShort( msg_t *sb );
 int   MSG_ReadLong( msg_t *sb );
 char  *MSG_ReadString( msg_t *sb );
 char  *MSG_ReadBigString( msg_t *sb );

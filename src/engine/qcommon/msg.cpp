@@ -301,16 +301,14 @@ int MSG_ReadBits( msg_t *msg, int bits )
 // writing functions
 //
 
+// uint8_t
 void MSG_WriteByte( msg_t *sb, int c )
 {
-#ifdef PARANOID
-
 	if ( c < 0 || c > 255 )
 	{
-		Sys::Error( "MSG_WriteByte: range error" );
+		Log::Warn( "MSG_WriteByte: value %d out of range", c );
 	}
 
-#endif
 
 	MSG_WriteBits( sb, c, 8 );
 }
@@ -325,20 +323,29 @@ void MSG_WriteData( msg_t *buf, const void *data, int length )
 	}
 }
 
+// int16_t
 void MSG_WriteShort( msg_t *sb, int c )
 {
-#ifdef PARANOID
-
-	if ( c < ( ( short ) 0x8000 ) || c > ( short ) 0x7fff )
+	if ( c < -0x8000 || c >= 0x8000 )
 	{
-		Sys::Error( "MSG_WriteShort: range error" );
+		Log::Warn( "MSG_WriteShort: value %d out of range", c );
 	}
 
-#endif
+	MSG_WriteBits( sb, c, -16 );
+}
+
+// uint16_t
+void MSG_WriteUShort( msg_t *sb, int c )
+{
+	if ( c & ~0xFFFF )
+	{
+		Log::Warn( "MSG_WriteUShort: value %d out of range", c );
+	}
 
 	MSG_WriteBits( sb, c, 16 );
 }
 
+// int32_t
 void MSG_WriteLong( msg_t *sb, int c )
 {
 	MSG_WriteBits( sb, c, 32 );
@@ -359,7 +366,7 @@ void MSG_WriteString( msg_t *sb, const char *s )
 
 		if ( l >= MAX_STRING_CHARS )
 		{
-			Log::Notice( "MSG_WriteString: MAX_STRING_CHARS exceeded" );
+			Log::Warn( "MSG_WriteString: MAX_STRING_CHARS exceeded" );
 			MSG_WriteData( sb, "", 1 );
 			return;
 		}
@@ -385,7 +392,7 @@ void MSG_WriteBigString( msg_t *sb, const char *s )
 
 		if ( l >= BIG_INFO_STRING )
 		{
-			Log::Notice( "MSG_WriteBigString: BIG_INFO_STRING exceeded" );
+			Log::Warn( "MSG_WriteBigString: BIG_INFO_STRING exceeded" );
 			MSG_WriteData( sb, "", 1 );
 			return;
 		}
@@ -402,11 +409,10 @@ void MSG_WriteBigString( msg_t *sb, const char *s )
 // reading functions
 //
 
+// uint8_t
 int MSG_ReadByte( msg_t *msg )
 {
-	int c;
-
-	c = ( unsigned char ) MSG_ReadBits( msg, 8 );
+	int c = MSG_ReadBits( msg, 8 );
 
 	if ( msg->readcount > msg->cursize )
 	{
@@ -416,11 +422,12 @@ int MSG_ReadByte( msg_t *msg )
 	return c;
 }
 
+// int16_t
 int MSG_ReadShort( msg_t *msg )
 {
 	int c;
 
-	c = ( short ) MSG_ReadBits( msg, 16 );
+	c = MSG_ReadBits( msg, -16 );
 
 	if ( msg->readcount > msg->cursize )
 	{
@@ -430,6 +437,22 @@ int MSG_ReadShort( msg_t *msg )
 	return c;
 }
 
+// uint16_t
+int MSG_ReadUShort( msg_t *msg )
+{
+	int c;
+
+	c = MSG_ReadBits( msg, 16 );
+
+	if ( msg->readcount > msg->cursize )
+	{
+		c = -1;
+	}
+
+	return c;
+}
+
+// int32_t
 int MSG_ReadLong( msg_t *msg )
 {
 	int c;
@@ -589,7 +612,7 @@ void MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to )
 	if ( to->serverTime - from->serverTime < 256 )
 	{
 		MSG_WriteBits( msg, 1, 1 );
-		MSG_WriteBits( msg, to->serverTime - from->serverTime, 8 );
+		MSG_WriteByte( msg, to->serverTime - from->serverTime );
 	}
 	else
 	{
@@ -639,7 +662,7 @@ void MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to )
 
 	if ( MSG_ReadBits( msg, 1 ) )
 	{
-		to->serverTime = from->serverTime + MSG_ReadBits( msg, 8 );
+		to->serverTime = from->serverTime + MSG_ReadByte( msg );
 	}
 	else
 	{
@@ -1223,13 +1246,13 @@ static void WriteStatsGroup(msg_t* msg, const int* from, const int* to)
 	}
 
 	MSG_WriteBits( msg, 1, 1 );  // changed
-	MSG_WriteShort( msg, statsbits );
+	MSG_WriteUShort( msg, statsbits );
 
 	for ( int i = 0; i < MAX_STATS; i++ )
 	{
 		if ( statsbits & ( 1 << i ) )
 		{
-			MSG_WriteShort( msg, to[i] );  //----(SA)    back to short since weapon bits are handled elsewhere now
+			MSG_WriteBits( msg, to[i], -16 );
 		}
 	}
 }
@@ -1375,13 +1398,13 @@ void MSG_WriteDeltaPlayerstate(
 static void ReadStatsGroup(msg_t* msg, int* to, const netField_t& field)
 {
 	LOG( field.name );
-	int bits = MSG_ReadShort( msg );
+	int bits = MSG_ReadUShort( msg );
 
 	for ( int i = 0; i < STATS_GROUP_NUM_STATS; i++ )
 	{
 		if ( bits & ( 1 << i ) )
 		{
-			to[i] = MSG_ReadShort( msg );  //----(SA)    back to short since weapon bits are handled elsewhere now
+			to[i] = MSG_ReadBits( msg, -16 );
 		}
 	}
 }
