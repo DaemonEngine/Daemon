@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #elif defined(__linux__)
 #define PLATFORM_STRING "Linux"
 #elif defined(__native_client__)
-#define PLATFORM_STRING "Native Client"
+#define PLATFORM_STRING "NaCl"
 #else
 #error "Platform not supported"
 #endif
