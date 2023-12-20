@@ -65,8 +65,8 @@ care of platform name variants that are meant to distinguish
 platform variants we cannot support anyway. */
 
 /* PNaCl virtual machines. */
-#if defined(__native_client__) || defined(__pnacl__)
-	#pragma message("DAEMON_ARCH_pnacl")
+#if defined(__native_client__)
+	#pragma message("DAEMON_ARCH_nacl")
 
 /* Wasm virtual machines, work in progress. */
 #elif defined(Q_PROCESSOR_WASM)
