@@ -253,10 +253,13 @@ if (NOT NACL)
 
     if (WIN32)
         set(DEPS_SYSTEM windows)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686)
     elseif (APPLE)
         set(DEPS_SYSTEM macos)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
     elseif (LINUX)
         set(DEPS_SYSTEM linux)
+        set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
     endif()
 
     if (MSVC)
@@ -267,9 +270,7 @@ if (NOT NACL)
         set(DEPS_COMPILER default)
     endif()
 
-    set(SUPPORTED_ARCH amd64 i686 arm64 armhf)
-
-    if (DEPS_SYSTEM AND ARCH IN_LIST SUPPORTED_ARCH)
+    if (DEPS_SYSTEM AND ARCH IN_LIST SUPPORTED_${DEPS_SYSTEM}_ARCH)
         set(DEPS_DIR ${EXTERNAL_DEPS_DIR}/${DEPS_SYSTEM}-${ARCH}-${DEPS_COMPILER}_${DEPS_VERSION})
 
         if (DAEMON_PARENT_SCOPE_DIR)
