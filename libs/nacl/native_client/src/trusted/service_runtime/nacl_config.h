@@ -319,7 +319,7 @@
 
 #else /* NACL_ARCH(NACL_BUILD_ARCH) */
 
-# error Unknown platform!
+# warning Unknown platform!
 
 #endif /* NACL_ARCH(NACL_BUILD_ARCH) */
 

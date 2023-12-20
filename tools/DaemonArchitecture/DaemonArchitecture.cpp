@@ -113,7 +113,7 @@ platform variants we cannot support anyway. */
 //	#pragma message("DAEMON_ARCH_riscv64")
 
 #else
-	#error DAEMON_ARCH_unsupported
+	#pragma message("DAEMON_ARCH_unknown")
 #endif
 
 // Make the compilation succeeds if architecture is supported.
