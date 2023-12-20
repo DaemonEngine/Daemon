@@ -223,7 +223,7 @@ else()
         # There is no generic tuning option for armv6.
         unset(GCC_GENERIC_TUNE)
     else()
-        message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+        message(WARNING "Unknown architecture ${ARCH}")
     endif()
 
     option(USE_CPU_GENERIC_ARCHITECTURE "Enforce generic -march and -mtune compiler options" ON)
