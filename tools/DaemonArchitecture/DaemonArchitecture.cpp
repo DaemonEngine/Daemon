@@ -84,9 +84,9 @@ platform variants we cannot support anyway. */
 	#pragma message("DAEMON_ARCH_i686")
 
 /* Devices like:
- - Raspberry Pi 3,
- - Raspberry Pi 4,
- - Apple M1-based mac… */
+ - Raspberry Pi,
+ - Apple M1-based mac,
+ - Android phones and tablets… */
 
 #elif defined(Q_PROCESSOR_ARM_64)
 	#pragma message("DAEMON_ARCH_arm64")
@@ -100,17 +100,17 @@ platform variants we cannot support anyway. */
 /* Devices like:
  - Raptor Computing Systems Talos, Blackbird… */
 
-//#elif Q_PROCESSOR_POWER_64
-//	#if Q_BYTE_ORDER == Q_BIG_ENDIAN
-//		#pragma message("DAEMON_ARCH_ppc64")
-//	#elif Q_BYTE_ORDER == Q_LITTLE_ENDIAN
-//		#pragma message("DAEMON_ARCH_ppc64el")
+#elif defined(Q_PROCESSOR_POWER_64) && Q_BYTE_ORDER == Q_BIG_ENDIAN
+	#pragma message("DAEMON_ARCH_ppc64")
+
+#elif defined(Q_PROCESSOR_POWER_64) && Q_BYTE_ORDER == Q_LITTLE_ENDIAN
+	#pragma message("DAEMON_ARCH_ppc64el")
 
 /* Devices like:
  - SiFive HiFive Unmatched, Horse Creek… */
 
-//#elif Q_PROCESSOR_RISCV_64
-//	#pragma message("DAEMON_ARCH_riscv64")
+#elif defined(Q_PROCESSOR_RISCV_64)
+	#pragma message("DAEMON_ARCH_riscv64")
 
 #else
 	#pragma message("DAEMON_ARCH_unknown")
