@@ -57,7 +57,7 @@ struct GLBinaryHeader
 	unsigned int numMacros;
 
 	GLenum binaryFormat; // argument to glProgramBinary
-	GLint  binaryLength; // argument to glProgramBinary
+	uint32_t binaryLength; // argument to glProgramBinary
 };
 
 class GLUniform;

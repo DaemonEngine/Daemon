@@ -962,6 +962,12 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	if ( shaderHeader.checkSum != shader->_checkSum )
 		return false;
 
+	if ( shaderHeader.binaryLength != shaderData.size() - sizeof( shaderHeader ) )
+	{
+		Log::Warn( "Shader cache %s has wrong size", shaderFilename );
+		return false;
+	}
+
 	// load the shader
 	shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ programNum ];
 	shaderProgram->program = glCreateProgram();
