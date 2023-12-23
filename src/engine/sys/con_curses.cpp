@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "common/Common.h"
 #include "con_common.h"
+#include "framework/Application.h"
 #include "framework/CommandSystem.h"
 #include "framework/ConsoleField.h"
 
@@ -56,6 +57,7 @@ static WINDOW   *borderwin;
 static WINDOW   *logwin;
 static WINDOW   *inputwin;
 static WINDOW   *clockwin;
+static WINDOW   *FPSwin;
 
 static char     logbuf[ LOG_BUF_SIZE ];
 static char     *insert = logbuf;
@@ -66,6 +68,8 @@ static bool     forceRedraw = false;
 #ifndef _WIN32
 static int      stderr_fd;
 #endif
+
+static Util::optional<Cvar::Cvar<bool>> showFPS;
 
 static int NumLogLines() {
 	return LINES - 3;
@@ -166,7 +170,7 @@ static void CON_ColorPrint( WINDOW *win, const char *msg, bool stripcodes )
 ==================
 CON_UpdateClock
 
-Update the clock
+Update the clock and maybe FPS
 ==================
 */
 static void CON_UpdateClock()
@@ -176,6 +180,29 @@ static void CON_UpdateClock()
 	werase( clockwin );
 	CON_ColorPrint( clockwin, va( "^0[^3%02d%c%02d^0] ", realtime.tm_hour, ( realtime.tm_sec & 1 ) ? ':' : ' ', realtime.tm_min ), true );
 	wnoutrefresh( clockwin );
+
+	if ( showFPS->Get() )
+	{
+		if ( !FPSwin )
+		{
+			FPSwin = newwin( 1, 8, 0, COLS - 8);
+		}
+		// Show FPS in top right
+		werase( FPSwin );
+		std::string fps = Str::Format( "FPS:%4.0f", Application::GetFPS() );
+		if ( fps.size() > 8 )
+		{
+			fps = "FPS: ...";
+		}
+		CON_ColorPrint( FPSwin, fps.c_str(), true );
+		wnoutrefresh( FPSwin );
+	}
+	else if ( FPSwin )
+	{
+		delwin( FPSwin );
+		FPSwin = nullptr;
+		forceRedraw = true;
+	}
 }
 
 /*
@@ -323,6 +350,14 @@ void CON_Init()
 		return;
 	}
 #endif
+
+	if ( !showFPS ) // optional is empty
+	{
+		auto const& traits = Application::GetTraits();
+		bool defaultValue = !traits.isClient || traits.isTTYClient; // on if not graphical client
+		showFPS.emplace( "common.cursesShowFPS", "show FPS in curses console",
+		                 Cvar::NONE, defaultValue);
+	}
 
 	// Initialize curses and set up the root window
 	if ( !curses_on )
