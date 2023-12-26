@@ -52,7 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace Sys {
-Cvar::Cvar<bool> cvar_common_shutdownOnDrop("common.shutdownOnDrop", "shut down engine on game drop", Cvar::TEMPORARY, false);
+static Cvar::Cvar<bool> cvar_common_shutdownOnDrop("common.shutdownOnDrop", "shut down engine on game drop", Cvar::TEMPORARY, false);
 
 #ifdef _WIN32
 static HANDLE singletonSocket;
