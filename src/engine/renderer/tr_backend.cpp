@@ -867,7 +867,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		if( entity == &tr.worldEntity ) {
 			if( !( drawSurfFilter & DRAWSURFACES_WORLD ) )
 				continue;
-		} else if( !( entity->e.renderfx & RF_DEPTHHACK ) ) {
+		} else if( !( entity && entity->e.renderfx & RF_DEPTHHACK ) ) {
 			if( !( drawSurfFilter & DRAWSURFACES_FAR_ENTITIES ) )
 				continue;
 		} else {
@@ -875,7 +875,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				continue;
 		}
 
-		if ( entity == oldEntity && shader == oldShader && lightmapNum == oldLightmapNum && fogNum == oldFogNum )
+		if ( entity == oldEntity && shader == oldShader && lightmapNum == oldLightmapNum && fogNum == oldFogNum && drawSurf->surface )
 		{
 			// fast path, same as previous sort
 			rb_surfaceTable[Util::ordinal(*drawSurf->surface)](drawSurf->surface );
@@ -916,7 +916,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				// set up the transformation matrix
 				R_RotateEntityForViewParms( backEnd.currentEntity, &backEnd.viewParms, &backEnd.orientation );
 
-				if ( backEnd.currentEntity->e.renderfx & RF_DEPTHHACK )
+				if ( backEnd.currentEntity && backEnd.currentEntity->e.renderfx & RF_DEPTHHACK )
 				{
 					// hack the depth range to prevent view model from poking into walls
 					depthRange = true;
@@ -949,7 +949,10 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		}
 
 		// add the triangles for this surface
-		rb_surfaceTable[Util::ordinal(*drawSurf->surface)](drawSurf->surface );
+		if ( drawSurf->surface )
+		{
+			rb_surfaceTable[Util::ordinal(*drawSurf->surface)](drawSurf->surface );
+		}
 	}
 
 	// draw the contents of the last shader batch

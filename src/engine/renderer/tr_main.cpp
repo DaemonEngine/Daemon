@@ -632,6 +632,10 @@ Called by both the front end and the back end
 */
 void R_RotateEntityForViewParms( const trRefEntity_t *ent, const viewParms_t *viewParms, orientationr_t * orientation )
 {
+	if ( ent == nullptr )
+	{
+		return;
+	}
 	vec3_t delta;
 	float  axisLength;
 
