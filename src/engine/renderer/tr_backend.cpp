@@ -857,6 +857,11 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	{
 		drawSurf = &backEnd.viewParms.drawSurfs[ i ];
 
+		if( drawSurf->surface == nullptr )
+		{
+			continue;
+		}
+
 		// update locals
 		entity = drawSurf->entity;
 		shader = drawSurf->shader;
