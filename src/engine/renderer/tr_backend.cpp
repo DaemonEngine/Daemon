@@ -857,6 +857,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	{
 		drawSurf = &backEnd.viewParms.drawSurfs[ i ];
 
+		// FIXME: investigate why this happens.
 		if( drawSurf->surface == nullptr )
 		{
 			continue;
