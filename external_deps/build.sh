@@ -59,54 +59,65 @@ LDFLAGS=''
 # Extract an archive into the given subdirectory of the build dir and cd to it
 # Usage: extract <filename> <directory>
 extract() {
-	rm -rf "${BUILD_DIR}/${2}"
-	mkdir -p "${BUILD_DIR}/${2}"
+	rm -rf "${2}"
+	mkdir -p "${2}"
 	case "${1}" in
 	*.tar.bz2)
-		tar xjf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		tar xjf "${1}" -C "${2}"
 		;;
 	*.tar.xz)
-		tar xJf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		tar xJf "${1}" -C "${2}"
 		;;
 	*.tar.gz|*.tgz)
-		tar xzf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		tar xzf "${1}" -C "${2}"
 		;;
 	*.zip)
-		unzip -d "${BUILD_DIR}/${2}" "${DOWNLOAD_DIR}/${1}"
+		unzip -d "${2}" "${1}"
 		;;
 	*.cygtar.bz2)
 		# Some Windows NaCl SDK packages have incorrect symlinks, so use
 		# cygtar to extract them.
-		"${SCRIPT_DIR}/cygtar.py" -xjf "${DOWNLOAD_DIR}/${1}" -C "${BUILD_DIR}/${2}"
+		"${SCRIPT_DIR}/cygtar.py" -xjf "${1}" -C "${2}"
 		;;
 	*.dmg)
-		mkdir -p "${BUILD_DIR}/${2}-dmg"
-		hdiutil attach -mountpoint "${BUILD_DIR}/${2}-dmg" "${DOWNLOAD_DIR}/${1}"
-		cp -R "${BUILD_DIR}/${2}-dmg/"* "${BUILD_DIR}/${2}/"
-		hdiutil detach "${BUILD_DIR}/${2}-dmg"
-		rmdir "${BUILD_DIR}/${2}-dmg"
+		mkdir -p "${2}-dmg"
+		hdiutil attach -mountpoint "${2}-dmg" "${1}"
+		cp -R "${2}-dmg/"* "${2}/"
+		hdiutil detach "${2}-dmg"
+		rmdir "${2}-dmg"
 		;;
 	*)
 		echo "Unknown archive type for ${1}"
 		exit 1
 		;;
 	esac
-	cd "${BUILD_DIR}/${2}"
+	cd "${2}"
 }
 
 # Download a file if it doesn't exist yet, and extract it into the build dir
 # Usage: download <filename> <URL> <dir>
 download() {
-	if [ ! -f "${DOWNLOAD_DIR}/${1}" ]; then
-		"${CURL}" -L --fail -o "${DOWNLOAD_DIR}/${1}" "${2}"
-	fi
-	extract "${1}" "${3}"
+	local extract_dir="${BUILD_DIR}/${1}"; shift
+	local tarball_file="${DOWNLOAD_DIR}/${1}"; shift
+	while [ ! -f "${tarball_file}" ]; do
+		[ -n "${1:-}" ]
+		local download_url="${1}"; shift
+		echo "Downloading ${download_url}"
+		"${CURL}" -L --fail -o "${tarball_file}" "${download_url}" \
+		|| rm -f "${tarball_file}"
+	done
+	extract "${tarball_file}" "${extract_dir}"
 }
 
 # Build pkg-config
 build_pkgconfig() {
-	download "pkg-config-${PKGCONFIG_VERSION}.tar.gz" "http://pkgconfig.freedesktop.org/releases/pkg-config-${PKGCONFIG_VERSION}.tar.gz" pkgconfig
-	cd "pkg-config-${PKGCONFIG_VERSION}"
+	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download pkgconfig "${archive_name}" \
+		"http://pkgconfig.freedesktop.org/releases/${archive_name}"
+
+	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --with-internal-glib
 	make
@@ -117,8 +128,13 @@ build_pkgconfig() {
 build_nasm() {
 	case "${PLATFORM}" in
 	macos-*-*)
-		download "nasm-${NASM_VERSION}-macosx.zip" "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/nasm-${NASM_VERSION}-macosx.zip" nasm
-		cp "nasm-${NASM_VERSION}/nasm" "${PREFIX}/bin"
+		local dir_name="nasm-${NASM_VERSION}"
+		local archive_name="${dir_name}-macosx.zip"
+
+		download nasm "${archive_name}" \
+			"https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/${archive_name}"
+
+		cp "${dir_name}/nasm" "${PREFIX}/bin"
 		;;
 	*)
 		echo "Unsupported platform for NASM"
@@ -129,8 +145,16 @@ build_nasm() {
 
 # Build zlib
 build_zlib() {
-	download "zlib-${ZLIB_VERSION}.tar.xz" "https://zlib.net/zlib-${ZLIB_VERSION}.tar.xz" zlib
-	cd "zlib-${ZLIB_VERSION}"
+	# Only the latest zlib version is provided as tar.xz, the
+	# older ones in fossils/ folder are only provided as tar.gz.
+	local dir_name="zlib-${ZLIB_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download zlib "${archive_name}" \
+		"https://zlib.net/fossils/${archive_name}" \
+		"https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${archive_name}"
+
+	cd "${dir_name}"
 	case "${PLATFORM}" in
 	windows-*-*)
 		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
@@ -147,8 +171,15 @@ build_zlib() {
 
 # Build GMP
 build_gmp() {
-	download "gmp-${GMP_VERSION}.tar.bz2" "https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.bz2" gmp
-	cd "gmp-${GMP_VERSION}"
+	local dir_name="gmp-${GMP_VERSION}"
+	local archive_name="${dir_name}.tar.bz2"
+
+	download gmp "${archive_name}" \
+		"https://gmplib.org/download/gmp/${archive_name}" \
+		"https://ftpmirror.gnu.org/gnu/gmp/${archive_name}" \
+		"https://ftp.gnu.org/gnu/gmp/${archive_name}"
+
+	cd "${dir_name}"
 	case "${PLATFORM}" in
 	windows-*-msvc)
 		# Configure script gets confused if we override the compiler. Shouldn't
@@ -183,9 +214,14 @@ build_gmp() {
 
 # Build Nettle
 build_nettle() {
-	# download "nettle-${NETTLE_VERSION}.tar.gz" "https://www.lysator.liu.se/~nisse/archive/nettle-${NETTLE_VERSION}.tar.gz" nettle
-	download "nettle-${NETTLE_VERSION}.tar.gz" "https://ftp.gnu.org/gnu/nettle/nettle-${NETTLE_VERSION}.tar.gz" nettle
-	cd "nettle-${NETTLE_VERSION}"
+	local dir_name="nettle-${NETTLE_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download nettle "${archive_name}" \
+		"https://ftpmirror.gnu.org/gnu/nettle/${archive_name}" \
+		"https://ftp.gnu.org/gnu/nettle/${archive_name}"
+
+	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
 	make
@@ -194,8 +230,14 @@ build_nettle() {
 
 # Build cURL
 build_curl() {
-	download "curl-${CURL_VERSION}.tar.bz2" "https://curl.haxx.se/download/curl-${CURL_VERSION}.tar.bz2" curl
-	cd "curl-${CURL_VERSION}"
+	local dir_name="curl-${CURL_VERSION}"
+	local archive_name="${dir_name}.tar.xz"
+
+	download curl "${archive_name}" \
+		"https://curl.se/download/${archive_name}" \
+		"https://github.com/curl/curl/releases/download/curl-${CURL_VERSION//./_}/${archive_name}"
+
+	cd "${dir_name}"
 	# The user-provided CFLAGS doesn't drop the default -O2
 	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --without-brotli --without-zstd --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc "${CONFIGURE_SHARED[@]}"
 	make
@@ -204,15 +246,34 @@ build_curl() {
 
 # Build SDL2
 build_sdl2() {
+	local dir_name="SDL2-${SDL2_VERSION}"
+
 	case "${PLATFORM}" in
 	windows-*-mingw)
-		download "SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-mingw.tar.gz" sdl2
-		cd "SDL2-${SDL2_VERSION}"
+		local archive_name="SDL2-devel-${SDL2_VERSION}-mingw.tar.gz"
+		;;
+	windows-*-msvc)
+		local archive_name="SDL2-devel-${SDL2_VERSION}-VC.zip"
+		;;
+	macos-*-*)
+		local archive_name="SDL2-${SDL2_VERSION}.dmg"
+		;;
+	*)
+		local archive_name="SDL2-${SDL2_VERSION}.tar.gz"
+		;;
+	esac
+
+	download sdl2 "${archive_name}" \
+		"https://www.libsdl.org/release/${archive_name}" \
+		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/${archive_name}"
+
+	case "${PLATFORM}" in
+	windows-*-mingw)
+		cd "${dir_name}"
 		make install-package arch="${HOST}" prefix="${PREFIX}"
 		;;
 	windows-*-msvc)
-		download "SDL2-devel-${SDL2_VERSION}-VC.zip" "https://www.libsdl.org/release/SDL2-devel-${SDL2_VERSION}-VC.zip" sdl2
-		cd "SDL2-${SDL2_VERSION}"
+		cd "${dir_name}"
 		mkdir -p "${PREFIX}/SDL2/cmake"
 		cp "cmake/"* "${PREFIX}/SDL2/cmake"
 		mkdir -p "${PREFIX}/SDL2/include"
@@ -236,13 +297,11 @@ build_sdl2() {
 		cp "${sdl2_lib_dir}/"*.dll "${PREFIX}/SDL2/${sdl2_lib_dir}"
 		;;
 	macos-*-*)
-		download "SDL2-${SDL2_VERSION}.dmg" "https://libsdl.org/release/SDL2-${SDL2_VERSION}.dmg" sdl2
 		rm -rf "${PREFIX}/SDL2.framework"
 		cp -R "SDL2.framework" "${PREFIX}"
 		;;
 	*)
-		download "SDL2-${SDL2_VERSION}.tar.gz" "https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz" sdl2
-		cd "SDL2-${SDL2_VERSION}"
+		cd "${dir_name}"
 		# The default -O3 is dropped when there's user-provided CFLAGS.
 		CFLAGS="${CFLAGS} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
 		make
@@ -258,8 +317,14 @@ build_sdl2() {
 
 # Build GLEW
 build_glew() {
-	download "glew-${GLEW_VERSION}.tgz" "https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz" glew
-	cd "glew-${GLEW_VERSION}"
+	local dir_name="glew-${GLEW_VERSION}"
+	local archive_name="${dir_name}.tgz"
+
+	download glew "${archive_name}" \
+		"https://github.com/nigels-com/glew/releases/download/glew-${GLEW_VERSION}/${archive_name}" \
+		"https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/${archive_name}"
+
+	cd "${dir_name}"
 	case "${PLATFORM}" in
 	windows-*-*)
 		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
@@ -286,8 +351,13 @@ build_glew() {
 
 # Build PNG
 build_png() {
-	download "libpng-${PNG_VERSION}.tar.gz" "https://download.sourceforge.net/libpng/libpng-${PNG_VERSION}.tar.gz" png
-	cd "libpng-${PNG_VERSION}"
+	local dir_name="libpng-${PNG_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download png "${archive_name}" \
+		"https://download.sourceforge.net/libpng/${archive_name}"
+
+	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
 	make
@@ -296,7 +366,11 @@ build_png() {
 
 # Build JPEG
 build_jpeg() {
-	download "libjpeg-turbo-${JPEG_VERSION}.tar.gz" "https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/libjpeg-turbo-${JPEG_VERSION}.tar.gz" jpeg
+	local dir_name="libjpeg-turbo-${JPEG_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download jpeg "${archive_name}" \
+		"https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/${archive_name}"
 
 	case "${PLATFORM}" in
 	windows-*-*)
@@ -344,7 +418,8 @@ build_jpeg() {
 		-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
 		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" -DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
 		-DWITH_JPEG8=1)
-	cd "libjpeg-turbo-${JPEG_VERSION}"
+
+	cd "${dir_name}"
 	case "${PLATFORM}" in
 	windows-*-mingw)
 		"${jpeg_cmake_call[@]}" -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DENABLE_SHARED=0
@@ -362,8 +437,13 @@ build_jpeg() {
 
 # Build WebP
 build_webp() {
-	download "libwebp-${WEBP_VERSION}.tar.gz" "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${WEBP_VERSION}.tar.gz" webp
-	cd "libwebp-${WEBP_VERSION}"
+	local dir_name="libwebp-${WEBP_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download webp "${archive_name}" \
+		"https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive_name}"
+
+	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --disable-libwebpdemux "${CONFIGURE_SHARED[@]}"
 	make
@@ -372,8 +452,13 @@ build_webp() {
 
 # Build FreeType
 build_freetype() {
-	download "freetype-${FREETYPE_VERSION}.tar.gz" "https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.gz" freetype
-	cd "freetype-${FREETYPE_VERSION}"
+	local dir_name="freetype-${FREETYPE_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download freetype "${archive_name}" \
+		"https://download.savannah.gnu.org/releases/freetype/${archive_name}"
+
+	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
 	make
@@ -384,51 +469,68 @@ build_freetype() {
 
 # Build OpenAL
 build_openal() {
-	local openal_cmake_call=(cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-		-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-		-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
 	case "${PLATFORM}" in
 	windows-*-*)
-		download "openal-soft-${OPENAL_VERSION}-bin.zip" "https://openal-soft.org/openal-binaries/openal-soft-${OPENAL_VERSION}-bin.zip" openal
-		cd "openal-soft-${OPENAL_VERSION}-bin"
-		cp -r "include/AL" "${PREFIX}/include"
-		case "${PLATFORM}" in
-		windows-i686-*)
-			cp "libs/Win32/libOpenAL32.dll.a" "${PREFIX}/lib"
-			cp "bin/Win32/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
-			;;
-		windows-amd64-*)
-			cp "libs/Win64/libOpenAL32.dll.a" "${PREFIX}/lib"
-			cp "bin/Win64/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
-			;;
-		esac
+		local dir_name="openal-soft-${OPENAL_VERSION}-bin"
+		local archive_name="${dir_name}.zip"
 		;;
-	macos-*-*)
-		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
-		cd "openal-soft-${OPENAL_VERSION}"
-		"${openal_cmake_call[@]}"
-		make
-		make install
-		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
-		;;
-	linux-*-*)
-		download "openal-soft-${OPENAL_VERSION}.tar.bz2" "https://openal-soft.org/openal-releases/openal-soft-${OPENAL_VERSION}.tar.bz2" openal
-		cd "openal-soft-${OPENAL_VERSION}"
-		"${openal_cmake_call[@]}" -DLIBTYPE=STATIC 
-		make
-		make install
+	macos-*-*|linux-*-*)
+		local dir_name="openal-soft-${OPENAL_VERSION}"
+		local archive_name="${dir_name}.tar.bz2"
+		local openal_cmake_call=(cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+			-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+			-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
 		;;
 	*)
 		echo "Unsupported platform for OpenAL"
 		exit 1
 		;;
 	esac
+
+	download openal "${archive_name}" \
+		"https://openal-soft.org/openal-releases/${archive_name}" \
+		"https://github.com/kcat/openal-soft/releases/download/${OPENAL_VERSION}/${archive_name}" \
+
+	case "${PLATFORM}" in
+	windows-*-*)
+		cd "${dir_name}"
+		cp -r "include/AL" "${PREFIX}/include"
+		case "${PLATFORM}" in
+		*-i686-*)
+			cp "libs/Win32/libOpenAL32.dll.a" "${PREFIX}/lib"
+			cp "bin/Win32/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
+			;;
+		*-amd64-*)
+			cp "libs/Win64/libOpenAL32.dll.a" "${PREFIX}/lib"
+			cp "bin/Win64/soft_oal.dll" "${PREFIX}/bin/OpenAL32.dll"
+			;;
+		esac
+		;;
+	macos-*-*)
+		cd "${dir_name}"
+		"${openal_cmake_call[@]}"
+		make
+		make install
+		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
+		;;
+	linux-*-*)
+		cd "${dir_name}"
+		"${openal_cmake_call[@]}" -DLIBTYPE=STATIC 
+		make
+		make install
+		;;
+	esac
 }
 
 # Build Ogg
 build_ogg() {
-	download "libogg-${OGG_VERSION}.tar.gz" "https://downloads.xiph.org/releases/ogg/libogg-${OGG_VERSION}.tar.gz" ogg
-	cd "libogg-${OGG_VERSION}"
+	local dir_name="libogg-${OGG_VERSION}"
+	local archive_name="libogg-${OGG_VERSION}.tar.gz"
+
+	download ogg "${archive_name}" \
+		"https://downloads.xiph.org/releases/ogg/${archive_name}"
+
+	cd "${dir_name}"
 	# This header breaks the vorbis and opusfile Mac builds
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
@@ -440,8 +542,13 @@ build_ogg() {
 
 # Build Vorbis
 build_vorbis() {
-	download "libvorbis-${VORBIS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz" vorbis
-	cd "libvorbis-${VORBIS_VERSION}"
+	local dir_name="libvorbis-${VORBIS_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download vorbis "${archive_name}" \
+		"https://downloads.xiph.org/releases/vorbis/${archive_name}"
+
+	cd "${dir_name}"
 	# The user-provided CFLAGS doesn't drop the default -O3
 	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-examples
 	make
@@ -450,8 +557,13 @@ build_vorbis() {
 
 # Build Opus
 build_opus() {
-	download "opus-${OPUS_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" opus
-	cd "opus-${OPUS_VERSION}"
+	local dir_name="opus-${OPUS_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download opus "${archive_name}" \
+		"https://downloads.xiph.org/releases/opus/${archive_name}"
+
+	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	case "${PLATFORM}" in
 	windows-*-*)
@@ -468,19 +580,28 @@ build_opus() {
 
 # Build OpusFile
 build_opusfile() {
-	download "opusfile-${OPUSFILE_VERSION}.tar.gz" "https://downloads.xiph.org/releases/opus/opusfile-${OPUSFILE_VERSION}.tar.gz" opusfile
-	cd "opusfile-${OPUSFILE_VERSION}"
+	local dir_name="opusfile-${OPUSFILE_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download opusfile "${archive_name}" \
+		"https://downloads.xiph.org/releases/opus/${archive_name}"
+
+	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-http
 	make
 	make install
 }
 
-
 # Build Lua
 build_lua() {
-	download "lua-${LUA_VERSION}.tar.gz" "https://www.lua.org/ftp/lua-${LUA_VERSION}.tar.gz" lua
-	cd "lua-${LUA_VERSION}"
+	local dir_name="lua-${LUA_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download lua "${archive_name}" \
+		"https://www.lua.org/ftp/${archive_name}"
+
+	cd "${dir_name}"
 	case "${PLATFORM}" in
 	windows-*-*)
 		local LUA_PLATFORM=mingw
@@ -513,8 +634,14 @@ build_lua() {
 
 # Build ncurses
 build_ncurses() {
-	download "ncurses-${NCURSES_VERSION}.tar.gz" "https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz" ncurses
-	cd "ncurses-${NCURSES_VERSION}"
+	local dir_name="ncurses-${NCURSES_VERSION}"
+	local archive_name="${dir_name}.tar.gz"
+
+	download ncurses "${archive_name}" \
+		"https://ftpmirror.gnu.org/gnu/ncurses/${archive_name}" \
+		"https://ftp.gnu.org/pub/gnu/ncurses/${archive_name}"
+
+	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
 	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --enable-widec "${CONFIGURE_SHARED[@]}" --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
@@ -543,9 +670,15 @@ build_wasisdk() {
 		exit 1
 		;;
 	esac
+
+	local dir_name="wasi-sdk-${WASISDK_VERSION}"
+	local archive_name="${dir_name}-${WASISDK_PLATFORM}.tar.gz"
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
-	download "wasi-sdk_${WASISDK_PLATFORM}.tar.gz" "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/wasi-sdk-${WASISDK_VERSION}-${WASISDK_PLATFORM}.tar.gz" wasisdk
-	cp -r "wasi-sdk-${WASISDK_VERSION}" "${PREFIX}/wasi-sdk"
+
+	download wasisdk "${archive_name}" \
+		"https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
+
+	cp -r "${dir_name}" "${PREFIX}/wasi-sdk"
 }
 
 # "Builds" (downloads) wasmtime
@@ -576,10 +709,14 @@ build_wasmtime() {
 		exit 1
 		;;
 	esac
-	local folder_name="wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
+
+	local dir_name="wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
 	local archive_name="${folder_name}.${ARCHIVE_EXT}"
-	download "${archive_name}" "https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}" wasmtime
-	cd "${folder_name}"
+
+	download wasmtime "${archive_name}" \
+		"https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}"
+
+	cd "${dir_name}"
 	cp -r include/* "${PREFIX}/include"
 	cp -r lib/* "${PREFIX}/lib"
 }
@@ -617,7 +754,12 @@ build_naclsdk() {
 		local DAEMON_ARCH=armhf
 		;;
 	esac
-	download "naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2" "https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2" naclsdk
+
+	local archive_name="naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2"
+
+	download naclsdk "${archive_name}" \
+		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
+
 	cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
 	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
 	case "${PLATFORM}" in
@@ -672,7 +814,11 @@ build_naclsdk() {
 }
 
 build_naclports() {
-	download "naclports-${NACLSDK_VERSION}.tar.bz2" "https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclports.tar.bz2" naclports
+	local archive_name="naclports-${NACLSDK_VERSION}.tar.bz2"
+
+	download naclports "${archive_name}" \
+		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclports.tar.bz2"
+
 	mkdir -p "${PREFIX}/pnacl_deps/"{include,lib}
 	cp pepper_*"/ports/include/"{lauxlib.h,lua.h,lua.hpp,luaconf.h,lualib.h} "${PREFIX}/pnacl_deps/include"
 	cp -a pepper_*"/ports/include/freetype2" "${PREFIX}/pnacl_deps/include"
