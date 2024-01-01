@@ -963,7 +963,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	enum class colorGen_t
 	{
 	  CGEN_BAD,
-	  CGEN_IDENTITY_LIGHTING, // tr.identityLight
+	  CGEN_IDENTITY_LIGHTING, // Always (1,1,1,1) in Dæmon engine as the overbright bit implementation is fully software.
 	  CGEN_IDENTITY, // always (1,1,1,1)
 	  CGEN_ENTITY, // grabbed from entity's modulate field
 	  CGEN_ONE_MINUS_ENTITY, // grabbed from 1 - entity.modulate
@@ -2820,9 +2820,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 
 		viewParms_t    viewParms;
 
-		float          identityLight; // 1.0 / ( 1 << overbrightBits )
-		int            overbrightBits; // r_overbrightBits->integer, but set to 0 if no hw gamma
-		int mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		int            mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
 
 		orientationr_t orientation; // for current entity
 
@@ -2944,6 +2942,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	extern cvar_t *r_staticLight; // static lights enabled/disabled
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
+	extern Cvar::Cvar<int> r_mapOverBrightBits;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;

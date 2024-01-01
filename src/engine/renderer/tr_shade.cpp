@@ -2476,6 +2476,15 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	{
 		case colorGen_t::CGEN_IDENTITY:
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
+		default:
+		case colorGen_t::CGEN_IDENTITY_LIGHTING:
+			/* Historically CGEN_IDENTITY_LIGHTING was done this way:
+
+			  tess.svars.color = Color::White * tr.identityLight;
+
+			But tr.identityLight is always 1.0f in Dæmon engine
+			as the as the overbright bit implementation is fully
+			software. */
 			{
 				tess.svars.color = Color::White;
 				break;
@@ -2484,13 +2493,6 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 		case colorGen_t::CGEN_VERTEX:
 			{
 				tess.svars.color = Color::Color();
-				break;
-			}
-
-		default:
-		case colorGen_t::CGEN_IDENTITY_LIGHTING:
-			{
-				tess.svars.color = Color::White * tr.identityLight;
 				break;
 			}
 
@@ -2554,7 +2556,12 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				}
 				else
 				{
-					glow = RB_EvalWaveForm( wf ) * tr.identityLight;
+					/* Historically this value was multiplied by
+					tr.identityLight but tr.identityLight is always 1.0f
+					in Dæmon engine as the as the overbright bit
+					implementation is fully software. */
+
+					glow = RB_EvalWaveForm( wf );
 				}
 
 				glow = Math::Clamp( glow, 0.0f, 1.0f );
