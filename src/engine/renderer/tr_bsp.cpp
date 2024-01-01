@@ -55,8 +55,21 @@ static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
 {
 	int shift, r, g, b;
 
-	// shift the color data based on overbright range
-	shift = tr.mapOverBrightBits - tr.overbrightBits;
+	/* Shift the color data based on overbright range.
+
+	Historically the shift was:
+
+	  shift = tr.mapOverBrightBits - tr.overbrightBits;
+
+	But in Dæmon engine tr.overbrightBits is always zero
+	as this value is zero when there hardware overbright
+	bit is disabled, and the engine doesn't implement
+	hardware overbright bit at all.
+
+	The original code was there to only shift in software
+	what hardware overbright bit feature was not doing, but
+	this implementation is entirely software. */
+	shift = tr.mapOverBrightBits;
 
 	// shift the data based on overbright range
 	r = in[ 0 ] << shift;
@@ -3840,7 +3853,15 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		out->fogParms = shader->fogParms;
 
 		out->color = Color::Adapt( shader->fogParms.color );
-		out->color *= tr.identityLight;
+
+		/* Historically it was done:
+
+			out->color *= tr.identityLight;
+
+		But tr.identityLight is always 1.0f in Dæmon engine
+		as the as the overbright bit implementation is fully
+		software. */
+
 		out->color.SetAlpha( 1 );
 
 		d = shader->fogParms.depthForOpaque < 1 ? 1 : shader->fogParms.depthForOpaque;
