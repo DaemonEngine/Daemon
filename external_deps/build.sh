@@ -1162,16 +1162,11 @@ all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp f
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
 
-download_only='false'
-case "${1-}" in
-'--download-only')
-	download_only='true'
-	shift
-;;
-esac
+linux_build_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
+macos_build_platforms='macos-amd64-default'
+all_platforms="$(echo ${linux_build_platforms} ${macos_build_platforms} | tr ' ' '\n' | sort -u)"
 
-# Usage
-if [ "${#}" -lt "2" ]; then
+errorHelp() {
 	sed -e 's/\\t/\t/g' <<-EOF
 	usage: $(basename "${BASH_SOURCE[0]}") [OPTION] <PLATFORM> <PACKAGE[S]...>
 
@@ -1181,7 +1176,7 @@ if [ "${#}" -lt "2" ]; then
 	\t--download-only — only download source packages, do not build them
 
 	Platforms:
-	\twindows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-i686-default linux-arm64-default linux-armhf-default
+	\t${all_platforms}
 
 	Packages:
 	\tpkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
@@ -1189,6 +1184,8 @@ if [ "${#}" -lt "2" ]; then
 	Virtual packages:
 	\tbase — build packages for pre-built binaries to be downloaded when building the game
 	\tall — build all supported packages that can possibly be involved in building the game
+	\tbuild-linux — build all packages buildable on linux: ${linux_build_platforms}
+	\tbuild-macos — build all packages buildable on macos: ${macos_build_platforms}
 	\tinstall — create a stripped down version of the built packages that CMake can use
 	\tpackage — create a zip/tarball of the dependencies so they can be distributed
 	\twipe — remove products of build process, excepting download cache but INCLUDING installed files. Must be last
@@ -1221,17 +1218,61 @@ if [ "${#}" -lt "2" ]; then
 
 	EOF
 	false
+}
+
+download_only='false'
+case "${1-}" in
+'--download-only')
+	download_only='true'
+	shift
+;;
+esac
+
+# Usage
+if [ "${#}" -lt "2" ]; then
+	errorHelp
 fi
 
 # Enable parallel build
 export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 
 # Setup platform
-PLATFORM="${1}"; shift
-"setup_${PLATFORM}"
+platform="${1}"; shift
 
-# Build packages
-for pkg in "${@}"; do
-	cd "${WORK_DIR}"
-	"build_${pkg}"
+platform_list=''
+case "${platform}" in
+'all')
+	platform_list="${all_platforms}"
+;;
+'build-linux')
+	platform_list="${linux_build_platforms}"
+;;
+'build-macos')
+	platform_list="${macos_build_platforms}"
+;;
+*)
+	for known_platform in ${all_platforms}
+	do
+		if [ "${platform}" = "${known_platform}" ]
+		then
+			platform_list="${platform}"
+			break;
+		fi
+	done
+	if [ -z "${platform_list}" ]
+	then
+		errorHelp
+	fi
+;;
+esac
+
+for PLATFORM in ${platform_list}
+do
+	"setup_${PLATFORM}"
+
+	# Build packages
+	for pkg in "${@}"; do
+		cd "${WORK_DIR}"
+		"build_${pkg}"
+	done
 done
