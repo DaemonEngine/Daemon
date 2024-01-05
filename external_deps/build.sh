@@ -392,7 +392,7 @@ build_glew() {
 # Build PNG
 build_png() {
 	local dir_name="libpng-${PNG_VERSION}"
-	local archive_name="${dir_name}.tar.gz"
+	local archive_name="${dir_name}.tar.xz"
 
 	download_extract png "${archive_name}" \
 		"https://download.sourceforge.net/libpng/${archive_name}"
@@ -497,7 +497,7 @@ build_webp() {
 # Build FreeType
 build_freetype() {
 	local dir_name="freetype-${FREETYPE_VERSION}"
-	local archive_name="${dir_name}.tar.gz"
+	local archive_name="${dir_name}.tar.xz"
 
 	download_extract freetype "${archive_name}" \
 		"https://download.savannah.gnu.org/releases/freetype/${archive_name}"
@@ -572,7 +572,7 @@ build_openal() {
 # Build Ogg
 build_ogg() {
 	local dir_name="libogg-${OGG_VERSION}"
-	local archive_name="libogg-${OGG_VERSION}.tar.gz"
+	local archive_name="libogg-${OGG_VERSION}.tar.xz"
 
 	download_extract ogg "${archive_name}" \
 		"https://downloads.xiph.org/releases/ogg/${archive_name}"
@@ -592,7 +592,7 @@ build_ogg() {
 # Build Vorbis
 build_vorbis() {
 	local dir_name="libvorbis-${VORBIS_VERSION}"
-	local archive_name="${dir_name}.tar.gz"
+	local archive_name="${dir_name}.tar.xz"
 
 	download_extract vorbis "${archive_name}" \
 		"https://downloads.xiph.org/releases/vorbis/${archive_name}"
