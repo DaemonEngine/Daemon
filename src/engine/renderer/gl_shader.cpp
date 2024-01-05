@@ -579,9 +579,6 @@ static std::string GenEngineConstants() {
 		AddConst( str, "MAX_GLSL_BONES", 4 );
 	}
 
-	if ( r_wrapAroundLighting->value )
-		AddConst( str, "r_wrapAroundLighting", r_wrapAroundLighting->value );
-
 	if ( r_halfLambertLighting->integer )
 		AddDefine( str, "r_halfLambertLighting", 1 );
 
@@ -1570,7 +1567,6 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	u_EnvironmentInterpolation( this ),
-	u_LightWrapAround( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
 	u_numLights( this ),
@@ -1631,7 +1627,6 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_LightColor( this ),
 	u_LightRadius( this ),
 	u_LightScale( this ),
-	u_LightWrapAround( this ),
 	u_LightAttenuationMatrix( this ),
 	u_ShadowTexelSize( this ),
 	u_ShadowBlur( this ),
@@ -1690,7 +1685,6 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_LightColor( this ),
 	u_LightRadius( this ),
 	u_LightScale( this ),
-	u_LightWrapAround( this ),
 	u_LightAttenuationMatrix( this ),
 	u_ShadowTexelSize( this ),
 	u_ShadowBlur( this ),
@@ -1751,7 +1745,6 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_LightColor( this ),
 	u_LightRadius( this ),
 	u_LightScale( this ),
-	u_LightWrapAround( this ),
 	u_LightAttenuationMatrix( this ),
 	u_ShadowTexelSize( this ),
 	u_ShadowBlur( this ),
