@@ -1180,7 +1180,7 @@ macos_build_platforms='macos-amd64-default'
 all_platforms="$(echo ${linux_build_platforms} ${macos_build_platforms} | tr ' ' '\n' | sort -u)"
 
 errorHelp() {
-	sed -e 's/\\t/\t/g' <<-EOF
+	sed -e 's/\\t/'$'\t''/g' <<-EOF
 	usage: $(basename "${BASH_SOURCE[0]}") [OPTION] <PLATFORM> <PACKAGE[S]...>
 
 	Script to build dependencies for platforms which do not provide them
