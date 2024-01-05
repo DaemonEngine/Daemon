@@ -99,11 +99,9 @@ extract() {
 	cd "${2}"
 }
 
-# Download a file if it doesn't exist yet, and extract it into the build dir
-# Usage: download <filename> <URL> <dir>
 download() {
-	local extract_dir="${BUILD_DIR}/${1}"; shift
-	local tarball_file="${DOWNLOAD_DIR}/${1}"; shift
+	local tarball_file="${1}"; shift
+
 	while [ ! -f "${tarball_file}" ]; do
 		if [ -z "${1:-}" ]
 		then
@@ -117,6 +115,21 @@ download() {
 			rm -f "${tarball_file}"
 		fi
 	done
+}
+
+# Download a file if it doesn't exist yet, and extract it into the build dir
+# Usage: download <filename> <URL> <dir>
+download_extract() {
+	local extract_dir="${BUILD_DIR}/${1}"; shift
+	local our_mirror="https://dl.unvanquished.net/deps/original/${1}"
+	local tarball_file="${DOWNLOAD_DIR}/${1}"; shift
+
+	if "${prefer_ours}"
+	then
+		download "${tarball_file}" "${our_mirror}" "${@}"
+	else
+		download "${tarball_file}" "${@}" "${our_mirror}"
+	fi
 
 	"${download_only}" && return
 
@@ -128,7 +141,7 @@ build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download pkgconfig "${archive_name}" \
+	download_extract pkgconfig "${archive_name}" \
 		"http://pkgconfig.freedesktop.org/releases/${archive_name}"
 
 	"${download_only}" && return
@@ -147,7 +160,7 @@ build_nasm() {
 		local dir_name="nasm-${NASM_VERSION}"
 		local archive_name="${dir_name}-macosx.zip"
 
-		download nasm "${archive_name}" \
+		download_extract nasm "${archive_name}" \
 			"https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/${archive_name}"
 
 		"${download_only}" && return
@@ -167,7 +180,7 @@ build_zlib() {
 	local dir_name="zlib-${ZLIB_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download zlib "${archive_name}" \
+	download_extract zlib "${archive_name}" \
 		"https://zlib.net/fossils/${archive_name}" \
 		"https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${archive_name}"
 
@@ -193,7 +206,7 @@ build_gmp() {
 	local dir_name="gmp-${GMP_VERSION}"
 	local archive_name="${dir_name}.tar.bz2"
 
-	download gmp "${archive_name}" \
+	download_extract gmp "${archive_name}" \
 		"https://gmplib.org/download/gmp/${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/gmp/${archive_name}" \
 		"https://ftp.gnu.org/gnu/gmp/${archive_name}"
@@ -238,7 +251,7 @@ build_nettle() {
 	local dir_name="nettle-${NETTLE_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download nettle "${archive_name}" \
+	download_extract nettle "${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/nettle/${archive_name}" \
 		"https://ftp.gnu.org/gnu/nettle/${archive_name}"
 
@@ -256,7 +269,7 @@ build_curl() {
 	local dir_name="curl-${CURL_VERSION}"
 	local archive_name="${dir_name}.tar.xz"
 
-	download curl "${archive_name}" \
+	download_extract curl "${archive_name}" \
 		"https://curl.se/download/${archive_name}" \
 		"https://github.com/curl/curl/releases/download/curl-${CURL_VERSION//./_}/${archive_name}"
 
@@ -288,7 +301,7 @@ build_sdl2() {
 		;;
 	esac
 
-	download sdl2 "${archive_name}" \
+	download_extract sdl2 "${archive_name}" \
 		"https://www.libsdl.org/release/${archive_name}" \
 		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/${archive_name}"
 
@@ -346,7 +359,7 @@ build_glew() {
 	local dir_name="glew-${GLEW_VERSION}"
 	local archive_name="${dir_name}.tgz"
 
-	download glew "${archive_name}" \
+	download_extract glew "${archive_name}" \
 		"https://github.com/nigels-com/glew/releases/download/glew-${GLEW_VERSION}/${archive_name}" \
 		"https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/${archive_name}"
 
@@ -381,7 +394,7 @@ build_png() {
 	local dir_name="libpng-${PNG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download png "${archive_name}" \
+	download_extract png "${archive_name}" \
 		"https://download.sourceforge.net/libpng/${archive_name}"
 
 	"${download_only}" && return
@@ -398,7 +411,7 @@ build_jpeg() {
 	local dir_name="libjpeg-turbo-${JPEG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download jpeg "${archive_name}" \
+	download_extract jpeg "${archive_name}" \
 		"https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -469,7 +482,7 @@ build_webp() {
 	local dir_name="libwebp-${WEBP_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download webp "${archive_name}" \
+	download_extract webp "${archive_name}" \
 		"https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive_name}"
 
 	"${download_only}" && return
@@ -486,7 +499,7 @@ build_freetype() {
 	local dir_name="freetype-${FREETYPE_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download freetype "${archive_name}" \
+	download_extract freetype "${archive_name}" \
 		"https://download.savannah.gnu.org/releases/freetype/${archive_name}"
 
 	"${download_only}" && return
@@ -519,7 +532,7 @@ build_openal() {
 		;;
 	esac
 
-	download openal "${archive_name}" \
+	download_extract openal "${archive_name}" \
 		"https://openal-soft.org/openal-releases/${archive_name}" \
 		"https://github.com/kcat/openal-soft/releases/download/${OPENAL_VERSION}/${archive_name}" \
 
@@ -561,7 +574,7 @@ build_ogg() {
 	local dir_name="libogg-${OGG_VERSION}"
 	local archive_name="libogg-${OGG_VERSION}.tar.gz"
 
-	download ogg "${archive_name}" \
+	download_extract ogg "${archive_name}" \
 		"https://downloads.xiph.org/releases/ogg/${archive_name}"
 
 	"${download_only}" && return
@@ -581,7 +594,7 @@ build_vorbis() {
 	local dir_name="libvorbis-${VORBIS_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download vorbis "${archive_name}" \
+	download_extract vorbis "${archive_name}" \
 		"https://downloads.xiph.org/releases/vorbis/${archive_name}"
 
 	"${download_only}" && return
@@ -598,7 +611,7 @@ build_opus() {
 	local dir_name="opus-${OPUS_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download opus "${archive_name}" \
+	download_extract opus "${archive_name}" \
 		"https://downloads.xiph.org/releases/opus/${archive_name}"
 
 	"${download_only}" && return
@@ -623,7 +636,7 @@ build_opusfile() {
 	local dir_name="opusfile-${OPUSFILE_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download opusfile "${archive_name}" \
+	download_extract opusfile "${archive_name}" \
 		"https://downloads.xiph.org/releases/opus/${archive_name}"
 
 	"${download_only}" && return
@@ -640,7 +653,7 @@ build_lua() {
 	local dir_name="lua-${LUA_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download lua "${archive_name}" \
+	download_extract lua "${archive_name}" \
 		"https://www.lua.org/ftp/${archive_name}"
 
 	"${download_only}" && return
@@ -680,7 +693,7 @@ build_ncurses() {
 	local dir_name="ncurses-${NCURSES_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download ncurses "${archive_name}" \
+	download_extract ncurses "${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/ncurses/${archive_name}" \
 		"https://ftp.gnu.org/pub/gnu/ncurses/${archive_name}"
 
@@ -719,7 +732,7 @@ build_wasisdk() {
 	local archive_name="${dir_name}-${WASISDK_PLATFORM}.tar.gz"
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 
-	download wasisdk "${archive_name}" \
+	download_extract wasisdk "${archive_name}" \
 		"https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
 
 	"${download_only}" && return
@@ -758,7 +771,7 @@ build_wasmtime() {
 	local dir_name="wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
 	local archive_name="${folder_name}.${ARCHIVE_EXT}"
 
-	download wasmtime "${archive_name}" \
+	download_extract wasmtime "${archive_name}" \
 		"https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -804,7 +817,7 @@ build_naclsdk() {
 
 	local archive_name="naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2"
 
-	download naclsdk "${archive_name}" \
+	download_extract naclsdk "${archive_name}" \
 		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
 
 	"${download_only}" && return
@@ -865,7 +878,7 @@ build_naclsdk() {
 build_naclports() {
 	local archive_name="naclports-${NACLSDK_VERSION}.tar.bz2"
 
-	download naclports "${archive_name}" \
+	download_extract naclports "${archive_name}" \
 		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclports.tar.bz2"
 
 	"${download_only}" && return
@@ -1174,6 +1187,7 @@ errorHelp() {
 
 	Options:
 	\t--download-only — only download source packages, do not build them
+	\t--prefer-ours — attempt to download from unvanquished.net first
 
 	Platforms:
 	\t${all_platforms}
@@ -1221,9 +1235,14 @@ errorHelp() {
 }
 
 download_only='false'
+prefer_ours='false'
 case "${1-}" in
 '--download-only')
 	download_only='true'
+	shift
+;;
+'--prefer-ours')
+	prefer_ours='true'
 	shift
 ;;
 esac
