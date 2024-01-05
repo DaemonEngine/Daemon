@@ -1294,7 +1294,7 @@ case "${platform}" in
 esac
 
 for PLATFORM in ${platform_list}
-do
+do (
 	"setup_${PLATFORM}"
 
 	# Build packages
@@ -1302,4 +1302,4 @@ do
 		cd "${WORK_DIR}"
 		"build_${pkg}"
 	done
-done
+) done
