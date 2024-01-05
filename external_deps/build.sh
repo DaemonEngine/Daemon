@@ -1142,7 +1142,7 @@ base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports'
-all_mingw_packages="${base_windows_amd64_mingw_packages}"
+all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
