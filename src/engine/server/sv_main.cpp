@@ -48,7 +48,14 @@ serverStatic_t svs; // persistent server info
 server_t       sv; // local server
 GameVM         gvm; // game virtual machine
 
-cvar_t         *sv_fps; // time rate for running non-clients
+// Controls the gamelogic simulation time slice size. The game time always jumps in increments
+// of 1000/sv_fps ms. Multiple or (for clients hosting games) no gamelogic frames may be run
+// per server frame. Since timescale affects the game clock's rate, if you have sv_fps 40 and
+// timescale 5, the number of gamelogic frames per wall second will be 200.
+// For the dedicated server this also controls the engine frame rate. The engine framerate
+// is based on real time, disregarding timescale.
+cvar_t         *sv_fps;
+
 cvar_t         *sv_timeout; // seconds without any message
 cvar_t         *sv_zombietime; // seconds to sink messages after disconnect
 cvar_t         *sv_privatePassword; // password for the privateClient slots
@@ -1241,14 +1248,15 @@ int SV_FrameMsec()
 	if( sv_fps )
 	{
 		const int frameMsec = static_cast<int>(1000.0f / sv_fps->value);
+		int scaledResidual = static_cast<int>( sv.timeResidual / com_timescale->value );
 
-		if( frameMsec < sv.timeResidual )
+		if ( frameMsec < scaledResidual )
 		{
 			return 0;
 		}
 		else
 		{
-			return frameMsec - sv.timeResidual;
+			return frameMsec - scaledResidual;
 		}
 	}
 	else
