@@ -67,7 +67,6 @@ uniform vec3		u_LightOrigin;
 uniform vec3		u_LightColor;
 uniform float		u_LightRadius;
 uniform float       u_LightScale;
-uniform	float		u_LightWrapAround;
 uniform float		u_AlphaThreshold;
 
 uniform mat4		u_ShadowMatrix[MAX_SHADOWMAPS];
@@ -960,11 +959,7 @@ void	main()
 	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 
 	// compute the light term
-#if defined(r_wrapAroundLighting)
-	float NL = clamp(dot(normal, lightDir) + u_LightWrapAround, 0.0, 1.0) / clamp(1.0 + u_LightWrapAround, 0.0, 1.0);
-#else
 	float NL = clamp(dot(normal, lightDir), 0.0, 1.0);
-#endif
 
 	// compute the diffuse term
 	vec4 diffuse = texture2D(u_DiffuseMap, texCoords);

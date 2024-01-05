@@ -1448,21 +1448,6 @@ public:
 	}
 };
 
-class u_LightWrapAround :
-	GLUniform1f
-{
-public:
-	u_LightWrapAround( GLShader *shader ) :
-		GLUniform1f( shader, "u_LightWrapAround" )
-	{
-	}
-
-	void SetUniform_LightWrapAround( float value )
-	{
-		this->SetValue( value );
-	}
-};
-
 class u_LightAttenuationMatrix :
 	GLUniformMatrix4f
 {
@@ -2262,7 +2247,6 @@ class GLShader_lightMapping :
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
 	public u_EnvironmentInterpolation,
-	public u_LightWrapAround,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
 	public u_numLights,
@@ -2298,7 +2282,6 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_LightColor,
 	public u_LightRadius,
 	public u_LightScale,
-	public u_LightWrapAround,
 	public u_LightAttenuationMatrix,
 	public u_ShadowTexelSize,
 	public u_ShadowBlur,
@@ -2336,7 +2319,6 @@ class GLShader_forwardLighting_projXYZ :
 	public u_LightColor,
 	public u_LightRadius,
 	public u_LightScale,
-	public u_LightWrapAround,
 	public u_LightAttenuationMatrix,
 	public u_ShadowTexelSize,
 	public u_ShadowBlur,
@@ -2375,7 +2357,6 @@ class GLShader_forwardLighting_directionalSun :
 	public u_LightColor,
 	public u_LightRadius,
 	public u_LightScale,
-	public u_LightWrapAround,
 	public u_LightAttenuationMatrix,
 	public u_ShadowTexelSize,
 	public u_ShadowBlur,

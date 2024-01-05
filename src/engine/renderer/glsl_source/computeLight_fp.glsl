@@ -73,15 +73,13 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 #endif // USE_PHYSICAL_MAPPING || r_specularMapping
 
   // clamp( NdotL, 0.0, 1.0 ) is done below
-  // if no r_halfLambertLighting and no r_wrapAroundLighting.
+  // if no r_halfLambertLighting
   float NdotL = dot( normal, lightDir );
 
 #if defined(r_halfLambertLighting)
   // http://developer.valvesoftware.com/wiki/Half_Lambert
   NdotL = NdotL * 0.5 + 0.5;
   NdotL *= NdotL;
-#elif defined(r_wrapAroundLighting)
-  NdotL = clamp( NdotL + r_wrapAroundLighting, 0.0, 1.0) / clamp(1.0 + r_wrapAroundLighting, 0.0, 1.0);
 #else
   NdotL = clamp( NdotL, 0.0, 1.0 );
 #endif

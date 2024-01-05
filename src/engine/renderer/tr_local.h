@@ -1285,8 +1285,6 @@ static inline void glFboSetExt()
 
 		expression_t    deformMagnitudeExp;
 
-		expression_t    wrapAroundLightingExp;
-
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
 	};
 
@@ -3003,7 +3001,6 @@ static inline void glFboSetExt()
 	extern cvar_t *r_glowMapping;
 	extern cvar_t *r_reflectionMapping;
 
-	extern cvar_t *r_wrapAroundLighting;
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
 	extern cvar_t *r_rimExponent;
