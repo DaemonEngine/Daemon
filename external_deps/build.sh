@@ -1177,7 +1177,7 @@ all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
 
 linux_build_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
 macos_build_platforms='macos-amd64-default'
-all_platforms="$(echo ${linux_build_platforms} ${macos_build_platforms} | tr ' ' '\n' | sort -u)"
+all_platforms="$(echo ${linux_build_platforms} ${macos_build_platforms} | tr ' ' '\n' | sort -u | xargs echo)"
 
 errorHelp() {
 	sed -e 's/\\t/'$'\t''/g' <<-EOF
@@ -1192,14 +1192,17 @@ errorHelp() {
 	Platforms:
 	\t${all_platforms}
 
+	Virtual platforms:
+	\tall: all platforms
+	\tbuild-linux — platforms buildable on linux: ${linux_build_platforms}
+	\tbuild-macos — platforms buildable on macos: ${macos_build_platforms}
+
 	Packages:
 	\tpkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
 
 	Virtual packages:
 	\tbase — build packages for pre-built binaries to be downloaded when building the game
 	\tall — build all supported packages that can possibly be involved in building the game
-	\tbuild-linux — build all packages buildable on linux: ${linux_build_platforms}
-	\tbuild-macos — build all packages buildable on macos: ${macos_build_platforms}
 	\tinstall — create a stripped down version of the built packages that CMake can use
 	\tpackage — create a zip/tarball of the dependencies so they can be distributed
 	\twipe — remove products of build process, excepting download cache but INCLUDING installed files. Must be last
