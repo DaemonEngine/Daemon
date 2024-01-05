@@ -111,7 +111,7 @@ download() {
 		fi
 		local download_url="${1}"; shift
 		log status "Downloading ${download_url}"
-		if ! "${CURL}" -L --fail -o "${tarball_file}" "${download_url}"
+		if ! "${CURL}" -R -L --fail -o "${tarball_file}" "${download_url}"
 		then
 			log warning "Failed to download ${download_url}"
 			rm -f "${tarball_file}"
