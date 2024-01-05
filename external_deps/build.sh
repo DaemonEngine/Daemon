@@ -1236,16 +1236,24 @@ errorHelp() {
 
 download_only='false'
 prefer_ours='false'
-case "${1-}" in
-'--download-only')
-	download_only='true'
-	shift
-;;
-'--prefer-ours')
-	prefer_ours='true'
-	shift
-;;
-esac
+while [ -n "${1:-}" ]
+do
+	case "${1-}" in
+	'--download-only')
+		download_only='true'
+		shift
+	;;
+	'--prefer-ours')
+		prefer_ours='true'
+		shift
+	;;
+	'--'*)
+		helpError
+	;;
+	*)
+		break
+	esac
+done
 
 # Usage
 if [ "${#}" -lt "2" ]; then
