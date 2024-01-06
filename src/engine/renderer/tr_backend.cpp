@@ -5532,6 +5532,9 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 
 	GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 
+	glClearStencil( 0 ); // Clear stencil buffer to avoid overwritting the color buffer when multiple portals are on the screen
+	glClear( GL_STENCIL_BUFFER_BIT ); // Might need to check if backEnd.viewParms.portalLevel == 0
+
 	if ( backEnd.viewParms.portalLevel == 0 ) {
 		glEnable( GL_STENCIL_TEST );
 		glStencilMask( 0xff );
@@ -5605,10 +5608,10 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 
 	glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
-	glStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
+	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
-	GL_State( GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS | GLS_COLORMASK_BITS );
-	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS | GLS_COLORMASK_BITS;
+	GL_State( GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS);
+	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS;
 
 	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader,
 		    nullptr, false, false, -1, -1 );
