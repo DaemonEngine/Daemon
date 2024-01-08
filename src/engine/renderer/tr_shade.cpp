@@ -2433,6 +2433,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	switch ( pStage->alphaGen )
 	{
 		default:
+		case alphaGen_t::AGEN_PORTAL:
 		case alphaGen_t::AGEN_IDENTITY:
 		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
 			{
