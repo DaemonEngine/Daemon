@@ -1285,8 +1285,6 @@ static inline void glFboSetExt()
 
 		expression_t    deformMagnitudeExp;
 
-		expression_t    wrapAroundLightingExp;
-
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
 	};
 
@@ -1453,18 +1451,20 @@ static inline void glFboSetExt()
 
 	  GLS_DEPTHFUNC_LESS = ( 1 << 20 ),
 	  GLS_DEPTHFUNC_EQUAL = ( 1 << 21 ),
+	  GLS_DEPTHFUNC_ALWAYS = ( 1 << 22 ),
 
 	  GLS_DEPTHFUNC_BITS = GLS_DEPTHFUNC_LESS
-	                       | GLS_DEPTHFUNC_EQUAL,
+	                       | GLS_DEPTHFUNC_EQUAL
+	                       | GLS_DEPTHFUNC_ALWAYS,
 
-	  GLS_ATEST_NONE   = ( 0 << 22 ),
-	  GLS_ATEST_GT_0   = ( 1 << 22 ),
-	  GLS_ATEST_LT_128 = ( 2 << 22 ),
-	  GLS_ATEST_GE_128 = ( 3 << 22 ),
-	  GLS_ATEST_LT_ENT = ( 4 << 22 ),
-	  GLS_ATEST_GT_ENT = ( 5 << 22 ),
+	  GLS_ATEST_NONE   = ( 0 << 23 ),
+	  GLS_ATEST_GT_0   = ( 1 << 23 ),
+	  GLS_ATEST_LT_128 = ( 2 << 23 ),
+	  GLS_ATEST_GE_128 = ( 3 << 23 ),
+	  GLS_ATEST_LT_ENT = ( 4 << 23 ),
+	  GLS_ATEST_GT_ENT = ( 5 << 23 ),
 
-	  GLS_ATEST_BITS   = ( 7 << 22 ),
+	  GLS_ATEST_BITS   = ( 7 << 23 ),
 
 	  GLS_REDMASK_FALSE = ( 1 << 26 ),
 	  GLS_GREENMASK_FALSE = ( 1 << 27 ),
@@ -3001,7 +3001,6 @@ static inline void glFboSetExt()
 	extern cvar_t *r_glowMapping;
 	extern cvar_t *r_reflectionMapping;
 
-	extern cvar_t *r_wrapAroundLighting;
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
 	extern cvar_t *r_rimExponent;

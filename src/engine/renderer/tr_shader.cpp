@@ -3205,11 +3205,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			ParseExpression( text, &stage->deformMagnitudeExp );
 		}
-		// wrapAroundLighting <arithmetic expression>
-		else if ( !Q_stricmp( token, "wrapAroundLighting" ) )
-		{
-			ParseExpression( text, &stage->wrapAroundLightingExp );
-		}
 		else
 		{
 			Log::Warn("unknown shader stage parameter '%s' in shader '%s'", token, shader.name );

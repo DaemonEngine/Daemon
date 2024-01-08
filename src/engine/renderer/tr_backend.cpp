@@ -446,6 +446,10 @@ void GL_State( uint32_t stateBits )
 				GL_DepthFunc( GL_LEQUAL );
 				break;
 
+			case GLS_DEPTHFUNC_ALWAYS:
+				GL_DepthFunc( GL_ALWAYS );
+				break;
+
 			case GLS_DEPTHFUNC_LESS:
 				GL_DepthFunc( GL_LESS );
 				break;
@@ -5600,14 +5604,11 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 
 	GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 
-	// set depth to max on portal area
-	glDepthRange( 1.0f, 1.0f );
-
 	glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
 	glStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
 
-	GL_State( GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE | GLS_COLORMASK_BITS );
-	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE | GLS_COLORMASK_BITS;
+	GL_State( GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS | GLS_COLORMASK_BITS );
+	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS | GLS_COLORMASK_BITS;
 
 	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader,
 		    nullptr, false, false, -1, -1 );
@@ -5615,8 +5616,6 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	Tess_End();
 
 	glState.glStateBitsMask = 0;
-
-	glDepthRange( 0.0f, 1.0f );
 
 	if( backEnd.viewParms.portalLevel == 0 ) {
 		glDisable( GL_STENCIL_TEST );

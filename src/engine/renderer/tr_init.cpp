@@ -171,7 +171,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_glowMapping;
 	cvar_t      *r_reflectionMapping;
 
-	cvar_t      *r_wrapAroundLighting;
 	cvar_t      *r_halfLambertLighting;
 	cvar_t      *r_rimLighting;
 	cvar_t      *r_rimExponent;
@@ -1233,7 +1232,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_glowMapping = Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
 		r_reflectionMapping = Cvar_Get( "r_reflectionMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 
-		r_wrapAroundLighting = Cvar_Get( "r_wrapAroundLighting", "0.7", CVAR_CHEAT | CVAR_LATCH );
 		r_halfLambertLighting = Cvar_Get( "r_halfLambertLighting", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimLighting = Cvar_Get( "r_rimLighting", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimExponent = Cvar_Get( "r_rimExponent", "3", CVAR_CHEAT | CVAR_LATCH );
