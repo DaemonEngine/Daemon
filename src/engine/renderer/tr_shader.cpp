@@ -2817,10 +2817,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			}
 			else if ( !Q_stricmp( token, "portal" ) )
 			{
-				Log::Warn("alphaGen portal keyword not supported in shader '%s'", shader.name );
-				//stage->type = ST_PORTALMAP;
-				stage->alphaGen = alphaGen_t::AGEN_CONST;
-				stage->constantColor.SetAlpha( 0 );
+				stage->type = stageType_t::ST_PORTALMAP;
+				stage->alphaGen = alphaGen_t::AGEN_PORTAL;
 
 				token = COM_ParseExt2( text, false );
 
