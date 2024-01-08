@@ -1816,6 +1816,25 @@ static void GLimp_InitExtensions()
 		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather->value && !foundNvidia340 );
 	}
 
+	{
+		bool foundIntel = Q_stristr( glConfig.vendor_string, "Intel" );
+
+		if ( foundIntel
+			&& LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
+		{
+			/* Workaround texture distorsion bug on Intel GPU
+
+			This bug seems to only affect gfx9 but detecting gfx9
+			may not be easy.
+
+			See:
+			- https://github.com/DaemonEngine/Daemon/issues/909
+			- https://gitlab.freedesktop.org/mesa/mesa/-/issues/10224 */
+			logger.Notice( "...found Intel driver with ARB_provoking_vertex" );
+			glProvokingVertex( GL_FIRST_VERTEX_CONVENTION );
+		}
+	}
+
 	// made required in OpenGL 1.3
 	glConfig.textureCompression = textureCompression_t::TC_NONE;
 	/* ExtFlag_REQUIRED could be turned into ExtFlag_NONE if s3tc-to-rgba is implemented.
