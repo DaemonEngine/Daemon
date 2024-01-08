@@ -850,6 +850,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	  AGEN_VERTEX,
 	  AGEN_ONE_MINUS_VERTEX,
 	  AGEN_WAVEFORM,
+	  AGEN_PORTAL,
 	  AGEN_CONST,
 	  AGEN_CUSTOM
 	};
