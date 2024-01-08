@@ -956,6 +956,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	  AGEN_VERTEX,
 	  AGEN_ONE_MINUS_VERTEX,
 	  AGEN_WAVEFORM,
+	  AGEN_PORTAL,
 	  AGEN_CONST,
 	  AGEN_CUSTOM
 	};
