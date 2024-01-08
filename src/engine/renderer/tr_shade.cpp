@@ -2109,6 +2109,8 @@ static void Render_screen( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
+/* This doesn't render the portal itself but the texture
+blended to it to fade it with distance. */
 static void Render_portal( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_portal ---\n" );
