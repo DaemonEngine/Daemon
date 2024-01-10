@@ -292,6 +292,9 @@ static inline void glFboSetExt()
 	GL_fboShim.glRenderbufferStorageMultisample = glRenderbufferStorageMultisampleEXT; */
 }
 
+enum class lightMode_t { FULLBRIGHT, VERTEX, GRID, MAP };
+enum class deluxeMode_t { NONE, GRID, MAP };
+
 	enum class renderSpeeds_t
 	{
 	  RSPEEDS_GENERAL = 1,
@@ -960,7 +963,7 @@ static inline void glFboSetExt()
 	enum class colorGen_t
 	{
 	  CGEN_BAD,
-	  CGEN_IDENTITY_LIGHTING, // tr.identityLight
+	  CGEN_IDENTITY_LIGHTING, // Always (1,1,1,1) in Dæmon engine as the overbright bit implementation is fully software.
 	  CGEN_IDENTITY, // always (1,1,1,1)
 	  CGEN_ENTITY, // grabbed from entity's modulate field
 	  CGEN_ONE_MINUS_ENTITY, // grabbed from 1 - entity.modulate
@@ -1174,6 +1177,7 @@ static inline void glFboSetExt()
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_LIGHTMAP,
+	  ST_LIGHTSTYLEMAP,
 	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:physicalmap
 	  ST_COLLAPSE_lighting_PHONG, // map|diffusemap + opt:normalmap + opt:glowmap + specularmap
 	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
@@ -2721,6 +2725,13 @@ static inline void glFboSetExt()
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
+
+		lightMode_t lightMode;
+		lightMode_t worldLight;
+		lightMode_t modelLight;
+		deluxeMode_t worldDeluxe;
+		deluxeMode_t modelDeluxe;
+
 		world_t    *world;
 
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
@@ -2809,8 +2820,6 @@ static inline void glFboSetExt()
 
 		viewParms_t    viewParms;
 
-		float          identityLight; // 1.0 / ( 1 << overbrightBits )
-		int            overbrightBits; // r_overbrightBits->integer, but set to 0 if no hw gamma
 		int            mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
 
 		orientationr_t orientation; // for current entity
@@ -2933,7 +2942,8 @@ static inline void glFboSetExt()
 	extern cvar_t *r_staticLight; // static lights enabled/disabled
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
-	extern cvar_t *r_vertexLighting;
+	extern Cvar::Cvar<int> r_mapOverBrightBits;
+	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;

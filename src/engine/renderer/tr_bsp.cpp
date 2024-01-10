@@ -55,8 +55,21 @@ static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
 {
 	int shift, r, g, b;
 
-	// shift the color data based on overbright range
-	shift = tr.mapOverBrightBits - tr.overbrightBits;
+	/* Shift the color data based on overbright range.
+
+	Historically the shift was:
+
+	  shift = tr.mapOverBrightBits - tr.overbrightBits;
+
+	But in Dæmon engine tr.overbrightBits is always zero
+	as this value is zero when there hardware overbright
+	bit is disabled, and the engine doesn't implement
+	hardware overbright bit at all.
+
+	The original code was there to only shift in software
+	what hardware overbright bit feature was not doing, but
+	this implementation is entirely software. */
+	shift = tr.mapOverBrightBits;
 
 	// shift the data based on overbright range
 	r = in[ 0 ] << shift;
@@ -448,7 +461,7 @@ R_LoadLightmaps
 */
 static void R_LoadLightmaps( lump_t *l, const char *bspName )
 {
-	tr.worldLightMapping = r_precomputedLighting->integer && !r_vertexLighting->integer;
+	tr.worldLightMapping = r_precomputedLighting->integer && tr.lightMode == lightMode_t::MAP;
 
 	/* All lightmaps will be loaded if either light mapping
 	or deluxe mapping is enabled. */
@@ -3840,7 +3853,15 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		out->fogParms = shader->fogParms;
 
 		out->color = Color::Adapt( shader->fogParms.color );
-		out->color *= tr.identityLight;
+
+		/* Historically it was done:
+
+			out->color *= tr.identityLight;
+
+		But tr.identityLight is always 1.0f in Dæmon engine
+		as the as the overbright bit implementation is fully
+		software. */
+
 		out->color.SetAlpha( 1 );
 
 		d = shader->fogParms.depthForOpaque < 1 ? 1 : shader->fogParms.depthForOpaque;
@@ -6824,4 +6845,81 @@ void RE_LoadWorldMap( const char *name )
 
 	// build cubemaps after the necessary vbo stuff is done
 	//R_BuildCubeMaps();
+
+	tr.worldLight = tr.lightMode;
+	tr.modelDeluxe = deluxeMode_t::NONE;
+
+	if ( tr.worldLight == lightMode_t::FULLBRIGHT )
+	{
+		tr.modelLight = lightMode_t::FULLBRIGHT;
+	}
+	else
+	{
+		if ( tr.worldLight == lightMode_t::MAP )
+		{
+			// World surfaces use light mapping.
+
+			if ( !tr.worldLightMapping )
+			{
+				/* Use vertex light as a fallback on world surfaces missing a light map,
+				q3map2 has an option to produce less lightmap files by skipping them when
+				they are very similar to the vertex color. The vertex color is expected
+				to match the color of the nearby lightmaps. We better not want to use
+				the grid light as a fallback as it would be close but not close enough. */
+
+				tr.worldLight = lightMode_t::VERTEX;
+			}
+		}
+
+		if ( tr.worldDeluxeMapping )
+		{
+			if ( tr.worldLight == lightMode_t::MAP )
+			{
+				tr.worldDeluxe = deluxeMode_t::MAP;
+			}
+
+			/* The combination of grid light and deluxe map is
+			technically doable, but rendering the world with a
+			light grid while a light map is available is not
+			the experience we want to provide, so we don't
+			allow this combination to not compile the related
+			shaders. */
+		}
+
+		/* We can technically use emulated deluxe map from light direction dir
+		on surfaces with light map but no deluxe map, but this is ugly.
+		Also, enabling it would require to make some macro not conflicting and
+		then would increase the amount of GLSL shader variants to be compiled,
+		this to render legacy maps in a way legacy renderers never rendered them.
+		It could still be cool as an optional feature, if we use a better
+		algorithm for emulating the deluxe map from light direction grid.
+		See https://github.com/DaemonEngine/Daemon/issues/32 */
+
+		// Game model surfaces use grid lighting, they don't have vertex light colors.
+		tr.modelLight = lightMode_t::GRID;
+
+		if ( !tr.lightGrid1Image )
+		{
+			// Use fullbright light on game models if light color grid is missing.
+			tr.modelLight = lightMode_t::FULLBRIGHT;
+
+			if ( tr.worldLight == lightMode_t::GRID )
+			{
+				// Use vertex light on world surface if light color grid is missing.
+				tr.worldLight = lightMode_t::VERTEX;
+			}
+		}
+
+		if ( r_deluxeMapping->integer )
+		{
+			// Enable deluxe mapping emulation if light direction grid is there.
+			if ( tr.lightGrid2Image )
+			{
+				// Game model surfaces use grid lighting, they don't have vertex light colors.
+				tr.modelDeluxe = deluxeMode_t::GRID;
+
+				// Only game models use emulated deluxe map from light direction grid.
+			}
+		}
+	}
 }

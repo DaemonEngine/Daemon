@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_init.c -- functions that are not called every frame
 #include "tr_local.h"
+#include "framework/CvarSystem.h"
 
 	glconfig_t  glConfig;
 	glconfig2_t glConfig2;
@@ -75,7 +76,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_staticLight;
 	cvar_t      *r_dynamicLightCastShadows;
 	cvar_t      *r_precomputedLighting;
-	cvar_t      *r_vertexLighting;
+	Cvar::Cvar<int> r_mapOverBrightBits("r_mapOverBrightBits", "default map light color shift", Cvar::NONE, 2);
+	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
@@ -1102,7 +1104,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_subdivisions = Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
 		r_dynamicLightCastShadows = Cvar_Get( "r_dynamicLightCastShadows", "1", 0 );
 		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_vertexLighting = Cvar_Get( "r_vertexLighting", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch( r_mapOverBrightBits );
+		Cvar::Latch( r_lightMode );
 		r_lightStyles = Cvar_Get( "r_lightStyles", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_exportTextures = Cvar_Get( "r_exportTextures", "0", 0 );
 		r_heatHaze = Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
@@ -1408,6 +1411,24 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( !InitOpenGL() )
 		{
 			return false;
+		}
+
+		tr.lightMode = lightMode_t( r_lightMode.Get() );
+
+		if ( !Com_AreCheatsAllowed() )
+		{
+			switch( tr.lightMode )
+			{
+				case lightMode_t::VERTEX:
+				case lightMode_t::MAP:
+					break;
+
+				default:
+					tr.lightMode = lightMode_t::MAP;
+					r_lightMode.Set( Util::ordinal( tr.lightMode ) );
+					Cvar::Latch( r_lightMode );
+					break;
+			}
 		}
 
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );

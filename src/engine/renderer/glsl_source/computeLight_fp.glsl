@@ -21,6 +21,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // computeLight_fp.glsl - Light computing helper functions
 
+#if !defined(USE_BSP_SURFACE)
+	#define USE_MODEL_SURFACE
+#endif
+
+#if !defined(USE_GRID_LIGHTING)
+	#define USE_LIGHT_MAPPING
+#endif
+
 #if defined(USE_REFLECTIVE_SPECULAR)
 uniform samplerCube u_EnvironmentMap0;
 uniform samplerCube u_EnvironmentMap1;
@@ -73,16 +81,15 @@ void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 #endif // USE_PHYSICAL_MAPPING || r_specularMapping
 
   // clamp( NdotL, 0.0, 1.0 ) is done below
-  // if no r_halfLambertLighting
   float NdotL = dot( normal, lightDir );
 
-#if defined(r_halfLambertLighting)
+#if !defined(USE_BSP_SURFACE) && defined(r_halfLambertLighting)
   // http://developer.valvesoftware.com/wiki/Half_Lambert
   NdotL = NdotL * 0.5 + 0.5;
   NdotL *= NdotL;
-#else
-  NdotL = clamp( NdotL, 0.0, 1.0 );
 #endif
+
+  NdotL = clamp( NdotL, 0.0, 1.0 );
 
 #if defined(USE_PHYSICAL_MAPPING)
   // Daemon PBR packing defaults to ORM like glTF 2.0 defines

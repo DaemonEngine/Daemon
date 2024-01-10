@@ -318,16 +318,21 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t
 	}
 	else
 	{
-		//% ent->ambientLight[0] = ent->ambientLight[1] = ent->ambientLight[2] = tr.identityLight * 150;
-		//% ent->directedLight[0] = ent->directedLight[1] = ent->directedLight[2] = tr.identityLight * 150;
-		//% VectorCopy( tr.sunDirection, ent->lightDir );
-		ent->ambientLight[ 0 ] = tr.identityLight * ( 64.0f / 255.0f );
-		ent->ambientLight[ 1 ] = tr.identityLight * ( 64.0f / 255.0f );
-		ent->ambientLight[ 2 ] = tr.identityLight * ( 96.0f / 255.0f );
+		/* Historically those values were multiplied by
+		tr.identityLight but tr.identityLight is always 1.0f
+		in Dæmon engine as the overbright bit implementation
+		is fully software. */
 
-		ent->directedLight[ 0 ] = tr.identityLight * ( 255.0f / 255.0f );
-		ent->directedLight[ 1 ] = tr.identityLight * ( 232.0f / 255.0f );
-		ent->directedLight[ 2 ] = tr.identityLight * ( 224.0f / 255.0f );
+		//% ent->ambientLight[0] = ent->ambientLight[1] = ent->ambientLight[2] = 150.0f;
+		//% ent->directedLight[0] = ent->directedLight[1] = ent->directedLight[2] = 150.0f;
+		//% VectorCopy( tr.sunDirection, ent->lightDir );
+		ent->ambientLight[ 0 ] = 64.0f / 255.0f;
+		ent->ambientLight[ 1 ] = 64.0f / 255.0f;
+		ent->ambientLight[ 2 ] = 96.0f / 255.0f;
+
+		ent->directedLight[ 0 ] = 255.0f / 255.0f;
+		ent->directedLight[ 1 ] = 232.0f / 255.0f;
+		ent->directedLight[ 2 ] = 224.0f / 255.0f;
 
 		VectorSet( ent->lightDir, -1, 1, 1.25 );
 		VectorNormalize( ent->lightDir );
@@ -335,10 +340,15 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t
 
 	if ( ( ent->e.renderfx & RF_MINLIGHT ) ) // && VectorLength(ent->ambientLight) <= 0)
 	{
+		/* Historically those values were multiplied by
+		tr.identityLight but tr.identityLight is always 1.0f
+		in Dæmon engine as the as the overbright bit
+		implementation is fully software. */
+
 		// give everything a minimum light add
-		ent->ambientLight[ 0 ] += tr.identityLight * 0.125f;
-		ent->ambientLight[ 1 ] += tr.identityLight * 0.125f;
-		ent->ambientLight[ 2 ] += tr.identityLight * 0.125f;
+		ent->ambientLight[ 0 ] += 0.125f;
+		ent->ambientLight[ 1 ] += 0.125f;
+		ent->ambientLight[ 2 ] += 0.125f;
 	}
 }
 

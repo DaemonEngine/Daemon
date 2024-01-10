@@ -759,6 +759,10 @@ static bool IsUnusedPermutation( const char *compileMacros )
 		{
 			if ( r_deluxeMapping->integer == 0 ) return true;
 		}
+		else if ( strcmp( token, "USE_GRID_DELUXE_MAPPING" ) == 0 )
+		{
+			if ( r_deluxeMapping->integer == 0 ) return true;
+		}
 		else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 )
 		{
 			if ( r_physicalMapping->integer == 0 ) return true;
@@ -1372,6 +1376,58 @@ bool GLCompileMacro_USE_DEPTH_FADE::HasConflictingMacros(size_t permutation, con
 	return false;
 }
 
+bool GLCompileMacro_USE_DELUXE_MAPPING::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+{
+	for (const GLCompileMacro* macro : macros)
+	{
+		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_GRID_DELUXE_MAPPING || macro->GetType() == USE_GRID_LIGHTING))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool GLCompileMacro_USE_GRID_DELUXE_MAPPING::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+{
+	for (const GLCompileMacro* macro : macros)
+	{
+		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_DELUXE_MAPPING || macro->GetType() == USE_BSP_SURFACE))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool GLCompileMacro_USE_GRID_LIGHTING::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+{
+	for (const GLCompileMacro* macro : macros)
+	{
+		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_DELUXE_MAPPING))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+{
+	for (const GLCompileMacro* macro : macros)
+	{
+		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_GRID_DELUXE_MAPPING))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool GLShader::GetCompileMacrosString( size_t permutation, std::string &compileMacrosOut ) const
 {
 	compileMacrosOut.clear();
@@ -1575,8 +1631,9 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLCompileMacro_USE_BSP_SURFACE( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_LIGHT_MAPPING( this ),
 	GLCompileMacro_USE_DELUXE_MAPPING( this ),
+	GLCompileMacro_USE_GRID_LIGHTING( this ),
+	GLCompileMacro_USE_GRID_DELUXE_MAPPING( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),

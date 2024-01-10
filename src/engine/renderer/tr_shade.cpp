@@ -688,6 +688,8 @@ static void Render_generic2D( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
+static image_t* GetLightMap();
+
 static void Render_generic( shaderStage_t *pStage )
 {
 	colorGen_t    rgbGen;
@@ -782,7 +784,16 @@ static void Render_generic( shaderStage_t *pStage )
 
 	// bind u_ColorMap
 	GL_SelectTexture( 0 );
+
+	if ( pStage->type == stageType_t::ST_LIGHTSTYLEMAP )
+	{
+		GL_Bind( GetLightMap() );
+	}
+	else
+	{
 	BindAnimatedImage( &pStage->bundle[ TB_COLORMAP ] );
+	}
+
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
 	if ( hasDepthFade )
@@ -854,27 +865,6 @@ static void Render_lightMapping( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
 
-	bool enableLightMapping = tr.worldLightMapping
-		&& tess.bspSurface
-		&& tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements;
-
-	bool enableDeluxeMapping = tr.worldDeluxeMapping
-		&& tess.bspSurface
-		&& pStage->enableDeluxeMapping;
-
-	bool noLightMap = !pStage->implicitLightmap
-		&& (tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP)
-		&& !(tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX);
-
-	uint32_t stateBits = pStage->stateBits;
-
-	if ( enableLightMapping && r_showLightMaps->integer )
-	{
-		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
-	}
-
-	GL_State( stateBits );
-
 	// u_ColorModulate
 	colorGen_t colorGen;
 	alphaGen_t alphaGen;
@@ -903,46 +893,120 @@ static void Render_lightMapping( shaderStage_t *pStage )
 			break;
 	}
 
-	// u_LightMap, u_DeluxeMap
-	image_t *lightmap;
-	image_t *deluxemap;
+	lightMode_t lightMode = lightMode_t::FULLBRIGHT;
+	deluxeMode_t deluxeMode = deluxeMode_t::NONE;
 
-	if ( noLightMap )
+	/* TODO: investigate what this is. It's probably a hack to detect some
+	specific use case. Without knowing which use case this takes care about,
+	any change in the following code may break it. Or it may be a hack we
+	should drop if it is for a bug we don't have anymore. */
+	bool hack = tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX;
+
+	if ( ( tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP ) && !hack )
 	{
-		lightmap = tr.whiteImage;
-		enableLightMapping = true;
+		// Use fullbright on “surfaceparm nolightmap” materials.
 	}
-	else if ( enableLightMapping )
+	else if ( !pStage->implicitLightmap && pStage->type != stageType_t::ST_LIGHTMAP )
 	{
-		lightmap = GetLightMap();
+		/* Use fullbright for collapsed stages without lightmaps,
+		for example:
+
+		  {
+		    map textures/texture_d
+		    heightMap textures/texture_h
 	}
-	else if ( tr.lightGrid1Image )
+
+		This is doable for some complex multi-stage materials. */
+	}
+	else if ( tess.bspSurface )
 	{
-		// Store lightGrid1 as lightmap,
-		// the GLSL code will know to deal with it.
-		lightmap = tr.lightGrid1Image;
+		lightMode = tr.worldLight;
+		deluxeMode = tr.worldDeluxe;
+
+		if ( lightMode == lightMode_t::MAP )
+		{
+			bool hasLightMap = ( tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements );
+
+			if ( !hasLightMap )
+			{
+				lightMode = lightMode_t::VERTEX;
+				deluxeMode = deluxeMode_t::NONE;
+			}
+		}
 	}
 	else
 	{
-		lightmap = tr.whiteImage;
-		enableLightMapping = true;
+		lightMode = tr.modelLight;
+		deluxeMode = tr.modelDeluxe;
 	}
 
-	if ( enableDeluxeMapping )
+	// u_Map, u_DeluxeMap
+	image_t *lightmap = tr.whiteImage;
+	image_t *deluxemap = tr.whiteImage;
+
+	uint32_t stateBits = pStage->stateBits;
+
+	switch ( lightMode )
 	{
-		deluxemap = GetDeluxeMap();
+		case lightMode_t::VERTEX:
+			// Do not rewrite pStage->rgbGen.
+			colorGen = colorGen_t::CGEN_VERTEX;
+			tess.svars.color.SetRed( 0.0f );
+			tess.svars.color.SetGreen( 0.0f );
+			tess.svars.color.SetBlue( 0.0f );
+
+			if ( stateBits & GLS_ATEST_BITS )
+			{
+				// Do not rewrite pStage->alphaGen.
+				alphaGen = alphaGen_t::AGEN_VERTEX;
+				tess.svars.color.SetAlpha( 1.0f );
 	}
-	else if ( tr.lightGrid2Image )
+			break;
+
+		case lightMode_t::GRID:
+			// Store lightGrid1 as lightmap,
+			// the GLSL code will know how to deal with it.
+			lightmap = tr.lightGrid1Image;
+			break;
+
+		case lightMode_t::MAP:
+			lightmap = GetLightMap();
+
+			if ( r_showLightMaps->integer )
 	{
+				stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
+			}
+			break;
+
+		default:
+			break;
+	}
+
+	switch ( deluxeMode )
+	{
+		case deluxeMode_t::MAP:
+			// Deluxe mapping for world surface.
+			deluxemap = GetDeluxeMap();
+			break;
+
+		case deluxeMode_t::GRID:
+			// Deluxe mapping emulation from grid light for game models.
 		// Store lightGrid2 as deluxemap,
-		// the GLSL code will know to deal with it.
+			// the GLSL code will know how to deal with it.
 		deluxemap = tr.lightGrid2Image;
+			break;
+
+		default:
+			break;
 	}
-	else
-	{
-		deluxemap =  tr.blackImage;
-		enableDeluxeMapping = true;
-	}
+	
+	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
+	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
+	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
+
+	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
+
+	GL_State( stateBits );
 
 	// choose right shader program ----------------------------------
 	tess.vboVertexSprite = false;
@@ -953,9 +1017,11 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetBspSurface( tess.bspSurface );
 
-	gl_lightMappingShader->SetLightMapping( enableLightMapping );
-
 	gl_lightMappingShader->SetDeluxeMapping( enableDeluxeMapping );
+
+	gl_lightMappingShader->SetGridLighting( enableGridLighting );
+
+	gl_lightMappingShader->SetGridDeluxeMapping( enableGridDeluxeMapping );
 
 	gl_lightMappingShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
 
@@ -1021,59 +1087,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	gl_lightMappingShader->SetUniform_ColorModulate( colorGen, alphaGen );
 
 	// u_Color
-	Color::Color color = tess.svars.color;
-
-	/* Do not multiply standalone lightmap by rgbGen or alphaGen
-	unless they're set as const.
-
-	In lightMapping_fp.glsl we do:
-
-	  diffuse *= var_Color;
-
-	This is needed to be able to blend two multitextured collapsed
-	stage like when doing terrain blending (blending rock and sand).
-
-	But doing this with standalone lightmap stages breaks q3map2 light
-	styles. To prevent the multiplication we we can simply set the
-	color to white as diffuse * 1.0  == diffuse.
-
-	But we should still pass the color and do the multiplication
-	if the rgbGen is const as in such situation the mapper
-	explicitly requested the lightmap stage to be multiplied by
-	the values the mapper have set when creating the materials.
-
-	FIXME: It is possible that preventing the multiplication to be
-	done in some cases may prevent some extra lightmaps to be blend
-	but if this happens it will never prevent the default lightmap
-	to be blend so the surface will never look bad. On the contrary
-	not preventing the multiplication to be done produces many very
-	visible glitches affecting dozens of textures.
-
-	More investigations are needed. For now those tests takes care
-	of only allowing operations that are known to not glitch.
-
-	We may also investigate about processing all standalone lightmap
-	stages with Render_generic() instead. */
-
-	if ( pStage->type == stageType_t::ST_LIGHTMAP )
-	{
-		// The colorGen and alphaGen local variables are also set with those
-		// types in other situations as a default. We should not compare
-		// with the default but with what the mapper explicitely asked for.
-		if ( pStage->rgbGen != colorGen_t::CGEN_CONST )
-		{
-			color.SetRed( 1.0f );
-			color.SetBlue( 1.0f );
-			color.SetGreen( 1.0f );
-		}
-
-		if ( pStage->alphaGen != alphaGen_t::AGEN_CONST )
-		{
-			color.SetAlpha( 1.0f );
-		}
-	}
-
-	gl_lightMappingShader->SetUniform_Color( color );
+	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
 
 	// u_AlphaTest
 	gl_lightMappingShader->SetUniform_AlphaTest( pStage->stateBits );
@@ -1234,7 +1248,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_LightGridOrigin and u_LightGridScale to compute light grid position
-	if ( !enableLightMapping || !enableDeluxeMapping )
+	if ( enableGridLighting || enableGridDeluxeMapping )
 	{
 		if( tr.world )
 		{
@@ -2462,6 +2476,15 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	{
 		case colorGen_t::CGEN_IDENTITY:
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
+		default:
+		case colorGen_t::CGEN_IDENTITY_LIGHTING:
+			/* Historically CGEN_IDENTITY_LIGHTING was done this way:
+
+			  tess.svars.color = Color::White * tr.identityLight;
+
+			But tr.identityLight is always 1.0f in Dæmon engine
+			as the as the overbright bit implementation is fully
+			software. */
 			{
 				tess.svars.color = Color::White;
 				break;
@@ -2470,13 +2493,6 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 		case colorGen_t::CGEN_VERTEX:
 			{
 				tess.svars.color = Color::Color();
-				break;
-			}
-
-		default:
-		case colorGen_t::CGEN_IDENTITY_LIGHTING:
-			{
-				tess.svars.color = Color::White * tr.identityLight;
 				break;
 			}
 
@@ -2540,7 +2556,12 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				}
 				else
 				{
-					glow = RB_EvalWaveForm( wf ) * tr.identityLight;
+					/* Historically this value was multiplied by
+					tr.identityLight but tr.identityLight is always 1.0f
+					in Dæmon engine as the as the overbright bit
+					implementation is fully software. */
+
+					glow = RB_EvalWaveForm( wf );
 				}
 
 				glow = Math::Clamp( glow, 0.0f, 1.0f );
@@ -2777,6 +2798,10 @@ void Tess_StageIteratorGeneric()
 					Render_generic( pStage );
 				}
 
+				break;
+
+			case stageType_t::ST_LIGHTSTYLEMAP:
+				Render_generic( pStage );
 				break;
 
 			case stageType_t::ST_LIGHTMAP:
