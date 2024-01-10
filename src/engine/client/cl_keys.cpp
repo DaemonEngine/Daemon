@@ -639,14 +639,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 			Console_Key( key );
 		}
 	}
-	else if ( cls.state == connstate_t::CA_DISCONNECTED )
-	{
-		if ( !onlybinds )
-		{
-			Console_Key( key );
-		}
-	}
-	else
+	else if ( cls.state != connstate_t::CA_DISCONNECTED )
 	{
 		// send the bound action
 		auto kb = Keyboard::GetBinding( key, Keyboard::GetTeam(), true );
