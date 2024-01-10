@@ -454,7 +454,9 @@ void Com_EventLoop()
 			case sysEventType_t::SE_KEY:
 			{
 				auto& keyEvent = ev->Cast<Sys::KeyEvent>();
-				( keyEvent.down ? CL_KeyDownEvent : CL_KeyUpEvent )( keyEvent.key, keyEvent.time );
+				auto handler = keyEvent.down ? CL_KeyDownEvent : CL_KeyUpEvent;
+				handler( keyEvent.key1, keyEvent.time );
+				handler( keyEvent.key2, keyEvent.time );
 				break;
 			}
 
