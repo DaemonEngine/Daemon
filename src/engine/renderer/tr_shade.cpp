@@ -914,7 +914,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 		  {
 		    map textures/texture_d
 		    heightMap textures/texture_h
-	}
+		  }
 
 		This is doable for some complex multi-stage materials. */
 	}
@@ -960,7 +960,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 				// Do not rewrite pStage->alphaGen.
 				alphaGen = alphaGen_t::AGEN_VERTEX;
 				tess.svars.color.SetAlpha( 1.0f );
-	}
+			}
 			break;
 
 		case lightMode_t::GRID:
@@ -973,7 +973,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 			lightmap = GetLightMap();
 
 			if ( r_showLightMaps->integer )
-	{
+			{
 				stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
 			}
 			break;
