@@ -954,13 +954,6 @@ static void Render_lightMapping( shaderStage_t *pStage )
 			tess.svars.color.SetRed( 0.0f );
 			tess.svars.color.SetGreen( 0.0f );
 			tess.svars.color.SetBlue( 0.0f );
-
-			if ( stateBits & GLS_ATEST_BITS )
-			{
-				// Do not rewrite pStage->alphaGen.
-				alphaGen = alphaGen_t::AGEN_VERTEX;
-				tess.svars.color.SetAlpha( 1.0f );
-			}
 			break;
 
 		case lightMode_t::GRID:
