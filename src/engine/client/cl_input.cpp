@@ -1146,7 +1146,7 @@ void IN_KeysUp_f()
 
 	if ( !first )
 	{
-		Cmd::ExecuteCommand(va("setkeydata %d", check));
+		Cmd::ExecuteCommand("setkeydata");
 	}
 
 	// Pseudo-button commands handled here

@@ -52,7 +52,6 @@ std::unordered_map<Keyboard::Key, qkey_t, Keyboard::Key::hash> keys;
 static struct {
 	Keyboard::Key key;
 	unsigned int time;
-	bool     valid;
 	int          check;
 } plusCommand;
 
@@ -422,26 +421,26 @@ Key_SetKeyData
 */
 static void Key_SetKeyData_f()
 {
-	if ( atoi( Cmd_Argv( 1 ) ) == plusCommand.check )
+	if ( Cmd_Argc() == 4 && atoi( Cmd_Argv( 1 ) ) == plusCommand.check )
 	{
 		plusCommand.key = Keyboard::StringToKey( Cmd_Argv( 2 ) );
 		plusCommand.time = atoi( Cmd_Argv( 3 ) );
-		plusCommand.valid = true;
 	}
 	else
 	{
-		plusCommand.valid = false;
+		plusCommand.key = Keyboard::Key::NONE;
+		plusCommand.time = 0;
 	}
 }
 
 Keyboard::Key Key_GetKeyNumber()
 {
-	return plusCommand.valid ? plusCommand.key : Keyboard::Key::NONE;
+	return plusCommand.key;
 }
 
 unsigned int Key_GetKeyTime()
 {
-	return plusCommand.valid ? plusCommand.time : 0;
+	return plusCommand.time;
 }
 
 
@@ -660,7 +659,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 			Cmd::BufferCommandText(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Cmd::Escape(KeyToString(key)), time, kb.value()), true);
 
 			// Afterwards, clear the aforementioned global variable.
-			Cmd::BufferCommandText(va("setkeydata %d", plusCommand.check), true);
+			Cmd::BufferCommandText("setkeydata");
 		}
 	}
 }
