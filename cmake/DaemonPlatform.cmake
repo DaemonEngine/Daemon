@@ -39,3 +39,4 @@ else()
 endif()
 
 include("${DAEMON_DIR}/tools/DaemonArchitecture/DaemonArchitecture.cmake")
+include("${DAEMON_DIR}/tools/DaemonCompiler/DaemonCompiler.cmake")

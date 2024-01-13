@@ -1,0 +1,123 @@
+#define STRING(s) #s
+#define XSTRING(s) STRING(s)
+
+#define REPORT(key, value) \
+	"(###REPORT###(DAEMON_COMPILER_" key ")###REPORT###(" value ")###REPORT###)"
+#define REPORT_VERSION_3(name, major, minor, patch) \
+	REPORT(name "_VERSION", XSTRING(major) "." XSTRING(minor) "." XSTRING(patch))
+#define REPORT_VERSION_2(name, major, minor) \
+	REPORT(name "_VERSION", XSTRING(major) "." XSTRING(minor))
+#define REPORT_VERSION_1(name, major) \
+	REPORT(name "_VERSION", XSTRING(major))
+#define REPORT_VERSION_STRING(name, value) \
+	REPORT(name "_VERSION_STRING", value)
+#define REPORT_COMPATIBILITY(name) \
+	REPORT(name "_COMPATIBILITY", "ON")
+#define REPORT_NAME(name) \
+	REPORT("NAME", name)
+
+// GCC
+
+#if defined(__GNUC__)
+	#pragma message(REPORT_COMPATIBILITY("GCC"))
+#endif
+
+#if defined(__GNUC__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__)
+	#pragma message(REPORT_VERSION_3("GCC", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__))
+#endif
+
+// Clang
+
+#if defined(__clang__)
+	#pragma message(REPORT_COMPATIBILITY("Clang"))
+#endif
+
+#if defined(__clang_major__) && defined(__clang_minor__) && defined(__clang_patchlevel__)
+	#pragma message(REPORT_VERSION_3("Clang", __clang_major__, __clang_minor__, __clang_patchlevel__))
+#endif
+
+#if defined(__clang_version__)
+	#pragma message(REPORT_VERSION_STRING("Clang", __clang_version__))
+#endif
+
+// ICC
+
+#if defined(__INTEL_COMPILER) && defined(__INTEL_COMPILER_UPDATE)
+	#pragma message(REPORT_VERSION_2("ICC", __INTEL_COMPILER, __INTEL_COMPILER_UPDATE))
+#elif defined(_ICC)
+	#pragma message(REPORT_VERSION_1("ICC", __ICC))
+#endif
+
+// ICX
+
+#if defined(__INTEL_CLANG_COMPILER)
+	// This would require extra parsing since it's the form 20240000 for 2024.0.0
+	#pragma message(REPORT_VERSION_1("ICX", __INTEL_CLANG_COMPILER))
+#elif defined(__INTEL_LLVM_COMPILER)
+	// This would require extra parsing since it's the form 20240000 for 2024.0.0
+	#pragma message(REPORT_VERSION_1("ICX", __INTEL_LLVM_COMPILER))
+#endif
+
+// ArmClang
+
+#if defined(__armclang_major__) && defined(__armclang_minor__)
+	#pragma message(REPORT_VERSION_2("ARMClang", __armclang_major__, __armclang_minor__))
+#endif
+
+#if defined(__armclang_version__)
+	#pragma message(REPORT_VERSION_STRING("ARMClang", __armclang_version__))
+#endif
+
+// Generic
+
+#if defined(__VERSION__)
+	#pragma message(REPORT_VERSION_STRING("generic", __VERSION__))
+#endif
+
+// Selection
+
+// There is no Zig specific define.
+
+// There is no Saigo specific version define, we reuse clang version.
+
+// There is no PNaCl specific version define, we should parse another define:
+// #define __VERSION__ "4.2.1 Compatible Clang 3.6.0 (https://chromium.googlesource.com/a/native_client/pnacl-clang.git 96b3da27dcefc9d152e51cf54280989b2206d789) (https://chromium.googlesource.com/a/native_client/pnacl-llvm.git d0089f0b008e03cfd141f05c80e3b628c2df75c1)"
+
+// There is no AOCC specific version define, we should parse other defines:
+// #define __VERSION__ "AMD Clang 14.0.6 (CLANG: AOCC_4.0.0-Build#434 2022_10_28)"
+// #define __clang_version__ "14.0.6 (CLANG: AOCC_4.0.0-Build#434 2022_10_28)"
+
+// There is no usable AppleClang version defines:
+// #define __APPLE_CC_ 6000
+// #define __apple_build_version__ 10010046
+// We should parse another define:
+// #define __VERSION__ "4.2.1 Compatible Apple LLVM 10.0.1 (clang-1001.0.46.4)"
+
+#if defined(__INTEL_COMPILER) || defined(__ICC)
+	#pragma message(REPORT_NAME("ICC")) // Intel
+#elif defined(__INTEL_CLANG_COMPILER) || defined(__INTEL_LLVM_COMPILER)
+	#pragma message(REPORT_NAME("ICX")) // IntelLLVM
+#elif defined(__wasi__)
+	#pragma message(REPORT_NAME("WASI"))
+#elif defined(__saigo__)
+	#pragma message(REPORT_NAME("Saigo"))
+#elif defined(__pnacl__)
+	#pragma message(REPORT_NAME("PNaCl"))
+#elif defined(__MINGW64__) || defined(__MINGW32__)
+	#pragma message(REPORT_NAME("MingGW"))
+#elif defined(__armclang_major__) || defined(__armclang_version__)
+	#pragma message(REPORT_NAME("ARMClang"))
+#elif defined(__clang__) && (defined(__APPLE_CC__) || defined(__apple_build_version__))
+	#pragma message(REPORT_NAME("AppleClang"))
+#elif defined(__clang__)
+	#pragma message(REPORT_NAME("Clang"))
+#elif defined(__GNUC__)
+	#pragma message(REPORT_NAME("GCC")) // GNU
+#else
+	#pragma message(REPORT_NAME("Unknown"))
+#endif
+
+// Make the compilation succeeds if architecture is supported.
+int main(int argc, char** argv) {
+	return 0;
+}

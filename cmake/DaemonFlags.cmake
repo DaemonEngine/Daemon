@@ -199,7 +199,13 @@ else()
 
     if (ARCH STREQUAL "amd64")
         # K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
-        set(GCC_GENERIC_ARCH "x86-64")
+        if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "ICC")
+            set(GCC_GENERIC_ARCH "pentium4")
+        elseif ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
+            set(GCC_GENERIC_ARCH "x86_64")
+        else()
+            set(GCC_GENERIC_ARCH "x86-64")
+        endif()
         set(GCC_GENERIC_TUNE "generic")
     elseif (ARCH STREQUAL "i686")
         # P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
@@ -226,7 +232,11 @@ else()
     option(USE_CPU_GENERIC_ARCHITECTURE "Enforce generic -march and -mtune compiler options" ON)
     if (USE_CPU_GENERIC_ARCHITECTURE)
         set_c_cxx_flag("-march=${GCC_GENERIC_ARCH}")
-        set_c_cxx_flag("-mtune=${GCC_GENERIC_TUNE}")
+        if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
+            set_c_cxx_flag("-mtune=${GCC_GENERIC_ARCH}")
+        else()
+        	set_c_cxx_flag("-mtune=${GCC_GENERIC_TUNE}")
+        endif()
     endif()
 
     option(USE_CPU_RECOMMENDED_FEATURES "Enforce usage of hardware features like SSE, NEON, VFP, MCX16, etc." ON)
@@ -365,7 +375,7 @@ else()
 
         # Use gcc-ar and gcc-ranlib instead of ar and ranlib so that we can use
         # slim LTO objects. This requires a recent version of GCC and binutils.
-        if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+        if ("${DAEMON_CXX_COMPILER_ID}" STREQUAL GNU)
             if (USE_SLIM_LTO)
                 string(REGEX MATCH "^([0-9]+.[0-9]+)" _version "${CMAKE_CXX_COMPILER_VERSION}")
                 get_filename_component(COMPILER_BASENAME "${CMAKE_C_COMPILER}" NAME)
