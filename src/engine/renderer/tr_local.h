@@ -3098,6 +3098,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	extern cvar_t *r_showLightGrid;
 	extern cvar_t *r_showLightTiles;
 	extern cvar_t *r_showBatches;
+	extern Cvar::Cvar<bool> r_showVertexColors;
 	extern cvar_t *r_showLightMaps; // render lightmaps only
 	extern cvar_t *r_showDeluxeMaps;
 	extern cvar_t *r_showNormalMaps;

@@ -224,6 +224,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showLightGrid;
 	cvar_t      *r_showLightTiles;
 	cvar_t      *r_showBatches;
+	Cvar::Cvar<bool> r_showVertexColors("r_showVertexColors", "show vertex colors used for vertex lighting", Cvar::CHEAT, false);
 	cvar_t      *r_showLightMaps;
 	cvar_t      *r_showDeluxeMaps;
 	cvar_t      *r_showNormalMaps;
@@ -1330,6 +1331,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showLightGrid = Cvar_Get( "r_showLightGrid", "0", CVAR_CHEAT );
 		r_showLightTiles = Cvar_Get("r_showLightTiles", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showBatches = Cvar_Get( "r_showBatches", "0", CVAR_CHEAT );
+		Cvar::Latch( r_showVertexColors );
 		r_showLightMaps = Cvar_Get( "r_showLightMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showDeluxeMaps = Cvar_Get( "r_showDeluxeMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showNormalMaps = Cvar_Get( "r_showNormalMaps", "0", CVAR_CHEAT | CVAR_LATCH );
@@ -1429,6 +1431,21 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 					Cvar::Latch( r_lightMode );
 					break;
 			}
+		}
+
+		if ( r_showNormalMaps->integer
+			|| r_showMaterialMaps->integer )
+		{
+			tr.lightMode = lightMode_t::MAP;
+		}
+		else if ( r_showLightMaps->integer
+			|| r_showDeluxeMaps->integer )
+		{
+			tr.lightMode = lightMode_t::MAP;
+		}
+		else if ( r_showVertexColors.Get() )
+		{
+			tr.lightMode = lightMode_t::VERTEX;
 		}
 
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );
