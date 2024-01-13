@@ -785,7 +785,7 @@ static void Render_generic( shaderStage_t *pStage )
 	// bind u_ColorMap
 	GL_SelectTexture( 0 );
 
-	if ( pStage->type == stageType_t::ST_LIGHTSTYLEMAP )
+	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP )
 	{
 		GL_Bind( GetLightMap() );
 	}
@@ -2793,7 +2793,8 @@ void Tess_StageIteratorGeneric()
 
 				break;
 
-			case stageType_t::ST_LIGHTSTYLEMAP:
+			case stageType_t::ST_STYLELIGHTMAP:
+			case stageType_t::ST_STYLECOLORMAP:
 				Render_generic( pStage );
 				break;
 

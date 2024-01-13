@@ -1177,7 +1177,8 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_LIGHTMAP,
-	  ST_LIGHTSTYLEMAP,
+	  ST_STYLELIGHTMAP,
+	  ST_STYLECOLORMAP,
 	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:physicalmap
 	  ST_COLLAPSE_lighting_PHONG, // map|diffusemap + opt:normalmap + opt:glowmap + specularmap
 	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
