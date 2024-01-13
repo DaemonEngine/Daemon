@@ -654,9 +654,13 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 
 		if ( kb )
 		{
-			// down-only command
-			Cmd::BufferCommandTextAfter(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Cmd::Escape(KeyToString(key)), time, kb.value()), true);
-			Cmd::BufferCommandTextAfter(va("setkeydata %d", plusCommand.check), true);
+			// The first line of this command sets a global variable (plusCommand) saying what key
+			// was pressed and when, needed for button commands (e.g. +forward). Second line is the
+			// bound command.
+			Cmd::BufferCommandText(Str::Format("setkeydata %d %s %u\n%s", plusCommand.check, Cmd::Escape(KeyToString(key)), time, kb.value()), true);
+
+			// Afterwards, clear the aforementioned global variable.
+			Cmd::BufferCommandText(va("setkeydata %d", plusCommand.check), true);
 		}
 	}
 }
