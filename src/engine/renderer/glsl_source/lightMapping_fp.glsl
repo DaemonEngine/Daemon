@@ -186,15 +186,24 @@ void main()
 	outputColor = color;
 
 	// Debugging.
-	#if defined(r_showLightMaps) && defined(USE_LIGHT_MAPPING)
-		outputColor = texture2D(u_LightMap, var_TexLight);
-	#elif defined(r_showDeluxeMaps) && defined(USE_DELUXE_MAPPING)
-		outputColor = texture2D(u_DeluxeMap, var_TexLight);
-	#elif defined(r_showNormalMaps)
+	#if defined(r_showNormalMaps)
 		// Convert normal to [0,1] color space.
 		normal = normal * 0.5 + 0.5;
 		outputColor = vec4(normal, 1.0);
 	#elif defined(r_showMaterialMaps)
 		outputColor = material;
+	#elif defined(r_showLightMaps) && defined(USE_LIGHT_MAPPING)
+		outputColor = texture2D(u_LightMap, var_TexLight);
+	#elif defined(r_showDeluxeMaps) && defined(USE_DELUXE_MAPPING)
+		outputColor = texture2D(u_DeluxeMap, var_TexLight);
+	#elif defined(r_showVertexColors)
+		/* We need to keep the texture alpha channel so impact
+		marks like creep don't fully overwrite the world texture. */
+		#if defined(USE_BSP_SURFACE)
+			outputColor.rgb = vec3(1.0, 1.0, 1.0);
+			outputColor *= var_Color;
+		#else
+			outputColor.rgb = vec3(0.0, 0.0, 0.0);
+		#endif
 	#endif
 }

@@ -59,4 +59,9 @@ void	main()
 #if defined(GENERIC_2D)
 	gl_FragDepth = 0;
 #endif
+
+// Debugging.
+#if defined(r_showVertexColors) && !defined(GENERIC_2D)
+	outputColor = vec4(0.0, 0.0, 0.0, 0.0);
+#endif
 }
