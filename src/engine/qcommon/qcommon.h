@@ -640,7 +640,8 @@ void     CL_Shutdown();
 void     CL_Frame( int msec );
 void     CL_ConsoleKeyEvent();
 namespace Keyboard { class Key; }
-void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
+void     CL_KeyDownEvent( const Keyboard::Key& key, unsigned time );
+void     CL_KeyUpEvent( const Keyboard::Key& key, unsigned time );
 
 void     CL_CharEvent( int c );
 
