@@ -310,6 +310,17 @@ static void Console_Key( Keyboard::Key key )
 		}
 	}
 
+	// escape closes the console
+	if ( key == Key(K_ESCAPE) )
+	{
+		if ( consoleState.isOpened )
+		{
+			Con_ToggleConsole_f();
+		}
+
+		return;
+	}
+
 	// ctrl-L clears screen
 	if (key == Key::FromCharacter('l') && keys[ Key(K_CTRL) ].down) {
 		Cmd::BufferCommandText("clear");
@@ -565,6 +576,13 @@ void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 		return;
 	}
 
+	// When the console is open, binds do not act and the UI can't receive input.
+	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
+	{
+		Console_Key( key );
+		return;
+	}
+
 	// escape is always handled special
 	if ( key == Key(K_ESCAPE) )
 	{
@@ -572,15 +590,7 @@ void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 		{
 			if ( cls.state == connstate_t::CA_ACTIVE )
 			{
-				// Arnout: on request
-				if ( cls.keyCatchers & KEYCATCH_CONSOLE ) // get rid of the console
-				{
-					Con_ToggleConsole_f();
-				}
-				else
-				{
-					Cmd::BufferCommandText( "toggleMenu" );
-				}
+				Cmd::BufferCommandText( "toggleMenu" );
 			}
 			return;
 		}
@@ -598,12 +608,7 @@ void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 		return;
 	}
 
-	// distribute the key down event to the appropriate handler
-	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
-	{
-		Console_Key( key );
-	}
-	else if ( cls.state != connstate_t::CA_DISCONNECTED )
+	if ( cls.state != connstate_t::CA_DISCONNECTED )
 	{
 		// send the bound action
 		auto kb = Keyboard::GetBinding( key, Keyboard::GetTeam(), true );
