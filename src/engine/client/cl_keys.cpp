@@ -673,27 +673,26 @@ void CL_CharEvent( int c )
 /*
 ===================
 Key_ClearStates
+
+Sets all keys to the "not pressed" state. The purpose is to stop all key binds from executing.
+
+Does not send key up events to the UI.
 ===================
 */
 void Key_ClearStates()
 {
 	anykeydown = 0;
 
-	int oldKeyCatcher = Key_GetCatcher();
-	Key_SetCatcher( 0 );
-
 	for ( auto& kv: keys )
 	{
 		if ( kv.second.down )
 		{
-			CL_KeyUpEvent( kv.first, 0 );
+			kv.second.down = false;
+			kv.second.repeats = 0;
+			Cmd::BufferCommandText( Str::Format(
+				"keyup %d %s 0", plusCommand.check, Cmd::Escape( KeyToString( kv.first ) ) ) );
 		}
-
-		kv.second.down = false;
-		kv.second.repeats = 0;
 	}
 
 	plusCommand.check = rand();
-
-	Key_SetCatcher( oldKeyCatcher );
 }
