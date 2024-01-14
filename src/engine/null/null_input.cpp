@@ -58,7 +58,7 @@ void IN_DropInputsForFrame()
 {
 }
 
-bool IN_IsNumLockDown()
+bool IN_IsNumLockOn()
 {
     return false;
 }
