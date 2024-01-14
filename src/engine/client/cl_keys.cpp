@@ -564,7 +564,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		}
 	}
 
-	if ( cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
+	if ( down && cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
 	{
 		Key_ClearStates();
 		Cmd::BufferCommandText("minimize");
@@ -573,13 +573,8 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 #endif
 
 	// console key combination is hardcoded, so the user can never unbind it
-	if ( keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) )
+	if ( down && keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) )
 	{
-		if ( !down )
-		{
-			return;
-		}
-
 		CL_ConsoleKeyEvent();
 		return;
 	}
