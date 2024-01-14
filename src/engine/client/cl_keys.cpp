@@ -603,6 +603,14 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		return;
 	}
 
+	// key up events only perform actions if the game key binding is
+	// a button command (leading + sign).
+	if ( !down )
+	{
+		// Handle any +commands which were invoked on the corresponding key-down
+		Cmd::BufferCommandText(Str::Format("keyup %d %s %u", plusCommand.check, Cmd::Escape(KeyToString(key)), time));
+	}
+
 	// Don't do anything if libRocket menus have focus
 	// Everything is handled by libRocket. Also we don't want
 	// to run any binds (since they won't be found).
@@ -612,17 +620,8 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		return;
 	}
 
-	//
-	// key up events only perform actions if the game key binding is
-	// a button command (leading + sign).  These will be processed even in
-	// console mode and menu mode, to keep the character from continuing
-	// an action started before a mode switch.
-	//
 	if ( !down )
 	{
-		// Handle any +commands which were invoked on the corresponding key-down
-		Cmd::BufferCommandText(Str::Format("keyup %d %s %u", plusCommand.check, Cmd::Escape(KeyToString(key)), time));
-
 		return;
 	}
 
