@@ -283,6 +283,33 @@ static void Console_Key( Keyboard::Key key )
 		return;
 	}
 
+	// return if it's a keypad key but numlock is on
+	if ( key.kind() == Key::Kind::KEYNUM ) {
+		switch ( key.AsKeynum() ) {
+		case K_KP_PGUP:
+		case K_KP_EQUALS:
+		case K_KP_5:
+		case K_KP_LEFTARROW:
+		case K_KP_UPARROW:
+		case K_KP_RIGHTARROW:
+		case K_KP_DOWNARROW:
+		case K_KP_END:
+		case K_KP_PGDN:
+		case K_KP_INS:
+		case K_KP_DEL:
+		case K_KP_HOME:
+			if ( IN_IsNumLockOn() )
+			{
+				return;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+	}
+
 	// ctrl-L clears screen
 	if (key == Key::FromCharacter('l') && keys[ Key(K_CTRL) ].down) {
 		Cmd::BufferCommandText("clear");
@@ -465,37 +492,10 @@ void CL_ConsoleKeyEvent()
 void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 {
 	using Keyboard::Key;
-	bool onlybinds = false;
 
 	if ( !key.IsValid() )
 	{
 		return;
-	}
-
-	if ( key.kind() == Key::Kind::KEYNUM ) {
-		switch ( key.AsKeynum() ) {
-		case K_KP_PGUP:
-		case K_KP_EQUALS:
-		case K_KP_5:
-		case K_KP_LEFTARROW:
-		case K_KP_UPARROW:
-		case K_KP_RIGHTARROW:
-		case K_KP_DOWNARROW:
-		case K_KP_END:
-		case K_KP_PGDN:
-		case K_KP_INS:
-		case K_KP_DEL:
-		case K_KP_HOME:
-			if ( IN_IsNumLockDown() )
-			{
-				onlybinds = true;
-			}
-
-			break;
-
-		default:
-			break;
-		}
 	}
 
 	// update auto-repeat status and BUTTON_ANY status
@@ -587,10 +587,7 @@ void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 	// distribute the key down event to the appropriate handler
 	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
 	{
-		if ( !onlybinds )
-		{
-			Console_Key( key );
-		}
+		Console_Key( key );
 	}
 	else if ( cls.state != connstate_t::CA_DISCONNECTED )
 	{

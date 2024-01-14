@@ -451,7 +451,7 @@ void IN_Frame();
 void IN_FrameEnd();
 void IN_Restart();
 void IN_Shutdown();
-bool IN_IsNumLockDown();
+bool IN_IsNumLockOn();
 void IN_DropInputsForFrame();
 void IN_CenterMouse();
 bool IN_IsKeyboardLayoutInfoAvailable();
