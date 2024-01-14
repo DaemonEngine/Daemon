@@ -462,15 +462,7 @@ void CL_ConsoleKeyEvent()
 	Key_ClearStates();
 }
 
-/*
-===================
-CL_KeyEvent
-
-Called by the system for both key up and key down events
-===================
-*/
-
-void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
+void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 {
 	using Keyboard::Key;
 	bool onlybinds = false;
@@ -507,30 +499,16 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 	}
 
 	// update auto-repeat status and BUTTON_ANY status
-	keys[ key ].down = down;
+	keys[ key ].down = true;
+	keys[ key ].repeats++;
 
-	if ( down )
+	if ( keys[ key ].repeats == 1 )
 	{
-		keys[ key ].repeats++;
-
-		if ( keys[ key ].repeats == 1 )
-		{
-			anykeydown++;
-		}
-	}
-	else
-	{
-		keys[ key ].repeats = 0;
-		anykeydown--;
-
-		if ( anykeydown < 0 )
-		{
-			anykeydown = 0;
-		}
+		anykeydown++;
 	}
 
 #ifdef MACOS_X
-	if ( down && keys[ Key(K_COMMAND) ].down )
+	if ( keys[ Key(K_COMMAND) ].down )
 	{
 		if ( key == Key::FromCharacter('f') )
 		{
@@ -552,19 +530,13 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 		}
 	}
 #else
-	if ( key == Key(K_ENTER) )
+	if ( key == Key(K_ENTER) && keys[ Key(K_ALT) ].down )
 	{
-		if ( down )
-		{
-			if ( keys[ Key(K_ALT) ].down )
-			{
-				r_fullscreen.Set( !r_fullscreen.Get() );
-				return;
-			}
-		}
+		r_fullscreen.Set( !r_fullscreen.Get() );
+		return;
 	}
 
-	if ( down && cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
+	if ( cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
 	{
 		Key_ClearStates();
 		Cmd::BufferCommandText("minimize");
@@ -573,14 +545,14 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 #endif
 
 	// console key combination is hardcoded, so the user can never unbind it
-	if ( down && keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) )
+	if ( keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) )
 	{
 		CL_ConsoleKeyEvent();
 		return;
 	}
 
 	// escape is always handled special
-	if ( key == Key(K_ESCAPE) && down )
+	if ( key == Key(K_ESCAPE) )
 	{
 		if ( !( cls.keyCatchers & KEYCATCH_UI ) )
 		{
@@ -599,16 +571,8 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 			return;
 		}
 
-		cgvm.CGameKeyEvent(key, down);
+		cgvm.CGameKeyEvent(key, true);
 		return;
-	}
-
-	// key up events only perform actions if the game key binding is
-	// a button command (leading + sign).
-	if ( !down )
-	{
-		// Handle any +commands which were invoked on the corresponding key-down
-		Cmd::BufferCommandText(Str::Format("keyup %d %s %u", plusCommand.check, Cmd::Escape(KeyToString(key)), time));
 	}
 
 	// Don't do anything if libRocket menus have focus
@@ -616,12 +580,7 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 	// to run any binds (since they won't be found).
 	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
 	{
-		cgvm.CGameKeyEvent(key, down);
-		return;
-	}
-
-	if ( !down )
-	{
+		cgvm.CGameKeyEvent(key, true);
 		return;
 	}
 
@@ -648,6 +607,37 @@ void CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time )
 			// Afterwards, clear the aforementioned global variable.
 			Cmd::BufferCommandText("setkeydata");
 		}
+	}
+}
+
+void CL_KeyUpEvent( const Keyboard::Key& key, unsigned time )
+{
+	if ( !key.IsValid() )
+	{
+		return;
+	}
+
+	// update auto-repeat status and BUTTON_ANY status
+	keys[ key ].down = false;
+	keys[ key ].repeats = 0;
+	anykeydown--;
+
+	if ( anykeydown < 0 )
+	{
+		anykeydown = 0;
+	}
+
+	// key up events only perform actions if the game key binding is
+	// a button command (leading + sign).
+	//
+	// Handle any +commands which were invoked on the corresponding key-down
+	Cmd::BufferCommandText(
+		Str::Format( "keyup %d %s %u", plusCommand.check, Cmd::Escape( KeyToString( key ) ), time ) );
+
+	// Send key up event to UI if the UI is active
+	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
+	{
+		cgvm.CGameKeyEvent( key, false );
 	}
 }
 
@@ -696,7 +686,7 @@ void Key_ClearStates()
 	{
 		if ( kv.second.down )
 		{
-			CL_KeyEvent(kv.first, false, 0 );
+			CL_KeyUpEvent( kv.first, 0 );
 		}
 
 		kv.second.down = false;
