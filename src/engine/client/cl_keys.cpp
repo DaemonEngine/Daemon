@@ -489,6 +489,59 @@ void CL_ConsoleKeyEvent()
 	Key_ClearStates();
 }
 
+// keyboard shortcuts hard-coded into the engine which are always active regardless of key catchers
+static bool DetectBuiltInShortcut( Keyboard::Key key )
+{
+	using Keyboard::Key;
+
+#ifdef MACOS_X
+	if ( keys[ Key(K_COMMAND) ].down )
+	{
+		if ( key == Key::FromCharacter('f') )
+		{
+			Key_ClearStates();
+			Cmd::BufferCommandText("toggle r_fullscreen; vid_restart");
+			return true;
+		}
+		else if ( key == Key::FromCharacter('q') )
+		{
+			Key_ClearStates();
+			Cmd::BufferCommandText("quit");
+			return true;
+		}
+		else if ( key == Key(K_TAB) )
+		{
+			Key_ClearStates();
+			Cmd::BufferCommandText("minimize");
+			return true;
+		}
+	}
+#else
+	if ( key == Key(K_ENTER) && keys[ Key(K_ALT) ].down )
+	{
+		r_fullscreen.Set( !r_fullscreen.Get() );
+		return true;
+	}
+
+	// When not in full-screen mode, the OS should intercept this first
+	if ( cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
+	{
+		Key_ClearStates();
+		Cmd::BufferCommandText("minimize");
+		return true;
+	}
+#endif
+
+	// console key combination is hardcoded, so the user can never unbind it
+	if ( keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) )
+	{
+		CL_ConsoleKeyEvent();
+		return true;
+	}
+
+	return false;
+}
+
 void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 {
 	using Keyboard::Key;
@@ -507,47 +560,8 @@ void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 		anykeydown++;
 	}
 
-#ifdef MACOS_X
-	if ( keys[ Key(K_COMMAND) ].down )
+	if ( DetectBuiltInShortcut( key ) )
 	{
-		if ( key == Key::FromCharacter('f') )
-		{
-			Key_ClearStates();
-			Cmd::BufferCommandText("toggle r_fullscreen; vid_restart");
-			return;
-		}
-		else if ( key == Key::FromCharacter('q') )
-		{
-			Key_ClearStates();
-			Cmd::BufferCommandText("quit");
-			return;
-		}
-		else if ( key == Key(K_TAB) )
-		{
-			Key_ClearStates();
-			Cmd::BufferCommandText("minimize");
-			return;
-		}
-	}
-#else
-	if ( key == Key(K_ENTER) && keys[ Key(K_ALT) ].down )
-	{
-		r_fullscreen.Set( !r_fullscreen.Get() );
-		return;
-	}
-
-	if ( cl_altTab->integer && keys[ Key(K_ALT) ].down && key == Key(K_TAB) )
-	{
-		Key_ClearStates();
-		Cmd::BufferCommandText("minimize");
-		return;
-	}
-#endif
-
-	// console key combination is hardcoded, so the user can never unbind it
-	if ( keys[ Key(K_SHIFT) ].down && key == Key(K_ESCAPE) )
-	{
-		CL_ConsoleKeyEvent();
 		return;
 	}
 
