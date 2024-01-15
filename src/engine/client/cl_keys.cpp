@@ -553,6 +553,7 @@ static bool DetectBuiltInShortcut( Keyboard::Key key )
 	return false;
 }
 
+// non-repeat key down
 void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 {
 	using Keyboard::Key;
@@ -621,6 +622,33 @@ void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 			Cmd::BufferCommandText("setkeydata");
 		}
 	}
+}
+
+// key down event from pressing and holding a key
+// Only does a subset of the things that an initial key press does.
+void CL_KeyRepeatEvent( const Keyboard::Key& key )
+{
+	if ( !key.IsValid() )
+	{
+		return;
+	}
+
+	// skip built-in shortcuts which mostly do something drastic like changing to another window
+	// also don't set keys[ key ].down (if Key_ClearStates() was called, keep it clear until pressed anew)
+
+	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
+	{
+		// stuff like PageDown can repeat
+		Console_Key( key );
+	}
+	else if ( cls.keyCatchers & KEYCATCH_UI )
+	{
+		cgvm.CGameKeyEvent( key, true );
+	}
+
+	// repeat events don't trigger binds
+	// sad... I can't bind "buy gren; itemact gren" and hold down a key
+	// to spam nades like I did in Tremulous
 }
 
 void CL_KeyUpEvent( const Keyboard::Key& key, unsigned time )

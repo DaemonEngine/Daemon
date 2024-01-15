@@ -679,15 +679,15 @@ static void QueueKeyEvent(Keyboard::Key key, bool down)
 		return;
 	}
 	Com_QueueEvent(Util::make_unique<Sys::KeyEvent>(
-		key, Keyboard::Key::NONE, down, Sys::Milliseconds()));
+		key, Keyboard::Key::NONE, down, false, Sys::Milliseconds()));
 }
-static void QueueKeyEvent(Keyboard::Key key1, Keyboard::Key key2, bool down)
+static void QueueKeyEvent(Keyboard::Key key1, Keyboard::Key key2, bool down, bool repeat)
 {
 	if (!key1.IsValid() && !key2.IsValid()) {
 		return;
 	}
 	Com_QueueEvent(Util::make_unique<Sys::KeyEvent>(
-		key1, key2, down, Sys::Milliseconds()));
+		key1, key2, down, repeat, Sys::Milliseconds()));
 }
 static void QueueKeyEvent(keyNum_t key, bool down) {
 	QueueKeyEvent(Keyboard::Key(key), down);
@@ -1082,7 +1082,7 @@ static void IN_ProcessEvents( bool dropInput )
 		switch ( e.type )
 		{
 			case SDL_KEYDOWN:
-				if ( !dropInput && ( !e.key.repeat || cls.keyCatchers ) )
+				if ( !dropInput )
 				{
 					// Send events for both scancode- and keycode-based Keys
 					Key kScan = Keyboard::Key::FromScancode( e.key.keysym.scancode );
@@ -1101,7 +1101,7 @@ static void IN_ProcessEvents( bool dropInput )
 						lastEventWasConsoleKeyDown = true;
 						continue;
 					}
-					QueueKeyEvent( kKeycode, kScan, true );
+					QueueKeyEvent( kKeycode, kScan, true, e.key.repeat );
 				}
 				break;
 
@@ -1111,7 +1111,7 @@ static void IN_ProcessEvents( bool dropInput )
 					QueueKeyEvent(
 						Keyboard::Key::FromScancode( e.key.keysym.scancode ),
 						IN_TranslateSDLToQ3Key( &e.key.keysym, false ),
-						false );
+						false, false );
 				}
 
 				break;
