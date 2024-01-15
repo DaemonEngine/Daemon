@@ -562,13 +562,10 @@ void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 		return;
 	}
 
-	// update auto-repeat status and BUTTON_ANY status
-	keys[ key ].down = true;
-	keys[ key ].repeats++;
-
-	if ( keys[ key ].repeats == 1 )
+	if ( !keys[ key ].down )
 	{
-		anykeydown++;
+		keys[ key ].down = true;
+		anykeydown++; // update BUTTON_ANY status
 	}
 
 	if ( DetectBuiltInShortcut( key ) )
@@ -633,14 +630,10 @@ void CL_KeyUpEvent( const Keyboard::Key& key, unsigned time )
 		return;
 	}
 
-	// update auto-repeat status and BUTTON_ANY status
-	keys[ key ].down = false;
-	keys[ key ].repeats = 0;
-	anykeydown--;
-
-	if ( anykeydown < 0 )
+	if ( keys[ key ].down )
 	{
-		anykeydown = 0;
+		keys[ key ].down = false;
+		anykeydown--; // update BUTTON_ANY status
 	}
 
 	// key up events only perform actions if the game key binding is
@@ -704,7 +697,6 @@ void Key_ClearStates()
 		if ( kv.second.down )
 		{
 			kv.second.down = false;
-			kv.second.repeats = 0;
 			Cmd::BufferCommandText( Str::Format(
 				"keyup %d %s 0", plusCommand.check, Cmd::Escape( KeyToString( kv.first ) ) ) );
 		}

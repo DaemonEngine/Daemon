@@ -54,7 +54,6 @@ enum BindTeam {
 struct qkey_t
 {
     bool down;
-    int      repeats; // if > 1, it is autorepeating
     Util::optional<std::string> binding[ Keyboard::NUM_TEAMS ];
 };
 
