@@ -129,6 +129,9 @@ void CL_ConsoleKeyEvent() {
 void CL_KeyDownEvent( const Key&, unsigned ) {
 }
 
+void CL_KeyRepeatEvent( const Key& ) {
+}
+
 void CL_KeyUpEvent( const Key&, unsigned ) {
 }
 
