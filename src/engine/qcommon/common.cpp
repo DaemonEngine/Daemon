@@ -463,8 +463,7 @@ void Com_EventLoop()
 					}
 					else
 					{
-						CL_KeyDownEvent( keyEvent.key1, keyEvent.time );
-						CL_KeyDownEvent( keyEvent.key2, keyEvent.time );
+						CL_KeyDownEvent( keyEvent.key1, keyEvent.key2, keyEvent.time );
 					}
 				}
 				else

@@ -498,7 +498,8 @@ enum cgameExport_t
   CG_DRAW_ACTIVE_FRAME,
 
 //  void    (*CG_KeyEvent)( Keyboard::Key key, bool down );
-  CG_KEY_EVENT,
+  CG_KEY_DOWN_EVENT,
+  CG_KEY_UP_EVENT,
 
 //  void    (*CG_MouseEvent)( int dx, int dy );
   CG_MOUSE_EVENT,
@@ -533,8 +534,12 @@ using CGameShutdownMsg = IPC::SyncMessage<
 using CGameDrawActiveFrameMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_DRAW_ACTIVE_FRAME>, int, bool>
 >;
-using CGameKeyEventMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_KEY_EVENT>, Keyboard::Key, bool>
+using CGameKeyDownEventMsg = IPC::SyncMessage<
+	IPC::Message<IPC::Id<VM::QVM, CG_KEY_DOWN_EVENT>, Keyboard::Key, bool>,
+	IPC::Reply<bool>
+>;
+using CGameKeyUpEventMsg = IPC::SyncMessage<
+	IPC::Message<IPC::Id<VM::QVM, CG_KEY_UP_EVENT>, Keyboard::Key>
 >;
 using CGameMouseEventMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_MOUSE_EVENT>, int, int>

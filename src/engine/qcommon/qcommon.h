@@ -639,7 +639,7 @@ void     CL_Shutdown();
 void     CL_Frame( int msec );
 void     CL_ConsoleKeyEvent();
 namespace Keyboard { class Key; }
-void     CL_KeyDownEvent( const Keyboard::Key& key, unsigned time );
+void     CL_KeyDownEvent( const Keyboard::Key& key1, const Keyboard::Key& key2, unsigned time );
 void     CL_KeyRepeatEvent( const Keyboard::Key& key );
 void     CL_KeyUpEvent( const Keyboard::Key& key, unsigned time );
 

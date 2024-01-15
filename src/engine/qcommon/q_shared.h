@@ -1650,10 +1650,25 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 //=====================================================================
 
-// in order from highest priority to lowest
-// if none of the catchers are active, bound key strings will be executed
-#define KEYCATCH_CONSOLE 0x0001
-#define KEYCATCH_UI      0x0002
+// Key catcher flags control which subsytems receive mouse and keyboard inputs.
+//
+// Mouse movements are processed by:
+// 1. if KEYCATCH_CONSOLE is active, nothing.
+// 2. otherwise if KEYCATCH_MOUSE_UI is active, by the UI (in the cgame).
+// 3. otherwise, by the gameplay movement code (in the cgame).
+//
+// Key inputs (which include mouse buttons and mouse wheels!) are processed by:
+// 1. if KEYCATCH_CONSOLE is active, the console.
+// 2. otherwise, if KEYCATCH_UI_KEY is active, only by the UI (in the cgame).
+// 3. otherwise, by the UI first; then, if the UI does not indicate that it consumed the key, also as binds.
+//
+// We can consider nuking KEYCATCH_UI_KEY and just having the UI consume all events if
+// if it does not want binds to execute. The only thing that really depends on this flag is
+// BUTTON_TALK / BUTTON_ANY. But BUTTON_TALK could simply be determined by the cgame, and
+// BUTTON_ANY does not seem useful at all.
+#define KEYCATCH_CONSOLE    0x0001
+#define KEYCATCH_UI_KEY     0x0002
+#define KEYCATCH_UI_MOUSE   0x0004
 
 // sound channels
 // channel 0 never willingly overrides
