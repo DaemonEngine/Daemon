@@ -2876,6 +2876,67 @@ void Tess_StageIteratorGeneric()
 	}
 }
 
+
+void Tess_StageIteratorPortal() {
+	int stage;
+
+	// log this call
+	if ( r_logFile->integer ) {
+		// don't just call LogComment, or we will get
+		// a call to va() every frame!
+		GLimp_LogComment( va
+		( "--- Tess_StageIteratorPortal( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
+			tess.numVertexes, tess.numIndexes / 3 ) );
+	}
+
+	GL_CheckErrors();
+
+	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo ) {
+		Tess_UpdateVBOs();
+	}
+
+	// set face culling appropriately
+	if ( backEnd.currentEntity->e.renderfx & RF_SWAPCULL )
+		GL_Cull( ReverseCull( tess.surfaceShader->cullType ) );
+	else
+		GL_Cull( tess.surfaceShader->cullType );
+
+	// call shader function
+	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ ) {
+		shaderStage_t* pStage = tess.surfaceStages[stage];
+
+		if ( !pStage ) {
+			break;
+		}
+
+		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) ) {
+			continue;
+		}
+
+		switch ( pStage->type ) {
+			case stageType_t::ST_COLORMAP:
+			case stageType_t::ST_LIGHTMAP:
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_lighting_PHONG:
+			case stageType_t::ST_COLLAPSE_lighting_PBR:
+			case stageType_t::ST_COLLAPSE_reflection_CB:
+			case stageType_t::ST_REFLECTIONMAP:
+			case stageType_t::ST_REFRACTIONMAP:
+			case stageType_t::ST_DISPERSIONMAP:
+			case stageType_t::ST_SKYBOXMAP:
+			case stageType_t::ST_SCREENMAP:
+			case stageType_t::ST_PORTALMAP:
+			case stageType_t::ST_HEATHAZEMAP:
+			case stageType_t::ST_LIQUIDMAP:
+				Render_generic( pStage );
+				return;
+
+			default:
+				break;
+		}
+	}
+}
+
 void Tess_StageIteratorDepthFill()
 {
 	int stage;
