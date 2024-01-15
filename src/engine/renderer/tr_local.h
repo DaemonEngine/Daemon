@@ -1618,6 +1618,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
 		int            portalLevel; // number of portals this view is through
+		int            mirrorLevel;
 		bool           isMirror; // the portal is a mirror, invert the face culling
 
 		int            frameSceneNum; // copied from tr.frameSceneNum
@@ -3519,6 +3520,7 @@ inline bool checkGLErrors()
 
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorGeneric();
+	void Tess_StageIteratorPortal();
 	void Tess_StageIteratorDepthFill();
 	void Tess_StageIteratorShadowFill();
 	void Tess_StageIteratorLighting();

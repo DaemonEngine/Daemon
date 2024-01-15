@@ -1301,28 +1301,39 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 	// locate the portal entity closest to this plane.
 	// origin will be the origin of the portal, origin2 will be
 	// the origin of the camera
-	for ( i = 0; i < tr.refdef.numEntities; i++ )
-	{
-		e = &tr.refdef.entities[ i ];
+	int numVertsOld = tess.numVertexes;
+	rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
+	int numVerts = tess.numVertexes - numVertsOld;
+	vec3_t portalCenter{ 0.0, 0.0, 0.0 };
+	for ( int vertIndex = 0; vertIndex < numVerts; vertIndex++ ) {
+		VectorAdd( portalCenter, tess.verts[vertIndex].xyz, portalCenter );
+	}
+	VectorScale( portalCenter, 1.0 / numVerts, portalCenter );
+	float minDistance = FLT_MAX;
+	trRefEntity_t* currentPortal = nullptr;
+	for ( i = 0; i < tr.refdef.numEntities; i++ ) {
+		e = &tr.refdef.entities[i];
 
-		if ( e->e.reType != refEntityType_t::RT_PORTALSURFACE )
-		{
+		if ( e->e.reType != refEntityType_t::RT_PORTALSURFACE ) {
 			continue;
 		}
 
-		d = DotProduct( e->e.origin, originalPlane.normal ) - originalPlane.dist;
-
-		if ( d > 64 || d < -64 )
-		{
-			continue;
+		float distance = Distance( e->e.origin, portalCenter );
+		if ( distance < minDistance ) {
+			minDistance = distance;
+			currentPortal = e;
 		}
-
-		// get the pvsOrigin from the entity
+	}
+	if( currentPortal) {
+		// project the origin onto the surface plane to get
+		// an origin point we can rotate around
+		e = currentPortal;
 		VectorCopy( e->e.oldorigin, pvsOrigin );
+		d = DotProduct( e->e.origin, plane.normal ) - plane.dist;
+		VectorMA( e->e.origin, -d, surface->axis[ 0 ], surface->origin );
 
 		// if the entity is just a mirror, don't use as a camera point
-		if ( e->e.oldorigin[ 0 ] == e->e.origin[ 0 ] && e->e.oldorigin[ 1 ] == e->e.origin[ 1 ] && e->e.oldorigin[ 2 ] == e->e.origin[ 2 ] )
-		{
+		if ( e->e.oldorigin[ 0 ] == e->e.origin[ 0 ] && e->e.oldorigin[ 1 ] == e->e.origin[ 1 ] && e->e.oldorigin[ 2 ] == e->e.origin[ 2 ] ) {
 			VectorScale( plane.normal, plane.dist, surface->origin );
 			VectorCopy( surface->origin, camera->origin );
 			VectorSubtract( vec3_origin, surface->axis[ 0 ], camera->axis[ 0 ] );
@@ -1332,11 +1343,6 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 			*mirror = true;
 			return true;
 		}
-
-		// project the origin onto the surface plane to get
-		// an origin point we can rotate around
-		d = DotProduct( e->e.origin, plane.normal ) - plane.dist;
-		VectorMA( e->e.origin, -d, surface->axis[ 0 ], surface->origin );
 
 		// now get the camera origin and orientation
 		VectorCopy( e->e.oldorigin, camera->origin );
@@ -1864,6 +1870,9 @@ static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	if ( !R_GetPortalOrientations( drawSurf, &surface, &camera, newParms.pvsOrigin, &newParms.isMirror) )
 	{
 		return false; // bad portal, no portalentity
+	}
+	if ( newParms.isMirror ) {
+		newParms.mirrorLevel++;
 	}
 
 	// draw stencil mask
