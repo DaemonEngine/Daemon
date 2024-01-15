@@ -997,9 +997,22 @@ void CGameVM::CGameDrawActiveFrame(int serverTime,  bool demoPlayback)
 	this->SendMsg<CGameDrawActiveFrameMsg>(serverTime, demoPlayback);
 }
 
-void CGameVM::CGameKeyEvent(Keyboard::Key key, bool down)
+bool CGameVM::CGameKeyDownEvent(Keyboard::Key key, bool repeat)
 {
-	this->SendMsg<CGameKeyEventMsg>(key, down);
+	if (!key.IsValid())
+		return false;
+
+	bool consumed;
+	this->SendMsg<CGameKeyDownEventMsg>(key, repeat, consumed);
+	return consumed;
+}
+
+void CGameVM::CGameKeyUpEvent(Keyboard::Key key)
+{
+	if (!key.IsValid())
+		return;
+
+	this->SendMsg<CGameKeyUpEventMsg>(key);
 }
 
 void CGameVM::CGameMouseEvent(int dx, int dy)

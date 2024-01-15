@@ -343,7 +343,8 @@ public:
 	void CGameInit(int serverMessageNum, int clientNum);
 	void CGameShutdown();
 	void CGameDrawActiveFrame(int serverTime, bool demoPlayback);
-	void CGameKeyEvent(Keyboard::Key key, bool down);
+	bool CGameKeyDownEvent(Keyboard::Key key, bool repeat);
+	void CGameKeyUpEvent(Keyboard::Key key);
 	void CGameMouseEvent(int dx, int dy);
 	void CGameMousePosEvent(int x, int y);
 	void CGameTextInputEvent(int c);

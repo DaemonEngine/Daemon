@@ -554,22 +554,24 @@ static bool DetectBuiltInShortcut( Keyboard::Key key )
 }
 
 // non-repeat key down
-void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
+// This must handle both (if applicable) Keyboard::Key interperations together in order to
+// properly allow the UI to decide to consume a key press, preventing it from activating
+// binds. Say the user selects "3" in a menu. The UI probably used char:3 but the bind
+// probably used hw:3. So it would just do both things if you processed the Key's separately.
+void CL_KeyDownEvent( const Keyboard::Key& key1, const Keyboard::Key& key2, unsigned time )
 {
 	using Keyboard::Key;
 
-	if ( !key.IsValid() )
+	for ( Key key : {key1, key2} )
 	{
-		return;
+		if ( key.IsValid() && keys[ key ].down )
+		{
+			keys[ key ].down = true;
+			anykeydown++; // update BUTTON_ANY status
+		}
 	}
 
-	if ( !keys[ key ].down )
-	{
-		keys[ key ].down = true;
-		anykeydown++; // update BUTTON_ANY status
-	}
-
-	if ( DetectBuiltInShortcut( key ) )
+	if ( DetectBuiltInShortcut( key1 ) || DetectBuiltInShortcut( key2 ) )
 	{
 		return;
 	}
@@ -577,36 +579,27 @@ void CL_KeyDownEvent( const Keyboard::Key& key, unsigned time )
 	// When the console is open, binds do not act and the UI can't receive input.
 	if ( cls.keyCatchers & KEYCATCH_CONSOLE )
 	{
-		Console_Key( key );
+		Console_Key( key1 );
+		Console_Key( key2 );
 		return;
 	}
 
-	// escape is always handled special
-	if ( key == Key(K_ESCAPE) )
+	bool uiConsumed = cgvm.CGameKeyDownEvent( key1, false );
+	uiConsumed |= cgvm.CGameKeyDownEvent( key2, false ); // non-short-circuiting!
+
+	// do binds only if KEYCATCH_UI_KEY is off and also the UI didn't indicate that it
+	// consumed the key
+	if ( uiConsumed || ( cls.keyCatchers & KEYCATCH_UI_KEY ) )
 	{
-		if ( !( cls.keyCatchers & KEYCATCH_UI ) )
-		{
-			if ( cls.state == connstate_t::CA_ACTIVE )
-			{
-				Cmd::BufferCommandText( "toggleMenu" );
-			}
-			return;
-		}
-
-		cgvm.CGameKeyEvent(key, true);
 		return;
 	}
 
-	// Don't do anything if libRocket menus have focus
-	// Everything is handled by libRocket. Also we don't want
-	// to run any binds (since they won't be found).
-	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
+	if ( cls.state == connstate_t::CA_DISCONNECTED )
 	{
-		cgvm.CGameKeyEvent(key, true);
 		return;
 	}
 
-	if ( cls.state != connstate_t::CA_DISCONNECTED )
+	for ( Key key : {key1, key2} )
 	{
 		// send the bound action
 		auto kb = Keyboard::GetBinding( key, Keyboard::GetTeam(), true );
@@ -641,9 +634,9 @@ void CL_KeyRepeatEvent( const Keyboard::Key& key )
 		// stuff like PageDown can repeat
 		Console_Key( key );
 	}
-	else if ( cls.keyCatchers & KEYCATCH_UI )
+	else
 	{
-		cgvm.CGameKeyEvent( key, true );
+		cgvm.CGameKeyDownEvent( key, true );
 	}
 
 	// repeat events don't trigger binds
@@ -671,10 +664,10 @@ void CL_KeyUpEvent( const Keyboard::Key& key, unsigned time )
 	Cmd::BufferCommandText(
 		Str::Format( "keyup %d %s %u", plusCommand.check, Cmd::Escape( KeyToString( key ) ), time ) );
 
-	// Send key up event to UI if the UI is active
-	if ( cls.keyCatchers & KEYCATCH_UI && !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
+	// Send key up event to UI unless console is active
+	if ( !( cls.keyCatchers & KEYCATCH_CONSOLE ) )
 	{
-		cgvm.CGameKeyEvent( key, false );
+		cgvm.CGameKeyUpEvent( key );
 	}
 }
 
