@@ -791,7 +791,7 @@ static void Render_generic( shaderStage_t *pStage )
 	}
 	else
 	{
-	BindAnimatedImage( &pStage->bundle[ TB_COLORMAP ] );
+		BindAnimatedImage( &pStage->bundle[ TB_COLORMAP ] );
 	}
 
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
@@ -984,7 +984,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 		case deluxeMode_t::GRID:
 			// Deluxe mapping emulation from grid light for game models.
-		// Store lightGrid2 as deluxemap,
+			// Store lightGrid2 as deluxemap,
 			// the GLSL code will know how to deal with it.
 		deluxemap = tr.lightGrid2Image;
 			break;
