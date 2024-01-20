@@ -373,12 +373,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Must not be called while the backend rendering thread is running
 	==================
 	*/
-	void GL_CheckErrors_( const char *fileName, int line )
+	void GL_CheckErrors_( const char *fileName, int line, bool forced )
 	{
 		int  err;
 		char s[ 128 ];
 
-		if ( !checkGLErrors() )
+		if ( !forced && !checkGLErrors() )
 		{
 			return;
 		}

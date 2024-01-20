@@ -536,6 +536,9 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 
 	glGenBuffers( 1, &vbo->vertexesVBO );
 
+	// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+	GL_CheckErrorsForced();
+
 	R_BindVBO( vbo );
 
 #if defined( GL_ARB_buffer_storage ) && defined( GL_ARB_sync )
@@ -586,6 +589,10 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 	R_SetVBOAttributeLayouts( vbo );
 
 	glGenBuffers( 1, &vbo->vertexesVBO );
+
+	// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+	GL_CheckErrorsForced();
+
 	R_BindVBO( vbo );
 
 	byte *outData;
@@ -650,6 +657,10 @@ VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *ve
 	R_SetVBOAttributeLayouts( vbo );
 	
 	glGenBuffers( 1, &vbo->vertexesVBO );
+
+	// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+	GL_CheckErrorsForced();
+
 	R_BindVBO( vbo );
 
 #ifdef GL_ARB_buffer_storage
@@ -696,6 +707,9 @@ IBO_t *R_CreateDynamicIBO( const char *name, int numIndexes )
 	ibo->indexesNum = numIndexes;
 
 	glGenBuffers( 1, &ibo->indexesVBO );
+
+	// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+	GL_CheckErrorsForced();
 
 	R_BindIBO( ibo );
 #if defined( GL_ARB_buffer_storage ) && defined( GL_ARB_sync )
@@ -747,6 +761,9 @@ IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 
 	glGenBuffers( 1, &ibo->indexesVBO );
 
+	// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+	GL_CheckErrorsForced();
+
 	R_BindIBO( ibo );
 
 #ifdef GL_ARB_buffer_storage
@@ -789,6 +806,10 @@ IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexe
 	ibo->indexesSize = ibo->indexesNum * sizeof( glIndex_t );
 
 	glGenBuffers( 1, &ibo->indexesVBO );
+
+	// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+	GL_CheckErrorsForced();
+
 	R_BindIBO( ibo );
 
 #ifdef GL_ARB_buffer_storage
@@ -802,6 +823,8 @@ IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexe
 			      indexes, GL_STATIC_DRAW );
 	}
 	R_BindNullIBO();
+
+	GL_CheckErrors();
 
 	return ibo;
 }
@@ -1023,6 +1046,10 @@ void R_InitVBOs()
 
 	// allocate a PBO for color grade map transfers
 	glGenBuffers( 1, &tr.colorGradePBO );
+
+	// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+	GL_CheckErrorsForced();
+
 	glBindBuffer( GL_PIXEL_PACK_BUFFER, tr.colorGradePBO );
 	glBufferData( GL_PIXEL_PACK_BUFFER,
 		      REF_COLORGRADEMAP_STORE_SIZE * sizeof(u8vec4_t),
@@ -1031,11 +1058,19 @@ void R_InitVBOs()
 
 	if( glConfig2.uniformBufferObjectAvailable ) {
 		glGenBuffers( 1, &tr.dlightUBO );
+
+		// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+		GL_CheckErrorsForced();
+
 		glBindBuffer( GL_UNIFORM_BUFFER, tr.dlightUBO );
 		glBufferData( GL_UNIFORM_BUFFER, MAX_REF_LIGHTS * sizeof( shaderLight_t ), nullptr, GL_DYNAMIC_DRAW );
 		glBindBuffer( GL_UNIFORM_BUFFER, 0 );
 	} else {
 		glGenBuffers( 1, &tr.dlightUBO );
+
+		// Always look for GL_OUT_OF_MEMORY after a buffer creation.
+		GL_CheckErrorsForced();
+
 		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, tr.dlightUBO );
 		glBufferData( GL_PIXEL_UNPACK_BUFFER, MAX_REF_LIGHTS * sizeof( shaderLight_t ), nullptr, GL_DYNAMIC_DRAW );
 		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );

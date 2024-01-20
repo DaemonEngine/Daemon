@@ -1043,6 +1043,9 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 				      scaledWidth, scaledHeight, mipLayers,
 				      0, format, GL_UNSIGNED_BYTE, nullptr );
 
+			// Always look for GL_OUT_OF_MEMORY after an upload.
+			GL_CheckErrorsForced();
+
 			if( mipWidth  > 1 ) mipWidth  >>= 1;
 			if( mipHeight > 1 ) mipHeight >>= 1;
 			if( mipLayers > 1 ) mipLayers >>= 1;
@@ -1109,16 +1112,25 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			case GL_TEXTURE_CUBE_MAP:
 				glTexImage2D( target + i, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE,
 				              scaledBuffer );
+
+				// Always look for GL_OUT_OF_MEMORY after an upload.
+				GL_CheckErrorsForced();
 				break;
 
 			default:
 				if ( image->bits & IF_PACKED_DEPTH24_STENCIL8 )
 				{
 					glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr );
+
+					// Always look for GL_OUT_OF_MEMORY after an upload.
+					GL_CheckErrorsForced();
 				}
 				else
 				{
 					glTexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer );
+
+					// Always look for GL_OUT_OF_MEMORY after an upload.
+					GL_CheckErrorsForced();
 				}
 
 				break;
@@ -1160,13 +1172,22 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 					glCompressedTexSubImage3D( GL_TEXTURE_3D, i, 0, 0, j,
 								   scaledWidth, scaledHeight, 1,
 								   internalFormat, mipSize, data );
+
+					// Always look for GL_OUT_OF_MEMORY after an upload.
+					GL_CheckErrorsForced();
 					break;
 				case GL_TEXTURE_CUBE_MAP:
 					glCompressedTexImage2D( target + j, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+
+					// Always look for GL_OUT_OF_MEMORY after an upload.
+					GL_CheckErrorsForced();
 					break;
 
 				default:
 					glCompressedTexImage2D( target, i, internalFormat, mipWidth, mipHeight, 0, mipSize, data );
+
+					// Always look for GL_OUT_OF_MEMORY after an upload.
+					GL_CheckErrorsForced();
 					break;
 				}
 
@@ -1465,7 +1486,8 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
 
-	GL_CheckErrors();
+	// Always look for GL_OUT_OF_MEMORY after an upload.
+	GL_CheckErrorsForced();
 
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );

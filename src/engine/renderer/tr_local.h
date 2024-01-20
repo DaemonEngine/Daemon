@@ -3276,9 +3276,10 @@ inline bool checkGLErrors()
 	void GL_Viewport( GLint x, GLint y, GLsizei width, GLsizei height );
 	void GL_PolygonOffset( float factor, float units );
 
-	void GL_CheckErrors_( const char *filename, int line );
+	void GL_CheckErrors_( const char *filename, int line, bool forced );
 
-#define GL_CheckErrors() do { if (!glConfig.smpActive) GL_CheckErrors_(__FILE__, __LINE__); } while (false)
+#define GL_CheckErrors() do { if (!glConfig.smpActive) GL_CheckErrors_(__FILE__, __LINE__, false); } while (false)
+#define GL_CheckErrorsForced() do { if (!glConfig.smpActive) GL_CheckErrors_(__FILE__, __LINE__, true); } while (false)
 
 	void GL_State( uint32_t stateVector );
 	void GL_VertexAttribsState( uint32_t stateBits );

@@ -1133,7 +1133,8 @@ GLuint GLShaderManager::CompileShader( Str::StringRef programName,
 	// compile shader
 	glCompileShader( shader );
 
-	GL_CheckErrors();
+	// Always look for error after a GLSL compilation.
+	GL_CheckErrorsForced();
 
 	// check if shader compiled
 	GLint compiled;

@@ -840,7 +840,7 @@ void RE_BeginFrame()
 	if ( checkGLErrors() )
 	{
 		R_SyncRenderThread();
-		GL_CheckErrors_( __FILE__, __LINE__ );
+		GL_CheckErrors();
 	}
 
 	// draw buffer stuff
