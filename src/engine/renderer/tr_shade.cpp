@@ -785,7 +785,7 @@ static void Render_generic( shaderStage_t *pStage )
 	// bind u_ColorMap
 	GL_SelectTexture( 0 );
 
-	if ( pStage->type == stageType_t::ST_LIGHTSTYLEMAP )
+	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP )
 	{
 		GL_Bind( GetLightMap() );
 	}
@@ -914,7 +914,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 		  {
 		    map textures/texture_d
 		    heightMap textures/texture_h
-	}
+		  }
 
 		This is doable for some complex multi-stage materials. */
 	}
@@ -954,13 +954,6 @@ static void Render_lightMapping( shaderStage_t *pStage )
 			tess.svars.color.SetRed( 0.0f );
 			tess.svars.color.SetGreen( 0.0f );
 			tess.svars.color.SetBlue( 0.0f );
-
-			if ( stateBits & GLS_ATEST_BITS )
-			{
-				// Do not rewrite pStage->alphaGen.
-				alphaGen = alphaGen_t::AGEN_VERTEX;
-				tess.svars.color.SetAlpha( 1.0f );
-	}
 			break;
 
 		case lightMode_t::GRID:
@@ -973,7 +966,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 			lightmap = GetLightMap();
 
 			if ( r_showLightMaps->integer )
-	{
+			{
 				stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
 			}
 			break;
@@ -2800,7 +2793,8 @@ void Tess_StageIteratorGeneric()
 
 				break;
 
-			case stageType_t::ST_LIGHTSTYLEMAP:
+			case stageType_t::ST_STYLELIGHTMAP:
+			case stageType_t::ST_STYLECOLORMAP:
 				Render_generic( pStage );
 				break;
 
@@ -2879,6 +2873,67 @@ void Tess_StageIteratorGeneric()
 	if ( tess.surfaceShader->polygonOffset )
 	{
 		glDisable( GL_POLYGON_OFFSET_FILL );
+	}
+}
+
+
+void Tess_StageIteratorPortal() {
+	int stage;
+
+	// log this call
+	if ( r_logFile->integer ) {
+		// don't just call LogComment, or we will get
+		// a call to va() every frame!
+		GLimp_LogComment( va
+		( "--- Tess_StageIteratorPortal( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
+			tess.numVertexes, tess.numIndexes / 3 ) );
+	}
+
+	GL_CheckErrors();
+
+	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo ) {
+		Tess_UpdateVBOs();
+	}
+
+	// set face culling appropriately
+	if ( backEnd.currentEntity->e.renderfx & RF_SWAPCULL )
+		GL_Cull( ReverseCull( tess.surfaceShader->cullType ) );
+	else
+		GL_Cull( tess.surfaceShader->cullType );
+
+	// call shader function
+	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ ) {
+		shaderStage_t* pStage = tess.surfaceStages[stage];
+
+		if ( !pStage ) {
+			break;
+		}
+
+		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) ) {
+			continue;
+		}
+
+		switch ( pStage->type ) {
+			case stageType_t::ST_COLORMAP:
+			case stageType_t::ST_LIGHTMAP:
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_lighting_PHONG:
+			case stageType_t::ST_COLLAPSE_lighting_PBR:
+			case stageType_t::ST_COLLAPSE_reflection_CB:
+			case stageType_t::ST_REFLECTIONMAP:
+			case stageType_t::ST_REFRACTIONMAP:
+			case stageType_t::ST_DISPERSIONMAP:
+			case stageType_t::ST_SKYBOXMAP:
+			case stageType_t::ST_SCREENMAP:
+			case stageType_t::ST_PORTALMAP:
+			case stageType_t::ST_HEATHAZEMAP:
+			case stageType_t::ST_LIQUIDMAP:
+				Render_generic( pStage );
+				return;
+
+			default:
+				break;
+		}
 	}
 }
 

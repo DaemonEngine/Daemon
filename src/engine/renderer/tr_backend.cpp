@@ -386,7 +386,7 @@ void GL_PolygonOffset( float factor, float units )
 
 void GL_Cull( cullType_t cullType )
 {
-	if ( backEnd.viewParms.isMirror )
+	if ( backEnd.viewParms.mirrorLevel % 2 == 1 )
 	{
 		GL_FrontFace( GL_CW );
 	}
@@ -5543,7 +5543,7 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_COLORMASK_BITS );
 	glState.glStateBitsMask = GLS_COLORMASK_BITS;
 
-	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader,
+	Tess_Begin( Tess_StageIteratorPortal, nullptr, shader,
 		    nullptr, false, false, -1, -1 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
@@ -5556,10 +5556,10 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 	glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
 	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
-	GL_State( GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE | GLS_COLORMASK_BITS );
-	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE | GLS_COLORMASK_BITS;
+	GL_State( GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS);
+	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS;
 
-	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader,
+	Tess_Begin( Tess_StageIteratorPortal, nullptr, shader,
 		    nullptr, false, false, -1, -1 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
@@ -5604,16 +5604,29 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 
 	GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 
-	glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
-	glStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
+	GL_State( GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS );
+	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS;
 
-	GL_State( GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS | GLS_COLORMASK_BITS );
-	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS | GLS_COLORMASK_BITS;
+	glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
+	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
 	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader,
+		nullptr, false, false, -1, -1 );
+	rb_surfaceTable[Util::ordinal( *( surface->surface ) )]( surface->surface );
+	Tess_End();
+
+	glStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
+
+	GL_State( GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS);
+	glState.glStateBitsMask = GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS;
+
+	Tess_Begin( Tess_StageIteratorPortal, nullptr, shader,
 		    nullptr, false, false, -1, -1 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
+
+	glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel, 0xff );
+	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
 	glState.glStateBitsMask = 0;
 

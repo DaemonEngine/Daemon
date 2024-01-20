@@ -1177,7 +1177,8 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
 	  ST_LIGHTMAP,
-	  ST_LIGHTSTYLEMAP,
+	  ST_STYLELIGHTMAP,
+	  ST_STYLECOLORMAP,
 	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:physicalmap
 	  ST_COLLAPSE_lighting_PHONG, // map|diffusemap + opt:normalmap + opt:glowmap + specularmap
 	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
@@ -1618,6 +1619,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
 		int            portalLevel; // number of portals this view is through
+		int            mirrorLevel;
 		bool           isMirror; // the portal is a mirror, invert the face culling
 
 		int            frameSceneNum; // copied from tr.frameSceneNum
@@ -3098,6 +3100,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	extern cvar_t *r_showLightGrid;
 	extern cvar_t *r_showLightTiles;
 	extern cvar_t *r_showBatches;
+	extern Cvar::Cvar<bool> r_showVertexColors;
 	extern cvar_t *r_showLightMaps; // render lightmaps only
 	extern cvar_t *r_showDeluxeMaps;
 	extern cvar_t *r_showNormalMaps;
@@ -3519,6 +3522,7 @@ inline bool checkGLErrors()
 
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorGeneric();
+	void Tess_StageIteratorPortal();
 	void Tess_StageIteratorDepthFill();
 	void Tess_StageIteratorShadowFill();
 	void Tess_StageIteratorLighting();
