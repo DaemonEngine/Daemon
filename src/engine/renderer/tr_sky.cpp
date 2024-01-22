@@ -115,6 +115,9 @@ void Tess_StageIteratorSky()
 
 	gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
+	// u_InverseLightFactor
+	gl_skyboxShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
 	gl_skyboxShader->SetRequiredVertexPointers();
 
 	// draw the outer skybox

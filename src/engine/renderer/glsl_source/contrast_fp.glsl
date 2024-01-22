@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 uniform sampler2D	u_ColorMap;
 
+uniform float u_InverseLightFactor;
+
 const vec4			LUMINANCE_VECTOR = vec4(0.2125, 0.7154, 0.0721, 0.0);
 
 #if __VERSION__ > 120
@@ -56,6 +58,8 @@ void	main()
 	color += f(texture2D(u_ColorMap, st + vec2(1.0, -1.0) * scale));
 	color += f(texture2D(u_ColorMap, st + vec2(1.0, 1.0) * scale));
 	color *= 0.25;
+
+	color.rgb *= u_InverseLightFactor;
 
 	outputColor = color;
 }

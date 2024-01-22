@@ -82,6 +82,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_dynamicLightCastShadows;
 	cvar_t      *r_precomputedLighting;
 	Cvar::Cvar<int> r_mapOverBrightBits("r_mapOverBrightBits", "default map light color shift", Cvar::NONE, 2);
+	Cvar::Cvar<bool> r_forceLegacyMapOverBrightClamping("r_forceLegacyMapOverBrightClamping", "clamp over bright of legacy maps (enable multiplied color clamping and normalization)", Cvar::NONE, false);
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
@@ -1115,6 +1116,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_dynamicLightCastShadows = Cvar_Get( "r_dynamicLightCastShadows", "1", 0 );
 		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_CHEAT | CVAR_LATCH );
 		Cvar::Latch( r_mapOverBrightBits );
+		Cvar::Latch( r_forceLegacyMapOverBrightClamping );
 		Cvar::Latch( r_lightMode );
 		r_lightStyles = Cvar_Get( "r_lightStyles", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_exportTextures = Cvar_Get( "r_exportTextures", "0", 0 );

@@ -5149,9 +5149,32 @@ static void CollapseStages()
 	shader.numStages = numActiveStages;
 
 	// Do some precomputation.
+
+	bool shaderHasNoLight = true;
 	for ( int s = 0; s < shader.numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
+
+		switch ( stage->type )
+		{
+			case stageType_t::ST_LIGHTMAP:
+			case stageType_t::ST_STYLELIGHTMAP:
+			case stageType_t::ST_STYLECOLORMAP:
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+				shaderHasNoLight = false;
+				break;
+			default:	
+				break;
+		}
+	}
+
+	for ( int s = 0; s < shader.numStages; s++ )
+	{
+		shaderStage_t *stage = &stages[ s ];
+
+		// We should cancel overBrightBits if there is no light stage.
+		stage->shaderHasNoLight = shaderHasNoLight;
 
 		// Available textures.
 		stage->hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;

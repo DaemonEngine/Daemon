@@ -1615,6 +1615,7 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_ModelMatrix( this ),
 	u_ProjectionMatrixTranspose( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
 	u_Bones( this ),
@@ -1653,6 +1654,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_ReliefDepthScale( this ),
@@ -1973,6 +1975,7 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this ),
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_ALPHA_TESTING( this )
@@ -1989,6 +1992,7 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT, manager ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this ),
 	u_Color( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
@@ -2017,6 +2021,7 @@ GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
 	u_ViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
+	u_InverseLightFactor( this ),
 	u_Color( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this )
@@ -2094,7 +2099,8 @@ void GLShader_portal::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 
 GLShader_contrast::GLShader_contrast( GLShaderManager *manager ) :
 	GLShader( "contrast", ATTR_POSITION, manager ),
-	u_ModelViewProjectionMatrix( this )
+	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this )
 {
 }
 
@@ -2108,6 +2114,7 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
+	u_LightFactor( this ),
 	u_DeformMagnitude( this ),
 	u_InverseGamma( this )
 {
