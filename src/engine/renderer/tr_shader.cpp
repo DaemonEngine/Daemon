@@ -1450,6 +1450,9 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	else if ( !Q_stricmp( token, "$lightmap" ) )
 	{
 		stage->type = stageType_t::ST_LIGHTMAP;
+		/*  This is not needed to compute coordinates, but we use this to select
+		specific lightmap code in generic_fp.glsl. */
+		stage->tcGen_Lightmap = true;
 		return true;
 	}
 

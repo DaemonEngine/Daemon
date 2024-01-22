@@ -59,7 +59,23 @@ IN(smooth) vec3		var_Normal;
 	uniform vec3 u_LightGridScale;
 #endif
 
+uniform int u_MapOverBrightBitsShift;
+
 DECLARE_OUTPUT(vec4)
+
+void mapOverBrightBits(inout vec3 color, in float shift)
+{
+	if (shift > 1)
+	{
+		color *= shift;
+		float maxComponent = 1.0;
+		maxComponent = max(maxComponent, color.r);
+		maxComponent = max(maxComponent, color.g);
+		maxComponent = max(maxComponent, color.b);
+		maxComponent = 1.0 / maxComponent;
+		color *= maxComponent;
+	}
+}
 
 void main()
 {
@@ -124,6 +140,8 @@ void main()
 		vec3 ambientColor, lightColor;
 		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
 
+		mapOverBrightBits(ambientColor.rgb, u_MapOverBrightBitsShift);
+
 		color.rgb = ambientColor * r_AmbientScale * diffuse.rgb;
 	#endif
 
@@ -152,6 +170,8 @@ void main()
 		// Divide by cosine term to restore original light color.
 		lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.3, 1.0);
 	#endif
+
+	mapOverBrightBits(lightColor.rgb, u_MapOverBrightBitsShift);
 
 	// Blend static light.
 	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)

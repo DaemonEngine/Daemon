@@ -732,6 +732,12 @@ static void Render_generic( shaderStage_t *pStage )
 		gl_genericShader->SetUniform_AlphaTest(pStage->stateBits);
 	}
 
+	// u_MapOverBrightBitsShift
+	if ( pStage->tcGen_Lightmap )
+	{
+		gl_genericShader->SetUniform_MapOverBrightBitsShift( tr.mapOverBrightBitsShift );
+	}
+
 	// u_ColorGen
 	switch ( pStage->rgbGen )
 	{
@@ -895,6 +901,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 	lightMode_t lightMode = lightMode_t::FULLBRIGHT;
 	deluxeMode_t deluxeMode = deluxeMode_t::NONE;
+	int mapOverBrightBitsShift = 1;
 
 	/* TODO: investigate what this is. It's probably a hack to detect some
 	specific use case. Without knowing which use case this takes care about,
@@ -949,6 +956,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	switch ( lightMode )
 	{
 		case lightMode_t::VERTEX:
+			mapOverBrightBitsShift = tr.mapOverBrightBitsShift;
 			// Do not rewrite pStage->rgbGen.
 			colorGen = colorGen_t::CGEN_VERTEX;
 			tess.svars.color.SetRed( 0.0f );
@@ -957,12 +965,14 @@ static void Render_lightMapping( shaderStage_t *pStage )
 			break;
 
 		case lightMode_t::GRID:
+			mapOverBrightBitsShift = tr.mapOverBrightBitsShift;
 			// Store lightGrid1 as lightmap,
 			// the GLSL code will know how to deal with it.
 			lightmap = tr.lightGrid1Image;
 			break;
 
 		case lightMode_t::MAP:
+			mapOverBrightBitsShift = tr.mapOverBrightBitsShift;
 			lightmap = GetLightMap();
 
 			if ( r_showLightMaps->integer )
@@ -1084,6 +1094,9 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 	// u_AlphaTest
 	gl_lightMappingShader->SetUniform_AlphaTest( pStage->stateBits );
+
+	// u_MapOverBrightBitsShift
+	gl_lightMappingShader->SetUniform_MapOverBrightBitsShift( mapOverBrightBitsShift );
 
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )

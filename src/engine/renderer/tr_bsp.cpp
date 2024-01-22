@@ -46,118 +46,6 @@ static int        c_vboShadowSurfaces;
 
 //===============================================================================
 
-/*
-===============
-R_ColorShiftLightingBytes
-===============
-*/
-static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
-{
-	int shift, r, g, b;
-
-	/* Shift the color data based on overbright range.
-
-	Historically the shift was:
-
-	  shift = tr.mapOverBrightBits - tr.overbrightBits;
-
-	But in Dæmon engine tr.overbrightBits is always zero
-	as this value is zero when there hardware overbright
-	bit is disabled, and the engine doesn't implement
-	hardware overbright bit at all.
-
-	The original code was there to only shift in software
-	what hardware overbright bit feature was not doing, but
-	this implementation is entirely software. */
-	shift = tr.mapOverBrightBits;
-
-	// shift the data based on overbright range
-	r = in[ 0 ] << shift;
-	g = in[ 1 ] << shift;
-	b = in[ 2 ] << shift;
-
-	// normalize by color instead of saturating to white
-	if ( ( r | g | b ) > 255 )
-	{
-		int max;
-
-		max = r > g ? r : g;
-		max = max > b ? max : b;
-		r = r * 255 / max;
-		g = g * 255 / max;
-		b = b * 255 / max;
-	}
-
-	out[ 0 ] = r;
-	out[ 1 ] = g;
-	out[ 2 ] = b;
-	out[ 3 ] = in[ 3 ];
-}
-
-static void R_ColorShiftLightingBytesCompressed( byte in[ 8 ], byte out[ 8 ] )
-{
-	unsigned short rgb565;
-	byte rgba[4];
-
-	// color shift the endpoint colors in the dxt block
-	rgb565 = in[1] << 8 | in[0];
-	rgba[0] = (rgb565 >> 8) & 0xf8;
-	rgba[1] = (rgb565 >> 3) & 0xfc;
-	rgba[2] = (rgb565 << 3) & 0xf8;
-	rgba[3] = 0xff;
-	R_ColorShiftLightingBytes( rgba, rgba );
-	rgb565 = ((rgba[0] >> 3) << 11) |
-		((rgba[1] >> 2) << 5) |
-		((rgba[2] >> 3) << 0);
-	out[0] = rgb565 & 0xff;
-	out[1] = rgb565 >> 8;
-
-	rgb565 = in[3] << 8 | in[2];
-	rgba[0] = (rgb565 >> 8) & 0xf8;
-	rgba[1] = (rgb565 >> 3) & 0xfc;
-	rgba[2] = (rgb565 << 3) & 0xf8;
-	rgba[3] = 0xff;
-	R_ColorShiftLightingBytes( rgba, rgba );
-	rgb565 = ((rgba[0] >> 3) << 11) |
-		((rgba[1] >> 2) << 5) |
-		((rgba[2] >> 3) << 0);
-	out[2] = rgb565 & 0xff;
-	out[3] = rgb565 >> 8;
-}
-
-/*
-===============
-R_ProcessLightmap
-
-        returns maxIntensity
-===============
-*/
-float R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int bits, byte *pic_out )
-{
-	int   j;
-	float maxIntensity = 0;
-
-	if( bits & IF_BC1 ) {
-		for ( j = 0; j < ((width + 3) >> 2) * ((height + 3) >> 2); j++ )
-		{
-			R_ColorShiftLightingBytesCompressed( &pic[ j * 8 ], &pic_out[ j * 8 ] );
-		}
-	} else if( bits & (IF_BC2 | IF_BC3) ) {
-		for ( j = 0; j < ((width + 3) >> 2) * ((height + 3) >> 2); j++ )
-		{
-			R_ColorShiftLightingBytesCompressed( &pic[ j * 16 ], &pic_out[ j * 16 ] );
-		}
-	} else {
-		for ( j = 0; j < width * height; j++ )
-		{
-			R_ColorShiftLightingBytes( &pic[ j * in_padding ], &pic_out[ j * 4 ] );
-			pic_out[ j * 4 + 3 ] = 255;
-		}
-	}
-
-	return maxIntensity;
-}
-
 static int LightmapNameCompare( const char *s1, const char *s2 )
 {
 	int  c1, c2;
@@ -640,7 +528,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 2 ];
 					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
-					R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ], &lightMapBuffer[( index * 4 ) + 0 ] );
+					// Color shift for overbright bits is now done in GLSL.
 				}
 			}
 
@@ -925,7 +813,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
 
-		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray(), cv->verts[ i ].lightColor.ToArray() );
+		// Color shift for overbright bits is now done in GLSL.
 	}
 
 	// copy triangles
@@ -1132,7 +1020,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray(), points[ i ].lightColor.ToArray() );
+		// Color shift for overbright bits is now done in GLSL.
 	}
 
 	// center texture coords
@@ -1256,7 +1144,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 
 			cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray(), cv->verts[ i ].lightColor.ToArray() );
+		// Color shift for overbright bits is now done in GLSL.
 	}
 
 	// copy triangles
@@ -4044,8 +3932,7 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		R_ColorShiftLightingBytes( tmpAmbient, tmpAmbient );
-		R_ColorShiftLightingBytes( tmpDirected, tmpDirected );
+		// Color shift for overbright bits is now done in GLSL.
 
 		for ( j = 0; j < 3; j++ )
 		{
@@ -6922,4 +6809,6 @@ void RE_LoadWorldMap( const char *name )
 			}
 		}
 	}
+
+	tr.mapOverBrightBitsShift = pow(2, tr.mapOverBrightBits);
 }

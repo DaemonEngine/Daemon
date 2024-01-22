@@ -2822,7 +2822,8 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 
 		viewParms_t    viewParms;
 
-		int            mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		int mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		int mapOverBrightBitsShift; // pow(2, mapOverbrightBits)
 
 		orientationr_t orientation; // for current entity
 
@@ -3305,7 +3306,6 @@ inline bool checkGLErrors()
 	void      RE_Shutdown( bool destroyWindow );
 
 	bool   R_GetEntityToken( char *buffer, int size );
-	float      R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int bits, byte *pic_out );  // Arnout
 
 	model_t    *R_AllocModel();
 

@@ -1798,10 +1798,7 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 		return nullptr;
 	}
 
-	if ( imageParams.bits & IF_LIGHTMAP )
-	{
-		R_ProcessLightmap( pic[ 0 ], 4, width, height, imageParams.bits, pic[ 0 ] );
-	}
+	// Color shift for overbright bits is now done in GLSL.
 
 	image = R_CreateImage( ( char * ) buffer, (const byte **)pic, width, height, numMips, imageParams );
 

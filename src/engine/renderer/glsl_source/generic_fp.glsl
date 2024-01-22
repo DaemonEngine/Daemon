@@ -33,7 +33,25 @@ IN(smooth) vec2         var_FadeDepth;
 uniform sampler2D       u_DepthMap;
 #endif
 
+#if !defined(GENERIC_2D) && defined(USE_TCGEN_LIGHTMAP)
+uniform int u_MapOverBrightBitsShift;
+#endif
+
 DECLARE_OUTPUT(vec4)
+
+void mapOverBrightBits(inout vec3 color, in float shift)
+{
+	if (shift > 1)
+	{
+		color *= shift;
+		float maxComponent = 1.0;
+		maxComponent = max(maxComponent, color.r);
+		maxComponent = max(maxComponent, color.g);
+		maxComponent = max(maxComponent, color.b);
+		maxComponent = 1.0 / maxComponent;
+		color *= maxComponent;
+	}
+}
 
 void	main()
 {
@@ -53,7 +71,12 @@ void	main()
 	color.a *= smoothstep(gl_FragCoord.z, fadeDepth, depth);
 #endif
 
+#if !defined(GENERIC_2D) && defined(USE_TCGEN_LIGHTMAP)
+	mapOverBrightBits(color.rgb, u_MapOverBrightBitsShift);
+#endif
+
 	color *= var_Color;
+
 	outputColor = color;
 
 #if defined(GENERIC_2D)

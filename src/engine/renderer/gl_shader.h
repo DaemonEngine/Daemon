@@ -1304,6 +1304,21 @@ public:
 	}
 };
 
+class u_MapOverBrightBitsShift :
+	GLUniform1i
+{
+public:
+	u_MapOverBrightBitsShift( GLShader *shader ) :
+		GLUniform1i( shader, "u_MapOverBrightBitsShift" )
+	{
+	}
+
+	void SetUniform_MapOverBrightBitsShift( int mapOverBrightBitsShift )
+	{
+		this->SetValue( mapOverBrightBitsShift );
+	}
+};
+
 class u_TextureMatrix :
 	GLUniformMatrix4f
 {
@@ -2238,6 +2253,7 @@ public:
 
 class GLShader_generic :
 	public GLShader,
+	public u_MapOverBrightBitsShift,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
@@ -2267,6 +2283,7 @@ public:
 
 class GLShader_lightMapping :
 	public GLShader,
+	public u_MapOverBrightBitsShift,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
