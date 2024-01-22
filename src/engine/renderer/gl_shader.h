@@ -1304,6 +1304,36 @@ public:
 	}
 };
 
+class u_LightFactor :
+	GLUniform1f
+{
+public:
+	u_LightFactor( GLShader *shader ) :
+		GLUniform1f( shader, "u_LightFactor" )
+	{
+	}
+
+	void SetUniform_LightFactor( const float lightFactor )
+	{
+		this->SetValue( lightFactor );
+	}
+};
+
+class u_InverseLightFactor :
+	GLUniform1f
+{
+public:
+	u_InverseLightFactor( GLShader *shader ) :
+		GLUniform1f( shader, "u_InverseLightFactor" )
+	{
+	}
+
+	void SetUniform_InverseLightFactor( const float inverseLightFactor )
+	{
+		this->SetValue( inverseLightFactor );
+	}
+};
+
 class u_TextureMatrix :
 	GLUniformMatrix4f
 {
@@ -2270,6 +2300,7 @@ class GLShader_generic :
 	public u_ModelMatrix,
  	public u_ProjectionMatrixTranspose,
 	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor,
 	public u_ColorModulate,
 	public u_Color,
 	public u_Bones,
@@ -2300,6 +2331,7 @@ class GLShader_lightMapping :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_ReliefDepthScale,
@@ -2502,6 +2534,7 @@ class GLShader_skybox :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor,
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_ALPHA_TESTING
@@ -2515,6 +2548,7 @@ class GLShader_fogQuake3 :
 	public GLShader,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor,
 	public u_Color,
 	public u_Bones,
 	public u_VertexInterpolation,
@@ -2537,6 +2571,7 @@ class GLShader_fogGlobal :
 	public u_ViewMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
+	public u_InverseLightFactor,
 	public u_Color,
 	public u_FogDistanceVector,
 	public u_FogDepthVector
@@ -2595,7 +2630,8 @@ public:
 
 class GLShader_contrast :
 	public GLShader,
-	public u_ModelViewProjectionMatrix
+	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor
 {
 public:
 	GLShader_contrast( GLShaderManager *manager );
@@ -2607,6 +2643,7 @@ class GLShader_cameraEffects :
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
+	public u_LightFactor,
 	public u_DeformMagnitude,
 	public u_InverseGamma
 {

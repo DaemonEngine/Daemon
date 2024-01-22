@@ -2971,6 +2971,9 @@ void RB_RenderGlobalFog()
 
 	gl_fogGlobalShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // world space
 
+	// u_InverseLightFactor
+	gl_fogGlobalShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
 	{
 		fog_t *fog;
 
@@ -3066,6 +3069,9 @@ void RB_RenderBloom()
 		gl_contrastShader->BindProgram( 0 );
 
 		gl_contrastShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+		// u_InverseLightFactor
+		gl_contrastShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		GL_BindToTMU( 0, tr.currentRenderImage[ backEnd.currentMainFBO ] );
 
@@ -3291,6 +3297,9 @@ void RB_CameraPostFX()
 
 	// enable shader, set arrays
 	gl_cameraEffectsShader->BindProgram( 0 );
+
+	// u_LightFactor
+	gl_cameraEffectsShader->SetUniform_LightFactor( tr.mapLightFactor );
 
 	gl_cameraEffectsShader->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
 	gl_cameraEffectsShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );

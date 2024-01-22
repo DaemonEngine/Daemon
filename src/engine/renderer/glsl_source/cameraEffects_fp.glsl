@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 uniform sampler2D u_CurrentMap;
 uniform sampler3D u_ColorMap;
+
+uniform float u_LightFactor;
 uniform vec4      u_ColorModulate;
 uniform float     u_InverseGamma;
 
@@ -36,9 +38,11 @@ void	main()
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	vec2 st = gl_FragCoord.st / r_FBufSize;
 
-	vec4 original = clamp(texture2D(u_CurrentMap, st), 0.0, 1.0);
+	vec4 color = texture2D(u_CurrentMap, st);
 
-	vec4 color = original;
+	color.rgb *= u_LightFactor;
+
+	color = clamp(color, 0.0, 1.0);
 
 	// apply color grading
 	vec3 colCoord = color.rgb * 15.0 / 16.0 + 0.5 / 16.0;

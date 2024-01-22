@@ -1739,9 +1739,9 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 		return nullptr;
 	}
 
-	if ( imageParams.bits & IF_LIGHTMAP )
+	if ( imageParams.bits & IF_LIGHTMAP && tr.forceLegacyMapOverBrightClamping )
 	{
-		R_ProcessLightmap( pic[ 0 ], 4, width, height, imageParams.bits, pic[ 0 ] );
+		R_ProcessLightmap( pic[ 0 ], width, height, imageParams.bits );
 	}
 
 	image = R_CreateImage( ( char * ) buffer, (const byte **)pic, width, height, numMips, imageParams );
@@ -2960,7 +2960,8 @@ void R_InitImages()
 	Because tr.overbrightBits is always 0, tr.identityLight is
 	always 1.0f. We can entirely remove it. */
 
-	tr.mapOverBrightBits =  r_mapOverBrightBits.Get();
+	tr.mapOverBrightBits = r_mapOverBrightBits.Get();
+	tr.forceLegacyMapOverBrightClamping = r_forceLegacyMapOverBrightClamping.Get();
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();
