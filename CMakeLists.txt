@@ -132,7 +132,7 @@ if(NOT DAEMON_EXTERNAL_APP)
         set(BUILD_GAME_NACL OFF)
         set(NACL_TARGETS "")
     endif()
-	
+
     set(NACL_TARGETS "${NACL_TARGETS}" PARENT_SCOPE)
 
     option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
