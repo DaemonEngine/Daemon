@@ -118,21 +118,13 @@ void main()
 		// Compute light color from world space lightmap.
 		vec3 lightColor = texture2D(u_LightMap, var_TexLight).rgb;
 
-		#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
-			color.rgb = vec3(0.0);
-		#else
-			color.rgb = lightColor.rgb * diffuse.rgb;
-		#endif
+		color.rgb = vec3(0.0);
 	#else
 		// Compute light color from lightgrid.
 		vec3 ambientColor, lightColor;
 		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
 
 		color.rgb = ambientColor * r_AmbientScale * diffuse.rgb;
-
-		#if !defined(USE_DELUXE_MAPPING) && !defined(USE_GRID_DELUXE_MAPPING)
-			color.rgb += lightColor.rgb * diffuse.rgb;
-		#endif
 	#endif
 
 	#if defined(USE_LIGHT_MAPPING) && defined(USE_DELUXE_MAPPING)
@@ -161,14 +153,16 @@ void main()
 		lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.3, 1.0);
 	#endif
 
+	// Blend static light.
 	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
-		// Blend static light.
-		computeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+		computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+	#else
+		computeLight(lightColor, diffuse, color);
 	#endif
 
+	// Blend dynamic lights.
 	#if defined(r_dynamicLight)
-		// Blend dynamic lights.
-		computeDLights(var_Position, normal, viewDir, diffuse, material, color);
+		computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color);
 	#endif
 
 	// Add Rim Lighting to highlight the edges on model entities.
