@@ -71,7 +71,11 @@ void ReadLightGrid(in vec4 texel, out vec3 ambientColor, out vec3 lightColor) {
 	lightColor = directedScale * texel.rgb;
 }
 
-void computeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
+void computeLight(in vec3 lightColor, vec4 diffuseColor, inout vec4 color) {
+	color.rgb += lightColor.rgb * diffuseColor.rgb;
+}
+
+void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 		   vec4 diffuseColor, vec4 materialColor,
 		   inout vec4 color ) {
   vec3 H = normalize( lightDir + viewDir );
@@ -172,7 +176,7 @@ int nextIdx( inout idxs_t idxs ) {
 const int numLayers = MAX_REF_LIGHTS / 256;
 
 #if defined(r_dynamicLight)
-void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
+void computeDynamicLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 		    vec4 material, inout vec4 color ) {
   vec4 center_radius = GetLight( idx, center_radius );
   vec4 color_type = GetLight( idx, color_type );
@@ -199,12 +203,12 @@ void computeDLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
     L = GetLight( idx, direction_angle ).xyz;
     attenuation = 1.0;
   }
-  computeLight( L, normal, viewDir,
+  computeDeluxeLight( L, normal, viewDir,
 		attenuation * attenuation * color_type.xyz,
 		diffuse, material, color );
 }
 
-void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
+void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
 		     inout vec4 color ) {
   vec2 tile = floor( gl_FragCoord.xy * (1.0 / float( TILE_SIZE ) ) ) + 0.5;
   vec3 tileScale = vec3( r_tileStep, 1.0/numLayers );
@@ -223,7 +227,7 @@ void computeDLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 mater
         break;
       }
 
-      computeDLight( idx, P, normal, viewDir, diffuse, material, color );
+      computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color );
 
 #if defined(r_showLightTiles)
       numLights++;

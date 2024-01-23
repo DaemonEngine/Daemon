@@ -129,7 +129,7 @@ void	main()
 	vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
 
 	// compute the specular term
-	computeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
+	computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
 
 	outputColor = color;
 
