@@ -451,7 +451,7 @@ void IN_Frame();
 void IN_FrameEnd();
 void IN_Restart();
 void IN_Shutdown();
-bool IN_IsNumLockDown();
+bool IN_IsNumLockOn();
 void IN_DropInputsForFrame();
 void IN_CenterMouse();
 bool IN_IsKeyboardLayoutInfoAvailable();
@@ -640,7 +640,8 @@ void     CL_Shutdown();
 void     CL_Frame( int msec );
 void     CL_ConsoleKeyEvent();
 namespace Keyboard { class Key; }
-void     CL_KeyEvent( const Keyboard::Key& key, bool down, unsigned time );
+void     CL_KeyDownEvent( const Keyboard::Key& key, unsigned time );
+void     CL_KeyUpEvent( const Keyboard::Key& key, unsigned time );
 
 void     CL_CharEvent( int c );
 

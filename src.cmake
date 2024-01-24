@@ -61,6 +61,7 @@ set(COMMONLIST
     ${COMMON_DIR}/String.h
     ${COMMON_DIR}/System.cpp
     ${COMMON_DIR}/System.h
+    ${COMMON_DIR}/Util.cpp
     ${COMMON_DIR}/Util.h
     ${COMMON_DIR}/cm/cm_load.cpp
     ${COMMON_DIR}/cm/cm_local.h
@@ -272,6 +273,7 @@ set(ENGINETESTLIST
     ${COMMON_DIR}/ColorTest.cpp
     ${COMMON_DIR}/StringTest.cpp
     ${COMMON_DIR}/cm/unittest.cpp
+    ${COMMON_DIR}/UtilTest.cpp
     ${ENGINE_DIR}/framework/CommandSystemTest.cpp
 )
 

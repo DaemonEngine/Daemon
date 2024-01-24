@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <common/FileSystem.h>
 
+#include "Application.h"
 #include "CommandSystem.h"
 #include "CvarSystem.h"
 
@@ -1006,5 +1007,15 @@ namespace Cmd {
             }
     };
     static ListAliasesCmd ListAliasesCmdRegistration;
+
+    class ShowFPSCommand : public Cmd::StaticCmd {
+    public:
+        ShowFPSCommand() : StaticCmd("showfps", "print engine frame rate") {}
+
+        void Run(const Cmd::Args&) const override {
+            Print("FPS: %.1f", Application::GetFPS());
+        }
+    };
+    static ShowFPSCommand showFPSRegistration;
 
 }

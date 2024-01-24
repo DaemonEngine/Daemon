@@ -1368,7 +1368,7 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 				{
 					if (key == Keyboard::Key(keyNum_t::K_KP_NUMLOCK))
 					{
-						list.push_back(IN_IsNumLockDown());
+						list.push_back(IN_IsNumLockOn());
 					}
 					else
 					{
