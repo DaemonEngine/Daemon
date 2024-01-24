@@ -38,22 +38,6 @@ Maryland 20850 USA.
 
 int                     c_totalPatchBlocks;
 
-const cSurfaceCollide_t *debugSurfaceCollide;
-const cFacet_t          *debugFacet;
-bool                debugBlock;
-vec3_t                  debugBlockPoints[ 4 ];
-
-/*
-=================
-CM_ClearLevelPatches
-=================
-*/
-void CM_ClearLevelPatches()
-{
-	debugSurfaceCollide = nullptr;
-	debugFacet = nullptr;
-}
-
 /*
 ================================================================================
 
@@ -70,7 +54,7 @@ Returns true if the given quadratic curve is not flat enough for our
 collision detection purposes
 =================
 */
-static bool CM_NeedsSubdivision( vec3_t a, vec3_t b, vec3_t c )
+static bool CM_NeedsSubdivision( const vec3_t a, const vec3_t b, const vec3_t c )
 {
 	vec3_t cmid;
 	vec3_t lmid;
@@ -105,7 +89,7 @@ a, b, and c are control points.
 the subdivided sequence will be: a, out1, out2, out3, c
 ===============
 */
-static void CM_Subdivide( vec3_t a, vec3_t b, vec3_t c, vec3_t out1, vec3_t out2, vec3_t out3 )
+static void CM_Subdivide( const vec3_t a, const vec3_t b, const vec3_t c, vec3_t out1, vec3_t out2, vec3_t out3 )
 {
 	int i;
 
@@ -191,6 +175,8 @@ If the left and right columns are exactly equal, set grid->wrapWidth true
 */
 void CM_SetGridWrapWidth( cGrid_t *grid )
 {
+	constexpr float WRAP_POINT_EPSILON = 0.1f;
+
 	int   i, j;
 	float d;
 
@@ -554,15 +540,6 @@ static void CM_SetBorderInward( cFacet_t *facet, cGrid_t *grid,
 			// bisecting side border
 			cmLog.Warn( "CM_SetBorderInward: mixed plane sides" );
 			facet->borderInward[ k ] = false;
-
-			if ( !debugBlock )
-			{
-				debugBlock = true;
-				VectorCopy( grid->points[ i ][ j ], debugBlockPoints[ 0 ] );
-				VectorCopy( grid->points[ i + 1 ][ j ], debugBlockPoints[ 1 ] );
-				VectorCopy( grid->points[ i + 1 ][ j + 1 ], debugBlockPoints[ 2 ] );
-				VectorCopy( grid->points[ i ][ j + 1 ], debugBlockPoints[ 3 ] );
-			}
 		}
 	}
 }

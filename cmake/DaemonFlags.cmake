@@ -210,23 +210,28 @@ else()
         set(GCC_GENERIC_ARCH "armv8-a")
         set(GCC_GENERIC_TUNE "generic")
     elseif (ARCH STREQUAL "armhf")
-        # Armv7-A with VFP minimum: Cortex-A5.
+        # Armv7-A minimum with VFPv3 and optional NEONv1: Cortex-A5.
         # Hard float ABI (mainstream 32-bit ARM Linux distributions).
-        set(GCC_GENERIC_ARCH "armv7-a")
+        # An FPU should be explicitly set on recent compilers or this error would be raised:
+        #   cc1: error: ‘-mfloat-abi=hard’: selected architecture lacks an FPU
+        set(GCC_GENERIC_ARCH "armv7-a+fp")
         set(GCC_GENERIC_TUNE "generic-armv7-a")
     elseif (ARCH STREQUAL "armel")
-        # Armv6 minimum, optional VFP: ARM11.
-        # Soft float ABI (mainstream 32-bit ARM Android distributions).
+        # Armv6 minimum with optional VFP: ARM11.
+        # Soft float ABI (previous mainstream 32-bit ARM Linux distributions, mainstream 32-bit ARM Android distributions).
         set(GCC_GENERIC_ARCH "armv6")
-        set(GCC_GENERIC_TUNE "generic")
+        # There is no generic tuning option for armv6.
+        unset(GCC_GENERIC_TUNE)
     else()
-        message(FATAL_ERROR "Unsupported architecture ${ARCH}")
+        message(WARNING "Unknown architecture ${ARCH}")
     endif()
 
     option(USE_CPU_GENERIC_ARCHITECTURE "Enforce generic -march and -mtune compiler options" ON)
     if (USE_CPU_GENERIC_ARCHITECTURE)
-        set_c_cxx_flag("-march=${GCC_GENERIC_ARCH}")
-        set_c_cxx_flag("-mtune=${GCC_GENERIC_TUNE}")
+        try_c_cxx_flag_werror(MARCH "-march=${GCC_GENERIC_ARCH}")
+        if (GCC_GENERIC_TUNE)
+            try_c_cxx_flag_werror(MTUNE "-mtune=${GCC_GENERIC_TUNE}")
+        endif()
     endif()
 
     option(USE_CPU_RECOMMENDED_FEATURES "Enforce usage of hardware features like SSE, NEON, VFP, MCX16, etc." ON)
@@ -236,14 +241,15 @@ else()
             try_c_cxx_flag_werror(MCX16 "-mcx16")
         elseif (ARCH STREQUAL "i686")
             # SSE2 minimum: Intel Pentium 4 (Prescott), Intel Pentium M (Banias), AMD K8, Via C7.
-            set_c_cxx_flag("-msse2")
+            try_c_cxx_flag_werror(MSSE2 "-msse2")
             try_c_cxx_flag_werror(MFPMATH_SSE "-mfpmath=sse")
         elseif (ARCH STREQUAL "armhf")
-            # NEON minimum.
-            set_c_cxx_flag("-mfpu=neon")
+            # NEONv1 minimum.
+            try_c_cxx_flag_werror(MFPU_NEON "-mfpu=neon")
         elseif (ARCH STREQUAL "armel")
-            # VFP minimum, hardware float with soft float ABI
-            set_c_cxx_flag("-mfloat-abi=softfp")
+            # VFP minimum, hard float with soft float ABI.
+            try_c_cxx_flag_werror(MFPU_VFP "-mfpu=vfp")
+            try_c_cxx_flag_werror(MFLOAT_ABI_SOFTFP "-mfloat-abi=softfp")
         endif()
     endif()
 

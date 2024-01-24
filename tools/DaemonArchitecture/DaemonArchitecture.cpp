@@ -65,8 +65,8 @@ care of platform name variants that are meant to distinguish
 platform variants we cannot support anyway. */
 
 /* PNaCl virtual machines. */
-#if defined(__native_client__) || defined(__pnacl__)
-	#pragma message("DAEMON_ARCH_pnacl")
+#if defined(__native_client__)
+	#pragma message("DAEMON_ARCH_nacl")
 
 /* Wasm virtual machines, work in progress. */
 #elif defined(Q_PROCESSOR_WASM)
@@ -84,36 +84,36 @@ platform variants we cannot support anyway. */
 	#pragma message("DAEMON_ARCH_i686")
 
 /* Devices like:
- - Raspberry Pi 3,
- - Raspberry Pi 4,
- - Apple M1-based mac… */
+ - Raspberry Pi,
+ - Apple M1-based mac,
+ - Android phones and tablets… */
 
 #elif defined(Q_PROCESSOR_ARM_64)
 	#pragma message("DAEMON_ARCH_arm64")
 
-#elif defined(Q_PROCESSOR_ARM_32) && Q_PROCESSOR_ARM >= 7 && defined(__ARM_PCS_VFP)
+#elif defined(Q_PROCESSOR_ARM_32) && defined(__ARM_PCS_VFP)
 	#pragma message("DAEMON_ARCH_armhf")
 
-#elif defined(Q_PROCESSOR_ARM_32) && Q_PROCESSOR_ARM >= 6 && !defined(__ARM_PCS_VFP)
+#elif defined(Q_PROCESSOR_ARM_32) && !defined(__ARM_PCS_VFP)
 	#pragma message("DAEMON_ARCH_armel")
 
 /* Devices like:
  - Raptor Computing Systems Talos, Blackbird… */
 
-//#elif Q_PROCESSOR_POWER_64
-//	#if Q_BYTE_ORDER == Q_BIG_ENDIAN
-//		#pragma message("DAEMON_ARCH_ppc64")
-//	#elif Q_BYTE_ORDER == Q_LITTLE_ENDIAN
-//		#pragma message("DAEMON_ARCH_ppc64el")
+#elif defined(Q_PROCESSOR_POWER_64) && Q_BYTE_ORDER == Q_BIG_ENDIAN
+	#pragma message("DAEMON_ARCH_ppc64")
+
+#elif defined(Q_PROCESSOR_POWER_64) && Q_BYTE_ORDER == Q_LITTLE_ENDIAN
+	#pragma message("DAEMON_ARCH_ppc64el")
 
 /* Devices like:
  - SiFive HiFive Unmatched, Horse Creek… */
 
-//#elif Q_PROCESSOR_RISCV_64
-//	#pragma message("DAEMON_ARCH_riscv64")
+#elif defined(Q_PROCESSOR_RISCV_64)
+	#pragma message("DAEMON_ARCH_riscv64")
 
 #else
-	#error DAEMON_ARCH_unsupported
+	#pragma message("DAEMON_ARCH_unknown")
 #endif
 
 // Make the compilation succeeds if architecture is supported.

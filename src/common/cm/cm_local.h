@@ -43,18 +43,10 @@ Maryland 20850 USA.
 #define CAPSULE_MODEL_HANDLE ( MAX_SUBMODELS )
 #define BOX_MODEL_HANDLE     ( MAX_SUBMODELS + 1)
 
-struct cbrushedge_t
-{
-	vec3_t p0;
-	vec3_t p1;
-};
-
 struct cNode_t
 {
 	cplane_t  *plane;
-	int       planeNum;
 	int       children[ 2 ]; // negative numbers are leafs
-	winding_t *winding;
 };
 
 struct cLeaf_t
@@ -78,9 +70,7 @@ struct cmodel_t
 struct cbrushside_t
 {
 	cplane_t  *plane;
-	int       planeNum;
 	int       surfaceFlags;
-	winding_t *winding;
 };
 
 struct cbrush_t
@@ -90,8 +80,6 @@ struct cbrush_t
 	int          numsides;
 	cbrushside_t *sides;
 	int          checkcount; // to avoid repeated testings
-	cbrushedge_t *edges;
-	int          numEdges;
 };
 
 struct cPlane_t
@@ -222,7 +210,7 @@ struct clipMap_t
 // TODO: find out why this happens and see if it might affect patches at well. Since
 // a movement trace that starts inside a patch always ignores the patch completely,
 // this might allow going through patches when it shouldn't be possible.
-#define SURFACE_CLIP_EPSILON ( 0.125 )
+#define SURFACE_CLIP_EPSILON ( 0.125f )
 
 extern clipMap_t cm;
 extern int       c_pointcontents;
@@ -270,11 +258,8 @@ struct leafList_t
 };
 
 #define SUBDIVIDE_DISTANCE 16 //4 // never more than this units away from curve
-#define PLANE_TRI_EPSILON  0.1
-#define WRAP_POINT_EPSILON 0.1
 
 cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
-void              CM_ClearLevelPatches();
 
 // cm_trisoup.c
 
@@ -312,11 +297,6 @@ bool CM_GenerateFacetFor4Points( cFacet_t *facet, const vec3_t p1, const vec3_t 
 
 
 // cm_test.c
-extern const cSurfaceCollide_t *debugSurfaceCollide;
-extern const cFacet_t          *debugFacet;
-extern bool                debugBlock;
-extern vec3_t                  debugBlockPoints[ 4 ];
-
 void                           CM_StoreLeafs( leafList_t *ll, int nodenum );
 
 void                           CM_BoxLeafnums_r( leafList_t *ll, int nodenum );
