@@ -1188,20 +1188,6 @@ void R_MirrorPoint( vec3_t in, orientation_t *surface, orientation_t *camera, ve
 	VectorAdd( transformed, camera->origin, out );
 }
 
-void R_MirrorVector( vec3_t in, orientation_t *surface, orientation_t *camera, vec3_t out )
-{
-	int   i;
-	float d;
-
-	VectorClear( out );
-
-	for ( i = 0; i < 3; i++ )
-	{
-		d = DotProduct( in, surface->axis[ i ] );
-		VectorMA( out, d, camera->axis[ i ], out );
-	}
-}
-
 /*
 =============
 R_PlaneForSurface
@@ -1262,7 +1248,7 @@ Returns true if it should be mirrored
 =================
 */
 static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surface, orientation_t *camera, vec3_t pvsOrigin,
-    bool *mirror )
+    bool *mirror, vec3_t *outOrigin, vec3_t *outAxis )
 {
 	int           i;
 	cplane_t      originalPlane, plane;
@@ -1310,7 +1296,7 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 	}
 	VectorScale( portalCenter, 1.0 / numVerts, portalCenter );
 	float minDistance = FLT_MAX;
-	trRefEntity_t* currentPortal = nullptr;
+	trRefEntity_t *currentPortal = nullptr;
 	for ( i = 0; i < tr.refdef.numEntities; i++ ) {
 		e = &tr.refdef.entities[i];
 
@@ -1324,11 +1310,10 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 			currentPortal = e;
 		}
 	}
-	if( currentPortal) {
+	if( currentPortal ) {
 		// project the origin onto the surface plane to get
 		// an origin point we can rotate around
 		e = currentPortal;
-		VectorCopy( e->e.oldorigin, pvsOrigin );
 		d = DotProduct( e->e.origin, plane.normal ) - plane.dist;
 		VectorMA( e->e.origin, -d, surface->axis[ 0 ], surface->origin );
 
@@ -1340,45 +1325,101 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 			VectorCopy( surface->axis[ 1 ], camera->axis[ 1 ] );
 			VectorCopy( surface->axis[ 2 ], camera->axis[ 2 ] );
 
+			R_MirrorPoint( tr.viewParms.orientation.origin, surface, camera, *outOrigin );
+			VectorAdd( e->e.oldorigin, plane.normal, pvsOrigin );
+
+			VectorMA( tr.viewParms.orientation.axis[0], -2 * DotProduct( tr.viewParms.orientation.axis[0], plane.normal ), plane.normal, outAxis[0] );
+			VectorMA( tr.viewParms.orientation.axis[1], -2 * DotProduct( tr.viewParms.orientation.axis[1], plane.normal ), plane.normal, outAxis[1] );
+			CrossProduct( outAxis[0], outAxis[1], outAxis[2] );
+
 			*mirror = true;
 			return true;
 		}
 
-		// now get the camera origin and orientation
-		VectorCopy( e->e.oldorigin, camera->origin );
-		AxisCopy( e->e.axis, camera->axis );
-		VectorSubtract( vec3_origin, camera->axis[ 0 ], camera->axis[ 0 ] );
-		VectorSubtract( vec3_origin, camera->axis[ 1 ], camera->axis[ 1 ] );
-
 		// optionally rotate
-		if ( e->e.oldframe )
-		{
+		if ( e->e.oldframe ) {
 			// if a speed is specified
-			if ( e->e.frame )
-			{
+			if ( e->e.frame ) {
 				// continuous rotate
 				d = ( tr.refdef.time / 1000.0f ) * e->e.frame;
-				VectorCopy( camera->axis[ 1 ], transformed );
-				RotatePointAroundVector( camera->axis[ 1 ], camera->axis[ 0 ], transformed, d );
-				CrossProduct( camera->axis[ 0 ], camera->axis[ 1 ], camera->axis[ 2 ] );
-			}
-			else
-			{
-				// bobbing rotate, with skinNum being the rotation offset
+				VectorCopy( e->e.axis[ 1 ], transformed);
+				RotatePointAroundVector( e->e.axis[ 1 ], e->e.axis[ 0 ], transformed, d );
+				CrossProduct( e->e.axis[ 0 ], e->e.axis[ 1 ], e->e.axis[ 2 ] );
+			} else {
+				// bobbing rotate
 				d = sinf( tr.refdef.time * 0.003f );
-				d = e->e.skinNum + d * 4;
-				VectorCopy( camera->axis[ 1 ], transformed );
-				RotatePointAroundVector( camera->axis[ 1 ], camera->axis[ 0 ], transformed, d );
-				CrossProduct( camera->axis[ 0 ], camera->axis[ 1 ], camera->axis[ 2 ] );
+				d *= 4;
+				VectorCopy( e->e.axis[ 1 ], transformed );
+				RotatePointAroundVector( e->e.axis[ 1 ], e->e.axis[ 0 ], transformed, d );
+				CrossProduct( e->e.axis[ 0 ], e->e.axis[ 1 ], e->e.axis[ 2 ] );
 			}
 		}
-		else if ( e->e.skinNum )
-		{
-			d = e->e.skinNum;
-			VectorCopy( camera->axis[ 1 ], transformed );
-			RotatePointAroundVector( camera->axis[ 1 ], camera->axis[ 0 ], transformed, d );
-			CrossProduct( camera->axis[ 0 ], camera->axis[ 1 ], camera->axis[ 2 ] );
-		}
+
+		vec3_t axisAngles;
+		AxisToAngles( e->e.axis, axisAngles );
+		quat_t worldToCameraQuat;
+		QuatFromAngles( worldToCameraQuat, axisAngles[0], axisAngles[1], axisAngles[2] );
+
+		axis_t drawSurfAxis;
+		VectorCopy( plane.normal, drawSurfAxis[0] );
+		VectorInverse( drawSurfAxis[0] );
+		CrossProduct( drawSurfAxis[0], axisDefault[2], drawSurfAxis[1] );
+		VectorInverse( drawSurfAxis[1] );
+		CrossProduct( drawSurfAxis[0], drawSurfAxis[1], drawSurfAxis[2] );
+
+		AxisToAngles( drawSurfAxis, axisAngles );
+		quat_t surfToWorldQuatPitch;
+		quat_t surfToWorldQuatYaw;
+		quat_t surfToWorldQuatRoll;
+		QuatFromAngles( surfToWorldQuatPitch, -axisAngles[0], 0.0, 0.0 );
+		QuatFromAngles( surfToWorldQuatYaw, 0.0, -axisAngles[1], 0.0 );
+		QuatFromAngles( surfToWorldQuatRoll, 0.0, 0.0, -axisAngles[2] );
+
+		vec3_t currentAxis;
+
+		VectorCopy( tr.viewParms.orientation.axis[0], currentAxis );
+		// QuatTransformVector rotates on a local plane so transform in the worlds XY plane first
+		float currentAxisZ = currentAxis[2];
+		currentAxis[2] = 0.0;
+		QuatTransformVector( surfToWorldQuatYaw, tr.viewParms.orientation.axis[0], currentAxis );
+		currentAxis[2] = currentAxisZ;
+		// Have to keep rotation separate for each axis in a local to world transform to get the correct result
+		QuatTransformVector( surfToWorldQuatPitch, currentAxis, currentAxis );
+		QuatTransformVector( surfToWorldQuatRoll, currentAxis, currentAxis );
+		QuatTransformVector( worldToCameraQuat, currentAxis, currentAxis );
+		VectorCopy( currentAxis, outAxis[0] );
+
+		VectorCopy( tr.viewParms.orientation.axis[1], currentAxis );
+		currentAxisZ = currentAxis[2];
+		currentAxis[2] = 0.0;
+		QuatTransformVector( surfToWorldQuatYaw, tr.viewParms.orientation.axis[1], currentAxis );
+		currentAxis[2] = currentAxisZ;
+		QuatTransformVector( surfToWorldQuatPitch, currentAxis, currentAxis );
+		QuatTransformVector( surfToWorldQuatRoll, currentAxis, currentAxis );
+		QuatTransformVector( worldToCameraQuat, currentAxis, currentAxis );
+		VectorCopy( currentAxis, outAxis[1] );
+
+		CrossProduct( outAxis[0], outAxis[1], outAxis[2] );
+
+		vec3_t newOrigin;
+		VectorSubtract( portalCenter, tr.viewParms.orientation.origin, newOrigin );
+		currentAxisZ = newOrigin[2];
+		newOrigin[2] = 0.0;
+		QuatTransformVector( surfToWorldQuatYaw, newOrigin, newOrigin );
+		newOrigin[2] = currentAxisZ;
+		QuatTransformVector( surfToWorldQuatPitch, newOrigin, newOrigin );
+		QuatTransformVector( surfToWorldQuatRoll, newOrigin, newOrigin );
+		QuatTransformVector( worldToCameraQuat, newOrigin, newOrigin );
+		VectorSubtract( e->e.oldorigin, newOrigin, newOrigin );
+
+		VectorCopy( newOrigin, *outOrigin );
+
+		// now get the camera origin and orientation
+		VectorCopy( e->e.oldorigin, camera->origin );
+		VectorCopy( e->e.oldorigin, pvsOrigin );
+		AxisCopy( e->e.axis, camera->axis );
+		VectorInverse( camera->axis[0] );
+		VectorInverse( camera->axis[1] );
 
 		*mirror = false;
 		return true;
@@ -1867,12 +1908,16 @@ static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 
 	viewParms_t newParms = tr.viewParms;
 
-	if ( !R_GetPortalOrientations( drawSurf, &surface, &camera, newParms.pvsOrigin, &newParms.isMirror) )
+	if ( !R_GetPortalOrientations( drawSurf, &surface, &camera, newParms.pvsOrigin, &newParms.isMirror, &newParms.orientation.origin,
+		newParms.orientation.axis ) )
 	{
 		return false; // bad portal, no portalentity
 	}
 	if ( newParms.isMirror ) {
 		newParms.mirrorLevel++;
+	}
+	if ( newParms.mirrorLevel % 2 == 1 ) { // Mirrors flip the up vector
+		VectorInverse( newParms.orientation.axis[2] );
 	}
 
 	// draw stencil mask
@@ -1889,11 +1934,6 @@ static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	newParms.scissorY = surfRect.coords[1];
 	newParms.scissorWidth = surfRect.coords[2] - surfRect.coords[0] + 1;
 	newParms.scissorHeight = surfRect.coords[3] - surfRect.coords[1] + 1;
-
-	R_MirrorPoint(oldParms.orientation.origin, &surface, &camera, newParms.orientation.origin);
-	R_MirrorVector(oldParms.orientation.axis[0], &surface, &camera, newParms.orientation.axis[0]);
-	R_MirrorVector(oldParms.orientation.axis[1], &surface, &camera, newParms.orientation.axis[1]);
-	R_MirrorVector(oldParms.orientation.axis[2], &surface, &camera, newParms.orientation.axis[2]);
 
 	// restrict view frustum to screen rect of surface
 	R_SetupPortalFrustum(oldParms, camera, newParms);
