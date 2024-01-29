@@ -1179,9 +1179,9 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	  ST_LIGHTMAP,
 	  ST_STYLELIGHTMAP,
 	  ST_STYLECOLORMAP,
-	  ST_COLLAPSE_lighting_PBR,   // map|diffusemap + opt:normalmap + opt:glowmap + opt:physicalmap
-	  ST_COLLAPSE_lighting_PHONG, // map|diffusemap + opt:normalmap + opt:glowmap + specularmap
-	  ST_COLLAPSE_reflection_CB,  // color cubemap + normalmap
+	  ST_COLLAPSE_COLORMAP,
+	  ST_COLLAPSE_DIFFUSEMAP,
+	  ST_COLLAPSE_REFLECTIONMAP,  // color cubemap + normalmap
 
 	  // light shader stage types
 	  ST_ATTENUATIONMAP_XY,
@@ -1192,9 +1192,9 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	{
 	  COLLAPSE_none,
 	  COLLAPSE_generic, // used before we know it's another one
-	  COLLAPSE_lighting_PHONG,
-	  COLLAPSE_lighting_PBR,
-	  COLLAPSE_reflection_CB,
+	  COLLAPSE_PHONG,
+	  COLLAPSE_PBR,
+	  COLLAPSE_REFLECTIONMAP,
 	};
 
 	struct shaderStage_t
@@ -1226,8 +1226,6 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 
 		bool        tcGen_Environment;
 		bool        tcGen_Lightmap;
-
-		bool implicitLightmap;
 
 		Color::Color32Bit constantColor; // for CGEN_CONST and AGEN_CONST
 
