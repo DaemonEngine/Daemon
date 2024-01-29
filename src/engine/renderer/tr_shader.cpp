@@ -1404,7 +1404,7 @@ static bool ParseMap( const char **text, char *buffer, int bufferSize )
 	return true;
 }
 
-static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleIndex = TB_COLORMAP )
+static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type, const int bundleIndex = TB_COLORMAP )
 {
 	char         *token;
 	const char         *buffer_p = &buffer[ 0 ];
@@ -1418,12 +1418,12 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 	token = COM_ParseExt2( &buffer_p, false );
 
 	// NOTE: Normal map can ship height map in alpha channel.
-	if ( ( stage->type == stageType_t::ST_NORMALMAP && !r_normalMapping->integer && !r_reliefMapping->integer )
-		|| ( stage->type == stageType_t::ST_HEIGHTMAP && !r_reliefMapping->integer )
-		|| ( stage->type == stageType_t::ST_SPECULARMAP && !r_specularMapping->integer )
-		|| ( stage->type == stageType_t::ST_PHYSICALMAP && !r_physicalMapping->integer )
-		|| ( stage->type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
-		|| ( stage->type == stageType_t::ST_REFLECTIONMAP && !r_reflectionMapping->integer ) )
+	if ( ( type == stageType_t::ST_NORMALMAP && !r_normalMapping->integer && !r_reliefMapping->integer )
+		|| ( type == stageType_t::ST_HEIGHTMAP && !r_reliefMapping->integer )
+		|| ( type == stageType_t::ST_SPECULARMAP && !r_specularMapping->integer )
+		|| ( type == stageType_t::ST_PHYSICALMAP && !r_physicalMapping->integer )
+		|| ( type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
+		|| ( type == stageType_t::ST_REFLECTIONMAP && !r_reflectionMapping->integer ) )
 	{
 		return true;
 	}
@@ -1480,7 +1480,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, const int bundleI
 		imageParams.bits |= IF_NOPICMIP;
 	}
 
-	switch ( stage->type )
+	switch ( type )
 	{
 		case stageType_t::ST_NORMALMAP:
 		case stageType_t::ST_HEATHAZEMAP:
@@ -1578,25 +1578,25 @@ static void ParseDiffuseMap( shaderStage_t *stage, const char **text, const int 
 {
 	char buffer[ 1024 ] = "";
 
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer, stageType_t::ST_DIFFUSEMAP, bundleIndex );
+	}
+}
+
+static void ParseLegacyDiffuseStage( shaderStage_t *stage, const char **text )
+{
 	stage->active = true;
 	stage->type = stageType_t::ST_DIFFUSEMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseDiffuseMap( stage, text, TB_COLORMAP );
 }
 
 static void ParseNormalMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_NORMALMAP )
 {
 	char buffer[ 1024 ] = "";
-
-	stage->active = true;
-	stage->type = stageType_t::ST_NORMALMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
 
 	// because of collapsing, this affects other textures (diffuse, specular…) too
 	if ( r_highQualityNormalMapping->integer )
@@ -1609,8 +1609,18 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, bundleIndex );
+		LoadMap( stage, buffer, stageType_t::ST_NORMALMAP, bundleIndex );
 	}
+}
+
+static void ParseLegacyNormalStage( shaderStage_t *stage, const char **text )
+{
+	stage->active = true;
+	stage->type = stageType_t::ST_NORMALMAP;
+	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
+	stage->stateBits = GLS_DEFAULT;
+
+	ParseNormalMap( stage, text, TB_COLORMAP );
 }
 
 static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_NORMALMAP )
@@ -1656,34 +1666,38 @@ static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **te
 	}
 }
 
+// There is no ParseLegacyNormalStageDetectHeightMap.
+
 static void ParseHeightMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_HEIGHTMAP )
 {
 	char buffer[ 1024 ] = "";
 
-	stage->active = true;
-	stage->type = stageType_t::ST_HEIGHTMAP;
-	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
-	stage->stateBits = GLS_DEFAULT;
-
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, bundleIndex );
+		LoadMap( stage, buffer, stageType_t::ST_HEIGHTMAP, bundleIndex );
 	}
 }
+
+// There is no ParseLegacyHeightStage.
 
 static void ParseSpecularMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_SPECULARMAP )
 {
 	char buffer[ 1024 ] = "";
 
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer, stageType_t::ST_SPECULARMAP, bundleIndex );
+	}
+}
+
+static void ParseLegacySpecularStage( shaderStage_t *stage, const char **text )
+{
 	stage->active = true;
 	stage->type = stageType_t::ST_SPECULARMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseSpecularMap( stage, text, TB_COLORMAP );
 }
 
 static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_PHYSICALMAP )
@@ -1697,59 +1711,65 @@ static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer, bundleIndex );
+		LoadMap( stage, buffer, stageType_t::ST_PHYSICALMAP, bundleIndex );
 	}
 }
+
+// There is no ParseLegacyPhysicalStage.
 
 static void ParseGlowMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_GLOWMAP )
 {
 	char buffer[ 1024 ] = "";
 
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		LoadMap( stage, buffer, stageType_t::ST_GLOWMAP, bundleIndex );
+	}
+}
+
+static void ParseLegacyGlowStage( shaderStage_t *stage, const char **text )
+{
 	stage->active = true;
 	stage->type = stageType_t::ST_GLOWMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE; // blend add
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseGlowMap( stage, text, TB_COLORMAP );
 }
 
 static void ParseReflectionMap( shaderStage_t *stage, const char **text, const int bundleIndex = TB_REFLECTIONMAP )
 {
 	char buffer[ 1024 ] = "";
 
+	stage->overrideWrapType = true;
+	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+
+	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
+	{
+		stage->isCubeMap = true;
+		LoadMap( stage, buffer, stageType_t::ST_REFLECTIONMAP, bundleIndex );
+	}
+}
+
+// This is not legacy.
+static void ParseReflectionStage( shaderStage_t *stage, const char **text )
+{
 	stage->active = true;
 	stage->type = stageType_t::ST_REFLECTIONMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
-	stage->overrideWrapType = true;
-	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		stage->isCubeMap = true;
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseReflectionMap( stage, text, TB_COLORMAP );
 }
 
-static void ParseReflectionMapBlended( shaderStage_t *stage, const char **text, const int bundleIndex = TB_REFLECTIONMAP )
+static void ParseReflectionStageBlended( shaderStage_t *stage, const char **text )
 {
-	char buffer[ 1024 ] = "";
-
 	stage->active = true;
 	stage->type = stageType_t::ST_REFLECTIONMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ONE;
-	stage->overrideWrapType = true;
-	stage->wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
-	{
-		stage->isCubeMap = true;
-		LoadMap( stage, buffer, bundleIndex );
-	}
+	ParseReflectionMap( stage, text, TB_COLORMAP );
 }
 
 static void ParseLightFalloffImage( shaderStage_t *stage, const char **text )
@@ -1765,7 +1785,7 @@ static void ParseLightFalloffImage( shaderStage_t *stage, const char **text )
 
 	if ( ParseMap( text, buffer, sizeof( buffer ) ) )
 	{
-		LoadMap( stage, buffer );
+		LoadMap( stage, buffer, stageType_t::ST_COLORMAP );
 	}
 }
 
@@ -1961,8 +1981,9 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 
 		if ( foundExtraMap )
 		{
-			stage->type = stageType_t::ST_COLLAPSE_lighting_PHONG;
-			stage->collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
+			// We don't know yet if there is a light map.
+			stage->type = stageType_t::ST_COLLAPSE_COLORMAP;
+			stage->collapseType = collapseType_t::COLLAPSE_PHONG;
 			stage->dpMaterial = true;
 		}
 	}
@@ -2025,8 +2046,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				stage->collapseType = collapseType_t::COLLAPSE_generic;
 			}
 
+			stage->type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
 			ParseDiffuseMap( stage, text );
-			stage->implicitLightmap = true;
 		}
 		else if ( !Q_stricmp( token, "normalMap" ) )
 		{
@@ -2060,39 +2081,40 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		}
 		else if ( !Q_stricmp( token, "specularMap" ) )
 		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_reflection_CB )
+			if ( stage->collapseType == collapseType_t::COLLAPSE_REFLECTIONMAP )
 			{
-				Log::Warn("Supposedly you shouldn't have a physicalMap after a reflectionMap (in shader '%s')?", shader.name);
-				// use PHONG instead
+				Log::Warn("Supposedly you shouldn't have a specularMap after a reflectionMap (in shader '%s')?", shader.name);
+				// keep REFLECTION instead
 			}
-
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR )
+			else if ( stage->collapseType == collapseType_t::COLLAPSE_PBR )
 			{
-				Log::Warn("Supposedly you shouldn't have a specularMap after a physicalMap (in shader '%s')?", shader.name);
+				Log::Warn("Supposedly you shouldn't have a specularMap after a reflectionMap (in shader '%s')?", shader.name);
 				// keep PBR instead
 			}
 			else
 			{
-				stage->collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
+				stage->collapseType = collapseType_t::COLLAPSE_PHONG;
 				ParseSpecularMap( stage, text );
 			}
 		}
 		else if ( !Q_stricmp( token, "physicalMap" ) )
 		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_reflection_CB )
+			if ( stage->collapseType == collapseType_t::COLLAPSE_REFLECTIONMAP )
 			{
 				Log::Warn("Supposedly you shouldn't have a physicalMap after a reflectionMap (in shader '%s')?", shader.name);
-				// use PBR instead
+				// keep REFLECTION instead
 			}
-			else if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+			else if ( stage->collapseType == collapseType_t::COLLAPSE_PHONG )
 			{
 				Log::Warn("Supposedly you shouldn't have a physicalMap after a specularMap (in shader '%s')?", shader.name);
-				// use PBR instead
+				// keep PHONG instead
 			}
-
-			// Daemon PBR packing defaults to ORM like glTF 2.0
-			stage->collapseType = collapseType_t::COLLAPSE_lighting_PBR;
-			ParsePhysicalMap( stage, text );
+			else
+			{
+				// Daemon PBR packing defaults to ORM like glTF 2.0
+				stage->collapseType = collapseType_t::COLLAPSE_PBR;
+				ParsePhysicalMap( stage, text );
+			}
 		}
 		else if ( !Q_stricmp( token, "glowMap" ) )
 		{
@@ -2103,31 +2125,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			ParseGlowMap( stage, text );
 		}
-		else if ( !Q_stricmp( token, "reflectionMap" ) )
-		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR
-				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
-			{
-				Log::Warn("Supposedly you shouldn't have a reflectionMap after a physicalMap or a specularMap (in shader '%s')?", shader.name);
-				// use reflectionMap instead
-			}
-
-			stage->collapseType = collapseType_t::COLLAPSE_reflection_CB;
-			ParseReflectionMap( stage, text );
-		}
-		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
-		{
-			if ( stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR
-				|| stage->collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
-			{
-				Log::Warn("Supposedly you shouldn't have a reflectionMapBlended after a physicalMap or a specularMap (in shader '%s')?", shader.name);
-				// use reflectionMapBlended instead
-			}
-
-			stage->collapseType = collapseType_t::COLLAPSE_reflection_CB;
-			ParseReflectionMapBlended( stage, text );
-		}
 		/* not handled yet:
+		else if ( !Q_stricmp( token, "reflectionMap" ) )
+		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
+		else if ( !Q_stricmp( token, "refractionMap" ) )
 		else if ( !Q_stricmp( token, "refractionMap" ) )
 		else if ( !Q_stricmp( token, "dispersionMap" ) )
 		else if ( !Q_stricmp( token, "skyboxMap" ) )
@@ -2139,6 +2140,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "attenuationMapZ" ) )
 		*/
 		// lightmap <name>
+		// What is the use case for this?
 		else if ( !Q_stricmp( token, "lightmap" ) )
 		{
 			if ( !ParseMap( text, buffer, sizeof( buffer ) ) )
@@ -2492,7 +2494,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated idTech4 blend parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_DIFFUSEMAP;
-				stage->implicitLightmap = true;
 			}
 			else if ( !Q_stricmp( token, "normalMap" ) )
 			{
@@ -2544,7 +2545,9 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			// clear depth mask for blended surfaces
 			if ( !depthMaskExplicit &&
 			     (stage->type == stageType_t::ST_COLORMAP ||
+			      stage->type == stageType_t::ST_COLLAPSE_COLORMAP ||
 			      stage->type == stageType_t::ST_DIFFUSEMAP ||
+			      stage->type == stageType_t::ST_COLLAPSE_DIFFUSEMAP ||
 			      stage->collapseType != collapseType_t::COLLAPSE_none ) &&
 			     blendSrcBits != 0 && blendDstBits != 0
 			     && !(blendSrcBits == GLS_SRCBLEND_ONE &&
@@ -2568,7 +2571,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			{
 				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
 				stage->type = stageType_t::ST_DIFFUSEMAP;
-				stage->implicitLightmap = true;
 			}
 			else if ( !Q_stricmp( token, "normalMap" ) )
 			{
@@ -2882,6 +2884,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			else if ( !Q_stricmp( token, "texture" ) || !Q_stricmp( token, "base" ) )
 			{
 			}
+			// FIXME: this is a deprecated way of doing things
 			else if ( !Q_stricmp( token, "reflect" ) )
 			{
 				stage->type = stageType_t::ST_REFLECTIONMAP;
@@ -3221,6 +3224,18 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	// parsing succeeded
 	stage->active = true;
 
+	if ( stage->type == stageType_t::ST_COLORMAP &&
+		( stage->collapseType == collapseType_t::COLLAPSE_PHONG
+		|| stage->collapseType == collapseType_t::COLLAPSE_PBR ) )
+	{
+		stage->type = stageType_t::ST_COLLAPSE_COLORMAP;
+	}
+
+	else if ( stages->collapseType == collapseType_t::COLLAPSE_REFLECTIONMAP )
+	{
+		stage->type = stageType_t::ST_COLLAPSE_REFLECTIONMAP;
+	}
+
 	// if cgen isn't explicitly specified, use either identity or identitylighting
 	if ( stage->rgbGen == colorGen_t::CGEN_BAD )
 	{
@@ -3257,7 +3272,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	stage->stateBits = colorMaskBits | depthMaskBits | blendSrcBits | blendDstBits | atestBits | depthFuncBits | polyModeBits;
 
 	// load image
-	if ( loadMap && !LoadMap( stage, buffer ) )
+	if ( loadMap && !LoadMap( stage, buffer, stage->type ) )
 	{
 		return false;
 	}
@@ -4549,8 +4564,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "diffuseMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseDiffuseMap( &stages[ s ], text, TB_COLORMAP );
-			stages[ s ].implicitLightmap = true;
+			ParseLegacyDiffuseStage( &stages[ s ], text );
 			s++;
 			continue;
 		}
@@ -4558,7 +4572,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "normalMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseNormalMap( &stages[ s ], text, TB_COLORMAP );
+			ParseLegacyNormalStage( &stages[ s ], text );
 			SetNormalFormat( &stages[ s ], dxNormalFormat );
 			s++;
 			continue;
@@ -4567,7 +4581,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "bumpMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better use 'normalMap' keyword and move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseNormalMap( &stages[ s ], text, TB_COLORMAP );
+			ParseLegacyNormalStage( &stages[ s ], text );
 			SetNormalFormat( &stages[ s ], dxNormalFormat );
 			s++;
 			continue;
@@ -4576,23 +4590,16 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "specularMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseSpecularMap( &stages[ s ], text, TB_COLORMAP );
+			ParseLegacySpecularStage( &stages[ s ], text );
 			s++;
 			continue;
 		}
-		// physicalMap <image>
-		else if ( !Q_stricmp( token, "physicalMap" ) )
-		{
-			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParsePhysicalMap( &stages[ s ], text, TB_COLORMAP );
-			s++;
-			continue;
-		}
+		// physicalMap <image> did not exist
 		// glowMap <image>
 		else if ( !Q_stricmp( token, "glowMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseGlowMap( &stages[ s ], text, TB_COLORMAP );
+			ParseLegacyGlowStage( &stages[ s ], text );
 			s++;
 			continue;
 		}
@@ -4600,7 +4607,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "reflectionMap" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseReflectionMap( &stages[ s ], text, TB_COLORMAP );
+			ParseReflectionStage( &stages[ s ], text );
 			s++;
 			continue;
 		}
@@ -4608,7 +4615,7 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "reflectionMapBlended" ) )
 		{
 			Log::Warn("deprecated idTech4 standalone stage '%s' in shader '%s', better move this line and pack related textures within one single curly bracket stage pair", token, shader.name );
-			ParseReflectionMapBlended( &stages[ s ], text, TB_COLORMAP );
+			ParseReflectionStageBlended( &stages[ s ], text );
 			s++;
 			continue;
 		}
@@ -4616,7 +4623,7 @@ static bool ParseShader( const char *_text )
 		{
 			if ( *r_dpMaterial )
 			{
-				ParseReflectionMapBlended( &stages[ s ], text, TB_COLORMAP );
+				ParseReflectionStageBlended( &stages[ s ], text );
 				s++;
 			}
 			else
@@ -4743,36 +4750,190 @@ CollapseMultitexture
 // *INDENT-OFF*
 static void CollapseStages()
 {
+	int colorStage = -1;
 	int diffuseStage = -1;
 	int normalStage = -1;
 	int specularStage = -1;
 	int physicalStage = -1;
 	int reflectionStage = -1;
+	int lightMapCount = 0;
 	int lightStage = -1;
 	int glowStage = -1;
 
-	int lightMapCount = 0;
+	/* DarkPlaces only supports one kind of lightmap blend:
+	   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1886-1887
+	
+	So we may implement specific code when stages[ i ].dpMaterial
+	is true to hide bugs that may be hidden by the incomplete
+	DarPlaces implementation, in a similar way to r_dpBlend. */
 
-	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
+	for ( int i = 0, step = 0; i < MAX_SHADER_STAGES && step < 2; i++ )
 	{
 		if ( !stages[ i ].active )
 		{
 			continue;
 		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_generic
-			|| stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PBR )
+
+		bool isLightStage = false;
+		bool isColorStage = false;
+		bool isCollapseColorStage = false;
+
+		switch ( stages[ i ].type )
 		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PBR;
-			continue;
+			case stageType_t::ST_LIGHTMAP:
+				isLightStage = true;
+				break;
+			case stageType_t::ST_COLORMAP:
+				isColorStage = true;
+				break;
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+				isCollapseColorStage = true;
+				break;
+			case stageType_t::ST_NORMALMAP:
+			case stageType_t::ST_HEIGHTMAP:
+			case stageType_t::ST_PHYSICALMAP:
+			case stageType_t::ST_SPECULARMAP:
+				continue;
+			default:
+				break;
 		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_lighting_PHONG )
+
+		bool rgbGen_identity =
+			stages[ i ].rgbGen == colorGen_t::CGEN_IDENTITY
+			|| stages[ i ].rgbGen == colorGen_t::CGEN_IDENTITY_LIGHTING;
+
+		bool alphaGen_identity =
+			stages[ i ].alphaGen == alphaGen_t::AGEN_IDENTITY;
+
+		/*
+		bool blendFunc_none = 
+			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ZERO
+			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
+		*/
+
+		bool blendFunc_add =
+			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
+			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
+
+		bool blendFunc_filter =
+			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
+			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
+
+		if ( step == 0 )
 		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_lighting_PHONG;
-			continue;
+			if ( ( isColorStage || isCollapseColorStage )
+				&& rgbGen_identity
+				&& alphaGen_identity )
+			{
+				colorStage = i;
+				step++;
+				continue;
+			}
+			else if ( isLightStage
+				&& rgbGen_identity
+				&& alphaGen_identity
+				&& blendFunc_filter )
+			{
+				lightStage = i;
+				lightMapCount++;
+				step++;
+				continue;
+			}
 		}
-		else if ( stages[ i ].collapseType == collapseType_t::COLLAPSE_reflection_CB )
+		else if ( step == 1 )
 		{
-			stages[ i ].type = stageType_t::ST_COLLAPSE_reflection_CB;
+			if ( isLightStage
+				&& rgbGen_identity
+				&& alphaGen_identity )
+			{
+				/* We may ignore “depthFunc equal” that seems to be
+				required for standalone lightmap when colormap has
+				“depthWrite” since they will be collapsed and
+				processed at once. */
+				lightStage = i;
+				lightMapCount++;
+				step++;
+				continue;
+			}
+			else if ( ( isColorStage || isCollapseColorStage )
+				&& rgbGen_identity
+				&& alphaGen_identity
+				&& blendFunc_filter
+				&& colorStage != -1 )
+			{
+				colorStage = i;
+				step++;
+				continue;
+			}
+		}
+		else if ( step == 2 )
+		{
+			if ( isColorStage
+				&& rgbGen_identity
+				&& alphaGen_identity
+				&& blendFunc_add )
+			{
+				bool hasGlowMap = stages[ colorStage ].bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
+
+				if ( hasGlowMap )
+				{
+					break;
+				}
+				else
+				{
+					glowStage = i;
+					step++;
+					continue;
+				}
+			}
+		}
+		break;
+	}
+
+	if ( colorStage != -1 && lightStage != -1 )
+	{
+		switch ( stages[ colorStage ].type )
+		{
+			case stageType_t::ST_COLORMAP:
+				// Turn color stage as diffuse stage.
+				// Merge light stage with diffuse stage.
+				stages[ colorStage ].type = stageType_t::ST_DIFFUSEMAP;
+				colorStage = -1;
+
+				// Disable light stage since it's merged.
+				stages[ lightStage ].active = false;
+
+				// The glow stage will be merged later.
+				if ( glowStage != -1 )
+				{
+					stages[ glowStage ].type = stageType_t::ST_GLOWMAP;
+				}
+
+				// The glow stage will be rediscovered later.
+				glowStage = -1;
+				break;
+
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+				// Turn collapse color stage as collapse diffuse stage.
+				// Merge light stage with color diffuse stage.
+				stages[ colorStage ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
+				colorStage = -1;
+
+				// Disable light stage since it's merged.
+				stages[ lightStage ].active = false;
+
+				// The can't be a glowStage to merge.
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
+	{
+		if ( !stages[ i ].active )
+		{
 			continue;
 		}
 		else if ( stages[ i ].type == stageType_t::ST_DIFFUSEMAP )
@@ -4856,42 +5017,17 @@ static void CollapseStages()
 		}
 	}
 
-	if ( lightMapCount > 1 )
-	{
-		Log::Debug( "found %d light map stages in shader '%s'", lightMapCount, shader.name );
-	}
-
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
-		/* Store hethaze and liquid normal map in normal map slot.
+		/* Store heathaze and liquid normal map in normal map slot.
 
 		NOTE: liquidMap may be entirely redesigned in the future
-		to be a variant of diffuseMap (hence supporting all others textures).
-		*/
+		to be a variant of diffuseMap (hence supporting all others textures). */
 		if ( stages[ i ].type == stageType_t::ST_HEATHAZEMAP
 			|| stages[ i ].type == stageType_t::ST_LIQUIDMAP )
 		{
 			stages[ i ].bundle[ TB_NORMALMAP ] = stages[ i ].bundle[ TB_COLORMAP ];
 			stages[ i ].bundle[ TB_COLORMAP ] = {};
-		}
-
-		if ( lightStage != -1 && stages[ i ].collapseType != collapseType_t::COLLAPSE_none )
-		{
-			if ( stages[ i ].dpMaterial )
-			{
-				// DarkPlaces only supports one kind of lightmap blend:
-				//   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1886-1887
-				Log::Debug("found custom lightmap stage in DarkPlaces '%s' shader, disable it and enable implicit one instead", shader.name);
-				stages[ i ].implicitLightmap = true;
-				stages[ lightStage ].active = false;
-				lightStage = -1;
-			}
-			else
-			{
-				// custom lightmap stage, disable the implicit light stage
-				Log::Debug("found custom lightmap stage in '%s' shader, disabling implicit one", shader.name);
-				stages[ i ].implicitLightmap = false;
-			}
 		}
 	}
 
@@ -4904,9 +5040,9 @@ static void CollapseStages()
 		// note that if uncollapsed reflectionStage had to be merged in another stage
 		// it would have to be backed-up somewhere
 
-		Log::Debug("found reflection collapsable stage in shader '%s':", shader.name);
-		stages[ reflectionStage ].collapseType = collapseType_t::COLLAPSE_reflection_CB;
-		stages[ reflectionStage ].type = stageType_t::ST_COLLAPSE_reflection_CB;
+		Log::Debug("found reflection collapsible stage in shader '%s':", shader.name);
+		stages[ reflectionStage ].collapseType = collapseType_t::COLLAPSE_REFLECTIONMAP;
+		stages[ reflectionStage ].type = stageType_t::ST_COLLAPSE_REFLECTIONMAP;
 
 		// merge with reflection stage
 		stages[ reflectionStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
@@ -4914,134 +5050,78 @@ static void CollapseStages()
 		stages[ normalStage ].active = false;
 	}
 
+	if ( specularStage != -1 && physicalStage != -1 )
+	{
+		Log::Warn("Supposedly you shouldn't have both specularMap and physicalMap (in shader '%s')?", shader.name);
+		// keep specular stage
+		stages[ physicalStage ].active = false;
+		physicalStage = -1;
+	}
+
 	if ( diffuseStage != -1
 		&& ( specularStage != -1
 			|| normalStage != -1
+			|| specularStage != -1
 			|| physicalStage != -1
-			|| lightStage != -1
 			|| glowStage != -1 ) )
 	{
-		// note that if uncollapsed diffuseStage had to be merged in another stage
-		// it would have to be backed-up somewhere
-
-		if ( specularStage != -1 && physicalStage != -1 )
+		if ( physicalStage != -1 )
 		{
-			Log::Warn("Supposedly you shouldn't have both specularMap and physicalMap (in shader '%s')?", shader.name);
+			Log::Debug("found PBR lighting collapsible stage in shader '%s'", shader.name);
+			stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_PBR;
 		}
 		else
 		{
-			if ( physicalStage != -1 )
+			Log::Debug("found Phong lighting collapsible stage in shader '%s'", shader.name);
+			stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_PHONG;
+		}
+
+		if ( normalStage != -1 )
+		{
+			// merge with diffuse stage
+			stages[ diffuseStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
+
+			stages[ diffuseStage ].normalIntensityExp = stages[ normalStage ].normalIntensityExp;
+
+			for ( int i = 0; i < 3; i++ )
 			{
-				Log::Debug("found PBR lighting collapsible stage in shader '%s'", shader.name);
-				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_PBR;
-				stages[ diffuseStage ].type = stageType_t::ST_COLLAPSE_lighting_PBR;
-			}
-			else
-			{
-				Log::Debug("found Phong lighting collapsible stage in shader '%s'", shader.name);
-				stages[ diffuseStage ].collapseType = collapseType_t::COLLAPSE_lighting_PHONG;
-				stages[ diffuseStage ].type = stageType_t::ST_COLLAPSE_lighting_PHONG;
-			}
-
-			if ( normalStage != -1 )
-			{
-				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_NORMALMAP ] = stages[ normalStage ].bundle[ TB_COLORMAP ];
-
-				stages[ diffuseStage ].normalIntensityExp = stages[ normalStage ].normalIntensityExp;
-
-				for ( int i = 0; i < 3; i++ )
-				{
-					stages[ diffuseStage ].normalFormat[ i ] = stages[ normalStage ].normalFormat[ i ];
-					stages[ diffuseStage ].normalScale[ i ] = stages[ normalStage ].normalScale[ i ];
-				}
-
-				stages[ diffuseStage ].hasNormalFormat = stages[ normalStage ].hasNormalFormat;
-				stages[ diffuseStage ].hasNormalScale = stages[ normalStage ].hasNormalScale;
-
-				stages[ diffuseStage ].isHeightMapInNormalMap = stages[ normalStage ].isHeightMapInNormalMap;
-
-				// disable since it's merged
-				stages[ normalStage ].active = false;
+				stages[ diffuseStage ].normalFormat[ i ] = stages[ normalStage ].normalFormat[ i ];
+				stages[ diffuseStage ].normalScale[ i ] = stages[ normalStage ].normalScale[ i ];
 			}
 
-			if ( specularStage != -1 )
-			{
-				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_SPECULARMAP ] = stages[ specularStage ].bundle[ TB_COLORMAP ];
-				stages[ diffuseStage ].specularExponentMin = stages[ specularStage ].specularExponentMin;
-				stages[ diffuseStage ].specularExponentMax = stages[ specularStage ].specularExponentMax;
-				// disable since it's merged
-				stages[ specularStage ].active = false;
-			}
+			stages[ diffuseStage ].hasNormalFormat = stages[ normalStage ].hasNormalFormat;
+			stages[ diffuseStage ].hasNormalScale = stages[ normalStage ].hasNormalScale;
 
-			if ( physicalStage != -1 )
-			{
-				// merge with diffuse stage
-				stages[ diffuseStage ].bundle[ TB_PHYSICALMAP ] = stages[ physicalStage ].bundle[ TB_COLORMAP ];
-				// disable since it's merged
-				stages[ physicalStage ].active = false;
-			}
+			stages[ diffuseStage ].isHeightMapInNormalMap = stages[ normalStage ].isHeightMapInNormalMap;
 
-			// always test for this stage before glow stage
-			if ( lightStage != -1 )
-			{
-				// “blendFunc filter” is same as “blendFunc GL_DST_COLOR GL_ZERO” and the default
-				if ( ( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
-					&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO )
-				{
-					// common lightmap stage
-					// disable to not paint it over implicit light stage and glow map
-					stages[ lightStage ].active = false;
-					stages[ diffuseStage ].implicitLightmap = true;
-				}
-				else
-				{
-					// custom lightmap stage, disable the implicit light stage and keep
-					// this one uncollapsed
-					Log::Debug("found custom lightmap stage in '%s' shader, not collapsing", shader.name);
-					stages[ diffuseStage ].implicitLightmap = false;
-				}
-			}
+			// disable since it's merged
+			stages[ normalStage ].active = false;
+		}
 
-			// always test for this stage after light stage
-			if ( glowStage != -1 )
-			{
-				// if there is no custom light stage, collapse to the diffuse stage
-				// that will rely on the implicit light stage
-				if ( stages[ diffuseStage ].implicitLightmap )
-				{
-					// merge with diffuse stage
-					stages[ diffuseStage ].bundle[ TB_GLOWMAP ] = stages[ glowStage ].bundle[ TB_COLORMAP ];
-					// disable since it's merged
-					stages[ glowStage ].active = false;
-				}
-				// if there is a custom light stage, keep the glow stage uncollapsed
-				// and make sure the diffuse stage precedes the light stage
-				// and the light stage (known to exist because of implicitLightmap == false) precedes the glow stage
-				else
-				{
-					ASSERT_GE(lightStage, 0);
-					Log::Debug("found glow map with custom lightmap stage in '%s' shader, not collapsing", shader.name);
-					stages[ glowStage ].type = stageType_t::ST_COLORMAP;
-					// not required since it's already how it is expected to be
-					// stages[ glowStage ].bundle[ TB_COLORMAP ] = stages[ glowStage ].bundle[ TB_COLORMAP ];
+		if ( specularStage != -1 )
+		{
+			// merge with diffuse stage
+			stages[ diffuseStage ].bundle[ TB_SPECULARMAP ] = stages[ specularStage ].bundle[ TB_COLORMAP ];
+			stages[ diffuseStage ].specularExponentMin = stages[ specularStage ].specularExponentMin;
+			stages[ diffuseStage ].specularExponentMax = stages[ specularStage ].specularExponentMax;
+			// disable since it's merged
+			stages[ specularStage ].active = false;
+		}
 
-					// put diffuse stage in the first of the three spots
-					int& minStageIndex = lightStage < glowStage ? lightStage : glowStage; // note the reference!
-					if ( minStageIndex < diffuseStage )
-					{
-						std::swap(stages[diffuseStage], stages[minStageIndex]);
-						std::swap(diffuseStage, minStageIndex);
-					}
-					// fix 2nd and 3rd spots
-					if ( glowStage < lightStage )
-					{
-						std::swap(stages[glowStage], stages[lightStage]);
-						std::swap(glowStage, lightStage);
-					}
-				}
-			}
+		if ( physicalStage != -1 )
+		{
+			// merge with diffuse stage
+			stages[ diffuseStage ].bundle[ TB_PHYSICALMAP ] = stages[ physicalStage ].bundle[ TB_COLORMAP ];
+			// disable since it's merged
+			stages[ physicalStage ].active = false;
+		}
+
+		if ( glowStage != -1 )
+		{
+			// merge with diffuse stage
+			stages[ diffuseStage ].bundle[ TB_GLOWMAP ] = stages[ glowStage ].bundle[ TB_COLORMAP ];
+			// disable since it's merged
+			stages[ glowStage ].active = false;
 		}
 	}
 
@@ -5050,17 +5130,19 @@ static void CollapseStages()
 	int numActiveStages = 0;
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
-		if ( stages[ i ].active )
+		if ( !stages[ i ].active )
 		{
-			if ( i != numActiveStages )
-			{
-				stages[ numActiveStages ] = stages[ i ];
-
-				stages[ i ].active = false;
-			}
-
-			numActiveStages++;
+			continue;
 		}
+
+		if ( i != numActiveStages )
+		{
+			stages[ numActiveStages ] = stages[ i ];
+
+			stages[ i ].active = false;
+		}
+
+		numActiveStages++;
 	}
 
 	shader.numStages = numActiveStages;
@@ -5076,7 +5158,7 @@ static void CollapseStages()
 		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && stage->hasNormalMap;
 		stage->hasMaterialMap = stage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
 		stage->hasGlowMap = stage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
-		stage->isMaterialPhysical = stage->collapseType == collapseType_t::COLLAPSE_lighting_PBR;
+		stage->isMaterialPhysical = stage->collapseType == collapseType_t::COLLAPSE_PBR;
 
 		// Available features.
 		stage->enableNormalMapping = r_normalMapping->integer && stage->hasNormalMap;
@@ -5388,7 +5470,7 @@ static shader_t *FinishShader()
 
 			const char *squarelight1a = "lights/squarelight1a";
 			Log::Debug( "loading '%s' image as shader", squarelight1a );
-			LoadMap( &stages[ 0 ], squarelight1a );
+			LoadMap( &stages[ 0 ], squarelight1a, stageType_t::ST_COLORMAP );
 		}
 
 		// force following shader stages to be xy attenuation stages
@@ -5425,6 +5507,7 @@ static shader_t *FinishShader()
 				break;
 
 			case stageType_t::ST_COLORMAP:
+			case stageType_t::ST_COLLAPSE_COLORMAP:
 			default:
 				{
 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
@@ -5438,6 +5521,7 @@ static shader_t *FinishShader()
 				}
 
 			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				{
 					if ( !shader.isSky )
 					{
@@ -6053,8 +6137,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		case shaderType_t::SHADER_3D_DYNAMIC:
 			{
 				// dynamic colors at vertexes
-				stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
-				stages[ 0 ].implicitLightmap = true;
+				stages[ 0 ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
 				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
 				stages[ 0 ].active = true;
 				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY_LIGHTING;
@@ -6065,8 +6148,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		case shaderType_t::SHADER_3D_STATIC:
 			{
 				// explicit colors at vertexes
-				stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
-				stages[ 0 ].implicitLightmap = true;
+				stages[ 0 ].type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
 				stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
 				stages[ 0 ].active = true;
 				stages[ 0 ].rgbGen = colorGen_t::CGEN_IDENTITY;
@@ -6290,9 +6372,9 @@ void R_ListShaders_f()
 	stageTypeStrings[stageType_t::ST_LIGHTMAP] = "LIGHTMAP";
 	stageTypeStrings[stageType_t::ST_STYLELIGHTMAP] = "STYLELIGHTMAP";
 	stageTypeStrings[stageType_t::ST_STYLECOLORMAP] = "STYLECOLORMAP";
-	stageTypeStrings[stageType_t::ST_COLLAPSE_lighting_PBR] = "LIGHTING_PBR";
-	stageTypeStrings[stageType_t::ST_COLLAPSE_lighting_PHONG] = "LIGHTING_PHONG";
-	stageTypeStrings[stageType_t::ST_COLLAPSE_reflection_CB] = "REFLECTION_CB";
+	stageTypeStrings[stageType_t::ST_COLLAPSE_COLORMAP] = "COLLAPSE_COLORMAP";
+	stageTypeStrings[stageType_t::ST_COLLAPSE_DIFFUSEMAP] = "COLLAPSE_DIFFUSEMAP";
+	stageTypeStrings[stageType_t::ST_COLLAPSE_REFLECTIONMAP] = "COLLAPSE_REFLECTIONMAP";
 	stageTypeStrings[stageType_t::ST_ATTENUATIONMAP_XY] = "ATTENUATIONMAP_XY";
 	stageTypeStrings[stageType_t::ST_ATTENUATIONMAP_Z] = "ATTENUATIONMAP_XZ";
 

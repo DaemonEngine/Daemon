@@ -895,7 +895,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	{
 		// Use fullbright on “surfaceparm nolightmap” materials.
 	}
-	else if ( !pStage->implicitLightmap && pStage->type != stageType_t::ST_LIGHTMAP )
+	else if ( pStage->type == stageType_t::ST_COLLAPSE_COLORMAP )
 	{
 		/* Use fullbright for collapsed stages without lightmaps,
 		for example:
@@ -2789,14 +2789,13 @@ void Tess_StageIteratorGeneric()
 
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_PHONG:
-			case stageType_t::ST_COLLAPSE_lighting_PBR:
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				Render_lightMapping( pStage );
-
 				break;
 
-			case stageType_t::ST_COLLAPSE_reflection_CB:
 			case stageType_t::ST_REFLECTIONMAP:
+			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
 				if ( r_reflectionMapping->integer )
 				{
 					Render_reflection_CB( pStage );
@@ -2836,7 +2835,7 @@ void Tess_StageIteratorGeneric()
 				{
 					/* FIXME: workaround to display something and not crash
 					when liquidMapping is enabled, until we fix liquidMap. */
-					pStage->type = stageType_t::ST_DIFFUSEMAP;
+					pStage->type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
 					pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
 					Render_lightMapping( pStage );
 				}
@@ -2906,10 +2905,10 @@ void Tess_StageIteratorPortal() {
 			case stageType_t::ST_COLORMAP:
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_PHONG:
-			case stageType_t::ST_COLLAPSE_lighting_PBR:
-			case stageType_t::ST_COLLAPSE_reflection_CB:
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 			case stageType_t::ST_REFLECTIONMAP:
+			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
 			case stageType_t::ST_REFRACTIONMAP:
 			case stageType_t::ST_DISPERSIONMAP:
 			case stageType_t::ST_SKYBOXMAP:
@@ -2989,8 +2988,8 @@ void Tess_StageIteratorDepthFill()
 
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_PHONG:
-			case stageType_t::ST_COLLAPSE_lighting_PBR:
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				Render_depthFill( pStage );
 				break;
 
@@ -3066,8 +3065,8 @@ void Tess_StageIteratorShadowFill()
 
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_lighting_PHONG:
-			case stageType_t::ST_COLLAPSE_lighting_PBR:
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				Render_shadowFill( pStage );
 				break;
 
@@ -3180,8 +3179,7 @@ void Tess_StageIteratorLighting()
 			switch ( pStage->type )
 			{
 				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_lighting_PBR:
-				case stageType_t::ST_COLLAPSE_lighting_PHONG:
+				case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 					if ( light->l.rlType == refLightType_t::RL_OMNI )
 					{
 						Render_forwardLighting_DBS_omni( pStage, attenuationXYStage, attenuationZStage, light );
