@@ -605,10 +605,10 @@ void R_ShutdownFBOs()
 
 /*
 ============
-R_FBOList_f
+R_ListFBOs_f
 ============
 */
-void R_FBOList_f()
+void R_ListFBOs_f()
 {
 	int   i;
 	FBO_t *fbo;

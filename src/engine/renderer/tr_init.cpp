@@ -499,9 +499,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	}
 
 	/*
-	** R_ModeList_f
+	** R_ListModes_f
 	*/
-	static void R_ModeList_f()
+	static void R_ListModes_f()
 	{
 		int i;
 
@@ -1343,15 +1343,15 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showDecalProjectors = Cvar_Get( "r_showDecalProjectors", "0", CVAR_CHEAT );
 
 		// make sure all the commands added here are also removed in R_Shutdown
-		ri.Cmd_AddCommand( "imagelist", R_ImageList_f );
-		ri.Cmd_AddCommand( "shaderlist", R_ShaderList_f );
+		ri.Cmd_AddCommand( "listImages", R_ListImages_f );
+		ri.Cmd_AddCommand( "listShaders", R_ListShaders_f );
 		ri.Cmd_AddCommand( "shaderexp", R_ShaderExp_f );
-		ri.Cmd_AddCommand( "skinlist", R_SkinList_f );
-		ri.Cmd_AddCommand( "modellist", R_Modellist_f );
-		ri.Cmd_AddCommand( "modelist", R_ModeList_f );
-		ri.Cmd_AddCommand( "animationlist", R_AnimationList_f );
-		ri.Cmd_AddCommand( "fbolist", R_FBOList_f );
-		ri.Cmd_AddCommand( "vbolist", R_VBOList_f );
+		ri.Cmd_AddCommand( "listSkins", R_ListSkins_f );
+		ri.Cmd_AddCommand( "listModels", R_ListModels_f );
+		ri.Cmd_AddCommand( "listModes", R_ListModes_f );
+		ri.Cmd_AddCommand( "listAnimations", R_ListAnimations_f );
+		ri.Cmd_AddCommand( "listFBOs", R_ListFBOs_f );
+		ri.Cmd_AddCommand( "listVBOs", R_ListVBOs_f );
 		ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
 		ri.Cmd_AddCommand( "buildcubemaps", R_BuildCubeMaps );
 
@@ -1509,17 +1509,17 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	{
 		Log::Debug("RE_Shutdown( destroyWindow = %i )", destroyWindow );
 
-		ri.Cmd_RemoveCommand( "modellist" );
-		ri.Cmd_RemoveCommand( "imagelist" );
-		ri.Cmd_RemoveCommand( "shaderlist" );
+		ri.Cmd_RemoveCommand( "listModels" );
+		ri.Cmd_RemoveCommand( "listImages" );
+		ri.Cmd_RemoveCommand( "listShaders" );
 		ri.Cmd_RemoveCommand( "shaderexp" );
-		ri.Cmd_RemoveCommand( "skinlist" );
+		ri.Cmd_RemoveCommand( "listSkins" );
 		ri.Cmd_RemoveCommand( "gfxinfo" );
-		ri.Cmd_RemoveCommand( "modelist" );
+		ri.Cmd_RemoveCommand( "listModes" );
 		ri.Cmd_RemoveCommand( "shaderstate" );
-		ri.Cmd_RemoveCommand( "animationlist" );
-		ri.Cmd_RemoveCommand( "fbolist" );
-		ri.Cmd_RemoveCommand( "vbolist" );
+		ri.Cmd_RemoveCommand( "listAnimations" );
+		ri.Cmd_RemoveCommand( "listFBOs" );
+		ri.Cmd_RemoveCommand( "listVBOs" );
 		ri.Cmd_RemoveCommand( "generatemtr" );
 		ri.Cmd_RemoveCommand( "buildcubemaps" );
 

@@ -307,10 +307,10 @@ void R_ModelInit()
 
 /*
 ================
-R_Modellist_f
+R_ListModels_f
 ================
 */
-void R_Modellist_f()
+void R_ListModels_f()
 {
 	int      i, j, k;
 	model_t  *mod;
