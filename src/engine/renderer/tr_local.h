@@ -3566,7 +3566,6 @@ inline bool checkGLErrors()
 
 	void     R_AddWorldInteractions( trRefLight_t *light );
 	void     R_AddPrecachedWorldInteractions( trRefLight_t *light );
-	void     R_ShutdownVBOs();
 
 	/*
 	============================================================
