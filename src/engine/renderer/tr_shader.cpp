@@ -3475,6 +3475,7 @@ ParseSkyParms
 skyParms <outerbox> <cloudheight> <innerbox>
 ===============
 */
+drawSurf_t *sk;
 static void ParseSkyParms( const char **text )
 {
 	char *token;
@@ -3555,6 +3556,77 @@ static void ParseSkyParms( const char **text )
 			shader.sky.innerbox = tr.blackCubeImage;
 		}
 	}
+	vec3_t min = { -100.0, -100.0, -100.0 };
+	vec3_t max = { 100.0, 100.0, 100.0 };
+	drawSurf_t* skybox;
+	skybox = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *skybox ), ha_pref::h_low );
+	skybox->entity = &tr.worldEntity;
+	srfSurfaceFace_t* surface;
+	surface = ( srfSurfaceFace_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
+	surface->surfaceType = surfaceType_t::SF_FACE;
+	surface->numVerts = 8;
+	surface->verts = ( srfVert_t* ) ri.Hunk_Alloc( surface->numVerts * sizeof( srfVert_t ), ha_pref::h_low );
+	surface->numTriangles = 12;
+	surface->triangles = ( srfTriangle_t* ) ri.Hunk_Alloc( surface->numTriangles * sizeof( srfTriangle_t ), ha_pref::h_low ); vec3_t v0 = { min[0], min[1], min[2] };
+	vec3_t v1 = { min[0], max[1], min[2] };
+	vec3_t v2 = { max[0], max[1], min[2] };
+	vec3_t v3 = { max[0], min[1], min[2] };
+	vec3_t v4 = { min[0], min[1], max[2] };
+	vec3_t v5 = { min[0], max[1], max[2] };
+	vec3_t v6 = { max[0], max[1], max[2] };
+	vec3_t v7 = { max[0], min[1], max[2] };
+	VectorCopy( v0, surface->verts[0].xyz );
+	VectorCopy( v1, surface->verts[1].xyz );
+	VectorCopy( v2, surface->verts[2].xyz );
+	VectorCopy( v3, surface->verts[3].xyz );
+	VectorCopy( v4, surface->verts[4].xyz );
+	VectorCopy( v5, surface->verts[5].xyz );
+	VectorCopy( v6, surface->verts[6].xyz );
+	VectorCopy( v7, surface->verts[7].xyz );
+	surface->triangles[0].indexes[0] = 0;
+	surface->triangles[0].indexes[1] = 2;
+	surface->triangles[0].indexes[2] = 1;
+	surface->triangles[1].indexes[0] = 0;
+	surface->triangles[1].indexes[1] = 3;
+	surface->triangles[1].indexes[2] = 2;
+	surface->triangles[2].indexes[0] = 7;
+	surface->triangles[2].indexes[1] = 5;
+	surface->triangles[2].indexes[2] = 6;
+	surface->triangles[3].indexes[0] = 7;
+	surface->triangles[3].indexes[1] = 4;
+	surface->triangles[3].indexes[2] = 5;
+	surface->triangles[4].indexes[0] = 0;
+	surface->triangles[4].indexes[1] = 1;
+	surface->triangles[4].indexes[2] = 5;
+	surface->triangles[5].indexes[0] = 0;
+	surface->triangles[5].indexes[1] = 5;
+	surface->triangles[5].indexes[2] = 4;
+	surface->triangles[6].indexes[0] = 1;
+	surface->triangles[6].indexes[1] = 6;
+	surface->triangles[6].indexes[2] = 5;
+	surface->triangles[7].indexes[0] = 1;
+	surface->triangles[7].indexes[1] = 2;
+	surface->triangles[7].indexes[2] = 6;
+	surface->triangles[8].indexes[0] = 2;
+	surface->triangles[8].indexes[1] = 7;
+	surface->triangles[8].indexes[2] = 6;
+	surface->triangles[9].indexes[0] = 2;
+	surface->triangles[9].indexes[1] = 3;
+	surface->triangles[9].indexes[2] = 7;
+	surface->triangles[10].indexes[0] = 3;
+	surface->triangles[10].indexes[1] = 4;
+	surface->triangles[10].indexes[2] = 7;
+	surface->triangles[11].indexes[0] = 3;
+	surface->triangles[11].indexes[1] = 0;
+	surface->triangles[11].indexes[2] = 4;
+	surface->plane.normal[0] = 0.0;
+	surface->plane.normal[1] = 0.0;
+	surface->plane.normal[2] = -1.0;
+	// surface->vbo = tr.world->vbo;
+	// surface->ibo = tr.world->ibo;
+	skybox->surface = ( surfaceType_t* ) surface;
+	skybox->shader = nullptr;
+	sk = skybox;
 
 	shader.isSky = true;
 }

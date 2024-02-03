@@ -764,6 +764,9 @@ All of the visible sky triangles are in tess
 Other things could be stuck in here, like birds in the sky, etc
 ================
 */
+extern drawSurf_t *sk;
+static drawSurf_t *sk2;
+static bool sk3 = false;
 void Tess_StageIteratorSky()
 {
 	// log this call
@@ -788,22 +791,22 @@ void Tess_StageIteratorSky()
 		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
-	GL_Cull(cullType_t::CT_TWO_SIDED);
+	GL_Cull(cullType_t::CT_BACK_SIDED);
 
 	if ( tess.stageIteratorFunc2 == &Tess_StageIteratorDepthFill )
 	{
 		// go through all the polygons and project them onto
 		// the sky box to see which blocks on each side need
 		// to be drawn
-		Tess_ClipSkyPolygons();
+		// Tess_ClipSkyPolygons();
 
 		// generate the vertexes for all the clouds, which will be drawn
 		// by the generic shader routine
-		BuildCloudData();
+		// BuildCloudData();
 
 		if ( tess.numVertexes || tess.multiDrawPrimitives )
 		{
-			tess.stageIteratorFunc2();
+			// tess.stageIteratorFunc2();
 		}
 	}
 	else
@@ -811,7 +814,31 @@ void Tess_StageIteratorSky()
 		// go through all the polygons and project them onto
 		// the sky box to see which blocks on each side need
 		// to be drawn
-		Tess_ClipSkyPolygons();
+		// Tess_ClipSkyPolygons();
+		/* vec3_t min = {FLT_MAX, FLT_MAX, FLT_MAX};
+		vec3_t max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+		vec3_t cur;
+		for ( int i = 0; i < tess.numIndexes; i++ ) {
+			VectorCopy( tess.verts[tess.indexes[i]].xyz, cur );
+			if ( cur[0] < min[0] ) {
+				min[0] = cur[0];
+			}
+			if ( cur[1] < min[1] ) {
+				min[1] = cur[1];
+			}
+			if ( cur[2] < min[2] ) {
+				min[2] = cur[2];
+			}
+			if ( cur[0] > max[0] ) {
+				max[0] = cur[0];
+			}
+			if ( cur[1] > max[1] ) {
+				max[1] = cur[1];
+			}
+			if ( cur[2] > max[2] ) {
+				max[2] = cur[2];
+			}
+		} */
 
 		// r_showSky will let all the sky blocks be drawn in
 		// front of everything to allow developers to see how
@@ -834,7 +861,27 @@ void Tess_StageIteratorSky()
 
 			gl_skyboxShader->BindProgram( 0 );
 
-			gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
+			trRefEntity_t ent;
+			ent.e.reType = refEntityType_t::RT_MODEL;
+			VectorCopy( backEnd.viewParms.orientation.origin, ent.e.origin );
+			AxisCopy( backEnd.viewParms.world.axis, ent.e.axis );
+			orientationr_t t;
+			R_RotateEntityForViewParms( &ent, &backEnd.viewParms, &t );
+			GL_LoadModelViewMatrix( t.modelViewMatrix );
+
+			// Log::Warn( "%i %f %f %f", backEnd.viewParms.portalLevel, backEnd.viewParms.orientation.origin[0],
+				// backEnd.viewParms.orientation.origin[1], backEnd.viewParms.orientation.origin[2] );
+			if ( backEnd.viewParms.portalLevel < 0 ) {
+				gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.skyboxOrigin );  // in world space
+			} else {
+				gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
+			}
+			if ( backEnd.viewParms.portalLevel > 0 ) {
+				matrix_t m;
+				MatrixSetupScale( m, 10, 10, 10 );
+				MatrixMultiply2( t.modelViewMatrix, m );
+				GL_LoadModelViewMatrix( t.modelViewMatrix );
+			}
 
 			gl_skyboxShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 			gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
@@ -844,16 +891,448 @@ void Tess_StageIteratorSky()
 			// bind u_ColorMap
 			GL_BindToTMU( 0, tess.surfaceShader->sky.outerbox );
 
-			DrawSkyBox();
+			// DrawSkyBox();
+			tess.multiDrawPrimitives = 0;
+			tess.numIndexes = 0;
+			tess.numVertexes = 0;
+			tess.attribsSet = 0;
+			vec3_t min = { -100.0, -100.0, -100.0 };
+			vec3_t max = { 100.0, 100.0, 100.0 };
+
+			// Tess_MapVBOs( false );
+			int vertexStart = tess.numVertexes;
+			tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
+			/* vec3_t v0 = {min[0], min[1], min[2]};
+			vec3_t v1 = { min[0], max[1], min[2] };
+			vec3_t v2 = { max[0], max[1], min[2] };
+			vec3_t v3 = { max[0], min[1], min[2] };
+			vec3_t v4 = { min[0], min[1], max[2] };
+			vec3_t v5 = { min[0], max[1], max[2] };
+			vec3_t v6 = { max[0], max[1], max[2] };
+			vec3_t v7 = { max[0], min[1], max[2] };
+			VectorCopy( v0, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v1, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v2, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v3, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v4, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v5, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v6, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v7, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			tess.indexes[tess.numIndexes] = vertexStart;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 2;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 2;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 5;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 7;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 5;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 2;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 5;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 2;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 7;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 7;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			Tess_UpdateVBOs();
+			GL_VertexAttribsState( tess.attribsSet );
+			Tess_DrawElements(); */
+			if ( !sk3 && false ) {
+				drawSurf_t* skybox;
+				skybox = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *skybox ), ha_pref::h_low );
+				skybox->entity = &tr.worldEntity;
+				srfSurfaceFace_t* surface;
+				srfSurfaceFace_t surfaces[6];
+				// vec3_t min = { -9999.0, -9999.0, -9999.0 };
+				// vec3_t max = { 9999.0, 9999.0, 9999.0 };
+				/*
+				      /------/
+				     /|5   6/|
+				    / |    / |
+				   /4 |1  / 2|
+				   |-----7|--/
+			 	   | /    | /
+				   |/0   3|/
+				   --------
+				   Verts:
+				   0: -100 -100 -100
+				   1: -100 100 -100
+				   2: 100 100 -100
+				   3: 100 -100 -100
+				   4: -100 -100 100
+				   5: -100 100 100
+				   6: 100 100 100
+				   7: 100 -100 100
+				   Surfs:
+				   0: 0 2 1 / 0 3 2
+				   1: 1 5 6 / 1 4 5
+				   2: 0 1 5 / 0 5 4
+				   3: 1 6 5 / 1 2 6
+				   4: 2 7 6 / 2 3 7
+				   5: 3 4 7 / 3 0 4
+				*/
+				/* surface = ( srfSurfaceFace_t* ) ri.Hunk_Alloc(sizeof(*surface), ha_pref::h_low);
+				surface->surfaceType = surfaceType_t::SF_FACE;
+				surface->numVerts = 4;
+				surface->verts = ( srfVert_t* ) ri.Hunk_Alloc( surface->numVerts * sizeof( srfVert_t ), ha_pref::h_low );
+				surface->numTriangles = 2;
+				surface->triangles = ( srfTriangle_t* ) ri.Hunk_Alloc( surface->numTriangles * sizeof( srfTriangle_t ), ha_pref::h_low );
+				*/
+				surface = ( srfSurfaceFace_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
+				surface->surfaceType = surfaceType_t::SF_FACE;
+				surface->numVerts = 8;
+				surface->verts = ( srfVert_t* ) ri.Hunk_Alloc( surface->numVerts * sizeof( srfVert_t ), ha_pref::h_low );
+				surface->numTriangles = 12;
+				surface->triangles = ( srfTriangle_t* ) ri.Hunk_Alloc( surface->numTriangles * sizeof( srfTriangle_t ), ha_pref::h_low );
+				/* for ( int i = 0; i < 6; i++ ) {
+					surfaces[i].surfaceType = surfaceType_t::SF_FACE;
+					surfaces[i].numVerts = 4;
+					surfaces[i].numTriangles = 2;
+				} */
+				vec3_t v0 = { min[0], min[1], min[2] };
+				vec3_t v1 = { min[0], max[1], min[2] };
+				vec3_t v2 = { max[0], max[1], min[2] };
+				vec3_t v3 = { max[0], min[1], min[2] };
+				vec3_t v4 = { min[0], min[1], max[2] };
+				vec3_t v5 = { min[0], max[1], max[2] };
+				vec3_t v6 = { max[0], max[1], max[2] };
+				vec3_t v7 = { max[0], min[1], max[2] };
+				/* VectorCopy(v4, surface->verts[0].xyz);
+				VectorCopy( v5, surface->verts[1].xyz );
+				VectorCopy( v6, surface->verts[2].xyz );
+				VectorCopy( v7, surface->verts[3].xyz ); */
+				VectorCopy( v0, surface->verts[0].xyz );
+				VectorCopy( v1, surface->verts[1].xyz );
+				VectorCopy( v2, surface->verts[2].xyz );
+				VectorCopy( v3, surface->verts[3].xyz );
+				VectorCopy( v4, surface->verts[4].xyz );
+				VectorCopy( v5, surface->verts[5].xyz );
+				VectorCopy( v6, surface->verts[6].xyz );
+				VectorCopy( v7, surface->verts[7].xyz );
+				/* surface->triangles[0].indexes[0] = 0;
+				surface->triangles[0].indexes[1] = 1;
+				surface->triangles[0].indexes[2] = 2;
+				surface->triangles[1].indexes[0] = 0;
+				surface->triangles[1].indexes[1] = 2;
+				surface->triangles[1].indexes[2] = 3; */
+				surface->triangles[0].indexes[0] = 0;
+				surface->triangles[0].indexes[1] = 2;
+				surface->triangles[0].indexes[2] = 1;
+				surface->triangles[1].indexes[0] = 0;
+				surface->triangles[1].indexes[1] = 3;
+				surface->triangles[1].indexes[2] = 2;
+				surface->triangles[2].indexes[0] = 7;
+				surface->triangles[2].indexes[1] = 5;
+				surface->triangles[2].indexes[2] = 6;
+				surface->triangles[3].indexes[0] = 7;
+				surface->triangles[3].indexes[1] = 4;
+				surface->triangles[3].indexes[2] = 5;
+				surface->triangles[4].indexes[0] = 0;
+				surface->triangles[4].indexes[1] = 1;
+				surface->triangles[4].indexes[2] = 5;
+				surface->triangles[5].indexes[0] = 0;
+				surface->triangles[5].indexes[1] = 5;
+				surface->triangles[5].indexes[2] = 4;
+				surface->triangles[6].indexes[0] = 1;
+				surface->triangles[6].indexes[1] = 6;
+				surface->triangles[6].indexes[2] = 5;
+				surface->triangles[7].indexes[0] = 1;
+				surface->triangles[7].indexes[1] = 2;
+				surface->triangles[7].indexes[2] = 6;
+				surface->triangles[8].indexes[0] = 2;
+				surface->triangles[8].indexes[1] = 7;
+				surface->triangles[8].indexes[2] = 6;
+				surface->triangles[9].indexes[0] = 2;
+				surface->triangles[9].indexes[1] = 3;
+				surface->triangles[9].indexes[2] = 7;
+				surface->triangles[10].indexes[0] = 3;
+				surface->triangles[10].indexes[1] = 4;
+				surface->triangles[10].indexes[2] = 7;
+				surface->triangles[11].indexes[0] = 3;
+				surface->triangles[11].indexes[1] = 0;
+				surface->triangles[11].indexes[2] = 4;
+				surface->plane.normal[0] = 0.0;
+				surface->plane.normal[1] = 0.0;
+				surface->plane.normal[2] = -1.0;
+				surface->vbo = tr.world->vbo;
+				surface->ibo = tr.world->ibo;
+				skybox->surface = ( surfaceType_t* ) surface;
+				skybox->shader = nullptr;
+				sk2 = skybox;
+				// R_AddDrawSurf( ( surfaceType_t* ) surface, tr.defaultShader, -1, -1 );
+				sk3 = true;
+			}
+			// Log::Warn( "%i", ( ( srfSurfaceFace_t* ) sk2->surface )->numVerts );
+			// vec3_t min = { -9999.0, -9999.0, -9999.0 };
+			// vec3_t max = { 9999.0, 9999.0, 9999.0 };
+			R_BindVBO( tess.vbo );
+			R_BindIBO( tess.ibo );
+			glEnable( GL_LINE_SMOOTH );
+			glDisable( GL_LINE_SMOOTH );
+			// glDisable( GL_CULL_FACE );
+			( ( srfSurfaceFace_t* ) sk->surface )->vbo = tr.world->vbo;
+			( ( srfSurfaceFace_t* ) sk->surface )->ibo = tr.world->ibo;
+			rb_surfaceTable[Util::ordinal( *( sk->surface ) )]( sk->surface );
+			Tess_UpdateVBOs();
+			tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
+			GL_VertexAttribsState( tess.attribsSet );
+			// tess.indexBase = 0;
+			Tess_DrawElements();
+			glEnable( GL_LINE_SMOOTH );
+			glDisable( GL_LINE_SMOOTH );
+			GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
+			
+			/* image_t* skyOuterBox = tess.surfaceShader->sky.outerbox;
+			tess.multiDrawPrimitives = 0;
+			tess.numIndexes = 0;
+			tess.numVertexes = 0;
+			tess.attribsSet = 0;
+			Tess_MapVBOs( false );
+			// Log::Warn( "%i", tess.numVertexes);
+			if ( !sk3 ) {
+				drawSurf_t* skybox;
+				skybox = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *skybox ), ha_pref::h_low );
+				skybox->entity = &tr.worldEntity;
+				srfSurfaceFace_t* surface;
+				vec3_t min = { -9999.0, -9999.0, -9999.0 };
+				vec3_t max = { 9999.0, 9999.0, 9999.0 };
+				surface = ( srfSurfaceFace_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
+				surface->surfaceType = surfaceType_t::SF_FACE;
+				surface->numVerts = 4;
+				surface->verts = ( srfVert_t* ) ri.Hunk_Alloc( surface->numVerts * sizeof( srfVert_t ), ha_pref::h_low );
+				surface->numTriangles = 2;
+				surface->triangles = ( srfTriangle_t* ) ri.Hunk_Alloc( surface->numTriangles * sizeof( srfTriangle_t ), ha_pref::h_low );
+				vec3_t v0 = { min[0], min[1], min[2] };
+				vec3_t v1 = { min[0], max[1], min[2] };
+				vec3_t v2 = { max[0], max[1], min[2] };
+				vec3_t v3 = { max[0], min[1], min[2] };
+				vec3_t v4 = { min[0], min[1], max[2] };
+				vec3_t v5 = { min[0], max[1], max[2] };
+				vec3_t v6 = { max[0], max[1], max[2] };
+				vec3_t v7 = { max[0], min[1], max[2] };
+				VectorCopy( v4, surface->verts[0].xyz );
+				VectorCopy( v5, surface->verts[1].xyz );
+				VectorCopy( v6, surface->verts[2].xyz );
+				VectorCopy( v7, surface->verts[3].xyz );
+				surface->triangles[0].indexes[0] = 0;
+				surface->triangles[0].indexes[1] = 1;
+				surface->triangles[0].indexes[2] = 2;
+				surface->triangles[1].indexes[0] = 0;
+				surface->triangles[1].indexes[1] = 2;
+				surface->triangles[1].indexes[2] = 3;
+				surface->plane.normal[0] = 0.0;
+				surface->plane.normal[1] = 0.0;
+				surface->plane.normal[2] = -1.0;
+				surface->vbo = tr.world->vbo;
+				surface->ibo = tr.world->ibo;
+				skybox->surface = ( surfaceType_t* ) surface;
+				skybox->shader = nullptr;
+				sk2 = skybox;
+				// R_AddDrawSurf( ( surfaceType_t* ) surface, tr.defaultShader, -1, -1 );
+				sk3 = true;
+			}
+			// Log::Warn( "%i", ( ( srfSurfaceFace_t* ) sk2->surface )->numVerts );
+			vec3_t min = { -9999.0, -9999.0, -9999.0 };
+			vec3_t max = { 9999.0, 9999.0, 9999.0 };
+			R_BindVBO( tess.vbo );
+			R_BindIBO( tess.ibo );
+			glEnable( GL_LINE_SMOOTH );
+			glDisable( GL_LINE_SMOOTH );
+			gl_skyboxShader->BindProgram(0);
+
+			gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
+
+			gl_skyboxShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+			gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+			gl_skyboxShader->SetRequiredVertexPointers();
+
+			// bind u_ColorMap
+			glDisable( GL_CULL_FACE );
+			// glDisable( GL_DEPTH_TEST );
+			GL_BindToTMU( 0, skyOuterBox );
+			// Tess_Begin( Tess_StageIteratorGeneric, nullptr, tr.defaultShader,
+				// nullptr, false, false, -1, -1, false );
+			// rb_surfaceTable[Util::ordinal( *( sk2->surface ) )]( sk2->surface );
+			int vertexStart = tess.numVertexes;
+			tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
+			vec3_t v0 = { min[0], min[1], min[2] };
+			vec3_t v1 = { min[0], max[1], min[2] };
+			vec3_t v2 = { max[0], max[1], min[2] };
+			vec3_t v3 = { max[0], min[1], min[2] };
+			vec3_t v4 = { min[0], min[1], max[2] };
+			vec3_t v5 = { min[0], max[1], max[2] };
+			vec3_t v6 = { max[0], max[1], max[2] };
+			vec3_t v7 = { max[0], min[1], max[2] };
+			VectorCopy( v0, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v1, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v2, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v3, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v4, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v5, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v6, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			VectorCopy( v7, tess.verts[tess.numVertexes].xyz );
+			tess.numVertexes++;
+			tess.indexes[tess.numIndexes] = vertexStart;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 2;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 2;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 5;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 7;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 5;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 2;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 1;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 5;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 2;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 7;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 6;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 7;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 3;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart;
+			tess.numIndexes++;
+			tess.indexes[tess.numIndexes] = vertexStart + 4;
+			tess.numIndexes++;
+			Tess_UpdateVBOs();
+			tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
+			GL_VertexAttribsState( tess.attribsSet );
+			// tess.indexBase = 0;
+			Tess_DrawElements();
+			glEnable( GL_LINE_SMOOTH );
+			glDisable( GL_LINE_SMOOTH );
+			// Tess_End(); */
 		}
 
 		// generate the vertexes for all the clouds, which will be drawn
 		// by the generic shader routine
-		BuildCloudData();
+		// BuildCloudData();
 
 		if ( tess.numVertexes || tess.multiDrawPrimitives )
 		{
-			tess.stageIteratorFunc2();
+			// tess.stageIteratorFunc2();
 		}
 
 		if ( tess.stageIteratorFunc2 != Tess_StageIteratorDepthFill )

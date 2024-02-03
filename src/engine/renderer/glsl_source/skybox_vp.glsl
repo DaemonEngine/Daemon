@@ -26,6 +26,7 @@ IN vec3 		attr_Position;
 
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
+uniform vec3		u_ViewOrigin;
 
 OUT(smooth) vec3	var_Position;
 
@@ -33,8 +34,10 @@ void	main()
 {
 	// transform vertex position into homogenous clip-space
 	gl_Position = u_ModelViewProjectionMatrix * vec4(attr_Position, 1.0);
+	// gl_Position = vec4(attr_Position, 1.0);
 
 	// transform position into world space
 	var_Position = (u_ModelMatrix * vec4(attr_Position, 1.0)).xyz;
+	// var_Position = attr_Position.xyz;
 }
 
