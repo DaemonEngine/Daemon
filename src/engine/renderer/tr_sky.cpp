@@ -871,11 +871,7 @@ void Tess_StageIteratorSky()
 
 			// Log::Warn( "%i %f %f %f", backEnd.viewParms.portalLevel, backEnd.viewParms.orientation.origin[0],
 				// backEnd.viewParms.orientation.origin[1], backEnd.viewParms.orientation.origin[2] );
-			if ( backEnd.viewParms.portalLevel < 0 ) {
-				gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.skyboxOrigin );  // in world space
-			} else {
-				gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
-			}
+			gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
 			if ( backEnd.viewParms.portalLevel > 0 ) {
 				matrix_t m;
 				MatrixSetupScale( m, 10, 10, 10 );
