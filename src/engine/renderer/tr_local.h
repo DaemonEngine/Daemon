@@ -3032,6 +3032,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_rimLighting;
 	extern cvar_t *r_rimExponent;
 
+	extern Cvar::Cvar<bool> r_highPrecisionRendering;
+
 	extern cvar_t *r_logFile; // number of frames to emit GL logs
 
 	extern cvar_t *r_clear; // force screen clear every frame
