@@ -186,6 +186,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_halfLambertLighting;
 	cvar_t      *r_rimLighting;
 	cvar_t      *r_rimExponent;
+
+	Cvar::Cvar<bool> r_highPrecisionRendering("r_highPrecisionRendering", "use high precision frame buffers for rendering and blending", Cvar::NONE, true);
+
 	cvar_t      *r_gamma;
 	cvar_t      *r_lockpvs;
 	cvar_t      *r_noportals;
@@ -1253,6 +1256,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_rimLighting = Cvar_Get( "r_rimLighting", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimExponent = Cvar_Get( "r_rimExponent", "3", CVAR_CHEAT | CVAR_LATCH );
 		AssertCvarRange( r_rimExponent, 0.5, 8.0, false );
+
+		Cvar::Latch( r_highPrecisionRendering );
 
 		r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
 		r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT );

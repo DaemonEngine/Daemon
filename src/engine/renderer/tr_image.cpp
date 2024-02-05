@@ -2408,13 +2408,22 @@ static void R_CreateCurrentRenderImage()
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
+
+	if ( glConfig2.textureFloatAvailable && r_highPrecisionRendering.Get() )
+	{
+		imageParams.bits |= IF_RGBA16;
+	}
+
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.currentRenderImage[0] = R_CreateImage( "_currentRender[0]", nullptr, width, height, 1, imageParams );
 	tr.currentRenderImage[1] = R_CreateImage( "_currentRender[1]", nullptr, width, height, 1, imageParams );
 
-	imageParams.bits |= IF_PACKED_DEPTH24_STENCIL8;
+	imageParams = {};
+	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8;
+	imageParams.filterType = filterType_t::FT_NEAREST;
+	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
 }
