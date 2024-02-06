@@ -1277,10 +1277,10 @@ void Tess_UpdateVBOs()
 
 /*
 ============
-R_VBOList_f
+R_ListVBOs_f
 ============
 */
-void R_VBOList_f()
+void R_ListVBOs_f()
 {
 	int   i;
 	VBO_t *vbo;

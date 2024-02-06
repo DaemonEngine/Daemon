@@ -6215,13 +6215,13 @@ shader_t       *R_GetShaderByHandle( qhandle_t hShader )
 
 /*
 ===============
-R_ShaderList_f
+R_ListShaders_f
 
 Dump information on all valid shaders to the console
 A second parameter will cause it to print in sorted order
 ===============
 */
-void R_ShaderList_f()
+void R_ListShaders_f()
 {
 	const char *prefix = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv( 1 ) : nullptr;
 

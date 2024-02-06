@@ -2510,7 +2510,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 
 	void               R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs );
 
-	void               R_Modellist_f();
+	void               R_ListModels_f();
 
 //====================================================
 	extern refimport_t ri;
@@ -3315,8 +3315,8 @@ inline bool checkGLErrors()
 
 	bool   R_GetModeInfo( int *width, int *height, int mode );
 
-	void       R_ImageList_f();
-	void       R_SkinList_f();
+	void       R_ListImages_f();
+	void       R_ListSkins_f();
 
 // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516
 	const void *RB_TakeScreenshotCmd( const void *data );
@@ -3372,7 +3372,7 @@ inline bool checkGLErrors()
 	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );
 	void      R_InitShaders();
-	void      R_ShaderList_f();
+	void      R_ListShaders_f();
 	void      R_ShaderExp_f();
 	void      R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
 
@@ -3566,7 +3566,6 @@ inline bool checkGLErrors()
 
 	void     R_AddWorldInteractions( trRefLight_t *light );
 	void     R_AddPrecachedWorldInteractions( trRefLight_t *light );
-	void     R_ShutdownVBOs();
 
 	/*
 	============================================================
@@ -3682,7 +3681,7 @@ inline bool checkGLErrors()
 
 	void     R_InitFBOs();
 	void     R_ShutdownFBOs();
-	void     R_FBOList_f();
+	void     R_ListFBOs_f();
 
 	/*
 	============================================================
@@ -3705,7 +3704,7 @@ inline bool checkGLErrors()
 
 	void  R_InitVBOs();
 	void  R_ShutdownVBOs();
-	void  R_VBOList_f();
+	void  R_ListVBOs_f();
 
 	/*
 	============================================================
@@ -3773,7 +3772,7 @@ inline bool checkGLErrors()
 	qhandle_t RE_RegisterAnimationIQM( const char *name, IQAnim_t *data );
 
 	skelAnimation_t *R_GetAnimationByHandle( qhandle_t hAnim );
-	void            R_AnimationList_f();
+	void            R_ListAnimations_f();
 
 	void            R_AddMD5Surfaces( trRefEntity_t *ent );
 	void            R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
