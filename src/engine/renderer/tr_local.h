@@ -710,7 +710,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
 
-		uint16_t       width, height; // source image
+		uint16_t width, height, numLayers; // source image
 		uint16_t       uploadWidth, uploadHeight; // after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
 
 		int            frameUsed; // for texture usage in frame statistics
