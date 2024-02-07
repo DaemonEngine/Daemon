@@ -418,6 +418,127 @@ public:
 	}
 };
 
+class GLUniform2i : protected GLUniform
+{
+protected:
+	GLUniform2i( GLShader *shader, const char *name ) :
+	GLUniform( shader, name )
+	{
+	}
+
+	inline void SetValue( const ivec2_t v )
+	{
+		shaderProgram_t *p = _shader->GetProgram();
+
+		ASSERT_EQ(p, glState.currentProgram);
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer )
+		{
+			GLimp_LogComment( va( "GLSL_SetUniform2i( %s, shader: %s, value: [ %d, %d ] ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ] ) );
+		}
+#endif
+#if defined( USE_UNIFORM_FIREWALL )
+		ivec2_t *firewall = ( ivec2_t * ) &p->uniformFirewall[ _firewallIndex ];
+
+		if ( !memcmp( *firewall, v, sizeof( *firewall ) ) )
+		{
+			return;
+		}
+
+		( *firewall )[ 0 ] = v[ 0 ];
+		( *firewall )[ 1 ] = v[ 1 ];
+#endif
+		glUniform2i( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ] );
+	}
+
+	size_t GetSize() override
+	{
+		return sizeof( ivec2_t );
+	}
+};
+
+class GLUniform3i : protected GLUniform
+{
+protected:
+	GLUniform3i( GLShader *shader, const char *name ) :
+	GLUniform( shader, name )
+	{
+	}
+
+	inline void SetValue( const ivec3_t v )
+	{
+		shaderProgram_t *p = _shader->GetProgram();
+
+		ASSERT_EQ(p, glState.currentProgram);
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer )
+		{
+			GLimp_LogComment( va( "GLSL_SetUniform3i( %s, shader: %s, value: [ %d, %d, %d ] ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ] ) );
+		}
+#endif
+#if defined( USE_UNIFORM_FIREWALL )
+		ivec3_t *firewall = ( ivec3_t * ) &p->uniformFirewall[ _firewallIndex ];
+
+		if ( !memcmp( *firewall, v, sizeof( *firewall ) ) )
+		{
+			return;
+		}
+
+		VectorCopy( v, *firewall );
+#endif
+		glUniform3i( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ] );
+	}
+public:
+	size_t GetSize() override
+	{
+		return sizeof( ivec3_t );
+	}
+};
+
+class GLUniform4i : protected GLUniform
+{
+protected:
+	GLUniform4i( GLShader *shader, const char *name ) :
+	GLUniform( shader, name )
+	{
+	}
+
+	inline void SetValue( const ivec4_t v )
+	{
+		shaderProgram_t *p = _shader->GetProgram();
+
+		ASSERT_EQ(p, glState.currentProgram);
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer )
+		{
+			GLimp_LogComment( va( "GLSL_SetUniform4i( %s, shader: %s, value: [ %d, %d, %d, %d ] ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] ) );
+		}
+#endif
+#if defined( USE_UNIFORM_FIREWALL )
+		ivec4_t *firewall = ( ivec4_t * ) &p->uniformFirewall[ _firewallIndex ];
+
+		if ( !memcmp( *firewall, v, sizeof( *firewall ) ) )
+		{
+			return;
+		}
+
+		Vector4Copy( v, *firewall );
+#endif
+		glUniform4i( p->uniformLocations[ _locationIndex ], v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
+	}
+public:
+	size_t GetSize() override
+	{
+		return sizeof( ivec4_t );
+	}
+};
+
 class GLUniform1f : protected GLUniform
 {
 protected:
