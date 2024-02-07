@@ -975,7 +975,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 			// Deluxe mapping emulation from grid light for game models.
 			// Store lightGrid2 as deluxemap,
 			// the GLSL code will know how to deal with it.
-		deluxemap = tr.lightGrid2Image;
+			deluxemap = tr.lightGrid2Image;
 			break;
 
 		default:
