@@ -1678,6 +1678,19 @@ public:
 	}
 };
 
+
+class u_CloudHeight :
+	GLUniform1f {
+	public:
+	u_CloudHeight( GLShader* shader ) :
+		GLUniform1f( shader, "u_CloudHeight" ) {
+	}
+
+	void SetUniform_CloudHeight( const float cloudHeight ) {
+		this->SetValue( cloudHeight );
+	}
+};
+
 class u_Color :
 	GLUniform4f
 {
@@ -1795,6 +1808,18 @@ public:
 	void SetUniform_UnprojectMatrix( const matrix_t m )
 	{
 		this->SetValue( GL_FALSE, m );
+	}
+};
+
+class u_UseCloudMap :
+	GLUniform1i {
+	public:
+	u_UseCloudMap( GLShader* shader ) :
+		GLUniform1i( shader, "u_UseCloudMap" ) {
+	}
+
+	void SetUniform_UseCloudMap( const bool useCloudMap ) {
+		this->SetValue( useCloudMap );
 	}
 };
 
@@ -2470,12 +2495,16 @@ public:
 
 class GLShader_skybox :
 	public GLShader,
+	public u_TextureMatrix,
 	public u_ViewOrigin,
+	public u_CloudHeight,
+	public u_UseCloudMap,
+	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_Bones,
 	public u_VertexInterpolation,
-	public GLDeformStage
+	public GLDeformStage,
+	public GLCompileMacro_USE_ALPHA_TESTING
 {
 public:
 	GLShader_skybox( GLShaderManager *manager );

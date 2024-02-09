@@ -164,7 +164,7 @@ static bool Tess_SurfaceVBO( VBO_t *vbo, IBO_t *ibo, int numIndexes, int firstIn
 		return false;
 	}
 
-	if ( tess.skipVBO || tess.stageIteratorFunc == &Tess_StageIteratorSky )
+	if ( tess.skipVBO )
 	{
 		return false;
 	}

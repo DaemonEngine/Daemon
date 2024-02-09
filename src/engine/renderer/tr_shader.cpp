@@ -3525,8 +3525,6 @@ static void ParseSkyParms( const char **text )
 		shader.sky.cloudHeight = 512;
 	}
 
-	R_InitSkyTexCoords( shader.sky.cloudHeight );
-
 	// innerbox
 	token = COM_ParseExt2( text, false );
 
@@ -3556,6 +3554,7 @@ static void ParseSkyParms( const char **text )
 		}
 	}
 
+	tr.hasSkybox = true;
 	shader.isSky = true;
 }
 
