@@ -527,20 +527,9 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		Sys::Error( "tess.stageIteratorFunc == NULL" );
 	}
 
-	bool isSky = ( state != nullptr && state->isSky != false );
-
-	if ( isSky )
+	if ( state != nullptr && state->isSky )
 	{
-		if ( tess.stageIteratorFunc == &Tess_StageIteratorGeneric )
-		{
-			tess.stageIteratorFunc = &Tess_StageIteratorSky;
-			tess.stageIteratorFunc2 = &Tess_StageIteratorGeneric;
-		}
-		else if ( tess.stageIteratorFunc == &Tess_StageIteratorDepthFill )
-		{
-			tess.stageIteratorFunc = &Tess_StageIteratorSky;
-			tess.stageIteratorFunc2 = &Tess_StageIteratorDepthFill;
-		}
+		tess.stageIteratorFunc = &Tess_StageIteratorSky;
 	}
 
 	tess.skipTangentSpaces = skipTangentSpaces;

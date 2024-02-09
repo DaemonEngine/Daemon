@@ -1931,18 +1931,23 @@ void GLShader_reflection::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	GLShader( "skybox", ATTR_POSITION, manager ),
+	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
+	u_CloudHeight( this ),
+	u_UseCloudMap( this ),
+	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Bones( this ),
 	u_VertexInterpolation( this ),
-	GLDeformStage( this )
+	GLDeformStage( this ),
+	GLCompileMacro_USE_ALPHA_TESTING( this )
 {
 }
 
 void GLShader_skybox::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CloudMap" ), 1 );
 }
 
 GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :

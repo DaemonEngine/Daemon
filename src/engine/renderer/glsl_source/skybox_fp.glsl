@@ -22,19 +22,56 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* skybox_fp.glsl */
 
+const float radiusWorld = 4096.0; // Value used by quake 3 skybox code
+
 uniform samplerCube	u_ColorMap;
-uniform vec3		u_ViewOrigin;
+uniform sampler2D	u_CloudMap;
+
+uniform bool        u_UseCloudMap;
+uniform float       u_CloudHeight;
+
+uniform mat4		u_TextureMatrix;
+
+uniform float		u_AlphaThreshold;
 
 IN(smooth) vec3		var_Position;
 
 DECLARE_OUTPUT(vec4)
 
+// Parametric cloud function used by quake 3 skybox code
+float ComputeCloudParametric( vec3 skyVec, float radiusWorld, float cloudHeight ) {
+	return (1.0 / 2.0 * dot( skyVec, skyVec ) ) * ( -2.0 * skyVec.z * radiusWorld
+			+ 2.0 * sqrt( skyVec.z * skyVec.z * radiusWorld * radiusWorld
+			+ 2.0 * skyVec.x * skyVec.x * radiusWorld * cloudHeight
+			+ skyVec.x * skyVec.x * cloudHeight * cloudHeight + 2.0 * skyVec.y * skyVec.y * radiusWorld * cloudHeight
+			+ skyVec.y * skyVec.y * cloudHeight * cloudHeight
+			+ 2.0 * skyVec.z * skyVec.z * radiusWorld * cloudHeight + skyVec.z * skyVec.z * cloudHeight * cloudHeight  ) );
+}
+
 void	main()
 {
 	// compute incident ray
-	vec3 incidentRay = normalize(var_Position - u_ViewOrigin);
+	vec3 incidentRay = normalize(var_Position);
+	vec4 color;
 
-	vec4 color = textureCube(u_ColorMap, incidentRay).rgba;
+	if( !u_UseCloudMap ) {
+		color = textureCube(u_ColorMap, incidentRay).rgba;
+	} else {
+		incidentRay *= ComputeCloudParametric( incidentRay, radiusWorld, u_CloudHeight );
+		incidentRay.z += radiusWorld;
+		incidentRay = normalize( incidentRay );
+		vec2 st = vec2( acos(incidentRay.x), acos(incidentRay.y) );
+		st = (u_TextureMatrix * vec4(st, 0.0, 1.0)).xy;
+		color = texture2D( u_CloudMap, st ).rgba;
+	}
+	
+	#if defined(USE_ALPHA_TESTING)
+		if( abs(color.a + u_AlphaThreshold) <= 1.0 )
+			{
+				discard;
+				return;
+			}
+	#endif
 
 	outputColor = color;
 }

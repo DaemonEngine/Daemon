@@ -1634,6 +1634,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 
 		float          fovX, fovY;
 		matrix_t       projectionMatrix;
+		matrix_t       projectionMatrixNonPortal; // For skybox rendering in portals
 		matrix_t       unprojectionMatrix; // transform pixel window space -> world space
 
 		float          parallelSplitDistances[ MAX_SHADOWMAPS + 1 ]; // distances in camera space
@@ -2827,6 +2828,9 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 		orientationr_t orientation; // for current entity
 
 		trRefdef_t     refdef;
+
+		bool           hasSkybox;
+		drawSurf_t     *skybox;
 
 		vec3_t         sunLight; // from the sky shader for this level
 		vec3_t         sunDirection;
