@@ -53,11 +53,15 @@ struct winding_t
 
 winding_t *AllocWinding( int points );
 winding_t *CopyWinding( winding_t *w );
+winding_t *BaseWindingForPlane( const plane_t &plane );
+// Backward compatibility with game.
 winding_t *BaseWindingForPlane( const vec3_t normal, const vec_t dist );
 void      FreeWinding( winding_t *w );
 void      WindingBounds( winding_t *w, vec3_t mins, vec3_t maxs );
 
-void      ChopWindingInPlace( winding_t **w, const vec3_t normal, const vec_t dist, const vec_t epsilon );
+void ChopWindingInPlace( winding_t **w, const plane_t &plane, const vec_t epsilon );
+// Backward compatibility with game.
+void ChopWindingInPlace( winding_t **w, const vec3_t normal, const vec_t dist, const vec_t epsilon );
 
 // frees the original if clipped
 

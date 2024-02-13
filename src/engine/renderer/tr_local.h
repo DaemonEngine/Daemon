@@ -437,7 +437,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		int                       restrictInteractionLast;
 
 		frustum_t                 frustum;
-		vec4_t                    localFrustum[ 6 ];
+		plane_t localFrustum[ 6 ];
 		struct VBO_t              *frustumVBO;
 
 		struct IBO_t              *frustumIBO;
@@ -1466,7 +1466,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		float    radius, radius2;
 		bool omnidirectional;
 		int      numPlanes; // either 5 or 6, for quad or triangle projectors
-		vec4_t   planes[ 6 ];
+		plane_t planes[ 6 ];
 		vec4_t   texMat[ 3 ][ 2 ];
 	};
 
@@ -3085,15 +3085,15 @@ inline bool checkGLErrors()
 	template<size_t frustumSize>
 	inline
 	typename std::enable_if<(frustumSize >= frustumBits_t::FRUSTUM_NEAR + 1)>::type
-	R_CalcFrustumNearCorners( const vec4_t(&frustum)[frustumSize], vec3_t (&corners)[ 4 ] ) {
-		extern void R_CalcFrustumNearCornersUnsafe( const vec4_t frustum[frustumBits_t::FRUSTUM_NEAR + 1], vec3_t (&corners)[ 4 ] );
+	R_CalcFrustumNearCorners( const plane_t(&frustum)[frustumSize], vec3_t (&corners)[ 4 ] ) {
+		extern void R_CalcFrustumNearCornersUnsafe( const plane_t frustum[frustumBits_t::FRUSTUM_NEAR + 1], vec3_t (&corners)[ 4 ] );
 		R_CalcFrustumNearCornersUnsafe( frustum, corners );
 	}
 	template<size_t frustumSize>
 	inline
 	typename std::enable_if<(frustumSize >= frustumBits_t::FRUSTUM_FAR + 1)>::type
-	R_CalcFrustumFarCorners( const vec4_t(&frustum)[frustumSize], vec3_t (&corners)[ 4 ] ) {
-		extern void R_CalcFrustumFarCornersUnsafe( const vec4_t frustum[frustumBits_t::FRUSTUM_FAR + 1], vec3_t (&corners)[ 4 ] );
+	R_CalcFrustumFarCorners( const plane_t(&frustum)[frustumSize], vec3_t (&corners)[ 4 ] ) {
+		extern void R_CalcFrustumFarCornersUnsafe( const plane_t frustum[frustumBits_t::FRUSTUM_FAR + 1], vec3_t (&corners)[ 4 ] );
 		R_CalcFrustumFarCornersUnsafe( frustum, corners );
 	}
 

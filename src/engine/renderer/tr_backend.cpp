@@ -1532,7 +1532,6 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 				vec3_t   viewOrigin, viewDirection;
 				matrix_t rotationMatrix, transformMatrix, viewMatrix, projectionMatrix, viewProjectionMatrix;
 				matrix_t cropMatrix;
-				vec4_t   splitFrustum[ 6 ];
 				vec3_t   splitFrustumNearCorners[ 4 ];
 				vec3_t   splitFrustumFarCorners[ 4 ];
 				vec3_t   splitFrustumBounds[ 2 ];
@@ -1597,10 +1596,11 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 
 					MatrixLookAtRH( light->viewMatrix, viewOrigin, lightDirection, up );
 
+					plane_t splitFrustum[ 6 ];
 					for ( j = 0; j < 6; j++ )
 					{
-						VectorCopy( backEnd.viewParms.frustums[ 1 + splitFrustumIndex ][ j ].normal, splitFrustum[ j ] );
-						splitFrustum[ j ][ 3 ] = backEnd.viewParms.frustums[ 1 + splitFrustumIndex ][ j ].dist;
+						VectorCopy( backEnd.viewParms.frustums[ 1 + splitFrustumIndex ][ j ].normal, splitFrustum[ j ].normal );
+						splitFrustum[ j ].dist = backEnd.viewParms.frustums[ 1 + splitFrustumIndex ][ j ].dist;
 					}
 
 					R_CalcFrustumNearCorners( splitFrustum, splitFrustumNearCorners );
@@ -1877,7 +1877,6 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 
 						{
 							int    j;
-							vec4_t splitFrustum[ 6 ];
 							vec3_t farCorners[ 4 ];
 							vec3_t nearCorners[ 4 ];
 
@@ -1913,10 +1912,11 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 							tess.numIndexes = 0;
 							tess.numVertexes = 0;
 
+							plane_t splitFrustum[ 6 ];
 							for ( j = 0; j < 6; j++ )
 							{
-								VectorCopy( backEnd.viewParms.frustums[ 1 + frustumIndex ][ j ].normal, splitFrustum[ j ] );
-								splitFrustum[ j ][ 3 ] = backEnd.viewParms.frustums[ 1 + frustumIndex ][ j ].dist;
+								VectorCopy( backEnd.viewParms.frustums[ 1 + frustumIndex ][ j ].normal, splitFrustum[ j ].normal );
+								splitFrustum[ j ].dist = backEnd.viewParms.frustums[ 1 + frustumIndex ][ j ].dist;
 							}
 
 							R_CalcFrustumNearCorners( splitFrustum, nearCorners );
@@ -4319,7 +4319,6 @@ static void RB_RenderDebugUtils()
 
 				{
 					int    j;
-					vec4_t splitFrustum[ 6 ];
 					vec3_t farCorners[ 4 ];
 					vec3_t nearCorners[ 4 ];
 					vec3_t cropBounds[ 2 ];
@@ -4382,10 +4381,11 @@ static void RB_RenderDebugUtils()
 
 					Tess_MapVBOs( false );
 
+					plane_t splitFrustum[ 6 ];
 					for ( j = 0; j < 6; j++ )
 					{
-						VectorCopy( backEnd.viewParms.frustums[ 0 ][ j ].normal, splitFrustum[ j ] );
-						splitFrustum[ j ][ 3 ] = backEnd.viewParms.frustums[ 0 ][ j ].dist;
+						VectorCopy( backEnd.viewParms.frustums[ 0 ][ j ].normal, splitFrustum[ j ].normal );
+						splitFrustum[ j ].dist = backEnd.viewParms.frustums[ 0 ][ j ].dist;
 					}
 
 					// calculate split frustum corner points
