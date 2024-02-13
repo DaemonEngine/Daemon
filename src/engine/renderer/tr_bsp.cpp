@@ -5052,13 +5052,13 @@ static int UpdateLightTriangles( const srfVert_t *verts, int numTriangles, srfTr
 	for ( i = 0, tri = triangles; i < numTriangles; i++, tri++ )
 	{
 		vec3_t pos[ 3 ];
-		vec4_t triPlane;
 		float  d;
 
 		VectorCopy( verts[ tri->indexes[ 0 ] ].xyz, pos[ 0 ] );
 		VectorCopy( verts[ tri->indexes[ 1 ] ].xyz, pos[ 1 ] );
 		VectorCopy( verts[ tri->indexes[ 2 ] ].xyz, pos[ 2 ] );
 
+		plane_t triPlane;
 		if ( PlaneFromPoints( triPlane, pos[ 0 ], pos[ 1 ], pos[ 2 ] ) )
 		{
 
@@ -5069,14 +5069,14 @@ static int UpdateLightTriangles( const srfVert_t *verts, int numTriangles, srfTr
 				// light direction is from surface to light
 				VectorCopy( tr.sunDirection, lightDirection );
 
-				d = DotProduct( triPlane, lightDirection );
+				d = DotProduct( triPlane.normal, lightDirection );
 
 				tri->facingLight = surfaceShader->cullType == CT_TWO_SIDED || ( d > 0 && surfaceShader->cullType != CT_BACK_SIDED );
 			}
 			else
 			{
 				// check if light origin is behind triangle
-				d = DotProduct( triPlane, light->origin ) - triPlane[ 3 ];
+				d = DotProduct( triPlane.normal, light->origin ) - triPlane.dist;
 
 				tri->facingLight = surfaceShader->cullType == CT_TWO_SIDED || ( d > 0 && surfaceShader->cullType != CT_BACK_SIDED );
 			}

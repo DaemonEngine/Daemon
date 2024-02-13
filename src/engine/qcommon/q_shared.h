@@ -227,7 +227,6 @@ void  Com_Free_Aligned( void *ptr );
 
 	using vec_t = float;
 	using vec2_t = vec_t[2];
-
 	using vec3_t = vec_t[3];
 	using vec4_t = vec_t[4];
 
@@ -235,6 +234,11 @@ void  Com_Free_Aligned( void *ptr );
 	using matrix3x3_t = vec_t[3 * 3];
 	using matrix_t = vec_t[4 * 4];
 	using quat_t = vec_t[4];
+
+	struct plane_t {
+		vec3_t normal;
+		vec_t dist;
+	};
 
 	// A transform_t represents a product of basic
 	// transformations, which are a rotation about an arbitrary
@@ -407,6 +411,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 {
 	return x[ 0 ] * y[ 0 ] + x[ 1 ] * y[ 1 ] + x[ 2 ] * y[ 2 ];
 }
+
 #define VectorSubtract( a,b,c )      ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] - ( b )[ 2 ] )
 #define VectorAdd( a,b,c )           ( ( c )[ 0 ] = ( a )[ 0 ] + ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] + ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] + ( b )[ 2 ] )
 #define VectorCopy( a,b )            ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ],( b )[ 2 ] = ( a )[ 2 ] )
@@ -426,6 +431,8 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 #define Vector2Subtract( a,b,c )     ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ] )
 
 #define Vector4Set( v, x, y, z, n )  ( ( v )[ 0 ] = ( x ),( v )[ 1 ] = ( y ),( v )[ 2 ] = ( z ),( v )[ 3 ] = ( n ) )
+#define Vector4Subtract( a,b,c )     ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] - ( b )[ 3 ],( c )[ 3 ] = ( a )[ 3 ] - ( b )[ 3 ] )
+#define Vector4Negate( a,b )         ( ( b )[ 0 ] = -( a )[ 0 ],( b )[ 1 ] = -( a )[ 1 ],( b )[ 2 ] = -( a )[ 2 ],( b )[ 3 ] = -( a )[ 3 ] )
 #define Vector4Copy( a,b )           ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ],( b )[ 2 ] = ( a )[ 2 ],( b )[ 3 ] = ( a )[ 3 ] )
 /** Stands for MultiplyAdd: adding a vector "b" scaled by "s" to "v" and writing it to "o" */
 #define Vector4MA( v, s, b, o )      ( ( o )[ 0 ] = ( v )[ 0 ] + ( b )[ 0 ] * ( s ),( o )[ 1 ] = ( v )[ 1 ] + ( b )[ 1 ] * ( s ),( o )[ 2 ] = ( v )[ 2 ] + ( b )[ 2 ] * ( s ),( o )[ 3 ] = ( v )[ 3 ] + ( b )[ 3 ] * ( s ) )
@@ -543,16 +550,18 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	float AngleBetweenVectors( const vec3_t a, const vec3_t b );
 	void  AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
 
-	vec_t PlaneNormalize( vec4_t plane );  // returns normal length
+	void PlaneSet( plane_t &out, const vec_t x, const vec_t y, const vec_t z, const vec_t dist );
+	void PlaneSet( plane_t &out, const vec4_t v );
+	vec_t PlaneNormalize( plane_t &plane );  // returns normal length
 
 	/* greebo: This calculates the intersection point of three planes.
 	 * Returns <0,0,0> if no intersection point could be found, otherwise returns the coordinates of the intersection point
 	 * (this may also be 0,0,0) */
-	bool PlanesGetIntersectionPoint( const vec4_t plane1, const vec4_t plane2, const vec4_t plane3, vec3_t out );
-	void     PlaneIntersectRay( const vec3_t rayPos, const vec3_t rayDir, const vec4_t plane, vec3_t res );
+	bool PlanesGetIntersectionPoint( const plane_t &plane1, const plane_t &plane2, const plane_t &plane3, vec3_t out );
+	void PlaneIntersectRay( const vec3_t rayPos, const vec3_t rayDir, const plane_t &plane, vec3_t res );
 
-	bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
-	bool PlaneFromPointsOrder( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c, bool cw );
+	bool PlaneFromPoints( plane_t &plane, const vec3_t a, const vec3_t b, const vec3_t c );
+	bool PlaneFromPointsOrder( plane_t &plane, const vec3_t a, const vec3_t b, const vec3_t c, bool cw );
 	void     ProjectPointOnPlane( vec3_t dst, const vec3_t point, const vec3_t normal );
 	void     RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
 
@@ -617,8 +626,10 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void     MatrixFromVectorsFLU( matrix_t m, const vec3_t forward, const vec3_t left, const vec3_t up );
 	void     MatrixFromVectorsFRU( matrix_t m, const vec3_t forward, const vec3_t right, const vec3_t up );
 	void     MatrixFromQuat( matrix_t m, const quat_t q );
-	void     MatrixFromPlanes( matrix_t m, const vec4_t left, const vec4_t right, const vec4_t bottom, const vec4_t top,
-	                           const vec4_t near, const vec4_t far );
+	void MatrixFromPlanes( matrix_t m,
+		const plane_t left, const plane_t right,
+		const plane_t bottom, const plane_t top,
+		const plane_t near, const plane_t far );
 	void     MatrixToVectorsFLU( const matrix_t m, vec3_t forward, vec3_t left, vec3_t up );
 	void     MatrixToVectorsFRU( const matrix_t m, vec3_t forward, vec3_t right, vec3_t up );
 	void     MatrixSetupTransformFromVectorsFLU( matrix_t m, const vec3_t forward, const vec3_t left, const vec3_t up, const vec3_t origin );
@@ -631,8 +642,8 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void     MatrixTransformPoint( const matrix_t m, const vec3_t in, vec3_t out );
 	void     MatrixTransformPoint2( const matrix_t m, vec3_t inout );
 	void     MatrixTransform4( const matrix_t m, const vec4_t in, vec4_t out );
-	void     MatrixTransformPlane( const matrix_t m, const vec4_t in, vec4_t out );
-	void     MatrixTransformPlane2( const matrix_t m, vec4_t inout );
+	void MatrixTransformPlane( const matrix_t m, const plane_t &in, plane_t &out );
+	void MatrixTransformPlane2( const matrix_t m, plane_t &inout );
 	void     MatrixTransformBounds( const matrix_t m, const vec3_t mins, const vec3_t maxs, vec3_t omins, vec3_t omaxs );
 	void     MatrixPerspectiveProjection( matrix_t m, vec_t left, vec_t right, vec_t bottom, vec_t top, vec_t near, vec_t far );
 	void     MatrixPerspectiveProjectionLH( matrix_t m, vec_t left, vec_t right, vec_t bottom, vec_t top, vec_t near, vec_t far );
@@ -1522,7 +1533,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 
 #define PlaneTypeForNormal( x ) ( x[ 0 ] == 1.0f ? PLANE_X : ( x[ 1 ] == 1.0f ? PLANE_Y : ( x[ 2 ] == 1.0f ? PLANE_Z : ( x[ 0 ] == 0.f && x[ 1 ] == 0.f && x[ 2 ] == 0.f ? PLANE_NON_PLANAR : PLANE_NON_AXIAL ) ) ) )
 
-// plane_t structure
+// cplane_t structure
 	struct cplane_t
 	{
 		vec3_t normal;

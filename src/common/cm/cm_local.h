@@ -84,7 +84,7 @@ struct cbrush_t
 
 struct cPlane_t
 {
-	float           plane[ 4 ];
+	plane_t plane;
 	// signx + (signy<<1) + (signz<<2), used as lookup during collision
 	// used to determine which corner of a box would pass through a plane first/last
 	int             signbits;
@@ -287,7 +287,7 @@ extern int numFacets;
 extern cFacet_t facets[];
 
 void     CM_ResetPlaneCounts();
-int      CM_FindPlane2( float plane[ 4 ], bool *flipped );
+int CM_FindPlane2( const plane_t &plane, bool *flipped );
 int      CM_FindPlane( const float *p1, const float *p2, const float *p3 );
 planeSide_t CM_PointOnPlaneSide( float *p, int planeNum );
 bool CM_ValidateFacet( cFacet_t *facet );
