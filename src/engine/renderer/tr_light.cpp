@@ -438,7 +438,7 @@ void R_SetupLightLocalBounds( trRefLight_t *light )
 				else
 				{
 					vec3_t top;
-					const vec4_t* frustum = (const vec4_t*)light->localFrustum;
+					const plane_t* frustum = light->localFrustum;
 
 					PlanesGetIntersectionPoint( frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_TOP ], top );
 					AddPointToBounds( top, light->localBounds[ 0 ], light->localBounds[ 1 ] );
@@ -542,7 +542,7 @@ void R_TessLight( const trRefLight_t *light, const Color::Color& color, bool use
 				else
 				{
 					vec3_t top;
-					const vec4_t* frustum = light->localFrustum;
+					const plane_t* frustum = light->localFrustum;
 
 					// no light_start, just use the top vertex (doesn't need to be mirrored)
 					PlanesGetIntersectionPoint( frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_TOP ], top );
@@ -657,9 +657,9 @@ void R_SetupLightFrustum( trRefLight_t *light )
 		case refLightType_t::RL_PROJ:
 			{
 				int    i;
-				vec4_t worldFrustum[ 6 ];
 
 				// transform local frustum to world space
+				plane_t worldFrustum[ 6 ];
 				for ( i = 0; i < 6; i++ )
 				{
 					MatrixTransformPlane( light->transformMatrix, light->localFrustum[ i ], worldFrustum[ i ] );
@@ -670,8 +670,8 @@ void R_SetupLightFrustum( trRefLight_t *light )
 				{
 					PlaneNormalize( worldFrustum[ i ] );
 
-					VectorCopy( worldFrustum[ i ], light->frustum[ i ].normal );
-					light->frustum[ i ].dist = worldFrustum[ i ][ 3 ];
+					VectorCopy( worldFrustum[ i ].normal, light->frustum[ i ].normal );
+					light->frustum[ i ].dist = worldFrustum[ i ].dist;
 
 					light->frustum[ i ].type = PLANE_NON_AXIAL;
 
@@ -745,8 +745,6 @@ void R_SetupLightProjection( trRefLight_t *light )
 			{
 				int    i;
 				float  *proj = light->projectionMatrix;
-				vec4_t *frustum = light->localFrustum;
-				vec4_t lightProject[ 4 ];
 				vec3_t right, up, normal;
 				vec3_t start, stop;
 				vec3_t falloff;
@@ -754,7 +752,6 @@ void R_SetupLightProjection( trRefLight_t *light )
 				float  rLen;
 				float  uLen;
 				float  a, b, ofs, dist;
-				vec4_t targetGlobal;
 
 				rLen = VectorNormalize2( light->l.projRight, right );
 				uLen = VectorNormalize2( light->l.projUp, up );
@@ -773,13 +770,16 @@ void R_SetupLightProjection( trRefLight_t *light )
 				VectorScale( right, ( 0.5f * dist ) / rLen, right );
 				VectorScale( up, - ( 0.5f * dist ) / uLen, up );
 
+				vec4_t lightProject[ 4 ];
 				Vector4Set( lightProject[ 0 ], right[ 0 ], right[ 1 ], right[ 2 ], 0 );
 				Vector4Set( lightProject[ 1 ], up[ 0 ], up[ 1 ], up[ 2 ], 0 );
 				Vector4Set( lightProject[ 2 ], normal[ 0 ], normal[ 1 ], normal[ 2 ], 0 );
 
 				// now offset to center
-				VectorCopy( light->l.projTarget, targetGlobal );
-				targetGlobal[ 3 ] = 1;
+				vec4_t targetGlobal;
+				Vector4Set( targetGlobal,
+					light->l.projTarget[ 0 ], light->l.projTarget[ 1 ],
+					light->l.projTarget[ 2 ], 1 );
 				{
 					a = DotProduct4( targetGlobal, lightProject[ 0 ] );
 					b = DotProduct4( targetGlobal, lightProject[ 2 ] );
@@ -828,21 +828,23 @@ void R_SetupLightProjection( trRefLight_t *light )
 				Vector4Set( lightProject[ 3 ], falloff[ 0 ], falloff[ 1 ], falloff[ 2 ], -DotProduct( start, falloff ) );
 
 				// we want the planes of s=0, s=q, t=0, and t=q
-				Vector4Copy( lightProject[ 0 ], frustum[ FRUSTUM_LEFT ] );
-				Vector4Copy( lightProject[ 1 ], frustum[ FRUSTUM_BOTTOM ] );
+				plane_t *frustum = light->localFrustum;
+				PlaneSet( frustum[ FRUSTUM_LEFT ], lightProject[ 0 ] );
+				PlaneSet( frustum[ FRUSTUM_BOTTOM ], lightProject[ 1 ] );
 
-				VectorSubtract( lightProject[ 2 ], lightProject[ 0 ], frustum[ FRUSTUM_RIGHT ] );
-				frustum[ FRUSTUM_RIGHT ][ 3 ] = lightProject[ 2 ][ 3 ] - lightProject[ 0 ][ 3 ];
+				vec4_t v;
+				Vector4Subtract( lightProject[ 2 ], lightProject[ 0 ], v );
+				PlaneSet( frustum[ FRUSTUM_RIGHT ], v );
 
-				VectorSubtract( lightProject[ 2 ], lightProject[ 1 ], frustum[ FRUSTUM_TOP ] );
-				frustum[ FRUSTUM_TOP ][ 3 ] = lightProject[ 2 ][ 3 ] - lightProject[ 1 ][ 3 ];
+				Vector4Subtract( lightProject[ 2 ], lightProject[ 1 ], v );
+				PlaneSet( frustum[ FRUSTUM_TOP ], v );
 
 				// we want the planes of s=0 and s=1 for front and rear clipping planes
-				VectorCopy( lightProject[ 3 ], frustum[ FRUSTUM_NEAR ] );
-				frustum[ FRUSTUM_NEAR ][ 3 ] = lightProject[ 3 ][ 3 ];
+				PlaneSet( frustum[ FRUSTUM_NEAR ], lightProject[ 3 ] );
 
-				VectorNegate( lightProject[ 3 ], frustum[ FRUSTUM_FAR ] );
-				frustum[ FRUSTUM_FAR ][ 3 ] = -lightProject[ 3 ][ 3 ] - 1.0f;
+				Vector4Negate( lightProject[ 3 ], v );
+				v[ 3 ] -= 1.0f;
+				PlaneSet( frustum[ FRUSTUM_FAR ], v );
 
 				// calculate the new projection matrix from the frustum planes
 				MatrixFromPlanes( proj, frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_BOTTOM ], frustum[ FRUSTUM_TOP ], frustum[ FRUSTUM_NEAR ], frustum[ FRUSTUM_FAR ] );
@@ -1248,11 +1250,11 @@ void R_SetupLightScissor( trRefLight_t *light )
 			{
 				int    j;
 				vec3_t farCorners[ 4 ];
-				vec4_t frustum[ 6 ];
+				plane_t frustum[ 6 ];
 				for ( j = 0; j < 6; j++ )
 				{
-					VectorCopy( light->frustum[ j ].normal, frustum[ j ] );
-					frustum[ j ][ 3 ] = light->frustum[ j ].dist;
+					VectorCopy( light->frustum[ j ].normal, frustum[ j ].normal );
+					frustum[ j ].dist = light->frustum[ j ].dist;
 				}
 
 				R_CalcFrustumFarCorners( frustum, farCorners );

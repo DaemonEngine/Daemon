@@ -258,7 +258,6 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 	float    offset, t;
 	cPlane_t *planes;
 	cFacet_t *facet;
-	float    plane[ 4 ];
 	vec3_t   startp;
 
 	if ( tw->isPoint )
@@ -272,16 +271,16 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 	for ( i = 0; i < sc->numFacets; i++, facet++ )
 	{
 		planes = &sc->planes[ facet->surfacePlane ];
-		VectorCopy( planes->plane, plane );
-		plane[ 3 ] = planes->plane[ 3 ];
+
+		plane_t plane = planes->plane;
 
 		if ( tw->type == traceType_t::TT_CAPSULE )
 		{
 			// adjust the plane distance appropriately for radius
-			plane[ 3 ] += tw->sphere.radius;
+			plane.dist += tw->sphere.radius;
 
 			// find the closest point on the capsule to the plane
-			t = DotProduct( plane, tw->sphere.offset );
+			t = DotProduct( plane.normal, tw->sphere.offset );
 
 			if ( t > 0 )
 			{
@@ -294,12 +293,12 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 		}
 		else
 		{
-			offset = DotProduct( tw->offsets[ planes->signbits ], plane );
-			plane[ 3 ] -= offset;
+			offset = DotProduct( tw->offsets[ planes->signbits ], plane.normal );
+			plane.dist -= offset;
 			VectorCopy( tw->start, startp );
 		}
 
-		if ( DotProduct( plane, startp ) - plane[ 3 ] > 0.0f )
+		if ( ( DotProduct( plane.normal, startp ) - plane.dist ) > 0.0f )
 		{
 			continue;
 		}
@@ -310,22 +309,21 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 
 			if ( facet->borderInward[ j ] )
 			{
-				VectorNegate( planes->plane, plane );
-				plane[ 3 ] = -planes->plane[ 3 ];
+				VectorNegate( planes->plane.normal, plane.normal );
+				plane.dist = -planes->plane.dist;
 			}
 			else
 			{
-				VectorCopy( planes->plane, plane );
-				plane[ 3 ] = planes->plane[ 3 ];
+				plane = planes->plane;
 			}
 
 			if ( tw->type == traceType_t::TT_CAPSULE )
 			{
 				// adjust the plane distance appropriately for radius
-				plane[ 3 ] += tw->sphere.radius;
+				plane.dist += tw->sphere.radius;
 
 				// find the closest point on the capsule to the plane
-				t = DotProduct( plane, tw->sphere.offset );
+				t = DotProduct( plane.normal, tw->sphere.offset );
 
 				if ( t > 0.0f )
 				{
@@ -339,12 +337,12 @@ static bool CM_PositionTestInSurfaceCollide( traceWork_t *tw, const cSurfaceColl
 			else
 			{
 				// NOTE: this works even though the plane might be flipped because the bbox is centered
-				offset = DotProduct( tw->offsets[ planes->signbits ], plane );
-				plane[ 3 ] += fabsf( offset );
+				offset = DotProduct( tw->offsets[ planes->signbits ], plane.normal );
+				plane.dist += fabsf( offset );
 				VectorCopy( tw->start, startp );
 			}
 
-			if ( DotProduct( plane, startp ) - plane[ 3 ] > 0.0f )
+			if ( ( DotProduct( plane.normal, startp ) - plane.dist ) > 0.0f )
 			{
 				break;
 			}
@@ -676,8 +674,6 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 	const cPlane_t  *planes;
 	const cFacet_t  *facet;
 	int             i, j, k;
-	float           offset;
-	float           d1, d2;
 
 	if ( !tw->isPoint )
 	{
@@ -689,9 +685,9 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 
 	for ( i = 0; i < sc->numPlanes; i++, planes++ )
 	{
-		offset = DotProduct( tw->offsets[ planes->signbits ], planes->plane );
-		d1 = DotProduct( tw->start, planes->plane ) - planes->plane[ 3 ] + offset;
-		d2 = DotProduct( tw->end, planes->plane ) - planes->plane[ 3 ] + offset;
+		vec_t offset = DotProduct( tw->offsets[ planes->signbits ], planes->plane.normal );
+		vec_t d1 = DotProduct( tw->start, planes->plane.normal ) - planes->plane.dist + offset;
+		vec_t d2 = DotProduct( tw->end, planes->plane.normal ) - planes->plane.dist + offset;
 
 		if ( d1 <= 0 )
 		{
@@ -762,9 +758,9 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 			planes = &sc->planes[ facet->surfacePlane ];
 
 			// calculate intersection with a slight pushoff
-			offset = DotProduct( tw->offsets[ planes->signbits ], planes->plane );
-			d1 = DotProduct( tw->start, planes->plane ) - planes->plane[ 3 ] + offset;
-			d2 = DotProduct( tw->end, planes->plane ) - planes->plane[ 3 ] + offset;
+			vec_t offset = DotProduct( tw->offsets[ planes->signbits ], planes->plane.normal );
+			vec_t d1 = DotProduct( tw->start, planes->plane.normal ) - planes->plane.dist + offset;
+			vec_t d2 = DotProduct( tw->end, planes->plane.normal ) - planes->plane.dist + offset;
 			tw->trace.fraction = ( d1 - SURFACE_CLIP_EPSILON ) / ( d1 - d2 );
 
 			if ( tw->trace.fraction < 0 )
@@ -772,8 +768,8 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 				tw->trace.fraction = 0;
 			}
 
-			VectorCopy( planes->plane, tw->trace.plane.normal );
-			tw->trace.plane.dist = planes->plane[ 3 ];
+			VectorCopy( planes->plane.normal, tw->trace.plane.normal );
+			tw->trace.plane.dist = planes->plane.dist;
 		}
 	}
 }
@@ -783,14 +779,14 @@ void CM_TracePointThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_
 CM_CheckFacetPlane
 ====================
 */
-static bool CM_CheckFacetPlane( const float *plane, const vec3_t start, const vec3_t end, float *enterFrac, float *leaveFrac, bool *hit )
+static bool CM_CheckFacetPlane( const plane_t &plane, const vec3_t start, const vec3_t end, float *enterFrac, float *leaveFrac, bool *hit )
 {
-	float d1, d2, f;
+	float f;
 
 	*hit = false;
 
-	d1 = DotProduct( start, plane ) - plane[ 3 ];
-	d2 = DotProduct( end, plane ) - plane[ 3 ];
+	vec_t d1 = DotProduct( start, plane.normal ) - plane.dist;
+	vec_t d2 = DotProduct( end, plane.normal ) - plane.dist;
 
 	// if completely in front of face, no intersection with the entire facet
 	if ( d1 > 0 && ( d2 >= SURFACE_CLIP_EPSILON || d2 >= d1 ) )
@@ -852,8 +848,6 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 	float         offset, enterFrac, leaveFrac, t;
 	cPlane_t      *planes;
 	cFacet_t      *facet;
-	float         plane[ 4 ] = { 0, 0, 0, 0 };
-	float         bestplane[ 4 ] = { 0, 0, 0, 0 };
 	vec3_t        startp, endp;
 
 	if ( !CM_BoundsIntersect( tw->bounds[ 0 ], tw->bounds[ 1 ], sc->bounds[ 0 ], sc->bounds[ 1 ] ) )
@@ -867,6 +861,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 		return;
 	}
 
+	plane_t bestplane = {};
 	for ( i = 0, facet = sc->facets; i < sc->numFacets; i++, facet++ )
 	{
 		enterFrac = -1.0f;
@@ -874,16 +869,16 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 		hitnum = -1;
 
 		planes = &sc->planes[ facet->surfacePlane ];
-		VectorCopy( planes->plane, plane );
-		plane[ 3 ] = planes->plane[ 3 ];
+
+		plane_t plane = planes->plane;
 
 		if ( tw->type == traceType_t::TT_CAPSULE )
 		{
 			// adjust the plane distance appropriately for radius
-			plane[ 3 ] += tw->sphere.radius;
+			plane.dist += tw->sphere.radius;
 
 			// find the closest point on the capsule to the plane
-			t = DotProduct( plane, tw->sphere.offset );
+			t = DotProduct( plane.normal, tw->sphere.offset );
 
 			if ( t > 0.0f )
 			{
@@ -898,8 +893,8 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 		}
 		else
 		{
-			offset = DotProduct( tw->offsets[ planes->signbits ], plane );
-			plane[ 3 ] -= offset;
+			offset = DotProduct( tw->offsets[ planes->signbits ], plane.normal );
+			plane.dist -= offset;
 			VectorCopy( tw->start, startp );
 			VectorCopy( tw->end, endp );
 		}
@@ -913,7 +908,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 
 		if ( hit )
 		{
-			Vector4Copy( plane, bestplane );
+			bestplane = plane;
 		}
 
 		for ( j = 0; j < facet->numBorders; j++ )
@@ -922,22 +917,22 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 
 			if ( facet->borderInward[ j ] )
 			{
-				VectorNegate( planes->plane, plane );
-				plane[ 3 ] = -planes->plane[ 3 ];
+				VectorNegate( planes->plane.normal, plane.normal );
+				plane.dist = -planes->plane.dist;
 			}
 			else
 			{
-				VectorCopy( planes->plane, plane );
-				plane[ 3 ] = planes->plane[ 3 ];
+				VectorCopy( planes->plane.normal, plane.normal );
+				plane.dist = planes->plane.dist;
 			}
 
 			if ( tw->type == traceType_t::TT_CAPSULE )
 			{
 				// adjust the plane distance appropriately for radius
-				plane[ 3 ] += tw->sphere.radius;
+				plane.dist += tw->sphere.radius;
 
 				// find the closest point on the capsule to the plane
-				t = DotProduct( plane, tw->sphere.offset );
+				t = DotProduct( plane.normal, tw->sphere.offset );
 
 				if ( t > 0.0f )
 				{
@@ -953,8 +948,8 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 			else
 			{
 				// NOTE: this works even though the plane might be flipped because the bbox is centered
-				offset = DotProduct( tw->offsets[ planes->signbits ], plane );
-				plane[ 3 ] += fabsf( offset );
+				offset = DotProduct( tw->offsets[ planes->signbits ], plane.normal );
+				plane.dist += fabsf( offset );
 				VectorCopy( tw->start, startp );
 				VectorCopy( tw->end, endp );
 			}
@@ -967,7 +962,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 			if ( hit )
 			{
 				hitnum = j;
-				Vector4Copy( plane, bestplane );
+				bestplane = plane;
 			}
 		}
 
@@ -992,8 +987,8 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 				}
 
 				tw->trace.fraction = enterFrac;
-				VectorCopy( bestplane, tw->trace.plane.normal );
-				tw->trace.plane.dist = bestplane[ 3 ];
+				VectorCopy( bestplane.normal, tw->trace.plane.normal );
+				tw->trace.plane.dist = bestplane.dist;
 			}
 		}
 	}

@@ -299,9 +299,9 @@ void RE_ProjectDecal( qhandle_t hShader, int numPoints, vec3_t *points, vec4_t p
 	}
 
 	/* make the back plane */
-	VectorSubtract( vec3_origin, temp.planes[ 0 ], temp.planes[ 1 ] );
+	VectorSubtract( vec3_origin, temp.planes[ 0 ].normal, temp.planes[ 1 ].normal );
 	VectorMA( dv[ 0 ].xyz, projection[ 3 ], projection, xyz );
-	temp.planes[ 1 ][ 3 ] = DotProduct( xyz, temp.planes[ 1 ] );
+	temp.planes[ 1 ].dist = DotProduct( xyz, temp.planes[ 1 ].normal );
 
 	/* make the side planes */
 	for ( i = 0; i < numPoints; i++ )
@@ -397,7 +397,8 @@ clips a winding to the fragment behind the plane
 */
 
 static void ChopWindingBehindPlane( int numInPoints, vec3_t inPoints[ MAX_DECAL_VERTS ],
-                                    int *numOutPoints, vec3_t outPoints[ MAX_DECAL_VERTS ], vec4_t plane, vec_t epsilon )
+	int *numOutPoints, vec3_t outPoints[ MAX_DECAL_VERTS ],
+	const plane_t &plane, vec_t epsilon )
 {
 	int   i, j;
 	float dot;
@@ -423,7 +424,7 @@ static void ChopWindingBehindPlane( int numInPoints, vec3_t inPoints[ MAX_DECAL_
 
 	for ( i = 0; i < numInPoints; i++ )
 	{
-		dists[ i ] = DotProduct( inPoints[ i ], plane ) - plane[ 3 ];
+		dists[ i ] = DotProduct( inPoints[ i ], plane.normal ) - plane.dist;
 
 		if ( dists[ i ] > epsilon )
 		{
@@ -510,13 +511,13 @@ static void ProjectDecalOntoWinding( decalProjector_t *dp, int numPoints, vec3_t
                                      bspModel_t *bmodel )
 {
 	int        i, pingPong, count, axis;
-	float      pd, d, d2, alpha = 1.f;
-	vec4_t     plane;
+	float pd, alpha = 1.f;
 	vec3_t     absNormal;
 	decal_t    *decal, *oldest;
 	polyVert_t *vert;
 
 	/* make a plane from the winding */
+	plane_t plane;
 	if ( !PlaneFromPoints( plane, points[ 0 ][ 0 ], points[ 0 ][ 1 ], points[ 0 ][ 2 ] ) )
 	{
 		return;
@@ -529,7 +530,7 @@ static void ProjectDecalOntoWinding( decalProjector_t *dp, int numPoints, vec3_t
 		pd = 1.0f;
 
 		/* fade by distance from plane */
-		d = DotProduct( dp->center, plane ) - plane[ 3 ];
+		vec_t d = DotProduct( dp->center, plane.normal ) - plane.dist;
 		alpha = 1.0f - ( fabsf( d ) / dp->radius );
 
 		if ( alpha < 0.0f )
@@ -543,9 +544,9 @@ static void ProjectDecalOntoWinding( decalProjector_t *dp, int numPoints, vec3_t
 		}
 
 		/* set projection axis */
-		absNormal[ 0 ] = fabsf( plane[ 0 ] );
-		absNormal[ 1 ] = fabsf( plane[ 1 ] );
-		absNormal[ 2 ] = fabsf( plane[ 2 ] );
+		absNormal[ 0 ] = fabsf( plane.normal[ 0 ] );
+		absNormal[ 1 ] = fabsf( plane.normal[ 1 ] );
+		absNormal[ 2 ] = fabsf( plane.normal[ 2 ] );
 
 		if ( absNormal[ 2 ] >= absNormal[ 0 ] && absNormal[ 2 ] >= absNormal[ 1 ] )
 		{
@@ -563,7 +564,7 @@ static void ProjectDecalOntoWinding( decalProjector_t *dp, int numPoints, vec3_t
 	else
 	{
 		/* backface check */
-		pd = DotProduct( dp->planes[ 0 ], plane );
+		pd = DotProduct( dp->planes[ 0 ].normal, plane.normal );
 
 		if ( pd < -0.0001f )
 		{
@@ -646,8 +647,8 @@ static void ProjectDecalOntoWinding( decalProjector_t *dp, int numPoints, vec3_t
 		if ( !dp->omnidirectional )
 		{
 			/* set alpha */
-			d = DotProduct( vert->xyz, dp->planes[ 0 ] ) - dp->planes[ 0 ][ 3 ];
-			d2 = DotProduct( vert->xyz, dp->planes[ 1 ] ) - dp->planes[ 1 ][ 3 ];
+			vec_t d = DotProduct( vert->xyz, dp->planes[ 0 ].normal ) - dp->planes[ 0 ].dist;
+			vec_t d2 = DotProduct( vert->xyz, dp->planes[ 1 ].normal ) - dp->planes[ 1 ].dist;
 			alpha = 2.0f * d2 / ( d + d2 );
 
 			if ( alpha > 1.0f )
@@ -801,7 +802,7 @@ void R_ProjectDecalOntoSurface( decalProjector_t *dp, bspSurface_t *surf, bspMod
 		if ( srf->plane.normal[ 0 ] || srf->plane.normal[ 1 ] || srf->plane.normal[ 2 ] )
 		{
 			/* backface check */
-			d = DotProduct( dp->planes[ 0 ], srf->plane.normal );
+			d = DotProduct( dp->planes[ 0 ].normal, srf->plane.normal );
 
 			if ( d < -0.0001f )
 			{
