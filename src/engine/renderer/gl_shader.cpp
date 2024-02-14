@@ -482,39 +482,67 @@ static std::string GenEngineConstants() {
 	// Engine constants
 	std::string str;
 
-	if ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && glConfig2.textureFloatAvailable )
+	if ( glConfig2.shadowMapping )
 	{
-		if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_ESM16) || r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_ESM32) )
+		switch( glConfig2.shadowingMode )
 		{
-			AddDefine( str, "ESM", 1 );
-		}
-		else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_EVSM32) )
-		{
-			AddDefine( str, "EVSM", 1 );
-			// The exponents for the EVSM techniques should be less than ln(FLT_MAX/FILTER_SIZE)/2 {ln(FLT_MAX/1)/2 ~44.3}
-			//         42.9 is the maximum possible value for FILTER_SIZE=15
-			//         42.0 is the truncated value that we pass into the sample
-			AddConst( str, "r_EVSMExponents", 42.0f, 42.0f );
-			if ( r_evsmPostProcess->integer )
-				AddDefine( str,"r_EVSMPostProcess", 1 );
-		}
-		else
-		{
-			AddDefine( str, "VSM", 1 );
+			case shadowingMode_t::SHADOWING_ESM16:
+			case shadowingMode_t::SHADOWING_ESM32:
+				AddDefine( str, "ESM", 1 );
+				break;
+			case shadowingMode_t::SHADOWING_VSM16:
+			case shadowingMode_t::SHADOWING_VSM32:
+				AddDefine( str, "VSM", 1 );
 
-			if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
-			{
-				AddDefine( str, "VSM_CLAMP", 1 );
-			}
+				if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+				{
+					AddDefine( str, "VSM_CLAMP", 1 );
+				}
+				break;
+			case shadowingMode_t::SHADOWING_EVSM32:
+				AddDefine( str, "EVSM", 1 );
+
+				// The exponents for the EVSM techniques should be less than ln(FLT_MAX/FILTER_SIZE)/2 {ln(FLT_MAX/1)/2 ~44.3}
+				//         42.9 is the maximum possible value for FILTER_SIZE=15
+				//         42.0 is the truncated value that we pass into the sample
+				AddConst( str, "r_EVSMExponents", 42.0f, 42.0f );
+
+				if ( r_evsmPostProcess->integer )
+				{
+					AddDefine( str, "r_EVSMPostProcess", 1 );
+				}
+				break;
+			default:
+				DAEMON_ASSERT( false );
+				break;
 		}
 
-		if ( ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 ) && r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM32) )
+		switch( glConfig2.shadowingMode )
 		{
-			AddConst( str, "VSM_EPSILON", 0.000001f );
-		}
-		else // also required by GLHW_R300 which is not GLDRV_OPENGL3 anyway
-		{
-			AddConst( str, "VSM_EPSILON", 0.0001f );
+			case shadowingMode_t::SHADOWING_ESM16:
+			case shadowingMode_t::SHADOWING_ESM32:
+				break;
+			case shadowingMode_t::SHADOWING_VSM16:
+				AddConst( str, "VSM_EPSILON", 0.0001f );
+				break;
+			case shadowingMode_t::SHADOWING_VSM32:
+				// GLHW_R300 should not be GLDRV_OPENGL3 anyway.
+				if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3
+					|| glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+				{
+					AddConst( str, "VSM_EPSILON", 0.0001f );
+				}
+				else
+				{
+					AddConst( str, "VSM_EPSILON", 0.000001f );
+				}
+				break;
+			case shadowingMode_t::SHADOWING_EVSM32:
+				// This may be wrong, but the code did that before it was rewritten.
+				AddConst( str, "VSM_EPSILON", 0.0001f );
+			default:
+				DAEMON_ASSERT( false );
+				break;
 		}
 
 		if ( r_lightBleedReduction->value )
@@ -541,9 +569,9 @@ static std::string GenEngineConstants() {
 			AddDefine( str, "r_showParallelShadowSplits", 1 );
 	}
 
-	if ( glConfig2.dynamicLight != 0 )
+	if ( glConfig2.dynamicLight )
 	{
-		AddDefine( str, "r_dynamicLight", glConfig2.dynamicLight );
+		AddDefine( str, "r_dynamicLight", 1 );
 	}
 
 	if ( r_precomputedLighting->integer )

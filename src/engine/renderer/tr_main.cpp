@@ -2224,10 +2224,10 @@ void R_AddEntityInteractions( trRefLight_t *light )
 	{
 		iaType = IA_DEFAULT;
 
-		if ( r_shadows->integer <= Util::ordinal(shadowingMode_t::SHADOWING_BLOB) ||
-		     light->l.noShadows ) {
+		if ( !glConfig2.shadowMapping || light->l.noShadows ) {
 			iaType = (interactionType_t) (iaType & (~IA_SHADOW));
 		}
+
 		if ( light->restrictInteractionFirst >= 0 &&
 		     ( i < light->restrictInteractionFirst ||
 		       i > light->restrictInteractionLast ) ) {
@@ -2357,40 +2357,57 @@ void R_AddLightInteractions()
 	bspNode_t    *leaf;
 	link_t       *l;
 
+	dynamicLightRenderer_t dynamicLightRenderer = dynamicLightRenderer_t( r_dynamicLightRenderer.Get() );
+
 	tr.refdef.numShaderLights = 0;
+
 	for ( i = 0; i < tr.refdef.numLights; i++ )
 	{
 		light = tr.currentLight = &tr.refdef.lights[ i ];
 
-		if ( light->isStatic ) {
-			if ( r_staticLight->integer != 1 || ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity ) )
+		if ( light->isStatic )
+		{
+			if ( !glConfig2.staticLight )
 			{
-				if( r_staticLight->integer == 2 ) {
-					tr.refdef.numShaderLights++;
-					tr.pc.c_slights++;
-				}
-
-				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
-		} else if ( light->l.inverseShadows ) {
-			if( glConfig2.dynamicLight == 0 ) {
+			else if ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity )
+			{
+				continue;
+			}
+
+			if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
+			{
+				tr.refdef.numShaderLights++;
+				tr.pc.c_slights++;
+			}
+
+			light->cull = cullResult_t::CULL_OUT;
+			continue;
+		}
+		else if ( light->l.inverseShadows )
+		{
+			if( !glConfig2.dynamicLight)
+			{
 				light->cull = CULL_OUT;
 				continue;
 			}
-		} else {
-			// Deprecated forward renderer uses r_dynamicLight -1
-			if ( glConfig2.dynamicLight > -1 )
+		}
+		else
+		{
+			if ( !glConfig2.dynamicLight )
 			{
-				if( glConfig2.dynamicLight > 0 )
-				{
-					tr.refdef.numShaderLights++;
-					tr.pc.c_dlights++;
-				}
-				light->cull = cullResult_t::CULL_OUT;
 				continue;
-
 			}
+
+			if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
+			{
+				tr.refdef.numShaderLights++;
+				tr.pc.c_dlights++;
+			}
+
+			light->cull = cullResult_t::CULL_OUT;
+			continue;
 		}
 
 		R_TransformShadowLight( light );
@@ -2567,15 +2584,21 @@ void R_AddLightBoundsToVisBounds()
 
 		if ( light->isStatic )
 		{
-			if ( r_staticLight->integer != 1 || ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity ) )
+			if ( !glConfig2.staticLight
+				|| ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP )
+					&& !light->noRadiosity ) )
 			{
 				continue;
 			}
 		}
 		else
 		{
-			// Deprecated forward renderer uses r_dynamicLight -1
-			if ( glConfig2.dynamicLight > -1 )
+			if ( !r_dynamicLight.Get() )
+			{
+				continue;
+			}
+
+			if( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
 			{
 				continue;
 			}
