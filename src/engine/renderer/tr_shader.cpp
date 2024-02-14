@@ -5636,7 +5636,7 @@ static shader_t *FinishShader()
 	}
 
 	// HACK: allow alpha tested surfaces to create shadowmaps
-	if ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) )
+	if ( glConfig2.shadowMapping )
 	{
 		if ( shader.noShadows && shader.alphaTest )
 		{

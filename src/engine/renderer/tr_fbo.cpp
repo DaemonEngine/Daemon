@@ -436,7 +436,8 @@ void R_InitFBOs()
 	R_AttachFBOTexturePackedDepthStencil( tr.currentDepthImage->texnum );
 	R_CheckFBO( tr.mainFBO[1] );
 
-	if ( glConfig2.dynamicLight > 0 )
+	if ( glConfig2.dynamicLight
+		&&  r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
 	{
 		/* It's only required to create frame buffers only used by the
 		tiled dynamic lighting renderer when this feature is enabled. */
@@ -457,7 +458,7 @@ void R_InitFBOs()
 		R_CheckFBO( tr.lighttileFBO );
 	}
 
-	if ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && glConfig2.textureFloatAvailable )
+	if ( glConfig2.shadowMapping )
 	{
 		// shadowMap FBOs for shadow mapping offscreen rendering
 		for ( i = 0; i < MAX_SHADOWMAPS; i++ )
@@ -488,7 +489,8 @@ void R_InitFBOs()
 
 			R_CreateFBODepthBuffer( tr.sunShadowMapFBO[ i ], GL_DEPTH_COMPONENT24 );
 
-			if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_EVSM32) && r_evsmPostProcess->integer )
+			if ( glConfig2.shadowingMode == shadowingMode_t::SHADOWING_EVSM32
+				&& r_evsmPostProcess->integer )
 			{
 				R_AttachFBOTextureDepth( tr.sunShadowMapFBOImage[ i ]->texnum );
 

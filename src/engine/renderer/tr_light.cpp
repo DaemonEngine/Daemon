@@ -1329,7 +1329,7 @@ byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 	bool   anyClip;
 	bool   culled;
 
-	if ( light->l.rlType != refLightType_t::RL_OMNI || r_shadows->integer < Util::ordinal(shadowingMode_t::SHADOWING_ESM16) || r_noShadowPyramids->integer )
+	if ( light->l.rlType != refLightType_t::RL_OMNI || !glConfig2.shadowMapping || r_noShadowPyramids->integer )
 	{
 		return CUBESIDE_CLIPALL;
 	}
