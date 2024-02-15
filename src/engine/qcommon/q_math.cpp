@@ -231,6 +231,12 @@ void PlaneSet( plane_t &out, const vec_t x, const vec_t y, const vec_t z, const 
 	out.dist = dist;
 }
 
+void PlaneSet( plane_t &out, const vec3_t normal, const vec_t dist )
+{
+	VectorCopy( normal, out.normal );
+	out.dist = dist;
+}
+
 void PlaneSet( plane_t &out, const vec4_t v )
 {
 	PlaneSet( out, v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
