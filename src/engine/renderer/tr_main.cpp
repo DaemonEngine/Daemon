@@ -915,6 +915,10 @@ static void R_SetupProjection( bool infiniteFarClip )
 	{
 		MatrixPerspectiveProjectionFovXYRH( proj, tr.refdef.fov_x, tr.refdef.fov_y, zNear, zFar );
 	}
+
+	if ( tr.viewParms.portalLevel == 0 ) {
+		MatrixCopy( tr.viewParms.projectionMatrix, tr.viewParms.projectionMatrixNonPortal );
+	}
 }
 
 // *INDENT-ON*

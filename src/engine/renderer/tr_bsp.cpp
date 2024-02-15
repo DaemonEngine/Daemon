@@ -831,6 +831,85 @@ static void FinishGenericSurface( dsurface_t *ds, srfGeneric_t *gen, vec3_t pt )
 	}
 }
 
+// Generate the skybox mesh and add it to world
+static void FinishSkybox() {
+	// Min and max coordinates of the skybox cube corners
+	static const vec3_t min = { -100.0, -100.0, -100.0 };
+	static const vec3_t max = { 100.0, 100.0, 100.0 };
+	/*
+		Skybox is a static mesh with 8 vertices and 12 triangles
+
+			      5------6
+		 z	     /|     /|
+		 ^ 	    / |    / |
+		 |     4------7  |
+		 |   y |  1---|--2
+		 |  /  | /    | /
+		 | /   |/     |/
+		 |/    0------3
+		 0---------->x  
+		   Verts:
+		   0: -100 -100 -100
+		   1: -100 100 -100
+		   2: 100 100 -100
+		   3: 100 -100 -100
+		   4: -100 -100 100
+		   5: -100 100 100
+		   6: 100 100 100
+		   7: 100 -100 100
+		   Surfs:
+		   0: 0 2 1 / 0 3 2
+		   1: 7 5 6 / 7 4 5
+		   2: 0 1 5 / 0 5 4
+		   3: 1 6 5 / 1 2 6
+		   4: 2 7 6 / 2 3 7
+		   5: 3 4 7 / 3 0 4
+	*/
+
+	drawSurf_t* skybox;
+	skybox = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *skybox ), ha_pref::h_low );
+	skybox->entity = &tr.worldEntity;
+	srfVBOMesh_t* surface;
+	surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
+	surface->surfaceType = surfaceType_t::SF_VBO_MESH;
+	surface->numVerts = 8;
+	surface->numIndexes = 36;
+	surface->firstIndex = 0;
+	vec3_t v0 = { min[0], min[1], min[2] };
+	vec3_t v1 = { min[0], max[1], min[2] };
+	vec3_t v2 = { max[0], max[1], min[2] };
+	vec3_t v3 = { max[0], min[1], min[2] };
+	vec3_t v4 = { min[0], min[1], max[2] };
+	vec3_t v5 = { min[0], max[1], max[2] };
+	vec3_t v6 = { max[0], max[1], max[2] };
+	vec3_t v7 = { max[0], min[1], max[2] };
+
+	shaderVertex_t verts[8];
+	VectorCopy( v0, verts[0].xyz );
+	VectorCopy( v1, verts[1].xyz );
+	VectorCopy( v2, verts[2].xyz );
+	VectorCopy( v3, verts[3].xyz );
+	VectorCopy( v4, verts[4].xyz );
+	VectorCopy( v5, verts[5].xyz );
+	VectorCopy( v6, verts[6].xyz );
+	VectorCopy( v7, verts[7].xyz );
+	surface->vbo = R_CreateStaticVBO2( va( "skybox_VBO %i", 0 ), surface->numVerts, verts,
+		ATTR_POSITION
+	);
+
+	glIndex_t indexes[36] = { 0, 2, 1,  0, 3, 2,   // Bottom
+							  7, 5, 6,  7, 4, 5,   // Top
+						      0, 1, 5,  0, 5, 4,   // Left
+							  1, 6, 5,  1, 2, 6,   // Front
+							  2, 7, 6,  2, 3, 7,   // Right
+							  3, 4, 7,  3, 0, 4 }; // Back
+
+	surface->ibo = R_CreateStaticIBO( va( "skybox_IBO %i", 0 ), indexes, surface->numIndexes );
+	skybox->surface = ( surfaceType_t* ) surface;
+
+	tr.skybox = skybox;
+}
+
 /*
 ===============
 ParseFace
@@ -6837,6 +6916,10 @@ void RE_LoadWorldMap( const char *name )
 	// we precache interactions between lights and surfaces
 	// to reduce the polygon count
 	R_PrecacheInteractions();
+
+	if ( tr.hasSkybox ) {
+		FinishSkybox();
+	}
 
 	s_worldData.dataSize = ( byte * ) ri.Hunk_Alloc( 0, ha_pref::h_low ) - startMarker;
 
