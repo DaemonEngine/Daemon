@@ -743,122 +743,186 @@ void R_SetupLightProjection( trRefLight_t *light )
 
 		case refLightType_t::RL_PROJ:
 			{
-				int    i;
-				float  *proj = light->projectionMatrix;
-				vec3_t right, up, normal;
-				vec3_t start, stop;
-				vec3_t falloff;
-				float  falloffLen;
-				float  rLen;
-				float  uLen;
-				float  a, b, ofs, dist;
+				/* This was previously set as a vec4_t with lightProject[ x ] being 0,
+				but then the fourth component never contributed to any computation
+				and was always zeroed again after computation as a multiple of 0,
+				only the normal vec3 is used for computation. */
+				plane_t lightProject[ 4 ];
 
-				rLen = VectorNormalize2( light->l.projRight, right );
-				uLen = VectorNormalize2( light->l.projUp, up );
-
-				CrossProduct( up, right, normal );
-				VectorNormalize( normal );
-
-				dist = DotProduct( light->l.projTarget, normal );
-
-				if ( dist < 0 )
 				{
-					dist = -dist;
-					VectorInverse( normal );
+					vec3_t right, up, normal;
+
+					float rLen = VectorNormalize2( light->l.projRight, right );
+					float uLen = VectorNormalize2( light->l.projUp, up );
+
+					CrossProduct( up, right, normal );
+					VectorNormalize( normal );
+
+					vec_t dist = DotProduct( light->l.projTarget, normal );
+
+					if ( dist < 0 )
+					{
+						dist = -dist;
+						VectorInverse( normal );
+					}
+
+					VectorScale( right, ( 0.5f * dist ) / rLen, right );
+					VectorScale( up, - ( 0.5f * dist ) / uLen, up );
+
+					PlaneSet( lightProject[ 0 ], right[ 0 ], right[ 1 ], right[ 2 ], 0 );
+					PlaneSet( lightProject[ 1 ], up[ 0 ], up[ 1 ], up[ 2 ], 0 );
+					PlaneSet( lightProject[ 2 ], normal[ 0 ], normal[ 1 ], normal[ 2 ], 0 );
 				}
-
-				VectorScale( right, ( 0.5f * dist ) / rLen, right );
-				VectorScale( up, - ( 0.5f * dist ) / uLen, up );
-
-				vec4_t lightProject[ 4 ];
-				Vector4Set( lightProject[ 0 ], right[ 0 ], right[ 1 ], right[ 2 ], 0 );
-				Vector4Set( lightProject[ 1 ], up[ 0 ], up[ 1 ], up[ 2 ], 0 );
-				Vector4Set( lightProject[ 2 ], normal[ 0 ], normal[ 1 ], normal[ 2 ], 0 );
 
 				// now offset to center
-				vec4_t targetGlobal;
-				Vector4Set( targetGlobal,
-					light->l.projTarget[ 0 ], light->l.projTarget[ 1 ],
-					light->l.projTarget[ 2 ], 1 );
 				{
-					a = DotProduct4( targetGlobal, lightProject[ 0 ] );
-					b = DotProduct4( targetGlobal, lightProject[ 2 ] );
-					ofs = 0.5 - a / b;
+					/* This was previously set as a vec4_t with targetGlobal[ 3 ] being 1
+					but then the fourth component never contributed to any computation
+					and was always zeroed after computation as a multiple of 0. */
+					vec3_t targetGlobal;
+					VectorSet( targetGlobal,
+						light->l.projTarget[ 0 ], light->l.projTarget[ 1 ],
+						light->l.projTarget[ 2 ] );
 
-					Vector4MA( lightProject[ 0 ], ofs, lightProject[ 2 ], lightProject[ 0 ] );
+					{
+						/* This was previously doing a DotProduct4 on a vec4_t
+						but targetGlobal[ 3 ] was 1 and lightProject[ 0 ][ 3 ] was 0
+						so this was converted to DotProduct( vec3, vec3 ) + ( 1 * 0 )
+						and then the useless added zero removed. */
+						vec_t a = DotProduct( targetGlobal, lightProject[ 0 ].normal );
+						/* This was previously doing a DotProduct4 on a vec4_t
+						but targetGlobal[ 3 ] was 1 and lightProject[ 2 ][ 3 ] was 0
+						so this was converted to DotProduct( vec3, vec3 ) + ( 1 * 0 )
+						and then the useless added zero removed. */
+						vec_t b = DotProduct( targetGlobal, lightProject[ 2 ].normal );
+						vec_t ofs = 0.5 - a / b;
+
+						/* This was previously doing a Vector4MA on a vec4_t
+						but lightProject[ 0 ][ 3 ] and lightProject[ 2 ][ 0 ] were 0
+						so lightProject[ 0 ][ 3 ] was rewritten as 0 + s * 0
+						and then that useless zero was removed. */
+						VectorMA( lightProject[ 0 ].normal, ofs, lightProject[ 2 ].normal, lightProject[ 0 ].normal );
+					}
+
+					{
+						/* This was previously doing a DotProduct4 on a vec4_t
+						but targetGlobal[ 3 ] was 1 and lightProject[ 1 ][ 3 ] was 0
+						so this was converted to DotProduct( vec3, vec3 ) + ( 1 * 0 )
+						and then the useless added zero removed. */
+						vec_t a = DotProduct( targetGlobal, lightProject[ 1 ].normal );
+						/* This was previously doing a DotProduct4 on a vec4_t
+						but targetGlobal[ 3 ] was 1 and lightProject[ 2 ][ 3 ] was 0
+						so this was converted to DotProduct( vec3, vec3 ) + ( 1 * 0 )
+						and then the useless added zero removed. */
+						vec_t b = DotProduct( targetGlobal, lightProject[ 2 ].normal );
+						vec_t ofs = 0.5 - a / b;
+
+						/* This was previously doing a Vector4MA on a vec4_t
+						but lightProject[ 0 ][ 3 ] and lightProject[ 2 ][ 0 ] were 0
+						so lightProject[ 0 ][ 3 ] was rewritten as 0 + s * 0
+						and then that useless zero was removed. */
+						VectorMA( lightProject[ 0 ].normal, ofs, lightProject[ 2 ].normal, lightProject[ 0 ].normal );
+					}
 				}
+
 				{
-					a = DotProduct4( targetGlobal, lightProject[ 1 ] );
-					b = DotProduct4( targetGlobal, lightProject[ 2 ] );
-					ofs = 0.5 - a / b;
+					vec3_t start;
 
-					Vector4MA( lightProject[ 1 ], ofs, lightProject[ 2 ], lightProject[ 1 ] );
+					if ( !VectorCompare( light->l.projStart, vec3_origin ) )
+					{
+						VectorCopy( light->l.projStart, start );
+					}
+					else
+					{
+						VectorClear( start );
+					}
+
+					vec3_t stop;
+
+					if ( !VectorCompare( light->l.projEnd, vec3_origin ) )
+					{
+						VectorCopy( light->l.projEnd, stop );
+					}
+					else
+					{
+						VectorCopy( light->l.projTarget, stop );
+					}
+
+					// Calculate the falloff vector
+					vec3_t falloff;
+
+					{
+						VectorSubtract( stop, start, falloff );
+
+						vec_t falloffLen = VectorNormalize( falloff );
+						light->falloffLength = falloffLen;
+
+						if ( falloffLen <= 0 )
+						{
+							falloffLen = 1;
+						}
+
+						//FIXME ?
+						VectorScale( falloff, 1.0f / falloffLen, falloff );
+					}
+
+					PlaneSet( lightProject[ 3 ], falloff, -DotProduct( start, falloff ) );
 				}
-
-				if ( !VectorCompare( light->l.projStart, vec3_origin ) )
-				{
-					VectorCopy( light->l.projStart, start );
-				}
-				else
-				{
-					VectorClear( start );
-				}
-
-				if ( !VectorCompare( light->l.projEnd, vec3_origin ) )
-				{
-					VectorCopy( light->l.projEnd, stop );
-				}
-				else
-				{
-					VectorCopy( light->l.projTarget, stop );
-				}
-
-				// Calculate the falloff vector
-				VectorSubtract( stop, start, falloff );
-				light->falloffLength = falloffLen = VectorNormalize( falloff );
-
-				if ( falloffLen <= 0 )
-				{
-					falloffLen = 1;
-				}
-
-				//FIXME ?
-				VectorScale( falloff, 1.0f / falloffLen, falloff );
-
-				Vector4Set( lightProject[ 3 ], falloff[ 0 ], falloff[ 1 ], falloff[ 2 ], -DotProduct( start, falloff ) );
 
 				// we want the planes of s=0, s=q, t=0, and t=q
 				plane_t *frustum = light->localFrustum;
-				PlaneSet( frustum[ FRUSTUM_LEFT ], lightProject[ 0 ] );
-				PlaneSet( frustum[ FRUSTUM_BOTTOM ], lightProject[ 1 ] );
 
-				vec4_t v;
-				Vector4Subtract( lightProject[ 2 ], lightProject[ 0 ], v );
-				PlaneSet( frustum[ FRUSTUM_RIGHT ], v );
+				frustum[ FRUSTUM_LEFT ] = lightProject[ 0 ];
 
-				Vector4Subtract( lightProject[ 2 ], lightProject[ 1 ], v );
-				PlaneSet( frustum[ FRUSTUM_TOP ], v );
+				frustum[ FRUSTUM_BOTTOM ] = lightProject[ 1 ];
 
-				// we want the planes of s=0 and s=1 for front and rear clipping planes
-				PlaneSet( frustum[ FRUSTUM_NEAR ], lightProject[ 3 ] );
+				{
+					/* This was previously done on a vec4_t and subtracting the fourth
+					component, but 0 - 0 is 0 so we skipped that computation. */
+					vec3_t normal;
+					VectorSubtract( lightProject[ 2 ].normal, lightProject[ 0 ].normal, normal );
 
-				Vector4Negate( lightProject[ 3 ], v );
-				v[ 3 ] -= 1.0f;
-				PlaneSet( frustum[ FRUSTUM_FAR ], v );
+					PlaneSet( frustum[ FRUSTUM_RIGHT ], normal, 0 );
+				}
 
-				// calculate the new projection matrix from the frustum planes
-				MatrixFromPlanes( proj, frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_BOTTOM ], frustum[ FRUSTUM_TOP ], frustum[ FRUSTUM_NEAR ], frustum[ FRUSTUM_FAR ] );
+				{
+					/* This was previously done on a vec4_t and subtracting the fourth
+					component, but 0 - 0 is 0 so we skipped that computation. */
+					vec3_t normal;
+					VectorSubtract( lightProject[ 2 ].normal, lightProject[ 1 ].normal, normal );
 
-				//MatrixMultiply2(proj, newProjection);
+					PlaneSet( frustum[ FRUSTUM_TOP ], normal, 0 );
+				}
 
-				// scale the falloff texture coordinate so that 0.5 is at the apex and 0.0
-				// as at the base of the pyramid.
-				// TODO: I don't like hacking the matrix like this, but all attempts to use
-				// a transformation seemed to affect too many other things.
-				//proj[10] *= 0.5f;
+				{
+					// we want the planes of s=0 and s=1 for front and rear clipping planes
+					frustum[ FRUSTUM_NEAR ] = lightProject[ 3 ];
+				}
+
+				{
+					vec3_t normal;
+					VectorNegate( lightProject[ 3 ].normal, normal );
+					vec_t dist = - lightProject[ 3 ].dist - 1.0f;
+
+					PlaneSet( frustum[ FRUSTUM_FAR ], normal, dist );
+				}
+
+				{
+					// calculate the new projection matrix from the frustum planes
+					float *proj = light->projectionMatrix;
+					MatrixFromPlanes( proj, frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_BOTTOM ], frustum[ FRUSTUM_TOP ], frustum[ FRUSTUM_NEAR ], frustum[ FRUSTUM_FAR ] );
+
+					//MatrixMultiply2(proj, newProjection);
+
+					// scale the falloff texture coordinate so that 0.5 is at the apex and 0.0
+					// as at the base of the pyramid.
+					// TODO: I don't like hacking the matrix like this, but all attempts to use
+					// a transformation seemed to affect too many other things.
+					//proj[10] *= 0.5f;
+				}
 
 				// normalise all frustum planes
-				for ( i = 0; i < 6; i++ )
+				for ( int i = 0; i < 6; i++ )
 				{
 					PlaneNormalize( frustum[ i ] );
 				}

@@ -431,13 +431,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 #define Vector2Subtract( a,b,c )     ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ] )
 
 #define Vector4Set( v, x, y, z, n )  ( ( v )[ 0 ] = ( x ),( v )[ 1 ] = ( y ),( v )[ 2 ] = ( z ),( v )[ 3 ] = ( n ) )
-#define Vector4Subtract( a,b,c )     ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] - ( b )[ 3 ],( c )[ 3 ] = ( a )[ 3 ] - ( b )[ 3 ] )
-#define Vector4Negate( a,b )         ( ( b )[ 0 ] = -( a )[ 0 ],( b )[ 1 ] = -( a )[ 1 ],( b )[ 2 ] = -( a )[ 2 ],( b )[ 3 ] = -( a )[ 3 ] )
 #define Vector4Copy( a,b )           ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ],( b )[ 2 ] = ( a )[ 2 ],( b )[ 3 ] = ( a )[ 3 ] )
-/** Stands for MultiplyAdd: adding a vector "b" scaled by "s" to "v" and writing it to "o" */
-#define Vector4MA( v, s, b, o )      ( ( o )[ 0 ] = ( v )[ 0 ] + ( b )[ 0 ] * ( s ),( o )[ 1 ] = ( v )[ 1 ] + ( b )[ 1 ] * ( s ),( o )[ 2 ] = ( v )[ 2 ] + ( b )[ 2 ] * ( s ),( o )[ 3 ] = ( v )[ 3 ] + ( b )[ 3 ] * ( s ) )
-#define Vector4Average( v, b, s, o ) ( ( o )[ 0 ] = ( ( v )[ 0 ] * ( 1 - ( s ) ) ) + ( ( b )[ 0 ] * ( s ) ),( o )[ 1 ] = ( ( v )[ 1 ] * ( 1 - ( s ) ) ) + ( ( b )[ 1 ] * ( s ) ),( o )[ 2 ] = ( ( v )[ 2 ] * ( 1 - ( s ) ) ) + ( ( b )[ 2 ] * ( s ) ),( o )[ 3 ] = ( ( v )[ 3 ] * ( 1 - ( s ) ) ) + ( ( b )[ 3 ] * ( s ) ) )
-
 #define DotProduct4(x, y)            (( x )[ 0 ] * ( y )[ 0 ] + ( x )[ 1 ] * ( y )[ 1 ] + ( x )[ 2 ] * ( y )[ 2 ] + ( x )[ 3 ] * ( y )[ 3 ] )
 
 #define SnapVector( v )              do { ( v )[ 0 ] = ( floor( ( v )[ 0 ] + 0.5f ) ); ( v )[ 1 ] = ( floor( ( v )[ 1 ] + 0.5f ) ); ( v )[ 2 ] = ( floor( ( v )[ 2 ] + 0.5f ) ); } while ( 0 )
@@ -551,7 +545,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void  AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
 
 	void PlaneSet( plane_t &out, const vec_t x, const vec_t y, const vec_t z, const vec_t dist );
-	void PlaneSet( plane_t &out, const vec4_t v );
+	void PlaneSet( plane_t &out, const vec3_t v, const vec_t dist );
 	vec_t PlaneNormalize( plane_t &plane );  // returns normal length
 
 	/* greebo: This calculates the intersection point of three planes.
