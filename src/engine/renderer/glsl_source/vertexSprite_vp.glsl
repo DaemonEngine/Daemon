@@ -31,7 +31,7 @@ IN vec4 attr_Orientation;
 uniform vec3 u_ViewOrigin;
 uniform vec3 u_ViewUp;
 
-float           u_DepthScale;
+float           depthScale;
 
 void VertexFetch(out vec4 position,
 		 out localBasis normalBasis,
@@ -77,6 +77,6 @@ void VertexFetch(out vec4 position,
 	lmCoord  = abs( attr_TexCoord0.zw );
 	color    = attr_Color;
 
-	u_DepthScale = 2.0 * radius;
+	depthScale = 2.0 * radius;
 }
 #endif

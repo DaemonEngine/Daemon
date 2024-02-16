@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* reflection_CB_fp.glsl */
 
+#define REFLECTION_CB_GLSL
+
 uniform samplerCube	u_ColorMap;
 uniform vec3		u_ViewOrigin;
 uniform mat4		u_ModelMatrix;
@@ -36,6 +38,8 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
+	#insert material_fp
+
 	// compute view direction in world space
 	vec3 viewDir = normalize(var_Position - u_ViewOrigin);
 
@@ -45,13 +49,17 @@ void	main()
 
 #if defined(USE_RELIEF_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix, u_HeightMap);
 
 	texNormal += texOffset;
 #endif // USE_RELIEF_MAPPING
 
 	// compute normal in tangent space from normal map
-	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	#if defined(r_normalMapping)
+		vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix, u_NormalMap);
+	#else // !r_normalMapping
+		vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	#endif // !r_normalMapping
 
 	// compute reflection ray
 	vec3 reflectionRay = reflect(viewDir, normal);

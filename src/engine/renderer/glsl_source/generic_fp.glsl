@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* generic_fp.glsl */
 
+#define GENERIC_GLSL
+
 uniform sampler2D	u_ColorMap;
 uniform float		u_AlphaThreshold;
 
@@ -41,6 +43,8 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
+	#insert material_fp
+
 	vec4 color = texture2D(u_ColorMap, var_TexCoords);
 
 	if( abs(color.a + u_AlphaThreshold) <= 1.0 )

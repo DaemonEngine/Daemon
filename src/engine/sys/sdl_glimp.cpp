@@ -54,6 +54,12 @@ static Cvar::Cvar<std::string> r_availableModes(
 	"r_availableModes", "list of available resolutions", Cvar::ROM, "");
 
 // OpenGL extension cvars.
+/* Driver bug: Mesa versions > 24.0.9 produce garbage rendering when r_arb_bindless_texture is enabled,
+and the shader compiler crashes with material shaders
+24.0.9 is the latest known working version, 24.1.1 is the earliest known broken version
+So this defaults to disabled */
+static Cvar::Cvar<bool> r_arb_bindless_texture( "r_arb_bindless_texture",
+	"Use GL_ARB_bindless_texture if available", Cvar::NONE, false );
 static Cvar::Cvar<bool> r_arb_buffer_storage( "r_arb_buffer_storage",
 	"Use GL_ARB_buffer_storage if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
@@ -66,6 +72,12 @@ static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
 	"Use GL_ARB_gpu_shader5 if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_map_buffer_range( "r_arb_map_buffer_range",
 	"Use GL_ARB_map_buffer_range if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_multi_draw_indirect( "r_arb_multi_draw_indirect",
+	"Use GL_ARB_multi_draw_indirect if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shader_draw_parameters( "r_arb_shader_draw_parameters",
+	"Use GL_ARB_shader_draw_parameters if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shader_storage_buffer_object( "r_arb_shader_storage_buffer_object",
+	"Use GL_ARB_shader_storage_buffer_object if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_sync( "r_arb_sync",
 	"Use GL_ARB_sync if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_texture_gather( "r_arb_texture_gather",
@@ -1782,12 +1794,16 @@ static void GLimp_InitExtensions()
 {
 	logger.Notice("Initializing OpenGL extensions" );
 
+	Cvar::Latch( r_arb_bindless_texture );
 	Cvar::Latch( r_arb_buffer_storage );
 	Cvar::Latch( r_arb_compute_shader );
 	Cvar::Latch( r_arb_debug_output );
 	Cvar::Latch( r_arb_depth_clamp );
 	Cvar::Latch( r_arb_gpu_shader5 );
 	Cvar::Latch( r_arb_map_buffer_range );
+	Cvar::Latch( r_arb_multi_draw_indirect );
+	Cvar::Latch( r_arb_shader_draw_parameters );
+	Cvar::Latch( r_arb_shader_storage_buffer_object );
 	Cvar::Latch( r_arb_sync );
 	Cvar::Latch( r_arb_texture_gather );
 	Cvar::Latch( r_arb_uniform_buffer_object );
@@ -2010,6 +2026,60 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 4.3
 	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );
+
+	// Some of the mesa 24.x driver versions have a bug in their shader compiler related to bindless textures,
+	// which results in either glitches or the shader compiler crashing (when material system is enabled)
+	{
+		bool foundMesa241 = false;
+		std::string mesaVersion = "";
+
+		static const std::vector<std::pair<std::string, std::vector<std::string>>> versions = {
+			{ "1.0", { "1.0-devel", "1.0-rc1", "1.0-rc2", "1.0-rc3", "1.0-rc4", "1.0", } },
+			{ "1.",  { "1.1", "1.2", "1.3", "1.4", } },
+			{ "2.0", { "2.0-devel", "2.0-rc1", } },
+		};
+
+		for ( auto& vp : versions ) {
+			mesaVersion = Str::Format( "Mesa 24.%s", vp.first );
+
+			if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
+				for ( auto& v : vp.second ) {
+					mesaVersion = Str::Format( "Mesa 24.%s", v );
+
+					if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
+						foundMesa241 = true;
+						break;
+					}
+				}
+
+				break;
+			}
+		}
+
+		if ( foundMesa241 ) {
+			logger.Warn( "...found buggy %s driver, ARB_bindless_texture disabled", mesaVersion );
+		}
+
+		// not required by any OpenGL version
+		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture.Get() && !foundMesa241 );
+	}
+
+	// made required in OpenGL 4.6
+	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, r_arb_shader_draw_parameters.Get() );
+
+	// made required in OpenGL 4.3
+	glConfig2.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object.Get() );
+
+	// made required in OpenGL 4.0
+	glConfig2.multiDrawIndirectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_multi_draw_indirect, r_arb_multi_draw_indirect.Get() );
+
+	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable &&
+									    glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
+										&& r_smp->integer == 0 // Currently doesn't work with r_smp 1
+										&& r_materialSystem.Get(); // Allow disabling it without disabling any extensions
+	if ( r_materialSystem.Get() && r_smp->integer ) {
+		Log::Warn( "Material system disabled because r_smp is not 0" );
+	}
 
 	GL_CheckErrors();
 }

@@ -58,6 +58,8 @@
 #include "shadowFill_fp.glsl.h"
 #include "shadowFill_vp.glsl.h"
 #include "skybox_fp.glsl.h"
+#include "material_vp.glsl.h"
+#include "material_fp.glsl.h"
 
 std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/blurX_fp.glsl", std::string(reinterpret_cast<const char*>(blurX_fp_glsl), sizeof(blurX_fp_glsl)) },
@@ -97,6 +99,8 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/lighttile_vp.glsl", std::string(reinterpret_cast<const char*>(lighttile_vp_glsl), sizeof(lighttile_vp_glsl)) },
 	{ "glsl/liquid_fp.glsl", std::string(reinterpret_cast<const char*>(liquid_fp_glsl), sizeof(liquid_fp_glsl)) },
 	{ "glsl/liquid_vp.glsl", std::string(reinterpret_cast<const char*>(liquid_vp_glsl), sizeof(liquid_vp_glsl)) },
+	{ "glsl/material_vp.glsl", std::string( reinterpret_cast< const char* >( material_vp_glsl ), sizeof( material_vp_glsl ) ) },
+	{ "glsl/material_fp.glsl", std::string( reinterpret_cast< const char* >( material_fp_glsl ), sizeof( material_fp_glsl ) ) },
 	{ "glsl/motionblur_fp.glsl", std::string(reinterpret_cast<const char*>(motionblur_fp_glsl), sizeof(motionblur_fp_glsl)) },
 	{ "glsl/motionblur_vp.glsl", std::string(reinterpret_cast<const char*>(motionblur_vp_glsl), sizeof(motionblur_vp_glsl)) },
 	{ "glsl/portal_fp.glsl", std::string(reinterpret_cast<const char*>(portal_fp_glsl), sizeof(portal_fp_glsl)) },
