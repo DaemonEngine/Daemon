@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_fp.glsl */
 
+#define LIGHTMAPPING_GLSL
+
 uniform sampler2D	u_DiffuseMap;
 uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
@@ -37,19 +39,11 @@ IN(smooth) vec3		var_Tangent;
 IN(smooth) vec3		var_Binormal;
 IN(smooth) vec3		var_Normal;
 
-#if defined(USE_LIGHT_MAPPING)
-	uniform sampler2D u_LightMap;
-#elif defined(USE_GRID_LIGHTING)
-	uniform sampler3D u_LightMap;
-	#define u_LightGrid1 u_LightMap
-#endif
+uniform sampler2D u_LightMap;
+uniform sampler3D u_LightGrid1;
 
-#if defined(USE_DELUXE_MAPPING)
-	uniform sampler2D u_DeluxeMap;
-#elif defined(USE_GRID_DELUXE_MAPPING)
-	uniform sampler3D u_DeluxeMap;
-	#define u_LightGrid2 u_DeluxeMap
-#endif
+uniform sampler2D u_DeluxeMap;
+uniform sampler3D u_LightGrid2;
 
 #if defined(USE_LIGHT_MAPPING) || defined(USE_DELUXE_MAPPING)
 	IN(smooth) vec2 var_TexLight;
@@ -64,6 +58,8 @@ DECLARE_OUTPUT(vec4)
 
 void main()
 {
+	#insert material_fp
+
 	// Compute view direction in world space.
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
@@ -73,7 +69,7 @@ void main()
 
 	#if defined(USE_RELIEF_MAPPING)
 		// Compute texcoords offset from heightmap.
-		vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix);
+		vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_HeightMap);
 
 		texCoords += texOffset;
 	#endif
@@ -91,7 +87,11 @@ void main()
 	}
 
 	// Compute normal in world space from normalmap.
-	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+	#if defined(r_normalMapping)
+		vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix, u_NormalMap);
+	#else // !r_normalMapping
+		vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+	#endif // !r_normalMapping
 
 	// Compute the material term.
 	vec4 material = texture2D(u_MaterialMap, texCoords);
@@ -156,14 +156,23 @@ void main()
 
 	// Blend static light.
 	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
-		computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+		#if defined(USE_REFLECTIVE_SPECULAR)
+			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color, u_EnvironmentMap0, u_EnvironmentMap1);
+		#else // !USE_REFLECTIVE_SPECULAR
+			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
+		#endif // !USE_REFLECTIVE_SPECULAR
 	#else
 		computeLight(lightColor, diffuse, color);
 	#endif
 
-	// Blend dynamic lights, this code is only used by the tiled dynamic light renderer.
+	// Blend dynamic lights.
 	#if defined(r_dynamicLight) && r_dynamicLightRenderer == 1
-		computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color);
+		#if defined(USE_REFLECTIVE_SPECULAR)
+			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTilesInt,
+								 u_EnvironmentMap0, u_EnvironmentMap1);
+		#else // !USE_REFLECTIVE_SPECULAR
+			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTilesInt);
+		#endif // !USE_REFLECTIVE_SPECULAR
 	#endif
 
 	// Add Rim Lighting to highlight the edges on model entities.
@@ -195,6 +204,7 @@ void main()
 	#endif
 
 	outputColor = color;
+
 
 	// Debugging.
 	#if defined(r_showNormalMaps)

@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* liquid_fp.glsl */
 
+#define LIQUID_GLSL
+
 uniform sampler2D	u_CurrentMap;
 uniform sampler2D	u_PortalMap;
 uniform sampler2D	u_DepthMap;
@@ -50,6 +52,8 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
+	#insert material_fp
+
 	// compute incident ray
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
 
@@ -64,17 +68,20 @@ void	main()
 	vec2 texNormal = var_TexCoords;
 
 #if defined(USE_RELIEF_MAPPING)
-	// ray intersect in view direction
 
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix);
+	vec2 texOffset = ReliefTexOffset(texNormal, viewDir, tangentToWorldMatrix, u_HeightMap);
 
 	texScreen += texOffset;
 	texNormal += texOffset;
 #endif
 
 	// compute normal in world space from normalmap
-	vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	#if defined(r_normalMapping)
+		vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix, u_NormalMap);
+	#else // !r_normalMapping
+		vec3 normal = NormalInWorldSpace(texNormal, tangentToWorldMatrix);
+	#endif // !r_normalMapping
 
 	// compute fresnel term
 	float fresnel = clamp(u_FresnelBias + pow(1.0 - dot(viewDir, normal), u_FresnelPower) *
@@ -129,7 +136,11 @@ void	main()
 	vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
 
 	// compute the specular term
-	computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
+	#if defined(USE_REFLECTIVE_SPECULAR)
+		computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color, u_EnvironmentMap0, u_EnvironmentMap1);
+	#else // !USE_REFLECTIVE_SPECULAR
+		computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
+	#endif // !USE_REFLECTIVE_SPECULAR
 
 	outputColor = color;
 

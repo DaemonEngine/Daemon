@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_init.c -- functions that are not called every frame
 #include "tr_local.h"
 #include "framework/CvarSystem.h"
+#include "Material.h"
 
 	glconfig_t  glConfig;
 	glconfig2_t glConfig2;
@@ -81,6 +82,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<int> r_mapOverBrightBits("r_mapOverBrightBits", "default map light color shift", Cvar::NONE, 2);
 	Cvar::Cvar<bool> r_forceLegacyOverBrightClamping("r_forceLegacyOverBrightClamping", "clamp over bright of legacy maps (enable multiplied color clamping and normalization)", Cvar::NONE, false);
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
+	Cvar::Cvar<bool> r_materialSystem( "r_materialSystem", "Use Material System", Cvar::NONE, false );
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
@@ -1160,6 +1162,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_dynamicLightRenderer );
 		Cvar::Latch( r_dynamicLight );
 		Cvar::Latch( r_staticLight );
+		Cvar::Latch( r_materialSystem );
 
 		r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
 		r_portalOnly = Cvar_Get( "r_portalOnly", "0", CVAR_CHEAT );
@@ -1487,6 +1490,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		}
 
 		R_DoneFreeType();
+
+		materialSystem.Free();
 
 		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )

@@ -26,19 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 //======================================================================================
 
-static void Tess_ComputeTexMatrices( shaderStage_t* pStage ) {
-	int   i;
-	vec_t* matrix;
-
-	GLimp_LogComment( "--- Tess_ComputeTexMatrices ---\n" );
-
-	for ( i = 0; i < MAX_TEXTURE_BUNDLES; i++ ) {
-		matrix = tess.svars.texMatrices[i];
-
-		RB_CalcTexMatrix( &pStage->bundle[i], matrix );
-	}
-}
-
 /*
 ================
 Tess_StageIteratorSky
@@ -59,6 +46,8 @@ void Tess_StageIteratorSky()
 		                  ( "--- Tess_StageIteratorSky( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
 		                    tess.numVertexes, tess.numIndexes / 3 ) );
 	}
+
+	tr.drawingSky = false;
 
 	if ( r_fastsky->integer )
 	{
@@ -126,7 +115,9 @@ void Tess_StageIteratorSky()
 		GL_State( GLS_DEFAULT );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tess.surfaceShader->sky.outerbox );
+		gl_skyboxShader->SetUniform_ColorMapCubeBindless(
+			GL_BindToTMU( 0, tess.surfaceShader->sky.outerbox )
+		);
 
 		// Only render the outer skybox at this stage
 		gl_skyboxShader->SetUniform_UseCloudMap( false );
@@ -151,7 +142,9 @@ void Tess_StageIteratorSky()
 
 		gl_skyboxShader->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
 
-		GL_BindToTMU( 1, pStage->bundle[TB_COLORMAP].image[0] );
+		gl_skyboxShader->SetUniform_CloudMapBindless(
+			GL_BindToTMU( 1, pStage->bundle[TB_COLORMAP].image[0] )
+		);
 
 		// u_AlphaThreshold
 		gl_skyboxShader->SetUniform_AlphaTest( pStage->stateBits );

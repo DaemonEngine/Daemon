@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "gl_shader.h"
+#include "Material.h"
 
 static Cvar::Modified<Cvar::Cvar<bool>> r_showCluster(
 	"r_showCluster", "print PVS cluster at current location", Cvar::CHEAT, false );
@@ -435,7 +436,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 	do
 	{
 		// if the node wasn't marked as potentially visible, exit
-		if ( node->visCounts[ tr.visIndex ] != tr.visCounts[ tr.visIndex ] )
+		if ( node->visCounts[ tr.visIndex ] != tr.visCounts[ tr.visIndex ] && !materialSystem.generatingWorldCommandBuffer )
 		{
 			return;
 		}
