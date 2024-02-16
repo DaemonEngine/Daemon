@@ -42,6 +42,8 @@ void DeformVertex( inout vec4 pos,
 
 void	main()
 {
+	#insert material
+
 	vec4            deformVec;
 	float           d1, d2;
 

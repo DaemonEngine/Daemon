@@ -41,17 +41,24 @@ ShaderKind shaderKind = ShaderKind::Unknown;
 
 GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
+GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
+GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial = nullptr;
 GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ = nullptr;
 GLShader_forwardLighting_projXYZ         *gl_forwardLightingShader_projXYZ = nullptr;
 GLShader_forwardLighting_directionalSun  *gl_forwardLightingShader_directionalSun = nullptr;
 GLShader_shadowFill                      *gl_shadowFillShader = nullptr;
 GLShader_reflection                      *gl_reflectionShader = nullptr;
+GLShader_reflectionMaterial              *gl_reflectionShaderMaterial = nullptr;
 GLShader_skybox                          *gl_skyboxShader = nullptr;
+GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial = nullptr;
 GLShader_fogQuake3                       *gl_fogQuake3Shader = nullptr;
+GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial = nullptr;
 GLShader_fogGlobal                       *gl_fogGlobalShader = nullptr;
 GLShader_heatHaze                        *gl_heatHazeShader = nullptr;
+GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial = nullptr;
 GLShader_screen                          *gl_screenShader = nullptr;
+GLShader_screenMaterial                  *gl_screenShaderMaterial = nullptr;
 GLShader_portal                          *gl_portalShader = nullptr;
 GLShader_contrast                        *gl_contrastShader = nullptr;
 GLShader_cameraEffects                   *gl_cameraEffectsShader = nullptr;
@@ -59,6 +66,7 @@ GLShader_blurX                           *gl_blurXShader = nullptr;
 GLShader_blurY                           *gl_blurYShader = nullptr;
 GLShader_debugShadowMap                  *gl_debugShadowMapShader = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
+GLShader_liquidMaterial                  *gl_liquidShaderMaterial = nullptr;
 GLShader_motionblur                      *gl_motionblurShader = nullptr;
 GLShader_ssao                            *gl_ssaoShader = nullptr;
 GLShader_depthtile1                      *gl_depthtile1Shader = nullptr;
@@ -66,6 +74,18 @@ GLShader_depthtile2                      *gl_depthtile2Shader = nullptr;
 GLShader_lighttile                       *gl_lighttileShader = nullptr;
 GLShader_fxaa                            *gl_fxaaShader = nullptr;
 GLShaderManager                           gl_shaderManager;
+
+GLuint GLUniform::GetSTD430Size() const {
+	return _std430Size;
+}
+
+GLuint GLUniform::GetSTD430Alignment() const {
+	return _std430Alignment;
+}
+
+uint32_t* GLUniform::WriteToBuffer( uint32_t* buffer ) {
+	return buffer;
+}
 
 namespace // Implementation details
 {
@@ -379,7 +399,7 @@ static void addExtension( std::string &str, int enabled, int minGlslVersion,
 			  int supported, const char *name ) {
 	if( !enabled ) {
 		// extension disabled by user
-	} else if( glConfig2.shadingLanguageVersion >= minGlslVersion ) {
+	} else if ( minGlslVersion != -1 && glConfig2.shadingLanguageVersion >= minGlslVersion ) {
 		// the extension is available in the core language
 		str += Str::Format( "#define HAVE_%s 1\n", name );
 	} else if( supported ) {
@@ -421,6 +441,13 @@ static std::string GenVersionDeclaration() {
 		      GLEW_ARB_gpu_shader5, "ARB_gpu_shader5" );
 	addExtension( str, r_arb_uniform_buffer_object->integer, 140,
 		      GLEW_ARB_uniform_buffer_object, "ARB_uniform_buffer_object" );
+	addExtension( str, glConfig2.bindlessTexturesAvailable, -1,
+		      GLEW_ARB_bindless_texture, "ARB_bindless_texture" );
+	// ARB_shader_draw_parameters set to -1, because we might get a 4.6 GL context, where the core variables have different names
+	addExtension( str, glConfig2.shaderDrawParametersAvailable, -1,
+			  GLEW_ARB_shader_draw_parameters, "ARB_shader_draw_parameters" );
+	addExtension( str, glConfig2.SSBOAvailable, 430,
+			  GLEW_ARB_shader_storage_buffer_object, "ARB_shader_storage_buffer_object" );
 
 	return str;
 }
@@ -452,6 +479,13 @@ static std::string GenVertexHeader() {
 			"#define OUT(mode) varying\n";
 	}
 
+	if ( glConfig2.shaderDrawParametersAvailable ) {
+		str += "OUT(flat) int in_drawID;\n";
+		str += "OUT(flat) int in_baseInstance;\n";
+		str += "#define drawID gl_DrawIDARB\n";
+		str += "#define baseInstance gl_BaseInstanceARB\n\n";
+	}
+
 	return str;
 }
 
@@ -473,6 +507,17 @@ static std::string GenFragmentHeader() {
 		str =   "#define IN(mode) varying\n"
 			"#define outputColor gl_FragColor\n"
 			"#define DECLARE_OUTPUT(type) /* empty*/\n";
+	}
+
+	if ( glConfig2.bindlessTexturesAvailable ) {
+		str += "layout(bindless_sampler) uniform;\n";
+	}
+
+	if ( glConfig2.shaderDrawParametersAvailable ) {
+		str += "IN(flat) int in_drawID;\n";
+		str += "IN(flat) int in_baseInstance;\n";
+		str += "#define drawID in_drawID\n";
+		str += "#define baseInstance in_baseInstance\n\n";
 	}
 
 	return str;
@@ -770,9 +815,31 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	// so we have to reset the line counting.
 	env += "#line 0\n";
 
-	std::string shaderText = env + libs + GetShaderText(filename);
+	std::string shaderText = env + libs + GetShaderText( filename );
 
-	return shaderText;
+	// std::string mainText = GetShaderText( filename );
+	
+	std::istringstream shaderTextStream( shaderText );
+	std::string shaderMain;
+
+	std::string line;
+
+	while ( std::getline( shaderTextStream, line, '\n' ) ) {
+		std::string::size_type position = line.find( "#insert" );
+		if ( position == std::string::npos ) {
+			shaderMain += line + "\n";
+			continue;
+		}
+
+		std::string shaderInsertPath = line.substr( position + 8, std::string::npos );
+		if ( shaderType == GL_VERTEX_SHADER ) {
+			shaderMain += GetShaderText( "glsl/" + shaderInsertPath + "_vp.glsl" );
+		} else {
+			shaderMain += GetShaderText( "glsl/" + shaderInsertPath + "_fp.glsl" );
+		}
+	}
+
+	return shaderMain;
 }
 
 static bool IsUnusedPermutation( const char *compileMacros )
@@ -901,6 +968,8 @@ void GLShaderManager::InitShader( GLShader *shader )
 {
 	shader->_shaderPrograms = std::vector<shaderProgram_t>( static_cast<size_t>(1) << shader->_compileMacros.size() );
 
+	shader->PostProcessUniforms();
+
 	shader->_uniformStorageSize = 0;
 	for ( std::size_t i = 0; i < shader->_uniforms.size(); i++ )
 	{
@@ -924,6 +993,10 @@ void GLShaderManager::InitShader( GLShader *shader )
 
 	shader->_vertexShaderText = BuildGPUShaderText( shader->GetMainShaderName(), vertexInlines, GL_VERTEX_SHADER );
 	shader->_fragmentShaderText = BuildGPUShaderText( shader->GetMainShaderName(), fragmentInlines, GL_FRAGMENT_SHADER );
+	if ( glConfig2.materialSystemAvailable && shader->_useMaterialSystem ) {
+		shader->_vertexShaderText = ShaderPostProcess( shader, shader->_vertexShaderText );
+		shader->_fragmentShaderText = ShaderPostProcess( shader, shader->_fragmentShaderText );
+	}
 	std::string combinedShaderText =
 		GLVersionDeclaration.getText()
 		+ GLCompatHeader.getText()
@@ -1137,6 +1210,106 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 
 	BindAttribLocations( program->program );
 	LinkProgram( program->program );
+}
+
+// This will generate all the extra code for material system shaders
+std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::string& shaderText ) {
+	std::string newShaderText;
+	std::string materialStruct = "\nstruct Material {\n";
+	std::string materialBlock = "layout(std430, binding = 0) readonly buffer materialsSSBO {\n"
+									 "  Material materials[];\n"
+									 "};\n\n";
+	std::string materialDefines;
+
+	/* Generate the struct and defines in the form of:
+	* struct Material {
+	*   type uniform0;
+	*   type uniform1;
+	*   ..
+	*   type uniformn;
+	* }
+	* 
+	* #define uniformx materials[baseInstance].uniformx
+	*/
+
+	for( GLUniform* uniform : shader->_uniforms ) {
+		if ( uniform->IsGlobal() ) {
+			continue;
+		}
+
+		if ( uniform->IsTexture() ) {
+			materialStruct += "  uvec2 "; // Driver bug: AMD compiler crashes when using uint64_t for textures here
+			materialStruct += uniform->GetName();
+		} else {
+			materialStruct += "  " + uniform->GetType() + " " + uniform->GetName();
+		}
+
+		if ( uniform->GetComponentSize() ) {
+			materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
+		}
+		materialStruct += ";\n";
+
+		// vec3 is aligned to 4 components, so just pad it with int
+		// TODO: Try to move 1 component uniforms here to avoid wasting memory
+		if ( uniform->GetSTD430Size() == 3 ) {
+			materialStruct += "  int ";
+			materialStruct += uniform->GetName();
+			materialStruct += "_padding;\n";
+		}
+
+		materialDefines += "#define ";
+		materialDefines += uniform->GetName();
+
+		if ( uniform->IsTexture() ) {
+			materialDefines += "_initial uvec2("; // We'll need this to create sampler objects later
+		}
+
+		materialDefines += " materials[baseInstance].";
+		materialDefines += uniform->GetName();
+		
+		if ( uniform->IsTexture() ) {
+			materialDefines += " )";
+		}
+
+		materialDefines += "\n";
+	}
+
+	// Array of structs is aligned to the largest member of the struct
+	for ( uint i = 0; i < shader->padding; i++ ) {
+		materialStruct += "  int material_padding" + std::to_string( i );
+		materialStruct += ";\n";
+	}
+
+	materialStruct += "};\n\n";
+	materialDefines += "\n";
+
+	std::istringstream shaderTextStream( shaderText );
+	std::string shaderMain;
+
+	std::string line;
+	
+	while( std::getline( shaderTextStream, line, '\n' ) ) {
+		// Remove local uniform declarations, but avoid removing uniform/storage blocks
+		if( !( line.find( "uniform" ) == std::string::npos || line.find( ";" ) == std::string::npos ) ) {
+			continue;
+		}
+		shaderMain += line + "\n";
+	}
+
+	for ( GLUniform* uniform : shader->_uniforms ) {
+		if ( uniform->IsGlobal() ) {
+			materialDefines += "uniform " + uniform->GetType() + " " + uniform->GetName();
+			if ( uniform->GetComponentSize() ) {
+				materialDefines += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
+			}
+			materialDefines += ";\n";
+		}
+	}
+
+	materialDefines += "\n";
+
+	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + materialDefines + shaderMain;
+	return newShaderText;
 }
 
 GLuint GLShaderManager::CompileShader( Str::StringRef programName,
@@ -1464,6 +1637,75 @@ bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, co
 	return false;
 }
 
+void GLShader::RegisterUniform( GLUniform* uniform ) {
+	_uniforms.push_back( uniform );
+	textureCount += uniform->IsTexture();
+}
+
+GLint GLShader::GetUniformLocation( const GLchar *uniformName ) const {
+	shaderProgram_t* p = GetProgram();
+	return glGetUniformLocation( p->program, uniformName );
+}
+
+// Compute std430 size/alignment and sort uniforms from highest to lowest alignment
+void GLShader::PostProcessUniforms() {
+	if ( !_useMaterialSystem ) {
+		return;
+	}
+
+	std::vector<GLUniform*> tmp;
+
+	std::vector<GLUniform*> globalUniforms;
+	for ( GLUniform* uniform : _uniforms ) {
+		if ( uniform->IsGlobal() ) {
+			globalUniforms.emplace_back( uniform );
+		}
+	}
+	for ( GLUniform* uniform : globalUniforms ) {
+		_uniforms.erase( std::remove( _uniforms.begin(), _uniforms.end(), uniform ), _uniforms.end() );
+	}
+
+	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
+	const uint numUniforms = _uniforms.size();
+	GLuint structAlignment = 0;
+	GLuint structSize = 0;
+	while ( tmp.size() < numUniforms ) {
+		// Higher-alignment uniforms first to avoid wasting memory
+		GLuint highestAlignment = 0;
+		int highestUniform = 0;
+		for( uint i = 0; i < _uniforms.size(); i++ ) {
+			if ( _uniforms[i]->GetSTD430Alignment() > highestAlignment ) {
+				highestAlignment = _uniforms[i]->GetSTD430Alignment();
+				highestUniform = i;
+			}
+			if ( highestAlignment > structAlignment ) {
+				structAlignment = highestAlignment;
+			}
+			if ( highestAlignment == 4 ) {
+				break; // 4-component is the highest alignment in std430
+			}
+		}
+			
+		const GLuint size = _uniforms[highestUniform]->GetSTD430Size();
+		if ( _uniforms[highestUniform]->GetComponentSize() != 0 ) {
+			structSize += ( size == 3 ) ? 4 * _uniforms[highestUniform]->GetComponentSize() :
+												size * _uniforms[highestUniform]->GetComponentSize();
+		} else {
+			structSize += ( size == 3 ) ? 4 : size;
+		}
+
+		tmp.emplace_back( _uniforms[highestUniform] );
+		_uniforms.erase( _uniforms.begin() + highestUniform );
+	}
+	_uniforms = tmp;
+
+	padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
+	std430Size = structSize;
+	for ( GLUniform* uniform : globalUniforms ) {
+		_uniforms.emplace_back( uniform );
+	}
+}
+
 bool GLShader::GetCompileMacrosString( size_t permutation, std::string &compileMacrosOut ) const
 {
 	compileMacrosOut.clear();
@@ -1504,6 +1746,38 @@ int GLShader::SelectProgram()
 	}
 
 	return index;
+}
+
+GLuint GLShader::GetProgram( int deformIndex ) {
+	int macroIndex = SelectProgram();
+	size_t index = macroIndex + ( size_t( deformIndex ) << _compileMacros.size() );
+
+	// program may not be loaded yet because the shader manager hasn't yet gotten to it
+	// so try to load it now
+	if ( index >= _shaderPrograms.size() || !_shaderPrograms[index].program ) {
+		_shaderManager->buildPermutation( this, macroIndex, deformIndex );
+	}
+
+	// program is still not loaded
+	if ( index >= _shaderPrograms.size() || !_shaderPrograms[index].program ) {
+		std::string activeMacros;
+		size_t      numMacros = _compileMacros.size();
+
+		for ( size_t j = 0; j < numMacros; j++ ) {
+			GLCompileMacro* macro = _compileMacros[j];
+
+			int           bit = macro->GetBit();
+
+			if ( IsMacroSet( bit ) ) {
+				activeMacros += macro->GetName();
+				activeMacros += " ";
+			}
+		}
+
+		ThrowShaderError( Str::Format( "Invalid shader configuration: shader = '%s', macros = '%s'", _name, activeMacros ) );
+	}
+
+	return _shaderPrograms[index].program;
 }
 
 void GLShader::BindProgram( int deformIndex )
@@ -1565,8 +1839,19 @@ void GLShader::SetRequiredVertexPointers()
 	GL_VertexAttribsState( ( _vertexAttribsRequired | _vertexAttribs | macroVertexAttribs ) );  // & ~_vertexAttribsUnsupported);
 }
 
+void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
+	uint32_t* bufPtr = buffer;
+	for ( GLUniform* uniform : _uniforms ) {
+		if ( !uniform->IsGlobal() ) {
+			bufPtr = uniform->WriteToBuffer( bufPtr );
+		}
+	}
+}
+
 GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 	GLShader( "generic2D", "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
+	u_DepthMap( this ),
 	u_TextureMatrix( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
@@ -1598,12 +1883,13 @@ void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
+	u_DepthMap( this ),
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ViewUp( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
-	u_ProjectionMatrixTranspose( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
 	u_ColorModulate( this ),
@@ -1633,9 +1919,58 @@ void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram 
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
 }
 
+GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
+	GLShader( "genericMaterial", "generic", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
+	u_DepthMap( this ),
+	u_TextureMatrix( this ),
+	u_ViewOrigin( this ),
+	u_ViewUp( this ),
+	u_AlphaThreshold( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this ),
+	u_ColorModulate( this ),
+	u_Color( this ),
+	// u_Bones( this ),
+	u_VertexInterpolation( this ),
+	u_DepthScale( this ),
+	GLDeformStage( this ),
+	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
+	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_VERTEX_SPRITE( this ),
+	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
+	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
+	GLCompileMacro_USE_DEPTH_FADE( this ),
+	GLCompileMacro_USE_ALPHA_TESTING( this ) {
+}
+
+void GLShader_genericMaterial::BuildShaderVertexLibNames( std::string& vertexInlines ) {
+	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
+}
+
+void GLShader_genericMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
+}
+
 GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLShader( "lightMapping",
 	ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR, manager ),
+	u_DiffuseMap( this ),
+	u_NormalMap( this ),
+	u_HeightMap( this ),
+	u_MaterialMap( this ),
+	u_LightMap( this ),
+	u_DeluxeMap( this ),
+	u_GlowMap( this ),
+	u_EnvironmentMap0( this ),
+	u_EnvironmentMap1( this ),
+	u_LightGrid1( this ),
+	u_LightGrid2( this ),
+	u_LightTiles( this ),
+	u_LightTilesInt( this ),
+	u_LightsTexture( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulate( this ),
@@ -1688,20 +2023,106 @@ void GLShader_lightMapping::SetShaderProgramUniforms( shaderProgram_t *shaderPro
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), BIND_NORMALMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), BIND_HEIGHTMAP );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ),  BIND_MATERIALMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ), BIND_MATERIALMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightMap" ), BIND_LIGHTMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid1" ), BIND_LIGHTMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DeluxeMap" ), BIND_DELUXEMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid2" ), BIND_DELUXEMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_GlowMap" ), BIND_GLOWMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightTiles" ), BIND_LIGHTTILES );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightTilesInt" ), BIND_LIGHTTILES );
+	if( !glConfig2.uniformBufferObjectAvailable ) {
+		glUniform1i( glGetUniformLocation( shaderProgram->program, "u_Lights" ), BIND_LIGHTS );
+	}
+}
+
+GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* manager ) :
+	GLShader( "lightMappingMaterial", "lightMapping", true,
+		ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR, manager ),
+	u_DiffuseMap( this ),
+	u_NormalMap( this ),
+	u_HeightMap( this ),
+	u_MaterialMap( this ),
+	u_LightMap( this ),
+	u_DeluxeMap( this ),
+	u_GlowMap( this ),
+	u_EnvironmentMap0( this ),
+	u_EnvironmentMap1( this ),
+	u_LightGrid1( this ),
+	u_LightGrid2( this ),
+	u_LightTilesInt( this ),
+	u_TextureMatrix( this ),
+	u_SpecularExponent( this ),
+	u_ColorModulate( this ),
+	u_Color( this ),
+	u_AlphaThreshold( this ),
+	u_ViewOrigin( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this ),
+	// u_Bones( this ),
+	u_VertexInterpolation( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
+	u_NormalScale( this ),
+	u_EnvironmentInterpolation( this ),
+	u_LightGridOrigin( this ),
+	u_LightGridScale( this ),
+	u_numLights( this ),
+	u_Lights( this ),
+	GLDeformStage( this ),
+	GLCompileMacro_USE_BSP_SURFACE( this ),
+	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
+	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_DELUXE_MAPPING( this ),
+	GLCompileMacro_USE_GRID_LIGHTING( this ),
+	GLCompileMacro_USE_GRID_DELUXE_MAPPING( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_RELIEF_MAPPING( this ),
+	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
+	GLCompileMacro_USE_PHYSICAL_MAPPING( this ) {
+}
+
+void GLShader_lightMappingMaterial::BuildShaderVertexLibNames( std::string& vertexInlines ) {
+	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
+}
+
+void GLShader_lightMappingMaterial::BuildShaderFragmentLibNames( std::string& fragmentInlines ) {
+	fragmentInlines += "computeLight reliefMapping";
+}
+
+void GLShader_lightMappingMaterial::BuildShaderCompileMacros( std::string& /*compileMacros*/ ) {
+}
+
+void GLShader_lightMappingMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), BIND_NORMALMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), BIND_HEIGHTMAP );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_MaterialMap" ), BIND_MATERIALMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightMap" ), BIND_LIGHTMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DeluxeMap" ), BIND_DELUXEMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_GlowMap" ), BIND_GLOWMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightTiles" ), BIND_LIGHTTILES );
-	if( !glConfig2.uniformBufferObjectAvailable ) {
+	if ( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->program, "u_Lights" ), BIND_LIGHTS );
 	}
 }
 
 GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderManager *manager ):
 	GLShader("forwardLighting_omniXYZ", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
+	u_DiffuseMap( this ),
+	u_NormalMap( this ),
+	u_MaterialMap( this ),
+	u_AttenuationMapXY( this ),
+	u_AttenuationMapZ( this ),
+	u_ShadowMap( this ),
+	u_ShadowClipMap( this ),
+	u_RandomMap( this ),
+	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
@@ -1760,6 +2181,15 @@ void GLShader_forwardLighting_omniXYZ::SetShaderProgramUniforms( shaderProgram_t
 
 GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderManager *manager ):
 	GLShader("forwardLighting_projXYZ", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
+	u_DiffuseMap( this ),
+	u_NormalMap( this ),
+	u_MaterialMap( this ),
+	u_AttenuationMapXY( this ),
+	u_AttenuationMapZ( this ),
+	u_ShadowMap0( this ),
+	u_ShadowClipMap0( this ),
+	u_RandomMap( this ),
+	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
@@ -1820,6 +2250,20 @@ void GLShader_forwardLighting_projXYZ::SetShaderProgramUniforms( shaderProgram_t
 
 GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun( GLShaderManager *manager ):
 	GLShader("forwardLighting_directionalSun", "forwardLighting", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager),
+	u_DiffuseMap( this ),
+	u_NormalMap( this ),
+	u_MaterialMap( this ),
+	u_ShadowMap0( this ),
+	u_ShadowMap1( this ),
+	u_ShadowMap2( this ),
+	u_ShadowMap3( this ),
+	u_ShadowMap4( this ),
+	u_ShadowClipMap0( this ),
+	u_ShadowClipMap1( this ),
+	u_ShadowClipMap2( this ),
+	u_ShadowClipMap3( this ),
+	u_ShadowClipMap4( this ),
+	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
@@ -1889,6 +2333,7 @@ void GLShader_forwardLighting_directionalSun::SetShaderProgramUniforms( shaderPr
 
 GLShader_shadowFill::GLShader_shadowFill( GLShaderManager *manager ) :
 	GLShader( "shadowFill", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
@@ -1918,6 +2363,9 @@ void GLShader_shadowFill::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	GLShader("reflection", "reflection_CB", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
+	u_NormalMap( this ),
+	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
@@ -1956,8 +2404,48 @@ void GLShader_reflection::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
+GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manager ) :
+	GLShader( "reflectionMaterial", "reflection", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
+	u_NormalMap( this ),
+	u_HeightMap( this ),
+	u_TextureMatrix( this ),
+	u_ViewOrigin( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	// u_Bones( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
+	u_NormalScale( this ),
+	u_VertexInterpolation( this ),
+	GLDeformStage( this ),
+	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
+	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
+}
+
+void GLShader_reflectionMaterial::BuildShaderVertexLibNames( std::string& vertexInlines ) {
+	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
+}
+
+void GLShader_reflectionMaterial::BuildShaderFragmentLibNames( std::string& fragmentInlines ) {
+	fragmentInlines += "reliefMapping";
+}
+
+void GLShader_reflectionMaterial::BuildShaderCompileMacros( std::string& ) {
+}
+
+void GLShader_reflectionMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 1 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
+}
+
 GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	GLShader( "skybox", ATTR_POSITION, manager ),
+	u_ColorMapCube( this ),
+	u_CloudMap( this ),
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_CloudHeight( this ),
@@ -1966,7 +2454,6 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
-	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_ALPHA_TESTING( this )
 {
@@ -1974,12 +2461,34 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 
 void GLShader_skybox::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMapCube" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CloudMap" ), 1 );
+}
+
+GLShader_skyboxMaterial::GLShader_skyboxMaterial( GLShaderManager* manager ) :
+	GLShader( "skyboxMaterial", "skybox", true, ATTR_POSITION, manager ),
+	u_ColorMapCube( this ),
+	u_CloudMap( this ),
+	u_TextureMatrix( this ),
+	u_ViewOrigin( this ),
+	u_CloudHeight( this ),
+	u_UseCloudMap( this ),
+	u_AlphaThreshold( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this ),
+	GLDeformStage( this ),
+	GLCompileMacro_USE_ALPHA_TESTING( this ) {
+}
+
+void GLShader_skyboxMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CloudMap" ), 1 );
 }
 
 GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
@@ -2005,8 +2514,35 @@ void GLShader_fogQuake3::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
 }
 
+GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager ) :
+	GLShader( "fogQuake3Material", "fogQuake3", true, ATTR_POSITION | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_InverseLightFactor( this ),
+	u_Color( this ),
+	// u_Bones( this ),
+	u_VertexInterpolation( this ),
+	u_FogDistanceVector( this ),
+	u_FogDepthVector( this ),
+	u_FogEyeT( this ),
+	GLDeformStage( this ),
+	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
+	GLCompileMacro_USE_VERTEX_ANIMATION( this ) {
+}
+
+void GLShader_fogQuake3Material::BuildShaderVertexLibNames( std::string& vertexInlines ) {
+	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
+}
+
+void GLShader_fogQuake3Material::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+}
+
 GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
 	GLShader( "fogGlobal", ATTR_POSITION, manager ),
+	u_ColorMap( this ),
+	u_DepthMap( this ),
 	u_ViewOrigin( this ),
 	u_ViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2026,6 +2562,9 @@ void GLShader_fogGlobal::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 
 GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	GLShader( "heatHaze", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_CurrentMap( this ),
+	u_NormalMap( this ),
+	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ViewUp( this ),
@@ -2063,8 +2602,47 @@ void GLShader_heatHaze::SetShaderProgramUniforms( shaderProgram_t *shaderProgram
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
 }
 
+GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager ) :
+	GLShader( "heatHazeMaterial", "heatHaze", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_CurrentMap( this ),
+	u_NormalMap( this ),
+	u_HeightMap( this ),
+	u_TextureMatrix( this ),
+	u_ViewOrigin( this ),
+	u_ViewUp( this ),
+	u_DeformMagnitude( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_ModelViewMatrixTranspose( this ),
+	u_ProjectionMatrixTranspose( this ),
+	u_ColorModulate( this ),
+	u_Color( this ),
+	// u_Bones( this ),
+	u_NormalScale( this ),
+	u_VertexInterpolation( this ),
+	GLDeformStage( this ),
+	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
+	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
+	GLCompileMacro_USE_VERTEX_SPRITE( this ) {
+}
+
+void GLShader_heatHazeMaterial::BuildShaderVertexLibNames( std::string& vertexInlines ) {
+	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
+}
+
+void GLShader_heatHazeMaterial::BuildShaderFragmentLibNames( std::string& fragmentInlines ) {
+	fragmentInlines += "reliefMapping";
+}
+
+void GLShader_heatHazeMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 1 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
+}
+
 GLShader_screen::GLShader_screen( GLShaderManager *manager ) :
 	GLShader( "screen", ATTR_POSITION, manager ),
+	u_CurrentMap( this ),
 	u_ModelViewProjectionMatrix( this )
 {
 }
@@ -2074,8 +2652,19 @@ void GLShader_screen::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 0 );
 }
 
+GLShader_screenMaterial::GLShader_screenMaterial( GLShaderManager* manager ) :
+	GLShader( "screenMaterial", "screen", true, ATTR_POSITION, manager ),
+	u_CurrentMap( this ),
+	u_ModelViewProjectionMatrix( this ) {
+}
+
+void GLShader_screenMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 0 );
+}
+
 GLShader_portal::GLShader_portal( GLShaderManager *manager ) :
 	GLShader( "portal", ATTR_POSITION, manager ),
+	u_CurrentMap( this ),
 	u_ModelViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_PortalRange( this )
@@ -2089,6 +2678,7 @@ void GLShader_portal::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 
 GLShader_contrast::GLShader_contrast( GLShaderManager *manager ) :
 	GLShader( "contrast", ATTR_POSITION, manager ),
+	u_ColorMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this )
 {
@@ -2101,6 +2691,8 @@ void GLShader_contrast::SetShaderProgramUniforms( shaderProgram_t *shaderProgram
 
 GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	GLShader( "cameraEffects", ATTR_POSITION | ATTR_TEXCOORD, manager ),
+	u_ColorMap3D( this ),
+	u_CurrentMap( this ),
 	u_ColorModulate( this ),
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
@@ -2113,11 +2705,12 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 void GLShader_cameraEffects::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 3 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap3D" ), 3 );
 }
 
 GLShader_blurX::GLShader_blurX( GLShaderManager *manager ) :
 	GLShader( "blurX", ATTR_POSITION, manager ),
+	u_ColorMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_DeformMagnitude( this ),
 	u_TexScale( this )
@@ -2131,6 +2724,7 @@ void GLShader_blurX::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 
 GLShader_blurY::GLShader_blurY( GLShaderManager *manager ) :
 	GLShader( "blurY", ATTR_POSITION, manager ),
+	u_ColorMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_DeformMagnitude( this ),
 	u_TexScale( this )
@@ -2144,6 +2738,7 @@ void GLShader_blurY::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 
 GLShader_debugShadowMap::GLShader_debugShadowMap( GLShaderManager *manager ) :
 	GLShader( "debugShadowMap", ATTR_POSITION, manager ),
+	u_CurrentMap( this ),
 	u_ModelViewProjectionMatrix( this )
 {
 }
@@ -2155,6 +2750,13 @@ void GLShader_debugShadowMap::SetShaderProgramUniforms( shaderProgram_t *shaderP
 
 GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	GLShader( "liquid", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_CurrentMap( this ),
+	u_DepthMap( this ),
+	u_NormalMap( this ),
+	u_PortalMap( this ),
+	u_LightGrid1( this ),
+	u_LightGrid2( this ),
+	u_HeightMap( this ),
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_RefractionIndex( this ),
@@ -2182,7 +2784,52 @@ void GLShader_liquid::BuildShaderFragmentLibNames( std::string& fragmentInlines 
 	fragmentInlines += "computeLight reliefMapping";
 }
 
-void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_PortalMap" ), 1 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 2 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 3 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid1" ), 6 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightGrid2" ), 7 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_HeightMap" ), 15 );
+}
+
+GLShader_liquidMaterial::GLShader_liquidMaterial( GLShaderManager* manager ) :
+	GLShader( "liquidMaterial", "liquid", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_CurrentMap( this ),
+	u_DepthMap( this ),
+	u_NormalMap( this ),
+	u_PortalMap( this ),
+	u_LightGrid1( this ),
+	u_LightGrid2( this ),
+	u_HeightMap( this ),
+	u_TextureMatrix( this ),
+	u_ViewOrigin( this ),
+	u_RefractionIndex( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_UnprojectMatrix( this ),
+	u_FresnelPower( this ),
+	u_FresnelScale( this ),
+	u_FresnelBias( this ),
+	u_ReliefDepthScale( this ),
+	u_ReliefOffsetBias( this ),
+	u_NormalScale( this ),
+	u_FogDensity( this ),
+	u_FogColor( this ),
+	u_LightTilesInt( this ),
+	u_SpecularExponent( this ),
+	u_LightGridOrigin( this ),
+	u_LightGridScale( this ),
+	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
+	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
+}
+
+void GLShader_liquidMaterial::BuildShaderFragmentLibNames( std::string& fragmentInlines ) {
+	fragmentInlines += "computeLight reliefMapping";
+}
+
+void GLShader_liquidMaterial::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_PortalMap" ), 1 );
@@ -2195,6 +2842,8 @@ void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 
 GLShader_motionblur::GLShader_motionblur( GLShaderManager *manager ) :
 	GLShader( "motionblur", ATTR_POSITION, manager ),
+	u_ColorMap( this ),
+	u_DepthMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_blurVec( this )
 {
@@ -2208,6 +2857,7 @@ void GLShader_motionblur::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_ssao::GLShader_ssao( GLShaderManager *manager ) :
 	GLShader( "ssao", ATTR_POSITION, manager ),
+	u_DepthMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_zFar( this )
 {
@@ -2220,6 +2870,7 @@ void GLShader_ssao::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 
 GLShader_depthtile1::GLShader_depthtile1( GLShaderManager *manager ) :
 	GLShader( "depthtile1", ATTR_POSITION, manager ),
+	u_DepthMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_zFar( this )
 {
@@ -2232,6 +2883,7 @@ void GLShader_depthtile1::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_depthtile2::GLShader_depthtile2( GLShaderManager *manager ) :
 	GLShader( "depthtile2", ATTR_POSITION, manager ),
+	u_DepthMap( this ),
 	u_ModelViewProjectionMatrix( this )
 {
 }
@@ -2243,10 +2895,12 @@ void GLShader_depthtile2::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_lighttile::GLShader_lighttile( GLShaderManager *manager ) :
 	GLShader( "lighttile", ATTR_POSITION | ATTR_TEXCOORD, manager ),
-	u_ModelMatrix( this ),
+	u_DepthMap( this ),
+	u_Lights( this ),
+	u_LightsTexture( this ),
 	u_numLights( this ),
 	u_lightLayer( this ),
-	u_Lights( this ),
+	u_ModelMatrix( this ),
 	u_zFar( this )
 {
 }
@@ -2262,6 +2916,7 @@ void GLShader_lighttile::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 
 GLShader_fxaa::GLShader_fxaa( GLShaderManager *manager ) :
 	GLShader( "fxaa", ATTR_POSITION, manager ),
+	u_ColorMap( this ),
 	u_ModelViewProjectionMatrix( this )
 {
 }

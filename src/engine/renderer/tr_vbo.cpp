@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_vbo.c
 #include "tr_local.h"
+#include "Material.h"
 
 // "templates" for VBO vertex data layouts
 
@@ -1072,6 +1073,13 @@ static void R_InitLightUBO()
 	}
 }
 
+static void R_InitMaterialBuffers() {
+	if( glConfig2.materialSystemAvailable ) {
+		materialsSSBO.GenBuffer();
+		commandBuffer.GenBuffer();
+	}
+}
+
 /*
 ============
 R_InitVBOs
@@ -1116,6 +1124,8 @@ void R_InitVBOs()
 	glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
 
 	R_InitLightUBO();
+
+	R_InitMaterialBuffers();
 
 	GL_CheckErrors();
 }
@@ -1183,6 +1193,11 @@ void R_ShutdownVBOs()
 	if( glConfig2.uniformBufferObjectAvailable ) {
 		glDeleteBuffers( 1, &tr.dlightUBO );
 		tr.dlightUBO = 0;
+	}
+
+	if ( glConfig2.materialSystemAvailable ) {
+		materialsSSBO.DelBuffer();
+		commandBuffer.DelBuffer();
 	}
 
 	tess.verts = tess.vertsBuffer = nullptr;
