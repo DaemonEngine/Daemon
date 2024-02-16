@@ -120,6 +120,8 @@ void Tess_StageIteratorSky()
 	// draw the outer skybox
 	if ( tess.surfaceShader->sky.outerbox && tess.surfaceShader->sky.outerbox != tr.blackCubeImage )
 	{
+		GL_State( GLS_DEFAULT );
+
 		// bind u_ColorMap
 		GL_BindToTMU( 0, tess.surfaceShader->sky.outerbox );
 
