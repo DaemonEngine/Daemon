@@ -2570,7 +2570,26 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 			if ( !Q_stricmp( token, "diffuseMap" ) )
 			{
-				Log::Warn("deprecated XreaL stage parameter '%s' in shader '%s', better use it in place of 'map' keyword and pack related textures within the same stage", token, shader.name );
+				/* This stage name is not deprecated, it is useful for materials like
+				this where there is already a *map keyword but we also need to tell
+				there is a diffuseMap meaning (implicit lightmap):
+
+				gfx/buildables/creep/creep
+				{
+					nopicmip
+					polygonoffset
+					twoSided
+					{
+						clampmap gfx/buildables/creep/creep_d
+						stage diffuseMap
+						specularMap gfx/buildables/creep/creep_s
+						normalMap gfx/buildables/creep/creep_n
+						blendfunc blend
+						rgbGen identity
+						alphaGen vertex
+						alphaFunc GE128
+					}
+				} */
 				stage->type = stageType_t::ST_DIFFUSEMAP;
 			}
 			else if ( !Q_stricmp( token, "normalMap" ) )
