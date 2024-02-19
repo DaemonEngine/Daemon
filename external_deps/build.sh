@@ -99,11 +99,9 @@ extract() {
 	cd "${2}"
 }
 
-# Download a file if it doesn't exist yet, and extract it into the build dir
-# Usage: download <filename> <URL> <dir>
 download() {
-	local extract_dir="${BUILD_DIR}/${1}"; shift
-	local tarball_file="${DOWNLOAD_DIR}/${1}"; shift
+	local tarball_file="${1}"; shift
+
 	while [ ! -f "${tarball_file}" ]; do
 		if [ -z "${1:-}" ]
 		then
@@ -111,12 +109,30 @@ download() {
 		fi
 		local download_url="${1}"; shift
 		log status "Downloading ${download_url}"
-		if ! "${CURL}" -L --fail -o "${tarball_file}" "${download_url}"
+		if ! "${CURL}" -R -L --fail -o "${tarball_file}" "${download_url}"
 		then
 			log warning "Failed to download ${download_url}"
 			rm -f "${tarball_file}"
 		fi
 	done
+}
+
+# Download a file if it doesn't exist yet, and extract it into the build dir
+# Usage: download <filename> <URL> <dir>
+download_extract() {
+	local extract_dir="${BUILD_DIR}/${1}"; shift
+	local our_mirror="https://dl.unvanquished.net/deps/original/${1}"
+	local tarball_file="${DOWNLOAD_DIR}/${1}"; shift
+
+	if "${prefer_ours}"
+	then
+		download "${tarball_file}" "${our_mirror}" "${@}"
+	else
+		download "${tarball_file}" "${@}" "${our_mirror}"
+	fi
+
+	"${download_only}" && return
+
 	extract "${tarball_file}" "${extract_dir}"
 }
 
@@ -125,8 +141,10 @@ build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download pkgconfig "${archive_name}" \
+	download_extract pkgconfig "${archive_name}" \
 		"http://pkgconfig.freedesktop.org/releases/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
@@ -142,8 +160,10 @@ build_nasm() {
 		local dir_name="nasm-${NASM_VERSION}"
 		local archive_name="${dir_name}-macosx.zip"
 
-		download nasm "${archive_name}" \
+		download_extract nasm "${archive_name}" \
 			"https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/${archive_name}"
+
+		"${download_only}" && return
 
 		cp "${dir_name}/nasm" "${PREFIX}/bin"
 		;;
@@ -160,9 +180,11 @@ build_zlib() {
 	local dir_name="zlib-${ZLIB_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download zlib "${archive_name}" \
+	download_extract zlib "${archive_name}" \
 		"https://zlib.net/fossils/${archive_name}" \
 		"https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	case "${PLATFORM}" in
@@ -184,10 +206,12 @@ build_gmp() {
 	local dir_name="gmp-${GMP_VERSION}"
 	local archive_name="${dir_name}.tar.bz2"
 
-	download gmp "${archive_name}" \
+	download_extract gmp "${archive_name}" \
 		"https://gmplib.org/download/gmp/${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/gmp/${archive_name}" \
 		"https://ftp.gnu.org/gnu/gmp/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	case "${PLATFORM}" in
@@ -227,9 +251,11 @@ build_nettle() {
 	local dir_name="nettle-${NETTLE_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download nettle "${archive_name}" \
+	download_extract nettle "${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/nettle/${archive_name}" \
 		"https://ftp.gnu.org/gnu/nettle/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
@@ -243,9 +269,11 @@ build_curl() {
 	local dir_name="curl-${CURL_VERSION}"
 	local archive_name="${dir_name}.tar.xz"
 
-	download curl "${archive_name}" \
+	download_extract curl "${archive_name}" \
 		"https://curl.se/download/${archive_name}" \
 		"https://github.com/curl/curl/releases/download/curl-${CURL_VERSION//./_}/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The user-provided CFLAGS doesn't drop the default -O2
@@ -273,9 +301,11 @@ build_sdl2() {
 		;;
 	esac
 
-	download sdl2 "${archive_name}" \
+	download_extract sdl2 "${archive_name}" \
 		"https://www.libsdl.org/release/${archive_name}" \
 		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/${archive_name}"
+
+	"${download_only}" && return
 
 	case "${PLATFORM}" in
 	windows-*-mingw)
@@ -329,9 +359,11 @@ build_glew() {
 	local dir_name="glew-${GLEW_VERSION}"
 	local archive_name="${dir_name}.tgz"
 
-	download glew "${archive_name}" \
+	download_extract glew "${archive_name}" \
 		"https://github.com/nigels-com/glew/releases/download/glew-${GLEW_VERSION}/${archive_name}" \
 		"https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	case "${PLATFORM}" in
@@ -360,10 +392,12 @@ build_glew() {
 # Build PNG
 build_png() {
 	local dir_name="libpng-${PNG_VERSION}"
-	local archive_name="${dir_name}.tar.gz"
+	local archive_name="${dir_name}.tar.xz"
 
-	download png "${archive_name}" \
+	download_extract png "${archive_name}" \
 		"https://download.sourceforge.net/libpng/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
@@ -377,8 +411,10 @@ build_jpeg() {
 	local dir_name="libjpeg-turbo-${JPEG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download jpeg "${archive_name}" \
+	download_extract jpeg "${archive_name}" \
 		"https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/${archive_name}"
+
+	"${download_only}" && return
 
 	case "${PLATFORM}" in
 	windows-*-*)
@@ -446,8 +482,10 @@ build_webp() {
 	local dir_name="libwebp-${WEBP_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download webp "${archive_name}" \
+	download_extract webp "${archive_name}" \
 		"https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
@@ -459,10 +497,12 @@ build_webp() {
 # Build FreeType
 build_freetype() {
 	local dir_name="freetype-${FREETYPE_VERSION}"
-	local archive_name="${dir_name}.tar.gz"
+	local archive_name="${dir_name}.tar.xz"
 
-	download freetype "${archive_name}" \
+	download_extract freetype "${archive_name}" \
 		"https://download.savannah.gnu.org/releases/freetype/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
@@ -492,9 +532,11 @@ build_openal() {
 		;;
 	esac
 
-	download openal "${archive_name}" \
+	download_extract openal "${archive_name}" \
 		"https://openal-soft.org/openal-releases/${archive_name}" \
 		"https://github.com/kcat/openal-soft/releases/download/${OPENAL_VERSION}/${archive_name}" \
+
+	"${download_only}" && return
 
 	case "${PLATFORM}" in
 	windows-*-*)
@@ -530,10 +572,12 @@ build_openal() {
 # Build Ogg
 build_ogg() {
 	local dir_name="libogg-${OGG_VERSION}"
-	local archive_name="libogg-${OGG_VERSION}.tar.gz"
+	local archive_name="libogg-${OGG_VERSION}.tar.xz"
 
-	download ogg "${archive_name}" \
+	download_extract ogg "${archive_name}" \
 		"https://downloads.xiph.org/releases/ogg/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# This header breaks the vorbis and opusfile Mac builds
@@ -548,10 +592,12 @@ build_ogg() {
 # Build Vorbis
 build_vorbis() {
 	local dir_name="libvorbis-${VORBIS_VERSION}"
-	local archive_name="${dir_name}.tar.gz"
+	local archive_name="${dir_name}.tar.xz"
 
-	download vorbis "${archive_name}" \
+	download_extract vorbis "${archive_name}" \
 		"https://downloads.xiph.org/releases/vorbis/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The user-provided CFLAGS doesn't drop the default -O3
@@ -565,8 +611,10 @@ build_opus() {
 	local dir_name="opus-${OPUS_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download opus "${archive_name}" \
+	download_extract opus "${archive_name}" \
 		"https://downloads.xiph.org/releases/opus/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
@@ -588,8 +636,10 @@ build_opusfile() {
 	local dir_name="opusfile-${OPUSFILE_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download opusfile "${archive_name}" \
+	download_extract opusfile "${archive_name}" \
 		"https://downloads.xiph.org/releases/opus/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
@@ -603,8 +653,10 @@ build_lua() {
 	local dir_name="lua-${LUA_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download lua "${archive_name}" \
+	download_extract lua "${archive_name}" \
 		"https://www.lua.org/ftp/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	case "${PLATFORM}" in
@@ -641,9 +693,11 @@ build_ncurses() {
 	local dir_name="ncurses-${NCURSES_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
-	download ncurses "${archive_name}" \
+	download_extract ncurses "${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/ncurses/${archive_name}" \
 		"https://ftp.gnu.org/pub/gnu/ncurses/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	# The default -O2 is dropped when there's user-provided CFLAGS.
@@ -678,8 +732,10 @@ build_wasisdk() {
 	local archive_name="${dir_name}-${WASISDK_PLATFORM}.tar.gz"
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 
-	download wasisdk "${archive_name}" \
+	download_extract wasisdk "${archive_name}" \
 		"https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
+
+	"${download_only}" && return
 
 	cp -r "${dir_name}" "${PREFIX}/wasi-sdk"
 }
@@ -715,8 +771,10 @@ build_wasmtime() {
 	local dir_name="wasmtime-v${WASMTIME_VERSION}-${WASMTIME_ARCH}-${WASMTIME_PLATFORM}-c-api"
 	local archive_name="${folder_name}.${ARCHIVE_EXT}"
 
-	download wasmtime "${archive_name}" \
+	download_extract wasmtime "${archive_name}" \
 		"https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}"
+
+	"${download_only}" && return
 
 	cd "${dir_name}"
 	cp -r include/* "${PREFIX}/include"
@@ -759,8 +817,10 @@ build_naclsdk() {
 
 	local archive_name="naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2"
 
-	download naclsdk "${archive_name}" \
+	download_extract naclsdk "${archive_name}" \
 		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
+
+	"${download_only}" && return
 
 	cp pepper_*"/tools/sel_ldr_${NACLSDK_ARCH}${EXE}" "${PREFIX}/nacl_loader${EXE}"
 	cp pepper_*"/tools/irt_core_${NACLSDK_ARCH}.nexe" "${PREFIX}/irt_core-${DAEMON_ARCH}.nexe"
@@ -818,8 +878,10 @@ build_naclsdk() {
 build_naclports() {
 	local archive_name="naclports-${NACLSDK_VERSION}.tar.bz2"
 
-	download naclports "${archive_name}" \
+	download_extract naclports "${archive_name}" \
 		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclports.tar.bz2"
+
+	"${download_only}" && return
 
 	mkdir -p "${PREFIX}/pnacl_deps/"{include,lib}
 	cp pepper_*"/ports/include/"{lauxlib.h,lua.h,lua.hpp,luaconf.h,lualib.h} "${PREFIX}/pnacl_deps/include"
@@ -830,6 +892,8 @@ build_naclports() {
 # The import libraries generated by MinGW seem to have issues, so we use LLVM's version instead.
 # So LLVM must be installed, e.g. 'sudo apt install llvm'
 build_genlib() {
+	"${download_only}" && return
+
 	case "${PLATFORM}" in
 	windows-*-msvc)
 		mkdir -p "${PREFIX}/def"
@@ -1091,7 +1155,7 @@ base_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 all_windows_i686_msvc_packages="${base_windows_amd64_msvc_packages}"
 
 base_windows_amd64_mingw_packages='zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports'
-all_mingw_packages="${base_windows_amd64_mingw_packages}"
+all_windows_amd64_mingw_packages="${base_windows_amd64_mingw_packages}"
 
 base_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
 all_windows_i686_mingw_packages="${base_windows_amd64_mingw_packages}"
@@ -1111,15 +1175,27 @@ all_linux_arm64_default_packages='zlib gmp nettle curl sdl2 glew png jpeg webp f
 base_linux_armhf_default_packages="${base_linux_arm64_default_packages}"
 all_linux_armhf_default_packages="${all_linux_arm64_default_packages}"
 
-# Usage
-if [ "${#}" -lt "2" ]; then
-	sed -e 's/\\t/\t/g' <<-EOF
-	usage: $(basename "${BASH_SOURCE[0]}") <platform> <package[s]...>
+linux_build_platforms='linux-amd64-default linux-arm64-default linux-armhf-default linux-i686-default windows-amd64-mingw windows-amd64-msvc windows-i686-mingw windows-i686-msvc'
+macos_build_platforms='macos-amd64-default'
+all_platforms="$(echo ${linux_build_platforms} ${macos_build_platforms} | tr ' ' '\n' | sort -u | xargs echo)"
+
+errorHelp() {
+	sed -e 's/\\t/'$'\t''/g' <<-EOF
+	usage: $(basename "${BASH_SOURCE[0]}") [OPTION] <PLATFORM> <PACKAGE[S]...>
 
 	Script to build dependencies for platforms which do not provide them
 
+	Options:
+	\t--download-only — only download source packages, do not build them
+	\t--prefer-ours — attempt to download from unvanquished.net first
+
 	Platforms:
-	\twindows-i686-msvc windows-amd64-msvc windows-i686-mingw windows-amd64-mingw macos-amd64-default linux-amd64-default linux-i686-default linux-arm64-default linux-armhf-default
+	\t${all_platforms}
+
+	Virtual platforms:
+	\tall: all platforms
+	\tbuild-linux — platforms buildable on linux: ${linux_build_platforms}
+	\tbuild-macos — platforms buildable on macos: ${macos_build_platforms}
 
 	Packages:
 	\tpkgconfig nasm zlib gmp nettle curl sdl2 glew png jpeg webp freetype openal ogg vorbis opus opusfile lua naclsdk naclports wasisdk wasmtime
@@ -1159,17 +1235,74 @@ if [ "${#}" -lt "2" ]; then
 
 	EOF
 	false
+}
+
+download_only='false'
+prefer_ours='false'
+while [ -n "${1:-}" ]
+do
+	case "${1-}" in
+	'--download-only')
+		download_only='true'
+		shift
+	;;
+	'--prefer-ours')
+		prefer_ours='true'
+		shift
+	;;
+	'--'*)
+		helpError
+	;;
+	*)
+		break
+	esac
+done
+
+# Usage
+if [ "${#}" -lt "2" ]; then
+	errorHelp
 fi
 
 # Enable parallel build
 export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 
 # Setup platform
-PLATFORM="${1}"; shift
-"setup_${PLATFORM}"
+platform="${1}"; shift
 
-# Build packages
-for pkg in "${@}"; do
-	cd "${WORK_DIR}"
-	"build_${pkg}"
-done
+platform_list=''
+case "${platform}" in
+'all')
+	platform_list="${all_platforms}"
+;;
+'build-linux')
+	platform_list="${linux_build_platforms}"
+;;
+'build-macos')
+	platform_list="${macos_build_platforms}"
+;;
+*)
+	for known_platform in ${all_platforms}
+	do
+		if [ "${platform}" = "${known_platform}" ]
+		then
+			platform_list="${platform}"
+			break;
+		fi
+	done
+	if [ -z "${platform_list}" ]
+	then
+		errorHelp
+	fi
+;;
+esac
+
+for PLATFORM in ${platform_list}
+do (
+	"setup_${PLATFORM}"
+
+	# Build packages
+	for pkg in "${@}"; do
+		cd "${WORK_DIR}"
+		"build_${pkg}"
+	done
+) done
