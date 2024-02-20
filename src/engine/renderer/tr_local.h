@@ -1199,6 +1199,10 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	  COLLAPSE_REFLECTIONMAP,
 	};
 
+	struct shaderStage_t;
+
+	using stageRenderer_t = void(*)(shaderStage_t *);
+
 	struct shaderStage_t
 	{
 		stageType_t     type;
@@ -1210,6 +1214,10 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		bool            dpMaterial;
 
 		bool shaderHasNoLight;
+
+		stageRenderer_t genericRenderer;
+		bool doShadowFill;
+		bool doForwardLighting;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
@@ -3540,6 +3548,17 @@ inline bool checkGLErrors()
 	void Tess_UpdateVBOs();
 
 	void RB_ShowImages();
+
+	void Render_NOP( shaderStage_t *pStage );
+	void Render_generic( shaderStage_t *pStage );
+	void Render_generic3D( shaderStage_t *pStage );
+	void Render_lightMapping( shaderStage_t *pStage );
+	void Render_reflection_CB( shaderStage_t *pStage );
+	void Render_skybox( shaderStage_t *pStage );
+	void Render_screen( shaderStage_t *pStage );
+	void Render_portal( shaderStage_t *pStage );
+	void Render_heatHaze( shaderStage_t *pStage );
+	void Render_liquid( shaderStage_t *pStage );
 
 	/*
 	============================================================
