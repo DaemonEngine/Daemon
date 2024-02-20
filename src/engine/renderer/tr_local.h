@@ -1259,13 +1259,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		expression_t    fresnelScaleExp;
 		expression_t    fresnelBiasExp;
 
-		// Available textures.
-		bool hasNormalMap;
-		bool hasHeightMap;
-		bool isHeightMapInNormalMap;
-		bool hasMaterialMap;
-		bool isMaterialPhysical;
-		bool hasGlowMap;
+		// Texture storage variants.
+		bool hasHeightMapInNormalMap;
 
 		// Available features.
 		bool enableNormalMapping;

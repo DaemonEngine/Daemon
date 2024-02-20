@@ -958,13 +958,13 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetGridDeluxeMapping( enableGridDeluxeMapping );
 
-	gl_lightMappingShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_lightMappingShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_lightMappingShader->SetReliefMapping( pStage->enableReliefMapping );
 
 	gl_lightMappingShader->SetReflectiveSpecular( pStage->enableNormalMapping && tr.cubeHashTable != nullptr );
 
-	gl_lightMappingShader->SetPhysicalShading( pStage->isMaterialPhysical );
+	gl_lightMappingShader->SetPhysicalShading( pStage->enablePhysicalMapping );
 
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
@@ -1054,7 +1054,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 		gl_lightMappingShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
 			GL_BindToTMU( BIND_HEIGHTMAP, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
 		}
@@ -1074,7 +1074,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_NormalMap
-	if ( !!r_normalMapping->integer || pStage->isHeightMapInNormalMap )
+	if ( !!r_normalMapping->integer || pStage->hasHeightMapInNormalMap )
 	{
 		GL_BindToTMU( BIND_NORMALMAP, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
 	}
@@ -1089,12 +1089,12 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_MaterialMap
-	if ( !!r_specularMapping->integer || pStage->enablePhysicalMapping )
+	if ( pStage->enableSpecularMapping || pStage->enablePhysicalMapping )
 	{
 		GL_BindToTMU( BIND_MATERIALMAP, pStage->bundle[ TB_MATERIALMAP ].image[ 0 ] );
 	}
 
-	if ( !pStage->enablePhysicalMapping && r_specularMapping->integer )
+	if ( pStage->enableSpecularMapping )
 	{
 		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
 		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
@@ -1310,7 +1310,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_omniXYZ->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -1345,7 +1345,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
 			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
 		}
@@ -1471,7 +1471,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_projXYZ->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -1506,7 +1506,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 		gl_forwardLightingShader_projXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
 			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
 		}
@@ -1631,7 +1631,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_directionalSun->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -1666,7 +1666,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 		gl_forwardLightingShader_directionalSun->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
 			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
 		}
@@ -1800,7 +1800,7 @@ static void Render_reflection_CB( shaderStage_t *pStage )
 	GL_State( pStage->stateBits );
 
 	// choose right shader program ----------------------------------
-	gl_reflectionShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_reflectionShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_reflectionShader->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -1865,7 +1865,7 @@ static void Render_reflection_CB( shaderStage_t *pStage )
 		gl_reflectionShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
 			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
 		}
@@ -2068,7 +2068,7 @@ static void Render_liquid( shaderStage_t *pStage )
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
 	// choose right shader program
-	gl_liquidShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_liquidShader->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -2125,7 +2125,7 @@ static void Render_liquid( shaderStage_t *pStage )
 		gl_liquidShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
 			GL_BindToTMU( 15, pStage->bundle[ TB_HEIGHTMAP ].image[ 0 ] );
 		}
