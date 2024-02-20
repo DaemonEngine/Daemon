@@ -1661,7 +1661,7 @@ static void ParseNormalMapDetectHeightMap( shaderStage_t *stage, const char **te
 			Log::Debug("Found heightmap embedded in normalmap '%s'", buffer);
 		});
 
-		stage->isHeightMapInNormalMap = true;
+		stage->hasHeightMapInNormalMap = true;
 	}
 }
 
@@ -2064,7 +2064,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				stage->collapseType = collapseType_t::COLLAPSE_generic;
 			}
 
-			stage->isHeightMapInNormalMap = true;
+			stage->hasHeightMapInNormalMap = true;
 			ParseNormalMap( stage, text );
 			SetNormalFormat( stage, dxNormalFormat );
 		}
@@ -5086,7 +5086,7 @@ static void CollapseStages()
 			stages[ diffuseStage ].hasNormalFormat = stages[ normalStage ].hasNormalFormat;
 			stages[ diffuseStage ].hasNormalScale = stages[ normalStage ].hasNormalScale;
 
-			stages[ diffuseStage ].isHeightMapInNormalMap = stages[ normalStage ].isHeightMapInNormalMap;
+			stages[ diffuseStage ].hasHeightMapInNormalMap = stages[ normalStage ].hasHeightMapInNormalMap;
 
 			// disable since it's merged
 			stages[ normalStage ].active = false;
@@ -5170,20 +5170,33 @@ static void CollapseStages()
 		stage->shaderHasNoLight = shaderHasNoLight;
 
 		// Available textures.
-		stage->hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
-		stage->hasHeightMap = stage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
-		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && stage->hasNormalMap;
-		stage->hasMaterialMap = stage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
-		stage->hasGlowMap = stage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
-		stage->isMaterialPhysical = stage->collapseType == collapseType_t::COLLAPSE_PBR;
+		bool hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
+		bool hasHeightMap = stage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
+		bool hasMaterialMap = stage->bundle[ TB_MATERIALMAP ].image[ 0 ] != nullptr;
+		bool hasGlowMap = stage->bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
+
+		// Texture storage variants.
+		stage->hasHeightMapInNormalMap = stage->hasHeightMapInNormalMap && hasNormalMap;
 
 		// Available features.
-		stage->enableNormalMapping = r_normalMapping->integer && stage->hasNormalMap;
-		stage->enableDeluxeMapping = r_deluxeMapping->integer && ( stage->hasNormalMap || stage->hasMaterialMap );
-		stage->enableReliefMapping = r_reliefMapping->integer && !shader.disableReliefMapping && ( stage->hasHeightMap || stage->isHeightMapInNormalMap );
-		stage->enablePhysicalMapping = r_physicalMapping->integer && stage->hasMaterialMap && stage->isMaterialPhysical;
-		stage->enableSpecularMapping = r_specularMapping->integer && stage->hasMaterialMap && !stage->isMaterialPhysical;
-		stage->enableGlowMapping = r_glowMapping->integer && stage->hasGlowMap;
+		stage->enableNormalMapping = r_normalMapping->integer && hasNormalMap;
+		stage->enableDeluxeMapping = r_deluxeMapping->integer && ( hasNormalMap || hasMaterialMap );
+
+		stage->enableReliefMapping = r_reliefMapping->integer && !shader.disableReliefMapping
+			&& ( hasHeightMap || stage->hasHeightMapInNormalMap );
+
+		stage->enableGlowMapping = r_glowMapping->integer && hasGlowMap;
+
+		if ( stage->collapseType == collapseType_t::COLLAPSE_PBR )
+		{
+			stage->enablePhysicalMapping = r_physicalMapping->integer && hasMaterialMap;
+			stage->enableSpecularMapping = false;
+		}
+		else
+		{
+			stage->enableSpecularMapping = r_specularMapping->integer && hasMaterialMap;
+			stage->enablePhysicalMapping = false;
+		}
 
 		// FIXME: Workaround for textures having both an alpha mask (like gratings) with an height map,
 		// The engine does not displace the depth test map yet so we disable relief mapping to prevent garbage
@@ -5197,17 +5210,24 @@ static void CollapseStages()
 
 		// Finally disable useless heightMapInNormalMap if both normal and relief mapping are disabled.
 		// see https://github.com/DaemonEngine/Daemon/issues/376
-		stage->isHeightMapInNormalMap = stage->isHeightMapInNormalMap && ( stage->enableNormalMapping || stage->enableReliefMapping );
+		stage->hasHeightMapInNormalMap = stage->hasHeightMapInNormalMap
+			&& ( stage->enableNormalMapping || stage->enableReliefMapping );
 
 		// Bind fallback textures if required.
-		if ( !stage->enableNormalMapping && !( stage->enableReliefMapping && stage->isHeightMapInNormalMap) )
+		if ( !stage->enableNormalMapping && !( stage->enableReliefMapping && stage->hasHeightMapInNormalMap) )
 		{
 			stage->bundle[ TB_NORMALMAP ].image[ 0 ] = tr.flatImage;
 		}
 
-		if ( !stage->enablePhysicalMapping && !stage->enableSpecularMapping )
+		if ( !stage->enableSpecularMapping && !stage->enablePhysicalMapping )
 		{
-			stage->bundle[ TB_MATERIALMAP ].image[ 0 ] = tr.blackImage;
+			// If specular mapping is enabled always use the specular mapping
+			// shader to avoid costly GLSL shader switching.
+			if ( r_specularMapping->integer )
+			{
+				stage->enableSpecularMapping = true;
+				stage->bundle[ TB_MATERIALMAP ].image[ 0 ] = tr.blackImage;
+			}
 		}
 
 		if ( !stage->enableGlowMapping )
@@ -5218,7 +5238,7 @@ static void CollapseStages()
 		// Compute normal scale.
 		for ( int i = 0; i < 3; i++ )
 		{
-			if ( stage->hasNormalMap )
+			if ( hasNormalMap )
 			{
 				if ( !stage->hasNormalFormat )
 				{
@@ -5253,7 +5273,7 @@ static void CollapseStages()
 				This way the material syntax is expected to work the same with
 				both the PNG source and the released CRN.
 				*/
-				if ( i < 2 || stage->isHeightMapInNormalMap )
+				if ( i < 2 || stage->hasHeightMapInNormalMap )
 				{
 					stage->normalScale[ i ] *= stage->normalFormat[ i ];
 				}
