@@ -611,6 +611,10 @@ static void SetRgbaGen( const shaderStage_t *pStage, colorGen_t *rgbGen, alphaGe
 
 // *INDENT-ON*
 
+void Render_NOP( shaderStage_t * )
+{
+}
+
 static void Render_generic2D( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_generic2D ---\n" );
@@ -680,9 +684,9 @@ static void Render_generic2D( shaderStage_t *pStage )
 
 static image_t* GetLightMap();
 
-static void Render_generic( shaderStage_t *pStage )
+void Render_generic3D( shaderStage_t *pStage )
 {
-	GLimp_LogComment( "--- Render_generic ---\n" );
+	GLimp_LogComment( "--- Render_generic3D ---\n" );
 
 	GL_State( pStage->stateBits );
 
@@ -783,6 +787,17 @@ static void Render_generic( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
+void Render_generic( shaderStage_t *pStage )
+{
+	if ( backEnd.projection2D )
+	{
+		Render_generic2D( pStage );
+		return;
+	}
+
+	Render_generic3D( pStage );
+}
+
 /*
 =================
 GetLightMap
@@ -826,7 +841,7 @@ static image_t* GetDeluxeMap()
 	}
 }
 
-static void Render_lightMapping( shaderStage_t *pStage )
+void Render_lightMapping( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
 
@@ -1793,7 +1808,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GL_CheckErrors();
 }
 
-static void Render_reflection_CB( shaderStage_t *pStage )
+void Render_reflection_CB( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_reflection_CB ---\n" );
 
@@ -1878,7 +1893,7 @@ static void Render_reflection_CB( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_skybox( shaderStage_t *pStage )
+void Render_skybox( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_skybox ---\n" );
 
@@ -1904,7 +1919,7 @@ static void Render_skybox( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_screen( shaderStage_t *pStage )
+void Render_screen( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_screen ---\n" );
 
@@ -1928,7 +1943,7 @@ static void Render_screen( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_portal( shaderStage_t *pStage )
+void Render_portal( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_portal ---\n" );
 
@@ -1956,7 +1971,7 @@ static void Render_portal( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_heatHaze( shaderStage_t *pStage )
+void Render_heatHaze( shaderStage_t *pStage )
 {
 	uint32_t      stateBits;
 	float         deformMagnitude;
@@ -2056,7 +2071,7 @@ static void Render_heatHaze( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_liquid( shaderStage_t *pStage )
+void Render_liquid( shaderStage_t *pStage )
 {
 	vec3_t        viewOrigin;
 	float         fogDensity;
@@ -2551,8 +2566,6 @@ void Tess_StageIteratorDebug()
 
 void Tess_StageIteratorGeneric()
 {
-	int stage;
-
 	// log this call
 	if ( r_logFile->integer )
 	{
@@ -2584,14 +2597,9 @@ void Tess_StageIteratorGeneric()
 	}
 
 	// call shader function
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
+	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ )
 	{
 		shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
-		if ( !pStage )
-		{
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
@@ -2601,88 +2609,7 @@ void Tess_StageIteratorGeneric()
 		Tess_ComputeColor( pStage );
 		Tess_ComputeTexMatrices( pStage );
 
-		switch ( pStage->type )
-		{
-			case stageType_t::ST_COLORMAP:
-				if ( backEnd.projection2D )
-				{
-					Render_generic2D( pStage );
-				}
-				else
-				{
-					Render_generic( pStage );
-				}
-
-				break;
-
-			case stageType_t::ST_STYLELIGHTMAP:
-			case stageType_t::ST_STYLECOLORMAP:
-				Render_generic( pStage );
-				break;
-
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				Render_lightMapping( pStage );
-				break;
-
-			case stageType_t::ST_REFLECTIONMAP:
-			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-				if ( r_reflectionMapping->integer )
-				{
-					Render_reflection_CB( pStage );
-				}
-
-				break;
-
-			case stageType_t::ST_REFRACTIONMAP:
-			case stageType_t::ST_DISPERSIONMAP:
-				break;
-
-			case stageType_t::ST_SKYBOXMAP:
-				Render_skybox( pStage );
-				break;
-
-			case stageType_t::ST_SCREENMAP:
-				Render_screen( pStage );
-				break;
-
-			case stageType_t::ST_PORTALMAP:
-				Render_portal( pStage );
-				break;
-
-			case stageType_t::ST_HEATHAZEMAP:
-				if ( r_heatHaze->integer )
-				{
-					Render_heatHaze( pStage );
-				}
-				break;
-
-			case stageType_t::ST_LIQUIDMAP:
-				if ( r_liquidMapping->integer )
-				{
-					Render_liquid( pStage );
-				}
-				else
-				{
-					/* FIXME: workaround to display something and not crash
-					when liquidMapping is enabled, until we fix liquidMap. */
-					pStage->type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
-					pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
-					Render_lightMapping( pStage );
-				}
-
-				break;
-
-			default:
-				break;
-		}
-
-		if ( r_showLightMaps->integer && pStage->type == stageType_t::ST_LIGHTMAP )
-		{
-			break;
-		}
+		pStage->genericRenderer( pStage );
 	}
 
 	if ( !r_noFog->integer && tess.fogNum >= 1 && tess.surfaceShader->fogPass != fogPass_t::FP_NONE )
@@ -2697,10 +2624,7 @@ void Tess_StageIteratorGeneric()
 	}
 }
 
-
 void Tess_StageIteratorPortal() {
-	int stage;
-
 	// log this call
 	if ( r_logFile->integer ) {
 		// don't just call LogComment, or we will get
@@ -2723,45 +2647,19 @@ void Tess_StageIteratorPortal() {
 		GL_Cull( tess.surfaceShader->cullType );
 
 	// call shader function
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ ) {
+	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ ) {
 		shaderStage_t* pStage = tess.surfaceStages[stage];
-
-		if ( !pStage ) {
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) ) {
 			continue;
 		}
 
-		switch ( pStage->type ) {
-			case stageType_t::ST_COLORMAP:
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-			case stageType_t::ST_REFLECTIONMAP:
-			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-			case stageType_t::ST_REFRACTIONMAP:
-			case stageType_t::ST_DISPERSIONMAP:
-			case stageType_t::ST_SKYBOXMAP:
-			case stageType_t::ST_SCREENMAP:
-			case stageType_t::ST_PORTALMAP:
-			case stageType_t::ST_HEATHAZEMAP:
-			case stageType_t::ST_LIQUIDMAP:
-				Render_generic( pStage );
-				return;
-
-			default:
-				break;
-		}
+		Render_portal( pStage );
 	}
 }
 
 void Tess_StageIteratorShadowFill()
 {
-	int stage;
-
 	// log this call
 	if ( r_logFile->integer )
 	{
@@ -2793,14 +2691,9 @@ void Tess_StageIteratorShadowFill()
 	}
 
 	// call shader function
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
+	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ )
 	{
 		shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
-		if ( !pStage )
-		{
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
@@ -2809,25 +2702,9 @@ void Tess_StageIteratorShadowFill()
 
 		Tess_ComputeTexMatrices( pStage );
 
-		switch ( pStage->type )
+		if ( pStage->doShadowFill )
 		{
-			case stageType_t::ST_COLORMAP:
-				if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-				{
-					Render_shadowFill( pStage );
-				}
-
-				break;
-
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				Render_shadowFill( pStage );
-				break;
-
-			default:
-				break;
+			Render_shadowFill( pStage );
 		}
 	}
 
@@ -2837,7 +2714,6 @@ void Tess_StageIteratorShadowFill()
 
 void Tess_StageIteratorLighting()
 {
-	int           i, j;
 	trRefLight_t  *light;
 	shaderStage_t *attenuationXYStage;
 	shaderStage_t *attenuationZStage;
@@ -2894,14 +2770,9 @@ void Tess_StageIteratorLighting()
 	// call shader function
 	attenuationZStage = tess.lightShader->stages[ 0 ];
 
-	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
+	for ( int i = 0; i < tess.numSurfaceStages; i++ )
 	{
 		shaderStage_t *pStage = tess.surfaceStages[ i ];
-
-		if ( !pStage )
-		{
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
@@ -2910,14 +2781,9 @@ void Tess_StageIteratorLighting()
 
 		Tess_ComputeTexMatrices( pStage );
 
-		for ( j = 1; j < MAX_SHADER_STAGES; j++ )
+		for ( int j = 1; j < tess.lightShader->numStages; j++ )
 		{
 			attenuationXYStage = tess.lightShader->stages[ j ];
-
-			if ( !attenuationXYStage )
-			{
-				break;
-			}
 
 			if ( attenuationXYStage->type != stageType_t::ST_ATTENUATIONMAP_XY )
 			{
@@ -2932,27 +2798,23 @@ void Tess_StageIteratorLighting()
 			Tess_ComputeColor( attenuationXYStage );
 			R_ComputeFinalAttenuation( attenuationXYStage, light );
 
-			switch ( pStage->type )
+			if ( pStage->doForwardLighting )
 			{
-				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-					if ( light->l.rlType == refLightType_t::RL_OMNI )
-					{
+				switch( light->l.rlType )
+				{
+					case refLightType_t::RL_OMNI:
 						Render_forwardLighting_DBS_omni( pStage, attenuationXYStage, attenuationZStage, light );
-					}
-					else if ( light->l.rlType == refLightType_t::RL_PROJ )
-					{
+						break;
+					case refLightType_t::RL_PROJ:
 						Render_forwardLighting_DBS_proj( pStage, attenuationXYStage, attenuationZStage, light );
-					}
-					else if ( light->l.rlType == refLightType_t::RL_DIRECTIONAL )
-					{
+						break;
+					case refLightType_t::RL_DIRECTIONAL:
 						Render_forwardLighting_DBS_directional( pStage, light );
-					}
-
-					break;
-
-				default:
-					break;
+						break;
+					default:
+						ASSERT_UNREACHABLE();
+						break;
+				};
 			}
 		}
 	}
