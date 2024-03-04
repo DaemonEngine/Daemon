@@ -663,11 +663,6 @@ static void Render_generic2D( shaderStage_t *pStage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	if ( glConfig2.dynamicLight > 0 )
-	{
-		GL_BindToTMU( 8, tr.lighttileRenderImage );
-	}
-
 	gl_generic2DShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
@@ -793,11 +788,6 @@ static void Render_generic( shaderStage_t *pStage )
 	if ( needDepthMap )
 	{
 		GL_BindToTMU( 1, tr.currentDepthImage );
-	}
-
-	if ( glConfig2.dynamicLight > 0 )
-	{
-		GL_BindToTMU( 8, tr.lighttileRenderImage );
 	}
 
 	gl_genericShader->SetRequiredVertexPointers();
