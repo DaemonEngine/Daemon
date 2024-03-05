@@ -146,6 +146,7 @@ bool        trap_GetEntityToken( char *buffer, int bufferSize );
 std::vector<std::vector<Keyboard::Key>> trap_Key_GetKeysForBinds(int team, const std::vector<std::string>& binds);
 int             trap_Key_GetCharForScancode( int scancode );
 bool        trap_R_inPVS( const vec3_t p1, const vec3_t p2 );
+void trap_R_inPVSArray( const vec3_t origin, const std::array<vec3_t, MAX_ENTITIES> posEntities, std::array<bool, MAX_ENTITIES> validEntities );
 bool        trap_R_inPVVS( const vec3_t p1, const vec3_t p2 );
 bool        trap_R_LoadDynamicShader( const char *shadername, const char *shadertext );
 int             trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );

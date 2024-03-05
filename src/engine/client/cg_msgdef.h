@@ -190,6 +190,7 @@ enum cgameImport_t
   CG_R_LERPTAG,
   CG_R_REMAP_SHADER,
   CG_R_INPVS,
+  CG_R_INPVSARRAY,
   CG_R_LIGHTFORPOINT,
   CG_R_REGISTERANIMATION,
   CG_R_BUILDSKELETON,
@@ -346,6 +347,10 @@ namespace Render {
 	using InPVSMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_INPVS>, std::array<float, 3>, std::array<float, 3>>,
 		IPC::Reply<bool>
+	>;
+	using InPVSArrayMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<VM::QVM, CG_R_INPVSARRAY>, std::array<float, 3>, std::array<std::array<float, 3>, MAX_ENTITIES>>,
+		IPC::Reply<std::array<bool, MAX_ENTITIES>>
 	>;
 	using LightForPointMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_LIGHTFORPOINT>, std::array<float, 3>>,
