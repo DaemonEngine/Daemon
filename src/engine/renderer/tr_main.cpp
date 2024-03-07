@@ -1894,6 +1894,16 @@ static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	newParms.scissorWidth = surfRect.coords[2] - surfRect.coords[0] + 1;
 	newParms.scissorHeight = surfRect.coords[3] - surfRect.coords[1] + 1;
 
+	// Scissor width/height must not be negative, so flip the coordinates if needed
+	if ( newParms.scissorWidth < 0 ) {
+		newParms.scissorX += newParms.scissorWidth;
+		newParms.scissorWidth *= -1;
+	}
+	if ( newParms.scissorHeight < 0 ) {
+		newParms.scissorY += newParms.scissorHeight;
+		newParms.scissorHeight *= -1;
+	}
+
 	R_MirrorPoint(oldParms.orientation.origin, &surface, &camera, newParms.orientation.origin);
 	R_MirrorVector(oldParms.orientation.axis[0], &surface, &camera, newParms.orientation.axis[0]);
 	R_MirrorVector(oldParms.orientation.axis[1], &surface, &camera, newParms.orientation.axis[1]);
