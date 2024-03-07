@@ -1841,6 +1841,16 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	newParms.scissorWidth = surfRect.coords[2] - surfRect.coords[0] + 1;
 	newParms.scissorHeight = surfRect.coords[3] - surfRect.coords[1] + 1;
 
+	// Scissor width/height must not be negative, so flip the coordinates if needed
+	if ( newParms.scissorWidth < 0 ) {
+		newParms.scissorX += newParms.scissorWidth;
+		newParms.scissorWidth *= -1;
+	}
+	if ( newParms.scissorHeight < 0 ) {
+		newParms.scissorY += newParms.scissorHeight;
+		newParms.scissorHeight *= -1;
+	}
+
 	// restrict view frustum to screen rect of surface
 	R_SetupPortalFrustum(oldParms, camera, newParms);
 
