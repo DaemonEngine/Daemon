@@ -1634,7 +1634,7 @@ static bool SurfIsOffscreen( const drawSurf_t *drawSurf, screenRect_t& surfRect 
 		tr.orientation = tr.viewParms.world;
 	}
 
-	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, true, true, -1, 0 );
+	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, true, -1, 0 );
 	rb_surfaceTable[ Util::ordinal(*drawSurf->surface) ]( drawSurf->surface );
 
 	// Tr3B: former assertion
