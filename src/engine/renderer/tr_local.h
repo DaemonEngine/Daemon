@@ -3459,7 +3459,6 @@ inline bool checkGLErrors()
 		shader_t    *lightShader;
 
 		bool    skipTangentSpaces;
-		bool    skipVBO;
 		int16_t     lightmapNum;
 		int16_t     fogNum;
 		bool        bspSurface;
@@ -3508,7 +3507,6 @@ inline bool checkGLErrors()
 	                 void ( *stageIteratorFunc2 )(),
 	                 shader_t *surfaceShader, shader_t *lightShader,
 	                 bool skipTangentSpaces,
-	                 bool skipVBO,
 	                 int lightmapNum,
 	                 int fogNum,
 	                 bool bspSurface = false );

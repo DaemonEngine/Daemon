@@ -506,7 +506,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
                  void ( *stageIteratorFunc2 )(),
                  shader_t *surfaceShader, shader_t *lightShader,
                  bool skipTangentSpaces,
-                 bool skipVBO,
                  int lightmapNum,
                  int fogNum,
                  bool bspSurface )
@@ -555,7 +554,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 
 	tess.skipTangentSpaces = skipTangentSpaces;
-	tess.skipVBO = skipVBO;
 	tess.lightmapNum = lightmapNum;
 	tess.fogNum = fogNum;
 	tess.bspSurface = bspSurface;
