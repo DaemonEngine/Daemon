@@ -1931,6 +1931,9 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.2
 	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync->value );
 
+	// not required by any OpenGL version
+	glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture->value );
+
 	GL_CheckErrors();
 }
 

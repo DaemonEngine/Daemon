@@ -123,7 +123,7 @@ void Tess_StageIteratorSky()
 		GL_State( GLS_DEFAULT );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tess.surfaceShader->sky.outerbox );
+		GL_BindToTMU( gl_skyboxShader->GetUniformLocation_ColorMap(), tess.surfaceShader->sky.outerbox );
 
 		// Only render the outer skybox at this stage
 		gl_skyboxShader->SetUniform_UseCloudMap( false );
@@ -150,7 +150,7 @@ void Tess_StageIteratorSky()
 
 		gl_skyboxShader->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
 
-		GL_BindToTMU( 1, tess.surfaceShader->stages[stage]->bundle[TB_COLORMAP].image[0] );
+		GL_BindToTMU( gl_skyboxShader->GetUniformLocation_CloudMap(), tess.surfaceShader->stages[stage]->bundle[TB_COLORMAP].image[0] );
 
 		uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 

@@ -2797,7 +2797,6 @@ static void R_DebugGraphics()
 
 		GL_BindProgram( nullptr );
 
-		GL_SelectTexture( 0 );
 		GL_Bind( tr.whiteImage );
 
 		GL_Cull( cullType_t::CT_FRONT_SIDED );

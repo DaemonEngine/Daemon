@@ -104,6 +104,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_arb_uniform_buffer_object;
 	cvar_t      *r_arb_texture_gather;
 	cvar_t      *r_arb_gpu_shader5;
+	cvar_t      *r_arb_bindless_texture;
 
 	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
@@ -330,6 +331,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			Q_strlwr( renderer_buffer );
 
 			// OpenGL driver constants
+			glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &temp );
+			glConfig2.maxTextureUnits = temp;
+
 			glGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
 			glConfig.maxTextureSize = temp;
 
@@ -829,7 +833,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		// in a multitexture environment
 		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 		{
-			for ( i = 31; i >= 0; i-- )
+			for ( i = glConfig2.maxTextureUnits - 1; i >= 0; i-- )
 			{
 				GL_SelectTexture( i );
 				GL_TextureMode( r_textureMode->string );
@@ -1098,6 +1102,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_arb_uniform_buffer_object = Cvar_Get( "r_arb_uniform_buffer_object", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_texture_gather = Cvar_Get( "r_arb_texture_gather", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_gpu_shader5 = Cvar_Get( "r_arb_gpu_shader5", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_bindless_texture = Cvar_Get( "r_arb_bindless_texture", "1", CVAR_CHEAT | CVAR_LATCH );
 
 		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );

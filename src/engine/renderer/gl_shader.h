@@ -211,6 +211,8 @@ public:
 		return _compileMacros.size();
 	}
 
+	GLint GetUniformLocation( const GLchar *uniformName ) const;
+
 	shaderProgram_t        *GetProgram() const
 	{
 		return _currentProgram;
@@ -367,6 +369,11 @@ public:
 		return _name.c_str();
 	}
 
+	GLint GetLocation() const {
+		shaderProgram_t* program = _shader->GetProgram();
+		return program->uniformLocations[_locationIndex];
+	}
+
 	void UpdateShaderProgramUniformLocation( shaderProgram_t *shaderProgram )
 	{
 		shaderProgram->uniformLocations[ _locationIndex ] = glGetUniformLocation( shaderProgram->program, GetName() );
@@ -375,6 +382,26 @@ public:
 	virtual size_t GetSize()
 	{
 		return 0;
+	}
+};
+
+class GLUniformSampler : protected GLUniform {
+	protected:
+	GLUniformSampler( GLShader* shader, const char* name ) :
+		GLUniform( shader, name ) {
+	}
+
+	inline GLint GetLocation() {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		ASSERT_EQ( p, glState.currentProgram );
+
+		return p->uniformLocations[_locationIndex];
+	}
+
+	public:
+	size_t GetSize() override {
+		return sizeof( GLuint64 );
 	}
 };
 
@@ -1301,6 +1328,402 @@ public:
 	void SetAlphaTesting(bool enable)
 	{
 		SetMacro( enable );
+	}
+};
+
+class u_ColorMap :
+	GLUniformSampler {
+	public:
+	u_ColorMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ColorMap" ) {
+	}
+
+	GLint GetUniformLocation_ColorMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_DepthMap :
+	GLUniformSampler {
+	public:
+	u_DepthMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_DepthMap" ) {
+	}
+
+	GLint GetUniformLocation_DepthMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_DiffuseMap :
+	GLUniformSampler {
+	public:
+	u_DiffuseMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_DiffuseMap" ) {
+	}
+
+	GLint GetUniformLocation_DiffuseMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_HeightMap :
+	GLUniformSampler {
+	public:
+	u_HeightMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_HeightMap" ) {
+	}
+
+	GLint GetUniformLocation_HeightMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_NormalMap :
+	GLUniformSampler {
+	public:
+	u_NormalMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_NormalMap" ) {
+	}
+
+	GLint GetUniformLocation_NormalMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_MaterialMap :
+	GLUniformSampler {
+	public:
+	u_MaterialMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_MaterialMap" ) {
+	}
+
+	GLint GetUniformLocation_MaterialMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightMap :
+	GLUniformSampler {
+	public:
+	u_LightMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_LightMap" ) {
+	}
+
+	GLint GetUniformLocation_LightMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_DeluxeMap :
+	GLUniformSampler {
+	public:
+	u_DeluxeMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_DeluxeMap" ) {
+	}
+
+	GLint GetUniformLocation_DeluxeMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_GlowMap :
+	GLUniformSampler {
+	public:
+	u_GlowMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_GlowMap" ) {
+	}
+
+	GLint GetUniformLocation_GlowMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_RandomMap :
+	GLUniformSampler {
+	public:
+	u_RandomMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_RandomMap" ) {
+	}
+
+	GLint GetUniformLocation_RandomMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_PortalMap :
+	GLUniformSampler {
+	public:
+	u_PortalMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_PortalMap" ) {
+	}
+
+	GLint GetUniformLocation_PortalMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_CloudMap :
+	GLUniformSampler {
+	public:
+	u_CloudMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_CloudMap" ) {
+	}
+
+	GLint GetUniformLocation_CloudMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightsTexture :
+	GLUniformSampler {
+	public:
+	u_LightsTexture( GLShader* shader ) :
+		GLUniformSampler( shader, "u_Lights" ) {
+	}
+
+	GLint GetUniformLocation_LightsTexture() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightTiles :
+	GLUniformSampler {
+	public:
+	u_LightTiles( GLShader* shader ) :
+		GLUniformSampler( shader, "u_LightTiles" ) {
+	}
+
+	GLint GetUniformLocation_LightTiles() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightGrid1 :
+	GLUniformSampler {
+	public:
+	u_LightGrid1( GLShader* shader ) :
+		GLUniformSampler( shader, "u_LightGrid1" ) {
+	}
+
+	GLint GetUniformLocation_LightGrid1() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightGrid2 :
+	GLUniformSampler {
+	public:
+	u_LightGrid2( GLShader* shader ) :
+		GLUniformSampler( shader, "u_LightGrid2" ) {
+	}
+
+	GLint GetUniformLocation_LightGrid2() {
+		return this->GetLocation();
+	}
+};
+
+class u_EnvironmentMap0 :
+	GLUniformSampler {
+	public:
+	u_EnvironmentMap0( GLShader* shader ) :
+		GLUniformSampler( shader, "u_EnvironmentMap0" ) {
+	}
+
+	GLint GetUniformLocation_EnvironmentMap0() {
+		return this->GetLocation();
+	}
+};
+
+class u_EnvironmentMap1 :
+	GLUniformSampler {
+	public:
+	u_EnvironmentMap1( GLShader* shader ) :
+		GLUniformSampler( shader, "u_EnvironmentMap1" ) {
+	}
+
+	GLint GetUniformLocation_EnvironmentMap1() {
+		return this->GetLocation();
+	}
+};
+
+class u_CurrentMap :
+	GLUniformSampler {
+	public:
+	u_CurrentMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_CurrentMap" ) {
+	}
+
+	GLint GetUniformLocation_CurrentMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_AttenuationMapXY :
+	GLUniformSampler {
+	public:
+	u_AttenuationMapXY( GLShader* shader ) :
+		GLUniformSampler( shader, "u_AttenuationMapXY" ) {
+	}
+
+	GLint GetUniformLocation_AttenuationMapXY() {
+		return this->GetLocation();
+	}
+};
+
+class u_AttenuationMapZ :
+	GLUniformSampler {
+	public:
+	u_AttenuationMapZ( GLShader* shader ) :
+		GLUniformSampler( shader, "u_AttenuationMapZ" ) {
+	}
+
+	GLint GetUniformLocation_AttenuationMapZ() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap :
+	GLUniformSampler {
+	public:
+	u_ShadowMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowMap" ) {
+	}
+
+	GLint GetUniformLocation_ShadowMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap0 :
+	GLUniformSampler {
+	public:
+	u_ShadowMap0( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowMap0" ) {
+	}
+
+	GLint GetUniformLocation_ShadowMap0() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap1 :
+	GLUniformSampler {
+	public:
+	u_ShadowMap1( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowMap1" ) {
+	}
+
+	GLint GetUniformLocation_ShadowMap1() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap2 :
+	GLUniformSampler {
+	public:
+	u_ShadowMap2( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowMap2" ) {
+	}
+
+	GLint GetUniformLocation_ShadowMap2() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap3 :
+	GLUniformSampler {
+	public:
+	u_ShadowMap3( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowMap3" ) {
+	}
+
+	GLint GetUniformLocation_ShadowMap3() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap4 :
+	GLUniformSampler {
+	public:
+	u_ShadowMap4( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowMap4" ) {
+	}
+
+	GLint GetUniformLocation_ShadowMap4() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap :
+	GLUniformSampler {
+	public:
+	u_ShadowClipMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowClipMap" ) {
+	}
+
+	GLint GetUniformLocation_ShadowClipMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap0 :
+	GLUniformSampler {
+	public:
+	u_ShadowClipMap0( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowClipMap0" ) {
+	}
+
+	GLint GetUniformLocation_ShadowClipMap0() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap1 :
+	GLUniformSampler {
+	public:
+	u_ShadowClipMap1( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowClipMap1" ) {
+	}
+
+	GLint GetUniformLocation_ShadowClipMap1() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap2 :
+	GLUniformSampler {
+	public:
+	u_ShadowClipMap2( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowClipMap2" ) {
+	}
+
+	GLint GetUniformLocation_ShadowClipMap2() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap3 :
+	GLUniformSampler {
+	public:
+	u_ShadowClipMap3( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowClipMap3" ) {
+	}
+
+	GLint GetUniformLocation_ShadowClipMap3() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap4 :
+	GLUniformSampler {
+	public:
+	u_ShadowClipMap4( GLShader* shader ) :
+		GLUniformSampler( shader, "u_ShadowClipMap4" ) {
+	}
+
+	GLint GetUniformLocation_ShadowClipMap4() {
+		return this->GetLocation();
 	}
 };
 
@@ -2243,6 +2666,9 @@ class u_Lights :
 // TODO: Write a more minimal 2D rendering shader.
 class GLShader_generic2D :
 	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
+	public u_EnvironmentMap1,
 	public u_TextureMatrix,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
@@ -2263,6 +2689,9 @@ public:
 
 class GLShader_generic :
 	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
+	public u_EnvironmentMap1,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
@@ -2292,6 +2721,17 @@ public:
 
 class GLShader_lightMapping :
 	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_HeightMap,
+	public u_MaterialMap,
+	public u_LightMap,
+	public u_DeluxeMap,
+	public u_GlowMap,
+	public u_EnvironmentMap0,
+	public u_EnvironmentMap1,
+	public u_LightTiles,
+	public u_LightsTexture,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
@@ -2332,6 +2772,15 @@ public:
 
 class GLShader_forwardLighting_omniXYZ :
 	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_MaterialMap,
+	public u_AttenuationMapXY,
+	public u_AttenuationMapZ,
+	public u_ShadowMap,
+	public u_ShadowClipMap,
+	public u_RandomMap,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
@@ -2369,6 +2818,15 @@ public:
 
 class GLShader_forwardLighting_projXYZ :
 	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_MaterialMap,
+	public u_AttenuationMapXY,
+	public u_AttenuationMapZ,
+	public u_ShadowMap0,
+	public u_ShadowClipMap0,
+	public u_RandomMap,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
@@ -2407,6 +2865,20 @@ public:
 
 class GLShader_forwardLighting_directionalSun :
 	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_MaterialMap,
+	public u_ShadowMap0,
+	public u_ShadowMap1,
+	public u_ShadowMap2,
+	public u_ShadowMap3,
+	public u_ShadowMap4,
+	public u_ShadowClipMap0,
+	public u_ShadowClipMap1,
+	public u_ShadowClipMap2,
+	public u_ShadowClipMap3,
+	public u_ShadowClipMap4,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
@@ -2447,6 +2919,7 @@ public:
 
 class GLShader_shadowFill :
 	public GLShader,
+	public u_ColorMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_AlphaThreshold,
@@ -2470,6 +2943,9 @@ public:
 
 class GLShader_reflection :
 	public GLShader,
+	public u_ColorMap,
+	public u_NormalMap,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
@@ -2495,6 +2971,8 @@ public:
 
 class GLShader_skybox :
 	public GLShader,
+	public u_ColorMap,
+	public u_CloudMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_CloudHeight,
@@ -2513,6 +2991,7 @@ public:
 
 class GLShader_fogQuake3 :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_Color,
@@ -2533,6 +3012,8 @@ public:
 
 class GLShader_fogGlobal :
 	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
 	public u_ViewOrigin,
 	public u_ViewMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -2548,6 +3029,9 @@ public:
 
 class GLShader_heatHaze :
 	public GLShader,
+	public u_CurrentMap,
+	public u_NormalMap,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
@@ -2575,6 +3059,7 @@ public:
 
 class GLShader_screen :
 	public GLShader,
+	public u_CurrentMap,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -2584,6 +3069,7 @@ public:
 
 class GLShader_portal :
 	public GLShader,
+	public u_CurrentMap,
 	public u_ModelViewMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_PortalRange
@@ -2595,6 +3081,7 @@ public:
 
 class GLShader_contrast :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -2604,6 +3091,8 @@ public:
 
 class GLShader_cameraEffects :
 	public GLShader,
+	public u_ColorMap,
+	public u_CurrentMap,
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -2617,6 +3106,7 @@ public:
 
 class GLShader_blurX :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
 	public u_TexScale
@@ -2628,6 +3118,7 @@ public:
 
 class GLShader_blurY :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
 	public u_TexScale
@@ -2639,6 +3130,7 @@ public:
 
 class GLShader_debugShadowMap :
 	public GLShader,
+	public u_CurrentMap,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -2648,6 +3140,13 @@ public:
 
 class GLShader_liquid :
 	public GLShader,
+	public u_CurrentMap,
+	public u_DepthMap,
+	public u_NormalMap,
+	public u_PortalMap,
+	public u_LightGrid1,
+	public u_LightGrid2,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_RefractionIndex,
@@ -2676,6 +3175,8 @@ public:
 
 class GLShader_motionblur :
 	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
 	public u_blurVec
 {
 public:
@@ -2685,6 +3186,7 @@ public:
 
 class GLShader_ssao :
 	public GLShader,
+	public u_DepthMap,
 	public u_zFar
 {
 public:
@@ -2694,6 +3196,7 @@ public:
 
 class GLShader_depthtile1 :
 	public GLShader,
+	public u_DepthMap,
 	public u_zFar
 {
 public:
@@ -2702,7 +3205,8 @@ public:
 };
 
 class GLShader_depthtile2 :
-	public GLShader
+	public GLShader,
+	public u_DepthMap
 {
 public:
 	GLShader_depthtile2( GLShaderManager *manager );
@@ -2711,10 +3215,12 @@ public:
 
 class GLShader_lighttile :
 	public GLShader,
-	public u_ModelMatrix,
+	public u_DepthMap,
+	public u_Lights,
+	public u_LightsTexture,
 	public u_numLights,
 	public u_lightLayer,
-	public u_Lights,
+	public u_ModelMatrix,
 	public u_zFar
 {
 public:
@@ -2723,7 +3229,8 @@ public:
 };
 
 class GLShader_fxaa :
-	public GLShader
+	public GLShader,
+	public u_ColorMap
 {
 public:
 	GLShader_fxaa( GLShaderManager *manager );

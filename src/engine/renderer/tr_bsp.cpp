@@ -6377,7 +6377,7 @@ vertexHash_t *AddVertexToHashTable( vertexHash_t **hashTable, vec3_t xyz, void *
 	return vertexHash;
 }
 
-void GL_BindNearestCubeMap( const vec3_t xyz )
+void GL_BindNearestCubeMap( GLint location, const vec3_t xyz )
 {
 	float          distance, maxDistance;
 	cubemapProbe_t *cubeProbe;
@@ -6413,7 +6413,7 @@ void GL_BindNearestCubeMap( const vec3_t xyz )
 		}
 	}
 
-	GL_Bind( tr.autoCubeImage );
+	GL_BindToTMU( location, tr.autoCubeImage );
 }
 
 void R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbeNearest, cubemapProbe_t **cubeProbeSecondNearest )
