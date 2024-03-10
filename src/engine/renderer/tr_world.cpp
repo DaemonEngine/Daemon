@@ -953,9 +953,9 @@ void R_AddWorldInteractions( trRefLight_t *light )
 		interactionBits = IA_DEFAULTCLIP;
 	}
 
-	if ( r_shadows->integer <= Util::ordinal(shadowingMode_t::SHADOWING_BLOB) || light->l.noShadows )
+	if ( !glConfig2.shadowMapping || light->l.noShadows )
 	{
-		interactionBits = interactionBits & IA_LIGHT;
+		interactionBits &= IA_LIGHT;
 	}
 
 	R_RecursiveInteractionNode( tr.world->nodes, light, FRUSTUM_CLIPALL, interactionBits );
@@ -1057,7 +1057,7 @@ void R_AddPrecachedWorldInteractions( trRefLight_t *light )
 			// into this view
 			if ( surface->viewCount != tr.viewCountNoReset )
 			{
-				if ( r_shadows->integer < Util::ordinal(shadowingMode_t::SHADOWING_ESM16) || light->l.noShadows )
+				if ( !glConfig2.shadowMapping || light->l.noShadows )
 				{
 					continue;
 				}
@@ -1092,7 +1092,7 @@ void R_AddPrecachedWorldInteractions( trRefLight_t *light )
 			// into this view
 			if ( surface->viewCount != tr.viewCountNoReset )
 			{
-				if ( r_shadows->integer < Util::ordinal(shadowingMode_t::SHADOWING_ESM16) || light->l.noShadows )
+				if ( !glConfig2.shadowMapping || light->l.noShadows )
 				{
 					continue;
 				}

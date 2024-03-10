@@ -5365,7 +5365,7 @@ static void R_CreateVBOShadowMeshes( trRefLight_t *light )
 		return;
 	}
 
-	if ( r_shadows->integer < Util::ordinal(shadowingMode_t::SHADOWING_ESM16))
+	if ( !glConfig2.shadowMapping )
 	{
 		return;
 	}
@@ -5735,7 +5735,7 @@ static void R_CreateVBOShadowCubeMeshes( trRefLight_t *light )
 		return;
 	}
 
-	if ( r_shadows->integer < Util::ordinal(shadowingMode_t::SHADOWING_ESM16))
+	if ( !glConfig2.shadowMapping )
 	{
 		return;
 	}
@@ -6063,7 +6063,7 @@ static void R_CalcInteractionCubeSideBits( trRefLight_t *light )
 	bspSurface_t       *surface;
 	vec3_t             localBounds[ 2 ];
 
-	if ( r_shadows->integer <= Util::ordinal(shadowingMode_t::SHADOWING_BLOB))
+	if ( !glConfig2.shadowMapping )
 	{
 		return;
 	}
@@ -6211,7 +6211,7 @@ void R_PrecacheInteractions()
 	Log::Debug("%i interactions precached", s_worldData.numInteractions );
 	Log::Debug("%i interactions were hidden in shadows", c_redundantInteractions );
 
-	if ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16))
+	if ( glConfig2.shadowMapping )
 	{
 		// only interesting for omni-directional shadow mapping
 		Log::Debug("%i omni pyramid tests", tr.pc.c_pyramidTests );

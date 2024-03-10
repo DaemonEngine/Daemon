@@ -295,6 +295,8 @@ static inline void glFboSetExt()
 enum class lightMode_t { FULLBRIGHT, VERTEX, GRID, MAP };
 enum class deluxeMode_t { NONE, GRID, MAP };
 
+enum class dynamicLightRenderer_t { LEGACY, TILED };
+
 	enum class renderSpeeds_t
 	{
 	  RSPEEDS_GENERAL = 1,
@@ -708,7 +710,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
 
-		uint16_t       width, height; // source image
+		uint16_t width, height, numLayers; // source image
 		uint16_t       uploadWidth, uploadHeight; // after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
 
 		int            frameUsed; // for texture usage in frame statistics
@@ -2942,8 +2944,9 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 	extern cvar_t *r_lightScale;
 
 	extern cvar_t *r_fastsky; // controls whether sky should be cleared or drawn
-	extern cvar_t *r_dynamicLight; // dynamic lights enabled/disabled
-	extern cvar_t *r_staticLight; // static lights enabled/disabled
+	extern Cvar::Range<Cvar::Cvar<int>> r_dynamicLightRenderer;
+	extern Cvar::Cvar<bool> r_dynamicLight;
+	extern Cvar::Cvar<bool> r_staticLight;
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
@@ -3023,10 +3026,7 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 
 	extern cvar_t *r_clear; // force screen clear every frame
 
-	extern cvar_t *r_shadows; // controls shadows: 0 = none, 1 = blur, 2 = black planar projection,
-
-// 3 = stencil shadow volumes
-// 4 = shadow mapping
+	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 	extern cvar_t *r_softShadows;
 	extern cvar_t *r_softShadowsPP;
 	extern cvar_t *r_shadowBlur;

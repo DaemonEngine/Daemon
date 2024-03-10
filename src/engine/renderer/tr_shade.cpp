@@ -34,12 +34,28 @@ This file deals with applying shaders to surface data in the tess struct.
 
 static void EnableAvailableFeatures()
 {
-	glConfig2.dynamicLight = r_dynamicLight->integer;
+	glConfig2.dynamicLight = r_dynamicLight.Get();
+	glConfig2.staticLight = r_staticLight.Get();
 
-	if ( glConfig2.dynamicLight > 0 && !glConfig2.textureFloatAvailable )
+	if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED )
+		&& !glConfig2.textureFloatAvailable )
 	{
-		Log::Warn("Tiled dynamic light renderer not used because GL_ARB_texture_float is not available.");
-		glConfig2.dynamicLight = 0;
+		if ( glConfig2.dynamicLight || glConfig2.staticLight )
+		{
+			Log::Warn("Tiled dynamic light renderer not used because GL_ARB_texture_float is not available.");
+		}
+
+		glConfig2.dynamicLight = false;
+		glConfig2.staticLight = false;
+	}
+
+	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
+
+	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
+
+	if ( !glConfig2.textureFloatAvailable )
+	{
+		glConfig2.shadowMapping = false;
 	}
 }
 
@@ -65,37 +81,43 @@ static void GLSL_InitGPUShadersOrError()
 	// standard light mapping
 	gl_shaderManager.load( gl_lightMappingShader );
 
-	/* Deprecated forward renderer uses r_dynamicLight -1
-
-	Dynamic shadowing code also needs this shader.
-	This code is not well known, so there may be a bug,
-	but commit a09f03bc8e775d83ac5e057593eff4e88cdea7eb mentions this:
-
-	> Use conventional shadow mapping code for inverse lights.
-	> This re-enables shadows for players in the tiled renderer.
-	> -- @gimhael
-
-	See also https://github.com/DaemonEngine/Daemon/pull/606#pullrequestreview-912402293 */
-	if ( glConfig2.dynamicLight < 0 || ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) ) )
+	if ( glConfig2.dynamicLight )
 	{
-		// projective lighting ( Doom3 style )
-		gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
-	}
+		dynamicLightRenderer_t dynamicLightRenderer = dynamicLightRenderer_t( r_dynamicLightRenderer.Get() );
 
-	// Deprecated forward renderer uses r_dynamicLight -1
-	if ( glConfig2.dynamicLight < 0 )
-	{
-		// omni-directional specular bump mapping ( Doom3 style )
-		gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
+		switch( dynamicLightRenderer )
+		{
+		case dynamicLightRenderer_t::LEGACY:
+			// projective lighting ( Doom3 style )
+			gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
 
-		// directional sun lighting ( Doom3 style )
-		gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
-	}
-	else if ( glConfig2.dynamicLight > 0 )
-	{
-		gl_shaderManager.load( gl_depthtile1Shader );
-		gl_shaderManager.load( gl_depthtile2Shader );
-		gl_shaderManager.load( gl_lighttileShader );
+			// omni-directional specular bump mapping ( Doom3 style )
+			gl_shaderManager.load( gl_forwardLightingShader_omniXYZ );
+
+			// directional sun lighting ( Doom3 style )
+			gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
+			break;
+		case dynamicLightRenderer_t::TILED:
+			gl_shaderManager.load( gl_depthtile1Shader );
+			gl_shaderManager.load( gl_depthtile2Shader );
+			gl_shaderManager.load( gl_lighttileShader );
+			DAEMON_FALLTHROUGH;
+		default:
+			/* Dynamic shadowing code also needs this shader.
+			This code is not well known, so there may be a bug,
+			but commit a09f03bc8e775d83ac5e057593eff4e88cdea7eb mentions this:
+
+			> Use conventional shadow mapping code for inverse lights.
+			> This re-enables shadows for players in the tiled renderer.
+			> -- @gimhael
+
+			See also https://github.com/DaemonEngine/Daemon/pull/606#pullrequestreview-912402293 */
+			if ( glConfig2.shadowMapping )
+			{
+				// projective lighting ( Doom3 style )
+				gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
+			}
+		}
 	}
 
 	// shadowmap distance compression
@@ -663,11 +685,6 @@ static void Render_generic2D( shaderStage_t *pStage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	if ( glConfig2.dynamicLight > 0 )
-	{
-		GL_BindToTMU( 8, tr.lighttileRenderImage );
-	}
-
 	gl_generic2DShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
@@ -793,11 +810,6 @@ static void Render_generic( shaderStage_t *pStage )
 	if ( needDepthMap )
 	{
 		GL_BindToTMU( 1, tr.currentDepthImage );
-	}
-
-	if ( glConfig2.dynamicLight > 0 )
-	{
-		GL_BindToTMU( 8, tr.lighttileRenderImage );
 	}
 
 	gl_genericShader->SetRequiredVertexPointers();
@@ -1048,18 +1060,24 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
 
-	if( glConfig2.dynamicLight > 0 && backEnd.refdef.numShaderLights > 0 ) {
-		if( glConfig2.uniformBufferObjectAvailable ) {
-			gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
-		} else {
-			GL_BindToTMU( BIND_LIGHTS, tr.dlightImage );
-		}
-	}
-
-	// bind u_LightTiles
-	if ( glConfig2.dynamicLight > 0 )
+	if( glConfig2.dynamicLight )
 	{
-		GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage );
+		if ( backEnd.refdef.numShaderLights > 0 )
+		{	
+			if( glConfig2.uniformBufferObjectAvailable )
+			{
+				gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
+			} else
+			{
+				GL_BindToTMU( BIND_LIGHTS, tr.dlightImage );
+			}
+		}
+
+		// bind u_LightTiles
+		if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
+		{
+			GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage );
+		}
 	}
 
 	// u_DeformGen
@@ -1410,7 +1428,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_omni ---\n" );
 
-	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
+	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -1594,7 +1612,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_proj ---\n" );
 
-	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
+	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -1777,7 +1795,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_directional ---\n" );
 
-	bool shadowCompare = ( r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_ESM16) && !light->l.noShadows && light->shadowLOD >= 0 );
+	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
 	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );

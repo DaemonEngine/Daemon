@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <common/FileSystem.h>
 #include "InternalImage.h"
 #include "tr_local.h"
+#include <iomanip>
 
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int                  gl_filter_max = GL_LINEAR;
@@ -60,7 +61,8 @@ unsigned int GenerateImageHashValue( const char *fname )
 	unsigned hash;
 	char letter;
 
-//  Log::Notice("tr_image::GenerateImageHashValue: '%s'", fname);
+	// better use Log::CommandInteractionMessage
+	// Log::Notice("tr_image::GenerateImageHashValue: '%s'", fname);
 
 	hash = 0;
 	i = 0;
@@ -151,313 +153,247 @@ R_ListImages_f
 */
 void R_ListImages_f()
 {
-	int        i;
-	image_t    *image;
-	int        texels;
-	int        dataSize;
-	int        imageDataSize;
-	const char *yesno[] =
-	{
-		"no ", "yes"
+	std::unordered_map<GLenum, std::string> imageTypeName = {
+		{ GL_TEXTURE_2D, "2D" },
+		{ GL_TEXTURE_3D, "3D" },
+		{ GL_TEXTURE_CUBE_MAP, "CUBE" },
 	};
+
+	typedef std::pair<const std::string, int> nameSizePair;
+	std::unordered_map<uint32_t, nameSizePair> imageFormatNameSize = {
+		// TODO: find imageDataSize multiplier
+		{ GL_RGBA, { "RGBA", 4 } },
+
+		{ GL_RGB8, { "RGB8", 3 } },
+		{ GL_RGBA8, { "RGBA8", 4 } },
+		{ GL_RGB16, { "RGB16", 6 } },
+		{ GL_RGBA16, { "RGBA16", 6 } },
+		{ GL_RGB16F, { "RGB16F", 6 } },
+		{ GL_RGB32F, { "RGB32F", 12 } },
+		{ GL_RGBA16F, { "RGBA16F", 8 } },
+		{ GL_RGBA32F, { "RGBA32F", 16 } },
+		{ GL_RGBA32UI, { "RGBA32UI", 16 } },
+		{ GL_ALPHA16F_ARB, { "A16F", 2 } },
+		{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+		{ GL_R16F, { "R16F", 2 } },
+		{ GL_R32F, { "R32F", 4 } },
+		{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
+		{ GL_LUMINANCE_ALPHA32F_ARB, { "LA32F", 8 } },
+		{ GL_RG16F, { "RG16F", 4 } },
+		{ GL_RG32F, { "RG32F", 8 } },
+
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_RGBA, { "RGBAC", 4 } },
+
+		{ GL_COMPRESSED_RGB_S3TC_DXT1_EXT, { "DXT1", 4 / 8 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { "DXT1a", 4 / 8 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { "DXT3", 4 / 4 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { "DXT5", 4 / 4 } },
+
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_RED_RGTC1, { "RGTC1r", 1 } },
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_SIGNED_RED_RGTC1, { "RGTC1Sr", 1 } },
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_RG_RGTC2, { "RGTC2rg", 2 } },
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_SIGNED_RG_RGTC2, { "RGTC2Srg", 2 } },
+
+		{ GL_DEPTH_COMPONENT16, { "D16", 2 } },
+		{ GL_DEPTH_COMPONENT24, { "D24", 3 } },
+		{ GL_DEPTH_COMPONENT32, { "D32", 4 } },
+		{ GL_DEPTH24_STENCIL8, { "D24S8", 4 } },
+	};
+
+	std::unordered_map<wrapTypeEnum_t, std::string> wrapTypeName = {
+		{ wrapTypeEnum_t::WT_REPEAT, "rept" },
+		{ wrapTypeEnum_t::WT_CLAMP, "clmp" },
+		{ wrapTypeEnum_t::WT_EDGE_CLAMP, "eclmp" },
+		{ wrapTypeEnum_t::WT_ZERO_CLAMP, "0clmp" },
+		{ wrapTypeEnum_t::WT_ONE_CLAMP, "1clmp" },
+		{ wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP, "a0clmp" },
+	};
+
+	const char *yesno[] = { "no", "yes" };
 	const char *filter = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv(1) : nullptr;
 
-	Log::Notice("\n      -w-- -h-- -mm- -type-   -if-- wrap --name-------" );
+	// Header names
+	std::string num = "num";
+	std::string width = "width";
+	std::string height = "heigth";
+	std::string layers = "layers";
+	std::string mm = "mm";
+	std::string type = "type";
+	std::string format = "format";
+	std::string twrap = "wrap.t";
+	std::string swrap = "wrap.s";
+	std::string name = "name";
 
-	texels = 0;
-	dataSize = 0;
+	// Number sizes
+	size_t numLen = 5;
+	size_t widthLen = 5;
+	size_t heightLen = 5;
+	size_t layersLen = 5;
+	size_t mmLen = 3;
+	size_t typeLen = 4;
+	size_t formatLen = 4;
+	size_t twrapLen = 4;
+	size_t swrapLen = 4;
 
-	for ( i = 0; i < tr.images.currentElements; i++ )
+	// Header number sizes
+	numLen = std::max( numLen, num.length() );
+	widthLen = std::max( widthLen, width.length() );
+	heightLen = std::max( heightLen, height.length() );
+	layersLen = std::max( layersLen, layers.length() );
+	mmLen = std::max( mmLen, mm.length() );
+	typeLen = std::max( typeLen, type.length() );
+	formatLen = std::max( formatLen, format.length() );
+	twrapLen = std::max( twrapLen, twrap.length() );
+	swrapLen = std::max( swrapLen, swrap.length() );
+
+	// Value sizes
+	for ( const auto& kv : imageTypeName )
 	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
-		char buffer[ MAX_TOKEN_CHARS ];
-		std::string out;
+		typeLen = std::max( typeLen, kv.second.length() );
+	}
+	
+	for ( const auto& kv : imageFormatNameSize )
+	{
+		formatLen = std::max( formatLen, kv.second.first.length() );
+	}
+
+	for ( const auto& kv: wrapTypeName )
+	{
+		// 2 for the "t." and "s." prefix length.
+		twrapLen = std::max( twrapLen, 2 + kv.second.length() );
+		swrapLen = std::max( swrapLen, 2 + kv.second.length() );
+	}
+
+	std::string separator = " ";
+	std::stringstream lineStream;
+
+	// Print header
+	lineStream << std::left;
+	lineStream << std::setw(numLen) << num << separator;
+	lineStream << std::right;
+	lineStream << std::setw(widthLen) << width << separator;
+	lineStream << std::setw(heightLen) << height << separator;
+	lineStream << std::setw(layersLen) << layers << separator;
+	lineStream << std::left;
+	lineStream << std::setw(mmLen) << mm << separator;
+	lineStream << std::setw(typeLen) << type << separator;
+	lineStream << std::setw(formatLen) << format << separator;
+	lineStream << std::setw(twrapLen) << twrap << separator;
+	lineStream << std::setw(swrapLen) << swrap << separator;
+	lineStream << name;
+
+	std::string lineSeparator( lineStream.str().length(), '-' );
+
+	Log::CommandInteractionMessage( lineSeparator );
+	Log::CommandInteractionMessage( lineStream.str() );
+	Log::CommandInteractionMessage( lineSeparator );
+
+	int texels = 0;
+	int dataSize = 0;
+
+	for ( int i = 0; i < tr.images.currentElements; i++ )
+	{
+		image_t *image = (image_t*) Com_GrowListElement( &tr.images, i );
 
 		if ( filter && !Com_Filter( filter, image->name, true ) )
 		{
 			continue;
 		}
 
-		Com_sprintf( buffer, sizeof( buffer ), "%4i: %4i %4i  %s   ",
-		           i, image->uploadWidth, image->uploadHeight, yesno[ image->filterType == filterType_t::FT_DEFAULT ] );
-		out += buffer;
-		switch ( image->type )
+		mm = yesno[ image->filterType == filterType_t::FT_DEFAULT ];
+
+		if ( !imageTypeName.count( image->type ) )
 		{
-			case GL_TEXTURE_2D:
-				texels += image->uploadWidth * image->uploadHeight;
-				imageDataSize = image->uploadWidth * image->uploadHeight;
+			Log::Debug( "Undocumented image type %i (%X) for image %s",
+				image->type, image->type, image->name );
 
-				Com_sprintf( buffer, sizeof( buffer ),  "2D   " );
-				out += buffer;
-				break;
-
-			case GL_TEXTURE_CUBE_MAP:
-				texels += image->uploadWidth * image->uploadHeight * 6;
-				imageDataSize = image->uploadWidth * image->uploadHeight * 6;
-
-				Com_sprintf( buffer, sizeof( buffer ),  "CUBE " );
-				out += buffer;
-				break;
-
-			default:
-				Log::Debug( "Undocumented image type %i for image %s", image->type, image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "%5i    ", image->type );
-				out += buffer;
-				imageDataSize = image->uploadWidth * image->uploadHeight;
-				break;
+			type = Str::Format( "0x%4X", image->type );
+		}
+		else
+		{
+			type = imageTypeName[ image->type ];
 		}
 
-		switch ( image->internalFormat )
+		int imageDataSize = image->uploadWidth * image->uploadHeight * image->numLayers;
+		texels += imageDataSize;
+		
+		if ( !imageFormatNameSize.count( image->internalFormat ) )
 		{
-			case GL_RGB8:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB8     " );
-				out += buffer;
-				imageDataSize *= 3;
-				break;
+			Log::Debug( "Undocumented image format %i (%X) for image %s",
+				image->internalFormat, image->internalFormat, image->name );
 
-			case GL_RGBA8:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA8    " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_RGB16:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB      " );
-				out += buffer;
-				imageDataSize *= 6;
-				break;
-
-			case GL_RGB16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB16F   " );
-				out += buffer;
-				imageDataSize *= 6;
-				break;
-
-			case GL_RGB32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB32F   " );
-				out += buffer;
-				imageDataSize *= 12;
-				break;
-
-			case GL_RGBA16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA16F  " );
-				out += buffer;
-				imageDataSize *= 8;
-				break;
-
-			case GL_RGBA32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA32F  " );
-				out += buffer;
-				imageDataSize *= 16;
-				break;
-
-			case GL_ALPHA16F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "A16F     " );
-				out += buffer;
-				imageDataSize *= 2;
-				break;
-
-			case GL_ALPHA32F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "A32F     " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_R16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "R16F     " );
-				out += buffer;
-				imageDataSize *= 2;
-				break;
-
-			case GL_R32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "R32F     " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_LUMINANCE_ALPHA16F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "LA16F    " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_LUMINANCE_ALPHA32F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "LA32F    " );
-				out += buffer;
-				imageDataSize *= 8;
-				break;
-
-			case GL_RG16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RG16F    " );
-				out += buffer;
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_RG32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RG32F    " );
-				out += buffer;
-				imageDataSize *= 8;
-				break;
-
-			case GL_COMPRESSED_RGBA:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBAC " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT1     " );
-				out += buffer;
-				imageDataSize *= 4 / 8;
-				break;
-
-			case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT1a    " );
-				out += buffer;
-				imageDataSize *= 4 / 8;
-				break;
-
-			case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT3     " );
-				out += buffer;
-				imageDataSize *= 4 / 4;
-				break;
-
-			case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT5     " );
-				out += buffer;
-				imageDataSize *= 4 / 4;
-				break;
-
-			case GL_COMPRESSED_RED_RGTC1:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC1r   " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_COMPRESSED_SIGNED_RED_RGTC1:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC1Sr  " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_COMPRESSED_RG_RGTC2:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC2rg  " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_COMPRESSED_SIGNED_RG_RGTC2:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC2Srg " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_DEPTH_COMPONENT16:
-				Com_sprintf( buffer, sizeof( buffer ),  "D16      " );
-				out += buffer;
-				imageDataSize *= 2;
-				break;
-
-			case GL_DEPTH_COMPONENT24:
-				Com_sprintf( buffer, sizeof( buffer ),  "D24      " );
-				out += buffer;
-				imageDataSize *= 3;
-				break;
-
-			case GL_DEPTH_COMPONENT32:
-				Com_sprintf( buffer, sizeof( buffer ),  "D32      " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			default:
-				Log::Debug( "Undocumented image format %i for image %s", image->internalFormat, image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "%5i    ", image->internalFormat );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
+			format = Str::Format( "0x%04X", image->internalFormat);
+			imageDataSize *= 4;
+		}
+		else
+		{
+			format = imageFormatNameSize[ image->internalFormat ].first;
+			imageDataSize *= imageFormatNameSize[ image->internalFormat ].second;
 		}
 
-		switch ( image->wrapType.s )
+		if ( !wrapTypeName.count( image->wrapType.t ) )
 		{
-			case wrapTypeEnum_t::WT_REPEAT:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.rept  " );
-				out += buffer;
-				break;
+			Log::Debug( "Undocumented wrapType.t %i for image %s",
+				Util::ordinal(image->wrapType.t), image->name );
 
-			case wrapTypeEnum_t::WT_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.clmp  " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_EDGE_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.eclmp " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.zclmp " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.azclmp" );
-				out += buffer;
-				break;
-
-			default:
-				Log::Debug( "Undocumented wrapType.s %i for image %s", Util::ordinal(image->wrapType.s), image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "s.%4i  ", Util::ordinal(image->wrapType.s) );
-				out += buffer;
-				break;
+			twrap = Str::Format( "t.%4i", Util::ordinal(image->wrapType.t) );
+		}
+		else
+		{
+			twrap = "t." + wrapTypeName[ image->wrapType.t ];
 		}
 
-		switch ( image->wrapType.t )
+		if ( !wrapTypeName.count( image->wrapType.s ) )
 		{
-			case wrapTypeEnum_t::WT_REPEAT:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.rept  " );
-				out += buffer;
-				break;
+			Log::Debug( "Undocumented wrapType.s %i for image %s",
+				Util::ordinal(image->wrapType.s), image->name );
 
-			case wrapTypeEnum_t::WT_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.clmp  " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_EDGE_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.eclmp " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.zclmp " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.azclmp" );
-				out += buffer;
-				break;
-
-			default:
-				Log::Debug( "Undocumented wrapType.t %i for image %s", Util::ordinal(image->wrapType.t), image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "t.%4i  ", Util::ordinal(image->wrapType.t));
-				out += buffer;
-				break;
+			swrap = Str::Format( "s.%4i", Util::ordinal(image->wrapType.s) );
 		}
+		else
+		{
+			swrap = "s." + wrapTypeName[ image->wrapType.s ];
+		}
+
+		name = image->name;
+
+		lineStream.clear();
+		lineStream.str("");
+
+		lineStream << std::left;
+		lineStream << std::setw(numLen) << i << separator;
+		lineStream << std::right;
+		lineStream << std::setw(widthLen) << image->uploadWidth << separator;
+		lineStream << std::setw(heightLen) << image->uploadHeight << separator;
+		lineStream << std::setw(layersLen) << image->numLayers << separator;
+		lineStream << std::left;
+		lineStream << std::setw(mmLen) << mm << separator;
+		lineStream << std::setw(typeLen) << type << separator;
+		lineStream << std::setw(formatLen) << format << separator;
+		lineStream << std::setw(twrapLen) << twrap << separator;
+		lineStream << std::setw(swrapLen) << swrap << separator;
+		lineStream << name;
+
+		Log::CommandInteractionMessage( lineStream.str() );
 
 		dataSize += imageDataSize;
-
-		Log::Notice("%s %s", out.c_str(), image->name );
 	}
 
-	Log::Notice(" ---------" );
-	Log::Notice(" %i total texels (not including mipmaps)", texels );
-	Log::Notice(" %d.%02d MB total image memory", dataSize / ( 1024 * 1024 ),
-	           ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	Log::Notice(" %i total images", tr.images.currentElements );
+	std::string summary1 = Str::Format( "%i total texels (not including mipmaps)", texels );
+	std::string summary2 = Str::Format( "%d.%02d MB total image memory (estimated)",
+		dataSize / ( 1024 * 1024 ), ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
+	std::string summary3 = Str::Format( "%i total images", tr.images.currentElements );
+
+	Log::CommandInteractionMessage( lineSeparator );
+	Log::CommandInteractionMessage( summary1 );
+	Log::CommandInteractionMessage( summary2 );
+	Log::CommandInteractionMessage( summary3 );
+	Log::CommandInteractionMessage( lineSeparator );
 }
 
 //=======================================================================
@@ -1381,6 +1317,9 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 		r_imageHashTable[ hash ] = image;
 	}
 
+	// Default image number of layers.
+	image->numLayers = 1;
+
 	return image;
 }
 
@@ -1500,6 +1439,7 @@ image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, i
 
 	image->width = width;
 	image->height = height;
+	image->numLayers = 6;
 
 	image->bits = imageParams.bits;
 	image->filterType = imageParams.filterType;
@@ -1519,7 +1459,7 @@ image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, i
 R_Create3DImage
 ================
 */
-image_t *R_Create3DImage( const char *name, const byte *pic, int width, int height, int depth, const imageParams_t &imageParams )
+image_t *R_Create3DImage( const char *name, const byte *pic, int width, int height, int numLayers, const imageParams_t &imageParams )
 {
 	image_t *image;
 	const byte **pics;
@@ -1536,10 +1476,11 @@ image_t *R_Create3DImage( const char *name, const byte *pic, int width, int heig
 
 	image->width = width;
 	image->height = height;
+	image->numLayers = numLayers;
 
 	if( pic ) {
-		pics = (const byte**) ri.Hunk_AllocateTempMemory( depth * sizeof(const byte *) );
-		for( i = 0; i < depth; i++ ) {
+		pics = (const byte**) ri.Hunk_AllocateTempMemory( numLayers * sizeof(const byte *) );
+		for( i = 0; i < numLayers; i++ ) {
 			pics[i] = pic + i * width * height * sizeof(u8vec4_t);
 		}
 	} else {
@@ -1550,7 +1491,7 @@ image_t *R_Create3DImage( const char *name, const byte *pic, int width, int heig
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( pics, depth, 1, image, imageParams );
+	R_UploadImage( pics, numLayers, 1, image, imageParams );
 
 	if( pics ) {
 		ri.Hunk_FreeTempMemory( pics );
@@ -2480,7 +2421,25 @@ static void R_CreateCurrentRenderImage()
 
 static void R_CreateDepthRenderImage()
 {
-	if ( glConfig2.dynamicLight < 1 )
+	if ( !glConfig2.dynamicLight )
+	{
+		return;
+	}
+
+	if( !glConfig2.uniformBufferObjectAvailable )
+	{
+		int w = 64;
+		int h = 3 * MAX_REF_LIGHTS / w;
+
+		imageParams_t imageParams = {};
+		imageParams.filterType = filterType_t::FT_NEAREST;
+		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+		imageParams.bits = IF_NOPICMIP | IF_RGBA32F;
+
+		tr.dlightImage = R_CreateImage("_dlightImage", nullptr, w, h, 4, imageParams );
+	}
+
+	if ( r_dynamicLightRenderer.Get() != Util::ordinal( dynamicLightRenderer_t::TILED ) )
 	{
 		/* Do not create lightTile images when the tiled renderer is not used.
 
@@ -2496,44 +2455,39 @@ static void R_CreateDepthRenderImage()
 		return;
 	}
 
-	int  width, height, w, h;
+	{
+		int width = glConfig.vidWidth;
+		int height = glConfig.vidHeight;
 
-	width = glConfig.vidWidth;
-	height = glConfig.vidHeight;
+		int w = (width + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
+		int h = (height + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
 
-	w = (width + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
-	h = (height + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP | IF_RGBA32F;
-	imageParams.filterType = filterType_t::FT_NEAREST;
-	imageParams.wrapType = wrapTypeEnum_t::WT_ONE_CLAMP;
-
-	tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
-
-	w = (width + TILE_SIZE - 1) >> TILE_SHIFT;
-	h = (height + TILE_SIZE - 1) >> TILE_SHIFT;
-
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
-
-	if ( glConfig2.textureIntegerAvailable ) {
-		imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
-
-		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
-	} else {
-		imageParams.bits = IF_NOPICMIP;
-
-		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
-	}
-
-	if( !glConfig2.uniformBufferObjectAvailable ) {
-		w = 64; h = 3 * MAX_REF_LIGHTS / w;
-
+		imageParams_t imageParams = {};
 		imageParams.bits = IF_NOPICMIP | IF_RGBA32F;
+		imageParams.filterType = filterType_t::FT_NEAREST;
+		imageParams.wrapType = wrapTypeEnum_t::WT_ONE_CLAMP;
 
-		tr.dlightImage = R_CreateImage("_dlightImage", nullptr, w, h, 4, imageParams );
+		tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
+
+		w = (width + TILE_SIZE - 1) >> TILE_SHIFT;
+		h = (height + TILE_SIZE - 1) >> TILE_SHIFT;
+
+		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
+		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
+
+		if ( glConfig2.textureIntegerAvailable )
+		{
+			imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
+
+			tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
+		}
+		else
+		{
+			imageParams.bits = IF_NOPICMIP;
+
+			tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
+		}
 	}
 }
 
@@ -2575,55 +2529,60 @@ static void R_CreateDownScaleFBOImages()
 // *INDENT-OFF*
 static void R_CreateShadowMapFBOImage()
 {
-	int  i;
-	int  width, height;
-	int numShadowMaps = ( r_softShadowsPP->integer && r_shadows->integer >= Util::ordinal(shadowingMode_t::SHADOWING_VSM16)) ? MAX_SHADOWMAPS * 2 : MAX_SHADOWMAPS;
-	int format;
-	filterType_t filter;
-
-	if ( !glConfig2.textureFloatAvailable || r_shadows->integer < Util::ordinal(shadowingMode_t::SHADOWING_ESM16))
+	if ( !glConfig2.shadowMapping )
 	{
 		return;
 	}
 
-	if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_ESM32))
+	int numFactor = 1;
+	int format = IF_NOPICMIP;
+
+	switch( glConfig2.shadowingMode )
 	{
-		format = IF_NOPICMIP | IF_ONECOMP32F;
+		case shadowingMode_t::SHADOWING_ESM16:
+			format |= IF_ONECOMP16F;
+			break;
+		case shadowingMode_t::SHADOWING_ESM32:
+			format |= IF_ONECOMP32F;
+			break;
+		case shadowingMode_t::SHADOWING_VSM16:
+			numFactor = 2;
+			format |= IF_TWOCOMP16F;
+			break;
+		case shadowingMode_t::SHADOWING_VSM32:
+			numFactor = 2;
+			format |= IF_TWOCOMP32F;
+			break;
+		case shadowingMode_t::SHADOWING_EVSM32:
+			numFactor = 2;
+			if ( r_evsmPostProcess->integer )
+			{
+				format |= IF_ONECOMP32F;
+			}
+			else
+			{
+				format |= IF_RGBA32F;
+			}
+			break;
+		case shadowingMode_t::SHADOWING_NONE:
+		case shadowingMode_t::SHADOWING_BLOB:
+		default:
+			DAEMON_ASSERT( false );
+			return;
 	}
-	else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM32))
+
+	int numShadowMaps = MAX_SHADOWMAPS;
+
+	if ( r_softShadowsPP->integer )
 	{
-		format = IF_NOPICMIP | IF_TWOCOMP32F;
+		numShadowMaps *= numFactor;
 	}
-	else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_EVSM32))
-	{
-		if ( r_evsmPostProcess->integer )
-		{
-			format = IF_NOPICMIP | IF_ONECOMP32F;
-		}
-		else
-		{
-			format = IF_NOPICMIP | IF_RGBA32F;
-		}
-	}
-	else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_ESM16))
-	{
-		format = IF_NOPICMIP | IF_ONECOMP16F;
-	}
-	else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM16))
-	{
-		format = IF_NOPICMIP | IF_TWOCOMP16F;
-	}
-	else
-	{
-		format = IF_NOPICMIP | IF_RGBA16F;
-	}
+
+	filterType_t filter = filterType_t::FT_NEAREST;
+
 	if( r_shadowMapLinearFilter->integer )
 	{
 		filter = filterType_t::FT_LINEAR;
-	}
-	else
-	{
-		filter = filterType_t::FT_NEAREST;
 	}
 
 	imageParams_t imageParams = {};
@@ -2631,21 +2590,21 @@ static void R_CreateShadowMapFBOImage()
 	imageParams.filterType = filter;
 	imageParams.wrapType = wrapTypeEnum_t::WT_ONE_CLAMP;
 
-	for ( i = 0; i < numShadowMaps; i++ )
+	for ( int i = 0; i < numShadowMaps; i++ )
 	{
-		width = height = shadowMapResolutions[ i % MAX_SHADOWMAPS ];
+		int size = shadowMapResolutions[ i % MAX_SHADOWMAPS ];
 
-		tr.shadowMapFBOImage[ i ] = R_CreateImage( va( "_shadowMapFBO%d", i ), nullptr, width, height, 1, imageParams );
-		tr.shadowClipMapFBOImage[ i ] = R_CreateImage( va( "_shadowClipMapFBO%d", i ), nullptr, width, height, 1, imageParams );
+		tr.shadowMapFBOImage[ i ] = R_CreateImage( va( "_shadowMapFBO%d", i ), nullptr, size, size, 1, imageParams );
+		tr.shadowClipMapFBOImage[ i ] = R_CreateImage( va( "_shadowClipMapFBO%d", i ), nullptr, size, size, 1, imageParams );
 	}
 
 	// sun shadow maps
-	for ( i = 0; i < numShadowMaps; i++ )
+	for ( int i = 0; i < numShadowMaps; i++ )
 	{
-		width = height = sunShadowMapResolutions[ i % MAX_SHADOWMAPS ];
+		int size = sunShadowMapResolutions[ i % MAX_SHADOWMAPS ];
 
-		tr.sunShadowMapFBOImage[ i ] = R_CreateImage( va( "_sunShadowMapFBO%d", i ), nullptr, width, height, 1, imageParams );
-		tr.sunShadowClipMapFBOImage[ i ] = R_CreateImage( va( "_sunShadowClipMapFBO%d", i ), nullptr, width, height, 1, imageParams );
+		tr.sunShadowMapFBOImage[ i ] = R_CreateImage( va( "_sunShadowMapFBO%d", i ), nullptr, size, size, 1, imageParams );
+		tr.sunShadowClipMapFBOImage[ i ] = R_CreateImage( va( "_sunShadowClipMapFBO%d", i ), nullptr, size, size, 1, imageParams );
 	}
 }
 
@@ -2654,54 +2613,49 @@ static void R_CreateShadowMapFBOImage()
 // *INDENT-OFF*
 static void R_CreateShadowCubeFBOImage()
 {
-	int  j;
-	int  width, height;
-	int format;
-	filterType_t filter;
-
-	if ( !glConfig2.textureFloatAvailable || r_shadows->integer < Util::ordinal(shadowingMode_t::SHADOWING_ESM16))
+	if ( !glConfig2.shadowMapping )
 	{
 		return;
 	}
 
-	if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_ESM32))
+	int format = IF_NOPICMIP;
+
+	switch( glConfig2.shadowingMode )
 	{
-		format = IF_NOPICMIP | IF_ONECOMP32F;
+		case shadowingMode_t::SHADOWING_ESM16:
+			format |= IF_ONECOMP16F;
+			break;
+		case shadowingMode_t::SHADOWING_ESM32:
+			format |= IF_ONECOMP32F;
+			break;
+		case shadowingMode_t::SHADOWING_VSM16:
+			format |= IF_TWOCOMP16F;
+			break;
+		case shadowingMode_t::SHADOWING_VSM32:
+			format |= IF_TWOCOMP32F;
+			break;
+		case shadowingMode_t::SHADOWING_EVSM32:
+			if ( r_evsmPostProcess->integer )
+			{
+				format |= IF_ONECOMP32F;
+			}
+			else
+			{
+				format |= IF_RGBA32F;
+			}
+			break;
+		case shadowingMode_t::SHADOWING_NONE:
+		case shadowingMode_t::SHADOWING_BLOB:
+		default:
+			DAEMON_ASSERT( false );
+			return;
 	}
-	else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM32))
-	{
-		format = IF_NOPICMIP | IF_TWOCOMP32F;
-	}
-	else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_EVSM32))
-	{
-		if ( r_evsmPostProcess->integer )
-		{
-			format = IF_NOPICMIP | IF_ONECOMP32F;
-		}
-		else
-		{
-			format = IF_NOPICMIP | IF_RGBA32F;
-		}
-	}
-	else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_ESM16))
-	{
-		format = IF_NOPICMIP | IF_ONECOMP16F;
-	}
-	else if ( r_shadows->integer == Util::ordinal(shadowingMode_t::SHADOWING_VSM16))
-	{
-		format = IF_NOPICMIP | IF_TWOCOMP16F;
-	}
-	else
-	{
-		format = IF_NOPICMIP | IF_RGBA16F;
-	}
-	if( r_shadowMapLinearFilter->integer )
+
+	filterType_t filter = filterType_t::FT_NEAREST;
+
+	if ( r_shadowMapLinearFilter->integer )
 	{
 		filter = filterType_t::FT_LINEAR;
-	}
-	else
-	{
-		filter = filterType_t::FT_NEAREST;
 	}
 
 	imageParams_t imageParams = {};
@@ -2709,12 +2663,12 @@ static void R_CreateShadowCubeFBOImage()
 	imageParams.filterType = filter;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	for ( j = 0; j < 5; j++ )
+	for ( int i = 0; i < 5; i++ )
 	{
-		width = height = shadowMapResolutions[ j ];
+		int size = shadowMapResolutions[ i ];
 
-		tr.shadowCubeFBOImage[ j ] = R_CreateCubeImage( va( "_shadowCubeFBO%d", j ), nullptr, width, height, imageParams );
-		tr.shadowClipCubeFBOImage[ j ] = R_CreateCubeImage( va( "_shadowClipCubeFBO%d", j ), nullptr, width, height, imageParams );
+		tr.shadowCubeFBOImage[ i ] = R_CreateCubeImage( va( "_shadowCubeFBO%d", i ), nullptr, size, size, imageParams );
+		tr.shadowClipCubeFBOImage[ i ] = R_CreateCubeImage( va( "_shadowClipCubeFBO%d", i ), nullptr, size, size, imageParams );
 	}
 }
 
