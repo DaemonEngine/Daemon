@@ -4806,19 +4806,13 @@ static void CollapseStages()
 		bool alphaGen_identity =
 			stages[ i ].alphaGen == alphaGen_t::AGEN_IDENTITY;
 
-		/*
-		bool blendFunc_none = 
-			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ZERO
-			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
-		*/
-
 		bool blendFunc_add =
-			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
-			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
+			( stages[ i ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
+			&& ( stages[ i ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
 
 		bool blendFunc_filter =
-			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
-			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
+			( stages[ i ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
+			&& ( stages[ i ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
 
 		bool tcGen_Environment = stages[ i ].tcGen_Environment;
 
