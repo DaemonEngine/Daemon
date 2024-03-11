@@ -4820,11 +4820,14 @@ static void CollapseStages()
 			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
 			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
 
+		bool tcGen_Environment = stages[ i ].tcGen_Environment;
+
 		if ( step == 0 )
 		{
 			if ( ( isColorStage || isCollapseColorStage )
 				&& rgbGen_identity
-				&& alphaGen_identity )
+				&& alphaGen_identity
+				&& !tcGen_Environment )
 			{
 				colorStage = i;
 				step++;
@@ -4872,7 +4875,8 @@ static void CollapseStages()
 			if ( isColorStage
 				&& rgbGen_identity
 				&& alphaGen_identity
-				&& blendFunc_add )
+				&& blendFunc_add
+				&& !tcGen_Environment )
 			{
 				bool hasGlowMap = stages[ colorStage ].bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
