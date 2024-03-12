@@ -51,9 +51,39 @@ static int        c_vboShadowSurfaces;
 R_ColorShiftLightingBytes
 ===============
 */
-static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
+static void R_ColorShiftLightingBytes( byte bytes[ 4 ] )
 {
-	int shift, r, g, b;
+	/* This implementation is strongly buggy as for every shift bit, the max light
+	is clamped by one bit and then divided by two, the stronger the light factor is,
+	the more the light is clamped.
+
+	The Q3Radiant Shader Manual said:
+	> Colors will be (1.0,1.0,1.0) if running without overbright bits
+	> (NT, linux, windowed modes), or (0.5, 0.5, 0.5) if running with
+	> overbright.
+	> -- https://icculus.org/gtkradiant/documentation/Q3AShader_Manual/ch05/pg5_1.htm
+
+	In this sentence, “running with overbright” is about using hardware
+	overbright, and “running without overbright” is about using this function.
+
+	This means Quake III Arena was only supporting hardware overbright
+	on pre-NT Windows 9x systems when fullscreen, and running this buggy
+	code on every other platforms and when windowed.
+
+	Debugging regressions from Tremulous and other Quake 3 or Wolf:ET derivated games
+	in legacy features unrelated to lighting overbright may require to temporarily
+	re-enable such buggy clamping to keep a fair comparison and avoid reimplementing
+	some clamping in an attempt to get a 1:1 comparison while not running a code not
+	backward compatible with legacy bugs.
+
+	This function is then kept to provide the ability to load map with a renderer
+	backward compatible with this bug for diagnostic purpose and fair comparison with
+	other buggy engines. */
+
+	if ( tr.mapOverBrightBits == 0 )
+	{
+		return;
+	}
 
 	/* Shift the color data based on overbright range.
 
@@ -69,12 +99,13 @@ static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
 	The original code was there to only shift in software
 	what hardware overbright bit feature was not doing, but
 	this implementation is entirely software. */
-	shift = tr.mapOverBrightBits;
+
+	int shift = tr.mapOverBrightBits;
 
 	// shift the data based on overbright range
-	r = in[ 0 ] << shift;
-	g = in[ 1 ] << shift;
-	b = in[ 2 ] << shift;
+	int r = bytes[ 0 ] << shift;
+	int g = bytes[ 1 ] << shift;
+	int b = bytes[ 2 ] << shift;
 
 	// normalize by color instead of saturating to white
 	if ( ( r | g | b ) > 255 )
@@ -88,74 +119,78 @@ static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
 		b = b * 255 / max;
 	}
 
-	out[ 0 ] = r;
-	out[ 1 ] = g;
-	out[ 2 ] = b;
-	out[ 3 ] = in[ 3 ];
+	bytes[ 0 ] = r;
+	bytes[ 1 ] = g;
+	bytes[ 2 ] = b;
 }
 
-static void R_ColorShiftLightingBytesCompressed( byte in[ 8 ], byte out[ 8 ] )
+static void R_ColorShiftLightingBytesCompressed( byte bytes[ 8 ] )
 {
-	unsigned short rgb565;
-	byte rgba[4];
+	if ( tr.mapOverBrightBits == 0 )
+	{
+		return;
+	}
 
 	// color shift the endpoint colors in the dxt block
-	rgb565 = in[1] << 8 | in[0];
-	rgba[0] = (rgb565 >> 8) & 0xf8;
-	rgba[1] = (rgb565 >> 3) & 0xfc;
-	rgba[2] = (rgb565 << 3) & 0xf8;
-	rgba[3] = 0xff;
-	R_ColorShiftLightingBytes( rgba, rgba );
-	rgb565 = ((rgba[0] >> 3) << 11) |
-		((rgba[1] >> 2) << 5) |
-		((rgba[2] >> 3) << 0);
-	out[0] = rgb565 & 0xff;
-	out[1] = rgb565 >> 8;
+	unsigned short rgb565 = bytes[1] << 8 | bytes[0];
+	byte rgba[4];
 
-	rgb565 = in[3] << 8 | in[2];
 	rgba[0] = (rgb565 >> 8) & 0xf8;
 	rgba[1] = (rgb565 >> 3) & 0xfc;
 	rgba[2] = (rgb565 << 3) & 0xf8;
 	rgba[3] = 0xff;
-	R_ColorShiftLightingBytes( rgba, rgba );
+
+	R_ColorShiftLightingBytes( rgba );
+
 	rgb565 = ((rgba[0] >> 3) << 11) |
 		((rgba[1] >> 2) << 5) |
 		((rgba[2] >> 3) << 0);
-	out[2] = rgb565 & 0xff;
-	out[3] = rgb565 >> 8;
+	bytes[0] = rgb565 & 0xff;
+	bytes[1] = rgb565 >> 8;
+
+	rgb565 = bytes[3] << 8 | bytes[2];
+	rgba[0] = (rgb565 >> 8) & 0xf8;
+	rgba[1] = (rgb565 >> 3) & 0xfc;
+	rgba[2] = (rgb565 << 3) & 0xf8;
+	rgba[3] = 0xff;
+
+	R_ColorShiftLightingBytes( rgba );
+
+	rgb565 = ((rgba[0] >> 3) << 11) |
+		((rgba[1] >> 2) << 5) |
+		((rgba[2] >> 3) << 0);
+	bytes[2] = rgb565 & 0xff;
+	bytes[3] = rgb565 >> 8;
 }
 
 /*
 ===============
 R_ProcessLightmap
-
-        returns maxIntensity
 ===============
 */
-float R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int bits, byte *pic_out )
+void R_ProcessLightmap( byte *bytes, int width, int height, int bits )
 {
-	int   j;
-	float maxIntensity = 0;
-
-	if( bits & IF_BC1 ) {
-		for ( j = 0; j < ((width + 3) >> 2) * ((height + 3) >> 2); j++ )
-		{
-			R_ColorShiftLightingBytesCompressed( &pic[ j * 8 ], &pic_out[ j * 8 ] );
-		}
-	} else if( bits & (IF_BC2 | IF_BC3) ) {
-		for ( j = 0; j < ((width + 3) >> 2) * ((height + 3) >> 2); j++ )
-		{
-			R_ColorShiftLightingBytesCompressed( &pic[ j * 16 ], &pic_out[ j * 16 ] );
-		}
-	} else {
-		for ( j = 0; j < width * height; j++ )
-		{
-			R_ColorShiftLightingBytes( &pic[ j * in_padding ], &pic_out[ j * 4 ] );
-			pic_out[ j * 4 + 3 ] = 255;
-		}
+	if ( tr.mapOverBrightBits == 0 )
+	{
+		return;
 	}
 
-	return maxIntensity;
+	if ( bits & IF_BC1 ) {
+		for ( int i = 0; i < ((width + 3) >> 2) * ((height + 3) >> 2); i++ )
+		{
+			R_ColorShiftLightingBytesCompressed( &bytes[ i * 8 ] );
+		}
+	} else if( bits & (IF_BC2 | IF_BC3) ) {
+		for ( int i = 0; i < ((width + 3) >> 2) * ((height + 3) >> 2); i++ )
+		{
+			R_ColorShiftLightingBytesCompressed( &bytes[ i * 16 ] );
+		}
+	} else {
+		for ( int i = 0; i < width * height; i++ )
+		{
+			R_ColorShiftLightingBytes( &bytes[ i * 4 ] );
+		}
+	}
 }
 
 static int LightmapNameCompare( const char *s1, const char *s2 )
@@ -640,7 +675,10 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 2 ];
 					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
-					R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ], &lightMapBuffer[( index * 4 ) + 0 ] );
+					if ( tr.forceLegacyMapOverBrightClamping )
+					{
+						R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ] );
+					}
 				}
 			}
 
@@ -1004,7 +1042,10 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
 
-		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray(), cv->verts[ i ].lightColor.ToArray() );
+		if ( tr.forceLegacyMapOverBrightClamping )
+		{
+			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
+		}
 	}
 
 	// copy triangles
@@ -1211,7 +1252,10 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray(), points[ i ].lightColor.ToArray() );
+		if ( tr.forceLegacyMapOverBrightClamping )
+		{
+			R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray() );
+		}
 	}
 
 	// center texture coords
@@ -1335,7 +1379,10 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 
 			cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray(), cv->verts[ i ].lightColor.ToArray() );
+		if ( tr.forceLegacyMapOverBrightClamping )
+		{
+			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
+		}
 	}
 
 	// copy triangles
@@ -4123,8 +4170,11 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		R_ColorShiftLightingBytes( tmpAmbient, tmpAmbient );
-		R_ColorShiftLightingBytes( tmpDirected, tmpDirected );
+		if ( tr.forceLegacyMapOverBrightClamping )
+		{
+			R_ColorShiftLightingBytes( tmpAmbient );
+			R_ColorShiftLightingBytes( tmpDirected );
+		}
 
 		for ( j = 0; j < 3; j++ )
 		{
@@ -4364,6 +4414,12 @@ void R_LoadEntities( lump_t *l )
 		else if ( !Q_stricmp( keyname, "mapOverBrightBits" ) )
 		{
 			tr.mapOverBrightBits = Math::Clamp( atof( value ), 0.0, 3.0 );
+		}
+
+		// Force forceLegacyMapOverBrightClamping even if r_forceLegacyMapOverBrightClamping is false.
+		else if ( !Q_stricmp( keyname, "forceLegacyMapOverBrightClamping" ) && !Q_stricmp( value, "1" ) )
+		{
+			tr.forceLegacyMapOverBrightClamping = true;
 		}
 
 		// check for deluxe mapping provided by NetRadiant's q3map2
@@ -6931,6 +6987,8 @@ void RE_LoadWorldMap( const char *name )
 
 	tr.worldLight = tr.lightMode;
 	tr.modelDeluxe = deluxeMode_t::NONE;
+	tr.mapLightFactor = 1.0f;
+	tr.mapInverseLightFactor = 1.0f;
 
 	if ( tr.worldLight == lightMode_t::FULLBRIGHT )
 	{
@@ -7004,5 +7062,13 @@ void RE_LoadWorldMap( const char *name )
 				// Only game models use emulated deluxe map from light direction grid.
 			}
 		}
+	}
+
+	/* Used in GLSL code for the GLSL implementation
+	without color clamping and normalization. */
+	if ( !tr.forceLegacyMapOverBrightClamping )
+	{
+		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
+		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;
 	}
 }

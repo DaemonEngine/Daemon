@@ -4806,25 +4806,22 @@ static void CollapseStages()
 		bool alphaGen_identity =
 			stages[ i ].alphaGen == alphaGen_t::AGEN_IDENTITY;
 
-		/*
-		bool blendFunc_none = 
-			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ZERO
-			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
-		*/
-
 		bool blendFunc_add =
-			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
-			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
+			( stages[ i ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
+			&& ( stages[ i ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
 
 		bool blendFunc_filter =
-			( stages[ lightStage ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
-			&& ( stages[ lightStage ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
+			( stages[ i ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
+			&& ( stages[ i ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
+
+		bool tcGen_Environment = stages[ i ].tcGen_Environment;
 
 		if ( step == 0 )
 		{
 			if ( ( isColorStage || isCollapseColorStage )
 				&& rgbGen_identity
-				&& alphaGen_identity )
+				&& alphaGen_identity
+				&& !tcGen_Environment )
 			{
 				colorStage = i;
 				step++;
@@ -4872,7 +4869,8 @@ static void CollapseStages()
 			if ( isColorStage
 				&& rgbGen_identity
 				&& alphaGen_identity
-				&& blendFunc_add )
+				&& blendFunc_add
+				&& !tcGen_Environment )
 			{
 				bool hasGlowMap = stages[ colorStage ].bundle[ TB_GLOWMAP ].image[ 0 ] != nullptr;
 
@@ -5149,9 +5147,32 @@ static void CollapseStages()
 	shader.numStages = numActiveStages;
 
 	// Do some precomputation.
+
+	bool shaderHasNoLight = true;
 	for ( int s = 0; s < shader.numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
+
+		switch ( stage->type )
+		{
+			case stageType_t::ST_LIGHTMAP:
+			case stageType_t::ST_STYLELIGHTMAP:
+			case stageType_t::ST_STYLECOLORMAP:
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+				shaderHasNoLight = false;
+				break;
+			default:	
+				break;
+		}
+	}
+
+	for ( int s = 0; s < shader.numStages; s++ )
+	{
+		shaderStage_t *stage = &stages[ s ];
+
+		// We should cancel overBrightBits if there is no light stage.
+		stage->shaderHasNoLight = shaderHasNoLight;
 
 		// Available textures.
 		stage->hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;

@@ -1739,9 +1739,9 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 		return nullptr;
 	}
 
-	if ( imageParams.bits & IF_LIGHTMAP )
+	if ( imageParams.bits & IF_LIGHTMAP && tr.forceLegacyMapOverBrightClamping )
 	{
-		R_ProcessLightmap( pic[ 0 ], 4, width, height, imageParams.bits, pic[ 0 ] );
+		R_ProcessLightmap( pic[ 0 ], width, height, imageParams.bits );
 	}
 
 	image = R_CreateImage( ( char * ) buffer, (const byte **)pic, width, height, numMips, imageParams );
@@ -2408,13 +2408,22 @@ static void R_CreateCurrentRenderImage()
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
+
+	if ( glConfig2.textureFloatAvailable && r_highPrecisionRendering.Get() )
+	{
+		imageParams.bits |= IF_RGBA16;
+	}
+
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.currentRenderImage[0] = R_CreateImage( "_currentRender[0]", nullptr, width, height, 1, imageParams );
 	tr.currentRenderImage[1] = R_CreateImage( "_currentRender[1]", nullptr, width, height, 1, imageParams );
 
-	imageParams.bits |= IF_PACKED_DEPTH24_STENCIL8;
+	imageParams = {};
+	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8;
+	imageParams.filterType = filterType_t::FT_NEAREST;
+	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
 }
@@ -2960,7 +2969,8 @@ void R_InitImages()
 	Because tr.overbrightBits is always 0, tr.identityLight is
 	always 1.0f. We can entirely remove it. */
 
-	tr.mapOverBrightBits =  r_mapOverBrightBits.Get();
+	tr.mapOverBrightBits = r_mapOverBrightBits.Get();
+	tr.forceLegacyMapOverBrightClamping = r_forceLegacyMapOverBrightClamping.Get();
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();

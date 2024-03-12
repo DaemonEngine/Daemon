@@ -764,6 +764,13 @@ static void Render_generic( shaderStage_t *pStage )
 			break;
 	}
 
+	// u_InverseLightFactor
+	// We should cancel overbrightBits if there is no light,
+	// and it's not using blendFunc dst_color.
+	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
+	float inverseLightFactor = ( pStage->shaderHasNoLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : 1.0f;
+	gl_genericShader->SetUniform_InverseLightFactor( inverseLightFactor );
+
 	// u_ColorModulate
 	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
@@ -1082,6 +1089,14 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 	// u_DeformGen
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+
+	// u_InverseLightFactor
+	/* HACK: use sign to know if there is a light or not, and
+	then if it will receive overbright multiplication or not. */
+	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
+	bool noLight = pStage->shaderHasNoLight || lightMode == lightMode_t::FULLBRIGHT;
+	float inverseLightFactor = ( noLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : - tr.mapInverseLightFactor;
+	gl_lightMappingShader->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
 	gl_lightMappingShader->SetUniform_ColorModulate( colorGen, alphaGen );
@@ -2085,6 +2100,9 @@ static void Render_skybox( shaderStage_t *pStage )
 	// bind u_ColorMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
 
+	// u_InverseLightFactor
+	gl_skyboxShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
 	gl_skyboxShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
@@ -2421,6 +2439,9 @@ static void Render_fog()
 	gl_fogQuake3Shader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_fogQuake3Shader->BindProgram( 0 );
+
+	// u_InverseLightFactor
+	gl_fogQuake3Shader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );

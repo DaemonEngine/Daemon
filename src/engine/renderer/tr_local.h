@@ -1209,6 +1209,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool            dpMaterial;
 
+		bool shaderHasNoLight;
+
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
 		expression_t    ifExp;
@@ -2823,7 +2825,14 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		viewParms_t    viewParms;
 
-		int            mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		// r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		int mapOverBrightBits;
+		// pow(2, mapOverbrightBits)
+		float mapLightFactor;
+		// 1 / mapLightFactor
+		float mapInverseLightFactor;
+		// May have to be true on some legacy maps: clamp and normalize multiplied colors.
+		bool forceLegacyMapOverBrightClamping;
 
 		orientationr_t orientation; // for current entity
 
@@ -2950,6 +2959,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
+	extern Cvar::Cvar<bool> r_forceLegacyMapOverBrightClamping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
@@ -3021,6 +3031,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
 	extern cvar_t *r_rimExponent;
+
+	extern Cvar::Cvar<bool> r_highPrecisionRendering;
 
 	extern cvar_t *r_logFile; // number of frames to emit GL logs
 
@@ -3307,7 +3319,7 @@ inline bool checkGLErrors()
 	void      RE_Shutdown( bool destroyWindow );
 
 	bool   R_GetEntityToken( char *buffer, int size );
-	float      R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int bits, byte *pic_out );  // Arnout
+	void R_ProcessLightmap( byte *bytes, int width, int height, int bits ); // Arnout
 
 	model_t    *R_AllocModel();
 

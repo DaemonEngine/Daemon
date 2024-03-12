@@ -27,6 +27,7 @@ uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
+uniform float u_InverseLightFactor;
 uniform vec3		u_ViewOrigin;
 
 IN(smooth) vec3		var_Position;
@@ -172,9 +173,25 @@ void main()
 		color.rgb += 0.7 * emission;
 	#endif
 
+	/* HACK: use sign to know if there is a light or not, and
+	then if it will receive overbright multiplication or not. */
+	if ( u_InverseLightFactor > 0 )
+	{
+		color.rgb *= u_InverseLightFactor;
+	}
+
 	#if defined(r_glowMapping)
 		// Blend glow map.
-		color.rgb += texture2D(u_GlowMap, texCoords).rgb;
+		vec3 glow = texture2D(u_GlowMap, texCoords).rgb;
+
+		/* HACK: use sign to know if there is a light or not, and
+		then if it will receive overbright multiplication or not. */
+		if ( u_InverseLightFactor < 0 )
+		{
+			glow *= - u_InverseLightFactor;
+		}
+
+		color.rgb += glow;
 	#endif
 
 	outputColor = color;
