@@ -227,7 +227,6 @@ void  Com_Free_Aligned( void *ptr );
 
 	using vec_t = float;
 	using vec2_t = vec_t[2];
-
 	using vec3_t = vec_t[3];
 	using vec4_t = vec_t[4];
 
@@ -235,6 +234,11 @@ void  Com_Free_Aligned( void *ptr );
 	using matrix3x3_t = vec_t[3 * 3];
 	using matrix_t = vec_t[4 * 4];
 	using quat_t = vec_t[4];
+
+	using ivec_t = int;
+	using ivec2_t = ivec_t[2];
+	using ivec3_t = ivec_t[3];
+	using ivec4_t = ivec_t[4];
 
 	// A transform_t represents a product of basic
 	// transformations, which are a rotation about an arbitrary
