@@ -91,13 +91,15 @@ void main()
 		return;
 	}
 
-	/* HACK: emulate two-bits bitfield
-	even: no texture linearization (first bit)
-	less than 2: no lightmap linearization (second bit) */
-	bool linearizeTexture = bool(u_LinearizeTexture % 2);
-	bool linearizeLightMap = u_LinearizeTexture > 1;
+	/* HACK: emulate three-bits bitfield
+	even: no color map linearization (first bit)
+	less than 2: no light map linearization (second bit)
+	positive: no material map linearization (extra bit) */
+	bool linearizeColorMap = bool(u_LinearizeTexture % 2);
+	bool linearizeLightMap = abs(u_LinearizeTexture) > 1;
+	bool linearizeMaterialMap = u_LinearizeTexture < 0;
 
-	convertFromSRGB(diffuse.rgb, linearizeTexture);
+	convertFromSRGB(diffuse.rgb, linearizeColorMap);
 
 	diffuse.rgb *= var_Color.rgb;
 
@@ -106,6 +108,8 @@ void main()
 
 	// Compute the material term.
 	vec4 material = texture2D(u_MaterialMap, texCoords);
+
+	convertFromSRGB(material.rgb, linearizeMaterialMap);
 
 	// Compute final color.
 	vec4 color;
@@ -197,7 +201,7 @@ void main()
 		// Blend glow map.
 		vec3 glow = texture2D(u_GlowMap, texCoords).rgb;
 
-		convertFromSRGB(glow, linearizeTexture);
+		convertFromSRGB(glow, linearizeColorMap);
 
 		/* HACK: use sign to know if there is a light or not, and
 		then if it will receive overbright multiplication or not. */
