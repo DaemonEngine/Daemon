@@ -964,14 +964,14 @@ static void R_SetupFrustum()
 		//transform planes back to world space for culling
 		for (int i = 0; i <= FRUSTUM_NEAR; i++)
 		{
-			vec4_t plane;
-			VectorCopy(tr.viewParms.portalFrustum[i].normal, plane);
-			plane[3] = tr.viewParms.portalFrustum[i].dist;
+			plane_t plane;
+			VectorCopy(tr.viewParms.portalFrustum[i].normal, plane.normal);
+			plane.dist = tr.viewParms.portalFrustum[i].dist;
 
 			MatrixTransformPlane2(invTransform, plane);
 
-			VectorCopy(plane, tr.viewParms.frustums[0][i].normal);
-			tr.viewParms.frustums[0][i].dist = plane[3];
+			VectorCopy(plane.normal, tr.viewParms.frustums[0][i].normal);
+			tr.viewParms.frustums[0][i].dist = plane.dist;
 
 			SetPlaneSignbits(&tr.viewParms.frustums[0][i]);
 			tr.viewParms.frustums[0][i].type = PLANE_NON_AXIAL;
@@ -1089,7 +1089,7 @@ void R_SetupFrustum2( frustum_t frustum, const matrix_t mvp )
 
 // *INDENT-ON*
 
-void R_CalcFrustumNearCornersUnsafe( const vec4_t frustum[ FRUSTUM_NEAR + 1 ], vec3_t (&corners)[ 4 ] )
+void R_CalcFrustumNearCornersUnsafe( const plane_t frustum[ FRUSTUM_NEAR + 1 ], vec3_t (&corners)[ 4 ] )
 {
 	PlanesGetIntersectionPoint( frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_TOP ], frustum[ FRUSTUM_NEAR ], corners[ 0 ] );
 	PlanesGetIntersectionPoint( frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_TOP ], frustum[ FRUSTUM_NEAR ], corners[ 1 ] );
@@ -1097,7 +1097,7 @@ void R_CalcFrustumNearCornersUnsafe( const vec4_t frustum[ FRUSTUM_NEAR + 1 ], v
 	PlanesGetIntersectionPoint( frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_BOTTOM ], frustum[ FRUSTUM_NEAR ], corners[ 3 ] );
 }
 
-void R_CalcFrustumFarCornersUnsafe( const vec4_t frustum[ FRUSTUM_FAR + 1 ], vec3_t (&corners)[ 4 ] )
+void R_CalcFrustumFarCornersUnsafe( const plane_t frustum[ FRUSTUM_FAR + 1 ], vec3_t (&corners)[ 4 ] )
 {
 	PlanesGetIntersectionPoint( frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_TOP ], frustum[ FRUSTUM_FAR ], corners[ 0 ] );
 	PlanesGetIntersectionPoint( frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_TOP ], frustum[ FRUSTUM_FAR ], corners[ 1 ] );
@@ -1216,7 +1216,6 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane )
 	srfTriangles_t *tri;
 	srfPoly_t      *poly;
 	srfVert_t      *v1, *v2, *v3;
-	vec4_t         plane4;
 
 	if ( !surfType )
 	{
@@ -1225,6 +1224,7 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane )
 		return;
 	}
 
+	plane_t plane4;
 	switch ( *surfType )
 	{
 		case surfaceType_t::SF_FACE:
@@ -1237,15 +1237,15 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane )
 			v2 = tri->verts + tri->triangles[ 0 ].indexes[ 1 ];
 			v3 = tri->verts + tri->triangles[ 0 ].indexes[ 2 ];
 			PlaneFromPoints( plane4, v1->xyz, v2->xyz, v3->xyz );
-			VectorCopy( plane4, plane->normal );
-			plane->dist = plane4[ 3 ];
+			VectorCopy( plane4.normal, plane->normal );
+			plane->dist = plane4.dist;
 			return;
 
 		case surfaceType_t::SF_POLY:
 			poly = ( srfPoly_t * ) surfType;
 			PlaneFromPoints( plane4, poly->verts[ 0 ].xyz, poly->verts[ 1 ].xyz, poly->verts[ 2 ].xyz );
-			VectorCopy( plane4, plane->normal );
-			plane->dist = plane4[ 3 ];
+			VectorCopy( plane4.normal, plane->normal );
+			plane->dist = plane4.dist;
 			return;
 
 		default:
@@ -1812,12 +1812,11 @@ static void R_SetupPortalFrustum( const viewParms_t& oldParms, const orientation
 	frustum[FRUSTUM_NEAR].dist = DotProduct(worldNearPlane, newParms.orientation.origin) - worldNearPlane[3];
 
 	// calculate new znear for parallel split frustums in this view
-	vec4_t frustumPlanes[FRUSTUM_PLANES];
-
+	plane_t frustumPlanes[FRUSTUM_PLANES];
 	for (int i = 0; i < FRUSTUM_PLANES; i++)
 	{
-		VectorCopy(frustum[i].normal, frustumPlanes[i]);
-		frustumPlanes[i][3] = frustum[i].dist;
+		VectorCopy(frustum[i].normal, frustumPlanes[i].normal);
+		frustumPlanes[i].dist = frustum[i].dist;
 	}
 
 	vec3_t nearCorners[4];
