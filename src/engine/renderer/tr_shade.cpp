@@ -2134,6 +2134,8 @@ static void Render_screen( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
+/* This doesn't render the portal itself but the texture
+blended to it to fade it with distance. */
 static void Render_portal( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_portal ---\n" );
@@ -2634,6 +2636,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	switch ( pStage->alphaGen )
 	{
 		default:
+		case alphaGen_t::AGEN_PORTAL:
 		case alphaGen_t::AGEN_IDENTITY:
 		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
 			{
