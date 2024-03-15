@@ -164,8 +164,22 @@ int Milliseconds() {
 #endif
 }
 
+#ifdef BUILD_VM_IN_PROCESS
+std::thread::id mainThread;
+#else
+static const std::thread::id mainThread = std::this_thread::get_id();
+#endif
+bool OnMainThread()
+{
+	return std::this_thread::get_id() == mainThread;
+}
+
 void Drop(Str::StringRef message)
 {
+	if (!OnMainThread()) {
+		Sys::Error(message);
+	}
+
 	// Transform into a fatal error if too many errors are generated in quick
 	// succession.
 	static Sys::SteadyClock::time_point lastError;
