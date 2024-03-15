@@ -46,6 +46,9 @@ namespace VM {
 
 	// Send a message to the engine
 	template<typename Msg, typename... Args> void SendMsg(Args&&... args) {
+		if (!Sys::OnMainThread()) {
+			Sys::Error("SendMsg from non-main VM thread");
+		}
 		IPC::SendMsg<Msg>(rootChannel, VMHandleSyscall, std::forward<Args>(args)...);
 	}
 
