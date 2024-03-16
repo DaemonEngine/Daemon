@@ -376,7 +376,8 @@ void OSExit(int exitCode) {
 		// _exit runs full shutdown for DLLs including global destructors, ewww
 		TerminateProcess(GetCurrentProcess(), exitCode);
 		// There are rumors of TerminateProcess returning: https://crbug.com/820518. Crash to be sure
-		*(volatile char*)1 = 123;
+		volatile auto p = (volatile char*)1;
+		*p = 123;
 		ASSERT_UNREACHABLE();
 #else
 		_exit(exitCode);
