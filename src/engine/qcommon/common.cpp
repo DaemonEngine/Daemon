@@ -52,7 +52,6 @@ Maryland 20850 USA.
 #include <common/FileSystem.h>
 
 cvar_t *com_speeds;
-cvar_t *com_developer;
 cvar_t *com_timescale;
 cvar_t *com_dropsim; // 0.0 to 1.0, simulated packet drops
 
@@ -514,72 +513,6 @@ int Com_Milliseconds()
 
 //============================================================================
 
-/*
-=============
-Com_Error_f
-
-Just throw a fatal error to
-test error shutdown procedures
-=============
-*/
-NORETURN static void Com_Error_f()
-{
-	if ( Cmd_Argc() > 1 )
-	{
-		Sys::Drop( "Testing drop error" );
-	}
-	else
-	{
-		Sys::Error( "Testing fatal error" );
-	}
-}
-
-/*
-=============
-Com_Freeze_f
-
-Just freeze in place for a given number of seconds to test
-error recovery
-=============
-*/
-static void Com_Freeze_f()
-{
-	float s;
-	int   start, now;
-
-	if ( Cmd_Argc() != 2 )
-	{
-		Log::Notice( "freeze <seconds>" );
-		return;
-	}
-
-	s = atof( Cmd_Argv( 1 ) );
-
-	start = Com_Milliseconds();
-
-	while (true)
-	{
-		now = Com_Milliseconds();
-
-		if ( ( now - start ) * 0.001 > s )
-		{
-			break;
-		}
-	}
-}
-
-/*
-=================
-Com_Crash_f
-
-A way to force a bus error for development reasons
-=================
-*/
-static void Com_Crash_f()
-{
-	* ( volatile int * ) 0 = 0x12345678;
-}
-
 void Com_In_Restart_f()
 {
 	IN_Restart();
@@ -607,8 +540,6 @@ void Com_Init()
 	//
 	// init commands and vars
 	//
-	com_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
-
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	com_dropsim = Cvar_Get( "com_dropsim", "0", CVAR_CHEAT );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
@@ -618,13 +549,6 @@ void Com_Init()
 
 	com_unfocused = Cvar_Get( "com_unfocused", "0", CVAR_ROM );
 	com_minimized = Cvar_Get( "com_minimized", "0", CVAR_ROM );
-
-	if ( com_developer && com_developer->integer )
-	{
-		Cmd_AddCommand( "error", Com_Error_f );
-		Cmd_AddCommand( "crash", Com_Crash_f );
-		Cmd_AddCommand( "freeze", Com_Freeze_f );
-	}
 
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
 #ifdef BUILD_GRAPHICAL_CLIENT

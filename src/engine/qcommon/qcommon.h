@@ -527,7 +527,6 @@ bool       Com_ServerRunning();
 // if match is nullptr, all set commands will be executed, otherwise
 // only a set with the exact name.  Only used during startup.
 
-extern cvar_t       *com_developer;
 extern cvar_t       *com_speeds;
 extern cvar_t       *com_timescale;
 extern cvar_t       *com_sv_running;
