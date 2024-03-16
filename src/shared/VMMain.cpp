@@ -71,18 +71,8 @@ static void CommonInit(Sys::OSHandle rootSocket)
 	}
 }
 
-void Sys::Error(Str::StringRef message)
+static void LogFatalError(Str::StringRef message)
 {
-	if (!OnMainThread()) {
-		// On a non-main thread we can't rely on IPC, so we may not be able to communicate the
-		// error message. So try to trigger a crash dump instead (exiting with abort() triggers
-		// one but exiting with _exit() doesn't). This will give something to work with when
-		// debugging. (For the main thread case a message is usually enough to diagnose the problem
-		// so we don't generate a crash dump; those consume disk space after all.)
-		// Also note that throwing ExitException would only work as intended on the main thread.
-		std::abort();
-	}
-
 	// Only try sending an ErrorMsg once
 	static std::atomic_flag errorEntered;
 	if (!errorEntered.test_and_set()) {
@@ -95,6 +85,21 @@ void Sys::Error(Str::StringRef message)
 			VM::SendMsg<VM::ErrorMsg>(message);
 		} catch (...) {}
 	}
+}
+
+void Sys::Error(Str::StringRef message)
+{
+	if (!OnMainThread()) {
+		// On a non-main thread we can't rely on IPC, so we may not be able to communicate the
+		// error message. So try to trigger a crash dump instead (exiting with abort() triggers
+		// one but exiting with _exit() doesn't). This will give something to work with when
+		// debugging. (For the main thread case a message is usually enough to diagnose the problem
+		// so we don't generate a crash dump; those consume disk space after all.)
+		// Also note that throwing ExitException would only work as intended on the main thread.
+		std::abort();
+	}
+
+	LogFatalError(message);
 
 #ifdef BUILD_VM_IN_PROCESS
 	// Then engine will close the root socket when it wants us to exit, which
@@ -131,6 +136,23 @@ extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 
 #else
 
+// The terminate handler feature lets us print the exception message WITHOUT unwinding the stack,
+// so that the full stack where the exception arose can be seen in an NaCl crash dump, a
+// traditional Unix core dump (for native exe), a debugger, etc.
+NORETURN static void TerminateHandler()
+{
+	if (Sys::OnMainThread()) {
+		try {
+			throw; // A terminate handler is only called if there is an active exception
+		} catch (std::exception& err) {
+			LogFatalError(Str::Format("Unhandled exception (%s): %s", typeid(err).name(), err.what()));
+		} catch (...) {
+			LogFatalError("Unhandled exception of unknown type");
+		}
+	}
+	std::abort();
+}
+
 // Entry point called in a new process
 int main(int argc, char** argv)
 {
@@ -150,24 +172,17 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 
+	std::set_terminate(TerminateHandler);
 	// Set up crash handling for this process. This will allow crashes to be
 	// sent back to the engine and reported to the user.
 	Sys::SetupCrashHandler();
 
-	// For NaCl avoid catching the exceptions so we can get a crash dump. You get have either
-	// the exception message or a crash dump with a useful backtrace, not both. The trace
-	// seems more informative on average.
 	try {
 		CommonInit(rootSocket);
 	} catch (Sys::DropErr& err) {
 		Sys::Error(err.what());
-#ifndef __native_client__
-	} catch (std::exception& err) {
-		Sys::Error("Unhandled exception (%s): %s", typeid(err).name(), err.what());
-	} catch (...) {
-		Sys::Error("Unhandled exception of unknown type");
-#endif
 	}
+	// Other exceptions go to TerminateHandler()
 }
 
 #endif
