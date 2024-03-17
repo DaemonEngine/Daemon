@@ -777,6 +777,11 @@ void CM_LoadMap(Str::StringRef name)
 	std::string externalEntities = FS::PakPath::ReadFile( "maps/" + name + ".ent", err );
 	if ( err )
 	{
+		const std::error_code notFound( Util::ordinal( FS::filesystem_error::no_such_file ), FS::filesystem_category() );
+		if ( err != notFound )
+		{
+			Sys::Drop( "Could not read file 'maps/%s.ent': %s", name.c_str(), err.message() );
+		}
 		externalEntities = "";
 	}
 

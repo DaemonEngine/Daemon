@@ -6956,6 +6956,11 @@ void RE_LoadWorldMap( const char *name )
 	std::string externalEntities = FS::PakPath::ReadFile( externalEntitiesFileName, err );
 	if ( err )
 	{
+		const std::error_code notFound( Util::ordinal( FS::filesystem_error::no_such_file ), FS::filesystem_category() );
+		if ( err != notFound )
+		{
+			Sys::Drop( "Could not read file '%s': %s", externalEntitiesFileName.c_str(), err.message() );
+		}
 		externalEntities = "";
 	}
 	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ], externalEntities );
