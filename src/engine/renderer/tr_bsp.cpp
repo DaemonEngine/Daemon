@@ -4281,7 +4281,7 @@ void R_LoadLightGrid( lump_t *l )
 R_LoadEntities
 ================
 */
-void R_LoadEntities( lump_t *l )
+void R_LoadEntities( lump_t *l, std::string &externalEntities )
 {
 	int          i;
 	const char *p, *pOld, *token;
@@ -4305,9 +4305,18 @@ void R_LoadEntities( lump_t *l )
 	w->lightGridSize[ 2 ] = 128;
 
 	// store for reference by the cgame
-	w->entityString = (char*) ri.Hunk_Alloc( l->filelen + 1, ha_pref::h_low );
-	//strcpy(w->entityString, (char *)(fileBase + l->fileofs));
-	Q_strncpyz( w->entityString, ( char * )( fileBase + l->fileofs ), l->filelen + 1 );
+	if ( externalEntities.empty() )
+	{
+		w->entityString = (char*) ri.Hunk_Alloc( l->filelen + 1, ha_pref::h_low );
+		//strcpy(w->entityString, (char *)(fileBase + l->fileofs));
+		Q_strncpyz( w->entityString, ( char * )( fileBase + l->fileofs ), l->filelen + 1 );
+	}
+	else
+	{
+		w->entityString = (char*) ri.Hunk_Alloc( externalEntities.length() + 1, ha_pref::h_low );
+		Q_strncpyz( w->entityString, externalEntities.c_str(), externalEntities.length() + 1 );
+	}
+
 	w->entityParsePoint = w->entityString;
 
 	p = w->entityString;
@@ -6942,7 +6951,19 @@ void RE_LoadWorldMap( const char *name )
 	}
 
 	// load into heap
-	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ] );
+
+	std::string externalEntitiesFileName = FS::Path::StripExtension( name ) + ".ent";
+	std::string externalEntities = FS::PakPath::ReadFile( externalEntitiesFileName, err );
+	if ( err )
+	{
+		const std::error_code notFound( Util::ordinal( FS::filesystem_error::no_such_file ), FS::filesystem_category() );
+		if ( err != notFound )
+		{
+			Sys::Drop( "Could not read file '%s': %s", externalEntitiesFileName.c_str(), err.message() );
+		}
+		externalEntities = "";
+	}
+	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ], externalEntities );
 
 	R_LoadShaders( &header->lumps[ LUMP_SHADERS ] );
 

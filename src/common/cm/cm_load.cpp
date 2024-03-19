@@ -514,16 +514,26 @@ static void CMod_LoadBrushSides(const byte *const cmod_base, const lump_t *l)
 CMod_LoadEntityString
 =================
 */
-static void CMod_LoadEntityString(const byte *const cmod_base, const lump_t *l)
+static void CMod_LoadEntityString(const byte *const cmod_base, const lump_t *l, std::string &externalEntities)
 {
 	const char *p, *token;
 	char keyname[ MAX_TOKEN_CHARS ];
 	char value[ MAX_TOKEN_CHARS ];
 
-	cm.entityString = ( char * ) CM_Alloc( l->filelen + 1);
-	cm.numEntityChars = l->filelen;
-	memcpy( cm.entityString, cmod_base + l->fileofs, l->filelen );
-	cm.entityString[l->filelen] = '\0';
+	if ( externalEntities.empty() )
+	{
+		cm.entityString = ( char * ) CM_Alloc( l->filelen + 1);
+		cm.numEntityChars = l->filelen;
+		memcpy( cm.entityString, cmod_base + l->fileofs, l->filelen );
+		cm.entityString[l->filelen] = '\0';
+	}
+	else
+	{
+		int len = externalEntities.length();
+		cm.entityString = ( char * ) CM_Alloc( len + 1 );
+		cm.numEntityChars = len;
+		memcpy( cm.entityString, externalEntities.c_str(), len + 1 );
+	}
 
 	p = cm.entityString;
 
@@ -764,6 +774,17 @@ void CM_LoadMap(Str::StringRef name)
 		Sys::Drop("Could not load %s", mapFile.c_str());
 	}
 
+	std::string externalEntities = FS::PakPath::ReadFile( "maps/" + name + ".ent", err );
+	if ( err )
+	{
+		const std::error_code notFound( Util::ordinal( FS::filesystem_error::no_such_file ), FS::filesystem_category() );
+		if ( err != notFound )
+		{
+			Sys::Drop( "Could not read file 'maps/%s.ent': %s", name.c_str(), err.message() );
+		}
+		externalEntities = "";
+	}
+
 	// clear collision map data
 	CM_ClearMap();
 
@@ -801,7 +822,7 @@ void CM_LoadMap(Str::StringRef name)
 	CMod_LoadBrushes(cmod_base, &header.lumps[LUMP_BRUSHES]);
 	CMod_LoadSubmodels(cmod_base, &header.lumps[LUMP_MODELS]);
 	CMod_LoadNodes(cmod_base, &header.lumps[LUMP_NODES]);
-	CMod_LoadEntityString(cmod_base, &header.lumps[LUMP_ENTITIES]);
+	CMod_LoadEntityString(cmod_base, &header.lumps[LUMP_ENTITIES], externalEntities);
 	CMod_LoadVisibility(cmod_base, &header.lumps[LUMP_VISIBILITY]);
 	CMod_LoadSurfaces(cmod_base,
 					  &header.lumps[LUMP_SURFACES], &header.lumps[LUMP_DRAWVERTS], &header.lumps[LUMP_DRAWINDEXES]);
