@@ -1041,6 +1041,10 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
+		if ( tr.worldLinearizeLightMap )
+		{
+			cv->verts[ i ].lightColor.ConvertFromSRGB();
+		}
 
 		if ( tr.forceLegacyMapOverBrightClamping )
 		{
@@ -4180,6 +4184,12 @@ void R_LoadLightGrid( lump_t *l )
 		{
 			ambientColor[ j ] = tmpAmbient[ j ] * ( 1.0f / 255.0f );
 			directedColor[ j ] = tmpDirected[ j ] * ( 1.0f / 255.0f );
+
+			if ( tr.worldLinearizeLightMap )
+			{
+				ambientColor[ j ] = convertFromSRGB( ambientColor[ j ] );
+				directedColor[ j ] = convertFromSRGB( directedColor[ j ] );
+			}
 		}
 
 		// standard spherical coordinates to cartesian coordinates conversion
@@ -4441,6 +4451,73 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 				Log::Debug("map features directional light mapping" );
 				// This will be disabled if the engine fails to load the lightmaps.
 				tr.worldDeluxeMapping = r_deluxeMapping->integer != 0;
+			}
+
+			bool sRGBtex = false;
+			bool sRGBcolor = false;
+			bool sRGBlight = false;
+
+			s = strstr( value, "-sRGB" );
+
+			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
+			{
+				sRGBtex = true;
+				sRGBcolor = true;
+				sRGBlight = true;
+			}
+
+			s = strstr( value, "-nosRGB" );
+
+			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
+			{
+				sRGBtex = false;
+				sRGBcolor = false;
+				sRGBlight = true;
+			}
+
+			if ( strstr( value, "-sRGBlight" ) )
+			{
+				sRGBlight = true;
+			}
+
+			if ( strstr( value, "-nosRGBlight" ) )
+			{
+				sRGBlight = false;
+			}
+
+			if ( strstr( value, "-sRGBcolor" ) )
+			{
+				sRGBcolor = true;
+			}
+
+			if ( strstr( value, "-nosRGBcolor" ) )
+			{
+				sRGBcolor = false;
+			}
+
+			if ( strstr( value, "-sRGBtex" ) )
+			{
+				sRGBtex = true;
+			}
+
+			if ( strstr( value, "-nosRGBtex" ) )
+			{
+				sRGBtex = false;
+			}
+
+			if ( sRGBlight )
+			{
+				Log::Debug("map features lights in sRGB colorspace" );
+				tr.worldLinearizeLightMap = true;
+			}
+
+			if ( sRGBcolor && sRGBtex )
+			{
+				Log::Debug("map features lights computed with linear colors and textures" );
+				tr.worldLinearizeTexture = true;
+				/* The forceLegacyMapOverBrightClamping is only compatible and purposed
+				with legacy maps without color linearization. */
+				tr.forceLegacyMapOverBrightClamping = false;
 			}
 
 			continue;
@@ -6924,6 +7001,8 @@ void RE_LoadWorldMap( const char *name )
 	// tr.worldDeluxeMapping will be set by R_LoadEntities()
 	tr.worldDeluxeMapping = false;
 	tr.worldHDR_RGBE = false;
+	tr.worldLinearizeTexture = false;
+	tr.worldLinearizeLightMap = false;
 
 	memset( &s_worldData, 0, sizeof( s_worldData ) );
 	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );

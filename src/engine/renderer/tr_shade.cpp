@@ -1038,6 +1038,9 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	// now we are ready to set the shader program uniforms
 	vec3_t viewOrigin;
 
+	// u_LinearizeTexture
+	gl_lightMappingShader->SetUniform_LinearizeTexture( pStage->linearizeTexture );
+
 	if ( tess.bspSurface )
 	{
 		VectorCopy( backEnd.orientation.viewOrigin, viewOrigin ); // in world space
@@ -2100,6 +2103,9 @@ static void Render_skybox( shaderStage_t *pStage )
 	// bind u_ColorMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
 
+	// u_LinearizeTexture
+	gl_skyboxShader->SetUniform_LinearizeTexture( pStage->linearizeTexture );
+
 	// u_InverseLightFactor
 	gl_skyboxShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
@@ -2439,6 +2445,9 @@ static void Render_fog()
 	gl_fogQuake3Shader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_fogQuake3Shader->BindProgram( 0 );
+
+	// u_LinearizeTexture
+	gl_fogQuake3Shader->SetUniform_LinearizeTexture( tr.worldLinearizeTexture );
 
 	// u_InverseLightFactor
 	gl_fogQuake3Shader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );

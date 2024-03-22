@@ -26,6 +26,7 @@ const float radiusWorld = 4096.0; // Value used by quake 3 skybox code
 
 uniform samplerCube	u_ColorMap;
 
+uniform bool u_LinearizeTexture;
 uniform float u_InverseLightFactor;
 uniform sampler2D	u_CloudMap;
 
@@ -74,6 +75,8 @@ void	main()
 				return;
 			}
 	#endif
+
+	convertFromSRGB(color.rgb, u_LinearizeTexture);
 
 	color.rgb *= u_InverseLightFactor;
 

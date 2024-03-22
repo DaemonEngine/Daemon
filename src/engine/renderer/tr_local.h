@@ -1209,6 +1209,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool            dpMaterial;
 
+		int linearizeTexture;
 		bool shaderHasNoLight;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
@@ -2730,6 +2731,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		bool   worldLightMapping;
 		bool   worldDeluxeMapping;
 		bool   worldHDR_RGBE;
+		bool worldLinearizeTexture;
+		bool worldLinearizeLightMap;
 
 		lightMode_t lightMode;
 		lightMode_t worldLight;
@@ -3033,6 +3036,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_rimExponent;
 
 	extern Cvar::Cvar<bool> r_highPrecisionRendering;
+	extern Cvar::Cvar<bool> r_cheapSRGB;
 
 	extern cvar_t *r_logFile; // number of frames to emit GL logs
 

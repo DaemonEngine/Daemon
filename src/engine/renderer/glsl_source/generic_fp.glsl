@@ -25,6 +25,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_ColorMap;
 uniform float		u_AlphaThreshold;
 
+uniform bool u_LinearizeTexture;
+
 #if !defined(GENERIC_2D)
 uniform float u_InverseLightFactor;
 #endif
@@ -49,6 +51,10 @@ void	main()
 		discard;
 		return;
 	}
+#endif
+
+#if !defined(GENERIC_2D)
+	convertFromSRGB(color.rgb, u_LinearizeTexture);
 #endif
 
 #if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)

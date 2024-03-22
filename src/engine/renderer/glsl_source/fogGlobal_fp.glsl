@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_ColorMap; // fog texture
 uniform sampler2D	u_DepthMap;
 
+uniform bool u_LinearizeTexture;
 uniform float u_InverseLightFactor;
 uniform vec3		u_ViewOrigin;
 uniform vec4		u_FogDistanceVector;
@@ -55,6 +56,8 @@ void	main()
 	st.t = 1.0;
 
 	vec4 color = texture2D(u_ColorMap, st);
+
+	convertFromSRGB(color.rgb, u_LinearizeTexture);
 
 	color.rgb *= u_InverseLightFactor;
 

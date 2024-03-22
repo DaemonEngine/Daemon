@@ -115,6 +115,9 @@ void Tess_StageIteratorSky()
 
 	gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
+	// u_LinearizeTexture
+	gl_skyboxShader->SetUniform_LinearizeTexture( tr.worldLinearizeTexture );
+
 	// u_InverseLightFactor
 	gl_skyboxShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
@@ -158,6 +161,9 @@ void Tess_StageIteratorSky()
 		uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
 		gl_skyboxShader->SetAlphaTesting( alphaTestBits != 0 );
+
+		// u_LinearizeTexture
+		gl_skyboxShader->SetUniform_LinearizeTexture( tr.worldLinearizeTexture );
 
 		// u_AlphaTest
 		if ( alphaTestBits != 0 ) {
