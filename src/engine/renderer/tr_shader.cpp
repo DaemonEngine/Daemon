@@ -887,7 +887,7 @@ static unsigned NameToAFunc( const char *funcname )
 {
 	if ( !Q_stricmp( funcname, "GT0" ) )
 	{
-		if ( *r_dpBlend )
+		if ( r_dpBlend.Get() )
 		{
 			// DarkPlaces only supports one alphaFunc operation: GE128
 			Log::Warn("alphaFunc 'GT0' will be replaced by 'GE128' in shader '%s' because r_dpBlend compatibility layer is enabled", shader.name );
@@ -895,7 +895,7 @@ static unsigned NameToAFunc( const char *funcname )
 		}
 		else
 		{
-			if ( *r_dpMaterial )
+			if ( r_dpMaterial.Get() )
 			{
 				Log::Warn("alphaFunc 'GT0' will not be replaced by 'GE128' in shader '%s' because r_dpBlend compatibility layer is disabled", shader.name );
 			}
@@ -1863,7 +1863,7 @@ Look for implicit extra maps (normal, specular…) for the given image path
 */
 void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 {
-	if ( *r_dpMaterial )
+	if ( r_dpMaterial.Get() )
 	{
 		/* DarkPlaces material compatibility
 
@@ -4267,7 +4267,7 @@ static bool ParseShader( const char *_text )
 			SkipRestOfLine( text );
 			continue;
 		}
-		else if ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) )
+		else if ( r_dpMaterial.Get() && !Q_stricmp( token, "dpoffsetmapping" ) )
 		{
 			token = COM_ParseExt2( text, false );
 
@@ -4616,7 +4616,7 @@ static bool ParseShader( const char *_text )
 		}
 		else if ( !Q_stricmp( token, "dpreflectcube" ) )
 		{
-			if ( *r_dpMaterial )
+			if ( r_dpMaterial.Get() )
 			{
 				ParseReflectionStageBlended( &stages[ s ], text );
 				s++;
@@ -4701,7 +4701,7 @@ static bool ParseShader( const char *_text )
 		}
 		else if ( !Q_strnicmp( token, "dp", 2 ) )
 		{
-			if ( *r_dpMaterial )
+			if ( r_dpMaterial.Get() )
 			{
 				Log::Warn("unknown DarkPlaces shader parameter '%s' in '%s'", token, shader.name );
 			}

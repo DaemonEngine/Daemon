@@ -1364,7 +1364,7 @@ public:
 
 		switch( stateBits & GLS_ATEST_BITS ) {
 			case GLS_ATEST_GT_0:
-				if ( *r_dpBlend )
+				if ( r_dpBlend.Get() )
 				{
 					// DarkPlaces only supports one alphaFunc operation:
 					//   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1875-1876
