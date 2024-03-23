@@ -2928,23 +2928,19 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_glExtendedValidation;
 
 	extern cvar_t *r_ignore; // used for debugging anything
-	extern cvar_t *r_verbose; // used for verbose debug spew
 
 	extern Cvar::Cvar<bool> r_dpBlend;
 
 	extern cvar_t *r_znear; // near Z clip plane
 	extern cvar_t *r_zfar;
 
-	extern cvar_t *r_depthbits; // number of desired depth bits
 	extern cvar_t *r_colorbits; // number of desired color bits, only relevant for fullscreen
 
 	extern cvar_t *r_measureOverdraw; // enables stencil buffer overdraw measurement
 
 	extern cvar_t *r_lodBias; // push/pull LOD transitions
 	extern cvar_t *r_lodScale;
-	extern cvar_t *r_lodTest;
 
-	extern cvar_t *r_forceFog;
 	extern cvar_t *r_wolfFog;
 	extern cvar_t *r_noFog;
 
@@ -2985,7 +2981,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_ext_occlusion_query; // these control use of specific extensions
 	extern cvar_t *r_ext_draw_buffers;
-	extern cvar_t *r_ext_vertex_array_object;
 	extern cvar_t *r_ext_half_float_pixel;
 	extern cvar_t *r_ext_texture_float;
 	extern cvar_t *r_ext_texture_integer;
@@ -3001,7 +2996,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader
-	extern cvar_t *r_colorMipLevels; // development aid to see texture mip usage
 	extern cvar_t *r_picMip; // controls picmip values
 	extern cvar_t *r_imageMaxDimension;
 	extern cvar_t *r_ignoreMaterialMinDimension;
@@ -3043,7 +3037,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_softShadowsPP;
 	extern cvar_t *r_shadowBlur;
 
-	extern cvar_t *r_shadowMapQuality;
 	extern cvar_t *r_shadowMapSizeUltra;
 	extern cvar_t *r_shadowMapSizeVeryHigh;
 	extern cvar_t *r_shadowMapSizeHigh;
@@ -3056,16 +3049,11 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_shadowMapSizeSunMedium;
 	extern cvar_t *r_shadowMapSizeSunLow;
 
-	extern cvar_t *r_shadowOffsetFactor;
-	extern cvar_t *r_shadowOffsetUnits;
 	extern cvar_t *r_shadowLodBias;
 	extern cvar_t *r_shadowLodScale;
 	extern cvar_t *r_noShadowPyramids;
 	extern cvar_t *r_cullShadowPyramidFaces;
-	extern cvar_t *r_cullShadowPyramidCurves;
-	extern cvar_t *r_cullShadowPyramidTriangles;
 	extern cvar_t *r_debugShadowMaps;
-	extern cvar_t *r_noShadowFrustums;
 	extern cvar_t *r_noLightFrustums;
 	extern cvar_t *r_shadowMapLinearFilter;
 	extern cvar_t *r_lightBleedReduction;
@@ -3077,7 +3065,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_lockpvs;
 	extern cvar_t *r_noportals;
 	extern cvar_t *r_portalOnly;
-	extern cvar_t *r_portalSky;
 	extern cvar_t *r_max_portal_levels;
 
 	extern cvar_t *r_subdivisions;
@@ -3086,7 +3073,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_smp;
 	extern cvar_t *r_showSmp;
 	extern cvar_t *r_skipBackEnd;
-	extern cvar_t *r_skipLightBuffer;
 
 	extern cvar_t *r_checkGLErrors;
 
@@ -3102,7 +3088,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_showTris; // enables wireframe rendering of the world
 	extern cvar_t *r_showSky; // forces sky in front of all surfaces
-	extern cvar_t *r_showShadowVolumes;
 	extern cvar_t *r_showShadowLod;
 	extern cvar_t *r_showShadowMaps;
 	extern cvar_t *r_showSkeleton;
@@ -3119,7 +3104,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_showDeluxeMaps;
 	extern cvar_t *r_showNormalMaps;
 	extern cvar_t *r_showMaterialMaps;
-	extern cvar_t *r_showAreaPortals;
 	extern cvar_t *r_showCubeProbes;
 	extern cvar_t *r_showBspNodes;
 	extern cvar_t *r_showParallelShadowSplits;
@@ -3132,7 +3116,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_vboLighting;
 	extern cvar_t *r_vboModels;
 	extern cvar_t *r_vboVertexSkinning;
-	extern cvar_t *r_vboDeformVertexes;
 
 	extern cvar_t *r_mergeLeafSurfaces;
 
