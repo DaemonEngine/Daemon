@@ -29,6 +29,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // and try to memcpy over that or binary write an std::string to a file.
 static_assert(std::is_pod<GLBinaryHeader>::value, "Value must be a pod while code in this cpp file reads and writes this object to file as binary.");
 
+// set via command line args only since this allows arbitrary code execution
+static Cvar::Cvar<std::string> shaderpath(
+	"shaderpath", "path to load GLSL source files at runtime", Cvar::INIT | Cvar::TEMPORARY, "");
+
 extern std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
@@ -207,11 +211,7 @@ namespace // Implementation details
 
 std::string GetShaderPath()
 {
-	std::string shaderPath;
-	auto shaderPathVar = Cvar_Get("shaderpath", "", CVAR_INIT);
-	if (shaderPathVar->string != nullptr)
-		shaderPath = shaderPathVar->string;
-	return shaderPath;
+	return shaderpath.Get();
 }
 
 GLShaderManager::~GLShaderManager()
