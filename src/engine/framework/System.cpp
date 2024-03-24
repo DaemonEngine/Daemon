@@ -699,13 +699,9 @@ static void Init(int argc, char** argv)
 	// At this point we can safely open the log file since there are no existing
 	// instances running on this homepath.
 	EarlyCvar("logs.logFile.active", cmdlineArgs);
-	EarlyCvar("logs.logFile.filename", cmdlineArgs);
-	EarlyCvar("logs.logFile.overwrite", cmdlineArgs);
-	EarlyCvar("logs.logFile.forceFlush", cmdlineArgs);
 	Log::OpenLogFile();
 
 	if (CreateCrashDumpPath()) {
-		EarlyCvar("common.breakpad.enabled", cmdlineArgs);
 		// This may fork(), and then exec() *in the parent process*,
 		// so threads must not be created before this point.
 		BreakpadInit();
