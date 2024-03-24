@@ -2326,6 +2326,12 @@ void CL_ShutdownRef()
 CL_Init
 ====================
 */
+static Cvar::Cvar<int> cvar_snaps(
+	"snaps", "snapshots per second that the client wants from the server", Cvar::USERINFO, 40);
+static Cvar::Cvar<std::string> cvar_password(
+	"password", "client's password to get into the server", Cvar::USERINFO, "");
+static Cvar::Cvar<std::string> cvar_name(
+	"name", "player display name", Cvar::USERINFO | Cvar::ARCHIVE, UNNAMED_PLAYER);
 void CL_Init()
 {
 	PrintBanner( "Client Initialization" )
@@ -2417,11 +2423,7 @@ void CL_Init()
 	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
 
 	// userinfo
-	Cvar_Get( "name", UNNAMED_PLAYER, CVAR_USERINFO | CVAR_ARCHIVE );
 	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );
-	Cvar_Get( "snaps", "40", CVAR_USERINFO  );
-
-	Cvar_Get( "password", "", CVAR_USERINFO );
 
 #if defined(USE_MUMBLE)
 	cl_useMumble = Cvar_Get( "cl_useMumble", "0",  CVAR_LATCH );
