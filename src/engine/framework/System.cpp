@@ -552,6 +552,22 @@ static void EarlyCvar(Str::StringRef name, cmdlineArgs_t& cmdlineArgs)
 		Cvar::SetValue(it->first, it->second);
 }
 
+static void SetCvarsWithInitFlag(cmdlineArgs_t& cmdlineArgs)
+{
+	for (auto it = cmdlineArgs.cvars.begin(); it != cmdlineArgs.cvars.end(); )
+	{
+		int flags;
+		if (Cvar::GetFlags(it->first, flags) && flags & Cvar::INIT) {
+			Cvar::SetValueForce(it->first, it->second);
+			// Remove so that trying to set the cvar won't trigger a warning later. It doesn't
+			// need to be set after running config files because config files can't change it.
+			it = cmdlineArgs.cvars.erase(it);
+		} else {
+			++it;
+		}
+	}
+}
+
 // Initialize the engine
 static void Init(int argc, char** argv)
 {
@@ -647,6 +663,9 @@ static void Init(int argc, char** argv)
 		CON_Init();
 	else
 		CON_Init_TTY();
+
+	// Set cvars set from the command line having the Cvar::INIT flag
+	SetCvarsWithInitFlag(cmdlineArgs);
 
 	// Initialize the filesystem. For pakpaths, the libpath is added first and has the
 	// lowest priority, while the homepath is added last and has the highest.
