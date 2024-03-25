@@ -2105,16 +2105,6 @@ void CL_Frame( int msec )
 	cls.framecount++;
 }
 
-/*
-================
-CL_SetRecommended_f
-================
-*/
-void CL_SetRecommended_f()
-{
-	Com_SetRecommended();
-}
-
 static bool CL_InitRef();
 /*
 ============
@@ -2468,8 +2458,6 @@ void CL_Init()
 
 	Cmd_AddCommand( "updatescreen", SCR_UpdateScreen );
 	// done.
-
-	Cmd_AddCommand( "setRecommended", CL_SetRecommended_f );
 
 	SCR_Init();
 
