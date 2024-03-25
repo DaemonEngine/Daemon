@@ -1486,12 +1486,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 #define CVAR_SYSTEMINFO          BIT(3)    /*< these cvars will be duplicated on all clients */
 
 /**
- * don't allow change from console at all,
- * but can be set from the command line
- */
-#define CVAR_INIT                BIT(4)
-
-/**
  * will only change when C code next does a Cvar_Get(),
  * so it can't be changed without proper initialization.
  * modified will be set, even though the value hasn't changed yet

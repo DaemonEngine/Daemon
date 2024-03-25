@@ -245,12 +245,17 @@ namespace Cvar {
             cvarRecord_t* cvar = it->second;
 
             if (not (cvar->flags & CVAR_USER_CREATED)) {
-                if (cvar->flags & (CVAR_ROM | CVAR_INIT) and not rom) {
+                if (cvar->flags & CVAR_ROM and not rom) {
                     Log::Notice("%s is read only.", cvarName.c_str());
                     return;
                 }
 
-                if (rom and warnRom and not (cvar->flags & (CVAR_ROM | CVAR_INIT))) {
+                if (cvar->flags & INIT and not rom) {
+                    Log::Notice("%s can only be set at program initalization.", cvarName);
+                    return;
+                }
+
+                if (rom and warnRom and not (cvar->flags & (CVAR_ROM | INIT))) {
                     Log::Notice("SetValueForce called on non-ROM cvar '%s'", cvarName.c_str());
                 }
 
@@ -423,6 +428,18 @@ namespace Cvar {
         } //TODO else what?
 
         return false; // not found
+    }
+
+    bool GetFlags(const std::string& cvarName, int& flags) {
+        CvarMap& cvars = GetCvarMap();
+
+        auto it = cvars.find(cvarName);
+        if (it == cvars.end()) {
+            return false;
+        }
+
+        flags = it->second->flags;
+        return true;
     }
 
     bool ClearFlags(const std::string& cvarName, int flags) {
@@ -713,7 +730,7 @@ namespace Cvar {
                     cvarFlags += (var->flags & SYSTEMINFO) ? "s" : "_";
                     cvarFlags += (var->flags & USERINFO) ? "U" : "_";
                     cvarFlags += (var->flags & ROM) ? "R" : "_";
-                    cvarFlags += (var->flags & CVAR_INIT) ? "I" : "_";
+                    cvarFlags += (var->flags & INIT) ? "I" : "_";
                     cvarFlags += (var->flags & TEMPORARY) ? "T" : (var->flags & USER_ARCHIVE) ? "A" : "_";
                     cvarFlags += (var->flags & (CVAR_LATCH | INTERNAL_LATCH)) ? "L" : "_";
                     cvarFlags += (var->flags & CHEAT) ? "C" : "_";

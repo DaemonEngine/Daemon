@@ -518,7 +518,6 @@ unsigned   Com_BlockChecksum( const void *buffer, int length );
 char       *Com_MD5File( const char *filename, int length );
 void       Com_MD5Buffer( const char *pubkey, int size, char *buffer, int bufsize );
 
-void       Com_SetRecommended();
 bool       Com_AreCheatsAllowed();
 bool       Com_IsClient();
 bool       Com_IsDedicatedServer();

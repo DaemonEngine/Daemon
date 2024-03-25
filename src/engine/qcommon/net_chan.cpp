@@ -67,7 +67,9 @@ static const int FRAGMENT_BIT  = ( 1 << 31 );
 
 cvar_t      *showpackets;
 cvar_t      *showdrop;
-cvar_t      *qport;
+static Cvar::Cvar<int> qport(
+	"net_qport", "random 16-bit value used to uniquely identify clients behind NAT",
+	Cvar::NONE, -1);
 
 static const char *const netsrcString[ 2 ] =
 {
@@ -83,10 +85,14 @@ Netchan_Init
 */
 void Netchan_Init( int port )
 {
-	port &= 0xffff;
 	showpackets = Cvar_Get( "showpackets", "0", CVAR_TEMP );
 	showdrop = Cvar_Get( "showdrop", "0", CVAR_TEMP );
-	qport = Cvar_Get( "net_qport", va( "%i", port ), CVAR_INIT );
+
+	if ( qport.Get() & ~0xffff )
+	{
+		qport.Set( port & 0xffff );
+	}
+	Cvar::AddFlags( qport.Name(), Cvar::INIT );
 }
 
 /*
@@ -128,7 +134,7 @@ void Netchan_TransmitNextFragment( netchan_t *chan )
 	// send the qport if we are a client
 	if ( chan->sock == netsrc_t::NS_CLIENT )
 	{
-		MSG_WriteShort( &send, qport->integer );
+		MSG_WriteShort( &send, qport.Get() );
 	}
 
 	// copy the reliable message to the packet first
@@ -210,7 +216,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data )
 	// send the qport if we are a client
 	if ( chan->sock == netsrc_t::NS_CLIENT )
 	{
-		MSG_WriteShort( &send, qport->integer );
+		MSG_WriteShort( &send, qport.Get() );
 	}
 
 	MSG_WriteData( &send, data, length );

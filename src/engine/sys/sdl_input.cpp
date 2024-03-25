@@ -53,7 +53,6 @@ static SDL_GameController *gamepad = nullptr;
 static cvar_t       *in_nograb;
 
 static cvar_t       *in_joystick = nullptr;
-static cvar_t       *in_joystickDebug = nullptr;
 static cvar_t       *in_joystickThreshold = nullptr;
 static cvar_t       *in_joystickNo = nullptr;
 static cvar_t       *in_joystickUseAnalog = nullptr;
@@ -1308,7 +1307,6 @@ void IN_Init( void *windowData )
 	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
 
 	in_joystick = Cvar_Get( "in_joystick", "0",  CVAR_LATCH );
-	in_joystickDebug = Cvar_Get( "in_joystickDebug", "0", CVAR_TEMP );
 	in_joystickThreshold = Cvar_Get( "in_joystickThreshold", "0.15", 0 );
 	in_gameControllerTriggerDeadzone = Cvar_Get( "in_gameControllerTriggerDeadzone", "0.5", 0);
 

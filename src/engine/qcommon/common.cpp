@@ -580,27 +580,6 @@ static void Com_Crash_f()
 	* ( volatile int * ) 0 = 0x12345678;
 }
 
-void Com_SetRecommended()
-{
-	cvar_t   *r_highQualityVideo;
-	bool goodVideo;
-
-	// will use this for recommended settings as well.. do i outside the lower check so it gets done even with command line stuff
-	r_highQualityVideo = Cvar_Get( "r_highQualityVideo", "1", 0 );
-	goodVideo = ( r_highQualityVideo && r_highQualityVideo->integer );
-
-	if ( goodVideo )
-	{
-		Log::Notice( "Found high quality video and slow CPU" );
-		Cmd::BufferCommandText("preset preset_fast.cfg");
-	}
-	else
-	{
-		Log::Notice( "Found low quality video and slow CPU" );
-		Cmd::BufferCommandText("preset preset_fastest.cfg");
-	}
-}
-
 void Com_In_Restart_f()
 {
 	IN_Restart();

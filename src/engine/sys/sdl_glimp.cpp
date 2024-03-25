@@ -41,6 +41,14 @@ static Cvar::Modified<Cvar::Cvar<bool>> r_noBorder(
 static Cvar::Modified<Cvar::Range<Cvar::Cvar<int>>> r_swapInterval(
 	"r_swapInterval", "enable vsync on every Nth frame, negative for apdative", Cvar::ARCHIVE, 0, -5, 5 );
 
+static Cvar::Cvar<std::string> r_glForceDriver(
+	"r_glForceDriver", "treat the OpenGL driver type as: 'icd' 'standalone' or 'opengl3'", Cvar::NONE, "");
+static Cvar::Cvar<std::string> r_glForceHardware(
+	"r_glForceHardware", "treat the GPU type as: 'r300' or 'generic'", Cvar::NONE, "");
+
+static Cvar::Cvar<std::string> r_availableModes(
+	"r_availableModes", "list of available resolutions", Cvar::ROM, "");
+
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
 
@@ -576,7 +584,7 @@ static bool GLimp_DetectAvailableModes()
 	if ( *buf )
 	{
 		logger.Notice("Available modes: '%s'", buf );
-		Cvar_Set( "r_availableModes", buf );
+		Cvar::SetValueForce( r_availableModes.Name(), buf );
 	}
 
 	return true;
@@ -1980,7 +1988,6 @@ bool GLimp_Init()
 	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
 	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
-	Cvar_Get( "r_availableModes", "", CVAR_ROM );
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
@@ -2096,32 +2103,29 @@ success:
 	reportHardwareType( false );
 
 	{ // allow overriding where the user really does know better
-		cvar_t          *forceGL;
+		Cvar::Latch( r_glForceDriver );
+		Cvar::Latch( r_glForceHardware );
 		glDriverType_t   driverType   = glDriverType_t::GLDRV_UNKNOWN;
 		glHardwareType_t hardwareType = glHardwareType_t::GLHW_UNKNOWN;
 
-		forceGL = Cvar_Get( "r_glForceDriver", "", CVAR_LATCH );
-
-		if      ( !Q_stricmp( forceGL->string, "icd" ))
+		if      ( Str::IsIEqual( r_glForceDriver.Get(), "icd" ) )
 		{
 			driverType = glDriverType_t::GLDRV_ICD;
 		}
-		else if ( !Q_stricmp( forceGL->string, "standalone" ))
+		else if ( Str::IsIEqual( r_glForceDriver.Get(), "standalone" ) )
 		{
 			driverType = glDriverType_t::GLDRV_STANDALONE;
 		}
-		else if ( !Q_stricmp( forceGL->string, "opengl3" ))
+		else if ( Str::IsIEqual( r_glForceDriver.Get(), "opengl3" ) )
 		{
 			driverType = glDriverType_t::GLDRV_OPENGL3;
 		}
 
-		forceGL = Cvar_Get( "r_glForceHardware", "", CVAR_LATCH );
-
-		if      ( !Q_stricmp( forceGL->string, "generic" ))
+		if      ( Str::IsIEqual( r_glForceHardware.Get(), "generic" ) )
 		{
 			hardwareType = glHardwareType_t::GLHW_GENERIC;
 		}
-		else if ( !Q_stricmp( forceGL->string, "r300" ))
+		else if ( Str::IsIEqual( r_glForceHardware.Get(), "r300" ) )
 		{
 			hardwareType = glHardwareType_t::GLHW_R300;
 		}
