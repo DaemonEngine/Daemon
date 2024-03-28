@@ -373,7 +373,7 @@ CL_MouseEvent
 */
 void CL_MouseEvent( int dx, int dy )
 {
-	if ( cls.keyCatchers & KEYCATCH_UI )
+	if ( cls.keyCatchers & KEYCATCH_UI_MOUSE )
 	{
 		cgvm.CGameMouseEvent(dx, dy);
 	}
@@ -643,14 +643,16 @@ void CL_CmdButtons( usercmd_t *cmd )
 		kb[ KB_BUTTONS + i ].wasPressed = false;
 	}
 
-	if ( cls.keyCatchers )
+	bool canUseBinds = !( cls.keyCatchers & ( KEYCATCH_CONSOLE | KEYCATCH_UI_KEY ) );
+
+	if ( !canUseBinds )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_TALK );
 	}
 
 	// allow the game to know if any key at all is
 	// currently pressed, even if it isn't bound to anything
-	if ( Keyboard::AnyKeyDown() && ( !cls.keyCatchers ) )
+	if ( Keyboard::AnyKeyDown() && canUseBinds )
 	{
 		usercmdPressButton( cmd->buttons, BUTTON_ANY );
 	}

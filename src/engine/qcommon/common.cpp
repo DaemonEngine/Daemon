@@ -454,7 +454,23 @@ void Com_EventLoop()
 			case sysEventType_t::SE_KEY:
 			{
 				auto& keyEvent = ev->Cast<Sys::KeyEvent>();
-				( keyEvent.down ? CL_KeyDownEvent : CL_KeyUpEvent )( keyEvent.key, keyEvent.time );
+				if ( keyEvent.down )
+				{
+					if ( keyEvent.repeat )
+					{
+						CL_KeyRepeatEvent( keyEvent.key1 );
+						CL_KeyRepeatEvent( keyEvent.key2 );
+					}
+					else
+					{
+						CL_KeyDownEvent( keyEvent.key1, keyEvent.key2, keyEvent.time );
+					}
+				}
+				else
+				{
+					CL_KeyUpEvent( keyEvent.key1, keyEvent.time );
+					CL_KeyUpEvent( keyEvent.key2, keyEvent.time );
+				}
 				break;
 			}
 
