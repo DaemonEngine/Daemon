@@ -902,6 +902,65 @@ void R_BindNullIBO()
 	}
 }
 
+static void R_InitGenericVBOs() {
+	// Min and max coordinates of the quad
+	static const vec3_t min = { 0.0f, 0.0f, 0.0f };
+	static const vec3_t max = { 1.0f, 1.0f, 0.0f };
+	/*
+		Quad is a static mesh with 4 vertices and 2 triangles
+
+		 z
+		 ^
+		 |     1------2
+		 |   y |      |
+		 |  /  |      |
+		 | /   |      |
+		 |/    0------3
+		 0---------->x
+		   Verts:
+		   0: 0.0 0.0 0.0
+		   1: 0.0 1.0 0.0
+		   2: 1.0 1.0 0.0
+		   3: 1.0 0.0 0.0
+		   Surfs:
+		   0: 0 2 1 / 0 3 2
+	*/
+
+	drawSurf_t* genericQuad;
+	genericQuad = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *genericQuad ), ha_pref::h_low );
+	genericQuad->entity = &tr.worldEntity;
+	srfVBOMesh_t* surface;
+	surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
+	surface->surfaceType = surfaceType_t::SF_VBO_MESH;
+	surface->numVerts = 4;
+	surface->numIndexes = 6;
+	surface->firstIndex = 0;
+	vec3_t v0 = { min[0], min[1], min[2] };
+	vec3_t v1 = { min[0], max[1], min[2] };
+	vec3_t v2 = { max[0], max[1], min[2] };
+	vec3_t v3 = { max[0], min[1], min[2] };
+
+	shaderVertex_t verts[4];
+	VectorCopy( v0, verts[0].xyz );
+	VectorCopy( v1, verts[1].xyz );
+	VectorCopy( v2, verts[2].xyz );
+	VectorCopy( v3, verts[3].xyz );
+	
+	for ( int i = 0; i < 4; i++ ) {
+		verts[i].color = Color::White;
+		verts[i].texCoords[0] = floatToHalf( i < 2 ? 0.0f : 1.0f );
+		verts[i].texCoords[1] = floatToHalf( i > 0 && i < 3 ? 1.0f : 0.0f );
+	}
+	surface->vbo = R_CreateStaticVBO2( "generic_VBO", surface->numVerts, verts, ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
+
+	glIndex_t indexes[6] = { 0, 2, 1,  0, 3, 2 }; // Front
+
+	surface->ibo = R_CreateStaticIBO( "generic_IBO", indexes, surface->numIndexes );
+	genericQuad->surface = ( surfaceType_t* ) surface;
+
+	tr.genericQuad = genericQuad;
+}
+
 static void R_InitUnitCubeVBO()
 {
 	vec3_t        mins = { -1, -1, -1 };
@@ -1042,6 +1101,8 @@ void R_InitVBOs()
 		tess.ibo = R_CreateDynamicIBO( "tessVertexArray_IBO", SHADER_MAX_INDEXES );
 	}
 
+
+	R_InitGenericVBOs();
 
 	R_InitUnitCubeVBO();
 	R_InitTileVBO();

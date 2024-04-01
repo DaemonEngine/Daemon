@@ -2837,6 +2837,9 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		trRefdef_t     refdef;
 
+		// Generic shapes
+		drawSurf_t *genericQuad;
+
 		bool           hasSkybox;
 		drawSurf_t     *skybox;
 
@@ -3538,7 +3541,7 @@ inline bool checkGLErrors()
 	void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 	void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 
-	void Tess_InstantQuad( vec4_t quadVerts[ 4 ] );
+	void Tess_InstantQuad( const float x, const float y, const float width, const float height );
 	void Tess_MapVBOs( bool forceCPU );
 	void Tess_UpdateVBOs();
 

@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 IN vec3 attr_Position;
 
+uniform mat4 u_ModelViewProjectionMatrix;
 uniform vec3 u_zFar;
 OUT(flat) vec3 unprojectionParams;
 
@@ -45,6 +46,5 @@ void	main()
 	unprojectionParams.y = 2.0 * (u_zFar.z - r_zNear);
 	unprojectionParams.z = 2.0 * u_zFar.z - r_zNear;
 
-	// no vertex transformation needed
-	gl_Position = vec4(attr_Position, 1.0);
+	gl_Position = u_ModelViewProjectionMatrix * vec4( attr_Position, 1.0f );
 }

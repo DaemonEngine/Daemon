@@ -2205,6 +2205,7 @@ void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 
 GLShader_motionblur::GLShader_motionblur( GLShaderManager *manager ) :
 	GLShader( "motionblur", ATTR_POSITION, manager ),
+	u_ModelViewProjectionMatrix( this ),
 	u_blurVec( this )
 {
 }
@@ -2217,6 +2218,7 @@ void GLShader_motionblur::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_ssao::GLShader_ssao( GLShaderManager *manager ) :
 	GLShader( "ssao", ATTR_POSITION, manager ),
+	u_ModelViewProjectionMatrix( this ),
 	u_zFar( this )
 {
 }
@@ -2228,6 +2230,7 @@ void GLShader_ssao::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 
 GLShader_depthtile1::GLShader_depthtile1( GLShaderManager *manager ) :
 	GLShader( "depthtile1", ATTR_POSITION, manager ),
+	u_ModelViewProjectionMatrix( this ),
 	u_zFar( this )
 {
 }
@@ -2238,7 +2241,8 @@ void GLShader_depthtile1::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 }
 
 GLShader_depthtile2::GLShader_depthtile2( GLShaderManager *manager ) :
-	GLShader( "depthtile2", ATTR_POSITION, manager )
+	GLShader( "depthtile2", ATTR_POSITION, manager ),
+	u_ModelViewProjectionMatrix( this )
 {
 }
 
@@ -2267,7 +2271,8 @@ void GLShader_lighttile::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 }
 
 GLShader_fxaa::GLShader_fxaa( GLShaderManager *manager ) :
-	GLShader( "fxaa", ATTR_POSITION, manager )
+	GLShader( "fxaa", ATTR_POSITION, manager ),
+	u_ModelViewProjectionMatrix( this )
 {
 }
 
