@@ -577,7 +577,7 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 Tess_InstantQuad
 ==============
 */
-void Tess_InstantQuad( vec4_t quadVerts[ 4 ] )
+void Tess_InstantQuad( const float x, const float y, const float width, const float height )
 {
 	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );
 
@@ -586,47 +586,18 @@ void Tess_InstantQuad( vec4_t quadVerts[ 4 ] )
 	tess.numIndexes = 0;
 	tess.attribsSet = 0;
 
-	Tess_MapVBOs( false );
-	VectorCopy( quadVerts[ 0 ], tess.verts[ tess.numVertexes ].xyz );
-	tess.verts[ tess.numVertexes ].color = Color::White;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 0.0f );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 0.0f );
-	tess.numVertexes++;
+	matrix_t modelViewMatrix;
+	MatrixCopy( matrixIdentity, modelViewMatrix );
+	modelViewMatrix[12] = x;
+	modelViewMatrix[13] = y;
+	modelViewMatrix[0] = width;
+	modelViewMatrix[5] = height;
+	GL_LoadModelViewMatrix( modelViewMatrix );
 
-	VectorCopy( quadVerts[ 1 ], tess.verts[ tess.numVertexes ].xyz );
-	tess.verts[ tess.numVertexes ].color = Color::White;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 1.0f );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 0.0f );
-	tess.numVertexes++;
+	rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
+	tess.attribsSet = ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR;
+	GL_VertexAttribsState( tess.attribsSet );
 
-	VectorCopy( quadVerts[ 2 ], tess.verts[ tess.numVertexes ].xyz );
-	tess.verts[ tess.numVertexes ].color = Color::White;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 1.0f );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 1.0f );
-	tess.numVertexes++;
-
-	VectorCopy( quadVerts[ 3 ], tess.verts[ tess.numVertexes ].xyz );
-	tess.verts[ tess.numVertexes ].color = Color::White;
-	tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( 0.0f );
-	tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( 1.0f );
-	tess.numVertexes++;
-
-	tess.indexes[ tess.numIndexes++ ] = 0;
-	tess.indexes[ tess.numIndexes++ ] = 1;
-	tess.indexes[ tess.numIndexes++ ] = 2;
-	tess.indexes[ tess.numIndexes++ ] = 0;
-	tess.indexes[ tess.numIndexes++ ] = 2;
-	tess.indexes[ tess.numIndexes++ ] = 3;
-
-	Tess_UpdateVBOs( );
-	GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
-
-	Tess_DrawElements();
-
-	tess.multiDrawPrimitives = 0;
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
-	tess.attribsSet = 0;
 	GL_CheckErrors();
 }
 

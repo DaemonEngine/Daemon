@@ -2713,6 +2713,7 @@ public:
 
 class GLShader_motionblur :
 	public GLShader,
+	public u_ModelViewProjectionMatrix,
 	public u_blurVec
 {
 public:
@@ -2722,6 +2723,7 @@ public:
 
 class GLShader_ssao :
 	public GLShader,
+	public u_ModelViewProjectionMatrix,
 	public u_zFar
 {
 public:
@@ -2731,6 +2733,7 @@ public:
 
 class GLShader_depthtile1 :
 	public GLShader,
+	public u_ModelViewProjectionMatrix,
 	public u_zFar
 {
 public:
@@ -2739,7 +2742,8 @@ public:
 };
 
 class GLShader_depthtile2 :
-	public GLShader
+	public GLShader,
+	public u_ModelViewProjectionMatrix
 {
 public:
 	GLShader_depthtile2( GLShaderManager *manager );
@@ -2760,7 +2764,8 @@ public:
 };
 
 class GLShader_fxaa :
-	public GLShader
+	public GLShader,
+	public u_ModelViewProjectionMatrix
 {
 public:
 	GLShader_fxaa( GLShaderManager *manager );
