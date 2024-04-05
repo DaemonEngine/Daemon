@@ -795,12 +795,9 @@ namespace Cmd {
 
     struct aliasRecord_t {
         std::string command;
-        int lastRun;
     };
 
     static std::unordered_map<std::string, aliasRecord_t, Str::IHash, Str::IEqual> aliases;
-    static int aliasRun;
-    static bool inAliasRun;
 
     std::string GetAliasConfigText() {
         std::ostringstream result;
@@ -831,32 +828,15 @@ namespace Cmd {
 
             void Run(const Cmd::Args& args) const override {
                 const std::string& name = args.Argv(0);
-                const std::string& parameters = args.EscapedArgs(1);
 
                 auto iter = aliases.find(name);
                 if (iter == aliases.end()) {
-                    Print("alias %s doesn't exist", name.c_str());
+                    Log::Warn("alias %s doesn't exist", name);
                     return;
                 }
 
                 aliasRecord_t& alias = iter->second;
-
-                bool startsRun = not inAliasRun;
-                if (startsRun) {
-                    inAliasRun = true;
-                    aliasRun ++;
-                }
-
-                if (alias.lastRun == aliasRun) {
-                    Print("recursive alias call at alias %s", name.c_str());
-                } else {
-                    alias.lastRun = aliasRun;
-                    ExecuteAfter(alias.command + " " + parameters, true);
-                }
-
-                if (startsRun) {
-                    inAliasRun = false;
-                }
+                ExecuteAfter(alias.command + " " + args.EscapedArgs(1), true);
             }
     };
     static AliasProxy aliasProxy;
