@@ -4809,6 +4809,10 @@ static void CollapseStages()
 			( stages[ i ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
 			&& ( stages[ i ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
 
+		// Do not collapse lightmap with custom depthFunc.
+		bool depthFunc_lequal =
+			( stages[ i ].stateBits & GLS_DEPTHFUNC_BITS ) == 0;
+
 		bool tcGen_Environment = stages[ i ].tcGen_Environment;
 
 		if ( step == 0 )
@@ -4837,12 +4841,9 @@ static void CollapseStages()
 		{
 			if ( isLightStage
 				&& rgbGen_identity
-				&& alphaGen_identity )
+				&& alphaGen_identity
+				&& depthFunc_lequal )
 			{
-				/* We may ignore “depthFunc equal” that seems to be
-				required for standalone lightmap when colormap has
-				“depthWrite” since they will be collapsed and
-				processed at once. */
 				lightStage = i;
 				lightMapCount++;
 				step++;
