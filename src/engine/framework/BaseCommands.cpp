@@ -113,13 +113,16 @@ namespace Cmd {
                 int filenameArg = hasOptions ? 2 : 1;
                 const std::string& filename = args.Argv(filenameArg);
 
-                SetExecArgs(args, filenameArg + 1);
                 if (not ExecFile(filename, executeSilent)) {
                     if (not failSilent) {
                         Print("couldn't exec '%s'", filename.c_str());
                     }
                     return;
                 }
+
+                // Put the commands to set arg_* cvars at the front of the command buffer,
+                // ahead of the script contents
+                SetExecArgs(args, filenameArg + 1);
             }
 
             Cmd::CompletionResult Complete(int argNum, const Args& args, Str::StringRef prefix) const override {
@@ -138,11 +141,11 @@ namespace Cmd {
 
             void SetExecArgs(const Cmd::Args& args, int start) const {
                 //Set some cvars up so that scripts file can be used like functions
-                ExecuteAfter(Str::Format("set arg_all %s", Cmd::Escape(args.ConcatArgs(start))));
-                ExecuteAfter(Str::Format("set arg_count %d", args.Argc() - start));
+                Cvar::SetValue("arg_all", args.ConcatArgs(start));
+                Cvar::SetValue("arg_count", std::to_string(args.Argc() - start));
 
                 for (int i = start; i < args.Argc(); i++) {
-                    ExecuteAfter(Str::Format("set arg_%d %s", i - start, Cmd::Escape(args.Argv(i))));
+                    Cvar::SetValue(Str::Format("arg_%d", i - start), args.Argv(i));
                 }
             }
 
