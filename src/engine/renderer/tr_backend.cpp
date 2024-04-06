@@ -240,16 +240,6 @@ void GL_ColorMask( GLboolean red, GLboolean green, GLboolean blue, GLboolean alp
 	}
 }
 
-void GL_CullFace( GLenum mode )
-{
-	if ( glState.cullFace != ( signed ) mode )
-	{
-		glState.cullFace = mode;
-
-		glCullFace( mode );
-	}
-}
-
 void GL_DepthFunc( GLenum func )
 {
 	if ( glState.depthFunc != ( signed ) func )
@@ -411,11 +401,11 @@ void GL_Cull( cullType_t cullType )
 
 		if ( cullType == cullType_t::CT_BACK_SIDED )
 		{
-			GL_CullFace( GL_BACK );
+			glCullFace( GL_BACK );
 		}
 		else
 		{
-			GL_CullFace( GL_FRONT );
+			glCullFace( GL_FRONT );
 		}
 	}
 	glState.faceCulling = cullType;
