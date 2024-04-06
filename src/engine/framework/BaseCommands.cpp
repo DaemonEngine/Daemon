@@ -795,17 +795,28 @@ namespace Cmd {
 
     struct aliasRecord_t {
         std::string command;
+        bool archive;
     };
 
     static std::unordered_map<std::string, aliasRecord_t, Str::IHash, Str::IEqual> aliases;
 
+    static void ArchiveAlias(aliasRecord_t& alias)
+    {
+        alias.archive = true;
+
+        // Force an update of autogen.cfg (TODO: get rid of this super global variable)
+        cvar_modifiedFlags |= CVAR_ARCHIVE_BITS;
+    }
+
     std::string GetAliasConfigText() {
         std::ostringstream result;
-        result << "clearAliases\n";
 
-        for (const auto& it: aliases) {
-            result << "alias " << it.first << " " << it.second.command << "\n";
+        for (const auto& pair : aliases) {
+            if (pair.second.archive) {
+                result << "aliasa " << pair.first << " " << pair.second.command << "\n";
+            }
         }
+
         return result.str();
     }
 
@@ -842,24 +853,35 @@ namespace Cmd {
     static AliasProxy aliasProxy;
 
     class AliasCmd: StaticCmd {
+        bool archive_;
+
         public:
-            AliasCmd(): StaticCmd("alias", BASE, "creates or view an alias") {
-            }
+            AliasCmd(std::string name, std::string description, bool archive)
+                : StaticCmd(std::move(name), BASE, std::move(description)), archive_(archive) {}
 
             void Run(const Cmd::Args& args) const override {
                 if (args.Argc() < 2) {
-                    PrintUsage(args, "<name>", "show an alias");
-                    PrintUsage(args, "<name> <exec>", "create an alias");
+                    if (archive_) {
+                        PrintUsage(args, "<name>", "archive an alias");
+                        PrintUsage(args, "<name> <exec>", "create and archive an alias");
+                    } else {
+                        PrintUsage(args, "<name>", "show an alias");
+                        PrintUsage(args, "<name> <exec>", "create an alias (temporary)");
+                    }
                     return;
                 }
 
                 const std::string& name = args.Argv(1);
 
-                //Show an alias
+                // Show or archive an alias
                 if (args.Argc() == 2) {
                     auto iter = aliases.find(name);
                     if (iter != aliases.end()) {
-                        Print("%s ⇒ %s", name.c_str(), iter->second.command.c_str());
+                        if (archive_) {
+                            ArchiveAlias(iter->second);
+                        } else {
+                            Print("%s ⇒ %s", name, iter->second.command);
+                        }
                     } else {
                         Print("Alias %s does not exist", name.c_str());
                     }
@@ -871,6 +893,9 @@ namespace Cmd {
 
                 auto iter = aliases.find(name);
                 if (iter != aliases.end()) {
+                    if (archive_ || iter->second.archive) {
+                        ArchiveAlias(iter->second);
+                    }
                     iter->second.command = command;
                     return;
                 }
@@ -885,11 +910,11 @@ namespace Cmd {
                     return;
                 }
 
-                aliases[name] = aliasRecord_t{command, aliasRun};
+                aliases[name] = aliasRecord_t{command, false};
+                if (archive_) {
+                    ArchiveAlias(aliases[name]);
+                }
                 AddCommand(name, aliasProxy, "a user-defined alias command");
-
-                //Force an update of autogen.cfg (TODO: get rid of this super global variable)
-                cvar_modifiedFlags |= CVAR_ARCHIVE_BITS;
             }
 
             Cmd::CompletionResult Complete(int argNum, const Args& args, Str::StringRef prefix) const override {
@@ -902,7 +927,8 @@ namespace Cmd {
                 return {};
             }
     };
-    static AliasCmd AliasCmdRegistration;
+    static AliasCmd aliasCmdRegistration("alias", "create or view an alias", false);
+    static AliasCmd aliasaCmdRegistration("aliasa", "create or archive an alias", true);
 
     class UnaliasCmd: StaticCmd {
         public:
@@ -919,6 +945,9 @@ namespace Cmd {
 
                 auto iter = aliases.find(name);
                 if (iter != aliases.end()) {
+                    if (iter->second.archive) {
+                        cvar_modifiedFlags |= CVAR_ARCHIVE_BITS;
+                    }
                     aliases.erase(iter);
                     RemoveCommand(name);
                 }
@@ -945,6 +974,7 @@ namespace Cmd {
                 Q_UNUSED(args); //TODO
                 RemoveFlaggedCommands(ALIAS);
                 aliases.clear();
+                cvar_modifiedFlags |= CVAR_ARCHIVE_BITS;
             }
     };
     static ClearAliasesCmd ClearAliasesCmdRegistration;
