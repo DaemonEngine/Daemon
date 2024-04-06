@@ -801,7 +801,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		GL_ClearStencil( 0 );
 
 		GL_FrontFace( GL_CCW );
-		GL_CullFace( GL_FRONT );
+		glCullFace( GL_FRONT );
 
 		glState.faceCulling = CT_TWO_SIDED;
 		glDisable( GL_CULL_FACE );

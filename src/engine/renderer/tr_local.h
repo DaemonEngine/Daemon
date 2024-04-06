@@ -2564,7 +2564,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		double clearDepth;
 		int    clearStencil;
 		int    colorMaskRed, colorMaskGreen, colorMaskBlue, colorMaskAlpha;
-		int    cullFace;
 		int    depthFunc;
 		int    depthMask;
 		int    drawBuffer;
@@ -2584,7 +2583,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		matrix_t        modelViewProjectionMatrix[ MAX_GLSTACK ];
 
 		bool        finishCalled;
-		cullType_t      faceCulling; // FIXME redundant cullFace
+		cullType_t      faceCulling;
 		uint32_t        glStateBits;
 		uint32_t        glStateBitsMask; // GLS_ bits set to 1 will not be changed in GL_State
 		uint32_t        vertexAttribsState;
@@ -3259,7 +3258,6 @@ inline bool checkGLErrors()
 	void GL_ClearDepth( GLclampd depth );
 	void GL_ClearStencil( GLint s );
 	void GL_ColorMask( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha );
-	void GL_CullFace( GLenum mode );
 	void GL_DepthFunc( GLenum func );
 	void GL_DepthMask( GLboolean flag );
 	void GL_DrawBuffer( GLenum mode );
