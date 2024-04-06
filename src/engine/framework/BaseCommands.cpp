@@ -956,9 +956,7 @@ namespace Cmd {
                 }
             }
 
-            Cmd::CompletionResult Complete(int argNum, const Args& args, Str::StringRef prefix) const override {
-                Q_UNUSED(args);
-
+            Cmd::CompletionResult Complete(int argNum, const Args&, Str::StringRef prefix) const override {
                 if (argNum == 1) {
                     return CompleteAliasName(prefix);
                 }
@@ -988,7 +986,6 @@ namespace Cmd {
             }
 
             void Run(const Cmd::Args& args) const override {
-                Q_UNUSED(args); //TODO
                 std::string name;
 
                 if (args.Argc() > 1) {
