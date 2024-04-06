@@ -1591,7 +1591,7 @@ GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 
 void GLShader_generic2D::BuildShaderVertexLibNames( std::string& vertexInlines )
 {
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
+	vertexInlines += "vertexSimple vertexSprite ";
 }
 
 void GLShader_generic2D::BuildShaderCompileMacros( std::string& compileMacros )
