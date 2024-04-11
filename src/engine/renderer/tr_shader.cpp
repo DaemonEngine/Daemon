@@ -5514,22 +5514,124 @@ static shader_t *FinishShader()
 			break;
 		}
 
+		if ( !shader.isSky )
+		{
+			switch ( pStage->type )
+			{
+				case stageType_t::ST_NORMALMAP:
+				case stageType_t::ST_STYLELIGHTMAP:
+				case stageType_t::ST_STYLECOLORMAP:
+				case stageType_t::ST_LIGHTMAP:
+				case stageType_t::ST_DIFFUSEMAP:
+				case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+					shader.interactLight = true;
+					break;
+				default:
+					break;
+			}
+		}
+
 		// check for a missing texture
 		switch ( pStage->type )
 		{
-			case stageType_t::ST_LIQUIDMAP:
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_STYLELIGHTMAP:
-				// skip
-				break;
-
 			case stageType_t::ST_COLORMAP:
 			case stageType_t::ST_COLLAPSE_COLORMAP:
-			default:
 				{
 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
 					{
 						Log::Warn("Shader %s has a colormap stage with no image", shader.name );
+						pStage->bundle[ 0 ].image[ 0 ] = tr.defaultImage;
+					}
+
+					break;
+				}
+
+			case stageType_t::ST_GLOWMAP:
+				{
+					if ( !pStage->bundle[ 0 ].image[ 0 ] )
+					{
+						Log::Warn("Shader %s has a glowmap stage with no image", shader.name );
+						pStage->active = false;
+						continue;
+					}
+
+					break;
+				}
+
+			case stageType_t::ST_NORMALMAP:
+ 				{
+ 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
+ 					{
+						Log::Warn("Shader %s has a normalmap stage with no image", shader.name );
+						pStage->active = false;
+						continue;
+ 					}
+
+ 					break;
+ 				}
+
+			case stageType_t::ST_HEIGHTMAP:
+ 				{
+ 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
+ 					{
+						Log::Warn("Shader %s has a heightmap stage with no image", shader.name );
+						pStage->active = false;
+						continue;
+ 					}
+
+ 					break;
+ 				}
+
+			case stageType_t::ST_PHYSICALMAP:
+				// There is no standalone physicalMap stage.
+				break;
+
+			case stageType_t::ST_SPECULARMAP:
+ 				{
+ 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
+ 					{
+						Log::Warn("Shader %s has a specularmap stage with no image", shader.name );
+						pStage->active = false;
+						continue;
+ 					}
+
+ 					break;
+ 				}
+
+			case stageType_t::ST_HEATHAZEMAP:
+				{
+ 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
+ 					{
+						Log::Warn("Shader %s has a heathazemap stage with no image", shader.name );
+						pStage->active = false;
+						continue;
+ 					}
+
+ 					break;
+				}
+
+			case stageType_t::ST_LIQUIDMAP:
+				{
+ 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
+ 					{
+						Log::Warn("Shader %s has a liquidmap stage with no image", shader.name );
+						pStage->active = false;
+						continue;
+ 					}
+
+ 					break;
+				}
+
+			case stageType_t::ST_LIGHTMAP:
+			case stageType_t::ST_STYLELIGHTMAP:
+				// The lightmap is fetched at render time.
+				break;
+
+			case stageType_t::ST_STYLECOLORMAP:
+				{
+					if ( !pStage->bundle[ 0 ].image[ 0 ] )
+					{
+						Log::Warn("Shader %s has a style colormap stage with no image", shader.name );
 						pStage->active = false;
 						continue;
 					}
@@ -5540,42 +5642,10 @@ static shader_t *FinishShader()
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				{
-					if ( !shader.isSky )
-					{
-						shader.interactLight = true;
-					}
-
 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
 					{
 						Log::Warn("Shader %s has a diffusemap stage with no image", shader.name );
 						pStage->bundle[ 0 ].image[ 0 ] = tr.defaultImage;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_NORMALMAP:
-				{
-					if ( !shader.isSky )
-					{
-						shader.interactLight = true;
-					}
-
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a normalmap stage with no image", shader.name );
-						pStage->bundle[ 0 ].image[ 0 ] = tr.flatImage;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_SPECULARMAP:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a specularmap stage with no image", shader.name );
-						pStage->bundle[ 0 ].image[ 0 ] = tr.blackImage;
 					}
 
 					break;
@@ -5598,6 +5668,18 @@ static shader_t *FinishShader()
 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
 					{
 						Log::Warn("Shader %s has a z attenuationmap stage with no image", shader.name );
+						pStage->active = false;
+						continue;
+					}
+
+					break;
+				}
+
+			default:
+				{
+					if ( !pStage->bundle[ 0 ].image[ 0 ] )
+					{
+						Log::Warn("Shader %s has a type %d stage with no image", shader.name, Util::ordinal(pStage->type) );
 						pStage->active = false;
 						continue;
 					}
