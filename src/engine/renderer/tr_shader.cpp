@@ -1704,7 +1704,6 @@ static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int
 	char buffer[ 1024 ] = "";
 
 	stage->active = true;
-	stage->type = stageType_t::ST_PHYSICALMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
@@ -4758,7 +4757,7 @@ static void CollapseStages()
 
 	/* DarkPlaces only supports one kind of lightmap blend:
 	   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1886-1887
-	
+
 	So we may implement specific code when stages[ i ].dpMaterial
 	is true to hide bugs that may be hidden by the incomplete
 	DarPlaces implementation, in a similar way to r_dpBlend. */
@@ -5157,7 +5156,7 @@ static void CollapseStages()
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				shaderHasNoLight = false;
 				break;
-			default:	
+			default:
 				break;
 		}
 	}
