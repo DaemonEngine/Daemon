@@ -540,6 +540,7 @@ static std::string GenEngineConstants() {
 			case shadowingMode_t::SHADOWING_EVSM32:
 				// This may be wrong, but the code did that before it was rewritten.
 				AddConst( str, "VSM_EPSILON", 0.0001f );
+				break;
 			default:
 				DAEMON_ASSERT( false );
 				break;
