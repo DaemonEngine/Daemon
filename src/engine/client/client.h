@@ -384,9 +384,7 @@ extern cvar_t *cl_noprint;
 extern cvar_t *cl_maxpackets;
 extern cvar_t *cl_packetdup;
 extern cvar_t *cl_shownet;
-extern cvar_t *cl_shownuments; // DHM - Nerve
 extern cvar_t *cl_showSend;
-extern cvar_t *cl_showServerCommands; // NERVE - SMF
 extern cvar_t *cl_timeNudge;
 extern cvar_t *cl_showTimeDelta;
 
@@ -440,8 +438,6 @@ extern cvar_t *cl_consoleFontSize;
 extern cvar_t *cl_consoleFontScaling;
 extern cvar_t *cl_consoleFontKerning;
 extern cvar_t *cl_consoleCommand;
-
-extern cvar_t *cl_cgameSyscallStats;
 
 extern cvar_t *con_scrollLock;
 

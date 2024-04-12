@@ -69,6 +69,9 @@ namespace Cvar {
     // Returns a list of cvars matching the prefix as well as their description
     Cmd::CompletionResult Complete(Str::StringRef prefix);
 
+    // Returns true if the cvar exists. Outputs to flags
+    bool GetFlags(const std::string& cvarName, int& flags);
+
     // Alter flags, returns true if the variable exists
     bool ClearFlags(const std::string& cvarName, int flags);
 
@@ -100,7 +103,6 @@ namespace Cvar {
     // Remove eventually
     //CVAR_UNSAFE, not sure <- no support for now
     //CVAR_USER_CREATED is kept for now but not really needed
-    //CVAR_INIT is no longer supported, will be implemented by the proxy
 
     //CVAR_NORESTART is not used will be killed
     //CVAR_TEMP seems useless, don't put the CVAR_ARCHIVE and CVAR_CHEAT

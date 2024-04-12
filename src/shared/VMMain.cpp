@@ -37,12 +37,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 IPC::Channel VM::rootChannel;
 
-// Special exception type used to cleanly exit a thread for in-process VMs
 #ifdef BUILD_VM_IN_PROCESS
+// Special exception type used to cleanly exit a thread for in-process VMs
 // Using an anonymous namespace so the compiler knows that the exception is
 // only used in the current file.
 namespace {
 class ExitException {};
+}
+
+namespace Sys {
+extern std::thread::id mainThread;
 }
 #endif
 
@@ -71,6 +75,16 @@ static void CommonInit(Sys::OSHandle rootSocket)
 
 void Sys::Error(Str::StringRef message)
 {
+	if (!OnMainThread()) {
+		// On a non-main thread we can't rely on IPC, so we may not be able to communicate the
+		// error message. So try to trigger a crash dump instead (exiting with abort() triggers
+		// one but exiting with _exit() doesn't). This will give something to work with when
+		// debugging. (For the main thread case a message is usually enough to diagnose the problem
+		// so we don't generate a crash dump; those consume disk space after all.)
+		// Also note that throwing ExitException would only work as intended on the main thread.
+		std::abort();
+	}
+
 	// Only try sending an ErrorMsg once
 	static std::atomic_flag errorEntered;
 	if (!errorEntered.test_and_set()) {
@@ -101,6 +115,7 @@ void Sys::Error(Str::StringRef message)
 // Entry point called in a new thread inside the existing process
 extern "C" DLLEXPORT ALIGN_STACK_FOR_MINGW void vmMain(Sys::OSHandle rootSocket)
 {
+	Sys::mainThread = std::this_thread::get_id();
 	try {
 		try {
 			CommonInit(rootSocket);

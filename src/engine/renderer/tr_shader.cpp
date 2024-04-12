@@ -191,7 +191,7 @@ ParseVector
 */
 static bool ParseVector( const char **text, int count, float *v )
 {
-	char *token;
+	const char *token;
 	int  i;
 
 	token = COM_ParseExt2( text, false );
@@ -1058,7 +1058,7 @@ ParseWaveForm
 */
 static void ParseWaveForm( const char **text, waveForm_t *wave )
 {
-	char *token;
+	const char *token;
 
 	token = COM_ParseExt2( text, false );
 
@@ -1374,14 +1374,13 @@ static bool ParseTexMod( const char **text, shaderStage_t *stage )
 static bool ParseMap( const char **text, char *buffer, int bufferSize )
 {
 	int  len;
-	char *token;
 
 	// example
 	// map textures/caves/tembrick1crum_local.tga
 
 	while ( true )
 	{
-		token = COM_ParseExt2( text, false );
+		const char *token = COM_ParseExt2( text, false );
 
 		if ( !token[ 0 ] )
 		{
@@ -1407,7 +1406,6 @@ static bool ParseMap( const char **text, char *buffer, int bufferSize )
 
 static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type, const int bundleIndex = TB_COLORMAP )
 {
-	char         *token;
 	const char         *buffer_p = &buffer[ 0 ];
 
 	if ( !buffer || !buffer[ 0 ] )
@@ -1416,7 +1414,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		return false;
 	}
 
-	token = COM_ParseExt2( &buffer_p, false );
+	const char *token = COM_ParseExt2( &buffer_p, false );
 
 	// NOTE: Normal map can ship height map in alpha channel.
 	if ( ( type == stageType_t::ST_NORMALMAP && !r_normalMapping->integer && !r_reliefMapping->integer )
@@ -1540,7 +1538,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 ParseClampType
 ===================
 */
-static bool ParseClampType( char *token, wrapType_t *clamp )
+static bool ParseClampType( const char *token, wrapType_t *clamp )
 {
 	bool s = true, t = true;
 	wrapTypeEnum_t type;
@@ -1706,7 +1704,6 @@ static void ParsePhysicalMap( shaderStage_t *stage, const char **text, const int
 	char buffer[ 1024 ] = "";
 
 	stage->active = true;
-	stage->type = stageType_t::ST_PHYSICALMAP;
 	stage->rgbGen = colorGen_t::CGEN_IDENTITY;
 	stage->stateBits = GLS_DEFAULT;
 
@@ -1997,7 +1994,7 @@ ParseStage
 */
 static bool ParseStage( shaderStage_t *stage, const char **text )
 {
-	char         *token;
+	const char *token;
 	int          colorMaskBits = 0;
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0, polyModeBits = 0;
 	bool     depthMaskExplicit = false;
@@ -3296,7 +3293,7 @@ deformVertexes autoSprite2
 */
 static void ParseDeform( const char **text )
 {
-	char          *token;
+	const char *token;
 	deformStage_t *ds;
 
 	token = COM_ParseExt2( text, false );
@@ -3493,7 +3490,7 @@ skyParms <outerbox> <cloudheight> <innerbox>
 */
 static void ParseSkyParms( const char **text )
 {
-	char *token;
+	const char *token;
 	char prefix[ MAX_QPATH ];
 
 	// outerbox
@@ -3581,7 +3578,7 @@ ParseSort
 */
 static void ParseSort( const char **text )
 {
-	char *token;
+	const char *token;
 
 	token = COM_ParseExt2( text, false );
 
@@ -3795,9 +3792,7 @@ static bool SurfaceParm( const char *token )
 
 static void ParseSurfaceParm( const char **text )
 {
-	char *token;
-
-	token = COM_ParseExt2( text, false );
+	const char *token = COM_ParseExt2( text, false );
 	SurfaceParm( token );
 }
 
@@ -3813,7 +3808,7 @@ will optimize it.
 static bool ParseShader( const char *_text )
 {
 	const char **text;
-	char *token;
+	const char *token;
 	int  s;
 
 	s = 0;
@@ -4274,7 +4269,6 @@ static bool ParseShader( const char *_text )
 		}
 		else if ( *r_dpMaterial && !Q_stricmp( token, "dpoffsetmapping" ) )
 		{
-			char* keyword = token;
 			token = COM_ParseExt2( text, false );
 
 			if ( !Q_stricmp( token, "none" ) )
@@ -4300,7 +4294,7 @@ static bool ParseShader( const char *_text )
 			else if ( !Q_stricmp( token, "linear" ) )
 			{
 				// not implemented yet
-				Log::Warn("unsupported parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("unsupported parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 			}
 			else if ( !Q_stricmp( token, "relief" ) )
 			{
@@ -4314,7 +4308,7 @@ static bool ParseShader( const char *_text )
 			}
 			else
 			{
-				Log::Warn("invalid parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("invalid parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				SkipRestOfLine( text );
 				continue;
 			}
@@ -4323,7 +4317,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("missing parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -4363,7 +4357,7 @@ static bool ParseShader( const char *_text )
 			}
 			else
 			{
-				Log::Warn("invalid parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("invalid parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				SkipRestOfLine( text );
 				continue;
 			}
@@ -4372,7 +4366,7 @@ static bool ParseShader( const char *_text )
 
 			if ( !token[ 0 ] )
 			{
-				Log::Warn("missing parm for '%s' keyword in shader '%s'", keyword, shader.name );
+				Log::Warn("missing parm for dpoffsetmapping keyword in shader '%s'", shader.name );
 				continue;
 			}
 
@@ -4763,7 +4757,7 @@ static void CollapseStages()
 
 	/* DarkPlaces only supports one kind of lightmap blend:
 	   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1886-1887
-	
+
 	So we may implement specific code when stages[ i ].dpMaterial
 	is true to hide bugs that may be hidden by the incomplete
 	DarPlaces implementation, in a similar way to r_dpBlend. */
@@ -4814,6 +4808,10 @@ static void CollapseStages()
 			( stages[ i ].stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR
 			&& ( stages[ i ].stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ZERO;
 
+		// Do not collapse lightmap with custom depthFunc.
+		bool depthFunc_lequal =
+			( stages[ i ].stateBits & GLS_DEPTHFUNC_BITS ) == 0;
+
 		bool tcGen_Environment = stages[ i ].tcGen_Environment;
 
 		if ( step == 0 )
@@ -4842,12 +4840,9 @@ static void CollapseStages()
 		{
 			if ( isLightStage
 				&& rgbGen_identity
-				&& alphaGen_identity )
+				&& alphaGen_identity
+				&& depthFunc_lequal )
 			{
-				/* We may ignore “depthFunc equal” that seems to be
-				required for standalone lightmap when colormap has
-				“depthWrite” since they will be collapsed and
-				processed at once. */
 				lightStage = i;
 				lightMapCount++;
 				step++;
@@ -5162,7 +5157,7 @@ static void CollapseStages()
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				shaderHasNoLight = false;
 				break;
-			default:	
+			default:
 				break;
 		}
 	}

@@ -42,8 +42,16 @@ Maryland 20850 USA.
 #include "server.h"
 #include "CryptoChallenge.h"
 #include "common/Defs.h"
+#include "framework/CvarSystem.h"
 #include "framework/Network.h"
 #include "qcommon/sys.h"
+
+static Cvar::Cvar<int> cvar_protocol(
+	"protocol", "network protocol version number", Cvar::SERVERINFO | Cvar::ROM, PROTOCOL_VERSION);
+static Cvar::Cvar<std::string> cvar_pakname(
+	"pakname", "pak containing current map", Cvar::SERVERINFO | Cvar::ROM, "");
+static Cvar::Cvar<std::string> sv_paks(
+	"sv_paks", "currently loaded paks", Cvar::SYSTEMINFO | Cvar::ROM, "");
 
 /*
 ===============
@@ -483,7 +491,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 
 	// set serverinfo visible name
 	Cvar_Set( "mapname", mapname.c_str() );
-	Cvar_Set( "pakname", pakname.c_str() );
+	Cvar::SetValueForce( cvar_pakname.Name(), pakname );
 
 	// serverid should be different each time
 	sv.serverId = com_frameTime;
@@ -564,7 +572,7 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	// the server sends these to the clients so they can figure
 	// out which dpk/pk3s should be auto-downloaded
 
-	Cvar_Set( "sv_paks", FS_LoadedPaks() );
+	Cvar::SetValueForce( sv_paks.Name(), FS_LoadedPaks() );
 
 	// save systeminfo and serverinfo strings
 	cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
@@ -600,23 +608,18 @@ void SV_Init()
 	SV_AddOperatorCommands();
 
 	// serverinfo vars
-	Cvar_Get( "timelimit", "0", CVAR_SERVERINFO );
-
-	Cvar_Get( "protocol", va( "%i", PROTOCOL_VERSION ), CVAR_SERVERINFO  );
 	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
-	Cvar_Get( "pakname", "", CVAR_SERVERINFO | CVAR_ROM );
-	Cvar_Get( "layout", "", CVAR_SERVERINFO );
-	Cvar_Get( "g_layouts", "", 0 ); // FIXME
 	sv_hostname = Cvar_Get( "sv_hostname", UNNAMED_SERVER, CVAR_SERVERINFO  );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );  // NERVE - SMF - changed to 20 from 8
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0",  CVAR_SERVERINFO );
 	sv_floodProtect = Cvar_Get( "sv_floodProtect", "0",  CVAR_SERVERINFO );
+	Cvar::SetValue( "layout", "" ); // TODO: declare in sgame
+	Cvar::AddFlags( "layout", Cvar::SERVERINFO );
 
 	sv_statsURL = Cvar_Get( "sv_statsURL", "", CVAR_SERVERINFO  );
 
 	// systeminfo
 	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
-	Cvar_Get( "sv_paks", "", CVAR_SYSTEMINFO | CVAR_ROM );
 
 	// server vars
 	sv_privatePassword = Cvar_Get( "sv_privatePassword", "", CVAR_TEMP );

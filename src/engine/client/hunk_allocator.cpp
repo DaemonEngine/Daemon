@@ -36,6 +36,7 @@ Maryland 20850 USA.
 
 #include "engine/client/client.h"
 #include "engine/qcommon/qcommon.h"
+#include "framework/CvarSystem.h"
 
 /*
 ==============================================================================
@@ -71,10 +72,9 @@ Goals:
 ==============================================================================
 */
 
-#define MIN_COMHUNKMEGS 256
-#define DEF_COMHUNKMEGS 512
-
 cvar_t *com_hunkused; // Ridah
+static Cvar::Range<Cvar::Cvar<int>> com_hunkMegs(
+	"com_hunkMegs", "megabytes of memory to allocate for renderer", Cvar::NONE, 512, 256, 2047);
 
 static const int HUNK_MAGIC      = 0x89537892;
 static const int HUNK_FREE_MAGIC = 0x89537893;
@@ -151,27 +151,16 @@ This should be called once, on application startup.
 */
 void Hunk_Init()
 {
-	cvar_t *cv;
-
 	// allocate the stack based hunk allocator
-	cv = Cvar_Get( "com_hunkMegs", XSTRING(DEF_COMHUNKMEGS), CVAR_LATCH  );
-
-	if ( cv->integer < MIN_COMHUNKMEGS )
-	{
-		s_hunkTotal = 1024 * 1024 * MIN_COMHUNKMEGS;
-		Log::Notice( "Minimum com_hunkMegs is " XSTRING(MIN_COMHUNKMEGS) ", allocating " XSTRING(MIN_COMHUNKMEGS) "MB." );
-	}
-	else
-	{
-		s_hunkTotal = cv->integer * 1024 * 1024;
-	}
+	Cvar::AddFlags(com_hunkMegs.Name(), Cvar::INIT);
+	s_hunkTotal = com_hunkMegs.Get() * 1024 * 1024;
 
 	// cacheline aligned
 	s_hunkData = ( byte * ) Com_Allocate_Aligned( 64, s_hunkTotal );
 
 	if ( !s_hunkData )
 	{
-		Sys::Error( "Hunk data failed to allocate %iMB", s_hunkTotal / ( 1024 * 1024 ) );
+		Sys::Error( "Hunk data failed to allocate %iMB", com_hunkMegs.Get() );
 	}
 
 	Hunk_Clear();

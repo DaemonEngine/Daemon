@@ -69,6 +69,9 @@ void SleepFor(SteadyClock::duration time);
 // Results *within a single module* (engine/cgame/sgame) are monotonic.
 int Milliseconds();
 
+// For a DLL this means the thread starting from the VM's entry point, not the real main thread
+bool OnMainThread();
+
 // Exit with a fatal error. Only critical subsystems are shut down cleanly, and
 // an error message is displayed to the user.
 NORETURN void Error(Str::StringRef errorMessage);

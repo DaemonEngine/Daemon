@@ -1348,13 +1348,13 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void       COM_DefaultExtension( char *path, int maxSize, const char *extension );
 
 	void       COM_BeginParseSession( const char *name );
-	char       *COM_Parse( const char **data_p );
+	const char *COM_Parse( const char **data_p );
 
 // RB: added COM_Parse2 for having a Doom 3 style tokenizer.
-	char       *COM_Parse2( const char **data_p );
-	char       *COM_ParseExt2( const char **data_p, bool allowLineBreak );
+	const char *COM_Parse2( const char **data_p );
+	const char *COM_ParseExt2( const char **data_p, bool allowLineBreak );
 
-	char       *COM_ParseExt( const char **data_p, bool allowLineBreak );
+	const char *COM_ParseExt( const char **data_p, bool allowLineBreak );
 	int        COM_Compress( char *data_p );
 	void       COM_ParseError( const char *format, ... ) PRINTF_LIKE(1);
 	void       COM_ParseWarning( const char *format, ... ) PRINTF_LIKE(1);
@@ -1484,12 +1484,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 #define CVAR_USERINFO            BIT(1)    /*< sent to server on connect or change */
 #define CVAR_SERVERINFO          BIT(2)    /*< sent in response to front end requests */
 #define CVAR_SYSTEMINFO          BIT(3)    /*< these cvars will be duplicated on all clients */
-
-/**
- * don't allow change from console at all,
- * but can be set from the command line
- */
-#define CVAR_INIT                BIT(4)
 
 /**
  * will only change when C code next does a Cvar_Get(),

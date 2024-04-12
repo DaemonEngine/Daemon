@@ -41,7 +41,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_glAllowSoftware;
 	cvar_t      *r_glExtendedValidation;
 
-	cvar_t      *r_verbose;
 	cvar_t      *r_ignore;
 
 	cvar_t      *r_znear;
@@ -50,7 +49,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_smp;
 	cvar_t      *r_showSmp;
 	cvar_t      *r_skipBackEnd;
-	cvar_t      *r_skipLightBuffer;
 
 	cvar_t      *r_measureOverdraw;
 
@@ -58,7 +56,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_lodBias;
 	cvar_t      *r_lodScale;
-	cvar_t      *r_lodTest;
 
 	cvar_t      *r_norefresh;
 	cvar_t      *r_drawentities;
@@ -92,7 +89,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_ext_occlusion_query;
 	cvar_t      *r_ext_draw_buffers;
-	cvar_t      *r_ext_vertex_array_object;
 	cvar_t      *r_ext_half_float_pixel;
 	cvar_t      *r_ext_texture_float;
 	cvar_t      *r_ext_texture_integer;
@@ -109,7 +105,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
 
-	cvar_t      *r_depthbits;
 	cvar_t      *r_colorbits;
 
 	cvar_t      *r_drawBuffer;
@@ -122,7 +117,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_softShadowsPP;
 	cvar_t      *r_shadowBlur;
 
-	cvar_t      *r_shadowMapQuality;
 	cvar_t      *r_shadowMapSizeUltra;
 	cvar_t      *r_shadowMapSizeVeryHigh;
 	cvar_t      *r_shadowMapSizeHigh;
@@ -135,16 +129,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_shadowMapSizeSunMedium;
 	cvar_t      *r_shadowMapSizeSunLow;
 
-	cvar_t      *r_shadowOffsetFactor;
-	cvar_t      *r_shadowOffsetUnits;
 	cvar_t      *r_shadowLodBias;
 	cvar_t      *r_shadowLodScale;
 	cvar_t      *r_noShadowPyramids;
 	cvar_t      *r_cullShadowPyramidFaces;
-	cvar_t      *r_cullShadowPyramidCurves;
-	cvar_t      *r_cullShadowPyramidTriangles;
 	cvar_t      *r_debugShadowMaps;
-	cvar_t      *r_noShadowFrustums;
 	cvar_t      *r_noLightFrustums;
 	cvar_t      *r_shadowMapLinearFilter;
 	cvar_t      *r_lightBleedReduction;
@@ -156,7 +145,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_mode;
 	cvar_t      *r_nobind;
 	cvar_t      *r_singleShader;
-	cvar_t      *r_colorMipLevels;
 	cvar_t      *r_picMip;
 	cvar_t      *r_imageMaxDimension;
 	cvar_t      *r_ignoreMaterialMinDimension;
@@ -194,7 +182,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_noportals;
 	cvar_t      *r_portalOnly;
 
-	cvar_t      *r_portalSky;
 	cvar_t      *r_max_portal_levels;
 
 	cvar_t      *r_subdivisions;
@@ -210,7 +197,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_showImages;
 
-	cvar_t      *r_forceFog;
 	cvar_t      *r_wolfFog;
 	cvar_t      *r_noFog;
 
@@ -225,7 +211,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_showTris;
 	cvar_t      *r_showSky;
-	cvar_t      *r_showShadowVolumes;
 	cvar_t      *r_showShadowLod;
 	cvar_t      *r_showShadowMaps;
 	cvar_t      *r_showSkeleton;
@@ -242,7 +227,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showDeluxeMaps;
 	cvar_t      *r_showNormalMaps;
 	cvar_t      *r_showMaterialMaps;
-	cvar_t      *r_showAreaPortals;
 	cvar_t      *r_showCubeProbes;
 	cvar_t      *r_showBspNodes;
 	cvar_t      *r_showParallelShadowSplits;
@@ -255,7 +239,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_vboLighting;
 	cvar_t      *r_vboModels;
 	cvar_t      *r_vboVertexSkinning;
-	cvar_t      *r_vboDeformVertexes;
 
 	cvar_t      *r_mergeLeafSurfaces;
 
@@ -818,7 +801,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		GL_ClearStencil( 0 );
 
 		GL_FrontFace( GL_CCW );
-		GL_CullFace( GL_FRONT );
+		glCullFace( GL_FRONT );
 
 		glState.faceCulling = CT_TWO_SIDED;
 		glDisable( GL_CULL_FACE );
@@ -1089,7 +1072,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		// latched and archived variables
 		r_ext_occlusion_query = Cvar_Get( "r_ext_occlusion_query", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_ext_draw_buffers = Cvar_Get( "r_ext_draw_buffers", "1", CVAR_CHEAT | CVAR_LATCH );
-		r_ext_vertex_array_object = Cvar_Get( "r_ext_vertex_array_object", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_ext_half_float_pixel = Cvar_Get( "r_ext_half_float_pixel", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_ext_texture_float = Cvar_Get( "r_ext_texture_float", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_ext_texture_integer = Cvar_Get( "r_ext_texture_integer", "1", CVAR_CHEAT | CVAR_LATCH );
@@ -1109,9 +1091,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_ignoreMaterialMaxDimension = Cvar_Get( "r_ignoreMaterialMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_replaceMaterialMinDimensionIfPresentWithMaxDimension
 			= Cvar_Get( "r_replaceMaterialMinDimensionIfPresentWithMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_colorMipLevels = Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
 		r_colorbits = Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
-		r_depthbits = Cvar_Get( "r_depthbits", "0",  CVAR_LATCH );
 		r_mode = Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customwidth = Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customheight = Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
@@ -1136,8 +1116,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		and/or old hardware and drastically reduce first startup time. */
 		r_lazyShaders = Cvar_Get( "r_lazyShaders", "1", 0 );
 
-		r_forceFog = Cvar_Get( "r_forceFog", "0", CVAR_CHEAT /* | CVAR_LATCH */ );
-		AssertCvarRange( r_forceFog, 0.0f, 1.0f, false );
 		r_wolfFog = Cvar_Get( "r_wolfFog", "1", CVAR_CHEAT );
 		r_noFog = Cvar_Get( "r_noFog", "0", CVAR_CHEAT );
 
@@ -1180,7 +1158,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_vboLighting = Cvar_Get( "r_vboLighting", "1", CVAR_CHEAT );
 		r_vboModels = Cvar_Get( "r_vboModels", "1", CVAR_LATCH );
 		r_vboVertexSkinning = Cvar_Get( "r_vboVertexSkinning", "1",  CVAR_LATCH );
-		r_vboDeformVertexes = Cvar_Get( "r_vboDeformVertexes", "1",  CVAR_LATCH );
 
 		r_mergeLeafSurfaces = Cvar_Get( "r_mergeLeafSurfaces", "1",  CVAR_LATCH );
 
@@ -1212,16 +1189,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
 		r_portalOnly = Cvar_Get( "r_portalOnly", "0", CVAR_CHEAT );
-		r_portalSky = Cvar_Get( "cg_skybox", "1", 0 );
 		r_max_portal_levels = Cvar_Get( "r_max_portal_levels", "5", 0 );
 
 		r_showSmp = Cvar_Get( "r_showSmp", "0", CVAR_CHEAT );
 		r_skipBackEnd = Cvar_Get( "r_skipBackEnd", "0", CVAR_CHEAT );
-		r_skipLightBuffer = Cvar_Get( "r_skipLightBuffer", "0", CVAR_CHEAT );
 
 		r_measureOverdraw = Cvar_Get( "r_measureOverdraw", "0", CVAR_CHEAT );
 		r_lodScale = Cvar_Get( "r_lodScale", "5", CVAR_CHEAT );
-		r_lodTest = Cvar_Get( "r_lodTest", "0.5", CVAR_CHEAT );
 		r_norefresh = Cvar_Get( "r_norefresh", "0", CVAR_CHEAT );
 		r_drawentities = Cvar_Get( "r_drawentities", "1", CVAR_CHEAT );
 		r_drawpolies = Cvar_Get( "r_drawpolies", "1", CVAR_CHEAT );
@@ -1229,7 +1203,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_nocull = Cvar_Get( "r_nocull", "0", CVAR_CHEAT );
 		r_novis = Cvar_Get( "r_novis", "0", CVAR_CHEAT );
 		r_speeds = Cvar_Get( "r_speeds", "0", 0 );
-		r_verbose = Cvar_Get( "r_verbose", "0", CVAR_CHEAT );
 		r_logFile = Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
 		r_debugSurface = Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 		r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
@@ -1271,9 +1244,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_softShadowsPP = Cvar_Get( "r_softShadowsPP", "0",  CVAR_LATCH );
 
 		r_shadowBlur = Cvar_Get( "r_shadowBlur", "2",  CVAR_LATCH );
-
-		r_shadowMapQuality = Cvar_Get( "r_shadowMapQuality", "3",  CVAR_LATCH );
-		AssertCvarRange( r_shadowMapQuality, 0, 4, true );
 
 		r_shadowMapSizeUltra = Cvar_Get( "r_shadowMapSizeUltra", "1024",  CVAR_LATCH );
 		AssertCvarRange( r_shadowMapSizeUltra, 32, 2048, true );
@@ -1317,15 +1287,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		sunShadowMapResolutions[ 3 ] = r_shadowMapSizeSunMedium->integer;
 		sunShadowMapResolutions[ 4 ] = r_shadowMapSizeSunLow->integer;
 
-		r_shadowOffsetFactor = Cvar_Get( "r_shadowOffsetFactor", "0", CVAR_CHEAT );
-		r_shadowOffsetUnits = Cvar_Get( "r_shadowOffsetUnits", "0", CVAR_CHEAT );
 		r_shadowLodBias = Cvar_Get( "r_shadowLodBias", "0", CVAR_CHEAT );
 		r_shadowLodScale = Cvar_Get( "r_shadowLodScale", "0.8", CVAR_CHEAT );
 		r_noShadowPyramids = Cvar_Get( "r_noShadowPyramids", "0", CVAR_CHEAT );
 		r_cullShadowPyramidFaces = Cvar_Get( "r_cullShadowPyramidFaces", "0", CVAR_CHEAT );
-		r_cullShadowPyramidCurves = Cvar_Get( "r_cullShadowPyramidCurves", "1", CVAR_CHEAT );
-		r_cullShadowPyramidTriangles = Cvar_Get( "r_cullShadowPyramidTriangles", "1", CVAR_CHEAT );
-		r_noShadowFrustums = Cvar_Get( "r_noShadowFrustums", "0", CVAR_CHEAT );
 		r_noLightFrustums = Cvar_Get( "r_noLightFrustums", "1", CVAR_CHEAT );
 
 		r_maxPolys = Cvar_Get( "r_maxpolys", "10000", CVAR_LATCH );  // 600 in vanilla Q3A
@@ -1336,7 +1301,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_showTris = Cvar_Get( "r_showTris", "0", CVAR_CHEAT );
 		r_showSky = Cvar_Get( "r_showSky", "0", CVAR_CHEAT );
-		r_showShadowVolumes = Cvar_Get( "r_showShadowVolumes", "0", CVAR_CHEAT );
 		r_showShadowLod = Cvar_Get( "r_showShadowLod", "0", CVAR_CHEAT );
 		r_showShadowMaps = Cvar_Get( "r_showShadowMaps", "0", CVAR_CHEAT );
 		r_showSkeleton = Cvar_Get( "r_showSkeleton", "0", CVAR_CHEAT );
@@ -1353,7 +1317,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showDeluxeMaps = Cvar_Get( "r_showDeluxeMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showNormalMaps = Cvar_Get( "r_showNormalMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showMaterialMaps = Cvar_Get( "r_showMaterialMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showAreaPortals = Cvar_Get( "r_showAreaPortals", "0", CVAR_CHEAT );
 		r_showCubeProbes = Cvar_Get( "r_showCubeProbes", "0", CVAR_CHEAT );
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );

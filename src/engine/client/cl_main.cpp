@@ -75,9 +75,7 @@ cvar_t *cl_timeNudge;
 cvar_t *cl_showTimeDelta;
 
 cvar_t *cl_shownet = nullptr; // NERVE - SMF - This is referenced in msg.c and we need to make sure it is nullptr
-cvar_t *cl_shownuments; // DHM - Nerve
 cvar_t *cl_showSend;
-cvar_t *cl_showServerCommands; // NERVE - SMF
 
 Cvar::Cvar<bool> cvar_demo_status_isrecording(
     "demo.status.isrecording",
@@ -127,7 +125,6 @@ cvar_t *cl_autorecord;
 
 cvar_t *cl_allowDownload;
 
-cvar_t                 *cl_packetloss; //bani
 cvar_t                 *cl_packetdelay; //bani
 
 cvar_t                 *cl_consoleFont;
@@ -146,8 +143,6 @@ cvar_t             *cl_aviMotionJpeg;
 // XreaL END
 
 cvar_t             *cl_rate;
-
-cvar_t             *cl_cgameSyscallStats;
 
 clientActive_t     cl;
 clientConnection_t clc;
@@ -2105,16 +2100,6 @@ void CL_Frame( int msec )
 	cls.framecount++;
 }
 
-/*
-================
-CL_SetRecommended_f
-================
-*/
-void CL_SetRecommended_f()
-{
-	Com_SetRecommended();
-}
-
 static bool CL_InitRef();
 /*
 ============
@@ -2341,6 +2326,12 @@ void CL_ShutdownRef()
 CL_Init
 ====================
 */
+static Cvar::Cvar<int> cvar_snaps(
+	"snaps", "snapshots per second that the client wants from the server", Cvar::USERINFO, 40);
+static Cvar::Cvar<std::string> cvar_password(
+	"password", "client's password to get into the server", Cvar::USERINFO, "");
+static Cvar::Cvar<std::string> cvar_name(
+	"name", "player display name", Cvar::USERINFO | Cvar::ARCHIVE, UNNAMED_PLAYER);
 void CL_Init()
 {
 	PrintBanner( "Client Initialization" )
@@ -2366,8 +2357,6 @@ void CL_Init()
 
 	cl_timeNudge = Cvar_Get( "cl_timeNudge", "0", CVAR_TEMP );
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
-	cl_shownuments = Cvar_Get( "cl_shownuments", "0", CVAR_TEMP );
-	cl_showServerCommands = Cvar_Get( "cl_showServerCommands", "0", 0 );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
@@ -2431,22 +2420,15 @@ void CL_Init()
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
 
 	//bani
-	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
 	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
 
 	// userinfo
-	Cvar_Get( "name", UNNAMED_PLAYER, CVAR_USERINFO | CVAR_ARCHIVE );
 	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );
-	Cvar_Get( "snaps", "40", CVAR_USERINFO  );
-
-	Cvar_Get( "password", "", CVAR_USERINFO );
 
 #if defined(USE_MUMBLE)
 	cl_useMumble = Cvar_Get( "cl_useMumble", "0",  CVAR_LATCH );
 	cl_mumbleScale = Cvar_Get( "cl_mumbleScale", "0.0254", 0 );
 #endif
-
-	cl_cgameSyscallStats = Cvar_Get( "cl_cgameSyscallStats", "0", 0 );
 
 	//
 	// register our commands
@@ -2468,8 +2450,6 @@ void CL_Init()
 
 	Cmd_AddCommand( "updatescreen", SCR_UpdateScreen );
 	// done.
-
-	Cmd_AddCommand( "setRecommended", CL_SetRecommended_f );
 
 	SCR_Init();
 

@@ -425,7 +425,7 @@ void COM_BeginParseSession( const char *name )
 	Com_sprintf( com_parsename, sizeof( com_parsename ), "%s", name );
 }
 
-char *COM_Parse( const char **data_p )
+const char *COM_Parse( const char **data_p )
 {
 	return COM_ParseExt( data_p, true );
 }
@@ -559,7 +559,7 @@ int COM_Compress( char *data_p )
 	return size;
 }
 
-char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
+const char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 {
 	int      c = 0, len;
 	bool hasNewLines = false;
@@ -731,13 +731,13 @@ char *COM_ParseExt( const char **data_p, bool allowLineBreaks )
 	return com_token;
 }
 
-char           *COM_Parse2( const char **data_p )
+const char *COM_Parse2( const char **data_p )
 {
 	return COM_ParseExt2( data_p, true );
 }
 
 // *INDENT-OFF*
-char           *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
+const char *COM_ParseExt2( const char **data_p, bool allowLineBreaks )
 {
 	int        c = 0, len;
 	bool   hasNewLines = false;
@@ -1008,11 +1008,9 @@ SkipBracedSection_Depth
 */
 bool SkipBracedSection_Depth( const char **program, int depth )
 {
-	char *token;
-
 	do
 	{
-		token = COM_ParseExt( program, true );
+		const char *token = COM_ParseExt( program, true );
 
 		if ( token[ 1 ] == 0 )
 		{
@@ -1043,14 +1041,13 @@ Returns whether the close brace was found.
 */
 bool SkipBracedSection( const char **program )
 {
-	char *token;
 	int  depth;
 
 	depth = 0;
 
 	do
 	{
-		token = COM_ParseExt( program, true );
+		const char *token = COM_ParseExt( program, true );
 
 		if ( token[ 1 ] == 0 )
 		{

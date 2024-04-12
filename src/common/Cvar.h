@@ -42,6 +42,7 @@ namespace Cvar {
         USERINFO   = BIT(1), // The cvar is sent to the server as part of the client state
         SERVERINFO = BIT(2), // The cvar is sent to the client when doing server status request and in a config string (mostly for mapname)
         SYSTEMINFO = BIT(3), // The cvar is sent to the client when changed, to synchronize some global game options (for example pmove config)
+        INIT       = BIT(4), // The cvar can only be set from the command line (or before the flag is added)
         ROM        = BIT(6), // The cvar cannot be changed by the user
         TEMPORARY  = BIT(8), // The cvar is temporary and is not to be archived (overrides archive flags)
         CHEAT      = BIT(9), // The cvar is a cheat and should stay at its default value on pure servers.
