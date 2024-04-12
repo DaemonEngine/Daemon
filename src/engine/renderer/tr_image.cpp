@@ -153,14 +153,14 @@ R_ListImages_f
 */
 void R_ListImages_f()
 {
-	std::unordered_map<GLenum, std::string> imageTypeName = {
+	static const std::unordered_map<GLenum, std::string> imageTypeName = {
 		{ GL_TEXTURE_2D, "2D" },
 		{ GL_TEXTURE_3D, "3D" },
 		{ GL_TEXTURE_CUBE_MAP, "CUBE" },
 	};
 
 	typedef std::pair<const std::string, int> nameSizePair;
-	std::unordered_map<uint32_t, nameSizePair> imageFormatNameSize = {
+	static const std::unordered_map<uint32_t, nameSizePair> imageFormatNameSize = {
 		// TODO: find imageDataSize multiplier
 		{ GL_RGBA, { "RGBA", 4 } },
 
@@ -205,7 +205,7 @@ void R_ListImages_f()
 		{ GL_DEPTH24_STENCIL8, { "D24S8", 4 } },
 	};
 
-	std::unordered_map<wrapTypeEnum_t, std::string> wrapTypeName = {
+	static const std::unordered_map<wrapTypeEnum_t, std::string> wrapTypeName = {
 		{ wrapTypeEnum_t::WT_REPEAT, "rept" },
 		{ wrapTypeEnum_t::WT_CLAMP, "clmp" },
 		{ wrapTypeEnum_t::WT_EDGE_CLAMP, "eclmp" },
@@ -316,7 +316,7 @@ void R_ListImages_f()
 		}
 		else
 		{
-			type = imageTypeName[ image->type ];
+			type = imageTypeName.at( image->type );
 		}
 
 		int imageDataSize = image->uploadWidth * image->uploadHeight * image->numLayers;
@@ -332,8 +332,8 @@ void R_ListImages_f()
 		}
 		else
 		{
-			format = imageFormatNameSize[ image->internalFormat ].first;
-			imageDataSize *= imageFormatNameSize[ image->internalFormat ].second;
+			format = imageFormatNameSize.at( image->internalFormat ).first;
+			imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
 		}
 
 		if ( !wrapTypeName.count( image->wrapType.t ) )
@@ -345,7 +345,7 @@ void R_ListImages_f()
 		}
 		else
 		{
-			twrap = "t." + wrapTypeName[ image->wrapType.t ];
+			twrap = "t." + wrapTypeName.at( image->wrapType.t );
 		}
 
 		if ( !wrapTypeName.count( image->wrapType.s ) )
@@ -357,7 +357,7 @@ void R_ListImages_f()
 		}
 		else
 		{
-			swrap = "s." + wrapTypeName[ image->wrapType.s ];
+			swrap = "s." + wrapTypeName.at( image->wrapType.s );
 		}
 
 		name = image->name;

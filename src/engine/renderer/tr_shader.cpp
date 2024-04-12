@@ -6559,14 +6559,14 @@ A second parameter will cause it to print in sorted order
 */
 void R_ListShaders_f()
 {
-	std::unordered_map<shaderType_t, std::string> shaderTypeName = {
+	static const std::unordered_map<shaderType_t, std::string> shaderTypeName = {
 		{ shaderType_t::SHADER_2D, "2D" },
 		{ shaderType_t::SHADER_3D_DYNAMIC, "3D_DYNAMIC" },
 		{ shaderType_t::SHADER_3D_STATIC, "3D_STATIC" },
 		{ shaderType_t::SHADER_LIGHT, "LIGHT" },
 	};
 
-	std::unordered_map<shaderSort_t, std::string> shaderSortName = {
+	static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
 		{ shaderSort_t::SS_BAD, "BAD" },
 		{ shaderSort_t::SS_PORTAL, "PORTAL" },
 		{ shaderSort_t::SS_DEPTH, "DEPTH" },
@@ -6592,7 +6592,7 @@ void R_ListShaders_f()
 		{ shaderSort_t::SS_POST_PROCESS, "POST_PROCESS" },
 	};
 
-	std::unordered_map<stageType_t, std::string> stageTypeName = {
+	static const std::unordered_map<stageType_t, std::string> stageTypeName = {
 		{ stageType_t::ST_COLORMAP, "COLORMAP" },
 		{ stageType_t::ST_GLOWMAP, "GLOWMAP" },
 		{ stageType_t::ST_DIFFUSEMAP, "DIFFUSEMAP" },
@@ -6689,8 +6689,26 @@ void R_ListShaders_f()
 		stageCount += shader->numStages;
 		highestShaderStageCount = std::max( highestShaderStageCount, shader->numStages );
 
-		shaderType = shaderTypeName[ shader->type ];
-		shaderSort = shaderSortName[ (shaderSort_t) shader->sort ];
+		if ( !shaderTypeName.count( shader->type ) )
+		{
+			Log::Debug( "Undocumented shader type %i for shader %s",
+				Util::ordinal( shader->type ), shader->name );
+		}
+		else
+		{
+			shaderType = shaderTypeName.at( shader->type );
+		}
+
+		if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
+		{
+			Log::Debug( "Undocumented shader sort %f for shader %s",
+				shader->sort, shader->name );
+		}
+		else
+		{
+			shaderSort = shaderSortName.at( (shaderSort_t) shader->sort );
+		}
+
 		interactLight = shader->interactLight ? "INTERACTLIGHT" : "";
 		shaderName = shader->name;
 		shaderName += shader->defaultShader ? " (DEFAULTED)" : "";
@@ -6699,7 +6717,15 @@ void R_ListShaders_f()
 		{
 			shaderStage_t *stage = shader->stages[ j ];
 
-			stageType = stageTypeName[ stage->type ];
+			if ( !stageTypeName.count( stage->type ) )
+			{
+				Log::Debug( "Undocumented stage type %i for shader stage %s:%d",
+					Util::ordinal( stage->type ), shader->name, j );
+			}
+			else
+			{
+				stageType = stageTypeName.at( stage->type );
+			}
 
 			lineStream.clear();
 			lineStream.str("");
