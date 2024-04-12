@@ -596,20 +596,43 @@ void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale )
 	normalScale[ 2 ] *= r_normalScale->value;
 }
 
+static void SetRgbaGen( const shaderStage_t *pStage, colorGen_t *rgbGen, alphaGen_t *alphaGen )
+{
+	switch ( pStage->rgbGen )
+	{
+		case colorGen_t::CGEN_VERTEX:
+		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
+			*rgbGen = pStage->rgbGen;
+			break;
+
+		default:
+			*rgbGen = colorGen_t::CGEN_CONST;
+			break;
+	}
+
+	switch ( pStage->alphaGen )
+	{
+		case alphaGen_t::AGEN_VERTEX:
+		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
+			*alphaGen = pStage->alphaGen;
+			break;
+
+		default:
+			*alphaGen = alphaGen_t::AGEN_CONST;
+			break;
+	}
+}
+
 // *INDENT-ON*
 
 static void Render_generic2D( shaderStage_t *pStage )
 {
-	colorGen_t    rgbGen;
-	alphaGen_t    alphaGen;
-	bool      needDepthMap = false;
-	bool      hasDepthFade = false;
 	GLimp_LogComment( "--- Render_generic2D ---\n" );
 
 	GL_State( pStage->stateBits );
 
-	hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
-	needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
+	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
+	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
 	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
@@ -628,33 +651,10 @@ static void Render_generic2D( shaderStage_t *pStage )
 		gl_generic2DShader->SetUniform_AlphaTest(pStage->stateBits);
 	}
 
-	// u_ColorGen
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			rgbGen = pStage->rgbGen;
-			break;
-
-		default:
-			rgbGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	// u_AlphaGen
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
 	// u_ColorModulate
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
 	gl_generic2DShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
@@ -696,16 +696,12 @@ static image_t* GetLightMap();
 
 static void Render_generic( shaderStage_t *pStage )
 {
-	colorGen_t    rgbGen;
-	alphaGen_t    alphaGen;
-	bool      needDepthMap = false;
-	bool      hasDepthFade = false;
 	GLimp_LogComment( "--- Render_generic ---\n" );
 
 	GL_State( pStage->stateBits );
 
-	hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
-	needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
+	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
+	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
 	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
@@ -736,32 +732,6 @@ static void Render_generic( shaderStage_t *pStage )
 		gl_genericShader->SetUniform_AlphaTest(pStage->stateBits);
 	}
 
-	// u_ColorGen
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			rgbGen = pStage->rgbGen;
-			break;
-
-		default:
-			rgbGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	// u_AlphaGen
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
 	// u_InverseLightFactor
 	// We should cancel overbrightBits if there is no light,
 	// and it's not using blendFunc dst_color.
@@ -770,6 +740,9 @@ static void Render_generic( shaderStage_t *pStage )
 	gl_genericShader->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
 	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
@@ -871,34 +844,6 @@ static void Render_lightMapping( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
 
-	// u_ColorModulate
-	colorGen_t colorGen;
-	alphaGen_t alphaGen;
-
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = pStage->rgbGen;
-			break;
-
-		default:
-			colorGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
 	lightMode_t lightMode = lightMode_t::FULLBRIGHT;
 	deluxeMode_t deluxeMode = deluxeMode_t::NONE;
 
@@ -950,13 +895,18 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	image_t *lightmap = tr.whiteImage;
 	image_t *deluxemap = tr.whiteImage;
 
+	// u_ColorModulate
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+
 	uint32_t stateBits = pStage->stateBits;
 
 	switch ( lightMode )
 	{
 		case lightMode_t::VERTEX:
 			// Do not rewrite pStage->rgbGen.
-			colorGen = colorGen_t::CGEN_VERTEX;
+			rgbGen = colorGen_t::CGEN_VERTEX;
 			tess.svars.color.SetRed( 0.0f );
 			tess.svars.color.SetGreen( 0.0f );
 			tess.svars.color.SetBlue( 0.0f );
@@ -1097,7 +1047,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	gl_lightMappingShader->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
-	gl_lightMappingShader->SetUniform_ColorModulate( colorGen, alphaGen );
+	gl_lightMappingShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
 	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
@@ -1436,8 +1386,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	vec3_t     viewOrigin;
 	vec3_t     lightOrigin;
 	float      shadowTexelSize;
-	colorGen_t colorGen;
-	alphaGen_t alphaGen;
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_omni ---\n" );
 
@@ -1459,31 +1407,10 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = pStage->rgbGen;
-			break;
-
-		default:
-			colorGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
-	gl_forwardLightingShader_omniXYZ->SetUniform_ColorModulate( colorGen, alphaGen );
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	gl_forwardLightingShader_omniXYZ->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_omniXYZ->SetUniform_Color( tess.svars.color );
@@ -1620,8 +1547,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	vec3_t     viewOrigin;
 	vec3_t     lightOrigin;
 	float      shadowTexelSize;
-	colorGen_t colorGen;
-	alphaGen_t alphaGen;
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_proj ---\n" );
 
@@ -1643,31 +1568,10 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = pStage->rgbGen;
-			break;
-
-		default:
-			colorGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
-	gl_forwardLightingShader_projXYZ->SetUniform_ColorModulate( colorGen, alphaGen );
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	gl_forwardLightingShader_projXYZ->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_projXYZ->SetUniform_Color( tess.svars.color );
@@ -1803,8 +1707,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	vec3_t     viewOrigin;
 	vec3_t     lightDirection;
 	float      shadowTexelSize;
-	colorGen_t colorGen;
-	alphaGen_t alphaGen;
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_directional ---\n" );
 
@@ -1826,31 +1728,10 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = pStage->rgbGen;
-			break;
-
-		default:
-			colorGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
-	gl_forwardLightingShader_directionalSun->SetUniform_ColorModulate( colorGen, alphaGen );
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	gl_forwardLightingShader_directionalSun->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_directionalSun->SetUniform_Color( tess.svars.color );
