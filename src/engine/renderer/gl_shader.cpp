@@ -527,7 +527,7 @@ static std::string GenEngineConstants() {
 				break;
 			case shadowingMode_t::SHADOWING_VSM32:
 				// GLHW_R300 should not be GLDRV_OPENGL3 anyway.
-				if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3
+				if ( glConfig.driverType != glDriverType_t::GLDRV_OPENGL3
 					|| glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
 				{
 					AddConst( str, "VSM_EPSILON", 0.0001f );
