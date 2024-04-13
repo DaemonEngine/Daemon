@@ -4828,7 +4828,8 @@ static void CollapseStages()
 			else if ( isLightStage
 				&& rgbGen_identity
 				&& alphaGen_identity
-				&& blendFunc_filter )
+				&& blendFunc_filter
+				&& depthFunc_lequal )
 			{
 				lightStage = i;
 				lightMapCount++;
