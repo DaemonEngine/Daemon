@@ -2407,17 +2407,17 @@ void R_AddLightInteractions()
 		{
 			if ( !glConfig2.dynamicLight )
 			{
+				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
-
-			if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
+			else if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
 			{
 				tr.refdef.numShaderLights++;
 				tr.pc.c_dlights++;
-			}
 
-			light->cull = cullResult_t::CULL_OUT;
-			continue;
+				light->cull = cullResult_t::CULL_OUT;
+				continue;
+			}
 		}
 
 		R_TransformShadowLight( light );
