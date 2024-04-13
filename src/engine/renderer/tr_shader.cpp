@@ -4946,6 +4946,10 @@ static void CollapseStages()
 				break;
 		}
 	}
+	else
+	{
+		lightStage = -1;
+	}
 
 	for ( int i = 0; i < MAX_SHADER_STAGES; i++ )
 	{
