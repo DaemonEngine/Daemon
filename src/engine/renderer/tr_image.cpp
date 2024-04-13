@@ -1737,7 +1737,7 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 		return nullptr;
 	}
 
-	if ( imageParams.bits & IF_LIGHTMAP && tr.forceLegacyMapOverBrightClamping )
+	if ( imageParams.bits & IF_LIGHTMAP && tr.forceLegacyOverBrightClamping )
 	{
 		R_ProcessLightmap( pic[ 0 ], width, height, imageParams.bits );
 	}
@@ -2968,7 +2968,7 @@ void R_InitImages()
 	always 1.0f. We can entirely remove it. */
 
 	tr.mapOverBrightBits = r_mapOverBrightBits.Get();
-	tr.forceLegacyMapOverBrightClamping = r_forceLegacyMapOverBrightClamping.Get();
+	tr.forceLegacyOverBrightClamping = r_forceLegacyOverBrightClamping.Get();
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();

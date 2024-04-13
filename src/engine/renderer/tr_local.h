@@ -2832,7 +2832,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		// 1 / mapLightFactor
 		float mapInverseLightFactor;
 		// May have to be true on some legacy maps: clamp and normalize multiplied colors.
-		bool forceLegacyMapOverBrightClamping;
+		bool forceLegacyOverBrightClamping;
 
 		orientationr_t orientation; // for current entity
 
@@ -2959,7 +2959,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
-	extern Cvar::Cvar<bool> r_forceLegacyMapOverBrightClamping;
+	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
