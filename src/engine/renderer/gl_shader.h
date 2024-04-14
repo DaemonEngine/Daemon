@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define USE_UNIFORM_FIREWALL 1
 
 // *INDENT-OFF*
-static const unsigned int MAX_SHADER_MACROS = 10;
+static const unsigned int MAX_SHADER_MACROS = 11;
 static const unsigned int GL_SHADER_VERSION = 5;
 
 class ShaderException : public std::runtime_error
@@ -1683,6 +1683,7 @@ protected:
 	  USE_HEIGHTMAP_IN_NORMALMAP,
 	  USE_RELIEF_MAPPING,
 	  USE_REFLECTIVE_SPECULAR,
+	  USE_AUTOMATIC_SPECULARMAP,
 	  USE_SHADOWING,
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
@@ -2030,6 +2031,33 @@ public:
 	}
 
 	void SetReflectiveSpecular( bool enable )
+	{
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_USE_AUTOMATIC_SPECULARMAP :
+	GLCompileMacro
+{
+public:
+	GLCompileMacro_USE_AUTOMATIC_SPECULARMAP( GLShader *shader ) :
+		GLCompileMacro( shader )
+	{
+	}
+
+	const char *GetName() const override
+	{
+		return "USE_AUTOMATIC_SPECULARMAP";
+	}
+
+	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+
+	EGLCompileMacro GetType() const override
+	{
+		return EGLCompileMacro::USE_AUTOMATIC_SPECULARMAP;
+	}
+
+	void SetAutomaticSpecularMap( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -4026,6 +4054,7 @@ class GLShader_lightMapping :
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING,
 	public GLCompileMacro_USE_REFLECTIVE_SPECULAR,
+	public GLCompileMacro_USE_AUTOMATIC_SPECULARMAP,
 	public GLCompileMacro_USE_PHYSICAL_MAPPING
 {
 public:
@@ -4080,6 +4109,7 @@ class GLShader_lightMappingMaterial :
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING,
 	public GLCompileMacro_USE_REFLECTIVE_SPECULAR,
+	public GLCompileMacro_USE_AUTOMATIC_SPECULARMAP,
 	public GLCompileMacro_USE_PHYSICAL_MAPPING {
 	public:
 	GLShader_lightMappingMaterial( GLShaderManager* manager );
