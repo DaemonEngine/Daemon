@@ -100,6 +100,7 @@ struct Material {
 	bool hasHeightMapInNormalMap;
 	bool enableReliefMapping;
 	bool enableNormalMapping;
+	bool hasAutomaticSpecularMap;
 	bool enablePhysicalMapping;
 
 	cullType_t cullType;

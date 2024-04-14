@@ -123,6 +123,7 @@ struct glconfig2_t
 	bool deluxeMapping;
 	bool normalMapping;
 	bool specularMapping;
+	bool automaticSpecularMap;
 	bool physicalMapping;
 	bool reliefMapping;
 	bool bloom;

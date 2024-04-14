@@ -1162,6 +1162,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		// Texture storage variants.
 		bool hasHeightMapInNormalMap;
+		bool hasAutomaticSpecularMap;
 
 		// Available features.
 		bool enableNormalMapping;
@@ -2922,6 +2923,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_specularExponentMax;
 	extern cvar_t *r_specularScale;
 	extern cvar_t *r_specularMapping;
+	extern Cvar::Cvar<bool> r_automaticSpecularMap;
 	extern cvar_t *r_deluxeMapping;
 	extern cvar_t *r_normalScale;
 	extern cvar_t *r_normalMapping;
