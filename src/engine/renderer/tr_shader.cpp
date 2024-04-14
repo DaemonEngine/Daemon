@@ -5179,7 +5179,7 @@ static void CollapseStages()
 
 		// Available features.
 		stage->enableNormalMapping = r_normalMapping->integer && stage->hasNormalMap;
-		stage->enableDeluxeMapping = r_deluxeMapping->integer && stage->hasNormalMap;
+		stage->enableDeluxeMapping = r_deluxeMapping->integer && ( stage->hasNormalMap || stage->hasMaterialMap );
 		stage->enableReliefMapping = r_reliefMapping->integer && !shader.disableReliefMapping && ( stage->hasHeightMap || stage->isHeightMapInNormalMap );
 		stage->enablePhysicalMapping = r_physicalMapping->integer && stage->hasMaterialMap && stage->isMaterialPhysical;
 		stage->enableSpecularMapping = r_specularMapping->integer && stage->hasMaterialMap && !stage->isMaterialPhysical;
