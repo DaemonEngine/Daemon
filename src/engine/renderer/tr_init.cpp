@@ -549,7 +549,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	RB_TakeScreenshot
 	==================
 	*/
-	static void RB_TakeScreenshot( int x, int y, int width, int height, const char *fileName )
+	static void RB_TakeScreenshotTGA( int x, int y, int width, int height, const char *fileName )
 	{
 		byte *buffer;
 		int  dataSize;
@@ -619,7 +619,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		switch ( format )
 		{
 			case ssFormat_t::SSF_TGA:
-				RB_TakeScreenshot( x, y, width, height, fileName );
+				RB_TakeScreenshotTGA( x, y, width, height, fileName );
 				break;
 
 			case ssFormat_t::SSF_JPEG:
@@ -713,7 +713,8 @@ public:
 		}
 	}
 };
-ScreenshotCmd screenshotTGARegistration("screenshot", ssFormat_t::SSF_TGA, "tga");
+ScreenshotCmd screenshotRegistration("screenshot", ssFormat_t::SSF_JPEG, "jpg");
+ScreenshotCmd screenshotTGARegistration("screenshotTGA", ssFormat_t::SSF_TGA, "tga");
 ScreenshotCmd screenshotJPEGRegistration("screenshotJPEG", ssFormat_t::SSF_JPEG, "jpg");
 ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "png");
 } // namespace
