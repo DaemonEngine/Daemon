@@ -3519,7 +3519,6 @@ inline bool checkGLErrors()
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorGeneric();
 	void Tess_StageIteratorPortal();
-	void Tess_StageIteratorDepthFill();
 	void Tess_StageIteratorShadowFill();
 	void Tess_StageIteratorLighting();
 	void Tess_StageIteratorSky();
