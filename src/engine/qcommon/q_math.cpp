@@ -1477,62 +1477,17 @@ float VectorDistanceSquared( vec3_t v1, vec3_t v2 )
 // *INDENT-OFF*
 void MatrixIdentity( matrix_t m )
 {
-	m[ 0 ] = 1;
-	m[ 4 ] = 0;
-	m[ 8 ] = 0;
-	m[ 12 ] = 0;
-	m[ 1 ] = 0;
-	m[ 5 ] = 1;
-	m[ 9 ] = 0;
-	m[ 13 ] = 0;
-	m[ 2 ] = 0;
-	m[ 6 ] = 0;
-	m[ 10 ] = 1;
-	m[ 14 ] = 0;
-	m[ 3 ] = 0;
-	m[ 7 ] = 0;
-	m[ 11 ] = 0;
-	m[ 15 ] = 1;
+	memcpy( m, matrixIdentity, sizeof( matrix_t ) );
 }
 
 void MatrixClear( matrix_t m )
 {
-	m[ 0 ] = 0;
-	m[ 4 ] = 0;
-	m[ 8 ] = 0;
-	m[ 12 ] = 0;
-	m[ 1 ] = 0;
-	m[ 5 ] = 0;
-	m[ 9 ] = 0;
-	m[ 13 ] = 0;
-	m[ 2 ] = 0;
-	m[ 6 ] = 0;
-	m[ 10 ] = 0;
-	m[ 14 ] = 0;
-	m[ 3 ] = 0;
-	m[ 7 ] = 0;
-	m[ 11 ] = 0;
-	m[ 15 ] = 0;
+	memset( m, 0, sizeof( matrix_t ) );
 }
 
 void MatrixCopy( const matrix_t in, matrix_t out )
 {
-	out[ 0 ] = in[ 0 ];
-	out[ 4 ] = in[ 4 ];
-	out[ 8 ] = in[ 8 ];
-	out[ 12 ] = in[ 12 ];
-	out[ 1 ] = in[ 1 ];
-	out[ 5 ] = in[ 5 ];
-	out[ 9 ] = in[ 9 ];
-	out[ 13 ] = in[ 13 ];
-	out[ 2 ] = in[ 2 ];
-	out[ 6 ] = in[ 6 ];
-	out[ 10 ] = in[ 10 ];
-	out[ 14 ] = in[ 14 ];
-	out[ 3 ] = in[ 3 ];
-	out[ 7 ] = in[ 7 ];
-	out[ 11 ] = in[ 11 ];
-	out[ 15 ] = in[ 15 ];
+	memcpy( out, in, sizeof( matrix_t ) );
 }
 
 bool MatrixCompare( const matrix_t a, const matrix_t b )
