@@ -2515,16 +2515,16 @@ Tess_ComputeTexMatrices
 */
 static void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 {
-	int   i;
-	vec_t *matrix;
-
 	GLimp_LogComment( "--- Tess_ComputeTexMatrices ---\n" );
 
-	for ( i = 0; i < MAX_TEXTURE_BUNDLES; i++ )
-	{
-		matrix = tess.svars.texMatrices[ i ];
+	matrix_t *matrix = tess.svars.texMatrices;
+	matrix_t *lastMatrix = matrix + MAX_TEXTURE_BUNDLES;
 
-		RB_CalcTexMatrix( &pStage->bundle[ i ], matrix );
+	textureBundle_t *bundle = pStage->bundle;
+
+	for ( ; matrix < lastMatrix; matrix++, bundle++ )
+	{
+		RB_CalcTexMatrix( bundle, *matrix );
 	}
 }
 
