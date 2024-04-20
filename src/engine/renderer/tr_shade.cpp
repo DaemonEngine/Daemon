@@ -2564,7 +2564,7 @@ void Tess_StageIteratorDebug()
 	Tess_DrawElements();
 }
 
-void Tess_StageIteratorGeneric()
+void Tess_StageIteratorColor()
 {
 	// log this call
 	if ( r_logFile->integer )
@@ -2572,7 +2572,7 @@ void Tess_StageIteratorGeneric()
 		// don't just call LogComment, or we will get
 		// a call to va() every frame!
 		GLimp_LogComment( va
-		                  ( "--- Tess_StageIteratorGeneric( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
+		                  ( "--- Tess_StageIteratorColor( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
 		                    tess.numVertexes, tess.numIndexes / 3 ) );
 	}
 
@@ -2609,7 +2609,7 @@ void Tess_StageIteratorGeneric()
 		Tess_ComputeColor( pStage );
 		Tess_ComputeTexMatrices( pStage );
 
-		pStage->genericRenderer( pStage );
+		pStage->colorRenderer( pStage );
 	}
 
 	if ( !r_noFog->integer && tess.fogNum >= 1 && tess.surfaceShader->fogPass != fogPass_t::FP_NONE )

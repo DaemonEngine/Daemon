@@ -897,7 +897,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				Tess_End();
 			}
 
-			Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, lightmapNum, fogNum, bspSurface );
+			Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, lightmapNum, fogNum, bspSurface );
 
 			oldShader = shader;
 			oldLightmapNum = lightmapNum;
@@ -5046,11 +5046,11 @@ const RenderCommand *StretchPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -5134,7 +5134,7 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( numverts, ( numverts - 2 ) * 3 );
@@ -5186,11 +5186,11 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	if( !tess.verts ) {
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( numverts, numIndexes );
@@ -5281,11 +5281,11 @@ const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -5372,11 +5372,11 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -5658,7 +5658,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
 	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
-	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader,
+	Tess_Begin( Tess_StageIteratorColor, nullptr, shader,
 		nullptr, false, surface->lightmapNum(), surface->fogNum(), true );
 	rb_surfaceTable[Util::ordinal( *( surface->surface ) )]( surface->surface );
 	Tess_End();

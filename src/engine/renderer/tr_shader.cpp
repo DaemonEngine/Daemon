@@ -5339,7 +5339,7 @@ static void FinishStages()
 static void SetStagesRenderers()
 {
 	struct stageRendererOptions_t {
-		stageRenderer_t genericRenderer;
+		stageRenderer_t colorRenderer;
 		bool doShadowFill;
 		bool doForwardLighting;
 	};
@@ -5398,12 +5398,12 @@ static void SetStagesRenderers()
 				break;
 		}
 
-		stage->genericRenderer = stageRendererOptions.genericRenderer;
+		stage->colorRenderer = stageRendererOptions.colorRenderer;
 		stage->doShadowFill = stageRendererOptions.doShadowFill;
 		stage->doForwardLighting = stageRendererOptions.doForwardLighting;
 
 		// Disable stages that have no renderer yet.
-		if ( stage->genericRenderer == &Render_NOP )
+		if ( stage->colorRenderer == &Render_NOP )
 		{
 			stage->active = false;
 			continue;

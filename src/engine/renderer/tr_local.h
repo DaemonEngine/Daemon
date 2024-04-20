@@ -1215,7 +1215,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool shaderHasNoLight;
 
-		stageRenderer_t genericRenderer;
+		stageRenderer_t colorRenderer;
 		bool doShadowFill;
 		bool doForwardLighting;
 
@@ -3520,7 +3520,7 @@ inline bool checkGLErrors()
 	void Tess_ComputeColor( shaderStage_t *pStage );
 
 	void Tess_StageIteratorDebug();
-	void Tess_StageIteratorGeneric();
+	void Tess_StageIteratorColor();
 	void Tess_StageIteratorPortal();
 	void Tess_StageIteratorShadowFill();
 	void Tess_StageIteratorLighting();
