@@ -717,27 +717,26 @@ RB_CalcTexMatrix
 */
 void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 {
-	int   j;
-	float x, y;
 
 	MatrixIdentity( matrix );
 
-	for ( j = 0; j < bundle->numTexMods; j++ )
+	texModInfo_t *texMod = bundle->texMods;
+	texModInfo_t *lastTexMod = texMod + bundle->numTexMods;
+
+	for ( ; texMod < lastTexMod; texMod++ )
 	{
-		switch ( bundle->texMods[ j ].type )
+		switch ( texMod->type )
 		{
 			case texMod_t::TMOD_NONE:
-				j = TR_MAX_TEXMODS; // break out of for loop
+				texMod = lastTexMod; // break out of for loop
 				break;
 
 			case texMod_t::TMOD_TURBULENT:
 				{
-					waveForm_t *wf;
+					waveForm_t *wf = &texMod->wave;
 
-					wf = &bundle->texMods[ j ].wave;
-
-					x = ( 1.0f / 4.0f );
-					y = ( wf->phase + backEnd.refdef.floatTime * wf->frequency );
+					float x = ( 1.0f / 4.0f );
+					float y = ( wf->phase + backEnd.refdef.floatTime * wf->frequency );
 
 					MatrixMultiplyScale( matrix, 1.0f + ( wf->amplitude * sinf( y ) + wf->base ) * x,
 					                     1.0f + ( wf->amplitude * sinf( y + 0.25f ) + wf->base ) * x, 0.0 );
@@ -746,8 +745,8 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_ENTITY_TRANSLATE:
 				{
-					x = backEnd.currentEntity->e.shaderTexCoord[ 0 ] * backEnd.refdef.floatTime;
-					y = backEnd.currentEntity->e.shaderTexCoord[ 1 ] * backEnd.refdef.floatTime;
+					float x = backEnd.currentEntity->e.shaderTexCoord[ 0 ] * backEnd.refdef.floatTime;
+					float y = backEnd.currentEntity->e.shaderTexCoord[ 1 ] * backEnd.refdef.floatTime;
 
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
@@ -760,8 +759,8 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_SCROLL:
 				{
-					x = bundle->texMods[ j ].scroll[ 0 ] * backEnd.refdef.floatTime;
-					y = bundle->texMods[ j ].scroll[ 1 ] * backEnd.refdef.floatTime;
+					float x = texMod->scroll[ 0 ] * backEnd.refdef.floatTime;
+					float y = texMod->scroll[ 1 ] * backEnd.refdef.floatTime;
 
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
@@ -774,8 +773,8 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_SCALE:
 				{
-					x = bundle->texMods[ j ].scale[ 0 ];
-					y = bundle->texMods[ j ].scale[ 1 ];
+					float x = texMod->scale[ 0 ];
+					float y = texMod->scale[ 1 ];
 
 					MatrixMultiplyScale( matrix, x, y, 0.0 );
 					break;
@@ -783,9 +782,7 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_STRETCH:
 				{
-					float p;
-
-					p = 1.0f / RB_EvalWaveForm( &bundle->texMods[ j ].wave );
+					float p = 1.0f / RB_EvalWaveForm( &texMod->wave );
 
 					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
 					MatrixMultiplyScale( matrix, p, p, 0.0 );
@@ -795,15 +792,13 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_TRANSFORM:
 				{
-					const texModInfo_t *tmi = &bundle->texMods[ j ];
-
-					MatrixMultiply2( matrix, tmi->matrix );
+					MatrixMultiply2( matrix, texMod->matrix );
 					break;
 				}
 
 			case texMod_t::TMOD_ROTATE:
 				{
-					x = -bundle->texMods[ j ].rotateSpeed * backEnd.refdef.floatTime;
+					float x = -texMod->rotateSpeed * backEnd.refdef.floatTime;
 
 					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
 					MatrixMultiplyZRotation( matrix, x );
@@ -813,8 +808,8 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_SCROLL2:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].sExp, 0 );
-					y = RB_EvalExpression( &bundle->texMods[ j ].tExp, 0 );
+					float x = RB_EvalExpression( &texMod->sExp, 0 );
+					float y = RB_EvalExpression( &texMod->tExp, 0 );
 
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
@@ -827,8 +822,8 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_SCALE2:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].sExp, 0 );
-					y = RB_EvalExpression( &bundle->texMods[ j ].tExp, 0 );
+					float x = RB_EvalExpression( &texMod->sExp, 0 );
+					float y = RB_EvalExpression( &texMod->tExp, 0 );
 
 					MatrixMultiplyScale( matrix, x, y, 0.0 );
 					break;
@@ -836,8 +831,8 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_CENTERSCALE:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].sExp, 0 );
-					y = RB_EvalExpression( &bundle->texMods[ j ].tExp, 0 );
+					float x = RB_EvalExpression( &texMod->sExp, 0 );
+					float y = RB_EvalExpression( &texMod->tExp, 0 );
 
 					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
 					MatrixMultiplyScale( matrix, x, y, 0.0 );
@@ -847,8 +842,8 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_SHEAR:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].sExp, 0 );
-					y = RB_EvalExpression( &bundle->texMods[ j ].tExp, 0 );
+					float x = RB_EvalExpression( &texMod->sExp, 0 );
+					float y = RB_EvalExpression( &texMod->tExp, 0 );
 
 					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
 					MatrixMultiplyShear( matrix, x, y );
@@ -858,7 +853,7 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 			case texMod_t::TMOD_ROTATE2:
 				{
-					x = RB_EvalExpression( &bundle->texMods[ j ].rExp, 0 );
+					float x = RB_EvalExpression( &texMod->rExp, 0 );
 
 					MatrixMultiplyTranslation( matrix, 0.5, 0.5, 0.0 );
 					MatrixMultiplyZRotation( matrix, x );
