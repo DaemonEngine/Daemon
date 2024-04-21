@@ -27,7 +27,7 @@ jobs:
       vmImage: 'macOS-11'
     steps:
     - bash: |
-        set -e
+        set -xe
         echo "Variables: PR_TARGET_BRANCH=${PR_TARGET_BRANCH} PR_SOURCE_REF=${PR_SOURCE_REF} BUILD_SOURCE_BRANCH=${BUILD_SOURCE_BRANCH}"
         curl -fsSL https://gitlab.com/illwieckz/git-checkout-modules/raw/master/git-checkout-modules -o ~/git-checkout-modules
         if ! [[ "$PR_SOURCE_REF" == '$('* ]]; then  # It is a pull request
@@ -57,7 +57,7 @@ jobs:
         cmake --build build -- -j`sysctl -n hw.logicalcpu`
       displayName: 'Build'
     - bash: |
-        set -e
+        set -xe
         # Use dummyapp so we don't need dpk's
         build/test-dummyapp -pakpath pkg
       displayName: 'Test'
@@ -88,7 +88,7 @@ jobs:
 
     steps:
     - bash: |
-        set -e
+        set -xe
         echo "Variables: PR_TARGET_BRANCH=${PR_TARGET_BRANCH} PR_SOURCE_REF=${PR_SOURCE_REF} BUILD_SOURCE_BRANCH=${BUILD_SOURCE_BRANCH}"
         curl -fsSL https://gitlab.com/illwieckz/git-checkout-modules/raw/master/git-checkout-modules -o ~/git-checkout-modules
         if ! [[ "$PR_SOURCE_REF" == '$('* ]]; then  # It is a pull request
@@ -118,13 +118,13 @@ jobs:
         $(EXTRA_INSTALLS)
       displayName: 'Install deps'
     - bash: |
-        set -e
+        set -xe
         cmake --version
         cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -DCMAKE_BUILD_TYPE=Release -H. -Bbuild
         cmake --build build -- -j`nproc`
       displayName: 'Build'
     - bash: |
-        set -e
+        set -xe
         # Use dummyapp so we don't need dpk's
         build/test-dummyapp -pakpath pkg
       condition: "and(succeeded(), eq(variables.TOOLCHAIN_FILE, ''))"
