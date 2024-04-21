@@ -44,12 +44,13 @@ before_build:
 build_script:
   # simple line break: space
   # double line break: line break
+
+  # The CFLAGS/CXXFLAGS env vars *prepend* to CMAKE_<lang>_FLAGS rather than overwriting.
+  # /Wv pins warnings to a specific compiler version so that new ones
+  # don't make the build error after Appveyor updates the compiler.
+
   - cmd: >
       cmake --version
-
-      :: These env vars *prepend* to CMAKE_<lang>_FLAGS rather than overwriting.
-      :: /Wv pins warnings to a specific compiler version so that new ones
-      :: don't make the build error after Appveyor updates the compiler.
 
       set CFLAGS=/Wv:19.29.30037
 
