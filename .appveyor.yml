@@ -45,11 +45,24 @@ build_script:
   # simple line break: space
   # double line break: line break
 
+  # There are two ways to do a multiprocessor build with CMake and MSVC,
+  # the CMAKE_BUILD_PARALLEL_LEVEL variable instructs CMake to run
+  # multiple tasks in parallel while the /MP compiler option instructs
+  # the compiler to do multithreaded compilation. We already set /MP.
+  # CMake reads CMAKE_BUILD_PARALLEL_LEVEL from environment.
+
   # The CFLAGS/CXXFLAGS env vars *prepend* to CMAKE_<lang>_FLAGS rather than overwriting.
   # /Wv pins warnings to a specific compiler version so that new ones
   # don't make the build error after Appveyor updates the compiler.
 
   - cmd: >
+
+      echo %NUMBER_OF_PROCESSORS%
+
+      set /a CMAKE_BUILD_PARALLEL_LEVEL="%NUMBER_OF_PROCESSORS% + 2"
+
+      echo %CMAKE_BUILD_PARALLEL_LEVEL%
+
       cmake --version
 
       set CFLAGS=/Wv:19.29.30037
