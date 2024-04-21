@@ -1418,8 +1418,17 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	if ( pStage->type == stageType_t::ST_LIGHTMAP )
+	{
+		// standalone lightmap stage: paint shadows over a white texture
+		GL_BindToTMU( 0, tr.whiteImage );
+	}
+	else
+	{
+		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+
+		gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
 	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1580,8 +1589,17 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	if ( pStage->type == stageType_t::ST_LIGHTMAP )
+	{
+		// standalone lightmap stage: paint shadows over a white texture
+		GL_BindToTMU( 0, tr.whiteImage );
+	}
+	else
+	{
+		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+
+		gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
 	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1744,8 +1762,17 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	if ( pStage->type == stageType_t::ST_LIGHTMAP )
+	{
+		// standalone lightmap stage: paint shadows over a white texture
+		GL_BindToTMU( 0, tr.whiteImage );
+	}
+	else
+	{
+		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+
+		gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
 	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
