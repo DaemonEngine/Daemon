@@ -897,7 +897,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				Tess_End();
 			}
 
-			Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, lightmapNum, fogNum, bspSurface );
+			Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, lightmapNum, fogNum, bspSurface );
 
 			oldShader = shader;
 			oldLightmapNum = lightmapNum;
@@ -1847,7 +1847,6 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 								                backEnd.viewParms.viewportY,
 								                backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
 					GL_LoadProjectionMatrix( ortho );
-					GL_LoadModelViewMatrix( matrixIdentity );
 
 					for ( frustumIndex = 0; frustumIndex <= r_parallelShadowSplits->integer; frustumIndex++ )
 					{
@@ -1855,7 +1854,6 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 						GL_State( GLS_DEPTHTEST_DISABLE );
 
 						gl_debugShadowMapShader->BindProgram( 0 );
-						gl_debugShadowMapShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 						GL_BindToTMU( 0, tr.sunShadowMapFBOImage[ frustumIndex ] );
 
@@ -1865,12 +1863,11 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 						x = 205 * frustumIndex;
 						y = 70;
 
-						Vector4Set( quadVerts[ 0 ], x, y, 0, 1 );
-						Vector4Set( quadVerts[ 1 ], x + w, y, 0, 1 );
-						Vector4Set( quadVerts[ 2 ], x + w, y + h, 0, 1 );
-						Vector4Set( quadVerts[ 3 ], x, y + h, 0, 1 );
+						Tess_InstantQuad( x, y, w, h );
 
-						Tess_InstantQuad( quadVerts );
+						gl_debugShadowMapShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+						
+						Tess_DrawElements();
 
 						{
 							int    j;
@@ -2010,7 +2007,6 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 		return;
 	}
 
-	vec4_t  verts[ 4 ];
 	int     index;
 	image_t **images;
 	FBO_t   **fbos;
@@ -2020,11 +2016,6 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	fbos = ( light->l.rlType == refLightType_t::RL_DIRECTIONAL ) ? tr.sunShadowMapFBO : tr.shadowMapFBO;
 	images = ( light->l.rlType == refLightType_t::RL_DIRECTIONAL ) ? tr.sunShadowMapFBOImage : tr.shadowMapFBOImage;
 	index = ( light->l.rlType == refLightType_t::RL_DIRECTIONAL ) ? i : light->shadowLOD;
-
-	Vector4Set( verts[ 0 ], 0, 0, 0, 1 );
-	Vector4Set( verts[ 1 ], fbos[ index ]->width, 0, 0, 1 );
-	Vector4Set( verts[ 2 ], verts[ 1 ][ 0 ], fbos[ index ]->height, 0, 1 );
-	Vector4Set( verts[ 3 ], 0, verts[ 2 ][ 1 ], 0, 1 );
 
 	texScale[ 0 ] = 1.0f / fbos[ index ]->width;
 	texScale[ 1 ] = 1.0f / fbos[ index ]->height;
@@ -2038,8 +2029,8 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	}
 
 	// set the window clipping
-	GL_Viewport( 0, 0, verts[ 2 ][ 0 ], verts[ 2 ][ 1 ] );
-	GL_Scissor( 0, 0, verts[ 2 ][ 0 ], verts[ 2 ][ 1 ] );
+	GL_Viewport( 0, 0, fbos[index]->width, fbos[index]->height );
+	GL_Scissor( 0, 0, fbos[index]->width, fbos[index]->height );
 
 	glClear( GL_COLOR_BUFFER_BIT );
 
@@ -2049,17 +2040,19 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	GL_BindToTMU( 0, images[ index ] );
 
 	GL_PushMatrix();
-	GL_LoadModelViewMatrix( matrixIdentity );
 
-	MatrixOrthogonalProjection( ortho, 0, verts[ 2 ][ 0 ], 0, verts[ 2 ][ 1 ], -99999, 99999 );
+	MatrixOrthogonalProjection( ortho, 0, fbos[index]->width, 0, fbos[index]->height, -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
 
 	gl_blurXShader->BindProgram( 0 );
 	gl_blurXShader->SetUniform_DeformMagnitude( 1 );
-	gl_blurXShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 	gl_blurXShader->SetUniform_TexScale( texScale );
 
-	Tess_InstantQuad( verts );
+	Tess_InstantQuad( 0, 0, fbos[ index ]->width, fbos[ index ]->height );
+
+	gl_blurXShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	Tess_DrawElements();
 
 	R_AttachFBOTexture2D( images[ index ]->type, images[ index ]->texnum, 0 );
 
@@ -2069,10 +2062,13 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 
 	gl_blurYShader->BindProgram( 0 );
 	gl_blurYShader->SetUniform_DeformMagnitude( 1 );
-	gl_blurYShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 	gl_blurYShader->SetUniform_TexScale( texScale );
 
-	Tess_InstantQuad( verts );
+	Tess_InstantQuad( 0, 0, fbos[index]->width, fbos[index]->height );
+
+	gl_blurYShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+	Tess_DrawElements();
 
 	GL_PopMatrix();
 }
@@ -2827,12 +2823,6 @@ void RB_RenderPostDepthLightTile()
 		return;
 	}
 
-	static vec4_t quadVerts[4] = {
-		{ -1.0f, -1.0f, 0.0f, 1.0f },
-		{  1.0f, -1.0f, 0.0f, 1.0f },
-		{  1.0f,  1.0f, 0.0f, 1.0f },
-		{ -1.0f,  1.0f, 0.0f, 1.0f }
-	};
 	vec3_t zParams;
 	int w, h;
 
@@ -2861,7 +2851,20 @@ void RB_RenderPostDepthLightTile()
 	gl_depthtile1Shader->SetUniform_zFar( zParams );
 	GL_BindToTMU( 0, tr.currentDepthImage );
 
-	Tess_InstantQuad( quadVerts );
+	matrix_t ortho;
+	GL_PushMatrix();
+	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
+		backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
+		backEnd.viewParms.viewportY,
+		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
+	GL_LoadProjectionMatrix( ortho );
+
+	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+	gl_depthtile1Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	Tess_DrawElements();
 
 	// 2nd step
 	R_BindFBO( tr.depthtile2FBO );
@@ -2874,7 +2877,14 @@ void RB_RenderPostDepthLightTile()
 
 	GL_BindToTMU( 0, tr.depthtile1RenderImage );
 
-	Tess_InstantQuad( quadVerts );
+	gl_depthtile2Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+	Tess_DrawElements();
+
+	GL_PopMatrix();
 
 	vec3_t projToViewParams;
 	projToViewParams[0] = tanf(DEG2RAD(backEnd.refdef.fov_x * 0.5f)) * backEnd.viewParms.zFar;
@@ -3009,12 +3019,14 @@ void RB_RenderGlobalFog()
 	                            backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
 	                            -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
-	GL_LoadModelViewMatrix( matrixIdentity );
+
+	// draw viewport
+	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 	gl_fogGlobalShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	// draw viewport
-	Tess_InstantQuad( backEnd.viewParms.viewportVerts );
+	Tess_DrawElements();
 
 	// go back to 3D
 	GL_PopMatrix();
@@ -3043,22 +3055,18 @@ void RB_RenderBloom()
 	                            backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
 	                            -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
-	GL_LoadModelViewMatrix( matrixIdentity );
 
 	{
 		GL_State( GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
 		GL_PushMatrix();
-		GL_LoadModelViewMatrix( matrixIdentity );
 
 		MatrixOrthogonalProjection( ortho, 0, tr.contrastRenderFBO->width, 0, tr.contrastRenderFBO->height, -99999, 99999 );
 		GL_LoadProjectionMatrix( ortho );
 
 		// render contrast downscaled to 1/4th of the screen
 		gl_contrastShader->BindProgram( 0 );
-
-		gl_contrastShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 		// u_InverseLightFactor
 		gl_contrastShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
@@ -3072,7 +3080,12 @@ void RB_RenderBloom()
 		glClear( GL_COLOR_BUFFER_BIT );
 
 		// draw viewport
-		Tess_InstantQuad( backEnd.viewParms.viewportVerts );
+		Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+						  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+		gl_contrastShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+		Tess_DrawElements();
 
 		// render bloom in multiple passes
 		GL_BindToTMU( 0, tr.contrastRenderFBOImage );
@@ -3093,10 +3106,12 @@ void RB_RenderBloom()
 				GL_State( GLS_DEPTHTEST_DISABLE );
 
 				GL_PushMatrix();
-				GL_LoadModelViewMatrix( matrixIdentity );
 
 				MatrixOrthogonalProjection( ortho, 0, tr.bloomRenderFBO[ 0 ]->width, 0, tr.bloomRenderFBO[ 0 ]->height, -99999, 99999 );
 				GL_LoadProjectionMatrix( ortho );
+
+				Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+								  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 				if ( i == 0 )
 				{
@@ -3115,10 +3130,11 @@ void RB_RenderBloom()
 					gl_blurYShader->SetUniform_TexScale( texScale );
 				}
 
-				GL_PopMatrix();
+				Tess_DrawElements();
 
-				Tess_InstantQuad( backEnd.viewParms.viewportVerts );
 				GL_BindToTMU( 0, tr.bloomRenderFBOImage[ flip ] );
+
+				GL_PopMatrix();
 				flip ^= 1;
 			}
 		}
@@ -3129,9 +3145,12 @@ void RB_RenderBloom()
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
 		glVertexAttrib4fv( ATTR_INDEX_COLOR, Color::White.ToArray() );
 
+		Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+						  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
 		gl_screenShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-		Tess_InstantQuad( backEnd.viewParms.viewportVerts );
+		Tess_DrawElements();
 	}
 
 	// go back to 3D
@@ -3142,12 +3161,6 @@ void RB_RenderBloom()
 
 void RB_RenderMotionBlur()
 {
-	static vec4_t quadVerts[4] = {
-		{ -1.0f, -1.0f, 0.0f, 1.0f },
-		{  1.0f, -1.0f, 0.0f, 1.0f },
-		{  1.0f,  1.0f, 0.0f, 1.0f },
-		{ -1.0f,  1.0f, 0.0f, 1.0f }
-	};
 
 	GLimp_LogComment( "--- RB_RenderMotionBlur ---\n" );
 
@@ -3170,20 +3183,29 @@ void RB_RenderMotionBlur()
 
 	GL_BindToTMU( 1, tr.currentDepthImage );
 
+	matrix_t ortho;
+	GL_PushMatrix();
+	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
+		backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
+		backEnd.viewParms.viewportY,
+		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
+	GL_LoadProjectionMatrix( ortho );
+
 	// draw quad
-	Tess_InstantQuad( quadVerts );
+	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+	gl_motionblurShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	Tess_DrawElements();
+
+	GL_PopMatrix();
 
 	GL_CheckErrors();
 }
 
 void RB_RenderSSAO()
 {
-	static vec4_t quadVerts[4] = {
-		{ -1.0f, -1.0f, 0.0f, 1.0f },
-		{  1.0f, -1.0f, 0.0f, 1.0f },
-		{  1.0f,  1.0f, 0.0f, 1.0f },
-		{ -1.0f,  1.0f, 0.0f, 1.0f }
-	};
 	vec3_t zParams;
 
 	GLimp_LogComment( "--- RB_RenderSSAO ---\n" );
@@ -3217,20 +3239,29 @@ void RB_RenderSSAO()
 
 	GL_BindToTMU( 0, tr.currentDepthImage );
 
+	matrix_t ortho;
+	GL_PushMatrix();
+	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
+		backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
+		backEnd.viewParms.viewportY,
+		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
+	GL_LoadProjectionMatrix( ortho );
+
 	// draw quad
-	Tess_InstantQuad( quadVerts );
+	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+	gl_ssaoShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	Tess_DrawElements();
+
+	GL_PopMatrix();
 
 	GL_CheckErrors();
 }
 
 void RB_FXAA()
 {
-	static vec4_t quadVerts[4] = {
-		{ -1.0f, -1.0f, 0.0f, 1.0f },
-		{  1.0f, -1.0f, 0.0f, 1.0f },
-		{  1.0f,  1.0f, 0.0f, 1.0f },
-		{ -1.0f,  1.0f, 0.0f, 1.0f }
-	};
 
 	GLimp_LogComment( "--- RB_FXAA ---\n" );
 
@@ -3256,7 +3287,22 @@ void RB_FXAA()
 	// set the shader parameters
 	gl_fxaaShader->BindProgram( 0 );
 
-	Tess_InstantQuad( quadVerts );
+	matrix_t ortho;
+	GL_PushMatrix();
+	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
+		backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
+		backEnd.viewParms.viewportY,
+		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
+	GL_LoadProjectionMatrix( ortho );
+
+	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+	gl_fxaaShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	Tess_DrawElements();
+
+	GL_PopMatrix();
 
 	GL_CheckErrors();
 }
@@ -3280,7 +3326,6 @@ void RB_CameraPostFX()
 	                            backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
 	                            -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
-	GL_LoadModelViewMatrix( matrixIdentity );
 
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -3292,7 +3337,6 @@ void RB_CameraPostFX()
 	gl_cameraEffectsShader->SetUniform_LightFactor( tr.mapLightFactor );
 
 	gl_cameraEffectsShader->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
-	gl_cameraEffectsShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
 
@@ -3303,7 +3347,12 @@ void RB_CameraPostFX()
 	GL_BindToTMU( 3, tr.colorGradeImage );
 
 	// draw viewport
-	Tess_InstantQuad( backEnd.viewParms.viewportVerts );
+	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+	gl_cameraEffectsShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	Tess_DrawElements();
 
 	// go back to 3D
 	GL_PopMatrix();
@@ -3914,7 +3963,6 @@ static void RB_RenderDebugUtils()
 		interaction_t *ia;
 		int           iaCount;
 		matrix_t      ortho;
-		vec4_t        quadVerts[ 4 ];
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
@@ -3943,19 +3991,16 @@ static void RB_RenderDebugUtils()
 		                            backEnd.viewParms.viewportY,
 		                            backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
 		GL_LoadProjectionMatrix( ortho );
-		GL_LoadModelViewMatrix( matrixIdentity );
-
-		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 		for ( iaCount = 0, ia = &backEnd.viewParms.interactions[ 0 ]; iaCount < backEnd.viewParms.numInteractions; )
 		{
 			gl_genericShader->SetUniform_Color( Color::White );
 
-			Vector4Set( quadVerts[ 0 ], ia->scissorX, ia->scissorY, 0, 1 );
-			Vector4Set( quadVerts[ 1 ], ia->scissorX + ia->scissorWidth - 1, ia->scissorY, 0, 1 );
-			Vector4Set( quadVerts[ 2 ], ia->scissorX + ia->scissorWidth - 1, ia->scissorY + ia->scissorHeight - 1, 0, 1 );
-			Vector4Set( quadVerts[ 3 ], ia->scissorX, ia->scissorY + ia->scissorHeight - 1, 0, 1 );
-			Tess_InstantQuad( quadVerts );
+			Tess_InstantQuad( ia->scissorX, ia->scissorY, ia->scissorWidth - 1.0f, ia->scissorHeight - 1.0f );
+
+			gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+			Tess_DrawElements();
 
 			if ( !ia->next )
 			{
@@ -4247,12 +4292,10 @@ static void RB_RenderDebugUtils()
 				                            backEnd.viewParms.viewportY,
 				                            backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
 				GL_LoadProjectionMatrix( ortho );
-				GL_LoadModelViewMatrix( matrixIdentity );
 
 				GL_Cull( cullType_t::CT_TWO_SIDED );
 				GL_State( GLS_DEPTHTEST_DISABLE );
 
-				gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 				gl_genericShader->SetUniform_Color( Color::Black );
 
 				w = 300;
@@ -4266,7 +4309,11 @@ static void RB_RenderDebugUtils()
 				Vector4Set( quadVerts[ 2 ], x + w, y + h, 0, 1 );
 				Vector4Set( quadVerts[ 3 ], x, y + h, 0, 1 );
 
-				Tess_InstantQuad( quadVerts );
+				Tess_InstantQuad( x, y, w, h );
+
+				gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+
+				Tess_DrawElements();
 
 				{
 					int    j;
@@ -4999,11 +5046,11 @@ const RenderCommand *StretchPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -5087,7 +5134,7 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( numverts, ( numverts - 2 ) * 3 );
@@ -5139,11 +5186,11 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	if( !tess.verts ) {
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( numverts, numIndexes );
@@ -5234,11 +5281,11 @@ const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -5325,11 +5372,11 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 		}
 
 		backEnd.currentEntity = &backEnd.entity2D;
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	if( !tess.indexes ) {
-		Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, false, -1, 0 );
+		Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, false, -1, 0 );
 	}
 
 	Tess_CheckOverflow( 4, 6 );
@@ -5611,7 +5658,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
 	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
-	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader,
+	Tess_Begin( Tess_StageIteratorColor, nullptr, shader,
 		nullptr, false, surface->lightmapNum(), surface->fogNum(), true );
 	rb_surfaceTable[Util::ordinal( *( surface->surface ) )]( surface->surface );
 	Tess_End();
@@ -5714,7 +5761,6 @@ void RB_ShowImages()
 	int     i;
 	image_t *image;
 	float   x, y, w, h;
-	vec4_t  quadVerts[ 4 ];
 	int     start, end;
 
 	GLimp_LogComment( "--- RB_ShowImages ---\n" );
@@ -5748,6 +5794,14 @@ void RB_ShowImages()
 
 	start = ri.Milliseconds();
 
+	matrix_t ortho;
+	GL_PushMatrix();
+	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
+		backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
+		backEnd.viewParms.viewportY,
+		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
+	GL_LoadProjectionMatrix( ortho );
+
 	for ( i = 0; i < tr.images.currentElements; i++ )
 	{
 		image = ( image_t * ) Com_GrowListElement( &tr.images, i );
@@ -5775,13 +5829,14 @@ void RB_ShowImages()
 		// bind u_ColorMap
 		GL_Bind( image );
 
-		Vector4Set( quadVerts[ 0 ], x, y, 0, 1 );
-		Vector4Set( quadVerts[ 1 ], x + w, y, 0, 1 );
-		Vector4Set( quadVerts[ 2 ], x + w, y + h, 0, 1 );
-		Vector4Set( quadVerts[ 3 ], x, y + h, 0, 1 );
+		Tess_InstantQuad( x, y, w, h );
 
-		Tess_InstantQuad( quadVerts );
+		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+		Tess_DrawElements();
 	}
+
+	GL_PopMatrix();
 
 	glFinish();
 

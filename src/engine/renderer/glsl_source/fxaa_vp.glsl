@@ -33,10 +33,10 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 /* fxaa_vp.glsl */
 
+uniform mat4 u_ModelViewProjectionMatrix;
 IN vec3 		attr_Position;
 
 void	main()
 {
-	// transform vertex position into homogenous clip-space
-	gl_Position = vec4(attr_Position, 1.0);
+	gl_Position = u_ModelViewProjectionMatrix * vec4( attr_Position, 1.0f );
 }

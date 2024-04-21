@@ -461,9 +461,7 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			}
 
 			// Make it forwardable.
-			cmdlineArgs.commands.append(argv[i] + 1);
-			cmdlineArgs.commands.push_back(' ');
-			cmdlineArgs.commands.append(Cmd::Escape(argv[i + 1]));
+			cmdlineArgs.commands = "connect " + Cmd::Escape(argv[i + 1]);
 
 			if (argc > i + 2) {
 				// It is necessary to ignore following arguments because the command line may have
@@ -471,6 +469,18 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				Log::Warn("Ignoring extraneous arguments after -connect URI");
 			}
 			break;
+		}
+
+		// Variant that does not discard subsequent arguments. This can be used if the argument is sent
+		// by our updater which can validate the inputs
+		if (Str::IsIEqual("-connect-trusted", argv[i])) {
+			if (argc < i + 2) {
+				Log::Warn("Missing command line parameter for -connect-trusted");
+				break;
+			}
+
+			cmdlineArgs.commands = "connect " + Cmd::Escape(argv[i + 1]);
+			i++;
 		}
 
 		if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-help") || !strcmp(argv[i], "-h")) {

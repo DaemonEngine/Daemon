@@ -1199,6 +1199,10 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	  COLLAPSE_REFLECTIONMAP,
 	};
 
+	struct shaderStage_t;
+
+	using stageRenderer_t = void(*)(shaderStage_t *);
+
 	struct shaderStage_t
 	{
 		stageType_t     type;
@@ -1210,6 +1214,10 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		bool            dpMaterial;
 
 		bool shaderHasNoLight;
+
+		stageRenderer_t colorRenderer;
+		bool doShadowFill;
+		bool doForwardLighting;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
@@ -1259,13 +1267,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		expression_t    fresnelScaleExp;
 		expression_t    fresnelBiasExp;
 
-		// Available textures.
-		bool hasNormalMap;
-		bool hasHeightMap;
-		bool isHeightMapInNormalMap;
-		bool hasMaterialMap;
-		bool isMaterialPhysical;
-		bool hasGlowMap;
+		// Texture storage variants.
+		bool hasHeightMapInNormalMap;
 
 		// Available features.
 		bool enableNormalMapping;
@@ -2831,11 +2834,14 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		// 1 / mapLightFactor
 		float mapInverseLightFactor;
 		// May have to be true on some legacy maps: clamp and normalize multiplied colors.
-		bool forceLegacyMapOverBrightClamping;
+		bool forceLegacyOverBrightClamping;
 
 		orientationr_t orientation; // for current entity
 
 		trRefdef_t     refdef;
+
+		// Generic shapes
+		drawSurf_t *genericQuad;
 
 		bool           hasSkybox;
 		drawSurf_t     *skybox;
@@ -2954,7 +2960,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
-	extern Cvar::Cvar<bool> r_forceLegacyMapOverBrightClamping;
+	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
@@ -3514,9 +3520,8 @@ inline bool checkGLErrors()
 	void Tess_ComputeColor( shaderStage_t *pStage );
 
 	void Tess_StageIteratorDebug();
-	void Tess_StageIteratorGeneric();
+	void Tess_StageIteratorColor();
 	void Tess_StageIteratorPortal();
-	void Tess_StageIteratorDepthFill();
 	void Tess_StageIteratorShadowFill();
 	void Tess_StageIteratorLighting();
 	void Tess_StageIteratorSky();
@@ -3538,11 +3543,22 @@ inline bool checkGLErrors()
 	void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 	void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 
-	void Tess_InstantQuad( vec4_t quadVerts[ 4 ] );
+	void Tess_InstantQuad( const float x, const float y, const float width, const float height );
 	void Tess_MapVBOs( bool forceCPU );
 	void Tess_UpdateVBOs();
 
 	void RB_ShowImages();
+
+	void Render_NOP( shaderStage_t *pStage );
+	void Render_generic( shaderStage_t *pStage );
+	void Render_generic3D( shaderStage_t *pStage );
+	void Render_lightMapping( shaderStage_t *pStage );
+	void Render_reflection_CB( shaderStage_t *pStage );
+	void Render_skybox( shaderStage_t *pStage );
+	void Render_screen( shaderStage_t *pStage );
+	void Render_portal( shaderStage_t *pStage );
+	void Render_heatHaze( shaderStage_t *pStage );
+	void Render_liquid( shaderStage_t *pStage );
 
 	/*
 	============================================================

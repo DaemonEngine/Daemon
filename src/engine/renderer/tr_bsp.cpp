@@ -674,7 +674,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 2 ];
 					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
-					if ( tr.forceLegacyMapOverBrightClamping )
+					if ( tr.forceLegacyOverBrightClamping )
 					{
 						R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ] );
 					}
@@ -1041,7 +1041,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
 
-		if ( tr.forceLegacyMapOverBrightClamping )
+		if ( tr.forceLegacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 		}
@@ -1251,7 +1251,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		if ( tr.forceLegacyMapOverBrightClamping )
+		if ( tr.forceLegacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray() );
 		}
@@ -1378,7 +1378,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 
 			cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		if ( tr.forceLegacyMapOverBrightClamping )
+		if ( tr.forceLegacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 		}
@@ -4169,7 +4169,7 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		if ( tr.forceLegacyMapOverBrightClamping )
+		if ( tr.forceLegacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( tmpAmbient );
 			R_ColorShiftLightingBytes( tmpDirected );
@@ -4424,10 +4424,10 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 			tr.mapOverBrightBits = Math::Clamp( atof( value ), 0.0, 3.0 );
 		}
 
-		// Force forceLegacyMapOverBrightClamping even if r_forceLegacyMapOverBrightClamping is false.
-		else if ( !Q_stricmp( keyname, "forceLegacyMapOverBrightClamping" ) && !Q_stricmp( value, "1" ) )
+		// Force forceLegacyOverBrightClamping even if r_forceLegacyOverBrightClamping is false.
+		else if ( !Q_stricmp( keyname, "forceLegacyOverBrightClamping" ) && !Q_stricmp( value, "1" ) )
 		{
-			tr.forceLegacyMapOverBrightClamping = true;
+			tr.forceLegacyOverBrightClamping = true;
 		}
 
 		// check for deluxe mapping provided by NetRadiant's q3map2
@@ -7086,7 +7086,7 @@ void RE_LoadWorldMap( const char *name )
 
 	/* Used in GLSL code for the GLSL implementation
 	without color clamping and normalization. */
-	if ( !tr.forceLegacyMapOverBrightClamping )
+	if ( !tr.forceLegacyOverBrightClamping )
 	{
 		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
 		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;

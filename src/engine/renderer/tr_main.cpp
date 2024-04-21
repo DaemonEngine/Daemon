@@ -1675,7 +1675,7 @@ static bool SurfIsOffscreen( const drawSurf_t *drawSurf, screenRect_t& surfRect 
 		tr.orientation = tr.viewParms.world;
 	}
 
-	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, true, -1, 0 );
+	Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, true, -1, 0 );
 	rb_surfaceTable[ Util::ordinal(*drawSurf->surface) ]( drawSurf->surface );
 
 	// Tr3B: former assertion
@@ -2411,7 +2411,8 @@ void R_AddLightInteractions()
 			{
 				continue;
 			}
-			else if ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity )
+
+			if ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity )
 			{
 				continue;
 			}
@@ -2427,7 +2428,7 @@ void R_AddLightInteractions()
 		}
 		else if ( light->l.inverseShadows )
 		{
-			if( !glConfig2.dynamicLight)
+			if ( !glConfig2.dynamicLight )
 			{
 				light->cull = CULL_OUT;
 				continue;
@@ -2437,17 +2438,17 @@ void R_AddLightInteractions()
 		{
 			if ( !glConfig2.dynamicLight )
 			{
+				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
-
-			if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
+			else if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
 			{
 				tr.refdef.numShaderLights++;
 				tr.pc.c_dlights++;
-			}
 
-			light->cull = cullResult_t::CULL_OUT;
-			continue;
+				light->cull = cullResult_t::CULL_OUT;
+				continue;
+			}
 		}
 
 		R_TransformShadowLight( light );
@@ -2624,16 +2625,19 @@ void R_AddLightBoundsToVisBounds()
 
 		if ( light->isStatic )
 		{
-			if ( !glConfig2.staticLight
-				|| ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP )
-					&& !light->noRadiosity ) )
+			if ( !glConfig2.staticLight )
+			{
+				continue;
+			}
+
+			if ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity )
 			{
 				continue;
 			}
 		}
 		else
 		{
-			if ( !r_dynamicLight.Get() )
+			if ( !glConfig2.dynamicLight )
 			{
 				continue;
 			}
