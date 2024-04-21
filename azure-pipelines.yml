@@ -53,8 +53,12 @@ jobs:
     - bash: |
         set -e
         cmake --version
+        sysctl -n hw.logicalcpu
+        export CMAKE_BUILD_PARALLEL_LEVEL="$(($(sysctl -n hw.logicalcpu) + 2))"
+        echo "${CMAKE_BUILD_PARALLEL_LEVEL}"
+        # CMake reads CMAKE_BUILD_PARALLEL_LEVEL from environment.
         cmake -Wdev -Wdeprecated -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -H. -Bbuild
-        cmake --build build -- -j`sysctl -n hw.logicalcpu`
+        cmake --build build
       displayName: 'Build'
     - bash: |
         set -xe
@@ -120,8 +124,12 @@ jobs:
     - bash: |
         set -xe
         cmake --version
+        nproc
+        export CMAKE_BUILD_PARALLEL_LEVEL="$(($(nproc) + 2))"
+        echo "${CMAKE_BUILD_PARALLEL_LEVEL}"
+        # CMake reads CMAKE_BUILD_PARALLEL_LEVEL from environment.
         cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -DCMAKE_BUILD_TYPE=Release -H. -Bbuild
-        cmake --build build -- -j`nproc`
+        cmake --build build
       displayName: 'Build'
     - bash: |
         set -xe
