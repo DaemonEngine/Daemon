@@ -611,6 +611,11 @@ static void SetRgbaGen( const shaderStage_t *pStage, colorGen_t *rgbGen, alphaGe
 
 // *INDENT-ON*
 
+void Render_NONE( shaderStage_t * )
+{
+	ASSERT_UNREACHABLE();
+}
+
 void Render_NOP( shaderStage_t * )
 {
 }

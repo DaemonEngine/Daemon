@@ -5348,7 +5348,7 @@ static void SetStagesRenderers()
 	{
 		shaderStage_t *stage = &stages[ s ];
 
-		stageRendererOptions_t stageRendererOptions = { &Render_NOP, false, false };
+		stageRendererOptions_t stageRendererOptions = { &Render_NONE, false, false };
 
 		bool opaqueOrLess = shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE);
 
@@ -5390,7 +5390,7 @@ static void SetStagesRenderers()
 				break;
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
-				// Not implemented yet
+				stageRendererOptions = { &Render_NOP, false, true };
 				break;
 			default:
 				Log::Warn( "Missing renderer for stage type %d", Util::ordinal(stage->type) );
@@ -5403,7 +5403,7 @@ static void SetStagesRenderers()
 		stage->doForwardLighting = stageRendererOptions.doForwardLighting;
 
 		// Disable stages that have no renderer yet.
-		if ( stage->colorRenderer == &Render_NOP )
+		if ( stage->colorRenderer == &Render_NONE )
 		{
 			stage->active = false;
 			continue;
