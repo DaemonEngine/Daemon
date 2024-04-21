@@ -1522,15 +1522,10 @@ void GLShader::BindProgram( int deformIndex )
 	if ( index >= _shaderPrograms.size() || !_shaderPrograms[ index ].program )
 	{
 		std::string activeMacros;
-		size_t      numMacros = _compileMacros.size();
 
-		for ( size_t j = 0; j < numMacros; j++ )
+		for ( const auto& macro : _compileMacros )
 		{
-			GLCompileMacro *macro = _compileMacros[ j ];
-
-			int           bit = macro->GetBit();
-
-			if ( IsMacroSet( bit ) )
+			if ( IsMacroSet( macro->GetBit() ) )
 			{
 				activeMacros += macro->GetName();
 				activeMacros += " ";
@@ -1558,15 +1553,10 @@ void GLShader::BindProgram( int deformIndex )
 void GLShader::SetRequiredVertexPointers()
 {
 	uint32_t macroVertexAttribs = 0;
-	size_t   numMacros = _compileMacros.size();
 
-	for ( size_t j = 0; j < numMacros; j++ )
+	for ( const auto& macro : _compileMacros )
 	{
-		GLCompileMacro *macro = _compileMacros[ j ];
-
-		int           bit = macro->GetBit();
-
-		if ( IsMacroSet( bit ) )
+		if ( IsMacroSet( macro->GetBit() ) )
 		{
 			macroVertexAttribs |= macro->GetRequiredVertexAttributes();
 		}
