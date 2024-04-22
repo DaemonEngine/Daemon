@@ -5204,6 +5204,15 @@ static void FinishStages()
 				lightStageFound = true;
 				shaderHasNoLight = false;
 				break;
+
+			case stageType_t::ST_ATTENUATIONMAP_XY:
+			case stageType_t::ST_ATTENUATIONMAP_Z:
+				if ( !glConfig2.dynamicLight || r_dynamicLightRenderer.Get() != Util::ordinal( dynamicLightRenderer_t::LEGACY ) )
+				{
+					stage->active = false;
+				}
+				break;
+
 			default:
 				break;
 		}
