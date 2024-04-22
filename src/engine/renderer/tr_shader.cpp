@@ -3229,7 +3229,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		stage->type = stageType_t::ST_COLLAPSE_COLORMAP;
 	}
 
-	else if ( stages->collapseType == collapseType_t::COLLAPSE_REFLECTIONMAP )
+	else if ( stage->collapseType == collapseType_t::COLLAPSE_REFLECTIONMAP )
 	{
 		stage->type = stageType_t::ST_COLLAPSE_REFLECTIONMAP;
 	}
