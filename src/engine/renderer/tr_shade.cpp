@@ -1064,12 +1064,9 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_lightMappingShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_lightMappingShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -1350,12 +1347,9 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -1515,12 +1509,9 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_projXYZ->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_projXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -1679,12 +1670,9 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_directionalSun->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_directionalSun->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -1882,12 +1870,9 @@ void Render_reflection_CB( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_reflectionShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_reflectionShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -2142,12 +2127,9 @@ void Render_liquid( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_liquidShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_liquidShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 

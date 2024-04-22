@@ -40,7 +40,7 @@ static char          *s_shaderText;
 // the shader is parsed into these global variables, then copied into
 // dynamically allocated memory if it is valid.
 static shaderTable_t table;
-static shaderStage_t stages[ MAX_SHADER_STAGES ];
+static std::array<shaderStage_t, MAX_SHADER_STAGES> stages;
 static shader_t      shader;
 static texModInfo_t  texMods[ MAX_SHADER_STAGES ][ TR_MAX_TEXMODS ];
 
@@ -67,10 +67,9 @@ It's possible to extend this parser with other stage keywords
 from other engines to load normal map with their respective format.
 
 The normalFormat stage keyword can be used in materials to set an
-arbitrary format.
-*/
-static const vec3_t glNormalFormat = {  1.0,  1.0,  1.0 };
-static const vec3_t dxNormalFormat = {  1.0, -1.0,  1.0 };
+arbitrary format. */
+static const int8_t glNormalFormat[ 3 ] = { 1,  1, 1 };
+static const int8_t dxNormalFormat[ 3 ] = { 1, -1, 1 };
 
 // DarkPlaces material compatibility
 static Cvar::Cvar<bool> r_dpMaterial("r_dpMaterial", "Enable DarkPlaces material compatibility", Cvar::NONE, false);
@@ -1787,6 +1786,11 @@ static void ParseLightFalloffImage( shaderStage_t *stage, const char **text )
 	}
 }
 
+static bool HasNormalFormat( shaderStage_t *stage )
+{
+	return stage->normalFormat[ 0 ];
+}
+
 /* SetNormalFormat: set normal format for given stage if normal format
 is not already set or it must be overwritten.
 
@@ -1822,16 +1826,11 @@ textures/castle/brick
 ```
 */
 
-void SetNormalFormat( shaderStage_t *stage, const vec3_t normalFormat, bool force = false )
+static void SetNormalFormat( shaderStage_t *stage, const int8_t normalFormat[ 3 ], bool force = false )
 {
-	if ( !stage->hasNormalFormat || force )
+	if ( force || !HasNormalFormat( stage ) )
 	{
-		stage->hasNormalFormat = true;
-
-		for ( int i = 0; i < 3; i++ )
-		{
-			stage->normalFormat[ i ] = normalFormat[ i ];
-		}
+		VectorCopy( normalFormat, stage->normalFormat );
 	}
 }
 
@@ -3099,7 +3098,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "normalFormat" ) )
 		{
 			const char* components[3] = { "X", "Y", "Z" };
-			vec3_t normalFormat;
+			int8_t normalFormat[ 3 ];
 
 			for ( int i = 0; i < 3; i++ )
 			{
@@ -3107,11 +3106,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 
 				if ( !Q_stricmp( token, components[ i ] ) )
 				{
-					normalFormat[ i ] = 1.0;
+					normalFormat[ i ] = 1;
 				}
 				else if ( token[ 0 ] == '-' && !Q_stricmp( token + 1, components[ i ] ) )
 				{
-					normalFormat[ i ] = -1.0;
+					normalFormat[ i ] = -1;
 				}
 				else
 				{
@@ -3185,7 +3184,6 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				}
 
 				stage->normalScale[ i ] = j;
-				stage->hasNormalScale = true;
 			}
 
 			SkipRestOfLine( text );
@@ -5108,9 +5106,6 @@ static void CollapseStages()
 				stages[ diffuseStage ].normalScale[ i ] = stages[ normalStage ].normalScale[ i ];
 			}
 
-			stages[ diffuseStage ].hasNormalFormat = stages[ normalStage ].hasNormalFormat;
-			stages[ diffuseStage ].hasNormalScale = stages[ normalStage ].hasNormalScale;
-
 			stages[ diffuseStage ].hasHeightMapInNormalMap = stages[ normalStage ].hasHeightMapInNormalMap;
 
 			// disable since it's merged
@@ -5298,51 +5293,43 @@ static void FinishStages()
 		}
 
 		// Compute normal scale.
-		for ( int i = 0; i < 3; i++ )
+		if ( hasNormalMap )
 		{
-			if ( hasNormalMap )
+			/* Please make sure the parser sets a normal format
+			when adding a new normal map syntax. */
+			DAEMON_ASSERT( HasNormalFormat( stage ) );
+
+			/* Without true as third argument, this function does
+			nothing if a normal format is already set, this is done
+			here as a fallback, GL format is 1,1,1. */
+			SetNormalFormat( stage, glNormalFormat );
+			
+			stage->normalScale[ 0 ] *= stage->normalFormat[ 0 ];
+			stage->normalScale[ 1 ] *= stage->normalFormat[ 1 ];
+
+			/* Because Z reconstruction is destructive on alpha channel
+			Z reconstruction is never done on normal map shipping height
+			map in alpha channel and Z is read from the file itself.
+			Those files always provide Z anyway.
+
+			If height map is not stored in normal map alpha channel,
+			the Z component will be reconstructed from X and Y whatever
+			Z is provided by the file or not) and Z will be fine from
+			the start, so we must not apply the format translation on
+			the Z channel.
+
+			So this test means X and Y formats are always applied,
+			but Z format is applied only when Z is not reconstructed.
+
+			The XYZ format translations are not done on RGB channels
+			from the file but on the RGB channels as seen in GLSL shader,
+			there is no need to worry about DXn storing X in alpha channel.
+
+			This way the material syntax is expected to work the same with
+			both the PNG source and the released CRN. */
+			if ( stage->hasHeightMapInNormalMap )
 			{
-				if ( !stage->hasNormalFormat )
-				{
-					// Please make sure the parser sets a normal format
-					// when adding a new normal map syntax.
-					ASSERT_UNREACHABLE();
-				}
-
-				if ( !stage->hasNormalScale )
-				{
-					stage->normalScale[ i ] = 1.0;
-				}
-
-				/* Because Z reconstruction is destructive on alpha channel
-				Z reconstruction is never done on normal map shipping height
-				map in alpha channel and Z is read from the file itself.
-				Those files always provide Z anyway.
-
-				If height map is not stored in normal map alpha channel,
-				the Z component will be reconstructed from X and Y whatever
-				Z is provided by the file or not) and Z will be fine from
-				the start, so we must not apply the format translation on
-				the Z channel.
-
-				So this test means X and Y formats are always applied,
-				but Z format is applied only when Z is not reconstructed.
-
-				Note the XYZ format translations are not done on RGB channels
-				from the file but on the RGB channels as seen in GLSL shader,
-				there is no need to worry about DXn storing X in alpha channel.
-
-				This way the material syntax is expected to work the same with
-				both the PNG source and the released CRN.
-				*/
-				if ( i < 2 || stage->hasHeightMapInNormalMap )
-				{
-					stage->normalScale[ i ] *= stage->normalFormat[ i ];
-				}
-			}
-			else
-			{
-				stage->normalScale[ i ] = 1.0;
+				stage->normalScale[ 2 ] *= stage->normalFormat[ 2 ];
 			}
 		}
 	}
@@ -6209,6 +6196,12 @@ shader_t       *R_FindShaderByName( const char *name )
 	return tr.defaultShader;
 }
 
+static void ClearGlobalShader()
+{
+	ResetStruct( shader );
+	ResetStruct( stages );
+}
+
 /*
 ===============
 R_FindShader
@@ -6274,9 +6267,8 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 		R_SyncRenderThread();
 	}
 
-	// clear the global shader
-	memset( &shader, 0, sizeof( shader ) );
-	memset( &stages, 0, sizeof( stages ) );
+	ClearGlobalShader();
+
 	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
 	shader.type = type;
 
@@ -6472,9 +6464,8 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 		R_SyncRenderThread();
 	}
 
-	// clear the global shader
-	memset( &shader, 0, sizeof( shader ) );
-	memset( &stages, 0, sizeof( stages ) );
+	ClearGlobalShader();
+
 	Q_strncpyz( shader.name, name, sizeof( shader.name ) );
 	shader.type = shaderType_t::SHADER_2D;
 	shader.cullType = CT_TWO_SIDED;
@@ -6922,7 +6913,7 @@ static void ScanAndLoadShaderFiles()
 			shaderTable_t *tb;
 			bool      alreadyCreated;
 
-			// zeroes all shaders, booleans can be assumed as false
+			// zeroes shader table, booleans can be assumed as false
 			memset( &table, 0, sizeof( table ) );
 
 			token = COM_ParseExt2( &p, true );
@@ -7010,9 +7001,7 @@ static void CreateInternalShaders()
 
 	tr.numShaders = 0;
 
-	// init the default shader
-	memset( &shader, 0, sizeof( shader ) );
-	memset( &stages, 0, sizeof( stages ) );
+	ClearGlobalShader();
 
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
