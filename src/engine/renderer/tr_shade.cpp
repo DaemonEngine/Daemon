@@ -1081,15 +1081,10 @@ void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_DiffuseMap
-	if ( pStage->type == stageType_t::ST_LIGHTMAP )
-	{
-		// standalone lightmap stage: paint shadows over a white texture
-		GL_BindToTMU( BIND_DIFFUSEMAP, tr.whiteImage );
-	}
-	else
-	{
-		GL_BindToTMU( BIND_DIFFUSEMAP, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+	GL_BindToTMU( BIND_DIFFUSEMAP, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
 		gl_lightMappingShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 
@@ -1423,15 +1418,10 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	if ( pStage->type == stageType_t::ST_LIGHTMAP )
-	{
-		// standalone lightmap stage: paint shadows over a white texture
-		GL_BindToTMU( 0, tr.whiteImage );
-	}
-	else
-	{
-		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
 		gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 
@@ -1594,15 +1584,10 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	if ( pStage->type == stageType_t::ST_LIGHTMAP )
-	{
-		// standalone lightmap stage: paint shadows over a white texture
-		GL_BindToTMU( 0, tr.whiteImage );
-	}
-	else
-	{
-		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
 		gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 
@@ -1767,15 +1752,10 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	if ( pStage->type == stageType_t::ST_LIGHTMAP )
-	{
-		// standalone lightmap stage: paint shadows over a white texture
-		GL_BindToTMU( 0, tr.whiteImage );
-	}
-	else
-	{
-		GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
 		gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 

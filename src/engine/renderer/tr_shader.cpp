@@ -5193,6 +5193,12 @@ static void FinishStages()
 				break;
 
 			case stageType_t::ST_LIGHTMAP:
+				// standalone lightmap stage: paint shadows over a white texture
+				stage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
+				lightStageFound = true;
+				shaderHasNoLight = false;
+				break;
+
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				lightStageFound = true;
