@@ -5185,10 +5185,7 @@ static void FinishStages()
 
 			case stageType_t::ST_REFLECTIONMAP:
 			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-				if ( !r_reflectionMapping->integer )
-				{
-					stage->active = false;
-				}
+				stage->active = r_reflectionMapping->integer;
 				break;
 
 			case stageType_t::ST_STYLELIGHTMAP:
@@ -5211,10 +5208,7 @@ static void FinishStages()
 
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
-				if ( !glConfig2.dynamicLight || r_dynamicLightRenderer.Get() != Util::ordinal( dynamicLightRenderer_t::LEGACY ) )
-				{
-					stage->active = false;
-				}
+				stage->active = ( glConfig2.dynamicLight && r_dynamicLightRenderer.Get() != Util::ordinal( dynamicLightRenderer_t::LEGACY ) );
 				break;
 
 			default:
