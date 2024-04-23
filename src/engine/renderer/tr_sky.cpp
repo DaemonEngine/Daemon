@@ -138,9 +138,8 @@ void Tess_StageIteratorSky()
 	gl_skyboxShader->SetUniform_UseCloudMap( true );
 	gl_skyboxShader->SetUniform_CloudHeight( tess.surfaceShader->sky.cloudHeight );
 
-	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ ) {
-		shaderStage_t* pStage = tess.surfaceShader->stages[stage];
-
+	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
+	{
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) ) {
 			continue;
 		}
