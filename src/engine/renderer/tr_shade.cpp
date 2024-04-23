@@ -1990,11 +1990,6 @@ void Render_heatHaze( shaderStage_t *pStage )
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
 
-	if ( r_heatHaze->integer == 0 )
-	{
-		return;
-	}
-
 	// remove alpha test
 	stateBits = pStage->stateBits;
 	stateBits &= ~GLS_ATEST_BITS;
