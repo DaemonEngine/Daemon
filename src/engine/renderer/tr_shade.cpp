@@ -440,8 +440,8 @@ static void DrawTris()
 	gl_genericShader->SetDepthFade( false );
 	gl_genericShader->SetAlphaTesting( false );
 
-	if( tess.surfaceShader->stages[0] ) {
-		deform = tess.surfaceShader->stages[0]->deformIndex;
+	if( tess.surfaceStages != tess.surfaceLastStage ) {
+		deform = tess.surfaceStages[ 0 ].deformIndex;
 	}
 
 	gl_genericShader->BindProgram( deform );
@@ -524,7 +524,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 
 		tess.surfaceShader = state;
 		tess.surfaceStages = state->stages;
-		tess.numSurfaceStages = state->numStages;
+		tess.surfaceLastStage = state->lastStage;
 
 		Tess_MapVBOs( false );
 	}
@@ -532,9 +532,9 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	{
 		state = nullptr;
 
-		tess.numSurfaceStages = 0;
 		tess.surfaceShader = nullptr;
 		tess.surfaceStages = nullptr;
+		tess.surfaceLastStage = nullptr;
 		Tess_MapVBOs( false );
 	}
 
@@ -848,7 +848,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 	specific use case. Without knowing which use case this takes care about,
 	any change in the following code may break it. Or it may be a hack we
 	should drop if it is for a bug we don't have anymore. */
-	bool hack = tess.numSurfaceStages > 0 && tess.surfaceStages[0]->rgbGen == colorGen_t::CGEN_VERTEX;
+	bool hack = tess.surfaceLastStage != tess.surfaceStages
+		&& tess.surfaceStages[ 0 ].rgbGen == colorGen_t::CGEN_VERTEX;
 
 	if ( ( tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP ) && !hack )
 	{
@@ -2586,10 +2587,8 @@ void Tess_StageIteratorColor()
 	}
 
 	// call shader function
-	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ )
+	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
 	{
-		shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
 			continue;
@@ -2636,9 +2635,8 @@ void Tess_StageIteratorPortal() {
 		GL_Cull( tess.surfaceShader->cullType );
 
 	// call shader function
-	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ ) {
-		shaderStage_t* pStage = tess.surfaceStages[stage];
-
+	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
+	{
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) ) {
 			continue;
 		}
@@ -2680,10 +2678,8 @@ void Tess_StageIteratorShadowFill()
 	}
 
 	// call shader function
-	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ )
+	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
 	{
-		shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
 			continue;
@@ -2704,8 +2700,6 @@ void Tess_StageIteratorShadowFill()
 void Tess_StageIteratorLighting()
 {
 	trRefLight_t  *light;
-	shaderStage_t *attenuationXYStage;
-	shaderStage_t *attenuationZStage;
 
 	// log this call
 	if ( r_logFile->integer )
@@ -2757,12 +2751,10 @@ void Tess_StageIteratorLighting()
 	}
 
 	// call shader function
-	attenuationZStage = tess.lightShader->stages[ 0 ];
+	shaderStage_t *attenuationZStage = &tess.lightShader->stages[ 0 ];
 
-	for ( int i = 0; i < tess.numSurfaceStages; i++ )
+	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
 	{
-		shaderStage_t *pStage = tess.surfaceStages[ i ];
-
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
 			continue;
@@ -2770,10 +2762,10 @@ void Tess_StageIteratorLighting()
 
 		Tess_ComputeTexMatrices( pStage );
 
-		for ( int j = 1; j < tess.lightShader->numStages; j++ )
+		for ( shaderStage_t *attenuationXYStage = tess.lightShader->stages;
+			attenuationXYStage < tess.lightShader->lastStage;
+			attenuationXYStage++ )
 		{
-			attenuationXYStage = tess.lightShader->stages[ j ];
-
 			if ( attenuationXYStage->type != stageType_t::ST_ATTENUATIONMAP_XY )
 			{
 				continue;

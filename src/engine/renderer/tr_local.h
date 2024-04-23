@@ -1055,7 +1055,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		float        imageAnimationSpeed;
 		image_t      *image[ MAX_IMAGE_ANIMATIONS ];
 
-		uint8_t      numTexMods;
+		size_t numTexMods;
 		texModInfo_t *texMods;
 
 		int videoMapHandle;
@@ -1296,8 +1296,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		uint8_t         numDeforms;
 		deformStage_t   deforms[ MAX_SHADER_DEFORMS ];
 
-		uint8_t         numStages;
-		shaderStage_t   *stages[ MAX_SHADER_STAGES ];
+		shaderStage_t *stages;
+		shaderStage_t *lastStage;
 
 		int             currentState; // current state index for cycle purposes
 
@@ -3384,8 +3384,8 @@ inline bool checkGLErrors()
 		void ( *stageIteratorFunc )();
 		void ( *stageIteratorFunc2 )();
 
-		int           numSurfaceStages;
-		shaderStage_t **surfaceStages;
+		shaderStage_t *surfaceStages;
+		shaderStage_t *surfaceLastStage;
 
 		// preallocated host buffers for verts and indexes
 		shaderVertex_t *vertsBuffer;
