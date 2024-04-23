@@ -1179,8 +1179,6 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 	int numIndexes = surf->num_triangles * 3;
 
-	Tess_CheckOverflow( surf->num_vertexes, numIndexes );
-
 	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD;
 
 	if ( !tess.skipTangentSpaces )
@@ -1263,6 +1261,8 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 		return;
 	}
+
+	Tess_CheckOverflow( surf->num_vertexes, numIndexes );
 
 	glIndex_t *tessIndex = tess.indexes + tess.numIndexes;
 	int *modelTriangle = model->triangles + 3 * surf->first_triangle;
