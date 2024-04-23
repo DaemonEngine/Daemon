@@ -5165,6 +5165,10 @@ static void FinishStages()
 				stage->active = false;
 				break;
 
+			case stageType_t::ST_HEATHAZEMAP:
+				stage->active = r_heatHaze->integer;
+				break;
+
 			case stageType_t::ST_LIQUIDMAP:
 				if ( !r_liquidMapping->integer )
 				{
