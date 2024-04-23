@@ -149,7 +149,7 @@ void Tess_StageIteratorSky()
 
 		gl_skyboxShader->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
 
-		GL_BindToTMU( 1, tess.surfaceShader->stages[stage]->bundle[TB_COLORMAP].image[0] );
+		GL_BindToTMU( 1, pStage->bundle[TB_COLORMAP].image[0] );
 
 		uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
