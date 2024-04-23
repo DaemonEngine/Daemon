@@ -69,12 +69,12 @@ GLShaderManager                           gl_shaderManager;
 
 namespace // Implementation details
 {
-	NORETURN inline void ThrowShaderError(Str::StringRef msg)
+	NORETURN inline void ThrowShaderError( const Str::StringRef msg )
 	{
 		throw ShaderException(msg.c_str());
 	}
 
-	const char* GetInternalShader(Str::StringRef filename)
+	const char* GetInternalShader( const Str::StringRef filename )
 	{
 		auto it = shadermap.find(filename);
 		if (it != shadermap.end())
@@ -128,7 +128,7 @@ namespace // Implementation details
 		CRLFToLF(text);
 	}
 
-	std::string GetShaderFilename(Str::StringRef filename)
+	std::string GetShaderFilename( const Str::StringRef filename )
 	{
 		std::string shaderBase = GetShaderPath();
 		if (shaderBase.empty())
@@ -137,7 +137,7 @@ namespace // Implementation details
 		return shaderFileName;
 	}
 
-	std::string GetShaderText(Str::StringRef filename)
+	std::string GetShaderText( const Str::StringRef filename )
 	{
 		// Shader type should be set during initialisation.
 		if (shaderKind == ShaderKind::BuiltIn)
@@ -298,7 +298,7 @@ static const char *const genFuncNames[] = {
 	  "DSTEP_NOISE"
 };
 
-static std::string BuildDeformSteps( deformStage_t *deforms, int numDeforms )
+static std::string BuildDeformSteps( const deformStage_t *deforms, const int numDeforms )
 {
 	std::string steps;
 
@@ -375,8 +375,8 @@ static std::string BuildDeformSteps( deformStage_t *deforms, int numDeforms )
 }
 
 
-static void addExtension( std::string &str, int enabled, int minGlslVersion,
-			  int supported, const char *name ) {
+static void addExtension( std::string &str, const int enabled, const int minGlslVersion,
+		const int supported, const char *name ) {
 	if( !enabled ) {
 		// extension disabled by user
 	} else if( glConfig2.shadingLanguageVersion >= minGlslVersion ) {
@@ -391,17 +391,17 @@ static void addExtension( std::string &str, int enabled, int minGlslVersion,
 	}
 }
 
-static void AddConst( std::string& str, const std::string& name, int value )
+static void AddConst( std::string& str, const std::string& name, const int value )
 {
 	str += Str::Format("const int %s = %d;\n", name, value);
 }
 
-static void AddConst( std::string& str, const std::string& name, float value )
+static void AddConst( std::string& str, const std::string& name, const float value )
 {
 	str += Str::Format("const float %s = %.8e;\n", name, value);
 }
 
-static void AddConst( std::string& str, const std::string& name, float v1, float v2 )
+static void AddConst( std::string& str, const std::string& name, const float v1, const float v2 )
 {
 	str += Str::Format("const vec2 %s = vec2(%.8e, %.8e);\n", name, v1, v2);
 }
@@ -680,7 +680,7 @@ std::string GLShaderManager::BuildDeformShaderText( const std::string& steps )
 	return shaderText;
 }
 
-int GLShaderManager::getDeformShaderIndex( deformStage_t *deforms, int numDeforms )
+int GLShaderManager::getDeformShaderIndex( const deformStage_t *deforms, const int numDeforms )
 {
 	std::string steps = BuildDeformSteps( deforms, numDeforms );
 	int index = _deformShaderLookup[ steps ] - 1;
@@ -816,7 +816,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	return false;
 }
 
-void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
+void GLShaderManager::buildPermutation( GLShader *shader, const int macroIndex, const int deformIndex )
 {
 	std::string compileMacros;
 	int  startTime = ri.Milliseconds();
@@ -936,7 +936,7 @@ void GLShaderManager::InitShader( GLShader *shader )
 	shader->_checkSum = Com_BlockChecksum( combinedShaderText.c_str(), combinedShaderText.length() );
 }
 
-bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
+bool GLShaderManager::LoadShaderBinary( GLShader *shader, const size_t programNum )
 {
 #ifdef GL_ARB_get_program_binary
 	GLint          success;
@@ -1019,7 +1019,7 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	return false;
 #endif
 }
-void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
+void GLShaderManager::SaveShaderBinary( GLShader *shader, const size_t programNum )
 {
 #ifdef GL_ARB_get_program_binary
 	GLint                 binaryLength;
@@ -1126,7 +1126,7 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 }
 
 void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program,
-						      Str::StringRef compileMacros, int deformIndex )
+	const Str::StringRef compileMacros, const int deformIndex )
 {
 	GLShaderManager::CompileGPUShaders( shader, program, compileMacros );
 
@@ -1139,10 +1139,8 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 	LinkProgram( program->program );
 }
 
-GLuint GLShaderManager::CompileShader( Str::StringRef programName,
-				       Str::StringRef shaderText,
-				       std::initializer_list<const GLHeader *> headers,
-				       GLenum shaderType ) const
+GLuint GLShaderManager::CompileShader( const Str::StringRef programName, const Str::StringRef shaderText,
+	std::initializer_list<const GLHeader *> headers, const GLenum shaderType ) const
 {
 	GLuint shader = glCreateShader( shaderType );
 	std::vector<const GLchar*> texts(headers.size() + 1);
@@ -1184,7 +1182,7 @@ GLuint GLShaderManager::CompileShader( Str::StringRef programName,
 	return shader;
 }
 
-void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint object ) const
+void GLShaderManager::PrintShaderSource( const Str::StringRef programName, const GLuint object ) const
 {
 	char        *dump;
 	int         maxLength = 0;
@@ -1230,7 +1228,7 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 	Log::Warn("Source for shader program %s:\n%s", programName, buffer.c_str());
 }
 
-void GLShaderManager::PrintInfoLog( GLuint object) const
+void GLShaderManager::PrintInfoLog( const GLuint object) const
 {
 	char        *msg;
 	int         maxLength = 0;
@@ -1270,7 +1268,7 @@ void GLShaderManager::PrintInfoLog( GLuint object) const
 	ri.Hunk_FreeTempMemory( msg );
 }
 
-void GLShaderManager::LinkProgram( GLuint program ) const
+void GLShaderManager::LinkProgram( const GLuint program ) const
 {
 	GLint linked;
 
@@ -1292,7 +1290,7 @@ void GLShaderManager::LinkProgram( GLuint program ) const
 	}
 }
 
-void GLShaderManager::BindAttribLocations( GLuint program ) const
+void GLShaderManager::BindAttribLocations( const GLuint program ) const
 {
 	for ( uint32_t i = 0; i < ATTR_INDEX_MAX; i++ )
 	{
@@ -1301,7 +1299,7 @@ void GLShaderManager::BindAttribLocations( GLuint program ) const
 }
 
 // reflective specular not implemented for PBR yet
-bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1315,7 +1313,7 @@ bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permut
 	return false;
 }
 
-bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1330,12 +1328,12 @@ bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutatio
 	return false;
 }
 
-bool GLCompileMacro_USE_VERTEX_SKINNING::MissesRequiredMacros( size_t /*permutation*/, const std::vector< GLCompileMacro * > &/*macros*/ ) const
+bool GLCompileMacro_USE_VERTEX_SKINNING::MissesRequiredMacros( const size_t /*permutation*/, const std::vector< GLCompileMacro * > &/*macros*/ ) const
 {
 	return !glConfig2.vboVertexSkinningAvailable;
 }
 
-bool GLCompileMacro_USE_VERTEX_ANIMATION::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+bool GLCompileMacro_USE_VERTEX_ANIMATION::HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1356,7 +1354,7 @@ uint32_t GLCompileMacro_USE_VERTEX_ANIMATION::GetRequiredVertexAttributes() cons
 	return attribs;
 }
 
-bool GLCompileMacro_USE_VERTEX_SPRITE::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+bool GLCompileMacro_USE_VERTEX_SPRITE::HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1370,7 +1368,7 @@ bool GLCompileMacro_USE_VERTEX_SPRITE::HasConflictingMacros( size_t permutation,
 	return false;
 }
 
-bool GLCompileMacro_USE_TCGEN_ENVIRONMENT::HasConflictingMacros( size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+bool GLCompileMacro_USE_TCGEN_ENVIRONMENT::HasConflictingMacros( const size_t permutation, const std::vector<GLCompileMacro*> &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1384,7 +1382,7 @@ bool GLCompileMacro_USE_TCGEN_ENVIRONMENT::HasConflictingMacros( size_t permutat
 	return false;
 }
 
-bool GLCompileMacro_USE_TCGEN_LIGHTMAP::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+bool GLCompileMacro_USE_TCGEN_LIGHTMAP::HasConflictingMacros( const size_t permutation, const std::vector<GLCompileMacro*> &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1398,7 +1396,7 @@ bool GLCompileMacro_USE_TCGEN_LIGHTMAP::HasConflictingMacros(size_t permutation,
 	return false;
 }
 
-bool GLCompileMacro_USE_DEPTH_FADE::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+bool GLCompileMacro_USE_DEPTH_FADE::HasConflictingMacros( const size_t permutation, const std::vector<GLCompileMacro*> &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1412,7 +1410,7 @@ bool GLCompileMacro_USE_DEPTH_FADE::HasConflictingMacros(size_t permutation, con
 	return false;
 }
 
-bool GLCompileMacro_USE_DELUXE_MAPPING::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+bool GLCompileMacro_USE_DELUXE_MAPPING::HasConflictingMacros( const size_t permutation, const std::vector<GLCompileMacro*> &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1425,7 +1423,7 @@ bool GLCompileMacro_USE_DELUXE_MAPPING::HasConflictingMacros(size_t permutation,
 	return false;
 }
 
-bool GLCompileMacro_USE_GRID_DELUXE_MAPPING::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+bool GLCompileMacro_USE_GRID_DELUXE_MAPPING::HasConflictingMacros( const size_t permutation, const std::vector<GLCompileMacro*> &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1438,7 +1436,7 @@ bool GLCompileMacro_USE_GRID_DELUXE_MAPPING::HasConflictingMacros(size_t permuta
 	return false;
 }
 
-bool GLCompileMacro_USE_GRID_LIGHTING::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+bool GLCompileMacro_USE_GRID_LIGHTING::HasConflictingMacros( const size_t permutation, const std::vector<GLCompileMacro*> &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1451,7 +1449,7 @@ bool GLCompileMacro_USE_GRID_LIGHTING::HasConflictingMacros(size_t permutation, 
 	return false;
 }
 
-bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
+bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros( const size_t permutation, const std::vector<GLCompileMacro*> &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
 	{
@@ -1506,9 +1504,9 @@ int GLShader::SelectProgram()
 	return index;
 }
 
-void GLShader::BindProgram( int deformIndex )
+void GLShader::BindProgram( const int deformIndex )
 {
-	int macroIndex = SelectProgram();
+	const int macroIndex = SelectProgram();
 	size_t index = macroIndex + ( size_t(deformIndex) << _compileMacros.size() );
 
 	// program may not be loaded yet because the shader manager hasn't yet gotten to it

@@ -234,35 +234,35 @@ protected:
 	virtual void SetShaderProgramUniforms( shaderProgram_t* /*shaderProgram*/ ) { };
 	int          SelectProgram();
 public:
-	void BindProgram( int deformIndex );
+	void BindProgram( const int deformIndex );
 	void SetRequiredVertexPointers();
 
-	bool IsMacroSet( int bit )
+	bool IsMacroSet( const int bit )
 	{
 		return ( _activeMacros & bit ) != 0;
 	}
 
-	void AddMacroBit( int bit )
+	void AddMacroBit( const int bit )
 	{
 		_activeMacros |= bit;
 	}
 
-	void DelMacroBit( int bit )
+	void DelMacroBit( const int bit )
 	{
 		_activeMacros &= ~bit;
 	}
 
-	bool IsVertexAttribSet( int bit )
+	bool IsVertexAttribSet( const int bit )
 	{
 		return ( _vertexAttribs & bit ) != 0;
 	}
 
-	void AddVertexAttribBit( int bit )
+	void AddVertexAttribBit( const int bit )
 	{
 		_vertexAttribs |= bit;
 	}
 
-	void DelVertexAttribBit( int bit )
+	void DelVertexAttribBit( const int bit )
 	{
 		_vertexAttribs &= ~bit;
 	}
@@ -308,26 +308,25 @@ public:
 	}
 	void freeAll();
 
-	int getDeformShaderIndex( deformStage_t *deforms, int numDeforms );
+	int getDeformShaderIndex( const deformStage_t *deforms, const int numDeforms );
 
-	void buildPermutation( GLShader *shader, int macroIndex, int deformIndex );
+	void buildPermutation( GLShader *shader, const int macroIndex, const int deformIndex );
 	void buildAll();
 private:
-	bool LoadShaderBinary( GLShader *shader, size_t permutation );
-	void SaveShaderBinary( GLShader *shader, size_t permutation );
-	GLuint CompileShader( Str::StringRef programName, Str::StringRef shaderText,
-			      std::initializer_list<const GLHeader *> headers,
-			      GLenum shaderType ) const;
+	bool LoadShaderBinary( GLShader *shader, const size_t permutation );
+	void SaveShaderBinary( GLShader *shader, const size_t permutation );
+	GLuint CompileShader( const Str::StringRef programName, const Str::StringRef shaderText,
+		std::initializer_list<const GLHeader *> headers, const GLenum shaderType ) const;
 	void CompileGPUShaders( GLShader *shader, shaderProgram_t *program,
 				const std::string &compileMacros );
 	void CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program,
-	                                     Str::StringRef compileMacros, int deformIndex );
+		const Str::StringRef compileMacros, const int deformIndex );
 	std::string BuildDeformShaderText( const std::string& steps );
 	std::string BuildGPUShaderText( Str::StringRef mainShader, Str::StringRef libShaders, GLenum shaderType ) const;
-	void LinkProgram( GLuint program ) const;
-	void BindAttribLocations( GLuint program ) const;
-	void PrintShaderSource( Str::StringRef programName, GLuint object ) const;
-	void PrintInfoLog( GLuint object ) const;
+	void LinkProgram( const GLuint program ) const;
+	void BindAttribLocations( const GLuint program ) const;
+	void PrintShaderSource( const Str::StringRef programName, const GLuint object ) const;
+	void PrintInfoLog( const GLuint object ) const;
 	void InitShader( GLShader *shader );
 	void UpdateShaderProgramUniformLocations( GLShader *shader, shaderProgram_t *shaderProgram ) const;
 };
@@ -352,12 +351,12 @@ protected:
 public:
 	virtual ~GLUniform() = default;
 
-	void SetFirewallIndex( size_t offSetValue )
+	void SetFirewallIndex( const size_t offSetValue )
 	{
 		_firewallIndex = offSetValue;
 	}
 
-	void SetLocationIndex( size_t index )
+	void SetLocationIndex( const size_t index )
 	{
 		_locationIndex = index;
 	}
@@ -386,7 +385,7 @@ protected:
 	{
 	}
 
-	inline void SetValue( int value )
+	inline void SetValue( const int value )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
@@ -426,7 +425,7 @@ protected:
 	{
 	}
 
-	inline void SetValue( float value )
+	inline void SetValue( const float value )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
@@ -466,7 +465,7 @@ protected:
 	{
 	}
 
-	inline void SetValue( int numFloats, float *f )
+	inline void SetValue( const int numFloats, const float *f )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
@@ -612,7 +611,7 @@ protected:
 	{
 	}
 
-	inline void SetValue( int numV, vec4_t *v )
+	inline void SetValue( const int numV, const vec4_t *v )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
@@ -637,7 +636,7 @@ protected:
 	{
 	}
 
-	inline void SetValue( GLboolean transpose, const matrix_t m )
+	inline void SetValue( const GLboolean transpose, const matrix_t m )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
@@ -679,7 +678,7 @@ protected:
 	{
 	}
 
-	inline void SetValue( int numMatrices, GLboolean transpose, const matrix_t *m )
+	inline void SetValue( const int numMatrices, const GLboolean transpose, const matrix_t *m )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
@@ -704,7 +703,7 @@ protected:
 	{
 	}
 
-	inline void SetValue( int numMatrices, GLboolean transpose, const float *m )
+	inline void SetValue( const int numMatrices, const GLboolean transpose, const float *m )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
@@ -736,7 +735,7 @@ protected:
 	}
 
 public:
-	void SetLocationIndex( size_t index )
+	void SetLocationIndex( const size_t index )
 	{
 		_locationIndex = index;
 	}
@@ -751,7 +750,7 @@ public:
 		shaderProgram->uniformBlockIndexes[ _locationIndex ] = glGetUniformBlockIndex( shaderProgram->program, GetName() );
 	}
 
-	void SetBuffer( GLuint buffer ) {
+	void SetBuffer( const GLuint buffer ) {
 		shaderProgram_t *p = _shader->GetProgram();
 		GLuint blockIndex = p->uniformBlockIndexes[ _locationIndex ];
 
@@ -805,12 +804,12 @@ public:
 	virtual const char       *GetName() const = 0;
 	virtual EGLCompileMacro GetType() const = 0;
 
-	virtual bool            HasConflictingMacros( size_t, const std::vector<GLCompileMacro*>& ) const
+	virtual bool HasConflictingMacros( const size_t, const std::vector<GLCompileMacro*>& ) const
 	{
 		return false;
 	}
 
-	virtual bool            MissesRequiredMacros( size_t, const std::vector<GLCompileMacro*>& ) const
+	virtual bool MissesRequiredMacros( const size_t, const std::vector<GLCompileMacro*>& ) const
 	{
 		return false;
 	}
@@ -820,9 +819,9 @@ public:
 		return 0;
 	}
 
-	void SetMacro( bool enable )
+	void SetMacro( const bool enable )
 	{
-		int bit = GetBit();
+		const int bit = GetBit();
 
 		if ( enable && !_shader->IsMacroSet( bit ) )
 		{
@@ -858,14 +857,14 @@ public:
 		return "USE_BSP_SURFACE";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_BSP_SURFACE;
 	}
 
-	void SetBspSurface( bool enable )
+	void SetBspSurface( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -890,15 +889,15 @@ public:
 		return EGLCompileMacro::USE_VERTEX_SKINNING;
 	}
 
-	bool HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
-	bool MissesRequiredMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
+	bool MissesRequiredMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 
 	uint32_t        GetRequiredVertexAttributes() const override
 	{
 		return ATTR_BONE_FACTORS;
 	}
 
-	void SetVertexSkinning( bool enable )
+	void SetVertexSkinning( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -923,10 +922,10 @@ public:
 		return EGLCompileMacro::USE_VERTEX_ANIMATION;
 	}
 
-	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 	uint32_t GetRequiredVertexAttributes() const override;
 
-	void SetVertexAnimation( bool enable )
+	void SetVertexAnimation( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -951,13 +950,13 @@ public:
 		return EGLCompileMacro::USE_VERTEX_SPRITE;
 	}
 
-	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 	uint32_t GetRequiredVertexAttributes() const override
 	{
 		return ATTR_QTANGENT;
 	}
 
-	void SetVertexSprite( bool enable )
+	void SetVertexSprite( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -982,13 +981,13 @@ public:
 		return EGLCompileMacro::USE_TCGEN_ENVIRONMENT;
 	}
 
-	bool     HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 	uint32_t        GetRequiredVertexAttributes() const override
 	{
 		return ATTR_QTANGENT;
 	}
 
-	void SetTCGenEnvironment( bool enable )
+	void SetTCGenEnvironment( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1008,13 +1007,13 @@ public:
 		return "USE_TCGEN_LIGHTMAP";
 	}
 
-	bool     HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_TCGEN_LIGHTMAP;
 	}
 
-	void SetTCGenLightmap( bool enable )
+	void SetTCGenLightmap( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1034,14 +1033,14 @@ public:
 		return "USE_GRID_LIGHTING";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_GRID_LIGHTING;
 	}
 
-	void SetGridLighting( bool enable )
+	void SetGridLighting( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1061,14 +1060,14 @@ public:
 		return "USE_DELUXE_MAPPING";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_DELUXE_MAPPING;
 	}
 
-	void SetDeluxeMapping( bool enable )
+	void SetDeluxeMapping( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1088,14 +1087,14 @@ public:
 		return "USE_GRID_DELUXE_MAPPING";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_GRID_DELUXE_MAPPING;
 	}
 
-	void SetGridDeluxeMapping( bool enable )
+	void SetGridDeluxeMapping( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1120,7 +1119,7 @@ public:
 		return EGLCompileMacro::USE_HEIGHTMAP_IN_NORMALMAP;
 	}
 
-	void SetHeightMapInNormalMap( bool enable )
+	void SetHeightMapInNormalMap( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1145,7 +1144,7 @@ public:
 		return EGLCompileMacro::USE_RELIEF_MAPPING;
 	}
 
-	void SetReliefMapping( bool enable )
+	void SetReliefMapping( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1165,14 +1164,14 @@ public:
 		return "USE_REFLECTIVE_SPECULAR";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector< GLCompileMacro * > &macros) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
 
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_REFLECTIVE_SPECULAR;
 	}
 
-	void SetReflectiveSpecular( bool enable )
+	void SetReflectiveSpecular( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1197,7 +1196,7 @@ public:
 		return EGLCompileMacro::LIGHT_DIRECTIONAL;
 	}
 
-	void SetMacro_LIGHT_DIRECTIONAL( bool enable )
+	void SetMacro_LIGHT_DIRECTIONAL( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1222,7 +1221,7 @@ public:
 		return EGLCompileMacro::USE_SHADOWING;
 	}
 
-	void SetShadowing( bool enable )
+	void SetShadowing( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1242,13 +1241,13 @@ public:
 		return "USE_DEPTH_FADE";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const override;
+	bool HasConflictingMacros( const size_t permutation, const std::vector<GLCompileMacro*> &macros ) const override;
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_DEPTH_FADE;
 	}
 
-	void SetDepthFade( bool enable )
+	void SetDepthFade( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1273,7 +1272,7 @@ public:
 		return USE_PHYSICAL_MAPPING;
 	}
 
-	void SetPhysicalShading( bool enable )
+	void SetPhysicalShading( const bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -1298,7 +1297,7 @@ public:
 		return USE_ALPHA_TESTING;
 	}
 
-	void SetAlphaTesting(bool enable)
+	void SetAlphaTesting( const bool enable)
 	{
 		SetMacro( enable );
 	}
@@ -1358,7 +1357,7 @@ public:
 	{
 	}
 
-	void SetUniform_AlphaTest( uint32_t stateBits )
+	void SetUniform_AlphaTest( const uint32_t stateBits )
 	{
 		float value;
 
@@ -1491,7 +1490,7 @@ public:
 	{
 	}
 
-	void SetUniform_LightRadius( float value )
+	void SetUniform_LightRadius( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1506,7 +1505,7 @@ public:
 	{
 	}
 
-	void SetUniform_LightScale( float value )
+	void SetUniform_LightScale( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1536,7 +1535,7 @@ public:
 	{
 	}
 
-	void SetUniform_LightFrustum( vec4_t lightFrustum[ 6 ] )
+	void SetUniform_LightFrustum( const vec4_t lightFrustum[ 6 ] )
 	{
 		this->SetValue( 6, lightFrustum );
 	}
@@ -1551,7 +1550,7 @@ public:
 	{
 	}
 
-	void SetUniform_ShadowTexelSize( float value )
+	void SetUniform_ShadowTexelSize( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1566,7 +1565,7 @@ public:
 	{
 	}
 
-	void SetUniform_ShadowBlur( float value )
+	void SetUniform_ShadowBlur( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1581,7 +1580,7 @@ public:
 	{
 	}
 
-	void SetUniform_ShadowMatrix( matrix_t m[ MAX_SHADOWMAPS ] )
+	void SetUniform_ShadowMatrix( const matrix_t m[ MAX_SHADOWMAPS ] )
 	{
 		this->SetValue( MAX_SHADOWMAPS, GL_FALSE, m );
 	}
@@ -1611,7 +1610,7 @@ public:
 	{
 	}
 
-	void SetUniform_RefractionIndex( float value )
+	void SetUniform_RefractionIndex( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1626,7 +1625,7 @@ public:
 	{
 	}
 
-	void SetUniform_FresnelPower( float value )
+	void SetUniform_FresnelPower( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1641,7 +1640,7 @@ public:
 	{
 	}
 
-	void SetUniform_FresnelScale( float value )
+	void SetUniform_FresnelScale( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1656,7 +1655,7 @@ public:
 	{
 	}
 
-	void SetUniform_FresnelBias( float value )
+	void SetUniform_FresnelBias( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1687,7 +1686,7 @@ public:
 	{
 	}
 
-	void SetUniform_FogDensity( float value )
+	void SetUniform_FogDensity( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1862,7 +1861,7 @@ public:
 	{
 	}
 
-	void SetUniform_Bones( int numBones, transform_t bones[ MAX_BONES ] )
+	void SetUniform_Bones( const int numBones, const transform_t bones[ MAX_BONES ] )
 	{
 		this->SetValue( 2 * numBones, &bones[ 0 ].rot );
 	}
@@ -1877,7 +1876,7 @@ public:
 	{
 	}
 
-	void SetUniform_VertexInterpolation( float value )
+	void SetUniform_VertexInterpolation( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1892,7 +1891,7 @@ public:
 	{
 	}
 
-	void SetUniform_PortalRange( float value )
+	void SetUniform_PortalRange( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1907,7 +1906,7 @@ public:
 	{
 	}
 
-	void SetUniform_DepthScale( float value )
+	void SetUniform_DepthScale( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1922,7 +1921,7 @@ public:
 	{
 	}
 
-	void SetUniform_ReliefDepthScale( float value )
+	void SetUniform_ReliefDepthScale( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1937,7 +1936,7 @@ public:
 	{
 	}
 
-	void SetUniform_ReliefOffsetBias( float value )
+	void SetUniform_ReliefOffsetBias( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1952,7 +1951,7 @@ public:
 	{
 	}
 
-	void SetUniform_EnvironmentInterpolation( float value )
+	void SetUniform_EnvironmentInterpolation( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1967,7 +1966,7 @@ public:
 	{
 	}
 
-	void SetUniform_Time( float value )
+	void SetUniform_Time( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -1992,11 +1991,11 @@ public:
 	{
 	}
 
-	void SetUniform_ColorModulate( vec4_t v )
+	void SetUniform_ColorModulate( const vec4_t v )
 	{
 		this->SetValue( v );
 	}
-	void SetUniform_ColorModulate( colorGen_t colorGen, alphaGen_t alphaGen )
+	void SetUniform_ColorModulate( const colorGen_t colorGen, const alphaGen_t alphaGen )
 	{
 		vec4_t v;
 		bool needAttrib = false;
@@ -2091,7 +2090,7 @@ public:
 	{
 	}
 
-	void SetUniform_FogEyeT( float value )
+	void SetUniform_FogEyeT( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -2106,7 +2105,7 @@ public:
 	{
 	}
 
-	void SetUniform_DeformMagnitude( float value )
+	void SetUniform_DeformMagnitude( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -2121,7 +2120,7 @@ public:
 	{
 	}
 
-	void SetUniform_blurVec( vec3_t value )
+	void SetUniform_blurVec( const vec3_t value )
 	{
 		this->SetValue( value );
 	}
@@ -2136,7 +2135,7 @@ public:
 	{
 	}
 
-	void SetUniform_TexScale( vec2_t value )
+	void SetUniform_TexScale( const vec2_t value )
 	{
 		this->SetValue( value );
 	}
@@ -2151,7 +2150,7 @@ public:
 	{
 	}
 
-	void SetUniform_SpecularExponent( float min, float max )
+	void SetUniform_SpecularExponent( const float min, const float max )
 	{
 		// in the fragment shader, the exponent must be computed as
 		// exp = ( max - min ) * gloss + min
@@ -2171,7 +2170,7 @@ public:
 	{
 	}
 
-	void SetUniform_InverseGamma( float value )
+	void SetUniform_InverseGamma( const float value )
 	{
 		this->SetValue( value );
 	}
@@ -2186,7 +2185,7 @@ public:
 	{
 	}
 
-	void SetUniform_LightGridOrigin( vec3_t origin )
+	void SetUniform_LightGridOrigin( const vec3_t origin )
 	{
 		this->SetValue( origin );
 	}
@@ -2201,7 +2200,7 @@ public:
 	{
 	}
 
-	void SetUniform_LightGridScale( vec3_t scale )
+	void SetUniform_LightGridScale( const vec3_t scale )
 	{
 		this->SetValue( scale );
 	}
@@ -2231,7 +2230,7 @@ public:
 	{
 	}
 
-	void SetUniform_numLights( int value )
+	void SetUniform_numLights( const int value )
 	{
 		this->SetValue( value );
 	}
@@ -2246,7 +2245,7 @@ public:
 	{
 	}
 
-	void SetUniform_lightLayer( int value )
+	void SetUniform_lightLayer( const int value )
 	{
 		this->SetValue( value );
 	}
@@ -2261,7 +2260,7 @@ class u_Lights :
 	{
 	}
 
-	void SetUniformBlock_Lights( GLuint buffer )
+	void SetUniformBlock_Lights( const GLuint buffer )
 	{
 		this->SetBuffer( buffer );
 	}
