@@ -946,6 +946,9 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
 
+	// Not implemented yet in PBR code.
+	bool enableReflectiveSpecular = pStage->enableSpecularMapping && tr.cubeHashTable != nullptr;
+
 	GL_State( stateBits );
 
 	// choose right shader program ----------------------------------
@@ -967,7 +970,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetReliefMapping( pStage->enableReliefMapping );
 
-	gl_lightMappingShader->SetReflectiveSpecular( pStage->enableNormalMapping && tr.cubeHashTable != nullptr );
+	gl_lightMappingShader->SetReflectiveSpecular( enableReflectiveSpecular );
 
 	gl_lightMappingShader->SetPhysicalShading( pStage->enablePhysicalMapping );
 
@@ -1099,8 +1102,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 		gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 
-	// specular reflection
-	if ( tr.cubeHashTable != nullptr )
+	if ( enableReflectiveSpecular )
 	{
 		cubemapProbe_t *cubeProbeNearest;
 		cubemapProbe_t *cubeProbeSecondNearest;
