@@ -3025,7 +3025,7 @@ void RE_GetTextureSize( int textureID, int *width, int *height )
 		return;
 	}
 
-	baseImage = shader->stages[ 0 ]->bundle->image[ 0 ];
+	baseImage = shader->stages[ 0 ]->bundle[ 0 ].image[ 0 ];
 	if ( !baseImage )
 	{
 		Log::Debug( "%sRE_GetTextureSize: shader %s is missing base image",
