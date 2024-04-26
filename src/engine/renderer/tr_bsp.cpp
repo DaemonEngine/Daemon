@@ -2975,7 +2975,7 @@ static void R_CreateWorldVBO()
 	{
 		surface = &s_worldData.surfaces[ k ];
 
-		if ( surface->shader->isSky || surface->shader->isPortal )
+		if ( surface->shader->isPortal )
 		{
 			continue;
 		}
@@ -3050,7 +3050,7 @@ static void R_CreateWorldVBO()
 
 			shader1 = surf1->shader;
 
-			if ( shader1->isSky || shader1->isPortal )
+			if ( shader1->isPortal )
 			{
 				continue;
 			}
@@ -3112,7 +3112,7 @@ static void R_CreateWorldVBO()
 	{
 		surface = &s_worldData.surfaces[ k ];
 
-		if ( surface->shader->isSky || surface->shader->isPortal )
+		if ( surface->shader->isPortal )
 		{
 			continue;
 		}

@@ -611,6 +611,11 @@ static void SetRgbaGen( const shaderStage_t *pStage, colorGen_t *rgbGen, alphaGe
 
 // *INDENT-ON*
 
+void Render_NONE( shaderStage_t * )
+{
+	ASSERT_UNREACHABLE();
+}
+
 void Render_NOP( shaderStage_t * )
 {
 }
@@ -1059,12 +1064,9 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_lightMappingShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_lightMappingShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -1076,15 +1078,10 @@ void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_DiffuseMap
-	if ( pStage->type == stageType_t::ST_LIGHTMAP )
-	{
-		// standalone lightmap stage: paint shadows over a white texture
-		GL_BindToTMU( BIND_DIFFUSEMAP, tr.whiteImage );
-	}
-	else
-	{
-		GL_BindToTMU( BIND_DIFFUSEMAP, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
+	GL_BindToTMU( BIND_DIFFUSEMAP, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
 
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
 		gl_lightMappingShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 
@@ -1350,12 +1347,9 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -1419,7 +1413,11 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
+		gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
 	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1511,12 +1509,9 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_projXYZ->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_projXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -1581,7 +1576,11 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
+		gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
 	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1671,12 +1670,9 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_directionalSun->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_directionalSun->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -1745,7 +1741,11 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	// bind u_DiffuseMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] );
-	gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
+		gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
 	GL_BindToTMU( 1, pStage->bundle[ TB_NORMALMAP ].image[ 0 ] );
@@ -1870,12 +1870,9 @@ void Render_reflection_CB( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_reflectionShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_reflectionShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
@@ -2130,12 +2127,9 @@ void Render_liquid( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_liquidShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_liquidShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 

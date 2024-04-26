@@ -138,12 +138,8 @@ void Tess_StageIteratorSky()
 	gl_skyboxShader->SetUniform_UseCloudMap( true );
 	gl_skyboxShader->SetUniform_CloudHeight( tess.surfaceShader->sky.cloudHeight );
 
-	for ( int stage = 0; stage < MAX_SHADER_STAGES; stage++ ) {
+	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ ) {
 		shaderStage_t* pStage = tess.surfaceShader->stages[stage];
-
-		if ( !pStage || !pStage->bundle[0].image[0] ) {
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) ) {
 			continue;
@@ -153,7 +149,7 @@ void Tess_StageIteratorSky()
 
 		gl_skyboxShader->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
 
-		GL_BindToTMU( 1, tess.surfaceShader->stages[stage]->bundle[TB_COLORMAP].image[0] );
+		GL_BindToTMU( 1, pStage->bundle[TB_COLORMAP].image[0] );
 
 		uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 

@@ -167,6 +167,12 @@ void GL_SelectTexture( int unit )
 
 void GL_BindToTMU( int unit, image_t *image )
 {
+	if ( !image )
+	{
+		Log::Warn("GL_BindToTMU: NULL image" );
+		image = tr.defaultImage;
+	}
+
 	int texnum = image->texnum;
 
 	if ( unit < 0 || unit > 31 )

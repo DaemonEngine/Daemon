@@ -1279,10 +1279,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		bool enableGlowMapping;
 
 		// Normal map scale and format.
-		bool hasNormalFormat;
-		bool hasNormalScale;
-		vec3_t normalFormat;
-		vec3_t normalScale;
+		int8_t normalFormat[ 3 ];
+		vec3_t normalScale = { 1.0f, 1.0f, 1.0f };
 
 		expression_t    normalIntensityExp;
 
@@ -1365,7 +1363,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool       disableReliefMapping; // disable relief mapping for this material even if it's available
 		float      reliefOffsetBias; // offset the heightmap top relatively to the floor
-		float      reliefDepthScale; // per-shader relief depth scale
+		float reliefDepthScale = 1.0f; // per-shader relief depth scale
 
 		bool       noShadows;
 		bool       fogLight;
@@ -3549,6 +3547,7 @@ inline bool checkGLErrors()
 
 	void RB_ShowImages();
 
+	void Render_NONE( shaderStage_t *pStage );
 	void Render_NOP( shaderStage_t *pStage );
 	void Render_generic( shaderStage_t *pStage );
 	void Render_generic3D( shaderStage_t *pStage );
