@@ -4774,7 +4774,6 @@ static void CollapseStages()
 	int specularStage = -1;
 	int physicalStage = -1;
 	int reflectionStage = -1;
-	int lightMapCount = 0;
 	int lightStage = -1;
 	int glowStage = -1;
 
@@ -4854,7 +4853,6 @@ static void CollapseStages()
 				&& blendFunc_filter )
 			{
 				lightStage = i;
-				lightMapCount++;
 				step++;
 				continue;
 			}
@@ -4867,7 +4865,6 @@ static void CollapseStages()
 				&& depthFunc_lequal )
 			{
 				lightStage = i;
-				lightMapCount++;
 				step++;
 				continue;
 			}
@@ -5014,8 +5011,6 @@ static void CollapseStages()
 		}
 		else if ( stages[ i ].type == stageType_t::ST_LIGHTMAP )
 		{
-			lightMapCount++;
-
 			if ( lightStage != -1 )
 			{
 				Log::Warn( "more than one lightmap stage in shader '%s'", shader.name );
