@@ -157,7 +157,7 @@ void main() {
   for( int i = u_lightLayer; i < u_numLights; i += numLayers ) {
     light l = GetLight( i );
     vec3 center = ( u_ModelMatrix * vec4( l.center, 1.0 ) ).xyz;
-    float radius = 2.0 * l.radius;
+    float radius = max( 2.0 * l.radius, 2.0 * 32.0 ); // Avoid artifacts with weak light sources
 
     // todo: better checks for spotlights
     lightOutsidePlane( plane1, center, radius );
