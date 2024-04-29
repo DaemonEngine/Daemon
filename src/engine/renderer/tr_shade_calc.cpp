@@ -237,7 +237,9 @@ float RB_EvalExpression( const expression_t *exp, float defaultValue )
 	value1 = 0;
 	value2 = 0;
 
-	if ( !exp || !exp->active )
+	ASSERT( exp );
+
+	if ( !exp->numOps )
 	{
 		return defaultValue;
 	}

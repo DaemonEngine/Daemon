@@ -701,7 +701,11 @@ static void ParseExpression( const char **text, expression_t *exp )
 	numInFixOps = 0;
 	numTmpOps = 0;
 
+	// A ext->numOps equals to 0 means empty or invalid expression.
 	exp->numOps = 0;
+
+	// The numOps will only be written to exp->numOps if there is no parsing error.
+	uint8_t numOps = 0;
 
 	// push left parenthesis on the stack
 	op.type = opcode_t::OP_LPAREN;
@@ -800,7 +804,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 		// if current operator in infix is digit
 		if ( IsOperand( op.type ) )
 		{
-			exp->ops[ exp->numOps++ ] = op;
+			exp->ops[ numOps++ ] = op;
 		}
 		// if current operator in infix is left parenthesis
 		else if ( op.type == opcode_t::OP_LPAREN )
@@ -826,7 +830,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 					{
 						if ( GetOpPrecedence( op2.type ) >= GetOpPrecedence( op.type ) )
 						{
-							exp->ops[ exp->numOps++ ] = op2;
+							exp->ops[ numOps++ ] = op2;
 							numTmpOps--;
 						}
 						else
@@ -860,7 +864,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 
 					if ( op2.type != opcode_t::OP_LPAREN )
 					{
-						exp->ops[ exp->numOps++ ] = op2;
+						exp->ops[ numOps++ ] = op2;
 						numTmpOps--;
 					}
 					else
@@ -874,7 +878,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	}
 
 	// everything went ok
-	exp->active = true;
+	exp->numOps = numOps;
 }
 
 /*
