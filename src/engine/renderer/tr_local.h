@@ -940,7 +940,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	struct expression_t
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
-		uint8_t        numOps;
+		uint8_t numOps;
 	};
 
 	struct waveForm_t

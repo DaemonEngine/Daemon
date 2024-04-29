@@ -688,20 +688,14 @@ ParseExpression
 */
 static void ParseExpression( const char **text, expression_t *exp )
 {
-	int            i;
-	char           *token;
-
 	expOperation_t op, op2;
 
 	expOperation_t inFixOps[ MAX_EXPRESSION_OPS ];
-	int            numInFixOps;
+	int numInFixOps = 0;
 
 	// convert stack
 	expOperation_t tmpOps[ MAX_EXPRESSION_OPS ];
-	int            numTmpOps;
-
-	numInFixOps = 0;
-	numTmpOps = 0;
+	int numTmpOps = 0;
 
 	// A ext->numOps equals to 0 means empty or invalid expression.
 	exp->numOps = 0;
@@ -716,7 +710,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 
 	while ( true )
 	{
-		token = ParseExpressionElement( text );
+		char *token = ParseExpressionElement( text );
 
 		if ( token[ 0 ] == 0 || token[ 0 ] == ',' )
 		{
@@ -779,7 +773,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	op.value = 0;
 	inFixOps[ numInFixOps++ ] = op;
 
-	for ( i = 0; i < ( numInFixOps - 1 ); i++ )
+	for ( int i = 0; i < ( numInFixOps - 1 ); i++ )
 	{
 		op = inFixOps[ i ];
 		op2 = inFixOps[ i + 1 ];
@@ -799,7 +793,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	// convert infix representation to postfix
 	//
 
-	for ( i = 0; i < numInFixOps; i++ )
+	for ( int i = 0; i < numInFixOps; i++ )
 	{
 		op = inFixOps[ i ];
 
