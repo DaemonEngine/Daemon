@@ -146,7 +146,7 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 				case texMod_t::TMOD_CENTERSCALE:
 				case texMod_t::TMOD_SHEAR:
 				{
-					if ( bundle.texMods[i].sExp.active || bundle.texMods[i].tExp.active ) {
+					if ( bundle.texMods[i].sExp.numOps || bundle.texMods[i].tExp.numOps ) {
 						pStage->texMatricesDynamic = true;
 					}
 					break;
@@ -154,7 +154,7 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 
 				case texMod_t::TMOD_ROTATE2:
 				{
-					if( bundle.texMods[i].rExp.active ) {
+					if( bundle.texMods[i].rExp.numOps ) {
 						pStage->texMatricesDynamic = true;
 					}
 					break;
@@ -176,13 +176,13 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 
 	// Can we move this to a compute shader too?
 	// Doesn't seem to be used much if at all, so probably not worth the effort to do that
-	pStage->dynamic = pStage->dynamic || pStage->ifExp.active;
-	pStage->dynamic = pStage->dynamic || pStage->alphaExp.active || pStage->alphaTestExp.active;
-	pStage->dynamic = pStage->dynamic || pStage->rgbExp.active || pStage->redExp.active || pStage->greenExp.active || pStage->blueExp.active;
-	pStage->dynamic = pStage->dynamic || pStage->deformMagnitudeExp.active;
-	pStage->dynamic = pStage->dynamic || pStage->depthScaleExp.active || pStage->etaExp.active || pStage->etaDeltaExp.active
-		|| pStage->fogDensityExp.active || pStage->fresnelBiasExp.active || pStage->fresnelPowerExp.active
-		|| pStage->fresnelScaleExp.active || pStage->normalIntensityExp.active || pStage->refractionIndexExp.active;
+	pStage->dynamic = pStage->dynamic || pStage->ifExp.numOps;
+	pStage->dynamic = pStage->dynamic || pStage->alphaExp.numOps || pStage->alphaTestExp.numOps;
+	pStage->dynamic = pStage->dynamic || pStage->rgbExp.numOps || pStage->redExp.numOps || pStage->greenExp.numOps || pStage->blueExp.numOps;
+	pStage->dynamic = pStage->dynamic || pStage->deformMagnitudeExp.numOps;
+	pStage->dynamic = pStage->dynamic || pStage->depthScaleExp.numOps || pStage->etaExp.numOps || pStage->etaDeltaExp.numOps
+		|| pStage->fogDensityExp.numOps || pStage->fresnelBiasExp.numOps || pStage->fresnelPowerExp.numOps
+		|| pStage->fresnelScaleExp.numOps || pStage->normalIntensityExp.numOps || pStage->refractionIndexExp.numOps;
 
 	pStage->dynamic = pStage->dynamic || pStage->colorDynamic || pStage->texMatricesDynamic || pStage->texturesDynamic;
 }
