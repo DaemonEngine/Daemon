@@ -326,8 +326,18 @@ void trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *v
 
 void trap_R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys )
 {
-	std::vector<polyVert_t> myverts(numVerts * numPolys);
-	memcpy(myverts.data(), verts, numVerts * numPolys * sizeof(polyVert_t));
+	size_t size = numVerts * numPolys;
+
+	if (!size)
+	{
+		return;
+	}
+
+	std::vector<polyVert_t> myverts(size);
+	memcpy(myverts.data(), verts, size * sizeof(polyVert_t));
+
+	/* Known to crash on Clang ≥ 14 in non-Debug native build if size is 0:
+	https://github.com/Unvanquished/Unvanquished/issues/2682 */
 	cmdBuffer.SendMsg<Render::AddPolysToSceneMsg>(hShader, myverts, numVerts, numPolys);
 }
 
