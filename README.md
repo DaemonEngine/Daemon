@@ -19,11 +19,11 @@ Dæmon is the standalone engine that powers the multiplayer first person shooter
 To fetch and build Dæmon, you'll need:
 `git`,
 `cmake`,
-and a C++11 compiler.
+and a C++14 compiler.
 
 The following are actively supported:
-`gcc` ≥ 4.8,
-`clang` ≥ 3.5,
+`gcc` ≥ 9,
+`clang` ≥ 11,
 Visual Studio/MSVC (at least Visual Studio 2019).
 
 ## Dependencies
