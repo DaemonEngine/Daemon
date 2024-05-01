@@ -926,10 +926,11 @@ void Com_Frame()
 			{
 				minMsec = 1;
 			}
-			// A maxfps smaller than -1 unlocks all remaining fps (and expected bugs). 
+			/* A maxfps smaller than -1 unlocks all remaining fps (and expected bugs).
+			Cheats should be allowed. */
 			else
 			{
-				minMsec = 0;
+				minMsec = Com_AreCheatsAllowed() ? 0 : 1;
 			}
 		}
 	}
