@@ -3049,6 +3049,13 @@ int numTextures = 0;
 
 qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 {
+	size_t size = width * height;
+
+	if ( !size ) {
+		Log::Warn("RE_GenerateTexture: image size %dx%d is 0", width, height );
+		return 0;
+	}
+
 	const char *name = va( "rocket%d", numTextures++ );
 	R_SyncRenderThread();
 
