@@ -691,17 +691,17 @@ static void ParseExpression( const char **text, expression_t *exp )
 	expOperation_t op, op2;
 
 	expOperation_t inFixOps[ MAX_EXPRESSION_OPS ];
-	int numInFixOps = 0;
+	size_t numInFixOps = 0;
 
 	// convert stack
 	expOperation_t tmpOps[ MAX_EXPRESSION_OPS ];
-	int numTmpOps = 0;
+	size_t numTmpOps = 0;
 
 	// A ext->numOps equals to 0 means empty or invalid expression.
 	exp->numOps = 0;
 
 	// The numOps will only be written to exp->numOps if there is no parsing error.
-	uint8_t numOps = 0;
+	size_t numOps = 0;
 
 	// push left parenthesis on the stack
 	op.type = opcode_t::OP_LPAREN;
@@ -773,7 +773,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	op.value = 0;
 	inFixOps[ numInFixOps++ ] = op;
 
-	for ( int i = 0; i < ( numInFixOps - 1 ); i++ )
+	for ( size_t i = 0; i < ( numInFixOps - 1 ); i++ )
 	{
 		op = inFixOps[ i ];
 		op2 = inFixOps[ i + 1 ];
@@ -793,7 +793,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	// convert infix representation to postfix
 	//
 
-	for ( int i = 0; i < numInFixOps; i++ )
+	for ( size_t i = 0; i < numInFixOps; i++ )
 	{
 		op = inFixOps[ i ];
 

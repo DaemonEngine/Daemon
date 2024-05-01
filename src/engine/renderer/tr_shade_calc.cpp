@@ -233,7 +233,7 @@ float RB_EvalExpression( const expression_t *exp, float defaultValue )
 
 	expOperation_t ops[ MAX_EXPRESSION_OPS ];
 
-	int numOps = 0;
+	size_t numOps = 0;
 	float value = 0.0;
 	float value1 = 0.0;
 	float value2 = 0.0;
@@ -241,7 +241,7 @@ float RB_EvalExpression( const expression_t *exp, float defaultValue )
 	// http://www.qiksearch.com/articles/cs/postfix-evaluation/
 	// http://www.kyz.uklinux.net/evaluate/
 
-	for ( int i = 0; i < exp->numOps; i++ )
+	for ( size_t i = 0; i < exp->numOps; i++ )
 	{
 		expOperation_t op = exp->ops[ i ];
 
