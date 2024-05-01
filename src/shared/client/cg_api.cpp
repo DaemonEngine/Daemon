@@ -319,6 +319,11 @@ void trap_R_AddRefEntityToScene( const refEntity_t *re )
 
 void trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts )
 {
+	if (!numVerts)
+	{
+		return;
+	}
+
 	std::vector<polyVert_t> myverts(numVerts);
 	memcpy(myverts.data(), verts, numVerts * sizeof(polyVert_t));
 	cmdBuffer.SendMsg<Render::AddPolyToSceneMsg>(hShader, myverts);
@@ -343,6 +348,11 @@ void trap_R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *
 
 void trap_R_Add2dPolysIndexedToScene( polyVert_t* polys, int numPolys, int* indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader )
 {
+	if (!numIndexes)
+	{
+		return;
+	}
+
 	std::vector<polyVert_t> mypolys(numPolys);
 	std::vector<int> myindices(numIndexes);
 	memcpy(mypolys.data(), polys, numPolys * sizeof( polyVert_t ) );
