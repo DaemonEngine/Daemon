@@ -50,13 +50,10 @@ Optional:
 
 ### MSYS2
 
-Also required:
-`base-devel`.
+MSYS2 is the recommended way to build using MinGW on a Windows host.
 
-64-bit: `mingw-w64-x86_64-{toolchain,cmake}`,  
-_or_ 32-bit: `mingw-w64-i686-{toolchain,cmake}`.
-
-MSYS2 is an easy way to get MingW compiler and build dependencies, the standalone MingW on Windows also works.
+Required packages for 64-bit: `mingw-w64-x86_64-gcc`, `mingw-w64-x86_64-cmake`, `make`  
+Required packages for 32-bit: `mingw-w64-i686-gcc`, `mingw-w64-i686-cmake`, `make`
 
 ## Downloading the sources for the game engine
 
