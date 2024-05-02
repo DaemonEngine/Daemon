@@ -186,13 +186,19 @@ void computeDynamicLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffu
   if( color_type.w == 0.0 ) {
     // point light
     L = center_radius.xyz - P;
-    attenuation = 1.0 / (1.0 + 8.0 * length(L) / center_radius.w);
+    // 2.57 ~= 8.0 ^ ( 1.0 / 2.2 ), adjusted after overbright changes
+    float t = 1.0 + 2.57 * length(L) / center_radius.w;
+    // Quadratic attenuation function instead of linear because of overbright changes
+    attenuation = 1.0 / ( t * t );
     L = normalize(L);
   } else if( color_type.w == 1.0 ) {
     // spot light
     vec4 direction_angle = GetLight( idx, direction_angle );
     L = center_radius.xyz - P;
-    attenuation = 1.0 / (1.0 + 8.0 * length(L) / center_radius.w);
+    // 2.57 ~= 8.0 ^ ( 1.0 / 2.2 ), adjusted after overbright changes
+    float t = 1.0 + 2.57 * length(L) / center_radius.w;
+    // Quadratic attenuation function instead of linear because of overbright changes
+    attenuation = 1.0 / ( t * t );
     L = normalize( L );
 
     if( dot( L, direction_angle.xyz ) <= direction_angle.w ) {
