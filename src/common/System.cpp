@@ -425,26 +425,15 @@ void GenRandomBytes(void* dest, size_t size)
 #endif
 }
 
-} // namespace Sys
-
-#ifndef USING_ADDRESS_SANITIZER
-// Global operator new/delete override to not throw an exception when out of
+// Do not throw an exception when out of
 // memory. Instead, it is preferable to simply crash with an error.
-void* operator new(size_t n)
+static void ErrorOutOfMemory()
 {
-	void* p = malloc(n);
-	if (!p)
-		Sys::Error("Out of memory");
-	return p;
+	Sys::Error("Out of memory");
 }
+static int dummy = [] {
+	std::set_new_handler(ErrorOutOfMemory);
+	return 0;
+}();
 
-void operator delete(void* p) NOEXCEPT
-{
-	free(p);
-}
-
-void operator delete(void* p, size_t) NOEXCEPT
-{
-	free(p);
-}
-#endif
+} // namespace Sys
