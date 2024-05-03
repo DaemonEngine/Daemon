@@ -92,7 +92,6 @@ GL_TextureMode
 void GL_TextureMode( const char *string )
 {
 	int     i;
-	image_t *image;
 
 	for ( i = 0; i < 6; i++ )
 	{
@@ -125,10 +124,8 @@ void GL_TextureMode( const char *string )
 	}
 
 	// change all the existing mipmap texture objects
-	for ( i = 0; i < tr.images.currentElements; i++ )
+	for ( image_t *image : tr.images )
 	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
-
 		if ( image->filterType == filterType_t::FT_DEFAULT )
 		{
 			GL_Bind( image );
@@ -296,10 +293,9 @@ void R_ListImages_f()
 	int texels = 0;
 	int dataSize = 0;
 
-	for ( int i = 0; i < tr.images.currentElements; i++ )
+	for ( size_t i = 0; i < tr.images.size(); i++ )
 	{
-		image_t *image = (image_t*) Com_GrowListElement( &tr.images, i );
-
+		const image_t *image = tr.images[ i ];
 		if ( filter && !Com_Filter( filter, image->name, true ) )
 		{
 			continue;
@@ -387,7 +383,7 @@ void R_ListImages_f()
 	std::string summary1 = Str::Format( "%i total texels (not including mipmaps)", texels );
 	std::string summary2 = Str::Format( "%d.%02d MB total image memory (estimated)",
 		dataSize / ( 1024 * 1024 ), ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	std::string summary3 = Str::Format( "%i total images", tr.images.currentElements );
+	std::string summary3 = Str::Format( "%i total images", tr.images.size() );
 
 	Log::CommandInteractionMessage( lineSeparator );
 	Log::CommandInteractionMessage( summary1 );
@@ -1306,7 +1302,7 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 
 	glGenTextures( 1, &image->texnum );
 
-	Com_AddToGrowList( &tr.images, image );
+	tr.images.push_back( image );
 
 	Q_strncpyz( image->name, name, sizeof( image->name ) );
 
@@ -2904,9 +2900,9 @@ void R_InitImages()
 	Log::Debug("------- R_InitImages -------" );
 
 	memset( r_imageHashTable, 0, sizeof( r_imageHashTable ) );
-	Com_InitGrowList( &tr.images, 4096 );
-	Com_InitGrowList( &tr.lightmaps, 128 );
-	Com_InitGrowList( &tr.deluxemaps, 128 );
+	tr.images.reserve( 4096 );
+	tr.lightmaps.reserve( 128 );
+	tr.deluxemaps.reserve( 128 );
 
 	/* These are the values expected by the rest of the renderer
 	(esp. tr_bsp), used for "gamma correction of the map".
@@ -2990,24 +2986,19 @@ R_ShutdownImages
 */
 void R_ShutdownImages()
 {
-	int     i;
-	image_t *image;
-
 	Log::Debug("------- R_ShutdownImages -------" );
 
-	for ( i = 0; i < tr.images.currentElements; i++ )
+	for ( image_t *image : tr.images )
 	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
-
 		glDeleteTextures( 1, &image->texnum );
 	}
 
 	memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
 
-	Com_DestroyGrowList( &tr.images );
-	Com_DestroyGrowList( &tr.lightmaps );
-	Com_DestroyGrowList( &tr.deluxemaps );
-	Com_DestroyGrowList( &tr.cubeProbes );
+	tr.images.clear();
+	tr.lightmaps.clear();
+	tr.deluxemaps.clear();
+	tr.cubeProbes.clear();
 
 	FreeVertexHashTable( tr.cubeHashTable );
 }
