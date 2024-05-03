@@ -618,9 +618,10 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 					continue;
 				}
 
-				if ( AddTriangleToVBOTriangleList( &vboTriangles, sortTri, &numBoneReferences, boneReferences ) )
+				if ( R_AddTriangleToVBOTriangleList( &sortTri, &numBoneReferences, boneReferences ) )
 				{
 					sortTri->referenced = true;
+					Com_AddToGrowList( &vboTriangles, sortTri );
 				}
 			}
 
