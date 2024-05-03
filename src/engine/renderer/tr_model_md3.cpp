@@ -243,14 +243,14 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 
 	// create VBO surfaces from md3 surfaces
 	{
-		growList_t      vboSurfaces;
 		srfVBOMDVMesh_t *vboSurf;
 		vboData_t       data;
 		glIndex_t       *indexes;
 
 		int             f;
 
-		Com_InitGrowList( &vboSurfaces, 10 );
+		std::vector<srfVBOMDVMesh_t *> vboSurfaces;
+		vboSurfaces.reserve( 10 );
 
 		for ( i = 0, surf = mdvModel->surfaces; i < mdvModel->numSurfaces; i++, surf++ )
 		{
@@ -338,7 +338,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			// create surface
 
 			vboSurf = (srfVBOMDVMesh_t*) ri.Hunk_Alloc( sizeof( *vboSurf ), ha_pref::h_low );
-			Com_AddToGrowList( &vboSurfaces, vboSurf );
+			vboSurfaces.push_back( vboSurf );
 
 			vboSurf->surfaceType = surfaceType_t::SF_VBO_MDVMESH;
 			vboSurf->mdvModel = mdvModel;
@@ -364,15 +364,10 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 		}
 
 		// move VBO surfaces list to hunk
-		mdvModel->numVBOSurfaces = vboSurfaces.currentElements;
-		mdvModel->vboSurfaces = (srfVBOMDVMesh_t**) ri.Hunk_Alloc( mdvModel->numVBOSurfaces * sizeof( *mdvModel->vboSurfaces ), ha_pref::h_low );
-
-		for ( i = 0; i < mdvModel->numVBOSurfaces; i++ )
-		{
-			mdvModel->vboSurfaces[ i ] = ( srfVBOMDVMesh_t * ) Com_GrowListElement( &vboSurfaces, i );
-		}
-
-		Com_DestroyGrowList( &vboSurfaces );
+		mdvModel->numVBOSurfaces = vboSurfaces.size();
+		size_t allocSize = vboSurfaces.size() * sizeof( vboSurfaces[ 0 ] );
+		mdvModel->vboSurfaces = (srfVBOMDVMesh_t**) ri.Hunk_Alloc( allocSize, ha_pref::h_low );
+		memcpy( mdvModel->vboSurfaces, vboSurfaces.data(), allocSize );
 	}
 
 	return true;
