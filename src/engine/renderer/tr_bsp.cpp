@@ -36,7 +36,7 @@ RE_LoadWorldMap(const char *name);
 
 static world_t    s_worldData;
 static int        s_lightCount;
-static growList_t s_interactions;
+static std::vector<interactionCache_t *> s_interactions;
 static byte       *fileBase;
 
 static int        c_redundantInteractions;
@@ -4826,7 +4826,7 @@ static void R_PrecacheInteraction( trRefLight_t *light, bspSurface_t *surface )
 	interactionCache_t *iaCache;
 
 	iaCache = (interactionCache_t*) ri.Hunk_Alloc( sizeof( *iaCache ), ha_pref::h_low );
-	Com_AddToGrowList( &s_interactions, iaCache );
+	s_interactions.push_back( iaCache );
 
 	// connect to interaction grid
 	if ( !light->firstInteractionCache )
@@ -6197,8 +6197,6 @@ void R_PrecacheInteractions()
 		surface->lightCount = -1;
 	}
 
-	Com_InitGrowList( &s_interactions, 100 );
-
 	c_redundantInteractions = 0;
 	c_vboWorldSurfaces = 0;
 	c_vboLightSurfaces = 0;
@@ -6262,15 +6260,15 @@ void R_PrecacheInteractions()
 	}
 
 	// move interactions grow list to hunk
-	s_worldData.numInteractions = s_interactions.currentElements;
+	s_worldData.numInteractions = s_interactions.size();
 	s_worldData.interactions = (interactionCache_t**) ri.Hunk_Alloc( s_worldData.numInteractions * sizeof( *s_worldData.interactions ), ha_pref::h_low );
 
 	for ( i = 0; i < s_worldData.numInteractions; i++ )
 	{
-		s_worldData.interactions[ i ] = ( interactionCache_t * ) Com_GrowListElement( &s_interactions, i );
+		s_worldData.interactions[ i ] = s_interactions[ i ];
 	}
 
-	Com_DestroyGrowList( &s_interactions );
+	s_interactions.clear();
 
 	Log::Debug("%i interactions precached", s_worldData.numInteractions );
 	Log::Debug("%i interactions were hidden in shadows", c_redundantInteractions );
@@ -6524,7 +6522,7 @@ void R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbe
 
 void R_BuildCubeMaps()
 {
-	int            i, j;
+	int            i;
 	int            ii, jj;
 	refdef_t       rf;
 	bool       flipx;
@@ -6556,6 +6554,7 @@ void R_BuildCubeMaps()
 	}
 
 	// calculate origins for our probes
+	tr.cubeProbes.clear();
 	tr.cubeHashTable = NewVertexHashTable();
 
 	{
@@ -6606,8 +6605,10 @@ void R_BuildCubeMaps()
 	Log::Notice("0%%  10   20   30   40   50   60   70   80   90   100%%" );
 	Log::Notice("|----|----|----|----|----|----|----|----|----|----|" );
 
-	for ( cubemapProbe_t *cubeProbe : tr.cubeProbes )
+	for ( size_t j = 0; j < tr.cubeProbes.size(); j++ )
 	{
+		cubemapProbe_t *cubeProbe = tr.cubeProbes[ j ];
+
 		//Log::Notice("rendering cubemap at (%i %i %i)", (int)cubeProbe->origin[0], (int)cubeProbe->origin[1],
 		//      (int)cubeProbe->origin[2]);
 

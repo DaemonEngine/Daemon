@@ -1319,23 +1319,6 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	void TransEndLerp( transform_t *t );
 #endif
 
-//=============================================
-
-	struct growList_t
-	{
-		bool frameMemory;
-		int      currentElements;
-		int      maxElements; // will reallocate and move when exceeded
-		void     **elements;
-	};
-
-// you don't need to init the growlist if you don't mind it growing and moving
-// the list as it expands
-	void Com_InitGrowList( growList_t *list, int maxElements );
-	void Com_DestroyGrowList( growList_t *list );
-	int  Com_AddToGrowList( growList_t *list, void *data );
-	void *Com_GrowListElement( const growList_t *list, int index );
-
 //=============================================================================
 
 	char       *COM_SkipPath( char *pathname );
