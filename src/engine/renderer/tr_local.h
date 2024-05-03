@@ -2807,8 +2807,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		shader_t *defaultProjectedLightShader;
 		shader_t *defaultDynamicLightShader;
 
-		growList_t lightmaps;
-		growList_t deluxemaps;
+		std::vector<image_t *> lightmaps;
+		std::vector<image_t *> deluxemaps;
 
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
@@ -2862,7 +2862,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		int             numAnimations;
 		skelAnimation_t *animations[ MAX_ANIMATIONFILES ];
 
-		growList_t      images;
+		std::vector<image_t *> images;
 
 		int             numFBOs;
 		FBO_t           *fbos[ MAX_FBOS ];
@@ -2870,11 +2870,11 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		GLuint          dlightUBO;
 		image_t         *dlightImage; // if the UBO is not available
 
-		growList_t      vbos;
-		growList_t      ibos;
+		std::vector<VBO_t *> vbos;
+		std::vector<IBO_t *> ibos;
 
 		byte            *cubeTemp[ 6 ]; // 6 textures for cubemap storage
-		growList_t      cubeProbes; // all cubemaps in a linear growing list
+		std::vector<cubemapProbe_t *> cubeProbes; // all cubemaps in a linear growing list
 		vertexHash_t    **cubeHashTable; // hash table for faster access
 
 		// shader indexes from other modules will be looked up in tr.shaders[]
