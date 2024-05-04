@@ -166,7 +166,7 @@ void       NET_LeaveMulticast6();
 void       NET_Sleep( int msec );
 
 //----(SA)  increased for larger submodel entity counts
-#define MAX_MSGLEN           32768 // max length of a message, which may
+#define MAX_MSGLEN           262144 // max length of a message, which may
 //#define   MAX_MSGLEN              16384       // max length of a message, which may
 // be fragmented into multiple packets
 #define MAX_DOWNLOAD_WINDOW  8 // max of eight download frames
