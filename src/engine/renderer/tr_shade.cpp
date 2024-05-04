@@ -810,7 +810,7 @@ GetLightMap
 */
 static image_t* GetLightMap()
 {
-	if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.size() )
+	if ( static_cast<size_t>( tess.lightmapNum ) < tr.lightmaps.size() )
 	{
 		return tr.lightmaps[ tess.lightmapNum ];
 	}
@@ -827,7 +827,7 @@ GetDeluxeMap
 */
 static image_t* GetDeluxeMap()
 {
-	if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.deluxemaps.size() )
+	if ( static_cast<size_t>( tess.lightmapNum ) < tr.deluxemaps.size() )
 	{
 		return tr.deluxemaps[ tess.lightmapNum ];
 	}
@@ -873,7 +873,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 		if ( lightMode == lightMode_t::MAP )
 		{
-			bool hasLightMap = ( tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.size() );
+			bool hasLightMap = static_cast<size_t>( tess.lightmapNum ) < tr.lightmaps.size();
 
 			if ( !hasLightMap )
 			{
