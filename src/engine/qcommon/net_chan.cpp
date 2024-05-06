@@ -497,54 +497,6 @@ void NET_SendLoopPacket( netsrc_t sock, int length, const void *data )
 
 //=============================================================================
 
-struct packetQueue_t
-{
-	packetQueue_t *next;
-
-	int                  length;
-	byte                 *data;
-	netadr_t             to;
-	int                  release;
-};
-
-packetQueue_t *packetQueue = nullptr;
-
-static void NET_QueuePacket( int length, const void *data, const netadr_t& to,
-                             int offset )
-{
-	packetQueue_t *newp, *next = packetQueue;
-
-	if ( offset > 999 )
-	{
-		offset = 999;
-	}
-
-	newp = (packetQueue_t*) S_Malloc( sizeof( packetQueue_t ) );
-	newp->data = (byte*) S_Malloc( length );
-	memcpy( newp->data, data, length );
-	newp->length = length;
-	newp->to = to;
-	newp->release = Sys::Milliseconds() + ( int )( ( float ) offset / com_timescale->value );
-	newp->next = nullptr;
-
-	if ( !packetQueue )
-	{
-		packetQueue = newp;
-		return;
-	}
-
-	while ( next )
-	{
-		if ( !next->next )
-		{
-			next->next = newp;
-			return;
-		}
-
-		next = next->next;
-	}
-}
-
 void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t& to )
 {
 	// sequenced packets are shown in netchan, so just show oob
@@ -569,21 +521,7 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t
 		return;
 	}
 
-#ifndef BUILD_SERVER
-	if ( sock == netsrc_t::NS_CLIENT && cl_packetdelay->integer > 0 )
-	{
-		NET_QueuePacket( length, data, to, cl_packetdelay->integer );
-	}
-	else
-#endif
-	if ( sock == netsrc_t::NS_SERVER && sv_packetdelay->integer > 0 )
-	{
-		NET_QueuePacket( length, data, to, sv_packetdelay->integer );
-	}
-	else
-	{
-		Sys_SendPacket( length, data, to );
-	}
+	Sys_SendPacket( length, data, to );
 }
 
 /*

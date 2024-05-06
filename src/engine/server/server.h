@@ -319,9 +319,6 @@ extern cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
 // TTimo - autodl
 extern cvar_t *sv_dl_maxRate;
 
-//bani
-extern cvar_t *sv_packetdelay;
-
 //fretn
 extern cvar_t *sv_fullmsg;
 

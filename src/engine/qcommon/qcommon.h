@@ -541,9 +541,6 @@ extern Cvar::Cvar<bool> com_ansiColor;
 extern cvar_t       *com_unfocused;
 extern cvar_t       *com_minimized;
 
-extern cvar_t       *cl_packetdelay;
-extern cvar_t       *sv_packetdelay;
-
 // com_speeds times
 extern int          time_game;
 extern int          time_frontend;
@@ -590,10 +587,6 @@ static inline MALLOC_LIKE void* Z_TagMalloc(size_t size, memtag_t tag)
 static inline MALLOC_LIKE void* Z_Malloc(size_t size)
 {
   return calloc(size, 1);
-}
-static inline MALLOC_LIKE void* S_Malloc(size_t size)
-{
-  return malloc(size);
 }
 static inline ALLOCATOR char* CopyString(const char* str)
 {
