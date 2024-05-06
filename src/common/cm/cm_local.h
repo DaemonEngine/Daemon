@@ -276,7 +276,7 @@ struct cTriangleSoup_t
 cSurfaceCollide_t              *CM_GenerateTriangleSoupCollide( int numVertexes, vec3_t *vertexes, int numIndexes, int *indexes );
 
 
-void* CM_Alloc( int size );
+void* CM_Alloc( size_t size );
 
 // cm_plane.c
 

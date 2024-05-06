@@ -6087,22 +6087,12 @@ bool RE_LoadDynamicShader( const char *shadername, const char *shadertext )
 	//create a new shader
 	dptr = ( dynamicshader_t * ) ri.Z_Malloc( sizeof( *dptr ) );
 
-	if ( !dptr )
-	{
-		Sys::Error( "Couldn't allocate struct for dynamic shader %s", shadername );
-	}
-
 	if ( lastdptr )
 	{
 		lastdptr->next = dptr;
 	}
 
 	dptr->shadertext = (char*) ri.Z_Malloc( strlen( shadertext ) + 1 );
-
-	if ( !dptr->shadertext )
-	{
-		Sys::Error( "Couldn't allocate buffer for dynamic shader %s", shadername );
-	}
 
 	Q_strncpyz( dptr->shadertext, shadertext, strlen( shadertext ) + 1 );
 	dptr->next = nullptr;

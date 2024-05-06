@@ -458,13 +458,6 @@ void RE_RenderChunk( fontInfo_t *font, const int chunk )
 	}
 
 	out = (unsigned char*) ri.Z_Malloc( FONT_SIZE * FONT_SIZE );
-
-	if ( out == nullptr )
-	{
-		Log::Warn("RE_RenderChunk: ri.Malloc failure during output image creation." );
-		return;
-	}
-
 	memset( out, 0, FONT_SIZE * FONT_SIZE );
 
 	// calculate max height
