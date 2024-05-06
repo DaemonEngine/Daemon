@@ -137,16 +137,14 @@ FT_Bitmap      *R_RenderGlyph( FT_GlyphSlot glyph, glyphInfo_t *glyphOut )
 	{
 		size = pitch * height;
 
-		bit2 = (FT_Bitmap*) ri.Z_Malloc( sizeof( FT_Bitmap ) );
+		bit2 = (FT_Bitmap*) Z_Malloc( sizeof( FT_Bitmap ) );
 
 		bit2->width = width;
 		bit2->rows = height;
 		bit2->pitch = pitch;
 		bit2->pixel_mode = ft_pixel_mode_grays;
-		bit2->buffer = (unsigned char*) ri.Z_Malloc( pitch * height );
+		bit2->buffer = (unsigned char*) Z_Calloc( size );
 		bit2->num_grays = 256;
-
-		memset( bit2->buffer, 0, size );
 
 		FT_Outline_Translate( &glyph->outline, -left, -bottom );
 
@@ -207,8 +205,8 @@ static glyphInfo_t *RE_ConstructGlyphInfo( unsigned char *imageOut, int *xOut, i
 
 		if ( calcHeight )
 		{
-			ri.Free( bitmap->buffer );
-			ri.Free( bitmap );
+			Z_Free( bitmap->buffer );
+			Z_Free( bitmap );
 			return &glyph;
 		}
 
@@ -225,8 +223,8 @@ static glyphInfo_t *RE_ConstructGlyphInfo( unsigned char *imageOut, int *xOut, i
 		if ( *yOut + *maxHeight + 1 >= ( FONT_SIZE - 1 ) )
 		{
 			*xOut = -1;
-			ri.Free( bitmap->buffer );
-			ri.Free( bitmap );
+			Z_Free( bitmap->buffer );
+			Z_Free( bitmap );
 			return nullptr;
 		}
 
@@ -292,8 +290,8 @@ static glyphInfo_t *RE_ConstructGlyphInfo( unsigned char *imageOut, int *xOut, i
 
 		*xOut += scaledWidth + 1;
 
-		ri.Free( bitmap->buffer );
-		ri.Free( bitmap );
+		Z_Free( bitmap->buffer );
+		Z_Free( bitmap );
 
 		return &glyph;
 	}
@@ -411,7 +409,7 @@ static void RE_StoreImage( fontInfo_t *font, int chunk, int page, int from, int 
 		max = 255 / max;
 	}
 
-	buffer = ( unsigned char * ) ri.Z_Malloc( scaledSize * 4 );
+	buffer = ( unsigned char * ) Z_AllocUninit( scaledSize * 4 );
 	for ( i = j = 0; i < scaledSize; i++ )
 	{
 		buffer[ j++ ] = 255;
@@ -425,7 +423,7 @@ static void RE_StoreImage( fontInfo_t *font, int chunk, int page, int from, int 
 
 	image = R_CreateGlyph( fileName, buffer, FONT_SIZE, y );
 
-	ri.Free( buffer );
+	Z_Free( buffer );
 
 	h = RE_RegisterShaderFromImage( fileName, image );
 
@@ -457,8 +455,7 @@ void RE_RenderChunk( fontInfo_t *font, const int chunk )
 		return;
 	}
 
-	out = (unsigned char*) ri.Z_Malloc( FONT_SIZE * FONT_SIZE );
-	memset( out, 0, FONT_SIZE * FONT_SIZE );
+	out = (unsigned char*) Z_Calloc( FONT_SIZE * FONT_SIZE );
 
 	// calculate max height
 	maxHeight = 0;
@@ -472,13 +469,12 @@ void RE_RenderChunk( fontInfo_t *font, const int chunk )
 	// no glyphs? just return
 	if ( !rendered )
 	{
-		ri.Free( out );
+		Z_Free( out );
 		font->glyphBlock[ chunk ] = nullGlyphs;
 		return;
 	}
 
-	glyphs = font->glyphBlock[ chunk ] = (glyphInfo_t*) ri.Z_Malloc( sizeof( glyphBlock_t ) );
-	memset( glyphs, 0, sizeof( glyphBlock_t ) );
+	glyphs = font->glyphBlock[ chunk ] = (glyphInfo_t*) Z_Calloc( sizeof( glyphBlock_t ) );
 
 	xOut = yOut = 0;
 	rendered = false;
@@ -512,7 +508,7 @@ void RE_RenderChunk( fontInfo_t *font, const int chunk )
 	{
 		RE_StoreImage( font, chunk, page, lastStart, 256, out, yOut + maxHeight + 1 );
 	}
-	ri.Free( out );
+	Z_Free( out );
 }
 
 static int RE_LoadFontFile( const char *name, void **buffer )
@@ -660,8 +656,7 @@ fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 		fdOffset = 0;
 		fdFile = (byte*) faceData;
 
-		glyphs = font->glyphBlock[0] = (glyphInfo_t*) ri.Z_Malloc( sizeof( glyphBlock_t ) );
-		memset( glyphs, 0, sizeof( glyphBlock_t ) );
+		glyphs = font->glyphBlock[0] = (glyphInfo_t*) Z_Calloc( sizeof( glyphBlock_t ) );
 
 		for ( i = 0; i < GLYPHS_PER_FONT; i++ )
 		{
@@ -783,7 +778,7 @@ void RE_UnregisterFont_Internal( fontHandle_t handle )
 	{
 		if ( registeredFont[ handle ].glyphBlock[ i ] && registeredFont[ handle ].glyphBlock[ i ] != nullGlyphs )
 		{
-			ri.Free( registeredFont[ handle ].glyphBlock[ i ] );
+			Z_Free( registeredFont[ handle ].glyphBlock[ i ] );
 			registeredFont[ handle ].glyphBlock[ i ] = nullptr;
 		}
 	}

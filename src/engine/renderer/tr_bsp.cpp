@@ -425,7 +425,7 @@ static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int 
 	*width = w;
 	*height = h;
 
-	*ldrImage = (byte*) ri.Z_Malloc( w * h * 4 );
+	*ldrImage = (byte*) Z_Malloc( w * h * 4 );
 	pixbuf = *ldrImage;
 
 	floatbuf = hdrImage;
@@ -554,7 +554,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 				tr.lightmaps.push_back( image );
 
-				ri.Free( ldrImage );
+				Z_Free( ldrImage );
 			}
 
 			if (tr.worldDeluxeMapping) {
@@ -6548,7 +6548,7 @@ void R_BuildCubeMaps()
 
 	for ( i = 0; i < 6; i++ )
 	{
-		tr.cubeTemp[ i ] = (byte*) ri.Z_Malloc( REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
+		tr.cubeTemp[ i ] = (byte*) Z_Malloc( REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
 	}
 
 	// calculate origins for our probes

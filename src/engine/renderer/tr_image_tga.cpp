@@ -110,7 +110,7 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 		Sys::Drop( "TGA image '%s' has an invalid image size", name );
 	}
 
-	targa_rgba = (byte*) ri.Z_Malloc( numPixels );
+	targa_rgba = (byte*) Z_Malloc( numPixels );
 
 	*pic = targa_rgba;
 
@@ -164,7 +164,7 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 						break;
 
 					default:
-						ri.Free( targa_rgba );
+						Z_Free( targa_rgba );
 						Sys::Drop( "TGA image '%s' has illegal pixel_size (%d)", name, targa_header.pixel_size );
 				}
 			}
@@ -209,7 +209,7 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 							break;
 
 						default:
-							ri.Free( targa_rgba );
+							Z_Free( targa_rgba );
 							Sys::Drop( "TGA image '%s' has illegal pixel_size (%d)", name, targa_header.pixel_size );
 					}
 
@@ -268,7 +268,7 @@ void LoadTGA( const char *name, byte **pic, int *width, int *height,
 								break;
 
 							default:
-								ri.Free( targa_rgba );
+								Z_Free( targa_rgba );
 								Sys::Drop( "TGA image '%s' has illegal pixel_size (%d)", name, targa_header.pixel_size );
 						}
 
