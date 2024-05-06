@@ -4970,8 +4970,6 @@ static void R_RecursivePrecacheInteractionNode( bspNode_t *node, trRefLight_t *l
 			InitLink( l, node );
 
 			InsertLink( l, &light->leafs );
-
-			light->leafs.numElements++;
 		}
 	}
 }

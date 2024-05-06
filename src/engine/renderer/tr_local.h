@@ -376,31 +376,16 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	struct link_t
 	{
 		void          *data;
-		int           numElements; // only used by sentinels
 		link_t *prev, *next;
 	};
 
-	static inline void InitLink( link_t *l, void *data )
+	inline void InitLink( link_t *l, void *data )
 	{
 		l->data = data;
 		l->prev = l->next = l;
 	}
 
-	static inline void ClearLink( link_t *l )
-	{
-		l->data = nullptr;
-		l->prev = l->next = l;
-	}
-
-	static inline void RemoveLink( link_t *l )
-	{
-		l->next->prev = l->prev;
-		l->prev->next = l->next;
-
-		l->prev = l->next = nullptr;
-	}
-
-	static inline void InsertLink( link_t *l, link_t *sentinel )
+	inline void InsertLink( link_t *l, link_t *sentinel )
 	{
 		l->next = sentinel->next;
 		l->prev = sentinel;
@@ -409,93 +394,10 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		l->prev->next = l;
 	}
 
-	static inline bool StackEmpty( link_t *l )
-	{
-		return l->next == l;
-	}
-
-	static inline link_t *StackTop( link_t *l )
-	{
-		return l->next;
-	}
-
-	static inline void StackPush( link_t *sentinel, void *data )
-	{
-		link_t *l;
-
-		l = ( link_t * ) malloc( sizeof( *l ) );
-		InitLink( l, data );
-
-		InsertLink( l, sentinel );
-	}
-
-	static inline void *StackPop( link_t *l )
-	{
-		link_t *top;
-		void  *data;
-
-		if ( l->next == l )
-		{
-			return nullptr;
-		}
-
-		top = l->next;
-
-		RemoveLink( top );
-		data = top->data;
-		free( top );
-
-		return data;
-	}
-
-	static inline void QueueInit( link_t *l )
+	inline void QueueInit( link_t *l )
 	{
 		l->data = nullptr;
-		l->numElements = 0;
 		l->prev = l->next = l;
-	}
-
-	static inline int QueueSize( link_t *l )
-	{
-		return l->numElements;
-	}
-
-	static inline bool QueueEmpty( link_t *l )
-	{
-		return l->prev == l;
-	}
-
-	static inline void EnQueue( link_t *sentinel, void *data )
-	{
-		link_t *l;
-
-		l = ( link_t * ) malloc( sizeof( *l ) );
-		InitLink( l, data );
-
-		InsertLink( l, sentinel );
-
-		sentinel->numElements++;
-	}
-
-	static inline void *DeQueue( link_t *l )
-	{
-		link_t *tail;
-		void  *data;
-
-		tail = l->prev;
-
-		RemoveLink( tail );
-		data = tail->data;
-		free( tail );
-
-		l->numElements--;
-
-		return data;
-	}
-
-	static inline link_t *QueueFront( link_t *l )
-	{
-		return l->prev;
 	}
 
 // a trRefLight_t has all the information passed in by
