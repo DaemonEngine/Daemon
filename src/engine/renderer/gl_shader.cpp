@@ -242,10 +242,10 @@ void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader *shader, sha
 	size_t numUniformBlocks = shader->_uniformBlocks.size();
 
 	// create buffer for storing uniform locations
-	shaderProgram->uniformLocations = ( GLint * ) ri.Z_Malloc( sizeof( GLint ) * numUniforms );
+	shaderProgram->uniformLocations = ( GLint * ) Z_Malloc( sizeof( GLint ) * numUniforms );
 
 	// create buffer for uniform firewall
-	shaderProgram->uniformFirewall = ( byte * ) ri.Z_Malloc( uniformSize );
+	shaderProgram->uniformFirewall = ( byte * ) Z_Malloc( uniformSize );
 
 	// update uniforms
 	for (GLUniform *uniform : shader->_uniforms)
@@ -255,7 +255,7 @@ void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader *shader, sha
 
 	if( glConfig2.uniformBufferObjectAvailable ) {
 		// create buffer for storing uniform block indexes
-		shaderProgram->uniformBlockIndexes = ( GLuint * ) ri.Z_Malloc( sizeof( GLuint ) * numUniformBlocks );
+		shaderProgram->uniformBlockIndexes = ( GLuint * ) Z_Malloc( sizeof( GLuint ) * numUniformBlocks );
 
 		// update uniform blocks
 		for (GLUniformBlock *uniformBlock : shader->_uniformBlocks)

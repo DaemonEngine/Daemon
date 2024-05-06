@@ -586,12 +586,28 @@ inline MALLOC_LIKE void* Z_TagMalloc(size_t size, memtag_t tag)
   if (!p && size) Sys::Error("Z_TagMalloc: Out of memory");
   return p;
 }
+// Allocations uncategorized as to whether they really need zeroing
 inline MALLOC_LIKE void* Z_Malloc(size_t size)
 {
   void* p = calloc(size, 1);
   if (!p && size) Sys::Error("Z_Malloc: Out of memory");
   return p;
 }
+// Allocates unitialized memory like malloc
+inline MALLOC_LIKE void* Z_AllocUninit(size_t size)
+{
+    void* p = malloc(size);
+    if (!p && size) Sys::Error("Z_AllocUninit: Out of memory");
+    return p;
+}
+// Allocates zeroed memory like calloc
+inline MALLOC_LIKE void* Z_Calloc(size_t size)
+{
+    void* p = calloc(size, 1);
+    if (!p && size) Sys::Error("Z_Calloc: Out of memory");
+    return p;
+}
+
 inline ALLOCATOR char* CopyString(const char* str)
 {
   return strdup(str);

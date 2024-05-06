@@ -6031,8 +6031,8 @@ bool RE_LoadDynamicShader( const char *shadername, const char *shadertext )
 		while ( dptr )
 		{
 			lastdptr = dptr->next;
-			ri.Free( dptr->shadertext );
-			ri.Free( dptr );
+			Z_Free( dptr->shadertext );
+			Z_Free( dptr );
 			dptr = lastdptr;
 		}
 
@@ -6064,8 +6064,8 @@ bool RE_LoadDynamicShader( const char *shadername, const char *shadertext )
 					lastdptr->next = dptr->next;
 				}
 
-				ri.Free( dptr->shadertext );
-				ri.Free( dptr );
+				Z_Free( dptr->shadertext );
+				Z_Free( dptr );
 				return true;
 			}
 
@@ -6085,14 +6085,14 @@ bool RE_LoadDynamicShader( const char *shadername, const char *shadertext )
 	}
 
 	//create a new shader
-	dptr = ( dynamicshader_t * ) ri.Z_Malloc( sizeof( *dptr ) );
+	dptr = ( dynamicshader_t * ) Z_Malloc( sizeof( *dptr ) );
 
 	if ( lastdptr )
 	{
 		lastdptr->next = dptr;
 	}
 
-	dptr->shadertext = (char*) ri.Z_Malloc( strlen( shadertext ) + 1 );
+	dptr->shadertext = (char*) Z_AllocUninit( strlen( shadertext ) + 1 );
 
 	Q_strncpyz( dptr->shadertext, shadertext, strlen( shadertext ) + 1 );
 	dptr->next = nullptr;

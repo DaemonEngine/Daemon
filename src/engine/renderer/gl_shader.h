@@ -171,17 +171,17 @@ public:
 
 			if ( p->uniformFirewall )
 			{
-				ri.Free( p->uniformFirewall );
+				Z_Free( p->uniformFirewall );
 			}
 
 			if ( p->uniformLocations )
 			{
-				ri.Free( p->uniformLocations );
+				Z_Free( p->uniformLocations );
 			}
 
 			if ( p->uniformBlockIndexes )
 			{
-				ri.Free( p->uniformBlockIndexes );
+				Z_Free( p->uniformBlockIndexes );
 			}
 		}
 	}

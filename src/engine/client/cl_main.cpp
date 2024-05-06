@@ -2260,8 +2260,6 @@ static bool CL_InitRef()
 	ri.Milliseconds = Sys::Milliseconds;
 	ri.RealTime = Com_RealTime;
 
-	ri.Z_Malloc = CL_RefMalloc;
-	ri.Free = Z_Free;
 	ri.Tag_Free = CL_RefTagFree;
 	ri.Hunk_Alloc = Hunk_Alloc;
 	ri.Hunk_AllocateTempMemory = Hunk_AllocateTempMemory;
