@@ -422,21 +422,20 @@ static srfGridMesh_t *R_CreateSurfaceGridMesh( int width, int height,
 
 	if ( r_stitchCurves->integer )
 	{
-		grid = (srfGridMesh_t*)/*ri.Hunk_Alloc */ malloc( size );
-		memset( grid, 0, size );
+		grid = (srfGridMesh_t*)/*ri.Hunk_Alloc */ Z_Calloc( size );
 
-		grid->widthLodError = (float*)/*ri.Hunk_Alloc */ malloc( width * 4 );
+		grid->widthLodError = (float*)/*ri.Hunk_Alloc */ Z_AllocUninit( width * 4 );
 		memcpy( grid->widthLodError, errorTable[ 0 ], width * 4 );
 
-		grid->heightLodError = (float*)/*ri.Hunk_Alloc */ malloc( height * 4 );
+		grid->heightLodError = (float*)/*ri.Hunk_Alloc */ Z_AllocUninit( height * 4 );
 		memcpy( grid->heightLodError, errorTable[ 1 ], height * 4 );
 
 		grid->numTriangles = numTriangles;
-		grid->triangles = (srfTriangle_t*) malloc( grid->numTriangles * sizeof( srfTriangle_t ) );
+		grid->triangles = (srfTriangle_t*) Z_AllocUninit( grid->numTriangles * sizeof( srfTriangle_t ) );
 		memcpy( grid->triangles, triangles, numTriangles * sizeof( srfTriangle_t ) );
 
 		grid->numVerts = ( width * height );
-		grid->verts = (srfVert_t*) malloc( grid->numVerts * sizeof( srfVert_t ) );
+		grid->verts = (srfVert_t*) Z_AllocUninit( grid->numVerts * sizeof( srfVert_t ) );
 	}
 	else
 	{
@@ -491,11 +490,11 @@ R_FreeSurfaceGridMesh
 */
 void R_FreeSurfaceGridMesh( srfGridMesh_t *grid )
 {
-	free( grid->widthLodError );
-	free( grid->heightLodError );
-	free( grid->triangles );
-	free( grid->verts );
-	free( grid );
+	Z_Free( grid->widthLodError );
+	Z_Free( grid->heightLodError );
+	Z_Free( grid->triangles );
+	Z_Free( grid->verts );
+	Z_Free( grid );
 }
 
 static srfTriangle_t gridtriangles[ SHADER_MAX_TRIANGLES ];

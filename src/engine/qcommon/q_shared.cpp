@@ -33,6 +33,7 @@ Maryland 20850 USA.
 */
 
 // q_shared.c -- stateless support routines that are included in each code dll
+#include "qcommon.h"
 #include "q_shared.h"
 #include "q_unicode.h"
 
@@ -1142,9 +1143,9 @@ const char *Com_ClearForeignCharacters( const char *str )
 	static char *clean = nullptr; // much longer than needed
 	int          i, j, size;
 
-	free( clean );
+	Z_Free( clean );
 	size = strlen( str );
-	clean = (char*)malloc ( size + 1 ); // guaranteed sufficient
+	clean = (char*)Z_AllocUninit( size + 1 ); // guaranteed sufficient
 
 	i = -1;
 	j = 0;

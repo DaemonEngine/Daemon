@@ -542,14 +542,7 @@ static int RE_LoadFontFile( const char *name, void **buffer )
 				return 0;
 			}
 
-			fontData[ i ].data = malloc( length );
-
-			if ( !fontData[ i ].data )
-			{
-				ri.FS_FreeFile( tmp );
-				return 0;
-			}
-
+			fontData[ i ].data = Z_AllocUninit( length );
 			fontData[ i ].length = length;
 			fontData[ i ].count = 1;
 			*buffer = fontData[ i ].data;
@@ -581,7 +574,7 @@ static void RE_FreeFontFile( void *data )
 		{
 			if ( !--fontData[ i ].count )
 			{
-				free( fontData[ i ].data );
+				Z_Free( fontData[ i ].data );
 			}
 			break;
 		}
