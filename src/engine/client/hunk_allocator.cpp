@@ -277,15 +277,6 @@ void           *Hunk_AllocateTempMemory( int size )
 	void         *buf;
 	hunkHeader_t *hdr;
 
-	// return a Z_Malloc'd block if the hunk has not been initialized
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redundant routines in the file system utilizing different
-	// memory systems
-	if ( s_hunkData == nullptr )
-	{
-		return Z_Malloc( size );
-	}
-
 	Hunk_SwapBanks();
 
 	size = PAD( size, sizeof( intptr_t ) ) + sizeof( hunkHeader_t );
@@ -329,16 +320,6 @@ Hunk_FreeTempMemory
 void Hunk_FreeTempMemory( void *buf )
 {
 	hunkHeader_t *hdr;
-
-	// free with Z_Free if the hunk has not been initialized
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redundant routines in the file system utilizing different
-	// memory systems
-	if ( s_hunkData == nullptr )
-	{
-		Z_Free( buf );
-		return;
-	}
 
 	hdr = ( ( hunkHeader_t * ) buf ) - 1;
 
