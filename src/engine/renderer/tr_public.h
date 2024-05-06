@@ -254,8 +254,6 @@ struct refimport_t
 	void            *( *Hunk_AllocateTempMemory )( int size );
 	void ( *Hunk_FreeTempMemory )( void *block );
 
-	void ( *Tag_Free )();
-
 	void ( *Cmd_AddCommand )( const char *name, void ( *cmd )() );
 	void ( *Cmd_RemoveCommand )( const char *name );
 
