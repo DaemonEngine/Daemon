@@ -125,8 +125,6 @@ cvar_t *cl_autorecord;
 
 cvar_t *cl_allowDownload;
 
-cvar_t                 *cl_packetdelay; //bani
-
 cvar_t                 *cl_consoleFont;
 cvar_t                 *cl_consoleFontSize;
 cvar_t                 *cl_consoleFontScaling;
@@ -2418,9 +2416,6 @@ void CL_Init()
 	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );
 
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
-
-	//bani
-	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
 
 	// userinfo
 	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );

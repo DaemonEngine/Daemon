@@ -80,9 +80,6 @@ cvar_t         *sv_dl_maxRate;
 
 cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
 
-//bani
-cvar_t *sv_packetdelay;
-
 // fretn
 cvar_t *sv_fullmsg;
 
