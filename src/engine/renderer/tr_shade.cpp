@@ -810,13 +810,9 @@ GetLightMap
 */
 static image_t* GetLightMap()
 {
-	if ( !tr.lightmaps.currentElements )
+	if ( static_cast<size_t>( tess.lightmapNum ) < tr.lightmaps.size() )
 	{
-		return tr.whiteImage;
-	}
-	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
-	{
-		return ( image_t * ) Com_GrowListElement( &tr.lightmaps, tess.lightmapNum );
+		return tr.lightmaps[ tess.lightmapNum ];
 	}
 	else
 	{
@@ -831,14 +827,9 @@ GetDeluxeMap
 */
 static image_t* GetDeluxeMap()
 {
-
-	if ( !tr.deluxemaps.currentElements )
+	if ( static_cast<size_t>( tess.lightmapNum ) < tr.deluxemaps.size() )
 	{
-		return tr.blackImage;
-	}
-	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.deluxemaps.currentElements )
-	{
-		return ( image_t * ) Com_GrowListElement( &tr.deluxemaps, tess.lightmapNum );
+		return tr.deluxemaps[ tess.lightmapNum ];
 	}
 	else
 	{
@@ -882,7 +873,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 		if ( lightMode == lightMode_t::MAP )
 		{
-			bool hasLightMap = ( tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements );
+			bool hasLightMap = static_cast<size_t>( tess.lightmapNum ) < tr.lightmaps.size();
 
 			if ( !hasLightMap )
 			{

@@ -36,7 +36,7 @@ RE_LoadWorldMap(const char *name);
 
 static world_t    s_worldData;
 static int        s_lightCount;
-static growList_t s_interactions;
+static std::vector<interactionCache_t *> s_interactions;
 static byte       *fileBase;
 
 static int        c_redundantInteractions;
@@ -552,7 +552,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 				auto image = R_CreateImage( va( "%s/%s", mapName, filename.c_str() ), (const byte **)&ldrImage, width, height, 1, imageParams );
 
-				Com_AddToGrowList( &tr.lightmaps, image );
+				tr.lightmaps.push_back( image );
 
 				ri.Free( ldrImage );
 			}
@@ -578,7 +578,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 					auto image = R_FindImageFile(va("%s/%s", mapName, filename.c_str()), imageParams);
-					Com_AddToGrowList(&tr.deluxemaps, image);
+					tr.deluxemaps.push_back(image);
 				}
 			}
 		}
@@ -607,7 +607,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
-					Com_AddToGrowList(&tr.lightmaps, image);
+					tr.lightmaps.push_back(image);
 				}
 				else if (tr.worldDeluxeMapping)
 				{
@@ -617,7 +617,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
-					Com_AddToGrowList(&tr.deluxemaps, image);
+					tr.deluxemaps.push_back( image );
 				}
 			}
 		}
@@ -687,7 +687,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 			image_t *internalLightMap = R_CreateImage( va( "_internalLightMap%d", i ), (const byte **)&lightMapBuffer, internalLightMapSize, internalLightMapSize, 1, imageParams );
-			Com_AddToGrowList( &tr.lightmaps, internalLightMap );
+			tr.lightmaps.push_back( internalLightMap );
 
 			ri.Hunk_FreeTempMemory( lightMapBuffer );
 		}
@@ -4826,7 +4826,7 @@ static void R_PrecacheInteraction( trRefLight_t *light, bspSurface_t *surface )
 	interactionCache_t *iaCache;
 
 	iaCache = (interactionCache_t*) ri.Hunk_Alloc( sizeof( *iaCache ), ha_pref::h_low );
-	Com_AddToGrowList( &s_interactions, iaCache );
+	s_interactions.push_back( iaCache );
 
 	// connect to interaction grid
 	if ( !light->firstInteractionCache )
@@ -6197,8 +6197,6 @@ void R_PrecacheInteractions()
 		surface->lightCount = -1;
 	}
 
-	Com_InitGrowList( &s_interactions, 100 );
-
 	c_redundantInteractions = 0;
 	c_vboWorldSurfaces = 0;
 	c_vboLightSurfaces = 0;
@@ -6262,15 +6260,15 @@ void R_PrecacheInteractions()
 	}
 
 	// move interactions grow list to hunk
-	s_worldData.numInteractions = s_interactions.currentElements;
+	s_worldData.numInteractions = s_interactions.size();
 	s_worldData.interactions = (interactionCache_t**) ri.Hunk_Alloc( s_worldData.numInteractions * sizeof( *s_worldData.interactions ), ha_pref::h_low );
 
 	for ( i = 0; i < s_worldData.numInteractions; i++ )
 	{
-		s_worldData.interactions[ i ] = ( interactionCache_t * ) Com_GrowListElement( &s_interactions, i );
+		s_worldData.interactions[ i ] = s_interactions[ i ];
 	}
 
-	Com_DestroyGrowList( &s_interactions );
+	s_interactions.clear();
 
 	Log::Debug("%i interactions precached", s_worldData.numInteractions );
 	Log::Debug("%i interactions were hidden in shadows", c_redundantInteractions );
@@ -6524,20 +6522,19 @@ void R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbe
 
 void R_BuildCubeMaps()
 {
-	int            i, j;
+	int            i;
 	int            ii, jj;
 	refdef_t       rf;
 	bool       flipx;
 	bool       flipy;
 	int            x, y, xy, xy2;
 
-	cubemapProbe_t *cubeProbe;
 	byte           temp[ REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 ];
 	byte           *dest;
 
 	int    startTime, endTime;
 	size_t tics = 0;
-	int nextTicCount = 0;
+	size_t nextTicCount = 0;
 
 	// Early abort if a BSP is not loaded yet since
 	// the buildcubemaps command can be called from
@@ -6557,7 +6554,7 @@ void R_BuildCubeMaps()
 	}
 
 	// calculate origins for our probes
-	Com_InitGrowList( &tr.cubeProbes, 4000 );
+	tr.cubeProbes.clear();
 	tr.cubeHashTable = NewVertexHashTable();
 
 	{
@@ -6585,8 +6582,8 @@ void R_BuildCubeMaps()
 
 			if ( FindVertexInHashTable( tr.cubeHashTable, origin, 256 ) == nullptr )
 			{
-				cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( *cubeProbe ), ha_pref::h_high );
-				Com_AddToGrowList( &tr.cubeProbes, cubeProbe );
+				auto *cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_high );
+				tr.cubeProbes.push_back( cubeProbe );
 
 				VectorCopy( origin, cubeProbe->origin );
 
@@ -6596,28 +6593,28 @@ void R_BuildCubeMaps()
 	}
 
 	// if we can't find one, fake one
-	if ( tr.cubeProbes.currentElements == 0 )
+	if ( tr.cubeProbes.empty() )
 	{
-		cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( *cubeProbe ), ha_pref::h_low );
-		Com_AddToGrowList( &tr.cubeProbes, cubeProbe );
+		auto *cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_low );
+		tr.cubeProbes.push_back( cubeProbe );
 
 		VectorClear( cubeProbe->origin );
 	}
 
-	Log::Notice("...pre-rendering %d cubemaps", tr.cubeProbes.currentElements );
+	Log::Notice("...pre-rendering %d cubemaps", tr.cubeProbes.size() );
 	Log::Notice("0%%  10   20   30   40   50   60   70   80   90   100%%" );
 	Log::Notice("|----|----|----|----|----|----|----|----|----|----|" );
 
-	for ( j = 0; j < tr.cubeProbes.currentElements; j++ )
+	for ( size_t j = 0; j < tr.cubeProbes.size(); j++ )
 	{
-		cubeProbe = (cubemapProbe_t*) Com_GrowListElement( &tr.cubeProbes, j );
+		cubemapProbe_t *cubeProbe = tr.cubeProbes[ j ];
 
 		//Log::Notice("rendering cubemap at (%i %i %i)", (int)cubeProbe->origin[0], (int)cubeProbe->origin[1],
 		//      (int)cubeProbe->origin[2]);
 
 		if ( ( j + 1 ) >= nextTicCount )
 		{
-			size_t ticsNeeded = ( size_t )( ( ( double )( j + 1 ) / tr.cubeProbes.currentElements ) * 50.0 );
+			size_t ticsNeeded = ( size_t )( ( ( double )( j + 1 ) / tr.cubeProbes.size() ) * 50.0 );
 
 			do
 			{
@@ -6626,9 +6623,9 @@ void R_BuildCubeMaps()
 			}
 			while ( ++tics < ticsNeeded );
 
-			nextTicCount = ( size_t )( ( tics / 50.0 ) * tr.cubeProbes.currentElements );
+			nextTicCount = ( size_t )( ( tics / 50.0 ) * tr.cubeProbes.size() );
 
-			if ( ( j + 1 ) == tr.cubeProbes.currentElements )
+			if ( ( j + 1 ) == tr.cubeProbes.size() )
 			{
 				if ( tics < 51 )
 				{
@@ -6838,7 +6835,7 @@ void R_BuildCubeMaps()
 		}
 
 		// build the cubemap
-		cubeProbe->cubemap = R_AllocImage( va( "_autoCube%d", j ), false );
+		cubeProbe->cubemap = R_AllocImage( Str::Format( "_autoCube%d", j ).c_str(), false);
 
 		if ( !cubeProbe->cubemap )
 		{
@@ -6866,7 +6863,7 @@ void R_BuildCubeMaps()
 
 	// assign the surfs a cubemap
 	endTime = ri.Milliseconds();
-	Log::Notice("cubemap probes pre-rendering time of %i cubes = %5.2f seconds", tr.cubeProbes.currentElements,
+	Log::Notice("cubemap probes pre-rendering time of %i cubes = %5.2f seconds", tr.cubeProbes.size(),
 	           ( endTime - startTime ) / 1000.0 );
 }
 

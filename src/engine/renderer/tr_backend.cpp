@@ -4036,8 +4036,6 @@ static void RB_RenderDebugUtils()
 	// GLSL shader isn't built when reflection mapping is disabled.
 	if ( r_showCubeProbes->integer && gl_reflectionShader != nullptr )
 	{
-		cubemapProbe_t *cubeProbe;
-		int            j;
 		static const vec3_t mins = { -8, -8, -8 };
 		static const vec3_t maxs = { 8,  8,  8 };
 
@@ -4068,10 +4066,8 @@ static void RB_RenderDebugUtils()
 
 		Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, nullptr, true, -1, 0 );
 
-		for ( j = 0; j < tr.cubeProbes.currentElements; j++ )
+		for ( cubemapProbe_t *cubeProbe : tr.cubeProbes )
 		{
-			cubeProbe = ( cubemapProbe_t * ) Com_GrowListElement( &tr.cubeProbes, j );
-
 			/* Do not crash when cubemaps are being generated,
 			it's also possible to set a default texture instead. */
 			if ( cubeProbe->cubemap == nullptr )
@@ -5764,7 +5760,6 @@ Also called by RE_EndRegistration
 */
 void RB_ShowImages()
 {
-	int     i;
 	image_t *image;
 	float   x, y, w, h;
 	int     start, end;
@@ -5808,9 +5803,9 @@ void RB_ShowImages()
 		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
 
-	for ( i = 0; i < tr.images.currentElements; i++ )
+	for ( size_t i = 0; i < tr.images.size(); i++ )
 	{
-		image = ( image_t * ) Com_GrowListElement( &tr.images, i );
+		image = tr.images[ i ];
 
 		/*
 		   if(image->bits & (IF_RGBA16F | IF_RGBA32F | IF_LA16F | IF_LA32F))
