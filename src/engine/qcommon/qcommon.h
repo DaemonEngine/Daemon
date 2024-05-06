@@ -579,20 +579,24 @@ temp file loading
 */
 
 // Use malloc instead of the zone allocator
-static inline MALLOC_LIKE void* Z_TagMalloc(size_t size, memtag_t tag)
+inline MALLOC_LIKE void* Z_TagMalloc(size_t size, memtag_t tag)
 {
   Q_UNUSED(tag);
-  return calloc(size, 1);
+  void* p = calloc(size, 1);
+  if (!p && size) Sys::Error("Z_TagMalloc: Out of memory");
+  return p;
 }
-static inline MALLOC_LIKE void* Z_Malloc(size_t size)
+inline MALLOC_LIKE void* Z_Malloc(size_t size)
 {
-  return calloc(size, 1);
+  void* p = calloc(size, 1);
+  if (!p && size) Sys::Error("Z_Malloc: Out of memory");
+  return p;
 }
-static inline ALLOCATOR char* CopyString(const char* str)
+inline ALLOCATOR char* CopyString(const char* str)
 {
   return strdup(str);
 }
-static inline void Z_Free(void* ptr)
+inline void Z_Free(void* ptr)
 {
   free(ptr);
 }
