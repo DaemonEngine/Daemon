@@ -549,43 +549,8 @@ extern int          time_backend; // renderer backend time
 extern int          com_frameTime;
 extern int          com_frameMsec;
 
-enum class memtag_t
-{
-  TAG_FREE,
-  TAG_GENERAL,
-  TAG_RENDERER,
-  TAG_SMALL,
-  TAG_CRYPTO,
-  TAG_STATIC
-};
+// Use malloc instead of the zone allocator...
 
-/*
-
---- low memory ----
-server vm
-server clipmap
----mark---
-renderer initialization (shaders, etc)
-UI vm
-cgame vm
-renderer map
-renderer models
-
----free---
-
-temp file loading
---- high memory ---
-
-*/
-
-// Use malloc instead of the zone allocator
-inline MALLOC_LIKE void* Z_TagMalloc(size_t size, memtag_t tag)
-{
-  Q_UNUSED(tag);
-  void* p = calloc(size, 1);
-  if (!p && size) Sys::Error("Z_TagMalloc: Out of memory");
-  return p;
-}
 // Allocations uncategorized as to whether they really need zeroing
 inline MALLOC_LIKE void* Z_Malloc(size_t size)
 {

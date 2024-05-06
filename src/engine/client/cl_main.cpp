@@ -1394,7 +1394,7 @@ static void CL_LoadRSAKeys()
 		return;
 	}
 
-	buf = (uint8_t*) Z_TagMalloc( len, memtag_t::TAG_CRYPTO );
+	buf = (uint8_t*) Z_Malloc( len );
 	FS_Read( buf, len, f );
 	FS_FCloseFile( f );
 
@@ -2215,25 +2215,6 @@ void CL_StartHunkUsers()
 	}
 }
 
-/*
-============
-CL_RefMalloc
-============
-*/
-MALLOC_LIKE void           *CL_RefMalloc( int size )
-{
-	return Z_TagMalloc( size, memtag_t::TAG_RENDERER );
-}
-
-/*
-============
-CL_RefTagFree
-============
-*/
-void CL_RefTagFree()
-{
-}
-
 int CL_ScaledMilliseconds()
 {
 	return Sys::Milliseconds() * com_timescale->value;
@@ -2260,7 +2241,6 @@ static bool CL_InitRef()
 	ri.Milliseconds = Sys::Milliseconds;
 	ri.RealTime = Com_RealTime;
 
-	ri.Tag_Free = CL_RefTagFree;
 	ri.Hunk_Alloc = Hunk_Alloc;
 	ri.Hunk_AllocateTempMemory = Hunk_AllocateTempMemory;
 	ri.Hunk_FreeTempMemory = Hunk_FreeTempMemory;
