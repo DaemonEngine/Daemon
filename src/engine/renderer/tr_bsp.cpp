@@ -392,7 +392,7 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 		Sys::Drop( "RGBE image '%s' has an invalid image size", name );
 	}
 
-	*pic = (float*) malloc( w * h * 3 * sizeof( float ) );
+	*pic = (float*) Z_AllocUninit( w * h * 3 * sizeof( float ) );
 	floatbuf = *pic;
 
 	for ( i = 0; i < ( w * h ); i++ )
@@ -425,7 +425,7 @@ static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int 
 	*width = w;
 	*height = h;
 
-	*ldrImage = (byte*) ri.Z_Malloc( w * h * 4 );
+	*ldrImage = (byte*) Z_Malloc( w * h * 4 );
 	pixbuf = *ldrImage;
 
 	floatbuf = hdrImage;
@@ -461,7 +461,7 @@ static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int 
 		*pixbuf++ = ( byte ) 255;
 	}
 
-	free( hdrImage );
+	Z_Free( hdrImage );
 }
 
 static std::vector<std::string> R_LoadExternalLightmaps( const char *mapName )
@@ -554,7 +554,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 				tr.lightmaps.push_back( image );
 
-				ri.Free( ldrImage );
+				Z_Free( ldrImage );
 			}
 
 			if (tr.worldDeluxeMapping) {
@@ -4970,8 +4970,6 @@ static void R_RecursivePrecacheInteractionNode( bspNode_t *node, trRefLight_t *l
 			InitLink( l, node );
 
 			InsertLink( l, &light->leafs );
-
-			light->leafs.numElements++;
 		}
 	}
 }
@@ -6329,10 +6327,7 @@ unsigned int VertexCoordGenerateHash( const vec3_t xyz )
 
 vertexHash_t **NewVertexHashTable()
 {
-	vertexHash_t **hashTable = (vertexHash_t**) malloc( HASHTABLE_SIZE * sizeof( vertexHash_t * ) );
-
-	memset( hashTable, 0, HASHTABLE_SIZE * sizeof( vertexHash_t * ) );
-
+	vertexHash_t **hashTable = (vertexHash_t**) Z_Calloc( HASHTABLE_SIZE * sizeof( vertexHash_t * ) );
 	return hashTable;
 }
 
@@ -6357,12 +6352,12 @@ void FreeVertexHashTable( vertexHash_t **hashTable )
 			{
 				nextVertexHash = vertexHash->next;
 
-				free( vertexHash );
+				Z_Free( vertexHash );
 			}
 		}
 	}
 
-	free( hashTable );
+	Z_Free( hashTable );
 }
 
 vertexHash_t *FindVertexInHashTable( vertexHash_t **hashTable, const vec3_t xyz, float distance )
@@ -6420,12 +6415,7 @@ vertexHash_t *AddVertexToHashTable( vertexHash_t **hashTable, vec3_t xyz, void *
 		return nullptr;
 	}
 
-	vertexHash = (vertexHash_t*) malloc( sizeof( vertexHash_t ) );
-
-	if ( !vertexHash )
-	{
-		return nullptr;
-	}
+	vertexHash = (vertexHash_t*) Z_AllocUninit( sizeof( vertexHash_t ) );
 
 	hash = VertexCoordGenerateHash( xyz );
 
@@ -6550,7 +6540,7 @@ void R_BuildCubeMaps()
 
 	for ( i = 0; i < 6; i++ )
 	{
-		tr.cubeTemp[ i ] = (byte*) ri.Z_Malloc( REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
+		tr.cubeTemp[ i ] = (byte*) Z_Malloc( REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
 	}
 
 	// calculate origins for our probes

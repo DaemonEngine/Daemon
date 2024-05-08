@@ -103,11 +103,21 @@ int CountTrailingZeroes(unsigned long long x);
 // Work around lack of constexpr
 #define CONSTEXPR constexpr
 
-#ifdef __SANITIZE_ADDRESS__ // Detects GCC asan
+#if defined(__SANITIZE_ADDRESS__) // Detects GCC and MSVC AddressSanitizer
 #   define USING_ADDRESS_SANITIZER
+#   define USING_SANITIZER
+#elif defined(__SANITIZE_THREAD__) // Detects GCC ThreadSanitizer
+#   define USING_SANITIZER
 #elif defined(__has_feature)
-#   if __has_feature(address_sanitizer) // Detects Clang asan
+#   if __has_feature(address_sanitizer) // Detects Clang AddressSanitizer
 #       define USING_ADDRESS_SANITIZER
+#       define USING_SANITIZER
+#   elif __has_feature(leak_sanitizer) // Detects Clang LeakSanitizer
+#       define USING_SANITIZER
+#   elif __has_feature(memory_sanitizer) // Detects Clang MemorySanitizer
+#       define USING_SANITIZER
+#   elif __has_feature(thread_sanitizer) // Detects Clang ThreadSanitizer
+#       define USING_SANITIZER
 #   endif
 #endif
 

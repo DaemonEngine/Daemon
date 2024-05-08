@@ -64,7 +64,7 @@ namespace Sys {
 // This option can be turned on when debugging memory management
 #ifdef BUILD_ENGINE
 Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE,
-#ifdef __SANITIZE_ADDRESS__
+#ifdef USING_SANITIZER
 	true);
 #else
 	false);

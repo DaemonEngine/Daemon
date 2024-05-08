@@ -541,9 +541,6 @@ extern Cvar::Cvar<bool> com_ansiColor;
 extern cvar_t       *com_unfocused;
 extern cvar_t       *com_minimized;
 
-extern cvar_t       *cl_packetdelay;
-extern cvar_t       *sv_packetdelay;
-
 // com_speeds times
 extern int          time_game;
 extern int          time_frontend;
@@ -552,54 +549,35 @@ extern int          time_backend; // renderer backend time
 extern int          com_frameTime;
 extern int          com_frameMsec;
 
-enum class memtag_t
+// Use malloc instead of the zone allocator...
+
+// Allocations uncategorized as to whether they really need zeroing
+inline MALLOC_LIKE void* Z_Malloc(size_t size)
 {
-  TAG_FREE,
-  TAG_GENERAL,
-  TAG_RENDERER,
-  TAG_SMALL,
-  TAG_CRYPTO,
-  TAG_STATIC
-};
-
-/*
-
---- low memory ----
-server vm
-server clipmap
----mark---
-renderer initialization (shaders, etc)
-UI vm
-cgame vm
-renderer map
-renderer models
-
----free---
-
-temp file loading
---- high memory ---
-
-*/
-
-// Use malloc instead of the zone allocator
-static inline MALLOC_LIKE void* Z_TagMalloc(size_t size, memtag_t tag)
-{
-  Q_UNUSED(tag);
-  return calloc(size, 1);
+  void* p = calloc(size, 1);
+  if (!p && size) Sys::Error("Z_Malloc: Out of memory");
+  return p;
 }
-static inline MALLOC_LIKE void* Z_Malloc(size_t size)
+// Allocates unitialized memory like malloc
+inline MALLOC_LIKE void* Z_AllocUninit(size_t size)
 {
-  return calloc(size, 1);
+    void* p = malloc(size);
+    if (!p && size) Sys::Error("Z_AllocUninit: Out of memory");
+    return p;
 }
-static inline MALLOC_LIKE void* S_Malloc(size_t size)
+// Allocates zeroed memory like calloc
+inline MALLOC_LIKE void* Z_Calloc(size_t size)
 {
-  return malloc(size);
+    void* p = calloc(size, 1);
+    if (!p && size) Sys::Error("Z_Calloc: Out of memory");
+    return p;
 }
-static inline ALLOCATOR char* CopyString(const char* str)
+
+inline ALLOCATOR char* CopyString(const char* str)
 {
   return strdup(str);
 }
-static inline void Z_Free(void* ptr)
+inline void Z_Free(void* ptr)
 {
   free(ptr);
 }

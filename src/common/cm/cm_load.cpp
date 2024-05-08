@@ -62,10 +62,10 @@ Log::Logger cmLog(VM_STRING_PREFIX "common.cm");
 
 static std::vector<void*> allocations;
 
-void* CM_Alloc( int size )
+void* CM_Alloc( size_t size )
 {
-    void* alloc = malloc(size);
-	memset(alloc, 0, size);
+    void* alloc = calloc(size, 1);
+    if (!alloc && size) Sys::Error("CM_Alloc: Out of memory");
     allocations.push_back(alloc);
     return alloc;
 }

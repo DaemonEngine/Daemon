@@ -325,12 +325,7 @@ void SV_Startup()
 	SV_BoundMaxClients( 1 );
 
 	// RF, avoid trying to allocate large chunk on a fragmented zone
-	svs.clients = ( client_t * ) calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
-
-	if ( !svs.clients )
-	{
-		Sys::Error( "SV_Startup: unable to allocate svs.clients" );
-	}
+	svs.clients = ( client_t * ) Z_Calloc( sizeof( client_t ) * sv_maxclients->integer );
 
 	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
 
@@ -378,12 +373,7 @@ void SV_ChangeMaxClients()
 	client_t* oldClients = svs.clients;
 
 	// allocate new clients
-	svs.clients = ( client_t * ) calloc( sv_maxclients->integer, sizeof( client_t ) );
-
-	if ( !svs.clients )
-	{
-		Sys::Error( "SV_Startup: unable to allocate svs.clients" );
-	}
+	svs.clients = ( client_t * ) Z_Calloc( sv_maxclients->integer * sizeof( client_t ) );
 
 	// copy the clients over
 	for ( int i = 0; i < count; i++ )
@@ -395,7 +385,7 @@ void SV_ChangeMaxClients()
 	}
 
 	// free the old clients
-	free( oldClients );
+	Z_Free( oldClients );
 
 	svs.numSnapshotEntities = sv_maxclients->integer * PACKET_BACKUP * 64;
 }
@@ -639,9 +629,6 @@ void SV_Init()
 	// the download netcode tops at 18/20 kb/s, no need to make you think you can go above
 	sv_dl_maxRate = Cvar_Get( "sv_dl_maxRate", "42000", 0 );
 
-	//bani
-	sv_packetdelay = Cvar_Get( "sv_packetdelay", "0", CVAR_CHEAT );
-
 	// fretn - note: redirecting of clients to other servers relies on this,
 	// ET://someserver.com
 	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", 0 );
@@ -750,7 +737,7 @@ void SV_Shutdown( const char *finalmsg )
 			SV_FreeClient( &svs.clients[ index ] );
 		}
 
-		free( svs.clients );
+		Z_Free( svs.clients );
 	}
 
 	ResetStruct( svs );

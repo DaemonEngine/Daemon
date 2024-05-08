@@ -125,8 +125,6 @@ cvar_t *cl_autorecord;
 
 cvar_t *cl_allowDownload;
 
-cvar_t                 *cl_packetdelay; //bani
-
 cvar_t                 *cl_consoleFont;
 cvar_t                 *cl_consoleFontSize;
 cvar_t                 *cl_consoleFontScaling;
@@ -1396,7 +1394,7 @@ static void CL_LoadRSAKeys()
 		return;
 	}
 
-	buf = (uint8_t*) Z_TagMalloc( len, memtag_t::TAG_CRYPTO );
+	buf = (uint8_t*) Z_Malloc( len );
 	FS_Read( buf, len, f );
 	FS_FCloseFile( f );
 
@@ -2217,25 +2215,6 @@ void CL_StartHunkUsers()
 	}
 }
 
-/*
-============
-CL_RefMalloc
-============
-*/
-MALLOC_LIKE void           *CL_RefMalloc( int size )
-{
-	return Z_TagMalloc( size, memtag_t::TAG_RENDERER );
-}
-
-/*
-============
-CL_RefTagFree
-============
-*/
-void CL_RefTagFree()
-{
-}
-
 int CL_ScaledMilliseconds()
 {
 	return Sys::Milliseconds() * com_timescale->value;
@@ -2262,9 +2241,6 @@ static bool CL_InitRef()
 	ri.Milliseconds = Sys::Milliseconds;
 	ri.RealTime = Com_RealTime;
 
-	ri.Z_Malloc = CL_RefMalloc;
-	ri.Free = Z_Free;
-	ri.Tag_Free = CL_RefTagFree;
 	ri.Hunk_Alloc = Hunk_Alloc;
 	ri.Hunk_AllocateTempMemory = Hunk_AllocateTempMemory;
 	ri.Hunk_FreeTempMemory = Hunk_FreeTempMemory;
@@ -2418,9 +2394,6 @@ void CL_Init()
 	cl_consoleCommand = Cvar_Get( "cl_consoleCommand", "say", 0 );
 
 	cl_altTab = Cvar_Get( "cl_altTab", "1", 0 );
-
-	//bani
-	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
 
 	// userinfo
 	cl_rate = Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );

@@ -1728,7 +1728,7 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 	{
 		if ( mallocPtr )
 		{
-			ri.Free( mallocPtr );
+			Z_Free( mallocPtr );
 		}
 		return nullptr;
 	}
@@ -1740,7 +1740,7 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 
 	image = R_CreateImage( ( char * ) buffer, (const byte **)pic, width, height, numMips, imageParams );
 
-	ri.Free( mallocPtr );
+	Z_Free( mallocPtr );
 	return image;
 }
 
@@ -1860,9 +1860,9 @@ byte *R_Resize( byte *in, int width, int height, int newWidth, int newHeight )
 
 	byte *out;
 
-	out = (byte*) ri.Z_Malloc( newWidth * newHeight * 4 );
+	out = (byte*) Z_Malloc( newWidth * newHeight * 4 );
 	ResampleTexture( (unsigned int*) in, width, height, (unsigned int*) out, newWidth, newHeight, false );
-	ri.Free( in );
+	Z_Free( in );
 
 	return out;
 }
@@ -1881,7 +1881,7 @@ static void R_FreeCubePics( byte **pic, int count )
 	{
 		if ( pic[ count ] != nullptr )
 		{
-			ri.Free( pic[ count ] );
+			Z_Free( pic[ count ] );
 			pic[ count ] = nullptr;
 		}
 	}

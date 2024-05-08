@@ -1530,7 +1530,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			}
 
 			GLimp_Shutdown();
-			ri.Tag_Free();
 		}
 
 		tr.registered = false;
