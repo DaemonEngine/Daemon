@@ -743,10 +743,6 @@ void R_SetupLightProjection( trRefLight_t *light )
 
 		case refLightType_t::RL_PROJ:
 			{
-				/* This was previously set as a vec4_t with lightProject[ x ] being 0,
-				but then the fourth component never contributed to any computation
-				and was always zeroed again after computation as a multiple of 0,
-				only the normal vec3 is used for computation. */
 				plane_t lightProject[ 4 ];
 
 				{
@@ -776,51 +772,24 @@ void R_SetupLightProjection( trRefLight_t *light )
 
 				// now offset to center
 				{
-					/* This was previously set as a vec4_t with targetGlobal[ 3 ] being 1
-					but then the fourth component never contributed to any computation
-					and was always zeroed after computation as a multiple of 0. */
 					vec3_t targetGlobal;
 					VectorSet( targetGlobal,
 						light->l.projTarget[ 0 ], light->l.projTarget[ 1 ],
 						light->l.projTarget[ 2 ] );
 
 					{
-						/* This was previously doing a DotProduct4 on a vec4_t
-						but targetGlobal[ 3 ] was 1 and lightProject[ 0 ][ 3 ] was 0
-						so this was converted to DotProduct( vec3, vec3 ) + ( 1 * 0 )
-						and then the useless added zero removed. */
 						vec_t a = DotProduct( targetGlobal, lightProject[ 0 ].normal );
-						/* This was previously doing a DotProduct4 on a vec4_t
-						but targetGlobal[ 3 ] was 1 and lightProject[ 2 ][ 3 ] was 0
-						so this was converted to DotProduct( vec3, vec3 ) + ( 1 * 0 )
-						and then the useless added zero removed. */
 						vec_t b = DotProduct( targetGlobal, lightProject[ 2 ].normal );
 						vec_t ofs = 0.5 - a / b;
 
-						/* This was previously doing a Vector4MA on a vec4_t
-						but lightProject[ 0 ][ 3 ] and lightProject[ 2 ][ 0 ] were 0
-						so lightProject[ 0 ][ 3 ] was rewritten as 0 + s * 0
-						and then that useless zero was removed. */
 						VectorMA( lightProject[ 0 ].normal, ofs, lightProject[ 2 ].normal, lightProject[ 0 ].normal );
 					}
 
 					{
-						/* This was previously doing a DotProduct4 on a vec4_t
-						but targetGlobal[ 3 ] was 1 and lightProject[ 1 ][ 3 ] was 0
-						so this was converted to DotProduct( vec3, vec3 ) + ( 1 * 0 )
-						and then the useless added zero removed. */
 						vec_t a = DotProduct( targetGlobal, lightProject[ 1 ].normal );
-						/* This was previously doing a DotProduct4 on a vec4_t
-						but targetGlobal[ 3 ] was 1 and lightProject[ 2 ][ 3 ] was 0
-						so this was converted to DotProduct( vec3, vec3 ) + ( 1 * 0 )
-						and then the useless added zero removed. */
 						vec_t b = DotProduct( targetGlobal, lightProject[ 2 ].normal );
 						vec_t ofs = 0.5 - a / b;
 
-						/* This was previously doing a Vector4MA on a vec4_t
-						but lightProject[ 0 ][ 3 ] and lightProject[ 2 ][ 0 ] were 0
-						so lightProject[ 0 ][ 3 ] was rewritten as 0 + s * 0
-						and then that useless zero was removed. */
 						VectorMA( lightProject[ 0 ].normal, ofs, lightProject[ 2 ].normal, lightProject[ 0 ].normal );
 					}
 				}
@@ -877,8 +846,6 @@ void R_SetupLightProjection( trRefLight_t *light )
 				frustum[ FRUSTUM_BOTTOM ] = lightProject[ 1 ];
 
 				{
-					/* This was previously done on a vec4_t and subtracting the fourth
-					component, but 0 - 0 is 0 so we skipped that computation. */
 					vec3_t normal;
 					VectorSubtract( lightProject[ 2 ].normal, lightProject[ 0 ].normal, normal );
 
@@ -886,8 +853,6 @@ void R_SetupLightProjection( trRefLight_t *light )
 				}
 
 				{
-					/* This was previously done on a vec4_t and subtracting the fourth
-					component, but 0 - 0 is 0 so we skipped that computation. */
 					vec3_t normal;
 					VectorSubtract( lightProject[ 2 ].normal, lightProject[ 1 ].normal, normal );
 
