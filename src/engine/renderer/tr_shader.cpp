@@ -5202,7 +5202,7 @@ static void FinishStages()
 
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
-				stage->active = ( glConfig2.dynamicLight && r_dynamicLightRenderer.Get() != Util::ordinal( dynamicLightRenderer_t::LEGACY ) );
+				stage->active = ( glConfig2.dynamicLight && r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::LEGACY ) );
 				break;
 
 			default:
