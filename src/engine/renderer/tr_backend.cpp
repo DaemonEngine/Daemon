@@ -3154,6 +3154,8 @@ void RB_RenderBloom()
 		Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
 						  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
+		GL_BindToTMU( 0, tr.blackImage );
+
 		gl_screenShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 		Tess_DrawElements();
