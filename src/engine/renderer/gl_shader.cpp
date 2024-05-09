@@ -770,9 +770,38 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	// so we have to reset the line counting.
 	env += "#line 0\n";
 
-	std::string shaderText = env + libs + GetShaderText(filename);
+	std::string shaderText = env + libs + GetShaderText( filename );
 
-	return shaderText;
+	std::istringstream shaderTextStream( shaderText );
+	std::string shaderMain;
+
+	std::string line;
+
+	while ( std::getline( shaderTextStream, line, '\n' ) ) {
+		const std::string::size_type position = line.find( "#insert" );
+		if ( position == std::string::npos ) {
+			shaderMain += line + "\n";
+			continue;
+		}
+
+		const std::string::iterator beginIt = std::find_if( line.begin(), line.end(),
+			[]( unsigned char character ) {
+				return !std::isspace( character );
+			} );
+		if ( beginIt - line.begin() != int( position ) ) { // Signed/unsigned CI bullshit
+			shaderMain += line + "\n";
+			continue;
+		}
+
+		std::string shaderInsertPath = line.substr( position + 8, std::string::npos );
+		if ( shaderType == GL_VERTEX_SHADER ) {
+			shaderMain += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
+		} else {
+			shaderMain += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
+		}
+	}
+
+	return shaderMain;
 }
 
 static bool IsUnusedPermutation( const char *compileMacros )
