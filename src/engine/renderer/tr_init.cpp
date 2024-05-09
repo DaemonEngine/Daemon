@@ -814,7 +814,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		GL_CheckErrors();
 
-		glState.currenttextures.resize( glConfig2.maxTextureUnits );
+		tr.currenttextures.resize( glConfig2.maxTextureUnits );
 
 		// initialize downstream texture units if we're running
 		// in a multitexture environment

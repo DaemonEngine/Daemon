@@ -2477,8 +2477,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		float  polygonOffsetFactor, polygonOffsetUnits;
 		vec2_t tileStep;
 
-		// Maximum reported is 192, see https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
-		std::vector<int> currenttextures;
 		int    currenttmu;
 
 		int stackIndex;
@@ -2643,6 +2641,9 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		world_t    *world;
 
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
+
+		// Maximum reported is 192, see https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
+		std::vector<int> currenttextures;
 
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
