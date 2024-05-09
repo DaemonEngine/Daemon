@@ -41,7 +41,7 @@ namespace Cvar {
     }
 
     bool CvarProxy::Register(std::string description) {
-        return ::Cvar::Register(this, name, std::move(description), flags, std::move(defaultValue));
+        return ::Cvar::Register(this, name, std::move(description), flags, defaultValue);
     }
 
     bool ParseCvarValue(Str::StringRef value, bool& result) {
