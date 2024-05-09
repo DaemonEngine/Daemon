@@ -2993,7 +2993,7 @@ void R_ShutdownImages()
 		glDeleteTextures( 1, &image->texnum );
 	}
 
-	glState.currenttextures.clear();
+	tr.currenttextures.clear();
 
 	tr.images.clear();
 	tr.lightmaps.clear();
