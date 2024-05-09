@@ -148,7 +148,7 @@ void GL_SelectTexture( int unit )
 		return;
 	}
 
-	if ( unit >= 0 && unit <= 31 )
+	if ( unit >= 0 && unit < glConfig2.maxTextureUnits )
 	{
 		glActiveTexture( GL_TEXTURE0 + unit );
 
@@ -175,7 +175,7 @@ void GL_BindToTMU( int unit, image_t *image )
 
 	int texnum = image->texnum;
 
-	if ( unit < 0 || unit > 31 )
+	if ( unit < 0 || unit >= glConfig2.maxTextureUnits )
 	{
 		Sys::Drop( "GL_BindToTMU: unit %i is out of range\n", unit );
 	}

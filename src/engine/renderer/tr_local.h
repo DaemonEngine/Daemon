@@ -2477,7 +2477,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		float  polygonOffsetFactor, polygonOffsetUnits;
 		vec2_t tileStep;
 
-		int    currenttextures[ 32 ];
+		// Maximum reported is 192, see https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
+		std::vector<int> currenttextures;
 		int    currenttmu;
 
 		int stackIndex;
