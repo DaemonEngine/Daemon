@@ -1634,7 +1634,7 @@ static bool SurfIsOffscreen( const drawSurf_t *drawSurf, screenRect_t& surfRect 
 		tr.orientation = tr.viewParms.world;
 	}
 
-	Tess_Begin( Tess_StageIteratorGeneric, nullptr, shader, nullptr, true, true, -1, 0 );
+	Tess_Begin( Tess_StageIteratorColor, nullptr, shader, nullptr, true, -1, 0 );
 	rb_surfaceTable[ Util::ordinal(*drawSurf->surface) ]( drawSurf->surface );
 
 	// Tr3B: former assertion
@@ -1842,7 +1842,7 @@ R_MirrorViewBySurface
 Returns true if another view has been rendered
 ========================
 */
-static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
+bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 {
 	orientation_t surface, camera;
 	screenRect_t  surfRect;
@@ -1893,6 +1893,16 @@ static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	newParms.scissorY = surfRect.coords[1];
 	newParms.scissorWidth = surfRect.coords[2] - surfRect.coords[0] + 1;
 	newParms.scissorHeight = surfRect.coords[3] - surfRect.coords[1] + 1;
+
+	// Scissor width/height must not be negative, so flip the coordinates if needed
+	if ( newParms.scissorWidth < 0 ) {
+		newParms.scissorX += newParms.scissorWidth;
+		newParms.scissorWidth *= -1;
+	}
+	if ( newParms.scissorHeight < 0 ) {
+		newParms.scissorY += newParms.scissorHeight;
+		newParms.scissorHeight *= -1;
+	}
 
 	R_MirrorPoint(oldParms.orientation.origin, &surface, &camera, newParms.orientation.origin);
 	R_MirrorVector(oldParms.orientation.axis[0], &surface, &camera, newParms.orientation.axis[0]);
@@ -2013,7 +2023,6 @@ static void R_SortDrawSurfs()
 	int          i, sort;
 
 	// it is possible for some views to not have any surfaces
-	if ( tr.viewParms.numDrawSurfs < 1 )
 	{
 		// we still need to add it for hyperspace cases
 		R_AddDrawViewCmd( false );
@@ -2371,7 +2380,8 @@ void R_AddLightInteractions()
 			{
 				continue;
 			}
-			else if ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity )
+
+			if ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity )
 			{
 				continue;
 			}
@@ -2387,7 +2397,7 @@ void R_AddLightInteractions()
 		}
 		else if ( light->l.inverseShadows )
 		{
-			if( !glConfig2.dynamicLight)
+			if ( !glConfig2.dynamicLight )
 			{
 				light->cull = CULL_OUT;
 				continue;
@@ -2397,17 +2407,17 @@ void R_AddLightInteractions()
 		{
 			if ( !glConfig2.dynamicLight )
 			{
+				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
-
-			if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
+			else if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
 			{
 				tr.refdef.numShaderLights++;
 				tr.pc.c_dlights++;
-			}
 
-			light->cull = cullResult_t::CULL_OUT;
-			continue;
+				light->cull = cullResult_t::CULL_OUT;
+				continue;
+			}
 		}
 
 		R_TransformShadowLight( light );
@@ -2584,16 +2594,19 @@ void R_AddLightBoundsToVisBounds()
 
 		if ( light->isStatic )
 		{
-			if ( !glConfig2.staticLight
-				|| ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP )
-					&& !light->noRadiosity ) )
+			if ( !glConfig2.staticLight )
+			{
+				continue;
+			}
+
+			if ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity )
 			{
 				continue;
 			}
 		}
 		else
 		{
-			if ( !r_dynamicLight.Get() )
+			if ( !glConfig2.dynamicLight )
 			{
 				continue;
 			}
@@ -2844,7 +2857,6 @@ void R_RenderView( viewParms_t *parms )
 	// because it requires the decalBits
 	R_CullDecalProjectors();
 
-	R_AddWorldSurfaces();
 
 	R_AddPolygonSurfaces();
 

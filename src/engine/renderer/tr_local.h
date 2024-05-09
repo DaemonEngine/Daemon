@@ -377,31 +377,16 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	struct link_t
 	{
 		void          *data;
-		int           numElements; // only used by sentinels
 		link_t *prev, *next;
 	};
 
-	static inline void InitLink( link_t *l, void *data )
+	inline void InitLink( link_t *l, void *data )
 	{
 		l->data = data;
 		l->prev = l->next = l;
 	}
 
-	static inline void ClearLink( link_t *l )
-	{
-		l->data = nullptr;
-		l->prev = l->next = l;
-	}
-
-	static inline void RemoveLink( link_t *l )
-	{
-		l->next->prev = l->prev;
-		l->prev->next = l->next;
-
-		l->prev = l->next = nullptr;
-	}
-
-	static inline void InsertLink( link_t *l, link_t *sentinel )
+	inline void InsertLink( link_t *l, link_t *sentinel )
 	{
 		l->next = sentinel->next;
 		l->prev = sentinel;
@@ -410,93 +395,10 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		l->prev->next = l;
 	}
 
-	static inline bool StackEmpty( link_t *l )
-	{
-		return l->next == l;
-	}
-
-	static inline link_t *StackTop( link_t *l )
-	{
-		return l->next;
-	}
-
-	static inline void StackPush( link_t *sentinel, void *data )
-	{
-		link_t *l;
-
-		l = ( link_t * ) malloc( sizeof( *l ) );
-		InitLink( l, data );
-
-		InsertLink( l, sentinel );
-	}
-
-	static inline void *StackPop( link_t *l )
-	{
-		link_t *top;
-		void  *data;
-
-		if ( l->next == l )
-		{
-			return nullptr;
-		}
-
-		top = l->next;
-
-		RemoveLink( top );
-		data = top->data;
-		free( top );
-
-		return data;
-	}
-
-	static inline void QueueInit( link_t *l )
+	inline void QueueInit( link_t *l )
 	{
 		l->data = nullptr;
-		l->numElements = 0;
 		l->prev = l->next = l;
-	}
-
-	static inline int QueueSize( link_t *l )
-	{
-		return l->numElements;
-	}
-
-	static inline bool QueueEmpty( link_t *l )
-	{
-		return l->prev == l;
-	}
-
-	static inline void EnQueue( link_t *sentinel, void *data )
-	{
-		link_t *l;
-
-		l = ( link_t * ) malloc( sizeof( *l ) );
-		InitLink( l, data );
-
-		InsertLink( l, sentinel );
-
-		sentinel->numElements++;
-	}
-
-	static inline void *DeQueue( link_t *l )
-	{
-		link_t *tail;
-		void  *data;
-
-		tail = l->prev;
-
-		RemoveLink( tail );
-		data = tail->data;
-		free( tail );
-
-		l->numElements--;
-
-		return data;
-	}
-
-	static inline link_t *QueueFront( link_t *l )
-	{
-		return l->prev;
 	}
 
 // a trRefLight_t has all the information passed in by
@@ -712,7 +614,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		GLuint         texnum; // gl texture binding
 		Texture        *texture;
 
-		uint16_t       width, height; // source image
+		uint16_t width, height, numLayers; // source image
 		uint16_t       uploadWidth, uploadHeight; // after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
 
 		int            frameUsed; // for texture usage in frame statistics
@@ -1201,6 +1103,10 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	  COLLAPSE_REFLECTIONMAP,
 	};
 
+	struct shaderStage_t;
+
+	using stageRenderer_t = void(*)(shaderStage_t *);
+
 	struct shaderStage_t
 	{
 		stageType_t     type;
@@ -1210,6 +1116,12 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		bool        active;
 
 		bool            dpMaterial;
+
+		bool shaderHasNoLight;
+
+		stageRenderer_t colorRenderer;
+		bool doShadowFill;
+		bool doForwardLighting;
 
 		textureBundle_t bundle[ MAX_TEXTURE_BUNDLES ];
 
@@ -1259,13 +1171,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		expression_t    fresnelScaleExp;
 		expression_t    fresnelBiasExp;
 
-		// Available textures.
-		bool hasNormalMap;
-		bool hasHeightMap;
-		bool isHeightMapInNormalMap;
-		bool hasMaterialMap;
-		bool isMaterialPhysical;
-		bool hasGlowMap;
+		// Texture storage variants.
+		bool hasHeightMapInNormalMap;
 
 		// Available features.
 		bool enableNormalMapping;
@@ -1276,10 +1183,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		bool enableGlowMapping;
 
 		// Normal map scale and format.
-		bool hasNormalFormat;
-		bool hasNormalScale;
-		vec3_t normalFormat;
-		vec3_t normalScale;
+		int8_t normalFormat[ 3 ];
+		vec3_t normalScale = { 1.0f, 1.0f, 1.0f };
 
 		expression_t    normalIntensityExp;
 
@@ -1362,7 +1267,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool       disableReliefMapping; // disable relief mapping for this material even if it's available
 		float      reliefOffsetBias; // offset the heightmap top relatively to the floor
-		float      reliefDepthScale; // per-shader relief depth scale
+		float reliefDepthScale = 1.0f; // per-shader relief depth scale
 
 		bool       noShadows;
 		bool       fogLight;
@@ -2564,7 +2469,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		double clearDepth;
 		int    clearStencil;
 		int    colorMaskRed, colorMaskGreen, colorMaskBlue, colorMaskAlpha;
-		int    cullFace;
 		int    depthFunc;
 		int    depthMask;
 		int    drawBuffer;
@@ -2575,7 +2479,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		float  polygonOffsetFactor, polygonOffsetUnits;
 		vec2_t tileStep;
 
-		int    currenttextures[ 32 ];
+		int    currenttextures[ 256 ]; // Maximum reported is 192, see https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
 		int    currenttmu;
 
 		int stackIndex;
@@ -2584,7 +2488,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		matrix_t        modelViewProjectionMatrix[ MAX_GLSTACK ];
 
 		bool        finishCalled;
-		cullType_t      faceCulling; // FIXME redundant cullFace
+		cullType_t      faceCulling;
 		uint32_t        glStateBits;
 		uint32_t        glStateBitsMask; // GLS_ bits set to 1 will not be changed in GL_State
 		uint32_t        vertexAttribsState;
@@ -2809,8 +2713,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		shader_t *defaultProjectedLightShader;
 		shader_t *defaultDynamicLightShader;
 
-		growList_t lightmaps;
-		growList_t deluxemaps;
+		std::vector<image_t *> lightmaps;
+		std::vector<image_t *> deluxemaps;
 
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
@@ -2827,11 +2731,21 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		viewParms_t    viewParms;
 
-		int            mapOverBrightBits; // r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		// r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		int mapOverBrightBits;
+		// pow(2, mapOverbrightBits)
+		float mapLightFactor;
+		// 1 / mapLightFactor
+		float mapInverseLightFactor;
+		// May have to be true on some legacy maps: clamp and normalize multiplied colors.
+		bool forceLegacyOverBrightClamping;
 
 		orientationr_t orientation; // for current entity
 
 		trRefdef_t     refdef;
+
+		// Generic shapes
+		drawSurf_t *genericQuad;
 
 		bool           hasSkybox;
 		drawSurf_t     *skybox;
@@ -2854,7 +2768,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		int             numAnimations;
 		skelAnimation_t *animations[ MAX_ANIMATIONFILES ];
 
-		growList_t      images;
+		std::vector<image_t *> images;
 
 		int             numFBOs;
 		FBO_t           *fbos[ MAX_FBOS ];
@@ -2862,11 +2776,11 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		GLuint          dlightUBO;
 		image_t         *dlightImage; // if the UBO is not available
 
-		growList_t      vbos;
-		growList_t      ibos;
+		std::vector<VBO_t *> vbos;
+		std::vector<IBO_t *> ibos;
 
 		byte            *cubeTemp[ 6 ]; // 6 textures for cubemap storage
-		growList_t      cubeProbes; // all cubemaps in a linear growing list
+		std::vector<cubemapProbe_t *> cubeProbes; // all cubemaps in a linear growing list
 		vertexHash_t    **cubeHashTable; // hash table for faster access
 
 		// shader indexes from other modules will be looked up in tr.shaders[]
@@ -2923,23 +2837,19 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_glExtendedValidation;
 
 	extern cvar_t *r_ignore; // used for debugging anything
-	extern cvar_t *r_verbose; // used for verbose debug spew
 
 	extern Cvar::Cvar<bool> r_dpBlend;
 
 	extern cvar_t *r_znear; // near Z clip plane
 	extern cvar_t *r_zfar;
 
-	extern cvar_t *r_depthbits; // number of desired depth bits
 	extern cvar_t *r_colorbits; // number of desired color bits, only relevant for fullscreen
 
 	extern cvar_t *r_measureOverdraw; // enables stencil buffer overdraw measurement
 
 	extern cvar_t *r_lodBias; // push/pull LOD transitions
 	extern cvar_t *r_lodScale;
-	extern cvar_t *r_lodTest;
 
-	extern cvar_t *r_forceFog;
 	extern cvar_t *r_wolfFog;
 	extern cvar_t *r_noFog;
 
@@ -2954,6 +2864,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_dynamicLightCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
+	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
@@ -2979,7 +2890,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_ext_occlusion_query; // these control use of specific extensions
 	extern cvar_t *r_ext_draw_buffers;
-	extern cvar_t *r_ext_vertex_array_object;
 	extern cvar_t *r_ext_half_float_pixel;
 	extern cvar_t *r_ext_texture_float;
 	extern cvar_t *r_ext_texture_integer;
@@ -2996,7 +2906,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader
-	extern cvar_t *r_colorMipLevels; // development aid to see texture mip usage
 	extern cvar_t *r_picMip; // controls picmip values
 	extern cvar_t *r_imageMaxDimension;
 	extern cvar_t *r_ignoreMaterialMinDimension;
@@ -3027,6 +2936,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_rimLighting;
 	extern cvar_t *r_rimExponent;
 
+	extern Cvar::Cvar<bool> r_highPrecisionRendering;
+
 	extern cvar_t *r_logFile; // number of frames to emit GL logs
 
 	extern cvar_t *r_clear; // force screen clear every frame
@@ -3036,7 +2947,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_softShadowsPP;
 	extern cvar_t *r_shadowBlur;
 
-	extern cvar_t *r_shadowMapQuality;
 	extern cvar_t *r_shadowMapSizeUltra;
 	extern cvar_t *r_shadowMapSizeVeryHigh;
 	extern cvar_t *r_shadowMapSizeHigh;
@@ -3049,16 +2959,11 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_shadowMapSizeSunMedium;
 	extern cvar_t *r_shadowMapSizeSunLow;
 
-	extern cvar_t *r_shadowOffsetFactor;
-	extern cvar_t *r_shadowOffsetUnits;
 	extern cvar_t *r_shadowLodBias;
 	extern cvar_t *r_shadowLodScale;
 	extern cvar_t *r_noShadowPyramids;
 	extern cvar_t *r_cullShadowPyramidFaces;
-	extern cvar_t *r_cullShadowPyramidCurves;
-	extern cvar_t *r_cullShadowPyramidTriangles;
 	extern cvar_t *r_debugShadowMaps;
-	extern cvar_t *r_noShadowFrustums;
 	extern cvar_t *r_noLightFrustums;
 	extern cvar_t *r_shadowMapLinearFilter;
 	extern cvar_t *r_lightBleedReduction;
@@ -3070,7 +2975,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_lockpvs;
 	extern cvar_t *r_noportals;
 	extern cvar_t *r_portalOnly;
-	extern cvar_t *r_portalSky;
 	extern cvar_t *r_max_portal_levels;
 
 	extern cvar_t *r_subdivisions;
@@ -3079,7 +2983,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_smp;
 	extern cvar_t *r_showSmp;
 	extern cvar_t *r_skipBackEnd;
-	extern cvar_t *r_skipLightBuffer;
 
 	extern cvar_t *r_checkGLErrors;
 
@@ -3095,7 +2998,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_showTris; // enables wireframe rendering of the world
 	extern cvar_t *r_showSky; // forces sky in front of all surfaces
-	extern cvar_t *r_showShadowVolumes;
 	extern cvar_t *r_showShadowLod;
 	extern cvar_t *r_showShadowMaps;
 	extern cvar_t *r_showSkeleton;
@@ -3112,7 +3014,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_showDeluxeMaps;
 	extern cvar_t *r_showNormalMaps;
 	extern cvar_t *r_showMaterialMaps;
-	extern cvar_t *r_showAreaPortals;
 	extern cvar_t *r_showCubeProbes;
 	extern cvar_t *r_showBspNodes;
 	extern cvar_t *r_showParallelShadowSplits;
@@ -3125,7 +3026,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_vboLighting;
 	extern cvar_t *r_vboModels;
 	extern cvar_t *r_vboVertexSkinning;
-	extern cvar_t *r_vboDeformVertexes;
 
 	extern cvar_t *r_mergeLeafSurfaces;
 
@@ -3160,6 +3060,7 @@ inline bool checkGLErrors()
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
 
+	bool           R_MirrorViewBySurface( drawSurf_t* drawSurf );
 	void           R_RenderView( viewParms_t *parms );
 	void           R_RenderPostProcess();
 
@@ -3255,10 +3156,10 @@ inline bool checkGLErrors()
 	void GL_Bind( image_t *image );
 	void GL_BindNearestCubeMap( GLint location, const vec3_t xyz );
 	void GL_Unbind( image_t *image );
-	void BindAnimatedImage( GLint location, textureBundle_t *bundle );
+	GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle );
 	void GL_TextureFilter( image_t *image, filterType_t filterType );
 	void GL_BindProgram( shaderProgram_t *program );
-	void GL_BindToTMU( GLint unit, image_t *image );
+	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_BindNullProgram();
 	void GL_SetDefaultState();
 	void GL_SelectTexture( int unit );
@@ -3269,7 +3170,6 @@ inline bool checkGLErrors()
 	void GL_ClearDepth( GLclampd depth );
 	void GL_ClearStencil( GLint s );
 	void GL_ColorMask( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha );
-	void GL_CullFace( GLenum mode );
 	void GL_DepthFunc( GLenum func );
 	void GL_DepthMask( GLboolean flag );
 	void GL_DrawBuffer( GLenum mode );
@@ -3312,7 +3212,7 @@ inline bool checkGLErrors()
 	void      RE_Shutdown( bool destroyWindow );
 
 	bool   R_GetEntityToken( char *buffer, int size );
-	float      R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int bits, byte *pic_out );  // Arnout
+	void R_ProcessLightmap( byte *bytes, int width, int height, int bits ); // Arnout
 
 	model_t    *R_AllocModel();
 
@@ -3464,7 +3364,6 @@ inline bool checkGLErrors()
 		shader_t    *lightShader;
 
 		bool    skipTangentSpaces;
-		bool    skipVBO;
 		int16_t     lightmapNum;
 		int16_t     fogNum;
 		bool        bspSurface;
@@ -3513,7 +3412,6 @@ inline bool checkGLErrors()
 	                 void ( *stageIteratorFunc2 )(),
 	                 shader_t *surfaceShader, shader_t *lightShader,
 	                 bool skipTangentSpaces,
-	                 bool skipVBO,
 	                 int lightmapNum,
 	                 int fogNum,
 	                 bool bspSurface = false );
@@ -3525,12 +3423,14 @@ inline bool checkGLErrors()
 	void Tess_DrawArrays( GLenum elementType );
 	void Tess_CheckOverflow( int verts, int indexes );
 
+	void SetNormalScale( const shaderStage_t* pStage, vec3_t normalScale );
+	void SetRgbaGen( const shaderStage_t* pStage, colorGen_t* rgbGen, alphaGen_t* alphaGen );
 	void Tess_ComputeColor( shaderStage_t *pStage );
+	void Tess_ComputeTexMatrices( shaderStage_t* pStage );
 
 	void Tess_StageIteratorDebug();
-	void Tess_StageIteratorGeneric();
+	void Tess_StageIteratorColor();
 	void Tess_StageIteratorPortal();
-	void Tess_StageIteratorDepthFill();
 	void Tess_StageIteratorShadowFill();
 	void Tess_StageIteratorLighting();
 	void Tess_StageIteratorSky();
@@ -3552,11 +3452,23 @@ inline bool checkGLErrors()
 	void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 	void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 
-	void Tess_InstantQuad( vec4_t quadVerts[ 4 ] );
+	void Tess_InstantQuad( const float x, const float y, const float width, const float height );
 	void Tess_MapVBOs( bool forceCPU );
 	void Tess_UpdateVBOs();
 
 	void RB_ShowImages();
+
+	void Render_NONE( shaderStage_t *pStage );
+	void Render_NOP( shaderStage_t *pStage );
+	void Render_generic( shaderStage_t *pStage );
+	void Render_generic3D( shaderStage_t *pStage );
+	void Render_lightMapping( shaderStage_t *pStage );
+	void Render_reflection_CB( shaderStage_t *pStage );
+	void Render_skybox( shaderStage_t *pStage );
+	void Render_screen( shaderStage_t *pStage );
+	void Render_portal( shaderStage_t *pStage );
+	void Render_heatHaze( shaderStage_t *pStage );
+	void Render_liquid( shaderStage_t *pStage );
 
 	/*
 	============================================================

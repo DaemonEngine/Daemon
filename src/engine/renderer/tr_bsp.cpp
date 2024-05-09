@@ -36,7 +36,7 @@ RE_LoadWorldMap(const char *name);
 
 static world_t    s_worldData;
 static int        s_lightCount;
-static growList_t s_interactions;
+static std::vector<interactionCache_t *> s_interactions;
 static byte       *fileBase;
 
 static int        c_redundantInteractions;
@@ -51,9 +51,39 @@ static int        c_vboShadowSurfaces;
 R_ColorShiftLightingBytes
 ===============
 */
-static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
+static void R_ColorShiftLightingBytes( byte bytes[ 4 ] )
 {
-	int shift, r, g, b;
+	/* This implementation is strongly buggy as for every shift bit, the max light
+	is clamped by one bit and then divided by two, the stronger the light factor is,
+	the more the light is clamped.
+
+	The Q3Radiant Shader Manual said:
+	> Colors will be (1.0,1.0,1.0) if running without overbright bits
+	> (NT, linux, windowed modes), or (0.5, 0.5, 0.5) if running with
+	> overbright.
+	> -- https://icculus.org/gtkradiant/documentation/Q3AShader_Manual/ch05/pg5_1.htm
+
+	In this sentence, “running with overbright” is about using hardware
+	overbright, and “running without overbright” is about using this function.
+
+	This means Quake III Arena was only supporting hardware overbright
+	on pre-NT Windows 9x systems when fullscreen, and running this buggy
+	code on every other platforms and when windowed.
+
+	Debugging regressions from Tremulous and other Quake 3 or Wolf:ET derivated games
+	in legacy features unrelated to lighting overbright may require to temporarily
+	re-enable such buggy clamping to keep a fair comparison and avoid reimplementing
+	some clamping in an attempt to get a 1:1 comparison while not running a code not
+	backward compatible with legacy bugs.
+
+	This function is then kept to provide the ability to load map with a renderer
+	backward compatible with this bug for diagnostic purpose and fair comparison with
+	other buggy engines. */
+
+	if ( tr.mapOverBrightBits == 0 )
+	{
+		return;
+	}
 
 	/* Shift the color data based on overbright range.
 
@@ -69,12 +99,13 @@ static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
 	The original code was there to only shift in software
 	what hardware overbright bit feature was not doing, but
 	this implementation is entirely software. */
-	shift = tr.mapOverBrightBits;
+
+	int shift = tr.mapOverBrightBits;
 
 	// shift the data based on overbright range
-	r = in[ 0 ] << shift;
-	g = in[ 1 ] << shift;
-	b = in[ 2 ] << shift;
+	int r = bytes[ 0 ] << shift;
+	int g = bytes[ 1 ] << shift;
+	int b = bytes[ 2 ] << shift;
 
 	// normalize by color instead of saturating to white
 	if ( ( r | g | b ) > 255 )
@@ -88,74 +119,78 @@ static void R_ColorShiftLightingBytes( byte in[ 4 ], byte out[ 4 ] )
 		b = b * 255 / max;
 	}
 
-	out[ 0 ] = r;
-	out[ 1 ] = g;
-	out[ 2 ] = b;
-	out[ 3 ] = in[ 3 ];
+	bytes[ 0 ] = r;
+	bytes[ 1 ] = g;
+	bytes[ 2 ] = b;
 }
 
-static void R_ColorShiftLightingBytesCompressed( byte in[ 8 ], byte out[ 8 ] )
+static void R_ColorShiftLightingBytesCompressed( byte bytes[ 8 ] )
 {
-	unsigned short rgb565;
-	byte rgba[4];
+	if ( tr.mapOverBrightBits == 0 )
+	{
+		return;
+	}
 
 	// color shift the endpoint colors in the dxt block
-	rgb565 = in[1] << 8 | in[0];
-	rgba[0] = (rgb565 >> 8) & 0xf8;
-	rgba[1] = (rgb565 >> 3) & 0xfc;
-	rgba[2] = (rgb565 << 3) & 0xf8;
-	rgba[3] = 0xff;
-	R_ColorShiftLightingBytes( rgba, rgba );
-	rgb565 = ((rgba[0] >> 3) << 11) |
-		((rgba[1] >> 2) << 5) |
-		((rgba[2] >> 3) << 0);
-	out[0] = rgb565 & 0xff;
-	out[1] = rgb565 >> 8;
+	unsigned short rgb565 = bytes[1] << 8 | bytes[0];
+	byte rgba[4];
 
-	rgb565 = in[3] << 8 | in[2];
 	rgba[0] = (rgb565 >> 8) & 0xf8;
 	rgba[1] = (rgb565 >> 3) & 0xfc;
 	rgba[2] = (rgb565 << 3) & 0xf8;
 	rgba[3] = 0xff;
-	R_ColorShiftLightingBytes( rgba, rgba );
+
+	R_ColorShiftLightingBytes( rgba );
+
 	rgb565 = ((rgba[0] >> 3) << 11) |
 		((rgba[1] >> 2) << 5) |
 		((rgba[2] >> 3) << 0);
-	out[2] = rgb565 & 0xff;
-	out[3] = rgb565 >> 8;
+	bytes[0] = rgb565 & 0xff;
+	bytes[1] = rgb565 >> 8;
+
+	rgb565 = bytes[3] << 8 | bytes[2];
+	rgba[0] = (rgb565 >> 8) & 0xf8;
+	rgba[1] = (rgb565 >> 3) & 0xfc;
+	rgba[2] = (rgb565 << 3) & 0xf8;
+	rgba[3] = 0xff;
+
+	R_ColorShiftLightingBytes( rgba );
+
+	rgb565 = ((rgba[0] >> 3) << 11) |
+		((rgba[1] >> 2) << 5) |
+		((rgba[2] >> 3) << 0);
+	bytes[2] = rgb565 & 0xff;
+	bytes[3] = rgb565 >> 8;
 }
 
 /*
 ===============
 R_ProcessLightmap
-
-        returns maxIntensity
 ===============
 */
-float R_ProcessLightmap( byte *pic, int in_padding, int width, int height, int bits, byte *pic_out )
+void R_ProcessLightmap( byte *bytes, int width, int height, int bits )
 {
-	int   j;
-	float maxIntensity = 0;
-
-	if( bits & IF_BC1 ) {
-		for ( j = 0; j < ((width + 3) >> 2) * ((height + 3) >> 2); j++ )
-		{
-			R_ColorShiftLightingBytesCompressed( &pic[ j * 8 ], &pic_out[ j * 8 ] );
-		}
-	} else if( bits & (IF_BC2 | IF_BC3) ) {
-		for ( j = 0; j < ((width + 3) >> 2) * ((height + 3) >> 2); j++ )
-		{
-			R_ColorShiftLightingBytesCompressed( &pic[ j * 16 ], &pic_out[ j * 16 ] );
-		}
-	} else {
-		for ( j = 0; j < width * height; j++ )
-		{
-			R_ColorShiftLightingBytes( &pic[ j * in_padding ], &pic_out[ j * 4 ] );
-			pic_out[ j * 4 + 3 ] = 255;
-		}
+	if ( tr.mapOverBrightBits == 0 )
+	{
+		return;
 	}
 
-	return maxIntensity;
+	if ( bits & IF_BC1 ) {
+		for ( int i = 0; i < ((width + 3) >> 2) * ((height + 3) >> 2); i++ )
+		{
+			R_ColorShiftLightingBytesCompressed( &bytes[ i * 8 ] );
+		}
+	} else if( bits & (IF_BC2 | IF_BC3) ) {
+		for ( int i = 0; i < ((width + 3) >> 2) * ((height + 3) >> 2); i++ )
+		{
+			R_ColorShiftLightingBytesCompressed( &bytes[ i * 16 ] );
+		}
+	} else {
+		for ( int i = 0; i < width * height; i++ )
+		{
+			R_ColorShiftLightingBytes( &bytes[ i * 4 ] );
+		}
+	}
 }
 
 static int LightmapNameCompare( const char *s1, const char *s2 )
@@ -214,7 +249,6 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 	int      i, j;
 	const byte *buf_p;
 	float    *floatbuf;
-	char     *token;
 	int      w, h, c;
 	bool formatFound;
 
@@ -242,7 +276,7 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 
 	while ( true )
 	{
-		token = COM_ParseExt2( ( const char ** ) &buf_p, true );
+		const char *token = COM_ParseExt2( ( const char ** ) &buf_p, true );
 
 		if ( !token[ 0 ] )
 		{
@@ -358,7 +392,7 @@ void LoadRGBEToFloats( const char *name, float **pic, int *width, int *height )
 		Sys::Drop( "RGBE image '%s' has an invalid image size", name );
 	}
 
-	*pic = (float*) malloc( w * h * 3 * sizeof( float ) );
+	*pic = (float*) Z_AllocUninit( w * h * 3 * sizeof( float ) );
 	floatbuf = *pic;
 
 	for ( i = 0; i < ( w * h ); i++ )
@@ -391,7 +425,7 @@ static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int 
 	*width = w;
 	*height = h;
 
-	*ldrImage = (byte*) ri.Z_Malloc( w * h * 4 );
+	*ldrImage = (byte*) Z_Malloc( w * h * 4 );
 	pixbuf = *ldrImage;
 
 	floatbuf = hdrImage;
@@ -427,7 +461,7 @@ static void LoadRGBEToBytes( const char *name, byte **ldrImage, int *width, int 
 		*pixbuf++ = ( byte ) 255;
 	}
 
-	free( hdrImage );
+	Z_Free( hdrImage );
 }
 
 static std::vector<std::string> R_LoadExternalLightmaps( const char *mapName )
@@ -518,9 +552,9 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 
 				auto image = R_CreateImage( va( "%s/%s", mapName, filename.c_str() ), (const byte **)&ldrImage, width, height, 1, imageParams );
 
-				Com_AddToGrowList( &tr.lightmaps, image );
+				tr.lightmaps.push_back( image );
 
-				ri.Free( ldrImage );
+				Z_Free( ldrImage );
 			}
 
 			if (tr.worldDeluxeMapping) {
@@ -544,7 +578,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 					auto image = R_FindImageFile(va("%s/%s", mapName, filename.c_str()), imageParams);
-					Com_AddToGrowList(&tr.deluxemaps, image);
+					tr.deluxemaps.push_back(image);
 				}
 			}
 		}
@@ -573,7 +607,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
-					Com_AddToGrowList(&tr.lightmaps, image);
+					tr.lightmaps.push_back(image);
 				}
 				else if (tr.worldDeluxeMapping)
 				{
@@ -583,7 +617,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 					auto image = R_FindImageFile(va("%s/%s", mapName, lightmapFiles[i].c_str()), imageParams);
-					Com_AddToGrowList(&tr.deluxemaps, image);
+					tr.deluxemaps.push_back( image );
 				}
 			}
 		}
@@ -640,7 +674,10 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 2 ];
 					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
-					R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ], &lightMapBuffer[( index * 4 ) + 0 ] );
+					if ( tr.forceLegacyOverBrightClamping )
+					{
+						R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ] );
+					}
 				}
 			}
 
@@ -650,7 +687,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 			imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 			image_t *internalLightMap = R_CreateImage( va( "_internalLightMap%d", i ), (const byte **)&lightMapBuffer, internalLightMapSize, internalLightMapSize, 1, imageParams );
-			Com_AddToGrowList( &tr.lightmaps, internalLightMap );
+			tr.lightmaps.push_back( internalLightMap );
 
 			ri.Hunk_FreeTempMemory( lightMapBuffer );
 		}
@@ -1004,7 +1041,10 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
 
-		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray(), cv->verts[ i ].lightColor.ToArray() );
+		if ( tr.forceLegacyOverBrightClamping )
+		{
+			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
+		}
 	}
 
 	// copy triangles
@@ -1211,7 +1251,10 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray(), points[ i ].lightColor.ToArray() );
+		if ( tr.forceLegacyOverBrightClamping )
+		{
+			R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray() );
+		}
 	}
 
 	// center texture coords
@@ -1335,7 +1378,10 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 
 			cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray(), cv->verts[ i ].lightColor.ToArray() );
+		if ( tr.forceLegacyOverBrightClamping )
+		{
+			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
+		}
 	}
 
 	// copy triangles
@@ -2929,7 +2975,7 @@ static void R_CreateWorldVBO()
 	{
 		surface = &s_worldData.surfaces[ k ];
 
-		if ( surface->shader->isSky || surface->shader->isPortal )
+		if ( surface->shader->isPortal )
 		{
 			continue;
 		}
@@ -3004,7 +3050,7 @@ static void R_CreateWorldVBO()
 
 			shader1 = surf1->shader;
 
-			if ( shader1->isSky || shader1->isPortal )
+			if ( shader1->isPortal )
 			{
 				continue;
 			}
@@ -3066,7 +3112,7 @@ static void R_CreateWorldVBO()
 	{
 		surface = &s_worldData.surfaces[ k ];
 
-		if ( surface->shader->isSky || surface->shader->isPortal )
+		if ( surface->shader->isPortal )
 		{
 			continue;
 		}
@@ -4123,8 +4169,11 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		R_ColorShiftLightingBytes( tmpAmbient, tmpAmbient );
-		R_ColorShiftLightingBytes( tmpDirected, tmpDirected );
+		if ( tr.forceLegacyOverBrightClamping )
+		{
+			R_ColorShiftLightingBytes( tmpAmbient );
+			R_ColorShiftLightingBytes( tmpDirected );
+		}
 
 		for ( j = 0; j < 3; j++ )
 		{
@@ -4231,7 +4280,7 @@ void R_LoadLightGrid( lump_t *l )
 R_LoadEntities
 ================
 */
-void R_LoadEntities( lump_t *l )
+void R_LoadEntities( lump_t *l, std::string &externalEntities )
 {
 	int          i;
 	const char *p, *pOld, *token;
@@ -4255,9 +4304,18 @@ void R_LoadEntities( lump_t *l )
 	w->lightGridSize[ 2 ] = 128;
 
 	// store for reference by the cgame
-	w->entityString = (char*) ri.Hunk_Alloc( l->filelen + 1, ha_pref::h_low );
-	//strcpy(w->entityString, (char *)(fileBase + l->fileofs));
-	Q_strncpyz( w->entityString, ( char * )( fileBase + l->fileofs ), l->filelen + 1 );
+	if ( externalEntities.empty() )
+	{
+		w->entityString = (char*) ri.Hunk_Alloc( l->filelen + 1, ha_pref::h_low );
+		//strcpy(w->entityString, (char *)(fileBase + l->fileofs));
+		Q_strncpyz( w->entityString, ( char * )( fileBase + l->fileofs ), l->filelen + 1 );
+	}
+	else
+	{
+		w->entityString = (char*) ri.Hunk_Alloc( externalEntities.length() + 1, ha_pref::h_low );
+		Q_strncpyz( w->entityString, externalEntities.c_str(), externalEntities.length() + 1 );
+	}
+
 	w->entityParsePoint = w->entityString;
 
 	p = w->entityString;
@@ -4364,6 +4422,12 @@ void R_LoadEntities( lump_t *l )
 		else if ( !Q_stricmp( keyname, "mapOverBrightBits" ) )
 		{
 			tr.mapOverBrightBits = Math::Clamp( atof( value ), 0.0, 3.0 );
+		}
+
+		// Force forceLegacyOverBrightClamping even if r_forceLegacyOverBrightClamping is false.
+		else if ( !Q_stricmp( keyname, "forceLegacyOverBrightClamping" ) && !Q_stricmp( value, "1" ) )
+		{
+			tr.forceLegacyOverBrightClamping = true;
 		}
 
 		// check for deluxe mapping provided by NetRadiant's q3map2
@@ -4762,7 +4826,7 @@ static void R_PrecacheInteraction( trRefLight_t *light, bspSurface_t *surface )
 	interactionCache_t *iaCache;
 
 	iaCache = (interactionCache_t*) ri.Hunk_Alloc( sizeof( *iaCache ), ha_pref::h_low );
-	Com_AddToGrowList( &s_interactions, iaCache );
+	s_interactions.push_back( iaCache );
 
 	// connect to interaction grid
 	if ( !light->firstInteractionCache )
@@ -4906,8 +4970,6 @@ static void R_RecursivePrecacheInteractionNode( bspNode_t *node, trRefLight_t *l
 			InitLink( l, node );
 
 			InsertLink( l, &light->leafs );
-
-			light->leafs.numElements++;
 		}
 	}
 }
@@ -6133,8 +6195,6 @@ void R_PrecacheInteractions()
 		surface->lightCount = -1;
 	}
 
-	Com_InitGrowList( &s_interactions, 100 );
-
 	c_redundantInteractions = 0;
 	c_vboWorldSurfaces = 0;
 	c_vboLightSurfaces = 0;
@@ -6198,15 +6258,15 @@ void R_PrecacheInteractions()
 	}
 
 	// move interactions grow list to hunk
-	s_worldData.numInteractions = s_interactions.currentElements;
+	s_worldData.numInteractions = s_interactions.size();
 	s_worldData.interactions = (interactionCache_t**) ri.Hunk_Alloc( s_worldData.numInteractions * sizeof( *s_worldData.interactions ), ha_pref::h_low );
 
 	for ( i = 0; i < s_worldData.numInteractions; i++ )
 	{
-		s_worldData.interactions[ i ] = ( interactionCache_t * ) Com_GrowListElement( &s_interactions, i );
+		s_worldData.interactions[ i ] = s_interactions[ i ];
 	}
 
-	Com_DestroyGrowList( &s_interactions );
+	s_interactions.clear();
 
 	Log::Debug("%i interactions precached", s_worldData.numInteractions );
 	Log::Debug("%i interactions were hidden in shadows", c_redundantInteractions );
@@ -6267,10 +6327,7 @@ unsigned int VertexCoordGenerateHash( const vec3_t xyz )
 
 vertexHash_t **NewVertexHashTable()
 {
-	vertexHash_t **hashTable = (vertexHash_t**) malloc( HASHTABLE_SIZE * sizeof( vertexHash_t * ) );
-
-	memset( hashTable, 0, HASHTABLE_SIZE * sizeof( vertexHash_t * ) );
-
+	vertexHash_t **hashTable = (vertexHash_t**) Z_Calloc( HASHTABLE_SIZE * sizeof( vertexHash_t * ) );
 	return hashTable;
 }
 
@@ -6295,12 +6352,12 @@ void FreeVertexHashTable( vertexHash_t **hashTable )
 			{
 				nextVertexHash = vertexHash->next;
 
-				free( vertexHash );
+				Z_Free( vertexHash );
 			}
 		}
 	}
 
-	free( hashTable );
+	Z_Free( hashTable );
 }
 
 vertexHash_t *FindVertexInHashTable( vertexHash_t **hashTable, const vec3_t xyz, float distance )
@@ -6358,12 +6415,7 @@ vertexHash_t *AddVertexToHashTable( vertexHash_t **hashTable, vec3_t xyz, void *
 		return nullptr;
 	}
 
-	vertexHash = (vertexHash_t*) malloc( sizeof( vertexHash_t ) );
-
-	if ( !vertexHash )
-	{
-		return nullptr;
-	}
+	vertexHash = (vertexHash_t*) Z_AllocUninit( sizeof( vertexHash_t ) );
 
 	hash = VertexCoordGenerateHash( xyz );
 
@@ -6460,20 +6512,19 @@ void R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbe
 
 void R_BuildCubeMaps()
 {
-	int            i, j;
+	int            i;
 	int            ii, jj;
 	refdef_t       rf;
 	bool       flipx;
 	bool       flipy;
 	int            x, y, xy, xy2;
 
-	cubemapProbe_t *cubeProbe;
 	byte           temp[ REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 ];
 	byte           *dest;
 
 	int    startTime, endTime;
 	size_t tics = 0;
-	int nextTicCount = 0;
+	size_t nextTicCount = 0;
 
 	// Early abort if a BSP is not loaded yet since
 	// the buildcubemaps command can be called from
@@ -6489,11 +6540,11 @@ void R_BuildCubeMaps()
 
 	for ( i = 0; i < 6; i++ )
 	{
-		tr.cubeTemp[ i ] = (byte*) ri.Z_Malloc( REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
+		tr.cubeTemp[ i ] = (byte*) Z_Malloc( REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
 	}
 
 	// calculate origins for our probes
-	Com_InitGrowList( &tr.cubeProbes, 4000 );
+	tr.cubeProbes.clear();
 	tr.cubeHashTable = NewVertexHashTable();
 
 	{
@@ -6521,8 +6572,8 @@ void R_BuildCubeMaps()
 
 			if ( FindVertexInHashTable( tr.cubeHashTable, origin, 256 ) == nullptr )
 			{
-				cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( *cubeProbe ), ha_pref::h_high );
-				Com_AddToGrowList( &tr.cubeProbes, cubeProbe );
+				auto *cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_high );
+				tr.cubeProbes.push_back( cubeProbe );
 
 				VectorCopy( origin, cubeProbe->origin );
 
@@ -6532,28 +6583,28 @@ void R_BuildCubeMaps()
 	}
 
 	// if we can't find one, fake one
-	if ( tr.cubeProbes.currentElements == 0 )
+	if ( tr.cubeProbes.empty() )
 	{
-		cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( *cubeProbe ), ha_pref::h_low );
-		Com_AddToGrowList( &tr.cubeProbes, cubeProbe );
+		auto *cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_low );
+		tr.cubeProbes.push_back( cubeProbe );
 
 		VectorClear( cubeProbe->origin );
 	}
 
-	Log::Notice("...pre-rendering %d cubemaps", tr.cubeProbes.currentElements );
+	Log::Notice("...pre-rendering %d cubemaps", tr.cubeProbes.size() );
 	Log::Notice("0%%  10   20   30   40   50   60   70   80   90   100%%" );
 	Log::Notice("|----|----|----|----|----|----|----|----|----|----|" );
 
-	for ( j = 0; j < tr.cubeProbes.currentElements; j++ )
+	for ( size_t j = 0; j < tr.cubeProbes.size(); j++ )
 	{
-		cubeProbe = (cubemapProbe_t*) Com_GrowListElement( &tr.cubeProbes, j );
+		cubemapProbe_t *cubeProbe = tr.cubeProbes[ j ];
 
 		//Log::Notice("rendering cubemap at (%i %i %i)", (int)cubeProbe->origin[0], (int)cubeProbe->origin[1],
 		//      (int)cubeProbe->origin[2]);
 
 		if ( ( j + 1 ) >= nextTicCount )
 		{
-			size_t ticsNeeded = ( size_t )( ( ( double )( j + 1 ) / tr.cubeProbes.currentElements ) * 50.0 );
+			size_t ticsNeeded = ( size_t )( ( ( double )( j + 1 ) / tr.cubeProbes.size() ) * 50.0 );
 
 			do
 			{
@@ -6562,9 +6613,9 @@ void R_BuildCubeMaps()
 			}
 			while ( ++tics < ticsNeeded );
 
-			nextTicCount = ( size_t )( ( tics / 50.0 ) * tr.cubeProbes.currentElements );
+			nextTicCount = ( size_t )( ( tics / 50.0 ) * tr.cubeProbes.size() );
 
-			if ( ( j + 1 ) == tr.cubeProbes.currentElements )
+			if ( ( j + 1 ) == tr.cubeProbes.size() )
 			{
 				if ( tics < 51 )
 				{
@@ -6774,7 +6825,7 @@ void R_BuildCubeMaps()
 		}
 
 		// build the cubemap
-		cubeProbe->cubemap = R_AllocImage( va( "_autoCube%d", j ), false );
+		cubeProbe->cubemap = R_AllocImage( Str::Format( "_autoCube%d", j ).c_str(), false);
 
 		if ( !cubeProbe->cubemap )
 		{
@@ -6802,7 +6853,7 @@ void R_BuildCubeMaps()
 
 	// assign the surfs a cubemap
 	endTime = ri.Milliseconds();
-	Log::Notice("cubemap probes pre-rendering time of %i cubes = %5.2f seconds", tr.cubeProbes.currentElements,
+	Log::Notice("cubemap probes pre-rendering time of %i cubes = %5.2f seconds", tr.cubeProbes.size(),
 	           ( endTime - startTime ) / 1000.0 );
 }
 
@@ -6886,7 +6937,19 @@ void RE_LoadWorldMap( const char *name )
 	}
 
 	// load into heap
-	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ] );
+
+	std::string externalEntitiesFileName = FS::Path::StripExtension( name ) + ".ent";
+	std::string externalEntities = FS::PakPath::ReadFile( externalEntitiesFileName, err );
+	if ( err )
+	{
+		const std::error_code notFound( Util::ordinal( FS::filesystem_error::no_such_file ), FS::filesystem_category() );
+		if ( err != notFound )
+		{
+			Sys::Drop( "Could not read file '%s': %s", externalEntitiesFileName.c_str(), err.message() );
+		}
+		externalEntities = "";
+	}
+	R_LoadEntities( &header->lumps[ LUMP_ENTITIES ], externalEntities );
 
 	R_LoadShaders( &header->lumps[ LUMP_SHADERS ] );
 
@@ -6931,6 +6994,8 @@ void RE_LoadWorldMap( const char *name )
 
 	tr.worldLight = tr.lightMode;
 	tr.modelDeluxe = deluxeMode_t::NONE;
+	tr.mapLightFactor = 1.0f;
+	tr.mapInverseLightFactor = 1.0f;
 
 	if ( tr.worldLight == lightMode_t::FULLBRIGHT )
 	{
@@ -7004,5 +7069,13 @@ void RE_LoadWorldMap( const char *name )
 				// Only game models use emulated deluxe map from light direction grid.
 			}
 		}
+	}
+
+	/* Used in GLSL code for the GLSL implementation
+	without color clamping and normalization. */
+	if ( !tr.forceLegacyOverBrightClamping )
+	{
+		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
+		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;
 	}
 }

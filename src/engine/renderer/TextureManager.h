@@ -37,15 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TEXTURE_MANAGER_H
 
 #include <vector>
-#include <unordered_set>
 #include "GL/glew.h"
-
-enum {
-	TEXTURE_PRIORITY_LOW = 0,
-	TEXTURE_PRIORITY_MEDIUM = 1,
-	TEXTURE_PRIORITY_HIGH = 2,
-	TEXTURE_PRIORITY_PERSISTENT = 5,
-};
 
 class Texture {
 	public:
@@ -53,33 +45,16 @@ class Texture {
 	GLuint64 bindlessTextureHandle = 0;
 	bool hasBindlessHandle = false;
 
-	int frameBindCounter = 0;
-	int totalBindCounter = 0;
-
 	GLenum target = GL_TEXTURE_2D;
-
-	int basePriority = 0;
-	float adjustedPriority = 0.0f;
 
 	Texture();
 	~Texture();
-
-	void UpdateAdjustedPriority( const int totalFrameTextureBinds, const int totalTextureBinds );
 
 	bool IsResident() const;
 	void MakeResident();
 	void MakeNonResident();
 
-	void GenBindlessHandle();
-
-	struct Compare {
-		bool operator() ( const Texture* lhs, const Texture* rhs ) {
-			if ( lhs->adjustedPriority != rhs->adjustedPriority ) {
-				return lhs->adjustedPriority > rhs->adjustedPriority;
-			}
-			return lhs->adjustedPriority < rhs->adjustedPriority;
-		}
-	};
+	void GenBindlessHandle();;
 
 	private:
 		bool bindlessTextureResident = false;
@@ -90,26 +65,12 @@ class TextureManager {
 	TextureManager();
 	~TextureManager();
 
-	void UpdateAdjustedPriorities();
-
-	void BindTexture( const GLint location, Texture* texture );
-	void AllNonResident();
+	GLuint64 BindTexture( const GLint location, Texture* texture );
 	void BindReservedTexture( const GLenum target, const GLuint handle );
-	void StartTextureSequence();
-	void EndTextureSequence();
 	void FreeTextures();
 
 	private:
-		std::vector<const Texture*> textureUnits;
 		std::vector<Texture*> textures;
-		std::unordered_set<const Texture*> textureSequence;
-
-		bool textureSequenceStarted;
-
-		int totalFrameTextureBinds;
-		int totalTextureBinds;
 };
 
-// extern TextureManager textureManager;
-
-#endif
+#endif // TEXTURE_MANAGER_H

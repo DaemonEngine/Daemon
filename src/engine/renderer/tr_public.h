@@ -257,11 +257,6 @@ struct refimport_t
 	void            *( *Hunk_AllocateTempMemory )( int size );
 	void ( *Hunk_FreeTempMemory )( void *block );
 
-	// dynamic memory allocator for things that need to be freed
-	void            *( *Z_Malloc )( int bytes );
-	void ( *Free )( void *buf );
-	void ( *Tag_Free )();
-
 	void ( *Cmd_AddCommand )( const char *name, void ( *cmd )() );
 	void ( *Cmd_RemoveCommand )( const char *name );
 

@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <common/FileSystem.h>
 #include "InternalImage.h"
 #include "tr_local.h"
+#include <iomanip>
 
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int                  gl_filter_max = GL_LINEAR;
@@ -60,7 +61,8 @@ unsigned int GenerateImageHashValue( const char *fname )
 	unsigned hash;
 	char letter;
 
-//  Log::Notice("tr_image::GenerateImageHashValue: '%s'", fname);
+	// better use Log::CommandInteractionMessage
+	// Log::Notice("tr_image::GenerateImageHashValue: '%s'", fname);
 
 	hash = 0;
 	i = 0;
@@ -90,7 +92,6 @@ GL_TextureMode
 void GL_TextureMode( const char *string )
 {
 	int     i;
-	image_t *image;
 
 	for ( i = 0; i < 6; i++ )
 	{
@@ -123,10 +124,8 @@ void GL_TextureMode( const char *string )
 	}
 
 	// change all the existing mipmap texture objects
-	for ( i = 0; i < tr.images.currentElements; i++ )
+	for ( image_t *image : tr.images )
 	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
-
 		if ( image->filterType == filterType_t::FT_DEFAULT )
 		{
 			GL_Bind( image );
@@ -156,313 +155,246 @@ R_ListImages_f
 */
 void R_ListImages_f()
 {
-	int        i;
-	image_t    *image;
-	int        texels;
-	int        dataSize;
-	int        imageDataSize;
-	const char *yesno[] =
-	{
-		"no ", "yes"
+	static const std::unordered_map<GLenum, std::string> imageTypeName = {
+		{ GL_TEXTURE_2D, "2D" },
+		{ GL_TEXTURE_3D, "3D" },
+		{ GL_TEXTURE_CUBE_MAP, "CUBE" },
 	};
+
+	typedef std::pair<const std::string, int> nameSizePair;
+	static const std::unordered_map<uint32_t, nameSizePair> imageFormatNameSize = {
+		// TODO: find imageDataSize multiplier
+		{ GL_RGBA, { "RGBA", 4 } },
+
+		{ GL_RGB8, { "RGB8", 3 } },
+		{ GL_RGBA8, { "RGBA8", 4 } },
+		{ GL_RGB16, { "RGB16", 6 } },
+		{ GL_RGBA16, { "RGBA16", 6 } },
+		{ GL_RGB16F, { "RGB16F", 6 } },
+		{ GL_RGB32F, { "RGB32F", 12 } },
+		{ GL_RGBA16F, { "RGBA16F", 8 } },
+		{ GL_RGBA32F, { "RGBA32F", 16 } },
+		{ GL_RGBA32UI, { "RGBA32UI", 16 } },
+		{ GL_ALPHA16F_ARB, { "A16F", 2 } },
+		{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+		{ GL_R16F, { "R16F", 2 } },
+		{ GL_R32F, { "R32F", 4 } },
+		{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
+		{ GL_LUMINANCE_ALPHA32F_ARB, { "LA32F", 8 } },
+		{ GL_RG16F, { "RG16F", 4 } },
+		{ GL_RG32F, { "RG32F", 8 } },
+
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_RGBA, { "RGBAC", 4 } },
+
+		{ GL_COMPRESSED_RGB_S3TC_DXT1_EXT, { "DXT1", 4 / 8 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { "DXT1a", 4 / 8 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { "DXT3", 4 / 4 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { "DXT5", 4 / 4 } },
+
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_RED_RGTC1, { "RGTC1r", 1 } },
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_SIGNED_RED_RGTC1, { "RGTC1Sr", 1 } },
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_RG_RGTC2, { "RGTC2rg", 2 } },
+		// TODO: find imageDataSize multiplier
+		{ GL_COMPRESSED_SIGNED_RG_RGTC2, { "RGTC2Srg", 2 } },
+
+		{ GL_DEPTH_COMPONENT16, { "D16", 2 } },
+		{ GL_DEPTH_COMPONENT24, { "D24", 3 } },
+		{ GL_DEPTH_COMPONENT32, { "D32", 4 } },
+		{ GL_DEPTH24_STENCIL8, { "D24S8", 4 } },
+	};
+
+	static const std::unordered_map<wrapTypeEnum_t, std::string> wrapTypeName = {
+		{ wrapTypeEnum_t::WT_REPEAT, "rept" },
+		{ wrapTypeEnum_t::WT_CLAMP, "clmp" },
+		{ wrapTypeEnum_t::WT_EDGE_CLAMP, "eclmp" },
+		{ wrapTypeEnum_t::WT_ZERO_CLAMP, "0clmp" },
+		{ wrapTypeEnum_t::WT_ONE_CLAMP, "1clmp" },
+		{ wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP, "a0clmp" },
+	};
+
+	const char *yesno[] = { "no", "yes" };
 	const char *filter = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv(1) : nullptr;
 
-	Log::Notice("\n      -w-- -h-- -mm- -type-   -if-- wrap --name-------" );
+	// Header names
+	std::string num = "num";
+	std::string width = "width";
+	std::string height = "heigth";
+	std::string layers = "layers";
+	std::string mm = "mm";
+	std::string type = "type";
+	std::string format = "format";
+	std::string twrap = "wrap.t";
+	std::string swrap = "wrap.s";
+	std::string name = "name";
 
-	texels = 0;
-	dataSize = 0;
+	// Number sizes
+	size_t numLen = 5;
+	size_t widthLen = 5;
+	size_t heightLen = 5;
+	size_t layersLen = 5;
+	size_t mmLen = 3;
+	size_t typeLen = 4;
+	size_t formatLen = 4;
+	size_t twrapLen = 4;
+	size_t swrapLen = 4;
 
-	for ( i = 0; i < tr.images.currentElements; i++ )
+	// Header number sizes
+	numLen = std::max( numLen, num.length() );
+	widthLen = std::max( widthLen, width.length() );
+	heightLen = std::max( heightLen, height.length() );
+	layersLen = std::max( layersLen, layers.length() );
+	mmLen = std::max( mmLen, mm.length() );
+	typeLen = std::max( typeLen, type.length() );
+	formatLen = std::max( formatLen, format.length() );
+	twrapLen = std::max( twrapLen, twrap.length() );
+	swrapLen = std::max( swrapLen, swrap.length() );
+
+	// Value sizes
+	for ( const auto& kv : imageTypeName )
 	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
-		char buffer[ MAX_TOKEN_CHARS ];
-		std::string out;
+		typeLen = std::max( typeLen, kv.second.length() );
+	}
+	
+	for ( const auto& kv : imageFormatNameSize )
+	{
+		formatLen = std::max( formatLen, kv.second.first.length() );
+	}
 
+	for ( const auto& kv: wrapTypeName )
+	{
+		// 2 for the "t." and "s." prefix length.
+		twrapLen = std::max( twrapLen, 2 + kv.second.length() );
+		swrapLen = std::max( swrapLen, 2 + kv.second.length() );
+	}
+
+	std::string separator = " ";
+	std::stringstream lineStream;
+
+	// Print header
+	lineStream << std::left;
+	lineStream << std::setw(numLen) << num << separator;
+	lineStream << std::right;
+	lineStream << std::setw(widthLen) << width << separator;
+	lineStream << std::setw(heightLen) << height << separator;
+	lineStream << std::setw(layersLen) << layers << separator;
+	lineStream << std::left;
+	lineStream << std::setw(mmLen) << mm << separator;
+	lineStream << std::setw(typeLen) << type << separator;
+	lineStream << std::setw(formatLen) << format << separator;
+	lineStream << std::setw(twrapLen) << twrap << separator;
+	lineStream << std::setw(swrapLen) << swrap << separator;
+	lineStream << name;
+
+	std::string lineSeparator( lineStream.str().length(), '-' );
+
+	Log::CommandInteractionMessage( lineSeparator );
+	Log::CommandInteractionMessage( lineStream.str() );
+	Log::CommandInteractionMessage( lineSeparator );
+
+	int texels = 0;
+	int dataSize = 0;
+
+	for ( size_t i = 0; i < tr.images.size(); i++ )
+	{
+		const image_t *image = tr.images[ i ];
 		if ( filter && !Com_Filter( filter, image->name, true ) )
 		{
 			continue;
 		}
 
-		Com_sprintf( buffer, sizeof( buffer ), "%4i: %4i %4i  %s   ",
-		           i, image->uploadWidth, image->uploadHeight, yesno[ image->filterType == filterType_t::FT_DEFAULT ] );
-		out += buffer;
-		switch ( image->type )
+		mm = yesno[ image->filterType == filterType_t::FT_DEFAULT ];
+
+		if ( !imageTypeName.count( image->type ) )
 		{
-			case GL_TEXTURE_2D:
-				texels += image->uploadWidth * image->uploadHeight;
-				imageDataSize = image->uploadWidth * image->uploadHeight;
+			Log::Debug( "Undocumented image type %i (%X) for image %s",
+				image->type, image->type, image->name );
 
-				Com_sprintf( buffer, sizeof( buffer ),  "2D   " );
-				out += buffer;
-				break;
-
-			case GL_TEXTURE_CUBE_MAP:
-				texels += image->uploadWidth * image->uploadHeight * 6;
-				imageDataSize = image->uploadWidth * image->uploadHeight * 6;
-
-				Com_sprintf( buffer, sizeof( buffer ),  "CUBE " );
-				out += buffer;
-				break;
-
-			default:
-				Log::Debug( "Undocumented image type %i for image %s", image->type, image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "%5i    ", image->type );
-				out += buffer;
-				imageDataSize = image->uploadWidth * image->uploadHeight;
-				break;
+			type = Str::Format( "0x%4X", image->type );
+		}
+		else
+		{
+			type = imageTypeName.at( image->type );
 		}
 
-		switch ( image->internalFormat )
+		int imageDataSize = image->uploadWidth * image->uploadHeight * image->numLayers;
+		texels += imageDataSize;
+		
+		if ( !imageFormatNameSize.count( image->internalFormat ) )
 		{
-			case GL_RGB8:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB8     " );
-				out += buffer;
-				imageDataSize *= 3;
-				break;
+			Log::Debug( "Undocumented image format %i (%X) for image %s",
+				image->internalFormat, image->internalFormat, image->name );
 
-			case GL_RGBA8:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA8    " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_RGB16:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB      " );
-				out += buffer;
-				imageDataSize *= 6;
-				break;
-
-			case GL_RGB16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB16F   " );
-				out += buffer;
-				imageDataSize *= 6;
-				break;
-
-			case GL_RGB32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGB32F   " );
-				out += buffer;
-				imageDataSize *= 12;
-				break;
-
-			case GL_RGBA16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA16F  " );
-				out += buffer;
-				imageDataSize *= 8;
-				break;
-
-			case GL_RGBA32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBA32F  " );
-				out += buffer;
-				imageDataSize *= 16;
-				break;
-
-			case GL_ALPHA16F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "A16F     " );
-				out += buffer;
-				imageDataSize *= 2;
-				break;
-
-			case GL_ALPHA32F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "A32F     " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_R16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "R16F     " );
-				out += buffer;
-				imageDataSize *= 2;
-				break;
-
-			case GL_R32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "R32F     " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_LUMINANCE_ALPHA16F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "LA16F    " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_LUMINANCE_ALPHA32F_ARB:
-				Com_sprintf( buffer, sizeof( buffer ),  "LA32F    " );
-				out += buffer;
-				imageDataSize *= 8;
-				break;
-
-			case GL_RG16F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RG16F    " );
-				out += buffer;
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			case GL_RG32F:
-				Com_sprintf( buffer, sizeof( buffer ),  "RG32F    " );
-				out += buffer;
-				imageDataSize *= 8;
-				break;
-
-			case GL_COMPRESSED_RGBA:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGBAC " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT1     " );
-				out += buffer;
-				imageDataSize *= 4 / 8;
-				break;
-
-			case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT1a    " );
-				out += buffer;
-				imageDataSize *= 4 / 8;
-				break;
-
-			case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT3     " );
-				out += buffer;
-				imageDataSize *= 4 / 4;
-				break;
-
-			case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-				Com_sprintf( buffer, sizeof( buffer ),  "DXT5     " );
-				out += buffer;
-				imageDataSize *= 4 / 4;
-				break;
-
-			case GL_COMPRESSED_RED_RGTC1:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC1r   " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_COMPRESSED_SIGNED_RED_RGTC1:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC1Sr  " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_COMPRESSED_RG_RGTC2:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC2rg  " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_COMPRESSED_SIGNED_RG_RGTC2:
-				Com_sprintf( buffer, sizeof( buffer ),  "RGTC2Srg " );
-				out += buffer;
-				// TODO: find imageDataSize
-				break;
-
-			case GL_DEPTH_COMPONENT16:
-				Com_sprintf( buffer, sizeof( buffer ),  "D16      " );
-				out += buffer;
-				imageDataSize *= 2;
-				break;
-
-			case GL_DEPTH_COMPONENT24:
-				Com_sprintf( buffer, sizeof( buffer ),  "D24      " );
-				out += buffer;
-				imageDataSize *= 3;
-				break;
-
-			case GL_DEPTH_COMPONENT32:
-				Com_sprintf( buffer, sizeof( buffer ),  "D32      " );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
-
-			default:
-				Log::Debug( "Undocumented image format %i for image %s", image->internalFormat, image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "%5i    ", image->internalFormat );
-				out += buffer;
-				imageDataSize *= 4;
-				break;
+			format = Str::Format( "0x%04X", image->internalFormat);
+			imageDataSize *= 4;
+		}
+		else
+		{
+			format = imageFormatNameSize.at( image->internalFormat ).first;
+			imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
 		}
 
-		switch ( image->wrapType.s )
+		if ( !wrapTypeName.count( image->wrapType.t ) )
 		{
-			case wrapTypeEnum_t::WT_REPEAT:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.rept  " );
-				out += buffer;
-				break;
+			Log::Debug( "Undocumented wrapType.t %i for image %s",
+				Util::ordinal(image->wrapType.t), image->name );
 
-			case wrapTypeEnum_t::WT_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.clmp  " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_EDGE_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.eclmp " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.zclmp " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "s.azclmp" );
-				out += buffer;
-				break;
-
-			default:
-				Log::Debug( "Undocumented wrapType.s %i for image %s", Util::ordinal(image->wrapType.s), image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "s.%4i  ", Util::ordinal(image->wrapType.s) );
-				out += buffer;
-				break;
+			twrap = Str::Format( "t.%4i", Util::ordinal(image->wrapType.t) );
+		}
+		else
+		{
+			twrap = "t." + wrapTypeName.at( image->wrapType.t );
 		}
 
-		switch ( image->wrapType.t )
+		if ( !wrapTypeName.count( image->wrapType.s ) )
 		{
-			case wrapTypeEnum_t::WT_REPEAT:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.rept  " );
-				out += buffer;
-				break;
+			Log::Debug( "Undocumented wrapType.s %i for image %s",
+				Util::ordinal(image->wrapType.s), image->name );
 
-			case wrapTypeEnum_t::WT_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.clmp  " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_EDGE_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.eclmp " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.zclmp " );
-				out += buffer;
-				break;
-
-			case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-				Com_sprintf( buffer, sizeof( buffer ),  "t.azclmp" );
-				out += buffer;
-				break;
-
-			default:
-				Log::Debug( "Undocumented wrapType.t %i for image %s", Util::ordinal(image->wrapType.t), image->name );
-				Com_sprintf( buffer, sizeof( buffer ),  "t.%4i  ", Util::ordinal(image->wrapType.t));
-				out += buffer;
-				break;
+			swrap = Str::Format( "s.%4i", Util::ordinal(image->wrapType.s) );
 		}
+		else
+		{
+			swrap = "s." + wrapTypeName.at( image->wrapType.s );
+		}
+
+		name = image->name;
+
+		lineStream.clear();
+		lineStream.str("");
+
+		lineStream << std::left;
+		lineStream << std::setw(numLen) << i << separator;
+		lineStream << std::right;
+		lineStream << std::setw(widthLen) << image->uploadWidth << separator;
+		lineStream << std::setw(heightLen) << image->uploadHeight << separator;
+		lineStream << std::setw(layersLen) << image->numLayers << separator;
+		lineStream << std::left;
+		lineStream << std::setw(mmLen) << mm << separator;
+		lineStream << std::setw(typeLen) << type << separator;
+		lineStream << std::setw(formatLen) << format << separator;
+		lineStream << std::setw(twrapLen) << twrap << separator;
+		lineStream << std::setw(swrapLen) << swrap << separator;
+		lineStream << name;
+
+		Log::CommandInteractionMessage( lineStream.str() );
 
 		dataSize += imageDataSize;
-
-		Log::Notice("%s %s", out.c_str(), image->name );
 	}
 
-	Log::Notice(" ---------" );
-	Log::Notice(" %i total texels (not including mipmaps)", texels );
-	Log::Notice(" %d.%02d MB total image memory", dataSize / ( 1024 * 1024 ),
-	           ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	Log::Notice(" %i total images", tr.images.currentElements );
+	std::string summary1 = Str::Format( "%i total texels (not including mipmaps)", texels );
+	std::string summary2 = Str::Format( "%d.%02d MB total image memory (estimated)",
+		dataSize / ( 1024 * 1024 ), ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
+	std::string summary3 = Str::Format( "%i total images", tr.images.size() );
+
+	Log::CommandInteractionMessage( lineSeparator );
+	Log::CommandInteractionMessage( summary1 );
+	Log::CommandInteractionMessage( summary2 );
+	Log::CommandInteractionMessage( summary3 );
+	Log::CommandInteractionMessage( lineSeparator );
 }
 
 //=======================================================================
@@ -1101,17 +1033,6 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			image->uploadHeight = scaledHeight;
 			image->internalFormat = internalFormat;
 
-			const int size = scaledWidth * scaledHeight;
-			if ( size < 128 * 128 ) {
-				image->texture->basePriority = TEXTURE_PRIORITY_LOW;
-			} else if ( size < 512 * 512 ) {
-				image->texture->basePriority = TEXTURE_PRIORITY_MEDIUM;
-			} else if ( size < 1024 * 1024 ) {
-				image->texture->basePriority = TEXTURE_PRIORITY_HIGH;
-			} else {
-				image->texture->basePriority = TEXTURE_PRIORITY_PERSISTENT;
-			}
-
 			switch ( image->type )
 			{
 			case GL_TEXTURE_3D:
@@ -1154,17 +1075,6 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		image->uploadWidth = scaledWidth;
 		image->uploadHeight = scaledHeight;
 		image->internalFormat = internalFormat;
-
-		const int size = scaledWidth * scaledHeight;
-		if ( size < 128 * 128 ) {
-			image->texture->basePriority = TEXTURE_PRIORITY_LOW;
-		} else if ( size < 512 * 512 ) {
-			image->texture->basePriority = TEXTURE_PRIORITY_MEDIUM;
-		} else if ( size < 1024 * 1024 ) {
-			image->texture->basePriority = TEXTURE_PRIORITY_HIGH;
-		} else {
-			image->texture->basePriority = TEXTURE_PRIORITY_PERSISTENT;
-		}
 
 		mipWidth = scaledWidth;
 		mipHeight = scaledHeight;
@@ -1399,7 +1309,7 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 	glGenTextures( 1, &image->texnum );
 	image->texture->textureHandle = image->texnum;
 
-	Com_AddToGrowList( &tr.images, image );
+	tr.images.push_back( image );
 
 	Q_strncpyz( image->name, name, sizeof( image->name ) );
 
@@ -1409,6 +1319,9 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 		image->next = r_imageHashTable[ hash ];
 		r_imageHashTable[ hash ] = image;
 	}
+
+	// Default image number of layers.
+	image->numLayers = 1;
 
 	return image;
 }
@@ -1494,17 +1407,6 @@ image_t *R_CreateGlyph( const char *name, const byte *pic, int width, int height
 	image->uploadHeight = height;
 	image->internalFormat = GL_RGBA;
 
-	const int size = width * height;
-	if ( size < 128 * 128 ) {
-		image->texture->basePriority = TEXTURE_PRIORITY_LOW;
-	} else if ( size < 512 * 512 ) {
-		image->texture->basePriority = TEXTURE_PRIORITY_MEDIUM;
-	} else if ( size < 1024 * 1024 ) {
-		image->texture->basePriority = TEXTURE_PRIORITY_HIGH;
-	} else {
-		image->texture->basePriority = TEXTURE_PRIORITY_PERSISTENT;
-	}
-
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic );
 
 	GL_CheckErrors();
@@ -1543,6 +1445,7 @@ image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, i
 
 	image->width = width;
 	image->height = height;
+	image->numLayers = 6;
 
 	image->bits = imageParams.bits;
 	image->filterType = imageParams.filterType;
@@ -1562,7 +1465,7 @@ image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, i
 R_Create3DImage
 ================
 */
-image_t *R_Create3DImage( const char *name, const byte *pic, int width, int height, int depth, const imageParams_t &imageParams )
+image_t *R_Create3DImage( const char *name, const byte *pic, int width, int height, int numLayers, const imageParams_t &imageParams )
 {
 	image_t *image;
 	const byte **pics;
@@ -1580,10 +1483,11 @@ image_t *R_Create3DImage( const char *name, const byte *pic, int width, int heig
 
 	image->width = width;
 	image->height = height;
+	image->numLayers = numLayers;
 
 	if( pic ) {
-		pics = (const byte**) ri.Hunk_AllocateTempMemory( depth * sizeof(const byte *) );
-		for( i = 0; i < depth; i++ ) {
+		pics = (const byte**) ri.Hunk_AllocateTempMemory( numLayers * sizeof(const byte *) );
+		for( i = 0; i < numLayers; i++ ) {
 			pics[i] = pic + i * width * height * sizeof(u8vec4_t);
 		}
 	} else {
@@ -1594,7 +1498,7 @@ image_t *R_Create3DImage( const char *name, const byte *pic, int width, int heig
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( pics, depth, 1, image, imageParams );
+	R_UploadImage( pics, numLayers, 1, image, imageParams );
 
 	if( pics ) {
 		ri.Hunk_FreeTempMemory( pics );
@@ -1695,13 +1599,11 @@ static void R_LoadImage( const char **buffer, byte **pic, int *width, int *heigh
 			 int *numLayers, int *numMips,
 			 int *bits )
 {
-	char *token;
-
 	*pic = nullptr;
 	*width = 0;
 	*height = 0;
 
-	token = COM_ParseExt2( buffer, false );
+	const char *token = COM_ParseExt2( buffer, false );
 
 	if ( !token[ 0 ] )
 	{
@@ -1837,19 +1739,19 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 	{
 		if ( mallocPtr )
 		{
-			ri.Free( mallocPtr );
+			Z_Free( mallocPtr );
 		}
 		return nullptr;
 	}
 
-	if ( imageParams.bits & IF_LIGHTMAP )
+	if ( imageParams.bits & IF_LIGHTMAP && tr.forceLegacyOverBrightClamping )
 	{
-		R_ProcessLightmap( pic[ 0 ], 4, width, height, imageParams.bits, pic[ 0 ] );
+		R_ProcessLightmap( pic[ 0 ], width, height, imageParams.bits );
 	}
 
 	image = R_CreateImage( ( char * ) buffer, (const byte **)pic, width, height, numMips, imageParams );
 
-	ri.Free( mallocPtr );
+	Z_Free( mallocPtr );
 	return image;
 }
 
@@ -1969,9 +1871,9 @@ byte *R_Resize( byte *in, int width, int height, int newWidth, int newHeight )
 
 	byte *out;
 
-	out = (byte*) ri.Z_Malloc( newWidth * newHeight * 4 );
+	out = (byte*) Z_Malloc( newWidth * newHeight * 4 );
 	ResampleTexture( (unsigned int*) in, width, height, (unsigned int*) out, newWidth, newHeight, false );
-	ri.Free( in );
+	Z_Free( in );
 
 	return out;
 }
@@ -1990,7 +1892,7 @@ static void R_FreeCubePics( byte **pic, int count )
 	{
 		if ( pic[ count ] != nullptr )
 		{
-			ri.Free( pic[ count ] );
+			Z_Free( pic[ count ] );
 			pic[ count ] = nullptr;
 		}
 	}
@@ -2511,13 +2413,22 @@ static void R_CreateCurrentRenderImage()
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
+
+	if ( glConfig2.textureFloatAvailable && r_highPrecisionRendering.Get() )
+	{
+		imageParams.bits |= IF_RGBA16;
+	}
+
 	imageParams.filterType = filterType_t::FT_NEAREST;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.currentRenderImage[0] = R_CreateImage( "_currentRender[0]", nullptr, width, height, 1, imageParams );
 	tr.currentRenderImage[1] = R_CreateImage( "_currentRender[1]", nullptr, width, height, 1, imageParams );
 
-	imageParams.bits |= IF_PACKED_DEPTH24_STENCIL8;
+	imageParams = {};
+	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8;
+	imageParams.filterType = filterType_t::FT_NEAREST;
+	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
 }
@@ -3000,9 +2911,9 @@ void R_InitImages()
 	Log::Debug("------- R_InitImages -------" );
 
 	memset( r_imageHashTable, 0, sizeof( r_imageHashTable ) );
-	Com_InitGrowList( &tr.images, 4096 );
-	Com_InitGrowList( &tr.lightmaps, 128 );
-	Com_InitGrowList( &tr.deluxemaps, 128 );
+	tr.images.reserve( 4096 );
+	tr.lightmaps.reserve( 128 );
+	tr.deluxemaps.reserve( 128 );
 
 	/* These are the values expected by the rest of the renderer
 	(esp. tr_bsp), used for "gamma correction of the map".
@@ -3063,7 +2974,8 @@ void R_InitImages()
 	Because tr.overbrightBits is always 0, tr.identityLight is
 	always 1.0f. We can entirely remove it. */
 
-	tr.mapOverBrightBits =  r_mapOverBrightBits.Get();
+	tr.mapOverBrightBits = r_mapOverBrightBits.Get();
+	tr.forceLegacyOverBrightClamping = r_forceLegacyOverBrightClamping.Get();
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();
@@ -3085,18 +2997,14 @@ R_ShutdownImages
 */
 void R_ShutdownImages()
 {
-	int     i;
-	image_t *image;
-
 	Log::Debug("------- R_ShutdownImages -------" );
 
-	for ( i = 0; i < tr.images.currentElements; i++ )
+	for ( image_t *image : tr.images )
 	{
-		image = (image_t*) Com_GrowListElement( &tr.images, i );
-
 		if ( image->texture->IsResident() ) {
 			image->texture->MakeNonResident();
 		}
+
 		glDeleteTextures( 1, &image->texnum );
 		delete image->texture;
 	}
@@ -3104,10 +3012,10 @@ void R_ShutdownImages()
 
 	memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
 
-	Com_DestroyGrowList( &tr.images );
-	Com_DestroyGrowList( &tr.lightmaps );
-	Com_DestroyGrowList( &tr.deluxemaps );
-	Com_DestroyGrowList( &tr.cubeProbes );
+	tr.images.clear();
+	tr.lightmaps.clear();
+	tr.deluxemaps.clear();
+	tr.cubeProbes.clear();
 
 	FreeVertexHashTable( tr.cubeHashTable );
 }
@@ -3125,7 +3033,7 @@ void RE_GetTextureSize( int textureID, int *width, int *height )
 		return;
 	}
 
-	baseImage = shader->stages[ 0 ]->bundle->image[ 0 ];
+	baseImage = shader->stages[ 0 ]->bundle[ 0 ].image[ 0 ];
 	if ( !baseImage )
 	{
 		Log::Debug( "%sRE_GetTextureSize: shader %s is missing base image",
@@ -3149,6 +3057,13 @@ int numTextures = 0;
 
 qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 {
+	size_t size = width * height;
+
+	if ( !size ) {
+		Log::Warn("RE_GenerateTexture: image size %dx%d is 0", width, height );
+		return 0;
+	}
+
 	const char *name = va( "rocket%d", numTextures++ );
 	R_SyncRenderThread();
 

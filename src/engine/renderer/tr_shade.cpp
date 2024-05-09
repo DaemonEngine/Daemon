@@ -325,7 +325,6 @@ void Tess_DrawElements()
 	{
 		if ( tess.multiDrawPrimitives )
 		{
-			glMultiDrawElements( GL_TRIANGLES, tess.multiDrawCounts, GL_INDEX_TYPE, ( const GLvoid ** ) tess.multiDrawIndexes, tess.multiDrawPrimitives );
 
 			backEnd.pc.c_multiDrawElements++;
 			backEnd.pc.c_multiDrawPrimitives += tess.multiDrawPrimitives;
@@ -346,7 +345,6 @@ void Tess_DrawElements()
 				base = tess.indexBase * sizeof( glIndex_t );
 			}
 
-			glDrawRangeElements( GL_TRIANGLES, 0, tess.numVertexes, tess.numIndexes, GL_INDEX_TYPE, BUFFER_OFFSET( base ) );
 
 			backEnd.pc.c_drawElements++;
 
@@ -359,7 +357,6 @@ void Tess_DrawElements()
 	}
 	else
 	{
-		glDrawElements( GL_TRIANGLES, tess.numIndexes, GL_INDEX_TYPE, tess.indexes );
 
 		backEnd.pc.c_drawElements++;
 
@@ -481,7 +478,9 @@ static void DrawTris()
 	gl_genericShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
-	GL_BindToTMU( gl_genericShader->GetUniformLocation_ColorMap(), tr.whiteImage );
+	gl_genericShader->SetUniform_ColorMapBindless(
+		GL_BindToTMU( 0, tr.whiteImage )
+	);
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 	gl_genericShader->SetRequiredVertexPointers();
 
@@ -506,7 +505,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
                  void ( *stageIteratorFunc2 )(),
                  shader_t *surfaceShader, shader_t *lightShader,
                  bool skipTangentSpaces,
-                 bool skipVBO,
                  int lightmapNum,
                  int fogNum,
                  bool bspSurface )
@@ -555,7 +553,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 
 	tess.skipTangentSpaces = skipTangentSpaces;
-	tess.skipVBO = skipVBO;
 	tess.lightmapNum = lightmapNum;
 	tess.fogNum = fogNum;
 	tess.bspSurface = bspSurface;
@@ -568,50 +565,68 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 }
 
-void SetNormalScale( shaderStage_t *pStage, vec3_t normalScale )
+void SetNormalScale( const shaderStage_t *pStage, vec3_t normalScale )
 {
 	float normalIntensity = RB_EvalExpression( &pStage->normalIntensityExp, 1.0 );
 
-	for ( int i = 0; i < 3; i++ )
-	{
-		normalScale[ i ] = pStage->normalScale[ i ];
+	// Normal intensity is only applied on X and Y.
+	normalScale[ 0 ] = pStage->normalScale[ 0 ] * normalIntensity;
+	normalScale[ 1 ] = pStage->normalScale[ 1 ] * normalIntensity;
 
-		// Normal intensity is only applied on X and Y.
-		// This behaviour is inherited.
-		if ( i < 2 )
-		{
-			normalScale[ i ] *= normalIntensity;
-		}
+	/* The GLSL code disables normal map scaling when normal Z scale
+	is equal to zero. It means normal map scaling is disabled when
+	r_normalScale is set to zero. This is cool enough to be kept as
+	a feature. Normal Z component equal to zero would be wrong anyway.
+	r_normalScale is only applied on Z. */
+	normalScale[ 2 ] = pStage->normalScale[ 2 ] * r_normalScale->value;
+}
+
+void SetRgbaGen( const shaderStage_t *pStage, colorGen_t *rgbGen, alphaGen_t *alphaGen )
+{
+	switch ( pStage->rgbGen )
+	{
+		case colorGen_t::CGEN_VERTEX:
+		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
+			*rgbGen = pStage->rgbGen;
+			break;
+
+		default:
+			*rgbGen = colorGen_t::CGEN_CONST;
+			break;
 	}
 
-	/* Note: the GLSL code disables normal map scaling when normal Z scale is
-	equal to zero.
+	switch ( pStage->alphaGen )
+	{
+		case alphaGen_t::AGEN_VERTEX:
+		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
+			*alphaGen = pStage->alphaGen;
+			break;
 
-	It means normal map scaling is disabled when r_normalScale is set to zero.
-	This is cool enough to be kept as a feature.
-
-	Normal Z component equal to zero would be wrong anyway.
-
-	r_normalScale is only applied on Z.
-	This behaviour is inherited.
-	*/
-	normalScale[ 2 ] *= r_normalScale->value;
+		default:
+			*alphaGen = alphaGen_t::AGEN_CONST;
+			break;
+	}
 }
 
 // *INDENT-ON*
 
+void Render_NONE( shaderStage_t * )
+{
+	ASSERT_UNREACHABLE();
+}
+
+void Render_NOP( shaderStage_t * )
+{
+}
+
 static void Render_generic2D( shaderStage_t *pStage )
 {
-	colorGen_t    rgbGen;
-	alphaGen_t    alphaGen;
-	bool      needDepthMap = false;
-	bool      hasDepthFade = false;
 	GLimp_LogComment( "--- Render_generic2D ---\n" );
 
 	GL_State( pStage->stateBits );
 
-	hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
-	needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
+	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
+	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
 	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
@@ -630,33 +645,10 @@ static void Render_generic2D( shaderStage_t *pStage )
 		gl_generic2DShader->SetUniform_AlphaTest(pStage->stateBits);
 	}
 
-	// u_ColorGen
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			rgbGen = pStage->rgbGen;
-			break;
-
-		default:
-			rgbGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	// u_AlphaGen
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
 	// u_ColorModulate
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
 	gl_generic2DShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
@@ -669,7 +661,8 @@ static void Render_generic2D( shaderStage_t *pStage )
 	gl_generic2DShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
-	BindAnimatedImage( gl_generic2DShader->GetUniformLocation_ColorMap(), &pStage->bundle[TB_COLORMAP]);
+	gl_generic2DShader->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
+	GL_CheckErrors();
 	gl_generic2DShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
 	glEnable( GL_DEPTH_CLAMP );
@@ -681,7 +674,9 @@ static void Render_generic2D( shaderStage_t *pStage )
 
 	if ( needDepthMap )
 	{
-		GL_BindToTMU( gl_generic2DShader->GetUniformLocation_DepthMap(), tr.currentDepthImage );
+		gl_generic2DShader->SetUniform_DepthMapBindless(
+			GL_BindToTMU( 1, tr.currentDepthImage ) 
+		);
 	}
 
 	gl_generic2DShader->SetRequiredVertexPointers();
@@ -695,18 +690,14 @@ static void Render_generic2D( shaderStage_t *pStage )
 
 static image_t* GetLightMap();
 
-static void Render_generic( shaderStage_t *pStage )
+void Render_generic3D( shaderStage_t *pStage )
 {
-	colorGen_t    rgbGen;
-	alphaGen_t    alphaGen;
-	bool      needDepthMap = false;
-	bool      hasDepthFade = false;
-	GLimp_LogComment( "--- Render_generic ---\n" );
+	GLimp_LogComment( "--- Render_generic3D ---\n" );
 
 	GL_State( pStage->stateBits );
 
-	hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
-	needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
+	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
+	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
 	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
@@ -737,33 +728,17 @@ static void Render_generic( shaderStage_t *pStage )
 		gl_genericShader->SetUniform_AlphaTest(pStage->stateBits);
 	}
 
-	// u_ColorGen
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			rgbGen = pStage->rgbGen;
-			break;
-
-		default:
-			rgbGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	// u_AlphaGen
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
+	// u_InverseLightFactor
+	// We should cancel overbrightBits if there is no light,
+	// and it's not using blendFunc dst_color.
+	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
+	float inverseLightFactor = ( pStage->shaderHasNoLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : 1.0f;
+	gl_genericShader->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
 	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
@@ -791,11 +766,13 @@ static void Render_generic( shaderStage_t *pStage )
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP )
 	{
 		// GL_Bind( GetLightMap() );
-		GL_BindToTMU( gl_genericShader->GetUniformLocation_ColorMap(), GetLightMap() );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, GetLightMap() )
+		);
 	}
 	else
 	{
-		BindAnimatedImage( gl_genericShader->GetUniformLocation_ColorMap(), &pStage->bundle[TB_COLORMAP] );
+		gl_genericShader->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	}
 
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
@@ -807,7 +784,9 @@ static void Render_generic( shaderStage_t *pStage )
 
 	if ( needDepthMap )
 	{
-		GL_BindToTMU( gl_genericShader->GetUniformLocation_DepthMap(), tr.currentDepthImage );
+		gl_genericShader->SetUniform_DepthMapBindless(
+			GL_BindToTMU( 1, tr.currentDepthImage )
+		);
 	}
 
 	gl_genericShader->SetRequiredVertexPointers();
@@ -817,6 +796,17 @@ static void Render_generic( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
+void Render_generic( shaderStage_t *pStage )
+{
+	if ( backEnd.projection2D )
+	{
+		Render_generic2D( pStage );
+		return;
+	}
+
+	Render_generic3D( pStage );
+}
+
 /*
 =================
 GetLightMap
@@ -824,13 +814,9 @@ GetLightMap
 */
 static image_t* GetLightMap()
 {
-	if ( !tr.lightmaps.currentElements )
+	if ( static_cast<size_t>( tess.lightmapNum ) < tr.lightmaps.size() )
 	{
-		return tr.whiteImage;
-	}
-	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.lightmaps.currentElements )
-	{
-		return ( image_t * ) Com_GrowListElement( &tr.lightmaps, tess.lightmapNum );
+		return tr.lightmaps[ tess.lightmapNum ];
 	}
 	else
 	{
@@ -845,14 +831,9 @@ GetDeluxeMap
 */
 static image_t* GetDeluxeMap()
 {
-
-	if ( !tr.deluxemaps.currentElements )
+	if ( static_cast<size_t>( tess.lightmapNum ) < tr.deluxemaps.size() )
 	{
-		return tr.blackImage;
-	}
-	else if ( tess.lightmapNum >= 0 && tess.lightmapNum < tr.deluxemaps.currentElements )
-	{
-		return ( image_t * ) Com_GrowListElement( &tr.deluxemaps, tess.lightmapNum );
+		return tr.deluxemaps[ tess.lightmapNum ];
 	}
 	else
 	{
@@ -860,36 +841,10 @@ static image_t* GetDeluxeMap()
 	}
 }
 
-static void Render_lightMapping( shaderStage_t *pStage )
+void Render_lightMapping( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
 
-	// u_ColorModulate
-	colorGen_t colorGen;
-	alphaGen_t alphaGen;
-
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = pStage->rgbGen;
-			break;
-
-		default:
-			colorGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
 	}
 
 	lightMode_t lightMode = lightMode_t::FULLBRIGHT;
@@ -924,7 +879,7 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 		if ( lightMode == lightMode_t::MAP )
 		{
-			bool hasLightMap = ( tess.lightmapNum >= 0 && tess.lightmapNum <= tr.lightmaps.currentElements );
+			bool hasLightMap = static_cast<size_t>( tess.lightmapNum ) < tr.lightmaps.size();
 
 			if ( !hasLightMap )
 			{
@@ -943,13 +898,18 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	image_t *lightmap = tr.whiteImage;
 	image_t *deluxemap = tr.whiteImage;
 
+	// u_ColorModulate
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+
 	uint32_t stateBits = pStage->stateBits;
 
 	switch ( lightMode )
 	{
 		case lightMode_t::VERTEX:
 			// Do not rewrite pStage->rgbGen.
-			colorGen = colorGen_t::CGEN_VERTEX;
+			rgbGen = colorGen_t::CGEN_VERTEX;
 			tess.svars.color.SetRed( 0.0f );
 			tess.svars.color.SetGreen( 0.0f );
 			tess.svars.color.SetBlue( 0.0f );
@@ -1015,13 +975,13 @@ static void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetGridDeluxeMapping( enableGridDeluxeMapping );
 
-	gl_lightMappingShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_lightMappingShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_lightMappingShader->SetReliefMapping( pStage->enableReliefMapping );
 
 	gl_lightMappingShader->SetReflectiveSpecular( pStage->enableNormalMapping && tr.cubeHashTable != nullptr );
 
-	gl_lightMappingShader->SetPhysicalShading( pStage->isMaterialPhysical );
+	gl_lightMappingShader->SetPhysicalShading( pStage->enablePhysicalMapping );
 
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
@@ -1067,22 +1027,34 @@ static void Render_lightMapping( shaderStage_t *pStage )
 				gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 			} else
 			{
-				GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_LightsTexture(), tr.dlightImage );
+				gl_lightMappingShader->SetUniform_LightsTextureBindless(
+					GL_BindToTMU( BIND_LIGHTS, tr.dlightImage ) 
+				);
 			}
 		}
 
 		// bind u_LightTiles
 		if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
 		{
-			GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_LightTiles(), tr.lighttileRenderImage );
+			gl_lightMappingShader->SetUniform_LightTilesIntBindless(
+				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
+			);
 		}
 	}
 
 	// u_DeformGen
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
+	// u_InverseLightFactor
+	/* HACK: use sign to know if there is a light or not, and
+	then if it will receive overbright multiplication or not. */
+	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
+	bool noLight = pStage->shaderHasNoLight || lightMode == lightMode_t::FULLBRIGHT;
+	float inverseLightFactor = ( noLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : - tr.mapInverseLightFactor;
+	gl_lightMappingShader->SetUniform_InverseLightFactor( inverseLightFactor );
+
 	// u_ColorModulate
-	gl_lightMappingShader->SetUniform_ColorModulate( colorGen, alphaGen );
+	gl_lightMappingShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
 	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
@@ -1093,39 +1065,37 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_lightMappingShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_lightMappingShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
-			GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_HeightMap(), pStage->bundle[TB_HEIGHTMAP].image[0] );
+			gl_lightMappingShader->SetUniform_HeightMapBindless(
+				GL_BindToTMU( BIND_HEIGHTMAP, pStage->bundle[TB_HEIGHTMAP].image[0] )
+			);
 		}
 	}
 
 	// bind u_DiffuseMap
-	if ( pStage->type == stageType_t::ST_LIGHTMAP )
-	{
-		// standalone lightmap stage: paint shadows over a white texture
-		GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_DiffuseMap(), tr.whiteImage );
-	}
-	else
-	{
-		GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_DiffuseMap(), pStage->bundle[TB_DIFFUSEMAP].image[0] );
+	gl_lightMappingShader->SetUniform_DiffuseMapBindless(
+		GL_BindToTMU( BIND_DIFFUSEMAP, pStage->bundle[TB_DIFFUSEMAP].image[0] )
+	);
 
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
 		gl_lightMappingShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
 	}
 
 	// bind u_NormalMap
-	if ( !!r_normalMapping->integer || pStage->isHeightMapInNormalMap )
+	if ( !!r_normalMapping->integer || pStage->hasHeightMapInNormalMap )
 	{
-		GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_NormalMap(), pStage->bundle[TB_NORMALMAP].image[0] );
+		gl_lightMappingShader->SetUniform_NormalMapBindless(
+			GL_BindToTMU( BIND_NORMALMAP, pStage->bundle[TB_NORMALMAP].image[0] )
+		);
 	}
 
 	// bind u_NormalScale
@@ -1138,12 +1108,14 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_MaterialMap
-	if ( !!r_specularMapping->integer || pStage->enablePhysicalMapping )
+	if ( pStage->enableSpecularMapping || pStage->enablePhysicalMapping )
 	{
-		GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_MaterialMap(), pStage->bundle[TB_MATERIALMAP].image[0] );
+		gl_lightMappingShader->SetUniform_MaterialMapBindless(
+			GL_BindToTMU( BIND_MATERIALMAP, pStage->bundle[TB_MATERIALMAP].image[0] )
+		);
 	}
 
-	if ( !pStage->enablePhysicalMapping && r_specularMapping->integer )
+	if ( pStage->enableSpecularMapping )
 	{
 		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
 		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
@@ -1236,10 +1208,14 @@ static void Render_lightMapping( shaderStage_t *pStage )
 		}
 
 		// bind u_EnvironmentMap0
-		GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_EnvironmentMap0(), cubeMap0 );
+		gl_lightMappingShader->SetUniform_EnvironmentMap0Bindless(
+			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeMap0 )
+		);
 
 		// bind u_EnvironmentMap1
-		GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_EnvironmentMap1(), cubeMap1 );
+		gl_lightMappingShader->SetUniform_EnvironmentMap1Bindless(
+			GL_BindToTMU( BIND_ENVIRONMENTMAP1, cubeMap1 )
+		);
 
 		// bind u_EnvironmentInterpolation
 		gl_lightMappingShader->SetUniform_EnvironmentInterpolation( interpolation );
@@ -1257,89 +1233,32 @@ static void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_LightMap
-	GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_LightMap(), lightmap );
+	if ( !enableGridLighting ) {
+		gl_lightMappingShader->SetUniform_LightMapBindless(
+			GL_BindToTMU( BIND_LIGHTMAP, lightmap )
+		);
+	} else {
+		gl_lightMappingShader->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, lightmap ) );
+	}
 
 	// bind u_DeluxeMap
-	GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_DeluxeMap(), deluxemap );
+	if ( !enableGridDeluxeMapping ) {
+		gl_lightMappingShader->SetUniform_DeluxeMapBindless(
+			GL_BindToTMU( BIND_DELUXEMAP, deluxemap )
+		);
+	} else {
+		gl_lightMappingShader->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, deluxemap ) );
+	}
 
 	// bind u_GlowMap
 	if ( !!r_glowMapping->integer )
 	{
-		GL_BindToTMU( gl_lightMappingShader->GetUniformLocation_GlowMap(), pStage->bundle[TB_GLOWMAP].image[0] );
+		gl_lightMappingShader->SetUniform_GlowMapBindless(
+			GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[TB_GLOWMAP].image[0] )
+		);
 	}
 
 	gl_lightMappingShader->SetRequiredVertexPointers();
-
-	Tess_DrawElements();
-
-	GL_CheckErrors();
-}
-
-static void Render_depthFill( shaderStage_t *pStage )
-{
-	GLimp_LogComment("--- Render_depthFill ---\n");
-
-	uint32_t stateBits = pStage->stateBits;
-	stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
-	stateBits |= GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS;
-
-	GL_State(stateBits);
-
-	uint32_t alphaBits = stateBits & GLS_ATEST_BITS;
-
-	gl_genericShader->SetVertexSkinning(glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning);
-	gl_genericShader->SetVertexAnimation(glState.vertexAttribsInterpolation > 0);
-
-	gl_genericShader->SetTCGenEnvironment(pStage->tcGen_Environment);
-	gl_genericShader->SetTCGenLightmap(pStage->tcGen_Lightmap);
-	gl_genericShader->SetAlphaTesting(alphaBits != 0);
-	gl_genericShader->SetDepthFade( false );
-	gl_genericShader->SetVertexSprite( false );
-	gl_genericShader->BindProgram(pStage->deformIndex);
-
-	// set uniforms
-	if (pStage->tcGen_Environment)
-	{
-		// calculate the environment texcoords in object space
-		gl_genericShader->SetUniform_ViewOrigin(backEnd.orientation.viewOrigin);
-	}
-
-	// u_ColorModulate
-	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-
-	// u_Color
-	Color::Color ambientColor;
-	ambientColor.SetAlpha( 1 );
-
-	gl_genericShader->SetUniform_Color( ambientColor );
-
-	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
-	{
-		gl_genericShader->SetUniform_Bones( tess.numBones, tess.bones );
-	}
-
-	// u_DeformGen
-	gl_genericShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
-	// bind u_ColorMap
-	GL_BindToTMU( gl_genericShader->GetUniformLocation_ColorMap(), pStage->bundle[TB_DIFFUSEMAP].image[0] );
-
-	if ( alphaBits != 0 )
-	{
-		gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
-
-		// u_AlphaTest
-		gl_genericShader->SetUniform_AlphaTest( pStage->stateBits );
-	}
-	else
-	{
-		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
-	}
-
-	gl_genericShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 
@@ -1401,12 +1320,16 @@ static void Render_shadowFill( shaderStage_t *pStage )
 	// bind u_ColorMap
 	if ( ( pStage->stateBits & GLS_ATEST_BITS ) != 0 )
 	{
-		GL_BindToTMU( gl_shadowFillShader->GetUniformLocation_ColorMap(), pStage->bundle[TB_COLORMAP].image[0] );
+		gl_shadowFillShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, pStage->bundle[TB_COLORMAP].image[0] )
+		);
 		gl_shadowFillShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 	}
 	else
 	{
-		GL_BindToTMU( gl_shadowFillShader->GetUniformLocation_ColorMap(), tr.whiteImage );
+		gl_shadowFillShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 	}
 
 	Tess_DrawElements();
@@ -1421,8 +1344,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	vec3_t     viewOrigin;
 	vec3_t     lightOrigin;
 	float      shadowTexelSize;
-	colorGen_t colorGen;
-	alphaGen_t alphaGen;
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_omni ---\n" );
 
@@ -1432,7 +1353,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_omniXYZ->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -1444,31 +1365,10 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = pStage->rgbGen;
-			break;
-
-		default:
-			colorGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
-	gl_forwardLightingShader_omniXYZ->SetUniform_ColorModulate( colorGen, alphaGen );
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	gl_forwardLightingShader_omniXYZ->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_omniXYZ->SetUniform_Color( tess.svars.color );
@@ -1478,19 +1378,18 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
-			GL_BindToTMU( gl_forwardLightingShader_omniXYZ->GetUniformLocation_HeightMap(), pStage->bundle[TB_HEIGHTMAP].image[0] );
+			gl_forwardLightingShader_omniXYZ->SetUniform_HeightMapBindless(
+				GL_BindToTMU( 15, pStage->bundle[TB_HEIGHTMAP].image[0] ) 
+			);
 		}
 	}
 
@@ -1546,11 +1445,19 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( gl_forwardLightingShader_omniXYZ->GetUniformLocation_DiffuseMap(), pStage->bundle[TB_DIFFUSEMAP].image[0] );
-	gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	gl_forwardLightingShader_omniXYZ->SetUniform_DiffuseMapBindless(
+		GL_BindToTMU( 0, pStage->bundle[TB_DIFFUSEMAP].image[0] )
+	);
+
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
+		gl_forwardLightingShader_omniXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
-	GL_BindToTMU( gl_forwardLightingShader_omniXYZ->GetUniformLocation_NormalMap(), pStage->bundle[TB_NORMALMAP].image[0] );
+	gl_forwardLightingShader_omniXYZ->SetUniform_NormalMapBindless(
+		GL_BindToTMU( 1, pStage->bundle[TB_NORMALMAP].image[0] )
+	);
 
 	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
@@ -1562,7 +1469,9 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	}
 
 	// bind u_MaterialMap
-	GL_BindToTMU( gl_forwardLightingShader_omniXYZ->GetUniformLocation_MaterialMap(), pStage->bundle[TB_MATERIALMAP].image[0] );
+	gl_forwardLightingShader_omniXYZ->SetUniform_MaterialMapBindless(
+		GL_BindToTMU( 2, pStage->bundle[TB_MATERIALMAP].image[0] )
+	);
 
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
@@ -1574,20 +1483,26 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	}
 
 	// bind u_AttenuationMapXY
-	BindAnimatedImage( gl_forwardLightingShader_omniXYZ->GetUniformLocation_AttenuationMapXY(), &attenuationXYStage->bundle[TB_COLORMAP]);
+	gl_forwardLightingShader_omniXYZ->SetUniform_AttenuationMapXYBindless(
+		BindAnimatedImage( 3, &attenuationXYStage->bundle[TB_COLORMAP]) );
 
 	// bind u_AttenuationMapZ
-	BindAnimatedImage( gl_forwardLightingShader_omniXYZ->GetUniformLocation_AttenuationMapZ(), &attenuationZStage->bundle[TB_COLORMAP]);
+	gl_forwardLightingShader_omniXYZ->SetUniform_AttenuationMapZBindless(
+		BindAnimatedImage( 4, &attenuationZStage->bundle[TB_COLORMAP] ) );
 
 	// bind u_ShadowMap
 	if ( shadowCompare )
 	{
-		GL_BindToTMU( gl_forwardLightingShader_omniXYZ->GetUniformLocation_ShadowMap(), tr.shadowCubeFBOImage[light->shadowLOD] );
-		GL_BindToTMU( gl_forwardLightingShader_omniXYZ->GetUniformLocation_ShadowClipMap(), tr.shadowClipCubeFBOImage[light->shadowLOD] );
+		gl_forwardLightingShader_omniXYZ->SetUniform_ShadowMapBindless(
+			GL_BindToTMU( 5, tr.shadowCubeFBOImage[light->shadowLOD] ) );
+		gl_forwardLightingShader_omniXYZ->SetUniform_ShadowClipMapBindless(
+			GL_BindToTMU( 7, tr.shadowClipCubeFBOImage[light->shadowLOD] ) );
 	}
 
 	// bind u_RandomMap
-	GL_BindToTMU( gl_forwardLightingShader_omniXYZ->GetUniformLocation_RandomMap(), tr.randomNormalsImage );
+	gl_forwardLightingShader_omniXYZ->SetUniform_RandomMapBindless(
+		GL_BindToTMU( 6, tr.randomNormalsImage )
+	);
 
 	gl_forwardLightingShader_omniXYZ->SetRequiredVertexPointers();
 
@@ -1603,8 +1518,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	vec3_t     viewOrigin;
 	vec3_t     lightOrigin;
 	float      shadowTexelSize;
-	colorGen_t colorGen;
-	alphaGen_t alphaGen;
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_proj ---\n" );
 
@@ -1614,7 +1527,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_projXYZ->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -1626,31 +1539,10 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = pStage->rgbGen;
-			break;
-
-		default:
-			colorGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
-	gl_forwardLightingShader_projXYZ->SetUniform_ColorModulate( colorGen, alphaGen );
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	gl_forwardLightingShader_projXYZ->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_projXYZ->SetUniform_Color( tess.svars.color );
@@ -1660,19 +1552,18 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_projXYZ->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_projXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
-			GL_BindToTMU( gl_forwardLightingShader_projXYZ->GetUniformLocation_HeightMap(), pStage->bundle[TB_HEIGHTMAP].image[0] );
+			gl_forwardLightingShader_projXYZ->SetUniform_HeightMapBindless(
+				GL_BindToTMU( 15, pStage->bundle[TB_HEIGHTMAP].image[0] )
+			);
 		}
 	}
 
@@ -1729,11 +1620,19 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( gl_forwardLightingShader_projXYZ->GetUniformLocation_DiffuseMap(), pStage->bundle[TB_DIFFUSEMAP].image[0] );
-	gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	gl_forwardLightingShader_projXYZ->SetUniform_DiffuseMapBindless(
+		GL_BindToTMU( 0, pStage->bundle[TB_DIFFUSEMAP].image[0] )
+	);
+
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
+		gl_forwardLightingShader_projXYZ->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
-	GL_BindToTMU( gl_forwardLightingShader_projXYZ->GetUniformLocation_NormalMap(), pStage->bundle[TB_NORMALMAP].image[0] );
+	gl_forwardLightingShader_projXYZ->SetUniform_NormalMapBindless(
+		GL_BindToTMU( 1, pStage->bundle[TB_NORMALMAP].image[0] )
+	);
 
 	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
@@ -1745,7 +1644,9 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	}
 
 	// bind u_MaterialMap
-	GL_BindToTMU( gl_forwardLightingShader_projXYZ->GetUniformLocation_MaterialMap(), pStage->bundle[TB_MATERIALMAP].image[0] );
+	gl_forwardLightingShader_projXYZ->SetUniform_MaterialMapBindless(
+		GL_BindToTMU( 2, pStage->bundle[TB_MATERIALMAP].image[0] )
+	);
 
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
@@ -1757,20 +1658,28 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	}
 
 	// bind u_AttenuationMapXY
-	BindAnimatedImage( gl_forwardLightingShader_projXYZ->GetUniformLocation_AttenuationMapXY(), &attenuationXYStage->bundle[TB_COLORMAP]);
+	gl_forwardLightingShader_projXYZ->SetUniform_AttenuationMapXYBindless(
+		BindAnimatedImage( 3, &attenuationXYStage->bundle[TB_COLORMAP] ) );
 
 	// bind u_AttenuationMapZ
-	BindAnimatedImage( gl_forwardLightingShader_projXYZ->GetUniformLocation_AttenuationMapZ(), &attenuationZStage->bundle[TB_COLORMAP]);
+	gl_forwardLightingShader_projXYZ->SetUniform_AttenuationMapZBindless(
+		BindAnimatedImage( 4, &attenuationZStage->bundle[TB_COLORMAP] ) );
 
 	// bind u_ShadowMap
 	if ( shadowCompare )
 	{
-		GL_BindToTMU( gl_forwardLightingShader_projXYZ->GetUniformLocation_ShadowMap0(), tr.shadowMapFBOImage[light->shadowLOD] );
-		GL_BindToTMU( gl_forwardLightingShader_projXYZ->GetUniformLocation_ShadowClipMap0(), tr.shadowClipMapFBOImage[light->shadowLOD] );
+		gl_forwardLightingShader_projXYZ->SetUniform_ShadowMap0Bindless(
+			GL_BindToTMU( 5, tr.shadowMapFBOImage[light->shadowLOD] )
+		);
+		gl_forwardLightingShader_projXYZ->SetUniform_ShadowClipMap0Bindless(
+			GL_BindToTMU( 7, tr.shadowClipMapFBOImage[light->shadowLOD] )
+		);
 	}
 
 	// bind u_RandomMap
-	GL_BindToTMU( gl_forwardLightingShader_projXYZ->GetUniformLocation_RandomMap(), tr.randomNormalsImage );
+	gl_forwardLightingShader_projXYZ->SetUniform_RandomMapBindless(
+		GL_BindToTMU( 6, tr.randomNormalsImage )
+	);
 
 	gl_forwardLightingShader_projXYZ->SetRequiredVertexPointers();
 
@@ -1784,8 +1693,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	vec3_t     viewOrigin;
 	vec3_t     lightDirection;
 	float      shadowTexelSize;
-	colorGen_t colorGen;
-	alphaGen_t alphaGen;
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_directional ---\n" );
 
@@ -1795,7 +1702,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
-	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_forwardLightingShader_directionalSun->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -1807,31 +1714,10 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			colorGen = pStage->rgbGen;
-			break;
-
-		default:
-			colorGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-
-	gl_forwardLightingShader_directionalSun->SetUniform_ColorModulate( colorGen, alphaGen );
+	colorGen_t rgbGen;
+	alphaGen_t alphaGen;
+	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	gl_forwardLightingShader_directionalSun->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_directionalSun->SetUniform_Color( tess.svars.color );
@@ -1841,19 +1727,18 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_forwardLightingShader_directionalSun->SetUniform_ReliefDepthScale( depthScale );
 		gl_forwardLightingShader_directionalSun->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_HeightMap(), pStage->bundle[TB_HEIGHTMAP].image[0] );
+			gl_forwardLightingShader_directionalSun->SetUniform_HeightMapBindless(
+				GL_BindToTMU( 15, pStage->bundle[TB_HEIGHTMAP].image[0] )
+			);
 		}
 	}
 
@@ -1914,11 +1799,19 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GL_CheckErrors();
 
 	// bind u_DiffuseMap
-	GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_DiffuseMap(), pStage->bundle[TB_DIFFUSEMAP].image[0] );
-	gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	gl_forwardLightingShader_directionalSun->SetUniform_DiffuseMapBindless(
+		GL_BindToTMU( 0, pStage->bundle[TB_DIFFUSEMAP].image[0] )
+	);
+
+	if ( pStage->type != stageType_t::ST_LIGHTMAP )
+	{
+		gl_forwardLightingShader_directionalSun->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_DIFFUSEMAP ] );
+	}
 
 	// bind u_NormalMap
-	GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_NormalMap(), pStage->bundle[TB_NORMALMAP].image[0] );
+	gl_forwardLightingShader_directionalSun->SetUniform_NormalMapBindless(
+		GL_BindToTMU( 1, pStage->bundle[TB_NORMALMAP].image[0] )
+	);
 
 	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
@@ -1930,7 +1823,9 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	}
 
 	// bind u_MaterialMap
-	GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_MaterialMap(), pStage->bundle[TB_MATERIALMAP].image[0] );
+	gl_forwardLightingShader_directionalSun->SetUniform_MaterialMapBindless(
+		GL_BindToTMU( 2, pStage->bundle[TB_MATERIALMAP].image[0] )
+	);
 
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
@@ -1943,31 +1838,51 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// bind u_ShadowMap
 	if ( shadowCompare )
 	{
-		GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowMap0(), tr.sunShadowMapFBOImage[0] );
-		GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowClipMap0(), tr.sunShadowClipMapFBOImage[0] );
+		gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap0Bindless(
+			GL_BindToTMU( 5, tr.sunShadowMapFBOImage[ 0 ] )
+		);
+		gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap0Bindless(
+			GL_BindToTMU( 10, tr.sunShadowClipMapFBOImage[ 0 ] )
+		);
 
 		if ( r_parallelShadowSplits->integer >= 1 )
 		{
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowMap1(), tr.sunShadowMapFBOImage[ 1 ] );
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowClipMap1(), tr.sunShadowClipMapFBOImage[ 1 ] );
+			gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap1Bindless(
+				GL_BindToTMU( 6, tr.sunShadowMapFBOImage[ 1 ] )
+			);
+			gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap1Bindless(
+				GL_BindToTMU( 11, tr.sunShadowClipMapFBOImage[ 1 ] )
+			);
 		}
 
 		if ( r_parallelShadowSplits->integer >= 2 )
 		{
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowMap2(), tr.sunShadowMapFBOImage[ 2 ] ); ;
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowClipMap2(), tr.sunShadowClipMapFBOImage[ 2 ] );
+			gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap2Bindless(
+				GL_BindToTMU( 7, tr.sunShadowMapFBOImage[ 2 ] )
+			);
+			gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap2Bindless(
+				GL_BindToTMU( 12, tr.sunShadowClipMapFBOImage[ 2 ] )
+			);
 		}
 
 		if ( r_parallelShadowSplits->integer >= 3 )
 		{
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowMap3(), tr.sunShadowMapFBOImage[ 3 ] );
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowClipMap3(), tr.sunShadowClipMapFBOImage[ 3 ] );
+			gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap3Bindless(
+				GL_BindToTMU( 8, tr.sunShadowMapFBOImage[ 3 ] )
+			);
+			gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap3Bindless(
+				GL_BindToTMU( 13, tr.sunShadowClipMapFBOImage[ 3 ] )
+			);
 		}
 
 		if ( r_parallelShadowSplits->integer >= 4 )
 		{
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowMap4(), tr.sunShadowMapFBOImage[ 4 ] );
-			GL_BindToTMU( gl_forwardLightingShader_directionalSun->GetUniformLocation_ShadowClipMap4(), tr.sunShadowClipMapFBOImage[ 4 ] );
+			gl_forwardLightingShader_directionalSun->SetUniform_ShadowMap4Bindless(
+				GL_BindToTMU( 9, tr.sunShadowMapFBOImage[ 4 ] )
+			);
+			gl_forwardLightingShader_directionalSun->SetUniform_ShadowClipMap4Bindless(
+				GL_BindToTMU( 14, tr.sunShadowClipMapFBOImage[ 4 ] )
+			);
 		}
 	}
 
@@ -1978,14 +1893,14 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	GL_CheckErrors();
 }
 
-static void Render_reflection_CB( shaderStage_t *pStage )
+void Render_reflection_CB( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_reflection_CB ---\n" );
 
 	GL_State( pStage->stateBits );
 
 	// choose right shader program ----------------------------------
-	gl_reflectionShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_reflectionShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_reflectionShader->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -2023,7 +1938,9 @@ static void Render_reflection_CB( shaderStage_t *pStage )
 	}
 
 	// bind u_NormalMap
-	GL_BindToTMU( gl_reflectionShader->GetUniformLocation_NormalMap(), pStage->bundle[TB_NORMALMAP].image[0] );
+	gl_reflectionShader->SetUniform_NormalMapBindless(
+		GL_BindToTMU( 1, pStage->bundle[TB_NORMALMAP].image[0] )
+	);
 
 	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
@@ -2039,19 +1956,18 @@ static void Render_reflection_CB( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_reflectionShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_reflectionShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
-			GL_BindToTMU( gl_reflectionShader->GetUniformLocation_HeightMap(), pStage->bundle[TB_HEIGHTMAP].image[0] );
+			gl_reflectionShader->SetUniform_HeightMapBindless(
+				GL_BindToTMU( 15, pStage->bundle[TB_HEIGHTMAP].image[0] )
+			);
 		}
 	}
 
@@ -2062,7 +1978,7 @@ static void Render_reflection_CB( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_skybox( shaderStage_t *pStage )
+void Render_skybox( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_skybox ---\n" );
 
@@ -2076,7 +1992,12 @@ static void Render_skybox( shaderStage_t *pStage )
 	gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// bind u_ColorMap
-	GL_BindToTMU( gl_skyboxShader->GetUniformLocation_ColorMap(), pStage->bundle[TB_COLORMAP].image[0] );
+	gl_skyboxShader->SetUniform_ColorMapCubeBindless(
+		GL_BindToTMU( 0, pStage->bundle[TB_COLORMAP].image[0] )
+	);
+
+	// u_InverseLightFactor
+	gl_skyboxShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	gl_skyboxShader->SetRequiredVertexPointers();
 
@@ -2085,7 +2006,7 @@ static void Render_skybox( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_screen( shaderStage_t *pStage )
+void Render_screen( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_screen ---\n" );
 
@@ -2101,14 +2022,14 @@ static void Render_screen( shaderStage_t *pStage )
 	gl_screenShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// bind u_CurrentMap
-	BindAnimatedImage( gl_screenShader->GetUniformLocation_CurrentMap(), &pStage->bundle[TB_COLORMAP]);
+	gl_screenShader->SetUniform_CurrentMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 
 	Tess_DrawElements();
 
 	GL_CheckErrors();
 }
 
-static void Render_portal( shaderStage_t *pStage )
+void Render_portal( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_portal ---\n" );
 
@@ -2128,22 +2049,20 @@ static void Render_portal( shaderStage_t *pStage )
 	gl_portalShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// bind u_CurrentMap
-	BindAnimatedImage( gl_portalShader->GetUniformLocation_CurrentMap(), &pStage->bundle[TB_COLORMAP] );
+	gl_portalShader->SetUniform_CurrentMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 
 	Tess_DrawElements();
 
 	GL_CheckErrors();
 }
 
-static void Render_heatHaze( shaderStage_t *pStage )
+void Render_heatHaze( shaderStage_t *pStage )
 {
 	uint32_t      stateBits;
 	float         deformMagnitude;
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
 
-	if ( r_heatHaze->integer == 0 )
-	{
 		return;
 	}
 
@@ -2206,7 +2125,9 @@ static void Render_heatHaze( shaderStage_t *pStage )
 	R_BindFBO( tr.mainFBO[ 1 - backEnd.currentMainFBO ] );
 
 	// bind u_NormalMap
-	GL_BindToTMU( gl_heatHazeShader->GetUniformLocation_NormalMap(), pStage->bundle[TB_NORMALMAP].image[0] );
+	gl_heatHazeShader->SetUniform_NormalMapBindless(
+		GL_BindToTMU( 0, pStage->bundle[TB_NORMALMAP].image[0] ) 
+	);
 
 	if ( pStage->enableNormalMapping )
 	{
@@ -2220,7 +2141,9 @@ static void Render_heatHaze( shaderStage_t *pStage )
 	}
 
 	// bind u_CurrentMap
-	GL_BindToTMU( gl_heatHazeShader->GetUniformLocation_CurrentMap(), tr.currentRenderImage[backEnd.currentMainFBO] );
+	gl_heatHazeShader->SetUniform_CurrentMapBindless(
+		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] ) 
+	);
 
 	gl_heatHazeShader->SetRequiredVertexPointers();
 
@@ -2228,14 +2151,16 @@ static void Render_heatHaze( shaderStage_t *pStage )
 
 	// copy to foreground image
 	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
-	GL_BindToTMU( gl_heatHazeShader->GetUniformLocation_CurrentMap(), tr.currentRenderImage[1 - backEnd.currentMainFBO] );
+	gl_heatHazeShader->SetUniform_CurrentMapBindless(
+		GL_BindToTMU( 1, tr.currentRenderImage[1 - backEnd.currentMainFBO] ) 
+	);
 	gl_heatHazeShader->SetUniform_DeformMagnitude( 0.0f );
 	Tess_DrawElements();
 
 	GL_CheckErrors();
 }
 
-static void Render_liquid( shaderStage_t *pStage )
+void Render_liquid( shaderStage_t *pStage )
 {
 	vec3_t        viewOrigin;
 	float         fogDensity;
@@ -2247,7 +2172,7 @@ static void Render_liquid( shaderStage_t *pStage )
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
 	// choose right shader program
-	gl_liquidShader->SetHeightMapInNormalMap( pStage->isHeightMapInNormalMap );
+	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_liquidShader->SetReliefMapping( pStage->enableReliefMapping );
 
@@ -2283,35 +2208,32 @@ static void Render_liquid( shaderStage_t *pStage )
 	}
 
 	// bind u_CurrentMap
-	GL_BindToTMU( gl_liquidShader->GetUniformLocation_CurrentMap(), tr.currentRenderImage[backEnd.currentMainFBO] );
+	gl_liquidShader->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) );
 
 	// bind u_PortalMap
-	GL_BindToTMU( gl_liquidShader->GetUniformLocation_PortalMap(), tr.portalRenderImage );
+	gl_liquidShader->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
 
 	// depth texture
-	GL_BindToTMU( gl_liquidShader->GetUniformLocation_DepthMap(), tr.currentDepthImage );
+	gl_liquidShader->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
 
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale;
-		float reliefDepthScale;
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale *= tess.surfaceShader->reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
-		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_liquidShader->SetUniform_ReliefDepthScale( depthScale );
 		gl_liquidShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
-		if ( !pStage->isHeightMapInNormalMap )
+		if ( !pStage->hasHeightMapInNormalMap )
 		{
-			GL_BindToTMU( gl_liquidShader->GetUniformLocation_HeightMap(), pStage->bundle[TB_HEIGHTMAP].image[0] );
+			gl_liquidShader->SetUniform_HeightMapBindless( GL_BindToTMU( 15, pStage->bundle[TB_HEIGHTMAP].image[0] ) );
 		}
 	}
 
 	// bind u_NormalMap
-	GL_BindToTMU( gl_liquidShader->GetUniformLocation_NormalMap(), pStage->bundle[TB_NORMALMAP].image[0] );
+	gl_liquidShader->SetUniform_NormalMapBindless( GL_BindToTMU( 3, pStage->bundle[TB_NORMALMAP].image[0] ) );
 
 	// bind u_NormalScale
 	if ( pStage->enableNormalMapping )
@@ -2413,6 +2335,9 @@ static void Render_fog()
 
 	gl_fogQuake3Shader->BindProgram( 0 );
 
+	// u_InverseLightFactor
+	gl_fogQuake3Shader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
 	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
@@ -2438,7 +2363,9 @@ static void Render_fog()
 	gl_fogQuake3Shader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
-	GL_BindToTMU( gl_fogQuake3Shader->GetUniformLocation_ColorMap(), tr.fogImage );
+	gl_fogQuake3Shader->SetUniform_ColorMapBindless(
+		GL_BindToTMU( 0, tr.fogImage ) 
+	);
 
 	gl_fogQuake3Shader->SetRequiredVertexPointers();
 
@@ -2689,18 +2616,18 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 Tess_ComputeTexMatrices
 ===============
 */
-static void Tess_ComputeTexMatrices( shaderStage_t *pStage )
+void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 {
-	int   i;
-	vec_t *matrix;
-
 	GLimp_LogComment( "--- Tess_ComputeTexMatrices ---\n" );
 
-	for ( i = 0; i < MAX_TEXTURE_BUNDLES; i++ )
-	{
-		matrix = tess.svars.texMatrices[ i ];
+	matrix_t *matrix = tess.svars.texMatrices;
+	matrix_t *lastMatrix = matrix + MAX_TEXTURE_BUNDLES;
 
-		RB_CalcTexMatrix( &pStage->bundle[ i ], matrix );
+	textureBundle_t *bundle = pStage->bundle;
+
+	for ( ; matrix < lastMatrix; matrix++, bundle++ )
+	{
+		RB_CalcTexMatrix( bundle, *matrix );
 	}
 }
 
@@ -2725,17 +2652,15 @@ void Tess_StageIteratorDebug()
 	Tess_DrawElements();
 }
 
-void Tess_StageIteratorGeneric()
+void Tess_StageIteratorColor()
 {
-	int stage;
-
 	// log this call
 	if ( r_logFile->integer )
 	{
 		// don't just call LogComment, or we will get
 		// a call to va() every frame!
 		GLimp_LogComment( va
-		                  ( "--- Tess_StageIteratorGeneric( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
+		                  ( "--- Tess_StageIteratorColor( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
 		                    tess.numVertexes, tess.numIndexes / 3 ) );
 	}
 
@@ -2760,14 +2685,9 @@ void Tess_StageIteratorGeneric()
 	}
 
 	// call shader function
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
+	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ )
 	{
 		shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
-		if ( !pStage )
-		{
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
@@ -2777,88 +2697,9 @@ void Tess_StageIteratorGeneric()
 		Tess_ComputeColor( pStage );
 		Tess_ComputeTexMatrices( pStage );
 
-		switch ( pStage->type )
-		{
-			case stageType_t::ST_COLORMAP:
-				if ( backEnd.projection2D )
-				{
-					Render_generic2D( pStage );
-				}
-				else
-				{
-					Render_generic( pStage );
-				}
-
-				break;
-
-			case stageType_t::ST_STYLELIGHTMAP:
-			case stageType_t::ST_STYLECOLORMAP:
-				Render_generic( pStage );
-				break;
-
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				Render_lightMapping( pStage );
-				break;
-
-			case stageType_t::ST_REFLECTIONMAP:
-			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-				if ( r_reflectionMapping->integer )
-				{
-					Render_reflection_CB( pStage );
-				}
-
-				break;
-
-			case stageType_t::ST_REFRACTIONMAP:
-			case stageType_t::ST_DISPERSIONMAP:
-				break;
-
-			case stageType_t::ST_SKYBOXMAP:
-				Render_skybox( pStage );
-				break;
-
-			case stageType_t::ST_SCREENMAP:
-				Render_screen( pStage );
-				break;
-
-			case stageType_t::ST_PORTALMAP:
-				Render_portal( pStage );
-				break;
-
-			case stageType_t::ST_HEATHAZEMAP:
-				if ( r_heatHaze->integer )
-				{
-					Render_heatHaze( pStage );
-				}
-				break;
-
-			case stageType_t::ST_LIQUIDMAP:
-				if ( r_liquidMapping->integer )
-				{
-					Render_liquid( pStage );
-				}
-				else
-				{
-					/* FIXME: workaround to display something and not crash
-					when liquidMapping is enabled, until we fix liquidMap. */
-					pStage->type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
-					pStage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
-					Render_lightMapping( pStage );
-				}
-
-				break;
-
-			default:
-				break;
 		}
 
-		if ( r_showLightMaps->integer && pStage->type == stageType_t::ST_LIGHTMAP )
-		{
-			break;
-		}
+		pStage->colorRenderer( pStage );
 	}
 
 	if ( !r_noFog->integer && tess.fogNum >= 1 && tess.surfaceShader->fogPass != fogPass_t::FP_NONE )
@@ -2873,10 +2714,7 @@ void Tess_StageIteratorGeneric()
 	}
 }
 
-
 void Tess_StageIteratorPortal() {
-	int stage;
-
 	// log this call
 	if ( r_logFile->integer ) {
 		// don't just call LogComment, or we will get
@@ -2899,122 +2737,19 @@ void Tess_StageIteratorPortal() {
 		GL_Cull( tess.surfaceShader->cullType );
 
 	// call shader function
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ ) {
+	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ ) {
 		shaderStage_t* pStage = tess.surfaceStages[stage];
-
-		if ( !pStage ) {
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) ) {
 			continue;
 		}
 
-		switch ( pStage->type ) {
-			case stageType_t::ST_COLORMAP:
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-			case stageType_t::ST_REFLECTIONMAP:
-			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-			case stageType_t::ST_REFRACTIONMAP:
-			case stageType_t::ST_DISPERSIONMAP:
-			case stageType_t::ST_SKYBOXMAP:
-			case stageType_t::ST_SCREENMAP:
-			case stageType_t::ST_PORTALMAP:
-			case stageType_t::ST_HEATHAZEMAP:
-			case stageType_t::ST_LIQUIDMAP:
-				Render_generic( pStage );
-				return;
-
-			default:
-				break;
-		}
+		Render_portal( pStage );
 	}
-}
-
-void Tess_StageIteratorDepthFill()
-{
-	int stage;
-
-	// log this call
-	if ( r_logFile->integer )
-	{
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va
-		                  ( "--- Tess_StageIteratorDepthFill( %s, %i vertices, %i triangles ) ---\n", tess.surfaceShader->name,
-		                    tess.numVertexes, tess.numIndexes / 3 ) );
-	}
-
-	GL_CheckErrors();
-
-	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo )
-	{
-		Tess_UpdateVBOs( );
-	}
-
-	// set face culling appropriately
-	if( backEnd.currentEntity->e.renderfx & RF_SWAPCULL )
-		GL_Cull( ReverseCull( tess.surfaceShader->cullType ) );
-	else
-		GL_Cull( tess.surfaceShader->cullType );
-
-	// set polygon offset if necessary
-	if ( tess.surfaceShader->polygonOffset )
-	{
-		glEnable( GL_POLYGON_OFFSET_FILL );
-		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
-	}
-
-	// call shader function
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
-	{
-		shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
-		if ( !pStage || !pStage->bundle[0].image[0] )
-		{
-			break;
-		}
-
-		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
-		{
-			continue;
-		}
-
-		Tess_ComputeTexMatrices( pStage );
-
-		switch ( pStage->type )
-		{
-			case stageType_t::ST_COLORMAP:
-				if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-				{
-					Render_depthFill( pStage );
-				}
-
-				break;
-
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				Render_depthFill( pStage );
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	// reset polygon offset
-	glDisable( GL_POLYGON_OFFSET_FILL );
 }
 
 void Tess_StageIteratorShadowFill()
 {
-	int stage;
-
 	// log this call
 	if ( r_logFile->integer )
 	{
@@ -3046,14 +2781,9 @@ void Tess_StageIteratorShadowFill()
 	}
 
 	// call shader function
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
+	for ( int stage = 0; stage < tess.numSurfaceStages; stage++ )
 	{
 		shaderStage_t *pStage = tess.surfaceStages[ stage ];
-
-		if ( !pStage )
-		{
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
@@ -3062,25 +2792,9 @@ void Tess_StageIteratorShadowFill()
 
 		Tess_ComputeTexMatrices( pStage );
 
-		switch ( pStage->type )
+		if ( pStage->doShadowFill )
 		{
-			case stageType_t::ST_COLORMAP:
-				if ( tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-				{
-					Render_shadowFill( pStage );
-				}
-
-				break;
-
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				Render_shadowFill( pStage );
-				break;
-
-			default:
-				break;
+			Render_shadowFill( pStage );
 		}
 	}
 
@@ -3090,7 +2804,6 @@ void Tess_StageIteratorShadowFill()
 
 void Tess_StageIteratorLighting()
 {
-	int           i, j;
 	trRefLight_t  *light;
 	shaderStage_t *attenuationXYStage;
 	shaderStage_t *attenuationZStage;
@@ -3147,14 +2860,9 @@ void Tess_StageIteratorLighting()
 	// call shader function
 	attenuationZStage = tess.lightShader->stages[ 0 ];
 
-	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
+	for ( int i = 0; i < tess.numSurfaceStages; i++ )
 	{
 		shaderStage_t *pStage = tess.surfaceStages[ i ];
-
-		if ( !pStage )
-		{
-			break;
-		}
 
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) )
 		{
@@ -3163,14 +2871,9 @@ void Tess_StageIteratorLighting()
 
 		Tess_ComputeTexMatrices( pStage );
 
-		for ( j = 1; j < MAX_SHADER_STAGES; j++ )
+		for ( int j = 1; j < tess.lightShader->numStages; j++ )
 		{
 			attenuationXYStage = tess.lightShader->stages[ j ];
-
-			if ( !attenuationXYStage )
-			{
-				break;
-			}
 
 			if ( attenuationXYStage->type != stageType_t::ST_ATTENUATIONMAP_XY )
 			{
@@ -3185,27 +2888,23 @@ void Tess_StageIteratorLighting()
 			Tess_ComputeColor( attenuationXYStage );
 			R_ComputeFinalAttenuation( attenuationXYStage, light );
 
-			switch ( pStage->type )
+			if ( pStage->doForwardLighting )
 			{
-				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-					if ( light->l.rlType == refLightType_t::RL_OMNI )
-					{
+				switch( light->l.rlType )
+				{
+					case refLightType_t::RL_OMNI:
 						Render_forwardLighting_DBS_omni( pStage, attenuationXYStage, attenuationZStage, light );
-					}
-					else if ( light->l.rlType == refLightType_t::RL_PROJ )
-					{
+						break;
+					case refLightType_t::RL_PROJ:
 						Render_forwardLighting_DBS_proj( pStage, attenuationXYStage, attenuationZStage, light );
-					}
-					else if ( light->l.rlType == refLightType_t::RL_DIRECTIONAL )
-					{
+						break;
+					case refLightType_t::RL_DIRECTIONAL:
 						Render_forwardLighting_DBS_directional( pStage, light );
-					}
-
-					break;
-
-				default:
-					break;
+						break;
+					default:
+						ASSERT_UNREACHABLE();
+						break;
+				};
 			}
 		}
 	}
@@ -3226,7 +2925,6 @@ Render tesselated data
 */
 void Tess_End()
 {
-	if ( ( tess.numIndexes == 0 || tess.numVertexes == 0 ) && tess.multiDrawPrimitives == 0 )
 	{
 		return;
 	}

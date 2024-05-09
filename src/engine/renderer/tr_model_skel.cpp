@@ -23,7 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_models.c -- model loading and caching
 #include "tr_local.h"
 
-bool AddTriangleToVBOTriangleList( growList_t *vboTriangles, skelTriangle_t *tri, int *numBoneReferences, int boneReferences[ MAX_BONES ] )
+bool R_AddTriangleToVBOTriangleList(
+	const skelTriangle_t *tri, int *numBoneReferences, int boneReferences[ MAX_BONES ] )
 {
 	md5Vertex_t *v;
 	int         boneIndex;
@@ -88,16 +89,12 @@ bool AddTriangleToVBOTriangleList( growList_t *vboTriangles, skelTriangle_t *tri
 		*numBoneReferences = *numBoneReferences + 1;
 	}
 
-	if ( hasWeights )
-	{
-		Com_AddToGrowList( vboTriangles, tri );
-		return true;
-	}
-
-	return false;
+	return hasWeights;
 }
 
-void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriangles, md5Model_t *md5, md5Surface_t *surf, int skinIndex, int boneReferences[ MAX_BONES ] )
+void R_AddSurfaceToVBOSurfacesList(
+	std::vector<srfVBOMD5Mesh_t *> &vboSurfaces, const std::vector<skelTriangle_t> &vboTriangles,
+	md5Model_t *md5, md5Surface_t *surf, int skinIndex, int boneReferences[ MAX_BONES ] )
 {
 	int             j;
 
@@ -107,16 +104,14 @@ void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriang
 	int             indexesNum;
 	glIndex_t       *indexes;
 
-	skelTriangle_t  *tri;
-
 	srfVBOMD5Mesh_t *vboSurf;
 
 	vertexesNum = surf->numVerts;
-	indexesNum = vboTriangles->currentElements * 3;
+	indexesNum = vboTriangles.size() * 3;
 
 	// create surface
 	vboSurf = (srfVBOMD5Mesh_t*) ri.Hunk_Alloc( sizeof( *vboSurf ), ha_pref::h_low );
-	Com_AddToGrowList( vboSurfaces, vboSurf );
+	vboSurfaces.push_back( vboSurf );
 
 	vboSurf->surfaceType = surfaceType_t::SF_VBO_MD5MESH;
 	vboSurf->md5Model = md5;
@@ -152,13 +147,13 @@ void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriang
 		}
 	}
 
-	for ( j = 0; j < vboTriangles->currentElements; j++ )
-	{
-		tri = ( skelTriangle_t * ) Com_GrowListElement( vboTriangles, j );
+	glIndex_t *indexesOut = indexes;
 
+	for ( const skelTriangle_t &tri : vboTriangles )
+	{
 		for (unsigned k = 0; k < 3; k++ )
 		{
-			indexes[ j * 3 + k ] = tri->indexes[ k ];
+			*indexesOut++ = tri.indexes[ k ];
 		}
 	}
 
@@ -185,9 +180,9 @@ void AddSurfaceToVBOSurfacesList( growList_t *vboSurfaces, growList_t *vboTriang
 		}
 	}
 
-	vboSurf->vbo = R_CreateStaticVBO( va( "staticMD5Mesh_VBO %i", vboSurfaces->currentElements ), data, vboLayout_t::VBO_LAYOUT_SKELETAL );
+	vboSurf->vbo = R_CreateStaticVBO( va( "staticMD5Mesh_VBO %i", ( int )vboSurfaces.size() ), data, vboLayout_t::VBO_LAYOUT_SKELETAL );
 
-	vboSurf->ibo = R_CreateStaticIBO( va( "staticMD5Mesh_IBO %i", vboSurfaces->currentElements ), indexes, indexesNum );
+	vboSurf->ibo = R_CreateStaticIBO( va( "staticMD5Mesh_IBO %i", ( int )vboSurfaces.size() ), indexes, indexesNum );
 
 	ri.Hunk_FreeTempMemory( indexes );
 	ri.Hunk_FreeTempMemory( data.st );

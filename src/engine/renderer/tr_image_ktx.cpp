@@ -241,7 +241,7 @@ bool LoadInMemoryKTX( const char *name, void *ktxData, size_t ktxSize,
 	}
 
 	ptr = firstImageDataPtr;
-	data[ 0 ] = (byte *)ri.Z_Malloc(totalImageSize);
+	data[ 0 ] = (byte *)Z_Malloc(totalImageSize);
 
 	uint32_t imageSize{ GetImageSize( ptr, needReverseBytes ) };
 	ptr += sizeof(uint32_t);
@@ -760,7 +760,7 @@ void LoadKTX( const char *name, byte **pic, int *width, int *height,
 	}
 	if ( !LoadInMemoryKTX( name, &ktxData[0], ktxData.size(), pic, width, height, numLayers, numMips, bits ) ) {
 		if (*pic) {
-			ri.Free(*pic);
+			Z_Free(*pic);
 		}
 		*pic = nullptr; // This signals failure.
 	}

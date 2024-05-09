@@ -522,7 +522,7 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 	vbo = (VBO_t*) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
 	memset( vbo, 0, sizeof( *vbo ) );
 
-	Com_AddToGrowList( &tr.vbos, vbo );
+	tr.vbos.push_back( vbo );
 
 	Q_strncpyz( vbo->name, name, sizeof( vbo->name ) );
 
@@ -573,7 +573,7 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 	VBO_t *vbo = (VBO_t*) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
 	memset( vbo, 0, sizeof( *vbo ) );
 
-	Com_AddToGrowList( &tr.vbos, vbo );
+	tr.vbos.push_back( vbo );
 
 	Q_strncpyz( vbo->name, name, sizeof( vbo->name ) );
 
@@ -637,7 +637,7 @@ VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *ve
 	vbo = ( VBO_t * ) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
 	memset( vbo, 0, sizeof( *vbo ) );
 
-	Com_AddToGrowList( &tr.vbos, vbo );
+	tr.vbos.push_back( vbo );
 
 	Q_strncpyz( vbo->name, name, sizeof( vbo->name ) );
 
@@ -688,7 +688,7 @@ IBO_t *R_CreateDynamicIBO( const char *name, int numIndexes )
 	R_SyncRenderThread();
 
 	ibo = (IBO_t*) ri.Hunk_Alloc( sizeof( *ibo ), ha_pref::h_low );
-	Com_AddToGrowList( &tr.ibos, ibo );
+	tr.ibos.push_back( ibo );
 
 	Q_strncpyz( ibo->name, name, sizeof( ibo->name ) );
 
@@ -738,7 +738,7 @@ IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 	R_SyncRenderThread();
 
 	ibo = ( IBO_t * ) ri.Hunk_Alloc( sizeof( *ibo ), ha_pref::h_low );
-	Com_AddToGrowList( &tr.ibos, ibo );
+	tr.ibos.push_back( ibo );
 
 	Q_strncpyz( ibo->name, name, sizeof( ibo->name ) );
 
@@ -782,7 +782,7 @@ IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexe
 	R_SyncRenderThread();
 
 	ibo = ( IBO_t * ) ri.Hunk_Alloc( sizeof( *ibo ), ha_pref::h_low );
-	Com_AddToGrowList( &tr.ibos, ibo );
+	tr.ibos.push_back( ibo );
 
 	Q_strncpyz( ibo->name, name, sizeof( ibo->name ) );
 	ibo->indexesNum = numTriangles * 3;
@@ -900,6 +900,65 @@ void R_BindNullIBO()
 		glState.currentIBO = nullptr;
 		glState.vertexAttribPointersSet = 0;
 	}
+}
+
+static void R_InitGenericVBOs() {
+	// Min and max coordinates of the quad
+	static const vec3_t min = { 0.0f, 0.0f, 0.0f };
+	static const vec3_t max = { 1.0f, 1.0f, 0.0f };
+	/*
+		Quad is a static mesh with 4 vertices and 2 triangles
+
+		 z
+		 ^
+		 |     1------2
+		 |   y |      |
+		 |  /  |      |
+		 | /   |      |
+		 |/    0------3
+		 0---------->x
+		   Verts:
+		   0: 0.0 0.0 0.0
+		   1: 0.0 1.0 0.0
+		   2: 1.0 1.0 0.0
+		   3: 1.0 0.0 0.0
+		   Surfs:
+		   0: 0 2 1 / 0 3 2
+	*/
+
+	drawSurf_t* genericQuad;
+	genericQuad = ( drawSurf_t* ) ri.Hunk_Alloc( sizeof( *genericQuad ), ha_pref::h_low );
+	genericQuad->entity = &tr.worldEntity;
+	srfVBOMesh_t* surface;
+	surface = ( srfVBOMesh_t* ) ri.Hunk_Alloc( sizeof( *surface ), ha_pref::h_low );
+	surface->surfaceType = surfaceType_t::SF_VBO_MESH;
+	surface->numVerts = 4;
+	surface->numIndexes = 6;
+	surface->firstIndex = 0;
+	vec3_t v0 = { min[0], min[1], min[2] };
+	vec3_t v1 = { min[0], max[1], min[2] };
+	vec3_t v2 = { max[0], max[1], min[2] };
+	vec3_t v3 = { max[0], min[1], min[2] };
+
+	shaderVertex_t verts[4];
+	VectorCopy( v0, verts[0].xyz );
+	VectorCopy( v1, verts[1].xyz );
+	VectorCopy( v2, verts[2].xyz );
+	VectorCopy( v3, verts[3].xyz );
+	
+	for ( int i = 0; i < 4; i++ ) {
+		verts[i].color = Color::White;
+		verts[i].texCoords[0] = floatToHalf( i < 2 ? 0.0f : 1.0f );
+		verts[i].texCoords[1] = floatToHalf( i > 0 && i < 3 ? 1.0f : 0.0f );
+	}
+	surface->vbo = R_CreateStaticVBO2( "generic_VBO", surface->numVerts, verts, ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
+
+	glIndex_t indexes[6] = { 0, 2, 1,  0, 3, 2 }; // Front
+
+	surface->ibo = R_CreateStaticIBO( "generic_IBO", indexes, surface->numIndexes );
+	genericQuad->surface = ( surfaceType_t* ) surface;
+
+	tr.genericQuad = genericQuad;
 }
 
 static void R_InitUnitCubeVBO()
@@ -1024,8 +1083,8 @@ void R_InitVBOs()
 
 	Log::Debug("------- R_InitVBOs -------" );
 
-	Com_InitGrowList( &tr.vbos, 100 );
-	Com_InitGrowList( &tr.ibos, 100 );
+	tr.vbos.reserve( 100 );
+	tr.ibos.reserve( 100 );
 
 	tess.vertsBuffer = ( shaderVertex_t * ) Com_Allocate_Aligned( 64, SHADER_MAX_VERTEXES * sizeof( shaderVertex_t ) );
 	tess.indexesBuffer = ( glIndex_t * ) Com_Allocate_Aligned( 64, SHADER_MAX_INDEXES * sizeof( glIndex_t ) );
@@ -1042,6 +1101,8 @@ void R_InitVBOs()
 		tess.ibo = R_CreateDynamicIBO( "tessVertexArray_IBO", SHADER_MAX_INDEXES );
 	}
 
+
+	R_InitGenericVBOs();
 
 	R_InitUnitCubeVBO();
 	R_InitTileVBO();
@@ -1066,10 +1127,6 @@ R_ShutdownVBOs
 */
 void R_ShutdownVBOs()
 {
-	int   i;
-	VBO_t *vbo;
-	IBO_t *ibo;
-
 	Log::Debug("------- R_ShutdownVBOs -------" );
 
 	if( !glConfig2.mapBufferRangeAvailable ) {
@@ -1101,28 +1158,24 @@ void R_ShutdownVBOs()
 
 	glDeleteBuffers( 1, &tr.colorGradePBO );
 
-	for ( i = 0; i < tr.vbos.currentElements; i++ )
+	for ( VBO_t *vbo : tr.vbos )
 	{
-		vbo = ( VBO_t * ) Com_GrowListElement( &tr.vbos, i );
-
 		if ( vbo->vertexesVBO )
 		{
 			glDeleteBuffers( 1, &vbo->vertexesVBO );
 		}
 	}
 
-	for ( i = 0; i < tr.ibos.currentElements; i++ )
+	for ( IBO_t *ibo : tr.ibos )
 	{
-		ibo = ( IBO_t * ) Com_GrowListElement( &tr.ibos, i );
-
 		if ( ibo->indexesVBO )
 		{
 			glDeleteBuffers( 1, &ibo->indexesVBO );
 		}
 	}
 
-	Com_DestroyGrowList( &tr.vbos );
-	Com_DestroyGrowList( &tr.ibos );
+	tr.vbos.clear();
+	tr.ibos.clear();
 
 	Com_Free_Aligned( tess.vertsBuffer );
 	Com_Free_Aligned( tess.indexesBuffer );
@@ -1297,40 +1350,33 @@ R_ListVBOs_f
 */
 void R_ListVBOs_f()
 {
-	int   i;
-	VBO_t *vbo;
-	IBO_t *ibo;
 	int   vertexesSize = 0;
 	int   indexesSize = 0;
 
 	Log::Notice(" size          name" );
 	Log::Notice("----------------------------------------------------------" );
 
-	for ( i = 0; i < tr.vbos.currentElements; i++ )
+	for ( VBO_t *vbo : tr.vbos )
 	{
-		vbo = ( VBO_t * ) Com_GrowListElement( &tr.vbos, i );
-
 		Log::Notice("%d.%02d MB %s", vbo->vertexesSize / ( 1024 * 1024 ),
 		           ( vbo->vertexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ), vbo->name );
 
 		vertexesSize += vbo->vertexesSize;
 	}
 
-	for ( i = 0; i < tr.ibos.currentElements; i++ )
+	for ( IBO_t *ibo : tr.ibos)
 	{
-		ibo = ( IBO_t * ) Com_GrowListElement( &tr.ibos, i );
-
 		Log::Notice("%d.%02d MB %s", ibo->indexesSize / ( 1024 * 1024 ),
 		           ( ibo->indexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ), ibo->name );
 
 		indexesSize += ibo->indexesSize;
 	}
 
-	Log::Notice(" %i total VBOs", tr.vbos.currentElements );
+	Log::Notice(" %i total VBOs", tr.vbos.size() );
 	Log::Notice(" %d.%02d MB total vertices memory", vertexesSize / ( 1024 * 1024 ),
 	           ( vertexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
 
-	Log::Notice(" %i total IBOs", tr.ibos.currentElements );
+	Log::Notice(" %i total IBOs", tr.ibos.size() );
 	Log::Notice(" %d.%02d MB total triangle indices memory", indexesSize / ( 1024 * 1024 ),
 	           ( indexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
 }
