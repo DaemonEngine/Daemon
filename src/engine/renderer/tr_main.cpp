@@ -337,23 +337,19 @@ Returns CULL_IN, CULL_CLIP, or CULL_OUT
 */
 cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 {
-	bool anyClip;
-	cplane_t *frust;
-	int i, r;
-
 	if ( r_nocull->integer )
 	{
 		return cullResult_t::CULL_CLIP;
 	}
 
 	// check against frustum planes
-	anyClip = false;
+	bool anyClip = false;
 
-	for ( i = 0; i < FRUSTUM_PLANES; i++ )
+	for ( size_t i = 0; i < FRUSTUM_PLANES; i++ )
 	{
-		frust = &tr.viewParms.frustums[ 0 ][ i ];
+		cplane_t *frust = &tr.viewParms.frustums[ 0 ][ i ];
 
-		r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
+		int r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
 
 		if ( r == 2 )
 		{
