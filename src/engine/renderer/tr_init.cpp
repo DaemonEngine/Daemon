@@ -102,6 +102,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_arb_texture_gather;
 	cvar_t      *r_arb_gpu_shader5;
 	Cvar::Cvar<bool> r_arb_depth_clamp("r_arb_depth_clamp", "Use GL_ARB_depth_clamp if available", Cvar::NONE, true);
+	cvar_t      *r_arb_compute_shader;
 
 	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
@@ -1090,6 +1091,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_arb_texture_gather = Cvar_Get( "r_arb_texture_gather", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_gpu_shader5 = Cvar_Get( "r_arb_gpu_shader5", "1", CVAR_CHEAT | CVAR_LATCH );
 		Cvar::Latch(r_arb_depth_clamp);
+		r_arb_compute_shader = Cvar_Get( "r_arb_compute_shader", "1", CVAR_CHEAT | CVAR_LATCH );
 
 		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
