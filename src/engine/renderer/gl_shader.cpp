@@ -75,18 +75,6 @@ GLShader_lighttile                       *gl_lighttileShader = nullptr;
 GLShader_fxaa                            *gl_fxaaShader = nullptr;
 GLShaderManager                           gl_shaderManager;
 
-GLuint GLUniform::GetSTD430Size() const {
-	return _std430Size;
-}
-
-GLuint GLUniform::GetSTD430Alignment() const {
-	return _std430Alignment;
-}
-
-uint32_t* GLUniform::WriteToBuffer( uint32_t* buffer ) {
-	return buffer;
-}
-
 namespace // Implementation details
 {
 	NORETURN inline void ThrowShaderError(Str::StringRef msg)
@@ -1635,6 +1623,18 @@ bool GLCompileMacro_USE_BSP_SURFACE::HasConflictingMacros(size_t permutation, co
 	}
 
 	return false;
+}
+
+GLuint GLUniform::GetSTD430Size() const {
+	return _std430Size;
+}
+
+GLuint GLUniform::GetSTD430Alignment() const {
+	return _std430Alignment;
+}
+
+uint32_t* GLUniform::WriteToBuffer( uint32_t* buffer ) {
+	return buffer;
 }
 
 void GLShader::RegisterUniform( GLUniform* uniform ) {
