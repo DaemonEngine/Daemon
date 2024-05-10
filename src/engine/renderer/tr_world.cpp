@@ -625,13 +625,8 @@ static bspNode_t *R_PointInLeaf( const vec3_t p )
 
 	bspNode_t *node = tr.world->nodes;
 
-	while ( true )
+	while ( node->contents == -1 )
 	{
-		if ( node->contents != -1 )
-		{
-			break;
-		}
-
 		cplane_t *plane = node->plane;
 
 		float d = DotProduct( p, plane->normal ) - plane->dist;
