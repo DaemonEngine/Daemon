@@ -618,16 +618,12 @@ R_PointInLeaf
 */
 static bspNode_t *R_PointInLeaf( const vec3_t p )
 {
-	bspNode_t *node;
-	float     d;
-	cplane_t  *plane;
-
 	if ( !tr.world )
 	{
 		Sys::Drop( "R_PointInLeaf: bad model" );
 	}
 
-	node = tr.world->nodes;
+	bspNode_t *node = tr.world->nodes;
 
 	while ( true )
 	{
@@ -636,8 +632,9 @@ static bspNode_t *R_PointInLeaf( const vec3_t p )
 			break;
 		}
 
-		plane = node->plane;
-		d = DotProduct( p, plane->normal ) - plane->dist;
+		cplane_t *plane = node->plane;
+
+		float d = DotProduct( p, plane->normal ) - plane->dist;
 
 		if ( d > 0 )
 		{
