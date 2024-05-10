@@ -1038,10 +1038,8 @@ void R_AddPrecachedWorldInteractions( trRefLight_t *light )
 				{
 					continue;
 				}
-				else
-				{
-					iaType = IA_SHADOW;
-				}
+				
+				iaType = IA_SHADOW;
 			}
 			else
 			{
@@ -1073,10 +1071,8 @@ void R_AddPrecachedWorldInteractions( trRefLight_t *light )
 				{
 					continue;
 				}
-				else
-				{
-					iaType = IA_SHADOW;
-				}
+
+				iaType = IA_SHADOW;
 			}
 			else
 			{
