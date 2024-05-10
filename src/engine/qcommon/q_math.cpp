@@ -740,8 +740,7 @@ void SetPlaneSignbits( cplane_t *out )
 
 int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
-	float dist[ 2 ];
-	int   sides, b, i;
+	ASSERT_LT( p->signbits, 8 );
 
 	// fast axial cases
 	if ( p->type < 3 )
@@ -760,31 +759,31 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 	}
 
 	// general case
-	dist[ 0 ] = dist[ 1 ] = 0;
+	int index[ 3 ];
+	index[ 0 ] = p->signbits;
+	index[ 1 ] = p->signbits >> 1;
+	index[ 2 ] = p->signbits >> 2;
 
-	if ( p->signbits < 8 ) // >= 8: default case is original code (dist[0]=dist[1]=0)
-	{
-		for ( i = 0; i < 3; i++ )
-		{
-			b = ( p->signbits >> i ) & 1;
-			dist[ b ] += p->normal[ i ] * emaxs[ i ];
-			dist[ !b ] += p->normal[ i ] * emins[ i ];
-		}
-	}
+	index[ 0 ] &= 1;
+	index[ 1 ] &= 1;
+	index[ 2 ] &= 1;
 
-	sides = 0;
+	vec3_t mmins, mmaxs;
+	VectorMultiply( p->normal, emins, mmins );
+	VectorMultiply( p->normal, emaxs, mmaxs );
 
-	if ( dist[ 0 ] >= p->dist )
-	{
-		sides = 1;
-	}
+	float dist[ 2 ] = {};
+	dist[ index[ 0 ] ] += mmaxs[ 0 ];
+	dist[ index[ 1 ] ] += mmaxs[ 1 ];
+	dist[ index[ 2 ] ] += mmaxs[ 2 ];
 
-	if ( dist[ 1 ] < p->dist )
-	{
-		sides |= 2;
-	}
+	dist[ !index[ 0 ] ] += mmins[ 0 ];
+	dist[ !index[ 1 ] ] += mmins[ 1 ];
+	dist[ !index[ 2 ] ] += mmins[ 2 ];
 
-	return sides;
+	int bit0 = dist[ 0 ] > p->dist;
+	int bit1 = dist[ 1 ] < p->dist;
+	return bit0 + ( bit1 * 2 );
 }
 
 /*
