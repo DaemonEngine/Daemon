@@ -113,8 +113,12 @@ protected:
 	GLShaderManager                 *_shaderManager;
 	size_t                         _uniformStorageSize;
 
-	std::string                    _fragmentShaderText;
+	bool                           _hasVertexShader;
 	std::string                    _vertexShaderText;
+	bool                           _hasFragmentShader;
+	std::string                    _fragmentShaderText;
+	bool                           _hasComputeShader;
+	std::string                    _computeShaderText;
 	std::vector< shaderProgram_t > _shaderPrograms;
 
 
@@ -126,7 +130,8 @@ protected:
 
 
 
-	GLShader( const std::string &name, uint32_t vertexAttribsRequired, GLShaderManager *manager ) :
+	GLShader( const std::string &name, uint32_t vertexAttribsRequired, GLShaderManager *manager,
+			  const bool hasVertexShader = true, const bool hasFragmentShader = true, const bool hasComputeShader = false ) :
 		_name( name ),
 		_mainShaderName( name ),
 		_useMaterialSystem( false ),
@@ -136,11 +141,15 @@ protected:
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
+		_hasVertexShader( hasVertexShader ),
+		_hasFragmentShader( hasFragmentShader ),
+		_hasComputeShader( hasComputeShader ),
 		_uniformStorageSize( 0 )
 	{
 	}
 
-	GLShader( const std::string &name, const std::string &mainShaderName, uint32_t vertexAttribsRequired, GLShaderManager *manager ) :
+	GLShader( const std::string &name, const std::string &mainShaderName, uint32_t vertexAttribsRequired, GLShaderManager *manager,
+			  const bool hasVertexShader = true, const bool hasFragmentShader = true, const bool hasComputeShader = false ) :
 		_name( name ),
 		_mainShaderName( mainShaderName ),
 		_useMaterialSystem( false ),
@@ -150,11 +159,16 @@ protected:
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
+		_hasVertexShader( hasVertexShader ),
+		_hasFragmentShader( hasFragmentShader ),
+		_hasComputeShader( hasComputeShader ),
 		_uniformStorageSize( 0 )
 	{
 	}
 
-	GLShader( const std::string& name, const std::string& mainShaderName, const bool useMaterialSystem, uint32_t vertexAttribsRequired, GLShaderManager* manager ) :
+	GLShader( const std::string& name, const std::string& mainShaderName, const bool useMaterialSystem, uint32_t vertexAttribsRequired,
+			  GLShaderManager* manager, const bool hasVertexShader = true, const bool hasFragmentShader = true,
+			  const bool hasComputeShader = false ) :
 		_name( name ),
 		_mainShaderName( mainShaderName ),
 		_useMaterialSystem( useMaterialSystem ),
@@ -164,6 +178,9 @@ protected:
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
+		_hasVertexShader( hasVertexShader ),
+		_hasFragmentShader( hasFragmentShader ),
+		_hasComputeShader( hasComputeShader ),
 		_uniformStorageSize( 0 ) {
 	}
 
@@ -187,6 +204,10 @@ public:
 			if ( p->FS )
 			{
 				glDeleteShader( p->FS );
+			}
+
+			if ( p->CS ) {
+				glDeleteShader( p->CS );
 			}
 
 			if ( p->uniformFirewall )
@@ -249,13 +270,16 @@ protected:
 	void         PostProcessUniforms();
 	bool         GetCompileMacrosString( size_t permutation, std::string &compileMacrosOut ) const;
 	virtual void BuildShaderVertexLibNames( std::string& /*vertexInlines*/ ) { };
-	virtual void BuildShaderFragmentLibNames( std::string& /*vertexInlines*/ ) { };
+	virtual void BuildShaderFragmentLibNames( std::string& /*fragmentInlines*/ ) { };
+	virtual void BuildShaderComputeLibNames( std::string& /*computeInlines*/ ) {};
 	virtual void BuildShaderCompileMacros( std::string& /*vertexInlines*/ ) { };
 	virtual void SetShaderProgramUniforms( shaderProgram_t* /*shaderProgram*/ ) { };
 	int          SelectProgram();
 public:
 	GLuint GetProgram( int deformIndex );
 	void BindProgram( int deformIndex );
+	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
+	void DispatchComputeIndirect( const GLintptr indirectBuffer );
 	void SetRequiredVertexPointers();
 
 	bool IsMacroSet( int bit )
@@ -323,6 +347,7 @@ class GLShaderManager
 
 public:
 	GLHeader GLVersionDeclaration;
+	GLHeader GLComputeVersionDeclaration;
 	GLHeader GLCompatHeader;
 	GLHeader GLVertexHeader;
 	GLHeader GLFragmentHeader;

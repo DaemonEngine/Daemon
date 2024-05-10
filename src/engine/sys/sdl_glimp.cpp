@@ -1951,8 +1951,22 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.0
 	glConfig2.multiDrawIndirectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_multi_draw_indirect, r_arb_multi_draw_indirect->value );
 
-	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable &&
-									    glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
+	// made required in OpenGL 4.3
+	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader->value );
+
+	// made required in OpenGL 4.2
+	glConfig2.shadingLanguage420PackAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shading_language_420pack, r_arb_shading_language_420pack->value );
+
+	// made required in OpenGL 4.3
+	glConfig2.explicitUniformLocationAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_explicit_uniform_location, r_arb_explicit_uniform_location->value );
+
+	// made required in OpenGL 4.2
+	glConfig2.shaderImageLoadStoreAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_image_load_store, r_arb_shader_image_load_store->value );
+
+	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable
+									    && glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
+										&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
+										&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
 										&& r_smp->integer == 0 // Currently doesn't work with r_smp 1
 										&& r_useMaterialSystem->integer == 1; // Allow disabling it without disabling any extensions
 

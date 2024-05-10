@@ -440,6 +440,34 @@ static std::string GenVersionDeclaration() {
 	return str;
 }
 
+static std::string GenComputeVersionDeclaration() {
+	// Compute version declaration, this has to be separate from other shader stages,
+	// because some things are unique to vertex/fragment or compute shaders
+	std::string str = Str::Format( "#version %d %s\n",
+		glConfig2.shadingLanguageVersion,
+		glConfig2.shadingLanguageVersion >= 150 ? ( glConfig2.glCoreProfile ? "core" : "compatibility" ) : "" );
+
+	// add supported GLSL extensions
+	addExtension( str, glConfig2.computeShaderAvailable, 430,
+			  GLEW_ARB_compute_shader, "ARB_compute_shader" );
+	addExtension( str, r_ext_gpu_shader4->integer, 130,
+			  GLEW_EXT_gpu_shader4, "EXT_gpu_shader4" );
+	addExtension( str, r_arb_gpu_shader5->integer, 400,
+			  GLEW_ARB_gpu_shader5, "ARB_gpu_shader5" );
+	addExtension( str, r_arb_uniform_buffer_object->integer, 140,
+			  GLEW_ARB_uniform_buffer_object, "ARB_uniform_buffer_object" );
+	addExtension( str, glConfig2.SSBOAvailable, 430,
+			  GLEW_ARB_shader_storage_buffer_object, "ARB_shader_storage_buffer_object" );
+	addExtension( str, glConfig2.shadingLanguage420PackAvailable, 420,
+			  GLEW_ARB_shading_language_420pack, "ARB_shading_language_420pack" );
+	addExtension( str, glConfig2.explicitUniformLocationAvailable, 430,
+			  GLEW_ARB_explicit_uniform_location, "ARB_explicit_uniform_location" );
+	addExtension( str, glConfig2.shaderImageLoadStoreAvailable, 420,
+			  GLEW_ARB_shader_image_load_store, "ARB_shader_image_load_store" );
+
+	return str;
+}
+
 static std::string GenCompatHeader() {
 	std::string str;
 
@@ -693,6 +721,7 @@ void GLShaderManager::InitDriverInfo()
 
 void GLShaderManager::GenerateBuiltinHeaders() {
 	GLVersionDeclaration = GLHeader("GLVersionDeclaration", GenVersionDeclaration(), this);
+	GLComputeVersionDeclaration = GLHeader( "GLComputeVersionDeclaration", GenComputeVersionDeclaration(), this );
 	GLCompatHeader = GLHeader("GLCompatHeader", GenCompatHeader(), this);
 	GLVertexHeader = GLHeader("GLVertexHeader", GenVertexHeader(), this);
 	GLFragmentHeader = GLHeader("GLFragmentHeader", GenFragmentHeader(), this);
@@ -755,10 +784,19 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 			break;
 		}
 
-		if ( shaderType == GL_VERTEX_SHADER )
-			Com_sprintf( filename, sizeof( filename ), "glsl/%s_vp.glsl", token );
-		else
-			Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", token );
+		switch ( shaderType ) {
+			case GL_VERTEX_SHADER:
+				Com_sprintf( filename, sizeof( filename ), "glsl/%s_vp.glsl", token );
+				break;
+			case GL_FRAGMENT_SHADER:
+				Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", token );
+				break;
+			case GL_COMPUTE_SHADER:
+				Com_sprintf( filename, sizeof( filename ), "glsl/%s_cp.glsl", token );
+				break;
+			default:
+				break;
+		}
 
 		libs += GetShaderText(filename);
 		// We added a lot of stuff but if we do something bad
@@ -768,10 +806,19 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	}
 
 	// load main() program
-	if ( shaderType == GL_VERTEX_SHADER )
-		Com_sprintf( filename, sizeof( filename ), "glsl/%s_vp.glsl", mainShaderName.c_str() );
-	else
-		Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", mainShaderName.c_str() );
+	switch ( shaderType ) {
+		case GL_VERTEX_SHADER:
+			Com_sprintf( filename, sizeof( filename ), "glsl/%s_vp.glsl", mainShaderName.c_str() );
+			break;
+		case GL_FRAGMENT_SHADER:
+			Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", mainShaderName.c_str() );
+			break;
+		case GL_COMPUTE_SHADER:
+			Com_sprintf( filename, sizeof( filename ), "glsl/%s_cp.glsl", mainShaderName.c_str() );
+			break;
+		default:
+			break;
+	}
 
 	std::string env;
 	env.reserve( 1024 ); // Might help, just an estimate.
@@ -818,10 +865,18 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 		}
 
 		std::string shaderInsertPath = line.substr( position + 8, std::string::npos );
-		if ( shaderType == GL_VERTEX_SHADER ) {
-			shaderMain += GetShaderText( "glsl/" + shaderInsertPath + "_vp.glsl" );
-		} else {
-			shaderMain += GetShaderText( "glsl/" + shaderInsertPath + "_fp.glsl" );
+		switch ( shaderType ) {
+			case GL_VERTEX_SHADER:
+				shaderMain += GetShaderText( "glsl/" + shaderInsertPath + "_vp.glsl" );
+				break;
+			case GL_FRAGMENT_SHADER:
+				shaderMain += GetShaderText( "glsl/" + shaderInsertPath + "_fp.glsl" );
+				break;
+			case GL_COMPUTE_SHADER:
+				shaderMain += GetShaderText( "glsl/" + shaderInsertPath + "_cp.glsl" );
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -899,13 +954,17 @@ void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 		if( deformIndex > 0 )
 		{
 			shaderProgram_t *baseShader = &shader->_shaderPrograms[ macroIndex ];
-			if( !baseShader->VS || !baseShader->FS )
+			if( ( !baseShader->VS && shader->_hasVertexShader ) || ( !baseShader->FS && shader->_hasFragmentShader ) )
 				CompileGPUShaders( shader, baseShader, compileMacros );
 
 			shaderProgram->program = glCreateProgram();
-			glAttachShader( shaderProgram->program, baseShader->VS );
-			glAttachShader( shaderProgram->program, _deformShaders[ deformIndex ] );
-			glAttachShader( shaderProgram->program, baseShader->FS );
+			if ( shader->_hasVertexShader ) {
+				glAttachShader( shaderProgram->program, baseShader->VS );
+				glAttachShader( shaderProgram->program, _deformShaders[deformIndex] );
+			}
+			if ( shader->_hasFragmentShader ) {
+				glAttachShader( shaderProgram->program, baseShader->FS );
+			}
 
 			BindAttribLocations( shaderProgram->program );
 			LinkProgram( shaderProgram->program );
@@ -977,20 +1036,46 @@ void GLShaderManager::InitShader( GLShader *shader )
 	std::string fragmentInlines;
 	shader->BuildShaderFragmentLibNames( fragmentInlines );
 
-	shader->_vertexShaderText = BuildGPUShaderText( shader->GetMainShaderName(), vertexInlines, GL_VERTEX_SHADER );
-	shader->_fragmentShaderText = BuildGPUShaderText( shader->GetMainShaderName(), fragmentInlines, GL_FRAGMENT_SHADER );
+	std::string computeInlines;
+	shader->BuildShaderComputeLibNames( computeInlines );
+
+	if ( shader->_hasVertexShader ) {
+		shader->_vertexShaderText = BuildGPUShaderText( shader->GetMainShaderName(), vertexInlines, GL_VERTEX_SHADER );
+	}
+	if ( shader->_hasFragmentShader ) {
+		shader->_fragmentShaderText = BuildGPUShaderText( shader->GetMainShaderName(), fragmentInlines, GL_FRAGMENT_SHADER );
+	}
+	if ( shader->_hasComputeShader ) {
+		shader->_computeShaderText = BuildGPUShaderText( shader->GetMainShaderName(), computeInlines, GL_COMPUTE_SHADER );
+	}
 	if ( glConfig2.materialSystemAvailable && shader->_useMaterialSystem ) {
 		shader->_vertexShaderText = ShaderPostProcess( shader, shader->_vertexShaderText );
 		shader->_fragmentShaderText = ShaderPostProcess( shader, shader->_fragmentShaderText );
 	}
-	std::string combinedShaderText =
-		GLVersionDeclaration.getText()
-		+ GLCompatHeader.getText()
-		+ GLEngineConstants.getText()
-		+ GLVertexHeader.getText()
-		+ GLFragmentHeader.getText()
-		+ shader->_vertexShaderText
-		+ shader->_fragmentShaderText;
+	std::string combinedShaderText;
+	if ( shader->_hasVertexShader || shader->_hasFragmentShader ) {
+		combinedShaderText =
+			GLVersionDeclaration.getText()
+			+ GLCompatHeader.getText()
+			+ GLEngineConstants.getText()
+			+ GLVertexHeader.getText()
+			+ GLFragmentHeader.getText();
+	} else if ( shader->_hasComputeShader ) {
+		combinedShaderText =
+			GLComputeVersionDeclaration.getText()
+			+ GLCompatHeader.getText()
+			+ GLEngineConstants.getText();
+	}
+
+	if ( shader->_hasVertexShader ) {
+		combinedShaderText += shader->_vertexShaderText;
+	}
+	if ( shader->_hasFragmentShader ) {
+		combinedShaderText += shader->_fragmentShaderText;
+	}
+	if ( shader->_hasComputeShader ) {
+		combinedShaderText += shader->_computeShaderText;
+	}
 
 	shader->_checkSum = Com_BlockChecksum( combinedShaderText.c_str(), combinedShaderText.length() );
 }
@@ -1168,20 +1253,34 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 	// add them
 	std::string vertexShaderTextWithMacros = macrosString + shader->_vertexShaderText;
 	std::string fragmentShaderTextWithMacros = macrosString + shader->_fragmentShaderText;
-	program->VS = CompileShader( shader->GetName(),
-				     vertexShaderTextWithMacros,
-				     { &GLVersionDeclaration,
-				       &GLVertexHeader,
-				       &GLCompatHeader,
-				       &GLEngineConstants },
-				     GL_VERTEX_SHADER );
-	program->FS = CompileShader( shader->GetName(),
-				     fragmentShaderTextWithMacros,
-				     { &GLVersionDeclaration,
-				       &GLFragmentHeader,
-				       &GLCompatHeader,
-				       &GLEngineConstants },
-				     GL_FRAGMENT_SHADER );
+	std::string computeShaderTextWithMacros = macrosString + shader->_computeShaderText;
+	if( shader->_hasVertexShader ) {
+		program->VS = CompileShader( shader->GetName(),
+						 vertexShaderTextWithMacros,
+						 { &GLVersionDeclaration,
+						   &GLVertexHeader,
+						   &GLCompatHeader,
+						   &GLEngineConstants },
+						 GL_VERTEX_SHADER );
+	}
+	if ( shader->_hasFragmentShader ) {
+		program->FS = CompileShader( shader->GetName(),
+						 fragmentShaderTextWithMacros,
+						 { &GLVersionDeclaration,
+						   &GLFragmentHeader,
+						   &GLCompatHeader,
+						   &GLEngineConstants },
+						 GL_FRAGMENT_SHADER );
+	}
+	if ( shader->_hasComputeShader ) {
+		program->CS = CompileShader( shader->GetName(),
+						 computeShaderTextWithMacros,
+						 { &GLComputeVersionDeclaration,
+						   // &GLComputeHeader,
+						   &GLCompatHeader,
+						   &GLEngineConstants },
+						 GL_COMPUTE_SHADER );
+	}
 }
 
 void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program,
@@ -1190,9 +1289,16 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 	GLShaderManager::CompileGPUShaders( shader, program, compileMacros );
 
 	program->program = glCreateProgram();
-	glAttachShader( program->program, program->VS );
-	glAttachShader( program->program, _deformShaders[ deformIndex ] );
-	glAttachShader( program->program, program->FS );
+	if ( shader->_hasVertexShader ) {
+		glAttachShader( program->program, program->VS );
+		glAttachShader( program->program, _deformShaders[ deformIndex ] );
+	}
+	if ( shader->_hasFragmentShader ) {
+		glAttachShader( program->program, program->FS );
+	}
+	if ( shader->_hasComputeShader ) {
+		glAttachShader( program->program, program->CS );
+	}
 
 	BindAttribLocations( program->program );
 	LinkProgram( program->program );
@@ -1337,7 +1443,16 @@ GLuint GLShaderManager::CompileShader( Str::StringRef programName,
 	{
 		PrintShaderSource( programName, shader );
 		PrintInfoLog( shader );
-		ThrowShaderError(Str::Format("Couldn't compile %s shader: %s", ( shaderType == GL_VERTEX_SHADER) ? "vertex" : "fragment", programName));
+		switch ( shaderType ) {
+			case GL_VERTEX_SHADER:
+				ThrowShaderError( Str::Format( "Couldn't compile vertex shader: %s", programName ) );
+			case GL_FRAGMENT_SHADER:
+				ThrowShaderError( Str::Format( "Couldn't compile fragment shader: %s", programName ) );
+			case GL_COMPUTE_SHADER:
+				ThrowShaderError( Str::Format( "Couldn't compile compute shader: %s", programName ) );
+			default:
+				break;
+		}
 	}
 
 	return shader;
@@ -1820,6 +1935,18 @@ void GLShader::BindProgram( int deformIndex )
 	}
 
 	GL_BindProgram( _currentProgram );
+}
+
+void GLShader::DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ ) {
+	ASSERT_EQ( _currentProgram, glState.currentProgram );
+	ASSERT( _hasComputeShader );
+	glDispatchCompute( globalWorkgroupX, globalWorkgroupY, globalWorkgroupZ );
+}
+
+void GLShader::DispatchComputeIndirect( const GLintptr indirectBuffer ) {
+	ASSERT_EQ( _currentProgram, glState.currentProgram );
+	ASSERT( _hasComputeShader );
+	glDispatchComputeIndirect( indirectBuffer );
 }
 
 void GLShader::SetRequiredVertexPointers()

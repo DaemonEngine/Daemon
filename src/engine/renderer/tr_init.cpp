@@ -108,6 +108,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_arb_shader_draw_parameters;
 	cvar_t      *r_arb_shader_storage_buffer_object;
 	cvar_t      *r_arb_multi_draw_indirect;
+	cvar_t      *r_arb_compute_shader;
+	cvar_t      *r_arb_shading_language_420pack;
+	cvar_t      *r_arb_explicit_uniform_location;
+	cvar_t      *r_arb_shader_image_load_store;
 
 	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
@@ -1099,6 +1103,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_arb_shader_draw_parameters = Cvar_Get( "r_arb_shader_draw_parameters", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_shader_storage_buffer_object = Cvar_Get( "r_arb_shader_storage_buffer_object", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_multi_draw_indirect = Cvar_Get( "r_arb_multi_draw_indirect", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_compute_shader = Cvar_Get( "r_arb_compute_shader", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_shading_language_420pack = Cvar_Get( "r_arb_shading_language_420pack", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_explicit_uniform_location = Cvar_Get( "r_arb_explicit_uniform_location", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_shader_image_load_store = Cvar_Get( "r_arb_shader_image_load_store", "1", CVAR_CHEAT | CVAR_LATCH );
 
 		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
