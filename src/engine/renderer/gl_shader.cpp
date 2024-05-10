@@ -804,8 +804,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	env += "#line 0\n";
 
 	std::string shaderText = env + libs + GetShaderText( filename );
-
-	// std::string mainText = GetShaderText( filename );
 	
 	std::istringstream shaderTextStream( shaderText );
 	std::string shaderMain;
