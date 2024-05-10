@@ -1979,13 +1979,9 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	drawSurf->shader = shader;
 	drawSurf->bspSurface = bspSurface;
 
-	int entityNum;
+	int entityNum = -1;
 
-	if ( tr.currentEntity == &tr.worldEntity )
-	{
-		entityNum = -1;
-	}
-	else
+	if ( tr.currentEntity != &tr.worldEntity )
 	{
 		entityNum = tr.currentEntity - tr.refdef.entities;
 	}
