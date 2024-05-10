@@ -263,13 +263,11 @@ static void R_AddInteractionSurface( bspSurface_t *surf, trRefLight_t *light, in
 
 static void R_AddDecalSurface( bspSurface_t *surf, int decalBits )
 {
-	int i;
-
 	// add decals
 	if ( decalBits )
 	{
 		// ydnar: project any decals
-		for ( i = 0; i < tr.refdef.numDecalProjectors; i++ )
+		for ( int i = 0; i < tr.refdef.numDecalProjectors; i++ )
 		{
 			if ( decalBits & ( 1 << i ) )
 			{
