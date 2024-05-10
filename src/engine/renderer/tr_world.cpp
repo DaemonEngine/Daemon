@@ -875,10 +875,10 @@ void R_AddWorldSurfaces()
 	// render sky or world?
 	if ( tr.refdef.rdflags & RDF_SKYBOXPORTAL && tr.world->numSkyNodes > 0 )
 	{
-		int       i;
-		bspNode_t **node;
+		bspNode_t **node = tr.world->skyNodes;
+		bspNode_t **lastNode = node + tr.world->numSkyNodes;
 
-		for ( i = 0, node = tr.world->skyNodes; i < tr.world->numSkyNodes; i++, node++ )
+		for ( ; node < lastNode; node++ )
 		{
 			R_AddLeafSurfaces( *node, 0, FRUSTUM_CLIPALL );  // no decals on skybox nodes
 		}
