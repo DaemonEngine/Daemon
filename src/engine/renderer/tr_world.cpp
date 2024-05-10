@@ -566,6 +566,16 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 		// since we don't care about sort orders, just go positive to negative
 		int r = BoxOnPlaneSide( light->worldBounds[ 0 ], light->worldBounds[ 1 ], node->plane );
 
+#if 1
+		if ( r > 2 )
+		{
+			// recurse down the children, front side first
+			R_RecursiveInteractionNode( node->children[ 0 ], light, planeBits, interactionBits );
+		}
+
+		bool side = r > 1;
+		node = node->children[ side ];
+#else
 		switch ( r )
 		{
 			case 1:
@@ -585,6 +595,7 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 				node = node->children[ 1 ];
 				break;
 		}
+#endif
 	}
 	while ( true );
 
