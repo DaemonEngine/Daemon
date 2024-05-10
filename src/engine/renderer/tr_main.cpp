@@ -345,10 +345,11 @@ cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 	// check against frustum planes
 	bool anyClip = false;
 
-	for ( size_t i = 0; i < FRUSTUM_PLANES; i++ )
-	{
-		cplane_t *frust = &tr.viewParms.frustums[ 0 ][ i ];
+	cplane_t *frust = &tr.viewParms.frustums[ 0 ][ 0 ];
+	cplane_t *lastFrust = frust + FRUSTUM_PLANES;
 
+	for ( ; frust < lastFrust; frust++ )
+	{
 		int r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
 
 		if ( r == 2 )
