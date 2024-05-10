@@ -450,14 +450,11 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 		// inside can be visible
 		if ( !r_nocull->integer )
 		{
-			int i;
-			int r;
-
-			for ( i = 0; i < FRUSTUM_PLANES; i++ )
+			for ( size_t i = 0; i < FRUSTUM_PLANES; i++ )
 			{
 				if ( planeBits & ( 1 << i ) )
 				{
-					r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
+					int r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
 
 					if ( r == 2 )
 					{
@@ -477,9 +474,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 		// ydnar: cull decals
 		if ( decalBits )
 		{
-			int i;
-
-			for ( i = 0; i < tr.refdef.numDecalProjectors; i++ )
+			for ( int i = 0; i < tr.refdef.numDecalProjectors; i++ )
 			{
 				if ( decalBits & ( 1 << i ) )
 				{
@@ -500,7 +495,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 
 		float d = DotProduct(tr.viewParms.orientation.viewOrigin, node->plane->normal) - node->plane->dist;
 
-		uint32_t side = d <= 0;
+		uint32 side = d <= 0.0;
 
 		// recurse down the children, front side first
 		R_RecursiveWorldNode( node->children[ side ], planeBits, decalBits );
