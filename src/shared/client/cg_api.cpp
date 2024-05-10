@@ -65,10 +65,15 @@ int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t pro
 }
 
 void trap_CM_BatchMarkFragments(
+	unsigned maxPoints, //per mark
+	unsigned maxFragments, //per mark
 	const std::vector<markMsgInput_t> &markMsgInput,
 	std::vector<markMsgOutput_t> &markMsgOutput )
 {
-	VM::SendMsg<CMBatchMarkFragments>(markMsgInput, markMsgOutput);
+	if (!markMsgInput.empty())
+	{
+		VM::SendMsg<CMBatchMarkFragments>(maxPoints, maxFragments, markMsgInput, markMsgOutput);
+	}
 }
 
 void trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime )

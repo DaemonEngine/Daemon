@@ -1104,32 +1104,39 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 
 		case CG_CM_BATCHMARKFRAGMENTS:
 			IPC::HandleMsg<CMBatchMarkFragments>(channel, std::move(reader), [this] (
-				const std::vector<markMsgInput_t>& markMsgInput,
-				std::vector<markMsgOutput_t>& markMsgOutput)
+				unsigned maxPoints,
+				unsigned maxFragments,
+				const std::vector<markMsgInput_t>& inputs,
+				std::vector<markMsgOutput_t>& outputs)
 			{
-				size_t numMarks = markMsgInput.size();
+				outputs.reserve(inputs.size());
+				std::vector<std::array<float, 3>> pointBuf(maxPoints);
+				std::vector<markFragment_t> fragmentBuf(maxFragments);
 
-				markMsgOutput.reserve(MAX_MARK_FRAGMENTS);
-				markMsgOutput.resize(numMarks);
-
-				for ( size_t m = 0; m < numMarks; m++ )
+				for (const markMsgInput_t& input : inputs)
 				{
-					const markMsgInput_t& input = markMsgInput[ m ];
-					const markOriginalPoints_t& originalPoints = input.first;
-					const markProjection_t& projection = input.second;
-
-					markMsgOutput_t& output = markMsgOutput[ m ];
-					markPoints_t& markPoints = output.markPoints;
-					markFragments_t& markFragments = output.markFragments;
-
-					output.numFragments = re.MarkFragments(
-						4,
-						(const vec3_t*) originalPoints.data(),
+					auto& inputPoints = input.first;
+					auto& projection = input.second;
+					size_t numFragments = re.MarkFragments(
+						inputPoints.size(),
+						reinterpret_cast<const vec3_t*>(inputPoints.data()),
 						projection.data(),
-						MAX_MARK_POINTS,
-						markPoints[ 0 ].data(),
-						MAX_MARK_FRAGMENTS,
-						markFragments.data());
+						maxPoints,
+						reinterpret_cast<float*>(pointBuf.data()),
+						maxFragments,
+						fragmentBuf.data());
+					size_t numPoints;
+					if (numFragments == 0) {
+						numPoints = 0;
+					} else {
+						// HACK: assume last fragment is last
+						const markFragment_t& lastFragment = fragmentBuf[numFragments - 1];
+						numPoints = lastFragment.firstPoint + lastFragment.numPoints;
+					}
+					outputs.emplace_back(
+						std::vector<std::array<float, 3>>(pointBuf.data(), pointBuf.data() + numPoints),
+						std::vector<markFragment_t>(fragmentBuf.data(), fragmentBuf.data() + numFragments)
+					);
 				}
 			});
 			break;

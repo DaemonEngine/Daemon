@@ -250,6 +250,8 @@ using CMMarkFragmentsMsg = IPC::SyncMessage<
 using CMBatchMarkFragments = IPC::SyncMessage<
 	IPC::Message<
 		IPC::Id<VM::QVM, CG_CM_BATCHMARKFRAGMENTS>,
+		unsigned,
+		unsigned,
 		std::vector<markMsgInput_t>>,
 	IPC::Reply<
 		std::vector<markMsgOutput_t>>
