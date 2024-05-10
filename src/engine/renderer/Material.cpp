@@ -861,7 +861,6 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 	// 4 bytes per component
 	glBufferData( GL_SHADER_STORAGE_BUFFER, offset * sizeof( uint32_t ), nullptr, GL_DYNAMIC_DRAW );
 	uint32_t* materialsData = materialsSSBO.MapBufferRange( offset );
-	// uint32_t* materialsData = materialsDataInitial;
 	memset( materialsData, 0, 4 * offset );
 
 	for ( uint materialPackID = 0; materialPackID < 3; materialPackID++ ) {
@@ -996,7 +995,6 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	glBufferData( GL_DRAW_INDIRECT_BUFFER, count * sizeof( GLIndirectBuffer::GLIndirectCommand ), nullptr, GL_STATIC_DRAW );
 
 	GLIndirectBuffer::GLIndirectCommand* commands = commandBuffer.MapBufferRange( count );
-	// GLIndirectBuffer::GLIndirectCommand* commands = commandsInitial;
 	uint offset = 0;
 	for ( MaterialPack& pack : materialPacks ) {
 		for ( Material& material : pack.materials ) {
@@ -1608,7 +1606,6 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 
 	materialsSSBO.BindBuffer();
 	uint32_t* materialsData = materialsSSBO.MapBufferRange( dynamicDrawSurfsOffset, dynamicDrawSurfsSize );
-	// uint32_t* materialsData = materialsDataInitial;
 	// Shader uniforms are set to 0 if they're not specified, so make sure we do that here too
 	memset( materialsData, 0, 4 * dynamicDrawSurfsSize );
 	for ( drawSurf_t& drawSurf : dynamicDrawSurfs ) {
