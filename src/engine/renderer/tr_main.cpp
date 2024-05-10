@@ -1968,14 +1968,11 @@ R_AddDrawSurf
 */
 void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface )
 {
-	int        index;
-	drawSurf_t *drawSurf;
-
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
-	index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
+	int index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
 
-	drawSurf = &tr.refdef.drawSurfs[ index ];
+	drawSurf_t *drawSurf = &tr.refdef.drawSurfs[ index ];
 
 	drawSurf->entity = tr.currentEntity;
 	drawSurf->surface = surface;
