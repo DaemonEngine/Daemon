@@ -84,6 +84,7 @@ struct glconfig2_t
 	bool textureFloatAvailable;
 	bool textureIntegerAvailable;
 	bool textureRGAvailable;
+	bool computeShaderAvailable;
 	bool gpuShader4Available;
 	bool gpuShader5Available;
 	bool textureGatherAvailable;
