@@ -514,9 +514,6 @@ R_RecursiveInteractionNode
 */
 static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, int planeBits, int interactionBits )
 {
-	int i;
-	int r;
-
 	do
 	{
 		// surfaces that arn't potentially visible may still cast shadows
@@ -533,11 +530,11 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 		// can cast shadows into the view frustum
 		if ( !r_nocull->integer )
 		{
-			for ( i = 0; i < FRUSTUM_PLANES; i++ )
+			for ( size_t i = 0; i < FRUSTUM_PLANES; i++ )
 			{
 				if ( planeBits & ( 1 << i ) )
 				{
-					r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
+					int r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
 
 					if ( r == 2 )
 					{
@@ -567,7 +564,7 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 
 		// node is just a decision point, so go down both sides
 		// since we don't care about sort orders, just go positive to negative
-		r = BoxOnPlaneSide( light->worldBounds[ 0 ], light->worldBounds[ 1 ], node->plane );
+		int r = BoxOnPlaneSide( light->worldBounds[ 0 ], light->worldBounds[ 1 ], node->plane );
 
 		switch ( r )
 		{
@@ -593,18 +590,16 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 
 	{
 		// leaf node, so add mark surfaces
-		int          c;
-		bspSurface_t *surf, **mark;
 
 		// add the individual surfaces
-		mark = tr.world->markSurfaces + node->firstMarkSurface;
-		c = node->numMarkSurfaces;
+		bspSurface_t **mark = tr.world->markSurfaces + node->firstMarkSurface;
+		int c = node->numMarkSurfaces;
 
 		while ( c-- )
 		{
 			// the surface may have already been added if it
 			// spans multiple leafs
-			surf = *mark;
+			bspSurface_t *surf = *mark;
 			R_AddInteractionSurface( surf, light, interactionBits );
 			mark++;
 		}
