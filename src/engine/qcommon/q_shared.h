@@ -138,6 +138,13 @@ void ignore_result(T) {}
 #define roundf( f ) ( floor( (f) + 0.5 ) )
 #endif
 
+#define CMD_BACKUP 64
+#define CMD_MASK ( CMD_BACKUP - 1 )
+#define CMD_OLDEST ( CMD_BACKUP - 1 )
+// allow a lot of command backups for very fast systems
+// multiple commands may be combined into a single packet, so this
+// needs to be larger than PACKET_BACKUP
+
 //=============================================================
 
 	using byte = uint8_t;
@@ -1848,6 +1855,8 @@ union OpaquePlayerState {
 
 		byte        buttons[ USERCMD_BUTTONS / 8 ];
 	};
+
+	using userCmds_t = std::array<usercmd_t, CMD_BACKUP>;
 
 // Some functions for buttons manipulation & testing
 	inline void usercmdPressButton( byte *buttons, int bit )
