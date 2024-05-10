@@ -1999,9 +1999,11 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 
 	tr.refdef.numDrawSurfs++;
 
-	if ( shader->depthShader != nullptr ) {
-		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
+	if ( !shader->depthShader ) {
+		return;
 	}
+
+	R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
 }
 
 /*
