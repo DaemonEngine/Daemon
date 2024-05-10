@@ -745,9 +745,7 @@ static void R_MarkLeaves()
 	// hasn't changed, we don't need to mark everything again
 	if( tr.refdef.areamaskModified ) {
 		// remark ALL cached visClusters
-		for ( i = 0; i < MAX_VISCOUNTS; i++ ) {
-			tr.visClusters[ i ] = -1;
-		}
+		memset( tr.visClusters, -1, MAX_VISCOUNTS * sizeof( int ) );
 		tr.visIndex = 0;
 	} else {
 		for ( i = 0; i < MAX_VISCOUNTS; i++ ) {
