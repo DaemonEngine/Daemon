@@ -225,23 +225,38 @@ void ByteToDir( int b, vec3_t dir )
 	VectorCopy( bytedirs[ b ], dir );
 }
 
-vec_t PlaneNormalize( vec4_t plane )
+void PlaneSet( plane_t &out, const vec_t x, const vec_t y, const vec_t z, const vec_t dist )
 {
-	vec_t length2, ilength;
+	VectorSet( out.normal, x, y, z );
+	out.dist = dist;
+}
 
-	length2 = DotProduct( plane, plane );
+void PlaneSet( plane_t &out, const vec3_t normal, const vec_t dist )
+{
+	VectorCopy( normal, out.normal );
+	out.dist = dist;
+}
+
+void PlaneSet( plane_t &out, const vec4_t v )
+{
+	PlaneSet( out, v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] );
+}
+
+vec_t PlaneNormalize( plane_t &plane )
+{
+	vec_t length2 = DotProduct( plane.normal, plane.normal );
 
 	if ( length2 == 0.0f )
 	{
-		VectorClear( plane );
+		VectorClear( plane.normal );
 		return 0.0f;
 	}
 
-	ilength = Q_rsqrt( length2 );
-	plane[ 0 ] = plane[ 0 ] * ilength;
-	plane[ 1 ] = plane[ 1 ] * ilength;
-	plane[ 2 ] = plane[ 2 ] * ilength;
-	plane[ 3 ] = plane[ 3 ] * ilength;
+	vec_t ilength = Q_rsqrt( length2 );
+	plane.normal[ 0 ] *= ilength;
+	plane.normal[ 1 ] *= ilength;
+	plane.normal[ 2 ] *= ilength;
+	plane.dist *= ilength;
 
 	return length2 * ilength;
 }
@@ -270,20 +285,20 @@ vec_t PlaneNormalize( vec4_t plane )
  * See the function below if you want the normal to be on the other side
  * =====================
  */
-bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c )
+bool PlaneFromPoints( plane_t &plane, const vec3_t a, const vec3_t b, const vec3_t c )
 {
 	vec3_t d1, d2;
 
 	VectorSubtract( b, a, d1 );
 	VectorSubtract( c, a, d2 );
-	CrossProduct( d2, d1, plane );
+	CrossProduct( d2, d1, plane.normal );
 
-	if ( VectorNormalize( plane ) == 0 )
+	if ( VectorNormalize( plane.normal ) == 0 )
 	{
 		return false;
 	}
 
-	plane[ 3 ] = DotProduct( a, plane );
+	plane.dist = DotProduct( a, plane.normal );
 	return true;
 }
 /*
@@ -293,7 +308,7 @@ bool PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t
  * Returns false if the triangle is degenerate.
  * =====================
  */
-bool PlaneFromPointsOrder( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c, bool cw )
+bool PlaneFromPointsOrder( plane_t &plane, const vec3_t a, const vec3_t b, const vec3_t c, bool cw )
 {
 	vec3_t d1, d2;
 
@@ -302,24 +317,24 @@ bool PlaneFromPointsOrder( vec4_t plane, const vec3_t a, const vec3_t b, const v
 
 	if ( cw )
 	{
-		CrossProduct( d2, d1, plane );
+		CrossProduct( d2, d1, plane.normal );
 	}
 
 	else
 	{
-		CrossProduct( d1, d2, plane );
+		CrossProduct( d1, d2, plane.normal );
 	}
 
-	if ( VectorNormalize( plane ) == 0 )
+	if ( VectorNormalize( plane.normal ) == 0 )
 	{
 		return false;
 	}
 
-	plane[ 3 ] = DotProduct( a, plane );
+	plane.dist = DotProduct( a, plane.normal );
 	return true;
 }
 
-bool PlanesGetIntersectionPoint( const vec4_t plane1, const vec4_t plane2, const vec4_t plane3, vec3_t out )
+bool PlanesGetIntersectionPoint( const plane_t &plane1, const plane_t &plane2, const plane_t &plane3, vec3_t out )
 {
 	// http://www.cgafaq.info/wiki/Intersection_of_three_planes
 
@@ -327,9 +342,9 @@ bool PlanesGetIntersectionPoint( const vec4_t plane1, const vec4_t plane2, const
 	vec3_t n1n2, n2n3, n3n1;
 	vec_t  denom;
 
-	VectorNormalize2( plane1, n1 );
-	VectorNormalize2( plane2, n2 );
-	VectorNormalize2( plane3, n3 );
+	VectorNormalize2( plane1.normal, n1 );
+	VectorNormalize2( plane2.normal, n2 );
+	VectorNormalize2( plane3.normal, n3 );
 
 	CrossProduct( n1, n2, n1n2 );
 	CrossProduct( n2, n3, n2n3 );
@@ -347,23 +362,21 @@ bool PlanesGetIntersectionPoint( const vec4_t plane1, const vec4_t plane2, const
 
 	VectorClear( out );
 
-	VectorMA( out, plane1[ 3 ], n2n3, out );
-	VectorMA( out, plane2[ 3 ], n3n1, out );
-	VectorMA( out, plane3[ 3 ], n1n2, out );
+	VectorMA( out, plane1.dist, n2n3, out );
+	VectorMA( out, plane2.dist, n3n1, out );
+	VectorMA( out, plane3.dist, n1n2, out );
 
 	VectorScale( out, 1.0f / denom, out );
 
 	return true;
 }
 
-void PlaneIntersectRay( const vec3_t rayPos, const vec3_t rayDir, const vec4_t plane, vec3_t res )
+void PlaneIntersectRay( const vec3_t rayPos, const vec3_t rayDir, const plane_t &plane, vec3_t res )
 {
 	vec3_t dir;
-	float  sect;
-
 	VectorNormalize2( rayDir, dir );
 
-	sect = - ( DotProduct( plane, rayPos ) - plane[ 3 ] ) / DotProduct( plane, rayDir );
+	vec_t sect = - ( DotProduct( plane.normal, rayPos ) - plane.dist ) / DotProduct( plane.normal, rayDir );
 	VectorScale( dir, sect, dir );
 	VectorAdd( rayPos, dir, res );
 }
@@ -2135,33 +2148,36 @@ void MatrixFromQuat( matrix_t m, const quat_t q )
 #endif
 }
 
-void MatrixFromPlanes( matrix_t m, const vec4_t left, const vec4_t right, const vec4_t bottom, const vec4_t top, const vec4_t near, const vec4_t far )
+void MatrixFromPlanes( matrix_t m,
+		const plane_t left, const plane_t right,
+		const plane_t bottom, const plane_t top,
+		const plane_t near, const plane_t far )
 {
-	m[ 0 ] = ( right[ 0 ] - left[ 0 ] ) / 2;
-	m[ 1 ] = ( top[ 0 ] - bottom[ 0 ] ) / 2;
-	m[ 2 ] = ( far[ 0 ] - near[ 0 ] ) / 2;
-	m[ 3 ] = right[ 0 ] - ( right[ 0 ] - left[ 0 ] ) / 2;
+	m[ 0 ] = ( right.normal[ 0 ] - left.normal[ 0 ] ) / 2;
+	m[ 1 ] = ( top.normal[ 0 ] - bottom.normal[ 0 ] ) / 2;
+	m[ 2 ] = ( far.normal[ 0 ] - near.normal[ 0 ] ) / 2;
+	m[ 3 ] = right.normal[ 0 ] - ( right.normal[ 0 ] - left.normal[ 0 ] ) / 2;
 
-	m[ 4 ] = ( right[ 1 ] - left[ 1 ] ) / 2;
-	m[ 5 ] = ( top[ 1 ] - bottom[ 1 ] ) / 2;
-	m[ 6 ] = ( far[ 1 ] - near[ 1 ] ) / 2;
-	m[ 7 ] = right[ 1 ] - ( right[ 1 ] - left[ 1 ] ) / 2;
+	m[ 4 ] = ( right.normal[ 1 ] - left.normal[ 1 ] ) / 2;
+	m[ 5 ] = ( top.normal[ 1 ] - bottom.normal[ 1 ] ) / 2;
+	m[ 6 ] = ( far.normal[ 1 ] - near.normal[ 1 ] ) / 2;
+	m[ 7 ] = right.normal[ 1 ] - ( right.normal[ 1 ] - left.normal[ 1 ] ) / 2;
 
-	m[ 8 ] = ( right[ 2 ] - left[ 2 ] ) / 2;
-	m[ 9 ] = ( top[ 2 ] - bottom[ 2 ] ) / 2;
-	m[ 10 ] = ( far[ 2 ] - near[ 2 ] ) / 2;
-	m[ 11 ] = right[ 2 ] - ( right[ 2 ] - left[ 2 ] ) / 2;
+	m[ 8 ] = ( right.normal[ 2 ] - left.normal[ 2 ] ) / 2;
+	m[ 9 ] = ( top.normal[ 2 ] - bottom.normal[ 2 ] ) / 2;
+	m[ 10 ] = ( far.normal[ 2 ] - near.normal[ 2 ] ) / 2;
+	m[ 11 ] = right.normal[ 2 ] - ( right.normal[ 2 ] - left.normal[ 2 ] ) / 2;
 
 #if 0
-	m[ 12 ] = ( right[ 3 ] - left[ 3 ] ) / 2;
-	m[ 13 ] = ( top[ 3 ] - bottom[ 3 ] ) / 2;
-	m[ 14 ] = ( far[ 3 ] - near[ 3 ] ) / 2;
-	m[ 15 ] = right[ 3 ] - ( right[ 3 ] - left[ 3 ] ) / 2;
+	m[ 12 ] = ( right.dist - left.dist ) / 2;
+	m[ 13 ] = ( top.dist - bottom.dist ) / 2;
+	m[ 14 ] = ( far.dist - near.dist ) / 2;
+	m[ 15 ] = right.dist - ( right.dist - left.dist ) / 2;
 #else
-	m[ 12 ] = ( -right[ 3 ] - -left[ 3 ] ) / 2;
-	m[ 13 ] = ( -top[ 3 ] - -bottom[ 3 ] ) / 2;
-	m[ 14 ] = ( -far[ 3 ] - -near[ 3 ] ) / 2;
-	m[ 15 ] = -right[ 3 ] - ( -right[ 3 ] - -left[ 3 ] ) / 2;
+	m[ 12 ] = ( -right.dist - -left.dist ) / 2;
+	m[ 13 ] = ( -top.dist - -bottom.dist ) / 2;
+	m[ 14 ] = ( -far.dist - -near.dist ) / 2;
+	m[ 15 ] = -right.dist - ( -right.dist - -left.dist ) / 2;
 #endif
 }
 
@@ -2366,27 +2382,26 @@ void MatrixTransform4( const matrix_t m, const vec4_t in, vec4_t out )
 	out[ 3 ] = m[ 3 ] * in[ 0 ] + m[ 7 ] * in[ 1 ] + m[ 11 ] * in[ 2 ] + m[ 15 ] * in[ 3 ];
 }
 
-void MatrixTransformPlane( const matrix_t m, const vec4_t in, vec4_t out )
+void MatrixTransformPlane( const matrix_t m, const plane_t &in, plane_t &out )
 {
-	vec3_t translation;
-	vec3_t planePos;
-
 	// rotate the plane normal
-	MatrixTransformNormal( m, in, out );
+	MatrixTransformNormal( m, in.normal, out.normal );
 
 	// add new position to current plane position
+	vec3_t translation;
 	VectorSet( translation,  m[ 12 ], m[ 13 ], m[ 14 ] );
-	VectorMA( translation, in[ 3 ], out, planePos );
 
-	out[ 3 ] = DotProduct( out, planePos );
+	vec3_t planePos;
+	VectorMA( translation, in.dist, out.normal, planePos );
+
+	out.dist = DotProduct( out.normal, planePos );
 }
 
-void MatrixTransformPlane2( const matrix_t m, vec4_t inout )
+void MatrixTransformPlane2( const matrix_t m, plane_t &inout )
 {
-	vec4_t tmp;
-
+	plane_t tmp;
 	MatrixTransformPlane( m, inout, tmp );
-	Vector4Copy( tmp, inout );
+	inout = tmp;
 }
 
 /*
@@ -2704,11 +2719,9 @@ void MatrixOrthogonalProjectionRH( matrix_t m, vec_t left, vec_t right, vec_t bo
  *
  * http://msdn.microsoft.com/en-us/library/bb205356%28v=VS.85%29.aspx
  */
-void MatrixPlaneReflection( matrix_t m, const vec4_t plane )
+void MatrixPlaneReflection( matrix_t m, const plane_t plane )
 {
-	vec4_t P;
-	Vector4Copy( plane, P );
-
+	plane_t P = plane;
 	PlaneNormalize( P );
 
 	/*
@@ -2719,18 +2732,18 @@ void MatrixPlaneReflection( matrix_t m, const vec4_t plane )
 	 */
 
 	// Quake uses a different plane equation
-	m[ 0 ] = -2 * P[ 0 ] * P[ 0 ] + 1;
-	m[ 4 ] = -2 * P[ 0 ] * P[ 1 ];
-	m[ 8 ] = -2 * P[ 0 ] * P[ 2 ];
-	m[ 12 ] = 2 * P[ 0 ] * P[ 3 ];
-	m[ 1 ] = -2 * P[ 1 ] * P[ 0 ];
-	m[ 5 ] = -2 * P[ 1 ] * P[ 1 ] + 1;
-	m[ 9 ] = -2 * P[ 1 ] * P[ 2 ];
-	m[ 13 ] = 2 * P[ 1 ] * P[ 3 ];
-	m[ 2 ] = -2 * P[ 2 ] * P[ 0 ];
-	m[ 6 ] = -2 * P[ 2 ] * P[ 1 ];
-	m[ 10 ] = -2 * P[ 2 ] * P[ 2 ] + 1;
-	m[ 14 ] = 2 * P[ 2 ] * P[ 3 ];
+	m[ 0 ] = -2 * P.normal[ 0 ] * P.normal[ 0 ] + 1;
+	m[ 4 ] = -2 * P.normal[ 0 ] * P.normal[ 1 ];
+	m[ 8 ] = -2 * P.normal[ 0 ] * P.normal[ 2 ];
+	m[ 12 ] = 2 * P.normal[ 0 ] * P.dist;
+	m[ 1 ] = -2 * P.normal[ 1 ] * P.normal[ 0 ];
+	m[ 5 ] = -2 * P.normal[ 1 ] * P.normal[ 1 ] + 1;
+	m[ 9 ] = -2 * P.normal[ 1 ] * P.normal[ 2 ];
+	m[ 13 ] = 2 * P.normal[ 1 ] * P.dist;
+	m[ 2 ] = -2 * P.normal[ 2 ] * P.normal[ 0 ];
+	m[ 6 ] = -2 * P.normal[ 2 ] * P.normal[ 1 ];
+	m[ 10 ] = -2 * P.normal[ 2 ] * P.normal[ 2 ] + 1;
+	m[ 14 ] = 2 * P.normal[ 2 ] * P.dist;
 	m[ 3 ] = 0;
 	m[ 7 ] = 0;
 	m[ 11 ] = 0;
