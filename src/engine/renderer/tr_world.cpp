@@ -882,21 +882,21 @@ void R_AddWorldSurfaces()
 		{
 			R_AddLeafSurfaces( *node, 0, FRUSTUM_CLIPALL );  // no decals on skybox nodes
 		}
+
+		return;
 	}
-	else
-	{
-		// determine which leaves are in the PVS / areamask
-		R_MarkLeaves();
 
-		// clear traversal list
-		backEndData[ tr.smpFrame ]->traversalLength = 0;
+	// determine which leaves are in the PVS / areamask
+	R_MarkLeaves();
 
-		// update visbounds and add surfaces that weren't cached with VBOs
-		R_RecursiveWorldNode( tr.world->nodes, FRUSTUM_CLIPALL, tr.refdef.decalBits );
+	// clear traversal list
+	backEndData[ tr.smpFrame ]->traversalLength = 0;
 
-		// ydnar: add decal surfaces
-		R_AddDecalSurfaces( tr.world->models );
-	}
+	// update visbounds and add surfaces that weren't cached with VBOs
+	R_RecursiveWorldNode( tr.world->nodes, FRUSTUM_CLIPALL, tr.refdef.decalBits );
+
+	// ydnar: add decal surfaces
+	R_AddDecalSurfaces( tr.world->models );
 }
 
 /*
