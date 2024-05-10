@@ -78,15 +78,18 @@ static void GLSL_InitGPUShadersOrError()
 	// single texture rendering
 	gl_shaderManager.load( gl_generic2DShader );
 	gl_shaderManager.load( gl_genericShader );
+
+	// Material system shaders that are always loaded if material system is available
 	if ( glConfig2.materialSystemAvailable ) {
 		gl_shaderManager.load( gl_genericShaderMaterial );
+		gl_shaderManager.load( gl_lightMappingShaderMaterial );
+		gl_shaderManager.load( gl_skyboxShaderMaterial );
+		gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
+		gl_shaderManager.load( gl_heatHazeShaderMaterial );
 	}
 
 	// standard light mapping
 	gl_shaderManager.load( gl_lightMappingShader );
-	if ( glConfig2.materialSystemAvailable ) {
-		gl_shaderManager.load( gl_lightMappingShaderMaterial );
-	}
 
 	if ( glConfig2.dynamicLight )
 	{
@@ -141,24 +144,15 @@ static void GLSL_InitGPUShadersOrError()
 
 	// skybox drawing for abitrary polygons
 	gl_shaderManager.load( gl_skyboxShader );
-	if ( glConfig2.materialSystemAvailable ) {
-		gl_shaderManager.load( gl_skyboxShaderMaterial );
-	}
 
 	// Q3A volumetric fog
 	gl_shaderManager.load( gl_fogQuake3Shader );
-	if ( glConfig2.materialSystemAvailable ) {
-		gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
-	}
 
 	// global fog post process effect
 	gl_shaderManager.load( gl_fogGlobalShader );
 
 	// heatHaze post process effect
 	gl_shaderManager.load( gl_heatHazeShader );
-	if ( glConfig2.materialSystemAvailable ) {
-		gl_shaderManager.load( gl_heatHazeShaderMaterial );
-	}
 
 	// NOTE: screen shader seems to be only used by bloom post process effect.
 	if ( r_bloom->integer != 0 )
