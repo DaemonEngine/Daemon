@@ -631,14 +631,13 @@ static bspNode_t *R_PointInLeaf( const vec3_t p )
 
 		float d = DotProduct( p, plane->normal ) - plane->dist;
 
-		if ( d > 0 )
-		{
-			node = node->children[ 0 ];
-		}
-		else
-		{
-			node = node->children[ 1 ];
-		}
+#if 1
+		bool side = d <= 0.0;
+		node = node->children[ side ];
+#else
+		if ( d > 0 ) node = node->children[ 0 ];
+		else node = node->children[ 1 ];
+#endif
 	}
 
 	return node;
