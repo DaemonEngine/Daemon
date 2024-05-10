@@ -866,12 +866,15 @@ void R_AddDecalSurface( decal_t *decal )
 	{
 		float fade = ( float )( decal->fadeEndTime - tr.refdef.time ) / ( float )( decal->fadeEndTime - decal->fadeStartTime );
 
-		for ( size_t i = 0; i < decal->numVerts; i++ )
+		polyVert_t *vert = decal->verts;
+		polyVert_t *lastVert = vert + decal->numVerts;
+
+		for ( ; vert < lastVert; vert++ )
 		{
-			decal->verts[ i ].modulate[ 0 ] *= fade;
-			decal->verts[ i ].modulate[ 1 ] *= fade;
-			decal->verts[ i ].modulate[ 2 ] *= fade;
-			decal->verts[ i ].modulate[ 3 ] *= fade;
+			vert->modulate[ 0 ] *= fade;
+			vert->modulate[ 1 ] *= fade;
+			vert->modulate[ 2 ] *= fade;
+			vert->modulate[ 3 ] *= fade;
 		}
 	}
 
