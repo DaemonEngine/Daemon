@@ -367,10 +367,6 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 
 static void R_AddLeafSurfaces( bspNode_t *node, int decalBits, int planeBits )
 {
-	int          c;
-	bspSurface_t **mark;
-	bspSurface_t **view;
-
 	tr.pc.c_leafs++;
 
 	// add to z buffer bounds
@@ -405,9 +401,9 @@ static void R_AddLeafSurfaces( bspNode_t *node, int decalBits, int planeBits )
 	}
 
 	// add the individual surfaces
-	mark = tr.world->markSurfaces + node->firstMarkSurface;
-	c = node->numMarkSurfaces;
-	view = tr.world->viewSurfaces + node->firstMarkSurface;
+	bspSurface_t **mark = tr.world->markSurfaces + node->firstMarkSurface;
+	int c = node->numMarkSurfaces;
+	bspSurface_t **view = tr.world->viewSurfaces + node->firstMarkSurface;
 
 	while ( c-- )
 	{
