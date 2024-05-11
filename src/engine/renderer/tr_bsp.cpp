@@ -469,7 +469,7 @@ static std::vector<std::string> R_LoadExternalLightmaps( const char *mapName )
 	const char *const extensions[] {".png", ".tga", ".webp", ".crn", ".jpg", ".jpeg"};
 	std::vector<std::string> files[ ARRAY_LEN( extensions ) ];
 	for ( const std::string& filename : FS::PakPath::ListFiles( mapName ) ) {
-		for ( int i = 0; i < ARRAY_LEN( extensions ); i++ )
+		for ( size_t i = 0; i < ARRAY_LEN( extensions ); i++ )
 		{
 			if ( Str::IsISuffix( extensions[ i ], filename ) )
 			{
