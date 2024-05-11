@@ -564,7 +564,7 @@ void CL_KeyDownEvent( const Keyboard::Key& key1, const Keyboard::Key& key2, unsi
 
 	for ( Key key : {key1, key2} )
 	{
-		if ( key.IsValid() && keys[ key ].down )
+		if ( key.IsValid() && !keys[ key ].down )
 		{
 			keys[ key ].down = true;
 			anykeydown++; // update BUTTON_ANY status
