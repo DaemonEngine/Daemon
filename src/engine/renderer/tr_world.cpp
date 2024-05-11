@@ -495,13 +495,13 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 
 		float d = DotProduct(tr.viewParms.orientation.viewOrigin, node->plane->normal) - node->plane->dist;
 
-		uint32 side = d <= 0.0;
+		bool side = d <= 0.0;
 
 		// recurse down the children, front side first
 		R_RecursiveWorldNode( node->children[ side ], planeBits, decalBits );
 
 		// tail recurse
-		node = node->children[ side ^ 1 ];
+		node = node->children[ !side ];
 	}
 	while ( true );
 
