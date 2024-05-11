@@ -1,5 +1,16 @@
 # Documentation: https://wiki.unvanquished.net/wiki/Continuous_integration
 
+only_commits:
+  files:
+    - .appveyor.yml
+    # The rest of this list should stay in sync with azure-pipelines.yml
+    - src/
+    - libs/
+    - cmake/
+    - CMakeLists.txt
+    - '*.cmake'
+    - .gitmodules
+
 branches:
   except:
     - debian
