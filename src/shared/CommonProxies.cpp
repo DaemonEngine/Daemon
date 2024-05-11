@@ -333,10 +333,11 @@ namespace Cvar{
 
     void CallOnValueChangedSyscall(Util::Reader& reader, IPC::Channel& channel) {
         IPC::HandleMsg<VM::OnValueChangedMsg>(channel, std::move(reader), [](std::string name, std::string value, bool& success, std::string& description) {
-            auto map = GetCvarMap();
+            CvarMap& map = GetCvarMap();
             auto it = map.find(name);
 
             if (it == map.end()) {
+                Log::Warn("Cvar '%' not registered here", name);
                 success = true;
                 description = "";
                 return;
