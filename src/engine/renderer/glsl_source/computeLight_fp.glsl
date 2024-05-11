@@ -125,8 +125,9 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
   float G = NdotL / (NdotL * (1.0 - k) + k);
   G *= NdotV / (NdotV * (1.0 - k) + k);
 
-  color.rgb += lightColor.rgb * NdotL * diffuseColor.rgb * (1.0 - metalness);
-  color.rgb += lightColor.rgb * vec3((D * F * G) / (4.0 * NdotV));
+  vec3 diffuseBRDF = NdotL * diffuseColor.rgb * (1.0 - metalness);
+  vec3 specularBRDF = vec3((D * F * G) / max(4.0 * NdotL * NdotV, 0.0001f));
+  color.rgb += (diffuseBRDF + specularBRDF) * lightColor.rgb * NdotL;
   color.a = mix(diffuseColor.a, 1.0, FexpNV);
 #else // !USE_PHYSICAL_MAPPING
 
@@ -240,7 +241,7 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 #endif
     }
   }
-  
+
 #if defined(r_showLightTiles)
   if (numLights > 0.0)
   {
