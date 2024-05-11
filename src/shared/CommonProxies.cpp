@@ -272,11 +272,16 @@ namespace Cmd {
 
 namespace Cvar{
 
-    // Commands can be statically initialized so we must store the registration parameters
-    // so that we can register them after main
-
     struct CvarRecord {
         CvarProxy* cvar;
+
+        // Cache values of registered cvars to reduce trap calls.
+        // A Cvar<T> knows its value as a T, but not the string representation, so we also need
+        // to store the string if we want GetValue() to be 100% correct.
+        std::string currentValue;
+
+        // Commands can be statically initialized so we must store the registration parameters
+        // so that we can register them after main
         std::string description;
         int flags;
         std::string defaultValue;
@@ -305,15 +310,21 @@ namespace Cvar{
 
     bool Register(CvarProxy* cvar, const std::string& name, std::string description, int flags, const std::string& defaultValue) {
         if (cvarsInitialized) {
-            GetCvarMap()[name] = {cvar, "", 0, defaultValue};
+            GetCvarMap()[name] = {cvar, defaultValue, "", 0, defaultValue};
             RegisterCvarRPC(name, std::move(description), flags, defaultValue);
         } else {
-            GetCvarMap()[name] = {cvar, std::move(description), flags, defaultValue};
+            GetCvarMap()[name] = {cvar, defaultValue, std::move(description), flags, defaultValue};
         }
         return true;
     }
 
     std::string GetValue(const std::string& name) {
+        const CvarMap& map = GetCvarMap();
+        auto it = map.find(name);
+        if (it != map.end()) { // The cache will be used for cvars registered in this VM
+            return it->second.currentValue;
+        }
+
         std::string value;
         VM::SendMsg<VM::GetCvarMsg>(name, value);
         return value;
@@ -344,9 +355,12 @@ namespace Cvar{
             }
 
             auto res = it->second.cvar->OnValueChanged(value);
-
             success = res.success;
             description = res.description;
+
+            if (success) {
+                it->second.currentValue = value; // Update cache
+            }
         });
     }
 
