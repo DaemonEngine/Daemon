@@ -1,5 +1,26 @@
 # Documentation: https://wiki.unvanquished.net/wiki/Continuous_integration
 
+trigger:
+  branches:
+    include:
+      - master
+      - 'for-*.*.*/sync' # Next-release branch
+
+pr:
+  branches:
+    include:
+      - '*'
+  paths:
+    include:
+      - azure-pipelines.yml
+      # The rest of this list should stay in sync with .appveyor.yml
+      - src/
+      - libs/
+      - cmake/
+      - CMakeLists.txt
+      - '*.cmake'
+      - .gitmodules
+
 jobs:
   - job: Mac
     pool:
