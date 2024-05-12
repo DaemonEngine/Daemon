@@ -38,4 +38,4 @@ else()
   message( FATAL_ERROR "Platform not supported" )
 endif()
 
-include("${DAEMON_DIR}/tools/DaemonArchitecture/DaemonArchitecture.cmake")
+include(DaemonArchitecture)
