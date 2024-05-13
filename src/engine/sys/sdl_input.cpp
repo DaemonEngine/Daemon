@@ -489,8 +489,9 @@ void IN_SetMouseMode(MouseMode newMode)
 		{
 			ForceMouseMode( newMode );
 
-			/* Only center mouse when leaving the Delta mode. */
-			if ( mouse_mode == MouseMode::Deltas )
+			/* Only center mouse when leaving or entering the Delta mode. */
+			if ( mouse_mode == MouseMode::Deltas
+				|| newMode == MouseMode::Deltas )
 			{
 				IN_CenterMouse();
 			}
