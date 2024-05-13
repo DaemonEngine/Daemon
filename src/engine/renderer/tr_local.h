@@ -537,6 +537,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	{
 	  IF_NONE,
 	  IF_NOPICMIP = BIT( 0 ),
+	  IF_FITSCREEN = BIT( 1 ),
 	  IF_NORMALMAP = BIT( 2 ),
 	  IF_RGBA16F = BIT( 3 ),
 	  IF_RGBA32F = BIT( 4 ),
