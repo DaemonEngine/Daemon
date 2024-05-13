@@ -1479,6 +1479,11 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		imageParams.bits |= IF_NOPICMIP;
 	}
 
+	if ( stage->fitScreen || shader.fitScreen )
+	{
+		imageParams.bits |= IF_FITSCREEN;
+	}
+
 	switch ( type )
 	{
 		case stageType_t::ST_NORMALMAP:
@@ -2173,6 +2178,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				imageBits |= IF_NOPICMIP;
 			}
 
+			if ( stage->fitScreen || shader.fitScreen )
+			{
+				imageBits |= IF_FITSCREEN;
+			}
+
 			if ( stage->overrideFilterType )
 			{
 				filterType = stage->filterType;
@@ -2294,6 +2304,11 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				imageBits |= IF_NOPICMIP;
 			}
 
+			if ( stage->fitScreen || shader.fitScreen )
+			{
+				imageBits |= IF_FITSCREEN;
+			}
+
 			if ( stage->overrideFilterType )
 			{
 				filterType = stage->filterType;
@@ -2385,6 +2400,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "noPicMip" ) )
 		{
 			stage->overrideNoPicMip = true;
+		}
+		else if ( !Q_stricmp( token, "fitScreen" ) )
+		{
+			stage->fitScreen = true;
 		}
 		// clamp, edgeClamp etc.
 		else if ( ParseClampType( token, &stage->wrapType ) )
@@ -4176,6 +4195,12 @@ static bool ParseShader( const char *_text )
 		else if ( !Q_stricmp( token, "nopicmip" ) )
 		{
 			shader.noPicMip = true;
+			continue;
+		}
+		// fit screen adjustment
+		else if ( !Q_stricmp( token, "fitScreen" ) )
+		{
+			shader.fitScreen = true;
 			continue;
 		}
 		// imageMinDimension enforcement
@@ -6332,6 +6357,12 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	{
 		bits |= IF_NOPICMIP;
 		shader.noPicMip = true;
+	}
+
+	if ( flags & RSF_FITSCREEN )
+	{
+		bits |= IF_FITSCREEN;
+		shader.fitScreen = true;
 	}
 
 	if ( flags & RSF_NOLIGHTSCALE )

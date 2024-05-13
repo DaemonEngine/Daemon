@@ -1148,6 +1148,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		int             deformIndex;
 		bool        overrideNoPicMip; // for images that must always be full resolution
+		bool fitScreen; // For images that should be scaled to fit the screen size.
 		bool        overrideFilterType; // for console fonts, 2D elements, etc.
 		filterType_t    filterType;
 		bool        overrideWrapType;
@@ -1283,6 +1284,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		float          polygonOffsetValue;
 
 		bool       noPicMip; // for images that must always be full resolution
+		bool fitScreen; // For images that should be scaled to fit the screen size.
 		int        imageMinDimension;   // for images that must not be loaded with smaller size
 		int        imageMaxDimension;   // for images that must not be loaded with larger size
 		filterType_t   filterType; // for console fonts, 2D elements, etc.
