@@ -1335,6 +1335,9 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 
 	gl_forwardLightingShader_omniXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
+	// u_InverseLightFactor
+	gl_forwardLightingShader_omniXYZ->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
@@ -1497,6 +1500,9 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	gl_forwardLightingShader_projXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
+	// u_InverseLightFactor
+	gl_forwardLightingShader_projXYZ->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
@@ -1657,6 +1663,9 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	gl_forwardLightingShader_directionalSun->SetUniform_Color( tess.svars.color );
 
 	gl_forwardLightingShader_directionalSun->SetUniform_AlphaTest( pStage->stateBits );
+
+	// u_InverseLightFactor
+	gl_forwardLightingShader_directionalSun->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
