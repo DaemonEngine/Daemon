@@ -94,11 +94,12 @@ using bool8_t = uint8_t;
 using glIndex_t = unsigned int;
 
 enum RegisterShaderFlags_t {
-	RSF_DEFAULT           = 0x00,
-	RSF_NOMIP             = 0x01,
-	RSF_LIGHT_ATTENUATION = 0x02,
-	RSF_NOLIGHTSCALE      = 0x04,
-	RSF_SPRITE            = 0x08
+	RSF_DEFAULT = BIT( 0 ),
+	RSF_NOMIP = BIT( 1 ),
+	RSF_FITSCREEN = BIT( 2 ),
+	RSF_LIGHT_ATTENUATION = BIT( 3 ),
+	RSF_NOLIGHTSCALE = BIT( 4 ),
+	RSF_SPRITE = BIT( 5 ),
 };
 
 struct polyVert_t
