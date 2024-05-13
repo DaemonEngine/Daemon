@@ -65,6 +65,7 @@ uniform vec3		u_LightDir;
 uniform vec3		u_LightOrigin;
 #endif
 uniform vec3		u_LightColor;
+uniform float u_InverseLightFactor;
 uniform float		u_LightRadius;
 uniform float       u_LightScale;
 uniform float		u_AlphaThreshold;
@@ -1006,6 +1007,7 @@ void	main()
 	color.rgb *= attenuationZ;
 #endif
 	color.rgb *= abs(u_LightScale);
+	color.rgb *= u_InverseLightFactor;
 	color.rgb *= shadow;
 
 	color.rgb *= var_Color.rgb;
