@@ -6243,8 +6243,7 @@ the vertex rgba modulate values, as appropriate for misc_model
 pre-lit surfaces.
 ===============
 */
-shader_t       *R_FindShader( const char *name, shaderType_t type,
-			      RegisterShaderFlags_t flags )
+shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 {
 	char     strippedName[ MAX_QPATH ];
 	char     fileName[ MAX_QPATH ];
@@ -6372,9 +6371,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 
 	Log::Debug( "loading '%s' image as shader", fileName );
 
-	// choosing filter based on the NOMIP flag seems strange,
-	// we better introduce RSF_2D.
-	if( ( bits & RSF_NOMIP ) || ( bits & RSF_FITSCREEN ) )
+	if( bits & RSF_2D )
 	{
 		imageParams_t imageParams = {};
 		imageParams.bits = bits;
@@ -6530,7 +6527,7 @@ This should really only be used for explicit shaders, because there is no
 way to ask for different implicit lighting modes (vertex, lightmap, etc)
 ====================
 */
-qhandle_t RE_RegisterShader( const char *name, RegisterShaderFlags_t flags )
+qhandle_t RE_RegisterShader( const char *name, int flags )
 {
 	shader_t *sh;
 

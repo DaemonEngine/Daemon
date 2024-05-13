@@ -95,11 +95,12 @@ using glIndex_t = unsigned int;
 
 enum RegisterShaderFlags_t {
 	RSF_DEFAULT = BIT( 0 ),
-	RSF_NOMIP = BIT( 1 ),
-	RSF_FITSCREEN = BIT( 2 ),
-	RSF_LIGHT_ATTENUATION = BIT( 3 ),
-	RSF_NOLIGHTSCALE = BIT( 4 ),
-	RSF_SPRITE = BIT( 5 ),
+	RSF_2D = BIT( 1 ),
+	RSF_NOMIP = BIT( 2 ),
+	RSF_FITSCREEN = BIT( 3 ),
+	RSF_LIGHT_ATTENUATION = BIT( 4 ),
+	RSF_NOLIGHTSCALE = BIT( 5 ),
+	RSF_SPRITE = BIT( 6 ),
 };
 
 struct polyVert_t

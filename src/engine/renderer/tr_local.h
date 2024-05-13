@@ -3266,12 +3266,11 @@ inline bool checkGLErrors()
 
 	====================================================================
 	*/
-	qhandle_t RE_RegisterShader( const char *name, RegisterShaderFlags_t flags );
+	qhandle_t RE_RegisterShader( const char *name, int flags );
 	qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image );
 	bool  RE_LoadDynamicShader( const char *shadername, const char *shadertext );
 
-	shader_t  *R_FindShader( const char *name, shaderType_t type,
-				 RegisterShaderFlags_t flags );
+	shader_t  *R_FindShader( const char *name, shaderType_t type, int flags );
 	shader_t  *R_GetShaderByHandle( qhandle_t hShader );
 	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );

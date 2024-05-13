@@ -121,7 +121,7 @@ void            trap_S_StartBackgroundTrack( const char *intro, const char *loop
 void            trap_R_LoadWorldMap( const char *mapname );
 qhandle_t       trap_R_RegisterModel( const char *name );
 qhandle_t       trap_R_RegisterSkin( const char *name );
-qhandle_t       trap_R_RegisterShader( const char *name, RegisterShaderFlags_t flags );
+qhandle_t       trap_R_RegisterShader( const char *name, int flags );
 
 void            trap_R_ClearScene();
 void            trap_R_AddRefEntityToScene( const refEntity_t *re );
