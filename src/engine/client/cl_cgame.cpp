@@ -1259,7 +1259,7 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 
 		case CG_R_REGISTERSHADER:
 			IPC::HandleMsg<Render::RegisterShaderMsg>(channel, std::move(reader), [this] (const std::string& name, int flags, int& handle) {
-				handle = re.RegisterShader(name.c_str(), (RegisterShaderFlags_t) flags);
+				handle = re.RegisterShader(name.c_str(), flags);
 			});
 			break;
 

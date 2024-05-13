@@ -130,8 +130,7 @@ struct refexport_t
 	qhandle_t ( *RegisterModel )( const char *name );
 	//qhandle_t   (*RegisterModelAllLODs) (const char *name);
 	qhandle_t ( *RegisterSkin )( const char *name );
-	qhandle_t ( *RegisterShader )( const char *name,
-								   RegisterShaderFlags_t flags );
+	qhandle_t ( *RegisterShader )( const char *name, int flags );
 	fontInfo_t* ( *RegisterFont )( const char *fontName, int pointSize );
 	void   ( *UnregisterFont )( fontInfo_t *font );
 	void   ( *Glyph )( fontInfo_t *font, const char *str, glyphInfo_t *glyph );
