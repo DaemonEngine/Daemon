@@ -105,6 +105,30 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 		return 0;
 	}
 
+	// Consider the larger edge as the "image dimension"
+	int scaledDimension = std::max( image->width, image->height );
+
+	int scalingStep = 0;
+
+	// Scale down the image size until it's not smaller than screen.
+	if ( image->bits & IF_FITSCREEN )
+	{
+		int largerSide = std::max( glConfig.vidWidth, glConfig.vidHeight );
+
+		if ( scaledDimension > largerSide )
+		{
+			while ( scaledDimension > largerSide )
+			{
+				scaledDimension >>= 1;
+				scalingStep++;
+			}
+
+			// We need the larger image size before it becomes smaller than screen.
+			scaledDimension <<= 1;
+			scalingStep--;
+		}
+	}
+
 	int materialMinDimension = r_ignoreMaterialMinDimension->integer ? 0 : imageParams.minDimension;
 	int materialMaxDimension = r_ignoreMaterialMaxDimension->integer ? 0 : imageParams.maxDimension;
 
@@ -129,10 +153,6 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 	{
 		maxDimension = std::min( maxDimension, r_imageMaxDimension->integer );
 	}
-
-	// Consider the larger edge as the "image dimension"
-	int scaledDimension = std::max( image->width, image->height );
-	int scalingStep = 0;
 
 	// 1st priority: scaledDimension >= minDimension
 	// 2nd priority: scaledDimension <= maxDimension
