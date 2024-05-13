@@ -6373,21 +6373,24 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	Log::Debug( "loading '%s' image as shader", fileName );
 
 	// choosing filter based on the NOMIP flag seems strange,
-	// maybe it should be changed to type == SHADER_2D
-	if( !(bits & RSF_NOMIP) ) {
+	// we better introduce RSF_2D.
+	if( ( bits & RSF_NOMIP ) || ( bits & RSF_FITSCREEN ) )
+	{
+		imageParams_t imageParams = {};
+		imageParams.bits = bits;
+		imageParams.filterType = filterType_t::FT_LINEAR;
+		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
+
+		image = R_FindImageFile( fileName, imageParams );
+	}
+	else
+	{
 		LoadExtraMaps( &stages[ 0 ], fileName );
 
 		imageParams_t imageParams = {};
 		imageParams.bits = bits;
 		imageParams.filterType = filterType_t::FT_DEFAULT;
 		imageParams.wrapType = wrapTypeEnum_t::WT_REPEAT;
-
-		image = R_FindImageFile( fileName, imageParams );
-	} else {
-		imageParams_t imageParams = {};
-		imageParams.bits = bits;
-		imageParams.filterType = filterType_t::FT_LINEAR;
-		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 		image = R_FindImageFile( fileName, imageParams );
 	}
