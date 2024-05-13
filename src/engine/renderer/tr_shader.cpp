@@ -6327,13 +6327,17 @@ shader_t       *R_FindShader( const char *name, shaderType_t type,
 	// if not defined in the in-memory shader descriptions,
 	// look for a single supported image file
 	bits = IF_NONE;
-	if( flags & RSF_NOMIP )
-		bits |= IF_NOPICMIP;
-	else
-		shader.noPicMip = true;
 
-	if( flags & RSF_NOLIGHTSCALE )
+	if ( flags & RSF_NOMIP )
+	{
+		bits |= IF_NOPICMIP;
+		shader.noPicMip = true;
+	}
+
+	if ( flags & RSF_NOLIGHTSCALE )
+	{
 		bits |= IF_NOLIGHTSCALE;
+	}
 
 	Log::Debug( "loading '%s' image as shader", fileName );
 
