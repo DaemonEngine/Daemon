@@ -2199,10 +2199,15 @@ void GLimp_HandleCvars()
 
 			if ( sdlToggled < 0 )
 			{
+				Log::Warn( "SDL_SetWindowFullscreen failed: %s", SDL_GetError() );
+				Log::Warn( "Trying vid_restart" );
 				Cmd::BufferCommandText("vid_restart");
 			}
-
-			ri.IN_Restart();
+			else
+			{
+				// FIXME: probably don't need to reset the joystick to change fullscreen mode?
+				ri.IN_Restart();
+			}
 		}
 	}
 
