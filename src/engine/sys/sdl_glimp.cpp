@@ -2203,11 +2203,6 @@ void GLimp_HandleCvars()
 				Log::Warn( "Trying vid_restart" );
 				Cmd::BufferCommandText("vid_restart");
 			}
-			else
-			{
-				// FIXME: probably don't need to reset the joystick to change fullscreen mode?
-				ri.IN_Restart();
-			}
 		}
 	}
 
