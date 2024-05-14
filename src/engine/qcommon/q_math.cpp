@@ -740,6 +740,26 @@ void SetPlaneSignbits( cplane_t *out )
 
 int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
+#if idx86_sse
+	auto mins = sseLoadVec3Unsafe( emins );
+	auto maxs = sseLoadVec3Unsafe( emaxs );
+	auto normal = sseLoadVec3Unsafe( p->normal );
+
+	auto prod0 = _mm_mul_ps( maxs, normal );
+	auto prod1 = _mm_mul_ps( mins, normal );
+
+	auto pmax = _mm_max_ps( prod0, prod1 );
+	auto pmin = _mm_min_ps( prod0, prod1 );
+
+	ALIGNED( 16, vec4_t pmaxv );
+	ALIGNED( 16, vec4_t pminv );
+	_mm_store_ps( pmaxv, pmax );
+	_mm_store_ps( pminv, pmin );
+
+	float dist[ 2 ];
+	dist[ 0 ] = pmaxv[ 0 ] + pmaxv[ 1 ] + pmaxv[ 2 ];
+	dist[ 1 ] = pminv[ 0 ] + pminv[ 1 ] + pminv[ 2 ];
+#else
 	ASSERT_LT( p->signbits, 8 );
 
 	// fast axial cases
@@ -780,6 +800,7 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 	dist[ !index[ 0 ] ] += mmins[ 0 ];
 	dist[ !index[ 1 ] ] += mmins[ 1 ];
 	dist[ !index[ 2 ] ] += mmins[ 2 ];
+#endif
 
 	int bit0 = dist[ 0 ] > p->dist;
 	int bit1 = dist[ 1 ] < p->dist;
