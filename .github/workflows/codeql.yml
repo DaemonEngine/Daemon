@@ -6,13 +6,6 @@ on:
   schedule:
     - cron: '43 14 * * 2'
 
-paths:
-  - .github/workflows/
-  # To keep in sync with other CI configurations, only directories.
-  - src/
-  - libs/
-  - cmake/
-
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
