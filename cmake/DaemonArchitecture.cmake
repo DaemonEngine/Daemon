@@ -90,3 +90,28 @@ endif()
 
 # Quotes cannot be part of the define as support for them is not reliable.
 add_definitions(-DNACL_ARCH_STRING=${NACL_ARCH})
+
+option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
+mark_as_advanced(USE_ARCH_INTRINSICS)
+
+macro(set_arch_intrinsics name)
+	if (USE_ARCH_INTRINSICS)
+		message(STATUS "Enabling ${name} architecture intrinsics")
+		add_definitions(-DDAEMON_USE_ARCH_INTRINSICS_${name}=1)
+	else()
+		message(STATUS "Disabling ${name} architecture intrinsics")
+	endif()
+endmacro()
+
+if (USE_ARCH_INTRINSICS)
+    add_definitions(-DDAEMON_USE_ARCH_INTRINSICS=1)
+endif()
+
+set_arch_intrinsics(${ARCH})
+
+set(amd64_PARENT "i686")
+set(arm64_PARENT "armhf")
+
+if (${ARCH}_PARENT)
+	set_arch_intrinsics(${${ARCH}_PARENT})
+endif()

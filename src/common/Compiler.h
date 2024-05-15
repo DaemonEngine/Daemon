@@ -148,6 +148,7 @@ inline int CountTrailingZeroes(unsigned long long x)
 
 // Raise an exception and break in the debugger
 #if defined(DAEMON_ARCH_i686) || defined(DAEMON_ARCH_amd64)
+	// Always run this asm code even if DAEMON_USE_ARCH_INTRINSICS is not defined.
 	#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
 #elif defined(DAEMON_ARCH_nacl)
 	// TODO: find how to implement breakpoint on NaCl
