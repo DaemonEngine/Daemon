@@ -32,7 +32,7 @@
 
 try_compile(BUILD_RESULT
 	"${CMAKE_BINARY_DIR}"
-	"${DAEMON_DIR}/tools/DaemonArchitecture/DaemonArchitecture.cpp"
+	"${DAEMON_DIR}/cmake/DaemonArchitecture/DaemonArchitecture.cpp"
 	CMAKE_FLAGS CMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
 	OUTPUT_VARIABLE BUILD_LOG
 )

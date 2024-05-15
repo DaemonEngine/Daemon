@@ -740,8 +740,27 @@ void SetPlaneSignbits( cplane_t *out )
 
 int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 {
+#if idx86_sse
+	auto mins = sseLoadVec3Unsafe( emins );
+	auto maxs = sseLoadVec3Unsafe( emaxs );
+	auto normal = sseLoadVec3Unsafe( p->normal );
+
+	auto prod0 = _mm_mul_ps( maxs, normal );
+	auto prod1 = _mm_mul_ps( mins, normal );
+
+	auto pmax = _mm_max_ps( prod0, prod1 );
+	auto pmin = _mm_min_ps( prod0, prod1 );
+
+	ALIGNED( 16, vec4_t pmaxv );
+	ALIGNED( 16, vec4_t pminv );
+	_mm_store_ps( pmaxv, pmax );
+	_mm_store_ps( pminv, pmin );
+
 	float dist[ 2 ];
-	int   sides, b, i;
+	dist[ 0 ] = pmaxv[ 0 ] + pmaxv[ 1 ] + pmaxv[ 2 ];
+	dist[ 1 ] = pminv[ 0 ] + pminv[ 1 ] + pminv[ 2 ];
+#else
+	ASSERT_LT( p->signbits, 8 );
 
 	// fast axial cases
 	if ( p->type < 3 )
@@ -760,31 +779,32 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 	}
 
 	// general case
-	dist[ 0 ] = dist[ 1 ] = 0;
+	int index[ 3 ];
+	index[ 0 ] = p->signbits;
+	index[ 1 ] = p->signbits >> 1;
+	index[ 2 ] = p->signbits >> 2;
 
-	if ( p->signbits < 8 ) // >= 8: default case is original code (dist[0]=dist[1]=0)
-	{
-		for ( i = 0; i < 3; i++ )
-		{
-			b = ( p->signbits >> i ) & 1;
-			dist[ b ] += p->normal[ i ] * emaxs[ i ];
-			dist[ !b ] += p->normal[ i ] * emins[ i ];
-		}
-	}
+	index[ 0 ] &= 1;
+	index[ 1 ] &= 1;
+	index[ 2 ] &= 1;
 
-	sides = 0;
+	vec3_t mmins, mmaxs;
+	VectorMultiply( p->normal, emins, mmins );
+	VectorMultiply( p->normal, emaxs, mmaxs );
 
-	if ( dist[ 0 ] >= p->dist )
-	{
-		sides = 1;
-	}
+	float dist[ 2 ] = {};
+	dist[ index[ 0 ] ] += mmaxs[ 0 ];
+	dist[ index[ 1 ] ] += mmaxs[ 1 ];
+	dist[ index[ 2 ] ] += mmaxs[ 2 ];
 
-	if ( dist[ 1 ] < p->dist )
-	{
-		sides |= 2;
-	}
+	dist[ !index[ 0 ] ] += mmins[ 0 ];
+	dist[ !index[ 1 ] ] += mmins[ 1 ];
+	dist[ !index[ 2 ] ] += mmins[ 2 ];
+#endif
 
-	return sides;
+	int bit0 = dist[ 0 ] > p->dist;
+	int bit1 = dist[ 1 ] < p->dist;
+	return bit0 + ( bit1 * 2 );
 }
 
 /*
