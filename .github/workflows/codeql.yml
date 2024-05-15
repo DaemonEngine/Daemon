@@ -1,3 +1,5 @@
+name: "CodeQL"
+
 on:
   push:
     branches: [ "master", "for-*.*.*/sync" ]
