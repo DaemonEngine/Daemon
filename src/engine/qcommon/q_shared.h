@@ -248,7 +248,7 @@ void  Com_Free_Aligned( void *ptr );
 	// floats (quat: 4, scale: 1, translation: 3), which is very
 	// convenient for SSE and GLSL, which operate on 4-dimensional
 	// float vectors.
-#if idx86_sse
+#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
     // Here we have a union of scalar struct and sse struct, transform_u and the
     // scalar struct must match transform_t so we have to use anonymous structs.
     // We disable compiler warnings when using -Wpedantic for this specific case.
@@ -375,7 +375,7 @@ extern const quat_t   quatIdentity;
 		float y;
 
 		// compute approximate inverse square root
-#if defined( idx86_sse )
+#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
 		// SSE rsqrt relative error bound: 3.7 * 10^-4
 		_mm_store_ss( &y, _mm_rsqrt_ss( _mm_load_ss( &number ) ) );
 #elif idppc
@@ -774,7 +774,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 //=============================================
 // combining Transformations
 
-#if idx86_sse
+#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
 /* swizzles for _mm_shuffle_ps instruction */
 #define SWZ_XXXX 0x00
 #define SWZ_YXXX 0x01
@@ -1293,6 +1293,7 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		t->sseRot = sseQuatNormalize( t->sseRot );
 	}
 #else
+	// The non-SSE variants are in q_math.cpp file.
 	void TransInit( transform_t *t );
 	void TransCopy( const transform_t *in, transform_t *out );
 

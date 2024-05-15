@@ -63,15 +63,44 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __x86_64__ 1
 #endif
 
-// SSE support
-#if defined(__x86_64__) || defined(__SSE__) || _M_IX86_FP >= 1
-#include <xmmintrin.h>
-#if defined(__x86_64__) || defined(__SSE2__) || _M_IX86_FP >= 2
-#include <emmintrin.h>
-#define idx86_sse 2
-#else
-#define idx86_sse 1
-#endif
+/* The definition name syntax is: DAEMON_USE_ARCH_INTRINSICS_<architecture>[_extension]
+
+Examples:
+
+- DAEMON_USE_ARCH_INTRINSICS_i686: i686 specific code, including asm code.
+- DAEMON_USE_ARCH_INTRINSICS_i686_sse: i686 SSE specific code.
+- DAEMON_USE_ARCH_INTRINSICS_i686_sse2: i686 SSE2 specific code.
+
+If a architecture inherits a feature from an parent architecture, the parent
+architecture name is used. For example on amd64, the definition enabling
+SSE code is DAEMON_USE_ARCH_INTRINSICS_i686_sse, enabling SSE code on both
+i686 with SSE and amd64.
+
+The definitions for the architecture itself are automatically set by CMake. */
+
+#if defined(DAEMON_USE_ARCH_INTRINSICS)
+	// Set architecture extensions definitions.
+
+	/* MSVC doesn't set __SSE*__, and only set _M_IX86_FP on i686.
+	We should look for _M_AMD64 or _M_X64 to know if SSE and SSE2
+	are enabled when building code for amd64. */
+	#if defined(__SSE2__) || _M_IX86_FP >= 2 || _M_AMD64 || _M_X64
+		#define DAEMON_USE_ARCH_INTRINSICS_i686_sse2
+	#endif
+
+	#if defined(__SSE__) || _M_IX86_FP >= 1 || _M_AMD64 || _M_X64
+		#define DAEMON_USE_ARCH_INTRINSICS_i686_sse
+	#endif
+
+	// Include intrinsics-specific headers.
+
+	#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+		#include <xmmintrin.h>
+	#endif
+
+	#if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse2)
+		#include <emmintrin.h>
+	#endif
 #endif
 
 // VM Prefixes

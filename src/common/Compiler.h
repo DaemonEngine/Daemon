@@ -41,14 +41,14 @@ int CountTrailingZeroes(unsigned int x);
 int CountTrailingZeroes(unsigned long x);
 int CountTrailingZeroes(unsigned long long x);
 
-#if defined(__GNUC__)
+#if defined(DAEMON_USE_ARCH_INTRINSICS) && defined(__GNUC__)
 	inline int CountTrailingZeroes(unsigned int x)
 		{ return __builtin_ctz(x); }
 	inline int CountTrailingZeroes(unsigned long x)
 		{ return __builtin_ctzl(x); }
 	inline int CountTrailingZeroes(unsigned long long x)
 		{ return __builtin_ctzll(x); }
-#elif defined(_MSC_VER)
+#elif defined(DAEMON_USE_ARCH_INTRINSICS) && defined(_MSC_VER)
 	inline int CountTrailingZeroes(unsigned int x)
 		{ unsigned long ans; _BitScanForward(&ans, x); return ans; }
 	inline int CountTrailingZeroes(unsigned long x)
@@ -139,6 +139,7 @@ int CountTrailingZeroes(unsigned long long x);
 
 // Raise an exception and break in the debugger
 #if defined(DAEMON_ARCH_i686) || defined(DAEMON_ARCH_amd64)
+	// Always run this asm code even if DAEMON_USE_ARCH_INTRINSICS is not defined.
 	#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
 #elif defined(DAEMON_ARCH_nacl)
 	// TODO: find how to implement breakpoint on NaCl
