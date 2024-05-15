@@ -378,14 +378,6 @@ extern const quat_t   quatIdentity;
 #if defined( idx86_sse )
 		// SSE rsqrt relative error bound: 3.7 * 10^-4
 		_mm_store_ss( &y, _mm_rsqrt_ss( _mm_load_ss( &number ) ) );
-#elif idppc
-
-		// error bound: ???
-#ifdef __GNUC__
-		asm( "frsqrte %0, %1" : "=f"( y ) : "f"( number ) );
-#else
-		y = __frsqrte( number );
-#endif
 #else
 		y = Q_uintBitsToFloat( 0x5f3759df - (Q_floatBitsToUint( number ) >> 1) );
 		y *= ( 1.5f - ( x * y * y ) ); // initial iteration
