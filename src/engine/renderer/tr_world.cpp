@@ -263,18 +263,17 @@ static void R_AddInteractionSurface( bspSurface_t *surf, trRefLight_t *light, in
 
 static void R_AddDecalSurface( bspSurface_t *surf, int decalBits )
 {
-	int i;
-
-	// add decals
-	if ( decalBits )
+	if ( !decalBits )
 	{
-		// ydnar: project any decals
-		for ( i = 0; i < tr.refdef.numDecalProjectors; i++ )
+		return;
+	}
+
+	// ydnar: project any decals
+	for ( int i = 0; i < tr.refdef.numDecalProjectors; i++ )
+	{
+		if ( decalBits & ( 1 << i ) )
 		{
-			if ( decalBits & ( 1 << i ) )
-			{
-				R_ProjectDecalOntoSurface( &tr.refdef.decalProjectors[ i ], surf, &tr.world->models[ 0 ] );
-			}
+			R_ProjectDecalOntoSurface( &tr.refdef.decalProjectors[ i ], surf, &tr.world->models[ 0 ] );
 		}
 	}
 }
@@ -367,10 +366,6 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 
 static void R_AddLeafSurfaces( bspNode_t *node, int decalBits, int planeBits )
 {
-	int          c;
-	bspSurface_t **mark;
-	bspSurface_t **view;
-
 	tr.pc.c_leafs++;
 
 	// add to z buffer bounds
@@ -405,9 +400,9 @@ static void R_AddLeafSurfaces( bspNode_t *node, int decalBits, int planeBits )
 	}
 
 	// add the individual surfaces
-	mark = tr.world->markSurfaces + node->firstMarkSurface;
-	c = node->numMarkSurfaces;
-	view = tr.world->viewSurfaces + node->firstMarkSurface;
+	bspSurface_t **mark = tr.world->markSurfaces + node->firstMarkSurface;
+	int c = node->numMarkSurfaces;
+	bspSurface_t **view = tr.world->viewSurfaces + node->firstMarkSurface;
 
 	while ( c-- )
 	{
@@ -450,14 +445,11 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 		// inside can be visible
 		if ( !r_nocull->integer )
 		{
-			int i;
-			int r;
-
-			for ( i = 0; i < FRUSTUM_PLANES; i++ )
+			for ( size_t i = 0; i < FRUSTUM_PLANES; i++ )
 			{
 				if ( planeBits & ( 1 << i ) )
 				{
-					r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
+					int r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
 
 					if ( r == 2 )
 					{
@@ -477,9 +469,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 		// ydnar: cull decals
 		if ( decalBits )
 		{
-			int i;
-
-			for ( i = 0; i < tr.refdef.numDecalProjectors; i++ )
+			for ( int i = 0; i < tr.refdef.numDecalProjectors; i++ )
 			{
 				if ( decalBits & ( 1 << i ) )
 				{
@@ -500,13 +490,13 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 
 		float d = DotProduct(tr.viewParms.orientation.viewOrigin, node->plane->normal) - node->plane->dist;
 
-		uint32_t side = d <= 0;
+		bool side = d <= 0.0;
 
 		// recurse down the children, front side first
 		R_RecursiveWorldNode( node->children[ side ], planeBits, decalBits );
 
 		// tail recurse
-		node = node->children[ side ^ 1 ];
+		node = node->children[ !side ];
 	}
 	while ( true );
 
@@ -524,9 +514,6 @@ R_RecursiveInteractionNode
 */
 static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, int planeBits, int interactionBits )
 {
-	int i;
-	int r;
-
 	do
 	{
 		// surfaces that arn't potentially visible may still cast shadows
@@ -543,11 +530,11 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 		// can cast shadows into the view frustum
 		if ( !r_nocull->integer )
 		{
-			for ( i = 0; i < FRUSTUM_PLANES; i++ )
+			for ( size_t i = 0; i < FRUSTUM_PLANES; i++ )
 			{
 				if ( planeBits & ( 1 << i ) )
 				{
-					r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
+					int r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
 
 					if ( r == 2 )
 					{
@@ -577,8 +564,18 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 
 		// node is just a decision point, so go down both sides
 		// since we don't care about sort orders, just go positive to negative
-		r = BoxOnPlaneSide( light->worldBounds[ 0 ], light->worldBounds[ 1 ], node->plane );
+		int r = BoxOnPlaneSide( light->worldBounds[ 0 ], light->worldBounds[ 1 ], node->plane );
 
+#if 1
+		if ( r > 2 )
+		{
+			// recurse down the children, front side first
+			R_RecursiveInteractionNode( node->children[ 0 ], light, planeBits, interactionBits );
+		}
+
+		bool side = r > 1;
+		node = node->children[ side ];
+#else
 		switch ( r )
 		{
 			case 1:
@@ -598,23 +595,22 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 				node = node->children[ 1 ];
 				break;
 		}
+#endif
 	}
 	while ( true );
 
 	{
 		// leaf node, so add mark surfaces
-		int          c;
-		bspSurface_t *surf, **mark;
 
 		// add the individual surfaces
-		mark = tr.world->markSurfaces + node->firstMarkSurface;
-		c = node->numMarkSurfaces;
+		bspSurface_t **mark = tr.world->markSurfaces + node->firstMarkSurface;
+		int c = node->numMarkSurfaces;
 
 		while ( c-- )
 		{
 			// the surface may have already been added if it
 			// spans multiple leafs
-			surf = *mark;
+			bspSurface_t *surf = *mark;
 			R_AddInteractionSurface( surf, light, interactionBits );
 			mark++;
 		}
@@ -628,35 +624,26 @@ R_PointInLeaf
 */
 static bspNode_t *R_PointInLeaf( const vec3_t p )
 {
-	bspNode_t *node;
-	float     d;
-	cplane_t  *plane;
-
 	if ( !tr.world )
 	{
 		Sys::Drop( "R_PointInLeaf: bad model" );
 	}
 
-	node = tr.world->nodes;
+	bspNode_t *node = tr.world->nodes;
 
-	while ( true )
+	while ( node->contents == -1 )
 	{
-		if ( node->contents != -1 )
-		{
-			break;
-		}
+		cplane_t *plane = node->plane;
 
-		plane = node->plane;
-		d = DotProduct( p, plane->normal ) - plane->dist;
+		float d = DotProduct( p, plane->normal ) - plane->dist;
 
-		if ( d > 0 )
-		{
-			node = node->children[ 0 ];
-		}
-		else
-		{
-			node = node->children[ 1 ];
-		}
+#if 1
+		bool side = d <= 0.0;
+		node = node->children[ side ];
+#else
+		if ( d > 0 ) node = node->children[ 0 ];
+		else node = node->children[ 1 ];
+#endif
 	}
 
 	return node;
@@ -706,12 +693,7 @@ bool R_inPVS( const vec3_t p1, const vec3_t p2 )
 	vis = R_ClusterPVS( leaf->cluster );
 	leaf = R_PointInLeaf( p2 );
 
-	if ( !( vis[ leaf->cluster >> 3 ] & ( 1 << ( leaf->cluster & 7 ) ) ) )
-	{
-		return false;
-	}
-
-	return true;
+	return ( vis[ leaf->cluster >> 3 ] & ( 1 << ( leaf->cluster & 7 ) ) );
 }
 
 /*
@@ -728,12 +710,7 @@ bool R_inPVVS( const vec3_t p1, const vec3_t p2 )
 	vis = R_ClusterPVVS( leaf->cluster );
 	leaf = R_PointInLeaf( p2 );
 
-	if ( !( vis[ leaf->cluster >> 3 ] & ( 1 << ( leaf->cluster & 7 ) ) ) )
-	{
-		return false;
-	}
-
-	return true;
+	return ( vis[ leaf->cluster >> 3 ] & ( 1 << ( leaf->cluster & 7 ) ) );
 }
 
 /*
@@ -768,9 +745,7 @@ static void R_MarkLeaves()
 	// hasn't changed, we don't need to mark everything again
 	if( tr.refdef.areamaskModified ) {
 		// remark ALL cached visClusters
-		for ( i = 0; i < MAX_VISCOUNTS; i++ ) {
-			tr.visClusters[ i ] = -1;
-		}
+		memset( tr.visClusters, -1, MAX_VISCOUNTS * sizeof( int ) );
 		tr.visIndex = 0;
 	} else {
 		for ( i = 0; i < MAX_VISCOUNTS; i++ ) {
@@ -898,28 +873,28 @@ void R_AddWorldSurfaces()
 	// render sky or world?
 	if ( tr.refdef.rdflags & RDF_SKYBOXPORTAL && tr.world->numSkyNodes > 0 )
 	{
-		int       i;
-		bspNode_t **node;
+		bspNode_t **node = tr.world->skyNodes;
+		bspNode_t **lastNode = node + tr.world->numSkyNodes;
 
-		for ( i = 0, node = tr.world->skyNodes; i < tr.world->numSkyNodes; i++, node++ )
+		for ( ; node < lastNode; node++ )
 		{
 			R_AddLeafSurfaces( *node, 0, FRUSTUM_CLIPALL );  // no decals on skybox nodes
 		}
+
+		return;
 	}
-	else
-	{
-		// determine which leaves are in the PVS / areamask
-		R_MarkLeaves();
 
-		// clear traversal list
-		backEndData[ tr.smpFrame ]->traversalLength = 0;
+	// determine which leaves are in the PVS / areamask
+	R_MarkLeaves();
 
-		// update visbounds and add surfaces that weren't cached with VBOs
-		R_RecursiveWorldNode( tr.world->nodes, FRUSTUM_CLIPALL, tr.refdef.decalBits );
+	// clear traversal list
+	backEndData[ tr.smpFrame ]->traversalLength = 0;
 
-		// ydnar: add decal surfaces
-		R_AddDecalSurfaces( tr.world->models );
-	}
+	// update visbounds and add surfaces that weren't cached with VBOs
+	R_RecursiveWorldNode( tr.world->nodes, FRUSTUM_CLIPALL, tr.refdef.decalBits );
+
+	// ydnar: add decal surfaces
+	R_AddDecalSurfaces( tr.world->models );
 }
 
 /*
@@ -1061,10 +1036,8 @@ void R_AddPrecachedWorldInteractions( trRefLight_t *light )
 				{
 					continue;
 				}
-				else
-				{
-					iaType = IA_SHADOW;
-				}
+				
+				iaType = IA_SHADOW;
 			}
 			else
 			{
@@ -1096,10 +1069,8 @@ void R_AddPrecachedWorldInteractions( trRefLight_t *light )
 				{
 					continue;
 				}
-				else
-				{
-					iaType = IA_SHADOW;
-				}
+
+				iaType = IA_SHADOW;
 			}
 			else
 			{

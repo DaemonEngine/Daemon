@@ -337,23 +337,20 @@ Returns CULL_IN, CULL_CLIP, or CULL_OUT
 */
 cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 {
-	bool anyClip;
-	cplane_t *frust;
-	int i, r;
-
 	if ( r_nocull->integer )
 	{
 		return cullResult_t::CULL_CLIP;
 	}
 
 	// check against frustum planes
-	anyClip = false;
+	bool anyClip = false;
 
-	for ( i = 0; i < FRUSTUM_PLANES; i++ )
+	cplane_t *frust = &tr.viewParms.frustums[ 0 ][ 0 ];
+	cplane_t *lastFrust = frust + FRUSTUM_PLANES;
+
+	for ( ; frust < lastFrust; frust++ )
 	{
-		frust = &tr.viewParms.frustums[ 0 ][ i ];
-
-		r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
+		int r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
 
 		if ( r == 2 )
 		{
@@ -1971,27 +1968,20 @@ R_AddDrawSurf
 */
 void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface )
 {
-	int        index;
-	drawSurf_t *drawSurf;
-
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
-	index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
+	int index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
 
-	drawSurf = &tr.refdef.drawSurfs[ index ];
+	drawSurf_t *drawSurf = &tr.refdef.drawSurfs[ index ];
 
 	drawSurf->entity = tr.currentEntity;
 	drawSurf->surface = surface;
 	drawSurf->shader = shader;
 	drawSurf->bspSurface = bspSurface;
 
-	int entityNum;
+	int entityNum = -1;
 
-	if ( tr.currentEntity == &tr.worldEntity )
-	{
-		entityNum = -1;
-	}
-	else
+	if ( tr.currentEntity != &tr.worldEntity )
 	{
 		entityNum = tr.currentEntity - tr.refdef.entities;
 	}
@@ -2005,9 +1995,11 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 
 	tr.refdef.numDrawSurfs++;
 
-	if ( shader->depthShader != nullptr ) {
-		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
+	if ( !shader->depthShader ) {
+		return;
 	}
+
+	R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
 }
 
 /*

@@ -846,10 +846,6 @@ adds a decal surface to the scene
 
 void R_AddDecalSurface( decal_t *decal )
 {
-	int        i;
-	float      fade;
-	srfDecal_t *srf;
-
 	/* early outs */
 	if ( decal->shader == nullptr || decal->parent->viewCount != tr.viewCountNoReset || tr.refdef.numDecals >= MAX_DECALS )
 	{
@@ -857,25 +853,28 @@ void R_AddDecalSurface( decal_t *decal )
 	}
 
 	/* get decal surface */
-	srf = &tr.refdef.decals[ tr.refdef.numDecals ];
+	srfDecal_t *srf = &tr.refdef.decals[ tr.refdef.numDecals ];
 	tr.refdef.numDecals++;
 
 	/* set it up */
 	srf->surfaceType = surfaceType_t::SF_DECAL;
 	srf->numVerts = decal->numVerts;
-	memcpy( srf->verts, decal->verts, srf->numVerts * sizeof( *srf->verts ) );
+	memcpy( srf->verts, decal->verts, srf->numVerts * sizeof( polyVert_t ) );
 
 	/* fade colors */
 	if ( decal->fadeStartTime < tr.refdef.time && decal->fadeStartTime < decal->fadeEndTime )
 	{
-		fade = ( float )( decal->fadeEndTime - tr.refdef.time ) / ( float )( decal->fadeEndTime - decal->fadeStartTime );
+		float fade = ( float )( decal->fadeEndTime - tr.refdef.time ) / ( float )( decal->fadeEndTime - decal->fadeStartTime );
 
-		for ( i = 0; i < decal->numVerts; i++ )
+		polyVert_t *vert = decal->verts;
+		polyVert_t *lastVert = vert + decal->numVerts;
+
+		for ( ; vert < lastVert; vert++ )
 		{
-			decal->verts[ i ].modulate[ 0 ] *= fade;
-			decal->verts[ i ].modulate[ 1 ] *= fade;
-			decal->verts[ i ].modulate[ 2 ] *= fade;
-			decal->verts[ i ].modulate[ 3 ] *= fade;
+			vert->modulate[ 0 ] *= fade;
+			vert->modulate[ 1 ] *= fade;
+			vert->modulate[ 2 ] *= fade;
+			vert->modulate[ 3 ] *= fade;
 		}
 	}
 
