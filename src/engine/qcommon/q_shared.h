@@ -256,7 +256,7 @@ void  Com_Free_Aligned( void *ptr );
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #endif
-	ALIGNED(16, union transform_t {
+	union alignas(16) transform_t {
 		struct {
 			quat_t rot;
 			vec3_t trans;
@@ -266,16 +266,16 @@ void  Com_Free_Aligned( void *ptr );
 			__m128 sseRot;
 			__m128 sseTransScale;
 		};
-	});
+	};
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
 #else
-	ALIGNED(16, struct transform_t {
+	struct alignas(16) transform_t {
 		quat_t rot;
 		vec3_t trans;
 		vec_t  scale;
-	});
+	};
 #endif
 
 	using fixed4_t = int;
@@ -1033,29 +1033,29 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 		return *(__m128 *)vec;
 	}
 	inline __m128 mask_0000() {
-		static const ALIGNED(16, int vec[4]) = {  0,  0,  0,  0 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 0, 0, 0, 0 };
+		return sseLoadInts( vec.data() );
 	}
 	inline __m128 mask_000W() {
-		static const ALIGNED(16, int vec[4]) = {  0,  0,  0, -1 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 0, 0, 0, -1 };
+		return sseLoadInts( vec.data() );
 	}
 	inline __m128 mask_XYZ0() {
-		static const ALIGNED(16, int vec[4]) = { -1, -1, -1,  0 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { -1, -1, -1, 0 };
+		return sseLoadInts( vec.data() );
 	}
 
 	inline __m128 sign_000W() {
-		static const ALIGNED(16, int vec[4]) = { 0, 0, 0, 1<<31 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 0, 0, 0, 1<<31 };
+		return sseLoadInts( vec.data() );
 	}
 	inline __m128 sign_XYZ0() {
-		static const ALIGNED(16, int vec[4]) = { 1<<31, 1<<31, 1<<31,  0 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 1<<31, 1<<31, 1<<31, 0 };
+		return sseLoadInts( vec.data() );
 	}
 	inline __m128 sign_XYZW() {
-		static const ALIGNED(16, int vec[4]) = { 1<<31, 1<<31, 1<<31, 1<<31 };
-		return sseLoadInts( vec );
+		alignas(16) static const std::array<int, 4> vec = { 1<<31, 1<<31, 1<<31, 1<<31 };
+		return sseLoadInts( vec.data() );
 	}
 
 	inline __m128 sseDot4( __m128 a, __m128 b ) {
