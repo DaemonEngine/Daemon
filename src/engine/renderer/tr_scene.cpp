@@ -626,11 +626,16 @@ void RE_RenderScene( const refdef_t *fd )
 	VectorCopy( fd->vieworg, parms.pvsOrigin );
 	Vector4Copy( fd->gradingWeights, parms.gradingWeights );
 
-	// TODO: Add cmds for updating dynamic surfaces and for culling here
-	materialSystem.frameStart = true;
-
 	R_AddClearBufferCmd();
 	R_AddSetupLightsCmd();
+
+	if ( glConfig2.materialSystemAvailable && !materialSystem.generatedWorldCommandBuffer ) {
+		materialSystem.GenerateWorldMaterials();
+	}
+
+	if ( glConfig2.materialSystemAvailable ) {
+		materialSystem.StartFrame();
+	}
 
 	R_RenderView( &parms );
 

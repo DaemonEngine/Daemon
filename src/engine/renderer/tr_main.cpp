@@ -2883,11 +2883,10 @@ void R_RenderView( viewParms_t *parms )
 	// because it requires the decalBits
 	R_CullDecalProjectors();
 
-	if ( glConfig2.materialSystemAvailable && !materialSystem.generatedWorldCommandBuffer ) {
-		materialSystem.GenerateWorldMaterials();
-	}
-
-	if ( !glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.materialSystemAvailable ) {
+		tr.viewParms.viewID = tr.viewCount;
+		materialSystem.QueueSurfaceCull( tr.viewCount, (frustum_t*) tr.viewParms.frustums[0] );
+	} else {
 		R_AddWorldSurfaces();
 	}
 
