@@ -152,7 +152,7 @@ if (MSVC)
     set_c_cxx_flag("/W4")
 
     if (ARCH STREQUAL "i686")
-        set_c_cxx_flag("/arch:SSE2")
+#        set_c_cxx_flag("/arch:SSE2")
     endif()
 
     if (USE_LTO)
