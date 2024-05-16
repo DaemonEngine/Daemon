@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <common/FileSystem.h>
 #include "gl_shader.h"
+#include "Material.h"
 
 // We currently write GLBinaryHeader to a file and memcpy all over it.
 // Make sure it's a pod, so we don't put a std::string in it or something
@@ -42,6 +43,9 @@ ShaderKind shaderKind = ShaderKind::Unknown;
 GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
+GLShader_cull                            *gl_cullShader = nullptr;
+GLShader_clearSurfaces                   *gl_clearSurfacesShader = nullptr;
+GLShader_processSurfaces                 *gl_processSurfacesShader = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
 GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial = nullptr;
 GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ = nullptr;
@@ -461,6 +465,11 @@ static std::string GenComputeVersionDeclaration() {
 		{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
 		{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
 		{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
+		{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
+		{ glConfig2.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
+		{ glConfig2.explicitUniformLocationAvailable, 430, "ARB_explicit_uniform_location" },
+		{ glConfig2.shaderImageLoadStoreAvailable, 420, "ARB_shader_image_load_store" },
+		{ glConfig2.shaderAtomicCountersAvailable, 420, "ARB_shader_atomic_counters" },
 	};
 
 	for ( const auto& extension : extensions ) {
@@ -537,6 +546,28 @@ static std::string GenFragmentHeader() {
 		str += "#define drawID in_drawID\n";
 		str += "#define baseInstance in_baseInstance\n\n";
 	}
+
+	return str;
+}
+
+static std::string GenComputeHeader() {
+	std::string str;
+
+	// Compute shader compatibility defines
+	AddDefine( str, "MAX_VIEWS", MAX_VIEWS );
+	AddDefine( str, "MAX_FRAMES", MAX_FRAMES );
+	AddDefine( str, "MAX_VIEWFRAMES", MAX_VIEWFRAMES );
+	AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
+	AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
+
+	return str;
+}
+
+static std::string GenWorldHeader() {
+	std::string str;
+
+	// Shader compatibility defines that use map data for compile-time values
+	AddDefine( str, "MAX_SURFACE_COMMANDS", materialSystem.maxStages );
 
 	return str;
 }
@@ -733,7 +764,13 @@ void GLShaderManager::GenerateBuiltinHeaders() {
 	GLCompatHeader = GLHeader("GLCompatHeader", GenCompatHeader(), this);
 	GLVertexHeader = GLHeader("GLVertexHeader", GenVertexHeader(), this);
 	GLFragmentHeader = GLHeader("GLFragmentHeader", GenFragmentHeader(), this);
+	GLComputeHeader = GLHeader( "GLComputeHeader", GenComputeHeader(), this );
+	GLWorldHeader = GLHeader( "GLWorldHeader", GenWorldHeader(), this );
 	GLEngineConstants = GLHeader("GLEngineConstants", GenEngineConstants(), this);
+}
+
+void GLShaderManager::GenerateWorldHeaders() {
+	GLWorldHeader = GLHeader( "GLWorldHeader", GenWorldHeader(), this );
 }
 
 std::string GLShaderManager::BuildDeformShaderText( const std::string& steps )
@@ -1056,6 +1093,8 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 		combinedShaderText =
 			GLComputeVersionDeclaration.getText()
 			+ GLCompatHeader.getText()
+			+ GLComputeHeader.getText()
+			+ GLWorldHeader.getText()
 			+ GLEngineConstants.getText();
 	}
 
@@ -1268,7 +1307,8 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 		program->CS = CompileShader( shader->GetName(),
 						 computeShaderTextWithMacros,
 						 { &GLComputeVersionDeclaration,
-						   // &GLComputeHeader,
+						   &GLComputeHeader,
+						   &GLWorldHeader,
 						   &GLCompatHeader,
 						   &GLEngineConstants },
 						 GL_COMPUTE_SHADER );
@@ -3056,4 +3096,24 @@ void GLShader_fxaa::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 void GLShader_fxaa::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 {
 	fragmentInlines += "fxaa3_11";
+}
+
+GLShader_cull::GLShader_cull( GLShaderManager* manager ) :
+	GLShader( "cull", ATTR_POSITION, manager, false, false, true ),
+	u_TotalDrawSurfs( this ),
+	u_SurfaceCommandsOffset( this ),
+	u_Frustum( this ) {
+}
+
+GLShader_clearSurfaces::GLShader_clearSurfaces( GLShaderManager* manager ) :
+	GLShader( "clearSurfaces", ATTR_POSITION, manager, false, false, true ),
+	u_Frame( this ) {
+}
+
+GLShader_processSurfaces::GLShader_processSurfaces( GLShaderManager* manager ) :
+	GLShader( "processSurfaces", ATTR_POSITION, manager, false, false, true ),
+	u_Frame( this ),
+	u_ViewID( this ),
+	u_SurfaceCommandsOffset( this ),
+	u_CulledCommandsOffset( this ) {
 }

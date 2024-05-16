@@ -71,7 +71,10 @@ struct Material {
 	uint32_t currentStaticDrawSurfCount = 0;
 	uint32_t currentDynamicDrawSurfCount = 0;
 
-	uint32_t staticCommandOffset = 0;
+	uint32_t globalID = 0;
+	uint32_t surfaceCommandBatchOffset = 0;
+	uint32_t surfaceCommandBatchCount = 0;
+	uint32_t surfaceCommandBatchPadding = 0;
 
 	uint32_t id = 0;
 	bool useSync = false;
@@ -134,12 +137,64 @@ struct drawSurfBoundingSphere {
 	uint32_t drawSurfID;
 };
 
+#define MAX_SURFACE_COMMANDS 16
+#define MAX_COMMAND_COUNTERS 64
+#define SURFACE_COMMANDS_PER_BATCH 64
+
+#define MAX_SURFACE_COMMAND_BATCHES 2048
+
+#define BOUNDING_SPHERE_SIZE 4
+
+#define INDIRECT_COMMAND_SIZE 5
+#define SURFACE_COMMAND_SIZE 6
+#define SURFACE_COMMAND_BATCH_SIZE 4 // Aligned to 4 components
+
+#define MAX_FRAMES 2
+#define MAX_VIEWFRAMES MAX_VIEWS * MAX_FRAMES // Buffer 2 frames for each view
+
+struct ViewFrame {
+	uint32_t viewID = 0;
+	uint32_t portalViews[MAX_VIEWS];
+	frustum_t frustum;
+};
+
+struct Frame {
+	uint32_t viewCount = 0;
+	ViewFrame viewFrames[MAX_VIEWS];
+};
+
+struct BoundingSphere {
+	vec3_t origin;
+	float radius;
+};
+
+struct SurfaceDescriptor {
+	BoundingSphere boundingSphere;
+	uint32_t surfaceCommandIDs[MAX_SURFACE_COMMANDS] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+};
+
+struct SurfaceCommand {
+	uint32_t enabled; // uint because bool in GLSL is always 4 bytes
+	GLIndirectBuffer::GLIndirectCommand drawCommand;
+};
+
+struct SurfaceCommandBatch {
+	uint32_t materialIDs[4] { 0, 0, 0, 0 };
+};
+
 class MaterialSystem {
 	public:
 	bool generatedWorldCommandBuffer = false;
 	bool skipDrawCommands;
 	bool generatingWorldCommandBuffer = false;
 	vec3_t worldViewBounds[2] = {};
+
+	uint32_t currentView = 0;
+
+	uint8_t maxStages = 0;
+	uint32_t descriptorSize;
+
+	std::vector<DrawCommand> drawCommands;
 
 	std::vector<drawSurf_t*> portalSurfacesTmp;
 	std::vector<drawSurf_t> portalSurfaces;
@@ -148,6 +203,9 @@ class MaterialSystem {
 
 	std::vector<Material*> renderedMaterials;
 
+	/* MaterialPack is an abstraction to match a range of materials with the 3 different calls to RB_RenderDrawSurfaces()
+	with 3 different shaderSort_t ranges in RB_RenderView(). The 4th one that uses a different surface filter (DRAWSURFACES_NEAR_ENTITIES)
+	is ignored because it's never used for BSP surfaces. */
 	struct MaterialPack {
 		const shaderSort_t fromSort;
 		const shaderSort_t toSort;
@@ -165,15 +223,21 @@ class MaterialSystem {
 		{ shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS }
 	};
 
-	bool frameStart = true;
+	bool frameStart = false;
 
 	void AddTexture( Texture* texture );
 	void AddDrawCommand( const uint32_t materialID, const uint32_t materialPackID, const uint32_t materialsSSBOOffset,
 						 const GLuint count, const GLuint firstIndex );
 
 	void AddPortalSurfaces();
-	void RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort );
+	void RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID );
 	void UpdateDynamicSurfaces();
+
+	void QueueSurfaceCull( const uint32_t viewID, const frustum_t* frustum );
+	void CullSurfaces();
+	
+	void StartFrame();
+	void EndFrame();
 
 	void AddStageTextures( drawSurf_t* drawSurf, shaderStage_t* pStage, Material* material );
 	void GenerateWorldMaterials();
@@ -186,16 +250,36 @@ class MaterialSystem {
 	void Free();
 
 	private:
+	bool PVSLocked = false;
+	frustum_t lockedFrustum;
+
 	DrawCommand cmd;
+	uint32_t lastCommandID;
+	uint32_t totalDrawSurfs;
+	uint32_t totalBatchCount = 0;
+
+	uint32_t surfaceCommandsCount = 0;
+	uint32_t culledCommandsCount = 0;
+	uint32_t surfaceDescriptorsCount = 0;
+
 	std::vector<drawSurf_t> dynamicDrawSurfs;
 	uint32_t dynamicDrawSurfsOffset = 0;
 	uint32_t dynamicDrawSurfsSize = 0;
 
-	void RenderMaterial( Material& material );
+	Frame frames[MAX_FRAMES];
+	uint32_t currentFrame = 0;
+	uint32_t nextFrame = 1;
+
+	void RenderMaterial( Material& material, const uint32_t viewID );
+	void UpdateFrameData();
 };
 
 extern GLSSBO materialsSSBO;
-extern GLIndirectBuffer commandBuffer;
+extern GLSSBO surfaceDescriptorsSSBO; // Global
+extern GLSSBO surfaceCommandsSSBO; // Per viewframe, GPU updated
+extern GLBuffer culledCommandsBuffer; // Per viewframe
+extern GLUBO surfaceBatchesUBO; // Global
+extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
 extern MaterialSystem materialSystem;
 
 #endif // MATERIAL_H

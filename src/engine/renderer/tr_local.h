@@ -1519,6 +1519,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		orientationr_t orientation;
 		orientationr_t world;
 
+		uint viewID = 0;
+
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
 		int            portalLevel; // number of portals this view is through
@@ -1657,6 +1659,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		uint materialIDs[ MAX_SHADER_STAGES ];
 		uint materialPackIDs[ MAX_SHADER_STAGES ];
 		bool texturesDynamic[ MAX_SHADER_STAGES ];
+		uint drawCommandIDs[ MAX_SHADER_STAGES ];
 
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
@@ -2644,6 +2647,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		deluxeMode_t worldDeluxe;
 		deluxeMode_t modelDeluxe;
 
+		bool worldLoaded;
 		world_t    *world;
 
 		TextureManager textureManager;
@@ -3420,6 +3424,7 @@ inline bool checkGLErrors()
 	alignas(16) extern shaderCommands_t tess;
 
 	void                    GLSL_InitGPUShaders();
+	void                    GLSL_InitWorldShadersOrError();
 	void                    GLSL_ShutdownGPUShaders();
 	void                    GLSL_FinishGPUShaders();
 
