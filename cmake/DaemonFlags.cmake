@@ -29,6 +29,15 @@ include(CheckCXXCompilerFlag)
 
 add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE})
 
+option(USE_COMPILER_BUILTINS "Enable usage of compiler builtins" ON)
+
+if (USE_COMPILER_BUILTINS)
+    add_definitions(-DDAEMON_USE_COMPILER_BUILTINS=1)
+    message(STATUS "Enabling compiler builtins")
+else()
+    message(STATUS "Disabling compiler builtins")
+endif()
+
 # Set flag without checking, optional argument specifies build type
 macro(set_c_flag FLAG)
     if (${ARGC} GREATER 1)

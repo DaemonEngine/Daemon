@@ -95,7 +95,7 @@ int CountTrailingZeroes(unsigned long long x);
 #endif
 
 // GCC and Clang
-#if defined(__GNUC__)
+#if defined(DAEMON_USE_COMPILER_BUILTINS) && defined(__GNUC__)
 
 // Emit a nice warning when a function is used
 #define DEPRECATED __attribute__((__deprecated__))
@@ -180,7 +180,7 @@ See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
 #endif
 
 // Microsoft Visual C++
-#elif defined(_MSC_VER)
+#elif defined(DAEMON_USE_COMPILER_BUILTINS) && defined(_MSC_VER)
 
 // Disable some warnings
 #pragma warning(disable : 4100) // unreferenced formal parameter
