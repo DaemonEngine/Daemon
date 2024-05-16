@@ -125,6 +125,9 @@ if (MSVC)
     set_c_cxx_flag("/fp:fast")
     set_c_cxx_flag("/d2Zi+" RELWITHDEBINFO)
 
+    # https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+    set_cxx_flag("/Zc:__cplusplus")
+
     # At least Ninja doesn't remove the /W3 flag when we add /W4|/Wall one, which
     # leads to compilation warnings.  Remove /W3 entirely, as /W4|/Wall be used.
     foreach(flag_var
