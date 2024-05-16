@@ -74,6 +74,26 @@ int CountTrailingZeroes(unsigned long long x);
 		{ int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i; }
 #endif
 
+// Sanitizer detection
+
+#if defined(__SANITIZE_ADDRESS__) // Detects GCC and MSVC AddressSanitizer
+	#define USING_ADDRESS_SANITIZER
+	#define USING_SANITIZER
+#elif defined(__SANITIZE_THREAD__) // Detects GCC ThreadSanitizer
+	#define USING_SANITIZER
+#elif defined(__has_feature)
+	#if __has_feature(address_sanitizer) // Detects Clang AddressSanitizer
+		#define USING_ADDRESS_SANITIZER
+		#define USING_SANITIZER
+	#elif __has_feature(leak_sanitizer) // Detects Clang LeakSanitizer
+		#define USING_SANITIZER
+	#elif __has_feature(memory_sanitizer) // Detects Clang MemorySanitizer
+		#define USING_SANITIZER
+	#elif __has_feature(thread_sanitizer) // Detects Clang ThreadSanitizer
+		#define USING_SANITIZER
+	#endif
+#endif
+
 // GCC and Clang
 #if defined(__GNUC__)
 
@@ -141,24 +161,6 @@ would lack too much features to compile Daemon anyway).
 
 See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
 #define UNREACHABLE() __builtin_unreachable()
-
-#if defined(__SANITIZE_ADDRESS__) // Detects GCC and MSVC AddressSanitizer
-#   define USING_ADDRESS_SANITIZER
-#   define USING_SANITIZER
-#elif defined(__SANITIZE_THREAD__) // Detects GCC ThreadSanitizer
-#   define USING_SANITIZER
-#elif defined(__has_feature)
-#   if __has_feature(address_sanitizer) // Detects Clang AddressSanitizer
-#       define USING_ADDRESS_SANITIZER
-#       define USING_SANITIZER
-#   elif __has_feature(leak_sanitizer) // Detects Clang LeakSanitizer
-#       define USING_SANITIZER
-#   elif __has_feature(memory_sanitizer) // Detects Clang MemorySanitizer
-#       define USING_SANITIZER
-#   elif __has_feature(thread_sanitizer) // Detects Clang ThreadSanitizer
-#       define USING_SANITIZER
-#   endif
-#endif
 
 // To mark functions which cause issues with address sanitizer
 #ifdef USING_ADDRESS_SANITIZER
