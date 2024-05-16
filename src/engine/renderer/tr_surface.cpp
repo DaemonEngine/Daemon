@@ -1458,7 +1458,6 @@ static void Tess_SurfaceVBOMesh( srfVBOMesh_t *srf )
 {
 	GLimp_LogComment( "--- Tess_SurfaceVBOMesh ---\n" );
 
-
 	Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numIndexes, srf->firstIndex );
 }
 

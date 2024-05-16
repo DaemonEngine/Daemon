@@ -60,6 +60,23 @@ static void EnableAvailableFeatures()
 	}
 }
 
+// For shaders that require map data for compile-time values 
+void GLSL_InitWorldShadersOrError() {
+	// make sure the render thread is stopped
+	R_SyncRenderThread();
+
+	GL_CheckErrors();
+
+	gl_shaderManager.GenerateWorldHeaders();
+
+	// Material system shaders that are always loaded if material system is available
+	if ( glConfig2.materialSystemAvailable ) {
+		gl_shaderManager.load( gl_cullShader );
+	}
+
+	gl_shaderManager.buildAll();
+}
+
 static void GLSL_InitGPUShadersOrError()
 {
 	// make sure the render thread is stopped
@@ -86,6 +103,9 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_skyboxShaderMaterial );
 		gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
 		gl_shaderManager.load( gl_heatHazeShaderMaterial );
+		gl_shaderManager.load( gl_cullShader );
+		gl_shaderManager.load( gl_clearSurfacesShader );
+		gl_shaderManager.load( gl_processSurfacesShader );
 	}
 
 	// standard light mapping
@@ -291,6 +311,9 @@ void GLSL_ShutdownGPUShaders()
 
 	gl_genericShader = nullptr;
 	gl_genericShaderMaterial = nullptr;
+	gl_cullShader = nullptr;
+	gl_clearSurfacesShader = nullptr;
+	gl_processSurfacesShader = nullptr;
 	gl_lightMappingShader = nullptr;
 	gl_lightMappingShaderMaterial = nullptr;
 	gl_forwardLightingShader_omniXYZ = nullptr;

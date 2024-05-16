@@ -58,7 +58,7 @@ DECLARE_OUTPUT(vec4)
 
 void main()
 {
-	#insert material
+	#insert material_fp
 
 	// Compute view direction in world space.
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);

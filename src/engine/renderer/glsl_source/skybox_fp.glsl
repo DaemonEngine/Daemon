@@ -54,7 +54,7 @@ float ComputeCloudParametric( vec3 skyVec, float radiusWorld, float cloudHeight 
 
 void	main()
 {
-	#insert material
+	#insert material_fp
 
 	// compute incident ray
 	vec3 incidentRay = normalize(var_Position);

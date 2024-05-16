@@ -92,6 +92,7 @@ struct glconfig2_t
 	bool shadingLanguage420PackAvailable;
 	bool explicitUniformLocationAvailable;
 	bool shaderImageLoadStoreAvailable;
+	bool shaderAtomicCountersAvailable;
 	bool materialSystemAvailable;
 	bool gpuShader4Available;
 	bool textureGatherAvailable;

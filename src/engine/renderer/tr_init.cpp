@@ -112,6 +112,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_arb_shading_language_420pack;
 	cvar_t      *r_arb_explicit_uniform_location;
 	cvar_t      *r_arb_shader_image_load_store;
+	cvar_t      *r_arb_shader_atomic_counters;
 
 	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
@@ -1107,6 +1108,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_arb_shading_language_420pack = Cvar_Get( "r_arb_shading_language_420pack", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_explicit_uniform_location = Cvar_Get( "r_arb_explicit_uniform_location", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_shader_image_load_store = Cvar_Get( "r_arb_shader_image_load_store", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_shader_atomic_counters = Cvar_Get( "r_arb_shader_atomic_counters", "1", CVAR_CHEAT | CVAR_LATCH );
 
 		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );

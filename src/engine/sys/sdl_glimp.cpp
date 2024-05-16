@@ -1963,10 +1963,14 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.2
 	glConfig2.shaderImageLoadStoreAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_image_load_store, r_arb_shader_image_load_store->value );
 
+	// made required in OpenGL 4.2
+	glConfig2.shaderAtomicCountersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counters, r_arb_shader_atomic_counters->value );
+
 	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable
 									    && glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
 										&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
 										&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
+										&& glConfig2.shaderAtomicCountersAvailable
 										&& r_smp->integer == 0 // Currently doesn't work with r_smp 1
 										&& r_useMaterialSystem->integer == 1; // Allow disabling it without disabling any extensions
 

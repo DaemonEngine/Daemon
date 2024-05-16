@@ -34,7 +34,7 @@ DECLARE_OUTPUT(vec4)
 
 void	main()
 {
-	#insert material
+	#insert material_fp
 
 	vec4 color;
 
