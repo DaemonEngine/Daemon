@@ -38,7 +38,7 @@ use the shader system.
 ==============================================================================
 */
 
-static ALIGNED( 16, transform_t bones[ MAX_BONES ] );
+static transform_t bones[ MAX_BONES ];
 
 /*
 ==============

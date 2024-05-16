@@ -415,7 +415,7 @@ SURFACE SHADERS
 =============================================================
 */
 
-ALIGNED( 16, shaderCommands_t tess );
+alignas(16) shaderCommands_t tess;
 
 /*
 ================

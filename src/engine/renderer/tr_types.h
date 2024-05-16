@@ -149,7 +149,7 @@ enum class refSkeletonType_t
   SK_ABSOLUTE
 };
 
-ALIGNED(16, struct refSkeleton_t
+struct alignas(16) refSkeleton_t
 {
 	refSkeletonType_t type; // skeleton has been reset
 
@@ -159,7 +159,7 @@ ALIGNED(16, struct refSkeleton_t
 	vec_t             scale;
 
 	refBone_t         bones[ MAX_BONES ];
-});
+};
 
 // XreaL END
 

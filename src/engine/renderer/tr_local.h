@@ -2180,7 +2180,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	};
 
 	// align for sse skinning
-	ALIGNED(16, struct md5Vertex_t
+	struct alignas(16) md5Vertex_t
 	{
 		vec4_t      position;
 		vec4_t      tangent;
@@ -2194,7 +2194,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		uint32_t    boneIndexes[ MAX_WEIGHTS ];
 		float       boneWeights[ MAX_WEIGHTS ];
-	});
+	};
 
 	struct md5Surface_t
 	{
@@ -3395,7 +3395,7 @@ inline bool checkGLErrors()
 #endif
 	};
 
-	extern shaderCommands_t tess;
+	alignas(16) extern shaderCommands_t tess;
 
 	void                    GLSL_InitGPUShaders();
 	void                    GLSL_ShutdownGPUShaders();

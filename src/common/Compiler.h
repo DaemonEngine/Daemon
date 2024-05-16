@@ -70,9 +70,6 @@ int CountTrailingZeroes(unsigned long long x);
 // Marks this function as memory allocator
 #define ALLOCATOR
 
-// Align the address of a variable to a certain value
-#define ALIGNED(a, x) x __attribute__((__aligned__(a)))
-
 // Shared library function import/export
 #ifdef _WIN32
 #define DLLEXPORT __attribute__((__dllexport__))
@@ -167,7 +164,6 @@ inline int CountTrailingZeroes(unsigned long long x) { return __builtin_ctzll(x)
 #define ALLOCATOR
 #endif
 #define MALLOC_LIKE ALLOCATOR __declspec(restrict)
-#define ALIGNED(a,x) __declspec(align(a)) x
 #define DLLEXPORT __declspec(dllexport)
 #define DLLIMPORT __declspec(dllimport)
 #define BREAKPOINT() __debugbreak()
@@ -205,7 +201,6 @@ inline int CountTrailingZeroes(unsigned long long x)
 #define PRINTF_TRANSLATE_ARG(a)
 #define MALLOC_LIKE
 #define ALLOCATOR
-#define ALIGNED(a,x) x
 #define DLLEXPORT
 #define DLLIMPORT
 #define BREAKPOINT()
