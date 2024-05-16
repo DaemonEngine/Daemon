@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* CountTrailingZeroes returns the number of
 trailing zeroes of the argument in binary.
 The result is unspecified if the input is 0. */
-#if defined(__GNUC__)
+#if defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(__GNUC__)
 inline int CountTrailingZeroes(unsigned int x)
 {
 	return __builtin_ctz(x);
@@ -51,7 +51,7 @@ inline int CountTrailingZeroes(unsigned long long x)
 {
 	return __builtin_ctzll(x);
 }
-#elif defined(_MSC_VER)
+#elif defined(DAEMON_USE_COMPILER_INTRINSICS) && defined(_MSC_VER)
 inline int CountTrailingZeroes(unsigned int x)
 {
 	unsigned long ans; _BitScanForward(&ans, x); return ans;
@@ -106,8 +106,8 @@ inline int CountTrailingZeroes(unsigned long long x)
 	#endif
 #endif
 
-// GCC and Clang
-#if defined(__GNUC__)
+// GCC and Clang attribute and operator customization.
+#if defined(DAEMON_USE_COMPILER_CUSTOMIZATION) && defined(__GNUC__)
 
 // Emit a nice warning when a function is used
 #define DEPRECATED __attribute__((__deprecated__))
@@ -188,8 +188,8 @@ See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
 	#define DAEMON_FALLTHROUGH
 #endif
 
-// Microsoft Visual C++
-#elif defined(_MSC_VER)
+// Microsoft Visual C++ attribute and operator customization.
+#elif defined(DAEMON_USE_COMPILER_CUSTOMIZATION) && defined(_MSC_VER)
 
 // See descriptions above
 #define DEPRECATED __declspec(deprecated)
@@ -220,6 +220,7 @@ See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
 #define WARN_UNUSED_RESULT
 #define COLD
 #define NORETURN
+#define NORETURN_PTR
 #define PRINTF_LIKE(n)
 #define VPRINTF_LIKE(n)
 #define PRINTF_TRANSLATE_ARG(a)
