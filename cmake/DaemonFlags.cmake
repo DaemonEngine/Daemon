@@ -116,6 +116,8 @@ macro(try_linker_flag PROP FLAG)
     endif()
 endmacro()
 
+option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2, NEON, VFP, MCX16, etc." ON)
+
 if(MINGW AND USE_BREAKPAD)
     set_linker_flag("-Wl,--build-id")
 endif()
@@ -140,7 +142,11 @@ if (MSVC)
     set_c_cxx_flag("/W4")
 
     if (ARCH STREQUAL "i686")
-        set_c_cxx_flag("/arch:SSE2")
+        if (USE_CPU_RECOMMENDED_FEATURES)
+            set_c_cxx_flag("/arch:SSE2") # This is the default
+        else()
+            set_c_cxx_flag("/arch:IA32") # minimum
+        endif()
     endif()
 
     if (USE_LTO)
@@ -234,7 +240,6 @@ else()
         endif()
     endif()
 
-    option(USE_CPU_RECOMMENDED_FEATURES "Enforce usage of hardware features like SSE, NEON, VFP, MCX16, etc." ON)
     if (USE_CPU_RECOMMENDED_FEATURES)
         if (ARCH STREQUAL "amd64")
             # CMPXCHG16B minimum (x86-64-v2): AMD64 revision F.
