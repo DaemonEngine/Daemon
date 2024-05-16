@@ -78,7 +78,7 @@ i686 with SSE and amd64.
 
 The definitions for the architecture itself are automatically set by CMake. */
 
-#if defined(DAEMON_USE_ARCH_INTRINSICS)
+#if 0 //defined(DAEMON_USE_ARCH_INTRINSICS)
 	// Set architecture extensions definitions.
 
 	/* MSVC doesn't set __SSE*__, and only set _M_IX86_FP on i686.
