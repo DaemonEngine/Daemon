@@ -91,15 +91,6 @@ int CountTrailingZeroes(unsigned long long x);
 	#define BREAKPOINT()
 #endif
 
-// noexcept keyword, this should be used on all move constructors and move
-// assignments so that containers move objects instead of copying them.
-#define NOEXCEPT noexcept
-#define NOEXCEPT_IF(x) noexcept(x)
-#define NOEXCEPT_EXPR(x) noexcept(x)
-
-// Work around lack of constexpr
-#define CONSTEXPR constexpr
-
 #if defined(__SANITIZE_ADDRESS__) // Detects GCC and MSVC AddressSanitizer
 #   define USING_ADDRESS_SANITIZER
 #   define USING_SANITIZER
@@ -150,10 +141,6 @@ inline int CountTrailingZeroes(unsigned long long x) { return __builtin_ctzll(x)
 #define DLLEXPORT __declspec(dllexport)
 #define DLLIMPORT __declspec(dllimport)
 #define BREAKPOINT() __debugbreak()
-#define NOEXCEPT noexcept
-#define NOEXCEPT_IF(x) noexcept(x)
-#define NOEXCEPT_EXPR(x) noexcept(x)
-#define CONSTEXPR constexpr
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS
 
 inline int CountTrailingZeroes(unsigned int x) { unsigned long ans; _BitScanForward(&ans, x); return ans; }
@@ -199,6 +186,26 @@ inline int CountTrailingZeroes(unsigned long long x) { int i = 0; while (i < 64 
 #   define ALIGN_STACK_FOR_MINGW __attribute__((force_align_arg_pointer))
 #else
 #   define ALIGN_STACK_FOR_MINGW
+#endif
+
+/* The noexcept keyword should be used on all move constructors and move
+assignments so that containers move objects instead of copying them.
+The noexcept keyword was added in C++11 but the __cpp_noexcept_function_type
+definition to detect its implementation was only added in C++17. */
+#if defined(__cpp_noexcept_function_type) || __cplusplus >= 201103 
+	#define NOEXCEPT noexcept
+	#define NOEXCEPT_IF(x) noexcept(x)
+	#define NOEXCEPT_EXPR(x) noexcept(x)
+#else
+	#define NOEXCEPT
+	#define NOEXCEPT_IF(x)
+	#define NOEXCEPT_EXPR(x) x
+#endif
+
+#if defined(__cpp_constexpr)
+	#define CONSTEXPR constexpr
+#else
+	#define CONSTEXPR
 #endif
 
 // Uses SD-6 Feature Test Recommendations
