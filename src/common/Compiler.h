@@ -33,14 +33,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COMMON_COMPILER_H_
 #define COMMON_COMPILER_H_
 
-// CountTrailingZeroes returns the number of trailing zeroes of the argument in binary.
-// The result is unspecified if the input is 0.
-int CountTrailingZeroes(unsigned int x);
-int CountTrailingZeroes(unsigned long x);
-int CountTrailingZeroes(unsigned long long x);
+// Code making use of compiler intrinsics.
+
+/* CountTrailingZeroes returns the number of
+trailing zeroes of the argument in binary.
+The result is unspecified if the input is 0. */
+#if defined(__GNUC__)
+inline int CountTrailingZeroes(unsigned int x)
+{
+	return __builtin_ctz(x);
+}
+inline int CountTrailingZeroes(unsigned long x)
+{
+	return __builtin_ctzl(x);
+}
+inline int CountTrailingZeroes(unsigned long long x)
+{
+	return __builtin_ctzll(x);
+}
+#elif defined(_MSC_VER)
+inline int CountTrailingZeroes(unsigned int x)
+{
+	unsigned long ans; _BitScanForward(&ans, x); return ans;
+}
+inline int CountTrailingZeroes(unsigned long x)
+{
+	unsigned long ans; _BitScanForward(&ans, x); return ans;
+}
+inline int CountTrailingZeroes(unsigned long long x)
+{
+	unsigned long ans;
+	#ifdef _WIN64
+	_BitScanForward64(&ans, x); return ans;
+	#else
+	bool nonzero = _BitScanForward(&ans, static_cast<unsigned long>(x));
+	if (!nonzero) { _BitScanForward(&ans, x >> 32); }
+	#endif
+	return ans;
+}
+#else
+inline int CountTrailingZeroes(unsigned int x)
+{
+	int i = 0; while (i < 32 && !(x & 1)) { ++i; x >>= 1; } return i;
+}
+inline int CountTrailingZeroes(unsigned long x)
+{
+	int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i;
+}
+inline int CountTrailingZeroes(unsigned long long x)
+{
+	int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i;
+}
+#endif
 
 // GCC and Clang
-#ifdef __GNUC__
+#if defined(__GNUC__)
 
 // Emit a nice warning when a function is used
 #define DEPRECATED __attribute__((__deprecated__))
@@ -91,6 +138,19 @@ int CountTrailingZeroes(unsigned long long x);
 	#define BREAKPOINT()
 #endif
 
+/* Compiler can be fooled when calling ASSERT_UNREACHABLE() macro at end of non-void function.
+In this case, compiler is complaining because control reaches end of non-void function,
+even if the execution flow is expected to be taken down by assert before.
+
+That's why we use these compiler specific unreachable builtin on modern compilers,
+ASSERT_UNREACHABLE() macro makes use of this UNREACHABLE() macro, preventing useless warnings.
+Unsupported compilers will raise "control reaches end of non-void function" warnings but
+that's not a big issue and that's likely to never happen (these compilers would be too old and
+would lack too much features to compile Daemon anyway).
+
+See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
+#define UNREACHABLE() __builtin_unreachable()
+
 #if defined(__SANITIZE_ADDRESS__) // Detects GCC and MSVC AddressSanitizer
 #   define USING_ADDRESS_SANITIZER
 #   define USING_SANITIZER
@@ -116,12 +176,17 @@ int CountTrailingZeroes(unsigned long long x);
 #   define ATTRIBUTE_NO_SANITIZE_ADDRESS
 #endif
 
-inline int CountTrailingZeroes(unsigned int x) { return __builtin_ctz(x); }
-inline int CountTrailingZeroes(unsigned long x) { return __builtin_ctzl(x); }
-inline int CountTrailingZeroes(unsigned long long x) { return __builtin_ctzll(x); }
+// The new -Wimplicit-fallthrough warning...
+#if defined(__clang__) && __clang_major__ >= 6
+	#define DAEMON_FALLTHROUGH [[clang::fallthrough]]
+#elif __GNUC__ >= 7
+	#define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
+#else
+	#define DAEMON_FALLTHROUGH
+#endif
 
 // Microsoft Visual C++
-#elif defined( _MSC_VER )
+#elif defined(_MSC_VER)
 
 // See descriptions above
 #define DEPRECATED __declspec(deprecated)
@@ -141,23 +206,9 @@ inline int CountTrailingZeroes(unsigned long long x) { return __builtin_ctzll(x)
 #define DLLEXPORT __declspec(dllexport)
 #define DLLIMPORT __declspec(dllimport)
 #define BREAKPOINT() __debugbreak()
+#define UNREACHABLE() __assume(0)
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS
-
-inline int CountTrailingZeroes(unsigned int x) { unsigned long ans; _BitScanForward(&ans, x); return ans; }
-inline int CountTrailingZeroes(unsigned long x) { unsigned long ans; _BitScanForward(&ans, x); return ans; }
-#ifdef _WIN64
-inline int CountTrailingZeroes(unsigned long long x) { unsigned long ans; _BitScanForward64(&ans, x); return ans; }
-#else
-inline int CountTrailingZeroes(unsigned long long x)
-{
-    unsigned long ans;
-    bool nonzero =  _BitScanForward(&ans, static_cast<unsigned long>(x));
-    if (!nonzero) {
-        _BitScanForward(&ans, x >> 32);
-    }
-    return ans;
-}
-#endif
+#define DAEMON_FALLTHROUGH
 
 // Other compilers, unsupported
 #else
@@ -174,19 +225,12 @@ inline int CountTrailingZeroes(unsigned long long x)
 #define DLLEXPORT
 #define DLLIMPORT
 #define BREAKPOINT()
-
-inline int CountTrailingZeroes(unsigned int x) { int i = 0; while (i < 32 && !(x & 1)) { ++i; x >>= 1; } return i; }
-inline int CountTrailingZeroes(unsigned long x) { int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i; }
-inline int CountTrailingZeroes(unsigned long long x) { int i = 0; while (i < 64 && !(x & 1)) { ++i; x >>= 1; } return i; }
+#define UNREACHABLE()
+#define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#define DAEMON_FALLTHROUGH
 #endif
 
-#if defined(__MINGW32__) && defined(__i386__)
-// On x86, GCC expects 16-byte stack alignment (used for SSE instructions), but MSVC only uses 4-byte alignment.
-// Therefore the stack needs to be adjusted whenever MSVC code calls into GCC code.
-#   define ALIGN_STACK_FOR_MINGW __attribute__((force_align_arg_pointer))
-#else
-#   define ALIGN_STACK_FOR_MINGW
-#endif
+// Keywords specific to C++ versions
 
 /* The noexcept keyword should be used on all move constructors and move
 assignments so that containers move objects instead of copying them.
@@ -222,35 +266,15 @@ definition to detect its implementation was only added in C++17. */
 #   define CONSTEXPR_FUNCTION_RELAXED
 #endif
 
-// The new -Wimplicit-fallthrough warning...
-#if defined(__clang__) && __clang_major__ >= 6
-#   define DAEMON_FALLTHROUGH [[clang::fallthrough]]
-#elif __GNUC__ >= 7
-#   define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
-#else
-#   define DAEMON_FALLTHROUGH
-#endif
+// Compiler specificities we can't disable.
 
-/* Compiler can be fooled when calling ASSERT_UNREACHABLE() macro at end of non-void function.
- * In this case, compiler is complaining because control reaches end of non-void function,
- * even if the execution flow is expected to be taken down by assert before.
- *
- * That's why we use these compiler specific unreachable builtin on modern compilers,
- * ASSERT_UNREACHABLE() macro makes use of this UNREACHABLE() macro, preventing useless warnings.
- * Unsupported compilers will raise "control reaches end of non-void function" warnings but
- * that's not a big issue and that's likely to never happen (these compilers would be too old and
- * would lack too much features to compile Daemon anyway).
- *
- * See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf
-*/
-#if defined(_MSC_VER) //UNREACHABLE
-	#define UNREACHABLE() __assume(0)
-// All of gcc, clang and icc define __GNUC__
-#elif defined(__GNUC__)
-	#define UNREACHABLE() __builtin_unreachable()
-#else // UNREACHABLE
-	#define UNREACHABLE()
-#endif // UNREACHABLE
+#if defined(__MINGW32__) && defined(__i386__)
+// On x86, GCC expects 16-byte stack alignment (used for SSE instructions), but MSVC only uses 4-byte alignment.
+// Therefore the stack needs to be adjusted whenever MSVC code calls into GCC code.
+	#define ALIGN_STACK_FOR_MINGW __attribute__((force_align_arg_pointer))
+#else
+	#define ALIGN_STACK_FOR_MINGW
+#endif
 
 /* Use a C++11 braced initializer on MSVC instead of a bracket initializer
 when zeroing a struct. This works around a bug in how MSVC generates implicit
