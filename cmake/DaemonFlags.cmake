@@ -29,6 +29,26 @@ include(CheckCXXCompilerFlag)
 
 add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE})
 
+option(USE_COMPILER_INTRINSICS "Enable usage of compiler intrinsics" ON)
+mark_as_advanced(USE_COMPILER_INTRINSICS)
+
+if (USE_COMPILER_INTRINSICS)
+    add_definitions(-DDAEMON_USE_COMPILER_INTRINSICS=1)
+    message(STATUS "Enabling compiler intrinsics")
+else()
+    message(STATUS "Disabling compiler intrinsics")
+endif()
+
+option(USE_COMPILER_CUSTOMIZATION "Enable usage of compiler custom attributes and operators" ON)
+mark_as_advanced(USE_COMPILER_CUSTOMIZATION)
+
+if (USE_COMPILER_CUSTOMIZATION)
+    add_definitions(-DDAEMON_USE_COMPILER_CUSTOMIZATION=1)
+    message(STATUS "Enabling compiler custom attributes and operators")
+else()
+    message(STATUS "Disabling compiler custom attributes and operators")
+endif()
+
 # Set flag without checking, optional argument specifies build type
 macro(set_c_flag FLAG)
     if (${ARGC} GREATER 1)
