@@ -29,11 +29,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "cm_public.h"
 #include "common/FileSystem.h"
 
 namespace {
+
+using ::testing::FloatNear;
+using ::testing::Pointwise;
 
 constexpr int contentmask = ~0;
 constexpr int skipmask = 0;
@@ -139,6 +143,11 @@ TEST_F(TraceTest, AllInPatch)
     EXPECT_EQ(1.0f, tr.fraction);
 }
 
+// The patch planes (produced from a cGrid_t) come out fairly differently if 80-bit x87 math is used
+constexpr float PATCH_PLANE_NORMAL_ATOL = 5.0e-6;
+constexpr float PATCH_PLANE_DIST_ATOL = 8.0e-3;
+constexpr float PATCH_TRACE_FRACTION_ATOL = 3.0e-6;
+
 TEST_F(TraceTest, PointHitPatch)
 {
     trace_t tr;
@@ -149,8 +158,11 @@ TEST_F(TraceTest, PointHitPatch)
     EXPECT_EQ(CM_CheckTraceConsistency(start, end, contentmask, skipmask, tr), "");
 
     EXPECT_FALSE(tr.startsolid);
-    EXPECT_FLOAT_EQ(tr.fraction, 0.4261826);
+    EXPECT_NEAR(tr.fraction, 0.426183, PATCH_TRACE_FRACTION_ATOL);
     EXPECT_EQ(tr.contents, CONTENTS_SOLID);
+    const vec3_t expectedPlaneNormal = {0, .2425355, -0.970142};
+    EXPECT_THAT(tr.plane.normal, Pointwise(FloatNear(PATCH_PLANE_NORMAL_ATOL), expectedPlaneNormal));
+    EXPECT_NEAR(tr.plane.dist, 325.9677, PATCH_PLANE_DIST_ATOL);
 }
 
 TEST_F(TraceTest, BoxHitPatch)
@@ -165,8 +177,11 @@ TEST_F(TraceTest, BoxHitPatch)
     EXPECT_EQ(CM_CheckTraceConsistency(start, end, contentmask, skipmask, tr), "");
 
     EXPECT_FALSE(tr.startsolid);
-    EXPECT_FLOAT_EQ(tr.fraction, 0.1921389);
+    EXPECT_NEAR(tr.fraction, 0.192139, PATCH_TRACE_FRACTION_ATOL);
     EXPECT_EQ(tr.contents, CONTENTS_SOLID);
+    const vec3_t expectedPlaneNormal = {0, .2425355, -0.970142};
+    EXPECT_THAT(tr.plane.normal, Pointwise(FloatNear(PATCH_PLANE_NORMAL_ATOL), expectedPlaneNormal));
+    EXPECT_NEAR(tr.plane.dist, 362.105, PATCH_PLANE_DIST_ATOL);
 }
 
 } // namespace
