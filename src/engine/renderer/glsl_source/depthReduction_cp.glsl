@@ -34,78 +34,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* depthReduction_cp.glsl */
 
-layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-// layout(rg16f, binding = 0) uniform image2D depthImage;
+layout(rgba32f, binding = 0) uniform readonly image2D depthImageIn;
+layout(rgba32f, binding = 1) uniform writeonly image2D depthImageOut;
 
-struct BoundingSphere {
-    vec3 center;
-    float radius;
-};
-
-struct SurfaceDescriptor {
-    BoundingSphere boundingSphere;
-    uint surfaceCommandIDs[MAX_SURFACE_COMMANDS];
-};
-
-struct GLIndirectCommand {
-	uint count;
-	uint instanceCount;
-	uint firstIndex;
-	int baseVertex;
-	uint baseInstance;
-};
-
-struct SurfaceCommand {
-    bool enabled;
-    GLIndirectCommand drawCommand;
-};
-
-layout(std430, binding = 1) readonly restrict buffer surfaceDescriptorsSSBO {
-    SurfaceDescriptor surfaces[];
-};
-
-layout(std430, binding = 2) writeonly restrict buffer surfaceCommandsSSBO {
-    SurfaceCommand surfaceCommands[];
-};
-
-struct Plane {
-    vec3 normal;
-    float distance;
-};
-
-uniform uint u_TotalDrawSurfs;
-uniform uint u_SurfaceCommandsOffset;
-uniform bool u_UseFrustumCulling;
-uniform vec4 u_Frustum[6]; // xyz - normal, w - distance
-
-bool CullSurface( in BoundingSphere boundingSphere ) {
-    for( int i = 0; i < 5; i++ ) { // Skip far plane for now because we always have it set to { 0, 0, 0, 0 } for some reason
-        const float distance = dot( u_Frustum[i].xyz, boundingSphere.center ) - u_Frustum[i].w;
-
-        if( distance < -boundingSphere.radius ) {
-            return true && u_UseFrustumCulling;
-        }
-    }
-    return false;
-}
-
-void ProcessSurfaceCommands( const in SurfaceDescriptor surface, const in bool enabled ) {
-    for( uint i = 0; i < MAX_SURFACE_COMMANDS; i++ ) {
-        const uint commandID = surface.surfaceCommandIDs[i];
-        surfaceCommands[commandID + u_SurfaceCommandsOffset].enabled = enabled;
-    }
-}
+uniform uint u_ViewWidth;
+uniform uint u_ViewHeight;
 
 void main() {
     const uint globalInvocationID = gl_GlobalInvocationID.z * gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y
                              + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x
                              + gl_GlobalInvocationID.x;
-    if( globalInvocationID >= u_TotalDrawSurfs ) {
-        return;
-    }
-    SurfaceDescriptor surface = surfaces[globalInvocationID];
-    bool culled = CullSurface( surface.boundingSphere );
 
-    ProcessSurfaceCommands( surface, !culled );
+    const ivec2 position = ivec2( gl_GlobalInvocationID.xy );
+    if( position.x >= u_ViewWidth || position.y >= u_ViewHeight ) {
+        return;
+    };
+    /* if( globalInvocationID >= u_TotalDrawSurfs ) {
+        return;
+    } */
+
+    vec4 depth[4];
+    for( int x = 0; x < 2; x++ ) {
+        for( int y = 0; y < 2; y++ ) {
+            depth[y * 2 + x] = imageLoad( depthImageIn, position + ivec2( x, y ) );
+        }
+    }
+
+    vec4 depthOut = min( depth[0], depth[1] );
+    depthOut = min( depthOut, depth[2] );
+    depthOut = min( depthOut, depth[3] );
+    imageStore( depthImageOut, position, depthOut );
 }

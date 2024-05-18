@@ -103,7 +103,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_skyboxShaderMaterial );
 		gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
 		gl_shaderManager.load( gl_heatHazeShaderMaterial );
-		gl_shaderManager.load( gl_cullShader );
+		gl_shaderManager.load( gl_depthReductionShader );
 		gl_shaderManager.load( gl_clearSurfacesShader );
 		gl_shaderManager.load( gl_processSurfacesShader );
 	}
@@ -312,6 +312,7 @@ void GLSL_ShutdownGPUShaders()
 	gl_genericShader = nullptr;
 	gl_genericShaderMaterial = nullptr;
 	gl_cullShader = nullptr;
+	gl_depthReductionShader = nullptr;
 	gl_clearSurfacesShader = nullptr;
 	gl_processSurfacesShader = nullptr;
 	gl_lightMappingShader = nullptr;

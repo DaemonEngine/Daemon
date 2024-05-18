@@ -3204,6 +3204,30 @@ class u_ViewID :
 	}
 };
 
+class u_ViewWidth :
+	GLUniform1ui {
+	public:
+	u_ViewWidth( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ViewWidth" ) {
+	}
+
+	void SetUniform_ViewWidth( const uint viewWidth ) {
+		this->SetValue( viewWidth );
+	}
+};
+
+class u_ViewHeight :
+	GLUniform1ui {
+	public:
+	u_ViewHeight( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ViewHeight" ) {
+	}
+
+	void SetUniform_ViewHeight( const uint viewHeight ) {
+		this->SetValue( viewHeight );
+	}
+};
+
 class u_TotalDrawSurfs :
 	GLUniform1ui {
 	public:
@@ -4616,6 +4640,14 @@ class GLShader_cull :
 	GLShader_cull( GLShaderManager* manager );
 };
 
+class GLShader_depthReduction :
+	public GLShader,
+	public u_ViewWidth,
+	public u_ViewHeight {
+	public:
+	GLShader_depthReduction( GLShaderManager* manager );
+};
+
 class GLShader_clearSurfaces :
 	public GLShader,
 	public u_Frame {
@@ -4642,6 +4674,7 @@ extern GLShader_generic2D                       *gl_generic2DShader;
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_cull                            *gl_cullShader;
+extern GLShader_depthReduction                  *gl_depthReductionShader;
 extern GLShader_clearSurfaces                   *gl_clearSurfacesShader;
 extern GLShader_processSurfaces                 *gl_processSurfacesShader;
 extern GLShader_lightMapping                    *gl_lightMappingShader;

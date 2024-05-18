@@ -161,6 +161,7 @@ struct ViewFrame {
 struct Frame {
 	uint viewCount = 0;
 	ViewFrame viewFrames[MAX_VIEWS];
+	image_t* depthImage;
 };
 
 struct BoundingSphere {
@@ -232,10 +233,13 @@ class MaterialSystem {
 	void UpdateDynamicSurfaces();
 
 	void QueueSurfaceCull( const uint viewID, const frustum_t* frustum );
+	void DepthReduction();
 	void CullSurfaces();
 	
 	void StartFrame();
 	void EndFrame();
+
+	void GenerateDepthImages( const int width, const int height, imageParams_t imageParms );
 
 	void AddStageTextures( drawSurf_t* drawSurf, shaderStage_t* pStage, Material* material );
 	void GenerateWorldMaterials();
@@ -250,6 +254,8 @@ class MaterialSystem {
 	private:
 	bool PVSLocked = false;
 	frustum_t lockedFrustum;
+
+	int depthImageLevels;
 
 	DrawCommand cmd;
 	uint lastCommandID;

@@ -1133,6 +1133,37 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	GL_CheckErrors();
 }
 
+void MaterialSystem::GenerateDepthImages( const int width, const int height, imageParams_t imageParms ) {
+	int size = std::max( width, height );
+	imageParms.bits ^= IF_NOPICMIP;
+
+	depthImageLevels = 0;
+	while ( size > 0 ) {
+		depthImageLevels++;
+		size >>= 1; // mipmaps round down
+	}
+	Log::Warn( "%u", depthImageLevels );
+
+	byte* data = new byte[width * height * 4];
+	for ( uint i = 0; i < MAX_FRAMES; i++ ) {
+		Frame* frame = &frames[i];
+
+		frame->depthImage = R_CreateImage( va( "_depthFrame%u", i ), nullptr, width, height, depthImageLevels, imageParms );
+		GL_Bind( frame->depthImage );
+		int mipmapWidth = width;
+		int mipmapHeight = height;
+		for ( int i = 0; i < depthImageLevels; i++ ) {
+			glTexImage2D( GL_TEXTURE_2D, i, GL_DEPTH24_STENCIL8, mipmapWidth, mipmapHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, data );
+			mipmapWidth >>= 1;
+			mipmapHeight >>= 1;
+		}
+		// glGenerateMipmap( GL_TEXTURE_2D );
+		GL_Unbind( frame->depthImage );
+	}
+
+	tr.currentDepthImage = frames[0].depthImage;
+}
+
 static void BindShaderGeneric( Material* material ) {
 	gl_genericShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 
@@ -1809,7 +1840,33 @@ void MaterialSystem::QueueSurfaceCull( const uint viewID, const frustum_t* frust
 	frames[nextFrame].viewCount++;
 }
 
+void MaterialSystem::DepthReduction() {
+	image_t* depthImage = frames[nextFrame].depthImage;
+	int width = depthImage->width;
+	int height = depthImage->height;
+
+	for ( int i = 0; i < depthImageLevels - 1; i++ ) {
+		width = width > 1 ? width >> 1 : 1;
+		height = height > 1 ? height >> 1 : 1;
+
+		uint globalWorkgroupX = width % 8 == 0 ? width / 8 : width / 8 + 1;
+		uint globalWorkgroupY = height % 8 == 0 ? height / 8 : height / 8 + 1;
+
+		glBindImageTexture( 0, depthImage->texnum, i, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F );
+		glBindImageTexture( 1, depthImage->texnum, i + 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F );
+
+		gl_depthReductionShader->BindProgram( 0 );
+		gl_depthReductionShader->SetUniform_ViewWidth( width );
+		gl_depthReductionShader->SetUniform_ViewHeight( height );
+		gl_depthReductionShader->DispatchCompute( globalWorkgroupX, globalWorkgroupY, 1 );
+
+		glMemoryBarrier( GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
+	}
+}
+
 void MaterialSystem::CullSurfaces() {
+	DepthReduction();
+
 	surfaceDescriptorsSSBO.BindBufferBase();
 	surfaceCommandsSSBO.BindBufferBase();
 	culledCommandsBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
@@ -1884,6 +1941,8 @@ void MaterialSystem::EndFrame() {
 	if ( !generatedWorldCommandBuffer ) {
 		return;
 	}
+
+	tr.currentDepthImage = frames[nextFrame].depthImage;
 
 	currentFrame = nextFrame;
 	nextFrame++;

@@ -44,6 +44,7 @@ GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_cull                            *gl_cullShader = nullptr;
+GLShader_depthReduction                  *gl_depthReductionShader = nullptr;
 GLShader_clearSurfaces                   *gl_clearSurfacesShader = nullptr;
 GLShader_processSurfaces                 *gl_processSurfacesShader = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
@@ -554,6 +555,10 @@ static std::string GenComputeHeader() {
 	AddDefine( str, "MAX_VIEWFRAMES", MAX_VIEWFRAMES );
 	AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
 	AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
+
+	if ( glConfig2.bindlessTexturesAvailable ) {
+		// str += "layout(bindless_image) uniform;\n";
+	}
 
 	return str;
 }
@@ -3108,6 +3113,12 @@ GLShader_cull::GLShader_cull( GLShaderManager* manager ) :
 	u_SurfaceCommandsOffset( this ),
 	u_UseFrustumCulling( this ),
 	u_Frustum( this ) {
+}
+
+GLShader_depthReduction::GLShader_depthReduction( GLShaderManager* manager ) :
+	GLShader( "depthReduction", ATTR_POSITION, manager, false, false, true ),
+	u_ViewWidth( this ),
+	u_ViewHeight( this ) {
 }
 
 GLShader_clearSurfaces::GLShader_clearSurfaces( GLShaderManager* manager ) :
