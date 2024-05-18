@@ -3216,6 +3216,18 @@ class u_TotalDrawSurfs :
 	}
 };
 
+class u_UseFrustumCulling :
+	GLUniform1Bool {
+	public:
+	u_UseFrustumCulling( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_UseFrustumCulling" ) {
+	}
+
+	void SetUniform_UseFrustumCulling( const int useFrustumCulling ) {
+		this->SetValue( useFrustumCulling );
+	}
+};
+
 class u_Frustum :
 	GLUniform4fv {
 	public:
@@ -4598,6 +4610,7 @@ class GLShader_cull :
 	public GLShader,
 	public u_TotalDrawSurfs,
 	public u_SurfaceCommandsOffset,
+	public u_UseFrustumCulling,
 	public u_Frustum {
 	public:
 	GLShader_cull( GLShaderManager* manager );

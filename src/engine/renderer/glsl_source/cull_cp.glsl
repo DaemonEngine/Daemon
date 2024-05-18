@@ -76,6 +76,7 @@ struct Plane {
 
 uniform uint u_TotalDrawSurfs;
 uniform uint u_SurfaceCommandsOffset;
+uniform bool u_UseFrustumCulling;
 uniform vec4 u_Frustum[6]; // xyz - normal, w - distance
 
 bool CullSurface( in BoundingSphere boundingSphere ) {
@@ -83,7 +84,7 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
         const float distance = dot( u_Frustum[i].xyz, boundingSphere.center ) - u_Frustum[i].w;
 
         if( distance < -boundingSphere.radius ) {
-            return true;
+            return true && u_UseFrustumCulling;
         }
     }
     return false;

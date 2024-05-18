@@ -3106,6 +3106,7 @@ GLShader_cull::GLShader_cull( GLShaderManager* manager ) :
 	GLShader( "cull", ATTR_POSITION, manager, false, false, true ),
 	u_TotalDrawSurfs( this ),
 	u_SurfaceCommandsOffset( this ),
+	u_UseFrustumCulling( this ),
 	u_Frustum( this ) {
 }
 

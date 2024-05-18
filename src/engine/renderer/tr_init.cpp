@@ -89,6 +89,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_lazyShaders;
 
 	cvar_t      *r_useMaterialSystem;
+	cvar_t      *r_gpuFrustumCulling;
 
 	cvar_t      *r_ext_occlusion_query;
 	cvar_t      *r_ext_draw_buffers;
@@ -1132,6 +1133,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_noMarksOnTrisurfs = Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
 
 		r_useMaterialSystem = Cvar_Get( "r_useMaterialSystem", "0", CVAR_LATCH );
+		r_gpuFrustumCulling = Cvar_Get( "r_gpuFrustumCulling", "1", CVAR_CHEAT );
 
 		/* 1: Delay GLSL shader build until first map load.
 

@@ -1829,6 +1829,7 @@ void MaterialSystem::CullSurfaces() {
 		uint globalWorkGroupX = totalDrawSurfs % MAX_COMMAND_COUNTERS == 0 ?
 			totalDrawSurfs / MAX_COMMAND_COUNTERS : totalDrawSurfs / MAX_COMMAND_COUNTERS + 1;
 		gl_cullShader->SetUniform_TotalDrawSurfs( totalDrawSurfs );
+		gl_cullShader->SetUniform_UseFrustumCulling( r_gpuFrustumCulling->integer );
 		gl_cullShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );
 
 		if ( PVSLocked ) {
