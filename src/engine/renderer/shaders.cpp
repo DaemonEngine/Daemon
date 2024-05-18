@@ -58,6 +58,11 @@
 #include "shadowFill_fp.glsl.h"
 #include "shadowFill_vp.glsl.h"
 #include "skybox_fp.glsl.h"
+#include "material_vp.glsl.h"
+#include "material_fp.glsl.h"
+#include "cull_cp.glsl.h"
+#include "processSurfaces_cp.glsl.h"
+#include "clearSurfaces_cp.glsl.h"
 
 std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/blurX_fp.glsl", std::string(reinterpret_cast<const char*>(blurX_fp_glsl), sizeof(blurX_fp_glsl)) },
@@ -69,6 +74,8 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/computeLight_fp.glsl", std::string(reinterpret_cast<const char*>(computeLight_fp_glsl), sizeof(computeLight_fp_glsl)) },
 	{ "glsl/contrast_fp.glsl", std::string(reinterpret_cast<const char*>(contrast_fp_glsl), sizeof(contrast_fp_glsl)) },
 	{ "glsl/contrast_vp.glsl", std::string(reinterpret_cast<const char*>(contrast_vp_glsl), sizeof(contrast_vp_glsl)) },
+	{ "glsl/clearSurfaces_cp.glsl", std::string( reinterpret_cast< const char* >( clearSurfaces_cp_glsl ), sizeof( clearSurfaces_cp_glsl ) ) },
+	{ "glsl/cull_cp.glsl", std::string( reinterpret_cast< const char* >( cull_cp_glsl ), sizeof( cull_cp_glsl ) ) },
 	{ "glsl/debugShadowMap_fp.glsl", std::string(reinterpret_cast<const char*>(debugShadowMap_fp_glsl), sizeof(debugShadowMap_fp_glsl)) },
 	{ "glsl/debugShadowMap_vp.glsl", std::string(reinterpret_cast<const char*>(debugShadowMap_vp_glsl), sizeof(debugShadowMap_vp_glsl)) },
 	{ "glsl/deformVertexes_vp.glsl", std::string(reinterpret_cast<const char*>(deformVertexes_vp_glsl), sizeof(deformVertexes_vp_glsl)) },
@@ -97,10 +104,13 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/lighttile_vp.glsl", std::string(reinterpret_cast<const char*>(lighttile_vp_glsl), sizeof(lighttile_vp_glsl)) },
 	{ "glsl/liquid_fp.glsl", std::string(reinterpret_cast<const char*>(liquid_fp_glsl), sizeof(liquid_fp_glsl)) },
 	{ "glsl/liquid_vp.glsl", std::string(reinterpret_cast<const char*>(liquid_vp_glsl), sizeof(liquid_vp_glsl)) },
+	{ "glsl/material_vp.glsl", std::string( reinterpret_cast< const char* >( material_vp_glsl ), sizeof( material_vp_glsl ) ) },
+	{ "glsl/material_fp.glsl", std::string( reinterpret_cast< const char* >( material_fp_glsl ), sizeof( material_fp_glsl ) ) },
 	{ "glsl/motionblur_fp.glsl", std::string(reinterpret_cast<const char*>(motionblur_fp_glsl), sizeof(motionblur_fp_glsl)) },
 	{ "glsl/motionblur_vp.glsl", std::string(reinterpret_cast<const char*>(motionblur_vp_glsl), sizeof(motionblur_vp_glsl)) },
 	{ "glsl/portal_fp.glsl", std::string(reinterpret_cast<const char*>(portal_fp_glsl), sizeof(portal_fp_glsl)) },
 	{ "glsl/portal_vp.glsl", std::string(reinterpret_cast<const char*>(portal_vp_glsl), sizeof(portal_vp_glsl)) },
+	{ "glsl/processSurfaces_cp.glsl", std::string( reinterpret_cast< const char* >( processSurfaces_cp_glsl ), sizeof( processSurfaces_cp_glsl ) ) },
 	{ "glsl/reflection_CB_fp.glsl", std::string(reinterpret_cast<const char*>(reflection_CB_fp_glsl), sizeof(reflection_CB_fp_glsl)) },
 	{ "glsl/reflection_CB_vp.glsl", std::string(reinterpret_cast<const char*>(reflection_CB_vp_glsl), sizeof(reflection_CB_vp_glsl)) },
 	{ "glsl/refraction_C_fp.glsl", std::string(reinterpret_cast<const char*>(refraction_C_fp_glsl), sizeof(refraction_C_fp_glsl)) },

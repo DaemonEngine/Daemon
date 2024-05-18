@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "botlib/bot_debug.h"
 #include "tr_public.h"
 #include "iqm.h"
+#include "TextureManager.h"
 
 #define GLEW_NO_GLU
 #include <GL/glew.h>
@@ -611,6 +612,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
+		Texture        *texture;
 
 		uint16_t width, height, numLayers; // source image
 		uint16_t       uploadWidth, uploadHeight; // after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
@@ -1196,6 +1198,14 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		expression_t    deformMagnitudeExp;
 
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
+
+		bool useMaterialSystem = false;
+		uint materialPackID = 0;
+		uint materialID = 0;
+		bool dynamic = false;
+		bool colorDynamic = false;
+		bool texMatricesDynamic = false;
+		bool texturesDynamic = false;
 	};
 
 	enum cullType_t : int
@@ -1396,7 +1406,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	struct shaderProgram_t
 	{
 		GLuint    program;
-		GLuint    VS, FS;
+		GLuint    VS, FS, CS;
 		uint32_t  attribs; // vertex array attributes
 		GLint    *uniformLocations;
 		GLuint   *uniformBlockIndexes;
@@ -1520,6 +1530,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	{
 		orientationr_t orientation;
 		orientationr_t world;
+
+		uint viewID = 0;
 
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
@@ -1652,6 +1664,13 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		shader_t      *shader;
 		uint64_t      sort;
 		bool          bspSurface;
+
+		uint materialsSSBOOffset[ MAX_SHADER_STAGES ];
+		bool initialized[ MAX_SHADER_STAGES ];
+		uint materialIDs[ MAX_SHADER_STAGES ];
+		uint materialPackIDs[ MAX_SHADER_STAGES ];
+		bool texturesDynamic[ MAX_SHADER_STAGES ];
+		uint drawCommandIDs[ MAX_SHADER_STAGES ];
 
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
@@ -2477,7 +2496,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		float  polygonOffsetFactor, polygonOffsetUnits;
 		vec2_t tileStep;
 
-		int    currenttextures[ 32 ];
+		int    currenttextures[ 256 ]; // Maximum reported is 192, see https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
 		int    currenttmu;
 
 		int stackIndex;
@@ -2639,7 +2658,10 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		deluxeMode_t worldDeluxe;
 		deluxeMode_t modelDeluxe;
 
+		bool worldLoaded;
 		world_t    *world;
+
+		TextureManager textureManager;
 
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
 
@@ -2744,6 +2766,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		drawSurf_t *genericQuad;
 
 		bool           hasSkybox;
+		bool           drawingSky = false;
 		drawSurf_t     *skybox;
 
 		vec3_t         sunLight; // from the sky shader for this level
@@ -2868,6 +2891,9 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_noMarksOnTrisurfs;
 	extern cvar_t *r_lazyShaders; // 0: build all shaders on program start 1: delay shader build until first map load 2: delay shader build until needed
 
+	extern cvar_t *r_useMaterialSystem;
+	extern cvar_t *r_gpuFrustumCulling;
+
 	extern cvar_t *r_norefresh; // bypasses the ref rendering
 	extern cvar_t *r_drawentities; // disable/enable entity rendering
 	extern cvar_t *r_drawworld; // disable/enable world rendering
@@ -2898,6 +2924,15 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_arb_uniform_buffer_object;
 	extern cvar_t *r_arb_texture_gather;
 	extern cvar_t *r_arb_gpu_shader5;
+	extern cvar_t *r_arb_bindless_texture;
+	extern cvar_t *r_arb_shader_draw_parameters;
+	extern cvar_t *r_arb_shader_storage_buffer_object;
+	extern cvar_t *r_arb_multi_draw_indirect;
+	extern cvar_t *r_arb_compute_shader;
+	extern cvar_t *r_arb_shading_language_420pack;
+	extern cvar_t *r_arb_explicit_uniform_location;
+	extern cvar_t *r_arb_shader_image_load_store;
+	extern cvar_t *r_arb_shader_atomic_counters;
 
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader
@@ -3055,6 +3090,7 @@ inline bool checkGLErrors()
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
 
+	bool           R_MirrorViewBySurface( drawSurf_t* drawSurf );
 	void           R_RenderView( viewParms_t *parms );
 	void           R_RenderPostProcess();
 
@@ -3148,12 +3184,12 @@ inline bool checkGLErrors()
 	====================================================================
 	*/
 	void GL_Bind( image_t *image );
-	void GL_BindNearestCubeMap( const vec3_t xyz );
+	void GL_BindNearestCubeMap( int unit, const vec3_t xyz );
 	void GL_Unbind( image_t *image );
-	void BindAnimatedImage( textureBundle_t *bundle );
+	GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle );
 	void GL_TextureFilter( image_t *image, filterType_t filterType );
 	void GL_BindProgram( shaderProgram_t *program );
-	void GL_BindToTMU( int unit, image_t *image );
+	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_BindNullProgram();
 	void GL_SetDefaultState();
 	void GL_SelectTexture( int unit );
@@ -3352,6 +3388,11 @@ inline bool checkGLErrors()
 		VBO_t       *vbo;
 		IBO_t       *ibo;
 
+		uint materialPackID = 0;
+		uint materialID = 0;
+		uint currentSSBOOffset = 0;
+		drawSurf_t* currentDrawSurf;
+
 		stageVars_t svars;
 
 		shader_t    *surfaceShader;
@@ -3369,6 +3410,7 @@ inline bool checkGLErrors()
 		int         multiDrawPrimitives;
 		glIndex_t    *multiDrawIndexes[ MAX_MULTIDRAW_PRIMITIVES ];
 		int         multiDrawCounts[ MAX_MULTIDRAW_PRIMITIVES ];
+		uint        multiDrawOffsets[ MAX_MULTIDRAW_PRIMITIVES ];
 
 		bool    vboVertexSkinning;
 		int         numBones;
@@ -3398,6 +3440,7 @@ inline bool checkGLErrors()
 	extern shaderCommands_t tess;
 
 	void                    GLSL_InitGPUShaders();
+	void                    GLSL_InitWorldShadersOrError();
 	void                    GLSL_ShutdownGPUShaders();
 	void                    GLSL_FinishGPUShaders();
 
@@ -3417,7 +3460,10 @@ inline bool checkGLErrors()
 	void Tess_DrawArrays( GLenum elementType );
 	void Tess_CheckOverflow( int verts, int indexes );
 
+	void SetNormalScale( const shaderStage_t* pStage, vec3_t normalScale );
+	void SetRgbaGen( const shaderStage_t* pStage, colorGen_t* rgbGen, alphaGen_t* alphaGen );
 	void Tess_ComputeColor( shaderStage_t *pStage );
+	void Tess_ComputeTexMatrices( shaderStage_t* pStage );
 
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorColor();

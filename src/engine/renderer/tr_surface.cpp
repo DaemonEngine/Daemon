@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_surface.c
 #include "tr_local.h"
+#include "Material.h"
 
 /*
 ==============================================================================
@@ -195,11 +196,13 @@ static bool Tess_SurfaceVBO( VBO_t *vbo, IBO_t *ibo, int numIndexes, int firstIn
 	else if ( mergeBack )
 	{
 		tess.multiDrawIndexes[ tess.multiDrawPrimitives - 1 ] = firstIndexOffset;
+		tess.multiDrawOffsets[ tess.multiDrawPrimitives - 1 ] = (GLuint) firstIndex;
 		tess.multiDrawCounts[ tess.multiDrawPrimitives - 1 ] += numIndexes;
 	}
 	else
 	{
 		tess.multiDrawIndexes[ tess.multiDrawPrimitives ] = firstIndexOffset;
+		tess.multiDrawOffsets[ tess.multiDrawPrimitives ] = (GLuint) firstIndex;
 		tess.multiDrawCounts[ tess.multiDrawPrimitives ] = numIndexes;
 
 		tess.multiDrawPrimitives++;
@@ -1455,7 +1458,6 @@ static void Tess_SurfaceVBOMesh( srfVBOMesh_t *srf )
 {
 	GLimp_LogComment( "--- Tess_SurfaceVBOMesh ---\n" );
 
-
 	Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numIndexes, srf->firstIndex );
 }
 
@@ -1581,6 +1583,7 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 
 static void Tess_SurfaceSkip( void* )
 {
+	materialSystem.skipSurface = true;
 }
 
 // *INDENT-OFF*

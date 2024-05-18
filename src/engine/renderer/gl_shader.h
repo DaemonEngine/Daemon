@@ -61,6 +61,7 @@ struct GLBinaryHeader
 };
 
 class GLUniform;
+class GLShader;
 class GLUniformBlock;
 class GLCompileMacro;
 class GLShaderManager;
@@ -99,6 +100,10 @@ private:
 
 	std::string                    _name;
 	std::string                    _mainShaderName;
+	const bool _useMaterialSystem;
+	GLuint std430Size = 0;
+	uint padding = 0;
+	uint textureCount = 0;
 protected:
 	int                            _activeMacros;
 	unsigned int                   _checkSum;
@@ -106,13 +111,17 @@ protected:
 	const uint32_t                 _vertexAttribsRequired;
 	uint32_t                       _vertexAttribs; // can be set by uniforms
 	GLShaderManager                 *_shaderManager;
-	size_t                         _uniformStorageSize;
 
-	std::string                    _fragmentShaderText;
+	bool                           _hasVertexShader;
 	std::string                    _vertexShaderText;
+	bool                           _hasFragmentShader;
+	std::string                    _fragmentShaderText;
+	bool                           _hasComputeShader;
+	std::string                    _computeShaderText;
 	std::vector< shaderProgram_t > _shaderPrograms;
 
 
+	size_t                         _uniformStorageSize;
 	std::vector< GLUniform * >      _uniforms;
 	std::vector< GLUniformBlock * > _uniformBlocks;
 	std::vector< GLCompileMacro * > _compileMacros;
@@ -121,30 +130,58 @@ protected:
 
 
 
-	GLShader( const std::string &name, uint32_t vertexAttribsRequired, GLShaderManager *manager ) :
+	GLShader( const std::string &name, uint32_t vertexAttribsRequired, GLShaderManager *manager,
+			  const bool hasVertexShader = true, const bool hasFragmentShader = true, const bool hasComputeShader = false ) :
 		_name( name ),
 		_mainShaderName( name ),
+		_useMaterialSystem( false ),
 		_activeMacros( 0 ),
 		_checkSum( 0 ),
 		_currentProgram( nullptr ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
+		_hasVertexShader( hasVertexShader ),
+		_hasFragmentShader( hasFragmentShader ),
+		_hasComputeShader( hasComputeShader ),
 		_uniformStorageSize( 0 )
 	{
 	}
 
-	GLShader( const std::string &name, const std::string &mainShaderName, uint32_t vertexAttribsRequired, GLShaderManager *manager ) :
+	GLShader( const std::string &name, const std::string &mainShaderName, uint32_t vertexAttribsRequired, GLShaderManager *manager,
+			  const bool hasVertexShader = true, const bool hasFragmentShader = true, const bool hasComputeShader = false ) :
 		_name( name ),
 		_mainShaderName( mainShaderName ),
+		_useMaterialSystem( false ),
 		_activeMacros( 0 ),
 		_checkSum( 0 ),
 		_currentProgram( nullptr ),
 		_vertexAttribsRequired( vertexAttribsRequired ),
 		_vertexAttribs( 0 ),
 		_shaderManager( manager ),
+		_hasVertexShader( hasVertexShader ),
+		_hasFragmentShader( hasFragmentShader ),
+		_hasComputeShader( hasComputeShader ),
 		_uniformStorageSize( 0 )
 	{
+	}
+
+	GLShader( const std::string& name, const std::string& mainShaderName, const bool useMaterialSystem, uint32_t vertexAttribsRequired,
+			  GLShaderManager* manager, const bool hasVertexShader = true, const bool hasFragmentShader = true,
+			  const bool hasComputeShader = false ) :
+		_name( name ),
+		_mainShaderName( mainShaderName ),
+		_useMaterialSystem( useMaterialSystem ),
+		_activeMacros( 0 ),
+		_checkSum( 0 ),
+		_currentProgram( nullptr ),
+		_vertexAttribsRequired( vertexAttribsRequired ),
+		_vertexAttribs( 0 ),
+		_shaderManager( manager ),
+		_hasVertexShader( hasVertexShader ),
+		_hasFragmentShader( hasFragmentShader ),
+		_hasComputeShader( hasComputeShader ),
+		_uniformStorageSize( 0 ) {
 	}
 
 public:
@@ -169,6 +206,10 @@ public:
 				glDeleteShader( p->FS );
 			}
 
+			if ( p->CS ) {
+				glDeleteShader( p->CS );
+			}
+
 			if ( p->uniformFirewall )
 			{
 				Z_Free( p->uniformFirewall );
@@ -186,10 +227,7 @@ public:
 		}
 	}
 
-	void RegisterUniform( GLUniform *uniform )
-	{
-		_uniforms.push_back( uniform );
-	}
+	void RegisterUniform( GLUniform* uniform );
 
 	void RegisterUniformBlock( GLUniformBlock *uniformBlock )
 	{
@@ -211,6 +249,8 @@ public:
 		return _compileMacros.size();
 	}
 
+	GLint GetUniformLocation( const GLchar *uniformName ) const;
+
 	shaderProgram_t        *GetProgram() const
 	{
 		return _currentProgram;
@@ -227,14 +267,19 @@ public:
 	}
 
 protected:
+	void         PostProcessUniforms();
 	bool         GetCompileMacrosString( size_t permutation, std::string &compileMacrosOut ) const;
 	virtual void BuildShaderVertexLibNames( std::string& /*vertexInlines*/ ) { };
-	virtual void BuildShaderFragmentLibNames( std::string& /*vertexInlines*/ ) { };
+	virtual void BuildShaderFragmentLibNames( std::string& /*fragmentInlines*/ ) { };
+	virtual void BuildShaderComputeLibNames( std::string& /*computeInlines*/ ) {};
 	virtual void BuildShaderCompileMacros( std::string& /*vertexInlines*/ ) { };
 	virtual void SetShaderProgramUniforms( shaderProgram_t* /*shaderProgram*/ ) { };
 	int          SelectProgram();
 public:
+	GLuint GetProgram( int deformIndex );
 	void BindProgram( int deformIndex );
+	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
+	void DispatchComputeIndirect( const GLintptr indirectBuffer );
 	void SetRequiredVertexPointers();
 
 	bool IsMacroSet( int bit )
@@ -266,6 +311,28 @@ public:
 	{
 		_vertexAttribs &= ~bit;
 	}
+
+	GLuint GetSTD430Size() const {
+		return std430Size;
+	}
+
+	uint GetPadding() const {
+		return padding;
+	}
+
+	uint GetPaddedSize() const {
+		return std430Size + padding;
+	}
+
+	uint GetTextureCount() const {
+		return textureCount;
+	}
+
+	bool UseMaterialSystem() const {
+		return _useMaterialSystem;
+	}
+
+	void WriteUniformsToBuffer( uint32_t* buffer );
 };
 
 class GLShaderManager
@@ -280,9 +347,12 @@ class GLShaderManager
 
 public:
 	GLHeader GLVersionDeclaration;
+	GLHeader GLComputeVersionDeclaration;
 	GLHeader GLCompatHeader;
 	GLHeader GLVertexHeader;
 	GLHeader GLFragmentHeader;
+	GLHeader GLComputeHeader;
+	GLHeader GLWorldHeader;
 	GLHeader GLEngineConstants;
 
 	GLShaderManager() : _totalBuildTime( 0 )
@@ -293,6 +363,7 @@ public:
 	void InitDriverInfo();
 
 	void GenerateBuiltinHeaders();
+	void GenerateWorldHeaders();
 
 	template< class T >
 	void load( T *& shader )
@@ -322,6 +393,7 @@ private:
 				const std::string &compileMacros );
 	void CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program,
 	                                     Str::StringRef compileMacros, int deformIndex );
+	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText );
 	std::string BuildDeformShaderText( const std::string& steps );
 	std::string BuildGPUShaderText( Str::StringRef mainShader, Str::StringRef libShaders, GLenum shaderType ) const;
 	void LinkProgram( GLuint program ) const;
@@ -337,12 +409,29 @@ class GLUniform
 protected:
 	GLShader   *_shader;
 	std::string _name;
+	const std::string _type;
+
+	// In multiples of 4 bytes
+	const GLuint _std430Size;
+	const GLuint _std430Alignment;
+
+	const bool _global; // This uniform won't go into materials SSBO if true
+	const int _components;
+	const bool _isTexture;
+
 	size_t      _firewallIndex;
 	size_t      _locationIndex;
 
-	GLUniform( GLShader *shader, const char *name ) :
+	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
+								 const bool global, const int components = 0, const bool isTexture = false ) :
 		_shader( shader ),
 		_name( name ),
+		_type( type ),
+		_std430Size( std430Size ),
+		_std430Alignment( std430Alignment ),
+		_global( global ),
+		_components( components ),
+		_isTexture( isTexture ),
 		_firewallIndex( 0 ),
 		_locationIndex( 0 )
 	{
@@ -367,6 +456,29 @@ public:
 		return _name.c_str();
 	}
 
+	const std::string GetType() const {
+		return _type;
+	}
+
+	GLuint GetSTD430Size() const;
+
+	GLuint GetSTD430Alignment() const;
+
+	int GetComponentSize() const {
+		return _components;
+	}
+
+	bool IsGlobal() const {
+		return _global;
+	}
+
+	bool IsTexture() const {
+		return _isTexture;
+	}
+
+	// This should return a pointer to the memory right after the one this uniform wrote to
+	virtual uint32_t* WriteToBuffer( uint32_t* buffer );
+
 	void UpdateShaderProgramUniformLocation( shaderProgram_t *shaderProgram )
 	{
 		shaderProgram->uniformLocations[ _locationIndex ] = glGetUniformLocation( shaderProgram->program, GetName() );
@@ -378,11 +490,176 @@ public:
 	}
 };
 
+class GLUniformSampler : protected GLUniform {
+	protected:
+	GLUniformSampler( GLShader* shader, const char* name, const char* type, const GLuint size ) :
+		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? size * 2 : size,
+									   glConfig2.bindlessTexturesAvailable ? size * 2 : size, false, 0, true ) {
+	}
+
+	inline GLint GetLocation() {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+		return p->uniformLocations[_locationIndex];
+	}
+
+	inline size_t GetFirewallIndex() const {
+		return _firewallIndex;
+	}
+
+	public:
+	size_t GetSize() override {
+		return sizeof( GLuint64 );
+	}
+
+	void SetValue( GLuint value ) {
+		currentValue = value;
+	}
+
+	void SetValueBindless( GLint64 value ) {
+		currentValueBindless = value;
+
+		if ( glConfig2.bindlessTexturesAvailable && ( !_shader->UseMaterialSystem() || _global ) ) {
+			glUniformHandleui64ARB( GetLocation(), currentValueBindless );
+		}
+	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		uint32_t* bufferNext = buffer;
+		if ( glConfig2.bindlessTexturesAvailable ) {
+			memcpy( buffer, &currentValueBindless, sizeof( GLuint64 ) );
+			bufferNext += 2;
+		} else {
+			memcpy( buffer, &currentValue, sizeof( GLint ) );
+			bufferNext += 1;
+		}
+		return bufferNext;
+	}
+
+	private:
+	GLuint64 currentValueBindless = 0;
+	GLuint currentValue = 0;
+};
+
+class GLUniformSampler1D : protected GLUniformSampler {
+	protected:
+	GLUniformSampler1D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "sampler1D", 1 ) {
+	}
+
+	inline GLint GetLocation() {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+		return p->uniformLocations[_locationIndex];
+	}
+
+	public:
+	size_t GetSize() override {
+		return sizeof( GLuint64 );
+	}
+};
+
+class GLUniformSampler2D : protected GLUniformSampler {
+	protected:
+	GLUniformSampler2D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "sampler2D", 1 ) {
+	}
+
+	inline GLint GetLocation() {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+		return p->uniformLocations[_locationIndex];
+	}
+
+	public:
+	size_t GetSize() override {
+		return sizeof( GLuint64 );
+	}
+};
+
+class GLUniformSampler3D : protected GLUniformSampler {
+	protected:
+	GLUniformSampler3D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "sampler3D", 1 ) {
+	}
+
+	inline GLint GetLocation() {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+		return p->uniformLocations[_locationIndex];
+	}
+
+	public:
+	size_t GetSize() override {
+		return sizeof( GLuint64 );
+	}
+};
+
+class GLUniformUSampler3D : protected GLUniformSampler {
+	protected:
+	GLUniformUSampler3D( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "usampler3D", 1 ) {
+	}
+
+	inline GLint GetLocation() {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+		return p->uniformLocations[_locationIndex];
+	}
+
+	public:
+	size_t GetSize() override {
+		return sizeof( GLuint64 );
+	}
+};
+
+class GLUniformSamplerCube : protected GLUniformSampler {
+	protected:
+	GLUniformSamplerCube( GLShader* shader, const char* name ) :
+		GLUniformSampler( shader, name, "samplerCube", 1 ) {
+	}
+
+	inline GLint GetLocation() {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+		return p->uniformLocations[_locationIndex];
+	}
+
+	public:
+	size_t GetSize() override {
+		return sizeof( GLuint64 );
+	}
+};
+
 class GLUniform1i : protected GLUniform
 {
 protected:
-	GLUniform1i( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniform1i( GLShader *shader, const char *name, const bool global = false ) :
+	GLUniform( shader, name, "int", 1, 1, global )
 	{
 	}
 
@@ -390,7 +667,9 @@ protected:
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -399,6 +678,12 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), value ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			currentValue = value;
+			return;
+		}
+
 #if defined( USE_UNIFORM_FIREWALL )
 		int *firewall = ( int * ) &p->uniformFirewall[ _firewallIndex ];
 
@@ -416,13 +701,123 @@ public:
 	{
 		return sizeof( int );
 	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( int ) );
+		return buffer + 1;
+	}
+
+	private:
+	int currentValue = 0;
+};
+
+class GLUniform1ui : protected GLUniform {
+	protected:
+	GLUniform1ui( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniform( shader, name, "uint", 1, 1, global ) {
+	}
+
+	inline void SetValue( uint value ) {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer ) {
+			GLimp_LogComment( va( "GLSL_SetUniform1i( %s, shader: %s, value: %d ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), value ) );
+		}
+#endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			currentValue = value;
+			return;
+		}
+
+#if defined( USE_UNIFORM_FIREWALL )
+		uint* firewall = ( uint* ) &p->uniformFirewall[_firewallIndex];
+
+		if ( *firewall == value ) {
+			return;
+		}
+
+		*firewall = value;
+#endif
+		glUniform1ui( p->uniformLocations[_locationIndex], value );
+	}
+	public:
+	size_t GetSize() override {
+		return sizeof( uint );
+	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( uint ) );
+		return buffer + 1;
+	}
+
+	private:
+	uint currentValue = 0;
+};
+
+class GLUniform1Bool : protected GLUniform {
+	protected:
+	// GLSL std430 bool is always 4 bytes, which might not correspond to C++ bool
+	GLUniform1Bool( GLShader* shader, const char* name ) :
+		GLUniform( shader, name, "bool", 1, 1, false ) {
+	}
+
+	inline void SetValue( int value ) {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer ) {
+			GLimp_LogComment( va( "GLSL_SetUniform1i( %s, shader: %s, value: %d ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), value ) );
+		}
+#endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			currentValue = value;
+			return;
+		}
+
+#if defined( USE_UNIFORM_FIREWALL )
+		int* firewall = ( int* ) &p->uniformFirewall[_firewallIndex];
+
+		if ( *firewall == value ) {
+			return;
+		}
+
+		*firewall = value;
+#endif
+		glUniform1i( p->uniformLocations[_locationIndex], value );
+	}
+
+	public:
+	size_t GetSize() override {
+		return sizeof( int );
+	}
+
+	uint32_t* WriteToBuffer( uint32_t *buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( bool ) );
+		return buffer + 1;
+	}
+
+	private:
+	int currentValue = 0;
 };
 
 class GLUniform1f : protected GLUniform
 {
 protected:
 	GLUniform1f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniform( shader, name, "float", 1, 1, false )
 	{
 	}
 
@@ -430,7 +825,9 @@ protected:
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -439,6 +836,12 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), value ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			currentValue = value;
+			return;
+		}
+
 #if defined( USE_UNIFORM_FIREWALL )
 		float *firewall = ( float * ) &p->uniformFirewall[ _firewallIndex ];
 
@@ -456,21 +859,32 @@ public:
 	{
 		return sizeof( float );
 	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( float ) );
+		return buffer + 1;
+	}
+	
+	private:
+	float currentValue = 0;
 };
 
 class GLUniform1fv : protected GLUniform
 {
 protected:
-	GLUniform1fv( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniform1fv( GLShader *shader, const char *name, const int size ) :
+	GLUniform( shader, name, "float", 1, 1, false, size )
 	{
+		currentValue.reserve( size );
 	}
 
 	inline void SetValue( int numFloats, float *f )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -479,23 +893,41 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), numFloats ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			memcpy( currentValue.data(), f, numFloats * sizeof( float ) );
+			return;
+		}
+
 		glUniform1fv( p->uniformLocations[ _locationIndex ], numFloats, f );
 	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
+		return buffer + _components;
+	}
+
+	private:
+	std::vector<float> currentValue;
 };
 
 class GLUniform2f : protected GLUniform
 {
 protected:
 	GLUniform2f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniform( shader, name, "vec2", 2, 2, false )
 	{
+		currentValue[0] = 0.0;
+		currentValue[1] = 0.0;
 	}
 
 	inline void SetValue( const vec2_t v )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -504,6 +936,12 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ] ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			Vector2Copy( v, currentValue );
+			return;
+		}
+
 #if defined( USE_UNIFORM_FIREWALL )
 		vec2_t *firewall = ( vec2_t * ) &p->uniformFirewall[ _firewallIndex ];
 
@@ -522,21 +960,34 @@ protected:
 	{
 		return sizeof( vec2_t );
 	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( vec2_t ) );
+		return buffer + 2;
+	}
+
+	private:
+	vec2_t currentValue;
 };
 
 class GLUniform3f : protected GLUniform
 {
 protected:
-	GLUniform3f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniform3f( GLShader *shader, const char *name, const bool global = false ) :
+	GLUniform( shader, name, "vec3", 3, 4, global )
 	{
+		currentValue[0] = 0.0;
+		currentValue[1] = 0.0;
+		currentValue[2] = 0.0;
 	}
 
 	inline void SetValue( const vec3_t v )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -545,6 +996,12 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ] ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			VectorCopy( v, currentValue );
+			return;
+		}
+
 #if defined( USE_UNIFORM_FIREWALL )
 		vec3_t *firewall = ( vec3_t * ) &p->uniformFirewall[ _firewallIndex ];
 
@@ -562,21 +1019,35 @@ public:
 	{
 		return sizeof( vec3_t );
 	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( vec3_t ) );
+		return buffer + 4; // vec3 is aligned to 4 components
+	}
+
+	private:
+	vec3_t currentValue;
 };
 
 class GLUniform4f : protected GLUniform
 {
 protected:
 	GLUniform4f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniform( shader, name, "vec4", 4, 4, false )
 	{
+		currentValue[0] = 0.0;
+		currentValue[1] = 0.0;
+		currentValue[2] = 0.0;
+		currentValue[3] = 0.0;
 	}
 
 	inline void SetValue( const vec4_t v )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -585,6 +1056,12 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), v[ 0 ], v[ 1 ], v[ 2 ], v[ 3 ] ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			Vector4Copy( v, currentValue );
+			return;
+		}
+
 #if defined( USE_UNIFORM_FIREWALL )
 		vec4_t *firewall = ( vec4_t * ) &p->uniformFirewall[ _firewallIndex ];
 
@@ -602,21 +1079,32 @@ public:
 	{
 		return sizeof( vec4_t );
 	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( vec4_t ) );
+		return buffer + 4;
+	}
+
+	private:
+	vec4_t currentValue;
 };
 
 class GLUniform4fv : protected GLUniform
 {
 protected:
-	GLUniform4fv( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniform4fv( GLShader *shader, const char *name, const int size ) :
+	GLUniform( shader, name, "vec4", 4, 4, false, size )
 	{
+		currentValue.reserve( size );
 	}
 
 	inline void SetValue( int numV, vec4_t *v )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -625,23 +1113,41 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), numV ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			memcpy( currentValue.data(), v, numV * sizeof( vec4_t ) );
+			return;
+		}
+
 		glUniform4fv( p->uniformLocations[ _locationIndex ], numV, &v[ 0 ][ 0 ] );
 	}
+
+	public:
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
+		return buffer + 4 * _components;
+	}
+
+	private:
+	std::vector<float> currentValue;
 };
 
 class GLUniformMatrix4f : protected GLUniform
 {
 protected:
-	GLUniformMatrix4f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniformMatrix4f( GLShader *shader, const char *name, const bool global = false ) :
+	GLUniform( shader, name, "mat4", 16, 4, global )
 	{
+		MatrixIdentity( currentValue );
 	}
 
 	inline void SetValue( GLboolean transpose, const matrix_t m )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -652,6 +1158,12 @@ protected:
 				m[ 13 ], m[ 14 ], m[ 15 ] ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			MatrixCopy( m, currentValue );
+			return;
+		}
+
 #if defined( USE_UNIFORM_FIREWALL )
 		matrix_t *firewall = ( matrix_t * ) &p->uniformFirewall[ _firewallIndex ];
 
@@ -669,21 +1181,32 @@ public:
 	{
 		return sizeof( matrix_t );
 	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( matrix_t ) );
+		return buffer + 16;
+	}
+
+	private:
+	matrix_t currentValue;
 };
 
 class GLUniformMatrix4fv : protected GLUniform
 {
 protected:
-	GLUniformMatrix4fv( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniformMatrix4fv( GLShader *shader, const char *name, const int size ) :
+	GLUniform( shader, name, "mat4", 16, 4, false, size )
 	{
+		currentValue.reserve( size * 16 );
 	}
 
 	inline void SetValue( int numMatrices, GLboolean transpose, const matrix_t *m )
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
 
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
@@ -692,15 +1215,30 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), numMatrices, transpose ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			memcpy( currentValue.data(), m, numMatrices * sizeof( matrix_t ) );
+			return;
+		}
+
 		glUniformMatrix4fv( p->uniformLocations[ _locationIndex ], numMatrices, transpose, &m[ 0 ][ 0 ] );
 	}
+
+	public:
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
+		return buffer + 16 * _components;
+	}
+
+	private:
+	std::vector<float> currentValue;
 };
 
 class GLUniformMatrix34fv : protected GLUniform
 {
 protected:
-	GLUniformMatrix34fv( GLShader *shader, const char *name ) :
-	GLUniform( shader, name )
+	GLUniformMatrix34fv( GLShader *shader, const char *name, const int size ) :
+	GLUniform( shader, name, "mat3x4", 12, 4, false, size )
 	{
 	}
 
@@ -708,7 +1246,10 @@ protected:
 	{
 		shaderProgram_t *p = _shader->GetProgram();
 
-		ASSERT_EQ(p, glState.currentProgram);
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
 #if defined( LOG_GLSL_UNIFORMS )
 		if ( r_logFile->integer )
 		{
@@ -716,8 +1257,23 @@ protected:
 				this->GetName(), _shader->GetName().c_str(), numMatrices, transpose ) );
 		}
 #endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			memcpy( currentValue.data(), m, numMatrices * sizeof( matrix_t ) );
+			return;
+		}
+
 		glUniformMatrix3x4fv( p->uniformLocations[ _locationIndex ], numMatrices, transpose, m );
 	}
+
+	public:
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, currentValue.data(), currentValue.size() * sizeof( float ) );
+		return buffer + 12 * _components;
+	}
+
+	private:
+	std::vector<float> currentValue;
 };
 
 class GLUniformBlock
@@ -761,6 +1317,318 @@ public:
 			glBindBufferBase( GL_UNIFORM_BUFFER, blockIndex, buffer );
 		}
 	}
+};
+
+class GLBuffer {
+	public:
+	std::string _name;
+	const GLuint _bindingPoint;
+	const GLbitfield _flags;
+	const GLbitfield _mapFlags;
+	const GLuint64 SYNC_TIMEOUT = 10000000000; // 10 seconds
+
+	GLBuffer( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
+		_name( name ),
+		_bindingPoint( bindingPoint ),
+		_flags( flags ),
+		_mapFlags( mapFlags ) {
+	}
+
+	const char* GetName() {
+		return _name.c_str();
+	}
+
+	void BindBufferBase( const GLenum target ) {
+		glBindBufferBase( target, _bindingPoint, handle );
+	}
+
+	void UnBindBufferBase( const GLenum target ) {
+		glBindBufferBase( target, _bindingPoint, 0 );
+	}
+
+	void BindBuffer( const GLenum target ) {
+		glBindBuffer( target, handle );
+	}
+
+	void UnBindBuffer( const GLenum target ) {
+		glBindBuffer( target, 0 );
+	}
+
+	void BufferStorage( const GLenum target, const GLsizeiptr newAreaSize, const GLsizeiptr areaCount, const void* data ) {
+		areaSize = newAreaSize;
+		maxAreas = areaCount;
+		glBufferStorage( target, areaSize * areaCount * sizeof(uint32_t), data, _flags );
+		syncs.resize( areaCount );
+	}
+
+	void AreaIncr() {
+		syncs[area] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
+		area++;
+		if ( area >= maxAreas ) {
+			area = 0;
+		}
+	}
+
+	void MapAll( const GLenum target ) {
+		if ( !mapped ) {
+			mapped = true;
+			mappedTarget = target;
+			data = ( uint32_t* ) glMapBufferRange( target, 0, areaSize * maxAreas * sizeof( uint32_t ), _flags | _mapFlags );
+		}
+	}
+
+	uint32_t* GetCurrentAreaData() {
+		if ( syncs[area] != nullptr ) {
+			if ( glClientWaitSync( syncs[area], GL_SYNC_FLUSH_COMMANDS_BIT, SYNC_TIMEOUT ) == GL_TIMEOUT_EXPIRED ) {
+				Sys::Drop( "Failed buffer %s area %u sync", _name, area );
+			}
+			glDeleteSync( syncs[area] );
+		}
+
+		return data + area * areaSize;
+	}
+
+	uint32_t* GetData() {
+		return data;
+	}
+
+	void FlushCurrentArea( GLenum target ) {
+		glFlushMappedBufferRange( target, area * areaSize * sizeof( uint32_t ), areaSize * sizeof( uint32_t ) );
+	}
+
+	void FlushAll( GLenum target ) {
+		glFlushMappedBufferRange( target, 0, maxAreas * areaSize * sizeof( uint32_t ) );
+	}
+
+	uint32_t* MapBufferRange( const GLenum target, const GLuint count ) {
+		if ( !mapped ) {
+			mapped = true;
+			mappedTarget = target;
+			data = ( uint32_t* ) glMapBufferRange( target,
+				0, count * sizeof( uint32_t ),
+				_flags | _mapFlags );
+		}
+
+		return data;
+	}
+
+	uint32_t* MapBufferRange( const GLenum target, const GLuint offset, const GLuint count ) {
+		if ( !mapped ) {
+			mapped = true;
+			mappedTarget = target;
+			data = ( uint32_t* ) glMapBufferRange( target,
+				offset * sizeof( uint32_t ), count * sizeof( uint32_t ),
+				_flags | _mapFlags );
+		}
+
+		return data;
+	}
+
+	void UnmapBuffer() {
+		if ( mapped ) {
+			mapped = false;
+			glUnmapBuffer( mappedTarget );
+		}
+	}
+
+	void GenBuffer() {
+		glGenBuffers( 1, &handle );
+	}
+
+	void DelBuffer() {
+		glDeleteBuffers( 1, &handle );
+	}
+
+	private:
+	GLenum mappedTarget;
+	GLuint handle;
+	bool mapped = false;
+	std::vector<GLsync> syncs;
+	GLsizeiptr area = 0;
+	GLsizeiptr areaSize = 0;
+	GLsizeiptr maxAreas = 0;
+	uint32_t* data;
+};
+
+class GLSSBO : public GLBuffer {
+	public:
+	GLSSBO( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
+		GLBuffer( name, bindingPoint, flags, mapFlags ) {
+	}
+
+	public:
+	const char* GetName() {
+		return _name.c_str();
+	}
+
+	void BindBufferBase() {
+		GLBuffer::BindBufferBase( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void UnBindBufferBase() {
+		GLBuffer::UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void BindBuffer() {
+		GLBuffer::BindBuffer( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
+		GLBuffer::BufferStorage( GL_SHADER_STORAGE_BUFFER, areaSize, areaCount, data );
+	}
+
+	void MapAll() {
+		GLBuffer::MapAll( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void FlushCurrentArea() {
+		GLBuffer::FlushCurrentArea( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_SHADER_STORAGE_BUFFER, count );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_SHADER_STORAGE_BUFFER, offset, count );
+	}
+};
+
+class GLUBO : public GLBuffer {
+	public:
+	GLUBO( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
+		GLBuffer( name, bindingPoint, flags, mapFlags ) {
+	}
+
+	public:
+	const char* GetName() {
+		return _name.c_str();
+	}
+
+	void BindBufferBase() {
+		GLBuffer::BindBufferBase( GL_UNIFORM_BUFFER );
+	}
+
+	void UnBindBufferBase() {
+		GLBuffer::UnBindBufferBase( GL_UNIFORM_BUFFER );
+	}
+
+	void BindBuffer() {
+		GLBuffer::BindBuffer( GL_UNIFORM_BUFFER );
+	}
+
+	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
+		GLBuffer::BufferStorage( GL_UNIFORM_BUFFER, areaSize, areaCount, data );
+	}
+
+	void MapAll() {
+		GLBuffer::MapAll( GL_UNIFORM_BUFFER );
+	}
+
+	void FlushCurrentArea() {
+		GLBuffer::FlushCurrentArea( GL_UNIFORM_BUFFER );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, count );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, offset, count );
+	}
+};
+
+class GLAtomicCounterBuffer : public GLBuffer {
+	public:
+	GLAtomicCounterBuffer( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
+		GLBuffer( name, bindingPoint, flags, mapFlags ) {
+	}
+
+	public:
+	const char* GetName() {
+		return _name.c_str();
+	}
+
+	void BindBufferBase() {
+		GLBuffer::BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void UnBindBufferBase() {
+		GLBuffer::UnBindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void BindBuffer() {
+		GLBuffer::BindBuffer( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
+		GLBuffer::BufferStorage( GL_ATOMIC_COUNTER_BUFFER, areaSize, areaCount, data );
+	}
+
+	void MapAll() {
+		GLBuffer::MapAll( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void FlushCurrentArea() {
+		GLBuffer::FlushCurrentArea( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_ATOMIC_COUNTER_BUFFER, count );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_ATOMIC_COUNTER_BUFFER, offset, count );
+	}
+};
+
+class GLIndirectBuffer {
+	public:
+
+	struct GLIndirectCommand {
+		GLuint count;
+		GLuint instanceCount;
+		GLuint firstIndex;
+		GLint baseVertex;
+		GLuint baseInstance;
+	};
+
+	std::string _name;
+
+	GLIndirectBuffer( const char* name ) :
+		_name( name ) {
+	}
+
+	public:
+
+	const char* GetName() {
+		return _name.c_str();
+	}
+
+	void BindBuffer() {
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, handle );
+	}
+
+	GLIndirectCommand* MapBufferRange( const GLsizeiptr count ) {
+		return (GLIndirectCommand*) glMapBufferRange( GL_DRAW_INDIRECT_BUFFER,
+			0, count * sizeof( GLIndirectCommand ),
+			GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
+	}
+
+	void UnmapBuffer() const {
+		glUnmapBuffer( GL_DRAW_INDIRECT_BUFFER );
+	}
+
+	void GenBuffer() {
+		glGenBuffers( 1, &handle );
+	}
+
+	void DelBuffer() {
+		glDeleteBuffers( 1, &handle );
+	}
+
+	private:
+	GLuint handle;
 };
 
 class GLCompileMacro
@@ -1334,6 +2202,582 @@ public:
 	}
 };
 
+class u_ColorMap :
+	GLUniformSampler2D {
+	public:
+	u_ColorMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ColorMap" ) {
+	}
+
+	void SetUniform_ColorMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ColorMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_ColorMap3D :
+	GLUniformSampler3D {
+	public:
+	u_ColorMap3D( GLShader* shader ) :
+		GLUniformSampler3D( shader, "u_ColorMap3D" ) {
+	}
+
+	void SetUniform_ColorMap3DBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ColorMap3D() {
+		return this->GetLocation();
+	}
+};
+
+class u_ColorMapCube :
+	GLUniformSamplerCube {
+	public:
+	u_ColorMapCube( GLShader* shader ) :
+		GLUniformSamplerCube( shader, "u_ColorMapCube" ) {
+	}
+
+	void SetUniform_ColorMapCubeBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ColorMapCube() {
+		return this->GetLocation();
+	}
+};
+
+class u_DepthMap :
+	GLUniformSampler2D {
+	public:
+	u_DepthMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_DepthMap" ) {
+	}
+
+	void SetUniform_DepthMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_DepthMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_DiffuseMap :
+	GLUniformSampler2D {
+	public:
+	u_DiffuseMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_DiffuseMap" ) {
+	}
+
+	void SetUniform_DiffuseMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_DiffuseMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_HeightMap :
+	GLUniformSampler2D {
+	public:
+	u_HeightMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_HeightMap" ) {
+	}
+
+	void SetUniform_HeightMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_HeightMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_NormalMap :
+	GLUniformSampler2D {
+	public:
+	u_NormalMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_NormalMap" ) {
+	}
+
+	void SetUniform_NormalMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_NormalMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_MaterialMap :
+	GLUniformSampler2D {
+	public:
+	u_MaterialMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_MaterialMap" ) {
+	}
+
+	void SetUniform_MaterialMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_MaterialMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightMap :
+	GLUniformSampler {
+	public:
+	u_LightMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1 ) {
+	}
+
+	void SetUniform_LightMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_LightMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_DeluxeMap :
+	GLUniformSampler {
+	public:
+	u_DeluxeMap( GLShader* shader ) :
+		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1 ) {
+	}
+
+	void SetUniform_DeluxeMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_DeluxeMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_GlowMap :
+	GLUniformSampler2D {
+	public:
+	u_GlowMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_GlowMap" ) {
+	}
+
+	void SetUniform_GlowMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_GlowMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_RandomMap :
+	GLUniformSampler2D {
+	public:
+	u_RandomMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_RandomMap" ) {
+	}
+
+	void SetUniform_RandomMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_RandomMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_PortalMap :
+	GLUniformSampler2D {
+	public:
+	u_PortalMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_PortalMap" ) {
+	}
+
+	void SetUniform_PortalMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_PortalMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_CloudMap :
+	GLUniformSampler2D {
+	public:
+	u_CloudMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_CloudMap" ) {
+	}
+
+	void SetUniform_CloudMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_CloudMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightsTexture :
+	GLUniformSampler2D {
+	public:
+	u_LightsTexture( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_LightsTexture" ) {
+	}
+
+	void SetUniform_LightsTextureBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_LightsTexture() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightTiles :
+	GLUniformSampler3D {
+	public:
+	u_LightTiles( GLShader* shader ) :
+		GLUniformSampler3D( shader, "u_LightTiles" ) {
+	}
+
+	void SetUniform_LightTilesBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_LightTiles() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightTilesInt :
+	GLUniformUSampler3D {
+	public:
+	u_LightTilesInt( GLShader* shader ) :
+		GLUniformUSampler3D( shader, "u_LightTilesInt" ) {
+	}
+
+	void SetUniform_LightTilesIntBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_LightTilesInt() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightGrid1 :
+	GLUniformSampler3D {
+	public:
+	u_LightGrid1( GLShader* shader ) :
+		GLUniformSampler3D( shader, "u_LightGrid1" ) {
+	}
+
+	void SetUniform_LightGrid1Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_LightGrid1() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightGrid2 :
+	GLUniformSampler3D {
+	public:
+	u_LightGrid2( GLShader* shader ) :
+		GLUniformSampler3D( shader, "u_LightGrid2" ) {
+	}
+
+	void SetUniform_LightGrid2Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_LightGrid2() {
+		return this->GetLocation();
+	}
+};
+
+class u_EnvironmentMap0 :
+	GLUniformSamplerCube {
+	public:
+	u_EnvironmentMap0( GLShader* shader ) :
+		GLUniformSamplerCube( shader, "u_EnvironmentMap0" ) {
+	}
+
+	void SetUniform_EnvironmentMap0Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_EnvironmentMap0() {
+		return this->GetLocation();
+	}
+};
+
+class u_EnvironmentMap1 :
+	GLUniformSamplerCube {
+	public:
+	u_EnvironmentMap1( GLShader* shader ) :
+		GLUniformSamplerCube( shader, "u_EnvironmentMap1" ) {
+	}
+
+	void SetUniform_EnvironmentMap1Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_EnvironmentMap1() {
+		return this->GetLocation();
+	}
+};
+
+class u_CurrentMap :
+	GLUniformSampler2D {
+	public:
+	u_CurrentMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_CurrentMap" ) {
+	}
+
+	void SetUniform_CurrentMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_CurrentMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_AttenuationMapXY :
+	GLUniformSampler2D {
+	public:
+	u_AttenuationMapXY( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_AttenuationMapXY" ) {
+	}
+
+	void SetUniform_AttenuationMapXYBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_AttenuationMapXY() {
+		return this->GetLocation();
+	}
+};
+
+class u_AttenuationMapZ :
+	GLUniformSampler2D {
+	public:
+	u_AttenuationMapZ( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_AttenuationMapZ" ) {
+	}
+
+	void SetUniform_AttenuationMapZBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_AttenuationMapZ() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap :
+	GLUniformSampler2D {
+	public:
+	u_ShadowMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowMap" ) {
+	}
+
+	void SetUniform_ShadowMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap0 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowMap0( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowMap0" ) {
+	}
+
+	void SetUniform_ShadowMap0Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowMap0() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap1 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowMap1( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowMap1" ) {
+	}
+
+	void SetUniform_ShadowMap1Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowMap1() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap2 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowMap2( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowMap2" ) {
+	}
+
+	void SetUniform_ShadowMap2Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowMap2() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap3 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowMap3( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowMap3" ) {
+	}
+
+	void SetUniform_ShadowMap3Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowMap3() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowMap4 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowMap4( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowMap4" ) {
+	}
+
+	void SetUniform_ShadowMap4Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowMap4() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap :
+	GLUniformSampler2D {
+	public:
+	u_ShadowClipMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowClipMap" ) {
+	}
+
+	void SetUniform_ShadowClipMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowClipMap() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap0 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowClipMap0( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowClipMap0" ) {
+	}
+
+	void SetUniform_ShadowClipMap0Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowClipMap0() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap1 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowClipMap1( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowClipMap1" ) {
+	}
+
+	void SetUniform_ShadowClipMap1Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowClipMap1() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap2 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowClipMap2( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowClipMap2" ) {
+	}
+
+	void SetUniform_ShadowClipMap2Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowClipMap2() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap3 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowClipMap3( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowClipMap3" ) {
+	}
+
+	void SetUniform_ShadowClipMap3Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowClipMap3() {
+		return this->GetLocation();
+	}
+};
+
+class u_ShadowClipMap4 :
+	GLUniformSampler2D {
+	public:
+	u_ShadowClipMap4( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_ShadowClipMap4" ) {
+	}
+
+	void SetUniform_ShadowClipMap4Bindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_ShadowClipMap4() {
+		return this->GetLocation();
+	}
+};
+
 class u_TextureMatrix :
 	GLUniformMatrix4f
 {
@@ -1412,7 +2856,7 @@ class u_ViewOrigin :
 {
 public:
 	u_ViewOrigin( GLShader *shader ) :
-		GLUniform3f( shader, "u_ViewOrigin" )
+		GLUniform3f( shader, "u_ViewOrigin", true )
 	{
 	}
 
@@ -1427,7 +2871,7 @@ class u_ViewUp :
 {
 public:
 	u_ViewUp( GLShader *shader ) :
-		GLUniform3f( shader, "u_ViewUp" )
+		GLUniform3f( shader, "u_ViewUp", true )
 	{
 	}
 
@@ -1532,7 +2976,7 @@ class u_LightFrustum :
 {
 public:
 	u_LightFrustum( GLShader *shader ) :
-		GLUniform4fv( shader, "u_LightFrustum" )
+		GLUniform4fv( shader, "u_LightFrustum", 6 )
 	{
 	}
 
@@ -1577,7 +3021,7 @@ class u_ShadowMatrix :
 {
 public:
 	u_ShadowMatrix( GLShader *shader ) :
-		GLUniformMatrix4fv( shader, "u_ShadowMatrix" )
+		GLUniformMatrix4fv( shader, "u_ShadowMatrix", MAX_SHADOWMAPS )
 	{
 	}
 
@@ -1736,12 +3180,96 @@ public:
 	}
 };
 
+class u_Frame :
+	GLUniform1ui {
+	public:
+	u_Frame( GLShader* shader ) :
+		GLUniform1ui( shader, "u_Frame" ) {
+	}
+
+	void SetUniform_Frame( const uint frame ) {
+		this->SetValue( frame );
+	}
+};
+
+class u_ViewID :
+	GLUniform1ui {
+	public:
+	u_ViewID( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ViewID" ) {
+	}
+
+	void SetUniform_ViewID( const uint viewID ) {
+		this->SetValue( viewID );
+	}
+};
+
+class u_TotalDrawSurfs :
+	GLUniform1ui {
+	public:
+	u_TotalDrawSurfs( GLShader* shader ) :
+		GLUniform1ui( shader, "u_TotalDrawSurfs" ) {
+	}
+
+	void SetUniform_TotalDrawSurfs( const uint totalDrawSurfs ) {
+		this->SetValue( totalDrawSurfs );
+	}
+};
+
+class u_UseFrustumCulling :
+	GLUniform1Bool {
+	public:
+	u_UseFrustumCulling( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_UseFrustumCulling" ) {
+	}
+
+	void SetUniform_UseFrustumCulling( const int useFrustumCulling ) {
+		this->SetValue( useFrustumCulling );
+	}
+};
+
+class u_Frustum :
+	GLUniform4fv {
+	public:
+	u_Frustum( GLShader* shader ) :
+		GLUniform4fv( shader, "u_Frustum", 6 ) {
+	}
+
+	void SetUniform_Frustum( vec4_t frustum[6] ) {
+		this->SetValue( 6, &frustum[0] );
+	}
+};
+
+class u_SurfaceCommandsOffset :
+	GLUniform1ui {
+	public:
+	u_SurfaceCommandsOffset( GLShader* shader ) :
+		GLUniform1ui( shader, "u_SurfaceCommandsOffset" ) {
+	}
+
+	void SetUniform_SurfaceCommandsOffset( const uint surfaceCommandsOffset ) {
+		this->SetValue( surfaceCommandsOffset );
+	}
+};
+
+class u_CulledCommandsOffset :
+	GLUniform1ui {
+	public:
+	u_CulledCommandsOffset( GLShader* shader ) :
+		GLUniform1ui( shader, "u_CulledCommandsOffset" ) {
+	}
+
+	void SetUniform_CulledCommandsOffset( const uint culledCommandsOffset ) {
+		this->SetValue( culledCommandsOffset );
+	}
+};
+
 class u_ModelMatrix :
 	GLUniformMatrix4f
 {
 public:
 	u_ModelMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_ModelMatrix" )
+		GLUniformMatrix4f( shader, "u_ModelMatrix", true )
 	{
 	}
 
@@ -1816,7 +3344,7 @@ class u_ModelViewProjectionMatrix :
 {
 public:
 	u_ModelViewProjectionMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_ModelViewProjectionMatrix" )
+		GLUniformMatrix4f( shader, "u_ModelViewProjectionMatrix", true )
 	{
 	}
 
@@ -1842,10 +3370,10 @@ public:
 };
 
 class u_UseCloudMap :
-	GLUniform1i {
+	GLUniform1Bool {
 	public:
 	u_UseCloudMap( GLShader* shader ) :
-		GLUniform1i( shader, "u_UseCloudMap" ) {
+		GLUniform1Bool( shader, "u_UseCloudMap" ) {
 	}
 
 	void SetUniform_UseCloudMap( const bool useCloudMap ) {
@@ -1858,7 +3386,7 @@ class u_Bones :
 {
 public:
 	u_Bones( GLShader *shader ) :
-		GLUniform4fv( shader, "u_Bones" )
+		GLUniform4fv( shader, "u_Bones", MAX_BONES )
 	{
 	}
 
@@ -2182,7 +3710,7 @@ class u_LightGridOrigin :
 {
 public:
 	u_LightGridOrigin( GLShader *shader ) :
-		GLUniform3f( shader, "u_LightGridOrigin" )
+		GLUniform3f( shader, "u_LightGridOrigin", true )
 	{
 	}
 
@@ -2197,7 +3725,7 @@ class u_LightGridScale :
 {
 public:
 	u_LightGridScale( GLShader *shader ) :
-		GLUniform3f( shader, "u_LightGridScale" )
+		GLUniform3f( shader, "u_LightGridScale", true )
 	{
 	}
 
@@ -2227,7 +3755,7 @@ class u_numLights :
 {
 public:
 	u_numLights( GLShader *shader ) :
-		GLUniform1i( shader, "u_numLights" )
+		GLUniform1i( shader, "u_numLights", true )
 	{
 	}
 
@@ -2273,6 +3801,8 @@ class u_Lights :
 // TODO: Write a more minimal 2D rendering shader.
 class GLShader_generic2D :
 	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
 	public u_TextureMatrix,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
@@ -2293,12 +3823,13 @@ public:
 
 class GLShader_generic :
 	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
- 	public u_ProjectionMatrixTranspose,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
 	public u_ColorModulate,
@@ -2321,8 +3852,52 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
+class GLShader_genericMaterial :
+	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
+	public u_TextureMatrix,
+	public u_ViewOrigin,
+	public u_ViewUp,
+	public u_AlphaThreshold,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor,
+	public u_ColorModulate,
+	public u_Color,
+	// public u_Bones,
+	public u_VertexInterpolation,
+	public u_DepthScale,
+	public GLDeformStage,
+	// public GLCompileMacro_USE_VERTEX_SKINNING,
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_VERTEX_SPRITE,
+	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
+	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
+	public GLCompileMacro_USE_DEPTH_FADE,
+	public GLCompileMacro_USE_ALPHA_TESTING {
+	public:
+	GLShader_genericMaterial( GLShaderManager* manager );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
+};
+
 class GLShader_lightMapping :
 	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_HeightMap,
+	public u_MaterialMap,
+	public u_LightMap,
+	public u_DeluxeMap,
+	public u_GlowMap,
+	public u_EnvironmentMap0,
+	public u_EnvironmentMap1,
+	public u_LightGrid1,
+	public u_LightGrid2,
+	public u_LightTiles,
+	public u_LightTilesInt,
+	public u_LightsTexture,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
@@ -2362,8 +3937,69 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
+class GLShader_lightMappingMaterial :
+	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_HeightMap,
+	public u_MaterialMap,
+	public u_LightMap,
+	public u_DeluxeMap,
+	public u_GlowMap,
+	public u_EnvironmentMap0,
+	public u_EnvironmentMap1,
+	public u_LightGrid1,
+	public u_LightGrid2,
+	public u_LightTilesInt,
+	public u_TextureMatrix,
+	public u_SpecularExponent,
+	public u_ColorModulate,
+	public u_Color,
+	public u_AlphaThreshold,
+	public u_ViewOrigin,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor,
+	// public u_Bones,
+	public u_VertexInterpolation,
+	public u_ReliefDepthScale,
+	public u_ReliefOffsetBias,
+	public u_NormalScale,
+	public u_EnvironmentInterpolation,
+	public u_LightGridOrigin,
+	public u_LightGridScale,
+	public u_numLights,
+	public u_Lights,
+	public GLDeformStage,
+	public GLCompileMacro_USE_BSP_SURFACE,
+	// public GLCompileMacro_USE_VERTEX_SKINNING,
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_DELUXE_MAPPING,
+	public GLCompileMacro_USE_GRID_LIGHTING,
+	public GLCompileMacro_USE_GRID_DELUXE_MAPPING,
+	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_RELIEF_MAPPING,
+	public GLCompileMacro_USE_REFLECTIVE_SPECULAR,
+	public GLCompileMacro_USE_PHYSICAL_MAPPING {
+	public:
+	GLShader_lightMappingMaterial( GLShaderManager* manager );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
+};
+
 class GLShader_forwardLighting_omniXYZ :
 	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_MaterialMap,
+	public u_AttenuationMapXY,
+	public u_AttenuationMapZ,
+	public u_ShadowMap,
+	public u_ShadowClipMap,
+	public u_RandomMap,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
@@ -2401,6 +4037,15 @@ public:
 
 class GLShader_forwardLighting_projXYZ :
 	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_MaterialMap,
+	public u_AttenuationMapXY,
+	public u_AttenuationMapZ,
+	public u_ShadowMap0,
+	public u_ShadowClipMap0,
+	public u_RandomMap,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
@@ -2439,6 +4084,20 @@ public:
 
 class GLShader_forwardLighting_directionalSun :
 	public GLShader,
+	public u_DiffuseMap,
+	public u_NormalMap,
+	public u_MaterialMap,
+	public u_ShadowMap0,
+	public u_ShadowMap1,
+	public u_ShadowMap2,
+	public u_ShadowMap3,
+	public u_ShadowMap4,
+	public u_ShadowClipMap0,
+	public u_ShadowClipMap1,
+	public u_ShadowClipMap2,
+	public u_ShadowClipMap3,
+	public u_ShadowClipMap4,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
@@ -2479,6 +4138,7 @@ public:
 
 class GLShader_shadowFill :
 	public GLShader,
+	public u_ColorMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_AlphaThreshold,
@@ -2502,6 +4162,9 @@ public:
 
 class GLShader_reflection :
 	public GLShader,
+	public u_ColorMap,
+	public u_NormalMap,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
@@ -2525,8 +4188,37 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
+class GLShader_reflectionMaterial :
+	public GLShader,
+	public u_ColorMap,
+	public u_NormalMap,
+	public u_HeightMap,
+	public u_TextureMatrix,
+	public u_ViewOrigin,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	// public u_Bones,
+	public u_ReliefDepthScale,
+	public u_ReliefOffsetBias,
+	public u_NormalScale,
+	public u_VertexInterpolation,
+	public GLDeformStage,
+	// public GLCompileMacro_USE_VERTEX_SKINNING,
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_RELIEF_MAPPING {
+	public:
+	GLShader_reflectionMaterial( GLShaderManager* manager );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
+};
+
 class GLShader_skybox :
 	public GLShader,
+	public u_ColorMapCube,
+	public u_CloudMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_CloudHeight,
@@ -2535,7 +4227,6 @@ class GLShader_skybox :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
-	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_ALPHA_TESTING
 {
@@ -2544,8 +4235,28 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
+class GLShader_skyboxMaterial :
+	public GLShader,
+	public u_ColorMapCube,
+	public u_CloudMap,
+	public u_TextureMatrix,
+	public u_ViewOrigin,
+	public u_CloudHeight,
+	public u_UseCloudMap,
+	public u_AlphaThreshold,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor,
+	public GLDeformStage,
+	public GLCompileMacro_USE_ALPHA_TESTING {
+	public:
+	GLShader_skyboxMaterial( GLShaderManager* manager );
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
+};
+
 class GLShader_fogQuake3 :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
@@ -2565,8 +4276,31 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
+class GLShader_fogQuake3Material :
+	public GLShader,
+	public u_ColorMap,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_InverseLightFactor,
+	public u_Color,
+	// public u_Bones,
+	public u_VertexInterpolation,
+	public u_FogDistanceVector,
+	public u_FogDepthVector,
+	public u_FogEyeT,
+	public GLDeformStage,
+	// public GLCompileMacro_USE_VERTEX_SKINNING,
+	public GLCompileMacro_USE_VERTEX_ANIMATION {
+	public:
+	GLShader_fogQuake3Material( GLShaderManager* manager );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
+};
+
 class GLShader_fogGlobal :
 	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
 	public u_ViewOrigin,
 	public u_ViewMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -2583,6 +4317,9 @@ public:
 
 class GLShader_heatHaze :
 	public GLShader,
+	public u_CurrentMap,
+	public u_NormalMap,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
@@ -2608,8 +4345,38 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
+class GLShader_heatHazeMaterial :
+	public GLShader,
+	public u_CurrentMap,
+	public u_NormalMap,
+	public u_HeightMap,
+	public u_TextureMatrix,
+	public u_ViewOrigin,
+	public u_ViewUp,
+	public u_DeformMagnitude,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_ModelViewMatrixTranspose,
+	public u_ProjectionMatrixTranspose,
+	public u_ColorModulate,
+	public u_Color,
+	// public u_Bones,
+	public u_NormalScale,
+	public u_VertexInterpolation,
+	public GLDeformStage,
+	// public GLCompileMacro_USE_VERTEX_SKINNING,
+	public GLCompileMacro_USE_VERTEX_ANIMATION,
+	public GLCompileMacro_USE_VERTEX_SPRITE {
+	public:
+	GLShader_heatHazeMaterial( GLShaderManager* manager );
+	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
+};
+
 class GLShader_screen :
 	public GLShader,
+	public u_CurrentMap,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -2617,8 +4384,18 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
+class GLShader_screenMaterial :
+	public GLShader,
+	public u_CurrentMap,
+	public u_ModelViewProjectionMatrix {
+	public:
+	GLShader_screenMaterial( GLShaderManager* manager );
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
+};
+
 class GLShader_portal :
 	public GLShader,
+	public u_CurrentMap,
 	public u_ModelViewMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_PortalRange
@@ -2630,6 +4407,7 @@ public:
 
 class GLShader_contrast :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor
 {
@@ -2640,6 +4418,8 @@ public:
 
 class GLShader_cameraEffects :
 	public GLShader,
+	public u_ColorMap3D,
+	public u_CurrentMap,
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
@@ -2654,6 +4434,7 @@ public:
 
 class GLShader_blurX :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
 	public u_TexScale
@@ -2665,6 +4446,7 @@ public:
 
 class GLShader_blurY :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
 	public u_TexScale
@@ -2676,6 +4458,7 @@ public:
 
 class GLShader_debugShadowMap :
 	public GLShader,
+	public u_CurrentMap,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -2685,6 +4468,13 @@ public:
 
 class GLShader_liquid :
 	public GLShader,
+	public u_CurrentMap,
+	public u_DepthMap,
+	public u_NormalMap,
+	public u_PortalMap,
+	public u_LightGrid1,
+	public u_LightGrid2,
+	public u_HeightMap,
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_RefractionIndex,
@@ -2711,8 +4501,45 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
+class GLShader_liquidMaterial :
+	public GLShader,
+	public u_CurrentMap,
+	public u_DepthMap,
+	public u_NormalMap,
+	public u_PortalMap,
+	public u_LightGrid1,
+	public u_LightGrid2,
+	public u_HeightMap,
+	public u_TextureMatrix,
+	public u_ViewOrigin,
+	public u_RefractionIndex,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_UnprojectMatrix,
+	public u_FresnelPower,
+	public u_FresnelScale,
+	public u_FresnelBias,
+	public u_ReliefDepthScale,
+	public u_ReliefOffsetBias,
+	public u_NormalScale,
+	public u_FogDensity,
+	public u_FogColor,
+	public u_LightTilesInt,
+	public u_SpecularExponent,
+	public u_LightGridOrigin,
+	public u_LightGridScale,
+	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
+	public GLCompileMacro_USE_RELIEF_MAPPING {
+	public:
+	GLShader_liquidMaterial( GLShaderManager* manager );
+	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
+};
+
 class GLShader_motionblur :
 	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
 	public u_ModelViewProjectionMatrix,
 	public u_blurVec
 {
@@ -2723,6 +4550,7 @@ public:
 
 class GLShader_ssao :
 	public GLShader,
+	public u_DepthMap,
 	public u_ModelViewProjectionMatrix,
 	public u_zFar
 {
@@ -2733,6 +4561,7 @@ public:
 
 class GLShader_depthtile1 :
 	public GLShader,
+	public u_DepthMap,
 	public u_ModelViewProjectionMatrix,
 	public u_zFar
 {
@@ -2743,6 +4572,7 @@ public:
 
 class GLShader_depthtile2 :
 	public GLShader,
+	public u_DepthMap,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -2752,10 +4582,12 @@ public:
 
 class GLShader_lighttile :
 	public GLShader,
-	public u_ModelMatrix,
+	public u_DepthMap,
+	public u_Lights,
+	public u_LightsTexture,
 	public u_numLights,
 	public u_lightLayer,
-	public u_Lights,
+	public u_ModelMatrix,
 	public u_zFar
 {
 public:
@@ -2765,6 +4597,7 @@ public:
 
 class GLShader_fxaa :
 	public GLShader,
+	public u_ColorMap,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -2773,23 +4606,61 @@ public:
 	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 };
 
+class GLShader_cull :
+	public GLShader,
+	public u_TotalDrawSurfs,
+	public u_SurfaceCommandsOffset,
+	public u_UseFrustumCulling,
+	public u_Frustum {
+	public:
+	GLShader_cull( GLShaderManager* manager );
+};
+
+class GLShader_clearSurfaces :
+	public GLShader,
+	public u_Frame {
+	public:
+	GLShader_clearSurfaces( GLShaderManager* manager );
+};
+
+class GLShader_processSurfaces :
+	public GLShader,
+	public u_Frame,
+	public u_ViewID,
+	public u_SurfaceCommandsOffset,
+	public u_CulledCommandsOffset {
+	public:
+	GLShader_processSurfaces( GLShaderManager* manager );
+};
+
+
 std::string GetShaderPath();
 
 extern ShaderKind shaderKind;
 
 extern GLShader_generic2D                       *gl_generic2DShader;
 extern GLShader_generic                         *gl_genericShader;
+extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
+extern GLShader_cull                            *gl_cullShader;
+extern GLShader_clearSurfaces                   *gl_clearSurfacesShader;
+extern GLShader_processSurfaces                 *gl_processSurfacesShader;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
+extern GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial;
 extern GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ;
 extern GLShader_forwardLighting_projXYZ         *gl_forwardLightingShader_projXYZ;
-extern GLShader_forwardLighting_directionalSun *gl_forwardLightingShader_directionalSun;
+extern GLShader_forwardLighting_directionalSun  *gl_forwardLightingShader_directionalSun;
 extern GLShader_shadowFill                      *gl_shadowFillShader;
 extern GLShader_reflection                      *gl_reflectionShader;
+extern GLShader_reflectionMaterial              *gl_reflectionShaderMaterial;
 extern GLShader_skybox                          *gl_skyboxShader;
+extern GLShader_skyboxMaterial                  *gl_skyboxShaderMaterial;
 extern GLShader_fogQuake3                       *gl_fogQuake3Shader;
+extern GLShader_fogQuake3Material               *gl_fogQuake3ShaderMaterial;
 extern GLShader_fogGlobal                       *gl_fogGlobalShader;
 extern GLShader_heatHaze                        *gl_heatHazeShader;
+extern GLShader_heatHazeMaterial                *gl_heatHazeShaderMaterial;
 extern GLShader_screen                          *gl_screenShader;
+extern GLShader_screenMaterial                  *gl_screenShaderMaterial;
 extern GLShader_portal                          *gl_portalShader;
 extern GLShader_contrast                        *gl_contrastShader;
 extern GLShader_cameraEffects                   *gl_cameraEffectsShader;
@@ -2797,6 +4668,7 @@ extern GLShader_blurX                           *gl_blurXShader;
 extern GLShader_blurY                           *gl_blurYShader;
 extern GLShader_debugShadowMap                  *gl_debugShadowMapShader;
 extern GLShader_liquid                          *gl_liquidShader;
+extern GLShader_liquidMaterial                  *gl_liquidShaderMaterial;
 extern GLShader_motionblur                      *gl_motionblurShader;
 extern GLShader_ssao                            *gl_ssaoShader;
 extern GLShader_depthtile1                      *gl_depthtile1Shader;

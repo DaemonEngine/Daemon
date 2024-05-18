@@ -1939,6 +1939,41 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.2
 	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync->value );
 
+	// not required by any OpenGL version
+	glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture->value );
+
+	// made required in OpenGL 4.6
+	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, r_arb_shader_draw_parameters->value );
+
+	// made required in OpenGL 4.3
+	glConfig2.SSBOAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_storage_buffer_object, r_arb_shader_storage_buffer_object->value );
+
+	// made required in OpenGL 4.0
+	glConfig2.multiDrawIndirectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_multi_draw_indirect, r_arb_multi_draw_indirect->value );
+
+	// made required in OpenGL 4.3
+	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader->value );
+
+	// made required in OpenGL 4.2
+	glConfig2.shadingLanguage420PackAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shading_language_420pack, r_arb_shading_language_420pack->value );
+
+	// made required in OpenGL 4.3
+	glConfig2.explicitUniformLocationAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_explicit_uniform_location, r_arb_explicit_uniform_location->value );
+
+	// made required in OpenGL 4.2
+	glConfig2.shaderImageLoadStoreAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_image_load_store, r_arb_shader_image_load_store->value );
+
+	// made required in OpenGL 4.2
+	glConfig2.shaderAtomicCountersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counters, r_arb_shader_atomic_counters->value );
+
+	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable
+									    && glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
+										&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
+										&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
+										&& glConfig2.shaderAtomicCountersAvailable
+										&& r_smp->integer == 0 // Currently doesn't work with r_smp 1
+										&& r_useMaterialSystem->integer == 1; // Allow disabling it without disabling any extensions
+
 	GL_CheckErrors();
 }
 

@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_init.c -- functions that are not called every frame
 #include "tr_local.h"
 #include "framework/CvarSystem.h"
+#include "Material.h"
 
 	glconfig_t  glConfig;
 	glconfig2_t glConfig2;
@@ -87,6 +88,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_noMarksOnTrisurfs;
 	cvar_t      *r_lazyShaders;
 
+	cvar_t      *r_useMaterialSystem;
+	cvar_t      *r_gpuFrustumCulling;
+
 	cvar_t      *r_ext_occlusion_query;
 	cvar_t      *r_ext_draw_buffers;
 	cvar_t      *r_ext_half_float_pixel;
@@ -101,6 +105,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_arb_uniform_buffer_object;
 	cvar_t      *r_arb_texture_gather;
 	cvar_t      *r_arb_gpu_shader5;
+	cvar_t      *r_arb_bindless_texture;
+	cvar_t      *r_arb_shader_draw_parameters;
+	cvar_t      *r_arb_shader_storage_buffer_object;
+	cvar_t      *r_arb_multi_draw_indirect;
+	cvar_t      *r_arb_compute_shader;
+	cvar_t      *r_arb_shading_language_420pack;
+	cvar_t      *r_arb_explicit_uniform_location;
+	cvar_t      *r_arb_shader_image_load_store;
+	cvar_t      *r_arb_shader_atomic_counters;
 
 	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
@@ -317,6 +330,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			Q_strlwr( renderer_buffer );
 
 			// OpenGL driver constants
+			glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &temp );
+			glConfig2.maxTextureUnits = temp;
+
 			glGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
 			glConfig.maxTextureSize = temp;
 
@@ -817,7 +833,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		// in a multitexture environment
 		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 		{
-			for ( i = 31; i >= 0; i-- )
+			for ( i = glConfig2.maxTextureUnits - 1; i >= 0; i-- )
 			{
 				GL_SelectTexture( i );
 				GL_TextureMode( r_textureMode->string );
@@ -1085,6 +1101,15 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_arb_uniform_buffer_object = Cvar_Get( "r_arb_uniform_buffer_object", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_texture_gather = Cvar_Get( "r_arb_texture_gather", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_arb_gpu_shader5 = Cvar_Get( "r_arb_gpu_shader5", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_bindless_texture = Cvar_Get( "r_arb_bindless_texture", "0", CVAR_LATCH );
+		r_arb_shader_draw_parameters = Cvar_Get( "r_arb_shader_draw_parameters", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_shader_storage_buffer_object = Cvar_Get( "r_arb_shader_storage_buffer_object", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_multi_draw_indirect = Cvar_Get( "r_arb_multi_draw_indirect", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_compute_shader = Cvar_Get( "r_arb_compute_shader", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_shading_language_420pack = Cvar_Get( "r_arb_shading_language_420pack", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_explicit_uniform_location = Cvar_Get( "r_arb_explicit_uniform_location", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_shader_image_load_store = Cvar_Get( "r_arb_shader_image_load_store", "1", CVAR_CHEAT | CVAR_LATCH );
+		r_arb_shader_atomic_counters = Cvar_Get( "r_arb_shader_atomic_counters", "1", CVAR_CHEAT | CVAR_LATCH );
 
 		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
@@ -1106,6 +1131,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_exportTextures = Cvar_Get( "r_exportTextures", "0", 0 );
 		r_heatHaze = Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_noMarksOnTrisurfs = Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
+
+		r_useMaterialSystem = Cvar_Get( "r_useMaterialSystem", "0", CVAR_LATCH );
+		r_gpuFrustumCulling = Cvar_Get( "r_gpuFrustumCulling", "1", CVAR_CHEAT );
 
 		/* 1: Delay GLSL shader build until first map load.
 
@@ -1519,6 +1547,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		}
 
 		R_DoneFreeType();
+
+		materialSystem.Free();
 
 		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )

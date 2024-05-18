@@ -42,6 +42,8 @@ void DeformVertex( inout vec4 pos,
 
 void	main()
 {
+	#insert material_vp
+
 	vec4 position;
 	localBasis LB;
 	vec2 texCoord, lmCoord;

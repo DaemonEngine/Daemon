@@ -6429,7 +6429,7 @@ vertexHash_t *AddVertexToHashTable( vertexHash_t **hashTable, vec3_t xyz, void *
 	return vertexHash;
 }
 
-void GL_BindNearestCubeMap( const vec3_t xyz )
+void GL_BindNearestCubeMap( int unit, const vec3_t xyz )
 {
 	float          distance, maxDistance;
 	cubemapProbe_t *cubeProbe;
@@ -6465,7 +6465,7 @@ void GL_BindNearestCubeMap( const vec3_t xyz )
 		}
 	}
 
-	GL_Bind( tr.autoCubeImage );
+	GL_BindToTMU( unit, tr.autoCubeImage );
 }
 
 void R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbeNearest, cubemapProbe_t **cubeProbeSecondNearest )
@@ -7078,4 +7078,7 @@ void RE_LoadWorldMap( const char *name )
 		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
 		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;
 	}
+
+	tr.worldLoaded = true;
+	GLSL_InitWorldShadersOrError();
 }

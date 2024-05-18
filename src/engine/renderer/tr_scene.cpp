@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_scene.c
 #include "tr_local.h"
+#include "Material.h"
 
 static int r_firstSceneDrawSurf;
 static int r_firstSceneInteraction;
@@ -625,6 +626,14 @@ void RE_RenderScene( const refdef_t *fd )
 
 	R_AddClearBufferCmd();
 	R_AddSetupLightsCmd();
+
+	if ( glConfig2.materialSystemAvailable && !materialSystem.generatedWorldCommandBuffer ) {
+		materialSystem.GenerateWorldMaterials();
+	}
+
+	if ( glConfig2.materialSystemAvailable ) {
+		materialSystem.StartFrame();
+	}
 
 	R_RenderView( &parms );
 

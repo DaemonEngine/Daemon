@@ -63,6 +63,8 @@ struct glconfig2_t
 	std::string glEnabledExtensionsString;
 	std::string glMissingExtensionsString;
 
+	int maxTextureUnits;
+
 	int      maxCubeMapTextureSize;
 
 	bool occlusionQueryAvailable;
@@ -82,6 +84,16 @@ struct glconfig2_t
 	bool textureFloatAvailable;
 	bool textureIntegerAvailable;
 	bool textureRGAvailable;
+	bool bindlessTexturesAvailable;
+	bool shaderDrawParametersAvailable;
+	bool SSBOAvailable;
+	bool multiDrawIndirectAvailable;
+	bool computeShaderAvailable;
+	bool shadingLanguage420PackAvailable;
+	bool explicitUniformLocationAvailable;
+	bool shaderImageLoadStoreAvailable;
+	bool shaderAtomicCountersAvailable;
+	bool materialSystemAvailable;
 	bool gpuShader4Available;
 	bool textureGatherAvailable;
 	int      maxDrawBuffers;
