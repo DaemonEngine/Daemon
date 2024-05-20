@@ -471,6 +471,8 @@ static std::string GenComputeVersionDeclaration() {
 			  GLEW_ARB_shader_image_load_store, "ARB_shader_image_load_store" );
 	addExtension( str, glConfig2.shaderAtomicCountersAvailable, 420,
 			  GLEW_ARB_shader_atomic_counters, "ARB_shader_atomic_counters" );
+	addExtension( str, glConfig2.bindlessTexturesAvailable, -1,
+		      GLEW_ARB_bindless_texture, "ARB_bindless_texture" );
 
 	return str;
 }
@@ -557,7 +559,7 @@ static std::string GenComputeHeader() {
 	AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
 
 	if ( glConfig2.bindlessTexturesAvailable ) {
-		// str += "layout(bindless_image) uniform;\n";
+		str += "layout(bindless_image) uniform;\n";
 	}
 
 	return str;
@@ -3112,13 +3114,24 @@ GLShader_cull::GLShader_cull( GLShaderManager* manager ) :
 	u_TotalDrawSurfs( this ),
 	u_SurfaceCommandsOffset( this ),
 	u_UseFrustumCulling( this ),
-	u_Frustum( this ) {
+	u_CameraPosition( this ),
+	u_ModelViewMatrix( this ),
+	u_Frustum( this ),
+	u_ViewWidth( this ),
+	u_ViewHeight( this ),
+	u_P00( this ),
+	u_P11( this ) {
 }
 
 GLShader_depthReduction::GLShader_depthReduction( GLShaderManager* manager ) :
 	GLShader( "depthReduction", ATTR_POSITION, manager, false, false, true ),
 	u_ViewWidth( this ),
-	u_ViewHeight( this ) {
+	u_ViewHeight( this ),
+	u_InitialDepthLevel( this ) {
+}
+
+void GLShader_depthReduction::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "depthTextureInitial" ), 0 );
 }
 
 GLShader_clearSurfaces::GLShader_clearSurfaces( GLShaderManager* manager ) :

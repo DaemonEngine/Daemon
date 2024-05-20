@@ -1133,9 +1133,38 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	GL_CheckErrors();
 }
 
+static void testTexture() {
+	int width = 1920;
+	int height = 1080;
+	byte* data = new byte[width * height * 4];
+
+	uint tex, tex2;
+	glGenTextures( 1, &tex );
+	glBindTexture( GL_TEXTURE_2D, tex );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0 );
+	// glTexImage2D( GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, data );
+	glTexStorage2D( GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT32, width, height );
+	// glGenerateMipmap( GL_TEXTURE_2D );
+	glGenTextures( 1, &tex2 );
+	glTextureView( tex2, GL_TEXTURE_2D, tex, GL_R32I, 0, 1, 0, 1 );
+	GL_CheckErrors();
+	/* GLuint64 test = glGetTextureHandleARB(tex);
+	glMakeTextureHandleResidentARB( test );
+	GL_CheckErrors();
+	GLuint64 depthInImageHandle = glGetImageHandleARB( tex, 0, GL_FALSE, 0, GL_RGBA8UI );
+	GL_CheckErrors();
+	glMakeTextureHandleNonResidentARB( test ); */
+}
+
 void MaterialSystem::GenerateDepthImages( const int width, const int height, imageParams_t imageParms ) {
 	int size = std::max( width, height );
-	imageParms.bits ^= IF_NOPICMIP;
+	imageParams_t oldParms = imageParms;
+	imageParms.bits ^= ( IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8 );
+	imageParms.bits |= IF_ONECOMP32F;
 
 	depthImageLevels = 0;
 	while ( size > 0 ) {
@@ -1145,23 +1174,44 @@ void MaterialSystem::GenerateDepthImages( const int width, const int height, ima
 	Log::Warn( "%u", depthImageLevels );
 
 	byte* data = new byte[width * height * 4];
+	// testTexture();
 	for ( uint i = 0; i < MAX_FRAMES; i++ ) {
 		Frame* frame = &frames[i];
 
+		frame->depthTexture = R_CreateImage( va( "_currentDepth%u", i ), nullptr, width, height, 1, oldParms );
 		frame->depthImage = R_CreateImage( va( "_depthFrame%u", i ), nullptr, width, height, depthImageLevels, imageParms );
 		GL_Bind( frame->depthImage );
 		int mipmapWidth = width;
 		int mipmapHeight = height;
-		for ( int i = 0; i < depthImageLevels; i++ ) {
-			glTexImage2D( GL_TEXTURE_2D, i, GL_DEPTH24_STENCIL8, mipmapWidth, mipmapHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, data );
+		for ( int j = 0; j < depthImageLevels; j++ ) {
+			// glTexImage2D( GL_TEXTURE_2D, j, GL_DEPTH24_STENCIL8, mipmapWidth, mipmapHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, data );
+			glTexImage2D( GL_TEXTURE_2D, j, GL_R32F, mipmapWidth, mipmapHeight, 0, GL_RED, GL_FLOAT, data );
 			mipmapWidth >>= 1;
 			mipmapHeight >>= 1;
 		}
+		/* GL_CheckErrors();
+		glTexStorage2D( GL_TEXTURE_2D, depthImageLevels, GL_DEPTH_COMPONENT32, width, height );
+		GL_CheckErrors();
+		glGenTextures( 1, &testTex[i] );
+		GL_CheckErrors();
+		glTextureView( testTex[i], GL_TEXTURE_2D, frame->depthImage->texnum, GL_R32I, 0, depthImageLevels, 0, 1 );
+		GL_CheckErrors(); */
+		/* glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glGenerateMipmap( GL_TEXTURE_2D );
+		GLuint64 test = glGetTextureHandleARB( frame->depthImage->texnum );
+		glMakeTextureHandleResidentARB( test );
+		glBindImageTexture( 0, frame->depthImage->texnum, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R8 );
+		GL_CheckErrors();
+		GLuint64 depthInImageHandle = glGetImageHandleARB( frame->depthImage->texnum, 0, GL_FALSE, 0, GL_R32I );
+		glMakeTextureHandleNonResidentARB( test );
 		// glGenerateMipmap( GL_TEXTURE_2D );
 		GL_Unbind( frame->depthImage );
+		GL_CheckErrors(); */
 	}
+	delete[] data;
 
-	tr.currentDepthImage = frames[0].depthImage;
+	tr.currentDepthImage = frames[0].depthTexture;
 }
 
 static void BindShaderGeneric( Material* material ) {
@@ -1841,21 +1891,43 @@ void MaterialSystem::QueueSurfaceCull( const uint viewID, const frustum_t* frust
 }
 
 void MaterialSystem::DepthReduction() {
+	if ( r_lockpvs->integer ) {
+		if ( !PVSLocked ) {
+			lockedDepthImage = frames[currentFrame].depthImage;
+		}
+
+		return;
+	}
+
 	image_t* depthImage = frames[nextFrame].depthImage;
 	int width = depthImage->width;
 	int height = depthImage->height;
 
-	for ( int i = 0; i < depthImageLevels - 1; i++ ) {
+	gl_depthReductionShader->BindProgram( 0 );
+
+	uint globalWorkgroupX = width % 8 == 0 ? width / 8 : width / 8 + 1;
+	uint globalWorkgroupY = height % 8 == 0 ? height / 8 : height / 8 + 1;
+
+	// GL_Bind( frames[nextFrame].depthTexture );
+	GL_Bind( tr.currentDepthImage );
+	glBindImageTexture( 2, frames[nextFrame].depthImage->texnum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F );
+
+	gl_depthReductionShader->SetUniform_InitialDepthLevel( true );
+	gl_depthReductionShader->SetUniform_ViewWidth( width );
+	gl_depthReductionShader->SetUniform_ViewHeight( height );
+	gl_depthReductionShader->DispatchCompute( globalWorkgroupX, globalWorkgroupY, 1 );
+
+	for ( int i = 0; i < depthImageLevels; i++ ) {
 		width = width > 1 ? width >> 1 : 1;
 		height = height > 1 ? height >> 1 : 1;
 
-		uint globalWorkgroupX = width % 8 == 0 ? width / 8 : width / 8 + 1;
-		uint globalWorkgroupY = height % 8 == 0 ? height / 8 : height / 8 + 1;
+		globalWorkgroupX = width % 8 == 0 ? width / 8 : width / 8 + 1;
+		globalWorkgroupY = height % 8 == 0 ? height / 8 : height / 8 + 1;
 
-		glBindImageTexture( 0, depthImage->texnum, i, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA32F );
-		glBindImageTexture( 1, depthImage->texnum, i + 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F );
+		glBindImageTexture( 1, frames[nextFrame].depthImage->texnum, i, GL_FALSE, 0, GL_READ_ONLY, GL_R32F );
+		glBindImageTexture( 2, frames[nextFrame].depthImage->texnum,i + 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F );
 
-		gl_depthReductionShader->BindProgram( 0 );
+		gl_depthReductionShader->SetUniform_InitialDepthLevel( false );
 		gl_depthReductionShader->SetUniform_ViewWidth( width );
 		gl_depthReductionShader->SetUniform_ViewHeight( height );
 		gl_depthReductionShader->DispatchCompute( globalWorkgroupX, globalWorkgroupY, 1 );
@@ -1885,9 +1957,16 @@ void MaterialSystem::CullSurfaces() {
 		gl_cullShader->BindProgram( 0 );
 		uint globalWorkGroupX = totalDrawSurfs % MAX_COMMAND_COUNTERS == 0 ?
 			totalDrawSurfs / MAX_COMMAND_COUNTERS : totalDrawSurfs / MAX_COMMAND_COUNTERS + 1;
+		GL_Bind( frames[nextFrame].depthImage );
 		gl_cullShader->SetUniform_TotalDrawSurfs( totalDrawSurfs );
 		gl_cullShader->SetUniform_UseFrustumCulling( r_gpuFrustumCulling->integer );
+		gl_cullShader->SetUniform_CameraPosition( backEnd.viewParms.pvsOrigin );
+		gl_cullShader->SetUniform_ModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
+		gl_cullShader->SetUniform_ViewWidth( frames[nextFrame].depthImage->width );
+		gl_cullShader->SetUniform_ViewHeight( frames[nextFrame].depthImage->height );
 		gl_cullShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );
+		gl_cullShader->SetUniform_P00( glState.projectionMatrix[glState.stackIndex][0] );
+		gl_cullShader->SetUniform_P11( glState.projectionMatrix[glState.stackIndex][5] );
 
 		if ( PVSLocked ) {
 			if ( r_lockpvs->integer == 0 ) {
@@ -1942,7 +2021,7 @@ void MaterialSystem::EndFrame() {
 		return;
 	}
 
-	tr.currentDepthImage = frames[nextFrame].depthImage;
+	// tr.currentDepthImage = frames[nextFrame].depthImage;
 
 	currentFrame = nextFrame;
 	nextFrame++;

@@ -36,11 +36,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(rgba32f, binding = 0) uniform readonly image2D depthImageIn;
-layout(rgba32f, binding = 1) uniform writeonly image2D depthImageOut;
+layout(binding = 0) uniform sampler2D depthTextureInitial;
+layout(r32f, binding = 1) uniform readonly image2D depthImageIn;
+layout(r32f, binding = 2) uniform writeonly image2D depthImageOut;
 
 uniform uint u_ViewWidth;
 uniform uint u_ViewHeight;
+uniform bool u_InitialDepthLevel;
 
 void main() {
     const uint globalInvocationID = gl_GlobalInvocationID.z * gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y
@@ -51,19 +53,22 @@ void main() {
     if( position.x >= u_ViewWidth || position.y >= u_ViewHeight ) {
         return;
     };
-    /* if( globalInvocationID >= u_TotalDrawSurfs ) {
-        return;
-    } */
 
-    vec4 depth[4];
-    for( int x = 0; x < 2; x++ ) {
-        for( int y = 0; y < 2; y++ ) {
-            depth[y * 2 + x] = imageLoad( depthImageIn, position + ivec2( x, y ) );
+    if( u_InitialDepthLevel ) {
+        vec4 depthOut = texelFetch( depthTextureInitial, position, 0 );
+        imageStore( depthImageOut, position, depthOut );
+    } else {
+        float depth[4];
+        
+        for( int x = 0; x < 2; x++ ) {
+            for( int y = 0; y < 2; y++ ) {
+                depth[y * 2 + x] = imageLoad( depthImageIn, position * 2 + ivec2( x, y ) ).r;
+            }
         }
-    }
 
-    vec4 depthOut = min( depth[0], depth[1] );
-    depthOut = min( depthOut, depth[2] );
-    depthOut = min( depthOut, depth[3] );
-    imageStore( depthImageOut, position, depthOut );
+        float depthOut = min( depth[0], depth[1] );
+        depthOut = min( depthOut, depth[2] );
+        depthOut = min( depthOut, depth[3] );
+        imageStore( depthImageOut, position, vec4( depthOut, 0.0, 0.0, 0.0 ) );
+    }
 }

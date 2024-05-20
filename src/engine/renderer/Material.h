@@ -161,6 +161,7 @@ struct ViewFrame {
 struct Frame {
 	uint viewCount = 0;
 	ViewFrame viewFrames[MAX_VIEWS];
+	image_t* depthTexture;
 	image_t* depthImage;
 };
 
@@ -223,6 +224,7 @@ class MaterialSystem {
 	};
 
 	bool frameStart = false;
+	uint testTex[2];
 
 	void AddTexture( Texture* texture );
 	void AddDrawCommand( const uint materialID, const uint materialPackID, const uint materialsSSBOOffset,
@@ -254,6 +256,7 @@ class MaterialSystem {
 	private:
 	bool PVSLocked = false;
 	frustum_t lockedFrustum;
+	image_t* lockedDepthImage;
 
 	int depthImageLevels;
 

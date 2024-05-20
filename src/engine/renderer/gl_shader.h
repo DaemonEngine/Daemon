@@ -3228,6 +3228,42 @@ class u_ViewHeight :
 	}
 };
 
+class u_InitialDepthLevel :
+	GLUniform1Bool {
+	public:
+	u_InitialDepthLevel( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_InitialDepthLevel" ) {
+	}
+
+	void SetUniform_InitialDepthLevel( const int initialDepthLevel ) {
+		this->SetValue( initialDepthLevel );
+	}
+};
+
+class u_P00 :
+	GLUniform1f {
+	public:
+	u_P00( GLShader* shader ) :
+		GLUniform1f( shader, "u_P00" ) {
+	}
+
+	void SetUniform_P00( const int P00 ) {
+		this->SetValue( P00 );
+	}
+};
+
+class u_P11 :
+	GLUniform1f {
+	public:
+	u_P11( GLShader* shader ) :
+		GLUniform1f( shader, "u_P11" ) {
+	}
+
+	void SetUniform_P11( const int P11 ) {
+		this->SetValue( P11 );
+	}
+};
+
 class u_TotalDrawSurfs :
 	GLUniform1ui {
 	public:
@@ -3249,6 +3285,18 @@ class u_UseFrustumCulling :
 
 	void SetUniform_UseFrustumCulling( const int useFrustumCulling ) {
 		this->SetValue( useFrustumCulling );
+	}
+};
+
+class u_CameraPosition :
+	GLUniform3f {
+	public:
+	u_CameraPosition( GLShader* shader ) :
+		GLUniform3f( shader, "u_CameraPosition" ) {
+	}
+
+	void SetUniform_CameraPosition( const vec3_t cameraPosition ) {
+		this->SetValue( cameraPosition );
 	}
 };
 
@@ -4635,7 +4683,13 @@ class GLShader_cull :
 	public u_TotalDrawSurfs,
 	public u_SurfaceCommandsOffset,
 	public u_UseFrustumCulling,
-	public u_Frustum {
+	public u_CameraPosition,
+	public u_ModelViewMatrix,
+	public u_Frustum,
+	public u_ViewWidth,
+	public u_ViewHeight,
+	public u_P00,
+	public u_P11 {
 	public:
 	GLShader_cull( GLShaderManager* manager );
 };
@@ -4643,9 +4697,11 @@ class GLShader_cull :
 class GLShader_depthReduction :
 	public GLShader,
 	public u_ViewWidth,
-	public u_ViewHeight {
+	public u_ViewHeight,
+	public u_InitialDepthLevel {
 	public:
 	GLShader_depthReduction( GLShaderManager* manager );
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
 class GLShader_clearSurfaces :
