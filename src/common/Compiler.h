@@ -133,7 +133,6 @@ inline int CountTrailingZeroes(unsigned long long x) { return __builtin_ctzll(x)
 #elif defined( _MSC_VER )
 
 // Disable some warnings
-#pragma warning(disable : 4100) // unreferenced formal parameter
 #pragma warning(disable : 4127) // conditional expression is constant
 
 #pragma warning(disable : 4201) // nonstandard extension used: nameless struct / union
