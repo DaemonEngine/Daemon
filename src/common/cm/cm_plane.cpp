@@ -39,8 +39,8 @@ constexpr float PLANE_TRI_EPSILON = 0.1f;
 static const int PLANE_HASHES = 8192;
 static cPlane_t *planeHashTable[ PLANE_HASHES ];
 
-int      numPlanes;
-cPlane_t planes[ SHADER_MAX_TRIANGLES ];
+int      numTempPlanes;
+cPlane_t tempPlanes[ SHADER_MAX_TRIANGLES ];
 
 int      numFacets;
 cFacet_t facets[ SHADER_MAX_TRIANGLES ];
@@ -54,7 +54,7 @@ CM_ResetPlaneCounts
 void CM_ResetPlaneCounts()
 {
 	memset( planeHashTable, 0, sizeof( planeHashTable ) );
-	numPlanes = 0;
+	numTempPlanes = 0;
 	numFacets = 0;
 }
 /*
@@ -206,20 +206,20 @@ static int CM_CreateNewFloatPlane( const plane_t &plane )
 	cPlane_t *p; //, temp;
 
 	// create a new plane
-	if ( numPlanes == SHADER_MAX_TRIANGLES )
+	if ( numTempPlanes == SHADER_MAX_TRIANGLES )
 	{
 		Sys::Drop( "CM_FindPlane: SHADER_MAX_TRIANGLES" );
 	}
 
-	p = &planes[ numPlanes ];
+	p = &tempPlanes[ numTempPlanes ];
 	p->plane = plane;
 
 	p->signbits = CM_SignbitsForNormal( plane.normal );
 
-	numPlanes++;
+	numTempPlanes++;
 
 	CM_AddPlaneToHash( p );
-	return numPlanes - 1;
+	return numTempPlanes - 1;
 }
 
 /*
@@ -244,7 +244,7 @@ int CM_FindPlane2( const plane_t &plane, bool *flipped )
 		{
 			if ( CM_PlaneEqual( p, plane, flipped ) )
 			{
-				return p - planes;
+				return p - tempPlanes;
 			}
 		}
 	}
@@ -307,7 +307,7 @@ int CM_FindPlane( const float *p1, const float *p2, const float *p3 )
 				continue;
 			}
 
-			return p - planes;
+			return p - tempPlanes;
 		}
 	}
 
@@ -326,7 +326,7 @@ planeSide_t CM_PointOnPlaneSide( float *p, int planeNum )
 		return planeSide_t::SIDE_ON;
 	}
 
-	plane_t plane = planes[ planeNum ].plane;
+	plane_t plane = tempPlanes[ planeNum ].plane;
 
 	vec_t d = DotProduct( p, plane.normal ) - plane.dist;
 
@@ -361,7 +361,7 @@ bool CM_ValidateFacet( cFacet_t *facet )
 		return false;
 	}
 
-	plane_t plane = planes[ facet->surfacePlane ].plane;
+	plane_t plane = tempPlanes[ facet->surfacePlane ].plane;
 	w = BaseWindingForPlane( plane );
 
 	for ( j = 0; j < facet->numBorders && w; j++ )
@@ -372,7 +372,7 @@ bool CM_ValidateFacet( cFacet_t *facet )
 			return false;
 		}
 
-		plane = planes[ facet->borderPlanes[ j ] ].plane;
+		plane = tempPlanes[ facet->borderPlanes[ j ] ].plane;
 
 		if ( !facet->borderInward[ j ] )
 		{
@@ -426,7 +426,7 @@ void CM_AddFacetBevels( cFacet_t *facet )
 	winding_t *w, *w2;
 	vec3_t    mins, maxs, vec, vec2;
 
-	plane_t plane = planes[ facet->surfacePlane ].plane;
+	plane_t plane = tempPlanes[ facet->surfacePlane ].plane;
 	w = BaseWindingForPlane( plane );
 
 	for ( j = 0; j < facet->numBorders && w; j++ )
@@ -436,7 +436,7 @@ void CM_AddFacetBevels( cFacet_t *facet )
 			continue;
 		}
 
-		plane = planes[ facet->borderPlanes[ j ] ].plane;
+		plane = tempPlanes[ facet->borderPlanes[ j ] ].plane;
 
 		if ( !facet->borderInward[ j ] )
 		{
@@ -474,7 +474,7 @@ void CM_AddFacetBevels( cFacet_t *facet )
 			}
 
 			//if it's the surface plane
-			if ( CM_PlaneEqual( &planes[ facet->surfacePlane ], plane, &flipped ) )
+			if ( CM_PlaneEqual( &tempPlanes[ facet->surfacePlane ], plane, &flipped ) )
 			{
 				continue;
 			}
@@ -482,7 +482,7 @@ void CM_AddFacetBevels( cFacet_t *facet )
 			// see if the plane is already present
 			for ( i = 0; i < facet->numBorders; i++ )
 			{
-				if ( CM_PlaneEqual( &planes[ facet->borderPlanes[ i ] ], plane, &flipped ) )
+				if ( CM_PlaneEqual( &tempPlanes[ facet->borderPlanes[ i ] ], plane, &flipped ) )
 				{
 					break;
 				}
@@ -569,7 +569,7 @@ void CM_AddFacetBevels( cFacet_t *facet )
 				}
 
 				//if it's the surface plane
-				if ( CM_PlaneEqual( &planes[ facet->surfacePlane ], plane, &flipped ) )
+				if ( CM_PlaneEqual( &tempPlanes[ facet->surfacePlane ], plane, &flipped ) )
 				{
 					continue;
 				}
@@ -577,7 +577,7 @@ void CM_AddFacetBevels( cFacet_t *facet )
 				// see if the plane is already present
 				for ( i = 0; i < facet->numBorders; i++ )
 				{
-					if ( CM_PlaneEqual( &planes[ facet->borderPlanes[ i ] ], plane, &flipped ) )
+					if ( CM_PlaneEqual( &tempPlanes[ facet->borderPlanes[ i ] ], plane, &flipped ) )
 					{
 						break;
 					}
@@ -605,7 +605,7 @@ void CM_AddFacetBevels( cFacet_t *facet )
 					//
 					w2 = CopyWinding( w );
 
-					plane_t newplane = planes[ facet->borderPlanes[ facet->numBorders ] ].plane;
+					plane_t newplane = tempPlanes[ facet->borderPlanes[ facet->numBorders ] ].plane;
 
 					if ( !facet->borderInward[ facet->numBorders ] )
 					{
@@ -674,7 +674,7 @@ bool CM_GenerateFacetFor3Points( cFacet_t *facet, const vec3_t p1, const vec3_t 
 		return false;
 	}
 
-	plane_t plane = planes[ facet->surfacePlane ].plane;
+	plane_t plane = tempPlanes[ facet->surfacePlane ].plane;
 
 	facet->numBorders = 3;
 
