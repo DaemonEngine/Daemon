@@ -202,15 +202,6 @@ set(NACL_VM_INHERITED_OPTIONS "${DEFAULT_NACL_VM_INHERITED_OPTIONS}" CACHE STRIN
     "Semicolon-separated list of options for which NaCl game VMs should use the same value as the other binaries")
 mark_as_advanced(NACL_VM_INHERITED_OPTIONS)
 
-if (BE_VERBOSE)
-    set(WARNMODE "no-error=")
-else()
-    set(WARNMODE "no-")
-endif()
-if (DAEMON_PARENT_SCOPE_DIR)
-    set(WARNMODE ${WARNMODE} PARENT_SCOPE)
-endif()
-
 ################################################################################
 # Directories
 ################################################################################
@@ -287,7 +278,12 @@ endif()
 
 include(DaemonFlags)
 
-# Warning options
+# Warning options (for Daemon only)
+# Note the different scopes used for warning options:
+# * set_c_cxx_flag(xxx) or try_c_cxx_flag(xxx) sets it for all code including dependencies
+# * try_flag(WARNINGS xxx) in DaemonFlags.cmake sets it for Daemon and Unvanquished but not deps
+# * try_flag(WARNINGS xxx) below sets it for Daemon only
+
 try_flag(WARNINGS           "-Wshadow=local")
 try_flag(WARNINGS           "-Wno-pragmas")
 try_flag(WARNINGS           "-Wno-unknown-pragmas")
@@ -295,6 +291,14 @@ try_flag(WARNINGS           "-W${WARNMODE}old-style-cast")
 try_flag(WARNINGS           "-Woverloaded-virtual")
 try_flag(WARNINGS           "-Wstrict-null-sentinel")
 try_flag(WARNINGS           "-W${WARNMODE}sign-compare")
+
+# MSVC /wd = warning disable
+try_flag(WARNINGS "/wd4127")  # conditional expression is constant
+try_flag(WARNINGS "/wd4324")  # 'XXX': structure was padded due to alignment specifier
+try_flag(WARNINGS "/wd4458")  # declaration of 'XXX' hides class member
+try_flag(WARNINGS "/wd4459")  # declaration of 'XXX' hides global declaration
+try_flag(WARNINGS "/wd4701")  # potentially uninitialized local variable 'XXX' used
+try_flag(WARNINGS "/wd26495") # Variable 'XXX' is uninitialized. Always initialize a member variable.
 
 ################################################################################
 # Group the sources by folder to have folder show in Visual Studio

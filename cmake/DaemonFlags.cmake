@@ -116,6 +116,12 @@ macro(try_linker_flag PROP FLAG)
     endif()
 endmacro()
 
+if (BE_VERBOSE)
+    set(WARNMODE "no-error=")
+else()
+    set(WARNMODE "no-")
+endif()
+
 option(USE_CPU_RECOMMENDED_FEATURES "Use some common hardware features like SSE2, NEON, VFP, MCX16, etc." ON)
 
 if(MINGW AND USE_BREAKPAD)
@@ -158,6 +164,14 @@ if (MSVC)
         set_linker_flag("/LTCG" RELEASE)
     endif()
     set_linker_flag("/LARGEADDRESSAWARE")
+
+    # These warnings need to be disabled for both Daemon and Unvanquished since they are triggered in shared headers
+    try_flag(WARNINGS "/wd4201")  # nonstandard extension used: nameless struct / union
+    try_flag(WARNINGS "/wd4244")  # 'XXX': conversion from 'YYY' to 'ZZZ', possible loss of data
+    try_flag(WARNINGS "/wd4267")  # 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+
+    # This warning is garbage because it doesn't go away if you parenthesize the expression
+    try_flag(WARNINGS "/wd4706")  # assignment within conditional expression
 
     # Turn off warning C4996:, e.g:
     # warning C4996: 'open': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _open. See online help for details.    set_c_cxx_flag("/wd4996")
