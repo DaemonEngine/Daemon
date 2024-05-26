@@ -280,16 +280,20 @@ void* CM_Alloc( size_t size );
 
 // cm_plane.c
 
-extern int numPlanes;
-extern cPlane_t planes[];
+// Temporary plane cache, used during construction of a surface collide
+extern int numTempPlanes;
+extern cPlane_t tempPlanes[];
 
-extern int numFacets;
-extern cFacet_t facets[];
-
+// Functions acting on the temporary plane cache
 void     CM_ResetPlaneCounts();
 int CM_FindPlane2( const plane_t &plane, bool *flipped );
 int      CM_FindPlane( const float *p1, const float *p2, const float *p3 );
 planeSide_t CM_PointOnPlaneSide( float *p, int planeNum );
+
+// Temporary facets buffer, used during construction of a surface collide
+extern int numFacets;
+extern cFacet_t facets[];
+
 bool CM_ValidateFacet( cFacet_t *facet );
 void     CM_AddFacetBevels( cFacet_t *facet );
 bool CM_GenerateFacetFor3Points( cFacet_t *facet, const vec3_t p1, const vec3_t p2, const vec3_t p3 );
