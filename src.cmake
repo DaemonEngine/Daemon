@@ -94,6 +94,7 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_animation.cpp
     ${ENGINE_DIR}/renderer/tr_backend.cpp
     ${ENGINE_DIR}/renderer/tr_bsp.cpp
+    ${ENGINE_DIR}/renderer/tr_bsp_punned.cpp
     ${ENGINE_DIR}/renderer/tr_cmds.cpp
     ${ENGINE_DIR}/renderer/tr_curve.cpp
     ${ENGINE_DIR}/renderer/tr_decals.cpp
@@ -287,6 +288,7 @@ set(QCOMMONLIST
     ${ENGINE_DIR}/qcommon/files.cpp
     ${ENGINE_DIR}/qcommon/huffman.cpp
     ${ENGINE_DIR}/qcommon/msg.cpp
+    ${ENGINE_DIR}/qcommon/msg_punned.cpp
     ${ENGINE_DIR}/qcommon/net_chan.cpp
     ${ENGINE_DIR}/qcommon/net_ip.cpp
     ${ENGINE_DIR}/qcommon/net_types.h
@@ -366,8 +368,8 @@ set(DEDSERVERLIST
 
 # List of known files to be built with the -fno-strict-aliasing flag.
 set(NOSTRICTALIASINGLIST
-	${ENGINE_DIR}/qcommon/msg.cpp
-	${ENGINE_DIR}/renderer/tr_bsp.cpp
+	${ENGINE_DIR}/qcommon/msg_punned.cpp
+	${ENGINE_DIR}/renderer/tr_bsp_punned.cpp
 )
 
 set(WIN_RC ${ENGINE_DIR}/sys/windows-resource/icon.rc)

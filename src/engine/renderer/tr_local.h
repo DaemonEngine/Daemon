@@ -4007,6 +4007,8 @@ inline bool checkGLErrors()
 	void       R_BuildCubeMaps();
 	void       R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbeNearest, cubemapProbe_t **cubeProbeSecondNearest );
 
+	const size_t HASHTABLE_SIZE = 7919; // 32749 // 2039 /* prime, use % */
+	unsigned int VertexCoordGenerateHash( const vec3_t xyz );
 	void       FreeVertexHashTable( vertexHash_t **hashTable );
 
 // font stuff

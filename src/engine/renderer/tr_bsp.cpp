@@ -6285,45 +6285,12 @@ void R_PrecacheInteractions()
 	Log::Debug("lights precaching time = %5.2f seconds", ( endTime - startTime ) / 1000.0 );
 }
 
-static const int HASHTABLE_SIZE = 7919; // 32749 // 2039    /* prime, use % */
 #define HASH_USE_EPSILON
 
 #ifdef HASH_USE_EPSILON
 #define HASH_XYZ_EPSILON                 0.01f
 #define HASH_XYZ_EPSILONSPACE_MULTIPLIER 1.f / HASH_XYZ_EPSILON
 #endif
-
-unsigned int VertexCoordGenerateHash( const vec3_t xyz )
-{
-	unsigned int hash = 0;
-
-#ifndef HASH_USE_EPSILON
-	hash += ~( * ( ( unsigned int * ) &xyz[ 0 ] ) << 15 );
-	hash ^= ( * ( ( unsigned int * ) &xyz[ 0 ] ) >> 10 );
-	hash += ( * ( ( unsigned int * ) &xyz[ 1 ] ) << 3 );
-	hash ^= ( * ( ( unsigned int * ) &xyz[ 1 ] ) >> 6 );
-	hash += ~( * ( ( unsigned int * ) &xyz[ 2 ] ) << 11 );
-	hash ^= ( * ( ( unsigned int * ) &xyz[ 2 ] ) >> 16 );
-#else
-	vec3_t xyz_epsilonspace;
-
-	VectorScale( xyz, HASH_XYZ_EPSILONSPACE_MULTIPLIER, xyz_epsilonspace );
-	xyz_epsilonspace[ 0 ] = floor( xyz_epsilonspace[ 0 ] );
-	xyz_epsilonspace[ 1 ] = floor( xyz_epsilonspace[ 1 ] );
-	xyz_epsilonspace[ 2 ] = floor( xyz_epsilonspace[ 2 ] );
-
-	hash += ~( * ( ( unsigned int * ) &xyz_epsilonspace[ 0 ] ) << 15 );
-	hash ^= ( * ( ( unsigned int * ) &xyz_epsilonspace[ 0 ] ) >> 10 );
-	hash += ( * ( ( unsigned int * ) &xyz_epsilonspace[ 1 ] ) << 3 );
-	hash ^= ( * ( ( unsigned int * ) &xyz_epsilonspace[ 1 ] ) >> 6 );
-	hash += ~( * ( ( unsigned int * ) &xyz_epsilonspace[ 2 ] ) << 11 );
-	hash ^= ( * ( ( unsigned int * ) &xyz_epsilonspace[ 2 ] ) >> 16 );
-
-#endif
-
-	hash = hash % ( HASHTABLE_SIZE );
-	return hash;
-}
 
 vertexHash_t **NewVertexHashTable()
 {

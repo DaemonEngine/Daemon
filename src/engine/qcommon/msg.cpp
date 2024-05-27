@@ -614,31 +614,6 @@ int MSG_ReadDelta( msg_t *msg, int oldV, int bits )
 	return oldV;
 }
 
-void MSG_WriteDeltaFloat( msg_t *msg, float oldV, float newV )
-{
-	if ( oldV == newV )
-	{
-		MSG_WriteBits( msg, 0, 1 );
-		return;
-	}
-
-	MSG_WriteBits( msg, 1, 1 );
-	MSG_WriteBits( msg, * ( int * ) &newV, 32 );
-}
-
-float MSG_ReadDeltaFloat( msg_t *msg, float oldV )
-{
-	if ( MSG_ReadBits( msg, 1 ) )
-	{
-		float newV;
-
-		* ( int * ) &newV = MSG_ReadBits( msg, 32 );
-		return newV;
-	}
-
-	return oldV;
-}
-
 /*
 ============================================================================
 
