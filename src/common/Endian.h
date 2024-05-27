@@ -119,6 +119,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # error The file boost/detail/endian.hpp needs to be set up for your CPU type.
 #endif
 
+// forward declaration
+namespace Util {
+	template<typename ToT, typename FromT>
+	ToT bit_cast(FromT from);
+}
+
 // Compilers are smart enough to optimize these to a single bswap instruction
 inline int16_t Swap16(int16_t x)
 {
