@@ -244,30 +244,35 @@ definition to detect its implementation was only added in C++17. */
 	#define NOEXCEPT noexcept
 	#define NOEXCEPT_IF(x) noexcept(x)
 	#define NOEXCEPT_EXPR(x) noexcept(x)
-#else
-	#define NOEXCEPT
-	#define NOEXCEPT_IF(x)
-	#define NOEXCEPT_EXPR(x) x
-#endif
-
-#if defined(__cpp_constexpr)
-	#define CONSTEXPR constexpr
-#else
-	#define CONSTEXPR
 #endif
 
 // Uses SD-6 Feature Test Recommendations
-#ifdef __cpp_constexpr
-#   if __cpp_constexpr >= 201304
-#       define CONSTEXPR_FUNCTION_RELAXED constexpr
-#   else
-#       define CONSTEXPR_FUNCTION_RELAXED
-#   endif
-#   define CONSTEXPR_FUNCTION constexpr
-#else
-// Work around lack of constexpr
-#   define CONSTEXPR_FUNCTION
-#   define CONSTEXPR_FUNCTION_RELAXED
+#if defined(__cpp_constexpr)
+	#define CONSTEXPR constexpr
+	#define CONSTEXPR_FUNCTION constexpr
+	#if __cpp_constexpr >= 201304
+		#define CONSTEXPR_FUNCTION_RELAXED constexpr
+	#endif
+#endif
+
+// Work around lack of language keywords.
+#if !defined(NOEXCEPT)
+	#define NOEXCEPT
+#endif
+#if !defined(NOEXCEPT_IF)
+	#define NOEXCEPT_IF(x)
+#endif
+#if !defined(NOEXCEPT_EXPR)
+	#define NOEXCEPT_EXPR(x) x
+#endif
+#if !defined(CONSTEXPR)
+	#define CONSTEXPR
+#endif
+#if !defined(CONSTEXPR_FUNCTION)
+	#define CONSTEXPR_FUNCTION
+#endif
+#if !defined(CONSTEXPR_FUNCTION_RELAXED)
+	#define CONSTEXPR_FUNCTION_RELAXED
 #endif
 
 // Compiler specificities we can't disable.
