@@ -166,15 +166,9 @@ inline uint64_t USwap64(uint64_t x)
 
 inline float SwapFloat(float x)
 {
-	union
-	{
-		float        f;
-		int          i;
-		unsigned int ui;
-	} fi;
-	fi.f = x;
-	fi.i = Swap32(fi.i);
-	return fi.f;
+	int32_t bits = Util::bit_cast<int32_t>(x);
+	bits = Swap32(bits);
+	return Util::bit_cast<float>(bits);
 }
 
 #ifdef Q3_LITTLE_ENDIAN

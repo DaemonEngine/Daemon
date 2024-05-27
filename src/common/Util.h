@@ -44,6 +44,17 @@ char     *PRINTF_LIKE(1) va( const char *format, ... );
 
 namespace Util {
 
+// C++20 std::bit_cast
+template<typename ToT, typename FromT>
+ToT bit_cast(FromT from)
+{
+	static_assert(sizeof(ToT) == sizeof(FromT), "bit_cast: sizes must be equal");
+
+	ToT to;
+	memcpy(&to, &from, sizeof(to));
+	return to;
+}
+
 // Binary search function which returns an iterator to the result or end if not found
 template<typename Iter, typename T>
 Iter binary_find(Iter begin, Iter end, const T& value)

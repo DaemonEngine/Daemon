@@ -125,11 +125,10 @@ static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
 
 static inline f16_t floatToHalf( float in ) {
 	static float scale = powf(2.0f, 15 - 127);
-	floatint_t fi;
 
-	fi.f = in * scale;
+	uint32_t ui = Util::bit_cast<uint32_t>( in * scale );
 
-	return { uint16_t(((fi.ui & 0x80000000) >> 16) | ((fi.ui & 0x0fffe000) >> 13)) };
+	return { uint16_t(((ui & 0x80000000) >> 16) | ((ui & 0x0fffe000) >> 13)) };
 }
 static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 {
@@ -140,10 +139,9 @@ static inline void floatToHalf( const vec4_t in, f16vec4_t out )
 }
 static inline float halfToFloat( f16_t in ) {
 	static float scale = powf(2.0f, 127 - 15);
-	floatint_t fi;
 
-	fi.ui = (((unsigned int)in.bits & 0x8000) << 16) | (((unsigned int)in.bits & 0x7fff) << 13);
-	return fi.f * scale;
+	uint32_t ui = (((unsigned int)in.bits & 0x8000) << 16) | (((unsigned int)in.bits & 0x7fff) << 13);
+	return Util::bit_cast<float>(ui) * scale;
 }
 static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 {
