@@ -376,7 +376,7 @@ else()
 
         # Use gcc-ar and gcc-ranlib instead of ar and ranlib so that we can use
         # slim LTO objects. This requires a recent version of GCC and binutils.
-        if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL GNU)
             if (USE_SLIM_LTO)
                 string(REGEX MATCH "^([0-9]+.[0-9]+)" _version "${CMAKE_CXX_COMPILER_VERSION}")
                 get_filename_component(COMPILER_BASENAME "${CMAKE_C_COMPILER}" NAME)
