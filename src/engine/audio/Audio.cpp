@@ -82,7 +82,7 @@ namespace Audio {
     }
 
     bool IsValidVector(Vec3 v) {
-        return not std::isnan(v[0]) and not std::isnan(v[1]) and not std::isnan(v[2]);
+        return Math::IsFinite(v[0]) && Math::IsFinite(v[1]) && Math::IsFinite(v[2]);
     }
 
     bool Init() {
@@ -436,7 +436,7 @@ namespace Audio {
             return;
         }
 
-        if (slotNum < 0 or slotNum >= N_REVERB_SLOTS or std::isnan(ratio)) {
+        if (slotNum < 0 or slotNum >= N_REVERB_SLOTS or !Math::IsFinite(ratio)) {
             return;
         }
 

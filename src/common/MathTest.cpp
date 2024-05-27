@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 Daemon BSD Source Code
-Copyright (c) 2013-2016, Daemon Developers
+Copyright (c) 2024, Daemon Developers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,44 +28,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-#ifndef COMMON_MATH_H_
-#define COMMON_MATH_H_
+#include <gtest/gtest.h>
 
-#include <algorithm>
+#include "common/Common.h"
 
 namespace Math {
+namespace {
 
-    // This is designed to return min if value is NaN. That's not guaranteed to work when
-    // compiling with fast-math flags though.
-    template<typename T> inline WARN_UNUSED_RESULT
-    T Clamp(T value, T min, T max)
-    {
-        ASSERT_LE(min, max);
-        if (!(value >= min))
-            return min;
-        if (!(value <= max))
-            return max;
-        return value;
-    }
+// Uncomment this and the tests should fail with GCC or Clang in release mode :-)
+//#define IsFinite std::isfinite
 
-    // IsFinite: Replacements for std::isfinite that should work even with fast-math flags
+TEST(IsFiniteTest, Float)
+{
+    ASSERT_TRUE(IsFinite(-0.0f));
+    ASSERT_TRUE(IsFinite(std::numeric_limits<float>::max()));
+    ASSERT_TRUE(IsFinite(std::numeric_limits<float>::min()));
+    ASSERT_TRUE(IsFinite(123.45f));
 
-    // An IEEE754 float is finite when the exponent is not all ones.
-    // 'volatile' serves as an optimization barrier against the compiler assuming that
-    // the float can never have a NaN bit pattern.
-    inline bool IsFinite(float x)
-    {
-        volatile uint32_t bits = Util::bit_cast<uint32_t>(x);
-        return ~bits & 0x7f800000;
-    }
-
-    inline bool IsFinite(double x)
-    {
-        volatile uint64_t bits = Util::bit_cast<uint64_t>(x);
-        return ~bits & 0x7ff0000000000000;
-    }
+    ASSERT_FALSE(IsFinite(std::stof("nan")));
+    ASSERT_FALSE(IsFinite(std::stof("inf")));
+    ASSERT_FALSE(IsFinite(std::stof("-inf")));
 }
 
-#include "math/Vector.h"
+TEST(IsFiniteTest, Double)
+{
+    ASSERT_TRUE(IsFinite(-0.0));
+    ASSERT_TRUE(IsFinite(std::numeric_limits<double>::max()));
+    ASSERT_TRUE(IsFinite(std::numeric_limits<double>::min()));
+    ASSERT_TRUE(IsFinite(123.45));
 
-#endif //COMMON_MATH_H_
+    ASSERT_FALSE(IsFinite(std::stod("nan")));
+    ASSERT_FALSE(IsFinite(std::stod("inf")));
+    ASSERT_FALSE(IsFinite(std::stod("-inf")));
+}
+
+} // namespace Math
+} // namespace
