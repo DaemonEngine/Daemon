@@ -57,10 +57,10 @@ void GL_Bind( image_t *image )
 		texnum = tr.blackImage->texnum;
 	}
 
-	if ( glState.currenttextures[ glState.currenttmu ] != texnum )
+	if ( tr.currenttextures[ glState.currenttmu ] != texnum )
 	{
 		image->frameUsed = tr.frameCount;
-		glState.currenttextures[ glState.currenttmu ] = texnum;
+		tr.currenttextures[ glState.currenttmu ] = texnum;
 		glBindTexture( image->type, texnum );
 	}
 }
@@ -69,7 +69,7 @@ void GL_Unbind( image_t *image )
 {
 	GLimp_LogComment( "--- GL_Unbind() ---\n" );
 
-	glState.currenttextures[ glState.currenttmu ] = 0;
+	tr.currenttextures[ glState.currenttmu ] = 0;
 	glBindTexture( image->type, 0 );
 }
 
@@ -148,7 +148,7 @@ void GL_SelectTexture( int unit )
 		return;
 	}
 
-	if ( unit >= 0 && unit <= 31 )
+	if ( unit >= 0 && unit < glConfig2.maxTextureUnits )
 	{
 		glActiveTexture( GL_TEXTURE0 + unit );
 
@@ -175,12 +175,12 @@ void GL_BindToTMU( int unit, image_t *image )
 
 	int texnum = image->texnum;
 
-	if ( unit < 0 || unit > 31 )
+	if ( unit < 0 || unit >= glConfig2.maxTextureUnits )
 	{
 		Sys::Drop( "GL_BindToTMU: unit %i is out of range\n", unit );
 	}
 
-	if ( glState.currenttextures[ unit ] == texnum )
+	if ( tr.currenttextures[ unit ] == texnum )
 	{
 		return;
 	}

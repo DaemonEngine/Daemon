@@ -751,8 +751,8 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 	auto pmax = _mm_max_ps( prod0, prod1 );
 	auto pmin = _mm_min_ps( prod0, prod1 );
 
-	ALIGNED( 16, vec4_t pmaxv );
-	ALIGNED( 16, vec4_t pminv );
+	alignas(16) vec4_t pmaxv;
+	alignas(16) vec4_t pminv;
 	_mm_store_ps( pmaxv, pmax );
 	_mm_store_ps( pminv, pmin );
 

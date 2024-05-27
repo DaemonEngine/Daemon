@@ -584,10 +584,14 @@ static void Init(int argc, char** argv)
 	cmdlineArgs_t cmdlineArgs;
 
 #ifdef _WIN32
-	// If we were launched from a console, make our output visible on it
-	if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-		(void)freopen("CONOUT$", "w", stdout);
-		(void)freopen("CONOUT$", "w", stderr);
+	// Detect MSYS2 terminal. The AttachConsole code makes output not appear
+	const char* msystem = getenv("MSYSTEM");
+	if (!msystem || !Str::IsPrefix("MINGW", msystem)) {
+		// If we were launched from a console, make our output visible on it
+		if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+			(void)freopen("CONOUT$", "w", stdout);
+			(void)freopen("CONOUT$", "w", stderr);
+		}
 	}
 #endif
 

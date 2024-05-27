@@ -2180,7 +2180,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	};
 
 	// align for sse skinning
-	ALIGNED(16, struct md5Vertex_t
+	struct alignas(16) md5Vertex_t
 	{
 		vec4_t      position;
 		vec4_t      tangent;
@@ -2194,7 +2194,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		uint32_t    boneIndexes[ MAX_WEIGHTS ];
 		float       boneWeights[ MAX_WEIGHTS ];
-	});
+	};
 
 	struct md5Surface_t
 	{
@@ -2477,7 +2477,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		float  polygonOffsetFactor, polygonOffsetUnits;
 		vec2_t tileStep;
 
-		int    currenttextures[ 32 ];
 		int    currenttmu;
 
 		int stackIndex;
@@ -2642,6 +2641,9 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		world_t    *world;
 
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
+
+		// Maximum reported is 192, see https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
+		std::vector<int> currenttextures;
 
 		image_t    *defaultImage;
 		image_t    *cinematicImage[ MAX_IN_GAME_VIDEOS ];
@@ -3395,7 +3397,7 @@ inline bool checkGLErrors()
 #endif
 	};
 
-	extern shaderCommands_t tess;
+	alignas(16) extern shaderCommands_t tess;
 
 	void                    GLSL_InitGPUShaders();
 	void                    GLSL_ShutdownGPUShaders();

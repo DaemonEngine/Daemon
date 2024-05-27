@@ -317,6 +317,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			Q_strlwr( renderer_buffer );
 
 			// OpenGL driver constants
+			glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &temp );
+			glConfig2.maxTextureUnits = temp;
+
 			glGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
 			glConfig.maxTextureSize = temp;
 
@@ -794,8 +797,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	*/
 	void GL_SetDefaultState()
 	{
-		int i;
-
 		GLimp_LogComment( "--- GL_SetDefaultState ---\n" );
 
 		GL_ClearDepth( 1.0f );
@@ -813,11 +814,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		GL_CheckErrors();
 
+		tr.currenttextures.resize( glConfig2.maxTextureUnits );
+
 		// initialize downstream texture units if we're running
 		// in a multitexture environment
 		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 		{
-			for ( i = 31; i >= 0; i-- )
+			for ( int i = 0; i < glConfig2.maxTextureUnits; i++ )
 			{
 				GL_SelectTexture( i );
 				GL_TextureMode( r_textureMode->string );
@@ -875,7 +878,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		glState.stackIndex = 0;
 
-		for ( i = 0; i < MAX_GLSTACK; i++ )
+		for ( int i = 0; i < MAX_GLSTACK; i++ )
 		{
 			MatrixIdentity( glState.modelViewMatrix[ i ] );
 			MatrixIdentity( glState.projectionMatrix[ i ] );

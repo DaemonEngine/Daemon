@@ -878,25 +878,39 @@ void Com_Frame()
 	}
 
 	Com_EventLoop();
+
+	// It must be called at least once.
+	IN_Frame();
+
 	com_frameTime = Sys::Milliseconds();
 
-	if ( lastTime > com_frameTime )
-	{
-		lastTime = com_frameTime; // possible on first frame
-	}
+	// lastTime can be greater than com_frameTime on first frame.
+	lastTime = std::min( lastTime, com_frameTime );
 
 	msec = com_frameTime - lastTime;
 
-	IN_Frame(); // must be called at least once
+	// For framerates up to 250fps, sleep until 1ms is remaining
+	// use extra margin of 2ms when looking for an higher framerate.
+	int margin = minMsec > 3 ? 1 : 2;
 
 	while ( msec < minMsec )
 	{
-		//give cycles back to the OS
-		Sys::SleepFor(std::chrono::milliseconds(std::min(minMsec - msec, 50)));
-		IN_Frame();
+		// Never sleep more than 50ms.
+		// Never sleep when there is only “margin” left or less remaining.
+		int sleep = std::min( std::max( minMsec - msec - margin, 0 ), 50 );
+
+		if ( sleep )
+		{
+			// Give cycles back to the OS.
+			Sys::SleepFor( std::chrono::milliseconds( sleep ) );
+		}
 
 		Com_EventLoop();
+
+		IN_Frame();
+
 		com_frameTime = Sys::Milliseconds();
+
 		msec = com_frameTime - lastTime;
 	}
 

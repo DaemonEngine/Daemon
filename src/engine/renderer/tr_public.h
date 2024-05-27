@@ -63,6 +63,8 @@ struct glconfig2_t
 	std::string glEnabledExtensionsString;
 	std::string glMissingExtensionsString;
 
+	int maxTextureUnits;
+
 	int      maxCubeMapTextureSize;
 
 	bool occlusionQueryAvailable;
