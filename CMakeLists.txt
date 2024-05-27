@@ -879,6 +879,15 @@ function(AddApplication)
         target_link_libraries(test-${A_Target} GTest::gmock)
     endif()
 
+    if(FLAG_NO_STRICT_ALIASING)
+        foreach(NOSTRICTALIASINGFILE ${NOSTRICTALIASINGLIST})
+            if (${NOSTRICTALIASINGFILE} IN_LIST A_Files)
+                set_source_files_properties(${NOSTRICTALIASINGFILE}
+                    PROPERTIES COMPILE_FLAGS -fno-strict-aliasing)
+            endif()
+        endforeach()
+    endif()
+
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
 endfunction()
 

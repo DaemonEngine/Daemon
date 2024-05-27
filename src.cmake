@@ -364,4 +364,10 @@ set(DEDSERVERLIST
     ${ENGINE_DIR}/null/null_input.cpp
 )
 
+# List of known files to be built with the -fno-strict-aliasing flag.
+set(NOSTRICTALIASINGLIST
+	${ENGINE_DIR}/qcommon/msg.cpp
+	${ENGINE_DIR}/renderer/tr_bsp.cpp
+)
+
 set(WIN_RC ${ENGINE_DIR}/sys/windows-resource/icon.rc)

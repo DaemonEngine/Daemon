@@ -122,6 +122,10 @@ if(MINGW AND USE_BREAKPAD)
     set_linker_flag("-Wl,--build-id")
 endif()
 
+# Only check if it's available but do not set it by default,
+# it will only be used with a couple of files.
+check_CXX_compiler_flag(-fno-strict-aliasing FLAG_NO_STRICT_ALIASING)
+
 if (MSVC)
     set_c_cxx_flag("/MP")
     set_c_cxx_flag("/fp:fast")
@@ -189,7 +193,6 @@ elseif (NACL)
     set_c_cxx_flag("-O0          -g3"   DEBUG)
 else()
     set_c_cxx_flag("-ffast-math")
-    set_c_cxx_flag("-fno-strict-aliasing")
 
     # Among the required hardware features, the NX bit (No eXecute bit)
     # feature may be required for NativeClient to work. Some early
