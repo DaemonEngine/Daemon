@@ -183,6 +183,7 @@ elseif (NACL)
     set_cxx_flag("-std=gnu++14")
 
     set_c_cxx_flag("-ffast-math")
+    set_c_cxx_flag("-fno-strict-aliasing")
     set_c_cxx_flag("-fvisibility=hidden")
     set_c_cxx_flag("-stdlib=libc++")
     set_c_cxx_flag("--pnacl-allow-exceptions")
