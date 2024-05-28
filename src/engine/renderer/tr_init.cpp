@@ -30,8 +30,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	glstate_t   glState;
 
-	float       displayAspect = 0.0f;
-
 	static void GfxInfo_f();
 
 	cvar_t      *r_glMajorVersion;

@@ -2796,8 +2796,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 	extern glstate_t      glState; // outside of TR since it shouldn't be cleared during ref re-init
 
-	extern float          displayAspect; // FIXME
-
 //
 // cvars
 //

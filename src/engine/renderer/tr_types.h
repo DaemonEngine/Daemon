@@ -352,7 +352,10 @@ struct glconfig_t
 
 	textureCompression_t textureCompression;
 
-	int      vidWidth, vidHeight;
+	int displayIndex;
+	float displayAspect;
+	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
+	int vidWidth, vidHeight; // what the game is using
 
 	bool8_t smpActive; // dual processor
 };

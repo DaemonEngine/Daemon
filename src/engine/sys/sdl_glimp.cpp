@@ -567,8 +567,8 @@ static int GLimp_CompareModes( const void *a, const void *b )
 	float       aspectB = ( float ) modeB->w / ( float ) modeB->h;
 	int         areaA = modeA->w * modeA->h;
 	int         areaB = modeB->w * modeB->h;
-	float       aspectDiffA = fabsf( aspectA - displayAspect );
-	float       aspectDiffB = fabsf( aspectB - displayAspect );
+	float       aspectDiffA = fabsf( aspectA - glConfig.displayAspect );
+	float       aspectDiffB = fabsf( aspectB - glConfig.displayAspect );
 	float       aspectDiffsDiff = aspectDiffA - aspectDiffB;
 
 	if ( aspectDiffsDiff > ASPECT_EPSILON )
@@ -960,16 +960,18 @@ static rserr_t GLimp_SetModeAndResolution( const int mode )
 
 	if ( SDL_GetDesktopDisplayMode( r_displayIndex->integer, &desktopMode ) == 0 )
 	{
-		displayAspect = ( float ) desktopMode.w / ( float ) desktopMode.h;
+		glConfig.displayAspect = ( float ) desktopMode.w / ( float ) desktopMode.h;
+		logger.Notice( "Display aspect: %.3f", glConfig.displayAspect );
 	}
 	else
 	{
 		memset( &desktopMode, 0, sizeof( SDL_DisplayMode ) );
-		displayAspect = 1.333f;
-		logger.Warn("Cannot determine display aspect, assuming %.3f: %s", displayAspect, SDL_GetError() );
+		glConfig.displayAspect = 1.333f;
+		logger.Warn("Cannot determine display aspect, assuming %.3f: %s", glConfig.displayAspect, SDL_GetError() );
 	}
 
-	logger.Notice("Display aspect: %.3f", displayAspect );
+	glConfig.displayWidth = desktopMode.w;
+	glConfig.displayHeight = desktopMode.h;
 
 	if ( mode == -2 )
 	{
@@ -1616,6 +1618,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 #endif
 
 	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
+	glConfig.displayIndex = r_displayIndex->integer;
 
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
