@@ -134,9 +134,6 @@ inline int CountTrailingZeroes(unsigned long long x)
 // other pointer
 #define MALLOC_LIKE __attribute__((__malloc__))
 
-// Marks this function as memory allocator
-#define ALLOCATOR
-
 // Shared library function import/export
 #ifdef _WIN32
 #define DLLEXPORT __attribute__((__dllexport__))
@@ -150,13 +147,6 @@ inline int CountTrailingZeroes(unsigned long long x)
 #if defined(DAEMON_ARCH_i686) || defined(DAEMON_ARCH_amd64)
 	// Always run this asm code even if DAEMON_USE_ARCH_INTRINSICS is not defined.
 	#define BREAKPOINT() __asm__ __volatile__("int $3\n\t")
-#elif defined(DAEMON_ARCH_nacl)
-	// TODO: find how to implement breakpoint on NaCl
-	// Accept our fate, do not raise a warning.
-	#define BREAKPOINT()
-#else
-	#warning BREAKPOINT is not implemented for this platform
-	#define BREAKPOINT()
 #endif
 
 /* Compiler can be fooled when calling ASSERT_UNREACHABLE() macro at end of non-void function.
@@ -174,9 +164,7 @@ See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
 
 // To mark functions which cause issues with address sanitizer
 #ifdef USING_ADDRESS_SANITIZER
-#   define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
-#else
-#   define ATTRIBUTE_NO_SANITIZE_ADDRESS
+	#define ATTRIBUTE_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
 #endif
 
 // The new -Wimplicit-fallthrough warning...
@@ -184,8 +172,6 @@ See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
 	#define DAEMON_FALLTHROUGH [[clang::fallthrough]]
 #elif __GNUC__ >= 7
 	#define DAEMON_FALLTHROUGH [[gnu::fallthrough]]
-#else
-	#define DAEMON_FALLTHROUGH
 #endif
 
 // Microsoft Visual C++ attribute and operator customization.
@@ -194,44 +180,72 @@ See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
 // See descriptions above
 #define DEPRECATED __declspec(deprecated)
 #define WARN_UNUSED_RESULT _Check_return_
-#define COLD
 #define NORETURN __declspec(noreturn)
-#define NORETURN_PTR
-#define PRINTF_LIKE(n)
-#define VPRINTF_LIKE(n)
-#define PRINTF_TRANSLATE_ARG(a)
+
+// Marks this function as memory allocator
 #if _MSC_VER >= 1900 && !defined( _CORECRT_BUILD )
-#define ALLOCATOR __declspec(allocator)
-#else
-#define ALLOCATOR
+	#define ALLOCATOR __declspec(allocator)
 #endif
+
 #define MALLOC_LIKE ALLOCATOR __declspec(restrict)
 #define DLLEXPORT __declspec(dllexport)
 #define DLLIMPORT __declspec(dllimport)
 #define BREAKPOINT() __debugbreak()
 #define UNREACHABLE() __assume(0)
-#define ATTRIBUTE_NO_SANITIZE_ADDRESS
-#define DAEMON_FALLTHROUGH
 
 // Other compilers, unsupported
 #else
-#warning "Unsupported compiler"
-#define DEPRECATED
-#define WARN_UNUSED_RESULT
-#define COLD
-#define NORETURN
-#define NORETURN_PTR
-#define PRINTF_LIKE(n)
-#define VPRINTF_LIKE(n)
-#define PRINTF_TRANSLATE_ARG(a)
-#define MALLOC_LIKE
-#define ALLOCATOR
-#define DLLEXPORT
-#define DLLIMPORT
-#define BREAKPOINT()
-#define UNREACHABLE()
-#define ATTRIBUTE_NO_SANITIZE_ADDRESS
-#define DAEMON_FALLTHROUGH
+	#warning "Unsupported compiler"
+#endif
+
+// Work around lack of compiler customization.
+#if !defined(DEPRECATED)
+	#define DEPRECATED
+#endif
+#if !defined(WARN_UNUSED_RESULT)
+	#define WARN_UNUSED_RESULT
+#endif
+#if !defined(COLD)
+	#define COLD
+#endif
+#if !defined(NORETURN)
+	#define NORETURN
+#endif
+#if !defined(NORETURN_PTR)
+	#define NORETURN_PTR
+#endif
+#if !defined(PRINTF_LIKE)
+	#define PRINTF_LIKE(n)
+#endif
+#if !defined(VPRINTF_LIKE)
+	#define VPRINTF_LIKE(n)
+#endif
+#if !defined(PRINTF_TRANSLATE_ARG)
+	#define PRINTF_TRANSLATE_ARG(a)
+#endif
+#if !defined(MALLOC_LIKE)
+	#define MALLOC_LIKE
+#endif
+#if !defined(ALLOCATOR)
+	#define ALLOCATOR
+#endif
+#if !defined(DLLEXPORT)
+	#define DLLEXPORT
+#endif
+#if !defined(DLLIMPORT)
+	#define DLLIMPORT
+#endif
+#if !defined(BREAKPOINT)
+	#define BREAKPOINT()
+#endif
+#if !defined(UNREACHABLE)
+	#define UNREACHABLE()
+#endif
+#if !defined(ATTRIBUTE_NO_SANITIZE_ADDRESS)
+	#define ATTRIBUTE_NO_SANITIZE_ADDRESS
+#endif
+#if !defined(DAEMON_FALLTHROUGH)
+	#define DAEMON_FALLTHROUGH
 #endif
 
 // Keywords specific to C++ versions
