@@ -5224,6 +5224,13 @@ static void FinishStages()
 		// We should cancel overBrightBits if there is no light stage.
 		stage->shaderHasNoLight = shaderHasNoLight;
 
+		// We should not cancel overbright on decals.
+		if ( shader.sort == Util::ordinal(shaderSort_t::SS_DECAL) )
+		{
+			// HACK: Reuse that boolean.
+			stage->shaderHasNoLight = false;
+		}
+
 		// Available textures.
 		bool hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
 		bool hasHeightMap = stage->bundle[ TB_HEIGHTMAP ].image[ 0 ] != nullptr;
