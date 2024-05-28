@@ -6699,6 +6699,18 @@ void R_ListShaders_f()
 
 		if ( shader->stages == shader->lastStage )
 		{
+			lineStream.clear();
+			lineStream.str("");
+
+			lineStream << std::left;
+			lineStream << std::setw(numLen) << i << separator;
+			lineStream << std::setw(shaderTypeLen) << shaderType << separator;
+			lineStream << std::setw(shaderSortLen) << shaderSort << separator;
+			lineStream << std::setw(stageTypeLen) << stageType << separator;
+			lineStream << std::setw(interactLightLen) << interactLight << separator;
+			lineStream << "-:" << shaderName;
+
+			Log::CommandInteractionMessage( lineStream.str() );
 			continue;
 		}
 
