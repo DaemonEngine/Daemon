@@ -111,10 +111,10 @@ namespace IPC {
         };
         static_assert(offsetof(SharedReaderData, offset) == 0, "Wrong packing on SharedReaderData");
 
-        char* base;
-        size_t writerOffset;
-        size_t readerOffset;
-        size_t size;
+        char* base_;
+        size_t writerOffset_;
+        size_t readerOffset_;
+        size_t size_;
     };
 
     enum {
