@@ -922,24 +922,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Log::Notice("PIXELFORMAT: color(%d-bits)", glConfig.colorBits );
 
-		{
-			std::string out;
-			if ( glConfig.displayFrequency )
-			{
-				out = Str::Format("%d", glConfig.displayFrequency );
-			}
-			else
-			{
-				out = "N/A";
-			}
-
-			Log::Notice("MODE: %d, %d x %d %s hz: %s",
-				r_mode->integer,
-				glConfig.vidWidth, glConfig.vidHeight,
-				fsstrings[ +r_fullscreen.Get() ],
-				out
-				);
-		}
+		Log::Notice("MODE: %d, %d x %d %s",
+			r_mode->integer,
+			glConfig.vidWidth, glConfig.vidHeight,
+			fsstrings[ +r_fullscreen.Get() ] );
 
 		if ( !!r_glExtendedValidation->integer )
 		{

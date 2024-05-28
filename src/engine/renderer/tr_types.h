@@ -351,13 +351,8 @@ struct glconfig_t
 	glHardwareType_t     hardwareType;
 
 	textureCompression_t textureCompression;
-	bool8_t             textureEnvAddAvailable;
-	bool8_t             anisotropicAvailable; //----(SA)  added
-	float                maxAnisotropy; //----(SA)  added
 
 	int      vidWidth, vidHeight;
-
-	int   displayFrequency;
 
 	bool8_t smpActive; // dual processor
 };
