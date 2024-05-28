@@ -253,7 +253,7 @@ void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader *shader, sha
 		uniform->UpdateShaderProgramUniformLocation( shaderProgram );
 	}
 
-	if( glConfig2.uniformBufferObjectAvailable ) {
+	if( glConfig.uniformBufferObjectAvailable ) {
 		// create buffer for storing uniform block indexes
 		shaderProgram->uniformBlockIndexes = ( GLuint * ) Z_Malloc( sizeof( GLuint ) * numUniformBlocks );
 
@@ -379,7 +379,7 @@ static void addExtension( std::string &str, int enabled, int minGlslVersion,
 			  int supported, const char *name ) {
 	if( !enabled ) {
 		// extension disabled by user
-	} else if( glConfig2.shadingLanguageVersion >= minGlslVersion ) {
+	} else if( glConfig.shadingLanguageVersion >= minGlslVersion ) {
 		// the extension is available in the core language
 		str += Str::Format( "#define HAVE_%s 1\n", name );
 	} else if( supported ) {
@@ -409,11 +409,11 @@ static void AddConst( std::string& str, const std::string& name, float v1, float
 static std::string GenVersionDeclaration() {
 	// Basic version declaration
 	std::string str = Str::Format( "#version %d %s\n",
-				       glConfig2.shadingLanguageVersion,
-				       glConfig2.shadingLanguageVersion >= 150 ? (glConfig2.glCoreProfile ? "core" : "compatibility") : "");
+				       glConfig.shadingLanguageVersion,
+				       glConfig.shadingLanguageVersion >= 150 ? (glConfig.glCoreProfile ? "core" : "compatibility") : "");
 
 	// add supported GLSL extensions
-	addExtension( str, glConfig2.textureGatherAvailable, 400,
+	addExtension( str, glConfig.textureGatherAvailable, 400,
 		      GLEW_ARB_texture_gather, "ARB_texture_gather" );
 	addExtension( str, r_ext_gpu_shader4->integer, 130,
 		      GLEW_EXT_gpu_shader4, "EXT_gpu_shader4" );
@@ -429,7 +429,7 @@ static std::string GenCompatHeader() {
 	std::string str;
 
 	// definition of functions missing in early GLSL
-	if( glConfig2.shadingLanguageVersion <= 120 ) {
+	if( glConfig.shadingLanguageVersion <= 120 ) {
 		str += "float smoothstep(float edge0, float edge1, float x) { float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }\n";
 	}
 
@@ -440,7 +440,7 @@ static std::string GenVertexHeader() {
 	std::string str;
 
 	// Vertex shader compatibility defines
-	if( glConfig2.shadingLanguageVersion > 120 ) {
+	if( glConfig.shadingLanguageVersion > 120 ) {
 		str =   "#define IN in\n"
 			"#define OUT(mode) mode out\n"
 			"#define textureCube texture\n"
@@ -459,14 +459,14 @@ static std::string GenFragmentHeader() {
 	std::string str;
 
 	// Fragment shader compatibility defines
-	if( glConfig2.shadingLanguageVersion > 120 ) {
+	if( glConfig.shadingLanguageVersion > 120 ) {
 		str =   "#define IN(mode) mode in\n"
 			"#define DECLARE_OUTPUT(type) out type outputColor;\n"
 			"#define textureCube texture\n"
 			"#define texture2D texture\n"
 			"#define texture2DProj textureProj\n"
 			"#define texture3D texture\n";
-	} else if( glConfig2.gpuShader4Available) {
+	} else if( glConfig.gpuShader4Available) {
 		str =   "#define IN(mode) varying\n"
 			"#define DECLARE_OUTPUT(type) varying out type outputColor;\n";
 	} else {
@@ -482,9 +482,9 @@ static std::string GenEngineConstants() {
 	// Engine constants
 	std::string str;
 
-	if ( glConfig2.shadowMapping )
+	if ( glConfig.shadowMapping )
 	{
-		switch( glConfig2.shadowingMode )
+		switch( glConfig.shadowingMode )
 		{
 			case shadowingMode_t::SHADOWING_ESM16:
 			case shadowingMode_t::SHADOWING_ESM32:
@@ -517,7 +517,7 @@ static std::string GenEngineConstants() {
 				break;
 		}
 
-		switch( glConfig2.shadowingMode )
+		switch( glConfig.shadowingMode )
 		{
 			case shadowingMode_t::SHADOWING_ESM16:
 			case shadowingMode_t::SHADOWING_ESM32:
@@ -570,7 +570,7 @@ static std::string GenEngineConstants() {
 			AddDefine( str, "r_showParallelShadowSplits", 1 );
 	}
 
-	if ( glConfig2.dynamicLight )
+	if ( glConfig.dynamicLight )
 	{
 		AddDefine( str, "r_dynamicLight", 1 );
 	}
@@ -599,10 +599,10 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showVertexColors", 1 );
 	}
 
-	if ( glConfig2.vboVertexSkinningAvailable )
+	if ( glConfig.vboVertexSkinningAvailable )
 	{
 		AddDefine( str, "r_vertexSkinning", 1 );
-		AddConst( str, "MAX_GLSL_BONES", glConfig2.maxVertexSkinningBones );
+		AddConst( str, "MAX_GLSL_BONES", glConfig.maxVertexSkinningBones );
 	}
 	else
 	{
@@ -743,13 +743,13 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	std::string env;
 	env.reserve( 1024 ); // Might help, just an estimate.
 
-	if ( glConfig2.textureRGAvailable )
+	if ( glConfig.textureRGAvailable )
 		AddDefine( env, "TEXTURE_RG", 1 );
 
-	if ( glConfig2.uniformBufferObjectAvailable )
+	if ( glConfig.uniformBufferObjectAvailable )
 		AddDefine( env, "UNIFORM_BUFFER_OBJECT", 1 );
 
-	if ( glConfig2.textureIntegerAvailable )
+	if ( glConfig.textureIntegerAvailable )
 		AddDefine( env, "TEXTURE_INTEGER", 1 );
 
 	AddDefine( env, "r_AmbientScale", r_ambientScale->value );
@@ -947,7 +947,7 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 		return false;
 
 	// don't even try if the necessary functions aren't available
-	if( !glConfig2.getProgramBinaryAvailable )
+	if( !glConfig.getProgramBinaryAvailable )
 		return false;
 
 	if (_shaderBinaryCacheInvalidated)
@@ -1033,7 +1033,7 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 		return;
 
 	// don't even try if the necessary functions aren't available
-	if( !glConfig2.getProgramBinaryAvailable )
+	if( !glConfig.getProgramBinaryAvailable )
 	{
 		return;
 	}
@@ -1276,7 +1276,7 @@ void GLShaderManager::LinkProgram( GLuint program ) const
 
 #ifdef GL_ARB_get_program_binary
 	// Apparently, this is necessary to get the binary program via glGetProgramBinary
-	if( glConfig2.getProgramBinaryAvailable )
+	if( glConfig.getProgramBinaryAvailable )
 	{
 		glProgramParameteri( program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE );
 	}
@@ -1332,7 +1332,7 @@ bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutatio
 
 bool GLCompileMacro_USE_VERTEX_SKINNING::MissesRequiredMacros( size_t /*permutation*/, const std::vector< GLCompileMacro * > &/*macros*/ ) const
 {
-	return !glConfig2.vboVertexSkinningAvailable;
+	return !glConfig.vboVertexSkinningAvailable;
 }
 
 bool GLCompileMacro_USE_VERTEX_ANIMATION::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
@@ -1695,7 +1695,7 @@ void GLShader_lightMapping::SetShaderProgramUniforms( shaderProgram_t *shaderPro
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightTiles" ), BIND_LIGHTTILES );
-	if( !glConfig2.uniformBufferObjectAvailable ) {
+	if( !glConfig.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->program, "u_Lights" ), BIND_LIGHTS );
 	}
 }
@@ -2258,7 +2258,7 @@ void GLShader_lighttile::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 0 );
 
-	if( !glConfig2.uniformBufferObjectAvailable ) {
+	if( !glConfig.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->program, "u_Lights" ), 1 );
 	}
 }

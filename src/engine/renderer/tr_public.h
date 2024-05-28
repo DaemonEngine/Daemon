@@ -43,67 +43,16 @@ Maryland 20850 USA.
 
 extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
 
+// Values from here may be moved to glconfig_t when a new major version (i.e. ABI breaking) is released.
 struct glconfig2_t
 {
-	bool textureCompressionRGTCAvailable;
-
-	int glHighestMajor;
-	int glHighestMinor;
-
-	int glRequestedMajor;
-	int glRequestedMinor;
-
-	int glMajor;
-	int glMinor;
-
-	bool glCoreProfile;
-	bool glForwardCompatibleContext;
-
 	std::string glExtensionsString;
 	std::string glEnabledExtensionsString;
 	std::string glMissingExtensionsString;
 
-	int maxTextureUnits;
-
-	int      maxCubeMapTextureSize;
-
-	bool occlusionQueryAvailable;
-	int      occlusionQueryBits;
-
-	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
-	int      shadingLanguageVersion;
-
-	int      maxVertexUniforms;
-//	int             maxVaryingFloats;
-	int      maxVertexAttribs;
-	bool vboVertexSkinningAvailable;
-	int      maxVertexSkinningBones;
-
-	bool drawBuffersAvailable;
-	bool textureHalfFloatAvailable;
-	bool textureFloatAvailable;
-	bool textureIntegerAvailable;
-	bool textureRGAvailable;
-	bool gpuShader4Available;
-	bool textureGatherAvailable;
-	int      maxDrawBuffers;
-
-	float    maxTextureAnisotropy;
-	bool textureAnisotropyAvailable;
-
-	int      maxRenderbufferSize;
-	int      maxColorAttachments;
-
-	bool getProgramBinaryAvailable;
-	bool bufferStorageAvailable;
-	bool uniformBufferObjectAvailable;
-	bool mapBufferRangeAvailable;
-	bool syncAvailable;
-
-	bool dynamicLight;
-	bool staticLight;
-	bool shadowMapping;
-	shadowingMode_t shadowingMode;
+	// don't send these to cgame since they are usually not valid
+	int glHighestMajor;
+	int glHighestMinor;
 };
 
 //

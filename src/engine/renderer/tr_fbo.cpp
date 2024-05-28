@@ -103,12 +103,12 @@ FBO_t          *R_CreateFBO( const char *name, int width, int height )
 		Sys::Drop( "R_CreateFBO: \"%s\" is too long", name );
 	}
 
-	if ( width <= 0 || width > glConfig2.maxRenderbufferSize )
+	if ( width <= 0 || width > glConfig.maxRenderbufferSize )
 	{
 		Sys::Drop( "R_CreateFBO: bad width %i", width );
 	}
 
-	if ( height <= 0 || height > glConfig2.maxRenderbufferSize )
+	if ( height <= 0 || height > glConfig.maxRenderbufferSize )
 	{
 		Sys::Drop( "R_CreateFBO: bad height %i", height );
 	}
@@ -140,7 +140,7 @@ void R_CreateFBOColorBuffer( FBO_t *fbo, int format, int index )
 {
 	bool absent;
 
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_CreateFBOColorBuffer: invalid attachment index %i", index );
 		return;
@@ -287,7 +287,7 @@ R_AttachFBOTexture1D
 */
 void R_AttachFBOTexture1D( int texId, int index )
 {
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture1D: invalid attachment index %i", index );
 		return;
@@ -309,7 +309,7 @@ void R_AttachFBOTexture2D( int target, int texId, int index )
 		return;
 	}
 
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture2D: invalid attachment index %i", index );
 		return;
@@ -325,7 +325,7 @@ R_AttachFBOTexture3D
 */
 void R_AttachFBOTexture3D( int texId, int index, int zOffset )
 {
-	if ( index < 0 || index >= glConfig2.maxColorAttachments )
+	if ( index < 0 || index >= glConfig.maxColorAttachments )
 	{
 		Log::Warn("R_AttachFBOTexture3D: invalid attachment index %i", index );
 		return;
@@ -436,7 +436,7 @@ void R_InitFBOs()
 	R_AttachFBOTexturePackedDepthStencil( tr.currentDepthImage->texnum );
 	R_CheckFBO( tr.mainFBO[1] );
 
-	if ( glConfig2.dynamicLight
+	if ( glConfig.dynamicLight
 		&&  r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
 	{
 		/* It's only required to create frame buffers only used by the
@@ -458,7 +458,7 @@ void R_InitFBOs()
 		R_CheckFBO( tr.lighttileFBO );
 	}
 
-	if ( glConfig2.shadowMapping )
+	if ( glConfig.shadowMapping )
 	{
 		// shadowMap FBOs for shadow mapping offscreen rendering
 		for ( i = 0; i < MAX_SHADOWMAPS; i++ )
@@ -489,7 +489,7 @@ void R_InitFBOs()
 
 			R_CreateFBODepthBuffer( tr.sunShadowMapFBO[ i ], GL_DEPTH_COMPONENT24 );
 
-			if ( glConfig2.shadowingMode == shadowingMode_t::SHADOWING_EVSM32
+			if ( glConfig.shadowingMode == shadowingMode_t::SHADOWING_EVSM32
 				&& r_evsmPostProcess->integer )
 			{
 				R_AttachFBOTextureDepth( tr.sunShadowMapFBOImage[ i ]->texnum );
@@ -580,7 +580,7 @@ void R_ShutdownFBOs()
 	{
 		fbo = tr.fbos[ i ];
 
-		for ( j = 0; j < glConfig2.maxColorAttachments; j++ )
+		for ( j = 0; j < glConfig.maxColorAttachments; j++ )
 		{
 			if ( fbo->colorBuffers[ j ] )
 			{

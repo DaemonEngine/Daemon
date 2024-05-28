@@ -2263,7 +2263,7 @@ void R_AddEntityInteractions( trRefLight_t *light )
 	{
 		iaType = IA_DEFAULT;
 
-		if ( !glConfig2.shadowMapping || light->l.noShadows ) {
+		if ( !glConfig.shadowMapping || light->l.noShadows ) {
 			iaType = (interactionType_t) (iaType & (~IA_SHADOW));
 		}
 
@@ -2406,7 +2406,7 @@ void R_AddLightInteractions()
 
 		if ( light->isStatic )
 		{
-			if ( !glConfig2.staticLight )
+			if ( !glConfig.staticLight )
 			{
 				continue;
 			}
@@ -2427,7 +2427,7 @@ void R_AddLightInteractions()
 		}
 		else if ( light->l.inverseShadows )
 		{
-			if ( !glConfig2.dynamicLight )
+			if ( !glConfig.dynamicLight )
 			{
 				light->cull = CULL_OUT;
 				continue;
@@ -2435,7 +2435,7 @@ void R_AddLightInteractions()
 		}
 		else
 		{
-			if ( !glConfig2.dynamicLight )
+			if ( !glConfig.dynamicLight )
 			{
 				light->cull = cullResult_t::CULL_OUT;
 				continue;
@@ -2624,7 +2624,7 @@ void R_AddLightBoundsToVisBounds()
 
 		if ( light->isStatic )
 		{
-			if ( !glConfig2.staticLight )
+			if ( !glConfig.staticLight )
 			{
 				continue;
 			}
@@ -2636,7 +2636,7 @@ void R_AddLightBoundsToVisBounds()
 		}
 		else
 		{
-			if ( !glConfig2.dynamicLight )
+			if ( !glConfig.dynamicLight )
 			{
 				continue;
 			}

@@ -762,8 +762,8 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	}
 
 	// convert data where necessary and create VBO
-	if( r_vboModels->integer && glConfig2.vboVertexSkinningAvailable
-	    && IQModel->num_joints <= glConfig2.maxVertexSkinningBones ) {
+	if( r_vboModels->integer && glConfig.vboVertexSkinningAvailable
+	    && IQModel->num_joints <= glConfig.maxVertexSkinningBones ) {
 
 		if( IQModel->blendIndexes ) {
 			indexbuf = (int *)ri.Hunk_AllocateTempMemory( sizeof(int[4]) * IQModel->num_vertexes );
@@ -1000,7 +1000,7 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	//
 	// set up lighting now that we know we aren't culled
 	//
-	if ( !personalModel || glConfig2.shadowMapping ) {
+	if ( !personalModel || glConfig.shadowMapping ) {
 		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
 	}
 

@@ -1360,7 +1360,7 @@ byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 	bool   anyClip;
 	bool   culled;
 
-	if ( light->l.rlType != refLightType_t::RL_OMNI || !glConfig2.shadowMapping || r_noShadowPyramids->integer )
+	if ( light->l.rlType != refLightType_t::RL_OMNI || !glConfig.shadowMapping || r_noShadowPyramids->integer )
 	{
 		return CUBESIDE_CLIPALL;
 	}

@@ -953,7 +953,7 @@ void R_AddWorldInteractions( trRefLight_t *light )
 		interactionBits = IA_DEFAULTCLIP;
 	}
 
-	if ( !glConfig2.shadowMapping || light->l.noShadows )
+	if ( !glConfig.shadowMapping || light->l.noShadows )
 	{
 		interactionBits &= IA_LIGHT;
 	}
@@ -1057,7 +1057,7 @@ void R_AddPrecachedWorldInteractions( trRefLight_t *light )
 			// into this view
 			if ( surface->viewCount != tr.viewCountNoReset )
 			{
-				if ( !glConfig2.shadowMapping || light->l.noShadows )
+				if ( !glConfig.shadowMapping || light->l.noShadows )
 				{
 					continue;
 				}
@@ -1092,7 +1092,7 @@ void R_AddPrecachedWorldInteractions( trRefLight_t *light )
 			// into this view
 			if ( surface->viewCount != tr.viewCountNoReset )
 			{
-				if ( !glConfig2.shadowMapping || light->l.noShadows )
+				if ( !glConfig.shadowMapping || light->l.noShadows )
 				{
 					continue;
 				}

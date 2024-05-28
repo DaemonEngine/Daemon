@@ -148,7 +148,7 @@ void GL_SelectTexture( int unit )
 		return;
 	}
 
-	if ( unit >= 0 && unit < glConfig2.maxTextureUnits )
+	if ( unit >= 0 && unit < glConfig.maxTextureUnits )
 	{
 		glActiveTexture( GL_TEXTURE0 + unit );
 
@@ -175,7 +175,7 @@ void GL_BindToTMU( int unit, image_t *image )
 
 	int texnum = image->texnum;
 
-	if ( unit < 0 || unit >= glConfig2.maxTextureUnits )
+	if ( unit < 0 || unit >= glConfig.maxTextureUnits )
 	{
 		Sys::Drop( "GL_BindToTMU: unit %i is out of range\n", unit );
 	}
@@ -610,7 +610,7 @@ void GL_VertexAttribsState( uint32_t stateBits )
 	uint32_t diff;
 	uint32_t i;
 
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		stateBits |= ATTR_BONE_FACTORS;
 	}
@@ -681,7 +681,7 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 		GLimp_LogComment( va( "--- GL_VertexAttribPointers( %s ) ---\n", glState.currentVBO->name ) );
 	}
 
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		attribBits |= ATTR_BONE_FACTORS;
 	}
@@ -1993,7 +1993,7 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 
 static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 {
-	if ( !glConfig2.shadowMapping )
+	if ( !glConfig.shadowMapping )
 	{
 		return;
 	}
@@ -2104,7 +2104,7 @@ static void RB_RenderInteractionsShadowMapped()
 	                               0.5,     0.5, 0.5, 1.0
 	                      };
 
-	DAEMON_ASSERT( glConfig2.shadowMapping );
+	DAEMON_ASSERT( glConfig.shadowMapping );
 
 	GLimp_LogComment( "--- RB_RenderInteractionsShadowMapped ---\n" );
 
@@ -2800,7 +2800,7 @@ void RB_RunVisTests( )
 
 void RB_RenderPostDepthLightTile()
 {
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig.dynamicLight )
 	{
 		return;
 	}
@@ -2904,7 +2904,7 @@ void RB_RenderPostDepthLightTile()
 	gl_lighttileShader->SetUniform_numLights( backEnd.refdef.numLights );
 	gl_lighttileShader->SetUniform_zFar( projToViewParams );
 
-	if( glConfig2.uniformBufferObjectAvailable ) {
+	if( glConfig.uniformBufferObjectAvailable ) {
 		gl_lighttileShader->SetUniformBlock_Lights( tr.dlightUBO );
 	} else {
 		GL_BindToTMU( 1, tr.dlightImage );
@@ -2923,7 +2923,7 @@ void RB_RenderPostDepthLightTile()
 		tess.numVertexes = tr.lighttileVBO->vertexesNum;
 
 		GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
-		if( !glConfig2.glCoreProfile )
+		if( !glConfig.glCoreProfile )
 			glEnable( GL_POINT_SPRITE );
 		glEnable( GL_PROGRAM_POINT_SIZE );
 
@@ -2931,7 +2931,7 @@ void RB_RenderPostDepthLightTile()
 		Tess_DrawArrays( GL_POINTS );
 
 		glDisable( GL_PROGRAM_POINT_SIZE );
-		if( !glConfig2.glCoreProfile )
+		if( !glConfig.glCoreProfile )
 			glDisable( GL_POINT_SPRITE );
 	}
 
@@ -3584,7 +3584,7 @@ static void RB_RenderDebugUtils()
 			GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 			gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-			if ( glConfig2.shadowMapping && light->l.rlType == refLightType_t::RL_OMNI )
+			if ( glConfig.shadowMapping && light->l.rlType == refLightType_t::RL_OMNI )
 			{
 				// count how many cube sides are in use for this interaction
 				cubeSides = 0;
@@ -4834,7 +4834,7 @@ static void RB_RenderView( bool depthPass )
 		backEnd.pc.c_forwardAmbientTime += endTime - startTime;
 	}
 
-	if ( glConfig2.shadowMapping )
+	if ( glConfig.shadowMapping )
 	{
 		// render dynamic shadowing and lighting using shadow mapping
 		RB_RenderInteractionsShadowMapped();
@@ -5441,13 +5441,13 @@ RB_SetupLights
 */
 const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 {
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig.dynamicLight )
 	{
 		return this + 1;
 	}
 
 	int numLights;
-	GLenum bufferTarget = glConfig2.uniformBufferObjectAvailable ? GL_UNIFORM_BUFFER : GL_PIXEL_UNPACK_BUFFER;
+	GLenum bufferTarget = glConfig.uniformBufferObjectAvailable ? GL_UNIFORM_BUFFER : GL_PIXEL_UNPACK_BUFFER;
 
 	GLimp_LogComment( "--- SetupLightsCommand::ExecuteSelf ---\n" );
 
@@ -5486,7 +5486,7 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 		}
 
 		glUnmapBuffer( bufferTarget );
-		if( !glConfig2.uniformBufferObjectAvailable ) {
+		if( !glConfig.uniformBufferObjectAvailable ) {
 			GL_BindToTMU( 0, tr.dlightImage );
 			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, tr.dlightImage->width, tr.dlightImage->height, GL_RGBA, GL_FLOAT, nullptr );
 		}

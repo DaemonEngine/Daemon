@@ -301,7 +301,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 				return false;
 			}
 
-			if( glConfig2.glCoreProfile ) {
+			if( glConfig.glCoreProfile ) {
 				glGenVertexArrays( 1, &backEnd.currentVAO );
 				glBindVertexArray( backEnd.currentVAO );
 			}
@@ -316,7 +316,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 			// OpenGL driver constants
 			glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &temp );
-			glConfig2.maxTextureUnits = temp;
+			glConfig.maxTextureUnits = temp;
 
 			glGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
 			glConfig.maxTextureSize = temp;
@@ -812,13 +812,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		GL_CheckErrors();
 
-		tr.currenttextures.resize( glConfig2.maxTextureUnits );
+		tr.currenttextures.resize( glConfig.maxTextureUnits );
 
 		// initialize downstream texture units if we're running
 		// in a multitexture environment
 		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
 		{
-			for ( int i = 0; i < glConfig2.maxTextureUnits; i++ )
+			for ( int i = 0; i < glConfig.maxTextureUnits; i++ )
 			{
 				GL_SelectTexture( i );
 				GL_TextureMode( r_textureMode->string );
@@ -903,28 +903,28 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Debug("GL_EXTENSIONS: %s", glConfig2.glExtensionsString );
 		Log::Notice("GL_MAX_TEXTURE_SIZE: %d", glConfig.maxTextureSize );
 
-		Log::Notice("GL_SHADING_LANGUAGE_VERSION: %s", glConfig2.shadingLanguageVersionString );
+		Log::Notice("GL_SHADING_LANGUAGE_VERSION: %s", glConfig.shadingLanguageVersionString );
 
-		Log::Notice("GL_MAX_VERTEX_UNIFORM_COMPONENTS %d", glConfig2.maxVertexUniforms );
-		Log::Notice("GL_MAX_VERTEX_ATTRIBS %d", glConfig2.maxVertexAttribs );
+		Log::Notice("GL_MAX_VERTEX_UNIFORM_COMPONENTS %d", glConfig.maxVertexUniforms );
+		Log::Notice("GL_MAX_VERTEX_ATTRIBS %d", glConfig.maxVertexAttribs );
 
-		if ( glConfig2.occlusionQueryAvailable )
+		if ( glConfig.occlusionQueryAvailable )
 		{
-			Log::Notice("Occlusion query bits: %d", glConfig2.occlusionQueryBits );
+			Log::Notice("Occlusion query bits: %d", glConfig.occlusionQueryBits );
 		}
 
-		if ( glConfig2.drawBuffersAvailable )
+		if ( glConfig.drawBuffersAvailable )
 		{
-			Log::Notice("GL_MAX_DRAW_BUFFERS: %d", glConfig2.maxDrawBuffers );
+			Log::Notice("GL_MAX_DRAW_BUFFERS: %d", glConfig.maxDrawBuffers );
 		}
 
-		if ( glConfig2.textureAnisotropyAvailable )
+		if ( glConfig.textureAnisotropyAvailable )
 		{
-			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig2.maxTextureAnisotropy );
+			Log::Notice("GL_TEXTURE_MAX_ANISOTROPY_EXT: %f", glConfig.maxTextureAnisotropy );
 		}
 
-		Log::Notice("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig2.maxRenderbufferSize );
-		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig2.maxColorAttachments );
+		Log::Notice("GL_MAX_RENDERBUFFER_SIZE: %d", glConfig.maxRenderbufferSize );
+		Log::Notice("GL_MAX_COLOR_ATTACHMENTS: %d", glConfig.maxColorAttachments );
 
 		Log::Notice("PIXELFORMAT: color(%d-bits)", glConfig.colorBits );
 
@@ -936,12 +936,12 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( !!r_glExtendedValidation->integer )
 		{
 			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d, highest: %d.%d",
-				glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor,
+				glConfig.glMajor, glConfig.glMinor, glConfig.glRequestedMajor, glConfig.glRequestedMinor,
 				glConfig2.glHighestMajor, glConfig2.glHighestMinor );
 		}
 		else
 		{
-			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor );
+			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d", glConfig.glMajor, glConfig.glMinor, glConfig.glRequestedMajor, glConfig.glRequestedMinor );
 		}
 
 		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
@@ -951,7 +951,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			/* See https://www.khronos.org/opengl/wiki/OpenGL_Context
 			for information about core, compatibility and forward context. */
 
-			if ( glConfig2.glCoreProfile )
+			if ( glConfig.glCoreProfile )
 			{
 				Log::Notice("%sUsing an OpenGL core profile.", Color::ToString( Color::Green ) );
 			}
@@ -960,7 +960,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 				Log::Notice("%sUsing an OpenGL compatibility profile.", Color::ToString( Color::Red ) );
 			}
 
-			if ( glConfig2.glForwardCompatibleContext )
+			if ( glConfig.glForwardCompatibleContext )
 			{
 				Log::Notice("OpenGL 3.x context is forward compatible.");
 			}
@@ -994,19 +994,19 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("%sUsing S3TC (DXTC) texture compression.", Color::ToString( Color::Green ) );
 		}
 
-		if ( glConfig2.vboVertexSkinningAvailable )
+		if ( glConfig.vboVertexSkinningAvailable )
 		{
 			/* Mesa drivers usually support 256 bones, Nvidia proprietary drivers
 			usually support 233 bones, OpenGL 2.1 hardware usually supports no more
 			than 41 bones which may not be enough to use hardware acceleration on
 			models from games like Unvanquished. */
-			if ( glConfig2.maxVertexSkinningBones < 233 )
+			if ( glConfig.maxVertexSkinningBones < 233 )
 			{
-				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, some models may not be hardware accelerated.", Color::ToString( Color::Red ), glConfig2.maxVertexSkinningBones );
+				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, some models may not be hardware accelerated.", Color::ToString( Color::Red ), glConfig.maxVertexSkinningBones );
 			}
 			else
 			{
-				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, models are hardware accelerated.", Color::ToString( Color::Green ), glConfig2.maxVertexSkinningBones );
+				Log::Notice("%sUsing GPU vertex skinning with max %i bones in a single pass, models are hardware accelerated.", Color::ToString( Color::Green ), glConfig.maxVertexSkinningBones );
 			}
 		}
 		else
@@ -1451,9 +1451,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		R_InitFreeType();
 
-		if ( glConfig2.textureAnisotropyAvailable )
+		if ( glConfig.textureAnisotropyAvailable )
 		{
-			AssertCvarRange( r_ext_texture_filter_anisotropic, 0, glConfig2.maxTextureAnisotropy, false );
+			AssertCvarRange( r_ext_texture_filter_anisotropic, 0, glConfig.maxTextureAnisotropy, false );
 		}
 
 		R_InitVisTests();
@@ -1511,7 +1511,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( destroyWindow )
 		{
 			GLSL_ShutdownGPUShaders();
-			if( glConfig2.glCoreProfile ) {
+			if( glConfig.glCoreProfile ) {
 				glBindVertexArray( 0 );
 				glDeleteVertexArrays( 1, &backEnd.currentVAO );
 			}
