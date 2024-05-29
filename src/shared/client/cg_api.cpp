@@ -51,6 +51,8 @@ void trap_UpdateScreen()
 
 int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer )
 {
+	if (!numPoints) return 0;
+
 	std::vector<std::array<float, 3>> mypoints(numPoints);
 	std::array<float, 3> myproj;
 	memcpy((float*)mypoints.data(), points, sizeof(float) * 3 * numPoints);
@@ -325,8 +327,7 @@ void trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *v
 		return;
 	}
 
-	std::vector<polyVert_t> myverts(numVerts);
-	memcpy(myverts.data(), verts, numVerts * sizeof(polyVert_t));
+	std::vector<polyVert_t> myverts(verts, verts + numVerts);
 	cmdBuffer.SendMsg<Render::AddPolyToSceneMsg>(hShader, myverts);
 }
 
@@ -339,25 +340,20 @@ void trap_R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *
 		return;
 	}
 
-	std::vector<polyVert_t> myverts(size);
-	memcpy(myverts.data(), verts, size * sizeof(polyVert_t));
+	std::vector<polyVert_t> myverts(verts, verts + size);
 
-	/* Known to crash on Clang ≥ 14 in non-Debug native build if size is 0:
-	https://github.com/Unvanquished/Unvanquished/issues/2682 */
 	cmdBuffer.SendMsg<Render::AddPolysToSceneMsg>(hShader, myverts, numVerts, numPolys);
 }
 
-void trap_R_Add2dPolysIndexedToScene( polyVert_t* polys, int numPolys, int* indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader )
+void trap_R_Add2dPolysIndexedToScene( const polyVert_t* polys, int numPolys, const int* indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader )
 {
 	if (!numIndexes)
 	{
 		return;
 	}
 
-	std::vector<polyVert_t> mypolys(numPolys);
-	std::vector<int> myindices(numIndexes);
-	memcpy(mypolys.data(), polys, numPolys * sizeof( polyVert_t ) );
-	memcpy(myindices.data(), indexes, numIndexes * sizeof( int ) );
+	std::vector<polyVert_t> mypolys(polys, polys + numPolys);
+	std::vector<int> myindices(indexes, indexes + numIndexes);
 	cmdBuffer.SendMsg<Render::Add2dPolysIndexedMsg>(mypolys, numPolys, myindices, numIndexes, trans_x, trans_y, shader);
 }
 
@@ -571,8 +567,7 @@ qhandle_t trap_R_GenerateTexture( const byte *data, int x, int y )
 {
 	ASSERT( x && y );
 	qhandle_t handle;
-	std::vector<byte> mydata(x * y * 4);
-	memcpy(mydata.data(), data, x * y * 4 * sizeof( byte ) );
+	std::vector<byte> mydata(data, data + 4 * x * y);
 	VM::SendMsg<Render::GenerateTextureMsg>(mydata, x, y, handle);
 	return handle;
 }
