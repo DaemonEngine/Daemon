@@ -2479,18 +2479,14 @@ static void R_CreateDepthRenderImage()
 
 		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
 
+		imageParams.bits = IF_NOPICMIP;
+
 		if ( glConfig2.textureIntegerAvailable && r_highPrecisionRendering.Get() )
 		{
-			imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
-
-			tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
+			imageParams.bits |= IF_RGBA32UI;
 		}
-		else
-		{
-			imageParams.bits = IF_NOPICMIP;
 
-			tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
-		}
+		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
 	}
 }
 
