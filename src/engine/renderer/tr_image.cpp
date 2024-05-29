@@ -2536,6 +2536,7 @@ static void R_CreateShadowMapFBOImage()
 	int numFactor = 1;
 	int format = IF_NOPICMIP;
 
+	// FIXME: We should test if those formats are supported.
 	switch( glConfig2.shadowingMode )
 	{
 		case shadowingMode_t::SHADOWING_ESM16:
@@ -2619,6 +2620,7 @@ static void R_CreateShadowCubeFBOImage()
 
 	int format = IF_NOPICMIP;
 
+	// FIXME: We should test if those formats are supported.
 	switch( glConfig2.shadowingMode )
 	{
 		case shadowingMode_t::SHADOWING_ESM16:
