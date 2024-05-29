@@ -64,7 +64,7 @@ void            trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const po
 void            trap_R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 void            trap_R_AddLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
 void            trap_R_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, float g, float b );
-void            trap_R_Add2dPolysIndexedToScene( polyVert_t *polys, int numVerts, int *indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader );
+void            trap_R_Add2dPolysIndexedToScene( const polyVert_t *polys, int numVerts, const int *indexes, int numIndexes, int trans_x, int trans_y, qhandle_t shader );
 void            trap_R_SetMatrixTransform( const matrix_t matrix );
 void            trap_R_ResetMatrixTransform();
 void            trap_R_RenderScene( const refdef_t *fd );

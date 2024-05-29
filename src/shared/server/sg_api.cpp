@@ -124,8 +124,7 @@ int trap_RSA_GenerateMessage(const char *public_key, char *cleartext, char *encr
 
 void trap_GenFingerprint(const char *pubkey, int size, char *buffer, int bufsize)
 {
-    std::vector<char> pubkey2(size, 0);
-    memcpy(pubkey2.data(), pubkey, size);
+    std::vector<char> pubkey2(pubkey, pubkey + size);
     std::string fingerprint;
     VM::SendMsg<GenFingerprintMsg>(size, pubkey2, bufsize, fingerprint);
     Q_strncpyz(buffer, fingerprint.c_str(), bufsize);
