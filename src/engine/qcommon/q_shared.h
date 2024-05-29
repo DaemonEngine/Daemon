@@ -144,13 +144,6 @@ void ignore_result(T) {}
 	using uint = unsigned int;
 	enum class qtrinary {qno, qyes, qmaybe};
 
-	union floatint_t
-	{
-		float f;
-		int i;
-		uint ui;
-	};
-
 //=============================================================
 
 #include "common/Platform.h"
@@ -351,22 +344,6 @@ extern const quat_t   quatIdentity;
 
 #define Q_ftol(x) ((long)(x))
 
-	inline unsigned int Q_floatBitsToUint( float number )
-	{
-		floatint_t t;
-
-		t.f = number;
-		return t.ui;
-	}
-
-	inline float Q_uintBitsToFloat( unsigned int number )
-	{
-		floatint_t t;
-
-		t.ui = number;
-		return t.f;
-	}
-
 	// Overall relative error bound (ignoring unknown powerpc case): 5 * 10^-6
 	// https://en.wikipedia.org/wiki/Fast_inverse_square_root#/media/File:2nd-iter.png
 	inline float Q_rsqrt( float number )
@@ -379,7 +356,7 @@ extern const quat_t   quatIdentity;
 		// SSE rsqrt relative error bound: 3.7 * 10^-4
 		_mm_store_ss( &y, _mm_rsqrt_ss( _mm_load_ss( &number ) ) );
 #else
-		y = Q_uintBitsToFloat( 0x5f3759df - (Q_floatBitsToUint( number ) >> 1) );
+		y = Util::bit_cast<float>( 0x5f3759df - ( Util::bit_cast<uint32_t>( number ) >> 1 ) );
 		y *= ( 1.5f - ( x * y * y ) ); // initial iteration
 		// relative error bound after the initial iteration: 1.8 * 10^-3
 #endif

@@ -418,12 +418,12 @@ void RE_SetColorGrading( int slot, qhandle_t hShader )
 		return;
 	}
 
-	if ( shader->defaultShader || !shader->stages[ 0 ] )
+	if ( shader->defaultShader || shader->stages == shader->lastStage )
 	{
 		return;
 	}
 
-	image = shader->stages[ 0 ]->bundle[ 0 ].image[ 0 ];
+	image = shader->stages[ 0 ].bundle[ 0 ].image[ 0 ];
 
 	if ( !image )
 	{

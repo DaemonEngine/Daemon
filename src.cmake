@@ -273,6 +273,7 @@ set(ENGINETESTLIST
     ${COMMON_DIR}/ColorTest.cpp
     ${COMMON_DIR}/StringTest.cpp
     ${COMMON_DIR}/cm/unittest.cpp
+    ${COMMON_DIR}/MathTest.cpp
     ${COMMON_DIR}/UtilTest.cpp
     ${ENGINE_DIR}/framework/CommandSystemTest.cpp
 )
