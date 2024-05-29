@@ -573,6 +573,7 @@ static std::string GenEngineConstants() {
 	if ( glConfig2.dynamicLight )
 	{
 		AddDefine( str, "r_dynamicLight", 1 );
+		AddDefine( str, "r_dynamicLightRenderer", r_dynamicLightRenderer.Get() );
 	}
 
 	if ( r_precomputedLighting->integer )
