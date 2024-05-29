@@ -88,7 +88,7 @@ uniform vec3 u_zFar;
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
-#if defined( TEXTURE_INTEGER )
+#if defined(TEXTURE_INTEGER) && defined(r_highPrecisionRendering)
 #define idxs_t uvec4
 #define idx_initializer uvec4(3)
 DECLARE_OUTPUT(uvec4)

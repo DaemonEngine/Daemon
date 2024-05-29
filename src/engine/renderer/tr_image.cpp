@@ -2479,7 +2479,7 @@ static void R_CreateDepthRenderImage()
 
 		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
 
-		if ( glConfig2.textureIntegerAvailable )
+		if ( glConfig2.textureIntegerAvailable && r_highPrecisionRendering.Get() )
 		{
 			imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
