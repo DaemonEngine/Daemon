@@ -149,6 +149,9 @@ namespace Util {
 
 		void ReadData(void* p, size_t len)
 		{
+			if (!len)
+				return; // ensure null is never passed to memcpy
+
 			if (pos + len <= data.size()) {
 				memcpy(p, data.data() + pos, len);
 				pos += len;

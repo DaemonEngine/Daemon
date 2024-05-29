@@ -999,7 +999,7 @@ void CL_Ping_f()
 
 	pingptr = &CL_GetFreePing();
 
-	memcpy( &pingptr->adr, &to, sizeof( netadr_t ) );
+	pingptr->adr = to;
 	pingptr->start = Sys::Milliseconds();
 	pingptr->time = -1;
 	GeneratePingChallenge( *pingptr );

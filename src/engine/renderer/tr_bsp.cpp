@@ -2792,7 +2792,7 @@ R_MovePatchSurfacesToHunk
 */
 void R_MovePatchSurfacesToHunk()
 {
-	int           i, size;
+	int           i;
 	srfGridMesh_t *grid, *hunkgrid;
 
 	for ( i = 0; i < s_worldData.numSurfaces; i++ )
@@ -2807,23 +2807,22 @@ void R_MovePatchSurfacesToHunk()
 		}
 
 		//
-		size = sizeof( *grid );
-		hunkgrid = (srfGridMesh_t*) ri.Hunk_Alloc( size, ha_pref::h_low );
-		memcpy( hunkgrid, grid, size );
+		hunkgrid = (srfGridMesh_t*) ri.Hunk_Alloc( sizeof(srfGridMesh_t), ha_pref::h_low );
+		*hunkgrid = *grid;
 
-		hunkgrid->widthLodError = (float*) ri.Hunk_Alloc( grid->width * 4, ha_pref::h_low );
-		memcpy( hunkgrid->widthLodError, grid->widthLodError, grid->width * 4 );
+		hunkgrid->widthLodError = (float*) ri.Hunk_Alloc( grid->width * sizeof( float ), ha_pref::h_low );
+		std::copy_n( grid->widthLodError, grid->width, hunkgrid->widthLodError );
 
-		hunkgrid->heightLodError = (float*) ri.Hunk_Alloc( grid->height * 4, ha_pref::h_low );
-		memcpy( hunkgrid->heightLodError, grid->heightLodError, grid->height * 4 );
+		hunkgrid->heightLodError = (float*) ri.Hunk_Alloc( grid->height * sizeof( float ), ha_pref::h_low );
+		std::copy_n( grid->heightLodError, grid->height, hunkgrid->heightLodError );
 
 		hunkgrid->numTriangles = grid->numTriangles;
 		hunkgrid->triangles = (srfTriangle_t*) ri.Hunk_Alloc( grid->numTriangles * sizeof( srfTriangle_t ), ha_pref::h_low );
-		memcpy( hunkgrid->triangles, grid->triangles, grid->numTriangles * sizeof( srfTriangle_t ) );
+		std::copy_n( grid->triangles, grid->numTriangles, hunkgrid->triangles );
 
 		hunkgrid->numVerts = grid->numVerts;
 		hunkgrid->verts = (srfVert_t*) ri.Hunk_Alloc( grid->numVerts * sizeof( srfVert_t ), ha_pref::h_low );
-		memcpy( hunkgrid->verts, grid->verts, grid->numVerts * sizeof( srfVert_t ) );
+		std::copy_n( grid->verts, grid->numVerts, hunkgrid->verts );
 
 		R_FreeSurfaceGridMesh( grid );
 

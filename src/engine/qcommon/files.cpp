@@ -393,9 +393,11 @@ int FS_Write(const void* buffer, int len, fileHandle_t handle)
 int FS_Read(void* buffer, int len, fileHandle_t handle)
 {
 	FS_CheckHandle(handle, false);
+	if (len < 0)
+		Sys::Drop("FS_Read: invalid length");
 	if (handleTable[handle].isPakFile) {
-		if (len < 0)
-			Sys::Drop("FS_Read: invalid length");
+		if (!len)
+			return 0;
 		if (handleTable[handle].filePos >= handleTable[handle].fileData.size())
 			return 0;
 		len = std::min<size_t>(len, handleTable[handle].fileData.size() - handleTable[handle].filePos);

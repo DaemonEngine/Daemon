@@ -316,7 +316,7 @@ void RE_ProjectDecal( qhandle_t hShader, int numPoints, vec3_t *points, vec4_t p
 
 	/* create a new projector */
 	dp = &tr.refdef.decalProjectors[ r_numDecalProjectors & DECAL_PROJECTOR_MASK ];
-	memcpy( dp, &temp, sizeof( *dp ) );
+	*dp = temp;
 
 	/* we have a winner */
 	r_numDecalProjectors++;
@@ -863,7 +863,7 @@ void R_AddDecalSurface( decal_t *decal )
 	/* set it up */
 	srf->surfaceType = surfaceType_t::SF_DECAL;
 	srf->numVerts = decal->numVerts;
-	memcpy( srf->verts, decal->verts, srf->numVerts * sizeof( *srf->verts ) );
+	std::copy_n( decal->verts, decal->numVerts, srf->verts );
 
 	/* fade colors */
 	if ( decal->fadeStartTime < tr.refdef.time && decal->fadeStartTime < decal->fadeEndTime )

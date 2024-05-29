@@ -55,7 +55,7 @@ int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t pro
 
 	std::vector<std::array<float, 3>> mypoints(numPoints);
 	std::array<float, 3> myproj;
-	memcpy((float*)mypoints.data(), points, sizeof(float) * 3 * numPoints);
+	memcpy(mypoints.data(), points, sizeof(float) * 3 * numPoints);
 	VectorCopy(projection, myproj);
 
 	std::vector<std::array<float, 3>> mypointBuffer;
@@ -63,7 +63,7 @@ int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t pro
 	VM::SendMsg<CMMarkFragmentsMsg>(mypoints, myproj, maxPoints, maxFragments, mypointBuffer, myfragmentBuffer);
 
 	memcpy(pointBuffer, mypointBuffer.data(), sizeof(float) * 3 * maxPoints);
-	memcpy(fragmentBuffer, myfragmentBuffer.data(), sizeof(markFragment_t) * myfragmentBuffer.size());
+	std::copy(myfragmentBuffer.begin(), myfragmentBuffer.end(), fragmentBuffer);
 	return myfragmentBuffer.size();
 }
 
@@ -362,7 +362,7 @@ void trap_R_Add2dPolysIndexedToScene( const polyVert_t* polys, int numPolys, con
 void trap_R_SetMatrixTransform( const matrix_t matrix )
 {
 	std::array<float, 16> mymatrix;
-	memcpy(mymatrix.data(), matrix, 16 * sizeof(float));
+	MatrixCopy(matrix, mymatrix.data());
 	cmdBuffer.SendMsg<Render::SetMatrixTransformMsg>(mymatrix);
 }
 
@@ -403,7 +403,7 @@ void trap_R_SetColor( const Color::Color &rgba )
 void trap_R_SetClipRegion( const float *region )
 {
 	std::array<float, 4> myregion;
-	memcpy(myregion.data(), region, 4 * sizeof(float));
+	Vector4Copy(region, myregion);
 	cmdBuffer.SendMsg<Render::SetClipRegionMsg>(myregion);
 }
 

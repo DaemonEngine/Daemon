@@ -267,11 +267,11 @@ static void CM_SurfaceCollideFromTriangleSoup( cTriangleSoup_t *triSoup, cSurfac
 	// copy the results out
 	sc->numPlanes = numTempPlanes;
 	sc->planes = ( cPlane_t * ) CM_Alloc( numTempPlanes * sizeof( *sc->planes ) );
-	memcpy( sc->planes, tempPlanes, numTempPlanes * sizeof( *sc->planes ) );
+	std::copy_n( tempPlanes, numTempPlanes, sc->planes );
 
 	sc->numFacets = numFacets;
 	sc->facets = ( cFacet_t * ) CM_Alloc( numFacets * sizeof( *sc->facets ) );
-	memcpy( sc->facets, facets, numFacets * sizeof( *sc->facets ) );
+	std::copy_n( facets, numFacets, sc->facets );
 }
 
 /*

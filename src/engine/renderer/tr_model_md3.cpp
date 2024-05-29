@@ -367,7 +367,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 		mdvModel->numVBOSurfaces = vboSurfaces.size();
 		size_t allocSize = vboSurfaces.size() * sizeof( vboSurfaces[ 0 ] );
 		mdvModel->vboSurfaces = (srfVBOMDVMesh_t**) ri.Hunk_Alloc( allocSize, ha_pref::h_low );
-		memcpy( mdvModel->vboSurfaces, vboSurfaces.data(), allocSize );
+		std::copy( vboSurfaces.begin(), vboSurfaces.end(), mdvModel->vboSurfaces );
 	}
 
 	return true;
