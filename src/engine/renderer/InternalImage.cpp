@@ -110,7 +110,7 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 
 	int scalingStep = 0;
 
-	// Scale down the image size until it's not smaller than screen.
+	// Scale down the image size according to the screen size.
 	if ( image->bits & IF_FITSCREEN )
 	{
 		int largerSide = std::max( glConfig.vidWidth, glConfig.vidHeight );
@@ -123,8 +123,13 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 				scalingStep++;
 			}
 
-			// We need the larger image size before it becomes smaller than screen.
-			if ( scaledDimension != largerSide )
+			/* With r_imageFitScreen == 1, we need the larger image size before
+			it becomes smaller than screen.
+
+			With r_imageFitScreen == 2 the image is never larger than screen, as
+			we allow the larger size that is not larger than screen, it can be the
+			larger size smaller than screen. */
+			if ( scaledDimension != largerSide && r_imageFitScreen.Get() != 2 )
 			{
 				scaledDimension <<= 1;
 				scalingStep--;

@@ -2909,6 +2909,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_ignoreMaterialMinDimension;
 	extern cvar_t *r_ignoreMaterialMaxDimension;
 	extern cvar_t *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
+	extern Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen;
 	extern cvar_t *r_finish;
 	extern cvar_t *r_drawBuffer;
 	extern cvar_t *r_textureMode;

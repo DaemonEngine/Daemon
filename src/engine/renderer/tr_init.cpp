@@ -150,6 +150,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_ignoreMaterialMinDimension;
 	cvar_t      *r_ignoreMaterialMaxDimension;
 	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
+	Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen("r_imageFitScreen", "downscale “fitscreen” images to fit the screen size: 0: disable, 1: downscale as much as possible without being smaller than screen size (default), 2: downscale to never be larger then screen size", Cvar::NONE, 1, 0, 2);
 	cvar_t      *r_finish;
 	cvar_t      *r_clear;
 	cvar_t      *r_textureMode;
@@ -1095,6 +1096,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_ignoreMaterialMaxDimension = Cvar_Get( "r_ignoreMaterialMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
 		r_replaceMaterialMinDimensionIfPresentWithMaxDimension
 			= Cvar_Get( "r_replaceMaterialMinDimensionIfPresentWithMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch(r_imageFitScreen);
 		r_colorbits = Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
 		r_mode = Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
 		r_customwidth = Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
