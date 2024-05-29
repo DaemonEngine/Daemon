@@ -175,7 +175,8 @@ int nextIdx( inout idxs_t idxs ) {
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
-#if defined(r_dynamicLight)
+// This code is only used by the tiled dynamic light renderer.
+#if defined(r_dynamicLight) && r_dynamicLightRenderer == 1
 void computeDynamicLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 		    vec4 material, inout vec4 color ) {
   vec4 center_radius = GetLight( idx, center_radius );
