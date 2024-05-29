@@ -207,7 +207,7 @@ public:
 
 	void ToArray( component_type* output ) const
 	{
-		memcpy( output, ToArray(), ArrayBytes() );
+		std::copy_n( ToArray(), 4, output );
 	}
 
 	// Size of the memory location returned by ToArray() in bytes

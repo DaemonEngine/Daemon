@@ -357,7 +357,7 @@ void RE_GlyphChar( fontInfo_t *font, int ch, glyphInfo_t *glyph )
 	}
 
 	// we have a glyph
-	memcpy( glyph, &font->glyphBlock[ ch / 256][ ch % 256 ], sizeof( *glyph ) );
+	*glyph = font->glyphBlock[ ch / 256][ ch % 256 ];
 }
 
 void RE_Glyph( fontInfo_t *font, const char *str, glyphInfo_t *glyph )
@@ -487,7 +487,7 @@ void RE_RenderChunk( fontInfo_t *font, const int chunk )
 		if ( glyph )
 		{
 			rendered = true;
-			memcpy( glyphs + i, glyph, sizeof( glyphInfo_t ) );
+			glyphs[ i ] = *glyph;
 		}
 
 		if ( xOut == -1 )

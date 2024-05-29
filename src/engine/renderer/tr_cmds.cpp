@@ -607,7 +607,7 @@ void RE_2DPolyies( polyVert_t *verts, int numverts, qhandle_t hShader )
 
 	cmd->verts = &backEndData[ tr.smpFrame ]->polyVerts[ r_numPolyVerts ];
 	cmd->numverts = numverts;
-	memcpy( cmd->verts, verts, sizeof( polyVert_t ) * numverts );
+	std::copy_n( verts, numverts, cmd->verts );
 	cmd->shader = R_GetShaderByHandle( hShader );
 
 	r_numPolyVerts += numverts;
@@ -636,10 +636,10 @@ void RE_2DPolyiesIndexed( polyVert_t *verts, int numverts, int *indexes, int num
 
 	cmd->verts = &backEndData[ tr.smpFrame ]->polyVerts[ r_numPolyVerts ];
 	cmd->numverts = numverts;
-	memcpy( cmd->verts, verts, sizeof( polyVert_t ) * numverts );
+	std::copy_n( verts, numverts, cmd->verts );
 	cmd->shader = R_GetShaderByHandle( hShader );
 	cmd->indexes = &backEndData[ tr.smpFrame ]->polyIndexes[ r_numPolyIndexes ];
-	memcpy( cmd->indexes, indexes, sizeof( int ) * numindexes );
+	std::copy_n( indexes, numindexes, cmd->indexes );
 	cmd->numIndexes = numindexes;
 	cmd->translation[ 0 ] = trans_x;
 	cmd->translation[ 1 ] = trans_y;

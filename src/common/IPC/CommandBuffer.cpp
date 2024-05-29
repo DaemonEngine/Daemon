@@ -134,6 +134,7 @@ namespace IPC {
     }
 
     void CommandBuffer::InternalRead(size_t offset, char* out, size_t len) {
+        ASSERT(out); // must not be null when using memcpy
         char* data = base_ + DATA_OFFSET;
         offset = Normalize(offset);
         size_t canRead = size_ - offset;
@@ -148,6 +149,7 @@ namespace IPC {
     }
 
     void CommandBuffer::InternalWrite(size_t offset, const char* in, size_t len) {
+        ASSERT(in); // must not be null when using memcpy
         char* data = base_ + DATA_OFFSET;
         offset = Normalize(offset);
         size_t canWrite = size_ - offset;
