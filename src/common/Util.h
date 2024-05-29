@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define COMMON_UTIL_H_
 
 #include <algorithm>
+#include <cstring>
 #include <memory>
 #include <tuple>
 #include <type_traits>
