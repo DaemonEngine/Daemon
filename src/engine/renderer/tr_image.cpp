@@ -763,6 +763,14 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 
 	int scaledWidth = image->width;
 	int scaledHeight = image->height;
+
+	// If r_imageFitScreen is disabled, use nopicmip instead.
+	if ( ( image->bits & IF_FITSCREEN ) && !r_imageFitScreen.Get() )
+	{
+		image->bits &= ~IF_FITSCREEN;
+		image->bits |= IF_NOPICMIP;
+	}
+
 	int customScalingStep = R_GetImageCustomScalingStep( image, imageParams );
 	R_DownscaleImageDimensions( customScalingStep, &scaledWidth, &scaledHeight, &dataArray, numLayers, &numMips );
 
