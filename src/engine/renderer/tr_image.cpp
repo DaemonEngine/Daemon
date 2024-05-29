@@ -2403,7 +2403,7 @@ static void R_CreateCurrentRenderImage()
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
 
-	if ( glConfig2.textureFloatAvailable && r_highPrecisionRendering.Get() )
+	if ( r_highPrecisionRendering.Get() )
 	{
 		imageParams.bits |= IF_RGBA16;
 	}
