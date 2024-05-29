@@ -146,7 +146,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 #endif // !USE_PHYSICAL_MAPPING
 }
 
-#if defined(TEXTURE_INTEGER)
+#if defined(TEXTURE_INTEGER) && defined(r_highPrecisionRendering)
 const int lightsPerLayer = 16;
 uniform usampler3D u_LightTiles;
 #define idxs_t uvec4

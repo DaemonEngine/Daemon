@@ -570,6 +570,11 @@ static std::string GenEngineConstants() {
 			AddDefine( str, "r_showParallelShadowSplits", 1 );
 	}
 
+	if ( r_highPrecisionRendering.Get() )
+	{
+		AddDefine( str, "r_highPrecisionRendering", 1 );
+	}
+
 	if ( glConfig2.dynamicLight )
 	{
 		AddDefine( str, "r_dynamicLight", 1 );
