@@ -2439,7 +2439,9 @@ static void R_CreateDepthRenderImage()
 		imageParams_t imageParams = {};
 		imageParams.filterType = filterType_t::FT_NEAREST;
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-		imageParams.bits = IF_NOPICMIP | IF_RGBA32F;
+
+		imageParams.bits = IF_NOPICMIP;
+		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_RGBA32F : IF_RGBA16F;
 
 		tr.dlightImage = R_CreateImage("_dlightImage", nullptr, w, h, 4, imageParams );
 	}
@@ -2468,9 +2470,11 @@ static void R_CreateDepthRenderImage()
 		int h = (height + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
 
 		imageParams_t imageParams = {};
-		imageParams.bits = IF_NOPICMIP | IF_RGBA32F;
 		imageParams.filterType = filterType_t::FT_NEAREST;
 		imageParams.wrapType = wrapTypeEnum_t::WT_ONE_CLAMP;
+
+		imageParams.bits = IF_NOPICMIP;
+		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_RGBA32F : IF_RGBA16F;
 
 		tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
 
