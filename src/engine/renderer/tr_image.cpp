@@ -111,11 +111,11 @@ void GL_TextureMode( const char *string )
 	gl_filter_max = modes[ i ].maximize;
 
 	// bound texture anisotropy
-	if ( glConfig2.textureAnisotropyAvailable )
+	if ( glConfig.textureAnisotropyAvailable )
 	{
-		if ( r_ext_texture_filter_anisotropic->value > glConfig2.maxTextureAnisotropy )
+		if ( r_ext_texture_filter_anisotropic->value > glConfig.maxTextureAnisotropy )
 		{
-			Cvar_Set( "r_ext_texture_filter_anisotropic", va( "%f", glConfig2.maxTextureAnisotropy ) );
+			Cvar_Set( "r_ext_texture_filter_anisotropic", va( "%f", glConfig.maxTextureAnisotropy ) );
 		}
 		else if ( r_ext_texture_filter_anisotropic->value < 1.0f )
 		{
@@ -135,7 +135,7 @@ void GL_TextureMode( const char *string )
 			glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 
 			// set texture anisotropy
-			if ( glConfig2.textureAnisotropyAvailable )
+			if ( glConfig.textureAnisotropyAvailable )
 			{
 				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, r_ext_texture_filter_anisotropic->value );
 			}
@@ -771,7 +771,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 	// deal with a half mip resampling
 	if ( image->type == GL_TEXTURE_CUBE_MAP )
 	{
-		while ( scaledWidth > glConfig2.maxCubeMapTextureSize || scaledHeight > glConfig2.maxCubeMapTextureSize )
+		while ( scaledWidth > glConfig.maxCubeMapTextureSize || scaledHeight > glConfig.maxCubeMapTextureSize )
 		{
 			scaledWidth >>= 1;
 			scaledHeight >>= 1;
@@ -826,7 +826,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 	}
 	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_RGBA16 | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
-		if( !glConfig2.textureFloatAvailable ) {
+		if( !glConfig.textureFloatAvailable ) {
 			Log::Warn("floating point image '%s' cannot be loaded", image->name );
 			internalFormat = GL_RGBA8;
 		}
@@ -840,12 +840,12 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		}
 		else if ( image->bits & IF_TWOCOMP16F )
 		{
-			internalFormat = glConfig2.textureRGAvailable ?
+			internalFormat = glConfig.textureRGAvailable ?
 			  GL_RG16F : GL_LUMINANCE_ALPHA16F_ARB;
 		}
 		else if ( image->bits & IF_TWOCOMP32F )
 		{
-			internalFormat = glConfig2.textureRGAvailable ?
+			internalFormat = glConfig.textureRGAvailable ?
 			  GL_RG32F : GL_LUMINANCE_ALPHA32F_ARB;
 		}
 		else if ( image->bits & IF_RGBA16 )
@@ -854,18 +854,18 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		}
 		else if ( image->bits & IF_ONECOMP16F )
 		{
-			internalFormat = glConfig2.textureRGAvailable ?
+			internalFormat = glConfig.textureRGAvailable ?
 			  GL_R16F : GL_ALPHA16F_ARB;
 		}
 		else if ( image->bits & IF_ONECOMP32F )
 		{
-			internalFormat = glConfig2.textureRGAvailable ?
+			internalFormat = glConfig.textureRGAvailable ?
 			  GL_R32F : GL_ALPHA32F_ARB;
 		}
 	}
 	else if ( image->bits & ( IF_RGBA32UI ) )
 	{
-		if( !glConfig2.textureIntegerAvailable ) {
+		if( !glConfig.textureIntegerAvailable ) {
 			Log::Warn( "integer image '%s' cannot be loaded", image->name );
 		}
 		internalFormat = GL_RGBA32UI;
@@ -894,7 +894,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			blockSize = 16;
 		}
 		else if ( image->bits & IF_BC4 ) {
-			if( !glConfig2.textureCompressionRGTCAvailable ) {
+			if( !glConfig.textureCompressionRGTCAvailable ) {
 				format = GL_NONE;
 				internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 				blockSize = 8;
@@ -910,7 +910,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			}
 		}
 		else if ( image->bits & IF_BC5 ) {
-			if( !glConfig2.textureCompressionRGTCAvailable ) {
+			if( !glConfig.textureCompressionRGTCAvailable ) {
 				format = GL_NONE;
 				internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
 				blockSize = 16;
@@ -1120,7 +1120,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		case filterType_t::FT_DEFAULT:
 
 			// set texture anisotropy
-			if ( glConfig2.textureAnisotropyAvailable )
+			if ( glConfig.textureAnisotropyAvailable )
 			{
 				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, r_ext_texture_filter_anisotropic->value );
 			}
@@ -2403,7 +2403,7 @@ static void R_CreateCurrentRenderImage()
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
 
-	if ( glConfig2.textureFloatAvailable && r_highPrecisionRendering.Get() )
+	if ( glConfig.textureFloatAvailable && r_highPrecisionRendering.Get() )
 	{
 		imageParams.bits |= IF_RGBA16;
 	}
@@ -2424,12 +2424,12 @@ static void R_CreateCurrentRenderImage()
 
 static void R_CreateDepthRenderImage()
 {
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig.dynamicLight )
 	{
 		return;
 	}
 
-	if( !glConfig2.uniformBufferObjectAvailable )
+	if( !glConfig.uniformBufferObjectAvailable )
 	{
 		int w = 64;
 		int h = 3 * MAX_REF_LIGHTS / w;
@@ -2479,7 +2479,7 @@ static void R_CreateDepthRenderImage()
 
 		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
 
-		if ( glConfig2.textureIntegerAvailable )
+		if ( glConfig.textureIntegerAvailable )
 		{
 			imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
@@ -2532,7 +2532,7 @@ static void R_CreateDownScaleFBOImages()
 // *INDENT-OFF*
 static void R_CreateShadowMapFBOImage()
 {
-	if ( !glConfig2.shadowMapping )
+	if ( !glConfig.shadowMapping )
 	{
 		return;
 	}
@@ -2540,7 +2540,7 @@ static void R_CreateShadowMapFBOImage()
 	int numFactor = 1;
 	int format = IF_NOPICMIP;
 
-	switch( glConfig2.shadowingMode )
+	switch( glConfig.shadowingMode )
 	{
 		case shadowingMode_t::SHADOWING_ESM16:
 			format |= IF_ONECOMP16F;
@@ -2616,14 +2616,14 @@ static void R_CreateShadowMapFBOImage()
 // *INDENT-OFF*
 static void R_CreateShadowCubeFBOImage()
 {
-	if ( !glConfig2.shadowMapping )
+	if ( !glConfig.shadowMapping )
 	{
 		return;
 	}
 
 	int format = IF_NOPICMIP;
 
-	switch( glConfig2.shadowingMode )
+	switch( glConfig.shadowingMode )
 	{
 		case shadowingMode_t::SHADOWING_ESM16:
 			format |= IF_ONECOMP16F;

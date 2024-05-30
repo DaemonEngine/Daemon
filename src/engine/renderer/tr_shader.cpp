@@ -5203,7 +5203,7 @@ static void FinishStages()
 
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
-				stage->active = ( glConfig2.dynamicLight && r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::LEGACY ) );
+				stage->active = ( glConfig.dynamicLight && r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::LEGACY ) );
 				break;
 
 			default:
@@ -5873,7 +5873,7 @@ static shader_t *FinishShader()
 	}
 
 	// HACK: allow alpha tested surfaces to create shadowmaps
-	if ( glConfig2.shadowMapping )
+	if ( glConfig.shadowMapping )
 	{
 		if ( shader.noShadows && shader.alphaTest )
 		{

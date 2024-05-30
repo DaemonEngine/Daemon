@@ -303,7 +303,7 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 	}
 
 	// set up lighting now that we know we aren't culled
-	if ( !personalModel || glConfig2.shadowMapping )
+	if ( !personalModel || glConfig.shadowMapping )
 	{
 		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
 	}

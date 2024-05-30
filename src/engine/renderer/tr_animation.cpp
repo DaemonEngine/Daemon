@@ -678,7 +678,7 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 	}
 
 	// set up lighting now that we know we aren't culled
-	if ( !personalModel || glConfig2.shadowMapping )
+	if ( !personalModel || glConfig.shadowMapping )
 	{
 		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
 	}
@@ -687,7 +687,7 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 	fogNum = R_FogWorldBox( ent->worldBounds );
 
 	if ( !r_vboModels->integer || !model->numVBOSurfaces ||
-	     ( !glConfig2.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
+	     ( !glConfig.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
 	{
 		shader_t *shader;
 
@@ -987,7 +987,7 @@ void R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 	cubeSideBits = R_CalcLightCubeSideBits( light, ent->worldBounds );
 
 	if ( !r_vboModels->integer || !model->numVBOSurfaces ||
-	     ( !glConfig2.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
+	     ( !glConfig.vboVertexSkinningAvailable && ent->e.skeleton.type == refSkeletonType_t::SK_ABSOLUTE ) )
 	{
 		shader_t *shader = nullptr;
 

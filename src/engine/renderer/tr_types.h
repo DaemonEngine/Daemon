@@ -329,6 +329,9 @@ enum class glHardwareType_t
  * Contains variables specific to the OpenGL configuration
  * being run right now.  These are constant once the OpenGL
  * subsystem is initialized.
+ *
+ * If you want to add new info without breaking the ABI, add it to
+ * glconfig2_t instead.
  */
 struct glconfig_t
 {
@@ -344,15 +347,65 @@ struct glconfig_t
 	glHardwareType_t     hardwareType;
 
 	textureCompression_t textureCompression;
-	bool8_t             textureEnvAddAvailable;
-	bool8_t             anisotropicAvailable; //----(SA)  added
-	float                maxAnisotropy; //----(SA)  added
 
-	int      vidWidth, vidHeight;
-
-	int   displayFrequency;
+	int displayIndex;
+	float displayAspect;
+	int displayWidth, displayHeight; // the entire monitor (the one indicated by displayIndex)
+	int vidWidth, vidHeight; // what the game is using
 
 	bool8_t smpActive; // dual processor
+
+	bool8_t textureCompressionRGTCAvailable;
+
+	int glRequestedMajor;
+	int glRequestedMinor;
+
+	int glMajor;
+	int glMinor;
+
+	bool8_t glCoreProfile;
+	bool8_t glForwardCompatibleContext;
+
+	int maxTextureUnits;
+
+	int      maxCubeMapTextureSize;
+
+	bool8_t occlusionQueryAvailable;
+	int      occlusionQueryBits;
+
+	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
+	int      shadingLanguageVersion;
+
+	int      maxVertexUniforms;
+	int      maxVertexAttribs;
+	bool8_t vboVertexSkinningAvailable;
+	int      maxVertexSkinningBones;
+
+	bool8_t drawBuffersAvailable;
+	bool8_t textureHalfFloatAvailable;
+	bool8_t textureFloatAvailable;
+	bool8_t textureIntegerAvailable;
+	bool8_t textureRGAvailable;
+	bool8_t gpuShader4Available;
+	bool8_t textureGatherAvailable;
+	int      maxDrawBuffers;
+
+	float    maxTextureAnisotropy;
+	bool8_t textureAnisotropyAvailable;
+
+	int      maxRenderbufferSize;
+	int      maxColorAttachments;
+
+	bool8_t getProgramBinaryAvailable;
+	bool8_t bufferStorageAvailable;
+	bool8_t uniformBufferObjectAvailable;
+	bool8_t mapBufferRangeAvailable;
+	bool8_t syncAvailable;
+
+	bool8_t dynamicLight;
+	bool8_t staticLight;
+	bool8_t shadowMapping;
+	shadowingMode_t shadowingMode;
 };
 
 #pragma pop_macro("bool")

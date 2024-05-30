@@ -34,28 +34,28 @@ This file deals with applying shaders to surface data in the tess struct.
 
 static void EnableAvailableFeatures()
 {
-	glConfig2.dynamicLight = r_dynamicLight.Get();
-	glConfig2.staticLight = r_staticLight.Get();
+	glConfig.dynamicLight = r_dynamicLight.Get();
+	glConfig.staticLight = r_staticLight.Get();
 
 	if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED )
-		&& !glConfig2.textureFloatAvailable )
+		&& !glConfig.textureFloatAvailable )
 	{
-		if ( glConfig2.dynamicLight || glConfig2.staticLight )
+		if ( glConfig.dynamicLight || glConfig.staticLight )
 		{
 			Log::Warn("Tiled dynamic light renderer not used because GL_ARB_texture_float is not available.");
 		}
 
-		glConfig2.dynamicLight = false;
-		glConfig2.staticLight = false;
+		glConfig.dynamicLight = false;
+		glConfig.staticLight = false;
 	}
 
-	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
+	glConfig.shadowingMode = shadowingMode_t( r_shadows.Get() );
 
-	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
+	glConfig.shadowMapping = glConfig.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
 
-	if ( !glConfig2.textureFloatAvailable )
+	if ( !glConfig.textureFloatAvailable )
 	{
-		glConfig2.shadowMapping = false;
+		glConfig.shadowMapping = false;
 	}
 }
 
@@ -68,7 +68,7 @@ static void GLSL_InitGPUShadersOrError()
 
 	gl_shaderManager.InitDriverInfo();
 
-	/* It must be done before GenerateBuiltinHeaders() because glConfig2.dynamicLight
+	/* It must be done before GenerateBuiltinHeaders() because glConfig.dynamicLight
 	is read in GenEngineConstants(). */
 	EnableAvailableFeatures();
 
@@ -81,7 +81,7 @@ static void GLSL_InitGPUShadersOrError()
 	// standard light mapping
 	gl_shaderManager.load( gl_lightMappingShader );
 
-	if ( glConfig2.dynamicLight )
+	if ( glConfig.dynamicLight )
 	{
 		dynamicLightRenderer_t dynamicLightRenderer = dynamicLightRenderer_t( r_dynamicLightRenderer.Get() );
 
@@ -112,7 +112,7 @@ static void GLSL_InitGPUShadersOrError()
 			> -- @gimhael
 
 			See also https://github.com/DaemonEngine/Daemon/pull/606#pullrequestreview-912402293 */
-			if ( glConfig2.shadowMapping )
+			if ( glConfig.shadowMapping )
 			{
 				// projective lighting ( Doom3 style )
 				gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
@@ -432,7 +432,7 @@ static void DrawTris()
 
 	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 
-	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_genericShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
 	gl_genericShader->SetVertexSprite( tess.vboVertexSprite );
 	gl_genericShader->SetTCGenEnvironment( false );
@@ -472,7 +472,7 @@ static void DrawTris()
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_genericShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -701,7 +701,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
 	// choose right shader program ----------------------------------
-	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_genericShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
 
 	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
@@ -747,7 +747,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_genericShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -958,7 +958,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// choose right shader program ----------------------------------
 	tess.vboVertexSprite = false;
 
-	gl_lightMappingShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_lightMappingShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 
 	gl_lightMappingShader->SetVertexAnimation( tess.vboVertexAnimation );
 
@@ -992,7 +992,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	{
 		VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin ); // in world space
 
-		if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+		if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 		{
 			gl_lightMappingShader->SetUniform_Bones( tess.numBones, tess.bones );
 		}
@@ -1013,11 +1013,11 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
 
-	if( glConfig2.dynamicLight )
+	if( glConfig.dynamicLight )
 	{
 		if ( backEnd.refdef.numShaderLights > 0 )
 		{	
-			if( glConfig2.uniformBufferObjectAvailable )
+			if( glConfig.uniformBufferObjectAvailable )
 			{
 				gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 			} else
@@ -1242,7 +1242,7 @@ static void Render_shadowFill( shaderStage_t *pStage )
 
 	GL_State( stateBits );
 
-	gl_shadowFillShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_shadowFillShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_shadowFillShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_shadowFillShader->SetMacro_LIGHT_DIRECTIONAL( backEnd.currentLight->l.rlType == refLightType_t::RL_DIRECTIONAL );
@@ -1268,7 +1268,7 @@ static void Render_shadowFill( shaderStage_t *pStage )
 	gl_shadowFillShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_shadowFillShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -1308,10 +1308,10 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_omni ---\n" );
 
-	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
+	bool shadowCompare = ( glConfig.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
-	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_forwardLightingShader_omniXYZ->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_omniXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_omniXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
@@ -1391,7 +1391,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_forwardLightingShader_omniXYZ->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -1473,10 +1473,10 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_proj ---\n" );
 
-	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
+	bool shadowCompare = ( glConfig.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
-	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_forwardLightingShader_projXYZ->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_projXYZ->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_projXYZ->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
@@ -1557,7 +1557,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_forwardLightingShader_projXYZ->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -1637,10 +1637,10 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	GLimp_LogComment( "--- Render_forwardLighting_DBS_directional ---\n" );
 
-	bool shadowCompare = ( glConfig2.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
+	bool shadowCompare = ( glConfig.shadowMapping && !light->l.noShadows && light->shadowLOD >= 0 );
 
 	// choose right shader program ----------------------------------
-	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_forwardLightingShader_directionalSun->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_forwardLightingShader_directionalSun->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_forwardLightingShader_directionalSun->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
@@ -1725,7 +1725,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	gl_forwardLightingShader_directionalSun->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_forwardLightingShader_directionalSun->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -1820,7 +1820,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 
 	gl_reflectionShader->SetReliefMapping( pStage->enableReliefMapping );
 
-	gl_reflectionShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_reflectionShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_reflectionShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_reflectionShader->BindProgram( pStage->deformIndex );
@@ -1832,7 +1832,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 	gl_reflectionShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_reflectionShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -1984,7 +1984,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	GL_State( stateBits );
 
 	// choose right shader program ----------------------------------
-	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_heatHazeShader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_heatHazeShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 	if( tess.surfaceShader->autoSpriteMode ) {
 		gl_heatHazeShader->SetVertexSprite( true );
@@ -2014,7 +2014,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	gl_heatHazeShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_heatHazeShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
@@ -2234,7 +2234,7 @@ static void Render_fog()
 		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	}
 
-	gl_fogQuake3Shader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_fogQuake3Shader->SetVertexSkinning( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_fogQuake3Shader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
 
 	gl_fogQuake3Shader->BindProgram( 0 );
@@ -2253,7 +2253,7 @@ static void Render_fog()
 	gl_fogQuake3Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
-	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
+	if ( glConfig.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
 		gl_fogQuake3Shader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
