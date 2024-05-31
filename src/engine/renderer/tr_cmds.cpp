@@ -35,8 +35,8 @@ void R_PerformanceCounters()
 	if ( !r_speeds->integer )
 	{
 		// clear the counters even if we aren't printing
-		memset( &tr.pc, 0, sizeof( tr.pc ) );
-		memset( &backEnd.pc, 0, sizeof( backEnd.pc ) );
+		tr.pc = {};
+		backEnd.pc = {};
 		return;
 	}
 
@@ -117,8 +117,8 @@ void R_PerformanceCounters()
 		           tr.pc.c_decalSurfacesCreated );
 	}
 
-	memset( &tr.pc, 0, sizeof( tr.pc ) );
-	memset( &backEnd.pc, 0, sizeof( backEnd.pc ) );
+	tr.pc = {};
+	backEnd.pc = {};
 }
 
 /*

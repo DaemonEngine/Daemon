@@ -677,7 +677,6 @@ void CL_LocalServers_f()
 {
 	const char *message;
 	int      i, j;
-	netadr_t to;
 
 	serverInfoLog.Verbose( "Scanning for servers on the local network…" );
 
@@ -688,11 +687,11 @@ void CL_LocalServers_f()
 	for ( i = 0; i < MAX_OTHER_SERVERS; i++ )
 	{
 		bool b = cls.localServers[ i ].visible;
-		memset( &cls.localServers[ i ], 0, sizeof( cls.localServers[ i ] ) );
+		cls.localServers[ i ] = {};
 		cls.localServers[ i ].visible = b;
 	}
 
-	memset( &to, 0, sizeof( to ) );
+	netadr_t to{};
 
 	// The 'xxx' in the message is a challenge that will be echoed back
 	// by the server.  We don't care about that here, but master servers
@@ -954,7 +953,6 @@ CL_Ping_f
 */
 void CL_Ping_f()
 {
-	netadr_t     to;
 	ping_t        *pingptr;
 	const char   *server;
 	int          argc;
@@ -990,7 +988,7 @@ void CL_Ping_f()
 		server = Cmd_Argv( 2 );
 	}
 
-	memset( &to, 0, sizeof( netadr_t ) );
+	netadr_t to{};
 
 	if ( !NET_StringToAdr( server, &to, family ) )
 	{

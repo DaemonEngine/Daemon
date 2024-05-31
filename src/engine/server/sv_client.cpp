@@ -190,7 +190,7 @@ void SV_DirectConnect( const netadr_t& from, const Cmd::Args& args )
 	// build a new connection
 	// accept the new client
 	// this is the only place a client_t is ever initialized
-	memset( new_client, 0, sizeof( client_t ) );
+	ResetStruct( *new_client );
 	int clientNum = new_client - svs.clients;
 
 	Log::Notice( "Client %i connecting", clientNum );
@@ -336,7 +336,7 @@ the wrong gamestate.
 void SV_SendClientGameState( client_t *client )
 {
 	int           start;
-	entityState_t *base, nullstate;
+	entityState_t *base;
 	msg_t         msg;
 	byte          msgBuffer[ MAX_MSGLEN ];
 
@@ -377,7 +377,7 @@ void SV_SendClientGameState( client_t *client )
 	}
 
 	// write the baselines
-	memset( &nullstate, 0, sizeof( nullstate ) );
+	entityState_t nullstate{};
 
 	for ( start = 0; start < MAX_GENTITIES; start++ )
 	{
@@ -1279,7 +1279,6 @@ static void SV_UserMove( client_t *cl, msg_t *msg, bool delta )
 {
 	int       i;
 	int       cmdCount;
-	usercmd_t nullcmd;
 	usercmd_t cmds[ MAX_PACKET_USERCMDS ];
 	usercmd_t *cmd, *oldcmd;
 
@@ -1306,7 +1305,7 @@ static void SV_UserMove( client_t *cl, msg_t *msg, bool delta )
 		return;
 	}
 
-	memset( &nullcmd, 0, sizeof( nullcmd ) );
+	usercmd_t nullcmd{};
 	oldcmd = &nullcmd;
 
 	for ( i = 0; i < cmdCount; i++ )

@@ -473,7 +473,6 @@ to handle mirrors,
 */
 void RE_RenderScene( const refdef_t *fd )
 {
-	viewParms_t parms;
 	int         startTime;
 
 	if ( !tr.registered )
@@ -584,7 +583,7 @@ void RE_RenderScene( const refdef_t *fd )
 	// The refdef takes 0-at-the-top y coordinates, so
 	// convert to GL's 0-at-the-bottom space
 	//
-	memset( &parms, 0, sizeof( parms ) );
+	viewParms_t parms{};
 
 	if ( tr.refdef.pixelTarget == nullptr )
 	{
@@ -709,7 +708,7 @@ qhandle_t RE_RegisterVisTest()
 	}
 	ASSERT ( !test->registered );
 
-	memset( test, 0, sizeof( *test ) );
+	*test = {};
 	test->registered = true;
 	tr.numVisTests++;
 

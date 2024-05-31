@@ -458,7 +458,6 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	IQModel_t		*IQModel;
 	IQAnim_t		*IQAnim;
 	srfIQModel_t		*surface;
-	vboData_t               vboData;
 	float                   *weightbuf;
 	int                     *indexbuf;
 	i16vec4_t               *qtangentbuf;
@@ -805,7 +804,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 					  qtangentbuf[ i ] );
 		}
 
-		memset( &vboData, 0, sizeof( vboData ) );
+		vboData_t vboData{};
 
 		vboData.xyz = (vec3_t *)IQModel->positions;
 		vboData.qtangent = qtangentbuf;

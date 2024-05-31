@@ -1569,7 +1569,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Log::Debug("GetRefAPI()" );
 
-		memset( &re, 0, sizeof( re ) );
+		re = {};
 
 		if ( apiVersion != REF_API_VERSION )
 		{

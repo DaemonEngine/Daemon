@@ -285,7 +285,7 @@ CL_ServerStatus_f
 */
 void CL_ServerStatus_f()
 {
-	netadr_t       to, *toptr = nullptr;
+	netadr_t       *toptr = nullptr;
 	const char     *server;
 	serverStatus_t *serverStatus;
 	int            argc;
@@ -307,7 +307,7 @@ void CL_ServerStatus_f()
 
 	if ( !toptr )
 	{
-		memset( &to, 0, sizeof( netadr_t ) );
+		netadr_t to{};
 
 		if ( argc == 2 )
 		{

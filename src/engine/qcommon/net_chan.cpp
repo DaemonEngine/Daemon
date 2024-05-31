@@ -104,7 +104,7 @@ called to open a channel to a remote system
 */
 void Netchan_Setup( netsrc_t sock, netchan_t *chan, const netadr_t& adr, int qport )
 {
-	memset( chan, 0, sizeof( *chan ) );
+	ResetStruct( *chan );
 
 	chan->sock = sock;
 	chan->remoteAddress = adr;
@@ -476,7 +476,7 @@ bool        NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_mes
 
 	memcpy( net_message->data, loop->msgs[ i ].data, loop->msgs[ i ].datalen );
 	net_message->cursize = loop->msgs[ i ].datalen;
-	memset( net_from, 0, sizeof( *net_from ) );
+	*net_from = {};
 	net_from->type = netadrtype_t::NA_LOOPBACK;
 	return true;
 }

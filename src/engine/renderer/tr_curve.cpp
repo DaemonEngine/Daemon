@@ -440,7 +440,7 @@ static srfGridMesh_t *R_CreateSurfaceGridMesh( int width, int height,
 	else
 	{
 		grid = (srfGridMesh_t*) ri.Hunk_Alloc( size, ha_pref::h_low );
-		memset( grid, 0, size );
+		*grid = {};
 
 		grid->widthLodError = (float*) ri.Hunk_Alloc( width * 4, ha_pref::h_low );
 		std::copy_n( errorTable[ 0 ], width, grid->widthLodError );

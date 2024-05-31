@@ -407,7 +407,7 @@ void SV_ClearServer()
 		}
 	}
 
-	memset( &sv, 0, sizeof( sv ) );
+	ResetStruct( sv );
 }
 
 /*

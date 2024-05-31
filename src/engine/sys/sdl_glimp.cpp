@@ -372,8 +372,8 @@ void GLimp_Shutdown()
 
 	SDL_QuitSubSystem( SDL_INIT_VIDEO );
 
-	memset( &glConfig, 0, sizeof( glConfig ) );
-	memset( &glState, 0, sizeof( glState ) );
+	ResetStruct( glConfig );
+	ResetStruct( glState );
 }
 
 static void GLimp_Minimize()

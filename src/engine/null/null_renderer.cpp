@@ -202,7 +202,7 @@ refexport_t    *GetRefAPI( int, refimport_t* )
 {
     static refexport_t re;
 
-    memset( &re, 0, sizeof( re ) );
+    re = {};
 
     re.Shutdown = RE_Shutdown;
 

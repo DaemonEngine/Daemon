@@ -397,7 +397,6 @@ void CL_ParseGamestate( msg_t *msg )
 	int           i;
 	entityState_t *es;
 	int           newnum;
-	entityState_t nullstate;
 	int           cmd;
 
 	Con_Close();
@@ -441,7 +440,7 @@ void CL_ParseGamestate( msg_t *msg )
 				Sys::Drop( "Baseline number out of range: %i", newnum );
 			}
 
-			memset( &nullstate, 0, sizeof( nullstate ) );
+			entityState_t nullstate{};
 			es = &cl.entityBaselines[ newnum ];
 			MSG_ReadDeltaEntity( msg, &nullstate, es, newnum );
 		}

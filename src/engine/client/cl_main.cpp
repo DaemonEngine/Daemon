@@ -427,8 +427,7 @@ void CL_Record(std::string demo_name)
     }
 
     // baselines
-    entityState_t nullstate;
-    memset( &nullstate, 0, sizeof( nullstate ) );
+    entityState_t nullstate{};
 
     for ( int i = 0; i < MAX_GENTITIES; i++ )
     {
@@ -2292,7 +2291,7 @@ void CL_ShutdownRef()
 	}
 
 	re.Shutdown( true );
-	memset( &re, 0, sizeof( re ) );
+	re = {};
 }
 
 //===========================================================================================
