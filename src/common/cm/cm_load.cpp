@@ -840,7 +840,7 @@ CM_ClearMap
 void CM_ClearMap()
 {
 	CM_FreeAll();
-	memset( &cm, 0, sizeof( cm ) );
+	ResetStruct( cm );
 }
 
 /*
