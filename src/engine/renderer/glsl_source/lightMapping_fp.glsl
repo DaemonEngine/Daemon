@@ -161,8 +161,8 @@ void main()
 		computeLight(lightColor, diffuse, color);
 	#endif
 
-	// Blend dynamic lights.
-	#if defined(r_dynamicLight)
+	// Blend dynamic lights, this code is only used by the tiled dynamic light renderer.
+	#if defined(r_dynamicLight) && r_dynamicLightRenderer == 1
 		computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color);
 	#endif
 

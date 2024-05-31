@@ -510,53 +510,54 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
                  int fogNum,
                  bool bspSurface )
 {
-	shader_t *state;
-
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
 	tess.attribsSet = 0;
 	tess.multiDrawPrimitives = 0;
 
-	// materials are optional
-	if ( surfaceShader != nullptr )
-	{
-		state = ( surfaceShader->remappedShader ) ? surfaceShader->remappedShader : surfaceShader;
-
-		tess.surfaceShader = state;
-		tess.surfaceStages = state->stages;
-		tess.surfaceLastStage = state->lastStage;
-
-		Tess_MapVBOs( false );
-	}
-	else
-	{
-		state = nullptr;
-
-		tess.surfaceShader = nullptr;
-		tess.surfaceStages = nullptr;
-		tess.surfaceLastStage = nullptr;
-		Tess_MapVBOs( false );
-	}
-
-	tess.lightShader = lightShader;
-
 	tess.stageIteratorFunc = stageIteratorFunc;
 	tess.stageIteratorFunc2 = stageIteratorFunc2;
 
-	if ( !tess.stageIteratorFunc )
-	{
-		Sys::Error( "tess.stageIteratorFunc == NULL" );
-	}
-
-	if ( state != nullptr && state->isSky )
-	{
-		tess.stageIteratorFunc = &Tess_StageIteratorSky;
-	}
+	tess.surfaceShader = surfaceShader;
+	tess.lightShader = lightShader;
 
 	tess.skipTangentSpaces = skipTangentSpaces;
 	tess.lightmapNum = lightmapNum;
 	tess.fogNum = fogNum;
 	tess.bspSurface = bspSurface;
+
+	// materials are optional
+	if ( tess.surfaceShader )
+	{
+		if ( tess.surfaceShader->remappedShader )
+		{
+			tess.surfaceShader = surfaceShader->remappedShader;
+		}
+
+		if ( tess.surfaceShader->isSky )
+		{
+			tess.stageIteratorFunc = &Tess_StageIteratorSky;
+		}
+
+		tess.surfaceStages = tess.surfaceShader->stages;
+		tess.surfaceLastStage = tess.surfaceShader->lastStage;
+	}
+	else
+	{
+		/* No code is using this on purpose, this is kept because of the
+		scary comment above saying:
+
+		> A surface may be forced to perform a Tess_End due to overflow. */
+		tess.surfaceStages = nullptr;
+		tess.surfaceLastStage = nullptr;
+	}
+
+	Tess_MapVBOs( false );
+
+	if ( !tess.stageIteratorFunc )
+	{
+		Sys::Error( "tess.stageIteratorFunc == NULL" );
+	}
 
 	if ( r_logFile->integer )
 	{
