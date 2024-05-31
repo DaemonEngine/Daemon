@@ -331,7 +331,7 @@ bool CL_OpenAVIForWriting( const char *fileName )
 		return false;
 	}
 
-	memset( &afd, 0, sizeof( aviFileData_t ) );
+	afd = {};
 
 	// Don't start if a framerate has not been chosen
 	if ( cl_aviFrameRate->integer <= 0 )

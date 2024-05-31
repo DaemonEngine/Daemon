@@ -57,7 +57,7 @@ void MSG_Init( msg_t *buf, byte *data, int length )
 		MSG_initHuffman();
 	}
 
-	memset( buf, 0, sizeof( *buf ) );
+	*buf = {};
 	buf->data = data;
 	buf->maxsize = length;
 }
@@ -69,7 +69,7 @@ void MSG_InitOOB( msg_t *buf, byte *data, int length )
 		MSG_initHuffman();
 	}
 
-	memset( buf, 0, sizeof( *buf ) );
+	*buf = {};
 	buf->data = data;
 	buf->maxsize = length;
 	buf->oob = true;
@@ -1088,7 +1088,7 @@ void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 	// check for a remove
 	if ( MSG_ReadBits( msg, 1 ) == 1 )
 	{
-		memset( to, 0, sizeof( *to ) );
+		*to = {};
 		to->number = MAX_GENTITIES - 1;
 
 		if ( cl_shownet && ( cl_shownet->integer >= 2 || cl_shownet->integer == -1 ) )

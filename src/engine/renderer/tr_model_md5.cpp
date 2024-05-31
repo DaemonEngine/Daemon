@@ -103,7 +103,6 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 	matrix_t      boneMat;
 
 	int           numBoneReferences;
-	int           boneReferences[ MAX_BONES ];
 
 	buf_p = ( char * ) buffer;
 
@@ -605,7 +604,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 		while ( numRemaining )
 		{
 			numBoneReferences = 0;
-			memset( boneReferences, 0, sizeof( boneReferences ) );
+			int boneReferences[ MAX_BONES ]{};
 
 			vboTriangles.resize( 0 );
 

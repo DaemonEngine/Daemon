@@ -174,7 +174,7 @@ static glyphInfo_t *RE_ConstructGlyphInfo( unsigned char *imageOut, int *xOut, i
 	float              scaledWidth, scaledHeight;
 	FT_Bitmap          *bitmap = nullptr;
 
-	memset( &glyph, 0, sizeof( glyphInfo_t ) );
+	glyph = {};
 
 	// make sure everything is here
 	if ( face != nullptr )
@@ -636,7 +636,7 @@ fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 	}
 
 	fontInfo_t* font = &registeredFont[ fontNo ];
-	memset( font, 0, sizeof( fontInfo_t ) );
+	ResetStruct( *font );
 
 	len = ri.FS_ReadFile( fileName, nullptr );
 
@@ -776,7 +776,7 @@ void RE_UnregisterFont_Internal( fontHandle_t handle )
 		}
 	}
 
-	memset( &registeredFont[ handle ], 0, sizeof( fontInfo_t ) );
+	ResetStruct( registeredFont[ handle ] );
 }
 
 void RE_UnregisterFont( fontInfo_t *font )

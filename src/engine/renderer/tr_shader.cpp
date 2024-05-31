@@ -6951,7 +6951,7 @@ static void ScanAndLoadShaderFiles()
 			bool      alreadyCreated;
 
 			// zeroes shader table, booleans can be assumed as false
-			memset( &table, 0, sizeof( table ) );
+			table = {};
 
 			token = COM_ParseExt2( &p, true );
 

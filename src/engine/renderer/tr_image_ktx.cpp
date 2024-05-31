@@ -768,8 +768,7 @@ void LoadKTX( const char *name, byte **pic, int *width, int *height,
 
 void SaveImageKTX( const char *path, image_t *img )
 {
-	KTX_header_t hdr;
-	memset( &hdr, 0, sizeof(hdr) );
+	KTX_header_t hdr{};
 	memcpy( &hdr.identifier, KTX_identifier, sizeof( KTX_identifier ) );
 	hdr.endianness = KTX_endianness;
 
