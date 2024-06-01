@@ -1943,6 +1943,9 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.2
 	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync->value );
 
+	// made required in OpenGL 3.2
+	glConfig2.depthClampAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_depth_clamp, r_arb_depth_clamp.Get() );
+
 	GL_CheckErrors();
 }
 
