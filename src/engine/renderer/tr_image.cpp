@@ -2403,7 +2403,7 @@ static void R_CreateCurrentRenderImage()
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
 
-	if ( glConfig2.textureFloatAvailable && r_highPrecisionRendering.Get() )
+	if ( r_highPrecisionRendering.Get() )
 	{
 		imageParams.bits |= IF_RGBA16;
 	}
@@ -2424,6 +2424,8 @@ static void R_CreateCurrentRenderImage()
 
 static void R_CreateDepthRenderImage()
 {
+	ASSERT( glConfig2.textureFloatAvailable );
+
 	if ( !glConfig2.dynamicLight )
 	{
 		return;
@@ -2437,7 +2439,9 @@ static void R_CreateDepthRenderImage()
 		imageParams_t imageParams = {};
 		imageParams.filterType = filterType_t::FT_NEAREST;
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-		imageParams.bits = IF_NOPICMIP | IF_RGBA32F;
+
+		imageParams.bits = IF_NOPICMIP;
+		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_RGBA32F : IF_RGBA16F;
 
 		tr.dlightImage = R_CreateImage("_dlightImage", nullptr, w, h, 4, imageParams );
 	}
@@ -2466,9 +2470,11 @@ static void R_CreateDepthRenderImage()
 		int h = (height + TILE_SIZE_STEP1 - 1) >> TILE_SHIFT_STEP1;
 
 		imageParams_t imageParams = {};
-		imageParams.bits = IF_NOPICMIP | IF_RGBA32F;
 		imageParams.filterType = filterType_t::FT_NEAREST;
 		imageParams.wrapType = wrapTypeEnum_t::WT_ONE_CLAMP;
+
+		imageParams.bits = IF_NOPICMIP;
+		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_RGBA32F : IF_RGBA16F;
 
 		tr.depthtile1RenderImage = R_CreateImage( "_depthtile1Render", nullptr, w, h, 1, imageParams );
 
@@ -2479,18 +2485,14 @@ static void R_CreateDepthRenderImage()
 
 		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
 
-		if ( glConfig2.textureIntegerAvailable )
-		{
-			imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
+		imageParams.bits = IF_NOPICMIP;
 
-			tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
-		}
-		else
+		if ( glConfig2.textureIntegerAvailable && r_highPrecisionRendering.Get() )
 		{
-			imageParams.bits = IF_NOPICMIP;
-
-			tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
+			imageParams.bits |= IF_RGBA32UI;
 		}
+
+		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
 	}
 }
 
@@ -2540,6 +2542,7 @@ static void R_CreateShadowMapFBOImage()
 	int numFactor = 1;
 	int format = IF_NOPICMIP;
 
+	// FIXME: We should test if those formats are supported.
 	switch( glConfig2.shadowingMode )
 	{
 		case shadowingMode_t::SHADOWING_ESM16:
@@ -2623,6 +2626,7 @@ static void R_CreateShadowCubeFBOImage()
 
 	int format = IF_NOPICMIP;
 
+	// FIXME: We should test if those formats are supported.
 	switch( glConfig2.shadowingMode )
 	{
 		case shadowingMode_t::SHADOWING_ESM16:
