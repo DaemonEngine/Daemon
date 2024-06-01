@@ -660,7 +660,10 @@ static void Render_generic2D( shaderStage_t *pStage )
 	BindAnimatedImage( &pStage->bundle[ TB_COLORMAP ] );
 	gl_generic2DShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
-	glEnable( GL_DEPTH_CLAMP );
+	if ( glConfig2.depthClampAvailable )
+	{
+		glEnable( GL_DEPTH_CLAMP );
+	}
 
 	if ( hasDepthFade )
 	{
@@ -676,7 +679,10 @@ static void Render_generic2D( shaderStage_t *pStage )
 
 	Tess_DrawElements();
 
-	glDisable( GL_DEPTH_CLAMP );
+	if ( glConfig2.depthClampAvailable )
+	{
+		glDisable( GL_DEPTH_CLAMP );
+	}
 
 	GL_CheckErrors();
 }
