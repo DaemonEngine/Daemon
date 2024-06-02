@@ -217,7 +217,7 @@ void R_ListImages_f()
 	// Header names
 	std::string num = "num";
 	std::string width = "width";
-	std::string height = "heigth";
+	std::string height = "height";
 	std::string layers = "layers";
 	std::string mm = "mm";
 	std::string type = "type";
