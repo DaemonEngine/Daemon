@@ -145,11 +145,6 @@ void trap_GetTimeString(char *buffer, int size, const char *format, const qtime_
     Q_strncpyz(buffer, text.c_str(), size);
 }
 
-void trap_QuoteString(const char *str, char *buffer, int size)
-{
-    Q_strncpyz(buffer, Cmd::Escape(str).c_str(), size);
-}
-
 int trap_BotAllocateClient()
 {
     int res;
