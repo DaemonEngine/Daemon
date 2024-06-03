@@ -798,7 +798,6 @@ protected:
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
 	  USE_PHYSICAL_MAPPING,
-	  USE_ALPHA_TESTING
 	};
 
 public:
@@ -1274,31 +1273,6 @@ public:
 	}
 
 	void SetPhysicalShading( bool enable )
-	{
-		SetMacro( enable );
-	}
-};
-
-class GLCompileMacro_USE_ALPHA_TESTING :
-	GLCompileMacro
-{
-public:
-	GLCompileMacro_USE_ALPHA_TESTING(GLShader *shader) :
-		GLCompileMacro(shader)
-	{
-	}
-
-	const char *GetName() const override
-	{
-		return "USE_ALPHA_TESTING";
-	}
-
-	EGLCompileMacro GetType() const override
-	{
-		return USE_ALPHA_TESTING;
-	}
-
-	void SetAlphaTesting(bool enable)
 	{
 		SetMacro( enable );
 	}
@@ -2281,8 +2255,7 @@ class GLShader_generic2D :
 	public u_Color,
 	public u_DepthScale,
 	public GLDeformStage,
-	public GLCompileMacro_USE_DEPTH_FADE,
-	public GLCompileMacro_USE_ALPHA_TESTING
+	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
 	GLShader_generic2D( GLShaderManager *manager );
@@ -2312,8 +2285,7 @@ class GLShader_generic :
 	public GLCompileMacro_USE_VERTEX_SPRITE,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
-	public GLCompileMacro_USE_DEPTH_FADE,
-	public GLCompileMacro_USE_ALPHA_TESTING
+	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
 	GLShader_generic( GLShaderManager *manager );
@@ -2539,8 +2511,7 @@ class GLShader_skybox :
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
 	public u_VertexInterpolation,
-	public GLDeformStage,
-	public GLCompileMacro_USE_ALPHA_TESTING
+	public GLDeformStage
 {
 public:
 	GLShader_skybox( GLShaderManager *manager );

@@ -438,7 +438,6 @@ static void DrawTris()
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
 	gl_genericShader->SetDepthFade( false );
-	gl_genericShader->SetAlphaTesting( false );
 
 	if( tess.surfaceStages != tess.surfaceLastStage ) {
 		deform = tess.surfaceStages[ 0 ].deformIndex;
@@ -448,7 +447,8 @@ static void DrawTris()
 
 	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
 
-	//gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
+	// u_AlphaThreshold
+	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
 	if ( r_showBatches->integer || r_showLightBatches->integer )
 	{
@@ -630,22 +630,15 @@ static void Render_generic2D( shaderStage_t *pStage )
 	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
 	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
 	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
-	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
 	// choose right shader program ----------------------------------
-
 	gl_generic2DShader->SetDepthFade( hasDepthFade );
-	gl_generic2DShader->SetAlphaTesting(alphaTestBits != 0);
-
 	gl_generic2DShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
-	// u_AlphaTest
-	if (alphaTestBits != 0)
-	{
-		gl_generic2DShader->SetUniform_AlphaTest(pStage->stateBits);
-	}
+	// u_AlphaThreshold
+	gl_generic2DShader->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_ColorModulate
 	colorGen_t rgbGen;
@@ -699,18 +692,14 @@ void Render_generic3D( shaderStage_t *pStage )
 	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
 	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
 	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
-	uint32_t alphaTestBits = pStage->stateBits & GLS_ATEST_BITS;
 
 	// choose right shader program ----------------------------------
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
-
 	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
 	gl_genericShader->SetDepthFade( hasDepthFade );
 	gl_genericShader->SetVertexSprite( tess.vboVertexSprite );
-	gl_genericShader->SetAlphaTesting(alphaTestBits != 0);
-
 	gl_genericShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
@@ -722,11 +711,8 @@ void Render_generic3D( shaderStage_t *pStage )
 		gl_genericShader->SetUniform_ViewUp( backEnd.orientation.axis[ 2 ] );
 	}
 
-	// u_AlphaTest
-	if (alphaTestBits != 0)
-	{
-		gl_genericShader->SetUniform_AlphaTest(pStage->stateBits);
-	}
+	// u_AlphaThreshold
+	gl_genericShader->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_InverseLightFactor
 	// We should cancel overbrightBits if there is no light,
@@ -1051,7 +1037,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// u_Color
 	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
 
-	// u_AlphaTest
+	// u_AlphaThreshold
 	gl_lightMappingShader->SetUniform_AlphaTest( pStage->stateBits );
 
 	// bind u_HeightMap
@@ -1257,6 +1243,7 @@ static void Render_shadowFill( shaderStage_t *pStage )
 		gl_shadowFillShader->SetUniform_Color( Color::Color::Indexed( backEnd.pc.c_batches % 8 ) );
 	}
 
+	// u_AlphaThreshold
 	gl_shadowFillShader->SetUniform_AlphaTest( pStage->stateBits );
 
 	if ( backEnd.currentLight->l.rlType != refLightType_t::RL_DIRECTIONAL )
@@ -1335,6 +1322,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// u_Color
 	gl_forwardLightingShader_omniXYZ->SetUniform_Color( tess.svars.color );
 
+	// u_AlphaThreshold
 	gl_forwardLightingShader_omniXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_InverseLightFactor
@@ -1500,6 +1488,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// u_Color
 	gl_forwardLightingShader_projXYZ->SetUniform_Color( tess.svars.color );
 
+	// u_AlphaThreshold
 	gl_forwardLightingShader_projXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_InverseLightFactor
@@ -1664,6 +1653,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// u_Color
 	gl_forwardLightingShader_directionalSun->SetUniform_Color( tess.svars.color );
 
+	// u_AlphaThreshold
 	gl_forwardLightingShader_directionalSun->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_InverseLightFactor
@@ -1907,6 +1897,9 @@ void Render_skybox( shaderStage_t *pStage )
 
 	// bind u_ColorMap
 	GL_BindToTMU( 0, pStage->bundle[ TB_COLORMAP ].image[ 0 ] );
+
+	// u_AlphaThreshold
+	gl_skyboxShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
 	// u_InverseLightFactor
 	gl_skyboxShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
