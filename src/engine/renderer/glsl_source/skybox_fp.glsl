@@ -67,13 +67,11 @@ void	main()
 		color = texture2D( u_CloudMap, st ).rgba;
 	}
 	
-	#if defined(USE_ALPHA_TESTING)
-		if( abs(color.a + u_AlphaThreshold) <= 1.0 )
-			{
-				discard;
-				return;
-			}
-	#endif
+	if( abs(color.a + u_AlphaThreshold) <= 1.0 )
+	{
+		discard;
+		return;
+	}
 
 	color.rgb *= u_InverseLightFactor;
 
