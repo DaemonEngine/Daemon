@@ -1336,10 +1336,10 @@ MSG_WriteDeltaPlayerstate
 
 =============
 */
-void MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to )
+void MSG_WriteDeltaPlayerstate(
+	msg_t *msg, const OpaquePlayerState *from, const OpaquePlayerState *to )
 {
 	int           lc;
-	int        *fromF, *toF;
 	float      fullFloat;
 	int        trunc;
 	int        startBit, endBit;
@@ -1383,8 +1383,8 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlaye
 	for ( int i = 0; i < numFields; i++ )
 	{
 		netField_t* field = &playerStateFields[i];
-		fromF = ( int * )( ( byte * ) from + field->offset );
-		toF = ( int * )( ( byte * ) to + field->offset );
+		auto fromF = reinterpret_cast<const int *>( reinterpret_cast<const byte *>( from ) + field->offset );
+		auto toF = reinterpret_cast<const int *>( reinterpret_cast<const byte *>( to ) + field->offset );
 
 		if (field->bits == STATS_GROUP_FIELD
 			? memcmp(fromF, toF, sizeof(int) * STATS_GROUP_NUM_STATS)
@@ -1401,8 +1401,8 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlaye
 	for ( int i = 0; i < lc; i++ )
 	{
 		netField_t* field = &playerStateFields[i];
-		fromF = ( int * )( ( byte * ) from + field->offset );
-		toF = ( int * )( ( byte * ) to + field->offset );
+		auto fromF = reinterpret_cast<const int *>( reinterpret_cast<const byte *>( from ) + field->offset );
+		auto toF = reinterpret_cast<const int *>( reinterpret_cast<const byte *>( to ) + field->offset );
 
 		if (field->bits == STATS_GROUP_FIELD)
 		{
@@ -1486,12 +1486,11 @@ static void ReadStatsGroup(msg_t* msg, int* to, const netField_t& field)
 MSG_ReadDeltaPlayerstate
 ===================
 */
-void MSG_ReadDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to )
+void MSG_ReadDeltaPlayerstate( msg_t *msg, const OpaquePlayerState *from, OpaquePlayerState *to )
 {
 	int           lc;
 	int           startBit, endBit;
 	int           print;
-	int           *fromF, *toF;
 	int           trunc;
 
 	if (playerStateFields.empty())
@@ -1537,8 +1536,8 @@ void MSG_ReadDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayer
 	for ( int i = 0; i < lc; i++ )
 	{
 		netField_t* field = &playerStateFields[i];
-		fromF = ( int * )( ( byte * ) from + field->offset );
-		toF = ( int * )( ( byte * ) to + field->offset );
+		auto fromF = reinterpret_cast<const int *>( reinterpret_cast<const byte *>( from ) + field->offset );
+		auto toF = reinterpret_cast<int *>( reinterpret_cast<byte *>( to ) + field->offset );
 
 		if ( !MSG_ReadBits( msg, 1 ) )
 		{

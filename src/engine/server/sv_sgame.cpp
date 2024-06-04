@@ -60,10 +60,10 @@ sharedEntity_t *SV_GentityNum( int num )
 		Sys::Drop( "SV_GentityNum: bad num %d", num );
 	}
 
-	return ( sharedEntity_t * )( ( byte * ) sv.gentities + sv.gentitySize * ( num ) );
+	return reinterpret_cast<sharedEntity_t *>( sv.gentities + sv.gentitySize * num );
 }
 
-OpaquePlayerState *SV_GameClientNum( int num )
+const OpaquePlayerState *SV_GameClientNum( int num )
 {
 	if ( num < 0 || num >= sv_maxclients->integer || sv.gameClients == nullptr )
 	{
@@ -194,12 +194,12 @@ void SV_LocateGameData( const IPC::SharedMemory& shmRegion, int numGEntities, in
 	if ( int64_t(shmRegion.GetSize()) < int64_t(MAX_GENTITIES) * sizeofGEntity_t + int64_t(sv_maxclients->integer) * sizeofGameClient )
 		Sys::Drop( "SV_LocateGameData: Shared memory region too small" );
 
-	char* base = static_cast<char*>(shmRegion.GetBase());
-	sv.gentities = reinterpret_cast<sharedEntity_t*>(base);
+	byte* base = static_cast<byte*>(shmRegion.GetBase());
+	sv.gentities = base;
 	sv.gentitySize = sizeofGEntity_t;
 	sv.num_entities = numGEntities;
 
-	sv.gameClients = reinterpret_cast<OpaquePlayerState*>(base + MAX_GENTITIES * size_t(sizeofGEntity_t));
+	sv.gameClients = base + MAX_GENTITIES * size_t(sizeofGEntity_t);
 	sv.gameClientSize = sizeofGameClient;
 }
 

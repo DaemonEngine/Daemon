@@ -496,7 +496,7 @@ static void SVC_Status( const netadr_t& from, const Cmd::Args& args )
 
 		if ( cl->state >= clientState_t::CS_CONNECTED )
 		{
-			OpaquePlayerState* ps = SV_GameClientNum( i );
+			const OpaquePlayerState* ps = SV_GameClientNum( i );
 			status +=  Str::Format( "%i %i \"%s\"\n", ps->persistant[ PERS_SCORE ], cl->ping, cl->name );
 		}
 	}
