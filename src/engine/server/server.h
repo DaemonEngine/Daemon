@@ -82,12 +82,12 @@ struct server_t
 	const char            *entityParsePoint; // used during game VM init
 
 	// the game virtual machine will update these on init and changes
-	sharedEntity_t *gentities;
-	int            gentitySize;
+	byte *gentities; // points to the sgame's array of gentity_t
+	int            gentitySize; // >= sizeof(sharedEntity_t) - game can have unlimited amount of private data
 	int            num_entities; // current number, <= MAX_GENTITIES
 
-	OpaquePlayerState *gameClients;
-	int            gameClientSize; // will be > sizeof(playerState_t) due to game private data
+	const byte *gameClients; // points to the sgame's array of playerState_t in shared memory
+	int            gameClientSize; // will be <= sizeof(OpaquePlayerState)
 
 	int            restartTime;
 	int            time;
@@ -393,7 +393,7 @@ void SV_SendClientIdle( client_t *client );
 // sv_sgame.c
 //
 sharedEntity_t *SV_GentityNum( int num );
-OpaquePlayerState *SV_GameClientNum( int num );
+const OpaquePlayerState *SV_GameClientNum( int num );
 
 svEntity_t     *SV_SvEntityForGentity( sharedEntity_t *gEnt );
 void           SV_InitGameProgs();
