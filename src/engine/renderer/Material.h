@@ -287,6 +287,7 @@ extern GLSSBO surfaceCommandsSSBO; // Per viewframe, GPU updated
 extern GLBuffer culledCommandsBuffer; // Per viewframe
 extern GLUBO surfaceBatchesUBO; // Global
 extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
+extern GLSSBO debugSSBO; // Global
 extern MaterialSystem materialSystem;
 
 #endif // MATERIAL_H

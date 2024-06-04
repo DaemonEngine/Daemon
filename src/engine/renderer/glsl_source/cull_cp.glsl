@@ -70,6 +70,10 @@ layout(std430, binding = 2) writeonly restrict buffer surfaceCommandsSSBO {
     SurfaceCommand surfaceCommands[];
 };
 
+layout(std430, binding = 5) writeonly restrict buffer debugSSBO {
+    vec4 debugSurfaces[];
+};
+
 struct Plane {
     vec3 normal;
     float distance;
@@ -86,11 +90,11 @@ uniform uint u_ViewHeight;
 uniform float u_P00;
 uniform float u_P11;
 
-bool ProjectSphere( in vec3 center, in float radius, in float zNear, in float P00, in float P11, inout vec4 AABB )
+bool ProjectSphere( in vec3 center, in float radius, in float zNear, in float P00, in float P11, inout vec4 boundingBox, in uint debugID )
 {
-	if ( center.z < radius + zNear ) {
+	/* if ( center.z < radius + zNear ) {
 		return false;
-    }
+    } */
 
 	vec3 cr = center * radius;
 	float czr2 = center.z * center.z - radius * radius;
@@ -103,8 +107,10 @@ bool ProjectSphere( in vec3 center, in float radius, in float zNear, in float P0
 	float miny = ( vy * center.y - cr.z ) / ( vy * center.z + cr.y );
 	float maxy = ( vy * center.y + cr.z ) / ( vy * center.z - cr.y );
 
-	AABB = vec4( minx * P00, miny * P11, maxx * P00, maxy * P11 );
-	AABB = AABB.xwzy * vec4( 0.5f, -0.5f, 0.5f, -0.5f ) + vec4( 0.5f ); // clip space -> uv space
+	boundingBox = vec4( minx * P00, miny * P11, maxx * P00, maxy * P11 );
+	boundingBox = boundingBox.xwzy * vec4( 0.5f, -0.5f, 0.5f, -0.5f ) + vec4( 0.5, 0.5, 0.5, 0.5 ); // clip space -> uv space
+    
+    debugSurfaces[debugID * 5 + 2] = vec4( minx, maxx, miny, maxy );
 
 	return true;
 }
@@ -120,15 +126,18 @@ void UpdateBoundingBoxRoot( in float nx, in vec3 axisSphere, in float axisFOV, i
     }
 }
 
-void UpdateBoundingBox( in vec3 axisSphere, in float axisFOV, inout vec2 axisBox ) {
+void UpdateBoundingBox( in vec3 axisSphere, in float axisFOV, inout vec2 axisBox, in uint debugID ) {
     float radiusSquared = axisSphere.z * axisSphere.z;
     float centerZ = axisSphere.x * axisSphere.x + axisSphere.y * axisSphere.y;
     float distanceZ = axisSphere.x * axisSphere.x * radiusSquared - centerZ * ( radiusSquared - axisSphere.y * axisSphere.y );
+    debugSurfaces[debugID].xyz = vec3( radiusSquared, centerZ, distanceZ );
     if( distanceZ > 0.0 ) {
         float a = axisSphere.z * axisSphere.x;
         float b = sqrt( distanceZ );
         float nx0 = ( a + b ) / centerZ;
         float nx1 = ( a - b ) / centerZ;
+        debugSurfaces[debugID].z = a;
+        debugSurfaces[debugID + 1] = vec4( b, nx0, nx1, 0.0 );
         UpdateBoundingBoxRoot( nx0, axisSphere, axisFOV, axisBox );
         UpdateBoundingBoxRoot( nx1, axisSphere, axisFOV, axisBox );
     }
@@ -145,32 +154,42 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
         }
     }
     
+    const uint debugID = gl_GlobalInvocationID.z * gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y
+                            + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x
+                            + gl_GlobalInvocationID.x;
+    vec4 boundingBox = vec4( -1.0, 1.0, -1.0, 1.0 );
+    const vec3 viewSpaceCenter = vec3( vec4( boundingSphere.center - u_CameraPosition, 1.0 ) * u_ModelViewMatrix );
+    
     /* vec4 AABB;
-    const vec3 viewSpaceCenter = boundingSphere.center - u_CameraPosition;
-    if( !culled && ProjectSphere( viewSpaceCenter, boundingSphere.radius, 3.0, u_P00, u_P11, AABB ) ) {
-        const float width = ( AABB.z - AABB.x ) * float( u_ViewWidth );
-		const float height = ( AABB.w - AABB.y ) * float( u_ViewHeight );
+    const vec3 viewSpaceCenter = boundingSphere.center - u_CameraPosition; */
+    
+    if( !culled && ProjectSphere( viewSpaceCenter, boundingSphere.radius, 3.0, u_P00, u_P11, boundingBox, debugID ) ) {
+        const float width = ( boundingBox.z - boundingBox.x ) * float( u_ViewWidth );
+		const float height = ( boundingBox.w - boundingBox.y ) * float( u_ViewHeight );
 
         const float level = floor( log2( max( width, height ) ) );
         // float level = 0.0;
 
-        const float surfaceDepth = textureLod( depthImage, ( AABB.xy + AABB.zw ) * 0.5, level ).r;
+        const float surfaceDepth = textureLod( depthImage, ( boundingBox.xy + boundingBox.zw ) * 0.5, level ).r;
         
-        // culled = 3.0 / ( viewSpaceCenter.z - boundingSphere.radius ) < surfaceDepth;
-        culled = ( AABB.x == AABB.z );
-    } */
+        culled = ( 1 + 3.0 / ( viewSpaceCenter.z - boundingSphere.radius ) ) > surfaceDepth;
+        debugSurfaces[debugID * 5] = vec4( viewSpaceCenter, float( culled ) );
+        debugSurfaces[debugID * 5 + 1] = boundingBox.xzyw;
+        debugSurfaces[debugID * 5 + 3] = vec4( width, height, level, surfaceDepth );
+        debugSurfaces[debugID * 5 + 4].x = 1 + 3.0 / ( viewSpaceCenter.z - boundingSphere.radius );
+        // culled = ( boundingBox.x == boundingBox.z );
+    }
 
-    if( !culled ) {
-        vec4 boundingBox = vec4( -1.0, 1.0, -1.0, 1.0 );
-        const vec3 viewSpaceCenter = vec3( vec4( boundingSphere.center, 1.0 ) * u_ModelViewMatrix ); // boundingSphere.center - u_CameraPosition;
+    /* if( !culled ) { // boundingSphere.center - u_CameraPosition;
         vec2 minBox = vec2( -1.0, -1.0 );
         vec2 maxBox = vec2( 1.0, 1.0 );
         vec4 mmBox = vec4( -1.0, -1.0, 1.0, 1.0 );
         // UpdateBoundingBox( vec3( boundingSphere.xz, boundingSphere.radius ), u_P00, boundingBox.xy );
         // UpdateBoundingBox( vec3( boundingSphere.yz, boundingSphere.radius ), u_P11, boundingBox.zw );
-        UpdateBoundingBox( vec3( viewSpaceCenter.xz, boundingSphere.radius ), u_P00, mmBox.xz );
-        UpdateBoundingBox( vec3( viewSpaceCenter.yz, boundingSphere.radius ), u_P11, mmBox.yw );
-        boundingBox = mmBox * 0.5 + vec4( 0.5, 0.5, 0.5, 0.5 );
+        UpdateBoundingBox( vec3( viewSpaceCenter.xz, boundingSphere.radius ), u_P00, mmBox.xz, debugID * 5 + 1 );
+        UpdateBoundingBox( vec3( viewSpaceCenter.yz, boundingSphere.radius ), u_P11, mmBox.yw, debugID * 5 + 3 );
+        // boundingBox = mmBox * 0.5 + vec4( 0.5, 0.5, 0.5, 0.5 );
+        boundingBox = mmBox.xwzy * 0.5 + vec4( 0.5, -0.5, 0.5, -0.5 );
 
         const float width = ( boundingBox.z - boundingBox.x ) * float( u_ViewWidth );
 		const float height = ( boundingBox.w - boundingBox.y ) * float( u_ViewHeight );
@@ -180,12 +199,15 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
 
         const float surfaceDepth = textureLod( depthImage, ( boundingBox.xy + boundingBox.zw ) * 0.5, level ).r;
         
-        culled = 3.0 / ( viewSpaceCenter.z - boundingSphere.radius ) < surfaceDepth; 
+        culled = 3.0 / ( viewSpaceCenter.z - boundingSphere.radius ) < surfaceDepth;
+        // culled = surfaceDepth >= 0.998;
+        // culled = width >= 960;
         // culled = level > 9.0;
         // culled = ( boundingBox.x == boundingBox.z );
         // culled = !( viewSpaceCenter.x >= -1.0 );
         // culled = ( boundingBox.w - boundingBox.y ) > 1;
-    }
+        debugSurfaces[debugID * 5] = vec4( viewSpaceCenter, 1.0 ); // mmBox;
+    } */
 
     return culled;
 }

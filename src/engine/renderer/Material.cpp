@@ -42,6 +42,7 @@ GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT | GL_MAP_PERS
 GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLUBO surfaceBatchesUBO( "surfaceBatches", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLSSBO debugSSBO( "debugSurfaces", 5, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 MaterialSystem materialSystem;
 
 static void ComputeDynamics( shaderStage_t* pStage ) {
@@ -1018,6 +1019,14 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 				  nullptr, GL_STATIC_DRAW );
 	uint32_t* surfaceDescriptors = surfaceDescriptorsSSBO.MapBufferRange( surfaceDescriptorsCount * descriptorSize );
 
+	debugSSBO.GenBuffer();
+	debugSSBO.BindBuffer();
+	glBufferData( GL_SHADER_STORAGE_BUFFER, surfaceDescriptorsCount * 20 * sizeof( uint32_t ),
+		nullptr, GL_STATIC_DRAW );
+	uint32_t* debugSurfaces = debugSSBO.MapBufferRange( surfaceDescriptorsCount * 20 );
+	memset( debugSurfaces, 0, surfaceDescriptorsCount * 20 * sizeof( uint32_t ) );
+	debugSSBO.UnmapBuffer();
+
 	culledCommandsCount = totalBatchCount * SURFACE_COMMANDS_PER_BATCH;
 	surfaceCommandsCount = totalBatchCount * SURFACE_COMMANDS_PER_BATCH + 1;
 
@@ -1944,6 +1953,7 @@ void MaterialSystem::CullSurfaces() {
 	culledCommandsBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
 	surfaceBatchesUBO.BindBufferBase();
 	atomicCommandCountersBuffer.BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+	debugSSBO.BindBufferBase();
 
 	for ( uint view = 0; view < frames[nextFrame].viewCount; view++ ) {
 		frustum_t* frustum = &frames[nextFrame].viewFrames[view].frustum;
@@ -2001,6 +2011,7 @@ void MaterialSystem::CullSurfaces() {
 	culledCommandsBuffer.UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
 	surfaceBatchesUBO.UnBindBufferBase();
 	atomicCommandCountersBuffer.UnBindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+	debugSSBO.UnBindBufferBase();
 
 	GL_CheckErrors();
 }

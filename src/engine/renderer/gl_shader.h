@@ -3247,7 +3247,7 @@ class u_P00 :
 		GLUniform1f( shader, "u_P00" ) {
 	}
 
-	void SetUniform_P00( const int P00 ) {
+	void SetUniform_P00( const float P00 ) {
 		this->SetValue( P00 );
 	}
 };
@@ -3259,7 +3259,7 @@ class u_P11 :
 		GLUniform1f( shader, "u_P11" ) {
 	}
 
-	void SetUniform_P11( const int P11 ) {
+	void SetUniform_P11( const float P11 ) {
 		this->SetValue( P11 );
 	}
 };
