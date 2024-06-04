@@ -144,6 +144,15 @@ void trap_GetTimeString(char *buffer, int size, const char *format, const qtime_
     Q_strncpyz(buffer, text.c_str(), size);
 }
 
+// length of returned vector is sv_maxclients
+std::vector<int> trap_GetPings()
+{
+    std::vector<int> pings;
+    VM::SendMsg<GetPingsMsg>(pings);
+    return pings;
+}
+
+
 int trap_BotAllocateClient()
 {
     int res;

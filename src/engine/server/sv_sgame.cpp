@@ -564,6 +564,16 @@ void GameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& chan
 		});
 		break;
 
+	case G_GET_PINGS:
+		IPC::HandleMsg<GetPingsMsg>(channel, std::move(reader), [this](std::vector<int>& pings) {
+			int count = sv_maxclients->integer;
+			pings.resize(count);
+			for (int i = 0; i < count; i++) {
+				pings[i] = svs.clients[i].ping;
+			}
+		});
+		break;
+
 	case BOT_ALLOCATE_CLIENT:
 		IPC::HandleMsg<BotAllocateClientMsg>(channel, std::move(reader), [this](int& output) {
 			output = SV_BotAllocateClient();

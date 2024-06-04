@@ -1210,10 +1210,6 @@ void SV_CalcPings()
 				cl->ping = 999;
 			}
 		}
-
-		// let the game module know about the ping
-		OpaquePlayerState* ps = SV_GameClientNum( i );
-		ps->ping = cl->ping;
 	}
 }
 
