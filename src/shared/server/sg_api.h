@@ -53,5 +53,6 @@ int              trap_RSA_GenerateMessage( const char *public_key, char *clearte
 void             trap_GenFingerprint( const char *pubkey, int size, char *buffer, int bufsize );
 void             trap_GetPlayerPubkey( int clientNum, char *pubkey, int size );
 void             trap_GetTimeString( char *buffer, int size, const char *format, const qtime_t *tm );
+std::vector<int> trap_GetPings();
 
 #endif

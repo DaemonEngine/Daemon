@@ -1909,7 +1909,6 @@ union OpaquePlayerState {
 	struct {
 		// These fields must be identical to ones at the start of playerState_t
 		vec3_t origin;
-		int ping; // shouldn't even be here?
 		int persistant[16];
 		int    viewheight;
 		int clientNum;
