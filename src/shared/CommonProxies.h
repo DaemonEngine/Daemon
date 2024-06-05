@@ -50,6 +50,7 @@ namespace VM {
 
 void trap_AddCommand(const char* cmdName);
 void trap_RemoveCommand(const char* cmdName);
+void trap_CompleteCallback(const char* complete);
 int trap_Argc();
 void trap_Argv(int n, char* buffer, int bufferLength);
 const Cmd::Args& trap_Args();
