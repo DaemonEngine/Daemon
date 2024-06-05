@@ -33,8 +33,6 @@ Maryland 20850 USA.
 */
 
 #include "engine/qcommon/q_shared.h"
-#include "engine/qcommon/qfiles.h"
-#include "engine/renderer/tr_types.h"
 
 void         CM_LoadMap(Str::StringRef name);
 void         CM_ClearMap();
