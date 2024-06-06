@@ -870,6 +870,7 @@ static void CL_ClearPing( int n )
 	}
 
 	cl_pinglist[ n ].adr.port = 0;
+	cl_pinglist[ n ].info[ 0 ] = '\0';
 }
 
 /*
