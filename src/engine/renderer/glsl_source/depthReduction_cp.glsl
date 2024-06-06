@@ -66,9 +66,9 @@ void main() {
             }
         }
 
-        float depthOut = min( depth[0], depth[1] );
-        depthOut = min( depthOut, depth[2] );
-        depthOut = min( depthOut, depth[3] );
+        float depthOut = max( depth[0], depth[1] );
+        depthOut = max( depthOut, depth[2] );
+        depthOut = max( depthOut, depth[3] );
         imageStore( depthImageOut, position, vec4( depthOut, 0.0, 0.0, 0.0 ) );
     }
 }

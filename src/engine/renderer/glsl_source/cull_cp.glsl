@@ -96,16 +96,20 @@ bool ProjectSphere( in vec3 center, in float radius, in float zNear, in float P0
 		return false;
     } */
 
+    if ( -center.z + radius < -zNear ) {
+		return false;
+    }
+
 	vec3 cr = center * radius;
 	float czr2 = center.z * center.z - radius * radius;
 
 	float vx = sqrt( center.x * center.x + czr2 );
-	float minx = ( vx * center.x - cr.z ) / ( vx * center.z + cr.x );
-	float maxx = ( vx * center.x + cr.z ) / ( vx * center.z - cr.x );
+	float minx = center.x * center.x + czr2 >= 0.0 ? ( vx * center.x - cr.z ) / ( vx * center.z + cr.x ) : -1.0;
+	float maxx = center.x * center.x + czr2 >= 0.0 ? ( vx * center.x + cr.z ) / ( vx * center.z - cr.x ) : 1.0;
 
 	float vy = sqrt( center.y * center.y + czr2 );
-	float miny = ( vy * center.y - cr.z ) / ( vy * center.z + cr.y );
-	float maxy = ( vy * center.y + cr.z ) / ( vy * center.z - cr.y );
+	float miny = center.y * center.y + czr2 >= 0.0 ? ( vy * center.y - cr.z ) / ( vy * center.z + cr.y ) : -1.0;
+	float maxy = center.y * center.y + czr2 >= 0.0 ? ( vy * center.y + cr.z ) / ( vy * center.z - cr.y ) : 1.0;
 
 	boundingBox = vec4( minx * P00, miny * P11, maxx * P00, maxy * P11 );
 	boundingBox = boundingBox.xwzy * vec4( 0.5f, -0.5f, 0.5f, -0.5f ) + vec4( 0.5, 0.5, 0.5, 0.5 ); // clip space -> uv space
@@ -169,14 +173,40 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
 
         const float level = floor( log2( max( width, height ) ) );
         // float level = 0.0;
+        const int levelInt = int( level );
 
-        const float surfaceDepth = textureLod( depthImage, ( boundingBox.xy + boundingBox.zw ) * 0.5, level ).r;
-        
+        // const float surfaceDepth = textureLod( depthImage, ( boundingBox.xy + boundingBox.zw ) * 0.5, level ).r;
+        // const vec4 depthValues = textureGather( depthImage, ( boundingBox.xy + boundingBox.zw ) * 0.5)
+        vec2 surfaceCoords = vec2( u_ViewWidth >> levelInt, u_ViewHeight >> levelInt );
+        surfaceCoords *= ( boundingBox.xy + boundingBox.zw ) * 0.5;
+        const ivec2 surfaceCoordsFloor = ivec2( surfaceCoords );
+        vec4 depthValues;
+        depthValues.x = texelFetch( depthImage, surfaceCoordsFloor, levelInt ).r;
+        depthValues.y = texelFetch( depthImage,
+                        ivec2(
+                            clamp( surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ), 0, ( u_ViewWidth >> levelInt ) - 1 ),
+                            surfaceCoordsFloor.y ),
+                        levelInt ).r;
+        depthValues.z = texelFetch( depthImage,
+                        ivec2( surfaceCoordsFloor.x,
+                            clamp( surfaceCoordsFloor.y + ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ? 1 : -1 ), 0, ( u_ViewHeight >> levelInt ) - 1 )
+                        ),
+                        levelInt ).r;
+        depthValues.w = texelFetch( depthImage,
+                        ivec2(
+                            clamp( surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ), 0, ( u_ViewWidth >> levelInt ) - 1 ),
+                            clamp( surfaceCoordsFloor.y + ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ? 1 : -1 ), 0, ( u_ViewHeight >> levelInt ) - 1 )
+                        ),
+                        levelInt ).r;
+        const float surfaceDepth = min( min( min( depthValues.x, depthValues.y ), depthValues.z ), depthValues.w );
+
         culled = ( 1 + 3.0 / ( viewSpaceCenter.z - boundingSphere.radius ) ) > surfaceDepth;
         debugSurfaces[debugID * 5] = vec4( viewSpaceCenter, float( culled ) );
         debugSurfaces[debugID * 5 + 1] = boundingBox.xzyw;
         debugSurfaces[debugID * 5 + 3] = vec4( width, height, level, surfaceDepth );
         debugSurfaces[debugID * 5 + 4].x = 1 + 3.0 / ( viewSpaceCenter.z - boundingSphere.radius );
+        debugSurfaces[debugID * 5 + 4].yz = vec2( clamp( surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ), 0, ( u_ViewWidth >> levelInt ) - 1 ),
+                                                  clamp( surfaceCoordsFloor.y + ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ? 1 : -1 ), 0, ( u_ViewHeight >> levelInt ) - 1 ) );
         // culled = ( boundingBox.x == boundingBox.z );
     }
 
