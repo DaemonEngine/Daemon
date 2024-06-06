@@ -1581,8 +1581,7 @@ GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 	u_Color( this ),
 	u_DepthScale( this ),
 	GLDeformStage( this ),
-	GLCompileMacro_USE_DEPTH_FADE( this ),
-	GLCompileMacro_USE_ALPHA_TESTING( this )
+	GLCompileMacro_USE_DEPTH_FADE( this )
 {
 }
 
@@ -1623,8 +1622,7 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLCompileMacro_USE_VERTEX_SPRITE( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
-	GLCompileMacro_USE_DEPTH_FADE( this ),
-	GLCompileMacro_USE_ALPHA_TESTING( this )
+	GLCompileMacro_USE_DEPTH_FADE( this )
 {
 }
 
@@ -1976,8 +1974,7 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
 	u_VertexInterpolation( this ),
-	GLDeformStage( this ),
-	GLCompileMacro_USE_ALPHA_TESTING( this )
+	GLDeformStage( this )
 {
 }
 
