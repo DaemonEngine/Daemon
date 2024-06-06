@@ -53,7 +53,7 @@ int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t pro
 	std::vector<std::array<float, 3>> mypoints(numPoints);
 	std::array<float, 3> myproj;
 	memcpy((float*)mypoints.data(), points, sizeof(float) * 3 * numPoints);
-	VectorCopy(projection, myproj.data());
+	VectorCopy(projection, myproj);
 
 	std::vector<std::array<float, 3>> mypointBuffer;
 	std::vector<markFragment_t> myfragmentBuffer;
@@ -275,8 +275,8 @@ bool trap_R_inPVVS( const vec3_t p1, const vec3_t p2 )
 {
 	bool res;
 	std::array<float, 3> myp1, myp2;
-	VectorCopy(p1, myp1.data());
-	VectorCopy(p2, myp2.data());
+	VectorCopy(p1, myp1);
+	VectorCopy(p2, myp2);
 	VM::SendMsg<Render::InPVVSMsg>(myp1, myp2, res);
 	return res;
 }
@@ -379,14 +379,14 @@ void trap_R_ResetMatrixTransform()
 void trap_R_AddLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags )
 {
 	std::array<float, 3> myorg;
-	VectorCopy(org, myorg.data());
+	VectorCopy(org, myorg);
 	cmdBuffer.SendMsg<Render::AddLightToSceneMsg>(myorg, radius, intensity, r, g, b, hShader, flags);
 }
 
 void trap_R_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, float g, float b )
 {
 	std::array<float, 3> myorg;
-	VectorCopy(org, myorg.data());
+	VectorCopy(org, myorg);
 	cmdBuffer.SendMsg<Render::AddAdditiveLightToSceneMsg>(myorg, intensity, r, g, b);
 }
 
@@ -429,8 +429,8 @@ void trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs )
 {
 	std::array<float, 3> mymins, mymaxs;
 	VM::SendMsg<Render::ModelBoundsMsg>(model, mymins, mymaxs);
-	VectorCopy(mymins.data(), mins);
-	VectorCopy(mymaxs.data(), maxs);
+	VectorCopy(mymins, mins);
+	VectorCopy(mymaxs, maxs);
 }
 
 int trap_R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex )
@@ -449,8 +449,8 @@ bool trap_R_inPVS( const vec3_t p1, const vec3_t p2 )
 {
 	bool res;
 	std::array<float, 3> myp1, myp2;
-	VectorCopy(p1, myp1.data());
-	VectorCopy(p2, myp2.data());
+	VectorCopy(p1, myp1);
+	VectorCopy(p2, myp2);
 	VM::SendMsg<Render::InPVSMsg>(myp1, myp2, res);
 	return res;
 }
@@ -459,11 +459,11 @@ int trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLigh
 {
 	int result;
 	std::array<float, 3> mypoint, myambient, mydirected, mydir;
-	VectorCopy(point, mypoint.data());
+	VectorCopy(point, mypoint);
 	VM::SendMsg<Render::LightForPointMsg>(mypoint, myambient, mydirected, mydir, result);
-	VectorCopy(myambient.data(), ambientLight);
-	VectorCopy(mydirected.data(), directedLight);
-	VectorCopy(mydir.data(), lightDir);
+	VectorCopy(myambient, ambientLight);
+	VectorCopy(mydirected, directedLight);
+	VectorCopy(mydir, lightDir);
 	return result;
 }
 
@@ -550,7 +550,7 @@ qhandle_t trap_RegisterVisTest()
 void trap_AddVisTestToScene( qhandle_t hTest, const vec3_t pos, float depthAdjust, float area )
 {
 	std::array<float, 3> mypos;
-	VectorCopy(pos, mypos.data());
+	VectorCopy(pos, mypos);
 	cmdBuffer.SendMsg<Render::AddVisTestToSceneMsg>(hTest, mypos, depthAdjust, area);
 }
 
