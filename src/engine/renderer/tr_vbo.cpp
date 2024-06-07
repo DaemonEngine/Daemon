@@ -588,22 +588,18 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 	glGenBuffers( 1, &vbo->vertexesVBO );
 	R_BindVBO( vbo );
 
-	byte *outData;
+	byte *outData = (byte *)ri.Hunk_AllocateTempMemory( vbo->vertexesSize );
+	R_CopyVertexData( vbo, outData, data );
 #ifdef GL_ARB_buffer_storage
 	if( glConfig2.bufferStorageAvailable ) {
-		outData = (byte *)ri.Hunk_AllocateTempMemory( vbo->vertexesSize );
-		R_CopyVertexData( vbo, outData, data );
-		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize,
-				 outData, 0 );
-		ri.Hunk_FreeTempMemory( outData );
+		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize, outData, 0 );
 	} else
 #endif
 	{
-		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, nullptr, vbo->usage );
-		outData = (byte *)glMapBuffer( GL_ARRAY_BUFFER, GL_WRITE_ONLY );
-		R_CopyVertexData( vbo, outData, data );
-		glUnmapBuffer( GL_ARRAY_BUFFER );
+		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, outData, vbo->usage );
 	}
+
+	ri.Hunk_FreeTempMemory( outData );
 
 	R_BindNullVBO();
 
