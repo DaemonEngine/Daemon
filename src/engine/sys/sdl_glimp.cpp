@@ -1788,6 +1788,9 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.0
 	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4->value );
 
+	// made required in OpenGL 4.0
+	glConfig2.gpuShader5Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_gpu_shader5, r_arb_gpu_shader5->value );
+
 	// made required in OpenGL 3.0
 	// GL_EXT_texture_integer can be used in shaders only if GL_EXT_gpu_shader4 is also available
 	glConfig2.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer->value )
