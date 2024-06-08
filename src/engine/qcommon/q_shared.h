@@ -381,30 +381,122 @@ inline float DotProduct( const vec3_t x, const vec3_t y )
 	return x[ 0 ] * y[ 0 ] + x[ 1 ] * y[ 1 ] + x[ 2 ] * y[ 2 ];
 }
 
-#define VectorSubtract( a,b,c )      ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] - ( b )[ 2 ] )
-#define VectorAdd( a,b,c )           ( ( c )[ 0 ] = ( a )[ 0 ] + ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] + ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] + ( b )[ 2 ] )
-#define VectorMultiply( a,b,c )      ( ( c )[ 0 ] = ( a )[ 0 ] * ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] * ( b )[ 1 ],( c )[ 2 ] = ( a )[ 2 ] * ( b )[ 2 ] )
-#define VectorCopy( a,b )            ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ],( b )[ 2 ] = ( a )[ 2 ] )
-#define VectorScale( v, s, o )       ( ( o )[ 0 ] = ( v )[ 0 ] * ( s ),( o )[ 1 ] = ( v )[ 1 ] * ( s ),( o )[ 2 ] = ( v )[ 2 ] * ( s ) )
+template<typename A, typename B, typename C>
+void VectorSubtract( const A &a, const B &b, C &&c )
+{
+	c[ 0 ] = a[ 0 ] - b[ 0 ];
+	c[ 1 ] = a[ 1 ] - b[ 1 ];
+	c[ 2 ] = a[ 2 ] - b[ 2 ];
+}
+
+template<typename A, typename B, typename C>
+void VectorAdd( const A &a, const B &b, C &&c )
+{
+	c[ 0 ] = a[ 0 ] + b[ 0 ];
+	c[ 1 ] = a[ 1 ] + b[ 1 ];
+	c[ 2 ] = a[ 2 ] + b[ 2 ];
+}
+
+template<typename A, typename B>
+void VectorCopy( const A &a, B &&b )
+{
+	b[ 0 ] = a[ 0 ];
+	b[ 1 ] = a[ 1 ];
+	b[ 2 ] = a[ 2 ];
+}
+
+template<typename V, typename S, typename O>
+void VectorScale( const V &v, S s, O &&o )
+{
+	o[ 0 ] = v[ 0 ] * s;
+	o[ 1 ] = v[ 1 ] * s;
+	o[ 2 ] = v[ 2 ] * s;
+}
+
 /** Stands for MultiplyAdd: adding a vector "b" scaled by "s" to "v" and writing it to "o" */
-#define VectorMA( v, s, b, o )       ( ( o )[ 0 ] = ( v )[ 0 ] + ( b )[ 0 ] * ( s ),( o )[ 1 ] = ( v )[ 1 ] + ( b )[ 1 ] * ( s ),( o )[ 2 ] = ( v )[ 2 ] + ( b )[ 2 ] * ( s ) )
+template<typename V, typename S, typename B, typename O>
+void VectorMA( const V &v, S s, const B &b, O &&o )
+{
+	o[ 0 ] = v[ 0 ] + b[ 0 ] * s;
+	o[ 1 ] = v[ 1 ] + b[ 1 ] * s;
+	o[ 2 ] = v[ 2 ] + b[ 2 ] * s;
+}
+
+template<typename A>
+void VectorClear( A &&a )
+{
+	a[ 0 ] = 0;
+	a[ 1 ] = 0;
+	a[ 2 ] = 0;
+}
+
+template<typename A, typename B>
+void VectorNegate( const A &a, B &&b )
+{
+	b[ 0 ] = -a[ 0 ];
+	b[ 1 ] = -a[ 1 ];
+	b[ 2 ] = -a[ 2 ];
+}
+
+template<typename V, typename X, typename Y, typename Z>
+void VectorSet( V &&v, X x, Y y, Z z )
+{
+	v[ 0 ] = x;
+	v[ 1 ] = y;
+	v[ 2 ] = z;
+}
+
+template<typename A, typename B>
+void Vector2Copy( const A &a, B &&b )
+{
+	b[ 0 ] = a[ 0 ];
+	b[ 1 ] = a[ 1 ];
+}
+
+template<typename V, typename X, typename Y>
+void Vector2Set( V &&v, X x, Y y )
+{
+	v[ 0 ] = x;
+	v[ 1 ] = y;
+}
+
+template<typename A, typename B, typename C>
+void Vector2Subtract( const A &a, const B &b, C &&c )
+{
+	c[ 0 ] = a[ 0 ] - b[ 0 ];
+	c[ 1 ] = a[ 1 ] - b[ 1 ];
+}
+
+template<typename V, typename X, typename Y, typename Z, typename W>
+void Vector4Set( V &&v, X x, Y y, Z z, W w )
+{
+	v[ 0 ] = x;
+	v[ 1 ] = y;
+	v[ 2 ] = z;
+	v[ 3 ] = w;
+}
+
+template<typename A, typename B>
+void Vector4Copy( const A &a, B &&b )
+{
+	b[ 0 ] = a[ 0 ];
+	b[ 1 ] = a[ 1 ];
+	b[ 2 ] = a[ 2 ];
+	b[ 3 ] = a[ 3 ];
+}
+
+// good for floats only
+template<typename V>
+void SnapVector( V &&v )
+{
+	v[ 0 ] = roundf( v[ 0 ] );
+	v[ 1 ] = roundf( v[ 1 ] );
+	v[ 2 ] = roundf( v[ 2 ] );
+}
+
 #define VectorLerpTrem( f, s, e, r ) (( r )[ 0 ] = ( s )[ 0 ] + ( f ) * (( e )[ 0 ] - ( s )[ 0 ] ), \
                                       ( r )[ 1 ] = ( s )[ 1 ] + ( f ) * (( e )[ 1 ] - ( s )[ 1 ] ), \
                                       ( r )[ 2 ] = ( s )[ 2 ] + ( f ) * (( e )[ 2 ] - ( s )[ 2 ] ))
-
-#define VectorClear( a )             ( ( a )[ 0 ] = ( a )[ 1 ] = ( a )[ 2 ] = 0 )
-#define VectorNegate( a,b )          ( ( b )[ 0 ] = -( a )[ 0 ],( b )[ 1 ] = -( a )[ 1 ],( b )[ 2 ] = -( a )[ 2 ] )
-#define VectorSet( v, x, y, z )      ( ( v )[ 0 ] = ( x ), ( v )[ 1 ] = ( y ), ( v )[ 2 ] = ( z ) )
-
-#define Vector2Set( v, x, y )        ( ( v )[ 0 ] = ( x ),( v )[ 1 ] = ( y ) )
-#define Vector2Copy( a,b )           ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ] )
-#define Vector2Subtract( a,b,c )     ( ( c )[ 0 ] = ( a )[ 0 ] - ( b )[ 0 ],( c )[ 1 ] = ( a )[ 1 ] - ( b )[ 1 ] )
-
-#define Vector4Set( v, x, y, z, n )  ( ( v )[ 0 ] = ( x ),( v )[ 1 ] = ( y ),( v )[ 2 ] = ( z ),( v )[ 3 ] = ( n ) )
-#define Vector4Copy( a,b )           ( ( b )[ 0 ] = ( a )[ 0 ],( b )[ 1 ] = ( a )[ 1 ],( b )[ 2 ] = ( a )[ 2 ],( b )[ 3 ] = ( a )[ 3 ] )
-#define DotProduct4(x, y)            (( x )[ 0 ] * ( y )[ 0 ] + ( x )[ 1 ] * ( y )[ 1 ] + ( x )[ 2 ] * ( y )[ 2 ] + ( x )[ 3 ] * ( y )[ 3 ] )
-
-#define SnapVector( v )              do { ( v )[ 0 ] = ( floor( ( v )[ 0 ] + 0.5f ) ); ( v )[ 1 ] = ( floor( ( v )[ 1 ] + 0.5f ) ); ( v )[ 2 ] = ( floor( ( v )[ 2 ] + 0.5f ) ); } while ( 0 )
 
 	float    RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
 	void     ZeroBounds( vec3_t mins, vec3_t maxs );
