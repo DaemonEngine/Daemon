@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* forwardLighting_fp.glsl */
 
 /* swizzle one- and two-component textures to RG */
-#ifdef TEXTURE_RG
+#if defined(HAVE_ARB_texture_rg)
 #  define SWIZ1 r
 #  define SWIZ2 rg
 #else

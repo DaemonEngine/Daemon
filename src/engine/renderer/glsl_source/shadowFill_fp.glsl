@@ -33,7 +33,7 @@ IN(smooth) vec4		var_Color;
 
 DECLARE_OUTPUT(vec4)
 
-#ifdef TEXTURE_RG
+#if defined(HAVE_ARB_texture_rg)
 #  define SWIZ1 r
 #  define SWIZ2 rg
 #else
