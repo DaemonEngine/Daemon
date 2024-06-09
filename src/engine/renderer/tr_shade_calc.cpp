@@ -473,43 +473,31 @@ quads, rebuild them as forward facing sprites
 */
 static void ComputeCorner( int firstVertex, int numVertexes )
 {
-	int i, j;
-	shaderVertex_t *v;
-	vec4_t tc, midtc;
-
-	for ( i = 0; i < numVertexes; i += 4 ) {
+	for ( int i = 0; i < numVertexes; i += 4 ) {
 		// find the midpoint
-		v = &tess.verts[ firstVertex + i ];
+		shaderVertex_t *v = &tess.verts[ firstVertex + i ];
 
+		vec4_t midtc;
 		Vector4Set( midtc, 0.0f, 0.0f, 0.0f, 0.0f );
 
 		if ( glConfig2.halfFloatVertexAvailable )
 		{
-			for( j = 0; j < 4; j++ )
+			vec4_t tcs[ 4 ];
+
+			for( int j = 0; j < 4; j++ )
 			{
+				vec4_t &tc = tcs[ j ];
 				halfToFloat( v[ j ].f16TexCoords, tc );
 				VectorAdd( tc, midtc, midtc );
 				midtc[ 3 ] += tc[ 3 ];
 			}
-		}
-		else
-		{
-			for( j = 0; j < 4; j++ )
-			{
-				Vector4Copy( v[ j ].texCoords, tc );
-				VectorAdd( tc, midtc, midtc );
-				midtc[ 3 ] += tc[ 3 ];
-			}
-		}
 
-		midtc[ 0 ] = 0.25f * midtc[ 0 ];
-		midtc[ 1 ] = 0.25f * midtc[ 1 ];
+			midtc[ 0 ] = 0.25f * midtc[ 0 ];
+			midtc[ 1 ] = 0.25f * midtc[ 1 ];
 
-		if ( glConfig2.halfFloatVertexAvailable )
-		{
-			for ( j = 0; j < 4; j++ )
+			for ( int j = 0; j < 4; j++ )
 			{
-				halfToFloat( v[ j ].f16TexCoords, tc );
+				vec4_t &tc = tcs[ j ];
 				if( tc[ 0 ] < midtc[ 0 ] )
 				{
 					tc[ 2 ] = -tc[ 2 ];
@@ -523,7 +511,19 @@ static void ComputeCorner( int firstVertex, int numVertexes )
 		}
 		else
 		{
-			for ( j = 0; j < 4; j++ )
+			vec4_t tc;
+
+			for( int j = 0; j < 4; j++ )
+			{
+				Vector4Copy( v[ j ].texCoords, tc );
+				VectorAdd( tc, midtc, midtc );
+				midtc[ 3 ] += tc[ 3 ];
+			}
+
+			midtc[ 0 ] = 0.25f * midtc[ 0 ];
+			midtc[ 1 ] = 0.25f * midtc[ 1 ];
+
+			for ( int j = 0; j < 4; j++ )
 			{
 				Vector4Copy( v[ j ].texCoords, tc );
 				if( tc[ 0 ] < midtc[ 0 ] )
