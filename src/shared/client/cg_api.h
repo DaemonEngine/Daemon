@@ -44,6 +44,13 @@ extern IPC::CommandBufferClient cmdBuffer;
 void            trap_SendClientCommand( const char *s );
 void            trap_UpdateScreen();
 int             trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+
+void trap_CM_BatchMarkFragments(
+	unsigned maxPoints,
+	unsigned maxFragments,
+	const std::vector<markMsgInput_t> &markMsgInput,
+	std::vector<markMsgOutput_t> &markMsgOutput );
+
 void            trap_S_StartSound( vec3_t origin, int entityNum, soundChannel_t entchannel, sfxHandle_t sfx );
 void            trap_S_StartLocalSound( sfxHandle_t sfx, soundChannel_t channelNum );
 void            trap_S_ClearLoopingSounds( bool killall );
@@ -57,7 +64,7 @@ void            trap_S_StartBackgroundTrack( const char *intro, const char *loop
 void            trap_R_LoadWorldMap( const char *mapname );
 qhandle_t       trap_R_RegisterModel( const char *name );
 qhandle_t       trap_R_RegisterSkin( const char *name );
-qhandle_t       trap_R_RegisterShader( const char *name, RegisterShaderFlags_t flags );
+qhandle_t       trap_R_RegisterShader( const char *name, int flags );
 void            trap_R_ClearScene();
 void            trap_R_AddRefEntityToScene( const refEntity_t *re );
 void            trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts );
@@ -98,6 +105,11 @@ bool        trap_GetEntityToken( char *buffer, int bufferSize );
 std::vector<std::vector<Keyboard::Key>> trap_Key_GetKeysForBinds(int team, const std::vector<std::string>& binds);
 int             trap_Key_GetCharForScancode( int scancode );
 bool        trap_R_inPVS( const vec3_t p1, const vec3_t p2 );
+
+std::vector<bool> trap_R_BatchInPVS(
+	const vec3_t origin,
+	const std::vector<std::array<float, 3>>& posEntities );
+
 bool        trap_R_inPVVS( const vec3_t p1, const vec3_t p2 );
 int             trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 qhandle_t       trap_R_RegisterAnimation( const char *name );
@@ -130,6 +142,7 @@ void            trap_R_GetShaderNameFromHandle( const qhandle_t shader, char *ou
 void            trap_PrepareKeyUp();
 void            trap_R_SetAltShaderTokens( const char * );
 void            trap_S_UpdateEntityVelocity( int entityNum, const vec3_t velocity );
+void trap_S_UpdateEntityPositionVelocity( int entityNum, const vec3_t position, const vec3_t velocity );
 void            trap_S_SetReverb( int slotNum, const char* presetName, float ratio );
 void            trap_S_BeginRegistration();
 void            trap_S_EndRegistration();
