@@ -753,7 +753,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		uint32_t vertexesNum;
 		uint32_t framesNum; // number of frames for vertex animation
 
-		vboAttributeLayout_t attribs[ ATTR_INDEX_MAX ]; // info for buffer manipulation
+		std::array<vboAttributeLayout_t, ATTR_INDEX_MAX> attribs; // info for buffer manipulation
 
 		vboLayout_t layout;
 		uint32_t attribBits;

@@ -311,6 +311,80 @@ boneFactor( int index, float weight ) {
 	return (unsigned short)( ( scaledWeight << 8 ) | index );
 }
 
+static uint32_t ComponentSize( GLenum type )
+{
+	switch ( type )
+	{
+	case GL_UNSIGNED_BYTE:
+		return 1;
+
+	case GL_SHORT:
+	case GL_UNSIGNED_SHORT:
+	case GL_HALF_FLOAT:
+		return 2;
+
+	case GL_FLOAT:
+		return 4;
+	}
+
+	Log::Warn("unknown type %d", type);
+	return 0;
+}
+
+static void TranslateVertexData( const VBO_t &vbo, const byte *in, byte *out,
+	const std::array<vboAttributeLayout_t, ATTR_INDEX_MAX> &newLayout )
+{
+	for ( int i = 0; i < ATTR_INDEX_MAX; i++ )
+	{
+		const auto &aIn = vbo.attribs[ i ];
+		const auto &aOut = newLayout[ i ];
+
+		if ( aIn.numComponents == 0 )
+		{
+			continue;
+		}
+
+		const byte *in2 = in + aIn.ofs;
+		byte *out2 = out + aOut.ofs;
+		uint32_t size = aIn.numComponents * ComponentSize( aIn.componentType );
+
+		for ( uint32_t v = vbo.vertexesNum * std::max(1U, vbo.framesNum); v--; )
+		{
+			memcpy( out2, in2, size );
+			in2 += aIn.stride;
+			out2 += aOut.stride;
+		}
+	}
+}
+
+static std::array<vboAttributeLayout_t, ATTR_INDEX_MAX> TranslateVertexLayout( const VBO_t& vbo )
+{
+	std::array<vboAttributeLayout_t, ATTR_INDEX_MAX> out = vbo.attribs;
+
+	uint32_t ofs = 0;
+
+	for ( vboAttributeLayout_t &a : out )
+	{
+		if ( a.numComponents == 0 )
+		{
+			continue;
+		}
+
+		a.ofs = ofs;
+
+		ofs += a.numComponents * ComponentSize( a.componentType );
+		ofs = (ofs + 3) & ~3;
+	}
+
+	for ( vboAttributeLayout_t &a : out )
+	{
+		a.stride = a.realStride = ofs;
+		a.frameOffset = ofs * vbo.vertexesNum;
+	}
+
+	return out;
+}
+
 static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 {
 	uint32_t v;
@@ -588,17 +662,25 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 	glGenBuffers( 1, &vbo->vertexesVBO );
 	R_BindVBO( vbo );
 
+	auto newLayout = TranslateVertexLayout( *vbo );
+	uint32_t newSize = std::max(1U, vbo->framesNum) * vbo->vertexesNum * newLayout[0].stride;
+
 	byte *outData = (byte *)ri.Hunk_AllocateTempMemory( vbo->vertexesSize );
+	byte *translatedData = (byte *)ri.Hunk_AllocateTempMemory( newSize );
 	R_CopyVertexData( vbo, outData, data );
+	TranslateVertexData( *vbo, outData, translatedData, newLayout );
+	vbo->attribs = newLayout;
+	vbo->vertexesSize = newSize;
 #ifdef GL_ARB_buffer_storage
 	if( glConfig2.bufferStorageAvailable ) {
-		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize, outData, 0 );
+		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize, translatedData, 0 );
 	} else
 #endif
 	{
-		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, outData, vbo->usage );
+		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, translatedData, vbo->usage );
 	}
 
+	ri.Hunk_FreeTempMemory( translatedData );
 	ri.Hunk_FreeTempMemory( outData );
 
 	R_BindNullVBO();
