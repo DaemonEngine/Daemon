@@ -758,16 +758,23 @@ VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *ve
 	glGenBuffers( 1, &vbo->vertexesVBO );
 	R_BindVBO( vbo );
 
+	auto newLayout = TranslateVertexLayout( *vbo );
+	uint32_t newSize = std::max(1U, vbo->framesNum) * vbo->vertexesNum * newLayout[0].stride;
+	byte *translatedData = (byte *)ri.Hunk_AllocateTempMemory( newSize );
+	TranslateVertexData( *vbo, (const byte*)verts, translatedData, newLayout );
+	vbo->attribs = newLayout;
+	vbo->vertexesSize = newSize;
+
 #ifdef GL_ARB_buffer_storage
 	if( glConfig2.bufferStorageAvailable ) {
-		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize,
-				 verts, 0 );
+		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize, translatedData, 0 );
 	} else
 #endif
 	{
-		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize,
-			      verts, vbo->usage );
+		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, translatedData, vbo->usage );
 	}
+
+	Hunk_FreeTempMemory( translatedData );
 
 	R_BindNullVBO();
 	GL_CheckErrors();
