@@ -476,8 +476,8 @@ void Tess_AddSprite( const vec3_t center, const Color::Color32Bit color, float r
 
 		if ( glConfig2.halfFloatVertexAvailable )
 		{
-			floatToHalf( texCoord, tess.verts[ ndx + i ].f16TexCoords );
-			floatToHalf( orientation, tess.verts[ ndx + i ].f16SpriteOrientation );
+			floatToHalf4( texCoord, tess.verts[ ndx + i ].f16TexCoords );
+			floatToHalf4( orientation, tess.verts[ ndx + i ].f16SpriteOrientation );
 		}
 		else
 		{

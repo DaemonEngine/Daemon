@@ -487,7 +487,7 @@ static void ComputeCorner( int firstVertex, int numVertexes )
 			for( int j = 0; j < 4; j++ )
 			{
 				vec4_t &tc = tcs[ j ];
-				halfToFloat( v[ j ].f16TexCoords, tc );
+				halfToFloat4( v[ j ].f16TexCoords, tc );
 				VectorAdd( tc, midtc, midtc );
 				midtc[ 3 ] += tc[ 3 ];
 			}
@@ -506,7 +506,7 @@ static void ComputeCorner( int firstVertex, int numVertexes )
 				{
 					tc[ 3 ] = -tc[ 3 ];
 				}
-				floatToHalf( tc, v[ j ].f16TexCoords );
+				floatToHalf4( tc, v[ j ].f16TexCoords );
 			}
 		}
 		else
@@ -583,7 +583,7 @@ static void AutospriteDeform( int firstVertex, int numVertexes, int numIndexes )
 		if ( glConfig2.halfFloatVertexAvailable )
 		{
 			f16vec4_t f16Orientation;
-			floatToHalf( orientation, f16Orientation );
+			floatToHalf4( orientation, f16Orientation );
 
 			Vector4Copy( f16Orientation, v[ 0 ].f16SpriteOrientation );
 			Vector4Copy( f16Orientation, v[ 1 ].f16SpriteOrientation );
@@ -740,7 +740,7 @@ static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes 
 
 			if ( glConfig2.halfFloatVertexAvailable )
 			{
-				floatToHalf( orientation, v1->f16SpriteOrientation );
+				floatToHalf4( orientation, v1->f16SpriteOrientation );
 			}
 			else
 			{
