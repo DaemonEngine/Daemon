@@ -38,16 +38,6 @@ struct fmtVertexAnim2 {
 };
 const GLsizei sizeVertexAnim2 = sizeof( struct fmtVertexAnim2 );
 
-// interleaved data: position, texcoord, colour, qtangent, bonefactors
-struct fmtSkeletal {
-	i16vec4_t position;
-	f16vec2_t texcoord;
-	Color::Color32Bit colour;
-	i16vec4_t qtangents;
-	u16vec4_t boneFactors;
-};
-const GLsizei sizeSkeletal = sizeof( struct fmtSkeletal );
-
 // interleaved data: position, colour, qtangent, texcoord
 // -> struct shaderVertex_t in tr_local.h
 const GLsizei sizeShaderVertex = sizeof( shaderVertex_t );
@@ -74,11 +64,6 @@ static uint32_t R_DeriveAttrBits( const vboData_t &data )
 	if ( data.st )
 	{
 		stateBits |= ATTR_TEXCOORD;
-	}
-
-	if ( data.boneIndexes && data.boneWeights )
-	{
-		stateBits |= ATTR_BONE_FACTORS;
 	}
 
 	if ( data.numFrames )
@@ -137,47 +122,6 @@ static void R_SetAttributeLayoutsVertexAnimation( VBO_t *vbo )
 
 	// total size
 	vbo->vertexesSize = sizePart1 + sizePart2;
-}
-
-static void R_SetAttributeLayoutsSkeletal( VBO_t *vbo )
-{
-	vbo->attribs[ ATTR_INDEX_POSITION ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_SHORT;
-	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_TRUE;
-	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = offsetof( struct fmtSkeletal, position );
-	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeSkeletal;
-	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = 0;
-
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].numComponents = 2;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs          = offsetof( struct fmtSkeletal, texcoord );
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride       = sizeSkeletal;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset  = 0;
-
-	vbo->attribs[ ATTR_INDEX_COLOR ].numComponents   = 4;
-	vbo->attribs[ ATTR_INDEX_COLOR ].componentType   = GL_UNSIGNED_BYTE;
-	vbo->attribs[ ATTR_INDEX_COLOR ].normalize       = GL_TRUE;
-	vbo->attribs[ ATTR_INDEX_COLOR ].ofs             = offsetof( struct fmtSkeletal, colour );
-	vbo->attribs[ ATTR_INDEX_COLOR ].stride          = sizeSkeletal;
-	vbo->attribs[ ATTR_INDEX_COLOR ].frameOffset     = 0;
-
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].componentType = GL_SHORT;
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].normalize     = GL_TRUE;
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].ofs          = offsetof( struct fmtSkeletal, qtangents );
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].stride       = sizeSkeletal;
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].frameOffset  = 0;
-
-	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].componentType = GL_UNSIGNED_SHORT;
-	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].ofs           = offsetof( struct fmtSkeletal, boneFactors );
-	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].stride        = sizeSkeletal;
-	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].frameOffset   = 0;
-
-	// total size
-	vbo->vertexesSize = sizeSkeletal * vbo->vertexesNum;
 }
 
 static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
@@ -240,10 +184,6 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	{
 		R_SetAttributeLayoutsVertexAnimation( vbo );
 	}
-	else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_SKELETAL )
-	{
-		R_SetAttributeLayoutsSkeletal( vbo );
-	}
 	else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_STATIC )
 	{
 		R_SetAttributeLayoutsStatic( vbo );
@@ -259,11 +199,23 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	}
 }
 
-// index has to be in range 0-255, weight has to be >= 0 and <= 1
-static unsigned short
-boneFactor( int index, float weight ) {
-	int scaledWeight = lrintf( weight * 255.0F );
-	return (unsigned short)( ( scaledWeight << 8 ) | index );
+static uint32_t ComponentSize( GLenum type )
+{
+	switch ( type )
+	{
+	case GL_UNSIGNED_BYTE:
+		return 1;
+
+	case GL_SHORT:
+	case GL_UNSIGNED_SHORT:
+	case GL_HALF_FLOAT:
+		return 2;
+
+	case GL_FLOAT:
+		return 4;
+	}
+
+	Sys::Error( "VBO ComponentSize: unknown type %d", type );
 }
 
 static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
@@ -295,42 +247,7 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 
 	for ( v = 0; v < vbo->vertexesNum; v++ )
 	{
-		if ( vbo->layout == vboLayout_t::VBO_LAYOUT_SKELETAL ) {
-			struct fmtSkeletal *ptr = ( struct fmtSkeletal * )outData;
-			if ( ( vbo->attribBits & ATTR_POSITION ) )
-			{
-				vec4_t tmp;
-				VectorCopy( inData.xyz[ v ], tmp);
-				tmp[ 3 ] = 1.0f; // unused
-
-				floatToSnorm16( tmp, ptr[ v ].position );
-			}
-
-			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
-			{
-				Vector2Copy( inData.st[ v ], ptr[ v ].texcoord );
-			}
-
-			if ( ( vbo->attribBits & ATTR_COLOR ) )
-			{
-				ptr[ v ].colour = Color::Adapt( inData.color[ v ] );
-			}
-
-			if ( ( vbo->attribBits & ATTR_QTANGENT ) )
-			{
-				Vector4Copy( inData.qtangent[ v ], ptr[ v ].qtangents );
-			}
-
-			if ( ( vbo->attribBits & ATTR_BONE_FACTORS ) )
-			{
-				uint32_t j;
-
-				for ( j = 0; j < 4; j++ ) {
-					ptr[ v ].boneFactors[ j ] = boneFactor( inData.boneIndexes[ v ][ j ],
-										inData.boneWeights[ v ][ j ] );
-				}
-			}
-		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_XYST ) {
+		if ( vbo->layout == vboLayout_t::VBO_LAYOUT_XYST ) {
 			vec2_t *ptr = ( vec2_t * )outData;
 			if ( ( vbo->attribBits & ATTR_POSITION ) )
 			{
@@ -470,6 +387,182 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 	}
 	R_BindNullVBO();
 
+	GL_CheckErrors();
+
+	return vbo;
+}
+
+static void CopyVertexAttribute(
+	const vboAttributeLayout_t &attrib, const vertexAttributeSpec_t &spec,
+	uint32_t count, byte *interleavedData )
+{
+	if ( count == 0 )
+	{
+		return; // some loops below are 'do/while'-like
+	}
+
+	const size_t inStride = spec.stride;
+	const size_t outStride = attrib.stride;
+
+	byte *out = interleavedData + attrib.ofs;
+	const byte *in = reinterpret_cast<const byte *>( spec.begin );
+
+	if ( attrib.componentType == spec.componentInputType )
+	{
+		uint32_t size = attrib.numComponents * ComponentSize( attrib.componentType );
+
+		for ( uint32_t v = count; ; )
+		{
+			memcpy( out, in, size );
+
+			if ( --v == 0 ) break;
+			in += inStride;
+			out += outStride;
+		}
+	}
+	else if ( spec.componentInputType == GL_FLOAT && attrib.componentType == GL_HALF_FLOAT )
+	{
+		for ( uint32_t v = count; ; )
+		{
+			const float *single = reinterpret_cast<const float *>( in );
+			f16_t *half = reinterpret_cast<f16_t *>( out );
+			for ( uint32_t n = spec.numComponents; n--; )
+			{
+				*half++ = floatToHalf( *single++ );
+			}
+
+			if ( --v == 0 ) break;
+			in += inStride;
+			out += outStride;
+		}
+	}
+	else if ( spec.componentInputType == GL_HALF_FLOAT && attrib.componentType == GL_FLOAT )
+	{
+		for ( uint32_t v = count; ; )
+		{
+			const f16_t *half = reinterpret_cast<const f16_t *>( in );
+			float *single = reinterpret_cast<float *>( out );
+			for ( uint32_t n = spec.numComponents; n--; )
+			{
+				*single++ = halfToFloat( *half++ );
+			}
+
+			if ( --v == 0 ) break;
+			in += inStride;
+			out += outStride;
+		}
+	}
+	else if ( spec.componentInputType == GL_FLOAT && attrib.componentType == GL_SHORT
+	          && spec.attrOptions & ATTR_OPTION_NORMALIZE )
+	{
+		for ( uint32_t v = count; ; )
+		{
+			const float *single = reinterpret_cast<const float *>( in );
+			int16_t *snorm = reinterpret_cast<int16_t *>( out );
+			for ( uint32_t n = spec.numComponents; n--; )
+			{
+				*snorm++ = floatToSnorm16( *single++ );
+			}
+
+			if ( --v == 0 ) break;
+			in += inStride;
+			out += outStride;
+		}
+	}
+	else if ( spec.componentInputType == GL_FLOAT && attrib.componentType == GL_UNSIGNED_SHORT
+	          && spec.attrOptions & ATTR_OPTION_NORMALIZE )
+	{
+		for ( uint32_t v = count; ; )
+		{
+			const float *single = reinterpret_cast<const float *>( in );
+			uint16_t *unorm = reinterpret_cast<uint16_t *>( out );
+			for ( uint32_t n = spec.numComponents; n--; )
+			{
+				*unorm++ = floatToUnorm16( *single++ );
+			}
+
+			if ( --v == 0 ) break;
+			in += inStride;
+			out += outStride;
+		}
+	}
+	else
+	{
+		Sys::Error( "Unsupported GL type conversion (%d to %d)",
+		            spec.componentInputType, attrib.componentType );
+	}
+}
+
+VBO_t *R_CreateStaticVBO(
+	Str::StringRef name,
+	const vertexAttributeSpec_t *attrBegin, const vertexAttributeSpec_t *attrEnd,
+	uint32_t numVerts )
+{
+	// make sure the render thread is stopped
+	R_SyncRenderThread();
+
+	VBO_t *vbo = (VBO_t*) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
+	*vbo = {};
+	tr.vbos.push_back( vbo );
+
+	Q_strncpyz( vbo->name, name.c_str(), sizeof(vbo->name));
+	vbo->vertexesNum = numVerts;
+	vbo->usage = GL_STATIC_DRAW;
+
+	glGenBuffers( 1, &vbo->vertexesVBO );
+	R_BindVBO( vbo );
+
+	uint32_t ofs = 0;
+
+	for ( const vertexAttributeSpec_t *spec = attrBegin; spec != attrEnd; ++spec )
+	{
+		vboAttributeLayout_t &attrib = vbo->attribs[ spec->attrIndex ];
+		ASSERT_EQ( attrib.numComponents, 0 );
+		ASSERT_NQ( spec->numComponents, 0U );
+		attrib.componentType = spec->componentStorageType;
+		if ( attrib.componentType == GL_HALF_FLOAT && !glConfig2.halfFloatVertexAvailable )
+		{
+			attrib.componentType = GL_FLOAT;
+		}
+		attrib.numComponents = spec->numComponents;
+		attrib.ofs = ofs;
+		attrib.normalize = spec->attrOptions & ATTR_OPTION_NORMALIZE ? GL_TRUE : GL_FALSE;
+
+		ofs += attrib.numComponents * ComponentSize( attrib.componentType );
+		ofs = ( ofs + 3 ) & ~3;
+	}
+
+	for ( int i = 0; i < ATTR_INDEX_MAX; i++ )
+	{
+		if ( vbo->attribs[ i ].numComponents )
+		{
+			vbo->attribs[ i ].stride = ofs;
+			vbo->attribBits |= 1 << i;
+		}
+	}
+
+	vbo->vertexesSize = numVerts * ofs;
+
+	// TODO: does it really need to be interleaved?
+	byte *interleavedData = (byte *)ri.Hunk_AllocateTempMemory( vbo->vertexesSize );
+
+	for ( const vertexAttributeSpec_t *spec = attrBegin; spec != attrEnd; ++spec )
+	{
+		CopyVertexAttribute( vbo->attribs[ spec->attrIndex ], *spec, numVerts, interleavedData );
+	}
+
+#ifdef GL_ARB_buffer_storage
+	if( glConfig2.bufferStorageAvailable ) {
+		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize, interleavedData, 0 );
+	} else
+#endif
+	{
+		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, interleavedData, vbo->usage );
+	}
+
+	ri.Hunk_FreeTempMemory( interleavedData );
+
+	R_BindNullVBO();
 	GL_CheckErrors();
 
 	return vbo;
