@@ -1016,6 +1016,15 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("%sMissing OpenGL extensions: %s", Color::ToString( Color::Red ), glConfig2.glMissingExtensionsString );
 		}
 
+		if ( glConfig2.halfFloatVertexAvailable )
+		{
+			Log::Notice("%sUsing half-float vertex format.", Color::ToString( Color::Green ));
+		}
+		else
+		{
+			Log::Notice("%sMissing half-float vertex format.", Color::ToString( Color::Red ));
+		}
+
 		if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
 		{
 			Log::Notice("%sUsing ATI R300 approximations.", Color::ToString( Color::Red ));
