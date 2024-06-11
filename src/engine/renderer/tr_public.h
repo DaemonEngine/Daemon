@@ -114,6 +114,7 @@ struct glconfig2_t
 	bool mapBufferRangeAvailable;
 	bool syncAvailable;
 	bool depthClampAvailable;
+	bool halfFloatVertexAvailable;
 
 	bool dynamicLight;
 	bool staticLight;

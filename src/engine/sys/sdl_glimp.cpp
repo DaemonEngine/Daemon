@@ -98,6 +98,8 @@ static Cvar::Cvar<bool> r_ext_gpu_shader4( "r_ext_gpu_shader4",
 	"Use GL_EXT_gpu_shader4 if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_half_float_pixel( "r_ext_half_float_pixel",
 	"Use GL_EXT_half_float_pixel if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_half_float_vertex( "r_ext_half_float_vertex",
+	"Use GL_ARB_half_float_vertex if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_occlusion_query( "r_ext_occlusion_query",
 	"Use GL_EXT_occlusion_query if available", Cvar::NONE, true );
 static Cvar::Range<Cvar::Cvar<float>> r_ext_texture_filter_anisotropic( "r_ext_texture_filter_anisotropic",
@@ -1822,6 +1824,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_ext_draw_buffers );
 	Cvar::Latch( r_ext_gpu_shader4 );
 	Cvar::Latch( r_ext_half_float_pixel );
+	Cvar::Latch( r_ext_half_float_vertex );
 	Cvar::Latch( r_ext_occlusion_query );
 	Cvar::Latch( r_ext_texture_filter_anisotropic );
 	Cvar::Latch( r_ext_texture_float );
@@ -1971,6 +1974,9 @@ static void GLimp_InitExtensions()
 	// VAO and VBO
 	// made required in OpenGL 3.0
 	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
+	// WIP: engine is not yet usable without this
+	glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST(
+		ExtFlag_CORE, ARB_half_float_vertex, r_ext_half_float_vertex.Get() );
 
 	// made required in OpenGL 3.0
 	if ( LOAD_EXTENSION( ExtFlag_CORE, ARB_framebuffer_object ) )
