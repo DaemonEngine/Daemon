@@ -1753,6 +1753,10 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
+	const char* glRequirements =
+		"You need a graphics card with drivers supporting at least\n"
+		"OpenGL 3.2 or OpenGL 2.1 with EXT_framebuffer_object.";
+
 	switch ( err )
 	{
 		case rserr_t::RSERR_OK:
@@ -1768,21 +1772,13 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 			break;
 
 		case rserr_t::RSERR_MISSING_GL:
-			Sys::Error(
-				"OpenGL is not available.\n\n"
-				"You need a graphic card with drivers supporting\n"
-				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
-				"ARB_half_float_vertex and EXT_framebuffer_object." );
+			Sys::Error( "OpenGL is not available.\n\n%s", glRequirements );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
 
 		case rserr_t::RSERR_OLD_GL:
-			Sys::Error(
-				"OpenGL %d.%d is too old.\n\n"
-				"You need a graphic card with drivers supporting\n"
-				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
-				"ARB_half_float_vertex and EXT_framebuffer_object." );
+			Sys::Error( "OpenGL %d.%d is too old.\n\n%s", glConfig2.glMajor, glConfig2.glMinor, glRequirements );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
