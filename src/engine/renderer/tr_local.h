@@ -138,7 +138,7 @@ static inline void floatToHalf2( const vec2_t in, f16vec2_t out )
 	out[ 1 ] = floatToHalf( in[ 1 ] );
 }
 
-static inline void floatToHalf( const vec4_t in, f16vec4_t out )
+static inline void floatToHalf4( const vec4_t in, f16vec4_t out )
 {
 	out[ 0 ] = floatToHalf( in[ 0 ] );
 	out[ 1 ] = floatToHalf( in[ 1 ] );
@@ -159,7 +159,7 @@ static inline void halfToFloat2( const f16vec2_t in, vec2_t out )
 	out[ 1 ] = halfToFloat( in[ 1 ] );
 }
 
-static inline void halfToFloat( const f16vec4_t in, vec4_t out )
+static inline void halfToFloat4( const f16vec4_t in, vec4_t out )
 {
 	out[ 0 ] = halfToFloat( in[ 0 ] );
 	out[ 1 ] = halfToFloat( in[ 1 ] );
