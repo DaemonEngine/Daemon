@@ -346,16 +346,39 @@ static void TranslateVertexData( const VBO_t &vbo, const byte *in, byte *out,
 
 		const byte *in2 = in + aIn.ofs;
 		byte *out2 = out + aOut.ofs;
-		uint32_t size = aIn.numComponents * ComponentSize( aIn.componentType );
 
-		for ( uint32_t v = vbo.vertexesNum * std::max(1U, vbo.framesNum); v--; )
+		if ( aIn.componentType == GL_HALF_FLOAT && aOut.componentType == GL_FLOAT )
+		{ 
+			for ( uint32_t v = vbo.vertexesNum * std::max(1U, vbo.framesNum); v--; )
+			{
+				auto *half = reinterpret_cast<const f16_t *>( in2 );
+				auto *single = reinterpret_cast<float *>( out2 );
+				for ( uint32_t c = aIn.numComponents; c--; )
+				{
+					*single++ = halfToFloat( *half++ );
+				}
+
+				in2 += aIn.stride;
+				out2 += aOut.stride;
+			}
+		}
+		else
 		{
-			memcpy( out2, in2, size );
-			in2 += aIn.stride;
-			out2 += aOut.stride;
+			ASSERT_EQ( aIn.componentType, aOut.componentType );
+			uint32_t size = aIn.numComponents * ComponentSize( aIn.componentType );
+
+			for ( uint32_t v = vbo.vertexesNum * std::max(1U, vbo.framesNum); v--; )
+			{
+				memcpy( out2, in2, size );
+				in2 += aIn.stride;
+				out2 += aOut.stride;
+			}
 		}
 	}
 }
+
+//TODO latch
+static Cvar::Cvar<bool> r_avoidHalfFloatVertex("r_avoidHalfFloatVertex", "", 0, true);
 
 static std::array<vboAttributeLayout_t, ATTR_INDEX_MAX> TranslateVertexLayout( const VBO_t& vbo )
 {
@@ -371,6 +394,11 @@ static std::array<vboAttributeLayout_t, ATTR_INDEX_MAX> TranslateVertexLayout( c
 		}
 
 		a.ofs = ofs;
+
+		if ( a.componentType == GL_HALF_FLOAT && r_avoidHalfFloatVertex.Get() )
+		{
+			a.componentType = GL_FLOAT;
+		}
 
 		ofs += a.numComponents * ComponentSize( a.componentType );
 		ofs = (ofs + 3) & ~3;
