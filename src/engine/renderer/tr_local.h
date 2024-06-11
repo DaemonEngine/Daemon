@@ -660,8 +660,8 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 	enum class vboLayout_t
 	{
+		VBO_LAYOUT_CUSTOM,
 		VBO_LAYOUT_VERTEX_ANIMATION,
-		VBO_LAYOUT_SKELETAL,
 		VBO_LAYOUT_STATIC,
 		VBO_LAYOUT_XYST
 	};
@@ -672,11 +672,25 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		i16vec4_t *qtangent;
 		u8vec4_t *color;
 		union { f16vec2_t *st; vec2_t *stf; };
-		int    (*boneIndexes)[ 4 ];
-		vec4_t *boneWeights;
 
 		int	numFrames;
 		int     numVerts;
+	};
+
+	enum
+	{
+		ATTR_OPTION_NORMALIZE = BIT( 0 ),
+	};
+
+	struct vertexAttributeSpec_t
+	{
+		int attrIndex;
+		GLenum componentInputType;
+		GLenum componentStorageType;
+		const void *begin;
+		uint32_t numComponents;
+		uint32_t stride;
+		int attrOptions;
 	};
 
 	struct VBO_t
@@ -690,7 +704,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		uint32_t vertexesNum;
 		uint32_t framesNum; // number of frames for vertex animation
 
-		vboAttributeLayout_t attribs[ ATTR_INDEX_MAX ]; // info for buffer manipulation
+		std::array<vboAttributeLayout_t, ATTR_INDEX_MAX> attribs; // info for buffer manipulation
 
 		vboLayout_t layout;
 		uint32_t attribBits; // Which attributes it has. Mostly for detecting errors
@@ -3477,6 +3491,9 @@ inline bool checkGLErrors()
 
 	============================================================
 	*/
+	VBO_t *R_CreateStaticVBO(
+		Str::StringRef name, const vertexAttributeSpec_t *attrBegin, const vertexAttributeSpec_t *attrEnd,
+		uint32_t numVerts );
 	VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout );
 	VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *verts, uint32_t stateBits );
 

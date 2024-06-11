@@ -92,6 +92,12 @@ bool R_AddTriangleToVBOTriangleList(
 	return hasWeights;
 }
 
+// index has to be in range 0-255, weight has to be >= 0 and <= 1
+static unsigned short boneFactor( int index, float weight ) {
+	int scaledWeight = lrintf( weight * 255.0F );
+	return (unsigned short)( ( scaledWeight << 8 ) | index );
+}
+
 srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
 	Str::StringRef surfName, const std::vector<skelTriangle_t> &vboTriangles,
 	md5Model_t *md5, md5Surface_t *surf, int skinIndex, int boneReferences[ MAX_BONES ] )
@@ -118,15 +124,8 @@ srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
 	vboSurf->numIndexes = indexesNum;
 	vboSurf->numVerts = vertexesNum;
 
-	vboData_t data{};
-
-	data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.xyz ) * vertexesNum );
-	data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * vertexesNum );
-	data.boneIndexes = ( int (*)[ 4 ] ) ri.Hunk_AllocateTempMemory( sizeof( *data.boneIndexes ) * vertexesNum );
-	data.boneWeights = ( vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.boneWeights ) * vertexesNum );
-	data.st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * vertexesNum );
-	data.numVerts = vertexesNum;
-
+	i16vec4_t *qtangents = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * vertexesNum );
+	u16vec4_t *boneFactors = (u16vec4_t*)ri.Hunk_AllocateTempMemory( sizeof( u16vec4_t ) * vertexesNum );
 	indexes = ( glIndex_t * ) ri.Hunk_AllocateTempMemory( indexesNum * sizeof( glIndex_t ) );
 
 	vboSurf->numBoneRemap = 0;
@@ -156,41 +155,45 @@ srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
 
 	for ( j = 0; j < vertexesNum; j++ )
 	{
-		VectorCopy( surf->verts[ j ].position, data.xyz[ j ] );
 		R_TBNtoQtangents( surf->verts[ j ].tangent, surf->verts[ j ].binormal,
-				  surf->verts[ j ].normal, data.qtangent[ j ] );
-		
-		Vector2Copy( surf->verts[ j ].texCoords, data.st[ j ] );
+		                  surf->verts[ j ].normal, qtangents[ j ] );
 
 		for (unsigned k = 0; k < MAX_WEIGHTS; k++ )
 		{
 			if ( k < surf->verts[ j ].numWeights )
 			{
-				data.boneIndexes[ j ][ k ] = vboSurf->boneRemap[ surf->verts[ j ].boneIndexes[ k ] ];
-				data.boneWeights[ j ][ k ] = surf->verts[ j ].boneWeights[ k ];
+				uint16_t boneIndex = vboSurf->boneRemap[ surf->verts[ j ].boneIndexes[ k ] ];
+				boneFactors[ j ][ k ] = boneFactor( boneIndex, surf->verts[ j ].boneWeights[ k ] );
 			}
 			else
 			{
-				data.boneWeights[ j ][ k ] = 0;
-				data.boneIndexes[ j ][ k ] = 0;
+				boneFactors[ j ][ k ] = 0;
 			}
 		}
 	}
 
-	vboSurf->vbo = R_CreateStaticVBO( ( "MD5 surface VBO " + surfName ).c_str(), data, vboLayout_t::VBO_LAYOUT_SKELETAL );
+	// MD5 does not have color, but shaders always require the color vertex attribute, so we have
+	// to provide this 0 color.
+	// TODO: optimize a vertexAttributeSpec_t with 0 stride to use a non-array vertex attribute?
+	// (although that would mess up the nice 32-bit size)
+	const byte dummyColor[ 4 ]{};
+
+	vertexAttributeSpec_t attributes[] {
+		{ ATTR_INDEX_BONE_FACTORS, GL_UNSIGNED_SHORT, GL_UNSIGNED_SHORT, boneFactors, 4, sizeof(u16vec4_t), 0 },
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_SHORT, &surf->verts[ 0 ].position, 3, sizeof(md5Vertex_t), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, qtangents, 4, sizeof(i16vec4_t), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_TEXCOORD, GL_HALF_FLOAT, GL_HALF_FLOAT, &surf->verts[ 0 ].texCoords, 2, sizeof(md5Vertex_t), 0 },
+		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, dummyColor, 4, 0, ATTR_OPTION_NORMALIZE },
+	};
+
+	vboSurf->vbo = R_CreateStaticVBO( "MD5 surface VBO " + surfName,
+	                                  std::begin( attributes ), std::end( attributes ), vertexesNum );
 
 	vboSurf->ibo = R_CreateStaticIBO( ( "MD5 surface IBO " + surfName ).c_str(), indexes, indexesNum );
 
-	// MD5 does not have color, but shaders always request it and the skeletal animation
-	// vertex layout includes a color field, which is zeroed by default.
-	vboSurf->vbo->attribBits |= ATTR_COLOR;
-
 	ri.Hunk_FreeTempMemory( indexes );
-	ri.Hunk_FreeTempMemory( data.st );
-	ri.Hunk_FreeTempMemory( data.boneWeights );
-	ri.Hunk_FreeTempMemory( data.boneIndexes );
-	ri.Hunk_FreeTempMemory( data.qtangent );
-	ri.Hunk_FreeTempMemory( data.xyz );
+	ri.Hunk_FreeTempMemory( boneFactors );
+	ri.Hunk_FreeTempMemory( qtangents );
 
 	return vboSurf;
 }
