@@ -1846,7 +1846,6 @@ static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, co
                       int skipmask, traceType_t type, const sphere_t *sphere )
 {
 	int         i;
-	traceWork_t tw;
 	vec3_t      offset;
 	cmodel_t    *cmod;
 
@@ -1857,7 +1856,7 @@ static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, co
 	c_traces++; // for statistics, may be zeroed
 
 	// fill in a default trace
-	memset( &tw, 0, sizeof( tw ) );
+	traceWork_t tw{};
 	tw.trace.fraction = 1; // assume it goes the entire distance until shown otherwise
 	VectorCopy( origin, tw.modelOrigin );
 	tw.type = type;

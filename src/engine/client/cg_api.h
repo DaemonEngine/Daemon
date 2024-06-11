@@ -20,15 +20,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+// Definitions used in engine/cgame communication
 #ifndef CGAPI_H
 #define CGAPI_H
 
-
 #include "engine/qcommon/q_shared.h"
-#include "engine/renderer/tr_types.h"
-#include "common/KeyIdentification.h"
-#include "common/cm/cm_public.h"
-#include "../../shared/CommonProxies.h"
 #ifdef BUILD_CGAME
 // TODO: find a better way that does not depend on a gamelogic file from an engine file
 #include "shared/bg_public.h"
@@ -39,8 +35,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // allow a lot of command backups for very fast systems
 // multiple commands may be combined into a single packet, so this
 // needs to be larger than PACKET_BACKUP
-
-#define MAX_ENTITIES_IN_SNAPSHOT 512
 
 // snapshots are a view of the server at a given time
 

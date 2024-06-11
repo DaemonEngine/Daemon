@@ -136,15 +136,13 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 	HANDLE job = CreateJobObject(nullptr, nullptr);
 	if (!job)
 		Sys::Drop("VM: Could not create job object: %s", Sys::Win32StrError(GetLastError()));
-	JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli;
-	memset(&jeli, 0, sizeof(jeli));
+	JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli{};
 	jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 	if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)))
 		Sys::Drop("VM: Could not set job object information: %s", Sys::Win32StrError(GetLastError()));
 
-	STARTUPINFOW startupInfo;
+	STARTUPINFOW startupInfo{};
 	PROCESS_INFORMATION processInfo;
-	memset(&startupInfo, 0, sizeof(startupInfo));
 	if (stderrRedirect) {
 		startupInfo.hStdError = stderrRedirectHandle;
 		startupInfo.dwFlags = STARTF_USESTDHANDLES;

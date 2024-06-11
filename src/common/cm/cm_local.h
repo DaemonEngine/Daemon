@@ -38,6 +38,7 @@ Maryland 20850 USA.
 #include "common/Cvar.h"
 #include "common/Log.h"
 #include "engine/qcommon/qcommon.h"
+#include "engine/qcommon/qfiles.h"
 
 // fake submodel handles
 #define CAPSULE_MODEL_HANDLE ( MAX_SUBMODELS )

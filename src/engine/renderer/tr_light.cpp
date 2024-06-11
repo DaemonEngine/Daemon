@@ -687,8 +687,6 @@ void R_SetupLightFrustum( trRefLight_t *light )
 
 	if ( light->isStatic )
 	{
-		vboData_t     data;
-
 		R_SyncRenderThread();
 
 		tess.multiDrawPrimitives = 0;
@@ -698,7 +696,7 @@ void R_SetupLightFrustum( trRefLight_t *light )
 		Tess_MapVBOs(true);
 		R_TessLight( light );
 
-		memset( &data, 0, sizeof( data ) );
+		vboData_t data{};
 		data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( tess.numVertexes * sizeof( *data.xyz ) );
 
 		for (unsigned i = 0; i < tess.numVertexes; i++ )

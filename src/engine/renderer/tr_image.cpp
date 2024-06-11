@@ -1306,7 +1306,7 @@ image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 	}
 
 	image = (image_t*) ri.Hunk_Alloc( sizeof( image_t ), ha_pref::h_low );
-	memset( image, 0, sizeof( image_t ) );
+	*image = {};
 
 	glGenTextures( 1, &image->texnum );
 

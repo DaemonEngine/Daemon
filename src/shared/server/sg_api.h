@@ -35,4 +35,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern IPC::SharedMemory shmRegion;
 
+void             trap_LocateGameData( int numGEntities, int sizeofGEntity_t, int sizeofGClient );
+void             trap_DropClient( int clientNum, const char *reason );
+void             trap_SendServerCommand( int clientNum, const char *text );
+void             trap_SetConfigstring( int num, const char *string );
+void             trap_SetConfigstringRestrictions( int num, const clientList_t *clientList );
+void             trap_GetConfigstring( int num, char *buffer, int bufferSize );
+void             trap_SetUserinfo( int num, const char *buffer );
+void             trap_GetUserinfo( int num, char *buffer, int bufferSize );
+void             trap_GetServerinfo( char *buffer, int bufferSize );
+int              trap_BotAllocateClient();
+void             trap_BotFreeClient( int clientNum );
+void             trap_GetUsercmd( int clientNum, usercmd_t *cmd );
+bool         trap_GetEntityToken( char *buffer, int bufferSize );
+int              trap_BotGetServerCommand( int clientNum, char *message, int size );
+int              trap_RSA_GenerateMessage( const char *public_key, char *cleartext, char *encrypted );
+void             trap_GenFingerprint( const char *pubkey, int size, char *buffer, int bufsize );
+void             trap_GetPlayerPubkey( int clientNum, char *pubkey, int size );
+void             trap_GetTimeString( char *buffer, int size, const char *format, const qtime_t *tm );
+
 #endif

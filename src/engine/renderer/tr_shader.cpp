@@ -5514,9 +5514,8 @@ static shader_t *MakeShaderPermanent()
 
 	ASSERT( numStages <= MAX_SHADER_STAGES );
 
-	const size_t stageListSize = sizeof( shaderStage_t ) * numStages;
-	newShader->stages = (shaderStage_t*) ri.Hunk_Alloc( stageListSize, ha_pref::h_low );
-	memcpy( newShader->stages, stages.data(), stageListSize );
+	newShader->stages = (shaderStage_t*) ri.Hunk_Alloc( sizeof( shaderStage_t ) * numStages, ha_pref::h_low );
+	std::copy_n( stages.data(), numStages, newShader->stages );
 
 	for ( size_t s = 0; s < numStages; s++ )
 	{
@@ -5524,7 +5523,8 @@ static shader_t *MakeShaderPermanent()
 		{
 			size_t size = newShader->stages[ s ].bundle[ b ].numTexMods * sizeof( texModInfo_t );
 			newShader->stages[ s ].bundle[ b ].texMods = (texModInfo_t*) ri.Hunk_Alloc( size, ha_pref::h_low );
-			memcpy( newShader->stages[ s ].bundle[ b ].texMods, stages[ s ].bundle[ b ].texMods, size );
+			std::copy_n( stages[ s ].bundle[ b ].texMods, newShader->stages[ s ].bundle[ b ].numTexMods,
+			             newShader->stages[ s ].bundle[ b ].texMods );
 		}
 	}
 
@@ -6986,7 +6986,7 @@ static void ScanAndLoadShaderFiles()
 			bool      alreadyCreated;
 
 			// zeroes shader table, booleans can be assumed as false
-			memset( &table, 0, sizeof( table ) );
+			table = {};
 
 			token = COM_ParseExt2( &p, true );
 

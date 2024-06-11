@@ -1240,7 +1240,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	{
 		if( model->num_joints > 0 )
 		{
-			memcpy( tess.bones, bones, model->num_joints * sizeof(transform_t) );
+			std::copy_n( bones, model->num_joints, tess.bones );
 			tess.numBones = model->num_joints;
 		}
 		else

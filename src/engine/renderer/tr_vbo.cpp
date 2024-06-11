@@ -520,7 +520,7 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 	R_SyncRenderThread();
 
 	vbo = (VBO_t*) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
-	memset( vbo, 0, sizeof( *vbo ) );
+	*vbo = {};
 
 	tr.vbos.push_back( vbo );
 
@@ -571,7 +571,7 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 	R_SyncRenderThread();
 
 	VBO_t *vbo = (VBO_t*) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
-	memset( vbo, 0, sizeof( *vbo ) );
+	*vbo = {};
 
 	tr.vbos.push_back( vbo );
 
@@ -635,7 +635,7 @@ VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *ve
 	R_SyncRenderThread();
 
 	vbo = ( VBO_t * ) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
-	memset( vbo, 0, sizeof( *vbo ) );
+	*vbo = {};
 
 	tr.vbos.push_back( vbo );
 
@@ -965,7 +965,6 @@ static void R_InitUnitCubeVBO()
 {
 	vec3_t        mins = { -1, -1, -1 };
 	vec3_t        maxs = { 1,  1,  1 };
-	vboData_t     data;
 
 	R_SyncRenderThread();
 
@@ -977,7 +976,7 @@ static void R_InitUnitCubeVBO()
 
 	Tess_AddCube( vec3_origin, mins, maxs, Color::White );
 
-	memset( &data, 0, sizeof( data ) );
+	vboData_t data{};
 	data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( tess.numVertexes * sizeof( *data.xyz ) );
 
 	data.numVerts = tess.numVertexes;
@@ -1020,12 +1019,11 @@ static void R_InitTileVBO()
 
 	R_SyncRenderThread();
 	int       x, y, w, h;
-	vboData_t data;
 
 	w = tr.depthtile2RenderImage->width;
 	h = tr.depthtile2RenderImage->height;
 
-	memset( &data, 0, sizeof( data ) );
+	vboData_t data{};
 	data.numVerts = w * h;
 
 	data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( data.numVerts * sizeof( *data.xyz ) );

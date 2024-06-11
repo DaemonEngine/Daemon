@@ -102,12 +102,6 @@ struct server_t
 	float ucompAve;
 	int   ucompNum;
 	// -NERVE - SMF
-
-	md3Tag_t       tags[ MAX_SERVER_TAGS ];
-	tagHeaderExt_t tagHeadersExt[ MAX_TAG_FILES ];
-
-	int            num_tagheaders;
-	int            num_tags;
 };
 
 struct clientSnapshot_t

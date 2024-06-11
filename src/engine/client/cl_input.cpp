@@ -698,7 +698,6 @@ CL_CreateCmd
 */
 usercmd_t CL_CreateCmd()
 {
-	usercmd_t cmd;
 	vec3_t    oldAngles;
 
 	VectorCopy( cl.viewangles, oldAngles );
@@ -706,7 +705,7 @@ usercmd_t CL_CreateCmd()
 	// keyboard angle adjustment
 	CL_AdjustAngles();
 
-	memset( &cmd, 0, sizeof( cmd ) );
+	usercmd_t cmd{};
 
 	CL_CmdButtons( &cmd );
 
@@ -874,7 +873,6 @@ void CL_WritePacket()
 	byte      data[ MAX_MSGLEN ];
 	int       j;
 	usercmd_t *cmd, *oldcmd;
-	usercmd_t nullcmd;
 	int       packetNum;
 	int       oldPacketNum;
 	int       count;
@@ -885,7 +883,7 @@ void CL_WritePacket()
 		return;
 	}
 
-	memset( &nullcmd, 0, sizeof( nullcmd ) );
+	usercmd_t nullcmd{};
 	oldcmd = &nullcmd;
 
 	MSG_Init( &buf, data, sizeof( data ) );

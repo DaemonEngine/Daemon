@@ -754,7 +754,7 @@ static void SetViewportAndScissor()
 	float	mat[16], scale;
 	vec4_t	q, c;
 
-	memcpy( mat, backEnd.viewParms.projectionMatrix, sizeof(mat) );
+	MatrixCopy( backEnd.viewParms.projectionMatrix, mat );
 	if( backEnd.viewParms.portalLevel > 0 )
 	{
 		VectorCopy(backEnd.viewParms.portalFrustum[FRUSTUM_NEAR].normal, c);
@@ -2269,7 +2269,7 @@ static void RB_RenderInteractionsShadowMapped()
 					else
 					{
 						// set up the transformation matrix
-						memset( &backEnd.orientation, 0, sizeof( backEnd.orientation ) );
+						backEnd.orientation = {};
 
 						backEnd.orientation.axis[ 0 ][ 0 ] = 1;
 						backEnd.orientation.axis[ 1 ][ 1 ] = 1;
@@ -2448,7 +2448,7 @@ static void RB_RenderInteractionsShadowMapped()
 						else
 						{
 							// set up the transformation matrix
-							memset( &backEnd.orientation, 0, sizeof( backEnd.orientation ) );
+							backEnd.orientation = {};
 
 							backEnd.orientation.axis[ 0 ][ 0 ] = 1;
 							backEnd.orientation.axis[ 1 ][ 1 ] = 1;

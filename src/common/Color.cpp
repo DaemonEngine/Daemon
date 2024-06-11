@@ -93,7 +93,7 @@ void StripColors( const char *in, char *out, size_t len )
 		{
 			break;
 		}
-		memcpy( out, text.begin(), text.size() );
+		std::copy( text.begin(), text.end(), out );
 		out += text.size();
 		len -= text.size();
 	}

@@ -574,7 +574,7 @@ static void IN_InitJoystick()
 	}
 
 	stick = nullptr;
-	memset( &stick_state, '\0', sizeof( stick_state ) );
+	stick_state = {};
 
 	if ( !in_joystick->integer )
 	{

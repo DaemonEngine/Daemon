@@ -47,10 +47,8 @@ Message::Message( const netadr_t& remote, std::string command,
 {}
 
 Message::Message( std::string error_message )
-	: secure(Secure::Invalid), error(std::move(error_message))
-{
-	memset(&remote, 0, sizeof(remote));
-}
+	: secure(Secure::Invalid), remote{}, error(std::move(error_message))
+{}
 
 
 bool Message::Valid(std::string *invalid_reason) const

@@ -174,7 +174,7 @@ static glyphInfo_t *RE_ConstructGlyphInfo( unsigned char *imageOut, int *xOut, i
 	float              scaledWidth, scaledHeight;
 	FT_Bitmap          *bitmap = nullptr;
 
-	memset( &glyph, 0, sizeof( glyphInfo_t ) );
+	glyph = {};
 
 	// make sure everything is here
 	if ( face != nullptr )
@@ -357,7 +357,7 @@ void RE_GlyphChar( fontInfo_t *font, int ch, glyphInfo_t *glyph )
 	}
 
 	// we have a glyph
-	memcpy( glyph, &font->glyphBlock[ ch / 256][ ch % 256 ], sizeof( *glyph ) );
+	*glyph = font->glyphBlock[ ch / 256][ ch % 256 ];
 }
 
 void RE_Glyph( fontInfo_t *font, const char *str, glyphInfo_t *glyph )
@@ -487,7 +487,7 @@ void RE_RenderChunk( fontInfo_t *font, const int chunk )
 		if ( glyph )
 		{
 			rendered = true;
-			memcpy( glyphs + i, glyph, sizeof( glyphInfo_t ) );
+			glyphs[ i ] = *glyph;
 		}
 
 		if ( xOut == -1 )
@@ -636,7 +636,7 @@ fontInfo_t* RE_RegisterFont( const char *fontName, int pointSize )
 	}
 
 	fontInfo_t* font = &registeredFont[ fontNo ];
-	memset( font, 0, sizeof( fontInfo_t ) );
+	ResetStruct( *font );
 
 	len = ri.FS_ReadFile( fileName, nullptr );
 
@@ -776,7 +776,7 @@ void RE_UnregisterFont_Internal( fontHandle_t handle )
 		}
 	}
 
-	memset( &registeredFont[ handle ], 0, sizeof( fontInfo_t ) );
+	ResetStruct( registeredFont[ handle ] );
 }
 
 void RE_UnregisterFont( fontInfo_t *font )

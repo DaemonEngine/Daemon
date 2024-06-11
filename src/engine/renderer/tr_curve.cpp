@@ -424,15 +424,15 @@ static srfGridMesh_t *R_CreateSurfaceGridMesh( int width, int height,
 	{
 		grid = (srfGridMesh_t*)/*ri.Hunk_Alloc */ Z_Calloc( size );
 
-		grid->widthLodError = (float*)/*ri.Hunk_Alloc */ Z_AllocUninit( width * 4 );
-		memcpy( grid->widthLodError, errorTable[ 0 ], width * 4 );
+		grid->widthLodError = (float*)/*ri.Hunk_Alloc */ Z_AllocUninit( width * sizeof( float ) );
+		std::copy_n( errorTable[ 0 ], width, grid->widthLodError );
 
-		grid->heightLodError = (float*)/*ri.Hunk_Alloc */ Z_AllocUninit( height * 4 );
-		memcpy( grid->heightLodError, errorTable[ 1 ], height * 4 );
+		grid->heightLodError = (float*)/*ri.Hunk_Alloc */ Z_AllocUninit( height * sizeof( float ) );
+		std::copy_n( errorTable[ 1 ], height, grid->heightLodError );
 
 		grid->numTriangles = numTriangles;
 		grid->triangles = (srfTriangle_t*) Z_AllocUninit( grid->numTriangles * sizeof( srfTriangle_t ) );
-		memcpy( grid->triangles, triangles, numTriangles * sizeof( srfTriangle_t ) );
+		std::copy_n( triangles, numTriangles, grid->triangles );
 
 		grid->numVerts = ( width * height );
 		grid->verts = (srfVert_t*) Z_AllocUninit( grid->numVerts * sizeof( srfVert_t ) );
@@ -440,17 +440,17 @@ static srfGridMesh_t *R_CreateSurfaceGridMesh( int width, int height,
 	else
 	{
 		grid = (srfGridMesh_t*) ri.Hunk_Alloc( size, ha_pref::h_low );
-		memset( grid, 0, size );
+		*grid = {};
 
 		grid->widthLodError = (float*) ri.Hunk_Alloc( width * 4, ha_pref::h_low );
-		memcpy( grid->widthLodError, errorTable[ 0 ], width * 4 );
+		std::copy_n( errorTable[ 0 ], width, grid->widthLodError );
 
 		grid->heightLodError = (float*) ri.Hunk_Alloc( height * 4, ha_pref::h_low );
-		memcpy( grid->heightLodError, errorTable[ 1 ], height * 4 );
+		std::copy_n( errorTable[ 1 ], height, grid->heightLodError );
 
 		grid->numTriangles = numTriangles;
 		grid->triangles = (srfTriangle_t*) ri.Hunk_Alloc( grid->numTriangles * sizeof( srfTriangle_t ), ha_pref::h_low );
-		memcpy( grid->triangles, triangles, numTriangles * sizeof( srfTriangle_t ) );
+		std::copy_n( triangles, numTriangles, grid->triangles );
 
 		grid->numVerts = ( width * height );
 		grid->verts = (srfVert_t*) ri.Hunk_Alloc( grid->numVerts * sizeof( srfVert_t ), ha_pref::h_low );

@@ -1513,7 +1513,7 @@ float VectorDistanceSquared( vec3_t v1, vec3_t v2 )
 // *INDENT-OFF*
 void MatrixIdentity( matrix_t m )
 {
-	memcpy( m, matrixIdentity, sizeof( matrix_t ) );
+	MatrixCopy( matrixIdentity, m );
 }
 
 void MatrixClear( matrix_t m )

@@ -2792,7 +2792,7 @@ R_MovePatchSurfacesToHunk
 */
 void R_MovePatchSurfacesToHunk()
 {
-	int           i, size;
+	int           i;
 	srfGridMesh_t *grid, *hunkgrid;
 
 	for ( i = 0; i < s_worldData.numSurfaces; i++ )
@@ -2807,23 +2807,22 @@ void R_MovePatchSurfacesToHunk()
 		}
 
 		//
-		size = sizeof( *grid );
-		hunkgrid = (srfGridMesh_t*) ri.Hunk_Alloc( size, ha_pref::h_low );
-		memcpy( hunkgrid, grid, size );
+		hunkgrid = (srfGridMesh_t*) ri.Hunk_Alloc( sizeof(srfGridMesh_t), ha_pref::h_low );
+		*hunkgrid = *grid;
 
-		hunkgrid->widthLodError = (float*) ri.Hunk_Alloc( grid->width * 4, ha_pref::h_low );
-		memcpy( hunkgrid->widthLodError, grid->widthLodError, grid->width * 4 );
+		hunkgrid->widthLodError = (float*) ri.Hunk_Alloc( grid->width * sizeof( float ), ha_pref::h_low );
+		std::copy_n( grid->widthLodError, grid->width, hunkgrid->widthLodError );
 
-		hunkgrid->heightLodError = (float*) ri.Hunk_Alloc( grid->height * 4, ha_pref::h_low );
-		memcpy( hunkgrid->heightLodError, grid->heightLodError, grid->height * 4 );
+		hunkgrid->heightLodError = (float*) ri.Hunk_Alloc( grid->height * sizeof( float ), ha_pref::h_low );
+		std::copy_n( grid->heightLodError, grid->height, hunkgrid->heightLodError );
 
 		hunkgrid->numTriangles = grid->numTriangles;
 		hunkgrid->triangles = (srfTriangle_t*) ri.Hunk_Alloc( grid->numTriangles * sizeof( srfTriangle_t ), ha_pref::h_low );
-		memcpy( hunkgrid->triangles, grid->triangles, grid->numTriangles * sizeof( srfTriangle_t ) );
+		std::copy_n( grid->triangles, grid->numTriangles, hunkgrid->triangles );
 
 		hunkgrid->numVerts = grid->numVerts;
 		hunkgrid->verts = (srfVert_t*) ri.Hunk_Alloc( grid->numVerts * sizeof( srfVert_t ), ha_pref::h_low );
-		memcpy( hunkgrid->verts, grid->verts, grid->numVerts * sizeof( srfVert_t ) );
+		std::copy_n( grid->verts, grid->numVerts, hunkgrid->verts );
 
 		R_FreeSurfaceGridMesh( grid );
 
@@ -3382,7 +3381,7 @@ static void R_CreateWorldVBO()
 			}
 
 			vboSurf = ( srfVBOMesh_t * ) ri.Hunk_Alloc( sizeof( *vboSurf ), ha_pref::h_low );
-			memset( vboSurf, 0, sizeof( *vboSurf ) );
+			*vboSurf = {};
 			vboSurf->surfaceType = surfaceType_t::SF_VBO_MESH;
 
 			vboSurf->numIndexes = surfIndexes;
@@ -3650,11 +3649,8 @@ static void R_LoadNodesAndLeafs( lump_t *nodeLump, lump_t *leafLump )
 	dleaf_t       *inLeaf;
 	bspNode_t     *out;
 	int           numNodes, numLeafs;
-	vboData_t     data;
 
 	Log::Debug("...loading nodes and leaves" );
-
-	memset( &data, 0, sizeof( data ) );
 
 	in = ( dnode_t * ) ( void * )( fileBase + nodeLump->fileofs );
 
@@ -6514,7 +6510,6 @@ void R_BuildCubeMaps()
 {
 	int            i;
 	int            ii, jj;
-	refdef_t       rf;
 	bool       flipx;
 	bool       flipy;
 	int            x, y, xy, xy2;
@@ -6536,7 +6531,7 @@ void R_BuildCubeMaps()
 
 	startTime = ri.Milliseconds();
 
-	memset( &rf, 0, sizeof( refdef_t ) );
+	refdef_t rf{};
 
 	for ( i = 0; i < 6; i++ )
 	{
@@ -6911,7 +6906,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.worldDeluxeMapping = false;
 	tr.worldHDR_RGBE = false;
 
-	memset( &s_worldData, 0, sizeof( s_worldData ) );
+	s_worldData = {};
 	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );
 
 	Q_strncpyz( s_worldData.baseName, COM_SkipPath( s_worldData.name ), sizeof( s_worldData.name ) );

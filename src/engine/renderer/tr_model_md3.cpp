@@ -244,7 +244,6 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 	// create VBO surfaces from md3 surfaces
 	{
 		srfVBOMDVMesh_t *vboSurf;
-		vboData_t       data;
 		glIndex_t       *indexes;
 
 		int             f;
@@ -255,7 +254,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 		for ( i = 0, surf = mdvModel->surfaces; i < mdvModel->numSurfaces; i++, surf++ )
 		{
 			//allocate temp memory for vertex data
-			memset( &data, 0, sizeof( data ) );
+			vboData_t data{};
 			data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.xyz ) * mdvModel->numFrames * surf->numVerts );
 			data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * mdvModel->numFrames * surf->numVerts );
 			data.numFrames = mdvModel->numFrames;
@@ -367,7 +366,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 		mdvModel->numVBOSurfaces = vboSurfaces.size();
 		size_t allocSize = vboSurfaces.size() * sizeof( vboSurfaces[ 0 ] );
 		mdvModel->vboSurfaces = (srfVBOMDVMesh_t**) ri.Hunk_Alloc( allocSize, ha_pref::h_low );
-		memcpy( mdvModel->vboSurfaces, vboSurfaces.data(), allocSize );
+		std::copy( vboSurfaces.begin(), vboSurfaces.end(), mdvModel->vboSurfaces );
 	}
 
 	return true;
