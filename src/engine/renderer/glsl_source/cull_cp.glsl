@@ -96,7 +96,7 @@ bool ProjectSphere( in vec3 center, in float radius, in float zNear, in float P0
 		return false;
     } */
 
-    if ( -center.z + radius < -zNear ) {
+    if ( -center.z - radius < zNear ) {
 		return false;
     }
 
@@ -168,8 +168,8 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
     const vec3 viewSpaceCenter = boundingSphere.center - u_CameraPosition; */
     
     if( !culled && ProjectSphere( viewSpaceCenter, boundingSphere.radius, 3.0, u_P00, u_P11, boundingBox, debugID ) ) {
-        const float width = ( boundingBox.z - boundingBox.x ) * float( u_ViewWidth );
-		const float height = ( boundingBox.w - boundingBox.y ) * float( u_ViewHeight );
+        const float width = clamp( ( boundingBox.z - boundingBox.x ) * float( u_ViewWidth ), 0.0, float( u_ViewWidth ) );
+		const float height = clamp( ( boundingBox.w - boundingBox.y ) * float( u_ViewHeight ), 0.0, float( u_ViewHeight ) );
 
         const float level = floor( log2( max( width, height ) ) );
         // float level = 0.0;
@@ -177,11 +177,22 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
 
         // const float surfaceDepth = textureLod( depthImage, ( boundingBox.xy + boundingBox.zw ) * 0.5, level ).r;
         // const vec4 depthValues = textureGather( depthImage, ( boundingBox.xy + boundingBox.zw ) * 0.5)
-        vec2 surfaceCoords = vec2( u_ViewWidth >> levelInt, u_ViewHeight >> levelInt );
+        vec2 surfaceCoords = vec2( ( u_ViewWidth >> levelInt ) - 1, ( u_ViewHeight >> levelInt ) - 1 );
         surfaceCoords *= ( boundingBox.xy + boundingBox.zw ) * 0.5;
-        const ivec2 surfaceCoordsFloor = ivec2( surfaceCoords );
+        const ivec2 surfaceCoordsFloor = ivec2( clamp( surfaceCoords.x, 0.0, float( u_ViewWidth ) ), clamp( surfaceCoords.y, 0.0, float( u_ViewHeight ) ) );
+        /* ivec4 depthCoords = ivec4( surfaceCoordsFloor.xy,
+                                   surfaceCoordsFloor.x + ( ( ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ) || surfaceCoords.x == 0 ) && surfaceCoords.x != u_ViewWidth -1 ? 1 : -1 ),
+                                   surfaceCoordsFloor.y + ( ( ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ) || surfaceCoords.y == 0 ) && surfaceCoords.y != u_ViewHeight -1 ? 1 : -1 ) ); */
+        ivec4 depthCoords = ivec4( surfaceCoordsFloor.xy,
+                                   surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ),
+                                   surfaceCoordsFloor.y + ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ? 1 : -1 ) );
+        depthCoords.x = clamp( depthCoords.x, 0, int( u_ViewWidth ) - 1 );
+        depthCoords.y = clamp( depthCoords.y, 0, int( u_ViewHeight ) - 1 );
+        depthCoords.z = clamp( depthCoords.z, 0, int( u_ViewWidth ) - 1 );
+        depthCoords.w = clamp( depthCoords.w, 0, int( u_ViewHeight ) - 1 );
+
         vec4 depthValues;
-        depthValues.x = texelFetch( depthImage, surfaceCoordsFloor, levelInt ).r;
+        /* depthValues.x = texelFetch( depthImage, surfaceCoordsFloor, levelInt ).r;
         depthValues.y = texelFetch( depthImage,
                         ivec2(
                             clamp( surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ), 0, ( u_ViewWidth >> levelInt ) - 1 ),
@@ -197,16 +208,23 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
                             clamp( surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ), 0, ( u_ViewWidth >> levelInt ) - 1 ),
                             clamp( surfaceCoordsFloor.y + ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ? 1 : -1 ), 0, ( u_ViewHeight >> levelInt ) - 1 )
                         ),
-                        levelInt ).r;
-        const float surfaceDepth = min( min( min( depthValues.x, depthValues.y ), depthValues.z ), depthValues.w );
+                        levelInt ).r; */
+        
+        depthValues.x = texelFetch( depthImage, depthCoords.xy, levelInt ).r;
+        depthValues.y = texelFetch( depthImage, depthCoords.zy, levelInt ).r;
+        depthValues.z = texelFetch( depthImage, depthCoords.xw, levelInt ).r;
+        depthValues.w = texelFetch( depthImage, depthCoords.zw, levelInt ).r;
 
-        culled = ( 1 + 3.0 / ( viewSpaceCenter.z - boundingSphere.radius ) ) > surfaceDepth;
+        const float surfaceDepth = max( max( max( depthValues.x, depthValues.y ), depthValues.z ), depthValues.w );
+
+        culled = ( 1 + 3.0 / ( viewSpaceCenter.z + boundingSphere.radius ) ) > surfaceDepth;
         debugSurfaces[debugID * 5] = vec4( viewSpaceCenter, float( culled ) );
         debugSurfaces[debugID * 5 + 1] = boundingBox.xzyw;
         debugSurfaces[debugID * 5 + 3] = vec4( width, height, level, surfaceDepth );
-        debugSurfaces[debugID * 5 + 4].x = 1 + 3.0 / ( viewSpaceCenter.z - boundingSphere.radius );
-        debugSurfaces[debugID * 5 + 4].yz = vec2( clamp( surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ), 0, ( u_ViewWidth >> levelInt ) - 1 ),
-                                                  clamp( surfaceCoordsFloor.y + ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ? 1 : -1 ), 0, ( u_ViewHeight >> levelInt ) - 1 ) );
+        debugSurfaces[debugID * 5 + 4].x = 1 + 3.0 / ( viewSpaceCenter.z + boundingSphere.radius );
+        // debugSurfaces[debugID * 5 + 4].yz = vec2( clamp( surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ), 0, ( u_ViewWidth >> levelInt ) - 1 ),
+        //                                           clamp( surfaceCoordsFloor.y + ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ? 1 : -1 ), 0, ( u_ViewHeight >> levelInt ) - 1 ) );
+        debugSurfaces[debugID * 5 + 4].yz = vec2( depthCoords.xy );
         // culled = ( boundingBox.x == boundingBox.z );
     }
 
