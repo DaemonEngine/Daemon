@@ -780,12 +780,6 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 
 			weightbuf = (float *)ri.Hunk_AllocateTempMemory( sizeof(vec4_t) * IQModel->num_vertexes );
 			for(int i = 0; i < IQModel->num_vertexes; i++ ) {
-				if( IQModel->blendWeights[ 4 * i + 0 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 1 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 2 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 3 ] == 0 )
-					IQModel->blendWeights[ 4 * i + 0 ] = 255;
-
 				weightbuf[ 4 * i + 0 ] = weightscale * IQModel->blendWeights[ 4 * i + 0 ];
 				weightbuf[ 4 * i + 1 ] = weightscale * IQModel->blendWeights[ 4 * i + 1 ];
 				weightbuf[ 4 * i + 2 ] = weightscale * IQModel->blendWeights[ 4 * i + 2 ];
@@ -834,16 +828,6 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	} else {
 		vbo = nullptr;
 		ibo = nullptr;
-
-		if( IQModel->blendWeights ) {
-			for( int i = 0; i < IQModel->num_vertexes; i++ ) {
-				if( IQModel->blendWeights[ 4 * i + 0 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 1 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 2 ] == 0 &&
-				    IQModel->blendWeights[ 4 * i + 3 ] == 0 )
-					IQModel->blendWeights[ 4 * i + 0 ] = 255;
-			}
-		}
 	}
 
 	// register shaders
