@@ -131,7 +131,7 @@ static Cvar::Cvar<std::string> fs_pakprefixes("fs_pakprefixes", "prefixes to loo
 
 bool UseLegacyPaks()
 {
-	return *fs_legacypaks;
+	return fs_legacypaks.Get();
 }
 #else
 bool UseLegacyPaks()
