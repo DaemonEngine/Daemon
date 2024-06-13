@@ -713,7 +713,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		GLenum  componentType; // the input type for a single component
 		GLboolean normalize; // convert signed integers to the floating point range [-1, 1], and unsigned integers to the range [0, 1]
 		GLsizei stride;
-		GLsizei realStride;
 		GLsizei ofs;
 		GLsizei frameOffset; // for vertex animation, real offset computed as ofs + frame * frameOffset
 	};
