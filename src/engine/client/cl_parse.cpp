@@ -488,6 +488,11 @@ void CL_ParseCommandString( msg_t *msg )
 	clc.serverCommandSequence = seq;
 
 	index = seq & ( MAX_RELIABLE_COMMANDS - 1 );
+	if ( cls.state < connstate_t::CA_LOADING )
+	{
+		Log::Debug( "Dropping early server command: %s", s );
+		return;
+	}
 	Q_strncpyz( clc.serverCommands[ index ], s, sizeof( clc.serverCommands[ index ] ) );
 }
 
