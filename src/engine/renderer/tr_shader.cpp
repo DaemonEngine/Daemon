@@ -5672,17 +5672,13 @@ static shader_t *FinishShader()
 		}
 	}
 
-	int stage;
+	numStages = MAX_SHADER_STAGES;
+	GroupActiveStages();
 
 	// set appropriate stage information
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
+	for ( size_t stage = 0; stage < numStages; stage++ )
 	{
 		shaderStage_t *pStage = &stages[ stage ];
-
-		if ( !pStage->active )
-		{
-			break;
-		}
 
 		if ( !shader.isSky )
 		{
@@ -5888,7 +5884,7 @@ static shader_t *FinishShader()
 		}
 	}
 
-	numStages = stage;
+	GroupActiveStages();
 
 	// there are times when you will need to manually apply a sort to
 	// opaque alpha tested shaders that have later blend passes
