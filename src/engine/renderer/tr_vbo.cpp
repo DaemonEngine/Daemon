@@ -358,32 +358,6 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 										inData.boneWeights[ v ][ j ] );
 				}
 			}
-		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_STATIC ) {
-			shaderVertex_t *ptr = ( shaderVertex_t * )outData;
-			if ( ( vbo->attribBits & ATTR_POSITION ) )
-			{
-				VectorCopy( inData.xyz[ v ], ptr[ v ].xyz );
-			}
-
-			if ( ( vbo->attribBits & ATTR_COLOR ) )
-			{
-				ptr[ v ].color = Color::Adapt( inData.color[ v ] );
-			}
-
-			if ( ( vbo->attribBits & ATTR_QTANGENT ) )
-			{
-				Vector4Copy( inData.qtangent[ v ], ptr[ v ].qtangents );
-			}
-
-			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
-			{
-				Vector4Copy( inData.stpq[ v ], ptr[ v ].texCoords );
-			}
-
-			if ( ( vbo->attribBits & ATTR_ORIENTATION ) )
-			{
-				Vector4Copy( inData.spriteOrientation[ v ], ptr[ v ].spriteOrientation );
-			}
 		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_POSITION ) {
 			vec3_t *ptr = ( vec3_t * )outData;
 			if ( ( vbo->attribBits & ATTR_POSITION ) )
@@ -413,6 +387,8 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 			{
 				ptr[ v ].colour = Color::Adapt( inData.color[ v ] );
 			}
+		} else {
+			Sys::Drop( "R_CopyVertexData: unsupported VBO layout" );
 		}
 	}
 
