@@ -471,11 +471,6 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 		return nullptr;
 	}
 
-	if ( strlen( name ) >= MAX_QPATH )
-	{
-		Sys::Drop( "R_CreateDynamicVBO: \"%s\" is too long", name );
-	}
-
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
@@ -522,11 +517,6 @@ R_CreateVBO
 */
 VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 {
-	if ( strlen( name ) >= MAX_QPATH )
-	{
-		Sys::Drop( "R_CreateVBO: \"%s\" is too long", name );
-	}
-
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
@@ -586,11 +576,6 @@ VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *ve
 		return nullptr;
 	}
 
-	if ( strlen( name ) >= MAX_QPATH )
-	{
-		Sys::Drop( "R_CreateVBO2: \"%s\" is too long", name );
-	}
-
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
@@ -639,11 +624,6 @@ IBO_t *R_CreateDynamicIBO( const char *name, int numIndexes )
 {
 	IBO_t *ibo;
 
-	if ( strlen( name ) >= MAX_QPATH )
-	{
-		Sys::Drop( "R_CreateIBO: \"%s\" is too long", name );
-	}
-
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
@@ -689,11 +669,6 @@ IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes )
 		return nullptr;
 	}
 
-	if ( strlen( name ) >= MAX_QPATH )
-	{
-		Sys::Drop( "R_CreateIBO: \"%s\" is too long", name );
-	}
-
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
@@ -731,11 +706,6 @@ IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexe
 	if ( !numTriangles )
 	{
 		return nullptr;
-	}
-
-	if ( strlen( name ) >= MAX_QPATH )
-	{
-		Sys::Drop( "R_CreateIBO2: \"%s\" is too long", name );
 	}
 
 	// make sure the render thread is stopped

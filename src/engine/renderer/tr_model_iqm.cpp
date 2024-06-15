@@ -808,7 +808,8 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		vboData.boneWeights = (vec4_t *)weightbuf;
 		vboData.numVerts = IQModel->num_vertexes;
 
-		vbo = R_CreateStaticVBO( "IQM surface VBO", vboData,
+		std::string name = mod->name;
+		vbo = R_CreateStaticVBO( ( "IQM surface VBO " + name ).c_str(), vboData,
 					 vboLayout_t::VBO_LAYOUT_SKELETAL );
 
 		ri.Hunk_FreeTempMemory( qtangentbuf );
@@ -816,7 +817,8 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		ri.Hunk_FreeTempMemory( indexbuf );
 
 		// create IBO
-		ibo = R_CreateStaticIBO( "IQM surface IBO", ( glIndex_t* )IQModel->triangles, IQModel->num_triangles * 3 );
+		ibo = R_CreateStaticIBO( ( "IQM surface IBO " + name ).c_str(),
+		                         ( glIndex_t* )IQModel->triangles, IQModel->num_triangles * 3 );
 	} else {
 		vbo = nullptr;
 		ibo = nullptr;

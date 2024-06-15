@@ -92,8 +92,8 @@ bool R_AddTriangleToVBOTriangleList(
 	return hasWeights;
 }
 
-void R_AddSurfaceToVBOSurfacesList(
-	std::vector<srfVBOMD5Mesh_t *> &vboSurfaces, const std::vector<skelTriangle_t> &vboTriangles,
+srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
+	Str::StringRef surfName, const std::vector<skelTriangle_t> &vboTriangles,
 	md5Model_t *md5, md5Surface_t *surf, int skinIndex, int boneReferences[ MAX_BONES ] )
 {
 	int             j;
@@ -110,7 +110,6 @@ void R_AddSurfaceToVBOSurfacesList(
 
 	// create surface
 	vboSurf = (srfVBOMD5Mesh_t*) ri.Hunk_Alloc( sizeof( *vboSurf ), ha_pref::h_low );
-	vboSurfaces.push_back( vboSurf );
 
 	vboSurf->surfaceType = surfaceType_t::SF_VBO_MD5MESH;
 	vboSurf->md5Model = md5;
@@ -178,9 +177,9 @@ void R_AddSurfaceToVBOSurfacesList(
 		}
 	}
 
-	vboSurf->vbo = R_CreateStaticVBO( va( "staticMD5Mesh_VBO %i", ( int )vboSurfaces.size() ), data, vboLayout_t::VBO_LAYOUT_SKELETAL );
+	vboSurf->vbo = R_CreateStaticVBO( ( "MD5 surface VBO " + surfName ).c_str(), data, vboLayout_t::VBO_LAYOUT_SKELETAL );
 
-	vboSurf->ibo = R_CreateStaticIBO( va( "staticMD5Mesh_IBO %i", ( int )vboSurfaces.size() ), indexes, indexesNum );
+	vboSurf->ibo = R_CreateStaticIBO( ( "MD5 surface IBO " + surfName ).c_str(), indexes, indexesNum );
 
 	// MD5 does not have color, but shaders always request it and the skeletal animation
 	// vertex layout includes a color field, which is zeroed by default.
@@ -192,4 +191,6 @@ void R_AddSurfaceToVBOSurfacesList(
 	ri.Hunk_FreeTempMemory( data.boneIndexes );
 	ri.Hunk_FreeTempMemory( data.qtangent );
 	ri.Hunk_FreeTempMemory( data.xyz );
+
+	return vboSurf;
 }
