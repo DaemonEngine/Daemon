@@ -736,7 +736,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	struct VBO_t
 	{
-		char     name[ MAX_QPATH ];
+		char     name[ 96 ]; // only for debugging with /listVBOs
 
 		uint32_t vertexesVBO;
 
@@ -754,7 +754,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	struct IBO_t
 	{
-		char     name[ MAX_QPATH ];
+		char     name[ 96 ]; // only for debugging with /listVBOs
 
 		uint32_t indexesVBO;
 		uint32_t indexesSize; // amount of memory data allocated for all triangles in bytes

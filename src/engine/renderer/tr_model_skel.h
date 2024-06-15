@@ -28,8 +28,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 bool R_AddTriangleToVBOTriangleList(
 	const skelTriangle_t *tri, int *numBoneReferences, int boneReferences[ MAX_BONES ] );
 
-void R_AddSurfaceToVBOSurfacesList(
-	std::vector<srfVBOMD5Mesh_t *> &vboSurfaces, const std::vector<skelTriangle_t> &vboTriangles,
+srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
+	Str::StringRef surfName, const std::vector<skelTriangle_t> &vboTriangles,
 	md5Model_t *md5, md5Surface_t *surf, int skinIndex, int boneReferences[ MAX_BONES ] );
 
 #endif // TR_MODEL_SKEL_H

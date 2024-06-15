@@ -628,7 +628,9 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 				break;
 			}
 
-			R_AddSurfaceToVBOSurfacesList( vboSurfaces, vboTriangles, md5, surf, i, boneReferences );
+			std::string name = Str::Format( "%s %d", modName, vboSurfaces.size() );
+			vboSurfaces.push_back( R_GenerateMD5VBOSurface(
+				name, vboTriangles, md5, surf, i, boneReferences ) );
 			numRemaining -= vboTriangles.size();
 		}
 	}
