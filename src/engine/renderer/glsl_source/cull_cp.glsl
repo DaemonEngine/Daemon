@@ -162,7 +162,7 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
                             + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x
                             + gl_GlobalInvocationID.x;
     vec4 boundingBox = vec4( -1.0, 1.0, -1.0, 1.0 );
-    const vec3 viewSpaceCenter = vec3( vec4( boundingSphere.center - u_CameraPosition, 1.0 ) * u_ModelViewMatrix );
+    const vec3 viewSpaceCenter = vec3( u_ModelViewMatrix * vec4( boundingSphere.center, 1.0 ) );
     
     /* vec4 AABB;
     const vec3 viewSpaceCenter = boundingSphere.center - u_CameraPosition; */
