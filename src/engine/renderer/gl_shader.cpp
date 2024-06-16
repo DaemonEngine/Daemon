@@ -828,18 +828,26 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	std::string shaderMain;
 
 	std::string line;
+	uint insertCount = 0;
+	uint mainLine = 0;
 
 	while ( std::getline( shaderTextStream, line, '\n' ) ) {
 		const std::string::size_type position = line.find( "#insert" );
 		if ( position == std::string::npos ) {
 			shaderMain += line + "\n";
+			mainLine++;
 			continue;
 		}
 
 		if ( line.find_first_not_of( " \t" ) != position ) {
 			shaderMain += line + "\n";
+			mainLine++;
 			continue;
 		}
+
+		// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
+		shaderMain += "#line " + std::to_string( ( insertCount + 1 ) * 10000 ) + "\n";
+		insertCount++;
 
 		std::string shaderInsertPath = line.substr( position + 8, std::string::npos );
 		switch ( shaderType ) {
