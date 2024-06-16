@@ -35,7 +35,7 @@ uniform samplerCube u_EnvironmentMap1;
 uniform float u_EnvironmentInterpolation;
 #endif // USE_REFLECTIVE_SPECULAR
 
-#ifdef HAVE_ARB_uniform_buffer_object
+#if defined(HAVE_ARB_uniform_buffer_object)
 struct light {
   vec4  center_radius;
   vec4  color_type;
@@ -146,7 +146,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 #endif // !USE_PHYSICAL_MAPPING
 }
 
-#if defined(TEXTURE_INTEGER) && defined(r_highPrecisionRendering)
+#if defined(HAVE_EXT_texture_integer) && defined(r_highPrecisionRendering)
 const int lightsPerLayer = 16;
 uniform usampler3D u_LightTiles;
 #define idxs_t uvec4
@@ -158,7 +158,7 @@ int nextIdx( inout idxs_t idxs ) {
   idxs = idxs >> 2;
   return int( tmp.x + tmp.y + tmp.z + tmp.w );
 }
-#else // !TEXTURE INTEGER
+#else // !HAVE_EXT_texture_integer
 const int lightsPerLayer = 4;
 uniform sampler3D u_LightTiles;
 #define idxs_t vec4
@@ -171,7 +171,7 @@ int nextIdx( inout idxs_t idxs ) {
   tmp -= 4.0 * idxs;
   return int( dot( tmp, vec4( 64.0, 16.0, 4.0, 1.0 ) ) );
 }
-#endif // TEXTURE_INTEGER
+#endif // HAVE_EXT_texture_integer
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 

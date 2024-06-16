@@ -374,21 +374,18 @@ static std::string BuildDeformSteps( deformStage_t *deforms, int numDeforms )
 	return steps;
 }
 
-
-static void addExtension( std::string &str, int enabled, int minGlslVersion,
-			  int supported, const char *name ) {
-	if( !enabled ) {
-		// extension disabled by user
-	} else if( glConfig2.shadingLanguageVersion >= minGlslVersion ) {
-		// the extension is available in the core language
-		str += Str::Format( "#define HAVE_%s 1\n", name );
-	} else if( supported ) {
-		// extension has to be explicitly enabled
-		str += Str::Format( "#extension GL_%s : require\n", name );
-		str += Str::Format( "#define HAVE_%s 1\n", name );
-	} else {
-		// extension is not supported
+static void addExtension( std::string &str, bool available, int minGlslVersion, const std::string &name ) {
+	if ( !available )
+	{
+		return;
 	}
+
+	if( glConfig2.shadingLanguageVersion < minGlslVersion )
+	{
+		str += Str::Format( "#extension GL_%s : require\n", name );
+	}
+
+	str += Str::Format( "#define HAVE_%s 1\n", name );
 }
 
 static void AddConst( std::string& str, const std::string& name, int value )
@@ -413,14 +410,25 @@ static std::string GenVersionDeclaration() {
 				       glConfig2.shadingLanguageVersion >= 150 ? (glConfig2.glCoreProfile ? "core" : "compatibility") : "");
 
 	// add supported GLSL extensions
-	addExtension( str, glConfig2.textureGatherAvailable, 400,
-		      GLEW_ARB_texture_gather, "ARB_texture_gather" );
-	addExtension( str, r_ext_gpu_shader4->integer, 130,
-		      GLEW_EXT_gpu_shader4, "EXT_gpu_shader4" );
-	addExtension( str, r_arb_gpu_shader5->integer, 400,
-		      GLEW_ARB_gpu_shader5, "ARB_gpu_shader5" );
-	addExtension( str, r_arb_uniform_buffer_object->integer, 140,
-		      GLEW_ARB_uniform_buffer_object, "ARB_uniform_buffer_object" );
+	struct extension_t {
+		bool available;
+		int minGlslVersion;
+		std::string name;
+	};
+
+	const std::vector<extension_t> extensions = {
+		{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
+		{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
+		{ glConfig2.textureGatherAvailable, 400, "ARB_texture_gather" },
+		{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
+		{ glConfig2.textureRGAvailable, 0, "ARB_texture_rg" },
+		{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
+	};
+
+	for ( const auto& extension : extensions )
+	{
+		addExtension( str, extension.available, extension.minGlslVersion, extension.name );
+	}
 
 	return str;
 }
@@ -748,15 +756,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 
 	std::string env;
 	env.reserve( 1024 ); // Might help, just an estimate.
-
-	if ( glConfig2.textureRGAvailable )
-		AddDefine( env, "TEXTURE_RG", 1 );
-
-	if ( glConfig2.uniformBufferObjectAvailable )
-		AddDefine( env, "UNIFORM_BUFFER_OBJECT", 1 );
-
-	if ( glConfig2.textureIntegerAvailable )
-		AddDefine( env, "TEXTURE_INTEGER", 1 );
 
 	AddDefine( env, "r_AmbientScale", r_ambientScale->value );
 	AddDefine( env, "r_SpecularScale", r_specularScale->value );

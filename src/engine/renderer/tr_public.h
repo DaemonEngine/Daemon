@@ -85,6 +85,7 @@ struct glconfig2_t
 	bool textureIntegerAvailable;
 	bool textureRGAvailable;
 	bool gpuShader4Available;
+	bool gpuShader5Available;
 	bool textureGatherAvailable;
 	int      maxDrawBuffers;
 

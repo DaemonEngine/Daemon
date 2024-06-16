@@ -46,7 +46,7 @@ struct light {
   float angle;
 };
 
-#ifdef HAVE_ARB_uniform_buffer_object
+#if defined(HAVE_ARB_uniform_buffer_object)
 layout(std140) uniform u_Lights {
   vec4 lightvec[ MAX_REF_LIGHTS * 3 ];
 };
@@ -88,7 +88,7 @@ uniform vec3 u_zFar;
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
-#if defined(TEXTURE_INTEGER) && defined(r_highPrecisionRendering)
+#if defined(HAVE_EXT_texture_integer) && defined(r_highPrecisionRendering)
 #define idxs_t uvec4
 #define idx_initializer uvec4(3)
 DECLARE_OUTPUT(uvec4)
