@@ -836,11 +836,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 			continue;
 		}
 
-		const std::string::iterator beginIt = std::find_if( line.begin(), line.end(),
-			[]( unsigned char character ) {
-				return !std::isspace( character );
-			} );
-		if ( beginIt - line.begin() != int( position ) ) { // Signed/unsigned CI bullshit
+		if ( line.find_first_not_of( " \t" ) != position ) {
 			shaderMain += line + "\n";
 			continue;
 		}
