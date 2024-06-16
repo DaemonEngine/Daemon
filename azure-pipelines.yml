@@ -96,7 +96,6 @@ jobs:
       displayName: 'Install deps'
     - bash: |
         set -e
-        git submodule update --init --recursive
         cmake --version
         cmake -G "Ninja" -Wdev -Wdeprecated -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN_FILE) -DCMAKE_C_COMPILER=$(C_COMPILER) -DCMAKE_CXX_COMPILER=$(CXX_COMPILER) -DUSE_PRECOMPILED_HEADER=0 -DUSE_WERROR=1 -DBE_VERBOSE=1 -DBUILD_DUMMY_APP=1 -DBUILD_TESTS=1 -DCMAKE_BUILD_TYPE=Release -H. -Bbuild
         cmake --build build -- -j`nproc`
