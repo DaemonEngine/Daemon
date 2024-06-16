@@ -748,20 +748,18 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
     Str::StringRef libShaderNames,
     GLenum shaderType ) const
 {
-	char        filename[ MAX_QPATH ];
+	char        filename[MAX_QPATH];
 
-	const char        *libNames = libShaderNames.c_str();
+	const char* libNames = libShaderNames.c_str();
 
 	GL_CheckErrors();
 
 	std::string libs; // All libs concatenated
-	libs.reserve(8192); // Might help, just an estimate.
-	while ( true )
-	{
-		const char *token = COM_ParseExt2( &libNames, false );
+	libs.reserve( 8192 ); // Might help, just an estimate.
+	while ( true ) {
+		const char* token = COM_ParseExt2( &libNames, false );
 
-		if ( !token[ 0 ] )
-		{
+		if ( !token[0] ) {
 			break;
 		}
 
@@ -779,7 +777,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 				break;
 		}
 
-		libs += GetShaderText(filename);
+		libs += GetShaderText( filename );
 		// We added a lot of stuff but if we do something bad
 		// in the GLSL shaders then we want the proper line
 		// so we have to reset the line counting.
@@ -828,33 +826,28 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	std::string shaderMain;
 
 	std::string line;
+	uint insertCount = 0;
 
 	while ( std::getline( shaderTextStream, line, '\n' ) ) {
 		const std::string::size_type position = line.find( "#insert" );
-		if ( position == std::string::npos ) {
-			shaderMain += line + "\n";
-			continue;
-		}
-
-		if ( line.find_first_not_of( " \t" ) != position ) {
+		if ( position == std::string::npos || line.find_first_not_of( " \t" ) != position ) {
 			shaderMain += line + "\n";
 			continue;
 		}
 
 		std::string shaderInsertPath = line.substr( position + 8, std::string::npos );
-		switch ( shaderType ) {
-			case GL_VERTEX_SHADER:
-				shaderMain += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
-				break;
-			case GL_FRAGMENT_SHADER:
-				shaderMain += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
-				break;
-			case GL_COMPUTE_SHADER:
-				shaderMain += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
-				break;
-			default:
-				break;
-		}
+		shaderMain += "/* Shader file: glsl/" + shaderInsertPath + ".glsl: */\n";
+
+		// Put a line count marker here so we don't get the wrong line number due to previous #line 0
+		shaderMain += "#line -1\n";
+		
+		// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
+		shaderMain += "#line " + std::to_string( ( insertCount + 1 ) * 10000 ) + "\n";
+		insertCount++;
+
+		shaderMain += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
+
+		shaderMain += "#line -1\n";
 	}
 
 	return shaderMain;
@@ -1347,30 +1340,54 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 
 	ri.Hunk_FreeTempMemory( dump );
 
-	int i = 0;
+	int lineNumber = 0;
 	size_t pos = 0;
-	while ( ( pos = src.find(delim) ) != std::string::npos )
-	{
+	int lineMarker = -1;
+	while ( ( pos = src.find( delim ) ) != std::string::npos ) {
 		std::string line = src.substr( 0, pos );
-		if ( line.compare( "#line 0" ) == 0 )
-		{
-			i = 0;
+
+		const std::string::size_type position = line.find( "#line" );
+		if ( ( position != std::string::npos ) && ( line.find_first_not_of( " \t" ) == position ) ) {
+			const int newLineNumber = std::stoi( line.substr( 5, std::string::npos ) );
+			
+			/* #line -1 is used as a line marker
+			*  The line number will continue from the line before the start marker, eg:
+			*  // line 10
+			*  #line -1
+			*  #line 10000
+			*  // .. a bunch of code here
+			*  #line -1
+			*  // This line will have line number 11
+			*  This does NOT support nesting
+			*/
+			if ( newLineNumber == -1 ) {
+				if ( lineMarker == -1 ) {
+					lineMarker = lineNumber;
+				} else {
+					lineNumber = lineMarker;
+					lineMarker = -1;
+				}
+				src.erase( 0, pos + delim.length() );
+				continue;
+			} else {
+				lineNumber = newLineNumber;
+			}
 		}
 
-		std::string number = std::to_string(i);
+		std::string number = std::to_string( lineNumber );
 
 		int p = 4 - number.length();
 		p = p < 0 ? 0 : p;
 		number.insert( number.begin(), p, ' ' );
 
-		buffer.append(number);
-		buffer.append(": ");
-		buffer.append(line);
-		buffer.append(delim);
+		buffer.append( number );
+		buffer.append( ": " );
+		buffer.append( line );
+		buffer.append( delim );
 
-		src.erase(0, pos + delim.length());
+		src.erase( 0, pos + delim.length() );
 
-		i++;
+		lineNumber++;
 	}
 
 	Log::Warn("Source for shader program %s:\n%s", programName, buffer.c_str());
