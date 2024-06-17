@@ -79,7 +79,10 @@ jobs:
         curl -sS https://gitlab.com/illwieckz/git-checkout-modules/raw/master/git-checkout-modules -o ~/git-checkout-modules
         bash ~/git-checkout-modules --update --sub-ref="${GITHUB_HEAD_REF}:has=/sync$" --print
 
-        export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)"
+        nproc
+        export CMAKE_BUILD_PARALLEL_LEVEL="$(($(nproc) + 2))"
+        echo "${CMAKE_BUILD_PARALLEL_LEVEL}"
+
         cmake -S. -Bbuild -GNinja -DBUILD_CLIENT=ON -DBUILD_TTY_CLIENT=ON -DBUILD_SERVER=ON -DBUILD_DUMMY_APP=ON
         cmake --build build
 
