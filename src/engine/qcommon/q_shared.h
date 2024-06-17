@@ -338,10 +338,6 @@ extern const vec3_t   axisDefault[ 3 ];
 extern const matrix_t matrixIdentity;
 extern const quat_t   quatIdentity;
 
-#define nanmask ( 255 << 23 )
-
-#define IS_NAN( x ) ( ( ( *(int *)&( x ) ) & nanmask ) == nanmask )
-
 #define Q_ftol(x) ((long)(x))
 
 	// Overall relative error bound (ignoring unknown powerpc case): 5 * 10^-6

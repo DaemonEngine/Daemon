@@ -111,7 +111,6 @@ static void R_SetAttributeLayoutsVertexAnimation( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_SHORT;
 	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_TRUE;
 	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = offsetof( struct fmtVertexAnim1, position );
-	vbo->attribs[ ATTR_INDEX_POSITION ].realStride    = sizeVertexAnim1;
 	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeVertexAnim1;
 	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = sizeVertexAnim1 * vbo->vertexesNum;
 
@@ -119,7 +118,6 @@ static void R_SetAttributeLayoutsVertexAnimation( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].componentType = GL_SHORT;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].normalize     = GL_TRUE;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].ofs          = offsetof( struct fmtVertexAnim1, qtangents );
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].realStride   = sizeVertexAnim1;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].stride       = sizeVertexAnim1;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].frameOffset  = sizeVertexAnim1 * vbo->vertexesNum;
 
@@ -131,7 +129,6 @@ static void R_SetAttributeLayoutsVertexAnimation( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs          = sizePart1 + offsetof( struct fmtVertexAnim2, texcoord );
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].realStride   = sizeVertexAnim2;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride       = sizeVertexAnim2;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset  = 0;
 
@@ -139,7 +136,6 @@ static void R_SetAttributeLayoutsVertexAnimation( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_COLOR ].componentType   = GL_UNSIGNED_BYTE;
 	vbo->attribs[ ATTR_INDEX_COLOR ].normalize       = GL_TRUE;
 	vbo->attribs[ ATTR_INDEX_COLOR ].ofs             = sizePart1 + offsetof( struct fmtVertexAnim2, colour );
-	vbo->attribs[ ATTR_INDEX_COLOR ].realStride      = sizeVertexAnim2;
 	vbo->attribs[ ATTR_INDEX_COLOR ].stride          = sizeVertexAnim2;
 	vbo->attribs[ ATTR_INDEX_COLOR ].frameOffset     = 0;
 
@@ -153,7 +149,6 @@ static void R_SetAttributeLayoutsSkeletal( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_SHORT;
 	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_TRUE;
 	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = offsetof( struct fmtSkeletal, position );
-	vbo->attribs[ ATTR_INDEX_POSITION ].realStride    = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = 0;
 
@@ -161,7 +156,6 @@ static void R_SetAttributeLayoutsSkeletal( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs          = offsetof( struct fmtSkeletal, texcoord );
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].realStride   = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride       = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset  = 0;
 
@@ -169,7 +163,6 @@ static void R_SetAttributeLayoutsSkeletal( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_COLOR ].componentType   = GL_UNSIGNED_BYTE;
 	vbo->attribs[ ATTR_INDEX_COLOR ].normalize       = GL_TRUE;
 	vbo->attribs[ ATTR_INDEX_COLOR ].ofs             = offsetof( struct fmtSkeletal, colour );
-	vbo->attribs[ ATTR_INDEX_COLOR ].realStride      = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_COLOR ].stride          = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_COLOR ].frameOffset     = 0;
 
@@ -177,7 +170,6 @@ static void R_SetAttributeLayoutsSkeletal( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].componentType = GL_SHORT;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].normalize     = GL_TRUE;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].ofs          = offsetof( struct fmtSkeletal, qtangents );
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].realStride   = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].stride       = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].frameOffset  = 0;
 
@@ -185,7 +177,6 @@ static void R_SetAttributeLayoutsSkeletal( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].componentType = GL_UNSIGNED_SHORT;
 	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].ofs           = offsetof( struct fmtSkeletal, boneFactors );
-	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].realStride    = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].stride        = sizeSkeletal;
 	vbo->attribs[ ATTR_INDEX_BONE_FACTORS ].frameOffset   = 0;
 
@@ -199,7 +190,6 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_FLOAT;
 	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = offsetof( shaderVertex_t, xyz );
-	vbo->attribs[ ATTR_INDEX_POSITION ].realStride    = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = 0;
 
@@ -207,7 +197,6 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_COLOR ].componentType   = GL_UNSIGNED_BYTE;
 	vbo->attribs[ ATTR_INDEX_COLOR ].normalize       = GL_TRUE;
 	vbo->attribs[ ATTR_INDEX_COLOR ].ofs             = offsetof( shaderVertex_t, color );
-	vbo->attribs[ ATTR_INDEX_COLOR ].realStride      = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_COLOR ].stride          = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_COLOR ].frameOffset     = 0;
 
@@ -215,7 +204,6 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].componentType = GL_SHORT;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].normalize     = GL_TRUE;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].ofs           = offsetof( shaderVertex_t, qtangents );
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].realStride    = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].stride        = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].frameOffset   = 0;
 
@@ -223,7 +211,6 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs           = offsetof( shaderVertex_t, texCoords );
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].realStride    = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride        = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset   = 0;
 
@@ -231,7 +218,6 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].componentType = GL_HALF_FLOAT;
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].ofs           = offsetof( shaderVertex_t, spriteOrientation );
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].realStride    = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].stride        = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_ORIENTATION ].frameOffset   = 0;
 
@@ -245,7 +231,6 @@ static void R_SetAttributeLayoutsPosition( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_FLOAT;
 	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = 0;
-	vbo->attribs[ ATTR_INDEX_POSITION ].realStride    = sizeof( vec3_t );
 	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeof( vec3_t );
 	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = 0;
 
@@ -259,7 +244,6 @@ static void R_SetAttributeLayoutsXYST( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_FLOAT;
 	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = 0;
-	vbo->attribs[ ATTR_INDEX_POSITION ].realStride    = sizeof( vec4_t );
 	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeof( vec4_t );
 	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = 0;
 
@@ -267,7 +251,6 @@ static void R_SetAttributeLayoutsXYST( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_FLOAT;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs           = sizeof( vec2_t );
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].realStride    = sizeof( vec4_t );
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride        = sizeof( vec4_t );
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset   = 0;
 
@@ -375,32 +358,6 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 										inData.boneWeights[ v ][ j ] );
 				}
 			}
-		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_STATIC ) {
-			shaderVertex_t *ptr = ( shaderVertex_t * )outData;
-			if ( ( vbo->attribBits & ATTR_POSITION ) )
-			{
-				VectorCopy( inData.xyz[ v ], ptr[ v ].xyz );
-			}
-
-			if ( ( vbo->attribBits & ATTR_COLOR ) )
-			{
-				ptr[ v ].color = Color::Adapt( inData.color[ v ] );
-			}
-
-			if ( ( vbo->attribBits & ATTR_QTANGENT ) )
-			{
-				Vector4Copy( inData.qtangent[ v ], ptr[ v ].qtangents );
-			}
-
-			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
-			{
-				Vector4Copy( inData.stpq[ v ], ptr[ v ].texCoords );
-			}
-
-			if ( ( vbo->attribBits & ATTR_ORIENTATION ) )
-			{
-				Vector4Copy( inData.spriteOrientation[ v ], ptr[ v ].spriteOrientation );
-			}
 		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_POSITION ) {
 			vec3_t *ptr = ( vec3_t * )outData;
 			if ( ( vbo->attribBits & ATTR_POSITION ) )
@@ -430,6 +387,8 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 			{
 				ptr[ v ].colour = Color::Adapt( inData.color[ v ] );
 			}
+		} else {
+			Sys::Drop( "R_CopyVertexData: unsupported VBO layout" );
 		}
 	}
 

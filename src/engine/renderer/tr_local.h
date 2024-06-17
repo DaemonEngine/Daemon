@@ -714,7 +714,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		GLenum  componentType; // the input type for a single component
 		GLboolean normalize; // convert signed integers to the floating point range [-1, 1], and unsigned integers to the range [0, 1]
 		GLsizei stride;
-		GLsizei realStride;
 		GLsizei ofs;
 		GLsizei frameOffset; // for vertex animation, real offset computed as ofs + frame * frameOffset
 	};
@@ -733,14 +732,13 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		vec3_t *xyz;
 		i16vec4_t *qtangent;
 		u8vec4_t *color;
-		union { f16vec2_t *st; f16vec4_t *stpq; vec2_t *stf; };
+		union { f16vec2_t *st; vec2_t *stf; };
 		int    (*boneIndexes)[ 4 ];
 		vec4_t *boneWeights;
 		f16vec4_t *spriteOrientation;
 
 		int	numFrames;
 		int     numVerts;
-		bool noLightCoords;
 	};
 
 	struct VBO_t
