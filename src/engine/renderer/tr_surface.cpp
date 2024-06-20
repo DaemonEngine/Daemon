@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_surface.c
 #include "tr_local.h"
+#include "gl_shader.h"
 
 /*
 ==============================================================================

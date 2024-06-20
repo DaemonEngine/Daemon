@@ -3374,7 +3374,6 @@ inline bool checkGLErrors()
 		transform_t bones[ MAX_BONES ];
 
 		bool    vboVertexAnimation;
-		bool    vboVertexSprite;
 		bool    buildingVBO;
 
 		// info extracted from current shader or backend mode

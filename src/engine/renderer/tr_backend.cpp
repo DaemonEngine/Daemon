@@ -615,12 +615,6 @@ void GL_VertexAttribsState( uint32_t stateBits )
 		stateBits |= ATTR_BONE_FACTORS;
 	}
 
-	if ( tess.vboVertexSprite )
-	{
-		stateBits &= ~ATTR_QTANGENT;
-		stateBits |= ATTR_ORIENTATION;
-	}
-
 	GL_VertexAttribPointers( stateBits );
 
 	diff = stateBits ^ glState.vertexAttribsState;

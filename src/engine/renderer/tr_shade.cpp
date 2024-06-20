@@ -430,11 +430,11 @@ static void DrawTris()
 
 	GLimp_LogComment( "--- DrawTris ---\n" );
 
-	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	bool vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
-	gl_genericShader->SetVertexSprite( tess.vboVertexSprite );
+	gl_genericShader->SetVertexSprite( vboVertexSprite );
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
 	gl_genericShader->SetDepthFade( false );
@@ -483,7 +483,7 @@ static void DrawTris()
 	// bind u_ColorMap
 	GL_BindToTMU( 0, tr.whiteImage );
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
-	gl_genericShader->SetRequiredVertexPointers();
+	gl_genericShader->SetRequiredVertexPointers( vboVertexSprite );
 
 	glDepthRange( 0, 0 );
 
@@ -627,7 +627,7 @@ static void Render_generic2D( shaderStage_t *pStage )
 
 	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
 	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
-	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	bool vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 
 	// choose right shader program ----------------------------------
 	gl_generic2DShader->SetDepthFade( hasDepthFade );
@@ -673,7 +673,7 @@ static void Render_generic2D( shaderStage_t *pStage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	gl_generic2DShader->SetRequiredVertexPointers();
+	gl_generic2DShader->SetRequiredVertexPointers( vboVertexSprite );
 
 	Tess_DrawElements();
 
@@ -695,7 +695,7 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
 	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
-	tess.vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	bool vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 
 	// choose right shader program ----------------------------------
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -703,12 +703,12 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
 	gl_genericShader->SetDepthFade( hasDepthFade );
-	gl_genericShader->SetVertexSprite( tess.vboVertexSprite );
+	gl_genericShader->SetVertexSprite( vboVertexSprite );
 	gl_genericShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
-	if ( pStage->tcGen_Environment || tess.vboVertexSprite )
+	if ( pStage->tcGen_Environment || vboVertexSprite )
 	{
 		// calculate the environment texcoords in object space
 		gl_genericShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
@@ -776,7 +776,7 @@ void Render_generic3D( shaderStage_t *pStage )
 		GL_BindToTMU( 1, tr.currentDepthImage );
 	}
 
-	gl_genericShader->SetRequiredVertexPointers();
+	gl_genericShader->SetRequiredVertexPointers( vboVertexSprite );
 
 	Tess_DrawElements();
 
@@ -950,7 +950,6 @@ void Render_lightMapping( shaderStage_t *pStage )
 	GL_State( stateBits );
 
 	// choose right shader program ----------------------------------
-	tess.vboVertexSprite = false;
 
 	gl_lightMappingShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 
@@ -1986,19 +1985,14 @@ void Render_heatHaze( shaderStage_t *pStage )
 	// choose right shader program ----------------------------------
 	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_heatHazeShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
-	if( tess.surfaceShader->autoSpriteMode ) {
-		gl_heatHazeShader->SetVertexSprite( true );
-		tess.vboVertexSprite = true;
-	} else {
-		gl_heatHazeShader->SetVertexSprite( false );
-		tess.vboVertexSprite = false;
-	}
+	bool vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	gl_heatHazeShader->SetVertexSprite( vboVertexSprite );
 
 	gl_heatHazeShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
-	if ( tess.vboVertexSprite )
+	if ( vboVertexSprite )
 	{
 		// calculate the environment texcoords in object space
 		gl_heatHazeShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
@@ -2051,7 +2045,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	// bind u_CurrentMap
 	GL_BindToTMU( 1, tr.currentRenderImage[ backEnd.currentMainFBO ] );
 
-	gl_heatHazeShader->SetRequiredVertexPointers();
+	gl_heatHazeShader->SetRequiredVertexPointers( vboVertexSprite );
 
 	Tess_DrawElements();
 
