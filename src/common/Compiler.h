@@ -250,15 +250,14 @@ See http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0627r0.pdf */
 
 // Keywords specific to C++ versions
 
-/* The noexcept keyword should be used on all move constructors and move
+/* TODO: Rewrite all NOEXCEPT usages from the whole code base.
+
+The noexcept keyword should be used on all move constructors and move
 assignments so that containers move objects instead of copying them.
-The noexcept keyword was added in C++11 but the __cpp_noexcept_function_type
-definition to detect its implementation was only added in C++17. */
-#if defined(__cpp_noexcept_function_type) || __cplusplus >= 201103 
-	#define NOEXCEPT noexcept
-	#define NOEXCEPT_IF(x) noexcept(x)
-	#define NOEXCEPT_EXPR(x) noexcept(x)
-#endif
+That keyword was added in C++11, all compilers should now support it. */
+#define NOEXCEPT noexcept
+#define NOEXCEPT_IF(x) noexcept(x)
+#define NOEXCEPT_EXPR(x) noexcept(x)
 
 // Uses SD-6 Feature Test Recommendations
 #if defined(__cpp_constexpr)
@@ -270,15 +269,6 @@ definition to detect its implementation was only added in C++17. */
 #endif
 
 // Work around lack of language keywords.
-#if !defined(NOEXCEPT)
-	#define NOEXCEPT
-#endif
-#if !defined(NOEXCEPT_IF)
-	#define NOEXCEPT_IF(x)
-#endif
-#if !defined(NOEXCEPT_EXPR)
-	#define NOEXCEPT_EXPR(x) x
-#endif
 #if !defined(CONSTEXPR)
 	#define CONSTEXPR
 #endif
