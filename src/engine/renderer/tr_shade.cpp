@@ -503,7 +503,6 @@ to overflow.
 */
 // *INDENT-OFF*
 void Tess_Begin( void ( *stageIteratorFunc )(),
-                 void ( *stageIteratorFunc2 )(),
                  shader_t *surfaceShader, shader_t *lightShader,
                  bool skipTangentSpaces,
                  int lightmapNum,
@@ -516,7 +515,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	tess.multiDrawPrimitives = 0;
 
 	tess.stageIteratorFunc = stageIteratorFunc;
-	tess.stageIteratorFunc2 = stageIteratorFunc2;
 
 	tess.surfaceShader = surfaceShader;
 	tess.lightShader = lightShader;

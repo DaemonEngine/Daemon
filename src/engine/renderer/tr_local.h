@@ -3310,7 +3310,6 @@ inline bool checkGLErrors()
 	struct stageVars_t
 	{
 		Color::Color color;
-		bool texMatricesChanged[ MAX_TEXTURE_BUNDLES ];
 		matrix_t texMatrices[ MAX_TEXTURE_BUNDLES ];
 	};
 
@@ -3380,7 +3379,6 @@ inline bool checkGLErrors()
 
 		// info extracted from current shader or backend mode
 		void ( *stageIteratorFunc )();
-		void ( *stageIteratorFunc2 )();
 
 		shaderStage_t *surfaceStages;
 		shaderStage_t *surfaceLastStage;
@@ -3403,7 +3401,6 @@ inline bool checkGLErrors()
 
 // *INDENT-OFF*
 	void Tess_Begin( void ( *stageIteratorFunc )(),
-	                 void ( *stageIteratorFunc2 )(),
 	                 shader_t *surfaceShader, shader_t *lightShader,
 	                 bool skipTangentSpaces,
 	                 int lightmapNum,

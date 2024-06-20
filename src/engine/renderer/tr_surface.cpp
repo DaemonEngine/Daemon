@@ -48,7 +48,7 @@ Tess_EndBegin
 void Tess_EndBegin()
 {
 	Tess_End();
-	Tess_Begin( tess.stageIteratorFunc, tess.stageIteratorFunc2, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
@@ -112,7 +112,7 @@ void Tess_CheckOverflow( int verts, int indexes )
 		Sys::Drop( "Tess_CheckOverflow: indexes > std::max (%d > %d)", indexes, SHADER_MAX_INDEXES );
 	}
 
-	Tess_Begin( tess.stageIteratorFunc, tess.stageIteratorFunc2, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
