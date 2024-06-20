@@ -1708,7 +1708,7 @@ void GLShader::DispatchComputeIndirect( const GLintptr indirectBuffer ) {
 	glDispatchComputeIndirect( indirectBuffer );
 }
 
-void GLShader::SetRequiredVertexPointers()
+void GLShader::SetRequiredVertexPointers( bool vboVertexSprite )
 {
 	uint32_t macroVertexAttribs = 0;
 
@@ -1720,7 +1720,15 @@ void GLShader::SetRequiredVertexPointers()
 		}
 	}
 
-	GL_VertexAttribsState( ( _vertexAttribsRequired | _vertexAttribs | macroVertexAttribs ) );  // & ~_vertexAttribsUnsupported);
+	uint32_t attribs = _vertexAttribsRequired | _vertexAttribs | macroVertexAttribs; // & ~_vertexAttribsUnsupported);
+
+	if ( vboVertexSprite )
+	{
+		attribs &= ~ATTR_QTANGENT;
+		attribs |= ATTR_ORIENTATION;
+	}
+
+	GL_VertexAttribsState( attribs );
 }
 
 GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
