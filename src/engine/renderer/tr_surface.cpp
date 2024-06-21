@@ -44,6 +44,8 @@ static transform_t bones[ MAX_BONES ];
 /*
 ==============
 Tess_EndBegin
+
+Flush the buffered polygons and prepare to receive more with the same parameters
 ==============
 */
 void Tess_EndBegin()
@@ -56,6 +58,10 @@ void Tess_EndBegin()
 /*
 ==============
 Tess_CheckVBOAndIBO
+
+Bind the buffers and flush any data that came from a different buffer.
+For a multidraw-using static VBO surface, it performs an analogous function to Tess_CheckOverflow,
+with the assumption that only one multidraw primitive will be used.
 ==============
 */
 static void Tess_CheckVBOAndIBO( VBO_t *vbo, IBO_t *ibo )
@@ -72,6 +78,10 @@ static void Tess_CheckVBOAndIBO( VBO_t *vbo, IBO_t *ibo )
 /*
 ==============
 Tess_CheckOverflow
+
+Used for non-VBO surfaces. Check that tess.verts and tess.indexes have sufficient room for the
+data that is about to be written. If there is old data from a different surface or if there
+is too much data already, flush it.
 ==============
 */
 void Tess_CheckOverflow( int verts, int indexes )
@@ -84,6 +94,7 @@ void Tess_CheckOverflow( int verts, int indexes )
 
 	if ( tess.buildingVBO )
 	{
+		// During loading, tess.verts is assumed to have been allocated with exactly the right size.
 		return;
 	}
 
@@ -105,12 +116,12 @@ void Tess_CheckOverflow( int verts, int indexes )
 
 	if ( verts >= SHADER_MAX_VERTEXES )
 	{
-		Sys::Drop( "Tess_CheckOverflow: verts > std::max (%d > %d)", verts, SHADER_MAX_VERTEXES );
+		Sys::Drop( "Tess_CheckOverflow: verts > max (%d > %d)", verts, SHADER_MAX_VERTEXES );
 	}
 
 	if ( indexes >= SHADER_MAX_INDEXES )
 	{
-		Sys::Drop( "Tess_CheckOverflow: indexes > std::max (%d > %d)", indexes, SHADER_MAX_INDEXES );
+		Sys::Drop( "Tess_CheckOverflow: indexes > max (%d > %d)", indexes, SHADER_MAX_INDEXES );
 	}
 
 	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces,
@@ -1431,6 +1442,7 @@ static void Tess_SurfaceFlare( srfFlare_t *surf )
 
 	GLimp_LogComment( "--- Tess_SurfaceFlare ---\n" );
 
+	// FIXME: this doesn't actually use the buffers?
 	Tess_CheckVBOAndIBO( tess.vbo, tess.ibo );
 
 	VectorMA( surf->origin, 2.0F, surf->normal, origin );

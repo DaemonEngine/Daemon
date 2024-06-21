@@ -822,6 +822,22 @@ enum renderDrawSurfaces_e
   DRAWSURFACES_ALL           = DRAWSURFACES_WORLD | DRAWSURFACES_ALL_ENTITIES
 };
 
+// When rendering a surface, the geometry generally goes through a three-stage pipeline:
+// (1) Surface function (from rb_surfaceTable). This function generates the triangles, either by
+//     explicitly writing them out, or by indicating a range from a static VBO/IBO.
+// (2) Stage iterator function. Loops over the stages of a q3shader (if applicable), and sets up
+//     some drawing parameters, in particular tess.svars, for each one.
+// (3) Render function. Feeds parameters to the GLSL shader and executes it with Tess_DrawElements.
+//
+// Function (1) is chosen based on the type of surface. (2) is chosen at the top level. (3) is
+// chosen by (2).
+//
+// Batches of triangles from multiple calls to (1) may be merged together if everything is
+// compatible between them. Draw surf sorting is an attempt to make this happen more often. But
+// if there is not enough room in the buffers, an immediate call to (2) may be needed. Each batch
+// of triangles may be rendered multiple times as (2) iterates shader stages.
+//
+// Note that portal recursion is done in the frontend when adding draw surfaces, not here.
 static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 				   renderDrawSurfaces_e drawSurfFilter )
 {
