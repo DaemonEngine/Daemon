@@ -524,7 +524,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	tess.fogNum = fogNum;
 	tess.bspSurface = bspSurface;
 
-	// materials are optional
+	// materials are optional (some debug drawing code doesn't use them)
 	if ( tess.surfaceShader )
 	{
 		if ( tess.surfaceShader->remappedShader )
@@ -542,10 +542,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	}
 	else
 	{
-		/* No code is using this on purpose, this is kept because of the
-		scary comment above saying:
-
-		> A surface may be forced to perform a Tess_End due to overflow. */
 		tess.surfaceStages = nullptr;
 		tess.surfaceLastStage = nullptr;
 	}

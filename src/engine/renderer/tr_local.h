@@ -3343,48 +3343,68 @@ inline bool checkGLErrors()
 
 	struct shaderCommands_t
 	{
-		shaderVertex_t *verts;	 // at least SHADER_MAX_VERTEXES accessible
+		// For drawing which is not based on static VBOs, the data is written here. These should be
+		// considered WRITE-ONLY buffers as they may be mapped to GPU memory and have abysmal read
+		// performance, e.g. https://github.com/DaemonEngine/Daemon/issues/849
+		shaderVertex_t *verts;   // at least SHADER_MAX_VERTEXES accessible
 		glIndex_t      *indexes; // at least SHADER_MAX_INDEXES accessible
-		uint32_t       vertsWritten, vertexBase;
-		uint32_t       indexesWritten, indexBase;
 
-		VBO_t       *vbo;
-		IBO_t       *ibo;
+		// When writing into the buffers above, these are used to track how much was written.
+		// For some static VBO/IBO-based drawing, these can be used to request a single data range.
+		uint32_t    numIndexes;
+		uint32_t    numVertexes;
 
+		// Must be set by the stage iterator function if needed. These are *not*
+		// automatically cleared by the likes of Tess_End.
 		stageVars_t svars;
 
 		shader_t    *surfaceShader;
 		shader_t    *lightShader;
 
+		// some drawing parameters from drawSurf_t
 		bool    skipTangentSpaces;
 		int16_t     lightmapNum;
 		int16_t     fogNum;
 		bool        bspSurface;
 
-		uint32_t    numIndexes;
-		uint32_t    numVertexes;
+		// Sometimes, this is used when setting vertex attribute pointers.
+		// TODO: why is the attribute selection sometimes taken from this and other times from
+		// the attributes the shader says it wants?
 		uint32_t    attribsSet;
 
+		// Used for static VBO/IBO-based drawing, if multiple ranges of data from the
+		// buffers may be requested.
 		int         multiDrawPrimitives;
 		glIndex_t    *multiDrawIndexes[ MAX_MULTIDRAW_PRIMITIVES ];
 		int         multiDrawCounts[ MAX_MULTIDRAW_PRIMITIVES ];
 
+		// enabled when a skeletal model VBO is used
 		bool    vboVertexSkinning;
 		int         numBones;
 		transform_t bones[ MAX_BONES ];
 
+		// enabled when an MD3 VBO is used
 		bool    vboVertexAnimation;
+
+		// during BSP load
 		bool    buildingVBO;
 
-		// info extracted from current shader or backend mode
+		// This can be thought of a "flush" function for the vertex buffer.
+		// Which function depends on backend mode and also the shader.
 		void ( *stageIteratorFunc )();
 
-		shaderStage_t *surfaceStages;
-		shaderStage_t *surfaceLastStage;
+		shaderStage_t *surfaceStages;    // surfaceShader->stages
+		shaderStage_t *surfaceLastStage; // surfaceShader->lastStage
 
 		// preallocated host buffers for verts and indexes
 		shaderVertex_t *vertsBuffer;
 		glIndex_t      *indexesBuffer;
+
+		uint32_t       vertsWritten, vertexBase;
+		uint32_t       indexesWritten, indexBase;
+
+		VBO_t       *vbo; // mapped to vertsBuffer
+		IBO_t       *ibo; // mapped to indexBuffer
 
 #ifdef GL_ARB_sync
 		glRingbuffer_t  vertexRB;
