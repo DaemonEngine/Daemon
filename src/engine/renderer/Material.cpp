@@ -1972,6 +1972,7 @@ void MaterialSystem::CullSurfaces() {
 		gl_cullShader->SetUniform_UseFrustumCulling( r_gpuFrustumCulling->integer );
 		gl_cullShader->SetUniform_CameraPosition( backEnd.viewParms.pvsOrigin );
 		gl_cullShader->SetUniform_ModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
+		gl_cullShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 		gl_cullShader->SetUniform_ViewWidth( frames[nextFrame].depthImage->width );
 		gl_cullShader->SetUniform_ViewHeight( frames[nextFrame].depthImage->height );
 		gl_cullShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );

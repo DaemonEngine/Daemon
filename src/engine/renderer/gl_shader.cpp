@@ -3116,6 +3116,7 @@ GLShader_cull::GLShader_cull( GLShaderManager* manager ) :
 	u_UseFrustumCulling( this ),
 	u_CameraPosition( this ),
 	u_ModelViewMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
 	u_Frustum( this ),
 	u_ViewWidth( this ),
 	u_ViewHeight( this ),

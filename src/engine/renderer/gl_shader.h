@@ -4685,6 +4685,7 @@ class GLShader_cull :
 	public u_UseFrustumCulling,
 	public u_CameraPosition,
 	public u_ModelViewMatrix,
+	public u_ModelViewProjectionMatrix,
 	public u_Frustum,
 	public u_ViewWidth,
 	public u_ViewHeight,
