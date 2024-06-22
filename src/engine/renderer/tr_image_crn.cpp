@@ -69,12 +69,20 @@ std::string CRNFormatToString(crn_format format)
 bool LoadInMemoryCRN(const char* name, const void* buff, size_t buffLen, byte **data, int *width, int *height,
                      int *numLayers, int *numMips, int *bits)
 {
-    if (crnd::crnd_validate_file(buff, buffLen, nullptr)) { // Checks the header, not the whole file.
-        // Found height and width in [1, 4096], num mip levels in [1, 13], faces in {1, 6}
-    } else {
+    // The validation functions check that there is height and width in [1, 4096],
+    // num mip levels in [1, 13], faces in {1, 6}
+#ifdef DEBUG_BUILD
+    if (!crnd::crnd_validate_file(buff, buffLen, nullptr)) {
+        Log::Warn("CRN image '%s' is invalid", name);
+        return false;
+    }
+#else
+    if (!crnd::crnd_validate_header(buff, buffLen, nullptr)) {
         Log::Warn("CRN image '%s' has an invalid header", name);
         return false;
     }
+#endif
+
     crnd::crn_texture_info ti;
     if (!crnd::crnd_get_texture_info(buff, buffLen, &ti)) {
         Log::Warn("CRN image '%s' has bad texture info", name);

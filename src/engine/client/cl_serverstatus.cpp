@@ -285,13 +285,14 @@ CL_ServerStatus_f
 */
 void CL_ServerStatus_f()
 {
-	netadr_t       *toptr = nullptr;
 	const char     *server;
 	serverStatus_t *serverStatus;
 	int            argc;
 	netadrtype_t   family = netadrtype_t::NA_UNSPEC;
 
 	argc = Cmd_Argc();
+
+	netadr_t to;
 
 	if ( argc != 2 && argc != 3 )
 	{
@@ -302,13 +303,10 @@ void CL_ServerStatus_f()
 			return;
 		}
 
-		toptr = &clc.serverAddress;
+		to = clc.serverAddress;
 	}
-
-	if ( !toptr )
+	else
 	{
-		netadr_t to{};
-
 		if ( argc == 2 )
 		{
 			server = Cmd_Argv( 1 );
@@ -331,18 +329,16 @@ void CL_ServerStatus_f()
 			server = Cmd_Argv( 2 );
 		}
 
-		toptr = &to;
-
-		if ( !NET_StringToAdr( server, toptr, family ) )
+		if ( !NET_StringToAdr( server, &to, family ) )
 		{
 			return;
 		}
 	}
 
-	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, *toptr, "getstatus" );
+	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getstatus" );
 
-	serverStatus = CL_GetServerStatus( *toptr );
-	serverStatus->address = *toptr;
+	serverStatus = CL_GetServerStatus( to );
+	serverStatus->address = to;
 	serverStatus->print = true;
 	serverStatus->pending = true;
 }

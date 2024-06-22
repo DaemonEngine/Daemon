@@ -29,6 +29,26 @@ include(CheckCXXCompilerFlag)
 
 add_definitions(-DDAEMON_BUILD_${CMAKE_BUILD_TYPE})
 
+option(USE_COMPILER_INTRINSICS "Enable usage of compiler intrinsics" ON)
+mark_as_advanced(USE_COMPILER_INTRINSICS)
+
+if (USE_COMPILER_INTRINSICS)
+    add_definitions(-DDAEMON_USE_COMPILER_INTRINSICS=1)
+    message(STATUS "Enabling compiler intrinsics")
+else()
+    message(STATUS "Disabling compiler intrinsics")
+endif()
+
+option(USE_COMPILER_CUSTOMIZATION "Enable usage of compiler custom attributes and operators" ON)
+mark_as_advanced(USE_COMPILER_CUSTOMIZATION)
+
+if (USE_COMPILER_CUSTOMIZATION)
+    add_definitions(-DDAEMON_USE_COMPILER_CUSTOMIZATION=1)
+    message(STATUS "Enabling compiler custom attributes and operators")
+else()
+    message(STATUS "Disabling compiler custom attributes and operators")
+endif()
+
 # Set flag without checking, optional argument specifies build type
 macro(set_c_flag FLAG)
     if (${ARGC} GREATER 1)
@@ -132,6 +152,9 @@ if (MSVC)
     set_c_cxx_flag("/MP")
     set_c_cxx_flag("/fp:fast")
     set_c_cxx_flag("/d2Zi+" RELWITHDEBINFO)
+
+    # https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+    set_cxx_flag("/Zc:__cplusplus")
 
     # At least Ninja doesn't remove the /W3 flag when we add /W4|/Wall one, which
     # leads to compilation warnings.  Remove /W3 entirely, as /W4|/Wall be used.
@@ -320,7 +343,7 @@ else()
         try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
         try_c_cxx_flag(FPIE "-fPIE")
         try_linker_flag(LINKER_PIE "-pie")
-        if (${FLAG_LINKER_PIE} AND MINGW)
+        if ("${FLAG_LINKER_PIE}" AND MINGW)
             # https://github.com/msys2/MINGW-packages/issues/4100
             if (ARCH STREQUAL "i686")
                 set_linker_flag("-Wl,-e,_mainCRTStartup")

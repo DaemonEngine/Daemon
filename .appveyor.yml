@@ -1,5 +1,7 @@
 # Documentation: https://wiki.unvanquished.net/wiki/Continuous_integration
 
+skip_branch_with_pr: true
+
 only_commits:
   files:
     - .appveyor.yml
