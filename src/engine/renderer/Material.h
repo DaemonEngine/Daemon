@@ -244,6 +244,8 @@ class MaterialSystem {
 	void GenerateDepthImages( const int width, const int height, imageParams_t imageParms );
 
 	void AddStageTextures( drawSurf_t* drawSurf, shaderStage_t* pStage, Material* material );
+	void ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, shader_t* shader, uint& id, uint* packIDs, uint& stage,
+		uint& previousMaterialID );
 	void GenerateWorldMaterials();
 	void GenerateWorldMaterialsBuffer();
 	void GenerateWorldCommandBuffer();
@@ -287,7 +289,6 @@ extern GLSSBO surfaceCommandsSSBO; // Per viewframe, GPU updated
 extern GLBuffer culledCommandsBuffer; // Per viewframe
 extern GLUBO surfaceBatchesUBO; // Global
 extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
-extern GLSSBO debugSSBO; // Global
 extern MaterialSystem materialSystem;
 
 #endif // MATERIAL_H

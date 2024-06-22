@@ -5903,14 +5903,6 @@ static shader_t *FinishShader()
 	// Copy the current global shader to a newly allocated shader.
 	shader_t *ret = MakeShaderPermanent();
 
-	if ( glConfig2.materialSystemAvailable && !tr.worldLoaded ) {
-		uint8_t maxStages = ret->numStages;
-		if ( maxStages % 4 != 0 ) { // Aligned to 4 components
-			maxStages = ( maxStages / 4 + 1 ) * 4;
-		}
-		materialSystem.maxStages = maxStages > materialSystem.maxStages ? maxStages : materialSystem.maxStages;
-	}
-
 	// generate depth-only shader if necessary
 	if( !shader.isSky &&
 	    shader.numStages > 0 &&
@@ -5927,6 +5919,15 @@ static shader_t *FinishShader()
 		if ( !CheckShaderNameLength( "FinishShader", shader.name, depthShaderSuffix ) )
 		{
 			ret->depthShader = nullptr;
+
+			if ( glConfig2.materialSystemAvailable && !tr.worldLoaded ) {
+				uint8_t maxStages = ret->numStages;
+				if ( maxStages % 4 != 0 ) { // Aligned to 4 components
+					maxStages = ( maxStages / 4 + 1 ) * 4;
+				}
+				materialSystem.maxStages = maxStages > materialSystem.maxStages ? maxStages : materialSystem.maxStages;
+			}
+
 			return ret;
 		}
 
@@ -5974,6 +5975,14 @@ static shader_t *FinishShader()
 		ret->stages[0]->stateBits &= ~GLS_DEPTHMASK_TRUE;
 	} else {
 		ret->depthShader = nullptr;
+	}
+
+	if ( glConfig2.materialSystemAvailable && !tr.worldLoaded ) {
+		uint8_t maxStages = ret->numStages + ( ret->depthShader != nullptr ? 1 : 0 );
+		if ( maxStages % 4 != 0 ) { // Aligned to 4 components
+			maxStages = ( maxStages / 4 + 1 ) * 4;
+		}
+		materialSystem.maxStages = maxStages > materialSystem.maxStages ? maxStages : materialSystem.maxStages;
 	}
 
 	// load all altShaders recursively

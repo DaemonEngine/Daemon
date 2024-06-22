@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-// layout(rg16f, binding = 0) uniform image2D depthImage;
 layout(binding = 0) uniform sampler2D depthImage;
 
 struct BoundingSphere {
@@ -70,10 +69,6 @@ layout(std430, binding = 2) writeonly restrict buffer surfaceCommandsSSBO {
     SurfaceCommand surfaceCommands[];
 };
 
-layout(std430, binding = 5) writeonly restrict buffer debugSSBO {
-    vec4 debugSurfaces[];
-};
-
 struct Plane {
     vec3 normal;
     float distance;
@@ -84,7 +79,6 @@ uniform uint u_SurfaceCommandsOffset;
 uniform bool u_UseFrustumCulling;
 uniform vec3 u_CameraPosition;
 uniform mat4 u_ModelViewMatrix;
-uniform mat4 u_ModelViewProjectionMatrix;
 uniform vec4 u_Frustum[6]; // xyz - normal, w - distance
 uniform uint u_ViewWidth;
 uniform uint u_ViewHeight;
@@ -109,8 +103,6 @@ bool ProjectSphere( in vec3 center, in float radius, in float zNear, in float P0
 
 	boundingBox = vec4( minx * P00, miny * P11, maxx * P00, maxy * P11 );
 	boundingBox = boundingBox.xwzy * vec4( 0.5f, -0.5f, 0.5f, -0.5f ) + vec4( 0.5, 0.5, 0.5, 0.5 ); // clip space -> uv space
-    
-    debugSurfaces[debugID * 5 + 2] = vec4( minx, maxx, miny, maxy );
 
 	return true;
 }
@@ -150,7 +142,6 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
         depthCoords.y = clamp( depthCoords.y, 0, int( ( u_ViewHeight >> levelInt ) - 1 ) );
         depthCoords.z = clamp( depthCoords.z, 0, int( ( u_ViewWidth >> levelInt ) - 1 ) );
         depthCoords.w = clamp( depthCoords.w, 0, int( ( u_ViewHeight >> levelInt ) - 1 ) );
-        debugSurfaces[debugID * 5 + 2] = vec4( depthCoords );
 
         vec4 depthValues;
         depthValues.x = texelFetch( depthImage, depthCoords.xy, levelInt ).r;
@@ -160,15 +151,7 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
 
         const float surfaceDepth = max( max( max( depthValues.x, depthValues.y ), depthValues.z ), depthValues.w );
 
-        vec4 testCoords = u_ModelViewProjectionMatrix * vec4( boundingSphere.center, 1.0 );
-
         culled = ( 1 + 1.5 / ( viewSpaceCenter.z + boundingSphere.radius ) ) > surfaceDepth;
-        debugSurfaces[debugID * 5] = vec4( viewSpaceCenter, float( culled ) );
-        debugSurfaces[debugID * 5 + 1] = boundingBox.xzyw;
-        debugSurfaces[debugID * 5 + 3] = vec4( width, height, level, surfaceDepth );
-        debugSurfaces[debugID * 5 + 4].x = 1 + 1.5 / ( viewSpaceCenter.z + boundingSphere.radius );
-        // debugSurfaces[debugID * 5 + 4].yz = vec2( depthCoords.xy );
-        debugSurfaces[debugID * 5 + 4].yz = vec2( testCoords.xy );
     }
 
     return culled;
