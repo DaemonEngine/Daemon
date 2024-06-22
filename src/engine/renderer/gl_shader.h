@@ -761,8 +761,8 @@ class GLUniform1ui : protected GLUniform {
 class GLUniform1Bool : protected GLUniform {
 	protected:
 	// GLSL std430 bool is always 4 bytes, which might not correspond to C++ bool
-	GLUniform1Bool( GLShader* shader, const char* name ) :
-		GLUniform( shader, name, "bool", 1, 1, false ) {
+	GLUniform1Bool( GLShader* shader, const char* name, const bool global ) :
+		GLUniform( shader, name, "bool", 1, 1, global ) {
 	}
 
 	inline void SetValue( int value ) {
@@ -3243,7 +3243,7 @@ class u_InitialDepthLevel :
 	GLUniform1Bool {
 	public:
 	u_InitialDepthLevel( GLShader* shader ) :
-		GLUniform1Bool( shader, "u_InitialDepthLevel" ) {
+		GLUniform1Bool( shader, "u_InitialDepthLevel", true ) {
 	}
 
 	void SetUniform_InitialDepthLevel( const int initialDepthLevel ) {
@@ -3291,7 +3291,7 @@ class u_UseFrustumCulling :
 	GLUniform1Bool {
 	public:
 	u_UseFrustumCulling( GLShader* shader ) :
-		GLUniform1Bool( shader, "u_UseFrustumCulling" ) {
+		GLUniform1Bool( shader, "u_UseFrustumCulling", true ) {
 	}
 
 	void SetUniform_UseFrustumCulling( const int useFrustumCulling ) {
@@ -3303,7 +3303,7 @@ class u_UseOcclusionCulling :
 	GLUniform1Bool {
 	public:
 	u_UseOcclusionCulling( GLShader* shader ) :
-		GLUniform1Bool( shader, "u_UseOcclusionCulling" ) {
+		GLUniform1Bool( shader, "u_UseOcclusionCulling", true ) {
 	}
 
 	void SetUniform_UseOcclusionCulling( const int useOcclusionCulling ) {
@@ -3315,7 +3315,7 @@ class u_ShowTris :
 	GLUniform1Bool {
 	public:
 	u_ShowTris( GLShader* shader ) :
-		GLUniform1Bool( shader, "u_ShowTris" ) {
+		GLUniform1Bool( shader, "u_ShowTris", true ) {
 	}
 
 	void SetUniform_ShowTris( const int showTris ) {
@@ -3480,7 +3480,7 @@ class u_UseCloudMap :
 	GLUniform1Bool {
 	public:
 	u_UseCloudMap( GLShader* shader ) :
-		GLUniform1Bool( shader, "u_UseCloudMap" ) {
+		GLUniform1Bool( shader, "u_UseCloudMap", true ) {
 	}
 
 	void SetUniform_UseCloudMap( const bool useCloudMap ) {
