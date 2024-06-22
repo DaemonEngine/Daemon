@@ -461,7 +461,6 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	VBO_t                   *vbo;
 	IBO_t                   *ibo;
 	void                    *ptr;
-	u8vec4_t                *weights;
 
 	if( !LoadIQMFile( buffer, filesize, mod_name, &len_names ) ) {
 		return false;
@@ -681,6 +680,8 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		}
 	}
 
+	u8vec4_t *weights = nullptr;
+
 	// copy vertexarrays and indexes
 	vertexarray = static_cast<iqmVertexArray_t*>( IQMPtr( header, header->ofs_vertexarrays ) );
 	for(unsigned i = 0; i < header->num_vertexarrays; i++, vertexarray++ ) {
@@ -746,6 +747,14 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 				    IQMPtr( header, vertexarray->offset ),
 				    n * sizeof(byte) );
 			break;
+		}
+	}
+
+	if ( !weights )
+	{
+		for ( unsigned j = 0; j < header->num_vertexes; j++ )
+		{
+			IQModel->blendWeights[ 4 * j + 0 ] = 255;
 		}
 	}
 
