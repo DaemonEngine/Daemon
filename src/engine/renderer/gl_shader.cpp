@@ -863,6 +863,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 			default:
 				break;
 		}
+		shaderMain += "#line " + std::to_string( mainLine ) + "\n";
 	}
 
 	return shaderMain;
