@@ -2291,7 +2291,6 @@ class GLShader_generic :
 	public u_ViewUp,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
- 	public u_ProjectionMatrixTranspose,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
 	public u_ColorModulate,
@@ -2530,7 +2529,6 @@ class GLShader_skybox :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
-	public u_VertexInterpolation,
 	public GLDeformStage
 {
 public:

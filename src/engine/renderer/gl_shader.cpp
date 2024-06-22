@@ -1760,7 +1760,6 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_ViewUp( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
-	u_ProjectionMatrixTranspose( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
 	u_ColorModulate( this ),
@@ -2125,7 +2124,6 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
-	u_VertexInterpolation( this ),
 	GLDeformStage( this )
 {
 }
