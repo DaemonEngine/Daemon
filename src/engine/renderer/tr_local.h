@@ -1664,6 +1664,9 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		bool texturesDynamic[ MAX_SHADER_STAGES ];
 		uint drawCommandIDs[ MAX_SHADER_STAGES ];
 
+		drawSurf_t* depthSurface;
+		bool materialSystemSkip = false;
+
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
 		}
