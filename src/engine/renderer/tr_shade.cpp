@@ -615,7 +615,7 @@ void Render_NOP( shaderStage_t * )
 {
 }
 
-static void Render_generic2D( shaderStage_t *pStage )
+void Render_generic2D( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_generic2D ---\n" );
 
