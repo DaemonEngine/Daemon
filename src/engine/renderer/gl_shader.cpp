@@ -2250,6 +2250,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_LightGridScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
+	u_ShowTris( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),

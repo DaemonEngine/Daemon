@@ -140,16 +140,17 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
         const float level = floor( log2( max( width, height ) ) );
         const int levelInt = int( level );
 
-        vec2 surfaceCoords = vec2( ( u_ViewWidth >> levelInt ) - 1, ( u_ViewHeight >> levelInt ) - 1 );
+        vec2 surfaceCoords = vec2( u_ViewWidth >> levelInt, u_ViewHeight >> levelInt );
         surfaceCoords *= ( boundingBox.xy + boundingBox.zw ) * 0.5;
-        const ivec2 surfaceCoordsFloor = ivec2( clamp( surfaceCoords.x, 0.0, float( u_ViewWidth ) ), clamp( surfaceCoords.y, 0.0, float( u_ViewHeight ) ) );
+        const ivec2 surfaceCoordsFloor = ivec2( clamp( surfaceCoords.x, 0.0, float( u_ViewWidth >> levelInt ) ), clamp( surfaceCoords.y, 0.0, float( u_ViewHeight >> levelInt ) ) );
         ivec4 depthCoords = ivec4( surfaceCoordsFloor.xy,
                                    surfaceCoordsFloor.x + ( surfaceCoords.x - surfaceCoordsFloor.x >= 0.5 ? 1 : -1 ),
                                    surfaceCoordsFloor.y + ( surfaceCoords.y - surfaceCoordsFloor.y >= 0.5 ? 1 : -1 ) );
-        depthCoords.x = clamp( depthCoords.x, 0, int( u_ViewWidth ) - 1 );
-        depthCoords.y = clamp( depthCoords.y, 0, int( u_ViewHeight ) - 1 );
-        depthCoords.z = clamp( depthCoords.z, 0, int( u_ViewWidth ) - 1 );
-        depthCoords.w = clamp( depthCoords.w, 0, int( u_ViewHeight ) - 1 );
+        depthCoords.x = clamp( depthCoords.x, 0, int( ( u_ViewWidth >> levelInt ) - 1 ) );
+        depthCoords.y = clamp( depthCoords.y, 0, int( ( u_ViewHeight >> levelInt ) - 1 ) );
+        depthCoords.z = clamp( depthCoords.z, 0, int( ( u_ViewWidth >> levelInt ) - 1 ) );
+        depthCoords.w = clamp( depthCoords.w, 0, int( ( u_ViewHeight >> levelInt ) - 1 ) );
+        debugSurfaces[debugID * 5 + 2] = vec4( depthCoords );
 
         vec4 depthValues;
         depthValues.x = texelFetch( depthImage, depthCoords.xy, levelInt ).r;
@@ -161,13 +162,13 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
 
         vec4 testCoords = u_ModelViewProjectionMatrix * vec4( boundingSphere.center, 1.0 );
 
-        culled = ( 1 + 3.0 / ( viewSpaceCenter.z + boundingSphere.radius ) ) > surfaceDepth;
+        culled = ( 1 + 1.5 / ( viewSpaceCenter.z + boundingSphere.radius ) ) > surfaceDepth;
         debugSurfaces[debugID * 5] = vec4( viewSpaceCenter, float( culled ) );
         debugSurfaces[debugID * 5 + 1] = boundingBox.xzyw;
         debugSurfaces[debugID * 5 + 3] = vec4( width, height, level, surfaceDepth );
-        debugSurfaces[debugID * 5 + 4].x = 1 + 3.0 / ( viewSpaceCenter.z + boundingSphere.radius );
+        debugSurfaces[debugID * 5 + 4].x = 1 + 1.5 / ( viewSpaceCenter.z + boundingSphere.radius );
         // debugSurfaces[debugID * 5 + 4].yz = vec2( depthCoords.xy );
-        debugSurfaces[debugID * 5 + 4].yzw = testCoords.xyz;
+        debugSurfaces[debugID * 5 + 4].yz = vec2( testCoords.xy );
     }
 
     return culled;

@@ -3288,6 +3288,18 @@ class u_UseFrustumCulling :
 	}
 };
 
+class u_ShowTris :
+	GLUniform1Bool {
+	public:
+	u_ShowTris( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_ShowTris" ) {
+	}
+
+	void SetUniform_ShowTris( const int showTris ) {
+		this->SetValue( showTris );
+	}
+};
+
 class u_CameraPosition :
 	GLUniform3f {
 	public:
@@ -4042,6 +4054,7 @@ class GLShader_lightMappingMaterial :
 	public u_LightGridScale,
 	public u_numLights,
 	public u_Lights,
+	public u_ShowTris,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,

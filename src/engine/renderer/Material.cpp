@@ -1972,7 +1972,7 @@ void MaterialSystem::CullSurfaces() {
 		gl_cullShader->SetUniform_UseFrustumCulling( r_gpuFrustumCulling->integer );
 		gl_cullShader->SetUniform_CameraPosition( backEnd.viewParms.pvsOrigin );
 		gl_cullShader->SetUniform_ModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
-		gl_cullShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+		gl_cullShader->SetUniform_ModelViewProjectionMatrix( glState.projectionMatrix[glState.stackIndex] );
 		gl_cullShader->SetUniform_ViewWidth( frames[nextFrame].depthImage->width );
 		gl_cullShader->SetUniform_ViewHeight( frames[nextFrame].depthImage->height );
 		gl_cullShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );
@@ -2337,6 +2337,29 @@ void MaterialSystem::RenderMaterial( Material& material, const uint viewID ) {
 		material.globalID * sizeof( uint32_t )
 		+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
 		material.drawCommands.size(), 0 );
+
+	if( r_showTris->integer && ( material.stateBits & GLS_DEPTHMASK_TRUE ) == 0 ) {
+		switch ( material.stageType ) {
+			case stageType_t::ST_LIGHTMAP:
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+				gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
+				GL_State( GLS_DEPTHTEST_DISABLE );
+				glMultiDrawElementsIndirectCountARB( GL_LINES, GL_UNSIGNED_INT,
+					BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
+						+ ( culledCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
+							* sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
+					//+ ( culledCommandsCount * ( MAX_VIEWS * currentFrame + currentView )
+						//* sizeof( GLIndirectBuffer::GLIndirectCommand ) ),
+					material.globalID * sizeof( uint32_t )
+					+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
+					material.drawCommands.size(), 0 );
+				gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
+			default:
+				break;
+		}
+	}
 
 	culledCommandsBuffer.UnBindBuffer( GL_DRAW_INDIRECT_BUFFER );
 

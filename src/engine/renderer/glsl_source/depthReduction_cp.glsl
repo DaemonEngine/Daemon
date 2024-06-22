@@ -69,6 +69,18 @@ void main() {
         float depthOut = max( depth[0], depth[1] );
         depthOut = max( depthOut, depth[2] );
         depthOut = max( depthOut, depth[3] );
+
+        if( ( u_ViewWidth & 1 ) == 1 ) {
+            depthOut = max( depthOut, imageLoad( depthImageIn, position * 2 + ivec2( 2, 0 ) ).r );
+            depthOut = max( depthOut, imageLoad( depthImageIn, position * 2 + ivec2( 2, 1 ) ).r );
+        }
+        if( ( u_ViewHeight & 1 ) == 1 ) {
+            depthOut = max( depthOut, imageLoad( depthImageIn, position * 2 + ivec2( 0, 2 ) ).r );
+            depthOut = max( depthOut, imageLoad( depthImageIn, position * 2 + ivec2( 1, 2 ) ).r );
+        }
+        if( ( u_ViewWidth & 1 ) == 1 && ( u_ViewHeight & 1 ) == 1 ) {
+            depthOut = max( depthOut, imageLoad( depthImageIn, position * 2 + ivec2( 2, 2 ) ).r );
+        }
         imageStore( depthImageOut, position, vec4( depthOut, 0.0, 0.0, 0.0 ) );
     }
 }
