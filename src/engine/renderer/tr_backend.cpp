@@ -5579,7 +5579,7 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_COLORMASK_BITS );
 	glState.glStateBitsMask = GLS_COLORMASK_BITS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, -1 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, 0 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 
@@ -5594,7 +5594,7 @@ const RenderCommand *PreparePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS);
 	glState.glStateBitsMask = GLS_DEPTHMASK_TRUE | GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, -1 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, 0 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 
@@ -5645,7 +5645,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
 	Tess_Begin( Tess_StageIteratorColor, shader,
-		nullptr, false, surface->lightmapNum(), surface->fogNum(), true );
+		nullptr, false, surface->lightmapNum(), surface->fogNum(), surface->bspSurface );
 	rb_surfaceTable[Util::ordinal( *( surface->surface ) )]( surface->surface );
 	Tess_End();
 
@@ -5654,7 +5654,7 @@ const RenderCommand *FinalisePortalCommand::ExecuteSelf( ) const
 	GL_State( GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS);
 	glState.glStateBitsMask = GLS_COLORMASK_BITS | GLS_DEPTHFUNC_ALWAYS;
 
-	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, -1 );
+	Tess_Begin( Tess_StageIteratorPortal, shader, nullptr, false, -1, 0 );
 	rb_surfaceTable[Util::ordinal(*(surface->surface))](surface->surface );
 	Tess_End();
 
