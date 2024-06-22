@@ -5636,6 +5636,84 @@ bool CheckShaderNameLength( const char* func_err, const char* name, const char* 
 	return true;
 }
 
+static void ValidateStage( shaderStage_t *pStage )
+{
+	struct stageCheck_t {
+		bool expected;
+		bool check;
+		bool fallback;
+		const std::string name;
+	};
+
+	static const std::unordered_map<stageType_t, stageCheck_t> stageTypeCheck = {
+		{ stageType_t::ST_COLORMAP, { true, true, true, "color map" } },
+		{ stageType_t::ST_GLOWMAP, { true, true, false, "glowMap" } },
+		{ stageType_t::ST_DIFFUSEMAP, { true, true, true, "diffuseMap" } },
+		{ stageType_t::ST_NORMALMAP, { true, true, false, "normalMap" } },
+		{ stageType_t::ST_HEIGHTMAP, { true, true, false, "heightMap" } },
+		// There is no standalone physicalMap stage.
+		{ stageType_t::ST_PHYSICALMAP, { false, false, false, "physicalMap" } },
+		{ stageType_t::ST_SPECULARMAP, { true, true, false, "specularMap" } },
+		{ stageType_t::ST_HEATHAZEMAP, { true, true, false, "heatHazeMap" } },
+		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "heatHazeMap" } },
+		// The lightmap is fetched at render time.
+		{ stageType_t::ST_LIGHTMAP, { true, false, false, "light map" } },
+		// The lightmap is fetched at render time.
+		{ stageType_t::ST_STYLELIGHTMAP, { true, false, false, "style light map" } },
+		{ stageType_t::ST_STYLECOLORMAP, { true, true, false, "style color map" } },
+		{ stageType_t::ST_COLLAPSE_COLORMAP, { true, true, true, "collapsed color map" } },
+		{ stageType_t::ST_COLLAPSE_DIFFUSEMAP, { true, true, true, "collapsed diffuseMap" } },
+		{ stageType_t::ST_ATTENUATIONMAP_XY, { true, true, false, "attenuationMapXY" } },
+		{ stageType_t::ST_ATTENUATIONMAP_Z, { true, true, false, "attenuationMapZ" } },
+		// TODO: Document the remaining stage types.
+	};
+
+	auto it = stageTypeCheck.find( pStage->type );
+	if ( it != stageTypeCheck.end()  )
+	{
+		stageCheck_t stageCheck = it->second;
+
+		if ( stageCheck.expected )
+		{
+			if ( stageCheck.check )
+			{
+				// Check for a missing texture.
+				if ( !pStage->bundle[ 0 ].image[ 0 ] )
+				{
+					if ( stageCheck.fallback )
+					{
+						Log::Warn("Shader %s has a %s stage with no image (using default as a fallback)",
+							shader.name, stageCheck.name );
+
+						pStage->bundle[ 0 ].image[ 0 ] = tr.defaultImage;
+					}
+					else
+					{
+						Log::Warn("Shader %s has a %s stage with no image (ignored)", 
+							shader.name, stageCheck.name );
+
+						pStage->active = false;
+					}
+				}
+			}
+		}
+		else
+		{
+			Log::Warn("Shader %s has unexpected standalone %s stage (ignored)", 
+				shader.name, stageCheck.name );
+
+			pStage->active = false;
+		}
+	}
+	else if ( !pStage->bundle[ 0 ].image[ 0 ] )
+	{
+		Log::Warn("Shader %s has an undocumented type %d stage with no image (ignored)",
+			shader.name, Util::ordinal(pStage->type) );
+
+		pStage->active = false;
+	}
+}
+
 /*
 =========================
 FinishShader
@@ -5736,161 +5814,11 @@ static shader_t *FinishShader()
 			}
 		}
 
-		// check for a missing texture
-		switch ( pStage->type )
+		ValidateStage( pStage );
+
+		if ( !pStage->active )
 		{
-			case stageType_t::ST_COLORMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a colormap stage with no image", shader.name );
-						pStage->bundle[ 0 ].image[ 0 ] = tr.defaultImage;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_GLOWMAP:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a glowmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_NORMALMAP:
- 				{
- 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
- 					{
-						Log::Warn("Shader %s has a normalmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
- 					}
-
- 					break;
- 				}
-
-			case stageType_t::ST_HEIGHTMAP:
- 				{
- 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
- 					{
-						Log::Warn("Shader %s has a heightmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
- 					}
-
- 					break;
- 				}
-
-			case stageType_t::ST_PHYSICALMAP:
-				// There is no standalone physicalMap stage.
-				break;
-
-			case stageType_t::ST_SPECULARMAP:
- 				{
- 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
- 					{
-						Log::Warn("Shader %s has a specularmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
- 					}
-
- 					break;
- 				}
-
-			case stageType_t::ST_HEATHAZEMAP:
-				{
- 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
- 					{
-						Log::Warn("Shader %s has a heathazemap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
- 					}
-
- 					break;
-				}
-
-			case stageType_t::ST_LIQUIDMAP:
-				{
- 					if ( !pStage->bundle[ 0 ].image[ 0 ] )
- 					{
-						Log::Warn("Shader %s has a liquidmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
- 					}
-
- 					break;
-				}
-
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_STYLELIGHTMAP:
-				// The lightmap is fetched at render time.
-				break;
-
-			case stageType_t::ST_STYLECOLORMAP:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a style colormap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a diffusemap stage with no image", shader.name );
-						pStage->bundle[ 0 ].image[ 0 ] = tr.defaultImage;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_ATTENUATIONMAP_XY:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a xy attenuationmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
-					}
-
-					break;
-				}
-
-			case stageType_t::ST_ATTENUATIONMAP_Z:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a z attenuationmap stage with no image", shader.name );
-						pStage->active = false;
-						continue;
-					}
-
-					break;
-				}
-
-			default:
-				{
-					if ( !pStage->bundle[ 0 ].image[ 0 ] )
-					{
-						Log::Warn("Shader %s has a type %d stage with no image", shader.name, Util::ordinal(pStage->type) );
-						pStage->active = false;
-						continue;
-					}
-
-					break;
-				}
+			continue;
 		}
 
 		if ( shader.forceOpaque )
