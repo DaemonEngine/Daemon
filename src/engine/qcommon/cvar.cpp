@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #include "qcommon/q_shared.h"
 #include "qcommon.h"
 
+#include "framework/BaseCommands.h"
 #include "framework/CommandSystem.h"
 #include "framework/CvarSystem.h"
 
@@ -153,9 +154,9 @@ Appends lines containing "set variable value" for all variables
 with the archive flag set that are not in a transient state.
 ============
 */
-void Cvar_WriteVariables( fileHandle_t f )
+void Cvar_WriteVariables(fileHandle_t f)
 {
-    std::string text = Cvar::GetCvarConfigText();
+    std::string text = Cvar::GetCvarConfigText() + Cmd::GetAliasConfigText();
     FS_Write(text.c_str(), text.size(), f);
 }
 
