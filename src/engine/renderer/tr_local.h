@@ -1520,6 +1520,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
 		int            portalLevel; // number of portals this view is through
+		bool isMainView = false;
 		int            mirrorLevel;
 		bool           isMirror; // the portal is a mirror, invert the face culling
 

@@ -4801,7 +4801,9 @@ static void RB_RenderView( bool depthPass )
 	if( depthPass ) {
 		RB_RenderDrawSurfaces( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, DRAWSURFACES_ALL );
 		RB_RunVisTests();
-		RB_RenderPostDepthLightTile();
+		if ( !backEnd.viewParms.isMainView ) {
+			RB_RenderPostDepthLightTile();
+		}
 		return;
 	}
 
