@@ -24,15 +24,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 IN vec3 		attr_Position;
 IN vec4			attr_Color;
+IN vec4 attr_TexCoord0;
 
 uniform mat4		u_ModelViewMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
 OUT(smooth) vec3	var_Position;
 OUT(smooth) vec4	var_Color;
+OUT(smooth) vec2	var_TexCoords;
 
 void	main()
 {
+	vec2 texCoord = attr_TexCoord0.xy;
+
 	// transform vertex position into homogenous clip-space
 	gl_Position = u_ModelViewProjectionMatrix * vec4(attr_Position, 1.0);
 
@@ -41,4 +45,6 @@ void	main()
 
 	// assign color
 	var_Color = attr_Color;
+
+	var_TexCoords = texCoord;
 }

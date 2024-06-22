@@ -1953,7 +1953,7 @@ void Render_portal( shaderStage_t *pStage )
 	gl_portalShader->BindProgram( pStage->deformIndex );
 
 	{
-		GL_VertexAttribsState( ATTR_POSITION );
+		GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
 		glVertexAttrib4fv( ATTR_INDEX_COLOR, tess.svars.color.ToArray() );
 	}
 
