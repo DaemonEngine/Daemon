@@ -91,6 +91,7 @@ struct glconfig2_t
 	int      maxDrawBuffers;
 
 	float    maxTextureAnisotropy;
+	float textureAnisotropy;
 	bool textureAnisotropyAvailable;
 
 	int      maxRenderbufferSize;
