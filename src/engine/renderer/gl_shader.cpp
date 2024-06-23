@@ -807,7 +807,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	AddDefine( env, "r_zNear", r_znear->value );
 
 	AddDefine( env, "M_PI", static_cast<float>( M_PI ) );
-	AddDefine( env, "M_PI", static_cast< float >( M_PI ) );
 	AddDefine( env, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
 	AddDefine( env, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
 	AddDefine( env, "TILE_SIZE", TILE_SIZE );
@@ -815,7 +814,6 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	AddDefine( env, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );
 
 	AddDefine( env, "r_tileStep", glState.tileStep[ 0 ], glState.tileStep[ 1 ] );
-	AddDefine( env, "r_tileStep", glState.tileStep[0], glState.tileStep[1] );
 
 	// We added a lot of stuff but if we do something bad
 	// in the GLSL shaders then we want the proper line
