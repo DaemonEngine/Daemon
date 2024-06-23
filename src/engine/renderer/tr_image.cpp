@@ -110,19 +110,6 @@ void GL_TextureMode( const char *string )
 	gl_filter_min = modes[ i ].minimize;
 	gl_filter_max = modes[ i ].maximize;
 
-	// bound texture anisotropy
-	if ( glConfig2.textureAnisotropyAvailable )
-	{
-		if ( r_ext_texture_filter_anisotropic->value > glConfig2.maxTextureAnisotropy )
-		{
-			Cvar_Set( "r_ext_texture_filter_anisotropic", va( "%f", glConfig2.maxTextureAnisotropy ) );
-		}
-		else if ( r_ext_texture_filter_anisotropic->value < 1.0f )
-		{
-			Cvar_Set( "r_ext_texture_filter_anisotropic", "1.0" );
-		}
-	}
-
 	// change all the existing mipmap texture objects
 	for ( image_t *image : tr.images )
 	{
@@ -137,7 +124,7 @@ void GL_TextureMode( const char *string )
 			// set texture anisotropy
 			if ( glConfig2.textureAnisotropyAvailable )
 			{
-				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, r_ext_texture_filter_anisotropic->value );
+				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig2.textureAnisotropy );
 			}
 		}
 	}
@@ -1122,7 +1109,7 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			// set texture anisotropy
 			if ( glConfig2.textureAnisotropyAvailable )
 			{
-				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, r_ext_texture_filter_anisotropic->value );
+				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig2.textureAnisotropy );
 			}
 
 			glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, gl_filter_min );
