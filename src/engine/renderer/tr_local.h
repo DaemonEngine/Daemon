@@ -947,9 +947,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	struct expression_t
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
-		uint8_t        numOps;
-
-		bool       active; // no parsing problems
+		size_t numOps;
 	};
 
 	struct waveForm_t
