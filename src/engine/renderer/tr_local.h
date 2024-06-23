@@ -1395,7 +1395,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	struct shaderProgram_t
 	{
 		GLuint    program;
-		GLuint    VS, FS;
+		GLuint    VS, FS, CS;
 		uint32_t  attribs; // vertex array attributes
 		GLint    *uniformLocations;
 		GLuint   *uniformBlockIndexes;
@@ -2900,6 +2900,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_arb_texture_gather;
 	extern cvar_t *r_arb_gpu_shader5;
 	extern Cvar::Cvar<bool> r_arb_depth_clamp;
+	extern cvar_t *r_arb_compute_shader;
 
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader

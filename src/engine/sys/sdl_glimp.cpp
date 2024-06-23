@@ -1949,6 +1949,9 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.2
 	glConfig2.depthClampAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_depth_clamp, r_arb_depth_clamp.Get() );
 
+	// made required in OpenGL 4.3
+	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader->value );
+
 	GL_CheckErrors();
 }
 
