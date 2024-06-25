@@ -3472,6 +3472,7 @@ inline bool checkGLErrors()
 	void Render_NONE( shaderStage_t *pStage );
 	void Render_NOP( shaderStage_t *pStage );
 	void Render_generic( shaderStage_t *pStage );
+	void Render_generic2D( shaderStage_t *pStage );
 	void Render_generic3D( shaderStage_t *pStage );
 	void Render_lightMapping( shaderStage_t *pStage );
 	void Render_reflection_CB( shaderStage_t *pStage );
