@@ -759,7 +759,7 @@ void CL_GlobalServers_f()
 			continue;
 		}
 
-		sprintf( command, "sv_master%d", masterNum + 1 );
+		Com_sprintf( command, sizeof( command ), "sv_master%d", masterNum + 1 );
 		masteraddress = Cvar_VariableString( command );
 
 		if ( !*masteraddress )
