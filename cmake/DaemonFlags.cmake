@@ -257,14 +257,6 @@ else()
 		add_definitions(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=500)
 	endif()
 
-	# Workaround: CMake fails to detect that PNaCl is clang-compatible.
-	if (NACL)
-		set_c_cxx_flag("-Os -DNDEBUG" MINSIZEREL)
-		set_c_cxx_flag("-O3 -DNDEBUG" RELEASE)
-		set_c_cxx_flag("-O2 -DNDEBUG" RELWITHDEBINFO)
-		set_c_cxx_flag("-O0" DEBUG)
-	endif()
-
 	# Extra debug flags.
 	set_c_cxx_flag("-g3" RELWITHDEBINFO)
 	set_c_cxx_flag("-g3" DEBUG)
