@@ -121,13 +121,11 @@ void ignore_result(T) {}
 
 // vsnprintf is ISO/IEC 9899:1999
 // abstracting this to make it portable
-#ifdef _MSC_VER
+#ifdef _WIN32
 //vsnprintf is non-conformant in MSVC--fails to null-terminate in case of overflow
+//(fixed in newer versions "Beginning with the UCRT in Visual Studio 2015 and Windows 10")
 #define Q_vsnprintf(dest, size, fmt, args) _vsnprintf_s( dest, size, _TRUNCATE, fmt, args )
 #define Q_snprintf(dest, size, fmt, ...) _snprintf_s( dest, size, _TRUNCATE, fmt, __VA_ARGS__ )
-#elif defined( _WIN32 )
-#define Q_vsnprintf _vsnprintf
-#define Q_snprintf  _snprintf
 #else
 #define Q_vsnprintf vsnprintf
 #define Q_snprintf  snprintf
