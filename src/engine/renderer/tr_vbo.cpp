@@ -1036,7 +1036,9 @@ R_InitVBOs
 */
 void R_InitVBOs()
 {
-	uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR;
+	// ATTR_QTANGENT and ATTR_ORIENTATION are mutually exclusive, but we don't know in advance
+	// which attributes will be used as this buffer is used for many purposes.
+	uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_ORIENTATION | ATTR_COLOR;
 
 	Log::Debug("------- R_InitVBOs -------" );
 

@@ -182,6 +182,10 @@ void R_AddSurfaceToVBOSurfacesList(
 
 	vboSurf->ibo = R_CreateStaticIBO( va( "staticMD5Mesh_IBO %i", ( int )vboSurfaces.size() ), indexes, indexesNum );
 
+	// MD5 does not have color, but shaders always request it and the skeletal animation
+	// vertex layout includes a color field, which is zeroed by default.
+	vboSurf->vbo->attribBits |= ATTR_COLOR;
+
 	ri.Hunk_FreeTempMemory( indexes );
 	ri.Hunk_FreeTempMemory( data.st );
 	ri.Hunk_FreeTempMemory( data.boneWeights );

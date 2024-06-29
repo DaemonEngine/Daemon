@@ -714,6 +714,12 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 				frame = glState.vertexAttribsOldFrame;
 			}
 
+			if ( !( glState.currentVBO->attribBits & bit ) )
+			{
+				Log::Warn( "GL_VertexAttribPointers: %s does not have %s",
+				           glState.currentVBO->name, attributeNames[ i ] );
+			}
+
 			glVertexAttribPointer( i, layout->numComponents, layout->componentType, layout->normalize, layout->stride, BUFFER_OFFSET( layout->ofs + ( frame * layout->frameOffset + base ) ) );
 			glState.vertexAttribPointersSet |= bit;
 		}
