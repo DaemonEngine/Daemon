@@ -3443,7 +3443,9 @@ inline bool checkGLErrors()
 	void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 	void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 
-	void Tess_InstantQuad( const float x, const float y, const float width, const float height );
+	class u_ModelViewProjectionMatrix;
+	void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, float x, float y, float width, float height );
+
 	void Tess_MapVBOs( bool forceCPU );
 	void Tess_UpdateVBOs();
 

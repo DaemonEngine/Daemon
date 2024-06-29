@@ -584,7 +584,7 @@ void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const
 Tess_InstantQuad
 ==============
 */
-void Tess_InstantQuad( const float x, const float y, const float width, const float height )
+void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const float y, const float width, const float height )
 {
 	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );
 
@@ -592,6 +592,8 @@ void Tess_InstantQuad( const float x, const float y, const float width, const fl
 	tess.numVertexes = 0;
 	tess.numIndexes = 0;
 	tess.attribsSet = 0;
+	tess.vboVertexSkinning = false;
+	tess.vboVertexAnimation = false;
 
 	matrix_t modelViewMatrix;
 	MatrixCopy( matrixIdentity, modelViewMatrix );
@@ -600,12 +602,21 @@ void Tess_InstantQuad( const float x, const float y, const float width, const fl
 	modelViewMatrix[0] = width;
 	modelViewMatrix[5] = height;
 	GL_LoadModelViewMatrix( modelViewMatrix );
+	shader.SetUniform_ModelViewProjectionMatrix(
+		glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	rb_surfaceTable[Util::ordinal( *( tr.genericQuad->surface ) )]( tr.genericQuad->surface );
 	tess.attribsSet = ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR;
 	GL_VertexAttribsState( tess.attribsSet );
 
+	Tess_DrawElements();
+
 	GL_CheckErrors();
+
+	tess.multiDrawPrimitives = 0;
+	tess.numVertexes = 0;
+	tess.numIndexes = 0;
+	tess.attribsSet = 0;
 }
 
 /*
