@@ -625,8 +625,6 @@ void RE_RenderScene( const refdef_t *fd )
 	VectorCopy( fd->vieworg, parms.pvsOrigin );
 	Vector4Copy( fd->gradingWeights, parms.gradingWeights );
 
-	parms.isMainView = true;
-
 	R_AddClearBufferCmd();
 	R_AddSetupLightsCmd();
 
