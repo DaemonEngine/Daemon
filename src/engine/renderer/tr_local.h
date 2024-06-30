@@ -1520,7 +1520,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
 		int            portalLevel; // number of portals this view is through
-		bool isMainView = false;
+		bool hasNestedViews = false;
 		int            mirrorLevel;
 		bool           isMirror; // the portal is a mirror, invert the face culling
 
@@ -2550,6 +2550,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		trRefEntity_t     *currentEntity;
 		trRefLight_t      *currentLight; // only used when lighting interactions
 		bool          skyRenderedThisView; // flag for drawing sun
+		bool postDepthLightTileRendered = false;
 
 		bool          projection2D; // if true, drawstretchpic doesn't need to change modes
 		Color::Color32Bit color2D;
