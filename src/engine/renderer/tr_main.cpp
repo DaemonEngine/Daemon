@@ -1884,6 +1884,8 @@ static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	// save old viewParms so we can return to it after the mirror view
 	viewParms_t oldParms = tr.viewParms;
 
+	oldParms.hasNestedViews = true;
+
 	newParms.portalLevel++;
 
 	// convert screen rectangle to scissor test

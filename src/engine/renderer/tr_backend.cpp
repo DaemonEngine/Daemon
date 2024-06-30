@@ -4801,8 +4801,9 @@ static void RB_RenderView( bool depthPass )
 	if( depthPass ) {
 		RB_RenderDrawSurfaces( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, DRAWSURFACES_ALL );
 		RB_RunVisTests();
-		if ( !backEnd.viewParms.isMainView ) {
+		if ( !backEnd.postDepthLightTileRendered && !backEnd.viewParms.hasNestedViews ) {
 			RB_RenderPostDepthLightTile();
+			backEnd.postDepthLightTileRendered = true;
 		}
 		return;
 	}
@@ -5517,6 +5518,7 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 
 	backEnd.refdef = refdef;
 	backEnd.viewParms = viewParms;
+	backEnd.postDepthLightTileRendered = false;
 
 	GL_CheckErrors();
 
