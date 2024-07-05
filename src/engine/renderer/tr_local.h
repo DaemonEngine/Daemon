@@ -1523,7 +1523,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
 		int            portalLevel; // number of portals this view is through
-		bool isMainView = false;
+		bool hasNestedViews = false;
 		int            mirrorLevel;
 		bool           isMirror; // the portal is a mirror, invert the face culling
 
@@ -2553,6 +2553,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		trRefEntity_t     *currentEntity;
 		trRefLight_t      *currentLight; // only used when lighting interactions
 		bool          skyRenderedThisView; // flag for drawing sun
+		bool postDepthLightTileRendered = false;
 
 		bool          projection2D; // if true, drawstretchpic doesn't need to change modes
 		Color::Color32Bit color2D;
@@ -2885,23 +2886,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_mode; // video mode
 	extern cvar_t *r_gamma;
-
-	extern cvar_t *r_ext_occlusion_query; // these control use of specific extensions
-	extern cvar_t *r_ext_draw_buffers;
-	extern cvar_t *r_ext_half_float_pixel;
-	extern cvar_t *r_ext_texture_float;
-	extern cvar_t *r_ext_texture_integer;
-	extern cvar_t *r_ext_texture_rg;
-	extern cvar_t *r_ext_texture_filter_anisotropic;
-	extern cvar_t *r_ext_gpu_shader4;
-	extern cvar_t *r_arb_buffer_storage;
-	extern cvar_t *r_arb_map_buffer_range;
-	extern cvar_t *r_arb_sync;
-	extern cvar_t *r_arb_uniform_buffer_object;
-	extern cvar_t *r_arb_texture_gather;
-	extern cvar_t *r_arb_gpu_shader5;
-	extern Cvar::Cvar<bool> r_arb_depth_clamp;
-	extern cvar_t *r_arb_compute_shader;
 
 	extern cvar_t *r_nobind; // turns off binding to appropriate textures
 	extern cvar_t *r_singleShader; // make most world faces use default shader

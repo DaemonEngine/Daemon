@@ -53,6 +53,42 @@ static Cvar::Cvar<std::string> r_glForceHardware(
 static Cvar::Cvar<std::string> r_availableModes(
 	"r_availableModes", "list of available resolutions", Cvar::ROM, "");
 
+// OpenGL extension cvars.
+static Cvar::Cvar<bool> r_arb_buffer_storage( "r_arb_buffer_storage",
+	"Use GL_ARB_buffer_storage if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
+	"Use GL_ARB_compute_shader if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_debug_output( "r_arb_debug_output",
+	"Use GL_ARB_debug_output if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_depth_clamp( "r_arb_depth_clamp",
+	"Use GL_ARB_depth_clamp if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
+	"Use GL_ARB_gpu_shader5 if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_map_buffer_range( "r_arb_map_buffer_range",
+	"Use GL_ARB_map_buffer_range if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_sync( "r_arb_sync",
+	"Use GL_ARB_sync if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_texture_gather( "r_arb_texture_gather",
+	"Use GL_ARB_texture_gather if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_uniform_buffer_object( "r_arb_uniform_buffer_object",
+	"Use GL_ARB_uniform_buffer_object if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_draw_buffers( "r_ext_draw_buffers",
+	"Use GL_EXT_draw_buffers if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_gpu_shader4( "r_ext_gpu_shader4",
+	"Use GL_EXT_gpu_shader4 if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_half_float_pixel( "r_ext_half_float_pixel",
+	"Use GL_EXT_half_float_pixel if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_occlusion_query( "r_ext_occlusion_query",
+	"Use GL_EXT_occlusion_query if available", Cvar::NONE, true );
+static Cvar::Range<Cvar::Cvar<float>> r_ext_texture_filter_anisotropic( "r_ext_texture_filter_anisotropic",
+	"Use GL_EXT_texture_filter_anisotropic if available: anisotropy value", Cvar::NONE, 4.0f, 0.0f, 16.0f );
+static Cvar::Cvar<bool> r_ext_texture_float( "r_ext_texture_float",
+	"Use GL_EXT_texture_float if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_texture_integer( "r_ext_texture_integer",
+	"Use GL_EXT_texture_integer if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_ext_texture_rg( "r_ext_texture_rg",
+	"Use GL_EXT_texture_rg if available", Cvar::NONE, true );
+
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
 
@@ -1746,10 +1782,29 @@ static void GLimp_InitExtensions()
 {
 	logger.Notice("Initializing OpenGL extensions" );
 
+	Cvar::Latch( r_arb_buffer_storage );
+	Cvar::Latch( r_arb_compute_shader );
+	Cvar::Latch( r_arb_debug_output );
+	Cvar::Latch( r_arb_depth_clamp );
+	Cvar::Latch( r_arb_gpu_shader5 );
+	Cvar::Latch( r_arb_map_buffer_range );
+	Cvar::Latch( r_arb_sync );
+	Cvar::Latch( r_arb_texture_gather );
+	Cvar::Latch( r_arb_uniform_buffer_object );
+	Cvar::Latch( r_ext_draw_buffers );
+	Cvar::Latch( r_ext_gpu_shader4 );
+	Cvar::Latch( r_ext_half_float_pixel );
+	Cvar::Latch( r_ext_occlusion_query );
+	Cvar::Latch( r_ext_texture_filter_anisotropic );
+	Cvar::Latch( r_ext_texture_float );
+	Cvar::Latch( r_ext_texture_integer );
+	Cvar::Latch( r_ext_texture_rg );
+
 	glConfig2.glEnabledExtensionsString = std::string();
 	glConfig2.glMissingExtensionsString = std::string();
 
-	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output, r_glDebugProfile->value ) )
+	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output,
+		r_arb_debug_output.Get() && r_glDebugProfile->value ) )
 	{
 		glDebugMessageCallbackARB( (GLDEBUGPROCARB)GLimp_DebugCallback, nullptr );
 		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
@@ -1780,24 +1835,24 @@ static void GLimp_InitExtensions()
 	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_ext_half_float_pixel->value );
+	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_ext_half_float_pixel.Get() );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float->value );
+	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float.Get() );
 
 	// made required in OpenGL 3.0
-	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4->value );
+	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4.Get() );
 
 	// made required in OpenGL 4.0
-	glConfig2.gpuShader5Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_gpu_shader5, r_arb_gpu_shader5->value );
+	glConfig2.gpuShader5Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_gpu_shader5, r_arb_gpu_shader5.Get() );
 
 	// made required in OpenGL 3.0
 	// GL_EXT_texture_integer can be used in shaders only if GL_EXT_gpu_shader4 is also available
-	glConfig2.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer->value )
+	glConfig2.textureIntegerAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_texture_integer, r_ext_texture_integer.Get() )
 	  && glConfig2.gpuShader4Available;
 
 	// made required in OpenGL 3.0
-	glConfig2.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg->value );
+	glConfig2.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg.Get() );
 
 	{
 		/* GT218-based GPU with Nvidia 340.108 driver advertising
@@ -1828,7 +1883,7 @@ static void GLimp_InitExtensions()
 		}
 
 		// made required in OpenGL 4.0
-		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather->value && !foundNvidia340 );
+		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather.Get() && !foundNvidia340 );
 	}
 
 	{
@@ -1864,10 +1919,14 @@ static void GLimp_InitExtensions()
 
 	// Texture - others
 	glConfig2.textureAnisotropyAvailable = false;
-	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic->value ) )
+	glConfig2.textureAnisotropy = 0.0f;
+	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, EXT_texture_filter_anisotropic, r_ext_texture_filter_anisotropic.Get() > 0 ) )
 	{
 		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig2.maxTextureAnisotropy );
 		glConfig2.textureAnisotropyAvailable = true;
+
+		// Bound texture anisotropy.
+		glConfig2.textureAnisotropy = std::max( std::min( r_ext_texture_filter_anisotropic.Get(), glConfig2.maxTextureAnisotropy ), 1.0f );
 	}
 
 	// VAO and VBO
@@ -1906,7 +1965,7 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 1.5
 	glConfig2.occlusionQueryAvailable = false;
 	glConfig2.occlusionQueryBits = 0;
-	if ( r_ext_occlusion_query->integer != 0 )
+	if ( r_ext_occlusion_query.Get() )
 	{
 		glConfig2.occlusionQueryAvailable = true;
 		glGetQueryiv( GL_SAMPLES_PASSED, GL_QUERY_COUNTER_BITS, &glConfig2.occlusionQueryBits );
@@ -1914,7 +1973,7 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 2.0
 	glConfig2.drawBuffersAvailable = false;
-	if ( r_ext_draw_buffers->integer != 0 )
+	if ( r_ext_draw_buffers.Get() )
 	{
 		glGetIntegerv( GL_MAX_DRAW_BUFFERS, &glConfig2.maxDrawBuffers );
 		glConfig2.drawBuffersAvailable = true;
@@ -1935,22 +1994,22 @@ static void GLimp_InitExtensions()
 	}
 
 	glConfig2.bufferStorageAvailable = false;
-	glConfig2.bufferStorageAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_buffer_storage, r_arb_buffer_storage->integer > 0 );
+	glConfig2.bufferStorageAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_buffer_storage, r_arb_buffer_storage.Get() );
 
 	// made required since OpenGL 3.1
-	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object->value );
+	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object.Get() );
 
 	// made required in OpenGL 3.0
-	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range->value );
+	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
 
 	// made required in OpenGL 3.2
-	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync->value );
+	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync.Get() );
 
 	// made required in OpenGL 3.2
 	glConfig2.depthClampAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_depth_clamp, r_arb_depth_clamp.Get() );
 
 	// made required in OpenGL 4.3
-	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader->value );
+	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );
 
 	GL_CheckErrors();
 }
