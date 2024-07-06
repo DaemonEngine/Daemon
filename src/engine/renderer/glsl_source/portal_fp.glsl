@@ -39,7 +39,7 @@ void	main()
 	float len = length(var_Position);
 
 	len /= u_PortalRange;
-	color.rgb *= 1.0 - clamp(len, 0.0, 1.0);
+	color.a = clamp(len, 0.0, 1.0);
 
 	outputColor = color;
 }

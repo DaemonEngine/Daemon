@@ -2852,7 +2852,7 @@ void Tess_StageIteratorPortal() {
 			continue;
 		}
 
-		Render_portal( pStage );
+		Render_generic3D( pStage );
 	}
 }
 
