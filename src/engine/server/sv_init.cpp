@@ -82,11 +82,49 @@ void SV_SetConfigstring( int index, const char *val )
 	sv.configstringsmodified[ index ] = true;
 }
 
+static void SendConfigStringToClient( int cs, client_t *cl )
+{
+	char buf[ 1024 ]; // escaped characters, in a quoted context
+	// max command size for SV_SendServerCommand is 1022, leave a little overhead for the command
+	char *limit = buf + 990;
+
+	char *out = buf;
+	bool first = true;
+	
+	for ( const char *in = sv.configstrings[ cs ]; ; )
+	{
+		char c = *in++;
+
+		// '$' does not need to be escaped as it is not interpreted in the context of a server command
+		if ( c == '\\' || c == '"' )
+		{
+			*out++ = '\\';
+		}
+
+		*out++ = c;
+
+		if ( !*in )
+		{
+			break;
+		}
+
+		if ( out >= limit )
+		{
+			*out = '\0';
+			SV_SendServerCommand( cl, "%s %d \"%s\"", first ? "bcs0" : "bcs1", cs, buf );
+			first = false;
+			out = buf;
+		}
+	}
+
+	*out = '\0';
+	SV_SendServerCommand( cl, "%s %d \"%s\"", first ? "cs" : "bcs2", cs, buf );
+}
+
 void SV_UpdateConfigStrings()
 {
-	int      len, i, index;
+	int i, index;
 	client_t *client;
-	int      maxChunkSize = MAX_STRING_CHARS - 64;
 
 	for ( index = 0; index < MAX_CONFIGSTRINGS; index++ )
 	{
@@ -101,8 +139,6 @@ void SV_UpdateConfigStrings()
 		// spawning a new server
 		if ( sv.state == serverState_t::SS_GAME || sv.restarting )
 		{
-			len = strlen( sv.configstrings[ index ] );
-
 			// send the data to all relevent clients
 			for ( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ )
 			{
@@ -117,41 +153,7 @@ void SV_UpdateConfigStrings()
 					continue;
 				}
 
-				if ( len >= maxChunkSize )
-				{
-					int  sent = 0;
-					int  remaining = len;
-					const char *cmd;
-					char buf[ MAX_STRING_CHARS ];
-
-					while ( remaining > 0 )
-					{
-						if ( sent == 0 )
-						{
-							cmd = "bcs0";
-						}
-						else if ( remaining < maxChunkSize )
-						{
-							cmd = "bcs2";
-						}
-						else
-						{
-							cmd = "bcs1";
-						}
-
-						Q_strncpyz( buf, &sv.configstrings[ index ][ sent ], maxChunkSize );
-
-						SV_SendServerCommand( client, "%s %i %s\n", cmd, index, Cmd_QuoteString( buf ) );
-
-						sent += ( maxChunkSize - 1 );
-						remaining -= ( maxChunkSize - 1 );
-					}
-				}
-				else
-				{
-					// standard cs, just send it
-					SV_SendServerCommand( client, "cs %i %s\n", index, Cmd_QuoteString( sv.configstrings[ index ] ) );
-				}
+				SendConfigStringToClient( index, client );
 			}
 		}
 	}
