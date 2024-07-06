@@ -202,6 +202,7 @@ void PRINTF_LIKE(2) SV_SendServerCommand( client_t *cl, const char *fmt, ... )
 	// ( q3infoboom / q3msgboom stuff )
 	if ( strlen( ( char * ) message ) > 1022 )
 	{
+		Log::Warn( "^1Not sending reliable command because it is too long! [%.50s...]", message );
 		return;
 	}
 
