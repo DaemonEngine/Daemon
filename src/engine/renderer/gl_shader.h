@@ -340,7 +340,7 @@ private:
 			      GLenum shaderType ) const;
 	void CompileGPUShaders( GLShader *shader, shaderProgram_t *program,
 				const std::string &compileMacros );
-	void CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program,
+	void CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program, shaderProgram_t* baseProgram,
 	                                     Str::StringRef compileMacros, int deformIndex );
 	std::string BuildDeformShaderText( const std::string& steps );
 	std::string BuildGPUShaderText( Str::StringRef mainShader, Str::StringRef libShaders, GLenum shaderType ) const;

@@ -897,8 +897,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
 {
 	std::string compileMacros;
-	int  startTime = ri.Milliseconds();
-	int  endTime;
+	int startTime = ri.Milliseconds();
 	size_t i = macroIndex + ( deformIndex << shader->_compileMacros.size() );
 
 	// program already exists
@@ -913,36 +912,28 @@ void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 		shader->BuildShaderCompileMacros( compileMacros );
 
 		if ( IsUnusedPermutation( compileMacros.c_str() ) )
+		{
 			return;
+		}
 
-		if( i >= shader->_shaderPrograms.size() )
-			shader->_shaderPrograms.resize( (deformIndex + 1) << shader->_compileMacros.size() );
+		if ( i >= shader->_shaderPrograms.size() )
+		{
+			shader->_shaderPrograms.resize( ( deformIndex + 1 ) << shader->_compileMacros.size() );
+		}
 
 		shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ i ];
-		shaderProgram->attribs = shader->_vertexAttribsRequired; // | _vertexAttribsOptional;
+		shaderProgram->attribs = shader->_vertexAttribsRequired;
 
-		if( deformIndex > 0 )
+		if ( ( deformIndex > 0 ) || !LoadShaderBinary( shader, i ) )
 		{
-			shaderProgram_t *baseShader = &shader->_shaderPrograms[ macroIndex ];
-			if( ( !baseShader->VS && shader->_hasVertexShader ) || ( !baseShader->FS && shader->_hasFragmentShader ) )
-				CompileGPUShaders( shader, baseShader, compileMacros );
+			shaderProgram_t* baseProgram = &shader->_shaderPrograms[ macroIndex ];
 
-			shaderProgram->program = glCreateProgram();
-			if ( shader->_hasVertexShader ) {
-				glAttachShader( shaderProgram->program, baseShader->VS );
-				glAttachShader( shaderProgram->program, _deformShaders[deformIndex] );
-			}
-			if ( shader->_hasFragmentShader ) {
-				glAttachShader( shaderProgram->program, baseShader->FS );
-			}
+			CompileAndLinkGPUShaderProgram( shader, shaderProgram, baseProgram, compileMacros, deformIndex );
 
-			BindAttribLocations( shaderProgram->program );
-			LinkProgram( shaderProgram->program );
-		}
-		else if ( !LoadShaderBinary( shader, i ) )
-		{
-			CompileAndLinkGPUShaderProgram(	shader, shaderProgram, compileMacros, deformIndex );
-			SaveShaderBinary( shader, i );
+			if ( deformIndex == 0 )
+			{
+				SaveShaderBinary( shader, i );
+			}
 		}
 
 		UpdateShaderProgramUniformLocations( shader, shaderProgram );
@@ -952,7 +943,7 @@ void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int de
 
 		GL_CheckErrors();
 
-		endTime = ri.Milliseconds();
+		int endTime = ri.Milliseconds();
 		_totalBuildTime += ( endTime - startTime );
 	}
 }
@@ -966,9 +957,8 @@ void GLShaderManager::buildAll()
 		std::string shaderName = shader.GetMainShaderName();
 
 		size_t numPermutations = static_cast<size_t>(1) << shader.GetNumOfCompiledMacros();
-		size_t i;
 
-		for( i = 0; i < numPermutations; i++ )
+		for( size_t i = 0; i < numPermutations; i++ )
 		{
 			buildPermutation( &shader, i, 0 );
 		}
@@ -1052,29 +1042,41 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	const byte    *binaryptr;
 	GLBinaryHeader shaderHeader;
 
-	if (!GetShaderPath().empty())
+	if ( !GetShaderPath().empty() )
+	{
 		return false;
+	}
 
 	// don't even try if the necessary functions aren't available
-	if( !glConfig2.getProgramBinaryAvailable )
+	if ( !glConfig2.getProgramBinaryAvailable )
+	{
 		return false;
+	}
 
-	if (_shaderBinaryCacheInvalidated)
+	if ( _shaderBinaryCacheInvalidated )
+	{
 		return false;
+	}
 
 	std::error_code err;
 
 	std::string shaderFilename = Str::Format("glsl/%s/%s_%u.bin", shader->GetName(), shader->GetName(), (unsigned int)programNum);
 	FS::File shaderFile = FS::HomePath::OpenRead(shaderFilename, err);
-	if (err)
+	if ( err )
+	{
 		return false;
+	}
 
 	std::string shaderData = shaderFile.ReadAll(err);
-	if (err)
+	if ( err )
+	{
 		return false;
+	}
 
-	if (shaderData.size() < sizeof(shaderHeader))
+	if ( shaderData.size() < sizeof( shaderHeader ) )
+	{
 		return false;
+	}
 
 	binaryptr = reinterpret_cast<const byte*>(shaderData.data());
 
@@ -1095,18 +1097,24 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 
 	// make sure this shader uses the same number of macros
 	if ( shaderHeader.numMacros != shader->GetNumOfCompiledMacros() )
+	{
 		return false;
+	}
 
 	// make sure this shader uses the same macros
 	for ( unsigned int i = 0; i < shaderHeader.numMacros; i++ )
 	{
 		if ( shader->_compileMacros[ i ]->GetType() != shaderHeader.macros[ i ] )
+		{
 			return false;
+		}
 	}
 
 	// make sure the checksums for the source code match
 	if ( shaderHeader.checkSum != shader->_checkSum )
+	{
 		return false;
+	}
 
 	if ( shaderHeader.binaryLength != shaderData.size() - sizeof( shaderHeader ) )
 	{
@@ -1121,7 +1129,9 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	glGetProgramiv( shaderProgram->program, GL_LINK_STATUS, &success );
 
 	if ( !success )
+	{
 		return false;
+	}
 
 	return true;
 #else
@@ -1138,8 +1148,10 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 	GLBinaryHeader        shaderHeader{}; // Zero init.
 	shaderProgram_t       *shaderProgram;
 
-	if (!GetShaderPath().empty())
+	if ( !GetShaderPath().empty() )
+	{
 		return;
+	}
 
 	// don't even try if the necessary functions aren't available
 	if( !glConfig2.getProgramBinaryAvailable )
@@ -1175,7 +1187,7 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 
 	for ( unsigned int i = 0; i < shaderHeader.numMacros; i++ )
 	{
-		shaderHeader.macros[ i ] = shader->_compileMacros[ i ]->GetType();
+		shaderHeader.macros[i] = shader->_compileMacros[ i ]->GetType();
 	}
 
 	shaderHeader.binaryLength = binaryLength;
@@ -1183,7 +1195,7 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 	shaderHeader.driverVersionHash = _driverVersionHash;
 
 	// write the header to the buffer
-	memcpy(binary, &shaderHeader, sizeof( shaderHeader ) );
+	memcpy( binary, &shaderHeader, sizeof( shaderHeader ) );
 
 	auto fileName = Str::Format("glsl/%s/%s_%u.bin", shader->GetName(), shader->GetName(), (unsigned int)programNum);
 	ri.FS_WriteFile(fileName.c_str(), binary, binarySize);
@@ -1248,21 +1260,25 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 	}
 }
 
-void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program,
+void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderProgram_t *program, shaderProgram_t* baseProgram,
 						      Str::StringRef compileMacros, int deformIndex )
 {
-	GLShaderManager::CompileGPUShaders( shader, program, compileMacros );
+	if ( ( !baseProgram->VS && shader->_hasVertexShader ) || ( !baseProgram->FS && shader->_hasFragmentShader )
+		 || ( !baseProgram->CS && shader->_hasComputeShader ) )
+	{
+		CompileGPUShaders( shader, baseProgram, compileMacros );
+	}
 
 	program->program = glCreateProgram();
 	if ( shader->_hasVertexShader ) {
-		glAttachShader( program->program, program->VS );
+		glAttachShader( program->program, baseProgram->VS );
 		glAttachShader( program->program, _deformShaders[ deformIndex ] );
 	}
 	if ( shader->_hasFragmentShader ) {
-		glAttachShader( program->program, program->FS );
+		glAttachShader( program->program, baseProgram->FS );
 	}
 	if ( shader->_hasComputeShader ) {
-		glAttachShader( program->program, program->CS );
+		glAttachShader( program->program, baseProgram->CS );
 	}
 
 	BindAttribLocations( program->program );
