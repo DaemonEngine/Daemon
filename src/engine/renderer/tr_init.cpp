@@ -783,14 +783,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	{
 		GLimp_LogComment( "--- GL_SetDefaultState ---\n" );
 
-		GL_ClearDepth( 1.0f );
-		GL_ClearStencil( 0 );
-
-		GL_FrontFace( GL_CCW );
 		glCullFace( GL_FRONT );
-
-		glState.faceCulling = CT_TWO_SIDED;
-		glDisable( GL_CULL_FACE );
+		GL_Cull( CT_TWO_SIDED );
 
 		GL_CheckErrors();
 
@@ -851,11 +845,12 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		glEnable( GL_SCISSOR_TEST );
 		glDisable( GL_BLEND );
 
-		glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-		glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
-		glClearDepth( 1.0 );
+		GL_ColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+		GL_ClearDepth( 1.0 );
+		GL_ClearStencil( 0 );
 
-		glDrawBuffer( GL_BACK );
+		GL_DrawBuffer( GL_BACK );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
 		GL_CheckErrors();
