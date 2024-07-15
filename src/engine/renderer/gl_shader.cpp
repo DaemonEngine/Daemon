@@ -820,37 +820,34 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	// so we have to reset the line counting.
 	env += "#line 0\n";
 
-	std::string shaderText = env + libs + GetShaderText( filename );
-
-	std::istringstream shaderTextStream( shaderText );
-	std::string shaderMain;
+	std::string mainShaderText = GetShaderText( filename );
+	std::string out = env + libs;
+	std::istringstream shaderTextStream( mainShaderText );
 
 	std::string line;
-	uint insertCount = 0;
+	int insertCount = 0;
+	int lineCount = 0;
 
 	while ( std::getline( shaderTextStream, line, '\n' ) ) {
+		++lineCount;
 		const std::string::size_type position = line.find( "#insert" );
 		if ( position == std::string::npos || line.find_first_not_of( " \t" ) != position ) {
-			shaderMain += line + "\n";
+			out += line + "\n";
 			continue;
 		}
 
 		std::string shaderInsertPath = line.substr( position + 8, std::string::npos );
-		shaderMain += "/* Shader file: glsl/" + shaderInsertPath + ".glsl: */\n";
 
-		// Put a line count marker here so we don't get the wrong line number due to previous #line 0
-		shaderMain += "#line -1\n";
-		
 		// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
-		shaderMain += "#line " + std::to_string( ( insertCount + 1 ) * 10000 ) + "\n";
-		insertCount++;
+		// #insert recursion is not supported
+		++insertCount;
+		out += "#line " + std::to_string( insertCount * 10000 ) + " // " + shaderInsertPath + ".glsl\n";
 
-		shaderMain += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
-
-		shaderMain += "#line -1\n";
+		out += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
+		out += "#line " + std::to_string( lineCount ) + "\n";
 	}
 
-	return shaderMain;
+	return out;
 }
 
 static bool IsUnusedPermutation( const char *compileMacros )
@@ -1342,36 +1339,13 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 
 	int lineNumber = 0;
 	size_t pos = 0;
-	int lineMarker = -1;
+
 	while ( ( pos = src.find( delim ) ) != std::string::npos ) {
 		std::string line = src.substr( 0, pos );
-
-		const std::string::size_type position = line.find( "#line" );
-		if ( ( position != std::string::npos ) && ( line.find_first_not_of( " \t" ) == position ) ) {
-			const int newLineNumber = std::stoi( line.substr( 5, std::string::npos ) );
-			
-			/* #line -1 is used as a line marker
-			*  The line number will continue from the line before the start marker, eg:
-			*  // line 10
-			*  #line -1
-			*  #line 10000
-			*  // .. a bunch of code here
-			*  #line -1
-			*  // This line will have line number 11
-			*  This does NOT support nesting
-			*/
-			if ( newLineNumber == -1 ) {
-				if ( lineMarker == -1 ) {
-					lineMarker = lineNumber;
-				} else {
-					lineNumber = lineMarker;
-					lineMarker = -1;
-				}
-				src.erase( 0, pos + delim.length() );
-				continue;
-			} else {
-				lineNumber = newLineNumber;
-			}
+		if ( Str::IsPrefix( "#line ", line ) )
+		{
+			size_t lineNumEnd = line.find( ' ', 6 );
+			Str::ParseInt( lineNumber, line.substr( 6, lineNumEnd - 6 ) );
 		}
 
 		std::string number = std::to_string( lineNumber );
