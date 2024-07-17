@@ -2216,6 +2216,18 @@ public:
 	}
 };
 
+class u_UnprojectionParams :
+	GLUniform3f {
+	public:
+	u_UnprojectionParams( GLShader* shader ) :
+		GLUniform3f( shader, "u_UnprojectionParams" ) {
+	}
+
+	void SetUniform_UnprojectionParams( const vec3_t value ) {
+		this->SetValue( value );
+	}
+};
+
 class u_numLights :
 	GLUniform1i
 {
@@ -2716,6 +2728,7 @@ public:
 class GLShader_ssao :
 	public GLShader,
 	public u_ModelViewProjectionMatrix,
+	public u_UnprojectionParams,
 	public u_zFar
 {
 public:

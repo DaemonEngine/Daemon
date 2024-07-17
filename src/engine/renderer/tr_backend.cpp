@@ -3197,8 +3197,6 @@ void RB_RenderMotionBlur()
 
 void RB_RenderSSAO()
 {
-	vec3_t zParams;
-
 	GLimp_LogComment( "--- RB_RenderSSAO ---\n" );
 
 	if ( !GLEW_ARB_texture_gather ) {
@@ -3216,17 +3214,25 @@ void RB_RenderSSAO()
 
 	if ( r_ssao->integer < 0 ) {
 		// clear the screen to show only SSAO
-		GL_ClearColor( 1.0f, 1.0f, 1.0f, 1.0f);
+		GL_ClearColor( tr.mapInverseLightFactor, tr.mapInverseLightFactor, tr.mapInverseLightFactor, 1.0 );
 		glClear( GL_COLOR_BUFFER_BIT );
 	}
 
 	gl_ssaoShader->BindProgram( 0 );
 
-	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f) ) / glConfig.vidWidth;
-	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f) ) / glConfig.vidHeight;
+	vec3_t zParams;
+	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f ) ) / glConfig.vidWidth;
+	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f ) ) / glConfig.vidHeight;
 	zParams[ 2 ] = backEnd.viewParms.zFar;
 
 	gl_ssaoShader->SetUniform_zFar( zParams );
+
+	vec3_t unprojectionParams;
+	unprojectionParams[ 0 ] = -r_znear->value * zParams[ 2 ];
+	unprojectionParams[ 1 ] = 2.0 * ( zParams[ 2 ] - r_znear->value );
+	unprojectionParams[ 2 ] = 2.0 * zParams[ 2 ] - r_znear->value;
+
+	gl_ssaoShader->SetUniform_UnprojectionParams( unprojectionParams );
 
 	GL_BindToTMU( 0, tr.currentDepthImage );
 
