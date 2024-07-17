@@ -25,14 +25,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 IN vec3 attr_Position;
 
 uniform mat4 u_ModelViewProjectionMatrix;
-uniform vec3 u_zFar;
-OUT(flat) vec3 unprojectionParams;
 
 void	main()
 {
-	unprojectionParams.x = - r_zNear * u_zFar.z;
-	unprojectionParams.y = 2.0 * (u_zFar.z - r_zNear);
-	unprojectionParams.z = 2.0 * u_zFar.z - r_zNear;
-
 	gl_Position = u_ModelViewProjectionMatrix * vec4( attr_Position, 1.0f );
 }

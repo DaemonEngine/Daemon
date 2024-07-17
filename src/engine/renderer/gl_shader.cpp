@@ -2364,6 +2364,7 @@ void GLShader_motionblur::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 GLShader_ssao::GLShader_ssao( GLShaderManager *manager ) :
 	GLShader( "ssao", ATTR_POSITION, manager ),
 	u_ModelViewProjectionMatrix( this ),
+	u_UnprojectionParams( this ),
 	u_zFar( this )
 {
 }
