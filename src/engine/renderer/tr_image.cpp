@@ -145,13 +145,19 @@ void R_ListImages_f()
 
 	typedef std::pair<const std::string, int> nameSizePair;
 	static const std::unordered_map<uint32_t, nameSizePair> imageFormatNameSize = {
-		// TODO: find imageDataSize multiplier
+		/* Generic format that does not have any specified actual format
+		and implementations can choose one of a few different ones
+		GL4.6 spec (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf):
+		8.5. TEXTURE IMAGE SPECIFICATION
+		"If internalformat is specified as a base internal format, the GL stores the resulting texture with
+		 internal component resolutions of its own choosing, referred to as the effective internal format."
+		 Use 4 bytes as an estimate: */
 		{ GL_RGBA, { "RGBA", 4 } },
 
 		{ GL_RGB8, { "RGB8", 3 } },
 		{ GL_RGBA8, { "RGBA8", 4 } },
 		{ GL_RGB16, { "RGB16", 6 } },
-		{ GL_RGBA16, { "RGBA16", 6 } },
+		{ GL_RGBA16, { "RGBA16", 8 } },
 		{ GL_RGB16F, { "RGB16F", 6 } },
 		{ GL_RGB32F, { "RGB32F", 12 } },
 		{ GL_RGBA16F, { "RGBA16F", 8 } },
@@ -166,23 +172,57 @@ void R_ListImages_f()
 		{ GL_RG16F, { "RG16F", 4 } },
 		{ GL_RG32F, { "RG32F", 8 } },
 
-		// TODO: find imageDataSize multiplier
-		{ GL_COMPRESSED_RGBA, { "RGBAC", 4 } },
+		// Compressed formats here use imageDataSize multiplier as blocksize
+		
+		/* Generic compressed format that does not have any specified actual format
+		and implementations can compress it in whatever way
+		GL4.6 spec (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf):
+		8.5. TEXTURE IMAGE SPECIFICATION
+		"Generic compressed internal formats are never used directly as the internal formats of texture images.
+		 If internalformat is one of the six generic compressed internal formats, its value is replaced by the symbolic constant
+		 for a specific compressed internal format of the GL’s choosing with the same base internal format."
+		 Use 4x4 blocks with 8 bytes per block here as an estimate: */
+		{ GL_COMPRESSED_RGBA, { "RGBAC", 8 } },
 
-		{ GL_COMPRESSED_RGB_S3TC_DXT1_EXT, { "DXT1", 4 / 8 } },
-		{ GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { "DXT1a", 4 / 8 } },
-		{ GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { "DXT3", 4 / 4 } },
-		{ GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { "DXT5", 4 / 4 } },
+		/* https://registry.khronos.org/OpenGL/extensions/EXT/EXT_texture_compression_s3tc.txt
+		S3TC Compressed Texture Image Formats
+		"Compressed texture images stored using the S3TC compressed image formats
+		 are represented as a collection of 4x4 texel blocks, where each block
+		 contains 64 or 128 bits of texel data.  The image is encoded as a normal
+		 2D raster image in which each 4x4 block is treated as a single pixel.  If
+		 an S3TC image has a width or height that is not a multiple of four, the
+		 data corresponding to texels outside the image are irrelevant and
+		 undefined.
 
-		// TODO: find imageDataSize multiplier
-		{ GL_COMPRESSED_RED_RGTC1, { "RGTC1r", 1 } },
-		// TODO: find imageDataSize multiplier
-		{ GL_COMPRESSED_SIGNED_RED_RGTC1, { "RGTC1Sr", 1 } },
-		// TODO: find imageDataSize multiplier
-		{ GL_COMPRESSED_RG_RGTC2, { "RGTC2rg", 2 } },
-		// TODO: find imageDataSize multiplier
-		{ GL_COMPRESSED_SIGNED_RG_RGTC2, { "RGTC2Srg", 2 } },
+	  	 When an S3TC image with a width of w, height of h, and block size of
+		 blocksize (8 or 16 bytes) is decoded, the corresponding image size (in
+		 bytes) is: ceil( w / 4 ) * ceil( h / 4 ) * blocksize."
 
+		All of the following have blocksize of 8 bytes: */
+		{ GL_COMPRESSED_RGB_S3TC_DXT1_EXT, { "DXT1", 8 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { "DXT1a", 8 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { "DXT3", 8 } },
+		{ GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { "DXT5", 8 } },
+
+		/* GL4.6 spec: Appendix D Compressed Texture Image Formats
+		D.1 RGTC Compressed Texture Image Formats (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf)
+		Khronos Data Format Specification v1.1 rev 9
+		14. RGTC Compressed Texture Image Formats (https://registry.khronos.org/DataFormat/specs/1.1/dataformat.1.1.html#RGTC)
+		"Compressed texture images stored using the RGTC compressed image encodings are represented as a collection of 4×4 texel blocks,
+		 where each block contains 64 or 128 bits of texel data. The image is encoded as a normal 2D raster image in which each 4×4 block
+		 is treated as a single pixel. If an RGTC image has a width or height that is not a multiple of four,
+		 the data corresponding to texels outside the image are irrelevant and undefined.
+		   
+		 When an RGTC image with a width of w, height of h, and block size of blocksize (8 or 16 bytes) is decoded,
+		 the corresponding image size (in bytes) is: ceil( w / 4 ) * ceil( h / 4 ) * blocksize."
+
+		All of the following use blocksize of 8 bytes: */
+		{ GL_COMPRESSED_RED_RGTC1, { "RGTC1r", 8 } },
+		{ GL_COMPRESSED_SIGNED_RED_RGTC1, { "RGTC1Sr", 8 } },
+		{ GL_COMPRESSED_RG_RGTC2, { "RGTC2rg", 8 } },
+		{ GL_COMPRESSED_SIGNED_RG_RGTC2, { "RGTC2Srg", 8 } },
+
+		// These usually still use a 32-bit format internally
 		{ GL_DEPTH_COMPONENT16, { "D16", 2 } },
 		{ GL_DEPTH_COMPONENT24, { "D24", 3 } },
 		{ GL_DEPTH_COMPONENT32, { "D32", 4 } },
@@ -315,8 +355,26 @@ void R_ListImages_f()
 		}
 		else
 		{
-			format = imageFormatNameSize.at( image->internalFormat ).first;
-			imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
+			switch ( image->internalFormat ) {
+				// Compressed formats encode blocks of 4x4 texels
+				case GL_COMPRESSED_RGBA:
+				case GL_COMPRESSED_RED_RGTC1:
+				case GL_COMPRESSED_SIGNED_RED_RGTC1:
+				case GL_COMPRESSED_RG_RGTC2:
+				case GL_COMPRESSED_SIGNED_RG_RGTC2:
+				case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+				case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+				case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+				case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+					format = imageFormatNameSize.at( image->internalFormat ).first;
+					imageDataSize = ceil( image->uploadWidth / 4.0 ) * ceil( image->uploadHeight / 4.0 ) * image->numLayers
+						* imageFormatNameSize.at( image->internalFormat ).second;
+					break;
+				default:
+					format = imageFormatNameSize.at( image->internalFormat ).first;
+					imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
+					break;
+			}
 		}
 
 		if ( !wrapTypeName.count( image->wrapType.t ) )

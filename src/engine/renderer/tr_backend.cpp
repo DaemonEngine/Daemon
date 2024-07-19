@@ -714,6 +714,12 @@ void GL_VertexAttribPointers( uint32_t attribBits )
 				frame = glState.vertexAttribsOldFrame;
 			}
 
+			if ( !( glState.currentVBO->attribBits & bit ) )
+			{
+				Log::Warn( "GL_VertexAttribPointers: %s does not have %s",
+				           glState.currentVBO->name, attributeNames[ i ] );
+			}
+
 			glVertexAttribPointer( i, layout->numComponents, layout->componentType, layout->normalize, layout->stride, BUFFER_OFFSET( layout->ofs + ( frame * layout->frameOffset + base ) ) );
 			glState.vertexAttribPointersSet |= bit;
 		}
@@ -1879,11 +1885,7 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 						x = 205 * frustumIndex;
 						y = 70;
 
-						Tess_InstantQuad( x, y, w, h );
-
-						gl_debugShadowMapShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-						
-						Tess_DrawElements();
+						Tess_InstantQuad( *gl_debugShadowMapShader, x, y, w, h );
 
 						{
 							int    j;
@@ -2063,11 +2065,7 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	gl_blurXShader->SetUniform_DeformMagnitude( 1 );
 	gl_blurXShader->SetUniform_TexScale( texScale );
 
-	Tess_InstantQuad( 0, 0, fbos[ index ]->width, fbos[ index ]->height );
-
-	gl_blurXShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_blurXShader, 0, 0, fbos[ index ]->width, fbos[ index ]->height );
 
 	R_AttachFBOTexture2D( images[ index ]->type, images[ index ]->texnum, 0 );
 
@@ -2079,11 +2077,7 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	gl_blurYShader->SetUniform_DeformMagnitude( 1 );
 	gl_blurYShader->SetUniform_TexScale( texScale );
 
-	Tess_InstantQuad( 0, 0, fbos[index]->width, fbos[index]->height );
-
-	gl_blurYShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_blurYShader, 0, 0, fbos[index]->width, fbos[index]->height );
 
 	GL_PopMatrix();
 }
@@ -2873,12 +2867,9 @@ void RB_RenderPostDepthLightTile()
 		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
 
-	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-	gl_depthtile1Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_depthtile1Shader,
+	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 	// 2nd step
 	R_BindFBO( tr.depthtile2FBO );
@@ -2891,12 +2882,9 @@ void RB_RenderPostDepthLightTile()
 
 	GL_BindToTMU( 0, tr.depthtile1RenderImage );
 
-	gl_depthtile2Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_depthtile2Shader,
+	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 	GL_PopMatrix();
 
@@ -3035,12 +3023,9 @@ void RB_RenderGlobalFog()
 	GL_LoadProjectionMatrix( ortho );
 
 	// draw viewport
-	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-	gl_fogGlobalShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_fogGlobalShader,
+	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 	// go back to 3D
 	GL_PopMatrix();
@@ -3094,12 +3079,9 @@ void RB_RenderBloom()
 		glClear( GL_COLOR_BUFFER_BIT );
 
 		// draw viewport
-		Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-						  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-		gl_contrastShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-		Tess_DrawElements();
+		Tess_InstantQuad( *gl_contrastShader,
+		                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 		// render bloom in multiple passes
 		GL_BindToTMU( 0, tr.contrastRenderFBOImage );
@@ -3124,27 +3106,26 @@ void RB_RenderBloom()
 				MatrixOrthogonalProjection( ortho, 0, tr.bloomRenderFBO[ 0 ]->width, 0, tr.bloomRenderFBO[ 0 ]->height, -99999, 99999 );
 				GL_LoadProjectionMatrix( ortho );
 
-				Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-								  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
 				if ( i == 0 )
 				{
 					gl_blurXShader->BindProgram( 0 );
 
 					gl_blurXShader->SetUniform_DeformMagnitude( r_bloomBlur->value );
-					gl_blurXShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 					gl_blurXShader->SetUniform_TexScale( texScale );
+					Tess_InstantQuad( *gl_blurXShader,
+					                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 				}
 				else
 				{
 					gl_blurYShader->BindProgram( 0 );
 
 					gl_blurYShader->SetUniform_DeformMagnitude( r_bloomBlur->value );
-					gl_blurYShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 					gl_blurYShader->SetUniform_TexScale( texScale );
+					Tess_InstantQuad( *gl_blurYShader,
+					                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 				}
-
-				Tess_DrawElements();
 
 				GL_BindToTMU( 0, tr.bloomRenderFBOImage[ flip ] );
 
@@ -3159,14 +3140,11 @@ void RB_RenderBloom()
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
 		glVertexAttrib4fv( ATTR_INDEX_COLOR, Color::White.ToArray() );
 
-		Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-						  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
 		GL_BindToTMU( 0, tr.blackImage );
 
-		gl_screenShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-		Tess_DrawElements();
+		Tess_InstantQuad( *gl_screenShader,
+		                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 	}
 
 	// go back to 3D
@@ -3208,12 +3186,9 @@ void RB_RenderMotionBlur()
 	GL_LoadProjectionMatrix( ortho );
 
 	// draw quad
-	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-	gl_motionblurShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_motionblurShader,
+	                   backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+	                   backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 	GL_PopMatrix();
 
@@ -3222,8 +3197,6 @@ void RB_RenderMotionBlur()
 
 void RB_RenderSSAO()
 {
-	vec3_t zParams;
-
 	GLimp_LogComment( "--- RB_RenderSSAO ---\n" );
 
 	if ( !GLEW_ARB_texture_gather ) {
@@ -3241,17 +3214,25 @@ void RB_RenderSSAO()
 
 	if ( r_ssao->integer < 0 ) {
 		// clear the screen to show only SSAO
-		GL_ClearColor( 1.0f, 1.0f, 1.0f, 1.0f);
+		GL_ClearColor( tr.mapInverseLightFactor, tr.mapInverseLightFactor, tr.mapInverseLightFactor, 1.0 );
 		glClear( GL_COLOR_BUFFER_BIT );
 	}
 
 	gl_ssaoShader->BindProgram( 0 );
 
-	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f) ) / glConfig.vidWidth;
-	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f) ) / glConfig.vidHeight;
+	vec3_t zParams;
+	zParams[ 0 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_x * 0.5f ) ) / glConfig.vidWidth;
+	zParams[ 1 ] = 2.0f * tanf( DEG2RAD( backEnd.refdef.fov_y * 0.5f ) ) / glConfig.vidHeight;
 	zParams[ 2 ] = backEnd.viewParms.zFar;
 
 	gl_ssaoShader->SetUniform_zFar( zParams );
+
+	vec3_t unprojectionParams;
+	unprojectionParams[ 0 ] = -r_znear->value * zParams[ 2 ];
+	unprojectionParams[ 1 ] = 2.0 * ( zParams[ 2 ] - r_znear->value );
+	unprojectionParams[ 2 ] = 2.0 * zParams[ 2 ] - r_znear->value;
+
+	gl_ssaoShader->SetUniform_UnprojectionParams( unprojectionParams );
 
 	GL_BindToTMU( 0, tr.currentDepthImage );
 
@@ -3264,12 +3245,9 @@ void RB_RenderSSAO()
 	GL_LoadProjectionMatrix( ortho );
 
 	// draw quad
-	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-	gl_ssaoShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_ssaoShader,
+	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 	GL_PopMatrix();
 
@@ -3311,12 +3289,9 @@ void RB_FXAA()
 		backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight, -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
 
-	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-	gl_fxaaShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_fxaaShader,
+	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 	GL_PopMatrix();
 
@@ -3363,12 +3338,9 @@ void RB_CameraPostFX()
 	GL_BindToTMU( 3, tr.colorGradeImage );
 
 	// draw viewport
-	Tess_InstantQuad( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-	gl_cameraEffectsShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-	Tess_DrawElements();
+	Tess_InstantQuad( *gl_cameraEffectsShader,
+	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+	                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 	// go back to 3D
 	GL_PopMatrix();
@@ -4007,11 +3979,8 @@ static void RB_RenderDebugUtils()
 		{
 			gl_genericShader->SetUniform_Color( Color::White );
 
-			Tess_InstantQuad( ia->scissorX, ia->scissorY, ia->scissorWidth - 1.0f, ia->scissorHeight - 1.0f );
-
-			gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-			Tess_DrawElements();
+			Tess_InstantQuad( *gl_genericShader,
+			                  ia->scissorX, ia->scissorY, ia->scissorWidth - 1.0f, ia->scissorHeight - 1.0f );
 
 			if ( !ia->next )
 			{
@@ -4315,11 +4284,7 @@ static void RB_RenderDebugUtils()
 				Vector4Set( quadVerts[ 2 ], x + w, y + h, 0, 1 );
 				Vector4Set( quadVerts[ 3 ], x, y + h, 0, 1 );
 
-				Tess_InstantQuad( x, y, w, h );
-
-				gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-				Tess_DrawElements();
+				Tess_InstantQuad( *gl_genericShader, x, y, w, h );
 
 				{
 					int    j;
@@ -5832,11 +5797,7 @@ void RB_ShowImages()
 		// bind u_ColorMap
 		GL_Bind( image );
 
-		Tess_InstantQuad( x, y, w, h );
-
-		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
-		Tess_DrawElements();
+		Tess_InstantQuad( *gl_genericShader, x, y, w, h );
 	}
 
 	GL_PopMatrix();

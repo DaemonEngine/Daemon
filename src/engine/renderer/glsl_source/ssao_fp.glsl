@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /* ssao_fp.glsl */
 
 uniform sampler2D u_DepthMap;
-IN(flat) vec3 unprojectionParams;
+uniform vec3 u_UnprojectionParams;
 
 DECLARE_OUTPUT(vec4)
 
@@ -32,14 +32,14 @@ uniform vec3 u_zFar;
 const vec2 pixelScale = 1 / r_FBufSize;
 const float haloCutoff = 15.0;
 
-float depthToZ(float depth) {
-	return unprojectionParams.x / ( unprojectionParams.y * depth - unprojectionParams.z );
+float depthToZ( float depth ) {
+	return u_UnprojectionParams.x / ( u_UnprojectionParams.y * depth - u_UnprojectionParams.z );
 }
-vec4 depthToZ(vec4 depth) {
-	return unprojectionParams.x / ( unprojectionParams.y * depth - unprojectionParams.z );
+vec4 depthToZ( vec4 depth ) {
+	return u_UnprojectionParams.x / ( u_UnprojectionParams.y * depth - u_UnprojectionParams.z );
 }
 
-vec4 rangeTest(vec4 diff1, vec4 diff2, vec4 deltaX, vec4 deltaY) {
+vec4 rangeTest( vec4 diff1, vec4 diff2, vec4 deltaX, vec4 deltaY ) {
 	vec4 mask = step( 0.0, diff1 + diff2 )
 		* step( -haloCutoff, -diff1 )
 		* step( -haloCutoff, -diff2 );
@@ -81,12 +81,11 @@ vec4 offsets[] = vec4[6](
 	vec4( 0.5,  7.5, 3.5,  5.5 ),
 	vec4( 6.5,  2.5, 7.5, -0.5 ),
 	vec4( 5.5, -3.5, 2.5, -6.5 )
-	);
+);
 
 void	main()
 {
 	vec2 st = gl_FragCoord.st * pixelScale;
-	vec4 color = vec4( 0.0 );
 	vec4 occlusion = vec4( 0.0 );
 	vec4 total = vec4( 0.0 );
 
@@ -96,21 +95,18 @@ void	main()
 		// no SSAO on the skybox !
 		discard;
 		return;
-        }
+	}
 	center = depthToZ( center );
 	float spread = max( 1.0, 100.0 / center );
 
-	for(int i = 0; i < offsets.length(); i++) {
+	for( int i = 0; i < offsets.length(); i++ ) {
 		vec2 of;
-#if __VERSION__ > 120
-		int checker = int(gl_FragCoord.x - gl_FragCoord.y) & 1;
-#else
-		int checker = int(mod(gl_FragCoord.x - gl_FragCoord.y, 2.0));
-#endif
-    		if ( checker != 0 )
+		int checker = int( gl_FragCoord.x - gl_FragCoord.y ) & 1;
+    	if ( checker != 0 ) {
 			of = offsets[i].xy;
-		else
+		} else {
 			of = offsets[i].zw;
+		}
 		computeOcclusionForQuad( st, center, spread * of,
 					 occlusion, total );
 	}
@@ -121,5 +117,5 @@ void	main()
 	if ( summedTotal > 0.0 ) {
 		summedOcclusion /= summedTotal;
 	}
-	outputColor = vec4( clamp(1.0 - summedOcclusion, 0.0, 1.0) );
+	outputColor = vec4( clamp( 1.0 - summedOcclusion, 0.0, 1.0 ) );
 }

@@ -698,14 +698,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	  ATTR_QTANGENT2      = BIT( ATTR_INDEX_QTANGENT2 ),
 
 	  ATTR_INTERP_BITS = ATTR_POSITION2 | ATTR_QTANGENT2,
-
-	  ATTR_BITS = ATTR_POSITION |
-	              ATTR_TEXCOORD |
-	              ATTR_QTANGENT |
-	              ATTR_COLOR // |
-
-	              //ATTR_BONE_INDEXES |
-	              //ATTR_BONE_WEIGHTS
 	};
 
 	struct vboAttributeLayout_t
@@ -755,7 +747,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		vboAttributeLayout_t attribs[ ATTR_INDEX_MAX ]; // info for buffer manipulation
 
 		vboLayout_t layout;
-		uint32_t attribBits;
+		uint32_t attribBits; // Which attributes it has. Mostly for detecting errors
 		GLenum      usage;
 	};
 
@@ -3447,7 +3439,9 @@ inline bool checkGLErrors()
 	void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 	void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
 
-	void Tess_InstantQuad( const float x, const float y, const float width, const float height );
+	class u_ModelViewProjectionMatrix;
+	void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, float x, float y, float width, float height );
+
 	void Tess_MapVBOs( bool forceCPU );
 	void Tess_UpdateVBOs();
 

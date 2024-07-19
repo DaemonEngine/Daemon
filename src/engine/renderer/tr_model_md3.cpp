@@ -345,6 +345,10 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			vboSurf->numVerts = surf->numVerts;
 
 			vboSurf->vbo = R_CreateStaticVBO( va( "staticMD3Mesh_VBO '%s'", surf->name ), data, vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION );
+
+			// MD3 does not have color, but shaders always request it and the "vertex animation"
+			// vertex layout includes a color field, which is zeroed by default.
+			vboSurf->vbo->attribBits |= ATTR_COLOR;
 			
 			ri.Hunk_FreeTempMemory( data.st );
 			ri.Hunk_FreeTempMemory( data.qtangent );
