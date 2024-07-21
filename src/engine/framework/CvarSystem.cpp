@@ -213,7 +213,7 @@ namespace Cvar {
                     Print("\"%s\" - %s ^*- default: \"%s^*\"", name, var->description, var->resetValue);
                 } else {
                     //TODO forward the print part of the environment
-                    SetValue(name, args.Argv(1));
+                    SetValue(name, args.ConcatArgs(1));
                 }
             }
     };
