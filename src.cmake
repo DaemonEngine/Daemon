@@ -149,6 +149,7 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/material_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/cull_cp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/clearSurfaces_cp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/depthReduction_cp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/processSurfaces_cp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/skybox_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/ssao_fp.glsl

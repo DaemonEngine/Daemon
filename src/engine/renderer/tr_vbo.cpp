@@ -1038,6 +1038,7 @@ static void R_InitMaterialBuffers() {
 		culledCommandsBuffer.GenBuffer();
 		surfaceBatchesUBO.GenBuffer();
 		atomicCommandCountersBuffer.GenBuffer();
+		portalSurfacesSSBO.GenBuffer();
 	}
 }
 
@@ -1165,6 +1166,7 @@ void R_ShutdownVBOs()
 		culledCommandsBuffer.DelBuffer();
 		surfaceBatchesUBO.DelBuffer();
 		atomicCommandCountersBuffer.DelBuffer();
+		portalSurfacesSSBO.DelBuffer();
 	}
 
 	tess.verts = tess.vertsBuffer = nullptr;

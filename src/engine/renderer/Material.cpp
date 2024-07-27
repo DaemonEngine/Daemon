@@ -42,6 +42,10 @@ GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT | GL_MAP_PERS
 GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLUBO surfaceBatchesUBO( "surfaceBatches", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLSSBO portalSurfacesSSBO( "portalSurfaces", 5, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
+
+PortalView portalStack[MAX_VIEWS];
+
 MaterialSystem materialSystem;
 
 static void ComputeDynamics( shaderStage_t* pStage ) {
@@ -245,7 +249,7 @@ static void UpdateSurfaceDataGeneric( uint32_t* materials, Material& material, d
 	// u_DeformGen
 	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
-	// bind u_ColorMap=
+	// bind u_ColorMap
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP ) {
 		gl_genericShaderMaterial->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, GetLightMap( drawSurf ) )
@@ -1005,7 +1009,7 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 			const uint32_t cmdCount = material.drawCommands.size();
 			const uint32_t batchCount = cmdCount % SURFACE_COMMANDS_PER_BATCH == 0 ? cmdCount / SURFACE_COMMANDS_PER_BATCH
-																			   : cmdCount / SURFACE_COMMANDS_PER_BATCH + 1;
+				: cmdCount / SURFACE_COMMANDS_PER_BATCH + 1;
 
 			material.surfaceCommandBatchOffset = batchOffset;
 			material.surfaceCommandBatchCount = batchCount;
@@ -1145,6 +1149,28 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	surfaceBatchesUBO.UnmapBuffer();
 
 	GL_CheckErrors();
+}
+
+void MaterialSystem::GenerateDepthImages( const int width, const int height, imageParams_t imageParms ) {
+	int size = std::max( width, height );
+	imageParms.bits ^= ( IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8 );
+	imageParms.bits |= IF_ONECOMP32F;
+
+	depthImageLevels = 0;
+	while ( size > 0 ) {
+		depthImageLevels++;
+		size >>= 1; // mipmaps round down
+	}
+
+	depthImage = R_CreateImage( "_depthImage", nullptr, width, height, depthImageLevels, imageParms );
+	GL_Bind( depthImage );
+	int mipmapWidth = width;
+	int mipmapHeight = height;
+	for ( int j = 0; j < depthImageLevels; j++ ) {
+		glTexImage2D( GL_TEXTURE_2D, j, GL_R32F, mipmapWidth, mipmapHeight, 0, GL_RED, GL_FLOAT, nullptr );
+		mipmapWidth >>= 1;
+		mipmapHeight >>= 1;
+	}
 }
 
 static void BindShaderGeneric( Material* material ) {
@@ -1386,6 +1412,8 @@ void MaterialSystem::GenerateWorldMaterials() {
 	generatingWorldCommandBuffer = true;
 
 	Log::Debug( "Generating world materials" );
+
+	R_SyncRenderThread();
 
 	R_AddWorldSurfaces();
 
@@ -1756,14 +1784,6 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 }
 
 void MaterialSystem::UpdateFrameData() {
-	/* atomicCommandCountersBuffer.AreaIncr();
-
-	atomicCommandCountersBuffer.BindBuffer( GL_ATOMIC_COUNTER_BUFFER );
-	uint32_t* atomicCommandCounters = atomicCommandCountersBuffer.GetCurrentAreaData();
-	memset( atomicCommandCounters, 0, MAX_COMMAND_COUNTERS * sizeof(uint32_t));
-	atomicCommandCountersBuffer.FlushCurrentArea( GL_ATOMIC_COUNTER_BUFFER );
-	atomicCommandCountersBuffer.UnBindBuffer( GL_ATOMIC_COUNTER_BUFFER ); */
-	
 	atomicCommandCountersBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
 	gl_clearSurfacesShader->BindProgram( 0 );
 	gl_clearSurfacesShader->SetUniform_Frame( nextFrame );
@@ -1773,19 +1793,75 @@ void MaterialSystem::UpdateFrameData() {
 	GL_CheckErrors();
 }
 
-void MaterialSystem::QueueSurfaceCull( const uint32_t viewID, const frustum_t* frustum ) {
+void MaterialSystem::QueueSurfaceCull( const uint32_t viewID, const vec3_t origin, const frustum_t* frustum ) {
+	VectorCopy( origin, frames[nextFrame].viewFrames[viewID].origin );
 	memcpy( frames[nextFrame].viewFrames[viewID].frustum, frustum, sizeof( frustum_t ) );
 	frames[nextFrame].viewCount++;
 }
 
+void MaterialSystem::DepthReduction() {
+	if ( r_lockpvs->integer ) {
+		if ( !PVSLocked ) {
+			lockedDepthImage = depthImage;
+		}
+
+		return;
+	}
+
+	int width = depthImage->width;
+	int height = depthImage->height;
+
+	gl_depthReductionShader->BindProgram( 0 );
+
+	uint32_t globalWorkgroupX = ( width + 7 ) / 8;
+	uint32_t globalWorkgroupY = ( height + 7 ) / 8;
+
+	GL_Bind( tr.currentDepthImage );
+	glBindImageTexture( 2, depthImage->texnum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F );
+
+	gl_depthReductionShader->SetUniform_InitialDepthLevel( true );
+	gl_depthReductionShader->SetUniform_ViewWidth( width );
+	gl_depthReductionShader->SetUniform_ViewHeight( height );
+	gl_depthReductionShader->DispatchCompute( globalWorkgroupX, globalWorkgroupY, 1 );
+
+	for ( int i = 0; i < depthImageLevels; i++ ) {
+		width = width > 1 ? width >> 1 : 1;
+		height = height > 1 ? height >> 1 : 1;
+
+		globalWorkgroupX = ( width + 7 ) / 8;
+		globalWorkgroupY = ( height + 7 ) / 8;
+
+		glBindImageTexture( 1, depthImage->texnum, i, GL_FALSE, 0, GL_READ_ONLY, GL_R32F );
+		glBindImageTexture( 2, depthImage->texnum, i + 1, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F );
+
+		gl_depthReductionShader->SetUniform_InitialDepthLevel( false );
+		gl_depthReductionShader->SetUniform_ViewWidth( width );
+		gl_depthReductionShader->SetUniform_ViewHeight( height );
+		gl_depthReductionShader->DispatchCompute( globalWorkgroupX, globalWorkgroupY, 1 );
+
+		glMemoryBarrier( GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
+	}
+}
+
 void MaterialSystem::CullSurfaces() {
+	if ( r_gpuOcclusionCulling.Get() ) {
+		DepthReduction();
+	}
+
 	surfaceDescriptorsSSBO.BindBufferBase();
 	surfaceCommandsSSBO.BindBufferBase();
 	culledCommandsBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
 	surfaceBatchesUBO.BindBufferBase();
 	atomicCommandCountersBuffer.BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
 
+	if ( totalPortals > 0 ) {
+		portalSurfacesSSBO.BindBufferBase();
+	}
+
+	GL_CheckErrors();
+
 	for ( uint32_t view = 0; view < frames[nextFrame].viewCount; view++ ) {
+		vec3_t origin;
 		frustum_t* frustum = &frames[nextFrame].viewFrames[view].frustum;
 
 		vec4_t frustumPlanes[6];
@@ -1793,12 +1869,37 @@ void MaterialSystem::CullSurfaces() {
 			VectorCopy( PVSLocked ? lockedFrustum[j].normal : frustum[0][j].normal, frustumPlanes[j] );
 			frustumPlanes[j][3] = PVSLocked ? lockedFrustum[j].dist : frustum[0][j].dist;
 		}
+		matrix_t viewMatrix;
+		if ( PVSLocked ) {
+			MatrixCopy( lockedViewMatrix, viewMatrix );
+		} else {
+			VectorCopy( frames[nextFrame].viewFrames[view].origin, origin );
+			MatrixCopy( backEnd.viewParms.world.modelViewMatrix, viewMatrix );
+		}
 
 		gl_cullShader->BindProgram( 0 );
 		uint32_t globalWorkGroupX = totalDrawSurfs % MAX_COMMAND_COUNTERS == 0 ?
 			totalDrawSurfs / MAX_COMMAND_COUNTERS : totalDrawSurfs / MAX_COMMAND_COUNTERS + 1;
+		GL_Bind( depthImage );
+		gl_cullShader->SetUniform_Frame( nextFrame );
+		gl_cullShader->SetUniform_ViewID( view );
 		gl_cullShader->SetUniform_TotalDrawSurfs( totalDrawSurfs );
+		gl_cullShader->SetUniform_UseFrustumCulling( r_gpuFrustumCulling.Get() );
+		gl_cullShader->SetUniform_UseOcclusionCulling( r_gpuOcclusionCulling.Get() );
+		gl_cullShader->SetUniform_CameraPosition( origin );
+		gl_cullShader->SetUniform_ModelViewMatrix( viewMatrix );
+		gl_cullShader->SetUniform_FirstPortalGroup( globalWorkGroupX );
+		gl_cullShader->SetUniform_TotalPortals( totalPortals );
+		gl_cullShader->SetUniform_ViewWidth( depthImage->width );
+		gl_cullShader->SetUniform_ViewHeight( depthImage->height );
 		gl_cullShader->SetUniform_SurfaceCommandsOffset( surfaceCommandsCount * ( MAX_VIEWS * nextFrame + view ) );
+		gl_cullShader->SetUniform_P00( glState.projectionMatrix[glState.stackIndex][0] );
+		gl_cullShader->SetUniform_P11( glState.projectionMatrix[glState.stackIndex][5] );
+
+		if ( totalPortals > 0 ) {
+			globalWorkGroupX += totalPortals % 64 == 0 ?
+				totalPortals / 64 : totalPortals / 64 + 1;
+		}
 
 		if ( PVSLocked ) {
 			if ( r_lockpvs->integer == 0 ) {
@@ -1811,6 +1912,7 @@ void MaterialSystem::CullSurfaces() {
 				VectorCopy( frustum[0][j].normal, lockedFrustum[j].normal );
 				lockedFrustum[j].dist = frustum[0][j].dist;
 			}
+			MatrixCopy( viewMatrix, lockedViewMatrix );
 		}
 
 		gl_cullShader->SetUniform_Frustum( frustumPlanes );
@@ -1832,6 +1934,10 @@ void MaterialSystem::CullSurfaces() {
 	culledCommandsBuffer.UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
 	surfaceBatchesUBO.UnBindBufferBase();
 	atomicCommandCountersBuffer.UnBindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+
+	if ( totalPortals > 0 ) {
+		portalSurfacesSSBO.UnBindBufferBase();
+	}
 
 	GL_CheckErrors();
 }
@@ -1865,6 +1971,15 @@ void MaterialSystem::EndFrame() {
 void MaterialSystem::GeneratePortalBoundingSpheres() {
 	Log::Debug( "Generating portal bounding spheres" );
 
+	totalPortals = portalSurfacesTmp.size();
+
+	if ( totalPortals == 0 ) {
+		return;
+	}
+
+	PortalSurface* portalSurfs = new PortalSurface[totalPortals * sizeof( PortalSurface ) * MAX_VIEWFRAMES];
+
+	uint32_t index = 0;
 	for ( drawSurf_t* drawSurf : portalSurfacesTmp ) {
 		tess.numVertexes = 0;
 		rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
@@ -1882,13 +1997,25 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 		}
 
 		portalSurfaces.emplace_back( *drawSurf );
-		drawSurfBoundingSphere sphere;
+		PortalSurface sphere;
 		VectorCopy( portalCenter, sphere.origin );
 		sphere.radius = furthestDistance;
 		sphere.drawSurfID = portalSurfaces.size() - 1;
+		sphere.distance = -1;
 
 		portalBounds.emplace_back( sphere );
+		for ( uint32_t i = 0; i < MAX_FRAMES; i++ ) {
+			for ( uint32_t j = 0; j < MAX_VIEWS; j++ ) {
+				portalSurfs[index + ( i * MAX_VIEWS + j ) * totalPortals] = sphere;
+			}
+		}
+		index++;
 	}
+
+	portalSurfacesSSBO.BindBuffer();
+	portalSurfacesSSBO.BufferStorage( totalPortals * PORTAL_SURFACE_SIZE * MAX_VIEWS, 2, portalSurfs );
+	portalSurfacesSSBO.MapAll();
+	portalSurfacesSSBO.UnBindBuffer();
 
 	portalSurfacesTmp.clear();
 }
@@ -1903,9 +2030,15 @@ void MaterialSystem::Free() {
 	skyShaders.clear();
 	renderedMaterials.clear();
 
+	R_SyncRenderThread();
+
 	surfaceCommandsSSBO.UnmapBuffer();
 	culledCommandsBuffer.UnmapBuffer();
 	atomicCommandCountersBuffer.UnmapBuffer();
+
+	if ( totalPortals > 0 ) {
+		portalSurfacesSSBO.UnmapBuffer();
+	}
 
 	currentFrame = 0;
 	nextFrame = 1;
@@ -1948,24 +2081,84 @@ void MaterialSystem::AddTexture( Texture* texture ) {
 	cmd.textureCount++;
 }
 
-void MaterialSystem::AddPortalSurfaces() {
-	// Very inefficient
-	// TODO: Mark portals in the cull shader and do a readback to only add portals that can actually be seen
-	std::sort( portalBounds.begin(), portalBounds.end(),
-		[]( const drawSurfBoundingSphere& lhs, const drawSurfBoundingSphere& rhs ) {
-			return Distance( backEnd.viewParms.orientation.origin, lhs.origin ) - lhs.radius <
-				   Distance( backEnd.viewParms.orientation.origin, rhs.origin ) - rhs.radius;
+bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSurfs ) {
+	uint32_t portalViews[MAX_VIEWS] {};
+	uint32_t count = 0;
+
+	frames[nextFrame].viewFrames[viewID].viewCount = 0;
+	portalStack[viewID].count = 0;
+
+	PortalSurface* tmpSurfs = new PortalSurface[totalPortals];
+	memcpy( tmpSurfs, portalSurfs + viewID * totalPortals, totalPortals * sizeof( PortalSurface ) );
+	std::sort( tmpSurfs, tmpSurfs + totalPortals,
+		[]( const PortalSurface& lhs, const PortalSurface& rhs ) {
+			return lhs.distance < rhs.distance;
 		} );
 
-	uint32_t count = 0;
-	for ( const drawSurfBoundingSphere& sphere : portalBounds ) {
-		R_MirrorViewBySurface( &portalSurfaces[sphere.drawSurfID] );
+	for ( uint32_t i = 0; i < totalPortals; i++ ) {
+		PortalSurface* portalSurface = &tmpSurfs[i];
+		if ( portalSurface->distance == -1 ) { // -1 is set if the surface is culled
+			continue;
+		}
+		
+		uint32_t portalViewID = viewCount + 1;
+		// This check has to be done first so we can correctly determine when we get to MAX_VIEWS - 1 amount of views
+		screenRect_t surfRect;
+		if( PortalOffScreenOrOutOfRange( &portalSurfaces[portalSurface->drawSurfID], surfRect ) ) {
+			if ( portalSurfaces[portalSurface->drawSurfID].shader->portalOutOfRange ) {
+				continue;
+			}
+		}
+
+		if ( portalViewID == MAX_VIEWS ) {
+			continue;
+		}
+
+		portalViews[count] = portalViewID;
+		frames[nextFrame].viewFrames[portalViewID].portalSurfaceID = portalSurface->drawSurfID;
+		frames[nextFrame].viewFrames[viewID].viewCount++;
+
+		portalStack[viewID].views[count] = portalViewID;
+		portalStack[portalViewID].drawSurf = &portalSurfaces[portalSurface->drawSurfID];
+		portalStack[viewID].count++;
+
 		count++;
-		// Limit this a bit until portal visibility readback is done
-		if ( count > 2 ) {
-			return;
+		viewCount++;
+
+		if ( count == MAX_VIEWS || viewCount == MAX_VIEWS ) {
+			return false;
+		}
+
+		for ( uint32_t j = 0; j < frames[currentFrame].viewFrames[viewID].viewCount; j++ ) {
+			uint32_t subView = frames[currentFrame].viewFrames[viewID].portalViews[j];
+			if ( subView != 0 && portalSurface->drawSurfID == frames[currentFrame].viewFrames[subView].portalSurfaceID ) {
+				if ( !AddPortalSurface( subView, portalSurfs ) ) {
+					return false;
+				}
+
+				portalViewID = subView;
+				break;
+			}
 		}
 	}
+
+	memcpy( frames[nextFrame].viewFrames[viewID].portalViews, portalViews, MAX_VIEWS * sizeof( uint32_t ) );
+
+	return true;
+}
+
+void MaterialSystem::AddPortalSurfaces() {
+	if ( totalPortals == 0 ) {
+		return;
+	}
+
+	portalSurfacesSSBO.BindBufferBase();
+	PortalSurface* portalSurfs = ( PortalSurface* ) portalSurfacesSSBO.GetCurrentAreaData();
+	viewCount = 0;
+	// This will recursively find potentially visible portals in each view based on the data read back from the GPU
+	// It only fills up an array up to MAX_VIEWS, the actual views are still added in R_MirrowViewBySurface()
+	AddPortalSurface( 0, portalSurfs );
+	portalSurfacesSSBO.AreaIncr();
 }
 
 void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID ) {
@@ -2150,11 +2343,30 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
 					   + ( culledCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
 					   * sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
-					   //+ ( culledCommandsCount * ( MAX_VIEWS * currentFrame + currentView )
-						   //* sizeof( GLIndirectBuffer::GLIndirectCommand ) ),
 		material.globalID * sizeof( uint32_t )
 		+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
 		material.drawCommands.size(), 0 );
+
+	if( r_showTris->integer && ( material.stateBits & GLS_DEPTHMASK_TRUE ) == 0 ) {
+		switch ( material.stageType ) {
+			case stageType_t::ST_LIGHTMAP:
+			case stageType_t::ST_DIFFUSEMAP:
+			case stageType_t::ST_COLLAPSE_COLORMAP:
+			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+				gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
+				GL_State( GLS_DEPTHTEST_DISABLE );
+				glMultiDrawElementsIndirectCountARB( GL_LINES, GL_UNSIGNED_INT,
+					BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
+					+ ( culledCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
+					* sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
+					material.globalID * sizeof( uint32_t )
+					+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
+					material.drawCommands.size(), 0 );
+				gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
+			default:
+				break;
+		}
+	}
 
 	culledCommandsBuffer.UnBindBuffer( GL_DRAW_INDIRECT_BUFFER );
 
