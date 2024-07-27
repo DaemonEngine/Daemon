@@ -44,6 +44,7 @@ GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_cull                            *gl_cullShader = nullptr;
+GLShader_depthReduction                  *gl_depthReductionShader = nullptr;
 GLShader_clearSurfaces                   *gl_clearSurfacesShader = nullptr;
 GLShader_processSurfaces                 *gl_processSurfacesShader = nullptr;
 GLShader_lightMapping                    *gl_lightMappingShader = nullptr;
@@ -470,6 +471,7 @@ static std::string GenComputeVersionDeclaration() {
 		{ glConfig2.explicitUniformLocationAvailable, 430, "ARB_explicit_uniform_location" },
 		{ glConfig2.shaderImageLoadStoreAvailable, 420, "ARB_shader_image_load_store" },
 		{ glConfig2.shaderAtomicCountersAvailable, 420, "ARB_shader_atomic_counters" },
+		{ glConfig2.bindlessTexturesAvailable, -1, "ARB_bindless_texture" },
 	};
 
 	for ( const auto& extension : extensions ) {
@@ -559,6 +561,10 @@ static std::string GenComputeHeader() {
 	AddDefine( str, "MAX_VIEWFRAMES", MAX_VIEWFRAMES );
 	AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
 	AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
+
+	if ( glConfig2.bindlessTexturesAvailable ) {
+		str += "layout(bindless_image) uniform;\n";
+	}
 
 	return str;
 }
@@ -747,6 +753,8 @@ static std::string GenEngineConstants() {
 	{
 		AddDefine( str, "r_glowMapping", 1 );
 	}
+
+	AddDefine( str, "r_zNear", r_znear->value );
 
 	return str;
 }
@@ -2237,6 +2245,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_LightGridScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
+	u_ShowTris( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
@@ -3100,9 +3109,32 @@ void GLShader_fxaa::BuildShaderFragmentLibNames( std::string& fragmentInlines )
 
 GLShader_cull::GLShader_cull( GLShaderManager* manager ) :
 	GLShader( "cull", ATTR_POSITION, manager, false, false, true ),
+	u_Frame( this ),
+	u_ViewID( this ),
 	u_TotalDrawSurfs( this ),
 	u_SurfaceCommandsOffset( this ),
-	u_Frustum( this ) {
+	u_Frustum( this ),
+	u_UseFrustumCulling( this ),
+	u_UseOcclusionCulling( this ),
+	u_CameraPosition( this ),
+	u_ModelViewMatrix( this ),
+	u_FirstPortalGroup( this ),
+	u_TotalPortals( this ),
+	u_ViewWidth( this ),
+	u_ViewHeight( this ),
+	u_P00( this ),
+	u_P11( this ) {
+}
+
+GLShader_depthReduction::GLShader_depthReduction( GLShaderManager* manager ) :
+	GLShader( "depthReduction", ATTR_POSITION, manager, false, false, true ),
+	u_ViewWidth( this ),
+	u_ViewHeight( this ),
+	u_InitialDepthLevel( this ) {
+}
+
+void GLShader_depthReduction::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "depthTextureInitial" ), 0 );
 }
 
 GLShader_clearSurfaces::GLShader_clearSurfaces( GLShaderManager* manager ) :

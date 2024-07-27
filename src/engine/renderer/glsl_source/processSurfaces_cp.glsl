@@ -9,14 +9,14 @@ This file is part of the Daemon BSD Source Code (Daemon Source Code).
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the Daemon developers nor the
-      names of its contributors may be used to endorse or promote products
-      derived from this software without specific prior written permission.
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the Daemon developers nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -46,24 +46,24 @@ struct GLIndirectCommand {
 };
 
 struct SurfaceCommand {
-    bool enabled;
-    GLIndirectCommand drawCommand;
+	bool enabled;
+	GLIndirectCommand drawCommand;
 };
 
 struct SurfaceCommandBatch {
-    uvec2 materialIDs[2];
+	uvec2 materialIDs[2];
 };
 
 layout(std430, binding = 2) readonly restrict buffer surfaceCommandsSSBO {
-    SurfaceCommand surfaceCommands[];
+	SurfaceCommand surfaceCommands[];
 };
 
 layout(std430, binding = 3) writeonly restrict buffer culledCommandsSSBO {
-    GLIndirectCommand culledCommands[];
+	GLIndirectCommand culledCommands[];
 };
 
 layout(std140, binding = 0) uniform ub_SurfaceBatches {
-    SurfaceCommandBatch surfaceBatches[MAX_SURFACE_COMMAND_BATCHES];
+	SurfaceCommandBatch surfaceBatches[MAX_SURFACE_COMMAND_BATCHES];
 };
 
 layout (binding = 4) uniform atomic_uint atomicCommandCounters[MAX_COMMAND_COUNTERS * MAX_VIEWS * MAX_FRAMES];
@@ -74,27 +74,27 @@ uniform uint u_SurfaceCommandsOffset;
 uniform uint u_CulledCommandsOffset;
 
 void AddDrawCommand( in uint commandID, in uvec2 materialID ) {
-    SurfaceCommand command = surfaceCommands[commandID + u_SurfaceCommandsOffset];
-    if( command.enabled ) {
-        // materialID.x is the global ID of the material
-        // materialID.y is the offset for the memory allocated to the material's culled commands
-        const uint atomicCmdID = atomicCounterIncrement( atomicCommandCounters[materialID.x
-                                                         + MAX_COMMAND_COUNTERS * ( MAX_VIEWS * u_Frame + u_ViewID )] );
-        culledCommands[atomicCmdID + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = command.drawCommand;
-    }
+	SurfaceCommand command = surfaceCommands[commandID + u_SurfaceCommandsOffset];
+	if( command.enabled ) {
+		// materialID.x is the global ID of the material
+		// materialID.y is the offset for the memory allocated to the material's culled commands
+		const uint atomicCmdID = atomicCounterIncrement( atomicCommandCounters[materialID.x
+		                                                 + MAX_COMMAND_COUNTERS * ( MAX_VIEWS * u_Frame + u_ViewID )] );
+		culledCommands[atomicCmdID + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = command.drawCommand;
+	}
 }
 
 void main() {
-    const uint globalGroupID = gl_WorkGroupID.z * gl_NumWorkGroups.x * gl_NumWorkGroups.y
-                             + gl_WorkGroupID.y * gl_NumWorkGroups.x
-                             + gl_WorkGroupID.x;
-    const uint globalInvocationID = gl_GlobalInvocationID.z * gl_NumWorkGroups.x * gl_WorkGroupSize.x
-                             * gl_NumWorkGroups.y * gl_WorkGroupSize.y
-                             + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x
-                             + gl_GlobalInvocationID.x
-                             + 1; // Add 1 because the first surface command is always reserved as a fake command
-    // Each surfaceBatch encompasses 64 surfaceCommands with the same material, padded to 64 as necessary
-    const uvec2 materialID = surfaceBatches[globalGroupID / 2].materialIDs[globalGroupID % 2];
+	const uint globalGroupID = gl_WorkGroupID.z * gl_NumWorkGroups.x * gl_NumWorkGroups.y
+	                         + gl_WorkGroupID.y * gl_NumWorkGroups.x
+	                         + gl_WorkGroupID.x;
+	const uint globalInvocationID = gl_GlobalInvocationID.z * gl_NumWorkGroups.x * gl_WorkGroupSize.x
+	                              * gl_NumWorkGroups.y * gl_WorkGroupSize.y
+	                              + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x
+	                              + gl_GlobalInvocationID.x
+	                              + 1; // Add 1 because the first surface command is always reserved as a fake command
+	// Each surfaceBatch encompasses 64 surfaceCommands with the same material, padded to 64 as necessary
+	const uvec2 materialID = surfaceBatches[globalGroupID / 2].materialIDs[globalGroupID % 2];
 
-    AddDrawCommand( globalInvocationID, materialID );
+	AddDrawCommand( globalInvocationID, materialID );
 }
