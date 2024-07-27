@@ -61,6 +61,7 @@
 #include "material_vp.glsl.h"
 #include "material_fp.glsl.h"
 #include "cull_cp.glsl.h"
+#include "depthReduction_cp.glsl.h"
 #include "processSurfaces_cp.glsl.h"
 #include "clearSurfaces_cp.glsl.h"
 
@@ -76,6 +77,7 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "glsl/contrast_vp.glsl", std::string(reinterpret_cast<const char*>(contrast_vp_glsl), sizeof(contrast_vp_glsl)) },
 	{ "glsl/clearSurfaces_cp.glsl", std::string( reinterpret_cast< const char* >( clearSurfaces_cp_glsl ), sizeof( clearSurfaces_cp_glsl ) ) },
 	{ "glsl/cull_cp.glsl", std::string( reinterpret_cast< const char* >( cull_cp_glsl ), sizeof( cull_cp_glsl ) ) },
+	{ "glsl/depthReduction_cp.glsl", std::string( reinterpret_cast< const char* >( depthReduction_cp_glsl ), sizeof( depthReduction_cp_glsl ) ) },
 	{ "glsl/debugShadowMap_fp.glsl", std::string(reinterpret_cast<const char*>(debugShadowMap_fp_glsl), sizeof(debugShadowMap_fp_glsl)) },
 	{ "glsl/debugShadowMap_vp.glsl", std::string(reinterpret_cast<const char*>(debugShadowMap_vp_glsl), sizeof(debugShadowMap_vp_glsl)) },
 	{ "glsl/deformVertexes_vp.glsl", std::string(reinterpret_cast<const char*>(deformVertexes_vp_glsl), sizeof(deformVertexes_vp_glsl)) },

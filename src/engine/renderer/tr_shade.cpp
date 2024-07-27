@@ -179,9 +179,9 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_genericShaderMaterial );
 		gl_shaderManager.load( gl_lightMappingShaderMaterial );
 
-		gl_shaderManager.load( gl_cullShader );
 		gl_shaderManager.load( gl_clearSurfacesShader );
 		gl_shaderManager.load( gl_processSurfacesShader );
+		gl_shaderManager.load( gl_depthReductionShader );
 	}
 
 	if ( glConfig2.dynamicLight )
@@ -424,6 +424,7 @@ void GLSL_ShutdownGPUShaders()
 	gl_genericShader = nullptr;
 	gl_genericShaderMaterial = nullptr;
 	gl_cullShader = nullptr;
+	gl_depthReductionShader = nullptr;
 	gl_clearSurfacesShader = nullptr;
 	gl_processSurfacesShader = nullptr;
 	gl_lightMappingShader = nullptr;

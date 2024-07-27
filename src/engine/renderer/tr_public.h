@@ -91,6 +91,7 @@ struct glconfig2_t
 	bool shaderDrawParametersAvailable;
 	bool SSBOAvailable;
 	bool multiDrawIndirectAvailable;
+	bool indirectParametersAvailable;
 	bool shadingLanguage420PackAvailable;
 	bool explicitUniformLocationAvailable;
 	bool shaderImageLoadStoreAvailable;

@@ -4962,6 +4962,13 @@ This is done so various debugging facilities will work properly
 */
 static void RB_RenderPostProcess()
 {
+	if ( glConfig2.materialSystemAvailable ) {
+		// Dispatch the cull compute shaders for queued once we're done with post-processing
+		// We'll only use the results from those shaders in the next frame so we don't block the pipeline
+		materialSystem.CullSurfaces();
+		materialSystem.EndFrame();
+	}
+
 	RB_FXAA();
 
 	// render chromatric aberration
@@ -4982,13 +4989,6 @@ static void RB_RenderPostProcess()
 		{
 			tr.refdef.pixelTarget[(i * 4) + 3] = 255;  //set the alpha pure white
 		}
-	}
-	
-	if( glConfig2.materialSystemAvailable ) {
-		// Dispatch the cull compute shaders for queued views once we're done with post-processing
-		// We'll only use the results from those shaders in the next frame so we don't block the pipeline
-		materialSystem.CullSurfaces();
-		materialSystem.EndFrame();
 	}
 
 	GL_CheckErrors();
