@@ -125,6 +125,7 @@ static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
 
 static Cvar::Cvar<bool> workaround_extFbo_missingArbFbo( "workaround.extFbo.missingArbFbo", "Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_firstProvokingVertex_intel( "workaround.firstProvokingVertex.intel", "Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_gl21_intelGma3( "workaround.gl21.intelGma3", "Enable OpenGL 2.1 on Intel GMA Gen 3 hardware", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noBindlessTexture_mesa241( "workaround.noBindlessTexture.mesa241", "Disable ARB_bindless_texture on Mesa 24.1 driver", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noBindlessTexture_amdOglp( "workaround.noBindlessTexture.amdOglp", "Disable ARB_bindless_texture on AMD OGLP driver", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noHyperZ_mesaRv600( "workaround.noHyperZ.mesaRv600", "Disable Hyper-Z on Mesa driver on RV600 hardware", Cvar::NONE, true );
@@ -2438,12 +2439,53 @@ bool GLimp_Init()
 
 	Cvar::Latch( workaround_extFbo_missingArbFbo );
 	Cvar::Latch( workaround_firstProvokingVertex_intel );
+	Cvar::Latch( workaround_gl21_intelGma3 );
 	Cvar::Latch( workaround_noBindlessTexture_mesa241 );
 	Cvar::Latch( workaround_noBindlessTexture_amdOglp );
 	Cvar::Latch( workaround_noHyperZ_mesaRv600 );
 	Cvar::Latch( workaround_noTextureGather_nvidia340 );
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
+
+	/* Enable 2.1 GL on Intel GMA Gen 3 on Linux Mesa driver.
+
+	The Mesa i915 driver for GMA Gen 3 disabled GL 2.1 on such
+	hardware to force Google Chrome to use its CPU fallback
+	that was faster but we don't implement such fallback.
+	See https://gitlab.freedesktop.org/mesa/mesa/-/commit/a1891da7c865c80d95c450abfc0d2bc49db5f678
+
+	Only Mesa i915 on Linux supports GL 2.1 for GMA Gen 3,
+	so there is no similar tweak being required for Windows
+	and macOS.
+
+	Mesa i915 and macOS also supports GL 2.1 on GMA Gen 4
+	while windows drivers don't but those tweaks are not
+	required as the related features are enabled by default.
+
+	First Intel hardware range expected to have drivers
+	supporting GL 2.1 on Windows is GMA Gen 5.
+
+	Enabling those options would at least make the engine
+	properly report missing extension instead of missing
+	GL version, for example the Intel GMA 3100 G33 (Gen 3)
+	will report missing GL_ARB_half_float_vertex extension
+	instead of missing OpenGL 2.1 version.
+
+	The GMA 3150 is known to have wider OpenGL support than
+	GMA 3100, for example it has OpenGL version similar to
+	GMA 4 on Windows while being a GMA 3 so the list of
+	available GL extensions may be larger.
+
+	The environment variables are currently always set,
+	they should do nothing with other systems and drivers.
+
+	It should also be set on Win32 when running on Wine
+	on Linux anyway. */
+	if ( workaround_gl21_intelGma3.Get() )
+	{
+		Sys::SetEnv( "fragment_shader", "true" );
+		Sys::SetEnv( "stub_occlusion_query", "true" );
+	}
 
 	int mode = r_mode->integer;
 	bool fullscreen = r_fullscreen.Get();
