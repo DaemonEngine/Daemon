@@ -123,6 +123,11 @@ static Cvar::Cvar<bool> r_khr_debug( "r_khr_debug",
 static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
 	"Use GL_KHR_shader_subgroup if available", Cvar::NONE, true );
 
+static Cvar::Cvar<bool> workaround_extFbo_missingArbFbo( "workaround.extFbo.missingArbFbo", "Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_firstProvokingVertex_intel( "workaround.firstProvokingVertex.intel", "Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_noBindlessTexture_mesa241( "workaround.noBindlessTexture.mesa241", "Disable ARB_bindless_texture on Mesa 24.1 driver", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_noTextureGather_nvidia340( "workaround.noTextureGather.nvidia340", "Disable ARB_texture_gather on Nvidia 340 driver", Cvar::NONE, true );
+
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
 
@@ -2014,24 +2019,27 @@ static void GLimp_InitExtensions()
 		lighting so it is likely this feature would be disabled to
 		get acceptable framerate on this hardware anyway, making the
 		need for such extension and the related shader code useless. */
-		bool foundNvidia340 = ( glConfig2.driverVendor == glDriverVendor_t::NVIDIA
+		if ( workaround_noTextureGather_nvidia340.Get() )
+		{
+			bool foundNvidia340 = ( glConfig2.driverVendor == glDriverVendor_t::NVIDIA
 			&& Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
 
-		if ( foundNvidia340 )
-		{
-			// No need for WithoutSuppression for something which can only be printed once per renderer restart.
-			logger.Notice("...found buggy Nvidia 340 driver");
+			if ( foundNvidia340 )
+			{
+				// No need for WithoutSuppression for something which can only be printed once per renderer restart.
+				logger.Notice("...found buggy Nvidia 340 driver");
+			}
+
+			// made required in OpenGL 4.0
+			glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather.Get() && !foundNvidia340 );
 		}
-
-		// made required in OpenGL 4.0
-		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather.Get() && !foundNvidia340 );
 	}
-
+	
+	if ( workaround_firstProvokingVertex_intel.Get() )
 	{
 		bool foundIntel = glConfig2.hardwareVendor == glHardwareVendor_t::INTEL;
 
-		if ( foundIntel
-			&& LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
+		if ( foundIntel && LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
 		{
 			/* Workaround texture distorsion bug on Intel GPU
 
@@ -2074,29 +2082,33 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.0
 	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
 
-	// made required in OpenGL 3.0
-	if ( LOAD_EXTENSION( ExtFlag_CORE, ARB_framebuffer_object ) )
 	{
-		glFboSetArb();
-	}
-	else
-	{
-		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_object );
+		int flag = ExtFlag_CORE | ( workaround_extFbo_missingArbFbo.Get() ? 0 : ExtFlag_REQUIRED );
 
-		/* Both EXT_framebuffer_object and EXT_framebuffer_blit are said to be
-		parts of ARB_framebuffer_object:
+		// made required in OpenGL 3.0
+		if ( LOAD_EXTENSION( flag, ARB_framebuffer_object ) )
+		{
+			glFboSetArb();
+		}
+		else
+		{
+			LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_object );
 
-		> So there may be hardware that supports EXT_FBO and not ARB_FBO,
-		> even thought they support things like EXT_FBO_blit and other parts
-		> of ARB_FBO.
-		-- https://www.khronos.org/opengl/wiki/Framebuffer_Object
+			/* Both EXT_framebuffer_object and EXT_framebuffer_blit are said to be
+			parts of ARB_framebuffer_object:
 
-		Our code is known to require EXT_framebuffer_blit so if we don't find
-		ARB_framebuffer_object but find EXT_framebuffer_object we must
-		check for EXT_framebuffer_blit too. */
-		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_blit );
+			> So there may be hardware that supports EXT_FBO and not ARB_FBO,
+			> even thought they support things like EXT_FBO_blit and other parts
+			> of ARB_FBO.
+			-- https://www.khronos.org/opengl/wiki/Framebuffer_Object
 
-		glFboSetExt();
+			Our code is known to require EXT_framebuffer_blit so if we don't find
+			ARB_framebuffer_object but find EXT_framebuffer_object we must
+			check for EXT_framebuffer_blit too. */
+			LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_blit );
+
+			glFboSetExt();
+		}
 	}
 
 	// FBO
@@ -2157,33 +2169,37 @@ static void GLimp_InitExtensions()
 	if ( glConfig2.driverVendor == glDriverVendor_t::MESA )
 	{
 		bool foundMesa241 = false;
-		std::string mesaVersion = "";
 
-		static const std::vector<std::pair<std::string, std::vector<std::string>>> versions = {
-			{ "1.0", { "1.0-devel", "1.0-rc1", "1.0-rc2", "1.0-rc3", "1.0-rc4", "1.0", } },
-			{ "1.",  { "1.1", "1.2", "1.3", "1.4", } },
-			{ "2.0", { "2.0-devel", "2.0-rc1", } },
-		};
+		if ( workaround_noBindlessTexture_mesa241.Get() )
+		{
+			std::string mesaVersion = "";
 
-		for ( auto& vp : versions ) {
-			mesaVersion = Str::Format( "Mesa 24.%s", vp.first );
+			static const std::vector<std::pair<std::string, std::vector<std::string>>> versions = {
+				{ "1.0", { "1.0-devel", "1.0-rc1", "1.0-rc2", "1.0-rc3", "1.0-rc4", "1.0", } },
+				{ "1.",  { "1.1", "1.2", "1.3", "1.4", } },
+				{ "2.0", { "2.0-devel", "2.0-rc1", } },
+			};
 
-			if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
-				for ( auto& v : vp.second ) {
-					mesaVersion = Str::Format( "Mesa 24.%s", v );
+			for ( auto& vp : versions ) {
+				mesaVersion = Str::Format( "Mesa 24.%s", vp.first );
 
-					if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
-						foundMesa241 = true;
-						break;
+				if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
+					for ( auto& v : vp.second ) {
+						mesaVersion = Str::Format( "Mesa 24.%s", v );
+
+						if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
+							foundMesa241 = true;
+							break;
+						}
 					}
+
+					break;
 				}
-
-				break;
 			}
-		}
 
-		if ( foundMesa241 ) {
-			logger.Warn( "...found buggy %s driver, ARB_bindless_texture disabled", mesaVersion );
+			if ( foundMesa241 ) {
+				logger.Warn( "...found buggy %s driver, ARB_bindless_texture disabled", mesaVersion );
+			}
 		}
 
 		// not required by any OpenGL version
@@ -2314,6 +2330,11 @@ bool GLimp_Init()
 	r_allowResize = Cvar_Get( "r_allowResize", "0", CVAR_LATCH );
 	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
+
+	Cvar::Latch( workaround_extFbo_missingArbFbo );
+	Cvar::Latch( workaround_firstProvokingVertex_intel );
+	Cvar::Latch( workaround_noBindlessTexture_mesa241 );
+	Cvar::Latch( workaround_noTextureGather_nvidia340 );
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
