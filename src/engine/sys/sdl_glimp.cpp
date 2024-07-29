@@ -127,6 +127,7 @@ static Cvar::Cvar<bool> workaround_extFbo_missingArbFbo( "workaround.extFbo.miss
 static Cvar::Cvar<bool> workaround_firstProvokingVertex_intel( "workaround.firstProvokingVertex.intel", "Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noBindlessTexture_mesa241( "workaround.noBindlessTexture.mesa241", "Disable ARB_bindless_texture on Mesa 24.1 driver", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noBindlessTexture_amdOglp( "workaround.noBindlessTexture.amdOglp", "Disable ARB_bindless_texture on AMD OGLP driver", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_noHyperZ_mesaRv600( "workaround.noHyperZ.mesaRv600", "Disable Hyper-Z on Mesa driver on RV600 hardware", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noTextureGather_nvidia340( "workaround.noTextureGather.nvidia340", "Disable ARB_texture_gather on Nvidia 340 driver", Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
@@ -419,6 +420,8 @@ cvar_t                     *r_allowResize; // make window resizable
 cvar_t                     *r_centerWindow;
 cvar_t                     *r_displayIndex;
 cvar_t                     *r_sdlDriver;
+
+static bool firstSdlVideoAttempt;
 
 static void GLimp_DestroyContextIfExists();
 static void GLimp_DestroyWindowIfExists();
@@ -1436,6 +1439,82 @@ static void GLimp_CheckGLEW( const glConfiguration &requestedConfiguration )
 	}
 }
 
+static bool IsSdlVideoRestartNeeded()
+{
+	if ( !firstSdlVideoAttempt )
+	{
+		return false;
+	}
+
+	/* We call RV600 the first generation of R600 cards, to make a difference
+	with RV700 and RV800 cards that are also supported by the Mesa R600 driver.
+
+	The Mesa R600 driver has broken Hyper-Z wth RV600, not RV700 nor RV800. */
+	static bool r600_hyperz_modified = false;
+	static const char* r600_hyperz_bkp = nullptr;
+
+	if ( workaround_noHyperZ_mesaRv600.Get() )
+	{
+		if ( !Q_stricmp( glConfig.vendor_string, "Mesa" ) || !Q_stricmp( glConfig.vendor_string, "X.Org" ) )
+		{
+			bool foundRv600 = false;
+
+			std::string cardName = "";
+
+			static const std::vector<std::string> codenames = {
+				// Radeon HD 2000 Series
+				"R600", "RV610", "RV630",
+				// Radeon HD 3000 Series
+				"RV620", "RV635", "RV670",
+			};
+
+			for ( auto& codename : codenames )
+			{
+				cardName = Str::Format( "AMD %s", codename );
+
+				if ( Q_stristr( glConfig.renderer_string, cardName.c_str() ) )
+				{
+					foundRv600 = true;
+					break;
+				}
+			}
+
+			if ( foundRv600 )
+			{
+				if ( !r600_hyperz_modified )
+				{
+					r600_hyperz_bkp = getenv( "R600_HYPERZ" );
+				}
+
+				logger.Warn( "...found buggy Mesa driver with %s card, Hyper-Z disabled", cardName );
+
+				Sys::SetEnv( "R600_HYPERZ", "false" );
+
+				r600_hyperz_modified = true;
+
+				return true;
+			}
+		}
+	}
+	else if ( r600_hyperz_modified )
+	{
+		if ( r600_hyperz_bkp )
+		{
+			Sys::SetEnv( "R600_HYPERZ", r600_hyperz_bkp );
+		}
+		else
+		{
+			Sys::UnsetEnv( "R600_HYPERZ" );
+		}
+
+		r600_hyperz_modified = false;
+
+		return true;
+	}
+
+	return false;
+}
+
 /*
 ===============
 GLimp_SetMode
@@ -1536,6 +1615,12 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 	GLimp_DrawWindowContent();
 
 	GLimp_RegisterConfiguration( extendedValidationResult, requestedConfiguration );
+
+	if ( IsSdlVideoRestartNeeded() )
+	{
+		GLimp_DestroyWindowIfExists();
+		return rserr_t::RSERR_RESTART;
+	}
 
 	{
 		rserr_t err = GLimp_CheckOpenGLVersion( requestedConfiguration );
@@ -2381,6 +2466,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_firstProvokingVertex_intel );
 	Cvar::Latch( workaround_noBindlessTexture_mesa241 );
 	Cvar::Latch( workaround_noBindlessTexture_amdOglp );
+	Cvar::Latch( workaround_noHyperZ_mesaRv600 );
 	Cvar::Latch( workaround_noTextureGather_nvidia340 );
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
@@ -2390,10 +2476,12 @@ bool GLimp_Init()
 	bool bordered = !r_noBorder.Get();
 
 	// Create the window and set up the context
+	firstSdlVideoAttempt = true;
 	rserr_t err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
 
 	if ( err == rserr_t::RSERR_RESTART )
 	{
+		firstSdlVideoAttempt = false;
 		Log::Warn( "...restarting SDL Video" );
 		SDL_QuitSubSystem( SDL_INIT_VIDEO );
 		err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
