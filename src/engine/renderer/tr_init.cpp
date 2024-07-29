@@ -138,7 +138,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_ignoreMaterialMaxDimension;
 	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	cvar_t      *r_finish;
-	cvar_t      *r_clear;
 	cvar_t      *r_textureMode;
 	cvar_t      *r_offsetFactor;
 	cvar_t      *r_offsetUnits;
@@ -1183,7 +1182,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_logFile = Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
 		r_debugSurface = Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 		r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
-		r_clear = Cvar_Get( "r_clear", "1", 0 );
 		r_offsetFactor = Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );
 		r_offsetUnits = Cvar_Get( "r_offsetUnits", "-2", CVAR_CHEAT );
 
