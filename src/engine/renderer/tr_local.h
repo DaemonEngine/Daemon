@@ -2864,7 +2864,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_ambientScale;
 	extern cvar_t *r_lightScale;
 
-	extern cvar_t *r_fastsky; // controls whether sky should be cleared or drawn
+	extern Cvar::Cvar<bool> r_fastsky; // Controls whether sky should be cleared or drawn.
 	extern Cvar::Range<Cvar::Cvar<int>> r_dynamicLightRenderer;
 	extern Cvar::Cvar<bool> r_dynamicLight;
 	extern Cvar::Cvar<bool> r_staticLight;

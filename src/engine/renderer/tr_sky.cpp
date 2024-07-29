@@ -49,7 +49,7 @@ void Tess_StageIteratorSky()
 
 	tr.drawingSky = false;
 
-	if ( r_fastsky->integer )
+	if ( r_fastsky.Get() )
 	{
 		return;
 	}
