@@ -72,6 +72,15 @@ Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdo
 #endif // BUILD_ENGINE
 
 #ifdef _WIN32
+bool isRunningOnWine()
+{
+	// See https://www.winehq.org/pipermail/wine-devel/2008-September/069387.html
+	HMODULE hntdll = GetModuleHandle("ntdll.dll");
+	return hntdll && (void *)GetProcAddress(hntdll, "wine_get_version");
+}
+#endif
+
+#ifdef _WIN32
 SteadyClock::time_point SteadyClock::now() NOEXCEPT
 {
 	// Determine performance counter frequency
