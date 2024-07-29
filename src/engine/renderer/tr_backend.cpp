@@ -33,6 +33,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 backEndData_t  *backEndData[ SMP_FRAMES ];
 backEndState_t backEnd;
 
+static Cvar::Cvar<bool> r_clear( "r_clear", "Clear screen before painting over it on every frame", Cvar::NONE, false );
+
 void GL_Bind( image_t *image )
 {
 	int texnum;
@@ -5623,7 +5625,7 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	GL_State( GLS_DEFAULT );
 
 	// Clear relevant buffers, r_fastsky always require clearing.
-	if ( r_clear->integer || r_fastsky->integer ) {
+	if ( r_clear.Get() || r_fastsky->integer ) {
 		clearBits |= GL_COLOR_BUFFER_BIT;
 	}
 

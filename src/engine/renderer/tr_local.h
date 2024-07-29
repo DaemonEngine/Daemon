@@ -2932,8 +2932,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_logFile; // number of frames to emit GL logs
 
-	extern cvar_t *r_clear; // force screen clear every frame
-
 	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 	extern cvar_t *r_softShadows;
 	extern cvar_t *r_softShadowsPP;
