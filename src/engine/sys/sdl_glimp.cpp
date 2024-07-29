@@ -1345,10 +1345,23 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 		glConfig2.glMinor = GLminor;
 	}
 
-	/* FIXME: a duplicate of this is done in GLimp_Init, also storing it
-	for gfxinfo command. */
-	const char *glstring = ( char * ) glGetString( GL_RENDERER );
-	logger.Notice("OpenGL Renderer: %s", glstring );
+	// Get our config strings.
+	Q_strncpyz( glConfig.vendor_string, ( char * ) glGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
+	Q_strncpyz( glConfig.renderer_string, ( char * ) glGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
+	Q_strncpyz( glConfig.version_string, ( char * ) glGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
+
+	if ( *glConfig.renderer_string )
+	{
+		int last = strlen( glConfig.renderer_string ) - 1;
+		if ( glConfig.renderer_string[ last ] == '\n' )
+		{
+			glConfig.renderer_string[ last ] = '\0';
+		}
+	}
+
+	logger.Notice("OpenGL vendor: %s", glConfig.vendor_string );
+	logger.Notice("OpenGL renderer: %s", glConfig.renderer_string );
+	logger.Notice("OpenGL version: %s", glConfig.version_string );
 }
 
 static void GLimp_DrawWindowContent()
@@ -2395,17 +2408,6 @@ bool GLimp_Init()
 success:
 	// These values force the UI to disable driver selection
 	glConfig.hardwareType = glHardwareType_t::GLHW_GENERIC;
-
-	// get our config strings
-	Q_strncpyz( glConfig.vendor_string, ( char * ) glGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
-	Q_strncpyz( glConfig.renderer_string, ( char * ) glGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
-
-	if ( *glConfig.renderer_string && glConfig.renderer_string[ strlen( glConfig.renderer_string ) - 1 ] == '\n' )
-	{
-		glConfig.renderer_string[ strlen( glConfig.renderer_string ) - 1 ] = 0;
-	}
-
-	Q_strncpyz( glConfig.version_string, ( char * ) glGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
 
 	DetectGLVendors(
 		glConfig.vendor_string,
