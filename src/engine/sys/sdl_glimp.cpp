@@ -126,6 +126,7 @@ static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
 static Cvar::Cvar<bool> workaround_extFbo_missingArbFbo( "workaround.extFbo.missingArbFbo", "Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_firstProvokingVertex_intel( "workaround.firstProvokingVertex.intel", "Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noBindlessTexture_mesa241( "workaround.noBindlessTexture.mesa241", "Disable ARB_bindless_texture on Mesa 24.1 driver", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_noBindlessTexture_amdOglp( "workaround.noBindlessTexture.amdOglp", "Disable ARB_bindless_texture on AMD OGLP driver", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noTextureGather_nvidia340( "workaround.noTextureGather.nvidia340", "Disable ARB_texture_gather on Nvidia 340 driver", Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
@@ -2202,8 +2203,39 @@ static void GLimp_InitExtensions()
 			}
 		}
 
+		bool foundOglp = false;
+
+		if ( workaround_noBindlessTexture_amdOglp.Get() )
+		{
+			/* AMD OGLP driver for Linux shares the same vendor string than AMD Adrenalin driver
+			for Windows and AMD ATI driver for macOS. When running the Windows engine binary on
+			Wine we must check we're not running Windows or macOS to detect Linux OGLP. */
+			if ( Q_stristr( glConfig.vendor_string, "ATI Technologies Inc." ) )
+			{
+				#if defined(_WIN32)
+					// Detect Wine being used.
+					if ( Sys::isRunningOnWine() )
+					{
+						// Detect AMD ATI driver on macOS not being used.
+						if ( !Q_stristr( glConfig.version_string, "ATI-" ) )
+						{
+							foundOglp = true;
+						}
+					}
+				#elif defined(__APPLE__)
+					// AMD ATI driver for macOS is believed to not implement bindless texture.
+				#else
+					foundOglp = true;
+				#endif
+			}
+
+			if ( foundOglp ) {
+				logger.Warn( "...found buggy AMD OGLP driver, ARB_bindless_texture disabled" );
+			}
+		}
+
 		// not required by any OpenGL version
-		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture.Get() && !foundMesa241 );
+		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture.Get() && !foundMesa241 && !foundOglp );
 	}
 
 	// made required in OpenGL 4.6
@@ -2334,6 +2366,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_extFbo_missingArbFbo );
 	Cvar::Latch( workaround_firstProvokingVertex_intel );
 	Cvar::Latch( workaround_noBindlessTexture_mesa241 );
+	Cvar::Latch( workaround_noBindlessTexture_amdOglp );
 	Cvar::Latch( workaround_noTextureGather_nvidia340 );
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
