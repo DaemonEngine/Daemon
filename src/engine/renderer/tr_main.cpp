@@ -1696,6 +1696,8 @@ static bool SurfIsOffscreen( const drawSurf_t *drawSurf, screenRect_t& surfRect 
 	surfRect.coords[2] = std::min(newRect.coords[2], surfRect.coords[2]);
 	surfRect.coords[3] = std::min(newRect.coords[3], surfRect.coords[3]);
 
+	shader->portalOutOfRange = false;
+
 	// trivially reject
 	if ( pointAnd )
 	{
@@ -1747,6 +1749,7 @@ static bool SurfIsOffscreen( const drawSurf_t *drawSurf, screenRect_t& surfRect 
 
 	if ( shortest > ( tess.surfaceShader->portalRange * tess.surfaceShader->portalRange ) )
 	{
+		shader->portalOutOfRange = true;
 		return true;
 	}
 
@@ -1871,6 +1874,10 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	// trivially reject portal/mirror
 	if (SurfIsOffscreen(drawSurf, surfRect))
 	{
+		if ( drawSurf->shader->portalOutOfRange ) {
+			R_AddPreparePortalCmd( drawSurf );
+			R_AddFinalisePortalCmd( drawSurf );
+		}
 		return false;
 	}
 
