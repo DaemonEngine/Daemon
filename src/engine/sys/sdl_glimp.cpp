@@ -130,6 +130,7 @@ static Cvar::Cvar<bool> workaround_noBindlessTexture_mesa241( "workaround.noBind
 static Cvar::Cvar<bool> workaround_noBindlessTexture_amdOglp( "workaround.noBindlessTexture.amdOglp", "Disable ARB_bindless_texture on AMD OGLP driver", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noHyperZ_mesaRv600( "workaround.noHyperZ.mesaRv600", "Disable Hyper-Z on Mesa driver on RV600 hardware", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noTextureGather_nvidia340( "workaround.noTextureGather.nvidia340", "Disable ARB_texture_gather on Nvidia 340 driver", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_s3tc_mesa( "workaround.s3tc.mesa", "Enable S3TC on Mesa even when libtxc-dxtn is not available", Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
@@ -2444,8 +2445,20 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_noBindlessTexture_amdOglp );
 	Cvar::Latch( workaround_noHyperZ_mesaRv600 );
 	Cvar::Latch( workaround_noTextureGather_nvidia340 );
+	Cvar::Latch( workaround_s3tc_mesa );
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
+
+	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
+	The environment variables is currently always set,
+	it should do nothing with other systems and drivers.
+
+	It should also be set on Win32 when running on Wine
+	on Linux anyway. */
+	if ( workaround_s3tc_mesa.Get() )
+	{
+		Sys::SetEnv( "force_s3tc_enable", "true" );
+	}
 
 	/* Enable 2.1 GL on Intel GMA Gen 3 on Linux Mesa driver.
 
