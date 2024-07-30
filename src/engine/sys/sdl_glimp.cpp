@@ -749,7 +749,7 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 	-- http://wiki.libsdl.org/SDL_GL_SetAttribute */
 	GLimp_SetAttributes( configuration );
 
-	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
+	Uint32 flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL;
 
 	if ( r_allowResize->integer )
 	{
@@ -1368,8 +1368,11 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 	logger.Notice("OpenGL version: %s", glConfig.version_string );
 }
 
-static void GLimp_DrawWindowContent()
+static void GLimp_DrawWindow()
 {
+	// Unhide the window.
+	SDL_ShowWindow( window );
+
 	// Fill window with a dark grey (#141414) background.
 	glClearColor( 0.08f, 0.08f, 0.08f, 1.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
@@ -1588,8 +1591,6 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 		requestedConfiguration = bestValidatedConfiguration;
 	}
 
-	GLimp_DrawWindowContent();
-
 	GLimp_RegisterConfiguration( extendedValidationResult, requestedConfiguration );
 
 	if ( IsSdlVideoRestartNeeded() )
@@ -1597,6 +1598,8 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 		GLimp_DestroyWindowIfExists();
 		return rserr_t::RSERR_RESTART;
 	}
+
+	GLimp_DrawWindow();
 
 	{
 		rserr_t err = GLimp_CheckOpenGLVersion( requestedConfiguration );
