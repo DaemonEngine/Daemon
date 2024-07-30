@@ -2833,7 +2833,7 @@ GLShader_portal::GLShader_portal( GLShaderManager *manager ) :
 	u_CurrentMap( this ),
 	u_ModelViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_PortalRange( this )
+	u_InversePortalRange( this )
 {
 }
 
