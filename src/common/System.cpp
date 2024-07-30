@@ -80,6 +80,24 @@ bool isRunningOnWine()
 }
 #endif
 
+int SetEnv( const char* name, const char* value )
+{
+#ifdef _WIN32
+	return putenv( va( "%s=%s", name, value ) );
+#else
+	return setenv( name, value, true );
+#endif
+}
+
+int UnsetEnv( const char* name )
+{
+#ifdef _WIN32
+	return putenv( name );
+#else
+	return unsetenv( name );
+#endif
+}
+
 #ifdef _WIN32
 SteadyClock::time_point SteadyClock::now() NOEXCEPT
 {

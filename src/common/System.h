@@ -45,6 +45,9 @@ namespace Sys {
 bool isRunningOnWine();
 #endif
 
+int SetEnv( const char* name, const char* value );
+int UnsetEnv( const char* name );
+
 // The Windows implementation of steady_clock is really bad, use our own
 #ifdef _WIN32
 class SteadyClock {
