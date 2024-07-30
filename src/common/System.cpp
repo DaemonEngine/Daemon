@@ -57,12 +57,12 @@ namespace Sys {
 // TODO: also use in VMs when cvars can be observed from multiple modules
 // This option can be turned on when debugging memory management
 #ifdef BUILD_ENGINE
-static Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE,
 #ifdef USING_SANITIZER
-	true);
+constexpr bool defaultPedanticShutdown = true;
 #else
-	false);
+constexpr bool defaultPedanticShutdown = false;
 #endif
+static Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdown procedures before exit", Cvar::NONE, defaultPedanticShutdown);
 #endif // BUILD_ENGINE
 
 #if defined(BUILD_ENGINE) && defined(_WIN32)
