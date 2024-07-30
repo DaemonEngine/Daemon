@@ -405,6 +405,7 @@ void GLimp_WakeRenderer( void* )
 enum class rserr_t
 {
   RSERR_OK,
+  RSERR_RESTART,
 
   RSERR_INVALID_FULLSCREEN,
   RSERR_INVALID_MODE,
@@ -1584,7 +1585,7 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 GLimp_StartDriverAndSetMode
 ===============
 */
-static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
+static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
 {
 	int numDisplays;
 
@@ -1641,7 +1642,8 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 	switch ( err )
 	{
 		case rserr_t::RSERR_OK:
-			return true;
+		case rserr_t::RSERR_RESTART:
+			break;
 
 		case rserr_t::RSERR_INVALID_FULLSCREEN:
 			logger.Warn("GLimp: Fullscreen unavailable in this mode" );
@@ -1677,7 +1679,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 			break;
 	}
 
-	return false;
+	return err;
 }
 
 static GLenum debugTypes[] =
@@ -2383,28 +2385,38 @@ bool GLimp_Init()
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
+	int mode = r_mode->integer;
+	bool fullscreen = r_fullscreen.Get();
+	bool bordered = !r_noBorder.Get();
+
 	// Create the window and set up the context
-	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen.Get(), !r_noBorder.Get() ) )
+	rserr_t err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
+
+	if ( err == rserr_t::RSERR_RESTART )
 	{
-		goto success;
+		Log::Warn( "...restarting SDL Video" );
+		SDL_QuitSubSystem( SDL_INIT_VIDEO );
+		err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
 	}
 
-	// Finally, try the default screen resolution
-	if ( r_mode->integer != R_MODE_FALLBACK )
+	if ( err != rserr_t::RSERR_OK )
 	{
-		logger.Notice("Setting r_mode %d failed, falling back on r_mode %d", r_mode->integer, R_MODE_FALLBACK );
-
-		if ( GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, true ) )
+		// Finally, try the default screen resolution
+		if ( mode != R_MODE_FALLBACK )
 		{
-			goto success;
+			logger.Notice("Setting r_mode %d failed, falling back on r_mode %d", mode, R_MODE_FALLBACK );
+
+			err = GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, true );
 		}
 	}
 
-	// Nothing worked, give up
-	SDL_QuitSubSystem( SDL_INIT_VIDEO );
-	return false;
+	if ( err != rserr_t::RSERR_OK )
+	{
+		// Nothing worked, give up
+		SDL_QuitSubSystem( SDL_INIT_VIDEO );
+		return false;
+	}
 
-success:
 	// These values force the UI to disable driver selection
 	glConfig.hardwareType = glHardwareType_t::GLHW_GENERIC;
 
