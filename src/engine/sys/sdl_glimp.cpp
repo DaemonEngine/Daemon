@@ -1609,8 +1609,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 
 		if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 		{
-			logger.Notice("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
-			return false;
+			Sys::Error("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
 		}
 
 		driverName = SDL_GetCurrentVideoDriver();
