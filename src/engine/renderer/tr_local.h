@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "botlib/bot_debug.h"
 #include "tr_public.h"
 #include "iqm.h"
+#include "TextureManager.h"
 
 #define GLEW_NO_GLU
 #include <GL/glew.h>
@@ -610,6 +611,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		GLenum         type;
 		GLuint         texnum; // gl texture binding
+		Texture        *texture;
 
 		uint16_t width, height, numLayers; // source image
 		uint16_t       uploadWidth, uploadHeight; // after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
@@ -1186,6 +1188,14 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		expression_t    deformMagnitudeExp;
 
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
+
+		bool useMaterialSystem = false;
+		uint materialPackID = 0;
+		uint materialID = 0;
+		bool dynamic = false;
+		bool colorDynamic = false;
+		bool texMatricesDynamic = false;
+		bool texturesDynamic = false;
 	};
 
 	enum cullType_t : int
@@ -1644,6 +1654,12 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		shader_t      *shader;
 		uint64_t      sort;
 		bool          bspSurface;
+
+		uint materialsSSBOOffset[ MAX_SHADER_STAGES ];
+		bool initialized[ MAX_SHADER_STAGES ];
+		uint materialIDs[ MAX_SHADER_STAGES ];
+		uint materialPackIDs[ MAX_SHADER_STAGES ];
+		bool texturesDynamic[ MAX_SHADER_STAGES ];
 
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
@@ -2633,6 +2649,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		world_t    *world;
 
+		TextureManager textureManager;
+
 		const byte *externalVisData; // from RE_SetWorldVisData, shared with CM_Load
 
 		// Maximum reported is 192, see https://opengl.gpuinfo.org/displaycapability.php?name=GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
@@ -2739,6 +2757,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		drawSurf_t *genericQuad;
 
 		bool           hasSkybox;
+		bool           drawingSky = false;
 		drawSurf_t     *skybox;
 
 		vec3_t         sunLight; // from the sky shader for this level
@@ -2857,6 +2876,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
 	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
+	extern Cvar::Cvar<bool> r_materialSystem;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
@@ -3036,6 +3056,7 @@ inline bool checkGLErrors()
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
 
+	bool           R_MirrorViewBySurface( drawSurf_t* drawSurf );
 	void           R_RenderView( viewParms_t *parms );
 	void           R_RenderPostProcess();
 
@@ -3129,12 +3150,12 @@ inline bool checkGLErrors()
 	====================================================================
 	*/
 	void GL_Bind( image_t *image );
-	void GL_BindNearestCubeMap( const vec3_t xyz );
+	void GL_BindNearestCubeMap( int unit, const vec3_t xyz );
 	void GL_Unbind( image_t *image );
-	void BindAnimatedImage( textureBundle_t *bundle );
+	GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle );
 	void GL_TextureFilter( image_t *image, filterType_t filterType );
 	void GL_BindProgram( shaderProgram_t *program );
-	void GL_BindToTMU( int unit, image_t *image );
+	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_BindNullProgram();
 	void GL_SetDefaultState();
 	void GL_SelectTexture( int unit );
@@ -3334,6 +3355,12 @@ inline bool checkGLErrors()
 		uint32_t    numIndexes;
 		uint32_t    numVertexes;
 
+		// Material system stuff for setting up correct SSBO offsets
+		uint materialPackID = 0;
+		uint materialID = 0;
+		uint currentSSBOOffset = 0;
+		drawSurf_t* currentDrawSurf;
+
 		// Must be set by the stage iterator function if needed. These are *not*
 		// automatically cleared by the likes of Tess_End.
 		stageVars_t svars;
@@ -3357,6 +3384,7 @@ inline bool checkGLErrors()
 		int         multiDrawPrimitives;
 		glIndex_t    *multiDrawIndexes[ MAX_MULTIDRAW_PRIMITIVES ];
 		int         multiDrawCounts[ MAX_MULTIDRAW_PRIMITIVES ];
+		uint        multiDrawOffsets[ MAX_MULTIDRAW_PRIMITIVES ];
 
 		// enabled when a skeletal model VBO is used
 		bool    vboVertexSkinning;
@@ -3413,7 +3441,10 @@ inline bool checkGLErrors()
 	void Tess_DrawArrays( GLenum elementType );
 	void Tess_CheckOverflow( int verts, int indexes );
 
+	void SetNormalScale( const shaderStage_t* pStage, vec3_t normalScale );
+	void SetRgbaGen( const shaderStage_t* pStage, colorGen_t* rgbGen, alphaGen_t* alphaGen );
 	void Tess_ComputeColor( shaderStage_t *pStage );
+	void Tess_ComputeTexMatrices( shaderStage_t* pStage );
 
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorColor();

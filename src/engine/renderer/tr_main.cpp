@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // tr_main.c -- main control flow for each frame
 #include "tr_local.h"
+#include "Material.h"
 
 trGlobals_t tr;
 
@@ -833,6 +834,11 @@ static void SetFarClip()
 	{
 		vec3_t v;
 		float  distance;
+
+		if ( glConfig2.materialSystemAvailable ) {
+			VectorCopy( materialSystem.worldViewBounds[0], tr.viewParms.visBounds[0] );
+			VectorCopy( materialSystem.worldViewBounds[1], tr.viewParms.visBounds[1] );
+		}
 
 		if ( i & 1 )
 		{
@@ -1882,7 +1888,7 @@ R_MirrorViewBySurface
 Returns true if another view has been rendered
 ========================
 */
-static bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
+bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 {
 	orientation_t surface, camera;
 	screenRect_t  surfRect;
@@ -2037,6 +2043,20 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 
 	tr.refdef.numDrawSurfs++;
 
+	// Portal and sky surfaces are not handled by the material system at all
+	if ( materialSystem.generatingWorldCommandBuffer && ( shader->isPortal || shader->isSky ) ) {
+		if ( shader->isSky && std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), shader )
+						   == materialSystem.skyShaders.end() ) {
+			materialSystem.skyShaders.emplace_back( shader );
+		}
+
+		if ( shader->isPortal && std::find( materialSystem.portalSurfacesTmp.begin(), materialSystem.portalSurfacesTmp.end(), drawSurf ) 
+							  == materialSystem.portalSurfacesTmp.end() ) {
+			materialSystem.portalSurfacesTmp.emplace_back( drawSurf );
+		}
+		return;
+	}
+
 	if ( shader->depthShader != nullptr ) {
 		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
 	}
@@ -2054,7 +2074,7 @@ static void R_SortDrawSurfs()
 	int          i, sort;
 
 	// it is possible for some views to not have any surfaces
-	if ( tr.viewParms.numDrawSurfs < 1 )
+	if ( !glConfig2.materialSystemAvailable && tr.viewParms.numDrawSurfs < 1 )
 	{
 		// we still need to add it for hyperspace cases
 		R_AddDrawViewCmd( false );
@@ -2129,6 +2149,10 @@ static void R_SortDrawSurfs()
 				return;
 			}
 		}
+	}
+
+	if ( glConfig2.materialSystemAvailable ) {
+		materialSystem.AddPortalSurfaces();
 	}
 
 	// tell renderer backend to render this view
@@ -2832,7 +2856,6 @@ static void R_DebugGraphics()
 
 		GL_BindProgram( nullptr );
 
-		GL_SelectTexture( 0 );
 		GL_Bind( tr.whiteImage );
 
 		GL_Cull( cullType_t::CT_FRONT_SIDED );
@@ -2890,7 +2913,13 @@ void R_RenderView( viewParms_t *parms )
 	// because it requires the decalBits
 	R_CullDecalProjectors();
 
-	R_AddWorldSurfaces();
+	if ( glConfig2.materialSystemAvailable && !materialSystem.generatedWorldCommandBuffer ) {
+		materialSystem.GenerateWorldMaterials();
+	}
+
+	if ( !glConfig2.materialSystemAvailable ) {
+		R_AddWorldSurfaces();
+	}
 
 	R_AddPolygonSurfaces();
 

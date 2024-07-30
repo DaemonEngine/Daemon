@@ -85,6 +85,11 @@ struct glconfig2_t
 	bool textureIntegerAvailable;
 	bool textureRGAvailable;
 	bool computeShaderAvailable;
+	bool bindlessTexturesAvailable;
+	bool shaderDrawParametersAvailable;
+	bool SSBOAvailable;
+	bool multiDrawIndirectAvailable;
+	bool materialSystemAvailable;
 	bool gpuShader4Available;
 	bool gpuShader5Available;
 	bool textureGatherAvailable;

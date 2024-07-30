@@ -60,6 +60,8 @@ void DeformVertex(inout vec4 pos, inout vec3 normal, inout vec2 st, inout vec4 c
 
 void main()
 {
+	#insert material_vp
+
 	localBasis LB;
 	vec4 position, color;
 	vec2 texCoord, lmCoord;

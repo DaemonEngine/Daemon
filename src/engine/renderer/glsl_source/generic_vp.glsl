@@ -55,6 +55,8 @@ void DeformVertex( inout vec4 pos,
 
 void	main()
 {
+	#insert material_vp
+
 	vec4 position;
 	localBasis LB;
 	vec4 color;
@@ -92,9 +94,12 @@ void	main()
 	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).xy;
 #endif
 
-#if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
+#if defined(USE_DEPTH_FADE)
 	// compute z of end of fading effect
 	vec4 fadeDepth = u_ModelViewProjectionMatrix * (position - u_DepthScale * vec4(LB.normal, 0.0));
+	var_FadeDepth = fadeDepth.zw;
+#elif defined(USE_VERTEX_SPRITE)
+	vec4 fadeDepth = u_ModelViewProjectionMatrix * (position - depthScale * vec4(LB.normal, 0.0));
 	var_FadeDepth = fadeDepth.zw;
 #endif
 

@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "gl_shader.h"
+#include "TextureManager.h"
+#include "Material.h"
 #if defined( REFBONE_NAMES )
 	#include <client/client.h>
 #endif
@@ -57,6 +59,11 @@ void GL_Bind( image_t *image )
 		texnum = tr.blackImage->texnum;
 	}
 
+	if ( glConfig2.bindlessTexturesAvailable ) {
+		tr.textureManager.BindReservedTexture( image->type, texnum );
+		return;
+	}
+
 	if ( tr.currenttextures[ glState.currenttmu ] != texnum )
 	{
 		image->frameUsed = tr.frameCount;
@@ -73,7 +80,7 @@ void GL_Unbind( image_t *image )
 	glBindTexture( image->type, 0 );
 }
 
-void BindAnimatedImage( textureBundle_t *bundle )
+GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle )
 {
 	int index;
 
@@ -85,16 +92,15 @@ void BindAnimatedImage( textureBundle_t *bundle )
 		}
 		else
 		{
-			GL_Bind( tr.defaultImage );
+			return GL_BindToTMU( unit, tr.defaultImage );
 		}
 
-		return;
+		return tr.cinematicImage[bundle->videoMapHandle]->texture->bindlessTextureHandle;
 	}
 
 	if ( bundle->numImages <= 1 )
 	{
-		GL_Bind( bundle->image[ 0 ] );
-		return;
+		return GL_BindToTMU( unit, bundle->image[ 0 ] );
 	}
 
 	// it is necessary to do this messy calc to make sure animations line up
@@ -109,7 +115,7 @@ void BindAnimatedImage( textureBundle_t *bundle )
 
 	index %= bundle->numImages;
 
-	GL_Bind( bundle->image[ index ] );
+	return GL_BindToTMU( unit, bundle->image[ index ] );
 }
 
 void GL_BindProgram( shaderProgram_t *program )
@@ -143,6 +149,7 @@ void GL_BindNullProgram()
 
 void GL_SelectTexture( int unit )
 {
+
 	if ( glState.currenttmu == unit )
 	{
 		return;
@@ -165,12 +172,21 @@ void GL_SelectTexture( int unit )
 	glState.currenttmu = unit;
 }
 
-void GL_BindToTMU( int unit, image_t *image )
+GLuint64 GL_BindToTMU( int unit, image_t *image )
 {
 	if ( !image )
 	{
 		Log::Warn("GL_BindToTMU: NULL image" );
 		image = tr.defaultImage;
+	}
+
+	if ( glConfig2.bindlessTexturesAvailable ) {
+		if ( materialSystem.generatingWorldCommandBuffer ) {
+			materialSystem.AddTexture( image->texture );
+			return image->texture->bindlessTextureHandle;
+		}
+
+		return tr.textureManager.BindTexture( 0, image->texture );
 	}
 
 	int texnum = image->texnum;
@@ -182,11 +198,12 @@ void GL_BindToTMU( int unit, image_t *image )
 
 	if ( tr.currenttextures[ unit ] == texnum )
 	{
-		return;
+		return 0;
 	}
 
 	GL_SelectTexture( unit );
 	GL_Bind( image );
+	return 0;
 }
 
 void GL_BlendFunc( GLenum sfactor, GLenum dfactor )
@@ -872,6 +889,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	for ( i = backEnd.viewParms.firstDrawSurf[ Util::ordinal(fromSort) ]; i < lastSurf; i++ )
 	{
 		drawSurf = &backEnd.viewParms.drawSurfs[ i ];
+		tess.currentDrawSurf = drawSurf;
 
 		// FIXME: investigate why this happens.
 		if( drawSurf->surface == nullptr )
@@ -1369,7 +1387,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 	GL_BindProgram( nullptr );
 	GL_State( GLS_DEFAULT );
 
-	GL_BindToTMU( 0, tr.whiteImage );
+	GL_Bind( tr.whiteImage );
 	int cubeSide = index;
 	int splitFrustumIndex = index;
 	interaction_t *ia = light->firstInteraction;
@@ -1877,7 +1895,9 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 
 						gl_debugShadowMapShader->BindProgram( 0 );
 
-						GL_BindToTMU( 0, tr.sunShadowMapFBOImage[ frustumIndex ] );
+						gl_debugShadowMapShader->SetUniform_CurrentMapBindless(
+							GL_BindToTMU( 0, tr.sunShadowMapFBOImage[frustumIndex] )
+						);
 
 						w = 200;
 						h = 200;
@@ -1914,7 +1934,9 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 							GL_Cull( cullType_t::CT_TWO_SIDED );
 
 							// bind u_ColorMap
-							GL_BindToTMU( 0, tr.whiteImage );
+							gl_genericShader->SetUniform_ColorMapBindless(
+								GL_BindToTMU( 0, tr.whiteImage )
+							);
 							gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 							gl_genericShader->SetUniform_ModelViewProjectionMatrix( light->shadowMatrices[ frustumIndex ] );
@@ -2054,7 +2076,7 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 	GL_State( GLS_DEPTHTEST_DISABLE );
 
-	GL_BindToTMU( 0, images[ index ] );
+	// GL_BindToTMU( 0, images[ index ] );
 
 	GL_PushMatrix();
 
@@ -2065,17 +2087,22 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	gl_blurXShader->SetUniform_DeformMagnitude( 1 );
 	gl_blurXShader->SetUniform_TexScale( texScale );
 
+	gl_blurXShader->SetUniform_ColorMapBindless(
+		GL_BindToTMU( 0, images[index] )
+	);
+
 	Tess_InstantQuad( *gl_blurXShader, 0, 0, fbos[ index ]->width, fbos[ index ]->height );
 
 	R_AttachFBOTexture2D( images[ index ]->type, images[ index ]->texnum, 0 );
 
 	glClear( GL_COLOR_BUFFER_BIT );
 
-	GL_BindToTMU( 0, images[ index + MAX_SHADOWMAPS ] );
-
 	gl_blurYShader->BindProgram( 0 );
 	gl_blurYShader->SetUniform_DeformMagnitude( 1 );
 	gl_blurYShader->SetUniform_TexScale( texScale );
+	gl_blurYShader->SetUniform_ColorMapBindless(
+		GL_BindToTMU( 0, images[index + MAX_SHADOWMAPS] )
+	);
 
 	Tess_InstantQuad( *gl_blurYShader, 0, 0, fbos[index]->width, fbos[index]->height );
 
@@ -2780,7 +2807,9 @@ void RB_RunVisTests( )
 		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 		gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_COLORMASK_BITS );
@@ -2857,7 +2886,9 @@ void RB_RenderPostDepthLightTile()
 	zParams[ 2 ] = backEnd.viewParms.zFar;
 
 	gl_depthtile1Shader->SetUniform_zFar( zParams );
-	GL_BindToTMU( 0, tr.currentDepthImage );
+	gl_depthtile1Shader->SetUniform_DepthMapBindless(
+		GL_BindToTMU( 0, tr.currentDepthImage ) 
+	);
 
 	matrix_t ortho;
 	GL_PushMatrix();
@@ -2880,7 +2911,9 @@ void RB_RenderPostDepthLightTile()
 	GL_Scissor( 0, 0, w, h );
 	gl_depthtile2Shader->BindProgram( 0 );
 
-	GL_BindToTMU( 0, tr.depthtile1RenderImage );
+	gl_depthtile2Shader->SetUniform_DepthMapBindless(
+		GL_BindToTMU( 0, tr.depthtile1RenderImage )
+	);
 
 	Tess_InstantQuad( *gl_depthtile2Shader,
 	                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
@@ -2903,10 +2936,14 @@ void RB_RenderPostDepthLightTile()
 	if( glConfig2.uniformBufferObjectAvailable ) {
 		gl_lighttileShader->SetUniformBlock_Lights( tr.dlightUBO );
 	} else {
-		GL_BindToTMU( 1, tr.dlightImage );
+		gl_lighttileShader->SetUniform_LightsTextureBindless(
+			GL_BindToTMU( 1, tr.dlightImage ) 
+		);
 	}
 
-	GL_BindToTMU( 0, tr.depthtile2RenderImage );
+	gl_lighttileShader->SetUniform_DepthMapBindless(
+		GL_BindToTMU( 1, tr.depthtile2RenderImage ) 
+	);
 
 	R_BindVBO( tr.lighttileVBO );
 
@@ -3009,10 +3046,14 @@ void RB_RenderGlobalFog()
 	gl_fogGlobalShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
 
 	// bind u_ColorMap
-	GL_BindToTMU( 0, tr.fogImage );
+	gl_fogGlobalShader->SetUniform_ColorMapBindless(
+		GL_BindToTMU( 0, tr.fogImage ) 
+	);
 
 	// bind u_DepthMap
-	GL_BindToTMU( 1, tr.currentDepthImage );
+	gl_fogGlobalShader->SetUniform_DepthMapBindless(
+		GL_BindToTMU( 0, tr.currentDepthImage )
+	);
 
 	// set 2D virtual screen size
 	GL_PushMatrix();
@@ -3070,7 +3111,9 @@ void RB_RenderBloom()
 		// u_InverseLightFactor
 		gl_contrastShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
-		GL_BindToTMU( 0, tr.currentRenderImage[ backEnd.currentMainFBO ] );
+		gl_contrastShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
+		);
 
 		GL_PopMatrix(); // special 1/4th of the screen contrastRenderFBO ortho
 
@@ -3084,7 +3127,9 @@ void RB_RenderBloom()
 		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 		// render bloom in multiple passes
-		GL_BindToTMU( 0, tr.contrastRenderFBOImage );
+		gl_contrastShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.contrastRenderFBOImage )
+		);
 		for ( i = 0; i < 2; i++ )
 		{
 			for ( j = 0; j < r_bloomPasses->integer; j++ )
@@ -3112,6 +3157,9 @@ void RB_RenderBloom()
 
 					gl_blurXShader->SetUniform_DeformMagnitude( r_bloomBlur->value );
 					gl_blurXShader->SetUniform_TexScale( texScale );
+					gl_blurXShader->SetUniform_ColorMapBindless(
+						GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] ) 
+					);
 					Tess_InstantQuad( *gl_blurXShader,
 					                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
 					                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
@@ -3122,6 +3170,9 @@ void RB_RenderBloom()
 
 					gl_blurYShader->SetUniform_DeformMagnitude( r_bloomBlur->value );
 					gl_blurYShader->SetUniform_TexScale( texScale );
+					gl_blurYShader->SetUniform_ColorMapBindless(
+						GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] )
+					);
 					Tess_InstantQuad( *gl_blurYShader,
 					                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
 					                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
@@ -3142,6 +3193,7 @@ void RB_RenderBloom()
 
 		GL_BindToTMU( 0, tr.blackImage );
 
+		gl_screenShader->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.blackImage ) );
 		Tess_InstantQuad( *gl_screenShader,
 		                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
 		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
@@ -3167,15 +3219,20 @@ void RB_RenderMotionBlur()
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
+	gl_motionblurShader->BindProgram( 0 );
+
 	// Swap main FBOs
-	GL_BindToTMU( 0, tr.currentRenderImage[ backEnd.currentMainFBO ] );
+	gl_motionblurShader->SetUniform_ColorMapBindless(
+		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
+	);
 	backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
 	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
 
-	gl_motionblurShader->BindProgram( 0 );
 	gl_motionblurShader->SetUniform_blurVec(tr.refdef.blurVec);
 
-	GL_BindToTMU( 1, tr.currentDepthImage );
+	gl_motionblurShader->SetUniform_DepthMapBindless(
+		GL_BindToTMU( 1, tr.currentDepthImage )
+	);
 
 	matrix_t ortho;
 	GL_PushMatrix();
@@ -3234,7 +3291,9 @@ void RB_RenderSSAO()
 
 	gl_ssaoShader->SetUniform_UnprojectionParams( unprojectionParams );
 
-	GL_BindToTMU( 0, tr.currentDepthImage );
+	gl_ssaoShader->SetUniform_DepthMapBindless(
+		GL_BindToTMU( 0, tr.currentDepthImage )
+	);
 
 	matrix_t ortho;
 	GL_PushMatrix();
@@ -3273,13 +3332,15 @@ void RB_FXAA()
 	GL_State( GLS_DEPTHTEST_DISABLE );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
-	// Swap main FBOs
-	GL_BindToTMU( 0, tr.currentRenderImage[ backEnd.currentMainFBO ] );
-	backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
-	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
-
 	// set the shader parameters
 	gl_fxaaShader->BindProgram( 0 );
+
+	// Swap main FBOs
+	gl_fxaaShader->SetUniform_ColorMapBindless(
+		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
+	);
+	backEnd.currentMainFBO = 1 - backEnd.currentMainFBO;
+	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
 
 	matrix_t ortho;
 	GL_PushMatrix();
@@ -3334,8 +3395,12 @@ void RB_CameraPostFX()
 	// This shader is run last, so let it render to screen instead of
 	// tr.mainFBO
 	R_BindNullFBO();
-	GL_BindToTMU( 0, tr.currentRenderImage[ backEnd.currentMainFBO ] );
-	GL_BindToTMU( 3, tr.colorGradeImage );
+	gl_cameraEffectsShader->SetUniform_CurrentMapBindless(
+		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
+	);
+	gl_cameraEffectsShader->SetUniform_ColorMap3DBindless(
+		GL_BindToTMU( 3, tr.colorGradeImage )
+	);
 
 	// draw viewport
 	Tess_InstantQuad( *gl_cameraEffectsShader,
@@ -3379,7 +3444,9 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetRequiredVertexPointers();
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		ia = nullptr;
@@ -3538,7 +3605,9 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_Color( Color::Black );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		for ( iaCount = 0, ia = &backEnd.viewParms.interactions[ 0 ]; iaCount < backEnd.viewParms.numInteractions; ia++, iaCount++ )
@@ -3662,7 +3731,9 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_Color( Color::Black );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		ent = backEnd.refdef.entities;
@@ -3738,11 +3809,13 @@ static void RB_RenderDebugUtils()
 
 		// bind u_ColorMap
 #if defined( REFBONE_NAMES )
-		GL_BindToTMU( 0, r_imageHashTable [ tr.charsetImageHash ] );
+		GL_BindToTMU( gl_genericShader->GetUniformLocation_ColorMap(), r_imageHashTable [ tr.charsetImageHash ] );
 		int width = r_imageHashTable [ tr.charsetImageHash ]->width;
 		int height = r_imageHashTable [ tr.charsetImageHash ]->height;
 #else
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 #endif
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
@@ -3964,7 +4037,9 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		// set 2D virtual screen size
@@ -4050,7 +4125,9 @@ static void RB_RenderDebugUtils()
 			}
 
 			// bind u_ColorMap
-			GL_BindToTMU( 0, cubeProbe->cubemap );
+			gl_reflectionShader->SetUniform_ColorMapBindless(
+				GL_BindToTMU( 0, cubeProbe->cubemap ) 
+			);
 
 			Tess_AddCubeWithNormals( cubeProbe->origin, mins, maxs, Color::White );
 		}
@@ -4087,7 +4164,9 @@ static void RB_RenderDebugUtils()
 			gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 			// bind u_ColorMap
-			GL_BindToTMU( 0, tr.whiteImage );
+			gl_genericShader->SetUniform_ColorMapBindless(
+				GL_BindToTMU( 0, tr.whiteImage )
+			);
 			gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 			GL_CheckErrors();
@@ -4163,7 +4242,9 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		GL_CheckErrors();
@@ -4247,7 +4328,9 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		GL_CheckErrors();
@@ -4339,7 +4422,9 @@ static void RB_RenderDebugUtils()
 					GL_Cull( cullType_t::CT_TWO_SIDED );
 
 					// bind u_ColorMap
-					GL_BindToTMU( 0, tr.whiteImage );
+					gl_genericShader->SetUniform_ColorMapBindless(
+						GL_BindToTMU( 0, tr.whiteImage )
+					);
 					gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 					gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
@@ -4541,7 +4626,9 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 		// bind u_ColorMap
-		GL_BindToTMU( 0, tr.whiteImage );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, tr.whiteImage )
+		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		GL_CheckErrors();
@@ -4632,7 +4719,9 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 	gl_genericShader->SetUniform_Color( colorClear );
 
 	// bind u_ColorMap
-	GL_BindToTMU( 0, tr.whiteImage );
+	gl_genericShader->SetUniform_ColorMapBindless(
+		GL_BindToTMU( 0, tr.whiteImage )
+	);
 	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 	// render in world space
@@ -4763,7 +4852,12 @@ static void RB_RenderView( bool depthPass )
 		startTime = ri.Milliseconds();
 	}
 
+	materialSystem.frameStart = true;
+
 	if( depthPass ) {
+		if ( glConfig2.materialSystemAvailable ) {
+			materialSystem.RenderMaterials( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH );
+		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, DRAWSURFACES_ALL );
 		RB_RunVisTests();
 		if ( !backEnd.postDepthLightTileRendered && !backEnd.viewParms.hasNestedViews ) {
@@ -4778,6 +4872,9 @@ static void RB_RenderView( bool depthPass )
 			tr.refdef.blurVec[2] != 0.0f )
 	{
 		// draw everything that is not the gun
+		if ( glConfig2.materialSystemAvailable ) {
+			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE );
+		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL_FAR );
 
 		RB_RenderMotionBlur();
@@ -4788,6 +4885,9 @@ static void RB_RenderView( bool depthPass )
 	else
 	{
 		// draw everything that is opaque
+		if ( glConfig2.materialSystemAvailable ) {
+			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE );
+		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
 	}
 
@@ -4817,6 +4917,9 @@ static void RB_RenderView( bool depthPass )
 	RB_RenderGlobalFog();
 
 	// draw everything that is translucent
+	if ( glConfig2.materialSystemAvailable ) {
+		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS );
+	}
 	RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, DRAWSURFACES_ALL );
 
 	GL_CheckErrors();
@@ -4909,6 +5012,11 @@ void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool 
 		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
 		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
 		glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, Color::Black.ToArray() );
+
+		// Getting bindless handle makes the texture immutable, so generate it again because we used glTexParameter*
+		if ( glConfig2.bindlessTexturesAvailable ) {
+			tr.cinematicImage[ client ]->texture->GenBindlessHandle();
+		}
 	}
 	else
 	{
@@ -5455,7 +5563,9 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 
 		glUnmapBuffer( bufferTarget );
 		if( !glConfig2.uniformBufferObjectAvailable ) {
-			GL_BindToTMU( 0, tr.dlightImage );
+			gl_lighttileShader->SetUniform_LightsTextureBindless(
+				GL_BindToTMU( 1, tr.dlightImage ) 
+			);
 			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, tr.dlightImage->width, tr.dlightImage->height, GL_RGBA, GL_FLOAT, nullptr );
 		}
 		glBindBuffer( bufferTarget, 0 );
@@ -5795,7 +5905,9 @@ void RB_ShowImages()
 		}
 
 		// bind u_ColorMap
-		GL_Bind( image );
+		gl_genericShader->SetUniform_ColorMapBindless(
+			GL_BindToTMU( 0, image )
+		);
 
 		Tess_InstantQuad( *gl_genericShader, x, y, w, h );
 	}
@@ -5921,6 +6033,7 @@ void RB_ExecuteRenderCommands( const void *data )
 	{
 		cmd = cmd->ExecuteSelf();
 	}
+
 	// stop rendering on this thread
 	t2 = ri.Milliseconds();
 	backEnd.pc.msec = t2 - t1;
