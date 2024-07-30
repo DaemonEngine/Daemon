@@ -2144,7 +2144,7 @@ void Render_portal( shaderStage_t *pStage )
 		glVertexAttrib4fv( ATTR_INDEX_COLOR, tess.svars.color.ToArray() );
 	}
 
-	gl_portalShader->SetUniform_PortalRange( tess.surfaceShader->portalRange );
+	gl_portalShader->SetUniform_InversePortalRange( 1 / tess.surfaceShader->portalRange );
 
 	gl_portalShader->SetUniform_ModelViewMatrix( glState.modelViewMatrix[ glState.stackIndex ] );
 	gl_portalShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
