@@ -7073,4 +7073,7 @@ void RE_LoadWorldMap( const char *name )
 		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
 		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;
 	}
+
+	tr.worldLoaded = true;
+	GLSL_InitWorldShadersOrError();
 }

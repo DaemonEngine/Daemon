@@ -53,8 +53,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_measureOverdraw;
 
-	cvar_t      *r_fastsky;
-
 	cvar_t      *r_lodBias;
 	cvar_t      *r_lodScale;
 
@@ -139,7 +137,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen("r_imageFitScreen", "downscale “fitscreen” images to fit the screen size: 0: disable, 1: downscale as much as possible without being smaller than screen size (default), 2: downscale to never be larger then screen size", Cvar::NONE, 1, 0, 2);
 	cvar_t      *r_finish;
-	cvar_t      *r_clear;
 	cvar_t      *r_textureMode;
 	cvar_t      *r_offsetFactor;
 	cvar_t      *r_offsetUnits;
@@ -1120,7 +1117,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_znear = Cvar_Get( "r_znear", "3", CVAR_CHEAT );
 		r_zfar = Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
 		r_checkGLErrors = Cvar_Get( "r_checkGLErrors", "-1", 0 );
-		r_fastsky = Cvar_Get( "r_fastsky", "0", CVAR_ARCHIVE );
 		r_finish = Cvar_Get( "r_finish", "0", CVAR_CHEAT );
 		r_textureMode = Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE );
 		r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE );
@@ -1185,7 +1181,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_logFile = Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
 		r_debugSurface = Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 		r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
-		r_clear = Cvar_Get( "r_clear", "1", 0 );
 		r_offsetFactor = Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );
 		r_offsetUnits = Cvar_Get( "r_offsetUnits", "-2", CVAR_CHEAT );
 

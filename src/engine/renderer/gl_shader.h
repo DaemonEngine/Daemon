@@ -351,6 +351,8 @@ public:
 	GLHeader GLCompatHeader;
 	GLHeader GLVertexHeader;
 	GLHeader GLFragmentHeader;
+	GLHeader GLComputeHeader;
+	GLHeader GLWorldHeader;
 	GLHeader GLEngineConstants;
 
 	GLShaderManager() : _totalBuildTime( 0 )
@@ -361,6 +363,7 @@ public:
 	void InitDriverInfo();
 
 	void GenerateBuiltinHeaders();
+	void GenerateWorldHeaders();
 
 	template< class T >
 	void load( T *& shader )
@@ -706,6 +709,56 @@ public:
 
 	private:
 	int currentValue = 0;
+};
+
+class GLUniform1ui : protected GLUniform {
+	protected:
+	GLUniform1ui( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniform( shader, name, "uint", 1, 1, global ) {
+	}
+
+	inline void SetValue( uint value ) {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer ) {
+			GLimp_LogComment( va( "GLSL_SetUniform1i( %s, shader: %s, value: %d ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), value ) );
+		}
+#endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			currentValue = value;
+			return;
+		}
+
+#if defined( USE_UNIFORM_FIREWALL )
+		uint* firewall = ( uint* ) &p->uniformFirewall[_firewallIndex];
+
+		if ( *firewall == value ) {
+			return;
+		}
+
+		*firewall = value;
+#endif
+		glUniform1ui( p->uniformLocations[_locationIndex], value );
+	}
+	public:
+	size_t GetSize() override {
+		return sizeof( uint );
+	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, &currentValue, sizeof( uint ) );
+		return buffer + 1;
+	}
+
+	private:
+	uint currentValue = 0;
 };
 
 class GLUniform1Bool : protected GLUniform {
@@ -1266,54 +1319,116 @@ public:
 	}
 };
 
-class GLSSBO {
+class GLBuffer {
 	public:
 	std::string _name;
 	const GLuint _bindingPoint;
+	const GLbitfield _flags;
+	const GLbitfield _mapFlags;
+	const GLuint64 SYNC_TIMEOUT = 10000000000; // 10 seconds
 
-	GLSSBO( const char* name, const GLuint bindingPoint ) :
+	GLBuffer( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
 		_name( name ),
-		_bindingPoint( bindingPoint ) {
+		_bindingPoint( bindingPoint ),
+		_flags( flags ),
+		_mapFlags( mapFlags ) {
 	}
 
-	public:
 	const char* GetName() {
 		return _name.c_str();
 	}
 
-	void BindBufferBase() {
-		glBindBufferBase( GL_SHADER_STORAGE_BUFFER, _bindingPoint, handle );
+	void BindBufferBase( const GLenum target ) {
+		glBindBufferBase( target, _bindingPoint, handle );
 	}
 
-	void BindBuffer() {
-		glBindBuffer( GL_SHADER_STORAGE_BUFFER, handle );
+	void UnBindBufferBase( const GLenum target ) {
+		glBindBufferBase( target, _bindingPoint, 0 );
 	}
 
-	uint32_t* MapBufferRange( const GLuint count ) {
+	void BindBuffer( const GLenum target ) {
+		glBindBuffer( target, handle );
+	}
+
+	void UnBindBuffer( const GLenum target ) {
+		glBindBuffer( target, 0 );
+	}
+
+	void BufferStorage( const GLenum target, const GLsizeiptr newAreaSize, const GLsizeiptr areaCount, const void* data ) {
+		areaSize = newAreaSize;
+		maxAreas = areaCount;
+		glBufferStorage( target, areaSize * areaCount * sizeof(uint32_t), data, _flags );
+		syncs.resize( areaCount );
+	}
+
+	void AreaIncr() {
+		syncs[area] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
+		area++;
+		if ( area >= maxAreas ) {
+			area = 0;
+		}
+	}
+
+	void MapAll( const GLenum target ) {
 		if ( !mapped ) {
 			mapped = true;
-			data = ( uint32_t* ) glMapBufferRange( GL_SHADER_STORAGE_BUFFER,
+			mappedTarget = target;
+			data = ( uint32_t* ) glMapBufferRange( target, 0, areaSize * maxAreas * sizeof( uint32_t ), _flags | _mapFlags );
+		}
+	}
+
+	uint32_t* GetCurrentAreaData() {
+		if ( syncs[area] != nullptr ) {
+			if ( glClientWaitSync( syncs[area], GL_SYNC_FLUSH_COMMANDS_BIT, SYNC_TIMEOUT ) == GL_TIMEOUT_EXPIRED ) {
+				Sys::Drop( "Failed buffer %s area %u sync", _name, area );
+			}
+			glDeleteSync( syncs[area] );
+		}
+
+		return data + area * areaSize;
+	}
+
+	uint32_t* GetData() {
+		return data;
+	}
+
+	void FlushCurrentArea( GLenum target ) {
+		glFlushMappedBufferRange( target, area * areaSize * sizeof( uint32_t ), areaSize * sizeof( uint32_t ) );
+	}
+
+	void FlushAll( GLenum target ) {
+		glFlushMappedBufferRange( target, 0, maxAreas * areaSize * sizeof( uint32_t ) );
+	}
+
+	uint32_t* MapBufferRange( const GLenum target, const GLuint count ) {
+		if ( !mapped ) {
+			mapped = true;
+			mappedTarget = target;
+			data = ( uint32_t* ) glMapBufferRange( target,
 				0, count * sizeof( uint32_t ),
-				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
+				_flags | _mapFlags );
 		}
 
 		return data;
 	}
 
-	uint32_t* MapBufferRange( const GLuint offset, const GLuint count ) {
+	uint32_t* MapBufferRange( const GLenum target, const GLuint offset, const GLuint count ) {
 		if ( !mapped ) {
 			mapped = true;
-			data = ( uint32_t* ) glMapBufferRange( GL_SHADER_STORAGE_BUFFER,
+			mappedTarget = target;
+			data = ( uint32_t* ) glMapBufferRange( target,
 				offset * sizeof( uint32_t ), count * sizeof( uint32_t ),
-				GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT );
+				_flags | _mapFlags );
 		}
 
 		return data;
 	}
 
 	void UnmapBuffer() {
-		mapped = false;
-		glUnmapBuffer( GL_SHADER_STORAGE_BUFFER );
+		if ( mapped ) {
+			mapped = false;
+			glUnmapBuffer( mappedTarget );
+		}
 	}
 
 	void GenBuffer() {
@@ -1325,9 +1440,146 @@ class GLSSBO {
 	}
 
 	private:
+	GLenum mappedTarget;
 	GLuint handle;
 	bool mapped = false;
+	std::vector<GLsync> syncs;
+	GLsizeiptr area = 0;
+	GLsizeiptr areaSize = 0;
+	GLsizeiptr maxAreas = 0;
 	uint32_t* data;
+};
+
+class GLSSBO : public GLBuffer {
+	public:
+	GLSSBO( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
+		GLBuffer( name, bindingPoint, flags, mapFlags ) {
+	}
+
+	public:
+	const char* GetName() {
+		return _name.c_str();
+	}
+
+	void BindBufferBase() {
+		GLBuffer::BindBufferBase( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void UnBindBufferBase() {
+		GLBuffer::UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void BindBuffer() {
+		GLBuffer::BindBuffer( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
+		GLBuffer::BufferStorage( GL_SHADER_STORAGE_BUFFER, areaSize, areaCount, data );
+	}
+
+	void MapAll() {
+		GLBuffer::MapAll( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void FlushCurrentArea() {
+		GLBuffer::FlushCurrentArea( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_SHADER_STORAGE_BUFFER, count );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_SHADER_STORAGE_BUFFER, offset, count );
+	}
+};
+
+class GLUBO : public GLBuffer {
+	public:
+	GLUBO( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
+		GLBuffer( name, bindingPoint, flags, mapFlags ) {
+	}
+
+	public:
+	const char* GetName() {
+		return _name.c_str();
+	}
+
+	void BindBufferBase() {
+		GLBuffer::BindBufferBase( GL_UNIFORM_BUFFER );
+	}
+
+	void UnBindBufferBase() {
+		GLBuffer::UnBindBufferBase( GL_UNIFORM_BUFFER );
+	}
+
+	void BindBuffer() {
+		GLBuffer::BindBuffer( GL_UNIFORM_BUFFER );
+	}
+
+	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
+		GLBuffer::BufferStorage( GL_UNIFORM_BUFFER, areaSize, areaCount, data );
+	}
+
+	void MapAll() {
+		GLBuffer::MapAll( GL_UNIFORM_BUFFER );
+	}
+
+	void FlushCurrentArea() {
+		GLBuffer::FlushCurrentArea( GL_UNIFORM_BUFFER );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, count );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, offset, count );
+	}
+};
+
+class GLAtomicCounterBuffer : public GLBuffer {
+	public:
+	GLAtomicCounterBuffer( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
+		GLBuffer( name, bindingPoint, flags, mapFlags ) {
+	}
+
+	public:
+	const char* GetName() {
+		return _name.c_str();
+	}
+
+	void BindBufferBase() {
+		GLBuffer::BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void UnBindBufferBase() {
+		GLBuffer::UnBindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void BindBuffer() {
+		GLBuffer::BindBuffer( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
+		GLBuffer::BufferStorage( GL_ATOMIC_COUNTER_BUFFER, areaSize, areaCount, data );
+	}
+
+	void MapAll() {
+		GLBuffer::MapAll( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void FlushCurrentArea() {
+		GLBuffer::FlushCurrentArea( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_ATOMIC_COUNTER_BUFFER, count );
+	}
+
+	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
+		return GLBuffer::MapBufferRange( GL_ATOMIC_COUNTER_BUFFER, offset, count );
+	}
 };
 
 class GLIndirectBuffer {
@@ -1357,7 +1609,7 @@ class GLIndirectBuffer {
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, handle );
 	}
 
-	GLIndirectCommand* MapBufferRange( const GLuint count ) {
+	GLIndirectCommand* MapBufferRange( const GLsizeiptr count ) {
 		return (GLIndirectCommand*) glMapBufferRange( GL_DRAW_INDIRECT_BUFFER,
 			0, count * sizeof( GLIndirectCommand ),
 			GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
@@ -2530,7 +2782,7 @@ public:
 
 		switch( stateBits & GLS_ATEST_BITS ) {
 			case GLS_ATEST_GT_0:
-				if ( *r_dpBlend )
+				if ( r_dpBlend.Get() )
 				{
 					// DarkPlaces only supports one alphaFunc operation:
 					//   https://gitlab.com/xonotic/darkplaces/blob/324a5329d33ef90df59e6488abce6433d90ac04c/model_shared.c#L1875-1876
@@ -2902,6 +3154,78 @@ public:
 	}
 };
 
+class u_Frame :
+	GLUniform1ui {
+	public:
+	u_Frame( GLShader* shader ) :
+		GLUniform1ui( shader, "u_Frame" ) {
+	}
+
+	void SetUniform_Frame( const uint frame ) {
+		this->SetValue( frame );
+	}
+};
+
+class u_ViewID :
+	GLUniform1ui {
+	public:
+	u_ViewID( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ViewID" ) {
+	}
+
+	void SetUniform_ViewID( const uint viewID ) {
+		this->SetValue( viewID );
+	}
+};
+
+class u_TotalDrawSurfs :
+	GLUniform1ui {
+	public:
+	u_TotalDrawSurfs( GLShader* shader ) :
+		GLUniform1ui( shader, "u_TotalDrawSurfs" ) {
+	}
+
+	void SetUniform_TotalDrawSurfs( const uint totalDrawSurfs ) {
+		this->SetValue( totalDrawSurfs );
+	}
+};
+
+class u_Frustum :
+	GLUniform4fv {
+	public:
+	u_Frustum( GLShader* shader ) :
+		GLUniform4fv( shader, "u_Frustum", 6 ) {
+	}
+
+	void SetUniform_Frustum( vec4_t frustum[6] ) {
+		this->SetValue( 6, &frustum[0] );
+	}
+};
+
+class u_SurfaceCommandsOffset :
+	GLUniform1ui {
+	public:
+	u_SurfaceCommandsOffset( GLShader* shader ) :
+		GLUniform1ui( shader, "u_SurfaceCommandsOffset" ) {
+	}
+
+	void SetUniform_SurfaceCommandsOffset( const uint surfaceCommandsOffset ) {
+		this->SetValue( surfaceCommandsOffset );
+	}
+};
+
+class u_CulledCommandsOffset :
+	GLUniform1ui {
+	public:
+	u_CulledCommandsOffset( GLShader* shader ) :
+		GLUniform1ui( shader, "u_CulledCommandsOffset" ) {
+	}
+
+	void SetUniform_CulledCommandsOffset( const uint culledCommandsOffset ) {
+		this->SetValue( culledCommandsOffset );
+	}
+};
+
 class u_ModelMatrix :
 	GLUniformMatrix4f
 {
@@ -3024,7 +3348,7 @@ class u_Bones :
 {
 public:
 	u_Bones( GLShader *shader ) :
-		GLUniform4fv( shader, "u_Bones", MAX_BONES * 0 + 1 )
+		GLUniform4fv( shader, "u_Bones", MAX_BONES )
 	{
 	}
 
@@ -4255,6 +4579,33 @@ public:
 	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 };
 
+class GLShader_cull :
+	public GLShader,
+	public u_TotalDrawSurfs,
+	public u_SurfaceCommandsOffset,
+	public u_Frustum {
+	public:
+	GLShader_cull( GLShaderManager* manager );
+};
+
+class GLShader_clearSurfaces :
+	public GLShader,
+	public u_Frame {
+	public:
+	GLShader_clearSurfaces( GLShaderManager* manager );
+};
+
+class GLShader_processSurfaces :
+	public GLShader,
+	public u_Frame,
+	public u_ViewID,
+	public u_SurfaceCommandsOffset,
+	public u_CulledCommandsOffset {
+	public:
+	GLShader_processSurfaces( GLShaderManager* manager );
+};
+
+
 std::string GetShaderPath();
 
 extern ShaderKind shaderKind;
@@ -4262,6 +4613,9 @@ extern ShaderKind shaderKind;
 extern GLShader_generic2D                       *gl_generic2DShader;
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
+extern GLShader_cull                            *gl_cullShader;
+extern GLShader_clearSurfaces                   *gl_clearSurfacesShader;
+extern GLShader_processSurfaces                 *gl_processSurfacesShader;
 extern GLShader_lightMapping                    *gl_lightMappingShader;
 extern GLShader_lightMappingMaterial            *gl_lightMappingShaderMaterial;
 extern GLShader_forwardLighting_omniXYZ         *gl_forwardLightingShader_omniXYZ;

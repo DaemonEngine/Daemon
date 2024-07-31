@@ -33,6 +33,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 backEndData_t  *backEndData[ SMP_FRAMES ];
 backEndState_t backEnd;
 
+static Cvar::Cvar<bool> r_clear( "r_clear", "Clear screen before painting over it on every frame", Cvar::NONE, false );
+Cvar::Cvar<bool> r_fastsky( "r_fastsky", "Clear sky instead of drawing it", Cvar::NONE, false );
+
 void GL_Bind( image_t *image )
 {
 	int texnum;
@@ -4834,6 +4837,8 @@ static void RB_RenderView( bool depthPass )
 	if ( ( backEnd.refdef.rdflags & RDF_HYPERSPACE ) )
 	{
 		RB_Hyperspace();
+
+		materialSystem.currentView++;
 		return;
 	}
 	else
@@ -4852,11 +4857,9 @@ static void RB_RenderView( bool depthPass )
 		startTime = ri.Milliseconds();
 	}
 
-	materialSystem.frameStart = true;
-
 	if( depthPass ) {
 		if ( glConfig2.materialSystemAvailable ) {
-			materialSystem.RenderMaterials( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH );
+			materialSystem.RenderMaterials( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, DRAWSURFACES_ALL );
 		RB_RunVisTests();
@@ -4873,7 +4876,7 @@ static void RB_RenderView( bool depthPass )
 	{
 		// draw everything that is not the gun
 		if ( glConfig2.materialSystemAvailable ) {
-			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE );
+			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL_FAR );
 
@@ -4886,7 +4889,7 @@ static void RB_RenderView( bool depthPass )
 	{
 		// draw everything that is opaque
 		if ( glConfig2.materialSystemAvailable ) {
-			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE );
+			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
 	}
@@ -4918,7 +4921,7 @@ static void RB_RenderView( bool depthPass )
 
 	// draw everything that is translucent
 	if ( glConfig2.materialSystemAvailable ) {
-		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS );
+		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, backEnd.viewParms.viewID );
 	}
 	RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, DRAWSURFACES_ALL );
 
@@ -4945,6 +4948,8 @@ static void RB_RenderView( bool depthPass )
 
 		backEnd.pc.c_portals++;
 	}
+
+	materialSystem.currentView++;
 
 	backEnd.pc.c_views++;
 }
@@ -4979,6 +4984,13 @@ static void RB_RenderPostProcess()
 		{
 			tr.refdef.pixelTarget[(i * 4) + 3] = 255;  //set the alpha pure white
 		}
+	}
+	
+	if( glConfig2.materialSystemAvailable ) {
+		// Dispatch the cull compute shaders for queued views once we're done with post-processing
+		// We'll only use the results from those shaders in the next frame so we don't block the pipeline
+		materialSystem.CullSurfaces();
+		materialSystem.EndFrame();
 	}
 
 	GL_CheckErrors();
@@ -5622,8 +5634,8 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	// ensures that depth writes are enabled for the depth clear
 	GL_State( GLS_DEFAULT );
 
-	// clear relevant buffers
-	if ( r_clear->integer ) {
+	// Clear relevant buffers, r_fastsky always require clearing.
+	if ( r_clear.Get() || r_fastsky.Get() ) {
 		clearBits |= GL_COLOR_BUFFER_BIT;
 	}
 
@@ -6029,6 +6041,8 @@ void RB_ExecuteRenderCommands( const void *data )
 		backEnd.smpFrame = 1;
 	}
 
+
+	materialSystem.frameStart = true;
 	while ( cmd != nullptr )
 	{
 		cmd = cmd->ExecuteSelf();

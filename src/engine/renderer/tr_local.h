@@ -1522,6 +1522,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		orientationr_t orientation;
 		orientationr_t world;
 
+		uint viewID = 0;
+
 		vec3_t         pvsOrigin; // may be different than or.origin for portals
 
 		int            portalLevel; // number of portals this view is through
@@ -1660,6 +1662,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		uint materialIDs[ MAX_SHADER_STAGES ];
 		uint materialPackIDs[ MAX_SHADER_STAGES ];
 		bool texturesDynamic[ MAX_SHADER_STAGES ];
+		uint drawCommandIDs[ MAX_SHADER_STAGES ];
 
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
@@ -2647,6 +2650,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		deluxeMode_t worldDeluxe;
 		deluxeMode_t modelDeluxe;
 
+		bool worldLoaded;
 		world_t    *world;
 
 		TextureManager textureManager;
@@ -2867,7 +2871,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_ambientScale;
 	extern cvar_t *r_lightScale;
 
-	extern cvar_t *r_fastsky; // controls whether sky should be cleared or drawn
+	extern Cvar::Cvar<bool> r_fastsky; // Controls whether sky should be cleared or drawn.
 	extern Cvar::Range<Cvar::Cvar<int>> r_dynamicLightRenderer;
 	extern Cvar::Cvar<bool> r_dynamicLight;
 	extern Cvar::Cvar<bool> r_staticLight;
@@ -2935,8 +2939,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern Cvar::Cvar<bool> r_highPrecisionRendering;
 
 	extern cvar_t *r_logFile; // number of frames to emit GL logs
-
-	extern cvar_t *r_clear; // force screen clear every frame
 
 	extern Cvar::Range<Cvar::Cvar<int>> r_shadows;
 	extern cvar_t *r_softShadows;
@@ -3423,6 +3425,7 @@ inline bool checkGLErrors()
 	alignas(16) extern shaderCommands_t tess;
 
 	void                    GLSL_InitGPUShaders();
+	void                    GLSL_InitWorldShadersOrError();
 	void                    GLSL_ShutdownGPUShaders();
 	void                    GLSL_FinishGPUShaders();
 

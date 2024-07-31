@@ -119,9 +119,8 @@ namespace Cvar {
             Cvar(std::string name, std::string description, int flags, value_type defaultValue);
             Cvar(NoRegisterTag, std::string name, std::string description, int flags, value_type defaultValue);
 
-            //Outside code accesses the Cvar value by doing my_cvar.Get() or *my_cvar
+            //Outside code accesses the Cvar value by doing my_cvar.Get()
             T Get() const;
-            T operator*() const;
 
             //Outside code can also change the value but it won't be seen immediately after with a .Get()
             void Set(T newValue);
@@ -277,11 +276,6 @@ namespace Cvar {
     template<typename T>
     T Cvar<T>::Get() const {
         return value;
-    }
-
-    template<typename T>
-    T Cvar<T>::operator*() const {
-        return this->Get();
     }
 
     template<typename T>
