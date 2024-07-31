@@ -24,7 +24,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "gl_shader.h"
-#include "TextureManager.h"
 #include "Material.h"
 #if defined( REFBONE_NAMES )
 	#include <client/client.h>
