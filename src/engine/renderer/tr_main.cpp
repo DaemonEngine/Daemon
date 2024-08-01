@@ -1600,12 +1600,12 @@ static bool SurfBoxIsOffscreen(const drawSurf_t *drawSurf, screenRect_t& surfRec
 }
 
 /*
-** SurfIsOffscreen
+** PortalOffScreenOrOutOfRange
 **
-** Determines if a surface is completely offscreen.
+** Determines if a surface is completely offscreen or out of the portal range.
 ** also computes a conservative screen rectangle bounds for the surface
 */
-static bool SurfIsOffscreen( const drawSurf_t *drawSurf, screenRect_t& surfRect )
+static bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surfRect )
 {
 	float        shortest = 100000000;
 	shader_t     *shader;
@@ -1872,8 +1872,9 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	}
 
 	// trivially reject portal/mirror
-	if (SurfIsOffscreen(drawSurf, surfRect))
+	if (PortalOffScreenOrOutOfRange(drawSurf, surfRect))
 	{
+		// We still need to draw the surface itself when it's out of range, just not the portal view
 		if ( drawSurf->shader->portalOutOfRange ) {
 			R_AddPreparePortalCmd( drawSurf );
 			R_AddFinalisePortalCmd( drawSurf );
