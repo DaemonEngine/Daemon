@@ -36,9 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TEXTURE_MANAGER_H
 #define TEXTURE_MANAGER_H
 
-#include <vector>
-#include "GL/glew.h"
-
 class Texture {
 	public:
 	GLuint textureHandle = 0;

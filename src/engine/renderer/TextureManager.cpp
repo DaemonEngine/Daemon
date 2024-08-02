@@ -33,7 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // TextureManager.cpp
 
-#include "TextureManager.h"
 #include "tr_local.h"
 
 Texture::Texture() {

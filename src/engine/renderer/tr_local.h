@@ -24,6 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef TR_LOCAL_H
 #define TR_LOCAL_H
 
+#define GLEW_NO_GLU
+#include <GL/glew.h>
+
 #include "common/FileSystem.h"
 #include "qcommon/q_shared.h"
 #include "qcommon/qfiles.h"
@@ -32,9 +35,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_public.h"
 #include "iqm.h"
 #include "TextureManager.h"
-
-#define GLEW_NO_GLU
-#include <GL/glew.h>
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
 #define DYN_BUFFER_SEGMENTS 4
