@@ -96,20 +96,19 @@ static void GLSL_InitGPUShadersOrError()
 	gl_shaderManager.load( gl_generic2DShader );
 	gl_shaderManager.load( gl_genericShader );
 
+	// standard light mapping
+	gl_shaderManager.load( gl_lightMappingShader );
+
 	// Material system shaders that are always loaded if material system is available
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.materialSystemAvailable )
+	{
 		gl_shaderManager.load( gl_genericShaderMaterial );
 		gl_shaderManager.load( gl_lightMappingShaderMaterial );
-		gl_shaderManager.load( gl_skyboxShaderMaterial );
-		gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
-		gl_shaderManager.load( gl_heatHazeShaderMaterial );
+
 		gl_shaderManager.load( gl_cullShader );
 		gl_shaderManager.load( gl_clearSurfacesShader );
 		gl_shaderManager.load( gl_processSurfacesShader );
 	}
-
-	// standard light mapping
-	gl_shaderManager.load( gl_lightMappingShader );
 
 	if ( glConfig2.dynamicLight )
 	{
@@ -150,61 +149,99 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	// shadowmap distance compression
-	gl_shaderManager.load( gl_shadowFillShader );
-
 	if ( r_reflectionMapping->integer != 0 )
 	{
 		// bumped cubemap reflection for abitrary polygons ( EMBM )
 		gl_shaderManager.load( gl_reflectionShader );
-		if ( glConfig2.materialSystemAvailable ) {
+
+		if ( glConfig2.materialSystemAvailable )
+		{
 			gl_shaderManager.load( gl_reflectionShaderMaterial );
 		}
 	}
 
-	// skybox drawing for abitrary polygons
-	gl_shaderManager.load( gl_skyboxShader );
+	if ( !r_fastsky.Get() )
+	{
+		// skybox drawing for abitrary polygons
+		gl_shaderManager.load( gl_skyboxShader );
 
-	// Q3A volumetric fog
-	gl_shaderManager.load( gl_fogQuake3Shader );
+		if ( glConfig2.materialSystemAvailable )
+		{
+			gl_shaderManager.load( gl_skyboxShaderMaterial );
+		}
+	}
 
-	// global fog post process effect
-	gl_shaderManager.load( gl_fogGlobalShader );
+	if ( !r_noFog->integer )
+	{
+		// Q3A volumetric fog
+		gl_shaderManager.load( gl_fogQuake3Shader );
 
-	// heatHaze post process effect
-	gl_shaderManager.load( gl_heatHazeShader );
+		if ( glConfig2.materialSystemAvailable )
+		{
+			gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
+		}
 
-	// NOTE: screen shader seems to be only used by bloom post process effect.
+		// global fog post process effect
+		gl_shaderManager.load( gl_fogGlobalShader );
+	}
+
+	if ( r_heatHaze->integer )
+	{
+		// heatHaze post process effect
+		gl_shaderManager.load( gl_heatHazeShader );
+
+		if ( glConfig2.materialSystemAvailable )
+		{
+			gl_shaderManager.load( gl_heatHazeShaderMaterial );
+		}
+	}
+
 	if ( r_bloom->integer != 0 )
 	{
 		// screen post process effect
 		gl_shaderManager.load( gl_screenShader );
-		if ( glConfig2.materialSystemAvailable ) {
+
+		if ( glConfig2.materialSystemAvailable )
+		{
 			gl_shaderManager.load( gl_screenShaderMaterial );
 		}
+
+		// LDR bright pass filter
+		gl_shaderManager.load( gl_contrastShader );
 	}
 
-	// portal process effect
-	gl_shaderManager.load( gl_portalShader );
-
-	// LDR bright pass filter
-	gl_shaderManager.load( gl_contrastShader );
+	if ( !r_noportals->integer || r_liquidMapping->integer )
+	{
+		// portal process effect
+		gl_shaderManager.load( gl_portalShader );
+	}
 
 	// camera post process effect
 	gl_shaderManager.load( gl_cameraEffectsShader );
 
-	// gaussian blur
-	gl_shaderManager.load( gl_blurXShader );
+	if ( r_bloom->integer || glConfig2.shadowMapping )
+	{
+		// gaussian blur
+		gl_shaderManager.load( gl_blurXShader );
 
-	gl_shaderManager.load( gl_blurYShader );
+		gl_shaderManager.load( gl_blurYShader );
+	}
 
-	// debug utils
-	gl_shaderManager.load( gl_debugShadowMapShader );
+	if ( glConfig2.shadowMapping )
+	{
+		// shadowmap distance compression
+		gl_shaderManager.load( gl_shadowFillShader );
+
+		// debug utils
+		gl_shaderManager.load( gl_debugShadowMapShader );
+	}
 
 	if ( r_liquidMapping->integer != 0 )
 	{
 		gl_shaderManager.load( gl_liquidShader );
-		if ( glConfig2.materialSystemAvailable ) {
+
+		if ( glConfig2.materialSystemAvailable )
+		{
 			gl_shaderManager.load( gl_liquidShaderMaterial );
 		}
 	}
