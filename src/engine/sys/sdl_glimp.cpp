@@ -1846,6 +1846,17 @@ static void GLimp_InitExtensions()
 	glConfig2.maxVertexSkinningBones = Math::Clamp( ( glConfig2.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
 	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
 
+	/* On OpenGL Core profile the ARB_fragment_program extension doesn't exist and the related getter functions
+	return 0. We can assume OpenGL 3 Core hardware is featureful enough to not care about those limits. */
+	if ( !glConfig2.glCoreProfile )
+	{
+		if ( LOAD_EXTENSION( ExtFlag_REQUIRED, ARB_fragment_program ) )
+		{
+			glGetProgramivARB( GL_FRAGMENT_PROGRAM_ARB, GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB, &glConfig2.maxAluInstructions );
+			glGetProgramivARB( GL_FRAGMENT_PROGRAM_ARB, GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB, &glConfig2.maxTexIndirections );
+		}
+	}
+
 	// GLSL
 
 	Q_strncpyz( glConfig2.shadingLanguageVersionString, ( char * ) glGetString( GL_SHADING_LANGUAGE_VERSION_ARB ),

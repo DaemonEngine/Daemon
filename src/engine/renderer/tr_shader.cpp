@@ -1418,10 +1418,10 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 	const char *token = COM_ParseExt2( &buffer_p, false );
 
 	// NOTE: Normal map can ship height map in alpha channel.
-	if ( ( type == stageType_t::ST_NORMALMAP && !r_normalMapping->integer && !r_reliefMapping->integer )
-		|| ( type == stageType_t::ST_HEIGHTMAP && !r_reliefMapping->integer )
-		|| ( type == stageType_t::ST_SPECULARMAP && !r_specularMapping->integer )
-		|| ( type == stageType_t::ST_PHYSICALMAP && !r_physicalMapping->integer )
+	if ( ( type == stageType_t::ST_NORMALMAP && !glConfig2.normalMapping && !glConfig2.reliefMapping )
+		|| ( type == stageType_t::ST_HEIGHTMAP && !glConfig2.reliefMapping )
+		|| ( type == stageType_t::ST_SPECULARMAP && !glConfig2.specularMapping )
+		|| ( type == stageType_t::ST_PHYSICALMAP && !glConfig2.physicalMapping )
 		|| ( type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
 		|| ( type == stageType_t::ST_REFLECTIONMAP && !r_reflectionMapping->integer ) )
 	{
@@ -5240,22 +5240,22 @@ static void FinishStages()
 		stage->hasHeightMapInNormalMap = stage->hasHeightMapInNormalMap && hasNormalMap;
 
 		// Available features.
-		stage->enableNormalMapping = r_normalMapping->integer && hasNormalMap;
-		stage->enableDeluxeMapping = r_deluxeMapping->integer && ( hasNormalMap || hasMaterialMap );
+		stage->enableNormalMapping = glConfig2.normalMapping && hasNormalMap;
+		stage->enableDeluxeMapping = glConfig2.deluxeMapping && ( hasNormalMap || hasMaterialMap );
 
-		stage->enableReliefMapping = r_reliefMapping->integer && !shader.disableReliefMapping
+		stage->enableReliefMapping = glConfig2.reliefMapping && !shader.disableReliefMapping
 			&& ( hasHeightMap || stage->hasHeightMapInNormalMap );
 
 		stage->enableGlowMapping = r_glowMapping->integer && hasGlowMap;
 
 		if ( stage->collapseType == collapseType_t::COLLAPSE_PBR )
 		{
-			stage->enablePhysicalMapping = r_physicalMapping->integer && hasMaterialMap;
+			stage->enablePhysicalMapping = glConfig2.physicalMapping && hasMaterialMap;
 			stage->enableSpecularMapping = false;
 		}
 		else
 		{
-			stage->enableSpecularMapping = r_specularMapping->integer && hasMaterialMap;
+			stage->enableSpecularMapping = glConfig2.specularMapping && hasMaterialMap;
 			stage->enablePhysicalMapping = false;
 		}
 
@@ -5284,7 +5284,7 @@ static void FinishStages()
 		{
 			// If specular mapping is enabled always use the specular mapping
 			// shader to avoid costly GLSL shader switching.
-			if ( r_specularMapping->integer )
+			if ( glConfig2.specularMapping )
 			{
 				stage->enableSpecularMapping = true;
 				stage->bundle[ TB_MATERIALMAP ].image[ 0 ] = tr.blackImage;
