@@ -3258,7 +3258,7 @@ void RB_RenderSSAO()
 {
 	GLimp_LogComment( "--- RB_RenderSSAO ---\n" );
 
-	if ( !GLEW_ARB_texture_gather ) {
+	if ( !glConfig2.textureGatherAvailable ) {
 		return;
 	}
 
