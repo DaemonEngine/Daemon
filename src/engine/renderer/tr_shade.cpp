@@ -38,25 +38,99 @@ static void EnableAvailableFeatures()
 	glConfig2.dynamicLight = r_dynamicLight.Get();
 	glConfig2.staticLight = r_staticLight.Get();
 
-	if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED )
-		&& !glConfig2.textureFloatAvailable )
+	if ( glConfig2.dynamicLight || glConfig2.staticLight )
 	{
-		if ( glConfig2.dynamicLight || glConfig2.staticLight )
+		if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
 		{
-			Log::Warn("Tiled dynamic light renderer not used because GL_ARB_texture_float is not available.");
-		}
+			if ( !glConfig2.textureFloatAvailable )
+			{
+				Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_texture_float is not available.");
+				glConfig2.dynamicLight = false;
+				glConfig2.staticLight = false;
+			}
 
-		glConfig2.dynamicLight = false;
-		glConfig2.staticLight = false;
+			// See below about ALU instructions on ATI R300 and Intel GMA 3.
+			if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
+			{
+				Log::Warn( "Tiled dynamic light rendered disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", glConfig2.maxAluInstructions );
+				glConfig2.dynamicLight = false;
+				glConfig2.staticLight = false;
+			}
+		}
 	}
 
 	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
-
 	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
 
-	if ( !glConfig2.textureFloatAvailable )
+	if ( glConfig2.shadowMapping )
 	{
-		glConfig2.shadowMapping = false;
+		if ( !glConfig2.textureFloatAvailable )
+		{
+			Log::Warn( "Shadow mapping disabled because ARB_texture_float is not available" );
+			glConfig2.shadowMapping = false;
+		}
+	}
+
+	glConfig2.deluxeMapping = r_deluxeMapping->integer;
+	glConfig2.normalMapping = r_normalMapping->integer;
+	glConfig2.specularMapping = r_specularMapping->integer;
+	glConfig2.physicalMapping = r_physicalMapping->integer;
+	glConfig2.reliefMapping = r_reliefMapping->integer;
+
+	/* ATI R300 and Intel GMA 3 only have 64 ALU instructions, which is not enough for some shader
+	variants. For example the lightMapping shader permutation with macros USE_GRID_LIGHTING and
+	USE_GRID_DELUXE_MAPPING from the medium graphics preset requires 67 ALU.
+	For comparison, ATI R400 and R500 have 512 of them. */
+	if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
+	{
+		static const std::pair<bool*, std::string> aluFeatures[] = {
+			/* Normal mapping, specular mapping and physical mapping does nothing when deluxe mapping
+			is disabled. Hardware that can't do deluxe mapping or normal mapping is not powerful
+			enoough to do relief mapping. */
+			{ &glConfig2.deluxeMapping, "Deluxe mapping" },
+			{ &glConfig2.normalMapping, "Normal mapping" },
+			{ &glConfig2.specularMapping, "Specular mapping" },
+			{ &glConfig2.physicalMapping, "Physical mapping" },
+			{ &glConfig2.reliefMapping, "Relief mapping" },
+		};
+
+		for ( auto& f : aluFeatures )
+		{
+			if ( *f.first )
+			{
+				Log::Warn( "%s disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", f.second, glConfig2.maxAluInstructions );
+				*f.first = false;
+			}
+		}
+	}
+
+	glConfig2.bloom = r_bloom->integer;
+
+	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
+	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
+	glConfig2.motionBlur = true;
+
+	/* Intel GMA 3 only has 4 tex indirections, which is not enough for some shaders.
+	For example blurX requires 6, contrast requires 5, motionblur requires 5…
+	For comparison, ATI R300, R400 and R500 have 16 of them. We don't need a finer check as early R300
+	hardware with 16 indirections would better not run that code for performance, so disabling the shader
+	by mistake on an hypothetical lower-end hardware only supporting 8 indirections can't do harm. */
+	if ( !glConfig2.glCoreProfile && glConfig2.maxTexIndirections < 16 )
+	{
+		static const std::pair<bool*, std::string> indirectFeatures[] = {
+			{ &glConfig2.shadowMapping, "Shadow mapping" },
+			{ &glConfig2.bloom, "Bloom" },
+			{ &glConfig2.motionBlur, "Motion blur" },
+		};
+
+		for ( auto& f : indirectFeatures )
+		{
+			if ( *f.first )
+			{
+				Log::Warn( "%s disabled because GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB is too small: %d", f.second, glConfig2.maxTexIndirections );
+				*f.first = false;
+			}
+		}
 	}
 }
 
@@ -196,7 +270,7 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	if ( r_bloom->integer != 0 )
+	if ( glConfig2.bloom )
 	{
 		// screen post process effect
 		gl_shaderManager.load( gl_screenShader );
@@ -219,7 +293,7 @@ static void GLSL_InitGPUShadersOrError()
 	// camera post process effect
 	gl_shaderManager.load( gl_cameraEffectsShader );
 
-	if ( r_bloom->integer || glConfig2.shadowMapping )
+	if ( glConfig2.bloom || glConfig2.shadowMapping )
 	{
 		// gaussian blur
 		gl_shaderManager.load( gl_blurXShader );
@@ -246,9 +320,10 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	/* NOTE: motionblur is enabled by cg_motionblur which is a client cvar
-	so we have to build it in all cases. */
-	gl_shaderManager.load( gl_motionblurShader );
+	if ( glConfig2.motionBlur )
+	{
+		gl_shaderManager.load( gl_motionblurShader );
+	}
 
 	if ( r_ssao->integer )
 	{
