@@ -4892,7 +4892,7 @@ static void RB_RenderView( bool depthPass )
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
 	}
 
-	if ( r_ssao->integer && GLEW_ARB_texture_gather ) {
+	if ( r_ssao->integer ) {
 		RB_RenderSSAO();
 	}
 
