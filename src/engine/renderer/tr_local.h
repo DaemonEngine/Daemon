@@ -851,6 +851,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	  AGEN_VERTEX,
 	  AGEN_ONE_MINUS_VERTEX,
 	  AGEN_WAVEFORM,
+	  AGEN_PORTAL,
 	  AGEN_CONST,
 	  AGEN_CUSTOM
 	};
@@ -1278,6 +1279,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		float          portalRange; // distance to fog out at
 		bool       isPortal;
+		bool portalOutOfRange;
 
 		cullType_t     cullType; // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 		bool       polygonOffset; // set for decals and other items that must be offset

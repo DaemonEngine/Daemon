@@ -3083,9 +3083,8 @@ void RB_RenderBloom()
 
 	GLimp_LogComment( "--- RB_RenderBloom ---\n" );
 
-	if ( ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOBLOOM ) ) ||
-	     !r_bloom->integer ||
-	     backEnd.viewParms.portalLevel > 0 )
+	if ( ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOBLOOM ) )
+		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0 )
 	{
 		return;
 	}
@@ -3212,8 +3211,8 @@ void RB_RenderMotionBlur()
 
 	GLimp_LogComment( "--- RB_RenderMotionBlur ---\n" );
 
-	if ( ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ||
-	     backEnd.viewParms.portalLevel > 0 )
+	if ( !glConfig2.motionBlur || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
+		|| backEnd.viewParms.portalLevel > 0 )
 	{
 		return;
 	}
@@ -3258,7 +3257,7 @@ void RB_RenderSSAO()
 {
 	GLimp_LogComment( "--- RB_RenderSSAO ---\n" );
 
-	if ( !GLEW_ARB_texture_gather ) {
+	if ( !glConfig2.textureGatherAvailable ) {
 		return;
 	}
 

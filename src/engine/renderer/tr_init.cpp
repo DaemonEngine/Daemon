@@ -784,14 +784,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	{
 		GLimp_LogComment( "--- GL_SetDefaultState ---\n" );
 
-		GL_ClearDepth( 1.0f );
-		GL_ClearStencil( 0 );
-
-		GL_FrontFace( GL_CCW );
 		glCullFace( GL_FRONT );
-
-		glState.faceCulling = CT_TWO_SIDED;
-		glDisable( GL_CULL_FACE );
+		GL_Cull( CT_TWO_SIDED );
 
 		GL_CheckErrors();
 
@@ -852,11 +846,12 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		glEnable( GL_SCISSOR_TEST );
 		glDisable( GL_BLEND );
 
-		glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-		glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
-		glClearDepth( 1.0 );
+		GL_ColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+		GL_ClearDepth( 1.0 );
+		GL_ClearStencil( 0 );
 
-		glDrawBuffer( GL_BACK );
+		GL_DrawBuffer( GL_BACK );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
 		GL_CheckErrors();
@@ -894,6 +889,12 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Log::Notice("GL_MAX_VERTEX_UNIFORM_COMPONENTS %d", glConfig2.maxVertexUniforms );
 		Log::Notice("GL_MAX_VERTEX_ATTRIBS %d", glConfig2.maxVertexAttribs );
+
+		if ( !glConfig2.glCoreProfile )
+		{
+			Log::Notice( "GL_MAX_PROGRAM_NATIVE_ALU_INSTRUCTIONS_ARB: %d", glConfig2.maxAluInstructions );
+			Log::Notice( "GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB: %d", glConfig2.maxTexIndirections );
+		}
 
 		if ( glConfig2.occlusionQueryAvailable )
 		{
@@ -1076,6 +1077,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_mapOverBrightBits );
 		Cvar::Latch( r_forceLegacyOverBrightClamping );
 		Cvar::Latch( r_lightMode );
+		Cvar::Latch( r_fastsky );
 		r_lightStyles = Cvar_Get( "r_lightStyles", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_exportTextures = Cvar_Get( "r_exportTextures", "0", 0 );
 		r_heatHaze = Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );

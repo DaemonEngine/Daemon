@@ -38,25 +38,99 @@ static void EnableAvailableFeatures()
 	glConfig2.dynamicLight = r_dynamicLight.Get();
 	glConfig2.staticLight = r_staticLight.Get();
 
-	if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED )
-		&& !glConfig2.textureFloatAvailable )
+	if ( glConfig2.dynamicLight || glConfig2.staticLight )
 	{
-		if ( glConfig2.dynamicLight || glConfig2.staticLight )
+		if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
 		{
-			Log::Warn("Tiled dynamic light renderer not used because GL_ARB_texture_float is not available.");
-		}
+			if ( !glConfig2.textureFloatAvailable )
+			{
+				Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_texture_float is not available.");
+				glConfig2.dynamicLight = false;
+				glConfig2.staticLight = false;
+			}
 
-		glConfig2.dynamicLight = false;
-		glConfig2.staticLight = false;
+			// See below about ALU instructions on ATI R300 and Intel GMA 3.
+			if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
+			{
+				Log::Warn( "Tiled dynamic light rendered disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", glConfig2.maxAluInstructions );
+				glConfig2.dynamicLight = false;
+				glConfig2.staticLight = false;
+			}
+		}
 	}
 
 	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
-
 	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
 
-	if ( !glConfig2.textureFloatAvailable )
+	if ( glConfig2.shadowMapping )
 	{
-		glConfig2.shadowMapping = false;
+		if ( !glConfig2.textureFloatAvailable )
+		{
+			Log::Warn( "Shadow mapping disabled because ARB_texture_float is not available" );
+			glConfig2.shadowMapping = false;
+		}
+	}
+
+	glConfig2.deluxeMapping = r_deluxeMapping->integer;
+	glConfig2.normalMapping = r_normalMapping->integer;
+	glConfig2.specularMapping = r_specularMapping->integer;
+	glConfig2.physicalMapping = r_physicalMapping->integer;
+	glConfig2.reliefMapping = r_reliefMapping->integer;
+
+	/* ATI R300 and Intel GMA 3 only have 64 ALU instructions, which is not enough for some shader
+	variants. For example the lightMapping shader permutation with macros USE_GRID_LIGHTING and
+	USE_GRID_DELUXE_MAPPING from the medium graphics preset requires 67 ALU.
+	For comparison, ATI R400 and R500 have 512 of them. */
+	if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
+	{
+		static const std::pair<bool*, std::string> aluFeatures[] = {
+			/* Normal mapping, specular mapping and physical mapping does nothing when deluxe mapping
+			is disabled. Hardware that can't do deluxe mapping or normal mapping is not powerful
+			enoough to do relief mapping. */
+			{ &glConfig2.deluxeMapping, "Deluxe mapping" },
+			{ &glConfig2.normalMapping, "Normal mapping" },
+			{ &glConfig2.specularMapping, "Specular mapping" },
+			{ &glConfig2.physicalMapping, "Physical mapping" },
+			{ &glConfig2.reliefMapping, "Relief mapping" },
+		};
+
+		for ( auto& f : aluFeatures )
+		{
+			if ( *f.first )
+			{
+				Log::Warn( "%s disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", f.second, glConfig2.maxAluInstructions );
+				*f.first = false;
+			}
+		}
+	}
+
+	glConfig2.bloom = r_bloom->integer;
+
+	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
+	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
+	glConfig2.motionBlur = true;
+
+	/* Intel GMA 3 only has 4 tex indirections, which is not enough for some shaders.
+	For example blurX requires 6, contrast requires 5, motionblur requires 5…
+	For comparison, ATI R300, R400 and R500 have 16 of them. We don't need a finer check as early R300
+	hardware with 16 indirections would better not run that code for performance, so disabling the shader
+	by mistake on an hypothetical lower-end hardware only supporting 8 indirections can't do harm. */
+	if ( !glConfig2.glCoreProfile && glConfig2.maxTexIndirections < 16 )
+	{
+		static const std::pair<bool*, std::string> indirectFeatures[] = {
+			{ &glConfig2.shadowMapping, "Shadow mapping" },
+			{ &glConfig2.bloom, "Bloom" },
+			{ &glConfig2.motionBlur, "Motion blur" },
+		};
+
+		for ( auto& f : indirectFeatures )
+		{
+			if ( *f.first )
+			{
+				Log::Warn( "%s disabled because GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB is too small: %d", f.second, glConfig2.maxTexIndirections );
+				*f.first = false;
+			}
+		}
 	}
 }
 
@@ -96,20 +170,19 @@ static void GLSL_InitGPUShadersOrError()
 	gl_shaderManager.load( gl_generic2DShader );
 	gl_shaderManager.load( gl_genericShader );
 
+	// standard light mapping
+	gl_shaderManager.load( gl_lightMappingShader );
+
 	// Material system shaders that are always loaded if material system is available
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.materialSystemAvailable )
+	{
 		gl_shaderManager.load( gl_genericShaderMaterial );
 		gl_shaderManager.load( gl_lightMappingShaderMaterial );
-		gl_shaderManager.load( gl_skyboxShaderMaterial );
-		gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
-		gl_shaderManager.load( gl_heatHazeShaderMaterial );
+
 		gl_shaderManager.load( gl_cullShader );
 		gl_shaderManager.load( gl_clearSurfacesShader );
 		gl_shaderManager.load( gl_processSurfacesShader );
 	}
-
-	// standard light mapping
-	gl_shaderManager.load( gl_lightMappingShader );
 
 	if ( glConfig2.dynamicLight )
 	{
@@ -150,79 +223,118 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	// shadowmap distance compression
-	gl_shaderManager.load( gl_shadowFillShader );
-
 	if ( r_reflectionMapping->integer != 0 )
 	{
 		// bumped cubemap reflection for abitrary polygons ( EMBM )
 		gl_shaderManager.load( gl_reflectionShader );
-		if ( glConfig2.materialSystemAvailable ) {
+
+		if ( glConfig2.materialSystemAvailable )
+		{
 			gl_shaderManager.load( gl_reflectionShaderMaterial );
 		}
 	}
 
-	// skybox drawing for abitrary polygons
-	gl_shaderManager.load( gl_skyboxShader );
-
-	// Q3A volumetric fog
-	gl_shaderManager.load( gl_fogQuake3Shader );
-
-	// global fog post process effect
-	gl_shaderManager.load( gl_fogGlobalShader );
-
-	// heatHaze post process effect
-	gl_shaderManager.load( gl_heatHazeShader );
-
-	// NOTE: screen shader seems to be only used by bloom post process effect.
-	if ( r_bloom->integer != 0 )
+	if ( !r_fastsky.Get() )
 	{
-		// screen post process effect
-		gl_shaderManager.load( gl_screenShader );
-		if ( glConfig2.materialSystemAvailable ) {
-			gl_shaderManager.load( gl_screenShaderMaterial );
+		// skybox drawing for abitrary polygons
+		gl_shaderManager.load( gl_skyboxShader );
+
+		if ( glConfig2.materialSystemAvailable )
+		{
+			gl_shaderManager.load( gl_skyboxShaderMaterial );
 		}
 	}
 
-	// portal process effect
-	gl_shaderManager.load( gl_portalShader );
+	if ( !r_noFog->integer )
+	{
+		// Q3A volumetric fog
+		gl_shaderManager.load( gl_fogQuake3Shader );
 
-	// LDR bright pass filter
-	gl_shaderManager.load( gl_contrastShader );
+		if ( glConfig2.materialSystemAvailable )
+		{
+			gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
+		}
+
+		// global fog post process effect
+		gl_shaderManager.load( gl_fogGlobalShader );
+	}
+
+	if ( r_heatHaze->integer )
+	{
+		// heatHaze post process effect
+		gl_shaderManager.load( gl_heatHazeShader );
+
+		if ( glConfig2.materialSystemAvailable )
+		{
+			gl_shaderManager.load( gl_heatHazeShaderMaterial );
+		}
+	}
+
+	if ( glConfig2.bloom )
+	{
+		// screen post process effect
+		gl_shaderManager.load( gl_screenShader );
+
+		if ( glConfig2.materialSystemAvailable )
+		{
+			gl_shaderManager.load( gl_screenShaderMaterial );
+		}
+
+		// LDR bright pass filter
+		gl_shaderManager.load( gl_contrastShader );
+	}
+
+	if ( !r_noportals->integer || r_liquidMapping->integer )
+	{
+		// portal process effect
+		gl_shaderManager.load( gl_portalShader );
+	}
 
 	// camera post process effect
 	gl_shaderManager.load( gl_cameraEffectsShader );
 
-	// gaussian blur
-	gl_shaderManager.load( gl_blurXShader );
+	if ( glConfig2.bloom || glConfig2.shadowMapping )
+	{
+		// gaussian blur
+		gl_shaderManager.load( gl_blurXShader );
 
-	gl_shaderManager.load( gl_blurYShader );
+		gl_shaderManager.load( gl_blurYShader );
+	}
 
-	// debug utils
-	gl_shaderManager.load( gl_debugShadowMapShader );
+	if ( glConfig2.shadowMapping )
+	{
+		// shadowmap distance compression
+		gl_shaderManager.load( gl_shadowFillShader );
+
+		// debug utils
+		gl_shaderManager.load( gl_debugShadowMapShader );
+	}
 
 	if ( r_liquidMapping->integer != 0 )
 	{
 		gl_shaderManager.load( gl_liquidShader );
-		if ( glConfig2.materialSystemAvailable ) {
+
+		if ( glConfig2.materialSystemAvailable )
+		{
 			gl_shaderManager.load( gl_liquidShaderMaterial );
 		}
 	}
 
-	/* NOTE: motionblur is enabled by cg_motionblur which is a client cvar
-	so we have to build it in all cases. */
-	gl_shaderManager.load( gl_motionblurShader );
-
-	if (GLEW_ARB_texture_gather)
+	if ( glConfig2.motionBlur )
 	{
-		if (r_ssao->integer)
-		{
-			gl_shaderManager.load(gl_ssaoShader);
-		}
+		gl_shaderManager.load( gl_motionblurShader );
 	}
-	else
+
+	if ( r_ssao->integer )
 	{
-		Log::Warn("SSAO not used because GL_ARB_texture_gather is not available.");
+		if ( glConfig2.textureGatherAvailable )
+		{
+			gl_shaderManager.load( gl_ssaoShader );
+		}
+		else
+		{
+			Log::Warn("SSAO not used because GL_ARB_texture_gather is not available.");
+		}
 	}
 
 	if ( r_FXAA->integer != 0 )
@@ -2128,6 +2240,8 @@ void Render_screen( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
+/* This doesn't render the portal itself but the texture
+blended to it to fade it with distance. */
 void Render_portal( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_portal ---\n" );
@@ -2138,11 +2252,11 @@ void Render_portal( shaderStage_t *pStage )
 	gl_portalShader->BindProgram( pStage->deformIndex );
 
 	{
-		GL_VertexAttribsState( ATTR_POSITION );
+		GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD );
 		glVertexAttrib4fv( ATTR_INDEX_COLOR, tess.svars.color.ToArray() );
 	}
 
-	gl_portalShader->SetUniform_PortalRange( tess.surfaceShader->portalRange );
+	gl_portalShader->SetUniform_InversePortalRange( 1 / tess.surfaceShader->portalRange );
 
 	gl_portalShader->SetUniform_ModelViewMatrix( glState.modelViewMatrix[ glState.stackIndex ] );
 	gl_portalShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
@@ -2632,6 +2746,7 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 	switch ( pStage->alphaGen )
 	{
 		default:
+		case alphaGen_t::AGEN_PORTAL:
 		case alphaGen_t::AGEN_IDENTITY:
 		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
 			{
@@ -2849,7 +2964,7 @@ void Tess_StageIteratorPortal() {
 			continue;
 		}
 
-		Render_portal( pStage );
+		Render_generic3D( pStage );
 	}
 }
 

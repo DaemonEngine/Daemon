@@ -3373,16 +3373,16 @@ public:
 	}
 };
 
-class u_PortalRange :
+class u_InversePortalRange :
 	GLUniform1f
 {
 public:
-	u_PortalRange( GLShader *shader ) :
-		GLUniform1f( shader, "u_PortalRange" )
+	u_InversePortalRange( GLShader *shader ) :
+		GLUniform1f( shader, "u_InversePortalRange" )
 	{
 	}
 
-	void SetUniform_PortalRange( float value )
+	void SetUniform_InversePortalRange( float value )
 	{
 		this->SetValue( value );
 	}
@@ -4370,7 +4370,7 @@ class GLShader_portal :
 	public u_CurrentMap,
 	public u_ModelViewMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_PortalRange
+	public u_InversePortalRange
 {
 public:
 	GLShader_portal( GLShaderManager *manager );

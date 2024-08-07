@@ -920,34 +920,34 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	{
 		if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 )
 		{
-			if ( r_normalMapping->integer == 0 ) return true;
+			if ( !glConfig2.normalMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
 		{
-			if ( r_deluxeMapping->integer == 0 ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_GRID_DELUXE_MAPPING" ) == 0 )
 		{
-			if ( r_deluxeMapping->integer == 0 ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 )
 		{
-			if ( r_physicalMapping->integer == 0 ) return true;
+			if ( !glConfig2.physicalMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 )
 		{
 			/* FIXME: add to the following test: && r_physicalMapping->integer == 0
 			when reflective specular is implemented for physical mapping too
 			see https://github.com/DaemonEngine/Daemon/issues/355 */
-			if ( r_specularMapping->integer == 0 ) return true;
+			if ( !glConfig2.specularMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_RELIEF_MAPPING" ) == 0 )
 		{
-			if ( r_reliefMapping->integer == 0 ) return true;
+			if ( !glConfig2.reliefMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 )
 		{
-			if ( r_reliefMapping->integer == 0 && r_normalMapping->integer == 0 ) return true;
+			if ( !glConfig2.reliefMapping && !glConfig2.normalMapping ) return true;
 		}
 	}
 
@@ -2833,7 +2833,7 @@ GLShader_portal::GLShader_portal( GLShaderManager *manager ) :
 	u_CurrentMap( this ),
 	u_ModelViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_PortalRange( this )
+	u_InversePortalRange( this )
 {
 }
 

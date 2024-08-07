@@ -78,6 +78,8 @@ struct glconfig2_t
 	int      maxVertexAttribs;
 	bool vboVertexSkinningAvailable;
 	int      maxVertexSkinningBones;
+	int maxAluInstructions;
+	int maxTexIndirections;
 
 	bool drawBuffersAvailable;
 	bool textureHalfFloatAvailable;
@@ -117,6 +119,13 @@ struct glconfig2_t
 	bool staticLight;
 	bool shadowMapping;
 	shadowingMode_t shadowingMode;
+	bool deluxeMapping;
+	bool normalMapping;
+	bool specularMapping;
+	bool physicalMapping;
+	bool reliefMapping;
+	bool bloom;
+	bool motionBlur;
 };
 
 //
