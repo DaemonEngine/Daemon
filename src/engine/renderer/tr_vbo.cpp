@@ -23,21 +23,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "Material.h"
 
-// "templates" for VBO vertex data layouts
-
-// interleaved position and qtangents per frame/vertex in part 1
-struct fmtVertexAnim1 {
-	i16vec4_t position;
-	i16vec4_t qtangents;
-};
-const GLsizei sizeVertexAnim1 = sizeof( struct fmtVertexAnim1 );
-// interleaved texcoords and colour in part 2
-struct fmtVertexAnim2 {
-	f16vec2_t texcoord;
-	Color::Color32Bit colour;
-};
-const GLsizei sizeVertexAnim2 = sizeof( struct fmtVertexAnim2 );
-
 // interleaved data: position, colour, qtangent, texcoord
 // -> struct shaderVertex_t in tr_local.h
 const GLsizei sizeShaderVertex = sizeof( shaderVertex_t );
@@ -51,77 +36,12 @@ static uint32_t R_DeriveAttrBits( const vboData_t &data )
 		stateBits |= ATTR_POSITION;
 	}
 
-	if ( data.qtangent )
-	{
-		stateBits |= ATTR_QTANGENT;
-	}
-
-	if ( data.color )
-	{
-		stateBits |= ATTR_COLOR;
-	}
-
-	if ( data.st )
+	if ( data.stf )
 	{
 		stateBits |= ATTR_TEXCOORD;
 	}
 
-	if ( data.numFrames )
-	{
-		if ( data.xyz )
-		{
-			stateBits |= ATTR_POSITION2;
-		}
-
-		if ( data.qtangent )
-		{
-			stateBits |= ATTR_QTANGENT2;
-		}
-	}
-
 	return stateBits;
-}
-
-static void R_SetAttributeLayoutsVertexAnimation( VBO_t *vbo )
-{
-	// part 1 is repeated for every frame
-	GLsizei sizePart1 = sizeVertexAnim1 * vbo->vertexesNum * vbo->framesNum;
-	GLsizei sizePart2 = sizeVertexAnim2 * vbo->vertexesNum;
-
-	vbo->attribs[ ATTR_INDEX_POSITION ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_SHORT;
-	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_TRUE;
-	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = offsetof( struct fmtVertexAnim1, position );
-	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeVertexAnim1;
-	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = sizeVertexAnim1 * vbo->vertexesNum;
-
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].componentType = GL_SHORT;
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].normalize     = GL_TRUE;
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].ofs          = offsetof( struct fmtVertexAnim1, qtangents );
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].stride       = sizeVertexAnim1;
-	vbo->attribs[ ATTR_INDEX_QTANGENT ].frameOffset  = sizeVertexAnim1 * vbo->vertexesNum;
-
-	// these use the same layout
-	vbo->attribs[ ATTR_INDEX_POSITION2 ] = vbo->attribs[ ATTR_INDEX_POSITION ];
-	vbo->attribs[ ATTR_INDEX_QTANGENT2 ] = vbo->attribs[ ATTR_INDEX_QTANGENT ];
-
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].numComponents = 2;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs          = sizePart1 + offsetof( struct fmtVertexAnim2, texcoord );
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride       = sizeVertexAnim2;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset  = 0;
-
-	vbo->attribs[ ATTR_INDEX_COLOR ].numComponents   = 4;
-	vbo->attribs[ ATTR_INDEX_COLOR ].componentType   = GL_UNSIGNED_BYTE;
-	vbo->attribs[ ATTR_INDEX_COLOR ].normalize       = GL_TRUE;
-	vbo->attribs[ ATTR_INDEX_COLOR ].ofs             = sizePart1 + offsetof( struct fmtVertexAnim2, colour );
-	vbo->attribs[ ATTR_INDEX_COLOR ].stride          = sizeVertexAnim2;
-	vbo->attribs[ ATTR_INDEX_COLOR ].frameOffset     = 0;
-
-	// total size
-	vbo->vertexesSize = sizePart1 + sizePart2;
 }
 
 static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
@@ -180,11 +100,7 @@ static void R_SetAttributeLayoutsXYST( VBO_t *vbo )
 
 static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 {
-	if ( vbo->layout == vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION )
-	{
-		R_SetAttributeLayoutsVertexAnimation( vbo );
-	}
-	else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_STATIC )
+	if ( vbo->layout == vboLayout_t::VBO_LAYOUT_STATIC )
 	{
 		R_SetAttributeLayoutsStatic( vbo );
 	}
@@ -222,29 +138,6 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 {
 	uint32_t v;
 
-	if ( vbo->layout == vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION )
-	{
-		struct fmtVertexAnim1 *ptr = ( struct fmtVertexAnim1 * )outData;
-
-		for ( v = 0; v < vbo->framesNum * vbo->vertexesNum; v++ )
-		{
-
-			if ( ( vbo->attribBits & ATTR_POSITION ) )
-			{
-				vec4_t tmp;
-				VectorScale( inData.xyz[ v ], 1.0f / 512.0f, tmp);
-				tmp[ 3 ] = 1.0f; // unused
-
-				floatToSnorm16( tmp, ptr[ v ].position );
-			}
-
-			if ( ( vbo->attribBits & ATTR_QTANGENT ) )
-			{
-				Vector4Copy( inData.qtangent[ v ], ptr[ v ].qtangents );
-			}
-		}
-	}
-
 	for ( v = 0; v < vbo->vertexesNum; v++ )
 	{
 		if ( vbo->layout == vboLayout_t::VBO_LAYOUT_XYST ) {
@@ -257,18 +150,6 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
 			{
 				Vector2Copy( inData.stf[ v ], ptr[ 2 * v + 1 ] );
-			}
-		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION ) {
-			struct fmtVertexAnim2 *ptr = ( struct fmtVertexAnim2 * )( outData + ( vbo->framesNum * vbo->vertexesNum ) * sizeVertexAnim1 );
-
-			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
-			{
-				Vector2Copy( inData.st[ v ], ptr[ v ].texcoord );
-			}
-
-			if ( ( vbo->attribBits & ATTR_COLOR ) )
-			{
-				ptr[ v ].colour = Color::Adapt( inData.color[ v ] );
 			}
 		} else {
 			Sys::Drop( "R_CopyVertexData: unsupported VBO layout" );
@@ -496,7 +377,7 @@ static void CopyVertexAttribute(
 VBO_t *R_CreateStaticVBO(
 	Str::StringRef name,
 	const vertexAttributeSpec_t *attrBegin, const vertexAttributeSpec_t *attrEnd,
-	uint32_t numVerts )
+	uint32_t numVerts, uint32_t numFrames )
 {
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
@@ -507,48 +388,58 @@ VBO_t *R_CreateStaticVBO(
 
 	Q_strncpyz( vbo->name, name.c_str(), sizeof(vbo->name));
 	vbo->vertexesNum = numVerts;
+	vbo->framesNum = numFrames;
 	vbo->usage = GL_STATIC_DRAW;
 
 	glGenBuffers( 1, &vbo->vertexesVBO );
 	R_BindVBO( vbo );
 
-	uint32_t ofs = 0;
+	uint32_t ofsFrameless = 0;
+	uint32_t ofsFrameful = 0;
 
 	for ( const vertexAttributeSpec_t *spec = attrBegin; spec != attrEnd; ++spec )
 	{
 		vboAttributeLayout_t &attrib = vbo->attribs[ spec->attrIndex ];
 		ASSERT_EQ( attrib.numComponents, 0 );
 		ASSERT_NQ( spec->numComponents, 0U );
+		vbo->attribBits |= 1 << spec->attrIndex;
 		attrib.componentType = spec->componentStorageType;
 		if ( attrib.componentType == GL_HALF_FLOAT && !glConfig2.halfFloatVertexAvailable )
 		{
 			attrib.componentType = GL_FLOAT;
 		}
 		attrib.numComponents = spec->numComponents;
-		attrib.ofs = ofs;
 		attrib.normalize = spec->attrOptions & ATTR_OPTION_NORMALIZE ? GL_TRUE : GL_FALSE;
 
+		uint32_t &ofs = spec->attrOptions & ATTR_OPTION_HAS_FRAMES ? ofsFrameful : ofsFrameless;
+		attrib.ofs = ofs;
 		ofs += attrib.numComponents * ComponentSize( attrib.componentType );
-		ofs = ( ofs + 3 ) & ~3;
+		ofs = ( ofs + 3 ) & ~3; // 4 is minimum alignment for any vertex attribute
 	}
 
-	for ( int i = 0; i < ATTR_INDEX_MAX; i++ )
-	{
-		if ( vbo->attribs[ i ].numComponents )
-		{
-			vbo->attribs[ i ].stride = ofs;
-			vbo->attribBits |= 1 << i;
-		}
-	}
-
-	vbo->vertexesSize = numVerts * ofs;
+	uint32_t framelessSize = ( ( numVerts * ofsFrameless ) + 31 ) & ~31;
+	vbo->vertexesSize = framelessSize + numFrames * numVerts * ofsFrameful;
 
 	// TODO: does it really need to be interleaved?
 	byte *interleavedData = (byte *)ri.Hunk_AllocateTempMemory( vbo->vertexesSize );
 
+	// When there is data with frames (only used for MD3), there are effectively two arrays:
+	// first one of length numVerts, then one of length numVerts * numFrames.
 	for ( const vertexAttributeSpec_t *spec = attrBegin; spec != attrEnd; ++spec )
 	{
-		CopyVertexAttribute( vbo->attribs[ spec->attrIndex ], *spec, numVerts, interleavedData );
+		vboAttributeLayout_t &attrib = vbo->attribs[ spec->attrIndex ];
+		if ( spec->attrOptions & ATTR_OPTION_HAS_FRAMES )
+		{
+			attrib.stride = ofsFrameful;
+			attrib.frameOffset = numVerts * ofsFrameful;
+			attrib.ofs += framelessSize;
+			CopyVertexAttribute( attrib, *spec, numVerts * numFrames, interleavedData );
+		}
+		else
+		{
+			attrib.stride = ofsFrameless;
+			CopyVertexAttribute( attrib, *spec, numVerts, interleavedData );
+		}
 	}
 
 #ifdef GL_ARB_buffer_storage
@@ -587,7 +478,6 @@ VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
 
 	vbo->layout = layout;
 	vbo->vertexesNum = data.numVerts;
-	vbo->framesNum = data.numFrames;
 	vbo->attribBits = R_DeriveAttrBits( data );
 	vbo->usage = GL_STATIC_DRAW;
 

@@ -254,27 +254,12 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 		for ( i = 0, surf = mdvModel->surfaces; i < mdvModel->numSurfaces; i++, surf++ )
 		{
 			//allocate temp memory for vertex data
-			vboData_t data{};
-			data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.xyz ) * mdvModel->numFrames * surf->numVerts );
-			data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * mdvModel->numFrames * surf->numVerts );
-			data.numFrames = mdvModel->numFrames;
-			data.st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * surf->numVerts );
-			data.numVerts = surf->numVerts;
+			vec3_t *scaledPosition = (vec3_t *)ri.Hunk_AllocateTempMemory( sizeof( vec3_t ) * mdvModel->numFrames * surf->numVerts );
+			i16vec4_t *qtangents = (i16vec4_t *)ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * mdvModel->numFrames * surf->numVerts );
 
-			// feed vertex XYZ
-			for ( f = 0; f < mdvModel->numFrames; f++ )
+			for ( int r = 0; r < surf->numVerts; r++ )
 			{
-				for ( j = 0; j < surf->numVerts; j++ )
-				{
-					VectorCopy( surf->verts[ f * surf->numVerts + j ].xyz, data.xyz[ f * surf->numVerts + j ] );
-				}
-			}
-
-			// feed vertex texcoords
-			for ( j = 0; j < surf->numVerts; j++ )
-			{
-				data.st[ j ][ 0 ] = floatToHalf( surf->st[ j ].st[ 0 ] );
-				data.st[ j ][ 1 ] = floatToHalf( surf->st[ j ].st[ 1 ] );
+				VectorScale( surf->verts[ r ].xyz, 1.0f / 512.0f, scaledPosition[ r ] );
 			}
 
 			// calc and feed tangent spaces
@@ -323,9 +308,10 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 					{
 						VectorNormalize( tangents[ j ] );
 						VectorNormalize( binormals[ j ] );
-						R_TBNtoQtangents( tangents[ j ], binormals[ j ],
-								  surf->normals[ f * surf->numVerts + j ].normal,
-								  data.qtangent[ f * surf->numVerts + j ] );
+						R_TBNtoQtangents(
+							tangents[ j ], binormals[ j ],
+							surf->normals[ f * surf->numVerts + j ].normal,
+							qtangents[ f * surf->numVerts + j ] );
 					}
 				}
 
@@ -344,16 +330,28 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			vboSurf->numIndexes = surf->numTriangles * 3;
 			vboSurf->numVerts = surf->numVerts;
 
-			std::string name = Str::Format( "%s '%s'", modName , surf->name );
-			vboSurf->vbo = R_CreateStaticVBO( ( "MD3 surface VBO " + name ).c_str(), data, vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION );
+			// MD3 does not have color, but shaders always require the color vertex attribute, so we have
+			// to provide this 0 color.
+			const byte dummyColor[ 4 ]{};
 
-			// MD3 does not have color, but shaders always request it and the "vertex animation"
-			// vertex layout includes a color field, which is zeroed by default.
-			vboSurf->vbo->attribBits |= ATTR_COLOR;
+			vertexAttributeSpec_t attributes[] {
+				{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, surf->st, 2, sizeof(mdvSt_t), 0 },
+				{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, dummyColor, 4, 0, ATTR_OPTION_NORMALIZE },
+				{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, qtangents, 4, sizeof(i16vec4_t), ATTR_OPTION_NORMALIZE | ATTR_OPTION_HAS_FRAMES },
+				{ ATTR_INDEX_POSITION, GL_FLOAT, GL_SHORT, scaledPosition, 3, sizeof(vec3_t), ATTR_OPTION_NORMALIZE | ATTR_OPTION_HAS_FRAMES },
+			};
+			std::string name = Str::Format( "%s '%s'", modName , surf->name );
+			vboSurf->vbo = R_CreateStaticVBO( "MD3 surface VBO " + name,
+			                                  std::begin( attributes ), std::end( attributes ),
+			                                  surf->numVerts, mdvModel->numFrames );
+
+			// HACK: the shader binding system needs duplicate definitions of some vertex attributes
+			vboSurf->vbo->attribBits |= ATTR_POSITION2 | ATTR_QTANGENT2;
+			vboSurf->vbo->attribs[ ATTR_INDEX_POSITION2 ] = vboSurf->vbo->attribs[ ATTR_INDEX_POSITION ];
+			vboSurf->vbo->attribs[ ATTR_INDEX_QTANGENT2 ] = vboSurf->vbo->attribs[ ATTR_INDEX_QTANGENT ];
 			
-			ri.Hunk_FreeTempMemory( data.st );
-			ri.Hunk_FreeTempMemory( data.qtangent );
-			ri.Hunk_FreeTempMemory( data.xyz );
+			ri.Hunk_FreeTempMemory( qtangents );
+			ri.Hunk_FreeTempMemory( scaledPosition );
 
 			indexes = (glIndex_t *)ri.Hunk_AllocateTempMemory( 3 * surf->numTriangles * sizeof( glIndex_t ) );
 			for ( f = j = 0; j < surf->numTriangles; j++ ) {
