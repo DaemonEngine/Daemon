@@ -661,7 +661,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	enum class vboLayout_t
 	{
 		VBO_LAYOUT_CUSTOM,
-		VBO_LAYOUT_VERTEX_ANIMATION,
 		VBO_LAYOUT_STATIC,
 		VBO_LAYOUT_XYST
 	};
@@ -669,17 +668,15 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	struct vboData_t
 	{
 		vec3_t *xyz;
-		i16vec4_t *qtangent;
-		u8vec4_t *color;
-		union { f16vec2_t *st; vec2_t *stf; };
+		vec2_t *stf;
 
-		int	numFrames;
 		int     numVerts;
 	};
 
 	enum
 	{
 		ATTR_OPTION_NORMALIZE = BIT( 0 ),
+		ATTR_OPTION_HAS_FRAMES = BIT( 1 ),
 	};
 
 	struct vertexAttributeSpec_t
@@ -3493,7 +3490,7 @@ inline bool checkGLErrors()
 	*/
 	VBO_t *R_CreateStaticVBO(
 		Str::StringRef name, const vertexAttributeSpec_t *attrBegin, const vertexAttributeSpec_t *attrEnd,
-		uint32_t numVerts );
+		uint32_t numVerts, uint32_t numFrames = 0 );
 	VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout );
 	VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *verts, uint32_t stateBits );
 
