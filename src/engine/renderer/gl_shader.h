@@ -1473,6 +1473,10 @@ class GLSSBO : public GLBuffer {
 		GLBuffer::BindBuffer( GL_SHADER_STORAGE_BUFFER );
 	}
 
+	void UnBindBuffer() {
+		GLBuffer::UnBindBuffer( GL_SHADER_STORAGE_BUFFER );
+	}
+
 	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
 		GLBuffer::BufferStorage( GL_SHADER_STORAGE_BUFFER, areaSize, areaCount, data );
 	}
@@ -1483,6 +1487,10 @@ class GLSSBO : public GLBuffer {
 
 	void FlushCurrentArea() {
 		GLBuffer::FlushCurrentArea( GL_SHADER_STORAGE_BUFFER );
+	}
+
+	void FlushAll() {
+		GLBuffer::FlushAll( GL_SHADER_STORAGE_BUFFER );
 	}
 
 	uint32_t* MapBufferRange( const GLsizeiptr count ) {
@@ -1529,6 +1537,10 @@ class GLUBO : public GLBuffer {
 		GLBuffer::FlushCurrentArea( GL_UNIFORM_BUFFER );
 	}
 
+	void FlushAll() {
+		GLBuffer::FlushAll( GL_UNIFORM_BUFFER );
+	}
+
 	uint32_t* MapBufferRange( const GLsizeiptr count ) {
 		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, count );
 	}
@@ -1571,6 +1583,10 @@ class GLAtomicCounterBuffer : public GLBuffer {
 
 	void FlushCurrentArea() {
 		GLBuffer::FlushCurrentArea( GL_ATOMIC_COUNTER_BUFFER );
+	}
+
+	void FlushAll() {
+		GLBuffer::FlushAll( GL_ATOMIC_COUNTER_BUFFER );
 	}
 
 	uint32_t* MapBufferRange( const GLsizeiptr count ) {
@@ -3178,6 +3194,90 @@ class u_ViewID :
 	}
 };
 
+class u_FirstPortalGroup :
+	GLUniform1ui {
+	public:
+	u_FirstPortalGroup( GLShader* shader ) :
+		GLUniform1ui( shader, "u_FirstPortalGroup" ) {
+	}
+
+	void SetUniform_FirstPortalGroup( const uint firstPortalGroup ) {
+		this->SetValue( firstPortalGroup );
+	}
+};
+
+class u_TotalPortals :
+	GLUniform1ui {
+	public:
+	u_TotalPortals( GLShader* shader ) :
+		GLUniform1ui( shader, "u_TotalPortals" ) {
+	}
+
+	void SetUniform_TotalPortals( const uint totalPortals ) {
+		this->SetValue( totalPortals );
+	}
+};
+
+class u_ViewWidth :
+	GLUniform1ui {
+	public:
+	u_ViewWidth( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ViewWidth" ) {
+	}
+
+	void SetUniform_ViewWidth( const uint viewWidth ) {
+		this->SetValue( viewWidth );
+	}
+};
+
+class u_ViewHeight :
+	GLUniform1ui {
+	public:
+	u_ViewHeight( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ViewHeight" ) {
+	}
+
+	void SetUniform_ViewHeight( const uint viewHeight ) {
+		this->SetValue( viewHeight );
+	}
+};
+
+class u_InitialDepthLevel :
+	GLUniform1Bool {
+	public:
+	u_InitialDepthLevel( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_InitialDepthLevel" ) {
+	}
+
+	void SetUniform_InitialDepthLevel( const int initialDepthLevel ) {
+		this->SetValue( initialDepthLevel );
+	}
+};
+
+class u_P00 :
+	GLUniform1f {
+	public:
+	u_P00( GLShader* shader ) :
+		GLUniform1f( shader, "u_P00" ) {
+	}
+
+	void SetUniform_P00( const float P00 ) {
+		this->SetValue( P00 );
+	}
+};
+
+class u_P11 :
+	GLUniform1f {
+	public:
+	u_P11( GLShader* shader ) :
+		GLUniform1f( shader, "u_P11" ) {
+	}
+
+	void SetUniform_P11( const float P11 ) {
+		this->SetValue( P11 );
+	}
+};
+
 class u_TotalDrawSurfs :
 	GLUniform1ui {
 	public:
@@ -3187,6 +3287,54 @@ class u_TotalDrawSurfs :
 
 	void SetUniform_TotalDrawSurfs( const uint totalDrawSurfs ) {
 		this->SetValue( totalDrawSurfs );
+	}
+};
+
+class u_UseFrustumCulling :
+	GLUniform1Bool {
+	public:
+	u_UseFrustumCulling( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_UseFrustumCulling" ) {
+	}
+
+	void SetUniform_UseFrustumCulling( const int useFrustumCulling ) {
+		this->SetValue( useFrustumCulling );
+	}
+};
+
+class u_UseOcclusionCulling :
+	GLUniform1Bool {
+	public:
+	u_UseOcclusionCulling( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_UseOcclusionCulling" ) {
+	}
+
+	void SetUniform_UseOcclusionCulling( const int useOcclusionCulling ) {
+		this->SetValue( useOcclusionCulling );
+	}
+};
+
+class u_ShowTris :
+	GLUniform1Bool {
+	public:
+	u_ShowTris( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_ShowTris" ) {
+	}
+
+	void SetUniform_ShowTris( const int showTris ) {
+		this->SetValue( showTris );
+	}
+};
+
+class u_CameraPosition :
+	GLUniform3f {
+	public:
+	u_CameraPosition( GLShader* shader ) :
+		GLUniform3f( shader, "u_CameraPosition" ) {
+	}
+
+	void SetUniform_CameraPosition( const vec3_t cameraPosition ) {
+		this->SetValue( cameraPosition );
 	}
 };
 
@@ -3941,6 +4089,7 @@ class GLShader_lightMappingMaterial :
 	public u_LightGridScale,
 	public u_numLights,
 	public u_Lights,
+	public u_ShowTris,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -4581,11 +4730,33 @@ public:
 
 class GLShader_cull :
 	public GLShader,
+	public u_Frame,
+	public u_ViewID,
 	public u_TotalDrawSurfs,
 	public u_SurfaceCommandsOffset,
-	public u_Frustum {
+	public u_Frustum,
+	public u_UseFrustumCulling,
+	public u_UseOcclusionCulling,
+	public u_CameraPosition,
+	public u_ModelViewMatrix,
+	public u_FirstPortalGroup,
+	public u_TotalPortals,
+	public u_ViewWidth,
+	public u_ViewHeight,
+	public u_P00,
+	public u_P11 {
 	public:
 	GLShader_cull( GLShaderManager* manager );
+};
+
+class GLShader_depthReduction :
+	public GLShader,
+	public u_ViewWidth,
+	public u_ViewHeight,
+	public u_InitialDepthLevel {
+	public:
+	GLShader_depthReduction( GLShaderManager* manager );
+	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
 class GLShader_clearSurfaces :
@@ -4614,6 +4785,7 @@ extern GLShader_generic2D                       *gl_generic2DShader;
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_cull                            *gl_cullShader;
+extern GLShader_depthReduction                  *gl_depthReductionShader;
 extern GLShader_clearSurfaces                   *gl_clearSurfacesShader;
 extern GLShader_processSurfaces                 *gl_processSurfacesShader;
 extern GLShader_lightMapping                    *gl_lightMappingShader;

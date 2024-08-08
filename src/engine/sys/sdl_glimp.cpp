@@ -72,6 +72,8 @@ static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform
 	"Use GL_ARB_explicit_uniform_location if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
 	"Use GL_ARB_gpu_shader5 if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_indirect_parameters( "r_arb_indirect_parameters",
+	"Use GL_ARB_indirect_parameters if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_map_buffer_range( "r_arb_map_buffer_range",
 	"Use GL_ARB_map_buffer_range if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_multi_draw_indirect( "r_arb_multi_draw_indirect",
@@ -1809,6 +1811,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_depth_clamp );
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_gpu_shader5 );
+	Cvar::Latch( r_arb_indirect_parameters );
 	Cvar::Latch( r_arb_map_buffer_range );
 	Cvar::Latch( r_arb_multi_draw_indirect );
 	Cvar::Latch( r_arb_shader_atomic_counters );
@@ -2108,16 +2111,15 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.2
 	glConfig2.shaderAtomicCountersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counters, r_arb_shader_atomic_counters.Get() );
 
+	// not required by any OpenGL version
+	glConfig2.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
+
 	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable
 									    && glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
 										&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
 										&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
-										&& glConfig2.shaderAtomicCountersAvailable
-										&& r_smp->integer == 0 // Currently doesn't work with r_smp 1
+										&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable
 										&& r_materialSystem.Get(); // Allow disabling it without disabling any extensions
-	if ( r_materialSystem.Get() && r_smp->integer ) {
-		Log::Warn( "Material system disabled because r_smp is not 0" );
-	}
 
 	GL_CheckErrors();
 }
