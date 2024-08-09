@@ -520,6 +520,7 @@ void R_InitFBOs()
 		R_CheckFBO( tr.portalRenderFBO );
 	}
 
+	if ( glConfig2.bloom )
 	{
 		width = glConfig.vidWidth * 0.25f;
 		height = glConfig.vidHeight * 0.25f;

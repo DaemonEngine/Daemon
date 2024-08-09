@@ -2385,6 +2385,11 @@ static void R_CreateNoFalloffImage()
 
 static void R_CreateContrastRenderFBOImage()
 {
+	if ( !glConfig2.bloom)
+	{
+		return;
+	}
+
 	int  width, height;
 
 	width = glConfig.vidWidth * 0.25f;
@@ -2398,8 +2403,13 @@ static void R_CreateContrastRenderFBOImage()
 	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, imageParams );
 }
 
-static void R_CreateBloomRenderFBOImage()
+static void R_CreateBloomRenderFBOImages()
 {
+	if ( !glConfig2.bloom)
+	{
+		return;
+	}
+
 	int  i;
 	int  width, height;
 
@@ -2886,7 +2896,7 @@ void R_CreateBuiltinImages()
 	R_CreateFogImage();
 	R_CreateNoFalloffImage();
 	R_CreateContrastRenderFBOImage();
-	R_CreateBloomRenderFBOImage();
+	R_CreateBloomRenderFBOImages();
 	R_CreateCurrentRenderImage();
 	R_CreateDepthRenderImage();
 	R_CreatePortalRenderImage();
