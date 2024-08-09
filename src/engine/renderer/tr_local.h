@@ -2631,7 +2631,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		image_t    *flatImage; // use this as default normalmap
 		image_t    *randomNormalsImage;
 		image_t    *noFalloffImage;
-		image_t    *attenuationXYImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
 

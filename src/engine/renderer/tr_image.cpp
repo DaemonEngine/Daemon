@@ -2383,49 +2383,6 @@ static void R_CreateNoFalloffImage()
 	tr.noFalloffImage = R_CreateImage( "_noFalloff", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
 }
 
-static const int ATTENUATION_XY_SIZE = 128;
-static void R_CreateAttenuationXYImage()
-{
-	int  x, y;
-	byte data[ ATTENUATION_XY_SIZE ][ ATTENUATION_XY_SIZE ][ 4 ];
-	byte *ptr = &data[0][0][0];
-	byte *dataPtr = &data[0][0][0];
-	int  b;
-
-	// make a centered inverse-square falloff blob for dynamic lighting
-	for ( y = 0; y < ATTENUATION_XY_SIZE; y++ )
-	{
-		for ( x = 0; x < ATTENUATION_XY_SIZE; x++ )
-		{
-			float d;
-
-			d = ( ATTENUATION_XY_SIZE / 2 - 0.5f - x ) * ( ATTENUATION_XY_SIZE / 2 - 0.5f - x ) +
-			    ( ATTENUATION_XY_SIZE / 2 - 0.5f - y ) * ( ATTENUATION_XY_SIZE / 2 - 0.5f - y );
-			b = 1000 / d;
-
-			if ( b > 255 )
-			{
-				b = 255;
-			}
-			else if ( b < 75 )
-			{
-				b = 0;
-			}
-
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = b;
-			ptr[ 3 ] = 255;
-			ptr += 4;
-		}
-	}
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	tr.attenuationXYImage = R_CreateImage( "_attenuationXY", ( const byte ** ) &dataPtr, ATTENUATION_XY_SIZE, ATTENUATION_XY_SIZE, 1, imageParams );
-}
-
 static void R_CreateContrastRenderFBOImage()
 {
 	int  width, height;
@@ -2928,7 +2885,6 @@ void R_CreateBuiltinImages()
 	R_CreateRandomNormalsImage();
 	R_CreateFogImage();
 	R_CreateNoFalloffImage();
-	R_CreateAttenuationXYImage();
 	R_CreateContrastRenderFBOImage();
 	R_CreateBloomRenderFBOImage();
 	R_CreateCurrentRenderImage();
