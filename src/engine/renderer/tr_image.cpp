@@ -2487,7 +2487,7 @@ static void R_CreateDepthRenderImage()
 {
 	ASSERT( glConfig2.textureFloatAvailable );
 
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig2.realtimeLighting )
 	{
 		return;
 	}
@@ -2507,7 +2507,7 @@ static void R_CreateDepthRenderImage()
 		tr.dlightImage = R_CreateImage("_dlightImage", nullptr, w, h, 4, imageParams );
 	}
 
-	if ( r_dynamicLightRenderer.Get() != Util::ordinal( dynamicLightRenderer_t::TILED ) )
+	if ( r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 	{
 		/* Do not create lightTile images when the tiled renderer is not used.
 

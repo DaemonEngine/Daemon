@@ -294,7 +294,7 @@ static inline void glFboSetExt()
 enum class lightMode_t { FULLBRIGHT, VERTEX, GRID, MAP };
 enum class deluxeMode_t { NONE, GRID, MAP };
 
-enum class dynamicLightRenderer_t { LEGACY, TILED };
+enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 	enum class renderSpeeds_t
 	{
@@ -2834,10 +2834,11 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_lightScale;
 
 	extern Cvar::Cvar<bool> r_fastsky; // Controls whether sky should be cleared or drawn.
-	extern Cvar::Range<Cvar::Cvar<int>> r_dynamicLightRenderer;
+	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
+	extern Cvar::Cvar<bool> r_realtimeLighting;
 	extern Cvar::Cvar<bool> r_dynamicLight;
 	extern Cvar::Cvar<bool> r_staticLight;
-	extern cvar_t *r_dynamicLightCastShadows;
+	extern cvar_t *r_realtimeLightingCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
 	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;

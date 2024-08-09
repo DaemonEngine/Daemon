@@ -35,29 +35,30 @@ This file deals with applying shaders to surface data in the tess struct.
 
 static void EnableAvailableFeatures()
 {
-	glConfig2.dynamicLight = r_dynamicLight.Get();
-	glConfig2.staticLight = r_staticLight.Get();
+	glConfig2.realtimeLighting = r_realtimeLighting.Get();
 
-	if ( glConfig2.dynamicLight || glConfig2.staticLight )
+	if ( glConfig2.realtimeLighting )
 	{
-		if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
+		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 		{
 			if ( !glConfig2.textureFloatAvailable )
 			{
 				Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_texture_float is not available.");
-				glConfig2.dynamicLight = false;
-				glConfig2.staticLight = false;
+				glConfig2.realtimeLighting = false;
 			}
 
 			// See below about ALU instructions on ATI R300 and Intel GMA 3.
 			if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
 			{
 				Log::Warn( "Tiled dynamic light rendered disabled because GL_MAX_PROGRAM_ALU_INSTRUCTIONS_ARB is too small: %d", glConfig2.maxAluInstructions );
-				glConfig2.dynamicLight = false;
-				glConfig2.staticLight = false;
+				glConfig2.realtimeLighting = false;
 			}
 		}
 	}
+
+	// Enable different kinds of dynamic lights.
+	glConfig2.dynamicLight = glConfig2.realtimeLighting && r_dynamicLight.Get();
+	glConfig2.staticLight = glConfig2.realtimeLighting && r_staticLight.Get();
 
 	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
 	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
@@ -166,7 +167,7 @@ static void GLSL_InitGPUShadersOrError()
 
 	gl_shaderManager.InitDriverInfo();
 
-	/* It must be done before GenerateBuiltinHeaders() because glConfig2.dynamicLight
+	/* It must be done before GenerateBuiltinHeaders() because glConfig2.realtimeLighting
 	is read in GenEngineConstants(). */
 	EnableAvailableFeatures();
 
@@ -190,13 +191,13 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_depthReductionShader );
 	}
 
-	if ( glConfig2.dynamicLight )
+	if ( glConfig2.realtimeLighting )
 	{
-		dynamicLightRenderer_t dynamicLightRenderer = dynamicLightRenderer_t( r_dynamicLightRenderer.Get() );
+		realtimeLightingRenderer_t realtimeLightingRenderer = realtimeLightingRenderer_t( r_realtimeLightingRenderer.Get() );
 
-		switch( dynamicLightRenderer )
+		switch( realtimeLightingRenderer )
 		{
-		case dynamicLightRenderer_t::LEGACY:
+		case realtimeLightingRenderer_t::LEGACY:
 			// projective lighting ( Doom3 style )
 			gl_shaderManager.load( gl_forwardLightingShader_projXYZ );
 
@@ -206,7 +207,7 @@ static void GLSL_InitGPUShadersOrError()
 			// directional sun lighting ( Doom3 style )
 			gl_shaderManager.load( gl_forwardLightingShader_directionalSun );
 			break;
-		case dynamicLightRenderer_t::TILED:
+		case realtimeLightingRenderer_t::TILED:
 			gl_shaderManager.load( gl_depthtile1Shader );
 			gl_shaderManager.load( gl_depthtile2Shader );
 			gl_shaderManager.load( gl_lighttileShader );
@@ -1199,7 +1200,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
 
-	if( glConfig2.dynamicLight )
+	if( glConfig2.realtimeLighting )
 	{
 		if ( backEnd.refdef.numShaderLights > 0 )
 		{	
@@ -1215,7 +1216,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 		}
 
 		// bind u_LightTiles
-		if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
+		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 		{
 			gl_lightMappingShader->SetUniform_LightTilesIntBindless(
 				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )

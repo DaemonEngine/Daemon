@@ -2420,7 +2420,7 @@ void R_AddLightInteractions()
 	bspNode_t    *leaf;
 	link_t       *l;
 
-	dynamicLightRenderer_t dynamicLightRenderer = dynamicLightRenderer_t( r_dynamicLightRenderer.Get() );
+	realtimeLightingRenderer_t realtimeLightingRenderer = realtimeLightingRenderer_t( r_realtimeLightingRenderer.Get() );
 
 	tr.refdef.numShaderLights = 0;
 
@@ -2440,7 +2440,7 @@ void R_AddLightInteractions()
 				continue;
 			}
 
-			if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
+			if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
 			{
 				tr.refdef.numShaderLights++;
 				tr.pc.c_slights++;
@@ -2464,7 +2464,7 @@ void R_AddLightInteractions()
 				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
-			else if ( dynamicLightRenderer == dynamicLightRenderer_t::TILED )
+			else if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
 			{
 				tr.refdef.numShaderLights++;
 				tr.pc.c_dlights++;
@@ -2665,7 +2665,7 @@ void R_AddLightBoundsToVisBounds()
 				continue;
 			}
 
-			if( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) )
+			if( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 			{
 				continue;
 			}

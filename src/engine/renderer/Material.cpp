@@ -392,11 +392,11 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	// TODO: Update this when this is extended to MDV support
 	gl_lightMappingShaderMaterial->SetUniform_VertexInterpolation( false );
 
-	if ( glConfig2.dynamicLight ) {
+	if ( glConfig2.realtimeLighting ) {
 		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
 
 		// bind u_LightTiles
-		if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) ) {
+		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
 			gl_lightMappingShaderMaterial->SetUniform_LightTilesIntBindless(
 				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
 			);
@@ -1734,8 +1734,8 @@ void MaterialSystem::AddStageTextures( drawSurf_t* drawSurf, shaderStage_t* pSta
 	material->AddTexture( lightmap->texture );
 	material->AddTexture( deluxemap->texture );
 
-	if ( glConfig2.dynamicLight ) {
-		if ( r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::TILED ) ) {
+	if ( glConfig2.realtimeLighting ) {
+		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
 			material->AddTexture( tr.lighttileRenderImage->texture );
 		}
 	}
