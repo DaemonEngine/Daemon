@@ -1033,40 +1033,38 @@ void Tess_UpdateVBOs()
 	GL_CheckErrors();
 }
 
-/*
-============
-R_ListVBOs_f
-============
-*/
-void R_ListVBOs_f()
+class ListVBOsCommand : public Cmd::StaticCmd
 {
-	int   vertexesSize = 0;
-	int   indexesSize = 0;
+public:
+	ListVBOsCommand() : StaticCmd("listVBOs", Cmd::RENDERER, "list VBOs and IBOs") {}
 
-	Log::Notice(" size          name" );
-	Log::Notice("----------------------------------------------------------" );
-
-	for ( VBO_t *vbo : tr.vbos )
+	void Run( const Cmd::Args & ) const override
 	{
-		Log::Notice("%d.%02d MB %s", vbo->vertexesSize / ( 1024 * 1024 ),
-		           ( vbo->vertexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ), vbo->name );
+		int   vertexesSize = 0;
+		int   indexesSize = 0;
 
-		vertexesSize += vbo->vertexesSize;
+		Print(" size          name" );
+		Print("----------------------------------------------------------" );
+
+		for ( VBO_t *vbo : tr.vbos )
+		{
+			Print( "%5d KB %s", vbo->vertexesSize / 1024, vbo->name );
+			vertexesSize += vbo->vertexesSize;
+		}
+
+		for ( IBO_t *ibo : tr.ibos)
+		{
+			Print( "%5d KB %s", ibo->indexesSize / 1024, ibo->name );
+			indexesSize += ibo->indexesSize;
+		}
+
+		Print(" %i total VBOs", tr.vbos.size() );
+		Print(" %d.%02d MB total vertices memory", vertexesSize / ( 1024 * 1024 ),
+		      ( vertexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
+
+		Print(" %i total IBOs", tr.ibos.size() );
+		Print(" %d.%02d MB total triangle indices memory", indexesSize / ( 1024 * 1024 ),
+		      ( indexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
 	}
-
-	for ( IBO_t *ibo : tr.ibos)
-	{
-		Log::Notice("%d.%02d MB %s", ibo->indexesSize / ( 1024 * 1024 ),
-		           ( ibo->indexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ), ibo->name );
-
-		indexesSize += ibo->indexesSize;
-	}
-
-	Log::Notice(" %i total VBOs", tr.vbos.size() );
-	Log::Notice(" %d.%02d MB total vertices memory", vertexesSize / ( 1024 * 1024 ),
-	           ( vertexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-
-	Log::Notice(" %i total IBOs", tr.ibos.size() );
-	Log::Notice(" %d.%02d MB total triangle indices memory", indexesSize / ( 1024 * 1024 ),
-	           ( indexesSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-}
+};
+static ListVBOsCommand listVBOsCmdRegistration;
