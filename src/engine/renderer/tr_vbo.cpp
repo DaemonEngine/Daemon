@@ -925,12 +925,12 @@ static void R_InitUnitCubeVBO()
 
 static void R_InitTileVBO()
 {
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig2.realtimeLighting )
 	{
 		return;
 	}
 
-	if ( r_dynamicLightRenderer.Get() != Util::ordinal( dynamicLightRenderer_t::TILED ) )
+	if ( r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 	{
 		/* This computation is part of the tiled dynamic lighting renderer,
 		it's better to not run it and save CPU cycles when such effects
@@ -977,7 +977,7 @@ const int indexCapacity = DYN_BUFFER_SIZE / sizeof( glIndex_t );
 
 static void R_InitLightUBO()
 {
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig2.realtimeLighting )
 	{
 		return;
 	}

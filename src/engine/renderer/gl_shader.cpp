@@ -678,10 +678,10 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_highPrecisionRendering", 1 );
 	}
 
-	if ( glConfig2.dynamicLight )
+	if ( glConfig2.realtimeLighting )
 	{
-		AddDefine( str, "r_dynamicLight", 1 );
-		AddDefine( str, "r_dynamicLightRenderer", r_dynamicLightRenderer.Get() );
+		AddDefine( str, "r_realtimeLighting", 1 );
+		AddDefine( str, "r_realtimeLightingRenderer", r_realtimeLightingRenderer.Get() );
 	}
 
 	if ( r_precomputedLighting->integer )

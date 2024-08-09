@@ -37,7 +37,7 @@ uniform samplerCube u_EnvironmentMap1;
 uniform float u_EnvironmentInterpolation;
 #endif // USE_REFLECTIVE_SPECULAR
 
-#if defined(r_dynamicLight) && r_dynamicLightRenderer == 1
+#if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
 #if defined(HAVE_ARB_uniform_buffer_object)
 struct light {
   vec4  center_radius;
@@ -62,7 +62,7 @@ const struct GetLightOffsets {
 #endif // HAVE_ARB_uniform_buffer_object
 
 uniform int u_numLights;
-#endif // r_dynamicLight && r_dynamicLightRenderer == 1
+#endif // defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
 
 // lighting helper functions
 
@@ -75,7 +75,7 @@ void ReadLightGrid(in vec4 texel, out vec3 ambientColor, out vec3 lightColor) {
 }
 #endif
 
-#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_dynamicLight) && r_dynamicLightRenderer == 1)
+#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
 uniform vec2 u_SpecularExponent;
 
 #if defined(USE_REFLECTIVE_SPECULAR)
@@ -156,7 +156,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 #endif // r_specularMapping
 #endif // !USE_PHYSICAL_MAPPING
 }
-#endif // defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_dynamicLight) && r_dynamicLightRenderer == 1)
+#endif // defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
 
 #if !defined(USE_DELUXE_MAPPING) && !defined(USE_GRID_DELUXE_MAPPING)
 void computeLight(in vec3 lightColor, vec4 diffuseColor, inout vec4 color) {
@@ -164,7 +164,7 @@ void computeLight(in vec3 lightColor, vec4 diffuseColor, inout vec4 color) {
 }
 #endif // !defined(USE_DELUXE_MAPPING) && !defined(USE_GRID_DELUXE_MAPPING)
 
-#if defined(r_dynamicLight) && r_dynamicLightRenderer == 1
+#if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
 #if defined(HAVE_EXT_texture_integer) && defined(r_highPrecisionRendering)
 const int lightsPerLayer = 16;
 uniform usampler3D u_LightTilesInt;
@@ -288,4 +288,4 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
   }
 #endif
 }
-#endif // r_dynamicLight && r_dynamicLightRenderer == 1
+#endif // defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1

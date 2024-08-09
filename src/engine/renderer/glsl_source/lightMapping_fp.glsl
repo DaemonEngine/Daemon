@@ -185,7 +185,7 @@ void main()
 	#endif
 
 	// Blend dynamic lights.
-	#if defined(r_dynamicLight) && r_dynamicLightRenderer == 1
+	#if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
 		#if defined(USE_REFLECTIVE_SPECULAR)
 			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTilesInt,
 								 u_EnvironmentMap0, u_EnvironmentMap1);
