@@ -3667,7 +3667,6 @@ inline bool checkGLErrors()
 
 	void  R_InitVBOs();
 	void  R_ShutdownVBOs();
-	void  R_ListVBOs_f();
 
 	/*
 	============================================================

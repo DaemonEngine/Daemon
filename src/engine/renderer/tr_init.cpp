@@ -1370,7 +1370,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		ri.Cmd_AddCommand( "listModes", R_ListModes_f );
 		ri.Cmd_AddCommand( "listAnimations", R_ListAnimations_f );
 		ri.Cmd_AddCommand( "listFBOs", R_ListFBOs_f );
-		ri.Cmd_AddCommand( "listVBOs", R_ListVBOs_f );
 		ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
 		ri.Cmd_AddCommand( "buildcubemaps", R_BuildCubeMaps );
 
@@ -1557,7 +1556,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		ri.Cmd_RemoveCommand( "shaderstate" );
 		ri.Cmd_RemoveCommand( "listAnimations" );
 		ri.Cmd_RemoveCommand( "listFBOs" );
-		ri.Cmd_RemoveCommand( "listVBOs" );
 		ri.Cmd_RemoveCommand( "generatemtr" );
 		ri.Cmd_RemoveCommand( "buildcubemaps" );
 
