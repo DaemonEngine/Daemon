@@ -253,7 +253,7 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	if ( !r_noFog->integer )
+	// Fog GLSL is always loaded and built because disabling fog is cheat.
 	{
 		// Q3A volumetric fog
 		gl_shaderManager.load( gl_fogQuake3Shader );
