@@ -2589,26 +2589,6 @@ static void R_CreatePortalRenderImage()
 	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, imageParams );
 }
 
-// Tr3B: clean up this mess some day ...
-static void R_CreateDownScaleFBOImages()
-{
-	int  width, height;
-
-	width = glConfig.vidWidth * 0.25f;
-	height = glConfig.vidHeight * 0.25f;
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_NEAREST;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	tr.downScaleFBOImage_quarter = R_CreateImage( "_downScaleFBOImage_quarter", nullptr, width, height, 1, imageParams );
-
-	width = height = 64;
-
-	tr.downScaleFBOImage_64x64 = R_CreateImage( "_downScaleFBOImage_64x64", nullptr, width, height, 1, imageParams );
-}
-
 // *INDENT-OFF*
 static void R_CreateShadowMapFBOImage()
 {
@@ -2954,7 +2934,6 @@ void R_CreateBuiltinImages()
 	R_CreateCurrentRenderImage();
 	R_CreateDepthRenderImage();
 	R_CreatePortalRenderImage();
-	R_CreateDownScaleFBOImages();
 	R_CreateShadowMapFBOImage();
 	R_CreateShadowCubeFBOImage();
 	R_CreateBlackCubeImage();

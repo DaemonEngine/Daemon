@@ -2643,8 +2643,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		image_t    *lighttileRenderImage;
 		image_t    *portalRenderImage;
 
-		image_t    *downScaleFBOImage_quarter;
-		image_t    *downScaleFBOImage_64x64;
 		image_t *shadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];
 		image_t *shadowCubeFBOImage[ MAX_SHADOWMAPS ];
 		image_t *sunShadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];
@@ -2662,8 +2660,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
 		FBO_t *portalRenderFBO; // holds a copy of the last currentRender that was rendered into a FBO
-		FBO_t *downScaleFBO_quarter;
-		FBO_t *downScaleFBO_64x64;
 		FBO_t *contrastRenderFBO;
 		FBO_t *bloomRenderFBO[ 2 ];
 		FBO_t *shadowMapFBO[ MAX_SHADOWMAPS ];
