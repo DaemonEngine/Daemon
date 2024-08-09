@@ -477,40 +477,76 @@ quads, rebuild them as forward facing sprites
 */
 static void ComputeCorner( int firstVertex, int numVertexes )
 {
-	int i, j;
-	shaderVertex_t *v;
-	vec4_t tc, midtc;
-
-	for ( i = 0; i < numVertexes; i += 4 ) {
+	for ( int i = 0; i < numVertexes; i += 4 ) {
 		// find the midpoint
-		v = &tess.verts[ firstVertex + i ];
+		shaderVertex_t *v = &tess.verts[ firstVertex + i ];
 
+		vec4_t midtc;
 		Vector4Set( midtc, 0.0f, 0.0f, 0.0f, 0.0f );
-		for( j = 0; j < 4; j++ ) {
-			halfToFloat( v[ j ].texCoords, tc );
-			VectorAdd( tc, midtc, midtc );
-			midtc[ 3 ] += tc[ 3 ];
+
+		if ( glConfig2.halfFloatVertexAvailable )
+		{
+			vec4_t tcs[ 4 ];
+
+			for( int j = 0; j < 4; j++ )
+			{
+				vec4_t &tc = tcs[ j ];
+				halfToFloat4( v[ j ].f16TexCoords, tc );
+				VectorAdd( tc, midtc, midtc );
+				midtc[ 3 ] += tc[ 3 ];
+			}
+
+			midtc[ 0 ] = 0.25f * midtc[ 0 ];
+			midtc[ 1 ] = 0.25f * midtc[ 1 ];
+
+			for ( int j = 0; j < 4; j++ )
+			{
+				vec4_t &tc = tcs[ j ];
+				if( tc[ 0 ] < midtc[ 0 ] )
+				{
+					tc[ 2 ] = -tc[ 2 ];
+				}
+				if( tc[ 1 ] < midtc[ 1 ] )
+				{
+					tc[ 3 ] = -tc[ 3 ];
+				}
+				floatToHalf4( tc, v[ j ].f16TexCoords );
+			}
 		}
+		else
+		{
+			vec4_t tc;
 
-		midtc[ 0 ] = 0.25f * midtc[ 0 ];
-		midtc[ 1 ] = 0.25f * midtc[ 1 ];
+			for( int j = 0; j < 4; j++ )
+			{
+				Vector4Copy( v[ j ].texCoords, tc );
+				VectorAdd( tc, midtc, midtc );
+				midtc[ 3 ] += tc[ 3 ];
+			}
 
-		for ( j = 0; j < 4; j++ ) {
-			halfToFloat( v[ j ].texCoords, tc );
-			if( tc[ 0 ] < midtc[ 0 ] ) {
-				tc[ 2 ] = -tc[ 2 ];
+			midtc[ 0 ] = 0.25f * midtc[ 0 ];
+			midtc[ 1 ] = 0.25f * midtc[ 1 ];
+
+			for ( int j = 0; j < 4; j++ )
+			{
+				Vector4Copy( v[ j ].texCoords, tc );
+				if( tc[ 0 ] < midtc[ 0 ] )
+				{
+					tc[ 2 ] = -tc[ 2 ];
+				}
+				if( tc[ 1 ] < midtc[ 1 ] )
+				{
+					tc[ 3 ] = -tc[ 3 ];
+				}
+				Vector4Copy( tc, v[ j ].texCoords );
 			}
-			if( tc[ 1 ] < midtc[ 1 ] ) {
-				tc[ 3 ] = -tc[ 3 ];
-			}
-			floatToHalf( tc, v[ j ].texCoords );
 		}
 	}
 }
 
 static void AutospriteDeform( int firstVertex, int numVertexes, int numIndexes )
 {
-	int    i, j;
+	int i;
 	shaderVertex_t *v;
 	vec3_t mid, delta;
 	float  radius;
@@ -540,13 +576,30 @@ static void AutospriteDeform( int firstVertex, int numVertexes, int numIndexes )
 		radius = VectorLength( delta ) * 0.5f * M_SQRT2;
 
 		// add 4 identical vertices
-		for ( j = 0; j < 4; j++ ) {
-			VectorCopy( mid, v[ j ].xyz );
-			Vector4Set( v[ j ].spriteOrientation,
-				floatToHalf( 0 ),
-				floatToHalf( 0 ),
-				floatToHalf( 0 ),
-				floatToHalf( radius ) );
+		VectorCopy( mid, v[ 0 ].xyz );
+		VectorCopy( mid, v[ 1 ].xyz );
+		VectorCopy( mid, v[ 2 ].xyz );
+		VectorCopy( mid, v[ 3 ].xyz );
+
+		vec4_t orientation;
+		Vector4Set( orientation, 0.0f, 0.0f, 0.0f, radius );
+
+		if ( glConfig2.halfFloatVertexAvailable )
+		{
+			f16vec4_t f16Orientation;
+			floatToHalf4( orientation, f16Orientation );
+
+			Vector4Copy( f16Orientation, v[ 0 ].f16SpriteOrientation );
+			Vector4Copy( f16Orientation, v[ 1 ].f16SpriteOrientation );
+			Vector4Copy( f16Orientation, v[ 2 ].f16SpriteOrientation );
+			Vector4Copy( f16Orientation, v[ 3 ].f16SpriteOrientation );
+		}
+		else
+		{
+			Vector4Copy( orientation, v[ 0 ].spriteOrientation );
+			Vector4Copy( orientation, v[ 1 ].spriteOrientation );
+			Vector4Copy( orientation, v[ 2 ].spriteOrientation );
+			Vector4Copy( orientation, v[ 3 ].spriteOrientation );
 		}
 	}
 }
@@ -667,15 +720,37 @@ static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes 
 				k = 1;
 
 			VectorSubtract( v1->xyz, mid[ k ], minor );
-			// I guess this works, since the sign bit is the MSB for both floating point and integers
-			if ( ( DotProduct( cross, minor ) * static_cast<int16_t>(v1->texCoords[ 3 ].bits) ) < 0  ) {
+
+			float dotProduct = DotProduct( cross, minor );
+			int16_t factor;
+
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				// I guess this works, since the sign bit is the MSB for both floating point and integers
+				factor = static_cast<int16_t>(v1->f16TexCoords[ 3 ].bits);
+			}
+			else
+			{
+				factor = (int16_t) v1->texCoords[ 3 ];
+			}
+
+			if ( ( dotProduct * factor ) < 0 ) {
 				VectorNegate( major, orientation );
 			} else {
 				VectorCopy( major, orientation );
 			}
+
 			orientation[ 3 ] = -lengths[ k ];
 
-			floatToHalf( orientation, v1->spriteOrientation );
+			if ( glConfig2.halfFloatVertexAvailable )
+			{
+				floatToHalf4( orientation, v1->f16SpriteOrientation );
+			}
+			else
+			{
+				Vector4Copy( orientation, v1->spriteOrientation );
+			}
+
 			VectorCopy( mid[ k ], v1->xyz );
 		}
 	}

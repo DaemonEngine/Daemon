@@ -258,7 +258,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( sizeof( *data.xyz ) * mdvModel->numFrames * surf->numVerts );
 			data.qtangent = ( i16vec4_t * ) ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * mdvModel->numFrames * surf->numVerts );
 			data.numFrames = mdvModel->numFrames;
-			data.st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * surf->numVerts );
+			data.f16st = ( f16vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( f16vec2_t ) * surf->numVerts );
 			data.numVerts = surf->numVerts;
 
 			// feed vertex XYZ
@@ -273,8 +273,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			// feed vertex texcoords
 			for ( j = 0; j < surf->numVerts; j++ )
 			{
-				data.st[ j ][ 0 ] = floatToHalf( surf->st[ j ].st[ 0 ] );
-				data.st[ j ][ 1 ] = floatToHalf( surf->st[ j ].st[ 1 ] );
+				floatToHalf2( surf->st[ j ].st, data.f16st[ j ] );
 			}
 
 			// calc and feed tangent spaces
@@ -351,7 +350,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			// vertex layout includes a color field, which is zeroed by default.
 			vboSurf->vbo->attribBits |= ATTR_COLOR;
 			
-			ri.Hunk_FreeTempMemory( data.st );
+			ri.Hunk_FreeTempMemory( data.f16st );
 			ri.Hunk_FreeTempMemory( data.qtangent );
 			ri.Hunk_FreeTempMemory( data.xyz );
 

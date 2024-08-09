@@ -481,7 +481,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	size += header->num_vertexes * 3 * sizeof(float);	// normals
 	size += header->num_vertexes * 3 * sizeof(float);	// tangents
 	size += header->num_vertexes * 3 * sizeof(float);	// bitangents
-	size += header->num_vertexes * 2 * sizeof(f16_t);	// texcoords
+	size += header->num_vertexes * 2 * sizeof(f16_t);	// f16TexCoords
 	size += header->num_vertexes * 4 * sizeof(byte);	// blendIndexes
 	size += header->num_vertexes * 4 * sizeof(byte);	// blendWeights
 	size += header->num_vertexes * 4 * sizeof(byte);	// colors
@@ -541,8 +541,8 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	IQModel->bitangents = (float *)ptr;
 	ptr = IQModel->bitangents + 3 * header->num_vertexes;
 
-	IQModel->texcoords = (f16_t *)ptr;
-	ptr = IQModel->texcoords + 2 * header->num_vertexes;
+	IQModel->f16TexCoords = (f16_t *)ptr;
+	ptr = IQModel->f16TexCoords + 2 * header->num_vertexes;
 
 	IQModel->blendIndexes = (byte *)ptr;
 	ptr = IQModel->blendIndexes + 4 * header->num_vertexes;
@@ -725,7 +725,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 			break;
 		case IQM_TEXCOORD:
 			for( int j = 0; j < n; j++ ) {
-				IQModel->texcoords[ j ] = floatToHalf( ((float *)IQMPtr( header, vertexarray->offset ))[ j ] );
+				IQModel->f16TexCoords[ j ] = floatToHalf( ((float *)IQMPtr( header, vertexarray->offset ))[ j ] );
 			}
 			break;
 		case IQM_BLENDINDEXES:
@@ -803,7 +803,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 		vboData.qtangent = qtangentbuf;
 		vboData.numFrames = 0;
 		vboData.color = (u8vec4_t *)IQModel->colors;
-		vboData.st = (f16vec2_t *)IQModel->texcoords;
+		vboData.f16st = (f16vec2_t *)IQModel->f16TexCoords;
 		vboData.boneIndexes = (int (*)[4])indexbuf;
 		vboData.boneWeights = (vec4_t *)weightbuf;
 		vboData.numVerts = IQModel->num_vertexes;

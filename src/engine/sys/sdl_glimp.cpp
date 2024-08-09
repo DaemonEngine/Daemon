@@ -72,6 +72,8 @@ static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform
 	"Use GL_ARB_explicit_uniform_location if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
 	"Use GL_ARB_gpu_shader5 if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_half_float_vertex( "r_arb_half_float_vertex",
+	"Use GL_ARB_half_float_vertex if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_map_buffer_range( "r_arb_map_buffer_range",
 	"Use GL_ARB_map_buffer_range if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_multi_draw_indirect( "r_arb_multi_draw_indirect",
@@ -1606,6 +1608,10 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 
 	rserr_t err = GLimp_SetMode(mode, fullscreen, bordered);
 
+	const char* glRequirements =
+		"You need a graphics card with drivers supporting at least\n"
+		"OpenGL 3.2 or OpenGL 2.1 with EXT_framebuffer_object.";
+
 	switch ( err )
 	{
 		case rserr_t::RSERR_OK:
@@ -1620,21 +1626,13 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 			break;
 
 		case rserr_t::RSERR_MISSING_GL:
-			Sys::Error(
-				"OpenGL is not available.\n\n"
-				"You need a graphic card with drivers supporting\n"
-				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
-				"ARB_half_float_vertex and EXT_framebuffer_object." );
+			Sys::Error( "OpenGL is not available.\n\n%s", glRequirements );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
 
 		case rserr_t::RSERR_OLD_GL:
-			Sys::Error(
-				"OpenGL %d.%d is too old.\n\n"
-				"You need a graphic card with drivers supporting\n"
-				"at least OpenGL 3.2 or OpenGL 2.1 with\n"
-				"ARB_half_float_vertex and EXT_framebuffer_object." );
+			Sys::Error( "OpenGL %d.%d is too old.\n\n%s", glConfig2.glMajor, glConfig2.glMinor, glRequirements );
 
 			// Sys:Error calls OSExit() so the break and the return is unreachable.
 			break;
@@ -1796,6 +1794,7 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 
 #define LOAD_EXTENSION_WITH_TEST(flags, ext, test) LoadExt(flags, GLEW_##ext, #ext, test)
 
+glVertexShim_t GL_vertexShim;
 glFboShim_t GL_fboShim;
 
 static void GLimp_InitExtensions()
@@ -1809,6 +1808,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_depth_clamp );
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_gpu_shader5 );
+	Cvar::Latch( r_arb_half_float_vertex );
 	Cvar::Latch( r_arb_map_buffer_range );
 	Cvar::Latch( r_arb_multi_draw_indirect );
 	Cvar::Latch( r_arb_shader_atomic_counters );
@@ -1970,7 +1970,16 @@ static void GLimp_InitExtensions()
 
 	// VAO and VBO
 	// made required in OpenGL 3.0
-	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
+	glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, r_arb_half_float_vertex.Get() );
+
+	if ( glConfig2.halfFloatVertexAvailable )
+	{
+		glVertexSetHalfFloat();
+	}
+	else
+	{
+		glVertexSetFloat();
+	}
 
 	// made required in OpenGL 3.0
 	if ( LOAD_EXTENSION( ExtFlag_CORE, ARB_framebuffer_object ) )
