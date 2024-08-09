@@ -2249,6 +2249,8 @@ R_CreateFogImage
 */
 static void R_CreateFogImage()
 {
+	// Fog image is always created because disabling fog is cheat.
+
 	int   x, y;
 	byte  *data, *ptr;
 	float d;
