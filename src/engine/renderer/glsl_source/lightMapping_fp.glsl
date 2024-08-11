@@ -76,7 +76,11 @@ void main()
 
 	#if defined(USE_RELIEF_MAPPING)
 		// Compute texcoords offset from heightmap.
-		vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_HeightMap);
+		#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+			vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_NormalMap);
+		#else
+			vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_HeightMap);
+		#endif
 
 		texCoords += texOffset;
 	#endif
