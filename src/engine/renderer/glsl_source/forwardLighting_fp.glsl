@@ -948,7 +948,11 @@ void	main()
 
 #if defined(USE_RELIEF_MAPPING)
 	// compute texcoords offset from heightmap
-	vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix);
+	#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+		vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_NormalMap);
+	#else
+		vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_HeightMap);
+	#endif
 
 	texCoords += texOffset;
 #endif // USE_RELIEF_MAPPING
@@ -957,7 +961,7 @@ void	main()
 	vec3 H = normalize(lightDir + viewDir);
 
 	// compute normal in world space from normal map
-	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
+	vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix, u_NormalMap);
 
 	// compute the light term
 	float NL = clamp(dot(normal, lightDir), 0.0, 1.0);
