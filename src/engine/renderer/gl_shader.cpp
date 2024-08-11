@@ -2177,20 +2177,6 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 {
 }
 
-void GLShader_lightMapping::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
-}
-
-void GLShader_lightMapping::BuildShaderFragmentLibNames( std::string& fragmentInlines )
-{
-	fragmentInlines += "computeLight reliefMapping";
-}
-
-void GLShader_lightMapping::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
-{
-}
-
 void GLShader_lightMapping::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
@@ -2259,17 +2245,6 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	GLCompileMacro_USE_PHYSICAL_MAPPING( this ) {
 }
 
-void GLShader_lightMappingMaterial::BuildShaderVertexLibNames( std::string& vertexInlines ) {
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
-}
-
-void GLShader_lightMappingMaterial::BuildShaderFragmentLibNames( std::string& fragmentInlines ) {
-	fragmentInlines += "computeLight reliefMapping";
-}
-
-void GLShader_lightMappingMaterial::BuildShaderCompileMacros( std::string& /*compileMacros*/ ) {
-}
-
 void GLShader_lightMappingMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), BIND_DIFFUSEMAP );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), BIND_NORMALMAP );
@@ -2327,20 +2302,6 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 {
 }
 
-void GLShader_forwardLighting_omniXYZ::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
-}
-
-void GLShader_forwardLighting_omniXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
-{
-	fragmentInlines += "computeLight reliefMapping";
-}
-
-void GLShader_forwardLighting_omniXYZ::BuildShaderCompileMacros( std::string& /*compileMacros*/ )
-{
-}
-
 void GLShader_forwardLighting_omniXYZ::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DiffuseMap" ), 0 );
@@ -2394,16 +2355,6 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_SHADOWING( this )
 {
-}
-
-void GLShader_forwardLighting_projXYZ::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
-}
-
-void GLShader_forwardLighting_projXYZ::BuildShaderFragmentLibNames( std::string& fragmentInlines )
-{
-	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_forwardLighting_projXYZ::BuildShaderCompileMacros( std::string& compileMacros )
@@ -2473,16 +2424,6 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 {
 }
 
-void GLShader_forwardLighting_directionalSun::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
-}
-
-void GLShader_forwardLighting_directionalSun::BuildShaderFragmentLibNames( std::string& fragmentInlines )
-{
-	fragmentInlines += "computeLight reliefMapping";
-}
-
 void GLShader_forwardLighting_directionalSun::BuildShaderCompileMacros( std::string& compileMacros )
 {
 	compileMacros += "LIGHT_DIRECTIONAL ";
@@ -2528,11 +2469,6 @@ GLShader_shadowFill::GLShader_shadowFill( GLShaderManager *manager ) :
 {
 }
 
-void GLShader_shadowFill::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
-}
-
 void GLShader_shadowFill::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
@@ -2557,20 +2493,6 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this )
-{
-}
-
-void GLShader_reflection::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
-}
-
-void GLShader_reflection::BuildShaderFragmentLibNames( std::string& fragmentInlines )
-{
-	fragmentInlines += "reliefMapping";
-}
-
-void GLShader_reflection::BuildShaderCompileMacros( std::string& )
 {
 }
 
@@ -2600,17 +2522,6 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manag
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
-}
-
-void GLShader_reflectionMaterial::BuildShaderVertexLibNames( std::string& vertexInlines ) {
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
-}
-
-void GLShader_reflectionMaterial::BuildShaderFragmentLibNames( std::string& fragmentInlines ) {
-	fragmentInlines += "reliefMapping";
-}
-
-void GLShader_reflectionMaterial::BuildShaderCompileMacros( std::string& ) {
 }
 
 void GLShader_reflectionMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
@@ -2679,11 +2590,6 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 {
 }
 
-void GLShader_fogQuake3::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
-}
-
 void GLShader_fogQuake3::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
@@ -2704,10 +2610,6 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 	GLDeformStage( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ) {
-}
-
-void GLShader_fogQuake3Material::BuildShaderVertexLibNames( std::string& vertexInlines ) {
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation ";
 }
 
 void GLShader_fogQuake3Material::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
@@ -2760,16 +2662,6 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 {
 }
 
-void GLShader_heatHaze::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
-}
-
-void GLShader_heatHaze::BuildShaderFragmentLibNames( std::string& fragmentInlines )
-{
-	fragmentInlines += "reliefMapping";
-}
-
 void GLShader_heatHaze::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_NormalMap" ), 0 );
@@ -2799,14 +2691,6 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_VERTEX_SPRITE( this ) {
-}
-
-void GLShader_heatHazeMaterial::BuildShaderVertexLibNames( std::string& vertexInlines ) {
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
-}
-
-void GLShader_heatHazeMaterial::BuildShaderFragmentLibNames( std::string& fragmentInlines ) {
-	fragmentInlines += "reliefMapping";
 }
 
 void GLShader_heatHazeMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
@@ -2954,11 +2838,6 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 {
 }
 
-void GLShader_liquid::BuildShaderFragmentLibNames( std::string& fragmentInlines )
-{
-	fragmentInlines += "computeLight reliefMapping";
-}
-
 void GLShader_liquid::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_CurrentMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_PortalMap" ), 1 );
@@ -2998,10 +2877,6 @@ GLShader_liquidMaterial::GLShader_liquidMaterial( GLShaderManager* manager ) :
 	u_LightGridScale( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
-}
-
-void GLShader_liquidMaterial::BuildShaderFragmentLibNames( std::string& fragmentInlines ) {
-	fragmentInlines += "computeLight reliefMapping";
 }
 
 void GLShader_liquidMaterial::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )

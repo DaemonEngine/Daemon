@@ -22,6 +22,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_vp.glsl */
 
+#insert vertexSimple_vp
+#insert vertexSkinning_vp
+#insert vertexAnimation_vp
+#insert vertexSprite_vp
+
 #if !defined(USE_BSP_SURFACE)
 	#define USE_MODEL_SURFACE
 #endif

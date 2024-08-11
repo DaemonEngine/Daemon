@@ -4050,9 +4050,6 @@ class GLShader_lightMapping :
 {
 public:
 	GLShader_lightMapping( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
-	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4103,9 +4100,6 @@ class GLShader_lightMappingMaterial :
 	public GLCompileMacro_USE_PHYSICAL_MAPPING {
 	public:
 	GLShader_lightMappingMaterial( GLShaderManager* manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
-	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
@@ -4150,9 +4144,6 @@ class GLShader_forwardLighting_omniXYZ :
 {
 public:
 	GLShader_forwardLighting_omniXYZ( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
-	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4198,8 +4189,6 @@ class GLShader_forwardLighting_projXYZ :
 {
 public:
 	GLShader_forwardLighting_projXYZ( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
@@ -4253,8 +4242,6 @@ class GLShader_forwardLighting_directionalSun :
 {
 public:
 	GLShader_forwardLighting_directionalSun( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
@@ -4279,7 +4266,6 @@ class GLShader_shadowFill :
 {
 public:
 	GLShader_shadowFill( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4305,9 +4291,6 @@ class GLShader_reflection :
 {
 public:
 	GLShader_reflection( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
-	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4332,9 +4315,6 @@ class GLShader_reflectionMaterial :
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
 	GLShader_reflectionMaterial( GLShaderManager* manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
-	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
@@ -4393,7 +4373,6 @@ class GLShader_fogQuake3 :
 {
 public:
 	GLShader_fogQuake3( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4414,7 +4393,6 @@ class GLShader_fogQuake3Material :
 	public GLCompileMacro_USE_VERTEX_ANIMATION {
 	public:
 	GLShader_fogQuake3Material( GLShaderManager* manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
@@ -4461,8 +4439,6 @@ class GLShader_heatHaze :
 {
 public:
 	GLShader_heatHaze( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4490,8 +4466,6 @@ class GLShader_heatHazeMaterial :
 	public GLCompileMacro_USE_VERTEX_SPRITE {
 	public:
 	GLShader_heatHazeMaterial( GLShaderManager* manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
@@ -4618,7 +4592,6 @@ class GLShader_liquid :
 {
 public:
 	GLShader_liquid( GLShaderManager *manager );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4653,7 +4626,6 @@ class GLShader_liquidMaterial :
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
 	GLShader_liquidMaterial( GLShaderManager* manager );
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
