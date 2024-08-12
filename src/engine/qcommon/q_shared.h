@@ -2139,6 +2139,22 @@ int        Com_GMTime( qtime_t *qtime );
 #define Com_Time(t) Com_RealTime(t)
 #endif
 
+enum SharedTimer {
+	FRAME,
+	DEPTH,
+	OPAQUE,
+	TRANSPARENT,
+	POST_PROCESS,
+	CULL,
+	DEPTH_REDUCTION,
+	TIMER_COUNT
+};
+
+struct EngineTimers {
+	uint64_t time[SharedTimer::TIMER_COUNT];
+	uint64_t glTime[SharedTimer::TIMER_COUNT];
+};
+
 // server browser sources
 #define AS_LOCAL     0
 #define AS_GLOBAL    1 // NERVE - SMF - modified

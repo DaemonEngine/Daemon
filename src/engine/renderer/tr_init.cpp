@@ -1443,6 +1443,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		R_InitVisTests();
 
+		R_InitTimerQueries();
+
 		GL_CheckErrors();
 
 		// print info
@@ -1488,6 +1490,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			R_ShutdownVBOs();
 			R_ShutdownFBOs();
 			R_ShutdownVisTests();
+			R_ShutdownTimerQueries();
 		}
 
 		R_DoneFreeType();
@@ -1638,6 +1641,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.SetAltShaderTokens = R_SetAltShaderTokens;
 
 		re.GetTextureSize = RE_GetTextureSize;
+		re.GetEngineTimers = RE_GetEngineTimers;
 		re.Add2dPolysIndexed = RE_2DPolyiesIndexed;
 		re.GenerateTexture = RE_GenerateTexture;
 		re.ShaderNameFromHandle = RE_GetShaderNameFromHandle;

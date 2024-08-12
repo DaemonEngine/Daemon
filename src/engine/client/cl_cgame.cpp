@@ -1183,6 +1183,12 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
+		case CG_R_GETENGINETIMERS:
+			IPC::HandleMsg<Render::GetEngineTimersMsg>( channel, std::move( reader ), [this]( EngineTimers*& timers ) {
+				timers = re.GetEngineTimers();
+				} );
+			break;
+
 		case CG_R_INPVVS:
 			IPC::HandleMsg<Render::InPVVSMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& p1, const std::array<float, 3>& p2, bool& res) {
 				res = re.inPVVS(p1.data(), p2.data());

@@ -78,6 +78,7 @@ void            trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs
 int             trap_R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex );
 void            trap_R_GetTextureSize( qhandle_t handle, int *x, int *y );
 qhandle_t       trap_R_GenerateTexture( const byte *data, int x, int y );
+EngineTimers*   trap_R_GetEngineTimers();
 void            trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime );
 bool        trap_GetSnapshot( int snapshotNumber, snapshot_t *snapshot );
 int             trap_GetCurrentCmdNumber();
@@ -127,6 +128,7 @@ void            trap_LAN_ResetPings( int n );
 int             trap_LAN_ServerStatus( const char *serverAddress, char *serverStatus, int maxLen );
 void            trap_LAN_ResetServerStatus();
 void            trap_R_GetShaderNameFromHandle( const qhandle_t shader, char *out, int len );
+EngineTimers*   Trap_R_GetEngineTimers();
 void            trap_PrepareKeyUp();
 void            trap_R_SetAltShaderTokens( const char * );
 void            trap_S_UpdateEntityVelocity( int entityNum, const vec3_t velocity );

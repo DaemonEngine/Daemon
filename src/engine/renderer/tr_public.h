@@ -257,6 +257,7 @@ struct refexport_t
 	void ( *Add2dPolysIndexed )( polyVert_t *polys, int numverts, int *indexes, int numindexes, int trans_x, int trans_y, qhandle_t shader );
 	qhandle_t ( *GenerateTexture )( const byte *pic, int width, int height );
 	const char *( *ShaderNameFromHandle )( qhandle_t shader );
+	EngineTimers *( *GetEngineTimers )();
 	void ( *SendBotDebugDrawCommands )( std::vector<char> commands );
 	void ( *SetMatrixTransform )( const matrix_t matrix );
 	void ( *ResetMatrixTransform )();
