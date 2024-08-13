@@ -269,9 +269,6 @@ public:
 protected:
 	void         PostProcessUniforms();
 	bool         GetCompileMacrosString( size_t permutation, std::string &compileMacrosOut ) const;
-	virtual void BuildShaderVertexLibNames( std::string& /*vertexInlines*/ ) { };
-	virtual void BuildShaderFragmentLibNames( std::string& /*fragmentInlines*/ ) { };
-	virtual void BuildShaderComputeLibNames( std::string& /*computeInlines*/ ) {};
 	virtual void BuildShaderCompileMacros( std::string& /*vertexInlines*/ ) { };
 	virtual void SetShaderProgramUniforms( shaderProgram_t* /*shaderProgram*/ ) { };
 	int          SelectProgram();
@@ -395,7 +392,7 @@ private:
 	                                     Str::StringRef compileMacros, int deformIndex );
 	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText );
 	std::string BuildDeformShaderText( const std::string& steps );
-	std::string BuildGPUShaderText( Str::StringRef mainShader, Str::StringRef libShaders, GLenum shaderType ) const;
+	std::string BuildGPUShaderText( Str::StringRef mainShader, GLenum shaderType ) const;
 	void LinkProgram( GLuint program ) const;
 	void BindAttribLocations( GLuint program ) const;
 	void PrintShaderSource( Str::StringRef programName, GLuint object ) const;
@@ -3937,7 +3934,6 @@ class GLShader_generic2D :
 {
 public:
 	GLShader_generic2D( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
 	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
@@ -3968,7 +3964,6 @@ class GLShader_generic :
 {
 public:
 	GLShader_generic( GLShaderManager *manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -3997,7 +3992,6 @@ class GLShader_genericMaterial :
 	public GLCompileMacro_USE_DEPTH_FADE {
 	public:
 	GLShader_genericMaterial( GLShaderManager* manager );
-	void BuildShaderVertexLibNames( std::string& vertexInlines ) override;
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
@@ -4697,7 +4691,6 @@ class GLShader_fxaa :
 public:
 	GLShader_fxaa( GLShaderManager *manager );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
-	void BuildShaderFragmentLibNames( std::string& fragmentInlines ) override;
 };
 
 class GLShader_cull :
