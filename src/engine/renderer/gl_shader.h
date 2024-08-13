@@ -74,20 +74,24 @@ private:
 
 	std::string                    _name;
 	std::string                    _text;
+	uint32_t _lineCount;
 	GLShaderManager               *_shaderManager;
 
 public:
-	GLHeader() : _name(), _text(), _shaderManager(nullptr)
+	GLHeader() : _name(), _text(), _lineCount(), _shaderManager( nullptr )
 	{}
 
 	GLHeader( const std::string &name, const std::string &text, GLShaderManager *manager ) :
 		_name( name ),
-		_text(text),
+		_text( text ),
+		_lineCount( std::count( text.begin(), text.end(), '\n' ) ),
 		_shaderManager( manager )
-	{}
+	{
+	}
 
 	const std::string &getName() const { return _name; }
 	const std::string &getText() const { return _text; }
+	uint32_t getLineCount() const { return _lineCount; }
 	const GLShaderManager *getManager() const { return _shaderManager; }
 };
 
@@ -381,6 +385,13 @@ public:
 	void buildPermutation( GLShader *shader, int macroIndex, int deformIndex );
 	void buildAll();
 private:
+	struct InfoLogEntry {
+		int line;
+		int character;
+		std::string token;
+		std::string error;
+	};
+
 	bool LoadShaderBinary( GLShader *shader, size_t permutation );
 	void SaveShaderBinary( GLShader *shader, size_t permutation );
 	GLuint CompileShader( Str::StringRef programName, Str::StringRef shaderText,
@@ -392,11 +403,12 @@ private:
 	                                     Str::StringRef compileMacros, int deformIndex );
 	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText );
 	std::string BuildDeformShaderText( const std::string& steps );
-	std::string BuildGPUShaderText( Str::StringRef mainShader, GLenum shaderType ) const;
+	std::string ProcessInserts( const std::string& shaderText, const uint32_t offset ) const;
 	void LinkProgram( GLuint program ) const;
 	void BindAttribLocations( GLuint program ) const;
-	void PrintShaderSource( Str::StringRef programName, GLuint object ) const;
-	void PrintInfoLog( GLuint object ) const;
+	void PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLogLines ) const;
+	std::vector<InfoLogEntry> ParseInfoLog( const std::string& infoLog ) const;
+	std::string GetInfoLog( GLuint object ) const;
 	void InitShader( GLShader *shader );
 	void UpdateShaderProgramUniformLocations( GLShader *shader, shaderProgram_t *shaderProgram ) const;
 };
