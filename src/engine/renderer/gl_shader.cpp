@@ -817,43 +817,10 @@ int GLShaderManager::getDeformShaderIndex( deformStage_t *deforms, int numDeform
 }
 
 std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderName,
-	Str::StringRef libShaderNames,
 	GLenum shaderType ) const {
 	char        filename[MAX_QPATH];
 
-	const char* libNames = libShaderNames.c_str();
-
 	GL_CheckErrors();
-
-	std::string libs; // All libs concatenated
-	libs.reserve( 8192 ); // Might help, just an estimate.
-	while ( true ) {
-		const char* token = COM_ParseExt2( &libNames, false );
-
-		if ( !token[0] ) {
-			break;
-		}
-
-		switch ( shaderType ) {
-			case GL_VERTEX_SHADER:
-				Com_sprintf( filename, sizeof( filename ), "glsl/%s_vp.glsl", token );
-				break;
-			case GL_FRAGMENT_SHADER:
-				Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", token );
-				break;
-			case GL_COMPUTE_SHADER:
-				Com_sprintf( filename, sizeof( filename ), "glsl/%s_cp.glsl", token );
-				break;
-			default:
-				break;
-		}
-
-		libs += GetShaderText( filename );
-		// We added a lot of stuff but if we do something bad
-		// in the GLSL shaders then we want the proper line
-		// so we have to reset the line counting.
-		libs += "#line 0\n";
-	}
 
 	// load main() program
 	switch ( shaderType ) {
@@ -870,29 +837,23 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 			break;
 	}
 
-	std::string env;
-	env.reserve( 1024 ); // Might help, just an estimate.
+	std::string out;
+	out.reserve( 1024 ); // Might help, just an estimate.
 
-	AddDefine( env, "r_AmbientScale", r_ambientScale->value );
-	AddDefine( env, "r_SpecularScale", r_specularScale->value );
-	AddDefine( env, "r_zNear", r_znear->value );
+	AddDefine( out, "r_AmbientScale", r_ambientScale->value );
+	AddDefine( out, "r_SpecularScale", r_specularScale->value );
+	AddDefine( out, "r_zNear", r_znear->value );
 
-	AddDefine( env, "M_PI", static_cast< float >( M_PI ) );
-	AddDefine( env, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
-	AddDefine( env, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
-	AddDefine( env, "TILE_SIZE", TILE_SIZE );
+	AddDefine( out, "M_PI", static_cast< float >( M_PI ) );
+	AddDefine( out, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
+	AddDefine( out, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
+	AddDefine( out, "TILE_SIZE", TILE_SIZE );
 
-	AddDefine( env, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );
+	AddDefine( out, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );
 
-	AddDefine( env, "r_tileStep", glState.tileStep[0], glState.tileStep[1] );
-
-	// We added a lot of stuff but if we do something bad
-	// in the GLSL shaders then we want the proper line
-	// so we have to reset the line counting.
-	env += "#line 0\n";
+	AddDefine( out, "r_tileStep", glState.tileStep[0], glState.tileStep[1] );
 
 	std::string mainShaderText = GetShaderText( filename );
-	std::string out = env + libs;
 	std::istringstream shaderTextStream( mainShaderText );
 
 	std::string line;
@@ -1065,23 +1026,14 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 		uniformBlock->SetLocationIndex( i );
 	}
 
-	std::string vertexInlines;
-	shader->BuildShaderVertexLibNames( vertexInlines );
-
-	std::string fragmentInlines;
-	shader->BuildShaderFragmentLibNames( fragmentInlines );
-
-	std::string computeInlines;
-	shader->BuildShaderComputeLibNames( computeInlines );
-
 	if ( shader->_hasVertexShader ) {
-		shader->_vertexShaderText = BuildGPUShaderText( shader->GetMainShaderName(), vertexInlines, GL_VERTEX_SHADER );
+		shader->_vertexShaderText = BuildGPUShaderText( shader->GetMainShaderName(), GL_VERTEX_SHADER );
 	}
 	if ( shader->_hasFragmentShader ) {
-		shader->_fragmentShaderText = BuildGPUShaderText( shader->GetMainShaderName(), fragmentInlines, GL_FRAGMENT_SHADER );
+		shader->_fragmentShaderText = BuildGPUShaderText( shader->GetMainShaderName(), GL_FRAGMENT_SHADER );
 	}
 	if ( shader->_hasComputeShader ) {
-		shader->_computeShaderText = BuildGPUShaderText( shader->GetMainShaderName(), computeInlines, GL_COMPUTE_SHADER );
+		shader->_computeShaderText = BuildGPUShaderText( shader->GetMainShaderName(), GL_COMPUTE_SHADER );
 	}
 
 	if ( glConfig2.materialSystemAvailable && shader->_useMaterialSystem ) {
@@ -2040,11 +1992,6 @@ GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 {
 }
 
-void GLShader_generic2D::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSprite ";
-}
-
 void GLShader_generic2D::BuildShaderCompileMacros( std::string& compileMacros )
 {
 	compileMacros += "GENERIC_2D ";
@@ -2082,11 +2029,6 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 {
 }
 
-void GLShader_generic::BuildShaderVertexLibNames( std::string& vertexInlines )
-{
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
-}
-
 void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
@@ -2116,10 +2058,6 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
-}
-
-void GLShader_genericMaterial::BuildShaderVertexLibNames( std::string& vertexInlines ) {
-	vertexInlines += "vertexSimple vertexSkinning vertexAnimation vertexSprite ";
 }
 
 void GLShader_genericMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
@@ -2975,11 +2913,6 @@ GLShader_fxaa::GLShader_fxaa( GLShaderManager *manager ) :
 void GLShader_fxaa::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
-}
-
-void GLShader_fxaa::BuildShaderFragmentLibNames( std::string& fragmentInlines )
-{
-	fragmentInlines += "fxaa3_11";
 }
 
 GLShader_cull::GLShader_cull( GLShaderManager* manager ) :
