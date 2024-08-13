@@ -589,6 +589,19 @@ static std::string GenEngineConstants() {
 	// Engine constants
 	std::string str;
 
+	AddDefine( str, "r_AmbientScale", r_ambientScale->value );
+	AddDefine( str, "r_SpecularScale", r_specularScale->value );
+	AddDefine( str, "r_zNear", r_znear->value );
+
+	AddDefine( str, "M_PI", static_cast< float >( M_PI ) );
+	AddDefine( str, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
+	AddDefine( str, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
+	AddDefine( str, "TILE_SIZE", TILE_SIZE );
+
+	AddDefine( str, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );
+
+	AddDefine( str, "r_tileStep", glState.tileStep[0], glState.tileStep[1] );
+
 	if ( glConfig2.shadowMapping )
 	{
 		switch( glConfig2.shadowingMode )
@@ -846,72 +859,6 @@ int GLShaderManager::getDeformShaderIndex( deformStage_t *deforms, int numDeform
 	return index;
 }
 
-std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderName,
-	GLenum shaderType ) const {
-	char        filename[MAX_QPATH];
-
-	GL_CheckErrors();
-
-	// load main() program
-	switch ( shaderType ) {
-		case GL_VERTEX_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "%s_vp.glsl", mainShaderName.c_str() );
-			break;
-		case GL_FRAGMENT_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "%s_fp.glsl", mainShaderName.c_str() );
-			break;
-		case GL_COMPUTE_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "%s_cp.glsl", mainShaderName.c_str() );
-			break;
-		default:
-			break;
-	}
-
-	std::string out;
-	out.reserve( 1024 ); // Might help, just an estimate.
-
-	AddDefine( out, "r_AmbientScale", r_ambientScale->value );
-	AddDefine( out, "r_SpecularScale", r_specularScale->value );
-	AddDefine( out, "r_zNear", r_znear->value );
-
-	AddDefine( out, "M_PI", static_cast< float >( M_PI ) );
-	AddDefine( out, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
-	AddDefine( out, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
-	AddDefine( out, "TILE_SIZE", TILE_SIZE );
-
-	AddDefine( out, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );
-
-	AddDefine( out, "r_tileStep", glState.tileStep[0], glState.tileStep[1] );
-
-	std::string mainShaderText = GetShaderText( filename );
-	std::istringstream shaderTextStream( mainShaderText );
-
-	std::string line;
-	int insertCount = 0;
-	int lineCount = 0;
-
-	while ( std::getline( shaderTextStream, line, '\n' ) ) {
-		++lineCount;
-		const std::string::size_type position = line.find( "#insert" );
-		if ( position == std::string::npos || line.find_first_not_of( " \t" ) != position ) {
-			out += line + "\n";
-			continue;
-		}
-
-		std::string shaderInsertPath = line.substr( position + 8, std::string::npos );
-
-		// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
-		// #insert recursion is not supported
-		++insertCount;
-		out += "#line " + std::to_string( insertCount * 10000 ) + " // " + shaderInsertPath + ".glsl\n";
-
-		out += GetShaderText( shaderInsertPath + ".glsl" );
-		out += "#line " + std::to_string( lineCount ) + "\n";
-	}
-
-	return out;
-}
-
 static bool IsUnusedPermutation( const char *compileMacros )
 {
 	const char* token;
@@ -1034,6 +981,36 @@ void GLShaderManager::buildAll()
 	Log::Notice( "glsl shaders took %d msec to build", _totalBuildTime );
 }
 
+std::string GLShaderManager::ProcessInserts( const std::string& shaderText, const uint32_t offset ) const {
+	std::string out;
+	std::istringstream shaderTextStream( shaderText );
+
+	std::string line;
+	int insertCount = 0;
+	int lineCount = offset;
+
+	while ( std::getline( shaderTextStream, line, '\n' ) ) {
+		++lineCount;
+		const std::string::size_type position = line.find( "#insert" );
+		if ( position == std::string::npos || line.find_first_not_of( " \t" ) != position ) {
+			out += line + "\n";
+			continue;
+		}
+
+		std::string shaderInsertPath = line.substr( position + 8, std::string::npos );
+
+		// Inserted shader lines will start at 10000, 20000 etc. to easily tell them apart from the main shader code
+		// #insert recursion is not supported
+		++insertCount;
+		out += "#line " + std::to_string( insertCount * 10000 ) + " // " + shaderInsertPath + ".glsl\n";
+
+		out += GetShaderText( shaderInsertPath + ".glsl" );
+		out += "#line " + std::to_string( lineCount ) + "\n";
+	}
+
+	return out;
+}
+
 void GLShaderManager::InitShader( GLShader* shader ) {
 	shader->_shaderPrograms = std::vector<shaderProgram_t>( static_cast< size_t >( 1 ) << shader->_compileMacros.size() );
 
@@ -1052,14 +1029,40 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 		uniformBlock->SetLocationIndex( i );
 	}
 
+	char filename[MAX_QPATH];
 	if ( shader->_hasVertexShader ) {
-		shader->_vertexShaderText = BuildGPUShaderText( shader->GetMainShaderName(), GL_VERTEX_SHADER );
+		Com_sprintf( filename, sizeof( filename ), "%s_vp.glsl", shader->GetMainShaderName().c_str() );
+		shader->_vertexShaderText = GetShaderText( filename );
+
+		const uint32_t offset =
+			GLVersionDeclaration.getLineCount()
+			+ GLCompatHeader.getLineCount()
+			+ GLEngineConstants.getLineCount()
+			+ GLVertexHeader.getLineCount();
+		shader->_vertexShaderText = ProcessInserts( shader->_vertexShaderText, offset );
 	}
 	if ( shader->_hasFragmentShader ) {
-		shader->_fragmentShaderText = BuildGPUShaderText( shader->GetMainShaderName(), GL_FRAGMENT_SHADER );
+		Com_sprintf( filename, sizeof( filename ), "%s_fp.glsl", shader->GetMainShaderName().c_str() );
+		shader->_fragmentShaderText = GetShaderText( filename );
+
+		const uint32_t offset =
+			GLVersionDeclaration.getLineCount()
+			+ GLCompatHeader.getLineCount()
+			+ GLEngineConstants.getLineCount()
+			+ GLFragmentHeader.getLineCount();
+		shader->_fragmentShaderText = ProcessInserts( shader->_fragmentShaderText, offset );
 	}
 	if ( shader->_hasComputeShader ) {
-		shader->_computeShaderText = BuildGPUShaderText( shader->GetMainShaderName(), GL_COMPUTE_SHADER );
+		Com_sprintf( filename, sizeof( filename ), "%s_cp.glsl", shader->GetMainShaderName().c_str() );
+		shader->_computeShaderText = GetShaderText( filename );
+
+		const uint32_t offset =
+			GLComputeVersionDeclaration.getLineCount()
+			+ GLCompatHeader.getLineCount()
+			+ GLEngineConstants.getLineCount()
+			+ GLComputeHeader.getLineCount()
+			+ GLWorldHeader.getLineCount();
+		shader->_computeShaderText = ProcessInserts( shader->_computeShaderText, offset );
 	}
 
 	if ( glConfig2.materialSystemAvailable && shader->_useMaterialSystem ) {
@@ -1079,9 +1082,9 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 		combinedShaderText =
 			GLComputeVersionDeclaration.getText()
 			+ GLCompatHeader.getText()
+			+ GLEngineConstants.getText()
 			+ GLComputeHeader.getText()
-			+ GLWorldHeader.getText()
-			+ GLEngineConstants.getText();
+			+ GLWorldHeader.getText();
 	}
 
 	if ( shader->_hasVertexShader ) {
@@ -1281,28 +1284,28 @@ void GLShaderManager::CompileGPUShaders( GLShader *shader, shaderProgram_t *prog
 		program->VS = CompileShader( shader->GetName(),
 						 vertexShaderTextWithMacros,
 						 { &GLVersionDeclaration,
-						   &GLVertexHeader,
 						   &GLCompatHeader,
-						   &GLEngineConstants },
+						   &GLEngineConstants,
+						   &GLVertexHeader },
 						 GL_VERTEX_SHADER );
 	}
 	if ( shader->_hasFragmentShader ) {
 		program->FS = CompileShader( shader->GetName(),
 						 fragmentShaderTextWithMacros,
 						 { &GLVersionDeclaration,
-						   &GLFragmentHeader,
 						   &GLCompatHeader,
-						   &GLEngineConstants },
+						   &GLEngineConstants,
+						   &GLFragmentHeader },
 						 GL_FRAGMENT_SHADER );
 	}
 	if ( shader->_hasComputeShader ) {
 		program->CS = CompileShader( shader->GetName(),
 						 computeShaderTextWithMacros,
 						 { &GLComputeVersionDeclaration,
-						   &GLComputeHeader,
-						   &GLWorldHeader,
 						   &GLCompatHeader,
-						   &GLEngineConstants },
+						   &GLComputeHeader,
+						   &GLEngineConstants,
+						   &GLWorldHeader },
 						 GL_COMPUTE_SHADER );
 	}
 }
@@ -1467,8 +1470,10 @@ GLuint GLShaderManager::CompileShader( Str::StringRef programName,
 
 	if ( !compiled )
 	{
-		PrintShaderSource( programName, shader );
-		PrintInfoLog( shader );
+		std::string log = GetInfoLog( shader );
+		std::vector<InfoLogEntry> infoLog = ParseInfoLog( log );
+		PrintShaderSource( programName, shader, infoLog );
+		Log::Warn( "Compile log:\n%s", log );
 		switch ( shaderType ) {
 			case GL_VERTEX_SHADER:
 				ThrowShaderError( Str::Format( "Couldn't compile vertex shader: %s", programName ) );
@@ -1484,10 +1489,10 @@ GLuint GLShaderManager::CompileShader( Str::StringRef programName,
 	return shader;
 }
 
-void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint object ) const
+void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLog ) const
 {
-	char        *dump;
-	int         maxLength = 0;
+	char *dump;
+	int maxLength = 0;
 
 	glGetShaderiv( object, GL_SHADER_SOURCE_LENGTH, &maxLength );
 
@@ -1496,13 +1501,18 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 	glGetShaderSource( object, maxLength, &maxLength, dump );
 
 	std::string buffer;
-	std::string delim("\n");
-	std::string src(dump);
+	std::string delim( "\n" );
+	std::string src( dump );
 
 	ri.Hunk_FreeTempMemory( dump );
 
 	int lineNumber = 0;
 	size_t pos = 0;
+
+	int infoLogID = -1;
+	if ( infoLog.size() > 0 ) {
+		infoLogID = 0;
+	}
 
 	while ( ( pos = src.find( delim ) ) != std::string::npos ) {
 		std::string line = src.substr( 0, pos );
@@ -1514,7 +1524,8 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 
 		std::string number = std::to_string( lineNumber );
 
-		int p = 4 - number.length();
+		static const int numberWidth = 4;
+		int p = numberWidth - number.length();
 		p = p < 0 ? 0 : p;
 		number.insert( number.begin(), p, ' ' );
 
@@ -1522,6 +1533,54 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 		buffer.append( ": " );
 		buffer.append( line );
 		buffer.append( delim );
+
+		while ( infoLogID != -1 && infoLog[infoLogID].line == lineNumber ) {
+			if ( ( int( line.length() ) > infoLog[infoLogID].character ) && ( infoLog[infoLogID].character != -1 ) ) {
+				buffer.append( numberWidth + 2, '-' );
+				const size_t position = line.find_first_not_of( "\t" );
+
+				if ( position != std::string::npos ) {
+					buffer.append( position, '\t' );
+					buffer.append( infoLog[infoLogID].character - position, '-' );
+				} else {
+					buffer.append( infoLog[infoLogID].character, '-' );
+				}
+				buffer.append( "^" );
+				buffer.append( line.length() - infoLog[infoLogID].character - 1, '-' );
+
+			} else if ( ( line.length() > 0 ) && ( infoLog[infoLogID].token.length() > 0 ) ) {
+				size_t position = line.find_first_not_of( "\t" );
+				size_t prevPosition = 0;
+
+				buffer.append( numberWidth + 2, '-' );
+				if ( position != std::string::npos ) {
+					buffer.append( position, '\t' );
+				} else {
+					position = 0;
+				}
+
+				while ( ( position = line.find( infoLog[infoLogID].token, position ) ) && ( position != std::string::npos ) ) {
+					buffer.append( position - prevPosition - 1, '-' );
+					buffer.append( "^" );
+					prevPosition = position;
+					position++;
+				}
+				buffer.append( line.length() - position - 1, '-' );
+			} else {
+				buffer.append( numberWidth + 2 + line.length(), '^' );
+			}
+
+			buffer.append( delim );
+			buffer.append( infoLog[infoLogID].error );
+			buffer.append( delim );
+			buffer.append( delim );
+
+			infoLogID++;
+
+			if ( infoLogID >= int( infoLog.size() ) ) {
+				infoLogID = -1;
+			}
+		}
 
 		src.erase( 0, pos + delim.length() );
 
@@ -1531,11 +1590,129 @@ void GLShaderManager::PrintShaderSource( Str::StringRef programName, GLuint obje
 	Log::Warn("Source for shader program %s:\n%s", programName, buffer.c_str());
 }
 
-void GLShaderManager::PrintInfoLog( GLuint object) const
+std::vector<GLShaderManager::InfoLogEntry> GLShaderManager::ParseInfoLog( const std::string& infoLog ) const {
+	std::vector<InfoLogEntry> out;
+
+	std::istringstream infoLogTextStream( infoLog );
+	std::string line;
+	const char* digits = "0123456789";
+
+	// Info-log is entirely implementation dependent, so different vendors will report it differently
+	while ( std::getline( infoLogTextStream, line, '\n' ) ) {
+		switch ( glConfig2.driverVendor ) {
+			case glDriverVendor_t::NVIDIA:
+			{
+				// Format: <num of attached shader>(<line>): <error>
+				size_t lineNum1 = line.find_first_of( '(' );
+				if ( lineNum1 != std::string::npos ) {
+					lineNum1++;
+					const size_t lineNum2 = line.find_first_not_of( digits, lineNum1 );
+
+					if ( lineNum2 != std::string::npos ) {
+						int lineNum;
+						if ( !Str::ParseInt( lineNum, line.substr( lineNum1, lineNum2 - lineNum1 ) ) ) {
+							break;
+						}
+						int characterNum = -1;
+						std::string token;
+
+						// The token producing the error tends to be at the end in ""
+						const size_t characterNum2 = line.find_last_of( "\"" );
+						if ( characterNum2 != std::string::npos ) {
+							const std::string subLine = line.substr( lineNum2, characterNum2 - lineNum2 );
+							const size_t characterNum1 = subLine.find_last_of( "\"" );
+
+							token = subLine.substr( characterNum1 + 1 );
+						}
+
+						InfoLogEntry entry;
+						entry.line = lineNum;
+						entry.character = characterNum;
+						entry.token = token;
+						entry.error = line;
+						out.push_back( entry );
+					}
+				}
+				break;
+			}
+			case glDriverVendor_t::MESA:
+			{
+				// Format: <num of attached shader>:<line>(<character>): <error>
+				size_t num1 = line.find_first_of( ':' );
+				if ( num1 != std::string::npos ) {
+					num1++;
+					size_t num2 = line.find_first_not_of( digits, num1 );
+					int lineNum;
+					if ( !Str::ParseInt( lineNum, line.substr( num1, num2 - num1 ) ) ) {
+						break;
+					}
+					int characterNum = -1;
+
+					num1 = line.find_first_of( '(' );
+					if ( num1 != std::string::npos ) {
+						num1++;
+						num2 = line.find_first_not_of( digits, num1 );
+						if ( !Str::ParseInt( characterNum, line.substr( num1, num2 - num1 ) ) ) {
+							break;
+						}
+					}
+
+					InfoLogEntry entry;
+					entry.line = lineNum;
+					entry.character = characterNum;
+					entry.error = line;
+					out.push_back( entry );
+				}
+				break;
+			}
+			case glDriverVendor_t::ATI:
+				// Format: ERROR: <num of attached shader>:<line>: <error>
+			case glDriverVendor_t::INTEL:
+				// Format: ERROR: <wtf is this number?>:<line>: <error>
+			{
+				// Note: Intel sometimes reports incorrect line number for errors
+				size_t num1 = line.find_first_not_of( "ERROR: " );
+				if ( num1 != std::string::npos ) {
+					num1 = line.find_first_not_of( digits, num1 );
+					if ( num1 == std::string::npos ) {
+						break;
+					}
+					num1 = line.find_first_of( digits, num1 );
+					if ( num1 == std::string::npos ) {
+						break;
+					}
+
+					const size_t num2 = line.find_first_not_of( digits, num1 );
+					if ( num2 == std::string::npos ) {
+						break;
+					}
+					int lineNum;
+					if ( !Str::ParseInt( lineNum, line.substr( num1, num2 - num1 ) ) ) {
+						break;
+					}
+
+					InfoLogEntry entry;
+					entry.line = lineNum;
+					entry.character = -1;
+					entry.error = line;
+					out.push_back( entry );
+				}
+				break;
+			}
+			case glDriverVendor_t::UNKNOWN:
+			default:
+				Log::Warn( "Unable to parse shader info log errors: unknown format" );
+				return out;
+		}
+	}
+
+	return out;
+}
+
+std::string GLShaderManager::GetInfoLog( GLuint object ) const
 {
-	char        *msg;
-	int         maxLength = 0;
-	std::string msgText;
+	char *msg;
+	int maxLength = 0;
 
 	if ( glIsShader( object ) )
 	{
@@ -1548,7 +1725,7 @@ void GLShaderManager::PrintInfoLog( GLuint object) const
 	else
 	{
 		Log::Warn( "object is not a shader or program" );
-		return;
+		return "";
 	}
 
 	msg = ( char * ) ri.Hunk_AllocateTempMemory( maxLength );
@@ -1556,19 +1733,16 @@ void GLShaderManager::PrintInfoLog( GLuint object) const
 	if ( glIsShader( object ) )
 	{
 		glGetShaderInfoLog( object, maxLength, &maxLength, msg );
-		msgText = "Compile log:";
 	}
 	else if ( glIsProgram( object ) )
 	{
 		glGetProgramInfoLog( object, maxLength, &maxLength, msg );
-		msgText = "Link log:";
 	}
-	if (maxLength > 0)
-		msgText += '\n';
-	msgText += msg;
-	Log::Warn(msgText);
 
+	std::string out = msg;
 	ri.Hunk_FreeTempMemory( msg );
+
+	return out;
 }
 
 void GLShaderManager::LinkProgram( GLuint program ) const
@@ -1588,7 +1762,8 @@ void GLShaderManager::LinkProgram( GLuint program ) const
 
 	if ( !linked )
 	{
-		PrintInfoLog( program );
+		Log::Warn( "Link log:" );
+		Log::Warn( GetInfoLog( program ) );
 		ThrowShaderError( "Shaders failed to link!" );
 	}
 }
