@@ -332,7 +332,12 @@ void Error(Str::StringRef message)
 		_exit(-1);
 
 	Log::Warn(message);
+
+#ifdef NDEBUG
 	Shutdown(true, message);
+#else
+	std::abort();
+#endif
 
 	OSExit(1);
 }
@@ -753,10 +758,15 @@ ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 
 	// Run the engine frame in a loop. First try to handle an error by returning
 	// to the menu, but make the error fatal if the shutdown code fails.
+#ifdef NDEBUG
 	try {
+#endif
 		while (true) {
+#ifdef NDEBUG
 			try {
+#endif
 				Application::Frame();
+#ifdef NDEBUG
 			} catch (Sys::DropErr& err) {
 				if (err.is_error()) {
 					Log::Warn(err.what());
@@ -787,7 +797,9 @@ ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 					Sys::OSExit(err.is_error() ? 1 : 0);
 				}
 			}
+#endif
 		}
+#ifdef NDEBUG
 	} catch (Sys::DropErr& err) {
 		Sys::Error("Error during error handling: %s", err.what());
 	} catch (std::exception& err) {
@@ -795,6 +807,7 @@ ALIGN_STACK_FOR_MINGW int main(int argc, char** argv)
 	} catch (...) {
 		Sys::Error("Unhandled exception of unknown type");
 	}
+#endif
 
 	ASSERT_UNREACHABLE();
 }
