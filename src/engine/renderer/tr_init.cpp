@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_init.c -- functions that are not called every frame
 #include "tr_local.h"
 #include "framework/CvarSystem.h"
+#include "DetectGLVendors.h"
 #include "Material.h"
 
 	glconfig_t  glConfig;
@@ -883,6 +884,14 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			"windowed",
 			"fullscreen"
 		};
+
+		Log::Notice( "%sOpenGL hardware vendor: %s",
+			Color::ToString( Util::ordinal(glConfig2.hardwareVendor) ? Color::Green : Color::Yellow ),
+			GetGLHardwareVendorName( glConfig2.hardwareVendor ) );
+
+		Log::Notice( "%sOpenGL driver vendor: %s",
+			Color::ToString( Util::ordinal(glConfig2.driverVendor) ? Color::Green : Color::Yellow ),
+			GetGLDriverVendorName( glConfig2.driverVendor ) );
 
 		Log::Notice("GL_VENDOR: %s", glConfig.vendor_string );
 		Log::Notice("GL_RENDERER: %s", glConfig.renderer_string );

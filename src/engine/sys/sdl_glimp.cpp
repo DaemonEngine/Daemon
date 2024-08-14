@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #include "renderer/tr_local.h"
+#include "renderer/DetectGLVendors.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4125) // "decimal digit terminates octal escape sequence"
@@ -2013,7 +2014,8 @@ static void GLimp_InitExtensions()
 		lighting so it is likely this feature would be disabled to
 		get acceptable framerate on this hardware anyway, making the
 		need for such extension and the related shader code useless. */
-		bool foundNvidia340 = ( Q_stristr( glConfig.vendor_string, "NVIDIA Corporation" ) && Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
+		bool foundNvidia340 = ( glConfig2.driverVendor == glDriverVendor_t::NVIDIA
+			&& Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
 
 		if ( foundNvidia340 )
 		{
@@ -2026,7 +2028,7 @@ static void GLimp_InitExtensions()
 	}
 
 	{
-		bool foundIntel = Q_stristr( glConfig.vendor_string, "Intel" );
+		bool foundIntel = glConfig2.hardwareVendor == glHardwareVendor_t::INTEL;
 
 		if ( foundIntel
 			&& LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
@@ -2152,6 +2154,7 @@ static void GLimp_InitExtensions()
 
 	// Some of the mesa 24.x driver versions have a bug in their shader compiler related to bindless textures,
 	// which results in either glitches or the shader compiler crashing (when material system is enabled)
+	if ( glConfig2.driverVendor == glDriverVendor_t::MESA )
 	{
 		bool foundMesa241 = false;
 		std::string mesaVersion = "";
@@ -2349,6 +2352,16 @@ success:
 	}
 
 	Q_strncpyz( glConfig.version_string, ( char * ) glGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
+
+	DetectGLVendors(
+		glConfig.vendor_string,
+		glConfig.version_string,
+		glConfig.renderer_string,
+		glConfig2.hardwareVendor,
+		glConfig2.driverVendor );
+
+	Log::Debug( "Detected OpenGL hardware vendor: %s", GetGLHardwareVendorName( glConfig2.hardwareVendor ) );
+	Log::Debug( "Detected OpenGL driver vendor: %s", GetGLDriverVendorName( glConfig2.driverVendor ) );
 
 	glConfig2.glExtensionsString = std::string();
 

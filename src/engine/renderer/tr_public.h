@@ -37,6 +37,7 @@ Maryland 20850 USA.
 #define __TR_PUBLIC_H
 
 #include "tr_types.h"
+#include "DetectGLVendors.h"
 #include <string>
 
 #define REF_API_VERSION 10
@@ -58,6 +59,9 @@ struct glconfig2_t
 
 	bool glCoreProfile;
 	bool glForwardCompatibleContext;
+
+	glDriverVendor_t driverVendor;
+	glHardwareVendor_t hardwareVendor;
 
 	std::string glExtensionsString;
 	std::string glEnabledExtensionsString;
