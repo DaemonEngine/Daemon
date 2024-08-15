@@ -729,7 +729,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
 
-	if ( r_normalMapping->integer )
+	if ( glConfig2.normalMapping )
 	{
 		AddDefine( str, "r_normalMapping", 1 );
 	}
@@ -739,14 +739,9 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_liquidMapping", 1 );
 	}
 
-	if ( r_specularMapping->integer )
+	if ( glConfig2.specularMapping )
 	{
 		AddDefine( str, "r_specularMapping", 1 );
-	}
-
-	if ( r_physicalMapping->integer )
-	{
-		AddDefine( str, "r_physicalMapping", 1 );
 	}
 
 	if ( r_glowMapping->integer )
