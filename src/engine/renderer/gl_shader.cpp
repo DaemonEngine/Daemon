@@ -890,6 +890,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 		if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 )
 		{
 			if ( !glConfig2.normalMapping ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
 		{
@@ -902,6 +903,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 		else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 )
 		{
 			if ( !glConfig2.physicalMapping ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 )
 		{
@@ -922,6 +924,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 		else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 )
 		{
 			if ( !glConfig2.reliefMapping && !glConfig2.normalMapping ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
 		}
 	}
 
