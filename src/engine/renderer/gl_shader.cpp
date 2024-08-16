@@ -887,11 +887,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	const char* token;
 	while ( *( token = COM_ParseExt2( &compileMacros, false ) ) )
 	{
-		if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 )
-		{
-			if ( !glConfig2.normalMapping ) return true;
-		}
-		else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
+		if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
 		{
 			if ( !glConfig2.deluxeMapping ) return true;
 		}
