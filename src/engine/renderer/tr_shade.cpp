@@ -104,6 +104,12 @@ static void EnableAvailableFeatures()
 		}
 	}
 
+
+	// Disable features that require deluxe mapping to be enabled.
+	glConfig2.normalMapping = glConfig2.deluxeMapping && glConfig2.normalMapping;
+	glConfig2.specularMapping = glConfig2.deluxeMapping && glConfig2.specularMapping;
+	glConfig2.physicalMapping = glConfig2.deluxeMapping && glConfig2.physicalMapping;
+
 	glConfig2.bloom = r_bloom->integer;
 
 	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
