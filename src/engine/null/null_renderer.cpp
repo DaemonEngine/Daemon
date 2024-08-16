@@ -198,6 +198,9 @@ bool RE_BeginRegistration( glconfig_t *config, glconfig2_t *glconfig2 )
 	return true;
 }
 
+void RE_SetMatrixTransform( const matrix_t ) {}
+void RE_ResetMatrixTransform() {}
+
 refexport_t    *GetRefAPI( int, refimport_t* )
 {
     static refexport_t re;
@@ -286,6 +289,8 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.Add2dPolysIndexed = RE_Add2dPolysIndexed;
     re.GenerateTexture = RE_GenerateTexture;
     re.ShaderNameFromHandle = RE_ShaderNameFromHandle;
+    re.SetMatrixTransform = RE_SetMatrixTransform;
+    re.ResetMatrixTransform = RE_ResetMatrixTransform;
 
     return &re;
 }
