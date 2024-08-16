@@ -107,8 +107,13 @@ void main()
 		vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 	#endif // !r_normalMapping
 
-	// Compute the material term.
-	vec4 material = texture2D(u_MaterialMap, texCoords);
+	#if defined(r_specularMapping) || defined(r_physicalMapping)
+		// Compute the material term.
+		vec4 material = texture2D(u_MaterialMap, texCoords);
+	#elif defined(r_dynamicLight) && r_dynamicLightRenderer == 1
+		// The computeDynamicLights function requires this variable to exist.
+		vec4 material = { 0, 0, 0, 1 };
+	#endif
 
 	// Compute final color.
 	vec4 color;
