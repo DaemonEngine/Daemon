@@ -491,7 +491,8 @@ struct cmdlineArgs_t {
 	cmdlineArgs_t()
 		: homePath(Application::GetTraits().defaultHomepath), libPath(FS::DefaultLibPath()),
 		  reset_config(false), use_crash_handlers(true),
-		  use_curses(Application::GetTraits().useCurses) {}
+		  use_curses(Application::GetTraits().useCurses),
+		  allowStartNewInstance(true), allowForwardToExistingInstance(true) {}
 
 	std::string homePath;
 	std::string libPath;
@@ -500,6 +501,8 @@ struct cmdlineArgs_t {
 	bool reset_config;
 	bool use_crash_handlers;
 	bool use_curses;
+	bool allowStartNewInstance;
+	bool allowForwardToExistingInstance;
 
 	std::unordered_map<std::string, std::string> cvars;
 	std::string commands;
@@ -574,6 +577,8 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 				"  -libpath <path>          set the path containing additional executables and libraries\n"
 				"  -pakpath <path>          add another path from which dpk files are loaded\n"
 				"  -resetconfig             reset all cvars and keybindings to their default value\n"
+				"  -noforward               do not forward commands to an existing existance; instead exit with error\n"
+				"  -forward-only            just forward commands; exit with error if no existing instance\n"
 #ifdef USE_CURSES
 				"  -curses                  activate the curses interface\n"
 #endif
@@ -623,6 +628,12 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			i++;
 		} else if (!strcmp(argv[i], "-resetconfig")) {
 			cmdlineArgs.reset_config = true;
+		} else if (!strcmp(argv[i], "-noforward")) {
+			cmdlineArgs.allowForwardToExistingInstance = false;
+			cmdlineArgs.allowStartNewInstance = true;
+		} else if (!strcmp(argv[i], "-forward-only")) {
+			cmdlineArgs.allowForwardToExistingInstance = true;
+			cmdlineArgs.allowStartNewInstance = false;
 		}
 		else if (!strcmp(argv[i], "-nocrashhandler")) {
 			cmdlineArgs.use_crash_handlers = false;
@@ -748,18 +759,25 @@ static void Init(int argc, char** argv)
 	singletonSocketPath = GetSingletonSocketPath();
 	if (ConnectSingletonSocket()) {
 		Log::Notice("Existing instance found");
-		if (!cmdlineArgs.commands.empty()) {
-			Log::Notice("Forwarding commands to existing instance");
-			WriteSingletonSocket(cmdlineArgs.commands);
-		} else
-			Log::Notice("No commands given, exiting...");
+		if (cmdlineArgs.allowForwardToExistingInstance) {
+			if (!cmdlineArgs.commands.empty()) {
+				Log::Notice("Forwarding commands to existing instance");
+				WriteSingletonSocket(cmdlineArgs.commands);
+			} else {
+				Log::Notice("No commands given, exiting...");
+			}
+		}
 #ifdef _WIN32
 		CloseHandle(singletonSocket);
 #else
 		close(singletonSocket);
 #endif
 		CON_Shutdown();
-		OSExit(0);
+		OSExit(cmdlineArgs.allowForwardToExistingInstance ? 0 : 1);
+	} else if (!cmdlineArgs.allowStartNewInstance) {
+		Log::Notice("Command forwarding requested, but no existing instance found");
+		CON_Shutdown();
+		OSExit(1);
 	}
 
 	// Create the singleton socket
