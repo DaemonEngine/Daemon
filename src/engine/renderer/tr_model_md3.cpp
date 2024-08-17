@@ -344,7 +344,8 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			vboSurf->numIndexes = surf->numTriangles * 3;
 			vboSurf->numVerts = surf->numVerts;
 
-			vboSurf->vbo = R_CreateStaticVBO( va( "staticMD3Mesh_VBO '%s'", surf->name ), data, vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION );
+			std::string name = Str::Format( "%s '%s'", modName , surf->name );
+			vboSurf->vbo = R_CreateStaticVBO( ( "MD3 surface VBO " + name ).c_str(), data, vboLayout_t::VBO_LAYOUT_VERTEX_ANIMATION );
 
 			// MD3 does not have color, but shaders always request it and the "vertex animation"
 			// vertex layout includes a color field, which is zeroed by default.
@@ -360,7 +361,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 					indexes[ f++ ] = surf->triangles[ j ].indexes[ k ];
 				}
 			}
-			vboSurf->ibo = R_CreateStaticIBO2( va( "staticMD3Mesh_IBO %s", surf->name ), surf->numTriangles, indexes );
+			vboSurf->ibo = R_CreateStaticIBO2( ( "MD3 surface IBO " + name ).c_str(), surf->numTriangles, indexes );
 
 			ri.Hunk_FreeTempMemory(indexes);
 		}

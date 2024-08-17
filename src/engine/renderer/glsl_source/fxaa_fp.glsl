@@ -35,6 +35,9 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 
 // The FXAA parameters are put directly in fxaa3_11_fp.glsl
 // because we cannot #include in the middle of a shader
+// ^This is no longer true, but I'm not touching that mess
+
+#insert fxaa3_11_fp
 
 uniform sampler2D	u_ColorMap;
 

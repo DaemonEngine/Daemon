@@ -130,12 +130,22 @@ struct Material {
 	}
 };
 
-struct drawSurfBoundingSphere {
+struct PortalSurface {
 	vec3_t origin;
 	float radius;
 
 	uint32_t drawSurfID;
+	float distance;
+	vec2_t padding;
 };
+
+struct PortalView {
+	uint32_t count;
+	drawSurf_t* drawSurf;
+	uint32_t views[MAX_VIEWS];
+};
+
+extern PortalView portalStack[MAX_VIEWS];
 
 #define MAX_SURFACE_COMMANDS 16
 #define MAX_COMMAND_COUNTERS 64
@@ -148,6 +158,7 @@ struct drawSurfBoundingSphere {
 #define INDIRECT_COMMAND_SIZE 5
 #define SURFACE_COMMAND_SIZE 6
 #define SURFACE_COMMAND_BATCH_SIZE 4 // Aligned to 4 components
+#define PORTAL_SURFACE_SIZE 8
 
 #define MAX_FRAMES 2
 #define MAX_VIEWFRAMES MAX_VIEWS * MAX_FRAMES // Buffer 2 frames for each view
@@ -155,7 +166,10 @@ struct drawSurfBoundingSphere {
 struct ViewFrame {
 	uint32_t viewID = 0;
 	uint32_t portalViews[MAX_VIEWS];
+	uint32_t viewCount;
+	vec3_t origin;
 	frustum_t frustum;
+	uint32_t portalSurfaceID;
 };
 
 struct Frame {
@@ -198,7 +212,8 @@ class MaterialSystem {
 
 	std::vector<drawSurf_t*> portalSurfacesTmp;
 	std::vector<drawSurf_t> portalSurfaces;
-	std::vector<drawSurfBoundingSphere> portalBounds;
+	std::vector<PortalSurface> portalBounds;
+	uint32_t totalPortals;
 	std::vector<shader_t*> skyShaders;
 
 	std::vector<Material*> renderedMaterials;
@@ -233,11 +248,14 @@ class MaterialSystem {
 	void RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID );
 	void UpdateDynamicSurfaces();
 
-	void QueueSurfaceCull( const uint32_t viewID, const frustum_t* frustum );
+	void QueueSurfaceCull( const uint32_t viewID, const vec3_t origin, const frustum_t* frustum );
+	void DepthReduction();
 	void CullSurfaces();
 	
 	void StartFrame();
 	void EndFrame();
+
+	void GenerateDepthImages( const int width, const int height, imageParams_t imageParms );
 
 	void AddStageTextures( drawSurf_t* drawSurf, shaderStage_t* pStage, Material* material );
 	void GenerateWorldMaterials();
@@ -252,6 +270,13 @@ class MaterialSystem {
 	private:
 	bool PVSLocked = false;
 	frustum_t lockedFrustum;
+	image_t* lockedDepthImage;
+	matrix_t lockedViewMatrix;
+
+	uint32_t viewCount;
+
+	image_t* depthImage;
+	int depthImageLevels;
 
 	DrawCommand cmd;
 	uint32_t lastCommandID;
@@ -270,6 +295,8 @@ class MaterialSystem {
 	uint32_t currentFrame = 0;
 	uint32_t nextFrame = 1;
 
+	bool AddPortalSurface( uint32_t viewID, PortalSurface* portalSurfs );
+
 	void RenderMaterial( Material& material, const uint32_t viewID );
 	void UpdateFrameData();
 };
@@ -280,6 +307,7 @@ extern GLSSBO surfaceCommandsSSBO; // Per viewframe, GPU updated
 extern GLBuffer culledCommandsBuffer; // Per viewframe
 extern GLUBO surfaceBatchesUBO; // Global
 extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
+extern GLSSBO portalSurfacesSSBO; // Per viewframe
 extern MaterialSystem materialSystem;
 
 #endif // MATERIAL_H

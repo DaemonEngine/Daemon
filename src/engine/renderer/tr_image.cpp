@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "InternalImage.h"
 #include "tr_local.h"
 #include <iomanip>
+#include "Material.h"
 
 int                  gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int                  gl_filter_max = GL_LINEAR;
@@ -2484,6 +2485,10 @@ static void R_CreateCurrentRenderImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
+
+	if ( glConfig2.materialSystemAvailable ) {
+		materialSystem.GenerateDepthImages( width, height, imageParams );
+	}
 }
 
 static void R_CreateDepthRenderImage()

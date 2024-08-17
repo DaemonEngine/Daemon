@@ -737,7 +737,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	struct VBO_t
 	{
-		char     name[ MAX_QPATH ];
+		char     name[ 96 ]; // only for debugging with /listVBOs
 
 		uint32_t vertexesVBO;
 
@@ -755,7 +755,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 	struct IBO_t
 	{
-		char     name[ MAX_QPATH ];
+		char     name[ 96 ]; // only for debugging with /listVBOs
 
 		uint32_t indexesVBO;
 		uint32_t indexesSize; // amount of memory data allocated for all triangles in bytes
@@ -2883,6 +2883,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern Cvar::Cvar<bool> r_materialSystem;
+	extern Cvar::Cvar<bool> r_gpuFrustumCulling;
+	extern Cvar::Cvar<bool> r_gpuOcclusionCulling;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
@@ -3060,6 +3062,7 @@ inline bool checkGLErrors()
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
 
+	bool           PortalOffScreenOrOutOfRange( const drawSurf_t* drawSurf, screenRect_t& surfRect );
 	bool           R_MirrorViewBySurface( drawSurf_t* drawSurf );
 	void           R_RenderView( viewParms_t *parms );
 	void           R_RenderPostProcess();

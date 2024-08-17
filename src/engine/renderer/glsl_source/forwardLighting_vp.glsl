@@ -22,6 +22,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* forwardLighting_vp.glsl */
 
+#insert vertexSimple_vp
+#insert vertexSkinning_vp
+#insert vertexAnimation_vp
+
 uniform mat4		u_TextureMatrix;
 uniform mat4		u_LightAttenuationMatrix;
 uniform mat4		u_ModelMatrix;

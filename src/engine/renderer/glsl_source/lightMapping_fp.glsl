@@ -22,6 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_fp.glsl */
 
+#insert computeLight_fp
+#insert reliefMapping_fp
+
 #define LIGHTMAPPING_GLSL
 
 uniform sampler2D	u_DiffuseMap;
@@ -54,11 +57,18 @@ uniform sampler3D u_LightGrid2;
 	uniform vec3 u_LightGridScale;
 #endif
 
+uniform bool u_ShowTris;
+
 DECLARE_OUTPUT(vec4)
 
 void main()
 {
 	#insert material_fp
+
+	if( u_ShowTris ) {
+		outputColor = vec4( 0.0, 0.0, 1.0, 1.0 );
+		return;
+	}
 
 	// Compute view direction in world space.
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
@@ -69,7 +79,11 @@ void main()
 
 	#if defined(USE_RELIEF_MAPPING)
 		// Compute texcoords offset from heightmap.
-		vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_HeightMap);
+		#if defined(USE_HEIGHTMAP_IN_NORMALMAP)
+			vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_NormalMap);
+		#else
+			vec2 texOffset = ReliefTexOffset(texCoords, viewDir, tangentToWorldMatrix, u_HeightMap);
+		#endif
 
 		texCoords += texOffset;
 	#endif
