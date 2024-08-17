@@ -81,11 +81,6 @@ static uint32_t R_DeriveAttrBits( const vboData_t &data )
 		stateBits |= ATTR_BONE_FACTORS;
 	}
 
-	if ( data.spriteOrientation )
-	{
-		stateBits |= ATTR_ORIENTATION;
-	}
-
 	if ( data.numFrames )
 	{
 		if ( data.xyz )

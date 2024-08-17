@@ -728,7 +728,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		union { f16vec2_t *st; vec2_t *stf; };
 		int    (*boneIndexes)[ 4 ];
 		vec4_t *boneWeights;
-		f16vec4_t *spriteOrientation;
 
 		int	numFrames;
 		int     numVerts;
