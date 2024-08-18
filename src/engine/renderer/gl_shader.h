@@ -277,7 +277,7 @@ public:
 	void BindProgram( int deformIndex );
 	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
 	void DispatchComputeIndirect( const GLintptr indirectBuffer );
-	void SetRequiredVertexPointers( bool vboVertexSprite = false );
+	void SetRequiredVertexPointers( bool vertexSprite = false );
 
 	bool IsMacroSet( int bit )
 	{

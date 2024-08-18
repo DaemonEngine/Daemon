@@ -1180,7 +1180,7 @@ static void BindShaderGeneric( Material* material ) {
 	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
 
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
-	gl_genericShaderMaterial->SetVertexSprite( material->vboVertexSprite );
+	gl_genericShaderMaterial->SetVertexSprite( material->vertexSprite );
 
 	gl_genericShaderMaterial->BindProgram( material->deformIndex );
 }
@@ -1227,7 +1227,7 @@ static void BindShaderScreen( Material* material ) {
 static void BindShaderHeatHaze( Material* material ) {
 	gl_heatHazeShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 
-	gl_heatHazeShaderMaterial->SetVertexSprite( material->vboVertexSprite );
+	gl_heatHazeShaderMaterial->SetVertexSprite( material->vertexSprite );
 
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
 }
@@ -1248,7 +1248,7 @@ static void ProcessMaterialGeneric( Material* material, shaderStage_t* pStage, s
 	material->vertexAnimation = false;
 	material->tcGenEnvironment = pStage->tcGen_Environment;
 	material->tcGen_Lightmap = pStage->tcGen_Lightmap;
-	material->vboVertexSprite = shader->autoSpriteMode != 0;
+	material->vertexSprite = shader->autoSpriteMode != 0;
 	material->deformIndex = pStage->deformIndex;
 
 	gl_genericShaderMaterial->SetVertexAnimation( false );
@@ -2226,7 +2226,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		case stageType_t::ST_STYLECOLORMAP:
 			BindShaderGeneric( &material );
 
-			if ( material.tcGenEnvironment || material.vboVertexSprite ) {
+			if ( material.tcGenEnvironment || material.vertexSprite ) {
 				gl_genericShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
 				gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 			}
@@ -2285,7 +2285,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 			// FIXME: This requires 2 draws per surface stage rather than 1
 			BindShaderHeatHaze( &material );
 
-			if ( material.vboVertexSprite ) {
+			if ( material.vertexSprite ) {
 				gl_heatHazeShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
 				gl_heatHazeShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 			}

@@ -1944,7 +1944,7 @@ void GLShader::DispatchComputeIndirect( const GLintptr indirectBuffer ) {
 	glDispatchComputeIndirect( indirectBuffer );
 }
 
-void GLShader::SetRequiredVertexPointers( bool vboVertexSprite )
+void GLShader::SetRequiredVertexPointers( bool vertexSprite )
 {
 	uint32_t macroVertexAttribs = 0;
 
@@ -1958,7 +1958,7 @@ void GLShader::SetRequiredVertexPointers( bool vboVertexSprite )
 
 	uint32_t attribs = _vertexAttribsRequired | _vertexAttribs | macroVertexAttribs; // & ~_vertexAttribsUnsupported);
 
-	if ( vboVertexSprite )
+	if ( vertexSprite )
 	{
 		attribs &= ~ATTR_QTANGENT;
 		attribs |= ATTR_ORIENTATION;
