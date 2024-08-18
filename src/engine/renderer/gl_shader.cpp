@@ -791,7 +791,7 @@ std::string GLShaderManager::BuildDeformShaderText( const std::string& steps )
 	// in the GLSL shaders then we want the proper line
 	// so we have to reset the line counting.
 	shaderText += "#line 0\n";
-	shaderText += GetShaderText("glsl/deformVertexes_vp.glsl");
+	shaderText += GetShaderText("deformVertexes_vp.glsl");
 	return shaderText;
 }
 
@@ -825,13 +825,13 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	// load main() program
 	switch ( shaderType ) {
 		case GL_VERTEX_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "glsl/%s_vp.glsl", mainShaderName.c_str() );
+			Com_sprintf( filename, sizeof( filename ), "%s_vp.glsl", mainShaderName.c_str() );
 			break;
 		case GL_FRAGMENT_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", mainShaderName.c_str() );
+			Com_sprintf( filename, sizeof( filename ), "%s_fp.glsl", mainShaderName.c_str() );
 			break;
 		case GL_COMPUTE_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "glsl/%s_cp.glsl", mainShaderName.c_str() );
+			Com_sprintf( filename, sizeof( filename ), "%s_cp.glsl", mainShaderName.c_str() );
 			break;
 		default:
 			break;
@@ -875,7 +875,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 		++insertCount;
 		out += "#line " + std::to_string( insertCount * 10000 ) + " // " + shaderInsertPath + ".glsl\n";
 
-		out += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
+		out += GetShaderText( shaderInsertPath + ".glsl" );
 		out += "#line " + std::to_string( lineCount ) + "\n";
 	}
 
