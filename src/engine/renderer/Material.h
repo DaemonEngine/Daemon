@@ -90,7 +90,7 @@ struct Material {
 	bool tcGenEnvironment;
 	bool tcGen_Lightmap;
 	bool hasDepthFade;
-	bool vboVertexSprite;
+	bool vertexSprite;
 	bool alphaTest;
 
 	bool bspSurface;
