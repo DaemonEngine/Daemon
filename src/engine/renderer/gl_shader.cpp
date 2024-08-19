@@ -34,6 +34,9 @@ static_assert(std::is_pod<GLBinaryHeader>::value, "Value must be a pod while cod
 static Cvar::Cvar<std::string> shaderpath(
 	"shaderpath", "path to load GLSL source files at runtime", Cvar::INIT | Cvar::TEMPORARY, "");
 
+static Cvar::Cvar<bool> r_glslCache(
+	"r_glslCache", "cache compiled GLSL shader binaries in the homepath", Cvar::NONE, true);
+
 extern std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
@@ -1078,6 +1081,9 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	const byte    *binaryptr;
 	GLBinaryHeader shaderHeader;
 
+	if ( !r_glslCache.Get() )
+		return false;
+
 	if (!GetShaderPath().empty())
 		return false;
 
@@ -1163,6 +1169,9 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 	byte                  *binaryptr;
 	GLBinaryHeader        shaderHeader{}; // Zero init.
 	shaderProgram_t       *shaderProgram;
+
+	if ( !r_glslCache.Get() )
+		return;
 
 	if (!GetShaderPath().empty())
 		return;
