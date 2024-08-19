@@ -1168,8 +1168,8 @@ void MaterialSystem::GenerateDepthImages( const int width, const int height, ima
 	int mipmapHeight = height;
 	for ( int j = 0; j < depthImageLevels; j++ ) {
 		glTexImage2D( GL_TEXTURE_2D, j, GL_R32F, mipmapWidth, mipmapHeight, 0, GL_RED, GL_FLOAT, nullptr );
-		mipmapWidth >>= 1;
-		mipmapHeight >>= 1;
+		mipmapWidth = mipmapWidth > 1 ? mipmapWidth >> 1 : 1;
+		mipmapHeight = mipmapHeight > 1 ? mipmapHeight >> 1 : 1;
 	}
 }
 
