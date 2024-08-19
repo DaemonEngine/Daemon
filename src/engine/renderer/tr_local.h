@@ -1290,6 +1290,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool        interactLight; // this shader can interact with light shaders
 
+		// mode 1 can be used in BSP surfaces or with RT_SPRITE
+		// mode 2 can be used only in BSP surfaces
 		int		autoSpriteMode;
 
 		uint8_t         numDeforms;

@@ -640,6 +640,9 @@ static void Tess_SurfaceSprite()
 
 	if( tess.surfaceShader->autoSpriteMode == 1 ) {
 		// the calculations are done in GLSL shader
+		// FIXME why does this need a different codepath (other than to cope with USE_VERTEX_SPRITE
+		// shader variants being selected?) Aren't the semantics of deformvertexes autosprite the
+		// same as those of RT_SPRITE?
 
 		Tess_AddSprite( backEnd.currentEntity->e.origin, 
 				backEnd.currentEntity->e.shaderRGBA,

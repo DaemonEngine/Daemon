@@ -931,11 +931,6 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		{
 			if ( oldShader != nullptr )
 			{
-				if ( oldShader->autoSpriteMode && !(tess.attribsSet & ATTR_ORIENTATION) ) {
-					Tess_AutospriteDeform( oldShader->autoSpriteMode,
-							       0, tess.numVertexes,
-							       0, tess.numIndexes );
-				}
 				Tess_End();
 			}
 
@@ -997,11 +992,6 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	// draw the contents of the last shader batch
 	if ( oldShader != nullptr )
 	{
-		if ( oldShader->autoSpriteMode && !(tess.attribsSet & ATTR_ORIENTATION) ) {
-			Tess_AutospriteDeform( oldShader->autoSpriteMode,
-					       0, tess.numVertexes,
-					       0, tess.numIndexes );
-		}
 		Tess_End();
 	}
 
