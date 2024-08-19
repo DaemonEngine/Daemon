@@ -3259,9 +3259,10 @@ static void R_CreateWorldVBO()
 		}
 	}
 
-	s_worldData.vbo = R_CreateStaticVBO2( va( "staticWorld_VBO %i", 0 ), numVerts, vboVerts,
-					      ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR
-	                                 );
+	// autosprite/autosprite2 surfaces have ATTR_ORIENTATION and everything else ATTR_QTANGENT.
+	s_worldData.vbo = R_CreateStaticVBO2(
+		"staticWorld_VBO %i", numVerts, vboVerts,
+		ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_ORIENTATION | ATTR_COLOR );
 	s_worldData.ibo = R_CreateStaticIBO2( va( "staticWorld_IBO %i", 0 ), numTriangles, vboIdxs );
 
 	tess.numVertexes = 0;
