@@ -4084,15 +4084,11 @@ static void RB_RenderDebugUtils()
 	}
 
 	// GLSL shader isn't built when reflection mapping is disabled.
-	if ( r_showCubeProbes->integer && gl_reflectionShader != nullptr )
+	if ( r_showCubeProbes->integer && tr.cubeHashTable && r_reflectionMapping->integer &&
+	     !( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) ) )
 	{
 		static const vec3_t mins = { -8, -8, -8 };
 		static const vec3_t maxs = { 8,  8,  8 };
-
-		if ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) )
-		{
-			return;
-		}
 
 		// choose right shader program ----------------------------------
 		gl_reflectionShader->SetVertexSkinning( false );
@@ -4176,13 +4172,9 @@ static void RB_RenderDebugUtils()
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			if ( cubeProbeNearest == nullptr && cubeProbeSecondNearest == nullptr )
+			if ( cubeProbeNearest == nullptr )
 			{
 				// bad
-			}
-			else if ( cubeProbeNearest == nullptr )
-			{
-				Tess_AddCubeWithNormals( cubeProbeSecondNearest->origin, mins, maxs, Color::Blue );
 			}
 			else if ( cubeProbeSecondNearest == nullptr )
 			{

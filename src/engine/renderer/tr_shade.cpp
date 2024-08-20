@@ -1135,7 +1135,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
 
 	// Not implemented yet in PBR code.
-	bool enableReflectiveSpecular = pStage->enableSpecularMapping && tr.cubeHashTable != nullptr;
+	bool enableReflectiveSpecular =
+		pStage->enableSpecularMapping && tr.cubeHashTable != nullptr && r_reflectionMapping->integer;
 
 	GL_State( stateBits );
 
