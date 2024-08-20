@@ -6281,7 +6281,7 @@ static const int HASHTABLE_SIZE = 7919; // 32749 // 2039    /* prime, use % */
 #define HASH_USE_EPSILON
 
 #ifdef HASH_USE_EPSILON
-#define HASH_XYZ_EPSILON                 0.01f
+#define HASH_XYZ_EPSILON 100.0f
 #define HASH_XYZ_EPSILONSPACE_MULTIPLIER 1.f / HASH_XYZ_EPSILON
 #endif
 
