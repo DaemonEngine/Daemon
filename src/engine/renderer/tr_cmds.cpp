@@ -110,12 +110,6 @@ void R_PerformanceCounters()
 	{
 		Log::Notice("zNear: %.0f zFar: %.0f", tr.viewParms.zNear, tr.viewParms.zFar );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_DECALS ))
-	{
-		Log::Notice("decal projectors: %d test surfs: %d clip surfs: %d decal surfs: %d created: %d",
-		           tr.pc.c_decalProjectors, tr.pc.c_decalTestSurfaces, tr.pc.c_decalClipSurfaces, tr.pc.c_decalSurfaces,
-		           tr.pc.c_decalSurfacesCreated );
-	}
 
 	tr.pc = {};
 	backEnd.pc = {};

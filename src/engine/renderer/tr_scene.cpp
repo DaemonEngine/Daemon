@@ -39,12 +39,6 @@ static int r_firstScenePoly;
 int        r_numPolyVerts;
 int        r_numPolyIndexes;
 
-// ydnar: decals
-int        r_firstSceneDecalProjector;
-int        r_numDecalProjectors;
-int        r_firstSceneDecal;
-int        r_numDecals;
-
 int r_numVisTests;
 int r_firstSceneVisTest;
 
@@ -82,12 +76,6 @@ void R_ToggleSmpFrame()
 
 	r_numPolyVerts = 0;
 	r_numPolyIndexes = 0;
-
-	// ydnar: decals
-	r_numDecalProjectors = 0;
-	r_firstSceneDecalProjector = 0;
-	r_numDecals = 0;
-	r_firstSceneDecal = 0;
 
 	r_numVisTests = 0;
 	r_firstSceneVisTest = 0;
@@ -555,12 +543,6 @@ void RE_RenderScene( const refdef_t *fd )
 
 	tr.refdef.numPolys = r_numPolys - r_firstScenePoly;
 	tr.refdef.polys = &backEndData[ tr.smpFrame ]->polys[ r_firstScenePoly ];
-
-	tr.refdef.numDecalProjectors = r_numDecalProjectors - r_firstSceneDecalProjector;
-	tr.refdef.decalProjectors = &backEndData[ tr.smpFrame ]->decalProjectors[ r_firstSceneDecalProjector ];
-
-	tr.refdef.numDecals = r_numDecals - r_firstSceneDecal;
-	tr.refdef.decals = &backEndData[ tr.smpFrame ]->decals[ r_firstSceneDecal ];
 
 	tr.refdef.numVisTests = r_numVisTests - r_firstSceneVisTest;
 	tr.refdef.visTests = &backEndData[ tr.smpFrame ]->visTests[ r_firstSceneVisTest ];

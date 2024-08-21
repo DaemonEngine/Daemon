@@ -96,7 +96,6 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/tr_bsp.cpp
     ${ENGINE_DIR}/renderer/tr_cmds.cpp
     ${ENGINE_DIR}/renderer/tr_curve.cpp
-    ${ENGINE_DIR}/renderer/tr_decals.cpp
     ${ENGINE_DIR}/renderer/tr_fbo.cpp
     ${ENGINE_DIR}/renderer/tr_flares.cpp
     ${ENGINE_DIR}/renderer/tr_font.cpp

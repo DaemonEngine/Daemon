@@ -102,8 +102,6 @@ int R_MarkFragments( int, const vec3_t*, const vec3_t, int, vec3_t, int, markFra
 {
 	return 0;
 }
-void RE_ProjectDecal( qhandle_t, int, vec3_t*, vec4_t, const Color::Color&, int, int ) { }
-void RE_ClearDecals() { }
 int R_LerpTag( orientation_t*, const refEntity_t*, const char*, int )
 {
 	return 0;
@@ -245,8 +243,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.SendBotDebugDrawCommands = RE_SendBotDebugDrawCommands;
 
     re.MarkFragments = R_MarkFragments;
-    re.ProjectDecal = RE_ProjectDecal;
-    re.ClearDecals = RE_ClearDecals;
 
     re.LerpTag = R_LerpTag;
     re.ModelBounds = R_ModelBounds;

@@ -221,7 +221,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showCubeProbes;
 	cvar_t      *r_showBspNodes;
 	cvar_t      *r_showParallelShadowSplits;
-	cvar_t      *r_showDecalProjectors;
 
 	cvar_t      *r_vboFaces;
 	cvar_t      *r_vboCurves;
@@ -1300,7 +1299,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showCubeProbes = Cvar_Get( "r_showCubeProbes", "0", CVAR_CHEAT );
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showDecalProjectors = Cvar_Get( "r_showDecalProjectors", "0", CVAR_CHEAT );
 
 		// make sure all the commands added here are also removed in R_Shutdown
 		ri.Cmd_AddCommand( "listImages", R_ListImages_f );
@@ -1608,9 +1606,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		// Q3A END
 
 		// ET BEGIN
-		re.ProjectDecal = RE_ProjectDecal;
-		re.ClearDecals = RE_ClearDecals;
-
 		re.LoadDynamicShader = RE_LoadDynamicShader;
 		re.Finish = RE_Finish;
 		// ET END
