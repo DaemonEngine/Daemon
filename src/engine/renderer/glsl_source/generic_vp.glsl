@@ -43,7 +43,6 @@ uniform mat4		u_ModelViewProjectionMatrix;
 
 #if defined(USE_VERTEX_SPRITE)
 OUT(smooth) vec2	var_FadeDepth;
-uniform mat4		u_ProjectionMatrixTranspose;
 #elif defined(USE_DEPTH_FADE)
 uniform float           u_DepthScale;
 OUT(smooth) vec2	var_FadeDepth;
