@@ -2905,10 +2905,6 @@ void R_RenderView( viewParms_t *parms )
 
 	R_SetupFrustum();
 
-	// RB: cull decal projects before calling R_AddWorldSurfaces
-	// because it requires the decalBits
-	R_CullDecalProjectors();
-
 	if ( glConfig2.materialSystemAvailable ) {
 		tr.viewParms.viewID = tr.viewCount;
 		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustums[0] );

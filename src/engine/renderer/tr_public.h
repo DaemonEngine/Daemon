@@ -203,10 +203,6 @@ struct refexport_t
 	int ( *MarkFragments )( int numPoints, const vec3_t *points, const vec3_t projection,
 	                        int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
-	void ( *ProjectDecal )( qhandle_t hShader, int numPoints, vec3_t *points, vec4_t projection, const Color::Color& color,
-	                        int lifeTime, int fadeTime );
-	void ( *ClearDecals )();
-
 	int ( *LerpTag )( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex );
 	void ( *ModelBounds )( qhandle_t model, vec3_t mins, vec3_t maxs );
 

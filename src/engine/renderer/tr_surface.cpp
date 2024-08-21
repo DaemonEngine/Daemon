@@ -783,39 +783,6 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 	tess.numVertexes += numVertexes;
 }
 
-// ydnar: decal surfaces
-void Tess_SurfaceDecal( srfDecal_t *srf )
-{
-	int i;
-
-	GLimp_LogComment( "--- Tess_SurfaceDecal ---\n" );
-
-	Tess_CheckOverflow( srf->numVerts, 3 * ( srf->numVerts - 2 ) );
-
-	// fan triangles into the tess array
-	for ( i = 0; i < srf->numVerts; i++ )
-	{
-		VectorCopy( srf->verts[ i ].xyz, tess.verts[ tess.numVertexes + i ].xyz );
-
-		tess.verts[ tess.numVertexes + i ].texCoords[ 0 ] = floatToHalf( srf->verts[ i ].st[ 0 ] );
-		tess.verts[ tess.numVertexes + i ].texCoords[ 1 ] = floatToHalf( srf->verts[ i ].st[ 1 ] );
-
-		tess.verts[ tess.numVertexes + i ].color = Color::Adapt( srf->verts[ i ].modulate );
-	}
-
-	// generate fan indexes into the tess array
-	for ( i = 0; i < srf->numVerts - 2; i++ )
-	{
-		tess.indexes[ tess.numIndexes + 0 ] = tess.numVertexes;
-		tess.indexes[ tess.numIndexes + 1 ] = tess.numVertexes + i + 1;
-		tess.indexes[ tess.numIndexes + 2 ] = tess.numVertexes + i + 2;
-		tess.numIndexes += 3;
-	}
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD;
-	tess.numVertexes += srf->numVerts;
-}
-
 /*
 ==============
 Tess_SurfaceFace
@@ -1618,7 +1585,6 @@ void ( *rb_surfaceTable[ Util::ordinal(surfaceType_t::SF_NUM_SURFACE_TYPES) ] )(
 	( void ( * )( void * ) ) Tess_SurfaceGrid,  // SF_GRID,
 	( void ( * )( void * ) ) Tess_SurfaceTriangles,  // SF_TRIANGLES,
 	( void ( * )( void * ) ) Tess_SurfacePolychain,  // SF_POLY,
-	( void ( * )( void * ) ) Tess_SurfaceDecal,  // SF_DECAL
 	( void ( * )( void * ) ) Tess_SurfaceMDV,  // SF_MDV,
 	( void ( * )( void * ) ) Tess_SurfaceMD5,  // SF_MD5,
 	( void ( * )( void * ) ) Tess_SurfaceIQM,  // SF_IQM,

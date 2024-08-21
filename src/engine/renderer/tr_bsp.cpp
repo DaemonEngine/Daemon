@@ -3609,11 +3609,6 @@ static void R_LoadSubmodels( lump_t *l )
 
 		out->firstSurface = s_worldData.surfaces + LittleLong( in->firstSurface );
 		out->numSurfaces = LittleLong( in->numSurfaces );
-
-		// ydnar: allocate decal memory
-		j = ( i == 0 ? MAX_WORLD_DECALS : MAX_ENTITY_DECALS );
-		out->decals = (decal_t*) ri.Hunk_Alloc( j * sizeof( *out->decals ), ha_pref::h_low );
-		memset( out->decals, 0, j * sizeof( *out->decals ) );
 	}
 }
 
