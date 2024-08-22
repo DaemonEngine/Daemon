@@ -82,7 +82,7 @@ void GL_Unbind( image_t *image )
 	glBindTexture( image->type, 0 );
 }
 
-GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle )
+GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle )
 {
 	int index;
 

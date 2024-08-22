@@ -28,7 +28,10 @@ IN vec3			attr_Tangent;
 IN vec3			attr_Binormal;
 IN vec3			attr_Normal;
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat4 u_TextureMatrix;
+#endif
+
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 

@@ -1360,8 +1360,35 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	std::string newShaderText;
 	std::string materialStruct = "\nstruct Material {\n";
 	std::string materialBlock = "layout(std430, binding = 0) readonly buffer materialsSSBO {\n"
-									 "  Material materials[];\n"
-									 "};\n\n";
+	                            "	Material materials[];\n"
+	                            "};\n\n";
+	std::string texDataBlock = "struct TexData {\n"
+	                           "	mat4 u_TextureMatrix;\n"
+	                           "	uvec2 u_DiffuseMap;\n"
+	                           "	uvec2 u_NormalMap;\n"
+	                           "	uvec2 u_HeightMap;\n"
+	                           "	uvec2 u_MaterialMap;\n"
+	                           "	uvec2 u_GlowMap;\n"
+	                           "	uvec2 padding;\n"
+	                           "};\n\n"
+	                           "layout(std430, binding = 6) readonly buffer texDataSSBO {\n"
+	                           "	TexData texData[];\n"
+	                           "};\n\n"
+		                       "#define u_TextureMatrix texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix\n"
+		                       "#define u_DiffuseMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_DiffuseMap )\n"
+		                       "#define u_NormalMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_NormalMap )\n"
+		                       "#define u_HeightMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_HeightMap )\n"
+		                       "#define u_MaterialMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_MaterialMap )\n"
+		                       "#define u_GlowMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_GlowMap )\n\n"
+		                       "struct LightMapData {\n"
+	                           "	uvec2 u_LightMap;\n"
+	                           "	uvec2 u_DeluxeMap;\n"
+	                           "};\n\n"
+	                           "layout(std140, binding = 7) uniform lightmapDataUBO {\n"
+	                           "	LightMapData lightmapData[256];\n"
+	                           "};\n\n"
+		                       "#define u_LightMap_initial lightmapData[( baseInstance >> 24 ) & 0xFF].u_LightMap\n"
+		                       "#define u_DeluxeMap_initial lightmapData[( baseInstance >> 24 ) & 0xFF].u_DeluxeMap\n\n";
 	std::string materialDefines;
 
 	/* Generate the struct and defines in the form of:
@@ -1380,24 +1407,25 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			continue;
 		}
 
+		if ( !uniform->IsTexture() ) {
+			materialStruct += "	" + uniform->GetType() + " " + uniform->GetName();
+
+			if ( uniform->GetComponentSize() ) {
+				materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
+			}
+			materialStruct += ";\n";
+
+			// vec3 is aligned to 4 components, so just pad it with int
+			// TODO: Try to move 1 component uniforms here to avoid wasting memory
+			if ( uniform->GetSTD430Size() == 3 ) {
+				materialStruct += "	int ";
+				materialStruct += uniform->GetName();
+				materialStruct += "_padding;\n";
+			}
+		}
+
 		if ( uniform->IsTexture() ) {
-			materialStruct += "  uvec2 ";
-			materialStruct += uniform->GetName();
-		} else {
-			materialStruct += "  " + uniform->GetType() + " " + uniform->GetName();
-		}
-
-		if ( uniform->GetComponentSize() ) {
-			materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
-		}
-		materialStruct += ";\n";
-
-		// vec3 is aligned to 4 components, so just pad it with int
-		// TODO: Try to move 1 component uniforms here to avoid wasting memory
-		if ( uniform->GetSTD430Size() == 3 ) {
-			materialStruct += "  int ";
-			materialStruct += uniform->GetName();
-			materialStruct += "_padding;\n";
+			continue;
 		}
 
 		materialDefines += "#define ";
@@ -1407,7 +1435,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			materialDefines += "_initial uvec2("; // We'll need this to create sampler objects later
 		}
 
-		materialDefines += " materials[baseInstance].";
+		materialDefines += " materials[baseInstance & 0xFFF].";
 		materialDefines += uniform->GetName();
 		
 		if ( uniform->IsTexture() ) {
@@ -1419,7 +1447,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	// Array of structs is aligned to the largest member of the struct
 	for ( uint i = 0; i < shader->padding; i++ ) {
-		materialStruct += "  int material_padding" + std::to_string( i );
+		materialStruct += "	int material_padding" + std::to_string( i );
 		materialStruct += ";\n";
 	}
 
@@ -1457,7 +1485,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	materialDefines += "\n";
 
-	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + materialDefines + shaderMain;
+	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + texDataBlock + materialDefines + shaderMain;
 	return newShaderText;
 }
 
@@ -1978,7 +2006,7 @@ void GLShader::PostProcessUniforms() {
 
 	std::vector<GLUniform*> globalUniforms;
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( uniform->IsGlobal() ) {
+		if ( uniform->IsGlobal() || uniform->IsTexture() ) {
 			globalUniforms.emplace_back( uniform );
 		}
 	}
@@ -2178,7 +2206,7 @@ void GLShader::SetRequiredVertexPointers()
 void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 	uint32_t* bufPtr = buffer;
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( !uniform->IsGlobal() ) {
+		if ( !uniform->IsGlobal() && !uniform->IsTexture() ) {
 			bufPtr = uniform->WriteToBuffer( bufPtr );
 		}
 	}
