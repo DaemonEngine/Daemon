@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* skybox_vp.glsl */
 
+#insert common
+
 IN vec3 		attr_Position;
 
 uniform mat4		u_ModelViewProjectionMatrix;

@@ -730,6 +730,8 @@ static void R_InitLightUBO()
 static void R_InitMaterialBuffers() {
 	if( glConfig2.usingMaterialSystem ) {
 		materialsSSBO.GenBuffer();
+		texDataSSBO.GenBuffer();
+		lightmapDataUBO.GenBuffer();
 
 		surfaceDescriptorsSSBO.GenBuffer();
 		surfaceCommandsSSBO.GenBuffer();
@@ -860,6 +862,8 @@ void R_ShutdownVBOs()
 
 	if ( glConfig2.usingMaterialSystem ) {
 		materialsSSBO.DelBuffer();
+		texDataSSBO.DelBuffer();
+		lightmapDataUBO.DelBuffer();
 
 		surfaceDescriptorsSSBO.DelBuffer();
 		surfaceCommandsSSBO.DelBuffer();

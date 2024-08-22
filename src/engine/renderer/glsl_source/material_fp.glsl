@@ -59,7 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	#endif // !COMPUTELIGHT_GLSL
 
 	#if defined(GENERIC_GLSL)
-		sampler2D u_ColorMap = sampler2D( u_ColorMap_initial );
+		sampler2D u_ColorMap = sampler2D( u_DiffuseMap_initial );
 	#endif // !GENERIC_GLSL
 
 	#if defined(LIGHTMAPPING_GLSL)
@@ -71,7 +71,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	#endif // !LIGHTMAPPING_GLSL
 
 	#if defined(REFLECTION_CB_GLSL)
-		samplerCube u_ColorMapCube = samplerCube( u_ColorMapCube_initial );
+		samplerCube u_ColorMapCube = samplerCube( u_DiffuseMap_initial );
 	#endif // !REFLECTION_CB_GLSL
 
 	#if defined(RELIEFMAPPING_GLSL)
@@ -89,8 +89,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		#endif // !RELIEFMAPPING_GLSL
 
 	#if defined(SKYBOX_GLSL)
-		samplerCube u_ColorMapCube = samplerCube( u_ColorMapCube_initial );
-		sampler2D u_CloudMap = sampler2D( u_CloudMap_initial );
+		samplerCube u_ColorMapCube = samplerCube( u_DiffuseMap_initial );
+		sampler2D u_CloudMap = sampler2D( u_NormalMap_initial );
 	#endif // !SKYBOX_GLSL
 
 	#else // !HAVE_ARB_bindless_texture
