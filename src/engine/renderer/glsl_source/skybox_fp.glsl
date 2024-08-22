@@ -33,7 +33,9 @@ uniform sampler2D	u_CloudMap;
 uniform bool        u_UseCloudMap;
 uniform float       u_CloudHeight;
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat4 u_TextureMatrix;
+#endif
 
 uniform float		u_AlphaThreshold;
 
