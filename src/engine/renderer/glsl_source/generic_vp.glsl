@@ -28,7 +28,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #insert vertexAnimation_vp
 #insert shaderProfiler_vp
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat4 u_TextureMatrix;
+#endif
+
 uniform vec3		u_ViewOrigin;
 
 uniform float		u_Time;

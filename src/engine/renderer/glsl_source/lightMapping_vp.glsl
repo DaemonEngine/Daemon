@@ -36,7 +36,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	#define USE_LIGHT_MAPPING
 #endif
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat4 u_TextureMatrix;
+#endif
 
 #if defined(USE_MODEL_SURFACE)
 	uniform mat4 u_ModelMatrix;

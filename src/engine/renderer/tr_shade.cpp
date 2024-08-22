@@ -2698,9 +2698,9 @@ void Tess_StageIteratorColor()
 		Tess_ComputeTexMatrices( pStage );
 
 		if ( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) {
-			tess.currentSSBOOffset = tess.currentDrawSurf->materialsSSBOOffset[stage];
-			tess.materialID = tess.currentDrawSurf->materialIDs[stage];
-			tess.materialPackID = tess.currentDrawSurf->materialPackIDs[stage];
+			tess.currentSSBOOffset = pStage->materialsSSBOOffset;
+			tess.materialID = pStage->materialID;
+			tess.materialPackID = pStage->materialPackID;
 		}
 
 		pStage->colorRenderer( pStage );

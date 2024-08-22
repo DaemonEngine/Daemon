@@ -429,7 +429,8 @@ protected:
 	size_t      _locationIndex;
 
 	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
-								 const bool global, const int components = 0, const bool isTexture = false ) :
+	                             const bool global, const int components = 0,
+	                             const bool isTexture = false ) :
 		_shader( shader ),
 		_name( name ),
 		_type( type ),
@@ -1531,6 +1532,10 @@ class GLUBO : public GLBuffer {
 		GLBuffer::BindBuffer( GL_UNIFORM_BUFFER );
 	}
 
+	void UnBindBuffer() {
+		GLBuffer::UnBindBuffer( GL_UNIFORM_BUFFER );
+	}
+
 	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
 		GLBuffer::BufferStorage( GL_UNIFORM_BUFFER, areaSize, areaCount, data );
 	}
@@ -2140,6 +2145,7 @@ class u_ColorMap :
 	GLUniformSampler2D {
 	public:
 	u_ColorMap( GLShader* shader ) :
+		// While u_ColorMap is used for some screen-space shaders, it's never global in material system shaders
 		GLUniformSampler2D( shader, "u_ColorMap" ) {
 	}
 
@@ -2268,7 +2274,7 @@ class u_LightMap :
 	GLUniformSampler {
 	public:
 	u_LightMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1 ) {
+		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1, true ) {
 	}
 
 	void SetUniform_LightMapBindless( GLuint64 bindlessHandle ) {
@@ -2284,7 +2290,7 @@ class u_DeluxeMap :
 	GLUniformSampler {
 	public:
 	u_DeluxeMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1 ) {
+		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1, true ) {
 	}
 
 	void SetUniform_DeluxeMapBindless( GLuint64 bindlessHandle ) {
@@ -2701,7 +2707,7 @@ class u_TextureMatrix :
 {
 public:
 	u_TextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_TextureMatrix" )
+		GLUniformMatrix4f( shader, "u_TextureMatrix", true )
 	{
 	}
 
