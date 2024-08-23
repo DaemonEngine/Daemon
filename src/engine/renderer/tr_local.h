@@ -3328,11 +3328,6 @@ inline bool checkGLErrors()
 		int16_t     fogNum;
 		bool        bspSurface;
 
-		// Sometimes, this is used when setting vertex attribute pointers.
-		// TODO: why is the attribute selection sometimes taken from this and other times from
-		// the attributes the shader says it wants?
-		uint32_t    attribsSet;
-
 		// Used for static VBO/IBO-based drawing, if multiple ranges of data from the
 		// buffers may be requested.
 		int         multiDrawPrimitives;

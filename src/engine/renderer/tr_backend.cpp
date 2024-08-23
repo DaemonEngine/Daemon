@@ -5106,8 +5106,6 @@ const RenderCommand *StretchPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
 	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
 
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD;
-
 	return this + 1;
 }
 
@@ -5167,7 +5165,6 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		tess.numVertexes++;
 	}
 
-	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR;
 	return this + 1;
 }
 
@@ -5224,8 +5221,6 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
 		tess.numVertexes++;
 	}
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD;
 
 	shader->cullType = oldCullType;
 
@@ -5350,8 +5345,6 @@ const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
 	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
 
-	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR;
-
 	return this + 1;
 }
 
@@ -5433,7 +5426,6 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
 	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
 
-	tess.attribsSet |= ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR;
 	return this + 1;
 }
 
