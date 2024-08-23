@@ -680,7 +680,7 @@ to overflow.
 // *INDENT-OFF*
 void Tess_Begin( void ( *stageIteratorFunc )(),
                  shader_t *surfaceShader, shader_t *lightShader,
-                 bool skipTangentSpaces,
+                 bool skipTangents,
                  int lightmapNum,
                  int fogNum,
                  bool bspSurface )
@@ -694,7 +694,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	tess.surfaceShader = surfaceShader;
 	tess.lightShader = lightShader;
 
-	tess.skipTangentSpaces = skipTangentSpaces;
+	tess.skipTangents = skipTangents;
 	tess.lightmapNum = lightmapNum;
 	tess.fogNum = fogNum;
 	tess.bspSurface = bspSurface;
@@ -732,7 +732,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 	{
 		// don't just call LogComment, or we will get
 		// a call to va() every frame!
-		GLimp_LogComment( va( "--- Tess_Begin( surfaceShader = %s, lightShader = %s, skipTangentSpaces = %i, lightmapNum = %i, fogNum = %i) ---\n", tess.surfaceShader->name, tess.lightShader ? tess.lightShader->name : nullptr, tess.skipTangentSpaces, tess.lightmapNum, tess.fogNum ) );
+		GLimp_LogComment( va( "--- Tess_Begin( surfaceShader = %s, lightShader = %s, skipTangents = %i, lightmapNum = %i, fogNum = %i) ---\n", tess.surfaceShader->name, tess.lightShader ? tess.lightShader->name : nullptr, tess.skipTangents, tess.lightmapNum, tess.fogNum ) );
 	}
 }
 

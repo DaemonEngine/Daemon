@@ -52,7 +52,7 @@ Flush the buffered polygons and prepare to receive more with the same parameters
 void Tess_EndBegin()
 {
 	Tess_End();
-	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangents,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
@@ -125,7 +125,7 @@ void Tess_CheckOverflow( int verts, int indexes )
 		Sys::Drop( "Tess_CheckOverflow: indexes > max (%d > %d)", indexes, SHADER_MAX_INDEXES );
 	}
 
-	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangentSpaces,
+	Tess_Begin( tess.stageIteratorFunc, tess.surfaceShader, tess.lightShader, tess.skipTangents,
 	            tess.lightmapNum, tess.fogNum, tess.bspSurface );
 }
 
@@ -689,7 +689,7 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 
 	Tess_CheckOverflow( numVertexes, numIndexes );
 
-	if (!tess.surfaceShader->interactLight || tess.skipTangentSpaces)
+	if (!tess.surfaceShader->interactLight || tess.skipTangents)
 	{
 		// fan triangles into the tess array
 
@@ -879,7 +879,7 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 
 	numVertexes = srf->numVerts;
 
-	if (tess.skipTangentSpaces)
+	if (tess.skipTangents)
 	{
 		for (j = 0; j < numVertexes; j++, newVert++, oldVert++, st++)
 		{
@@ -1036,7 +1036,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 			TransInsScale( modelScale, bone );
 		}
 	}
-	else if ( tess.skipTangentSpaces )
+	else if ( tess.skipTangents )
 	{
 		md5Bone_t *modelBone = model->bones;
 
@@ -1073,7 +1073,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 	shaderVertex_t *lastVertex = tessVertex + srf->numVerts;
 
 	// Deform the vertices by the lerped bones.
-	if ( tess.skipTangentSpaces )
+	if ( tess.skipTangents )
 	{
 		for ( ; tessVertex < lastVertex; tessVertex++,
 			surfaceVertex++ )
@@ -1183,7 +1183,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 			TransInsScale( modelScale, bone );
 		}
 	}
-	else if ( tess.skipTangentSpaces )
+	else if ( tess.skipTangents )
 	{
 		transform_t *modelJoint = model->joints;
 
@@ -1265,7 +1265,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	{
 		const float weightFactor = 1.0f / 255.0f;
 
-		if ( tess.skipTangentSpaces )
+		if ( tess.skipTangents )
 		{
 			byte *modelBlendIndex = model->blendIndexes + 4 * firstVertex;
 			byte *modelBlendWeight = model->blendWeights + 4 * firstVertex;
@@ -1525,7 +1525,7 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 			TransInsScale( modelScale, bone );
 		}
 	}
-	else if ( tess.skipTangentSpaces )
+	else if ( tess.skipTangents )
 	{
 		md5Bone_t *modelBone = model->bones;
 

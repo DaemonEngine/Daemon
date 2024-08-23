@@ -3323,10 +3323,13 @@ inline bool checkGLErrors()
 		shader_t    *lightShader;
 
 		// some drawing parameters from drawSurf_t
-		bool    skipTangentSpaces;
 		int16_t     lightmapNum;
 		int16_t     fogNum;
 		bool        bspSurface;
+
+		// Signals that ATTR_QTANGENT will not be needed, so functions that generate vertexes
+		// may skip writing out shaderVertex_t::qtangents
+		bool skipTangents;
 
 		// Used for static VBO/IBO-based drawing, if multiple ranges of data from the
 		// buffers may be requested.
@@ -3379,7 +3382,7 @@ inline bool checkGLErrors()
 // *INDENT-OFF*
 	void Tess_Begin( void ( *stageIteratorFunc )(),
 	                 shader_t *surfaceShader, shader_t *lightShader,
-	                 bool skipTangentSpaces,
+	                 bool skipTangents,
 	                 int lightmapNum,
 	                 int fogNum,
 	                 bool bspSurface = false );
