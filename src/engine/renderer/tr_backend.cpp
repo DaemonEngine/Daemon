@@ -1931,6 +1931,7 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 							gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 							gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 							gl_genericShader->SetUniform_Color( Color::Black );
+							// TODO: set u_InverseLightFactor!
 
 							GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 							GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -2804,7 +2805,7 @@ void RB_RunVisTests( )
 		gl_genericShader->SetUniform_Color( Color::White );
 
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 		gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -3441,6 +3442,7 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		gl_genericShader->SetRequiredVertexPointers();
 
@@ -3604,6 +3606,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3730,6 +3733,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3807,6 +3811,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 #if defined( REFBONE_NAMES )
@@ -4036,6 +4041,7 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -4147,6 +4153,7 @@ static void RB_RenderDebugUtils()
 			gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 			gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 			gl_genericShader->SetUniform_Color( Color::Black );
+			gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 			gl_genericShader->SetRequiredVertexPointers();
 
@@ -4216,6 +4223,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		gl_genericShader->SetRequiredVertexPointers();
 
@@ -4314,6 +4322,7 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -4637,6 +4646,7 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_Color( colorClear );
+	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// bind u_ColorMap
 	gl_genericShader->SetUniform_ColorMapBindless(
@@ -5796,6 +5806,7 @@ void RB_ShowImages()
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	GL_SelectTexture( 0 );
 

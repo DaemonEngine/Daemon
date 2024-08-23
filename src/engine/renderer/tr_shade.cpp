@@ -645,7 +645,7 @@ static void DrawTris()
 	}
 
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-
+	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
