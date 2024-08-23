@@ -695,7 +695,6 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 {
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
-	tess.attribsSet = 0;
 	tess.multiDrawPrimitives = 0;
 
 	tess.stageIteratorFunc = stageIteratorFunc;
@@ -2720,7 +2719,13 @@ void Tess_StageIteratorDebug()
 	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo )
 	{
 		Tess_UpdateVBOs( );
-		GL_VertexAttribsState( tess.attribsSet );
+
+		// Just set all attribs that are used by any debug drawing (and that the current VBO supports)
+		if ( glState.currentVBO )
+		{
+			GL_VertexAttribsState(
+				glState.currentVBO->attribBits & ( ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD ) );
+		}
 	}
 
 	Tess_DrawElements();
@@ -3033,7 +3038,6 @@ void Tess_End()
 	tess.multiDrawPrimitives = 0;
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
-	tess.attribsSet = 0;
 
 	GLimp_LogComment( "--- Tess_End ---\n" );
 

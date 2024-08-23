@@ -94,11 +94,9 @@ void Tess_StageIteratorSky()
 	tess.multiDrawPrimitives = 0;
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
-	tess.attribsSet = 0;
 
 	rb_surfaceTable[Util::ordinal( *( tr.skybox->surface ) )]( tr.skybox->surface );
-	tess.attribsSet = ATTR_POSITION;
-	GL_VertexAttribsState( tess.attribsSet );
+	GL_VertexAttribsState( ATTR_POSITION );
 
 	gl_skyboxShader->BindProgram( 0 );
 

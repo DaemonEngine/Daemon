@@ -841,7 +841,6 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 					tess.multiDrawPrimitives = 0;
 					tess.numIndexes = 0;
 					tess.numVertexes = 0;
-					tess.attribsSet = 0;
 
 					rb_surfaceTable[Util::ordinal( *drawSurf->surface )]( drawSurf->surface );
 
@@ -982,7 +981,6 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 		tess.multiDrawPrimitives = 0;
 		tess.numIndexes = 0;
 		tess.numVertexes = 0;
-		tess.attribsSet = 0;
 
 		// Don't add SF_SKIP surfaces
 		if ( *drawSurf->surface == surfaceType_t::SF_SKIP ) {
