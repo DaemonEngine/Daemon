@@ -4194,18 +4194,13 @@ static void RB_RenderDebugUtils()
 		GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
 	}
 
-	if ( r_showLightGrid->integer )
+	if ( r_showLightGrid->integer && !( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		int             x, y, z, k;
 		vec3_t          offset;
 		vec3_t          tmp, tmp2, tmp3;
 		vec_t           length;
 		vec4_t          tetraVerts[ 4 ];
-
-		if ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) )
-		{
-			return;
-		}
 
 		GLimp_LogComment( "--- r_showLightGrid > 0: Rendering light grid\n" );
 
@@ -4285,7 +4280,7 @@ static void RB_RenderDebugUtils()
 
 					VectorCopy( origin, tetraVerts[ 3 ] );
 					tetraVerts[ 3 ][ 3 ] = 1;
-					Tess_AddTetrahedron( tetraVerts, directedColor );
+					Tess_AddTetrahedron( tetraVerts, ambientColor );
 
 					VectorCopy( offset, tetraVerts[ 3 ] );
 					tetraVerts[ 3 ][ 3 ] = 1;
