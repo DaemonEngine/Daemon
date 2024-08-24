@@ -353,24 +353,21 @@ void GLSL_InitGPUShaders()
 	/*
 	 Without a shaderpath option, the shader debugging cycle is like this:
 	 1. Change shader file(s).
-	 2. Run script to convert shader files into c++, storing them in shaders.cpp
-	 3. Recompile app to pickup the new shaders.cpp changes.
-	 4. Run the app and get to the point required to check work.
-	 5. If the change failed or succeeded but you want to make more changes restart at step 1.
+	 2. Recompile app to pickup the new *.glsl changes.
+	 3. Run the app and get to the point required to check work.
+	 4. If the change failed or succeeded but you want to make more changes restart at step 1.
 
-	 Alternatively, if set shaderpath "c:/unvanquished/main" is used, the cycle is:
-	 1. Change shader file(s) - don't run the buildshaders script unless samples.cpp is missing.
-	 2. Start the app, the app will load the shader files directly.
-	    If there is a problem the app will revert to the last working changes
-		in samples.cpp, so need to restart the app.
-	 3. Fix the problem shader files
-	 4. Do /glsl_restart at the app console to reload them. Repeat from step 3 as needed.
+	 Alternatively, if -set shaderpath "daemon/src/engine/renderer/glsl_source"
+	 is set on the command line, the cycle is:
+	 1. Start the app.
+	 2. Change shader file(s)
+	 3. Do /glsl_restart at the app console to reload them. If there is a problem the app will
+	    revert to the last working changes in shaders.cpp, so no need to restart the app.
+	    FIXME: this doesn't work, actually it kills the app!
+	 4. If further changes are needed, repeat from step 3.
 
-	 Note that unv will respond by listing the files it thinks are different.
+	 Note that Daemon will respond by listing the files it thinks are different.
 	 If this matches your expectations then it's not an error.
-	 Note foward slashes (like those used in windows pathnames) are processed
-	 as escape characters by the Unvanquished command processor,
-	 so use two forward slashes in that case.
 	 */
 
 	auto shaderPath = GetShaderPath();
