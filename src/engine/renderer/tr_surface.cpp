@@ -81,8 +81,8 @@ static void Tess_CheckVBOAndIBO( VBO_t *vbo, IBO_t *ibo )
 Tess_CheckOverflow
 
 Used for non-VBO surfaces. Check that tess.verts and tess.indexes have sufficient room for the
-data that is about to be written. If there is old data from a different surface or if there
-is too much data already, flush it.
+data that is about to be written and ensure that the default VBO and IBO are bound. If there
+is old data from a different surface or if there is too much data already, flush it.
 ==============
 */
 void Tess_CheckOverflow( int verts, int indexes )
