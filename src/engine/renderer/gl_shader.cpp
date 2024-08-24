@@ -2442,7 +2442,7 @@ void GLShader_reflection::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 }
 
 GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manager ) :
-	GLShader( "reflectionMaterial", "reflection", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	GLShader( "reflectionMaterial", "reflection_CB", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
