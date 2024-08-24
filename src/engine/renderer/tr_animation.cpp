@@ -1288,6 +1288,9 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 		BoundsAdd( mins, maxs, bounds, bounds + 3 );
 	}
 
+#if defined( REFBONE_NAMES )
+	const char *boneNames = anim->jointNames;
+#endif
 	for ( i = 0; i < anim->num_joints; i++ )
 	{
 		TransStartLerp( &skel->bones[ i ].t );
@@ -1296,7 +1299,8 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 		TransEndLerp( &skel->bones[ i ].t );
 
 #if defined( REFBONE_NAMES )
-		Q_strncpyz( skel->bones[ i ].name, anim->name, sizeof( skel->bones[ i ].name ) );
+		Q_strncpyz( skel->bones[ i ].name, boneNames, sizeof( skel->bones[ i ].name ) );
+		boneNames += strlen( boneNames ) + 1;
 #endif
 
 		skel->bones[ i ].parentIndex = anim->jointParents[ i ];

@@ -3033,15 +3033,6 @@ void R_InitImages()
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();
-
-#if defined( REFBONE_NAMES )
-	char fileName [ MAX_QPATH ];
-	char strippedName [ MAX_QPATH ];
-	char* fontname = Cvar_VariableString ( "cl_consoleFont" );
-	COM_StripExtension2( fontname, strippedName, sizeof( strippedName ) );
-	Com_sprintf( fileName, sizeof( fileName ), "%s_%i_%i_%i.png", strippedName, 0, 0, 16 );
-	tr.charsetImageHash = GenerateImageHashValue ( fileName );
-#endif
 }
 
 /*
