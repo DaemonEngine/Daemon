@@ -2656,9 +2656,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		image_t *sunShadowClipMapFBOImage[ MAX_SHADOWMAPS * 2 ];
 
 		// external images
-#if defined( REFBONE_NAMES )
-		int      charsetImageHash;
-#endif
 		image_t *colorGradeImage;
 		GLuint   colorGradePBO;
 

@@ -3779,8 +3779,7 @@ static void RB_RenderDebugUtils()
 	{
 		int                  i, j, k, parentIndex;
 		trRefEntity_t        *ent;
-		vec3_t               origin, offset;
-		vec3_t               forward, right, up;
+		vec3_t               offset;
 		vec3_t               diff, tmp, tmp2, tmp3;
 		vec_t                length;
 		vec4_t               tetraVerts[ 4 ];
@@ -3804,15 +3803,10 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
-#if defined( REFBONE_NAMES )
-		GL_BindToTMU( gl_genericShader->GetUniformLocation_ColorMap(), r_imageHashTable [ tr.charsetImageHash ] );
-		int width = r_imageHashTable [ tr.charsetImageHash ]->width;
-		int height = r_imageHashTable [ tr.charsetImageHash ]->height;
-#else
 		gl_genericShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.whiteImage )
 		);
-#endif
+
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
 		ent = backEnd.refdef.entities;
@@ -3829,10 +3823,6 @@ static void RB_RenderDebugUtils()
 			R_RotateEntityForViewParms( ent, &backEnd.viewParms, &backEnd.orientation );
 			GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 			gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-			tess.multiDrawPrimitives = 0;
-			tess.numVertexes = 0;
-			tess.numIndexes = 0;
 
 			skel = nullptr;
 
@@ -3882,11 +3872,12 @@ static void RB_RenderDebugUtils()
 				static vec3_t worldOrigins[ MAX_BONES ];
 
 				GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
-				Tess_MapVBOs( false );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
 				for ( j = 0; j < skel->numBones; j++ )
 				{
 					parentIndex = skel->bones[ j ].parentIndex;
+					vec3_t origin;
 
 					if ( parentIndex < 0 )
 					{
@@ -3898,6 +3889,7 @@ static void RB_RenderDebugUtils()
 					}
 
 					VectorCopy( skel->bones[ j ].t.trans, offset );
+					vec3_t forward, right, up;
 					QuatToVectorsFRU( skel->bones[ j ].t.rot, forward, right, up );
 
 					VectorSubtract( offset, origin, diff );
@@ -3932,16 +3924,10 @@ static void RB_RenderDebugUtils()
 					MatrixTransformPoint( backEnd.orientation.transformMatrix, skel->bones[ j ].t.trans, worldOrigins[ j ] );
 				}
 
-				Tess_UpdateVBOs( );
-				GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
-
-				Tess_DrawElements();
-
-				tess.multiDrawPrimitives = 0;
-				tess.numVertexes = 0;
-				tess.numIndexes = 0;
+				Tess_End();
 
 #if defined( REFBONE_NAMES )
+				if ( cls.consoleFont != nullptr )
 				{
 					GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
@@ -3956,8 +3942,6 @@ static void RB_RenderDebugUtils()
 						vec3_t left, up;
 						float  radius;
 						vec3_t origin;
-
-						Tess_MapVBOs( false );
 
 						// calculate the xyz locations for the four corners
 						radius = 0.4;
@@ -3976,38 +3960,38 @@ static void RB_RenderDebugUtils()
 							ch = skel->bones[ j ].name[ k ];
 							ch &= 255;
 
-							if ( ch == ' ' )
-							{
-								break;
-							}
-
 							glyphInfo_t *glyph = &cls.consoleFont->glyphBlock[ 0 ][ ch ];
 							re.GlyphChar( cls.consoleFont, ch, glyph );
 
-							// factor 1.5 improves readability
-							VectorMA( worldOrigins[ j ], - ( k*1.5f + 2.0f ), left, origin );
-							float pixelheight = 1.0f/(float)height;
-							int heightAdj = 16 - glyph->height;
+							shader_t *shader = R_GetShaderByHandle( glyph->glyph );
+							if ( shader != tess.surfaceShader )
+							{
+								// Try to grab an image rather than running the whole q3shader since we
+								// want to disable the depth test
+								if ( shader->lastStage == shader->stages ||
+									!shader->stages[ 0 ].bundle[ TB_COLORMAP ].image[ 0 ] )
+								{
+									Log::Warn( "can't render bone name '%s'", skel->bones[ j ].name );
+									break;
+								}
+
+								Tess_End();
+								Tess_Begin( Tess_StageIteratorDebug, shader, nullptr, true, -1, 0 );
+								gl_genericShader->SetUniform_ColorMapBindless(
+									GL_BindToTMU( 0, shader->stages[ 0 ].bundle[ TB_COLORMAP ].image[ 0 ] )
+								);
+							}
+
+							VectorMA( worldOrigins[ j ], - ( k*1.8f + 2.0f ), left, origin );
 							Tess_AddQuadStampExt( origin, left, up, Color::White, glyph->s,
-												  glyph->t-pixelheight*heightAdj, glyph->s2, glyph->t2);
+							                      glyph->t, glyph->s2, glyph->t2 );
 						}
-
-						Tess_UpdateVBOs( );
-						GL_VertexAttribsState( ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
-
-						Tess_DrawElements();
-
-						tess.multiDrawPrimitives = 0;
-						tess.numVertexes = 0;
-						tess.numIndexes = 0;
 					}
+
+					Tess_End();
 				}
 #endif // REFBONE_NAMES
 			}
-
-			tess.multiDrawPrimitives = 0;
-			tess.numVertexes = 0;
-			tess.numIndexes = 0;
 		}
 	}
 
