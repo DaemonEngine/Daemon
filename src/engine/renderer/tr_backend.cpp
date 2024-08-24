@@ -851,7 +851,8 @@ enum renderDrawSurfaces_e
 // (1) Surface function (from rb_surfaceTable). This function generates the triangles, either by
 //     explicitly writing them out, or by indicating a range from a static VBO/IBO.
 // (2) Stage iterator function. Loops over the stages of a q3shader (if applicable), and sets up
-//     some drawing parameters, in particular tess.svars, for each one.
+//     some drawing parameters, in particular tess.svars, for each one. Responsible for updating
+//     the non-static VBO (tess.verts) if it is used.
 // (3) Render function. Feeds parameters to the GLSL shader and executes it with Tess_DrawElements.
 //
 // Function (1) is chosen based on the type of surface. (2) is chosen at the top level. (3) is
@@ -3434,8 +3435,6 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
-		gl_genericShader->SetRequiredVertexPointers();
-
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.whiteImage )
@@ -3493,7 +3492,7 @@ static void RB_RenderDebugUtils()
 			VectorMA( vec3_origin, 16, left, left );
 			VectorMA( vec3_origin, 16, up, up );
 
-			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, 0, 0 );
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
 			if ( light->isStatic && light->frustumVBO && light->frustumIBO )
 			{
@@ -3610,8 +3609,6 @@ static void RB_RenderDebugUtils()
 			light = ia->light;
 			surface = ia->surface;
 
-			Tess_MapVBOs( false );
-
 			if ( entity != &tr.worldEntity )
 			{
 				// set up the transformation matrix
@@ -3646,9 +3643,7 @@ static void RB_RenderDebugUtils()
 
 			lightColor = Color::White;
 
-			tess.numVertexes = 0;
-			tess.numIndexes = 0;
-			tess.multiDrawPrimitives = 0;
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
 			if ( *surface == surfaceType_t::SF_FACE || *surface == surfaceType_t::SF_GRID || *surface == surfaceType_t::SF_TRIANGLES )
 			{
@@ -3687,13 +3682,7 @@ static void RB_RenderDebugUtils()
 				Tess_AddCube( vec3_origin, entity->localBounds[ 0 ], entity->localBounds[ 1 ], lightColor );
 			}
 
-			Tess_UpdateVBOs( );
-			GL_VertexAttribsState( ATTR_POSITION | ATTR_COLOR );
-			Tess_DrawElements();
-
-			tess.multiDrawPrimitives = 0;
-			tess.numIndexes = 0;
-			tess.numVertexes = 0;
+			Tess_End();
 		}
 
 		// go back to the world modelview matrix
@@ -3751,23 +3740,13 @@ static void RB_RenderDebugUtils()
 			GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 			gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-			tess.multiDrawPrimitives = 0;
-			tess.numIndexes = 0;
-			tess.numVertexes = 0;
-
-			Tess_MapVBOs( false );
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
 			Tess_AddCube( vec3_origin, ent->localBounds[ 0 ], ent->localBounds[ 1 ], Color::Blue );
 
 			Tess_AddCube( vec3_origin, mins, maxs,Color::White );
 
-			Tess_UpdateVBOs( );
-			GL_VertexAttribsState( ATTR_POSITION | ATTR_COLOR );
-			Tess_DrawElements();
-
-			tess.multiDrawPrimitives = 0;
-			tess.numIndexes = 0;
-			tess.numVertexes = 0;
+			Tess_End();
 		}
 
 		// go back to the world modelview matrix
@@ -4129,8 +4108,6 @@ static void RB_RenderDebugUtils()
 			gl_genericShader->SetUniform_Color( Color::Black );
 			gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
-			gl_genericShader->SetRequiredVertexPointers();
-
 			GL_State( GLS_DEFAULT );
 			GL_Cull( cullType_t::CT_TWO_SIDED );
 
@@ -4199,8 +4176,6 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_Color( Color::Black );
 		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
-		gl_genericShader->SetRequiredVertexPointers();
-
 		GL_State( GLS_DEFAULT );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
@@ -4217,12 +4192,11 @@ static void RB_RenderDebugUtils()
 		);
 		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
+		Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 		GL_CheckErrors();
 
 		for ( z = 0; z < tr.world->lightGridBounds[ 2 ]; z++ ) {
 			for ( y = 0; y < tr.world->lightGridBounds[ 1 ]; y++ ) {
-				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
-
 				for ( x = 0; x < tr.world->lightGridBounds[ 0 ]; x++ ) {
 					vec3_t origin;
 					Color::Color ambientColor;
@@ -4268,14 +4242,10 @@ static void RB_RenderDebugUtils()
 					tetraVerts[ 3 ][ 3 ] = 1;
 					Tess_AddTetrahedron( tetraVerts, directedColor );
 				}
-
-				Tess_End();
-
-				// go back to the world modelview matrix
-				backEnd.orientation = backEnd.viewParms.world;
-				GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
 			}
 		}
+
+		Tess_End();
 	}
 
 	if ( r_showBspNodes->integer )
@@ -4400,12 +4370,6 @@ static void RB_RenderDebugUtils()
 
 					gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-					tess.multiDrawPrimitives = 0;
-					tess.numIndexes = 0;
-					tess.numVertexes = 0;
-
-					Tess_MapVBOs( false );
-
 					plane_t splitFrustum[ 6 ];
 					for ( j = 0; j < 6; j++ )
 					{
@@ -4416,6 +4380,8 @@ static void RB_RenderDebugUtils()
 					// calculate split frustum corner points
 					R_CalcFrustumNearCorners( splitFrustum, nearCorners );
 					R_CalcFrustumFarCorners( splitFrustum, farCorners );
+
+					Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
 					// draw outer surfaces
 					for ( j = 0; j < 4; j++ )
@@ -4441,9 +4407,7 @@ static void RB_RenderDebugUtils()
 					Vector4Set( quadVerts[ 3 ], nearCorners[ 3 ][ 0 ], nearCorners[ 3 ][ 1 ], nearCorners[ 3 ][ 2 ], 1 );
 					Tess_AddQuadStamp2( quadVerts, Color::Green );
 
-					Tess_UpdateVBOs( );
-					GL_VertexAttribsState( ATTR_POSITION | ATTR_COLOR );
-					Tess_DrawElements();
+					Tess_End();
 
 					gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 				}
@@ -4514,22 +4478,9 @@ static void RB_RenderDebugUtils()
 					GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
 				}
 
-				tess.numVertexes = 0;
-				tess.numIndexes = 0;
-				tess.multiDrawPrimitives = 0;
-
-				Tess_MapVBOs( false );
-
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 				Tess_AddCube( vec3_origin, node->mins, node->maxs, Color::White );
-
-				Tess_UpdateVBOs( );
-				GL_VertexAttribsState( ATTR_POSITION );
-
-				Tess_DrawElements();
-
-				tess.numIndexes = 0;
-				tess.numVertexes = 0;
-				tess.multiDrawPrimitives = 0;
+				Tess_End();
 
 				if ( node->contents != -1 )
 				{
@@ -4539,10 +4490,6 @@ static void RB_RenderDebugUtils()
 
 			if ( i == 1 )
 			{
-				tess.multiDrawPrimitives = 0;
-				tess.numIndexes = 0;
-				tess.numVertexes = 0;
-
 				GL_PopMatrix();
 
 				GL_Viewport( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
