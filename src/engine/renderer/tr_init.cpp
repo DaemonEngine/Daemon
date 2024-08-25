@@ -1163,8 +1163,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_dynamicLight );
 		Cvar::Latch( r_staticLight );
 		Cvar::Latch( r_materialSystem );
-		Cvar::Latch( r_gpuFrustumCulling );
-		Cvar::Latch( r_gpuOcclusionCulling );
 
 		r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
 		r_portalOnly = Cvar_Get( "r_portalOnly", "0", CVAR_CHEAT );
