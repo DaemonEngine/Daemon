@@ -38,10 +38,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 GLSSBO materialsSSBO( "materials", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", 1, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLUBO surfaceBatchesUBO( "surfaceBatches", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLSSBO portalSurfacesSSBO( "portalSurfaces", 5, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
 
 PortalView portalStack[MAX_VIEWS];
@@ -1163,6 +1163,15 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	surfaceDescriptorsSSBO.BindBuffer();
 	surfaceDescriptorsSSBO.UnmapBuffer();
+
+	surfaceCommandsSSBO.BindBuffer();
+	surfaceCommandsSSBO.UnmapBuffer();
+
+	culledCommandsBuffer.BindBuffer( GL_SHADER_STORAGE_BUFFER );
+	culledCommandsBuffer.UnmapBuffer();
+
+	atomicCommandCountersBuffer.BindBuffer( GL_ATOMIC_COUNTER_BUFFER);
+	atomicCommandCountersBuffer.UnmapBuffer();
 
 	surfaceBatchesUBO.BindBuffer();
 	surfaceBatchesUBO.UnmapBuffer();
