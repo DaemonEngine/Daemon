@@ -934,10 +934,9 @@ void Render_generic3D( shaderStage_t *pStage )
 	// u_DeformGen
 	gl_genericShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
-	// bind u_ColorMap=
+	// bind u_ColorMap
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP )
 	{
-		// GL_Bind( GetLightMap() );
 		gl_genericShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, GetLightMap() )
 		);
