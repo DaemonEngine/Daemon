@@ -90,14 +90,14 @@ GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle )
 	{
 		if ( bundle->videoMapHandle >= 0 && CIN_RunCinematic( bundle->videoMapHandle ) )
 		{
+			GL_SelectTexture( unit );
 			CIN_UploadCinematic( bundle->videoMapHandle );
+			return tr.cinematicImage[ bundle->videoMapHandle ]->texture->bindlessTextureHandle;
 		}
 		else
 		{
 			return GL_BindToTMU( unit, tr.defaultImage );
 		}
-
-		return tr.cinematicImage[bundle->videoMapHandle]->texture->bindlessTextureHandle;
 	}
 
 	if ( bundle->numImages <= 1 )
