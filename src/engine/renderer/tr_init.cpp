@@ -37,8 +37,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_glMajorVersion;
 	cvar_t      *r_glMinorVersion;
 	cvar_t      *r_glProfile;
-	cvar_t      *r_glDebugProfile;
-	cvar_t      *r_glDebugMode;
+	Cvar::Cvar<bool> r_glDebugProfile( "r_glDebugProfile", "Enable GL debug message callback", Cvar::NONE, false );
+	Cvar::Range<Cvar::Cvar<int>> r_glDebugMode( "r_glDebugMode",
+		"GL debug message callback mode: 0: none, 1: error, 2: deprecated, 3: undefined, 4: portability, 5: performance,"
+		"6: other, 7: all", Cvar::NONE,
+		Util::ordinal( glDebugModes_t::GLDEBUG_NONE ),
+		Util::ordinal( glDebugModes_t::GLDEBUG_NONE ),
+		Util::ordinal( glDebugModes_t::GLDEBUG_ALL ) );
 	cvar_t      *r_glAllowSoftware;
 	cvar_t      *r_glExtendedValidation;
 
@@ -1055,8 +1060,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_glMajorVersion = Cvar_Get( "r_glMajorVersion", "", CVAR_LATCH );
 		r_glMinorVersion = Cvar_Get( "r_glMinorVersion", "", CVAR_LATCH );
 		r_glProfile = Cvar_Get( "r_glProfile", "", CVAR_LATCH );
-		r_glDebugProfile = Cvar_Get( "r_glDebugProfile", "", CVAR_LATCH );
-		r_glDebugMode = Cvar_Get( "r_glDebugMode", "0", CVAR_CHEAT );
+		Cvar::Latch( r_glDebugProfile );
 		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "0", CVAR_LATCH );
 		r_glExtendedValidation = Cvar_Get( "r_glExtendedValidation", "0", CVAR_LATCH );
 

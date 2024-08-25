@@ -2848,8 +2848,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_glMajorVersion; // override GL version autodetect (for testing)
 	extern cvar_t *r_glMinorVersion;
 	extern cvar_t *r_glProfile;
-	extern cvar_t *r_glDebugProfile;
-	extern cvar_t *r_glDebugMode;
+	extern Cvar::Cvar<bool> r_glDebugProfile;
+	extern Cvar::Range<Cvar::Cvar<int>> r_glDebugMode;
 	extern cvar_t *r_glAllowSoftware;
 	extern cvar_t *r_glExtendedValidation;
 
