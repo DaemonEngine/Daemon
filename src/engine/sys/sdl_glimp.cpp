@@ -64,8 +64,6 @@ static Cvar::Cvar<bool> r_arb_buffer_storage( "r_arb_buffer_storage",
 	"Use GL_ARB_buffer_storage if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
 	"Use GL_ARB_compute_shader if available", Cvar::NONE, true );
-static Cvar::Cvar<bool> r_arb_debug_output( "r_arb_debug_output",
-	"Use GL_ARB_debug_output if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_depth_clamp( "r_arb_depth_clamp",
 	"Use GL_ARB_depth_clamp if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform_location",
@@ -110,6 +108,8 @@ static Cvar::Cvar<bool> r_ext_texture_integer( "r_ext_texture_integer",
 	"Use GL_EXT_texture_integer if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_texture_rg( "r_ext_texture_rg",
 	"Use GL_EXT_texture_rg if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_khr_debug( "r_khr_debug",
+	"Use GL_KHR_debug if available", Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
@@ -713,7 +713,7 @@ static void GLimp_SetAttributes( const glConfiguration &configuration )
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
 	}
 
-	if ( r_glDebugProfile->integer )
+	if ( r_glDebugProfile.Get() )
 	{
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
 	}
@@ -1672,14 +1672,14 @@ static void DEBUG_CALLBACK_CALL GLimp_DebugCallback( GLenum, GLenum type, GLuint
 	const char *debugTypeName;
 	const char *debugSeverity;
 
-	if ( r_glDebugMode->integer <= Util::ordinal(glDebugModes_t::GLDEBUG_NONE))
+	if ( r_glDebugMode.Get() <= Util::ordinal(glDebugModes_t::GLDEBUG_NONE))
 	{
 		return;
 	}
 
-	if ( r_glDebugMode->integer < Util::ordinal(glDebugModes_t::GLDEBUG_ALL))
+	if ( r_glDebugMode.Get() < Util::ordinal(glDebugModes_t::GLDEBUG_ALL))
 	{
-		if ( debugTypes[ r_glDebugMode->integer ] != type )
+		if ( debugTypes[ r_glDebugMode.Get()] != type )
 		{
 			return;
 		}
@@ -1687,23 +1687,26 @@ static void DEBUG_CALLBACK_CALL GLimp_DebugCallback( GLenum, GLenum type, GLuint
 
 	switch ( type )
 	{
-		case GL_DEBUG_TYPE_ERROR_ARB:
+		case GL_DEBUG_TYPE_ERROR:
 			debugTypeName = "DEBUG_TYPE_ERROR";
 			break;
-		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB:
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
 			debugTypeName = "DEBUG_TYPE_DEPRECATED_BEHAVIOR";
 			break;
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
 			debugTypeName = "DEBUG_TYPE_UNDEFINED_BEHAVIOR";
 			break;
-		case GL_DEBUG_TYPE_PORTABILITY_ARB:
+		case GL_DEBUG_TYPE_PORTABILITY:
 			debugTypeName = "DEBUG_TYPE_PORTABILITY";
 			break;
-		case GL_DEBUG_TYPE_PERFORMANCE_ARB:
+		case GL_DEBUG_TYPE_PERFORMANCE:
 			debugTypeName = "DEBUG_TYPE_PERFORMANCE";
 			break;
-		case GL_DEBUG_TYPE_OTHER_ARB:
+		case GL_DEBUG_TYPE_OTHER:
 			debugTypeName = "DEBUG_TYPE_OTHER";
+			break;
+		case GL_DEBUG_TYPE_MARKER:
+			debugTypeName = "DEBUG_TYPE_MARKER";
 			break;
 		default:
 			debugTypeName = "DEBUG_TYPE_UNKNOWN";
@@ -1712,14 +1715,17 @@ static void DEBUG_CALLBACK_CALL GLimp_DebugCallback( GLenum, GLenum type, GLuint
 
 	switch ( severity )
 	{
-		case GL_DEBUG_SEVERITY_HIGH_ARB:
+		case GL_DEBUG_SEVERITY_HIGH:
 			debugSeverity = "high";
 			break;
-		case GL_DEBUG_SEVERITY_MEDIUM_ARB:
+		case GL_DEBUG_SEVERITY_MEDIUM:
 			debugSeverity = "med";
 			break;
-		case GL_DEBUG_SEVERITY_LOW_ARB:
+		case GL_DEBUG_SEVERITY_LOW:
 			debugSeverity = "low";
+			break;
+		case GL_DEBUG_SEVERITY_NOTIFICATION:
+			debugSeverity = "notification";
 			break;
 		default:
 			debugSeverity = "none";
@@ -1807,7 +1813,6 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_bindless_texture );
 	Cvar::Latch( r_arb_buffer_storage );
 	Cvar::Latch( r_arb_compute_shader );
-	Cvar::Latch( r_arb_debug_output );
 	Cvar::Latch( r_arb_depth_clamp );
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_gpu_shader5 );
@@ -1830,15 +1835,16 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_ext_texture_float );
 	Cvar::Latch( r_ext_texture_integer );
 	Cvar::Latch( r_ext_texture_rg );
+	Cvar::Latch( r_khr_debug );
 
 	glConfig2.glEnabledExtensionsString = std::string();
 	glConfig2.glMissingExtensionsString = std::string();
 
 	if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_debug_output,
-		r_arb_debug_output.Get() && r_glDebugProfile->value ) )
+		r_khr_debug.Get() && r_glDebugProfile.Get() ) )
 	{
-		glDebugMessageCallbackARB( (GLDEBUGPROCARB)GLimp_DebugCallback, nullptr );
-		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
+		glDebugMessageCallback( (GLDEBUGPROCARB)GLimp_DebugCallback, nullptr );
+		glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
 	}
 
 	// Shader limits
