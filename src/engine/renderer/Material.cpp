@@ -1125,9 +1125,9 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 		surface.boundingSphere.radius = ( ( srfGeneric_t* ) drawSurf->surface )->radius;
 
 		const bool depthPrePass = drawSurf->depthSurface != nullptr;
-		const drawSurf_t* depthDrawSurf = drawSurf->depthSurface;
 
 		if ( depthPrePass ) {
+			const drawSurf_t* depthDrawSurf = drawSurf->depthSurface;
 			const Material* material = &materialPacks[depthDrawSurf->materialPackIDs[0]].materials[depthDrawSurf->materialIDs[0]];
 			uint cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + depthDrawSurf->drawCommandIDs[0];
 			cmdID++; // Add 1 because the first surface command is always reserved as a fake command
@@ -1891,9 +1891,9 @@ void MaterialSystem::CullSurfaces() {
 		frustum_t* frustum = &frames[nextFrame].viewFrames[view].frustum;
 
 		vec4_t frustumPlanes[6];
-		for ( int j = 0; j < 6; j++ ) {
-			VectorCopy( PVSLocked ? lockedFrustum[j].normal : frustum[0][j].normal, frustumPlanes[j] );
-			frustumPlanes[j][3] = PVSLocked ? lockedFrustum[j].dist : frustum[0][j].dist;
+		for ( int i = 0; i < 6; i++ ) {
+			VectorCopy( PVSLocked ? lockedFrustum[i].normal : frustum[0][i].normal, frustumPlanes[i] );
+			frustumPlanes[i][3] = PVSLocked ? lockedFrustum[i].dist : frustum[0][i].dist;
 		}
 		matrix_t viewMatrix;
 		if ( PVSLocked ) {
@@ -1934,9 +1934,9 @@ void MaterialSystem::CullSurfaces() {
 		}
 		if ( r_lockpvs->integer == 1 && !PVSLocked ) {
 			PVSLocked = true;
-			for ( int j = 0; j < 6; j++ ) {
-				VectorCopy( frustum[0][j].normal, lockedFrustum[j].normal );
-				lockedFrustum[j].dist = frustum[0][j].dist;
+			for ( int i = 0; i < 6; i++ ) {
+				VectorCopy( frustum[0][i].normal, lockedFrustum[i].normal );
+				lockedFrustum[i].dist = frustum[0][i].dist;
 			}
 			MatrixCopy( viewMatrix, lockedViewMatrix );
 		}
@@ -2003,6 +2003,8 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 		return;
 	}
 
+	// FIXME: This only requires distance, origin and radius can be moved to surfaceDescriptors SSBO,
+	// drawSurfID is not needed as it's the same as the index in portalSurfacesSSBO
 	PortalSurface* portalSurfs = new PortalSurface[totalPortals * sizeof( PortalSurface ) * MAX_VIEWFRAMES];
 
 	uint32_t index = 0;
