@@ -3143,26 +3143,26 @@ void Tess_End()
 	}
 
 	// for debugging of sort order issues, stop rendering after a given sort value
-	if ( r_debugSort->integer && r_debugSort->integer < tess.surfaceShader->sort )
+	bool skip = r_debugSort->integer && tess.surfaceShader != nullptr
+		&& r_debugSort->integer < tess.surfaceShader->sort;
+	if ( !skip )
 	{
-		return;
-	}
+		// update performance counter
+		backEnd.pc.c_batches++;
 
-	// update performance counter
-	backEnd.pc.c_batches++;
+		GL_CheckErrors();
 
-	GL_CheckErrors();
+		// call off to shader specific tess end function
+		tess.stageIteratorFunc();
 
-	// call off to shader specific tess end function
-	tess.stageIteratorFunc();
-
-	if ( ( tess.stageIteratorFunc != Tess_StageIteratorShadowFill ) &&
-	     ( tess.stageIteratorFunc != Tess_StageIteratorDebug ) )
-	{
-		// draw debugging stuff
-		if ( r_showTris->integer || r_showBatches->integer || ( r_showLightBatches->integer && ( tess.stageIteratorFunc == Tess_StageIteratorLighting ) ) )
+		if ( ( tess.stageIteratorFunc != Tess_StageIteratorShadowFill ) &&
+			 ( tess.stageIteratorFunc != Tess_StageIteratorDebug ) )
 		{
-			DrawTris();
+			// draw debugging stuff
+			if ( r_showTris->integer || r_showBatches->integer || ( r_showLightBatches->integer && ( tess.stageIteratorFunc == Tess_StageIteratorLighting ) ) )
+			{
+				DrawTris();
+			}
 		}
 	}
 
