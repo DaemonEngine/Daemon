@@ -4994,8 +4994,6 @@ RENDER BACK END THREAD FUNCTIONS
 
 void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty )
 {
-	R_SyncRenderThread();
-
 	GL_Bind( tr.cinematicImage[ client ] );
 
 	// if the scratchImage isn't in the format we want, specify it as a new texture
