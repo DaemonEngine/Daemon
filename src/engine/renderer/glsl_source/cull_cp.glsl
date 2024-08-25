@@ -40,7 +40,7 @@ layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 layout(binding = 0) uniform sampler2D depthImage;
 
 struct BoundingSphere {
-	vec3 center;
+	vec3 origin;
 	float radius;
 };
 
@@ -99,21 +99,21 @@ uniform float u_P00;
 uniform float u_P11;
 
 // Based on https://zeux.io/2023/01/12/approximate-projected-bounds/
-bool ProjectSphere( in vec3 center, in float radius, in float zNear, in float P00, in float P11, inout vec4 boundingBox ) {
-	if ( -center.z - radius < zNear ) {
+bool ProjectSphere( in vec3 origin, in float radius, in float zNear, in float P00, in float P11, inout vec4 boundingBox ) {
+	if ( -origin.z - radius < zNear ) {
 		return false;
 	}
 
-	vec3 cr = center * radius;
-	float czr2 = center.z * center.z - radius * radius;
+	vec3 cr = origin * radius;
+	float czr2 = origin.z * origin.z - radius * radius;
 
-	float vx = sqrt( center.x * center.x + czr2 );
-	float minx = center.x * center.x + czr2 >= 0.0 ? ( vx * center.x - cr.z ) / ( vx * center.z + cr.x ) : -1.0;
-	float maxx = center.x * center.x + czr2 >= 0.0 ? ( vx * center.x + cr.z ) / ( vx * center.z - cr.x ) : 1.0;
+	float vx = sqrt( origin.x * origin.x + czr2 );
+	float minx = origin.x * origin.x + czr2 >= 0.0 ? ( vx * origin.x - cr.z ) / ( vx * origin.z + cr.x ) : -1.0;
+	float maxx = origin.x * origin.x + czr2 >= 0.0 ? ( vx * origin.x + cr.z ) / ( vx * origin.z - cr.x ) : 1.0;
 
-	float vy = sqrt( center.y * center.y + czr2 );
-	float miny = center.y * center.y + czr2 >= 0.0 ? ( vy * center.y - cr.z ) / ( vy * center.z + cr.y ) : -1.0;
-	float maxy = center.y * center.y + czr2 >= 0.0 ? ( vy * center.y + cr.z ) / ( vy * center.z - cr.y ) : 1.0;
+	float vy = sqrt( origin.y * origin.y + czr2 );
+	float miny = origin.y * origin.y + czr2 >= 0.0 ? ( vy * origin.y - cr.z ) / ( vy * origin.z + cr.y ) : -1.0;
+	float maxy = origin.y * origin.y + czr2 >= 0.0 ? ( vy * origin.y + cr.z ) / ( vy * origin.z - cr.y ) : 1.0;
 
 	boundingBox = vec4( minx * P00, miny * P11, maxx * P00, maxy * P11 );
 	boundingBox = boundingBox.xwzy * vec4( 0.5f, -0.5f, 0.5f, -0.5f ) + vec4( 0.5, 0.5, 0.5, 0.5 ); // clip space -> uv space
@@ -129,7 +129,7 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
 	// This might need to be changed later for shadowmaps since lights could have some far plane set
 	if( u_UseFrustumCulling ) {
 		for( int i = 0; i < 5; i++ ) {
-			const float distance = dot( u_Frustum[i].xyz, boundingSphere.center ) - u_Frustum[i].w;
+			const float distance = dot( u_Frustum[i].xyz, boundingSphere.origin ) - u_Frustum[i].w;
 
 			if( distance < -boundingSphere.radius ) {
 				culled = true;
@@ -140,7 +140,7 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
 	
 	// Occlusion culling for surfaces that passed frustum culling
 	vec4 boundingBox = vec4( -1.0, 1.0, -1.0, 1.0 );
-	const vec3 viewSpaceCenter = vec3( u_ModelViewMatrix * vec4( boundingSphere.center, 1.0 ) );
+	const vec3 viewSpaceCenter = vec3( u_ModelViewMatrix * vec4( boundingSphere.origin, 1.0 ) );
 	
 	// Only do occlusion culling on the main view because portals use stencil buffer,
 	// so doing depth reduction there would be complicated
@@ -206,7 +206,7 @@ void main() {
 		PortalSurface surface = portalSurfaces[portalSurfaceID];
 		bool culled = CullSurface( surface.boundingSphere );
 
-		portalSurfaces[portalSurfaceID].distance = !culled ? distance( u_CameraPosition, surface.boundingSphere.center ) : -1.0;
+		portalSurfaces[portalSurfaceID].distance = !culled ? distance( u_CameraPosition, surface.boundingSphere.origin ) : -1.0;
 		return;
 	}
 
