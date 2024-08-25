@@ -201,6 +201,8 @@ OpenGL calls until R_IssueRenderCommands is called.
 */
 void R_SyncRenderThread()
 {
+	ASSERT( Sys::OnMainThread() ); // only call this from the frontend
+
 	if ( !tr.registered )
 	{
 		return;
