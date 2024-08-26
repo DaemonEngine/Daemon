@@ -3306,9 +3306,7 @@ inline bool checkGLErrors()
 
 	struct shaderCommands_t
 	{
-		// For drawing which is not based on static VBOs, the data is written here. These should be
-		// considered WRITE-ONLY buffers as they may be mapped to GPU memory and have abysmal read
-		// performance, e.g. https://github.com/DaemonEngine/Daemon/issues/849
+		// For drawing which is not based on static VBOs, the data is written here.
 		shaderVertex_t *verts;   // at least SHADER_MAX_VERTEXES accessible
 		glIndex_t      *indexes; // at least SHADER_MAX_INDEXES accessible
 
@@ -3365,14 +3363,17 @@ inline bool checkGLErrors()
 		shaderStage_t *surfaceLastStage; // surfaceShader->lastStage
 
 		// preallocated host buffers for verts and indexes
+		// NOT mapped to any VBO
 		shaderVertex_t *vertsBuffer;
 		glIndex_t      *indexesBuffer;
 
 		uint32_t       vertsWritten, vertexBase;
 		uint32_t       indexesWritten, indexBase;
 
-		VBO_t       *vbo; // mapped to vertsBuffer
-		IBO_t       *ibo; // mapped to indexBuffer
+		// The "default", "dynamic" VBO/IBO used for data that is generated and sent to the
+		// GPU on a per-frame basis
+		VBO_t       *vbo;
+		IBO_t       *ibo;
 
 #ifdef GL_ARB_sync
 		glRingbuffer_t  vertexRB;
@@ -3396,6 +3397,7 @@ inline bool checkGLErrors()
 	                 bool bspSurface = false );
 
 // *INDENT-ON*
+	void Tess_Clear();
 	void Tess_End();
 	void Tess_EndBegin();
 	void Tess_DrawElements();

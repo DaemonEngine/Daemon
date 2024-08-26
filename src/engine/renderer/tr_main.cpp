@@ -1269,6 +1269,8 @@ entityNum is the entity that the portal surface is a part of, which may
 be moving and rotating.
 
 Returns true if it should be mirrored
+
+PRECONDITION: tess.verts/indexes are populated with the surface data
 =================
 */
 static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surface, orientation_t *camera, vec3_t pvsOrigin,
@@ -1279,6 +1281,8 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 	trRefEntity_t *e;
 	float         d;
 	vec3_t        transformed;
+
+	ASSERT( tess.numVertexes && tess.numIndexes );
 
 	// create plane axis for the portal we are seeing
 	R_PlaneForSurface( drawSurf->surface, &originalPlane );
@@ -1311,14 +1315,12 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 	// locate the portal entity closest to this plane.
 	// origin will be the origin of the portal, origin2 will be
 	// the origin of the camera
-	int numVertsOld = tess.numVertexes;
-	rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
-	int numVerts = tess.numVertexes - numVertsOld;
 	vec3_t portalCenter{ 0.0, 0.0, 0.0 };
-	for ( int vertIndex = 0; vertIndex < numVerts; vertIndex++ ) {
+	for ( uint32_t vertIndex = 0; vertIndex < tess.numVertexes; vertIndex++ ) {
 		VectorAdd( portalCenter, tess.verts[vertIndex].xyz, portalCenter );
 	}
-	VectorScale( portalCenter, 1.0 / numVerts, portalCenter );
+	VectorScale( portalCenter, 1.0 / tess.numVertexes, portalCenter );
+
 	float minDistance = FLT_MAX;
 	trRefEntity_t* currentPortal = nullptr;
 	for ( i = 0; i < tr.refdef.numEntities; i++ ) {
@@ -1467,143 +1469,12 @@ static bool IsMirror( const drawSurf_t *drawSurf )
 }
 
 /*
-** SurfBoxIsOffscreen
-**
-** Determines if a surface's AABB is completely offscreen
-** also computes a conservative screen rectangle bounds for the surface
-*/
-static bool SurfBoxIsOffscreen(const drawSurf_t *drawSurf, screenRect_t& surfRect)
-{
-
-	shader_t     *shader;
-	screenRect_t        parentRect;
-
-	parentRect.coords[0] = tr.viewParms.scissorX;
-	parentRect.coords[1] = tr.viewParms.scissorY;
-	parentRect.coords[2] = tr.viewParms.scissorX + tr.viewParms.scissorWidth - 1;
-	parentRect.coords[3] = tr.viewParms.scissorY + tr.viewParms.scissorHeight - 1;
-	surfRect = parentRect;
-
-	// only these surfaces supported for now
-	if (*drawSurf->surface != surfaceType_t::SF_FACE &&
-		*drawSurf->surface != surfaceType_t::SF_TRIANGLES &&
-		*drawSurf->surface != surfaceType_t::SF_GRID &&
-		*drawSurf->surface != surfaceType_t::SF_VBO_MESH)
-	{
-		return false;
-	}
-
-	tr.currentEntity = drawSurf->entity;
-	shader = drawSurf->shader;
-	shader = (shader->remappedShader) ? shader->remappedShader : shader;
-
-	// deforms need tess subsystem for support
-	if (shader->numDeforms > 0)
-	{
-		return false;
-	}
-
-	// rotate if necessary
-	if (tr.currentEntity != &tr.worldEntity)
-	{
-		R_RotateEntityForViewParms(tr.currentEntity, &tr.viewParms, &tr.orientation);
-	}
-	else
-	{
-		tr.orientation = tr.viewParms.world;
-	}
-
-	srfGeneric_t* srf = reinterpret_cast<srfGeneric_t*>(drawSurf->surface);
-
-	vec3_t v;
-	vec4_t eye, clip;
-	screenRect_t newRect;
-	float        shortest = 100000000;
-	Vector4Set(newRect.coords, 999999, 999999, -999999, -999999);
-	unsigned int pointOr = 0;
-	unsigned int pointAnd = (unsigned int)~0;
-	for (int i = 0; i < 8; i++)
-	{
-		vec3_t transPoint;
-		vec4_t normalized;
-		vec4_t window;
-		unsigned int pointFlags = 0;
-
-		v[0] = srf->bounds[i & 1][0];
-		v[1] = srf->bounds[(i >> 1) & 1][1];
-		v[2] = srf->bounds[(i >> 2) & 1][2];
-
-		R_LocalPointToWorld(v, transPoint);
-		R_TransformModelToClip(transPoint, tr.orientation.modelViewMatrix, tr.viewParms.projectionMatrix, eye, clip);
-
-		float distSq = DotProduct(eye, eye);
-
-		if (distSq < shortest)
-		{
-			shortest = distSq;
-		}
-
-		R_TransformClipToWindow(clip, &tr.viewParms, normalized, window);
-
-		newRect.coords[0] = std::min(newRect.coords[0], (int)window[0]);
-		newRect.coords[1] = std::min(newRect.coords[1], (int)window[1]);
-		newRect.coords[2] = std::max(newRect.coords[2], (int)window[0]);
-		newRect.coords[3] = std::max(newRect.coords[3], (int)window[1]);
-
-		for (int j = 0; j < 3; j++)
-		{
-			if (clip[j] >= clip[3])
-			{
-				pointFlags |= (1 << (j * 2));
-			}
-			else if (clip[j] <= -clip[3])
-			{
-				pointFlags |= (1 << (j * 2 + 1));
-			}
-		}
-
-		pointAnd &= pointFlags;
-		pointOr |= pointFlags;
-	}
-
-	// if the surface intersects the near plane, then expand the scissor rect to cover the screen because of back projection
-	// OPTIMIZE: can be avoided by clipping box edges with the near plane
-	if (pointOr & 0x20)
-	{
-		newRect = parentRect;
-	}
-
-	surfRect.coords[0] = std::max(newRect.coords[0], surfRect.coords[0]);
-	surfRect.coords[1] = std::max(newRect.coords[1], surfRect.coords[1]);
-	surfRect.coords[2] = std::min(newRect.coords[2], surfRect.coords[2]);
-	surfRect.coords[3] = std::min(newRect.coords[3], surfRect.coords[3]);
-
-	// trivially reject
-	if (pointAnd)
-	{
-		return true;
-	}
-
-	// mirrors can early out at this point, since we don't do a fade over distance
-	// with them (although we could)
-	if (IsMirror(drawSurf))
-	{
-		return false;
-	}
-
-	if (shortest > (shader->portalRange * shader->portalRange))
-	{
-		return true;
-	}
-
-	return false;
-}
-
-/*
 ** PortalOffScreenOrOutOfRange
 **
 ** Determines if a surface is completely offscreen or out of the portal range.
 ** also computes a conservative screen rectangle bounds for the surface
+**
+** Note: caller must clear tess data afterward
 */
 bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surfRect )
 {
@@ -1621,12 +1492,6 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 	parentRect.coords[3] = tr.viewParms.scissorY + tr.viewParms.scissorHeight - 1;
 	surfRect = parentRect;
 
-	if ( glConfig.smpActive )
-	{
-		// FIXME!  we can't do Tess_Begin/Tess_End stuff with smp!
-		return SurfBoxIsOffscreen(drawSurf, surfRect);
-	}
-
 	tr.currentEntity = drawSurf->entity;
 	shader = drawSurf->shader;
 
@@ -1640,13 +1505,24 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 		tr.orientation = tr.viewParms.world;
 	}
 
-	Tess_Begin( Tess_StageIteratorColor, shader, nullptr, true, -1, 0 );
-	rb_surfaceTable[ Util::ordinal(*drawSurf->surface) ]( drawSurf->surface );
-
-	// Tr3B: former assertion
-	if ( tess.numVertexes >= 128 )
+	if ( glConfig.smpActive )
 	{
-		return SurfBoxIsOffscreen(drawSurf, surfRect);
+		// https://github.com/DaemonEngine/Daemon/issues/1216
+		Log::Warn( "portals are not compatible with r_smp" );
+		return true;
+	}
+
+	// Try to do tessellation CPU-side... won't work for static VBO surfaces
+	// (https://github.com/DaemonEngine/Daemon/issues/1199)
+	Tess_Begin( Tess_StageIteratorColor, drawSurf->shader, nullptr, true, -1, 0 );
+	R_BindNullVBO(); // Tess_Begin binds the default VBO
+	Tess_MapVBOs( /*forceCPU=*/ true );
+	rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
+
+	if ( tess.numVertexes <= 0 || tess.numIndexes <= 0 || glState.currentVBO != nullptr )
+	{
+		Log::Warn( "failed to generate portal vertices" );
+		return true;
 	}
 
 	screenRect_t newRect;
@@ -1874,6 +1750,8 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	// trivially reject portal/mirror
 	if (PortalOffScreenOrOutOfRange(drawSurf, surfRect))
 	{
+		Tess_Clear();
+
 		// We still need to draw the surface itself when it's out of range, just not the portal view
 		if ( drawSurf->shader->portalOutOfRange ) {
 			R_AddPreparePortalCmd( drawSurf );
@@ -1884,7 +1762,11 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 
 	viewParms_t newParms = tr.viewParms;
 
-	if ( !R_GetPortalOrientations( drawSurf, &surface, &camera, newParms.pvsOrigin, &newParms.isMirror) )
+	bool foundPortal = R_GetPortalOrientations(
+		drawSurf, &surface, &camera, newParms.pvsOrigin, &newParms.isMirror );
+	Tess_Clear();
+
+	if ( !foundPortal )
 	{
 		return false; // bad portal, no portalentity
 	}

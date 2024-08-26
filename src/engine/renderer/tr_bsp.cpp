@@ -3113,6 +3113,7 @@ static void R_CreateWorldVBO()
 
 		if ( surface->shader->isPortal )
 		{
+			// HACK: don't use VBO because when adding a portal we have to read back the verts CPU-side
 			continue;
 		}
 
