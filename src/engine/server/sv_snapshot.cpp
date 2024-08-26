@@ -57,6 +57,8 @@ A server packet will look something like:
 =============================================================================
 */
 
+static Cvar::Cvar<bool> sv_novis("sv_novis", "skip PVS check when transmitting entities", 0, false);
+
 /*
 =============
 SV_EmitPacketEntities
@@ -452,6 +454,12 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 		// don't double add an entity through portals
 		if ( svEnt->snapshotCounter == sv.snapshotCounter )
 		{
+			continue;
+		}
+
+		if ( sv_novis.Get() )
+		{
+			SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
 			continue;
 		}
 
