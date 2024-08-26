@@ -2989,6 +2989,17 @@ void Tess_StageIteratorLighting()
 	}
 }
 
+void Tess_Clear()
+{
+	tess.vboVertexSkinning = false;
+	tess.vboVertexAnimation = false;
+
+	// clear shader so we can tell we don't have any unclosed surfaces
+	tess.multiDrawPrimitives = 0;
+	tess.numIndexes = 0;
+	tess.numVertexes = 0;
+}
+
 /*
 =================
 Tess_End
@@ -3027,13 +3038,7 @@ void Tess_End()
 		}
 	}
 
-	tess.vboVertexSkinning = false;
-	tess.vboVertexAnimation = false;
-
-	// clear shader so we can tell we don't have any unclosed surfaces
-	tess.multiDrawPrimitives = 0;
-	tess.numIndexes = 0;
-	tess.numVertexes = 0;
+	Tess_Clear();
 
 	GLimp_LogComment( "--- Tess_End ---\n" );
 
