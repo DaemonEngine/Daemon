@@ -68,6 +68,8 @@ static Cvar::Cvar<bool> r_arb_debug_output( "r_arb_debug_output",
 	"Use GL_ARB_debug_output if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_depth_clamp( "r_arb_depth_clamp",
 	"Use GL_ARB_depth_clamp if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_enhanced_layouts( "r_arb_enhanced_layouts",
+	"Use GL_ARB_enhanced_layouts if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform_location",
 	"Use GL_ARB_explicit_uniform_location if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
@@ -2111,6 +2113,9 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.2
 	glConfig2.shaderAtomicCountersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counters, r_arb_shader_atomic_counters.Get() );
 
+	// made required in OpenGL 4.4
+	glConfig2.enhancedLayoutsAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_enhanced_layouts, r_arb_enhanced_layouts.Get() );
+
 	// not required by any OpenGL version
 	glConfig2.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
 
@@ -2119,6 +2124,7 @@ static void GLimp_InitExtensions()
 										&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
 										&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
 										&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable
+										&& glConfig2.enhancedLayoutsAvailable
 										&& r_materialSystem.Get(); // Allow disabling it without disabling any extensions
 
 	GL_CheckErrors();
