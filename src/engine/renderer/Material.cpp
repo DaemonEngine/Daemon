@@ -1429,11 +1429,11 @@ static void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage ) {
 	material->program = gl_liquidShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage ) {
+void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
+	uint32_t& previousMaterialID ) {
 	Material material;
 
 	uint32_t materialPack = 0;
-	uint32_t previousMaterialID = 0;
 	if ( shader->sort == Util::ordinal( shaderSort_t::SS_DEPTH ) ) {
 		materialPack = 0;
 	} else if ( shader->sort >= Util::ordinal( shaderSort_t::SS_ENVIRONMENT_FOG )
@@ -1618,8 +1618,9 @@ void MaterialSystem::GenerateWorldMaterials() {
 		}
 
 		uint32_t stage = 0;
+		uint32_t previousMaterialID = 0;
 		for ( shaderStage_t* pStage = drawSurf->shader->stages; pStage < drawSurf->shader->lastStage; pStage++ ) {
-			ProcessStage( drawSurf, pStage, shader, packIDs, stage );
+			ProcessStage( drawSurf, pStage, shader, packIDs, stage, previousMaterialID );
 		}
 	}
 	skipDrawCommands = false;
