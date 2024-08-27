@@ -569,10 +569,6 @@ static std::string GenComputeHeader() {
 	AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
 	AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
 
-	if ( glConfig2.bindlessTexturesAvailable ) {
-		str += "layout(bindless_image) uniform;\n";
-	}
-
 	return str;
 }
 
