@@ -82,6 +82,7 @@ struct Material {
 
 	uint32_t stateBits = 0;
 	stageType_t stageType;
+	stageShaderBinder_t shaderBinder;
 	GLuint program = 0;
 	GLShader* shader;
 
@@ -311,6 +312,16 @@ extern GLUBO surfaceBatchesUBO; // Global
 extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
 extern GLSSBO portalSurfacesSSBO; // Per viewframe
 extern MaterialSystem materialSystem;
+
+void BindShaderNONE( Material* );
+void BindShaderNOP( Material* );
+void BindShaderGeneric3D( Material* material );
+void BindShaderLightMapping( Material* material );
+void BindShaderReflection( Material* material );
+void BindShaderSkybox( Material* material );
+void BindShaderScreen( Material* material );
+void BindShaderHeatHaze( Material* material );
+void BindShaderLiquid( Material* material );
 
 void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* );
 void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* );

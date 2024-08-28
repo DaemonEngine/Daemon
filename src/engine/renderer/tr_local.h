@@ -1095,6 +1095,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	struct drawSurf_t;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
+	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
 
 	struct shaderStage_t
@@ -1110,6 +1111,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		bool shaderHasNoLight;
 
 		stageRenderer_t colorRenderer;
+		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
 
 		bool doShadowFill;
