@@ -761,33 +761,6 @@ void SetNormalScale( const shaderStage_t *pStage, vec3_t normalScale )
 	normalScale[ 2 ] = pStage->normalScale[ 2 ] * r_normalScale->value;
 }
 
-void SetRgbaGen( const shaderStage_t *pStage, colorGen_t *rgbGen, alphaGen_t *alphaGen )
-{
-	switch ( pStage->rgbGen )
-	{
-		case colorGen_t::CGEN_VERTEX:
-		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
-			*rgbGen = pStage->rgbGen;
-			break;
-
-		default:
-			*rgbGen = colorGen_t::CGEN_CONST;
-			break;
-	}
-
-	switch ( pStage->alphaGen )
-	{
-		case alphaGen_t::AGEN_VERTEX:
-		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
-			*alphaGen = pStage->alphaGen;
-			break;
-
-		default:
-			*alphaGen = alphaGen_t::AGEN_CONST;
-			break;
-	}
-}
-
 // *INDENT-ON*
 
 void Render_NONE( shaderStage_t * )
@@ -819,9 +792,9 @@ static void Render_generic2D( shaderStage_t *pStage )
 	gl_generic2DShader->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_ColorModulate
-	colorGen_t rgbGen;
-	alphaGen_t alphaGen;
-	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
 	gl_generic2DShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
@@ -911,9 +884,9 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
-	colorGen_t rgbGen;
-	alphaGen_t alphaGen;
-	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
 	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
@@ -999,9 +972,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 	image_t *deluxemap = SetDeluxeMap( &tess, deluxeMode );
 
 	// u_ColorModulate
-	colorGen_t rgbGen;
-	alphaGen_t alphaGen;
-	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	SetVertexLightingSettings( lightMode, rgbGen );
 
@@ -1432,9 +1404,9 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	colorGen_t rgbGen;
-	alphaGen_t alphaGen;
-	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
 	gl_forwardLightingShader_omniXYZ->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
@@ -1610,9 +1582,9 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	colorGen_t rgbGen;
-	alphaGen_t alphaGen;
-	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
 	gl_forwardLightingShader_projXYZ->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
@@ -1789,9 +1761,9 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// now we are ready to set the shader program uniforms
 
 	// u_ColorModulate
-	colorGen_t rgbGen;
-	alphaGen_t alphaGen;
-	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
 	gl_forwardLightingShader_directionalSun->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color

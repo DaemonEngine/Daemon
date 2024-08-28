@@ -197,6 +197,38 @@ template<typename Obj> image_t* SetDeluxeMap( Obj* obj, deluxeMode_t deluxeMode 
 	return tr.blackImage;
 }
 
+inline colorGen_t SetRgbGen( const shaderStage_t *pStage )
+{
+	switch ( pStage->rgbGen )
+	{
+		case colorGen_t::CGEN_VERTEX:
+		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
+			return pStage->rgbGen;
+			break;
+
+		default:
+			break;
+	}
+
+	return colorGen_t::CGEN_CONST;
+}
+
+inline alphaGen_t SetAlphaGen( const shaderStage_t *pStage )
+{
+	switch ( pStage->alphaGen )
+	{
+		case alphaGen_t::AGEN_VERTEX:
+		case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
+			return pStage->alphaGen;
+			break;
+
+		default:
+			break;
+	}
+
+	return alphaGen_t::AGEN_CONST;
+}
+
 inline void SetVertexLightingSettings( lightMode_t lightMode, colorGen_t& rgbGen )
 {
 	if ( lightMode == lightMode_t::VERTEX )

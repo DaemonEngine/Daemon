@@ -227,9 +227,9 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	gl_genericShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
-	colorGen_t rgbGen;
-	alphaGen_t alphaGen;
-	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
 	gl_genericShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	Tess_ComputeColor( pStage );
@@ -291,9 +291,8 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	image_t* deluxemap = SetDeluxeMap( drawSurf, deluxeMode );
 
 	// u_ColorModulate
-	colorGen_t rgbGen;
-	alphaGen_t alphaGen;
-	SetRgbaGen( pStage, &rgbGen, &alphaGen );
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	SetVertexLightingSettings( lightMode, rgbGen );
 

@@ -3408,7 +3408,6 @@ inline bool checkGLErrors()
 	void Tess_CheckOverflow( int verts, int indexes );
 
 	void SetNormalScale( const shaderStage_t* pStage, vec3_t normalScale );
-	void SetRgbaGen( const shaderStage_t* pStage, colorGen_t* rgbGen, alphaGen_t* alphaGen );
 	void Tess_ComputeColor( shaderStage_t *pStage );
 	void Tess_ComputeTexMatrices( shaderStage_t* pStage );
 
