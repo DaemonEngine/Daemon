@@ -1999,9 +1999,6 @@ void MaterialSystem::EndFrame() {
 	if ( nextFrame >= MAX_FRAMES ) {
 		nextFrame = 0;
 	}
-
-	currentView = 0;
-	return;
 }
 
 void MaterialSystem::GeneratePortalBoundingSpheres() {

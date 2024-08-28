@@ -4755,7 +4755,6 @@ static void RB_RenderView( bool depthPass )
 	{
 		RB_Hyperspace();
 
-		materialSystem.currentView++;
 		return;
 	}
 	else
@@ -4865,8 +4864,6 @@ static void RB_RenderView( bool depthPass )
 
 		backEnd.pc.c_portals++;
 	}
-
-	materialSystem.currentView++;
 
 	backEnd.pc.c_views++;
 }

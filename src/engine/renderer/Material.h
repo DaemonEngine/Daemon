@@ -203,8 +203,6 @@ class MaterialSystem {
 	bool generatingWorldCommandBuffer = false;
 	vec3_t worldViewBounds[2] = {};
 
-	uint32_t currentView = 0;
-
 	uint8_t maxStages = 0;
 	uint32_t descriptorSize;
 
