@@ -1202,70 +1202,117 @@ void MaterialSystem::GenerateDepthImages( const int width, const int height, ima
 }
 
 static void BindShaderGeneric( Material* material ) {
+	// Select shader permutation.
 	gl_genericShaderMaterial->SetVertexAnimation( material->vertexAnimation );
-
 	gl_genericShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
 	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
-
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
 	gl_genericShaderMaterial->SetVertexSprite( material->vertexSprite );
 
+	// Bind shader.
 	gl_genericShaderMaterial->BindProgram( material->deformIndex );
+
+	// Set shader uniforms.
+	if ( material->tcGenEnvironment || material->vertexSprite ) {
+		gl_genericShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
+		gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
+	}
+
+	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
 static void BindShaderLightMapping( Material* material ) {
+	// Select shader permutation.
 	gl_lightMappingShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 	gl_lightMappingShaderMaterial->SetBspSurface( material->bspSurface );
-
 	gl_lightMappingShaderMaterial->SetDeluxeMapping( material->enableDeluxeMapping );
-
 	gl_lightMappingShaderMaterial->SetGridLighting( material->enableGridLighting );
-
 	gl_lightMappingShaderMaterial->SetGridDeluxeMapping( material->enableGridDeluxeMapping );
-
 	gl_lightMappingShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
-
 	gl_lightMappingShaderMaterial->SetReliefMapping( material->enableReliefMapping );
-
 	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableNormalMapping && tr.cubeHashTable != nullptr );
-
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
+	// Bind shader.
 	gl_lightMappingShaderMaterial->BindProgram( material->deformIndex );
+
+	// Set shader uniforms.
+	if ( tr.world ) {
+		gl_lightMappingShaderMaterial->SetUniform_LightGridOrigin( tr.world->lightGridGLOrigin );
+		gl_lightMappingShaderMaterial->SetUniform_LightGridScale( tr.world->lightGridGLScale );
+	}
+	// FIXME: else
+
+	gl_lightMappingShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
+	gl_lightMappingShaderMaterial->SetUniform_numLights( backEnd.refdef.numLights );
+	gl_lightMappingShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_lightMappingShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
 static void BindShaderReflection( Material* material ) {
+	// Select shader permutation.
 	gl_reflectionShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
-
 	gl_reflectionShaderMaterial->SetReliefMapping( material->enableReliefMapping );
-
 	gl_reflectionShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 
+	// Bind shader.
 	gl_reflectionShaderMaterial->BindProgram( material->deformIndex );
+
+	// Set shader uniforms.
+	gl_reflectionShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_reflectionShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_reflectionShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
 static void BindShaderSkybox( Material* material ) {
+	// Bind shader.
 	gl_skyboxShaderMaterial->BindProgram( material->deformIndex );
+
+	// Set shader uniforms.
+	gl_skyboxShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_skyboxShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_skyboxShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
 static void BindShaderScreen( Material* material ) {
+	// Bind shader.
 	gl_screenShaderMaterial->BindProgram( material->deformIndex );
+
+	// Set shader uniforms.
+	gl_screenShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
 static void BindShaderHeatHaze( Material* material ) {
+	// Select shader permutation.
 	gl_heatHazeShaderMaterial->SetVertexAnimation( material->vertexAnimation );
-
 	gl_heatHazeShaderMaterial->SetVertexSprite( material->vertexSprite );
 
+	// Bind shader.
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
+
+	// Set shader uniforms.
+	if ( material->vertexSprite ) {
+		gl_heatHazeShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
+		gl_heatHazeShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
+	}
+
+	gl_heatHazeShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
 static void BindShaderLiquid( Material* material ) {
+	// Select shader permutation.
 	gl_liquidShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
-
 	gl_liquidShaderMaterial->SetReliefMapping( material->enableReliefMapping );
 
+	// Bind shader.
 	gl_liquidShaderMaterial->BindProgram( material->deformIndex );
+
+	// Set shader uniforms.
+	gl_liquidShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_liquidShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
 void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* ) {
@@ -2237,43 +2284,19 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		case stageType_t::ST_STYLELIGHTMAP:
 		case stageType_t::ST_STYLECOLORMAP:
 			BindShaderGeneric( &material );
-
-			if ( material.tcGenEnvironment || material.vertexSprite ) {
-				gl_genericShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-				gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
-			}
-
-			gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-			gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 			break;
 		case stageType_t::ST_LIGHTMAP:
 		case stageType_t::ST_DIFFUSEMAP:
 		case stageType_t::ST_COLLAPSE_COLORMAP:
 		case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 			BindShaderLightMapping( &material );
-			if ( tr.world ) {
-				gl_lightMappingShaderMaterial->SetUniform_LightGridOrigin( tr.world->lightGridGLOrigin );
-				gl_lightMappingShaderMaterial->SetUniform_LightGridScale( tr.world->lightGridGLScale );
-			}
-			// FIXME: else
-
-			gl_lightMappingShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-			gl_lightMappingShaderMaterial->SetUniform_numLights( backEnd.refdef.numLights );
-			gl_lightMappingShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-			gl_lightMappingShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 			break;
 		case stageType_t::ST_LIQUIDMAP:
 			BindShaderLiquid( &material );
-			gl_liquidShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-			gl_liquidShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-			gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 			break;
 		case stageType_t::ST_REFLECTIONMAP:
 		case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
 			BindShaderReflection( &material );
-			gl_reflectionShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-			gl_reflectionShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-			gl_reflectionShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 			break;
 		case stageType_t::ST_REFRACTIONMAP:
 		case stageType_t::ST_DISPERSIONMAP:
@@ -2281,13 +2304,9 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 			break;
 		case stageType_t::ST_SKYBOXMAP:
 			BindShaderSkybox( &material );
-			gl_skyboxShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-			gl_skyboxShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-			gl_skyboxShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 			break;
 		case stageType_t::ST_SCREENMAP:
 			BindShaderScreen( &material );
-			gl_screenShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 			break;
 		case stageType_t::ST_PORTALMAP:
 			// This is supposedly used for alphagen portal and portal surfaces should never get here
@@ -2296,14 +2315,6 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		case stageType_t::ST_HEATHAZEMAP:
 			// FIXME: This requires 2 draws per surface stage rather than 1
 			BindShaderHeatHaze( &material );
-
-			if ( material.vertexSprite ) {
-				gl_heatHazeShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-				gl_heatHazeShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
-			}
-
-			gl_heatHazeShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-			gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 			break;
 		default:
 			break;
