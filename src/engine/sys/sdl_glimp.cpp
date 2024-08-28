@@ -53,6 +53,11 @@ static Cvar::Cvar<std::string> r_glForceHardware(
 static Cvar::Cvar<std::string> r_availableModes(
 	"r_availableModes", "list of available resolutions", Cvar::ROM, "");
 
+static Cvar::Range<Cvar::Cvar<int>> r_glDebugSeverity(
+	"r_glDebugSeverity",
+	"minimum severity of r_glDebugProfile messages (1=NOTIFICATION, 2=LOW, 3=MEDIUM, 4=HIGH)",
+	Cvar::NONE, 2, 1, 4);
+
 // OpenGL extension cvars.
 /* Driver bug: Mesa versions > 24.0.9 produce garbage rendering when r_arb_bindless_texture is enabled,
 and the shader compiler crashes with material shaders
@@ -1713,26 +1718,37 @@ static void DEBUG_CALLBACK_CALL GLimp_DebugCallback( GLenum, GLenum type, GLuint
 			break;
 	}
 
+	int severityNum;
+
 	switch ( severity )
 	{
 		case GL_DEBUG_SEVERITY_HIGH:
 			debugSeverity = "high";
+			severityNum = 4;
 			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
 			debugSeverity = "med";
+			severityNum = 3;
 			break;
 		case GL_DEBUG_SEVERITY_LOW:
 			debugSeverity = "low";
+			severityNum = 2;
 			break;
 		case GL_DEBUG_SEVERITY_NOTIFICATION:
 			debugSeverity = "notification";
+			severityNum = 1;
 			break;
 		default:
 			debugSeverity = "none";
+			severityNum = 2;
 			break;
 	}
 
-	logger.Warn("%s: severity: %s msg: %s", debugTypeName, debugSeverity, message );
+	if ( severityNum >= r_glDebugSeverity.Get() )
+	{
+		Log::defaultLogger.WithoutSuppression().Warn(
+			"%s: severity: %s msg: %s", debugTypeName, debugSeverity, message );
+	}
 }
 
 /*
