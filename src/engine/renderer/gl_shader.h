@@ -4685,6 +4685,7 @@ public:
 
 class GLShader_cull :
 	public GLShader,
+	public u_DepthMap,
 	public u_Frame,
 	public u_ViewID,
 	public u_TotalDrawSurfs,
@@ -4706,12 +4707,12 @@ class GLShader_cull :
 
 class GLShader_depthReduction :
 	public GLShader,
+	public u_DepthMap,
 	public u_ViewWidth,
 	public u_ViewHeight,
 	public u_InitialDepthLevel {
 	public:
 	GLShader_depthReduction( GLShaderManager* manager );
-	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
 class GLShader_clearSurfaces :

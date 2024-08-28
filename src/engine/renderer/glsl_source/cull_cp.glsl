@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Keep this to 64 because we don't want extra shared mem etc. to be allocated, and to minimize wasted lanes
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D depthImage;
+uniform sampler2D u_DepthMap;
 
 layout(std430, binding = 1) readonly restrict buffer surfaceDescriptorsSSBO {
 	SurfaceDescriptor surfaces[];
@@ -139,10 +139,10 @@ bool CullSurface( in BoundingSphere boundingSphere ) {
 		depthCoords.w = clamp( depthCoords.w, 0, int( ( u_ViewHeight >> level ) - 1 ) );
 
 		vec4 depthValues;
-		depthValues.x = texelFetch( depthImage, depthCoords.xy, level ).r;
-		depthValues.y = texelFetch( depthImage, depthCoords.zy, level ).r;
-		depthValues.z = texelFetch( depthImage, depthCoords.xw, level ).r;
-		depthValues.w = texelFetch( depthImage, depthCoords.zw, level ).r;
+		depthValues.x = texelFetch( u_DepthMap, depthCoords.xy, level ).r;
+		depthValues.y = texelFetch( u_DepthMap, depthCoords.zy, level ).r;
+		depthValues.z = texelFetch( u_DepthMap, depthCoords.xw, level ).r;
+		depthValues.w = texelFetch( u_DepthMap, depthCoords.zw, level ).r;
 
 		const float surfaceDepth = max( max( max( depthValues.x, depthValues.y ), depthValues.z ), depthValues.w );
 

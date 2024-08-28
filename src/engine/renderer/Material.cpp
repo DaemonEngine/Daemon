@@ -1596,7 +1596,7 @@ void MaterialSystem::DepthReduction() {
 	uint32_t globalWorkgroupX = ( width + 7 ) / 8;
 	uint32_t globalWorkgroupY = ( height + 7 ) / 8;
 
-	GL_Bind( tr.currentDepthImage );
+	gl_depthReductionShader->SetUniform_DepthMapBindless( GL_BindToTMU( 0, tr.currentDepthImage ) );
 	glBindImageTexture( 2, depthImage->texnum, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F );
 
 	gl_depthReductionShader->SetUniform_InitialDepthLevel( true );
@@ -1661,7 +1661,7 @@ void MaterialSystem::CullSurfaces() {
 		gl_cullShader->BindProgram( 0 );
 		uint32_t globalWorkGroupX = totalDrawSurfs % MAX_COMMAND_COUNTERS == 0 ?
 			totalDrawSurfs / MAX_COMMAND_COUNTERS : totalDrawSurfs / MAX_COMMAND_COUNTERS + 1;
-		GL_Bind( depthImage );
+		gl_cullShader->SetUniform_DepthMapBindless( GL_BindToTMU( 0, depthImage ) );
 		gl_cullShader->SetUniform_Frame( nextFrame );
 		gl_cullShader->SetUniform_ViewID( view );
 		gl_cullShader->SetUniform_TotalDrawSurfs( totalDrawSurfs );
