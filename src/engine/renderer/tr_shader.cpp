@@ -5346,6 +5346,7 @@ static void SetStagesRenderers()
 {
 	struct stageRendererOptions_t {
 		stageRenderer_t colorRenderer;
+		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
 		bool doShadowFill;
 		bool doForwardLighting;
@@ -5355,7 +5356,11 @@ static void SetStagesRenderers()
 	{
 		shaderStage_t *stage = &stages[ s ];
 
-		stageRendererOptions_t stageRendererOptions = { &Render_NONE, &ProcessMaterialNONE, false, false };
+		stageRendererOptions_t stageRendererOptions = {
+			&Render_NONE,
+			&BindShaderNONE, &ProcessMaterialNONE,
+			false, false,
+		};
 
 		bool opaqueOrLess = shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE);
 
@@ -5364,46 +5369,90 @@ static void SetStagesRenderers()
 			case stageType_t::ST_COLORMAP:
 				/* Comment from the Material code:
 				generic2D also uses this, but it's for UI only, so skip that for now. */
-				stageRendererOptions = { &Render_generic, &ProcessMaterialGeneric3D, opaqueOrLess, false };
+				stageRendererOptions = {
+					&Render_generic,
+					&BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+					opaqueOrLess, false,
+				};
 				break;
 			case stageType_t::ST_STYLELIGHTMAP:
 			case stageType_t::ST_STYLECOLORMAP:
-				stageRendererOptions = { &Render_generic3D, &ProcessMaterialGeneric3D, true, false };
+				stageRendererOptions = {
+					&Render_generic3D,
+					&BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+					true, false,
+				};
 				break;
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				stageRendererOptions = { &Render_lightMapping, &ProcessMaterialLightMapping, true, true };
+				stageRendererOptions = {
+					&Render_lightMapping,
+					&BindShaderLightMapping, &ProcessMaterialLightMapping,
+					true, true,
+				};
 				break;
 			case stageType_t::ST_COLLAPSE_COLORMAP:
-				stageRendererOptions = { &Render_lightMapping, &ProcessMaterialLightMapping, true, false };
+				stageRendererOptions = {
+					&Render_lightMapping,
+					&BindShaderLightMapping, &ProcessMaterialLightMapping,
+					true, false,
+				};
 				break;
 			case stageType_t::ST_REFLECTIONMAP:
 			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-				stageRendererOptions = { &Render_reflection_CB, &ProcessMaterialReflection, false, false };
+				stageRendererOptions = {
+					&Render_reflection_CB,
+					&BindShaderReflection, &ProcessMaterialReflection,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_SKYBOXMAP:
-				stageRendererOptions = { &Render_skybox, &ProcessMaterialSkybox, false, false };
+				stageRendererOptions = {
+					&Render_skybox,
+					&BindShaderSkybox, &ProcessMaterialSkybox,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_SCREENMAP:
-				stageRendererOptions = { &Render_screen, &ProcessMaterialScreen, false, false };
+				stageRendererOptions = {
+					&Render_screen,
+					&BindShaderScreen, &ProcessMaterialScreen,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_PORTALMAP:
 				/* Comment from the Material code:
 				This is supposedly used for alphagen portal and portal surfaces should never get here. */
-				stageRendererOptions = { &Render_portal, &ProcessMaterialNONE, false, false };
+				stageRendererOptions = {
+					&Render_portal,
+					&BindShaderNONE, &ProcessMaterialNONE,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_HEATHAZEMAP:
 				/* Comment from the Material code:
 				FIXME: This requires 2 draws per surface stage rather than 1. */
-				stageRendererOptions = { &Render_heatHaze, &ProcessMaterialHeatHaze, false, false };
+				stageRendererOptions = {
+					&Render_heatHaze,
+					&BindShaderHeatHaze, &ProcessMaterialHeatHaze,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_LIQUIDMAP:
-				stageRendererOptions = { &Render_liquid, &ProcessMaterialLiquid, false, false };
+				stageRendererOptions = {
+					&Render_liquid,
+					&BindShaderLiquid, &ProcessMaterialLiquid,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
-				stageRendererOptions = { &Render_NOP, &ProcessMaterialNOP, false, true };
+				stageRendererOptions = {
+					&Render_NOP,
+					&BindShaderNOP, &ProcessMaterialNOP,
+					false, true,
+				};
 				break;
 			default:
 				Log::Warn( "Missing renderer for stage type %d", Util::ordinal(stage->type) );
@@ -5412,6 +5461,7 @@ static void SetStagesRenderers()
 		}
 
 		stage->colorRenderer = stageRendererOptions.colorRenderer;
+		stage->shaderBinder = stageRendererOptions.shaderBinder;
 		stage->materialProcessor = stageRendererOptions.materialProcessor;
 		stage->doShadowFill = stageRendererOptions.doShadowFill;
 		stage->doForwardLighting = stageRendererOptions.doForwardLighting;

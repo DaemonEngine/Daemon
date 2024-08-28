@@ -1201,7 +1201,14 @@ void MaterialSystem::GenerateDepthImages( const int width, const int height, ima
 	}
 }
 
-static void BindShaderGeneric( Material* material ) {
+void BindShaderNONE( Material* ) {
+	ASSERT_UNREACHABLE();
+}
+
+void BindShaderNOP( Material* ) {
+}
+
+void BindShaderGeneric3D( Material* material ) {
 	// Select shader permutation.
 	gl_genericShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 	gl_genericShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
@@ -1209,7 +1216,7 @@ static void BindShaderGeneric( Material* material ) {
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
 	gl_genericShaderMaterial->SetVertexSprite( material->vertexSprite );
 
-	// Bind shader.
+	// Bind shader program.
 	gl_genericShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
@@ -1222,7 +1229,7 @@ static void BindShaderGeneric( Material* material ) {
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
-static void BindShaderLightMapping( Material* material ) {
+void BindShaderLightMapping( Material* material ) {
 	// Select shader permutation.
 	gl_lightMappingShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 	gl_lightMappingShaderMaterial->SetBspSurface( material->bspSurface );
@@ -1234,7 +1241,7 @@ static void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableNormalMapping && tr.cubeHashTable != nullptr );
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
-	// Bind shader.
+	// Bind shader program.
 	gl_lightMappingShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
@@ -1250,13 +1257,13 @@ static void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
-static void BindShaderReflection( Material* material ) {
+void BindShaderReflection( Material* material ) {
 	// Select shader permutation.
 	gl_reflectionShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_reflectionShaderMaterial->SetReliefMapping( material->enableReliefMapping );
 	gl_reflectionShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 
-	// Bind shader.
+	// Bind shader program.
 	gl_reflectionShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
@@ -1265,8 +1272,8 @@ static void BindShaderReflection( Material* material ) {
 	gl_reflectionShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
-static void BindShaderSkybox( Material* material ) {
-	// Bind shader.
+void BindShaderSkybox( Material* material ) {
+	// Bind shader program.
 	gl_skyboxShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
@@ -1275,20 +1282,20 @@ static void BindShaderSkybox( Material* material ) {
 	gl_skyboxShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
-static void BindShaderScreen( Material* material ) {
-	// Bind shader.
+void BindShaderScreen( Material* material ) {
+	// Bind shader program.
 	gl_screenShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
 	gl_screenShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
-static void BindShaderHeatHaze( Material* material ) {
+void BindShaderHeatHaze( Material* material ) {
 	// Select shader permutation.
 	gl_heatHazeShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 	gl_heatHazeShaderMaterial->SetVertexSprite( material->vertexSprite );
 
-	// Bind shader.
+	// Bind shader program.
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
@@ -1301,12 +1308,12 @@ static void BindShaderHeatHaze( Material* material ) {
 	gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
-static void BindShaderLiquid( Material* material ) {
+void BindShaderLiquid( Material* material ) {
 	// Select shader permutation.
 	gl_liquidShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_liquidShaderMaterial->SetReliefMapping( material->enableReliefMapping );
 
-	// Bind shader.
+	// Bind shader program.
 	gl_liquidShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
@@ -1514,6 +1521,7 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 	material.stateBits &= GLS_DEPTHFUNC_BITS | GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE
 		| GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE;
 	material.stageType = pStage->type;
+	material.shaderBinder = pStage->shaderBinder;
 	material.cullType = shader->cullType;
 	material.usePolygonOffset = shader->polygonOffset;
 
@@ -2272,46 +2280,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	backEnd.orientation = backEnd.viewParms.world;
 	GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
 
-	switch ( material.stageType ) {
-		case stageType_t::ST_COLORMAP:
-		case stageType_t::ST_STYLELIGHTMAP:
-		case stageType_t::ST_STYLECOLORMAP:
-			BindShaderGeneric( &material );
-			break;
-		case stageType_t::ST_LIGHTMAP:
-		case stageType_t::ST_DIFFUSEMAP:
-		case stageType_t::ST_COLLAPSE_COLORMAP:
-		case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-			BindShaderLightMapping( &material );
-			break;
-		case stageType_t::ST_LIQUIDMAP:
-			BindShaderLiquid( &material );
-			break;
-		case stageType_t::ST_REFLECTIONMAP:
-		case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-			BindShaderReflection( &material );
-			break;
-		case stageType_t::ST_REFRACTIONMAP:
-		case stageType_t::ST_DISPERSIONMAP:
-			// Not implemented yet
-			break;
-		case stageType_t::ST_SKYBOXMAP:
-			BindShaderSkybox( &material );
-			break;
-		case stageType_t::ST_SCREENMAP:
-			BindShaderScreen( &material );
-			break;
-		case stageType_t::ST_PORTALMAP:
-			// This is supposedly used for alphagen portal and portal surfaces should never get here
-			ASSERT_UNREACHABLE();
-			break;
-		case stageType_t::ST_HEATHAZEMAP:
-			// FIXME: This requires 2 draws per surface stage rather than 1
-			BindShaderHeatHaze( &material );
-			break;
-		default:
-			break;
-	}
+	material.shaderBinder( &material );
 
 	R_BindVBO( material.vbo );
 	R_BindIBO( material.ibo );
