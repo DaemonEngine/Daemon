@@ -81,7 +81,6 @@ struct Material {
 	uint32_t syncMaterial = 0; // Must not be drawn before the material with this id
 
 	uint32_t stateBits = 0;
-	stageType_t stageType;
 	stageShaderBinder_t shaderBinder;
 	GLuint program = 0;
 	GLShader* shader;

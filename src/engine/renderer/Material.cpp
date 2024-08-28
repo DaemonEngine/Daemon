@@ -1485,7 +1485,6 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 	// GLS_ATEST_BITS don't matter here as they don't change GL state
 	material.stateBits &= GLS_DEPTHFUNC_BITS | GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE
 		| GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE;
-	material.stageType = pStage->type;
 	material.shaderBinder = pStage->shaderBinder;
 	material.cullType = shader->cullType;
 	material.usePolygonOffset = shader->polygonOffset;
@@ -2255,25 +2254,20 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
 		material.drawCommands.size(), 0 );
 
-	if( r_showTris->integer && ( material.stateBits & GLS_DEPTHMASK_TRUE ) == 0 ) {
-		switch ( material.stageType ) {
-			case stageType_t::ST_LIGHTMAP:
-			case stageType_t::ST_DIFFUSEMAP:
-			case stageType_t::ST_COLLAPSE_COLORMAP:
-			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
-				GL_State( GLS_DEPTHTEST_DISABLE );
-				glMultiDrawElementsIndirectCountARB( GL_LINES, GL_UNSIGNED_INT,
-					BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
-					+ ( culledCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
-					* sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
-					material.globalID * sizeof( uint32_t )
-					+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
-					material.drawCommands.size(), 0 );
-				gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
-			default:
-				break;
-		}
+	if ( r_showTris->integer
+		&& ( material.stateBits & GLS_DEPTHMASK_TRUE ) == 0
+		&& material.shaderBinder == &BindShaderLightMapping )
+	{
+		gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
+		GL_State( GLS_DEPTHTEST_DISABLE );
+		glMultiDrawElementsIndirectCountARB( GL_LINES, GL_UNSIGNED_INT,
+			BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
+			+ ( culledCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
+			* sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
+			material.globalID * sizeof( uint32_t )
+			+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
+			material.drawCommands.size(), 0 );
+		gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
 	}
 
 	culledCommandsBuffer.UnBindBuffer( GL_DRAW_INDIRECT_BUFFER );
