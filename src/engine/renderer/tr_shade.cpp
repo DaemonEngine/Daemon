@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "gl_shader.h"
 #include "Material.h"
+#include "ShadeCommon.h"
 
 /*
 =================================================================================
@@ -859,8 +860,6 @@ static void Render_generic2D( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static image_t* GetLightMap();
-
 void Render_generic3D( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_generic3D ---\n" );
@@ -935,7 +934,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP )
 	{
 		gl_genericShader->SetUniform_ColorMapBindless(
-			GL_BindToTMU( 0, GetLightMap() )
+			GL_BindToTMU( 0, GetLightMap( &tess ) )
 		);
 	}
 	else
@@ -975,40 +974,6 @@ void Render_generic( shaderStage_t *pStage )
 	Render_generic3D( pStage );
 }
 
-/*
-=================
-GetLightMap
-=================
-*/
-static image_t* GetLightMap()
-{
-	if ( static_cast<size_t>( tess.lightmapNum ) < tr.lightmaps.size() )
-	{
-		return tr.lightmaps[ tess.lightmapNum ];
-	}
-	else
-	{
-		return tr.whiteImage;
-	}
-}
-
-/*
-=================
-GetDeluxeMap
-=================
-*/
-static image_t* GetDeluxeMap()
-{
-	if ( static_cast<size_t>( tess.lightmapNum ) < tr.deluxemaps.size() )
-	{
-		return tr.deluxemaps[ tess.lightmapNum ];
-	}
-	else
-	{
-		return tr.blackImage;
-	}
-}
-
 void Render_lightMapping( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
@@ -1018,112 +983,28 @@ void Render_lightMapping( shaderStage_t *pStage )
 		return;
 	}
 
-	lightMode_t lightMode = lightMode_t::FULLBRIGHT;
-	deluxeMode_t deluxeMode = deluxeMode_t::NONE;
-
-	/* TODO: investigate what this is. It's probably a hack to detect some
-	specific use case. Without knowing which use case this takes care about,
-	any change in the following code may break it. Or it may be a hack we
-	should drop if it is for a bug we don't have anymore. */
-	bool hack = tess.surfaceLastStage != tess.surfaceStages
-		&& tess.surfaceStages[ 0 ].rgbGen == colorGen_t::CGEN_VERTEX;
-
-	if ( ( tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP ) && !hack )
-	{
-		// Use fullbright on “surfaceparm nolightmap” materials.
-	}
-	else if ( pStage->type == stageType_t::ST_COLLAPSE_COLORMAP )
-	{
-		/* Use fullbright for collapsed stages without lightmaps,
-		for example:
-
-		  {
-		    map textures/texture_d
-		    heightMap textures/texture_h
-		  }
-
-		This is doable for some complex multi-stage materials. */
-	}
-	else if ( tess.bspSurface )
-	{
-		lightMode = tr.worldLight;
-		deluxeMode = tr.worldDeluxe;
-
-		if ( lightMode == lightMode_t::MAP )
-		{
-			bool hasLightMap = static_cast<size_t>( tess.lightmapNum ) < tr.lightmaps.size();
-
-			if ( !hasLightMap )
-			{
-				lightMode = lightMode_t::VERTEX;
-				deluxeMode = deluxeMode_t::NONE;
-			}
-		}
-	}
-	else
-	{
-		lightMode = tr.modelLight;
-		deluxeMode = tr.modelDeluxe;
-	}
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( &tess, pStage->type, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
-	image_t *lightmap = tr.whiteImage;
-	image_t *deluxemap = tr.whiteImage;
+	image_t *lightmap = SetLightMap( &tess, lightMode );
+	image_t *deluxemap = SetDeluxeMap( &tess, deluxeMode );
 
 	// u_ColorModulate
 	colorGen_t rgbGen;
 	alphaGen_t alphaGen;
 	SetRgbaGen( pStage, &rgbGen, &alphaGen );
 
+	SetVertexLightingSettings( lightMode, rgbGen );
+
 	uint32_t stateBits = pStage->stateBits;
 
-	switch ( lightMode )
+	if ( lightMode == lightMode_t::MAP && r_showLightMaps->integer )
 	{
-		case lightMode_t::VERTEX:
-			// Do not rewrite pStage->rgbGen.
-			rgbGen = colorGen_t::CGEN_VERTEX;
-			tess.svars.color.SetRed( 0.0f );
-			tess.svars.color.SetGreen( 0.0f );
-			tess.svars.color.SetBlue( 0.0f );
-			break;
-
-		case lightMode_t::GRID:
-			// Store lightGrid1 as lightmap,
-			// the GLSL code will know how to deal with it.
-			lightmap = tr.lightGrid1Image;
-			break;
-
-		case lightMode_t::MAP:
-			lightmap = GetLightMap();
-
-			if ( r_showLightMaps->integer )
-			{
-				stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
-			}
-			break;
-
-		default:
-			break;
+		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
 	}
 
-	switch ( deluxeMode )
-	{
-		case deluxeMode_t::MAP:
-			// Deluxe mapping for world surface.
-			deluxemap = GetDeluxeMap();
-			break;
-
-		case deluxeMode_t::GRID:
-			// Deluxe mapping emulation from grid light for game models.
-			// Store lightGrid2 as deluxemap,
-			// the GLSL code will know how to deal with it.
-			deluxemap = tr.lightGrid2Image;
-			break;
-
-		default:
-			break;
-	}
-	
 	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );

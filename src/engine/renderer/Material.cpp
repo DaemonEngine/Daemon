@@ -33,8 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Material.cpp
 
-#include "Material.h"
 #include "tr_local.h"
+#include "Material.h"
+#include "ShadeCommon.h"
 
 GLSSBO materialsSSBO( "materials", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", 1, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
@@ -187,22 +188,6 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 	pStage->dynamic = pStage->dynamic || pStage->colorDynamic || pStage->texMatricesDynamic || pStage->texturesDynamic;
 }
 
-static image_t* GetLightMap( drawSurf_t* drawSurf ) {
-	if ( static_cast<size_t>( drawSurf->lightmapNum() ) < tr.lightmaps.size() ) {
-		return tr.lightmaps[drawSurf->lightmapNum()];
-	} else {
-		return tr.whiteImage;
-	}
-}
-
-static image_t* GetDeluxeMap( drawSurf_t* drawSurf ) {
-	if ( static_cast<size_t>( drawSurf->lightmapNum() ) < tr.deluxemaps.size() ) {
-		return tr.deluxemaps[drawSurf->lightmapNum()];
-	} else {
-		return tr.blackImage;
-	}
-}
-
 // UpdateSurface*() functions will actually write the uniform values to the SSBO
 // Mirrors parts of the Render_*() functions in tr_shade.cpp
 
@@ -290,94 +275,20 @@ static void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& materi
 
 	gl_lightMappingShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 
-	lightMode_t lightMode = lightMode_t::FULLBRIGHT;
-	deluxeMode_t deluxeMode = deluxeMode_t::NONE;
-
-	/* TODO: investigate what this is. It's probably a hack to detect some
-	specific use case. Without knowing which use case this takes care about,
-	any change in the following code may break it. Or it may be a hack we
-	should drop if it is for a bug we don't have anymore. */
-	bool hack = shader->lastStage != shader->stages
-		&& shader->stages[0].rgbGen == colorGen_t::CGEN_VERTEX;
-
-	if ( ( shader->surfaceFlags & SURF_NOLIGHTMAP ) && !hack ) {
-		// Use fullbright on “surfaceparm nolightmap” materials.
-	} else if ( pStage->type == stageType_t::ST_COLLAPSE_COLORMAP ) {
-		/* Use fullbright for collapsed stages without lightmaps,
-		for example:
-
-		  {
-			map textures/texture_d
-			heightMap textures/texture_h
-		  }
-
-		This is doable for some complex multi-stage materials. */
-	} else if ( drawSurf->bspSurface ) {
-		lightMode = tr.worldLight;
-		deluxeMode = tr.worldDeluxe;
-
-		if ( lightMode == lightMode_t::MAP ) {
-			bool hasLightMap = static_cast<size_t>( drawSurf->lightmapNum() ) < tr.lightmaps.size();
-
-			if ( !hasLightMap ) {
-				lightMode = lightMode_t::VERTEX;
-				deluxeMode = deluxeMode_t::NONE;
-			}
-		}
-	} else {
-		lightMode = tr.modelLight;
-		deluxeMode = tr.modelDeluxe;
-	}
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( drawSurf, material.stageType, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
-	image_t* lightmap = tr.whiteImage;
-	image_t* deluxemap = tr.whiteImage;
+	image_t* lightmap = SetLightMap( drawSurf, lightMode );
+	image_t* deluxemap = SetDeluxeMap( drawSurf, deluxeMode );
 
 	// u_ColorModulate
 	colorGen_t rgbGen;
 	alphaGen_t alphaGen;
 	SetRgbaGen( pStage, &rgbGen, &alphaGen );
 
-	switch ( lightMode ) {
-		case lightMode_t::VERTEX:
-			// Do not rewrite pStage->rgbGen.
-			rgbGen = colorGen_t::CGEN_VERTEX;
-			tess.svars.color.SetRed( 0.0f );
-			tess.svars.color.SetGreen( 0.0f );
-			tess.svars.color.SetBlue( 0.0f );
-			break;
-
-		case lightMode_t::GRID:
-			// Store lightGrid1 as lightmap,
-			// the GLSL code will know how to deal with it.
-			lightmap = tr.lightGrid1Image;
-			break;
-
-		case lightMode_t::MAP:
-			lightmap = GetLightMap( drawSurf );
-
-			break;
-
-		default:
-			break;
-	}
-
-	switch ( deluxeMode ) {
-		case deluxeMode_t::MAP:
-			// Deluxe mapping for world surface.
-			deluxemap = GetDeluxeMap( drawSurf );
-			break;
-
-		case deluxeMode_t::GRID:
-			// Deluxe mapping emulation from grid light for game models.
-			// Store lightGrid2 as deluxemap,
-			// the GLSL code will know how to deal with it.
-			deluxemap = tr.lightGrid2Image;
-			break;
-
-		default:
-			break;
-	}
+	SetVertexLightingSettings( lightMode, rgbGen );
 
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
@@ -1301,38 +1212,9 @@ static void ProcessMaterialLightMapping( Material* material, shaderStage_t* pSta
 	gl_lightMappingShaderMaterial->SetVertexAnimation( false );
 	gl_lightMappingShaderMaterial->SetBspSurface( drawSurf->bspSurface );
 
-	lightMode_t lightMode = lightMode_t::FULLBRIGHT;
-	deluxeMode_t deluxeMode = deluxeMode_t::NONE;
-
-	bool hack = drawSurf->shader->lastStage != drawSurf->shader->stages
-		&& drawSurf->shader->stages[0].rgbGen == colorGen_t::CGEN_VERTEX;
-	if ( ( tess.surfaceShader->surfaceFlags & SURF_NOLIGHTMAP ) && !hack ) {
-		// Use fullbright on “surfaceparm nolightmap” materials.
-	} else if ( pStage->type == stageType_t::ST_COLLAPSE_COLORMAP ) {
-		/* Use fullbright for collapsed stages without lightmaps,
-		for example:
-		  {
-			map textures/texture_d
-			heightMap textures/texture_h
-		  }
-
-		This is doable for some complex multi-stage materials. */
-	} else if ( drawSurf->bspSurface ) {
-		lightMode = tr.worldLight;
-		deluxeMode = tr.worldDeluxe;
-
-		if ( lightMode == lightMode_t::MAP ) {
-			bool hasLightMap = ( drawSurf->lightmapNum() >= 0 );
-
-			if ( !hasLightMap ) {
-				lightMode = lightMode_t::VERTEX;
-				deluxeMode = deluxeMode_t::NONE;
-			}
-		}
-	} else {
-		lightMode = tr.modelLight;
-		deluxeMode = tr.modelDeluxe;
-	}
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( drawSurf, pStage->type, lightMode, deluxeMode );
 
 	bool enableDeluxeMapping = ( deluxeMode == deluxeMode_t::MAP );
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
@@ -1676,73 +1558,13 @@ void MaterialSystem::AddStageTextures( drawSurf_t* drawSurf, shaderStage_t* pSta
 
 	// Add lightmap and deluxemap for this surface to the material as well
 
-	lightMode_t lightMode = lightMode_t::FULLBRIGHT;
-	deluxeMode_t deluxeMode = deluxeMode_t::NONE;
-
-	bool hack = drawSurf->shader->lastStage != drawSurf->shader->stages
-		&& drawSurf->shader->stages[0].rgbGen == colorGen_t::CGEN_VERTEX;
-
-	if ( ( drawSurf->shader->surfaceFlags & SURF_NOLIGHTMAP ) && !hack ) {
-		// Use fullbright on “surfaceparm nolightmap” materials.
-	} else if ( pStage->type == stageType_t::ST_COLLAPSE_COLORMAP ) {
-		/* Use fullbright for collapsed stages without lightmaps,
-		for example:
-
-		  {
-			map textures/texture_d
-			heightMap textures/texture_h
-		  }
-
-		This is doable for some complex multi-stage materials. */
-	} else if ( drawSurf->bspSurface ) {
-		lightMode = tr.worldLight;
-		deluxeMode = tr.worldDeluxe;
-
-		if ( lightMode == lightMode_t::MAP ) {
-			bool hasLightMap = static_cast< size_t >( drawSurf->lightmapNum() ) < tr.lightmaps.size();
-
-			if ( !hasLightMap ) {
-				lightMode = lightMode_t::VERTEX;
-				deluxeMode = deluxeMode_t::NONE;
-			}
-		}
-	} else {
-		lightMode = tr.modelLight;
-		deluxeMode = tr.modelDeluxe;
-	}
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( drawSurf, pStage->type, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
-	image_t* lightmap = tr.whiteImage;
-	image_t* deluxemap = tr.whiteImage;
-
-	switch ( lightMode ) {
-		case lightMode_t::VERTEX:
-			break;
-
-		case lightMode_t::GRID:
-			lightmap = tr.lightGrid1Image;
-			break;
-
-		case lightMode_t::MAP:
-			lightmap = GetLightMap( drawSurf );
-			break;
-
-		default:
-			break;
-	}
-
-	switch ( deluxeMode ) {
-		case deluxeMode_t::MAP:
-			deluxemap = GetDeluxeMap( drawSurf );
-			break;
-
-		case deluxeMode_t::GRID:
-			deluxemap = tr.lightGrid2Image;
-			break;
-
-		default:
-			break;
-	}
+	image_t* lightmap = SetLightMap( drawSurf, lightMode );
+	image_t* deluxemap = SetDeluxeMap( drawSurf, deluxeMode );
 
 	material->AddTexture( lightmap->texture );
 	material->AddTexture( deluxemap->texture );
