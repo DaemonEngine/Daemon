@@ -1096,6 +1096,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	struct drawSurf_t;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
+	using stageSurfaceDataUpdater_t = void(*)(uint32_t*, Material&, drawSurf_t*, const uint32_t);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
 
@@ -1111,7 +1112,11 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool shaderHasNoLight;
 
+		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;
+
+		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
+		stageSurfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
 

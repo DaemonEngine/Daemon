@@ -206,7 +206,14 @@ static image_t* GetDeluxeMap( drawSurf_t* drawSurf ) {
 // UpdateSurface*() functions will actually write the uniform values to the SSBO
 // Mirrors parts of the Render_*() functions in tr_shade.cpp
 
-static void UpdateSurfaceDataGeneric( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+void UpdateSurfaceDataNONE( uint32_t*, Material&, drawSurf_t*, const uint32_t ) {
+	ASSERT_UNREACHABLE();
+}
+
+void UpdateSurfaceDataNOP( uint32_t*, Material&, drawSurf_t*, const uint32_t ) {
+}
+
+void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
 	shader_t* shader = drawSurf->shader;
 	shaderStage_t* pStage = &shader->stages[stage];
 
@@ -273,7 +280,7 @@ static void UpdateSurfaceDataGeneric( uint32_t* materials, Material& material, d
 	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-static void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
 	shader_t* shader = drawSurf->shader;
 	shaderStage_t* pStage = &shader->stages[stage];
 
@@ -584,7 +591,7 @@ static void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& materi
 	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-static void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
 	shader_t* shader = drawSurf->shader;
 	shaderStage_t* pStage = &shader->stages[stage];
 
@@ -637,7 +644,7 @@ static void UpdateSurfaceDataReflection( uint32_t* materials, Material& material
 	gl_reflectionShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-static void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
 	shader_t* shader = drawSurf->shader;
 	shaderStage_t* pStage = &shader->stages[stage];
 
@@ -666,7 +673,7 @@ static void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, dr
 	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-static void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
 	shader_t* shader = drawSurf->shader;
 	shaderStage_t* pStage = &shader->stages[stage];
 
@@ -687,7 +694,7 @@ static void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, dr
 	gl_screenShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-static void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
 	shader_t* shader = drawSurf->shader;
 	shaderStage_t* pStage = &shader->stages[stage];
 
@@ -724,7 +731,7 @@ static void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, 
 	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-static void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
 	shader_t* shader = drawSurf->shader;
 	shaderStage_t* pStage = &shader->stages[stage];
 
@@ -913,49 +920,7 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 
 					AddStageTextures( drawSurf, pStage, &material );
 
-					switch ( pStage->type ) {
-						case stageType_t::ST_COLORMAP:
-							// generic2D
-							UpdateSurfaceDataGeneric( materialsData, material, drawSurf, stage );
-							break;
-						case stageType_t::ST_STYLELIGHTMAP:
-						case stageType_t::ST_STYLECOLORMAP:
-							UpdateSurfaceDataGeneric( materialsData, material, drawSurf, stage );
-							break;
-						case stageType_t::ST_LIGHTMAP:
-						case stageType_t::ST_DIFFUSEMAP:
-						case stageType_t::ST_COLLAPSE_COLORMAP:
-						case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-							UpdateSurfaceDataLightMapping( materialsData, material, drawSurf, stage );
-							break;
-						case stageType_t::ST_REFLECTIONMAP:
-						case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-							UpdateSurfaceDataReflection( materialsData, material, drawSurf, stage );
-							break;
-						case stageType_t::ST_REFRACTIONMAP:
-						case stageType_t::ST_DISPERSIONMAP:
-							// Not implemented yet
-							break;
-						case stageType_t::ST_SKYBOXMAP:
-							UpdateSurfaceDataSkybox( materialsData, material, drawSurf, stage );
-							break;
-						case stageType_t::ST_SCREENMAP:
-							UpdateSurfaceDataScreen( materialsData, material, drawSurf, stage );
-							break;
-						case stageType_t::ST_PORTALMAP:
-							// This is supposedly used for alphagen portal and portal surfaces should never get here
-							ASSERT_UNREACHABLE();
-							break;
-						case stageType_t::ST_HEATHAZEMAP:
-							UpdateSurfaceDataHeatHaze( materialsData, material, drawSurf, stage );
-							break;
-						case stageType_t::ST_LIQUIDMAP:
-							UpdateSurfaceDataLiquid( materialsData, material, drawSurf, stage );
-							break;
-
-						default:
-							break;
-					}
+					pStage->surfaceDataUpdater( materialsData, material, drawSurf, stage );
 
 					tess.currentDrawSurf = drawSurf;
 
@@ -1791,49 +1756,7 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 		for ( shaderStage_t* pStage = drawSurf.shader->stages; pStage < drawSurf.shader->lastStage; pStage++ ) {
 			Material& material = materialPacks[drawSurf.materialPackIDs[stage]].materials[drawSurf.materialIDs[stage]];
 
-			switch ( pStage->type ) {
-				case stageType_t::ST_COLORMAP:
-					// generic2D also uses this, but it's for ui only, so skip that for now
-					UpdateSurfaceDataGeneric( materialsData, material, &drawSurf, stage );
-					break;
-				case stageType_t::ST_STYLELIGHTMAP:
-				case stageType_t::ST_STYLECOLORMAP:
-					UpdateSurfaceDataGeneric( materialsData, material, &drawSurf, stage );
-					break;
-				case stageType_t::ST_LIGHTMAP:
-				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_COLORMAP:
-				case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-					UpdateSurfaceDataLightMapping( materialsData, material, &drawSurf, stage );
-					break;
-				case stageType_t::ST_REFLECTIONMAP:
-				case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-					UpdateSurfaceDataReflection( materialsData, material, &drawSurf, stage );
-					break;
-				case stageType_t::ST_REFRACTIONMAP:
-				case stageType_t::ST_DISPERSIONMAP:
-					// Not implemented yet
-					break;
-				case stageType_t::ST_SKYBOXMAP:
-					UpdateSurfaceDataSkybox( materialsData, material, &drawSurf, stage );
-					break;
-				case stageType_t::ST_SCREENMAP:
-					UpdateSurfaceDataScreen( materialsData, material, &drawSurf, stage );
-					break;
-				case stageType_t::ST_PORTALMAP:
-					// This is supposedly used for alphagen portal and portal surfaces should never get here
-					ASSERT_UNREACHABLE();
-					break;
-				case stageType_t::ST_HEATHAZEMAP:
-					UpdateSurfaceDataHeatHaze( materialsData, material, &drawSurf, stage );
-					break;
-				case stageType_t::ST_LIQUIDMAP:
-					UpdateSurfaceDataLiquid( materialsData, material, &drawSurf, stage );
-					break;
-
-				default:
-					break;
-			}
+			pStage->surfaceDataUpdater( materialsData, material, &drawSurf, stage );
 
 			stage++;
 		}

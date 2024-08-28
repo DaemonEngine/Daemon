@@ -5345,9 +5345,15 @@ static void FinishStages()
 static void SetStagesRenderers()
 {
 	struct stageRendererOptions_t {
+		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;
+
+		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
+		stageSurfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
+
+		// Per-stage configuration.
 		bool doShadowFill;
 		bool doForwardLighting;
 	};
@@ -5358,7 +5364,7 @@ static void SetStagesRenderers()
 
 		stageRendererOptions_t stageRendererOptions = {
 			&Render_NONE,
-			&BindShaderNONE, &ProcessMaterialNONE,
+			&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
 			false, false,
 		};
 
@@ -5371,7 +5377,7 @@ static void SetStagesRenderers()
 				generic2D also uses this, but it's for UI only, so skip that for now. */
 				stageRendererOptions = {
 					&Render_generic,
-					&BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
 					opaqueOrLess, false,
 				};
 				break;
@@ -5379,7 +5385,7 @@ static void SetStagesRenderers()
 			case stageType_t::ST_STYLECOLORMAP:
 				stageRendererOptions = {
 					&Render_generic3D,
-					&BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
 					true, false,
 				};
 				break;
@@ -5388,14 +5394,14 @@ static void SetStagesRenderers()
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				stageRendererOptions = {
 					&Render_lightMapping,
-					&BindShaderLightMapping, &ProcessMaterialLightMapping,
+					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
 					true, true,
 				};
 				break;
 			case stageType_t::ST_COLLAPSE_COLORMAP:
 				stageRendererOptions = {
 					&Render_lightMapping,
-					&BindShaderLightMapping, &ProcessMaterialLightMapping,
+					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
 					true, false,
 				};
 				break;
@@ -5403,21 +5409,21 @@ static void SetStagesRenderers()
 			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
 				stageRendererOptions = {
 					&Render_reflection_CB,
-					&BindShaderReflection, &ProcessMaterialReflection,
+					&UpdateSurfaceDataReflection, &BindShaderReflection, &ProcessMaterialReflection,
 					false, false,
 				};
 				break;
 			case stageType_t::ST_SKYBOXMAP:
 				stageRendererOptions = {
 					&Render_skybox,
-					&BindShaderSkybox, &ProcessMaterialSkybox,
+					&UpdateSurfaceDataSkybox, &BindShaderSkybox, &ProcessMaterialSkybox,
 					false, false,
 				};
 				break;
 			case stageType_t::ST_SCREENMAP:
 				stageRendererOptions = {
 					&Render_screen,
-					&BindShaderScreen, &ProcessMaterialScreen,
+					&UpdateSurfaceDataScreen, &BindShaderScreen, &ProcessMaterialScreen,
 					false, false,
 				};
 				break;
@@ -5426,7 +5432,7 @@ static void SetStagesRenderers()
 				This is supposedly used for alphagen portal and portal surfaces should never get here. */
 				stageRendererOptions = {
 					&Render_portal,
-					&BindShaderNONE, &ProcessMaterialNONE,
+					&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
 					false, false,
 				};
 				break;
@@ -5435,14 +5441,14 @@ static void SetStagesRenderers()
 				FIXME: This requires 2 draws per surface stage rather than 1. */
 				stageRendererOptions = {
 					&Render_heatHaze,
-					&BindShaderHeatHaze, &ProcessMaterialHeatHaze,
+					&UpdateSurfaceDataHeatHaze, &BindShaderHeatHaze, &ProcessMaterialHeatHaze,
 					false, false,
 				};
 				break;
 			case stageType_t::ST_LIQUIDMAP:
 				stageRendererOptions = {
 					&Render_liquid,
-					&BindShaderLiquid, &ProcessMaterialLiquid,
+					&UpdateSurfaceDataLiquid, &BindShaderLiquid, &ProcessMaterialLiquid,
 					false, false,
 				};
 				break;
@@ -5450,7 +5456,7 @@ static void SetStagesRenderers()
 			case stageType_t::ST_ATTENUATIONMAP_Z:
 				stageRendererOptions = {
 					&Render_NOP,
-					&BindShaderNOP, &ProcessMaterialNOP,
+					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
 					false, true,
 				};
 				break;
@@ -5461,8 +5467,11 @@ static void SetStagesRenderers()
 		}
 
 		stage->colorRenderer = stageRendererOptions.colorRenderer;
+
+		stage->surfaceDataUpdater = stageRendererOptions.surfaceDataUpdater;
 		stage->shaderBinder = stageRendererOptions.shaderBinder;
 		stage->materialProcessor = stageRendererOptions.materialProcessor;
+
 		stage->doShadowFill = stageRendererOptions.doShadowFill;
 		stage->doForwardLighting = stageRendererOptions.doForwardLighting;
 
