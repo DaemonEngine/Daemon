@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Keep this to 64 because we don't want extra shared mem etc. to be allocated, and to minimize wasted lanes
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-uniform sampler2D u_DepthMap;
+/* layout(binding = 0) */ uniform sampler2D u_DepthMap;
 
 layout(std430, binding = 1) readonly restrict buffer surfaceDescriptorsSSBO {
 	SurfaceDescriptor surfaces[];

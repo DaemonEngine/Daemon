@@ -48,14 +48,32 @@ bool Texture::IsResident() const {
 	return bindlessTextureResident;
 }
 
+bool Texture::AreImagesResident() const {
+	return bindlessImagesResident;
+}
+
 void Texture::MakeResident() {
 	glMakeTextureHandleResidentARB( bindlessTextureHandle );
 	bindlessTextureResident = true;
 }
 
+void Texture::MakeImagesResident( const GLenum access ) {
+	for ( uint8_t i = 0; i < mipLevels; i++ ) {
+		glMakeImageHandleResidentARB( bindlessImageHandles[i], access );
+	}
+	bindlessImagesResident = true;
+}
+
 void Texture::MakeNonResident() {
 	glMakeTextureHandleNonResidentARB( bindlessTextureHandle );
 	bindlessTextureResident = false;
+}
+
+void Texture::MakeImagesNonResident() {
+	for ( uint8_t i = 0; i < mipLevels; i++ ) {
+		glMakeImageHandleNonResidentARB( bindlessImageHandles[i] );
+	}
+	bindlessImagesResident = false;
 }
 
 void Texture::GenBindlessHandle() {
@@ -66,6 +84,21 @@ void Texture::GenBindlessHandle() {
 	}
 
 	hasBindlessHandle = true;
+}
+
+void Texture::GenBindlessImageHandle() {
+	if ( target != GL_TEXTURE_2D ) {
+		Sys::Drop( "Bindless image handles for layered textures are currently unsupported" );
+	}
+
+	for ( uint8_t level = 0; level < mipLevels; level++ ) {
+		bindlessImageHandles[level] = glGetImageHandleARB( textureHandle, level, GL_FALSE, 0, format );
+		if ( bindlessImageHandles[level] == 0 ) {
+			Sys::Drop( "Failed to generate bindless image handle" );
+		}
+	}
+
+	hasBindlessImageHandles = true;
 }
 
 TextureManager::TextureManager() = default;

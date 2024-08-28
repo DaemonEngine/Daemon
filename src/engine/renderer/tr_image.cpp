@@ -1338,6 +1338,9 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			image->bits |= IF_ALPHA;
 	}
 
+	image->texture->format = internalFormat;
+	image->texture->mipLevels = log2f( std::max( image->uploadWidth, image->uploadHeight ) ) + 1;
+
 	GL_Unbind( image );
 }
 

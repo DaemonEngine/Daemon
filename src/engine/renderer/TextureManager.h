@@ -43,18 +43,28 @@ class Texture {
 	bool hasBindlessHandle = false;
 
 	GLenum target = GL_TEXTURE_2D;
+	GLenum format = GL_RGBA8;
+
+	bool hasBindlessImageHandles = false;
+	uint8_t mipLevels = 0;
+	GLuint64 bindlessImageHandles[16]; // Enough for all mipmaps of a 32768x32768 texture, which is the current maximum
 
 	Texture();
 	~Texture();
 
 	bool IsResident() const;
+	bool AreImagesResident() const;
 	void MakeResident();
+	void MakeImagesResident( const GLenum access );
 	void MakeNonResident();
+	void MakeImagesNonResident();
 
-	void GenBindlessHandle();;
+	void GenBindlessHandle();
+	void GenBindlessImageHandle();
 
 	private:
 		bool bindlessTextureResident = false;
+		bool bindlessImagesResident = false;
 };
 
 class TextureManager {

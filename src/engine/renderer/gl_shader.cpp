@@ -571,6 +571,7 @@ static std::string GenComputeHeader() {
 
 	if ( glConfig2.bindlessTexturesAvailable ) {
 		str += "layout(bindless_sampler) uniform;\n";
+		str += "layout(bindless_image) uniform;\n";
 	}
 
 	return str;
