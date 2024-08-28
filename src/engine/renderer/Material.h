@@ -312,4 +312,14 @@ extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
 extern GLSSBO portalSurfacesSSBO; // Per viewframe
 extern MaterialSystem materialSystem;
 
+void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* );
+void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* );
+void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
+void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
+void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
+void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
+void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
+void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
+void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
+
 #endif // MATERIAL_H
