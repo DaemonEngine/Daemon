@@ -313,6 +313,16 @@ extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
 extern GLSSBO portalSurfacesSSBO; // Per viewframe
 extern MaterialSystem materialSystem;
 
+void UpdateSurfaceDataNONE( uint32_t*, Material&, drawSurf_t*, const uint32_t );
+void UpdateSurfaceDataNOP( uint32_t*, Material&, drawSurf_t*, const uint32_t );
+void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+
 void BindShaderNONE( Material* );
 void BindShaderNOP( Material* );
 void BindShaderGeneric3D( Material* material );
