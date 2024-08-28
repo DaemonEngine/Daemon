@@ -104,6 +104,8 @@ static void EnableAvailableFeatures()
 		}
 	}
 
+	glConfig2.automaticSpecularMap = glConfig2.specularMapping && r_automaticSpecularMap.Get();
+
 	glConfig2.bloom = r_bloom->integer;
 
 	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
@@ -1155,6 +1157,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetReflectiveSpecular( enableReflectiveSpecular );
 
+	gl_lightMappingShader->SetAutomaticSpecularMap( pStage->hasAutomaticSpecularMap );
+
 	gl_lightMappingShader->SetPhysicalShading( pStage->enablePhysicalMapping );
 
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
@@ -1297,6 +1301,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 		gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 
+	// specular reflection
 	if ( enableReflectiveSpecular )
 	{
 		cubemapProbe_t *cubeProbeNearest;

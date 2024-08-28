@@ -1229,6 +1229,8 @@ static void BindShaderLightMapping( Material* material ) {
 
 	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableNormalMapping && tr.cubeHashTable != nullptr );
 
+	gl_lightMappingShaderMaterial->SetAutomaticSpecularMap( material->hasAutomaticSpecularMap );
+
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
 	gl_lightMappingShaderMaterial->BindProgram( material->deformIndex );
@@ -1346,6 +1348,7 @@ static void ProcessMaterialLightMapping( Material* material, shaderStage_t* pSta
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
 	material->enableNormalMapping = pStage->enableNormalMapping && tr.cubeHashTable != nullptr;
+	material->hasAutomaticSpecularMap = pStage->hasAutomaticSpecularMap;
 	material->enablePhysicalMapping = pStage->enablePhysicalMapping;
 	material->deformIndex = pStage->deformIndex;
 
@@ -1360,6 +1363,8 @@ static void ProcessMaterialLightMapping( Material* material, shaderStage_t* pSta
 	gl_lightMappingShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
 	gl_lightMappingShaderMaterial->SetReflectiveSpecular( pStage->enableNormalMapping && tr.cubeHashTable != nullptr );
+
+	gl_lightMappingShaderMaterial->SetAutomaticSpecularMap( pStage->hasAutomaticSpecularMap );
 
 	gl_lightMappingShaderMaterial->SetPhysicalShading( pStage->enablePhysicalMapping );
 

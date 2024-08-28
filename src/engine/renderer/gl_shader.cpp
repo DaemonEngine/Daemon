@@ -729,7 +729,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
 
-	if ( r_normalMapping->integer )
+	if ( glConfig2.normalMapping )
 	{
 		AddDefine( str, "r_normalMapping", 1 );
 	}
@@ -739,14 +739,9 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_liquidMapping", 1 );
 	}
 
-	if ( r_specularMapping->integer )
+	if ( glConfig2.specularMapping )
 	{
 		AddDefine( str, "r_specularMapping", 1 );
-	}
-
-	if ( r_physicalMapping->integer )
-	{
-		AddDefine( str, "r_physicalMapping", 1 );
 	}
 
 	if ( r_glowMapping->integer )
@@ -890,6 +885,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 		if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 )
 		{
 			if ( !glConfig2.normalMapping ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
 		{
@@ -902,6 +898,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 		else if ( strcmp( token, "USE_PHYSICAL_MAPPING" ) == 0 )
 		{
 			if ( !glConfig2.physicalMapping ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
 		}
 		else if ( strcmp( token, "USE_REFLECTIVE_SPECULAR" ) == 0 )
 		{
@@ -910,6 +907,11 @@ static bool IsUnusedPermutation( const char *compileMacros )
 			see https://github.com/DaemonEngine/Daemon/issues/355 */
 			if ( !glConfig2.specularMapping ) return true;
 		}
+		else if ( strcmp( token, "USE_AUTOMATIC_SPECULARMAP" ) == 0 )
+		{
+			if ( !glConfig2.automaticSpecularMap ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
+		}
 		else if ( strcmp( token, "USE_RELIEF_MAPPING" ) == 0 )
 		{
 			if ( !glConfig2.reliefMapping ) return true;
@@ -917,6 +919,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 		else if ( strcmp( token, "USE_HEIGHTMAP_IN_NORMALMAP" ) == 0 )
 		{
 			if ( !glConfig2.reliefMapping && !glConfig2.normalMapping ) return true;
+			if ( !glConfig2.deluxeMapping ) return true;
 		}
 	}
 
@@ -1584,6 +1587,20 @@ bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permut
 	return false;
 }
 
+bool GLCompileMacro_USE_AUTOMATIC_SPECULARMAP::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
+{
+	for (const GLCompileMacro* macro : macros)
+	{
+		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_MAPPING) )
+		{
+			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
 {
 	for (const GLCompileMacro* macro : macros)
@@ -2111,6 +2128,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
+	GLCompileMacro_USE_AUTOMATIC_SPECULARMAP( this ),
 	GLCompileMacro_USE_PHYSICAL_MAPPING( this )
 {
 }
@@ -2180,6 +2198,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ),
 	GLCompileMacro_USE_REFLECTIVE_SPECULAR( this ),
+	GLCompileMacro_USE_AUTOMATIC_SPECULARMAP( this ),
 	GLCompileMacro_USE_PHYSICAL_MAPPING( this ) {
 }
 

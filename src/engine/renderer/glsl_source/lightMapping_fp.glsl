@@ -108,7 +108,12 @@ void main()
 	#endif // !r_normalMapping
 
 	// Compute the material term.
-	vec4 material = texture2D(u_MaterialMap, texCoords);
+	#if defined(USE_AUTOMATIC_SPECULARMAP)
+		float bright = max(max(diffuse.r, diffuse.g), diffuse.b);
+		vec4 material = vec4(vec3(max(0.0, (bright * 0.3) - 0.05)), 1.0);
+	#else
+		vec4 material = texture2D(u_MaterialMap, texCoords);
+	#endif
 
 	// Compute final color.
 	vec4 color;
