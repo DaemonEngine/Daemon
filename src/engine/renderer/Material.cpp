@@ -1268,9 +1268,18 @@ static void BindShaderLiquid( Material* material ) {
 	gl_liquidShaderMaterial->BindProgram( material->deformIndex );
 }
 
+void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* ) {
+	ASSERT_UNREACHABLE();
+}
+
+void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* ) {
+}
+
 // ProcessMaterial*() are essentially same as BindShader*(), but only set the GL program id to the material,
 // without actually binding it
-static void ProcessMaterialGeneric( Material* material, shaderStage_t* pStage, shader_t* shader ) {
+void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
+	shader_t* shader = drawSurf->shader;
+
 	material->shader = gl_genericShaderMaterial;
 
 	material->vertexAnimation = false;
@@ -1292,7 +1301,7 @@ static void ProcessMaterialGeneric( Material* material, shaderStage_t* pStage, s
 	material->program = gl_genericShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-static void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
+void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
 	material->shader = gl_lightMappingShaderMaterial;
 
 	material->vertexAnimation = false;
@@ -1366,7 +1375,7 @@ static void ProcessMaterialLightMapping( Material* material, shaderStage_t* pSta
 	material->program = gl_lightMappingShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-static void ProcessMaterialReflection( Material* material, shaderStage_t* pStage ) {
+void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ ) {
 	material->shader = gl_reflectionShaderMaterial;
 
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
@@ -1383,7 +1392,7 @@ static void ProcessMaterialReflection( Material* material, shaderStage_t* pStage
 	material->program = gl_reflectionShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-static void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage ) {
+void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ ) {
 	material->shader = gl_skyboxShaderMaterial;
 
 	material->deformIndex = pStage->deformIndex;
@@ -1391,7 +1400,7 @@ static void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage ) {
 	material->program = gl_skyboxShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-static void ProcessMaterialScreen( Material* material, shaderStage_t* pStage ) {
+void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ ) {
 	material->shader = gl_screenShaderMaterial;
 
 	material->deformIndex = pStage->deformIndex;
@@ -1399,7 +1408,9 @@ static void ProcessMaterialScreen( Material* material, shaderStage_t* pStage ) {
 	material->program = gl_screenShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-static void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, shader_t* shader ) {
+void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
+	shader_t* shader = drawSurf->shader;
+
 	material->shader = gl_heatHazeShaderMaterial;
 
 	material->vertexAnimation = false;
@@ -1415,7 +1426,7 @@ static void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, 
 	material->program = gl_heatHazeShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-static void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage ) {
+void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ ) {
 	material->shader = gl_liquidShaderMaterial;
 
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
@@ -1468,50 +1479,7 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 		drawSurf->texturesDynamic[stage] = true;
 	}
 
-	switch ( pStage->type ) {
-		case stageType_t::ST_COLORMAP:
-			// generic2D also uses this, but it's for ui only, so skip that for now
-			ProcessMaterialGeneric( &material, pStage, drawSurf->shader );
-			break;
-		case stageType_t::ST_STYLELIGHTMAP:
-		case stageType_t::ST_STYLECOLORMAP:
-			ProcessMaterialGeneric( &material, pStage, drawSurf->shader );
-			break;
-		case stageType_t::ST_LIGHTMAP:
-		case stageType_t::ST_DIFFUSEMAP:
-		case stageType_t::ST_COLLAPSE_COLORMAP:
-		case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-			ProcessMaterialLightMapping( &material, pStage, drawSurf );
-			break;
-		case stageType_t::ST_REFLECTIONMAP:
-		case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-			ProcessMaterialReflection( &material, pStage );
-			break;
-		case stageType_t::ST_REFRACTIONMAP:
-		case stageType_t::ST_DISPERSIONMAP:
-			// Not implemented yet
-			break;
-		case stageType_t::ST_SKYBOXMAP:
-			ProcessMaterialSkybox( &material, pStage );
-			break;
-		case stageType_t::ST_SCREENMAP:
-			ProcessMaterialScreen( &material, pStage );
-			break;
-		case stageType_t::ST_PORTALMAP:
-			// This is supposedly used for alphagen portal and portal surfaces should never get here
-			ASSERT_UNREACHABLE();
-			break;
-		case stageType_t::ST_HEATHAZEMAP:
-			// FIXME: This requires 2 draws per surface stage rather than 1
-			ProcessMaterialHeatHaze( &material, pStage, drawSurf->shader );
-			break;
-		case stageType_t::ST_LIQUIDMAP:
-			ProcessMaterialLiquid( &material, pStage );
-			break;
-
-		default:
-			break;
-	}
+	pStage->materialProcessor( &material, pStage, drawSurf );
 
 	std::vector<Material>& materials = materialPacks[materialPack].materials;
 	std::vector<Material>::iterator currentSearchIt = materials.begin();

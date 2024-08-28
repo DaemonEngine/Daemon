@@ -5346,6 +5346,7 @@ static void SetStagesRenderers()
 {
 	struct stageRendererOptions_t {
 		stageRenderer_t colorRenderer;
+		stageMaterialProcessor_t materialProcessor;
 		bool doShadowFill;
 		bool doForwardLighting;
 	};
@@ -5354,49 +5355,55 @@ static void SetStagesRenderers()
 	{
 		shaderStage_t *stage = &stages[ s ];
 
-		stageRendererOptions_t stageRendererOptions = { &Render_NONE, false, false };
+		stageRendererOptions_t stageRendererOptions = { &Render_NONE, &ProcessMaterialNONE, false, false };
 
 		bool opaqueOrLess = shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE);
 
 		switch ( stage->type )
 		{
 			case stageType_t::ST_COLORMAP:
-				stageRendererOptions = { &Render_generic, opaqueOrLess, false };
+				/* Comment from the Material code:
+				generic2D also uses this, but it's for UI only, so skip that for now. */
+				stageRendererOptions = { &Render_generic, &ProcessMaterialGeneric3D, opaqueOrLess, false };
 				break;
 			case stageType_t::ST_STYLELIGHTMAP:
 			case stageType_t::ST_STYLECOLORMAP:
-				stageRendererOptions = { &Render_generic3D, true, false };
+				stageRendererOptions = { &Render_generic3D, &ProcessMaterialGeneric3D, true, false };
 				break;
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				stageRendererOptions = { &Render_lightMapping, true, true };
+				stageRendererOptions = { &Render_lightMapping, &ProcessMaterialLightMapping, true, true };
 				break;
 			case stageType_t::ST_COLLAPSE_COLORMAP:
-				stageRendererOptions = { &Render_lightMapping, true, false };
+				stageRendererOptions = { &Render_lightMapping, &ProcessMaterialLightMapping, true, false };
 				break;
 			case stageType_t::ST_REFLECTIONMAP:
 			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-				stageRendererOptions = { &Render_reflection_CB, false, false };
+				stageRendererOptions = { &Render_reflection_CB, &ProcessMaterialReflection, false, false };
 				break;
 			case stageType_t::ST_SKYBOXMAP:
-				stageRendererOptions = { &Render_skybox, false, false };
+				stageRendererOptions = { &Render_skybox, &ProcessMaterialSkybox, false, false };
 				break;
 			case stageType_t::ST_SCREENMAP:
-				stageRendererOptions = { &Render_screen, false, false };
+				stageRendererOptions = { &Render_screen, &ProcessMaterialScreen, false, false };
 				break;
 			case stageType_t::ST_PORTALMAP:
-				stageRendererOptions = { &Render_portal, false, false };
+				/* Comment from the Material code:
+				This is supposedly used for alphagen portal and portal surfaces should never get here. */
+				stageRendererOptions = { &Render_portal, &ProcessMaterialNONE, false, false };
 				break;
 			case stageType_t::ST_HEATHAZEMAP:
-				stageRendererOptions = { &Render_heatHaze, false, false };
+				/* Comment from the Material code:
+				FIXME: This requires 2 draws per surface stage rather than 1. */
+				stageRendererOptions = { &Render_heatHaze, &ProcessMaterialHeatHaze, false, false };
 				break;
 			case stageType_t::ST_LIQUIDMAP:
-				stageRendererOptions = { &Render_liquid, false, false };
+				stageRendererOptions = { &Render_liquid, &ProcessMaterialLiquid, false, false };
 				break;
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
-				stageRendererOptions = { &Render_NOP, false, true };
+				stageRendererOptions = { &Render_NOP, &ProcessMaterialNOP, false, true };
 				break;
 			default:
 				Log::Warn( "Missing renderer for stage type %d", Util::ordinal(stage->type) );
@@ -5405,6 +5412,7 @@ static void SetStagesRenderers()
 		}
 
 		stage->colorRenderer = stageRendererOptions.colorRenderer;
+		stage->materialProcessor = stageRendererOptions.materialProcessor;
 		stage->doShadowFill = stageRendererOptions.doShadowFill;
 		stage->doForwardLighting = stageRendererOptions.doForwardLighting;
 
