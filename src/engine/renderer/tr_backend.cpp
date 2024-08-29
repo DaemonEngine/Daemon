@@ -2698,10 +2698,7 @@ void RB_RunVisTests( )
 	int i;
 
 	// finish any 2D drawing if needed
-	if ( tess.numIndexes )
-	{
-		Tess_End();
-	}
+	Tess_End();
 
 	for ( i = 0; i < backEnd.refdef.numVisTests; i++ )
 	{
@@ -2816,9 +2813,7 @@ void RB_RunVisTests( )
 		Tess_DrawElements();
 		glEndQuery( GL_SAMPLES_PASSED );
 
-		tess.numIndexes = 0;
-		tess.numVertexes = 0;
-		tess.multiDrawPrimitives = 0;
+		Tess_Clear();
 		testState->running = true;
 	}
 }
@@ -2961,6 +2956,8 @@ void RB_RenderPostDepthLightTile()
 		if( !glConfig2.glCoreProfile )
 			glDisable( GL_POINT_SPRITE );
 	}
+
+	Tess_Clear();
 
 	// back to main image
 	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
@@ -4641,9 +4638,8 @@ void DebugDrawEnd() {
 		backEnd.pc.c_indexes += tess.numIndexes;
 		backEnd.pc.c_vertexes += tess.numVertexes;
 	}
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
 
+	Tess_Clear();
 	glLineWidth( 1.0f );
 	glPointSize( 1.0f );
 }
@@ -5433,10 +5429,7 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	GLimp_LogComment( "--- ClearBufferCommand::ExecuteSelf ---\n" );
 
 	// finish any 2D drawing if needed
-	if ( tess.numIndexes )
-	{
-		Tess_End();
-	}
+	Tess_End();
 
 	backEnd.refdef = refdef;
 	backEnd.viewParms = viewParms;
@@ -5622,10 +5615,7 @@ const RenderCommand *DrawViewCommand::ExecuteSelf( ) const
 	GLimp_LogComment( "--- DrawViewCommand::ExecuteSelf ---\n" );
 
 	// finish any 2D drawing if needed
-	if ( tess.numIndexes )
-	{
-		Tess_End();
-	}
+	Tess_End();
 
 	backEnd.refdef = refdef;
 	backEnd.viewParms = viewParms;
@@ -5778,10 +5768,7 @@ RB_SwapBuffers
 const RenderCommand *SwapBuffersCommand::ExecuteSelf( ) const
 {
 	// finish any 2D drawing if needed
-	if ( tess.numIndexes )
-	{
-		Tess_End();
-	}
+	Tess_End();
 
 	// texture swapping test
 	if ( r_showImages->integer )

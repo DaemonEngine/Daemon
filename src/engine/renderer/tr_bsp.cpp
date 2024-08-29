@@ -3266,10 +3266,7 @@ static void R_CreateWorldVBO()
 		ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_ORIENTATION | ATTR_COLOR );
 	s_worldData.ibo = R_CreateStaticIBO2( va( "staticWorld_IBO %i", 0 ), numTriangles, vboIdxs );
 
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
-	tess.verts = nullptr;
-	tess.indexes = nullptr;
+	Tess_Clear();
 	tess.buildingVBO = false;
 
 	ri.Hunk_FreeTempMemory( vboIdxs );

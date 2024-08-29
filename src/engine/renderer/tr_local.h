@@ -3408,6 +3408,7 @@ inline bool checkGLErrors()
 	void Tess_ComputeColor( shaderStage_t *pStage );
 	void Tess_ComputeTexMatrices( shaderStage_t* pStage );
 
+	void Tess_StageIteratorDummy();
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorColor();
 	void Tess_StageIteratorPortal();

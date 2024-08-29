@@ -693,6 +693,12 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
                  int fogNum,
                  bool bspSurface )
 {
+	if ( tess.numIndexes || tess.numVertexes || tess.multiDrawPrimitives )
+	{
+		Log::Warn( "Tess_Begin: unflushed data: numVertexes=%d numIndexes=%d multiDrawPrimitives=%d",
+		           tess.numVertexes, tess.numIndexes, tess.multiDrawPrimitives );
+	}
+
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
 	tess.multiDrawPrimitives = 0;
@@ -2700,6 +2706,12 @@ void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 	}
 }
 
+// Used for things which are never intended to be rendered
+void Tess_StageIteratorDummy()
+{
+	Log::Warn( "non-drawing tessellation overflow" );
+}
+
 void Tess_StageIteratorDebug()
 {
 	// log this call
@@ -2998,6 +3010,12 @@ void Tess_Clear()
 	tess.multiDrawPrimitives = 0;
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
+
+	// This is important after doing CPU-only tessellation with Tess_MapVBOs( true ).
+	// A lot of code relies on a behavior of Tess_Begin: automatically map the
+	// default VBO *if tess.verts is null*.
+	tess.verts = nullptr;
+	tess.indexes = nullptr;
 }
 
 /*
@@ -3027,8 +3045,9 @@ void Tess_End()
 		// call off to shader specific tess end function
 		tess.stageIteratorFunc();
 
-		if ( ( tess.stageIteratorFunc != Tess_StageIteratorShadowFill ) &&
-			 ( tess.stageIteratorFunc != Tess_StageIteratorDebug ) )
+		if ( tess.stageIteratorFunc != Tess_StageIteratorShadowFill &&
+		     tess.stageIteratorFunc != Tess_StageIteratorDebug &&
+		     tess.stageIteratorFunc != Tess_StageIteratorDummy )
 		{
 			// draw debugging stuff
 			if ( r_showTris->integer || r_showBatches->integer || ( r_showLightBatches->integer && ( tess.stageIteratorFunc == Tess_StageIteratorLighting ) ) )
