@@ -689,11 +689,9 @@ void R_SetupLightFrustum( trRefLight_t *light )
 	{
 		R_SyncRenderThread();
 
-		tess.multiDrawPrimitives = 0;
-		tess.numIndexes = 0;
-		tess.numVertexes = 0;
-
 		Tess_MapVBOs(true);
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
+
 		R_TessLight( light );
 
 		vboData_t data{};
@@ -714,11 +712,7 @@ void R_SetupLightFrustum( trRefLight_t *light )
 		light->frustumVerts = tess.numVertexes;
 		light->frustumIndexes = tess.numIndexes;
 
-		tess.multiDrawPrimitives = 0;
-		tess.numIndexes = 0;
-		tess.numVertexes = 0;
-		tess.verts = nullptr;
-		tess.indexes = nullptr;
+		Tess_Clear();
 	}
 }
 

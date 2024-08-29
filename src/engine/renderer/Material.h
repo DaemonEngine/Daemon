@@ -199,7 +199,6 @@ struct SurfaceCommandBatch {
 class MaterialSystem {
 	public:
 	bool generatedWorldCommandBuffer = false;
-	bool skipDrawCommands;
 	bool generatingWorldCommandBuffer = false;
 	vec3_t worldViewBounds[2] = {};
 

@@ -1514,12 +1514,12 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 
 	// Try to do tessellation CPU-side... won't work for static VBO surfaces
 	// (https://github.com/DaemonEngine/Daemon/issues/1199)
-	Tess_Begin( Tess_StageIteratorColor, drawSurf->shader, nullptr, true, -1, 0 );
-	R_BindNullVBO(); // Tess_Begin binds the default VBO
+	R_BindNullVBO();
 	Tess_MapVBOs( /*forceCPU=*/ true );
+	Tess_Begin( Tess_StageIteratorDummy, drawSurf->shader, nullptr, true, -1, 0 );
 	rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
 
-	if ( tess.numVertexes <= 0 || tess.numIndexes <= 0 || glState.currentVBO != nullptr )
+	if ( tess.numVertexes <= 0 || tess.numIndexes <= 0  || glState.currentVBO != nullptr)
 	{
 		Log::Warn( "failed to generate portal vertices" );
 		return true;
