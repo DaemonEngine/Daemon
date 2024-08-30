@@ -1474,12 +1474,16 @@ static bool IsMirror( const drawSurf_t *drawSurf )
 ** Determines if a surface is completely offscreen or out of the portal range.
 ** also computes a conservative screen rectangle bounds for the surface
 **
+** Return value:
+**    0 = on screen, in range
+**    1 = on screen, out of range
+**    2 = off screen
+**
 ** Note: caller must clear tess data afterward
 */
-bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surfRect )
+int PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surfRect )
 {
 	float        shortest = 100000000;
-	shader_t     *shader;
 	int          numTriangles;
 	vec4_t       clip, eye;
 	unsigned int pointOr = 0;
@@ -1493,7 +1497,6 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 	surfRect = parentRect;
 
 	tr.currentEntity = drawSurf->entity;
-	shader = drawSurf->shader;
 
 	// rotate if necessary
 	if ( tr.currentEntity != &tr.worldEntity )
@@ -1509,7 +1512,7 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 	{
 		// https://github.com/DaemonEngine/Daemon/issues/1216
 		Log::Warn( "portals are not compatible with r_smp" );
-		return true;
+		return 1;
 	}
 
 	// Try to do tessellation CPU-side... won't work for static VBO surfaces
@@ -1522,7 +1525,7 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 	if ( tess.numVertexes <= 0 || tess.numIndexes <= 0  || glState.currentVBO != nullptr)
 	{
 		Log::Warn( "failed to generate portal vertices" );
-		return true;
+		return 1;
 	}
 
 	screenRect_t newRect;
@@ -1572,12 +1575,10 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 	surfRect.coords[2] = std::min(newRect.coords[2], surfRect.coords[2]);
 	surfRect.coords[3] = std::min(newRect.coords[3], surfRect.coords[3]);
 
-	shader->portalOutOfRange = false;
-
 	// trivially reject
 	if ( pointAnd )
 	{
-		return true;
+		return 2;
 	}
 
 	// determine if this surface is backfaced and also determine the distance
@@ -1613,23 +1614,22 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 
 	if ( !numTriangles )
 	{
-		return true;
+		return 2;
 	}
 
 	// mirrors can early out at this point, since we don't do a fade over distance
 	// with them (although we could)
 	if ( IsMirror( drawSurf ) )
 	{
-		return false;
+		return 0;
 	}
 
 	if ( shortest > ( tess.surfaceShader->portalRange * tess.surfaceShader->portalRange ) )
 	{
-		shader->portalOutOfRange = true;
-		return true;
+		return 1;
 	}
 
-	return false;
+	return 0;
 }
 
 /*
@@ -1748,15 +1748,19 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	}
 
 	// trivially reject portal/mirror
-	if (PortalOffScreenOrOutOfRange(drawSurf, surfRect))
+	switch ( PortalOffScreenOrOutOfRange( drawSurf, surfRect ) )
 	{
-		Tess_Clear();
+	case 0:
+		break;
 
+	case 1:
 		// We still need to draw the surface itself when it's out of range, just not the portal view
-		if ( drawSurf->shader->portalOutOfRange ) {
-			R_AddPreparePortalCmd( drawSurf );
-			R_AddFinalisePortalCmd( drawSurf );
-		}
+		R_AddPreparePortalCmd( drawSurf );
+		R_AddFinalisePortalCmd( drawSurf );
+		DAEMON_FALLTHROUGH;
+
+	case 2:
+		Tess_Clear();
 		return false;
 	}
 

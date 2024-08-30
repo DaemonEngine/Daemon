@@ -1886,13 +1886,11 @@ bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSur
 		uint32_t portalViewID = viewCount + 1;
 		// This check has to be done first so we can correctly determine when we get to MAX_VIEWS - 1 amount of views
 		screenRect_t surfRect;
-		bool offScreenOrOutOfRange =
-			PortalOffScreenOrOutOfRange( &portalSurfaces[ portalSurface->drawSurfID ], surfRect );
+		bool offScreenOrOutOfRange = 0 != PortalOffScreenOrOutOfRange(
+			&portalSurfaces[ portalSurface->drawSurfID ], surfRect );
 		Tess_Clear();
 		if ( offScreenOrOutOfRange ) {
-			if ( portalSurfaces[portalSurface->drawSurfID].shader->portalOutOfRange ) {
-				continue;
-			}
+			continue;
 		}
 
 		if ( portalViewID == MAX_VIEWS ) {
