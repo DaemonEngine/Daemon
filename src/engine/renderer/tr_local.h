@@ -1285,7 +1285,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		float          portalRange; // distance to fog out at
 		bool       isPortal;
-		bool portalOutOfRange;
 
 		cullType_t     cullType; // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 		bool       polygonOffset; // set for decals and other items that must be offset
@@ -3016,7 +3015,7 @@ inline bool checkGLErrors()
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
 
-	bool           PortalOffScreenOrOutOfRange( const drawSurf_t* drawSurf, screenRect_t& surfRect );
+	int            PortalOffScreenOrOutOfRange( const drawSurf_t* drawSurf, screenRect_t& surfRect );
 	bool           R_MirrorViewBySurface( drawSurf_t* drawSurf );
 	void           R_RenderView( viewParms_t *parms );
 	void           R_RenderPostProcess();
