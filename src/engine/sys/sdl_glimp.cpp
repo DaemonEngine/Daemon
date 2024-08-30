@@ -1450,11 +1450,13 @@ static bool IsSdlVideoRestartNeeded()
 	with RV700 and RV800 cards that are also supported by the Mesa R600 driver.
 
 	The Mesa R600 driver has broken Hyper-Z wth RV600, not RV700 nor RV800. */
-	static bool r600_hyperz_modified = false;
-	static const char* r600_hyperz_bkp = nullptr;
-
 	if ( workaround_noHyperZ_mesaRv600.Get() )
 	{
+		if ( getenv( "R600_HYPERZ" ) )
+		{
+			return false;
+		}
+
 		if ( !Q_stricmp( glConfig.vendor_string, "Mesa" ) || !Q_stricmp( glConfig.vendor_string, "X.Org" ) )
 		{
 			bool foundRv600 = false;
@@ -1481,35 +1483,13 @@ static bool IsSdlVideoRestartNeeded()
 
 			if ( foundRv600 )
 			{
-				if ( !r600_hyperz_modified )
-				{
-					r600_hyperz_bkp = getenv( "R600_HYPERZ" );
-				}
-
 				logger.Warn( "...found buggy Mesa driver with %s card, Hyper-Z disabled", cardName );
 
 				Sys::SetEnv( "R600_HYPERZ", "false" );
 
-				r600_hyperz_modified = true;
-
 				return true;
 			}
 		}
-	}
-	else if ( r600_hyperz_modified )
-	{
-		if ( r600_hyperz_bkp )
-		{
-			Sys::SetEnv( "R600_HYPERZ", r600_hyperz_bkp );
-		}
-		else
-		{
-			Sys::UnsetEnv( "R600_HYPERZ" );
-		}
-
-		r600_hyperz_modified = false;
-
-		return true;
 	}
 
 	return false;
