@@ -421,8 +421,6 @@ cvar_t                     *r_centerWindow;
 cvar_t                     *r_displayIndex;
 cvar_t                     *r_sdlDriver;
 
-static bool firstSdlVideoAttempt;
-
 static void GLimp_DestroyContextIfExists();
 static void GLimp_DestroyWindowIfExists();
 
@@ -1439,13 +1437,9 @@ static void GLimp_CheckGLEW( const glConfiguration &requestedConfiguration )
 	}
 }
 
+// We should make sure every workaround returns false if restart already happened.
 static bool IsSdlVideoRestartNeeded()
 {
-	if ( !firstSdlVideoAttempt )
-	{
-		return false;
-	}
-
 	/* We call RV600 the first generation of R600 cards, to make a difference
 	with RV700 and RV800 cards that are also supported by the Mesa R600 driver.
 
@@ -2456,12 +2450,10 @@ bool GLimp_Init()
 	bool bordered = !r_noBorder.Get();
 
 	// Create the window and set up the context
-	firstSdlVideoAttempt = true;
 	rserr_t err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
 
 	if ( err == rserr_t::RSERR_RESTART )
 	{
-		firstSdlVideoAttempt = false;
 		Log::Warn( "...restarting SDL Video" );
 		SDL_QuitSubSystem( SDL_INIT_VIDEO );
 		err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
