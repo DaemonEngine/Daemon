@@ -247,8 +247,6 @@ void GLShaderManager::freeAll()
 	{
 		_shaderBuildQueue.pop();
 	}
-
-	_totalBuildTime = 0;
 }
 
 void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader *shader, shaderProgram_t *shaderProgram ) const
@@ -896,71 +894,74 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	return false;
 }
 
-void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
+// returns whether something was really built (using a cached one counts)
+bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
 {
 	std::string compileMacros;
-	int  startTime = ri.Milliseconds();
-	int  endTime;
 	size_t i = macroIndex + ( deformIndex << shader->_compileMacros.size() );
 
 	// program already exists
 	if ( i < shader->_shaderPrograms.size() &&
 	     shader->_shaderPrograms[ i ].program )
 	{
-		return;
+		return false;
 	}
 
-	if( shader->GetCompileMacrosString( macroIndex, compileMacros ) )
+	if ( !shader->GetCompileMacrosString( macroIndex, compileMacros ) )
 	{
-		shader->BuildShaderCompileMacros( compileMacros );
-
-		if ( IsUnusedPermutation( compileMacros.c_str() ) )
-			return;
-
-		if( i >= shader->_shaderPrograms.size() )
-			shader->_shaderPrograms.resize( (deformIndex + 1) << shader->_compileMacros.size() );
-
-		shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ i ];
-		shaderProgram->attribs = shader->_vertexAttribsRequired; // | _vertexAttribsOptional;
-
-		if( deformIndex > 0 )
-		{
-			shaderProgram_t *baseShader = &shader->_shaderPrograms[ macroIndex ];
-			if( ( !baseShader->VS && shader->_hasVertexShader ) || ( !baseShader->FS && shader->_hasFragmentShader ) )
-				CompileGPUShaders( shader, baseShader, compileMacros );
-
-			shaderProgram->program = glCreateProgram();
-			if ( shader->_hasVertexShader ) {
-				glAttachShader( shaderProgram->program, baseShader->VS );
-				glAttachShader( shaderProgram->program, _deformShaders[deformIndex] );
-			}
-			if ( shader->_hasFragmentShader ) {
-				glAttachShader( shaderProgram->program, baseShader->FS );
-			}
-
-			BindAttribLocations( shaderProgram->program );
-			LinkProgram( shaderProgram->program );
-		}
-		else if ( !LoadShaderBinary( shader, i ) )
-		{
-			CompileAndLinkGPUShaderProgram(	shader, shaderProgram, compileMacros, deformIndex );
-			SaveShaderBinary( shader, i );
-		}
-
-		UpdateShaderProgramUniformLocations( shader, shaderProgram );
-		GL_BindProgram( shaderProgram );
-		shader->SetShaderProgramUniforms( shaderProgram );
-		GL_BindProgram( nullptr );
-
-		GL_CheckErrors();
-
-		endTime = ri.Milliseconds();
-		_totalBuildTime += ( endTime - startTime );
+		return false;
 	}
+
+	shader->BuildShaderCompileMacros( compileMacros );
+
+	if ( IsUnusedPermutation( compileMacros.c_str() ) )
+		return false;
+
+	if ( i >= shader->_shaderPrograms.size() )
+		shader->_shaderPrograms.resize( (deformIndex + 1) << shader->_compileMacros.size() );
+
+	shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ i ];
+	shaderProgram->attribs = shader->_vertexAttribsRequired; // | _vertexAttribsOptional;
+
+	if ( deformIndex > 0 )
+	{
+		shaderProgram_t *baseShader = &shader->_shaderPrograms[ macroIndex ];
+		if ( ( !baseShader->VS && shader->_hasVertexShader ) || ( !baseShader->FS && shader->_hasFragmentShader ) )
+			CompileGPUShaders( shader, baseShader, compileMacros );
+
+		shaderProgram->program = glCreateProgram();
+		if ( shader->_hasVertexShader ) {
+			glAttachShader( shaderProgram->program, baseShader->VS );
+			glAttachShader( shaderProgram->program, _deformShaders[deformIndex] );
+		}
+		if ( shader->_hasFragmentShader ) {
+			glAttachShader( shaderProgram->program, baseShader->FS );
+		}
+
+		BindAttribLocations( shaderProgram->program );
+		LinkProgram( shaderProgram->program );
+	}
+	else if ( !LoadShaderBinary( shader, i ) )
+	{
+		CompileAndLinkGPUShaderProgram(	shader, shaderProgram, compileMacros, deformIndex );
+		SaveShaderBinary( shader, i );
+	}
+
+	UpdateShaderProgramUniformLocations( shader, shaderProgram );
+	GL_BindProgram( shaderProgram );
+	shader->SetShaderProgramUniforms( shaderProgram );
+	GL_BindProgram( nullptr );
+
+	GL_CheckErrors();
+
+	return true;
 }
 
 void GLShaderManager::buildAll()
 {
+	int startTime = Sys::Milliseconds();
+	int count = 0;
+
 	while ( !_shaderBuildQueue.empty() )
 	{
 		GLShader& shader = *_shaderBuildQueue.front();
@@ -972,13 +973,14 @@ void GLShaderManager::buildAll()
 
 		for( i = 0; i < numPermutations; i++ )
 		{
-			buildPermutation( &shader, i, 0 );
+			count += +buildPermutation( &shader, i, 0 );
 		}
 
 		_shaderBuildQueue.pop();
 	}
 
-	Log::Notice( "glsl shaders took %d msec to build", _totalBuildTime );
+	// doesn't include deform vertex shaders, those are built elsewhere!
+	Log::Notice( "built %d glsl shaders in %d msec", count, Sys::Milliseconds() - startTime );
 }
 
 std::string GLShaderManager::ProcessInserts( const std::string& shaderText, const uint32_t offset ) const {

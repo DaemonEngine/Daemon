@@ -342,7 +342,6 @@ class GLShaderManager
 	std::vector< std::unique_ptr< GLShader > > _shaders;
 	std::unordered_map< std::string, int > _deformShaderLookup;
 	std::vector< GLint > _deformShaders;
-	int       _totalBuildTime;
 	unsigned int _driverVersionHash; // For cache invalidation if hardware changes
 	bool _shaderBinaryCacheInvalidated;
 
@@ -356,9 +355,7 @@ public:
 	GLHeader GLWorldHeader;
 	GLHeader GLEngineConstants;
 
-	GLShaderManager() : _totalBuildTime( 0 )
-	{
-	}
+	GLShaderManager() {}
 	~GLShaderManager();
 
 	void InitDriverInfo();
@@ -382,7 +379,7 @@ public:
 
 	int getDeformShaderIndex( deformStage_t *deforms, int numDeforms );
 
-	void buildPermutation( GLShader *shader, int macroIndex, int deformIndex );
+	bool buildPermutation( GLShader *shader, int macroIndex, int deformIndex );
 	void buildAll();
 private:
 	struct InfoLogEntry {
