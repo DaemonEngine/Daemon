@@ -2067,6 +2067,8 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 
 	if ( shader->depthShader != nullptr ) {
 		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
+		drawSurf->depthSurface = &tr.refdef.drawSurfs[index + 1];
+		drawSurf->depthSurface->materialSystemSkip = true;
 	}
 }
 
@@ -2934,10 +2936,6 @@ void R_RenderView( viewParms_t *parms )
 	R_SetupProjection( true );
 
 	R_SetupFrustum();
-
-	// RB: cull decal projects before calling R_AddWorldSurfaces
-	// because it requires the decalBits
-	R_CullDecalProjectors();
 
 	if ( glConfig2.materialSystemAvailable ) {
 		tr.viewParms.viewID = tr.viewCount;

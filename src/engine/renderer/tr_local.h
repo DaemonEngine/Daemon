@@ -308,7 +308,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	  RSPEEDS_SHADING_TIMES,
 	  RSPEEDS_CHC,
 	  RSPEEDS_NEAR_FAR,
-	  RSPEEDS_DECALS
 	};
 
 	enum class glDebugModes_t
@@ -729,7 +728,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		union { f16vec2_t *st; vec2_t *stf; };
 		int    (*boneIndexes)[ 4 ];
 		vec4_t *boneWeights;
-		f16vec4_t *spriteOrientation;
 
 		int	numFrames;
 		int     numVerts;
@@ -1294,6 +1292,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool        interactLight; // this shader can interact with light shaders
 
+		// mode 1 can be used in BSP surfaces or with RT_SPRITE
+		// mode 2 can be used only in BSP surfaces
 		int		autoSpriteMode;
 
 		uint8_t         numDeforms;
@@ -1435,13 +1435,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		int                     numPolys;
 		struct srfPoly_t        *polys;
 
-		int                     decalBits; // ydnar: optimization
-		int                     numDecalProjectors;
-		struct decalProjector_t *decalProjectors;
-
-		int                     numDecals;
-		struct srfDecal_t       *decals;
-
 		int                     numDrawSurfs;
 		struct drawSurf_t       *drawSurfs;
 
@@ -1454,23 +1447,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		int                    numVisTests;
 		struct visTestResult_t *visTests;
-	};
-
-//=================================================================================
-
-// ydnar: decal projection
-	struct decalProjector_t
-	{
-		shader_t *shader;
-		Color::Color32Bit color;
-		int      fadeStartTime, fadeEndTime;
-		vec3_t   mins, maxs;
-		vec3_t   center;
-		float    radius, radius2;
-		bool omnidirectional;
-		int      numPlanes; // either 5 or 6, for quad or triangle projectors
-		plane_t planes[ 6 ];
-		vec4_t   texMat[ 3 ][ 2 ];
 	};
 
 //=================================================================================
@@ -1586,7 +1562,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	  SF_TRIANGLES,
 
 	  SF_POLY,
-	  SF_DECAL, // ydnar: decal surfaces
 
 	  SF_MDV,
 	  SF_MD5,
@@ -1665,6 +1640,9 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		uint materialPackIDs[ MAX_SHADER_STAGES ];
 		bool texturesDynamic[ MAX_SHADER_STAGES ];
 		uint drawCommandIDs[ MAX_SHADER_STAGES ];
+
+		drawSurf_t* depthSurface;
+		bool materialSystemSkip = false;
 
 		inline int index() const {
 			return int( ( sort & SORT_INDEX_MASK ) );
@@ -1765,17 +1743,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		int16_t       numVerts;
 		int16_t       fogIndex;
 		polyVert_t    *verts;
-	};
-
-// ydnar: decals
-#define MAX_DECAL_VERTS   10 // worst case is triangle clipped by 6 planes
-#define MAX_WORLD_DECALS  1024
-#define MAX_ENTITY_DECALS 128
-	struct srfDecal_t
-	{
-		surfaceType_t surfaceType;
-		int           numVerts;
-		polyVert_t    verts[ MAX_DECAL_VERTS ];
 	};
 
 	struct srfFlare_t
@@ -1960,17 +1927,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		surfaceType_t   *data; // any of srf*_t
 	};
 
-// ydnar: bsp model decal surfaces
-	struct decal_t
-	{
-		bspSurface_t *parent;
-		shader_t     *shader;
-		float        fadeStartTime, fadeEndTime;
-		int16_t      fogIndex;
-		int          numVerts;
-		polyVert_t   verts[ MAX_DECAL_VERTS ];
-	};
-
 #define CONTENTS_NODE -1
 	struct bspNode_t
 	{
@@ -1999,9 +1955,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		uint32_t     numSurfaces;
 		bspSurface_t *firstSurface;
-
-		// ydnar: decals
-		decal_t *decals;
 	};
 
 	// The ambient and directional colors are packed into four bytes, the color[3] is the
@@ -2461,8 +2414,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		int c_dlightSurfaces;
 		int c_dlightSurfacesCulled;
 		int c_dlightInteractions;
-
-		int c_decalProjectors, c_decalTestSurfaces, c_decalClipSurfaces, c_decalSurfaces, c_decalSurfacesCreated;
 	};
 
 #define FOG_TABLE_SIZE  256
@@ -2847,8 +2798,8 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_glMajorVersion; // override GL version autodetect (for testing)
 	extern cvar_t *r_glMinorVersion;
 	extern cvar_t *r_glProfile;
-	extern cvar_t *r_glDebugProfile;
-	extern cvar_t *r_glDebugMode;
+	extern Cvar::Cvar<bool> r_glDebugProfile;
+	extern Cvar::Range<Cvar::Cvar<int>> r_glDebugMode;
 	extern cvar_t *r_glAllowSoftware;
 	extern cvar_t *r_glExtendedValidation;
 
@@ -3019,7 +2970,6 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_showCubeProbes;
 	extern cvar_t *r_showBspNodes;
 	extern cvar_t *r_showParallelShadowSplits;
-	extern cvar_t *r_showDecalProjectors;
 
 	extern cvar_t *r_vboFaces;
 	extern cvar_t *r_vboCurves;
@@ -3656,27 +3606,6 @@ inline bool checkGLErrors()
 	/*
 	============================================================
 
-	DECALS - ydnar, tr_decals.c
-
-	============================================================
-	*/
-
-	void     RE_ProjectDecal( qhandle_t hShader, int numPoints, vec3_t *points, vec4_t projection, const Color::Color& color, int lifeTime,
-	                          int fadeTime );
-	void     RE_ClearDecals();
-
-	bool R_TestDecalBoundingBox( decalProjector_t *dp, vec3_t mins, vec3_t maxs );
-	bool R_TestDecalBoundingSphere( decalProjector_t *dp, vec3_t center, float radius2 );
-
-	void     R_ProjectDecalOntoSurface( decalProjector_t *dp, bspSurface_t *surf, bspModel_t *bmodel );
-
-	void     R_AddDecalSurface( decal_t *decal );
-	void     R_AddDecalSurfaces( bspModel_t *bmodel );
-	void     R_CullDecalProjectors();
-
-	/*
-	============================================================
-
 	SCENE GENERATION, tr_scene.c
 
 	============================================================
@@ -3949,12 +3878,6 @@ inline bool checkGLErrors()
 		const RenderCommand *ExecuteSelf() const override;
 	};
 
-// ydnar: max decal projectors per frame, each can generate lots of polys
-#define MAX_DECAL_PROJECTORS 32 // uses bitmasks, don't increase
-#define DECAL_PROJECTOR_MASK ( MAX_DECAL_PROJECTORS - 1 )
-#define MAX_DECALS           1024
-#define DECAL_MASK           ( MAX_DECALS - 1 )
-
 // all of the information needed by the back end must be
 // contained in a backEndData_t.  This entire structure is
 // duplicated so the front and back end can run in parallel
@@ -3970,9 +3893,6 @@ inline bool checkGLErrors()
 		srfPoly_t           *polys; //[MAX_POLYS];
 		polyVert_t          *polyVerts; //[MAX_POLYVERTS];
 		int                 *polyIndexes; //[MAX_POLYVERTS];
-
-		decalProjector_t    decalProjectors[ MAX_DECAL_PROJECTORS ];
-		srfDecal_t          decals[ MAX_DECALS ];
 
 		// the backend communicates to the frontend through visTestResult_t
 		int                 numVisTests;

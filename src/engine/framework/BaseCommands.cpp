@@ -83,9 +83,9 @@ namespace Cmd {
                 //Check the syntax
                 if (args.Argc() < 2) {
                     if (readHomepath) {
-                        PrintUsage(args, "[-q|-f|-s] <filename> [<arguments>…]", "execute a user script file from config/.");
+                        PrintUsage(args, "[-q|-f|-s] <filename> [<arguments>…]", "execute a user script file from config/ (-q = skip \"execing ...\" message, -f = skip fail message, -s = -q -f).");
                     } else {
-                        PrintUsage(args, "[-q|-f|-s] <filename> [<arguments>…]", "execute a script file from a pak.");
+                        PrintUsage(args, "[-q|-f|-s] <filename> [<arguments>…]", "execute a script file from a pak (-q = skip \"execing ...\" message, -f = skip fail message, -s = -q -f).");
                     }
                     return;
                 }
@@ -364,7 +364,7 @@ namespace Cmd {
 
     class IfCmd: public StaticCmd {
         public:
-            IfCmd(): StaticCmd("if", BASE, "conditionally execute commands") {
+            IfCmd(): StaticCmd("if", BASE, "conditionally executes commands") {
             }
 
             void Run(const Cmd::Args& args) const override {
@@ -863,12 +863,12 @@ namespace Cmd {
 
     class AliasCmd: StaticCmd {
         public:
-            AliasCmd(): StaticCmd("alias", BASE, "creates or view an alias") {
+            AliasCmd(): StaticCmd("alias", BASE, "creates or views an alias") {
             }
 
             void Run(const Cmd::Args& args) const override {
                 if (args.Argc() < 2) {
-                    PrintUsage(args, "<name>", "show an alias");
+                    PrintUsage(args, "<name>", "view an alias");
                     PrintUsage(args, "<name> <exec>", "create an alias");
                     return;
                 }
@@ -1010,7 +1010,7 @@ namespace Cmd {
 
     class ShowFPSCommand : public Cmd::StaticCmd {
     public:
-        ShowFPSCommand() : StaticCmd("showfps", "print engine frame rate") {}
+        ShowFPSCommand() : StaticCmd("showfps", "prints engine frame rate") {}
 
         void Run(const Cmd::Args&) const override {
             Print("FPS: %.1f", Application::GetFPS());

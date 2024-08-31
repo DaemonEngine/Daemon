@@ -262,24 +262,6 @@ static void R_AddInteractionSurface( bspSurface_t *surf, trRefLight_t *light, in
 	}
 }
 
-static void R_AddDecalSurface( bspSurface_t *surf, int decalBits )
-{
-	int i;
-
-	// add decals
-	if ( decalBits )
-	{
-		// ydnar: project any decals
-		for ( i = 0; i < tr.refdef.numDecalProjectors; i++ )
-		{
-			if ( decalBits & ( 1 << i ) )
-			{
-				R_ProjectDecalOntoSurface( &tr.refdef.decalProjectors[ i ], surf, &tr.world->models[ 0 ] );
-			}
-		}
-	}
-}
-
 /*
 ======================
 R_AddWorldSurface
@@ -366,7 +348,7 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 =============================================================
 */
 
-static void R_AddLeafSurfaces( bspNode_t *node, int decalBits, int planeBits )
+static void R_AddLeafSurfaces( bspNode_t *node, int planeBits )
 {
 	int          c;
 	bspSurface_t **mark;
@@ -414,10 +396,7 @@ static void R_AddLeafSurfaces( bspNode_t *node, int decalBits, int planeBits )
 	{
 		// the surface may have already been added if it
 		// spans multiple leafs
-		if ( R_AddWorldSurface( *view, ( *view )->fogIndex, planeBits ) )
-		{
-			R_AddDecalSurface( *mark, decalBits );
-		}
+		R_AddWorldSurface( *view, ( *view )->fogIndex, planeBits );
 
 		( *mark )->viewCount = tr.viewCountNoReset;
 
@@ -431,7 +410,7 @@ static void R_AddLeafSurfaces( bspNode_t *node, int decalBits, int planeBits )
 R_RecursiveWorldNode
 ================
 */
-static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits )
+static void R_RecursiveWorldNode( bspNode_t *node, int planeBits )
 {
 	do
 	{
@@ -475,25 +454,6 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 
 		backEndData[ tr.smpFrame ]->traversalList[ backEndData[ tr.smpFrame ]->traversalLength++ ] = node;
 
-		// ydnar: cull decals
-		if ( decalBits )
-		{
-			int i;
-
-			for ( i = 0; i < tr.refdef.numDecalProjectors; i++ )
-			{
-				if ( decalBits & ( 1 << i ) )
-				{
-					// test decal bounds against node bounds
-					if ( tr.refdef.decalProjectors[ i ].shader == nullptr ||
-					     !R_TestDecalBoundingBox( &tr.refdef.decalProjectors[ i ], node->mins, node->maxs ) )
-					{
-						decalBits &= ~( 1 << i );
-					}
-				}
-			}
-		}
-
 		if ( node->contents != -1 )
 		{
 			break;
@@ -504,7 +464,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 		uint32_t side = d <= 0;
 
 		// recurse down the children, front side first
-		R_RecursiveWorldNode( node->children[ side ], planeBits, decalBits );
+		R_RecursiveWorldNode( node->children[ side ], planeBits );
 
 		// tail recurse
 		node = node->children[ side ^ 1 ];
@@ -514,7 +474,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits, int decalBits 
 	if ( node->numMarkSurfaces )
 	{
 		// ydnar: moved off to separate function
-		R_AddLeafSurfaces( node, decalBits, planeBits );
+		R_AddLeafSurfaces( node, planeBits );
 	}
 }
 
@@ -854,7 +814,7 @@ static void R_MarkLeaves()
 				tr.world->skyNodes[ tr.world->numSkyNodes++ ] = leaf;
 			}
 
-			R_AddLeafSurfaces( leaf, 0, FRUSTUM_CLIPALL );
+			R_AddLeafSurfaces( leaf, FRUSTUM_CLIPALL );
 			continue;
 		}
 
@@ -904,7 +864,7 @@ void R_AddWorldSurfaces()
 
 		for ( i = 0, node = tr.world->skyNodes; i < tr.world->numSkyNodes; i++, node++ )
 		{
-			R_AddLeafSurfaces( *node, 0, FRUSTUM_CLIPALL );  // no decals on skybox nodes
+			R_AddLeafSurfaces( *node, FRUSTUM_CLIPALL );
 		}
 	}
 	else
@@ -916,10 +876,7 @@ void R_AddWorldSurfaces()
 		backEndData[ tr.smpFrame ]->traversalLength = 0;
 
 		// update visbounds and add surfaces that weren't cached with VBOs
-		R_RecursiveWorldNode( tr.world->nodes, FRUSTUM_CLIPALL, tr.refdef.decalBits );
-
-		// ydnar: add decal surfaces
-		R_AddDecalSurfaces( tr.world->models );
+		R_RecursiveWorldNode( tr.world->nodes, FRUSTUM_CLIPALL );
 	}
 }
 

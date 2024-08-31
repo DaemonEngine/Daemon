@@ -353,24 +353,21 @@ void GLSL_InitGPUShaders()
 	/*
 	 Without a shaderpath option, the shader debugging cycle is like this:
 	 1. Change shader file(s).
-	 2. Run script to convert shader files into c++, storing them in shaders.cpp
-	 3. Recompile app to pickup the new shaders.cpp changes.
-	 4. Run the app and get to the point required to check work.
-	 5. If the change failed or succeeded but you want to make more changes restart at step 1.
+	 2. Recompile app to pickup the new *.glsl changes.
+	 3. Run the app and get to the point required to check work.
+	 4. If the change failed or succeeded but you want to make more changes restart at step 1.
 
-	 Alternatively, if set shaderpath "c:/unvanquished/main" is used, the cycle is:
-	 1. Change shader file(s) - don't run the buildshaders script unless samples.cpp is missing.
-	 2. Start the app, the app will load the shader files directly.
-	    If there is a problem the app will revert to the last working changes
-		in samples.cpp, so need to restart the app.
-	 3. Fix the problem shader files
-	 4. Do /glsl_restart at the app console to reload them. Repeat from step 3 as needed.
+	 Alternatively, if -set shaderpath "daemon/src/engine/renderer/glsl_source"
+	 is set on the command line, the cycle is:
+	 1. Start the app.
+	 2. Change shader file(s)
+	 3. Do /glsl_restart at the app console to reload them. If there is a problem the app will
+	    revert to the last working changes in shaders.cpp, so no need to restart the app.
+	    FIXME: this doesn't work, actually it kills the app!
+	 4. If further changes are needed, repeat from step 3.
 
-	 Note that unv will respond by listing the files it thinks are different.
+	 Note that Daemon will respond by listing the files it thinks are different.
 	 If this matches your expectations then it's not an error.
-	 Note foward slashes (like those used in windows pathnames) are processed
-	 as escape characters by the Unvanquished command processor,
-	 so use two forward slashes in that case.
 	 */
 
 	auto shaderPath = GetShaderPath();
@@ -607,11 +604,11 @@ static void DrawTris()
 
 	GLimp_LogComment( "--- DrawTris ---\n" );
 
-	bool vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	bool vertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
-	gl_genericShader->SetVertexSprite( vboVertexSprite );
+	gl_genericShader->SetVertexSprite( vertexSprite );
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
 	gl_genericShader->SetDepthFade( false );
@@ -645,7 +642,7 @@ static void DrawTris()
 	}
 
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-
+	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -662,7 +659,7 @@ static void DrawTris()
 		GL_BindToTMU( 0, tr.whiteImage )
 	);
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
-	gl_genericShader->SetRequiredVertexPointers( vboVertexSprite );
+	gl_genericShader->SetRequiredVertexPointers( vertexSprite );
 
 	glDepthRange( 0, 0 );
 
@@ -802,7 +799,7 @@ static void Render_generic2D( shaderStage_t *pStage )
 
 	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
 	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
-	bool vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	bool vertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 
 	// choose right shader program ----------------------------------
 	gl_generic2DShader->SetDepthFade( hasDepthFade );
@@ -849,7 +846,7 @@ static void Render_generic2D( shaderStage_t *pStage )
 		);
 	}
 
-	gl_generic2DShader->SetRequiredVertexPointers( vboVertexSprite );
+	gl_generic2DShader->SetRequiredVertexPointers( vertexSprite );
 
 	Tess_DrawElements();
 	GL_CheckErrors();
@@ -877,7 +874,7 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
 	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
-	bool vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	bool vertexSprite = tess.surfaceShader->autoSpriteMode != 0;
 
 	// choose right shader program ----------------------------------
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -885,12 +882,12 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
 	gl_genericShader->SetDepthFade( hasDepthFade );
-	gl_genericShader->SetVertexSprite( vboVertexSprite );
+	gl_genericShader->SetVertexSprite( vertexSprite );
 	gl_genericShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
-	if ( pStage->tcGen_Environment || vboVertexSprite )
+	if ( pStage->tcGen_Environment || vertexSprite )
 	{
 		// calculate the environment texcoords in object space
 		gl_genericShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
@@ -934,10 +931,9 @@ void Render_generic3D( shaderStage_t *pStage )
 	// u_DeformGen
 	gl_genericShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
-	// bind u_ColorMap=
+	// bind u_ColorMap
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP )
 	{
-		// GL_Bind( GetLightMap() );
 		gl_genericShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, GetLightMap() )
 		);
@@ -961,7 +957,7 @@ void Render_generic3D( shaderStage_t *pStage )
 		);
 	}
 
-	gl_genericShader->SetRequiredVertexPointers( vboVertexSprite );
+	gl_genericShader->SetRequiredVertexPointers( vertexSprite );
 
 	Tess_DrawElements();
 
@@ -1135,7 +1131,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
 
 	// Not implemented yet in PBR code.
-	bool enableReflectiveSpecular = pStage->enableSpecularMapping && tr.cubeHashTable != nullptr;
+	bool enableReflectiveSpecular =
+		pStage->enableSpecularMapping && tr.cubeHashTable != nullptr && r_reflectionMapping->integer;
 
 	GL_State( stateBits );
 
@@ -2292,14 +2289,14 @@ void Render_heatHaze( shaderStage_t *pStage )
 	// choose right shader program ----------------------------------
 	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_heatHazeShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
-	bool vboVertexSprite = tess.surfaceShader->autoSpriteMode != 0;
-	gl_heatHazeShader->SetVertexSprite( vboVertexSprite );
+	bool vertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	gl_heatHazeShader->SetVertexSprite( vertexSprite );
 
 	gl_heatHazeShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
-	if ( vboVertexSprite )
+	if ( vertexSprite )
 	{
 		// calculate the environment texcoords in object space
 		gl_heatHazeShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
@@ -2356,7 +2353,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
 
-	gl_heatHazeShader->SetRequiredVertexPointers( vboVertexSprite );
+	gl_heatHazeShader->SetRequiredVertexPointers( vertexSprite );
 
 	Tess_DrawElements();
 

@@ -38,10 +38,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 GLSSBO materialsSSBO( "materials", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", 1, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLUBO surfaceBatchesUBO( "surfaceBatches", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLSSBO portalSurfacesSSBO( "portalSurfaces", 5, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
 
 PortalView portalStack[MAX_VIEWS];
@@ -1115,17 +1115,36 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 		}
 
 		rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
+		// Depth prepass surfaces are added as stages to the main surface instead
+		if ( drawSurf->materialSystemSkip ) {
+			continue;
+		}
 
 		SurfaceDescriptor surface;
 		VectorCopy( ( ( srfGeneric_t* ) drawSurf->surface )->origin, surface.boundingSphere.origin );
 		surface.boundingSphere.radius = ( ( srfGeneric_t* ) drawSurf->surface )->radius;
+
+		const bool depthPrePass = drawSurf->depthSurface != nullptr;
+
+		if ( depthPrePass ) {
+			const drawSurf_t* depthDrawSurf = drawSurf->depthSurface;
+			const Material* material = &materialPacks[depthDrawSurf->materialPackIDs[0]].materials[depthDrawSurf->materialIDs[0]];
+			uint cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + depthDrawSurf->drawCommandIDs[0];
+			cmdID++; // Add 1 because the first surface command is always reserved as a fake command
+			surface.surfaceCommandIDs[0] = cmdID;
+
+			SurfaceCommand surfaceCommand;
+			surfaceCommand.enabled = 0;
+			surfaceCommand.drawCommand = material->drawCommands[depthDrawSurf->drawCommandIDs[0]].cmd;
+			surfaceCommands[cmdID] = surfaceCommand;
+		}
 
 		uint32_t stage = 0;
 		for ( shaderStage_t* pStage = drawSurf->shader->stages; pStage < drawSurf->shader->lastStage; pStage++ ) {
 			const Material* material = &materialPacks[drawSurf->materialPackIDs[stage]].materials[drawSurf->materialIDs[stage]];
 			uint32_t cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + drawSurf->drawCommandIDs[stage];
 			cmdID++; // Add 1 because the first surface command is always reserved as a fake command
-			surface.surfaceCommandIDs[stage] = cmdID;
+			surface.surfaceCommandIDs[stage + ( depthPrePass ? 1 : 0 )] = cmdID;
 
 			SurfaceCommand surfaceCommand;
 			surfaceCommand.enabled = 0;
@@ -1144,6 +1163,15 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	surfaceDescriptorsSSBO.BindBuffer();
 	surfaceDescriptorsSSBO.UnmapBuffer();
+
+	surfaceCommandsSSBO.BindBuffer();
+	surfaceCommandsSSBO.UnmapBuffer();
+
+	culledCommandsBuffer.BindBuffer( GL_SHADER_STORAGE_BUFFER );
+	culledCommandsBuffer.UnmapBuffer();
+
+	atomicCommandCountersBuffer.BindBuffer( GL_ATOMIC_COUNTER_BUFFER);
+	atomicCommandCountersBuffer.UnmapBuffer();
 
 	surfaceBatchesUBO.BindBuffer();
 	surfaceBatchesUBO.UnmapBuffer();
@@ -1168,8 +1196,8 @@ void MaterialSystem::GenerateDepthImages( const int width, const int height, ima
 	int mipmapHeight = height;
 	for ( int j = 0; j < depthImageLevels; j++ ) {
 		glTexImage2D( GL_TEXTURE_2D, j, GL_R32F, mipmapWidth, mipmapHeight, 0, GL_RED, GL_FLOAT, nullptr );
-		mipmapWidth >>= 1;
-		mipmapHeight >>= 1;
+		mipmapWidth = mipmapWidth > 1 ? mipmapWidth >> 1 : 1;
+		mipmapHeight = mipmapHeight > 1 ? mipmapHeight >> 1 : 1;
 	}
 }
 
@@ -1180,7 +1208,7 @@ static void BindShaderGeneric( Material* material ) {
 	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
 
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
-	gl_genericShaderMaterial->SetVertexSprite( material->vboVertexSprite );
+	gl_genericShaderMaterial->SetVertexSprite( material->vertexSprite );
 
 	gl_genericShaderMaterial->BindProgram( material->deformIndex );
 }
@@ -1227,7 +1255,7 @@ static void BindShaderScreen( Material* material ) {
 static void BindShaderHeatHaze( Material* material ) {
 	gl_heatHazeShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 
-	gl_heatHazeShaderMaterial->SetVertexSprite( material->vboVertexSprite );
+	gl_heatHazeShaderMaterial->SetVertexSprite( material->vertexSprite );
 
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
 }
@@ -1248,7 +1276,7 @@ static void ProcessMaterialGeneric( Material* material, shaderStage_t* pStage, s
 	material->vertexAnimation = false;
 	material->tcGenEnvironment = pStage->tcGen_Environment;
 	material->tcGen_Lightmap = pStage->tcGen_Lightmap;
-	material->vboVertexSprite = shader->autoSpriteMode != 0;
+	material->vertexSprite = shader->autoSpriteMode != 0;
 	material->deformIndex = pStage->deformIndex;
 
 	gl_genericShaderMaterial->SetVertexAnimation( false );
@@ -1401,6 +1429,137 @@ static void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage ) {
 	material->program = gl_liquidShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
+void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
+	uint32_t& previousMaterialID ) {
+	Material material;
+
+	uint32_t materialPack = 0;
+	if ( shader->sort == Util::ordinal( shaderSort_t::SS_DEPTH ) ) {
+		materialPack = 0;
+	} else if ( shader->sort >= Util::ordinal( shaderSort_t::SS_ENVIRONMENT_FOG )
+		&& shader->sort <= Util::ordinal( shaderSort_t::SS_OPAQUE ) ) {
+		materialPack = 1;
+	} else {
+		materialPack = 2;
+	}
+	uint32_t id = packIDs[materialPack];
+
+	// In surfaces with multiple stages each consecutive stage must be drawn after the previous stage,
+	// except if an opaque stage follows a transparent stage etc.
+	if ( stage > 0 ) {
+		material.useSync = true;
+		material.syncMaterial = previousMaterialID;
+	}
+
+	material.stateBits = pStage->stateBits;
+	// GLS_ATEST_BITS don't matter here as they don't change GL state
+	material.stateBits &= GLS_DEPTHFUNC_BITS | GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE
+		| GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE;
+	material.stageType = pStage->type;
+	material.cullType = shader->cullType;
+	material.usePolygonOffset = shader->polygonOffset;
+
+	material.vbo = glState.currentVBO;
+	material.ibo = glState.currentIBO;
+
+	ComputeDynamics( pStage );
+
+	if ( pStage->texturesDynamic ) {
+		drawSurf->texturesDynamic[stage] = true;
+	}
+
+	switch ( pStage->type ) {
+		case stageType_t::ST_COLORMAP:
+			// generic2D also uses this, but it's for ui only, so skip that for now
+			ProcessMaterialGeneric( &material, pStage, drawSurf->shader );
+			break;
+		case stageType_t::ST_STYLELIGHTMAP:
+		case stageType_t::ST_STYLECOLORMAP:
+			ProcessMaterialGeneric( &material, pStage, drawSurf->shader );
+			break;
+		case stageType_t::ST_LIGHTMAP:
+		case stageType_t::ST_DIFFUSEMAP:
+		case stageType_t::ST_COLLAPSE_COLORMAP:
+		case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
+			ProcessMaterialLightMapping( &material, pStage, drawSurf );
+			break;
+		case stageType_t::ST_REFLECTIONMAP:
+		case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
+			ProcessMaterialReflection( &material, pStage );
+			break;
+		case stageType_t::ST_REFRACTIONMAP:
+		case stageType_t::ST_DISPERSIONMAP:
+			// Not implemented yet
+			break;
+		case stageType_t::ST_SKYBOXMAP:
+			ProcessMaterialSkybox( &material, pStage );
+			break;
+		case stageType_t::ST_SCREENMAP:
+			ProcessMaterialScreen( &material, pStage );
+			break;
+		case stageType_t::ST_PORTALMAP:
+			// This is supposedly used for alphagen portal and portal surfaces should never get here
+			ASSERT_UNREACHABLE();
+			break;
+		case stageType_t::ST_HEATHAZEMAP:
+			// FIXME: This requires 2 draws per surface stage rather than 1
+			ProcessMaterialHeatHaze( &material, pStage, drawSurf->shader );
+			break;
+		case stageType_t::ST_LIQUIDMAP:
+			ProcessMaterialLiquid( &material, pStage );
+			break;
+
+		default:
+			break;
+	}
+
+	std::vector<Material>& materials = materialPacks[materialPack].materials;
+	std::vector<Material>::iterator currentSearchIt = materials.begin();
+	std::vector<Material>::iterator materialIt;
+	// Look for this material in the ones we already have
+	while ( true ) {
+		materialIt = std::find( currentSearchIt, materials.end(), material );
+		if ( materialIt == materials.end() ) {
+			break;
+		}
+		if ( material.useSync && materialIt->id < material.syncMaterial ) {
+			currentSearchIt = materialIt + 1;
+		} else {
+			break;
+		}
+	}
+
+	// Add it at the back if not found
+	if ( materialIt == materials.end() ) {
+		material.id = id;
+		previousMaterialID = id;
+		materials.emplace_back( material );
+		id++;
+	} else {
+		previousMaterialID = materialIt->id;
+	}
+
+	pStage->useMaterialSystem = true;
+	materials[previousMaterialID].totalDrawSurfCount++;
+	if ( pStage->dynamic ) {
+		materials[previousMaterialID].totalDynamicDrawSurfCount++;
+	} else {
+		materials[previousMaterialID].totalStaticDrawSurfCount++;
+	}
+
+	if ( std::find( materials[previousMaterialID].drawSurfs.begin(), materials[previousMaterialID].drawSurfs.end(), drawSurf )
+		== materials[previousMaterialID].drawSurfs.end() ) {
+		materials[previousMaterialID].drawSurfs.emplace_back( drawSurf );
+	}
+
+	drawSurf->materialIDs[stage] = previousMaterialID;
+	drawSurf->materialPackIDs[stage] = materialPack;
+
+	packIDs[materialPack] = id;
+
+	stage++;
+}
+
 /* This will only generate the materials themselves
 *  A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 *  Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
@@ -1427,8 +1586,6 @@ void MaterialSystem::GenerateWorldMaterials() {
 	drawSurf_t* drawSurf;
 	totalDrawSurfs = 0;
 
-	uint32_t id = 0;
-	uint32_t previousMaterialID = 0;
 	uint32_t packIDs[3] = { 0, 0, 0 };
 	skipDrawCommands = true;
 
@@ -1455,136 +1612,15 @@ void MaterialSystem::GenerateWorldMaterials() {
 
 		rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
 
+		// Only add the main surface for surfaces with depth pre-pass to the total count
+		if ( !drawSurf->materialSystemSkip ) {
+			totalDrawSurfs++;
+		}
+
 		uint32_t stage = 0;
-		totalDrawSurfs++;
+		uint32_t previousMaterialID = 0;
 		for ( shaderStage_t* pStage = drawSurf->shader->stages; pStage < drawSurf->shader->lastStage; pStage++ ) {
-			Material material;
-
-			uint32_t materialPack = 0;
-			if ( shader->sort == Util::ordinal( shaderSort_t::SS_DEPTH ) ) {
-				materialPack = 0;
-			} else if ( shader->sort >= Util::ordinal( shaderSort_t::SS_ENVIRONMENT_FOG )
-					 && shader->sort <= Util::ordinal( shaderSort_t::SS_OPAQUE ) ) {
-				materialPack = 1;
-			} else {
-				materialPack = 2;
-			}
-			id = packIDs[materialPack];
-
-			// In surfaces with multiple stages each consecutive stage must be drawn after the previous stage,
-			// except if an opaque stage follows a transparent stage etc.
-			if ( stage > 0 ) {
-				material.useSync = true;
-				material.syncMaterial = previousMaterialID;
-			}
-
-			material.stateBits = pStage->stateBits;
-			// GLS_ATEST_BITS don't matter here as they don't change GL state
-			material.stateBits &= GLS_DEPTHFUNC_BITS | GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE
-								| GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE;
-			material.stageType = pStage->type;
-			material.cullType = shader->cullType;
-			material.usePolygonOffset = shader->polygonOffset;
-
-			material.vbo = glState.currentVBO;
-			material.ibo = glState.currentIBO;
-
-			ComputeDynamics( pStage );
-
-			if ( pStage->texturesDynamic ) {
-				drawSurf->texturesDynamic[stage] = true;
-			}
-
-			switch ( pStage->type ) {
-				case stageType_t::ST_COLORMAP:
-					// generic2D also uses this, but it's for ui only, so skip that for now
-					ProcessMaterialGeneric( &material, pStage, drawSurf->shader );
-					break;
-				case stageType_t::ST_STYLELIGHTMAP:
-				case stageType_t::ST_STYLECOLORMAP:
-					ProcessMaterialGeneric( &material, pStage, drawSurf->shader );
-					break;
-				case stageType_t::ST_LIGHTMAP:
-				case stageType_t::ST_DIFFUSEMAP:
-				case stageType_t::ST_COLLAPSE_COLORMAP:
-				case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-					ProcessMaterialLightMapping( &material, pStage, drawSurf );
-					break;
-				case stageType_t::ST_REFLECTIONMAP:
-				case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-					ProcessMaterialReflection( &material, pStage );
-					break;
-				case stageType_t::ST_REFRACTIONMAP:
-				case stageType_t::ST_DISPERSIONMAP:
-					// Not implemented yet
-					break;
-				case stageType_t::ST_SKYBOXMAP:
-					ProcessMaterialSkybox( &material, pStage );
-					break;
-				case stageType_t::ST_SCREENMAP:
-					ProcessMaterialScreen( &material, pStage );
-					break;
-				case stageType_t::ST_PORTALMAP:
-					// This is supposedly used for alphagen portal and portal surfaces should never get here
-					ASSERT_UNREACHABLE();
-					break;
-				case stageType_t::ST_HEATHAZEMAP:
-					// FIXME: This requires 2 draws per surface stage rather than 1
-					ProcessMaterialHeatHaze( &material, pStage, drawSurf->shader );
-					break;
-				case stageType_t::ST_LIQUIDMAP:
-					ProcessMaterialLiquid( &material, pStage );
-					break;
-
-				default:
-					break;
-			}
-
-			std::vector<Material>& materials = materialPacks[materialPack].materials;
-			std::vector<Material>::iterator currentSearchIt = materials.begin();
-			std::vector<Material>::iterator materialIt;
-			// Look for this material in the ones we already have
-			while( true ) {
-				materialIt = std::find( currentSearchIt, materials.end(), material );
-				if ( materialIt == materials.end() ) {
-					break;
-				}
-				if ( material.useSync && materialIt->id < material.syncMaterial ) {
-					currentSearchIt = materialIt + 1;
-				} else {
-					break;
-				}
-			}
-
-			// Add it at the back if not found
-			if ( materialIt == materials.end() ) {
-				material.id = id;
-				previousMaterialID = id;
-				materials.emplace_back( material );
-				id++;
-			} else {
-				previousMaterialID = materialIt->id;
-			}
-
-			pStage->useMaterialSystem = true;
-			materials[previousMaterialID].totalDrawSurfCount++;
-			if ( pStage->dynamic ) {
-				materials[previousMaterialID].totalDynamicDrawSurfCount++;
-			} else {
-				materials[previousMaterialID].totalStaticDrawSurfCount++;
-			}
-
-			if ( std::find( materials[previousMaterialID].drawSurfs.begin(), materials[previousMaterialID].drawSurfs.end(), drawSurf )
-				 == materials[previousMaterialID].drawSurfs.end() ) {
-				materials[previousMaterialID].drawSurfs.emplace_back( drawSurf );
-			}
-
-			drawSurf->materialIDs[stage] = previousMaterialID;
-			drawSurf->materialPackIDs[stage] = materialPack;
-
-			packIDs[materialPack] = id;
-
-			stage++;
+			ProcessStage( drawSurf, pStage, shader, packIDs, stage, previousMaterialID );
 		}
 	}
 	skipDrawCommands = false;
@@ -1865,9 +1901,9 @@ void MaterialSystem::CullSurfaces() {
 		frustum_t* frustum = &frames[nextFrame].viewFrames[view].frustum;
 
 		vec4_t frustumPlanes[6];
-		for ( int j = 0; j < 6; j++ ) {
-			VectorCopy( PVSLocked ? lockedFrustum[j].normal : frustum[0][j].normal, frustumPlanes[j] );
-			frustumPlanes[j][3] = PVSLocked ? lockedFrustum[j].dist : frustum[0][j].dist;
+		for ( int i = 0; i < 6; i++ ) {
+			VectorCopy( PVSLocked ? lockedFrustum[i].normal : frustum[0][i].normal, frustumPlanes[i] );
+			frustumPlanes[i][3] = PVSLocked ? lockedFrustum[i].dist : frustum[0][i].dist;
 		}
 		matrix_t viewMatrix;
 		if ( PVSLocked ) {
@@ -1908,9 +1944,9 @@ void MaterialSystem::CullSurfaces() {
 		}
 		if ( r_lockpvs->integer == 1 && !PVSLocked ) {
 			PVSLocked = true;
-			for ( int j = 0; j < 6; j++ ) {
-				VectorCopy( frustum[0][j].normal, lockedFrustum[j].normal );
-				lockedFrustum[j].dist = frustum[0][j].dist;
+			for ( int i = 0; i < 6; i++ ) {
+				VectorCopy( frustum[0][i].normal, lockedFrustum[i].normal );
+				lockedFrustum[i].dist = frustum[0][i].dist;
 			}
 			MatrixCopy( viewMatrix, lockedViewMatrix );
 		}
@@ -1977,6 +2013,8 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 		return;
 	}
 
+	// FIXME: This only requires distance, origin and radius can be moved to surfaceDescriptors SSBO,
+	// drawSurfID is not needed as it's the same as the index in portalSurfacesSSBO
 	PortalSurface* portalSurfs = new PortalSurface[totalPortals * sizeof( PortalSurface ) * MAX_VIEWFRAMES];
 
 	uint32_t index = 0;
@@ -2226,7 +2264,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		case stageType_t::ST_STYLECOLORMAP:
 			BindShaderGeneric( &material );
 
-			if ( material.tcGenEnvironment || material.vboVertexSprite ) {
+			if ( material.tcGenEnvironment || material.vertexSprite ) {
 				gl_genericShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
 				gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 			}
@@ -2285,7 +2323,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 			// FIXME: This requires 2 draws per surface stage rather than 1
 			BindShaderHeatHaze( &material );
 
-			if ( material.vboVertexSprite ) {
+			if ( material.vertexSprite ) {
 				gl_heatHazeShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
 				gl_heatHazeShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 			}

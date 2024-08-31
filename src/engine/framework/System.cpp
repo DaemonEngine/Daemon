@@ -456,7 +456,7 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 		// Any arguments after the URI are discarded.
 		if (Str::IsIEqual("-connect", argv[i])) {
 			if (argc < i + 2) {
-				Log::Warn("Missing command line parameter for -connect");
+				Log::Notice("Ignoring -connect parameter as no server was provided");
 				break;
 			}
 

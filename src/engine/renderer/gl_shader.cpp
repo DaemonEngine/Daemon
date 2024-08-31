@@ -34,6 +34,9 @@ static_assert(std::is_pod<GLBinaryHeader>::value, "Value must be a pod while cod
 static Cvar::Cvar<std::string> shaderpath(
 	"shaderpath", "path to load GLSL source files at runtime", Cvar::INIT | Cvar::TEMPORARY, "");
 
+static Cvar::Cvar<bool> r_glslCache(
+	"r_glslCache", "cache compiled GLSL shader binaries in the homepath", Cvar::NONE, true);
+
 extern std::unordered_map<std::string, std::string> shadermap;
 // shaderKind's value will be determined later based on command line setting or absence of.
 ShaderKind shaderKind = ShaderKind::Unknown;
@@ -791,7 +794,7 @@ std::string GLShaderManager::BuildDeformShaderText( const std::string& steps )
 	// in the GLSL shaders then we want the proper line
 	// so we have to reset the line counting.
 	shaderText += "#line 0\n";
-	shaderText += GetShaderText("glsl/deformVertexes_vp.glsl");
+	shaderText += GetShaderText("deformVertexes_vp.glsl");
 	return shaderText;
 }
 
@@ -825,13 +828,13 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 	// load main() program
 	switch ( shaderType ) {
 		case GL_VERTEX_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "glsl/%s_vp.glsl", mainShaderName.c_str() );
+			Com_sprintf( filename, sizeof( filename ), "%s_vp.glsl", mainShaderName.c_str() );
 			break;
 		case GL_FRAGMENT_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "glsl/%s_fp.glsl", mainShaderName.c_str() );
+			Com_sprintf( filename, sizeof( filename ), "%s_fp.glsl", mainShaderName.c_str() );
 			break;
 		case GL_COMPUTE_SHADER:
-			Com_sprintf( filename, sizeof( filename ), "glsl/%s_cp.glsl", mainShaderName.c_str() );
+			Com_sprintf( filename, sizeof( filename ), "%s_cp.glsl", mainShaderName.c_str() );
 			break;
 		default:
 			break;
@@ -875,7 +878,7 @@ std::string     GLShaderManager::BuildGPUShaderText( Str::StringRef mainShaderNa
 		++insertCount;
 		out += "#line " + std::to_string( insertCount * 10000 ) + " // " + shaderInsertPath + ".glsl\n";
 
-		out += GetShaderText( "glsl/" + shaderInsertPath + ".glsl" );
+		out += GetShaderText( shaderInsertPath + ".glsl" );
 		out += "#line " + std::to_string( lineCount ) + "\n";
 	}
 
@@ -1078,6 +1081,9 @@ bool GLShaderManager::LoadShaderBinary( GLShader *shader, size_t programNum )
 	const byte    *binaryptr;
 	GLBinaryHeader shaderHeader;
 
+	if ( !r_glslCache.Get() )
+		return false;
+
 	if (!GetShaderPath().empty())
 		return false;
 
@@ -1163,6 +1169,9 @@ void GLShaderManager::SaveShaderBinary( GLShader *shader, size_t programNum )
 	byte                  *binaryptr;
 	GLBinaryHeader        shaderHeader{}; // Zero init.
 	shaderProgram_t       *shaderProgram;
+
+	if ( !r_glslCache.Get() )
+		return;
 
 	if (!GetShaderPath().empty())
 		return;
@@ -1944,7 +1953,7 @@ void GLShader::DispatchComputeIndirect( const GLintptr indirectBuffer ) {
 	glDispatchComputeIndirect( indirectBuffer );
 }
 
-void GLShader::SetRequiredVertexPointers( bool vboVertexSprite )
+void GLShader::SetRequiredVertexPointers( bool vertexSprite )
 {
 	uint32_t macroVertexAttribs = 0;
 
@@ -1958,7 +1967,7 @@ void GLShader::SetRequiredVertexPointers( bool vboVertexSprite )
 
 	uint32_t attribs = _vertexAttribsRequired | _vertexAttribs | macroVertexAttribs; // & ~_vertexAttribsUnsupported);
 
-	if ( vboVertexSprite )
+	if ( vertexSprite )
 	{
 		attribs &= ~ATTR_QTANGENT;
 		attribs |= ATTR_ORIENTATION;
@@ -2442,7 +2451,7 @@ void GLShader_reflection::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 }
 
 GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manager ) :
-	GLShader( "reflectionMaterial", "reflection", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	GLShader( "reflectionMaterial", "reflection_CB", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),

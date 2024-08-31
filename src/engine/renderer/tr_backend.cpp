@@ -90,14 +90,14 @@ GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle )
 	{
 		if ( bundle->videoMapHandle >= 0 && CIN_RunCinematic( bundle->videoMapHandle ) )
 		{
+			GL_SelectTexture( unit );
 			CIN_UploadCinematic( bundle->videoMapHandle );
+			return tr.cinematicImage[ bundle->videoMapHandle ]->texture->bindlessTextureHandle;
 		}
 		else
 		{
 			return GL_BindToTMU( unit, tr.defaultImage );
 		}
-
-		return tr.cinematicImage[bundle->videoMapHandle]->texture->bindlessTextureHandle;
 	}
 
 	if ( bundle->numImages <= 1 )
@@ -931,11 +931,6 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		{
 			if ( oldShader != nullptr )
 			{
-				if ( oldShader->autoSpriteMode && !(tess.attribsSet & ATTR_ORIENTATION) ) {
-					Tess_AutospriteDeform( oldShader->autoSpriteMode,
-							       0, tess.numVertexes,
-							       0, tess.numIndexes );
-				}
 				Tess_End();
 			}
 
@@ -997,11 +992,6 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 	// draw the contents of the last shader batch
 	if ( oldShader != nullptr )
 	{
-		if ( oldShader->autoSpriteMode && !(tess.attribsSet & ATTR_ORIENTATION) ) {
-			Tess_AutospriteDeform( oldShader->autoSpriteMode,
-					       0, tess.numVertexes,
-					       0, tess.numIndexes );
-		}
 		Tess_End();
 	}
 
@@ -1931,6 +1921,7 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 							gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 							gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 							gl_genericShader->SetUniform_Color( Color::Black );
+							// TODO: set u_InverseLightFactor!
 
 							GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 							GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -2804,7 +2795,7 @@ void RB_RunVisTests( )
 		gl_genericShader->SetUniform_Color( Color::White );
 
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 		gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -3441,6 +3432,7 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		gl_genericShader->SetRequiredVertexPointers();
 
@@ -3604,6 +3596,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3730,6 +3723,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3807,6 +3801,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 #if defined( REFBONE_NAMES )
@@ -4036,6 +4031,7 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -4084,15 +4080,11 @@ static void RB_RenderDebugUtils()
 	}
 
 	// GLSL shader isn't built when reflection mapping is disabled.
-	if ( r_showCubeProbes->integer && gl_reflectionShader != nullptr )
+	if ( r_showCubeProbes->integer && tr.cubeHashTable && r_reflectionMapping->integer &&
+	     !( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) ) )
 	{
 		static const vec3_t mins = { -8, -8, -8 };
 		static const vec3_t maxs = { 8,  8,  8 };
-
-		if ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) )
-		{
-			return;
-		}
 
 		// choose right shader program ----------------------------------
 		gl_reflectionShader->SetVertexSkinning( false );
@@ -4151,6 +4143,7 @@ static void RB_RenderDebugUtils()
 			gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 			gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 			gl_genericShader->SetUniform_Color( Color::Black );
+			gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 			gl_genericShader->SetRequiredVertexPointers();
 
@@ -4176,13 +4169,9 @@ static void RB_RenderDebugUtils()
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			if ( cubeProbeNearest == nullptr && cubeProbeSecondNearest == nullptr )
+			if ( cubeProbeNearest == nullptr )
 			{
 				// bad
-			}
-			else if ( cubeProbeNearest == nullptr )
-			{
-				Tess_AddCubeWithNormals( cubeProbeSecondNearest->origin, mins, maxs, Color::Blue );
 			}
 			else if ( cubeProbeSecondNearest == nullptr )
 			{
@@ -4202,18 +4191,13 @@ static void RB_RenderDebugUtils()
 		GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
 	}
 
-	if ( r_showLightGrid->integer )
+	if ( r_showLightGrid->integer && !( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		int             x, y, z, k;
 		vec3_t          offset;
 		vec3_t          tmp, tmp2, tmp3;
 		vec_t           length;
 		vec4_t          tetraVerts[ 4 ];
-
-		if ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) )
-		{
-			return;
-		}
 
 		GLimp_LogComment( "--- r_showLightGrid > 0: Rendering light grid\n" );
 
@@ -4229,6 +4213,7 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		gl_genericShader->SetRequiredVertexPointers();
 
@@ -4293,7 +4278,7 @@ static void RB_RenderDebugUtils()
 
 					VectorCopy( origin, tetraVerts[ 3 ] );
 					tetraVerts[ 3 ][ 3 ] = 1;
-					Tess_AddTetrahedron( tetraVerts, directedColor );
+					Tess_AddTetrahedron( tetraVerts, ambientColor );
 
 					VectorCopy( offset, tetraVerts[ 3 ] );
 					tetraVerts[ 3 ][ 3 ] = 1;
@@ -4327,6 +4312,7 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
+		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -4592,74 +4578,6 @@ static void RB_RenderDebugUtils()
 		GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
 	}
 
-	if ( r_showDecalProjectors->integer )
-	{
-		int              i;
-		decalProjector_t *dp;
-		srfDecal_t       *srfDecal;
-		static const vec3_t mins = { -1, -1, -1 };
-		static const vec3_t maxs = { 1, 1, 1 };
-
-		if ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL ) )
-		{
-			return;
-		}
-
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
-		gl_genericShader->BindProgram( 0 );
-
-		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
-		GL_Cull( cullType_t::CT_TWO_SIDED );
-
-		// set uniforms
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
-		gl_genericShader->SetUniform_Color( Color::Black );
-
-		// set up the transformation matrix
-		backEnd.orientation = backEnd.viewParms.world;
-		GL_LoadModelViewMatrix( backEnd.orientation.modelViewMatrix );
-		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-		// bind u_ColorMap
-		gl_genericShader->SetUniform_ColorMapBindless(
-			GL_BindToTMU( 0, tr.whiteImage )
-		);
-		gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
-
-		GL_CheckErrors();
-
-		Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
-
-		for ( i = 0, dp = backEnd.refdef.decalProjectors; i < backEnd.refdef.numDecalProjectors; i++, dp++ )
-		{
-			if ( VectorDistanceSquared( dp->center, backEnd.viewParms.orientation.origin ) > Square( 1024 ) )
-			{
-				continue;
-			}
-
-			Tess_AddCube( dp->center, mins, maxs, Color::Red );
-			Tess_AddCube( vec3_origin, dp->mins, dp->maxs, Color::Blue );
-		}
-
-		glEnable( GL_POLYGON_OFFSET_FILL );
-		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
-
-		for ( i = 0, srfDecal = backEnd.refdef.decals; i < backEnd.refdef.numDecals; i++, srfDecal++ )
-		{
-			rb_surfaceTable[ Util::ordinal(surfaceType_t::SF_DECAL) ]( srfDecal );
-		}
-
-		glDisable( GL_POLYGON_OFFSET_FILL );
-
-		Tess_End();
-	}
-
 	GL_CheckErrors();
 }
 
@@ -4718,6 +4636,7 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_Color( colorClear );
+	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// bind u_ColorMap
 	gl_genericShader->SetUniform_ColorMapBindless(
@@ -5004,8 +4923,6 @@ RENDER BACK END THREAD FUNCTIONS
 
 void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool dirty )
 {
-	R_SyncRenderThread();
-
 	GL_Bind( tr.cinematicImage[ client ] );
 
 	// if the scratchImage isn't in the format we want, specify it as a new texture
@@ -5877,6 +5794,7 @@ void RB_ShowImages()
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
+	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	GL_SelectTexture( 0 );
 

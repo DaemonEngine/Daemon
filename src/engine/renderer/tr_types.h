@@ -120,7 +120,12 @@ struct poly_t
 enum class refEntityType_t
 {
   RT_MODEL,
+
+  // A square 3D polygon at the specified `origin` with size `radius` with its face
+  // oriented toward the viewer. By default the square's edges will be aligned so they are
+  // drawn parallel to the edges of the screen; this can be changed by setting `rotation`.
   RT_SPRITE,
+
   RT_PORTALSURFACE, // doesn't draw anything, just info for portals
 
   RT_MAX_REF_ENTITY_TYPE

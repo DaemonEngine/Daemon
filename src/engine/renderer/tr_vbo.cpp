@@ -81,11 +81,6 @@ static uint32_t R_DeriveAttrBits( const vboData_t &data )
 		stateBits |= ATTR_BONE_FACTORS;
 	}
 
-	if ( data.spriteOrientation )
-	{
-		stateBits |= ATTR_ORIENTATION;
-	}
-
 	if ( data.numFrames )
 	{
 		if ( data.xyz )
@@ -494,7 +489,7 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 	R_BindVBO( vbo );
 
 #if defined( GL_ARB_buffer_storage ) && defined( GL_ARB_sync )
-	if( glConfig2.bufferStorageAvailable &&
+	if( glConfig2.mapBufferRangeAvailable && glConfig2.bufferStorageAvailable &&
 	    glConfig2.syncAvailable ) {
 		R_InitRingbuffer( GL_ARRAY_BUFFER, sizeof( shaderVertex_t ),
 				  numVertexes, &tess.vertexRB );
@@ -639,7 +634,7 @@ IBO_t *R_CreateDynamicIBO( const char *name, int numIndexes )
 
 	R_BindIBO( ibo );
 #if defined( GL_ARB_buffer_storage ) && defined( GL_ARB_sync )
-	if( glConfig2.bufferStorageAvailable &&
+	if( glConfig2.mapBufferRangeAvailable && glConfig2.bufferStorageAvailable &&
 	    glConfig2.syncAvailable ) {
 		R_InitRingbuffer( GL_ELEMENT_ARRAY_BUFFER, sizeof( glIndex_t ),
 				  numIndexes, &tess.indexRB );

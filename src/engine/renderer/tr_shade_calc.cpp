@@ -684,6 +684,11 @@ static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes 
 /*
 =====================
 Tess_AutospriteDeform
+
+Set up vertices to be decoded by the vertexSprite_vp shader.
+The ComputeCorner function used in here encodes information in the sign of the lightmap
+coordinates, so it only works if there are positive lightmap tc's. Thus it does
+not work on anything besides BSP surfaces.
 =====================
 */
 void Tess_AutospriteDeform( int mode, int firstVertex, int numVertexes,
@@ -699,7 +704,6 @@ void Tess_AutospriteDeform( int mode, int firstVertex, int numVertexes,
 		Autosprite2Deform( firstVertex, numVertexes, numIndexes );
 		break;
 	}
-	GL_CheckErrors();
 }
 
 /*

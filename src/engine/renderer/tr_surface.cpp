@@ -640,6 +640,9 @@ static void Tess_SurfaceSprite()
 
 	if( tess.surfaceShader->autoSpriteMode == 1 ) {
 		// the calculations are done in GLSL shader
+		// FIXME why does this need a different codepath (other than to cope with USE_VERTEX_SPRITE
+		// shader variants being selected?) Aren't the semantics of deformvertexes autosprite the
+		// same as those of RT_SPRITE?
 
 		Tess_AddSprite( backEnd.currentEntity->e.origin, 
 				backEnd.currentEntity->e.shaderRGBA,
@@ -781,39 +784,6 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 
 	tess.numIndexes += numIndexes;
 	tess.numVertexes += numVertexes;
-}
-
-// ydnar: decal surfaces
-void Tess_SurfaceDecal( srfDecal_t *srf )
-{
-	int i;
-
-	GLimp_LogComment( "--- Tess_SurfaceDecal ---\n" );
-
-	Tess_CheckOverflow( srf->numVerts, 3 * ( srf->numVerts - 2 ) );
-
-	// fan triangles into the tess array
-	for ( i = 0; i < srf->numVerts; i++ )
-	{
-		VectorCopy( srf->verts[ i ].xyz, tess.verts[ tess.numVertexes + i ].xyz );
-
-		tess.verts[ tess.numVertexes + i ].texCoords[ 0 ] = floatToHalf( srf->verts[ i ].st[ 0 ] );
-		tess.verts[ tess.numVertexes + i ].texCoords[ 1 ] = floatToHalf( srf->verts[ i ].st[ 1 ] );
-
-		tess.verts[ tess.numVertexes + i ].color = Color::Adapt( srf->verts[ i ].modulate );
-	}
-
-	// generate fan indexes into the tess array
-	for ( i = 0; i < srf->numVerts - 2; i++ )
-	{
-		tess.indexes[ tess.numIndexes + 0 ] = tess.numVertexes;
-		tess.indexes[ tess.numIndexes + 1 ] = tess.numVertexes + i + 1;
-		tess.indexes[ tess.numIndexes + 2 ] = tess.numVertexes + i + 2;
-		tess.numIndexes += 3;
-	}
-
-	tess.attribsSet |= ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD;
-	tess.numVertexes += srf->numVerts;
 }
 
 /*
@@ -1618,7 +1588,6 @@ void ( *rb_surfaceTable[ Util::ordinal(surfaceType_t::SF_NUM_SURFACE_TYPES) ] )(
 	( void ( * )( void * ) ) Tess_SurfaceGrid,  // SF_GRID,
 	( void ( * )( void * ) ) Tess_SurfaceTriangles,  // SF_TRIANGLES,
 	( void ( * )( void * ) ) Tess_SurfacePolychain,  // SF_POLY,
-	( void ( * )( void * ) ) Tess_SurfaceDecal,  // SF_DECAL
 	( void ( * )( void * ) ) Tess_SurfaceMDV,  // SF_MDV,
 	( void ( * )( void * ) ) Tess_SurfaceMD5,  // SF_MD5,
 	( void ( * )( void * ) ) Tess_SurfaceIQM,  // SF_IQM,

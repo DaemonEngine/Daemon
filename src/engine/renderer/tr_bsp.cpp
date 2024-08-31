@@ -3259,9 +3259,10 @@ static void R_CreateWorldVBO()
 		}
 	}
 
-	s_worldData.vbo = R_CreateStaticVBO2( va( "staticWorld_VBO %i", 0 ), numVerts, vboVerts,
-					      ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR
-	                                 );
+	// autosprite/autosprite2 surfaces have ATTR_ORIENTATION and everything else ATTR_QTANGENT.
+	s_worldData.vbo = R_CreateStaticVBO2(
+		"staticWorld_VBO %i", numVerts, vboVerts,
+		ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_ORIENTATION | ATTR_COLOR );
 	s_worldData.ibo = R_CreateStaticIBO2( va( "staticWorld_IBO %i", 0 ), numTriangles, vboIdxs );
 
 	tess.numVertexes = 0;
@@ -3609,11 +3610,6 @@ static void R_LoadSubmodels( lump_t *l )
 
 		out->firstSurface = s_worldData.surfaces + LittleLong( in->firstSurface );
 		out->numSurfaces = LittleLong( in->numSurfaces );
-
-		// ydnar: allocate decal memory
-		j = ( i == 0 ? MAX_WORLD_DECALS : MAX_ENTITY_DECALS );
-		out->decals = (decal_t*) ri.Hunk_Alloc( j * sizeof( *out->decals ), ha_pref::h_low );
-		memset( out->decals, 0, j * sizeof( *out->decals ) );
 	}
 }
 
@@ -6285,7 +6281,7 @@ static const int HASHTABLE_SIZE = 7919; // 32749 // 2039    /* prime, use % */
 #define HASH_USE_EPSILON
 
 #ifdef HASH_USE_EPSILON
-#define HASH_XYZ_EPSILON                 0.01f
+#define HASH_XYZ_EPSILON 100.0f
 #define HASH_XYZ_EPSILONSPACE_MULTIPLIER 1.f / HASH_XYZ_EPSILON
 #endif
 

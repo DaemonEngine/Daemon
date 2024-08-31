@@ -90,7 +90,7 @@ struct Material {
 	bool tcGenEnvironment;
 	bool tcGen_Lightmap;
 	bool hasDepthFade;
-	bool vboVertexSprite;
+	bool vertexSprite;
 	bool alphaTest;
 
 	bool bspSurface;
@@ -258,6 +258,8 @@ class MaterialSystem {
 	void GenerateDepthImages( const int width, const int height, imageParams_t imageParms );
 
 	void AddStageTextures( drawSurf_t* drawSurf, shaderStage_t* pStage, Material* material );
+	void ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
+		uint32_t& previousMaterialID );
 	void GenerateWorldMaterials();
 	void GenerateWorldMaterialsBuffer();
 	void GenerateWorldCommandBuffer();
