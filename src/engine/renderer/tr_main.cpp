@@ -1946,7 +1946,6 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	newParms.portalLevel++;
 
 	// convert screen rectangle to scissor test
-	// OPTIMIZE: could do better with stencil test in renderer backend
 	newParms.scissorX = surfRect.coords[0];
 	newParms.scissorY = surfRect.coords[1];
 	newParms.scissorWidth = surfRect.coords[2] - surfRect.coords[0] + 1;
