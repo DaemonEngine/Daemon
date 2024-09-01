@@ -1260,11 +1260,7 @@ Returns true if it should be mirrored
 static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surface, orientation_t *camera, vec3_t pvsOrigin,
     bool *mirror, vec3_t *outOrigin, vec3_t *outAxis )
 {
-	int           i;
-	cplane_t      originalPlane, plane;
-	trRefEntity_t *e;
-	float         d;
-	vec3_t        transformed;
+	cplane_t originalPlane, plane;
 
 	// create plane axis for the portal we are seeing
 	R_PlaneForSurface( drawSurf->surface, &originalPlane );
@@ -1294,24 +1290,27 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 	// locate the portal entity closest to this plane.
 	// origin will be the origin of the portal, origin2 will be
 	// the origin of the camera
-	int numVertsOld = tess.numVertexes;
+	uint32_t numVertsOld = tess.numVertexes;
 	rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
-	int numVerts = tess.numVertexes - numVertsOld;
+	uint32_t numVerts = tess.numVertexes - numVertsOld;
+
 	vec3_t portalCenter{ 0.0, 0.0, 0.0 };
-	for ( int vertIndex = 0; vertIndex < numVerts; vertIndex++ ) {
+	for ( uint32_t vertIndex = 0; vertIndex < numVerts; vertIndex++ ) {
 		VectorAdd( portalCenter, tess.verts[vertIndex].xyz, portalCenter );
 	}
 	VectorScale( portalCenter, 1.0 / numVerts, portalCenter );
+
+	trRefEntity_t* currentPortal = nullptr;
+	trRefEntity_t* e;
 	float minDistance = FLT_MAX;
-	trRefEntity_t *currentPortal = nullptr;
-	for ( i = 0; i < tr.refdef.numEntities; i++ ) {
+	for ( int i = 0; i < tr.refdef.numEntities; i++ ) {
 		e = &tr.refdef.entities[i];
 
 		if ( e->e.reType != refEntityType_t::RT_PORTALSURFACE ) {
 			continue;
 		}
 
-		float distance = Distance( e->e.origin, portalCenter );
+		const float distance = Distance( e->e.origin, portalCenter );
 		if ( distance < minDistance ) {
 			minDistance = distance;
 			currentPortal = e;
@@ -1325,8 +1324,8 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 		// project the origin onto the surface plane to get
 		// an origin point we can rotate around
 		e = currentPortal;
-		d = DotProduct( e->e.origin, plane.normal ) - plane.dist;
-		VectorMA( e->e.origin, -d, surface->axis[ 0 ], surface->origin );
+		float distance = DotProduct( e->e.origin, plane.normal ) - plane.dist;
+		VectorMA( e->e.origin, -distance, surface->axis[ 0 ], surface->origin );
 
 		// if the entity is just a mirror, don't use as a camera point
 		if ( e->e.oldorigin[ 0 ] == e->e.origin[ 0 ] && e->e.oldorigin[ 1 ] == e->e.origin[ 1 ] && e->e.oldorigin[ 2 ] == e->e.origin[ 2 ] ) {
@@ -1349,19 +1348,20 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 
 		// optionally rotate
 		if ( e->e.oldframe ) {
+			vec3_t transformed;
 			// if a speed is specified
 			if ( e->e.frame ) {
 				// continuous rotate
-				d = ( tr.refdef.time / 1000.0f ) * e->e.frame;
-				VectorCopy( e->e.axis[ 1 ], transformed);
-				RotatePointAroundVector( e->e.axis[ 1 ], e->e.axis[ 0 ], transformed, d );
+				distance = ( tr.refdef.time / 1000.0f ) * e->e.frame;
+				VectorCopy( e->e.axis[ 1 ], transformed );
+				RotatePointAroundVector( e->e.axis[ 1 ], e->e.axis[ 0 ], transformed, distance );
 				CrossProduct( e->e.axis[ 0 ], e->e.axis[ 1 ], e->e.axis[ 2 ] );
 			} else {
 				// bobbing rotate
-				d = sinf( tr.refdef.time * 0.003f );
-				d *= 4;
+				distance = sinf( tr.refdef.time * 0.003f );
+				distance *= 4;
 				VectorCopy( e->e.axis[ 1 ], transformed );
-				RotatePointAroundVector( e->e.axis[ 1 ], e->e.axis[ 0 ], transformed, d );
+				RotatePointAroundVector( e->e.axis[ 1 ], e->e.axis[ 0 ], transformed, distance );
 				CrossProduct( e->e.axis[ 0 ], e->e.axis[ 1 ], e->e.axis[ 2 ] );
 			}
 		}
