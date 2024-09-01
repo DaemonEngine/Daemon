@@ -1366,11 +1366,17 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 			}
 		}
 
+		/* The calculation of the new axes and origin works by first calculating the transforms from world->portal camera
+		and portal surface->world, then transforming the current orientation and origin:
+		first from portal surface->world, then world->portal camera */
+
+		// World->portal camera
 		vec3_t axisAngles;
 		AxisToAngles( e->e.axis, axisAngles );
 		quat_t worldToCameraQuat;
 		QuatFromAngles( worldToCameraQuat, axisAngles[0], axisAngles[1], axisAngles[2] );
 
+		// Portal surface->world
 		axis_t drawSurfAxis;
 		VectorCopy( plane.normal, drawSurfAxis[0] );
 		VectorInverse( drawSurfAxis[0] );
@@ -1386,8 +1392,8 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 		QuatFromAngles( surfToWorldQuatYaw, 0.0, -axisAngles[1], 0.0 );
 		QuatFromAngles( surfToWorldQuatRoll, 0.0, 0.0, -axisAngles[2] );
 
+		// Axis transform
 		vec3_t currentAxis;
-
 		VectorCopy( tr.viewParms.orientation.axis[0], currentAxis );
 		// QuatTransformVector rotates on a local plane so transform in the worlds XY plane first
 		float currentAxisZ = currentAxis[2];
@@ -1412,6 +1418,7 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 
 		CrossProduct( outAxis[0], outAxis[1], outAxis[2] );
 
+		// Origin transform
 		vec3_t newOrigin;
 		VectorSubtract( portalCenter, tr.viewParms.orientation.origin, newOrigin );
 		currentAxisZ = newOrigin[2];
@@ -1441,7 +1448,7 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 	// portal entity the server won't have communicated a proper entity set
 	// in the snapshot
 
-	// unfortunately, with local movement prediction it is easily possible
+	// Unfortunately, with local movement prediction it is easily possible
 	// to see a surface before the server has communicated the matching
 	// portal surface entity, so we don't want to print anything here...
 
