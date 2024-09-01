@@ -2076,6 +2076,12 @@ void MaterialSystem::Free() {
 
 	if ( totalPortals > 0 ) {
 		portalSurfacesSSBO.UnmapBuffer();
+
+		for ( PortalView& portalView : portalStack ) {
+			portalView.drawSurf = nullptr;
+			memset( portalView.views, 0, MAX_VIEWS * sizeof( uint32_t ) );
+			portalView.count = 0;
+		}
 	}
 
 	currentFrame = 0;
