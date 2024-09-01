@@ -1644,19 +1644,12 @@ static bool SurfBoxIsOffscreen(const drawSurf_t *drawSurf, screenRect_t& surfRec
 /*
 ** PortalOffScreenOrOutOfRange
 **
-** Determines if a surface is completely offscreen or out of the portal range.
+** Determines if a surface is completely offscreen or out of the portal range,
 ** also computes a conservative screen rectangle bounds for the surface
 */
 bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surfRect )
 {
-	float        shortest = 100000000;
-	shader_t     *shader;
-	int          numTriangles;
-	vec4_t       clip, eye;
-	unsigned int pointOr = 0;
-	unsigned int pointAnd = ( unsigned int ) ~0;
-
-	screenRect_t        parentRect;
+	screenRect_t parentRect;
 	parentRect.coords[0] = tr.viewParms.scissorX;
 	parentRect.coords[1] = tr.viewParms.scissorY;
 	parentRect.coords[2] = tr.viewParms.scissorX + tr.viewParms.scissorWidth - 1;
@@ -1670,7 +1663,7 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 	}
 
 	tr.currentEntity = drawSurf->entity;
-	shader = drawSurf->shader;
+	shader_t* shader = drawSurf->shader;
 
 	// rotate if necessary
 	if ( tr.currentEntity != &tr.worldEntity )
@@ -1694,13 +1687,15 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 	screenRect_t newRect;
 	Vector4Set(newRect.coords, 999999, 999999, -999999, -999999);
 
-	for (unsigned i = 0; i < tess.numVertexes; i++ )
+	uint32_t pointOr = 0;
+	uint32_t pointAnd = ( uint32_t ) ~0;
+	for ( uint32_t i = 0; i < tess.numVertexes; i++ )
 	{
-		int          j;
-		unsigned int pointFlags = 0;
+		uint32_t pointFlags = 0;
 		vec4_t normalized;
 		vec4_t window;
 
+		vec4_t clip, eye;
 		R_TransformModelToClip( tess.verts[ i ].xyz, tr.orientation.modelViewMatrix, tr.viewParms.projectionMatrix, eye, clip );
 
 		R_TransformClipToWindow(clip, &tr.viewParms, normalized, window);
@@ -1710,7 +1705,7 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 		newRect.coords[2] = std::max(newRect.coords[2], (int)window[0]);
 		newRect.coords[3] = std::max(newRect.coords[3], (int)window[1]);
 
-		for ( j = 0; j < 3; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
 			if ( clip[ j ] >= clip[ 3 ] )
 			{
@@ -1751,13 +1746,12 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 	// based on vertex distance isn't 100% correct (we should be checking for
 	// range to the surface), but it's good enough for the types of portals
 	// we have in the game right now.
-	numTriangles = tess.numIndexes / 3;
+	uint32_t numTriangles = tess.numIndexes / 3;
 
-	for (unsigned i = 0; i < tess.numIndexes; i += 3 )
+	float shortest = FLT_MAX;
+	for ( uint32_t i = 0; i < tess.numIndexes; i += 3 )
 	{
 		vec3_t normal;
-		float  dot;
-		float  len;
 		vec3_t qnormal;
 
 		VectorSubtract( tess.verts[ tess.indexes[ i ] ].xyz, tr.viewParms.pvsOrigin, normal );
@@ -1765,7 +1759,7 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 			VectorAdd( normal, tr.currentEntity->e.origin, normal );
 		}
 
-		len = VectorLengthSquared( normal );  // lose the sqrt
+		float len = VectorLengthSquared( normal );
 
 		if ( len < shortest )
 		{
@@ -1774,7 +1768,7 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 
 		R_QtangentsToNormal( tess.verts[ tess.indexes[ i ] ].qtangents, qnormal );
 
-		if ( ( dot = DotProduct( normal, qnormal ) ) >= 0 )
+		if ( ( DotProduct( normal, qnormal ) ) >= 0 )
 		{
 			numTriangles--;
 		}
