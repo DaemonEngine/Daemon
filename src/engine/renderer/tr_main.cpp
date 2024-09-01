@@ -1760,7 +1760,10 @@ bool PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surf
 		float  len;
 		vec3_t qnormal;
 
-		VectorSubtract( tess.verts[ tess.indexes[ i ] ].xyz, tr.orientation.viewOrigin, normal );
+		VectorSubtract( tess.verts[ tess.indexes[ i ] ].xyz, tr.viewParms.pvsOrigin, normal );
+		if ( tr.currentEntity != &tr.worldEntity ) {
+			VectorAdd( normal, tr.currentEntity->e.origin, normal );
+		}
 
 		len = VectorLengthSquared( normal );  // lose the sqrt
 
