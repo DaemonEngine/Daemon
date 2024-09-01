@@ -1281,9 +1281,6 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 		// against the portalSurface entities
 		R_LocalNormalToWorld( originalPlane.normal, plane.normal );
 		plane.dist = originalPlane.dist + DotProduct( plane.normal, tr.orientation.origin );
-
-		// translate the original plane
-		originalPlane.dist = originalPlane.dist + DotProduct( originalPlane.normal, tr.orientation.origin );
 	}
 	else
 	{
@@ -1320,6 +1317,10 @@ static bool R_GetPortalOrientations( drawSurf_t *drawSurf, orientation_t *surfac
 			currentPortal = e;
 		}
 	}
+	if( drawSurf->entity != &tr.worldEntity ) {
+		VectorAdd( portalCenter, drawSurf->entity->e.origin, portalCenter );
+	}
+
 	if( currentPortal ) {
 		// project the origin onto the surface plane to get
 		// an origin point we can rotate around
