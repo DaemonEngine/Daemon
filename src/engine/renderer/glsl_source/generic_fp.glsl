@@ -61,7 +61,7 @@ void	main()
 
 	color *= var_Color;
 
-#if !defined(GENERIC_2D) && !defined(USE_DEPTH_FADE)
+#if !defined(GENERIC_2D)
 	color.rgb *= u_InverseLightFactor;
 #endif
 
