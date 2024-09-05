@@ -683,7 +683,7 @@ static void Tess_SurfacePolychain( srfPoly_t *p )
 
 	Tess_CheckOverflow( numVertexes, numIndexes );
 
-	if (!tess.surfaceShader->interactLight || tess.skipTangents)
+	if ( tess.skipTangents )
 	{
 		// fan triangles into the tess array
 
