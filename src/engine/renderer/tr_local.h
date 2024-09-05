@@ -2593,7 +2593,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		int      frameCount; // incremented every frame
 		int      sceneCount; // incremented every scene
 		int      viewCount; // incremented every view (twice a scene if portaled)
-		int      viewCountNoReset;
+		int      viewCountNoReset; // incremented when doing something that visits surfaces and sets their viewCount
 		int      lightCount; // incremented every time a dlight traverses the world
 		// and every R_MarkFragments call
 

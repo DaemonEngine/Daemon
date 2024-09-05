@@ -1561,6 +1561,7 @@ void MaterialSystem::GenerateWorldMaterials() {
 
 	R_SyncRenderThread();
 
+	++tr.viewCountNoReset;
 	R_AddWorldSurfaces();
 
 	Log::Notice( "World bounds: min: %f %f %f max: %f %f %f", tr.viewParms.visBounds[0][0], tr.viewParms.visBounds[0][1],
