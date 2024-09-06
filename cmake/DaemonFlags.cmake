@@ -210,11 +210,7 @@ else()
 		# will complain about implicitly defined lseek, read, write and close.
 		try_c_flag(GNU89 "-std=gnu89")
 		if (NOT FLAG_GNU89)
-			set(NOT_GNU_C ON)
-			try_c_flag(C99 "-std=c99")
-			if (NOT FLAG_C99)
-				message(FATAL_ERROR "GNU89 or C99 not supported by compiler")
-			endif()
+			message(FATAL_ERROR "GNU89 or C99 not supported by compiler")
 		endif()
 	endif()
 
@@ -228,33 +224,9 @@ else()
 		if (NOT FLAG_GNUXX14)
 			try_cxx_flag(GNUXX1Y "-std=gnu++1y")
 			if (NOT FLAG_GNUXX1Y)
-				set(NOT_GNU_CXX ON)
-				try_cxx_flag(CXX14 "-std=c++14")
-				if (NOT FLAG_CXX14)
-					try_cxx_flag(CXX1Y "-std=c++1y")
-					if (NOT FLAG_CXX1Y)
-						message(FATAL_ERROR "GNU++14 or C++14 not supported by compiler")
-					endif()
-				endif()
+				message(FATAL_ERROR "GNU++14 or C++14 not supported by compiler")
 			endif()
 		endif()
-	endif()
-
-	# If GNU dialects of standards are not found.
-	if (NOT_GNU_C OR NOT_GNU_CXX)
-		message(WARNING "GNU dialect unavailable, Enabling compiler compatibility macros")
-		# snprintf, vsnprintf:
-		#   _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 500
-		#   || _ISOC99_SOURCE || _BSD_SOURCE
-		# fseeko, ftello:
-		#   _POSIX_C_SOURCE >= 200112L
-		# strdup:
-		#   _POSIX_C_SOURCE >= 200809L || _XOPEN_SOURCE >= 500
-		#   || (_XOPEN_SOURCE && _XOPEN_SOURCE_EXTENDED)
-		#   || _BSD_SOURCE || _SVID_SOURCE || _GNU_SOURCE
-		# isascii:
-		#   _XOPEN_SOURCE || _DEFAULT_SOURCE || _SVID_SOURCE
-		add_definitions(-D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=500)
 	endif()
 
 	# Extra debug flags.
