@@ -2028,8 +2028,12 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 			materialSystem.skyShaders.emplace_back( shader );
 		}
 
-		if ( shader->isPortal && std::find( materialSystem.portalSurfacesTmp.begin(), materialSystem.portalSurfacesTmp.end(), drawSurf ) 
-							  == materialSystem.portalSurfacesTmp.end() ) {
+		if ( shader->isPortal )
+		{
+			// R_AddWorldSurfaces guarantees not to add surfaces more than once
+			ASSERT_EQ(
+				std::find( materialSystem.portalSurfacesTmp.begin(), materialSystem.portalSurfacesTmp.end(), drawSurf ),
+				materialSystem.portalSurfacesTmp.end() );
 			materialSystem.portalSurfacesTmp.emplace_back( drawSurf );
 		}
 		return;
