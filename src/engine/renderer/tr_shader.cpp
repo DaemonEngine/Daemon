@@ -5381,12 +5381,15 @@ static void SetStagesRenderers()
 
 		stageRendererOptions_t stageRendererOptions = { &Render_NONE, false, false };
 
-		bool opaqueOrLess = shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE);
-
 		switch ( stage->type )
 		{
 			case stageType_t::ST_COLORMAP:
-				stageRendererOptions = { &Render_generic, opaqueOrLess, false };
+				{
+					bool opaqueOrLess = shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE);
+					bool is2D = stage->bundle[ TB_COLORMAP ].image[ 0 ]->bits & RSF_2D;
+					stageRenderer_t genericRenderer = is2D ? Render_generic2D : Render_generic;
+					stageRendererOptions = { genericRenderer, opaqueOrLess, false };
+				}
 				break;
 			case stageType_t::ST_STYLELIGHTMAP:
 			case stageType_t::ST_STYLECOLORMAP:
