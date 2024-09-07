@@ -6341,6 +6341,11 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 		shader.fitScreen = true;
 	}
 
+	if ( flags & RSF_SPRITE )
+	{
+		shader.entitySpriteFaceViewDirection = true;
+	}
+
 	// attempt to define shader from an explicit parameter file
 	shaderText = FindShaderInShaderText( strippedName );
 

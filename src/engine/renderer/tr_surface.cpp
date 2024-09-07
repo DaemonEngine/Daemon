@@ -596,20 +596,35 @@ static void Tess_SurfaceSprite()
 		           tess.surfaceShader->name );
 	}
 
-	VectorSubtract( backEnd.currentEntity->e.origin, backEnd.viewParms.pvsOrigin, delta );
+	VectorSubtract( backEnd.currentEntity->e.origin, backEnd.viewParms.orientation.origin, delta );
 
 	if( VectorNormalize( delta ) < NORMAL_EPSILON )
 		return;
 
-	CrossProduct( backEnd.viewParms.orientation.axis[ 2 ], delta, left );
+	vec3_t forward;
+	if ( tess.surfaceShader->entitySpriteFaceViewDirection )
+	{
+		// Face opposite to view direction, triggered by RSF_SPRITE.
+		// Good for particles that may appear very close to the viewer and thus have extreme
+		// difference between the view direction and the direction to the viewer, so
+		// as to avoid cases where they appear obviously planar
+		VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], forward );
+	}
+	else
+	{
+		// Face toward viewer. Used by light flares
+		VectorCopy( delta, forward );
+	}
+
+	CrossProduct( backEnd.viewParms.orientation.axis[ 2 ], forward, left );
 
 	if( VectorNormalize( left ) < NORMAL_EPSILON )
 		VectorSet( left, 1, 0, 0 );
 
 	if( backEnd.currentEntity->e.rotation != 0 )
-		RotatePointAroundVector( left, delta, left, backEnd.currentEntity->e.rotation );
+		RotatePointAroundVector( left, forward, left, backEnd.currentEntity->e.rotation );
 
-	CrossProduct( delta, left, up );
+	CrossProduct( forward, left, up );
 
 	VectorScale( left, radius, left );
 	VectorScale( up, radius, up );

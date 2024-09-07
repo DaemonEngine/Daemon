@@ -1295,6 +1295,9 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		bool        interactLight; // this shader can interact with light shaders
 
+		// For RT_SPRITE, face opposing the view direction rather than the viewer
+		bool entitySpriteFaceViewDirection;
+
 		int		autoSpriteMode;
 
 		uint8_t         numDeforms;
