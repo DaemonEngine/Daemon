@@ -210,13 +210,6 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride        = sizeShaderVertex;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset   = 0;
 
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].componentType = GL_HALF_FLOAT;
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].ofs           = offsetof( shaderVertex_t, spriteOrientation );
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].stride        = sizeShaderVertex;
-	vbo->attribs[ ATTR_INDEX_ORIENTATION ].frameOffset   = 0;
-
 	// total size
 	vbo->vertexesSize = sizeShaderVertex * vbo->vertexesNum;
 }
@@ -1007,9 +1000,7 @@ R_InitVBOs
 */
 void R_InitVBOs()
 {
-	// ATTR_QTANGENT and ATTR_ORIENTATION are mutually exclusive, but we don't know in advance
-	// which attributes will be used as this buffer is used for many purposes.
-	uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_ORIENTATION | ATTR_COLOR;
+	uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR;
 
 	Log::Debug("------- R_InitVBOs -------" );
 

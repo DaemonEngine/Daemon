@@ -410,46 +410,6 @@ void Tess_AddQuadStamp2WithNormals( vec4_t quadVerts[ 4 ], const Color::Color& c
 	Tess_AddQuadStampExt2( quadVerts, color, 0, 0, 1, 1 );
 }
 
-// Defines ATTR_POSITION, ATTR_COLOR, ATTR_TEXCOORD, ATTR_ORIENTATION
-void Tess_AddSprite( const vec3_t center, const Color::Color32Bit color, float radius, float rotation )
-{
-	int    i;
-	int    ndx;
-
-	GLimp_LogComment( "--- Tess_AddSprite ---\n" );
-
-	Tess_CheckOverflow( 4, 6 );
-
-	ndx = tess.numVertexes;
-
-	// triangle indexes for a simple quad
-	tess.indexes[ tess.numIndexes     ] = ndx;
-	tess.indexes[ tess.numIndexes + 1 ] = ndx + 1;
-	tess.indexes[ tess.numIndexes + 2 ] = ndx + 3;
-
-	tess.indexes[ tess.numIndexes + 3 ] = ndx + 3;
-	tess.indexes[ tess.numIndexes + 4 ] = ndx + 1;
-	tess.indexes[ tess.numIndexes + 5 ] = ndx + 2;
-
-	for ( i = 0; i < 4; i++ )
-	{
-		vec4_t texCoord;
-		vec4_t orientation;
-
-		Vector4Set( texCoord, 0.5f * (i & 2), 0.5f * ( (i + 1) & 2 ),
-			    (i & 2) - 1.0f, ( (i + 1) & 2 ) - 1.0f );
-
-		VectorCopy( center, tess.verts[ ndx + i ].xyz );
-		tess.verts[ ndx + i ].color = color;
-		floatToHalf( texCoord, tess.verts[ ndx + i ].texCoords );
-		Vector4Set( orientation, rotation, 0.0f, 0.0f, radius );
-		floatToHalf( orientation, tess.verts[ ndx + i ].spriteOrientation );
-	}
-
-	tess.numVertexes += 4;
-	tess.numIndexes += 6;
-}
-
 // Defines ATTR_POSITION, ATTR_COLOR
 void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], const Color::Color& colorf )
 {
@@ -628,16 +588,12 @@ static void Tess_SurfaceSprite()
 
 	radius = backEnd.currentEntity->e.radius;
 
-	if( tess.surfaceShader->autoSpriteMode == 1 ) {
-		// the calculations are done in GLSL shader
-		// FIXME why does this need a different codepath (other than to cope with USE_VERTEX_SPRITE
-		// shader variants being selected?) Aren't the semantics of deformvertexes autosprite the
-		// same as those of RT_SPRITE?
-
-		Tess_AddSprite( backEnd.currentEntity->e.origin, 
-				backEnd.currentEntity->e.shaderRGBA,
-				radius, backEnd.currentEntity->e.rotation );
-		return;
+	if ( tess.surfaceShader->autoSpriteMode != 0 )
+	{
+		// This function does similarly to autosprite mode 1. Autospriting it again would be a
+		// waste and would probably lose the rotation angle
+		Log::Warn( "RT_SPRITE entity should NOT configure its shader (%s) as autosprite",
+		           tess.surfaceShader->name );
 	}
 
 	VectorSubtract( backEnd.currentEntity->e.origin, backEnd.viewParms.pvsOrigin, delta );

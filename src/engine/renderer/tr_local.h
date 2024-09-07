@@ -658,9 +658,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		ATTR_INDEX_QTANGENT,
 		ATTR_INDEX_COLOR,
 
-		// Sprites
-		ATTR_INDEX_ORIENTATION,
-
 		// GPU vertex skinning
 		ATTR_INDEX_BONE_FACTORS,
 
@@ -677,7 +674,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		"attr_TexCoord0",
 		"attr_QTangent",
 		"attr_Color",
-		"attr_Orientation",
 		"attr_BoneFactors",
 		"attr_Position2",
 		"attr_QTangent2"
@@ -690,7 +686,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	  ATTR_QTANGENT       = BIT( ATTR_INDEX_QTANGENT ),
 	  ATTR_COLOR          = BIT( ATTR_INDEX_COLOR ),
 
-	  ATTR_ORIENTATION    = BIT( ATTR_INDEX_ORIENTATION ),
 	  ATTR_BONE_FACTORS   = BIT( ATTR_INDEX_BONE_FACTORS ),
 
 	  // for .md3 interpolation
@@ -1300,8 +1295,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		bool        interactLight; // this shader can interact with light shaders
 
-		// mode 1 can be used in BSP surfaces or with RT_SPRITE
-		// mode 2 can be used only in BSP surfaces
 		int		autoSpriteMode;
 
 		uint8_t         numDeforms;
@@ -3277,10 +3270,7 @@ inline bool checkGLErrors()
 	struct shaderVertex_t {
 		vec3_t    xyz;
 		Color::Color32Bit color;
-		union {
-			i16vec4_t qtangents;
-			f16vec4_t spriteOrientation;
-		};
+		i16vec4_t qtangents;
 		f16vec4_t texCoords;
 	};
 
@@ -3679,8 +3669,7 @@ inline bool checkGLErrors()
 	void     R_TransformClipToWindow( const vec4_t clip, const viewParms_t *view, vec4_t normalized, vec4_t window );
 	float    R_ProjectRadius( float r, vec3_t location );
 
-	void     Tess_AutospriteDeform( int mode, int firstVertex, int numVertexes,
-					int firstIndex, int numIndexes );
+	void     Tess_AutospriteDeform( int mode );
 
 	float    RB_EvalWaveForm( const waveForm_t *wf );
 	float    RB_EvalWaveFormClamped( const waveForm_t *wf );

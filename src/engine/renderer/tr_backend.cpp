@@ -1913,7 +1913,6 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 							gl_genericShader->SetVertexSkinning( false );
 							gl_genericShader->SetVertexAnimation( false );
 							gl_genericShader->SetTCGenEnvironment( false );
-							gl_genericShader->SetVertexSprite( false );
 							gl_genericShader->SetTCGenLightmap( false );
 							gl_genericShader->SetDepthFade( false );
 							gl_genericShader->BindProgram( 0 );
@@ -2783,7 +2782,6 @@ void RB_RunVisTests( )
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
@@ -3420,7 +3418,6 @@ static void RB_RenderDebugUtils()
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
@@ -3581,7 +3578,6 @@ static void RB_RenderDebugUtils()
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
@@ -3698,7 +3694,6 @@ static void RB_RenderDebugUtils()
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
@@ -3766,7 +3761,6 @@ static void RB_RenderDebugUtils()
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
@@ -3981,7 +3975,6 @@ static void RB_RenderDebugUtils()
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
@@ -4103,7 +4096,6 @@ static void RB_RenderDebugUtils()
 
 			gl_genericShader->SetVertexSkinning( false );
 			gl_genericShader->SetVertexAnimation( false );
-			gl_genericShader->SetVertexSprite( false );
 			gl_genericShader->SetTCGenEnvironment( false );
 			gl_genericShader->SetTCGenLightmap( false );
 			gl_genericShader->SetDepthFade( false );
@@ -4173,7 +4165,6 @@ static void RB_RenderDebugUtils()
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
@@ -4266,7 +4257,6 @@ static void RB_RenderDebugUtils()
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetVertexSprite( false );
 		gl_genericShader->SetTCGenEnvironment( false );
 		gl_genericShader->SetTCGenLightmap( false );
 		gl_genericShader->SetDepthFade( false );
@@ -4561,7 +4551,6 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 
 	gl_genericShader->SetVertexSkinning( false );
 	gl_genericShader->SetVertexAnimation( false );
-	gl_genericShader->SetVertexSprite( false );
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
 	gl_genericShader->SetDepthFade( false );
@@ -5697,7 +5686,6 @@ void RB_ShowImages()
 
 	gl_genericShader->SetVertexSkinning( false );
 	gl_genericShader->SetVertexAnimation( false );
-	gl_genericShader->SetVertexSprite( false );
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
 	gl_genericShader->SetDepthFade( false );

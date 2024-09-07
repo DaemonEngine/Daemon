@@ -34,7 +34,7 @@ uniform float u_InverseLightFactor;
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
-#if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
+#if defined(USE_DEPTH_FADE)
 IN(smooth) vec2         var_FadeDepth;
 uniform sampler2D       u_DepthMap;
 #endif
@@ -53,7 +53,7 @@ void	main()
 		return;
 	}
 
-#if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
+#if defined(USE_DEPTH_FADE)
 	float depth = texture2D(u_DepthMap, gl_FragCoord.xy / r_FBufSize).x;
 	float fadeDepth = 0.5 * var_FadeDepth.x / var_FadeDepth.y + 0.5;
 	color.a *= smoothstep(gl_FragCoord.z, fadeDepth, depth);

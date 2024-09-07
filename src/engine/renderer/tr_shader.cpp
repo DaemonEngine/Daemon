@@ -6331,10 +6331,6 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 		implicitCullType = CT_FRONT_SIDED;
 	}
 
-	if( flags & RSF_SPRITE ) {
-		shader.autoSpriteMode = 1;
-	}
-
 	if ( flags & RSF_NOMIP )
 	{
 		shader.noPicMip = true;

@@ -1949,7 +1949,7 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	tr.refdef.numDrawSurfs++;
 
 	// Portal and sky surfaces are not handled by the material system at all
-	if ( materialSystem.generatingWorldCommandBuffer && ( shader->isPortal || shader->isSky ) ) {
+	if ( materialSystem.generatingWorldCommandBuffer && ( shader->isPortal || shader->isSky || shader->autoSpriteMode ) ) {
 		if ( shader->isSky && std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), shader )
 						   == materialSystem.skyShaders.end() ) {
 			materialSystem.skyShaders.emplace_back( shader );
@@ -1963,6 +1963,11 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 				materialSystem.portalSurfacesTmp.end() );
 			materialSystem.portalSurfacesTmp.emplace_back( drawSurf );
 		}
+
+		if ( shader->autoSpriteMode ) {
+			materialSystem.autospriteSurfaces.push_back( *drawSurf );
+		}
+
 		return;
 	}
 
@@ -2833,6 +2838,7 @@ void R_RenderView( viewParms_t *parms )
 	if ( glConfig2.materialSystemAvailable ) {
 		tr.viewParms.viewID = tr.viewCount;
 		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustums[0] );
+		materialSystem.AddAutospriteSurfaces();
 	} else {
 		R_AddWorldSurfaces();
 	}

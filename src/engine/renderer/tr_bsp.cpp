@@ -2974,7 +2974,7 @@ static void R_CreateWorldVBO()
 	{
 		surface = &s_worldData.surfaces[ k ];
 
-		if ( surface->shader->isPortal )
+		if ( surface->shader->isPortal || surface->shader->autoSpriteMode != 0 )
 		{
 			continue;
 		}
@@ -3049,7 +3049,7 @@ static void R_CreateWorldVBO()
 
 			shader1 = surf1->shader;
 
-			if ( shader1->isPortal )
+			if ( shader1->isPortal || shader1->autoSpriteMode != 0 )
 			{
 				continue;
 			}
@@ -3114,6 +3114,12 @@ static void R_CreateWorldVBO()
 		if ( surface->shader->isPortal )
 		{
 			// HACK: don't use VBO because when adding a portal we have to read back the verts CPU-side
+			continue;
+		}
+
+		if ( surface->shader->autoSpriteMode != 0 )
+		{
+			// don't use VBO because verts are rewritten each time based on view origin
 			continue;
 		}
 
@@ -3183,8 +3189,6 @@ static void R_CreateWorldVBO()
 			}
 
 			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_FACE)](srf );
-			Tess_AutospriteDeform( surface->shader->autoSpriteMode, srf->firstVert, srf->numVerts,
-					       3 * srf->firstTriangle, 3 * srf->numTriangles );
 		}
 		else if ( *surface->data == surfaceType_t::SF_GRID )
 		{
@@ -3219,8 +3223,6 @@ static void R_CreateWorldVBO()
 			}
 
 			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_GRID)](srf );
-			Tess_AutospriteDeform( surface->shader->autoSpriteMode, srf->firstVert, srf->numVerts,
-					       3 * srf->firstTriangle, 3 * srf->numTriangles );
 		}
 		else if ( *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
@@ -3255,15 +3257,12 @@ static void R_CreateWorldVBO()
 			}
 
 			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_TRIANGLES)](srf );
-			Tess_AutospriteDeform( surface->shader->autoSpriteMode, srf->firstVert, srf->numVerts,
-					       3 * srf->firstTriangle, 3 * srf->numTriangles );
 		}
 	}
 
-	// autosprite/autosprite2 surfaces have ATTR_ORIENTATION and everything else ATTR_QTANGENT.
 	s_worldData.vbo = R_CreateStaticVBO2(
 		"staticWorld_VBO %i", numVerts, vboVerts,
-		ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_ORIENTATION | ATTR_COLOR );
+		ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR );
 	s_worldData.ibo = R_CreateStaticIBO2( va( "staticWorld_IBO %i", 0 ), numTriangles, vboIdxs );
 
 	Tess_Clear();

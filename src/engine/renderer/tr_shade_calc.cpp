@@ -463,87 +463,75 @@ DEFORMATIONS
 ====================================================================
 */
 
+static void GlobalVectorToLocal( const vec3_t in, vec3_t out )
+{
+	out[ 0 ] = DotProduct( in, backEnd.orientation.axis[ 0 ] );
+	out[ 1 ] = DotProduct( in, backEnd.orientation.axis[ 1 ] );
+	out[ 2 ] = DotProduct( in, backEnd.orientation.axis[ 2 ] );
+}
+
 /*
 =====================
 AutospriteDeform
 
 Assuming all the triangles for this shader are independent
 quads, rebuild them as forward facing sprites
+They face toward the *view direction* like autosprite2 style 0. We could implement style
+1 (toward viewer) here as well, but the difference seems less noticeable.
 =====================
 */
-static void ComputeCorner( int firstVertex, int numVertexes )
+static void AutospriteDeform( uint32_t numVertexes )
 {
-	int i, j;
-	shaderVertex_t *v;
-	vec4_t tc, midtc;
+	vec3_t leftDir, upDir;
 
-	for ( i = 0; i < numVertexes; i += 4 ) {
+	if ( backEnd.currentEntity != &tr.worldEntity )
+	{
+		GlobalVectorToLocal( backEnd.viewParms.orientation.axis[ 1 ], leftDir );
+		GlobalVectorToLocal( backEnd.viewParms.orientation.axis[ 2 ], upDir );
+	}
+	else
+	{
+		VectorCopy( backEnd.viewParms.orientation.axis[ 1 ], leftDir );
+		VectorCopy( backEnd.viewParms.orientation.axis[ 2 ], upDir );
+	}
+
+	float scale = 1.0 / M_SQRT2;
+
+	if ( backEnd.currentEntity->e.nonNormalizedAxes )
+	{
+		float axisLength = VectorLength( backEnd.currentEntity->e.axis[ 0 ] );
+
+		if ( axisLength )
+		{
+			scale /= axisLength;
+		}
+	}
+
+	for ( uint32_t i = 0; i < numVertexes; i += 4 )
+	{
+		const shaderVertex_t *v = tess.vertsBuffer + i;
+
 		// find the midpoint
-		v = &tess.verts[ firstVertex + i ];
+		vec3_t center;
+		VectorAdd( v[ 0 ].xyz, v[ 1 ].xyz, center );
+		VectorAdd( center, v[ 2 ].xyz, center );
+		VectorAdd( center, v[ 3 ].xyz, center );
+		VectorScale( center, 0.25f, center );
 
-		Vector4Set( midtc, 0.0f, 0.0f, 0.0f, 0.0f );
-		for( j = 0; j < 4; j++ ) {
-			halfToFloat( v[ j ].texCoords, tc );
-			VectorAdd( tc, midtc, midtc );
-			midtc[ 3 ] += tc[ 3 ];
+		vec3_t delta;
+		VectorSubtract( v[ 0 ].xyz, center, delta );
+		float radius = VectorLength( delta ) * scale;
+
+		vec3_t left, up;
+		VectorScale( leftDir, radius, left );
+		VectorScale( upDir, radius, up );
+
+		if ( backEnd.viewParms.mirrorLevel & 1 )
+		{
+			VectorNegate( left, left );
 		}
 
-		midtc[ 0 ] = 0.25f * midtc[ 0 ];
-		midtc[ 1 ] = 0.25f * midtc[ 1 ];
-
-		for ( j = 0; j < 4; j++ ) {
-			halfToFloat( v[ j ].texCoords, tc );
-			if( tc[ 0 ] < midtc[ 0 ] ) {
-				tc[ 2 ] = -tc[ 2 ];
-			}
-			if( tc[ 1 ] < midtc[ 1 ] ) {
-				tc[ 3 ] = -tc[ 3 ];
-			}
-			floatToHalf( tc, v[ j ].texCoords );
-		}
-	}
-}
-
-static void AutospriteDeform( int firstVertex, int numVertexes, int numIndexes )
-{
-	int    i, j;
-	shaderVertex_t *v;
-	vec3_t mid, delta;
-	float  radius;
-
-	if ( numVertexes & 3 )
-	{
-		Log::Warn("Autosprite shader %s had odd vertex count", tess.surfaceShader->name );
-	}
-
-	if ( numIndexes != ( numVertexes >> 2 ) * 6 )
-	{
-		Log::Warn("Autosprite shader %s had odd index count", tess.surfaceShader->name );
-	}
-
-	ComputeCorner( firstVertex, numVertexes );
-
-	for ( i = 0; i < numVertexes; i += 4 )
-	{
-		// find the midpoint
-		v = &tess.verts[ firstVertex + i ];
-
-		mid[ 0 ] = 0.25f * ( v[ 0 ].xyz[ 0 ] + v[ 1 ].xyz[ 0 ] + v[ 2 ].xyz[ 0 ] + v[ 3 ].xyz[ 0 ] );
-		mid[ 1 ] = 0.25f * ( v[ 0 ].xyz[ 1 ] + v[ 1 ].xyz[ 1 ] + v[ 2 ].xyz[ 1 ] + v[ 3 ].xyz[ 1 ] );
-		mid[ 2 ] = 0.25f * ( v[ 0 ].xyz[ 2 ] + v[ 1 ].xyz[ 2 ] + v[ 2 ].xyz[ 2 ] + v[ 3 ].xyz[ 2 ] );
-
-		VectorSubtract( v[ 0 ].xyz, mid, delta );
-		radius = VectorLength( delta ) * 0.5f * M_SQRT2;
-
-		// add 4 identical vertices
-		for ( j = 0; j < 4; j++ ) {
-			VectorCopy( mid, v[ j ].xyz );
-			Vector4Set( v[ j ].spriteOrientation,
-				floatToHalf( 0 ),
-				floatToHalf( 0 ),
-				floatToHalf( 0 ),
-				floatToHalf( radius ) );
-		}
+		Tess_AddQuadStamp( center, left, up, v->color );
 	}
 }
 
@@ -554,125 +542,106 @@ Autosprite2Deform
 Autosprite2 will pivot a rectangular quad along the center of its long axis
 =====================
 */
-static const int edgeVerts[ 6 ][ 2 ] =
+// Style 0 is what Tremulous did but style 1 generally looks better, even with Tremulous assets.
+// Style 0 looks stupid because you can see the sprite rotating if you stand still and move the
+// mouse. Style 1 does a better job for making something look cylindrical, like the "pillar of flame"
+// suggested in the Q3 manual. Either one will look bad beyond the ends of the long axis.
+static Cvar::Range<Cvar::Cvar<int>> r_autosprite2Style(
+	"r_autosprite2Style", "display autosprite2 surfaces facing (0) in view direction or (1) toward viewer",
+	Cvar::NONE, 1, 0, 1);
+static void Autosprite2Deform( uint32_t numVertexes )
 {
-	{ 0, 1 },
-	{ 0, 2 },
-	{ 0, 3 },
-	{ 1, 2 },
-	{ 1, 3 },
-	{ 2, 3 }
-};
-
-static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes )
-{
-	shaderVertex_t *v = &tess.verts[ firstVertex ];
-	int    i, j, k;
-	vec3_t oldPos[4];
-
-	if ( numVertexes & 3 )
-	{
-		Log::Warn("Autosprite2 shader %s had odd vertex count", tess.surfaceShader->name );
-	}
-
-	if ( numIndexes != ( numVertexes >> 2 ) * 6 )
-	{
-		Log::Warn("Autosprite2 shader %s had odd index count", tess.surfaceShader->name );
-	}
-
-	ComputeCorner( firstVertex, numVertexes );
+	tess.numVertexes = numVertexes;
+	tess.numIndexes = ( numVertexes >> 2 ) * 6;
+	std::copy_n( tess.indexesBuffer, tess.numIndexes, tess.indexes );
 
 	// this is a lot of work for two triangles...
 	// we could precalculate a lot of it is an issue, but it would mess up
 	// the shader abstraction
-	for ( i = 0; i < numVertexes; i += 4, v += 4 )
+	for ( uint32_t i = 0, indexes = 0; i < tess.numVertexes; i += 4, indexes += 6 )
 	{
-		float  lengths[ 2 ];
-		int    nums[ 2 ];
-		vec3_t mid[ 2 ];
-		vec3_t normal, cross;
-		vec3_t major, minor;
-		shaderVertex_t *v1, *v2;
+		struct TriSide {
+			vec3_t firstVert;
+			float lengthSq;
+			vec3_t vector; // second point minus first point
+		};
 
-		VectorCopy( v[0].xyz, oldPos[0] );
-		VectorCopy( v[1].xyz, oldPos[1] );
-		VectorCopy( v[2].xyz, oldPos[2] );
-		VectorCopy( v[3].xyz, oldPos[3] );
+		TriSide sides[ 3 ];
+		VectorCopy( tess.vertsBuffer[ tess.indexesBuffer[ indexes + 0 ] ].xyz, sides[ 0 ].firstVert );
+		VectorCopy( tess.vertsBuffer[ tess.indexesBuffer[ indexes + 1 ] ].xyz, sides[ 1 ].firstVert );
+		VectorCopy( tess.vertsBuffer[ tess.indexesBuffer[ indexes + 2 ] ].xyz, sides[ 2 ].firstVert );
 
-		R_QtangentsToNormal( v->qtangents, normal );
-
-		// find the midpoint
-
-		// identify the two shortest edges
-		nums[ 0 ] = nums[ 1 ] = 0;
-		lengths[ 0 ] = lengths[ 1 ] = 999999;
-
-		for ( j = 0; j < 6; j++ )
+		for ( int j = 0; j < 3; j++ )
 		{
-			float  l;
-			vec3_t temp;
-
-			v1 = v + edgeVerts[ j ][ 0 ];
-			v2 = v + edgeVerts[ j ][ 1 ];
-
-			VectorSubtract( v1->xyz, v2->xyz, temp );
-
-			l = DotProduct( temp, temp );
-
-			if ( l < lengths[ 0 ] )
-			{
-				nums[ 1 ] = nums[ 0 ];
-				lengths[ 1 ] = lengths[ 0 ];
-				nums[ 0 ] = j;
-				lengths[ 0 ] = l;
-			}
-			else if ( l < lengths[ 1 ] )
-			{
-				nums[ 1 ] = j;
-				lengths[ 1 ] = l;
-			}
+			VectorSubtract( sides[ (j + 1) % 3 ].firstVert, sides[ j ].firstVert, sides[ j ].vector );
+			sides[ j ].lengthSq = VectorLengthSquared( sides[ j ].vector );
 		}
 
-		for ( j = 0; j < 2; j++ )
-		{
-			v1 = v + edgeVerts[ nums[ j ] ][ 0 ];
-			v2 = v + edgeVerts[ nums[ j ] ][ 1 ];
+		std::sort( std::begin( sides ), std::end( sides ),
+		           []( TriSide &a, TriSide &b ) { return a.lengthSq < b.lengthSq; } );
+		// Now sides[ 0 ] should be a short side of the rectangle, sides[ 1 ] a long side,
+		// and sides[ 2 ] a diagonal
 
-			mid[ j ][ 0 ] = 0.5f * ( v1->xyz[ 0 ] + v2->xyz[ 0 ] );
-			mid[ j ][ 1 ] = 0.5f * ( v1->xyz[ 1 ] + v2->xyz[ 1 ] );
-			mid[ j ][ 2 ] = 0.5f * ( v1->xyz[ 2 ] + v2->xyz[ 2 ] );
+		vec3_t forward;
+		if ( backEnd.currentEntity != &tr.worldEntity )
+		{
+			// FIXME: implement style 1 here
+			GlobalVectorToLocal( backEnd.viewParms.orientation.axis[ 0 ], forward );
+		}
+		else if ( r_autosprite2Style.Get() == 0 )
+		{
+			VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], forward );
+		}
+		else
+		{
+			vec3_t quadCenter;
+			VectorMA( sides[ 2 ].firstVert, 0.5f, sides[ 2 ].vector, quadCenter );
+			VectorSubtract( quadCenter, backEnd.viewParms.orientation.origin, forward );
+			VectorNormalize( forward );
 		}
 
-		// find the vector of the major axis
-		VectorSubtract( mid[ 1 ], mid[ 0 ], major );
-		CrossProduct( major, normal, cross );
+		vec3_t newMinorAxis;
+		CrossProduct( sides[ 1 ].vector, forward, newMinorAxis);
+		VectorNormalize( newMinorAxis );
+		plane_t projection;
+		VectorNormalize2( sides[ 0 ].vector, projection.normal );
+		projection.dist = DotProduct( sides[ 0 ].firstVert, projection.normal )
+		                  + 0.5f * sqrtf( sides[ 0 ].lengthSq );
+		vec3_t minorAxisReplace;
+		VectorSubtract( newMinorAxis, projection.normal, minorAxisReplace );
 
-		// update the vertices
-		for ( j = 0; j < 4; j++ )
+		if ( tess.skipTangents )
 		{
-			vec4_t orientation;
-
-			v1 = v + j;
-			lengths[ 0 ] = Distance( mid[ 0 ], v1->xyz );
-			lengths[ 1 ] = Distance( mid[ 1 ], v1->xyz );
-
-			// pick the closer midpoint
-			if ( lengths[ 0 ] <= lengths[ 1 ] )
-				k = 0;
-			else
-				k = 1;
-
-			VectorSubtract( v1->xyz, mid[ k ], minor );
-			// I guess this works, since the sign bit is the MSB for both floating point and integers
-			if ( ( DotProduct( cross, minor ) * static_cast<int16_t>(v1->texCoords[ 3 ].bits) ) < 0  ) {
-				VectorNegate( major, orientation );
-			} else {
-				VectorCopy( major, orientation );
+			for ( uint32_t j = i; j <= i + 4; j++ )
+			{
+				shaderVertex_t v = tess.vertsBuffer[ j ];
+				float d = DotProduct( projection.normal, v.xyz ) - projection.dist;
+				VectorMA( v.xyz, d, minorAxisReplace, v.xyz );
+				tess.verts[ j ] = v;
 			}
-			orientation[ 3 ] = -lengths[ k ];
+		}
+		else
+		{
+			i16vec4_t qtangents;
+			vec3_t normal;
+			CrossProduct( newMinorAxis, sides[ 1 ].vector, normal );
+			if ( DotProduct( normal, forward ) > 0 )
+			{
+				VectorNegate( normal, normal );
+			}
+			VectorNormalize( normal );
+			// What the fuck are tangent and binormal even for?
+			// I'll just put in zeroes and let R_TBNtoQtangents make some up for me.
+			R_TBNtoQtangents( vec3_origin, vec3_origin, normal, qtangents );
 
-			floatToHalf( orientation, v1->spriteOrientation );
-			VectorCopy( mid[ k ], v1->xyz );
+			for ( uint32_t j = i; j <= i + 4; j++ )
+			{
+				shaderVertex_t v = tess.vertsBuffer[ j ];
+				float d = DotProduct( projection.normal, v.xyz ) - projection.dist;
+				VectorMA( v.xyz, d, minorAxisReplace, v.xyz );
+				Vector4Copy( qtangents, v.qtangents );
+				tess.verts[ j ] = v;
+			}
 		}
 	}
 }
@@ -681,24 +650,46 @@ static void Autosprite2Deform( int firstVertex, int numVertexes, int numIndexes 
 =====================
 Tess_AutospriteDeform
 
-Set up vertices to be decoded by the vertexSprite_vp shader.
-The ComputeCorner function used in here encodes information in the sign of the lightmap
-coordinates, so it only works if there are positive lightmap tc's. Thus it does
-not work on anything besides BSP surfaces.
 =====================
 */
-void Tess_AutospriteDeform( int mode, int firstVertex, int numVertexes,
-			    int firstIndex, int numIndexes )
+void Tess_AutospriteDeform( int mode )
 {
-	(void)firstIndex;
+	if ( tess.verts != tess.vertsBuffer )
+	{
+		Log::Warn( "Tess_AutospriteDeform: CPU vertex buffer not active" );
+		return;
+	}
+
+	uint32_t numVertexes = tess.numVertexes;
+	uint32_t numIndexes = tess.numIndexes;
+
+	// Tess_MapVBOs( true ) should have been called previously. Now we take the original verts from
+	// the CPU-only buffer and write the rotated verts to the shared GPU buffer. (If the GPU buffer
+	// is not supported, the source and dest buffers are the same.)
+	Tess_Clear();
+	Tess_MapVBOs( false );
+
+	if ( numVertexes & 3 )
+	{
+		Log::Warn( "Autosprite shader %s had odd vertex count", tess.surfaceShader->name );
+		return; // drop vertexes
+	}
+
+	if ( numIndexes != ( numVertexes >> 2 ) * 6 )
+	{
+		Log::Warn( "Autosprite shader %s had odd index count", tess.surfaceShader->name );
+		return; // drop vertexes
+	}
 
 	switch( mode ) {
 	case 1:
-		AutospriteDeform( firstVertex, numVertexes, numIndexes );
+		AutospriteDeform( numVertexes );
 		break;
 	case 2:
-		Autosprite2Deform( firstVertex, numVertexes, numIndexes );
+		Autosprite2Deform( numVertexes );
 		break;
+	default:
+		ASSERT_UNREACHABLE();
 	}
 }
 
