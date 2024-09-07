@@ -81,6 +81,12 @@ Cvar::Cvar<bool> r_dpBlend("r_dpBlend", "Enable DarkPlaces blend compatibility, 
 static Cvar::Cvar<float> r_portalDefaultRange(
 	"r_portalDefaultRange", "Default portal range", Cvar::NONE, 1024);
 
+struct reliefBias_t {
+	float origin;
+	float divisor;
+	float offset;
+};
+
 /*
 ================
 return a hash value for the filename
@@ -2004,6 +2010,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 	char         buffer[ 1024 ] = "";
 	bool     loadMap = false;
 
+	reliefBias_t reliefBias = { 0.0f, 1.0f, 0.0f };
+
 	while ( true )
 	{
 		token = COM_ParseExt2( text, true );
@@ -3199,6 +3207,63 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			ParseExpression( text, &stage->fogDensityExp );
 		}
+		else if ( !Q_stricmp( token, "heightScale" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( !token[ 0 ] )
+			{
+				Log::Warn("missing heightScale parm in shader '%s'", shader.name );
+			}
+
+			stage->heightScale = atof( token );
+		}
+		else if ( !Q_stricmp( token, "heightBiasType" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( !token[ 0 ] )
+			{
+				Log::Warn("missing heightOffsetType parm in shader '%s'", shader.name );
+			}
+
+			if ( !Q_stricmp( token, "bias" ) )
+			{
+				// Use default values.
+			}
+			else if ( !Q_stricmp( token, "match" ) )
+			{
+				reliefBias.origin = 1.0f;
+				reliefBias.divisor = 1.0f;
+			}
+			else if ( !Q_stricmp( token, "match8" ) )
+			{
+				reliefBias.origin = 1.0f;
+				reliefBias.divisor = 255.0f;
+			}
+			else if ( !Q_stricmp( token, "match16" ) )
+			{
+				reliefBias.origin = 1.0f;
+				reliefBias.divisor = 65535.0f;
+			}
+			else
+			{
+				Log::Warn("invalid parm for heightOffsetType keyword in shader '%s'", shader.name );
+				SkipRestOfLine( text );
+				continue;
+			}
+		}
+		else if ( !Q_stricmp( token, "heightOffset" ) )
+		{
+			token = COM_ParseExt2( text, false );
+
+			if ( !token[ 0 ] )
+			{
+				Log::Warn("missing heightOffset parm in shader '%s'", shader.name );
+			}
+
+			reliefBias.offset = atof( token );
+		}
 		// depthScale <arithmetic expression>
 		else if ( !Q_stricmp( token, "depthScale" ) )
 		{
@@ -3216,6 +3281,8 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 			continue;
 		}
 	}
+
+	stage->heightOffset = reliefBias.origin - reliefBias.offset / reliefBias.divisor;
 
 	// parsing succeeded
 	stage->active = true;
@@ -5334,6 +5401,21 @@ static void FinishStages()
 			if ( stage->hasHeightMapInNormalMap )
 			{
 				stage->normalScale[ 2 ] *= stage->normalFormat[ 2 ];
+			}
+		}
+
+		// Set heightmap scale and offset;
+		{
+			if ( stage->heightScale == 0.0f )
+			{
+				// This defaults to 1 if unset.
+				stage->heightScale = shader.reliefDepthScale;
+			}
+
+			if ( stage->heightOffset == 0.0f )
+			{
+				// This defaults to 0 if unset.
+				stage->heightOffset = shader.reliefOffsetBias;
 			}
 		}
 	}
