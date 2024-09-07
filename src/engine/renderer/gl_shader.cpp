@@ -1597,7 +1597,7 @@ bool GLCompileMacro_USE_REFLECTIVE_SPECULAR::HasConflictingMacros( size_t permut
 {
 	for (const GLCompileMacro* macro : macros)
 	{
-		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_PHYSICAL_MAPPING || macro->GetType() == USE_VERTEX_SPRITE) )
+		if ( ( permutation & macro->GetBit() ) != 0 && macro->GetType() == USE_PHYSICAL_MAPPING )
 		{
 			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
 			return true;
@@ -1612,7 +1612,7 @@ bool GLCompileMacro_USE_VERTEX_SKINNING::HasConflictingMacros( size_t permutatio
 	for (const GLCompileMacro* macro : macros)
 	{
 		//if(GLCompileMacro_USE_VERTEX_ANIMATION* m = dynamic_cast<GLCompileMacro_USE_VERTEX_ANIMATION*>(macro))
-		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_VERTEX_ANIMATION || macro->GetType() == USE_VERTEX_SPRITE) )
+		if ( ( permutation & macro->GetBit() ) != 0 && macro->GetType() == USE_VERTEX_ANIMATION )
 		{
 			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
 			return true;
@@ -1631,7 +1631,7 @@ bool GLCompileMacro_USE_VERTEX_ANIMATION::HasConflictingMacros( size_t permutati
 {
 	for (const GLCompileMacro* macro : macros)
 	{
-		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_VERTEX_SKINNING || macro->GetType() == USE_VERTEX_SPRITE) )
+		if ( ( permutation & macro->GetBit() ) != 0 && macro->GetType() == USE_VERTEX_SKINNING )
 		{
 			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
 			return true;
@@ -1646,20 +1646,6 @@ uint32_t GLCompileMacro_USE_VERTEX_ANIMATION::GetRequiredVertexAttributes() cons
 	uint32_t attribs = ATTR_POSITION2 | ATTR_QTANGENT2;
 
 	return attribs;
-}
-
-bool GLCompileMacro_USE_VERTEX_SPRITE::HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const
-{
-	for (const GLCompileMacro* macro : macros)
-	{
-		if ( ( permutation & macro->GetBit() ) != 0 && (macro->GetType() == USE_VERTEX_SKINNING || macro->GetType() == USE_VERTEX_ANIMATION || macro->GetType() == USE_DEPTH_FADE))
-		{
-			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
-			return true;
-		}
-	}
-
-	return false;
 }
 
 bool GLCompileMacro_USE_TCGEN_ENVIRONMENT::HasConflictingMacros( size_t permutation, const std::vector<GLCompileMacro*> &macros) const
@@ -1681,20 +1667,6 @@ bool GLCompileMacro_USE_TCGEN_LIGHTMAP::HasConflictingMacros(size_t permutation,
 	for (const GLCompileMacro* macro : macros)
 	{
 		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_TCGEN_ENVIRONMENT))
-		{
-			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool GLCompileMacro_USE_DEPTH_FADE::HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const
-{
-	for (const GLCompileMacro* macro : macros)
-	{
-		if ((permutation & macro->GetBit()) != 0 && (macro->GetType() == USE_VERTEX_SPRITE))
 		{
 			//Log::Notice("conflicting macro! canceling '%s' vs. '%s'", GetName(), macro->GetName());
 			return true;
@@ -1967,7 +1939,7 @@ void GLShader::DispatchComputeIndirect( const GLintptr indirectBuffer ) {
 	glDispatchComputeIndirect( indirectBuffer );
 }
 
-void GLShader::SetRequiredVertexPointers( bool vertexSprite )
+void GLShader::SetRequiredVertexPointers()
 {
 	uint32_t macroVertexAttribs = 0;
 
@@ -1980,13 +1952,6 @@ void GLShader::SetRequiredVertexPointers( bool vertexSprite )
 	}
 
 	uint32_t attribs = _vertexAttribsRequired | _vertexAttribs | macroVertexAttribs; // & ~_vertexAttribsUnsupported);
-
-	if ( vertexSprite )
-	{
-		attribs &= ~ATTR_QTANGENT;
-		attribs |= ATTR_ORIENTATION;
-	}
-
 	GL_VertexAttribsState( attribs );
 }
 
@@ -2045,7 +2010,6 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_VERTEX_SPRITE( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this )
@@ -2077,7 +2041,6 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	GLDeformStage( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_VERTEX_SPRITE( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
@@ -2620,8 +2583,7 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_VERTEX_SPRITE( this )
+	GLCompileMacro_USE_VERTEX_ANIMATION( this )
 {
 }
 
@@ -2652,8 +2614,8 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	u_VertexInterpolation( this ),
 	GLDeformStage( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
-	GLCompileMacro_USE_VERTEX_SPRITE( this ) {
+	GLCompileMacro_USE_VERTEX_ANIMATION( this )
+{
 }
 
 void GLShader_heatHazeMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {

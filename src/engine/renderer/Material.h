@@ -98,7 +98,6 @@ struct Material {
 	bool tcGenEnvironment;
 	bool tcGen_Lightmap;
 	bool hasDepthFade;
-	bool vertexSprite;
 	bool alphaTest;
 
 	bool bspSurface;
@@ -217,6 +216,7 @@ class MaterialSystem {
 
 	std::vector<drawSurf_t*> portalSurfacesTmp;
 	std::vector<drawSurf_t> portalSurfaces;
+	std::vector<drawSurf_t> autospriteSurfaces;
 	std::vector<PortalSurface> portalBounds;
 	uint32_t totalPortals;
 	std::vector<shader_t*> skyShaders;
@@ -250,6 +250,7 @@ class MaterialSystem {
 						 const GLuint count, const GLuint firstIndex );
 
 	void AddPortalSurfaces();
+	void AddAutospriteSurfaces();
 	void RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID );
 	void UpdateDynamicSurfaces();
 

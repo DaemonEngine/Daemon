@@ -66,9 +66,9 @@ sampler2D u_ColorMap = sampler2D( u_ColorMap_initial );
 
 #if defined(GENERIC_GLSL)
 sampler2D u_ColorMap = sampler2D( u_ColorMap_initial );
-#if defined(USE_DEPTH_FADE) || defined(USE_VERTEX_SPRITE)
+#if defined(USE_DEPTH_FADE)
 sampler2D u_DepthMap = sampler2D( u_DepthMap_initial );
-#endif // !(USE_DEPTH_FADE || USE_VERTEX_SPRITE)
+#endif
 #endif // !GENERIC_GLSL
 
 #if defined(HEATHAZE_GLSL)

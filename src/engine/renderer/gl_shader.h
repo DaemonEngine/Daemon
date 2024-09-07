@@ -277,7 +277,7 @@ public:
 	void BindProgram( int deformIndex );
 	void DispatchCompute( const GLuint globalWorkgroupX, const GLuint globalWorkgroupY, const GLuint globalWorkgroupZ );
 	void DispatchComputeIndirect( const GLintptr indirectBuffer );
-	void SetRequiredVertexPointers( bool vertexSprite = false );
+	void SetRequiredVertexPointers();
 
 	bool IsMacroSet( int bit )
 	{
@@ -1666,7 +1666,6 @@ protected:
 	  USE_BSP_SURFACE,
 	  USE_VERTEX_SKINNING,
 	  USE_VERTEX_ANIMATION,
-	  USE_VERTEX_SPRITE,
 	  USE_TCGEN_ENVIRONMENT,
 	  USE_TCGEN_LIGHTMAP,
 	  USE_DELUXE_MAPPING,
@@ -1807,37 +1806,6 @@ public:
 	uint32_t GetRequiredVertexAttributes() const override;
 
 	void SetVertexAnimation( bool enable )
-	{
-		SetMacro( enable );
-	}
-};
-
-class GLCompileMacro_USE_VERTEX_SPRITE :
-	GLCompileMacro
-{
-public:
-	GLCompileMacro_USE_VERTEX_SPRITE( GLShader *shader ) :
-		GLCompileMacro( shader )
-	{
-	}
-
-	const char *GetName() const override
-	{
-		return "USE_VERTEX_SPRITE";
-	}
-
-	EGLCompileMacro GetType() const override
-	{
-		return EGLCompileMacro::USE_VERTEX_SPRITE;
-	}
-
-	bool     HasConflictingMacros( size_t permutation, const std::vector< GLCompileMacro * > &macros ) const override;
-	uint32_t GetRequiredVertexAttributes() const override
-	{
-		return ATTR_QTANGENT;
-	}
-
-	void SetVertexSprite( bool enable )
 	{
 		SetMacro( enable );
 	}
@@ -2122,7 +2090,6 @@ public:
 		return "USE_DEPTH_FADE";
 	}
 
-	bool HasConflictingMacros(size_t permutation, const std::vector<GLCompileMacro*> &macros) const override;
 	EGLCompileMacro GetType() const override
 	{
 		return EGLCompileMacro::USE_DEPTH_FADE;
@@ -3945,7 +3912,6 @@ class GLShader_generic :
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_VERTEX_SPRITE,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
 	public GLCompileMacro_USE_DEPTH_FADE
@@ -3974,7 +3940,6 @@ class GLShader_genericMaterial :
 	public GLDeformStage,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_VERTEX_SPRITE,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
 	public GLCompileMacro_USE_DEPTH_FADE {
@@ -4418,8 +4383,7 @@ class GLShader_heatHaze :
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_VERTEX_SPRITE
+	public GLCompileMacro_USE_VERTEX_ANIMATION
 {
 public:
 	GLShader_heatHaze( GLShaderManager *manager );
@@ -4446,9 +4410,9 @@ class GLShader_heatHazeMaterial :
 	public u_VertexInterpolation,
 	public GLDeformStage,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
-	public GLCompileMacro_USE_VERTEX_SPRITE {
-	public:
+	public GLCompileMacro_USE_VERTEX_ANIMATION
+{
+public:
 	GLShader_heatHazeMaterial( GLShaderManager* manager );
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };

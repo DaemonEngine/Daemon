@@ -621,11 +621,8 @@ static void DrawTris()
 
 	GLimp_LogComment( "--- DrawTris ---\n" );
 
-	bool vertexSprite = tess.surfaceShader->autoSpriteMode != 0;
-
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
-	gl_genericShader->SetVertexSprite( vertexSprite );
 	gl_genericShader->SetTCGenEnvironment( false );
 	gl_genericShader->SetTCGenLightmap( false );
 	gl_genericShader->SetDepthFade( false );
@@ -676,7 +673,7 @@ static void DrawTris()
 		GL_BindToTMU( 0, tr.whiteImage )
 	);
 	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
-	gl_genericShader->SetRequiredVertexPointers( vertexSprite );
+	gl_genericShader->SetRequiredVertexPointers();
 
 	glDepthRange( 0, 0 );
 
@@ -744,7 +741,7 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
 		tess.surfaceLastStage = nullptr;
 	}
 
-	Tess_MapVBOs( false );
+	Tess_MapVBOs( tess.surfaceShader && tess.surfaceShader->autoSpriteMode != 0 );
 
 	if ( !tess.stageIteratorFunc )
 	{
@@ -792,9 +789,8 @@ static void Render_generic2D( shaderStage_t *pStage )
 
 	GL_State( pStage->stateBits );
 
-	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
-	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
-	bool vertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	bool hasDepthFade = pStage->hasDepthFade;
+	bool needDepthMap = pStage->hasDepthFade;
 
 	// choose right shader program ----------------------------------
 	gl_generic2DShader->SetDepthFade( hasDepthFade );
@@ -841,7 +837,7 @@ static void Render_generic2D( shaderStage_t *pStage )
 		);
 	}
 
-	gl_generic2DShader->SetRequiredVertexPointers( vertexSprite );
+	gl_generic2DShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 	GL_CheckErrors();
@@ -865,9 +861,8 @@ void Render_generic3D( shaderStage_t *pStage )
 
 	GL_State( pStage->stateBits );
 
-	bool hasDepthFade = pStage->hasDepthFade && !tess.surfaceShader->autoSpriteMode;
-	bool needDepthMap = pStage->hasDepthFade || tess.surfaceShader->autoSpriteMode;
-	bool vertexSprite = tess.surfaceShader->autoSpriteMode != 0;
+	bool hasDepthFade = pStage->hasDepthFade;
+	bool needDepthMap = pStage->hasDepthFade;
 
 	// choose right shader program ----------------------------------
 	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
@@ -875,12 +870,11 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
 	gl_genericShader->SetDepthFade( hasDepthFade );
-	gl_genericShader->SetVertexSprite( vertexSprite );
 	gl_genericShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
-	if ( pStage->tcGen_Environment || vertexSprite )
+	if ( pStage->tcGen_Environment )
 	{
 		// calculate the environment texcoords in object space
 		gl_genericShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
@@ -947,7 +941,7 @@ void Render_generic3D( shaderStage_t *pStage )
 		);
 	}
 
-	gl_genericShader->SetRequiredVertexPointers( vertexSprite );
+	gl_genericShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 
@@ -2160,20 +2154,11 @@ void Render_heatHaze( shaderStage_t *pStage )
 	// choose right shader program ----------------------------------
 	gl_heatHazeShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_heatHazeShader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
-	bool vertexSprite = tess.surfaceShader->autoSpriteMode != 0;
-	gl_heatHazeShader->SetVertexSprite( vertexSprite );
 
 	gl_heatHazeShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
-	if ( vertexSprite )
-	{
-		// calculate the environment texcoords in object space
-		gl_heatHazeShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-		gl_heatHazeShader->SetUniform_ViewUp( backEnd.orientation.axis[ 2 ] );
-	}
-
 
 	deformMagnitude = RB_EvalExpression( &pStage->deformMagnitudeExp, 1.0 );
 	gl_heatHazeShader->SetUniform_DeformMagnitude( deformMagnitude );
@@ -2224,7 +2209,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
 
-	gl_heatHazeShader->SetRequiredVertexPointers( vertexSprite );
+	gl_heatHazeShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 
@@ -2763,6 +2748,11 @@ void Tess_StageIteratorColor()
 
 	GL_CheckErrors();
 
+	if ( tess.surfaceShader->autoSpriteMode != 0 )
+	{
+		Tess_AutospriteDeform( tess.surfaceShader->autoSpriteMode );
+	}
+
 	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo )
 	{
 		Tess_UpdateVBOs( );
@@ -2828,6 +2818,11 @@ void Tess_StageIteratorPortal() {
 
 	GL_CheckErrors();
 
+	if ( tess.surfaceShader->autoSpriteMode != 0 )
+	{
+		Tess_AutospriteDeform( tess.surfaceShader->autoSpriteMode );
+	}
+
 	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo ) {
 		Tess_UpdateVBOs();
 	}
@@ -2862,6 +2857,11 @@ void Tess_StageIteratorShadowFill()
 	}
 
 	GL_CheckErrors();
+
+	if ( tess.surfaceShader->autoSpriteMode != 0 )
+	{
+		Tess_AutospriteDeform( tess.surfaceShader->autoSpriteMode );
+	}
 
 	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo )
 	{
@@ -2918,6 +2918,11 @@ void Tess_StageIteratorLighting()
 	GL_CheckErrors();
 
 	light = backEnd.currentLight;
+
+	if ( tess.surfaceShader->autoSpriteMode != 0 )
+	{
+		Tess_AutospriteDeform( tess.surfaceShader->autoSpriteMode );
+	}
 
 	if ( !glState.currentVBO || !glState.currentIBO || glState.currentVBO == tess.vbo || glState.currentIBO == tess.ibo )
 	{

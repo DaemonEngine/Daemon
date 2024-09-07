@@ -6,7 +6,6 @@
 #include "vertexAnimation_vp.glsl.h"
 #include "vertexSimple_vp.glsl.h"
 #include "vertexSkinning_vp.glsl.h"
-#include "vertexSprite_vp.glsl.h"
 #include "blurX_fp.glsl.h"
 #include "blurX_vp.glsl.h"
 #include "blurY_fp.glsl.h"
@@ -131,5 +130,4 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "vertexAnimation_vp.glsl", std::string(reinterpret_cast<const char*>(vertexAnimation_vp_glsl), sizeof(vertexAnimation_vp_glsl)) },
 	{ "vertexSimple_vp.glsl", std::string(reinterpret_cast<const char*>(vertexSimple_vp_glsl), sizeof(vertexSimple_vp_glsl)) },
 	{ "vertexSkinning_vp.glsl", std::string(reinterpret_cast<const char*>(vertexSkinning_vp_glsl), sizeof(vertexSkinning_vp_glsl)) },
-	{ "vertexSprite_vp.glsl", std::string(reinterpret_cast<const char*>(vertexSprite_vp_glsl), sizeof(vertexSprite_vp_glsl)) },
 	});

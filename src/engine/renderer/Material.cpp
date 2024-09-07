@@ -247,12 +247,12 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 		gl_genericShaderMaterial->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	}
 
-	bool needDepthMap = pStage->hasDepthFade || shader->autoSpriteMode;
+	bool needDepthMap = pStage->hasDepthFade;
 	if ( needDepthMap ) {
 		gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
 	}
 
-	bool hasDepthFade = pStage->hasDepthFade && !shader->autoSpriteMode;
+	bool hasDepthFade = pStage->hasDepthFade;
 	if ( hasDepthFade ) {
 		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 	}
@@ -959,7 +959,7 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 		}
 
 		shader = shader->remappedShader ? shader->remappedShader : shader;
-		if ( shader->isSky || shader->isPortal ) {
+		if ( shader->isSky || shader->isPortal || shader->autoSpriteMode ) {
 			continue;
 		}
 
@@ -1067,13 +1067,12 @@ void BindShaderGeneric3D( Material* material ) {
 	gl_genericShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
 	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
-	gl_genericShaderMaterial->SetVertexSprite( material->vertexSprite );
 
 	// Bind shader program.
 	gl_genericShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
-	if ( material->tcGenEnvironment || material->vertexSprite ) {
+	if ( material->tcGenEnvironment ) {
 		gl_genericShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
 		gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 	}
@@ -1146,17 +1145,11 @@ void BindShaderScreen( Material* material ) {
 void BindShaderHeatHaze( Material* material ) {
 	// Select shader permutation.
 	gl_heatHazeShaderMaterial->SetVertexAnimation( material->vertexAnimation );
-	gl_heatHazeShaderMaterial->SetVertexSprite( material->vertexSprite );
 
 	// Bind shader program.
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
-	if ( material->vertexSprite ) {
-		gl_heatHazeShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-		gl_heatHazeShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
-	}
-
 	gl_heatHazeShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
@@ -1184,15 +1177,12 @@ void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* ) {
 
 // ProcessMaterial*() are essentially same as BindShader*(), but only set the GL program id to the material,
 // without actually binding it
-void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
-	shader_t* shader = drawSurf->shader;
-
+void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* ) {
 	material->shader = gl_genericShaderMaterial;
 
 	material->vertexAnimation = false;
 	material->tcGenEnvironment = pStage->tcGen_Environment;
 	material->tcGen_Lightmap = pStage->tcGen_Lightmap;
-	material->vertexSprite = shader->autoSpriteMode != 0;
 	material->deformIndex = pStage->deformIndex;
 
 	gl_genericShaderMaterial->SetVertexAnimation( false );
@@ -1200,10 +1190,9 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 	gl_genericShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );
 
-	bool hasDepthFade = pStage->hasDepthFade && !shader->autoSpriteMode;
+	bool hasDepthFade = pStage->hasDepthFade;
 	material->hasDepthFade = hasDepthFade;
 	gl_genericShaderMaterial->SetDepthFade( hasDepthFade );
-	gl_genericShaderMaterial->SetVertexSprite( shader->autoSpriteMode != 0 );
 
 	material->program = gl_genericShaderMaterial->GetProgram( pStage->deformIndex );
 }
@@ -1286,21 +1275,13 @@ void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, drawSurf_
 	material->program = gl_screenShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
-	shader_t* shader = drawSurf->shader;
-
+void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* ) {
 	material->shader = gl_heatHazeShaderMaterial;
 
 	material->vertexAnimation = false;
 	material->deformIndex = pStage->deformIndex;
 
 	gl_heatHazeShaderMaterial->SetVertexAnimation( false );
-	if ( shader->autoSpriteMode ) {
-		gl_heatHazeShaderMaterial->SetVertexSprite( true );
-	} else {
-		gl_heatHazeShaderMaterial->SetVertexSprite( false );
-	}
-
 	material->program = gl_heatHazeShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
@@ -1447,7 +1428,7 @@ void MaterialSystem::GenerateWorldMaterials() {
 		}
 
 		shader = shader->remappedShader ? shader->remappedShader : shader;
-		if ( shader->isSky || shader->isPortal ) {
+		if ( shader->isSky || shader->isPortal || shader->autoSpriteMode ) {
 			continue;
 		}
 
@@ -1807,6 +1788,7 @@ void MaterialSystem::Free() {
 	generatedWorldCommandBuffer = false;
 
 	dynamicDrawSurfs.clear();
+	autospriteSurfaces.clear();
 	portalSurfaces.clear();
 	portalSurfacesTmp.clear();
 	portalBounds.clear();
@@ -1946,6 +1928,17 @@ void MaterialSystem::AddPortalSurfaces() {
 	// It only fills up an array up to MAX_VIEWS, the actual views are still added in R_MirrowViewBySurface()
 	AddPortalSurface( 0, portalSurfs );
 	portalSurfacesSSBO.AreaIncr();
+}
+
+// autosprite[2] is not implemented in material system, draw them old-fashionedly
+void MaterialSystem::AddAutospriteSurfaces() {
+	tr.currentEntity = &tr.worldEntity;
+
+	for ( const drawSurf_t &drawSurf : autospriteSurfaces )
+	{
+		R_AddDrawSurf( drawSurf.surface, drawSurf.shader,
+		               drawSurf.lightmapNum(), drawSurf.fogNum(), drawSurf.bspSurface );
+	}
 }
 
 void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID ) {
