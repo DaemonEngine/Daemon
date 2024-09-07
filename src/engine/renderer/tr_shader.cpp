@@ -4397,28 +4397,26 @@ static bool ParseShader( const char *_text )
 			}
 
 			// dpoffsetmapping - 2 match8 65
-			float off;
-			float div;
+			reliefBias_t reliefBias = { 0.0f, 1.0f, 0.0f };
 
 			if ( !Q_stricmp( token, "bias" ) )
 			{
-				off = 0.0f;
-				div = 1.0f;
+				// Use default values.
 			}
 			else if ( !Q_stricmp( token, "match" ) )
 			{
-				off = 1.0f;
-				div = 1.0f;
+				reliefBias.origin = 1.0f;
+				reliefBias.divisor = 1.0f;
 			}
 			else if ( !Q_stricmp( token, "match8" ) )
 			{
-				off = 1.0f;
-				div = 255.0f;
+				reliefBias.origin = 1.0f;
+				reliefBias.divisor = 255.0f;
 			}
 			else if ( !Q_stricmp( token, "match16" ) )
 			{
-				off = 1.0f;
-				div = 65535.0f;
+				reliefBias.origin = 1.0f;
+				reliefBias.divisor = 65535.0f;
 			}
 			else
 			{
@@ -4435,8 +4433,8 @@ static bool ParseShader( const char *_text )
 				continue;
 			}
 
-			float bias = atof( token );
-			shader.reliefOffsetBias = off - bias / div;
+			reliefBias.offset = atof( token );
+			shader.reliefOffsetBias = reliefBias.origin - reliefBias.offset / reliefBias.divisor;
 			continue;
 		}
 		// entityMergable, allowing sprite surfaces from multiple entities
