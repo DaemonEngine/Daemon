@@ -87,6 +87,8 @@ static Cvar::Cvar<bool> r_arb_shader_draw_parameters( "r_arb_shader_draw_paramet
 	"Use GL_ARB_shader_draw_parameters if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_atomic_counters( "r_arb_shader_atomic_counters",
 	"Use GL_ARB_shader_atomic_counters if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_shader_atomic_counter_ops( "r_arb_shader_atomic_counter_ops",
+	"Use GL_ARB_shader_atomic_counter_ops if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_image_load_store( "r_arb_shader_image_load_store",
 	"Use GL_ARB_shader_image_load_store if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_shader_storage_buffer_object( "r_arb_shader_storage_buffer_object",
@@ -117,6 +119,8 @@ static Cvar::Cvar<bool> r_ext_texture_rg( "r_ext_texture_rg",
 	"Use GL_EXT_texture_rg if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_khr_debug( "r_khr_debug",
 	"Use GL_KHR_debug if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
+	"Use GL_KHR_shader_subgroup if available", Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
@@ -1839,6 +1843,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_map_buffer_range );
 	Cvar::Latch( r_arb_multi_draw_indirect );
 	Cvar::Latch( r_arb_shader_atomic_counters );
+	Cvar::Latch( r_arb_shader_atomic_counter_ops );
 	Cvar::Latch( r_arb_shader_draw_parameters );
 	Cvar::Latch( r_arb_shader_image_load_store );
 	Cvar::Latch( r_arb_shading_language_420pack );
@@ -1855,6 +1860,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_ext_texture_integer );
 	Cvar::Latch( r_ext_texture_rg );
 	Cvar::Latch( r_khr_debug );
+	Cvar::Latch( r_khr_shader_subgroup );
 
 	glConfig2.glEnabledExtensionsString = std::string();
 	glConfig2.glMissingExtensionsString = std::string();
@@ -2202,15 +2208,59 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.2
 	glConfig2.shaderAtomicCountersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counters, r_arb_shader_atomic_counters.Get() );
 
+	// made required in OpenGL 4.6
+	glConfig2.shaderAtomicCounterOpsAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_atomic_counter_ops, r_arb_shader_atomic_counter_ops.Get() );
+
 	// not required by any OpenGL version
 	glConfig2.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
 
 	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable
-									    && glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
-										&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
-										&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
-										&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable
-										&& r_materialSystem.Get(); // Allow disabling it without disabling any extensions
+		&& glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
+		&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
+		&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
+		&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable
+		&& r_materialSystem.Get(); // Allow disabling it without disabling any extensions
+
+	// This requires GLEW 2.2+, so skip if it's a lower version
+#ifdef GL_KHR_shader_subgroup
+	// not required by any OpenGL version
+	glConfig2.shaderSubgroupAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, KHR_shader_subgroup, r_khr_shader_subgroup.Get() );
+
+	if ( glConfig2.shaderSubgroupAvailable ) {
+		int subgroupFeatures;
+		glGetIntegerv( GL_SUBGROUP_SUPPORTED_FEATURES_KHR, &subgroupFeatures );
+
+		glConfig2.shaderSubgroupBasicAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_BASIC_BIT_KHR;
+		glConfig2.shaderSubgroupVoteAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_VOTE_BIT_KHR;
+		glConfig2.shaderSubgroupArithmeticAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR;
+		glConfig2.shaderSubgroupBallotAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_BALLOT_BIT_KHR;
+		glConfig2.shaderSubgroupShuffleAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_BIT_KHR;
+		glConfig2.shaderSubgroupShuffleRelativeAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR;
+		glConfig2.shaderSubgroupQuadAvailable = subgroupFeatures & GL_SUBGROUP_FEATURE_QUAD_BIT_KHR;
+
+		Log::Notice( "Supported subgroup extensions: basic: %s, vote: %s, arithmetic: %s, ballot: %s, shuffle: %s, "
+			"shuffle_relative: %s, quad: %s", glConfig2.shaderSubgroupBasicAvailable,
+			glConfig2.shaderSubgroupVoteAvailable, glConfig2.shaderSubgroupArithmeticAvailable,
+			glConfig2.shaderSubgroupBallotAvailable, glConfig2.shaderSubgroupShuffleAvailable,
+			glConfig2.shaderSubgroupShuffleRelativeAvailable, glConfig2.shaderSubgroupQuadAvailable );
+	}
+#else
+	glConfig2.shaderSubgroupAvailable = false;
+
+	glConfig2.shaderSubgroupBasicAvailable = false;
+	glConfig2.shaderSubgroupVoteAvailable = false;
+	glConfig2.shaderSubgroupArithmeticAvailable = false;
+	glConfig2.shaderSubgroupBallotAvailable = false;
+	glConfig2.shaderSubgroupShuffleAvailable = false;
+	glConfig2.shaderSubgroupShuffleRelativeAvailable = false;
+	glConfig2.shaderSubgroupQuadAvailable = false;
+
+	// Currently this functionality is only used by material system shaders
+	if ( glConfig2.materialSystemAvailable ) {
+		Log::Warn( "Using outdated GLEW version, GL_KHR_shader_subgroup unavailable."
+			"Update GLEW to 2.2+ to be able to use this extension" );
+	}
+#endif
 
 	GL_CheckErrors();
 }
