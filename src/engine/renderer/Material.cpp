@@ -284,7 +284,7 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
-	SetLightDeluxeMode( drawSurf, material.stageType, lightMode, deluxeMode );
+	SetLightDeluxeMode( drawSurf, pStage->type, lightMode, deluxeMode );
 
 	// u_Map, u_DeluxeMap
 	image_t* lightmap = SetLightMap( drawSurf, lightMode );
