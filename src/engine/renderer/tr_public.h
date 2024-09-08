@@ -98,6 +98,16 @@ struct glconfig2_t
 	bool explicitUniformLocationAvailable;
 	bool shaderImageLoadStoreAvailable;
 	bool shaderAtomicCountersAvailable;
+	bool shaderAtomicCounterOpsAvailable;
+	bool shaderSubgroupAvailable;
+	bool shaderSubgroupBasicAvailable;
+	bool shaderSubgroupVoteAvailable;
+	bool shaderSubgroupArithmeticAvailable;
+	bool shaderSubgroupBallotAvailable;
+	bool shaderSubgroupShuffleAvailable;
+	bool shaderSubgroupShuffleRelativeAvailable;
+	bool shaderSubgroupClusteredAvailable;
+	bool shaderSubgroupQuadAvailable;
 	bool materialSystemAvailable;
 	bool gpuShader4Available;
 	bool gpuShader5Available;
