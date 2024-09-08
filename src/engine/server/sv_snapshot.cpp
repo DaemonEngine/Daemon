@@ -451,7 +451,7 @@ static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *fra
 
 		if ( sv_novis.Get() )
 		{
-			SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
+			SV_AddEntToSnapshot( svEnt, ent, eNums );
 			continue;
 		}
 
