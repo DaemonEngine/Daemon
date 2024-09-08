@@ -2824,12 +2824,12 @@ void RB_RunVisTests( )
 
 void RB_RenderPostDepthLightTile()
 {
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig2.realtimeLighting )
 	{
 		return;
 	}
 
-	if ( r_dynamicLightRenderer.Get() != Util::ordinal( dynamicLightRenderer_t::TILED ) )
+	if ( r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 	{
 		/* Do not run lightTile code when the tiled renderer is not used.
 
@@ -4755,7 +4755,6 @@ static void RB_RenderView( bool depthPass )
 	{
 		RB_Hyperspace();
 
-		materialSystem.currentView++;
 		return;
 	}
 	else
@@ -4865,8 +4864,6 @@ static void RB_RenderView( bool depthPass )
 
 		backEnd.pc.c_portals++;
 	}
-
-	materialSystem.currentView++;
 
 	backEnd.pc.c_views++;
 }
@@ -5444,7 +5441,7 @@ RB_SetupLights
 */
 const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 {
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig2.realtimeLighting )
 	{
 		return this + 1;
 	}

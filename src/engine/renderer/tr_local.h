@@ -294,7 +294,7 @@ static inline void glFboSetExt()
 enum class lightMode_t { FULLBRIGHT, VERTEX, GRID, MAP };
 enum class deluxeMode_t { NONE, GRID, MAP };
 
-enum class dynamicLightRenderer_t { LEGACY, TILED };
+enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 	enum class renderSpeeds_t
 	{
@@ -941,9 +941,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	struct expression_t
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
-		uint8_t        numOps;
-
-		bool       active; // no parsing problems
+		size_t numOps;
 	};
 
 	struct waveForm_t
@@ -1092,8 +1090,13 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	};
 
 	struct shaderStage_t;
+	struct Material;
+	struct drawSurf_t;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
+	using stageSurfaceDataUpdater_t = void(*)(uint32_t*, Material&, drawSurf_t*, const uint32_t);
+	using stageShaderBinder_t = void(*)(Material*);
+	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
 
 	struct shaderStage_t
 	{
@@ -1107,7 +1110,14 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 
 		bool shaderHasNoLight;
 
+		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;
+
+		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
+		stageSurfaceDataUpdater_t surfaceDataUpdater;
+		stageShaderBinder_t shaderBinder;
+		stageMaterialProcessor_t materialProcessor;
+
 		bool doShadowFill;
 		bool doForwardLighting;
 
@@ -2584,7 +2594,7 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 		int      frameCount; // incremented every frame
 		int      sceneCount; // incremented every scene
 		int      viewCount; // incremented every view (twice a scene if portaled)
-		int      viewCountNoReset;
+		int      viewCountNoReset; // incremented when doing something that visits surfaces and sets their viewCount
 		int      lightCount; // incremented every time a dlight traverses the world
 		// and every R_MarkFragments call
 
@@ -2825,10 +2835,11 @@ enum class dynamicLightRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_lightScale;
 
 	extern Cvar::Cvar<bool> r_fastsky; // Controls whether sky should be cleared or drawn.
-	extern Cvar::Range<Cvar::Cvar<int>> r_dynamicLightRenderer;
+	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
+	extern Cvar::Cvar<bool> r_realtimeLighting;
 	extern Cvar::Cvar<bool> r_dynamicLight;
 	extern Cvar::Cvar<bool> r_staticLight;
-	extern cvar_t *r_dynamicLightCastShadows;
+	extern cvar_t *r_realtimeLightingCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
 	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;

@@ -81,7 +81,7 @@ struct Material {
 	uint32_t syncMaterial = 0; // Must not be drawn before the material with this id
 
 	uint32_t stateBits = 0;
-	stageType_t stageType;
+	stageShaderBinder_t shaderBinder;
 	GLuint program = 0;
 	GLShader* shader;
 
@@ -203,8 +203,6 @@ class MaterialSystem {
 	bool generatingWorldCommandBuffer = false;
 	vec3_t worldViewBounds[2] = {};
 
-	uint32_t currentView = 0;
-
 	uint8_t maxStages = 0;
 	uint32_t descriptorSize;
 
@@ -311,5 +309,35 @@ extern GLUBO surfaceBatchesUBO; // Global
 extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
 extern GLSSBO portalSurfacesSSBO; // Per viewframe
 extern MaterialSystem materialSystem;
+
+void UpdateSurfaceDataNONE( uint32_t*, Material&, drawSurf_t*, const uint32_t );
+void UpdateSurfaceDataNOP( uint32_t*, Material&, drawSurf_t*, const uint32_t );
+void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+
+void BindShaderNONE( Material* );
+void BindShaderNOP( Material* );
+void BindShaderGeneric3D( Material* material );
+void BindShaderLightMapping( Material* material );
+void BindShaderReflection( Material* material );
+void BindShaderSkybox( Material* material );
+void BindShaderScreen( Material* material );
+void BindShaderHeatHaze( Material* material );
+void BindShaderLiquid( Material* material );
+
+void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* );
+void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* );
+void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
+void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
+void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
+void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
+void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
+void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
+void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
 
 #endif // MATERIAL_H

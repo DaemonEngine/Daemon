@@ -678,10 +678,10 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_highPrecisionRendering", 1 );
 	}
 
-	if ( glConfig2.dynamicLight )
+	if ( glConfig2.realtimeLighting )
 	{
-		AddDefine( str, "r_dynamicLight", 1 );
-		AddDefine( str, "r_dynamicLightRenderer", r_dynamicLightRenderer.Get() );
+		AddDefine( str, "r_realtimeLighting", 1 );
+		AddDefine( str, "r_realtimeLightingRenderer", r_realtimeLightingRenderer.Get() );
 	}
 
 	if ( r_precomputedLighting->integer )
@@ -732,7 +732,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
 
-	if ( r_normalMapping->integer )
+	if ( glConfig2.normalMapping )
 	{
 		AddDefine( str, "r_normalMapping", 1 );
 	}
@@ -742,12 +742,12 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_liquidMapping", 1 );
 	}
 
-	if ( r_specularMapping->integer )
+	if ( glConfig2.specularMapping )
 	{
 		AddDefine( str, "r_specularMapping", 1 );
 	}
 
-	if ( r_physicalMapping->integer )
+	if ( glConfig2.physicalMapping )
 	{
 		AddDefine( str, "r_physicalMapping", 1 );
 	}
@@ -890,11 +890,7 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	const char* token;
 	while ( *( token = COM_ParseExt2( &compileMacros, false ) ) )
 	{
-		if ( strcmp( token, "USE_NORMAL_MAPPING" ) == 0 )
-		{
-			if ( !glConfig2.normalMapping ) return true;
-		}
-		else if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
+		if ( strcmp( token, "USE_DELUXE_MAPPING" ) == 0 )
 		{
 			if ( !glConfig2.deluxeMapping ) return true;
 		}

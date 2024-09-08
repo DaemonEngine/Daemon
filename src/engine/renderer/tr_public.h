@@ -116,6 +116,7 @@ struct glconfig2_t
 	bool syncAvailable;
 	bool depthClampAvailable;
 
+	bool realtimeLighting;
 	bool dynamicLight;
 	bool staticLight;
 	bool shadowMapping;

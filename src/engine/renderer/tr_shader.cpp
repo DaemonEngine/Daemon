@@ -688,22 +688,20 @@ ParseExpression
 */
 static void ParseExpression( const char **text, expression_t *exp )
 {
-	int            i;
-	char           *token;
-
 	expOperation_t op, op2;
 
 	expOperation_t inFixOps[ MAX_EXPRESSION_OPS ];
-	int            numInFixOps;
+	size_t numInFixOps = 0;
 
 	// convert stack
 	expOperation_t tmpOps[ MAX_EXPRESSION_OPS ];
-	int            numTmpOps;
+	size_t numTmpOps = 0;
 
-	numInFixOps = 0;
-	numTmpOps = 0;
-
+	// A ext->numOps equals to 0 means empty or invalid expression.
 	exp->numOps = 0;
+
+	// The numOps will only be written to exp->numOps if there is no parsing error.
+	size_t numOps = 0;
 
 	// push left parenthesis on the stack
 	op.type = opcode_t::OP_LPAREN;
@@ -712,7 +710,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 
 	while ( true )
 	{
-		token = ParseExpressionElement( text );
+		char *token = ParseExpressionElement( text );
 
 		if ( token[ 0 ] == 0 || token[ 0 ] == ',' )
 		{
@@ -775,7 +773,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	op.value = 0;
 	inFixOps[ numInFixOps++ ] = op;
 
-	for ( i = 0; i < ( numInFixOps - 1 ); i++ )
+	for ( size_t i = 0; i < ( numInFixOps - 1 ); i++ )
 	{
 		op = inFixOps[ i ];
 		op2 = inFixOps[ i + 1 ];
@@ -795,14 +793,14 @@ static void ParseExpression( const char **text, expression_t *exp )
 	// convert infix representation to postfix
 	//
 
-	for ( i = 0; i < numInFixOps; i++ )
+	for ( size_t i = 0; i < numInFixOps; i++ )
 	{
 		op = inFixOps[ i ];
 
 		// if current operator in infix is digit
 		if ( IsOperand( op.type ) )
 		{
-			exp->ops[ exp->numOps++ ] = op;
+			exp->ops[ numOps++ ] = op;
 		}
 		// if current operator in infix is left parenthesis
 		else if ( op.type == opcode_t::OP_LPAREN )
@@ -828,7 +826,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 					{
 						if ( GetOpPrecedence( op2.type ) >= GetOpPrecedence( op.type ) )
 						{
-							exp->ops[ exp->numOps++ ] = op2;
+							exp->ops[ numOps++ ] = op2;
 							numTmpOps--;
 						}
 						else
@@ -862,7 +860,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 
 					if ( op2.type != opcode_t::OP_LPAREN )
 					{
-						exp->ops[ exp->numOps++ ] = op2;
+						exp->ops[ numOps++ ] = op2;
 						numTmpOps--;
 					}
 					else
@@ -876,7 +874,7 @@ static void ParseExpression( const char **text, expression_t *exp )
 	}
 
 	// everything went ok
-	exp->active = true;
+	exp->numOps = numOps;
 }
 
 /*
@@ -5227,7 +5225,7 @@ static void FinishStages()
 
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
-				stage->active = ( glConfig2.dynamicLight && r_dynamicLightRenderer.Get() == Util::ordinal( dynamicLightRenderer_t::LEGACY ) );
+				stage->active = ( glConfig2.realtimeLighting && r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::LEGACY ) );
 				break;
 
 			default:
@@ -5370,7 +5368,15 @@ static void FinishStages()
 static void SetStagesRenderers()
 {
 	struct stageRendererOptions_t {
+		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;
+
+		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
+		stageSurfaceDataUpdater_t surfaceDataUpdater;
+		stageShaderBinder_t shaderBinder;
+		stageMaterialProcessor_t materialProcessor;
+
+		// Per-stage configuration.
 		bool doShadowFill;
 		bool doForwardLighting;
 	};
@@ -5379,49 +5385,103 @@ static void SetStagesRenderers()
 	{
 		shaderStage_t *stage = &stages[ s ];
 
-		stageRendererOptions_t stageRendererOptions = { &Render_NONE, false, false };
+		stageRendererOptions_t stageRendererOptions = {
+			&Render_NONE,
+			&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
+			false, false,
+		};
 
 		bool opaqueOrLess = shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE);
 
 		switch ( stage->type )
 		{
 			case stageType_t::ST_COLORMAP:
-				stageRendererOptions = { &Render_generic, opaqueOrLess, false };
+				/* Comment from the Material code:
+				generic2D also uses this, but it's for UI only, so skip that for now. */
+				stageRendererOptions = {
+					&Render_generic,
+					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+					opaqueOrLess, false,
+				};
 				break;
 			case stageType_t::ST_STYLELIGHTMAP:
 			case stageType_t::ST_STYLECOLORMAP:
-				stageRendererOptions = { &Render_generic3D, true, false };
+				stageRendererOptions = {
+					&Render_generic3D,
+					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+					true, false,
+				};
 				break;
 			case stageType_t::ST_LIGHTMAP:
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
-				stageRendererOptions = { &Render_lightMapping, true, true };
+				stageRendererOptions = {
+					&Render_lightMapping,
+					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
+					true, true,
+				};
 				break;
 			case stageType_t::ST_COLLAPSE_COLORMAP:
-				stageRendererOptions = { &Render_lightMapping, true, false };
+				stageRendererOptions = {
+					&Render_lightMapping,
+					&UpdateSurfaceDataLightMapping, &BindShaderLightMapping, &ProcessMaterialLightMapping,
+					true, false,
+				};
 				break;
 			case stageType_t::ST_REFLECTIONMAP:
 			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-				stageRendererOptions = { &Render_reflection_CB, false, false };
+				stageRendererOptions = {
+					&Render_reflection_CB,
+					&UpdateSurfaceDataReflection, &BindShaderReflection, &ProcessMaterialReflection,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_SKYBOXMAP:
-				stageRendererOptions = { &Render_skybox, false, false };
+				stageRendererOptions = {
+					&Render_skybox,
+					&UpdateSurfaceDataSkybox, &BindShaderSkybox, &ProcessMaterialSkybox,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_SCREENMAP:
-				stageRendererOptions = { &Render_screen, false, false };
+				stageRendererOptions = {
+					&Render_screen,
+					&UpdateSurfaceDataScreen, &BindShaderScreen, &ProcessMaterialScreen,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_PORTALMAP:
-				stageRendererOptions = { &Render_portal, false, false };
+				/* Comment from the Material code:
+				This is supposedly used for alphagen portal and portal surfaces should never get here. */
+				stageRendererOptions = {
+					&Render_portal,
+					&UpdateSurfaceDataNONE, &BindShaderNONE, &ProcessMaterialNONE,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_HEATHAZEMAP:
-				stageRendererOptions = { &Render_heatHaze, false, false };
+				/* Comment from the Material code:
+				FIXME: This requires 2 draws per surface stage rather than 1. */
+				stageRendererOptions = {
+					&Render_heatHaze,
+					&UpdateSurfaceDataHeatHaze, &BindShaderHeatHaze, &ProcessMaterialHeatHaze,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_LIQUIDMAP:
-				stageRendererOptions = { &Render_liquid, false, false };
+				stageRendererOptions = {
+					&Render_liquid,
+					&UpdateSurfaceDataLiquid, &BindShaderLiquid, &ProcessMaterialLiquid,
+					false, false,
+				};
 				break;
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
-				stageRendererOptions = { &Render_NOP, false, true };
+				stageRendererOptions = {
+					&Render_NOP,
+					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
+					false, true,
+				};
 				break;
 			default:
 				Log::Warn( "Missing renderer for stage type %d", Util::ordinal(stage->type) );
@@ -5430,6 +5490,11 @@ static void SetStagesRenderers()
 		}
 
 		stage->colorRenderer = stageRendererOptions.colorRenderer;
+
+		stage->surfaceDataUpdater = stageRendererOptions.surfaceDataUpdater;
+		stage->shaderBinder = stageRendererOptions.shaderBinder;
+		stage->materialProcessor = stageRendererOptions.materialProcessor;
+
 		stage->doShadowFill = stageRendererOptions.doShadowFill;
 		stage->doForwardLighting = stageRendererOptions.doForwardLighting;
 

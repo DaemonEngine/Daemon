@@ -107,8 +107,13 @@ void main()
 		vec3 normal = NormalInWorldSpace(texCoords, tangentToWorldMatrix);
 	#endif // !r_normalMapping
 
-	// Compute the material term.
-	vec4 material = texture2D(u_MaterialMap, texCoords);
+	#if defined(r_specularMapping) || defined(r_physicalMapping)
+		// Compute the material term.
+		vec4 material = texture2D(u_MaterialMap, texCoords);
+	#elif defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
+		// The computeDynamicLights function requires this variable to exist.
+		vec4 material = vec4( 0.0, 0.0, 0.0, 1.0 );
+	#endif
 
 	// Compute final color.
 	vec4 color;
@@ -180,7 +185,7 @@ void main()
 	#endif
 
 	// Blend dynamic lights.
-	#if defined(r_dynamicLight) && r_dynamicLightRenderer == 1
+	#if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
 		#if defined(USE_REFLECTIVE_SPECULAR)
 			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTilesInt,
 								 u_EnvironmentMap0, u_EnvironmentMap1);

@@ -224,30 +224,26 @@ const char* GetOpName(opcode_t type);
 
 float RB_EvalExpression( const expression_t *exp, float defaultValue )
 {
-	int                     i;
-	expOperation_t          op;
-	expOperation_t          ops[ MAX_EXPRESSION_OPS ];
-	int                     numOps;
-	float                   value;
-	float                   value1;
-	float                   value2;
+	ASSERT( exp );
 
-	numOps = 0;
-	value = 0;
-	value1 = 0;
-	value2 = 0;
-
-	if ( !exp || !exp->active )
+	if ( !exp->numOps )
 	{
 		return defaultValue;
 	}
 
+	expOperation_t ops[ MAX_EXPRESSION_OPS ];
+
+	size_t numOps = 0;
+	float value = 0.0;
+	float value1 = 0.0;
+	float value2 = 0.0;
+
 	// http://www.qiksearch.com/articles/cs/postfix-evaluation/
 	// http://www.kyz.uklinux.net/evaluate/
 
-	for ( i = 0; i < exp->numOps; i++ )
+	for ( size_t i = 0; i < exp->numOps; i++ )
 	{
-		op = exp->ops[ i ];
+		expOperation_t op = exp->ops[ i ];
 
 		switch ( op.type )
 		{
