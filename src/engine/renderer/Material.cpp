@@ -926,30 +926,24 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	culledCommandsBuffer.FlushAll( GL_SHADER_STORAGE_BUFFER );
 
 	surfaceBatchesUBO.BindBuffer();
-	// Multiply by 2 because we write a uvec2, which is aligned as vec4
-	glBufferData( GL_UNIFORM_BUFFER, MAX_SURFACE_COMMAND_BATCHES * 2 * sizeof( SurfaceCommandBatch ), nullptr, GL_STATIC_DRAW );
+	glBufferData( GL_UNIFORM_BUFFER, MAX_SURFACE_COMMAND_BATCHES * sizeof( SurfaceCommandBatch ), nullptr, GL_STATIC_DRAW );
 	SurfaceCommandBatch* surfaceCommandBatches =
-		( SurfaceCommandBatch* ) surfaceBatchesUBO.MapBufferRange( MAX_SURFACE_COMMAND_BATCHES * 2 * SURFACE_COMMAND_BATCH_SIZE );
+		( SurfaceCommandBatch* ) surfaceBatchesUBO.MapBufferRange( MAX_SURFACE_COMMAND_BATCHES * SURFACE_COMMAND_BATCH_SIZE );
 
-	// memset( (void*) surfaceCommandBatches, 0, MAX_SURFACE_COMMAND_BATCHES * 2 * sizeof( SurfaceCommandBatch ) );
+	// memset( (void*) surfaceCommandBatches, 0, MAX_SURFACE_COMMAND_BATCHES * sizeof( SurfaceCommandBatch ) );
 	// Fuck off gcc
-	for ( int i = 0; i < MAX_SURFACE_COMMAND_BATCHES * 2; i++ ) {
+	for ( int i = 0; i < MAX_SURFACE_COMMAND_BATCHES; i++ ) {
 		surfaceCommandBatches[i] = {};
 	}
 
 	uint32_t id = 0;
 	uint32_t matID = 0;
-	uint32_t subID = 0;
 	for ( MaterialPack& pack : materialPacks ) {
 		for ( Material& mat : pack.materials ) {
 			for ( uint32_t i = 0; i < mat.surfaceCommandBatchCount; i++ ) {
-				surfaceCommandBatches[id * 4 + subID].materialIDs[0] = matID;
-				surfaceCommandBatches[id * 4 + subID].materialIDs[1] = mat.surfaceCommandBatchOffset;
-				subID++;
-				if ( subID == 4 ) {
-					id++;
-					subID = 0;
-				}
+				surfaceCommandBatches[id].materialIDs[0] = matID;
+				surfaceCommandBatches[id].materialIDs[1] = mat.surfaceCommandBatchOffset;
+				id++;
 			}
 			matID++;
 		}

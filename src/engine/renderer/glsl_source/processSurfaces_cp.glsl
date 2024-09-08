@@ -56,9 +56,7 @@ struct SurfaceCommand {
 	IndirectCompactCommand drawCommand;
 };
 
-struct SurfaceCommandBatch {
-	uvec2 materialIDs[2];
-};
+#define SurfaceCommandBatch uvec4
 
 layout(std430, binding = 2) readonly restrict buffer surfaceCommandsSSBO {
 	SurfaceCommand surfaceCommands[];
@@ -98,6 +96,12 @@ void AddDrawCommand( in uint commandID, in uvec2 materialID ) {
 	}
 }
 
+/* Allows accessing each element of a uvec4 array with a singular
+Useful to avoid wasting memory due to alignment requirements */
+
+#define UINT_ID_TO_UVEC4( array, id ) array[id / 4][id % 4]
+#define UVEC2_ID_TO_UVEC4( array, id ) id % 2 == 0 ? array[id / 2].xy : array[id / 2].zw;
+
 void main() {
 	const uint globalGroupID = gl_WorkGroupID.z * gl_NumWorkGroups.x * gl_NumWorkGroups.y
 	                         + gl_WorkGroupID.y * gl_NumWorkGroups.x
@@ -108,7 +112,7 @@ void main() {
 	                              + gl_GlobalInvocationID.x
 	                              + 1; // Add 1 because the first surface command is always reserved as a fake command
 	// Each surfaceBatch encompasses 64 surfaceCommands with the same material, padded to 64 as necessary
-	const uvec2 materialID = surfaceBatches[globalGroupID / 2].materialIDs[globalGroupID % 2];
+	const uvec2 materialID = UVEC2_ID_TO_UVEC4( surfaceBatches, globalGroupID );
 
 	AddDrawCommand( globalInvocationID, materialID );
 }
