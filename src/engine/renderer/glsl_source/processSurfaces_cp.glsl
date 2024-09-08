@@ -53,7 +53,7 @@ layout(std140, binding = 0) uniform ub_SurfaceBatches {
 	SurfaceCommandBatch surfaceBatches[MAX_SURFACE_COMMAND_BATCHES];
 };
 
-layout (binding = 4) uniform atomic_uint atomicCommandCounters[MAX_COMMAND_COUNTERS * MAX_VIEWS * MAX_FRAMES];
+layout (binding = 4) uniform atomic_uint atomicCommandCounters[MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES];
 
 uniform uint u_Frame;
 uniform uint u_ViewID;
