@@ -77,13 +77,36 @@ uniform uint u_ViewID;
 uniform uint u_SurfaceCommandsOffset;
 uniform uint u_CulledCommandsOffset;
 
+#if defined(HAVE_KHR_shader_subgroup_basic) && defined(HAVE_KHR_shader_subgroup_arithmetic)\
+	&& defined(HAVE_KHR_shader_subgroup_ballot) && defined(HAVE_ARB_shader_atomic_counter_ops)
+	#define HAVE_processSurfaces_subgroup
+#endif
+
 void AddDrawCommand( in uint commandID, in uvec2 materialID ) {
 	SurfaceCommand command = surfaceCommands[commandID + u_SurfaceCommandsOffset];
+
+	#if defined(HAVE_processSurfaces_subgroup)
+		const uint count = subgroupBallotBitCount( subgroupBallot( command.enabled ) );
+		// Exclusive scan so we can determine the offset for each lane without any synchronization
+		const uint subgroupOffset = subgroupExclusiveAdd( command.enabled ? 1 : 0 );
+		
+		uint atomicCmdID = 0;
+		// Once per subgroup
+		if( subgroupElect() ) {
+			atomicCmdID = atomicCounterAddARB( atomicCommandCounters[materialID.x
+		                                                 + MAX_COMMAND_COUNTERS * ( MAX_VIEWS * u_Frame + u_ViewID )], count );
+		}
+
+		atomicCmdID = subgroupBroadcastFirst( atomicCmdID );
+	#endif
+	
 	if( command.enabled ) {
 		// materialID.x is the global ID of the material
 		// materialID.y is the offset for the memory allocated to the material's culled commands
-		const uint atomicCmdID = atomicCounterIncrement( atomicCommandCounters[materialID.x
-		                                                 + MAX_COMMAND_COUNTERS * ( MAX_VIEWS * u_Frame + u_ViewID )] );
+		#if !defined(HAVE_processSurfaces_subgroup)
+			const uint atomicCmdID = atomicCounterIncrement( atomicCommandCounters[materialID.x
+															 + MAX_COMMAND_COUNTERS * ( MAX_VIEWS * u_Frame + u_ViewID )] );
+		#endif
 		
 		GLIndirectCommand indirectCommand;
 		indirectCommand.count = command.drawCommand.count;
@@ -92,7 +115,11 @@ void AddDrawCommand( in uint commandID, in uvec2 materialID ) {
 		indirectCommand.baseVertex = 0;
 		indirectCommand.baseInstance = command.drawCommand.baseInstance;
 		
-		culledCommands[atomicCmdID + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = indirectCommand;
+		#if defined(HAVE_processSurfaces_subgroup)
+			culledCommands[atomicCmdID + subgroupOffset + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = indirectCommand;
+		#else
+			culledCommands[atomicCmdID + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = indirectCommand;
+		#endif
 	}
 }
 
