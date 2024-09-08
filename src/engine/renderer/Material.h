@@ -159,13 +159,13 @@ extern PortalView portalStack[MAX_VIEWS];
 #define MAX_COMMAND_COUNTERS 64
 #define SURFACE_COMMANDS_PER_BATCH 64
 
-#define MAX_SURFACE_COMMAND_BATCHES 2048
+#define MAX_SURFACE_COMMAND_BATCHES 4096
 
 #define BOUNDING_SPHERE_SIZE 4
 
 #define INDIRECT_COMMAND_SIZE 5
 #define SURFACE_COMMAND_SIZE 4
-#define SURFACE_COMMAND_BATCH_SIZE 4 // Aligned to 4 components
+#define SURFACE_COMMAND_BATCH_SIZE 2
 #define PORTAL_SURFACE_SIZE 8
 
 #define MAX_FRAMES 2
@@ -201,7 +201,7 @@ struct SurfaceCommand {
 };
 
 struct SurfaceCommandBatch {
-	uint32_t materialIDs[4] { 0, 0, 0, 0 };
+	uint32_t materialIDs[2] { 0, 0 };
 };
 
 class MaterialSystem {
