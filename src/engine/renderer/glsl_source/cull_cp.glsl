@@ -34,31 +34,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* cull_cp.glsl */
 
+#insert common_cp
+
 // Keep this to 64 because we don't want extra shared mem etc. to be allocated, and to minimize wasted lanes
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0) uniform sampler2D depthImage;
-
-struct BoundingSphere {
-	vec3 origin;
-	float radius;
-};
-
-struct SurfaceDescriptor {
-	BoundingSphere boundingSphere;
-	uint surfaceCommandIDs[MAX_SURFACE_COMMANDS];
-};
-
-struct IndirectCompactCommand {
-	uint count;
-	uint firstIndex;
-	uint baseInstance;
-};
-
-struct SurfaceCommand {
-	bool enabled;
-	IndirectCompactCommand drawCommand;
-};
 
 layout(std430, binding = 1) readonly restrict buffer surfaceDescriptorsSSBO {
 	SurfaceDescriptor surfaces[];
@@ -66,14 +47,6 @@ layout(std430, binding = 1) readonly restrict buffer surfaceDescriptorsSSBO {
 
 layout(std430, binding = 2) writeonly restrict buffer surfaceCommandsSSBO {
 	SurfaceCommand surfaceCommands[];
-};
-
-struct PortalSurface {
-	BoundingSphere boundingSphere;
-
-	uint drawSurfID;
-	float distance;
-	vec2 padding;
 };
 
 layout(std430, binding = 5) restrict buffer portalSurfacesSSBO {
@@ -190,12 +163,8 @@ void ProcessSurfaceCommands( const in SurfaceDescriptor surface, const in bool e
 }
 
 void main() {
-	const uint globalGroupID = gl_WorkGroupID.z * gl_NumWorkGroups.x * gl_NumWorkGroups.y
-							 + gl_WorkGroupID.y * gl_NumWorkGroups.x
-							 + gl_WorkGroupID.x;
-	const uint globalInvocationID = gl_GlobalInvocationID.z * gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y
-								  + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x
-								  + gl_GlobalInvocationID.x;
+	const uint globalGroupID = GLOBAL_GROUP_ID;
+	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
 	// Portals
 	const uint portalID = globalInvocationID - u_FirstPortalGroup * 64;
