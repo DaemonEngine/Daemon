@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* depthReduction_cp.glsl */
 
+#insert common_cp
+
 // Keep this to 8x8 because we don't want extra shared mem etc. to be allocated, and to minimize wasted lanes
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -46,9 +48,7 @@ uniform uint u_ViewHeight;
 uniform bool u_InitialDepthLevel;
 
 void main() {
-    const uint globalInvocationID = gl_GlobalInvocationID.z * gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y
-                             + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x
-                             + gl_GlobalInvocationID.x;
+    const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
     const ivec2 position = ivec2( gl_GlobalInvocationID.xy );
     if( position.x >= u_ViewWidth || position.y >= u_ViewHeight ) {

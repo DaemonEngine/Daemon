@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* clearSurfaces_cp.glsl */
 
+#insert common_cp
+
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 layout(std430, binding = 4) writeonly buffer atomicCommandCountersBuffer {
@@ -43,9 +45,7 @@ layout(std430, binding = 4) writeonly buffer atomicCommandCountersBuffer {
 uniform uint u_Frame;
 
 void main() {
-    const uint globalInvocationID = gl_GlobalInvocationID.z * gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y
-                             + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x
-                             + gl_GlobalInvocationID.x;
+    const uint globalInvocationID = GLOBAL_INVOCATION_ID;
     if( globalInvocationID >= MAX_COMMAND_COUNTERS * MAX_VIEWS ) {
         return;
     }

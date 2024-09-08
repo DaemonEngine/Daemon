@@ -60,10 +60,11 @@
 #include "skybox_fp.glsl.h"
 #include "material_vp.glsl.h"
 #include "material_fp.glsl.h"
+#include "common_cp.glsl.h"
+#include "clearSurfaces_cp.glsl.h"
 #include "cull_cp.glsl.h"
 #include "depthReduction_cp.glsl.h"
 #include "processSurfaces_cp.glsl.h"
-#include "clearSurfaces_cp.glsl.h"
 
 std::unordered_map<std::string, std::string> shadermap({
 	{ "blurX_fp.glsl", std::string(reinterpret_cast<const char*>(blurX_fp_glsl), sizeof(blurX_fp_glsl)) },
@@ -75,6 +76,7 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "computeLight_fp.glsl", std::string(reinterpret_cast<const char*>(computeLight_fp_glsl), sizeof(computeLight_fp_glsl)) },
 	{ "contrast_fp.glsl", std::string(reinterpret_cast<const char*>(contrast_fp_glsl), sizeof(contrast_fp_glsl)) },
 	{ "contrast_vp.glsl", std::string(reinterpret_cast<const char*>(contrast_vp_glsl), sizeof(contrast_vp_glsl)) },
+	{ "common_cp.glsl", std::string( reinterpret_cast< const char* >( common_cp_glsl ), sizeof( common_cp_glsl ) ) },
 	{ "clearSurfaces_cp.glsl", std::string( reinterpret_cast< const char* >( clearSurfaces_cp_glsl ), sizeof( clearSurfaces_cp_glsl ) ) },
 	{ "cull_cp.glsl", std::string( reinterpret_cast< const char* >( cull_cp_glsl ), sizeof( cull_cp_glsl ) ) },
 	{ "depthReduction_cp.glsl", std::string( reinterpret_cast< const char* >( depthReduction_cp_glsl ), sizeof( depthReduction_cp_glsl ) ) },
