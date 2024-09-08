@@ -129,6 +129,7 @@ static Cvar::Cvar<bool> workaround_gl21_intelGma3( "workaround.gl21.intelGma3", 
 static Cvar::Cvar<bool> workaround_noBindlessTexture_mesa241( "workaround.noBindlessTexture.mesa241", "Disable ARB_bindless_texture on Mesa 24.1 driver", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noBindlessTexture_amdOglp( "workaround.noBindlessTexture.amdOglp", "Disable ARB_bindless_texture on AMD OGLP driver", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noHyperZ_mesaRv600( "workaround.noHyperZ.mesaRv600", "Disable Hyper-Z on Mesa driver on RV600 hardware", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_noRgba16Blend_mesaRv300( "workaround.noRgba16Blend.mesaRv300", "Disable misdetected RGBA16 on Mesa driver on RV300 hardware", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_noTextureGather_nvidia340( "workaround.noTextureGather.nvidia340", "Disable ARB_texture_gather on Nvidia 340 driver", Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_s3tc_mesa( "workaround.s3tc.mesa", "Enable S3TC on Mesa even when libtxc-dxtn is not available", Cvar::NONE, true );
 
@@ -2059,9 +2060,12 @@ static void GLimp_InitExtensions()
 
 	/* Workaround for drivers not implementing the feature query or wrongly reporting the feature
 	to be supported, for various reasons. */
-	if ( glConfig2.textureRGBA16BlendAvailable != 0 && glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+	if ( workaround_noRgba16Blend_mesaRv300.Get() )
 	{
-		glConfig2.textureRGBA16BlendAvailable = 0;
+		if ( glConfig2.textureRGBA16BlendAvailable != 0 && glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+		{
+			glConfig2.textureRGBA16BlendAvailable = 0;
+		}
 	}
 
 	// made required in OpenGL 3.0
@@ -2447,6 +2451,7 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_noBindlessTexture_mesa241 );
 	Cvar::Latch( workaround_noBindlessTexture_amdOglp );
 	Cvar::Latch( workaround_noHyperZ_mesaRv600 );
+	Cvar::Latch( workaround_noRgba16Blend_mesaRv300 );
 	Cvar::Latch( workaround_noTextureGather_nvidia340 );
 	Cvar::Latch( workaround_s3tc_mesa );
 
