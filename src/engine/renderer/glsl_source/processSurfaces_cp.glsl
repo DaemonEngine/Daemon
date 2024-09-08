@@ -58,7 +58,6 @@ layout (binding = 4) uniform atomic_uint atomicCommandCounters[MAX_COMMAND_COUNT
 uniform uint u_Frame;
 uniform uint u_ViewID;
 uniform uint u_SurfaceCommandsOffset;
-uniform uint u_CulledCommandsOffset;
 
 #if defined(HAVE_KHR_shader_subgroup_basic) && defined(HAVE_KHR_shader_subgroup_arithmetic)\
 	&& defined(HAVE_KHR_shader_subgroup_ballot) && defined(HAVE_ARB_shader_atomic_counter_ops)
@@ -99,17 +98,16 @@ void AddDrawCommand( in uint commandID, in uvec2 materialID ) {
 		indirectCommand.baseInstance = command.drawCommand.baseInstance;
 		
 		#if defined(HAVE_processSurfaces_subgroup)
-			culledCommands[atomicCmdID + subgroupOffset + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = indirectCommand;
+			culledCommands[atomicCmdID + subgroupOffset + materialID.y * MAX_COMMAND_COUNTERS + u_SurfaceCommandsOffset] = indirectCommand;
 		#else
-			culledCommands[atomicCmdID + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = indirectCommand;
+			culledCommands[atomicCmdID + materialID.y * MAX_COMMAND_COUNTERS + u_SurfaceCommandsOffset] = indirectCommand;
 		#endif
 	}
 }
 
 void main() {
 	const uint globalGroupID = GLOBAL_GROUP_ID;
-	// Add 1 because the first surface command is always reserved as a fake command
-	const uint globalInvocationID = GLOBAL_INVOCATION_ID + 1;
+	const uint globalInvocationID = GLOBAL_INVOCATION_ID;
 
 	// Each surfaceBatch encompasses 64 surfaceCommands with the same material, padded to 64 as necessary
 	const uvec2 materialID = UVEC2_FROM_UVEC4_ARRAY( surfaceBatches, globalGroupID );

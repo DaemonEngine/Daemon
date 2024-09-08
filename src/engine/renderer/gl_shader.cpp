@@ -2972,6 +2972,5 @@ GLShader_processSurfaces::GLShader_processSurfaces( GLShaderManager* manager ) :
 	GLShader( "processSurfaces", ATTR_POSITION, manager, false, false, true ),
 	u_Frame( this ),
 	u_ViewID( this ),
-	u_SurfaceCommandsOffset( this ),
-	u_CulledCommandsOffset( this ) {
+	u_SurfaceCommandsOffset( this ) {
 }
