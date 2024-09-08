@@ -1868,13 +1868,11 @@ void MaterialSystem::AddDrawCommand( const uint32_t materialID, const uint32_t m
 	}
 
 	cmd.cmd.count = count;
-	cmd.cmd.instanceCount = 1;
 	cmd.cmd.firstIndex = firstIndex;
-	cmd.cmd.baseVertex = 0;
 	cmd.cmd.baseInstance = materialsSSBOOffset;
 	cmd.materialsSSBOOffset = materialsSSBOOffset;
 
-	materialPacks[materialPackID].materials[materialID].drawCommands.emplace_back(cmd);
+	materialPacks[materialPackID].materials[materialID].drawCommands.emplace_back( cmd );
 	lastCommandID = materialPacks[materialPackID].materials[materialID].drawCommands.size() - 1;
 	cmd.textureCount = 0;
 }
