@@ -49,17 +49,15 @@ struct SurfaceDescriptor {
 	uint surfaceCommandIDs[MAX_SURFACE_COMMANDS];
 };
 
-struct GLIndirectCommand {
+struct IndirectCompactCommand {
 	uint count;
-	uint instanceCount;
 	uint firstIndex;
-	int baseVertex;
 	uint baseInstance;
 };
 
 struct SurfaceCommand {
 	bool enabled;
-	GLIndirectCommand drawCommand;
+	IndirectCompactCommand drawCommand;
 };
 
 layout(std430, binding = 1) readonly restrict buffer surfaceDescriptorsSSBO {

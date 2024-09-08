@@ -45,9 +45,15 @@ struct GLIndirectCommand {
 	uint baseInstance;
 };
 
+struct IndirectCompactCommand {
+	uint count;
+	uint firstIndex;
+	uint baseInstance;
+};
+
 struct SurfaceCommand {
 	bool enabled;
-	GLIndirectCommand drawCommand;
+	IndirectCompactCommand drawCommand;
 };
 
 struct SurfaceCommandBatch {
@@ -80,7 +86,15 @@ void AddDrawCommand( in uint commandID, in uvec2 materialID ) {
 		// materialID.y is the offset for the memory allocated to the material's culled commands
 		const uint atomicCmdID = atomicCounterIncrement( atomicCommandCounters[materialID.x
 		                                                 + MAX_COMMAND_COUNTERS * ( MAX_VIEWS * u_Frame + u_ViewID )] );
-		culledCommands[atomicCmdID + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = command.drawCommand;
+		
+		GLIndirectCommand indirectCommand;
+		indirectCommand.count = command.drawCommand.count;
+		indirectCommand.instanceCount = 1;
+		indirectCommand.firstIndex = command.drawCommand.firstIndex;
+		indirectCommand.baseVertex = 0;
+		indirectCommand.baseInstance = command.drawCommand.baseInstance;
+		
+		culledCommands[atomicCmdID + materialID.y * MAX_COMMAND_COUNTERS + u_CulledCommandsOffset] = indirectCommand;
 	}
 }
 
