@@ -291,7 +291,6 @@ class MaterialSystem {
 	uint32_t totalBatchCount = 0;
 
 	uint32_t surfaceCommandsCount = 0;
-	uint32_t culledCommandsCount = 0;
 	uint32_t surfaceDescriptorsCount = 0;
 
 	std::vector<drawSurf_t> dynamicDrawSurfs;

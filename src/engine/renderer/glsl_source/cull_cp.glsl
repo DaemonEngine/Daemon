@@ -158,7 +158,8 @@ void ProcessSurfaceCommands( const in SurfaceDescriptor surface, const in bool e
 		if( commandID == 0 ) { // Reserved for no-command
 			return;
 		}
-		surfaceCommands[commandID + u_SurfaceCommandsOffset].enabled = enabled;
+		// Subtract 1 because of no-command
+		surfaceCommands[commandID + u_SurfaceCommandsOffset - 1].enabled = enabled;
 	}
 }
 
