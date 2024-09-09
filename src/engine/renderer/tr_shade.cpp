@@ -3053,7 +3053,10 @@ void Tess_End()
 			// draw debugging stuff
 			if ( r_showTris->integer || r_showBatches->integer || ( r_showLightBatches->integer && ( tess.stageIteratorFunc == Tess_StageIteratorLighting ) ) )
 			{
-				DrawTris();
+				// Skybox triangle rendering is done in Tess_StageIteratorSky()
+				if ( tess.stageIteratorFunc != Tess_StageIteratorSky ) {
+					DrawTris();
+				}
 			}
 		}
 	}
