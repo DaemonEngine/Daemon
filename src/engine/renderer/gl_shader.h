@@ -4315,8 +4315,7 @@ class GLShader_skybox :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
-	public GLDeformStage
+	public u_InverseLightFactor
 {
 public:
 	GLShader_skybox( GLShaderManager *manager );
@@ -4334,8 +4333,7 @@ class GLShader_skyboxMaterial :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
-	public GLDeformStage {
+	public u_InverseLightFactor {
 	public:
 	GLShader_skyboxMaterial( GLShaderManager* manager );
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;

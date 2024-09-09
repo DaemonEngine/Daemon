@@ -2501,8 +2501,7 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
-	GLDeformStage( this )
+	u_InverseLightFactor( this )
 {
 }
 
@@ -2523,8 +2522,7 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial( GLShaderManager* manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
-	GLDeformStage( this ) {
+	u_InverseLightFactor( this ) {
 }
 
 void GLShader_skyboxMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
