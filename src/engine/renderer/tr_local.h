@@ -2659,9 +2659,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		image_t *sunShadowClipMapFBOImage[ MAX_SHADOWMAPS * 2 ];
 
 		// external images
-#if defined( REFBONE_NAMES )
-		int      charsetImageHash;
-#endif
 		image_t *colorGradeImage;
 		GLuint   colorGradePBO;
 
@@ -3337,15 +3334,13 @@ inline bool checkGLErrors()
 		shader_t    *lightShader;
 
 		// some drawing parameters from drawSurf_t
-		bool    skipTangentSpaces;
 		int16_t     lightmapNum;
 		int16_t     fogNum;
 		bool        bspSurface;
 
-		// Sometimes, this is used when setting vertex attribute pointers.
-		// TODO: why is the attribute selection sometimes taken from this and other times from
-		// the attributes the shader says it wants?
-		uint32_t    attribsSet;
+		// Signals that ATTR_QTANGENT will not be needed, so functions that generate vertexes
+		// may skip writing out shaderVertex_t::qtangents
+		bool skipTangents;
 
 		// Used for static VBO/IBO-based drawing, if multiple ranges of data from the
 		// buffers may be requested.
@@ -3398,7 +3393,7 @@ inline bool checkGLErrors()
 // *INDENT-OFF*
 	void Tess_Begin( void ( *stageIteratorFunc )(),
 	                 shader_t *surfaceShader, shader_t *lightShader,
-	                 bool skipTangentSpaces,
+	                 bool skipTangents,
 	                 int lightmapNum,
 	                 int fogNum,
 	                 bool bspSurface = false );
@@ -3411,7 +3406,6 @@ inline bool checkGLErrors()
 	void Tess_CheckOverflow( int verts, int indexes );
 
 	void SetNormalScale( const shaderStage_t* pStage, vec3_t normalScale );
-	void SetRgbaGen( const shaderStage_t* pStage, colorGen_t* rgbGen, alphaGen_t* alphaGen );
 	void Tess_ComputeColor( shaderStage_t *pStage );
 	void Tess_ComputeTexMatrices( shaderStage_t* pStage );
 

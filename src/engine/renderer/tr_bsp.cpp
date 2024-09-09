@@ -4406,7 +4406,7 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 		{
 			Log::Debug("map features directional light mapping" );
 			// This will be disabled if the engine fails to load the lightmaps.
-			tr.worldDeluxeMapping = r_deluxeMapping->integer != 0;
+			tr.worldDeluxeMapping = glConfig2.deluxeMapping;
 			continue;
 		}
 
@@ -4431,7 +4431,7 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 			{
 				Log::Debug("map features directional light mapping" );
 				// This will be disabled if the engine fails to load the lightmaps.
-				tr.worldDeluxeMapping = r_deluxeMapping->integer != 0;
+				tr.worldDeluxeMapping = glConfig2.deluxeMapping;
 			}
 
 			continue;
@@ -7049,7 +7049,7 @@ void RE_LoadWorldMap( const char *name )
 			}
 		}
 
-		if ( r_deluxeMapping->integer )
+		if ( glConfig2.deluxeMapping )
 		{
 			// Enable deluxe mapping emulation if light direction grid is there.
 			if ( tr.lightGrid2Image )

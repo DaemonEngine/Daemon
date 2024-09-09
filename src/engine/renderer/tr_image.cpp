@@ -883,7 +883,19 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		format = GL_DEPTH_STENCIL;
 		internalFormat = GL_DEPTH24_STENCIL8;
 	}
-	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_RGBA16 | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
+	else if ( image->bits & IF_RGBA16 )
+	{
+		if ( !glConfig2.textureRGBA16BlendAvailable )
+		{
+			Log::Warn("RGBA16 image '%s' cannot be blended", image->name );
+			internalFormat = GL_RGBA8;
+		}
+		else
+		{
+			internalFormat = GL_RGBA16;
+		}
+	}
+	else if ( image->bits & ( IF_RGBA16F | IF_RGBA32F | IF_TWOCOMP16F | IF_TWOCOMP32F | IF_ONECOMP16F | IF_ONECOMP32F ) )
 	{
 		if( !glConfig2.textureFloatAvailable ) {
 			Log::Warn("floating point image '%s' cannot be loaded", image->name );
@@ -906,10 +918,6 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 		{
 			internalFormat = glConfig2.textureRGAvailable ?
 			  GL_RG32F : GL_LUMINANCE_ALPHA32F_ARB;
-		}
-		else if ( image->bits & IF_RGBA16 )
-		{
-			internalFormat = GL_RGBA16;
 		}
 		else if ( image->bits & IF_ONECOMP16F )
 		{
@@ -2470,7 +2478,14 @@ static void R_CreateCurrentRenderImage()
 
 	if ( r_highPrecisionRendering.Get() )
 	{
-		imageParams.bits |= IF_RGBA16;
+		if ( !glConfig2.textureRGBA16BlendAvailable )
+		{
+			Log::Warn( "High-precision current render disabled because RGBA16 framebuffer blending is not available" );
+		}
+		else
+		{
+			imageParams.bits |= IF_RGBA16;
+		}
 	}
 
 	imageParams.filterType = filterType_t::FT_NEAREST;
@@ -3041,15 +3056,6 @@ void R_InitImages()
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();
-
-#if defined( REFBONE_NAMES )
-	char fileName [ MAX_QPATH ];
-	char strippedName [ MAX_QPATH ];
-	char* fontname = Cvar_VariableString ( "cl_consoleFont" );
-	COM_StripExtension2( fontname, strippedName, sizeof( strippedName ) );
-	Com_sprintf( fileName, sizeof( fileName ), "%s_%i_%i_%i.png", strippedName, 0, 0, 16 );
-	tr.charsetImageHash = GenerateImageHashValue ( fileName );
-#endif
 }
 
 /*

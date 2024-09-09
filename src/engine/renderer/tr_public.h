@@ -82,8 +82,10 @@ struct glconfig2_t
 	int maxTexIndirections;
 
 	bool drawBuffersAvailable;
+	bool internalFormatQuery2Available;
 	bool textureHalfFloatAvailable;
 	bool textureFloatAvailable;
+	int textureRGBA16BlendAvailable;
 	bool textureIntegerAvailable;
 	bool textureRGAvailable;
 	bool computeShaderAvailable;

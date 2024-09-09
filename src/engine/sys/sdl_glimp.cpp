@@ -77,6 +77,8 @@ static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
 	"Use GL_ARB_gpu_shader5 if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_indirect_parameters( "r_arb_indirect_parameters",
 	"Use GL_ARB_indirect_parameters if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_internalformat_query2( "r_arb_internalformat_query2",
+	"Use GL_ARB_internalformat_query2 if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_map_buffer_range( "r_arb_map_buffer_range",
 	"Use GL_ARB_map_buffer_range if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_multi_draw_indirect( "r_arb_multi_draw_indirect",
@@ -1833,6 +1835,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_gpu_shader5 );
 	Cvar::Latch( r_arb_indirect_parameters );
+	Cvar::Latch( r_arb_internalformat_query2 );
 	Cvar::Latch( r_arb_map_buffer_range );
 	Cvar::Latch( r_arb_multi_draw_indirect );
 	Cvar::Latch( r_arb_shader_atomic_counters );
@@ -1903,6 +1906,72 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 3.0
 	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float.Get() );
+
+	glConfig2.internalFormatQuery2Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_internalformat_query2, r_arb_internalformat_query2.Get() );
+
+	if ( glConfig2.internalFormatQuery2Available )
+	{
+		GLint64 param;
+		glGetInternalformati64v( GL_TEXTURE_2D, GL_RGBA16, GL_FRAMEBUFFER_BLEND, 1, &param );
+
+		if ( param == GL_FULL_SUPPORT || param == GL_TRUE )
+		{
+			/* There is a discrepancy between OpenGL specification and OpenGL reference pages.
+
+			The OpenGL 4.3 Core specification says the query should return either GL_FULL_SUPPORT,
+			GL_CAVEAT_SUPPORT, or GL_NONE:
+
+			- https://registry.khronos.org/OpenGL/specs/gl/glspec43.core.pdf#page=517
+
+			The ARB_internalformat_query2 document says the same:
+
+			- https://registry.khronos.org/OpenGL/extensions/ARB/ARB_internalformat_query2.txt
+
+			The OpenGL wiki page for glGetInternalformat says the same:
+
+			- https://www.khronos.org/opengl/wiki/GLAPI/glGetInternalformat
+
+			But the glGetInternalformat reference page says the query should return GL_TRUE
+			or GL_FALSE:
+
+			- https://registry.khronos.org/OpenGL-Refpages/gl4/html/glGetInternalformat.xhtml
+
+			The meaning of GL_CAVEAT_SUPPORT as a return of a GL_FRAMEBUFFER_BLEND query is
+			unknown. See this thread for details:
+
+			- https://github.com/KhronosGroup/OpenGL-Refpages/issues/157
+
+			Because of this discrepancy in documentation, drivers may have implemented
+			either GL_FULL_SUPPORT or GL_TRUE as a return for feature availability. */
+			glConfig2.textureRGBA16BlendAvailable = 1;
+		}
+		else if ( param == GL_CAVEAT_SUPPORT || param == GL_NONE )
+		{
+			/* Older Mesa versions were mistakenly reporting full support for every driver on
+			every hardware. A return that is not GL_FULL_SUPPORT and not GL_TRUE is the only
+			value we can trust. See those threads for details:
+
+			- https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/30612
+			- https://gitlab.freedesktop.org/mesa/mesa/-/issues/11669#note_2521403
+
+			GL_FALSE has same value as GL_NONE. */
+			glConfig2.textureRGBA16BlendAvailable = 0;
+		}
+	}
+	else
+	{
+		/* Assume this is an old driver without the query extension but the RGBA16 blending is
+		available, as the feature is much older than the extension to check for it, the feature
+		is very likely supported. */
+		glConfig2.textureRGBA16BlendAvailable = -1;
+	}
+
+	/* Workaround for drivers not implementing the feature query or wrongly reporting the feature
+	to be supported, for various reasons. */
+	if ( glConfig2.textureRGBA16BlendAvailable != 0 && glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+	{
+		glConfig2.textureRGBA16BlendAvailable = 0;
+	}
 
 	// made required in OpenGL 3.0
 	glConfig2.gpuShader4Available = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, EXT_gpu_shader4, r_ext_gpu_shader4.Get() );
