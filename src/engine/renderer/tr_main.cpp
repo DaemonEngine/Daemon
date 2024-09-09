@@ -2031,15 +2031,7 @@ static void R_SortDrawSurfs()
 			drawSurf = &tr.viewParms.drawSurfs[ i ];
 			shader = drawSurf->shader;
 
-			// if the mirror was completely clipped away, we may need to check another surface
-			if ( R_MirrorViewBySurface( drawSurf ) )
-			{
-				// this is a debug option to see exactly what is being mirrored
-				if ( r_portalOnly->integer )
-				{
-					return;
-				}
-			}
+			R_MirrorViewBySurface( drawSurf );
 		}
 	}
 

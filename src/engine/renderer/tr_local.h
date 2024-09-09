@@ -2930,7 +2930,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_lockpvs;
 	extern cvar_t *r_noportals;
-	extern cvar_t *r_portalOnly;
 	extern cvar_t *r_max_portal_levels;
 
 	extern cvar_t *r_subdivisions;
