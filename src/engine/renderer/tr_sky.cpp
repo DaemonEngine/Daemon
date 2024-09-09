@@ -126,6 +126,23 @@ void Tess_StageIteratorSky()
 		Tess_DrawElements();
 	}
 
+	if ( r_showTris->integer ) {
+		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHFUNC_ALWAYS );
+
+		// bind u_ColorMap
+		gl_skyboxShader->SetUniform_ColorMapCubeBindless(
+			GL_BindToTMU( 0, tr.whiteCubeImage )
+		);
+
+		// Only render the outer skybox outline at this stage
+		gl_skyboxShader->SetUniform_UseCloudMap( false );
+
+		// u_AlphaThreshold
+		gl_skyboxShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
+
+		Tess_DrawElements();
+	}
+
 	// Only render clouds at these stages
 	gl_skyboxShader->SetUniform_UseCloudMap( true );
 	gl_skyboxShader->SetUniform_CloudHeight( tess.surfaceShader->sky.cloudHeight );
