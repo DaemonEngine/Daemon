@@ -99,8 +99,8 @@ void AddDrawCommand( in uint commandID, in uvec2 materialID ) {
 /* Allows accessing each element of a uvec4 array with a singular
 Useful to avoid wasting memory due to alignment requirements */
 
-#define UINT_ID_TO_UVEC4( array, id ) array[id / 4][id % 4]
-#define UVEC2_ID_TO_UVEC4( array, id ) id % 2 == 0 ? array[id / 2].xy : array[id / 2].zw;
+#define UINT_FROM_UVEC4_ARRAY( array, id ) array[id / 4][id % 4]
+#define UVEC2_FROM_UVEC4_ARRAY( array, id ) id % 2 == 0 ? array[id / 2].xy : array[id / 2].zw;
 
 void main() {
 	const uint globalGroupID = gl_WorkGroupID.z * gl_NumWorkGroups.x * gl_NumWorkGroups.y
@@ -112,7 +112,7 @@ void main() {
 	                              + gl_GlobalInvocationID.x
 	                              + 1; // Add 1 because the first surface command is always reserved as a fake command
 	// Each surfaceBatch encompasses 64 surfaceCommands with the same material, padded to 64 as necessary
-	const uvec2 materialID = UVEC2_ID_TO_UVEC4( surfaceBatches, globalGroupID );
+	const uvec2 materialID = UVEC2_FROM_UVEC4_ARRAY( surfaceBatches, globalGroupID );
 
 	AddDrawCommand( globalInvocationID, materialID );
 }
