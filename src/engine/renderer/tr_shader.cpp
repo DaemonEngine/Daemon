@@ -5218,14 +5218,28 @@ static void FinishStages()
 			stage->deformIndex = gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms );
 		}
 
-		// We should cancel overBrightBits if there is no light stage.
-		stage->shaderHasNoLight = shaderHasNoLight;
+		// We should cancel overbright if there is no light stage.
+		stage->cancelOverBright = shaderHasNoLight;
 
-		// We should not cancel overbright on decals.
-		if ( shader.sort == Util::ordinal(shaderSort_t::SS_DECAL) )
+		if ( shaderHasNoLight )
 		{
-			// HACK: Reuse that boolean.
-			stage->shaderHasNoLight = false;
+			// We should not cancel overbright if there is no light and it's not using blendFunc dst_color.
+			bool blendFunc_dstColor = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
+
+			if ( blendFunc_dstColor )
+			{
+				stage->cancelOverBright = false;
+			}
+
+			// We should not cancel overbright if that's a non-opaque decal.
+			bool isDecal = shader.sort == Util::ordinal(shaderSort_t::SS_DECAL);
+			// SRC1 and DST0 are reset to zero in ParseStage (no blending).
+			bool isOpaque = !( stage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
+
+			if ( isDecal )
+			{
+				stage->cancelOverBright = isOpaque;
+			}
 		}
 
 		// Available textures.

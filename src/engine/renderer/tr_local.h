@@ -1107,7 +1107,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		bool            dpMaterial;
 
-		bool shaderHasNoLight;
+		bool cancelOverBright;
 
 		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;

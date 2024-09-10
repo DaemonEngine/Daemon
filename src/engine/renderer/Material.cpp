@@ -220,10 +220,7 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	gl_genericShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_InverseLightFactor
-	// We should cancel overbrightBits if there is no light,
-	// and it's not using blendFunc dst_color.
-	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
-	float inverseLightFactor = ( pStage->shaderHasNoLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : 1.0f;
+	float inverseLightFactor = pStage->cancelOverBright ? tr.mapInverseLightFactor : 1.0f;
 	gl_genericShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
@@ -319,9 +316,8 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	// u_InverseLightFactor
 	/* HACK: use sign to know if there is a light or not, and
 	then if it will receive overbright multiplication or not. */
-	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
-	bool noLight = pStage->shaderHasNoLight || lightMode == lightMode_t::FULLBRIGHT;
-	float inverseLightFactor = ( noLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
+	bool cancelOverBright = pStage->cancelOverBright || lightMode == lightMode_t::FULLBRIGHT;
+	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
 	gl_lightMappingShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
