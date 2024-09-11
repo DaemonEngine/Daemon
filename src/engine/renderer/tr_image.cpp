@@ -2779,7 +2779,6 @@ static void R_CreateBlackCubeImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
 	tr.blackCubeImage = R_CreateCubeImage( "_blackCube", ( const byte ** ) data, width, height, imageParams );
-	tr.autoCubeImage = R_CreateCubeImage( "_autoCube", ( const byte ** ) data, width, height, imageParams );
 
 	for ( i = 5; i >= 0; i-- )
 	{
