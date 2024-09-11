@@ -110,7 +110,7 @@ void Tess_StageIteratorSky()
 	gl_skyboxShader->SetRequiredVertexPointers();
 
 	// draw the outer skybox
-	if ( tess.surfaceShader->sky.outerbox && tess.surfaceShader->sky.outerbox != tr.blackCubeImage )
+	if ( tess.surfaceShader->sky.outerbox )
 	{
 		GL_State( GLS_DEFAULT );
 
