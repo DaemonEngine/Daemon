@@ -6428,8 +6428,6 @@ void GL_BindNearestCubeMap( int unit, const vec3_t xyz )
 	unsigned int   hash;
 	vertexHash_t   *vertexHash;
 
-	tr.autoCubeImage = tr.whiteCubeImage;
-
 	if ( !r_reflectionMapping->integer )
 	{
 		return;
@@ -6443,6 +6441,7 @@ void GL_BindNearestCubeMap( int unit, const vec3_t xyz )
 	maxDistance = 9999999.0f;
 
 	hash = VertexCoordGenerateHash( xyz );
+	image_t *autoCubeImage = tr.whiteCubeImage;
 
 	for ( vertexHash = tr.cubeHashTable[ hash ]; vertexHash; vertexHash = vertexHash->next )
 	{
@@ -6452,12 +6451,12 @@ void GL_BindNearestCubeMap( int unit, const vec3_t xyz )
 
 		if ( distance < maxDistance )
 		{
-			tr.autoCubeImage = cubeProbe->cubemap;
+			autoCubeImage = cubeProbe->cubemap;
 			maxDistance = distance;
 		}
 	}
 
-	GL_BindToTMU( unit, tr.autoCubeImage );
+	GL_BindToTMU( unit, autoCubeImage );
 }
 
 void R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbeNearest, cubemapProbe_t **cubeProbeSecondNearest )
