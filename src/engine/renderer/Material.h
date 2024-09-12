@@ -43,8 +43,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static constexpr uint32_t MAX_DRAWCOMMAND_TEXTURES = 64;
 
+/* Similar to GLIndirectBuffer::GLIndirectCommand, but we always set instanceCount to 1 and baseVertex to 0,
+ so no need to waste memory on those */
+struct IndirectCompactCommand {
+	GLuint count;
+	GLuint firstIndex;
+	GLuint baseInstance;
+};
+
 struct DrawCommand {
-	GLIndirectBuffer::GLIndirectCommand cmd;
+	IndirectCompactCommand cmd;
 	uint32_t materialsSSBOOffset = 0;
 	uint32_t textureCount = 0;
 	Texture* textures[MAX_DRAWCOMMAND_TEXTURES];
@@ -151,13 +159,13 @@ extern PortalView portalStack[MAX_VIEWS];
 #define MAX_COMMAND_COUNTERS 64
 #define SURFACE_COMMANDS_PER_BATCH 64
 
-#define MAX_SURFACE_COMMAND_BATCHES 2048
+#define MAX_SURFACE_COMMAND_BATCHES 4096
 
 #define BOUNDING_SPHERE_SIZE 4
 
 #define INDIRECT_COMMAND_SIZE 5
-#define SURFACE_COMMAND_SIZE 6
-#define SURFACE_COMMAND_BATCH_SIZE 4 // Aligned to 4 components
+#define SURFACE_COMMAND_SIZE 4
+#define SURFACE_COMMAND_BATCH_SIZE 2
 #define PORTAL_SURFACE_SIZE 8
 
 #define MAX_FRAMES 2
@@ -189,11 +197,11 @@ struct SurfaceDescriptor {
 
 struct SurfaceCommand {
 	uint32_t enabled; // uint because bool in GLSL is always 4 bytes
-	GLIndirectBuffer::GLIndirectCommand drawCommand;
+	IndirectCompactCommand drawCommand;
 };
 
 struct SurfaceCommandBatch {
-	uint32_t materialIDs[4] { 0, 0, 0, 0 };
+	uint32_t materialIDs[2] { 0, 0 };
 };
 
 class MaterialSystem {
