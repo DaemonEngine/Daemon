@@ -21,6 +21,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #if NACL_ANDROID
 #include <linux/ashmem.h>
