@@ -192,8 +192,8 @@ inline int my_open(Str::StringRef path, openMode_t mode)
 	int fd = _open_osfhandle(reinterpret_cast<intptr_t>(h), modes[mode_] | O_BINARY | O_NOINHERIT);
 	if (fd == -1)
 		CloseHandle(h);
-#elif defined(__APPLE__)
-	// O_CLOEXEC is supported from 10.7 onwards
+#elif defined(__FreeBSD__) || defined(__APPLE__)
+	// O_CLOEXEC is supported in macOS from 10.7 onwards
 	int fd = open(path.c_str(), modes[mode_] | O_CLOEXEC, 0666);
 #elif defined(__linux__)
 	int fd = open64(path.c_str(), modes[mode_] | O_CLOEXEC | O_LARGEFILE, 0666);
@@ -238,7 +238,7 @@ inline offset_t my_ftell(FILE* fd)
 {
 #ifdef _WIN32
 	return _ftelli64(fd);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return ftello(fd);
 #elif defined(__linux__)
 	return ftello64(fd);
@@ -248,7 +248,7 @@ inline int my_fseek(FILE* fd, offset_t off, int whence)
 {
 #ifdef _WIN32
 	return _fseeki64(fd, off, whence);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return fseeko(fd, off, whence);
 #elif defined(__linux__)
 	return fseeko64(fd, off, whence);
@@ -256,7 +256,7 @@ inline int my_fseek(FILE* fd, offset_t off, int whence)
 }
 #ifdef _WIN32
 typedef struct _stati64 my_stat_t;
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 using my_stat_t = struct stat;
 #elif defined(__linux__)
 using my_stat_t = struct stat64;
@@ -265,7 +265,7 @@ inline int my_fstat(int fd, my_stat_t* st)
 {
 #ifdef _WIN32
 	return _fstati64(fd, st);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return fstat(fd, st);
 #elif defined(__linux__)
 	return fstat64(fd, st);
@@ -275,7 +275,7 @@ inline int my_stat(Str::StringRef path, my_stat_t* st)
 {
 #ifdef _WIN32
 	return _wstati64(Str::UTF8To16(path).c_str(), st);
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return stat(path.c_str(), st);
 #elif defined(__linux__)
 	return stat64(path.c_str(), st);
@@ -294,7 +294,7 @@ inline intptr_t my_pread(int fd, void* buf, size_t count, offset_t offset)
 		return -1;
 	}
 	return bytesRead;
-#elif defined(__APPLE__) || defined(__native_client__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__native_client__)
 	return pread(fd, buf, count, offset);
 #elif defined(__linux__)
 	return pread64(fd, buf, count, offset);
@@ -2295,11 +2295,16 @@ std::string DefaultLibPath()
 	*p = L'\0';
 
 	return Str::UTF16To8(buffer);
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__FreeBSD__)
 	ssize_t len = 64;
 	while (true) {
 		std::unique_ptr<char[]> out(new char[len]);
-		ssize_t result = readlink("/proc/self/exe", out.get(), len);
+#if defined(__linux__)
+		const char* proc_file = "/proc/self/exe";
+#elif defined(__FreeBSD__)
+		const char* proc_file = "/proc/curproc/file";
+#endif
+		ssize_t result = readlink(proc_file, out.get(), len);
 		if (result == -1)
 			return "";
 		if (result < len) {
