@@ -38,6 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define PLATFORM_STRING "macOS"
 #elif defined(__linux__)
 #define PLATFORM_STRING "Linux"
+#elif defined(__FreeBSD__)
+#define PLATFORM_STRING "FreeBSD"
 #elif defined(__native_client__)
 #define PLATFORM_STRING "NaCl"
 #else
