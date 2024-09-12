@@ -255,7 +255,7 @@ if (NOT NACL)
     elseif (APPLE)
         set(DEPS_SYSTEM macos)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64)
-    elseif (LINUX)
+    elseif (LINUX OR FREEBSD)
         set(DEPS_SYSTEM linux)
         set(SUPPORTED_${DEPS_SYSTEM}_ARCH amd64 i686 arm64 armhf)
     endif()
@@ -572,7 +572,7 @@ endif()
 
 # Look for OpenGL here before we potentially switch to looking for static libs.
 if (BUILD_CLIENT)
-    if (LINUX)
+    if (LINUX OR FREEBSD)
         # Set LEGACY OpenGL ABI if the variable is not explictly set.
         # The backward-incompatible GLVND OpenGL ABI should only be used
         # by developers who have a good reason to require it.
@@ -588,7 +588,7 @@ if (BUILD_CLIENT)
     # This code is unreachable since it already errored out at find_package time.
     # This code only executes if OpenGL is supported, either because the GLVND ABI
     # is available, either because the LEGACY ABI is available.
-    if (LINUX)
+    if (LINUX OR FREEBSD)
         if (NOT OPENGL_gl_LIBRARY)
             # When OpenGL_GL_PREFERENCE is supported and GLVND is available
             # OPENGL_gl_LIBRARY is expected to be empty. So we can use the
@@ -633,7 +633,7 @@ endif()
 
 # Prefer static libs
 if ( USE_STATIC_LIBS )
-    if ( LINUX )
+    if (LINUX OR FREEBSD)
         set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
     endif()
 endif()
@@ -1000,7 +1000,7 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
     )
 
     # Linux uses a bootstrap program to reserve address space
-    if (LINUX)
+    if (LINUX OR FREEBSD)
         if (ARCH STREQUAL "arm64")
             add_executable(nacl_helper_bootstrap-armhf tools/nacl_helper_bootstrap-armhf/nacl_helper_bootstrap-armhf.cpp)
             add_dependencies(runtime_deps nacl_helper_bootstrap-armhf)
