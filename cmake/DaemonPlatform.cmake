@@ -31,6 +31,8 @@
 # When adding a new platform, look at all the places WIN32, APPLE and LINUX are used
 if( CMAKE_SYSTEM_NAME MATCHES "Linux" )
   set( LINUX ON )
+elseif( CMAKE_SYSTEM_NAME MATCHES "FreeBSD" )
+  set( FREEBSD ON )
 elseif( WIN32 )
 elseif( APPLE )
 elseif( NACL )
