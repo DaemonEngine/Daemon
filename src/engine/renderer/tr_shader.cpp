@@ -6424,11 +6424,6 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 		bits |= IF_FITSCREEN;
 	}
 
-	if ( flags & RSF_NOLIGHTSCALE )
-	{
-		bits |= IF_NOLIGHTSCALE;
-	}
-
 	Log::Debug( "loading '%s' image as shader", fileName );
 
 	if( bits & RSF_2D )

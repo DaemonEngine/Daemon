@@ -99,7 +99,7 @@ enum RegisterShaderFlags_t {
 	RSF_NOMIP = BIT( 2 ),
 	RSF_FITSCREEN = BIT( 3 ),
 	RSF_LIGHT_ATTENUATION = BIT( 4 ),
-	RSF_NOLIGHTSCALE = BIT( 5 ),
+	RSF_NOLIGHTSCALE = BIT( 5 ), // TODO(0.56): delete, does nothing
 	RSF_SPRITE = BIT( 6 ),
 };
 
