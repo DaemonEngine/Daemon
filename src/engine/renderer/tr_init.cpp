@@ -173,7 +173,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_gamma;
 	cvar_t      *r_lockpvs;
 	cvar_t      *r_noportals;
-	cvar_t      *r_portalOnly;
 
 	cvar_t      *r_max_portal_levels;
 
@@ -1186,7 +1185,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_materialSystem );
 
 		r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
-		r_portalOnly = Cvar_Get( "r_portalOnly", "0", CVAR_CHEAT );
 		r_max_portal_levels = Cvar_Get( "r_max_portal_levels", "5", 0 );
 
 		r_showSmp = Cvar_Get( "r_showSmp", "0", CVAR_CHEAT );

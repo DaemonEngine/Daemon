@@ -590,11 +590,7 @@ void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const
 {
 	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );
 
-	tess.multiDrawPrimitives = 0;
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
-	tess.vboVertexSkinning = false;
-	tess.vboVertexAnimation = false;
+	Tess_Clear();
 
 	matrix_t modelViewMatrix;
 	MatrixCopy( matrixIdentity, modelViewMatrix );
@@ -613,9 +609,7 @@ void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const
 
 	GL_CheckErrors();
 
-	tess.multiDrawPrimitives = 0;
-	tess.numVertexes = 0;
-	tess.numIndexes = 0;
+	Tess_Clear();
 }
 
 /*

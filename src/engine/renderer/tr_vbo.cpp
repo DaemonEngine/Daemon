@@ -893,11 +893,8 @@ static void R_InitUnitCubeVBO()
 
 	R_SyncRenderThread();
 
-	tess.multiDrawPrimitives = 0;
-	tess.numIndexes = 0;
-	tess.numVertexes = 0;
-
 	Tess_MapVBOs( true );
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
 
 	Tess_AddCube( vec3_origin, mins, maxs, Color::White );
 
@@ -916,11 +913,7 @@ static void R_InitUnitCubeVBO()
 
 	ri.Hunk_FreeTempMemory( data.xyz );
 
-	tess.multiDrawPrimitives = 0;
-	tess.numIndexes = 0;
-	tess.numVertexes = 0;
-	tess.verts = nullptr;
-	tess.indexes = nullptr;
+	Tess_Clear();
 }
 
 static void R_InitTileVBO()
@@ -1143,6 +1136,7 @@ void R_ShutdownVBOs()
 Tess_MapVBOs
 
 Map the default VBOs
+Must be called before writing to tess.verts or tess.indexes
 ==============
 */
 void Tess_MapVBOs( bool forceCPU ) {

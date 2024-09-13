@@ -693,6 +693,12 @@ void Tess_Begin( void ( *stageIteratorFunc )(),
                  int fogNum,
                  bool bspSurface )
 {
+	if ( tess.numIndexes || tess.numVertexes || tess.multiDrawPrimitives )
+	{
+		Log::Warn( "Tess_Begin: unflushed data: numVertexes=%d numIndexes=%d multiDrawPrimitives=%d",
+		           tess.numVertexes, tess.numIndexes, tess.multiDrawPrimitives );
+	}
+
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
 	tess.multiDrawPrimitives = 0;
@@ -876,10 +882,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_InverseLightFactor
-	// We should cancel overbrightBits if there is no light,
-	// and it's not using blendFunc dst_color.
-	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
-	float inverseLightFactor = ( pStage->shaderHasNoLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : 1.0f;
+	float inverseLightFactor = pStage->cancelOverBright ? tr.mapInverseLightFactor : 1.0f;
 	gl_genericShader->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
@@ -1082,9 +1085,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// u_InverseLightFactor
 	/* HACK: use sign to know if there is a light or not, and
 	then if it will receive overbright multiplication or not. */
-	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
-	bool noLight = pStage->shaderHasNoLight || lightMode == lightMode_t::FULLBRIGHT;
-	float inverseLightFactor = ( noLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : - tr.mapInverseLightFactor;
+	bool cancelOverBright = pStage->cancelOverBright || lightMode == lightMode_t::FULLBRIGHT;
+	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
 	gl_lightMappingShader->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
@@ -2704,6 +2706,12 @@ void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 	}
 }
 
+// Used for things which are never intended to be rendered
+void Tess_StageIteratorDummy()
+{
+	Log::Warn( "non-drawing tessellation overflow" );
+}
+
 void Tess_StageIteratorDebug()
 {
 	// log this call
@@ -2993,6 +3001,23 @@ void Tess_StageIteratorLighting()
 	}
 }
 
+void Tess_Clear()
+{
+	tess.vboVertexSkinning = false;
+	tess.vboVertexAnimation = false;
+
+	// clear shader so we can tell we don't have any unclosed surfaces
+	tess.multiDrawPrimitives = 0;
+	tess.numIndexes = 0;
+	tess.numVertexes = 0;
+
+	// This is important after doing CPU-only tessellation with Tess_MapVBOs( true ).
+	// A lot of code relies on a behavior of Tess_Begin: automatically map the
+	// default VBO *if tess.verts is null*.
+	tess.verts = nullptr;
+	tess.indexes = nullptr;
+}
+
 /*
 =================
 Tess_End
@@ -3020,8 +3045,9 @@ void Tess_End()
 		// call off to shader specific tess end function
 		tess.stageIteratorFunc();
 
-		if ( ( tess.stageIteratorFunc != Tess_StageIteratorShadowFill ) &&
-			 ( tess.stageIteratorFunc != Tess_StageIteratorDebug ) )
+		if ( tess.stageIteratorFunc != Tess_StageIteratorShadowFill &&
+		     tess.stageIteratorFunc != Tess_StageIteratorDebug &&
+		     tess.stageIteratorFunc != Tess_StageIteratorDummy )
 		{
 			// draw debugging stuff
 			if ( r_showTris->integer || r_showBatches->integer || ( r_showLightBatches->integer && ( tess.stageIteratorFunc == Tess_StageIteratorLighting ) ) )
@@ -3031,13 +3057,7 @@ void Tess_End()
 		}
 	}
 
-	tess.vboVertexSkinning = false;
-	tess.vboVertexAnimation = false;
-
-	// clear shader so we can tell we don't have any unclosed surfaces
-	tess.multiDrawPrimitives = 0;
-	tess.numIndexes = 0;
-	tess.numVertexes = 0;
+	Tess_Clear();
 
 	GLimp_LogComment( "--- Tess_End ---\n" );
 

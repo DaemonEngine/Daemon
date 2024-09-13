@@ -1108,7 +1108,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		bool            dpMaterial;
 
-		bool shaderHasNoLight;
+		bool cancelOverBright;
 
 		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;
@@ -1287,7 +1287,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		float          portalRange; // distance to fog out at
 		bool       isPortal;
-		bool portalOutOfRange;
 
 		cullType_t     cullType; // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 		bool       polygonOffset; // set for decals and other items that must be offset
@@ -2935,7 +2934,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 	extern cvar_t *r_lockpvs;
 	extern cvar_t *r_noportals;
-	extern cvar_t *r_portalOnly;
 	extern cvar_t *r_max_portal_levels;
 
 	extern cvar_t *r_subdivisions;
@@ -3020,7 +3018,7 @@ inline bool checkGLErrors()
 	float          R_NoiseGet4f( float x, float y, float z, float t );
 	void           R_NoiseInit();
 
-	bool           PortalOffScreenOrOutOfRange( const drawSurf_t* drawSurf, screenRect_t& surfRect );
+	int            PortalOffScreenOrOutOfRange( const drawSurf_t* drawSurf, screenRect_t& surfRect );
 	bool           R_MirrorViewBySurface( drawSurf_t* drawSurf );
 	void           R_RenderView( viewParms_t *parms );
 	void           R_RenderPostProcess();
@@ -3309,9 +3307,7 @@ inline bool checkGLErrors()
 
 	struct shaderCommands_t
 	{
-		// For drawing which is not based on static VBOs, the data is written here. These should be
-		// considered WRITE-ONLY buffers as they may be mapped to GPU memory and have abysmal read
-		// performance, e.g. https://github.com/DaemonEngine/Daemon/issues/849
+		// For drawing which is not based on static VBOs, the data is written here.
 		shaderVertex_t *verts;   // at least SHADER_MAX_VERTEXES accessible
 		glIndex_t      *indexes; // at least SHADER_MAX_INDEXES accessible
 
@@ -3368,14 +3364,17 @@ inline bool checkGLErrors()
 		shaderStage_t *surfaceLastStage; // surfaceShader->lastStage
 
 		// preallocated host buffers for verts and indexes
+		// NOT mapped to any VBO
 		shaderVertex_t *vertsBuffer;
 		glIndex_t      *indexesBuffer;
 
 		uint32_t       vertsWritten, vertexBase;
 		uint32_t       indexesWritten, indexBase;
 
-		VBO_t       *vbo; // mapped to vertsBuffer
-		IBO_t       *ibo; // mapped to indexBuffer
+		// The "default", "dynamic" VBO/IBO used for data that is generated and sent to the
+		// GPU on a per-frame basis
+		VBO_t       *vbo;
+		IBO_t       *ibo;
 
 #ifdef GL_ARB_sync
 		glRingbuffer_t  vertexRB;
@@ -3399,6 +3398,7 @@ inline bool checkGLErrors()
 	                 bool bspSurface = false );
 
 // *INDENT-ON*
+	void Tess_Clear();
 	void Tess_End();
 	void Tess_EndBegin();
 	void Tess_DrawElements();
@@ -3409,6 +3409,7 @@ inline bool checkGLErrors()
 	void Tess_ComputeColor( shaderStage_t *pStage );
 	void Tess_ComputeTexMatrices( shaderStage_t* pStage );
 
+	void Tess_StageIteratorDummy();
 	void Tess_StageIteratorDebug();
 	void Tess_StageIteratorColor();
 	void Tess_StageIteratorPortal();

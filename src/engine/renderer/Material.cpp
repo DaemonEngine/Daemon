@@ -220,10 +220,7 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	gl_genericShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_InverseLightFactor
-	// We should cancel overbrightBits if there is no light,
-	// and it's not using blendFunc dst_color.
-	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
-	float inverseLightFactor = ( pStage->shaderHasNoLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : 1.0f;
+	float inverseLightFactor = pStage->cancelOverBright ? tr.mapInverseLightFactor : 1.0f;
 	gl_genericShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
@@ -319,9 +316,8 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	// u_InverseLightFactor
 	/* HACK: use sign to know if there is a light or not, and
 	then if it will receive overbright multiplication or not. */
-	bool blendFunc_dstColor = ( pStage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
-	bool noLight = pStage->shaderHasNoLight || lightMode == lightMode_t::FULLBRIGHT;
-	float inverseLightFactor = ( noLight && !blendFunc_dstColor ) ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
+	bool cancelOverBright = pStage->cancelOverBright || lightMode == lightMode_t::FULLBRIGHT;
+	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
 	gl_lightMappingShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
 
 	// u_ColorModulate
@@ -838,13 +834,10 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 					tess.materialID = tess.currentDrawSurf->materialIDs[stage];
 					tess.materialPackID = tess.currentDrawSurf->materialPackIDs[stage];
 
-					tess.multiDrawPrimitives = 0;
-					tess.numIndexes = 0;
-					tess.numVertexes = 0;
-
+					Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, false, -1, 0 );
 					rb_surfaceTable[Util::ordinal( *drawSurf->surface )]( drawSurf->surface );
-
 					pStage->colorRenderer( pStage );
+					Tess_Clear();
 
 					drawSurf->drawCommandIDs[stage] = lastCommandID;
 
@@ -898,7 +891,6 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	Log::Debug( "Total batch count: %u", totalBatchCount );
 
-	skipDrawCommands = true;
 	drawSurf_t* drawSurf;
 
 	surfaceDescriptorsSSBO.BindBuffer();
@@ -972,16 +964,11 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 			continue;
 		}
 
-		tess.multiDrawPrimitives = 0;
-		tess.numIndexes = 0;
-		tess.numVertexes = 0;
-
 		// Don't add SF_SKIP surfaces
 		if ( *drawSurf->surface == surfaceType_t::SF_SKIP ) {
 			continue;
 		}
 
-		rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
 		// Depth prepass surfaces are added as stages to the main surface instead
 		if ( drawSurf->materialSystemSkip ) {
 			continue;
@@ -1448,7 +1435,6 @@ void MaterialSystem::GenerateWorldMaterials() {
 	totalDrawSurfs = 0;
 
 	uint32_t packIDs[3] = { 0, 0, 0 };
-	skipDrawCommands = true;
 
 	for ( int i = 0; i < tr.refdef.numDrawSurfs; i++ ) {
 		drawSurf = &tr.refdef.drawSurfs[i];
@@ -1471,7 +1457,10 @@ void MaterialSystem::GenerateWorldMaterials() {
 			continue;
 		}
 
+		// The verts aren't used; it's only to get the VBO/IBO.
+		Tess_Begin( Tess_StageIteratorDummy, shader, nullptr, true, -1, 0 );
 		rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
+		Tess_Clear();
 
 		// Only add the main surface for surfaces with depth pre-pass to the total count
 		if ( !drawSurf->materialSystemSkip ) {
@@ -1484,7 +1473,6 @@ void MaterialSystem::GenerateWorldMaterials() {
 			ProcessStage( drawSurf, pStage, shader, packIDs, stage, previousMaterialID );
 		}
 	}
-	skipDrawCommands = false;
 
 	GenerateWorldMaterialsBuffer();
 
@@ -1508,9 +1496,7 @@ void MaterialSystem::GenerateWorldMaterials() {
 	r_drawworld->integer = current_r_drawworld;
 	AddAllWorldSurfaces();
 
-	skipDrawCommands = true;
 	GeneratePortalBoundingSpheres();
-	skipDrawCommands = false;
 
 	generatedWorldCommandBuffer = true;
 }
@@ -1775,7 +1761,8 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 
 	uint32_t index = 0;
 	for ( drawSurf_t* drawSurf : portalSurfacesTmp ) {
-		tess.numVertexes = 0;
+		Tess_MapVBOs( /*forceCPU=*/ true );
+		Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
 		rb_surfaceTable[Util::ordinal( *( drawSurf->surface ) )]( drawSurf->surface );
 		const int numVerts = tess.numVertexes;
 		vec3_t portalCenter{ 0.0, 0.0, 0.0 };
@@ -1789,6 +1776,8 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 			const float distance = Distance( portalCenter, tess.verts[vertIndex].xyz );
 			furthestDistance = distance > furthestDistance ? distance : furthestDistance;
 		}
+
+		Tess_Clear();
 
 		portalSurfaces.emplace_back( *drawSurf );
 		PortalSurface sphere;
@@ -1856,11 +1845,6 @@ void MaterialSystem::Free() {
 // This gets the information for the surface vertex/index data through Tess
 void MaterialSystem::AddDrawCommand( const uint32_t materialID, const uint32_t materialPackID, const uint32_t materialsSSBOOffset,
 									 const GLuint count, const GLuint firstIndex ) {
-	// Don't add surfaces here if we're just trying to get some VBO/IBO information
-	if ( skipDrawCommands ) {
-		return;
-	}
-
 	cmd.cmd.count = count;
 	cmd.cmd.firstIndex = firstIndex;
 	cmd.cmd.baseInstance = materialsSSBOOffset;
@@ -1902,10 +1886,11 @@ bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSur
 		uint32_t portalViewID = viewCount + 1;
 		// This check has to be done first so we can correctly determine when we get to MAX_VIEWS - 1 amount of views
 		screenRect_t surfRect;
-		if( PortalOffScreenOrOutOfRange( &portalSurfaces[portalSurface->drawSurfID], surfRect ) ) {
-			if ( portalSurfaces[portalSurface->drawSurfID].shader->portalOutOfRange ) {
-				continue;
-			}
+		bool offScreenOrOutOfRange = 0 != PortalOffScreenOrOutOfRange(
+			&portalSurfaces[ portalSurface->drawSurfID ], surfRect );
+		Tess_Clear();
+		if ( offScreenOrOutOfRange ) {
+			continue;
 		}
 
 		if ( portalViewID == MAX_VIEWS ) {
