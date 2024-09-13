@@ -3954,7 +3954,7 @@ static void R_SetDefaultLightGrid()
 	w->lightGridData2 = gridPoint2;
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP | IF_NOLIGHTSCALE;
+	imageParams.bits = IF_NOPICMIP;
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -4170,7 +4170,7 @@ void R_LoadLightGrid( lump_t *l )
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP | IF_NOLIGHTSCALE;
+	imageParams.bits = IF_NOPICMIP;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
