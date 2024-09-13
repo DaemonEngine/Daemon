@@ -41,7 +41,7 @@
 
 #include "native_client/src/include/nacl_base.h"
 
-#if defined(__native_client__) || NACL_LINUX
+#if defined(__native_client__) || NACL_LINUX || NACL_FREEBSD
 #include "native_client/src/include/gcc/atomic_ops.h"
 #elif NACL_OSX
 #include "native_client/src/include/osx/atomic_ops_osx.h"
