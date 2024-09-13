@@ -2071,6 +2071,18 @@ void Render_skybox( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
+void Render_materialPassThrough( shaderStage_t* ) {
+	GLimp_LogComment( "--- Render_materialPassThrough ---\n" );
+
+	// Pass-through for material system, not used normally
+	if ( materialSystem.generatingWorldCommandBuffer ) {
+		Tess_DrawElements();
+		return;
+	}
+
+	ASSERT_UNREACHABLE();
+}
+
 void Render_screen( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_screen ---\n" );

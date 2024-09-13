@@ -110,6 +110,8 @@ struct Material {
 	bool enableNormalMapping;
 	bool enablePhysicalMapping;
 
+	shader_t* skyShader = nullptr;
+
 	cullType_t cullType;
 
 	bool usePolygonOffset = false;
@@ -124,7 +126,8 @@ struct Material {
 
 	bool operator==( const Material& other ) {
 		return program == other.program && stateBits == other.stateBits && vbo == other.vbo && ibo == other.ibo
-			&& cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
+			&& cullType == other.cullType && usePolygonOffset == other.usePolygonOffset
+			&& ( skyShader == nullptr || other.skyShader == nullptr || skyShader == other.skyShader );
 	}
 
 	void AddTexture( Texture* texture ) {
@@ -237,11 +240,14 @@ class MaterialSystem {
 		}
 	};
 
-	MaterialPack materialPacks[3]{
+	MaterialPack materialPacks[4] {
 		{ shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH },
 		{ shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE },
-		{ shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS }
+		{ shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS },
+		{ shaderSort_t::SS_BAD, shaderSort_t::SS_BAD }
 	};
+
+	Material skyBrushMaterial;
 
 	bool frameStart = false;
 
@@ -303,6 +309,7 @@ class MaterialSystem {
 
 	bool AddPortalSurface( uint32_t viewID, PortalSurface* portalSurfs );
 
+	void RenderMaterialPack( MaterialPack& materialPack, const uint32_t viewID );
 	void RenderMaterial( Material& material, const uint32_t viewID );
 	void UpdateFrameData();
 };

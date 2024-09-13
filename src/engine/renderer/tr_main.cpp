@@ -1873,14 +1873,11 @@ R_AddDrawSurf
 */
 void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface )
 {
-	int        index;
-	drawSurf_t *drawSurf;
-
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
-	index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
+	int index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
 
-	drawSurf = &tr.refdef.drawSurfs[ index ];
+	drawSurf_t* drawSurf = &tr.refdef.drawSurfs[ index ];
 
 	drawSurf->entity = tr.currentEntity;
 	drawSurf->surface = surface;
@@ -1907,21 +1904,13 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 
 	tr.refdef.numDrawSurfs++;
 
-	// Portal and sky surfaces are not handled by the material system at all
-	if ( materialSystem.generatingWorldCommandBuffer && ( shader->isPortal || shader->isSky ) ) {
-		if ( shader->isSky && std::find( materialSystem.skyShaders.begin(), materialSystem.skyShaders.end(), shader )
-						   == materialSystem.skyShaders.end() ) {
-			materialSystem.skyShaders.emplace_back( shader );
-		}
-
-		if ( shader->isPortal )
-		{
-			// R_AddWorldSurfaces guarantees not to add surfaces more than once
-			ASSERT_EQ(
-				std::find( materialSystem.portalSurfacesTmp.begin(), materialSystem.portalSurfacesTmp.end(), drawSurf ),
-				materialSystem.portalSurfacesTmp.end() );
-			materialSystem.portalSurfacesTmp.emplace_back( drawSurf );
-		}
+	// Portal surfaces are not handled by the material system at all
+	if ( materialSystem.generatingWorldCommandBuffer && shader->isPortal ) {
+		// R_AddWorldSurfaces guarantees not to add surfaces more than once
+		ASSERT_EQ(
+			std::find( materialSystem.portalSurfacesTmp.begin(), materialSystem.portalSurfacesTmp.end(), drawSurf ),
+			materialSystem.portalSurfacesTmp.end() );
+		materialSystem.portalSurfacesTmp.emplace_back( drawSurf );
 		return;
 	}
 

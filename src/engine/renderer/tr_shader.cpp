@@ -5432,6 +5432,13 @@ static void SetStagesRenderers()
 					false, false,
 				};
 				break;
+			case stageType_t::ST_SKYBRUSHMAP:
+				stageRendererOptions = {
+					&Render_materialPassThrough,
+					&UpdateSurfaceDataGeneric3D, &BindShaderGeneric3D, &ProcessMaterialGeneric3D,
+					false, false,
+				};
+				break;
 			case stageType_t::ST_SCREENMAP:
 				stageRendererOptions = {
 					&Render_screen,
@@ -5805,6 +5812,22 @@ static shader_t *FinishShader()
 
 	numStages = MAX_SHADER_STAGES;
 	GroupActiveStages();
+
+	if ( glConfig2.materialSystemAvailable && shader.isSky ) {
+		shaderStage_t* pStage = &stages[numStages];
+
+		pStage->active = true;
+
+		pStage->type = stageType_t::ST_SKYBRUSHMAP;
+		pStage->deformIndex = 0;
+		pStage->stateBits = GLS_COLORMASK_BITS;
+		pStage->rgbGen = colorGen_t::CGEN_IDENTITY;
+		pStage->alphaGen = alphaGen_t::AGEN_IDENTITY;
+		pStage->bundle[TB_COLORMAP].image[0] = tr.whiteImage;
+		pStage->hasDepthFade = false;
+
+		numStages++;
+	}
 
 	// set appropriate stage information
 	for ( size_t stage = 0; stage < numStages; stage++ )
