@@ -370,9 +370,16 @@ signed char  ClampChar( int i );
 int          DirToByte( vec3_t const dir );
 void         ByteToDir( int b, vec3_t dir );
 
-inline float DotProduct( const vec3_t x, const vec3_t y )
+inline vec_t DotProduct( const vec3_t x, const vec3_t y )
 {
 	return x[ 0 ] * y[ 0 ] + x[ 1 ] * y[ 1 ] + x[ 2 ] * y[ 2 ];
+}
+
+inline void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross )
+{
+	cross[ 0 ] = v1[ 1 ] * v2[ 2 ] - v1[ 2 ] * v2[ 1 ];
+	cross[ 1 ] = v1[ 2 ] * v2[ 0 ] - v1[ 0 ] * v2[ 2 ];
+	cross[ 2 ] = v1[ 0 ] * v2[ 1 ] - v1[ 1 ] * v2[ 0 ];
 }
 
 template<typename A, typename B, typename C>
@@ -515,8 +522,6 @@ void SnapVector( V &&v )
 		VectorSet( corners[ 7 ], mins[ 0 ], mins[ 1 ], mins[ 2 ] );
 	}
 
-	int VectorCompare( const vec3_t v1, const vec3_t v2 );
-
 	inline void VectorLerp( const vec3_t from, const vec3_t to, float frac, vec3_t out )
 	{
 		out[ 0 ] = from[ 0 ] + ( ( to[ 0 ] - from[ 0 ] ) * frac );
@@ -555,15 +560,86 @@ void SnapVector( V &&v )
 		out[2] = a[2] > b[2] ? a[2] : b[2];
 	}
 
-	vec_t VectorLength( const vec3_t v );
-	vec_t VectorLengthSquared( const vec3_t v );
-	vec_t Distance( const vec3_t p1, const vec3_t p2 );
-	vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 );
-	void  CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
-	vec_t VectorNormalize( vec3_t v );  // returns vector length
-	void  VectorNormalizeFast( vec3_t v );  // does NOT return vector length, uses rsqrt approximation
-	vec_t VectorNormalize2( const vec3_t v, vec3_t out );
-	void  VectorInverse( vec3_t v );
+inline int VectorCompare( const vec3_t v1, const vec3_t v2 )
+{
+	return !( v1[ 0 ] != v2[ 0 ] || v1[ 1 ] != v2[ 1 ] || v1[ 2 ] != v2[ 2 ] );
+}
+
+inline vec_t VectorLengthSquared( const vec3_t v )
+{
+	return v[ 0 ] * v[ 0 ] + v[ 1 ] * v[ 1 ] + v[ 2 ] * v[ 2 ];
+}
+
+inline vec_t VectorLength( const vec3_t v )
+{
+	return sqrtf( VectorLengthSquared( v ) );
+}
+
+inline vec_t Distance( const vec3_t p1, const vec3_t p2 )
+{
+	vec3_t v;
+	VectorSubtract( p2, p1, v );
+	return VectorLength( v );
+}
+
+inline vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 )
+{
+	vec3_t v;
+	VectorSubtract( p2, p1, v );
+	return VectorLengthSquared( v );
+}
+
+inline void VectorInverse( vec3_t v )
+{
+	v[ 0 ] = -v[ 0 ];
+	v[ 1 ] = -v[ 1 ];
+	v[ 2 ] = -v[ 2 ];
+}
+
+// returns vector length
+inline vec_t VectorNormalize( vec3_t v )
+{
+	vec_t length = DotProduct( v, v );
+
+	if ( length != 0.0f )
+	{
+		vec_t ilength = Q_rsqrt( length );
+		/* sqrtf(length) = length * (1 / sqrtf(length)) */
+		length *= ilength;
+		VectorScale( v, ilength, v );
+	}
+
+	return length;
+}
+
+// does NOT return vector length, uses rsqrt approximation
+// fast vector normalize routine that does not check to make sure
+// that length != 0, nor does it return length
+inline void VectorNormalizeFast( vec3_t v )
+{
+	vec_t ilength = Q_rsqrt( DotProduct( v, v ) );
+
+	VectorScale( v, ilength, v );
+}
+
+inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
+{
+	vec_t length = VectorLengthSquared( v );
+
+	if ( length )
+	{
+		vec_t ilength = Q_rsqrt( length );
+		/* sqrtf(length) = length * (1 / sqrtf(length)) */
+		length *= ilength;
+		VectorScale( v, ilength, out );
+	}
+	else
+	{
+		VectorClear( out );
+	}
+
+	return length;
+}
 
 	int   NearestPowerOfTwo( int val );
 
