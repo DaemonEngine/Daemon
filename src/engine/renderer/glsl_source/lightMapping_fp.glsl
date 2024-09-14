@@ -110,7 +110,8 @@ void main()
 	#if defined(r_specularMapping) || defined(r_physicalMapping)
 		// Compute the material term.
 		vec4 material = texture2D(u_MaterialMap, texCoords);
-	#elif defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
+	#elif ( defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1 )\
+		|| defined( USE_DELUXE_MAPPING ) || defined(USE_GRID_DELUXE_MAPPING )
 		// The computeDynamicLights function requires this variable to exist.
 		vec4 material = vec4( 0.0, 0.0, 0.0, 1.0 );
 	#endif
