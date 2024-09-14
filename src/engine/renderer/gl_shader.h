@@ -3279,7 +3279,7 @@ class u_TotalDrawSurfs :
 	GLUniform1ui {
 	public:
 	u_TotalDrawSurfs( GLShader* shader ) :
-		GLUniform1ui( shader, "u_TotalDrawSurfs" ) {
+		GLUniform1ui( shader, "u_TotalDrawSurfs", true ) {
 	}
 
 	void SetUniform_TotalDrawSurfs( const uint totalDrawSurfs ) {
@@ -3356,6 +3356,18 @@ class u_SurfaceCommandsOffset :
 
 	void SetUniform_SurfaceCommandsOffset( const uint surfaceCommandsOffset ) {
 		this->SetValue( surfaceCommandsOffset );
+	}
+};
+
+class u_MaterialColour :
+	GLUniform3f {
+	public:
+	u_MaterialColour( GLShader* shader ) :
+		GLUniform3f( shader, "u_MaterialColour", true ) {
+	}
+
+	void SetUniform_MaterialColour( const vec3_t materialColour ) {
+		this->SetValue( materialColour );
 	}
 };
 
@@ -3971,6 +3983,7 @@ class GLShader_genericMaterial :
 	// public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_MaterialColour,
 	public GLDeformStage,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -4069,6 +4082,7 @@ class GLShader_lightMappingMaterial :
 	public u_numLights,
 	public u_Lights,
 	public u_ShowTris,
+	public u_MaterialColour,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,

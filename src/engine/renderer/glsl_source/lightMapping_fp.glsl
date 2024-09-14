@@ -57,7 +57,10 @@ uniform sampler3D u_LightGrid2;
 	uniform vec3 u_LightGridScale;
 #endif
 
-uniform bool u_ShowTris;
+#if defined(USE_MATERIAL_SYSTEM)
+	uniform bool u_ShowTris;
+	uniform vec3 u_MaterialColour;
+#endif
 
 DECLARE_OUTPUT(vec4)
 
@@ -65,10 +68,12 @@ void main()
 {
 	#insert material_fp
 
-	if( u_ShowTris ) {
-		outputColor = vec4( 0.0, 0.0, 1.0, 1.0 );
-		return;
-	}
+	#if defined(USE_MATERIAL_SYSTEM)
+		if( u_ShowTris ) {
+			outputColor = vec4( 0.0, 0.0, 1.0, 1.0 );
+			return;
+		}
+	#endif
 
 	// Compute view direction in world space.
 	vec3 viewDir = normalize(u_ViewOrigin - var_Position);
@@ -258,5 +263,14 @@ void main()
 		#else
 			outputColor.rgb = vec3(0.0, 0.0, 0.0);
 		#endif
+	#elif defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
+		outputColor.rgb = u_MaterialColour + lightColor.rgb * u_MaterialColour;
+
+		/* HACK: use sign to know if there is a light or not, and
+		then if it will receive overbright multiplication or not. */
+		if ( u_InverseLightFactor < 0 )
+		{
+			outputColor *= - u_InverseLightFactor;
+		}
 	#endif
 }
