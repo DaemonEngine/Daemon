@@ -238,6 +238,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<int> r_showCubeProbeFace( "r_showCubeProbeFace", "Render from the perspective of a selected static reflection "
 		"cubemap face, -1 to disable", Cvar::NONE, -1 );
 	cvar_t      *r_showBspNodes;
+	Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials( "r_showGlobalMaterials", "Show material system materials: 0: off, 1: depth, "
+		"2: opaque, 3: opaque + transparent", Cvar::NONE,
+		Util::ordinal( MaterialDebugMode::NONE ),
+		Util::ordinal( MaterialDebugMode::NONE ),
+		Util::ordinal( MaterialDebugMode::OPAQUE_TRANSPARENT ) );
 	cvar_t      *r_showParallelShadowSplits;
 
 	cvar_t      *r_vboFaces;
@@ -1347,6 +1352,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showMaterialMaps = Cvar_Get( "r_showMaterialMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		Cvar::Latch( r_showReflectionMaps );
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
+		Cvar::Latch( r_showGlobalMaterials );
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
 
 		// make sure all the commands added here are also removed in R_Shutdown

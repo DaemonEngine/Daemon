@@ -715,6 +715,10 @@ static std::string GenEngineConstants() {
 	{
 		AddDefine( str, "r_showVertexColors", 1 );
 	}
+	else if ( r_showGlobalMaterials.Get() != 0 )
+	{
+		AddDefine( str, "r_showGlobalMaterials", r_showGlobalMaterials.Get() );
+	}
 
 	if( r_showCubeProbes.Get() )
 	{
@@ -2074,6 +2078,7 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	// u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
+	u_MaterialColour( this ),
 	GLDeformStage( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -2193,6 +2198,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_numLights( this ),
 	u_Lights( this ),
 	u_ShowTris( this ),
+	u_MaterialColour( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),

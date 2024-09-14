@@ -1331,6 +1331,7 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 	} else {
 		materialPack = 2;
 	}
+	material.sort = materialPack;
 	uint32_t id = packIDs[materialPack];
 
 	// In surfaces with multiple stages each consecutive stage must be drawn after the previous stage,
@@ -2050,6 +2051,80 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	culledCommandsBuffer.BindBuffer( GL_DRAW_INDIRECT_BUFFER );
 
 	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
+
+	if ( r_showGlobalMaterials.Get() && material.sort != 0
+		&& ( material.shaderBinder == BindShaderLightMapping || material.shaderBinder == BindShaderGeneric3D ) ) {
+		vec3_t color;
+		/* Some simple random modifiers to make the colors more contrasting
+		Maybe we can use some better way of assigning colors here? */
+		static vec3_t colors[6] = { { 0.75, 0.25, 0.25 }, { 0.75, 0.75, 0.25 }, { 0.25, 0.75, 0.25 }, { 0.25, 0.75, 0.75 },
+			{ 0.25, 0.25, 0.75 }, { 0.75, 0.25, 0.75 } };
+
+		switch ( r_showGlobalMaterials.Get() ) {
+			case Util::ordinal( MaterialDebugMode::DEPTH ):
+			{
+				// Even though this is for depth materials, we don't actually draw anything on depth pass
+				if ( material.sort != 1 ) {
+					return;
+				}
+
+				const float id = ( float ) material.id / ( materialPacks[0].materials.size() + 2 ) + 1;
+
+				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
+					/ materialPacks[0].materials.size() )][0];
+				color[1] = std::min( std::max( 0.0, id - 1 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ materialPacks[0].materials.size() )][1];
+				color[2] = std::min( std::max( 0.0, id - 2 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ materialPacks[0].materials.size() )][2];
+
+				break;
+			}
+			case Util::ordinal( MaterialDebugMode::OPAQUE ):
+			{
+				if ( material.sort != 1 ) {
+					return;
+				}
+
+				const float id = ( float ) ( material.id + 1 )
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() + 2 );
+
+				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][0];
+				color[1] = std::min( std::max( 0.0, id - 1 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][1];
+				color[2] = std::min( std::max( 0.0, id - 2 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][2];
+
+				break;
+			}
+			case Util::ordinal( MaterialDebugMode::OPAQUE_TRANSPARENT ):
+			{
+				if ( material.sort == 0 ) {
+					return;
+				}
+
+				const float id = ( float ) ( material.id + 1 )
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() + 2 ) + 1;
+
+				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][0];
+				color[1] = std::min( std::max( 0.0, id - 1 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][1];
+				color[2] = std::min( std::max( 0.0, id - 2 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][2];
+
+				break;
+			}
+			default:
+				break;
+		}
+
+		if ( material.shaderBinder == BindShaderLightMapping ) {
+			gl_lightMappingShaderMaterial->SetUniform_MaterialColour( color );
+		} else if ( material.shaderBinder == BindShaderGeneric3D ) {
+			gl_genericShaderMaterial->SetUniform_MaterialColour( color );
+		}
+	}
 
 	glMultiDrawElementsIndirectCountARB( GL_TRIANGLES, GL_UNSIGNED_INT,
 		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )

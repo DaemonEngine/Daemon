@@ -112,6 +112,8 @@ struct Material {
 
 	cullType_t cullType;
 
+	uint32_t sort;
+
 	bool usePolygonOffset = false;
 
 	VBO_t* vbo;
@@ -136,6 +138,13 @@ struct Material {
 			textures.emplace_back( texture );
 		}
 	}
+};
+
+enum class MaterialDebugMode {
+	NONE,
+	DEPTH,
+	OPAQUE,
+	OPAQUE_TRANSPARENT
 };
 
 struct PortalSurface {

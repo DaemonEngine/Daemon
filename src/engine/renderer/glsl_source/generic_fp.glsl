@@ -31,6 +31,10 @@ uniform float		u_AlphaThreshold;
 uniform float u_InverseLightFactor;
 #endif
 
+#if defined(USE_MATERIAL_SYSTEM)
+	uniform vec3 u_MaterialColour;
+#endif
+
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
 
@@ -74,5 +78,11 @@ void	main()
 // Debugging.
 #if defined(r_showVertexColors) && !defined(GENERIC_2D)
 	outputColor = vec4(0.0, 0.0, 0.0, 0.0);
+#elif defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
+	outputColor.rgb = u_MaterialColour;
+
+	#if !defined(GENERIC_2D) && !defined(USE_DEPTH_FADE)
+		outputColor.rgb *= u_InverseLightFactor;
+	#endif
 #endif
 }
