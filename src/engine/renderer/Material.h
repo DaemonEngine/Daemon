@@ -276,7 +276,8 @@ class MaterialSystem {
 
 	private:
 	bool PVSLocked = false;
-	frustum_t lockedFrustum;
+	frustum_t lockedFrustums[MAX_VIEWS];
+	vec3_t lockedOrigins[MAX_VIEWS];
 	image_t* lockedDepthImage;
 	matrix_t lockedViewMatrix;
 
