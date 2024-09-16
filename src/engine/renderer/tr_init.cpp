@@ -1213,7 +1213,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_normalMapping = Cvar_Get( "r_normalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_highQualityNormalMapping = Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
 		r_liquidMapping = Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_reliefDepthScale = Cvar_Get( "r_reliefDepthScale", "0.03", CVAR_CHEAT );
+		r_reliefDepthScale = Cvar_Get( "r_reliefDepthScale", "0.02", CVAR_CHEAT );
 		r_reliefMapping = Cvar_Get( "r_reliefMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_glowMapping = Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
 		r_reflectionMapping = Cvar_Get( "r_reflectionMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
