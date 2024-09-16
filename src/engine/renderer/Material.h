@@ -223,6 +223,7 @@ class MaterialSystem {
 	std::vector<PortalSurface> portalBounds;
 	uint32_t totalPortals;
 	std::vector<shader_t*> skyShaders;
+	bool renderSkyBrushDepth = false;
 
 	std::vector<Material*> renderedMaterials;
 

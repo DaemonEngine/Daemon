@@ -1841,6 +1841,8 @@ void MaterialSystem::Free() {
 	nextFrame = 1;
 	maxStages = 0;
 
+	renderSkyBrushDepth = false;
+
 	for ( MaterialPack& pack : materialPacks ) {
 		for ( Material& material : pack.materials ) {
 			material.drawCommands.clear();
@@ -1985,7 +1987,7 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 	if ( tr.hasSkybox && ( environmentFogDraw || environmentNoFogDraw ) ) {
 		const bool noFogPass = toSort >= shaderSort_t::SS_ENVIRONMENT_NOFOG;
 		for ( shader_t* skyShader : skyShaders ) {
-			if ( skyShader->noFog != noFogPass ) {
+			if ( skyShader->noFog != noFogPass && !renderSkyBrushDepth ) {
 				continue;
 			}
 
@@ -2007,6 +2009,7 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 				}
 			}
 
+			// Set depth to 1.0 on skybrushes
 			glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
 			glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
 
@@ -2021,17 +2024,33 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 				}
 			}
 
-			// Actually draw the skybox
-			tr.drawingSky = true;
-			Tess_Begin( Tess_StageIteratorSky, skyShader, nullptr, false, -1, 0, false );
-			Tess_End();
+			// Actually render the skybox
+			if ( !renderSkyBrushDepth ) {
+				tr.drawingSky = true;
+				Tess_Begin( Tess_StageIteratorSky, skyShader, nullptr, false, -1, 0, false );
+				Tess_End();
+			}
 
+			// Decrease the stencil bits back on skybrushes
 			glStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
 
+			// Set depth back to the skybrushes depth
 			glState.glStateBitsMask = 0;
 			GL_State( GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS );
 			glState.glStateBitsMask = GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS;
-			glDepthRange( 1.0, 1.0 );
+
+			/* SSAO excludes fragments with depth 1.0, so we need to change the depth on skybrushes back to 1.0
+			if SSAO is enabled and it's an SS_ENVIRONMENT_FOG pass */
+			if ( r_ssao->integer ) {
+				if ( environmentFogDraw && !renderSkyBrushDepth ) {
+					glDepthRange( 0.0, 1.0 );
+					renderSkyBrushDepth = true;
+				} else {
+					glDepthRange( 1.0, 1.0 );
+				}
+			} else {
+				glDepthRange( 0.0, 1.0 );
+			}
 
 			for ( Material& material : materialPacks[3].materials ) {
 				if ( material.skyShader == skyShader ) {
@@ -2051,6 +2070,10 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 				glDisable( GL_STENCIL_TEST );
 			}
 		}
+	}
+
+	if ( environmentNoFogDraw && renderSkyBrushDepth ) {
+		renderSkyBrushDepth = false;
 	}
 }
 
