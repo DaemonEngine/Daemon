@@ -3359,18 +3359,6 @@ class u_SurfaceCommandsOffset :
 	}
 };
 
-class u_CulledCommandsOffset :
-	GLUniform1ui {
-	public:
-	u_CulledCommandsOffset( GLShader* shader ) :
-		GLUniform1ui( shader, "u_CulledCommandsOffset" ) {
-	}
-
-	void SetUniform_CulledCommandsOffset( const uint culledCommandsOffset ) {
-		this->SetValue( culledCommandsOffset );
-	}
-};
-
 class u_ModelMatrix :
 	GLUniformMatrix4f
 {
@@ -4735,8 +4723,7 @@ class GLShader_processSurfaces :
 	public GLShader,
 	public u_Frame,
 	public u_ViewID,
-	public u_SurfaceCommandsOffset,
-	public u_CulledCommandsOffset {
+	public u_SurfaceCommandsOffset {
 	public:
 	GLShader_processSurfaces( GLShaderManager* manager );
 };

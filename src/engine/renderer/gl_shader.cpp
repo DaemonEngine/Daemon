@@ -474,7 +474,20 @@ static std::string GenComputeVersionDeclaration() {
 		{ glConfig2.explicitUniformLocationAvailable, 430, "ARB_explicit_uniform_location" },
 		{ glConfig2.shaderImageLoadStoreAvailable, 420, "ARB_shader_image_load_store" },
 		{ glConfig2.shaderAtomicCountersAvailable, 420, "ARB_shader_atomic_counters" },
+		/* ARB_shader_atomic_counter_ops set to -1,
+		because we might get a 4.6 GL context, where the core functions have different names */
+		{ glConfig2.shaderAtomicCounterOpsAvailable, -1, "ARB_shader_atomic_counter_ops" },
 		{ glConfig2.bindlessTexturesAvailable, -1, "ARB_bindless_texture" },
+		/* Even though these are part of the GL_KHR_shader_subgroup extension, we need to enable the individual extensions
+		for each feature
+		GL_KHR_shader_subgroup itself can't be used in the shader */
+		{ glConfig2.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
+		{ glConfig2.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
+		{ glConfig2.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
+		{ glConfig2.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
+		{ glConfig2.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
+		{ glConfig2.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
+		{ glConfig2.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
 	};
 
 	for ( const auto& extension : extensions ) {
@@ -2959,6 +2972,5 @@ GLShader_processSurfaces::GLShader_processSurfaces( GLShaderManager* manager ) :
 	GLShader( "processSurfaces", ATTR_POSITION, manager, false, false, true ),
 	u_Frame( this ),
 	u_ViewID( this ),
-	u_SurfaceCommandsOffset( this ),
-	u_CulledCommandsOffset( this ) {
+	u_SurfaceCommandsOffset( this ) {
 }
