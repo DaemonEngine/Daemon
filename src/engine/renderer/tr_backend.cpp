@@ -4069,6 +4069,8 @@ static void RB_RenderDebugUtils()
 		gl_reflectionShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 		gl_reflectionShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
+		gl_reflectionShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
 		for ( cubemapProbe_t *cubeProbe : tr.cubeProbes )
 		{
 			/* Do not crash when cubemaps are being generated,
