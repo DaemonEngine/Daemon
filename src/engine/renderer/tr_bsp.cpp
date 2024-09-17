@@ -6583,6 +6583,9 @@ void R_BuildCubeMaps()
 	Log::Notice("0%%  10   20   30   40   50   60   70   80   90   100%%" );
 	Log::Notice("|----|----|----|----|----|----|----|----|----|----|" );
 
+	const bool gpuOcclusionCulling = r_gpuOcclusionCulling.Get();
+	r_gpuOcclusionCulling.Set( false );
+
 	for ( size_t j = 0; j < tr.cubeProbes.size(); j++ )
 	{
 		cubemapProbe_t *cubeProbe = tr.cubeProbes[ j ];
@@ -6737,6 +6740,16 @@ void R_BuildCubeMaps()
 			tr.refdef.pixelTargetWidth = REF_CUBEMAP_SIZE;
 			tr.refdef.pixelTargetHeight = REF_CUBEMAP_SIZE;
 
+			if ( glConfig2.materialSystemAvailable ) {
+				tr.refdef.pixelTarget = nullptr;
+
+				RE_BeginFrame();
+				RE_RenderScene( &rf );
+				RE_EndFrame( &ii, &jj );
+
+				tr.refdef.pixelTarget = tr.cubeTemp[i];
+			}
+
 			RE_BeginFrame();
 			RE_RenderScene( &rf );
 			RE_EndFrame( &ii, &jj );
@@ -6833,6 +6846,8 @@ void R_BuildCubeMaps()
 
 		R_UploadImage( ( const byte ** ) tr.cubeTemp, 6, 1, cubeProbe->cubemap, imageParams );
 	}
+
+	r_gpuOcclusionCulling.Set( gpuOcclusionCulling );
 
 	Log::Notice("");
 
