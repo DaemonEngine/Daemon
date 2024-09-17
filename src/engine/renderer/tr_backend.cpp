@@ -4069,8 +4069,6 @@ static void RB_RenderDebugUtils()
 		gl_reflectionShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 		gl_reflectionShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-		Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
-
 		for ( cubemapProbe_t *cubeProbe : tr.cubeProbes )
 		{
 			/* Do not crash when cubemaps are being generated,
@@ -4080,15 +4078,20 @@ static void RB_RenderDebugUtils()
 				continue;
 			}
 
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+
+			gl_reflectionShader->SetUniform_CameraPosition( cubeProbe->origin );
+
 			// bind u_ColorMap
 			gl_reflectionShader->SetUniform_ColorMapCubeBindless(
 				GL_BindToTMU( 0, cubeProbe->cubemap )
 			);
 
 			Tess_AddCubeWithNormals( cubeProbe->origin, mins, maxs, Color::White );
+
+			Tess_End();
 		}
 
-		Tess_End();
 
 		{
 			cubemapProbe_t *cubeProbeNearest;

@@ -4265,6 +4265,7 @@ class GLShader_reflection :
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
 	public u_VertexInterpolation,
+	public u_CameraPosition,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
