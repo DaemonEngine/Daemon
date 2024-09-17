@@ -4046,6 +4046,9 @@ static void RB_RenderDebugUtils()
 		static const vec3_t mins = { -8, -8, -8 };
 		static const vec3_t maxs = { 8,  8,  8 };
 
+		static const vec3_t outlineMins = { -9, -9, -9 };
+		static const vec3_t outlineMaxs = { 9,  9,  9 };
+
 		// choose right shader program ----------------------------------
 		gl_reflectionShader->SetVertexSkinning( false );
 		gl_reflectionShader->SetVertexAnimation( false );
@@ -4079,7 +4082,7 @@ static void RB_RenderDebugUtils()
 
 			// bind u_ColorMap
 			gl_reflectionShader->SetUniform_ColorMapCubeBindless(
-				GL_BindToTMU( 0, cubeProbe->cubemap ) 
+				GL_BindToTMU( 0, cubeProbe->cubemap )
 			);
 
 			Tess_AddCubeWithNormals( cubeProbe->origin, mins, maxs, Color::White );
@@ -4121,6 +4124,8 @@ static void RB_RenderDebugUtils()
 			);
 			gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
+			GL_State( GLS_POLYMODE_LINE | GLS_DEPTHFUNC_ALWAYS );
+
 			GL_CheckErrors();
 
 			R_FindTwoNearestCubeMaps( backEnd.viewParms.orientation.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
@@ -4133,12 +4138,12 @@ static void RB_RenderDebugUtils()
 			}
 			else if ( cubeProbeSecondNearest == nullptr )
 			{
-				Tess_AddCubeWithNormals( cubeProbeNearest->origin, mins, maxs, Color::Yellow );
+				Tess_AddCubeWithNormals( cubeProbeNearest->origin, outlineMins, outlineMaxs, Color::Yellow );
 			}
 			else
 			{
-				Tess_AddCubeWithNormals( cubeProbeNearest->origin, mins, maxs, Color::Green );
-				Tess_AddCubeWithNormals( cubeProbeSecondNearest->origin, mins, maxs, Color::Red );
+				Tess_AddCubeWithNormals( cubeProbeNearest->origin, outlineMins, outlineMaxs, Color::Green );
+				Tess_AddCubeWithNormals( cubeProbeSecondNearest->origin, outlineMins, outlineMaxs, Color::Red );
 			}
 
 			Tess_End();
