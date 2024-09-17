@@ -4253,7 +4253,7 @@ public:
 
 class GLShader_reflection :
 	public GLShader,
-	public u_ColorMap,
+	public u_ColorMapCube,
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
@@ -4278,7 +4278,7 @@ public:
 
 class GLShader_reflectionMaterial :
 	public GLShader,
-	public u_ColorMap,
+	public u_ColorMapCube,
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,

@@ -4078,7 +4078,7 @@ static void RB_RenderDebugUtils()
 			}
 
 			// bind u_ColorMap
-			gl_reflectionShader->SetUniform_ColorMapBindless(
+			gl_reflectionShader->SetUniform_ColorMapCubeBindless(
 				GL_BindToTMU( 0, cubeProbe->cubemap ) 
 			);
 
