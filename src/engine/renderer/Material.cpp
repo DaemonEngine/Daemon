@@ -519,9 +519,9 @@ void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawS
 
 	// bind u_ColorMap
 	if ( backEnd.currentEntity && ( backEnd.currentEntity != &tr.worldEntity ) ) {
-		GL_BindNearestCubeMap( gl_reflectionShaderMaterial->GetUniformLocation_ColorMap(), backEnd.currentEntity->e.origin );
+		GL_BindNearestCubeMap( gl_reflectionShaderMaterial->GetUniformLocation_ColorMapCube(), backEnd.currentEntity->e.origin );
 	} else {
-		GL_BindNearestCubeMap( gl_reflectionShaderMaterial->GetUniformLocation_ColorMap(), backEnd.viewParms.orientation.origin );
+		GL_BindNearestCubeMap( gl_reflectionShaderMaterial->GetUniformLocation_ColorMapCube(), backEnd.viewParms.orientation.origin );
 	}
 
 	if ( pStage->enableNormalMapping ) {

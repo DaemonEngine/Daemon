@@ -2423,7 +2423,7 @@ void GLShader_shadowFill::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	GLShader("reflection", "reflection_CB", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
+	u_ColorMapCube( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
 	u_TextureMatrix( this ),
@@ -2452,7 +2452,7 @@ void GLShader_reflection::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manager ) :
 	GLShader( "reflectionMaterial", "reflection_CB", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
+	u_ColorMapCube( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
 	u_TextureMatrix( this ),

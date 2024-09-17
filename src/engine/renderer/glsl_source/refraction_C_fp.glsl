@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* refraction_C_fp.glsl */
 
-uniform samplerCube	u_ColorMap;
+uniform samplerCube	u_ColorMapCube;
 uniform vec3		u_ViewOrigin;
 uniform float		u_RefractionIndex;
 uniform float		u_FresnelPower;
@@ -51,8 +51,8 @@ void	main()
 	// compute fresnel term
 	float fresnel = u_FresnelBias + pow(1.0 - dot(incidentRay, normal), u_FresnelPower) * u_FresnelScale;
 
-	vec3 reflectColor = textureCube(u_ColorMap, reflectionRay).rgb;
-	vec3 refractColor = textureCube(u_ColorMap, T).rgb;
+	vec3 reflectColor = textureCube(u_ColorMapCube, reflectionRay).rgb;
+	vec3 refractColor = textureCube(u_ColorMapCube, T).rgb;
 
 	// compute final color
 	vec4 color;
