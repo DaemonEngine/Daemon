@@ -32,6 +32,7 @@ uniform float u_InverseLightFactor;
 #endif
 
 #if defined(USE_MATERIAL_SYSTEM)
+	uniform bool u_ShowTris;
 	uniform vec3 u_MaterialColour;
 #endif
 
@@ -48,6 +49,13 @@ DECLARE_OUTPUT(vec4)
 void	main()
 {
 	#insert material_fp
+
+	#if defined(USE_MATERIAL_SYSTEM)
+		if( u_ShowTris ) {
+			outputColor = vec4( 0.0, 0.0, 1.0, 1.0 );
+			return;
+		}
+	#endif
 
 	vec4 color = texture2D(u_ColorMap, var_TexCoords);
 

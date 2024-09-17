@@ -3983,6 +3983,7 @@ class GLShader_genericMaterial :
 	// public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_ShowTris,
 	public u_MaterialColour,
 	public GLDeformStage,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,

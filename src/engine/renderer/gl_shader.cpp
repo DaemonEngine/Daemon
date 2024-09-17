@@ -2078,6 +2078,7 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	// u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
+	u_ShowTris( this ),
 	u_MaterialColour( this ),
 	GLDeformStage( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
