@@ -725,6 +725,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showCubeProbes", 1 );
 	}
 
+	if ( r_materialDebug.Get() )
+	{
+		AddDefine( str, "r_materialDebug", 1 );
+	}
+
 	if ( glConfig2.vboVertexSkinningAvailable )
 	{
 		AddDefine( str, "r_vertexSkinning", 1 );
