@@ -712,6 +712,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_showVertexColors", 1 );
 	}
 
+	if( r_showCubeProbes.Get() )
+	{
+		AddDefine( str, "r_showCubeProbes", 1 );
+	}
+
 	if ( glConfig2.vboVertexSkinningAvailable )
 	{
 		AddDefine( str, "r_vertexSkinning", 1 );
@@ -2435,6 +2440,7 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
+	u_CameraPosition( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),

@@ -67,5 +67,10 @@ void	main()
 	vec3 reflectionRay = reflect(viewDir, normal);
 
 	outputColor = textureCube(u_ColorMapCube, reflectionRay).rgba;
+
+	#if defined(r_showCubeProbes)
+		viewDir = normalize(var_Position);
+		outputColor = textureCube(u_ColorMapCube, viewDir);
+	#endif
 	// outputColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
