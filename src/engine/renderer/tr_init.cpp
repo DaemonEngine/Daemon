@@ -243,6 +243,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal( MaterialDebugMode::NONE ),
 		Util::ordinal( MaterialDebugMode::NONE ),
 		Util::ordinal( MaterialDebugMode::OPAQUE_TRANSPARENT ) );
+	Cvar::Cvar<bool> r_materialDebug( "r_materialDebug", "Enable material debug SSBO", Cvar::NONE, false );
 	cvar_t      *r_showParallelShadowSplits;
 
 	cvar_t      *r_vboFaces;
@@ -1353,6 +1354,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_showReflectionMaps );
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		Cvar::Latch( r_showGlobalMaterials );
+		Cvar::Latch( r_materialDebug );
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
 
 		// make sure all the commands added here are also removed in R_Shutdown

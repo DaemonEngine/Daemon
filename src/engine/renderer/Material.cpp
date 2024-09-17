@@ -38,12 +38,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ShadeCommon.h"
 
 GLSSBO materialsSSBO( "materials", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+
 GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", 1, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLUBO surfaceBatchesUBO( "surfaceBatches", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLSSBO portalSurfacesSSBO( "portalSurfaces", 5, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
+
+GLSSBO debugSSBO( "debug", 10, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 
 PortalView portalStack[MAX_VIEWS];
 
@@ -947,6 +950,18 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	uint32_t* atomicCommandCounters = (uint32_t*) atomicCommandCountersBuffer.GetData();
 	memset( atomicCommandCounters, 0, MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES * sizeof(uint32_t) );
 
+	/* For use in debugging compute shaders
+	Intended for use with Nsight Graphics to format the output */
+	if ( r_materialDebug.Get() ) {
+		const uint32_t debugSize = surfaceCommandsCount * 20;
+
+		debugSSBO.BindBuffer();
+		glBufferData( GL_SHADER_STORAGE_BUFFER, debugSize * sizeof( uint32_t ), nullptr, GL_STATIC_DRAW );
+		uint32_t* debugBuffer = debugSSBO.MapBufferRange( debugSize );
+		memset( debugBuffer, 0, debugSize * sizeof( uint32_t ) );
+		debugSSBO.UnmapBuffer();
+	}
+
 	for ( int i = 0; i < tr.refdef.numDrawSurfs; i++ ) {
 		drawSurf = &tr.refdef.drawSurfs[i];
 		if ( drawSurf->entity != &tr.worldEntity ) {
@@ -1639,6 +1654,10 @@ void MaterialSystem::CullSurfaces() {
 		portalSurfacesSSBO.BindBufferBase();
 	}
 
+	if ( r_materialDebug.Get() ) {
+		debugSSBO.BindBufferBase();
+	}
+
 	GL_CheckErrors();
 
 	for ( uint32_t view = 0; view < frames[nextFrame].viewCount; view++ ) {
@@ -1719,6 +1738,10 @@ void MaterialSystem::CullSurfaces() {
 
 	if ( totalPortals > 0 ) {
 		portalSurfacesSSBO.UnBindBufferBase();
+	}
+
+	if ( r_materialDebug.Get() ) {
+		debugSSBO.UnBindBufferBase();
 	}
 
 	GL_CheckErrors();
@@ -2072,9 +2095,9 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 
 				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
 					/ materialPacks[0].materials.size() )][0];
-				color[1] = std::min( std::max( 0.0, id - 1 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+				color[1] = Math::Clamp( id - 1 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
 					/ materialPacks[0].materials.size() )][1];
-				color[2] = std::min( std::max( 0.0, id - 2 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+				color[2] = Math::Clamp( id - 2 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
 					/ materialPacks[0].materials.size() )][2];
 
 				break;
@@ -2090,9 +2113,9 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 
 				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
 					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][0];
-				color[1] = std::min( std::max( 0.0, id - 1 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+				color[1] = Math::Clamp( id - 1 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
 					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][1];
-				color[2] = std::min( std::max( 0.0, id - 2 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+				color[2] = Math::Clamp( id - 2 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
 					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][2];
 
 				break;
@@ -2108,9 +2131,9 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 
 				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
 					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][0];
-				color[1] = std::min( std::max( 0.0, id - 1 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+				color[1] = Math::Clamp( id - 1 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
 					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][1];
-				color[2] = std::min( std::max( 0.0, id - 2 / 3.0 ), 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+				color[2] = Math::Clamp( id - 2 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
 					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][2];
 
 				break;

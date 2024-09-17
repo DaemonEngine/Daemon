@@ -53,6 +53,15 @@ layout(std430, binding = 5) restrict buffer portalSurfacesSSBO {
 	PortalSurface portalSurfaces[];
 };
 
+#if defined( r_materialDebug )
+	#define DEBUG_INVOCATION_SIZE 5
+	#define DEBUG_ID( id ) ( id * DEBUG_INVOCATION_SIZE )
+
+	layout(std430, binding = 10) writeonly restrict buffer debugSSBO {
+		uvec4 debug[];
+	};
+#endif
+
 uniform uint u_Frame;
 uniform uint u_ViewID;
 uniform uint u_TotalDrawSurfs;
@@ -160,6 +169,10 @@ void ProcessSurfaceCommands( const in SurfaceDescriptor surface, const in bool e
 		}
 		// Subtract 1 because of no-command
 		surfaceCommands[commandID + u_SurfaceCommandsOffset - 1].enabled = enabled;
+		
+		#if defined( r_materialDebug )
+			debug[DEBUG_ID( GLOBAL_INVOCATION_ID ) + 1][i] = commandID;
+		#endif
 	}
 }
 
@@ -186,4 +199,8 @@ void main() {
 	bool culled = CullSurface( surface.boundingSphere );
 
 	ProcessSurfaceCommands( surface, !culled );
+	
+	#if defined( r_materialDebug )
+		debug[DEBUG_ID( globalInvocationID )].x = culled ? 1 : 0;
+	#endif
 }
