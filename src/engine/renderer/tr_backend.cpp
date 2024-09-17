@@ -4819,23 +4819,16 @@ static void RB_RenderPostProcess()
 
 	RB_FXAA();
 
-	// render chromatric aberration
+	// render chromatic aberration
 	RB_CameraPostFX();
 
 	// copy to given byte buffer that is NOT a FBO
-	if (tr.refdef.pixelTarget != nullptr)
-	{
-		int i;
+	if ( tr.refdef.pixelTarget != nullptr ) {
+		glReadPixels( 0, 0, tr.refdef.pixelTargetWidth, tr.refdef.pixelTargetHeight, GL_RGBA,
+			GL_UNSIGNED_BYTE, tr.refdef.pixelTarget );
 
-		// need to convert Y axis
-		// Bugfix: drivers absolutely hate running in high res and using glReadPixels near the top or bottom edge.
-		// Sooo... let's do it in the middle.
-		glReadPixels(glConfig.vidWidth / 2, glConfig.vidHeight / 2, tr.refdef.pixelTargetWidth, tr.refdef.pixelTargetHeight, GL_RGBA,
-			GL_UNSIGNED_BYTE, tr.refdef.pixelTarget);
-
-		for (i = 0; i < tr.refdef.pixelTargetWidth * tr.refdef.pixelTargetHeight; i++)
-		{
-			tr.refdef.pixelTarget[(i * 4) + 3] = 255;  //set the alpha pure white
+		for ( int i = 0; i < tr.refdef.pixelTargetWidth * tr.refdef.pixelTargetHeight; i++ ) {
+			tr.refdef.pixelTarget[( i * 4 ) + 3] = 255; // Set the alpha to 1.0
 		}
 	}
 
