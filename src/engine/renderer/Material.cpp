@@ -2136,9 +2136,14 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 
 	if ( r_showTris->integer
 		&& ( material.stateBits & GLS_DEPTHMASK_TRUE ) == 0
-		&& material.shaderBinder == &BindShaderLightMapping )
+		&& ( material.shaderBinder == &BindShaderLightMapping || material.shaderBinder == &BindShaderGeneric3D ) )
 	{
-		gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
+		if ( material.shaderBinder == &BindShaderLightMapping ) {
+			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
+		} else if ( material.shaderBinder == &BindShaderGeneric3D ) {
+			gl_genericShaderMaterial->SetUniform_ShowTris( 1 );
+		}
+
 		GL_State( GLS_DEPTHTEST_DISABLE );
 		glMultiDrawElementsIndirectCountARB( GL_LINES, GL_UNSIGNED_INT,
 			BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
@@ -2147,7 +2152,12 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 			material.globalID * sizeof( uint32_t )
 			+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
 			material.drawCommands.size(), 0 );
-		gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
+
+		if ( material.shaderBinder == &BindShaderLightMapping ) {
+			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
+		} else if ( material.shaderBinder == &BindShaderGeneric3D ) {
+			gl_genericShaderMaterial->SetUniform_ShowTris( 0 );
+		}
 	}
 
 	culledCommandsBuffer.UnBindBuffer( GL_DRAW_INDIRECT_BUFFER );
