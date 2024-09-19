@@ -167,22 +167,24 @@ void computeLight(in vec3 lightColor, vec4 diffuseColor, inout vec4 color) {
 #if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
 #if defined(HAVE_EXT_texture_integer) && defined(r_highPrecisionRendering)
 const int lightsPerLayer = 16;
-uniform usampler3D u_LightTilesInt;
+#define lightTilesSampler_t usampler3D
+#define lightTilesUniform u_LightTilesInt
 #define idxs_t uvec4
-idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTilesInt ) {
-  return texture3D( u_LightTilesInt, coords );
+idxs_t fetchIdxs( in vec3 coords, in lightTilesSampler_t lightTilesUniform ) {
+  return texture3D( lightTilesUniform, coords );
 }
 int nextIdx( inout idxs_t idxs ) {
   uvec4 tmp = ( idxs & uvec4( 3 ) ) * uvec4( 0x40, 0x10, 0x04, 0x01 );
   idxs = idxs >> 2;
   return int( tmp.x + tmp.y + tmp.z + tmp.w );
 }
-#else // !HAVE_EXT_texture_integer
+#else // !HAVE_EXT_texture_integer || !r_highPrecisionRendering
 const int lightsPerLayer = 4;
-uniform sampler3D u_LightTiles;
+#define lightTilesSampler_t sampler3D
+#define lightTilesUniform u_LightTiles
 #define idxs_t vec4
-idxs_t fetchIdxs( in vec3 coords ) {
-  return texture3D( u_LightTiles, coords ) * 255.0;
+idxs_t fetchIdxs( in vec3 coords, in lightTilesSampler_t lightTilesUniform ) {
+  return texture3D( lightTilesUniform, coords ) * 255.0;
 }
 int nextIdx( inout idxs_t idxs ) {
   vec4 tmp = idxs;
@@ -190,7 +192,9 @@ int nextIdx( inout idxs_t idxs ) {
   tmp -= 4.0 * idxs;
   return int( dot( tmp, vec4( 64.0, 16.0, 4.0, 1.0 ) ) );
 }
-#endif // HAVE_EXT_texture_integer
+#endif // !HAVE_EXT_texture_integer || !r_highPrecisionRendering
+
+uniform lightTilesSampler_t lightTilesUniform;
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
@@ -246,10 +250,11 @@ void computeDynamicLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffu
 
 #if defined(USE_REFLECTIVE_SPECULAR)
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
-		     inout vec4 color, in usampler3D u_LightTilesInt, in samplerCube u_EnvironmentMap0, in samplerCube u_EnvironmentMap1 )
+	inout vec4 color, in lightTilesSampler_t lightTilesUniform,
+	in samplerCube u_EnvironmentMap0, in samplerCube u_EnvironmentMap1 )
 #else // !USE_REFLECTIVE_SPECULAR
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
-		     inout vec4 color, in usampler3D u_LightTilesInt )
+	inout vec4 color, in lightTilesSampler_t lightTilesUniform )
 #endif // !USE_REFLECTIVE_SPECULAR
 {
   vec2 tile = floor( gl_FragCoord.xy * (1.0 / float( TILE_SIZE ) ) ) + 0.5;
@@ -260,7 +265,7 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 #endif
 
   for( int layer = 0; layer < numLayers; layer++ ) {
-    idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTilesInt );
+    idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), lightTilesUniform );
     for( int i = 0; i < lightsPerLayer; i++ ) {
       int idx = numLayers * nextIdx( idxs ) + layer;
 
