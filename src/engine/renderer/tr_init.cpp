@@ -219,6 +219,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showNormalMaps;
 	cvar_t      *r_showMaterialMaps;
 	Cvar::Cvar<bool> r_showCubeProbes( "r_showCubeProbes", "Show static reflections cubemap placement", Cvar::NONE, false );
+	Cvar::Cvar<int> r_showCubeProbeFace( "r_showCubeProbeFace", "Render from the perspective of a selected static reflection "
+		"cubemap face, -1 to disable", Cvar::NONE, -1 );
 	cvar_t      *r_showBspNodes;
 	cvar_t      *r_showParallelShadowSplits;
 

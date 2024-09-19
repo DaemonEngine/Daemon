@@ -459,6 +459,136 @@ void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float radius, float r, floa
 	RE_AddDynamicLightToSceneET( org, radius, r_lightScale->value, r, g, b, 0, 0 );
 }
 
+static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
+	// GLSL shader isn't built when reflection mapping is disabled.
+	const size_t globalID = r_showCubeProbeFace.Get();
+	const size_t probeID = globalID / 6;
+
+	if ( probeID >= tr.cubeProbes.size() ) {
+		Log::Warn( "Cube probe face out of range! (%i/%i)", probeID, tr.cubeProbes.size() );
+		return;
+	}
+	
+	refdef_t refdef{};
+	const int faceID = globalID % 6;
+
+	const int cubeMapSize = r_cubeProbeSize.Get();
+
+	VectorCopy( tr.cubeProbes[probeID]->origin, refdef.vieworg );
+
+	refdef.fov_x = 90;
+	refdef.fov_y = 90;
+	refdef.x = 0;
+	refdef.y = 0;
+	refdef.width = cubeMapSize;
+	refdef.height = cubeMapSize;
+	refdef.time = originalRefdef->time;
+	VectorCopy( originalRefdef->gradingWeights, refdef.gradingWeights );
+
+	refdef.rdflags = RDF_NOCUBEMAP | RDF_NOBLOOM;
+
+	switch ( faceID ) {
+		case 0:
+		{
+			//X+
+			refdef.viewaxis[0][0] = 1;
+			refdef.viewaxis[0][1] = 0;
+			refdef.viewaxis[0][2] = 0;
+
+			refdef.viewaxis[1][0] = 0;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 1;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 1:
+		{
+			//X-
+			refdef.viewaxis[0][0] = -1;
+			refdef.viewaxis[0][1] = 0;
+			refdef.viewaxis[0][2] = 0;
+
+			refdef.viewaxis[1][0] = 0;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = -1;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 2:
+		{
+			//Y+
+			refdef.viewaxis[0][0] = 0;
+			refdef.viewaxis[0][1] = 1;
+			refdef.viewaxis[0][2] = 0;
+
+			refdef.viewaxis[1][0] = -1;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 0;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 3:
+		{
+			//Y-
+			refdef.viewaxis[0][0] = 0;
+			refdef.viewaxis[0][1] = -1;
+			refdef.viewaxis[0][2] = 0;
+
+			refdef.viewaxis[1][0] = -1; //-1
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 0;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 4:
+		{
+			//Z+
+			refdef.viewaxis[0][0] = 0;
+			refdef.viewaxis[0][1] = 0;
+			refdef.viewaxis[0][2] = 1;
+
+			refdef.viewaxis[1][0] = -1;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 0;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+
+		case 5:
+		{
+			//Z-
+			refdef.viewaxis[0][0] = 0;
+			refdef.viewaxis[0][1] = 0;
+			refdef.viewaxis[0][2] = -1;
+
+			refdef.viewaxis[1][0] = 1;
+			refdef.viewaxis[1][1] = 0;
+			refdef.viewaxis[1][2] = 0;
+
+			CrossProduct( refdef.viewaxis[0], refdef.viewaxis[1], refdef.viewaxis[2] );
+			break;
+		}
+	}
+
+	if ( glConfig2.materialSystemAvailable ) {
+		// Material system writes culled surfaces for the next frame, so we need to render twice with it to cull correctly
+		R_SyncRenderThread();
+		RE_RenderScene( &refdef );
+	}
+	R_SyncRenderThread();
+	RE_RenderScene( &refdef );
+
+}
+
 /*
 @@@@@@@@@@@@@@@@@@@@@
 RE_RenderScene
@@ -581,15 +711,16 @@ void RE_RenderScene( const refdef_t *fd )
 	if ( tr.refdef.pixelTarget == nullptr )
 	{
 		parms.viewportX = tr.refdef.x;
-		parms.viewportY = glConfig.vidHeight - ( tr.refdef.y + tr.refdef.height );
+		if( fd->rdflags & RDF_NOCUBEMAP ) {
+			parms.viewportY = tr.refdef.height - ( tr.refdef.y + tr.refdef.height );
+		} else {
+			parms.viewportY = glConfig.vidHeight - ( tr.refdef.y + tr.refdef.height );
+		}
 	}
 	else
 	{
-		//Driver bug, if we try and do pixel target work along the top edge of a window
-		//we can end up capturing part of the status bar. (see screenshot corruption..)
-		//Soooo.. use the middle.
-		parms.viewportX = glConfig.vidWidth / 2;
-		parms.viewportY = glConfig.vidHeight / 2;
+		parms.viewportX = tr.refdef.x;
+		parms.viewportY = tr.refdef.height - ( tr.refdef.y + tr.refdef.height );
 	}
 
 	parms.viewportWidth = tr.refdef.width;
@@ -642,6 +773,11 @@ void RE_RenderScene( const refdef_t *fd )
 	r_firstSceneVisTest = r_numVisTests;
 
 	tr.frontEndMsec += ri.Milliseconds() - startTime;
+
+	if ( ( r_showCubeProbeFace.Get() >= 0 ) && tr.cubeHashTable && r_reflectionMapping->integer
+		&& !( fd->rdflags & RDF_NOCUBEMAP ) ) {
+		RE_RenderCubeProbeFace( fd );
+	}
 }
 
 /*
