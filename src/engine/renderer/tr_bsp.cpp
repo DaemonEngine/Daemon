@@ -6629,6 +6629,11 @@ void R_BuildCubeMaps()
 		rf.height = REF_CUBEMAP_SIZE;
 		rf.time = 0;
 
+		rf.gradingWeights[0] = 0.0;
+		rf.gradingWeights[1] = 0.0;
+		rf.gradingWeights[2] = 0.0;
+		rf.gradingWeights[3] = 1.0;
+
 		rf.rdflags = RDF_NOCUBEMAP | RDF_NOBLOOM;
 
 		for ( i = 0; i < 6; i++ )
