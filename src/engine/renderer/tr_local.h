@@ -2968,6 +2968,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_showDeluxeMaps;
 	extern cvar_t *r_showNormalMaps;
 	extern cvar_t *r_showMaterialMaps;
+	extern Cvar::Cvar<bool> r_showReflectionMaps;
 	extern Cvar::Cvar<bool> r_showCubeProbes;
 	extern Cvar::Cvar<int> r_showCubeProbeFace;
 	extern cvar_t *r_showBspNodes;

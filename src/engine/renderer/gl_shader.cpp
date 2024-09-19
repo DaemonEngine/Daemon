@@ -707,6 +707,10 @@ static std::string GenEngineConstants() {
 	{
 		AddDefine( str, "r_showDeluxeMaps", 1 );
 	}
+	else if ( r_showReflectionMaps.Get() )
+	{
+		AddDefine( str, "r_showReflectionMaps", 1 );
+	}
 	else if ( r_showVertexColors.Get() )
 	{
 		AddDefine( str, "r_showVertexColors", 1 );

@@ -218,6 +218,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showDeluxeMaps;
 	cvar_t      *r_showNormalMaps;
 	cvar_t      *r_showMaterialMaps;
+	Cvar::Cvar<bool> r_showReflectionMaps( "r_showReflectionMaps", "Show only the static reflections on surfaces", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_showCubeProbes( "r_showCubeProbes", "Show static reflections cubemap placement", Cvar::NONE, false );
 	Cvar::Cvar<int> r_showCubeProbeFace( "r_showCubeProbeFace", "Render from the perspective of a selected static reflection "
 		"cubemap face, -1 to disable", Cvar::NONE, -1 );
@@ -1312,6 +1313,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showDeluxeMaps = Cvar_Get( "r_showDeluxeMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showNormalMaps = Cvar_Get( "r_showNormalMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_showMaterialMaps = Cvar_Get( "r_showMaterialMaps", "0", CVAR_CHEAT | CVAR_LATCH );
+		Cvar::Latch( r_showReflectionMaps );
 		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
 

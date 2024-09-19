@@ -237,6 +237,18 @@ void main()
 		outputColor = texture2D(u_LightMap, var_TexLight);
 	#elif defined(r_showDeluxeMaps) && defined(USE_DELUXE_MAPPING)
 		outputColor = texture2D(u_DeluxeMap, var_TexLight);
+	#elif defined(USE_REFLECTIVE_SPECULAR) && defined(r_showReflectionMaps)
+		vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect(-viewDir, normal));
+		vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal));
+
+		outputColor = vec4( mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb, 1.0 );
+
+		/* HACK: use sign to know if there is a light or not, and
+		then if it will receive overbright multiplication or not. */
+		if ( u_InverseLightFactor < 0 )
+		{
+			outputColor *= - u_InverseLightFactor;
+		}
 	#elif defined(r_showVertexColors)
 		/* We need to keep the texture alpha channel so impact
 		marks like creep don't fully overwrite the world texture. */
