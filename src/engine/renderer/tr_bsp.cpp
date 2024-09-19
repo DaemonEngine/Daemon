@@ -6507,7 +6507,6 @@ void R_BuildCubeMaps()
 	bool       flipy;
 	int            x, y, xy, xy2;
 
-	byte           temp[ REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 ];
 	byte           *dest;
 
 	int    startTime, endTime;
@@ -6522,13 +6521,20 @@ void R_BuildCubeMaps()
 		return;
 	}
 
+	const int cubeMapSize = r_cubeProbeSize.Get();
+	if ( cubeMapSize > glConfig2.maxCubeMapTextureSize ) {
+		Log::Warn( "Cube probe size exceeds max cubemap texture size (%i/%i)", cubeMapSize, glConfig2.maxCubeMapTextureSize );
+		return;
+	}
+
 	startTime = ri.Milliseconds();
 
 	refdef_t rf{};
 
+	byte* temp = ( byte* ) Z_Malloc( cubeMapSize * cubeMapSize * 4 );
 	for ( i = 0; i < 6; i++ )
 	{
-		tr.cubeTemp[ i ] = (byte*) Z_Malloc( REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
+		tr.cubeTemp[ i ] = (byte*) Z_Malloc( ( size_t ) cubeMapSize * cubeMapSize * 4 );
 	}
 
 	// calculate origins for our probes
@@ -6625,8 +6631,8 @@ void R_BuildCubeMaps()
 		rf.fov_y = 90;
 		rf.x = 0;
 		rf.y = 0;
-		rf.width = REF_CUBEMAP_SIZE;
-		rf.height = REF_CUBEMAP_SIZE;
+		rf.width = cubeMapSize;
+		rf.height = cubeMapSize;
 		rf.time = 0;
 
 		rf.gradingWeights[0] = 0.0;
@@ -6741,9 +6747,9 @@ void R_BuildCubeMaps()
 			}
 
 			tr.refdef.pixelTarget = tr.cubeTemp[ i ];
-			memset( tr.cubeTemp[ i ], 255, REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
-			tr.refdef.pixelTargetWidth = REF_CUBEMAP_SIZE;
-			tr.refdef.pixelTargetHeight = REF_CUBEMAP_SIZE;
+			memset( tr.cubeTemp[ i ], 255, ( size_t ) cubeMapSize * cubeMapSize * 4 );
+			tr.refdef.pixelTargetWidth = cubeMapSize;
+			tr.refdef.pixelTargetHeight = cubeMapSize;
 
 			if ( glConfig2.materialSystemAvailable ) {
 				tr.refdef.pixelTarget = nullptr;
@@ -6762,14 +6768,14 @@ void R_BuildCubeMaps()
 			if ( flipx )
 			{
 				dest = tr.cubeTemp[ i ];
-				memcpy( temp, dest, REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
+				memcpy( temp, dest, cubeMapSize * cubeMapSize * 4 );
 
-				for ( y = 0; y < REF_CUBEMAP_SIZE; y++ )
+				for ( y = 0; y < cubeMapSize; y++ )
 				{
-					for ( x = 0; x < REF_CUBEMAP_SIZE; x++ )
+					for ( x = 0; x < cubeMapSize; x++ )
 					{
-						xy = ( ( y * REF_CUBEMAP_SIZE ) + x ) * 4;
-						xy2 = ( ( y * REF_CUBEMAP_SIZE ) + ( ( REF_CUBEMAP_SIZE - 1 ) - x ) ) * 4;
+						xy = ( ( y * cubeMapSize ) + x ) * 4;
+						xy2 = ( ( y * cubeMapSize ) + ( ( cubeMapSize - 1 ) - x ) ) * 4;
 						dest[ xy2 + 0 ] = temp[ xy + 0 ];
 						dest[ xy2 + 1 ] = temp[ xy + 1 ];
 						dest[ xy2 + 2 ] = temp[ xy + 2 ];
@@ -6781,14 +6787,14 @@ void R_BuildCubeMaps()
 			if ( flipy )
 			{
 				dest = tr.cubeTemp[ i ];
-				memcpy( temp, dest, REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
+				memcpy( temp, dest, cubeMapSize * cubeMapSize * 4 );
 
-				for ( y = 0; y < REF_CUBEMAP_SIZE; y++ )
+				for ( y = 0; y < cubeMapSize; y++ )
 				{
-					for ( x = 0; x < REF_CUBEMAP_SIZE; x++ )
+					for ( x = 0; x < cubeMapSize; x++ )
 					{
-						xy = ( ( y * REF_CUBEMAP_SIZE ) + x ) * 4;
-						xy2 = ( ( ( ( REF_CUBEMAP_SIZE - 1 ) - y ) * REF_CUBEMAP_SIZE ) + x ) * 4;
+						xy = ( ( y * cubeMapSize ) + x ) * 4;
+						xy2 = ( ( ( ( cubeMapSize - 1 ) - y ) * cubeMapSize ) + x ) * 4;
 						dest[ xy2 + 0 ] = temp[ xy + 0 ];
 						dest[ xy2 + 1 ] = temp[ xy + 1 ];
 						dest[ xy2 + 2 ] = temp[ xy + 2 ];
@@ -6802,11 +6808,11 @@ void R_BuildCubeMaps()
 
 			dest = tr.cubeTemp[ i ];
 
-			for ( y = 0; y < REF_CUBEMAP_SIZE; y++ )
+			for ( y = 0; y < cubeMapSize; y++ )
 			{
-				for ( x = 0; x < REF_CUBEMAP_SIZE; x++ )
+				for ( x = 0; x < cubeMapSize; x++ )
 				{
-					xy = ( ( y * REF_CUBEMAP_SIZE ) + x ) * 4;
+					xy = ( ( y * cubeMapSize ) + x ) * 4;
 
 					r = dest[ xy + 0 ];
 					g = dest[ xy + 1 ];
@@ -6840,8 +6846,8 @@ void R_BuildCubeMaps()
 
 		cubeProbe->cubemap->type = GL_TEXTURE_CUBE_MAP;
 
-		cubeProbe->cubemap->width = REF_CUBEMAP_SIZE;
-		cubeProbe->cubemap->height = REF_CUBEMAP_SIZE;
+		cubeProbe->cubemap->width = cubeMapSize;
+		cubeProbe->cubemap->height = cubeMapSize;
 
 		cubeProbe->cubemap->bits = IF_NOPICMIP;
 		cubeProbe->cubemap->filterType = filterType_t::FT_LINEAR;

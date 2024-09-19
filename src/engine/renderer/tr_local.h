@@ -322,7 +322,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		GLDEBUG_ALL
 	};
 
-#define REF_CUBEMAP_SIZE       32
+#define REF_CUBEMAP_SIZE 32
 #define REF_CUBEMAP_STORE_SIZE 1024
 #define REF_CUBEMAP_STORE_SIDE ( REF_CUBEMAP_STORE_SIZE / REF_CUBEMAP_SIZE )
 
@@ -2888,6 +2888,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_reliefMapping;
 	extern cvar_t *r_glowMapping;
 	extern cvar_t *r_reflectionMapping;
+	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize;
 
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
