@@ -391,17 +391,17 @@ namespace Util {
 			return value;
 		}
 	};
-	template<typename T, typename U>
-	struct SerializeTraits<std::unordered_map<T, U>> {
-		static void Write(Writer& stream, const std::unordered_map<T, U>& value)
+	template<typename T, typename U, typename V, typename W>
+	struct SerializeTraits<std::unordered_map<T, U, V, W>> {
+		static void Write(Writer& stream, const std::unordered_map<T, U, V, W>& value)
 		{
 			stream.WriteSize(value.size());
 			for (const std::pair<const T, U>& x: value)
 				stream.Write<std::pair<T, U>>(x);
 		}
-		static std::unordered_map<T, U> Read(Reader& stream)
+		static std::unordered_map<T, U, V, W> Read(Reader& stream)
 		{
-			std::unordered_map<T, U> value;
+			std::unordered_map<T, U, V, W> value;
 			size_t size = stream.ReadSize<std::pair<T, U>>();
 			for (size_t i = 0; i != size; i++)
 				value.insert(stream.Read<std::pair<T, U>>());

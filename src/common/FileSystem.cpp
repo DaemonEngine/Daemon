@@ -890,6 +890,8 @@ public:
 	// OpenFile but with support for symlinks.
 	// Symlinks are a bad feature which you should not use. Therefore, the implementation is as
 	// slow as possible with a full iteration of the archive performed for each symlink.
+	// Although the VFS is case-insensitive, symlink resolution is intentionally case-sensitive.
+	// That way a DPK unpacked to a dpkdir should work correctly on any system.
 	// Returns: Length of the opened file, if successful.
 	offset_t OpenFileWithSymlinkResolution(Str::StringRef name, offset_t offset, std::error_code& err)
 	{
@@ -1077,7 +1079,7 @@ static std::unordered_set<std::pair<std::string, std::string>, stdStringPairHash
 
 // Map of filenames to pak files. The size_t is an offset into loadedPaks and
 // the offset_t is the position within the zip archive (unused for PAK_DIR).
-static std::unordered_map<std::string, std::pair<uint32_t, offset_t>> fileMap;
+static std::unordered_map<std::string, std::pair<uint32_t, offset_t>, Str::IHash, Str::IEqual> fileMap;
 
 #ifndef BUILD_VM
 /* Parse the deleted file list file of a package.
@@ -1549,7 +1551,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
 	if (pak.type == pakType_t::PAK_DIR) {
 		// Open file
-		File file = RawPath::OpenRead(Path::Build(pak.path, path), err);
+		File file = RawPath::OpenRead(Path::Build(pak.path, it->first), err);
 		if (err)
 			return "";
 
@@ -1570,7 +1572,7 @@ std::string ReadFile(Str::StringRef path, std::error_code& err)
 			return "";
 
 		// Open file in zip
-		offset_t length = zipFile.OpenFileWithSymlinkResolution(path, it->second.second, err);
+		offset_t length = zipFile.OpenFileWithSymlinkResolution(it->first, it->second.second, err);
 		if (err)
 			return "";
 
@@ -1603,7 +1605,7 @@ void CopyFile(Str::StringRef path, const File& dest, std::error_code& err)
 
 	const LoadedPakInfo& pak = loadedPaks[it->second.first];
 	if (pak.type == pakType_t::PAK_DIR) {
-		File file = RawPath::OpenRead(Path::Build(pak.path, path), err);
+		File file = RawPath::OpenRead(Path::Build(pak.path, it->first), err);
 		if (err)
 			return;
 		file.CopyTo(dest, err);
@@ -1673,7 +1675,7 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 	if (pak.type == pakType_t::PAK_DIR) {
 #ifdef BUILD_VM
 		Util::optional<uint64_t> result;
-		VM::SendMsg<VM::FSPakPathTimestampMsg>(it->second.first, path, result);
+		VM::SendMsg<VM::FSPakPathTimestampMsg>(it->second.first, it->first, result);
 		if (result) {
 			ClearErrorCode(err);
 			return std::chrono::system_clock::from_time_t(*result);
@@ -1682,7 +1684,7 @@ std::chrono::system_clock::time_point FileTimestamp(Str::StringRef path, std::er
 			return {};
 		}
 #else
-		return RawPath::FileTimestamp(Path::Build(pak.path, path), err);
+		return RawPath::FileTimestamp(Path::Build(pak.path, it->first), err);
 #endif
 	} else if (pak.type == pakType_t::PAK_ZIP) {
 		return pak.timestamp;
@@ -2873,7 +2875,7 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 {
 	switch (minor) {
 	case VM::FS_INITIALIZE:
-		IPC::HandleMsg<VM::FSInitializeMsg>(channel, std::move(reader), [](std::string& homePath, std::string& libPath, std::vector<FS::PakInfo>& availablePaks, std::vector<FS::LoadedPakInfo>& loadedPaks, std::unordered_map<std::string, std::pair<uint32_t, FS::offset_t>>& fileMap) {
+		IPC::HandleMsg<VM::FSInitializeMsg>(channel, std::move(reader), [](std::string& homePath, std::string& libPath, std::vector<FS::PakInfo>& availablePaks, std::vector<FS::LoadedPakInfo>& loadedPaks, std::unordered_map<std::string, std::pair<uint32_t, FS::offset_t>, Str::IHash, Str::IEqual>& fileMap) {
 			homePath = GetHomePath();
 			libPath = GetLibPath();
 			availablePaks = GetAvailablePaks();
@@ -2935,6 +2937,7 @@ void HandleFileSystemSyscall(int minor, Util::Reader& reader, IPC::Channel& chan
 		});
 		break;
 
+	// This is case-sensitive (if the OS is). The VM side should fix the case to match exactly
 	case VM::FS_PAKPATH_TIMESTAMP:
 		IPC::HandleMsg<VM::FSPakPathTimestampMsg>(channel, std::move(reader), [](uint32_t pakIndex, std::string path, Util::optional<uint64_t>& out) {
 			auto& loadedPaks = FS::PakPath::GetLoadedPaks();

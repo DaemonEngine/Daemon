@@ -281,6 +281,7 @@ endif()
 set(ENGINETESTLIST
     ${LIB_DIR}/tinyformat/TinyformatTest.cpp
     ${COMMON_DIR}/ColorTest.cpp
+    ${COMMON_DIR}/FileSystemTest.cpp
     ${COMMON_DIR}/StringTest.cpp
     ${COMMON_DIR}/cm/unittest.cpp
     ${COMMON_DIR}/MathTest.cpp
