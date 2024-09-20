@@ -93,7 +93,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
 	cvar_t      *r_noMarksOnTrisurfs;
-	cvar_t      *r_lazyShaders;
+
+	/* Default value is 1: Delay GLSL shader build until first map load.
+
+	This makes possible for the user to quickly reach the game main menu
+	without building all GLSL shaders and set a low graphics preset before
+	joining a game and loading a map.
+
+	Doing so prevents building unwanted or unsupported GLSL shaders on slow
+	and/or old hardware and drastically reduce first startup time. */
+	Cvar::Range<Cvar::Cvar<int>> r_lazyShaders(
+		"r_lazyShaders", "build GLSL shaders (0) on startup, (1) on map load or (2) when used",
+		Cvar::NONE, 1, 0, 2);
 
 	cvar_t      *r_checkGLErrors;
 	cvar_t      *r_logFile;
@@ -1122,16 +1133,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_heatHaze = Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_noMarksOnTrisurfs = Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
 
-		/* 1: Delay GLSL shader build until first map load.
-
-		This makes possible for the user to quickly reach the game main menu
-		without building all GLSL shaders and set a low graphics preset before
-		joining a game and loading a map.
-
-		Doing so prevents building unwanted or unsupported GLSL shaders on slow
-		and/or old hardware and drastically reduce first startup time. */
-		r_lazyShaders = Cvar_Get( "r_lazyShaders", "1", 0 );
-
 		r_wolfFog = Cvar_Get( "r_wolfFog", "1", CVAR_CHEAT );
 		r_noFog = Cvar_Get( "r_noFog", "0", CVAR_CHEAT );
 
@@ -1556,7 +1557,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	void RE_EndRegistration()
 	{
 		R_SyncRenderThread();
-		if ( r_lazyShaders->integer == 1 )
+		if ( r_lazyShaders.Get() == 1 )
 		{
 			GLSL_FinishGPUShaders();
 		}
