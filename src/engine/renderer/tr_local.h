@@ -1146,7 +1146,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		bool            isCubeMap;
 
-		int             deformIndex;
+		int deformIndex; // FIXME: should be on the shader level, not per-stage
 		bool        overrideNoPicMip; // for images that must always be full resolution
 		bool        overrideFilterType; // for console fonts, 2D elements, etc.
 		filterType_t    filterType;
