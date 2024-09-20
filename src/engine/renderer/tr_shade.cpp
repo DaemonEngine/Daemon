@@ -190,6 +190,11 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_depthReductionShader );
 	}
 
+	if ( tr.world ) // this only happens with /glsl_restart
+	{
+		GLSL_InitWorldShaders();
+	}
+
 	if ( glConfig2.realtimeLighting )
 	{
 		realtimeLightingRenderer_t realtimeLightingRenderer = realtimeLightingRenderer_t( r_realtimeLightingRenderer.Get() );
