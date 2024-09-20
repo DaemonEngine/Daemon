@@ -597,8 +597,8 @@ class GLUniformSampler2D : protected GLUniformSampler {
 
 class GLUniformSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler3D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "sampler3D", 1 ) {
+	GLUniformSampler3D( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "sampler3D", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -619,8 +619,8 @@ class GLUniformSampler3D : protected GLUniformSampler {
 
 class GLUniformUSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformUSampler3D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "usampler3D", 1 ) {
+	GLUniformUSampler3D( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "usampler3D", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -2393,7 +2393,7 @@ class u_LightTiles :
 	GLUniformSampler3D {
 	public:
 	u_LightTiles( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightTiles" ) {
+		GLUniformSampler3D( shader, "u_LightTiles", true ) {
 	}
 
 	void SetUniform_LightTilesBindless( GLuint64 bindlessHandle ) {
@@ -2409,7 +2409,7 @@ class u_LightGrid1 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid1( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid1" ) {
+		GLUniformSampler3D( shader, "u_LightGrid1", true ) {
 	}
 
 	void SetUniform_LightGrid1Bindless( GLuint64 bindlessHandle ) {
@@ -2425,7 +2425,7 @@ class u_LightGrid2 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid2( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid2" ) {
+		GLUniformSampler3D( shader, "u_LightGrid2", true ) {
 	}
 
 	void SetUniform_LightGrid2Bindless( GLuint64 bindlessHandle ) {
@@ -3553,7 +3553,7 @@ class u_EnvironmentInterpolation :
 {
 public:
 	u_EnvironmentInterpolation( GLShader *shader ) :
-		GLUniform1f( shader, "u_EnvironmentInterpolation" )
+		GLUniform1f( shader, "u_EnvironmentInterpolation", true )
 	{
 	}
 
@@ -3568,7 +3568,7 @@ class u_Time :
 {
 public:
 	u_Time( GLShader *shader ) :
-		GLUniform1f( shader, "u_Time" )
+		GLUniform1f( shader, "u_Time", true ) // Source this from a buffer when entity support is added to the material system
 	{
 	}
 
@@ -3963,16 +3963,12 @@ class GLShader_genericMaterial :
 	public u_InverseLightFactor,
 	public u_ColorModulate,
 	public u_Color,
-	// public u_Bones,
-	public u_VertexInterpolation,
 	public u_DepthScale,
 	public u_ShowTris,
 	public u_MaterialColour,
 	public u_ProfilerZero,
 	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
 	public GLCompileMacro_USE_DEPTH_FADE {
@@ -4056,8 +4052,6 @@ class GLShader_lightMappingMaterial :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
-	// public u_Bones,
-	public u_VertexInterpolation,
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
@@ -4072,8 +4066,6 @@ class GLShader_lightMappingMaterial :
 	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_DELUXE_MAPPING,
 	public GLCompileMacro_USE_GRID_LIGHTING,
 	public GLCompileMacro_USE_GRID_DELUXE_MAPPING,
@@ -4288,16 +4280,12 @@ class GLShader_reflectionMaterial :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	// public u_Bones,
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
-	public u_VertexInterpolation,
 	public u_CameraPosition,
 	public u_InverseLightFactor,
 	public GLDeformStage,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
@@ -4368,14 +4356,10 @@ class GLShader_fogQuake3Material :
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
 	public u_Color,
-	// public u_Bones,
-	public u_VertexInterpolation,
 	public u_FogDistanceVector,
 	public u_FogDepthVector,
 	public u_FogEyeT,
-	public GLDeformStage,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION {
+	public GLDeformStage {
 	public:
 	GLShader_fogQuake3Material( GLShaderManager* manager );
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
@@ -4442,12 +4426,8 @@ class GLShader_heatHazeMaterial :
 	public u_ProjectionMatrixTranspose,
 	public u_ColorModulate,
 	public u_Color,
-	// public u_Bones,
 	public u_NormalScale,
-	public u_VertexInterpolation,
-	public GLDeformStage,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION
+	public GLDeformStage
 {
 public:
 	GLShader_heatHazeMaterial( GLShaderManager* manager );

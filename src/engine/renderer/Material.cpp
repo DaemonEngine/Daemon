@@ -260,8 +260,6 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 	}
 
-	gl_genericShaderMaterial->SetUniform_VertexInterpolation( false );
-
 	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
@@ -300,20 +298,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
-
-	// TODO: Update this when this is extended to MDV support
-	gl_lightMappingShaderMaterial->SetUniform_VertexInterpolation( false );
-
-	if ( glConfig2.realtimeLighting ) {
-		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
-
-		// bind u_LightTiles
-		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
-			gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
-				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
-			);
-		}
-	}
 
 	// u_DeformGen
 	gl_lightMappingShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
@@ -394,8 +378,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 		gl_lightMappingShaderMaterial->SetUniform_LightMapBindless(
 			GL_BindToTMU( BIND_LIGHTMAP, lightmap )
 		);
-	} else {
-		gl_lightMappingShaderMaterial->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, lightmap ) );
 	}
 
 	// bind u_DeluxeMap
@@ -403,8 +385,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 		gl_lightMappingShaderMaterial->SetUniform_DeluxeMapBindless(
 			GL_BindToTMU( BIND_DELUXEMAP, deluxemap )
 		);
-	} else {
-		gl_lightMappingShaderMaterial->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, deluxemap ) );
 	}
 
 	// bind u_GlowMap
@@ -429,8 +409,6 @@ void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawS
 		return;
 	}
 	drawSurf->initialized[stage] = true;
-
-	gl_reflectionShaderMaterial->SetUniform_VertexInterpolation( false );
 
 	// bind u_NormalMap
 	gl_reflectionShaderMaterial->SetUniform_NormalMapBindless(
@@ -1004,7 +982,6 @@ void BindShaderNOP( Material* ) {
 
 void BindShaderGeneric3D( Material* material ) {
 	// Select shader permutation.
-	gl_genericShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 	gl_genericShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
 	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
@@ -1029,7 +1006,6 @@ void BindShaderGeneric3D( Material* material ) {
 
 void BindShaderLightMapping( Material* material ) {
 	// Select shader permutation.
-	gl_lightMappingShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 	gl_lightMappingShaderMaterial->SetBspSurface( material->bspSurface );
 	gl_lightMappingShaderMaterial->SetDeluxeMapping( material->enableDeluxeMapping );
 	gl_lightMappingShaderMaterial->SetGridLighting( material->enableGridLighting );
@@ -1050,6 +1026,27 @@ void BindShaderLightMapping( Material* material ) {
 		gl_lightMappingShaderMaterial->SetUniform_LightGridScale( tr.world->lightGridGLScale );
 	}
 	// FIXME: else
+
+	// bind u_LightGrid1
+	if ( material->enableGridLighting ) {
+		gl_lightMappingShaderMaterial->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, tr.lightGrid1Image ) );
+	}
+
+	// bind u_LightGrid2
+	if ( material->enableGridDeluxeMapping ) {
+		gl_lightMappingShaderMaterial->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, tr.lightGrid2Image ) );
+	}
+
+	if ( glConfig2.realtimeLighting ) {
+		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
+
+		// bind u_LightTiles
+		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
+			gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
+				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
+			);
+		}
+	}
 
 	gl_lightMappingShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
 	gl_lightMappingShaderMaterial->SetUniform_numLights( backEnd.refdef.numLights );
@@ -1107,7 +1104,6 @@ void BindShaderReflection( Material* material ) {
 	// Select shader permutation.
 	gl_reflectionShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_reflectionShaderMaterial->SetReliefMapping( material->enableReliefMapping );
-	gl_reflectionShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 
 	// Bind shader program.
 	gl_reflectionShaderMaterial->BindProgram( material->deformIndex );
@@ -1137,9 +1133,6 @@ void BindShaderScreen( Material* material ) {
 }
 
 void BindShaderHeatHaze( Material* material ) {
-	// Select shader permutation.
-	gl_heatHazeShaderMaterial->SetVertexAnimation( material->vertexAnimation );
-
 	// Bind shader program.
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
 
@@ -1188,12 +1181,9 @@ void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* ) {
 void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* ) {
 	material->shader = gl_genericShaderMaterial;
 
-	material->vertexAnimation = false;
 	material->tcGenEnvironment = pStage->tcGen_Environment;
 	material->tcGen_Lightmap = pStage->tcGen_Lightmap;
 	material->deformIndex = pStage->deformIndex;
-
-	gl_genericShaderMaterial->SetVertexAnimation( false );
 
 	gl_genericShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );
@@ -1208,10 +1198,8 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
 	material->shader = gl_lightMappingShaderMaterial;
 
-	material->vertexAnimation = false;
 	material->bspSurface = false;
 
-	gl_lightMappingShaderMaterial->SetVertexAnimation( false );
 	gl_lightMappingShaderMaterial->SetBspSurface( drawSurf->bspSurface );
 
 	lightMode_t lightMode;
@@ -1256,14 +1244,11 @@ void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, drawS
 
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
-	material->vertexAnimation = false;
 	material->deformIndex = pStage->deformIndex;
 
 	gl_reflectionShaderMaterial->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_reflectionShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
-
-	gl_reflectionShaderMaterial->SetVertexAnimation( false );
 
 	material->program = gl_reflectionShaderMaterial->GetProgram( pStage->deformIndex );
 }
@@ -1287,10 +1272,8 @@ void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, drawSurf_
 void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* ) {
 	material->shader = gl_heatHazeShaderMaterial;
 
-	material->vertexAnimation = false;
 	material->deformIndex = pStage->deformIndex;
 
-	gl_heatHazeShaderMaterial->SetVertexAnimation( false );
 	material->program = gl_heatHazeShaderMaterial->GetProgram( pStage->deformIndex );
 }
 

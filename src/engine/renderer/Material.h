@@ -94,7 +94,6 @@ struct Material {
 	GLShader* shader;
 
 	int deformIndex;
-	bool vertexAnimation;
 	bool tcGenEnvironment;
 	bool tcGen_Lightmap;
 	bool hasDepthFade;
