@@ -489,9 +489,9 @@ public:
 
 class GLUniformSampler : protected GLUniform {
 	protected:
-	GLUniformSampler( GLShader* shader, const char* name, const char* type, const GLuint size ) :
+	GLUniformSampler( GLShader* shader, const char* name, const char* type, const GLuint size, const bool global = false ) :
 		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? size * 2 : size,
-									   glConfig2.bindlessTexturesAvailable ? size * 2 : size, false, 0, true ) {
+									   glConfig2.bindlessTexturesAvailable ? size * 2 : size, global, 0, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -588,8 +588,8 @@ class GLUniformSampler2D : protected GLUniformSampler {
 
 class GLUniformSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler3D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "sampler3D", 1 ) {
+	GLUniformSampler3D( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "sampler3D", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -610,8 +610,8 @@ class GLUniformSampler3D : protected GLUniformSampler {
 
 class GLUniformUSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformUSampler3D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "usampler3D", 1 ) {
+	GLUniformUSampler3D( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "usampler3D", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -632,8 +632,8 @@ class GLUniformUSampler3D : protected GLUniformSampler {
 
 class GLUniformSamplerCube : protected GLUniformSampler {
 	protected:
-	GLUniformSamplerCube( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "samplerCube", 1 ) {
+	GLUniformSamplerCube( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "samplerCube", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -813,8 +813,8 @@ class GLUniform1Bool : protected GLUniform {
 class GLUniform1f : protected GLUniform
 {
 protected:
-	GLUniform1f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name, "float", 1, 1, false )
+	GLUniform1f( GLShader *shader, const char *name, const bool global = false ) :
+	GLUniform( shader, name, "float", 1, 1, global )
 	{
 	}
 
@@ -2449,7 +2449,7 @@ class u_LightTilesInt :
 	GLUniformUSampler3D {
 	public:
 	u_LightTilesInt( GLShader* shader ) :
-		GLUniformUSampler3D( shader, "u_LightTilesInt" ) {
+		GLUniformUSampler3D( shader, "u_LightTilesInt", true ) {
 	}
 
 	void SetUniform_LightTilesIntBindless( GLuint64 bindlessHandle ) {
@@ -2465,7 +2465,7 @@ class u_LightGrid1 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid1( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid1" ) {
+		GLUniformSampler3D( shader, "u_LightGrid1", true ) {
 	}
 
 	void SetUniform_LightGrid1Bindless( GLuint64 bindlessHandle ) {
@@ -2481,7 +2481,7 @@ class u_LightGrid2 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid2( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid2" ) {
+		GLUniformSampler3D( shader, "u_LightGrid2", true ) {
 	}
 
 	void SetUniform_LightGrid2Bindless( GLuint64 bindlessHandle ) {
@@ -2497,7 +2497,7 @@ class u_EnvironmentMap0 :
 	GLUniformSamplerCube {
 	public:
 	u_EnvironmentMap0( GLShader* shader ) :
-		GLUniformSamplerCube( shader, "u_EnvironmentMap0" ) {
+		GLUniformSamplerCube( shader, "u_EnvironmentMap0", true ) {
 	}
 
 	void SetUniform_EnvironmentMap0Bindless( GLuint64 bindlessHandle ) {
@@ -2513,7 +2513,7 @@ class u_EnvironmentMap1 :
 	GLUniformSamplerCube {
 	public:
 	u_EnvironmentMap1( GLShader* shader ) :
-		GLUniformSamplerCube( shader, "u_EnvironmentMap1" ) {
+		GLUniformSamplerCube( shader, "u_EnvironmentMap1", true ) {
 	}
 
 	void SetUniform_EnvironmentMap1Bindless( GLuint64 bindlessHandle ) {
@@ -3496,7 +3496,7 @@ class u_VertexInterpolation :
 {
 public:
 	u_VertexInterpolation( GLShader *shader ) :
-		GLUniform1f( shader, "u_VertexInterpolation" )
+		GLUniform1f( shader, "u_VertexInterpolation", true )
 	{
 	}
 
@@ -3571,7 +3571,7 @@ class u_EnvironmentInterpolation :
 {
 public:
 	u_EnvironmentInterpolation( GLShader *shader ) :
-		GLUniform1f( shader, "u_EnvironmentInterpolation" )
+		GLUniform1f( shader, "u_EnvironmentInterpolation", true )
 	{
 	}
 
@@ -3586,7 +3586,7 @@ class u_Time :
 {
 public:
 	u_Time( GLShader *shader ) :
-		GLUniform1f( shader, "u_Time" )
+		GLUniform1f( shader, "u_Time", true ) // Source this from a buffer when entity support is added to the material system
 	{
 	}
 
