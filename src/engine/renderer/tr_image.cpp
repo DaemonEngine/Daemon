@@ -2224,7 +2224,7 @@ float R_FogFactor( float s, float t )
 		return 0;
 	}
 
-	if ( t < 31.0f / 320.0f )
+	if ( t < 31.0f / 32.0f )
 	{
 		s *= ( t - 1.0f / 32.0f ) / ( 30.0f / 32.0f );
 	}
