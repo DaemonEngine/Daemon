@@ -58,7 +58,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 samplerCube u_EnvironmentMap0 = samplerCube( u_EnvironmentMap0_initial );
 samplerCube u_EnvironmentMap1 = samplerCube( u_EnvironmentMap1_initial );
 #endif // !USE_REFLECTIVE_SPECULAR */
-usampler3D u_LightTiles = usampler3D( u_LightTiles_initial );
 #endif // !COMPUTELIGHT_GLSL
 
 #if defined(FOGQUAKE3_GLSL)
@@ -77,16 +76,12 @@ sampler2D u_DiffuseMap = sampler2D( u_DiffuseMap_initial );
 sampler2D u_MaterialMap = sampler2D( u_MaterialMap_initial );
 sampler2D u_GlowMap = sampler2D( u_GlowMap_initial );
 sampler2D u_LightMap = sampler2D( u_LightMap_initial );
-sampler3D u_LightGrid1 = sampler3D( u_LightGrid1_initial );
 sampler2D u_DeluxeMap = sampler2D( u_DeluxeMap_initial );
-sampler3D u_LightGrid2 = sampler3D( u_LightGrid2_initial );
 #endif // !LIGHTMAPPING_GLSL
 
 #if defined(LIQUID_GLSL)
 sampler2D u_PortalMap = sampler2D( u_PortalMap_initial );
 sampler2D u_DepthMap = sampler2D( u_DepthMap_initial );
-sampler3D u_LightGrid1 = sampler3D( u_LightGrid1_initial );
-sampler3D u_LightGrid2 = sampler3D( u_LightGrid2_initial );
 #endif // !LIQUID_GLSL
 
 #if defined(REFLECTION_CB_GLSL)

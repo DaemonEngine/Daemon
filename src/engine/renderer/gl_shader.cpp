@@ -2246,16 +2246,12 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	u_InverseLightFactor( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
-	// u_Bones( this ),
-	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
 	u_ProfilerZero( this ),
 	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
@@ -2359,8 +2355,6 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
-	// u_Bones( this ),
-	u_VertexInterpolation( this ),
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
@@ -2375,8 +2369,6 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_DELUXE_MAPPING( this ),
 	GLCompileMacro_USE_GRID_LIGHTING( this ),
 	GLCompileMacro_USE_GRID_DELUXE_MAPPING( this ),
@@ -2655,16 +2647,12 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manag
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	// u_Bones( this ),
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
-	u_VertexInterpolation( this ),
 	u_CameraPosition( this ),
 	u_InverseLightFactor( this ),
 	GLDeformStage( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
 }
@@ -2745,14 +2733,10 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
 	u_Color( this ),
-	// u_Bones( this ),
-	u_VertexInterpolation( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
-	GLDeformStage( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ) {
+	GLDeformStage( this ) {
 }
 
 void GLShader_fogQuake3Material::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
@@ -2827,12 +2811,8 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	u_ProjectionMatrixTranspose( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
-	// u_Bones( this ),
 	u_NormalScale( this ),
-	u_VertexInterpolation( this ),
-	GLDeformStage( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this )
+	GLDeformStage( this )
 {
 }
 
