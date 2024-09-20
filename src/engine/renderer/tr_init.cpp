@@ -1065,6 +1065,23 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		GLSL_ShutdownGPUShaders();
 		GLSL_InitGPUShaders();
+
+		for ( int i = 0; i < tr.numShaders; i++ )
+		{
+			shader_t &shader = *tr.shaders[ i ];
+			if ( shader.stages == shader.lastStage || shader.stages[ 0 ].deformIndex == 0 )
+			{
+				continue;
+			}
+
+			int deformIndex =
+				gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms );
+
+			for ( shaderStage_t *stage = shader.stages; stage != shader.lastStage; stage++ )
+			{
+				stage->deformIndex = deformIndex;
+			}
+		}
 	}
 
 	/*
