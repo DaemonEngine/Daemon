@@ -5210,13 +5210,15 @@ static void FinishStages()
 
 	GroupActiveStages();
 
+	int deformIndex = shader.numDeforms > 0
+		? gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms )
+		: 0;
+
 	for ( size_t s = 0; s < numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
 
-		if ( shader.numDeforms > 0 ) {
-			stage->deformIndex = gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms );
-		}
+		stage->deformIndex = deformIndex;
 
 		// We should cancel overbright if there is no light stage.
 		stage->cancelOverBright = shaderHasNoLight;
