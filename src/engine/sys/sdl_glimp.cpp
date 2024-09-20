@@ -123,15 +123,42 @@ static Cvar::Cvar<bool> r_khr_debug( "r_khr_debug",
 static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
 	"Use GL_KHR_shader_subgroup if available", Cvar::NONE, true );
 
-static Cvar::Cvar<bool> workaround_extFbo_missingArbFbo( "workaround.extFbo.missingArbFbo", "Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available", Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_firstProvokingVertex_intel( "workaround.firstProvokingVertex.intel", "Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex", Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_gl21_intelGma3( "workaround.gl21.intelGma3", "Enable OpenGL 2.1 on Intel GMA Gen 3 hardware", Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_noBindlessTexture_mesa241( "workaround.noBindlessTexture.mesa241", "Disable ARB_bindless_texture on Mesa 24.1 driver", Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_noBindlessTexture_amdOglp( "workaround.noBindlessTexture.amdOglp", "Disable ARB_bindless_texture on AMD OGLP driver", Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_noHyperZ_mesaRv600( "workaround.noHyperZ.mesaRv600", "Disable Hyper-Z on Mesa driver on RV600 hardware", Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_noRgba16Blend_mesaRv300( "workaround.noRgba16Blend.mesaRv300", "Disable misdetected RGBA16 on Mesa driver on RV300 hardware", Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_noTextureGather_nvidia340( "workaround.noTextureGather.nvidia340", "Disable ARB_texture_gather on Nvidia 340 driver", Cvar::NONE, true );
-static Cvar::Cvar<bool> workaround_s3tc_mesa( "workaround.s3tc.mesa", "Enable S3TC on Mesa even when libtxc-dxtn is not available", Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
+	"workaround.glDriver.amd.oglp.disableBindlessTexture",
+	"Disable ARB_bindless_texture on AMD OGLP driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_disableRgba16Blend(
+	"workaround.glDriver.mesa.ati.rv300.disableRgba16Blend",
+	"Disable misdetected RGBA16 on Mesa driver on RV300 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv600_disableHyperZ(
+	"workaround.glDriver.mesa.ati.rv600.disableHyperZ",
+	"Disable Hyper-Z on Mesa driver on RV600 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_forceS3tc(
+	"workaround.glDriver.mesa.forceS3tc",
+	"Enable S3TC on Mesa even when libtxc-dxtn is not available",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_forceGL21(
+	"workaround.glDriver.mesa.intel.gma3.forceGL21",
+	"Enable OpenGL 2.1 on Intel GMA Gen 3 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_v241_disableBindlessTexture(
+	"workaround.glDriver.mesa.v241.disableBindlessTexture",
+	"Disable ARB_bindless_texture on Mesa 24.1 driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_nvidia_v340_disableTextureGather(
+	"workaround.glDriver.nvidia.v340.disableTextureGather",
+	"Disable ARB_texture_gather on Nvidia 340 driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_missingArbFbo_useExtFbo(
+	"workaround.glExtension.missingArbFbo.useExtFbo",
+	"Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
+	"workaround.glHardware.intel.useFirstProvokinVertex",
+	"Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex",
+	Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
@@ -1450,7 +1477,7 @@ static bool IsSdlVideoRestartNeeded()
 	with RV700 and RV800 cards that are also supported by the Mesa R600 driver.
 
 	The Mesa R600 driver has broken Hyper-Z wth RV600, not RV700 nor RV800. */
-	if ( workaround_noHyperZ_mesaRv600.Get() )
+	if ( workaround_glDriver_mesa_ati_rv600_disableHyperZ.Get() )
 	{
 		if ( getenv( "R600_HYPERZ" ) )
 		{
@@ -2060,7 +2087,7 @@ static void GLimp_InitExtensions()
 
 	/* Workaround for drivers not implementing the feature query or wrongly reporting the feature
 	to be supported, for various reasons. */
-	if ( workaround_noRgba16Blend_mesaRv300.Get() )
+	if ( workaround_glDriver_mesa_ati_rv300_disableRgba16Blend.Get() )
 	{
 		if ( glConfig2.textureRGBA16BlendAvailable != 0 && glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
 		{
@@ -2102,7 +2129,7 @@ static void GLimp_InitExtensions()
 		lighting so it is likely this feature would be disabled to
 		get acceptable framerate on this hardware anyway, making the
 		need for such extension and the related shader code useless. */
-		if ( workaround_noTextureGather_nvidia340.Get() )
+		if ( workaround_glDriver_nvidia_v340_disableTextureGather.Get() )
 		{
 			bool foundNvidia340 = ( glConfig2.driverVendor == glDriverVendor_t::NVIDIA
 			&& Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
@@ -2118,7 +2145,7 @@ static void GLimp_InitExtensions()
 		}
 	}
 	
-	if ( workaround_firstProvokingVertex_intel.Get() )
+	if ( workaround_glHardware_intel_useFirstProvokinVertex.Get() )
 	{
 		bool foundIntel = glConfig2.hardwareVendor == glHardwareVendor_t::INTEL;
 
@@ -2166,7 +2193,7 @@ static void GLimp_InitExtensions()
 	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
 
 	{
-		int flag = ExtFlag_CORE | ( workaround_extFbo_missingArbFbo.Get() ? 0 : ExtFlag_REQUIRED );
+		int flag = ExtFlag_CORE | ( workaround_glExtension_missingArbFbo_useExtFbo.Get() ? 0 : ExtFlag_REQUIRED );
 
 		// made required in OpenGL 3.0
 		if ( LOAD_EXTENSION( flag, ARB_framebuffer_object ) )
@@ -2253,7 +2280,7 @@ static void GLimp_InitExtensions()
 	{
 		bool foundMesa241 = false;
 
-		if ( workaround_noBindlessTexture_mesa241.Get() )
+		if ( workaround_glDriver_mesa_v241_disableBindlessTexture.Get() )
 		{
 			std::string mesaVersion = "";
 
@@ -2287,7 +2314,7 @@ static void GLimp_InitExtensions()
 
 		bool foundOglp = false;
 
-		if ( workaround_noBindlessTexture_amdOglp.Get() )
+		if ( workaround_glDriver_amd_oglp_disableBindlessTexture.Get() )
 		{
 			/* AMD OGLP driver for Linux shares the same vendor string than AMD Adrenalin driver
 			for Windows and AMD ATI driver for macOS. When running the Windows engine binary on
@@ -2445,15 +2472,15 @@ bool GLimp_Init()
 	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
 
-	Cvar::Latch( workaround_extFbo_missingArbFbo );
-	Cvar::Latch( workaround_firstProvokingVertex_intel );
-	Cvar::Latch( workaround_gl21_intelGma3 );
-	Cvar::Latch( workaround_noBindlessTexture_mesa241 );
-	Cvar::Latch( workaround_noBindlessTexture_amdOglp );
-	Cvar::Latch( workaround_noHyperZ_mesaRv600 );
-	Cvar::Latch( workaround_noRgba16Blend_mesaRv300 );
-	Cvar::Latch( workaround_noTextureGather_nvidia340 );
-	Cvar::Latch( workaround_s3tc_mesa );
+	Cvar::Latch( workaround_glDriver_amd_oglp_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_disableRgba16Blend );
+	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
+	Cvar::Latch( workaround_glDriver_mesa_forceS3tc );
+	Cvar::Latch( workaround_glDriver_mesa_intel_gma3_forceGL21 );
+	Cvar::Latch( workaround_glDriver_mesa_v241_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
+	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
+	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
 
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
@@ -2463,7 +2490,7 @@ bool GLimp_Init()
 
 	It should also be set on Win32 when running on Wine
 	on Linux anyway. */
-	if ( workaround_s3tc_mesa.Get() )
+	if ( workaround_glDriver_mesa_forceS3tc.Get() )
 	{
 		Sys::SetEnv( "force_s3tc_enable", "true" );
 	}
@@ -2502,7 +2529,7 @@ bool GLimp_Init()
 
 	It should also be set on Win32 when running on Wine
 	on Linux anyway. */
-	if ( workaround_gl21_intelGma3.Get() )
+	if ( workaround_glDriver_mesa_intel_gma3_forceGL21.Get() )
 	{
 		Sys::SetEnv( "fragment_shader", "true" );
 		Sys::SetEnv( "stub_occlusion_query", "true" );
