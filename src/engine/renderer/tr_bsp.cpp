@@ -6547,6 +6547,31 @@ void R_BuildCubeMaps()
 				continue;
 			}
 
+			// This eliminates most of the void nodes, however some may still be left around patch meshes
+			if ( !node->numMarkSurfaces ) {
+				continue;
+			}
+
+			// There might be leafs with only invisible surfaces
+			bool hasVisibleSurfaces = false;
+			int surfaceCount = node->numMarkSurfaces;
+			bspSurface_t** view = tr.world->viewSurfaces + node->firstMarkSurface;
+			while ( surfaceCount-- ) {
+				bspSurface_t* surface = *view;
+
+				view++;
+
+				if ( *(surface->data) == surfaceType_t::SF_FACE || *(surface->data) == surfaceType_t::SF_TRIANGLES
+					|| *(surface->data) == surfaceType_t::SF_VBO_MESH || *(surface->data) == surfaceType_t::SF_GRID ) {
+					hasVisibleSurfaces = true;
+					break;
+				}
+			}
+
+			if ( !hasVisibleSurfaces ) {
+				continue;
+			}
+
 			vec3_t origin;
 			VectorAdd( node->maxs, node->mins, origin );
 			VectorScale( origin, 0.5, origin );
