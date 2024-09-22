@@ -2637,7 +2637,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		image_t    *attenuationXYImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
-		image_t    *autoCubeImage; // special pointer to the nearest cubemap probe
 
 		image_t    *contrastRenderFBOImage;
 		image_t    *bloomRenderFBOImage[ 2 ];

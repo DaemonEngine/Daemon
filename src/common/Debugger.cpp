@@ -125,5 +125,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
 
 #else
-#error "Debugger.cpp unimplemented for this platform"
+#warning "Debugger.cpp unimplemented for this platform"
+
+    namespace Sys {
+        bool IsDebuggerAttached() {
+            return false;
+        }
+    }
+
 #endif

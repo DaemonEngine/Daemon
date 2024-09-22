@@ -2232,7 +2232,7 @@ float R_FogFactor( float s, float t )
 		return 0;
 	}
 
-	if ( t < 31.0f / 320.0f )
+	if ( t < 31.0f / 32.0f )
 	{
 		s *= ( t - 1.0f / 32.0f ) / ( 30.0f / 32.0f );
 	}
@@ -2768,17 +2768,12 @@ static void R_CreateShadowCubeFBOImage()
 // *INDENT-OFF*
 static void R_CreateBlackCubeImage()
 {
-	int  i;
-	int  width, height;
-	byte *data[ 6 ];
+	constexpr int width = REF_CUBEMAP_SIZE, height = REF_CUBEMAP_SIZE;
+	byte data[ 4 * width * height ];
 
-	width = REF_CUBEMAP_SIZE;
-	height = REF_CUBEMAP_SIZE;
-
-	for ( i = 0; i < 6; i++ )
+	for ( int i = 0; i < width * height; i++ )
 	{
-		data[ i ] = (byte*) ri.Hunk_AllocateTempMemory( width * height * 4 );
-		memset( data[ i ], 0, width * height * 4 );
+		Vector4Set( data + 4 * i, 0, 0, 0, 255 );
 	}
 
 	imageParams_t imageParams = {};
@@ -2786,13 +2781,8 @@ static void R_CreateBlackCubeImage()
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-	tr.blackCubeImage = R_CreateCubeImage( "_blackCube", ( const byte ** ) data, width, height, imageParams );
-	tr.autoCubeImage = R_CreateCubeImage( "_autoCube", ( const byte ** ) data, width, height, imageParams );
-
-	for ( i = 5; i >= 0; i-- )
-	{
-		ri.Hunk_FreeTempMemory( data[ i ] );
-	}
+	const byte *dataPtrs[ 6 ] = { data, data, data, data, data, data };
+	tr.blackCubeImage = R_CreateCubeImage( "_blackCube", dataPtrs, width, height, imageParams );
 }
 
 // *INDENT-ON*

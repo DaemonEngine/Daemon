@@ -280,6 +280,19 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 #else
 	Q_UNUSED(bootstrap);
 	args.push_back(nacl_loader.c_str());
+
+	#if defined(__FreeBSD__)
+		/* While it is possible to build a native FreeBSD engine, the only available NaCl loader
+		is the Linux one, which can run on Linuxulator (the FreeBSD Linux compatibility layer).
+		The Linux NaCl loader binary fails to qualify the platform and aborts with this message:
+
+			Bus error (core dumped)
+
+		The Linux NaCl loader runs properly on Linuxulator when we disable the qualification.
+		It also works without nacl_helper_bootstrap. */
+
+		args.push_back("-Q");
+	#endif
 #endif
 	if (debug) {
 		args.push_back("-g");

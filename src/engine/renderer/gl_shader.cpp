@@ -390,6 +390,55 @@ static std::string BuildDeformSteps( deformStage_t *deforms, int numDeforms )
 	return steps;
 }
 
+struct addedExtension_t {
+	bool &available;
+	int minGlslVersion;
+	std::string name;
+};
+
+// Fragment and vertex version declaration.
+static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
+	{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
+	{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
+	{ glConfig2.textureGatherAvailable, 400, "ARB_texture_gather" },
+	{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
+	{ glConfig2.textureRGAvailable, 0, "ARB_texture_rg" },
+	{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
+	{ glConfig2.bindlessTexturesAvailable, -1, "ARB_bindless_texture" },
+	/* ARB_shader_draw_parameters set to -1, because we might get a 4.6 GL context,
+	where the core variables have different names. */
+	{ glConfig2.shaderDrawParametersAvailable, -1, "ARB_shader_draw_parameters" },
+	{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
+};
+
+// Compute version declaration, this has to be separate from other shader stages,
+// because some things are unique to vertex/fragment or compute shaders.
+static const std::vector<addedExtension_t> computeAddedExtensions = {
+	{ glConfig2.computeShaderAvailable, 430, "ARB_compute_shader" },
+	{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
+	{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
+	{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
+	{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
+	{ glConfig2.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
+	{ glConfig2.explicitUniformLocationAvailable, 430, "ARB_explicit_uniform_location" },
+	{ glConfig2.shaderImageLoadStoreAvailable, 420, "ARB_shader_image_load_store" },
+	{ glConfig2.shaderAtomicCountersAvailable, 420, "ARB_shader_atomic_counters" },
+	/* ARB_shader_atomic_counter_ops set to -1,
+	because we might get a 4.6 GL context, where the core functions have different names. */
+	{ glConfig2.shaderAtomicCounterOpsAvailable, -1, "ARB_shader_atomic_counter_ops" },
+	{ glConfig2.bindlessTexturesAvailable, -1, "ARB_bindless_texture" },
+	/* Even though these are part of the GL_KHR_shader_subgroup extension, we need to enable
+	the individual extensions for each feature.
+	GL_KHR_shader_subgroup itself can't be used in the shader. */
+	{ glConfig2.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
+	{ glConfig2.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
+	{ glConfig2.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
+	{ glConfig2.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
+	{ glConfig2.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
+	{ glConfig2.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
+	{ glConfig2.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
+};
+
 static void addExtension( std::string& str, bool available, int minGlslVersion, const std::string& name ) {
 	if ( !available ) {
 		return;
@@ -417,84 +466,26 @@ static void AddConst( std::string& str, const std::string& name, float v1, float
 	str += Str::Format("const vec2 %s = vec2(%.8e, %.8e);\n", name, v1, v2);
 }
 
-static std::string GenVersionDeclaration() {
-	// Basic version declaration
+static std::string GenVersionDeclaration( const std::vector<addedExtension_t> &addedExtensions ) {
+	// Declare version.
 	std::string str = Str::Format( "#version %d %s\n",
 		glConfig2.shadingLanguageVersion,
 		glConfig2.shadingLanguageVersion >= 150 ? ( glConfig2.glCoreProfile ? "core" : "compatibility" ) : "" );
 
-	// add supported GLSL extensions
-	struct extension_t {
-		bool available;
-		int minGlslVersion;
-		std::string name;
-	};
-
-	const std::vector<extension_t> extensions = {
-		{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
-		{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
-		{ glConfig2.textureGatherAvailable, 400, "ARB_texture_gather" },
-		{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
-		{ glConfig2.textureRGAvailable, 0, "ARB_texture_rg" },
-		{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
-		{ glConfig2.bindlessTexturesAvailable, -1, "ARB_bindless_texture" },
-		// ARB_shader_draw_parameters set to -1, because we might get a 4.6 GL context, where the core variables have different names
-		{ glConfig2.shaderDrawParametersAvailable, -1, "ARB_shader_draw_parameters" },
-		{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
-	};
-
-	for ( const auto& extension : extensions ) {
-		addExtension( str, extension.available, extension.minGlslVersion, extension.name );
+	// Add supported GLSL extensions.
+	for ( const auto& addedExtension : addedExtensions ) {
+		addExtension( str, addedExtension.available, addedExtension.minGlslVersion, addedExtension.name );
 	}
 
 	return str;
 }
 
+static std::string GenFragmentVertexVersionDeclaration() {
+	return GenVersionDeclaration( fragmentVertexAddedExtensions );
+}
+
 static std::string GenComputeVersionDeclaration() {
-	// Compute version declaration, this has to be separate from other shader stages,
-	// because some things are unique to vertex/fragment or compute shaders
-	std::string str = Str::Format( "#version %d %s\n",
-		glConfig2.shadingLanguageVersion,
-		glConfig2.shadingLanguageVersion >= 150 ? ( glConfig2.glCoreProfile ? "core" : "compatibility" ) : "" );
-
-	// add supported GLSL extensions
-	struct extension_t {
-		bool available;
-		int minGlslVersion;
-		std::string name;
-	};
-
-	const std::vector<extension_t> extensions = {
-		{ glConfig2.computeShaderAvailable, 430, "ARB_compute_shader" },
-		{ glConfig2.gpuShader4Available, 130, "EXT_gpu_shader4" },
-		{ glConfig2.gpuShader5Available, 400, "ARB_gpu_shader5" },
-		{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
-		{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
-		{ glConfig2.shadingLanguage420PackAvailable, 420, "ARB_shading_language_420pack" },
-		{ glConfig2.explicitUniformLocationAvailable, 430, "ARB_explicit_uniform_location" },
-		{ glConfig2.shaderImageLoadStoreAvailable, 420, "ARB_shader_image_load_store" },
-		{ glConfig2.shaderAtomicCountersAvailable, 420, "ARB_shader_atomic_counters" },
-		/* ARB_shader_atomic_counter_ops set to -1,
-		because we might get a 4.6 GL context, where the core functions have different names */
-		{ glConfig2.shaderAtomicCounterOpsAvailable, -1, "ARB_shader_atomic_counter_ops" },
-		{ glConfig2.bindlessTexturesAvailable, -1, "ARB_bindless_texture" },
-		/* Even though these are part of the GL_KHR_shader_subgroup extension, we need to enable the individual extensions
-		for each feature
-		GL_KHR_shader_subgroup itself can't be used in the shader */
-		{ glConfig2.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
-		{ glConfig2.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
-		{ glConfig2.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
-		{ glConfig2.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
-		{ glConfig2.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
-		{ glConfig2.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
-		{ glConfig2.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
-	};
-
-	for ( const auto& extension : extensions ) {
-		addExtension( str, extension.available, extension.minGlslVersion, extension.name );
-	}
-
-	return str;
+	return GenVersionDeclaration( computeAddedExtensions );
 }
 
 static std::string GenCompatHeader() {
@@ -783,7 +774,7 @@ void GLShaderManager::InitDriverInfo()
 }
 
 void GLShaderManager::GenerateBuiltinHeaders() {
-	GLVersionDeclaration = GLHeader("GLVersionDeclaration", GenVersionDeclaration(), this);
+	GLVersionDeclaration = GLHeader("GLVersionDeclaration", GenFragmentVertexVersionDeclaration(), this);
 	GLComputeVersionDeclaration = GLHeader( "GLComputeVersionDeclaration", GenComputeVersionDeclaration(), this );
 	GLCompatHeader = GLHeader("GLCompatHeader", GenCompatHeader(), this);
 	GLVertexHeader = GLHeader("GLVertexHeader", GenVertexHeader(), this);

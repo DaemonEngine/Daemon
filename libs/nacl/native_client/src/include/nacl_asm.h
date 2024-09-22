@@ -14,7 +14,7 @@
  */
 #if NACL_OSX
 # define IDENTIFIER(n)  _##n
-#elif NACL_LINUX
+#elif NACL_LINUX || NACL_FREEBSD
 # define IDENTIFIER(n)  n
 #elif NACL_WINDOWS
 # if defined(_WIN64)
@@ -30,7 +30,7 @@
 
 #if NACL_OSX
 # define HIDDEN(n)  .private_extern IDENTIFIER(n)
-#elif NACL_LINUX
+#elif NACL_LINUX || NACL_FREEBSD
 # define HIDDEN(n)  .hidden IDENTIFIER(n)
 #elif NACL_WINDOWS
 /* On Windows, symbols are hidden by default. */

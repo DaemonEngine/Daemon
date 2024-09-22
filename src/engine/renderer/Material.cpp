@@ -1646,11 +1646,12 @@ void MaterialSystem::CullSurfaces() {
 
 		vec4_t frustumPlanes[6];
 		for ( int i = 0; i < 6; i++ ) {
-			VectorCopy( PVSLocked ? lockedFrustum[i].normal : frustum[0][i].normal, frustumPlanes[i] );
-			frustumPlanes[i][3] = PVSLocked ? lockedFrustum[i].dist : frustum[0][i].dist;
+			VectorCopy( PVSLocked ? lockedFrustums[view][i].normal : frustum[0][i].normal, frustumPlanes[i] );
+			frustumPlanes[i][3] = PVSLocked ? lockedFrustums[view][i].dist : frustum[0][i].dist;
 		}
 		matrix_t viewMatrix;
 		if ( PVSLocked ) {
+			VectorCopy( lockedOrigins[view], origin );
 			MatrixCopy( lockedViewMatrix, viewMatrix );
 		} else {
 			VectorCopy( frames[nextFrame].viewFrames[view].origin, origin );
@@ -1689,9 +1690,10 @@ void MaterialSystem::CullSurfaces() {
 		if ( r_lockpvs->integer == 1 && !PVSLocked ) {
 			PVSLocked = true;
 			for ( int i = 0; i < 6; i++ ) {
-				VectorCopy( frustum[0][i].normal, lockedFrustum[i].normal );
-				lockedFrustum[i].dist = frustum[0][i].dist;
+				VectorCopy( frustum[0][i].normal, lockedFrustums[view][i].normal );
+				lockedFrustums[view][i].dist = frustum[0][i].dist;
 			}
+			VectorCopy( origin, lockedOrigins[view] );
 			MatrixCopy( viewMatrix, lockedViewMatrix );
 		}
 
@@ -1930,6 +1932,10 @@ bool MaterialSystem::AddPortalSurface( uint32_t viewID, PortalSurface* portalSur
 
 void MaterialSystem::AddPortalSurfaces() {
 	if ( totalPortals == 0 ) {
+		return;
+	}
+
+	if ( r_lockpvs->integer ) {
 		return;
 	}
 
