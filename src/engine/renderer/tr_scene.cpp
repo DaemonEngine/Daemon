@@ -460,7 +460,6 @@ void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float radius, float r, floa
 }
 
 static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
-	// GLSL shader isn't built when reflection mapping is disabled.
 	const size_t globalID = r_showCubeProbeFace.Get();
 	const size_t probeID = globalID / 6;
 
