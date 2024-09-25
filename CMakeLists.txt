@@ -244,7 +244,9 @@ endif()
 # Dependencies version, this must match the number in external_deps/build.sh
 set(DEPS_VERSION 10)
 
-if (NOT NACL)
+option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
+
+if (USE_EXTERNAL_DEPS AND NOT NACL)
     set(EXTERNAL_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external_deps" CACHE STRING "Directory in which to store the downloaded dependencies.")
 
     set(DEPS_EXT ".tar.xz")
