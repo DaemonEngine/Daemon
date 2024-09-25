@@ -263,12 +263,9 @@ baseline will be transmitted
 */
 void SV_CreateBaseline()
 {
-	sharedEntity_t *svent;
-	int            entnum;
-
-	for ( entnum = 1; entnum < sv.num_entities; entnum++ )
+	for ( int entnum = MAX_CLIENTS; entnum < sv.num_entities; entnum++ )
 	{
-		svent = SV_GentityNum( entnum );
+		sharedEntity_t *svent = SV_GentityNum( entnum );
 
 		if ( !svent->r.linked )
 		{
