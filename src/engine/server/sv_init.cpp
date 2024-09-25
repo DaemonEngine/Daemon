@@ -52,6 +52,8 @@ static Cvar::Cvar<std::string> cvar_pakname(
 	"pakname", "pak containing current map", Cvar::SERVERINFO | Cvar::ROM, "");
 static Cvar::Cvar<std::string> sv_paks(
 	"sv_paks", "currently loaded paks", Cvar::SYSTEMINFO | Cvar::ROM, "");
+static Cvar::Cvar<bool> sv_useBaseline(
+	"sv_useBaseline", "send entity baseline for non-snapshot delta compression", Cvar::NONE, true);
 
 /*
 ===============
@@ -263,6 +265,14 @@ baseline will be transmitted
 */
 void SV_CreateBaseline()
 {
+	Cvar::Latch( sv_useBaseline );
+
+	if ( !sv_useBaseline.Get() )
+	{
+		// make a baseline with no entities
+		return;
+	}
+
 	for ( int entnum = MAX_CLIENTS; entnum < sv.num_entities; entnum++ )
 	{
 		sharedEntity_t *svent = SV_GentityNum( entnum );
