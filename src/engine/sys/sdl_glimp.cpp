@@ -76,6 +76,8 @@ static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform
 	"Use GL_ARB_explicit_uniform_location if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
 	"Use GL_ARB_gpu_shader5 if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_half_float_pixel( "r_arb_half_float_pixel",
+	"Use GL_ARB_half_float_pixel if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_indirect_parameters( "r_arb_indirect_parameters",
 	"Use GL_ARB_indirect_parameters if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_internalformat_query2( "r_arb_internalformat_query2",
@@ -106,8 +108,6 @@ static Cvar::Cvar<bool> r_ext_draw_buffers( "r_ext_draw_buffers",
 	"Use GL_EXT_draw_buffers if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_gpu_shader4( "r_ext_gpu_shader4",
 	"Use GL_EXT_gpu_shader4 if available", Cvar::NONE, true );
-static Cvar::Cvar<bool> r_ext_half_float_pixel( "r_ext_half_float_pixel",
-	"Use GL_EXT_half_float_pixel if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_occlusion_query( "r_ext_occlusion_query",
 	"Use GL_EXT_occlusion_query if available", Cvar::NONE, true );
 static Cvar::Range<Cvar::Cvar<float>> r_ext_texture_filter_anisotropic( "r_ext_texture_filter_anisotropic",
@@ -1955,6 +1955,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_depth_clamp );
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_gpu_shader5 );
+	Cvar::Latch( r_arb_half_float_pixel );
 	Cvar::Latch( r_arb_indirect_parameters );
 	Cvar::Latch( r_arb_internalformat_query2 );
 	Cvar::Latch( r_arb_map_buffer_range );
@@ -1970,7 +1971,6 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_uniform_buffer_object );
 	Cvar::Latch( r_ext_draw_buffers );
 	Cvar::Latch( r_ext_gpu_shader4 );
-	Cvar::Latch( r_ext_half_float_pixel );
 	Cvar::Latch( r_ext_occlusion_query );
 	Cvar::Latch( r_ext_texture_filter_anisotropic );
 	Cvar::Latch( r_ext_texture_float );
@@ -2025,7 +2025,7 @@ static void GLimp_InitExtensions()
 	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
 
 	// made required in OpenGL 3.0
-	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_ext_half_float_pixel.Get() );
+	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_arb_half_float_pixel.Get() );
 
 	// made required in OpenGL 3.0
 	glConfig2.textureFloatAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_float, r_ext_texture_float.Get() );
