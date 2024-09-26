@@ -72,6 +72,8 @@ static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
 	"Use GL_ARB_compute_shader if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_depth_clamp( "r_arb_depth_clamp",
 	"Use GL_ARB_depth_clamp if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_framebuffer_object( "r_arb_framebuffer_object",
+	"Use GL_ARB_framebuffer_object if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform_location",
 	"Use GL_ARB_explicit_uniform_location if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_gpu_shader5( "r_arb_gpu_shader5",
@@ -1961,6 +1963,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_compute_shader );
 	Cvar::Latch( r_arb_depth_clamp );
 	Cvar::Latch( r_arb_explicit_uniform_location );
+	Cvar::Latch( r_arb_framebuffer_object );
 	Cvar::Latch( r_arb_gpu_shader5 );
 	Cvar::Latch( r_arb_half_float_pixel );
 	Cvar::Latch( r_arb_indirect_parameters );
@@ -2203,33 +2206,36 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.0
 	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
 
+	if ( !workaround_glExtension_missingArbFbo_useExtFbo.Get() )
 	{
-		int flag = ExtFlag_CORE | ( workaround_glExtension_missingArbFbo_useExtFbo.Get() ? 0 : ExtFlag_REQUIRED );
-
 		// made required in OpenGL 3.0
-		if ( LOAD_EXTENSION( flag, ARB_framebuffer_object ) )
-		{
-			glFboSetArb();
-		}
-		else
-		{
-			LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_object );
+		LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_framebuffer_object );
+		glFboSetArb();
+	}
+	else if ( LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_framebuffer_object, r_arb_framebuffer_object.Get() ) )
+	{
+		glFboSetArb();
+	}
+	else
+	{
+		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_object );
 
-			/* Both EXT_framebuffer_object and EXT_framebuffer_blit are said to be
-			parts of ARB_framebuffer_object:
+		/* Both EXT_framebuffer_object and EXT_framebuffer_blit are said to be
+		parts of ARB_framebuffer_object:
 
-			> So there may be hardware that supports EXT_FBO and not ARB_FBO,
-			> even thought they support things like EXT_FBO_blit and other parts
-			> of ARB_FBO.
-			-- https://www.khronos.org/opengl/wiki/Framebuffer_Object
+		> So there may be hardware that supports EXT_FBO and not ARB_FBO,
+		> even thought they support things like EXT_FBO_blit and other parts
+		> of ARB_FBO.
+		-- https://www.khronos.org/opengl/wiki/Framebuffer_Object
 
-			Our code is known to require EXT_framebuffer_blit so if we don't find
-			ARB_framebuffer_object but find EXT_framebuffer_object we must
-			check for EXT_framebuffer_blit too. */
-			LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_blit );
+		Our code is known to require EXT_framebuffer_blit so if we don't find
+		ARB_framebuffer_object but find EXT_framebuffer_object we must
+		check for EXT_framebuffer_blit too. */
+		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_blit );
 
-			glFboSetExt();
-		}
+		logger.Warn( "Missing ARB_framebuffer_object, using EXT_framebuffer_object with EXT_framebuffer_blit instead." );
+
+		glFboSetExt();
 	}
 
 	// FBO
