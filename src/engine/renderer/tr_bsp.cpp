@@ -6777,7 +6777,8 @@ void R_BuildCubeMaps()
 		}
 
 		// build the cubemap
-		cubeProbe->cubemap = R_AllocImage( Str::Format( "_autoCube%d", i ).c_str(), false );
+		std::string name = Str::Format( "_autoCube%d", i );
+		cubeProbe->cubemap = R_AllocImage( name.c_str(), false );
 
 		if ( !cubeProbe->cubemap )
 		{
@@ -6795,7 +6796,7 @@ void R_BuildCubeMaps()
 
 		imageParams_t imageParams = {};
 
-		R_UploadImage( ( const byte ** ) tr.cubeTemp, 6, 1, cubeProbe->cubemap, imageParams );
+		R_UploadImage( name.c_str(), ( const byte ** ) tr.cubeTemp, 6, 1, cubeProbe->cubemap, imageParams );
 	}
 
 	r_gpuOcclusionCulling.Set( gpuOcclusionCulling );

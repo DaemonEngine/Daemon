@@ -792,7 +792,7 @@ level 1 has only numLayers/2 layers. There are still numLayers pointers in
 the dataArray for every mip level, the unneeded elements at the end aren't used.
 ===============
 */
-void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams )
+void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams )
 {
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
@@ -1021,6 +1021,8 @@ void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t 
 			}
 		}
 	}
+
+	Log::Debug( "Uploading image %s (%d×%d, %d layers, %0#x type, %0#x format)", name, scaledWidth, scaledHeight, numLayers, image->type, internalFormat );
 
 	// 3D textures are uploaded in slices via glTexSubImage3D,
 	// so the storage has to be allocated before the loop
@@ -1348,6 +1350,8 @@ R_AllocImage
 */
 image_t        *R_AllocImage( const char *name, bool linkIntoHashTable )
 {
+	Log::Debug( "Allocating image %s", name );
+
 	image_t *image;
 	unsigned hash;
 
@@ -1405,6 +1409,8 @@ R_CreateImage
 */
 image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams )
 {
+	Log::Debug( "Creating image %s (%d×%d, %d mips)", name, width, height, numMips );
+
 	image_t *image;
 
 	image = R_AllocImage( name, true );
@@ -1424,7 +1430,7 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( pic, 1, numMips, image, imageParams );
+	R_UploadImage( name, pic, 1, numMips, image, imageParams );
 
 	if( r_exportTextures->integer ) {
 		R_ExportTexture( image );
@@ -1505,7 +1511,7 @@ image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, i
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( pic, 6, 1, image, imageParams );
+	R_UploadImage( name, pic, 6, 1, image, imageParams );
 
 	if( r_exportTextures->integer ) {
 		R_ExportTexture( image );
@@ -1552,7 +1558,7 @@ image_t *R_Create3DImage( const char *name, const byte *pic, int width, int heig
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( pics, numLayers, 1, image, imageParams );
+	R_UploadImage( name, pics, numLayers, 1, image, imageParams );
 
 	if( pics ) {
 		ri.Hunk_FreeTempMemory( pics );
