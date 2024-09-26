@@ -6335,6 +6335,16 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 		shader.autoSpriteMode = 1;
 	}
 
+	if ( flags & RSF_NOMIP )
+	{
+		shader.noPicMip = true;
+	}
+
+	if ( flags & RSF_FITSCREEN )
+	{
+		shader.fitScreen = true;
+	}
+
 	// attempt to define shader from an explicit parameter file
 	shaderText = FindShaderInShaderText( strippedName );
 
@@ -6380,13 +6390,11 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	if ( flags & RSF_NOMIP )
 	{
 		bits |= IF_NOPICMIP;
-		shader.noPicMip = true;
 	}
 
 	if ( flags & RSF_FITSCREEN )
 	{
 		bits |= IF_FITSCREEN;
-		shader.fitScreen = true;
 	}
 
 	if ( flags & RSF_NOLIGHTSCALE )
