@@ -105,6 +105,8 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/Material.h
     ${ENGINE_DIR}/renderer/TextureManager.cpp
     ${ENGINE_DIR}/renderer/TextureManager.h
+    ${ENGINE_DIR}/renderer/TimerQuery.cpp
+    ${ENGINE_DIR}/renderer/TimerQuery.h
     ${ENGINE_DIR}/renderer/tr_image.cpp
     ${ENGINE_DIR}/renderer/tr_image.h
     ${ENGINE_DIR}/renderer/tr_image_crn.cpp

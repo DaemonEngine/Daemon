@@ -1625,8 +1625,12 @@ void MaterialSystem::DepthReduction() {
 
 void MaterialSystem::CullSurfaces() {
 	if ( r_gpuOcclusionCulling.Get() ) {
+		tr.GLTimerQueries[Util::ordinal( TimerQuery::DEPTH_REDUCTION )].Begin();
 		DepthReduction();
+		tr.GLTimerQueries[Util::ordinal( TimerQuery::DEPTH_REDUCTION )].End();
 	}
+
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::CULL )].Begin();
 
 	surfaceDescriptorsSSBO.BindBufferBase();
 	surfaceCommandsSSBO.BindBufferBase();
@@ -1719,6 +1723,8 @@ void MaterialSystem::CullSurfaces() {
 	if ( totalPortals > 0 ) {
 		portalSurfacesSSBO.UnBindBufferBase();
 	}
+
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::CULL )].End();
 
 	GL_CheckErrors();
 }

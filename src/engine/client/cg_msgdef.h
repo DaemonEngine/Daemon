@@ -165,6 +165,7 @@ enum cgameImport_t
   // Renderer
   CG_R_SETALTSHADERTOKENS,
   CG_R_GETSHADERNAMEFROMHANDLE,
+  CG_R_GETENGINETIMERS,
   CG_R_SCISSOR_ENABLE,
   CG_R_SCISSOR_SET,
   CG_R_INPVVS,
@@ -325,6 +326,10 @@ namespace Render {
 	using GetShaderNameFromHandleMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_R_GETSHADERNAMEFROMHANDLE>, int>,
 		IPC::Reply<std::string>
+	>;
+	using GetEngineTimersMsg = IPC::SyncMessage<
+		IPC::Message<IPC::Id<VM::QVM, CG_R_GETENGINETIMERS>>,
+		IPC::Reply<EngineTimers*>
 	>;
 	// TODO not a renderer call, handle in CM in the VM?
 	using InPVVSMsg = IPC::SyncMessage<

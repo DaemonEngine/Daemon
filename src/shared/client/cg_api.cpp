@@ -281,6 +281,12 @@ void trap_R_GetShaderNameFromHandle( const qhandle_t shader, char *out, int len 
 	Q_strncpyz(out, result.c_str(), len);
 }
 
+EngineTimers* trap_R_GetEngineTimers() {
+	EngineTimers* out;
+	VM::SendMsg<Render::GetEngineTimersMsg>( out );
+	return out;
+}
+
 void trap_R_ScissorEnable( bool enable )
 {
     cmdBuffer.SendMsg<Render::ScissorEnableMsg>(enable);

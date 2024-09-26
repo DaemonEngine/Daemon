@@ -35,6 +35,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_public.h"
 #include "iqm.h"
 #include "TextureManager.h"
+#include "TimerQuery.h"
 
 #define DYN_BUFFER_SIZE ( 4 * 1024 * 1024 )
 #define DYN_BUFFER_SEGMENTS 4
@@ -2770,6 +2771,10 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		int           numVisTests;
 		visTest_t     visTests[ MAX_VISTESTS ];
+
+		static const int timerQueryFrames = 2;
+		GLTimerQuery GLTimerQueries[Util::ordinal( TimerQuery::QUERY_COUNT ) * timerQueryFrames];
+		EngineTimers timers;
 
 		float         sinTable[ FUNCTABLE_SIZE ];
 		float         squareTable[ FUNCTABLE_SIZE ];

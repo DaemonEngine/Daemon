@@ -186,6 +186,10 @@ const char *RE_ShaderNameFromHandle( qhandle_t )
     return "";
 }
 
+EngineTimers* RE_GetEngineTimers() {
+    return nullptr;
+}
+
 bool RE_BeginRegistration( glconfig_t *config, glconfig2_t *glconfig2 )
 {
 	*config = glconfig_t{};
@@ -282,6 +286,7 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.ScissorSet = RE_ScissorSet;
 
     re.GetTextureSize = RE_GetTextureSize;
+    re.GetEngineTimers = RE_GetEngineTimers;
     re.Add2dPolysIndexed = RE_Add2dPolysIndexed;
     re.GenerateTexture = RE_GenerateTexture;
     re.ShaderNameFromHandle = RE_ShaderNameFromHandle;

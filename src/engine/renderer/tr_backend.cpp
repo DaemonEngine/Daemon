@@ -4701,6 +4701,7 @@ static void RB_RenderView( bool depthPass )
 	}
 
 	if( depthPass ) {
+		tr.GLTimerQueries[Util::ordinal( TimerQuery::DEPTH )].Begin();
 		if ( glConfig2.materialSystemAvailable ) {
 			materialSystem.RenderMaterials( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, backEnd.viewParms.viewID );
 		}
@@ -4710,9 +4711,11 @@ static void RB_RenderView( bool depthPass )
 			RB_RenderPostDepthLightTile();
 			backEnd.postDepthLightTileRendered = true;
 		}
+		tr.GLTimerQueries[Util::ordinal( TimerQuery::DEPTH )].End();
 		return;
 	}
 
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::OPAQUE )].Begin();
 	if( tr.refdef.blurVec[0] != 0.0f ||
 			tr.refdef.blurVec[1] != 0.0f ||
 			tr.refdef.blurVec[2] != 0.0f )
@@ -4736,6 +4739,7 @@ static void RB_RenderView( bool depthPass )
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
 	}
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::OPAQUE )].End();
 
 	if ( r_ssao->integer ) {
 		RB_RenderSSAO();
@@ -4763,10 +4767,12 @@ static void RB_RenderView( bool depthPass )
 	RB_RenderGlobalFog();
 
 	// draw everything that is translucent
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::TRANSPARENT )].Begin();
 	if ( glConfig2.materialSystemAvailable ) {
 		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, backEnd.viewParms.viewID );
 	}
 	RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, DRAWSURFACES_ALL );
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::TRANSPARENT )].End();
 
 	GL_CheckErrors();
 
@@ -4812,6 +4818,7 @@ static void RB_RenderPostProcess()
 		materialSystem.EndFrame();
 	}
 
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::POST_PROCESS )].Begin();
 	RB_FXAA();
 
 	// render chromatric aberration
@@ -4833,6 +4840,7 @@ static void RB_RenderPostProcess()
 			tr.refdef.pixelTarget[(i * 4) + 3] = 255;  //set the alpha pure white
 		}
 	}
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::POST_PROCESS )].End();
 
 	GL_CheckErrors();
 }
@@ -5854,6 +5862,7 @@ void RB_ExecuteRenderCommands( const void *data )
 	GLimp_LogComment( "--- RB_ExecuteRenderCommands ---\n" );
 
 	t1 = ri.Milliseconds();
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::FRAME )].Begin();
 
 	if ( !r_smp->integer || data == backEndData[ 0 ]->commands.cmds )
 	{
@@ -5873,7 +5882,13 @@ void RB_ExecuteRenderCommands( const void *data )
 
 	// stop rendering on this thread
 	t2 = ri.Milliseconds();
+	tr.GLTimerQueries[Util::ordinal( TimerQuery::FRAME )].End();
+	// GLuint64 glT1 = tr.GLTimerQueries[Util::ordinal( TimerQuery::FRAME_START )].TimeCompleted( 10 );
+	// GLuint64 glT2 = tr.GLTimerQueries[Util::ordinal( TimerQuery::FRAME_END )].TimeCompleted( 10 );
 	backEnd.pc.msec = t2 - t1;
+	R_UpdateTimerQueries();
+	// Log::Warn( "%i %u", backEnd.pc.msec, ( glT2 - glT1 ) / 1000000 );
+	// tr.timers.glTime[SharedTimer::FRAME_START] = t2 - t1;// ( glT2 - glT1 ) / 1000000;
 	return;
 }
 
