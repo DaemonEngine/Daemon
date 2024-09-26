@@ -1897,7 +1897,14 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 	{
 		if ( test )
 		{
-			logger.WithoutSuppression().Notice( "...using GL_%s", name );
+			if ( flags & ExtFlag_REQUIRED )
+			{
+				logger.WithoutSuppression().Notice( "...using required extension GL_%s.", name );
+			}
+			else
+			{
+				logger.WithoutSuppression().Notice( "...using optional extension GL_%s.", name );
+			}
 
 			if ( glConfig2.glEnabledExtensionsString.length() != 0 )
 			{
@@ -1914,18 +1921,18 @@ static bool LoadExt( int flags, bool hasExt, const char* name, bool test = true 
 			// Required extension can't be made optional
 			ASSERT( !( flags & ExtFlag_REQUIRED ) );
 
-			logger.WithoutSuppression().Notice( "...ignoring GL_%s", name );
+			logger.WithoutSuppression().Notice( "...ignoring optional extension GL_%s.", name );
 		}
 	}
 	else
 	{
 		if ( flags & ExtFlag_REQUIRED )
 		{
-			Sys::Error( "Required extension GL_%s is missing.", name );
+			Sys::Error( "Missing required extension GL_%s.", name );
 		}
 		else
 		{
-			logger.WithoutSuppression().Notice( "...GL_%s not found.", name );
+			logger.WithoutSuppression().Notice( "...missing optional extension GL_%s.", name );
 
 			if ( glConfig2.glMissingExtensionsString.length() != 0 )
 			{
