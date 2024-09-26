@@ -253,7 +253,7 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	if ( !r_noFog->integer )
+	// Fog GLSL is always loaded and built because disabling fog is cheat.
 	{
 		// Q3A volumetric fog
 		gl_shaderManager.load( gl_fogQuake3Shader );
@@ -994,7 +994,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	// Not implemented yet in PBR code.
 	bool enableReflectiveSpecular =
-		pStage->enableSpecularMapping && tr.cubeHashTable != nullptr && r_reflectionMapping->integer;
+		pStage->enableSpecularMapping && tr.cubeHashTable != nullptr && r_reflectionMapping->integer
+		&& !( tr.refdef.rdflags & RDF_NOCUBEMAP );
 
 	GL_State( stateBits );
 
@@ -3052,7 +3053,10 @@ void Tess_End()
 			// draw debugging stuff
 			if ( r_showTris->integer || r_showBatches->integer || ( r_showLightBatches->integer && ( tess.stageIteratorFunc == Tess_StageIteratorLighting ) ) )
 			{
-				DrawTris();
+				// Skybox triangle rendering is done in Tess_StageIteratorSky()
+				if ( tess.stageIteratorFunc != Tess_StageIteratorSky ) {
+					DrawTris();
+				}
 			}
 		}
 	}

@@ -322,9 +322,8 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		GLDEBUG_ALL
 	};
 
-#define REF_CUBEMAP_SIZE       32
+#define REF_CUBEMAP_SIZE 32
 #define REF_CUBEMAP_STORE_SIZE 1024
-#define REF_CUBEMAP_STORE_SIDE ( REF_CUBEMAP_STORE_SIZE / REF_CUBEMAP_SIZE )
 
 #define REF_COLORGRADE_SLOTS   4
 #define REF_COLORGRADEMAP_SIZE 16
@@ -2634,7 +2633,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		image_t    *flatImage; // use this as default normalmap
 		image_t    *randomNormalsImage;
 		image_t    *noFalloffImage;
-		image_t    *attenuationXYImage;
 		image_t    *blackCubeImage;
 		image_t    *whiteCubeImage;
 
@@ -2647,8 +2645,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		image_t    *lighttileRenderImage;
 		image_t    *portalRenderImage;
 
-		image_t    *downScaleFBOImage_quarter;
-		image_t    *downScaleFBOImage_64x64;
 		image_t *shadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];
 		image_t *shadowCubeFBOImage[ MAX_SHADOWMAPS ];
 		image_t *sunShadowMapFBOImage[ MAX_SHADOWMAPS * 2 ];
@@ -2666,8 +2662,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
 		FBO_t *portalRenderFBO; // holds a copy of the last currentRender that was rendered into a FBO
-		FBO_t *downScaleFBO_quarter;
-		FBO_t *downScaleFBO_64x64;
 		FBO_t *contrastRenderFBO;
 		FBO_t *bloomRenderFBO[ 2 ];
 		FBO_t *shadowMapFBO[ MAX_SHADOWMAPS ];
@@ -2890,6 +2884,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_reliefMapping;
 	extern cvar_t *r_glowMapping;
 	extern cvar_t *r_reflectionMapping;
+	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize;
 
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
@@ -2970,7 +2965,9 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_showDeluxeMaps;
 	extern cvar_t *r_showNormalMaps;
 	extern cvar_t *r_showMaterialMaps;
-	extern cvar_t *r_showCubeProbes;
+	extern Cvar::Cvar<bool> r_showReflectionMaps;
+	extern Cvar::Cvar<bool> r_showCubeProbes;
+	extern Cvar::Cvar<int> r_showCubeProbeFace;
 	extern cvar_t *r_showBspNodes;
 	extern cvar_t *r_showParallelShadowSplits;
 

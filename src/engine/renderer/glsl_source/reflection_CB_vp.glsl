@@ -32,6 +32,10 @@ uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform float		u_Time;
 
+#if defined(r_showCubeProbes)
+	uniform vec3 u_CameraPosition;
+#endif
+
 OUT(smooth) vec3	var_Position;
 OUT(smooth) vec2	var_TexCoords;
 OUT(smooth) vec4	var_Tangent;
@@ -65,7 +69,13 @@ void	main()
 	gl_Position = u_ModelViewProjectionMatrix * position;
 
 	// transform position into world space
-	var_Position = (u_ModelMatrix * position).xyz;
+	#if defined(r_showCubeProbes)
+		/* Hack: This is used for debug purposes only,
+		but it will break ST_REFLECTIONMAP and ST_COLLAPSE_REFLECTIONMAP stages */
+		var_Position = (u_ModelMatrix * ( position - vec4( u_CameraPosition, 0.0 ) )).xyz;
+	#else
+		var_Position = (u_ModelMatrix * position).xyz;
+	#endif
 
 	var_Tangent.xyz = (u_ModelMatrix * vec4(LB.tangent, 0.0)).xyz;
 	var_Binormal.xyz = (u_ModelMatrix * vec4(LB.binormal, 0.0)).xyz;

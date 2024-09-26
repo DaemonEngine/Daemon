@@ -520,22 +520,8 @@ void R_InitFBOs()
 		R_CheckFBO( tr.portalRenderFBO );
 	}
 
+	if ( glConfig2.bloom )
 	{
-		width = glConfig.vidWidth * 0.25f;
-		height = glConfig.vidHeight * 0.25f;
-
-		tr.downScaleFBO_quarter = R_CreateFBO( "_downScale_quarter", width, height );
-		R_BindFBO( tr.downScaleFBO_quarter );
-
-		R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.downScaleFBOImage_quarter->texnum, 0 );
-		R_CheckFBO( tr.downScaleFBO_quarter );
-
-		tr.downScaleFBO_64x64 = R_CreateFBO( "_downScale_64x64", 64, 64 );
-		R_BindFBO( tr.downScaleFBO_64x64 );
-
-		R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.downScaleFBOImage_64x64->texnum, 0 );
-		R_CheckFBO( tr.downScaleFBO_64x64 );
-
 		width = glConfig.vidWidth * 0.25f;
 		height = glConfig.vidHeight * 0.25f;
 

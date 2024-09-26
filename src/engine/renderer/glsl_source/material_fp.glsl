@@ -94,7 +94,7 @@ sampler3D u_LightGrid2 = sampler3D( u_LightGrid2_initial );
 #endif // !LIQUID_GLSL
 
 #if defined(REFLECTION_CB_GLSL)
-samplerCube u_ColorMap = samplerCube( u_ColorMap_initial );
+samplerCube u_ColorMapCube = samplerCube( u_ColorMapCube_initial );
 #endif // !REFLECTION_CB_GLSL
 
 #if defined(RELIEFMAPPING_GLSL)

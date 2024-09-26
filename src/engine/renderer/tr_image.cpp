@@ -2257,6 +2257,8 @@ R_CreateFogImage
 */
 static void R_CreateFogImage()
 {
+	// Fog image is always created because disabling fog is cheat.
+
 	int   x, y;
 	byte  *data, *ptr;
 	float d;
@@ -2389,51 +2391,13 @@ static void R_CreateNoFalloffImage()
 	tr.noFalloffImage = R_CreateImage( "_noFalloff", ( const byte ** ) &dataPtr, 8, 8, 1, imageParams );
 }
 
-static const int ATTENUATION_XY_SIZE = 128;
-static void R_CreateAttenuationXYImage()
-{
-	int  x, y;
-	byte data[ ATTENUATION_XY_SIZE ][ ATTENUATION_XY_SIZE ][ 4 ];
-	byte *ptr = &data[0][0][0];
-	byte *dataPtr = &data[0][0][0];
-	int  b;
-
-	// make a centered inverse-square falloff blob for dynamic lighting
-	for ( y = 0; y < ATTENUATION_XY_SIZE; y++ )
-	{
-		for ( x = 0; x < ATTENUATION_XY_SIZE; x++ )
-		{
-			float d;
-
-			d = ( ATTENUATION_XY_SIZE / 2 - 0.5f - x ) * ( ATTENUATION_XY_SIZE / 2 - 0.5f - x ) +
-			    ( ATTENUATION_XY_SIZE / 2 - 0.5f - y ) * ( ATTENUATION_XY_SIZE / 2 - 0.5f - y );
-			b = 1000 / d;
-
-			if ( b > 255 )
-			{
-				b = 255;
-			}
-			else if ( b < 75 )
-			{
-				b = 0;
-			}
-
-			ptr[ 0 ] = ptr[ 1 ] = ptr[ 2 ] = b;
-			ptr[ 3 ] = 255;
-			ptr += 4;
-		}
-	}
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	tr.attenuationXYImage = R_CreateImage( "_attenuationXY", ( const byte ** ) &dataPtr, ATTENUATION_XY_SIZE, ATTENUATION_XY_SIZE, 1, imageParams );
-}
-
 static void R_CreateContrastRenderFBOImage()
 {
+	if ( !glConfig2.bloom)
+	{
+		return;
+	}
+
 	int  width, height;
 
 	width = glConfig.vidWidth * 0.25f;
@@ -2447,8 +2411,13 @@ static void R_CreateContrastRenderFBOImage()
 	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, imageParams );
 }
 
-static void R_CreateBloomRenderFBOImage()
+static void R_CreateBloomRenderFBOImages()
 {
+	if ( !glConfig2.bloom)
+	{
+		return;
+	}
+
 	int  i;
 	int  width, height;
 
@@ -2593,26 +2562,6 @@ static void R_CreatePortalRenderImage()
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.portalRenderImage = R_CreateImage( "_portalRender", nullptr, width, height, 1, imageParams );
-}
-
-// Tr3B: clean up this mess some day ...
-static void R_CreateDownScaleFBOImages()
-{
-	int  width, height;
-
-	width = glConfig.vidWidth * 0.25f;
-	height = glConfig.vidHeight * 0.25f;
-
-	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_NEAREST;
-	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-	tr.downScaleFBOImage_quarter = R_CreateImage( "_downScaleFBOImage_quarter", nullptr, width, height, 1, imageParams );
-
-	width = height = 64;
-
-	tr.downScaleFBOImage_64x64 = R_CreateImage( "_downScaleFBOImage_64x64", nullptr, width, height, 1, imageParams );
 }
 
 // *INDENT-OFF*
@@ -2954,13 +2903,11 @@ void R_CreateBuiltinImages()
 	R_CreateRandomNormalsImage();
 	R_CreateFogImage();
 	R_CreateNoFalloffImage();
-	R_CreateAttenuationXYImage();
 	R_CreateContrastRenderFBOImage();
-	R_CreateBloomRenderFBOImage();
+	R_CreateBloomRenderFBOImages();
 	R_CreateCurrentRenderImage();
 	R_CreateDepthRenderImage();
 	R_CreatePortalRenderImage();
-	R_CreateDownScaleFBOImages();
 	R_CreateShadowMapFBOImage();
 	R_CreateShadowCubeFBOImage();
 	R_CreateBlackCubeImage();

@@ -4040,11 +4040,14 @@ static void RB_RenderDebugUtils()
 	}
 
 	// GLSL shader isn't built when reflection mapping is disabled.
-	if ( r_showCubeProbes->integer && tr.cubeHashTable && r_reflectionMapping->integer &&
+	if ( r_showCubeProbes.Get() && tr.cubeHashTable && r_reflectionMapping->integer &&
 	     !( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) ) )
 	{
 		static const vec3_t mins = { -8, -8, -8 };
 		static const vec3_t maxs = { 8,  8,  8 };
+
+		static const vec3_t outlineMins = { -9, -9, -9 };
+		static const vec3_t outlineMaxs = { 9,  9,  9 };
 
 		// choose right shader program ----------------------------------
 		gl_reflectionShader->SetVertexSkinning( false );
@@ -4066,7 +4069,7 @@ static void RB_RenderDebugUtils()
 		gl_reflectionShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 		gl_reflectionShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-		Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+		gl_reflectionShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		for ( cubemapProbe_t *cubeProbe : tr.cubeProbes )
 		{
@@ -4077,15 +4080,20 @@ static void RB_RenderDebugUtils()
 				continue;
 			}
 
+			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+
+			gl_reflectionShader->SetUniform_CameraPosition( cubeProbe->origin );
+
 			// bind u_ColorMap
-			gl_reflectionShader->SetUniform_ColorMapBindless(
-				GL_BindToTMU( 0, cubeProbe->cubemap ) 
+			gl_reflectionShader->SetUniform_ColorMapCubeBindless(
+				GL_BindToTMU( 0, cubeProbe->cubemap )
 			);
 
 			Tess_AddCubeWithNormals( cubeProbe->origin, mins, maxs, Color::White );
+
+			Tess_End();
 		}
 
-		Tess_End();
 
 		{
 			cubemapProbe_t *cubeProbeNearest;
@@ -4121,6 +4129,8 @@ static void RB_RenderDebugUtils()
 			);
 			gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 
+			GL_State( GLS_POLYMODE_LINE | GLS_DEPTHFUNC_ALWAYS );
+
 			GL_CheckErrors();
 
 			R_FindTwoNearestCubeMaps( backEnd.viewParms.orientation.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
@@ -4133,12 +4143,12 @@ static void RB_RenderDebugUtils()
 			}
 			else if ( cubeProbeSecondNearest == nullptr )
 			{
-				Tess_AddCubeWithNormals( cubeProbeNearest->origin, mins, maxs, Color::Yellow );
+				Tess_AddCubeWithNormals( cubeProbeNearest->origin, outlineMins, outlineMaxs, Color::Yellow );
 			}
 			else
 			{
-				Tess_AddCubeWithNormals( cubeProbeNearest->origin, mins, maxs, Color::Green );
-				Tess_AddCubeWithNormals( cubeProbeSecondNearest->origin, mins, maxs, Color::Red );
+				Tess_AddCubeWithNormals( cubeProbeNearest->origin, outlineMins, outlineMaxs, Color::Green );
+				Tess_AddCubeWithNormals( cubeProbeSecondNearest->origin, outlineMins, outlineMaxs, Color::Red );
 			}
 
 			Tess_End();
@@ -4814,23 +4824,16 @@ static void RB_RenderPostProcess()
 
 	RB_FXAA();
 
-	// render chromatric aberration
+	// render chromatic aberration
 	RB_CameraPostFX();
 
 	// copy to given byte buffer that is NOT a FBO
-	if (tr.refdef.pixelTarget != nullptr)
-	{
-		int i;
+	if ( tr.refdef.pixelTarget != nullptr ) {
+		glReadPixels( 0, 0, tr.refdef.pixelTargetWidth, tr.refdef.pixelTargetHeight, GL_RGBA,
+			GL_UNSIGNED_BYTE, tr.refdef.pixelTarget );
 
-		// need to convert Y axis
-		// Bugfix: drivers absolutely hate running in high res and using glReadPixels near the top or bottom edge.
-		// Sooo... let's do it in the middle.
-		glReadPixels(glConfig.vidWidth / 2, glConfig.vidHeight / 2, tr.refdef.pixelTargetWidth, tr.refdef.pixelTargetHeight, GL_RGBA,
-			GL_UNSIGNED_BYTE, tr.refdef.pixelTarget);
-
-		for (i = 0; i < tr.refdef.pixelTargetWidth * tr.refdef.pixelTargetHeight; i++)
-		{
-			tr.refdef.pixelTarget[(i * 4) + 3] = 255;  //set the alpha pure white
+		for ( int i = 0; i < tr.refdef.pixelTargetWidth * tr.refdef.pixelTargetHeight; i++ ) {
+			tr.refdef.pixelTarget[( i * 4 ) + 3] = 255; // Set the alpha to 1.0
 		}
 	}
 

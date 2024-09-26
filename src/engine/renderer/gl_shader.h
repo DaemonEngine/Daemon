@@ -4253,7 +4253,7 @@ public:
 
 class GLShader_reflection :
 	public GLShader,
-	public u_ColorMap,
+	public u_ColorMapCube,
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
@@ -4265,6 +4265,8 @@ class GLShader_reflection :
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
 	public u_VertexInterpolation,
+	public u_CameraPosition,
+	public u_InverseLightFactor,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -4278,7 +4280,7 @@ public:
 
 class GLShader_reflectionMaterial :
 	public GLShader,
-	public u_ColorMap,
+	public u_ColorMapCube,
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
@@ -4290,6 +4292,8 @@ class GLShader_reflectionMaterial :
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
 	public u_VertexInterpolation,
+	public u_CameraPosition,
+	public u_InverseLightFactor,
 	public GLDeformStage,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -4311,8 +4315,7 @@ class GLShader_skybox :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
-	public GLDeformStage
+	public u_InverseLightFactor
 {
 public:
 	GLShader_skybox( GLShaderManager *manager );
@@ -4330,8 +4333,7 @@ class GLShader_skyboxMaterial :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
-	public GLDeformStage {
+	public u_InverseLightFactor {
 	public:
 	GLShader_skyboxMaterial( GLShaderManager* manager );
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;

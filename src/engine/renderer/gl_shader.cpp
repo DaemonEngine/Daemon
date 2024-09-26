@@ -707,9 +707,18 @@ static std::string GenEngineConstants() {
 	{
 		AddDefine( str, "r_showDeluxeMaps", 1 );
 	}
+	else if ( r_showReflectionMaps.Get() )
+	{
+		AddDefine( str, "r_showReflectionMaps", 1 );
+	}
 	else if ( r_showVertexColors.Get() )
 	{
 		AddDefine( str, "r_showVertexColors", 1 );
+	}
+
+	if( r_showCubeProbes.Get() )
+	{
+		AddDefine( str, "r_showCubeProbes", 1 );
 	}
 
 	if ( glConfig2.vboVertexSkinningAvailable )
@@ -2423,7 +2432,7 @@ void GLShader_shadowFill::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	GLShader("reflection", "reflection_CB", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
+	u_ColorMapCube( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
 	u_TextureMatrix( this ),
@@ -2435,6 +2444,8 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
+	u_CameraPosition( this ),
+	u_InverseLightFactor( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -2452,7 +2463,7 @@ void GLShader_reflection::SetShaderProgramUniforms( shaderProgram_t *shaderProgr
 
 GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manager ) :
 	GLShader( "reflectionMaterial", "reflection_CB", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
+	u_ColorMapCube( this ),
 	u_NormalMap( this ),
 	u_HeightMap( this ),
 	u_TextureMatrix( this ),
@@ -2464,6 +2475,8 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manag
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
+	u_CameraPosition( this ),
+	u_InverseLightFactor( this ),
 	GLDeformStage( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -2488,8 +2501,7 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
-	GLDeformStage( this )
+	u_InverseLightFactor( this )
 {
 }
 
@@ -2510,8 +2522,7 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial( GLShaderManager* manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
-	GLDeformStage( this ) {
+	u_InverseLightFactor( this ) {
 }
 
 void GLShader_skyboxMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {

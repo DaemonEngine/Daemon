@@ -6279,7 +6279,7 @@ static const int HASHTABLE_SIZE = 7919; // 32749 // 2039    /* prime, use % */
 #define HASH_USE_EPSILON
 
 #ifdef HASH_USE_EPSILON
-#define HASH_XYZ_EPSILON 100.0f
+#define HASH_XYZ_EPSILON 256.0f
 #define HASH_XYZ_EPSILONSPACE_MULTIPLIER 1.f / HASH_XYZ_EPSILON
 #endif
 
@@ -6501,19 +6501,6 @@ void R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbe
 
 void R_BuildCubeMaps()
 {
-	int            i;
-	int            ii, jj;
-	bool       flipx;
-	bool       flipy;
-	int            x, y, xy, xy2;
-
-	byte           temp[ REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 ];
-	byte           *dest;
-
-	int    startTime, endTime;
-	size_t tics = 0;
-	size_t nextTicCount = 0;
-
 	// Early abort if a BSP is not loaded yet since
 	// the buildcubemaps command can be called from
 	// everywhere including the main menu.
@@ -6522,13 +6509,19 @@ void R_BuildCubeMaps()
 		return;
 	}
 
-	startTime = ri.Milliseconds();
+	const int cubeMapSize = r_cubeProbeSize.Get();
+	if ( cubeMapSize > glConfig2.maxCubeMapTextureSize ) {
+		Log::Warn( "Cube probe size exceeds max cubemap texture size (%i/%i)", cubeMapSize, glConfig2.maxCubeMapTextureSize );
+		return;
+	}
+
+	const int startTime = ri.Milliseconds();
 
 	refdef_t rf{};
 
-	for ( i = 0; i < 6; i++ )
+	for ( int i = 0; i < 6; i++ )
 	{
-		tr.cubeTemp[ i ] = (byte*) Z_Malloc( REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
+		tr.cubeTemp[ i ] = (byte*) Z_Malloc( ( size_t ) cubeMapSize * cubeMapSize * 4 );
 	}
 
 	// calculate origins for our probes
@@ -6538,7 +6531,7 @@ void R_BuildCubeMaps()
 	{
 		bspNode_t *node;
 
-		for ( i = 0; i < tr.world->numnodes; i++ )
+		for ( int i = 0; i < tr.world->numnodes; i++ )
 		{
 			node = &tr.world->nodes[ i ];
 
@@ -6554,13 +6547,38 @@ void R_BuildCubeMaps()
 				continue;
 			}
 
+			// This eliminates most of the void nodes, however some may still be left around patch meshes
+			if ( !node->numMarkSurfaces ) {
+				continue;
+			}
+
+			// There might be leafs with only invisible surfaces
+			bool hasVisibleSurfaces = false;
+			int surfaceCount = node->numMarkSurfaces;
+			bspSurface_t** view = tr.world->viewSurfaces + node->firstMarkSurface;
+			while ( surfaceCount-- ) {
+				bspSurface_t* surface = *view;
+
+				view++;
+
+				if ( *(surface->data) == surfaceType_t::SF_FACE || *(surface->data) == surfaceType_t::SF_TRIANGLES
+					|| *(surface->data) == surfaceType_t::SF_VBO_MESH || *(surface->data) == surfaceType_t::SF_GRID ) {
+					hasVisibleSurfaces = true;
+					break;
+				}
+			}
+
+			if ( !hasVisibleSurfaces ) {
+				continue;
+			}
+
 			vec3_t origin;
 			VectorAdd( node->maxs, node->mins, origin );
 			VectorScale( origin, 0.5, origin );
 
 			if ( FindVertexInHashTable( tr.cubeHashTable, origin, 256 ) == nullptr )
 			{
-				auto *cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_high );
+				cubemapProbe_t* cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_high );
 				tr.cubeProbes.push_back( cubeProbe );
 
 				VectorCopy( origin, cubeProbe->origin );
@@ -6579,40 +6597,14 @@ void R_BuildCubeMaps()
 		VectorClear( cubeProbe->origin );
 	}
 
-	Log::Notice("...pre-rendering %d cubemaps", tr.cubeProbes.size() );
-	Log::Notice("0%%  10   20   30   40   50   60   70   80   90   100%%" );
-	Log::Notice("|----|----|----|----|----|----|----|----|----|----|" );
+	Log::Notice( "...pre-rendering %d cubemaps", tr.cubeProbes.size() );
 
-	for ( size_t j = 0; j < tr.cubeProbes.size(); j++ )
+	const bool gpuOcclusionCulling = r_gpuOcclusionCulling.Get();
+	r_gpuOcclusionCulling.Set( false );
+
+	for ( size_t i = 0; i < tr.cubeProbes.size(); i++ )
 	{
-		cubemapProbe_t *cubeProbe = tr.cubeProbes[ j ];
-
-		//Log::Notice("rendering cubemap at (%i %i %i)", (int)cubeProbe->origin[0], (int)cubeProbe->origin[1],
-		//      (int)cubeProbe->origin[2]);
-
-		if ( ( j + 1 ) >= nextTicCount )
-		{
-			size_t ticsNeeded = ( size_t )( ( ( double )( j + 1 ) / tr.cubeProbes.size() ) * 50.0 );
-
-			do
-			{
-				Log::Notice("*");
-				Cmd::ExecuteCommand("updatescreen");
-			}
-			while ( ++tics < ticsNeeded );
-
-			nextTicCount = ( size_t )( ( tics / 50.0 ) * tr.cubeProbes.size() );
-
-			if ( ( j + 1 ) == tr.cubeProbes.size() )
-			{
-				if ( tics < 51 )
-				{
-					Log::Notice("*");
-				}
-
-				Log::Notice("");
-			}
-		}
+		cubemapProbe_t *cubeProbe = tr.cubeProbes[ i ];
 
 		VectorCopy( cubeProbe->origin, rf.vieworg );
 
@@ -6622,18 +6614,21 @@ void R_BuildCubeMaps()
 		rf.fov_y = 90;
 		rf.x = 0;
 		rf.y = 0;
-		rf.width = REF_CUBEMAP_SIZE;
-		rf.height = REF_CUBEMAP_SIZE;
+		rf.width = cubeMapSize;
+		rf.height = cubeMapSize;
 		rf.time = 0;
+
+		rf.gradingWeights[0] = 0.0;
+		rf.gradingWeights[1] = 0.0;
+		rf.gradingWeights[2] = 0.0;
+		rf.gradingWeights[3] = 1.0;
 
 		rf.rdflags = RDF_NOCUBEMAP | RDF_NOBLOOM;
 
-		for ( i = 0; i < 6; i++ )
+		for ( int j = 0; j < 6; j++ )
 		{
-			flipx = false;
-			flipy = false;
 
-			switch ( i )
+			switch ( j )
 			{
 				case 0:
 					{
@@ -6647,7 +6642,6 @@ void R_BuildCubeMaps()
 						rf.viewaxis[ 1 ][ 2 ] = 1;
 
 						CrossProduct( rf.viewaxis[ 0 ], rf.viewaxis[ 1 ], rf.viewaxis[ 2 ] );
-						//flipx=true;
 						break;
 					}
 
@@ -6663,7 +6657,6 @@ void R_BuildCubeMaps()
 						rf.viewaxis[ 1 ][ 2 ] = -1;
 
 						CrossProduct( rf.viewaxis[ 0 ], rf.viewaxis[ 1 ], rf.viewaxis[ 2 ] );
-						//flipx=true;
 						break;
 					}
 
@@ -6679,7 +6672,6 @@ void R_BuildCubeMaps()
 						rf.viewaxis[ 1 ][ 2 ] = 0;
 
 						CrossProduct( rf.viewaxis[ 0 ], rf.viewaxis[ 1 ], rf.viewaxis[ 2 ] );
-						//flipx=true;
 						break;
 					}
 
@@ -6690,12 +6682,11 @@ void R_BuildCubeMaps()
 						rf.viewaxis[ 0 ][ 1 ] = -1;
 						rf.viewaxis[ 0 ][ 2 ] = 0;
 
-						rf.viewaxis[ 1 ][ 0 ] = -1; //-1
+						rf.viewaxis[ 1 ][ 0 ] = -1;
 						rf.viewaxis[ 1 ][ 1 ] = 0;
 						rf.viewaxis[ 1 ][ 2 ] = 0;
 
 						CrossProduct( rf.viewaxis[ 0 ], rf.viewaxis[ 1 ], rf.viewaxis[ 2 ] );
-						//flipx=true;
 						break;
 					}
 
@@ -6711,7 +6702,6 @@ void R_BuildCubeMaps()
 						rf.viewaxis[ 1 ][ 2 ] = 0;
 
 						CrossProduct( rf.viewaxis[ 0 ], rf.viewaxis[ 1 ], rf.viewaxis[ 2 ] );
-						//  flipx=true;
 						break;
 					}
 
@@ -6727,72 +6717,46 @@ void R_BuildCubeMaps()
 						rf.viewaxis[ 1 ][ 2 ] = 0;
 
 						CrossProduct( rf.viewaxis[ 0 ], rf.viewaxis[ 1 ], rf.viewaxis[ 2 ] );
-						//flipx=true;
 						break;
 					}
 			}
 
-			tr.refdef.pixelTarget = tr.cubeTemp[ i ];
-			memset( tr.cubeTemp[ i ], 255, REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
-			tr.refdef.pixelTargetWidth = REF_CUBEMAP_SIZE;
-			tr.refdef.pixelTargetHeight = REF_CUBEMAP_SIZE;
+			tr.refdef.pixelTarget = tr.cubeTemp[ j ];
+			memset( tr.cubeTemp[ j ], 255, ( size_t ) cubeMapSize * cubeMapSize * 4 );
+			tr.refdef.pixelTargetWidth = cubeMapSize;
+			tr.refdef.pixelTargetHeight = cubeMapSize;
+
+			int msecUnused1;
+			int msecUnused2;
+			// Material system writes culled surfaces for the next frame, so we need to render twice with it to cull correctly
+			if ( glConfig2.materialSystemAvailable ) {
+				tr.refdef.pixelTarget = nullptr;
+
+				RE_BeginFrame();
+				RE_RenderScene( &rf );
+				RE_EndFrame( &msecUnused1, &msecUnused2 );
+
+				tr.refdef.pixelTarget = tr.cubeTemp[j];
+			}
 
 			RE_BeginFrame();
 			RE_RenderScene( &rf );
-			RE_EndFrame( &ii, &jj );
-
-			if ( flipx )
-			{
-				dest = tr.cubeTemp[ i ];
-				memcpy( temp, dest, REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
-
-				for ( y = 0; y < REF_CUBEMAP_SIZE; y++ )
-				{
-					for ( x = 0; x < REF_CUBEMAP_SIZE; x++ )
-					{
-						xy = ( ( y * REF_CUBEMAP_SIZE ) + x ) * 4;
-						xy2 = ( ( y * REF_CUBEMAP_SIZE ) + ( ( REF_CUBEMAP_SIZE - 1 ) - x ) ) * 4;
-						dest[ xy2 + 0 ] = temp[ xy + 0 ];
-						dest[ xy2 + 1 ] = temp[ xy + 1 ];
-						dest[ xy2 + 2 ] = temp[ xy + 2 ];
-						dest[ xy2 + 3 ] = temp[ xy + 3 ];
-					}
-				}
-			}
-
-			if ( flipy )
-			{
-				dest = tr.cubeTemp[ i ];
-				memcpy( temp, dest, REF_CUBEMAP_SIZE * REF_CUBEMAP_SIZE * 4 );
-
-				for ( y = 0; y < REF_CUBEMAP_SIZE; y++ )
-				{
-					for ( x = 0; x < REF_CUBEMAP_SIZE; x++ )
-					{
-						xy = ( ( y * REF_CUBEMAP_SIZE ) + x ) * 4;
-						xy2 = ( ( ( ( REF_CUBEMAP_SIZE - 1 ) - y ) * REF_CUBEMAP_SIZE ) + x ) * 4;
-						dest[ xy2 + 0 ] = temp[ xy + 0 ];
-						dest[ xy2 + 1 ] = temp[ xy + 1 ];
-						dest[ xy2 + 2 ] = temp[ xy + 2 ];
-						dest[ xy2 + 3 ] = temp[ xy + 3 ];
-					}
-				}
-			}
+			RE_EndFrame( &msecUnused1, &msecUnused2 );
 
 			// encode the pixel intensity into the alpha channel, saves work in the shader
-			byte r, g, b, best;
+			byte best;
 
-			dest = tr.cubeTemp[ i ];
+			byte* dest = tr.cubeTemp[ j ];
 
-			for ( y = 0; y < REF_CUBEMAP_SIZE; y++ )
+			for ( int y = 0; y < cubeMapSize; y++ )
 			{
-				for ( x = 0; x < REF_CUBEMAP_SIZE; x++ )
+				for ( int x = 0; x < cubeMapSize; x++ )
 				{
-					xy = ( ( y * REF_CUBEMAP_SIZE ) + x ) * 4;
+					int xy = ( ( y * cubeMapSize ) + x ) * 4;
 
-					r = dest[ xy + 0 ];
-					g = dest[ xy + 1 ];
-					b = dest[ xy + 2 ];
+					const byte r = dest[ xy + 0 ];
+					const byte g = dest[ xy + 1 ];
+					const byte b = dest[ xy + 2 ];
 
 					if ( ( r > g ) && ( r > b ) )
 					{
@@ -6813,7 +6777,7 @@ void R_BuildCubeMaps()
 		}
 
 		// build the cubemap
-		cubeProbe->cubemap = R_AllocImage( Str::Format( "_autoCube%d", j ).c_str(), false);
+		cubeProbe->cubemap = R_AllocImage( Str::Format( "_autoCube%d", i ).c_str(), false );
 
 		if ( !cubeProbe->cubemap )
 		{
@@ -6822,8 +6786,8 @@ void R_BuildCubeMaps()
 
 		cubeProbe->cubemap->type = GL_TEXTURE_CUBE_MAP;
 
-		cubeProbe->cubemap->width = REF_CUBEMAP_SIZE;
-		cubeProbe->cubemap->height = REF_CUBEMAP_SIZE;
+		cubeProbe->cubemap->width = cubeMapSize;
+		cubeProbe->cubemap->height = cubeMapSize;
 
 		cubeProbe->cubemap->bits = IF_NOPICMIP;
 		cubeProbe->cubemap->filterType = filterType_t::FT_LINEAR;
@@ -6834,14 +6798,16 @@ void R_BuildCubeMaps()
 		R_UploadImage( ( const byte ** ) tr.cubeTemp, 6, 1, cubeProbe->cubemap, imageParams );
 	}
 
-	Log::Notice("");
+	r_gpuOcclusionCulling.Set( gpuOcclusionCulling );
+
+	Log::Notice( "" );
 
 	// turn pixel targets off
 	tr.refdef.pixelTarget = nullptr;
 
 	// assign the surfs a cubemap
-	endTime = ri.Milliseconds();
-	Log::Notice("cubemap probes pre-rendering time of %i cubes = %5.2f seconds", tr.cubeProbes.size(),
+	const int endTime = ri.Milliseconds();
+	Log::Notice( "Cubemap probes pre-rendering time of %d cubes = %5.2f seconds", tr.cubeProbes.size(),
 	           ( endTime - startTime ) / 1000.0 );
 }
 

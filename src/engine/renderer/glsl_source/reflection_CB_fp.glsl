@@ -26,9 +26,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define REFLECTION_CB_GLSL
 
-uniform samplerCube	u_ColorMap;
+uniform samplerCube	u_ColorMapCube;
 uniform vec3		u_ViewOrigin;
 uniform mat4		u_ModelMatrix;
+
+uniform float u_InverseLightFactor;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
@@ -66,6 +68,13 @@ void	main()
 	// compute reflection ray
 	vec3 reflectionRay = reflect(viewDir, normal);
 
-	outputColor = textureCube(u_ColorMap, reflectionRay).rgba;
+	outputColor = textureCube(u_ColorMapCube, reflectionRay).rgba;
+
+	#if defined(r_showCubeProbes)
+		viewDir = normalize(var_Position);
+		outputColor = textureCube(u_ColorMapCube, viewDir);
+
+		outputColor.rgb *= u_InverseLightFactor;
+	#endif
 	// outputColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
