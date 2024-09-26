@@ -1189,6 +1189,9 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		expression_t    fogDensityExp;
 
+		float heightScale;
+		float heightOffset;
+
 		expression_t    depthScaleExp;
 
 		expression_t    deformMagnitudeExp;
