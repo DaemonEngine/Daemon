@@ -87,6 +87,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<int> r_mapOverBrightBits("r_mapOverBrightBits", "default map light color shift", Cvar::NONE, 2);
 	Cvar::Cvar<bool> r_forceLegacyOverBrightClamping("r_forceLegacyOverBrightClamping", "clamp over bright of legacy maps (enable multiplied color clamping and normalization)", Cvar::NONE, false);
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
+	Cvar::Cvar<bool> r_colorGrading( "r_colorGrading", "Use color grading", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_materialSystem( "r_materialSystem", "Use Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_gpuOcclusionCulling( "r_gpuOcclusionCulling", "Use occlusion culling on the GPU for the Material System", Cvar::NONE, true );
@@ -1136,6 +1137,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_mapOverBrightBits );
 		Cvar::Latch( r_forceLegacyOverBrightClamping );
 		Cvar::Latch( r_lightMode );
+		Cvar::Latch( r_colorGrading );
 		Cvar::Latch( r_fastsky );
 		r_lightStyles = Cvar_Get( "r_lightStyles", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_exportTextures = Cvar_Get( "r_exportTextures", "0", 0 );

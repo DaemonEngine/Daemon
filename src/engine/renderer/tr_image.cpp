@@ -2761,6 +2761,11 @@ static void R_CreateWhiteCubeImage()
 
 static void R_CreateColorGradeImage()
 {
+	if ( !r_colorGrading.Get() )
+	{
+		return;
+	}
+
 	byte *data, *ptr;
 	int i, r, g, b;
 
