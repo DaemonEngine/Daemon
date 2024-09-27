@@ -1476,22 +1476,10 @@ void CL_Snd_Restart_f()
 {
 	Audio::Shutdown();
 
-	if( !cls.cgameStarted )
-	{
-		// In the main menu case the cgame is not restarted... but is there anything preventing
-		// the main menu from also using sound handles?
-		if (!Audio::Init()) {
-			Log::Warn("Couldn't initialize the audio subsystem.");
-		}
-		//TODO S_BeginRegistration()
+	if (!Audio::Init()) {
+		Log::Warn("Couldn't initialize the audio subsystem.");
 	}
-	else
-	{
-		if (!Audio::Init()) {
-			Log::Warn("Couldn't initialize the audio subsystem.");
-		}
-		CL_Vid_Restart_f();
-	}
+	CL_Vid_Restart_f();
 }
 
 /*
