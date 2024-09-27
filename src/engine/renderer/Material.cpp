@@ -792,7 +792,7 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 	uint32_t* materialsData = materialsSSBO.MapBufferRange( offset );
 	memset( materialsData, 0, offset * sizeof( uint32_t ) );
 
-	for ( uint32_t materialPackID = 0; materialPackID < 3; materialPackID++ ) {
+	for ( uint32_t materialPackID = 0; materialPackID < 4; materialPackID++ ) {
 		for ( Material& material : materialPacks[materialPackID].materials ) {
 
 			for ( drawSurf_t* drawSurf : material.drawSurfs ) {
@@ -959,7 +959,7 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 		}
 
 		shader = shader->remappedShader ? shader->remappedShader : shader;
-		if ( shader->isSky || shader->isPortal ) {
+		if ( shader->isPortal ) {
 			continue;
 		}
 
@@ -1331,6 +1331,9 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 	} else {
 		materialPack = 2;
 	}
+	if ( shader->isSky ) {
+		materialPack = 3;
+	}
 	uint32_t id = packIDs[materialPack];
 
 	// In surfaces with multiple stages each consecutive stage must be drawn after the previous stage,
@@ -1355,6 +1358,14 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 
 	if ( pStage->texturesDynamic ) {
 		drawSurf->texturesDynamic[stage] = true;
+	}
+
+	if ( shader->isSky ) {
+		if ( std::find( skyShaders.begin(), skyShaders.end(), shader ) == skyShaders.end() ) {
+			skyShaders.emplace_back( shader );
+		}
+
+		material.skyShader = shader;
 	}
 
 	pStage->materialProcessor( &material, pStage, drawSurf );
@@ -1432,8 +1443,7 @@ void MaterialSystem::GenerateWorldMaterials() {
 
 	drawSurf_t* drawSurf;
 	totalDrawSurfs = 0;
-
-	uint32_t packIDs[3] = { 0, 0, 0 };
+	uint32_t packIDs[4] = { 0, 0, 0, 0 };
 
 	for ( int i = 0; i < tr.refdef.numDrawSurfs; i++ ) {
 		drawSurf = &tr.refdef.drawSurfs[i];
@@ -1447,7 +1457,7 @@ void MaterialSystem::GenerateWorldMaterials() {
 		}
 
 		shader = shader->remappedShader ? shader->remappedShader : shader;
-		if ( shader->isSky || shader->isPortal ) {
+		if ( shader->isPortal ) {
 			continue;
 		}
 
@@ -1833,6 +1843,8 @@ void MaterialSystem::Free() {
 	nextFrame = 1;
 	maxStages = 0;
 
+	renderSkyBrushDepth = false;
+
 	for ( MaterialPack& pack : materialPacks ) {
 		for ( Material& material : pack.materials ) {
 			material.drawCommands.clear();
@@ -1981,14 +1993,93 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 	if ( tr.hasSkybox && ( environmentFogDraw || environmentNoFogDraw ) ) {
 		const bool noFogPass = toSort >= shaderSort_t::SS_ENVIRONMENT_NOFOG;
 		for ( shader_t* skyShader : skyShaders ) {
-			if ( skyShader->noFog != noFogPass ) {
+			if ( skyShader->noFog != noFogPass && !renderSkyBrushDepth ) {
 				continue;
 			}
 
-			tr.drawingSky = true;
-			Tess_Begin( Tess_StageIteratorSky, skyShader, nullptr, false, -1, 0, false );
-			Tess_End();
+			// Use stencil buffer to avoid rendering stuff over the skybox that would normally be culled by the BSP
+			if ( backEnd.viewParms.portalLevel == 0 ) {
+				glEnable( GL_STENCIL_TEST );
+				glStencilMask( 0xff );
+			}
+
+			glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel, 0xff );
+			glStencilOp( GL_KEEP, GL_KEEP, GL_INCR );
+
+			glState.glStateBitsMask = 0;
+
+			for ( Material& material : materialPacks[3].materials ) {
+				if ( material.skyShader == skyShader ) {
+					RenderMaterial( material, viewID );
+					renderedMaterials.emplace_back( &material );
+				}
+			}
+
+			// Set depth to 1.0 on skybrushes
+			glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel + 1, 0xff );
+			glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+
+			GL_State( GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS );
+			glState.glStateBitsMask = GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS;
+			glDepthRange( 1.0, 1.0 );
+
+			for ( Material& material : materialPacks[3].materials ) {
+				if ( material.skyShader == skyShader ) {
+					RenderMaterial( material, viewID );
+					renderedMaterials.emplace_back( &material );
+				}
+			}
+
+			// Actually render the skybox
+			if ( !renderSkyBrushDepth ) {
+				tr.drawingSky = true;
+				Tess_Begin( Tess_StageIteratorSky, skyShader, nullptr, false, -1, 0, false );
+				Tess_End();
+			}
+
+			// Decrease the stencil bits back on skybrushes
+			glStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
+
+			// Set depth back to the skybrushes depth
+			glState.glStateBitsMask = 0;
+			GL_State( GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS );
+			glState.glStateBitsMask = GLS_COLORMASK_BITS | GLS_DEPTHMASK_TRUE | GLS_DEPTHFUNC_ALWAYS;
+
+			/* SSAO excludes fragments with depth 1.0, so we need to change the depth on skybrushes back to 1.0
+			if SSAO is enabled and it's an SS_ENVIRONMENT_FOG pass */
+			if ( r_ssao->integer ) {
+				if ( environmentFogDraw && !renderSkyBrushDepth ) {
+					glDepthRange( 0.0, 1.0 );
+					renderSkyBrushDepth = true;
+				} else {
+					glDepthRange( 1.0, 1.0 );
+				}
+			} else {
+				glDepthRange( 0.0, 1.0 );
+			}
+
+			for ( Material& material : materialPacks[3].materials ) {
+				if ( material.skyShader == skyShader ) {
+					RenderMaterial( material, viewID );
+					renderedMaterials.emplace_back( &material );
+				}
+			}
+
+			glStencilFunc( GL_EQUAL, backEnd.viewParms.portalLevel, 0xff );
+			glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+
+			glState.glStateBitsMask = 0;
+			GL_State( GLS_DEFAULT );
+			glDepthRange( 0.0, 1.0 );
+
+			if ( backEnd.viewParms.portalLevel == 0 ) {
+				glDisable( GL_STENCIL_TEST );
+			}
 		}
+	}
+
+	if ( environmentNoFogDraw && renderSkyBrushDepth ) {
+		renderSkyBrushDepth = false;
 	}
 }
 

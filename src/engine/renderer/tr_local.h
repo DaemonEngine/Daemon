@@ -1062,6 +1062,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	  ST_REFRACTIONMAP,
 	  ST_DISPERSIONMAP,
 	  ST_SKYBOXMAP,
+	  ST_SKYBRUSHMAP,
 	  ST_SCREENMAP, // 2d offscreen or portal rendering
 	  ST_PORTALMAP,
 	  ST_HEATHAZEMAP, // heatHaze post process effect
@@ -3442,6 +3443,7 @@ inline bool checkGLErrors()
 	void Render_lightMapping( shaderStage_t *pStage );
 	void Render_reflection_CB( shaderStage_t *pStage );
 	void Render_skybox( shaderStage_t *pStage );
+	void Render_materialPassThrough( shaderStage_t* pStage );
 	void Render_screen( shaderStage_t *pStage );
 	void Render_portal( shaderStage_t *pStage );
 	void Render_heatHaze( shaderStage_t *pStage );
