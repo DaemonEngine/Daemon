@@ -37,50 +37,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 IN(smooth) vec2 vPosition;
 IN(smooth) vec2 vTexCoord;
 
-struct light {
-  vec3  center;
+struct Light {
+  vec3 center;
   float radius;
-  vec3  color;
+  vec3 color;
   float type;
-  vec3  direction;
+  vec3 direction;
   float angle;
 };
 
 layout(std140) uniform u_Lights {
-  vec4 lightvec[ MAX_REF_LIGHTS * 3 ];
+  Light lights[MAX_REF_LIGHTS];
 };
 
-light GetLight(in int idx) {
-  light result; vec4 component;
-  idx *= 3;
-  component = lightvec[idx++];
-  result.center = component.xyz; result.radius = component.w;
-  component = lightvec[idx++];
-  result.color = component.xyz; result.type = component.w;
-  component = lightvec[idx++];
-  result.direction = component.xyz; result.angle = component.w;
-  return result;
+Light GetLight( in int idx ) {
+  return lights[idx];
 }
 
-uniform int  u_numLights;
+uniform int u_numLights;
 uniform mat4 u_ModelMatrix;
 uniform sampler2D u_DepthMap;
-uniform int  u_lightLayer;
+uniform int u_lightLayer;
 uniform vec3 u_zFar;
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
 #define idxs_t uvec4
-#define idx_initializer uvec4(3)
+#define idx_initializer uvec4( 3 )
 
 DECLARE_OUTPUT(uvec4)
 
-void pushIdxs(in int idx, inout uvec4 idxs ) {
+void pushIdxs( in int idx, inout uvec4 idxs ) {
   uvec4 bits = uvec4( idx >> 8, idx >> 6, idx >> 4, idx >> 2 ) & uvec4( 0x03 );
   idxs = idxs << 2 | bits;
 }
 
-#define exportIdxs(x) outputColor = ( x )
+#define exportIdxs( x ) outputColor = ( x )
 
 void lightOutsidePlane( in vec4 plane, inout vec3 center, inout float radius ) {
   float dist = dot( plane, vec4( center, 1.0 ) );
@@ -91,16 +83,13 @@ void lightOutsidePlane( in vec4 plane, inout vec3 center, inout float radius ) {
 
   if( dist >= 0.0 ) {
     // light is outside plane, but intersects the volume
-    center = center - dist * plane.xyz;
+    center -= dist * plane.xyz;
     radius = sqrt( radius * radius - dist * dist );
   }
 }
 
-vec3 ProjToView(vec2 inp)
-{
-	vec3 p = u_zFar * vec3(inp, -1);
-	
-	return p;
+vec3 ProjToView( vec2 inp ) {
+	return u_zFar * vec3( inp, -1 );
 }
 
 void main() {
@@ -111,15 +100,15 @@ void main() {
   float miny = vPosition.y - r_tileStep.y;
   float maxy = vPosition.y + r_tileStep.y;
 
-  vec3 bottomleft = ProjToView(vec2(minx, miny));
-  vec3 bottomright = ProjToView(vec2(maxx, miny));
-  vec3 topright = ProjToView(vec2(maxx, maxy));
-  vec3 topleft = ProjToView(vec2(minx, maxy));
+  vec3 bottomleft = ProjToView( vec2( minx, miny ) );
+  vec3 bottomright = ProjToView( vec2( maxx, miny ) );
+  vec3 topright = ProjToView( vec2( maxx, maxy ) );
+  vec3 topleft = ProjToView( vec2( minx, maxy ) );
 
-  vec4 plane1 = vec4(normalize(cross(bottomleft, bottomright)), 0);
-  vec4 plane2 = vec4(normalize(cross(bottomright, topright)), 0);
-  vec4 plane3 = vec4(normalize(cross(topright, topleft)), 0);
-  vec4 plane4 = vec4(normalize(cross(topleft, bottomleft)), 0);
+  vec4 plane1 = vec4( normalize( cross( bottomleft, bottomright ) ), 0 );
+  vec4 plane2 = vec4( normalize( cross( bottomright, topright ) ), 0 );
+  vec4 plane3 = vec4( normalize( cross( topright, topleft ) ), 0 );
+  vec4 plane4 = vec4( normalize( cross( topleft, bottomleft ) ), 0 );
 
   vec4 plane5 = vec4( 0.0, 0.0,  1.0,  minmax.y );
   vec4 plane6 = vec4( 0.0, 0.0, -1.0, -minmax.x );
@@ -127,7 +116,7 @@ void main() {
   idxs_t idxs = idx_initializer;
 
   for( int i = u_lightLayer; i < u_numLights; i += numLayers ) {
-    light l = GetLight( i );
+    Light l = GetLight( i );
     vec3 center = ( u_ModelMatrix * vec4( l.center, 1.0 ) ).xyz;
     float radius = max( 2.0 * l.radius, 2.0 * 32.0 ); // Avoid artifacts with weak light sources
 
