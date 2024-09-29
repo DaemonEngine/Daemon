@@ -171,6 +171,7 @@ vec2 ReliefTexOffset(vec2 rayStartTexCoords, vec3 viewDir, mat3 tangentToWorldMa
 			if(currentDepth >= heightMapDepth)
 			{
 				bestDepth = currentDepth;
+				break;
 			}
 		}
 	}
