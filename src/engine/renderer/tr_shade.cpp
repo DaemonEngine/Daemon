@@ -48,6 +48,16 @@ static void EnableAvailableFeatures()
 				glConfig2.realtimeLighting = false;
 			}
 
+			if ( !glConfig2.uniformBufferObjectAvailable ) {
+				Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_uniform_buffer_object is not available." );
+				glConfig2.realtimeLighting = false;
+			}
+
+			if ( !glConfig2.textureIntegerAvailable ) {
+				Log::Warn( "Tiled dynamic light renderer disabled because GL_EXT_texture_integer is not available." );
+				glConfig2.realtimeLighting = false;
+			}
+
 			// See below about ALU instructions on ATI R300 and Intel GMA 3.
 			if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
 			{

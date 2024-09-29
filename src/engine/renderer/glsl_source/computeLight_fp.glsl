@@ -38,7 +38,6 @@ uniform float u_EnvironmentInterpolation;
 #endif // USE_REFLECTIVE_SPECULAR
 
 #if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
-#if defined(HAVE_ARB_uniform_buffer_object)
 struct light {
   vec4  center_radius;
   vec4  color_type;
@@ -49,17 +48,6 @@ layout(std140) uniform u_Lights {
   light lights[ MAX_REF_LIGHTS ];
 };
 #define GetLight(idx, component) lights[idx].component
-#else // !HAVE_ARB_uniform_buffer_object
-uniform sampler2D u_LightsTexture;
-#define idxToTC( idx, w, h ) vec2( floor( ( idx * ( 1.0 / w ) ) + 0.5 ) * ( 1.0 / h ), \
-				   fract( ( idx + 0.5 ) * (1.0 / w ) ) )
-const struct GetLightOffsets {
-  int center_radius;
-  int color_type;
-  int direction_angle;
-} getLightOffsets = GetLightOffsets(0, 1, 2);
-#define GetLight(idx, component) texture2D( u_LightsTexture, idxToTC(3 * idx + getLightOffsets.component, 64.0, float( 3 * MAX_REF_LIGHTS / 64 ) ) )
-#endif // HAVE_ARB_uniform_buffer_object
 
 uniform int u_numLights;
 #endif // defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
@@ -165,34 +153,21 @@ void computeLight(in vec3 lightColor, vec4 diffuseColor, inout vec4 color) {
 #endif // !defined(USE_DELUXE_MAPPING) && !defined(USE_GRID_DELUXE_MAPPING)
 
 #if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
-#if defined(HAVE_EXT_texture_integer) && defined(r_highPrecisionRendering)
 const int lightsPerLayer = 16;
+
 #define lightTilesSampler_t usampler3D
 #define lightTilesUniform u_LightTilesInt
 #define idxs_t uvec4
+
 idxs_t fetchIdxs( in vec3 coords, in lightTilesSampler_t lightTilesUniform ) {
   return texture3D( lightTilesUniform, coords );
 }
+
 int nextIdx( inout idxs_t idxs ) {
   uvec4 tmp = ( idxs & uvec4( 3 ) ) * uvec4( 0x40, 0x10, 0x04, 0x01 );
   idxs = idxs >> 2;
   return int( tmp.x + tmp.y + tmp.z + tmp.w );
 }
-#else // !HAVE_EXT_texture_integer || !r_highPrecisionRendering
-const int lightsPerLayer = 4;
-#define lightTilesSampler_t sampler3D
-#define lightTilesUniform u_LightTiles
-#define idxs_t vec4
-idxs_t fetchIdxs( in vec3 coords, in lightTilesSampler_t lightTilesUniform ) {
-  return texture3D( lightTilesUniform, coords ) * 255.0;
-}
-int nextIdx( inout idxs_t idxs ) {
-  vec4 tmp = idxs;
-  idxs = floor(idxs * 0.25);
-  tmp -= 4.0 * idxs;
-  return int( dot( tmp, vec4( 64.0, 16.0, 4.0, 1.0 ) ) );
-}
-#endif // !HAVE_EXT_texture_integer || !r_highPrecisionRendering
 
 uniform lightTilesSampler_t lightTilesUniform;
 

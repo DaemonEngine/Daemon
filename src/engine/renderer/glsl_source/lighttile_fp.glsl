@@ -46,10 +46,10 @@ struct light {
   float angle;
 };
 
-#if defined(HAVE_ARB_uniform_buffer_object)
 layout(std140) uniform u_Lights {
   vec4 lightvec[ MAX_REF_LIGHTS * 3 ];
 };
+
 light GetLight(in int idx) {
   light result; vec4 component;
   idx *= 3;
@@ -61,24 +61,6 @@ light GetLight(in int idx) {
   result.direction = component.xyz; result.angle = component.w;
   return result;
 }
-#else
-uniform sampler2D u_Lights;
-vec2 idxToTC( in int idx, float w, float h ) {
-  return vec2( ( float(idx) + 0.5 ) * ( 1.0 / (w * h) ),
-               ( float(idx) + 0.5 ) * ( 1.0 / w ) );
-}
-light GetLight(in int idx) {
-  light result; vec4 component;
-  idx *= 3;
-  component = texture2D( u_Lights, idxToTC(idx++, 64.0, float( 3 * MAX_REF_LIGHTS / 64 ) ) );
-  result.center = component.xyz; result.radius = component.w;
-  component = texture2D( u_Lights, idxToTC(idx++, 64.0, float( 3 * MAX_REF_LIGHTS / 64 ) ) );
-  result.color = component.xyz; result.type = component.w;
-  component = texture2D( u_Lights, idxToTC(idx++, 64.0, float( 3 * MAX_REF_LIGHTS / 64 ) ) );
-  result.direction = component.xyz; result.angle = component.w;
-  return result;
-}
-#endif
 
 uniform int  u_numLights;
 uniform mat4 u_ModelMatrix;
@@ -88,27 +70,17 @@ uniform vec3 u_zFar;
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
-#if defined(HAVE_EXT_texture_integer) && defined(r_highPrecisionRendering)
 #define idxs_t uvec4
 #define idx_initializer uvec4(3)
+
 DECLARE_OUTPUT(uvec4)
+
 void pushIdxs(in int idx, inout uvec4 idxs ) {
   uvec4 bits = uvec4( idx >> 8, idx >> 6, idx >> 4, idx >> 2 ) & uvec4( 0x03 );
   idxs = idxs << 2 | bits;
 }
+
 #define exportIdxs(x) outputColor = ( x )
-#else
-DECLARE_OUTPUT(vec4)
-#define idxs_t vec4
-#define idx_initializer vec4(3.0)
-void pushIdxs(in int idx, inout vec4 idxs ) {
-  vec4 bits = floor( vec4( idx ) * vec4( 1.0/256.0, 1.0/64.0, 1.0/16.0, 1.0/4.0 ) );
-  bits.yzw -= 4.0 * bits.xyz;
-  idxs = idxs * 4.0 + bits;
-  idxs -= 256.0 * floor( idxs * (1.0/256.0) ); // discard upper bits
-}
-#define exportIdxs(x) outputColor = ( x ) * (1.0/255.0)
-#endif
 
 void lightOutsidePlane( in vec4 plane, inout vec3 center, inout float radius ) {
   float dist = dot( plane, vec4( center, 1.0 ) );
