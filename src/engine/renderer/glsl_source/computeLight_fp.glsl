@@ -142,16 +142,19 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 #if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
 
 struct Light {
-	vec4 center_radius;
-	vec4 color_type;
-	vec4 direction_angle;
+	vec3 center;
+	float radius;
+	vec3 color;
+	float type;
+	vec3 direction;
+	float angle;
 };
 
 layout(std140) uniform u_Lights {
 	Light lights[MAX_REF_LIGHTS];
 };
 
-#define GetLight( idx, component ) lights[idx].component
+#define GetLight( idx ) lights[idx]
 
 uniform int u_numLights;
 
@@ -163,57 +166,53 @@ void computeDynamicLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffu
 	vec4 material, inout vec4 color )
 #endif // !USE_REFLECTIVE_SPECULAR
 {
-	vec4 center_radius = GetLight( idx, center_radius );
-	vec4 color_type = GetLight( idx, color_type );
+	Light light = GetLight( idx );
 	vec3 L;
 	float attenuation;
 
-	if( color_type.w == 0.0 ) {
+	if( light.type == 0.0 ) {
 		// point light
-		L = center_radius.xyz - P;
+		L = light.center.xyz - P;
 		// 2.57 ~= 8.0 ^ ( 1.0 / 2.2 ), adjusted after overbright changes
-		float t = 1.0 + 2.57 * length( L ) / center_radius.w;
+		float t = 1.0 + 2.57 * length( L ) / light.radius;
 		// Quadratic attenuation function instead of linear because of overbright changes
 		attenuation = 1.0 / ( t * t );
 		L = normalize( L );
-	} else if( color_type.w == 1.0 ) {
+	} else if( light.type == 1.0 ) {
 		// spot light
-		vec4 direction_angle = GetLight( idx, direction_angle );
-		L = center_radius.xyz - P;
+		L = light.center - P;
 		// 2.57 ~= 8.0 ^ ( 1.0 / 2.2 ), adjusted after overbright changes
-		float t = 1.0 + 2.57 * length( L ) / center_radius.w;
+		float t = 1.0 + 2.57 * length( L ) / light.radius;
 		// Quadratic attenuation function instead of linear because of overbright changes
 		attenuation = 1.0 / ( t * t );
 		L = normalize( L );
 
-		if( dot( L, direction_angle.xyz ) <= direction_angle.w ) {
+		if( dot( L, light.direction ) <= light.angle ) {
 			attenuation = 0.0;
 		}
-	} else if( color_type.w == 2.0 ) {
+	} else if( light.type == 2.0 ) {
 		// sun (directional) light
-		L = GetLight( idx, direction_angle ).xyz;
+		L = light.direction;
 		attenuation = 1.0;
 	}
 
 	#if defined(USE_REFLECTIVE_SPECULAR)
 		computeDeluxeLight( L, normal, viewDir,
-			attenuation * attenuation * color_type.xyz,
+			attenuation * attenuation * light.color,
 			diffuse, material, color, u_EnvironmentMap0, u_EnvironmentMap1 );
 	#else // !USE_REFLECTIVE_SPECULAR
 		computeDeluxeLight( L, normal, viewDir,
-			attenuation * attenuation * color_type.xyz,
+			attenuation * attenuation * light.color,
 			diffuse, material, color );
 	#endif // !USE_REFLECTIVE_SPECULAR
 }
 
 const int lightsPerLayer = 16;
 
-#define lightTilesSampler_t usampler3D
-#define lightTilesUniform u_LightTilesInt
 #define idxs_t uvec4
 
-idxs_t fetchIdxs( in vec3 coords, in lightTilesSampler_t lightTilesUniform ) {
-	return texture3D( lightTilesUniform, coords );
+idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTilesInt ) {
+	return texture3D( u_LightTilesInt, coords );
 }
 
 int nextIdx( inout idxs_t idxs ) {
@@ -222,18 +221,18 @@ int nextIdx( inout idxs_t idxs ) {
 	return int( tmp.x + tmp.y + tmp.z + tmp.w );
 }
 
-uniform lightTilesSampler_t lightTilesUniform;
+uniform usampler3D u_LightTilesInt;
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 const vec3 tileScale = vec3( r_tileStep, 1.0 / numLayers );
 
 #if defined(USE_REFLECTIVE_SPECULAR)
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
-	inout vec4 color, in lightTilesSampler_t lightTilesUniform,
+	inout vec4 color, in usampler3D u_LightTilesInt,
 	in samplerCube u_EnvironmentMap0, in samplerCube u_EnvironmentMap1 )
 #else // !USE_REFLECTIVE_SPECULAR
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
-	inout vec4 color, in lightTilesSampler_t lightTilesUniform )
+	inout vec4 color, in usampler3D u_LightTilesInt )
 #endif // !USE_REFLECTIVE_SPECULAR
 {
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
@@ -243,7 +242,7 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 	#endif
 
 	for( int layer = 0; layer < numLayers; layer++ ) {
-		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), lightTilesUniform );
+		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTilesInt );
 		for( int i = 0; i < lightsPerLayer; i++ ) {
 			int idx = numLayers * nextIdx( idxs ) + layer;
 
