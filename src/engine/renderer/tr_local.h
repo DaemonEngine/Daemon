@@ -1146,7 +1146,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		bool            isCubeMap;
 
-		int             deformIndex;
+		int deformIndex; // FIXME: should be on the shader level, not per-stage
 		bool        overrideNoPicMip; // for images that must always be full resolution
 		bool fitScreen; // For images that should be scaled to fit the screen size.
 		bool        overrideFilterType; // for console fonts, 2D elements, etc.
@@ -2838,7 +2838,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
 	extern cvar_t *r_noMarksOnTrisurfs;
-	extern cvar_t *r_lazyShaders; // 0: build all shaders on program start 1: delay shader build until first map load 2: delay shader build until needed
+	extern Cvar::Range<Cvar::Cvar<int>> r_lazyShaders; // 0: build all shaders on program start 1: delay shader build until first map load 2: delay shader build until needed
 
 	extern cvar_t *r_norefresh; // bypasses the ref rendering
 	extern cvar_t *r_drawentities; // disable/enable entity rendering
@@ -3379,7 +3379,7 @@ inline bool checkGLErrors()
 	alignas(16) extern shaderCommands_t tess;
 
 	void                    GLSL_InitGPUShaders();
-	void                    GLSL_InitWorldShadersOrError();
+	void                    GLSL_InitWorldShaders();
 	void                    GLSL_ShutdownGPUShaders();
 	void                    GLSL_FinishGPUShaders();
 

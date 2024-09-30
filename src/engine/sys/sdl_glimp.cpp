@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #include "renderer/tr_local.h"
+#include "renderer/DetectGLVendors.h"
 
 #pragma warning(push)
 #pragma warning(disable : 4125) // "decimal digit terminates octal escape sequence"
@@ -121,6 +122,47 @@ static Cvar::Cvar<bool> r_khr_debug( "r_khr_debug",
 	"Use GL_KHR_debug if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
 	"Use GL_KHR_shader_subgroup if available", Cvar::NONE, true );
+
+static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
+	"workaround.glDriver.amd.oglp.disableBindlessTexture",
+	"Disable ARB_bindless_texture on AMD OGLP driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_disableRgba16Blend(
+	"workaround.glDriver.mesa.ati.rv300.disableRgba16Blend",
+	"Disable misdetected RGBA16 on Mesa driver on RV300 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv600_disableHyperZ(
+	"workaround.glDriver.mesa.ati.rv600.disableHyperZ",
+	"Disable Hyper-Z on Mesa driver on RV600 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_forceS3tc(
+	"workaround.glDriver.mesa.forceS3tc",
+	"Enable S3TC on Mesa even when libtxc-dxtn is not available",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_forceFragmentShader(
+	"workaround.glDriver.mesa.intel.gma3.forceFragmentShader",
+	"Force fragment shader on Intel GMA Gen 3 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery(
+	"workaround.glDriver.mesa.intel.gma3.stubOcclusionQuery",
+	"stub out occlusion query on Intel GMA Gen 3 hardware",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_v241_disableBindlessTexture(
+	"workaround.glDriver.mesa.v241.disableBindlessTexture",
+	"Disable ARB_bindless_texture on Mesa 24.1 driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_nvidia_v340_disableTextureGather(
+	"workaround.glDriver.nvidia.v340.disableTextureGather",
+	"Disable ARB_texture_gather on Nvidia 340 driver",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glExtension_missingArbFbo_useExtFbo(
+	"workaround.glExtension.missingArbFbo.useExtFbo",
+	"Use EXT_framebuffer_object and EXT_framebuffer_blit when ARB_framebuffer_object is not available",
+	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glHardware_intel_useFirstProvokinVertex(
+	"workaround.glHardware.intel.useFirstProvokinVertex",
+	"Use first provoking vertex on Intel hardware supporting ARB_provoking_vertex",
+	Cvar::NONE, true );
 
 SDL_Window *window = nullptr;
 static SDL_GLContext glContext = nullptr;
@@ -398,6 +440,7 @@ void GLimp_WakeRenderer( void* )
 enum class rserr_t
 {
   RSERR_OK,
+  RSERR_RESTART,
 
   RSERR_INVALID_FULLSCREEN,
   RSERR_INVALID_MODE,
@@ -738,7 +781,7 @@ static bool GLimp_CreateWindow( bool fullscreen, bool bordered, const glConfigur
 	-- http://wiki.libsdl.org/SDL_GL_SetAttribute */
 	GLimp_SetAttributes( configuration );
 
-	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
+	Uint32 flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL;
 
 	if ( r_allowResize->integer )
 	{
@@ -1340,14 +1383,30 @@ static void GLimp_RegisterConfiguration( const glConfiguration& highestConfigura
 		glConfig2.glMinor = GLminor;
 	}
 
-	/* FIXME: a duplicate of this is done in GLimp_Init, also storing it
-	for gfxinfo command. */
-	const char *glstring = ( char * ) glGetString( GL_RENDERER );
-	logger.Notice("OpenGL Renderer: %s", glstring );
+	// Get our config strings.
+	Q_strncpyz( glConfig.vendor_string, ( char * ) glGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
+	Q_strncpyz( glConfig.renderer_string, ( char * ) glGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
+	Q_strncpyz( glConfig.version_string, ( char * ) glGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
+
+	if ( *glConfig.renderer_string )
+	{
+		int last = strlen( glConfig.renderer_string ) - 1;
+		if ( glConfig.renderer_string[ last ] == '\n' )
+		{
+			glConfig.renderer_string[ last ] = '\0';
+		}
+	}
+
+	logger.Notice("OpenGL vendor: %s", glConfig.vendor_string );
+	logger.Notice("OpenGL renderer: %s", glConfig.renderer_string );
+	logger.Notice("OpenGL version: %s", glConfig.version_string );
 }
 
-static void GLimp_DrawWindowContent()
+static void GLimp_DrawWindow()
 {
+	// Unhide the window.
+	SDL_ShowWindow( window );
+
 	// Fill window with a dark grey (#141414) background.
 	glClearColor( 0.08f, 0.08f, 0.08f, 1.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
@@ -1415,6 +1474,58 @@ static void GLimp_CheckGLEW( const glConfiguration &requestedConfiguration )
 			glewGetErrorString( glewResult ),
 			ContextDescription( requestedConfiguration ) );
 	}
+}
+
+// We should make sure every workaround returns false if restart already happened.
+static bool IsSdlVideoRestartNeeded()
+{
+	/* We call RV600 the first generation of R600 cards, to make a difference
+	with RV700 and RV800 cards that are also supported by the Mesa R600 driver.
+
+	The Mesa R600 driver has broken Hyper-Z wth RV600, not RV700 nor RV800. */
+	if ( workaround_glDriver_mesa_ati_rv600_disableHyperZ.Get() )
+	{
+		if ( getenv( "R600_HYPERZ" ) )
+		{
+			return false;
+		}
+
+		if ( !Q_stricmp( glConfig.vendor_string, "Mesa" ) || !Q_stricmp( glConfig.vendor_string, "X.Org" ) )
+		{
+			bool foundRv600 = false;
+
+			std::string cardName = "";
+
+			static const std::vector<std::string> codenames = {
+				// Radeon HD 2000 Series
+				"R600", "RV610", "RV630",
+				// Radeon HD 3000 Series
+				"RV620", "RV635", "RV670",
+			};
+
+			for ( auto& codename : codenames )
+			{
+				cardName = Str::Format( "AMD %s", codename );
+
+				if ( Q_stristr( glConfig.renderer_string, cardName.c_str() ) )
+				{
+					foundRv600 = true;
+					break;
+				}
+			}
+
+			if ( foundRv600 )
+			{
+				logger.Warn( "...found buggy Mesa driver with %s card, Hyper-Z disabled", cardName );
+
+				Sys::SetEnv( "R600_HYPERZ", "false" );
+
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 /*
@@ -1514,9 +1625,15 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 		requestedConfiguration = bestValidatedConfiguration;
 	}
 
-	GLimp_DrawWindowContent();
-
 	GLimp_RegisterConfiguration( extendedValidationResult, requestedConfiguration );
+
+	if ( IsSdlVideoRestartNeeded() )
+	{
+		GLimp_DestroyWindowIfExists();
+		return rserr_t::RSERR_RESTART;
+	}
+
+	GLimp_DrawWindow();
 
 	{
 		rserr_t err = GLimp_CheckOpenGLVersion( requestedConfiguration );
@@ -1566,7 +1683,7 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 GLimp_StartDriverAndSetMode
 ===============
 */
-static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
+static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordered )
 {
 	int numDisplays;
 
@@ -1591,8 +1708,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 
 		if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 		{
-			logger.Notice("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
-			return false;
+			Sys::Error("SDL_Init( SDL_INIT_VIDEO ) failed: %s", SDL_GetError() );
 		}
 
 		driverName = SDL_GetCurrentVideoDriver();
@@ -1625,7 +1741,8 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 	switch ( err )
 	{
 		case rserr_t::RSERR_OK:
-			return true;
+		case rserr_t::RSERR_RESTART:
+			break;
 
 		case rserr_t::RSERR_INVALID_FULLSCREEN:
 			logger.Warn("GLimp: Fullscreen unavailable in this mode" );
@@ -1661,7 +1778,7 @@ static bool GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bordere
 			break;
 	}
 
-	return false;
+	return err;
 }
 
 static GLenum debugTypes[] =
@@ -1977,9 +2094,12 @@ static void GLimp_InitExtensions()
 
 	/* Workaround for drivers not implementing the feature query or wrongly reporting the feature
 	to be supported, for various reasons. */
-	if ( glConfig2.textureRGBA16BlendAvailable != 0 && glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+	if ( workaround_glDriver_mesa_ati_rv300_disableRgba16Blend.Get() )
 	{
-		glConfig2.textureRGBA16BlendAvailable = 0;
+		if ( glConfig2.textureRGBA16BlendAvailable != 0 && glConfig.hardwareType == glHardwareType_t::GLHW_R300 )
+		{
+			glConfig2.textureRGBA16BlendAvailable = 0;
+		}
 	}
 
 	// made required in OpenGL 3.0
@@ -2016,23 +2136,27 @@ static void GLimp_InitExtensions()
 		lighting so it is likely this feature would be disabled to
 		get acceptable framerate on this hardware anyway, making the
 		need for such extension and the related shader code useless. */
-		bool foundNvidia340 = ( Q_stristr( glConfig.vendor_string, "NVIDIA Corporation" ) && Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
-
-		if ( foundNvidia340 )
+		if ( workaround_glDriver_nvidia_v340_disableTextureGather.Get() )
 		{
-			// No need for WithoutSuppression for something which can only be printed once per renderer restart.
-			logger.Notice("...found buggy Nvidia 340 driver");
+			bool foundNvidia340 = ( glConfig2.driverVendor == glDriverVendor_t::NVIDIA
+			&& Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
+
+			if ( foundNvidia340 )
+			{
+				// No need for WithoutSuppression for something which can only be printed once per renderer restart.
+				logger.Notice("...found buggy Nvidia 340 driver");
+			}
+
+			// made required in OpenGL 4.0
+			glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather.Get() && !foundNvidia340 );
 		}
-
-		// made required in OpenGL 4.0
-		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather.Get() && !foundNvidia340 );
 	}
-
+	
+	if ( workaround_glHardware_intel_useFirstProvokinVertex.Get() )
 	{
-		bool foundIntel = Q_stristr( glConfig.vendor_string, "Intel" );
+		bool foundIntel = glConfig2.hardwareVendor == glHardwareVendor_t::INTEL;
 
-		if ( foundIntel
-			&& LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
+		if ( foundIntel && LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
 		{
 			/* Workaround texture distorsion bug on Intel GPU
 
@@ -2075,29 +2199,33 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 3.0
 	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
 
-	// made required in OpenGL 3.0
-	if ( LOAD_EXTENSION( ExtFlag_CORE, ARB_framebuffer_object ) )
 	{
-		glFboSetArb();
-	}
-	else
-	{
-		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_object );
+		int flag = ExtFlag_CORE | ( workaround_glExtension_missingArbFbo_useExtFbo.Get() ? 0 : ExtFlag_REQUIRED );
 
-		/* Both EXT_framebuffer_object and EXT_framebuffer_blit are said to be
-		parts of ARB_framebuffer_object:
+		// made required in OpenGL 3.0
+		if ( LOAD_EXTENSION( flag, ARB_framebuffer_object ) )
+		{
+			glFboSetArb();
+		}
+		else
+		{
+			LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_object );
 
-		> So there may be hardware that supports EXT_FBO and not ARB_FBO,
-		> even thought they support things like EXT_FBO_blit and other parts
-		> of ARB_FBO.
-		-- https://www.khronos.org/opengl/wiki/Framebuffer_Object
+			/* Both EXT_framebuffer_object and EXT_framebuffer_blit are said to be
+			parts of ARB_framebuffer_object:
 
-		Our code is known to require EXT_framebuffer_blit so if we don't find
-		ARB_framebuffer_object but find EXT_framebuffer_object we must
-		check for EXT_framebuffer_blit too. */
-		LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_blit );
+			> So there may be hardware that supports EXT_FBO and not ARB_FBO,
+			> even thought they support things like EXT_FBO_blit and other parts
+			> of ARB_FBO.
+			-- https://www.khronos.org/opengl/wiki/Framebuffer_Object
 
-		glFboSetExt();
+			Our code is known to require EXT_framebuffer_blit so if we don't find
+			ARB_framebuffer_object but find EXT_framebuffer_object we must
+			check for EXT_framebuffer_blit too. */
+			LOAD_EXTENSION( ExtFlag_REQUIRED, EXT_framebuffer_blit );
+
+			glFboSetExt();
+		}
 	}
 
 	// FBO
@@ -2155,39 +2283,75 @@ static void GLimp_InitExtensions()
 
 	// Some of the mesa 24.x driver versions have a bug in their shader compiler related to bindless textures,
 	// which results in either glitches or the shader compiler crashing (when material system is enabled)
+	if ( glConfig2.driverVendor == glDriverVendor_t::MESA )
 	{
 		bool foundMesa241 = false;
-		std::string mesaVersion = "";
 
-		static const std::vector<std::pair<std::string, std::vector<std::string>>> versions = {
-			{ "1.0", { "1.0-devel", "1.0-rc1", "1.0-rc2", "1.0-rc3", "1.0-rc4", "1.0", } },
-			{ "1.",  { "1.1", "1.2", "1.3", "1.4", } },
-			{ "2.0", { "2.0-devel", "2.0-rc1", } },
-		};
+		if ( workaround_glDriver_mesa_v241_disableBindlessTexture.Get() )
+		{
+			std::string mesaVersion = "";
 
-		for ( auto& vp : versions ) {
-			mesaVersion = Str::Format( "Mesa 24.%s", vp.first );
+			static const std::vector<std::pair<std::string, std::vector<std::string>>> versions = {
+				{ "1.0", { "1.0-devel", "1.0-rc1", "1.0-rc2", "1.0-rc3", "1.0-rc4", "1.0", } },
+				{ "1.",  { "1.1", "1.2", "1.3", "1.4", } },
+				{ "2.0", { "2.0-devel", "2.0-rc1", } },
+			};
 
-			if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
-				for ( auto& v : vp.second ) {
-					mesaVersion = Str::Format( "Mesa 24.%s", v );
+			for ( auto& vp : versions ) {
+				mesaVersion = Str::Format( "Mesa 24.%s", vp.first );
 
-					if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
-						foundMesa241 = true;
-						break;
+				if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
+					for ( auto& v : vp.second ) {
+						mesaVersion = Str::Format( "Mesa 24.%s", v );
+
+						if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
+							foundMesa241 = true;
+							break;
+						}
 					}
-				}
 
-				break;
+					break;
+				}
+			}
+
+			if ( foundMesa241 ) {
+				logger.Warn( "...found buggy %s driver, ARB_bindless_texture disabled", mesaVersion );
 			}
 		}
 
-		if ( foundMesa241 ) {
-			logger.Warn( "...found buggy %s driver, ARB_bindless_texture disabled", mesaVersion );
+		bool foundOglp = false;
+
+		if ( workaround_glDriver_amd_oglp_disableBindlessTexture.Get() )
+		{
+			/* AMD OGLP driver for Linux shares the same vendor string than AMD Adrenalin driver
+			for Windows and AMD ATI driver for macOS. When running the Windows engine binary on
+			Wine we must check we're not running Windows or macOS to detect Linux OGLP. */
+			if ( Q_stristr( glConfig.vendor_string, "ATI Technologies Inc." ) )
+			{
+				#if defined(_WIN32)
+					// Detect Wine being used.
+					if ( Sys::isRunningOnWine() )
+					{
+						// Detect AMD ATI driver on macOS not being used.
+						if ( !Q_stristr( glConfig.version_string, "ATI-" ) )
+						{
+							foundOglp = true;
+						}
+					}
+				#elif defined(__APPLE__)
+					// AMD ATI driver for macOS is believed to not implement bindless texture.
+				#else
+					foundOglp = true;
+				#endif
+			}
+
+			if ( foundOglp ) {
+				logger.Warn( "...found buggy AMD OGLP driver, ARB_bindless_texture disabled" );
+			}
 		}
 
 		// not required by any OpenGL version
-		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture.Get() && !foundMesa241 );
+		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture.Get() && !foundMesa241 && !foundOglp );
 	}
 
 	// made required in OpenGL 4.6
@@ -2315,43 +2479,122 @@ bool GLimp_Init()
 	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
 
+	Cvar::Latch( workaround_glDriver_amd_oglp_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_disableRgba16Blend );
+	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
+	Cvar::Latch( workaround_glDriver_mesa_forceS3tc );
+	Cvar::Latch( workaround_glDriver_mesa_intel_gma3_forceFragmentShader );
+	Cvar::Latch( workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery );
+	Cvar::Latch( workaround_glDriver_mesa_v241_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
+	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
+	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
+
 	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
-	// Create the window and set up the context
-	if ( GLimp_StartDriverAndSetMode( r_mode->integer, r_fullscreen.Get(), !r_noBorder.Get() ) )
+	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
+	The environment variables is currently always set,
+	it should do nothing with other systems and drivers.
+
+	It should also be set on Win32 when running on Wine
+	on Linux anyway. */
+	if ( workaround_glDriver_mesa_forceS3tc.Get() )
 	{
-		goto success;
+		Sys::SetEnv( "force_s3tc_enable", "true" );
 	}
 
-	// Finally, try the default screen resolution
-	if ( r_mode->integer != R_MODE_FALLBACK )
-	{
-		logger.Notice("Setting r_mode %d failed, falling back on r_mode %d", r_mode->integer, R_MODE_FALLBACK );
+	/* Enable 2.1 GL on Intel GMA Gen 3 on Linux Mesa driver.
 
-		if ( GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, true ) )
+	Mesa provides limited ARB_fragment_shader support and a stub
+	for ARB_occlusion_query implementation on GMA Gen 3, making
+	possible to enable OpenGL 2.1 on such hardware.
+
+	The Mesa i915 driver for GMA Gen 3 disabled GL 2.1 on such
+	hardware to force Google Chrome to use its CPU fallback
+	that was faster but we don't implement such fallback.
+	See https://gitlab.freedesktop.org/mesa/mesa/-/commit/a1891da7c865c80d95c450abfc0d2bc49db5f678
+
+	Only Mesa i915 on Linux supports GL 2.1 for GMA Gen 3,
+	so there is no similar tweak available for Windows and macOS.
+
+	Mesa i915 and macOS also supports GL 2.1 on GMA Gen 4
+	(while windows drivers don't) and those tweaks are not
+	required as the related features are enabled by default.
+
+	First Intel hardware range expected to have drivers
+	supporting GL 2.1 on Windows is GMA Gen 5.
+
+	Enabling those options will at least make the engine
+	properly report missing extensions instead of missing
+	GL version, for example the Intel GMA 3100 G33 (Gen 3)
+	will report missing GL_ARB_half_float_vertex extension
+	instead of missing OpenGL 2.1 version. This will make
+	the engine runs on such hardware once float vertex
+	is implemented.
+
+	The GMA 3150 is known to have wider OpenGL support than
+	GMA 3100, for example it has OpenGL version similar to
+	GMA 4 on Windows while being a GMA 3 so the list of
+	available GL extensions may be different.
+
+	The environment variables are currently always set, they
+	should do nothing with other systems and drivers. They
+	should also be set when running Windows binaries running
+	on Wine on Linux anyway. So we better always set them. */
+	if ( workaround_glDriver_mesa_intel_gma3_forceFragmentShader.Get() )
+	{
+		Sys::SetEnv( "fragment_shader", "true" );
+	}
+
+	if ( workaround_glDriver_mesa_intel_gma3_stubOcclusionQuery.Get() )
+	{
+		Sys::SetEnv( "stub_occlusion_query", "true" );
+	}
+
+	int mode = r_mode->integer;
+	bool fullscreen = r_fullscreen.Get();
+	bool bordered = !r_noBorder.Get();
+
+	// Create the window and set up the context
+	rserr_t err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
+
+	if ( err == rserr_t::RSERR_RESTART )
+	{
+		Log::Warn( "...restarting SDL Video" );
+		SDL_QuitSubSystem( SDL_INIT_VIDEO );
+		err = GLimp_StartDriverAndSetMode( mode, fullscreen, bordered );
+	}
+
+	if ( err != rserr_t::RSERR_OK )
+	{
+		// Finally, try the default screen resolution
+		if ( mode != R_MODE_FALLBACK )
 		{
-			goto success;
+			logger.Notice("Setting r_mode %d failed, falling back on r_mode %d", mode, R_MODE_FALLBACK );
+
+			err = GLimp_StartDriverAndSetMode( R_MODE_FALLBACK, false, true );
 		}
 	}
 
-	// Nothing worked, give up
-	SDL_QuitSubSystem( SDL_INIT_VIDEO );
-	return false;
+	if ( err != rserr_t::RSERR_OK )
+	{
+		// Nothing worked, give up
+		SDL_QuitSubSystem( SDL_INIT_VIDEO );
+		return false;
+	}
 
-success:
 	// These values force the UI to disable driver selection
 	glConfig.hardwareType = glHardwareType_t::GLHW_GENERIC;
 
-	// get our config strings
-	Q_strncpyz( glConfig.vendor_string, ( char * ) glGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
-	Q_strncpyz( glConfig.renderer_string, ( char * ) glGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
+	DetectGLVendors(
+		glConfig.vendor_string,
+		glConfig.version_string,
+		glConfig.renderer_string,
+		glConfig2.hardwareVendor,
+		glConfig2.driverVendor );
 
-	if ( *glConfig.renderer_string && glConfig.renderer_string[ strlen( glConfig.renderer_string ) - 1 ] == '\n' )
-	{
-		glConfig.renderer_string[ strlen( glConfig.renderer_string ) - 1 ] = 0;
-	}
-
-	Q_strncpyz( glConfig.version_string, ( char * ) glGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
+	Log::Debug( "Detected OpenGL hardware vendor: %s", GetGLHardwareVendorName( glConfig2.hardwareVendor ) );
+	Log::Debug( "Detected OpenGL driver vendor: %s", GetGLDriverVendorName( glConfig2.driverVendor ) );
 
 	glConfig2.glExtensionsString = std::string();
 

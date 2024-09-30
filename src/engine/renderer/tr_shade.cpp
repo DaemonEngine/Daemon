@@ -143,7 +143,7 @@ static void EnableAvailableFeatures()
 }
 
 // For shaders that require map data for compile-time values 
-void GLSL_InitWorldShadersOrError() {
+void GLSL_InitWorldShaders() {
 	// make sure the render thread is stopped
 	R_SyncRenderThread();
 
@@ -155,8 +155,6 @@ void GLSL_InitWorldShadersOrError() {
 	if ( glConfig2.materialSystemAvailable ) {
 		gl_shaderManager.load( gl_cullShader );
 	}
-
-	gl_shaderManager.buildAll();
 }
 
 static void GLSL_InitGPUShadersOrError()
@@ -190,6 +188,11 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_clearSurfacesShader );
 		gl_shaderManager.load( gl_processSurfacesShader );
 		gl_shaderManager.load( gl_depthReductionShader );
+	}
+
+	if ( tr.world ) // this only happens with /glsl_restart
+	{
+		GLSL_InitWorldShaders();
 	}
 
 	if ( glConfig2.realtimeLighting )
@@ -350,7 +353,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_fxaaShader );
 	}
 
-	if ( !r_lazyShaders->integer )
+	if ( r_lazyShaders.Get() == 0 )
 	{
 		gl_shaderManager.buildAll();
 	}
@@ -369,9 +372,10 @@ void GLSL_InitGPUShaders()
 	 is set on the command line, the cycle is:
 	 1. Start the app.
 	 2. Change shader file(s)
-	 3. Do /glsl_restart at the app console to reload them. If there is a problem the app will
-	    revert to the last working changes in shaders.cpp, so no need to restart the app.
-	    FIXME: this doesn't work, actually it kills the app!
+	 3. Do /glsl_restart at the app console to reload them. If there is a problem and
+	    r_lazyShaders < 2, the app will revert to the last working changes in shaders.cpp, so no need
+	    to restart the app. OTOH if r_lazyShaders = 2 you can iterate really fast, but
+	    you die if you make a typo.
 	 4. If further changes are needed, repeat from step 3.
 
 	 Note that Daemon will respond by listing the files it thinks are different.
@@ -391,6 +395,10 @@ void GLSL_InitGPUShaders()
 		{
 			Log::Warn("Loading external shaders.");
 			GLSL_InitGPUShadersOrError();
+			if ( r_lazyShaders.Get() == 1 && tr.world != nullptr )
+			{
+				gl_shaderManager.buildAll();
+			}
 			Log::Warn("External shaders in use.");
 		}
 		catch (const ShaderException& e)
@@ -426,6 +434,7 @@ void GLSL_ShutdownGPUShaders()
 
 	gl_shaderManager.freeAll();
 
+	gl_generic2DShader = nullptr;
 	gl_genericShader = nullptr;
 	gl_genericShaderMaterial = nullptr;
 	gl_cullShader = nullptr;

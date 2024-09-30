@@ -87,6 +87,8 @@ if (DAEMON_PARENT_SCOPE_DIR)
 endif()
 
 set(RENDERERLIST
+    ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
+    ${ENGINE_DIR}/renderer/DetectGLVendors.h
     ${ENGINE_DIR}/renderer/gl_shader.cpp
     ${ENGINE_DIR}/renderer/gl_shader.h
     ${ENGINE_DIR}/renderer/iqm.h

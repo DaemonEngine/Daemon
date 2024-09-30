@@ -7034,5 +7034,5 @@ void RE_LoadWorldMap( const char *name )
 	}
 
 	tr.worldLoaded = true;
-	GLSL_InitWorldShadersOrError();
+	GLSL_InitWorldShaders();
 }
