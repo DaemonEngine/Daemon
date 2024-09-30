@@ -133,6 +133,10 @@ static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_disableRgba16Blend(
 	"workaround.glDriver.mesa.ati.rv300.disableRgba16Blend",
 	"Disable misdetected RGBA16 on Mesa driver on RV300 hardware",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_useFloatVertex(
+	"workaround.glDriver.mesa.ati.rv300.useFloatVertex",
+	"Use float vertex instead of supported-but-slower half-float vertex on Mesa driver on RV300 hardware",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv600_disableHyperZ(
 	"workaround.glDriver.mesa.ati.rv600.disableHyperZ",
 	"Disable Hyper-Z on Mesa driver on RV600 hardware",
@@ -1507,7 +1511,7 @@ static bool IsSdlVideoRestartNeeded()
 			{
 				cardName = Str::Format( "AMD %s", codename );
 
-				if ( Q_stristr( glConfig.renderer_string, cardName.c_str() ) )
+				if ( Str::IsPrefix( cardName, glConfig.renderer_string ) )
 				{
 					foundRv600 = true;
 					break;
@@ -2192,9 +2196,65 @@ static void GLimp_InitExtensions()
 		glConfig2.textureAnisotropy = std::max( std::min( r_ext_texture_filter_anisotropic.Get(), glConfig2.maxTextureAnisotropy ), 1.0f );
 	}
 
-	// VAO and VBO
-	// made required in OpenGL 3.0
-	glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, r_arb_half_float_vertex.Get() );
+	/* We call RV300 the first generation of R300 cards, to make a difference
+	with RV400 and RV500 cards that are also supported by the Mesa r300 driver.
+
+	Mesa r300 implements half-float vertex for the RV300 hardware generation,
+	but it is likely emulated and it is very slow. We better use float vertex
+	instead. */
+	{
+		bool halfFloatVertexEnabled = r_arb_half_float_vertex.Get();
+
+		if ( glConfig2.driverVendor == glDriverVendor_t::MESA
+			&& glConfig2.hardwareVendor == glHardwareVendor_t::ATI )
+		{
+			bool foundRv300 = false;
+
+			std::string cardName = "unknown ATI RV3xx";
+
+			static const std::string codenames[] = {
+				"R300", "R350", "R360",
+				"RV350", "RV360", "RV370", "RV380",
+			};
+
+			for ( auto& codename : codenames )
+			{
+				cardName = Str::Format( "ATI %s", codename );
+
+				if ( Str::IsPrefix( cardName, glConfig.renderer_string ) )
+				{
+					foundRv300 = true;
+					break;
+				}
+			}
+
+			/* The RV300 generation only has 64 ALU instructions while RV400 and RV500
+			have 512 of them, so we can also use that value to detect RV300. */
+			if ( !foundRv300 )
+			{
+				if ( glConfig.hardwareType == glHardwareType_t::GLHW_R300
+					&& glConfig2.maxAluInstructions == 64 )
+				{
+					foundRv300 = true;
+				}
+			}
+
+			if ( foundRv300 && workaround_glDriver_mesa_ati_rv300_useFloatVertex.Get() )
+			{
+				logger.Warn( "Found slow Mesa half-float vertex implementation with %s card, disabling ARB_half_float_vertex.", cardName );
+				halfFloatVertexEnabled = false;
+			}
+		}
+
+		// VAO and VBO
+		// made required in OpenGL 3.0
+		glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_vertex, halfFloatVertexEnabled );
+
+		if ( !halfFloatVertexEnabled )
+		{
+			logger.Warn( "Missing half-float vertex, using float vertex instead." );
+		}
+	}
 
 	if ( glConfig2.halfFloatVertexAvailable )
 	{
