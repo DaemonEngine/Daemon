@@ -159,10 +159,10 @@ layout(std140) uniform u_Lights {
 uniform int u_numLights;
 
 #if defined(USE_REFLECTIVE_SPECULAR)
-void computeDynamicLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
+void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 	vec4 material, inout vec4 color, in samplerCube u_EnvironmentMap0, in samplerCube u_EnvironmentMap1 )
 #else // !USE_REFLECTIVE_SPECULAR
-void computeDynamicLight( int idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
+void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 	vec4 material, inout vec4 color )
 #endif // !USE_REFLECTIVE_SPECULAR
 {
@@ -211,20 +211,19 @@ const int lightsPerLayer = 16;
 
 #define idxs_t uvec4
 
+uniform usampler3D u_LightTilesInt;
+
+const uint numLayers = MAX_REF_LIGHTS / 256;
+const vec3 tileScale = vec3( r_tileStep, 1.0 / numLayers );
+
 idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTilesInt ) {
 	return texture3D( u_LightTilesInt, coords );
 }
 
-int nextIdx( inout idxs_t idxs ) {
-	uvec4 tmp = ( idxs & uvec4( 3 ) ) * uvec4( 0x40, 0x10, 0x04, 0x01 );
-	idxs >>= 2;
-	return int( tmp.x + tmp.y + tmp.z + tmp.w );
+// 8 bits per light ID
+uint nextIdx( in uint count, in idxs_t idxs ) {
+	return ( idxs[count / 4] >> ( 8 * ( count % 4 ) ) ) & 0xFF;
 }
-
-uniform usampler3D u_LightTilesInt;
-
-const int numLayers = MAX_REF_LIGHTS / 256;
-const vec3 tileScale = vec3( r_tileStep, 1.0 / numLayers );
 
 #if defined(USE_REFLECTIVE_SPECULAR)
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
@@ -236,19 +235,26 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 #endif // !USE_REFLECTIVE_SPECULAR
 {
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
+	
+	// NOT the amount of lights that can actually be put into each layer of the lighttile texture
+	uint globalLightsPerLayer = ( u_numLights + numLayers - 1 ) / numLayers;
 
-	#if defined(r_showLightTiles)
-		float numLights = 0.0;
-	#endif
-
-	for( int layer = 0; layer < numLayers; layer++ ) {
+	uint lightCount = 0;
+	for( uint layer = 0; layer < numLayers; layer++ ) {
 		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTilesInt );
-		for( int i = 0; i < lightsPerLayer; i++ ) {
-			int idx = numLayers * nextIdx( idxs ) + layer;
 
-			if( idx >= u_numLights ) {
+		uint lightOffset = layer * globalLightsPerLayer;
+		uint layerLightCount = lightOffset < u_numLights ? min( min( u_numLights - lightOffset, globalLightsPerLayer ), lightsPerLayer ) : 0;
+		for( uint i = 0; i < layerLightCount; i++ ) {
+			uint idx = nextIdx( lightCount, idxs );
+
+			if( idx == 0 ) {
 				break;
 			}
+
+			/* Light IDs are stored relative to the layer
+			Subtract 1 because 0 means there's no light */
+			idx += ( layer * numLayers ) + layer - 1;
 	  
 			#if defined(USE_REFLECTIVE_SPECULAR)
 				computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color, u_EnvironmentMap0, u_EnvironmentMap1 );
@@ -256,16 +262,14 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 				computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color );
 			#endif // !USE_REFLECTIVE_SPECULAR
 
-			#if defined(r_showLightTiles)
-				numLights++;
-			#endif
+			lightCount++;
 		}
 	}
 
 	#if defined(r_showLightTiles)
-		if ( numLights > 0.0 ) {
-			color = vec4( numLights / ( lightsPerLayer * numLayers ), numLights / ( lightsPerLayer * numLayers ),
-				numLights / ( lightsPerLayer * numLayers ), 1.0 );
+		if ( lightCount > 0 ) {
+			color = vec4( float( lightCount ) / u_numLights, float( lightCount ) / u_numLights,
+				float( lightCount ) / u_numLights, 1.0 );
 		}
 	#endif
 }

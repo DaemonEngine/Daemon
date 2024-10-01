@@ -50,7 +50,7 @@ layout(std140) uniform u_Lights {
   Light lights[MAX_REF_LIGHTS];
 };
 
-Light GetLight( in int idx ) {
+Light GetLight( in uint idx ) {
   return lights[idx];
 }
 
@@ -62,14 +62,16 @@ uniform vec3 u_zFar;
 
 const int numLayers = MAX_REF_LIGHTS / 256;
 
+const int lightsPerLayer = 16;
+
 #define idxs_t uvec4
-#define idx_initializer uvec4( 3 )
 
 DECLARE_OUTPUT(uvec4)
 
-void pushIdxs( in int idx, inout uvec4 idxs ) {
-  uvec4 bits = uvec4( idx >> 8, idx >> 6, idx >> 4, idx >> 2 ) & uvec4( 0x03 );
-  idxs = idxs << 2 | bits;
+// 8 bits per light ID
+void pushIdxs( in uint idx, in uint count, inout uvec4 idxs ) {
+	idxs[count / 4] <<= 8;
+	idxs[count / 4] |= idx & 0xFF;
 }
 
 #define exportIdxs( x ) outputColor = ( x )
@@ -113,23 +115,36 @@ void main() {
   vec4 plane5 = vec4( 0.0, 0.0,  1.0,  minmax.y );
   vec4 plane6 = vec4( 0.0, 0.0, -1.0, -minmax.x );
 
-  idxs_t idxs = idx_initializer;
+  idxs_t idxs = uvec4( 0, 0, 0, 0 );
 
-  for( int i = u_lightLayer; i < u_numLights; i += numLayers ) {
-    Light l = GetLight( i );
-    vec3 center = ( u_ModelMatrix * vec4( l.center, 1.0 ) ).xyz;
-    float radius = max( 2.0 * l.radius, 2.0 * 32.0 ); // Avoid artifacts with weak light sources
+	uint lightCount = 0;
 
-    // todo: better checks for spotlights
-    lightOutsidePlane( plane1, center, radius );
-    lightOutsidePlane( plane2, center, radius );
-    lightOutsidePlane( plane3, center, radius );
-    lightOutsidePlane( plane4, center, radius );
-    lightOutsidePlane( plane5, center, radius );
-    lightOutsidePlane( plane6, center, radius );
+	/* Dynamic lights are put into 4 layers of a 3D texture. Since checking if we already added some light is infeasible,
+	only process 1 / 4 of different lights for each layer, extra lights going into the last layer. This can fail to add some lights
+	if 1 / 4 of all lights is more than the amount of lights that each layer can hold (16). To fix this, we'd need to either do this on CPU
+	or use compute shaders with atomics so we can have a variable amount of lights for each tile. */
+	for( uint i = u_lightLayer; i < u_numLights; i += 4 ) {
+		Light l = GetLight( i );
+		vec3 center = ( u_ModelMatrix * vec4( l.center, 1.0 ) ).xyz;
+		float radius = max( 2.0 * l.radius, 2.0 * 32.0 ); // Avoid artifacts with weak light sources
+
+		// todo: better checks for spotlights
+		lightOutsidePlane( plane1, center, radius );
+		lightOutsidePlane( plane2, center, radius );
+		lightOutsidePlane( plane3, center, radius );
+		lightOutsidePlane( plane4, center, radius );
+		lightOutsidePlane( plane5, center, radius );
+		lightOutsidePlane( plane6, center, radius );
 
     if( radius > 0.0 ) {
-      pushIdxs( i, idxs );
+      /* Light IDs are stored relative to the layer
+      Add 1 because 0 means there's no light */
+      pushIdxs( i + 1, lightCount, idxs );
+      lightCount++;
+
+      if( lightCount == lightsPerLayer ) {
+        break;
+      }
     }
   }
 
