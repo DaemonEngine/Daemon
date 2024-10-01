@@ -42,12 +42,6 @@ static void EnableAvailableFeatures()
 	{
 		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 		{
-			if ( !glConfig2.textureFloatAvailable )
-			{
-				Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_texture_float is not available.");
-				glConfig2.realtimeLighting = false;
-			}
-
 			if ( !glConfig2.uniformBufferObjectAvailable ) {
 				Log::Warn( "Tiled dynamic light renderer disabled because GL_ARB_uniform_buffer_object is not available." );
 				glConfig2.realtimeLighting = false;
@@ -1075,19 +1069,10 @@ void Render_lightMapping( shaderStage_t *pStage )
 		if ( backEnd.refdef.numShaderLights > 0 )
 		{
 			gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
-
-			if( glConfig2.uniformBufferObjectAvailable )
-			{
-				gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
-			} else
-			{
-				gl_lightMappingShader->SetUniform_LightsTextureBindless(
-					GL_BindToTMU( BIND_LIGHTS, tr.dlightImage ) 
-				);
-			}
+			gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 
 			// bind u_LightTiles
-			gl_lightMappingShader->SetUniform_LightTilesIntBindless(
+			gl_lightMappingShader->SetUniform_LightTilesBindless(
 				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
 			);
 		}

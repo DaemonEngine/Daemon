@@ -2289,8 +2289,6 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
 	u_LightTiles( this ),
-	u_LightTilesInt( this ),
-	u_LightsTexture( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulate( this ),
@@ -2338,7 +2336,6 @@ void GLShader_lightMapping::SetShaderProgramUniforms( shaderProgram_t *shaderPro
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap0" ), BIND_ENVIRONMENTMAP0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_EnvironmentMap1" ), BIND_ENVIRONMENTMAP1 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightTiles" ), BIND_LIGHTTILES );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_LightTilesInt" ), BIND_LIGHTTILES );
 	if( !glConfig2.uniformBufferObjectAvailable ) {
 		glUniform1i( glGetUniformLocation( shaderProgram->program, "u_Lights" ), BIND_LIGHTS );
 	}
@@ -2358,7 +2355,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_EnvironmentMap1( this ),
 	u_LightGrid1( this ),
 	u_LightGrid2( this ),
-	u_LightTilesInt( this ),
+	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_ColorModulate( this ),
@@ -3021,7 +3018,7 @@ GLShader_liquidMaterial::GLShader_liquidMaterial( GLShaderManager* manager ) :
 	u_NormalScale( this ),
 	u_FogDensity( this ),
 	u_FogColor( this ),
-	u_LightTilesInt( this ),
+	u_LightTiles( this ),
 	u_SpecularExponent( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
@@ -3098,7 +3095,6 @@ GLShader_lighttile::GLShader_lighttile( GLShaderManager *manager ) :
 	GLShader( "lighttile", ATTR_POSITION | ATTR_TEXCOORD, manager ),
 	u_DepthMap( this ),
 	u_Lights( this ),
-	u_LightsTexture( this ),
 	u_numLights( this ),
 	u_lightLayer( this ),
 	u_ModelMatrix( this ),
