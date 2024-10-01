@@ -44,6 +44,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/wait.h>
 #ifdef __linux__
 #include <sys/prctl.h>
+#if defined(DAEMON_ARCH_armhf)
+#include <sys/utsname.h>
+#endif
 #endif
 #endif
 
@@ -54,6 +57,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 #define JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 0x2000
 #endif
+
+static Cvar::Cvar<bool> workaround_naclArchitecture_arm64_disableQualification(
+	"workaround.naclArchitecture.arm64.disableQualification",
+	"Disable platform qualification when running armhf NaCl loader on arm64 Linux",
+	Cvar::NONE, true);
+
+static Cvar::Cvar<bool> workaround_naclSystem_freebsd_disableQualification(
+	"workaround.naclSystem.freebsd.disableQualification",
+	"Disable platform qualification when running Linux NaCl loader on FreeBSD through Linuxulator",
+	Cvar::NONE, true);
+
+static Cvar::Cvar<bool> vm_nacl_qualification(
+	"vm.nacl.qualification",
+	"Enable NaCl loader platform qualification",
+	Cvar::INIT, true);
+
+static Cvar::Cvar<bool> vm_nacl_bootstrap(
+	"vm.nacl.bootstrap",
+	"Use NaCl bootstrap helper",
+	Cvar::INIT, true);
 
 namespace VM {
 
@@ -233,67 +256,114 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 			Sys::Drop("VM: Failed to extract VM module %s: %s", module, err.what());
 		}
 		modulePath = FS::Path::Build(FS::GetHomePath(), module);
-	} else
+	} else {
 		modulePath = FS::Path::Build(libPath, module);
+	}
 
 	// Generate command line
 	Q_snprintf(rootSocketRedir, sizeof(rootSocketRedir), "%d:%d", ROOT_SOCKET_FD, (int)(intptr_t)pair.second.GetHandle());
 	irt = FS::Path::Build(naclPath, win32Force64Bit ? "irt_core-amd64.nexe" : "irt_core-" XSTRING(NACL_ARCH_STRING) ".nexe");
 	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader-amd64" EXE_EXT : "nacl_loader" EXE_EXT);
-	if (!FS::RawPath::FileExists(modulePath))
-		Log::Warn("VM module file not found: %s", modulePath);
-	if (!FS::RawPath::FileExists(nacl_loader))
-		Log::Warn("NaCl loader not found: %s", nacl_loader);
-	if (!FS::RawPath::FileExists(irt))
-		Log::Warn("NaCl integrated runtime not found: %s", irt);
-#ifdef __linux__
-	#if defined(DAEMON_ARCH_arm64)
+
+	if (!FS::RawPath::FileExists(modulePath)) {
+		Sys::Error("VM module file not found: %s", modulePath);
+	}
+
+	if (!FS::RawPath::FileExists(nacl_loader)) {
+		Sys::Error("NaCl loader not found: %s", nacl_loader);
+	}
+
+	if (!FS::RawPath::FileExists(irt)) {
+		Sys::Error("NaCl integrated runtime not found: %s", irt);
+	}
+
+#if defined(__linux__) || defined(__FreeBSD__)
+	if (vm_nacl_bootstrap.Get()) {
+#if defined(DAEMON_ARCH_arm64)
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap-armhf");
-	#else
+#else
 		bootstrap = FS::Path::Build(naclPath, "nacl_helper_bootstrap");
-	#endif
-	if (!FS::RawPath::FileExists(bootstrap))
-		Log::Warn("NaCl bootstrap helper not found: %s", bootstrap);
-	args.push_back(bootstrap.c_str());
-	args.push_back(nacl_loader.c_str());
-	args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
-	args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
+#endif
 
-	#if defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf)
-		/* This is required to run on Raspberry Pi 4,
-		otherwise nexe loading fails with this message:
+		if (!FS::RawPath::FileExists(bootstrap)) {
+			Sys::Error("NaCl bootstrap helper not found: %s", bootstrap);
+		}
 
-		  Error while loading "sgame-armhf.nexe": CPU model is not supported
-
-		From nacl_loader --help we can read:
-
-		  -Q disable platform qualification (dangerous!)
-
-		When this option is enabled, nacl_loader will print:
-
-		  PLATFORM QUALIFICATION DISABLED BY -Q - Native Client's sandbox will be unreliable!
-
-		But the nexe will load and run. */
-
-		args.push_back("-Q");
-	#endif
+		args.push_back(bootstrap.c_str());
+		args.push_back(nacl_loader.c_str());
+		args.push_back("--r_debug=0xXXXXXXXXXXXXXXXX");
+		args.push_back("--reserved_at_zero=0xXXXXXXXXXXXXXXXX");
+	} else {
+		Log::Warn("Not using NaCl bootstrap helper.");
+		args.push_back(nacl_loader.c_str());
+	}
 #else
 	Q_UNUSED(bootstrap);
 	args.push_back(nacl_loader.c_str());
+#endif
 
-	#if defined(__FreeBSD__)
+	bool enableQualification = vm_nacl_qualification.Get();
+
+	if (enableQualification) {
+#if defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf)
+		if (workaround_naclArchitecture_arm64_disableQualification.Get()) {
+#if defined(DAEMON_ARCH_arm64)
+			bool onArm64 = true;
+#elif defined(DAEMON_ARCH_armhf)
+			bool onArm64 = false;
+
+			struct utsname buf;
+			if (!uname(&buf)) {
+				onArm64 = !strcmp(buf.machine, "aarch64");
+			}
+#endif
+
+			/* This is required to run armhf NaCl loader on arm64 kernel
+			otherwise nexe loading fails with this message:
+
+			> Error while loading "sgame-armhf.nexe": CPU model is not supported
+
+			From nacl_loader --help we can read:
+
+			> -Q disable platform qualification (dangerous!)
+
+			When this option is enabled, nacl_loader will print:
+
+			> PLATFORM QUALIFICATION DISABLED BY -Q - Native Client's sandbox will be unreliable!
+
+			But the nexe will load and run. */
+
+			if (onArm64) {
+				Log::Warn("Disabling NaCL platform qualification on arm64 kernel architecture.");
+				enableQualification = false;
+			}
+		}
+#endif
+
+#if defined(__FreeBSD__)
 		/* While it is possible to build a native FreeBSD engine, the only available NaCl loader
 		is the Linux one, which can run on Linuxulator (the FreeBSD Linux compatibility layer).
+
 		The Linux NaCl loader binary fails to qualify the platform and aborts with this message:
 
-			Bus error (core dumped)
+		> Bus error (core dumped)
 
-		The Linux NaCl loader runs properly on Linuxulator when we disable the qualification.
-		It also works without nacl_helper_bootstrap. */
+		The Linux NaCl loader runs properly on Linuxulator when we disable the qualification. */
 
-		args.push_back("-Q");
-	#endif
+		if (workaround_naclSystem_freebsd_disableQualification.Get()) {
+			Log::Warn("Disabling NaCL platform qualification on FreeBSD system.");
+			enableQualification = false;
+		}
 #endif
+	}
+	else {
+		Log::Warn("Not using NaCl platform qualification.");
+	}
+
+	if (!enableQualification) {
+		args.push_back("-Q");
+	}
+
 	if (debug) {
 		args.push_back("-g");
 	}
