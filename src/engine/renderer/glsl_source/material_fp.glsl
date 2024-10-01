@@ -57,7 +57,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 samplerCube u_EnvironmentMap0 = samplerCube( u_EnvironmentMap0_initial );
 samplerCube u_EnvironmentMap1 = samplerCube( u_EnvironmentMap1_initial );
 #endif // !USE_REFLECTIVE_SPECULAR
-usampler3D u_LightTilesInt = usampler3D( u_LightTilesInt_initial );
+usampler3D u_LightTiles = usampler3D( u_LightTiles_initial );
 #endif // !COMPUTELIGHT_GLSL
 
 #if defined(FOGQUAKE3_GLSL)

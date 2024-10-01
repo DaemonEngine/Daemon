@@ -211,13 +211,13 @@ const int lightsPerLayer = 16;
 
 #define idxs_t uvec4
 
-uniform usampler3D u_LightTilesInt;
+uniform usampler3D u_LightTiles;
 
 const uint numLayers = MAX_REF_LIGHTS / 256;
 const vec3 tileScale = vec3( r_tileStep, 1.0 / numLayers );
 
-idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTilesInt ) {
-	return texture3D( u_LightTilesInt, coords );
+idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTiles ) {
+	return texture3D( u_LightTiles, coords );
 }
 
 // 8 bits per light ID
@@ -227,11 +227,11 @@ uint nextIdx( in uint count, in idxs_t idxs ) {
 
 #if defined(USE_REFLECTIVE_SPECULAR)
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
-	inout vec4 color, in usampler3D u_LightTilesInt,
+	inout vec4 color, in usampler3D u_LightTiles,
 	in samplerCube u_EnvironmentMap0, in samplerCube u_EnvironmentMap1 )
 #else // !USE_REFLECTIVE_SPECULAR
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
-	inout vec4 color, in usampler3D u_LightTilesInt )
+	inout vec4 color, in usampler3D u_LightTiles )
 #endif // !USE_REFLECTIVE_SPECULAR
 {
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
@@ -241,7 +241,7 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 
 	uint lightCount = 0;
 	for( uint layer = 0; layer < numLayers; layer++ ) {
-		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTilesInt );
+		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTiles );
 
 		uint lightOffset = layer * globalLightsPerLayer;
 		uint layerLightCount = lightOffset < u_numLights ? min( min( u_numLights - lightOffset, globalLightsPerLayer ), lightsPerLayer ) : 0;
