@@ -125,12 +125,10 @@ int c_blockedOnMain;
 
 void R_IssueRenderCommands( bool runPerformanceCounters )
 {
-	renderCommandList_t *cmdList;
+	R_GetRenderCommand<EndOfListCommand>();
 
-	cmdList = &backEndData[ tr.smpFrame ]->commands;
+	renderCommandList_t* cmdList = &backEndData[ tr.smpFrame ]->commands;
 	ASSERT(cmdList != nullptr);
-	// add an end-of-list command
-	new (&cmdList->cmds[cmdList->used]) EndOfListCommand();
 
 	// clear it out, in case this is a sync and not a buffer flip
 	cmdList->used = 0;
