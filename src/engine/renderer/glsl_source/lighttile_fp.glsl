@@ -38,20 +38,20 @@ IN(smooth) vec2 vPosition;
 IN(smooth) vec2 vTexCoord;
 
 struct Light {
-  vec3 center;
-  float radius;
-  vec3 color;
-  float type;
-  vec3 direction;
-  float angle;
+	vec3 center;
+	float radius;
+	vec3 color;
+	float type;
+	vec3 direction;
+	float angle;
 };
 
 layout(std140) uniform u_Lights {
-  Light lights[MAX_REF_LIGHTS];
+	Light lights[MAX_REF_LIGHTS];
 };
 
 Light GetLight( in uint idx ) {
-  return lights[idx];
+	return lights[idx];
 }
 
 uniform int u_numLights;
@@ -77,17 +77,17 @@ void pushIdxs( in uint idx, in uint count, inout uvec4 idxs ) {
 #define exportIdxs( x ) outputColor = ( x )
 
 void lightOutsidePlane( in vec4 plane, inout vec3 center, inout float radius ) {
-  float dist = dot( plane, vec4( center, 1.0 ) );
-  if( dist >= radius ) {
-    radius = 0.0; // light completely outside plane
-    return;
-  }
+	float dist = dot( plane, vec4( center, 1.0 ) );
+	if( dist >= radius ) {
+		radius = 0.0; // light completely outside plane
+		return;
+	}
 
-  if( dist >= 0.0 ) {
-    // light is outside plane, but intersects the volume
-    center -= dist * plane.xyz;
-    radius = sqrt( radius * radius - dist * dist );
-  }
+	if( dist >= 0.0 ) {
+		// light is outside plane, but intersects the volume
+		center -= dist * plane.xyz;
+		radius = sqrt( radius * radius - dist * dist );
+	}
 }
 
 vec3 ProjToView( vec2 inp ) {
@@ -95,27 +95,27 @@ vec3 ProjToView( vec2 inp ) {
 }
 
 void main() {
-  vec2 minmax = texture2D( u_DepthMap, 0.5 * vPosition + 0.5 ).xy;
+	vec2 minmax = texture2D( u_DepthMap, 0.5 * vPosition + 0.5 ).xy;
 
-  float minx = vPosition.x - r_tileStep.x;
-  float maxx = vPosition.x + r_tileStep.x;
-  float miny = vPosition.y - r_tileStep.y;
-  float maxy = vPosition.y + r_tileStep.y;
+	float minx = vPosition.x - r_tileStep.x;
+	float maxx = vPosition.x + r_tileStep.x;
+	float miny = vPosition.y - r_tileStep.y;
+	float maxy = vPosition.y + r_tileStep.y;
 
-  vec3 bottomleft = ProjToView( vec2( minx, miny ) );
-  vec3 bottomright = ProjToView( vec2( maxx, miny ) );
-  vec3 topright = ProjToView( vec2( maxx, maxy ) );
-  vec3 topleft = ProjToView( vec2( minx, maxy ) );
+	vec3 bottomleft = ProjToView( vec2( minx, miny ) );
+	vec3 bottomright = ProjToView( vec2( maxx, miny ) );
+	vec3 topright = ProjToView( vec2( maxx, maxy ) );
+	vec3 topleft = ProjToView( vec2( minx, maxy ) );
 
-  vec4 plane1 = vec4( normalize( cross( bottomleft, bottomright ) ), 0 );
-  vec4 plane2 = vec4( normalize( cross( bottomright, topright ) ), 0 );
-  vec4 plane3 = vec4( normalize( cross( topright, topleft ) ), 0 );
-  vec4 plane4 = vec4( normalize( cross( topleft, bottomleft ) ), 0 );
+	vec4 plane1 = vec4( normalize( cross( bottomleft, bottomright ) ), 0 );
+	vec4 plane2 = vec4( normalize( cross( bottomright, topright ) ), 0 );
+	vec4 plane3 = vec4( normalize( cross( topright, topleft ) ), 0 );
+	vec4 plane4 = vec4( normalize( cross( topleft, bottomleft ) ), 0 );
 
-  vec4 plane5 = vec4( 0.0, 0.0,  1.0,  minmax.y );
-  vec4 plane6 = vec4( 0.0, 0.0, -1.0, -minmax.x );
+	vec4 plane5 = vec4( 0.0, 0.0,  1.0,  minmax.y );
+	vec4 plane6 = vec4( 0.0, 0.0, -1.0, -minmax.x );
 
-  idxs_t idxs = uvec4( 0, 0, 0, 0 );
+	idxs_t idxs = uvec4( 0, 0, 0, 0 );
 
 	uint lightCount = 0;
 
@@ -136,17 +136,17 @@ void main() {
 		lightOutsidePlane( plane5, center, radius );
 		lightOutsidePlane( plane6, center, radius );
 
-    if( radius > 0.0 ) {
-      /* Light IDs are stored relative to the layer
-      Add 1 because 0 means there's no light */
-      pushIdxs( i + 1, lightCount, idxs );
-      lightCount++;
+		if( radius > 0.0 ) {
+			/* Light IDs are stored relative to the layer
+			Add 1 because 0 means there's no light */
+			pushIdxs( i + 1, lightCount, idxs );
+			lightCount++;
 
-      if( lightCount == lightsPerLayer ) {
-        break;
-      }
-    }
-  }
+			if( lightCount == lightsPerLayer ) {
+				break;
+			}
+		}
+	}
 
-  exportIdxs( idxs );
+	exportIdxs( idxs );
 }
