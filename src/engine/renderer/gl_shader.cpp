@@ -770,6 +770,11 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_glowMapping", 1 );
 	}
 
+	if ( r_colorGrading.Get() )
+	{
+		AddDefine( str, "r_colorGrading", 1 );
+	}
+
 	AddDefine( str, "r_zNear", r_znear->value );
 
 	return str;

@@ -404,6 +404,11 @@ void RE_SetColorGrading( int slot, qhandle_t hShader )
 	shader_t *shader = R_GetShaderByHandle( hShader );
 	image_t *image;
 
+	if ( !r_colorGrading.Get() )
+	{
+		return;
+	}
+
 	if ( !tr.registered )
 	{
 		return;

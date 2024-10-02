@@ -3388,9 +3388,11 @@ void RB_CameraPostFX()
 	gl_cameraEffectsShader->SetUniform_CurrentMapBindless(
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
-	gl_cameraEffectsShader->SetUniform_ColorMap3DBindless(
-		GL_BindToTMU( 3, tr.colorGradeImage )
-	);
+
+	if ( r_colorGrading.Get() )
+	{
+		gl_cameraEffectsShader->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
+	}
 
 	// draw viewport
 	Tess_InstantQuad( *gl_cameraEffectsShader,

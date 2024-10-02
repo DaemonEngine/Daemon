@@ -2831,6 +2831,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
 	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
+	extern Cvar::Cvar<bool> r_colorGrading;
 	extern Cvar::Cvar<bool> r_materialSystem;
 	extern Cvar::Cvar<bool> r_gpuFrustumCulling;
 	extern Cvar::Cvar<bool> r_gpuOcclusionCulling;
