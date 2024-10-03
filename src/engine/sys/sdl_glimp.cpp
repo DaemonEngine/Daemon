@@ -2287,9 +2287,10 @@ static void GLimp_InitExtensions()
 
 	// Some of the mesa 24.x driver versions have a bug in their shader compiler related to bindless textures,
 	// which results in either glitches or the shader compiler crashing (when material system is enabled)
+	bool foundMesa241 = false;
+	bool foundOglp = false;
 	if ( glConfig2.driverVendor == glDriverVendor_t::MESA )
 	{
-		bool foundMesa241 = false;
 
 		if ( workaround_glDriver_mesa_v241_disableBindlessTexture.Get() )
 		{
@@ -2323,8 +2324,6 @@ static void GLimp_InitExtensions()
 			}
 		}
 
-		bool foundOglp = false;
-
 		if ( workaround_glDriver_amd_oglp_disableBindlessTexture.Get() )
 		{
 			/* AMD OGLP driver for Linux shares the same vendor string than AMD Adrenalin driver
@@ -2353,10 +2352,10 @@ static void GLimp_InitExtensions()
 				logger.Warn( "...found buggy AMD OGLP driver, ARB_bindless_texture disabled" );
 			}
 		}
-
-		// not required by any OpenGL version
-		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture.Get() && !foundMesa241 && !foundOglp );
 	}
+
+	// not required by any OpenGL version
+	glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture.Get() && !foundMesa241 && !foundOglp );
 
 	// made required in OpenGL 4.6
 	glConfig2.shaderDrawParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_shader_draw_parameters, r_arb_shader_draw_parameters.Get() );
