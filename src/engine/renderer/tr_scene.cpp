@@ -278,57 +278,6 @@ void RE_AddRefEntityToScene( const refEntity_t *ent )
 
 /*
 =====================
-RE_AddRefLightToScene
-=====================
-*/
-void RE_AddRefLightToScene( const refLight_t *l )
-{
-	trRefLight_t *light;
-
-	if ( !tr.registered )
-	{
-		return;
-	}
-
-	if ( r_numLights >= MAX_REF_LIGHTS )
-	{
-		return;
-	}
-
-	if ( l->radius <= 0 && !VectorLength( l->projTarget ) )
-	{
-		return;
-	}
-
-	if (l->rlType >= refLightType_t::RL_MAX_REF_LIGHT_TYPE)
-	{
-		Sys::Drop("RE_AddRefLightToScene: bad rlType %s", Util::enum_str(l->rlType));
-	}
-
-	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
-	light->l = *l;
-
-	light->isStatic = false;
-	light->additive = true;
-
-	if ( light->l.scale <= 0 )
-	{
-		light->l.scale = r_lightScale->value;
-	}
-
-	if ( light->l.scale >= r_lightScale->value )
-	{
-		light->l.scale = r_lightScale->value;
-	}
-
-	if ( !r_realtimeLightingCastShadows->integer && !light->l.inverseShadows )
-	{
-		light->l.noShadows = true;
-	}
-}
-
-/*
-=====================
 R_AddWorldLightsToScene
 =====================
 */

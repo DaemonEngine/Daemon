@@ -237,8 +237,6 @@ struct refexport_t
 	// XreaL BEGIN
 	void ( *TakeVideoFrame )( int h, int w, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg );
 
-	void ( *AddRefLightToScene )( const refLight_t *light );
-
 	// RB: alternative skeletal animation system
 	qhandle_t ( *RegisterAnimation )( const char *name );
 	int ( *CheckSkeleton )( refSkeleton_t *skel, qhandle_t model, qhandle_t anim );

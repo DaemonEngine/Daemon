@@ -1670,8 +1670,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		// XreaL BEGIN
 		re.TakeVideoFrame = RE_TakeVideoFrame;
 
-		re.AddRefLightToScene = RE_AddRefLightToScene;
-
 		re.RegisterAnimation = RE_RegisterAnimation;
 		re.CheckSkeleton = RE_CheckSkeleton;
 		re.BuildSkeleton = RE_BuildSkeleton;
