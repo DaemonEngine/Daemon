@@ -2308,20 +2308,9 @@ void R_AddLightInteractions()
 	{
 		light = tr.currentLight = &tr.refdef.lights[ i ];
 
-		if ( light->l.inverseShadows )
+		if ( !light->l.inverseShadows )
 		{
-			if ( !glConfig2.dynamicLight )
-			{
-				continue;
-			}
-		}
-		else
-		{
-			if ( !glConfig2.dynamicLight )
-			{
-				continue;
-			}
-			else if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
+			if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
 			{
 				tr.refdef.numShaderLights++;
 				tr.pc.c_dlights++;
