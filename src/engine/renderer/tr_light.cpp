@@ -1620,37 +1620,6 @@ void R_ComputeFinalAttenuation( shaderStage_t *pStage, trRefLight_t *light )
 
 /*
 =================
-R_CullLightPoint
-
-Returns CULL_IN, CULL_CLIP, or CULL_OUT
-=================
-*/
-cullResult_t R_CullLightPoint( trRefLight_t *light, const vec3_t p )
-{
-	int      i;
-	cplane_t *frust;
-	float    dist;
-
-	// check against frustum planes
-	for ( i = 0; i < 6; i++ )
-	{
-		frust = &light->frustum[ i ];
-
-		dist = DotProduct( p, frust->normal ) - frust->dist;
-
-		if ( dist < 0 )
-		{
-			// completely outside frustum
-			return cullResult_t::CULL_OUT;
-		}
-	}
-
-	// completely inside frustum
-	return cullResult_t::CULL_IN;
-}
-
-/*
-=================
 R_CullLightTriangle
 
 Returns CULL_IN, CULL_CLIP, or CULL_OUT

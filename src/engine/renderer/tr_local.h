@@ -401,7 +401,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 // the client game, as well as some locally derived info
 	struct trRefLight_t
 	{
-		// public from client game
 		refLight_t l;
 
 		// local
@@ -3514,8 +3513,6 @@ inline bool checkGLErrors()
 
 	byte     R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
 
-	cullResult_t R_CullLightPoint( trRefLight_t *light, const vec3_t p );
-
 	cullResult_t R_CullLightTriangle( trRefLight_t *light, vec3_t verts[ 3 ] );
 	cullResult_t R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
 
@@ -3617,7 +3614,6 @@ inline bool checkGLErrors()
 
 	void RE_ClearScene();
 	void RE_AddRefEntityToScene( const refEntity_t *ent );
-	void RE_AddRefLightToScene( const refLight_t *light );
 
 	void RE_AddPolyToSceneQ3A( qhandle_t hShader, int numVerts, const polyVert_t *verts, int num );
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
