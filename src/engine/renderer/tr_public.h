@@ -71,9 +71,6 @@ struct glconfig2_t
 
 	int      maxCubeMapTextureSize;
 
-	bool occlusionQueryAvailable;
-	int      occlusionQueryBits;
-
 	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
 	int      shadingLanguageVersion;
 

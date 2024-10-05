@@ -110,8 +110,6 @@ static Cvar::Cvar<bool> r_ext_draw_buffers( "r_ext_draw_buffers",
 	"Use GL_EXT_draw_buffers if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_gpu_shader4( "r_ext_gpu_shader4",
 	"Use GL_EXT_gpu_shader4 if available", Cvar::NONE, true );
-static Cvar::Cvar<bool> r_ext_occlusion_query( "r_ext_occlusion_query",
-	"Use GL_EXT_occlusion_query if available", Cvar::NONE, true );
 static Cvar::Range<Cvar::Cvar<float>> r_ext_texture_filter_anisotropic( "r_ext_texture_filter_anisotropic",
 	"Use GL_EXT_texture_filter_anisotropic if available: anisotropy value", Cvar::NONE, 4.0f, 0.0f, 16.0f );
 static Cvar::Cvar<bool> r_ext_texture_float( "r_ext_texture_float",
@@ -1981,7 +1979,6 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_uniform_buffer_object );
 	Cvar::Latch( r_ext_draw_buffers );
 	Cvar::Latch( r_ext_gpu_shader4 );
-	Cvar::Latch( r_ext_occlusion_query );
 	Cvar::Latch( r_ext_texture_filter_anisotropic );
 	Cvar::Latch( r_ext_texture_float );
 	Cvar::Latch( r_ext_texture_integer );
@@ -2241,15 +2238,6 @@ static void GLimp_InitExtensions()
 	// FBO
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );
 	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig2.maxColorAttachments );
-
-	// made required in OpenGL 1.5
-	glConfig2.occlusionQueryAvailable = false;
-	glConfig2.occlusionQueryBits = 0;
-	if ( r_ext_occlusion_query.Get() )
-	{
-		glConfig2.occlusionQueryAvailable = true;
-		glGetQueryiv( GL_SAMPLES_PASSED, GL_QUERY_COUNTER_BITS, &glConfig2.occlusionQueryBits );
-	}
 
 	// made required in OpenGL 2.0
 	glConfig2.drawBuffersAvailable = false;
