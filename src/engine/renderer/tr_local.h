@@ -393,7 +393,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		matrix_t     attenuationMatrix; // attenuation * (light view * entity transform)
 		matrix_t     attenuationMatrix2; // attenuation * tcMod matrices
 
-		cullResult_t cull;
 		vec3_t       localBounds[ 2 ];
 		vec3_t       worldBounds[ 2 ];
 		float        sphereRadius; // calculated from localBounds

@@ -2312,7 +2312,6 @@ void R_AddLightInteractions()
 		{
 			if ( !glConfig2.dynamicLight )
 			{
-				light->cull = CULL_OUT;
 				continue;
 			}
 		}
@@ -2320,7 +2319,6 @@ void R_AddLightInteractions()
 		{
 			if ( !glConfig2.dynamicLight )
 			{
-				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
 			else if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
@@ -2328,7 +2326,6 @@ void R_AddLightInteractions()
 				tr.refdef.numShaderLights++;
 				tr.pc.c_dlights++;
 
-				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
 		}
@@ -2361,18 +2358,15 @@ void R_AddLightInteractions()
 				case cullResult_t::CULL_IN:
 				default:
 					tr.pc.c_box_cull_light_in++;
-					light->cull = cullResult_t::CULL_IN;
 					break;
 
 				case cullResult_t::CULL_CLIP:
 					tr.pc.c_box_cull_light_clip++;
-					light->cull = cullResult_t::CULL_CLIP;
 					break;
 
 				case cullResult_t::CULL_OUT:
 					// light is not visible so skip other light setup stuff to save speed
 					tr.pc.c_box_cull_light_out++;
-					light->cull = cullResult_t::CULL_OUT;
 					continue;
 			}
 
@@ -2386,7 +2380,6 @@ void R_AddLightInteractions()
 			if ( !BoundsIntersect
 			     ( light->worldBounds[ 0 ], light->worldBounds[ 1 ], tr.viewParms.visBounds[ 0 ], tr.viewParms.visBounds[ 1 ] ) )
 			{
-				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
 		}
@@ -2423,7 +2416,6 @@ void R_AddLightInteractions()
 			// skip all interactions of this light because it caused only shadow volumes
 			// but no lighting
 			tr.refdef.numInteractions -= light->numInteractions;
-			light->cull = cullResult_t::CULL_OUT;
 		}
 	}
 }
