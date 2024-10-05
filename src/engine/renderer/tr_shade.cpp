@@ -1520,11 +1520,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 		gl_forwardLightingShader_omniXYZ->SetUniform_NormalScale( normalScale );
 	}
 
-	// bind u_MaterialMap
-	gl_forwardLightingShader_omniXYZ->SetUniform_MaterialMapBindless(
-		GL_BindToTMU( 2, pStage->bundle[TB_MATERIALMAP].image[0] )
-	);
-
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
@@ -1532,6 +1527,11 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
 		gl_forwardLightingShader_omniXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
+
+		// bind u_MaterialMap
+		gl_forwardLightingShader_omniXYZ->SetUniform_MaterialMapBindless(
+			GL_BindToTMU( 2, pStage->bundle[TB_MATERIALMAP].image[0] )
+		);
 	}
 
 	// bind u_AttenuationMapXY
