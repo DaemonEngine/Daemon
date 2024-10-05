@@ -5330,11 +5330,6 @@ RB_SetupLights
 */
 const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 {
-	if ( !glConfig2.realtimeLighting )
-	{
-		return this + 1;
-	}
-
 	int numLights;
 	GLenum bufferTarget = glConfig2.uniformBufferObjectAvailable ? GL_UNIFORM_BUFFER : GL_PIXEL_UNPACK_BUFFER;
 

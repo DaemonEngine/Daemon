@@ -250,6 +250,12 @@ R_AddSetupLightsCmd
 */
 void R_AddSetupLightsCmd()
 {
+	if ( !glConfig2.realtimeLighting ||
+	     r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
+	{
+		return;
+	}
+
 	SetupLightsCommand *cmd;
 
 	cmd = R_GetRenderCommand<SetupLightsCommand>();
