@@ -1062,12 +1062,13 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
-
-	if( glConfig2.realtimeLighting )
+	if ( glConfig2.realtimeLighting &&
+	     r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 	{
 		if ( backEnd.refdef.numShaderLights > 0 )
-		{	
+		{
+			gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
+
 			if( glConfig2.uniformBufferObjectAvailable )
 			{
 				gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
@@ -1077,14 +1078,15 @@ void Render_lightMapping( shaderStage_t *pStage )
 					GL_BindToTMU( BIND_LIGHTS, tr.dlightImage ) 
 				);
 			}
-		}
 
-		// bind u_LightTiles
-		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
-		{
+			// bind u_LightTiles
 			gl_lightMappingShader->SetUniform_LightTilesIntBindless(
 				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
 			);
+		}
+		else
+		{
+			gl_lightMappingShader->SetUniform_numLights( 0 );
 		}
 	}
 
