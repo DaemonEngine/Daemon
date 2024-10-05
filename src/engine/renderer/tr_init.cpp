@@ -930,11 +930,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice( "GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB: %d", glConfig2.maxTexIndirections );
 		}
 
-		if ( glConfig2.occlusionQueryAvailable )
-		{
-			Log::Notice("Occlusion query bits: %d", glConfig2.occlusionQueryBits );
-		}
-
 		if ( glConfig2.drawBuffersAvailable )
 		{
 			Log::Notice("GL_MAX_DRAW_BUFFERS: %d", glConfig2.maxDrawBuffers );
