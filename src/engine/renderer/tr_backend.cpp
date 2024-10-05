@@ -4025,34 +4025,38 @@ static void RB_RenderDebugUtils()
 
 		gl_reflectionShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
-		for ( cubemapProbe_t *cubeProbe : tr.cubeProbes )
-		{
+		for ( auto it = tr.cubeProbeGrid.begin(); it != tr.cubeProbeGrid.end(); it++ ) {
+			uint32_t x;
+			uint32_t y;
+			uint32_t z;
+			tr.cubeProbeGrid.IteratorToCoords( it, &x, &y, &z );
+			vec3_t position{ x * tr.cubeProbeSpacing, y * tr.cubeProbeSpacing, z * tr.cubeProbeSpacing };
+
+			// Match the map's start coords
+			VectorAdd( position, tr.world->nodes[0].mins, position );
+
+			cubemapProbe_t* cubeProbe = tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
 			/* Do not crash when cubemaps are being generated,
 			it's also possible to set a default texture instead. */
-			if ( cubeProbe->cubemap == nullptr )
-			{
+			if ( cubeProbe->cubemap == nullptr ) {
 				continue;
 			}
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			gl_reflectionShader->SetUniform_CameraPosition( cubeProbe->origin );
+			gl_reflectionShader->SetUniform_CameraPosition( position );
 
 			// bind u_ColorMap
 			gl_reflectionShader->SetUniform_ColorMapCubeBindless(
 				GL_BindToTMU( 0, cubeProbe->cubemap )
 			);
 
-			Tess_AddCubeWithNormals( cubeProbe->origin, mins, maxs, Color::White );
+			Tess_AddCubeWithNormals( position, mins, maxs, Color::White );
 
 			Tess_End();
 		}
 
-
 		{
-			cubemapProbe_t *cubeProbeNearest;
-			cubemapProbe_t *cubeProbeSecondNearest;
-
 			gl_genericShader->SetVertexSkinning( false );
 			gl_genericShader->SetVertexAnimation( false );
 			gl_genericShader->SetTCGenEnvironment( false );
@@ -4086,23 +4090,28 @@ static void RB_RenderDebugUtils()
 
 			GL_CheckErrors();
 
-			R_FindTwoNearestCubeMaps( backEnd.viewParms.orientation.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
+			cubemapProbe_t* probes[2];
+			vec3_t trilerp;
+			vec3_t gridPoints[2];
+			R_GetNearestCubeMaps( backEnd.viewParms.orientation.origin, probes, trilerp, 2, gridPoints );
+			const cubemapProbe_t* cubeProbeNearest = probes[0];
+			const cubemapProbe_t* cubeProbeSecondNearest = probes[1];
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			if ( cubeProbeNearest == nullptr )
-			{
-				// bad
-			}
-			else if ( cubeProbeSecondNearest == nullptr )
-			{
-				Tess_AddCubeWithNormals( cubeProbeNearest->origin, outlineMins, outlineMaxs, Color::Yellow );
-			}
-			else
-			{
-				Tess_AddCubeWithNormals( cubeProbeNearest->origin, outlineMins, outlineMaxs, Color::Green );
-				Tess_AddCubeWithNormals( cubeProbeSecondNearest->origin, outlineMins, outlineMaxs, Color::Red );
-			}
+			vec3_t position{ gridPoints[0][0] * tr.cubeProbeSpacing, gridPoints[0][1] * tr.cubeProbeSpacing,
+				gridPoints[0][2] * tr.cubeProbeSpacing };
+
+			// Match the map's start coords
+			VectorAdd( position, tr.world->nodes[0].mins, position );
+			Tess_AddCubeWithNormals( position, outlineMins, outlineMaxs, Color::Green );
+
+			VectorSet( position, gridPoints[1][0] * tr.cubeProbeSpacing, gridPoints[1][1] * tr.cubeProbeSpacing,
+				gridPoints[1][2] * tr.cubeProbeSpacing );
+
+			// Match the map's start coords
+			VectorAdd( position, tr.world->nodes[0].mins, position );
+			Tess_AddCubeWithNormals( position, outlineMins, outlineMaxs, Color::Red );
 
 			Tess_End();
 		}

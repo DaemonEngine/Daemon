@@ -53,10 +53,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef HAVE_ARB_bindless_texture
 
 #if defined(COMPUTELIGHT_GLSL)
-#if defined(USE_REFLECTIVE_SPECULAR)
+// TODO: Source this from an entity buffer once entities are supported by the material system
+/* #if defined(USE_REFLECTIVE_SPECULAR)
 samplerCube u_EnvironmentMap0 = samplerCube( u_EnvironmentMap0_initial );
 samplerCube u_EnvironmentMap1 = samplerCube( u_EnvironmentMap1_initial );
-#endif // !USE_REFLECTIVE_SPECULAR
+#endif // !USE_REFLECTIVE_SPECULAR */
 usampler3D u_LightTiles = usampler3D( u_LightTiles_initial );
 #endif // !COMPUTELIGHT_GLSL
 

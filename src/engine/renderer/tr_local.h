@@ -2465,6 +2465,127 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		image_t *cubemap;
 	};
 
+	template<class T>
+	class Grid {
+		public:
+		uint32_t width;
+		uint32_t height;
+		uint32_t depth;
+		uint32_t size;
+		const bool clampToEdge;
+
+		Grid( const bool newClampToEdge ) :
+			clampToEdge( newClampToEdge ) {
+		}
+
+		Grid( const uint32_t newWidth, const uint32_t newHeight, const uint32_t newDepth, const bool newClampToEdge ) :
+			width( newWidth ),
+			height( newHeight ),
+			depth( newDepth ),
+			size( width * height * depth ),
+			clampToEdge( newClampToEdge ) {
+			grid = ( T* ) ri.Hunk_Alloc( size * sizeof( T ), ha_pref::h_low );
+		}
+
+		~Grid() {
+		}
+
+		T& operator()( uint32_t x, uint32_t  y, uint32_t z ) {
+			if ( clampToEdge ) {
+				x = Math::Clamp( x, 0u, width - 1 );
+				y = Math::Clamp( y, 0u, height - 1 );
+				z = Math::Clamp( z, 0u, depth - 1 );
+			}
+
+			ASSERT_GE( x, 0 );
+			ASSERT_GE( y, 0 );
+			ASSERT_GE( z, 0 );
+
+			ASSERT_LT( x, width );
+			ASSERT_LT( y, height );
+			ASSERT_LT( z, depth );
+
+			return grid[z * width * height + y * width + x];
+		}
+
+		T operator()( uint32_t x, uint32_t  y, uint32_t z ) const {
+			if ( clampToEdge ) {
+				x = Math::Clamp( x, 0u, width - 1 );
+				y = Math::Clamp( y, 0u, height - 1 );
+				z = Math::Clamp( z, 0u, depth - 1 );
+			}
+
+			return *grid[z * width * height + y * width + x];
+		}
+
+		void SetSize( const uint32_t newWidth, const uint32_t newHeight, const uint32_t newDepth ) {
+			width = newWidth;
+			height = newHeight;
+			depth = newDepth;
+			size = width * height * depth;
+
+			grid = ( T* ) ri.Hunk_Alloc( size * sizeof( T ), ha_pref::h_low );
+		}
+
+		struct Iterator {
+			T* ptr;
+
+			Iterator( T* newPtr ) :
+				ptr( newPtr ) {
+			}
+
+			T& operator*() const {
+				return *ptr;
+			}
+
+			T* operator->() {
+				return ptr;
+			}
+
+			Iterator& operator++() {
+				ptr++;
+				return *this;
+			}
+
+			Iterator operator++( int ) {
+				Iterator current = *this;
+				++( *this );
+				return current;
+			}
+
+			friend bool operator==( const Iterator& lhs, const Iterator& rhs ) {
+				return lhs.ptr == rhs.ptr;
+			}
+
+			friend bool operator!=( const Iterator& lhs, const Iterator& rhs ) {
+				return lhs.ptr != rhs.ptr;
+			}
+		};
+
+		Iterator begin() {
+			return Iterator{ &grid[0] };
+		}
+
+		Iterator end() {
+			return Iterator{ &grid[size] };
+		}
+
+		void IndexToCoords( uint32_t index, uint32_t* x, uint32_t* y, uint32_t* z ) {
+			*z = index / ( width * height );
+			index %= width * height;
+			*y = index / width;
+			*x = index % width;
+		}
+
+		void IteratorToCoords( Iterator it, uint32_t* x, uint32_t* y, uint32_t* z ) {
+			const uint32_t index = it.ptr - begin().ptr;
+			IndexToCoords( index, x, y, z );
+		}
+
+		private:
+		T* grid;
+	};
+
 	class GLShader;
 	class GLShader_vertexLighting_DBS_entity;
 
@@ -2649,6 +2770,8 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		byte            *cubeTemp[ 6 ]; // 6 textures for cubemap storage
 		std::vector<cubemapProbe_t *> cubeProbes; // all cubemaps in a linear growing list
 		vertexHash_t    **cubeHashTable; // hash table for faster access
+		Grid<uint32_t> cubeProbeGrid{ true };
+		uint32_t cubeProbeSpacing;
 
 		// shader indexes from other modules will be looked up in tr.shaders[]
 		// shader indexes from drawsurfs will be looked up in sortedShaders[]
@@ -2786,6 +2909,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_glowMapping;
 	extern cvar_t *r_reflectionMapping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize;
+	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing;
 
 	extern cvar_t *r_halfLambertLighting;
 	extern cvar_t *r_rimLighting;
@@ -3355,6 +3479,8 @@ inline bool checkGLErrors()
 
 	void     R_AddBSPModelSurfaces( trRefEntity_t *e );
 	void     R_AddWorldSurfaces();
+	bspNode_t* R_PointInLeaf( const vec3_t p );
+	const byte* R_ClusterPVS( int cluster );
 	bool R_inPVS( const vec3_t p1, const vec3_t p2 );
 	bool R_inPVVS( const vec3_t p1, const vec3_t p2 );
 
@@ -3853,6 +3979,9 @@ inline bool checkGLErrors()
 // cubemap reflections stuff
 	void       R_BuildCubeMaps();
 	void       R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbeNearest, cubemapProbe_t **cubeProbeSecondNearest );
+	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples );
+	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples,
+		vec3_t* gridPoints );
 
 	void       FreeVertexHashTable( vertexHash_t **hashTable );
 

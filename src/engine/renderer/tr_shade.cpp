@@ -1163,95 +1163,42 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	if ( enableReflectiveSpecular )
 	{
-		cubemapProbe_t *cubeProbeNearest;
-		cubemapProbe_t *cubeProbeSecondNearest;
-
-		image_t *cubeMap0 = nullptr;
-		image_t *cubeMap1 = nullptr;
-
-		float interpolation = 0.0;
-
 		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
 
+		vec3_t position;
 		if ( backEnd.currentEntity && !isWorldEntity )
 		{
-			R_FindTwoNearestCubeMaps( backEnd.currentEntity->e.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
+			VectorCopy( backEnd.currentEntity->e.origin, position );
 		}
 		else
 		{
 			// FIXME position
-			R_FindTwoNearestCubeMaps( backEnd.viewParms.orientation.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
+			VectorCopy( backEnd.viewParms.orientation.origin, position );
 		}
 
-		if ( cubeProbeNearest == nullptr && cubeProbeSecondNearest == nullptr )
+		cubemapProbe_t* probes[2];
+		vec4_t trilerp;
+		// TODO: Add a code path that would assign a cubemap to each tile for the tiled renderer
+		R_GetNearestCubeMaps( position, probes, trilerp, 2 );
+		const cubemapProbe_t* cubeProbeNearest = probes[0];
+		const cubemapProbe_t* cubeProbeSecondNearest = probes[1];
+
+		const float interpolation = 1.0 - trilerp[0];
+
+		if ( r_logFile->integer )
 		{
-			GLimp_LogComment( "cubeProbeNearest && cubeProbeSecondNearest == NULL\n" );
-
-			cubeMap0 = tr.whiteCubeImage;
-			cubeMap1 = tr.whiteCubeImage;
-		}
-		else if ( cubeProbeNearest == nullptr )
-		{
-			GLimp_LogComment( "cubeProbeNearest == NULL\n" );
-
-			cubeMap0 = cubeProbeSecondNearest->cubemap;
-		}
-		else if ( cubeProbeSecondNearest == nullptr )
-		{
-			GLimp_LogComment( "cubeProbeSecondNearest == NULL\n" );
-
-			cubeMap0 = cubeProbeNearest->cubemap;
-		}
-		else
-		{
-			float cubeProbeNearestDistance, cubeProbeSecondNearestDistance;
-
-			if ( backEnd.currentEntity && !isWorldEntity )
-			{
-				cubeProbeNearestDistance = Distance( backEnd.currentEntity->e.origin, cubeProbeNearest->origin );
-				cubeProbeSecondNearestDistance = Distance( backEnd.currentEntity->e.origin, cubeProbeSecondNearest->origin );
-			}
-			else
-			{
-				// FIXME position
-				cubeProbeNearestDistance = Distance( backEnd.viewParms.orientation.origin, cubeProbeNearest->origin );
-				cubeProbeSecondNearestDistance = Distance( backEnd.viewParms.orientation.origin, cubeProbeSecondNearest->origin );
-			}
-
-			interpolation = cubeProbeNearestDistance / ( cubeProbeNearestDistance + cubeProbeSecondNearestDistance );
-
-			if ( r_logFile->integer )
-			{
-				GLimp_LogComment( va( "cubeProbeNearestDistance = %f, cubeProbeSecondNearestDistance = %f, interpolation = %f\n",
-						cubeProbeNearestDistance, cubeProbeSecondNearestDistance, interpolation ) );
-			}
-
-			cubeMap0 = cubeProbeNearest->cubemap;
-			cubeMap1 = cubeProbeSecondNearest->cubemap;
-		}
-
-		/* TODO: Check why it is required to test for this, why
-		cubeProbeNearest->cubemap and cubeProbeSecondNearest->cubemap
-		can be nullptr while cubeProbeNearest and cubeProbeSecondNearest
-		are not. Maybe this is only required while cubemaps are building. */
-		if ( cubeMap0 == nullptr )
-		{
-			cubeMap0 = tr.whiteCubeImage;
-		}
-
-		if ( cubeMap1 == nullptr )
-		{
-			cubeMap1 = tr.whiteCubeImage;
+			GLimp_LogComment( va( "Probe 0 distance = %f, probe 1 distance = %f, interpolation = %f\n",
+					Distance( position, probes[0]->origin ), Distance( position, probes[1]->origin ), interpolation ) );
 		}
 
 		// bind u_EnvironmentMap0
 		gl_lightMappingShader->SetUniform_EnvironmentMap0Bindless(
-			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeMap0 )
+			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeProbeNearest->cubemap )
 		);
 
 		// bind u_EnvironmentMap1
 		gl_lightMappingShader->SetUniform_EnvironmentMap1Bindless(
-			GL_BindToTMU( BIND_ENVIRONMENTMAP1, cubeMap1 )
+			GL_BindToTMU( BIND_ENVIRONMENTMAP1, cubeProbeSecondNearest->cubemap )
 		);
 
 		// bind u_EnvironmentInterpolation
@@ -1986,15 +1933,21 @@ void Render_reflection_CB( shaderStage_t *pStage )
 		gl_reflectionShader->SetUniform_VertexInterpolation( glState.vertexAttribsInterpolation );
 	}
 
-	// bind u_ColorMap
-	if ( backEnd.currentEntity && ( backEnd.currentEntity != &tr.worldEntity ) )
-	{
-		GL_BindNearestCubeMap( 0, backEnd.currentEntity->e.origin );
+	vec3_t position;
+	if ( backEnd.currentEntity && ( backEnd.currentEntity != &tr.worldEntity ) ) {
+		VectorCopy( backEnd.currentEntity->e.origin, position );
+	} else {
+		// FIXME position
+		VectorCopy( backEnd.viewParms.orientation.origin, position );
 	}
-	else
-	{
-		GL_BindNearestCubeMap( 0, backEnd.viewParms.orientation.origin );
-	}
+
+	cubemapProbe_t* probes[2];
+	vec4_t trilerp;
+	R_GetNearestCubeMaps( position, probes, trilerp, 1 );
+
+	gl_reflectionShader->SetUniform_ColorMapCubeBindless(
+		GL_BindToTMU( 0, probes[0]->cubemap )
+	);
 
 	// bind u_NormalMap
 	gl_reflectionShader->SetUniform_NormalMapBindless(

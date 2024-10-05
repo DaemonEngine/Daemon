@@ -580,7 +580,7 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 R_PointInLeaf
 ===============
 */
-static bspNode_t *R_PointInLeaf( const vec3_t p )
+bspNode_t *R_PointInLeaf( const vec3_t p )
 {
 	bspNode_t *node;
 	float     d;
@@ -621,7 +621,7 @@ static bspNode_t *R_PointInLeaf( const vec3_t p )
 R_ClusterPVS
 ==============
 */
-static const byte *R_ClusterPVS( int cluster )
+const byte *R_ClusterPVS( int cluster )
 {
 	if ( !tr.world || !tr.world->vis || cluster < 0 || cluster >= tr.world->numClusters )
 	{

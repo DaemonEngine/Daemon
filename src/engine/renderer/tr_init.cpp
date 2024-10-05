@@ -175,6 +175,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_reflectionMapping;
 	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize( "r_cubeProbeSize", "Size of the static reflections cubemaps", Cvar::NONE,
 		32, 1, 32768 );
+	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing( "r_cubeProbeSpacing", "Spacing between the static reflections cubemaps", Cvar::NONE,
+		128, 64, 1024 );
 
 	cvar_t      *r_halfLambertLighting;
 	cvar_t      *r_rimLighting;
@@ -1242,6 +1244,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_glowMapping = Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
 		r_reflectionMapping = Cvar_Get( "r_reflectionMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		Cvar::Latch( r_cubeProbeSize );
+		Cvar::Latch( r_cubeProbeSpacing );
 
 		r_halfLambertLighting = Cvar_Get( "r_halfLambertLighting", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_rimLighting = Cvar_Get( "r_rimLighting", "0",  CVAR_LATCH | CVAR_ARCHIVE );
