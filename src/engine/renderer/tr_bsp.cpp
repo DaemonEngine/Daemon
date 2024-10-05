@@ -4621,6 +4621,131 @@ void R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbe
 	}
 }
 
+void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec3_t trilerp, const uint8_t samples,
+	vec3_t* gridPoints ) {
+	ASSERT_GE( samples, 1 );
+	ASSERT_LE( samples, 4 );
+
+	vec3_t pos;
+	VectorCopy( position, pos );
+	VectorSubtract( pos, tr.world->nodes[0].mins, pos );
+	VectorScale( pos, 1.0 / tr.cubeProbeSpacing, pos );
+
+	struct ProbeTrilerp {
+		vec3_t gridPoint;
+		uint32_t probe;
+		float distance;
+	};
+
+	ProbeTrilerp probes[8];
+
+	uint32_t gridPosition[3]{ pos[0], pos[1], pos[2] };
+	static uint32_t offsets[8][3] = { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 1, 1 }, { 1, 0, 0 }, { 1, 0, 1 }, { 1, 1, 0 }, { 1, 1, 1 } };
+	for ( int i = 0; i < 8; i++ ) {
+		probes[i].probe = tr.cubeProbeGrid( gridPosition[0] + offsets[i][0], gridPosition[1] + offsets[i][1], gridPosition[2] + offsets[i][2] );
+		VectorSet( probes[i].gridPoint, gridPosition[0] + offsets[i][0], gridPosition[1] + offsets[i][1], gridPosition[2] + offsets[i][2] );
+		probes[i].distance = Distance( pos, probes[i].gridPoint );
+	}
+
+	std::sort( std::begin( probes ), std::end( probes ),
+		[]( const ProbeTrilerp& lhs, const ProbeTrilerp& rhs ) {
+			return lhs.distance < rhs.distance;
+		} );
+
+	float distanceSum = 0;
+	for ( uint8_t i = 0; i < samples; i++ ) {
+		distanceSum += Distance( position, tr.cubeProbes[probes[i].probe]->origin );
+	}
+	
+	for ( uint8_t i = 0; i < samples; i++ ) {
+		cubeProbes[i] = tr.cubeProbes[probes[i].probe];
+		trilerp[i] = Distance( position, cubeProbes[i]->origin ) / distanceSum;
+
+		if ( gridPoints != nullptr ) {
+			VectorCopy( probes[i].gridPoint, gridPoints[i] );
+		}
+	}
+}
+
+void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec3_t trilerp, const uint8_t samples ) {
+	vec3_t* unused = nullptr;
+	R_GetNearestCubeMaps( position, cubeProbes, trilerp, samples, unused );
+}
+
+static bool R_NodeSuitableForCubeMap( const bspNode_t* node ) {
+	if ( node->area == -1 ) {
+		// location is in the void
+		return false;
+	}
+
+	// This eliminates most of the void nodes, however some may still be left around patch meshes
+	if ( !node->numMarkSurfaces ) {
+		return false;
+	}
+
+	// There might be leafs with only invisible surfaces
+	bool hasVisibleSurfaces = false;
+	int surfaceCount = node->numMarkSurfaces;
+	bspSurface_t** view = tr.world->viewSurfaces + node->firstMarkSurface;
+	while ( surfaceCount-- ) {
+		bspSurface_t* surface = *view;
+
+		view++;
+
+		if ( *( surface->data ) == surfaceType_t::SF_FACE || *( surface->data ) == surfaceType_t::SF_TRIANGLES
+			|| *( surface->data ) == surfaceType_t::SF_VBO_MESH || *( surface->data ) == surfaceType_t::SF_GRID ) {
+			hasVisibleSurfaces = true;
+			break;
+		}
+	}
+
+	if ( !hasVisibleSurfaces ) {
+		return false;
+	}
+
+	return true;
+}
+
+static std::unordered_map<const bspNode_t*, uint32_t> cubeProbeMap;
+int R_FindNearestCubeMapForGrid( const vec3_t position, bspNode_t* node ) {
+	// check to see if this is a shit location
+	if ( node->contents == CONTENTS_NODE ) {
+		const float distance = DotProduct( position, node->plane->normal ) - node->plane->dist;
+
+		uint32_t side = distance <= 0;
+
+		int out = R_FindNearestCubeMapForGrid( position, node->children[side] );
+		if( out == -1 ) {
+			return R_FindNearestCubeMapForGrid( position, node->children[side ^ 1] );
+		}
+
+		return out;
+	}
+
+	if ( !R_NodeSuitableForCubeMap( node ) ) {
+		return -1;
+	}
+
+	std::unordered_map<const bspNode_t*, uint32_t>::iterator it = cubeProbeMap.find( node );
+	if( it == cubeProbeMap.end() ) {
+		return -1;
+	}
+
+	vec3_t origin;
+	VectorCopy( node->mins, origin );
+	VectorAdd( origin, node->maxs, origin );
+	VectorScale( origin, 0.5, origin );
+
+	const byte* vis = R_ClusterPVS( node->cluster );
+	const bspNode_t* node2 = R_PointInLeaf( origin );
+
+	if ( !( vis[node->cluster >> 3] & ( 1 << ( node2->cluster & 7 ) ) ) ) {
+		return -1;
+	}
+
+	return it->second;
+}
+
 void R_BuildCubeMaps()
 {
 	// Early abort if a BSP is not loaded yet since
@@ -4650,73 +4775,57 @@ void R_BuildCubeMaps()
 	tr.cubeProbes.clear();
 	tr.cubeHashTable = NewVertexHashTable();
 
-	{
-		bspNode_t *node;
+	cubemapProbe_t* cubeProbe = ( cubemapProbe_t* ) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_low );
+	VectorClear( cubeProbe->origin );
 
-		for ( int i = 0; i < tr.world->numnodes; i++ )
+	cubeProbe->cubemap = tr.whiteCubeImage;
+
+	tr.cubeProbes.push_back( cubeProbe );
+
+	for ( int i = 0; i < tr.world->numnodes; i++ )
+	{
+		const bspNode_t* node = &tr.world->nodes[ i ];
+
+		// check to see if this is a shit location
+		if ( node->contents == CONTENTS_NODE )
 		{
-			node = &tr.world->nodes[ i ];
-
-			// check to see if this is a shit location
-			if ( node->contents == CONTENTS_NODE )
-			{
-				continue;
-			}
-
-			if ( node->area == -1 )
-			{
-				// location is in the void
-				continue;
-			}
-
-			// This eliminates most of the void nodes, however some may still be left around patch meshes
-			if ( !node->numMarkSurfaces ) {
-				continue;
-			}
-
-			// There might be leafs with only invisible surfaces
-			bool hasVisibleSurfaces = false;
-			int surfaceCount = node->numMarkSurfaces;
-			bspSurface_t** view = tr.world->viewSurfaces + node->firstMarkSurface;
-			while ( surfaceCount-- ) {
-				bspSurface_t* surface = *view;
-
-				view++;
-
-				if ( *(surface->data) == surfaceType_t::SF_FACE || *(surface->data) == surfaceType_t::SF_TRIANGLES
-					|| *(surface->data) == surfaceType_t::SF_VBO_MESH || *(surface->data) == surfaceType_t::SF_GRID ) {
-					hasVisibleSurfaces = true;
-					break;
-				}
-			}
-
-			if ( !hasVisibleSurfaces ) {
-				continue;
-			}
-
-			vec3_t origin;
-			VectorAdd( node->maxs, node->mins, origin );
-			VectorScale( origin, 0.5, origin );
-
-			if ( FindVertexInHashTable( tr.cubeHashTable, origin, 256 ) == nullptr )
-			{
-				cubemapProbe_t* cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_high );
-				tr.cubeProbes.push_back( cubeProbe );
-
-				VectorCopy( origin, cubeProbe->origin );
-
-				AddVertexToHashTable( tr.cubeHashTable, cubeProbe->origin, cubeProbe );
-			}
+			continue;
 		}
-	}
 
-	// if we can't find one, fake one
-	if ( tr.cubeProbes.empty() )
-	{
-		auto *cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_low );
+		if ( !R_NodeSuitableForCubeMap( node ) ) {
+			continue;
+		}
+
+		vec3_t origin;
+		VectorAdd( node->maxs, node->mins, origin );
+		VectorScale( origin, 0.5, origin );
+
+		cubemapProbe_t* cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_high );
 		tr.cubeProbes.push_back( cubeProbe );
 
-		VectorClear( cubeProbe->origin );
+		cubeProbeMap[node] = tr.cubeProbes.size() - 1;
+
+		VectorCopy( origin, cubeProbe->origin );
+	}
+
+	Log::Notice( "Using grid size: %u %u %u", tr.cubeProbeGrid.width, tr.cubeProbeGrid.height, tr.cubeProbeGrid.depth );
+
+	for( Grid<uint32_t>::Iterator it = tr.cubeProbeGrid.begin(); it != tr.cubeProbeGrid.end(); it++ ) {
+		uint32_t x;
+		uint32_t y;
+		uint32_t z;
+		tr.cubeProbeGrid.IteratorToCoords( it, &x, &y, &z );
+		vec3_t position{ x * tr.cubeProbeSpacing, y * tr.cubeProbeSpacing, z * tr.cubeProbeSpacing };
+
+		// Match the map's start coords
+		VectorAdd( position, tr.world->nodes[0].mins, position );
+
+		int cubeProbe = R_FindNearestCubeMapForGrid( position, &tr.world->nodes[0] );
+
+		if ( cubeProbe == -1 ) {
+			cubeProbe = 0;
+		}
+		tr.cubeProbeGrid( x, y, z ) = cubeProbe;
 	}
 
 	Log::Notice( "...pre-rendering %d cubemaps", tr.cubeProbes.size() );
@@ -5151,4 +5260,30 @@ void RE_LoadWorldMap( const char *name )
 
 	tr.worldLoaded = true;
 	GLSL_InitWorldShaders();
+
+	if ( r_reflectionMapping->integer ) {
+		tr.cubeProbeSpacing = r_cubeProbeSpacing.Get();
+
+		vec3_t worldSize;
+		VectorCopy( tr.world->nodes[0].maxs, worldSize );
+		VectorSubtract( worldSize, tr.world->nodes[0].mins, worldSize );
+
+		uint32_t gridSize[3];
+		gridSize[0] = ( worldSize[0] + tr.cubeProbeSpacing - 1 ) / tr.cubeProbeSpacing;
+		gridSize[1] = ( worldSize[1] + tr.cubeProbeSpacing - 1 ) / tr.cubeProbeSpacing;
+		gridSize[2] = ( worldSize[2] + tr.cubeProbeSpacing - 1 ) / tr.cubeProbeSpacing;
+
+		// Make sure we don't create a way too large grid if the map is bigger than some arbitrary number (2mb grid max) (e. g. epic5)
+		if ( gridSize[0] * gridSize[1] * gridSize[2] > ( 1 << 19 ) ) {
+			tr.cubeProbeSpacing = std::cbrt( ( worldSize[0] + 1 ) * ( worldSize[1] + 1 ) * ( worldSize[2] + 1 ) / ( 1 << 19 ) );
+			Log::Notice( "Map size too large (%f %f %f), using %u for cube probe spacing instead of %u",
+				worldSize[0], worldSize[1], worldSize[2], tr.cubeProbeSpacing, r_cubeProbeSpacing.Get() );
+
+			gridSize[0] = ( worldSize[0] + tr.cubeProbeSpacing - 1 ) / tr.cubeProbeSpacing;
+			gridSize[1] = ( worldSize[1] + tr.cubeProbeSpacing - 1 ) / tr.cubeProbeSpacing;
+			gridSize[2] = ( worldSize[2] + tr.cubeProbeSpacing - 1 ) / tr.cubeProbeSpacing;
+		}
+
+		tr.cubeProbeGrid.SetSize( gridSize[0], gridSize[1], gridSize[2] );
+	}
 }

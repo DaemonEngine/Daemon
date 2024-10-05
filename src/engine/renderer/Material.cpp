@@ -388,90 +388,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 		gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 
-	// TODO: Move this to a per-entity buffer
-	// specular reflection
-	if ( tr.cubeHashTable != nullptr ) {
-		cubemapProbe_t* cubeProbeNearest;
-		cubemapProbe_t* cubeProbeSecondNearest;
-
-		image_t* cubeMap0 = nullptr;
-		image_t* cubeMap1 = nullptr;
-
-		float interpolation = 0.0;
-
-		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
-
-		if ( backEnd.currentEntity && !isWorldEntity ) {
-			R_FindTwoNearestCubeMaps( backEnd.currentEntity->e.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
-		} else {
-			// FIXME position
-			R_FindTwoNearestCubeMaps( backEnd.viewParms.orientation.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
-		}
-
-		if ( cubeProbeNearest == nullptr && cubeProbeSecondNearest == nullptr ) {
-			GLimp_LogComment( "cubeProbeNearest && cubeProbeSecondNearest == NULL\n" );
-
-			cubeMap0 = tr.whiteCubeImage;
-			cubeMap1 = tr.whiteCubeImage;
-		} else if ( cubeProbeNearest == nullptr ) {
-			GLimp_LogComment( "cubeProbeNearest == NULL\n" );
-
-			cubeMap0 = cubeProbeSecondNearest->cubemap;
-		} else if ( cubeProbeSecondNearest == nullptr ) {
-			GLimp_LogComment( "cubeProbeSecondNearest == NULL\n" );
-
-			cubeMap0 = cubeProbeNearest->cubemap;
-		} else {
-			float cubeProbeNearestDistance, cubeProbeSecondNearestDistance;
-
-			if ( backEnd.currentEntity && !isWorldEntity ) {
-				cubeProbeNearestDistance = Distance( backEnd.currentEntity->e.origin, cubeProbeNearest->origin );
-				cubeProbeSecondNearestDistance = Distance( backEnd.currentEntity->e.origin, cubeProbeSecondNearest->origin );
-			} else {
-				// FIXME position
-				cubeProbeNearestDistance = Distance( backEnd.viewParms.orientation.origin, cubeProbeNearest->origin );
-				cubeProbeSecondNearestDistance = Distance( backEnd.viewParms.orientation.origin, cubeProbeSecondNearest->origin );
-			}
-
-			interpolation = cubeProbeNearestDistance / ( cubeProbeNearestDistance + cubeProbeSecondNearestDistance );
-
-			if ( r_logFile->integer ) {
-				GLimp_LogComment( va( "cubeProbeNearestDistance = %f, cubeProbeSecondNearestDistance = %f, interpolation = %f\n",
-					cubeProbeNearestDistance, cubeProbeSecondNearestDistance, interpolation ) );
-			}
-
-			cubeMap0 = cubeProbeNearest->cubemap;
-			cubeMap1 = cubeProbeSecondNearest->cubemap;
-		}
-
-		/* TODO: Check why it is required to test for this, why
-		cubeProbeNearest->cubemap and cubeProbeSecondNearest->cubemap
-		can be nullptr while cubeProbeNearest and cubeProbeSecondNearest
-		are not. Maybe this is only required while cubemaps are building. */
-		if ( cubeMap0 == nullptr ) {
-			cubeMap0 = tr.whiteCubeImage;
-		}
-
-		if ( cubeMap1 == nullptr ) {
-			cubeMap1 = tr.whiteCubeImage;
-		}
-
-		// bind u_EnvironmentMap0
-		gl_lightMappingShaderMaterial->SetUniform_EnvironmentMap0Bindless(
-			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeMap0 )
-		);
-
-		// bind u_EnvironmentMap1
-		gl_lightMappingShaderMaterial->SetUniform_EnvironmentMap1Bindless(
-			GL_BindToTMU( BIND_ENVIRONMENTMAP1, cubeMap1 )
-		);
-
-		// bind u_EnvironmentInterpolation
-		gl_lightMappingShaderMaterial->SetUniform_EnvironmentInterpolation( interpolation );
-
-		updated = true;
-	}
-
 	// bind u_LightMap
 	if ( !enableGridLighting ) {
 		gl_lightMappingShaderMaterial->SetUniform_LightMapBindless(
@@ -521,11 +437,21 @@ void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawS
 	);
 
 	// bind u_ColorMap
+	vec3_t position;
 	if ( backEnd.currentEntity && ( backEnd.currentEntity != &tr.worldEntity ) ) {
-		GL_BindNearestCubeMap( gl_reflectionShaderMaterial->GetUniformLocation_ColorMapCube(), backEnd.currentEntity->e.origin );
+		VectorCopy( backEnd.currentEntity->e.origin, position );
 	} else {
-		GL_BindNearestCubeMap( gl_reflectionShaderMaterial->GetUniformLocation_ColorMapCube(), backEnd.viewParms.orientation.origin );
+		// FIXME position
+		VectorCopy( backEnd.viewParms.orientation.origin, position );
 	}
+
+	cubemapProbe_t* probes[2];
+	vec4_t trilerp;
+	R_GetNearestCubeMaps( position, probes, trilerp, 1 );
+
+	gl_reflectionShaderMaterial->SetUniform_ColorMapCubeBindless(
+		GL_BindToTMU( 0, probes[0]->cubemap )
+	);
 
 	if ( pStage->enableNormalMapping ) {
 		vec3_t normalScale;
@@ -1105,7 +1031,9 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetGridDeluxeMapping( material->enableGridDeluxeMapping );
 	gl_lightMappingShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_lightMappingShaderMaterial->SetReliefMapping( material->enableReliefMapping );
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableNormalMapping && tr.cubeHashTable != nullptr );
+	/* Reflective specular setting is different here than in ProcessMaterialLightMapping(),
+	because we don't have cubemaps built yet at this point, but for the purposes of the material ordering there's no difference */
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableNormalMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
 	// Bind shader program.
@@ -1122,6 +1050,47 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetUniform_numLights( backEnd.refdef.numLights );
 	gl_lightMappingShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_lightMappingShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	// TODO: Move this to a per-entity buffer
+	if ( r_reflectionMapping->integer && tr.cubeProbes.size() && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) ) {
+		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
+
+		vec3_t position;
+		if ( backEnd.currentEntity && !isWorldEntity ) {
+			VectorCopy( backEnd.currentEntity->e.origin, position );
+			return;
+		} else {
+			// FIXME position
+			VectorCopy( backEnd.orientation.viewOrigin, position );
+		}
+
+		cubemapProbe_t* probes[2];
+		vec4_t trilerp;
+		// TODO: Add a code path that would assign a cubemap to each tile for the tiled renderer
+		R_GetNearestCubeMaps( position, probes, trilerp, 2 );
+		const cubemapProbe_t* cubeProbeNearest = probes[0];
+		const cubemapProbe_t* cubeProbeSecondNearest = probes[1];
+
+		const float interpolation = 1.0 - trilerp[0];
+
+		if ( r_logFile->integer ) {
+			GLimp_LogComment( va( "Probe 0 distance = %f, probe 1 distance = %f, interpolation = %f\n",
+				Distance( position, probes[0]->origin ), Distance( position, probes[1]->origin ), interpolation ) );
+		}
+
+		// bind u_EnvironmentMap0
+		gl_lightMappingShaderMaterial->SetUniform_EnvironmentMap0Bindless(
+			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeProbeNearest->cubemap )
+		);
+
+		// bind u_EnvironmentMap1
+		gl_lightMappingShaderMaterial->SetUniform_EnvironmentMap1Bindless(
+			GL_BindToTMU( BIND_ENVIRONMENTMAP1, cubeProbeSecondNearest->cubemap )
+		);
+
+		// bind u_EnvironmentInterpolation
+		gl_lightMappingShaderMaterial->SetUniform_EnvironmentInterpolation( interpolation );
+	}
 }
 
 void BindShaderReflection( Material* material ) {
@@ -1236,7 +1205,7 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 	material->enableGridDeluxeMapping = enableGridDeluxeMapping;
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
-	material->enableNormalMapping = pStage->enableNormalMapping && tr.cubeHashTable != nullptr;
+	material->enableNormalMapping = pStage->enableNormalMapping;
 	material->enablePhysicalMapping = pStage->enablePhysicalMapping;
 	material->deformIndex = pStage->deformIndex;
 
@@ -1250,7 +1219,7 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 
 	gl_lightMappingShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( pStage->enableNormalMapping && tr.cubeHashTable != nullptr );
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( pStage->enableNormalMapping );
 
 	gl_lightMappingShaderMaterial->SetPhysicalShading( pStage->enablePhysicalMapping );
 

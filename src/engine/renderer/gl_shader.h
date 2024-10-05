@@ -501,9 +501,9 @@ public:
 
 class GLUniformSampler : protected GLUniform {
 	protected:
-	GLUniformSampler( GLShader* shader, const char* name, const char* type, const GLuint size ) :
-		GLUniform( shader, name, type, glConfig2.usingBindlessTextures ? size * 2 : size,
-									   glConfig2.usingBindlessTextures ? size * 2 : size, false, 0, true ) {
+	GLUniformSampler( GLShader* shader, const char* name, const char* type, const GLuint size, const bool global = false ) :
+		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? size * 2 : size,
+									   glConfig2.bindlessTexturesAvailable ? size * 2 : size, global, 0, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -644,8 +644,8 @@ class GLUniformUSampler3D : protected GLUniformSampler {
 
 class GLUniformSamplerCube : protected GLUniformSampler {
 	protected:
-	GLUniformSamplerCube( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "samplerCube", 1 ) {
+	GLUniformSamplerCube( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "samplerCube", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -2444,7 +2444,7 @@ class u_EnvironmentMap0 :
 	GLUniformSamplerCube {
 	public:
 	u_EnvironmentMap0( GLShader* shader ) :
-		GLUniformSamplerCube( shader, "u_EnvironmentMap0" ) {
+		GLUniformSamplerCube( shader, "u_EnvironmentMap0", true ) {
 	}
 
 	void SetUniform_EnvironmentMap0Bindless( GLuint64 bindlessHandle ) {
@@ -2460,7 +2460,7 @@ class u_EnvironmentMap1 :
 	GLUniformSamplerCube {
 	public:
 	u_EnvironmentMap1( GLShader* shader ) :
-		GLUniformSamplerCube( shader, "u_EnvironmentMap1" ) {
+		GLUniformSamplerCube( shader, "u_EnvironmentMap1", true ) {
 	}
 
 	void SetUniform_EnvironmentMap1Bindless( GLuint64 bindlessHandle ) {
