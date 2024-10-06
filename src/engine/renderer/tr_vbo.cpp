@@ -27,23 +27,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // -> struct shaderVertex_t in tr_local.h
 const GLsizei sizeShaderVertex = sizeof( shaderVertex_t );
 
-static uint32_t R_DeriveAttrBits( const vboData_t &data )
-{
-	uint32_t stateBits = 0;
-
-	if ( data.xyz )
-	{
-		stateBits |= ATTR_POSITION;
-	}
-
-	if ( data.stf )
-	{
-		stateBits |= ATTR_TEXCOORD;
-	}
-
-	return stateBits;
-}
-
 static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 {
 	vbo->attribs[ ATTR_INDEX_POSITION ].numComponents = 3;
@@ -78,35 +61,11 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->vertexesSize = sizeShaderVertex * vbo->vertexesNum;
 }
 
-static void R_SetAttributeLayoutsXYST( VBO_t *vbo )
-{
-	vbo->attribs[ ATTR_INDEX_POSITION ].numComponents = 2;
-	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_FLOAT;
-	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = 0;
-	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeof( vec4_t );
-	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = 0;
-
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].numComponents = 2;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_FLOAT;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs           = sizeof( vec2_t );
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride        = sizeof( vec4_t );
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].frameOffset   = 0;
-
-	// total size
-	vbo->vertexesSize = sizeof( vec4_t ) * vbo->vertexesNum;
-}
-
 static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 {
 	if ( vbo->layout == vboLayout_t::VBO_LAYOUT_STATIC )
 	{
 		R_SetAttributeLayoutsStatic( vbo );
-	}
-	else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_XYST )
-	{
-		R_SetAttributeLayoutsXYST( vbo );
 	}
 	else
 	{
@@ -132,30 +91,6 @@ static uint32_t ComponentSize( GLenum type )
 	}
 
 	Sys::Error( "VBO ComponentSize: unknown type %d", type );
-}
-
-static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
-{
-	uint32_t v;
-
-	for ( v = 0; v < vbo->vertexesNum; v++ )
-	{
-		if ( vbo->layout == vboLayout_t::VBO_LAYOUT_XYST ) {
-			vec2_t *ptr = ( vec2_t * )outData;
-			if ( ( vbo->attribBits & ATTR_POSITION ) )
-			{
-				Vector2Copy( inData.xyz[ v ], ptr[ 2 * v ] );
-			}
-
-			if ( ( vbo->attribBits & ATTR_TEXCOORD ) )
-			{
-				Vector2Copy( inData.stf[ v ], ptr[ 2 * v + 1 ] );
-			}
-		} else {
-			Sys::Drop( "R_CopyVertexData: unsupported VBO layout" );
-		}
-	}
-
 }
 
 #if defined( GL_ARB_buffer_storage ) && defined( GL_ARB_sync )
@@ -454,57 +389,6 @@ VBO_t *R_CreateStaticVBO(
 	ri.Hunk_FreeTempMemory( interleavedData );
 
 	R_BindNullVBO();
-	GL_CheckErrors();
-
-	return vbo;
-}
-
-/*
-============
-R_CreateVBO
-============
-*/
-VBO_t *R_CreateStaticVBO( const char *name, vboData_t data, vboLayout_t layout )
-{
-	// make sure the render thread is stopped
-	R_SyncRenderThread();
-
-	VBO_t *vbo = (VBO_t*) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
-	*vbo = {};
-
-	tr.vbos.push_back( vbo );
-
-	Q_strncpyz( vbo->name, name, sizeof( vbo->name ) );
-
-	vbo->layout = layout;
-	vbo->vertexesNum = data.numVerts;
-	vbo->attribBits = R_DeriveAttrBits( data );
-	vbo->usage = GL_STATIC_DRAW;
-
-	R_SetVBOAttributeLayouts( vbo );
-
-	glGenBuffers( 1, &vbo->vertexesVBO );
-	R_BindVBO( vbo );
-
-	byte *outData;
-#ifdef GL_ARB_buffer_storage
-	if( glConfig2.bufferStorageAvailable ) {
-		outData = (byte *)ri.Hunk_AllocateTempMemory( vbo->vertexesSize );
-		R_CopyVertexData( vbo, outData, data );
-		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize,
-				 outData, 0 );
-		ri.Hunk_FreeTempMemory( outData );
-	} else
-#endif
-	{
-		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize, nullptr, vbo->usage );
-		outData = (byte *)glMapBuffer( GL_ARRAY_BUFFER, GL_WRITE_ONLY );
-		R_CopyVertexData( vbo, outData, data );
-		glUnmapBuffer( GL_ARRAY_BUFFER );
-	}
-
-	R_BindNullVBO();
-
 	GL_CheckErrors();
 
 	return vbo;
@@ -864,28 +748,29 @@ static void R_InitTileVBO()
 	w = tr.depthtile2RenderImage->width;
 	h = tr.depthtile2RenderImage->height;
 
-	vboData_t data{};
-	data.numVerts = w * h;
-
-	data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( data.numVerts * sizeof( *data.xyz ) );
-	data.stf = ( vec2_t * ) ri.Hunk_AllocateTempMemory( data.numVerts * sizeof( *data.stf ) );
+	auto *xy = ( vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( vec2_t ) * w * h );
+	auto *stf = ( vec2_t * ) ri.Hunk_AllocateTempMemory( sizeof( vec2_t ) * w * h );
 
 	for (y = 0; y < h; y++ ) {
 		for (x = 0; x < w; x++ ) {
-			VectorSet( data.xyz[ y * w + x ],
+			Vector2Set( xy[ y * w + x ],
 				   (2 * x - w + 1) * (1.0f / w),
-				   (2 * y - h + 1) * (1.0f / h),
-				   0.0f );
-			Vector2Set( data.stf[ y * w + x ],
+				   (2 * y - h + 1) * (1.0f / h) );
+			Vector2Set( stf[ y * w + x ],
 				    2 * x * glState.tileStep[ 0 ] + glState.tileStep[ 0 ] - 1.0f,
 				    2 * y * glState.tileStep[ 1 ] + glState.tileStep[ 1 ] - 1.0f );
 		}
 	}
 
-	tr.lighttileVBO = R_CreateStaticVBO( "lighttile_VBO", data, vboLayout_t::VBO_LAYOUT_XYST );
+	vertexAttributeSpec_t attrs[] = {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, xy, 2, sizeof(vec2_t), 0 },
+		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_FLOAT, stf, 2, sizeof(vec2_t), 0 },
+	};
 
-	ri.Hunk_FreeTempMemory( data.stf );
-	ri.Hunk_FreeTempMemory( data.xyz );
+	tr.lighttileVBO = R_CreateStaticVBO( "lighttile_VBO", std::begin( attrs ), std::end( attrs ), w * h );
+
+	ri.Hunk_FreeTempMemory( stf );
+	ri.Hunk_FreeTempMemory( xy );
 }
 
 const int vertexCapacity = DYN_BUFFER_SIZE / sizeof( shaderVertex_t );
