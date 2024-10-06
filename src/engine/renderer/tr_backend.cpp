@@ -1557,7 +1557,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 				vec4_t   forward, side, up;
 				vec3_t   lightDirection;
 				vec3_t   viewOrigin, viewDirection;
-				matrix_t rotationMatrix, transformMatrix, viewMatrix, projectionMatrix, viewProjectionMatrix;
+				matrix_t transformMatrix, viewMatrix, projectionMatrix, viewProjectionMatrix;
 				matrix_t cropMatrix;
 				vec3_t   splitFrustumNearCorners[ 4 ];
 				vec3_t   splitFrustumFarCorners[ 4 ];
@@ -1618,7 +1618,6 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 					VectorNormalize( up );
 
 					vectoangles( lightDirection, angles );
-					MatrixFromAngles( rotationMatrix, angles[ PITCH ], angles[ YAW ], angles[ ROLL ] );
 					AngleVectors( angles, forward, side, up );
 
 					MatrixLookAtRH( light->viewMatrix, viewOrigin, lightDirection, up );
@@ -1777,6 +1776,8 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 				}
 				else
 				{
+					matrix_t rotationMatrix;
+
 					// original light direction is from surface to light
 					VectorInverse( lightDirection );
 
