@@ -663,7 +663,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		VBO_LAYOUT_VERTEX_ANIMATION,
 		VBO_LAYOUT_SKELETAL,
 		VBO_LAYOUT_STATIC,
-		VBO_LAYOUT_POSITION,
 		VBO_LAYOUT_XYST
 	};
 
@@ -2577,8 +2576,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		FBO_t *sunShadowMapFBO[ MAX_SHADOWMAPS ];
 
 		// vertex buffer objects
-		VBO_t *unitCubeVBO;
-		IBO_t *unitCubeIBO;
 		VBO_t *lighttileVBO;
 
 		// internal shaders
