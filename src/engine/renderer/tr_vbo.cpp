@@ -214,19 +214,6 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->vertexesSize = sizeShaderVertex * vbo->vertexesNum;
 }
 
-static void R_SetAttributeLayoutsPosition( VBO_t *vbo )
-{
-	vbo->attribs[ ATTR_INDEX_POSITION ].numComponents = 3;
-	vbo->attribs[ ATTR_INDEX_POSITION ].componentType = GL_FLOAT;
-	vbo->attribs[ ATTR_INDEX_POSITION ].normalize     = GL_FALSE;
-	vbo->attribs[ ATTR_INDEX_POSITION ].ofs           = 0;
-	vbo->attribs[ ATTR_INDEX_POSITION ].stride        = sizeof( vec3_t );
-	vbo->attribs[ ATTR_INDEX_POSITION ].frameOffset   = 0;
-
-	// total size
-	vbo->vertexesSize = sizeof( vec3_t ) * vbo->vertexesNum;
-}
-
 static void R_SetAttributeLayoutsXYST( VBO_t *vbo )
 {
 	vbo->attribs[ ATTR_INDEX_POSITION ].numComponents = 2;
@@ -260,10 +247,6 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_STATIC )
 	{
 		R_SetAttributeLayoutsStatic( vbo );
-	}
-	else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_POSITION )
-	{
-		R_SetAttributeLayoutsPosition( vbo );
 	}
 	else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_XYST )
 	{
@@ -346,12 +329,6 @@ static void R_CopyVertexData( VBO_t *vbo, byte *outData, vboData_t inData )
 					ptr[ v ].boneFactors[ j ] = boneFactor( inData.boneIndexes[ v ][ j ],
 										inData.boneWeights[ v ][ j ] );
 				}
-			}
-		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_POSITION ) {
-			vec3_t *ptr = ( vec3_t * )outData;
-			if ( ( vbo->attribBits & ATTR_POSITION ) )
-			{
-				VectorCopy( inData.xyz[ v ], ptr[ v ] );
 			}
 		} else if ( vbo->layout == vboLayout_t::VBO_LAYOUT_XYST ) {
 			vec2_t *ptr = ( vec2_t * )outData;
@@ -879,36 +856,6 @@ static void R_InitGenericVBOs() {
 	tr.genericQuad = genericQuad;
 }
 
-static void R_InitUnitCubeVBO()
-{
-	vec3_t        mins = { -1, -1, -1 };
-	vec3_t        maxs = { 1,  1,  1 };
-
-	R_SyncRenderThread();
-
-	Tess_MapVBOs( true );
-	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
-
-	Tess_AddCube( vec3_origin, mins, maxs, Color::White );
-
-	vboData_t data{};
-	data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( tess.numVertexes * sizeof( *data.xyz ) );
-
-	data.numVerts = tess.numVertexes;
-
-	for (unsigned i = 0; i < tess.numVertexes; i++ )
-	{
-		VectorCopy( tess.verts[ i ].xyz, data.xyz[ i ] );
-	}
-
-	tr.unitCubeVBO = R_CreateStaticVBO( "unitCube_VBO", data, vboLayout_t::VBO_LAYOUT_POSITION );
-	tr.unitCubeIBO = R_CreateStaticIBO( "unitCube_IBO", tess.indexes, tess.numIndexes );
-
-	ri.Hunk_FreeTempMemory( data.xyz );
-
-	Tess_Clear();
-}
-
 static void R_InitTileVBO()
 {
 	if ( !glConfig2.realtimeLighting )
@@ -1028,10 +975,8 @@ void R_InitVBOs()
 		tess.ibo = R_CreateDynamicIBO( "tessVertexArray_IBO", SHADER_MAX_INDEXES );
 	}
 
-
 	R_InitGenericVBOs();
 
-	R_InitUnitCubeVBO();
 	R_InitTileVBO();
 
 	// allocate a PBO for color grade map transfers
