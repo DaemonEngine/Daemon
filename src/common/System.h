@@ -40,9 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Low-level system functions
 namespace Sys {
 
-#ifdef _WIN32
-// https://www.winehq.org/pipermail/wine-devel/2008-September/069387.html
+#if defined(BUILD_ENGINE) && defined(_WIN32)
 bool isRunningOnWine();
+const char* getWineHostSystem();
 #endif
 
 int SetEnv( const char* name, const char* value );
