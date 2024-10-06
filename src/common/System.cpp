@@ -71,12 +71,37 @@ Cvar::Cvar<bool> pedanticShutdown("common.pedanticShutdown", "run useless shutdo
 #endif
 #endif // BUILD_ENGINE
 
-#ifdef _WIN32
+#if defined(BUILD_ENGINE) && defined(_WIN32)
 bool isRunningOnWine()
 {
 	// See https://www.winehq.org/pipermail/wine-devel/2008-September/069387.html
-	HMODULE hntdll = GetModuleHandle("ntdll.dll");
-	return hntdll && (void *)GetProcAddress(hntdll, "wine_get_version");
+	HMODULE hNTDLL = GetModuleHandle( "ntdll.dll" );
+	return hNTDLL && (void*) GetProcAddress( hNTDLL, "wine_get_version" );
+}
+
+const char* getWineHostSystem()
+{
+	const char *system = nullptr;
+
+	// See https://forum.winehq.org/viewtopic.php?p=84448#p84448
+	HMODULE hNTDLL = GetModuleHandle( "ntdll.dll" );
+
+	if ( hNTDLL )
+	{
+		using wine_get_host_version_t = long long int(*)(const char**, const char**);
+
+		// HACK: C++ standard does not allow to cast function pointer to function pointer directly.
+		// See https://stackoverflow.com/a/56622668/9131399
+		wine_get_host_version_t wine_get_host_version = reinterpret_cast<wine_get_host_version_t>(
+			reinterpret_cast<uintptr_t>( GetProcAddress( hNTDLL, "wine_get_host_version" ) ) );
+
+		if ( wine_get_host_version )
+		{
+			wine_get_host_version( &system, nullptr );
+		}
+	}
+
+	return system;
 }
 #endif
 
