@@ -24,6 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "Material.h"
 
+static Cvar::Cvar<bool> r_drawDynamicLights(
+	"r_drawDynamicLights", "render dynamic lights (if realtime lighting is enabled)", Cvar::NONE, true );
+
 static int r_firstSceneDrawSurf;
 static int r_firstSceneInteraction;
 
@@ -287,7 +290,7 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 {
 	trRefLight_t *light;
 
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig2.realtimeLighting || !r_drawDynamicLights.Get() )
 	{
 		return;
 	}

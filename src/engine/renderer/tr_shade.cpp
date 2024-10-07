@@ -57,9 +57,6 @@ static void EnableAvailableFeatures()
 		}
 	}
 
-	// Enable different kinds of dynamic lights.
-	glConfig2.dynamicLight = glConfig2.realtimeLighting && r_dynamicLight.Get();
-
 	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
 	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
 

@@ -80,7 +80,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal(realtimeLightingRenderer_t::LEGACY),
 		Util::ordinal(realtimeLightingRenderer_t::TILED) );
 	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "enable realtime light rendering", Cvar::NONE, true );
-	Cvar::Cvar<bool> r_dynamicLight( "r_dynamicLight", "enable dynamic lights (if realtime lighting is enabled)", Cvar::NONE, true );
 	cvar_t      *r_realtimeLightingCastShadows;
 	cvar_t      *r_precomputedLighting;
 	Cvar::Cvar<int> r_mapOverBrightBits("r_mapOverBrightBits", "default map light color shift", Cvar::NONE, 2);
@@ -1208,7 +1207,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_realtimeLightingRenderer );
 		Cvar::Latch( r_realtimeLighting );
-		Cvar::Latch( r_dynamicLight );
 		Cvar::Latch( r_materialSystem );
 
 		r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
