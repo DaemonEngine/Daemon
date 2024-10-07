@@ -134,7 +134,6 @@ struct glconfig2_t
 
 	bool realtimeLighting;
 	bool dynamicLight;
-	bool staticLight;
 	bool shadowMapping;
 	shadowingMode_t shadowingMode;
 	bool deluxeMapping;

@@ -684,36 +684,6 @@ void R_SetupLightFrustum( trRefLight_t *light )
 		default:
 			break;
 	}
-
-	if ( light->isStatic )
-	{
-		R_SyncRenderThread();
-
-		Tess_MapVBOs(true);
-		Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
-
-		R_TessLight( light );
-
-		vboData_t data{};
-		data.xyz = ( vec3_t * ) ri.Hunk_AllocateTempMemory( tess.numVertexes * sizeof( *data.xyz ) );
-
-		for (unsigned i = 0; i < tess.numVertexes; i++ )
-		{
-			// transform to world space
-			MatrixTransformPoint( light->transformMatrix, tess.verts[ i ].xyz, data.xyz[ i ] );
-		}
-		data.numVerts = tess.numVertexes;
-
-		light->frustumVBO = R_CreateStaticVBO( "staticLightFrustum_VBO", data, vboLayout_t::VBO_LAYOUT_POSITION );
-		light->frustumIBO = R_CreateStaticIBO( "staticLightFrustum_IBO", tess.indexes, tess.numIndexes );
-
-		ri.Hunk_FreeTempMemory( data.xyz );
-
-		light->frustumVerts = tess.numVertexes;
-		light->frustumIndexes = tess.numIndexes;
-
-		Tess_Clear();
-	}
 }
 
 /*
@@ -966,14 +936,7 @@ bool R_AddLightInteraction( trRefLight_t *light, surfaceType_t *surface, shader_
 	ia->scissorWidth = light->scissor.coords[ 2 ] - light->scissor.coords[ 0 ];
 	ia->scissorHeight = light->scissor.coords[ 3 ] - light->scissor.coords[ 1 ];
 
-	if ( light->isStatic )
-	{
-		tr.pc.c_slightInteractions++;
-	}
-	else
-	{
-		tr.pc.c_dlightInteractions++;
-	}
+	tr.pc.c_dlightInteractions++;
 
 	return true;
 }
@@ -1567,33 +1530,16 @@ void R_SetupLightShader( trRefLight_t *light )
 {
 	if ( !light->l.attenuationShader )
 	{
-		if ( light->isStatic )
+		switch ( light->l.rlType )
 		{
-			switch ( light->l.rlType )
-			{
-				default:
-				case refLightType_t::RL_OMNI:
-					light->shader = tr.defaultPointLightShader;
-					break;
+			default:
+			case refLightType_t::RL_OMNI:
+				light->shader = tr.defaultDynamicLightShader;
+				break;
 
-				case refLightType_t::RL_PROJ:
-					light->shader = tr.defaultProjectedLightShader;
-					break;
-			}
-		}
-		else
-		{
-			switch ( light->l.rlType )
-			{
-				default:
-				case refLightType_t::RL_OMNI:
-					light->shader = tr.defaultDynamicLightShader;
-					break;
-
-				case refLightType_t::RL_PROJ:
-					light->shader = tr.defaultProjectedLightShader;
-					break;
-			}
+			case refLightType_t::RL_PROJ:
+				light->shader = tr.defaultProjectedLightShader;
+				break;
 		}
 	}
 	else
@@ -1616,34 +1562,6 @@ void R_ComputeFinalAttenuation( shaderStage_t *pStage, trRefLight_t *light )
 	RB_CalcTexMatrix( &pStage->bundle[ TB_COLORMAP ], matrix );
 
 	MatrixMultiply( matrix, light->attenuationMatrix, light->attenuationMatrix2 );
-}
-
-/*
-=================
-R_CullLightTriangle
-
-Returns CULL_IN, CULL_CLIP, or CULL_OUT
-=================
-*/
-cullResult_t R_CullLightTriangle( trRefLight_t *light, vec3_t verts[ 3 ] )
-{
-	int    i;
-	vec3_t worldBounds[ 2 ];
-
-	if ( r_nocull->integer )
-	{
-		return cullResult_t::CULL_CLIP;
-	}
-
-	// calc AABB of the triangle
-	ClearBounds( worldBounds[ 0 ], worldBounds[ 1 ] );
-
-	for ( i = 0; i < 3; i++ )
-	{
-		AddPointToBounds( verts[ i ], worldBounds[ 0 ], worldBounds[ 1 ] );
-	}
-
-	return R_CullLightWorldBounds( light, worldBounds );
 }
 
 /*
