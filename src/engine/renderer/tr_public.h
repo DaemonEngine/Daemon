@@ -130,7 +130,6 @@ struct glconfig2_t
 	bool depthClampAvailable;
 
 	bool realtimeLighting;
-	bool dynamicLight;
 	bool shadowMapping;
 	shadowingMode_t shadowingMode;
 	bool deluxeMapping;
