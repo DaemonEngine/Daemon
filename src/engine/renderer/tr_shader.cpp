@@ -5813,6 +5813,11 @@ static float DetermineShaderSort()
 
 	for ( size_t stage = 0; stage < numStages; stage++ )
 	{
+		if ( stages[ stage ].type == stageType_t::ST_HEATHAZEMAP )
+		{
+			return Util::ordinal(shaderSort_t::SS_BLEND0);
+		}
+
 		// determine sort order and fog color adjustment
 		if ( ( stages[ stage ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
 		     ( stages[ 0 ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) )
