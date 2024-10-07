@@ -1977,23 +1977,6 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 							GL_VertexAttribsState( ATTR_POSITION | ATTR_COLOR );
 							Tess_DrawElements();
 
-							// draw light volume
-							if ( light->isStatic && light->frustumVBO && light->frustumIBO )
-							{
-								gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
-								gl_genericShader->SetUniform_Color( Color::Yellow );
-
-								R_BindVBO( light->frustumVBO );
-								R_BindIBO( light->frustumIBO );
-
-								GL_VertexAttribsState( ATTR_POSITION );
-
-								tess.numVertexes = light->frustumVerts;
-								tess.numIndexes = light->frustumIndexes;
-
-								Tess_DrawElements();
-							}
-
 							tess.multiDrawPrimitives = 0;
 							tess.numIndexes = 0;
 							tess.numVertexes = 0;
@@ -3493,25 +3476,7 @@ static void RB_RenderDebugUtils()
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			if ( light->isStatic && light->frustumVBO && light->frustumIBO )
 			{
-				// go back to the world modelview matrix
-				backEnd.orientation = backEnd.viewParms.world;
-				GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
-				gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-				gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-
-				R_BindVBO( light->frustumVBO );
-				R_BindIBO( light->frustumIBO );
-
-				GL_VertexAttribsState( ATTR_POSITION );
-
-				tess.numVertexes = light->frustumVerts;
-				tess.numIndexes = light->frustumIndexes;
-			}
-			else
-			{
-
 				// set up the transformation matrix
 				R_RotateLightForViewParms( light, &backEnd.viewParms, &backEnd.orientation );
 

@@ -47,10 +47,10 @@ void R_PerformanceCounters()
 		           backEnd.pc.c_vertexes, backEnd.pc.c_indexes / 3 );
 
 		Log::Notice("%i lights %i bout %i pvsout %i interactions",
-		           tr.pc.c_dlights + tr.pc.c_slights,
+		           tr.pc.c_dlights,
 		           tr.pc.c_box_cull_light_out,
 		           tr.pc.c_pvs_cull_light_out,
-		           tr.pc.c_dlightInteractions + tr.pc.c_slightInteractions );
+		           tr.pc.c_dlightInteractions );
 
 		Log::Notice("%i draws %i vbos %i ibos %i verts %i tris",
 		           backEnd.pc.c_drawElements,
@@ -84,8 +84,6 @@ void R_PerformanceCounters()
 		Log::Notice("dlight srf:%i culled:%i", tr.pc.c_dlightSurfaces, tr.pc.c_dlightSurfacesCulled );
 
 		Log::Notice("dlights:%i interactions:%i", tr.pc.c_dlights, tr.pc.c_dlightInteractions );
-
-		Log::Notice("slights:%i interactions:%i", tr.pc.c_slights, tr.pc.c_slightInteractions );
 	}
 	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADOWCUBE_CULLING ))
 	{

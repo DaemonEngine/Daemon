@@ -2299,8 +2299,6 @@ void R_AddLightInteractions()
 {
 	int          i;
 	trRefLight_t *light;
-	bspNode_t    *leaf;
-	link_t       *l;
 
 	realtimeLightingRenderer_t realtimeLightingRenderer = realtimeLightingRenderer_t( r_realtimeLightingRenderer.Get() );
 
@@ -2310,28 +2308,7 @@ void R_AddLightInteractions()
 	{
 		light = tr.currentLight = &tr.refdef.lights[ i ];
 
-		if ( light->isStatic )
-		{
-			if ( !glConfig2.staticLight )
-			{
-				continue;
-			}
-
-			if ( ( r_precomputedLighting->integer || tr.worldLight != lightMode_t::MAP ) && !light->noRadiosity )
-			{
-				continue;
-			}
-
-			if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
-			{
-				tr.refdef.numShaderLights++;
-				tr.pc.c_slights++;
-			}
-
-			light->cull = cullResult_t::CULL_OUT;
-			continue;
-		}
-		else if ( light->l.inverseShadows )
+		if ( light->l.inverseShadows )
 		{
 			if ( !glConfig2.dynamicLight )
 			{
@@ -2362,57 +2339,6 @@ void R_AddLightInteractions()
 		R_RotateLightForViewParms( light, &tr.viewParms, &tr.orientation );
 
 		// calc local bounds for culling
-		if ( light->isStatic )
-		{
-			// ignore if not in PVS
-			if ( !r_noLightVisCull->integer )
-			{
-				for ( l = light->leafs.next; l != &light->leafs; l = l->next )
-				{
-					if ( !l || !l->data )
-					{
-						// something odd happens with the prev/next pointers if ri.Hunk_Alloc was used
-						break;
-					}
-
-					leaf = ( bspNode_t * ) l->data;
-
-					if ( leaf->visCounts[ tr.visIndex ] == tr.visCounts[ tr.visIndex ] )
-					{
-						light->visCounts[ tr.visIndex ] = tr.visCounts[ tr.visIndex ];
-					}
-				}
-
-				if ( light->visCounts[ tr.visIndex ] != tr.visCounts[ tr.visIndex ] )
-				{
-					tr.pc.c_pvs_cull_light_out++;
-					light->cull = cullResult_t::CULL_OUT;
-					continue;
-				}
-			}
-
-			// look if we have to draw the light including its interactions
-			switch ( R_CullLocalBox( light->localBounds ) )
-			{
-				case cullResult_t::CULL_IN:
-				default:
-					tr.pc.c_box_cull_light_in++;
-					light->cull = cullResult_t::CULL_IN;
-					break;
-
-				case cullResult_t::CULL_CLIP:
-					tr.pc.c_box_cull_light_clip++;
-					light->cull = cullResult_t::CULL_CLIP;
-					break;
-
-				case cullResult_t::CULL_OUT:
-					// light is not visible so skip other light setup stuff to save speed
-					tr.pc.c_box_cull_light_out++;
-					light->cull = cullResult_t::CULL_OUT;
-					continue;
-			}
-		}
-		else
 		{
 			// set up light transform matrix
 			MatrixSetupTransformFromQuat( light->transformMatrix, light->l.rotation, light->l.origin );
@@ -2483,29 +2409,14 @@ void R_AddLightInteractions()
 		light->numLightOnlyInteractions = 0;
 		light->noSort = false;
 
-		if ( light->isStatic )
-		{
-			R_AddPrecachedWorldInteractions( light );
-		}
-		else
-		{
-			R_AddWorldInteractions( light );
-		}
-
+		R_AddWorldInteractions( light );
 		R_AddEntityInteractions( light );
 
 		if ( light->numInteractions && light->numInteractions != light->numShadowOnlyInteractions )
 		{
 			R_SortInteractions( light );
 
-			if ( light->isStatic )
-			{
-				tr.pc.c_slights++;
-			}
-			else
-			{
-				tr.pc.c_dlights++;
-			}
+			tr.pc.c_dlights++;
 		}
 		else
 		{
