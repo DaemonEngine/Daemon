@@ -5755,6 +5755,90 @@ static void ValidateStage( shaderStage_t *pStage )
 	}
 }
 
+// Note: this code was written to be exactly equivalent to previous sort determination code, which
+// was scattered chaotically throughout FinishShader(). So which conditions take priority over
+// which won't make sense. For example if there is an explicit "sort" keyword, probably that should
+// override anything else? But maybe there are some buggy legacy assets so I won't change it
+// without a thorough investigation.
+static float DetermineShaderSort()
+{
+	// fogonly shaders don't have any stage passes
+	if ( numStages == 0 && !shader.isSky )
+	{
+		return Util::ordinal(shaderSort_t::SS_FOG);
+	}
+
+	for ( size_t stage = numStages; stage--; )
+	{
+		ASSERT( stages[ stage ].active );
+
+		if ( shader.isSky && stages[ stage ].noFog )
+		{
+			return Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
+		}
+	}
+
+	if ( shader.forceOpaque )
+	{
+		return Util::ordinal(shaderSort_t::SS_OPAQUE);
+	}
+
+	// set sky stuff appropriate
+	if ( shader.isSky )
+	{
+		if ( shader.noFog )
+		{
+			return Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
+		}
+		else
+		{
+			return Util::ordinal(shaderSort_t::SS_ENVIRONMENT_FOG);
+		}
+	}
+
+	// If we get to this point without overriding it, we use the sort which was already set before
+	// calling FinishShader(). This may be set by an explicit "sort XXX", or various other shader-
+	// or stage-level keywords which cause it to be set automatically. (TODO: move the other things
+	// that set it automatically to this function.)
+	if ( shader.sort )
+	{
+		return shader.sort;
+	}
+
+	// set polygon offset
+	if ( shader.polygonOffset )
+	{
+		return Util::ordinal(shaderSort_t::SS_DECAL);
+	}
+
+	for ( size_t stage = 0; stage < numStages; stage++ )
+	{
+		// determine sort order and fog color adjustment
+		if ( ( stages[ stage ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
+		     ( stages[ 0 ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) )
+		{
+			// see through item, like a grill or grate
+			if ( stages[ stage ].stateBits & GLS_DEPTHMASK_TRUE)
+			{
+				return Util::ordinal(shaderSort_t::SS_SEE_THROUGH);
+			}
+			else
+			{
+				return Util::ordinal(shaderSort_t::SS_BLEND0);
+			}
+		}
+	}
+
+	// there are times when you will need to manually apply a sort to
+	// opaque alpha tested shaders that have later blend passes
+	if ( shader.translucent )
+	{
+		return Util::ordinal(shaderSort_t::SS_DECAL);
+	}
+
+	return Util::ordinal(shaderSort_t::SS_OPAQUE);
+}
+
 /*
 =========================
 FinishShader
@@ -5770,30 +5854,6 @@ static shader_t *FinishShader()
 		/* Mirrors will not use that range but we need all
 		other portals to have it set. */
 		shader.portalRange = r_portalDefaultRange.Get();
-	}
-
-	// set sky stuff appropriate
-	if ( shader.isSky )
-	{
-		if ( shader.noFog )
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
-		}
-		else
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_FOG);
-		}
-	}
-
-	if ( shader.forceOpaque )
-	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_OPAQUE);
-	}
-
-	// set polygon offset
-	if ( shader.polygonOffset && !shader.sort )
-	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
 	}
 
 	// all light materials need at least one z attenuation stage as first stage
@@ -5866,47 +5926,11 @@ static shader_t *FinishShader()
 		{
 			pStage->stateBits |= GLS_DEPTHMASK_TRUE;
 		}
-
-		if ( shader.isSky && pStage->noFog )
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_ENVIRONMENT_NOFOG);
-		}
-
-		// determine sort order and fog color adjustment
-		if ( ( pStage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
-		     ( stages[ 0 ].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) )
-		{
-			// don't screw with sort order if this is a portal or environment
-			if ( !shader.sort )
-			{
-				// see through item, like a grill or grate
-				if ( pStage->stateBits & GLS_DEPTHMASK_TRUE )
-				{
-					shader.sort = Util::ordinal(shaderSort_t::SS_SEE_THROUGH);
-				}
-				else
-				{
-					shader.sort = Util::ordinal(shaderSort_t::SS_BLEND0);
-				}
-			}
-		}
 	}
 
 	GroupActiveStages();
 
-	// there are times when you will need to manually apply a sort to
-	// opaque alpha tested shaders that have later blend passes
-	if ( !shader.sort )
-	{
-		if ( shader.translucent && !shader.forceOpaque )
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_DECAL);
-		}
-		else
-		{
-			shader.sort = Util::ordinal(shaderSort_t::SS_OPAQUE);
-		}
-	}
+	shader.sort = DetermineShaderSort();
 
 	// HACK: allow alpha tested surfaces to create shadowmaps
 	if ( glConfig2.shadowMapping )
@@ -5915,12 +5939,6 @@ static shader_t *FinishShader()
 		{
 			shader.noShadows = false;
 		}
-	}
-
-	// fogonly shaders don't have any stage passes
-	if ( numStages == 0 && !shader.isSky )
-	{
-		shader.sort = Util::ordinal(shaderSort_t::SS_FOG);
 	}
 
 	// look for multitexture potential
