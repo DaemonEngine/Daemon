@@ -74,20 +74,24 @@ private:
 
 	std::string                    _name;
 	std::string                    _text;
+	uint32_t _lineCount;
 	GLShaderManager               *_shaderManager;
 
 public:
-	GLHeader() : _name(), _text(), _shaderManager(nullptr)
+	GLHeader() : _name(), _text(), _lineCount(), _shaderManager( nullptr )
 	{}
 
 	GLHeader( const std::string &name, const std::string &text, GLShaderManager *manager ) :
 		_name( name ),
-		_text(text),
+		_text( text ),
+		_lineCount( std::count( text.begin(), text.end(), '\n' ) ),
 		_shaderManager( manager )
-	{}
+	{
+	}
 
 	const std::string &getName() const { return _name; }
 	const std::string &getText() const { return _text; }
+	uint32_t getLineCount() const { return _lineCount; }
 	const GLShaderManager *getManager() const { return _shaderManager; }
 };
 
@@ -381,6 +385,13 @@ public:
 	void buildPermutation( GLShader *shader, int macroIndex, int deformIndex );
 	void buildAll();
 private:
+	struct InfoLogEntry {
+		int line;
+		int character;
+		std::string token;
+		std::string error;
+	};
+
 	bool LoadShaderBinary( GLShader *shader, size_t permutation );
 	void SaveShaderBinary( GLShader *shader, size_t permutation );
 	GLuint CompileShader( Str::StringRef programName, Str::StringRef shaderText,
@@ -392,11 +403,12 @@ private:
 	                                     Str::StringRef compileMacros, int deformIndex );
 	std::string ShaderPostProcess( GLShader *shader, const std::string& shaderText );
 	std::string BuildDeformShaderText( const std::string& steps );
-	std::string BuildGPUShaderText( Str::StringRef mainShader, GLenum shaderType ) const;
+	std::string ProcessInserts( const std::string& shaderText, const uint32_t offset ) const;
 	void LinkProgram( GLuint program ) const;
 	void BindAttribLocations( GLuint program ) const;
-	void PrintShaderSource( Str::StringRef programName, GLuint object ) const;
-	void PrintInfoLog( GLuint object ) const;
+	void PrintShaderSource( Str::StringRef programName, GLuint object, std::vector<InfoLogEntry>& infoLogLines ) const;
+	std::vector<InfoLogEntry> ParseInfoLog( const std::string& infoLog ) const;
+	std::string GetInfoLog( GLuint object ) const;
 	void InitShader( GLShader *shader );
 	void UpdateShaderProgramUniformLocations( GLShader *shader, shaderProgram_t *shaderProgram ) const;
 };
@@ -3246,7 +3258,7 @@ class u_TotalDrawSurfs :
 	GLUniform1ui {
 	public:
 	u_TotalDrawSurfs( GLShader* shader ) :
-		GLUniform1ui( shader, "u_TotalDrawSurfs" ) {
+		GLUniform1ui( shader, "u_TotalDrawSurfs", true ) {
 	}
 
 	void SetUniform_TotalDrawSurfs( const uint totalDrawSurfs ) {
@@ -3323,6 +3335,18 @@ class u_SurfaceCommandsOffset :
 
 	void SetUniform_SurfaceCommandsOffset( const uint surfaceCommandsOffset ) {
 		this->SetValue( surfaceCommandsOffset );
+	}
+};
+
+class u_MaterialColour :
+	GLUniform3f {
+	public:
+	u_MaterialColour( GLShader* shader ) :
+		GLUniform3f( shader, "u_MaterialColour", true ) {
+	}
+
+	void SetUniform_MaterialColour( const vec3_t materialColour ) {
+		this->SetValue( materialColour );
 	}
 };
 
@@ -3937,6 +3961,8 @@ class GLShader_genericMaterial :
 	// public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_ShowTris,
+	public u_MaterialColour,
 	public GLDeformStage,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -4034,6 +4060,7 @@ class GLShader_lightMappingMaterial :
 	public u_numLights,
 	public u_Lights,
 	public u_ShowTris,
+	public u_MaterialColour,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,

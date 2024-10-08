@@ -38,12 +38,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ShadeCommon.h"
 
 GLSSBO materialsSSBO( "materials", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+
 GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", 1, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLUBO surfaceBatchesUBO( "surfaceBatches", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 GLSSBO portalSurfacesSSBO( "portalSurfaces", 5, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
+
+GLSSBO debugSSBO( "debug", 10, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 
 PortalView portalStack[MAX_VIEWS];
 
@@ -947,6 +950,18 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	uint32_t* atomicCommandCounters = (uint32_t*) atomicCommandCountersBuffer.GetData();
 	memset( atomicCommandCounters, 0, MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES * sizeof(uint32_t) );
 
+	/* For use in debugging compute shaders
+	Intended for use with Nsight Graphics to format the output */
+	if ( r_materialDebug.Get() ) {
+		const uint32_t debugSize = surfaceCommandsCount * 20;
+
+		debugSSBO.BindBuffer();
+		glBufferData( GL_SHADER_STORAGE_BUFFER, debugSize * sizeof( uint32_t ), nullptr, GL_STATIC_DRAW );
+		uint32_t* debugBuffer = debugSSBO.MapBufferRange( debugSize );
+		memset( debugBuffer, 0, debugSize * sizeof( uint32_t ) );
+		debugSSBO.UnmapBuffer();
+	}
+
 	for ( int i = 0; i < tr.refdef.numDrawSurfs; i++ ) {
 		drawSurf = &tr.refdef.drawSurfs[i];
 		if ( drawSurf->entity != &tr.worldEntity ) {
@@ -1312,6 +1327,7 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 	} else {
 		materialPack = 2;
 	}
+	material.sort = materialPack;
 	uint32_t id = packIDs[materialPack];
 
 	// In surfaces with multiple stages each consecutive stage must be drawn after the previous stage,
@@ -1619,6 +1635,10 @@ void MaterialSystem::CullSurfaces() {
 		portalSurfacesSSBO.BindBufferBase();
 	}
 
+	if ( r_materialDebug.Get() ) {
+		debugSSBO.BindBufferBase();
+	}
+
 	GL_CheckErrors();
 
 	for ( uint32_t view = 0; view < frames[nextFrame].viewCount; view++ ) {
@@ -1699,6 +1719,10 @@ void MaterialSystem::CullSurfaces() {
 
 	if ( totalPortals > 0 ) {
 		portalSurfacesSSBO.UnBindBufferBase();
+	}
+
+	if ( r_materialDebug.Get() ) {
+		debugSSBO.UnBindBufferBase();
 	}
 
 	GL_CheckErrors();
@@ -2044,6 +2068,80 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 
 	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
 
+	if ( r_showGlobalMaterials.Get() && material.sort != 0
+		&& ( material.shaderBinder == BindShaderLightMapping || material.shaderBinder == BindShaderGeneric3D ) ) {
+		vec3_t color;
+		/* Some simple random modifiers to make the colors more contrasting
+		Maybe we can use some better way of assigning colors here? */
+		static vec3_t colors[6] = { { 0.75, 0.25, 0.25 }, { 0.75, 0.75, 0.25 }, { 0.25, 0.75, 0.25 }, { 0.25, 0.75, 0.75 },
+			{ 0.25, 0.25, 0.75 }, { 0.75, 0.25, 0.75 } };
+
+		switch ( r_showGlobalMaterials.Get() ) {
+			case Util::ordinal( MaterialDebugMode::DEPTH ):
+			{
+				// Even though this is for depth materials, we don't actually draw anything on depth pass
+				if ( material.sort != 1 ) {
+					return;
+				}
+
+				const float id = ( float ) material.id / ( materialPacks[0].materials.size() + 2 ) + 1;
+
+				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
+					/ materialPacks[0].materials.size() )][0];
+				color[1] = Math::Clamp( id - 1 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ materialPacks[0].materials.size() )][1];
+				color[2] = Math::Clamp( id - 2 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ materialPacks[0].materials.size() )][2];
+
+				break;
+			}
+			case Util::ordinal( MaterialDebugMode::OPAQUE ):
+			{
+				if ( material.sort != 1 ) {
+					return;
+				}
+
+				const float id = ( float ) ( material.id + 1 )
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() + 2 );
+
+				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][0];
+				color[1] = Math::Clamp( id - 1 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][1];
+				color[2] = Math::Clamp( id - 2 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][2];
+
+				break;
+			}
+			case Util::ordinal( MaterialDebugMode::OPAQUE_TRANSPARENT ):
+			{
+				if ( material.sort == 0 ) {
+					return;
+				}
+
+				const float id = ( float ) ( material.id + 1 )
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() + 2 ) + 1;
+
+				color[0] = std::min( id, 1 / 3.0f ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][0];
+				color[1] = Math::Clamp( id - 1 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][1];
+				color[2] = Math::Clamp( id - 2 / 3.0, 0.0, 1 / 3.0 ) * 3.0 * colors[int( material.id * 6.0
+					/ ( materialPacks[1].materials.size() + materialPacks[2].materials.size() ) )][2];
+
+				break;
+			}
+			default:
+				break;
+		}
+
+		if ( material.shaderBinder == BindShaderLightMapping ) {
+			gl_lightMappingShaderMaterial->SetUniform_MaterialColour( color );
+		} else if ( material.shaderBinder == BindShaderGeneric3D ) {
+			gl_genericShaderMaterial->SetUniform_MaterialColour( color );
+		}
+	}
+
 	glMultiDrawElementsIndirectCountARB( GL_TRIANGLES, GL_UNSIGNED_INT,
 		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
 					   + ( surfaceCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
@@ -2054,9 +2152,14 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 
 	if ( r_showTris->integer
 		&& ( material.stateBits & GLS_DEPTHMASK_TRUE ) == 0
-		&& material.shaderBinder == &BindShaderLightMapping )
+		&& ( material.shaderBinder == &BindShaderLightMapping || material.shaderBinder == &BindShaderGeneric3D ) )
 	{
-		gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
+		if ( material.shaderBinder == &BindShaderLightMapping ) {
+			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
+		} else if ( material.shaderBinder == &BindShaderGeneric3D ) {
+			gl_genericShaderMaterial->SetUniform_ShowTris( 1 );
+		}
+
 		GL_State( GLS_DEPTHTEST_DISABLE );
 		glMultiDrawElementsIndirectCountARB( GL_LINES, GL_UNSIGNED_INT,
 			BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
@@ -2065,7 +2168,12 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 			material.globalID * sizeof( uint32_t )
 			+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
 			material.drawCommands.size(), 0 );
-		gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
+
+		if ( material.shaderBinder == &BindShaderLightMapping ) {
+			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
+		} else if ( material.shaderBinder == &BindShaderGeneric3D ) {
+			gl_genericShaderMaterial->SetUniform_ShowTris( 0 );
+		}
 	}
 
 	culledCommandsBuffer.UnBindBuffer( GL_DRAW_INDIRECT_BUFFER );

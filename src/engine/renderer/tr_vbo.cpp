@@ -984,12 +984,18 @@ static void R_InitLightUBO()
 static void R_InitMaterialBuffers() {
 	if( glConfig2.materialSystemAvailable ) {
 		materialsSSBO.GenBuffer();
+
 		surfaceDescriptorsSSBO.GenBuffer();
 		surfaceCommandsSSBO.GenBuffer();
 		culledCommandsBuffer.GenBuffer();
 		surfaceBatchesUBO.GenBuffer();
 		atomicCommandCountersBuffer.GenBuffer();
+		
 		portalSurfacesSSBO.GenBuffer();
+
+		if ( r_materialDebug.Get() ) {
+			debugSSBO.GenBuffer();
+		}
 	}
 }
 
@@ -1110,12 +1116,18 @@ void R_ShutdownVBOs()
 
 	if ( glConfig2.materialSystemAvailable ) {
 		materialsSSBO.DelBuffer();
+
 		surfaceDescriptorsSSBO.DelBuffer();
 		surfaceCommandsSSBO.DelBuffer();
 		culledCommandsBuffer.DelBuffer();
 		surfaceBatchesUBO.DelBuffer();
 		atomicCommandCountersBuffer.DelBuffer();
+
 		portalSurfacesSSBO.DelBuffer();
+
+		if ( r_materialDebug.Get() ) {
+			debugSSBO.DelBuffer();
+		}
 	}
 
 	tess.verts = tess.vertsBuffer = nullptr;

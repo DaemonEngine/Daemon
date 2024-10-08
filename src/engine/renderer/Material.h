@@ -111,6 +111,8 @@ struct Material {
 
 	cullType_t cullType;
 
+	uint32_t sort;
+
 	bool usePolygonOffset = false;
 
 	VBO_t* vbo;
@@ -135,6 +137,13 @@ struct Material {
 			textures.emplace_back( texture );
 		}
 	}
+};
+
+enum class MaterialDebugMode {
+	NONE,
+	DEPTH,
+	OPAQUE,
+	OPAQUE_TRANSPARENT
 };
 
 struct PortalSurface {
@@ -309,13 +318,17 @@ class MaterialSystem {
 	void UpdateFrameData();
 };
 
-extern GLSSBO materialsSSBO;
+extern GLSSBO materialsSSBO; // Global
+
 extern GLSSBO surfaceDescriptorsSSBO; // Global
 extern GLSSBO surfaceCommandsSSBO; // Per viewframe, GPU updated
 extern GLBuffer culledCommandsBuffer; // Per viewframe
 extern GLUBO surfaceBatchesUBO; // Global
 extern GLBuffer atomicCommandCountersBuffer; // Per viewframe
 extern GLSSBO portalSurfacesSSBO; // Per viewframe
+
+extern GLSSBO debugSSBO; // Global
+
 extern MaterialSystem materialSystem;
 
 void UpdateSurfaceDataNONE( uint32_t*, Material&, drawSurf_t*, const uint32_t );

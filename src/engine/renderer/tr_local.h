@@ -2966,6 +2966,8 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern Cvar::Cvar<bool> r_showCubeProbes;
 	extern Cvar::Cvar<int> r_showCubeProbeFace;
 	extern cvar_t *r_showBspNodes;
+	extern Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials;
+	extern Cvar::Cvar<bool> r_materialDebug;
 	extern cvar_t *r_showParallelShadowSplits;
 
 	extern cvar_t *r_vboFaces;
@@ -3204,7 +3206,7 @@ inline bool checkGLErrors()
 	qhandle_t RE_GenerateTexture( const byte *pic, int width, int height );
 
 	image_t *R_AllocImage( const char *name, bool linkIntoHashTable );
-	void R_UploadImage( const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams );
+	void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams );
 
 	void    RE_GetTextureSize( int textureID, int *width, int *height );
 
