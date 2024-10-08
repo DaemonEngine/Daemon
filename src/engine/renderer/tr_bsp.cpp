@@ -905,27 +905,21 @@ static void FinishSkybox() {
 	surface->numVerts = 8;
 	surface->numIndexes = 36;
 	surface->firstIndex = 0;
-	vec3_t v0 = { min[0], min[1], min[2] };
-	vec3_t v1 = { min[0], max[1], min[2] };
-	vec3_t v2 = { max[0], max[1], min[2] };
-	vec3_t v3 = { max[0], min[1], min[2] };
-	vec3_t v4 = { min[0], min[1], max[2] };
-	vec3_t v5 = { min[0], max[1], max[2] };
-	vec3_t v6 = { max[0], max[1], max[2] };
-	vec3_t v7 = { max[0], min[1], max[2] };
 
-	shaderVertex_t verts[8];
-	VectorCopy( v0, verts[0].xyz );
-	VectorCopy( v1, verts[1].xyz );
-	VectorCopy( v2, verts[2].xyz );
-	VectorCopy( v3, verts[3].xyz );
-	VectorCopy( v4, verts[4].xyz );
-	VectorCopy( v5, verts[5].xyz );
-	VectorCopy( v6, verts[6].xyz );
-	VectorCopy( v7, verts[7].xyz );
-	surface->vbo = R_CreateStaticVBO2( va( "skybox_VBO %i", 0 ), surface->numVerts, verts,
-		ATTR_POSITION
-	);
+	vec3_t verts[ 8 ] {
+		{ min[0], min[1], min[2] },
+		{ min[0], max[1], min[2] },
+		{ max[0], max[1], min[2] },
+		{ max[0], min[1], min[2] },
+		{ min[0], min[1], max[2] },
+		{ min[0], max[1], max[2] },
+		{ max[0], max[1], max[2] },
+		{ max[0], min[1], max[2] },
+	};
+	vertexAttributeSpec_t attr[] = {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, verts, 3, sizeof( vec3_t ), 0 },
+	};
+	surface->vbo = R_CreateStaticVBO( "skybox_VBO", std::begin( attr ), std::end( attr ), surface->numVerts );
 
 	glIndex_t indexes[36] = { 0, 2, 1,  0, 3, 2,   // Bottom
 							  7, 5, 6,  7, 4, 5,   // Top
@@ -934,7 +928,7 @@ static void FinishSkybox() {
 							  2, 7, 6,  2, 3, 7,   // Right
 							  3, 4, 7,  3, 0, 4 }; // Back
 
-	surface->ibo = R_CreateStaticIBO( va( "skybox_IBO %i", 0 ), indexes, surface->numIndexes );
+	surface->ibo = R_CreateStaticIBO( "skybox_IBO", indexes, surface->numIndexes );
 	skybox->surface = ( surfaceType_t* ) surface;
 
 	tr.skybox = skybox;
