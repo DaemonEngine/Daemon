@@ -2823,30 +2823,6 @@ void R_MovePatchSurfacesToHunk()
 	}
 }
 
-static void CopyVert( const srfVert_t *in, srfVert_t *out )
-{
-	int j;
-
-	for ( j = 0; j < 3; j++ )
-	{
-		out->xyz[ j ] = in->xyz[ j ];
-		out->normal[ j ] = in->normal[ j ];
-	}
-
-	for ( j = 0; j < 2; j++ )
-	{
-		out->st[ j ] = in->st[ j ];
-		out->lightmap[ j ] = in->lightmap[ j ];
-	}
-
-	out->lightColor = in->lightColor;
-
-	for ( j = 0; j < 4; j++ )
-	{
-		out->qtangent[ j ] = in->qtangent[ j ];
-	}
-}
-
 /*
 =================
 R_CreateClusters
@@ -2944,12 +2920,10 @@ static void R_CreateWorldVBO()
 	int       i, j, k;
 
 	int       numVerts;
-	srfVert_t *verts;
 	shaderVertex_t *vboVerts;
 	glIndex_t      *vboIdxs;
 
 	int           numTriangles;
-	srfTriangle_t *triangles;
 
 	int            numSurfaces;
 	bspSurface_t  *surface;
@@ -3126,13 +3100,6 @@ static void R_CreateWorldVBO()
 
 	Log::Debug("...calculating world VBO ( %i verts %i tris )", numVerts, numTriangles );
 
-	// create arrays
-	s_worldData.numVerts = numVerts;
-	s_worldData.verts = verts = (srfVert_t*) ri.Hunk_Alloc( numVerts * sizeof( srfVert_t ), ha_pref::h_low );
-
-	s_worldData.numTriangles = numTriangles;
-	s_worldData.triangles = triangles = (srfTriangle_t*) ri.Hunk_Alloc( numTriangles * sizeof( srfTriangle_t ), ha_pref::h_low );
-
 	vboVerts = (shaderVertex_t *)ri.Hunk_AllocateTempMemory( numVerts * sizeof( shaderVertex_t ) );
 	vboIdxs = (glIndex_t *)ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
 
@@ -3154,32 +3121,8 @@ static void R_CreateWorldVBO()
 			srfSurfaceFace_t *srf = ( srfSurfaceFace_t * ) surface->data;
 
 			srf->firstTriangle = numTriangles;
-			srf->firstVert = numVerts;
-
-			if ( srf->numTriangles )
-			{
-				srfTriangle_t *tri;
-
-				for ( i = 0, tri = srf->triangles; i < srf->numTriangles; i++, tri++ )
-				{
-					for ( j = 0; j < 3; j++ )
-					{
-						triangles[ numTriangles + i ].indexes[ j ] = srf->firstVert + tri->indexes[ j ];
-					}
-				}
-
-				numTriangles += srf->numTriangles;
-			}
-
-			if ( srf->numVerts )
-			{
-				for ( i = 0; i < srf->numVerts; i++ )
-				{
-					CopyVert( &srf->verts[ i ], &verts[ srf->firstVert + i ] );
-				}
-
-				numVerts += srf->numVerts;
-			}
+			numTriangles += srf->numTriangles;
+			numVerts += srf->numVerts;
 
 			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_FACE)](srf );
 		}
@@ -3188,32 +3131,8 @@ static void R_CreateWorldVBO()
 			srfGridMesh_t *srf = ( srfGridMesh_t * ) surface->data;
 
 			srf->firstTriangle = numTriangles;
-			srf->firstVert = numVerts;
-
-			if ( srf->numTriangles )
-			{
-				srfTriangle_t *tri;
-
-				for ( i = 0, tri = srf->triangles; i < srf->numTriangles; i++, tri++ )
-				{
-					for ( j = 0; j < 3; j++ )
-					{
-						triangles[ numTriangles + i ].indexes[ j ] = srf->firstVert + tri->indexes[ j ];
-					}
-				}
-
-				numTriangles += srf->numTriangles;
-			}
-
-			if ( srf->numVerts )
-			{
-				for ( i = 0; i < srf->numVerts; i++ )
-				{
-					CopyVert( &srf->verts[ i ], &verts[ srf->firstVert + i ] );
-				}
-
-				numVerts += srf->numVerts;
-			}
+			numTriangles += srf->numTriangles;
+			numVerts += srf->numVerts;
 
 			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_GRID)](srf );
 		}
@@ -3222,32 +3141,8 @@ static void R_CreateWorldVBO()
 			srfTriangles_t *srf = ( srfTriangles_t * ) surface->data;
 
 			srf->firstTriangle = numTriangles;
-			srf->firstVert = numVerts;
-
-			if ( srf->numTriangles )
-			{
-				srfTriangle_t *tri;
-
-				for ( i = 0, tri = srf->triangles; i < srf->numTriangles; i++, tri++ )
-				{
-					for ( j = 0; j < 3; j++ )
-					{
-						triangles[ numTriangles + i ].indexes[ j ] = srf->firstVert + tri->indexes[ j ];
-					}
-				}
-
-				numTriangles += srf->numTriangles;
-			}
-
-			if ( srf->numVerts )
-			{
-				for ( i = 0; i < srf->numVerts; i++ )
-				{
-					CopyVert( &srf->verts[ i ], &verts[ srf->firstVert + i ] );
-				}
-
-				numVerts += srf->numVerts;
-			}
+			numTriangles += srf->numTriangles;
+			numVerts += srf->numVerts;
 
 			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_TRIANGLES)](srf );
 		}
