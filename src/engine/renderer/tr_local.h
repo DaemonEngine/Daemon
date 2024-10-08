@@ -1727,8 +1727,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		int           numVerts;
 		srfVert_t     *verts;
 
-		// BSP VBO offsets
-		int firstVert;
+		// BSP VBO offset
 		int firstTriangle;
 
 		// static render data
@@ -1747,8 +1746,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		int           numVerts;
 		srfVert_t     *verts;
 
-		// BSP VBO offsets
-		int firstVert;
+		// BSP VBO offset
 		int firstTriangle;
 
 		// static render data
@@ -1766,8 +1764,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		int           numVerts;
 		srfVert_t     *verts;
 
-		// BSP VBO offsets
-		int firstVert;
+		// BSP VBO offset
 		int firstTriangle;
 
 		// static render data
@@ -1923,13 +1920,8 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		int           numSkyNodes;
 		bspNode_t     **skyNodes; // ydnar: don't walk the entire bsp when rendering sky
 
-		int           numVerts;
-		srfVert_t     *verts;
 		VBO_t         *vbo;
 		IBO_t         *ibo;
-
-		int           numTriangles;
-		srfTriangle_t *triangles;
 
 		int                numSurfaces;
 		bspSurface_t       *surfaces;
