@@ -697,23 +697,28 @@ static void R_InitGenericVBOs() {
 	surface->numVerts = 4;
 	surface->numIndexes = 6;
 	surface->firstIndex = 0;
-	vec3_t v0 = { min[0], min[1], min[2] };
-	vec3_t v1 = { min[0], max[1], min[2] };
-	vec3_t v2 = { max[0], max[1], min[2] };
-	vec3_t v3 = { max[0], min[1], min[2] };
 
-	shaderVertex_t verts[4];
-	VectorCopy( v0, verts[0].xyz );
-	VectorCopy( v1, verts[1].xyz );
-	VectorCopy( v2, verts[2].xyz );
-	VectorCopy( v3, verts[3].xyz );
-	
+	vec3_t verts[ 4 ] = {
+		{ min[0], min[1], min[2] },
+		{ min[0], max[1], min[2] },
+		{ max[0], max[1], min[2] },
+		{ max[0], min[1], min[2] },
+	};
+
+	vec2_t texCoords[ 4 ];
 	for ( int i = 0; i < 4; i++ ) {
-		verts[i].color = Color::White;
-		verts[i].texCoords[0] = floatToHalf( i < 2 ? 0.0f : 1.0f );
-		verts[i].texCoords[1] = floatToHalf( i > 0 && i < 3 ? 1.0f : 0.0f );
+		texCoords[ i ][ 0 ] = i < 2 ? 0.0f : 1.0f;
+		texCoords[ i ][ 1 ] = i > 0 && i < 3 ? 1.0f : 0.0f;
 	}
-	surface->vbo = R_CreateStaticVBO2( "generic_VBO", surface->numVerts, verts, ATTR_POSITION | ATTR_TEXCOORD | ATTR_COLOR );
+
+	Color::Color32Bit color = Color::White;
+
+	vertexAttributeSpec_t attrs[] = {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, verts, 3, sizeof( vec3_t ), 0 },
+		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, color.ToArray(), 4, 0, ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, texCoords, 2, sizeof( vec2_t ), 0 },
+	};
+	surface->vbo = R_CreateStaticVBO( "generic_VBO", std::begin( attrs ), std::end( attrs ), surface->numVerts );
 
 	glIndex_t indexes[6] = { 0, 2, 1,  0, 3, 2 }; // Front
 
