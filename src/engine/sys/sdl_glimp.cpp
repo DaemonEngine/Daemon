@@ -2212,8 +2212,6 @@ static void GLimp_InitExtensions()
 
 	// VAO and VBO
 	// made required in OpenGL 3.0
-	LOAD_EXTENSION( ExtFlag_REQUIRED | ExtFlag_CORE, ARB_half_float_vertex );
-	// WIP: engine is not yet usable without this
 	glConfig2.halfFloatVertexAvailable = LOAD_EXTENSION_WITH_TEST(
 		ExtFlag_CORE, ARB_half_float_vertex, r_arb_half_float_vertex.Get() );
 

@@ -3179,7 +3179,9 @@ inline bool checkGLErrors()
 		vec3_t    xyz;
 		Color::Color32Bit color;
 		i16vec4_t qtangents;
-		f16vec4_t texCoords;
+
+		// the lightmap coords (index 2-3) may be used in some weird cases like an autosprite map surface
+		vec4_t texCoords;
 	};
 
 #ifdef GL_ARB_sync
