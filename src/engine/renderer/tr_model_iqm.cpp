@@ -481,7 +481,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	size += header->num_vertexes * 3 * sizeof(float);	// normals
 	size += header->num_vertexes * 3 * sizeof(float);	// tangents
 	size += header->num_vertexes * 3 * sizeof(float);	// bitangents
-	size += header->num_vertexes * 2 * sizeof(f16_t);	// texcoords
+	size += header->num_vertexes * 2 * sizeof(float);	// texcoords
 	size += header->num_vertexes * 4 * sizeof(byte);	// blendIndexes
 	size += header->num_vertexes * 4 * sizeof(byte);	// blendWeights
 	size += header->num_vertexes * 4 * sizeof(byte);	// colors
@@ -541,7 +541,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 	IQModel->bitangents = (float *)ptr;
 	ptr = IQModel->bitangents + 3 * header->num_vertexes;
 
-	IQModel->texcoords = (f16_t *)ptr;
+	IQModel->texcoords = (float *)ptr;
 	ptr = IQModel->texcoords + 2 * header->num_vertexes;
 
 	IQModel->blendIndexes = (byte *)ptr;
@@ -725,7 +725,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 			break;
 		case IQM_TEXCOORD:
 			for( int j = 0; j < n; j++ ) {
-				IQModel->texcoords[ j ] = floatToHalf( ((float *)IQMPtr( header, vertexarray->offset ))[ j ] );
+				IQModel->texcoords[ j ] = ((float *)IQMPtr( header, vertexarray->offset ))[ j ];
 			}
 			break;
 		case IQM_BLENDINDEXES:
@@ -793,7 +793,7 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 			{ ATTR_INDEX_BONE_FACTORS, GL_UNSIGNED_SHORT, GL_UNSIGNED_SHORT, boneFactorBuf, 4, sizeof( u16vec4_t ), 0 },
 			{ ATTR_INDEX_POSITION, GL_FLOAT, GL_SHORT, IQModel->positions, 3, sizeof( float[ 3 ] ), ATTR_OPTION_NORMALIZE },
 			{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, qtangentbuf, 4, sizeof( i16vec4_t ), ATTR_OPTION_NORMALIZE, },
-			{ ATTR_INDEX_TEXCOORD, GL_HALF_FLOAT, GL_HALF_FLOAT, IQModel->texcoords, 2, sizeof( f16_t[ 2 ] ), 0 },
+			{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, IQModel->texcoords, 2, sizeof( float[ 2 ] ), 0 },
 			{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, IQModel->colors, 4, sizeof( u8vec4_t ), ATTR_OPTION_NORMALIZE },
 		};
 

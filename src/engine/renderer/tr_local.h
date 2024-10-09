@@ -2070,8 +2070,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		vec4_t      binormal;
 		vec4_t      normal;
 
-		f16vec2_t texCoords;
-		char _pad[ 4 ];
+		vec2_t texCoords;
 		uint32_t    firstWeight;
 		uint32_t    numWeights;
 
@@ -2204,7 +2203,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		float           *normals;
 		float           *tangents;
 		float           *bitangents;
-		f16_t           *texcoords;
+		float           *texcoords;
 		byte            *blendIndexes;
 		byte            *blendWeights;
 		byte            *colors;
