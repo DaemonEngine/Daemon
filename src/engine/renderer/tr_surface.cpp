@@ -1055,9 +1055,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 			VectorCopy( position, tessVertex->xyz );
 
-			// FIXME: don't store data as half float?
-			tessVertex->texCoords[ 0 ] = halfToFloat( surfaceVertex->texCoords[ 0 ] );
-			tessVertex->texCoords[ 1 ] = halfToFloat( surfaceVertex->texCoords[ 1 ] );
+			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
 		}
 	}
 	else
@@ -1100,8 +1098,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 
 			R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
 
-			tessVertex->texCoords[ 0 ] = halfToFloat( surfaceVertex->texCoords[ 0 ] );
-			tessVertex->texCoords[ 1 ] = halfToFloat( surfaceVertex->texCoords[ 1 ] );
+			Vector2Copy( surfaceVertex->texCoords, tessVertex->texCoords );
 		}
 	}
 
@@ -1218,7 +1215,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 	float *modelNormal = model->normals + 3 * firstVertex;
 	float *modelTangent = model->tangents + 3 * firstVertex;
 	float *modelBitangent = model->bitangents + 3 * firstVertex;
-	f16_t *modelTexcoord = model->texcoords + 2 * firstVertex;
+	float *modelTexcoord = model->texcoords + 2 * firstVertex;
 	shaderVertex_t *tessVertex = tess.verts + tess.numVertexes;
 	shaderVertex_t *lastVertex = tessVertex + surf->num_vertexes;
 
@@ -1258,9 +1255,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 				VectorCopy( position, tessVertex->xyz );
 
-				// FIXME: don't store data as half floats?
-				tessVertex->texCoords[ 0 ] = halfToFloat( modelTexcoord[ 0 ] );
-				tessVertex->texCoords[ 1 ] = halfToFloat( modelTexcoord[ 1 ] );
+				Vector2Copy( modelTexcoord, tessVertex->texCoords );
 			}
 		}
 		else
@@ -1308,8 +1303,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 				R_TBNtoQtangents( tangent, binormal, normal, tessVertex->qtangents );
 
-				tessVertex->texCoords[ 0 ] = halfToFloat( modelTexcoord[ 0 ] );
-				tessVertex->texCoords[ 1 ] = halfToFloat( modelTexcoord[ 1 ] );
+				Vector2Copy( modelTexcoord, tessVertex->texCoords );
 			}
 		}
 	}
@@ -1326,8 +1320,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 
 			R_TBNtoQtangents( modelTangent, modelBitangent, modelNormal, tessVertex->qtangents );
 
-			tessVertex->texCoords[ 0 ] = halfToFloat( modelTexcoord[ 0 ] );
-			tessVertex->texCoords[ 1 ] = halfToFloat( modelTexcoord[ 1 ] );
+			Vector2Copy( modelTexcoord, tessVertex->texCoords );
 		}
 	}
 

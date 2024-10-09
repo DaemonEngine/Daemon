@@ -380,7 +380,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 			{
 				token = COM_ParseExt2( &buf_p, false );
 				texCoords[ j ][ k ] = atof( token );
-				v->texCoords[ k ] = floatToHalf( texCoords[ j ][ k ] );
+				v->texCoords[ k ] = texCoords[ j ][ k ];
 			}
 
 			// skip )

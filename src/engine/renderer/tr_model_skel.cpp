@@ -182,7 +182,7 @@ srfVBOMD5Mesh_t *R_GenerateMD5VBOSurface(
 		{ ATTR_INDEX_BONE_FACTORS, GL_UNSIGNED_SHORT, GL_UNSIGNED_SHORT, boneFactors, 4, sizeof(u16vec4_t), 0 },
 		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_SHORT, &surf->verts[ 0 ].position, 3, sizeof(md5Vertex_t), ATTR_OPTION_NORMALIZE },
 		{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, qtangents, 4, sizeof(i16vec4_t), ATTR_OPTION_NORMALIZE },
-		{ ATTR_INDEX_TEXCOORD, GL_HALF_FLOAT, GL_HALF_FLOAT, &surf->verts[ 0 ].texCoords, 2, sizeof(md5Vertex_t), 0 },
+		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, &surf->verts[ 0 ].texCoords, 2, sizeof(md5Vertex_t), 0 },
 		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, dummyColor, 4, 0, ATTR_OPTION_NORMALIZE },
 	};
 
