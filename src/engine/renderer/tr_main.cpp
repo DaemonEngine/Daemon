@@ -2319,7 +2319,7 @@ void R_AddLightInteractions()
 
 			if ( !light->noRadiosity )
 			{
-				continue;
+//				continue;
 			}
 
 			if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
@@ -2538,7 +2538,7 @@ void R_AddLightBoundsToVisBounds()
 
 			if ( !light->noRadiosity )
 			{
-				continue;
+//				continue;
 			}
 		}
 		else

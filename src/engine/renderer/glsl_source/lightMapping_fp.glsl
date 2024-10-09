@@ -179,6 +179,8 @@ void main()
 		lightColor /= clamp(dot(normalize(var_Normal), lightDir), 0.3, 1.0);
 	#endif
 
+	lightColor = vec3(0.0);
+
 	// Blend static light.
 	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
 		#if defined(USE_REFLECTIVE_SPECULAR)

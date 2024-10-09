@@ -6198,7 +6198,7 @@ void R_PrecacheInteractions()
 
 		if ( !light->noRadiosity )
 		{
-			continue;
+//			continue;
 		}
 
 		// set up light transform matrix
