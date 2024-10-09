@@ -51,7 +51,7 @@ static void R_SetAttributeLayoutsStatic( VBO_t *vbo )
 	vbo->attribs[ ATTR_INDEX_QTANGENT ].frameOffset   = 0;
 
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].numComponents = 4;
-	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_HALF_FLOAT;
+	vbo->attribs[ ATTR_INDEX_TEXCOORD ].componentType = GL_FLOAT;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].normalize     = GL_FALSE;
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].ofs           = offsetof( shaderVertex_t, texCoords );
 	vbo->attribs[ ATTR_INDEX_TEXCOORD ].stride        = sizeShaderVertex;

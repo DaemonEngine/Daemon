@@ -4572,8 +4572,8 @@ void DebugDrawVertex(const vec3_t pos, unsigned int color, const vec2_t uv) {
 	tess.verts[ tess.numVertexes ].xyz[ 2 ] = pos[ 2 ];
 	tess.verts[ tess.numVertexes ].color = colors;
 	if( uv ) {
-		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( uv[ 0 ] );
-		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( uv[ 1 ] );
+		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = uv[ 0 ];
+		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = uv[ 1 ];
 	}
 	tess.indexes[ tess.numIndexes ] = tess.numVertexes;
 	tess.numVertexes++;
@@ -4962,32 +4962,32 @@ const RenderCommand *StretchPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 0 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ numVerts ].texCoords[ 0 ] = s1;
+	tess.verts[ numVerts ].texCoords[ 1 ] = t1;
 
 	tess.verts[ numVerts + 1 ].xyz[ 0 ] = x + w;
 	tess.verts[ numVerts + 1 ].xyz[ 1 ] = y;
 	tess.verts[ numVerts + 1 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 1 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = s2;
+	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = t1;
 
 	tess.verts[ numVerts + 2 ].xyz[ 0 ] = x + w;
 	tess.verts[ numVerts + 2 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 2 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 2 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = s2;
+	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = t2;
 
 	tess.verts[ numVerts + 3 ].xyz[ 0 ] = x;
 	tess.verts[ numVerts + 3 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 3 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 3 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = s1;
+	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = t2;
 
 	return this + 1;
 }
@@ -5041,8 +5041,8 @@ const RenderCommand *Poly2dCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].xyz[ 1 ] = verts[ i ].xyz[ 1 ];
 		tess.verts[ tess.numVertexes ].xyz[ 2 ] = 0.0f;
 
-		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( verts[ i ].st[ 0 ] );
-		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( verts[ i ].st[ 1 ] );
+		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = verts[ i ].st[ 0 ];
+		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = verts[ i ].st[ 1 ];
 
 		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
 		tess.numVertexes++;
@@ -5098,8 +5098,8 @@ const RenderCommand *Poly2dIndexedCommand::ExecuteSelf( ) const
 		tess.verts[ tess.numVertexes ].xyz[ 1 ] = verts[ i ].xyz[ 1 ] + translation[ 1 ];
 		tess.verts[ tess.numVertexes ].xyz[ 2 ] = 0.0f;
 
-		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = floatToHalf( verts[ i ].st[ 0 ] );
-		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = floatToHalf( verts[ i ].st[ 1 ] );
+		tess.verts[ tess.numVertexes ].texCoords[ 0 ] = verts[ i ].st[ 0 ];
+		tess.verts[ tess.numVertexes ].texCoords[ 1 ] = verts[ i ].st[ 1 ];
 
 		tess.verts[ tess.numVertexes ].color = Color::Adapt( verts[ i ].modulate );
 		tess.numVertexes++;
@@ -5201,32 +5201,32 @@ const RenderCommand *RotatedPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 0 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ numVerts ].texCoords[ 0 ] = s1;
+	tess.verts[ numVerts ].texCoords[ 1 ] = t1;
 
 	tess.verts[ numVerts + 1 ].xyz[ 0 ] = mx + cw - sh;
 	tess.verts[ numVerts + 1 ].xyz[ 1 ] = my - sw - ch;
 	tess.verts[ numVerts + 1 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 1 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = s2;
+	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = t1;
 
 	tess.verts[ numVerts + 2 ].xyz[ 0 ] = mx + cw + sh;
 	tess.verts[ numVerts + 2 ].xyz[ 1 ] = my - sw + ch;
 	tess.verts[ numVerts + 2 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 2 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = s2;
+	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = t2;
 
 	tess.verts[ numVerts + 3 ].xyz[ 0 ] = mx - cw + sh;
 	tess.verts[ numVerts + 3 ].xyz[ 1 ] = my + sw + ch;
 	tess.verts[ numVerts + 3 ].xyz[ 2 ] = 0.0f;
 	tess.verts[ numVerts + 3 ].color = backEnd.color2D;
 
-	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = s1;
+	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = t2;
 
 	return this + 1;
 }
@@ -5285,29 +5285,29 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 	tess.verts[ numVerts ].xyz[ 1 ] = y;
 	tess.verts[ numVerts ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ numVerts ].texCoords[ 0 ] = s1;
+	tess.verts[ numVerts ].texCoords[ 1 ] = t1;
 
 	tess.verts[ numVerts + 1 ].xyz[ 0 ] = x + w;
 	tess.verts[ numVerts + 1 ].xyz[ 1 ] = y;
 	tess.verts[ numVerts + 1 ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = floatToHalf( t1 );
+	tess.verts[ numVerts + 1 ].texCoords[ 0 ] = s2;
+	tess.verts[ numVerts + 1 ].texCoords[ 1 ] = t1;
 
 	tess.verts[ numVerts + 2 ].xyz[ 0 ] = x + w;
 	tess.verts[ numVerts + 2 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 2 ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = floatToHalf( s2 );
-	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ numVerts + 2 ].texCoords[ 0 ] = s2;
+	tess.verts[ numVerts + 2 ].texCoords[ 1 ] = t2;
 
 	tess.verts[ numVerts + 3 ].xyz[ 0 ] = x;
 	tess.verts[ numVerts + 3 ].xyz[ 1 ] = y + h;
 	tess.verts[ numVerts + 3 ].xyz[ 2 ] = 0.0f;
 
-	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = floatToHalf( s1 );
-	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = floatToHalf( t2 );
+	tess.verts[ numVerts + 3 ].texCoords[ 0 ] = s1;
+	tess.verts[ numVerts + 3 ].texCoords[ 1 ] = t2;
 
 	return this + 1;
 }
