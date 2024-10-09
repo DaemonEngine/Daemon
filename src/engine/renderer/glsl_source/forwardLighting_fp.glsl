@@ -982,7 +982,8 @@ void	main()
 #if defined(r_specularMapping)
 	// compute the specular term
 	vec4 spec = texture2D(u_MaterialMap, texCoords).rgba;
-	vec3 specular = spec.rgb * u_LightColor * pow(clamp(dot(normal, H), 0.0, 1.0), u_SpecularExponent.x * spec.a + u_SpecularExponent.y) * r_SpecularScale;
+	float NdotH = clamp(dot(normal, H), 0.0, 1.0);
+	vec3 specular = computeSpecularity(u_LightColor, spec, NdotH);
 #endif // r_specularMapping
 #endif // !USE_PHYSICAL_MAPPING
 
