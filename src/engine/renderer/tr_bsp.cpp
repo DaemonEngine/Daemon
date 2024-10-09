@@ -2914,7 +2914,6 @@ static void R_CreateWorldVBO()
 	int       i, j, k;
 
 	int       numVerts;
-	shaderVertex_t *vboVerts;
 	glIndex_t      *vboIdxs;
 
 	int           numTriangles;
@@ -3094,61 +3093,82 @@ static void R_CreateWorldVBO()
 
 	Log::Debug("...calculating world VBO ( %i verts %i tris )", numVerts, numTriangles );
 
-	vboVerts = (shaderVertex_t *)ri.Hunk_AllocateTempMemory( numVerts * sizeof( shaderVertex_t ) );
+	// Use srfVert_t for the temporary array used to feed R_CreateStaticVBO, despite containing
+	// extraneous data, so that verts can be conveniently be bulk copied from the surface.
+	auto *vboVerts = (srfVert_t *)ri.Hunk_AllocateTempMemory( numVerts * sizeof( srfVert_t ) );
 	vboIdxs = (glIndex_t *)ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
 
 	// set up triangle and vertex arrays
-	numVerts = 0;
-	numTriangles = 0;
-	tess.buildingVBO = true; // no batch splitting please
-	tess.verts = vboVerts;
-	tess.numVertexes = 0;
-	tess.indexes = vboIdxs;
-	tess.numIndexes = 0;
+	int vboNumVerts = 0;
+	int vboNumIndexes = 0;
 
 	for ( k = 0; k < numSurfaces; k++ )
 	{
 		surface = surfaces[ k ];
 
+		const srfVert_t *surfVerts;
+		int numSurfVerts;
+		const srfTriangle_t *surfTriangle, *surfTriangleEnd;
+
 		if ( *surface->data == surfaceType_t::SF_FACE )
 		{
 			srfSurfaceFace_t *srf = ( srfSurfaceFace_t * ) surface->data;
 
-			srf->firstTriangle = numTriangles;
-			numTriangles += srf->numTriangles;
-			numVerts += srf->numVerts;
-
-			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_FACE)](srf );
+			srf->firstIndex = vboNumIndexes;
+			surfVerts = srf->verts;
+			numSurfVerts = srf->numVerts;
+			surfTriangle = srf->triangles;
+			surfTriangleEnd = surfTriangle + srf->numTriangles;
 		}
 		else if ( *surface->data == surfaceType_t::SF_GRID )
 		{
 			srfGridMesh_t *srf = ( srfGridMesh_t * ) surface->data;
 
-			srf->firstTriangle = numTriangles;
-			numTriangles += srf->numTriangles;
-			numVerts += srf->numVerts;
-
-			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_GRID)](srf );
+			srf->firstIndex = vboNumIndexes;
+			surfVerts = srf->verts;
+			numSurfVerts = srf->numVerts;
+			surfTriangle = srf->triangles;
+			surfTriangleEnd = surfTriangle + srf->numTriangles;
 		}
 		else if ( *surface->data == surfaceType_t::SF_TRIANGLES )
 		{
 			srfTriangles_t *srf = ( srfTriangles_t * ) surface->data;
 
-			srf->firstTriangle = numTriangles;
-			numTriangles += srf->numTriangles;
-			numVerts += srf->numVerts;
-
-			rb_surfaceTable[Util::ordinal(surfaceType_t::SF_TRIANGLES)](srf );
+			srf->firstIndex = vboNumIndexes;
+			surfVerts = srf->verts;
+			numSurfVerts = srf->numVerts;
+			surfTriangle = srf->triangles;
+			surfTriangleEnd = surfTriangle + srf->numTriangles;
 		}
+		else
+		{
+			continue;
+		}
+
+		for ( ; surfTriangle < surfTriangleEnd; surfTriangle++ )
+		{
+			vboIdxs[ vboNumIndexes++ ] = vboNumVerts + surfTriangle->indexes[ 0 ];
+			vboIdxs[ vboNumIndexes++ ] = vboNumVerts + surfTriangle->indexes[ 1 ];
+			vboIdxs[ vboNumIndexes++ ] = vboNumVerts + surfTriangle->indexes[ 2 ];
+		}
+
+		std::copy_n( surfVerts, numSurfVerts, vboVerts + vboNumVerts );
+		vboNumVerts += numSurfVerts;
 	}
 
-	s_worldData.vbo = R_CreateStaticVBO2(
-		"staticWorld_VBO %i", numVerts, vboVerts,
-		ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR );
-	s_worldData.ibo = R_CreateStaticIBO2( va( "staticWorld_IBO %i", 0 ), numTriangles, vboIdxs );
+	ASSERT_EQ( vboNumVerts, numVerts );
+	ASSERT_EQ( vboNumIndexes, numTriangles * 3 );
 
-	Tess_Clear();
-	tess.buildingVBO = false;
+	vertexAttributeSpec_t attrs[] {
+		{ ATTR_INDEX_POSITION, GL_FLOAT, GL_FLOAT, &vboVerts[ 0 ].xyz, 3, sizeof( *vboVerts ), 0 },
+		{ ATTR_INDEX_COLOR, GL_UNSIGNED_BYTE, GL_UNSIGNED_BYTE, &vboVerts[ 0 ].lightColor, 4, sizeof( *vboVerts ), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_QTANGENT, GL_SHORT, GL_SHORT, &vboVerts[ 0 ].qtangent, 4, sizeof( *vboVerts ), ATTR_OPTION_NORMALIZE },
+		{ ATTR_INDEX_TEXCOORD, GL_FLOAT, GL_HALF_FLOAT, &vboVerts[ 0 ].st, 4, sizeof( *vboVerts ), 0 },
+	};
+
+	s_worldData.vbo = R_CreateStaticVBO(
+		"staticWorld_VBO", std::begin( attrs ), std::end( attrs ), vboNumVerts );
+	s_worldData.ibo = R_CreateStaticIBO2( "staticWorld_IBO", numTriangles, vboIdxs );
 
 	ri.Hunk_FreeTempMemory( vboIdxs );
 	ri.Hunk_FreeTempMemory( vboVerts );
@@ -3207,17 +3227,17 @@ static void R_CreateWorldVBO()
 			if ( *surf1->data == surfaceType_t::SF_FACE )
 			{
 				srfSurfaceFace_t *face = ( srfSurfaceFace_t * ) surf1->data;
-				firstIndex = face->firstTriangle * 3;
+				firstIndex = face->firstIndex;
 			}
 			else if ( *surf1->data == surfaceType_t::SF_TRIANGLES )
 			{
 				srfTriangles_t *tris = ( srfTriangles_t * ) surf1->data;
-				firstIndex = tris->firstTriangle * 3;
+				firstIndex = tris->firstIndex;
 			}
 			else if ( *surf1->data == surfaceType_t::SF_GRID )
 			{
 				srfGridMesh_t *grid = ( srfGridMesh_t * ) surf1->data;
-				firstIndex = grid->firstTriangle * 3;
+				firstIndex = grid->firstIndex;
 			}
 
 			// count verts and indexes and add bounds for the merged surface

@@ -396,59 +396,6 @@ VBO_t *R_CreateStaticVBO(
 
 /*
 ============
-R_CreateVBO2
-============
-*/
-VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *verts, unsigned int stateBits )
-{
-	VBO_t  *vbo;
-
-	if ( !numVertexes )
-	{
-		return nullptr;
-	}
-
-	// make sure the render thread is stopped
-	R_SyncRenderThread();
-
-	vbo = ( VBO_t * ) ri.Hunk_Alloc( sizeof( *vbo ), ha_pref::h_low );
-	*vbo = {};
-
-	tr.vbos.push_back( vbo );
-
-	Q_strncpyz( vbo->name, name, sizeof( vbo->name ) );
-
-	vbo->layout = vboLayout_t::VBO_LAYOUT_STATIC;
-	vbo->framesNum = 0;
-	vbo->vertexesNum = numVertexes;
-	vbo->attribBits = stateBits;
-	vbo->usage = GL_STATIC_DRAW;
-
-	R_SetVBOAttributeLayouts( vbo );
-	
-	glGenBuffers( 1, &vbo->vertexesVBO );
-	R_BindVBO( vbo );
-
-#ifdef GL_ARB_buffer_storage
-	if( glConfig2.bufferStorageAvailable ) {
-		glBufferStorage( GL_ARRAY_BUFFER, vbo->vertexesSize,
-				 verts, 0 );
-	} else
-#endif
-	{
-		glBufferData( GL_ARRAY_BUFFER, vbo->vertexesSize,
-			      verts, vbo->usage );
-	}
-
-	R_BindNullVBO();
-	GL_CheckErrors();
-
-	return vbo;
-}
-
-
-/*
-============
 R_CreateIBO
 ============
 */

@@ -93,12 +93,6 @@ void Tess_CheckOverflow( int verts, int indexes )
 		Tess_CheckVBOAndIBO( tess.vbo, tess.ibo );
 	}
 
-	if ( tess.buildingVBO )
-	{
-		// During loading, tess.verts is assumed to have been allocated with exactly the right size.
-		return;
-	}
-
 	if ( tess.numVertexes + verts < SHADER_MAX_VERTEXES && tess.numIndexes + indexes < SHADER_MAX_INDEXES )
 	{
 		return;
@@ -754,7 +748,7 @@ static void Tess_SurfaceFace( srfSurfaceFace_t *srf )
 {
 	GLimp_LogComment( "--- Tess_SurfaceFace ---\n" );
 
-	if ( !r_vboFaces->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstTriangle * 3 ) )
+	if ( !r_vboFaces->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}
@@ -769,7 +763,7 @@ static void Tess_SurfaceGrid( srfGridMesh_t *srf )
 {
 	GLimp_LogComment( "--- Tess_SurfaceGrid ---\n" );
 
-	if ( !r_vboCurves->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstTriangle * 3 ) )
+	if ( !r_vboCurves->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}
@@ -784,7 +778,7 @@ static void Tess_SurfaceTriangles( srfTriangles_t *srf )
 {
 	GLimp_LogComment( "--- Tess_SurfaceTriangles ---\n" );
 
-	if ( !r_vboTriangles->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstTriangle * 3 ) )
+	if ( !r_vboTriangles->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}
