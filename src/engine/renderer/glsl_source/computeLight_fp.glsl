@@ -48,9 +48,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	}
 #endif
 
-#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
+#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || defined(r_realtimeLighting)
+#if !defined(USE_PHYSICAL_MAPPING)
+#if defined(r_specularMapping)
 	uniform vec2 u_SpecularExponent;
 
+vec3 computeSpecularity(vec3 lightColor, vec4 materialColor, float NdotH)
+{
+	return lightColor * materialColor.rgb * pow(NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
+}
+#endif
+#endif
+#endif
+
+#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
 #if defined(USE_REFLECTIVE_SPECULAR)
 void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 	vec4 diffuseColor, vec4 materialColor,
@@ -125,9 +136,7 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 
 		color.rgb += lightColor.rgb * NdotL * diffuseColor.rgb;
 		#if defined(r_specularMapping)
-			// The minimal specular exponent should preferably be nonzero to avoid the undefined pow( 0, 0 )
-			color.rgb += lightColor.rgb * materialColor.rgb
-				* pow( NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y ) * r_SpecularScale;
+			color.rgb += computeSpecularity(lightColor.rgb, materialColor, NdotH);
 		#endif // r_specularMapping
 	#endif // !USE_PHYSICAL_MAPPING
 }
