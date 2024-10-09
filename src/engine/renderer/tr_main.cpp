@@ -2326,10 +2326,10 @@ void R_AddLightInteractions()
 			{
 				tr.refdef.numShaderLights++;
 				tr.pc.c_slights++;
-			}
 
-			light->cull = cullResult_t::CULL_OUT;
-			continue;
+				light->cull = cullResult_t::CULL_OUT;
+				continue;
+			}
 		}
 		else if ( light->l.inverseShadows )
 		{
