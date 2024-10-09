@@ -2346,7 +2346,8 @@ void R_AddLightInteractions()
 				light->cull = cullResult_t::CULL_OUT;
 				continue;
 			}
-			else if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
+
+			if ( realtimeLightingRenderer == realtimeLightingRenderer_t::TILED )
 			{
 				tr.refdef.numShaderLights++;
 				tr.pc.c_dlights++;
