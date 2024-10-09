@@ -83,7 +83,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_dynamicLight( "r_dynamicLight", "enable dynamic lights (if realtime lighting is enabled)", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_staticLight( "r_staticLight", "enable BSP entity lights (if realtime lighting is enabled)", Cvar::NONE, true );
 	cvar_t      *r_realtimeLightingCastShadows;
-	cvar_t      *r_precomputedLighting;
 	Cvar::Cvar<int> r_mapOverBrightBits("r_mapOverBrightBits", "default map light color shift", Cvar::NONE, 2);
 	Cvar::Cvar<bool> r_forceLegacyOverBrightClamping("r_forceLegacyOverBrightClamping", "clamp over bright of legacy maps (enable multiplied color clamping and normalization)", Cvar::NONE, false);
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
@@ -1139,7 +1138,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_customheight = Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
 		r_subdivisions = Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
 		r_realtimeLightingCastShadows = Cvar_Get( "r_realtimeLightingCastShadows", "1", 0 );
-		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_CHEAT | CVAR_LATCH );
 		Cvar::Latch( r_mapOverBrightBits );
 		Cvar::Latch( r_forceLegacyOverBrightClamping );
 		Cvar::Latch( r_lightMode );

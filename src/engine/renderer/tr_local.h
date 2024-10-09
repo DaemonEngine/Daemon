@@ -2826,7 +2826,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern Cvar::Cvar<bool> r_dynamicLight;
 	extern Cvar::Cvar<bool> r_staticLight;
 	extern cvar_t *r_realtimeLightingCastShadows;
-	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
 	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;

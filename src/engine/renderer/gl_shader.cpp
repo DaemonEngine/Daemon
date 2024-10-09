@@ -701,9 +701,6 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_realtimeLightingRenderer", r_realtimeLightingRenderer.Get() );
 	}
 
-	if ( r_precomputedLighting->integer )
-		AddDefine( str, "r_precomputedLighting", 1 );
-
 	if ( r_showNormalMaps->integer )
 	{
 		AddDefine( str, "r_showNormalMaps", 1 );

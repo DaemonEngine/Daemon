@@ -495,7 +495,7 @@ R_LoadLightmaps
 */
 static void R_LoadLightmaps( lump_t *l, const char *bspName )
 {
-	tr.worldLightMapping = r_precomputedLighting->integer && tr.lightMode == lightMode_t::MAP;
+	tr.worldLightMapping = tr.lightMode == lightMode_t::MAP;
 
 	/* All lightmaps will be loaded if either light mapping
 	or deluxe mapping is enabled. */
@@ -4082,7 +4082,7 @@ void R_LoadLightGrid( lump_t *l )
 	vec3_t         ambientColor, directedColor, direction;
 	float          scale;
 
-	if ( !r_precomputedLighting->integer )
+	if ( r_lightMode.Get() == Util::ordinal(lightMode_t::FULLBRIGHT) )
 	{
 		R_SetDefaultLightGrid();
 		return;
