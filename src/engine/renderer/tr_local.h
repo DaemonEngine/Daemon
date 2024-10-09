@@ -607,7 +607,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	enum
 	{
 		ATTR_INDEX_POSITION = 0,
-		ATTR_INDEX_TEXCOORD,
+		ATTR_INDEX_TEXCOORD, // TODO split into 2-element texcoords and 4-element tex + lm coords
 		ATTR_INDEX_QTANGENT,
 		ATTR_INDEX_COLOR,
 
@@ -1685,8 +1685,11 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	struct srfVert_t
 	{
 		vec3_t xyz;
+
+		// HACK: st and lightmap must be adjacent for R_CreateWorldVBO
 		vec2_t st;
 		vec2_t lightmap;
+
 		vec3_t normal;
 		i16vec4_t qtangent;
 		Color::Color32Bit lightColor;
@@ -1730,7 +1733,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		srfVert_t     *verts;
 
 		// BSP VBO offset
-		int firstTriangle;
+		int firstIndex;
 
 		// static render data
 		VBO_t *vbo; // points to bsp model VBO
@@ -1749,7 +1752,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		srfVert_t     *verts;
 
 		// BSP VBO offset
-		int firstTriangle;
+		int firstIndex;
 
 		// static render data
 		VBO_t *vbo; // points to bsp model VBO
@@ -1767,7 +1770,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		srfVert_t     *verts;
 
 		// BSP VBO offset
-		int firstTriangle;
+		int firstIndex;
 
 		// static render data
 		VBO_t *vbo; // points to bsp model VBO
@@ -3243,9 +3246,6 @@ inline bool checkGLErrors()
 		// enabled when an MD3 VBO is used
 		bool    vboVertexAnimation;
 
-		// during BSP load
-		bool    buildingVBO;
-
 		// This can be thought of a "flush" function for the vertex buffer.
 		// Which function depends on backend mode and also the shader.
 		void ( *stageIteratorFunc )();
@@ -3482,7 +3482,6 @@ inline bool checkGLErrors()
 	VBO_t *R_CreateStaticVBO(
 		Str::StringRef name, const vertexAttributeSpec_t *attrBegin, const vertexAttributeSpec_t *attrEnd,
 		uint32_t numVerts, uint32_t numFrames = 0 );
-	VBO_t *R_CreateStaticVBO2( const char *name, int numVertexes, shaderVertex_t *verts, uint32_t stateBits );
 
 	IBO_t *R_CreateStaticIBO( const char *name, glIndex_t *indexes, int numIndexes );
 	IBO_t *R_CreateStaticIBO2( const char *name, int numTriangles, glIndex_t *indexes );
