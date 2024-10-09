@@ -6196,7 +6196,7 @@ void R_PrecacheInteractions()
 	{
 		light = &s_worldData.lights[ i ];
 
-		if ( tr.worldLightMapping && !light->noRadiosity )
+		if ( !light->noRadiosity )
 		{
 			continue;
 		}

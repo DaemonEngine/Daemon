@@ -2317,7 +2317,7 @@ void R_AddLightInteractions()
 				continue;
 			}
 
-			if ( tr.worldLight != lightMode_t::MAP && !light->noRadiosity )
+			if ( !light->noRadiosity )
 			{
 				continue;
 			}
@@ -2535,7 +2535,7 @@ void R_AddLightBoundsToVisBounds()
 				continue;
 			}
 
-			if ( tr.worldLight != lightMode_t::MAP && !light->noRadiosity )
+			if ( !light->noRadiosity )
 			{
 				continue;
 			}
