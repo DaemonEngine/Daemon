@@ -1106,7 +1106,8 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetGridDeluxeMapping( material->enableGridDeluxeMapping );
 	gl_lightMappingShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_lightMappingShaderMaterial->SetReliefMapping( material->enableReliefMapping );
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableNormalMapping && tr.cubeHashTable != nullptr );
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableNormalMapping && tr.cubeHashTable != nullptr
+		&& r_reflectionMapping->integer );
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
 	// Bind shader program.
@@ -1118,6 +1119,107 @@ void BindShaderLightMapping( Material* material ) {
 		gl_lightMappingShaderMaterial->SetUniform_LightGridScale( tr.world->lightGridGLScale );
 	}
 	// FIXME: else
+
+	// bind u_LightGrid1
+	if ( material->enableGridLighting ) {
+		gl_lightMappingShaderMaterial->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, tr.lightGrid1Image ) );
+	}
+
+	// bind u_LightGrid2
+	if ( material->enableGridDeluxeMapping ) {
+		gl_lightMappingShaderMaterial->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, tr.lightGrid2Image ) );
+	}
+
+	if ( glConfig2.realtimeLighting ) {
+		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
+
+		// bind u_LightTilesInt
+		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
+			gl_lightMappingShaderMaterial->SetUniform_LightTilesIntBindless(
+				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
+			);
+		}
+	}
+
+	if ( material->enableNormalMapping && tr.cubeHashTable != nullptr && r_reflectionMapping->integer ) {
+		cubemapProbe_t* cubeProbeNearest;
+		cubemapProbe_t* cubeProbeSecondNearest;
+
+		image_t* cubeMap0 = nullptr;
+		image_t* cubeMap1 = nullptr;
+
+		float interpolation = 0.0;
+
+		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
+
+		if ( backEnd.currentEntity && !isWorldEntity ) {
+			R_FindTwoNearestCubeMaps( backEnd.currentEntity->e.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
+		} else {
+			// FIXME position
+			R_FindTwoNearestCubeMaps( backEnd.viewParms.orientation.origin, &cubeProbeNearest, &cubeProbeSecondNearest );
+		}
+
+		if ( cubeProbeNearest == nullptr && cubeProbeSecondNearest == nullptr ) {
+			GLimp_LogComment( "cubeProbeNearest && cubeProbeSecondNearest == NULL\n" );
+
+			cubeMap0 = tr.whiteCubeImage;
+			cubeMap1 = tr.whiteCubeImage;
+		} else if ( cubeProbeNearest == nullptr ) {
+			GLimp_LogComment( "cubeProbeNearest == NULL\n" );
+
+			cubeMap0 = cubeProbeSecondNearest->cubemap;
+		} else if ( cubeProbeSecondNearest == nullptr ) {
+			GLimp_LogComment( "cubeProbeSecondNearest == NULL\n" );
+
+			cubeMap0 = cubeProbeNearest->cubemap;
+		} else {
+			float cubeProbeNearestDistance, cubeProbeSecondNearestDistance;
+
+			if ( backEnd.currentEntity && !isWorldEntity ) {
+				cubeProbeNearestDistance = Distance( backEnd.currentEntity->e.origin, cubeProbeNearest->origin );
+				cubeProbeSecondNearestDistance = Distance( backEnd.currentEntity->e.origin, cubeProbeSecondNearest->origin );
+			} else {
+				// FIXME position
+				cubeProbeNearestDistance = Distance( backEnd.viewParms.orientation.origin, cubeProbeNearest->origin );
+				cubeProbeSecondNearestDistance = Distance( backEnd.viewParms.orientation.origin, cubeProbeSecondNearest->origin );
+			}
+
+			interpolation = cubeProbeNearestDistance / ( cubeProbeNearestDistance + cubeProbeSecondNearestDistance );
+
+			if ( r_logFile->integer ) {
+				GLimp_LogComment( va( "cubeProbeNearestDistance = %f, cubeProbeSecondNearestDistance = %f, interpolation = %f\n",
+					cubeProbeNearestDistance, cubeProbeSecondNearestDistance, interpolation ) );
+			}
+
+			cubeMap0 = cubeProbeNearest->cubemap;
+			cubeMap1 = cubeProbeSecondNearest->cubemap;
+		}
+
+		/* TODO: Check why it is required to test for this, why
+		cubeProbeNearest->cubemap and cubeProbeSecondNearest->cubemap
+		can be nullptr while cubeProbeNearest and cubeProbeSecondNearest
+		are not. Maybe this is only required while cubemaps are building. */
+		if ( cubeMap0 == nullptr ) {
+			cubeMap0 = tr.whiteCubeImage;
+		}
+
+		if ( cubeMap1 == nullptr ) {
+			cubeMap1 = tr.whiteCubeImage;
+		}
+
+		// bind u_EnvironmentMap0
+		gl_lightMappingShaderMaterial->SetUniform_EnvironmentMap0Bindless(
+			GL_BindToTMU( BIND_ENVIRONMENTMAP0, cubeMap0 )
+		);
+
+		// bind u_EnvironmentMap1
+		gl_lightMappingShaderMaterial->SetUniform_EnvironmentMap1Bindless(
+			GL_BindToTMU( BIND_ENVIRONMENTMAP1, cubeMap1 )
+		);
+
+		// bind u_EnvironmentInterpolation
+		gl_lightMappingShaderMaterial->SetUniform_EnvironmentInterpolation( interpolation );
+	}
 
 	gl_lightMappingShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
 	gl_lightMappingShaderMaterial->SetUniform_numLights( backEnd.refdef.numLights );
