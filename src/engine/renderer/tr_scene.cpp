@@ -24,6 +24,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "Material.h"
 
+static Cvar::Cvar<bool> r_drawDynamicLights(
+	"r_drawDynamicLights", "render dynamic lights (if realtime lighting is enabled)", Cvar::NONE, true );
+
 static int r_firstSceneDrawSurf;
 static int r_firstSceneInteraction;
 
@@ -278,102 +281,6 @@ void RE_AddRefEntityToScene( const refEntity_t *ent )
 
 /*
 =====================
-RE_AddRefLightToScene
-=====================
-*/
-void RE_AddRefLightToScene( const refLight_t *l )
-{
-	trRefLight_t *light;
-
-	if ( !tr.registered )
-	{
-		return;
-	}
-
-	if ( r_numLights >= MAX_REF_LIGHTS )
-	{
-		return;
-	}
-
-	if ( l->radius <= 0 && !VectorLength( l->projTarget ) )
-	{
-		return;
-	}
-
-	if (l->rlType >= refLightType_t::RL_MAX_REF_LIGHT_TYPE)
-	{
-		Sys::Drop("RE_AddRefLightToScene: bad rlType %s", Util::enum_str(l->rlType));
-	}
-
-	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
-	light->l = *l;
-
-	light->isStatic = false;
-	light->additive = true;
-
-	if ( light->l.scale <= 0 )
-	{
-		light->l.scale = r_lightScale->value;
-	}
-
-	if ( light->l.scale >= r_lightScale->value )
-	{
-		light->l.scale = r_lightScale->value;
-	}
-
-	if ( !r_realtimeLightingCastShadows->integer && !light->l.inverseShadows )
-	{
-		light->l.noShadows = true;
-	}
-}
-
-/*
-=====================
-R_AddWorldLightsToScene
-=====================
-*/
-static void R_AddWorldLightsToScene()
-{
-	int          i;
-	trRefLight_t *light;
-
-	if ( !glConfig2.staticLight )
-	{
-		return;
-	}
-
-	if ( !tr.registered )
-	{
-		return;
-	}
-
-	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL )
-	{
-		return;
-	}
-
-	for ( i = 0; i < tr.world->numLights; i++ )
-	{
-		light = tr.currentLight = &tr.world->lights[ i ];
-
-		if ( r_numLights >= MAX_REF_LIGHTS )
-		{
-			return;
-		}
-
-		if ( !light->firstInteractionCache )
-		{
-			// this light has no interactions precached
-			continue;
-		}
-
-		backEndData[ tr.smpFrame ]->lights[ r_numLights ] = *light;
-		r_numLights++;
-	}
-}
-
-/*
-=====================
 RE_AddDynamicLightToScene
 
 ydnar: modified dlight system to support separate radius and intensity
@@ -383,7 +290,7 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 {
 	trRefLight_t *light;
 
-	if ( !glConfig2.dynamicLight )
+	if ( !glConfig2.realtimeLighting || !r_drawDynamicLights.Get() )
 	{
 		return;
 	}
@@ -445,7 +352,6 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 		light->restrictInteractionLast = -1;
 	}
 
-	light->isStatic = false;
 	light->additive = true;
 
 	if( light->l.inverseShadows )
@@ -662,8 +568,6 @@ void RE_RenderScene( const refdef_t *fd )
 			tr.refdef.areamaskModified = true;
 		}
 	}
-
-	R_AddWorldLightsToScene();
 
 	// derived info
 	tr.refdef.floatTime = float(double(tr.refdef.time) * 0.001);

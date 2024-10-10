@@ -370,43 +370,13 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	  CUBESIDE_CLIPALL = 1 | 2 | 4 | 8 | 16 | 32
 	};
 
-	struct link_t
-	{
-		void          *data;
-		link_t *prev, *next;
-	};
-
-	inline void InitLink( link_t *l, void *data )
-	{
-		l->data = data;
-		l->prev = l->next = l;
-	}
-
-	inline void InsertLink( link_t *l, link_t *sentinel )
-	{
-		l->next = sentinel->next;
-		l->prev = sentinel;
-
-		l->next->prev = l;
-		l->prev->next = l;
-	}
-
-	inline void QueueInit( link_t *l )
-	{
-		l->data = nullptr;
-		l->prev = l->next = l;
-	}
-
 // a trRefLight_t has all the information passed in by
 // the client game, as well as some locally derived info
 	struct trRefLight_t
 	{
-		// public from client game
 		refLight_t l;
 
 		// local
-		bool     isStatic; // loaded from the BSP entities lump
-		bool     noRadiosity; // this is a pure realtime light that was not considered by XMap2
 		bool     additive; // texture detail is lost tho when the lightmap is dark
 		vec3_t       origin; // l.origin + rotated l.center
 		vec3_t       transformed; // origin in local coordinate system
@@ -423,7 +393,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		matrix_t     attenuationMatrix; // attenuation * (light view * entity transform)
 		matrix_t     attenuationMatrix2; // attenuation * tcMod matrices
 
-		cullResult_t cull;
 		vec3_t       localBounds[ 2 ];
 		vec3_t       worldBounds[ 2 ];
 		float        sphereRadius; // calculated from localBounds
@@ -435,24 +404,10 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		frustum_t                 frustum;
 		plane_t localFrustum[ 6 ];
-		struct VBO_t              *frustumVBO;
-
-		struct IBO_t              *frustumIBO;
-
-		uint16_t                  frustumIndexes;
-		uint16_t                  frustumVerts;
 
 		screenRect_t              scissor;
 
 		struct shader_t           *shader;
-
-		struct interactionCache_t *firstInteractionCache; // only used by static lights
-
-		struct interactionCache_t *lastInteractionCache; // only used by static lights
-
-		struct interactionVBO_t   *firstInteractionVBO; // only used by static lights
-
-		struct interactionVBO_t   *lastInteractionVBO; // only used by static lights
 
 		struct interaction_t      *firstInteraction;
 
@@ -462,8 +417,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		uint16_t                  numShadowOnlyInteractions;
 		uint16_t                  numLightOnlyInteractions;
 		bool                  noSort; // don't sort interactions by material
-
-		link_t                    leafs;
 
 		int                       visCounts[ MAX_VISCOUNTS ]; // node needs to be traversed if current
 	};
@@ -1685,35 +1638,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		IA_DEFAULTCLIP = IA_LIGHT | IA_SHADOWCLIP
 	};
 
-// an interactionCache is a node between a light and a precached world surface
-	struct interactionCache_t
-	{
-		interactionType_t         type;
-
-		struct bspSurface_t       *surface;
-
-		byte                      cubeSideBits;
-		bool                  redundant;
-		bool                  mergedIntoVBO;
-
-		interactionCache_t *next;
-	};
-
-	struct interactionVBO_t
-	{
-		interactionType_t       type;
-
-		byte                    cubeSideBits;
-
-		struct shader_t         *shader;
-
-		struct srfVBOMesh_t     *vboLightMesh;
-
-		struct srfVBOMesh_t     *vboShadowMesh;
-
-		interactionVBO_t *next;
-	};
-
 // an interaction is a node between a light and any surface
 	struct interaction_t
 	{
@@ -1770,7 +1694,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	struct srfTriangle_t
 	{
 		int      indexes[ 3 ];
-		bool facingLight;
 	};
 
 // ydnar: plain map drawsurfaces must match this header
@@ -2039,12 +1962,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		bspGridPoint1_t    *lightGridData1;
 		bspGridPoint2_t    *lightGridData2;
 		int                numLightGridPoints;
-
-		int                numLights;
-		trRefLight_t       *lights;
-
-		int                numInteractions;
-		interactionCache_t **interactions;
 
 		int                numClusters;
 
@@ -2409,10 +2326,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		int c_nodes;
 		int c_leafs;
-
-		int c_slights;
-		int c_slightSurfaces;
-		int c_slightInteractions;
 
 		int c_dlights;
 		int c_dlightSurfaces;
@@ -2820,8 +2733,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern Cvar::Cvar<bool> r_fastsky; // Controls whether sky should be cleared or drawn.
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
 	extern Cvar::Cvar<bool> r_realtimeLighting;
-	extern Cvar::Cvar<bool> r_dynamicLight;
-	extern Cvar::Cvar<bool> r_staticLight;
 	extern cvar_t *r_realtimeLightingCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_mapOverBrightBits;
@@ -2973,8 +2884,6 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_vboFaces;
 	extern cvar_t *r_vboCurves;
 	extern cvar_t *r_vboTriangles;
-	extern cvar_t *r_vboShadows;
-	extern cvar_t *r_vboLighting;
 	extern cvar_t *r_vboModels;
 	extern cvar_t *r_vboVertexSkinning;
 
@@ -3458,7 +3367,6 @@ inline bool checkGLErrors()
 	bool R_inPVVS( const vec3_t p1, const vec3_t p2 );
 
 	void     R_AddWorldInteractions( trRefLight_t *light );
-	void     R_AddPrecachedWorldInteractions( trRefLight_t *light );
 
 	/*
 	============================================================
@@ -3508,9 +3416,6 @@ inline bool checkGLErrors()
 
 	byte     R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
 
-	cullResult_t R_CullLightPoint( trRefLight_t *light, const vec3_t p );
-
-	cullResult_t R_CullLightTriangle( trRefLight_t *light, vec3_t verts[ 3 ] );
 	cullResult_t R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
 
 	void     R_ComputeFinalAttenuation( shaderStage_t *pStage, trRefLight_t *light );
@@ -3611,7 +3516,6 @@ inline bool checkGLErrors()
 
 	void RE_ClearScene();
 	void RE_AddRefEntityToScene( const refEntity_t *ent );
-	void RE_AddRefLightToScene( const refLight_t *light );
 
 	void RE_AddPolyToSceneQ3A( qhandle_t hShader, int numVerts, const polyVert_t *verts, int num );
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );

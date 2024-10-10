@@ -71,9 +71,6 @@ struct glconfig2_t
 
 	int      maxCubeMapTextureSize;
 
-	bool occlusionQueryAvailable;
-	int      occlusionQueryBits;
-
 	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
 	int      shadingLanguageVersion;
 
@@ -133,8 +130,6 @@ struct glconfig2_t
 	bool depthClampAvailable;
 
 	bool realtimeLighting;
-	bool dynamicLight;
-	bool staticLight;
 	bool shadowMapping;
 	shadowingMode_t shadowingMode;
 	bool deluxeMapping;
@@ -235,8 +230,6 @@ struct refexport_t
 
 	// XreaL BEGIN
 	void ( *TakeVideoFrame )( int h, int w, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg );
-
-	void ( *AddRefLightToScene )( const refLight_t *light );
 
 	// RB: alternative skeletal animation system
 	qhandle_t ( *RegisterAnimation )( const char *name );

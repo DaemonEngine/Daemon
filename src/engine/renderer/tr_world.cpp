@@ -240,7 +240,7 @@ static void R_AddInteractionSurface( bspSurface_t *surf, trRefLight_t *light, in
 
 	if ( R_CullLightSurface( surf->data, surf->shader, light, &cubeSideBits ) )
 	{
-		if ( !light->isStatic && firstAddition )
+		if ( firstAddition )
 		{
 			tr.pc.c_dlightSurfacesCulled++;
 		}
@@ -251,14 +251,7 @@ static void R_AddInteractionSurface( bspSurface_t *surf, trRefLight_t *light, in
 
 	if ( firstAddition )
 	{
-		if ( light->isStatic )
-		{
-			tr.pc.c_slightSurfaces++;
-		}
-		else
-		{
-			tr.pc.c_dlightSurfaces++;
-		}
+		tr.pc.c_dlightSurfaces++;
 	}
 }
 
@@ -917,154 +910,4 @@ void R_AddWorldInteractions( trRefLight_t *light )
 	}
 
 	R_RecursiveInteractionNode( tr.world->nodes, light, FRUSTUM_CLIPALL, interactionBits );
-}
-
-/*
-=============
-R_AddPrecachedWorldInteractions
-=============
-*/
-void R_AddPrecachedWorldInteractions( trRefLight_t *light )
-{
-	interactionType_t iaType = IA_DEFAULT;
-
-	if ( !r_drawworld->integer )
-	{
-		return;
-	}
-
-	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL )
-	{
-		return;
-	}
-
-	if ( !light->firstInteractionCache )
-	{
-		// this light has no interactions precached
-		return;
-	}
-
-	tr.currentEntity = &tr.worldEntity;
-
-	if ( ( r_vboShadows->integer || r_vboLighting->integer ) )
-	{
-		interactionCache_t *iaCache;
-		interactionVBO_t   *iaVBO;
-		srfVBOMesh_t       *srf;
-		shader_t           *shader;
-		bspSurface_t       *surface;
-
-		// this can be shadow mapping or shadowless lighting
-		for ( iaVBO = light->firstInteractionVBO; iaVBO; iaVBO = iaVBO->next )
-		{
-			if ( !iaVBO->vboLightMesh )
-			{
-				continue;
-			}
-
-			srf = iaVBO->vboLightMesh;
-			shader = iaVBO->shader;
-
-			switch ( light->l.rlType )
-			{
-				case refLightType_t::RL_OMNI:
-					R_AddLightInteraction( light, ( surfaceType_t * ) srf, shader, CUBESIDE_CLIPALL, IA_LIGHT );
-					break;
-
-				case refLightType_t::RL_DIRECTIONAL:
-				case refLightType_t::RL_PROJ:
-					R_AddLightInteraction( light, ( surfaceType_t * ) srf, shader, CUBESIDE_CLIPALL, IA_LIGHT );
-					break;
-
-				default:
-					R_AddLightInteraction( light, ( surfaceType_t * ) srf, shader, CUBESIDE_CLIPALL, IA_DEFAULT );
-					break;
-			}
-		}
-
-		// add meshes for shadowmap generation if any
-		for ( iaVBO = light->firstInteractionVBO; iaVBO; iaVBO = iaVBO->next )
-		{
-			if ( !iaVBO->vboShadowMesh )
-			{
-				continue;
-			}
-
-			srf = iaVBO->vboShadowMesh;
-			shader = iaVBO->shader;
-
-			R_AddLightInteraction( light, ( surfaceType_t * ) srf, shader, iaVBO->cubeSideBits, IA_SHADOW );
-		}
-
-		// add interactions that couldn't be merged into VBOs
-		for ( iaCache = light->firstInteractionCache; iaCache; iaCache = iaCache->next )
-		{
-			if ( iaCache->redundant )
-			{
-				continue;
-			}
-
-			if ( iaCache->mergedIntoVBO )
-			{
-				continue;
-			}
-
-			surface = iaCache->surface;
-
-			// Tr3B - this surface is maybe not in this view but it may still cast a shadow
-			// into this view
-			if ( surface->viewCount != tr.viewCountNoReset )
-			{
-				if ( !glConfig2.shadowMapping || light->l.noShadows )
-				{
-					continue;
-				}
-				else
-				{
-					iaType = IA_SHADOW;
-				}
-			}
-			else
-			{
-				iaType = iaCache->type;
-			}
-
-			R_AddLightInteraction( light, surface->data, surface->shader, iaCache->cubeSideBits, iaType );
-		}
-	}
-	else
-	{
-		interactionCache_t *iaCache;
-		bspSurface_t       *surface;
-
-		for ( iaCache = light->firstInteractionCache; iaCache; iaCache = iaCache->next )
-		{
-			if ( iaCache->redundant )
-			{
-				continue;
-			}
-
-			surface = iaCache->surface;
-
-			// Tr3B - this surface is maybe not in this view but it may still cast a shadow
-			// into this view
-			if ( surface->viewCount != tr.viewCountNoReset )
-			{
-				if ( !glConfig2.shadowMapping || light->l.noShadows )
-				{
-					continue;
-				}
-				else
-				{
-					iaType = IA_SHADOW;
-				}
-			}
-			else
-			{
-				iaType = iaCache->type;
-			}
-
-			R_AddLightInteraction( light, surface->data, surface->shader, iaCache->cubeSideBits, iaType );
-		}
-	}
 }

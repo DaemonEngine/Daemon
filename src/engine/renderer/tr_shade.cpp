@@ -57,10 +57,6 @@ static void EnableAvailableFeatures()
 		}
 	}
 
-	// Enable different kinds of dynamic lights.
-	glConfig2.dynamicLight = glConfig2.realtimeLighting && r_dynamicLight.Get();
-	glConfig2.staticLight = glConfig2.realtimeLighting && r_staticLight.Get();
-
 	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
 	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
 
@@ -1057,12 +1053,13 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-	gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
-
-	if( glConfig2.realtimeLighting )
+	if ( glConfig2.realtimeLighting &&
+	     r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 	{
 		if ( backEnd.refdef.numShaderLights > 0 )
-		{	
+		{
+			gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
+
 			if( glConfig2.uniformBufferObjectAvailable )
 			{
 				gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
@@ -1072,14 +1069,15 @@ void Render_lightMapping( shaderStage_t *pStage )
 					GL_BindToTMU( BIND_LIGHTS, tr.dlightImage ) 
 				);
 			}
-		}
 
-		// bind u_LightTiles
-		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
-		{
+			// bind u_LightTiles
 			gl_lightMappingShader->SetUniform_LightTilesIntBindless(
 				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
 			);
+		}
+		else
+		{
+			gl_lightMappingShader->SetUniform_numLights( 0 );
 		}
 	}
 
@@ -1516,11 +1514,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 		gl_forwardLightingShader_omniXYZ->SetUniform_NormalScale( normalScale );
 	}
 
-	// bind u_MaterialMap
-	gl_forwardLightingShader_omniXYZ->SetUniform_MaterialMapBindless(
-		GL_BindToTMU( 2, pStage->bundle[TB_MATERIALMAP].image[0] )
-	);
-
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
@@ -1528,6 +1521,11 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
 
 		gl_forwardLightingShader_omniXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
+
+		// bind u_MaterialMap
+		gl_forwardLightingShader_omniXYZ->SetUniform_MaterialMapBindless(
+			GL_BindToTMU( 2, pStage->bundle[TB_MATERIALMAP].image[0] )
+		);
 	}
 
 	// bind u_AttenuationMapXY

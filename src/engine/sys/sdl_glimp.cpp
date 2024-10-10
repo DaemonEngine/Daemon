@@ -110,8 +110,6 @@ static Cvar::Cvar<bool> r_ext_draw_buffers( "r_ext_draw_buffers",
 	"Use GL_EXT_draw_buffers if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_gpu_shader4( "r_ext_gpu_shader4",
 	"Use GL_EXT_gpu_shader4 if available", Cvar::NONE, true );
-static Cvar::Cvar<bool> r_ext_occlusion_query( "r_ext_occlusion_query",
-	"Use GL_EXT_occlusion_query if available", Cvar::NONE, true );
 static Cvar::Range<Cvar::Cvar<float>> r_ext_texture_filter_anisotropic( "r_ext_texture_filter_anisotropic",
 	"Use GL_EXT_texture_filter_anisotropic if available: anisotropy value", Cvar::NONE, 4.0f, 0.0f, 16.0f );
 static Cvar::Cvar<bool> r_ext_texture_float( "r_ext_texture_float",
@@ -125,6 +123,10 @@ static Cvar::Cvar<bool> r_khr_debug( "r_khr_debug",
 static Cvar::Cvar<bool> r_khr_shader_subgroup( "r_khr_shader_subgroup",
 	"Use GL_KHR_shader_subgroup if available", Cvar::NONE, true );
 
+static Cvar::Cvar<bool> workaround_glDriver_amd_adrenalin_disableBindlessTexture(
+	"workaround.glDriver.amd.adrenalin.disableBindlessTexture",
+	"Disable ARB_bindless_texture on AMD Adrenalin driver",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
 	"workaround.glDriver.amd.oglp.disableBindlessTexture",
 	"Disable ARB_bindless_texture on AMD OGLP driver",
@@ -1482,9 +1484,9 @@ static void GLimp_CheckGLEW( const glConfiguration &requestedConfiguration )
 static bool IsSdlVideoRestartNeeded()
 {
 	/* We call RV600 the first generation of R600 cards, to make a difference
-	with RV700 and RV800 cards that are also supported by the Mesa R600 driver.
+	with RV700 and RV800 cards that are also supported by the Mesa r600 driver.
 
-	The Mesa R600 driver has broken Hyper-Z wth RV600, not RV700 nor RV800. */
+	The Mesa r600 driver has broken Hyper-Z wth RV600, not RV700 nor RV800. */
 	if ( workaround_glDriver_mesa_ati_rv600_disableHyperZ.Get() )
 	{
 		if ( getenv( "R600_HYPERZ" ) )
@@ -1492,13 +1494,14 @@ static bool IsSdlVideoRestartNeeded()
 			return false;
 		}
 
-		if ( !Q_stricmp( glConfig.vendor_string, "Mesa" ) || !Q_stricmp( glConfig.vendor_string, "X.Org" ) )
+		if ( glConfig2.driverVendor == glDriverVendor_t::MESA
+			&& glConfig2.hardwareVendor == glHardwareVendor_t::ATI )
 		{
 			bool foundRv600 = false;
 
 			std::string cardName = "";
 
-			static const std::vector<std::string> codenames = {
+			static const std::string codenames[] = {
 				// Radeon HD 2000 Series
 				"R600", "RV610", "RV630",
 				// Radeon HD 3000 Series
@@ -1518,7 +1521,7 @@ static bool IsSdlVideoRestartNeeded()
 
 			if ( foundRv600 )
 			{
-				logger.Warn( "...found buggy Mesa driver with %s card, Hyper-Z disabled", cardName );
+				logger.Warn( "Found buggy Mesa driver with %s card, disabling Hyper-Z.", cardName );
 
 				Sys::SetEnv( "R600_HYPERZ", "false" );
 
@@ -1984,7 +1987,6 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_uniform_buffer_object );
 	Cvar::Latch( r_ext_draw_buffers );
 	Cvar::Latch( r_ext_gpu_shader4 );
-	Cvar::Latch( r_ext_occlusion_query );
 	Cvar::Latch( r_ext_texture_filter_anisotropic );
 	Cvar::Latch( r_ext_texture_float );
 	Cvar::Latch( r_ext_texture_integer );
@@ -2032,7 +2034,7 @@ static void GLimp_InitExtensions()
 	}
 	glConfig2.shadingLanguageVersion = majorVersion * 100 + minorVersion;
 
-	logger.Notice("...found shading language version %i", glConfig2.shadingLanguageVersion );
+	logger.Notice("...using shading language version %i", glConfig2.shadingLanguageVersion );
 
 	// Texture formats and compression
 	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
@@ -2127,6 +2129,8 @@ static void GLimp_InitExtensions()
 	glConfig2.textureRGAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_texture_rg, r_ext_texture_rg.Get() );
 
 	{
+		bool textureGatherEnabled = r_arb_texture_gather.Get();
+
 		/* GT218-based GPU with Nvidia 340.108 driver advertising
 		ARB_texture_gather extension is know to fail to compile
 		the depthtile1 GLSL shader.
@@ -2148,25 +2152,23 @@ static void GLimp_InitExtensions()
 		need for such extension and the related shader code useless. */
 		if ( workaround_glDriver_nvidia_v340_disableTextureGather.Get() )
 		{
-			bool foundNvidia340 = ( glConfig2.driverVendor == glDriverVendor_t::NVIDIA
-			&& Q_stristr( glConfig.version_string, "NVIDIA 340." ) );
-
-			if ( foundNvidia340 )
+			if ( glConfig2.driverVendor == glDriverVendor_t::NVIDIA
+				&& Q_stristr( glConfig.version_string, " NVIDIA 340." ) )
 			{
 				// No need for WithoutSuppression for something which can only be printed once per renderer restart.
-				logger.Notice("...found buggy Nvidia 340 driver");
+				logger.Warn( "Found buggy Nvidia 340 driver, disabling ARB_texture_gather. ");
+				textureGatherEnabled = false;
 			}
-
-			// made required in OpenGL 4.0
-			glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, r_arb_texture_gather.Get() && !foundNvidia340 );
 		}
+
+		// made required in OpenGL 4.0
+		glConfig2.textureGatherAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_texture_gather, textureGatherEnabled );
 	}
 	
-	if ( workaround_glHardware_intel_useFirstProvokinVertex.Get() )
+	if ( workaround_glHardware_intel_useFirstProvokinVertex.Get()
+		&& glConfig2.hardwareVendor == glHardwareVendor_t::INTEL )
 	{
-		bool foundIntel = glConfig2.hardwareVendor == glHardwareVendor_t::INTEL;
-
-		if ( foundIntel && LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
+		if ( LOAD_EXTENSION( ExtFlag_NONE, ARB_provoking_vertex ) )
 		{
 			/* Workaround texture distorsion bug on Intel GPU
 
@@ -2176,7 +2178,7 @@ static void GLimp_InitExtensions()
 			See:
 			- https://github.com/DaemonEngine/Daemon/issues/909
 			- https://gitlab.freedesktop.org/mesa/mesa/-/issues/10224 */
-			logger.Notice( "...found Intel driver with ARB_provoking_vertex" );
+			logger.Warn( "Found Intel hardware and driver with ARB_provoking_vertex, using first vertex convention." );
 			glProvokingVertex( GL_FIRST_VERTEX_CONVENTION );
 		}
 	}
@@ -2245,15 +2247,6 @@ static void GLimp_InitExtensions()
 	glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig2.maxRenderbufferSize );
 	glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig2.maxColorAttachments );
 
-	// made required in OpenGL 1.5
-	glConfig2.occlusionQueryAvailable = false;
-	glConfig2.occlusionQueryBits = 0;
-	if ( r_ext_occlusion_query.Get() )
-	{
-		glConfig2.occlusionQueryAvailable = true;
-		glGetQueryiv( GL_SAMPLES_PASSED, GL_QUERY_COUNTER_BITS, &glConfig2.occlusionQueryBits );
-	}
-
 	// made required in OpenGL 2.0
 	glConfig2.drawBuffersAvailable = false;
 	if ( r_ext_draw_buffers.Get() )
@@ -2294,77 +2287,121 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.3
 	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );
 
-	// Some of the mesa 24.x driver versions have a bug in their shader compiler related to bindless textures,
-	// which results in either glitches or the shader compiler crashing (when material system is enabled)
-	if ( glConfig2.driverVendor == glDriverVendor_t::MESA )
 	{
-		bool foundMesa241 = false;
+		bool bindlessTextureEnabled = r_arb_bindless_texture.Get();
 
-		if ( workaround_glDriver_mesa_v241_disableBindlessTexture.Get() )
+		if ( bindlessTextureEnabled )
 		{
-			std::string mesaVersion = "";
+			/* Some of the mesa 24.x driver versions have a bug in their shader compiler
+			related to bindless textures, which results in either glitches or the shader
+			compiler crashing (when material system is enabled). It is expected to affect
+			every Mesa-supported hardware (the bug is in shared NIR code). See:
+			- https://gitlab.freedesktop.org/mesa/mesa/-/issues/11535
+			- https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/30315
+			- https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/30338
+			- https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/932 */
+			if ( glConfig2.driverVendor == glDriverVendor_t::MESA )
+			{
+				const char *str1 = "Mesa 24.";
 
-			static const std::vector<std::pair<std::string, std::vector<std::string>>> versions = {
-				{ "1.0", { "1.0-devel", "1.0-rc1", "1.0-rc2", "1.0-rc3", "1.0-rc4", "1.0", } },
-				{ "1.",  { "1.1", "1.2", "1.3", "1.4", } },
-				{ "2.0", { "2.0-devel", "2.0-rc1", } },
-			};
+				const char *match1 = Q_stristr( glConfig.version_string, str1 );
 
-			for ( auto& vp : versions ) {
-				mesaVersion = Str::Format( "Mesa 24.%s", vp.first );
+				if ( match1 )
+				{
+					match1 += strlen( str1 );
 
-				if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
-					for ( auto& v : vp.second ) {
-						mesaVersion = Str::Format( "Mesa 24.%s", v );
+					std::string str2 = "";
+					std::string str3 = "";
 
-						if ( Q_stristr( glConfig.version_string, mesaVersion.c_str() ) ) {
-							foundMesa241 = true;
+					bool foundMesa241 = false;
+
+					static const std::pair<std::string, std::vector<std::string>> versions[] = {
+						/* Most 24.1.0-devel (after bug is introduced),
+						some 24.1.6-devel (before bug is fixed),
+						and all 24.1.0-rc[1-4] versions are buggy.
+						It is fixed starting with 24.1.7 (backport from 24.2.1). */
+						{ "1.",  { "0", "1", "2", "3", "4", "5", "6", } },
+						/* Most 24.2.0-devel (before bug is fixed),
+						and all 24.2.0-rc[1-4] versions are buggy.
+						It is fixed starting with 24.2.1. */
+						{ "2.", { "0", } },
+					};
+
+					for ( auto& vp : versions )
+					{
+						if ( Str::IsPrefix( vp.first, match1 ) )
+						{
+							const char *match2 = match1 + vp.first.length();
+							str2 = vp.first;
+
+							for ( auto& v : vp.second )
+							{
+								if ( Str::IsPrefix( v, match2 ) )
+								{
+									foundMesa241 = true;
+									str3 = v;
+									break;
+								}
+							}
+
 							break;
 						}
 					}
 
-					break;
+					if ( foundMesa241 && workaround_glDriver_mesa_v241_disableBindlessTexture.Get() ) {
+						logger.Warn( "Found buggy %s%s%s driver, disabling ARB_bindless_texture.",
+							str1, str2, str3 );
+						bindlessTextureEnabled = false;
+					}
 				}
 			}
 
-			if ( foundMesa241 ) {
-				logger.Warn( "...found buggy %s driver, ARB_bindless_texture disabled", mesaVersion );
-			}
-		}
-
-		bool foundOglp = false;
-
-		if ( workaround_glDriver_amd_oglp_disableBindlessTexture.Get() )
-		{
-			/* AMD OGLP driver for Linux shares the same vendor string than AMD Adrenalin driver
-			for Windows and AMD ATI driver for macOS. When running the Windows engine binary on
-			Wine we must check we're not running Windows or macOS to detect Linux OGLP. */
-			if ( Q_stristr( glConfig.vendor_string, "ATI Technologies Inc." ) )
+			// AMD proprietary drivers are known to have buggy bindless texture implementation.
+			else if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI )
 			{
-				#if defined(_WIN32)
-					// Detect Wine being used.
+				// AMD proprietary driver for macOS does not implement bindless texture.
+				// Other systems like FreeBSD don't have AMD proprietary drivers.
+
+				bool foundOglp = false;
+				bool foundAdrenalin = false;
+
+				#if defined(__linux__)
+					foundOglp = true;
+				#elif defined(_WIN32)
+					/* AMD OGLP driver for Linux shares the same vendor string than AMD Adrenalin driver
+					for Windows and AMD ATI driver for macOS. When running the Windows engine binary on
+					Wine we must check we're not running Windows or macOS to detect Linux OGLP. */
 					if ( Sys::isRunningOnWine() )
 					{
-						// Detect AMD ATI driver on macOS not being used.
-						if ( !Q_stristr( glConfig.version_string, "ATI-" ) )
+						const char* system = Sys::getWineHostSystem();
+
+						if ( system && !strcmp( system, "Linux" ) )
 						{
 							foundOglp = true;
 						}
 					}
-				#elif defined(__APPLE__)
-					// AMD ATI driver for macOS is believed to not implement bindless texture.
-				#else
-					foundOglp = true;
+					else
+					{
+						foundAdrenalin = true;
+					}
 				#endif
-			}
 
-			if ( foundOglp ) {
-				logger.Warn( "...found buggy AMD OGLP driver, ARB_bindless_texture disabled" );
+				if ( foundOglp && workaround_glDriver_amd_oglp_disableBindlessTexture.Get() )
+				{
+					logger.Warn( "Found buggy AMD OGLP driver, disabling ARB_bindless_texture." );
+					bindlessTextureEnabled = false;
+				}
+
+				if ( foundAdrenalin && workaround_glDriver_amd_adrenalin_disableBindlessTexture.Get() )
+				{
+					logger.Warn( "Found buggy AMD Adrenalin driver, disabling ARB_bindless_texture." );
+					bindlessTextureEnabled = false;
+				}
 			}
 		}
 
 		// not required by any OpenGL version
-		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, r_arb_bindless_texture.Get() && !foundMesa241 && !foundOglp );
+		glConfig2.bindlessTexturesAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_bindless_texture, bindlessTextureEnabled );
 	}
 
 	// made required in OpenGL 4.6
@@ -2492,6 +2529,7 @@ bool GLimp_Init()
 	r_centerWindow = Cvar_Get( "r_centerWindow", "0", 0 );
 	r_displayIndex = Cvar_Get( "r_displayIndex", "0", 0 );
 
+	Cvar::Latch( workaround_glDriver_amd_adrenalin_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_amd_oglp_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_disableRgba16Blend );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
@@ -2672,13 +2710,10 @@ bool GLimp_Init()
 		}
 	}
 
-	if ( Q_stristr( glConfig.renderer_string, "amd " ) ||
-	     Q_stristr( glConfig.renderer_string, "ati " ) )
+	if ( glConfig2.hardwareVendor == glHardwareVendor_t::ATI
+		&& glConfig.driverType != glDriverType_t::GLDRV_OPENGL3 )
 	{
-		if ( glConfig.driverType != glDriverType_t::GLDRV_OPENGL3 )
-		{
-			glConfig.hardwareType = glHardwareType_t::GLHW_R300;
-		}
+		glConfig.hardwareType = glHardwareType_t::GLHW_R300;
 	}
 
 	reportDriverType( false );

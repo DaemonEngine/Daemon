@@ -126,7 +126,6 @@ bool RE_LoadDynamicShader( const char*, const char* )
 }
 void RE_Finish() { }
 void RE_TakeVideoFrame( int, int, byte*, byte*, bool ) { }
-void RE_AddRefLightToScene( const refLight_t* ) { }
 int RE_RegisterAnimation( const char* )
 {
 	return 1;
@@ -259,7 +258,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.Finish = RE_Finish;
 
     re.TakeVideoFrame = RE_TakeVideoFrame;
-    re.AddRefLightToScene = RE_AddRefLightToScene;
 
     // RB: alternative skeletal animation system
     re.RegisterAnimation = RE_RegisterAnimation;
