@@ -5500,8 +5500,13 @@ static void SetStagesRenderers()
 				};
 				break;
 			default:
-				Log::Warn( "Missing renderer for stage type %d", Util::ordinal(stage->type) );
-				ASSERT_UNREACHABLE();
+				Log::Warn( "Missing renderer for stage type %d in shader %s, stage %d",
+					Util::ordinal(stage->type), shader.name, s );
+				stageRendererOptions = {
+					&Render_NOP,
+					&UpdateSurfaceDataNOP, &BindShaderNOP, &ProcessMaterialNOP,
+					false, false,
+				};
 				break;
 		}
 
