@@ -40,7 +40,7 @@ uniform mat4		u_ModelViewProjectionMatrix;
 
 #if defined(USE_DEPTH_FADE)
 uniform float           u_DepthScale;
-OUT(smooth) vec2	var_FadeDepth;
+OUT(smooth) float var_FadeDepth;
 #endif
 
 OUT(smooth) vec2	var_TexCoords;
@@ -96,7 +96,7 @@ void	main()
 #if defined(USE_DEPTH_FADE)
 	// compute z of end of fading effect
 	vec4 fadeDepth = u_ModelViewProjectionMatrix * (position - u_DepthScale * vec4(LB.normal, 0.0));
-	var_FadeDepth = fadeDepth.zw;
+	var_FadeDepth = fadeDepth.z / fadeDepth.w;
 #endif
 
 	var_Color = color;
