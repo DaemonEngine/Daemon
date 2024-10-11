@@ -3364,7 +3364,7 @@ void RB_CameraPostFX()
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) 
 	);
 
-	if ( r_colorGrading.Get() )
+	if ( glConfig2.colorGrading )
 	{
 		gl_cameraEffectsShader->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
 	}

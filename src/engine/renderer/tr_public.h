@@ -135,6 +135,7 @@ struct glconfig2_t
 	bool depthClampAvailable;
 	bool halfFloatVertexAvailable;
 
+	bool colorGrading;
 	bool realtimeLighting;
 	bool shadowMapping;
 	shadowingMode_t shadowingMode;

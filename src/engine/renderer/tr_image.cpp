@@ -2755,7 +2755,7 @@ static void R_CreateWhiteCubeImage()
 
 static void R_CreateColorGradeImage()
 {
-	if ( !r_colorGrading.Get() )
+	if ( !glConfig2.colorGrading )
 	{
 		return;
 	}
