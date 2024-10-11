@@ -307,8 +307,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 		if ( glConfig.vidWidth == 0 )
 		{
-			GLint temp;
-
 			if ( !GLimp_Init() )
 			{
 				return false;
@@ -326,19 +324,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 			strcpy( renderer_buffer, glConfig.renderer_string );
 			Q_strlwr( renderer_buffer );
-
-			// OpenGL driver constants
-			glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &temp );
-			glConfig2.maxTextureUnits = temp;
-
-			glGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
-			glConfig.maxTextureSize = temp;
-
-			// stubbed or broken drivers may have reported 0...
-			if ( glConfig.maxTextureSize <= 0 )
-			{
-				glConfig.maxTextureSize = 0;
-			}
 
 			// handle any OpenGL/GLSL brokenness here...
 			// nothing at present
@@ -917,7 +902,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Notice("GL_RENDERER: %s", glConfig.renderer_string );
 		Log::Notice("GL_VERSION: %s", glConfig.version_string );
 		Log::Debug("GL_EXTENSIONS: %s", glConfig2.glExtensionsString );
+
 		Log::Notice("GL_MAX_TEXTURE_SIZE: %d", glConfig.maxTextureSize );
+		Log::Notice("GL_MAX_3D_TEXTURE_SIZE: %d", glConfig2.max3DTextureSize );
+		Log::Notice("GL_MAX_CUBE_MAP_TEXTURE_SIZE: %d", glConfig2.maxCubeMapTextureSize );
+		Log::Notice("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: %d", glConfig2.maxTextureUnits );
 
 		Log::Notice("GL_SHADING_LANGUAGE_VERSION: %s", glConfig2.shadingLanguageVersionString );
 

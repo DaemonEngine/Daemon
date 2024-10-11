@@ -2047,8 +2047,46 @@ static void GLimp_InitExtensions()
 
 	logger.Notice("...using shading language version %i", glConfig2.shadingLanguageVersion );
 
-	// Texture formats and compression
+
+	// OpenGL driver constants.
+
+	glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &glConfig2.maxTextureUnits );
+	glGetIntegerv( GL_MAX_TEXTURE_SIZE, &glConfig.maxTextureSize );
+	glGetIntegerv( GL_MAX_3D_TEXTURE_SIZE, &glConfig2.max3DTextureSize );
 	glGetIntegerv( GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB, &glConfig2.maxCubeMapTextureSize );
+
+	// Stubbed or broken drivers may report garbage.
+
+	if ( glConfig2.maxTextureUnits < 0 )
+	{
+		Log::Warn( "Bad GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS value: %d", glConfig2.maxTextureUnits );
+		glConfig2.maxTextureUnits = 0;
+	}
+
+	if ( glConfig.maxTextureSize < 0 )
+	{
+		Log::Warn( "Bad GL_MAX_TEXTURE_SIZE value: %d", glConfig.maxTextureSize );
+		glConfig.maxTextureSize = 0;
+	}
+
+	if ( glConfig2.max3DTextureSize < 0 )
+	{
+		Log::Warn( "Bad GL_MAX_3D_TEXTURE_SIZE value: %d", glConfig2.max3DTextureSize );
+		glConfig2.max3DTextureSize = 0;
+	}
+
+	if ( glConfig2.maxCubeMapTextureSize < 0 )
+	{
+		Log::Warn( "Bad GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB value: %d", glConfig2.maxCubeMapTextureSize );
+		glConfig2.maxCubeMapTextureSize = 0;
+	}
+
+	logger.Notice( "...using up to %d texture size.", glConfig.maxTextureSize );
+	logger.Notice( "...using up to %d 3D texture size.", glConfig2.max3DTextureSize );
+	logger.Notice( "...using up to %d cube map texture size.", glConfig2.maxCubeMapTextureSize );
+	logger.Notice( "...using up to %d texture units.", glConfig2.maxTextureUnits );
+
+	// Texture formats and compression.
 
 	// made required in OpenGL 3.0
 	glConfig2.textureHalfFloatAvailable =  LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_half_float_pixel, r_arb_half_float_pixel.Get() );

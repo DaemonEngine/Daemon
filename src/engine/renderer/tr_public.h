@@ -70,9 +70,9 @@ struct glconfig2_t
 	std::string glEnabledExtensionsString;
 	std::string glMissingExtensionsString;
 
+	int max3DTextureSize;
+	int maxCubeMapTextureSize;
 	int maxTextureUnits;
-
-	int      maxCubeMapTextureSize;
 
 	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
 	int      shadingLanguageVersion;
