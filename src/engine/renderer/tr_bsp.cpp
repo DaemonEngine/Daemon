@@ -3969,6 +3969,20 @@ R_LoadLightGrid
 */
 void R_LoadLightGrid( lump_t *l )
 {
+	if ( glConfig2.max3DTextureSize == 0 )
+	{
+		Log::Warn( "Grid lighting disabled because of missing 3D texture support." );
+
+		if ( glConfig2.deluxeMapping )
+		{
+			Log::Warn( "Grid deluxe mapping disabled because of missing 3D texture support." );
+		}
+
+		tr.lightGrid1Image = nullptr;
+		tr.lightGrid2Image = nullptr;
+		return;
+	}
+
 	int            i, j, k;
 	vec3_t         maxs;
 	world_t        *w;
@@ -5052,15 +5066,13 @@ void RE_LoadWorldMap( const char *name )
 	//R_BuildCubeMaps();
 
 	tr.worldLight = tr.lightMode;
+	tr.modelLight = lightMode_t::FULLBRIGHT;
 	tr.modelDeluxe = deluxeMode_t::NONE;
 	tr.mapLightFactor = 1.0f;
 	tr.mapInverseLightFactor = 1.0f;
 
-	if ( tr.worldLight == lightMode_t::FULLBRIGHT )
-	{
-		tr.modelLight = lightMode_t::FULLBRIGHT;
-	}
-	else
+	// Use fullbright lighting for everything if the world is fullbright.
+	if ( tr.worldLight != lightMode_t::FULLBRIGHT )
 	{
 		if ( tr.worldLight == lightMode_t::MAP )
 		{
@@ -5074,6 +5086,14 @@ void RE_LoadWorldMap( const char *name )
 				to match the color of the nearby lightmaps. We better not want to use
 				the grid light as a fallback as it would be close but not close enough. */
 
+				tr.worldLight = lightMode_t::VERTEX;
+			}
+		}
+		else if ( tr.worldLight == lightMode_t::GRID )
+		{
+			if ( !tr.lightGrid1Image )
+			{
+				// Use vertex light on world surface if light color grid is missing.
 				tr.worldLight = lightMode_t::VERTEX;
 			}
 		}
@@ -5102,19 +5122,10 @@ void RE_LoadWorldMap( const char *name )
 		algorithm for emulating the deluxe map from light direction grid.
 		See https://github.com/DaemonEngine/Daemon/issues/32 */
 
-		// Game model surfaces use grid lighting, they don't have vertex light colors.
-		tr.modelLight = lightMode_t::GRID;
-
-		if ( !tr.lightGrid1Image )
+		if ( tr.lightGrid1Image )
 		{
-			// Use fullbright light on game models if light color grid is missing.
-			tr.modelLight = lightMode_t::FULLBRIGHT;
-
-			if ( tr.worldLight == lightMode_t::GRID )
-			{
-				// Use vertex light on world surface if light color grid is missing.
-				tr.worldLight = lightMode_t::VERTEX;
-			}
+			// Game model surfaces use grid lighting, they don't have vertex light colors.
+			tr.modelLight = lightMode_t::GRID;
 		}
 
 		if ( glConfig2.deluxeMapping )
