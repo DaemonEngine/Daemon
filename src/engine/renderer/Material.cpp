@@ -307,7 +307,7 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 
 		// bind u_LightTiles
 		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
-			gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
+			gl_lightMappingShaderMaterial->SetUniform_LightTilesIntBindless(
 				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
 			);
 		}

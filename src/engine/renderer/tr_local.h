@@ -2650,6 +2650,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		FBO_t           *fbos[ MAX_FBOS ];
 
 		GLuint          dlightUBO;
+		image_t         *dlightImage; // if the UBO is not available
 
 		std::vector<VBO_t *> vbos;
 		std::vector<IBO_t *> ibos;

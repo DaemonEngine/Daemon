@@ -193,10 +193,10 @@ void main()
 	// Blend dynamic lights.
 	#if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
 		#if defined(USE_REFLECTIVE_SPECULAR)
-			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTiles,
+			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTilesInt,
 								 u_EnvironmentMap0, u_EnvironmentMap1);
 		#else // !USE_REFLECTIVE_SPECULAR
-			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTiles);
+			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTilesInt);
 		#endif // !USE_REFLECTIVE_SPECULAR
 	#endif
 

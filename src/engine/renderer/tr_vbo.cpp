@@ -980,6 +980,11 @@ static void R_InitLightUBO()
 		glBindBuffer( GL_UNIFORM_BUFFER, tr.dlightUBO );
 		glBufferData( GL_UNIFORM_BUFFER, MAX_REF_LIGHTS * sizeof( shaderLight_t ), nullptr, GL_DYNAMIC_DRAW );
 		glBindBuffer( GL_UNIFORM_BUFFER, 0 );
+	} else {
+		glGenBuffers( 1, &tr.dlightUBO );
+		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, tr.dlightUBO );
+		glBufferData( GL_PIXEL_UNPACK_BUFFER, MAX_REF_LIGHTS * sizeof( shaderLight_t ), nullptr, GL_DYNAMIC_DRAW );
+		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
 	}
 }
 
@@ -1113,7 +1118,7 @@ void R_ShutdownVBOs()
 	Com_Free_Aligned( tess.vertsBuffer );
 	Com_Free_Aligned( tess.indexesBuffer );
 
-	if( glConfig2.realtimeLighting ) {
+	if( glConfig2.uniformBufferObjectAvailable ) {
 		glDeleteBuffers( 1, &tr.dlightUBO );
 		tr.dlightUBO = 0;
 	}

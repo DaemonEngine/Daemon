@@ -2425,6 +2425,22 @@ class u_CloudMap :
 	}
 };
 
+class u_LightsTexture :
+	GLUniformSampler2D {
+	public:
+	u_LightsTexture( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_LightsTexture" ) {
+	}
+
+	void SetUniform_LightsTextureBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_LightsTexture() {
+		return this->GetLocation();
+	}
+};
+
 class u_LightTiles :
 	GLUniformSampler3D {
 	public:
@@ -2437,6 +2453,22 @@ class u_LightTiles :
 	}
 
 	GLint GetUniformLocation_LightTiles() {
+		return this->GetLocation();
+	}
+};
+
+class u_LightTilesInt :
+	GLUniformUSampler3D {
+	public:
+	u_LightTilesInt( GLShader* shader ) :
+		GLUniformUSampler3D( shader, "u_LightTilesInt" ) {
+	}
+
+	void SetUniform_LightTilesIntBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_LightTilesInt() {
 		return this->GetLocation();
 	}
 };
@@ -3991,6 +4023,8 @@ class GLShader_lightMapping :
 	public u_LightGrid1,
 	public u_LightGrid2,
 	public u_LightTiles,
+	public u_LightTilesInt,
+	public u_LightsTexture,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
@@ -4040,7 +4074,7 @@ class GLShader_lightMappingMaterial :
 	public u_EnvironmentMap1,
 	public u_LightGrid1,
 	public u_LightGrid2,
-	public u_LightTiles,
+	public u_LightTilesInt,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_ColorModulate,
@@ -4595,7 +4629,7 @@ class GLShader_liquidMaterial :
 	public u_NormalScale,
 	public u_FogDensity,
 	public u_FogColor,
-	public u_LightTiles,
+	public u_LightTilesInt,
 	public u_SpecularExponent,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
@@ -4655,6 +4689,7 @@ class GLShader_lighttile :
 	public GLShader,
 	public u_DepthMap,
 	public u_Lights,
+	public u_LightsTexture,
 	public u_numLights,
 	public u_lightLayer,
 	public u_ModelMatrix,

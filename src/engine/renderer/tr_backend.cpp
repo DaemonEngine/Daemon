@@ -2905,7 +2905,13 @@ void RB_RenderPostDepthLightTile()
 	gl_lighttileShader->SetUniform_numLights( backEnd.refdef.numLights );
 	gl_lighttileShader->SetUniform_zFar( projToViewParams );
 
-	gl_lighttileShader->SetUniformBlock_Lights( tr.dlightUBO );
+	if( glConfig2.uniformBufferObjectAvailable ) {
+		gl_lighttileShader->SetUniformBlock_Lights( tr.dlightUBO );
+	} else {
+		gl_lighttileShader->SetUniform_LightsTextureBindless(
+			GL_BindToTMU( 1, tr.dlightImage ) 
+		);
+	}
 
 	gl_lighttileShader->SetUniform_DepthMapBindless(
 		GL_BindToTMU( 1, tr.depthtile2RenderImage ) 
@@ -5364,6 +5370,12 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 		}
 
 		glUnmapBuffer( bufferTarget );
+		if( !glConfig2.uniformBufferObjectAvailable ) {
+			gl_lighttileShader->SetUniform_LightsTextureBindless(
+				GL_BindToTMU( 1, tr.dlightImage ) 
+			);
+			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, tr.dlightImage->width, tr.dlightImage->height, GL_RGBA, GL_FLOAT, nullptr );
+		}
 		glBindBuffer( bufferTarget, 0 );
 	}
 
