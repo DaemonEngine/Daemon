@@ -53,6 +53,12 @@ static void EnableAvailableFeatures()
 				glConfig2.realtimeLighting = false;
 			}
 
+			if ( glConfig2.max3DTextureSize == 0 )
+			{
+				Log::Warn( "Tiled dynamic light renderer disabled because of missing 3D texture support." );
+				glConfig2.realtimeLighting = false;
+			}
+
 			// See below about ALU instructions on ATI R300 and Intel GMA 3.
 			if ( !glConfig2.glCoreProfile && glConfig2.maxAluInstructions < 128 )
 			{
