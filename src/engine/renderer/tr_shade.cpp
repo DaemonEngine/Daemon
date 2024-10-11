@@ -62,6 +62,17 @@ static void EnableAvailableFeatures()
 		}
 	}
 
+	glConfig2.colorGrading = r_colorGrading.Get();
+
+	if ( glConfig2.colorGrading )
+	{
+		if ( glConfig2.max3DTextureSize == 0 )
+		{
+			Log::Warn( "Color grading disabled because of missing 3D texture support." );
+			glConfig2.colorGrading = false;
+		}
+	}
+
 	glConfig2.shadowingMode = shadowingMode_t( r_shadows.Get() );
 	glConfig2.shadowMapping = glConfig2.shadowingMode >= shadowingMode_t::SHADOWING_ESM16;
 

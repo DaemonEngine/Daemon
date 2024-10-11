@@ -792,7 +792,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_glowMapping", 1 );
 	}
 
-	if ( r_colorGrading.Get() )
+	if ( glConfig2.colorGrading )
 	{
 		AddDefine( str, "r_colorGrading", 1 );
 	}
