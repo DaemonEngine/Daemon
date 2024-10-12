@@ -667,7 +667,7 @@ static void R_LoadLightmaps( lump_t *l, const char *bspName )
 					lightMapBuffer[( index * 4 ) + 2 ] = buf_p[( ( x + ( y * internalLightMapSize ) ) * 3 ) + 2 ];
 					lightMapBuffer[( index * 4 ) + 3 ] = 255;
 
-					if ( tr.forceLegacyOverBrightClamping )
+					if ( tr.legacyOverBrightClamping )
 					{
 						R_ColorShiftLightingBytes( &lightMapBuffer[( index * 4 ) + 0 ] );
 					}
@@ -1034,7 +1034,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 		cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
 
-		if ( tr.forceLegacyOverBrightClamping )
+		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 		}
@@ -1244,7 +1244,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 
 		points[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		if ( tr.forceLegacyOverBrightClamping )
+		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( points[ i ].lightColor.ToArray() );
 		}
@@ -1371,7 +1371,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 
 			cv->verts[ i ].lightColor = Color::Adapt( verts[ i ].color );
 
-		if ( tr.forceLegacyOverBrightClamping )
+		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( cv->verts[ i ].lightColor.ToArray() );
 		}
@@ -4152,7 +4152,7 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		if ( tr.forceLegacyOverBrightClamping )
+		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( tmpAmbient );
 			R_ColorShiftLightingBytes( tmpDirected );
@@ -4393,16 +4393,32 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 			continue;
 		}
 
-		// check for mapOverBrightBits override
-		else if ( !Q_stricmp( keyname, "mapOverBrightBits" ) )
+		if ( !r_overbrightIgnoreMapSettings.Get() )
 		{
-			tr.mapOverBrightBits = Math::Clamp( atof( value ), 0.0, 3.0 );
-		}
+			// check for mapOverBrightBits override
+			if ( !Q_stricmp( keyname, "mapOverBrightBits" ) )
+			{
+				tr.mapOverBrightBits = Math::Clamp( atof( value ), 0.0, 3.0 );
+				continue;
+			}
 
-		// Force forceLegacyOverBrightClamping even if r_forceLegacyOverBrightClamping is false.
-		else if ( !Q_stricmp( keyname, "forceLegacyOverBrightClamping" ) && !Q_stricmp( value, "1" ) )
-		{
-			tr.forceLegacyOverBrightClamping = true;
+			if ( !Q_stricmp( keyname, "overbrightClamping" ) )
+			{
+				if ( !Q_stricmp( value, "0" ) )
+				{
+					tr.legacyOverBrightClamping = false;
+				}
+				else if ( !Q_stricmp( value, "1" ) )
+				{
+					tr.legacyOverBrightClamping = true;
+				}
+				else
+				{
+					Log::Warn( "invalid value for worldspawn key overbrightClamping" );
+				}
+
+				continue;
+			}
 		}
 
 		// check for deluxe mapping provided by NetRadiant's q3map2
@@ -5208,7 +5224,7 @@ void RE_LoadWorldMap( const char *name )
 
 	/* Used in GLSL code for the GLSL implementation
 	without color clamping and normalization. */
-	if ( !tr.forceLegacyOverBrightClamping )
+	if ( !tr.legacyOverBrightClamping )
 	{
 		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
 		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;
