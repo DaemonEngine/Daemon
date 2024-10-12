@@ -2606,14 +2606,14 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
 		viewParms_t    viewParms;
 
-		// r_mapOverbrightBits->integer, but can be overridden by mapper using the worldspawn
+		// r_overbrightDefaultExponent, but can be overridden by mapper using the worldspawn
 		int mapOverBrightBits;
 		// pow(2, mapOverbrightBits)
 		float mapLightFactor;
 		// 1 / mapLightFactor
 		float mapInverseLightFactor;
 		// May have to be true on some legacy maps: clamp and normalize multiplied colors.
-		bool forceLegacyOverBrightClamping;
+		bool legacyOverBrightClamping;
 
 		orientationr_t orientation; // for current entity
 
@@ -2737,8 +2737,9 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern Cvar::Cvar<bool> r_realtimeLighting;
 	extern cvar_t *r_realtimeLightingCastShadows;
 	extern cvar_t *r_precomputedLighting;
-	extern Cvar::Cvar<int> r_mapOverBrightBits;
-	extern Cvar::Cvar<bool> r_forceLegacyOverBrightClamping;
+	extern Cvar::Cvar<int> r_overbrightDefaultExponent;
+	extern Cvar::Cvar<bool> r_overbrightDefaultClamp;
+	extern Cvar::Cvar<bool> r_overbrightIgnoreMapSettings;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern Cvar::Cvar<bool> r_colorGrading;
 	extern Cvar::Cvar<bool> r_materialSystem;
