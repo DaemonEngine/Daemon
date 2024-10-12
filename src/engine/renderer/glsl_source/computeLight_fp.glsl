@@ -214,7 +214,7 @@ const int lightsPerLayer = 16;
 uniform usampler3D u_LightTiles;
 
 const uint numLayers = MAX_REF_LIGHTS / 256;
-const vec3 tileScale = vec3( r_tileStep, 1.0 / numLayers );
+const vec3 tileScale = vec3( r_tileStep, 1.0 / float( numLayers ) );
 
 idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTiles ) {
 	return texture3D( u_LightTiles, coords );
