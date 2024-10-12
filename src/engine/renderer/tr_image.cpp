@@ -2490,21 +2490,6 @@ static void R_CreateDepthRenderImage()
 		return;
 	}
 
-	if( !glConfig2.uniformBufferObjectAvailable )
-	{
-		int w = 64;
-		int h = 3 * MAX_REF_LIGHTS / w;
-
-		imageParams_t imageParams = {};
-		imageParams.filterType = filterType_t::FT_NEAREST;
-		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
-
-		imageParams.bits = IF_NOPICMIP;
-		imageParams.bits |= r_highPrecisionRendering.Get() ? IF_RGBA32F : IF_RGBA16F;
-
-		tr.dlightImage = R_CreateImage("_dlightImage", nullptr, w, h, 4, imageParams );
-	}
-
 	if ( r_realtimeLightingRenderer.Get() != Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 	{
 		/* Do not create lightTile images when the tiled renderer is not used.
@@ -2544,12 +2529,7 @@ static void R_CreateDepthRenderImage()
 
 		tr.depthtile2RenderImage = R_CreateImage( "_depthtile2Render", nullptr, w, h, 1, imageParams );
 
-		imageParams.bits = IF_NOPICMIP;
-
-		if ( glConfig2.textureIntegerAvailable && r_highPrecisionRendering.Get() )
-		{
-			imageParams.bits |= IF_RGBA32UI;
-		}
+		imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
 		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
 	}
