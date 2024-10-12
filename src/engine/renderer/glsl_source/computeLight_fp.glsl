@@ -239,8 +239,8 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 	// NOT the amount of lights that can actually be put into each layer of the lighttile texture
 	uint globalLightsPerLayer = ( u_numLights + numLayers - 1 ) / numLayers;
 
-	uint lightCount = 0;
 	for( uint layer = 0; layer < numLayers; layer++ ) {
+		uint lightCount = 0;
 		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTiles );
 
 		uint lightOffset = layer * globalLightsPerLayer;
@@ -254,7 +254,7 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 
 			/* Light IDs are stored relative to the layer
 			Subtract 1 because 0 means there's no light */
-			idx += ( layer * numLayers ) + layer - 1;
+			idx = ( idx - 1 ) * numLayers + layer;
 	  
 			#if defined(USE_REFLECTIVE_SPECULAR)
 				computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color, u_EnvironmentMap0, u_EnvironmentMap1 );
