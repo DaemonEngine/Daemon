@@ -252,22 +252,6 @@ static void CopyVertexAttribute(
 			out += outStride;
 		}
 	}
-	else if ( spec.componentInputType == GL_HALF_FLOAT && attrib.componentType == GL_FLOAT )
-	{
-		for ( uint32_t v = count; ; )
-		{
-			const f16_t *half = reinterpret_cast<const f16_t *>( in );
-			float *single = reinterpret_cast<float *>( out );
-			for ( uint32_t n = spec.numComponents; n--; )
-			{
-				*single++ = halfToFloat( *half++ );
-			}
-
-			if ( --v == 0 ) break;
-			in += inStride;
-			out += outStride;
-		}
-	}
 	else if ( spec.componentInputType == GL_FLOAT && attrib.componentType == GL_SHORT
 	          && spec.attrOptions & ATTR_OPTION_NORMALIZE )
 	{
