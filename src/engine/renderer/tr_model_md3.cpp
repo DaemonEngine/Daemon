@@ -257,7 +257,7 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 			vec3_t *scaledPosition = (vec3_t *)ri.Hunk_AllocateTempMemory( sizeof( vec3_t ) * mdvModel->numFrames * surf->numVerts );
 			i16vec4_t *qtangents = (i16vec4_t *)ri.Hunk_AllocateTempMemory( sizeof( i16vec4_t ) * mdvModel->numFrames * surf->numVerts );
 
-			for ( int r = 0; r < surf->numVerts; r++ )
+			for ( int r = surf->numVerts * mdvModel->numFrames; r--; )
 			{
 				VectorScale( surf->verts[ r ].xyz, 1.0f / 512.0f, scaledPosition[ r ] );
 			}
