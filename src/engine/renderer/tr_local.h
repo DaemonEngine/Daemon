@@ -296,6 +296,12 @@ enum class deluxeMode_t { NONE, GRID, MAP };
 
 enum class realtimeLightingRenderer_t { LEGACY, TILED };
 
+enum class showCubeProbesMode {
+	DISABLED,
+	GRID,
+	UNIQUE
+};
+
 	enum class renderSpeeds_t
 	{
 	  RSPEEDS_GENERAL = 1,
@@ -2990,7 +2996,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_showNormalMaps;
 	extern cvar_t *r_showMaterialMaps;
 	extern Cvar::Cvar<bool> r_showReflectionMaps;
-	extern Cvar::Cvar<bool> r_showCubeProbes;
+	extern Cvar::Range<Cvar::Cvar<int>> r_showCubeProbes;
 	extern Cvar::Cvar<int> r_showCubeProbeFace;
 	extern cvar_t *r_showBspNodes;
 	extern Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials;
