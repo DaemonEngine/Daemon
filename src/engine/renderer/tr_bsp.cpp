@@ -4415,7 +4415,7 @@ void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, v
 
 	ProbeTrilerp probes[8];
 
-	uint32_t gridPosition[3]{ pos[0], pos[1], pos[2] };
+	uint32_t gridPosition[3] { ( uint32_t ) pos[0], ( uint32_t ) pos[1], ( uint32_t ) pos[2] };
 	static uint32_t offsets[8][3] = { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 1, 1 }, { 1, 0, 0 }, { 1, 0, 1 }, { 1, 1, 0 }, { 1, 1, 1 } };
 	for ( int i = 0; i < 8; i++ ) {
 		probes[i].probe = tr.cubeProbeGrid( gridPosition[0] + offsets[i][0], gridPosition[1] + offsets[i][1], gridPosition[2] + offsets[i][2] );
@@ -4430,11 +4430,11 @@ void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, v
 
 	float distanceSum = 0;
 	for ( uint8_t i = 0; i < samples; i++ ) {
-		distanceSum += Distance( position, tr.cubeProbes[probes[i].probe]->origin );
+		distanceSum += Distance( position, tr.cubeProbes[probes[i].probe].origin );
 	}
 	
 	for ( uint8_t i = 0; i < samples; i++ ) {
-		cubeProbes[i] = tr.cubeProbes[probes[i].probe];
+		cubeProbes[i] = &tr.cubeProbes[probes[i].probe];
 		trilerp[i] = Distance( position, cubeProbes[i]->origin ) / distanceSum;
 
 		if ( gridPoints != nullptr ) {
@@ -4550,12 +4550,12 @@ void R_BuildCubeMaps()
 	// calculate origins for our probes
 	tr.cubeProbes.clear();
 
-	cubemapProbe_t* cubeProbe = ( cubemapProbe_t* ) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_low );
-	VectorClear( cubeProbe->origin );
+	cubemapProbe_t defaultCubeProbe {};
+	VectorClear( defaultCubeProbe.origin );
 
-	cubeProbe->cubemap = tr.whiteCubeImage;
+	defaultCubeProbe.cubemap = tr.whiteCubeImage;
 
-	tr.cubeProbes.push_back( cubeProbe );
+	tr.cubeProbes.push_back( defaultCubeProbe );
 
 	for ( int i = 0; i < tr.world->numnodes; i++ )
 	{
@@ -4575,12 +4575,11 @@ void R_BuildCubeMaps()
 		VectorAdd( node->maxs, node->mins, origin );
 		VectorScale( origin, 0.5, origin );
 
-		cubemapProbe_t* cubeProbe = (cubemapProbe_t*) ri.Hunk_Alloc( sizeof( cubemapProbe_t ), ha_pref::h_high );
+		cubemapProbe_t cubeProbe {};
+		VectorCopy( origin, cubeProbe.origin );
 		tr.cubeProbes.push_back( cubeProbe );
 
 		cubeProbeMap[node] = tr.cubeProbes.size() - 1;
-
-		VectorCopy( origin, cubeProbe->origin );
 	}
 
 	Log::Notice( "Using cube probe grid size: %u %u %u", tr.cubeProbeGrid.width, tr.cubeProbeGrid.height, tr.cubeProbeGrid.depth );
@@ -4590,7 +4589,7 @@ void R_BuildCubeMaps()
 		uint32_t y;
 		uint32_t z;
 		tr.cubeProbeGrid.IteratorToCoords( it, &x, &y, &z );
-		vec3_t position{ x * tr.cubeProbeSpacing, y * tr.cubeProbeSpacing, z * tr.cubeProbeSpacing };
+		vec3_t position{ ( float ) x * tr.cubeProbeSpacing, ( float ) y * tr.cubeProbeSpacing, ( float ) z * tr.cubeProbeSpacing };
 
 		// Match the map's start coords
 		VectorAdd( position, tr.world->nodes[0].mins, position );
@@ -4610,7 +4609,7 @@ void R_BuildCubeMaps()
 
 	for ( size_t i = 0; i < tr.cubeProbes.size(); i++ )
 	{
-		cubemapProbe_t *cubeProbe = tr.cubeProbes[ i ];
+		cubemapProbe_t* cubeProbe = &tr.cubeProbes[i];
 
 		VectorCopy( cubeProbe->origin, rf.vieworg );
 

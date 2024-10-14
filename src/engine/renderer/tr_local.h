@@ -2768,7 +2768,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		std::vector<IBO_t *> ibos;
 
 		byte *cubeTemp[ 6 ]; // 6 textures for cubemap storage
-		std::vector<cubemapProbe_t *> cubeProbes; // all cubemaps in a linear growing list
+		std::vector<cubemapProbe_t> cubeProbes; // all cubemaps in a linear growing list
 		Grid<uint32_t> cubeProbeGrid{ true };
 		uint32_t cubeProbeSpacing;
 
