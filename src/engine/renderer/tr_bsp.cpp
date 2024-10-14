@@ -4397,6 +4397,128 @@ bool R_GetEntityToken( char *buffer, int size )
 	}
 }
 
+static std::string headerString;
+static const std::string gridPath = "reflectionCubemaps";
+static const std::string gridExtension = ".cubemapGrid";
+static bool R_LoadCubeMaps() {
+	std::error_code err;
+
+	const std::string dirPath = Str::Format( "%s/%s/", gridPath, tr.world->baseName );
+	std::string cubemapGridPath = Str::Format( "%s%s%s", dirPath, tr.world->baseName, gridExtension );
+	FS::File cubemapGridFile = FS::HomePath::OpenRead( cubemapGridPath, err );
+	if ( err ) {
+		if ( err != std::error_code( Util::ordinal( FS::filesystem_error::no_such_file ), FS::filesystem_category() ) ) {
+			Log::Notice( "No saved cubemap grid found for %s", cubemapGridPath );
+			return false;
+		}
+
+		Log::Warn( "Failed to open cubemap probe grid file %s: %s", cubemapGridPath, err.message() );
+		return false;
+	}
+
+	std::istringstream gridStream( cubemapGridFile.ReadAll() );
+	std::string line;
+
+	std::getline( gridStream, line, ' ' );
+	const uint32_t cubemapVersion = std::stoi( line );
+	std::getline( gridStream, line, '\n' );
+
+	if ( cubemapVersion != REFLECTION_CUBEMAP_VERSION || line != headerString ) {
+		Log::Notice( "Saved cube probe version or BSP header doesn't match the current one "
+			"(current: version: %u, header: %s; saved: version: %u, header: %s)", REFLECTION_CUBEMAP_VERSION, headerString, cubemapVersion, line );
+		return false;
+	}
+
+	std::getline( gridStream, line, ' ' );
+	const int cubemapSize = std::stoi( line );
+	std::getline( gridStream, line, '\n' );
+	const uint32_t cubemapSpacing = std::stoi( line );
+
+	if ( cubemapSize != r_cubeProbeSize.Get() || cubemapSpacing != tr.cubeProbeSpacing ) {
+		Log::Notice( "Saved cube probe parameters don't match current ones (current: size: %u, spacing: %u; saved: size: %u, spacing: %u)",
+			r_cubeProbeSize.Get(), tr.cubeProbeSpacing, cubemapSize, cubemapSpacing );
+		return false;
+	}
+
+	uint32_t gridSize[3];
+	for ( int i = 0; i < 3; i++ ) {
+		std::getline( gridStream, line, ' ' );
+		gridSize[i] = std::stoi( line );
+	}
+	tr.cubeProbeGrid.SetSize( gridSize[0], gridSize[1], gridSize[2] );
+
+	std::getline( gridStream, line, '\n' );
+	const uint32_t count = std::stoi( line );
+
+	for ( uint32_t i = 0; i < count; i++ ) {
+		cubemapProbe_t cubeProbe;
+		for ( int j = 0; j < 3; j++ ) {
+			std::getline( gridStream, line, ( j < 2 ? ' ' : '\n' ) );
+			cubeProbe.origin[j] = std::stof( line );
+		}
+
+		imageParams_t imageParams = {};
+		imageParams.bits = IF_HOMEPATH;
+		imageParams.filterType = filterType_t::FT_DEFAULT;
+		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
+
+		image_t* cubemap = R_FindCubeImage( Str::Format( "%s%u", dirPath, i ).c_str(), imageParams );
+		if ( !cubemap ) {
+			Log::Warn( "Failed to load cubemap %s%u", dirPath, i );
+			return false;
+		}
+		cubeProbe.cubemap = cubemap;
+
+		tr.cubeProbes.push_back( cubeProbe );
+	}
+
+	for ( uint32_t i = 0; i < tr.cubeProbeGrid.size; i++ ) {
+		std::getline( gridStream, line, '\n' );
+		line.erase( std::remove( line.begin(), line.end(), '\r' ), line.end() );
+		tr.cubeProbeGrid( i ) = std::stoi( line );
+	}
+
+	Log::Notice( "Loaded cubemap probe grid from %s", cubemapGridPath );
+
+	return true;
+}
+
+static bool R_SaveCubeMaps() {
+	const std::string dirPath = Str::Format( "%s/%s/", gridPath, tr.world->baseName );
+
+	std::error_code err;
+	std::string cubemapGridPath = Str::Format( "%s%s%s", dirPath, tr.world->baseName, gridExtension );
+	FS::File cubemapGridFile = FS::HomePath::OpenWrite( cubemapGridPath, err );
+	if ( err ) {
+		Log::Warn( "Failed to open cubemap grid file %s: %s", cubemapGridPath, err.message() );
+		return false;
+	}
+
+	cubemapGridFile.Printf( "%u %s\n", REFLECTION_CUBEMAP_VERSION, headerString );
+
+	cubemapGridFile.Printf( "%u %u\n", r_cubeProbeSize.Get(), tr.cubeProbeSpacing );
+
+	cubemapGridFile.Printf( "%u %u %u %u\n", tr.cubeProbeGrid.width, tr.cubeProbeGrid.height, tr.cubeProbeGrid.depth, tr.cubeProbes.size() - 1 );
+
+	for ( uint32_t i = 1; i < tr.cubeProbes.size(); i++ ) {
+		cubemapGridFile.Printf( "%f %f %f\n", tr.cubeProbes[i].origin[0], tr.cubeProbes[i].origin[1], tr.cubeProbes[i].origin[2] );
+			SaveImageKTX( Str::Format( "%s%u.ktx", dirPath, i - 1 ).c_str(), tr.cubeProbes[i].cubemap );
+	}
+
+	for ( uint32_t i = 0; i < tr.cubeProbeGrid.size; i++ ) {
+		cubemapGridFile.Printf( "%u\n", tr.cubeProbeGrid( i ) );
+	}
+
+	cubemapGridFile.Flush( err );
+	if ( err ) {
+		Sys::Drop( "Failed to write cubemap probe grid: %s %s", cubemapGridPath, err.message() );
+	}
+
+	Log::Notice( "Saved cubemap probe grid %s", cubemapGridPath );
+
+	return true;
+}
+
 void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec3_t trilerp, const uint8_t samples,
 	vec3_t* gridPoints ) {
 	ASSERT_GE( samples, 1 );
@@ -4415,7 +4537,7 @@ void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, v
 
 	ProbeTrilerp probes[8];
 
-	uint32_t gridPosition[3] { ( uint32_t ) pos[0], ( uint32_t ) pos[1], ( uint32_t ) pos[2] };
+	uint32_t gridPosition[3]{ ( uint32_t ) pos[0], ( uint32_t ) pos[1], ( uint32_t ) pos[2] };
 	static uint32_t offsets[8][3] = { { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 1, 1 }, { 1, 0, 0 }, { 1, 0, 1 }, { 1, 1, 0 }, { 1, 1, 1 } };
 	for ( int i = 0; i < 8; i++ ) {
 		probes[i].probe = tr.cubeProbeGrid( gridPosition[0] + offsets[i][0], gridPosition[1] + offsets[i][1], gridPosition[2] + offsets[i][2] );
@@ -4432,7 +4554,7 @@ void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, v
 	for ( uint8_t i = 0; i < samples; i++ ) {
 		distanceSum += Distance( position, tr.cubeProbes[probes[i].probe].origin );
 	}
-	
+
 	for ( uint8_t i = 0; i < samples; i++ ) {
 		cubeProbes[i] = &tr.cubeProbes[probes[i].probe];
 		trilerp[i] = Distance( position, cubeProbes[i]->origin ) / distanceSum;
@@ -4491,7 +4613,7 @@ int R_FindNearestCubeMapForGrid( const vec3_t position, bspNode_t* node ) {
 		uint32_t side = distance <= 0;
 
 		int out = R_FindNearestCubeMapForGrid( position, node->children[side] );
-		if( out == -1 ) {
+		if ( out == -1 ) {
 			return R_FindNearestCubeMapForGrid( position, node->children[side ^ 1] );
 		}
 
@@ -4503,7 +4625,7 @@ int R_FindNearestCubeMapForGrid( const vec3_t position, bspNode_t* node ) {
 	}
 
 	std::unordered_map<const bspNode_t*, uint32_t>::iterator it = cubeProbeMap.find( node );
-	if( it == cubeProbeMap.end() ) {
+	if ( it == cubeProbeMap.end() ) {
 		return -1;
 	}
 
@@ -4532,13 +4654,35 @@ void R_BuildCubeMaps()
 		return;
 	}
 
+	if ( !r_reflectionMapping.Get() ) {
+		return;
+	}
+
 	const int cubeMapSize = r_cubeProbeSize.Get();
 	if ( cubeMapSize > glConfig2.maxCubeMapTextureSize ) {
 		Log::Warn( "Cube probe size exceeds max cubemap texture size (%i/%i)", cubeMapSize, glConfig2.maxCubeMapTextureSize );
 		return;
 	}
 
+	// calculate origins for our probes
+	tr.cubeProbes.clear();
+	cubeProbeMap.clear();
+
+	cubemapProbe_t defaultCubeProbe{};
+	VectorClear( defaultCubeProbe.origin );
+
+	defaultCubeProbe.cubemap = tr.whiteCubeImage;
+
+	tr.cubeProbes.push_back( defaultCubeProbe );
+
+	if ( r_autoBuildCubeMaps.Get() == Util::ordinal( cubeProbesAutoBuildMode::CACHED ) && R_LoadCubeMaps() ) {
+		glConfig2.reflectionMapping = true;
+		return;
+	}
+
 	const int startTime = ri.Milliseconds();
+
+	// TODO: Use highest available settings here
 
 	refdef_t rf{};
 
@@ -4546,16 +4690,6 @@ void R_BuildCubeMaps()
 	{
 		tr.cubeTemp[ i ] = (byte*) Z_Malloc( ( size_t ) cubeMapSize * cubeMapSize * 4 );
 	}
-
-	// calculate origins for our probes
-	tr.cubeProbes.clear();
-
-	cubemapProbe_t defaultCubeProbe {};
-	VectorClear( defaultCubeProbe.origin );
-
-	defaultCubeProbe.cubemap = tr.whiteCubeImage;
-
-	tr.cubeProbes.push_back( defaultCubeProbe );
 
 	for ( int i = 0; i < tr.world->numnodes; i++ )
 	{
@@ -4825,6 +4959,10 @@ void R_BuildCubeMaps()
 
 	glConfig2.reflectionMapping = true;
 
+	if ( r_autoBuildCubeMaps.Get() == Util::ordinal( cubeProbesAutoBuildMode::CACHED ) ) {
+		R_SaveCubeMaps();
+	}
+
 	// assign the surfs a cubemap
 	const int endTime = ri.Milliseconds();
 	Log::Notice( "Cubemap probes pre-rendering time of %d cubes = %5.2f seconds", tr.cubeProbes.size(),
@@ -4910,6 +5048,12 @@ void RE_LoadWorldMap( const char *name )
 		( ( int * ) header ) [ j ] = LittleLong( ( ( int * ) header ) [ j ] );
 	}
 
+	if ( r_reflectionMapping.Get() ) {
+		// TODO: Take into account potential shader changes
+		headerString = Str::Format( "%i %i %i %i %i", header->lumps[LUMP_PLANES].filelen, header->lumps[LUMP_NODES].filelen,
+			header->lumps[LUMP_LEAFS].filelen, header->lumps[LUMP_BRUSHES].filelen, header->lumps[LUMP_SURFACES].filelen );
+	}
+
 	// load into heap
 
 	std::string externalEntitiesFileName = FS::Path::StripExtension( name ) + ".ent";
@@ -4958,9 +5102,6 @@ void RE_LoadWorldMap( const char *name )
 
 	// only set tr.world now that we know the entire level has loaded properly
 	tr.world = &s_worldData;
-
-	// build cubemaps after the necessary vbo stuff is done
-	//R_BuildCubeMaps();
 
 	tr.worldLight = tr.lightMode;
 	tr.modelLight = lightMode_t::FULLBRIGHT;
@@ -5049,7 +5190,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.worldLoaded = true;
 	GLSL_InitWorldShaders();
 
-	if ( r_reflectionMapping.Get() ) {
+	if ( !glConfig2.reflectionMapping && r_reflectionMapping.Get() ) {
 		tr.cubeProbeSpacing = r_cubeProbeSpacing.Get();
 
 		vec3_t worldSize;

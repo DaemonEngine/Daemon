@@ -136,7 +136,7 @@ static void EnableAvailableFeatures()
 	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
 	glConfig2.motionBlur = true;
 
-	// This will be enabled by R_BuildCubeMaps()
+	// This will be enabled later on by R_BuildCubeMaps()
 	glConfig2.reflectionMapping = false;
 
 	/* Intel GMA 3 only has 4 tex indirections, which is not enough for some shaders.
