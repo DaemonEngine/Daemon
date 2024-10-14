@@ -1219,7 +1219,7 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 
 	gl_lightMappingShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( pStage->enableNormalMapping );
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( pStage->enableSpecularMapping );
 
 	gl_lightMappingShaderMaterial->SetPhysicalShading( pStage->enablePhysicalMapping );
 
