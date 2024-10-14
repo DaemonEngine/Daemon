@@ -3994,7 +3994,7 @@ static void RB_RenderDebugUtils()
 	}
 
 	// GLSL shader isn't built when reflection mapping is disabled.
-	if ( r_showCubeProbes.Get() && tr.cubeHashTable && r_reflectionMapping->integer &&
+	if ( r_showCubeProbes.Get() && tr.cubeProbes.size() && r_reflectionMapping->integer &&
 	     !( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) ) )
 	{
 		static const vec3_t mins = { -8, -8, -8 };

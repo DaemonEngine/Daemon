@@ -3012,8 +3012,6 @@ void R_ShutdownImages()
 	tr.lightmaps.clear();
 	tr.deluxemaps.clear();
 	tr.cubeProbes.clear();
-
-	FreeVertexHashTable( tr.cubeHashTable );
 }
 
 void RE_GetTextureSize( int textureID, int *width, int *height )

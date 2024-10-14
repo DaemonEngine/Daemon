@@ -2767,9 +2767,8 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 		std::vector<VBO_t *> vbos;
 		std::vector<IBO_t *> ibos;
 
-		byte            *cubeTemp[ 6 ]; // 6 textures for cubemap storage
+		byte *cubeTemp[ 6 ]; // 6 textures for cubemap storage
 		std::vector<cubemapProbe_t *> cubeProbes; // all cubemaps in a linear growing list
-		vertexHash_t    **cubeHashTable; // hash table for faster access
 		Grid<uint32_t> cubeProbeGrid{ true };
 		uint32_t cubeProbeSpacing;
 
@@ -3977,13 +3976,10 @@ inline bool checkGLErrors()
 	void       RE_TakeVideoFrame( int width, int height, byte *captureBuffer, byte *encodeBuffer, bool motionJpeg );
 
 // cubemap reflections stuff
-	void       R_BuildCubeMaps();
-	void       R_FindTwoNearestCubeMaps( const vec3_t position, cubemapProbe_t **cubeProbeNearest, cubemapProbe_t **cubeProbeSecondNearest );
+	void R_BuildCubeMaps();
 	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples );
 	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples,
 		vec3_t* gridPoints );
-
-	void       FreeVertexHashTable( vertexHash_t **hashTable );
 
 // font stuff
 	void       R_InitFreeType();
