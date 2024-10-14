@@ -379,7 +379,7 @@ static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
 
 	const int cubeMapSize = r_cubeProbeSize.Get();
 
-	VectorCopy( tr.cubeProbes[probeID]->origin, refdef.vieworg );
+	VectorCopy( tr.cubeProbes[probeID].origin, refdef.vieworg );
 
 	refdef.fov_x = 90;
 	refdef.fov_y = 90;

@@ -4030,12 +4030,12 @@ static void RB_RenderDebugUtils()
 			uint32_t y;
 			uint32_t z;
 			tr.cubeProbeGrid.IteratorToCoords( it, &x, &y, &z );
-			vec3_t position{ x * tr.cubeProbeSpacing, y * tr.cubeProbeSpacing, z * tr.cubeProbeSpacing };
+			vec3_t position{ ( float ) x * tr.cubeProbeSpacing, ( float ) y * tr.cubeProbeSpacing, ( float ) z * tr.cubeProbeSpacing };
 
 			// Match the map's start coords
 			VectorAdd( position, tr.world->nodes[0].mins, position );
 
-			cubemapProbe_t* cubeProbe = tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
+			cubemapProbe_t* cubeProbe = &tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
 			/* Do not crash when cubemaps are being generated,
 			it's also possible to set a default texture instead. */
 			if ( cubeProbe->cubemap == nullptr ) {
@@ -4094,8 +4094,6 @@ static void RB_RenderDebugUtils()
 			vec3_t trilerp;
 			vec3_t gridPoints[2];
 			R_GetNearestCubeMaps( backEnd.viewParms.orientation.origin, probes, trilerp, 2, gridPoints );
-			const cubemapProbe_t* cubeProbeNearest = probes[0];
-			const cubemapProbe_t* cubeProbeSecondNearest = probes[1];
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
