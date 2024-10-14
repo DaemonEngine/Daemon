@@ -1019,7 +1019,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	// Not implemented yet in PBR code.
 	bool enableReflectiveSpecular =
-		pStage->enableSpecularMapping && tr.cubeHashTable != nullptr && r_reflectionMapping->integer
+		pStage->enableSpecularMapping && tr.cubeProbes.size() && r_reflectionMapping->integer
 		&& !( tr.refdef.rdflags & RDF_NOCUBEMAP );
 
 	GL_State( stateBits );

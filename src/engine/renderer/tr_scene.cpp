@@ -677,7 +677,7 @@ void RE_RenderScene( const refdef_t *fd )
 
 	tr.frontEndMsec += ri.Milliseconds() - startTime;
 
-	if ( ( r_showCubeProbeFace.Get() >= 0 ) && tr.cubeHashTable && r_reflectionMapping->integer
+	if ( ( r_showCubeProbeFace.Get() >= 0 ) && tr.cubeProbes.size() && r_reflectionMapping->integer
 		&& !( fd->rdflags & RDF_NOCUBEMAP ) ) {
 		RE_RenderCubeProbeFace( fd );
 	}
