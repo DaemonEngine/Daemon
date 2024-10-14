@@ -3994,7 +3994,7 @@ static void RB_RenderDebugUtils()
 	}
 
 	// GLSL shader isn't built when reflection mapping is disabled.
-	if ( r_showCubeProbes.Get() && tr.cubeProbes.size() && r_reflectionMapping->integer &&
+	if ( r_showCubeProbes.Get() && glConfig2.reflectionMapping &&
 	     !( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) ) )
 	{
 		static const vec3_t mins = { -8, -8, -8 };
@@ -4036,11 +4036,6 @@ static void RB_RenderDebugUtils()
 			VectorAdd( position, tr.world->nodes[0].mins, position );
 
 			cubemapProbe_t* cubeProbe = &tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
-			/* Do not crash when cubemaps are being generated,
-			it's also possible to set a default texture instead. */
-			if ( cubeProbe->cubemap == nullptr ) {
-				continue;
-			}
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 

@@ -1052,7 +1052,7 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	// TODO: Move this to a per-entity buffer
-	if ( r_reflectionMapping->integer && tr.cubeProbes.size() && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) ) {
+	if ( glConfig2.reflectionMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) ) {
 		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;
 
 		vec3_t position;
