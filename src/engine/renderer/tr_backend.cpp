@@ -4661,7 +4661,7 @@ static void RB_RenderView( bool depthPass )
 	}
 
 	if( depthPass ) {
-		if ( glConfig2.materialSystemAvailable ) {
+		if ( glConfig2.usingMaterialSystem ) {
 			materialSystem.RenderMaterials( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_DEPTH, shaderSort_t::SS_DEPTH, DRAWSURFACES_ALL );
@@ -4678,7 +4678,7 @@ static void RB_RenderView( bool depthPass )
 			tr.refdef.blurVec[2] != 0.0f )
 	{
 		// draw everything that is not the gun
-		if ( glConfig2.materialSystemAvailable ) {
+		if ( glConfig2.usingMaterialSystem ) {
 			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL_FAR );
@@ -4691,7 +4691,7 @@ static void RB_RenderView( bool depthPass )
 	else
 	{
 		// draw everything that is opaque
-		if ( glConfig2.materialSystemAvailable ) {
+		if ( glConfig2.usingMaterialSystem ) {
 			materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, backEnd.viewParms.viewID );
 		}
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
@@ -4723,7 +4723,7 @@ static void RB_RenderView( bool depthPass )
 	RB_RenderGlobalFog();
 
 	// draw everything that is translucent
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		materialSystem.RenderMaterials( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, backEnd.viewParms.viewID );
 	}
 	RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_NOFOG, shaderSort_t::SS_POST_PROCESS, DRAWSURFACES_ALL );
@@ -4765,7 +4765,7 @@ This is done so various debugging facilities will work properly
 */
 static void RB_RenderPostProcess()
 {
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		// Dispatch the cull compute shaders for queued once we're done with post-processing
 		// We'll only use the results from those shaders in the next frame so we don't block the pipeline
 		materialSystem.CullSurfaces();

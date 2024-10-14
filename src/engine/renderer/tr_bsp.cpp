@@ -4821,7 +4821,7 @@ void R_BuildCubeMaps()
 			int msecUnused1;
 			int msecUnused2;
 			// Material system writes culled surfaces for the next frame, so we need to render twice with it to cull correctly
-			if ( glConfig2.materialSystemAvailable ) {
+			if ( glConfig2.usingMaterialSystem ) {
 				tr.refdef.pixelTarget = nullptr;
 
 				RE_BeginFrame();

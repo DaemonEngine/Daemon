@@ -484,7 +484,7 @@ static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
 		}
 	}
 
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		// Material system writes culled surfaces for the next frame, so we need to render twice with it to cull correctly
 		R_SyncRenderThread();
 		RE_RenderScene( &refdef );
@@ -655,11 +655,11 @@ void RE_RenderScene( const refdef_t *fd )
 	R_AddClearBufferCmd();
 	R_AddSetupLightsCmd();
 
-	if ( glConfig2.materialSystemAvailable && !materialSystem.generatedWorldCommandBuffer ) {
+	if ( glConfig2.usingMaterialSystem && !materialSystem.generatedWorldCommandBuffer ) {
 		materialSystem.GenerateWorldMaterials();
 	}
 
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		materialSystem.StartFrame();
 	}
 

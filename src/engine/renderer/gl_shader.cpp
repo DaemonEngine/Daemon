@@ -1065,7 +1065,7 @@ void GLShaderManager::InitShader( GLShader* shader ) {
 		shader->_computeShaderText = ProcessInserts( shader->_computeShaderText, offset );
 	}
 
-	if ( glConfig2.materialSystemAvailable && shader->_useMaterialSystem ) {
+	if ( glConfig2.usingMaterialSystem && shader->_useMaterialSystem ) {
 		shader->_vertexShaderText = ShaderPostProcess( shader, shader->_vertexShaderText );
 		shader->_fragmentShaderText = ShaderPostProcess( shader, shader->_fragmentShaderText );
 	}

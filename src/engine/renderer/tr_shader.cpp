@@ -5980,7 +5980,7 @@ static shader_t *FinishShader()
 		{
 			ret->depthShader = nullptr;
 
-			if ( glConfig2.materialSystemAvailable && !tr.worldLoaded ) {
+			if ( glConfig2.usingMaterialSystem && !tr.worldLoaded ) {
 				uint8_t maxStages = 0;
 				for ( shaderStage_t* pStage = ret->stages; pStage < ret->lastStage; pStage++ ) {
 					maxStages++;
@@ -6040,7 +6040,7 @@ static shader_t *FinishShader()
 		ret->depthShader = nullptr;
 	}
 
-	if ( glConfig2.materialSystemAvailable && !tr.worldLoaded ) {
+	if ( glConfig2.usingMaterialSystem && !tr.worldLoaded ) {
 		uint8_t maxStages = 0;
 		for ( shaderStage_t* pStage = ret->stages; pStage < ret->lastStage; pStage++ ) {
 			maxStages++;

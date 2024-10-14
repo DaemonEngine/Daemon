@@ -835,7 +835,7 @@ static void SetFarClip()
 		vec3_t v;
 		float  distance;
 
-		if ( glConfig2.materialSystemAvailable ) {
+		if ( glConfig2.usingMaterialSystem ) {
 			VectorCopy( materialSystem.worldViewBounds[0], tr.viewParms.visBounds[0] );
 			VectorCopy( materialSystem.worldViewBounds[1], tr.viewParms.visBounds[1] );
 		}
@@ -1992,7 +1992,7 @@ static void R_SortDrawSurfs()
 	int          sort;
 
 	// it is possible for some views to not have any surfaces
-	if ( !glConfig2.materialSystemAvailable && tr.viewParms.numDrawSurfs < 1 )
+	if ( !glConfig2.usingMaterialSystem && tr.viewParms.numDrawSurfs < 1 )
 	{
 		// we still need to add it for hyperspace cases
 		R_AddDrawViewCmd( false );
@@ -2053,7 +2053,7 @@ static void R_SortDrawSurfs()
 	// check for any pass through drawing, which
 	// may cause another view to be rendered first
 	// Material system does its own handling of portal surfaces
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		if ( tr.viewParms.portalLevel == 0 ) {
 			materialSystem.AddPortalSurfaces();
 			currentView = 0;
@@ -2578,7 +2578,7 @@ void R_RenderView( viewParms_t *parms )
 
 	R_SetupFrustum();
 
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		tr.viewParms.viewID = tr.viewCount;
 		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustums[0] );
 		materialSystem.AddAutospriteSurfaces();

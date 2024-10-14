@@ -2515,8 +2515,7 @@ static void GLimp_InitExtensions()
 		&& glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
 		&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
 		&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
-		&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable
-		&& r_materialSystem.Get(); // Allow disabling it without disabling any extensions
+		&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable;
 
 	// This requires GLEW 2.2+, so skip if it's a lower version
 #ifdef GL_KHR_shader_subgroup
@@ -2554,7 +2553,7 @@ static void GLimp_InitExtensions()
 
 	// Currently this functionality is only used by material system shaders
 	if ( glConfig2.materialSystemAvailable ) {
-		Log::Warn( "Using outdated GLEW version, GL_KHR_shader_subgroup unavailable."
+		logger.Notice( "^1Using outdated GLEW version, GL_KHR_shader_subgroup unavailable."
 			"Update GLEW to 2.2+ to be able to use this extension" );
 	}
 #endif
