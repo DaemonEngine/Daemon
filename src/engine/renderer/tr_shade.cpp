@@ -119,6 +119,9 @@ static void EnableAvailableFeatures()
 	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
 	glConfig2.motionBlur = true;
 
+	// This will be enabled by R_BuildCubeMaps()
+	glConfig2.reflectionMapping = false;
+
 	/* Intel GMA 3 only has 4 tex indirections, which is not enough for some shaders.
 	For example blurX requires 6, contrast requires 5, motionblur requires 5…
 	For comparison, ATI R300, R400 and R500 have 16 of them. We don't need a finer check as early R300
@@ -239,7 +242,7 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	if ( r_reflectionMapping->integer != 0 )
+	if ( r_reflectionMapping.Get() )
 	{
 		// bumped cubemap reflection for abitrary polygons ( EMBM )
 		gl_shaderManager.load( gl_reflectionShader );
@@ -1002,7 +1005,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	// Not implemented yet in PBR code.
 	bool enableReflectiveSpecular =
-		pStage->enableSpecularMapping && tr.cubeProbes.size() && r_reflectionMapping->integer
+		pStage->enableSpecularMapping && glConfig2.reflectionMapping
 		&& !( tr.refdef.rdflags & RDF_NOCUBEMAP );
 
 	GL_State( stateBits );

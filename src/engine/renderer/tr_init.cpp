@@ -172,7 +172,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_reliefDepthScale;
 	cvar_t      *r_reliefMapping;
 	cvar_t      *r_glowMapping;
-	cvar_t      *r_reflectionMapping;
+	Cvar::Cvar<bool> r_reflectionMapping( "r_reflectionMapping", "Use static reflections", Cvar::NONE, false );
 	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize( "r_cubeProbeSize", "Size of the static reflections cubemaps", Cvar::NONE,
 		32, 1, 32768 );
 	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing( "r_cubeProbeSpacing", "Spacing between the static reflections cubemaps", Cvar::NONE,
@@ -1242,7 +1242,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_reliefDepthScale = Cvar_Get( "r_reliefDepthScale", "0.02", CVAR_CHEAT );
 		r_reliefMapping = Cvar_Get( "r_reliefMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_glowMapping = Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
-		r_reflectionMapping = Cvar_Get( "r_reflectionMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch( r_reflectionMapping );
 		Cvar::Latch( r_cubeProbeSize );
 		Cvar::Latch( r_cubeProbeSpacing );
 

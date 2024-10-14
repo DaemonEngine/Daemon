@@ -4781,6 +4781,8 @@ void R_BuildCubeMaps()
 	// turn pixel targets off
 	tr.refdef.pixelTarget = nullptr;
 
+	glConfig2.reflectionMapping = true;
+
 	// assign the surfs a cubemap
 	const int endTime = ri.Milliseconds();
 	Log::Notice( "Cubemap probes pre-rendering time of %d cubes = %5.2f seconds", tr.cubeProbes.size(),
@@ -5008,7 +5010,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.worldLoaded = true;
 	GLSL_InitWorldShaders();
 
-	if ( r_reflectionMapping->integer ) {
+	if ( r_reflectionMapping.Get() ) {
 		tr.cubeProbeSpacing = r_cubeProbeSpacing.Get();
 
 		vec3_t worldSize;

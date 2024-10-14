@@ -2906,7 +2906,7 @@ enum class realtimeLightingRenderer_t { LEGACY, TILED };
 	extern cvar_t *r_reliefDepthScale;
 	extern cvar_t *r_reliefMapping;
 	extern cvar_t *r_glowMapping;
-	extern cvar_t *r_reflectionMapping;
+	extern Cvar::Cvar<bool> r_reflectionMapping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize;
 	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing;
 
