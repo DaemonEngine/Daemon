@@ -129,7 +129,7 @@ void GL_TextureMode( const char *string )
 			}
 
 			// Getting bindless handle makes the texture immutable, so generate it again because we used glTexParameter*
-			if ( glConfig2.bindlessTexturesAvailable ) {
+			if ( glConfig2.usingBindlessTextures ) {
 				image->texture->GenBindlessHandle();
 			}
 		}

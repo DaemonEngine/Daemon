@@ -61,7 +61,7 @@ void GL_Bind( image_t *image )
 		texnum = tr.blackImage->texnum;
 	}
 
-	if ( glConfig2.bindlessTexturesAvailable ) {
+	if ( glConfig2.usingBindlessTextures ) {
 		tr.textureManager.BindReservedTexture( image->type, texnum );
 		return;
 	}
@@ -182,7 +182,7 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 		image = tr.defaultImage;
 	}
 
-	if ( glConfig2.bindlessTexturesAvailable ) {
+	if ( glConfig2.usingBindlessTextures ) {
 		if ( materialSystem.generatingWorldCommandBuffer ) {
 			materialSystem.AddTexture( image->texture );
 			return image->texture->bindlessTextureHandle;
@@ -4818,7 +4818,7 @@ void RE_UploadCinematic( int cols, int rows, const byte *data, int client, bool 
 		glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, Color::Black.ToArray() );
 
 		// Getting bindless handle makes the texture immutable, so generate it again because we used glTexParameter*
-		if ( glConfig2.bindlessTexturesAvailable ) {
+		if ( glConfig2.usingBindlessTextures ) {
 			tr.cinematicImage[ client ]->texture->GenBindlessHandle();
 		}
 	}

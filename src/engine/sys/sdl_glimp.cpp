@@ -60,12 +60,12 @@ static Cvar::Range<Cvar::Cvar<int>> r_glDebugSeverity(
 	Cvar::NONE, 2, 1, 4);
 
 // OpenGL extension cvars.
-/* Driver bug: Mesa versions > 24.0.9 produce garbage rendering when r_arb_bindless_texture is enabled,
+/* Driver bug: Mesa versions > 24.0.9 produce garbage rendering when bindless textures are enabled,
 and the shader compiler crashes with material shaders
 24.0.9 is the latest known working version, 24.1.1 is the earliest known broken version
 So this defaults to disabled */
 static Cvar::Cvar<bool> r_arb_bindless_texture( "r_arb_bindless_texture",
-	"Use GL_ARB_bindless_texture if available", Cvar::NONE, false );
+	"Use GL_ARB_bindless_texture if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_buffer_storage( "r_arb_buffer_storage",
 	"Use GL_ARB_buffer_storage if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
@@ -2429,7 +2429,7 @@ static void GLimp_InitExtensions()
 					}
 
 					if ( foundMesa241 && workaround_glDriver_mesa_v241_disableBindlessTexture.Get() ) {
-						logger.Warn( "Found buggy %s%s%s driver, disabling ARB_bindless_texture.",
+						logger.Notice( "^1Found buggy %s%s%s driver, disabling ARB_bindless_texture.",
 							str1, str2, str3 );
 						bindlessTextureEnabled = false;
 					}
@@ -2468,13 +2468,13 @@ static void GLimp_InitExtensions()
 
 				if ( foundOglp && workaround_glDriver_amd_oglp_disableBindlessTexture.Get() )
 				{
-					logger.Warn( "Found buggy AMD OGLP driver, disabling ARB_bindless_texture." );
+					logger.Notice( "^1Found buggy AMD OGLP driver, disabling ARB_bindless_texture." );
 					bindlessTextureEnabled = false;
 				}
 
 				if ( foundAdrenalin && workaround_glDriver_amd_adrenalin_disableBindlessTexture.Get() )
 				{
-					logger.Warn( "Found buggy AMD Adrenalin driver, disabling ARB_bindless_texture." );
+					logger.Notice( "^1Found buggy AMD Adrenalin driver, disabling ARB_bindless_texture." );
 					bindlessTextureEnabled = false;
 				}
 			}
