@@ -404,7 +404,7 @@ static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
 	{ glConfig2.textureIntegerAvailable, 0, "EXT_texture_integer" },
 	{ glConfig2.textureRGAvailable, 0, "ARB_texture_rg" },
 	{ glConfig2.uniformBufferObjectAvailable, 140, "ARB_uniform_buffer_object" },
-	{ glConfig2.bindlessTexturesAvailable, -1, "ARB_bindless_texture" },
+	{ glConfig2.usingBindlessTextures, -1, "ARB_bindless_texture" },
 	/* ARB_shader_draw_parameters set to -1, because we might get a 4.6 GL context,
 	where the core variables have different names. */
 	{ glConfig2.shaderDrawParametersAvailable, -1, "ARB_shader_draw_parameters" },
@@ -426,7 +426,7 @@ static const std::vector<addedExtension_t> computeAddedExtensions = {
 	/* ARB_shader_atomic_counter_ops set to -1,
 	because we might get a 4.6 GL context, where the core functions have different names. */
 	{ glConfig2.shaderAtomicCounterOpsAvailable, -1, "ARB_shader_atomic_counter_ops" },
-	{ glConfig2.bindlessTexturesAvailable, -1, "ARB_bindless_texture" },
+	{ glConfig2.usingBindlessTextures, -1, "ARB_bindless_texture" },
 	/* Even though these are part of the GL_KHR_shader_subgroup extension, we need to enable
 	the individual extensions for each feature.
 	GL_KHR_shader_subgroup itself can't be used in the shader. */
@@ -545,7 +545,7 @@ static std::string GenFragmentHeader() {
 			"#define DECLARE_OUTPUT(type) /* empty*/\n";
 	}
 
-	if ( glConfig2.bindlessTexturesAvailable ) {
+	if ( glConfig2.usingBindlessTextures ) {
 		str += "layout(bindless_sampler) uniform;\n";
 	}
 
@@ -569,7 +569,7 @@ static std::string GenComputeHeader() {
 	AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
 	AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
 
-	if ( glConfig2.bindlessTexturesAvailable ) {
+	if ( glConfig2.usingBindlessTextures ) {
 		str += "layout(bindless_image) uniform;\n";
 	}
 

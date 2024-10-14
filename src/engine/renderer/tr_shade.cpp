@@ -143,6 +143,8 @@ static void EnableAvailableFeatures()
 	}
 
 	glConfig2.usingMaterialSystem = r_materialSystem.Get() && glConfig2.materialSystemAvailable;
+	glConfig2.usingBindlessTextures = glConfig2.usingMaterialSystem ||
+		( r_preferBindlessTextures.Get() && glConfig2.bindlessTexturesAvailable );
 }
 
 // For shaders that require map data for compile-time values 

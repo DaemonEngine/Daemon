@@ -502,8 +502,8 @@ public:
 class GLUniformSampler : protected GLUniform {
 	protected:
 	GLUniformSampler( GLShader* shader, const char* name, const char* type, const GLuint size ) :
-		GLUniform( shader, name, type, glConfig2.bindlessTexturesAvailable ? size * 2 : size,
-									   glConfig2.bindlessTexturesAvailable ? size * 2 : size, false, 0, true ) {
+		GLUniform( shader, name, type, glConfig2.usingBindlessTextures ? size * 2 : size,
+									   glConfig2.usingBindlessTextures ? size * 2 : size, false, 0, true ) {
 	}
 
 	inline GLint GetLocation() {
@@ -532,14 +532,14 @@ class GLUniformSampler : protected GLUniform {
 	void SetValueBindless( GLint64 value ) {
 		currentValueBindless = value;
 
-		if ( glConfig2.bindlessTexturesAvailable && ( !_shader->UseMaterialSystem() || _global ) ) {
+		if ( glConfig2.usingBindlessTextures && ( !_shader->UseMaterialSystem() || _global ) ) {
 			glUniformHandleui64ARB( GetLocation(), currentValueBindless );
 		}
 	}
 
 	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
 		uint32_t* bufferNext = buffer;
-		if ( glConfig2.bindlessTexturesAvailable ) {
+		if ( glConfig2.usingBindlessTextures ) {
 			memcpy( buffer, &currentValueBindless, sizeof( GLuint64 ) );
 			bufferNext += 2;
 		} else {

@@ -93,7 +93,8 @@ struct glconfig2_t
 	bool textureIntegerAvailable;
 	bool textureRGAvailable;
 	bool computeShaderAvailable;
-	bool bindlessTexturesAvailable;
+	bool bindlessTexturesAvailable; // do the driver/hardware support it
+	bool usingBindlessTextures; // are we using them right now
 	bool shaderDrawParametersAvailable;
 	bool SSBOAvailable;
 	bool multiDrawIndirectAvailable;
