@@ -4575,6 +4575,18 @@ void R_BuildCubeMaps()
 		VectorAdd( node->maxs, node->mins, origin );
 		VectorScale( origin, 0.5, origin );
 
+		// Don't spam probes where there's a lot of leafs
+		if ( std::find_if( cubeProbeMap.begin(), cubeProbeMap.end(),
+			[&origin]( const std::unordered_map<const bspNode_t*, uint32_t>::value_type& node ) {
+				vec3_t nodeOrigin;
+				VectorAdd( node.first->mins, node.first->maxs, nodeOrigin );
+				VectorScale( nodeOrigin, 0.5, nodeOrigin );
+
+				return Distance( origin, nodeOrigin ) <= tr.cubeProbeSpacing;
+			} ) != cubeProbeMap.end() ) {
+			continue;
+		}
+
 		cubemapProbe_t cubeProbe {};
 		VectorCopy( origin, cubeProbe.origin );
 		tr.cubeProbes.push_back( cubeProbe );
