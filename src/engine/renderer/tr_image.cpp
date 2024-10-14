@@ -2476,7 +2476,7 @@ static void R_CreateCurrentRenderImage()
 
 	tr.currentDepthImage = R_CreateImage( "_currentDepth", nullptr, width, height, 1, imageParams );
 
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		materialSystem.GenerateDepthImages( width, height, imageParams );
 	}
 }

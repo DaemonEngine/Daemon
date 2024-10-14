@@ -44,6 +44,9 @@ Maryland 20850 USA.
 
 extern Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen;
 
+// Note: some of these (particularly ones dealing with GL extensions) are only updated on
+// an explicit vid_restart - see GLimp_InitExtensions(). Others are updated on every map change
+// - see EnableAvailableFeatures().
 struct glconfig2_t
 {
 	bool textureCompressionRGTCAvailable;
@@ -109,7 +112,8 @@ struct glconfig2_t
 	bool shaderSubgroupShuffleRelativeAvailable;
 	bool shaderSubgroupClusteredAvailable;
 	bool shaderSubgroupQuadAvailable;
-	bool materialSystemAvailable;
+	bool materialSystemAvailable; // do the driver/hardware support it
+	bool usingMaterialSystem; // are we using it right now
 	bool gpuShader4Available;
 	bool gpuShader5Available;
 	bool textureGatherAvailable;

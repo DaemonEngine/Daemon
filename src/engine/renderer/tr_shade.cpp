@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 /*
 =================================================================================
 THIS ENTIRE FILE IS BACK END!
+^ Not true, EnableAvailableFeatures() right below this isn't.
 
 This file deals with applying shaders to surface data in the tess struct.
 =================================================================================
@@ -140,6 +141,8 @@ static void EnableAvailableFeatures()
 			}
 		}
 	}
+
+	glConfig2.usingMaterialSystem = r_materialSystem.Get() && glConfig2.materialSystemAvailable;
 }
 
 // For shaders that require map data for compile-time values 
@@ -152,7 +155,7 @@ void GLSL_InitWorldShaders() {
 	gl_shaderManager.GenerateWorldHeaders();
 
 	// Material system shaders that are always loaded if material system is available
-	if ( glConfig2.materialSystemAvailable ) {
+	if ( glConfig2.usingMaterialSystem ) {
 		gl_shaderManager.load( gl_cullShader );
 	}
 }
@@ -180,7 +183,7 @@ static void GLSL_InitGPUShadersOrError()
 	gl_shaderManager.load( gl_lightMappingShader );
 
 	// Material system shaders that are always loaded if material system is available
-	if ( glConfig2.materialSystemAvailable )
+	if ( glConfig2.usingMaterialSystem )
 	{
 		gl_shaderManager.load( gl_genericShaderMaterial );
 		gl_shaderManager.load( gl_lightMappingShaderMaterial );
@@ -239,7 +242,7 @@ static void GLSL_InitGPUShadersOrError()
 		// bumped cubemap reflection for abitrary polygons ( EMBM )
 		gl_shaderManager.load( gl_reflectionShader );
 
-		if ( glConfig2.materialSystemAvailable )
+		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.load( gl_reflectionShaderMaterial );
 		}
@@ -250,7 +253,7 @@ static void GLSL_InitGPUShadersOrError()
 		// skybox drawing for abitrary polygons
 		gl_shaderManager.load( gl_skyboxShader );
 
-		if ( glConfig2.materialSystemAvailable )
+		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.load( gl_skyboxShaderMaterial );
 		}
@@ -261,7 +264,7 @@ static void GLSL_InitGPUShadersOrError()
 		// Q3A volumetric fog
 		gl_shaderManager.load( gl_fogQuake3Shader );
 
-		if ( glConfig2.materialSystemAvailable )
+		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.load( gl_fogQuake3ShaderMaterial );
 		}
@@ -275,7 +278,7 @@ static void GLSL_InitGPUShadersOrError()
 		// heatHaze post process effect
 		gl_shaderManager.load( gl_heatHazeShader );
 
-		if ( glConfig2.materialSystemAvailable )
+		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.load( gl_heatHazeShaderMaterial );
 		}
@@ -286,7 +289,7 @@ static void GLSL_InitGPUShadersOrError()
 		// screen post process effect
 		gl_shaderManager.load( gl_screenShader );
 
-		if ( glConfig2.materialSystemAvailable )
+		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.load( gl_screenShaderMaterial );
 		}
@@ -325,7 +328,7 @@ static void GLSL_InitGPUShadersOrError()
 	{
 		gl_shaderManager.load( gl_liquidShader );
 
-		if ( glConfig2.materialSystemAvailable )
+		if ( glConfig2.usingMaterialSystem )
 		{
 			gl_shaderManager.load( gl_liquidShaderMaterial );
 		}
