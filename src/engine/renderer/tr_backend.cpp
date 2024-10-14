@@ -4025,30 +4025,49 @@ static void RB_RenderDebugUtils()
 
 		gl_reflectionShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
-		for ( auto it = tr.cubeProbeGrid.begin(); it != tr.cubeProbeGrid.end(); it++ ) {
-			uint32_t x;
-			uint32_t y;
-			uint32_t z;
-			tr.cubeProbeGrid.IteratorToCoords( it, &x, &y, &z );
-			vec3_t position{ ( float ) x * tr.cubeProbeSpacing, ( float ) y * tr.cubeProbeSpacing, ( float ) z * tr.cubeProbeSpacing };
+		if ( r_showCubeProbes.Get() == Util::ordinal( showCubeProbesMode::GRID ) ) {
+			// Debug rendering can be really slow here
+			for ( auto it = tr.cubeProbeGrid.begin(); it != tr.cubeProbeGrid.end(); it++ ) {
+				uint32_t x;
+				uint32_t y;
+				uint32_t z;
+				tr.cubeProbeGrid.IteratorToCoords( it, &x, &y, &z );
+				vec3_t position{ ( float ) x * tr.cubeProbeSpacing, ( float ) y * tr.cubeProbeSpacing, ( float ) z * tr.cubeProbeSpacing };
 
-			// Match the map's start coords
-			VectorAdd( position, tr.world->nodes[0].mins, position );
+				// Match the map's start coords
+				VectorAdd( position, tr.world->nodes[0].mins, position );
 
-			cubemapProbe_t* cubeProbe = &tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
+				cubemapProbe_t* cubeProbe = &tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
 
-			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			gl_reflectionShader->SetUniform_CameraPosition( position );
+				gl_reflectionShader->SetUniform_CameraPosition( position );
 
-			// bind u_ColorMap
-			gl_reflectionShader->SetUniform_ColorMapCubeBindless(
-				GL_BindToTMU( 0, cubeProbe->cubemap )
-			);
+				// bind u_ColorMap
+				gl_reflectionShader->SetUniform_ColorMapCubeBindless(
+					GL_BindToTMU( 0, cubeProbe->cubemap )
+				);
 
-			Tess_AddCubeWithNormals( position, mins, maxs, Color::White );
+				Tess_AddCubeWithNormals( position, mins, maxs, Color::White );
 
-			Tess_End();
+				Tess_End();
+			}
+		} else {
+			for ( const cubemapProbe_t& cubeProbe : tr.cubeProbes ) {
+
+				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
+
+				gl_reflectionShader->SetUniform_CameraPosition( cubeProbe.origin );
+
+				// bind u_ColorMap
+				gl_reflectionShader->SetUniform_ColorMapCubeBindless(
+					GL_BindToTMU( 0, cubeProbe.cubemap )
+				);
+
+				Tess_AddCubeWithNormals( cubeProbe.origin, mins, maxs, Color::White );
+
+				Tess_End();
+			}
 		}
 
 		{
@@ -4092,18 +4111,29 @@ static void RB_RenderDebugUtils()
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			vec3_t position{ gridPoints[0][0] * tr.cubeProbeSpacing, gridPoints[0][1] * tr.cubeProbeSpacing,
-				gridPoints[0][2] * tr.cubeProbeSpacing };
+			vec3_t position;
+			if ( r_showCubeProbes.Get() == Util::ordinal( showCubeProbesMode::GRID ) ) {
+				VectorSet( position, gridPoints[0][0] * tr.cubeProbeSpacing, gridPoints[0][1] * tr.cubeProbeSpacing,
+					gridPoints[0][2] * tr.cubeProbeSpacing );
 
-			// Match the map's start coords
-			VectorAdd( position, tr.world->nodes[0].mins, position );
+				// Match the map's start coords
+				VectorAdd( position, tr.world->nodes[0].mins, position );
+			} else {
+				VectorCopy( probes[0]->origin, position );
+			}
+
 			Tess_AddCubeWithNormals( position, outlineMins, outlineMaxs, Color::Green );
 
-			VectorSet( position, gridPoints[1][0] * tr.cubeProbeSpacing, gridPoints[1][1] * tr.cubeProbeSpacing,
-				gridPoints[1][2] * tr.cubeProbeSpacing );
+			if ( r_showCubeProbes.Get() == Util::ordinal( showCubeProbesMode::GRID ) ) {
+				VectorSet( position, gridPoints[1][0] * tr.cubeProbeSpacing, gridPoints[1][1] * tr.cubeProbeSpacing,
+					gridPoints[1][2] * tr.cubeProbeSpacing );
 
-			// Match the map's start coords
-			VectorAdd( position, tr.world->nodes[0].mins, position );
+				// Match the map's start coords
+				VectorAdd( position, tr.world->nodes[0].mins, position );
+			} else {
+				VectorCopy( probes[1]->origin, position );
+			}
+
 			Tess_AddCubeWithNormals( position, outlineMins, outlineMaxs, Color::Red );
 
 			Tess_End();
