@@ -1631,6 +1631,12 @@ static int R_FindImageLoader( const char *baseName, const char **prefix ) {
 			bestLoader = i;
 		}
 
+		if( pak == nullptr ) {
+			if ( FS::HomePath::FileExists( altName ) ) {
+				bestLoader = i;
+			}
+		}
+
 		// DarkPlaces or Doom3 packages can ship alternative texture path in the form of
 		//   dds/<path without ext>.dds
 		if ( bestPak == nullptr && !Q_stricmp( "dds", imageLoaders[i].ext ) )
@@ -2065,7 +2071,7 @@ image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
 	for ( const cubeMapLoader_t &loader : cubeMapLoaders )
 	{
 		std::string cubeMapName = Str::Format( "%s.%s", cubeMapBaseName, loader.ext );
-		if( R_FindImageLoader( cubeMapName.c_str() ) >= 0 )
+		if( R_FindImageLoader( cubeMapBaseName ) >= 0 )
 		{
 			Log::Debug( "found %s cube map '%s'", loader.ext, cubeMapBaseName );
 			loader.ImageLoader( cubeMapName.c_str(), pic, &width, &height, &numLayers, &numMips, &imageParams.bits, 0 );

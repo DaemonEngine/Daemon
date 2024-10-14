@@ -56,15 +56,22 @@ LoadWEBP
 
 =========================================================
 */
-void LoadWEBP( const char *path, byte **pic, int *width, int *height, int *, int *, int *, byte )
+void LoadWEBP( const char *path, byte **pic, int *width, int *height, int *, int *, int *bits, byte )
 {
 	*pic = nullptr;
 	
 	std::error_code err;
-	std::string webpData = FS::PakPath::ReadFile( path, err );
+	std::string webpData;
+	if( ( *bits ) & IF_HOMEPATH ) {
+		webpData = FS::HomePath::OpenRead( path, err ).ReadAll();
+	} else {
+		webpData = FS::PakPath::ReadFile( path, err );
+	}
+	
 	if ( err ) {
 		return;
 	}
+
 	if ( !LoadInMemoryWEBP( path, reinterpret_cast<const uint8_t*>(webpData.data()), webpData.size(), pic, width, height ) ) {
 		Z_Free( *pic );
 		*pic = nullptr; // This signals failure.

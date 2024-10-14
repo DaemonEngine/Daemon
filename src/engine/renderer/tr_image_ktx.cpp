@@ -754,10 +754,17 @@ void LoadKTX( const char *name, byte **pic, int *width, int *height,
 	*numLayers = 0;
 
 	std::error_code err;
-	std::string ktxData = FS::PakPath::ReadFile( name, err );
+	std::string ktxData;
+	if ( ( *bits ) & IF_HOMEPATH ) {
+		ktxData = FS::HomePath::OpenRead( name, err ).ReadAll();
+	} else {
+		ktxData = FS::PakPath::ReadFile( name, err );
+	}
+	
 	if ( err ) {
 		return;
 	}
+
 	if ( !LoadInMemoryKTX( name, &ktxData[0], ktxData.size(), pic, width, height, numLayers, numMips, bits ) ) {
 		if (*pic) {
 			Z_Free(*pic);

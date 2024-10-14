@@ -302,6 +302,12 @@ enum class showCubeProbesMode {
 	UNIQUE
 };
 
+enum class cubeProbesAutoBuildMode {
+	DISABLED,
+	CACHED,
+	ALWAYS
+};
+
 	enum class renderSpeeds_t
 	{
 	  RSPEEDS_GENERAL = 1,
@@ -518,7 +524,8 @@ enum class showCubeProbesMode {
 	  IF_BC3 = BIT( 21 ),
 	  IF_BC4 = BIT( 22 ),
 	  IF_BC5 = BIT( 23 ),
-	  IF_RGBA32UI = BIT( 24 )
+	  IF_RGBA32UI = BIT( 24 ),
+	  IF_HOMEPATH = BIT( 25 )
 	};
 
 	enum class filterType_t
@@ -1978,6 +1985,8 @@ enum class showCubeProbesMode {
 		bool hasSkyboxPortal;
 	};
 
+#define REFLECTION_CUBEMAP_VERSION 0
+
 	/*
 	==============================================================================
 	MDV MODELS - meta format for vertex animation models like .md2, .md3, .mdc
@@ -2524,6 +2533,26 @@ enum class showCubeProbesMode {
 			return *grid[z * width * height + y * width + x];
 		}
 
+		T& operator()( uint32_t index ) {
+			if ( clampToEdge ) {
+				index = Math::Clamp( index, 0u, size - 1 );
+			}
+
+			ASSERT_GE( index, 0 );
+
+			ASSERT_LT( index, size );
+
+			return grid[index];
+		}
+
+		T operator()( uint32_t index ) const {
+			if ( clampToEdge ) {
+				index = Math::Clamp( index, 0u, size - 1 );
+			}
+
+			return *grid[index];
+		}
+
 		void SetSize( const uint32_t newWidth, const uint32_t newHeight, const uint32_t newDepth ) {
 			width = newWidth;
 			height = newHeight;
@@ -2913,6 +2942,7 @@ enum class showCubeProbesMode {
 	extern cvar_t *r_reliefMapping;
 	extern cvar_t *r_glowMapping;
 	extern Cvar::Cvar<bool> r_reflectionMapping;
+	extern Cvar::Range<Cvar::Cvar<int>> r_autoBuildCubeMaps;
 	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize;
 	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing;
 

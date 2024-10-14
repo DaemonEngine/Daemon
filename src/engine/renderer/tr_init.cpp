@@ -173,6 +173,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_reliefMapping;
 	cvar_t      *r_glowMapping;
 	Cvar::Cvar<bool> r_reflectionMapping( "r_reflectionMapping", "Use static reflections", Cvar::NONE, false );
+	Cvar::Range<Cvar::Cvar<int>> r_autoBuildCubeMaps( "r_autoBuildCubeMaps",
+		"Automatically build cube maps when a map is loaded: 0: off, 1: build and store on disk if not found, 2: always build", Cvar::NONE,
+		Util::ordinal( cubeProbesAutoBuildMode::DISABLED ),
+		Util::ordinal( cubeProbesAutoBuildMode::DISABLED ),
+		Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ) );
 	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize( "r_cubeProbeSize", "Size of the static reflections cubemaps", Cvar::NONE,
 		32, 1, 32768 );
 	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing( "r_cubeProbeSpacing", "Spacing between the static reflections cubemaps", Cvar::NONE,
@@ -1247,6 +1252,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_reliefMapping = Cvar_Get( "r_reliefMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_glowMapping = Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
 		Cvar::Latch( r_reflectionMapping );
+		Cvar::Latch( r_autoBuildCubeMaps );
 		Cvar::Latch( r_cubeProbeSize );
 		Cvar::Latch( r_cubeProbeSpacing );
 
@@ -1570,6 +1576,20 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( r_lazyShaders.Get() == 1 )
 		{
 			GLSL_FinishGPUShaders();
+		}
+
+		/* TODO: Move this into a loading step and don't render it to the screen
+		For now though do it here to avoid the ugly square rendering appearing on top of the loading screen */
+		if ( r_reflectionMapping.Get() ) {
+			switch ( r_autoBuildCubeMaps.Get() ) {
+				case Util::ordinal( cubeProbesAutoBuildMode::CACHED ):
+				case Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ):
+					R_BuildCubeMaps();
+					break;
+				case Util::ordinal( cubeProbesAutoBuildMode::DISABLED ):
+				default:
+					break;
+			}
 		}
 	}
 
