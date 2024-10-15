@@ -4681,6 +4681,7 @@ void R_BuildCubeMaps()
 		VectorScale( origin, 0.5, origin );
 
 		// Don't spam probes where there's a lot of leafs
+		// TODO: Find a better way to determine where to place probes
 		if ( std::find_if( cubeProbeMap.begin(), cubeProbeMap.end(),
 			[&origin]( const std::unordered_map<const bspNode_t*, uint32_t>::value_type& nodeCheck ) {
 				vec3_t nodeOrigin;
