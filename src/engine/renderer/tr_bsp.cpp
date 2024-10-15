@@ -4958,21 +4958,18 @@ void R_BuildCubeMaps()
 
 	Cvar_SetValue( "r_gamma", gamma );
 
-	Log::Notice( "" );
-
 	// turn pixel targets off
 	tr.refdef.pixelTarget = nullptr;
 
 	glConfig2.reflectionMapping = true;
 
-	if ( r_autoBuildCubeMaps.Get() == Util::ordinal( cubeProbesAutoBuildMode::CACHED ) ) {
-		R_SaveCubeMaps();
-	}
-
-	// assign the surfs a cubemap
 	const int endTime = ri.Milliseconds();
 	Log::Notice( "Cubemap probes pre-rendering time of %d cubes = %5.2f seconds", tr.cubeProbes.size(),
 	           ( endTime - startTime ) / 1000.0 );
+
+	if ( r_autoBuildCubeMaps.Get() == Util::ordinal( cubeProbesAutoBuildMode::CACHED ) ) {
+		R_SaveCubeMaps();
+	}
 }
 
 /*
