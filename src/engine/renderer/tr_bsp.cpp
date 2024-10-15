@@ -4723,6 +4723,10 @@ void R_BuildCubeMaps()
 	const bool gpuOcclusionCulling = r_gpuOcclusionCulling.Get();
 	r_gpuOcclusionCulling.Set( false );
 
+	// We still need to run the cameraEffects shader for overbright, so set r_gamma to 1.0 here to avoid applying it twice to the reflection
+	const float gamma = r_gamma->value;
+	Cvar_SetValue( "r_gamma", 1.0 );
+
 	for ( size_t i = 0; i < tr.cubeProbes.size(); i++ )
 	{
 		cubemapProbe_t* cubeProbe = &tr.cubeProbes[i];
@@ -4921,6 +4925,8 @@ void R_BuildCubeMaps()
 	}
 
 	r_gpuOcclusionCulling.Set( gpuOcclusionCulling );
+
+	Cvar_SetValue( "r_gamma", gamma );
 
 	Log::Notice( "" );
 
