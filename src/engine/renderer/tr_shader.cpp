@@ -1421,7 +1421,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		|| ( type == stageType_t::ST_SPECULARMAP && !glConfig2.specularMapping )
 		|| ( type == stageType_t::ST_PHYSICALMAP && !glConfig2.physicalMapping )
 		|| ( type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
-		|| ( type == stageType_t::ST_REFLECTIONMAP && !r_reflectionMapping.Get() ) )
+		|| ( type == stageType_t::ST_REFLECTIONMAP && !glConfig2.reflectionMappingAvailable ) )
 	{
 		return true;
 	}
@@ -5202,7 +5202,7 @@ static void FinishStages()
 
 			case stageType_t::ST_REFLECTIONMAP:
 			case stageType_t::ST_COLLAPSE_REFLECTIONMAP:
-				stage->active = r_reflectionMapping.Get();
+				stage->active = glConfig2.reflectionMappingAvailable;
 				break;
 
 			case stageType_t::ST_STYLELIGHTMAP:

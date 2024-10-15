@@ -259,7 +259,7 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	if ( r_reflectionMapping.Get() )
+	if ( glConfig2.reflectionMappingAvailable )
 	{
 		// bumped cubemap reflection for abitrary polygons ( EMBM )
 		gl_shaderManager.load( gl_reflectionShader );

@@ -1451,6 +1451,30 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			tr.lightMode = lightMode_t::VERTEX;
 		}
 
+		if ( r_reflectionMapping.Get() ) {
+			glConfig2.reflectionMappingAvailable = true;
+
+			if ( !r_normalMapping->integer ) {
+				glConfig2.reflectionMappingAvailable = false;
+				Log::Warn( "Unable to use static reflections without normal mapping, make sure you enable r_normalMapping" );
+			}
+
+			if ( !r_deluxeMapping->integer ) {
+				glConfig2.reflectionMappingAvailable = false;
+				Log::Warn( "Unable to use static reflections without deluxe mapping, make sure you enable r_deluxeMapping" );
+			}
+
+			if ( !r_specularMapping->integer ) {
+				glConfig2.reflectionMappingAvailable = false;
+				Log::Warn( "Unable to use static reflections without specular mapping, make sure you enable r_specularMapping" );
+			}
+
+			if ( r_physicalMapping->integer ) {
+				glConfig2.reflectionMappingAvailable = false;
+				Log::Warn( "Unable to use static reflections with physical mapping, make sure you disable r_physicalMapping" );
+			}
+		}
+
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );
 		backEndData[ 0 ]->polys = ( srfPoly_t * ) ri.Hunk_Alloc( r_maxPolys->integer * sizeof( srfPoly_t ), ha_pref::h_low );
 		backEndData[ 0 ]->polyVerts = ( polyVert_t * ) ri.Hunk_Alloc( r_maxPolyVerts->integer * sizeof( polyVert_t ), ha_pref::h_low );
@@ -1571,7 +1595,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		/* TODO: Move this into a loading step and don't render it to the screen
 		For now though do it here to avoid the ugly square rendering appearing on top of the loading screen */
-		if ( r_reflectionMapping.Get() ) {
+		if ( glConfig2.reflectionMappingAvailable ) {
 			switch ( r_autoBuildCubeMaps.Get() ) {
 				case Util::ordinal( cubeProbesAutoBuildMode::CACHED ):
 				case Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ):
@@ -1581,6 +1605,10 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 				default:
 					break;
 			}
+		} else if ( r_reflectionMapping.Get() && r_autoBuildCubeMaps.Get() != Util::ordinal( cubeProbesAutoBuildMode::DISABLED ) ) {
+			/* TODO: Add some proper functionality to check the various cvar combinations required for different graphics settings,
+			and move this check there */
+			Log::Notice( "Unable to build reflection cubemaps due to incorrect graphics settings" );
 		}
 	}
 
