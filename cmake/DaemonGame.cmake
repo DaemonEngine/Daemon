@@ -81,6 +81,7 @@ function(GAMEMODULE)
             ExternalProject_Add(${vm}
                 SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
                 BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${vm}
+                BUILD_ALWAYS TRUE
                 CMAKE_GENERATOR ${VM_GENERATOR}
                 CMAKE_ARGS
                     -DFORK=2
@@ -97,14 +98,6 @@ function(GAMEMODULE)
                     ${inherited_option_args}
                 INSTALL_COMMAND ""
             )
-            ExternalProject_Add_Step(${vm} forcebuild
-                COMMAND ${CMAKE_COMMAND} -E remove
-                    ${CMAKE_CURRENT_BINARY_DIR}/${vm}-prefix/src/${vm}-stamp/${vm}-configure
-                COMMENT "Forcing build step for '${vm}'"
-                DEPENDEES build
-                ALWAYS 1
-            )
-
         endif()
     else()
         if (FORK EQUAL 2)
