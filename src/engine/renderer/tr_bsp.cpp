@@ -4624,7 +4624,8 @@ void R_BuildCubeMaps()
 		return;
 	}
 
-	if ( !r_reflectionMapping.Get() ) {
+	if ( !glConfig2.reflectionMappingAvailable ) {
+		Log::Notice( "Unable to build reflection cubemaps due to incorrect graphics settings" );
 		return;
 	}
 
@@ -5021,7 +5022,7 @@ void RE_LoadWorldMap( const char *name )
 		( ( int * ) header ) [ j ] = LittleLong( ( ( int * ) header ) [ j ] );
 	}
 
-	if ( r_reflectionMapping.Get() ) {
+	if ( glConfig2.reflectionMappingAvailable ) {
 		// TODO: Take into account potential shader changes
 		headerString = Str::Format( "%i %i %i %i %i", header->lumps[LUMP_PLANES].filelen, header->lumps[LUMP_NODES].filelen,
 			header->lumps[LUMP_LEAFS].filelen, header->lumps[LUMP_BRUSHES].filelen, header->lumps[LUMP_SURFACES].filelen );
@@ -5166,7 +5167,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.worldLoaded = true;
 	GLSL_InitWorldShaders();
 
-	if ( !glConfig2.reflectionMapping && r_reflectionMapping.Get() ) {
+	if ( glConfig2.reflectionMappingAvailable ) {
 		tr.cubeProbeSpacing = r_cubeProbeSpacing.Get();
 
 		vec3_t worldSize;

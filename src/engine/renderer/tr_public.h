@@ -143,6 +143,7 @@ struct glconfig2_t
 	bool specularMapping;
 	bool physicalMapping;
 	bool reliefMapping;
+	bool reflectionMappingAvailable;
 	bool reflectionMapping;
 	bool bloom;
 	bool motionBlur;

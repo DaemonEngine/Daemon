@@ -1033,7 +1033,7 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetReliefMapping( material->enableReliefMapping );
 	/* Reflective specular setting is different here than in ProcessMaterialLightMapping(),
 	because we don't have cubemaps built yet at this point, but for the purposes of the material ordering there's no difference */
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableNormalMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableSpecularMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
 	// Bind shader program.
@@ -1206,6 +1206,7 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
 	material->enableNormalMapping = pStage->enableNormalMapping;
+	material->enableSpecularMapping = pStage->enableSpecularMapping;
 	material->enablePhysicalMapping = pStage->enablePhysicalMapping;
 	material->deformIndex = pStage->deformIndex;
 
