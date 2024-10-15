@@ -584,12 +584,13 @@ void CL_KeyDownEvent( const Keyboard::Key& key1, const Keyboard::Key& key2, unsi
 		return;
 	}
 
-	bool uiConsumed = cgvm.CGameKeyDownEvent( key1, false );
+	bool uiConsumed = cls.keyCatchers & KEYCATCH_UI_KEY;
+	uiConsumed |= cgvm.CGameKeyDownEvent( key1, false );
 	uiConsumed |= cgvm.CGameKeyDownEvent( key2, false ); // non-short-circuiting!
 
 	// do binds only if KEYCATCH_UI_KEY is off and also the UI didn't indicate that it
 	// consumed the key
-	if ( uiConsumed || ( cls.keyCatchers & KEYCATCH_UI_KEY ) )
+	if ( uiConsumed )
 	{
 		return;
 	}
