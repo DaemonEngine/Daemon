@@ -348,7 +348,7 @@ void R_ListImages_f()
 			type = imageTypeName.at( image->type );
 		}
 
-		int imageDataSize = image->uploadWidth * image->uploadHeight * image->numLayers;
+		int imageDataSize = 0;
 		texels += imageDataSize;
 		
 		if ( !imageFormatNameSize.count( image->internalFormat ) )
@@ -372,14 +372,51 @@ void R_ListImages_f()
 				case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
 				case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
 				case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+				{
 					format = imageFormatNameSize.at( image->internalFormat ).first;
-					imageDataSize = ceil( image->uploadWidth / 4.0 ) * ceil( image->uploadHeight / 4.0 ) * image->numLayers
-						* imageFormatNameSize.at( image->internalFormat ).second;
-					break;
-				default:
-					format = imageFormatNameSize.at( image->internalFormat ).first;
+
+					uint16_t imageWidth = image->uploadWidth;
+					uint16_t imageHeight = image->uploadHeight;
+					uint16_t imageLayers = image->numLayers;
+
+					int numMips = 1;
+					if ( image->filterType == filterType_t::FT_DEFAULT ) {
+						numMips = log2f( std::max( std::max( imageWidth, imageHeight ), imageLayers ) ) + 1;
+					}
+
+					for ( int j = 0; j < numMips; j++ ) {
+						imageDataSize += ceil( imageWidth / 4.0 ) * ceil( imageHeight / 4.0 ) * imageLayers;
+						imageWidth >>= imageWidth > 1 ? 1 : 0;
+						imageHeight >>= imageHeight > 1 ? 1 : 0;
+						imageLayers >>= imageLayers > 1 ? 1 : 0;
+					}
+
 					imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
 					break;
+				}
+				default:
+				{
+					format = imageFormatNameSize.at( image->internalFormat ).first;
+
+					uint16_t imageWidth = image->uploadWidth;
+					uint16_t imageHeight = image->uploadHeight;
+					uint16_t imageLayers = image->numLayers;
+
+					int numMips = 1;
+					if ( image->filterType == filterType_t::FT_DEFAULT ) {
+						numMips = log2f( std::max( std::max( imageWidth, imageHeight ), imageLayers ) ) + 1;
+					}
+					
+					for ( int j = 0; j < numMips; j++ ) {
+						imageDataSize += imageWidth * imageHeight * imageLayers;
+						imageWidth >>= imageWidth > 1 ? 1 : 0;
+						imageHeight >>= imageHeight > 1 ? 1 : 0;
+						imageLayers >>= imageLayers > 1 ? 1 : 0;
+					}
+
+					imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
+					break;
+				}
 			}
 		}
 
