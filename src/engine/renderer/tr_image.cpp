@@ -3101,8 +3101,9 @@ qhandle_t RE_GenerateTexture( const byte *pic, int width, int height )
 		return 0;
 	}
 
-	const char *name = va( "rocket%d", numTextures++ );
 	R_SyncRenderThread();
+
+	const char *name = va( "rocket%d", numTextures++ );
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
