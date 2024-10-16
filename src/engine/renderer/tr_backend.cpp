@@ -33,7 +33,7 @@ backEndData_t  *backEndData[ SMP_FRAMES ];
 backEndState_t backEnd;
 
 static Cvar::Cvar<bool> r_clear( "r_clear", "Clear screen before painting over it on every frame", Cvar::NONE, false );
-Cvar::Cvar<bool> r_fastsky( "r_fastsky", "Clear sky instead of drawing it", Cvar::NONE, false );
+Cvar::Cvar<bool> r_drawSky( "r_drawSky", "Draw the sky (clear the sky if disabled)", Cvar::NONE, true );
 
 void GL_Bind( image_t *image )
 {
@@ -5404,8 +5404,8 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	// ensures that depth writes are enabled for the depth clear
 	GL_State( GLS_DEFAULT );
 
-	// Clear relevant buffers, r_fastsky always require clearing.
-	if ( r_clear.Get() || r_fastsky.Get() ) {
+	// Clear relevant buffers, not drawing the sky always require clearing.
+	if ( r_clear.Get() || !r_drawSky.Get() ) {
 		clearBits |= GL_COLOR_BUFFER_BIT;
 	}
 

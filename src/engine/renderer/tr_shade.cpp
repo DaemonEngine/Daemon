@@ -250,7 +250,7 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	if ( !r_fastsky.Get() )
+	if ( r_drawSky.Get() )
 	{
 		// skybox drawing for abitrary polygons
 		gl_shaderManager.load( gl_skyboxShader );
