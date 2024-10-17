@@ -29,6 +29,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_CurrentMap;
 uniform float		u_AlphaThreshold;
 
+#if defined(MATERIAL_SYSTEM)
+	uniform float u_DeformEnable;
+#endif
+
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) float	var_Deform;
 
@@ -51,7 +55,14 @@ void	main()
 	vec2 st = gl_FragCoord.st / r_FBufSize;
 
 	// offset by the scaled normal and clamp it to 0.0 - 1.0
-	st += normal.xy * var_Deform;
+	
+	#if defined(MATERIAL_SYSTEM)
+		// Use a global uniform for heatHaze with material system to avoid duplicating all of the shader stage data
+		st += normal.xy * var_Deform * u_DeformEnable;
+	#else
+		st += normal.xy * var_Deform;
+	#endif
+
 	st = clamp(st, 0.0, 1.0);
 
 	color = texture2D(u_CurrentMap, st);
