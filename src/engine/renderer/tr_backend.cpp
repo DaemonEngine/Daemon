@@ -2830,6 +2830,10 @@ void RB_RenderPostDepthLightTile()
 		return;
 	}
 
+	if ( !backEnd.refdef.numLights ) {
+		return;
+	}
+
 	vec3_t zParams;
 	int w, h;
 
