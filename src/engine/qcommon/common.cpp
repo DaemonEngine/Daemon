@@ -870,11 +870,10 @@ void Com_Frame()
 	}
 	else
 	{
-		// Bad things happen if minMsec is 0.
 		// It looks like demo played with cvar_demo_timedemo enabled
 		// are not affected by the rendering bugs related to having
 		// minMsec being lower than 3.
-		minMsec = 1;
+		minMsec = 0;
 	}
 
 	Com_EventLoop();
