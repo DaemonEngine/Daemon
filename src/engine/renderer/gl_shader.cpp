@@ -2786,6 +2786,7 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ViewUp( this ),
+	u_DeformEnable( this ),
 	u_DeformMagnitude( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),

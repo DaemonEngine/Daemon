@@ -72,10 +72,6 @@ sampler2D u_DepthMap = sampler2D( u_DepthMap_initial );
 #endif
 #endif // !GENERIC_GLSL
 
-#if defined(HEATHAZE_GLSL)
-sampler2D u_CurrentMap = sampler2D( u_CurrentMap_initial );
-#endif // !HEATHAZE_GLSL
-
 #if defined(LIGHTMAPPING_GLSL)
 sampler2D u_DiffuseMap = sampler2D( u_DiffuseMap_initial );
 sampler2D u_MaterialMap = sampler2D( u_MaterialMap_initial );
@@ -87,7 +83,6 @@ sampler3D u_LightGrid2 = sampler3D( u_LightGrid2_initial );
 #endif // !LIGHTMAPPING_GLSL
 
 #if defined(LIQUID_GLSL)
-sampler2D u_CurrentMap = sampler2D( u_CurrentMap_initial );
 sampler2D u_PortalMap = sampler2D( u_PortalMap_initial );
 sampler2D u_DepthMap = sampler2D( u_DepthMap_initial );
 sampler3D u_LightGrid1 = sampler3D( u_LightGrid1_initial );
@@ -111,10 +106,6 @@ sampler2D u_HeightMap = sampler2D( u_NormalMap_initial );
 #endif // !USE_HEIGHTMAP_IN_NORMALMAP
 #endif // USE_RELIEF_MAPPING
 #endif // !RELIEFMAPPING_GLSL
-
-#if defined(SCREEN_GLSL)
-sampler2D u_CurrentMap = sampler2D( u_CurrentMap_initial );
-#endif // !SCREEN_GLSL
 
 #if defined(SKYBOX_GLSL)
 samplerCube u_ColorMapCube = samplerCube( u_ColorMapCube_initial );

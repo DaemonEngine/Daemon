@@ -578,8 +578,8 @@ class GLUniformSampler1D : protected GLUniformSampler {
 
 class GLUniformSampler2D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler2D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "sampler2D", 1 ) {
+	GLUniformSampler2D( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "sampler2D", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -825,8 +825,8 @@ class GLUniform1Bool : protected GLUniform {
 class GLUniform1f : protected GLUniform
 {
 protected:
-	GLUniform1f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name, "float", 1, 1, false )
+	GLUniform1f( GLShader *shader, const char *name, const bool global = false ) :
+	GLUniform( shader, name, "float", 1, 1, global )
 	{
 	}
 
@@ -2476,7 +2476,7 @@ class u_CurrentMap :
 	GLUniformSampler2D {
 	public:
 	u_CurrentMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_CurrentMap" ) {
+		GLUniformSampler2D( shader, "u_CurrentMap", true ) {
 	}
 
 	void SetUniform_CurrentMapBindless( GLuint64 bindlessHandle ) {
@@ -3368,7 +3368,7 @@ class u_ModelViewMatrixTranspose :
 {
 public:
 	u_ModelViewMatrixTranspose( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_ModelViewMatrixTranspose" )
+		GLUniformMatrix4f( shader, "u_ModelViewMatrixTranspose", true )
 	{
 	}
 
@@ -3383,7 +3383,7 @@ class u_ProjectionMatrixTranspose :
 {
 public:
 	u_ProjectionMatrixTranspose( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_ProjectionMatrixTranspose" )
+		GLUniformMatrix4f( shader, "u_ProjectionMatrixTranspose", true )
 	{
 	}
 
@@ -3675,6 +3675,18 @@ public:
 
 	void SetUniform_FogEyeT( float value )
 	{
+		this->SetValue( value );
+	}
+};
+
+class u_DeformEnable :
+	GLUniform1f {
+	public:
+	u_DeformEnable( GLShader* shader ) :
+		GLUniform1f( shader, "u_DeformEnable", true ) {
+	}
+
+	void SetUniform_DeformEnable( const bool value ) {
 		this->SetValue( value );
 	}
 };
@@ -4391,6 +4403,7 @@ class GLShader_heatHazeMaterial :
 	public u_TextureMatrix,
 	public u_ViewOrigin,
 	public u_ViewUp,
+	public u_DeformEnable,
 	public u_DeformMagnitude,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
