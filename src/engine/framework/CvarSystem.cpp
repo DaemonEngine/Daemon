@@ -505,6 +505,7 @@ namespace Cvar {
         it->second->flags |= INTERNAL_LATCH;
 
         if (it->second->latchedValue) {
+            cvar_modifiedFlags |= it->second->flags;
             it->second->value = std::move(*it->second->latchedValue);
             it->second->latchedValue = Util::nullopt;
             SetCCvar(*it->second);
