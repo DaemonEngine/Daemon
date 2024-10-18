@@ -5476,8 +5476,6 @@ static void SetStagesRenderers()
 				};
 				break;
 			case stageType_t::ST_HEATHAZEMAP:
-				/* Comment from the Material code:
-				FIXME: This requires 2 draws per surface stage rather than 1. */
 				stageRendererOptions = {
 					&Render_heatHaze,
 					&UpdateSurfaceDataHeatHaze, &BindShaderHeatHaze, &ProcessMaterialHeatHaze,

@@ -524,6 +524,8 @@ void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, drawSurf_
 	gl_screenShaderMaterial->BindProgram( pStage->deformIndex );
 
 	// bind u_CurrentMap
+	/* FIXME: This is currently unused, but u_CurrentMap was made global for other shaders,
+	this seems to be the only material system shader that might need it to not be global */
 	gl_screenShaderMaterial->SetUniform_CurrentMapBindless( BindAnimatedImage( 0, &drawSurf->shader->stages[stage].bundle[TB_COLORMAP] ) );
 
 	gl_screenShaderMaterial->WriteUniformsToBuffer( materials );
@@ -542,26 +544,23 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, drawSur
 	}
 	drawSurf->initialized[stage] = true;
 
+	float deformMagnitude = RB_EvalExpression( &pStage->deformMagnitudeExp, 1.0 );
+	gl_heatHazeShaderMaterial->SetUniform_DeformMagnitude( deformMagnitude );
+
 	// bind u_NormalMap
 	gl_heatHazeShaderMaterial->SetUniform_NormalMapBindless(
 		GL_BindToTMU( 0, pStage->bundle[TB_NORMALMAP].image[0] )
 	);
 
-	float deformMagnitude = RB_EvalExpression( &pStage->deformMagnitudeExp, 1.0 );
-	gl_heatHazeShaderMaterial->SetUniform_DeformMagnitude( deformMagnitude );
-
 	if ( pStage->enableNormalMapping ) {
+		gl_heatHazeShaderMaterial->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_NORMALMAP] );
+
 		vec3_t normalScale;
 		SetNormalScale( pStage, normalScale );
 
 		// bind u_NormalScale
 		gl_heatHazeShaderMaterial->SetUniform_NormalScale( normalScale );
 	}
-
-	// bind u_CurrentMap
-	gl_heatHazeShaderMaterial->SetUniform_CurrentMapBindless(
-		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] )
-	);
 
 	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -1136,6 +1135,20 @@ void BindShaderHeatHaze( Material* material ) {
 	// Set shader uniforms.
 	gl_heatHazeShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	gl_heatHazeShaderMaterial->SetUniform_ModelViewMatrixTranspose( glState.modelViewMatrix[glState.stackIndex] );
+	gl_heatHazeShaderMaterial->SetUniform_ProjectionMatrixTranspose( glState.projectionMatrix[glState.stackIndex] );
+	gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	// bind u_CurrentMap
+	gl_heatHazeShaderMaterial->SetUniform_CurrentMapBindless(
+		GL_BindToTMU( 1, tr.currentRenderImage[backEnd.currentMainFBO] )
+	);
+
+	gl_heatHazeShaderMaterial->SetUniform_DeformEnable( true );
+
+	// draw to background image
+	R_BindFBO( tr.mainFBO[1 - backEnd.currentMainFBO] );
 }
 
 void BindShaderLiquid( Material* material ) {
@@ -1979,6 +1992,16 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 	}
 }
 
+void MaterialSystem::RenderIndirect( const Material& material, const uint32_t viewID ) {
+	glMultiDrawElementsIndirectCountARB( GL_TRIANGLES, GL_UNSIGNED_INT,
+		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
+		               + ( surfaceCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
+		               * sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
+		material.globalID * sizeof( uint32_t )
+		+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
+		material.drawCommands.size(), 0 );
+}
+
 void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID ) {
 	backEnd.currentEntity = &tr.worldEntity;
 
@@ -2112,13 +2135,21 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		}
 	}
 
-	glMultiDrawElementsIndirectCountARB( GL_TRIANGLES, GL_UNSIGNED_INT,
-		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
-					   + ( surfaceCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
-					   * sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
-		material.globalID * sizeof( uint32_t )
-		+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
-		material.drawCommands.size(), 0 );
+	RenderIndirect( material, viewID );
+
+	if( material.shaderBinder == BindShaderHeatHaze ) {
+		// Hack: Use a global uniform for heatHaze with material system to avoid duplicating all of the shader stage data
+		gl_heatHazeShaderMaterial->SetUniform_CurrentMapBindless(
+			GL_BindToTMU( 1, tr.currentRenderImage[1 - backEnd.currentMainFBO] )
+		);
+
+		gl_heatHazeShaderMaterial->SetUniform_DeformEnable( false );
+
+		// copy to foreground image
+		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
+
+		RenderIndirect( material, viewID );
+	}
 
 	if ( r_showTris->integer
 		&& ( material.stateBits & GLS_DEPTHMASK_TRUE ) == 0
@@ -2131,13 +2162,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		}
 
 		GL_State( GLS_DEPTHTEST_DISABLE );
-		glMultiDrawElementsIndirectCountARB( GL_LINES, GL_UNSIGNED_INT,
-			BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
-			+ ( surfaceCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
-			* sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
-			material.globalID * sizeof( uint32_t )
-			+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
-			material.drawCommands.size(), 0 );
+		RenderIndirect( material, viewID );
 
 		if ( material.shaderBinder == &BindShaderLightMapping ) {
 			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );

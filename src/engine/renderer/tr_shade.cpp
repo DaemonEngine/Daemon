@@ -2110,8 +2110,8 @@ void Render_heatHaze( shaderStage_t *pStage )
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
 
-	// Skip this until heatHaze is working with material system
 	if ( materialSystem.generatingWorldCommandBuffer ) {
+		Tess_DrawElements();
 		return;
 	}
 

@@ -1333,6 +1333,10 @@ void GLShaderManager::CompileAndLinkGPUShaderProgram( GLShader *shader, shaderPr
 
 // This will generate all the extra code for material system shaders
 std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::string& shaderText ) {
+	if ( !shader->std430Size ) {
+		return shaderText;
+	}
+
 	std::string newShaderText;
 	std::string materialStruct = "\nstruct Material {\n";
 	std::string materialBlock = "layout(std430, binding = 0) readonly buffer materialsSSBO {\n"
@@ -1986,7 +1990,9 @@ void GLShader::PostProcessUniforms() {
 	}
 	_uniforms = tmp;
 
-	padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
+	if ( structSize > 0 ) {
+		padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
+	}
 	std430Size = structSize;
 	for ( GLUniform* uniform : globalUniforms ) {
 		_uniforms.emplace_back( uniform );
@@ -2786,6 +2792,7 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	u_TextureMatrix( this ),
 	u_ViewOrigin( this ),
 	u_ViewUp( this ),
+	u_DeformEnable( this ),
 	u_DeformMagnitude( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
