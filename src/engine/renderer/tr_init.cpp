@@ -176,7 +176,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_reflectionMapping( "r_reflectionMapping", "Use static reflections", Cvar::NONE, false );
 	Cvar::Range<Cvar::Cvar<int>> r_autoBuildCubeMaps( "r_autoBuildCubeMaps",
 		"Automatically build cube maps when a map is loaded: 0: off, 1: build and store on disk if not found, 2: always build", Cvar::NONE,
-		Util::ordinal( cubeProbesAutoBuildMode::DISABLED ),
+		Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ),
 		Util::ordinal( cubeProbesAutoBuildMode::DISABLED ),
 		Util::ordinal( cubeProbesAutoBuildMode::ALWAYS ) );
 	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize( "r_cubeProbeSize", "Size of the static reflections cubemaps", Cvar::NONE,
