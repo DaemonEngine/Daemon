@@ -133,6 +133,10 @@ static Cvar::Cvar<bool> workaround_glDriver_amd_oglp_disableBindlessTexture(
 	"workaround.glDriver.amd.oglp.disableBindlessTexture",
 	"Disable ARB_bindless_texture on AMD OGLP driver",
 	Cvar::NONE, true );
+static Cvar::Cvar<bool> workaround_glDriver_macos_disableBufferRange(
+	"workaround.glDriver.macos.disableBufferRange",
+	"Disable GL_ARB_map_buffer_range on Mac",
+	Cvar::NONE, true );
 static Cvar::Cvar<bool> workaround_glDriver_mesa_ati_rv300_disableRgba16Blend(
 	"workaround.glDriver.mesa.ati.rv300.disableRgba16Blend",
 	"Disable misdetected RGBA16 on Mesa driver on RV300 hardware",
@@ -2393,8 +2397,19 @@ static void GLimp_InitExtensions()
 	// made required since OpenGL 3.1
 	glConfig2.uniformBufferObjectAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_uniform_buffer_object, r_arb_uniform_buffer_object.Get() );
 
-	// made required in OpenGL 3.0
-	glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
+	// FIXME: the driver is categorized as "Unknown"
+#ifdef __APPLE__
+	if ( workaround_glDriver_macos_disableBufferRange.Get() )
+	{
+		// https://github.com/DaemonEngine/Daemon/issues/1371
+		glConfig2.mapBufferRangeAvailable = false;
+	}
+	else
+#endif
+	{
+		// made required in OpenGL 3.0
+		glConfig2.mapBufferRangeAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_map_buffer_range, r_arb_map_buffer_range.Get() );
+	}
 
 	// made required in OpenGL 3.2
 	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync.Get() );
@@ -2648,6 +2663,7 @@ bool GLimp_Init()
 
 	Cvar::Latch( workaround_glDriver_amd_adrenalin_disableBindlessTexture );
 	Cvar::Latch( workaround_glDriver_amd_oglp_disableBindlessTexture );
+	Cvar::Latch( workaround_glDriver_macos_disableBufferRange );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_disableRgba16Blend );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv300_useFloatVertex );
 	Cvar::Latch( workaround_glDriver_mesa_ati_rv600_disableHyperZ );
