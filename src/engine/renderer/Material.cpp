@@ -1019,6 +1019,11 @@ void BindShaderGeneric3D( Material* material ) {
 
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	if ( r_profilerRenderSubGroups.Get() ) {
+		gl_genericShaderMaterial->SetUniform_ProfilerZero();
+		gl_genericShaderMaterial->SetUniform_ProfilerRenderSubGroups( GetShaderProfilerRenderSubGroupsMode( material->stateBits ) );
+	}
 }
 
 void BindShaderLightMapping( Material* material ) {
@@ -1089,6 +1094,11 @@ void BindShaderLightMapping( Material* material ) {
 
 		// bind u_EnvironmentInterpolation
 		gl_lightMappingShaderMaterial->SetUniform_EnvironmentInterpolation( interpolation );
+	}
+
+	if ( r_profilerRenderSubGroups.Get() ) {
+		gl_lightMappingShaderMaterial->SetUniform_ProfilerZero();
+		gl_lightMappingShaderMaterial->SetUniform_ProfilerRenderSubGroups( GetShaderProfilerRenderSubGroupsMode( material->stateBits ) );
 	}
 }
 
@@ -2003,9 +2013,34 @@ void MaterialSystem::RenderIndirect( const Material& material, const uint32_t vi
 }
 
 void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID ) {
+	uint32_t stateBits = material.stateBits;
+
+	if ( r_profilerRenderSubGroups.Get() ) {
+		switch ( r_profilerRenderSubGroupsMode.Get() ) {
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_OPAQUE ):
+				if ( material.stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) {
+					return;
+				}
+				break;
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_TRANSPARENT ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_TRANSPARENT ):
+				if ( material.stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) {
+					return;
+				}
+				break;
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_ALL ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_ALL ):
+			default:
+				break;
+		}
+
+		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS );
+	}
+
 	backEnd.currentEntity = &tr.worldEntity;
 
-	GL_State( material.stateBits );
+	GL_State( stateBits );
 	if ( material.usePolygonOffset ) {
 		glEnable( GL_POLYGON_OFFSET_FILL );
 		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );

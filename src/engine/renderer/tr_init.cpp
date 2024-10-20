@@ -256,6 +256,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_materialDebug( "r_materialDebug", "Enable material debug SSBO", Cvar::NONE, false );
 	cvar_t      *r_showParallelShadowSplits;
 
+	Cvar::Cvar<bool> r_profilerRenderSubGroups( "r_profilerRenderSubGroups", "Enable subgroup profiling in rendering shaders", Cvar::NONE, false );
+	Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode( "r_profilerRenderSubGroupsMode", "Red: more wasted lanes, green: less wasted lanes; "
+		"0: VS opaque, 1: VS transparent, 2: VS all, 3: FS opaque, 4: FS transparent, 5: FS all", Cvar::NONE,
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ),
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ),
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_ALL ) );
+
 	cvar_t      *r_vboFaces;
 	cvar_t      *r_vboCurves;
 	cvar_t      *r_vboTriangles;
@@ -1344,6 +1351,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_showGlobalMaterials );
 		Cvar::Latch( r_materialDebug );
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
+
+		Cvar::Latch( r_profilerRenderSubGroups );
 
 		// make sure all the commands added here are also removed in R_Shutdown
 		ri.Cmd_AddCommand( "listImages", R_ListImages_f );

@@ -966,6 +966,18 @@ void Render_generic3D( shaderStage_t *pStage )
 		);
 	}
 
+	if ( r_profilerRenderSubGroups.Get() ) {
+		const uint mode = GetShaderProfilerRenderSubGroupsMode( pStage->stateBits );
+		if( mode == 0 ) {
+			return;
+		}
+
+		GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
+
+		gl_genericShader->SetUniform_ProfilerZero();
+		gl_genericShader->SetUniform_ProfilerRenderSubGroups( mode );
+	}
+
 	gl_genericShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
@@ -1260,6 +1272,18 @@ void Render_lightMapping( shaderStage_t *pStage )
 		gl_lightMappingShader->SetUniform_GlowMapBindless(
 			GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[TB_GLOWMAP].image[0] )
 		);
+	}
+
+	if ( r_profilerRenderSubGroups.Get() ) {
+		const uint mode = GetShaderProfilerRenderSubGroupsMode( stateBits );
+		if ( mode == 0 ) {
+			return;
+		}
+
+		GL_State( stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
+
+		gl_lightMappingShader->SetUniform_ProfilerZero();
+		gl_lightMappingShader->SetUniform_ProfilerRenderSubGroups( mode );
 	}
 
 	gl_lightMappingShader->SetRequiredVertexPointers();

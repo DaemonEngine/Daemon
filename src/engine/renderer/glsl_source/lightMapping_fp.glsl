@@ -62,6 +62,8 @@ uniform sampler3D u_LightGrid2;
 	uniform vec3 u_MaterialColour;
 #endif
 
+#insert shaderProfiler_fp
+
 DECLARE_OUTPUT(vec4)
 
 void main()
@@ -227,6 +229,8 @@ void main()
 
 		color.rgb += glow;
 	#endif
+	
+	SHADER_PROFILER_SET( color )
 
 	outputColor = color;
 
