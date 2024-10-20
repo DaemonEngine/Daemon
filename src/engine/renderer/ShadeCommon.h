@@ -147,6 +147,11 @@ template<typename Obj> void SetLightDeluxeMode( Obj* obj,
 
 		This is doable for some complex multi-stage materials. */
 	}
+	else if( stageType == stageType_t::ST_LIQUIDMAP )
+	{
+		lightMode = tr.modelLight;
+		deluxeMode = tr.modelDeluxe;
+	}
 	else if ( obj->bspSurface )
 	{
 		lightMode = tr.worldLight;
