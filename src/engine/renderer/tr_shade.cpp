@@ -2997,6 +2997,17 @@ void Tess_Clear()
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
 
+	// TODO: stop constantly binding VBOs we aren't going to use!
+	bool usingMapBufferRange = ( !glConfig2.bufferStorageAvailable || !glConfig2.syncAvailable )
+                               && glConfig2.mapBufferRangeAvailable;
+	if ( tess.verts != nullptr && tess.verts != tess.vertsBuffer && usingMapBufferRange )
+	{
+		R_BindVBO( tess.vbo );
+		glUnmapBuffer( GL_ARRAY_BUFFER );
+		R_BindIBO( tess.ibo );
+		glUnmapBuffer( GL_ELEMENT_ARRAY_BUFFER );
+	}
+
 	// This is important after doing CPU-only tessellation with Tess_MapVBOs( true ).
 	// A lot of code relies on a behavior of Tess_Begin: automatically map the
 	// default VBO *if tess.verts is null*.
