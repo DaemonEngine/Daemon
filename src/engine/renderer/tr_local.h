@@ -305,6 +305,15 @@ enum class cubeProbesAutoBuildMode {
 	ALWAYS
 };
 
+enum class shaderProfilerRenderSubGroupsMode {
+	VS_OPAQUE,
+	VS_TRANSPARENT,
+	VS_ALL,
+	FS_OPAQUE,
+	FS_TRANSPARENT,
+	FS_ALL
+};
+
 	enum class renderSpeeds_t
 	{
 	  RSPEEDS_GENERAL = 1,
@@ -3031,6 +3040,9 @@ enum class cubeProbesAutoBuildMode {
 	extern Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials;
 	extern Cvar::Cvar<bool> r_materialDebug;
 	extern cvar_t *r_showParallelShadowSplits;
+
+	extern Cvar::Cvar<bool> r_profilerRenderSubGroups;
+	extern Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode;
 
 	extern cvar_t *r_vboFaces;
 	extern cvar_t *r_vboCurves;

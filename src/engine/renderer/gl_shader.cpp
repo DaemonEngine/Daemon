@@ -409,6 +409,16 @@ static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
 	where the core variables have different names. */
 	{ glConfig2.shaderDrawParametersAvailable, -1, "ARB_shader_draw_parameters" },
 	{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
+	/* Even though these are part of the GL_KHR_shader_subgroup extension, we need to enable
+	the individual extensions for each feature.
+	GL_KHR_shader_subgroup itself can't be used in the shader. */
+	{ glConfig2.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
+	{ glConfig2.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
+	{ glConfig2.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
+	{ glConfig2.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
+	{ glConfig2.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
+	{ glConfig2.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
+	{ glConfig2.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
 };
 
 // Compute version declaration, this has to be separate from other shader stages,
@@ -468,7 +478,7 @@ static void AddConst( std::string& str, const std::string& name, float v1, float
 
 static std::string GenVersionDeclaration( const std::vector<addedExtension_t> &addedExtensions ) {
 	// Declare version.
-	std::string str = Str::Format( "#version %d %s\n",
+	std::string str = Str::Format( "#version %d %s\n\n",
 		glConfig2.shadingLanguageVersion,
 		glConfig2.shadingLanguageVersion >= 150 ? ( glConfig2.glCoreProfile ? "core" : "compatibility" ) : "" );
 
@@ -742,6 +752,11 @@ static std::string GenEngineConstants() {
 	if ( r_materialDebug.Get() )
 	{
 		AddDefine( str, "r_materialDebug", 1 );
+	}
+
+	if ( r_profilerRenderSubGroups.Get() )
+	{
+		AddDefine( str, "r_profilerRenderSubGroups", 1 );
 	}
 
 	if ( glConfig2.vboVertexSkinningAvailable )
@@ -1416,20 +1431,21 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	*  their values will be sourced from a buffer instead
 	*  Global uniforms (like u_ViewUp and u_ViewOrigin) will still be set as regular uniforms */
 	while( std::getline( shaderTextStream, line, '\n' ) ) {
-		if( !( line.find( "uniform" ) == std::string::npos || line.find( ";" ) == std::string::npos ) ) {
+		bool skip = false;
+		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
+			for ( GLUniform* uniform : shader->_uniforms ) {
+				if ( !uniform->IsGlobal() && ( line.find( uniform->GetName() ) != std::string::npos ) ) {
+					skip = true;
+					break;
+				}
+			}
+		}
+
+		if ( skip ) {
 			continue;
 		}
-		shaderMain += line + "\n";
-	}
 
-	for ( GLUniform* uniform : shader->_uniforms ) {
-		if ( uniform->IsGlobal() ) {
-			materialDefines += "uniform " + uniform->GetType() + " " + uniform->GetName();
-			if ( uniform->GetComponentSize() ) {
-				materialDefines += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
-			}
-			materialDefines += ";\n";
-		}
+		shaderMain += line + "\n";
 	}
 
 	materialDefines += "\n";
@@ -2198,6 +2214,8 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
+	u_ProfilerZero( this ),
+	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -2231,6 +2249,8 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	u_DepthScale( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
+	u_ProfilerZero( this ),
+	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -2278,6 +2298,8 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_LightGridScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
+	u_ProfilerZero( this ),
+	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
@@ -2347,6 +2369,8 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_Lights( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
+	u_ProfilerZero( this ),
+	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
 	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
