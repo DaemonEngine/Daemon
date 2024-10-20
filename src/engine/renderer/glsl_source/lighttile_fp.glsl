@@ -71,7 +71,7 @@ DECLARE_OUTPUT(uvec4)
 // 8 bits per light ID
 void pushIdxs( in uint idx, in uint count, inout uvec4 idxs ) {
 	idxs[count / 4] <<= 8;
-	idxs[count / 4] |= idx & 0xFF;
+	idxs[count / 4] |= idx & 0xFFu;
 }
 
 #define exportIdxs( x ) outputColor = ( x )
