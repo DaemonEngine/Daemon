@@ -37,8 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DETECT_OPENGL_VENDORS_H
 #define DETECT_OPENGL_VENDORS_H
 
-#include "common/Assert.h"
 #include "common/Common.h"
+#include "common/Assert.h"
 #include "qcommon/q_shared.h"
 
 enum class glHardwareVendor_t
