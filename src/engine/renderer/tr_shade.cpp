@@ -2216,12 +2216,16 @@ void Render_liquid( shaderStage_t *pStage )
 
 	gl_liquidShader->SetReliefMapping( pStage->enableReliefMapping );
 
+	gl_liquidShader->SetGridDeluxeMapping( true );
+
+	gl_liquidShader->SetGridLighting( true );
+
 	// enable shader, set arrays
 	gl_liquidShader->BindProgram( pStage->deformIndex );
 	gl_liquidShader->SetRequiredVertexPointers();
 
 	// set uniforms
-	VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin );  // in world space
+	VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin ); // in world space
 
 	fogDensity = RB_EvalExpression( &pStage->fogDensityExp, 0.001 );
 	VectorCopy( tess.svars.color.ToArray(), fogColor );
