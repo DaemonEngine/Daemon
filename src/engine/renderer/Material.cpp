@@ -1191,6 +1191,8 @@ void BindShaderLiquid( Material* material ) {
 	// Select shader permutation.
 	gl_liquidShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_liquidShaderMaterial->SetReliefMapping( material->enableReliefMapping );
+	gl_liquidShaderMaterial->SetGridDeluxeMapping( material->enableGridDeluxeMapping );
+	gl_liquidShaderMaterial->SetGridLighting( material->enableGridLighting );
 
 	// Bind shader program.
 	gl_liquidShaderMaterial->BindProgram( material->deformIndex );
@@ -1372,16 +1374,26 @@ void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSur
 	material->program = gl_heatHazeShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ ) {
+void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
 	material->shader = gl_liquidShaderMaterial;
+
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( drawSurf, pStage->type, lightMode, deluxeMode );
 
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
 	material->deformIndex = pStage->deformIndex;
+	material->enableGridDeluxeMapping = true;
+	material->enableGridLighting = true;
 
 	gl_liquidShaderMaterial->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_liquidShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
+
+	gl_liquidShaderMaterial->SetGridDeluxeMapping( deluxeMode == deluxeMode_t::GRID );
+
+	gl_liquidShaderMaterial->SetGridLighting( lightMode == lightMode_t::GRID );
 
 	material->program = gl_liquidShaderMaterial->GetProgram( pStage->deformIndex );
 }

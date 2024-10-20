@@ -2244,17 +2244,25 @@ void Render_liquid( shaderStage_t *pStage )
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( &tess, pStage->type, lightMode, deluxeMode );
+
 	// choose right shader program
 	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_liquidShader->SetReliefMapping( pStage->enableReliefMapping );
+
+	gl_liquidShader->SetGridDeluxeMapping( deluxeMode == deluxeMode_t::GRID );
+
+	gl_liquidShader->SetGridLighting( lightMode == lightMode_t::GRID );
 
 	// enable shader, set arrays
 	gl_liquidShader->BindProgram( pStage->deformIndex );
 	gl_liquidShader->SetRequiredVertexPointers();
 
 	// set uniforms
-	VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin );  // in world space
+	VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin ); // in world space
 
 	fogDensity = RB_EvalExpression( &pStage->fogDensityExp, 0.001 );
 	VectorCopy( tess.svars.color.ToArray(), fogColor );

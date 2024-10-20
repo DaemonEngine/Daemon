@@ -4568,6 +4568,8 @@ class GLShader_liquid :
 	public u_SpecularExponent,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
+	public GLCompileMacro_USE_GRID_DELUXE_MAPPING,
+	public GLCompileMacro_USE_GRID_LIGHTING,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING
 {
@@ -4603,6 +4605,8 @@ class GLShader_liquidMaterial :
 	public u_SpecularExponent,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
+	public GLCompileMacro_USE_GRID_DELUXE_MAPPING,
+	public GLCompileMacro_USE_GRID_LIGHTING,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
