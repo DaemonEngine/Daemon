@@ -515,7 +515,7 @@ void VMBase::Create()
 	std::string vmABI = reader.Read<std::string>();
 	if (vmABI != IPC::SYSCALL_ABI_VERSION) {
 		Sys::Drop("Couldn't load the %s gamelogic module: it uses ABI version %s but this Daemon engine uses %s",
-		          vmABI, IPC::SYSCALL_ABI_VERSION);
+		          this->name, vmABI, IPC::SYSCALL_ABI_VERSION);
 	}
 
 	bool vmCompatBreaking = reader.Read<bool>();
