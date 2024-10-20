@@ -231,7 +231,7 @@ idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTiles ) {
 
 // 8 bits per light ID
 uint nextIdx( in uint count, in idxs_t idxs ) {
-	return ( idxs[count / 4] >> ( 8 * ( count % 4 ) ) ) & 0xFF;
+	return ( idxs[count / 4] >> ( 8 * ( count % 4 ) ) ) & 0xFFu;
 }
 
 #if defined(USE_REFLECTIVE_SPECULAR)
