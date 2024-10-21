@@ -619,4 +619,9 @@ void VMBase::Free()
 
 }
 
+VMBase::~VMBase()
+{
+	Free();
+}
+
 } // namespace VM

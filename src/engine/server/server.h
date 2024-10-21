@@ -70,12 +70,15 @@ struct server_t
 	int             snapshotCounter; // incremented for each snapshot built
 	int             timeResidual; // <= 1000 / sv_frame->value
 	int             nextFrameTime; // when time > nextFrameTime, process world
-	struct cmodel_t *models[ MAX_MODELS ];
 
 	char            *configstrings[ MAX_CONFIGSTRINGS ];
 	bool        configstringsmodified[ MAX_CONFIGSTRINGS ];
 	svEntity_t      svEntities[ MAX_GENTITIES ];
 
+	// this is apparently just a proxy, this pointer
+	// is set to contain the strings that define entities
+	// which must be parsed by sgame for spawning map entities,
+	// notably.
 	const char            *entityParsePoint; // used during game VM init
 
 	// the game virtual machine will update these on init and changes

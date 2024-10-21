@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <tuple>
 #include <type_traits>
+#include <string.h>
 
 #include "Compiler.h"
 
