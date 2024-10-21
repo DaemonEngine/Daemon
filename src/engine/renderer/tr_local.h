@@ -3043,6 +3043,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	extern Cvar::Cvar<bool> r_profilerRenderSubGroups;
 	extern Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode;
+	extern Cvar::Cvar<int> r_profilerRenderSubGroupsStage;
 
 	extern cvar_t *r_vboFaces;
 	extern cvar_t *r_vboCurves;
