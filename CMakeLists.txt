@@ -506,12 +506,6 @@ if (DEPS_DIR)
         set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH} PARENT_SCOPE)
         set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH} PARENT_SCOPE)
     endif()
-
-    # Force OpenAL Soft on Mac, otherwise the system framework will be selected
-    if (APPLE)
-        set(OPENAL_INCLUDE_DIR ${DEPS_DIR}/include/AL)
-        set(OPENAL_LIBRARY ${DEPS_DIR}/lib/libopenal.dylib)
-    endif()
 endif()
 
 # These variables are defined:
@@ -822,7 +816,10 @@ if (BUILD_CLIENT)
     include_directories(${GLEW_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${GLEW_LIBRARIES})
 
+    set(backup_find_framework ${CMAKE_FIND_FRAMEWORK})
+    set(CMAKE_FIND_FRAMEWORK NEVER) # Mac's system OpenAL doesn't have efx.h
     find_package(OpenAL REQUIRED)
+    set(CMAKE_FIND_FRAMEWORK ${backup_find_framework})
     include_directories(${OPENAL_INCLUDE_DIR})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${OPENAL_LIBRARY})
 endif()

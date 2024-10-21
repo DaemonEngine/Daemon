@@ -59,7 +59,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 static Cvar::Cvar<bool> workaround_naclArchitecture_arm64_disableQualification(
-	"workaround.naclArchitecture.arm64.disableQualification",
+	"workaround.linux.arm64.naclDisableQualification",
 	"Disable platform qualification when running armhf NaCl loader on arm64 Linux",
 	Cvar::NONE, true);
 
@@ -305,7 +305,7 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 	bool enableQualification = vm_nacl_qualification.Get();
 
 	if (enableQualification) {
-#if defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf)
+#if defined(__linux__) && (defined(DAEMON_ARCH_arm64) || defined(DAEMON_ARCH_armhf))
 		if (workaround_naclArchitecture_arm64_disableQualification.Get()) {
 #if defined(DAEMON_ARCH_arm64)
 			bool onArm64 = true;

@@ -75,17 +75,20 @@ add_definitions(-DARCH_STRING=${ARCH})
 
 # Modifying NACL_ARCH breaks engine compatibility with nexe game binaries
 # since NACL_ARCH contributes to the nexe file name.
-set(ARMHF_USAGE arm64 armel)
-if(ARCH IN_LIST ARMHF_USAGE)
-	if (LINUX OR FREEBSD)
+set(NACL_ARCH "${ARCH}")
+if (LINUX OR FREEBSD)
+	set(ARMHF_USAGE arm64 armel)
+	if (ARCH IN_LIST ARMHF_USAGE)
 		# Load 32-bit armhf nexe on 64-bit arm64 engine on Linux with multiarch.
 		# The nexe is system agnostic so there should be no difference with armel.
 		set(NACL_ARCH "armhf")
-	else()
-		message(FATAL_ERROR "${ARCH} architecture is not supported on this system")
 	endif()
-else()
-	set(NACL_ARCH "${ARCH}")
+elseif(APPLE)
+	if ("${ARCH}" STREQUAL arm64)
+		# You can get emulated NaCl going like this:
+		# cp external_deps/macos-amd64-default_10/{nacl_loader,irt_core-amd64.nexe} build/
+		set(NACL_ARCH "amd64")
+	endif()
 endif()
 
 # Quotes cannot be part of the define as support for them is not reliable.
