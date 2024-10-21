@@ -2016,6 +2016,14 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	uint32_t stateBits = material.stateBits;
 
 	if ( r_profilerRenderSubGroups.Get() ) {
+		const int materialID = r_profilerRenderSubGroupsStage.Get();
+		if ( materialID != -1 ) {
+			// Make sure we don't skip depth pre-pass materials; ID starts at opaque materials because we can't use this with depth materials
+			if ( ( material.globalID >= materialPacks[0].materials.size() ) && ( material.globalID != materialID + materialPacks[0].materials.size() ) ) {
+				return;
+			}
+		}
+
 		switch ( r_profilerRenderSubGroupsMode.Get() ) {
 			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ):
 			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_OPAQUE ):

@@ -2767,12 +2767,20 @@ void Tess_StageIteratorColor()
 	}
 
 	// call shader function
-	uint stage = 0;
+	int stage = 0;
 	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
 	{
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) && !( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) )
 		{
 			continue;
+		}
+
+		if ( r_profilerRenderSubGroups.Get() && !backEnd.projection2D ) {
+			const int stageID = r_profilerRenderSubGroupsStage.Get();
+			if( ( ( stageID == -1 ) && ( pStage != tess.surfaceLastStage - 1 ) )
+				|| ( ( stageID != -1 ) && ( stageID != stage ) ) ) {
+				continue;
+			}
 		}
 
 		Tess_ComputeColor( pStage );
