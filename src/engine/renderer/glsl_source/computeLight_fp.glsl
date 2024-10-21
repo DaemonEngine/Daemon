@@ -243,6 +243,10 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 	inout vec4 color, in usampler3D u_LightTiles )
 #endif // !USE_REFLECTIVE_SPECULAR
 {
+	if( u_numLights == 0 ) {
+		return;
+	}
+
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
 
 	for( uint layer = 0; layer < numLayers; layer++ ) {
