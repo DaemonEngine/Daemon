@@ -966,7 +966,7 @@ void Render_generic3D( shaderStage_t *pStage )
 		);
 	}
 
-	if ( r_profilerRenderSubGroups.Get() ) {
+	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
 		const uint mode = GetShaderProfilerRenderSubGroupsMode( pStage->stateBits );
 		if( mode == 0 ) {
 			return;
@@ -1274,7 +1274,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 		);
 	}
 
-	if ( r_profilerRenderSubGroups.Get() ) {
+	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
 		const uint mode = GetShaderProfilerRenderSubGroupsMode( stateBits );
 		if ( mode == 0 ) {
 			return;
@@ -2767,12 +2767,20 @@ void Tess_StageIteratorColor()
 	}
 
 	// call shader function
-	uint stage = 0;
+	int stage = 0;
 	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
 	{
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) && !( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) )
 		{
 			continue;
+		}
+
+		if ( r_profilerRenderSubGroups.Get() && !backEnd.projection2D && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
+			const int stageID = r_profilerRenderSubGroupsStage.Get();
+			if( ( stageID != -1 ) && ( stageID != stage ) ) {
+				stage++;
+				continue;
+			}
 		}
 
 		Tess_ComputeColor( pStage );
