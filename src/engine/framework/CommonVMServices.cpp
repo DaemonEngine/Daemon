@@ -223,7 +223,7 @@ namespace VM {
     void CommonVMServices::HandleLogSyscall(int minor, Util::Reader& reader, IPC::Channel& channel) {
         switch(minor) {
             case DISPATCH_EVENT:
-                IPC::HandleMsg<DispatchLogEventMsg>(channel, std::move(reader), [this](const std::string& text, int targetControl){
+                IPC::HandleMsg<DispatchLogEventMsg>(channel, std::move(reader), [this](std::string text, int targetControl){
                     Log::Dispatch(Log::Event(std::move(text)), targetControl);
                 });
                 break;
