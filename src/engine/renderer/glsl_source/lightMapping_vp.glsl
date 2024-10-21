@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #insert vertexSimple_vp
 #insert vertexSkinning_vp
 #insert vertexAnimation_vp
+#insert shaderProfiler_vp
 
 #if !defined(USE_BSP_SURFACE)
 	#define USE_MODEL_SURFACE
@@ -98,6 +99,8 @@ void main()
 	#if defined(USE_LIGHT_MAPPING) || defined(USE_DELUXE_MAPPING)
 		var_TexLight = lmCoord;
 	#endif
+
+	SHADER_PROFILER_SET
 
 	// transform diffusemap texcoords
 	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;

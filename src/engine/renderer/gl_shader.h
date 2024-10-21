@@ -3318,6 +3318,32 @@ class u_MaterialColour :
 	}
 };
 
+// u_Profiler* uniforms are all used for shader profiling, with the corresponding r_profiler* cvars
+// u_ProfilerZero is used to reset the colour in a shader without the shader compiler optimising the rest of the shader out
+class u_ProfilerZero :
+	GLUniform1f {
+	public:
+	u_ProfilerZero( GLShader* shader ) :
+		GLUniform1f( shader, "u_ProfilerZero", true ) {
+	}
+
+	void SetUniform_ProfilerZero() {
+		this->SetValue( 0.0 );
+	}
+};
+
+class u_ProfilerRenderSubGroups :
+	GLUniform1ui {
+	public:
+	u_ProfilerRenderSubGroups( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ProfilerRenderSubGroups", true ) {
+	}
+
+	void SetUniform_ProfilerRenderSubGroups( const uint renderSubGroups ) {
+		this->SetValue( renderSubGroups );
+	}
+};
+
 class u_ModelMatrix :
 	GLUniformMatrix4f
 {
@@ -3913,6 +3939,8 @@ class GLShader_generic :
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_ProfilerZero,
+	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -3943,6 +3971,8 @@ class GLShader_genericMaterial :
 	public u_DepthScale,
 	public u_ShowTris,
 	public u_MaterialColour,
+	public u_ProfilerZero,
+	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -3987,6 +4017,8 @@ class GLShader_lightMapping :
 	public u_LightGridScale,
 	public u_numLights,
 	public u_Lights,
+	public u_ProfilerZero,
+	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -4039,6 +4071,8 @@ class GLShader_lightMappingMaterial :
 	public u_Lights,
 	public u_ShowTris,
 	public u_MaterialColour,
+	public u_ProfilerZero,
+	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
 	// public GLCompileMacro_USE_VERTEX_SKINNING,

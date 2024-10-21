@@ -240,3 +240,29 @@ inline void SetVertexLightingSettings( lightMode_t lightMode, colorGen_t& rgbGen
 		tess.svars.color.SetBlue( 0.0f );
 	}
 }
+
+inline uint GetShaderProfilerRenderSubGroupsMode( const uint32_t stateBits ) {
+	const bool isOpaque = !( stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
+	const bool modeOpaque = r_profilerRenderSubGroupsMode.Get() == Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE )
+		|| r_profilerRenderSubGroupsMode.Get() == Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_OPAQUE );
+
+	if ( r_profilerRenderSubGroupsMode.Get() == Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_ALL )
+		|| r_profilerRenderSubGroupsMode.Get() == Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_ALL )
+		|| isOpaque == modeOpaque ) {
+
+		switch ( r_profilerRenderSubGroupsMode.Get() ) {
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_TRANSPARENT ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_ALL ):
+				return 1;
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_OPAQUE ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_TRANSPARENT ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_ALL ):
+				return 2;
+			default:
+				break;
+		}
+	}
+
+	return 0;
+}

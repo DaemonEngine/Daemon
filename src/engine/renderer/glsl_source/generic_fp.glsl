@@ -28,7 +28,7 @@ uniform sampler2D	u_ColorMap;
 uniform float		u_AlphaThreshold;
 
 #if !defined(GENERIC_2D)
-uniform float u_InverseLightFactor;
+	uniform float u_InverseLightFactor;
 #endif
 
 #if defined(USE_MATERIAL_SYSTEM)
@@ -43,6 +43,8 @@ IN(smooth) vec4		var_Color;
 IN(smooth) vec2         var_FadeDepth;
 uniform sampler2D       u_DepthMap;
 #endif
+
+#insert shaderProfiler_fp
 
 DECLARE_OUTPUT(vec4)
 
@@ -76,6 +78,8 @@ void	main()
 #if !defined(GENERIC_2D)
 	color.rgb *= u_InverseLightFactor;
 #endif
+	
+	SHADER_PROFILER_SET( color )
 
 	outputColor = color;
 

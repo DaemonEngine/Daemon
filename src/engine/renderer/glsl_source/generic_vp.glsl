@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #insert vertexSimple_vp
 #insert vertexSkinning_vp
 #insert vertexAnimation_vp
+#insert shaderProfiler_vp
 
 uniform mat4		u_TextureMatrix;
 uniform vec3		u_ViewOrigin;
@@ -98,6 +99,8 @@ void	main()
 	vec4 fadeDepth = u_ModelViewProjectionMatrix * (position - u_DepthScale * vec4(LB.normal, 0.0));
 	var_FadeDepth = fadeDepth.zw;
 #endif
+
+	SHADER_PROFILER_SET
 
 	var_Color = color;
 }

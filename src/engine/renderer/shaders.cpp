@@ -60,6 +60,8 @@
 #include "material_vp.glsl.h"
 #include "material_fp.glsl.h"
 #include "common_cp.glsl.h"
+#include "shaderProfiler_vp.glsl.h"
+#include "shaderProfiler_fp.glsl.h"
 #include "clearSurfaces_cp.glsl.h"
 #include "cull_cp.glsl.h"
 #include "depthReduction_cp.glsl.h"
@@ -121,6 +123,8 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "reliefMapping_fp.glsl", std::string(reinterpret_cast<const char*>(reliefMapping_fp_glsl), sizeof(reliefMapping_fp_glsl)) },
 	{ "screen_fp.glsl", std::string(reinterpret_cast<const char*>(screen_fp_glsl), sizeof(screen_fp_glsl)) },
 	{ "screen_vp.glsl", std::string(reinterpret_cast<const char*>(screen_vp_glsl), sizeof(screen_vp_glsl)) },
+	{ "shaderProfiler_vp.glsl", std::string( reinterpret_cast< const char* >( shaderProfiler_vp_glsl ), sizeof( shaderProfiler_vp_glsl ) ) },
+	{ "shaderProfiler_fp.glsl", std::string( reinterpret_cast< const char* >( shaderProfiler_fp_glsl ), sizeof( shaderProfiler_fp_glsl ) ) },
 	{ "shadowFill_fp.glsl", std::string(reinterpret_cast<const char*>(shadowFill_fp_glsl), sizeof(shadowFill_fp_glsl)) },
 	{ "shadowFill_vp.glsl", std::string(reinterpret_cast<const char*>(shadowFill_vp_glsl), sizeof(shadowFill_vp_glsl)) },
 	{ "skybox_fp.glsl", std::string(reinterpret_cast<const char*>(skybox_fp_glsl), sizeof(skybox_fp_glsl)) },
