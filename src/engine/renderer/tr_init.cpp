@@ -77,7 +77,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal(realtimeLightingRenderer_t::TILED),
 		Util::ordinal(realtimeLightingRenderer_t::LEGACY),
 		Util::ordinal(realtimeLightingRenderer_t::TILED) );
-	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "enable realtime light rendering", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "Enable realtime light rendering", Cvar::NONE, true );
+	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers( "r_realtimeLightLayers", "Dynamic light layers per tile, each layer holds 16 lights",
+		Cvar::NONE, 4, 1, MAX_REF_LIGHTS / 16 );
 	cvar_t      *r_realtimeLightingCastShadows;
 	cvar_t      *r_precomputedLighting;
 	Cvar::Cvar<int> r_overbrightDefaultExponent("r_overbrightDefaultExponent", "default map light color shift (multiply by 2^x)", Cvar::NONE, 2);
@@ -1205,6 +1207,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_realtimeLightingRenderer );
 		Cvar::Latch( r_realtimeLighting );
+		Cvar::Latch( r_realtimeLightLayers );
 		Cvar::Latch( r_preferBindlessTextures );
 		Cvar::Latch( r_materialSystem );
 

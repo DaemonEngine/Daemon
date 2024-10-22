@@ -2882,6 +2882,7 @@ enum class cubeProbesAutoBuildMode {
 	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
 	extern Cvar::Cvar<bool> r_realtimeLighting;
+	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers;
 	extern cvar_t *r_realtimeLightingCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_overbrightDefaultExponent;

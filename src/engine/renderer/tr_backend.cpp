@@ -2911,7 +2911,7 @@ void RB_RenderPostDepthLightTile()
 
 	R_BindVBO( tr.lighttileVBO );
 
-	for( int layer = 0; layer < MAX_REF_LIGHTS / 256; layer++ ) {
+	for( int layer = 0; layer < glConfig2.realtimeLightLayers; layer++ ) {
 		R_AttachFBOTexture3D( tr.lighttileRenderImage->texnum, 0, layer );
 		gl_lighttileShader->SetUniform_lightLayer( layer );
 

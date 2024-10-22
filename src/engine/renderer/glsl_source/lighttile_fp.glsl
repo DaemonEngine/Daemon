@@ -60,8 +60,6 @@ uniform sampler2D u_DepthMap;
 uniform int u_lightLayer;
 uniform vec3 u_zFar;
 
-const int numLayers = MAX_REF_LIGHTS / 256;
-
 const int lightsPerLayer = 16;
 
 #define idxs_t uvec4
@@ -123,7 +121,7 @@ void main() {
 	only process 1 / 4 of different lights for each layer, extra lights going into the last layer. This can fail to add some lights
 	if 1 / 4 of all lights is more than the amount of lights that each layer can hold (16). To fix this, we'd need to either do this on CPU
 	or use compute shaders with atomics so we can have a variable amount of lights for each tile. */
-	for( uint i = u_lightLayer; i < u_numLights; i += numLayers ) {
+	for( uint i = u_lightLayer; i < u_numLights; i += NUM_LIGHT_LAYERS ) {
 		Light l = GetLight( i );
 		vec3 center = ( u_ModelMatrix * vec4( l.center, 1.0 ) ).xyz;
 		float radius = max( 2.0 * l.radius, 2.0 * 32.0 ); // Avoid artifacts with weak light sources
@@ -139,7 +137,7 @@ void main() {
 		if( radius > 0.0 ) {
 			/* Light IDs are stored relative to the layer
 			Add 1 because 0 means there's no light */
-			pushIdxs( ( i / numLayers ) + 1, lightCount, idxs );
+			pushIdxs( ( i / NUM_LIGHT_LAYERS ) + 1, lightCount, idxs );
 			lightCount++;
 
 			if( lightCount == lightsPerLayer ) {
