@@ -445,7 +445,7 @@ void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawS
 		VectorCopy( backEnd.viewParms.orientation.origin, position );
 	}
 
-	cubemapProbe_t* probes[2];
+	cubemapProbe_t* probes[ 1 ];
 	vec4_t trilerp;
 	R_GetNearestCubeMaps( position, probes, trilerp, 1 );
 

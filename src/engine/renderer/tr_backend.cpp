@@ -4105,7 +4105,7 @@ static void RB_RenderDebugUtils()
 			GL_CheckErrors();
 
 			cubemapProbe_t* probes[2];
-			vec3_t trilerp;
+			vec4_t trilerp;
 			vec3_t gridPoints[2];
 			R_GetNearestCubeMaps( backEnd.viewParms.orientation.origin, probes, trilerp, 2, gridPoints );
 

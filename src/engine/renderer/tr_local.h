@@ -4012,9 +4012,8 @@ inline bool checkGLErrors()
 
 // cubemap reflections stuff
 	void R_BuildCubeMaps();
-	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples );
-	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples,
-		vec3_t* gridPoints );
+	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp,
+		const uint8_t samples, vec3_t *gridPoints = nullptr );
 
 // font stuff
 	void       R_InitFreeType();

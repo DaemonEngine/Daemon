@@ -4519,7 +4519,7 @@ static bool R_SaveCubeMaps() {
 	return true;
 }
 
-void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec3_t trilerp, const uint8_t samples,
+void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples,
 	vec3_t* gridPoints ) {
 	ASSERT_GE( samples, 1 );
 	ASSERT_LE( samples, 4 );
@@ -4563,11 +4563,6 @@ void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, v
 			VectorCopy( probes[i].gridPoint, gridPoints[i] );
 		}
 	}
-}
-
-void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec3_t trilerp, const uint8_t samples ) {
-	vec3_t* unused = nullptr;
-	R_GetNearestCubeMaps( position, cubeProbes, trilerp, samples, unused );
 }
 
 static bool R_NodeSuitableForCubeMap( const bspNode_t* node ) {
