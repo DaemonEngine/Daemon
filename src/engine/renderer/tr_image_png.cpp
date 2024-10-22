@@ -56,7 +56,7 @@ static void NORETURN png_user_error_fn( png_structp png_ptr, png_const_charp err
 }
 
 void LoadPNG( const char *name, byte **pic, int *width, int *height,
-	      int*, int*, int* bits, byte alphaByte )
+	      int*, int*, int *, byte alphaByte )
 {
 	int          bit_depth;
 	int          color_type;
@@ -70,12 +70,7 @@ void LoadPNG( const char *name, byte **pic, int *width, int *height,
 
 	// load png
 	std::error_code err;
-	std::string data;
-	if ( ( *bits ) & IF_HOMEPATH ) {
-		data = FS::HomePath::OpenRead( name, err ).ReadAll();
-	} else {
-		data = FS::PakPath::ReadFile( name, err );
-	}
+	std::string data = FS::PakPath::ReadFile( name, err );
 
 	if ( err )
 	{
