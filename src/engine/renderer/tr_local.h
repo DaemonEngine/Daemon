@@ -198,9 +198,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define TILE_SHIFT_STEP1 2
 #define TILE_SIZE_STEP1  (1 << TILE_SHIFT_STEP1)
 
-// max. 16 dynamic lights per plane
-#define LIGHT_PLANES ( MAX_REF_LIGHTS / 16 )
-
 struct glFboShim_t
 {
 	/* Functions with same signature and similar purpose can be provided by:
