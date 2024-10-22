@@ -222,8 +222,7 @@ const int lightsPerLayer = 16;
 
 uniform usampler3D u_LightTiles;
 
-const uint numLayers = MAX_REF_LIGHTS / 256;
-const vec3 tileScale = vec3( r_tileStep, 1.0 / float( numLayers ) );
+const vec3 tileScale = vec3( r_tileStep, 1.0 / float( NUM_LIGHT_LAYERS ) );
 
 idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTiles ) {
 	return texture3D( u_LightTiles, coords );
@@ -245,7 +244,7 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 {
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
 
-	for( uint layer = 0; layer < numLayers; layer++ ) {
+	for( uint layer = 0; layer < NUM_LIGHT_LAYERS; layer++ ) {
 		uint lightCount = 0;
 		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTiles );
 
@@ -258,7 +257,7 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 
 			/* Light IDs are stored relative to the layer
 			Subtract 1 because 0 means there's no light */
-			idx = ( idx - 1 ) * numLayers + layer;
+			idx = ( idx - 1 ) * NUM_LIGHT_LAYERS + layer;
 	  
 			#if defined(USE_REFLECTIVE_SPECULAR)
 				computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color, u_EnvironmentMap0, u_EnvironmentMap1 );

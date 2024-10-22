@@ -596,6 +596,7 @@ static std::string GenEngineConstants() {
 	AddDefine( str, "M_PI", static_cast< float >( M_PI ) );
 	AddDefine( str, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
 	AddDefine( str, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
+	AddDefine( str, "NUM_LIGHT_LAYERS", glConfig2.realtimeLightLayers );
 	AddDefine( str, "TILE_SIZE", TILE_SIZE );
 
 	AddDefine( str, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );

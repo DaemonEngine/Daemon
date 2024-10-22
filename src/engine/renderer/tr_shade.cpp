@@ -68,6 +68,18 @@ static void EnableAvailableFeatures()
 		}
 	}
 
+	if ( glConfig2.realtimeLighting ) {
+		glConfig2.realtimeLightLayers = r_realtimeLightLayers.Get();
+
+		if ( glConfig2.realtimeLightLayers > glConfig2.max3DTextureSize ) {
+			glConfig2.realtimeLightLayers = glConfig2.max3DTextureSize;
+			Log::Notice( "r_realtimeLightLayers exceeds maximum 3D texture size, using %i instead", glConfig2.max3DTextureSize );
+		}
+
+		Log::Notice( "Using %i dynamic light layers, %i dynamic lights available per tile", glConfig2.realtimeLightLayers,
+			glConfig2.realtimeLightLayers * 16 );
+	}
+
 	glConfig2.colorGrading = r_colorGrading.Get();
 
 	if ( glConfig2.colorGrading )
@@ -1085,19 +1097,16 @@ void Render_lightMapping( shaderStage_t *pStage )
 	if ( glConfig2.realtimeLighting &&
 	     r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 	{
+		gl_lightMappingShader->SetUniform_numLights( tr.refdef.numLights );
+
 		if ( backEnd.refdef.numShaderLights > 0 )
 		{
-			gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
 			gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 
 			// bind u_LightTiles
 			gl_lightMappingShader->SetUniform_LightTilesBindless(
 				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
 			);
-		}
-		else
-		{
-			gl_lightMappingShader->SetUniform_numLights( 0 );
 		}
 	}
 

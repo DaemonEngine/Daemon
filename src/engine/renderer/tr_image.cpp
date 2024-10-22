@@ -2574,7 +2574,7 @@ static void R_CreateDepthRenderImage()
 
 		imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
-		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
+		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, glConfig2.realtimeLightLayers, imageParams );
 	}
 }
 
