@@ -1994,7 +1994,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 		VectorCopy( backEnd.viewParms.orientation.origin, position );
 	}
 
-	cubemapProbe_t* probes[2];
+	cubemapProbe_t* probes[ 1 ];
 	vec4_t trilerp;
 	R_GetNearestCubeMaps( position, probes, trilerp, 1 );
 
