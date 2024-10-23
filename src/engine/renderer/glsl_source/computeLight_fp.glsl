@@ -49,16 +49,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || defined(r_realtimeLighting)
-#if !defined(USE_PHYSICAL_MAPPING)
-#if defined(r_specularMapping)
-	uniform vec2 u_SpecularExponent;
+	#if !defined(USE_PHYSICAL_MAPPING) && defined(r_specularMapping)
+		uniform vec2 u_SpecularExponent;
 
-vec3 computeSpecularity(vec3 lightColor, vec4 materialColor, float NdotH)
-{
-	return lightColor * materialColor.rgb * pow(NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
-}
-#endif
-#endif
+		vec3 computeSpecularity( vec3 lightColor, vec4 materialColor, float NdotH ) {
+			return lightColor * materialColor.rgb * pow(NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
+		}
+	#endif
 #endif
 
 #if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
