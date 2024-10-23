@@ -305,7 +305,7 @@ else()
 
 	# The -pthread flag sets some preprocessor defines,
 	# it is also used to link with libpthread on Linux.
-	if (NOT APPLE)
+	if (LINUX OR FREEBSD)
 		try_c_cxx_flag(PTHREAD "-pthread")
 	endif()
 
@@ -315,7 +315,7 @@ else()
 	endif()
 
 	# Hardening.
-	if (USE_HARDENING OR NOT MINGW)
+	if (USE_HARDENING OR (NOT MINGW AND NOT NACL))
 		# MinGW with _FORTIFY_SOURCE and without -fstack-protector
 		# causes unsatisfied dependency on libssp.
 		# https://github.com/msys2/MINGW-packages/issues/5868
