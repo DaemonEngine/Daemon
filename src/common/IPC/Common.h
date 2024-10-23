@@ -81,7 +81,7 @@ namespace IPC {
 
     // This should be manually set to true when starting a 'for-X.Y.Z/sync' branch.
     // This should be set to false by update-version-number.py when a (major) release is created.
-    constexpr bool DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES = false;
+    constexpr bool DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES = true;
 
     /*
      * The messages sent between the VM and the engine are defined by a numerical
