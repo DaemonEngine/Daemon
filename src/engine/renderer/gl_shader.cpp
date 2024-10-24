@@ -2976,6 +2976,8 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_SpecularExponent( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
+	GLCompileMacro_USE_GRID_DELUXE_MAPPING( this ),
+	GLCompileMacro_USE_GRID_LIGHTING( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this )
 {
@@ -3018,6 +3020,8 @@ GLShader_liquidMaterial::GLShader_liquidMaterial( GLShaderManager* manager ) :
 	u_SpecularExponent( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
+	GLCompileMacro_USE_GRID_DELUXE_MAPPING( this ),
+	GLCompileMacro_USE_GRID_LIGHTING( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
 }

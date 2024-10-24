@@ -130,7 +130,12 @@ void	main()
 
 	// compute light color from light grid
 	vec3 ambientColor, lightColor;
-	ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
+	#if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
+		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
+	#else // !( defined(USE_GRID_LIGHTING) && defined(USE_GRID_DELUXE_MAPPING) )
+		ambientColor = vec3( 0.0, 0.0, 0.0 );
+		lightColor = vec3( 0.0, 0.0, 0.0 );
+	#endif
 
 	// compute light direction in world space
 	vec4 texel = texture3D(u_LightGrid2, lightGridPos);
@@ -139,11 +144,15 @@ void	main()
 	vec4 diffuse = vec4(0.0, 0.0, 0.0, 1.0);
 
 	// compute the specular term
-	#if defined(USE_REFLECTIVE_SPECULAR)
-		computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color, u_EnvironmentMap0, u_EnvironmentMap1);
-	#else // !USE_REFLECTIVE_SPECULAR
-		computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
-	#endif // !USE_REFLECTIVE_SPECULAR
+	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
+		#if defined(USE_REFLECTIVE_SPECULAR)
+			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color, u_EnvironmentMap0, u_EnvironmentMap1);
+		#else // !USE_REFLECTIVE_SPECULAR
+			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
+		#endif // !USE_REFLECTIVE_SPECULAR
+	#else // !USE_DELUXE_MAPPING && !USE_GRID_DELUXE_MAPPING
+		computeLight(lightColor, diffuse, color);
+	#endif // !USE_DELUXE_MAPPING && !USE_GRID_DELUXE_MAPPING
 
 	outputColor = color;
 
