@@ -58,6 +58,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 0x2000
 #endif
 
+static Cvar::Cvar<std::string> abiVersionCvar(
+	"version.daemon.abi", "Virtual machine IPC ABI version", Cvar::SERVERINFO | Cvar::ROM,
+	std::string(IPC::SYSCALL_ABI_VERSION) +
+	(IPC::DAEMON_HAS_COMPATIBILITY_BREAKING_SYSCALL_CHANGES ? "+compatbreak" : ""));
+
 static Cvar::Cvar<bool> workaround_naclArchitecture_arm64_disableQualification(
 	"workaround.naclArchitecture.arm64.disableQualification",
 	"Disable platform qualification when running armhf NaCl loader on arm64 Linux",
