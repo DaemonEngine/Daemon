@@ -121,7 +121,7 @@ Cvar::Cvar<ServerPrivate> isPrivate(
 	"2 - Don't reply to status queries but accept connections, "
 	"3 - Only accept LAN connections.",
 #if BUILD_GRAPHICAL_CLIENT || BUILD_TTY_CLIENT
-	Cvar::ROM, ServerPrivate::LanOnly
+	Cvar::ROM, ServerPrivate::NoAdvertise
 #elif BUILD_SERVER
 	Cvar::NONE, ServerPrivate::Public
 #else
