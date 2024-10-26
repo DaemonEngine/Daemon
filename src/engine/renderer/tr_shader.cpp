@@ -1965,7 +1965,7 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 		for ( const extraMapParser_t parser: dpExtraMapParsers )
 		{
 			std::string extraMapName = Str::Format( "%s%s", colorMapBaseName, parser.suffix );
-			if( R_FindImageLoader( extraMapName.c_str() ) >= 0 )
+			if ( R_HasImageLoader( extraMapName.c_str() ) )
 			{
 				foundExtraMap = true;
 				Log::Debug( "found extra %s '%s'", parser.description, extraMapName.c_str() );

@@ -3265,7 +3265,7 @@ inline bool checkGLErrors()
 	void    R_InitImages();
 	void    R_ShutdownImages();
 
-	int R_FindImageLoader( const char *baseName );
+	bool R_HasImageLoader( const char *baseName );
 	image_t *R_FindImageFile( const char *name, imageParams_t &imageParams );
 	image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams );
 
