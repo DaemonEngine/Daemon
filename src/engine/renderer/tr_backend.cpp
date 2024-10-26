@@ -3018,7 +3018,7 @@ void RB_RenderGlobalFog()
 
 	// bind u_DepthMap
 	gl_fogGlobalShader->SetUniform_DepthMapBindless(
-		GL_BindToTMU( 0, tr.currentDepthImage )
+		GL_BindToTMU( 1, tr.currentDepthImage )
 	);
 
 	// set 2D virtual screen size
