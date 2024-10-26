@@ -44,8 +44,10 @@ Maryland 20850 USA.
 #include "framework/Network.h"
 #include "qcommon/sys.h"
 
-serverStatic_t svs; // persistent server info
-server_t       sv; // local server
+// These two structs have the same lifetime... both are cleared when the sgame exits
+serverStatic_t svs;
+server_t       sv;
+
 GameVM         gvm; // game virtual machine
 
 // Controls the gamelogic simulation time slice size. The game time always jumps in increments
