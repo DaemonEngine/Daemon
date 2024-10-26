@@ -4462,9 +4462,11 @@ static bool R_LoadCubeMaps() {
 		imageParams.filterType = filterType_t::FT_DEFAULT;
 		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-		image_t* cubemap = R_FindCubeImage( Str::Format( "%s%u", dirPath, i ).c_str(), imageParams );
+		std::string imageName = Str::Format( "%s%u", dirPath, i );
+
+		image_t* cubemap = R_FindCubeImage( imageName.c_str(), imageParams );
 		if ( !cubemap ) {
-			Log::Warn( "Failed to load cubemap %s%u", dirPath, i );
+			Log::Warn( "Failed to load cubemap %s", imageName );
 			return false;
 		}
 		cubeProbe.cubemap = cubemap;
@@ -4502,7 +4504,10 @@ static bool R_SaveCubeMaps() {
 
 	for ( uint32_t i = 1; i < tr.cubeProbes.size(); i++ ) {
 		cubemapGridFile.Printf( "%f %f %f\n", tr.cubeProbes[i].origin[0], tr.cubeProbes[i].origin[1], tr.cubeProbes[i].origin[2] );
-			SaveImageKTX( Str::Format( "%s%u.ktx", dirPath, i - 1 ).c_str(), tr.cubeProbes[i].cubemap );
+
+		std::string imagePath = Str::Format( "%s%u.ktx", dirPath, i - 1 );
+
+		SaveImageKTX( imagePath.c_str(), tr.cubeProbes[i].cubemap );
 	}
 
 	for ( uint32_t i = 0; i < tr.cubeProbeGrid.size; i++ ) {
