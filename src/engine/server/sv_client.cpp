@@ -49,11 +49,6 @@ static void SV_CloseDownload( client_t *cl );
 
 void SV_GetChallenge( const netadr_t& from )
 {
-	if ( SV_Private(ServerPrivate::LanOnly) && !Sys_IsLANAddress(from) )
-	{
-		return;
-	}
-
 	auto challenge = ChallengeManager::GenerateChallenge( from );
 	Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "challengeResponse %s", challenge );
 }
@@ -1029,7 +1024,7 @@ void SV_UserinfoChanged( client_t *cl )
 	// if the client is on the same subnet as the server and we aren't running an
 	// Internet server, assume that they don't need a rate choke
 	if ( Sys_IsLANAddress( cl->netchan.remoteAddress )
-		&& SV_Private(ServerPrivate::LanOnly)
+		&& sv_networkScope.Get() <= 1
 		&& sv_lanForceRate->integer == 1 )
 	{
 		cl->rate = 99999; // lans should not rate limit
