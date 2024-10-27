@@ -294,6 +294,8 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
+	Tess_ComputeColor( pStage );
+
 	SetVertexLightingSettings( lightMode, rgbGen );
 
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
@@ -327,7 +329,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	gl_lightMappingShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
-	Tess_ComputeColor( pStage );
 	gl_lightMappingShaderMaterial->SetUniform_Color( tess.svars.color );
 
 	// u_AlphaThreshold
