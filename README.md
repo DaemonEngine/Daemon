@@ -4,7 +4,7 @@ Dæmon is the standalone engine that powers the multiplayer first person shooter
 
 [![GitHub tag](https://img.shields.io/github/tag/DaemonEngine/Daemon.svg)](https://github.com/DaemonEngine/Daemon/tags)
 
-[![IRC](https://img.shields.io/badge/irc-%23daemon--engine%2C%23unvanquished--dev-4cc51c.svg)](https://web.libera.chat/#daemon-engine,#unvanquished-dev)
+[![IRC](https://img.shields.io/badge/irc-%23unvanquished--dev-9cf.svg)](https://web.libera.chat/#unvanquished-dev)
 
 | Windows | macOS | Linux |
 |---------|-----|-------|
