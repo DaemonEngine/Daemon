@@ -5239,33 +5239,55 @@ static void FinishStages()
 		? gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms )
 		: 0;
 
+	bool isOpaqueShader = false;
+
 	for ( size_t s = 0; s < numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
 
 		stage->deformIndex = deformIndex;
 
-		// We should cancel overbright if there is no light stage.
-		stage->cancelOverBright = shaderHasNoLight;
+		// SRC1 and DST0 are reset to zero in ParseStage (no blending).
+		bool isOpaque = !( stage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
+
+		// A shader is not opaque if all stages are not opaques.
+		isOpaqueShader |= isOpaque;
 
 		if ( shaderHasNoLight )
 		{
-			// We should not cancel overbright if there is no light and it's not using blendFunc dst_color.
-			bool blendFunc_dstColor = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
+			bool blendFunc_srcDstColor = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
 
-			if ( blendFunc_dstColor )
-			{
-				stage->cancelOverBright = false;
-			}
+			// We should cancel overbright if there is no light stage, unless it's using blendFunc dst_color.
+			stage->cancelOverBright = !blendFunc_srcDstColor;
 
-			// We should not cancel overbright if that's a non-opaque decal.
 			bool isDecal = shader.sort == Util::ordinal(shaderSort_t::SS_DECAL);
-			// SRC1 and DST0 are reset to zero in ParseStage (no blending).
-			bool isOpaque = !( stage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
 
 			if ( isDecal )
 			{
+				// We should not cancel overbright if that's a non-opaque decal.
 				stage->cancelOverBright = isOpaque;
+			}
+		}
+		else
+		{
+			if ( isOpaqueShader )
+			{
+				// We we should not cancel overbright if the light stage is applied on an opaque surface;
+				stage->cancelOverBright = false;
+			}
+			else
+			{
+				bool blendFunc_add = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
+					&& ( stage->stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
+
+				if ( blendFunc_add )
+				{
+					stage->cancelOverBright = true;
+				}
+				else
+				{
+					stage->cancelOverBright = false;
+				}
 			}
 		}
 
