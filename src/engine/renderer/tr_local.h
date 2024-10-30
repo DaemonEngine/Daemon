@@ -1075,8 +1075,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		bool            dpMaterial;
 
-		bool cancelOverBright;
-
 		// Core renderer (code path for when only OpenGL Core is available, or compatible OpenGL 2).
 		stageRenderer_t colorRenderer;
 
@@ -2769,8 +2767,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int mapOverBrightBits;
 		// pow(2, mapOverbrightBits)
 		float mapLightFactor;
-		// 1 / mapLightFactor
-		float mapInverseLightFactor;
 		// May have to be true on some legacy maps: clamp and normalize multiplied colors.
 		bool legacyOverBrightClamping;
 

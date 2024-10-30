@@ -28,8 +28,6 @@ uniform sampler2D u_CurrentMap;
 uniform sampler3D u_ColorMap3D;
 #endif
 
-uniform float u_LightFactor;
-
 uniform vec4      u_ColorModulate;
 uniform float     u_InverseGamma;
 
@@ -43,8 +41,6 @@ void	main()
 	vec2 st = gl_FragCoord.st / r_FBufSize;
 
 	vec4 color = texture2D(u_CurrentMap, st);
-
-	color.rgb *= u_LightFactor;
 
 	color = clamp(color, 0.0, 1.0);
 

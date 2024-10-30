@@ -27,10 +27,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_ColorMap;
 uniform float		u_AlphaThreshold;
 
-#if !defined(GENERIC_2D)
-	uniform float u_InverseLightFactor;
-#endif
-
 #if defined(USE_MATERIAL_SYSTEM)
 	uniform bool u_ShowTris;
 	uniform vec3 u_MaterialColour;
@@ -74,10 +70,6 @@ void	main()
 #endif
 
 	color *= var_Color;
-
-#if !defined(GENERIC_2D)
-	color.rgb *= u_InverseLightFactor;
-#endif
 	
 	SHADER_PROFILER_SET( color )
 
@@ -92,9 +84,5 @@ void	main()
 	outputColor = vec4(0.0, 0.0, 0.0, 0.0);
 #elif defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
 	outputColor.rgb = u_MaterialColour;
-
-	#if !defined(GENERIC_2D) && !defined(USE_DEPTH_FADE)
-		outputColor.rgb *= u_InverseLightFactor;
-	#endif
 #endif
 }

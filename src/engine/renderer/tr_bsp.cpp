@@ -5112,7 +5112,6 @@ void RE_LoadWorldMap( const char *name )
 	tr.modelLight = lightMode_t::FULLBRIGHT;
 	tr.modelDeluxe = deluxeMode_t::NONE;
 	tr.mapLightFactor = 1.0f;
-	tr.mapInverseLightFactor = 1.0f;
 
 	// Use fullbright lighting for everything if the world is fullbright.
 	if ( tr.worldLight != lightMode_t::FULLBRIGHT )
@@ -5189,7 +5188,6 @@ void RE_LoadWorldMap( const char *name )
 	if ( !tr.legacyOverBrightClamping && tr.lightMode != lightMode_t::FULLBRIGHT )
 	{
 		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
-		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;
 	}
 
 	tr.worldLoaded = true;

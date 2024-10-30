@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 uniform sampler2D u_FogMap;
 
-uniform float u_InverseLightFactor;
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
 IN(smooth) vec4		var_Color;
@@ -40,8 +39,6 @@ void	main()
 	vec4 color = texture2D(u_FogMap, var_TexCoords);
 
 	color *= var_Color;
-
-	color.rgb *= u_InverseLightFactor;
 
 	outputColor = color;
 
