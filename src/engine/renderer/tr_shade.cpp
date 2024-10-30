@@ -1128,7 +1128,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// u_InverseLightFactor
 	/* HACK: use sign to know if there is a light or not, and
 	then if it will receive overbright multiplication or not. */
-	bool cancelOverBright = pStage->cancelOverBright || lightMode == lightMode_t::FULLBRIGHT;
+	bool cancelOverBright = pStage->cancelOverBright;
 	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
 	gl_lightMappingShader->SetUniform_InverseLightFactor( inverseLightFactor );
 

@@ -5179,9 +5179,9 @@ void RE_LoadWorldMap( const char *name )
 		}
 	}
 
-	/* Used in GLSL code for the GLSL implementation
-	without color clamping and normalization. */
-	if ( !tr.legacyOverBrightClamping )
+	/* Set GLSL overbright parameters if the legacy clamped overbright isn't used
+	and the lighting mode is not fullbright. */
+	if ( !tr.legacyOverBrightClamping && tr.lightMode != lightMode_t::FULLBRIGHT )
 	{
 		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
 		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;
