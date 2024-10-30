@@ -1912,7 +1912,7 @@ int R_SpriteFogNum( trRefEntity_t *ent )
 R_AddDrawSurf
 =================
 */
-void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface )
+int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface )
 {
 	int        index;
 	drawSurf_t *drawSurf;
@@ -1927,6 +1927,7 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 	drawSurf->surface = surface;
 	drawSurf->shader = shader;
 	drawSurf->bspSurface = bspSurface;
+	drawSurf->fog = fogNum;
 
 	int entityNum;
 
@@ -1968,14 +1969,22 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, i
 			materialSystem.autospriteSurfaces.push_back( *drawSurf );
 		}
 
-		return;
+		return index;
 	}
 
 	if ( shader->depthShader != nullptr ) {
-		R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
-		drawSurf->depthSurface = &tr.refdef.drawSurfs[index + 1];
+		const int depthSurfIndex = R_AddDrawSurf( surface, shader->depthShader, 0, 0, bspSurface );
+		drawSurf->depthSurface = &tr.refdef.drawSurfs[depthSurfIndex];
 		drawSurf->depthSurface->materialSystemSkip = true;
 	}
+
+	if( !shader->noFog && fogNum >= 1 ) {
+		const int fogSurfIndex = R_AddDrawSurf( surface, shader->fogShader, 0, fogNum, bspSurface );
+		drawSurf->fogSurface = &tr.refdef.drawSurfs[fogSurfIndex];
+		drawSurf->fogSurface->materialSystemSkip = true;
+	}
+
+	return index;
 }
 
 static uint32_t currentView = 0;

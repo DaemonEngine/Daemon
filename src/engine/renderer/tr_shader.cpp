@@ -5512,6 +5512,13 @@ static void SetStagesRenderers()
 					false, false,
 				};
 				break;
+			case stageType_t::ST_FOGMAP:
+				stageRendererOptions = {
+					&Render_fog,
+					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
+					false, false,
+				};
+				break;
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
 				stageRendererOptions = {
@@ -5713,7 +5720,8 @@ static void ValidateStage( shaderStage_t *pStage )
 		{ stageType_t::ST_PHYSICALMAP, { false, false, false, "physicalMap" } },
 		{ stageType_t::ST_SPECULARMAP, { true, true, false, "specularMap" } },
 		{ stageType_t::ST_HEATHAZEMAP, { true, true, false, "heatHazeMap" } },
-		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "heatHazeMap" } },
+		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "liquidMap" } },
+		{ stageType_t::ST_FOGMAP, { true, false, false, "fogMap" } },
 		// The lightmap is fetched at render time.
 		{ stageType_t::ST_LIGHTMAP, { true, false, false, "light map" } },
 		// The lightmap is fetched at render time.
@@ -5983,6 +5991,14 @@ static shader_t *FinishShader()
 	// Copy the current global shader to a newly allocated shader.
 	shader_t *ret = MakeShaderPermanent();
 
+	if ( !shader.noFog ) {
+		if ( shader.fogPass == fogPass_t::FP_EQUAL ) {
+			ret->fogShader = tr.fogEqualShader;
+		} else {
+			ret->fogShader = tr.fogLEShader;
+		}
+	}
+
 	// generate depth-only shader if necessary
 	if( !shader.isSky &&
 	    numStages > 0 &&
@@ -5993,6 +6009,8 @@ static shader_t *FinishShader()
 		// keep only the first stage
 		stages[1].active = false;
 		numStages = 1;
+		shader.noFog = true;
+		shader.fogShader = nullptr;
 
 		const char* depthShaderSuffix = "$depth";
 
@@ -6006,7 +6024,7 @@ static shader_t *FinishShader()
 					maxStages++;
 				}
 
-				maxStages = PAD( maxStages, 4 ); // Aligned to 4 components
+				maxStages = PAD( maxStages + 1, 4 ); // Aligned to 4 components
 				materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
 			}
 
@@ -6066,7 +6084,7 @@ static shader_t *FinishShader()
 			maxStages++;
 		}
 
-		maxStages = PAD( maxStages, 4 ); // Aligned to 4 components
+		maxStages = PAD( maxStages + 2, 4 ); // Aligned to 4 components
 		materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
 	}
 
@@ -6714,6 +6732,7 @@ void R_ListShaders_f()
 		{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
 		{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
 		{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
+		{ stageType_t::ST_FOGMAP, "FOGMAP" },
 		{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },
 		{ stageType_t::ST_STYLELIGHTMAP, "STYLELIGHTMAP" },
 		{ stageType_t::ST_STYLECOLORMAP, "STYLECOLORMAP" },
@@ -7155,11 +7174,37 @@ static void CreateInternalShaders()
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
 	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.noFog = true;
+	shader.fogShader = nullptr;
 	stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
 	stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.defaultImage;
 	stages[ 0 ].active = true;
 	stages[ 0 ].stateBits = GLS_DEFAULT;
 	tr.defaultShader = FinishShader();
+
+	Q_strncpyz( shader.name, "<fogEqual>", sizeof( shader.name ) );
+
+	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
+	stages[0].type = stageType_t::ST_FOGMAP;
+	for ( int i = 0; i < 5; i++ ) {
+		stages[0].bundle[i].image[0] = nullptr;
+	}
+	stages[0].active = true;
+	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL;
+	tr.fogEqualShader = FinishShader();
+
+	Q_strncpyz( shader.name, "<fogLE>", sizeof( shader.name ) );
+
+	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
+	stages[0].type = stageType_t::ST_FOGMAP;
+	for ( int i = 0; i < 5; i++ ) {
+		stages[0].bundle[i].image[0] = nullptr;
+	}
+	stages[0].active = true;
+	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+	tr.fogLEShader = FinishShader();
 }
 
 static void CreateExternalShaders()

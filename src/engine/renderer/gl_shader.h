@@ -1038,8 +1038,8 @@ public:
 class GLUniform4f : protected GLUniform
 {
 protected:
-	GLUniform4f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name, "vec4", 4, 4, false )
+	GLUniform4f( GLShader *shader, const char *name, const bool global = false ) :
+	GLUniform( shader, name, "vec4", 4, 4, global )
 	{
 		currentValue[0] = 0.0;
 		currentValue[1] = 0.0;
@@ -2389,6 +2389,22 @@ class u_CloudMap :
 	}
 };
 
+class u_FogMap :
+	GLUniformSampler2D {
+	public:
+	u_FogMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_FogMap", true ) {
+	}
+
+	void SetUniform_FogMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_FogMap() {
+		return this->GetLocation();
+	}
+};
+
 class u_LightTiles :
 	GLUniformSampler3D {
 	public:
@@ -3662,7 +3678,7 @@ class u_FogDistanceVector :
 {
 public:
 	u_FogDistanceVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDistanceVector" )
+		GLUniform4f( shader, "u_FogDistanceVector", true )
 	{
 	}
 
@@ -3677,7 +3693,7 @@ class u_FogDepthVector :
 {
 public:
 	u_FogDepthVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDepthVector" )
+		GLUniform4f( shader, "u_FogDepthVector", true )
 	{
 	}
 
@@ -3692,7 +3708,7 @@ class u_FogEyeT :
 {
 public:
 	u_FogEyeT( GLShader *shader ) :
-		GLUniform1f( shader, "u_FogEyeT" )
+		GLUniform1f( shader, "u_FogEyeT", true )
 	{
 	}
 
@@ -4330,7 +4346,7 @@ class GLShader_skyboxMaterial :
 
 class GLShader_fogQuake3 :
 	public GLShader,
-	public u_ColorMap,
+	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
@@ -4351,7 +4367,7 @@ public:
 
 class GLShader_fogQuake3Material :
 	public GLShader,
-	public u_ColorMap,
+	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,

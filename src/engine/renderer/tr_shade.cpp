@@ -2325,10 +2325,16 @@ void Render_liquid( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_fog()
+void Render_fog( shaderStage_t* /* pStage */ )
 {
+	if ( materialSystem.generatingWorldCommandBuffer ) {
+		Tess_DrawElements();
+		return;
+	}
+
 	// no fog pass in snooper
-	if ( tess.surfaceShader->noFog || !r_wolfFog->integer )
+	// WTF is a snooper?
+	if ( r_noFog->integer || !r_wolfFog->integer )
 	{
 		return;
 	}
@@ -2363,6 +2369,7 @@ static void Render_fog()
 
 	// scale the fog vectors based on the fog's thickness
 	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
+	fogDistanceVector[3] *= fog->tcScale;
 
 	// rotate the gradient vector for this orientation
 	float eyeT;
@@ -2431,7 +2438,7 @@ static void Render_fog()
 	gl_fogQuake3Shader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
-	gl_fogQuake3Shader->SetUniform_ColorMapBindless(
+	gl_fogQuake3Shader->SetUniform_FogMapBindless(
 		GL_BindToTMU( 0, tr.fogImage ) 
 	);
 
@@ -2799,11 +2806,6 @@ void Tess_StageIteratorColor()
 		pStage->colorRenderer( pStage );
 
 		stage++;
-	}
-
-	if ( !r_noFog->integer && tess.fogNum >= 1 )
-	{
-		Render_fog();
 	}
 
 	// reset polygon offset

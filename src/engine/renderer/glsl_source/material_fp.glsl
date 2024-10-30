@@ -60,10 +60,6 @@ samplerCube u_EnvironmentMap1 = samplerCube( u_EnvironmentMap1_initial );
 #endif // !USE_REFLECTIVE_SPECULAR */
 #endif // !COMPUTELIGHT_GLSL
 
-#if defined(FOGQUAKE3_GLSL)
-sampler2D u_ColorMap = sampler2D( u_ColorMap_initial );
-#endif // !FOGQUAKE3_GLSL
-
 #if defined(GENERIC_GLSL)
 sampler2D u_ColorMap = sampler2D( u_ColorMap_initial );
 #if defined(USE_DEPTH_FADE)

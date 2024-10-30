@@ -2705,7 +2705,7 @@ void GLShader_skyboxMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderP
 
 GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
+	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
@@ -2723,12 +2723,12 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 
 void GLShader_fogQuake3::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_FogMap" ), 0 );
 }
 
 GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager ) :
 	GLShader( "fogQuake3Material", "fogQuake3", true, ATTR_POSITION | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
+	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
@@ -2740,7 +2740,7 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 }
 
 void GLShader_fogQuake3Material::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_FogMap" ), 0 );
 }
 
 GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :

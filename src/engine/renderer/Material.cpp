@@ -622,6 +622,37 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_
 	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
+void UpdateSurfaceDataFog( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+	shader_t* shader = drawSurf->shader;
+	shaderStage_t* pStage = &shader->stages[stage];
+
+	const uint32_t paddedOffset = drawSurf->materialsSSBOOffset[stage] * material.shader->GetPaddedSize();
+	materials += paddedOffset;
+
+	bool updated = !drawSurf->initialized[stage] || pStage->colorDynamic || pStage->texMatricesDynamic || pStage->dynamic;
+	if ( !updated ) {
+		return;
+	}
+	drawSurf->initialized[stage] = true;
+
+	const fog_t* fog = material.fog;
+
+	// u_InverseLightFactor
+	gl_fogQuake3ShaderMaterial->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
+	// u_Color
+	gl_fogQuake3ShaderMaterial->SetUniform_Color( fog->color );
+
+	// u_VertexInterpolation
+	if ( material.vertexAnimation ) {
+		gl_fogQuake3ShaderMaterial->SetUniform_VertexInterpolation( 0.0 );
+	}
+
+	gl_fogQuake3ShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+
+	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials );
+}
+
 /*
 * Buffer layout:
 * // Static surfaces data:
@@ -925,6 +956,20 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 			stage++;
 		}
+
+		if ( drawSurf->fogSurface ) {
+			const drawSurf_t* fogDrawSurf = drawSurf->fogSurface;
+			const Material* material = &materialPacks[fogDrawSurf->materialPackIDs[0]].materials[fogDrawSurf->materialIDs[0]];
+			uint cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + fogDrawSurf->drawCommandIDs[0];
+			// Add 1 because cmd 0 == no-command
+			surface.surfaceCommandIDs[stage + ( depthPrePass ? 1 : 0 )] = cmdID + 1;
+
+			SurfaceCommand surfaceCommand;
+			surfaceCommand.enabled = 0;
+			surfaceCommand.drawCommand = material->drawCommands[fogDrawSurf->drawCommandIDs[0]].cmd;
+			surfaceCommands[cmdID] = surfaceCommand;
+		}
+
 		memcpy( surfaceDescriptors, &surface, descriptorSize * sizeof( uint32_t ) );
 		surfaceDescriptors += descriptorSize;
 	}
@@ -1169,6 +1214,64 @@ void BindShaderLiquid( Material* material ) {
 	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
+void BindShaderFog( Material* material ) {
+	// Select shader permutation.
+	gl_fogQuake3ShaderMaterial->SetVertexAnimation( false );
+
+	// Bind shader program.
+	gl_fogQuake3ShaderMaterial->BindProgram( 0 );
+
+	// Set shader uniforms.
+	const fog_t* fog = material->fog;
+
+	// all fogging distance is based on world Z units
+	vec4_t fogDistanceVector;
+	vec3_t local;
+	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
+	fogDistanceVector[0] = -backEnd.orientation.modelViewMatrix[2];
+	fogDistanceVector[1] = -backEnd.orientation.modelViewMatrix[6];
+	fogDistanceVector[2] = -backEnd.orientation.modelViewMatrix[10];
+	fogDistanceVector[3] = DotProduct( local, backEnd.viewParms.orientation.axis[0] );
+
+	// scale the fog vectors based on the fog's thickness
+	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
+	fogDistanceVector[3] *= fog->tcScale;
+
+	// rotate the gradient vector for this orientation
+	float eyeT;
+	vec4_t fogDepthVector;
+	if ( fog->hasSurface ) {
+		fogDepthVector[0] = fog->surface[0] * backEnd.orientation.axis[0][0] +
+			fog->surface[1] * backEnd.orientation.axis[0][1] + fog->surface[2] * backEnd.orientation.axis[0][2];
+		fogDepthVector[1] = fog->surface[0] * backEnd.orientation.axis[1][0] +
+			fog->surface[1] * backEnd.orientation.axis[1][1] + fog->surface[2] * backEnd.orientation.axis[1][2];
+		fogDepthVector[2] = fog->surface[0] * backEnd.orientation.axis[2][0] +
+			fog->surface[1] * backEnd.orientation.axis[2][1] + fog->surface[2] * backEnd.orientation.axis[2][2];
+		fogDepthVector[3] = -fog->surface[3] + DotProduct( backEnd.orientation.origin, fog->surface );
+
+		eyeT = DotProduct( backEnd.orientation.viewOrigin, fogDepthVector ) + fogDepthVector[3];
+	} else {
+		Vector4Set( fogDepthVector, 0, 0, 0, 1 );
+		eyeT = 1; // non-surface fog always has eye inside
+	}
+
+	// see if the viewpoint is outside
+	// this is needed for clipping distance even for constant fog
+	fogDistanceVector[3] += 1.0 / 512;
+
+	gl_fogQuake3ShaderMaterial->SetUniform_FogDistanceVector( fogDistanceVector );
+	gl_fogQuake3ShaderMaterial->SetUniform_FogDepthVector( fogDepthVector );
+	gl_fogQuake3ShaderMaterial->SetUniform_FogEyeT( eyeT );
+
+	gl_fogQuake3ShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_fogQuake3ShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	// bind u_ColorMap
+	gl_fogQuake3ShaderMaterial->SetUniform_FogMapBindless(
+		GL_BindToTMU( 0, tr.fogImage )
+	);
+}
+
 void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* ) {
 	ASSERT_UNREACHABLE();
 }
@@ -1289,6 +1392,15 @@ void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_
 	gl_liquidShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
 	material->program = gl_liquidShaderMaterial->GetProgram( pStage->deformIndex );
+}
+
+void ProcessMaterialFog( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
+	material->shader = gl_fogQuake3ShaderMaterial;
+	material->fog = tr.world->fogs + drawSurf->fog;
+
+	gl_fogQuake3ShaderMaterial->SetVertexAnimation( false );
+
+	material->program = gl_fogQuake3ShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
 void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
@@ -2028,6 +2140,12 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		}
 
 		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS );
+	}
+
+	if( material.shaderBinder == BindShaderFog ) {
+		if ( r_noFog->integer || !r_wolfFog->integer ) {
+			return;
+		}
 	}
 
 	backEnd.currentEntity = &tr.worldEntity;
