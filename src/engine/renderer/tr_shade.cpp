@@ -2327,11 +2327,6 @@ void Render_liquid( shaderStage_t *pStage )
 
 static void Render_fog()
 {
-	fog_t  *fog;
-	float  eyeT;
-	vec3_t local;
-	vec4_t fogDistanceVector, fogDepthVector;
-
 	// no fog pass in snooper
 	if ( tess.surfaceShader->noFog || !r_wolfFog->integer )
 	{
@@ -2344,7 +2339,7 @@ static void Render_fog()
 		return;
 	}
 
-	fog = tr.world->fogs + tess.fogNum;
+	const fog_t* fog = tr.world->fogs + tess.fogNum;
 
 	// Tr3B: use this only to render fog brushes
 	if ( fog->originalBrushNumber < 0 && tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
@@ -2358,6 +2353,8 @@ static void Render_fog()
 	}
 
 	// all fogging distance is based on world Z units
+	vec4_t fogDistanceVector;
+	vec3_t local;
 	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
 	fogDistanceVector[ 0 ] = -backEnd.orientation.modelViewMatrix[ 2 ];
 	fogDistanceVector[ 1 ] = -backEnd.orientation.modelViewMatrix[ 6 ];
@@ -2365,12 +2362,11 @@ static void Render_fog()
 	fogDistanceVector[ 3 ] = DotProduct( local, backEnd.viewParms.orientation.axis[ 0 ] );
 
 	// scale the fog vectors based on the fog's thickness
-	fogDistanceVector[ 0 ] *= fog->tcScale;
-	fogDistanceVector[ 1 ] *= fog->tcScale;
-	fogDistanceVector[ 2 ] *= fog->tcScale;
-	fogDistanceVector[ 3 ] *= fog->tcScale;
+	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
 
 	// rotate the gradient vector for this orientation
+	float eyeT;
+	vec4_t fogDepthVector;
 	if ( fog->hasSurface )
 	{
 		fogDepthVector[ 0 ] = fog->surface[ 0 ] * backEnd.orientation.axis[ 0 ][ 0 ] +
@@ -2391,7 +2387,6 @@ static void Render_fog()
 
 	// see if the viewpoint is outside
 	// this is needed for clipping distance even for constant fog
-
 	fogDistanceVector[ 3 ] += 1.0 / 512;
 
 	if ( tess.surfaceShader->fogPass == fogPass_t::FP_EQUAL )
