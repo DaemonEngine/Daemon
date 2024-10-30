@@ -23,6 +23,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define COMPUTELIGHT_GLSL
 
+uniform float u_LightFactor;
+
 #if !defined(USE_BSP_SURFACE)
 	#define USE_MODEL_SURFACE
 #endif
@@ -55,6 +57,8 @@ vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
 		float directedScale = 2.0 - ambientScale;
 		ambientColor = ambientScale * texel.rgb;
 		lightColor = directedScale * texel.rgb;
+		ambientColor *= u_LightFactor;
+		lightColor *= u_LightFactor;
 	}
 #endif
 

@@ -693,7 +693,6 @@ static void DrawTris()
 	}
 
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -921,15 +920,15 @@ void Render_generic3D( shaderStage_t *pStage )
 	// u_AlphaThreshold
 	gl_genericShader->SetUniform_AlphaTest( pStage->stateBits );
 
-	// u_InverseLightFactor
-	float inverseLightFactor = pStage->cancelOverBright ? tr.mapInverseLightFactor : 1.0f;
-	gl_genericShader->SetUniform_InverseLightFactor( inverseLightFactor );
-
 	// u_ColorModulate
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen );
+	// Here, it's safe to multiply the overbright factor for vertex lighting into the color gen`
+	// since the `generic` fragment shader only takes a single input color. `lightMapping` on the
+	// hand needs to know the real diffuse color, hence the separate u_LightFactor.
+	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && tess.bspSurface;
+	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
 
 	// u_Color
 	gl_genericShader->SetUniform_Color( tess.svars.color );
@@ -1125,12 +1124,9 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// u_DeformGen
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
-	// u_InverseLightFactor
-	/* HACK: use sign to know if there is a light or not, and
-	then if it will receive overbright multiplication or not. */
-	bool cancelOverBright = pStage->cancelOverBright;
-	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
-	gl_lightMappingShader->SetUniform_InverseLightFactor( inverseLightFactor );
+	// u_LightFactor
+	gl_lightMappingShader->SetUniform_LightFactor(
+		lightMode == lightMode_t::FULLBRIGHT ? 1.0f : tr.mapLightFactor );
 
 	// u_ColorModulate
 	gl_lightMappingShader->SetUniform_ColorModulate( rgbGen, alphaGen );
@@ -1418,9 +1414,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// u_AlphaThreshold
 	gl_forwardLightingShader_omniXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
-	// u_InverseLightFactor
-	gl_forwardLightingShader_omniXYZ->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
@@ -1595,9 +1588,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	// u_AlphaThreshold
 	gl_forwardLightingShader_projXYZ->SetUniform_AlphaTest( pStage->stateBits );
-
-	// u_InverseLightFactor
-	gl_forwardLightingShader_projXYZ->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
@@ -1774,9 +1764,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	// u_AlphaThreshold
 	gl_forwardLightingShader_directionalSun->SetUniform_AlphaTest( pStage->stateBits );
-
-	// u_InverseLightFactor
-	gl_forwardLightingShader_directionalSun->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
@@ -2068,9 +2055,6 @@ void Render_skybox( shaderStage_t *pStage )
 
 	// u_AlphaThreshold
 	gl_skyboxShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-
-	// u_InverseLightFactor
-	gl_skyboxShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	gl_skyboxShader->SetRequiredVertexPointers();
 
@@ -2397,9 +2381,6 @@ void Render_fog( shaderStage_t* pStage )
 
 	gl_fogQuake3Shader->BindProgram( 0 );
 
-	// u_InverseLightFactor
-	gl_fogQuake3Shader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
@@ -2587,6 +2568,11 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				tess.svars.color.SetBlue( blue );
 				break;
 			}
+	}
+
+	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP )
+	{
+		tess.svars.color *= tr.mapLightFactor;
 	}
 
 	// alphaGen

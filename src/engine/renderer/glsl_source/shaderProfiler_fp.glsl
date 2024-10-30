@@ -51,13 +51,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			color += vec4( count < 0.5 ? count + 0.5 : 0.0,
 				            count >= 0.5 ? count : 0.0,
 							0.0, 1.0 );
-							   
-			/* HACK: use sign to know if there is a light or not, and
-			then if it will receive overbright multiplication or not. */
-			if ( u_InverseLightFactor < 0 )
-			{
-				color *= -u_InverseLightFactor;
-			}
 		}
 	}
 #else

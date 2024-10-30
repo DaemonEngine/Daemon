@@ -222,15 +222,12 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	// u_AlphaThreshold
 	gl_genericShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
-	// u_InverseLightFactor
-	float inverseLightFactor = pStage->cancelOverBright ? tr.mapInverseLightFactor : 1.0f;
-	gl_genericShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
-
 	// u_ColorModulate
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	gl_genericShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen );
+	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && drawSurf->bspSurface;
+	gl_genericShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
 
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color( tess.svars.color );
@@ -291,12 +288,9 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
 
-	// u_InverseLightFactor
-	/* HACK: use sign to know if there is a light or not, and
-	then if it will receive overbright multiplication or not. */
-	bool cancelOverBright = pStage->cancelOverBright || lightMode == lightMode_t::FULLBRIGHT;
-	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
-	gl_lightMappingShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
+	// u_LightFactor
+	gl_lightMappingShaderMaterial->SetUniform_LightFactor(
+		lightMode == lightMode_t::FULLBRIGHT ? 1.0f : tr.mapLightFactor );
 
 	// u_ColorModulate
 	gl_lightMappingShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen );
@@ -470,9 +464,6 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, drawSurf_
 	// u_AlphaThreshold
 	gl_skyboxShaderMaterial->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
-	// u_InverseLightFactor
-	gl_skyboxShaderMaterial->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
@@ -619,9 +610,6 @@ void UpdateSurfaceDataFog( uint32_t* materials, Material& material, drawSurf_t* 
 	drawSurf->initialized[stage] = true;
 
 	const fog_t* fog = material.fog;
-
-	// u_InverseLightFactor
-	gl_fogQuake3ShaderMaterial->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// u_Color
 	gl_fogQuake3ShaderMaterial->SetUniform_Color( fog->color );

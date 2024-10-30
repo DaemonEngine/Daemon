@@ -32,7 +32,6 @@ uniform sampler2D	u_MaterialMap;
 uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
-uniform float u_InverseLightFactor;
 uniform vec3		u_ViewOrigin;
 
 IN(smooth) vec3		var_Position;
@@ -144,7 +143,10 @@ void main()
 
 	#if defined(USE_LIGHT_MAPPING)
 		// Compute light color from world space lightmap.
+		// When doing vertex lighting with full-range overbright, this reads out
+		// 1<<overbrightBits and serves for the overbright shift for vertex colors.
 		vec3 lightColor = texture2D(u_LightMap, var_TexLight).rgb;
+		lightColor *= u_LightFactor;
 
 		color.rgb = vec3(0.0);
 	#else
@@ -205,23 +207,9 @@ void main()
 		color.rgb += 0.7 * emission;
 	#endif
 
-	/* HACK: use sign to know if there is a light or not, and
-	then if it will receive overbright multiplication or not. */
-	if ( u_InverseLightFactor > 0 )
-	{
-		color.rgb *= u_InverseLightFactor;
-	}
-
 	#if defined(r_glowMapping)
 		// Blend glow map.
 		vec3 glow = texture2D(u_GlowMap, texCoords).rgb;
-
-		/* HACK: use sign to know if there is a light or not, and
-		then if it will receive overbright multiplication or not. */
-		if ( u_InverseLightFactor < 0 )
-		{
-			glow *= - u_InverseLightFactor;
-		}
 
 		color.rgb += glow;
 	#endif
@@ -247,13 +235,6 @@ void main()
 		vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect(-viewDir, normal));
 
 		outputColor = vec4( mix(envColor0, envColor1, u_EnvironmentInterpolation).rgb, 1.0 );
-
-		/* HACK: use sign to know if there is a light or not, and
-		then if it will receive overbright multiplication or not. */
-		if ( u_InverseLightFactor < 0 )
-		{
-			outputColor *= - u_InverseLightFactor;
-		}
 	#elif defined(r_showVertexColors)
 		/* We need to keep the texture alpha channel so impact
 		marks like creep don't fully overwrite the world texture. */
@@ -265,12 +246,5 @@ void main()
 		#endif
 	#elif defined(USE_MATERIAL_SYSTEM) && defined(r_showGlobalMaterials)
 		outputColor.rgb = u_MaterialColour + lightColor.rgb * u_MaterialColour;
-
-		/* HACK: use sign to know if there is a light or not, and
-		then if it will receive overbright multiplication or not. */
-		if ( u_InverseLightFactor < 0 )
-		{
-			outputColor *= - u_InverseLightFactor;
-		}
 	#endif
 }

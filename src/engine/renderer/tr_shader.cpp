@@ -5174,7 +5174,6 @@ static void CollapseStages()
 // Make shader stages ready to be used by renderer functions.
 static void FinishStages()
 {
-	bool shaderHasNoLight = true;
 	bool lightStageFound = false;
 
 	/* Skip standalone lightmaps, they are assumed to be buggy,
@@ -5221,22 +5220,15 @@ static void FinishStages()
 				stage->active = glConfig2.reflectionMappingAvailable;
 				break;
 
-			case stageType_t::ST_STYLELIGHTMAP:
-			case stageType_t::ST_STYLECOLORMAP:
-				shaderHasNoLight = false;
-				break;
-
 			case stageType_t::ST_LIGHTMAP:
 				// standalone lightmap stage: paint shadows over a white texture
 				stage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
 				lightStageFound = true;
-				shaderHasNoLight = false;
 				break;
 
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				lightStageFound = true;
-				shaderHasNoLight = false;
 				break;
 
 			case stageType_t::ST_ATTENUATIONMAP_XY:
@@ -5255,57 +5247,11 @@ static void FinishStages()
 		? gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms )
 		: 0;
 
-	bool isOpaqueShader = false;
-
 	for ( size_t s = 0; s < numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
 
 		stage->deformIndex = deformIndex;
-
-		// SRC1 and DST0 are reset to zero in ParseStage (no blending).
-		bool isOpaque = !( stage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
-
-		// A shader is not opaque if all stages are not opaques.
-		isOpaqueShader |= isOpaque;
-
-		if ( shaderHasNoLight )
-		{
-			bool blendFunc_srcDstColor = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
-
-			// We should cancel overbright if there is no light stage, unless it's using blendFunc dst_color.
-			stage->cancelOverBright = !blendFunc_srcDstColor;
-
-			bool isDecal = shader.sort == Util::ordinal(shaderSort_t::SS_DECAL);
-
-			if ( isDecal )
-			{
-				// We should not cancel overbright if that's a non-opaque decal.
-				stage->cancelOverBright = isOpaque;
-			}
-		}
-		else
-		{
-			if ( isOpaqueShader )
-			{
-				// We we should not cancel overbright if the light stage is applied on an opaque surface;
-				stage->cancelOverBright = false;
-			}
-			else
-			{
-				bool blendFunc_add = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
-					&& ( stage->stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
-
-				if ( blendFunc_add )
-				{
-					stage->cancelOverBright = true;
-				}
-				else
-				{
-					stage->cancelOverBright = false;
-				}
-			}
-		}
 
 		// Available textures.
 		bool hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;

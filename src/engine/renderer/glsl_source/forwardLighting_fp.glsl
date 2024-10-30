@@ -22,7 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* forwardLighting_fp.glsl */
 
+// computeSpecularity is the only thing used from this file
 #insert computeLight_fp
+
 #insert reliefMapping_fp
 
 /* swizzle one- and two-component textures to RG */
@@ -68,7 +70,6 @@ uniform vec3		u_LightDir;
 uniform vec3		u_LightOrigin;
 #endif
 uniform vec3		u_LightColor;
-uniform float u_InverseLightFactor;
 uniform float		u_LightRadius;
 uniform float       u_LightScale;
 uniform float		u_AlphaThreshold;
@@ -1015,7 +1016,6 @@ void	main()
 	color.rgb *= attenuationZ;
 #endif
 	color.rgb *= abs(u_LightScale);
-	color.rgb *= u_InverseLightFactor;
 	color.rgb *= shadow;
 
 	color.rgb *= var_Color.rgb;
