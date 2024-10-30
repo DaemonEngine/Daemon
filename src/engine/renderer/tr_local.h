@@ -1034,6 +1034,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	  ST_PORTALMAP,
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
+	  ST_FOGMAP,
 	  ST_LIGHTMAP,
 	  ST_STYLELIGHTMAP,
 	  ST_STYLECOLORMAP,
@@ -1288,6 +1289,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		} altShader[ MAX_ALTSHADERS ]; // state-based remapping; note that index 0 is unused
 
 		struct shader_t *depthShader;
+		struct shader_t *fogShader;
 		struct shader_t *next;
 	};
 
@@ -1609,6 +1611,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		shader_t      *shader;
 		uint64_t      sort;
 		bool          bspSurface;
+		int fog;
 
 		uint materialsSSBOOffset[ MAX_SHADER_STAGES ];
 		bool initialized[ MAX_SHADER_STAGES ];
@@ -1618,6 +1621,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		uint drawCommandIDs[ MAX_SHADER_STAGES ];
 
 		drawSurf_t* depthSurface;
+		drawSurf_t* fogSurface;
 		bool materialSystemSkip = false;
 
 		inline int index() const {
@@ -2737,6 +2741,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		// internal shaders
 		shader_t *defaultShader;
+		shader_t *fogEqualShader;
+		shader_t *fogLEShader;
 		shader_t *defaultPointLightShader;
 		shader_t *defaultProjectedLightShader;
 		shader_t *defaultDynamicLightShader;
@@ -3093,7 +3099,7 @@ inline bool checkGLErrors()
 
 	void           R_AddPolygonSurfaces();
 
-	void           R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false );
+	int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false );
 
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
@@ -3514,6 +3520,7 @@ inline bool checkGLErrors()
 	void Render_portal( shaderStage_t *pStage );
 	void Render_heatHaze( shaderStage_t *pStage );
 	void Render_liquid( shaderStage_t *pStage );
+	void Render_fog( shaderStage_t* /* pStage */ );
 
 	/*
 	============================================================

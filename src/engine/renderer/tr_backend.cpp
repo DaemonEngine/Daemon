@@ -904,7 +904,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		entity = drawSurf->entity;
 		shader = drawSurf->shader;
 		lightmapNum = drawSurf->lightmapNum();
-		fogNum = drawSurf->fogNum();
+		fogNum = drawSurf->fog;
 		bspSurface = drawSurf->bspSurface;
 
 		if( entity == &tr.worldEntity ) {

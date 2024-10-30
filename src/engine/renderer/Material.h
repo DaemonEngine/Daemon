@@ -119,6 +119,8 @@ struct Material {
 	VBO_t* vbo;
 	IBO_t* ibo;
 
+	fog_t* fog = nullptr;
+
 	std::vector<drawSurf_t*> drawSurfs;
 	std::vector<DrawCommand> drawCommands;
 	bool texturesResident = false;
@@ -126,7 +128,7 @@ struct Material {
 
 	bool operator==( const Material& other ) {
 		return program == other.program && stateBits == other.stateBits && vbo == other.vbo && ibo == other.ibo
-			&& cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
+			&& fog == other.fog && cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
 	}
 
 	void AddTexture( Texture* texture ) {
@@ -342,6 +344,7 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, drawSurf_
 void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
 void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
 void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
+void UpdateSurfaceDataFog( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage );
 
 void BindShaderNONE( Material* );
 void BindShaderNOP( Material* );
@@ -352,6 +355,7 @@ void BindShaderSkybox( Material* material );
 void BindShaderScreen( Material* material );
 void BindShaderHeatHaze( Material* material );
 void BindShaderLiquid( Material* material );
+void BindShaderFog( Material* material );
 
 void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* );
 void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* );
@@ -362,5 +366,6 @@ void ProcessMaterialSkybox( Material* material, shaderStage_t* pStage, drawSurf_
 void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
 void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
 void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ );
+void ProcessMaterialFog( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf );
 
 #endif // MATERIAL_H
