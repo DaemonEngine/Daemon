@@ -2806,7 +2806,7 @@ void Tess_StageIteratorColor()
 		stage++;
 	}
 
-	if ( !r_noFog->integer && tess.fogNum >= 1 && tess.surfaceShader->fogPass != fogPass_t::FP_NONE )
+	if ( !r_noFog->integer && tess.fogNum >= 1 )
 	{
 		Render_fog();
 	}

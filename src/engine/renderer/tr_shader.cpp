@@ -2436,6 +2436,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				continue;
 			}
 
+			// This isn't actually used because we render fog based on the shader, not the stage
 			if ( !Q_stricmp( token, "on" ) )
 			{
 				stage->noFog = false;
@@ -5600,15 +5601,6 @@ static shader_t *MakeShaderPermanent()
 
 	*newShader = shader;
 
-	if ( shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-	{
-		newShader->fogPass = fogPass_t::FP_EQUAL;
-	}
-	else if ( shader.contentFlags & CONTENTS_FOG )
-	{
-		newShader->fogPass = fogPass_t::FP_LE;
-	}
-
 	tr.shaders[ tr.numShaders ] = newShader;
 	newShader->index = tr.numShaders;
 
@@ -5970,6 +5962,14 @@ static shader_t *FinishShader()
 			shader.noShadows = false;
 		}
 	}
+
+	if ( shader.sort <= Util::ordinal( shaderSort_t::SS_OPAQUE ) ) {
+		shader.fogPass = fogPass_t::FP_EQUAL;
+	} else if ( shader.contentFlags & CONTENTS_FOG ) {
+		shader.fogPass = fogPass_t::FP_LE;
+	}
+
+	shader.noFog = shader.noFog || shader.fogPass == fogPass_t::FP_NONE;
 
 	// look for multitexture potential
 	CollapseStages();
