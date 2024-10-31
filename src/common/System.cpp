@@ -477,7 +477,7 @@ void GenRandomBytes(void* dest, size_t size)
 			Sys::Error("getrandom syscall failed: %s", strerror(errno));
 		}
 	}
-	else if (ret != size)
+	else if (static_cast<size_t>(ret) != size)
 	{
 		Sys::Error("getrandom syscall returned insufficient data");
 	}
