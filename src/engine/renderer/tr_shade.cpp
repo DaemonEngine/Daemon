@@ -2347,12 +2347,6 @@ void Render_fog( shaderStage_t* /* pStage */ )
 
 	const fog_t* fog = tr.world->fogs + tess.fogNum;
 
-	// Tr3B: use this only to render fog brushes
-	if ( fog->originalBrushNumber < 0 && tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-	{
-		return;
-	}
-
 	if ( r_logFile->integer )
 	{
 		GLimp_LogComment( va( "--- Render_fog( fogNum = %i, originalBrushNumber = %i ) ---\n", tess.fogNum, fog->originalBrushNumber ) );
