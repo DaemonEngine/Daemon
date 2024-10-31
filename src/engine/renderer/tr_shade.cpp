@@ -2325,7 +2325,7 @@ void Render_liquid( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-void Render_fog( shaderStage_t* /* pStage */ )
+void Render_fog( shaderStage_t* pStage )
 {
 	if ( materialSystem.generatingWorldCommandBuffer ) {
 		Tess_DrawElements();
@@ -2390,14 +2390,7 @@ void Render_fog( shaderStage_t* /* pStage */ )
 	// this is needed for clipping distance even for constant fog
 	fogDistanceVector[ 3 ] += 1.0 / 512;
 
-	if ( tess.surfaceShader->fogPass == fogPass_t::FP_EQUAL )
-	{
-		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL );
-	}
-	else
-	{
-		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
-	}
+	GL_State( pStage->stateBits );
 
 	gl_fogQuake3Shader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_fogQuake3Shader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );

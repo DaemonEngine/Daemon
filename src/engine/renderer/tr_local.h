@@ -3520,7 +3520,7 @@ inline bool checkGLErrors()
 	void Render_portal( shaderStage_t *pStage );
 	void Render_heatHaze( shaderStage_t *pStage );
 	void Render_liquid( shaderStage_t *pStage );
-	void Render_fog( shaderStage_t* /* pStage */ );
+	void Render_fog( shaderStage_t* pStage );
 
 	/*
 	============================================================
