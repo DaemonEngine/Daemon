@@ -501,7 +501,7 @@ public:
 		}
 
 		std::sort( lines.begin(), lines.end() );
-		for ( std::string line : lines )
+		for ( std::string& line : lines )
 		{
 			Print( line );
 		}
