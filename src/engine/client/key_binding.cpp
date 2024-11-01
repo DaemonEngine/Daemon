@@ -465,6 +465,7 @@ public:
 
 	void Run(const Cmd::Args&) const override
 	{
+		std::vector<std::string> lines;
 		for (auto& kv: keys)
 		{
 			bool teamSpecific = false;
@@ -482,7 +483,8 @@ public:
 			{
 				if ( kv.second.binding[ 0 ] )
 				{
-					Print( "%s → %s", ExtraInfoKeyString( kv.first ), kv.second.binding[ 0 ].value() );
+					std::string line = ExtraInfoKeyString( kv.first ) + " → " + kv.second.binding[ 0 ].value();
+					lines.push_back( line );
 				}
 			}
 			else
@@ -491,10 +493,17 @@ public:
 				{
 					if ( kv.second.binding[ team ] )
 					{
-						Print( "%s [%s] → %s", ExtraInfoKeyString( kv.first ), teamName[ team ], kv.second.binding[ team ].value() );
+						std::string line = ExtraInfoKeyString( kv.first ) + " [" + teamName[ team ] + "] → " + kv.second.binding[ team ].value();
+						lines.push_back( line );
 					}
 				}
 			}
+		}
+
+		std::sort( lines.begin(), lines.end() );
+		for ( std::string line : lines )
+		{
+			Print( line );
 		}
 	}
 };
