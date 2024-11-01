@@ -1752,6 +1752,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 			float dist; // DO NOT USE - not yet implemented correctly
 		} plane; // valid if !allsolid && fraction < 1
 		int      surfaceFlags; // surface hit. valid if !allsolid && fraction < 1
+		int shadernum;
 		int      contents; // contents on other side of surface hit (or intersecting contents if allsolid). valid if fraction < 1
 		int      entityNum; // entity the contacted surface is a part of. Not set by CM_xxx, only gamelogic tracing functions
 	};

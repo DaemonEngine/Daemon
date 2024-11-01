@@ -506,6 +506,7 @@ static void CMod_LoadBrushSides(const byte *const cmod_base, const lump_t *l)
 		}
 
 		out->surfaceFlags = cm.shaders[ shaderNum ].surfaceFlags;
+		out->shaderNum = shaderNum;
 	}
 }
 

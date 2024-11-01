@@ -72,6 +72,7 @@ struct cbrushside_t
 {
 	cplane_t  *plane;
 	int       surfaceFlags;
+	int shaderNum;
 };
 
 struct cbrush_t
