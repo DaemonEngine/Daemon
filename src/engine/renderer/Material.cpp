@@ -2143,7 +2143,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	}
 
 	if( material.shaderBinder == BindShaderFog ) {
-		if ( r_noFog->integer || !r_wolfFog->integer ) {
+		if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ) {
 			return;
 		}
 	}
