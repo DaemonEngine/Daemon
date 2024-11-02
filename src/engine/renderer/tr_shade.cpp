@@ -2332,8 +2332,6 @@ void Render_fog( shaderStage_t* pStage )
 		return;
 	}
 
-	// no fog pass in snooper
-	// WTF is a snooper?
 	if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		return;
