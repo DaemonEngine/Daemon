@@ -92,6 +92,7 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/gl_shader.cpp
     ${ENGINE_DIR}/renderer/gl_shader.h
     ${ENGINE_DIR}/renderer/iqm.h
+    ${ENGINE_DIR}/renderer/ShadeCommon.h
     ${ENGINE_DIR}/renderer/shaders.cpp
     ${ENGINE_DIR}/renderer/tr_animation.cpp
     ${ENGINE_DIR}/renderer/tr_backend.cpp
