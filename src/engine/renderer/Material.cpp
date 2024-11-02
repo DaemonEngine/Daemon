@@ -238,9 +238,6 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	Tess_ComputeTexMatrices( pStage );
 	gl_genericShaderMaterial->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
 
-	// u_DeformGen
-	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
 	// bind u_ColorMap
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP ) {
 		gl_genericShaderMaterial->SetUniform_ColorMapBindless(
@@ -298,9 +295,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
-
-	// u_DeformGen
-	gl_lightMappingShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// u_InverseLightFactor
 	/* HACK: use sign to know if there is a light or not, and
@@ -642,13 +636,6 @@ void UpdateSurfaceDataFog( uint32_t* materials, Material& material, drawSurf_t* 
 
 	// u_Color
 	gl_fogQuake3ShaderMaterial->SetUniform_Color( fog->color );
-
-	// u_VertexInterpolation
-	if ( material.vertexAnimation ) {
-		gl_fogQuake3ShaderMaterial->SetUniform_VertexInterpolation( 0.0 );
-	}
-
-	gl_fogQuake3ShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -1043,6 +1030,9 @@ void BindShaderGeneric3D( Material* material ) {
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
+	// u_DeformGen
+	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+
 	if ( r_profilerRenderSubGroups.Get() ) {
 		gl_genericShaderMaterial->SetUniform_ProfilerZero();
 		gl_genericShaderMaterial->SetUniform_ProfilerRenderSubGroups( GetShaderProfilerRenderSubGroupsMode( material->stateBits ) );
@@ -1097,6 +1087,9 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetUniform_numLights( backEnd.refdef.numLights );
 	gl_lightMappingShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_lightMappingShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	// u_DeformGen
+	gl_lightMappingShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// TODO: Move this to a per-entity buffer
 	if ( glConfig2.reflectionMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) ) {
@@ -1215,9 +1208,6 @@ void BindShaderLiquid( Material* material ) {
 }
 
 void BindShaderFog( Material* material ) {
-	// Select shader permutation.
-	gl_fogQuake3ShaderMaterial->SetVertexAnimation( false );
-
 	// Bind shader program.
 	gl_fogQuake3ShaderMaterial->BindProgram( 0 );
 
@@ -1265,6 +1255,8 @@ void BindShaderFog( Material* material ) {
 
 	gl_fogQuake3ShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_fogQuake3ShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	gl_fogQuake3ShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
 	gl_fogQuake3ShaderMaterial->SetUniform_FogMapBindless(
@@ -1397,8 +1389,6 @@ void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_
 void ProcessMaterialFog( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
 	material->shader = gl_fogQuake3ShaderMaterial;
 	material->fog = tr.world->fogs + drawSurf->fog;
-
-	gl_fogQuake3ShaderMaterial->SetVertexAnimation( false );
 
 	material->program = gl_fogQuake3ShaderMaterial->GetProgram( pStage->deformIndex );
 }
