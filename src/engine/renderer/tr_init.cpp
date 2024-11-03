@@ -167,6 +167,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_specularExponentMax;
 	cvar_t      *r_specularScale;
 	cvar_t      *r_specularMapping;
+	Cvar::Cvar<bool> r_automaticSpecularMap( "r_automaticSpecularMap", "Generate a specular map from diffuse map if missing", Cvar::NONE, true );
 	cvar_t      *r_deluxeMapping;
 	cvar_t      *r_normalScale;
 	cvar_t      *r_normalMapping;
@@ -1248,6 +1249,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_specularExponentMax = Cvar_Get( "r_specularExponentMax", "16", CVAR_CHEAT );
 		r_specularScale = Cvar_Get( "r_specularScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
 		r_specularMapping = Cvar_Get( "r_specularMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch( r_automaticSpecularMap );
 		r_deluxeMapping = Cvar_Get( "r_deluxeMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
 		r_normalScale = Cvar_Get( "r_normalScale", "1.0", CVAR_ARCHIVE );
 		r_normalMapping = Cvar_Get( "r_normalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );

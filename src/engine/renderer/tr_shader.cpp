@@ -5303,7 +5303,8 @@ static void FinishStages()
 
 		// Available features.
 		stage->enableNormalMapping = glConfig2.normalMapping && hasNormalMap;
-		stage->enableDeluxeMapping = glConfig2.deluxeMapping && ( hasNormalMap || hasMaterialMap );
+		stage->hasAutomaticSpecularMap = glConfig2.automaticSpecularMap && !hasMaterialMap;
+		stage->enableDeluxeMapping = glConfig2.deluxeMapping && ( hasNormalMap || hasMaterialMap || stage->hasAutomaticSpecularMap );
 
 		stage->enableReliefMapping = glConfig2.reliefMapping && !shader.disableReliefMapping
 			&& ( hasHeightMap || stage->hasHeightMapInNormalMap );

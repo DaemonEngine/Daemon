@@ -136,11 +136,12 @@ static void EnableAvailableFeatures()
 		}
 	}
 
-
 	// Disable features that require deluxe mapping to be enabled.
 	glConfig2.normalMapping = glConfig2.deluxeMapping && glConfig2.normalMapping;
 	glConfig2.specularMapping = glConfig2.deluxeMapping && glConfig2.specularMapping;
 	glConfig2.physicalMapping = glConfig2.deluxeMapping && glConfig2.physicalMapping;
+
+	glConfig2.automaticSpecularMap = glConfig2.specularMapping && r_automaticSpecularMap.Get();
 
 	glConfig2.bloom = r_bloom->integer;
 
@@ -1071,6 +1072,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	gl_lightMappingShader->SetReflectiveSpecular( enableReflectiveSpecular );
 
+	gl_lightMappingShader->SetAutomaticSpecularMap( pStage->hasAutomaticSpecularMap );
+
 	gl_lightMappingShader->SetPhysicalShading( pStage->enablePhysicalMapping );
 
 	gl_lightMappingShader->BindProgram( pStage->deformIndex );
@@ -1202,6 +1205,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 		gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
 
+	// specular reflection
 	if ( enableReflectiveSpecular )
 	{
 		bool isWorldEntity = backEnd.currentEntity == &tr.worldEntity;

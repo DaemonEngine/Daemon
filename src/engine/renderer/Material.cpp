@@ -1055,6 +1055,8 @@ void BindShaderLightMapping( Material* material ) {
 	// Bind shader program.
 	gl_lightMappingShaderMaterial->BindProgram( material->deformIndex );
 
+	gl_lightMappingShaderMaterial->SetAutomaticSpecularMap( material->hasAutomaticSpecularMap );
+
 	// Set shader uniforms.
 	if ( tr.world ) {
 		gl_lightMappingShaderMaterial->SetUniform_LightGridOrigin( tr.world->lightGridGLOrigin );
@@ -1314,6 +1316,7 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 	material->enableReliefMapping = pStage->enableReliefMapping;
 	material->enableNormalMapping = pStage->enableNormalMapping;
 	material->enableSpecularMapping = pStage->enableSpecularMapping;
+	material->hasAutomaticSpecularMap = pStage->hasAutomaticSpecularMap;
 	material->enablePhysicalMapping = pStage->enablePhysicalMapping;
 	material->deformIndex = pStage->deformIndex;
 
@@ -1328,6 +1331,8 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 	gl_lightMappingShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
 	gl_lightMappingShaderMaterial->SetReflectiveSpecular( pStage->enableSpecularMapping );
+
+	gl_lightMappingShaderMaterial->SetAutomaticSpecularMap( pStage->hasAutomaticSpecularMap );
 
 	gl_lightMappingShaderMaterial->SetPhysicalShading( pStage->enablePhysicalMapping );
 
