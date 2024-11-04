@@ -81,6 +81,12 @@ Cvar::Cvar<bool> r_dpBlend("r_dpBlend", "Enable DarkPlaces blend compatibility, 
 static Cvar::Cvar<float> r_portalDefaultRange(
 	"r_portalDefaultRange", "Default portal range", Cvar::NONE, 1024);
 
+// This can be turned off to debug problems with depth shaders.
+// Almost everything can be rendered correctly without them, except real-time lights
+// (since light tiles are populated using the depth buffer).
+static Cvar::Cvar<bool> r_depthShaders(
+	"r_depthShaders", "use depth pre-pass shaders", Cvar::CHEAT, true);
+
 /*
 ================
 return a hash value for the filename
@@ -6000,7 +6006,8 @@ static shader_t *FinishShader()
 	}
 
 	// generate depth-only shader if necessary
-	if( !shader.isSky &&
+	if( r_depthShaders.Get() &&
+	    !shader.isSky &&
 	    numStages > 0 &&
 	    (stages[0].stateBits & GLS_DEPTHMASK_TRUE) &&
 	    !(stages[0].stateBits & GLS_DEPTHFUNC_EQUAL) &&
@@ -7227,6 +7234,7 @@ R_InitShaders
 void R_InitShaders()
 {
 	Cvar::Latch(r_dpMaterial);
+	Cvar::Latch(r_depthShaders);
 	Cvar::Latch(r_portalDefaultRange);
 
 	memset( shaderTableHashTable, 0, sizeof( shaderTableHashTable ) );
