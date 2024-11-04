@@ -97,7 +97,6 @@ struct Material {
 	bool tcGenEnvironment;
 	bool tcGen_Lightmap;
 	bool hasDepthFade;
-	bool alphaTest;
 
 	bool bspSurface;
 	bool enableDeluxeMapping;
