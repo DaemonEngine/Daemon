@@ -694,7 +694,7 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 		}
 	}
 
-	dynamicDrawSurfsOffset = offset;
+	bool dynamicDrawSurfOffsetSet = false;
 
 	// Compute data size for dynamic surfaces
 	for ( MaterialPack& pack : materialPacks ) {
@@ -705,6 +705,13 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 			const uint32_t padding = ( offset % paddedSize == 0 ) ? 0 : paddedSize - ( offset % paddedSize );
 
 			offset += padding;
+			
+			// Make sure padding is taken into account for dynamicDrawSurfsOffset
+			if ( !dynamicDrawSurfOffsetSet ) {
+				dynamicDrawSurfsOffset = offset;
+				dynamicDrawSurfOffsetSet = true;
+			}
+
 			material.dynamicMaterialsSSBOOffset = offset;
 			offset += paddedSize * material.totalDynamicDrawSurfCount;
 		}

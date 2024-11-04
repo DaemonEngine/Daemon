@@ -1914,14 +1914,12 @@ R_AddDrawSurf
 */
 int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface )
 {
-	int        index;
-	drawSurf_t *drawSurf;
-
 	// instead of checking for overflow, we just mask the index
 	// so it wraps around
-	index = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
+	const int baseIndex = tr.refdef.numDrawSurfs & DRAWSURF_MASK;
+	int index = baseIndex;
 
-	drawSurf = &tr.refdef.drawSurfs[ index ];
+	drawSurf_t* drawSurf = &tr.refdef.drawSurfs[ index ];
 
 	drawSurf->entity = tr.currentEntity;
 	drawSurf->surface = surface;
@@ -1969,7 +1967,7 @@ int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, in
 			materialSystem.autospriteSurfaces.push_back( *drawSurf );
 		}
 
-		return index;
+		return baseIndex;
 	}
 
 	if ( shader->depthShader != nullptr ) {
@@ -1984,7 +1982,7 @@ int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, in
 		drawSurf->fogSurface->materialSystemSkip = true;
 	}
 
-	return index;
+	return baseIndex;
 }
 
 static uint32_t currentView = 0;
