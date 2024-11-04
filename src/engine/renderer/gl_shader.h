@@ -2217,7 +2217,7 @@ class u_DepthMap :
 	GLUniformSampler2D {
 	public:
 	u_DepthMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_DepthMap" ) {
+		GLUniformSampler2D( shader, "u_DepthMap", true ) {
 	}
 
 	void SetUniform_DepthMapBindless( GLuint64 bindlessHandle ) {
@@ -2361,7 +2361,7 @@ class u_PortalMap :
 	GLUniformSampler2D {
 	public:
 	u_PortalMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_PortalMap" ) {
+		GLUniformSampler2D( shader, "u_PortalMap", true ) {
 	}
 
 	void SetUniform_PortalMapBindless( GLuint64 bindlessHandle ) {

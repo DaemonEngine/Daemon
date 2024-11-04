@@ -62,9 +62,6 @@ samplerCube u_EnvironmentMap1 = samplerCube( u_EnvironmentMap1_initial );
 
 #if defined(GENERIC_GLSL)
 sampler2D u_ColorMap = sampler2D( u_ColorMap_initial );
-#if defined(USE_DEPTH_FADE)
-sampler2D u_DepthMap = sampler2D( u_DepthMap_initial );
-#endif
 #endif // !GENERIC_GLSL
 
 #if defined(LIGHTMAPPING_GLSL)
@@ -74,11 +71,6 @@ sampler2D u_GlowMap = sampler2D( u_GlowMap_initial );
 sampler2D u_LightMap = sampler2D( u_LightMap_initial );
 sampler2D u_DeluxeMap = sampler2D( u_DeluxeMap_initial );
 #endif // !LIGHTMAPPING_GLSL
-
-#if defined(LIQUID_GLSL)
-sampler2D u_PortalMap = sampler2D( u_PortalMap_initial );
-sampler2D u_DepthMap = sampler2D( u_DepthMap_initial );
-#endif // !LIQUID_GLSL
 
 #if defined(REFLECTION_CB_GLSL)
 samplerCube u_ColorMapCube = samplerCube( u_ColorMapCube_initial );

@@ -247,11 +247,6 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 		gl_genericShaderMaterial->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	}
 
-	bool needDepthMap = pStage->hasDepthFade;
-	if ( needDepthMap ) {
-		gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
-	}
-
 	bool hasDepthFade = pStage->hasDepthFade;
 	if ( hasDepthFade ) {
 		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
@@ -577,12 +572,6 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_
 
 	// bind u_CurrentMap
 	gl_liquidShaderMaterial->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) );
-
-	// bind u_PortalMap
-	gl_liquidShaderMaterial->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
-
-	// depth texture
-	gl_liquidShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
 
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping ) {
@@ -1037,6 +1026,8 @@ void BindShaderGeneric3D( Material* material ) {
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
+	gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
+
 	// u_DeformGen
 	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
@@ -1212,6 +1203,12 @@ void BindShaderLiquid( Material* material ) {
 	gl_liquidShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
 	gl_liquidShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	// depth texture
+	gl_liquidShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
+
+	// bind u_PortalMap
+	gl_liquidShaderMaterial->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
 }
 
 void BindShaderFog( Material* material ) {
