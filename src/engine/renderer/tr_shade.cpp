@@ -1144,11 +1144,10 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= tess.surfaceShader->reliefDepthScale;
+		float scale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
 
-		gl_lightMappingShader->SetUniform_ReliefDepthScale( depthScale );
-		gl_lightMappingShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
+		gl_lightMappingShader->SetUniform_ReliefDepthScale( pStage->heightScale * scale );
+		gl_lightMappingShader->SetUniform_ReliefOffsetBias( pStage->heightOffset );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
 		if ( !pStage->hasHeightMapInNormalMap )
@@ -1424,11 +1423,10 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= tess.surfaceShader->reliefDepthScale;
+		float scale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
 
-		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefDepthScale( depthScale );
-		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
+		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefDepthScale( pStage->heightScale * scale );
+		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefOffsetBias( pStage->heightOffset );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
 		if ( !pStage->hasHeightMapInNormalMap )
@@ -1602,11 +1600,10 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= tess.surfaceShader->reliefDepthScale;
+		float scale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
 
-		gl_forwardLightingShader_projXYZ->SetUniform_ReliefDepthScale( depthScale );
-		gl_forwardLightingShader_projXYZ->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
+		gl_forwardLightingShader_projXYZ->SetUniform_ReliefDepthScale( pStage->heightScale * scale );
+		gl_forwardLightingShader_projXYZ->SetUniform_ReliefOffsetBias( pStage->heightOffset );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
 		if ( !pStage->hasHeightMapInNormalMap )
@@ -1781,11 +1778,10 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= tess.surfaceShader->reliefDepthScale;
+		float scale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
 
-		gl_forwardLightingShader_directionalSun->SetUniform_ReliefDepthScale( depthScale );
-		gl_forwardLightingShader_directionalSun->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
+		gl_forwardLightingShader_directionalSun->SetUniform_ReliefDepthScale( pStage->heightScale * scale );
+		gl_forwardLightingShader_directionalSun->SetUniform_ReliefOffsetBias( pStage->heightOffset );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
 		if ( !pStage->hasHeightMapInNormalMap )
@@ -2021,11 +2017,10 @@ void Render_reflection_CB( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= tess.surfaceShader->reliefDepthScale;
+		float scale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
 
-		gl_reflectionShader->SetUniform_ReliefDepthScale( depthScale );
-		gl_reflectionShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
+		gl_reflectionShader->SetUniform_ReliefDepthScale( pStage->heightScale * scale );
+		gl_reflectionShader->SetUniform_ReliefOffsetBias( pStage->heightOffset );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
 		if ( !pStage->hasHeightMapInNormalMap )
@@ -2292,11 +2287,10 @@ void Render_liquid( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
-		depthScale *= tess.surfaceShader->reliefDepthScale;
+		float scale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
 
-		gl_liquidShader->SetUniform_ReliefDepthScale( depthScale );
-		gl_liquidShader->SetUniform_ReliefOffsetBias( tess.surfaceShader->reliefOffsetBias );
+		gl_liquidShader->SetUniform_ReliefDepthScale( pStage->heightScale * scale );
+		gl_liquidShader->SetUniform_ReliefOffsetBias( pStage->heightOffset );
 
 		// FIXME: if there is both, embedded heightmap in normalmap is used instead of standalone heightmap
 		if ( !pStage->hasHeightMapInNormalMap )
