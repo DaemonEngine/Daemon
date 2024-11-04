@@ -316,7 +316,7 @@ class MaterialSystem {
 
 	bool AddPortalSurface( uint32_t viewID, PortalSurface* portalSurfs );
 
-	void RenderIndirect( const Material& material, const uint32_t viewID );
+	void RenderIndirect( const Material& material, const uint32_t viewID, const GLenum mode );
 	void RenderMaterial( Material& material, const uint32_t viewID );
 	void UpdateFrameData();
 };

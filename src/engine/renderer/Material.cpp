@@ -2095,8 +2095,8 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 	}
 }
 
-void MaterialSystem::RenderIndirect( const Material& material, const uint32_t viewID ) {
-	glMultiDrawElementsIndirectCountARB( GL_TRIANGLES, GL_UNSIGNED_INT,
+void MaterialSystem::RenderIndirect( const Material& material, const uint32_t viewID, const GLenum mode = GL_TRIANGLES ) {
+	glMultiDrawElementsIndirectCountARB( mode, GL_UNSIGNED_INT,
 		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
 		               + ( surfaceCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
 		               * sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
@@ -2304,7 +2304,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		}
 
 		GL_State( GLS_DEPTHTEST_DISABLE );
-		RenderIndirect( material, viewID );
+		RenderIndirect( material, viewID, GL_LINES );
 
 		if ( material.shaderBinder == &BindShaderLightMapping ) {
 			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
