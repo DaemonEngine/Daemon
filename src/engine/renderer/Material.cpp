@@ -185,8 +185,8 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 	pStage->dynamic = pStage->dynamic || pStage->rgbExp.numOps || pStage->redExp.numOps || pStage->greenExp.numOps || pStage->blueExp.numOps;
 	pStage->dynamic = pStage->dynamic || pStage->deformMagnitudeExp.numOps;
 	pStage->dynamic = pStage->dynamic || pStage->depthScaleExp.numOps || pStage->etaExp.numOps || pStage->etaDeltaExp.numOps
-		|| pStage->fogDensityExp.numOps || pStage->fresnelBiasExp.numOps || pStage->fresnelPowerExp.numOps
-		|| pStage->fresnelScaleExp.numOps || pStage->normalIntensityExp.numOps || pStage->refractionIndexExp.numOps;
+	                                  || pStage->fogDensityExp.numOps || pStage->fresnelBiasExp.numOps || pStage->fresnelPowerExp.numOps
+	                                  || pStage->fresnelScaleExp.numOps || pStage->normalIntensityExp.numOps || pStage->refractionIndexExp.numOps;
 
 	pStage->dynamic = pStage->dynamic || pStage->colorDynamic || pStage->texMatricesDynamic || pStage->texturesDynamic;
 }
@@ -818,7 +818,7 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	surfaceDescriptorsCount = totalDrawSurfs;
 	descriptorSize = BOUNDING_SPHERE_SIZE + maxStages;
 	glBufferData( GL_SHADER_STORAGE_BUFFER, surfaceDescriptorsCount * descriptorSize * sizeof( uint32_t ),
-				  nullptr, GL_STATIC_DRAW );
+		nullptr, GL_STATIC_DRAW );
 	uint32_t* surfaceDescriptors = surfaceDescriptorsSSBO.MapBufferRange( surfaceDescriptorsCount * descriptorSize );
 
 	surfaceCommandsCount = totalBatchCount * SURFACE_COMMANDS_PER_BATCH;
@@ -865,8 +865,8 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	atomicCommandCountersBuffer.BufferStorage( GL_ATOMIC_COUNTER_BUFFER,
 		MAX_COMMAND_COUNTERS * MAX_VIEWS, MAX_FRAMES, nullptr );
 	atomicCommandCountersBuffer.MapAll( GL_ATOMIC_COUNTER_BUFFER );
-	uint32_t* atomicCommandCounters = (uint32_t*) atomicCommandCountersBuffer.GetData();
-	memset( atomicCommandCounters, 0, MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES * sizeof(uint32_t) );
+	uint32_t* atomicCommandCounters = ( uint32_t* ) atomicCommandCountersBuffer.GetData();
+	memset( atomicCommandCounters, 0, MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES * sizeof( uint32_t ) );
 
 	/* For use in debugging compute shaders
 	Intended for use with Nsight Graphics to format the output */
@@ -980,22 +980,18 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 }
 
 void MaterialSystem::GenerateDepthImages( const int width, const int height, imageParams_t imageParms ) {
-	int size = std::max( width, height );
 	imageParms.bits ^= ( IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8 );
 	imageParms.bits |= IF_ONECOMP32F;
 
-	depthImageLevels = 0;
-	while ( size > 0 ) {
-		depthImageLevels++;
-		size >>= 1; // mipmaps round down
-	}
+	depthImageLevels = log2f( std::max( width, height ) ) + 1;
 
 	depthImage = R_CreateImage( "_depthImage", nullptr, width, height, depthImageLevels, imageParms );
 	GL_Bind( depthImage );
+
 	int mipmapWidth = width;
 	int mipmapHeight = height;
-	for ( int j = 0; j < depthImageLevels; j++ ) {
-		glTexImage2D( GL_TEXTURE_2D, j, GL_R32F, mipmapWidth, mipmapHeight, 0, GL_RED, GL_FLOAT, nullptr );
+	for ( int i = 0; i < depthImageLevels; i++ ) {
+		glTexImage2D( GL_TEXTURE_2D, i, GL_R32F, mipmapWidth, mipmapHeight, 0, GL_RED, GL_FLOAT, nullptr );
 		mipmapWidth = mipmapWidth > 1 ? mipmapWidth >> 1 : 1;
 		mipmapHeight = mipmapHeight > 1 ? mipmapHeight >> 1 : 1;
 	}

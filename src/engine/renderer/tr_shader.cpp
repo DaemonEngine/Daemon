@@ -6019,10 +6019,7 @@ static shader_t *FinishShader()
 			ret->depthShader = nullptr;
 
 			if ( glConfig2.usingMaterialSystem && !tr.worldLoaded ) {
-				uint8_t maxStages = 0;
-				for ( shaderStage_t* pStage = ret->stages; pStage < ret->lastStage; pStage++ ) {
-					maxStages++;
-				}
+				uint8_t maxStages = ret->lastStage - ret->stages;
 
 				// Add 1 for potential fog stages
 				maxStages = PAD( maxStages + 1, 4 ); // Aligned to 4 components
@@ -6080,10 +6077,7 @@ static shader_t *FinishShader()
 	}
 
 	if ( glConfig2.usingMaterialSystem && !tr.worldLoaded ) {
-		uint8_t maxStages = 0;
-		for ( shaderStage_t* pStage = ret->stages; pStage < ret->lastStage; pStage++ ) {
-			maxStages++;
-		}
+		uint8_t maxStages = ret->lastStage - ret->stages;
 
 		// Add 1 for potential depth stages
 		// Add 1 for potential fog stages
