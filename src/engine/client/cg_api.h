@@ -25,10 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define CGAPI_H
 
 #include "engine/qcommon/q_shared.h"
-#ifdef BUILD_CGAME
-// TODO: find a better way that does not depend on a gamelogic file from an engine file
-#include "shared/bg_public.h"
-#endif
 
 #define CMD_BACKUP               64
 #define CMD_MASK                 ( CMD_BACKUP - 1 )
@@ -41,7 +37,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Snapshots are generated at regular time intervals by the server,
 // but they may not be sent if a client's rate level is exceeded, or
 // they may be dropped by the network.
-struct snapshot_t
+
+// This particular struct is missing player state, which is added by other
+// snapshot structs building on it.
+struct snapshotBase_t
 {
 	int           snapFlags; // SNAPFLAG_RATE_DELAYED, etc
 	int           ping;
@@ -50,17 +49,18 @@ struct snapshot_t
 
 	byte          areamask[ MAX_MAP_AREA_BYTES ]; // portalarea visibility bits
 
-#ifdef BUILD_CGAME
-	playerState_t ps; // complete information about the current player at this time
-#else
-	OpaquePlayerState ps;
-#endif
-
 	// all of the entities that need to be presented at the time of this snapshot
 	std::vector<entityState_t> entities;
 
 	// text based server commands to execute when this snapshot becomes current
 	std::vector<std::string> serverCommands;
+};
+
+// used for IPC
+struct ipcSnapshot_t
+{
+	snapshotBase_t b;
+	OpaquePlayerState ps;
 };
 
 struct cgClientState_t
