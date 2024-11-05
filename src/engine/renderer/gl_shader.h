@@ -2140,7 +2140,7 @@ class u_LightFactor :
 {
 public:
 	u_LightFactor( GLShader *shader ) :
-		GLUniform1f( shader, "u_LightFactor" )
+		GLUniform1f( shader, "u_LightFactor", true )
 	{
 	}
 
