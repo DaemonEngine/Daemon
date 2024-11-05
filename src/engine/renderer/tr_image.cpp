@@ -2587,13 +2587,19 @@ static void R_CreateCurrentRenderImage()
 
 	if ( r_highPrecisionRendering.Get() )
 	{
-		if ( !glConfig2.textureRGBA16BlendAvailable )
+		if ( !glConfig2.textureFloatAvailable )
 		{
-			Log::Warn( "High-precision current render disabled because RGBA16 framebuffer blending is not available" );
+			Log::Warn( "High-precision current render disabled because RGBA16F framebuffer is not available" );
 		}
 		else
 		{
-			imageParams.bits |= IF_RGBA16;
+			// Use float color buffer so that we can store intermediate results of a multi-stage
+			// shader which are greater than 1. For example, the sum of multiple lightmaps from
+			// a light style, or simply a single overbright-scaled lightmap which we did not
+			// manage to collapse with the diffuse.
+			// Besides preventing clamping of the color buffer itself, using a float color buffer
+			// also prevents the fragment shader's output color from being clamped before blending.
+			imageParams.bits |= IF_RGBA16F;
 		}
 	}
 
