@@ -147,6 +147,10 @@ option(USE_ADDRESS_SANITIZER "Try to use the address sanitizer" OFF)
 option(BE_VERBOSE "Tell the compiler to report all warnings" OFF)
 option(USE_STATIC_LIBS "Tries to use static libs where possible. Only works for Linux" OFF)
 
+if (NOT DAEMON_PARENT_SCOPE_DIR)
+    option(BUILD_DUMMY_GAMELOGIC "Build dummy cgame" OFF)
+endif()
+
 # Game VM modules are built with a recursive invocation of CMake, by which all the configuration
 # options are lost, except ones we explicitly choose to pass.
 set(DEFAULT_NACL_VM_INHERITED_OPTIONS
@@ -1057,4 +1061,8 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
             )
         endforeach()
     endif()
+endif()
+
+if (BUILD_DUMMY_GAMELOGIC)
+    include(src/dummygame/CMakeLists.txt)
 endif()
