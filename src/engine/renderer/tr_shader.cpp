@@ -5177,6 +5177,15 @@ static void FinishStages()
 	bool shaderHasNoLight = true;
 	bool lightStageFound = false;
 
+	/* Skip standalone lightmaps, they are assumed to be buggy,
+	see: https://github.com/DaemonEngine/Daemon/issues/322 */
+	if ( numStages == 1 && stages[ 0 ].type == stageType_t::ST_LIGHTMAP )
+	{
+		Log::Warn("Skipping standalone lightmap in shader '%s', assumed to be buggy.", shader.name);
+		stages[ 0 ].active = false;
+		numStages = 0;
+	}
+
 	for ( size_t s = 0; s < numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
