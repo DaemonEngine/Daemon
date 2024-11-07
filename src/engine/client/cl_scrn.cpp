@@ -230,18 +230,6 @@ void SCR_DrawScreenField()
 {
 	re.BeginFrame();
 
-	// wide aspect ratio screens need to have the sides cleared
-	// unless they are displaying game renderings
-	if ( cls.state != connstate_t::CA_ACTIVE )
-	{
-		if ( cls.glconfig.vidWidth * 480 > cls.glconfig.vidHeight * 640 )
-		{
-			re.SetColor( Color::Black );
-			re.DrawStretchPic( 0, 0, cls.glconfig.vidWidth, cls.glconfig.vidHeight, 0, 0, 0, 0, cls.whiteShader );
-			re.SetColor( Color::White );
-		}
-	}
-
 	if ( cgvm.IsActive() )
 	{
 		switch ( cls.state )
