@@ -145,11 +145,7 @@ void	main()
 
 	// compute the specular term
 	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
-		#if defined(USE_REFLECTIVE_SPECULAR)
-			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color, u_EnvironmentMap0, u_EnvironmentMap1);
-		#else // !USE_REFLECTIVE_SPECULAR
-			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
-		#endif // !USE_REFLECTIVE_SPECULAR
+		computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, reflectColor, color);
 	#else // !USE_DELUXE_MAPPING && !USE_GRID_DELUXE_MAPPING
 		computeLight(lightColor, diffuse, color);
 	#endif // !USE_DELUXE_MAPPING && !USE_GRID_DELUXE_MAPPING
