@@ -1910,15 +1910,9 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 
 							GL_PushMatrix();
 
-							gl_genericShader->SetVertexSkinning( false );
-							gl_genericShader->SetVertexAnimation( false );
-							gl_genericShader->SetTCGenEnvironment( false );
-							gl_genericShader->SetTCGenLightmap( false );
-							gl_genericShader->SetDepthFade( false );
 							gl_genericShader->BindProgram( 0 );
 
 							// set uniforms
-							gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 							gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 							gl_genericShader->SetUniform_Color( Color::Black );
 
@@ -2762,14 +2756,8 @@ void RB_RunVisTests( )
 		Tess_UpdateVBOs( );
 		GL_VertexAttribsState( ATTR_POSITION );
 
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_Color( Color::White );
 
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
@@ -3386,18 +3374,12 @@ static void RB_RenderDebugUtils()
 		static const vec3_t minSize = { -2, -2, -2 };
 		static const vec3_t maxSize = { 2,  2,  2 };
 
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
 		// set uniforms
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 
 		// bind u_ColorMap
@@ -3527,18 +3509,12 @@ static void RB_RenderDebugUtils()
 		static const vec3_t mins = { -1, -1, -1 };
 		static const vec3_t maxs = { 1, 1, 1 };
 
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
 		// set uniforms
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
 
@@ -3642,18 +3618,12 @@ static void RB_RenderDebugUtils()
 		static const vec3_t mins = { -1, -1, -1 };
 		static const vec3_t maxs = { 1, 1, 1 };
 
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
 		// set uniforms
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
 
@@ -3708,17 +3678,11 @@ static void RB_RenderDebugUtils()
 		static refSkeleton_t skeleton;
 		refSkeleton_t        *skel;
 
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
 		// set uniforms
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
 
@@ -3921,18 +3885,12 @@ static void RB_RenderDebugUtils()
 		int           iaCount;
 		matrix_t      ortho;
 
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
 
 		// set uniforms
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 
 		// bind u_ColorMap
@@ -4057,15 +4015,9 @@ static void RB_RenderDebugUtils()
 		}
 
 		{
-			gl_genericShader->SetVertexSkinning( false );
-			gl_genericShader->SetVertexAnimation( false );
-			gl_genericShader->SetTCGenEnvironment( false );
-			gl_genericShader->SetTCGenLightmap( false );
-			gl_genericShader->SetDepthFade( false );
 			gl_genericShader->BindProgram( 0 );
 
 			// set uniforms
-			gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 			gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 			gl_genericShader->SetUniform_Color( Color::Black );
 
@@ -4139,15 +4091,9 @@ static void RB_RenderDebugUtils()
 
 		GLimp_LogComment( "--- r_showLightGrid > 0: Rendering light grid\n" );
 
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
 		// set uniforms
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
 
@@ -4230,15 +4176,9 @@ static void RB_RenderDebugUtils()
 			return;
 		}
 
-		gl_genericShader->SetVertexSkinning( false );
-		gl_genericShader->SetVertexAnimation( false );
-		gl_genericShader->SetTCGenEnvironment( false );
-		gl_genericShader->SetTCGenLightmap( false );
-		gl_genericShader->SetDepthFade( false );
 		gl_genericShader->BindProgram( 0 );
 
 		// set uniforms
-		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
 
 		// bind u_ColorMap
@@ -4523,11 +4463,6 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 			break;
 	}
 
-	gl_genericShader->SetVertexSkinning( false );
-	gl_genericShader->SetVertexAnimation( false );
-	gl_genericShader->SetTCGenEnvironment( false );
-	gl_genericShader->SetTCGenLightmap( false );
-	gl_genericShader->SetDepthFade( false );
 	gl_genericShader->BindProgram( 0 );
 
 	GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
@@ -4536,7 +4471,6 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 	GL_VertexAttribsState( ATTR_POSITION | ATTR_COLOR | ATTR_TEXCOORD );
 
 	// set uniforms
-	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_Color( colorClear );
 
@@ -5646,17 +5580,11 @@ void RB_ShowImages()
 
 	glFinish();
 
-	gl_genericShader->SetVertexSkinning( false );
-	gl_genericShader->SetVertexAnimation( false );
-	gl_genericShader->SetTCGenEnvironment( false );
-	gl_genericShader->SetTCGenLightmap( false );
-	gl_genericShader->SetDepthFade( false );
 	gl_genericShader->BindProgram( 0 );
 
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
 	// set uniforms
-	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
 

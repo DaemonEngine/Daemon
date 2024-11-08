@@ -3906,10 +3906,24 @@ class u_Lights :
 	}
 };
 
-// This is just a copy of the GLShader_generic, but with a special
-// define for RmlUI transforms. It probably has a lot of unnecessary
-// code that could be pruned.
-// TODO: Write a more minimal 2D rendering shader.
+// Mostly used by debug tools and things only requiring a very simple shader.
+class GLShader_generic :
+	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
+	public u_TextureMatrix,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_ColorModulate,
+	public u_Color,
+	public GLDeformStage
+{
+public:
+	GLShader_generic( GLShaderManager *manager );
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
+};
+
+// Used for 2D UI elements, it has special code for RmlUi transforms.
 class GLShader_generic2D :
 	public GLShader,
 	public u_ColorMap,
@@ -3930,7 +3944,8 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
-class GLShader_generic :
+// Full-featured shader for stages with a single texture.
+class GLShader_generic3D :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
@@ -3955,11 +3970,12 @@ class GLShader_generic :
 	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
-	GLShader_generic( GLShaderManager *manager );
+	GLShader_generic3D( GLShaderManager *manager );
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
-class GLShader_genericMaterial :
+class GLShader_generic3DMaterial :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
@@ -3981,10 +3997,12 @@ class GLShader_genericMaterial :
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
 	public GLCompileMacro_USE_DEPTH_FADE {
 	public:
-	GLShader_genericMaterial( GLShaderManager* manager );
+	GLShader_generic3DMaterial( GLShaderManager* manager );
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
 };
 
+// Full-featured shader for multi-textured stages.
 class GLShader_lightMapping :
 	public GLShader,
 	public u_DiffuseMap,
@@ -4716,8 +4734,9 @@ std::string GetShaderPath();
 extern ShaderKind shaderKind;
 
 extern GLShader_generic2D                       *gl_generic2DShader;
+extern GLShader_generic3D                       *gl_generic3DShader;
+extern GLShader_generic3DMaterial               *gl_generic3DShaderMaterial;
 extern GLShader_generic                         *gl_genericShader;
-extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_cull                            *gl_cullShader;
 extern GLShader_depthReduction                  *gl_depthReductionShader;
 extern GLShader_clearSurfaces                   *gl_clearSurfacesShader;

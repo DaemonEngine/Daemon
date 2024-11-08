@@ -214,42 +214,42 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	}
 	drawSurf->initialized[stage] = true;
 
-	gl_genericShaderMaterial->BindProgram( material.deformIndex );
+	gl_generic3DShaderMaterial->BindProgram( material.deformIndex );
 
-	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+	gl_generic3DShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_generic3DShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	// u_AlphaThreshold
-	gl_genericShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
+	gl_generic3DShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_ColorModulate
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && drawSurf->bspSurface;
-	gl_genericShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
+	gl_generic3DShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
 
 	Tess_ComputeColor( pStage );
-	gl_genericShaderMaterial->SetUniform_Color( tess.svars.color );
+	gl_generic3DShaderMaterial->SetUniform_Color( tess.svars.color );
 
 	Tess_ComputeTexMatrices( pStage );
-	gl_genericShaderMaterial->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
+	gl_generic3DShaderMaterial->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
 
 	// bind u_ColorMap
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP ) {
-		gl_genericShaderMaterial->SetUniform_ColorMapBindless(
+		gl_generic3DShaderMaterial->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, GetLightMap( drawSurf ) )
 		);
 	} else {
-		gl_genericShaderMaterial->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
+		gl_generic3DShaderMaterial->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	}
 
 	bool hasDepthFade = pStage->hasDepthFade;
 	if ( hasDepthFade ) {
-		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
+		gl_generic3DShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 	}
 
-	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
+	gl_generic3DShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
 void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
@@ -994,30 +994,30 @@ void BindShaderNOP( Material* ) {
 
 void BindShaderGeneric3D( Material* material ) {
 	// Select shader permutation.
-	gl_genericShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
-	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
-	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
+	gl_generic3DShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
+	gl_generic3DShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
+	gl_generic3DShaderMaterial->SetDepthFade( material->hasDepthFade );
 
 	// Bind shader program.
-	gl_genericShaderMaterial->BindProgram( material->deformIndex );
+	gl_generic3DShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
 	if ( material->tcGenEnvironment ) {
-		gl_genericShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-		gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
+		gl_generic3DShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
+		gl_generic3DShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 	}
 
-	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+	gl_generic3DShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_generic3DShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
-	gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
+	gl_generic3DShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
 
 	// u_DeformGen
-	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+	gl_generic3DShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	if ( r_profilerRenderSubGroups.Get() ) {
-		gl_genericShaderMaterial->SetUniform_ProfilerZero();
-		gl_genericShaderMaterial->SetUniform_ProfilerRenderSubGroups( GetShaderProfilerRenderSubGroupsMode( material->stateBits ) );
+		gl_generic3DShaderMaterial->SetUniform_ProfilerZero();
+		gl_generic3DShaderMaterial->SetUniform_ProfilerRenderSubGroups( GetShaderProfilerRenderSubGroupsMode( material->stateBits ) );
 	}
 }
 
@@ -1264,7 +1264,7 @@ void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* ) {
 // ProcessMaterial*() are essentially same as BindShader*(), but only set the GL program id to the material,
 // without actually binding it
 void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* ) {
-	material->shader = gl_genericShaderMaterial;
+	material->shader = gl_generic3DShaderMaterial;
 
 	material->tcGenEnvironment = pStage->tcGen_Environment;
 	material->tcGen_Lightmap = pStage->tcGen_Lightmap;
@@ -1276,14 +1276,14 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 	material->useAttrColor = rgbGen == colorGen_t::CGEN_VERTEX || rgbGen == colorGen_t::CGEN_ONE_MINUS_VERTEX
 		|| alphaGen == alphaGen_t::AGEN_VERTEX || alphaGen == alphaGen_t::AGEN_ONE_MINUS_VERTEX;
 
-	gl_genericShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
-	gl_genericShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );
+	gl_generic3DShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
+	gl_generic3DShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );
 
 	bool hasDepthFade = pStage->hasDepthFade;
 	material->hasDepthFade = hasDepthFade;
-	gl_genericShaderMaterial->SetDepthFade( hasDepthFade );
+	gl_generic3DShaderMaterial->SetDepthFade( hasDepthFade );
 
-	material->program = gl_genericShaderMaterial->GetProgram( pStage->deformIndex );
+	material->program = gl_generic3DShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
 void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
@@ -2286,7 +2286,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		if ( material.shaderBinder == BindShaderLightMapping ) {
 			gl_lightMappingShaderMaterial->SetUniform_MaterialColour( color );
 		} else if ( material.shaderBinder == BindShaderGeneric3D ) {
-			gl_genericShaderMaterial->SetUniform_MaterialColour( color );
+			gl_generic3DShaderMaterial->SetUniform_MaterialColour( color );
 		}
 	}
 
@@ -2313,7 +2313,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		if ( material.shaderBinder == &BindShaderLightMapping ) {
 			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 1 );
 		} else if ( material.shaderBinder == &BindShaderGeneric3D ) {
-			gl_genericShaderMaterial->SetUniform_ShowTris( 1 );
+			gl_generic3DShaderMaterial->SetUniform_ShowTris( 1 );
 		}
 
 		GL_State( GLS_DEPTHTEST_DISABLE );
@@ -2322,7 +2322,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		if ( material.shaderBinder == &BindShaderLightMapping ) {
 			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );
 		} else if ( material.shaderBinder == &BindShaderGeneric3D ) {
-			gl_genericShaderMaterial->SetUniform_ShowTris( 0 );
+			gl_generic3DShaderMaterial->SetUniform_ShowTris( 0 );
 		}
 	}
 
