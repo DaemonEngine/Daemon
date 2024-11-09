@@ -216,7 +216,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	cvar_t      *r_forceAmbient;
 	cvar_t      *r_ambientScale;
-	cvar_t      *r_lightScale;
 	cvar_t      *r_debugSort;
 	cvar_t      *r_printShaders;
 
@@ -1184,7 +1183,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_facePlaneCull = Cvar_Get( "r_facePlaneCull", "1", 0 );
 
 		r_ambientScale = Cvar_Get( "r_ambientScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
-		r_lightScale = Cvar_Get( "r_lightScale", "2", CVAR_CHEAT );
 
 		r_vboFaces = Cvar_Get( "r_vboFaces", "1", CVAR_CHEAT );
 		r_vboCurves = Cvar_Get( "r_vboCurves", "1", CVAR_CHEAT );

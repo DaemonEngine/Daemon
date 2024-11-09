@@ -243,7 +243,7 @@ struct refLight_t
 	vec3_t    center;
 	vec3_t    color; // range from 0.0 to 1.0, should be color normalized
 
-	float     scale; // r_lightScale if not set
+	float scale;
 
 	// omni-directional light specific
 	float     radius;
