@@ -77,7 +77,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal(realtimeLightingRenderer_t::TILED),
 		Util::ordinal(realtimeLightingRenderer_t::LEGACY),
 		Util::ordinal(realtimeLightingRenderer_t::TILED) );
-	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "enable realtime light rendering", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "Enable realtime light rendering", Cvar::NONE, true );
+	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers( "r_realtimeLightLayers", "Dynamic light layers per tile, each layer holds 16 lights",
+		Cvar::NONE, 4, 1, MAX_REF_LIGHTS / 16 );
 	cvar_t      *r_realtimeLightingCastShadows;
 	cvar_t      *r_precomputedLighting;
 	Cvar::Cvar<int> r_overbrightDefaultExponent("r_overbrightDefaultExponent", "default map light color shift (multiply by 2^x)", Cvar::NONE, 2);
@@ -255,6 +257,17 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal( MaterialDebugMode::OPAQUE_TRANSPARENT ) );
 	Cvar::Cvar<bool> r_materialDebug( "r_materialDebug", "Enable material debug SSBO", Cvar::NONE, false );
 	cvar_t      *r_showParallelShadowSplits;
+
+	Cvar::Cvar<bool> r_profilerRenderSubGroups( "r_profilerRenderSubGroups", "Enable subgroup profiling in rendering shaders", Cvar::CHEAT, false );
+	Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode( "r_profilerRenderSubGroupsMode", "Red: more wasted lanes, green: less wasted lanes; "
+		"0: VS opaque, 1: VS transparent, 2: VS all, 3: FS opaque, 4: FS transparent, 5: FS all", Cvar::NONE,
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ),
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ),
+		Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_ALL ) );
+	Cvar::Cvar<int> r_profilerRenderSubGroupsStage( "r_profilerRenderSubGroupsStage", "Select a specific"
+		"stage/material ID (if material system is enabled) for subgroup profiling "
+		"(-1 to profile all stages/materials, rendered in their usual order); "
+		"for materials, material IDs start from opaque materials, depth pre-pass materials are ignored", Cvar::NONE, -1 );
 
 	cvar_t      *r_vboFaces;
 	cvar_t      *r_vboCurves;
@@ -1205,6 +1218,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_realtimeLightingRenderer );
 		Cvar::Latch( r_realtimeLighting );
+		Cvar::Latch( r_realtimeLightLayers );
 		Cvar::Latch( r_preferBindlessTextures );
 		Cvar::Latch( r_materialSystem );
 
@@ -1345,6 +1359,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_materialDebug );
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
 
+		Cvar::Latch( r_profilerRenderSubGroups );
+
 		// make sure all the commands added here are also removed in R_Shutdown
 		ri.Cmd_AddCommand( "listImages", R_ListImages_f );
 		ri.Cmd_AddCommand( "listShaders", R_ListShaders_f );
@@ -1354,7 +1370,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		ri.Cmd_AddCommand( "listModes", R_ListModes_f );
 		ri.Cmd_AddCommand( "listAnimations", R_ListAnimations_f );
 		ri.Cmd_AddCommand( "listFBOs", R_ListFBOs_f );
-		ri.Cmd_AddCommand( "listVBOs", R_ListVBOs_f );
 		ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
 		ri.Cmd_AddCommand( "buildcubemaps", R_BuildCubeMaps );
 
@@ -1541,7 +1556,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		ri.Cmd_RemoveCommand( "shaderstate" );
 		ri.Cmd_RemoveCommand( "listAnimations" );
 		ri.Cmd_RemoveCommand( "listFBOs" );
-		ri.Cmd_RemoveCommand( "listVBOs" );
 		ri.Cmd_RemoveCommand( "generatemtr" );
 		ri.Cmd_RemoveCommand( "buildcubemaps" );
 

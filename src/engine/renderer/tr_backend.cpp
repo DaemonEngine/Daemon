@@ -904,7 +904,7 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 		entity = drawSurf->entity;
 		shader = drawSurf->shader;
 		lightmapNum = drawSurf->lightmapNum();
-		fogNum = drawSurf->fogNum();
+		fogNum = drawSurf->fog;
 		bspSurface = drawSurf->bspSurface;
 
 		if( entity == &tr.worldEntity ) {
@@ -2830,6 +2830,10 @@ void RB_RenderPostDepthLightTile()
 		return;
 	}
 
+	if ( !backEnd.refdef.numLights ) {
+		return;
+	}
+
 	vec3_t zParams;
 	int w, h;
 
@@ -2911,7 +2915,7 @@ void RB_RenderPostDepthLightTile()
 
 	R_BindVBO( tr.lighttileVBO );
 
-	for( int layer = 0; layer < MAX_REF_LIGHTS / 256; layer++ ) {
+	for( int layer = 0; layer < glConfig2.realtimeLightLayers; layer++ ) {
 		R_AttachFBOTexture3D( tr.lighttileRenderImage->texnum, 0, layer );
 		gl_lighttileShader->SetUniform_lightLayer( layer );
 
@@ -3018,7 +3022,7 @@ void RB_RenderGlobalFog()
 
 	// bind u_DepthMap
 	gl_fogGlobalShader->SetUniform_DepthMapBindless(
-		GL_BindToTMU( 0, tr.currentDepthImage )
+		GL_BindToTMU( 1, tr.currentDepthImage )
 	);
 
 	// set 2D virtual screen size
@@ -4105,7 +4109,7 @@ static void RB_RenderDebugUtils()
 			GL_CheckErrors();
 
 			cubemapProbe_t* probes[2];
-			vec3_t trilerp;
+			vec4_t trilerp;
 			vec3_t gridPoints[2];
 			R_GetNearestCubeMaps( backEnd.viewParms.orientation.origin, probes, trilerp, 2, gridPoints );
 

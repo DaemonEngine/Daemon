@@ -342,7 +342,6 @@ class GLShaderManager
 	std::vector< std::unique_ptr< GLShader > > _shaders;
 	std::unordered_map< std::string, int > _deformShaderLookup;
 	std::vector< GLint > _deformShaders;
-	int       _totalBuildTime;
 	unsigned int _driverVersionHash; // For cache invalidation if hardware changes
 	bool _shaderBinaryCacheInvalidated;
 
@@ -356,9 +355,7 @@ public:
 	GLHeader GLWorldHeader;
 	GLHeader GLEngineConstants;
 
-	GLShaderManager() : _totalBuildTime( 0 )
-	{
-	}
+	GLShaderManager() {}
 	~GLShaderManager();
 
 	void InitDriverInfo();
@@ -382,7 +379,7 @@ public:
 
 	int getDeformShaderIndex( deformStage_t *deforms, int numDeforms );
 
-	void buildPermutation( GLShader *shader, int macroIndex, int deformIndex );
+	bool buildPermutation( GLShader *shader, int macroIndex, int deformIndex );
 	void buildAll();
 private:
 	struct InfoLogEntry {
@@ -600,8 +597,8 @@ class GLUniformSampler2D : protected GLUniformSampler {
 
 class GLUniformSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformSampler3D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "sampler3D", 1 ) {
+	GLUniformSampler3D( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "sampler3D", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -622,8 +619,8 @@ class GLUniformSampler3D : protected GLUniformSampler {
 
 class GLUniformUSampler3D : protected GLUniformSampler {
 	protected:
-	GLUniformUSampler3D( GLShader* shader, const char* name ) :
-		GLUniformSampler( shader, name, "usampler3D", 1 ) {
+	GLUniformUSampler3D( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniformSampler( shader, name, "usampler3D", 1, global ) {
 	}
 
 	inline GLint GetLocation() {
@@ -1041,8 +1038,8 @@ public:
 class GLUniform4f : protected GLUniform
 {
 protected:
-	GLUniform4f( GLShader *shader, const char *name ) :
-	GLUniform( shader, name, "vec4", 4, 4, false )
+	GLUniform4f( GLShader *shader, const char *name, const bool global = false ) :
+	GLUniform( shader, name, "vec4", 4, 4, global )
 	{
 		currentValue[0] = 0.0;
 		currentValue[1] = 0.0;
@@ -2220,7 +2217,7 @@ class u_DepthMap :
 	GLUniformSampler2D {
 	public:
 	u_DepthMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_DepthMap" ) {
+		GLUniformSampler2D( shader, "u_DepthMap", true ) {
 	}
 
 	void SetUniform_DepthMapBindless( GLuint64 bindlessHandle ) {
@@ -2364,7 +2361,7 @@ class u_PortalMap :
 	GLUniformSampler2D {
 	public:
 	u_PortalMap( GLShader* shader ) :
-		GLUniformSampler2D( shader, "u_PortalMap" ) {
+		GLUniformSampler2D( shader, "u_PortalMap", true ) {
 	}
 
 	void SetUniform_PortalMapBindless( GLuint64 bindlessHandle ) {
@@ -2392,11 +2389,27 @@ class u_CloudMap :
 	}
 };
 
+class u_FogMap :
+	GLUniformSampler2D {
+	public:
+	u_FogMap( GLShader* shader ) :
+		GLUniformSampler2D( shader, "u_FogMap", true ) {
+	}
+
+	void SetUniform_FogMapBindless( GLuint64 bindlessHandle ) {
+		this->SetValueBindless( bindlessHandle );
+	}
+
+	GLint GetUniformLocation_FogMap() {
+		return this->GetLocation();
+	}
+};
+
 class u_LightTiles :
 	GLUniformSampler3D {
 	public:
 	u_LightTiles( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightTiles" ) {
+		GLUniformSampler3D( shader, "u_LightTiles", true ) {
 	}
 
 	void SetUniform_LightTilesBindless( GLuint64 bindlessHandle ) {
@@ -2412,7 +2425,7 @@ class u_LightGrid1 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid1( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid1" ) {
+		GLUniformSampler3D( shader, "u_LightGrid1", true ) {
 	}
 
 	void SetUniform_LightGrid1Bindless( GLuint64 bindlessHandle ) {
@@ -2428,7 +2441,7 @@ class u_LightGrid2 :
 	GLUniformSampler3D {
 	public:
 	u_LightGrid2( GLShader* shader ) :
-		GLUniformSampler3D( shader, "u_LightGrid2" ) {
+		GLUniformSampler3D( shader, "u_LightGrid2", true ) {
 	}
 
 	void SetUniform_LightGrid2Bindless( GLuint64 bindlessHandle ) {
@@ -3318,6 +3331,32 @@ class u_MaterialColour :
 	}
 };
 
+// u_Profiler* uniforms are all used for shader profiling, with the corresponding r_profiler* cvars
+// u_ProfilerZero is used to reset the colour in a shader without the shader compiler optimising the rest of the shader out
+class u_ProfilerZero :
+	GLUniform1f {
+	public:
+	u_ProfilerZero( GLShader* shader ) :
+		GLUniform1f( shader, "u_ProfilerZero", true ) {
+	}
+
+	void SetUniform_ProfilerZero() {
+		this->SetValue( 0.0 );
+	}
+};
+
+class u_ProfilerRenderSubGroups :
+	GLUniform1ui {
+	public:
+	u_ProfilerRenderSubGroups( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ProfilerRenderSubGroups", true ) {
+	}
+
+	void SetUniform_ProfilerRenderSubGroups( const uint renderSubGroups ) {
+		this->SetValue( renderSubGroups );
+	}
+};
+
 class u_ModelMatrix :
 	GLUniformMatrix4f
 {
@@ -3530,7 +3569,7 @@ class u_EnvironmentInterpolation :
 {
 public:
 	u_EnvironmentInterpolation( GLShader *shader ) :
-		GLUniform1f( shader, "u_EnvironmentInterpolation" )
+		GLUniform1f( shader, "u_EnvironmentInterpolation", true )
 	{
 	}
 
@@ -3545,7 +3584,7 @@ class u_Time :
 {
 public:
 	u_Time( GLShader *shader ) :
-		GLUniform1f( shader, "u_Time" )
+		GLUniform1f( shader, "u_Time", true ) // Source this from a buffer when entity support is added to the material system
 	{
 	}
 
@@ -3639,7 +3678,7 @@ class u_FogDistanceVector :
 {
 public:
 	u_FogDistanceVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDistanceVector" )
+		GLUniform4f( shader, "u_FogDistanceVector", true )
 	{
 	}
 
@@ -3654,7 +3693,7 @@ class u_FogDepthVector :
 {
 public:
 	u_FogDepthVector( GLShader *shader ) :
-		GLUniform4f( shader, "u_FogDepthVector" )
+		GLUniform4f( shader, "u_FogDepthVector", true )
 	{
 	}
 
@@ -3669,7 +3708,7 @@ class u_FogEyeT :
 {
 public:
 	u_FogEyeT( GLShader *shader ) :
-		GLUniform1f( shader, "u_FogEyeT" )
+		GLUniform1f( shader, "u_FogEyeT", true )
 	{
 	}
 
@@ -3913,6 +3952,8 @@ class GLShader_generic :
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
+	public u_ProfilerZero,
+	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -3938,14 +3979,12 @@ class GLShader_genericMaterial :
 	public u_InverseLightFactor,
 	public u_ColorModulate,
 	public u_Color,
-	// public u_Bones,
-	public u_VertexInterpolation,
 	public u_DepthScale,
 	public u_ShowTris,
 	public u_MaterialColour,
+	public u_ProfilerZero,
+	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
 	public GLCompileMacro_USE_DEPTH_FADE {
@@ -3987,6 +4026,8 @@ class GLShader_lightMapping :
 	public u_LightGridScale,
 	public u_numLights,
 	public u_Lights,
+	public u_ProfilerZero,
+	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
@@ -4027,8 +4068,6 @@ class GLShader_lightMappingMaterial :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
-	// public u_Bones,
-	public u_VertexInterpolation,
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
@@ -4039,10 +4078,10 @@ class GLShader_lightMappingMaterial :
 	public u_Lights,
 	public u_ShowTris,
 	public u_MaterialColour,
+	public u_ProfilerZero,
+	public u_ProfilerRenderSubGroups,
 	public GLDeformStage,
 	public GLCompileMacro_USE_BSP_SURFACE,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_DELUXE_MAPPING,
 	public GLCompileMacro_USE_GRID_LIGHTING,
 	public GLCompileMacro_USE_GRID_DELUXE_MAPPING,
@@ -4257,16 +4296,12 @@ class GLShader_reflectionMaterial :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	// public u_Bones,
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
-	public u_VertexInterpolation,
 	public u_CameraPosition,
 	public u_InverseLightFactor,
 	public GLDeformStage,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:
@@ -4311,7 +4346,7 @@ class GLShader_skyboxMaterial :
 
 class GLShader_fogQuake3 :
 	public GLShader,
-	public u_ColorMap,
+	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
@@ -4332,19 +4367,15 @@ public:
 
 class GLShader_fogQuake3Material :
 	public GLShader,
-	public u_ColorMap,
+	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_InverseLightFactor,
 	public u_Color,
-	// public u_Bones,
-	public u_VertexInterpolation,
 	public u_FogDistanceVector,
 	public u_FogDepthVector,
 	public u_FogEyeT,
-	public GLDeformStage,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION {
+	public GLDeformStage {
 	public:
 	GLShader_fogQuake3Material( GLShaderManager* manager );
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
@@ -4411,12 +4442,8 @@ class GLShader_heatHazeMaterial :
 	public u_ProjectionMatrixTranspose,
 	public u_ColorModulate,
 	public u_Color,
-	// public u_Bones,
 	public u_NormalScale,
-	public u_VertexInterpolation,
-	public GLDeformStage,
-	// public GLCompileMacro_USE_VERTEX_SKINNING,
-	public GLCompileMacro_USE_VERTEX_ANIMATION
+	public GLDeformStage
 {
 public:
 	GLShader_heatHazeMaterial( GLShaderManager* manager );
@@ -4541,6 +4568,8 @@ class GLShader_liquid :
 	public u_SpecularExponent,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
+	public GLCompileMacro_USE_GRID_DELUXE_MAPPING,
+	public GLCompileMacro_USE_GRID_LIGHTING,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING
 {
@@ -4576,6 +4605,8 @@ class GLShader_liquidMaterial :
 	public u_SpecularExponent,
 	public u_LightGridOrigin,
 	public u_LightGridScale,
+	public GLCompileMacro_USE_GRID_DELUXE_MAPPING,
+	public GLCompileMacro_USE_GRID_LIGHTING,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING {
 	public:

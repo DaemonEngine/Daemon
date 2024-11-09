@@ -62,6 +62,8 @@ uniform sampler3D u_LightGrid2;
 	uniform vec3 u_MaterialColour;
 #endif
 
+#insert shaderProfiler_fp
+
 DECLARE_OUTPUT(vec4)
 
 void main()
@@ -182,7 +184,8 @@ void main()
 	// Blend static light.
 	#if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING)
 		#if defined(USE_REFLECTIVE_SPECULAR)
-			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color, u_EnvironmentMap0, u_EnvironmentMap1);
+			vec4 modifiedSpecular = material * EnvironmentalSpecularFactor(viewDir, normal);
+			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, modifiedSpecular, color);
 		#else // !USE_REFLECTIVE_SPECULAR
 			computeDeluxeLight(lightDir, normal, viewDir, lightColor, diffuse, material, color);
 		#endif // !USE_REFLECTIVE_SPECULAR
@@ -192,12 +195,7 @@ void main()
 
 	// Blend dynamic lights.
 	#if defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1
-		#if defined(USE_REFLECTIVE_SPECULAR)
-			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTiles,
-								 u_EnvironmentMap0, u_EnvironmentMap1);
-		#else // !USE_REFLECTIVE_SPECULAR
-			computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTiles);
-		#endif // !USE_REFLECTIVE_SPECULAR
+		computeDynamicLights(var_Position, normal, viewDir, diffuse, material, color, u_LightTiles);
 	#endif
 
 	// Add Rim Lighting to highlight the edges on model entities.
@@ -227,6 +225,8 @@ void main()
 
 		color.rgb += glow;
 	#endif
+	
+	SHADER_PROFILER_SET( color )
 
 	outputColor = color;
 

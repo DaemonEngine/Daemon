@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //TODO: use case-insensitive comparisons for commands (store the lower case version?)
 namespace Cmd {
 
-    Log::Logger commandLog("common.commands");
+    static Log::Logger commandLog("common.commands");
 
     /*
     ===============================================================================
@@ -55,8 +55,8 @@ namespace Cmd {
         bool parseCvars;
     };
 
-    std::vector<BufferEntry> commandBuffer;
-    std::mutex commandBufferLock;
+    static std::vector<BufferEntry> commandBuffer;
+    static std::mutex commandBufferLock;
 
     void BufferCommandTextInternal(Str::StringRef text, bool parseCvars, Environment* env, bool insertAtTheEnd) {
         std::lock_guard<std::mutex> locked(commandBufferLock);
@@ -121,8 +121,8 @@ namespace Cmd {
 
     // Used to emulate the C API
     //TODO: remove the need for this
-    Args currentArgs;
-    Args oldArgs;
+    static Args currentArgs;
+    static Args oldArgs;
 
     void AddCommand(const std::string& name, const CmdBase& cmd, std::string description) {
         CommandMap& commands = GetCommandMap();
@@ -184,10 +184,10 @@ namespace Cmd {
         return commands.find(name) != commands.end();
     }
 
-    DefaultEnvironment defaultEnv;
+    static DefaultEnvironment defaultEnv;
 
     // Command execution is sequential so we make their environment a global variable.
-    Environment* storedEnvironment = &defaultEnv;
+    static Environment* storedEnvironment = &defaultEnv;
 
     void ExecuteCommand(Str::StringRef command, bool parseCvars, Environment* env) {
         CommandMap& commands = GetCommandMap();

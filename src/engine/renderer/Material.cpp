@@ -185,8 +185,8 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 	pStage->dynamic = pStage->dynamic || pStage->rgbExp.numOps || pStage->redExp.numOps || pStage->greenExp.numOps || pStage->blueExp.numOps;
 	pStage->dynamic = pStage->dynamic || pStage->deformMagnitudeExp.numOps;
 	pStage->dynamic = pStage->dynamic || pStage->depthScaleExp.numOps || pStage->etaExp.numOps || pStage->etaDeltaExp.numOps
-		|| pStage->fogDensityExp.numOps || pStage->fresnelBiasExp.numOps || pStage->fresnelPowerExp.numOps
-		|| pStage->fresnelScaleExp.numOps || pStage->normalIntensityExp.numOps || pStage->refractionIndexExp.numOps;
+	                                  || pStage->fogDensityExp.numOps || pStage->fresnelBiasExp.numOps || pStage->fresnelPowerExp.numOps
+	                                  || pStage->fresnelScaleExp.numOps || pStage->normalIntensityExp.numOps || pStage->refractionIndexExp.numOps;
 
 	pStage->dynamic = pStage->dynamic || pStage->colorDynamic || pStage->texMatricesDynamic || pStage->texturesDynamic;
 }
@@ -238,9 +238,6 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	Tess_ComputeTexMatrices( pStage );
 	gl_genericShaderMaterial->SetUniform_TextureMatrix( tess.svars.texMatrices[TB_COLORMAP] );
 
-	// u_DeformGen
-	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
 	// bind u_ColorMap
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP ) {
 		gl_genericShaderMaterial->SetUniform_ColorMapBindless(
@@ -250,17 +247,10 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 		gl_genericShaderMaterial->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	}
 
-	bool needDepthMap = pStage->hasDepthFade;
-	if ( needDepthMap ) {
-		gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
-	}
-
 	bool hasDepthFade = pStage->hasDepthFade;
 	if ( hasDepthFade ) {
 		gl_genericShaderMaterial->SetUniform_DepthScale( pStage->depthFadeValue );
 	}
-
-	gl_genericShaderMaterial->SetUniform_VertexInterpolation( false );
 
 	gl_genericShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -294,27 +284,12 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
+	Tess_ComputeColor( pStage );
+
 	SetVertexLightingSettings( lightMode, rgbGen );
 
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
-
-	// TODO: Update this when this is extended to MDV support
-	gl_lightMappingShaderMaterial->SetUniform_VertexInterpolation( false );
-
-	if ( glConfig2.realtimeLighting ) {
-		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
-
-		// bind u_LightTiles
-		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
-			gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
-				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
-			);
-		}
-	}
-
-	// u_DeformGen
-	gl_lightMappingShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// u_InverseLightFactor
 	/* HACK: use sign to know if there is a light or not, and
@@ -327,7 +302,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	gl_lightMappingShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen );
 
 	// u_Color
-	Tess_ComputeColor( pStage );
 	gl_lightMappingShaderMaterial->SetUniform_Color( tess.svars.color );
 
 	// u_AlphaThreshold
@@ -393,8 +367,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 		gl_lightMappingShaderMaterial->SetUniform_LightMapBindless(
 			GL_BindToTMU( BIND_LIGHTMAP, lightmap )
 		);
-	} else {
-		gl_lightMappingShaderMaterial->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, lightmap ) );
 	}
 
 	// bind u_DeluxeMap
@@ -402,8 +374,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 		gl_lightMappingShaderMaterial->SetUniform_DeluxeMapBindless(
 			GL_BindToTMU( BIND_DELUXEMAP, deluxemap )
 		);
-	} else {
-		gl_lightMappingShaderMaterial->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, deluxemap ) );
 	}
 
 	// bind u_GlowMap
@@ -429,8 +399,6 @@ void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawS
 	}
 	drawSurf->initialized[stage] = true;
 
-	gl_reflectionShaderMaterial->SetUniform_VertexInterpolation( false );
-
 	// bind u_NormalMap
 	gl_reflectionShaderMaterial->SetUniform_NormalMapBindless(
 		GL_BindToTMU( 1, pStage->bundle[TB_NORMALMAP].image[0] )
@@ -445,7 +413,7 @@ void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, drawS
 		VectorCopy( backEnd.viewParms.orientation.origin, position );
 	}
 
-	cubemapProbe_t* probes[2];
+	cubemapProbe_t* probes[ 1 ];
 	vec4_t trilerp;
 	R_GetNearestCubeMaps( position, probes, trilerp, 1 );
 
@@ -605,12 +573,6 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_
 	// bind u_CurrentMap
 	gl_liquidShaderMaterial->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] ) );
 
-	// bind u_PortalMap
-	gl_liquidShaderMaterial->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
-
-	// depth texture
-	gl_liquidShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
-
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping ) {
 		float depthScale;
@@ -641,6 +603,30 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_
 	}
 
 	gl_liquidShaderMaterial->WriteUniformsToBuffer( materials );
+}
+
+void UpdateSurfaceDataFog( uint32_t* materials, Material& material, drawSurf_t* drawSurf, const uint32_t stage ) {
+	shader_t* shader = drawSurf->shader;
+	shaderStage_t* pStage = &shader->stages[stage];
+
+	const uint32_t paddedOffset = drawSurf->materialsSSBOOffset[stage] * material.shader->GetPaddedSize();
+	materials += paddedOffset;
+
+	bool updated = !drawSurf->initialized[stage] || pStage->colorDynamic || pStage->texMatricesDynamic || pStage->dynamic;
+	if ( !updated ) {
+		return;
+	}
+	drawSurf->initialized[stage] = true;
+
+	const fog_t* fog = material.fog;
+
+	// u_InverseLightFactor
+	gl_fogQuake3ShaderMaterial->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
+
+	// u_Color
+	gl_fogQuake3ShaderMaterial->SetUniform_Color( fog->color );
+
+	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
 /*
@@ -697,7 +683,7 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 		}
 	}
 
-	dynamicDrawSurfsOffset = offset;
+	bool dynamicDrawSurfOffsetSet = false;
 
 	// Compute data size for dynamic surfaces
 	for ( MaterialPack& pack : materialPacks ) {
@@ -708,6 +694,13 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 			const uint32_t padding = ( offset % paddedSize == 0 ) ? 0 : paddedSize - ( offset % paddedSize );
 
 			offset += padding;
+			
+			// Make sure padding is taken into account for dynamicDrawSurfsOffset
+			if ( !dynamicDrawSurfOffsetSet ) {
+				dynamicDrawSurfsOffset = offset;
+				dynamicDrawSurfOffsetSet = true;
+			}
+
 			material.dynamicMaterialsSSBOOffset = offset;
 			offset += paddedSize * material.totalDynamicDrawSurfCount;
 		}
@@ -825,7 +818,7 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	surfaceDescriptorsCount = totalDrawSurfs;
 	descriptorSize = BOUNDING_SPHERE_SIZE + maxStages;
 	glBufferData( GL_SHADER_STORAGE_BUFFER, surfaceDescriptorsCount * descriptorSize * sizeof( uint32_t ),
-				  nullptr, GL_STATIC_DRAW );
+		nullptr, GL_STATIC_DRAW );
 	uint32_t* surfaceDescriptors = surfaceDescriptorsSSBO.MapBufferRange( surfaceDescriptorsCount * descriptorSize );
 
 	surfaceCommandsCount = totalBatchCount * SURFACE_COMMANDS_PER_BATCH;
@@ -872,8 +865,8 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	atomicCommandCountersBuffer.BufferStorage( GL_ATOMIC_COUNTER_BUFFER,
 		MAX_COMMAND_COUNTERS * MAX_VIEWS, MAX_FRAMES, nullptr );
 	atomicCommandCountersBuffer.MapAll( GL_ATOMIC_COUNTER_BUFFER );
-	uint32_t* atomicCommandCounters = (uint32_t*) atomicCommandCountersBuffer.GetData();
-	memset( atomicCommandCounters, 0, MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES * sizeof(uint32_t) );
+	uint32_t* atomicCommandCounters = ( uint32_t* ) atomicCommandCountersBuffer.GetData();
+	memset( atomicCommandCounters, 0, MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES * sizeof( uint32_t ) );
 
 	/* For use in debugging compute shaders
 	Intended for use with Nsight Graphics to format the output */
@@ -946,6 +939,20 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 			stage++;
 		}
+
+		if ( drawSurf->fogSurface ) {
+			const drawSurf_t* fogDrawSurf = drawSurf->fogSurface;
+			const Material* material = &materialPacks[fogDrawSurf->materialPackIDs[0]].materials[fogDrawSurf->materialIDs[0]];
+			uint cmdID = material->surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH + fogDrawSurf->drawCommandIDs[0];
+			// Add 1 because cmd 0 == no-command
+			surface.surfaceCommandIDs[stage + ( depthPrePass ? 1 : 0 )] = cmdID + 1;
+
+			SurfaceCommand surfaceCommand;
+			surfaceCommand.enabled = 0;
+			surfaceCommand.drawCommand = material->drawCommands[fogDrawSurf->drawCommandIDs[0]].cmd;
+			surfaceCommands[cmdID] = surfaceCommand;
+		}
+
 		memcpy( surfaceDescriptors, &surface, descriptorSize * sizeof( uint32_t ) );
 		surfaceDescriptors += descriptorSize;
 	}
@@ -973,22 +980,18 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 }
 
 void MaterialSystem::GenerateDepthImages( const int width, const int height, imageParams_t imageParms ) {
-	int size = std::max( width, height );
 	imageParms.bits ^= ( IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8 );
 	imageParms.bits |= IF_ONECOMP32F;
 
-	depthImageLevels = 0;
-	while ( size > 0 ) {
-		depthImageLevels++;
-		size >>= 1; // mipmaps round down
-	}
+	depthImageLevels = log2f( std::max( width, height ) ) + 1;
 
 	depthImage = R_CreateImage( "_depthImage", nullptr, width, height, depthImageLevels, imageParms );
 	GL_Bind( depthImage );
+
 	int mipmapWidth = width;
 	int mipmapHeight = height;
-	for ( int j = 0; j < depthImageLevels; j++ ) {
-		glTexImage2D( GL_TEXTURE_2D, j, GL_R32F, mipmapWidth, mipmapHeight, 0, GL_RED, GL_FLOAT, nullptr );
+	for ( int i = 0; i < depthImageLevels; i++ ) {
+		glTexImage2D( GL_TEXTURE_2D, i, GL_R32F, mipmapWidth, mipmapHeight, 0, GL_RED, GL_FLOAT, nullptr );
 		mipmapWidth = mipmapWidth > 1 ? mipmapWidth >> 1 : 1;
 		mipmapHeight = mipmapHeight > 1 ? mipmapHeight >> 1 : 1;
 	}
@@ -1003,7 +1006,6 @@ void BindShaderNOP( Material* ) {
 
 void BindShaderGeneric3D( Material* material ) {
 	// Select shader permutation.
-	gl_genericShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 	gl_genericShaderMaterial->SetTCGenEnvironment( material->tcGenEnvironment );
 	gl_genericShaderMaterial->SetTCGenLightmap( material->tcGen_Lightmap );
 	gl_genericShaderMaterial->SetDepthFade( material->hasDepthFade );
@@ -1019,11 +1021,20 @@ void BindShaderGeneric3D( Material* material ) {
 
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	gl_genericShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 1, tr.currentDepthImage ) );
+
+	// u_DeformGen
+	gl_genericShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+
+	if ( r_profilerRenderSubGroups.Get() ) {
+		gl_genericShaderMaterial->SetUniform_ProfilerZero();
+		gl_genericShaderMaterial->SetUniform_ProfilerRenderSubGroups( GetShaderProfilerRenderSubGroupsMode( material->stateBits ) );
+	}
 }
 
 void BindShaderLightMapping( Material* material ) {
 	// Select shader permutation.
-	gl_lightMappingShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 	gl_lightMappingShaderMaterial->SetBspSurface( material->bspSurface );
 	gl_lightMappingShaderMaterial->SetDeluxeMapping( material->enableDeluxeMapping );
 	gl_lightMappingShaderMaterial->SetGridLighting( material->enableGridLighting );
@@ -1045,10 +1056,34 @@ void BindShaderLightMapping( Material* material ) {
 	}
 	// FIXME: else
 
+	// bind u_LightGrid1
+	if ( material->enableGridLighting ) {
+		gl_lightMappingShaderMaterial->SetUniform_LightGrid1Bindless( GL_BindToTMU( BIND_LIGHTMAP, tr.lightGrid1Image ) );
+	}
+
+	// bind u_LightGrid2
+	if ( material->enableGridDeluxeMapping ) {
+		gl_lightMappingShaderMaterial->SetUniform_LightGrid2Bindless( GL_BindToTMU( BIND_DELUXEMAP, tr.lightGrid2Image ) );
+	}
+
+	if ( glConfig2.realtimeLighting ) {
+		gl_lightMappingShaderMaterial->SetUniformBlock_Lights( tr.dlightUBO );
+
+		// bind u_LightTiles
+		if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) ) {
+			gl_lightMappingShaderMaterial->SetUniform_LightTilesBindless(
+				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
+			);
+		}
+	}
+
 	gl_lightMappingShaderMaterial->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
 	gl_lightMappingShaderMaterial->SetUniform_numLights( backEnd.refdef.numLights );
 	gl_lightMappingShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_lightMappingShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	// u_DeformGen
+	gl_lightMappingShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// TODO: Move this to a per-entity buffer
 	if ( glConfig2.reflectionMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) ) {
@@ -1090,13 +1125,17 @@ void BindShaderLightMapping( Material* material ) {
 		// bind u_EnvironmentInterpolation
 		gl_lightMappingShaderMaterial->SetUniform_EnvironmentInterpolation( interpolation );
 	}
+
+	if ( r_profilerRenderSubGroups.Get() ) {
+		gl_lightMappingShaderMaterial->SetUniform_ProfilerZero();
+		gl_lightMappingShaderMaterial->SetUniform_ProfilerRenderSubGroups( GetShaderProfilerRenderSubGroupsMode( material->stateBits ) );
+	}
 }
 
 void BindShaderReflection( Material* material ) {
 	// Select shader permutation.
 	gl_reflectionShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_reflectionShaderMaterial->SetReliefMapping( material->enableReliefMapping );
-	gl_reflectionShaderMaterial->SetVertexAnimation( material->vertexAnimation );
 
 	// Bind shader program.
 	gl_reflectionShaderMaterial->BindProgram( material->deformIndex );
@@ -1126,9 +1165,6 @@ void BindShaderScreen( Material* material ) {
 }
 
 void BindShaderHeatHaze( Material* material ) {
-	// Select shader permutation.
-	gl_heatHazeShaderMaterial->SetVertexAnimation( material->vertexAnimation );
-
 	// Bind shader program.
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
 
@@ -1155,6 +1191,8 @@ void BindShaderLiquid( Material* material ) {
 	// Select shader permutation.
 	gl_liquidShaderMaterial->SetHeightMapInNormalMap( material->hasHeightMapInNormalMap );
 	gl_liquidShaderMaterial->SetReliefMapping( material->enableReliefMapping );
+	gl_liquidShaderMaterial->SetGridDeluxeMapping( material->enableGridDeluxeMapping );
+	gl_liquidShaderMaterial->SetGridLighting( material->enableGridLighting );
 
 	// Bind shader program.
 	gl_liquidShaderMaterial->BindProgram( material->deformIndex );
@@ -1163,6 +1201,69 @@ void BindShaderLiquid( Material* material ) {
 	gl_liquidShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
 	gl_liquidShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	// depth texture
+	gl_liquidShaderMaterial->SetUniform_DepthMapBindless( GL_BindToTMU( 2, tr.currentDepthImage ) );
+
+	// bind u_PortalMap
+	gl_liquidShaderMaterial->SetUniform_PortalMapBindless( GL_BindToTMU( 1, tr.portalRenderImage ) );
+}
+
+void BindShaderFog( Material* material ) {
+	// Bind shader program.
+	gl_fogQuake3ShaderMaterial->BindProgram( 0 );
+
+	// Set shader uniforms.
+	const fog_t* fog = material->fog;
+
+	// all fogging distance is based on world Z units
+	vec4_t fogDistanceVector;
+	vec3_t local;
+	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
+	fogDistanceVector[0] = -backEnd.orientation.modelViewMatrix[2];
+	fogDistanceVector[1] = -backEnd.orientation.modelViewMatrix[6];
+	fogDistanceVector[2] = -backEnd.orientation.modelViewMatrix[10];
+	fogDistanceVector[3] = DotProduct( local, backEnd.viewParms.orientation.axis[0] );
+
+	// scale the fog vectors based on the fog's thickness
+	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
+	fogDistanceVector[3] *= fog->tcScale;
+
+	// rotate the gradient vector for this orientation
+	float eyeT;
+	vec4_t fogDepthVector;
+	if ( fog->hasSurface ) {
+		fogDepthVector[0] = fog->surface[0] * backEnd.orientation.axis[0][0] +
+			fog->surface[1] * backEnd.orientation.axis[0][1] + fog->surface[2] * backEnd.orientation.axis[0][2];
+		fogDepthVector[1] = fog->surface[0] * backEnd.orientation.axis[1][0] +
+			fog->surface[1] * backEnd.orientation.axis[1][1] + fog->surface[2] * backEnd.orientation.axis[1][2];
+		fogDepthVector[2] = fog->surface[0] * backEnd.orientation.axis[2][0] +
+			fog->surface[1] * backEnd.orientation.axis[2][1] + fog->surface[2] * backEnd.orientation.axis[2][2];
+		fogDepthVector[3] = -fog->surface[3] + DotProduct( backEnd.orientation.origin, fog->surface );
+
+		eyeT = DotProduct( backEnd.orientation.viewOrigin, fogDepthVector ) + fogDepthVector[3];
+	} else {
+		Vector4Set( fogDepthVector, 0, 0, 0, 1 );
+		eyeT = 1; // non-surface fog always has eye inside
+	}
+
+	// see if the viewpoint is outside
+	// this is needed for clipping distance even for constant fog
+	fogDistanceVector[3] += 1.0 / 512;
+
+	gl_fogQuake3ShaderMaterial->SetUniform_FogDistanceVector( fogDistanceVector );
+	gl_fogQuake3ShaderMaterial->SetUniform_FogDepthVector( fogDepthVector );
+	gl_fogQuake3ShaderMaterial->SetUniform_FogEyeT( eyeT );
+
+	gl_fogQuake3ShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_fogQuake3ShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
+
+	gl_fogQuake3ShaderMaterial->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+
+	// bind u_ColorMap
+	gl_fogQuake3ShaderMaterial->SetUniform_FogMapBindless(
+		GL_BindToTMU( 0, tr.fogImage )
+	);
 }
 
 void ProcessMaterialNONE( Material*, shaderStage_t*, drawSurf_t* ) {
@@ -1177,12 +1278,9 @@ void ProcessMaterialNOP( Material*, shaderStage_t*, drawSurf_t* ) {
 void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSurf_t* ) {
 	material->shader = gl_genericShaderMaterial;
 
-	material->vertexAnimation = false;
 	material->tcGenEnvironment = pStage->tcGen_Environment;
 	material->tcGen_Lightmap = pStage->tcGen_Lightmap;
 	material->deformIndex = pStage->deformIndex;
-
-	gl_genericShaderMaterial->SetVertexAnimation( false );
 
 	gl_genericShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );
@@ -1197,10 +1295,8 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
 	material->shader = gl_lightMappingShaderMaterial;
 
-	material->vertexAnimation = false;
 	material->bspSurface = false;
 
-	gl_lightMappingShaderMaterial->SetVertexAnimation( false );
 	gl_lightMappingShaderMaterial->SetBspSurface( drawSurf->bspSurface );
 
 	lightMode_t lightMode;
@@ -1245,14 +1341,11 @@ void ProcessMaterialReflection( Material* material, shaderStage_t* pStage, drawS
 
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
-	material->vertexAnimation = false;
 	material->deformIndex = pStage->deformIndex;
 
 	gl_reflectionShaderMaterial->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_reflectionShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
-
-	gl_reflectionShaderMaterial->SetVertexAnimation( false );
 
 	material->program = gl_reflectionShaderMaterial->GetProgram( pStage->deformIndex );
 }
@@ -1276,25 +1369,40 @@ void ProcessMaterialScreen( Material* material, shaderStage_t* pStage, drawSurf_
 void ProcessMaterialHeatHaze( Material* material, shaderStage_t* pStage, drawSurf_t* ) {
 	material->shader = gl_heatHazeShaderMaterial;
 
-	material->vertexAnimation = false;
 	material->deformIndex = pStage->deformIndex;
 
-	gl_heatHazeShaderMaterial->SetVertexAnimation( false );
 	material->program = gl_heatHazeShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
-void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* /* drawSurf */ ) {
+void ProcessMaterialLiquid( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
 	material->shader = gl_liquidShaderMaterial;
+
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( drawSurf, pStage->type, lightMode, deluxeMode );
 
 	material->hasHeightMapInNormalMap = pStage->hasHeightMapInNormalMap;
 	material->enableReliefMapping = pStage->enableReliefMapping;
 	material->deformIndex = pStage->deformIndex;
+	material->enableGridDeluxeMapping = true;
+	material->enableGridLighting = true;
 
 	gl_liquidShaderMaterial->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_liquidShaderMaterial->SetReliefMapping( pStage->enableReliefMapping );
 
+	gl_liquidShaderMaterial->SetGridDeluxeMapping( deluxeMode == deluxeMode_t::GRID );
+
+	gl_liquidShaderMaterial->SetGridLighting( lightMode == lightMode_t::GRID );
+
 	material->program = gl_liquidShaderMaterial->GetProgram( pStage->deformIndex );
+}
+
+void ProcessMaterialFog( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
+	material->shader = gl_fogQuake3ShaderMaterial;
+	material->fog = tr.world->fogs + drawSurf->fog;
+
+	material->program = gl_fogQuake3ShaderMaterial->GetProgram( pStage->deformIndex );
 }
 
 void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, shader_t* shader, uint32_t* packIDs, uint32_t& stage,
@@ -1992,8 +2100,8 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 	}
 }
 
-void MaterialSystem::RenderIndirect( const Material& material, const uint32_t viewID ) {
-	glMultiDrawElementsIndirectCountARB( GL_TRIANGLES, GL_UNSIGNED_INT,
+void MaterialSystem::RenderIndirect( const Material& material, const uint32_t viewID, const GLenum mode = GL_TRIANGLES ) {
+	glMultiDrawElementsIndirectCountARB( mode, GL_UNSIGNED_INT,
 		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
 		               + ( surfaceCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
 		               * sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
@@ -2003,9 +2111,48 @@ void MaterialSystem::RenderIndirect( const Material& material, const uint32_t vi
 }
 
 void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID ) {
+	uint32_t stateBits = material.stateBits;
+
+	if ( r_profilerRenderSubGroups.Get() ) {
+		const int materialID = r_profilerRenderSubGroupsStage.Get();
+		if ( materialID != -1 ) {
+			// Make sure we don't skip depth pre-pass materials; ID starts at opaque materials because we can't use this with depth materials
+			if ( ( material.globalID >= materialPacks[0].materials.size() ) && ( material.globalID != materialID + materialPacks[0].materials.size() ) ) {
+				return;
+			}
+		}
+
+		switch ( r_profilerRenderSubGroupsMode.Get() ) {
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_OPAQUE ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_OPAQUE ):
+				if ( material.stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) {
+					return;
+				}
+				break;
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_TRANSPARENT ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_TRANSPARENT ):
+				if ( material.stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) {
+					return;
+				}
+				break;
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::VS_ALL ):
+			case Util::ordinal( shaderProfilerRenderSubGroupsMode::FS_ALL ):
+			default:
+				break;
+		}
+
+		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS );
+	}
+
+	if( material.shaderBinder == BindShaderFog ) {
+		if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ) {
+			return;
+		}
+	}
+
 	backEnd.currentEntity = &tr.worldEntity;
 
-	GL_State( material.stateBits );
+	GL_State( stateBits );
 	if ( material.usePolygonOffset ) {
 		glEnable( GL_POLYGON_OFFSET_FILL );
 		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
@@ -2162,7 +2309,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		}
 
 		GL_State( GLS_DEPTHTEST_DISABLE );
-		RenderIndirect( material, viewID );
+		RenderIndirect( material, viewID, GL_LINES );
 
 		if ( material.shaderBinder == &BindShaderLightMapping ) {
 			gl_lightMappingShaderMaterial->SetUniform_ShowTris( 0 );

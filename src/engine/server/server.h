@@ -70,12 +70,15 @@ struct server_t
 	int             snapshotCounter; // incremented for each snapshot built
 	int             timeResidual; // <= 1000 / sv_frame->value
 	int             nextFrameTime; // when time > nextFrameTime, process world
-	struct cmodel_t *models[ MAX_MODELS ];
 
 	char            *configstrings[ MAX_CONFIGSTRINGS ];
 	bool        configstringsmodified[ MAX_CONFIGSTRINGS ];
 	svEntity_t      svEntities[ MAX_GENTITIES ];
 
+	// this is apparently just a proxy, this pointer
+	// is set to contain the strings that define entities
+	// which must be parsed by sgame for spawning map entities,
+	// notably.
 	const char            *entityParsePoint; // used during game VM init
 
 	// the game virtual machine will update these on init and changes
@@ -234,6 +237,8 @@ struct serverStatic_t
 {
 	bool      initialized; // sv_init has completed
 
+	bool warnedNetworkScopeNotAdvertisable;
+
 	int           time; // will be strictly increasing across level changes
 
 	int           snapFlagServerBit; // ^= SNAPFLAG_SERVERCOUNT every SV_SpawnServer()
@@ -314,6 +319,8 @@ extern cvar_t *sv_dl_maxRate;
 
 //fretn
 extern cvar_t *sv_fullmsg;
+
+extern Cvar::Range<Cvar::Cvar<int>> sv_networkScope;
 
 //===========================================================
 
@@ -420,7 +427,6 @@ enum class ServerPrivate
 	Public,      // Actively advertise, don't refuse anything
 	NoAdvertise, // Do not advertise but reply to all out of band messages
 	NoStatus,    // Do not advertise nor reply to status out of band messages but allow all connections
-	LanOnly,     // Block everything except for LAN connections
 };
 
 /*

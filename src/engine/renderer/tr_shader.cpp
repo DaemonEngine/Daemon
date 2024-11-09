@@ -1965,7 +1965,7 @@ void LoadExtraMaps( shaderStage_t *stage, const char *colorMapName )
 		for ( const extraMapParser_t parser: dpExtraMapParsers )
 		{
 			std::string extraMapName = Str::Format( "%s%s", colorMapBaseName, parser.suffix );
-			if( R_FindImageLoader( extraMapName.c_str() ) >= 0 )
+			if ( R_HasImageLoader( extraMapName.c_str() ) )
 			{
 				foundExtraMap = true;
 				Log::Debug( "found extra %s '%s'", parser.description, extraMapName.c_str() );
@@ -2436,6 +2436,7 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 				continue;
 			}
 
+			// This isn't actually used because we render fog based on the shader, not the stage
 			if ( !Q_stricmp( token, "on" ) )
 			{
 				stage->noFog = false;
@@ -5239,33 +5240,55 @@ static void FinishStages()
 		? gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms )
 		: 0;
 
+	bool isOpaqueShader = false;
+
 	for ( size_t s = 0; s < numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
 
 		stage->deformIndex = deformIndex;
 
-		// We should cancel overbright if there is no light stage.
-		stage->cancelOverBright = shaderHasNoLight;
+		// SRC1 and DST0 are reset to zero in ParseStage (no blending).
+		bool isOpaque = !( stage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
+
+		// A shader is not opaque if all stages are not opaques.
+		isOpaqueShader |= isOpaque;
 
 		if ( shaderHasNoLight )
 		{
-			// We should not cancel overbright if there is no light and it's not using blendFunc dst_color.
-			bool blendFunc_dstColor = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
+			bool blendFunc_srcDstColor = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
 
-			if ( blendFunc_dstColor )
-			{
-				stage->cancelOverBright = false;
-			}
+			// We should cancel overbright if there is no light stage, unless it's using blendFunc dst_color.
+			stage->cancelOverBright = !blendFunc_srcDstColor;
 
-			// We should not cancel overbright if that's a non-opaque decal.
 			bool isDecal = shader.sort == Util::ordinal(shaderSort_t::SS_DECAL);
-			// SRC1 and DST0 are reset to zero in ParseStage (no blending).
-			bool isOpaque = !( stage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
 
 			if ( isDecal )
 			{
+				// We should not cancel overbright if that's a non-opaque decal.
 				stage->cancelOverBright = isOpaque;
+			}
+		}
+		else
+		{
+			if ( isOpaqueShader )
+			{
+				// We we should not cancel overbright if the light stage is applied on an opaque surface;
+				stage->cancelOverBright = false;
+			}
+			else
+			{
+				bool blendFunc_add = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
+					&& ( stage->stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
+
+				if ( blendFunc_add )
+				{
+					stage->cancelOverBright = true;
+				}
+				else
+				{
+					stage->cancelOverBright = false;
+				}
 			}
 		}
 
@@ -5489,6 +5512,13 @@ static void SetStagesRenderers()
 					false, false,
 				};
 				break;
+			case stageType_t::ST_FOGMAP:
+				stageRendererOptions = {
+					&Render_fog,
+					&UpdateSurfaceDataFog, &BindShaderFog, &ProcessMaterialFog,
+					false, false,
+				};
+				break;
 			case stageType_t::ST_ATTENUATIONMAP_XY:
 			case stageType_t::ST_ATTENUATIONMAP_Z:
 				stageRendererOptions = {
@@ -5577,15 +5607,6 @@ static shader_t *MakeShaderPermanent()
 	shader_t *newShader = (shader_t*) ri.Hunk_Alloc( sizeof( shader_t ), ha_pref::h_low );
 
 	*newShader = shader;
-
-	if ( shader.sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-	{
-		newShader->fogPass = fogPass_t::FP_EQUAL;
-	}
-	else if ( shader.contentFlags & CONTENTS_FOG )
-	{
-		newShader->fogPass = fogPass_t::FP_LE;
-	}
 
 	tr.shaders[ tr.numShaders ] = newShader;
 	newShader->index = tr.numShaders;
@@ -5699,7 +5720,8 @@ static void ValidateStage( shaderStage_t *pStage )
 		{ stageType_t::ST_PHYSICALMAP, { false, false, false, "physicalMap" } },
 		{ stageType_t::ST_SPECULARMAP, { true, true, false, "specularMap" } },
 		{ stageType_t::ST_HEATHAZEMAP, { true, true, false, "heatHazeMap" } },
-		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "heatHazeMap" } },
+		{ stageType_t::ST_LIQUIDMAP, { true, true, false, "liquidMap" } },
+		{ stageType_t::ST_FOGMAP, { true, false, false, "fogMap" } },
 		// The lightmap is fetched at render time.
 		{ stageType_t::ST_LIGHTMAP, { true, false, false, "light map" } },
 		// The lightmap is fetched at render time.
@@ -5949,6 +5971,14 @@ static shader_t *FinishShader()
 		}
 	}
 
+	if ( shader.sort <= Util::ordinal( shaderSort_t::SS_OPAQUE ) ) {
+		shader.fogPass = fogPass_t::FP_EQUAL;
+	} else if ( shader.contentFlags & CONTENTS_FOG ) {
+		shader.fogPass = fogPass_t::FP_LE;
+	}
+
+	shader.noFog = shader.noFog || shader.fogPass == fogPass_t::FP_NONE;
+
 	// look for multitexture potential
 	CollapseStages();
 
@@ -5961,6 +5991,14 @@ static shader_t *FinishShader()
 	// Copy the current global shader to a newly allocated shader.
 	shader_t *ret = MakeShaderPermanent();
 
+	if ( !shader.noFog ) {
+		if ( shader.fogPass == fogPass_t::FP_EQUAL ) {
+			ret->fogShader = tr.fogEqualShader;
+		} else {
+			ret->fogShader = tr.fogLEShader;
+		}
+	}
+
 	// generate depth-only shader if necessary
 	if( !shader.isSky &&
 	    numStages > 0 &&
@@ -5971,6 +6009,8 @@ static shader_t *FinishShader()
 		// keep only the first stage
 		stages[1].active = false;
 		numStages = 1;
+		shader.noFog = true;
+		shader.fogShader = nullptr;
 
 		const char* depthShaderSuffix = "$depth";
 
@@ -5979,12 +6019,10 @@ static shader_t *FinishShader()
 			ret->depthShader = nullptr;
 
 			if ( glConfig2.usingMaterialSystem && !tr.worldLoaded ) {
-				uint8_t maxStages = 0;
-				for ( shaderStage_t* pStage = ret->stages; pStage < ret->lastStage; pStage++ ) {
-					maxStages++;
-				}
+				uint8_t maxStages = ret->lastStage - ret->stages;
 
-				maxStages = PAD( maxStages, 4 ); // Aligned to 4 components
+				// Add 1 for potential fog stages
+				maxStages = PAD( maxStages + 1, 4 ); // Aligned to 4 components
 				materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
 			}
 
@@ -6039,12 +6077,11 @@ static shader_t *FinishShader()
 	}
 
 	if ( glConfig2.usingMaterialSystem && !tr.worldLoaded ) {
-		uint8_t maxStages = 0;
-		for ( shaderStage_t* pStage = ret->stages; pStage < ret->lastStage; pStage++ ) {
-			maxStages++;
-		}
+		uint8_t maxStages = ret->lastStage - ret->stages;
 
-		maxStages = PAD( maxStages, 4 ); // Aligned to 4 components
+		// Add 1 for potential depth stages
+		// Add 1 for potential fog stages
+		maxStages = PAD( maxStages + 2, 4 ); // Aligned to 4 components
 		materialSystem.maxStages = std::max( maxStages, materialSystem.maxStages );
 	}
 
@@ -6424,11 +6461,6 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 		bits |= IF_FITSCREEN;
 	}
 
-	if ( flags & RSF_NOLIGHTSCALE )
-	{
-		bits |= IF_NOLIGHTSCALE;
-	}
-
 	Log::Debug( "loading '%s' image as shader", fileName );
 
 	if( bits & RSF_2D )
@@ -6697,6 +6729,7 @@ void R_ListShaders_f()
 		{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
 		{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
 		{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
+		{ stageType_t::ST_FOGMAP, "FOGMAP" },
 		{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },
 		{ stageType_t::ST_STYLELIGHTMAP, "STYLELIGHTMAP" },
 		{ stageType_t::ST_STYLECOLORMAP, "STYLECOLORMAP" },
@@ -7138,11 +7171,37 @@ static void CreateInternalShaders()
 	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
 
 	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.noFog = true;
+	shader.fogShader = nullptr;
 	stages[ 0 ].type = stageType_t::ST_DIFFUSEMAP;
 	stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.defaultImage;
 	stages[ 0 ].active = true;
 	stages[ 0 ].stateBits = GLS_DEFAULT;
 	tr.defaultShader = FinishShader();
+
+	Q_strncpyz( shader.name, "<fogEqual>", sizeof( shader.name ) );
+
+	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
+	stages[0].type = stageType_t::ST_FOGMAP;
+	for ( int i = 0; i < 5; i++ ) {
+		stages[0].bundle[i].image[0] = nullptr;
+	}
+	stages[0].active = true;
+	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL;
+	tr.fogEqualShader = FinishShader();
+
+	Q_strncpyz( shader.name, "<fogLE>", sizeof( shader.name ) );
+
+	shader.type = shaderType_t::SHADER_3D_DYNAMIC;
+	shader.sort = Util::ordinal( shaderSort_t::SS_FOG );
+	stages[0].type = stageType_t::ST_FOGMAP;
+	for ( int i = 0; i < 5; i++ ) {
+		stages[0].bundle[i].image[0] = nullptr;
+	}
+	stages[0].active = true;
+	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+	tr.fogLEShader = FinishShader();
 }
 
 static void CreateExternalShaders()

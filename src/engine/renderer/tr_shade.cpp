@@ -68,6 +68,18 @@ static void EnableAvailableFeatures()
 		}
 	}
 
+	if ( glConfig2.realtimeLighting ) {
+		glConfig2.realtimeLightLayers = r_realtimeLightLayers.Get();
+
+		if ( glConfig2.realtimeLightLayers > glConfig2.max3DTextureSize ) {
+			glConfig2.realtimeLightLayers = glConfig2.max3DTextureSize;
+			Log::Notice( "r_realtimeLightLayers exceeds maximum 3D texture size, using %i instead", glConfig2.max3DTextureSize );
+		}
+
+		Log::Notice( "Using %i dynamic light layers, %i dynamic lights available per tile", glConfig2.realtimeLightLayers,
+			glConfig2.realtimeLightLayers * 16 );
+	}
+
 	glConfig2.colorGrading = r_colorGrading.Get();
 
 	if ( glConfig2.colorGrading )
@@ -966,6 +978,18 @@ void Render_generic3D( shaderStage_t *pStage )
 		);
 	}
 
+	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
+		const uint mode = GetShaderProfilerRenderSubGroupsMode( pStage->stateBits );
+		if( mode == 0 ) {
+			return;
+		}
+
+		GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
+
+		gl_genericShader->SetUniform_ProfilerZero();
+		gl_genericShader->SetUniform_ProfilerRenderSubGroups( mode );
+	}
+
 	gl_genericShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
@@ -1085,19 +1109,16 @@ void Render_lightMapping( shaderStage_t *pStage )
 	if ( glConfig2.realtimeLighting &&
 	     r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
 	{
+		gl_lightMappingShader->SetUniform_numLights( tr.refdef.numLights );
+
 		if ( backEnd.refdef.numShaderLights > 0 )
 		{
-			gl_lightMappingShader->SetUniform_numLights( backEnd.refdef.numLights );
 			gl_lightMappingShader->SetUniformBlock_Lights( tr.dlightUBO );
 
 			// bind u_LightTiles
 			gl_lightMappingShader->SetUniform_LightTilesBindless(
 				GL_BindToTMU( BIND_LIGHTTILES, tr.lighttileRenderImage )
 			);
-		}
-		else
-		{
-			gl_lightMappingShader->SetUniform_numLights( 0 );
 		}
 	}
 
@@ -1107,7 +1128,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// u_InverseLightFactor
 	/* HACK: use sign to know if there is a light or not, and
 	then if it will receive overbright multiplication or not. */
-	bool cancelOverBright = pStage->cancelOverBright || lightMode == lightMode_t::FULLBRIGHT;
+	bool cancelOverBright = pStage->cancelOverBright;
 	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
 	gl_lightMappingShader->SetUniform_InverseLightFactor( inverseLightFactor );
 
@@ -1260,6 +1281,18 @@ void Render_lightMapping( shaderStage_t *pStage )
 		gl_lightMappingShader->SetUniform_GlowMapBindless(
 			GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[TB_GLOWMAP].image[0] )
 		);
+	}
+
+	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
+		const uint mode = GetShaderProfilerRenderSubGroupsMode( stateBits );
+		if ( mode == 0 ) {
+			return;
+		}
+
+		GL_State( stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
+
+		gl_lightMappingShader->SetUniform_ProfilerZero();
+		gl_lightMappingShader->SetUniform_ProfilerRenderSubGroups( mode );
 	}
 
 	gl_lightMappingShader->SetRequiredVertexPointers();
@@ -1961,7 +1994,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 		VectorCopy( backEnd.viewParms.orientation.origin, position );
 	}
 
-	cubemapProbe_t* probes[2];
+	cubemapProbe_t* probes[ 1 ];
 	vec4_t trilerp;
 	R_GetNearestCubeMaps( position, probes, trilerp, 1 );
 
@@ -2211,17 +2244,25 @@ void Render_liquid( shaderStage_t *pStage )
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
+	lightMode_t lightMode;
+	deluxeMode_t deluxeMode;
+	SetLightDeluxeMode( &tess, pStage->type, lightMode, deluxeMode );
+
 	// choose right shader program
 	gl_liquidShader->SetHeightMapInNormalMap( pStage->hasHeightMapInNormalMap );
 
 	gl_liquidShader->SetReliefMapping( pStage->enableReliefMapping );
+
+	gl_liquidShader->SetGridDeluxeMapping( deluxeMode == deluxeMode_t::GRID );
+
+	gl_liquidShader->SetGridLighting( lightMode == lightMode_t::GRID );
 
 	// enable shader, set arrays
 	gl_liquidShader->BindProgram( pStage->deformIndex );
 	gl_liquidShader->SetRequiredVertexPointers();
 
 	// set uniforms
-	VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin );  // in world space
+	VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin ); // in world space
 
 	fogDensity = RB_EvalExpression( &pStage->fogDensityExp, 0.001 );
 	VectorCopy( tess.svars.color.ToArray(), fogColor );
@@ -2292,32 +2333,19 @@ void Render_liquid( shaderStage_t *pStage )
 	GL_CheckErrors();
 }
 
-static void Render_fog()
+void Render_fog( shaderStage_t* pStage )
 {
-	fog_t  *fog;
-	float  eyeT;
-	vec3_t local;
-	vec4_t fogDistanceVector, fogDepthVector;
+	if ( materialSystem.generatingWorldCommandBuffer ) {
+		Tess_DrawElements();
+		return;
+	}
 
-	// no fog pass in snooper
-	if ( tess.surfaceShader->noFog || !r_wolfFog->integer )
+	if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		return;
 	}
 
-	// ydnar: no world, no fogging
-	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL )
-	{
-		return;
-	}
-
-	fog = tr.world->fogs + tess.fogNum;
-
-	// Tr3B: use this only to render fog brushes
-	if ( fog->originalBrushNumber < 0 && tess.surfaceShader->sort <= Util::ordinal(shaderSort_t::SS_OPAQUE) )
-	{
-		return;
-	}
+	const fog_t* fog = tr.world->fogs + tess.fogNum;
 
 	if ( r_logFile->integer )
 	{
@@ -2325,6 +2353,8 @@ static void Render_fog()
 	}
 
 	// all fogging distance is based on world Z units
+	vec4_t fogDistanceVector;
+	vec3_t local;
 	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
 	fogDistanceVector[ 0 ] = -backEnd.orientation.modelViewMatrix[ 2 ];
 	fogDistanceVector[ 1 ] = -backEnd.orientation.modelViewMatrix[ 6 ];
@@ -2332,12 +2362,12 @@ static void Render_fog()
 	fogDistanceVector[ 3 ] = DotProduct( local, backEnd.viewParms.orientation.axis[ 0 ] );
 
 	// scale the fog vectors based on the fog's thickness
-	fogDistanceVector[ 0 ] *= fog->tcScale;
-	fogDistanceVector[ 1 ] *= fog->tcScale;
-	fogDistanceVector[ 2 ] *= fog->tcScale;
-	fogDistanceVector[ 3 ] *= fog->tcScale;
+	VectorScale( fogDistanceVector, fog->tcScale, fogDistanceVector );
+	fogDistanceVector[3] *= fog->tcScale;
 
 	// rotate the gradient vector for this orientation
+	float eyeT;
+	vec4_t fogDepthVector;
 	if ( fog->hasSurface )
 	{
 		fogDepthVector[ 0 ] = fog->surface[ 0 ] * backEnd.orientation.axis[ 0 ][ 0 ] +
@@ -2358,17 +2388,9 @@ static void Render_fog()
 
 	// see if the viewpoint is outside
 	// this is needed for clipping distance even for constant fog
-
 	fogDistanceVector[ 3 ] += 1.0 / 512;
 
-	if ( tess.surfaceShader->fogPass == fogPass_t::FP_EQUAL )
-	{
-		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_EQUAL );
-	}
-	else
-	{
-		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
-	}
+	GL_State( pStage->stateBits );
 
 	gl_fogQuake3Shader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
 	gl_fogQuake3Shader->SetVertexAnimation( glState.vertexAttribsInterpolation > 0 );
@@ -2403,7 +2425,7 @@ static void Render_fog()
 	gl_fogQuake3Shader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
-	gl_fogQuake3Shader->SetUniform_ColorMapBindless(
+	gl_fogQuake3Shader->SetUniform_FogMapBindless(
 		GL_BindToTMU( 0, tr.fogImage ) 
 	);
 
@@ -2743,12 +2765,20 @@ void Tess_StageIteratorColor()
 	}
 
 	// call shader function
-	uint stage = 0;
+	int stage = 0;
 	for ( shaderStage_t *pStage = tess.surfaceStages; pStage < tess.surfaceLastStage; pStage++ )
 	{
 		if ( !RB_EvalExpression( &pStage->ifExp, 1.0 ) && !( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) )
 		{
 			continue;
+		}
+
+		if ( r_profilerRenderSubGroups.Get() && !backEnd.projection2D && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
+			const int stageID = r_profilerRenderSubGroupsStage.Get();
+			if( ( stageID != -1 ) && ( stageID != stage ) ) {
+				stage++;
+				continue;
+			}
 		}
 
 		Tess_ComputeColor( pStage );
@@ -2763,11 +2793,6 @@ void Tess_StageIteratorColor()
 		pStage->colorRenderer( pStage );
 
 		stage++;
-	}
-
-	if ( !r_noFog->integer && tess.fogNum >= 1 && tess.surfaceShader->fogPass != fogPass_t::FP_NONE )
-	{
-		Render_fog();
 	}
 
 	// reset polygon offset

@@ -247,8 +247,6 @@ void GLShaderManager::freeAll()
 	{
 		_shaderBuildQueue.pop();
 	}
-
-	_totalBuildTime = 0;
 }
 
 void GLShaderManager::UpdateShaderProgramUniformLocations( GLShader *shader, shaderProgram_t *shaderProgram ) const
@@ -409,6 +407,16 @@ static const std::vector<addedExtension_t> fragmentVertexAddedExtensions = {
 	where the core variables have different names. */
 	{ glConfig2.shaderDrawParametersAvailable, -1, "ARB_shader_draw_parameters" },
 	{ glConfig2.SSBOAvailable, 430, "ARB_shader_storage_buffer_object" },
+	/* Even though these are part of the GL_KHR_shader_subgroup extension, we need to enable
+	the individual extensions for each feature.
+	GL_KHR_shader_subgroup itself can't be used in the shader. */
+	{ glConfig2.shaderSubgroupBasicAvailable, -1, "KHR_shader_subgroup_basic" },
+	{ glConfig2.shaderSubgroupVoteAvailable, -1, "KHR_shader_subgroup_vote" },
+	{ glConfig2.shaderSubgroupArithmeticAvailable, -1, "KHR_shader_subgroup_arithmetic" },
+	{ glConfig2.shaderSubgroupBallotAvailable, -1, "KHR_shader_subgroup_ballot" },
+	{ glConfig2.shaderSubgroupShuffleAvailable, -1, "KHR_shader_subgroup_shuffle" },
+	{ glConfig2.shaderSubgroupShuffleRelativeAvailable, -1, "KHR_shader_subgroup_shuffle_relative" },
+	{ glConfig2.shaderSubgroupQuadAvailable, -1, "KHR_shader_subgroup_quad" },
 };
 
 // Compute version declaration, this has to be separate from other shader stages,
@@ -468,7 +476,7 @@ static void AddConst( std::string& str, const std::string& name, float v1, float
 
 static std::string GenVersionDeclaration( const std::vector<addedExtension_t> &addedExtensions ) {
 	// Declare version.
-	std::string str = Str::Format( "#version %d %s\n",
+	std::string str = Str::Format( "#version %d %s\n\n",
 		glConfig2.shadingLanguageVersion,
 		glConfig2.shadingLanguageVersion >= 150 ? ( glConfig2.glCoreProfile ? "core" : "compatibility" ) : "" );
 
@@ -596,6 +604,7 @@ static std::string GenEngineConstants() {
 	AddDefine( str, "M_PI", static_cast< float >( M_PI ) );
 	AddDefine( str, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
 	AddDefine( str, "MAX_REF_LIGHTS", MAX_REF_LIGHTS );
+	AddDefine( str, "NUM_LIGHT_LAYERS", glConfig2.realtimeLightLayers );
 	AddDefine( str, "TILE_SIZE", TILE_SIZE );
 
 	AddDefine( str, "r_FBufSize", glConfig.vidWidth, glConfig.vidHeight );
@@ -741,6 +750,11 @@ static std::string GenEngineConstants() {
 	if ( r_materialDebug.Get() )
 	{
 		AddDefine( str, "r_materialDebug", 1 );
+	}
+
+	if ( r_profilerRenderSubGroups.Get() )
+	{
+		AddDefine( str, "r_profilerRenderSubGroups", 1 );
 	}
 
 	if ( glConfig2.vboVertexSkinningAvailable )
@@ -896,71 +910,74 @@ static bool IsUnusedPermutation( const char *compileMacros )
 	return false;
 }
 
-void GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
+// returns whether something was really built (using a cached one counts)
+bool GLShaderManager::buildPermutation( GLShader *shader, int macroIndex, int deformIndex )
 {
 	std::string compileMacros;
-	int  startTime = ri.Milliseconds();
-	int  endTime;
 	size_t i = macroIndex + ( deformIndex << shader->_compileMacros.size() );
 
 	// program already exists
 	if ( i < shader->_shaderPrograms.size() &&
 	     shader->_shaderPrograms[ i ].program )
 	{
-		return;
+		return false;
 	}
 
-	if( shader->GetCompileMacrosString( macroIndex, compileMacros ) )
+	if ( !shader->GetCompileMacrosString( macroIndex, compileMacros ) )
 	{
-		shader->BuildShaderCompileMacros( compileMacros );
-
-		if ( IsUnusedPermutation( compileMacros.c_str() ) )
-			return;
-
-		if( i >= shader->_shaderPrograms.size() )
-			shader->_shaderPrograms.resize( (deformIndex + 1) << shader->_compileMacros.size() );
-
-		shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ i ];
-		shaderProgram->attribs = shader->_vertexAttribsRequired; // | _vertexAttribsOptional;
-
-		if( deformIndex > 0 )
-		{
-			shaderProgram_t *baseShader = &shader->_shaderPrograms[ macroIndex ];
-			if( ( !baseShader->VS && shader->_hasVertexShader ) || ( !baseShader->FS && shader->_hasFragmentShader ) )
-				CompileGPUShaders( shader, baseShader, compileMacros );
-
-			shaderProgram->program = glCreateProgram();
-			if ( shader->_hasVertexShader ) {
-				glAttachShader( shaderProgram->program, baseShader->VS );
-				glAttachShader( shaderProgram->program, _deformShaders[deformIndex] );
-			}
-			if ( shader->_hasFragmentShader ) {
-				glAttachShader( shaderProgram->program, baseShader->FS );
-			}
-
-			BindAttribLocations( shaderProgram->program );
-			LinkProgram( shaderProgram->program );
-		}
-		else if ( !LoadShaderBinary( shader, i ) )
-		{
-			CompileAndLinkGPUShaderProgram(	shader, shaderProgram, compileMacros, deformIndex );
-			SaveShaderBinary( shader, i );
-		}
-
-		UpdateShaderProgramUniformLocations( shader, shaderProgram );
-		GL_BindProgram( shaderProgram );
-		shader->SetShaderProgramUniforms( shaderProgram );
-		GL_BindProgram( nullptr );
-
-		GL_CheckErrors();
-
-		endTime = ri.Milliseconds();
-		_totalBuildTime += ( endTime - startTime );
+		return false;
 	}
+
+	shader->BuildShaderCompileMacros( compileMacros );
+
+	if ( IsUnusedPermutation( compileMacros.c_str() ) )
+		return false;
+
+	if ( i >= shader->_shaderPrograms.size() )
+		shader->_shaderPrograms.resize( (deformIndex + 1) << shader->_compileMacros.size() );
+
+	shaderProgram_t *shaderProgram = &shader->_shaderPrograms[ i ];
+	shaderProgram->attribs = shader->_vertexAttribsRequired; // | _vertexAttribsOptional;
+
+	if ( deformIndex > 0 )
+	{
+		shaderProgram_t *baseShader = &shader->_shaderPrograms[ macroIndex ];
+		if ( ( !baseShader->VS && shader->_hasVertexShader ) || ( !baseShader->FS && shader->_hasFragmentShader ) )
+			CompileGPUShaders( shader, baseShader, compileMacros );
+
+		shaderProgram->program = glCreateProgram();
+		if ( shader->_hasVertexShader ) {
+			glAttachShader( shaderProgram->program, baseShader->VS );
+			glAttachShader( shaderProgram->program, _deformShaders[deformIndex] );
+		}
+		if ( shader->_hasFragmentShader ) {
+			glAttachShader( shaderProgram->program, baseShader->FS );
+		}
+
+		BindAttribLocations( shaderProgram->program );
+		LinkProgram( shaderProgram->program );
+	}
+	else if ( !LoadShaderBinary( shader, i ) )
+	{
+		CompileAndLinkGPUShaderProgram(	shader, shaderProgram, compileMacros, deformIndex );
+		SaveShaderBinary( shader, i );
+	}
+
+	UpdateShaderProgramUniformLocations( shader, shaderProgram );
+	GL_BindProgram( shaderProgram );
+	shader->SetShaderProgramUniforms( shaderProgram );
+	GL_BindProgram( nullptr );
+
+	GL_CheckErrors();
+
+	return true;
 }
 
 void GLShaderManager::buildAll()
 {
+	int startTime = Sys::Milliseconds();
+	int count = 0;
+
 	while ( !_shaderBuildQueue.empty() )
 	{
 		GLShader& shader = *_shaderBuildQueue.front();
@@ -972,13 +989,14 @@ void GLShaderManager::buildAll()
 
 		for( i = 0; i < numPermutations; i++ )
 		{
-			buildPermutation( &shader, i, 0 );
+			count += +buildPermutation( &shader, i, 0 );
 		}
 
 		_shaderBuildQueue.pop();
 	}
 
-	Log::Notice( "glsl shaders took %d msec to build", _totalBuildTime );
+	// doesn't include deform vertex shaders, those are built elsewhere!
+	Log::Notice( "built %d glsl shaders in %d msec", count, Sys::Milliseconds() - startTime );
 }
 
 std::string GLShaderManager::ProcessInserts( const std::string& shaderText, const uint32_t offset ) const {
@@ -1415,20 +1433,21 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	*  their values will be sourced from a buffer instead
 	*  Global uniforms (like u_ViewUp and u_ViewOrigin) will still be set as regular uniforms */
 	while( std::getline( shaderTextStream, line, '\n' ) ) {
-		if( !( line.find( "uniform" ) == std::string::npos || line.find( ";" ) == std::string::npos ) ) {
+		bool skip = false;
+		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
+			for ( GLUniform* uniform : shader->_uniforms ) {
+				if ( !uniform->IsGlobal() && ( line.find( uniform->GetName() ) != std::string::npos ) ) {
+					skip = true;
+					break;
+				}
+			}
+		}
+
+		if ( skip ) {
 			continue;
 		}
-		shaderMain += line + "\n";
-	}
 
-	for ( GLUniform* uniform : shader->_uniforms ) {
-		if ( uniform->IsGlobal() ) {
-			materialDefines += "uniform " + uniform->GetType() + " " + uniform->GetName();
-			if ( uniform->GetComponentSize() ) {
-				materialDefines += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
-			}
-			materialDefines += ";\n";
-		}
+		shaderMain += line + "\n";
 	}
 
 	materialDefines += "\n";
@@ -2197,6 +2216,8 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
+	u_ProfilerZero( this ),
+	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -2225,14 +2246,12 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	u_InverseLightFactor( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
-	// u_Bones( this ),
-	u_VertexInterpolation( this ),
 	u_DepthScale( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
+	u_ProfilerZero( this ),
+	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
@@ -2277,6 +2296,8 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_LightGridScale( this ),
 	u_numLights( this ),
 	u_Lights( this ),
+	u_ProfilerZero( this ),
+	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
@@ -2334,8 +2355,6 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
-	// u_Bones( this ),
-	u_VertexInterpolation( this ),
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
@@ -2346,10 +2365,10 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_Lights( this ),
 	u_ShowTris( this ),
 	u_MaterialColour( this ),
+	u_ProfilerZero( this ),
+	u_ProfilerRenderSubGroups( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_BSP_SURFACE( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_DELUXE_MAPPING( this ),
 	GLCompileMacro_USE_GRID_LIGHTING( this ),
 	GLCompileMacro_USE_GRID_DELUXE_MAPPING( this ),
@@ -2628,16 +2647,12 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manag
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	// u_Bones( this ),
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
-	u_VertexInterpolation( this ),
 	u_CameraPosition( this ),
 	u_InverseLightFactor( this ),
 	GLDeformStage( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
 }
@@ -2690,7 +2705,7 @@ void GLShader_skyboxMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderP
 
 GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	GLShader( "fogQuake3", ATTR_POSITION | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
+	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
@@ -2708,28 +2723,24 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 
 void GLShader_fogQuake3::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_FogMap" ), 0 );
 }
 
 GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager ) :
 	GLShader( "fogQuake3Material", "fogQuake3", true, ATTR_POSITION | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
+	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_InverseLightFactor( this ),
 	u_Color( this ),
-	// u_Bones( this ),
-	u_VertexInterpolation( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
-	GLDeformStage( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this ) {
+	GLDeformStage( this ) {
 }
 
 void GLShader_fogQuake3Material::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_FogMap" ), 0 );
 }
 
 GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
@@ -2800,12 +2811,8 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	u_ProjectionMatrixTranspose( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
-	// u_Bones( this ),
 	u_NormalScale( this ),
-	u_VertexInterpolation( this ),
-	GLDeformStage( this ),
-	// GLCompileMacro_USE_VERTEX_SKINNING( this ),
-	GLCompileMacro_USE_VERTEX_ANIMATION( this )
+	GLDeformStage( this )
 {
 }
 
@@ -2949,6 +2956,8 @@ GLShader_liquid::GLShader_liquid( GLShaderManager *manager ) :
 	u_SpecularExponent( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
+	GLCompileMacro_USE_GRID_DELUXE_MAPPING( this ),
+	GLCompileMacro_USE_GRID_LIGHTING( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this )
 {
@@ -2991,6 +3000,8 @@ GLShader_liquidMaterial::GLShader_liquidMaterial( GLShaderManager* manager ) :
 	u_SpecularExponent( this ),
 	u_LightGridOrigin( this ),
 	u_LightGridScale( this ),
+	GLCompileMacro_USE_GRID_DELUXE_MAPPING( this ),
+	GLCompileMacro_USE_GRID_LIGHTING( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
 }

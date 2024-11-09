@@ -92,6 +92,7 @@ set(RENDERERLIST
     ${ENGINE_DIR}/renderer/gl_shader.cpp
     ${ENGINE_DIR}/renderer/gl_shader.h
     ${ENGINE_DIR}/renderer/iqm.h
+    ${ENGINE_DIR}/renderer/ShadeCommon.h
     ${ENGINE_DIR}/renderer/shaders.cpp
     ${ENGINE_DIR}/renderer/tr_animation.cpp
     ${ENGINE_DIR}/renderer/tr_backend.cpp
@@ -147,6 +148,8 @@ set(RENDERERLIST
 
 set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/common_cp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/shaderProfiler_vp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/shaderProfiler_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/clearSurfaces_cp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/cull_cp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/depthReduction_cp.glsl

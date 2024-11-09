@@ -52,7 +52,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace Sys {
-Cvar::Cvar<bool> cvar_common_shutdownOnDrop("common.shutdownOnDrop", "shut down engine on game drop", Cvar::TEMPORARY, false);
+static Cvar::Cvar<bool> cvar_common_shutdownOnDrop("common.shutdownOnDrop", "shut down engine on game drop", Cvar::TEMPORARY, false);
 
 #ifdef _WIN32
 static HANDLE singletonSocket;
@@ -411,13 +411,15 @@ static void StartSignalThread()
 struct cmdlineArgs_t {
 	cmdlineArgs_t()
 		: homePath(Application::GetTraits().defaultHomepath), libPath(FS::DefaultLibPath()),
-		  reset_config(false), use_curses(Application::GetTraits().useCurses) {}
+		  reset_config(false), use_crash_handlers(true),
+		  use_curses(Application::GetTraits().useCurses) {}
 
 	std::string homePath;
 	std::string libPath;
 	std::vector<std::string> pakPaths;
 
 	bool reset_config;
+	bool use_crash_handlers;
 	bool use_curses;
 
 	std::unordered_map<std::string, std::string> cvars;
@@ -496,6 +498,7 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 #ifdef USE_CURSES
 				"  -curses                  activate the curses interface\n"
 #endif
+				"  -nocrashhandler          disable catching SIGSEGV etc. (enable core dumps)\n"
 				"  -set <variable> <value>  set the value of a cvar\n");
 			printf("%s", Application::GetTraits().supportsUri ?
 				"  -connect " URI_SCHEME "<address>[:<port>]>\n"
@@ -541,6 +544,9 @@ static void ParseCmdline(int argc, char** argv, cmdlineArgs_t& cmdlineArgs)
 			i++;
 		} else if (!strcmp(argv[i], "-resetconfig")) {
 			cmdlineArgs.reset_config = true;
+		}
+		else if (!strcmp(argv[i], "-nocrashhandler")) {
+			cmdlineArgs.use_crash_handlers = false;
 		}
 #ifdef USE_CURSES
 		else if (!strcmp(argv[i], "-curses")) {
@@ -604,8 +610,11 @@ static void Init(int argc, char** argv)
 	}
 	Log::Notice(argsString);
 
-	Sys::SetupCrashHandler(); // If Breakpad is enabled, this handler will soon be replaced.
 	Sys::ParseCmdline(argc, argv, cmdlineArgs);
+
+	if (cmdlineArgs.use_crash_handlers) {
+		Sys::SetupCrashHandler(); // If Breakpad is enabled, this handler will soon be replaced.
+	}
 
 	// Platform-specific initialization
 #ifdef _WIN32
@@ -681,7 +690,7 @@ static void Init(int argc, char** argv)
 	EarlyCvar("logs.logFile.active", cmdlineArgs);
 	Log::OpenLogFile();
 
-	if (CreateCrashDumpPath()) {
+	if (CreateCrashDumpPath() && cmdlineArgs.use_crash_handlers) {
 		// This may fork(), and then exec() *in the parent process*,
 		// so threads must not be created before this point.
 		BreakpadInit();

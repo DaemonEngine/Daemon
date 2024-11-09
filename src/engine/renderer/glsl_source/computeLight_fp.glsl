@@ -32,9 +32,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #if defined(USE_REFLECTIVE_SPECULAR)
-	uniform samplerCube u_EnvironmentMap0;
-	uniform samplerCube u_EnvironmentMap1;
-	uniform float u_EnvironmentInterpolation;
+uniform samplerCube u_EnvironmentMap0;
+uniform samplerCube u_EnvironmentMap1;
+uniform float u_EnvironmentInterpolation;
+
+// Only the RGB components are meaningful
+// FIXME: using reflective specular will always globally decrease the scene brightness
+// because we're multiplying with something that can only be less than 1.
+vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
+{
+	vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect( -viewDir, normal ) );
+	vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect( -viewDir, normal ) );
+	return mix( envColor0, envColor1, u_EnvironmentInterpolation );
+}
 #endif // USE_REFLECTIVE_SPECULAR
 
 // lighting helper functions
@@ -49,28 +59,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || defined(r_realtimeLighting)
-#if !defined(USE_PHYSICAL_MAPPING)
-#if defined(r_specularMapping)
-	uniform vec2 u_SpecularExponent;
+	#if !defined(USE_PHYSICAL_MAPPING) && defined(r_specularMapping)
+		uniform vec2 u_SpecularExponent;
 
-vec3 computeSpecularity(vec3 lightColor, vec4 materialColor, float NdotH)
-{
-	return lightColor * materialColor.rgb * pow(NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
-}
-#endif
-#endif
+		vec3 computeSpecularity( vec3 lightColor, vec4 materialColor, float NdotH ) {
+			return lightColor * materialColor.rgb * pow(NdotH, u_SpecularExponent.x * materialColor.a + u_SpecularExponent.y) * r_SpecularScale;
+		}
+	#endif
 #endif
 
 #if defined(USE_DELUXE_MAPPING) || defined(USE_GRID_DELUXE_MAPPING) || (defined(r_realtimeLighting) && r_realtimeLightingRenderer == 1)
-#if defined(USE_REFLECTIVE_SPECULAR)
-void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
-	vec4 diffuseColor, vec4 materialColor,
-	inout vec4 color, in samplerCube u_EnvironmentMap0, in samplerCube u_EnvironmentMap1 )
-#else // !USE_REFLECTIVE_SPECULAR
 void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightColor,
 	vec4 diffuseColor, vec4 materialColor,
 	inout vec4 color )
-#endif // !USE_REFLECTIVE_SPECULAR
 {
 	vec3 H = normalize( lightDir + viewDir );
 
@@ -125,15 +126,6 @@ void computeDeluxeLight( vec3 lightDir, vec3 normal, vec3 viewDir, vec3 lightCol
 		color.a = mix( diffuseColor.a, 1.0, FexpNV );
 
 	#else // !USE_PHYSICAL_MAPPING
-
-		#if defined(USE_REFLECTIVE_SPECULAR)
-			// not implemented for PBR yet
-			vec4 envColor0 = textureCube(u_EnvironmentMap0, reflect( -viewDir, normal ) );
-			vec4 envColor1 = textureCube(u_EnvironmentMap1, reflect( -viewDir, normal ) );
-
-			materialColor.rgb *= mix( envColor0, envColor1, u_EnvironmentInterpolation ).rgb;
-		#endif // USE_REFLECTIVE_SPECULAR
-
 		color.rgb += lightColor.rgb * NdotL * diffuseColor.rgb;
 		#if defined(r_specularMapping)
 			color.rgb += computeSpecularity(lightColor.rgb, materialColor, NdotH);
@@ -167,13 +159,8 @@ layout(std140) uniform u_Lights {
 
 uniform int u_numLights;
 
-#if defined(USE_REFLECTIVE_SPECULAR)
-void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
-	vec4 material, inout vec4 color, in samplerCube u_EnvironmentMap0, in samplerCube u_EnvironmentMap1 )
-#else // !USE_REFLECTIVE_SPECULAR
 void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse,
 	vec4 material, inout vec4 color )
-#endif // !USE_REFLECTIVE_SPECULAR
 {
 	Light light = GetLight( idx );
 	vec3 L;
@@ -205,15 +192,9 @@ void computeDynamicLight( uint idx, vec3 P, vec3 normal, vec3 viewDir, vec4 diff
 		attenuation = 1.0;
 	}
 
-	#if defined(USE_REFLECTIVE_SPECULAR)
-		computeDeluxeLight( L, normal, viewDir,
-			attenuation * attenuation * light.color,
-			diffuse, material, color, u_EnvironmentMap0, u_EnvironmentMap1 );
-	#else // !USE_REFLECTIVE_SPECULAR
-		computeDeluxeLight( L, normal, viewDir,
-			attenuation * attenuation * light.color,
-			diffuse, material, color );
-	#endif // !USE_REFLECTIVE_SPECULAR
+	computeDeluxeLight(
+		L, normal, viewDir, attenuation * attenuation * light.color,
+		diffuse, material, color );
 }
 
 const int lightsPerLayer = 16;
@@ -222,8 +203,7 @@ const int lightsPerLayer = 16;
 
 uniform usampler3D u_LightTiles;
 
-const uint numLayers = MAX_REF_LIGHTS / 256;
-const vec3 tileScale = vec3( r_tileStep, 1.0 / float( numLayers ) );
+const vec3 tileScale = vec3( r_tileStep, 1.0 / float( NUM_LIGHT_LAYERS ) );
 
 idxs_t fetchIdxs( in vec3 coords, in usampler3D u_LightTiles ) {
 	return texture3D( u_LightTiles, coords );
@@ -234,18 +214,16 @@ uint nextIdx( in uint count, in idxs_t idxs ) {
 	return ( idxs[count / 4] >> ( 8 * ( count % 4 ) ) ) & 0xFFu;
 }
 
-#if defined(USE_REFLECTIVE_SPECULAR)
-void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
-	inout vec4 color, in usampler3D u_LightTiles,
-	in samplerCube u_EnvironmentMap0, in samplerCube u_EnvironmentMap1 )
-#else // !USE_REFLECTIVE_SPECULAR
 void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4 material,
 	inout vec4 color, in usampler3D u_LightTiles )
-#endif // !USE_REFLECTIVE_SPECULAR
 {
+	if( u_numLights == 0 ) {
+		return;
+	}
+
 	vec2 tile = floor( gl_FragCoord.xy * ( 1.0 / float( TILE_SIZE ) ) ) + 0.5;
 
-	for( uint layer = 0; layer < numLayers; layer++ ) {
+	for( uint layer = 0; layer < NUM_LIGHT_LAYERS; layer++ ) {
 		uint lightCount = 0;
 		idxs_t idxs = fetchIdxs( tileScale * vec3( tile, float( layer ) + 0.5 ), u_LightTiles );
 
@@ -258,14 +236,9 @@ void computeDynamicLights( vec3 P, vec3 normal, vec3 viewDir, vec4 diffuse, vec4
 
 			/* Light IDs are stored relative to the layer
 			Subtract 1 because 0 means there's no light */
-			idx = ( idx - 1 ) * numLayers + layer;
-	  
-			#if defined(USE_REFLECTIVE_SPECULAR)
-				computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color, u_EnvironmentMap0, u_EnvironmentMap1 );
-			#else // !USE_REFLECTIVE_SPECULAR
-				computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color );
-			#endif // !USE_REFLECTIVE_SPECULAR
+			idx = ( idx - 1 ) * NUM_LIGHT_LAYERS + layer;
 
+			computeDynamicLight( idx, P, normal, viewDir, diffuse, material, color );
 			lightCount++;
 		}
 	}

@@ -198,9 +198,6 @@ static inline void halfToFloat( const f16vec4_t in, vec4_t out )
 #define TILE_SHIFT_STEP1 2
 #define TILE_SIZE_STEP1  (1 << TILE_SHIFT_STEP1)
 
-// max. 16 dynamic lights per plane
-#define LIGHT_PLANES ( MAX_REF_LIGHTS / 16 )
-
 struct glFboShim_t
 {
 	/* Functions with same signature and similar purpose can be provided by:
@@ -306,6 +303,15 @@ enum class cubeProbesAutoBuildMode {
 	DISABLED,
 	CACHED,
 	ALWAYS
+};
+
+enum class shaderProfilerRenderSubGroupsMode {
+	VS_OPAQUE,
+	VS_TRANSPARENT,
+	VS_ALL,
+	FS_OPAQUE,
+	FS_TRANSPARENT,
+	FS_ALL
 };
 
 	enum class renderSpeeds_t
@@ -518,7 +524,6 @@ enum class cubeProbesAutoBuildMode {
 	  IF_RGBE = BIT( 15 ),
 	  IF_ALPHATEST = BIT( 16 ), // FIXME: this is unused
 	  IF_ALPHA = BIT( 17 ),
-	  IF_NOLIGHTSCALE = BIT( 18 ),
 	  IF_BC1 = BIT( 19 ),
 	  IF_BC2 = BIT( 20 ),
 	  IF_BC3 = BIT( 21 ),
@@ -1029,6 +1034,7 @@ enum class cubeProbesAutoBuildMode {
 	  ST_PORTALMAP,
 	  ST_HEATHAZEMAP, // heatHaze post process effect
 	  ST_LIQUIDMAP,
+	  ST_FOGMAP,
 	  ST_LIGHTMAP,
 	  ST_STYLELIGHTMAP,
 	  ST_STYLECOLORMAP,
@@ -1283,6 +1289,7 @@ enum class cubeProbesAutoBuildMode {
 		} altShader[ MAX_ALTSHADERS ]; // state-based remapping; note that index 0 is unused
 
 		struct shader_t *depthShader;
+		struct shader_t *fogShader;
 		struct shader_t *next;
 	};
 
@@ -1604,6 +1611,7 @@ enum class cubeProbesAutoBuildMode {
 		shader_t      *shader;
 		uint64_t      sort;
 		bool          bspSurface;
+		int fog;
 
 		uint materialsSSBOOffset[ MAX_SHADER_STAGES ];
 		bool initialized[ MAX_SHADER_STAGES ];
@@ -1613,6 +1621,7 @@ enum class cubeProbesAutoBuildMode {
 		uint drawCommandIDs[ MAX_SHADER_STAGES ];
 
 		drawSurf_t* depthSurface;
+		drawSurf_t* fogSurface;
 		bool materialSystemSkip = false;
 
 		inline int index() const {
@@ -2512,9 +2521,9 @@ enum class cubeProbesAutoBuildMode {
 				z = Math::Clamp( z, 0u, depth - 1 );
 			}
 
-			ASSERT_GE( x, 0 );
-			ASSERT_GE( y, 0 );
-			ASSERT_GE( z, 0 );
+			ASSERT_GE( x, 0u );
+			ASSERT_GE( y, 0u );
+			ASSERT_GE( z, 0u );
 
 			ASSERT_LT( x, width );
 			ASSERT_LT( y, height );
@@ -2538,7 +2547,7 @@ enum class cubeProbesAutoBuildMode {
 				index = Math::Clamp( index, 0u, size - 1 );
 			}
 
-			ASSERT_GE( index, 0 );
+			ASSERT_GE( index, 0U );
 
 			ASSERT_LT( index, size );
 
@@ -2732,6 +2741,8 @@ enum class cubeProbesAutoBuildMode {
 
 		// internal shaders
 		shader_t *defaultShader;
+		shader_t *fogEqualShader;
+		shader_t *fogLEShader;
 		shader_t *defaultPointLightShader;
 		shader_t *defaultProjectedLightShader;
 		shader_t *defaultDynamicLightShader;
@@ -2882,6 +2893,7 @@ enum class cubeProbesAutoBuildMode {
 	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
 	extern Cvar::Cvar<bool> r_realtimeLighting;
+	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers;
 	extern cvar_t *r_realtimeLightingCastShadows;
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_overbrightDefaultExponent;
@@ -3034,6 +3046,10 @@ enum class cubeProbesAutoBuildMode {
 	extern Cvar::Cvar<bool> r_materialDebug;
 	extern cvar_t *r_showParallelShadowSplits;
 
+	extern Cvar::Cvar<bool> r_profilerRenderSubGroups;
+	extern Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode;
+	extern Cvar::Cvar<int> r_profilerRenderSubGroupsStage;
+
 	extern cvar_t *r_vboFaces;
 	extern cvar_t *r_vboCurves;
 	extern cvar_t *r_vboTriangles;
@@ -3083,7 +3099,7 @@ inline bool checkGLErrors()
 
 	void           R_AddPolygonSurfaces();
 
-	void           R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false );
+	int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false );
 
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
@@ -3255,7 +3271,7 @@ inline bool checkGLErrors()
 	void    R_InitImages();
 	void    R_ShutdownImages();
 
-	int R_FindImageLoader( const char *baseName );
+	bool R_HasImageLoader( const char *baseName );
 	image_t *R_FindImageFile( const char *name, imageParams_t &imageParams );
 	image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams );
 
@@ -3504,6 +3520,7 @@ inline bool checkGLErrors()
 	void Render_portal( shaderStage_t *pStage );
 	void Render_heatHaze( shaderStage_t *pStage );
 	void Render_liquid( shaderStage_t *pStage );
+	void Render_fog( shaderStage_t* pStage );
 
 	/*
 	============================================================
@@ -3657,7 +3674,6 @@ inline bool checkGLErrors()
 
 	void  R_InitVBOs();
 	void  R_ShutdownVBOs();
-	void  R_ListVBOs_f();
 
 	/*
 	============================================================
@@ -4014,9 +4030,8 @@ inline bool checkGLErrors()
 
 // cubemap reflections stuff
 	void R_BuildCubeMaps();
-	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples );
-	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples,
-		vec3_t* gridPoints );
+	void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp,
+		const uint8_t samples, vec3_t *gridPoints = nullptr );
 
 // font stuff
 	void       R_InitFreeType();

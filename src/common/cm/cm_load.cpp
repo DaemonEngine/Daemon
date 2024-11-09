@@ -50,9 +50,9 @@ clipMap_t cm;
 int       c_pointcontents;
 int       c_traces, c_brush_traces, c_patch_traces, c_trisoup_traces;
 
-cmodel_t  box_model;
-cplane_t  *box_planes;
-cbrush_t  *box_brush;
+static cmodel_t  box_model;
+static cplane_t  *box_planes;
+static cbrush_t  *box_brush;
 
 void      CM_InitBoxHull();
 void      CM_FloodAreaConnections();
@@ -771,7 +771,7 @@ void CM_LoadMap(Str::StringRef name)
 	std::error_code err;
 	std::string mapData = FS::PakPath::ReadFile(mapFile, err);
 	if (err) {
-		Sys::Drop("Could not load %s", mapFile.c_str());
+		Sys::Drop("Could not load %s: %s (code: %d)", mapFile.c_str(), err.message(), err.value() );
 	}
 
 	std::string externalEntities = FS::PakPath::ReadFile( "maps/" + name + ".ent", err );

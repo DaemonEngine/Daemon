@@ -3954,7 +3954,7 @@ static void R_SetDefaultLightGrid()
 	w->lightGridData2 = gridPoint2;
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP | IF_NOLIGHTSCALE;
+	imageParams.bits = IF_NOPICMIP;
 	imageParams.filterType = filterType_t::FT_DEFAULT;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -4170,7 +4170,7 @@ void R_LoadLightGrid( lump_t *l )
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP | IF_NOLIGHTSCALE;
+	imageParams.bits = IF_NOPICMIP;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
@@ -4462,9 +4462,11 @@ static bool R_LoadCubeMaps() {
 		imageParams.filterType = filterType_t::FT_DEFAULT;
 		imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
-		image_t* cubemap = R_FindCubeImage( Str::Format( "%s%u", dirPath, i ).c_str(), imageParams );
+		std::string imageName = Str::Format( "%s%u", dirPath, i );
+
+		image_t* cubemap = R_FindCubeImage( imageName.c_str(), imageParams );
 		if ( !cubemap ) {
-			Log::Warn( "Failed to load cubemap %s%u", dirPath, i );
+			Log::Warn( "Failed to load cubemap %s", imageName );
 			return false;
 		}
 		cubeProbe.cubemap = cubemap;
@@ -4502,7 +4504,10 @@ static bool R_SaveCubeMaps() {
 
 	for ( uint32_t i = 1; i < tr.cubeProbes.size(); i++ ) {
 		cubemapGridFile.Printf( "%f %f %f\n", tr.cubeProbes[i].origin[0], tr.cubeProbes[i].origin[1], tr.cubeProbes[i].origin[2] );
-			SaveImageKTX( Str::Format( "%s%u.ktx", dirPath, i - 1 ).c_str(), tr.cubeProbes[i].cubemap );
+
+		std::string imagePath = Str::Format( "%s%u.ktx", dirPath, i - 1 );
+
+		SaveImageKTX( imagePath.c_str(), tr.cubeProbes[i].cubemap );
 	}
 
 	for ( uint32_t i = 0; i < tr.cubeProbeGrid.size; i++ ) {
@@ -4519,7 +4524,7 @@ static bool R_SaveCubeMaps() {
 	return true;
 }
 
-void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec3_t trilerp, const uint8_t samples,
+void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec4_t trilerp, const uint8_t samples,
 	vec3_t* gridPoints ) {
 	ASSERT_GE( samples, 1 );
 	ASSERT_LE( samples, 4 );
@@ -4563,11 +4568,6 @@ void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, v
 			VectorCopy( probes[i].gridPoint, gridPoints[i] );
 		}
 	}
-}
-
-void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, vec3_t trilerp, const uint8_t samples ) {
-	vec3_t* unused = nullptr;
-	R_GetNearestCubeMaps( position, cubeProbes, trilerp, samples, unused );
 }
 
 static bool R_NodeSuitableForCubeMap( const bspNode_t* node ) {
@@ -5184,9 +5184,9 @@ void RE_LoadWorldMap( const char *name )
 		}
 	}
 
-	/* Used in GLSL code for the GLSL implementation
-	without color clamping and normalization. */
-	if ( !tr.legacyOverBrightClamping )
+	/* Set GLSL overbright parameters if the legacy clamped overbright isn't used
+	and the lighting mode is not fullbright. */
+	if ( !tr.legacyOverBrightClamping && tr.lightMode != lightMode_t::FULLBRIGHT )
 	{
 		tr.mapLightFactor = pow( 2, tr.mapOverBrightBits );
 		tr.mapInverseLightFactor = 1.0f / tr.mapLightFactor;

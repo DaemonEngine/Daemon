@@ -44,8 +44,10 @@ Maryland 20850 USA.
 #include "framework/Network.h"
 #include "qcommon/sys.h"
 
-serverStatic_t svs; // persistent server info
-server_t       sv; // local server
+// These two structs have the same lifetime... both are cleared when the sgame exits
+serverStatic_t svs;
+server_t       sv;
+
 GameVM         gvm; // game virtual machine
 
 // Controls the gamelogic simulation time slice size. The game time always jumps in increments
@@ -83,6 +85,17 @@ cvar_t *sv_showAverageBPS; // NERVE - SMF - net debugging
 // fretn
 cvar_t *sv_fullmsg;
 
+Cvar::Range<Cvar::Cvar<int>> sv_networkScope(
+	"sv_networkScope",
+	"allowed source networks for incoming packets: 0 = loopback only, 1 = LAN, 2 = Internet",
+	Cvar::NONE,
+#ifdef BUILD_SERVER
+	2,
+#else
+	1,
+#endif
+	0, 2);
+
 // Network stuff other than communication with connected clients
 Log::Logger netLog("server.net", "", Log::Level::NOTICE);
 
@@ -100,7 +113,7 @@ bool ParseCvarValue(Str::StringRef value, ServerPrivate& result)
 	int intermediate = 0;
 	if ( Str::ParseInt(intermediate, value) &&
 		intermediate >= int(ServerPrivate::Public) &&
-		intermediate <= int(ServerPrivate::LanOnly) )
+		intermediate <= int(ServerPrivate::NoStatus) )
 	{
 		result = ServerPrivate(intermediate);
 		return true;
@@ -118,12 +131,12 @@ Cvar::Cvar<ServerPrivate> isPrivate(
 	"Controls how much the server advertises: "
 	"0 - Advertise everything, "
 	"1 - Don't advertise but reply to status queries, "
-	"2 - Don't reply to status queries but accept connections, "
-	"3 - Only accept LAN connections.",
+	"2 - Only accept direct connections. ",
+	Cvar::NONE,
 #if BUILD_GRAPHICAL_CLIENT || BUILD_TTY_CLIENT
-	Cvar::ROM, ServerPrivate::LanOnly
+	ServerPrivate::NoAdvertise
 #elif BUILD_SERVER
-	Cvar::NONE, ServerPrivate::Public
+	ServerPrivate::Public
 #else
 	#error
 #endif
@@ -359,6 +372,17 @@ void SV_MasterHeartbeat( const char *hbname )
 	{
 		SV_ResolveMasterServers( 0 );
 		return; // only dedicated servers send heartbeats
+	}
+	else if ( sv_networkScope.Get() < 2 )
+	{
+		if ( !svs.warnedNetworkScopeNotAdvertisable )
+		{
+			netLog.Warn( "Not sending master heartbeat because sv_networkScope is local" );
+			svs.warnedNetworkScopeNotAdvertisable = true;
+		}
+
+		SV_ResolveMasterServers( 0 );
+		return;
 	}
 
 	SV_ResolveMasterServers( netenabled );
@@ -1028,6 +1052,21 @@ static void SV_ConnectionlessPacket( const netadr_t& from, msg_t *msg )
 
 //============================================================================
 
+static bool SV_IsAllowedNetwork( const netadr_t& address )
+{
+	switch ( sv_networkScope.Get() )
+	{
+	case 0:
+		return address.type == netadrtype_t::NA_LOOPBACK;
+	case 1:
+		return Sys_IsLANAddress( address );
+	case 2:
+		return true;
+	}
+
+	ASSERT_UNREACHABLE();
+}
+
 /*
 =================
 SV_PacketEvent
@@ -1038,6 +1077,11 @@ void SV_PacketEvent( const netadr_t& from, msg_t *msg )
 	int      i;
 	client_t *cl;
 	int      qport;
+
+	if ( !SV_IsAllowedNetwork( from ) )
+	{
+		return;
+	}
 
 	// check for connectionless packet (0xffffffff) first
 	if ( msg->cursize >= 4 && * ( int * ) msg->data == -1 )

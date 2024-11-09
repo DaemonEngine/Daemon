@@ -1616,27 +1616,29 @@ image_t *R_Create3DImage( const char *name, const byte *pic, int width, int heig
 	return image;
 }
 
-struct imageExtToLoaderMap_t
+using imageLoader_t = void( * )( const char *, byte **, int *, int *, int *, int *, int *, byte );
+
+struct imageExtLoader_t
 {
 	const char *ext;
-	void ( *ImageLoader )( const char *, unsigned char **, int *, int *, int *, int *, int *, byte );
+	const char *name;
+	imageLoader_t imageLoader;
+	bool cubemap;
 };
 
-// Note that the ordering indicates the order of preference used
-// when there are multiple images of different formats available
-static const imageExtToLoaderMap_t imageLoaders[] =
+/* The ordering indicates the order of preference used when
+there are multiple images of different formats available. */
+static const imageExtLoader_t imageLoaders[] =
 {
-	{ "webp", LoadWEBP },
-	{ "png",  LoadPNG  },
-	{ "tga",  LoadTGA  },
-	{ "jpg",  LoadJPG  },
-	{ "jpeg", LoadJPG  },
-	{ "dds",  LoadDDS  },
-	{ "crn",  LoadCRN  },
-	{ "ktx",  LoadKTX  },
+	{ "webp", "WebP", LoadWEBP, false },
+	{ "png",  "PNG",  LoadPNG,  false },
+	{ "tga",  "TGA",  LoadTGA,  false },
+	{ "jpg",  "JPEG", LoadJPG,  false },
+	{ "jpeg", "JPEG", LoadJPG,  false },
+	{ "dds",  "DDS",  LoadDDS,  false },
+	{ "crn",  "CRN",  LoadCRN,  true  },
+	{ "ktx",  "KTX",  LoadKTX,  true  },
 };
-
-static int                   numImageLoaders = ARRAY_LEN( imageLoaders );
 
 /*
 =================
@@ -1646,44 +1648,40 @@ Finds and returns an image loader for a given basename,
 tells the extra prefix that may be required to load the image.
 =================
 */
-static int R_FindImageLoader( const char *baseName, const char **prefix ) {
+static const imageExtLoader_t* R_FindImageLoader( const char *baseName, const char **prefix ) {
 	const FS::PakInfo* bestPak = nullptr;
-	int i;
+	const imageExtLoader_t* bestLoader = nullptr;
 
-	int bestLoader = -1;
 	*prefix = "";
+
 	// try and find a suitable match using all the image formats supported
 	// prioritize with the pak priority
-	for ( i = 0; i < numImageLoaders; i++ )
+	for ( const imageExtLoader_t &loader : imageLoaders )
 	{
-		std::string altName = Str::Format( "%s.%s", baseName, imageLoaders[i].ext );
+		std::string altName = Str::Format( "%s.%s", baseName, loader.ext );
 		const FS::PakInfo* pak = FS::PakPath::LocateFile( altName );
 
-		// We found a file and its pak is better than the best pak we have
-		// this relies on how the filesystem works internally and should be moved
-		// to a more explicit interface once there is one. (FIXME)
+		/* We found a file and its pak is better than the best pak we have
+		this relies on how the filesystem works internally.
+		FIXME: Move to a more explicit interface once there is one. */
 		if ( pak != nullptr && ( bestPak == nullptr || pak < bestPak ) )
 		{
+			/* We found a file and its pak is better than the best pak we have
+			this relies on how the filesystem works internally. */
 			bestPak = pak;
-			bestLoader = i;
-		}
-
-		if( pak == nullptr ) {
-			if ( FS::HomePath::FileExists( altName ) ) {
-				bestLoader = i;
-			}
+			bestLoader = &loader;
 		}
 
 		// DarkPlaces or Doom3 packages can ship alternative texture path in the form of
 		//   dds/<path without ext>.dds
-		if ( bestPak == nullptr && !Q_stricmp( "dds", imageLoaders[i].ext ) )
+		if ( bestPak == nullptr && !Q_stricmp( "dds", loader.ext ) )
 		{
 			std::string prefixedName = Str::Format( "dds/%s.dds", baseName );
 			bestPak = FS::PakPath::LocateFile( prefixedName );
 			if ( bestPak != nullptr ) {
 				*prefix = "dds/";
 				bestPak = pak;
-				bestLoader = i;
+				bestLoader = &loader;
 			}
 		}
 	}
@@ -1691,11 +1689,22 @@ static int R_FindImageLoader( const char *baseName, const char **prefix ) {
 	return bestLoader;
 }
 
-int R_FindImageLoader( const char *baseName ) {
+bool R_HasImageLoader( const char *baseName ) {
 	// not used but required by R_FindImageLoader
 	const char *prefix;
 
-	return R_FindImageLoader( baseName, &prefix );
+	return R_FindImageLoader( baseName, &prefix ) != nullptr;
+}
+
+static void R_LoadImageWithLoader( const char* fileName, const char* altName, const imageExtLoader_t *loader, byte **pic, int *width, int *height, int *numLayers, int *numMips, int *bits, byte alphaByte )
+{
+	Log::Debug( "Found %s image candidate '%s': %s", loader->name, fileName, altName );
+	loader->imageLoader( altName, pic, width, height, numLayers, numMips, bits, alphaByte );
+
+	if ( *pic )
+	{
+		Log::Debug("Found %d×%d %s image '%s': %s", *width, *height, loader->name, fileName, altName );
+	}
 }
 
 /*
@@ -1706,87 +1715,80 @@ Loads any of the supported image types into a canonical
 32 bit format.
 =================
 */
-static void R_LoadImage( const char **buffer, byte **pic, int *width, int *height,
+static void R_LoadImage( const char *name, byte **pic, int *width, int *height,
 			 int *numLayers, int *numMips,
 			 int *bits )
 {
 	*pic = nullptr;
-	*width = 0;
-	*height = 0;
+	*width = *height = 0;
 
-	const char *token = COM_ParseExt2( buffer, false );
-
-	if ( !token[ 0 ] )
+	if ( !name )
 	{
 		Log::Warn("NULL parameter for R_LoadImage" );
 		return;
 	}
 
-	int        i;
-	const char *ext;
-	char       filename[ MAX_QPATH ];
-	byte       alphaByte;
-
 	// missing alpha means fully opaque
-	alphaByte = 0xFF;
+	byte alphaByte = 0xFF;
 
-	Q_strncpyz( filename, token, sizeof( filename ) );
+	const char *ext = COM_GetExtension( name );
 
-	ext = COM_GetExtension( filename );
-
-	// the Daemon's default strategy is to use the hardcoded path if exists
+	/* The Daemon's default strategy is to use the hardcoded path if it exists.
+	If we are given the name “some.thing.tga” we will look for “some.thing.tga” first
+	and if we are given the name “something.tga” we will look for “something.tga” first. */
 	if ( *ext )
 	{
-		// look for the correct loader and use it
-		for ( i = 0; i < numImageLoaders; i++ )
+		// Look for the correct loader and load the image is the file is found.
+		for ( const auto &loader : imageLoaders )
 		{
-			if ( !Q_stricmp( ext, imageLoaders[ i ].ext ) )
+			if ( !Q_stricmp( ext, loader.ext ) )
 			{
-				// do not complain on missing file if extension is hardcoded to a wrong one
-				// since file can exist with another extension and it will tested right after
-				// that, and by the way if there is no alternative an error will be raised
-				// because of missing texture so we don't have to let the ImageLoader says
-				// it failed to read the file using this filename
-				if ( FS::PakPath::FileExists( filename ) )
+				/* Do not complain on missing file if the extension is hardcoded to a wrong one since
+				the file can exist with another extension and it will tested right after that. */
+				if ( FS::PakPath::FileExists( name ) )
 				{
-					// load
-					imageLoaders[ i ].ImageLoader( filename, pic, width, height, numLayers, numMips, bits, alphaByte );
+					R_LoadImageWithLoader( name, name, &loader, pic, width, height, numLayers, numMips, bits, alphaByte );
+
+					if ( *pic )
+					{
+						return;
+					}
 				}
-				// we still have to break because a loader was found, so we can strip the extension
+
+				// We have to break because the expected loader was found.
 				break;
 			}
 		}
-
-		// a loader was found
-		if ( i < numImageLoaders )
-		{
-			if ( *pic != nullptr )
-			{
-				// something loaded
-				return;
-			}
-		}
 	}
 
-	// if the file isn't there, maybe the file path did not have any extension,
-	// and it may be possible the file has a dot in its name that was mistakenly
-	// taken as an extension
 	const char *prefix;
-	int bestLoader = R_FindImageLoader( filename, &prefix );
 
-	if ( *ext && bestLoader == -1 )
+	/* If we are given the name “some.thing”, we first look for “some.thing.webp”,
+	“some.thing.png”, etc. It also means that if we are given the name “something.tga” we
+	will also look for “something.tga.webp, “something.tga.png”, “something.tga.tga”, etc. */
+	const imageExtLoader_t* loader = R_FindImageLoader( name, &prefix );
+
+	if ( loader )
 	{
-		// if there is no file with such extension
-		// or there is no codec available for this file format
-		COM_StripExtension3( token, filename, sizeof(filename) );
-
-		bestLoader = R_FindImageLoader( filename, &prefix );
+		std::string altName = Str::Format( "%s.%s", name, loader->ext );
+		R_LoadImageWithLoader( name, altName.c_str(), loader, pic, width, height, numLayers, numMips, bits, alphaByte );
+		return;
 	}
 
-	if ( bestLoader >= 0 )
+	/* Then for the name “something.tga“ we look for “something.webp”, “something.png”, etc.
+	It also means that for the name “some.thing” we look for “some.webp”, “some.png”, etc. */
+	if ( *ext )
 	{
-		char *altName = va( "%s%s.%s", prefix, filename, imageLoaders[ bestLoader ].ext );
-		imageLoaders[ bestLoader ].ImageLoader( altName, pic, width, height, numLayers, numMips, bits, alphaByte );
+		char baseName[ 1024 ];
+		COM_StripExtension3( name, baseName, sizeof(baseName) );
+
+		loader = R_FindImageLoader( baseName, &prefix );
+
+		if ( loader )
+		{
+			std::string altName = Str::Format( "%s%s.%s", prefix, baseName, loader->ext );
+			R_LoadImageWithLoader( name, altName.c_str(), loader, pic, width, height, numLayers, numMips, bits, alphaByte );
+		}
 	}
 }
 
@@ -1800,31 +1802,22 @@ Returns nullptr if it fails, not a default image.
 */
 image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 {
-	image_t       *image = nullptr;
-	int           width = 0, height = 0, numLayers = 0, numMips = 0;
-	byte          *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
-	byte          *mallocPtr = nullptr;
-	char          buffer[ 1024 ];
-	const char          *buffer_p;
-	unsigned int diff;
-
 	if ( !imageName )
 	{
 		return nullptr;
 	}
 
-	Q_strncpyz( buffer, imageName, sizeof( buffer ) );
-	unsigned hash = GenerateImageHashValue( buffer );
+	unsigned hash = GenerateImageHashValue( imageName );
 
-	// see if the image is already loaded
-	for ( image = r_imageHashTable[ hash ]; image; image = image->next )
+	// See if the image is already loaded.
+	for ( image_t *image = r_imageHashTable[ hash ]; image; image = image->next )
 	{
-		if ( !Q_strnicmp( buffer, image->name, sizeof( image->name ) ) )
+		if ( !Q_strnicmp( imageName, image->name, sizeof( image->name ) ) )
 		{
-			// the white image can be used with any set of parms, but other mismatches are errors
-			if ( Q_stricmp( buffer, "_white" ) )
+			// The white image can be used with any set of parms, but other mismatches are errors.
+			if ( Q_stricmp( imageName, "_white" ) )
 			{
-				diff = imageParams.bits ^ image->bits;
+				unsigned int diff = imageParams.bits ^ image->bits;
 
 				if ( diff & IF_NOPICMIP )
 				{
@@ -1841,28 +1834,35 @@ image_t *R_FindImageFile( const char *imageName, imageParams_t &imageParams )
 		}
 	}
 
-	// load the pic from disk
+	// Load and create the image.
+	int width = 0, height = 0, numLayers = 0, numMips = 0;
+	byte *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
 	pic[ 0 ] = nullptr;
-	buffer_p = &buffer[ 0 ];
-	R_LoadImage( &buffer_p, pic, &width, &height, &numLayers, &numMips, &imageParams.bits );
 
-	if ( (mallocPtr = pic[ 0 ]) == nullptr || numLayers > 0 )
+	R_LoadImage( imageName, pic, &width, &height, &numLayers, &numMips, &imageParams.bits );
+
+	if ( *pic )
 	{
-		if ( mallocPtr )
+		if ( numLayers > 0 )
 		{
-			Z_Free( mallocPtr );
+			Z_Free( *pic );
+			return nullptr;
 		}
+	}
+	else
+	{
 		return nullptr;
 	}
 
 	if ( imageParams.bits & IF_LIGHTMAP && tr.legacyOverBrightClamping )
 	{
-		R_ProcessLightmap( pic[ 0 ], width, height, imageParams.bits );
+		R_ProcessLightmap( *pic, width, height, imageParams.bits );
 	}
 
-	image = R_CreateImage( ( char * ) buffer, (const byte **)pic, width, height, numMips, imageParams );
+	image_t *image = R_CreateImage( imageName, (const byte **)pic, width, height, numMips, imageParams );
 
-	Z_Free( mallocPtr );
+	Z_Free( *pic );
+
 	return image;
 }
 
@@ -1989,14 +1989,6 @@ byte *R_Resize( byte *in, int width, int height, int newWidth, int newHeight )
 	return out;
 }
 
-/*
-===============
-R_FindCubeImage
-
-Finds or loads the given image.
-Returns nullptr if it fails, not a default image.
-==============
-*/
 static void R_FreeCubePics( byte **pic, int count )
 {
 	while (--count >= 0)
@@ -2008,20 +2000,6 @@ static void R_FreeCubePics( byte **pic, int count )
 		}
 	}
 }
-
-struct cubeMapLoader_t
-{
-	const char *ext;
-	void ( *ImageLoader )( const char *, unsigned char **, int *, int *, int *, int *, int *, byte );
-};
-
-// Note that the ordering indicates the order of preference used
-// when there are multiple images of different formats available
-static const cubeMapLoader_t cubeMapLoaders[] =
-{
-	{ "crn", LoadCRN },
-	{ "ktx", LoadKTX },
-};
 
 struct multifileCubeMapFormat_t
 {
@@ -2075,112 +2053,160 @@ struct face_t
 	int height;
 };
 
-image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
+static const imageExtLoader_t* R_FindCubeLoader( const char *baseName )
 {
-	int i, j;
-	image_t *image = nullptr;
+	const FS::PakInfo* bestPak = nullptr;
+	const imageExtLoader_t* bestLoader = nullptr;
+
+	for ( const auto &loader : imageLoaders )
+	{
+		if ( !loader.cubemap ) continue;
+
+		std::string altName = Str::Format( "%s.%s", baseName, loader.ext );
+		const FS::PakInfo* pak = FS::PakPath::LocateFile( altName );
+
+		// FIXME: Move to a more explicit interface once there is one.
+		if ( pak != nullptr && ( bestPak == nullptr || pak < bestPak ) )
+		{
+			/* We found a file and its pak is better than the best pak we have
+			this relies on how the filesystem works internally. */
+			bestPak = pak;
+			bestLoader = &loader;
+		}
+	}
+
+	return bestLoader;
+}
+
+static image_t *R_LoadAndCreateSingleFileCubeImage( const char *imageName, const char* altName, const imageExtLoader_t *loader, imageParams_t& imageParams )
+{
 	int width = 0, height = 0, numLayers = 0, numMips = 0;
+
+	Log::Debug( "Found %s cube map '%s' candidate: %s", loader->name, imageName, altName );
+
 	byte *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
+	pic[ 0 ] = nullptr;
 
-	char buffer[ 1024 ], filename[ 1024 ];
-	const  char *filename_p;
+	loader->imageLoader( altName, pic, &width, &height, &numLayers, &numMips, &imageParams.bits, 0 );
 
-	if ( !imageName )
+	if ( *pic && numLayers == 6 )
+	{
+		Log::Debug( "Found %d×%d×6 %s cube map '%s': %s", width, height, loader->name, imageName, altName );
+		image_t *image = R_CreateCubeImage( imageName, (const byte **) pic, width, height, imageParams );
+
+		if ( image )
+		{
+			R_FreeCubePics( pic, 1 );
+			return image;
+		}
+	}
+
+	R_FreeCubePics( pic, 1 );
+
+	return nullptr;
+}
+
+/* Finds or loads the given cubemap image.
+Returns nullptr if it fails, not a default image. */
+image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams )
+{
+	if ( !name )
 	{
 		return nullptr;
 	}
 
-	Q_strncpyz( buffer, imageName, sizeof( buffer ) );
-	unsigned hash = GenerateImageHashValue( buffer );
+	unsigned hash = GenerateImageHashValue( name );
 
-	// see if the image is already loaded
-	for ( image = r_imageHashTable[ hash ]; image; image = image->next )
+	// See if the image is already loaded.
+	for ( image_t *image = r_imageHashTable[ hash ]; image; image = image->next )
 	{
-		if ( !Q_stricmp( buffer, image->name ) )
+		if ( !Q_stricmp( name, image->name ) )
 		{
 			return image;
 		}
 	}
 
-	char cubeMapBaseName[ MAX_QPATH ];
-	COM_StripExtension3( buffer, cubeMapBaseName, sizeof( cubeMapBaseName ) );
-
-	for ( const cubeMapLoader_t &loader : cubeMapLoaders )
+	// Look for cached 6-face cube map file.
+	if ( imageParams.bits & IF_HOMEPATH )
 	{
-		std::string cubeMapName = Str::Format( "%s.%s", cubeMapBaseName, loader.ext );
-		if( R_FindImageLoader( cubeMapBaseName ) >= 0 )
+		static const imageExtLoader_t loader = { "ktx", "KTX", LoadKTX, true };
+		std::string altName = Str::Format( "%s.%s", name, loader.ext );
+
+		Log::Debug( "Looking for cached %s cube map '%s' candidate: %s", loader.name, name, altName );
+
+		if ( FS::HomePath::FileExists( altName ) )
 		{
-			Log::Debug( "found %s cube map '%s'", loader.ext, cubeMapBaseName );
-			loader.ImageLoader( cubeMapName.c_str(), pic, &width, &height, &numLayers, &numMips, &imageParams.bits, 0 );
-
-			if( numLayers == 6 && pic[0] ) {
-				image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, width, height, imageParams );
-				R_FreeCubePics( pic, 1 );
-				return image;
-			}
-
-			R_FreeCubePics( pic, numLayers );
-		}
-	}
-
-	for ( i = 0; i < 6; i++ )
-	{
-		pic[ i ] = nullptr;
-	}
-
-	for ( const multifileCubeMapFormat_t &format : multifileCubeMapFormats )
-	{
-		int greatestEdge = 0;
-		face_t faces[6];
-
-		for ( i = 0; i < 6; i++ )
-		{
-			Com_sprintf( filename, sizeof( filename ), "%s%s%s", buffer, format.sep, format.suffixes[ i ] );
-
-			Log::Debug( "looking for %s cube map face '%s'", format.name, filename );
-
-			filename_p = &filename[ 0 ];
-			R_LoadImage( &filename_p, &pic[ i ], &width, &height, &numLayers, &numMips, &imageParams.bits );
-
-			if ( pic[ i ] == nullptr )
-			{
-				// ignore silently, skip this format
-				// note that it may silent incomplete multifile cubemap
-				// but this is an hardly decidable problem since
-				// multiple formats can share some suffixes
-				break;
-			}
-
-			if ( IsImageCompressed( imageParams.bits ) )
-			{
-				Log::Warn("cube map face '%s' has DXTn compression, cube map unusable", filename );
-				break;
-			}
-
-			if ( numLayers > 0 )
-			{
-				Log::Warn("cubemap face '%s' is a multilayer image with %d layer(s), cube map unusable", filename, numLayers);
-				break;
-			}
-
-			if ( width > greatestEdge )
-			{
-				greatestEdge = width;
-			}
-
-			if ( height > greatestEdge )
-			{
-				greatestEdge = height;
-			}
-
-			faces[ i ].width = width;
-			faces[ i ].height = height;
+			return R_LoadAndCreateSingleFileCubeImage( name, altName.c_str(), &loader, imageParams );
 		}
 
-		if ( i == 6 )
-		{
+		return nullptr;
+	}
 
-			for ( j = 0; j < 6; j++ )
+	// Look for 6-files cube map.
+	{
+		int width = 0, height = 0, numLayers = 0, numMips = 0;
+		byte *pic[ MAX_TEXTURE_MIPS * MAX_TEXTURE_LAYERS ];
+
+		for ( int i = 0; i < 6; i++ )
+		{
+			pic[ i ] = nullptr;
+		}
+
+		for ( const multifileCubeMapFormat_t &format : multifileCubeMapFormats )
+		{
+			int greatestEdge = 0;
+			face_t faces[ 6 ];
+
+			for ( int i = 0 ; i < 6; i++ )
+			{
+				std::string faceName = Str::Format( "%s%s%s", name, format.sep, format.suffixes[ i ] );
+
+				Log::Debug( "Looking for %s cube map face '%s'", format.name, faceName );
+
+				R_LoadImage( faceName.c_str(), &pic[ i ], &width, &height, &numLayers, &numMips, &imageParams.bits );
+
+				if ( !pic[ i ] )
+				{
+					/* Ignore silently, skip this format. This may silence incomplete multifile cubemap
+					but this is an hardly decidable problem since some formats can share some suffixes */
+					R_FreeCubePics( pic, i );
+					break;
+				}
+
+				if ( IsImageCompressed( imageParams.bits ) )
+				{
+					Log::Warn("Cube map face '%s' has DXTn compression, cube map unusable", faceName );
+					R_FreeCubePics( pic, i + 1 );
+					break;
+				}
+
+				if ( numLayers > 0 )
+				{
+					Log::Warn("Cubemap face '%s' is a multilayer image with %d layer(s), cube map unusable", faceName, numLayers);
+					R_FreeCubePics( pic, i + 1 );
+					break;
+				}
+
+				if ( width > greatestEdge )
+				{
+					greatestEdge = width;
+				}
+
+				if ( height > greatestEdge )
+				{
+					greatestEdge = height;
+				}
+
+				faces[ i ].width = width;
+				faces[ i ].height = height;
+			}
+
+			if ( !*pic )
+			{
+				continue;
+			}
+
+			for ( int j = 0; j < 6; j++ )
 			{
 				width = faces[ j ].width;
 				height = faces[ j ].height;
@@ -2189,15 +2215,15 @@ image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
 
 				if ( width != height )
 				{
-					Log::Warn("cubemap face '%s%s%s' is not a square with %d×%d dimension, resizing to %d×%d",
-						imageName, format.sep, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
+					Log::Warn("Cubemap face '%s%s%s' is not a square with %d×%d dimension, resizing to %d×%d",
+						name, format.sep, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
 					badSize = true;
 				}
 
 				if ( width < greatestEdge || height < greatestEdge )
 				{
-					Log::Warn("cubemap face '%s%s%s' is too small with %d×%d dimension, resizing to %d×%d",
-						imageName, format.sep, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
+					Log::Warn("Cubemap face '%s%s%s' is too small with %d×%d dimension, resizing to %d×%d",
+						name, format.sep, format.suffixes[ j ], width, height, greatestEdge, greatestEdge );
 					badSize = true;
 				}
 
@@ -2211,7 +2237,7 @@ image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
 					R_Flop( pic[ j ], width, height );
 				}
 
-				// make face square before doing rotation
+				// Make face square before doing rotation.
 				if ( badSize )
 				{
 					pic[ j ] = R_Resize( pic[ j ], width, height, greatestEdge, greatestEdge );
@@ -2223,13 +2249,78 @@ image_t *R_FindCubeImage( const char *imageName, imageParams_t &imageParams )
 				}
 			}
 
-			Log::Debug( "found %s multifile cube map '%s'", format.name, imageName );
-			image = R_CreateCubeImage( ( char * ) buffer, ( const byte ** ) pic, greatestEdge, greatestEdge, imageParams );
-			R_FreeCubePics( pic, i );
-			return image;
+			Log::Debug( "Found %d×%d×6 %s multifile cube map '%s'", greatestEdge, greatestEdge, format.name, name );
+			image_t *image = R_CreateCubeImage( name, ( const byte ** ) pic, greatestEdge, greatestEdge, imageParams );
+
+			R_FreeCubePics( pic, 6 );
+
+			if ( image )
+			{
+				return image;
+			}
+		}
+	}
+
+	// Look for 6-faces single-file CRN or KTX cubemap.
+	{
+		const char *ext = COM_GetExtension( name );
+
+		/* The Daemon's default strategy is to use the hardcoded path if it exists.
+		If we are given the name “some.thing.crn” we will look for “some.thing.crn” first
+		and if we are given the name “something.crn” we will look for “something.crn” first. */
+		if ( *ext )
+		{
+			// Look for the correct loader and load the image is the file is found.
+			for ( const auto &loader : imageLoaders )
+			{
+				if ( !loader.cubemap ) continue;
+
+				if ( !Q_stricmp( ext, loader.ext ) )
+				{
+					/* Do not complain on missing file if the extension is hardcoded to a wrong one since
+					the file can exist with another extension and it will tested right after that. */
+					if ( FS::PakPath::FileExists( name ) )
+					{
+						image_t *image = R_LoadAndCreateSingleFileCubeImage( name, name, &loader, imageParams );
+
+						if ( image )
+						{
+							return image;
+						}
+					}
+
+					// We have to break because the expected loader was found.
+					break;
+				}
+			}
 		}
 
-		R_FreeCubePics( pic, i );
+		/* If we are given the name “some.thing”, we first look for “some.thing.crn”,
+		“some.thing.ktx”, etc. It also means that if we are given the name “something.ktx”
+		we will also look for “something.ktx.crn, “something.ktx.ktx”, etc. */
+		const imageExtLoader_t *loader = R_FindCubeLoader( name );
+
+		if ( loader )
+		{
+			std::string altName = Str::Format( "%s.%s", name, loader->ext );
+			return R_LoadAndCreateSingleFileCubeImage( name, altName.c_str(), loader, imageParams );
+		}
+
+		/* Then for the name “something.ktx“ we look for “something.crn”, etc.
+		It also means that for the name “some.thing” we look for “some.crn”, “some.ktx”, etc. */
+		if ( *ext )
+		{
+			char baseName[ 1024 ];
+			COM_StripExtension3( name, baseName, sizeof(baseName) );
+
+			loader = R_FindCubeLoader( baseName );
+
+			if ( loader )
+			{
+				std::string altName = Str::Format( "%s.%s", baseName, loader->ext );
+				return R_LoadAndCreateSingleFileCubeImage( name, altName.c_str(), loader, imageParams );
+			}
+		}
 	}
 
 	return nullptr;
@@ -2574,7 +2665,7 @@ static void R_CreateDepthRenderImage()
 
 		imageParams.bits = IF_NOPICMIP | IF_RGBA32UI;
 
-		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, 4, imageParams );
+		tr.lighttileRenderImage = R_Create3DImage( "_lighttileRender", nullptr, w, h, glConfig2.realtimeLightLayers, imageParams );
 	}
 }
 
@@ -2825,7 +2916,7 @@ static void R_CreateColorGradeImage()
 	}
 
 	imageParams_t imageParams = {};
-	imageParams.bits = IF_NOPICMIP | IF_NOLIGHTSCALE;
+	imageParams.bits = IF_NOPICMIP;
 	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_EDGE_CLAMP;
 
