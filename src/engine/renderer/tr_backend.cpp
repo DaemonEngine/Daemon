@@ -5310,18 +5310,18 @@ const RenderCommand *GradientPicCommand::ExecuteSelf( ) const
 RB_SetupLights
 =============
 */
-const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
+const RenderCommand *SetupLightsCommand::ExecuteSelf() const
 {
-	int numLights;
 	GLenum bufferTarget = glConfig2.uniformBufferObjectAvailable ? GL_UNIFORM_BUFFER : GL_PIXEL_UNPACK_BUFFER;
 
 	GLimp_LogComment( "--- SetupLightsCommand::ExecuteSelf ---\n" );
 
-	if( (numLights = refdef.numLights) > 0 ) {
+	const int numLights = refdef.numLights;
+	if( numLights ) {
 		shaderLight_t *buffer;
 
 		glBindBuffer( bufferTarget, tr.dlightUBO );
-		buffer = (shaderLight_t *)glMapBufferRange( bufferTarget,
+		buffer = (shaderLight_t *) glMapBufferRange( bufferTarget,
 							    0, numLights * sizeof( shaderLight_t ),
 							    GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
 
@@ -5334,20 +5334,20 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf( ) const
 
 			VectorCopy( light->l.origin, buffer[i].center );
 			buffer[i].radius = light->l.radius;
-			VectorScale( light->l.color, 4.0f * light->l.scale, buffer[i].color );
+			VectorScale( light->l.color, light->l.scale, buffer[i].color );
+
 			buffer[i].type = Util::ordinal( light->l.rlType );
 			switch( light->l.rlType ) {
-			case refLightType_t::RL_PROJ:
-				VectorCopy( light->l.projTarget,
-					    buffer[i].direction );
-				buffer[i].angle = cosf( atan2f( VectorLength( light->l.projUp), VectorLength( light->l.projTarget ) ) );
-				break;
-			case refLightType_t::RL_DIRECTIONAL:
-				VectorCopy( light->l.projTarget,
-					    buffer[i].direction );
-				break;
-			default:
-				break;
+
+				case refLightType_t::RL_PROJ:
+					VectorCopy( light->l.projTarget, buffer[i].direction );
+					buffer[i].angle = cosf( atan2f( VectorLength( light->l.projUp), VectorLength( light->l.projTarget ) ) );
+					break;
+				case refLightType_t::RL_DIRECTIONAL:
+					VectorCopy( light->l.projTarget, buffer[i].direction );
+					break;
+				default:
+					break;
 			}
 		}
 
