@@ -43,7 +43,6 @@ extern IPC::CommandBufferClient cmdBuffer;
 
 void            trap_SendClientCommand( const char *s );
 void            trap_UpdateScreen();
-int             trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
 void trap_CM_BatchMarkFragments(
 	unsigned maxPoints,
@@ -101,16 +100,13 @@ std::vector<bool> trap_Key_KeysDown( const std::vector<Keyboard::Key>& keys );
 void            trap_SetMouseMode( MouseMode mode );
 void            trap_S_StopBackgroundTrack();
 void            trap_R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
-bool        trap_GetEntityToken( char *buffer, int bufferSize );
 std::vector<std::vector<Keyboard::Key>> trap_Key_GetKeysForBinds(int team, const std::vector<std::string>& binds);
 int             trap_Key_GetCharForScancode( int scancode );
-bool        trap_R_inPVS( const vec3_t p1, const vec3_t p2 );
 
 std::vector<bool> trap_R_BatchInPVS(
 	const vec3_t origin,
 	const std::vector<std::array<float, 3>>& posEntities );
 
-bool        trap_R_inPVVS( const vec3_t p1, const vec3_t p2 );
 int             trap_R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 qhandle_t       trap_R_RegisterAnimation( const char *name );
 int             trap_R_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac, bool clearOrigin );
@@ -119,7 +115,6 @@ int             trap_R_BoneIndex( qhandle_t hModel, const char *boneName );
 int             trap_R_AnimNumFrames( qhandle_t hAnim );
 int             trap_R_AnimFrameRate( qhandle_t hAnim );
 void            trap_RegisterButtonCommands( const char *cmds );
-void            trap_QuoteString( const char *, char*, int );
 void            trap_notify_onTeamChange( int newTeam );
 qhandle_t       trap_RegisterVisTest();
 void            trap_AddVisTestToScene( qhandle_t hTest, const vec3_t pos,

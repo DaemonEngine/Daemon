@@ -1091,17 +1091,6 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
-		case CG_CM_MARKFRAGMENTS:
-			// TODO wow this is very ugly and expensive, find something better?
-			// plus we have a lot of const casts for the vector buffers
-			IPC::HandleMsg<CMMarkFragmentsMsg>(channel, std::move(reader), [this] (std::vector<std::array<float, 3>> points, std::array<float, 3> projection, int maxPoints, int maxFragments, std::vector<std::array<float, 3>>& pointBuffer, std::vector<markFragment_t>& fragmentBuffer) {
-				pointBuffer.resize(maxPoints);
-				fragmentBuffer.resize(maxFragments);
-				int numFragments = re.MarkFragments(points.size(), (vec3_t*)points.data(), projection.data(), maxPoints, (float*) pointBuffer.data(), maxFragments, fragmentBuffer.data());
-				fragmentBuffer.resize(numFragments);
-			});
-			break;
-
 		case CG_CM_BATCHMARKFRAGMENTS:
 			IPC::HandleMsg<CMBatchMarkFragments>(channel, std::move(reader), [this] (
 				unsigned maxPoints,
@@ -1174,27 +1163,9 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			});
 			break;
 
-		case CG_GET_ENTITY_TOKEN:
-			IPC::HandleMsg<CgGetEntityTokenMsg>(channel, std::move(reader), [this] (int len, bool& res, std::string& token) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				buffer[0] = '\0';
-				res = re.GetEntityToken(buffer.get(), len);
-				token.assign(buffer.get());
-			});
-			break;
-
 		case CG_REGISTER_BUTTON_COMMANDS:
 			IPC::HandleMsg<RegisterButtonCommandsMsg>(channel, std::move(reader), [this] (const std::string& commands) {
 				CL_RegisterButtonCommands(commands.c_str());
-			});
-			break;
-
-		case CG_QUOTESTRING:
-			IPC::HandleMsg<QuoteStringMsg>(channel, std::move(reader), [this] (int len, const std::string& input, std::string& output) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				buffer[0] = '\0';
-				Cmd_QuoteStringBuffer(input.c_str(), buffer.get(), len);
-				output.assign(buffer.get());
 			});
 			break;
 
@@ -1229,12 +1200,6 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 		case CG_R_GETSHADERNAMEFROMHANDLE:
 			IPC::HandleMsg<Render::GetShaderNameFromHandleMsg>(channel, std::move(reader), [this] (int handle, std::string& name) {
 			    name = re.ShaderNameFromHandle(handle);
-			});
-			break;
-
-		case CG_R_INPVVS:
-			IPC::HandleMsg<Render::InPVVSMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& p1, const std::array<float, 3>& p2, bool& res) {
-				res = re.inPVVS(p1.data(), p2.data());
 			});
 			break;
 
@@ -1278,12 +1243,6 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 		case CG_R_REMAP_SHADER:
 			IPC::HandleMsg<Render::RemapShaderMsg>(channel, std::move(reader), [this] (const std::string& oldShader, const std::string& newShader, const std::string& timeOffset) {
 				re.RemapShader(oldShader.c_str(), newShader.c_str(), timeOffset.c_str());
-			});
-			break;
-
-		case CG_R_INPVS:
-			IPC::HandleMsg<Render::InPVSMsg>(channel, std::move(reader), [this] (const std::array<float, 3>& p1, const std::array<float, 3>& p2, bool& res) {
-				res = re.inPVS(p1.data(), p2.data());
 			});
 			break;
 
