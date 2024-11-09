@@ -234,7 +234,8 @@ static void InternalSendMsg(Sys::OSHandle handle, bool more, const FileDesc* han
 	}
 #else
 	size_t descBytes = 0;
-	std::unique_ptr<unsigned char[]> descBuffer;
+	static std::unique_ptr<unsigned char[]> descBuffer;
+	static size_t descBufferSize = 0;
 	if (numHandles != 0) {
 		for (size_t i = 0; i < numHandles; i++) {
 			// tag: 1 byte
@@ -250,7 +251,10 @@ static void InternalSendMsg(Sys::OSHandle handle, bool more, const FileDesc* han
 		// Add 1 byte end tag and round to 16 bytes
 		descBytes = (descBytes + 1 + 0xf) & ~0xf;
 
-		descBuffer.reset(new unsigned char[descBytes]);
+		if (descBufferSize < descBytes) {
+			descBufferSize = descBytes;
+			descBuffer.reset(new unsigned char[descBytes]);
+		}
 		unsigned char* descBuffer_ptr = &descBuffer[0];
 		for (size_t i = 0; i < numHandles; i++) {
 			*descBuffer_ptr++ = handles[i].type;
