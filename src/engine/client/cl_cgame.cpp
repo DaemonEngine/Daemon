@@ -1631,12 +1631,6 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
                 });
                 break;
 
-            case CG_R_ADDADDITIVELIGHTTOSCENE:
-                HandleMsg<Render::AddAdditiveLightToSceneMsg>(std::move(reader), [this] (const std::array<float, 3>& point, float radius, float r, float g, float b) {
-                    re.AddAdditiveLightToScene(point.data(), radius, 1.0, r, g, b, 0);
-                });
-                break;
-
             case CG_R_SETCOLOR:
                 HandleMsg<Render::SetColorMsg>(std::move(reader), [this] (const Color::Color& color) {
                     re.SetColor(color);

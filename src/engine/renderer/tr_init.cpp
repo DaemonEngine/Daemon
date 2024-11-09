@@ -1655,7 +1655,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		re.LightForPoint = R_LightForPoint;
 
 		re.AddLightToScene = RE_AddDynamicLightToScene;
-		re.AddAdditiveLightToScene = RE_AddDynamicLightToScene;
 
 		re.RenderScene = RE_RenderScene;
 
