@@ -2891,7 +2891,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	extern Cvar::Range<Cvar::Cvar<float>> r_forceAmbient;
 	extern Cvar::Cvar<float> r_ambientScale;
-	extern cvar_t *r_lightScale;
 
 	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
