@@ -226,7 +226,6 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.AddPolysToScene = RE_AddPolysToScene;
     // done.
     re.AddLightToScene = RE_AddLightToScene;
-    re.AddAdditiveLightToScene = RE_AddLightToScene;
 
     re.RenderScene = RE_RenderScene;
 
