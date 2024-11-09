@@ -1282,6 +1282,12 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 	material->tcGen_Lightmap = pStage->tcGen_Lightmap;
 	material->deformIndex = pStage->deformIndex;
 
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
+	material->useAttrColor = rgbGen == colorGen_t::CGEN_VERTEX || rgbGen == colorGen_t::CGEN_ONE_MINUS_VERTEX
+		|| alphaGen == alphaGen_t::AGEN_VERTEX || alphaGen == alphaGen_t::AGEN_ONE_MINUS_VERTEX;
+
 	gl_genericShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );
 
@@ -1308,6 +1314,12 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
 
 	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
+
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
+	material->useAttrColor = rgbGen == colorGen_t::CGEN_VERTEX || rgbGen == colorGen_t::CGEN_ONE_MINUS_VERTEX
+		|| alphaGen == alphaGen_t::AGEN_VERTEX || alphaGen == alphaGen_t::AGEN_ONE_MINUS_VERTEX;
 
 	material->enableDeluxeMapping = enableDeluxeMapping;
 	material->enableGridLighting = enableGridLighting;
@@ -2151,6 +2163,12 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	}
 
 	backEnd.currentEntity = &tr.worldEntity;
+
+	if ( material.useAttrColor ) {
+		material.shader->AddVertexAttribBit( ATTR_COLOR );
+	} else {
+		material.shader->DelVertexAttribBit( ATTR_COLOR );
+	}
 
 	GL_State( stateBits );
 	if ( material.usePolygonOffset ) {
