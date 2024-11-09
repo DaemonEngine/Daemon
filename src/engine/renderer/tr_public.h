@@ -200,10 +200,9 @@ struct refexport_t
 	void ( *AddPolyToScene )( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void ( *AddPolysToScene )( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 
-	void ( *AddLightToScene )( const vec3_t org, float radius, float intensity, float r, float g, float b,
-	                           qhandle_t hShader, int flags );
+	void ( *AddLightToScene )( const vec3_t org, float radius, float intensity, float r, float g, float b, int flags );
 
-	void ( *AddAdditiveLightToScene )( const vec3_t org, float intensity, float r, float g, float b );
+	void ( *AddAdditiveLightToScene )( const vec3_t org, float radius, float intensity, float r, float g, float b, int flags );
 
 	void ( *RenderScene )( const refdef_t *fd );
 

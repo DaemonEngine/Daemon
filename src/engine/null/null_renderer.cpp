@@ -86,8 +86,7 @@ int R_LightForPoint( vec3_t, vec3_t, vec3_t, vec3_t )
 }
 void RE_AddPolyToScene( qhandle_t, int, const polyVert_t* ) { }
 void RE_AddPolysToScene( qhandle_t, int, const polyVert_t*, int ) { }
-void RE_AddLightToScene( const vec3_t, float, float, float, float, float, qhandle_t, int ) { }
-void RE_AddLightToSceneQ3A( const vec3_t, float, float, float, float ) { }
+void RE_AddLightToScene( const vec3_t, float, float, float, float, float, int ) { }
 void RE_RenderScene( const refdef_t* ) { }
 void RE_SetColor( const Color::Color& ) { }
 void RE_SetClipRegion( const float* ) { }
@@ -227,7 +226,7 @@ refexport_t    *GetRefAPI( int, refimport_t* )
     re.AddPolysToScene = RE_AddPolysToScene;
     // done.
     re.AddLightToScene = RE_AddLightToScene;
-    re.AddAdditiveLightToScene = RE_AddLightToSceneQ3A;
+    re.AddAdditiveLightToScene = RE_AddLightToScene;
 
     re.RenderScene = RE_RenderScene;
 
