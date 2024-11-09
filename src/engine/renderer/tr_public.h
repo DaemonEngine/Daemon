@@ -202,8 +202,6 @@ struct refexport_t
 
 	void ( *AddLightToScene )( const vec3_t org, float radius, float intensity, float r, float g, float b, int flags );
 
-	void ( *AddAdditiveLightToScene )( const vec3_t org, float radius, float intensity, float r, float g, float b, int flags );
-
 	void ( *RenderScene )( const refdef_t *fd );
 
 	void ( *SetColor )( const Color::Color& rgba );             // nullptr = 1,1,1,1
