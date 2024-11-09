@@ -132,16 +132,13 @@ enum cgameImport_t
   // Misc
   CG_SENDCLIENTCOMMAND,
   CG_UPDATESCREEN,
-  CG_CM_MARKFRAGMENTS,
   CG_CM_BATCHMARKFRAGMENTS,
   CG_GETCURRENTSNAPSHOTNUMBER,
   CG_GETSNAPSHOT,
   CG_GETCURRENTCMDNUMBER,
   CG_GETUSERCMD,
   CG_SETUSERCMDVALUE,
-  CG_GET_ENTITY_TOKEN,
   CG_REGISTER_BUTTON_COMMANDS,
-  CG_QUOTESTRING,
   CG_NOTIFY_TEAMCHANGE,
   CG_PREPAREKEYUP,
 
@@ -167,7 +164,6 @@ enum cgameImport_t
   CG_R_GETSHADERNAMEFROMHANDLE,
   CG_R_SCISSOR_ENABLE,
   CG_R_SCISSOR_SET,
-  CG_R_INPVVS,
   CG_R_LOADWORLDMAP,
   CG_R_REGISTERMODEL,
   CG_R_REGISTERSKIN,
@@ -191,7 +187,6 @@ enum cgameImport_t
   CG_R_MODELBOUNDS,
   CG_R_LERPTAG,
   CG_R_REMAP_SHADER,
-  CG_R_INPVS,
   CG_R_BATCHINPVS,
   CG_R_LIGHTFORPOINT,
   CG_R_REGISTERANIMATION,
@@ -244,11 +239,7 @@ using SendClientCommandMsg = IPC::SyncMessage<
 using UpdateScreenMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_UPDATESCREEN>>
 >;
-// TODO can move to VM too ?
-using CMMarkFragmentsMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_CM_MARKFRAGMENTS>, std::vector<std::array<float, 3>>, std::array<float, 3>, int, int>,
-	IPC::Reply<std::vector<std::array<float, 3>>, std::vector<markFragment_t>>
->;
+// TODO can move to VM too?
 using CMBatchMarkFragments = IPC::SyncMessage<
 	IPC::Message<
 		IPC::Id<VM::QVM, CG_CM_BATCHMARKFRAGMENTS>,
@@ -276,17 +267,7 @@ using GetUserCmdMsg = IPC::SyncMessage<
 	IPC::Reply<bool, usercmd_t>
 >;
 using SetUserCmdValueMsg = IPC::Message<IPC::Id<VM::QVM, CG_SETUSERCMDVALUE>, int, int, float>;
-// TODO what?
-using CgGetEntityTokenMsg =  IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_GET_ENTITY_TOKEN>, int>,
-	IPC::Reply<bool, std::string>
->;
 using RegisterButtonCommandsMsg = IPC::Message<IPC::Id<VM::QVM, CG_REGISTER_BUTTON_COMMANDS>, std::string>;
-// TODO using Command.h for that ?
-using QuoteStringMsg = IPC::SyncMessage<
-	IPC::Message<IPC::Id<VM::QVM, CG_QUOTESTRING>, int, std::string>,
-	IPC::Reply<std::string>
->;
 using NotifyTeamChangeMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_NOTIFY_TEAMCHANGE>, int>
 >;
@@ -326,11 +307,6 @@ namespace Render {
 		IPC::Message<IPC::Id<VM::QVM, CG_R_GETSHADERNAMEFROMHANDLE>, int>,
 		IPC::Reply<std::string>
 	>;
-	// TODO not a renderer call, handle in CM in the VM?
-	using InPVVSMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_R_INPVVS>, std::array<float, 3>, std::array<float, 3>>,
-		IPC::Reply<bool>
-	>;
 	// TODO is it really async?
 	using LoadWorldMapMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_LOADWORLDMAP>, std::string>;
 	using RegisterModelMsg = IPC::SyncMessage<
@@ -355,10 +331,6 @@ namespace Render {
 	>;
 	using RemapShaderMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_REMAP_SHADER>, std::string, std::string, std::string>;
 	// TODO not a renderer call, handle in CM in the VM?
-	using InPVSMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_R_INPVS>, std::array<float, 3>, std::array<float, 3>>,
-		IPC::Reply<bool>
-	>;
 	using BatchInPVSMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<
 			VM::QVM, CG_R_BATCHINPVS>,

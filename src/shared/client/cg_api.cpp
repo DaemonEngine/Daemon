@@ -49,24 +49,6 @@ void trap_UpdateScreen()
 	VM::SendMsg<UpdateScreenMsg>();
 }
 
-int trap_CM_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer )
-{
-	if (!numPoints) return 0;
-
-	std::vector<std::array<float, 3>> mypoints(numPoints);
-	std::array<float, 3> myproj;
-	memcpy(mypoints.data(), points, sizeof(float) * 3 * numPoints);
-	VectorCopy(projection, myproj);
-
-	std::vector<std::array<float, 3>> mypointBuffer;
-	std::vector<markFragment_t> myfragmentBuffer;
-	VM::SendMsg<CMMarkFragmentsMsg>(mypoints, myproj, maxPoints, maxFragments, mypointBuffer, myfragmentBuffer);
-
-	memcpy(pointBuffer, mypointBuffer.data(), sizeof(float) * 3 * maxPoints);
-	std::copy(myfragmentBuffer.begin(), myfragmentBuffer.end(), fragmentBuffer);
-	return myfragmentBuffer.size();
-}
-
 void trap_CM_BatchMarkFragments(
 	unsigned maxPoints, //per mark
 	unsigned maxFragments, //per mark
@@ -135,25 +117,9 @@ void trap_SetUserCmdValue( int stateValue, int flags, float sensitivityScale )
 	VM::SendMsg<SetUserCmdValueMsg>(stateValue, flags, sensitivityScale);
 }
 
-bool trap_GetEntityToken( char *buffer, int bufferSize )
-{
-	bool res;
-	std::string token;
-	VM::SendMsg<CgGetEntityTokenMsg>(bufferSize, res, token);
-	Q_strncpyz(buffer, token.c_str(), bufferSize);
-	return res;
-}
-
 void trap_RegisterButtonCommands( const char *cmds )
 {
 	VM::SendMsg<RegisterButtonCommandsMsg>(cmds);
-}
-
-void trap_QuoteString( const char *str, char *buffer, int size )
-{
-	std::string quoted;
-	VM::SendMsg<QuoteStringMsg>(size, str, quoted);
-	Q_strncpyz(buffer, quoted.c_str(), size);
 }
 
 void trap_notify_onTeamChange( int newTeam )
@@ -289,16 +255,6 @@ void trap_R_ScissorEnable( bool enable )
 void trap_R_ScissorSet( int x, int y, int w, int h )
 {
 	cmdBuffer.SendMsg<Render::ScissorSetMsg>(x, y, w, h);
-}
-
-bool trap_R_inPVVS( const vec3_t p1, const vec3_t p2 )
-{
-	bool res;
-	std::array<float, 3> myp1, myp2;
-	VectorCopy(p1, myp1);
-	VectorCopy(p2, myp2);
-	VM::SendMsg<Render::InPVVSMsg>(myp1, myp2, res);
-	return res;
 }
 
 void trap_R_LoadWorldMap( const char *mapname )
@@ -457,16 +413,6 @@ int trap_R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *t
 void trap_R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset )
 {
 	VM::SendMsg<Render::RemapShaderMsg>(oldShader, newShader, timeOffset);
-}
-
-bool trap_R_inPVS( const vec3_t p1, const vec3_t p2 )
-{
-	bool res;
-	std::array<float, 3> myp1, myp2;
-	VectorCopy(p1, myp1);
-	VectorCopy(p2, myp2);
-	VM::SendMsg<Render::InPVSMsg>(myp1, myp2, res);
-	return res;
 }
 
 std::vector<bool> trap_R_BatchInPVS(

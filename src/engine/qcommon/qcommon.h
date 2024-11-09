@@ -322,8 +322,6 @@ char *Cmd_ArgsFrom( int arg );
 const char *Cmd_QuoteString( const char *in );
 const char *Cmd_UnquoteString( const char *in );
 
-void Cmd_QuoteStringBuffer( const char *in, char *buffer, int size );
-
 // The functions that execute commands get their parameters with these
 // functions. Cmd_Argv () will return an empty string, not a nullptr
 // if arg >= argc, so string operations are always safe.
