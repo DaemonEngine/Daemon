@@ -355,7 +355,7 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 
 void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float radius, float r, float g, float b )
 {
-	RE_AddDynamicLightToSceneET( org, radius, r_lightScale->value, r, g, b, 0, 0 );
+	RE_AddDynamicLightToSceneET( org, radius, 1.0, r, g, b, 0, 0 );
 }
 
 static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
