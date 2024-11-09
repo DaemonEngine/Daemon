@@ -65,6 +65,7 @@ set(COMMONLIST
     ${COMMON_DIR}/Util.h
     ${COMMON_DIR}/cm/cm_load.cpp
     ${COMMON_DIR}/cm/cm_local.h
+    ${COMMON_DIR}/cm/cm_marks.cpp
     ${COMMON_DIR}/cm/cm_patch.cpp
     ${COMMON_DIR}/cm/cm_patch.h
     ${COMMON_DIR}/cm/cm_plane.cpp
