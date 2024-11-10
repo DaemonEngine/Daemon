@@ -75,10 +75,10 @@ LIBS_STATIC='ON'
 CMAKE_TOOLCHAIN=''
 # Always reset flags, we heavily cross-compile and must not inherit any stray flag
 # from environment.
-CFLAGS=''
-CXXFLAGS=''
 CPPFLAGS=''
-LDFLAGS=''
+CFLAGS='-O3 -fPIC'
+CXXFLAGS='-O3 -fPIC'
+LDFLAGS='-O3 -fPIC'
 
 log() {
 	level="${1}"; shift
