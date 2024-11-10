@@ -16,6 +16,34 @@ CURL="$(command -v curl)"
 # are the same as the ones when extracting from the downloaded packages.
 DEPS_VERSION=10
 
+# Package download pages
+PKGCONFIG_BASEURL='https://pkg-config.freedesktop.org/releases'
+NASM_BASEURL='https://www.nasm.us/pub/nasm/releasebuilds'
+ZLIB_BASEURL='https://zlib.net/fossils'
+GMP_BASEURL='https://gmplib.org/download/gmp'
+NETTLE_BASEURL='https://mirror.cyberbits.eu/gnu/nettle'
+CURL_BASEURL='https://curl.se/download'
+SDL2_BASEURL='https://www.libsdl.org/release'
+GLEW_BASEURL='https://github.com/nigels-com/glew/releases'
+# Index: https://download.sourceforge.net/libpng/files/libpng16
+PNG_BASEURL='https://sourceforge.net/projects/libpng/files/libpng16'
+# Index: https://downloads.sourceforge.net/project/libjpeg-turbo
+JPEG_BASEURL='https://sourceforge.net/projects/libjpeg-turbo/files'
+# Index: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
+WEBP_BASEURL='https://storage.googleapis.com/downloads.webmproject.org/releases/webp'
+FREETYPE_BASEURL='https://download.savannah.gnu.org/releases/freetype'
+OPENAL_BASEURL='https://openal-soft.org/openal-releases'
+OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
+VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
+OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
+OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
+LUA_BASEURL='https://www.lua.org/ftp'
+# No index.
+NACLSDK_BASEURL='https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
+NCURSES_BASEURL='https://ftpmirror.gnu.org/gnu/ncurses'
+WASISDK_BASEURL='https://github.com/WebAssembly/wasi-sdk/releases'
+WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
+
 # Package versions
 PKGCONFIG_VERSION=0.29.2
 NASM_VERSION=2.16.01
@@ -142,7 +170,7 @@ build_pkgconfig() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract pkgconfig "${archive_name}" \
-		"http://pkgconfig.freedesktop.org/releases/${archive_name}"
+		"${PKGCONFIG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -161,7 +189,7 @@ build_nasm() {
 		local archive_name="${dir_name}-macosx.zip"
 
 		download_extract nasm "${archive_name}" \
-			"https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/${archive_name}"
+			"${NASM_BASEURL}/${NASM_VERSION}/macosx/${archive_name}"
 
 		"${download_only}" && return
 
@@ -181,7 +209,7 @@ build_zlib() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract zlib "${archive_name}" \
-		"https://zlib.net/fossils/${archive_name}" \
+		"${ZLIB_BASEURL}/${archive_name}" \
 		"https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -207,7 +235,7 @@ build_gmp() {
 	local archive_name="${dir_name}.tar.bz2"
 
 	download_extract gmp "${archive_name}" \
-		"https://gmplib.org/download/gmp/${archive_name}" \
+		"${GMP_BASEURL}/${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/gmp/${archive_name}" \
 		"https://ftp.gnu.org/gnu/gmp/${archive_name}"
 
@@ -252,7 +280,7 @@ build_nettle() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract nettle "${archive_name}" \
-		"https://ftpmirror.gnu.org/gnu/nettle/${archive_name}" \
+		"${NETTLE_BASEURL}/${archive_name}" \
 		"https://ftp.gnu.org/gnu/nettle/${archive_name}"
 
 	"${download_only}" && return
@@ -270,7 +298,7 @@ build_curl() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract curl "${archive_name}" \
-		"https://curl.se/download/${archive_name}" \
+		"${CURL_BASEURL}/${archive_name}" \
 		"https://github.com/curl/curl/releases/download/curl-${CURL_VERSION//./_}/${archive_name}"
 
 	"${download_only}" && return
@@ -302,7 +330,7 @@ build_sdl2() {
 	esac
 
 	download_extract sdl2 "${archive_name}" \
-		"https://www.libsdl.org/release/${archive_name}" \
+		"${SDL2_BASEURL}/${archive_name}" \
 		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -360,7 +388,7 @@ build_glew() {
 	local archive_name="${dir_name}.tgz"
 
 	download_extract glew "${archive_name}" \
-		"https://github.com/nigels-com/glew/releases/download/glew-${GLEW_VERSION}/${archive_name}" \
+		"${GLEW_BASEURL}/download/glew-${GLEW_VERSION}/${archive_name}" \
 		"https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -395,7 +423,7 @@ build_png() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract png "${archive_name}" \
-		"https://download.sourceforge.net/libpng/${archive_name}"
+		"${PNG_BASEURL}/${PNG_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -412,7 +440,7 @@ build_jpeg() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract jpeg "${archive_name}" \
-		"https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/${archive_name}"
+		"${JPEG_BASEURL}/${JPEG_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -483,7 +511,7 @@ build_webp() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract webp "${archive_name}" \
-		"https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive_name}"
+		"${WEBP_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -500,7 +528,7 @@ build_freetype() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract freetype "${archive_name}" \
-		"https://download.savannah.gnu.org/releases/freetype/${archive_name}"
+		"${FREETYPE_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -533,7 +561,7 @@ build_openal() {
 	esac
 
 	download_extract openal "${archive_name}" \
-		"https://openal-soft.org/openal-releases/${archive_name}" \
+		"${OPENAL_BASEURL}/${archive_name}" \
 		"https://github.com/kcat/openal-soft/releases/download/${OPENAL_VERSION}/${archive_name}" \
 
 	"${download_only}" && return
@@ -575,7 +603,7 @@ build_ogg() {
 	local archive_name="libogg-${OGG_VERSION}.tar.xz"
 
 	download_extract ogg "${archive_name}" \
-		"https://downloads.xiph.org/releases/ogg/${archive_name}"
+		"${OGG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -595,7 +623,7 @@ build_vorbis() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract vorbis "${archive_name}" \
-		"https://downloads.xiph.org/releases/vorbis/${archive_name}"
+		"${VORBIS_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -612,7 +640,7 @@ build_opus() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract opus "${archive_name}" \
-		"https://downloads.xiph.org/releases/opus/${archive_name}"
+		"${OPUS_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -637,7 +665,7 @@ build_opusfile() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract opusfile "${archive_name}" \
-		"https://downloads.xiph.org/releases/opus/${archive_name}"
+		"${OPUSFILE_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -654,7 +682,7 @@ build_lua() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract lua "${archive_name}" \
-		"https://www.lua.org/ftp/${archive_name}"
+		"${LUA_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -694,7 +722,7 @@ build_ncurses() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract ncurses "${archive_name}" \
-		"https://ftpmirror.gnu.org/gnu/ncurses/${archive_name}" \
+		"${NCURSES_BASEURL}/${archive_name}" \
 		"https://ftp.gnu.org/pub/gnu/ncurses/${archive_name}"
 
 	"${download_only}" && return
@@ -733,7 +761,7 @@ build_wasisdk() {
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 
 	download_extract wasisdk "${archive_name}" \
-		"https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
+		"${WASISDK_BASEURL}/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -772,7 +800,7 @@ build_wasmtime() {
 	local archive_name="${folder_name}.${ARCHIVE_EXT}"
 
 	download_extract wasmtime "${archive_name}" \
-		"https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}"
+		"${WASMTIME_BASEURL}/download/v${WASMTIME_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -818,7 +846,7 @@ build_naclsdk() {
 	local archive_name="naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2"
 
 	download_extract naclsdk "${archive_name}" \
-		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
+		"${NACLSDK_BASEURL}/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
 
 	"${download_only}" && return
 
