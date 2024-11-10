@@ -153,6 +153,12 @@ enum class refSkeletonType_t
   SK_ABSOLUTE
 };
 
+struct BoneMod {
+	int index;
+	vec3_t translation;
+	quat_t rotation;
+};
+
 struct alignas(16) refSkeleton_t
 {
 	refSkeletonType_t type; // skeleton has been reset
@@ -166,6 +172,12 @@ struct alignas(16) refSkeleton_t
 };
 
 // XreaL END
+
+enum class EntityTag {
+	NONE,
+	ON_TAG,
+	ON_TAG_ROTATED
+};
 
 struct refEntity_t
 {
@@ -202,6 +214,28 @@ struct refEntity_t
 	float rotation;
 
 	int altShaderIndex;
+
+	qhandle_t animationHandle;
+	int startFrame;
+	int endFrame;
+	float lerp;
+	int clearOrigin;
+	qhandle_t animationHandle2;
+	int startFrame2;
+	int endFrame2;
+	float lerp2;
+	int clearOrigin2;
+	float blendLerp;
+	float scale;
+
+	int boundsAdd;
+	vec3_t boundsRotation;
+
+	EntityTag positionOnTag = EntityTag::NONE;
+	int attachmentEntity;
+	std::string tag;
+
+	std::vector<BoneMod> boneMods;
 
 	// KEEP SKELETON AT THE END OF THE STRUCTURE
 	// it is to make a serialization hack for refEntity_t easier
