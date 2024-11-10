@@ -241,9 +241,7 @@ struct refLight_t
 	vec3_t    origin;
 	quat_t    rotation;
 	vec3_t    center;
-	vec3_t    color; // range from 0.0 to 1.0, should be color normalized
-
-	float scale;
+	vec3_t    color; // should be color normalized
 
 	// omni-directional light specific
 	float     radius;

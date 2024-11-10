@@ -5334,7 +5334,7 @@ const RenderCommand *SetupLightsCommand::ExecuteSelf() const
 
 			VectorCopy( light->l.origin, buffer[i].center );
 			buffer[i].radius = light->l.radius;
-			VectorScale( light->l.color, light->l.scale, buffer[i].color );
+			VectorCopy( light->l.color, buffer[i].color );
 
 			buffer[i].type = Util::ordinal( light->l.rlType );
 			switch( light->l.rlType ) {

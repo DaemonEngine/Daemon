@@ -3690,7 +3690,7 @@ inline bool checkGLErrors()
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 
-	void RE_AddDynamicLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, int flags );
+	void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g, float b, int flags );
 
 	void RE_RenderScene( const refdef_t *fd );
 

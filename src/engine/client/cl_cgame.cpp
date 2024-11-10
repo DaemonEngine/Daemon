@@ -1626,8 +1626,8 @@ void CGameVM::CmdBuffer::HandleCommandBufferSyscall(int major, int minor, Util::
                 break;
 
             case CG_R_ADDLIGHTTOSCENE:
-                HandleMsg<Render::AddLightToSceneMsg>(std::move(reader), [this] (const std::array<float, 3>& point, float radius, float intensity, float r, float g, float b, int flags) {
-                    re.AddLightToScene(point.data(), radius, intensity, r, g, b, flags);
+                HandleMsg<Render::AddLightToSceneMsg>(std::move(reader), [this] (const std::array<float, 3>& point, float radius, float r, float g, float b, int flags) {
+                    re.AddLightToScene(point.data(), radius, r, g, b, flags);
                 });
                 break;
 
