@@ -101,13 +101,13 @@ namespace Util {
 		static void Write(Writer& stream, const refEntity_t& ent)
 		{
 			stream.WriteData(&ent, offsetof(refEntity_t, skeleton));
-			stream.Write<refSkeleton_t>(ent.skeleton);
+			// stream.Write<refSkeleton_t>(ent.skeleton);
 		}
 		static refEntity_t Read(Reader& stream)
 		{
 			refEntity_t ent;
 			stream.ReadData(&ent, offsetof(refEntity_t, skeleton));
-			ent.skeleton = stream.Read<refSkeleton_t>();
+			// ent.skeleton = stream.Read<refSkeleton_t>();
 			return ent;
 		}
 	};

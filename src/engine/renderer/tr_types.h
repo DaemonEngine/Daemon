@@ -211,6 +211,18 @@ struct refEntity_t
 
 	int altShaderIndex;
 
+	qhandle_t animationHandle;
+	int startFrame;
+	int endFrame;
+	int lerp;
+	int clearOrigin;
+	int startFrame2;
+	int endFrame2;
+	int lerp2;
+	int clearOrigin2;
+	float blendLerp;
+	float scale;
+
 	// KEEP SKELETON AT THE END OF THE STRUCTURE
 	// it is to make a serialization hack for refEntity_t easier
 	// by memcpying up to skeleton and then serializing skeleton

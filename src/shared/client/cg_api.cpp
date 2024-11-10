@@ -448,6 +448,7 @@ qhandle_t trap_R_RegisterAnimation( const char *name )
 int trap_R_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac, bool clearOrigin )
 {
 	int result;
+	skel->numBones = 0;
 	VM::SendMsg<Render::BuildSkeletonMsg>(anim, startFrame, endFrame, frac, clearOrigin, *skel, result);
 	return result;
 }
@@ -460,7 +461,7 @@ int trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float
 
     if ( skel->numBones != blend->numBones )
     {
-        Log::Warn("trap_R_BlendSkeleton: different number of bones %d != %d", skel->numBones, blend->numBones);
+        // Log::Warn("trap_R_BlendSkeleton: different number of bones %d != %d", skel->numBones, blend->numBones);
         return false;
     }
 
