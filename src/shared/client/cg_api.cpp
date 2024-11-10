@@ -350,7 +350,7 @@ void trap_R_AddLightToScene( const vec3_t origin, float radius, float intensity,
 {
 	std::array<float, 3> myorg;
 	VectorCopy( origin, myorg );
-	cmdBuffer.SendMsg<Render::AddLightToSceneMsg>(myorg, radius, intensity, r, g, b, flags);
+	cmdBuffer.SendMsg<Render::AddLightToSceneMsg>(myorg, radius, r * intensity, g * intensity, b * intensity, flags);
 }
 
 void trap_R_RenderScene( const refdef_t *fd )

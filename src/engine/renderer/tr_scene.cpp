@@ -285,10 +285,8 @@ RE_AddDynamicLightToScene
 ydnar: modified dlight system to support separate radius and intensity
 =====================
 */
-void RE_AddDynamicLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, int flags )
+void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g, float b, int flags )
 {
-	trRefLight_t *light;
-
 	if ( !glConfig2.realtimeLighting || !r_drawDynamicLights.Get() )
 	{
 		return;
@@ -304,11 +302,12 @@ void RE_AddDynamicLightToScene( const vec3_t org, float radius, float intensity,
 		return;
 	}
 
-	if ( intensity <= 0 || radius <= 0 )
+	if ( radius <= 0 )
 	{
 		return;
 	}
 
+	trRefLight_t* light;
 	// set last lights restrictInteractionEnd if needed
 	if ( r_numLights > r_firstSceneLight ) {
 		light = &backEndData[ tr.smpFrame ]->lights[ r_numLights - 1 ];
@@ -347,10 +346,9 @@ void RE_AddDynamicLightToScene( const vec3_t org, float radius, float intensity,
 
 	light->additive = true;
 
-	if( light->l.inverseShadows )
-		light->l.scale = -intensity;
-	else
-		light->l.scale = intensity;
+	if ( light->l.inverseShadows ) {
+		VectorNegate( light->l.color, light->l.color );
+	}
 }
 
 static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {
