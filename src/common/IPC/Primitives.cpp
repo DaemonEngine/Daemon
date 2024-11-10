@@ -365,6 +365,8 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 	if (hdr.flags & (NACL_MESSAGE_TRUNCATED | NACL_HANDLES_TRUNCATED))
 		Sys::Drop("IPC: Recieved truncated message");
 
+	// NACL_ABI_IMC_DESC_MAX == 8 anyway, so let's avoid useless loops and reallocs
+	reader.GetHandles().reserve(reader.GetHandles().size() + NACL_ABI_IMC_DESC_MAX);
 	for (size_t i = 0; i < NACL_ABI_IMC_DESC_MAX; i++) {
 		if (h[i] != NACL_INVALID_HANDLE) {
 			reader.GetHandles().emplace_back();
