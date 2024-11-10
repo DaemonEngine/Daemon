@@ -340,7 +340,7 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 	NaClIOVec iov[2];
 	NaClHandle h[NACL_ABI_IMC_DESC_MAX];
 	if (!recvBuffer) {
-		recvBuffer.reset(new char[NACL_ABI_IMC_BYTES_MAX]);
+		recvBuffer.reset( static_cast<char*>( malloc( NACL_ABI_IMC_BYTES_MAX ) ) );
 	}
 
 	std::fill(std::begin(h), std::end(h),NACL_ABI_IMC_BYTES_MAX);
