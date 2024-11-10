@@ -76,6 +76,8 @@ LD='ld'
 AR='ar'
 RANLIB='ranlib'
 CONFIGURE_SHARED=(--disable-shared --enable-static)
+CMAKE_SHARED='OFF'
+CMAKE_TOOLCHAIN=''
 # Always reset flags, we heavily cross-compile and must not inherit any stray flag
 # from environment.
 CFLAGS=''
@@ -218,18 +220,18 @@ build_zlib() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
+
+	local zlib_cmake_args=(-DCMAKE_C_FLAGS="${CFLAGS} -DZLIB_CONST")
+
 	case "${PLATFORM}" in
-	windows-*-*)
-		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
-		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
-		;;
-	*)
-		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS} -O3" ./configure --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --static --const
-		make
-		make install
+		windows-*-*)
+			zlib_cmake_args+=(-DBUILD_SHARED_LIBS=ON)
 		;;
 	esac
+
+	"${CMAKE_CONFIGURE[@]}" "${zlib_cmake_args[@]}"
+	cmake --build build
+	cmake --install build
 }
 
 # Build GMP
@@ -372,10 +374,11 @@ build_sdl2() {
 		;;
 	*)
 		cd "${dir_name}"
-		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-		make
-		make install
+
+		"${CMAKE_CONFIGURE[@]}"
+		cmake --build build
+		cmake --install build
+
 		# Workaround for an SDL2 CMake bug, we need to provide
 		# a bin/ directory even when nothing is used from it.
 		mkdir -p "${PREFIX}/bin"
@@ -494,25 +497,16 @@ build_jpeg() {
 		;;
 	esac
 
-	local jpeg_cmake_call=(cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-		-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" -DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
-		-DWITH_JPEG8=1)
-
 	cd "${dir_name}"
-	case "${PLATFORM}" in
-	windows-*-mingw)
-		"${jpeg_cmake_call[@]}" -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DENABLE_SHARED=0
-		;;
-	windows-*-msvc)
-		"${jpeg_cmake_call[@]}" -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DENABLE_SHARED=1
-		;;
-	*)
-		"${jpeg_cmake_call[@]}" -DENABLE_SHARED=0
-		;;
-	esac
-	make -C build
-	make -C build install
+
+	"${CMAKE_CONFIGURE[@]}" \
+		-DENABLE_SHARED="${CMAKE_SHARED}" \
+		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" \
+		-DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
+		-DWITH_JPEG8=1
+
+	cmake --build build
+	cmake --install build
 }
 
 # Build WebP
@@ -526,10 +520,23 @@ build_webp() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --disable-libwebpdemux "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	# WEBP_LINK_STATIC is ON by default
+
+	"${CMAKE_CONFIGURE[@]}" \
+		-DWEBP_BUILD_ANIM_UTILS=OFF \
+		-DWEBP_BUILD_CWEBP=OFF \
+		-DWEBP_BUILD_DWEBP=OFF \
+		-DWEBP_BUILD_EXTRAS=OFF \
+		-DWEBP_BUILD_GIF2WEBP=OFF \
+		-DWEBP_BUILD_IMG2WEBP=OFF \
+		-DWEBP_BUILD_LIBWEBPMUX=OFF \
+		-DWEBP_BUILD_VWEBP=OFF \
+		-DWEBP_BUILD_WEBPINFO=OFF \
+		-DWEBP_BUILD_WEBPMUX=OFF
+
+	cmake --build build
+	cmake --install build
 }
 
 # Build OpenAL
@@ -539,15 +546,10 @@ build_openal() {
 		local dir_name="openal-soft-${OPENAL_VERSION}-bin"
 		local archive_name="${dir_name}.zip"
 		;;
-	macos-*-*|linux-*-*)
+	*)
 		local dir_name="openal-soft-${OPENAL_VERSION}"
 		local archive_name="${dir_name}.tar.bz2"
-		local openal_cmake_call=(cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-			-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-			-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
-		;;
-	*)
-		log ERROR 'Unsupported platform for OpenAL'
+		local openal_cmake_args=(-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
 		;;
 	esac
 
@@ -574,16 +576,19 @@ build_openal() {
 		;;
 	macos-*-*)
 		cd "${dir_name}"
-		"${openal_cmake_call[@]}"
-		make
-		make install
+
+		"${CMAKE_CONFIGURE[@]}" -DBUILD_SHARED_LIBS=ON
+		cmake --build build
+		cmake --install build
+
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
 		;;
-	linux-*-*)
+	*)
 		cd "${dir_name}"
-		"${openal_cmake_call[@]}" -DLIBTYPE=STATIC 
-		make
-		make install
+
+		"${CMAKE_CONFIGURE[@]}"
+		cmake --build build
+		cmake --install build
 		;;
 	esac
 }
@@ -599,13 +604,14 @@ build_ogg() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
+
 	# This header breaks the vorbis and opusfile Mac builds
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
-	# The user-provided CFLAGS doesn't drop the default -O2
-	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	"${CMAKE_CONFIGURE[@]}"
+	cmake --build build
+	cmake --install build
 }
 
 # Build Vorbis
@@ -619,10 +625,10 @@ build_vorbis() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The user-provided CFLAGS doesn't drop the default -O3
-	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-examples
-	make
-	make install
+
+	"${CMAKE_CONFIGURE[@]}"
+	cmake --build build
+	cmake --install build
 }
 
 # Build Opus
@@ -636,18 +642,19 @@ build_opus() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+
+	local opus_cmake_args=(-DOPUS_BUILD_PROGRAMS=OFF -DOPUS_BUILD_TESTING=OFF)
+
 	case "${PLATFORM}" in
 	windows-*-*)
 		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
-		CFLAGS="${CFLAGS} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-		;;
-	*)
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
+		opus_cmake_args+=(-DCMAKE_C_FLAGS="${CFLAGS} -D_FORTIFY_SOURCE=0")
 		;;
 	esac
-	make
-	make install
+
+	"${CMAKE_CONFIGURE[@]}" "${opus_cmake_args[@]}"
+	cmake --build build
+	cmake --install build
 }
 
 # Build OpusFile
@@ -1042,8 +1049,10 @@ build_wipe() {
 # Common setup code
 common_setup() {
 	HOST="${2}"
+
 	"common_setup_${1}"
 	common_setup_arch
+
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
@@ -1054,10 +1063,21 @@ common_setup() {
 	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
+
 	mkdir -p "${DOWNLOAD_DIR}"
 	mkdir -p "${PREFIX}/bin"
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
+
+	CMAKE_CONFIGURE=(cmake -S . -B build \
+		-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+		-DBUILD_SHARED_LIBS="${CMAKE_SHARED}" )
+
+	if [ -n "${CMAKE_TOOLCHAIN}" ]
+	then
+		CMAKE_CONFIGURE+=(-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}")
+	fi
+
 	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
 }
 
@@ -1095,6 +1115,7 @@ common_setup_arch() {
 # supports %lld since Visual Studio 2013. Also we don't build Lua anymore.
 common_setup_msvc() {
 	CONFIGURE_SHARED=(--enable-shared --disable-static)
+	CMAKE_SHARED='ON'
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
 	CC="${HOST}-gcc -static-libgcc"
 	CXX="${HOST}-g++ -static-libgcc"
@@ -1111,6 +1132,7 @@ common_setup_mingw() {
 	AR="${HOST}-ar"
 	RANLIB="${HOST}-ranlib"
 	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+	CMAKE_TOOLCHAIN="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake"
 }
 
 common_setup_macos() {
@@ -1305,6 +1327,7 @@ fi
 # Enable parallel build
 export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 export SCONSFLAGS="${MAKEFLAGS}"
+export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)"
 
 # Setup platform
 platform="${1}"; shift
