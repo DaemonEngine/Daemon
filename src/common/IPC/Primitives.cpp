@@ -340,7 +340,12 @@ bool InternalRecvMsg(Sys::OSHandle handle, Util::Reader& reader)
 	NaClIOVec iov[2];
 	NaClHandle h[NACL_ABI_IMC_DESC_MAX];
 	if (!recvBuffer) {
-		recvBuffer.reset(new char[NACL_ABI_IMC_BYTES_MAX]);
+		//while using malloc in combination with delete[] or delete is
+		//a bad idea in theory, in this case, we are freeing an array of
+		//bytes, there is NOTHING special to clean in a string of bytes.
+		//This does, however, avoid new[] or new to initilialise data,
+		//those functions being actually closer to calloc than malloc.
+		recvBuffer.reset( static_cast<char*>( malloc( NACL_ABI_IMC_BYTES_MAX ) ) );
 	}
 
 	std::fill(std::begin(h), std::end(h),NACL_INVALID_HANDLE)
