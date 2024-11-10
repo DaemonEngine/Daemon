@@ -70,7 +70,9 @@ CXX='false'
 LD='ld'
 AR='ar'
 RANLIB='ranlib'
-CONFIGURE_SHARED=(--disable-shared --enable-static)
+LIBS_SHARED='OFF'
+LIBS_STATIC='ON'
+CMAKE_TOOLCHAIN=''
 # Always reset flags, we heavily cross-compile and must not inherit any stray flag
 # from environment.
 CFLAGS=''
@@ -161,6 +163,82 @@ download_extract() {
 	extract "${tarball_file}" "${extract_dir}"
 }
 
+configure_build() {
+	local configure_args=()
+
+	if [ "${LIBS_SHARED}" = 'ON' ]
+	then
+		configure_args+=(--enable-shared)
+	else
+		configure_args+=(--disable-shared)
+	fi
+
+	if [ "${LIBS_STATIC}" = 'ON' ]
+	then
+		configure_args+=(--enable-static)
+	else
+		configure_args+=(--disable-static)
+	fi
+
+	# Workaround macOS bash limitation.
+	if [ -n "${1:-}" ]
+	then
+		configure_args+=("${@}")
+	fi
+
+	./configure \
+		--host="${HOST}" \
+		--prefix="${PREFIX}" \
+		--libdir="${PREFIX}/lib" \
+		"${configure_args[@]}"
+
+	make
+	make install
+}
+
+get_compiler_name() {
+	echo "${1}"
+}
+
+get_compiler_arg1() {
+	shift
+
+	# Check for ${@} not being empty to workaround a macOS bash limitation.
+	if [ -n "${1:-}" ]
+	then
+		echo "${@}"
+	fi
+}
+
+cmake_build() {
+	local cmake_args=()
+
+	cmake_args+=(-DCMAKE_C_COMPILER="$(get_compiler_name ${CC})")
+	cmake_args+=(-DCMAKE_CXX_COMPILER="$(get_compiler_name ${CXX})")
+	cmake_args+=(-DCMAKE_C_COMPILER_ARG1="$(get_compiler_arg1 ${CC})")
+	cmake_args+=(-DCMAKE_CXX_COMPILER_ARG1="$(get_compiler_arg1 ${CXX})")
+	cmake_args+=(-DCMAKE_C_FLAGS="${CFLAGS}")
+	cmake_args+=(-DCMAKE_CXX_FLAGS="${CXXFLAGS}")
+	cmake_args+=(-DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS}")
+
+	# Check for ${@} not being empty to workaround a macOS bash limitation.
+	if [ -n "${1:-}" ]
+	then
+		cmake_args+=("${@}")
+	fi
+
+	cmake -S . -B build \
+		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
+		-DCMAKE_BUILD_TYPE='Release' \
+		-DCMAKE_PREFIX_PATH="${PREFIX}" \
+		-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
+		"${cmake_args[@]}"
+
+	cmake --build build
+	cmake --install build --strip
+}
+
 # Build pkg-config
 # Still needed, at least on macos, for opusfile
 build_pkgconfig() {
@@ -173,10 +251,10 @@ build_pkgconfig() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2 -Wno-error=int-conversion" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --with-internal-glib
-	make
-	make install
+
+	CFLAGS="${CFLAGS} -Wno-error=int-conversion" \
+	configure_build \
+		--with-internal-glib
 }
 
 # Build NASM
@@ -213,16 +291,16 @@ build_zlib() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
+
 	case "${PLATFORM}" in
 	windows-*-*)
 		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
 		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
 		;;
 	*)
-		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS} -O3" ./configure --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --static --const
-		make
-		make install
+		CFLAGS="${CFLAGS} -DZLIB_CONST" \
+		cmake_build \
+			-DZLIB_BUILD_EXAMPLES=OFF
 		;;
 	esac
 }
@@ -239,7 +317,6 @@ build_gmp() {
 
 	"${download_only}" && return
 
-	cd "${dir_name}"
 	case "${PLATFORM}" in
 	windows-*-msvc)
 		# Configure script gets confused if we override the compiler. Shouldn't
@@ -251,19 +328,22 @@ build_gmp() {
 		;;
 	esac
 
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+	local gmp_configure_args=()
+
 	case "${PLATFORM}" in
 	macos-*-*)
 		# The assembler objects are incompatible with PIE
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-assembly
+		gmp_configure_args+=(--disable-assembly)
 		;;
 	*)
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
 		;;
 	esac
 
-	make
-	make install
+	cd "${dir_name}"
+
+	configure_build \
+		"${gmp_configure_args[@]}"
+
 	case "${PLATFORM}" in
 	windows-*-msvc)
 		export CC="${CC_BACKUP}"
@@ -284,10 +364,8 @@ build_nettle() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	configure_build
 }
 
 # Build cURL
@@ -302,10 +380,34 @@ build_curl() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The user-provided CFLAGS doesn't drop the default -O2
-	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --without-brotli --without-zstd --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	cmake_build \
+		-DBUILD_CURL_EXE=OFF \
+		-DBUILD_TESTING=OFF \
+		-DENABLE_CURL_MANUAL=OFF \
+		-DENABLE_THREADED_RESOLVER=OFF \
+		-DENABLE_UNIX_SOCKETS=OFF \
+		-DUSE_HTTPSRR=OFF \
+		-DUSE_LIBIDN2=OFF \
+		-DUSE_LIBRTMP=OFF \
+		-DUSE_MSH3=OFF \
+		-DUSE_NGHTTP2=OFF \
+		-DUSE_NGTCP2=OFF \
+		-DUSE_OPENSSL_QUIC=OFF \
+		-DUSE_QUICHE=OFF \
+		-DUSE_WIN32_IDN=OFF \
+		-DCURL_BROTLI=OFF \
+		-DCURL_ZLIB=OFF \
+		-DCURL_ZSTD=OFF \
+		-DCURL_ENABLE_SSL=OFF \
+		-DCURL_USE_GSSAPI=OFF \
+		-DCURL_USE_LIBPSL=OFF \
+		-DCURL_USE_LIBSSH=OFF \
+		-DCURL_USE_LIBSSH2=OFF \
+		-DCURL_USE_MBEDTLS=OFF \
+		-DCURL_USE_OPENSSL=OFF \
+		-DCURL_USE_WOLFSSL=OFF \
+		-DHTTP_ONLY=ON # Implies all CURL_DISABLE_xxx options except HTTP
 }
 
 # Build SDL2
@@ -367,10 +469,9 @@ build_sdl2() {
 		;;
 	*)
 		cd "${dir_name}"
-		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-		make
-		make install
+
+		cmake_build
+
 		# Workaround for an SDL2 CMake bug, we need to provide
 		# a bin/ directory even when nothing is used from it.
 		mkdir -p "${PREFIX}/bin"
@@ -392,6 +493,7 @@ build_glew() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
+
 	# env hack: CFLAGS.EXTRA is populated with some flags, which are sometimess necessary for
 	# compilation, in the makefile with +=. If CFLAGS.EXTRA is set on the command line, those
 	# += will be ignored. But if it is set via the environment, the two sources are actually
@@ -433,10 +535,10 @@ build_png() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	configure_build \
+		--disable-tests \
+		--disable-tools
 }
 
 # Build JPEG
@@ -460,7 +562,7 @@ build_jpeg() {
 		local SYSTEM_NAME='Linux'
 		;;
 	*)
-		# Other platforms can build but we need need to explicitly
+		# Other platforms can build but we need to explicitly
 		# set CMAKE_SYSTEM_NAME for CMAKE_CROSSCOMPILING to be set
 		# and CMAKE_SYSTEM_PROCESSOR to not be ignored by cmake.
 		log ERROR 'Unsupported platform for JPEG'
@@ -489,25 +591,28 @@ build_jpeg() {
 		;;
 	esac
 
-	local jpeg_cmake_call=(cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-		-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" -DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
-		-DWITH_JPEG8=1)
+	local jpeg_cmake_args=()
 
-	cd "${dir_name}"
 	case "${PLATFORM}" in
-	windows-*-mingw)
-		"${jpeg_cmake_call[@]}" -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DENABLE_SHARED=0
-		;;
-	windows-*-msvc)
-		"${jpeg_cmake_call[@]}" -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DENABLE_SHARED=1
+	windows-*-*)
 		;;
 	*)
-		"${jpeg_cmake_call[@]}" -DENABLE_SHARED=0
+		# Workaround for: undefined reference to `log10'
+		# The CMakeLists.txt file only does -lm if UNIX,
+		# but UNIX may not be true on Linux.
+		jpeg_cmake_args+=(-DUNIX=True)
 		;;
 	esac
-	make -C build
-	make -C build install
+		
+	cd "${dir_name}"
+
+	cmake_build \
+		-DENABLE_SHARED="${LIBS_SHARED}" \
+		-DENABLE_STATIC="${LIBS_STATIC}" \
+		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" \
+		-DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
+		-DWITH_JPEG8=1 \
+		"${jpeg_cmake_args[@]}"
 }
 
 # Build WebP
@@ -521,10 +626,20 @@ build_webp() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --disable-libwebpdemux "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	# WEBP_LINK_STATIC is ON by default
+
+	cmake_build \
+		-DWEBP_BUILD_ANIM_UTILS=OFF \
+		-DWEBP_BUILD_CWEBP=OFF \
+		-DWEBP_BUILD_DWEBP=OFF \
+		-DWEBP_BUILD_EXTRAS=OFF \
+		-DWEBP_BUILD_GIF2WEBP=OFF \
+		-DWEBP_BUILD_IMG2WEBP=OFF \
+		-DWEBP_BUILD_LIBWEBPMUX=OFF \
+		-DWEBP_BUILD_VWEBP=OFF \
+		-DWEBP_BUILD_WEBPINFO=OFF \
+		-DWEBP_BUILD_WEBPMUX=OFF
 }
 
 # Build OpenAL
@@ -552,17 +667,11 @@ build_openal() {
 		local github_archive_name="${archive_name}"
 		local github_subdir='releases/download'
 		;;
-	macos-*-*|linux-*-*)
+	*)
 		local dir_name="openal-soft-${OPENAL_VERSION}"
 		local archive_name="${dir_name}.tar.gz"
 		local github_archive_name="${OPENAL_VERSION}.tar.gz"
 		local github_subdir='archive/refs/tags'
-		local openal_cmake_call=(cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-			-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-			-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
-		;;
-	*)
-		log ERROR 'Unsupported platform for OpenAL'
 		;;
 	esac
 
@@ -570,6 +679,8 @@ build_openal() {
 		"${OPENAL_BASEURL}/${github_subdir}/${OPENAL_VERSION}/${github_archive_name}"
 
 	"${download_only}" && return
+
+	local openal_cmake_args=(-DALSOFT_EXAMPLES=OFF)
 
 	case "${PLATFORM}" in
 	windows-*-*)
@@ -588,16 +699,19 @@ build_openal() {
 		;;
 	macos-*-*)
 		cd "${dir_name}"
-		"${openal_cmake_call[@]}"
-		make
-		make install
+
+		cmake_build \
+			-DLIBTYPE=SHARED \
+			"${openal_cmake_args[@]}"
+
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
 		;;
-	linux-*-*)
+	*)
 		cd "${dir_name}"
-		"${openal_cmake_call[@]}" -DLIBTYPE=STATIC 
-		make
-		make install
+
+		cmake_build \
+			-DLIBTYPE=STATIC \
+			"${openal_cmake_args[@]}"
 		;;
 	esac
 }
@@ -613,13 +727,12 @@ build_ogg() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
+
 	# This header breaks the vorbis and opusfile Mac builds
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
-	# The user-provided CFLAGS doesn't drop the default -O2
-	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	configure_build
 }
 
 # Build Vorbis
@@ -633,10 +746,18 @@ build_vorbis() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The user-provided CFLAGS doesn't drop the default -O3
-	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-examples
-	make
-	make install
+
+	case "${PLATFORM}" in
+	windows-*-msvc)
+		# Workaround a build issue on MinGW:
+		# See: https://github.com/microsoft/vcpkg/issues/22990
+		# and: https://github.com/microsoft/vcpkg/pull/23761
+		ls win32/vorbis.def win32/vorbisenc.def win32/vorbisfile.def \
+		| xargs -I{} -P3 sed -e 's/LIBRARY//' -i {}
+		;;
+	esac
+
+	cmake_build
 }
 
 # Build Opus
@@ -649,19 +770,23 @@ build_opus() {
 
 	"${download_only}" && return
 
-	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+	local opus_cmake_args=()
+
 	case "${PLATFORM}" in
 	windows-*-*)
-		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
-		CFLAGS="${CFLAGS} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-		;;
-	*)
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
+		# With MinGW, we would get this error:
+		# undefined reference to `__stack_chk_guard'
+		opus_cmake_args+=(-DOPUS_FORTIFY_SOURCE=OFF -DOPUS_STACK_PROTECTOR=OFF)
 		;;
 	esac
-	make
-	make install
+
+	cd "${dir_name}"
+
+	cmake_build \
+		-DOPUS_BUILD_PROGRAMS=OFF \
+		-DOPUS_BUILD_TESTING=OFF \
+		-DOPUS_FLOAT_APPROX=ON \
+		"${opus_cmake_args[@]}"
 }
 
 # Build OpusFile
@@ -675,10 +800,9 @@ build_opusfile() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-http
-	make
-	make install
+
+	configure_build \
+		--disable-http
 }
 
 # Build ncurses
@@ -693,11 +817,17 @@ build_ncurses() {
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+
+	# Brutally disable writing to database
+	cp /dev/null misc/run_tic.in
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --enable-widec "${CONFIGURE_SHARED[@]}" --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
-	make
-	make install
+	local strip="${HOST/-unknown-/-}-strip"
+	configure_build \
+		--with-strip-program="${strip}" \
+		--without-progs \
+		--enable-widec \
+		--with-terminfo-dirs=/etc/terminfo:/lib/terminfo \
+		--with-default-terminfo-dir=/usr/share/terminfo
 }
 
 # "Builds" (downloads) the WASI SDK
@@ -1057,8 +1187,10 @@ build_wipe() {
 # Common setup code
 common_setup() {
 	HOST="${2}"
+
 	"common_setup_${1}"
 	common_setup_arch
+
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
@@ -1069,10 +1201,12 @@ common_setup() {
 	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
+
 	mkdir -p "${DOWNLOAD_DIR}"
 	mkdir -p "${PREFIX}/bin"
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
+
 	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
 }
 
@@ -1108,24 +1242,27 @@ common_setup_arch() {
 # Lua does use this one, which results in compiler warnings. But this is OK because
 # the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
 # supports %lld since Visual Studio 2013. Also we don't build Lua anymore.
-common_setup_msvc() {
-	CONFIGURE_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	CC="${HOST}-gcc -static-libgcc"
-	CXX="${HOST}-g++ -static-libgcc"
+common_setup_windows() {
 	LD="${HOST}-ld"
 	AR="${HOST}-ar"
 	RANLIB="${HOST}-ranlib"
 	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+	CMAKE_TOOLCHAIN="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake"
+}
+
+common_setup_msvc() {
+	LIBS_SHARED='ON'
+	LIBS_STATIC='OFF'
+	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
+	CC="${HOST}-gcc -static-libgcc"
+	CXX="${HOST}-g++ -static-libgcc"
+	common_setup_windows
 }
 
 common_setup_mingw() {
 	CC="${HOST}-gcc"
 	CXX="${HOST}-g++"
-	LD="${HOST}-ld"
-	AR="${HOST}-ar"
-	RANLIB="${HOST}-ranlib"
-	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+	common_setup_windows
 }
 
 common_setup_macos() {
@@ -1328,6 +1465,7 @@ CURL="$(command -v curl)" || log ERROR "Command 'curl' not found"
 # Enable parallel build
 export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 export SCONSFLAGS="${MAKEFLAGS}"
+export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)"
 
 # Setup platform
 platform="${1}"; shift
