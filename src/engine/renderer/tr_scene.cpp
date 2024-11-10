@@ -299,14 +299,6 @@ void RE_AddDynamicLightToScene( const vec3_t org, float radius, float intensity,
 		return;
 	}
 
-	// set last lights restrictInteractionEnd if needed
-	if ( r_numLights > r_firstSceneLight ) {
-		light = &backEndData[ tr.smpFrame ]->lights[ r_numLights - 1 ];
-		if( light->restrictInteractionFirst >= 0 ) {
-			light->restrictInteractionLast = r_numEntities - r_firstSceneEntity - 1;
-		}
-	}
-
 	if ( r_numLights >= MAX_REF_LIGHTS )
 	{
 		return;
@@ -315,6 +307,14 @@ void RE_AddDynamicLightToScene( const vec3_t org, float radius, float intensity,
 	if ( intensity <= 0 || radius <= 0 )
 	{
 		return;
+	}
+
+	// set last lights restrictInteractionEnd if needed
+	if ( r_numLights > r_firstSceneLight ) {
+		light = &backEndData[ tr.smpFrame ]->lights[ r_numLights - 1 ];
+		if( light->restrictInteractionFirst >= 0 ) {
+			light->restrictInteractionLast = r_numEntities - r_firstSceneEntity - 1;
+		}
 	}
 
 	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
