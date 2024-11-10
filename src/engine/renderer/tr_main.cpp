@@ -2163,10 +2163,12 @@ void R_AddEntitySurfaces()
 							break;
 
 						case modtype_t::MOD_MD5:
+							Log::Warn( "%i %s: %i", ent->e.animationHandle, R_GetAnimationByHandle( ent->e.animationHandle )->name, ent->e.startFrame );
 							R_AddMD5Surfaces( ent );
 							break;
 
 						case modtype_t::MOD_IQM:
+							Log::Warn( "%i %s: %i", ent->e.animationHandle, R_GetAnimationByHandle( ent->e.animationHandle )->name, ent->e.startFrame );
 							R_AddIQMSurfaces( ent );
 							break;
 
