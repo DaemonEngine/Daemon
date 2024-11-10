@@ -80,10 +80,10 @@ LIBS_STATIC='ON'
 CMAKE_TOOLCHAIN=''
 # Always reset flags, we heavily cross-compile and must not inherit any stray flag
 # from environment.
-CFLAGS=''
-CXXFLAGS=''
 CPPFLAGS=''
-LDFLAGS=''
+CFLAGS='-O2 -fPIC'
+CXXFLAGS='-O2 -fPIC'
+LDFLAGS='-O2 -fPIC'
 
 log() {
 	level="${1}"; shift
@@ -226,8 +226,7 @@ build_pkgconfig() {
 
 	cd "${dir_name}"
 
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" configure_build --with-internal-glib
+	configure_build --with-internal-glib
 }
 
 # Build NASM
@@ -313,8 +312,7 @@ build_gmp() {
 
 	cd "${dir_name}"
 
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" configure_build "${gmp_configure_args[@]}"
+	configure_build "${gmp_configure_args[@]}"
 
 	case "${PLATFORM}" in
 	windows-*-msvc)
@@ -337,8 +335,7 @@ build_nettle() {
 
 	cd "${dir_name}"
 
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" configure_build
+	configure_build
 }
 
 # Build cURL
@@ -800,8 +797,7 @@ build_opusfile() {
 
 	cd "${dir_name}"
 
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" configure_build --disable-http
+	configure_build --disable-http
 }
 
 # Build ncurses
