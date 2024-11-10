@@ -1030,7 +1030,7 @@ common_setup() {
 common_setup_arch() {
 	case "${PLATFORM}" in
 	*-amd64-*)
-		CLFLAGS+=' -march=x86-64 -mcx16'
+		CFLAGS+=' -march=x86-64 -mcx16'
 		CXXFLAGS+=' -march=x86-64 -mcx16'
 		;;
 	*-i686-*)
