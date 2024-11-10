@@ -1458,7 +1458,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightOrigin( lightOrigin );
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightColor( lightColor.ToArray() );
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightRadius( light->sphereRadius );
-	gl_forwardLightingShader_omniXYZ->SetUniform_LightScale( light->l.scale );
+	gl_forwardLightingShader_omniXYZ->SetUniform_LightScale( 1.0 );
 	gl_forwardLightingShader_omniXYZ->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
 
 	GL_CheckErrors();
@@ -1636,7 +1636,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	gl_forwardLightingShader_projXYZ->SetUniform_LightOrigin( lightOrigin );
 	gl_forwardLightingShader_projXYZ->SetUniform_LightColor( lightColor.ToArray() );
 	gl_forwardLightingShader_projXYZ->SetUniform_LightRadius( light->sphereRadius );
-	gl_forwardLightingShader_projXYZ->SetUniform_LightScale( light->l.scale );
+	gl_forwardLightingShader_projXYZ->SetUniform_LightScale( 1.0 );
 	gl_forwardLightingShader_projXYZ->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
 
 	GL_CheckErrors();
@@ -1817,7 +1817,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	gl_forwardLightingShader_directionalSun->SetUniform_LightDir( lightDirection );
 	gl_forwardLightingShader_directionalSun->SetUniform_LightColor( lightColor.ToArray() );
 	gl_forwardLightingShader_directionalSun->SetUniform_LightRadius( light->sphereRadius );
-	gl_forwardLightingShader_directionalSun->SetUniform_LightScale( light->l.scale );
+	gl_forwardLightingShader_directionalSun->SetUniform_LightScale( 1.0 );
 	gl_forwardLightingShader_directionalSun->SetUniform_LightAttenuationMatrix( light->attenuationMatrix2 );
 
 	GL_CheckErrors();
