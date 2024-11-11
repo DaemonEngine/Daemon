@@ -22,11 +22,11 @@ SDL2_BASEURL='https://www.libsdl.org/release'
 GLEW_BASEURL='https://github.com/nigels-com/glew/releases'
 # Index: https://download.sourceforge.net/libpng/files/libpng16
 PNG_BASEURL='https://sourceforge.net/projects/libpng/files/libpng16'
-# Index: https://downloads.sourceforge.net/project/libjpeg-turbo
-JPEG_BASEURL='https://sourceforge.net/projects/libjpeg-turbo/files'
+JPEG_BASEURL='https://github.com/libjpeg-turbo/libjpeg-turbo/releases'
 # Index: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
 WEBP_BASEURL='https://storage.googleapis.com/downloads.webmproject.org/releases/webp'
-OPENAL_BASEURL='https://openal-soft.org/openal-releases'
+# Index: https://github.com/kcat/openal-soft/releases
+OPENAL_BASEURL='https://github.com/kcat/openal-soft'
 OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
 VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
 OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
@@ -41,24 +41,28 @@ WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
-NASM_VERSION=2.16.01
-ZLIB_VERSION=1.2.13
-GMP_VERSION=6.2.1
-NETTLE_VERSION=3.8.1
-CURL_VERSION=7.83.1
-SDL2_VERSION=2.26.5
+NASM_VERSION=2.16.03
+ZLIB_VERSION=1.3.1
+GMP_VERSION=6.3.0
+NETTLE_VERSION=3.10.2
+CURL_VERSION=8.15.0
+SDL2_VERSION=2.32.8
 GLEW_VERSION=2.2.0
-PNG_VERSION=1.6.39
-JPEG_VERSION=2.1.5.1
-WEBP_VERSION=1.3.2
-OPENAL_VERSION=1.23.1
-OGG_VERSION=1.3.5
+PNG_VERSION=1.6.50
+JPEG_VERSION=3.1.1
+# WebP 1.6.0 introduced AVX2 intrinsics that are not available on
+# the GCC 10 compiler provided by Debian Bullseye.
+WEBP_VERSION=1.5.0
+# OpenAL 1.24.2 and later requires at least CMake 3.26 but Debian Bullseye
+# only provides 3.18 (and even only 3.25 in backports).
+OPENAL_VERSION=1.24.1
+OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
-OPUS_VERSION=1.4
+OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
 NACLSDK_VERSION=44.0.2403.155
 NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
-NCURSES_VERSION=6.2
+NCURSES_VERSION=6.5
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
@@ -350,6 +354,7 @@ build_curl() {
 	cmake_build \
 		-DBUILD_CURL_EXE=OFF \
 		-DBUILD_TESTING=OFF \
+		-DENABLE_CURL_MANUAL=OFF \
 		-DENABLE_THREADED_RESOLVER=OFF \
 		-DENABLE_UNIX_SOCKETS=OFF \
 		-DUSE_HTTPSRR=OFF \
@@ -545,10 +550,46 @@ build_png() {
 
 	cd "${dir_name}"
 
+	local png_cmake_args=()
+
+	# PNG CMake relies on uname's output to add platform-specific
+	# code to be built, so we need to explicitly tell the target
+	# cross-compiling. Otherwise libpng will build but symbols
+	# will be missing and the daemon executable linking will fail.
+	case "${PLATFORM}" in
+	*-amd64-*)
+		png_cmake_args+=(-DPNG_TARGET_ARCHITECTURE=amd64)
+		;;
+	*-i686-*)
+		png_cmake_args+=(-DPNG_TARGET_ARCHITECTURE=i686)
+		;;
+	*-arm64-*)
+		png_cmake_args+=(-DPNG_TARGET_ARCHITECTURE=arm64)
+		;;
+	*-armhf-*)
+		png_cmake_args+=(-DPNG_TARGET_ARCHITECTURE=armhf)
+		;;
+	*)
+		# Other platforms can build but we may need to explicitly
+		# set the target to get the related code being built.
+		log ERROR 'Unsupported platform for PNG'
+		;;
+	esac
+
+	# FIXME: Submit the patch to upstream.
+	patch CMakeLists.txt <<-EOF
+	120c120,121
+	< if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+	---
+	> if(PNG_TARGET_ARCHITECTURE)
+	> elseif(APPLE AND CMAKE_OSX_ARCHITECTURES)
+	EOF
+
 	cmake_build \
-		-DPNG_EXECUTABLES=OFF \
+		-DPNG_TOOLS=OFF \
 		-DPNG_SHARED="${LIBS_SHARED}" \
-		-DPNG_STATIC="${LIBS_STATIC}"
+		-DPNG_STATIC="${LIBS_STATIC}" \
+		"${png_cmake_args[@]}"
 }
 
 # Build JPEG
@@ -557,7 +598,7 @@ build_jpeg() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract jpeg "${archive_name}" \
-		"${JPEG_BASEURL}/${JPEG_VERSION}/${archive_name}"
+		"${JPEG_BASEURL}/download/${JPEG_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -572,7 +613,7 @@ build_jpeg() {
 		local SYSTEM_NAME='Linux'
 		;;
 	*)
-		# Other platforms can build but we need need to explicitly
+		# Other platforms can build but we need to explicitly
 		# set CMAKE_SYSTEM_NAME for CMAKE_CROSSCOMPILING to be set
 		# and CMAKE_SYSTEM_PROCESSOR to not be ignored by cmake.
 		log ERROR 'Unsupported platform for JPEG'
@@ -610,7 +651,7 @@ build_jpeg() {
 		# Workaround for: undefined reference to `log10'
 		# The CMakeLists.txt file only does -lm if UNIX,
 		# but UNIX may not be true on Linux.
-		jpeg_cmake_args=(-DUNIX=True)
+		jpeg_cmake_args+=(-DUNIX=True)
 		;;
 	esac
 		
@@ -655,21 +696,40 @@ build_webp() {
 
 # Build OpenAL
 build_openal() {
+	# On OpenAL website, Windows binaries are on:
+	#  https://openal-soft.org/openal-binaries/openal-soft-1.24.3-bin.zip
+	# and sources are on:
+	#  https://openal-soft.org/openal-releases/openal-soft-1.24.3.tar.bz2
+
+	# But on GitHub Windows binaries are on:
+	#   https://github.com/kcat/openal-soft/releases/download/1.24.3/openal-soft-1.24.3-bin.zip
+	# and sources are on:
+	#   https://github.com/kcat/openal-soft/archive/refs/tags/1.24.3.tar.gz
+
+	# They contain the same content, but GitHub is more reliable so we use the tar.gz archive.
+	# We mirror it as openal-soft-1.24.3.tar.gz for convenience.
+
+	# There is no tar.bz2 uploaded to GitHub anymore, so we cannot use GitHub as a mirror
+	# for the OpenAL website.
+
 	case "${PLATFORM}" in
 	windows-*-*)
 		local dir_name="openal-soft-${OPENAL_VERSION}-bin"
 		local archive_name="${dir_name}.zip"
+		local github_archive_name="${archive_name}"
+		local github_subdir='releases/download'
 		;;
 	*)
 		local dir_name="openal-soft-${OPENAL_VERSION}"
-		local archive_name="${dir_name}.tar.bz2"
-		local openal_cmake_args=(-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
+		local archive_name="${dir_name}.tar.gz"
+		local github_archive_name="${OPENAL_VERSION}.tar.gz"
+		local github_subdir='archive/refs/tags'
+		local openal_cmake_args=(-DALSOFT_EXAMPLES=OFF)
 		;;
 	esac
 
 	download_extract openal "${archive_name}" \
-		"${OPENAL_BASEURL}/${archive_name}" \
-		"https://github.com/kcat/openal-soft/releases/download/${OPENAL_VERSION}/${archive_name}" \
+		"${OPENAL_BASEURL}/${github_subdir}/${OPENAL_VERSION}/${github_archive_name}"
 
 	"${download_only}" && return
 
@@ -703,8 +763,9 @@ build_openal() {
 
 		cmake_build \
 			-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-			-DALSOFT_EXAMPLES=OFF
-			-DLIBTYPE=STATIC
+			-DALSOFT_EXAMPLES=OFF \
+			-DLIBTYPE=STATIC \
+			"${openal_cmake_args[@]}"
 		;;
 	esac
 }
@@ -725,8 +786,11 @@ build_ogg() {
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
 
-	# The provided CMakeLists.txt doesn't have an install target.
-	configure_build
+	# The opusfile build system requires the pkg-config module.
+	cmake_build \
+		-DINSTALL_DOCS=OFF \
+		-DINSTALL_CMAKE_PACKAGE_MODULE=ON \
+		-DINSTALL_PKG_CONFIG_MODULE=ON
 }
 
 # Build Vorbis
