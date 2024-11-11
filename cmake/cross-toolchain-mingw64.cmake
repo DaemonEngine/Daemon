@@ -8,7 +8,7 @@ set( CMAKE_CXX_COMPILER x86_64-w64-mingw32-g++ )
 set( CMAKE_RC_COMPILER x86_64-w64-mingw32-windres )
 
 # Target prefix
-set( CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32 )
+set( CMAKE_FIND_ROOT_PATH /usr/x86_64-w64-mingw32;${CMAKE_PREFIX_PATH} )
 
 # Find programs using host paths and headers/libraries using target paths
 set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER )
