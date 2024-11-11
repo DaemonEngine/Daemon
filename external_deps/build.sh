@@ -733,7 +733,8 @@ build_ogg() {
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
 
-	cmake_build
+	# The provided CMakeLists.txt doesn't have an install target.
+	configure_build
 }
 
 # Build Vorbis
