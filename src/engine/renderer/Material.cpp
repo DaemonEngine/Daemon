@@ -1315,11 +1315,13 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 
 	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
 
-	colorGen_t rgbGen = SetRgbGen( pStage );
+	// useAttrColor has no effect since the lightMapping shader has ATTR_COLOR forced to be always
+	// on (_requiredVertexAttribs). If we removed ATTR_COLOR from there, we would need to detect
+	// implicit vertex lighting as well, not only rgbgen (see SetLightDeluxeMode).
+	/* colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
-
 	material->useAttrColor = rgbGen == colorGen_t::CGEN_VERTEX || rgbGen == colorGen_t::CGEN_ONE_MINUS_VERTEX
-		|| alphaGen == alphaGen_t::AGEN_VERTEX || alphaGen == alphaGen_t::AGEN_ONE_MINUS_VERTEX;
+		|| alphaGen == alphaGen_t::AGEN_VERTEX || alphaGen == alphaGen_t::AGEN_ONE_MINUS_VERTEX; */
 
 	material->enableDeluxeMapping = enableDeluxeMapping;
 	material->enableGridLighting = enableGridLighting;
