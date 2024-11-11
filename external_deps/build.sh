@@ -22,11 +22,11 @@ SDL2_BASEURL='https://www.libsdl.org/release'
 GLEW_BASEURL='https://github.com/nigels-com/glew/releases'
 # Index: https://download.sourceforge.net/libpng/files/libpng16
 PNG_BASEURL='https://sourceforge.net/projects/libpng/files/libpng16'
-# Index: https://downloads.sourceforge.net/project/libjpeg-turbo
-JPEG_BASEURL='https://sourceforge.net/projects/libjpeg-turbo/files'
+JPEG_BASEURL='https://github.com/libjpeg-turbo/libjpeg-turbo/releases'
 # Index: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
 WEBP_BASEURL='https://storage.googleapis.com/downloads.webmproject.org/releases/webp'
-OPENAL_BASEURL='https://openal-soft.org/openal-releases'
+# Index: https://github.com/kcat/openal-soft/releases
+OPENAL_BASEURL='https://github.com/kcat/openal-soft'
 OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
 VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
 OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
@@ -41,24 +41,28 @@ WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
-NASM_VERSION=2.16.01
-ZLIB_VERSION=1.2.13
-GMP_VERSION=6.2.1
-NETTLE_VERSION=3.8.1
-CURL_VERSION=7.83.1
-SDL2_VERSION=2.26.5
+NASM_VERSION=2.16.03
+ZLIB_VERSION=1.3.1
+GMP_VERSION=6.3.0
+NETTLE_VERSION=3.10.2
+CURL_VERSION=8.15.0
+SDL2_VERSION=2.32.8
 GLEW_VERSION=2.2.0
-PNG_VERSION=1.6.39
-JPEG_VERSION=2.1.5.1
-WEBP_VERSION=1.3.2
-OPENAL_VERSION=1.23.1
-OGG_VERSION=1.3.5
+PNG_VERSION=1.6.50
+JPEG_VERSION=3.1.1
+# WebP 1.6.0 introduced AVX2 intrinsics that are not available on
+# the GCC 10 compiler provided by Debian Bullseye.
+WEBP_VERSION=1.5.0
+# OpenAL 1.24.2 and later requires at least CMake 3.26 but Debian Bullseye
+# only provides 3.18 (and even only 3.25 in backports).
+OPENAL_VERSION=1.24.1
+OGG_VERSION=1.3.6
 VORBIS_VERSION=1.3.7
-OPUS_VERSION=1.4
+OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
 NACLSDK_VERSION=44.0.2403.155
 NACLRUNTIME_REVISION=2aea5fcfce504862a825920fcaea1a8426afbd6f
-NCURSES_VERSION=6.2
+NCURSES_VERSION=6.5
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
