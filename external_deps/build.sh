@@ -1113,26 +1113,27 @@ common_setup_arch() {
 # Lua does use this one, which results in compiler warnings. But this is OK because
 # the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
 # supports %lld since Visual Studio 2013. Also we don't build Lua anymore.
+common_setup_windows() {
+	LD="${HOST}-ld"
+	AR="${HOST}-ar"
+	RANLIB="${HOST}-ranlib"
+	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+	CMAKE_TOOLCHAIN="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake"
+}
+
 common_setup_msvc() {
 	CONFIGURE_SHARED=(--enable-shared --disable-static)
 	CMAKE_SHARED='ON'
 	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
 	CC="${HOST}-gcc -static-libgcc"
 	CXX="${HOST}-g++ -static-libgcc"
-	LD="${HOST}-ld"
-	AR="${HOST}-ar"
-	RANLIB="${HOST}-ranlib"
-	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+	common_setup_windows
 }
 
 common_setup_mingw() {
 	CC="${HOST}-gcc"
 	CXX="${HOST}-g++"
-	LD="${HOST}-ld"
-	AR="${HOST}-ar"
-	RANLIB="${HOST}-ranlib"
-	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
-	CMAKE_TOOLCHAIN="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake"
+	common_setup_windows
 }
 
 common_setup_macos() {
