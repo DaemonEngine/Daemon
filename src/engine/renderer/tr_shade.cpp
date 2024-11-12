@@ -2695,6 +2695,7 @@ void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 }
 
 // Used for things which are never intended to be rendered
+// (or in the case of Tess_InstantQuad, they're rendered but not via Tess_End)
 void Tess_StageIteratorDummy()
 {
 	Log::Warn( "non-drawing tessellation overflow" );
