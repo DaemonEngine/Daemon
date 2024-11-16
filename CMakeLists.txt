@@ -456,22 +456,38 @@ if (DEPS_DIR)
     if (NOT EXISTS ${DEPS_DIR})
         file(MAKE_DIRECTORY ${EXTERNAL_DEPS_DIR})
         get_filename_component(BASENAME ${DEPS_DIR} NAME)
-        set(REMOTE "https://dl.unvanquished.net/deps/${BASENAME}${DEPS_EXT}")
-        message(STATUS "Downloading dependencies from '${REMOTE}'")
-        file(DOWNLOAD ${REMOTE} ${OBJ_DIR}/${BASENAME}${DEPS_EXT}
-            SHOW_PROGRESS
-            STATUS DOWNLOAD_RESULT
-            LOG DOWNLOAD_LOG
-        )
-        list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
-        list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+		set(DEPS_FILENAME "${BASENAME}${DEPS_EXT}")
+
+		# Download test DEPS archive if DEPS archive isn't available yet.
+		# This makes possible to get the CI working before releasing the DEPS archive.
+		foreach(REMOTE_BASEURL https://dl.unvanquished.net/deps;https://dl.unvanquished.net/test/deps)
+			set(REMOTE "${REMOTE_BASEURL}/${DEPS_FILENAME}")
+			message(STATUS "Downloading dependencies from '${REMOTE}'")
+
+			file(DOWNLOAD "${REMOTE}" "${OBJ_DIR}/${DEPS_FILENAME}"
+				SHOW_PROGRESS
+				STATUS DOWNLOAD_RESULT
+				LOG DOWNLOAD_LOG
+			)
+
+			list(GET DOWNLOAD_RESULT 0 DOWNLOAD_STATUS)
+			list(GET DOWNLOAD_RESULT 1 DOWNLOAD_STRING)
+
+			if (DOWNLOAD_STATUS EQUAL 0)
+				break()
+			else ()
+				message(WARNING "Error downloading '${REMOTE}':
+					Status code: ${DOWNLOAD_STATUS}
+					Error string: ${DOWNLOAD_STRING}
+					Download log: ${DOWNLOAD_LOG}"
+				)
+			endif()
+		endforeach()
+
         if (NOT DOWNLOAD_STATUS EQUAL 0)
-            message(FATAL_ERROR "Error downloading '${REMOTE}':
-                Status code: ${DOWNLOAD_STATUS}
-                Error string: ${DOWNLOAD_STRING}
-                Download log: ${DOWNLOAD_LOG}"
-            )
+            message(FATAL_ERROR "Failed to download '${DEPS_FILENAME}'")
         endif()
+
         message(STATUS "Download completed successfully")
 
         # Extract the downloaded archive
