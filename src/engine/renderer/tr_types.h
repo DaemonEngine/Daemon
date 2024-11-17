@@ -214,11 +214,12 @@ struct refEntity_t
 	qhandle_t animationHandle;
 	int startFrame;
 	int endFrame;
-	int lerp;
+	float lerp;
 	int clearOrigin;
+	qhandle_t animationHandle2;
 	int startFrame2;
 	int endFrame2;
-	int lerp2;
+	float lerp2;
 	int clearOrigin2;
 	float blendLerp;
 	float scale;
