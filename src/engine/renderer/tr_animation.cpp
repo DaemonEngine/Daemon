@@ -1468,6 +1468,7 @@ int RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t hAnim, int startFrame, int 
 	}
 
 	// FIXME: clear existing bones and bounds?
+	skel->numBones = 0;
 	return false;
 }
 
