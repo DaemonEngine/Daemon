@@ -3730,6 +3730,7 @@ inline bool checkGLErrors()
 	int             RE_CheckSkeleton( refSkeleton_t *skel, qhandle_t hModel, qhandle_t hAnim );
 	int             RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, int endFrame, float frac,
 	                                  bool clearOrigin );
+	void R_TransformSkeleton( refSkeleton_t* skel, const float scale );
 	int             RE_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float frac );
 	int             RE_AnimNumFrames( qhandle_t hAnim );
 	int             RE_AnimFrameRate( qhandle_t hAnim );
