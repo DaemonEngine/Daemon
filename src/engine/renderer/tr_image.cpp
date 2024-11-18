@@ -2538,14 +2538,12 @@ static void R_CreateContrastRenderFBOImage()
 		return;
 	}
 
-	int  width, height;
-
-	width = glConfig.vidWidth * 0.25f;
-	height = glConfig.vidHeight * 0.25f;
+	const int width = glConfig.vidWidth * 0.25f;
+	const int height = glConfig.vidHeight * 0.25f;
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
+	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, imageParams );
@@ -2558,20 +2556,17 @@ static void R_CreateBloomRenderFBOImages()
 		return;
 	}
 
-	int  i;
-	int  width, height;
+	const int width = glConfig.vidWidth * 0.25f;
+	const int height = glConfig.vidHeight * 0.25f;
 
-	width = glConfig.vidWidth * 0.25f;
-	height = glConfig.vidHeight * 0.25f;
-
-	for ( i = 0; i < 2; i++ )
+	for ( int i = 0; i < 2; i++ )
 	{
 		imageParams_t imageParams = {};
 		imageParams.bits = IF_NOPICMIP;
-		imageParams.filterType = filterType_t::FT_DEFAULT;
+		imageParams.filterType = filterType_t::FT_LINEAR;
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-		tr.bloomRenderFBOImage[ i ] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
+		tr.bloomRenderFBOImage[i] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
 	}
 }
 
