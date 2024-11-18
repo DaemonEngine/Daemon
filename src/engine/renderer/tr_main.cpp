@@ -2095,8 +2095,7 @@ void R_AddEntitySurfaces()
 				}
 				else
 				{
-					switch ( tr.currentModel->type )
-					{
+					switch ( tr.currentModel->type ) {
 						case modtype_t::MOD_MESH:
 							R_AddMDVSurfaces( ent );
 							break;
@@ -2118,15 +2117,16 @@ void R_AddEntitySurfaces()
 									ent->e.lerp2, ent->e.clearOrigin2 );
 								RE_BlendSkeleton( &ent->e.skeleton, &skel, ent->e.blendLerp );
 							}
-							// ent->e.skeleton.type = refSkeletonType_t::SK_ABSOLUTE;
 							R_AddMD5Surfaces( ent );
 							break;
 
 						case modtype_t::MOD_IQM:
+						{
 							/* Log::Warn("%i %s: old: %i-%i %f new: %i-%i %f | %f %f", ent->e.animationHandle,
 								R_GetAnimationByHandle( ent->e.animationHandle )->name, ent->e.startFrame,
 								ent->e.endFrame, ent->e.lerp, ent->e.startFrame2, ent->e.endFrame2, ent->e.lerp2,
 								ent->e.blendLerp, ent->e.scale ); */
+							bool transform = true;
 							if ( ent->e.scale == 0 ) {
 								ent->e.scale = 1;
 							}
@@ -2136,16 +2136,16 @@ void R_AddEntitySurfaces()
 							ent->e.skeleton.scale = ent->e.scale;
 							RE_BuildSkeleton( &ent->e.skeleton, ent->e.animationHandle, ent->e.startFrame, ent->e.endFrame,
 								ent->e.lerp, ent->e.clearOrigin );
-							// ent->e.blendLerp = 1 - ent->e.blendLerp;
 							if ( ent->e.blendLerp > 0.0 || true ) {
 								refSkeleton_t skel;
 								RE_BuildSkeleton( &skel, ent->e.animationHandle2, ent->e.startFrame2, ent->e.endFrame2,
 									ent->e.lerp2, ent->e.clearOrigin2 );
 								RE_BlendSkeleton( &ent->e.skeleton, &skel, ent->e.blendLerp );
 							}
-							// ent->e.skeleton.type = refSkeletonType_t::SK_ABSOLUTE;
+							R_TransformSkeleton( &ent->e.skeleton, ent->e.scale );
 							R_AddIQMSurfaces( ent );
 							break;
+					}
 
 						case modtype_t::MOD_BSP:
 							R_AddBSPModelSurfaces( ent );
