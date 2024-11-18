@@ -362,8 +362,8 @@ build_sdl2() {
 		cp "${sdl2_lib_dir}/"*.dll "${PREFIX}/SDL2/${sdl2_lib_dir}"
 		;;
 	macos-*-*)
-		rm -rf "${PREFIX}/SDL2.framework"
-		cp -R "SDL2.framework" "${PREFIX}"
+		rm -rf "${PREFIX}/lib/SDL2.framework"
+		cp -R "SDL2.framework" "${PREFIX}/lib"
 		;;
 	*)
 		cd "${dir_name}"
