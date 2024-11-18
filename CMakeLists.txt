@@ -482,7 +482,7 @@ if (DEPS_DIR)
     # Add to paths
     set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
     set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
-    set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH})
+    set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR}/lib ${CMAKE_FRAMEWORK_PATH})
     set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
     if (DAEMON_PARENT_SCOPE_DIR)
         # Also set parent scope so the top level CMakeLists can find precompiled deps
