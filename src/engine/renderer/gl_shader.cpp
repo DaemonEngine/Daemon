@@ -70,8 +70,7 @@ GLShader_screenMaterial                  *gl_screenShaderMaterial = nullptr;
 GLShader_portal                          *gl_portalShader = nullptr;
 GLShader_contrast                        *gl_contrastShader = nullptr;
 GLShader_cameraEffects                   *gl_cameraEffectsShader = nullptr;
-GLShader_blurX                           *gl_blurXShader = nullptr;
-GLShader_blurY                           *gl_blurYShader = nullptr;
+GLShader_blur                           *gl_blurShader = nullptr;
 GLShader_debugShadowMap                  *gl_debugShadowMapShader = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
 GLShader_liquidMaterial                  *gl_liquidShaderMaterial = nullptr;
@@ -2874,30 +2873,17 @@ void GLShader_cameraEffects::SetShaderProgramUniforms( shaderProgram_t *shaderPr
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap3D" ), 3 );
 }
 
-GLShader_blurX::GLShader_blurX( GLShaderManager *manager ) :
-	GLShader( "blurX", ATTR_POSITION, manager ),
+GLShader_blur::GLShader_blur( GLShaderManager *manager ) :
+	GLShader( "blur", ATTR_POSITION, manager ),
 	u_ColorMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_DeformMagnitude( this ),
-	u_TexScale( this )
+	u_TexScale( this ),
+	u_Horizontal( this )
 {
 }
 
-void GLShader_blurX::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
-}
-
-GLShader_blurY::GLShader_blurY( GLShaderManager *manager ) :
-	GLShader( "blurY", ATTR_POSITION, manager ),
-	u_ColorMap( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_DeformMagnitude( this ),
-	u_TexScale( this )
-{
-}
-
-void GLShader_blurY::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+void GLShader_blur::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
 }

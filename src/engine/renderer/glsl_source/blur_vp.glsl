@@ -20,14 +20,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-/* blurY_vp.glsl */
+/* blur_vp.glsl */
 
-IN vec3 		attr_Position;
+IN vec3 attr_Position;
 
-uniform mat4		u_ModelViewProjectionMatrix;
+uniform mat4 u_ModelViewProjectionMatrix;
 
-void	main()
-{
+void main() {
 	// transform vertex position into homogenous clip-space
-	gl_Position = u_ModelViewProjectionMatrix * vec4(attr_Position, 1.0);
+	gl_Position = u_ModelViewProjectionMatrix * vec4( attr_Position, 1.0 );
 }

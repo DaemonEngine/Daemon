@@ -344,9 +344,7 @@ static void GLSL_InitGPUShadersOrError()
 	if ( glConfig2.bloom || glConfig2.shadowMapping )
 	{
 		// gaussian blur
-		gl_shaderManager.load( gl_blurXShader );
-
-		gl_shaderManager.load( gl_blurYShader );
+		gl_shaderManager.load( gl_blurShader );
 	}
 
 	if ( glConfig2.shadowMapping )
@@ -498,8 +496,7 @@ void GLSL_ShutdownGPUShaders()
 	gl_portalShader = nullptr;
 	gl_contrastShader = nullptr;
 	gl_cameraEffectsShader = nullptr;
-	gl_blurXShader = nullptr;
-	gl_blurYShader = nullptr;
+	gl_blurShader = nullptr;
 	gl_debugShadowMapShader = nullptr;
 	gl_liquidShader = nullptr;
 	gl_liquidShaderMaterial = nullptr;

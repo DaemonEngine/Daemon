@@ -2062,28 +2062,31 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	MatrixOrthogonalProjection( ortho, 0, fbos[index]->width, 0, fbos[index]->height, -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
 
-	gl_blurXShader->BindProgram( 0 );
-	gl_blurXShader->SetUniform_DeformMagnitude( 1 );
-	gl_blurXShader->SetUniform_TexScale( texScale );
+	gl_blurShader->BindProgram( 0 );
+	gl_blurShader->SetUniform_DeformMagnitude( 1 );
+	gl_blurShader->SetUniform_TexScale( texScale );
+	gl_blurShader->SetUniform_Horizontal( true );
 
-	gl_blurXShader->SetUniform_ColorMapBindless(
+	gl_blurShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, images[index] )
 	);
 
-	Tess_InstantQuad( *gl_blurXShader, 0, 0, fbos[ index ]->width, fbos[ index ]->height );
+	Tess_InstantQuad( *gl_blurShader, 0, 0, fbos[ index ]->width, fbos[ index ]->height );
 
 	R_AttachFBOTexture2D( images[ index ]->type, images[ index ]->texnum, 0 );
 
 	glClear( GL_COLOR_BUFFER_BIT );
 
-	gl_blurYShader->BindProgram( 0 );
-	gl_blurYShader->SetUniform_DeformMagnitude( 1 );
-	gl_blurYShader->SetUniform_TexScale( texScale );
-	gl_blurYShader->SetUniform_ColorMapBindless(
+	gl_blurShader->BindProgram( 0 );
+	gl_blurShader->SetUniform_DeformMagnitude( 1 );
+	gl_blurShader->SetUniform_TexScale( texScale );
+	gl_blurShader->SetUniform_Horizontal( false );
+
+	gl_blurShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, images[index + MAX_SHADOWMAPS] )
 	);
 
-	Tess_InstantQuad( *gl_blurYShader, 0, 0, fbos[index]->width, fbos[index]->height );
+	Tess_InstantQuad( *gl_blurShader, 0, 0, fbos[index]->width, fbos[index]->height );
 
 	GL_PopMatrix();
 }
@@ -3048,8 +3051,7 @@ void RB_RenderBloom()
 	GLimp_LogComment( "--- RB_RenderBloom ---\n" );
 
 	if ( ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOBLOOM ) )
-		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0 )
-	{
+		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0 ) {
 		return;
 	}
 
@@ -3102,49 +3104,34 @@ void RB_RenderBloom()
 		texScale[0] = 1.0f / tr.bloomRenderFBO[0]->width;
 		texScale[1] = 1.0f / tr.bloomRenderFBO[0]->height;
 
-		gl_blurXShader->BindProgram( 0 );
+		gl_blurShader->BindProgram( 0 );
 
-		gl_blurXShader->SetUniform_DeformMagnitude( r_bloomBlur.Get() );
-		gl_blurXShader->SetUniform_TexScale( texScale );
+		gl_blurShader->SetUniform_DeformMagnitude( r_bloomBlur.Get() );
+		gl_blurShader->SetUniform_TexScale( texScale );
 
-		gl_blurXShader->SetUniform_ColorMapBindless(
+		gl_blurShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.contrastRenderFBOImage )
 		);
 
+		gl_blurShader->SetUniform_Horizontal( true );
+
 		int flip = 0;
-		for ( int i = 0; i < r_bloomPasses.Get(); i++ ) {
-			R_BindFBO( tr.bloomRenderFBO[flip] );
-			glClear( GL_COLOR_BUFFER_BIT );
-			Tess_InstantQuad( *gl_blurXShader,
-				backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-				backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+		for ( int i = 0; i < 2; i++ ) {
+			for ( int j = 0; j < r_bloomPasses.Get(); j++ ) {
+				R_BindFBO( tr.bloomRenderFBO[flip] );
+				glClear( GL_COLOR_BUFFER_BIT );
+				Tess_InstantQuad( *gl_blurShader,
+					backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
-			gl_blurXShader->SetUniform_ColorMapBindless(
-				GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] )
-			);
-			flip ^= 1;
-		}
+				gl_blurShader->SetUniform_ColorMapBindless(
+					GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] )
+				);
 
-		gl_blurYShader->BindProgram( 0 );
+				flip ^= 1;
+			}
 
-		gl_blurYShader->SetUniform_DeformMagnitude( r_bloomBlur.Get() );
-		gl_blurYShader->SetUniform_TexScale( texScale );
-
-		gl_blurYShader->SetUniform_ColorMapBindless(
-			GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip ^ 1] )
-		);
-
-		for ( int i = 0; i < r_bloomPasses.Get(); i++ ) {
-			R_BindFBO( tr.bloomRenderFBO[flip] );
-			glClear( GL_COLOR_BUFFER_BIT );
-			Tess_InstantQuad( *gl_blurYShader,
-				backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-				backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-
-			gl_blurYShader->SetUniform_ColorMapBindless(
-				GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] )
-			);
-			flip ^= 1;
+			gl_blurShader->SetUniform_Horizontal( false );
 		}
 
 		GL_PopMatrix();

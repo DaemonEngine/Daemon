@@ -3754,6 +3754,18 @@ public:
 	}
 };
 
+class u_Horizontal :
+	GLUniform1Bool {
+	public:
+	u_Horizontal( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_Horizontal", true ) {
+	}
+
+	void SetUniform_Horizontal( bool horizontal ) {
+		this->SetValue( horizontal );
+	}
+};
+
 class u_TexScale :
 	GLUniform2f
 {
@@ -4486,27 +4498,16 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
-class GLShader_blurX :
+class GLShader_blur :
 	public GLShader,
 	public u_ColorMap,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
-	public u_TexScale
+	public u_TexScale,
+	public u_Horizontal
 {
 public:
-	GLShader_blurX( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
-};
-
-class GLShader_blurY :
-	public GLShader,
-	public u_ColorMap,
-	public u_ModelViewProjectionMatrix,
-	public u_DeformMagnitude,
-	public u_TexScale
-{
-public:
-	GLShader_blurY( GLShaderManager *manager );
+	GLShader_blur( GLShaderManager *manager );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4740,8 +4741,7 @@ extern GLShader_screenMaterial                  *gl_screenShaderMaterial;
 extern GLShader_portal                          *gl_portalShader;
 extern GLShader_contrast                        *gl_contrastShader;
 extern GLShader_cameraEffects                   *gl_cameraEffectsShader;
-extern GLShader_blurX                           *gl_blurXShader;
-extern GLShader_blurY                           *gl_blurYShader;
+extern GLShader_blur                            *gl_blurShader;
 extern GLShader_debugShadowMap                  *gl_debugShadowMapShader;
 extern GLShader_liquid                          *gl_liquidShader;
 extern GLShader_liquidMaterial                  *gl_liquidShaderMaterial;
