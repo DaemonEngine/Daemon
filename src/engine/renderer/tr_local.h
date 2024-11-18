@@ -1610,6 +1610,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		uint64_t      sort;
 		bool          bspSurface;
 		int fog;
+		int portalNum = -1;
 
 		uint materialsSSBOOffset[ MAX_SHADER_STAGES ];
 		bool initialized[ MAX_SHADER_STAGES ];
@@ -1871,6 +1872,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		int16_t         lightmapNum; // -1 = no lightmap
 		int16_t         fogIndex;
+		int portalNum;
 
 		surfaceType_t   *data; // any of srf*_t
 	};
@@ -1919,6 +1921,12 @@ enum class shaderProfilerRenderSubGroupsMode {
 		byte  unused;
 	};
 
+	struct AABB {
+		vec3_t origin;
+		vec3_t mins;
+		vec3_t maxs;
+	};
+
 // ydnar: optimization
 #define WORLD_MAX_SKY_NODES 32
 
@@ -1944,6 +1952,9 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		int           numSkyNodes;
 		bspNode_t     **skyNodes; // ydnar: don't walk the entire bsp when rendering sky
+
+		int numPortals;
+		AABB *portals;
 
 		VBO_t         *vbo;
 		IBO_t         *ibo;
@@ -3095,7 +3106,7 @@ inline bool checkGLErrors()
 
 	void           R_AddPolygonSurfaces();
 
-	int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false );
+	int R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int lightmapNum, int fogNum, bool bspSurface = false, int portalNum = -1 );
 
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
