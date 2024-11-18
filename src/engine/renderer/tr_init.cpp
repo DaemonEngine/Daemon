@@ -276,10 +276,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_vboVertexSkinning;
 
 	cvar_t      *r_mergeLeafSurfaces;
-
-	cvar_t      *r_bloom;
-	cvar_t      *r_bloomBlur;
-	cvar_t      *r_bloomPasses;
+	
+	Cvar::Cvar<bool> r_bloom( "r_bloom", "Use bloom", Cvar::ARCHIVE, false );
+	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 1.0 );
+	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
 	cvar_t      *r_FXAA;
 	cvar_t      *r_ssao;
 
@@ -1198,9 +1198,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		r_printShaders = Cvar_Get( "r_printShaders", "0", 0 );
 
-		r_bloom = Cvar_Get( "r_bloom", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_bloomBlur = Cvar_Get( "r_bloomBlur", "1.0", CVAR_CHEAT );
-		r_bloomPasses = Cvar_Get( "r_bloomPasses", "2", CVAR_CHEAT );
+		Cvar::Latch( r_bloom );
 		r_FXAA = Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
 		r_ssao = Cvar_Get( "r_ssao", "0", CVAR_LATCH | CVAR_ARCHIVE );
 
