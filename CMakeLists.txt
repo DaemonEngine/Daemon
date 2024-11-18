@@ -1080,11 +1080,16 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
 
     # Mac requires some libraries from external_deps
     if (APPLE)
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${DEPS_DIR}/SDL2.framework
-                ${FULL_OUTPUT_DIR}/SDL2.framework
-        )
+        file(GLOB RUNTIME_FRAMEWORKS ${DEPS_DIR}/lib/*.framework)
+        foreach(RUNTIME_FRAMEWORK ${RUNTIME_FRAMEWORKS})
+            get_filename_component(RUNTIME_FRAMEWORK_NAME ${RUNTIME_FRAMEWORK} NAME)
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${RUNTIME_FRAMEWORK}
+                    ${FULL_OUTPUT_DIR}/${RUNTIME_FRAMEWORK_NAME}
+            )
+        endforeach()
+
         file(GLOB RUNTIME_LIBS ${DEPS_DIR}/lib/*.dylib)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
