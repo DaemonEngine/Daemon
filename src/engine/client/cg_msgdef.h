@@ -100,13 +100,14 @@ namespace Util {
 	template<> struct SerializeTraits<refEntity_t> {
 		static void Write(Writer& stream, const refEntity_t& ent)
 		{
-			stream.WriteData(&ent, offsetof(refEntity_t, skeleton));
+			stream.WriteData(&ent, offsetof(refEntity_t, boneMods));
+			// stream.WriteData( ent.boneMods.data(), ent.boneMods.size() * sizeof( BoneMod ) );
 			// stream.Write<refSkeleton_t>(ent.skeleton);
 		}
 		static refEntity_t Read(Reader& stream)
 		{
 			refEntity_t ent;
-			stream.ReadData(&ent, offsetof(refEntity_t, skeleton));
+			stream.ReadData(&ent, offsetof(refEntity_t, boneMods));
 			// ent.skeleton = stream.Read<refSkeleton_t>();
 			return ent;
 		}

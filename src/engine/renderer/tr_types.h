@@ -156,6 +156,12 @@ enum class refSkeletonType_t
   SK_ABSOLUTE
 };
 
+struct BoneMod {
+	int index;
+	vec3_t translation;
+	quat_t rotation;
+};
+
 struct alignas(16) refSkeleton_t
 {
 	refSkeletonType_t type; // skeleton has been reset
@@ -223,6 +229,8 @@ struct refEntity_t
 	int clearOrigin2;
 	float blendLerp;
 	float scale;
+
+	std::vector<BoneMod> boneMods;
 
 	// KEEP SKELETON AT THE END OF THE STRUCTURE
 	// it is to make a serialization hack for refEntity_t easier
