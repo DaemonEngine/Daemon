@@ -260,7 +260,7 @@ static void R_AddInteractionSurface( bspSurface_t *surf, trRefLight_t *light, in
 R_AddWorldSurface
 ======================
 */
-static bool R_AddWorldSurface( bspSurface_t *surf, int fogIndex, int planeBits )
+static bool R_AddWorldSurface( bspSurface_t *surf, int fogIndex, int portalNum, int planeBits )
 {
 	if ( surf->viewCount == tr.viewCountNoReset )
 	{
@@ -275,7 +275,7 @@ static bool R_AddWorldSurface( bspSurface_t *surf, int fogIndex, int planeBits )
 		return true;
 	}
 
-	R_AddDrawSurf( surf->data, surf->shader, surf->lightmapNum, fogIndex, true );
+	R_AddDrawSurf( surf->data, surf->shader, surf->lightmapNum, fogIndex, true, portalNum );
 	return true;
 }
 
@@ -329,7 +329,7 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 
 	for ( i = 0; i < bspModel->numSurfaces; i++ )
 	{
-		R_AddWorldSurface( bspModel->firstSurface + i, fogNum, FRUSTUM_CLIPALL );
+		R_AddWorldSurface( bspModel->firstSurface + i, fogNum, -1, FRUSTUM_CLIPALL );
 	}
 }
 
@@ -389,7 +389,7 @@ static void R_AddLeafSurfaces( bspNode_t *node, int planeBits )
 	{
 		// the surface may have already been added if it
 		// spans multiple leafs
-		R_AddWorldSurface( *view, ( *view )->fogIndex, planeBits );
+		R_AddWorldSurface( *view, ( *view )->fogIndex, ( *mark )->portalNum, planeBits);
 
 		( *mark )->viewCount = tr.viewCountNoReset;
 

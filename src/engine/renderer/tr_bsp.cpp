@@ -2929,6 +2929,7 @@ static void R_CreateWorldVBO()
 	numVerts = 0;
 	numTriangles = 0;
 	numSurfaces = 0;
+	int numPortals = 0;
 
 	for ( k = 0; k < s_worldData.numSurfaces; k++ )
 	{
@@ -2936,6 +2937,9 @@ static void R_CreateWorldVBO()
 
 		if ( surface->shader->isPortal || surface->shader->autoSpriteMode != 0 )
 		{
+			if ( surface->shader->isPortal ) {
+				numPortals++;
+			}
 			continue;
 		}
 
@@ -3154,6 +3158,44 @@ static void R_CreateWorldVBO()
 
 		std::copy_n( surfVerts, numSurfVerts, vboVerts + vboNumVerts );
 		vboNumVerts += numSurfVerts;
+	}
+
+	s_worldData.numPortals = numPortals;
+	s_worldData.portals = ( AABB* ) ri.Hunk_Alloc( numPortals * sizeof( AABB ), ha_pref::h_low );
+	int portal = 0;
+	for ( i = 0; i < s_worldData.numSurfaces; i++ ) {
+		surface = &s_worldData.surfaces[i];
+
+		if ( surface->shader->isPortal ) {
+			surface->portalNum = portal;
+			AABB* aabb = &s_worldData.portals[portal];
+			switch ( *surface->data ) {
+				case surfaceType_t::SF_GRID:
+				{
+					srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
+					VectorCopy( srf->origin, aabb->origin );
+					VectorCopy( srf->bounds[0], aabb->mins );
+					VectorCopy( srf->bounds[1], aabb->maxs );
+					Log::Warn( "Grid portals aren't properly supported" );
+					break;
+				}
+				case surfaceType_t::SF_FACE:
+				case surfaceType_t::SF_TRIANGLES:
+				{
+					srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
+					VectorCopy( srf->origin, aabb->origin );
+					VectorCopy( srf->bounds[0], aabb->mins );
+					VectorCopy( srf->bounds[1], aabb->maxs );
+					break;
+				}
+				default:
+					Log::Warn( "Unsupported portal surface type" );
+					break;
+			}
+			portal++;
+		} else {
+			surface->portalNum = -1;
+		}
 	}
 
 	ASSERT_EQ( vboNumVerts, numVerts );
