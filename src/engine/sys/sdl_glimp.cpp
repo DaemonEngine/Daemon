@@ -755,11 +755,16 @@ static std::string ContextDescription( const glConfiguration& configuration )
 
 static void GLimp_SetAttributes( const glConfiguration &configuration )
 {
+	// FIXME: 3 * 4 = 12 which is more than 8
 	int perChannelColorBits = configuration.colorBits == 24 ? 8 : 4;
 
 	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, perChannelColorBits );
 	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, perChannelColorBits );
 	SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, perChannelColorBits );
+
+	// Depth/stencil channels are not needed since all 3D rendering is done in FBOs
+	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 0 );
+	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 );
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
 	if ( !r_glAllowSoftware->integer )
