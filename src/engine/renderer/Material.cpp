@@ -54,6 +54,7 @@ MaterialSystem materialSystem;
 
 static void ComputeDynamics( shaderStage_t* pStage ) {
 	// TODO: Move color and texMatrices stuff to a compute shader
+	pStage->colorDynamic = false;
 	switch ( pStage->rgbGen ) {
 		case colorGen_t::CGEN_IDENTITY:
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
@@ -77,7 +78,6 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 			} else {
 				//
 			}
-			pStage->colorDynamic = false;
 
 			break;
 		}
@@ -103,7 +103,6 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 			/* if ( backEnd.currentEntity ) {
 			} else {
 			} */
-			pStage->colorDynamic = false;
 			break;
 		}
 
