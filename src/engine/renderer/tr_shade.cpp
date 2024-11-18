@@ -823,7 +823,8 @@ static void Render_generic2D( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_generic2D ---\n" );
 
-	GL_State( pStage->stateBits );
+	// Disable depth testing and writing
+	GL_State( ( pStage->stateBits & ~GLS_DEPTHMASK_TRUE ) | GLS_DEPTHTEST_DISABLE );
 
 	gl_generic2DShader->BindProgram( pStage->deformIndex );
 
