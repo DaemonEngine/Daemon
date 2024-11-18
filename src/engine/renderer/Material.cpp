@@ -1031,7 +1031,7 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetReliefMapping( material->enableReliefMapping );
 	/* Reflective specular setting is different here than in ProcessMaterialLightMapping(),
 	because we don't have cubemaps built yet at this point, but for the purposes of the material ordering there's no difference */
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableSpecularMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( glConfig2.reflectionMapping && material->enableSpecularMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
 	// Bind shader program.
@@ -1289,8 +1289,6 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
 	material->shader = gl_lightMappingShaderMaterial;
 
-	material->bspSurface = false;
-
 	gl_lightMappingShaderMaterial->SetBspSurface( drawSurf->bspSurface );
 
 	lightMode_t lightMode;
@@ -1447,6 +1445,7 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 		drawSurf->texturesDynamic[stage] = true;
 	}
 
+	material.bspSurface = drawSurf->bspSurface;
 	pStage->materialProcessor( &material, pStage, drawSurf );
 
 	std::vector<Material>& materials = materialPacks[materialPack].materials;
