@@ -3065,9 +3065,9 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	extern cvar_t *r_mergeLeafSurfaces;
 
-	extern cvar_t *r_bloom;
-	extern cvar_t *r_bloomBlur;
-	extern cvar_t *r_bloomPasses;
+	extern Cvar::Cvar<bool> r_bloom;
+	extern Cvar::Cvar<float> r_bloomBlur;
+	extern Cvar::Cvar<int> r_bloomPasses;
 	extern cvar_t *r_FXAA;
 	extern cvar_t *r_ssao;
 

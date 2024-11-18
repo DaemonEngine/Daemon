@@ -3104,7 +3104,7 @@ void RB_RenderBloom()
 
 		gl_blurXShader->BindProgram( 0 );
 
-		gl_blurXShader->SetUniform_DeformMagnitude( r_bloomBlur->value );
+		gl_blurXShader->SetUniform_DeformMagnitude( r_bloomBlur.Get() );
 		gl_blurXShader->SetUniform_TexScale( texScale );
 
 		gl_blurXShader->SetUniform_ColorMapBindless(
@@ -3112,7 +3112,7 @@ void RB_RenderBloom()
 		);
 
 		int flip = 0;
-		for ( int i = 0; i < r_bloomPasses->integer; i++ ) {
+		for ( int i = 0; i < r_bloomPasses.Get(); i++ ) {
 			R_BindFBO( tr.bloomRenderFBO[flip] );
 			glClear( GL_COLOR_BUFFER_BIT );
 			Tess_InstantQuad( *gl_blurXShader,
@@ -3127,14 +3127,14 @@ void RB_RenderBloom()
 
 		gl_blurYShader->BindProgram( 0 );
 
-		gl_blurYShader->SetUniform_DeformMagnitude( r_bloomBlur->value );
+		gl_blurYShader->SetUniform_DeformMagnitude( r_bloomBlur.Get() );
 		gl_blurYShader->SetUniform_TexScale( texScale );
 
 		gl_blurYShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip ^ 1] )
 		);
 
-		for ( int i = 0; i < r_bloomPasses->integer; i++ ) {
+		for ( int i = 0; i < r_bloomPasses.Get(); i++ ) {
 			R_BindFBO( tr.bloomRenderFBO[flip] );
 			glClear( GL_COLOR_BUFFER_BIT );
 			Tess_InstantQuad( *gl_blurYShader,

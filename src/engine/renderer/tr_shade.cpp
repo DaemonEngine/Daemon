@@ -142,7 +142,7 @@ static void EnableAvailableFeatures()
 	glConfig2.specularMapping = glConfig2.deluxeMapping && glConfig2.specularMapping;
 	glConfig2.physicalMapping = glConfig2.deluxeMapping && glConfig2.physicalMapping;
 
-	glConfig2.bloom = r_bloom->integer;
+	glConfig2.bloom = r_bloom.Get();
 
 	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
 	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
