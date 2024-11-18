@@ -6,10 +6,8 @@
 #include "vertexAnimation_vp.glsl.h"
 #include "vertexSimple_vp.glsl.h"
 #include "vertexSkinning_vp.glsl.h"
-#include "blurX_fp.glsl.h"
-#include "blurX_vp.glsl.h"
-#include "blurY_fp.glsl.h"
-#include "blurY_vp.glsl.h"
+#include "blur_fp.glsl.h"
+#include "blur_vp.glsl.h"
 #include "cameraEffects_fp.glsl.h"
 #include "cameraEffects_vp.glsl.h"
 #include "computeLight_fp.glsl.h"
@@ -68,10 +66,8 @@
 #include "processSurfaces_cp.glsl.h"
 
 std::unordered_map<std::string, std::string> shadermap({
-	{ "blurX_fp.glsl", std::string(reinterpret_cast<const char*>(blurX_fp_glsl), sizeof(blurX_fp_glsl)) },
-	{ "blurX_vp.glsl", std::string(reinterpret_cast<const char*>(blurX_vp_glsl), sizeof(blurX_vp_glsl)) },
-	{ "blurY_fp.glsl", std::string(reinterpret_cast<const char*>(blurY_fp_glsl), sizeof(blurY_fp_glsl)) },
-	{ "blurY_vp.glsl", std::string(reinterpret_cast<const char*>(blurY_vp_glsl), sizeof(blurY_vp_glsl)) },
+	{ "blur_fp.glsl", std::string(reinterpret_cast<const char*>(blur_fp_glsl), sizeof(blur_fp_glsl)) },
+	{ "blur_vp.glsl", std::string(reinterpret_cast<const char*>(blur_vp_glsl), sizeof(blur_vp_glsl)) },
 	{ "cameraEffects_fp.glsl", std::string(reinterpret_cast<const char*>(cameraEffects_fp_glsl), sizeof(cameraEffects_fp_glsl)) },
 	{ "cameraEffects_vp.glsl", std::string(reinterpret_cast<const char*>(cameraEffects_vp_glsl), sizeof(cameraEffects_vp_glsl)) },
 	{ "computeLight_fp.glsl", std::string(reinterpret_cast<const char*>(computeLight_fp_glsl), sizeof(computeLight_fp_glsl)) },
