@@ -1024,6 +1024,13 @@ build_install() {
 		;;
 	esac
 
+	case "${PLATFORM}" in
+	windows-*-*)
+		# CMake looks for libSDL2.a and aborts if missing if this file exists:
+		rm -rf "${PKG_PREFIX}/lib/cmake/SDL2/SDL2staticTargets.cmake"
+		;;
+	esac
+
 	# Remove empty directories
 	find "${PKG_PREFIX}/" -mindepth 1 -type d -empty -delete
 }
