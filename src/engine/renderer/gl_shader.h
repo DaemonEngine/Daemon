@@ -3906,10 +3906,9 @@ class u_Lights :
 	}
 };
 
-// This is just a copy of the GLShader_generic, but with a special
-// define for RmlUI transforms. It probably has a lot of unnecessary
-// code that could be pruned.
-// TODO: Write a more minimal 2D rendering shader.
+// FIXME: this is the same as 'generic' and has no reason for existing.
+// It was added along with RmlUi transforms to add "gl_FragDepth = 0;" to the GLSL,
+// but that turns out not to be needed.
 class GLShader_generic2D :
 	public GLShader,
 	public u_ColorMap,
