@@ -132,7 +132,6 @@ struct glconfig2_t
 	bool uniformBufferObjectAvailable;
 	bool mapBufferRangeAvailable;
 	bool syncAvailable;
-	bool depthClampAvailable;
 	bool halfFloatVertexAvailable;
 
 	bool colorGrading;

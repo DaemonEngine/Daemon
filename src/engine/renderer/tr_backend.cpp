@@ -824,6 +824,9 @@ static void RB_SetGL2D()
 	GL_Scissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 
 	MatrixOrthogonalProjection( proj, 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
+	// zero the z coordinate so it's never near/far clipped
+	proj[ 2 ] = proj[ 6 ] = proj[ 10 ] = proj[ 14 ] = 0;
+
 	GL_LoadProjectionMatrix( proj );
 	GL_LoadModelViewMatrix( matrixIdentity );
 

@@ -851,20 +851,10 @@ static void Render_generic2D( shaderStage_t *pStage )
 	gl_generic2DShader->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	gl_generic2DShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
-	if ( glConfig2.depthClampAvailable )
-	{
-		glEnable( GL_DEPTH_CLAMP );
-	}
-
 	gl_generic2DShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 	GL_CheckErrors();
-
-	if ( glConfig2.depthClampAvailable )
-	{
-		glDisable( GL_DEPTH_CLAMP );
-	}
 
 	GL_CheckErrors();
 }
