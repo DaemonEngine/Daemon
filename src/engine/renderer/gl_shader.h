@@ -3921,8 +3921,7 @@ class GLShader_generic2D :
 	public u_ColorModulate,
 	public u_Color,
 	public u_DepthScale,
-	public GLDeformStage,
-	public GLCompileMacro_USE_DEPTH_FADE
+	public GLDeformStage
 {
 public:
 	GLShader_generic2D( GLShaderManager *manager );

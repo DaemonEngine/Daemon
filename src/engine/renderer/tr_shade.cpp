@@ -825,13 +825,7 @@ static void Render_generic2D( shaderStage_t *pStage )
 
 	GL_State( pStage->stateBits );
 
-	bool hasDepthFade = pStage->hasDepthFade;
-	bool needDepthMap = pStage->hasDepthFade;
-
-	// choose right shader program ----------------------------------
-	gl_generic2DShader->SetDepthFade( hasDepthFade );
 	gl_generic2DShader->BindProgram( pStage->deformIndex );
-	// end choose right shader program ------------------------------
 
 	// set uniforms
 	// u_AlphaThreshold
@@ -859,18 +853,6 @@ static void Render_generic2D( shaderStage_t *pStage )
 	if ( glConfig2.depthClampAvailable )
 	{
 		glEnable( GL_DEPTH_CLAMP );
-	}
-
-	if ( hasDepthFade )
-	{
-		gl_generic2DShader->SetUniform_DepthScale( pStage->depthFadeValue );
-	}
-
-	if ( needDepthMap )
-	{
-		gl_generic2DShader->SetUniform_DepthMapBindless(
-			GL_BindToTMU( 1, tr.currentDepthImage ) 
-		);
 	}
 
 	gl_generic2DShader->SetRequiredVertexPointers();

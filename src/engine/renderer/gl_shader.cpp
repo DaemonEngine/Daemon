@@ -2184,8 +2184,7 @@ GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_Color( this ),
 	u_DepthScale( this ),
-	GLDeformStage( this ),
-	GLCompileMacro_USE_DEPTH_FADE( this )
+	GLDeformStage( this )
 {
 }
 
@@ -2197,7 +2196,6 @@ void GLShader_generic2D::BuildShaderCompileMacros( std::string& compileMacros )
 void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
 }
 
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
