@@ -25,7 +25,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define GENERIC_GLSL
 
 uniform sampler2D	u_ColorMap;
-uniform float		u_AlphaThreshold;
+
+#if defined(GENERIC_2D) || defined(GENERIC_3D)
+	uniform float u_AlphaThreshold;
+#endif
 
 #if defined(USE_MATERIAL_SYSTEM)
 	uniform bool u_ShowTris;
@@ -57,11 +60,13 @@ void	main()
 
 	vec4 color = texture2D(u_ColorMap, var_TexCoords);
 
+#if defined(GENERIC_2D) || defined(GENERIC_3D)
 	if( abs(color.a + u_AlphaThreshold) <= 1.0 )
 	{
 		discard;
 		return;
 	}
+#endif
 
 #if defined(USE_DEPTH_FADE)
 	float depth = texture2D(u_DepthMap, gl_FragCoord.xy / r_FBufSize).x;

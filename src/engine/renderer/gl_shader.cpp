@@ -43,9 +43,10 @@ ShaderKind shaderKind = ShaderKind::Unknown;
 
 // *INDENT-OFF*
 
-GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
-GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
+GLShader_generic2D                       *gl_generic2DShader = nullptr;
+GLShader_generic3D                       *gl_generic3DShader = nullptr;
+GLShader_generic3DMaterial               *gl_generic3DShaderMaterial = nullptr;
 GLShader_cull                            *gl_cullShader = nullptr;
 GLShader_depthReduction                  *gl_depthReductionShader = nullptr;
 GLShader_clearSurfaces                   *gl_clearSurfacesShader = nullptr;
@@ -2173,6 +2174,25 @@ void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 	}
 }
 
+GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
+	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	u_ColorMap( this ),
+	u_DepthMap( this ),
+	u_TextureMatrix( this ),
+	u_ModelMatrix( this ),
+	u_ModelViewProjectionMatrix( this ),
+	u_ColorModulate( this ),
+	u_Color( this ),
+	GLDeformStage( this )
+{
+}
+
+void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+{
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
+	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
+}
+
 GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 	GLShader( "generic2D", "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
@@ -2200,8 +2220,8 @@ void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgra
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
 }
 
-GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
-	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+GLShader_generic3D::GLShader_generic3D( GLShaderManager *manager ) :
+	GLShader( "generic3D", "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_TextureMatrix( this ),
@@ -2226,14 +2246,19 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 {
 }
 
-void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+void GLShader_generic3D::BuildShaderCompileMacros( std::string& compileMacros )
+{
+	compileMacros += "GENERIC_3D ";
+}
+
+void GLShader_generic3D::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
 }
 
-GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
-	GLShader( "genericMaterial", "generic", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+GLShader_generic3DMaterial::GLShader_generic3DMaterial( GLShaderManager* manager ) :
+	GLShader( "generic3DMaterial", "generic", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_TextureMatrix( this ),
@@ -2255,7 +2280,12 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	GLCompileMacro_USE_DEPTH_FADE( this ) {
 }
 
-void GLShader_genericMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
+void GLShader_generic3DMaterial::BuildShaderCompileMacros( std::string& compileMacros )
+{
+	compileMacros += "GENERIC_3D ";
+}
+
+void GLShader_generic3DMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
 }

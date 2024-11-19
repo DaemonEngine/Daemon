@@ -210,8 +210,9 @@ static void GLSL_InitGPUShadersOrError()
 	gl_shaderManager.GenerateBuiltinHeaders();
 
 	// single texture rendering
-	gl_shaderManager.load( gl_generic2DShader );
 	gl_shaderManager.load( gl_genericShader );
+	gl_shaderManager.load( gl_generic2DShader );
+	gl_shaderManager.load( gl_generic3DShader );
 
 	// standard light mapping
 	gl_shaderManager.load( gl_lightMappingShader );
@@ -219,7 +220,7 @@ static void GLSL_InitGPUShadersOrError()
 	// Material system shaders that are always loaded if material system is available
 	if ( glConfig2.usingMaterialSystem )
 	{
-		gl_shaderManager.load( gl_genericShaderMaterial );
+		gl_shaderManager.load( gl_generic3DShaderMaterial );
 		gl_shaderManager.load( gl_lightMappingShaderMaterial );
 
 		gl_shaderManager.load( gl_clearSurfacesShader );
@@ -471,9 +472,10 @@ void GLSL_ShutdownGPUShaders()
 
 	gl_shaderManager.freeAll();
 
-	gl_generic2DShader = nullptr;
 	gl_genericShader = nullptr;
-	gl_genericShaderMaterial = nullptr;
+	gl_generic2DShader = nullptr;
+	gl_generic3DShader = nullptr;
+	gl_generic3DShaderMaterial = nullptr;
 	gl_cullShader = nullptr;
 	gl_depthReductionShader = nullptr;
 	gl_clearSurfacesShader = nullptr;
@@ -658,58 +660,58 @@ static void DrawTris()
 
 	GLimp_LogComment( "--- DrawTris ---\n" );
 
-	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
-	gl_genericShader->SetTCGenEnvironment( false );
-	gl_genericShader->SetTCGenLightmap( false );
-	gl_genericShader->SetDepthFade( false );
+	gl_generic3DShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_generic3DShader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_generic3DShader->SetTCGenEnvironment( false );
+	gl_generic3DShader->SetTCGenLightmap( false );
+	gl_generic3DShader->SetDepthFade( false );
 
 	if( tess.surfaceStages != tess.surfaceLastStage ) {
 		deform = tess.surfaceStages[ 0 ].deformIndex;
 	}
 
-	gl_genericShader->BindProgram( deform );
+	gl_generic3DShader->BindProgram( deform );
 
 	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
 
 	// u_AlphaThreshold
-	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
+	gl_generic3DShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
 	if ( r_showBatches->integer || r_showLightBatches->integer )
 	{
-		gl_genericShader->SetUniform_Color( Color::Color::Indexed( backEnd.pc.c_batches % 8 ) );
+		gl_generic3DShader->SetUniform_Color( Color::Color::Indexed( backEnd.pc.c_batches % 8 ) );
 	}
 	else if ( glState.currentVBO == tess.vbo )
 	{
-		gl_genericShader->SetUniform_Color( Color::Red );
+		gl_generic3DShader->SetUniform_Color( Color::Red );
 	}
 	else if ( glState.currentVBO )
 	{
-		gl_genericShader->SetUniform_Color( Color::Blue );
+		gl_generic3DShader->SetUniform_Color( Color::Blue );
 	}
 	else
 	{
-		gl_genericShader->SetUniform_Color( Color::White );
+		gl_generic3DShader->SetUniform_Color( Color::White );
 	}
 
-	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+	gl_generic3DShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
+	gl_generic3DShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_generic3DShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
-		gl_genericShader->SetUniform_Bones( tess.numBones, tess.bones );
+		gl_generic3DShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
 
 	// u_DeformGen
-	gl_genericShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+	gl_generic3DShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
-	gl_genericShader->SetUniform_ColorMapBindless(
+	gl_generic3DShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, tr.whiteImage )
 	);
-	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
-	gl_genericShader->SetRequiredVertexPointers();
+	gl_generic3DShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+	gl_generic3DShader->SetRequiredVertexPointers();
 
 	glDepthRange( 0, 0 );
 
@@ -901,24 +903,24 @@ void Render_generic3D( shaderStage_t *pStage )
 	bool needDepthMap = pStage->hasDepthFade;
 
 	// choose right shader program ----------------------------------
-	gl_genericShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
-	gl_genericShader->SetVertexAnimation( tess.vboVertexAnimation );
-	gl_genericShader->SetTCGenEnvironment( pStage->tcGen_Environment );
-	gl_genericShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
-	gl_genericShader->SetDepthFade( hasDepthFade );
-	gl_genericShader->BindProgram( pStage->deformIndex );
+	gl_generic3DShader->SetVertexSkinning( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning );
+	gl_generic3DShader->SetVertexAnimation( tess.vboVertexAnimation );
+	gl_generic3DShader->SetTCGenEnvironment( pStage->tcGen_Environment );
+	gl_generic3DShader->SetTCGenLightmap( pStage->tcGen_Lightmap );
+	gl_generic3DShader->SetDepthFade( hasDepthFade );
+	gl_generic3DShader->BindProgram( pStage->deformIndex );
 	// end choose right shader program ------------------------------
 
 	// set uniforms
 	if ( pStage->tcGen_Environment )
 	{
 		// calculate the environment texcoords in object space
-		gl_genericShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
-		gl_genericShader->SetUniform_ViewUp( backEnd.orientation.axis[ 2 ] );
+		gl_generic3DShader->SetUniform_ViewOrigin( backEnd.orientation.viewOrigin );
+		gl_generic3DShader->SetUniform_ViewUp( backEnd.orientation.axis[ 2 ] );
 	}
 
 	// u_AlphaThreshold
-	gl_genericShader->SetUniform_AlphaTest( pStage->stateBits );
+	gl_generic3DShader->SetUniform_AlphaTest( pStage->stateBits );
 
 	// u_ColorModulate
 	colorGen_t rgbGen = SetRgbGen( pStage );
@@ -928,51 +930,51 @@ void Render_generic3D( shaderStage_t *pStage )
 	// since the `generic` fragment shader only takes a single input color. `lightMapping` on the
 	// hand needs to know the real diffuse color, hence the separate u_LightFactor.
 	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && tess.bspSurface;
-	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
+	gl_generic3DShader->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
 
 	// u_Color
-	gl_genericShader->SetUniform_Color( tess.svars.color );
+	gl_generic3DShader->SetUniform_Color( tess.svars.color );
 
-	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
+	gl_generic3DShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
+	gl_generic3DShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_Bones
 	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )
 	{
-		gl_genericShader->SetUniform_Bones( tess.numBones, tess.bones );
+		gl_generic3DShader->SetUniform_Bones( tess.numBones, tess.bones );
 	}
 
 	// u_VertexInterpolation
 	if ( tess.vboVertexAnimation )
 	{
-		gl_genericShader->SetUniform_VertexInterpolation( glState.vertexAttribsInterpolation );
+		gl_generic3DShader->SetUniform_VertexInterpolation( glState.vertexAttribsInterpolation );
 	}
 
 	// u_DeformGen
-	gl_genericShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
+	gl_generic3DShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
 	// bind u_ColorMap
 	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP )
 	{
-		gl_genericShader->SetUniform_ColorMapBindless(
+		gl_generic3DShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, GetLightMap( &tess ) )
 		);
 	}
 	else
 	{
-		gl_genericShader->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
+		gl_generic3DShader->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	}
 
-	gl_genericShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
+	gl_generic3DShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
 	if ( hasDepthFade )
 	{
-		gl_genericShader->SetUniform_DepthScale( pStage->depthFadeValue );
+		gl_generic3DShader->SetUniform_DepthScale( pStage->depthFadeValue );
 	}
 
 	if ( needDepthMap )
 	{
-		gl_genericShader->SetUniform_DepthMapBindless(
+		gl_generic3DShader->SetUniform_DepthMapBindless(
 			GL_BindToTMU( 1, tr.currentDepthImage )
 		);
 	}
@@ -985,11 +987,11 @@ void Render_generic3D( shaderStage_t *pStage )
 
 		GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
 
-		gl_genericShader->SetUniform_ProfilerZero();
-		gl_genericShader->SetUniform_ProfilerRenderSubGroups( mode );
+		gl_generic3DShader->SetUniform_ProfilerZero();
+		gl_generic3DShader->SetUniform_ProfilerRenderSubGroups( mode );
 	}
 
-	gl_genericShader->SetRequiredVertexPointers();
+	gl_generic3DShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 
