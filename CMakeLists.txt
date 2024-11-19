@@ -791,6 +791,8 @@ if (USE_BREAKPAD)
     endif()
 endif()
 
+option(USE_SYSTEM_LIBS "Tries to use system libs where possible." ON)
+
 if (BUILD_CLIENT)
     find_package(Ogg REQUIRED)
     include_directories(${OGG_INCLUDE_DIRS})
@@ -816,7 +818,12 @@ if (BUILD_CLIENT)
     include_directories(${PNG_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${PNG_LIBRARIES})
 
-    find_package(Freetype REQUIRED)
+    if (USE_SYSTEM_LIBS AND NOT NACL)
+        find_package(Freetype REQUIRED)
+    else()
+        include(${DAEMON_DIR}/freetype.cmake)
+    endif()
+
     include_directories(${FREETYPE_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${FREETYPE_LIBRARIES})
 
