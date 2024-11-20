@@ -153,37 +153,6 @@ set(TINYGETTEXTLIST
     ${LIB_DIR}/tinygettext/tinygettext.hpp
 )
 
-# This is only used for the NaCl modules. For all other targets, the host zlib
-# is used (sourced from external_deps if not available on target platform).
-set(ZLIBLIST
-    ${LIB_DIR}/zlib/adler32.c
-    ${LIB_DIR}/zlib/compress.c
-    ${LIB_DIR}/zlib/crc32.c
-    ${LIB_DIR}/zlib/crc32.h
-    ${LIB_DIR}/zlib/deflate.c
-    ${LIB_DIR}/zlib/deflate.h
-    ${LIB_DIR}/zlib/gzclose.c
-    ${LIB_DIR}/zlib/gzguts.h
-    ${LIB_DIR}/zlib/gzlib.c
-    ${LIB_DIR}/zlib/gzread.c
-    ${LIB_DIR}/zlib/gzwrite.c
-    ${LIB_DIR}/zlib/infback.c
-    ${LIB_DIR}/zlib/inffast.c
-    ${LIB_DIR}/zlib/inffast.h
-    ${LIB_DIR}/zlib/inffixed.h
-    ${LIB_DIR}/zlib/inflate.c
-    ${LIB_DIR}/zlib/inflate.h
-    ${LIB_DIR}/zlib/inftrees.c
-    ${LIB_DIR}/zlib/inftrees.h
-    ${LIB_DIR}/zlib/trees.c
-    ${LIB_DIR}/zlib/trees.h
-    ${LIB_DIR}/zlib/uncompr.c
-    ${LIB_DIR}/zlib/zconf.h
-    ${LIB_DIR}/zlib/zlib.h
-    ${LIB_DIR}/zlib/zutil.c
-    ${LIB_DIR}/zlib/zutil.h
-)
-
 if (WIN32)
     set(BREAKPAD_COMMON_LIST
         ${LIB_DIR}/breakpad/src/common/windows/guid_string.cc
