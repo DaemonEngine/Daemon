@@ -2495,7 +2495,7 @@ static void R_CreateRandomNormalsImage()
 			float  r, angle;
 
 			r = random();
-			angle = 2.0f * M_PI * r; // / 360.0f;
+			angle = Math::mul2_pi_f * r; // / 360.0f;
 
 			VectorSet( n, cosf( angle ), sinf( angle ), r );
 			VectorNormalize( n );
