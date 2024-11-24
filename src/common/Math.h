@@ -66,6 +66,26 @@ namespace Math {
         volatile uint64_t bits = Util::bit_cast<uint64_t>(x);
         return ~bits & 0x7ff0000000000000;
     }
+
+	inline float DegToRad( float angle )
+	{
+		return angle * divpi_180_f;
+	}
+
+	inline float RadToDeg( float angle )
+	{
+		return angle * div180_pi_f;
+	}
+
+	inline double DegToRad( double angle )
+	{
+		return angle * divpi_180_d;
+	}
+
+	inline double RadToDeg( double angle )
+	{
+		return angle * div180_pi_d;
+	}
 }
 
 #include "math/Vector.h"
