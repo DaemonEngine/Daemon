@@ -326,9 +326,6 @@ DEPRECATED static const float M_ROOT3 = 1.732050808f;
 // FIXME/KILLME: not implemented!
 #define S_SKIPNOTIFY "[skipnotify]"
 
-#define DEG2RAD( a )                  ( ( ( a ) * M_PI ) / 180.0f )
-#define RAD2DEG( a )                  ( ( ( a ) * 180.0f ) / M_PI )
-
 struct cplane_t;
 
 extern const vec3_t   vec3_origin;
