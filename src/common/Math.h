@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 
+#include "math/Constants.h"
+
 namespace Math {
 
     // This is designed to return min if value is NaN. That's not guaranteed to work when
