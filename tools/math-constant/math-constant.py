@@ -12,6 +12,8 @@ file_realpath = os.path.join(root_dir, file_path)
 header = "// Generated with {}\n".format(script_path)
 header += "// Do not modify!"
 
+header_id = "COMMON_MATH_CONSTANT_H_"
+
 constants = []
 
 class _phi:
@@ -287,8 +289,8 @@ def output(string=""):
 
 output(header)
 output()
-output("#ifndef COMMON_CONSTANT_H_")
-output("#define COMMON_CONSTANT_H_")
+output("#ifndef {}".format(header_id))
+output("#define {}".format(header_id))
 output()
 output("namespace Math {")
 
@@ -365,6 +367,6 @@ for t in types:
 
 output("}")
 output()
-output("#endif // COMMON_CONSTANT_H_")
+output("#endif // {}".format(header_id))
 
 file_handle.close()

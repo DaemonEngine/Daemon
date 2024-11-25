@@ -1,8 +1,8 @@
 // Generated with tools/math-constant/math-constant.py
 // Do not modify!
 
-#ifndef COMMON_CONSTANT_H_
-#define COMMON_CONSTANT_H_
+#ifndef COMMON_MATH_CONSTANT_H_
+#define COMMON_MATH_CONSTANT_H_
 
 namespace Math {
 	//        Type  Name                    Value     Operation  GNU          std::numbers
@@ -58,4 +58,4 @@ namespace Math {
 	constexpr double inv_sqrt3_d   =   .57735026918962576451; // 1÷√3                    inv_sqrt3
 }
 
-#endif // COMMON_CONSTANT_H_
+#endif // COMMON_MATH_CONSTANT_H_
