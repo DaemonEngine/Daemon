@@ -28,8 +28,8 @@ namespace Math {
 	constexpr float sqrt3_f       =   1.73205081f; // √3                      sqrt3f
 	constexpr float inv_sqrtpi_f  =   1.77245385f; // 1÷√π                    inv_sqrtpif
 	constexpr float inv_sqrt2_f   =   .707106781f; // 1÷√2       M_SQRT1_2f   inv_sqrt2f
-	constexpr float div2_sqrtpi_f =   1.12837917f; // 2÷√π       M_2_SQRTPIf
 	constexpr float inv_sqrt3_f   =   .577350269f; // 1÷√3                    inv_sqrt3f
+	constexpr float div2_sqrtpi_f =   1.12837917f; // 2÷√π       M_2_SQRTPIf
 
 	//        Type   Name                              Value     Operation  GNU          std::numbers
 	constexpr double phi_d         =   1.6180339887498948482; // φ                       phi
@@ -54,8 +54,8 @@ namespace Math {
 	constexpr double sqrt3_d       =   1.7320508075688772935; // √3                      sqrt3
 	constexpr double inv_sqrtpi_d  =   1.7724538509055160273; // 1÷√π                    inv_sqrtpi
 	constexpr double inv_sqrt2_d   =    .7071067811865475244; // 1÷√2       M_SQRT1_2    inv_sqrt2
-	constexpr double div2_sqrtpi_d =   1.1283791670955125739; // 2÷√π       M_2_SQRTPI
 	constexpr double inv_sqrt3_d   =   .57735026918962576451; // 1÷√3                    inv_sqrt3
+	constexpr double div2_sqrtpi_d =   1.1283791670955125739; // 2÷√π       M_2_SQRTPI
 }
 
 #endif // COMMON_MATH_CONSTANT_H_

@@ -221,6 +221,8 @@ class _inv_sqrt3:
 	operation = "1÷√3"
 	def compute(): return fdiv(1, sqrt(3))
 
+constants.append(_inv_sqrt3)
+
 class _div2_sqrtpi:
 	name = "div2_sqrtpi"
 	gnu = "M_2_SQRTPI"
@@ -229,8 +231,6 @@ class _div2_sqrtpi:
 	def compute(): return fdiv(2, sqrt(mp.pi))
 
 constants.append(_div2_sqrtpi)
-
-constants.append(_inv_sqrt3)
 
 types = []
 
