@@ -263,8 +263,10 @@ class _long_double:
 # types.append(_long_double)
 
 keyword = "constexpr"
+value = "0"
 
 keyword_pad = len(keyword)
+value_pad = len(value)
 
 type_head = "Type"
 name_head = "Name"
@@ -301,8 +303,6 @@ for t in types:
 	mp.dps = t.precision
 
 	type_pad = len(t.name)
-	value_pad = len(str(_pi.compute()))
-	suffix_pad = len(t.suffix)
 
 	for c in constants:
 		name = c.name + t.slug
@@ -328,10 +328,18 @@ for t in types:
 		else:
 			std = ""
 
-	sizes = keyword_pad, type_pad, name_pad, value_pad, suffix_pad, operation_pad, gnu_pad
-	string = "\t{:<%s} {:<%s} {:<%s} {} {:<%s}{:<%s}{} {} {:<%s}  {:<%s}  {}" % sizes
+		value = str(c.compute()) + t.suffix
+		if value.startswith("0."):
+			value = value[1:]
 
-	fields = "//", type_head, name_head, " ", value_head, "", " ", "  ", operation_head, gnu_head, std
+		l = len(value)
+		if l > value_pad:
+			value_pad = l
+
+	sizes = keyword_pad, type_pad, name_pad, value_pad, operation_pad, gnu_pad
+	string = "\t{:<%s} {:<%s} {:<%s} {} {:>%s}{} {} {:<%s}  {:<%s}  {}" % sizes
+
+	fields = "//", type_head, name_head, " ", value_head, " ", "  ", operation_head, gnu_head, std
 	output(string.format(*fields).rstrip())
 
 	for c in constants:
@@ -348,16 +356,11 @@ for t in types:
 		else:
 			std = ""
 
-		v = str(c.compute())
-		if v.startswith("0."):
-			v = v[1:]
+		value = str(c.compute()) + t.suffix
+		if value.startswith("0."):
+			value = value[1:]
 
-		v = v[:t.precision + 1]
-
-		if "." in v:
-			v = v.ljust(t.precision + 1, "0")
-
-		fields = keyword, t.name, name, "=", v, t.suffix, ";", "//", c.operation, gnu, std
+		fields = keyword, t.name, name, "=", value, ";", "//", c.operation, gnu, std
 		output(string.format(*fields).rstrip())
 
 output("}")
