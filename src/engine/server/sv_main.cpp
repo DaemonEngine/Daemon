@@ -496,7 +496,7 @@ static void SVC_Status( const netadr_t& from, const Cmd::Args& args )
 
 		if ( cl->state >= clientState_t::CS_CONNECTED )
 		{
-			OpaquePlayerState* ps = SV_GameClientNum( i );
+			const OpaquePlayerState* ps = SV_GameClientNum( i );
 			status +=  Str::Format( "%i %i \"%s\"\n", ps->persistant[ PERS_SCORE ], cl->ping, cl->name );
 		}
 	}
@@ -1210,10 +1210,6 @@ void SV_CalcPings()
 				cl->ping = 999;
 			}
 		}
-
-		// let the game module know about the ping
-		OpaquePlayerState* ps = SV_GameClientNum( i );
-		ps->ping = cl->ping;
 	}
 }
 
