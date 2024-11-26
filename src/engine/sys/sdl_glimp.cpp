@@ -70,8 +70,6 @@ static Cvar::Cvar<bool> r_arb_buffer_storage( "r_arb_buffer_storage",
 	"Use GL_ARB_buffer_storage if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
 	"Use GL_ARB_compute_shader if available", Cvar::NONE, true );
-static Cvar::Cvar<bool> r_arb_depth_clamp( "r_arb_depth_clamp",
-	"Use GL_ARB_depth_clamp if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_framebuffer_object( "r_arb_framebuffer_object",
 	"Use GL_ARB_framebuffer_object if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform_location",
@@ -757,11 +755,16 @@ static std::string ContextDescription( const glConfiguration& configuration )
 
 static void GLimp_SetAttributes( const glConfiguration &configuration )
 {
+	// FIXME: 3 * 4 = 12 which is more than 8
 	int perChannelColorBits = configuration.colorBits == 24 ? 8 : 4;
 
 	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, perChannelColorBits );
 	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, perChannelColorBits );
 	SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, perChannelColorBits );
+
+	// Depth/stencil channels are not needed since all 3D rendering is done in FBOs
+	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 0 );
+	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 );
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
 	if ( !r_glAllowSoftware->integer )
@@ -1973,7 +1976,6 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_bindless_texture );
 	Cvar::Latch( r_arb_buffer_storage );
 	Cvar::Latch( r_arb_compute_shader );
-	Cvar::Latch( r_arb_depth_clamp );
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_framebuffer_object );
 	Cvar::Latch( r_arb_gpu_shader5 );
@@ -2394,9 +2396,6 @@ static void GLimp_InitExtensions()
 
 	// made required in OpenGL 3.2
 	glConfig2.syncAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_sync, r_arb_sync.Get() );
-
-	// made required in OpenGL 3.2
-	glConfig2.depthClampAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_CORE, ARB_depth_clamp, r_arb_depth_clamp.Get() );
 
 	// made required in OpenGL 4.3
 	glConfig2.computeShaderAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_compute_shader, r_arb_compute_shader.Get() );

@@ -2538,14 +2538,12 @@ static void R_CreateContrastRenderFBOImage()
 		return;
 	}
 
-	int  width, height;
-
-	width = glConfig.vidWidth * 0.25f;
-	height = glConfig.vidHeight * 0.25f;
+	const int width = glConfig.vidWidth * 0.25f;
+	const int height = glConfig.vidHeight * 0.25f;
 
 	imageParams_t imageParams = {};
 	imageParams.bits = IF_NOPICMIP;
-	imageParams.filterType = filterType_t::FT_DEFAULT;
+	imageParams.filterType = filterType_t::FT_LINEAR;
 	imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
 	tr.contrastRenderFBOImage = R_CreateImage( "_contrastRenderFBO", nullptr, width, height, 1, imageParams );
@@ -2558,20 +2556,17 @@ static void R_CreateBloomRenderFBOImages()
 		return;
 	}
 
-	int  i;
-	int  width, height;
+	const int width = glConfig.vidWidth * 0.25f;
+	const int height = glConfig.vidHeight * 0.25f;
 
-	width = glConfig.vidWidth * 0.25f;
-	height = glConfig.vidHeight * 0.25f;
-
-	for ( i = 0; i < 2; i++ )
+	for ( int i = 0; i < 2; i++ )
 	{
 		imageParams_t imageParams = {};
 		imageParams.bits = IF_NOPICMIP;
-		imageParams.filterType = filterType_t::FT_DEFAULT;
+		imageParams.filterType = filterType_t::FT_LINEAR;
 		imageParams.wrapType = wrapTypeEnum_t::WT_CLAMP;
 
-		tr.bloomRenderFBOImage[ i ] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
+		tr.bloomRenderFBOImage[i] = R_CreateImage( va( "_bloomRenderFBO%d", i ), nullptr, width, height, 1, imageParams );
 	}
 }
 
@@ -2587,13 +2582,19 @@ static void R_CreateCurrentRenderImage()
 
 	if ( r_highPrecisionRendering.Get() )
 	{
-		if ( !glConfig2.textureRGBA16BlendAvailable )
+		if ( !glConfig2.textureFloatAvailable )
 		{
-			Log::Warn( "High-precision current render disabled because RGBA16 framebuffer blending is not available" );
+			Log::Warn( "High-precision current render disabled because RGBA16F framebuffer is not available" );
 		}
 		else
 		{
-			imageParams.bits |= IF_RGBA16;
+			// Use float color buffer so that we can store intermediate results of a multi-stage
+			// shader which are greater than 1. For example, the sum of multiple lightmaps from
+			// a light style, or simply a single overbright-scaled lightmap which we did not
+			// manage to collapse with the diffuse.
+			// Besides preventing clamping of the color buffer itself, using a float color buffer
+			// also prevents the fragment shader's output color from being clamped before blending.
+			imageParams.bits |= IF_RGBA16F;
 		}
 	}
 

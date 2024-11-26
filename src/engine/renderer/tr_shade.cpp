@@ -142,7 +142,7 @@ static void EnableAvailableFeatures()
 	glConfig2.specularMapping = glConfig2.deluxeMapping && glConfig2.specularMapping;
 	glConfig2.physicalMapping = glConfig2.deluxeMapping && glConfig2.physicalMapping;
 
-	glConfig2.bloom = r_bloom->integer;
+	glConfig2.bloom = r_bloom.Get();
 
 	/* Motion blur is enabled by cg_motionblur which is a client cvar so we have to build it in all cases,
 	unless unsupported by the hardware which is the only condition when the engine knows it is not used. */
@@ -344,9 +344,7 @@ static void GLSL_InitGPUShadersOrError()
 	if ( glConfig2.bloom || glConfig2.shadowMapping )
 	{
 		// gaussian blur
-		gl_shaderManager.load( gl_blurXShader );
-
-		gl_shaderManager.load( gl_blurYShader );
+		gl_shaderManager.load( gl_blurShader );
 	}
 
 	if ( glConfig2.shadowMapping )
@@ -498,8 +496,7 @@ void GLSL_ShutdownGPUShaders()
 	gl_portalShader = nullptr;
 	gl_contrastShader = nullptr;
 	gl_cameraEffectsShader = nullptr;
-	gl_blurXShader = nullptr;
-	gl_blurYShader = nullptr;
+	gl_blurShader = nullptr;
 	gl_debugShadowMapShader = nullptr;
 	gl_liquidShader = nullptr;
 	gl_liquidShaderMaterial = nullptr;
@@ -693,7 +690,6 @@ static void DrawTris()
 	}
 
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -824,15 +820,10 @@ static void Render_generic2D( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_generic2D ---\n" );
 
-	GL_State( pStage->stateBits );
+	// Disable depth testing and writing
+	GL_State( ( pStage->stateBits & ~GLS_DEPTHMASK_TRUE ) | GLS_DEPTHTEST_DISABLE );
 
-	bool hasDepthFade = pStage->hasDepthFade;
-	bool needDepthMap = pStage->hasDepthFade;
-
-	// choose right shader program ----------------------------------
-	gl_generic2DShader->SetDepthFade( hasDepthFade );
 	gl_generic2DShader->BindProgram( pStage->deformIndex );
-	// end choose right shader program ------------------------------
 
 	// set uniforms
 	// u_AlphaThreshold
@@ -857,32 +848,10 @@ static void Render_generic2D( shaderStage_t *pStage )
 	gl_generic2DShader->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
 	gl_generic2DShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
 
-	if ( glConfig2.depthClampAvailable )
-	{
-		glEnable( GL_DEPTH_CLAMP );
-	}
-
-	if ( hasDepthFade )
-	{
-		gl_generic2DShader->SetUniform_DepthScale( pStage->depthFadeValue );
-	}
-
-	if ( needDepthMap )
-	{
-		gl_generic2DShader->SetUniform_DepthMapBindless(
-			GL_BindToTMU( 1, tr.currentDepthImage ) 
-		);
-	}
-
 	gl_generic2DShader->SetRequiredVertexPointers();
 
 	Tess_DrawElements();
 	GL_CheckErrors();
-
-	if ( glConfig2.depthClampAvailable )
-	{
-		glDisable( GL_DEPTH_CLAMP );
-	}
 
 	GL_CheckErrors();
 }
@@ -921,15 +890,15 @@ void Render_generic3D( shaderStage_t *pStage )
 	// u_AlphaThreshold
 	gl_genericShader->SetUniform_AlphaTest( pStage->stateBits );
 
-	// u_InverseLightFactor
-	float inverseLightFactor = pStage->cancelOverBright ? tr.mapInverseLightFactor : 1.0f;
-	gl_genericShader->SetUniform_InverseLightFactor( inverseLightFactor );
-
 	// u_ColorModulate
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen );
+	// Here, it's safe to multiply the overbright factor for vertex lighting into the color gen`
+	// since the `generic` fragment shader only takes a single input color. `lightMapping` on the
+	// hand needs to know the real diffuse color, hence the separate u_LightFactor.
+	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && tess.bspSurface;
+	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
 
 	// u_Color
 	gl_genericShader->SetUniform_Color( tess.svars.color );
@@ -1125,12 +1094,9 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// u_DeformGen
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
-	// u_InverseLightFactor
-	/* HACK: use sign to know if there is a light or not, and
-	then if it will receive overbright multiplication or not. */
-	bool cancelOverBright = pStage->cancelOverBright;
-	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
-	gl_lightMappingShader->SetUniform_InverseLightFactor( inverseLightFactor );
+	// u_LightFactor
+	gl_lightMappingShader->SetUniform_LightFactor(
+		lightMode == lightMode_t::FULLBRIGHT ? 1.0f : tr.mapLightFactor );
 
 	// u_ColorModulate
 	gl_lightMappingShader->SetUniform_ColorModulate( rgbGen, alphaGen );
@@ -1418,9 +1384,6 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// u_AlphaThreshold
 	gl_forwardLightingShader_omniXYZ->SetUniform_AlphaTest( pStage->stateBits );
 
-	// u_InverseLightFactor
-	gl_forwardLightingShader_omniXYZ->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
@@ -1595,9 +1558,6 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 
 	// u_AlphaThreshold
 	gl_forwardLightingShader_projXYZ->SetUniform_AlphaTest( pStage->stateBits );
-
-	// u_InverseLightFactor
-	gl_forwardLightingShader_projXYZ->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
@@ -1774,9 +1734,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 
 	// u_AlphaThreshold
 	gl_forwardLightingShader_directionalSun->SetUniform_AlphaTest( pStage->stateBits );
-
-	// u_InverseLightFactor
-	gl_forwardLightingShader_directionalSun->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
@@ -2068,9 +2025,6 @@ void Render_skybox( shaderStage_t *pStage )
 
 	// u_AlphaThreshold
 	gl_skyboxShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
-
-	// u_InverseLightFactor
-	gl_skyboxShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	gl_skyboxShader->SetRequiredVertexPointers();
 
@@ -2397,9 +2351,6 @@ void Render_fog( shaderStage_t* pStage )
 
 	gl_fogQuake3Shader->BindProgram( 0 );
 
-	// u_InverseLightFactor
-	gl_fogQuake3Shader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 	gl_fogQuake3Shader->SetUniform_FogDistanceVector( fogDistanceVector );
 	gl_fogQuake3Shader->SetUniform_FogDepthVector( fogDepthVector );
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
@@ -2589,6 +2540,11 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 			}
 	}
 
+	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP )
+	{
+		tess.svars.color *= tr.mapLightFactor;
+	}
+
 	// alphaGen
 	switch ( pStage->alphaGen )
 	{
@@ -2695,6 +2651,7 @@ void Tess_ComputeTexMatrices( shaderStage_t *pStage )
 }
 
 // Used for things which are never intended to be rendered
+// (or in the case of Tess_InstantQuad, they're rendered but not via Tess_End)
 void Tess_StageIteratorDummy()
 {
 	Log::Warn( "non-drawing tessellation overflow" );

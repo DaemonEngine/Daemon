@@ -2150,21 +2150,6 @@ public:
 	}
 };
 
-class u_InverseLightFactor :
-	GLUniform1f
-{
-public:
-	u_InverseLightFactor( GLShader *shader ) :
-		GLUniform1f( shader, "u_InverseLightFactor" )
-	{
-	}
-
-	void SetUniform_InverseLightFactor( const float inverseLightFactor )
-	{
-		this->SetValue( inverseLightFactor );
-	}
-};
-
 class u_ColorMap :
 	GLUniformSampler2D {
 	public:
@@ -3617,7 +3602,7 @@ public:
 	{
 		this->SetValue( v );
 	}
-	void SetUniform_ColorModulate( colorGen_t colorGen, alphaGen_t alphaGen )
+	void SetUniform_ColorModulate( colorGen_t colorGen, alphaGen_t alphaGen, bool vertexOverbright = false )
 	{
 		vec4_t v;
 		bool needAttrib = false;
@@ -3631,7 +3616,16 @@ public:
 		{
 			case colorGen_t::CGEN_VERTEX:
 				needAttrib = true;
-				VectorSet( v, 1, 1, 1 );
+				if ( vertexOverbright )
+				{
+					// vertexOverbright is only needed for non-lightmapped cases. When there is a
+					// lightmap, this is done by multiplying with the overbright-scaled white image
+					VectorSet( v, tr.mapLightFactor, tr.mapLightFactor, tr.mapLightFactor );
+				}
+				else
+				{
+					VectorSet( v, 1, 1, 1 );
+				}
 				break;
 
 			case colorGen_t::CGEN_ONE_MINUS_VERTEX:
@@ -3757,6 +3751,18 @@ public:
 	void SetUniform_blurVec( vec3_t value )
 	{
 		this->SetValue( value );
+	}
+};
+
+class u_Horizontal :
+	GLUniform1Bool {
+	public:
+	u_Horizontal( GLShader* shader ) :
+		GLUniform1Bool( shader, "u_Horizontal", true ) {
+	}
+
+	void SetUniform_Horizontal( bool horizontal ) {
+		this->SetValue( horizontal );
 	}
 };
 
@@ -3912,10 +3918,9 @@ class u_Lights :
 	}
 };
 
-// This is just a copy of the GLShader_generic, but with a special
-// define for RmlUI transforms. It probably has a lot of unnecessary
-// code that could be pruned.
-// TODO: Write a more minimal 2D rendering shader.
+// FIXME: this is the same as 'generic' and has no reason for existing.
+// It was added along with RmlUi transforms to add "gl_FragDepth = 0;" to the GLSL,
+// but that turns out not to be needed.
 class GLShader_generic2D :
 	public GLShader,
 	public u_ColorMap,
@@ -3927,8 +3932,7 @@ class GLShader_generic2D :
 	public u_ColorModulate,
 	public u_Color,
 	public u_DepthScale,
-	public GLDeformStage,
-	public GLCompileMacro_USE_DEPTH_FADE
+	public GLDeformStage
 {
 public:
 	GLShader_generic2D( GLShaderManager *manager );
@@ -3946,7 +3950,6 @@ class GLShader_generic :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
 	public u_ColorModulate,
 	public u_Color,
 	public u_Bones,
@@ -3976,7 +3979,6 @@ class GLShader_genericMaterial :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
 	public u_ColorModulate,
 	public u_Color,
 	public u_DepthScale,
@@ -4015,7 +4017,7 @@ class GLShader_lightMapping :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
+	public u_LightFactor,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_ReliefDepthScale,
@@ -4067,7 +4069,7 @@ class GLShader_lightMappingMaterial :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
+	public u_LightFactor,
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
@@ -4113,7 +4115,6 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_ViewOrigin,
 	public u_LightOrigin,
 	public u_LightColor,
-	public u_InverseLightFactor,
 	public u_LightRadius,
 	public u_LightScale,
 	public u_LightAttenuationMatrix,
@@ -4157,7 +4158,6 @@ class GLShader_forwardLighting_projXYZ :
 	public u_ViewOrigin,
 	public u_LightOrigin,
 	public u_LightColor,
-	public u_InverseLightFactor,
 	public u_LightRadius,
 	public u_LightScale,
 	public u_LightAttenuationMatrix,
@@ -4208,7 +4208,6 @@ class GLShader_forwardLighting_directionalSun :
 	public u_ViewOrigin,
 	public u_LightDir,
 	public u_LightColor,
-	public u_InverseLightFactor,
 	public u_LightRadius,
 	public u_LightScale,
 	public u_LightAttenuationMatrix,
@@ -4275,7 +4274,6 @@ class GLShader_reflection :
 	public u_NormalScale,
 	public u_VertexInterpolation,
 	public u_CameraPosition,
-	public u_InverseLightFactor,
 	public GLDeformStage,
 	public GLCompileMacro_USE_VERTEX_SKINNING,
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
@@ -4300,7 +4298,6 @@ class GLShader_reflectionMaterial :
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
 	public u_CameraPosition,
-	public u_InverseLightFactor,
 	public GLDeformStage,
 	public GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP,
 	public GLCompileMacro_USE_RELIEF_MAPPING {
@@ -4319,8 +4316,7 @@ class GLShader_skybox :
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor
+	public u_ModelViewProjectionMatrix
 {
 public:
 	GLShader_skybox( GLShaderManager *manager );
@@ -4337,8 +4333,7 @@ class GLShader_skyboxMaterial :
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor {
+	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_skyboxMaterial( GLShaderManager* manager );
 	void SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) override;
@@ -4349,7 +4344,6 @@ class GLShader_fogQuake3 :
 	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
 	public u_Color,
 	public u_Bones,
 	public u_VertexInterpolation,
@@ -4370,7 +4364,6 @@ class GLShader_fogQuake3Material :
 	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor,
 	public u_Color,
 	public u_FogDistanceVector,
 	public u_FogDepthVector,
@@ -4389,7 +4382,6 @@ class GLShader_fogGlobal :
 	public u_ViewMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
-	public u_InverseLightFactor,
 	public u_Color,
 	public u_FogDistanceVector,
 	public u_FogDepthVector
@@ -4484,8 +4476,7 @@ public:
 class GLShader_contrast :
 	public GLShader,
 	public u_ColorMap,
-	public u_ModelViewProjectionMatrix,
-	public u_InverseLightFactor
+	public u_ModelViewProjectionMatrix
 {
 public:
 	GLShader_contrast( GLShaderManager *manager );
@@ -4499,7 +4490,6 @@ class GLShader_cameraEffects :
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_LightFactor,
 	public u_DeformMagnitude,
 	public u_InverseGamma
 {
@@ -4508,27 +4498,16 @@ public:
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
-class GLShader_blurX :
+class GLShader_blur :
 	public GLShader,
 	public u_ColorMap,
 	public u_ModelViewProjectionMatrix,
 	public u_DeformMagnitude,
-	public u_TexScale
+	public u_TexScale,
+	public u_Horizontal
 {
 public:
-	GLShader_blurX( GLShaderManager *manager );
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
-};
-
-class GLShader_blurY :
-	public GLShader,
-	public u_ColorMap,
-	public u_ModelViewProjectionMatrix,
-	public u_DeformMagnitude,
-	public u_TexScale
-{
-public:
-	GLShader_blurY( GLShaderManager *manager );
+	GLShader_blur( GLShaderManager *manager );
 	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
 };
 
@@ -4762,8 +4741,7 @@ extern GLShader_screenMaterial                  *gl_screenShaderMaterial;
 extern GLShader_portal                          *gl_portalShader;
 extern GLShader_contrast                        *gl_contrastShader;
 extern GLShader_cameraEffects                   *gl_cameraEffectsShader;
-extern GLShader_blurX                           *gl_blurXShader;
-extern GLShader_blurY                           *gl_blurYShader;
+extern GLShader_blur                            *gl_blurShader;
 extern GLShader_debugShadowMap                  *gl_debugShadowMapShader;
 extern GLShader_liquid                          *gl_liquidShader;
 extern GLShader_liquidMaterial                  *gl_liquidShaderMaterial;

@@ -258,7 +258,7 @@ else()
 		try_flag(WARNINGS "-Werror")
 	endif()
 
-	if (NACL)
+	if (NACL AND NOT USE_NACL_SAIGO)
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
@@ -337,8 +337,11 @@ else()
 
 		try_c_cxx_flag(FNO_STRICT_OVERFLOW "-fno-strict-overflow")
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
-		try_c_cxx_flag(FPIE "-fPIE")
-		try_linker_flag(LINKER_PIE "-pie")
+
+		if (NOT NACL OR (NACL AND GAME_PIE))
+			try_c_cxx_flag(FPIE "-fPIE")
+			try_linker_flag(LINKER_PIE "-pie")
+		endif()
 
 		if ("${FLAG_LINKER_PIE}" AND MINGW)
 			# https://github.com/msys2/MINGW-packages/issues/4100

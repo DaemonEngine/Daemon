@@ -162,10 +162,8 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/vertexAnimation_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSimple_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/vertexSkinning_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blurX_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blurX_vp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blurY_fp.glsl
-    ${ENGINE_DIR}/renderer/glsl_source/blurY_vp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/blur_fp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/blur_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/cameraEffects_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/computeLight_fp.glsl

@@ -544,7 +544,7 @@ void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, const float x, const
 {
 	GLimp_LogComment( "--- Tess_InstantQuad ---\n" );
 
-	Tess_Clear();
+	Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, true, -1, 0 );
 
 	matrix_t modelViewMatrix;
 	MatrixCopy( matrixIdentity, modelViewMatrix );

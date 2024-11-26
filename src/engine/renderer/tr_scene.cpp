@@ -335,12 +335,6 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 	light->l.color[ 1 ] = g;
 	light->l.color[ 2 ] = b;
 
-	if ( r_realtimeLightingRenderer.Get() == Util::ordinal( realtimeLightingRenderer_t::TILED ) )
-	{
-		// Cancel overBright on dynamic lights.
-		VectorScale( light->l.color, tr.mapInverseLightFactor, light->l.color );
-	}
-
 	light->l.inverseShadows = (flags & REF_INVERSE_DLIGHT) != 0;
 	light->l.noShadows = !r_realtimeLightingCastShadows->integer && !light->l.inverseShadows;
 

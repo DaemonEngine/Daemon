@@ -108,6 +108,8 @@ struct Material {
 	bool enableSpecularMapping;
 	bool enablePhysicalMapping;
 
+	bool useAttrColor = false;
+
 	cullType_t cullType;
 
 	uint32_t sort;
@@ -126,7 +128,8 @@ struct Material {
 
 	bool operator==( const Material& other ) {
 		return program == other.program && stateBits == other.stateBits && vbo == other.vbo && ibo == other.ibo
-			&& fog == other.fog && cullType == other.cullType && usePolygonOffset == other.usePolygonOffset;
+			&& fog == other.fog && cullType == other.cullType && usePolygonOffset == other.usePolygonOffset
+			&& useAttrColor == other.useAttrColor;
 	}
 
 	void AddTexture( Texture* texture ) {

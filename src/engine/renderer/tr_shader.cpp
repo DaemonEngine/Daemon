@@ -81,6 +81,12 @@ Cvar::Cvar<bool> r_dpBlend("r_dpBlend", "Enable DarkPlaces blend compatibility, 
 static Cvar::Cvar<float> r_portalDefaultRange(
 	"r_portalDefaultRange", "Default portal range", Cvar::NONE, 1024);
 
+// This can be turned off to debug problems with depth shaders.
+// Almost everything can be rendered correctly without them, except real-time lights
+// (since light tiles are populated using the depth buffer).
+static Cvar::Cvar<bool> r_depthShaders(
+	"r_depthShaders", "use depth pre-pass shaders", Cvar::CHEAT, true);
+
 /*
 ================
 return a hash value for the filename
@@ -5168,8 +5174,16 @@ static void CollapseStages()
 // Make shader stages ready to be used by renderer functions.
 static void FinishStages()
 {
-	bool shaderHasNoLight = true;
 	bool lightStageFound = false;
+
+	/* Skip standalone lightmaps, they are assumed to be buggy,
+	see: https://github.com/DaemonEngine/Daemon/issues/322 */
+	if ( numStages == 1 && stages[ 0 ].type == stageType_t::ST_LIGHTMAP )
+	{
+		Log::Warn("Skipping standalone lightmap in shader '%s', assumed to be buggy.", shader.name);
+		stages[ 0 ].active = false;
+		numStages = 0;
+	}
 
 	for ( size_t s = 0; s < numStages; s++ )
 	{
@@ -5206,22 +5220,15 @@ static void FinishStages()
 				stage->active = glConfig2.reflectionMappingAvailable;
 				break;
 
-			case stageType_t::ST_STYLELIGHTMAP:
-			case stageType_t::ST_STYLECOLORMAP:
-				shaderHasNoLight = false;
-				break;
-
 			case stageType_t::ST_LIGHTMAP:
 				// standalone lightmap stage: paint shadows over a white texture
 				stage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
 				lightStageFound = true;
-				shaderHasNoLight = false;
 				break;
 
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				lightStageFound = true;
-				shaderHasNoLight = false;
 				break;
 
 			case stageType_t::ST_ATTENUATIONMAP_XY:
@@ -5240,57 +5247,11 @@ static void FinishStages()
 		? gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms )
 		: 0;
 
-	bool isOpaqueShader = false;
-
 	for ( size_t s = 0; s < numStages; s++ )
 	{
 		shaderStage_t *stage = &stages[ s ];
 
 		stage->deformIndex = deformIndex;
-
-		// SRC1 and DST0 are reset to zero in ParseStage (no blending).
-		bool isOpaque = !( stage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) );
-
-		// A shader is not opaque if all stages are not opaques.
-		isOpaqueShader |= isOpaque;
-
-		if ( shaderHasNoLight )
-		{
-			bool blendFunc_srcDstColor = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_DST_COLOR;
-
-			// We should cancel overbright if there is no light stage, unless it's using blendFunc dst_color.
-			stage->cancelOverBright = !blendFunc_srcDstColor;
-
-			bool isDecal = shader.sort == Util::ordinal(shaderSort_t::SS_DECAL);
-
-			if ( isDecal )
-			{
-				// We should not cancel overbright if that's a non-opaque decal.
-				stage->cancelOverBright = isOpaque;
-			}
-		}
-		else
-		{
-			if ( isOpaqueShader )
-			{
-				// We we should not cancel overbright if the light stage is applied on an opaque surface;
-				stage->cancelOverBright = false;
-			}
-			else
-			{
-				bool blendFunc_add = ( stage->stateBits & GLS_SRCBLEND_BITS ) == GLS_SRCBLEND_ONE
-					&& ( stage->stateBits & GLS_DSTBLEND_BITS ) == GLS_DSTBLEND_ONE;
-
-				if ( blendFunc_add )
-				{
-					stage->cancelOverBright = true;
-				}
-				else
-				{
-					stage->cancelOverBright = false;
-				}
-			}
-		}
 
 		// Available textures.
 		bool hasNormalMap = stage->bundle[ TB_NORMALMAP ].image[ 0 ] != nullptr;
@@ -6000,7 +5961,8 @@ static shader_t *FinishShader()
 	}
 
 	// generate depth-only shader if necessary
-	if( !shader.isSky &&
+	if( r_depthShaders.Get() &&
+	    !shader.isSky &&
 	    numStages > 0 &&
 	    (stages[0].stateBits & GLS_DEPTHMASK_TRUE) &&
 	    !(stages[0].stateBits & GLS_DEPTHFUNC_EQUAL) &&
@@ -7221,6 +7183,7 @@ R_InitShaders
 void R_InitShaders()
 {
 	Cvar::Latch(r_dpMaterial);
+	Cvar::Latch(r_depthShaders);
 	Cvar::Latch(r_portalDefaultRange);
 
 	memset( shaderTableHashTable, 0, sizeof( shaderTableHashTable ) );

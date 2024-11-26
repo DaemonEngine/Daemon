@@ -70,8 +70,7 @@ GLShader_screenMaterial                  *gl_screenShaderMaterial = nullptr;
 GLShader_portal                          *gl_portalShader = nullptr;
 GLShader_contrast                        *gl_contrastShader = nullptr;
 GLShader_cameraEffects                   *gl_cameraEffectsShader = nullptr;
-GLShader_blurX                           *gl_blurXShader = nullptr;
-GLShader_blurY                           *gl_blurYShader = nullptr;
+GLShader_blur                           *gl_blurShader = nullptr;
 GLShader_debugShadowMap                  *gl_debugShadowMapShader = nullptr;
 GLShader_liquid                          *gl_liquidShader = nullptr;
 GLShader_liquidMaterial                  *gl_liquidShaderMaterial = nullptr;
@@ -2184,8 +2183,7 @@ GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_Color( this ),
 	u_DepthScale( this ),
-	GLDeformStage( this ),
-	GLCompileMacro_USE_DEPTH_FADE( this )
+	GLDeformStage( this )
 {
 }
 
@@ -2197,7 +2195,6 @@ void GLShader_generic2D::BuildShaderCompileMacros( std::string& compileMacros )
 void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_DepthMap" ), 1 );
 }
 
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
@@ -2210,7 +2207,6 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
 	u_Bones( this ),
@@ -2243,7 +2239,6 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
 	u_ColorModulate( this ),
 	u_Color( this ),
 	u_DepthScale( this ),
@@ -2285,7 +2280,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
+	u_LightFactor( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_ReliefDepthScale( this ),
@@ -2354,7 +2349,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
+	u_LightFactor( this ),
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
@@ -2413,7 +2408,6 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
 	u_LightColor( this ),
-	u_InverseLightFactor( this ),
 	u_LightRadius( this ),
 	u_LightScale( this ),
 	u_LightAttenuationMatrix( this ),
@@ -2467,7 +2461,6 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
 	u_LightColor( this ),
-	u_InverseLightFactor( this ),
 	u_LightRadius( this ),
 	u_LightScale( this ),
 	u_LightAttenuationMatrix( this ),
@@ -2532,7 +2525,6 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_ViewOrigin( this ),
 	u_LightDir( this ),
 	u_LightColor( this ),
-	u_InverseLightFactor( this ),
 	u_LightRadius( this ),
 	u_LightScale( this ),
 	u_LightAttenuationMatrix( this ),
@@ -2622,7 +2614,6 @@ GLShader_reflection::GLShader_reflection( GLShaderManager *manager ):
 	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
 	u_CameraPosition( this ),
-	u_InverseLightFactor( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_VERTEX_SKINNING( this ),
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
@@ -2651,7 +2642,6 @@ GLShader_reflectionMaterial::GLShader_reflectionMaterial( GLShaderManager* manag
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
 	u_CameraPosition( this ),
-	u_InverseLightFactor( this ),
 	GLDeformStage( this ),
 	GLCompileMacro_USE_HEIGHTMAP_IN_NORMALMAP( this ),
 	GLCompileMacro_USE_RELIEF_MAPPING( this ) {
@@ -2673,8 +2663,7 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this )
+	u_ModelViewProjectionMatrix( this )
 {
 }
 
@@ -2694,9 +2683,8 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial( GLShaderManager* manager ) :
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ) {
-}
+	u_ModelViewProjectionMatrix( this )
+{}
 
 void GLShader_skyboxMaterial::SetShaderProgramUniforms( shaderProgram_t* shaderProgram ) {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
@@ -2708,7 +2696,6 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
 	u_Color( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
@@ -2731,7 +2718,6 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this ),
 	u_Color( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this ),
@@ -2751,7 +2737,6 @@ GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
 	u_ViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
-	u_InverseLightFactor( this ),
 	u_Color( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this )
@@ -2861,8 +2846,7 @@ void GLShader_portal::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 GLShader_contrast::GLShader_contrast( GLShaderManager *manager ) :
 	GLShader( "contrast", ATTR_POSITION, manager ),
 	u_ColorMap( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_InverseLightFactor( this )
+	u_ModelViewProjectionMatrix( this )
 {
 }
 
@@ -2878,7 +2862,6 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_LightFactor( this ),
 	u_DeformMagnitude( this ),
 	u_InverseGamma( this )
 {
@@ -2890,30 +2873,17 @@ void GLShader_cameraEffects::SetShaderProgramUniforms( shaderProgram_t *shaderPr
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap3D" ), 3 );
 }
 
-GLShader_blurX::GLShader_blurX( GLShaderManager *manager ) :
-	GLShader( "blurX", ATTR_POSITION, manager ),
+GLShader_blur::GLShader_blur( GLShaderManager *manager ) :
+	GLShader( "blur", ATTR_POSITION, manager ),
 	u_ColorMap( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_DeformMagnitude( this ),
-	u_TexScale( this )
+	u_TexScale( this ),
+	u_Horizontal( this )
 {
 }
 
-void GLShader_blurX::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
-}
-
-GLShader_blurY::GLShader_blurY( GLShaderManager *manager ) :
-	GLShader( "blurY", ATTR_POSITION, manager ),
-	u_ColorMap( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_DeformMagnitude( this ),
-	u_TexScale( this )
-{
-}
-
-void GLShader_blurY::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
+void GLShader_blur::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
 {
 	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
 }

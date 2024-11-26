@@ -54,6 +54,7 @@ MaterialSystem materialSystem;
 
 static void ComputeDynamics( shaderStage_t* pStage ) {
 	// TODO: Move color and texMatrices stuff to a compute shader
+	pStage->colorDynamic = false;
 	switch ( pStage->rgbGen ) {
 		case colorGen_t::CGEN_IDENTITY:
 		case colorGen_t::CGEN_ONE_MINUS_VERTEX:
@@ -77,7 +78,6 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 			} else {
 				//
 			}
-			pStage->colorDynamic = false;
 
 			break;
 		}
@@ -103,7 +103,6 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 			/* if ( backEnd.currentEntity ) {
 			} else {
 			} */
-			pStage->colorDynamic = false;
 			break;
 		}
 
@@ -222,15 +221,12 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	// u_AlphaThreshold
 	gl_genericShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
-	// u_InverseLightFactor
-	float inverseLightFactor = pStage->cancelOverBright ? tr.mapInverseLightFactor : 1.0f;
-	gl_genericShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
-
 	// u_ColorModulate
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	gl_genericShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen );
+	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && drawSurf->bspSurface;
+	gl_genericShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
 
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color( tess.svars.color );
@@ -291,12 +287,9 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
 
-	// u_InverseLightFactor
-	/* HACK: use sign to know if there is a light or not, and
-	then if it will receive overbright multiplication or not. */
-	bool cancelOverBright = pStage->cancelOverBright || lightMode == lightMode_t::FULLBRIGHT;
-	float inverseLightFactor = cancelOverBright ? tr.mapInverseLightFactor : -tr.mapInverseLightFactor;
-	gl_lightMappingShaderMaterial->SetUniform_InverseLightFactor( inverseLightFactor );
+	// u_LightFactor
+	gl_lightMappingShaderMaterial->SetUniform_LightFactor(
+		lightMode == lightMode_t::FULLBRIGHT ? 1.0f : tr.mapLightFactor );
 
 	// u_ColorModulate
 	gl_lightMappingShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen );
@@ -470,9 +463,6 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, drawSurf_
 	// u_AlphaThreshold
 	gl_skyboxShaderMaterial->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
-	// u_InverseLightFactor
-	gl_skyboxShaderMaterial->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
@@ -619,9 +609,6 @@ void UpdateSurfaceDataFog( uint32_t* materials, Material& material, drawSurf_t* 
 	drawSurf->initialized[stage] = true;
 
 	const fog_t* fog = material.fog;
-
-	// u_InverseLightFactor
-	gl_fogQuake3ShaderMaterial->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// u_Color
 	gl_fogQuake3ShaderMaterial->SetUniform_Color( fog->color );
@@ -1043,7 +1030,7 @@ void BindShaderLightMapping( Material* material ) {
 	gl_lightMappingShaderMaterial->SetReliefMapping( material->enableReliefMapping );
 	/* Reflective specular setting is different here than in ProcessMaterialLightMapping(),
 	because we don't have cubemaps built yet at this point, but for the purposes of the material ordering there's no difference */
-	gl_lightMappingShaderMaterial->SetReflectiveSpecular( material->enableSpecularMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
+	gl_lightMappingShaderMaterial->SetReflectiveSpecular( glConfig2.reflectionMapping && material->enableSpecularMapping && !( tr.refdef.rdflags & RDF_NOCUBEMAP ) );
 	gl_lightMappingShaderMaterial->SetPhysicalShading( material->enablePhysicalMapping );
 
 	// Bind shader program.
@@ -1282,6 +1269,12 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 	material->tcGen_Lightmap = pStage->tcGen_Lightmap;
 	material->deformIndex = pStage->deformIndex;
 
+	colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+
+	material->useAttrColor = rgbGen == colorGen_t::CGEN_VERTEX || rgbGen == colorGen_t::CGEN_ONE_MINUS_VERTEX
+		|| alphaGen == alphaGen_t::AGEN_VERTEX || alphaGen == alphaGen_t::AGEN_ONE_MINUS_VERTEX;
+
 	gl_genericShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );
 
@@ -1295,8 +1288,6 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, drawSurf_t* drawSurf ) {
 	material->shader = gl_lightMappingShaderMaterial;
 
-	material->bspSurface = false;
-
 	gl_lightMappingShaderMaterial->SetBspSurface( drawSurf->bspSurface );
 
 	lightMode_t lightMode;
@@ -1308,6 +1299,14 @@ void ProcessMaterialLightMapping( Material* material, shaderStage_t* pStage, dra
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
 
 	DAEMON_ASSERT( !( enableDeluxeMapping && enableGridDeluxeMapping ) );
+
+	// useAttrColor has no effect since the lightMapping shader has ATTR_COLOR forced to be always
+	// on (_requiredVertexAttribs). If we removed ATTR_COLOR from there, we would need to detect
+	// implicit vertex lighting as well, not only rgbgen (see SetLightDeluxeMode).
+	/* colorGen_t rgbGen = SetRgbGen( pStage );
+	alphaGen_t alphaGen = SetAlphaGen( pStage );
+	material->useAttrColor = rgbGen == colorGen_t::CGEN_VERTEX || rgbGen == colorGen_t::CGEN_ONE_MINUS_VERTEX
+		|| alphaGen == alphaGen_t::AGEN_VERTEX || alphaGen == alphaGen_t::AGEN_ONE_MINUS_VERTEX; */
 
 	material->enableDeluxeMapping = enableDeluxeMapping;
 	material->enableGridLighting = enableGridLighting;
@@ -1445,6 +1444,7 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 		drawSurf->texturesDynamic[stage] = true;
 	}
 
+	material.bspSurface = drawSurf->bspSurface;
 	pStage->materialProcessor( &material, pStage, drawSurf );
 
 	std::vector<Material>& materials = materialPacks[materialPack].materials;
@@ -2151,6 +2151,12 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	}
 
 	backEnd.currentEntity = &tr.worldEntity;
+
+	if ( material.useAttrColor ) {
+		material.shader->AddVertexAttribBit( ATTR_COLOR );
+	} else {
+		material.shader->DelVertexAttribBit( ATTR_COLOR );
+	}
 
 	GL_State( stateBits );
 	if ( material.usePolygonOffset ) {

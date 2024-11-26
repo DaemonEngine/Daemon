@@ -824,9 +824,13 @@ static void RB_SetGL2D()
 	GL_Scissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 
 	MatrixOrthogonalProjection( proj, 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
+	// zero the z coordinate so it's never near/far clipped
+	proj[ 2 ] = proj[ 6 ] = proj[ 10 ] = proj[ 14 ] = 0;
+
 	GL_LoadProjectionMatrix( proj );
 	GL_LoadModelViewMatrix( matrixIdentity );
 
+	// TODO: remove this, state is set wherever drawing is done
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
 	GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -1921,7 +1925,6 @@ static void RB_SetupLightForLighting( trRefLight_t *light )
 							gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 							gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 							gl_genericShader->SetUniform_Color( Color::Black );
-							// TODO: set u_InverseLightFactor!
 
 							GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE );
 							GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -2059,28 +2062,31 @@ static void RB_BlurShadowMap( const trRefLight_t *light, int i )
 	MatrixOrthogonalProjection( ortho, 0, fbos[index]->width, 0, fbos[index]->height, -99999, 99999 );
 	GL_LoadProjectionMatrix( ortho );
 
-	gl_blurXShader->BindProgram( 0 );
-	gl_blurXShader->SetUniform_DeformMagnitude( 1 );
-	gl_blurXShader->SetUniform_TexScale( texScale );
+	gl_blurShader->BindProgram( 0 );
+	gl_blurShader->SetUniform_DeformMagnitude( 1 );
+	gl_blurShader->SetUniform_TexScale( texScale );
+	gl_blurShader->SetUniform_Horizontal( true );
 
-	gl_blurXShader->SetUniform_ColorMapBindless(
+	gl_blurShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, images[index] )
 	);
 
-	Tess_InstantQuad( *gl_blurXShader, 0, 0, fbos[ index ]->width, fbos[ index ]->height );
+	Tess_InstantQuad( *gl_blurShader, 0, 0, fbos[ index ]->width, fbos[ index ]->height );
 
 	R_AttachFBOTexture2D( images[ index ]->type, images[ index ]->texnum, 0 );
 
 	glClear( GL_COLOR_BUFFER_BIT );
 
-	gl_blurYShader->BindProgram( 0 );
-	gl_blurYShader->SetUniform_DeformMagnitude( 1 );
-	gl_blurYShader->SetUniform_TexScale( texScale );
-	gl_blurYShader->SetUniform_ColorMapBindless(
+	gl_blurShader->BindProgram( 0 );
+	gl_blurShader->SetUniform_DeformMagnitude( 1 );
+	gl_blurShader->SetUniform_TexScale( texScale );
+	gl_blurShader->SetUniform_Horizontal( false );
+
+	gl_blurShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, images[index + MAX_SHADOWMAPS] )
 	);
 
-	Tess_InstantQuad( *gl_blurYShader, 0, 0, fbos[index]->width, fbos[index]->height );
+	Tess_InstantQuad( *gl_blurShader, 0, 0, fbos[index]->width, fbos[index]->height );
 
 	GL_PopMatrix();
 }
@@ -2774,7 +2780,6 @@ void RB_RunVisTests( )
 		gl_genericShader->SetUniform_Color( Color::White );
 
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 		gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 		gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -2980,9 +2985,6 @@ void RB_RenderGlobalFog()
 
 	gl_fogGlobalShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // world space
 
-	// u_InverseLightFactor
-	gl_fogGlobalShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 	{
 		fog_t *fog;
 
@@ -3046,19 +3048,16 @@ void RB_RenderGlobalFog()
 
 void RB_RenderBloom()
 {
-	int      i, j, flip = 0;
-	matrix_t ortho;
-
 	GLimp_LogComment( "--- RB_RenderBloom ---\n" );
 
 	if ( ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOBLOOM ) )
-		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0 )
-	{
+		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0 ) {
 		return;
 	}
 
 	// set 2D virtual screen size
 	GL_PushMatrix();
+	matrix_t ortho;
 	MatrixOrthogonalProjection( ortho, backEnd.viewParms.viewportX,
 	                            backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
 	                            backEnd.viewParms.viewportY, backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight,
@@ -3077,9 +3076,6 @@ void RB_RenderBloom()
 		// render contrast downscaled to 1/4th of the screen
 		gl_contrastShader->BindProgram( 0 );
 
-		// u_InverseLightFactor
-		gl_contrastShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 		gl_contrastShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 		);
@@ -3096,73 +3092,57 @@ void RB_RenderBloom()
 		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 		// render bloom in multiple passes
-		gl_contrastShader->SetUniform_ColorMapBindless(
+		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+		GL_State( GLS_DEPTHTEST_DISABLE );
+
+		GL_PushMatrix();
+
+		MatrixOrthogonalProjection( ortho, 0, tr.bloomRenderFBO[0]->width, 0, tr.bloomRenderFBO[0]->height, -99999, 99999 );
+		GL_LoadProjectionMatrix( ortho );
+
+		vec2_t texScale;
+		texScale[0] = 1.0f / tr.bloomRenderFBO[0]->width;
+		texScale[1] = 1.0f / tr.bloomRenderFBO[0]->height;
+
+		gl_blurShader->BindProgram( 0 );
+
+		gl_blurShader->SetUniform_DeformMagnitude( r_bloomBlur.Get() );
+		gl_blurShader->SetUniform_TexScale( texScale );
+
+		gl_blurShader->SetUniform_ColorMapBindless(
 			GL_BindToTMU( 0, tr.contrastRenderFBOImage )
 		);
-		for ( i = 0; i < 2; i++ )
-		{
-			for ( j = 0; j < r_bloomPasses->integer; j++ )
-			{
-				vec2_t texScale;
 
-				texScale[ 0 ] = 1.0f / tr.bloomRenderFBO[ flip ]->width;
-				texScale[ 1 ] = 1.0f / tr.bloomRenderFBO[ flip ]->height;
+		gl_blurShader->SetUniform_Horizontal( true );
 
-				R_BindFBO( tr.bloomRenderFBO[ flip ] );
-
-				GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+		int flip = 0;
+		for ( int i = 0; i < 2; i++ ) {
+			for ( int j = 0; j < r_bloomPasses.Get(); j++ ) {
+				R_BindFBO( tr.bloomRenderFBO[flip] );
 				glClear( GL_COLOR_BUFFER_BIT );
+				Tess_InstantQuad( *gl_blurShader,
+					backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+					backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
-				GL_State( GLS_DEPTHTEST_DISABLE );
+				gl_blurShader->SetUniform_ColorMapBindless(
+					GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] )
+				);
 
-				GL_PushMatrix();
-
-				MatrixOrthogonalProjection( ortho, 0, tr.bloomRenderFBO[ 0 ]->width, 0, tr.bloomRenderFBO[ 0 ]->height, -99999, 99999 );
-				GL_LoadProjectionMatrix( ortho );
-
-				if ( i == 0 )
-				{
-					gl_blurXShader->BindProgram( 0 );
-
-					gl_blurXShader->SetUniform_DeformMagnitude( r_bloomBlur->value );
-					gl_blurXShader->SetUniform_TexScale( texScale );
-					gl_blurXShader->SetUniform_ColorMapBindless(
-						GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] ) 
-					);
-					Tess_InstantQuad( *gl_blurXShader,
-					                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-				}
-				else
-				{
-					gl_blurYShader->BindProgram( 0 );
-
-					gl_blurYShader->SetUniform_DeformMagnitude( r_bloomBlur->value );
-					gl_blurYShader->SetUniform_TexScale( texScale );
-					gl_blurYShader->SetUniform_ColorMapBindless(
-						GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip] )
-					);
-					Tess_InstantQuad( *gl_blurYShader,
-					                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-					                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-				}
-
-				GL_BindToTMU( 0, tr.bloomRenderFBOImage[ flip ] );
-
-				GL_PopMatrix();
 				flip ^= 1;
 			}
+
+			gl_blurShader->SetUniform_Horizontal( false );
 		}
 
-		R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+		GL_PopMatrix();
+
+		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
 
 		gl_screenShader->BindProgram( 0 );
 		GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
 		glVertexAttrib4fv( ATTR_INDEX_COLOR, Color::White.ToArray() );
 
-		GL_BindToTMU( 0, tr.blackImage );
-
-		gl_screenShader->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.blackImage ) );
+		gl_screenShader->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip ^ 1] ) );
 		Tess_InstantQuad( *gl_screenShader,
 		                  backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
 		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
@@ -3240,7 +3220,7 @@ void RB_RenderSSAO()
 
 	if ( r_ssao->integer < 0 ) {
 		// clear the screen to show only SSAO
-		GL_ClearColor( tr.mapInverseLightFactor, tr.mapInverseLightFactor, tr.mapInverseLightFactor, 1.0 );
+		GL_ClearColor( 1.0, 1.0, 1.0, 1.0 );
 		glClear( GL_COLOR_BUFFER_BIT );
 	}
 
@@ -3354,9 +3334,6 @@ void RB_CameraPostFX()
 	// enable shader, set arrays
 	gl_cameraEffectsShader->BindProgram( 0 );
 
-	// u_LightFactor
-	gl_cameraEffectsShader->SetUniform_LightFactor( tr.mapLightFactor );
-
 	gl_cameraEffectsShader->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
 
 	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
@@ -3410,7 +3387,6 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
-		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3553,7 +3529,6 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
-		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3669,7 +3644,6 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
-		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3735,7 +3709,6 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
-		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -3949,7 +3922,6 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
-		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -4027,8 +3999,6 @@ static void RB_RenderDebugUtils()
 		gl_reflectionShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 		gl_reflectionShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
-		gl_reflectionShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
-
 		if ( r_showCubeProbes.Get() == Util::ordinal( showCubeProbesMode::GRID ) ) {
 			// Debug rendering can be really slow here
 			for ( auto it = tr.cubeProbeGrid.begin(); it != tr.cubeProbeGrid.end(); it++ ) {
@@ -4086,7 +4056,6 @@ static void RB_RenderDebugUtils()
 			gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 			gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 			gl_genericShader->SetUniform_Color( Color::Black );
-			gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 			GL_State( GLS_DEFAULT );
 			GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -4169,7 +4138,6 @@ static void RB_RenderDebugUtils()
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 		gl_genericShader->SetUniform_Color( Color::Black );
-		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		GL_State( GLS_DEFAULT );
 		GL_Cull( cullType_t::CT_TWO_SIDED );
@@ -4260,7 +4228,6 @@ static void RB_RenderDebugUtils()
 		// set uniforms
 		gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 		gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CUSTOM_RGB, alphaGen_t::AGEN_CUSTOM );
-		gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 		// bind u_ColorMap
 		gl_genericShader->SetUniform_ColorMapBindless(
@@ -4560,7 +4527,6 @@ void DebugDrawBegin( debugDrawMode_t mode, float size ) {
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_Color( colorClear );
-	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	// bind u_ColorMap
 	gl_genericShader->SetUniform_ColorMapBindless(
@@ -5681,7 +5647,6 @@ void RB_ShowImages()
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_VERTEX, alphaGen_t::AGEN_VERTEX );
 	gl_genericShader->SetUniform_TextureMatrix( matrixIdentity );
-	gl_genericShader->SetUniform_InverseLightFactor( tr.mapInverseLightFactor );
 
 	GL_SelectTexture( 0 );
 
