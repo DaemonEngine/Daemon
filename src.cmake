@@ -90,6 +90,7 @@ endif()
 set(COMMONTESTLIST
     ${LIB_DIR}/tinyformat/TinyformatTest.cpp
     ${COMMON_DIR}/ColorTest.cpp
+    ${COMMON_DIR}/CvarTest.cpp
     ${COMMON_DIR}/FileSystemTest.cpp
     ${COMMON_DIR}/StringTest.cpp
     ${COMMON_DIR}/cm/unittest.cpp
