@@ -345,7 +345,7 @@ void SV_Startup()
 
 	Cvar_Set( "sv_running", "1" );
 #ifndef BUILD_SERVER
-	NET_Config( true );
+	NET_EnableNetworking( true );
 #endif
 
 	// Join the IPv6 multicast group now that a map is running, so clients can scan for us on the local network.
@@ -767,7 +767,7 @@ void SV_Shutdown( const char *finalmsg )
 
 	Cvar_Set( "sv_running", "0" );
 #ifndef BUILD_SERVER
-	NET_Config( true );
+	NET_EnableNetworking( false );
 #endif
 
 	SV_NET_Config(); // clear master server DNS queries
