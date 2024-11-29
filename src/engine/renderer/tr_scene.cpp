@@ -286,10 +286,8 @@ RE_AddDynamicLightToScene
 ydnar: modified dlight system to support separate radius and intensity
 =====================
 */
-void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t, int flags )
+void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g, float b, int flags )
 {
-	trRefLight_t *light;
-
 	if ( !glConfig2.realtimeLighting || !r_drawDynamicLights.Get() )
 	{
 		return;
@@ -300,22 +298,23 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 		return;
 	}
 
+	if ( r_numLights >= MAX_REF_LIGHTS )
+	{
+		return;
+	}
+
+	if ( radius <= 0 )
+	{
+		return;
+	}
+
+	trRefLight_t* light;
 	// set last lights restrictInteractionEnd if needed
 	if ( r_numLights > r_firstSceneLight ) {
 		light = &backEndData[ tr.smpFrame ]->lights[ r_numLights - 1 ];
 		if( light->restrictInteractionFirst >= 0 ) {
 			light->restrictInteractionLast = r_numEntities - r_firstSceneEntity - 1;
 		}
-	}
-
-	if ( r_numLights >= MAX_REF_LIGHTS )
-	{
-		return;
-	}
-
-	if ( intensity <= 0 || radius <= 0 )
-	{
-		return;
 	}
 
 	light = &backEndData[ tr.smpFrame ]->lights[ r_numLights++ ];
@@ -348,15 +347,9 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 
 	light->additive = true;
 
-	if( light->l.inverseShadows )
-		light->l.scale = -intensity;
-	else
-		light->l.scale = intensity;
-}
-
-void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float radius, float r, float g, float b )
-{
-	RE_AddDynamicLightToSceneET( org, radius, r_lightScale->value, r, g, b, 0, 0 );
+	if ( light->l.inverseShadows ) {
+		VectorNegate( light->l.color, light->l.color );
+	}
 }
 
 static void RE_RenderCubeProbeFace( const refdef_t* originalRefdef ) {

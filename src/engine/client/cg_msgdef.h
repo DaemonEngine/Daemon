@@ -174,7 +174,6 @@ enum cgameImport_t
   CG_R_ADDPOLYTOSCENE,
   CG_R_ADDPOLYSTOSCENE,
   CG_R_ADDLIGHTTOSCENE,
-  CG_R_ADDADDITIVELIGHTTOSCENE,
   CG_R_RENDERSCENE,
   CG_R_ADD2DPOLYSINDEXED,
   CG_R_SETMATRIXTRANSFORM,
@@ -387,8 +386,7 @@ namespace Render {
 	using AddRefEntityToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDREFENTITYTOSCENE>, refEntity_t>;
 	using AddPolyToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDPOLYTOSCENE>, int, std::vector<polyVert_t>>;
 	using AddPolysToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDPOLYSTOSCENE>, int, std::vector<polyVert_t>, int, int>;
-	using AddLightToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDLIGHTTOSCENE>, std::array<float, 3>, float, float, float, float, float, int, int>;
-	using AddAdditiveLightToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDADDITIVELIGHTTOSCENE>, std::array<float, 3>, float, float, float, float>;
+	using AddLightToSceneMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_ADDLIGHTTOSCENE>, std::array<float, 3>, float, float, float, float, int>;
 	using SetColorMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_SETCOLOR>, Color::Color>;
 	using SetClipRegionMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_SETCLIPREGION>, std::array<float, 4>>;
 	using ResetClipRegionMsg = IPC::Message<IPC::Id<VM::QVM, CG_R_RESETCLIPREGION>>;

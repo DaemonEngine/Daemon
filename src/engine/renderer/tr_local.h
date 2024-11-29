@@ -2895,7 +2895,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	extern cvar_t *r_forceAmbient;
 	extern cvar_t *r_ambientScale;
-	extern cvar_t *r_lightScale;
 
 	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
@@ -3699,8 +3698,7 @@ inline bool checkGLErrors()
 	void RE_AddPolyToSceneET( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 
-	void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
-	void RE_AddDynamicLightToSceneQ3A( const vec3_t org, float intensity, float r, float g, float b );
+	void RE_AddDynamicLightToScene( const vec3_t org, float radius, float r, float g, float b, int flags );
 
 	void RE_RenderScene( const refdef_t *fd );
 
