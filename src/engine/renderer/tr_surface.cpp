@@ -880,7 +880,7 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 		binormals = (vec3_t *)ri.Hunk_AllocateTempMemory( numVertexes * sizeof( vec3_t ) );
 		normals = (vec3_t *)ri.Hunk_AllocateTempMemory( numVertexes * sizeof( vec3_t ) );
 
-		for ( i = 0; i < numVertexes; i++ )
+		for ( i = 0; i < numVertexes; i++, newVert++, oldVert++, oldNormal++, newNormal++ )
 		{
 			VectorClear( tangents[ i ] );
 			VectorClear( binormals[ i ] );
