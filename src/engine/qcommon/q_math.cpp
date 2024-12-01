@@ -3199,12 +3199,6 @@ void TransInit( transform_t *t )
 	t->scale = 1.0f;
 }
 
-// copy a transform
-void TransCopy( const transform_t *in, transform_t *out )
-{
-	memcpy( out, in, sizeof( transform_t ) );
-}
-
 // apply a transform to a point
 void TransformPoint( const transform_t *t, const vec3_t in, vec3_t out )
 {
@@ -3334,7 +3328,7 @@ void TransAddTranslation( const vec3_t vec, transform_t *t )
 void TransCombine( const transform_t *a, const transform_t *b,
                    transform_t *out )
 {
-	TransCopy( a, out );
+	*out = *a;
 
 	TransAddRotationQuat( b->rot, out );
 	TransAddScale( b->scale, out );
@@ -3345,7 +3339,7 @@ void TransCombine( const transform_t *a, const transform_t *b,
 void TransInverse( const transform_t *in, transform_t *out )
 {
 	quat_t inverse;
-	static transform_t tmp; // static for proper alignment in QVMs
+	transform_t tmp;
 
 	TransInit( &tmp );
 	VectorNegate( in->trans, tmp.trans );
@@ -3353,7 +3347,7 @@ void TransInverse( const transform_t *in, transform_t *out )
 	QuatCopy( in->rot, inverse );
 	QuatInverse( inverse );
 	TransAddRotationQuat( inverse, &tmp );
-	TransCopy( &tmp, out );
+	*out = tmp;
 }
 
 // lerp between transforms

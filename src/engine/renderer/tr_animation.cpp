@@ -1497,7 +1497,7 @@ int RE_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float fra
 		TransAddWeight( frac, &blend->bones[ i ].t, &trans );
 		TransEndLerp( &trans );
 
-		TransCopy( &trans, &skel->bones[ i ].t );
+		skel->bones[ i ].t = trans;
 	}
 
 	// calculate a bounding box in the current coordinate system
