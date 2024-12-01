@@ -1197,6 +1197,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		return sseLoadInts( vec.data() );
 	}
 
+	// returns the dot product in all 4 elements
 	inline __m128 sseDot4( __m128 a, __m128 b ) {
 		__m128 prod = _mm_mul_ps( a, b );
 		__m128 sum1 = _mm_add_ps( prod, sseSwizzle( prod, YXWZ ) );
@@ -1391,6 +1392,8 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void TransInsTranslation( const vec3_t vec, transform_t *t );
 	void TransAddTranslation( const vec3_t vec, transform_t *t );
 
+	// "a" is the first one that would be applied to a vector
+	// so as a matrix multiplication this is B * A
 	void TransCombine( const transform_t *a, const transform_t *b,
 			   transform_t *c );
 	void TransInverse( const transform_t *in, transform_t *out );

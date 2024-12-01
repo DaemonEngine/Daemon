@@ -3279,9 +3279,9 @@ void TransAddScale( float factor, transform_t *t )
 void TransInsTranslation( const vec3_t vec, transform_t *t )
 {
 	vec3_t tmp;
-
-	TransformPoint( t, vec, tmp );
-	VectorAdd( t->trans, tmp, t->trans );
+	QuatTransformVector( t->rot, vec, tmp );
+	VectorScale( tmp, t->scale, tmp );
+	VectorAdd( tmp, t->trans, t->trans );
 }
 
 // add a translation at the end of an existing transformation
