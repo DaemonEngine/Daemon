@@ -1274,10 +1274,6 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		t->sseRot = u;
 		t->sseTransScale = u;
 	}
-	inline void TransCopy( const transform_t *in, transform_t *out ) {
-		out->sseRot = in->sseRot;
-		out->sseTransScale = in->sseTransScale;
-	}
 	inline void TransformPoint(
 			const transform_t *t, const vec3_t in, vec3_t out ) {
 		__m128 ts = t->sseTransScale;
@@ -1426,7 +1422,6 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 #else
 	// The non-SSE variants are in q_math.cpp file.
 	void TransInit( transform_t *t );
-	void TransCopy( const transform_t *in, transform_t *out );
 
 	void TransformPoint( const transform_t *t, const vec3_t in, vec3_t out );
 	void TransformPointInverse( const transform_t *t, const vec3_t in, vec3_t out );
