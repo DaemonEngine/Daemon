@@ -1246,14 +1246,6 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		t = _mm_mul_ps( sseSwizzle( q, WWWW ), t );
 		return _mm_add_ps( _mm_add_ps( vec, t2 ), t );
 	}
-	inline __m128 sseQuatTransformInverse( __m128 q, __m128 vec ) {
-		__m128 t, t2;
-		t = sseCrossProduct( vec, q );
-		t = _mm_add_ps( t, t );
-		t2 = sseCrossProduct( t, q );
-		t = _mm_mul_ps( sseSwizzle( q, WWWW ), t );
-		return _mm_add_ps( _mm_add_ps( vec, t2 ), t );
-	}
 	inline __m128 sseLoadVec3( const vec3_t vec ) {
 		__m128 v = _mm_load_ss( &vec[ 2 ] );
 		v = sseSwizzle( v, YYXY );
@@ -1282,41 +1274,15 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		tmp = _mm_add_ps( tmp, ts );
 		sseStoreVec3( tmp, out );
 	}
-	inline void TransformPointInverse(
-			const transform_t *t, const vec3_t in, vec3_t out ) {
-		__m128 ts = t->sseTransScale;
-		__m128 v = _mm_sub_ps( sseLoadVec3Unsafe( in ), ts );
-		v = _mm_mul_ps( v, _mm_rcp_ps( sseSwizzle( ts, WWWW ) ) );
-		v = sseQuatTransformInverse( t->sseRot, v );
-		sseStoreVec3( v, out );
-	}
 	inline void TransformNormalVector(
 			const transform_t *t, const vec3_t in, vec3_t out ) {
 		__m128 v = sseLoadVec3Unsafe( in );
 		v = sseQuatTransform( t->sseRot, v );
 		sseStoreVec3( v, out );
 	}
-	inline void TransformNormalVectorInverse( const transform_t *t,
-							 const vec3_t in, vec3_t out ) {
-		__m128 v = sseLoadVec3Unsafe( in );
-		v = sseQuatTransformInverse( t->sseRot, v );
-		sseStoreVec3( v, out );
-	}
-	inline __m128 sseAxisAngleToQuat( const vec3_t axis, float angle ) {
-		__m128 sa = _mm_set1_ps( sinf( 0.5f * angle ) );
-		__m128 ca = _mm_set1_ps( cosf( 0.5f * angle ) );
-		__m128 a = sseLoadVec3( axis );
-		a = _mm_mul_ps( a, sa );
-		return _mm_or_ps( a, _mm_and_ps( ca, mask_000W() ) );
-	}
 	inline void TransInitRotationQuat( const quat_t quat,
 						  transform_t *t ) {
 		t->sseRot = _mm_loadu_ps( quat );
-		t->sseTransScale = unitQuat();
-	}
-	inline void TransInitRotation( const vec3_t axis, float angle,
-					      transform_t *t ) {
-		t->sseRot = sseAxisAngleToQuat( axis, angle );
 		t->sseTransScale = unitQuat();
 	}
 	inline void TransInitTranslation( const vec3_t vec, transform_t *t ) {
@@ -1334,23 +1300,10 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		__m128 q = _mm_loadu_ps( quat );
 		t->sseRot = sseQuatMul( t->sseRot, q );
 	}
-	inline void TransInsRotation( const vec3_t axis, float angle,
-					     transform_t *t ) {
-		__m128 q = sseAxisAngleToQuat( axis, angle );
-		t->sseRot = sseQuatMul( q, t->sseRot );
-	}
 	inline void TransAddRotationQuat( const quat_t quat, transform_t *t ) {
 		__m128 q = _mm_loadu_ps( quat );
 		__m128 transformed = sseQuatTransform( q, t->sseTransScale );
 		t->sseRot = sseQuatMul( q, t->sseRot );
-		t->sseTransScale = _mm_or_ps( _mm_and_ps( transformed, mask_XYZ0() ),
-					      _mm_and_ps( t->sseTransScale, mask_000W() ) );
-	}
-	inline void TransAddRotation( const vec3_t axis, float angle,
-					     transform_t *t ) {
-		__m128 q = sseAxisAngleToQuat( axis, angle );
-		__m128 transformed = sseQuatTransform( q, t->sseTransScale );
-		t->sseRot = sseQuatMul( t->sseRot, q );
 		t->sseTransScale = _mm_or_ps( _mm_and_ps( transformed, mask_XYZ0() ),
 					      _mm_and_ps( t->sseTransScale, mask_000W() ) );
 	}
@@ -1424,20 +1377,15 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void TransInit( transform_t *t );
 
 	void TransformPoint( const transform_t *t, const vec3_t in, vec3_t out );
-	void TransformPointInverse( const transform_t *t, const vec3_t in, vec3_t out );
 	void TransformNormalVector( const transform_t *t, const vec3_t in, vec3_t out );
-	void TransformNormalVectorInverse( const transform_t *t, const vec3_t in, vec3_t out );
 
 	void TransInitRotationQuat( const quat_t quat, transform_t *t );
-	void TransInitRotation( const vec3_t axis, float angle,
-				transform_t *t );
 	void TransInitTranslation( const vec3_t vec, transform_t *t );
 	void TransInitScale( float factor, transform_t *t );
 
 	void TransInsRotationQuat( const quat_t quat, transform_t *t );
 	void TransInsRotation( const vec3_t axis, float angle, transform_t *t );
 	void TransAddRotationQuat( const quat_t quat, transform_t *t );
-	void TransAddRotation( const vec3_t axis, float angle, transform_t *t );
 	void TransInsScale( float factor, transform_t *t );
 	void TransAddScale( float factor, transform_t *t );
 	void TransInsTranslation( const vec3_t vec, transform_t *t );
