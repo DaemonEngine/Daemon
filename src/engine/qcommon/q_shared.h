@@ -1204,6 +1204,8 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		__m128 sum2 = _mm_add_ps( sum1, sseSwizzle( sum1, ZWXY ) );
 		return sum2;
 	}
+
+	// returns 0 in w component if input w's are finite
 	inline __m128 sseCrossProduct( __m128 a, __m128 b ) {
 		__m128 a_yzx = sseSwizzle( a, YZXW );
 		__m128 b_yzx = sseSwizzle( b, YZXW );
@@ -1239,6 +1241,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		t = _mm_mul_ps( h, t );
 		return _mm_mul_ps( q, t );
 	}
+	// rotates (3-dimensional) vec. vec's w component is unchanged
 	inline __m128 sseQuatTransform( __m128 q, __m128 vec ) {
 		__m128 t, t2;
 		t = sseCrossProduct( q, vec );
@@ -1303,10 +1306,8 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	}
 	inline void TransAddRotationQuat( const quat_t quat, transform_t *t ) {
 		__m128 q = _mm_loadu_ps( quat );
-		__m128 transformed = sseQuatTransform( q, t->sseTransScale );
 		t->sseRot = sseQuatMul( q, t->sseRot );
-		t->sseTransScale = _mm_or_ps( _mm_and_ps( transformed, mask_XYZ0() ),
-					      _mm_and_ps( t->sseTransScale, mask_000W() ) );
+		t->sseTransScale = sseQuatTransform( q, t->sseTransScale );
 	}
 	inline void TransInsScale( float factor, transform_t *t ) {
 		t->scale *= factor;
@@ -1337,8 +1338,6 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		__m128 bRot = b->sseRot;
 		__m128 bTS = b->sseTransScale;
 		__m128 tmp = sseQuatTransform( bRot, aTS );
-		tmp = _mm_or_ps( _mm_and_ps( tmp, mask_XYZ0() ),
-				 _mm_and_ps( aTS, mask_000W() ) );
 		tmp = _mm_mul_ps( tmp, sseSwizzle( bTS, WWWW ) );
 		out->sseTransScale = _mm_add_ps( tmp, _mm_and_ps( bTS, mask_XYZ0() ) );
 		out->sseRot = sseQuatMul( bRot, aRot );
