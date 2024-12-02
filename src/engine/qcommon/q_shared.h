@@ -1166,7 +1166,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 #define sseSwizzle( a, mask ) _mm_shuffle_ps( (a), (a), SWZ_##mask )
 
 	inline __m128 unitQuat() {
-		return _mm_set_ps( 1.0f, 0.0f, 0.0f, 0.0f ); // order is reversed
+		return _mm_setr_ps( 0.0f, 0.0f, 0.0f, 1.0f );
 	}
 	inline __m128 sseLoadInts( const int vec[4] ) {
 		return *(__m128 *)vec;
@@ -1175,13 +1175,14 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		alignas(16) static const std::array<int, 4> vec = { 0, 0, 0, 0 };
 		return sseLoadInts( vec.data() );
 	}
-	inline __m128 mask_000W() {
-		alignas(16) static const std::array<int, 4> vec = { 0, 0, 0, -1 };
-		return sseLoadInts( vec.data() );
-	}
-	inline __m128 mask_XYZ0() {
-		alignas(16) static const std::array<int, 4> vec = { -1, -1, -1, 0 };
-		return sseLoadInts( vec.data() );
+
+	// {first.x, first,y, first.z, second.w}
+	inline __m128 first_XYZ_second_W( __m128 first, __m128 second)
+	{
+		// second.w, dontcare, first.z, dontcare
+		__m128 tmp = _mm_shuffle_ps(second, first, 3 << 0 | 2 << 4);
+		// first.x, first.y, tmp.z, tmp.x
+		return _mm_shuffle_ps(first, tmp, 0 << 0 | 1 << 2 | 2 << 4 | 0 << 6);
 	}
 
 	inline __m128 sign_000W() {
@@ -1295,10 +1296,8 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		t->sseTransScale = _mm_or_ps( v, unitQuat() );
 	}
 	inline void TransInitScale( float factor, transform_t *t ) {
-		__m128 f = _mm_set1_ps( factor );
-		f = _mm_and_ps( f, mask_000W() );
 		t->sseRot = unitQuat();
-		t->sseTransScale = f;
+		t->sseTransScale = _mm_setr_ps( 0.0f, 0.0f, 0.0f, factor );
 	}
 	inline void TransInsRotationQuat( const quat_t quat, transform_t *t ) {
 		__m128 q = _mm_loadu_ps( quat );
@@ -1318,11 +1317,10 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	}
 	inline void TransInsTranslation(
 			const vec3_t vec, transform_t *t ) {
-		__m128 v = sseLoadVec3Unsafe( vec );
+		__m128 v = sseLoadVec3( vec );
 		__m128 ts = t->sseTransScale;
 		v = sseQuatTransform( t->sseRot, v );
 		v = _mm_mul_ps( v, sseSwizzle( ts, WWWW ) );
-		v = _mm_and_ps( v, mask_XYZ0() );
 		t->sseTransScale = _mm_add_ps( ts, v );
 	}
 	inline void TransAddTranslation(
@@ -1339,7 +1337,8 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		__m128 bTS = b->sseTransScale;
 		__m128 tmp = sseQuatTransform( bRot, aTS );
 		tmp = _mm_mul_ps( tmp, sseSwizzle( bTS, WWWW ) );
-		out->sseTransScale = _mm_add_ps( tmp, _mm_and_ps( bTS, mask_XYZ0() ) );
+		__m128 bT = first_XYZ_second_W( bTS, mask_0000() );
+		out->sseTransScale = _mm_add_ps( tmp, bT );
 		out->sseRot = sseQuatMul( bRot, aRot );
 	}
 	inline void TransInverse( const transform_t *in,
@@ -1352,8 +1351,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 		__m128 tmp = sseQuatTransform( invRot, invT );
 		tmp = _mm_mul_ps( tmp, invS );
 		out->sseRot = invRot;
-		out->sseTransScale = _mm_or_ps( _mm_and_ps( tmp, mask_XYZ0() ),
-						_mm_and_ps( invS, mask_000W() ) );
+		out->sseTransScale = first_XYZ_second_W( tmp, invS );
 	}
 	inline void TransStartLerp( transform_t *t ) {
 		t->sseRot = mask_0000();
