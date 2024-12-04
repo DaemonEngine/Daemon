@@ -99,15 +99,33 @@ set(PDCURSESLIST
     ${LIB_DIR}/pdcursesmod/pdcurses/touch.c
     ${LIB_DIR}/pdcursesmod/pdcurses/util.c
     ${LIB_DIR}/pdcursesmod/pdcurses/window.c
-    ${LIB_DIR}/pdcursesmod/wingui/pdcclip.c
-    ${LIB_DIR}/pdcursesmod/wingui/pdcdisp.c
-    ${LIB_DIR}/pdcursesmod/wingui/pdcgetsc.c
-    ${LIB_DIR}/pdcursesmod/wingui/pdckbd.c
-    ${LIB_DIR}/pdcursesmod/wingui/pdcscrn.c
-    ${LIB_DIR}/pdcursesmod/wingui/pdcsetsc.c
-    ${LIB_DIR}/pdcursesmod/wingui/pdcutil.c
-    ${LIB_DIR}/pdcursesmod/wingui/pdcwin.h
 )
+
+if (WIN32)
+	set(PDCURSESLIST
+		${PDCURSESLIST}
+		${LIB_DIR}/pdcursesmod/wingui/pdcclip.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcdisp.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcgetsc.c
+		${LIB_DIR}/pdcursesmod/wingui/pdckbd.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcscrn.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcsetsc.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcutil.c
+		${LIB_DIR}/pdcursesmod/wingui/pdcwin.h
+	)
+else()
+	set(PDCURSESLIST
+		${PDCURSESLIST}
+		${LIB_DIR}/pdcursesmod/vt/pdcclip.c
+		${LIB_DIR}/pdcursesmod/vt/pdcdisp.c
+		${LIB_DIR}/pdcursesmod/vt/pdcgetsc.c
+		${LIB_DIR}/pdcursesmod/vt/pdckbd.c
+		${LIB_DIR}/pdcursesmod/vt/pdcscrn.c
+		${LIB_DIR}/pdcursesmod/vt/pdcsetsc.c
+		${LIB_DIR}/pdcursesmod/vt/pdcutil.c
+		${LIB_DIR}/pdcursesmod/vt/pdcvt.h
+	)
+endif()
 
 set(TINYFORMATLIST
     ${LIB_DIR}/tinyformat/tinyformat.h
