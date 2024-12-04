@@ -103,12 +103,12 @@ static void CON_SetColor( WINDOW *win, const Color::Color& color )
 static void CON_UpdateCursor()
 {
 // pdcurses uses a different mechanism to move the cursor than ncurses
-#ifdef _WIN32
-	move( LINES - 1, Color::StrlenNocolor( PROMPT ) + 8 + input_field.GetViewCursorPos() );
-	wnoutrefresh( stdscr );
-#else
+#ifdef USE_CURSES_NCURSES
 	wmove( inputwin, 0, input_field.GetViewCursorPos() );
 	wnoutrefresh( inputwin );
+#else
+	move( LINES - 1, Color::StrlenNocolor( PROMPT ) + 8 + input_field.GetViewCursorPos() );
+	wnoutrefresh( stdscr );
 #endif
 }
 
@@ -228,7 +228,12 @@ static void CON_Redraw()
 		{
 			return;
 		}
-		resizeterm( winsz.ws_row, winsz.ws_col );
+
+		#if defined(USE_CURSES_NCURSES)
+			resizeterm( winsz.ws_row, winsz.ws_col );
+		#else
+			resize_term( winsz.ws_row, winsz.ws_col );
+		#endif
 #endif
 
 		delwin( logwin );
