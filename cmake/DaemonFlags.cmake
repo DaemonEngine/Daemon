@@ -153,7 +153,7 @@ option(USE_FLOAT_EXCEPTIONS "Use floating point exceptions" OFF)
 option(USE_FAST_MATH "Use fast math" ON)
 
 if (USE_FLOAT_EXCEPTIONS)
-	add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
+	add_definitions( -DDAEMON_USE_FLOAT_EXCEPTIONS )
 endif()
 
 if (MSVC)
