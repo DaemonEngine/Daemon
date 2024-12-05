@@ -437,6 +437,13 @@ static void SetFloatingPointExceptions()
 			_controlfp_s(&current, exceptions, _MCW_EM);
 		#endif
 	#endif
+// TODO: remove it.
+#if 1
+const float x = -1.0f;
+const float f = 0.0f;
+printf("%f\n", sqrt(x));
+printf(" %f\n", 1/f);
+#endif
 }
 
 // Common code for fatal and non-fatal exit
