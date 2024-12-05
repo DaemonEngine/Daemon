@@ -149,9 +149,22 @@ else()
 endif()
 
 # Compiler options
+option(USE_FLOAT_EXCEPTIONS "Use floating point exceptions" OFF)
+option(USE_FAST_MATH "Use fast math" ON)
+
+if (USE_FLOAT_EXCEPTIONS)
+	add_definitions( -DDAEMON_USE_FLOAT_EXCEPTIONS )
+endif()
+
 if (MSVC)
     set_c_cxx_flag("/MP")
-    set_c_cxx_flag("/fp:fast")
+
+	if (USE_FLOAT_EXCEPTIONS)
+		set_c_cxx_flag("/fp:strict")
+	elseif (USE_FAST_MATH)
+		set_c_cxx_flag("/fp:fast")
+	endif()
+
     set_c_cxx_flag("/d2Zi+" RELWITHDEBINFO)
 
     # https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
@@ -238,7 +251,18 @@ else()
 	endif()
 
 	# Optimizations.
-	set_c_cxx_flag("-ffast-math")
+	if (USE_FAST_MATH)
+		set_c_cxx_flag("-ffast-math")
+	endif()
+
+	if (USE_FLOAT_EXCEPTIONS)
+		# Floating point exceptions requires trapping math
+		# to avoid false positives on architectures with SSE.
+		set_c_cxx_flag("-ftrapping-math")
+		# GCC prints noisy warnings saying -ftrapping-math implies this.
+		set_c_cxx_flag("-fno-associative-math")
+		# Other optimizations from -ffast-math can be kept.
+	endif()
 
 	# Use hidden symbol visibility if possible.
 	try_c_cxx_flag(FVISIBILITY_HIDDEN "-fvisibility=hidden")
