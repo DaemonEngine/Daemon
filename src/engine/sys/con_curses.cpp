@@ -228,7 +228,12 @@ static void CON_Redraw()
 		{
 			return;
 		}
-		resizeterm( winsz.ws_row, winsz.ws_col );
+
+		#if defined(USE_CURSES_NCURSES)
+			resizeterm( winsz.ws_row, winsz.ws_col );
+		#else
+			resize_term( winsz.ws_row, winsz.ws_col );
+		#endif
 #endif
 
 		delwin( logwin );
