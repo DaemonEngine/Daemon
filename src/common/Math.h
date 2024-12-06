@@ -90,4 +90,16 @@ namespace Math {
 
 #include "math/Vector.h"
 
+template<typename A>
+DEPRECATED A DEG2RAD( const A a )
+{
+	return Math::DegToRad( a );
+}
+
+template<typename A>
+DEPRECATED A RAD2DEG( const A a )
+{
+	return Math::RadToDeg ( a );
+}
+
 #endif //COMMON_MATH_H_
