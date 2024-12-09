@@ -1608,18 +1608,18 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 				{
 					// original light direction is from surface to light
 					VectorInverse( lightDirection );
-					VectorNormalize( lightDirection );
+					VectorNormalizeFast( lightDirection );
 
 					VectorCopy( backEnd.viewParms.orientation.origin, viewOrigin );
 					VectorCopy( backEnd.viewParms.orientation.axis[ 0 ], viewDirection );
-					VectorNormalize( viewDirection );
+					VectorNormalizeFast( viewDirection );
 
 					// calculate new up dir
 					CrossProduct( lightDirection, viewDirection, side );
-					VectorNormalize( side );
+					VectorNormalizeFast( side );
 
 					CrossProduct( side, lightDirection, up );
-					VectorNormalize( up );
+					VectorNormalizeFast( up );
 
 					vectoangles( lightDirection, angles );
 					MatrixFromAngles( rotationMatrix, angles[ PITCH ], angles[ YAW ], angles[ ROLL ] );
@@ -2736,7 +2736,7 @@ void RB_RunVisTests( )
 		Tess_MapVBOs( false );
 		VectorSubtract( backEnd.orientation.viewOrigin,
 				test->position, diff );
-		VectorNormalize( diff );
+		VectorNormalizeFast( diff );
 		VectorMA( test->position, test->depthAdjust, diff, center );
 
 		VectorScale( backEnd.viewParms.orientation.axis[ 1 ],

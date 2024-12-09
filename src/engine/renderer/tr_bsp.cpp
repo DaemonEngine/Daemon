@@ -5042,7 +5042,7 @@ void RE_LoadWorldMap( const char *name )
 	tr.sunDirection[ 1 ] = 0.3f;
 	tr.sunDirection[ 2 ] = 0.9f;
 
-	VectorNormalize( tr.sunDirection );
+	VectorNormalizeFast( tr.sunDirection );
 
 	// set default ambient color
 	tr.worldEntity.ambientLight[ 0 ] = r_forceAmbient->value;

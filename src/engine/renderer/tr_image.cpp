@@ -1121,7 +1121,7 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 						n[ 1 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 1 ] );
 						n[ 2 ] = Tex_ByteToFloat( scaledBuffer[ j * 4 + 2 ] );
 
-						VectorNormalize( n );
+						VectorNormalizeFast( n );
 
 						scaledBuffer[ j * 4 + 0 ] = Tex_FloatToByte( n[ 0 ] );
 						scaledBuffer[ j * 4 + 1 ] = Tex_FloatToByte( n[ 1 ] );
@@ -2497,7 +2497,7 @@ static void R_CreateRandomNormalsImage()
 			angle = 2.0f * M_PI * r; // / 360.0f;
 
 			VectorSet( n, cosf( angle ), sinf( angle ), r );
-			VectorNormalize( n );
+			VectorNormalizeFast( n );
 
 			ptr[ 0 ] = ( byte )( 128 + 127 * n[ 0 ] );
 			ptr[ 1 ] = ( byte )( 128 + 127 * n[ 1 ] );

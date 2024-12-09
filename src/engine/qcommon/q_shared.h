@@ -342,19 +342,24 @@ extern const quat_t   quatIdentity;
 	// https://en.wikipedia.org/wiki/Fast_inverse_square_root#/media/File:2nd-iter.png
 	inline float Q_rsqrt( float number )
 	{
-		float x = 0.5f * number;
-		float y;
-
 		// compute approximate inverse square root
 #if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
+		float y;
 		// SSE rsqrt relative error bound: 3.7 * 10^-4
 		_mm_store_ss( &y, _mm_rsqrt_ss( _mm_load_ss( &number ) ) );
 #else
-		y = Util::bit_cast<float>( 0x5f3759df - ( Util::bit_cast<uint32_t>( number ) >> 1 ) );
-		y *= ( 1.5f - ( x * y * y ) ); // initial iteration
+		float x = 0.5f * number;
+		// Original value: 0x5f3759df
+		// Better value comes from: http://rrrola.wz.cz/inv_sqrt.html
+		float y = Util::bit_cast<float>( 0x5f1ffff9 - ( Util::bit_cast<uint32_t>( number ) >> 1 ) );
+		// initial iteration
 		// relative error bound after the initial iteration: 1.8 * 10^-3
+		y *= ( 1.5f - ( x * y * y ) );
+#if 0
+		// second iteration for higher precision
+		y *= ( 1.5f - ( x * y * y ) );
 #endif
-		y *= ( 1.5f - ( x * y * y ) ); // second iteration for higher precision
+#endif
 		return y;
 	}
 
