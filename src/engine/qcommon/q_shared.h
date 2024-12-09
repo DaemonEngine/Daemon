@@ -693,7 +693,7 @@ inline vec_t VectorNormalize( vec3_t v )
 // that length != 0, nor does it return length
 inline void VectorNormalizeFast( vec3_t v )
 {
-	vec_t ilength = Q_rsqrt( DotProduct( v, v ) );
+	vec_t ilength = Q_rsqrt_fast( DotProduct( v, v ) );
 
 	VectorScale( v, ilength, v );
 }
