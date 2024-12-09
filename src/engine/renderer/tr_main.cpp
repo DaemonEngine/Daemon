@@ -246,7 +246,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 	if ( ( trace = tangent2[ 0 ] + binormal2[ 1 ] + normal2[ 2 ] ) > 0.0f )
 	{
 		trace += 1.0f;
-		scale = 0.5f * Q_rsqrt( trace );
+		scale = 0.5f * Q_rsqrt_fast( trace );
 
 		q[ 3 ] = trace * scale;
 		q[ 2 ] = ( tangent2 [ 1 ] - binormal2[ 0 ] ) * scale;
@@ -257,7 +257,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 	else if ( tangent2[ 0 ] > binormal2[ 1 ] && tangent2[ 0 ] > normal2[ 2 ] )
 	{
 		trace = tangent2[ 0 ] - binormal2[ 1 ] - normal2[ 2 ] + 1.0f;
-		scale = 0.5f * Q_rsqrt( trace );
+		scale = 0.5f * Q_rsqrt_fast( trace );
 
 		q[ 0 ] = trace * scale;
 		q[ 1 ] = ( tangent2 [ 1 ] + binormal2[ 0 ] ) * scale;
@@ -268,7 +268,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 	else if ( binormal2[ 1 ] > normal2[ 2 ] )
 	{
 		trace = -tangent2[ 0 ] + binormal2[ 1 ] - normal2[ 2 ] + 1.0f;
-		scale = 0.5f * Q_rsqrt( trace );
+		scale = 0.5f * Q_rsqrt_fast( trace );
 
 		q[ 1 ] = trace * scale;
 		q[ 0 ] = ( tangent2 [ 1 ] + binormal2[ 0 ] ) * scale;
@@ -279,7 +279,7 @@ void R_TBNtoQtangents( const vec3_t tangent, const vec3_t binormal,
 	else
 	{
 		trace = -tangent2[ 0 ] - binormal2[ 1 ] + normal2[ 2 ] + 1.0f;
-		scale = 0.5f * Q_rsqrt( trace );
+		scale = 0.5f * Q_rsqrt_fast( trace );
 
 		q[ 2 ] = trace * scale;
 		q[ 3 ] = ( tangent2 [ 1 ] - binormal2[ 0 ] ) * scale;
