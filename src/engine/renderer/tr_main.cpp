@@ -60,7 +60,7 @@ void R_CalcFaceNormal( vec3_t normal,
 	VectorSubtract( v1, v0, v );
 	CrossProduct( u, v, normal );
 
-	VectorNormalize( normal );
+	VectorNormalizeFast( normal );
 }
 
 
@@ -97,8 +97,8 @@ void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 	binormal[1] = dtx[0] * dpy[1] - dpx[1] * dty[0];
 	binormal[2] = dtx[0] * dpy[2] - dpx[2] * dty[0];
 
-	VectorNormalize( tangent );
-	VectorNormalize( binormal );
+	VectorNormalizeFast( tangent );
+	VectorNormalizeFast( binormal );
 }
 
 void R_CalcTangents( vec3_t tangent, vec3_t binormal,
@@ -138,8 +138,8 @@ void R_CalcTangents( vec3_t tangent, vec3_t binormal,
 	binormal[1] = dtx[0] * dpy[1] - dpx[1] * dty[0];
 	binormal[2] = dtx[0] * dpy[2] - dpx[2] * dty[0];
 
-	VectorNormalize( tangent );
-	VectorNormalize( binormal );
+	VectorNormalizeFast( tangent );
+	VectorNormalizeFast( binormal );
 }
 
 
@@ -1660,7 +1660,7 @@ static void R_SetupPortalFrustum( const viewParms_t& oldParms, const orientation
 
 	for (int i = 0; i < 4; i++)
 	{
-		VectorNormalize(frustum[i].normal);
+		VectorNormalizeFast(frustum[i].normal);
 		SetPlaneSignbits(&frustum[i]);
 		frustum[i].dist = 0; // all side planes intersect the view origin
 		frustum[i].type = PLANE_NON_AXIAL;
@@ -2271,7 +2271,7 @@ void R_TransformShadowLight( trRefLight_t *light ) {
 
 	light->l.rlType = refLightType_t::RL_PROJ;
 	VectorSubtract( mids, light->l.origin, forward );
-	VectorNormalize( forward );
+	VectorNormalizeFast( forward );
 	PerpendicularVector( right, forward );
 	CrossProduct( forward, right, up );
 

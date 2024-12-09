@@ -206,7 +206,7 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, vec3_t 
 	if ( normal )
 	{
 		VectorSubtract( backEnd.viewParms.orientation.origin, point, local );
-		VectorNormalize( local );
+		VectorNormalizeFast( local );
 		d1 = DotProduct( local, normal );
 		d1 *= ( 1.0 - distLerp );
 		d1 += d2;

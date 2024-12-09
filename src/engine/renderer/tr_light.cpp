@@ -246,7 +246,7 @@ int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, ve
 		lightDir[ 1 ] = copysignf( 1.0f - fabsf( X ), Y );
 	}
 
-	VectorNormalize( lightDir );
+	VectorNormalizeFast( lightDir );
 
 	if ( ambientLight[ 0 ] < r_forceAmbient->value &&
 	     ambientLight[ 1 ] < r_forceAmbient->value &&
@@ -335,7 +335,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t
 		ent->directedLight[ 2 ] = 224.0f / 255.0f;
 
 		VectorSet( ent->lightDir, -1, 1, 1.25 );
-		VectorNormalize( ent->lightDir );
+		VectorNormalizeFast( ent->lightDir );
 	}
 
 	if ( ( ent->e.renderfx & RF_MINLIGHT ) ) // && VectorLength(ent->ambientLight) <= 0)
@@ -368,7 +368,7 @@ void R_SetupLightOrigin( trRefLight_t *light )
 		{
 			MatrixTransformPoint( light->transformMatrix, light->l.center, transformed );
 			VectorSubtract( transformed, light->l.origin, light->direction );
-			VectorNormalize( light->direction );
+			VectorNormalizeFast( light->direction );
 
 			VectorMA( light->l.origin, 10000, light->direction, light->origin );
 		}
@@ -378,7 +378,7 @@ void R_SetupLightOrigin( trRefLight_t *light )
 
 			MatrixTransformPoint( light->transformMatrix, down, transformed );
 			VectorSubtract( transformed, light->l.origin, light->direction );
-			VectorNormalize( light->direction );
+			VectorNormalizeFast( light->direction );
 
 			VectorMA( light->l.origin, 10000, light->direction, light->origin );
 
@@ -614,7 +614,7 @@ void R_SetupLightFrustum( trRefLight_t *light )
 				{
 					VectorMA( light->l.origin, light->l.radius, axis[ i ], planeOrigin );
 					VectorNegate( axis[ i ], planeNormal );
-					VectorNormalize( planeNormal );
+					VectorNormalizeFast( planeNormal );
 
 					VectorCopy( planeNormal, light->frustum[ i ].normal );
 					light->frustum[ i ].dist = DotProduct( planeOrigin, planeNormal );
@@ -624,7 +624,7 @@ void R_SetupLightFrustum( trRefLight_t *light )
 				{
 					VectorMA( light->l.origin, -light->l.radius, axis[ i ], planeOrigin );
 					VectorCopy( axis[ i ], planeNormal );
-					VectorNormalize( planeNormal );
+					VectorNormalizeFast( planeNormal );
 
 					VectorCopy( planeNormal, light->frustum[ i + 3 ].normal );
 					light->frustum[ i + 3 ].dist = DotProduct( planeOrigin, planeNormal );
@@ -714,7 +714,7 @@ void R_SetupLightProjection( trRefLight_t *light )
 					float uLen = VectorNormalize2( light->l.projUp, up );
 
 					CrossProduct( up, right, normal );
-					VectorNormalize( normal );
+					VectorNormalizeFast( normal );
 
 					vec_t dist = DotProduct( light->l.projTarget, normal );
 

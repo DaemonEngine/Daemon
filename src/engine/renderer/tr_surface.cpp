@@ -1371,7 +1371,7 @@ static void Tess_SurfaceFlare( srfFlare_t *surf )
 
 	VectorMA( surf->origin, 2.0F, surf->normal, origin );
 	VectorSubtract( origin, backEnd.viewParms.orientation.origin, dir );
-	VectorNormalize( dir );
+	VectorNormalizeFast( dir );
 	d = -DotProduct( dir, surf->normal );
 	VectorMA( origin, r_ignore->value, dir, origin );
 

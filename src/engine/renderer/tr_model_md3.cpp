@@ -306,8 +306,8 @@ bool R_LoadMD3( model_t *mod, int lod, const void *buffer, const char *modName )
 
 					for ( j = 0; j < surf->numVerts; j++ )
 					{
-						VectorNormalize( tangents[ j ] );
-						VectorNormalize( binormals[ j ] );
+						VectorNormalizeFast( tangents[ j ] );
+						VectorNormalizeFast( binormals[ j ] );
 						R_TBNtoQtangents(
 							tangents[ j ], binormals[ j ],
 							surf->normals[ f * surf->numVerts + j ].normal,
