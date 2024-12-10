@@ -156,6 +156,10 @@ static bool ConnectSingletonSocket()
 
 	struct sockaddr_un addr;
 	addr.sun_family = AF_UNIX;
+	if (singletonSocketPath.size() > sizeof(addr.sun_path)) {
+		Sys::Error("Singleton socket name '%s' is too long. Try configuring a shorter $TMPDIR",
+		           singletonSocketPath);
+	}
 	Q_strncpyz(addr.sun_path, singletonSocketPath.c_str(), sizeof(addr.sun_path));
 	if (connect(singletonSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1) {
 		if (errno != ENOENT)
