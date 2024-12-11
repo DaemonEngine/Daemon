@@ -141,12 +141,15 @@ if(NOT DAEMON_EXTERNAL_APP)
 
     set(NACL_RUNTIME_PATH "" CACHE STRING "Directory containing the NaCl binaries")
 
-    # Not supported on mac because the included version is too old
-    if(APPLE)
-        set(USE_CURSES OFF)
-    elseif(WIN32)
+    if (WIN32)
+        # The alternative code is based on non-curses unix terminal functions.
         set(USE_CURSES ON)
     else()
+        if (NOT APPLE)
+            # Not supported on macOS because the included version is too old.
+            option(USE_CURSES_NCURSES "Use ncurses instead of PDCursesMod" ON)
+        endif()
+
         option(USE_CURSES "Enable fancy colors in terminal's output" ON)
     endif()
 
@@ -657,20 +660,24 @@ endif()
 # Curses, pdcurses on Windows and ncursesw on Unix
 if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (USE_CURSES)
-        if (WIN32)
-            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
+        if (USE_CURSES_NCURSES)
+            # Tells FindCurses that ncurses is required.
+            set(CURSES_NEED_NCURSES 1)
+
+            add_definitions(-DUSE_CURSES -DUSE_CURSES_NCURSES)
+            find_package(CursesW REQUIRED)
+            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
+            include_directories(${CURSESW_INCLUDE_DIR})
+        else ()
+            if (WIN32)
+                set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} gdi32 comdlg32)
+            endif()
 
             add_definitions(-DPDC_WIDE -DPDC_FORCE_UTF8 -DPDC_RGB -DUSE_CURSES)
             add_library(srclibs-pdcurses EXCLUDE_FROM_ALL ${PDCURSESLIST})
             set_target_properties(srclibs-pdcurses PROPERTIES POSITION_INDEPENDENT_CODE 1 FOLDER "libs")
             set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} srclibs-pdcurses)
             include_directories(${LIB_DIR}/pdcursesmod)
-        else ()
-            add_definitions(-DUSE_CURSES)
-            set(CURSES_NEED_NCURSES 1) # Tells FindCurses that ncurses is required
-            find_package(CursesW REQUIRED)
-            set(LIBS_ENGINE_BASE ${LIBS_ENGINE_BASE} ${CURSESW_LIBRARIES})
-            include_directories(${CURSESW_INCLUDE_DIR})
         endif()
     endif()
 endif()
