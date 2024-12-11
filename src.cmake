@@ -86,6 +86,18 @@ if (DAEMON_PARENT_SCOPE_DIR)
     set(COMMONLIST ${COMMONLIST} PARENT_SCOPE)
 endif()
 
+# Tests for code shared by engine and gamelogic
+set(COMMONTESTLIST
+    ${LIB_DIR}/tinyformat/TinyformatTest.cpp
+    ${COMMON_DIR}/ColorTest.cpp
+    ${COMMON_DIR}/FileSystemTest.cpp
+    ${COMMON_DIR}/StringTest.cpp
+    ${COMMON_DIR}/cm/unittest.cpp
+    ${COMMON_DIR}/MathTest.cpp
+    ${COMMON_DIR}/UtilTest.cpp
+    ${ENGINE_DIR}/qcommon/q_math_test.cpp
+)
+
 set(RENDERERLIST
     ${ENGINE_DIR}/renderer/DetectGLVendors.cpp
     ${ENGINE_DIR}/renderer/DetectGLVendors.h
@@ -279,15 +291,8 @@ else()
     )
 endif()
 
-# Tests for engine-lib
-set(ENGINETESTLIST
-    ${LIB_DIR}/tinyformat/TinyformatTest.cpp
-    ${COMMON_DIR}/ColorTest.cpp
-    ${COMMON_DIR}/FileSystemTest.cpp
-    ${COMMON_DIR}/StringTest.cpp
-    ${COMMON_DIR}/cm/unittest.cpp
-    ${COMMON_DIR}/MathTest.cpp
-    ${COMMON_DIR}/UtilTest.cpp
+# Tests runnable for any engine variant
+set(ENGINETESTLIST ${COMMONTESTLIST}
     ${ENGINE_DIR}/framework/CommandSystemTest.cpp
 )
 

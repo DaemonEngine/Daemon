@@ -880,7 +880,7 @@ static void Tess_SurfaceMDV( mdvSurface_t *srf )
 		binormals = (vec3_t *)ri.Hunk_AllocateTempMemory( numVertexes * sizeof( vec3_t ) );
 		normals = (vec3_t *)ri.Hunk_AllocateTempMemory( numVertexes * sizeof( vec3_t ) );
 
-		for ( i = 0; i < numVertexes; i++ )
+		for ( i = 0; i < numVertexes; i++, newVert++, oldVert++, oldNormal++, newNormal++ )
 		{
 			VectorClear( tangents[ i ] );
 			VectorClear( binormals[ i ] );
@@ -1002,7 +1002,7 @@ static void Tess_SurfaceMD5( md5Surface_t *srf )
 		for ( ; bone < lastBone; bone++,
 			modelBone++ )
 		{
-			TransCopy( &modelBone->joint, bone );
+			*bone = modelBone->joint;
 			TransInsScale( modelScale, bone );
 		}
 	}
@@ -1149,7 +1149,7 @@ void Tess_SurfaceIQM( srfIQModel_t *surf ) {
 		for ( ; bone < lastBone; bone++,
 			modelJoint++ )
 		{
-			TransCopy( modelJoint, bone );
+			*bone = *modelJoint;
 			TransInsScale( modelScale, bone );
 		}
 	}
@@ -1491,7 +1491,7 @@ static void Tess_SurfaceVBOMD5Mesh( srfVBOMD5Mesh_t *srf )
 		for ( ; bone < lastBone; bone++,
 			modelBone++ )
 		{
-			TransCopy( &modelBone->joint, bone );
+			*bone = modelBone->joint;
 			TransInsScale( modelScale, bone );
 		}
 	}

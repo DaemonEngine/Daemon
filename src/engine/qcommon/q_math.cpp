@@ -3199,12 +3199,6 @@ void TransInit( transform_t *t )
 	t->scale = 1.0f;
 }
 
-// copy a transform
-void TransCopy( const transform_t *in, transform_t *out )
-{
-	memcpy( out, in, sizeof( transform_t ) );
-}
-
 // apply a transform to a point
 void TransformPoint( const transform_t *t, const vec3_t in, vec3_t out )
 {
@@ -3212,25 +3206,11 @@ void TransformPoint( const transform_t *t, const vec3_t in, vec3_t out )
 	VectorScale( out, t->scale, out );
 	VectorAdd( out, t->trans, out );
 }
-// apply the inverse of a transform to a point
-void TransformPointInverse( const transform_t *t, const vec3_t in, vec3_t out )
-{
-	VectorSubtract( in, t->trans, out );
-	VectorScale( out, 1.0f / t->scale, out );
-	QuatTransformVectorInverse( t->rot, out, out );
-}
 
 // apply a transform to a normal vector (ignore scale and translation)
 void TransformNormalVector( const transform_t *t, const vec3_t in, vec3_t out )
 {
 	QuatTransformVector( t->rot, in, out );
-}
-// apply the inverse of a transform to a normal vector (ignore scale
-// and translation)
-void TransformNormalVectorInverse( const transform_t *t, const vec3_t in,
-                                   vec3_t out )
-{
-	QuatTransformVectorInverse( t->rot, in, out );
 }
 
 // initialize a transform with a pure rotation
@@ -3239,16 +3219,6 @@ void TransInitRotationQuat( const quat_t quat, transform_t *t )
 	QuatCopy( quat, t->rot );
 	VectorClear( t->trans );
 	t->scale = 1.0f;
-}
-void TransInitRotation( const vec3_t axis, float angle, transform_t *t )
-{
-	float sa = sinf( 0.5f * angle );
-	float ca = cosf( 0.5f * angle );
-	quat_t q;
-
-	VectorScale( axis, sa, q );
-	q[3] = ca;
-	TransInitRotationQuat( q, t );
 }
 // initialize a transform with a pure translation
 void TransInitTranslation( const vec3_t vec, transform_t *t )
@@ -3292,16 +3262,6 @@ void TransAddRotationQuat( const quat_t quat, transform_t *t )
 	QuatMultiply2( tmp, t->rot );
 	QuatCopy( tmp, t->rot );
 }
-void TransAddRotation( const vec3_t axis, float angle, transform_t *t )
-{
-	float sa = sinf( 0.5f * angle );
-	float ca = cosf( 0.5f * angle );
-	quat_t q;
-
-	VectorScale( axis, sa, q );
-	q[3] = ca;
-	TransAddRotationQuat( q, t );
-}
 
 // add a scale to the start of an existing transform
 void TransInsScale( float factor, transform_t *t )
@@ -3319,9 +3279,9 @@ void TransAddScale( float factor, transform_t *t )
 void TransInsTranslation( const vec3_t vec, transform_t *t )
 {
 	vec3_t tmp;
-
-	TransformPoint( t, vec, tmp );
-	VectorAdd( t->trans, tmp, t->trans );
+	QuatTransformVector( t->rot, vec, tmp );
+	VectorScale( tmp, t->scale, tmp );
+	VectorAdd( tmp, t->trans, t->trans );
 }
 
 // add a translation at the end of an existing transformation
@@ -3334,7 +3294,7 @@ void TransAddTranslation( const vec3_t vec, transform_t *t )
 void TransCombine( const transform_t *a, const transform_t *b,
                    transform_t *out )
 {
-	TransCopy( a, out );
+	*out = *a;
 
 	TransAddRotationQuat( b->rot, out );
 	TransAddScale( b->scale, out );
@@ -3345,7 +3305,7 @@ void TransCombine( const transform_t *a, const transform_t *b,
 void TransInverse( const transform_t *in, transform_t *out )
 {
 	quat_t inverse;
-	static transform_t tmp; // static for proper alignment in QVMs
+	transform_t tmp;
 
 	TransInit( &tmp );
 	VectorNegate( in->trans, tmp.trans );
@@ -3353,7 +3313,7 @@ void TransInverse( const transform_t *in, transform_t *out )
 	QuatCopy( in->rot, inverse );
 	QuatInverse( inverse );
 	TransAddRotationQuat( inverse, &tmp );
-	TransCopy( &tmp, out );
+	*out = tmp;
 }
 
 // lerp between transforms
