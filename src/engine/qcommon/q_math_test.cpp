@@ -205,4 +205,18 @@ TEST(QMathTransformTest, TransInverse)
         {-0.4833702, 0.42157, 0.7551386, -0.1356377}, {1.244436,1.155842,-0.5278334}, 0.4);
 }
 
+TEST(QSharedMathTest, InverseSquareRoot)
+{
+    constexpr float relativeTolerance = 5.0e-6;
+    auto RsqrtEq = [=](float expected) { return FloatNear(expected, expected * relativeTolerance); };
+
+    EXPECT_THAT(Q_rsqrt(1e-6), RsqrtEq(1e3));
+    EXPECT_THAT(Q_rsqrt(0.036), RsqrtEq(5.270463));
+    EXPECT_THAT(Q_rsqrt(0.2), RsqrtEq(2.236068));
+    EXPECT_THAT(Q_rsqrt(1), RsqrtEq(1));
+    EXPECT_THAT(Q_rsqrt(3), RsqrtEq(0.5773503));
+    EXPECT_THAT(Q_rsqrt(29.1), RsqrtEq(0.1853760));
+    EXPECT_THAT(Q_rsqrt(1e6), RsqrtEq(1e-3));
+}
+
 } // namespace
