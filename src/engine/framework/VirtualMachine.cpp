@@ -83,6 +83,11 @@ static Cvar::Cvar<bool> vm_nacl_bootstrap(
 	"Use NaCl bootstrap helper",
 	Cvar::INIT, true);
 
+static Cvar::Cvar<int> vm_timeout(
+	"vm.timeout",
+	"Receive timeout in seconds",
+	Cvar::NONE, 2);
+
 namespace VM {
 
 // https://github.com/Unvanquished/Unvanquished/issues/944#issuecomment-744454772
@@ -502,8 +507,9 @@ void VMBase::Create()
 
 	// Only set a receive timeout for non-debug configurations, otherwise it
 	// would get triggered by breakpoints.
-	if (type != TYPE_NATIVE_DLL && !params.debug.Get())
-		rootChannel.SetRecvTimeout(std::chrono::seconds(2));
+	if (type != TYPE_NATIVE_DLL && !params.debug.Get()) {
+		rootChannel.SetRecvTimeout(std::chrono::seconds(vm_timeout.Get()));
+	}
 
 	// Read the ABI version detection ABI version from the root socket.
 	// If this fails, we assume the remote process failed to start

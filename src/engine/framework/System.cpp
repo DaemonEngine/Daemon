@@ -54,14 +54,96 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Sys {
 static Cvar::Cvar<bool> cvar_common_shutdownOnDrop("common.shutdownOnDrop", "shut down engine on game drop", Cvar::TEMPORARY, false);
 
+static std::string singletonSocketPath;
 #ifdef _WIN32
 static HANDLE singletonSocket;
 #else
+#define SINGLETON_SOCKET_BASENAME "socket"
 static int singletonSocket;
 static FS::File lockFile;
 static bool haveSingletonLock = false;
+
+static void FillSocketStruct(struct sockaddr_un &addr)
+{
+	addr.sun_family = AF_UNIX;
+#ifdef __APPLE__
+	Q_strncpyz(addr.sun_path, SINGLETON_SOCKET_BASENAME, sizeof(addr.sun_path));
+#else
+	if (singletonSocketPath.size() > sizeof(addr.sun_path)) {
+		Sys::Error("Singleton socket name '%s' is too long. Try configuring a shorter $TMPDIR",
+		           singletonSocketPath);
+	}
+	Q_strncpyz(addr.sun_path, singletonSocketPath.c_str(), sizeof(addr.sun_path));
 #endif
-static std::string singletonSocketPath;
+}
+
+#ifdef __APPLE__
+// Secret Apple APIs. Chrome just declares them like this
+extern "C" {
+	int pthread_chdir_np(const char* path);
+	int pthread_fchdir_np(int fd);
+}
+
+// These ChdirWrapper* functions return 0 on success or an errno on failure
+static int ChdirWrapperSingletonSocketConnect()
+{
+	std::string dirName = FS::Path::DirName(singletonSocketPath);
+	int error = 0;
+	if (0 == pthread_chdir_np(dirName.c_str())) {
+		struct sockaddr_un addr;
+		FillSocketStruct(addr);
+		if (0 != connect(singletonSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))) {
+			error = errno;
+		}
+	} else {
+		// Assume the directory didn't exist. If it does but it is not accessible, we should
+		// hit another error soon when trying to create the singleton socket
+		error = ENOENT;
+	}
+	pthread_fchdir_np(-1); // reset CWD
+	return error;
+}
+
+static int ChdirWrapperSingletonSocketBind()
+{
+	std::string dirName = FS::Path::DirName(singletonSocketPath);
+	bool chdirSuccess = 0 == pthread_chdir_np(dirName.c_str());
+	int error = 0;
+	if (chdirSuccess) {
+		struct sockaddr_un addr;
+		FillSocketStruct(addr);
+		if (0 != bind(singletonSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))) {
+			error = errno;
+		}
+	}
+	pthread_fchdir_np(-1); // reset CWD
+	if (!chdirSuccess) {
+		Sys::Error("Failed to create or failed to access singleton socket directory '%s'", dirName);
+	}
+	return error;
+}
+#else // ! ifdef __APPLE__
+// TODO: supposedly there is an API that can be used to make chdir thread safe
+// on Linux too called "unshare"?
+static int ChdirWrapperSingletonSocketConnect()
+{
+	struct sockaddr_un addr;
+	FillSocketStruct(addr);
+	return 0 == connect(singletonSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))
+		? 0
+		: errno;
+}
+
+static int ChdirWrapperSingletonSocketBind()
+{
+	struct sockaddr_un addr;
+	FillSocketStruct(addr);
+	return 0 == bind(singletonSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))
+		? 0
+		: errno;
+}
+#endif // ! ifdef __APPLE__
+#endif // ! ifdef _WIN32
 
 // Get the path of a singleton socket
 std::string GetSingletonSocketPath()
@@ -78,7 +160,8 @@ std::string GetSingletonSocketPath()
 	// We use a temporary directory rather that using the homepath because
 	// socket paths are limited to about 100 characters. This also avoids issues
 	// when the homepath is on a network filesystem.
-	return FS::Path::Build(FS::Path::Build(FS::DefaultTempPath(), "." PRODUCT_NAME_LOWER + suffix), "socket");
+	return FS::Path::Build(FS::Path::Build(
+		FS::DefaultTempPath(), "." PRODUCT_NAME_LOWER + suffix), SINGLETON_SOCKET_BASENAME);
 #endif
 }
 
@@ -120,11 +203,9 @@ static void CreateSingletonSocket()
 	fchmod(singletonSocket, 0600);
 	mkdir(dirName.c_str(), 0700);
 
-	struct sockaddr_un addr;
-	addr.sun_family = AF_UNIX;
-	Q_strncpyz(addr.sun_path, singletonSocketPath.c_str(), sizeof(addr.sun_path));
-	if (bind(singletonSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1)
-		Sys::Error("Could not bind singleton socket at file: \"%s\", error: \"%s\"", singletonSocketPath, strerror(errno) );
+	int bindErr = ChdirWrapperSingletonSocketBind();
+	if (bindErr != 0)
+		Sys::Error("Could not bind singleton socket at file: \"%s\", error: \"%s\"", singletonSocketPath, strerror(bindErr) );
 
 	if (listen(singletonSocket, SOMAXCONN) == -1)
 		Sys::Error("Could not listen on singleton socket file \"%s\", error: \"%s\"", singletonSocketPath, strerror(errno) );
@@ -154,12 +235,10 @@ static bool ConnectSingletonSocket()
 	if (singletonSocket == -1)
 		Sys::Error("Could not create socket: %s", strerror(errno));
 
-	struct sockaddr_un addr;
-	addr.sun_family = AF_UNIX;
-	Q_strncpyz(addr.sun_path, singletonSocketPath.c_str(), sizeof(addr.sun_path));
-	if (connect(singletonSocket, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1) {
-		if (errno != ENOENT)
-			Log::Warn("Could not connect to existing instance: %s", strerror(errno));
+	int connectErr = ChdirWrapperSingletonSocketConnect();
+	if (connectErr != 0) {
+		if (connectErr != ENOENT)
+			Log::Warn("Could not connect to existing instance: %s", strerror(connectErr));
 		close(singletonSocket);
 		return false;
 	}
