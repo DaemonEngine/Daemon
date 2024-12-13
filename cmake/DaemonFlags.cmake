@@ -262,10 +262,6 @@ else()
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
-	elseif (APPLE)
-		# Use libc++ on Mac because the shipped libstdc++ version is too old.
-		set_c_cxx_flag("-stdlib=libc++")
-		set_linker_flag("-stdlib=libc++")
 	endif()
 
 	# Prevent the generation of STB_GNU_UNIQUE symbols
