@@ -340,7 +340,9 @@ else()
 
 		if (NOT NACL OR (NACL AND GAME_PIE))
 			try_c_cxx_flag(FPIE "-fPIE")
-			try_linker_flag(LINKER_PIE "-pie")
+			if (NOT APPLE)
+				try_linker_flag(LINKER_PIE "-pie")
+			endif()
 		endif()
 
 		if ("${FLAG_LINKER_PIE}" AND MINGW)
