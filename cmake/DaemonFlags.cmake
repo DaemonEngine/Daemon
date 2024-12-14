@@ -262,10 +262,6 @@ else()
 		# PNaCl only supports libc++ as standard library.
 		set_c_cxx_flag("-stdlib=libc++")
 		set_c_cxx_flag("--pnacl-allow-exceptions")
-	elseif (APPLE)
-		# Use libc++ on Mac because the shipped libstdc++ version is too old.
-		set_c_cxx_flag("-stdlib=libc++")
-		set_linker_flag("-stdlib=libc++")
 	endif()
 
 	# Prevent the generation of STB_GNU_UNIQUE symbols
@@ -340,7 +336,9 @@ else()
 
 		if (NOT NACL OR (NACL AND GAME_PIE))
 			try_c_cxx_flag(FPIE "-fPIE")
-			try_linker_flag(LINKER_PIE "-pie")
+			if (NOT APPLE)
+				try_linker_flag(LINKER_PIE "-pie")
+			endif()
 		endif()
 
 		if ("${FLAG_LINKER_PIE}" AND MINGW)
