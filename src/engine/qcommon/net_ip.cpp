@@ -1809,16 +1809,14 @@ NET_Shutdown
 */
 void NET_Shutdown()
 {
-	if ( !networkingEnabled )
-	{
-		return;
-	}
-
 	NET_DisableNetworking();
 
 #ifdef _WIN32
-	WSACleanup();
-	winsockInitialized = false;
+	if ( winsockInitialized )
+	{
+		WSACleanup();
+		winsockInitialized = false;
+	}
 #endif
 }
 
