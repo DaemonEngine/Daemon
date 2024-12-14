@@ -935,7 +935,13 @@ SOCKET NET_IPSocket( const char *net_interface, int port, struct sockaddr_in *bi
 
 	Log::Notice( "Opening IP socket: %s:%s", net_interface ? net_interface : "0.0.0.0", port ? va( "%i", port ) : "*" );
 
-	if ( ( newsocket = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP ) ) == INVALID_SOCKET )
+#ifdef _WIN32
+	newsocket = WSASocketW( PF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
+#else
+	newsocket = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP );
+#endif
+
+	if ( newsocket == INVALID_SOCKET )
 	{
 		*err = socketError;
 		Log::Warn( "NET_IPSocket: socket: %s", NET_ErrorString() );
@@ -1020,7 +1026,13 @@ SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *
 	// Print the name in brackets if there is a colon:
 	Log::Notice( "Opening IP6 socket: %s%s%s:%s", brackets ? "[" : "", net_interface ? net_interface : "[::]", brackets ? "]" : "", port ? va( "%i", port ) : "*" );
 
-	if ( ( newsocket = socket( PF_INET6, SOCK_DGRAM, IPPROTO_UDP ) ) == INVALID_SOCKET )
+#ifdef _WIN32
+	newsocket = WSASocketW( PF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
+#else
+	newsocket = socket( PF_INET6, SOCK_DGRAM, IPPROTO_UDP );
+#endif
+
+	if ( newsocket  == INVALID_SOCKET )
 	{
 		*err = socketError;
 		Log::Warn( "NET_IP6Socket: socket: %s", NET_ErrorString() );
@@ -1223,7 +1235,13 @@ void NET_OpenSocks( int port )
 
 	Log::Notice( "Opening connection to SOCKS server." );
 
-	if ( ( socks_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ) == INVALID_SOCKET )
+#ifdef _WIN32
+	socks_socket = WSASocketW( AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
+#else
+	socks_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
+#endif
+
+	if ( socks_socket == INVALID_SOCKET )
 	{
 		Log::Warn( "NET_OpenSocks: socket: %s", NET_ErrorString() );
 		return;
