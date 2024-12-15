@@ -111,6 +111,12 @@ void GL_TextureMode( const char *string )
 	gl_filter_min = modes[ i ].minimize;
 	gl_filter_max = modes[ i ].maximize;
 
+	if ( glConfig2.usingBindlessTextures && !tr.images.empty() )
+	{
+		Log::Notice( "Changing filter type of existing bindless textures requires a restart" );
+		return;
+	}
+
 	// change all the existing mipmap texture objects
 	for ( image_t *image : tr.images )
 	{
@@ -126,11 +132,6 @@ void GL_TextureMode( const char *string )
 			if ( glConfig2.textureAnisotropyAvailable )
 			{
 				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig2.textureAnisotropy );
-			}
-
-			// Getting bindless handle makes the texture immutable, so generate it again because we used glTexParameter*
-			if ( glConfig2.usingBindlessTextures ) {
-				image->texture->GenBindlessHandle();
 			}
 		}
 	}
