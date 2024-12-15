@@ -77,9 +77,8 @@ function(GAMEMODULE)
                     "-D${inherited_option}=${${inherited_option}}")
             endforeach(inherited_option)
 
-            add_custom_target(nacl-vms ALL)
-
             if (USE_NACL_SAIGO)
+                add_custom_target(nacl-vms ALL)
                 unset(NACL_VMS_PROJECTS)
 
                 foreach(NACL_TARGET ${NACL_TARGETS})
@@ -129,9 +128,8 @@ function(GAMEMODULE)
                     )
                 endforeach()
             else()
-                set(NACL_VMS_PROJECT nacl-vms-pexe)
+                set(NACL_VMS_PROJECT nacl-vms)
                 set(NACL_VMS_PROJECTS ${NACL_VMS_PROJECT})
-                add_dependencies(nacl-vms ${NACL_VMS_PROJECT})
 
                 # Workaround a bug where CMake ExternalProject lists-as-args are cut on first “;”
                 string(REPLACE ";" "," NACL_TARGETS_STRING "${NACL_TARGETS}")
@@ -165,6 +163,7 @@ function(GAMEMODULE)
                     ALWAYS 1
                 )
             endif()
+            set(NACL_VMS_PROJECTS ${NACL_VMS_PROJECTS} PARENT_SCOPE)
         endif()
     else()
         if (FORK EQUAL 2)
