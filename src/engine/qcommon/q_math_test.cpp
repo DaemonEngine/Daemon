@@ -219,4 +219,18 @@ TEST(QSharedMathTest, InverseSquareRoot)
     EXPECT_THAT(Q_rsqrt(1e6), RsqrtEq(1e-3));
 }
 
+TEST(QSharedMathTest, FastInverseSquareRoot)
+{
+    constexpr float relativeTolerance = 6.50196699e-4;
+    auto RsqrtEq = [=](float expected) { return FloatNear(expected, expected * relativeTolerance); };
+
+    EXPECT_THAT(Q_rsqrt_fast(1e-6), RsqrtEq(1e3));
+    EXPECT_THAT(Q_rsqrt_fast(0.036), RsqrtEq(5.270463));
+    EXPECT_THAT(Q_rsqrt_fast(0.2), RsqrtEq(2.236068));
+    EXPECT_THAT(Q_rsqrt_fast(1), RsqrtEq(1));
+    EXPECT_THAT(Q_rsqrt_fast(3), RsqrtEq(0.5773503));
+    EXPECT_THAT(Q_rsqrt_fast(29.1), RsqrtEq(0.1853760));
+    EXPECT_THAT(Q_rsqrt_fast(1e6), RsqrtEq(1e-3));
+}
+
 } // namespace
