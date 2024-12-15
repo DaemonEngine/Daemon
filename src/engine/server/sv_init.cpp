@@ -52,6 +52,9 @@ static Cvar::Cvar<std::string> cvar_pakname(
 	"pakname", "pak containing current map", Cvar::SERVERINFO | Cvar::ROM, "");
 static Cvar::Cvar<std::string> sv_paks(
 	"sv_paks", "currently loaded paks", Cvar::SYSTEMINFO | Cvar::ROM, "");
+static Cvar::Cvar<std::string> cvar_contact(
+	"contact", "contact information to reach out to the server admin when needed: forum or chat nickname, mail address…",
+	Cvar::SERVERINFO, "" );
 static Cvar::Cvar<bool> sv_useBaseline(
 	"sv_useBaseline", "send entity baseline for non-snapshot delta compression", Cvar::NONE, true);
 
@@ -437,6 +440,14 @@ void SV_SpawnServer(std::string pakname, std::string mapname)
 	SV_ShutdownGameProgs();
 
 	PrintBanner( "Server Initialization" )
+
+	if ( !SV_Private(ServerPrivate::NoAdvertise)
+		&& sv_networkScope.Get() >= 2
+		&& cvar_contact.Get().empty() )
+	{
+		Log::Warn( "The contact information isn't set, it is requested for public servers." );
+	}
+
 	Log::Notice( "Map: %s", mapname );
 
 	// if not running a dedicated server CL_MapLoading will connect the client to the server
