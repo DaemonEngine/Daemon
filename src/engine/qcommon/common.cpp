@@ -124,11 +124,11 @@ void Info_Print( const char *s )
 			*o = 0;
 		}
 
-		Log::Notice( key );
+		Log::defaultLogger.WithoutSuppression().Notice( key );
 
 		if ( !*s )
 		{
-			Log::Notice( "MISSING VALUE" );
+			Log::defaultLogger.WithoutSuppression().Notice( "MISSING VALUE" );
 			return;
 		}
 
@@ -147,7 +147,7 @@ void Info_Print( const char *s )
 			s++;
 		}
 
-		Log::Notice( "%s", value );
+		Log::defaultLogger.WithoutSuppression().Notice( value );
 	}
 }
 
