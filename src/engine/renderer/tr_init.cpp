@@ -830,18 +830,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		tr.currenttextures.resize( glConfig2.maxTextureUnits );
 
-		// initialize downstream texture units if we're running
-		// in a multitexture environment
-		if ( glConfig.driverType == glDriverType_t::GLDRV_OPENGL3 )
-		{
-			for ( int i = 0; i < glConfig2.maxTextureUnits; i++ )
-			{
-				GL_SelectTexture( i );
-				GL_TextureMode( r_textureMode->string );
-			}
-		}
-
-		GL_CheckErrors();
+		GL_TextureMode( r_textureMode->string );
+		r_textureMode->modified = false;
 
 		GL_DepthFunc( GL_LEQUAL );
 
