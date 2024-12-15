@@ -158,7 +158,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen("r_imageFitScreen", "downscale “fitscreen” images to fit the screen size: 0: disable, 1: downscale as much as possible without being smaller than screen size (default), 2: downscale to never be larger then screen size", Cvar::NONE, 1, 0, 2);
 	cvar_t      *r_finish;
-	cvar_t      *r_textureMode;
+	Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode(
+		"r_textureMode", "default texture filter mode", Cvar::NONE, "GL_LINEAR_MIPMAP_LINEAR");
 	cvar_t      *r_offsetFactor;
 	cvar_t      *r_offsetUnits;
 
@@ -830,8 +831,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		tr.currenttextures.resize( glConfig2.maxTextureUnits );
 
-		GL_TextureMode( r_textureMode->string );
-		r_textureMode->modified = false;
+		GL_TextureMode( r_textureMode.Get().c_str() );
+		r_textureMode.GetModifiedValue();
 
 		GL_DepthFunc( GL_LEQUAL );
 
@@ -1067,7 +1068,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("Forcing glFinish." );
 		}
 
-		Log::Debug("texturemode: %s", r_textureMode->string );
+		Log::Debug("texturemode: %s", r_textureMode.Get() );
 		Log::Debug("picmip: %d", r_picMip->integer );
 		Log::Debug("imageMaxDimension: %d", r_imageMaxDimension->integer );
 		Log::Debug("ignoreMaterialMinDimension: %d", r_ignoreMaterialMinDimension->integer );
@@ -1169,7 +1170,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_zfar = Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
 		r_checkGLErrors = Cvar_Get( "r_checkGLErrors", "-1", 0 );
 		r_finish = Cvar_Get( "r_finish", "0", CVAR_CHEAT );
-		r_textureMode = Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_LINEAR", CVAR_ARCHIVE );
 		r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE );
 		r_facePlaneCull = Cvar_Get( "r_facePlaneCull", "1", 0 );
 
