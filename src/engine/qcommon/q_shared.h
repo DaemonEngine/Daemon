@@ -338,25 +338,101 @@ extern const quat_t   quatIdentity;
 
 #define Q_ftol(x) ((long)(x))
 
-	// Overall relative error bound (ignoring unknown powerpc case): 5 * 10^-6
-	// https://en.wikipedia.org/wiki/Fast_inverse_square_root#/media/File:2nd-iter.png
-	inline float Q_rsqrt( float number )
-	{
-		float x = 0.5f * number;
-		float y;
+/* The original Q_rsqrt algorithm is:
 
-		// compute approximate inverse square root
+float Q_rsqrt( float n )
+{
+	uint32_t magic = 0x5f3759dful;
+	float a = 0.5f;
+	float b = 3.0f;
+	union { float f; uint32_t u; } o = {n};
+	o.u = magic - ( o.u >> 1 );
+	return a * o.f * ( b - n * o.f * o.f );
+}
+
+It could be written like this, this is what Quake 3 did:
+
+float Q_rsqrt( float n )
+{
+	uint32_t magic = 0x5f3759dful;
+	float a = 0.5f;
+	float b = 3.0f;
+	float c = a * b; // 1.5f
+	union { float f; uint32_t u; } o = {n};
+	o.u = magic - ( o.u >> 1);
+	float x = n * a;
+	return o.f * ( c - ( x * o.f * o.f ) );
+	o.f *= c - ( x * o.f * o.f );
+//	o.f *= c - ( x * o.f * o.f );
+	return o.f;
+}
+
+It was written with a second iteration commented out.
+
+The relative error bound after the initial iteration was: 1.8×10⁻³
+The relative error bound after a second iteration was: 5×10⁻⁶
+
+The 0x5f3759df magic constant comes from the Quake 3 source code:
+https://github.com/id-Software/Quake-III-Arena/blob/dbe4ddb/code/game/q_math.c#L56
+
+That magic constant was good enough but better ones can be used.
+
+Chris lomont computed a better magic constant of 0x5f375a86 while
+keeping the other values of 0.5 and 3.0 for all iterations:
+https://www.lomont.org/papers/2003/InvSqrt.pdf
+
+Jan Kadlec computed an ever better magic constant but it requires
+different values for the first iteration: http://rrrola.wz.cz/inv_sqrt.html
+
+float Q_rsqrt( float n )
+{
+	uint32_t magic = 0x5f1ffff9ul:
+	float a = 0.703952253f;
+	float b = 2.38924456f;
+	union { float f; uint32_t u; } o = {n};
+	o.u = magic - ( o.u >> 1 );
+	return a * o.f * ( b - n * y.f * y.f );
+}
+
+The relative error bound is: 6.50196699×10⁻⁴ */
+
+// Compute approximate inverse square root.
+inline float Q_rsqrt_fast( const float n )
+{
 #if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
-		// SSE rsqrt relative error bound: 3.7 * 10^-4
-		_mm_store_ss( &y, _mm_rsqrt_ss( _mm_load_ss( &number ) ) );
+	float o;
+	// The SSE rsqrt relative error bound is 3.7×10⁻⁴.
+	_mm_store_ss( &o, _mm_rsqrt_ss( _mm_load_ss( &n ) ) );
 #else
-		y = Util::bit_cast<float>( 0x5f3759df - ( Util::bit_cast<uint32_t>( number ) >> 1 ) );
-		y *= ( 1.5f - ( x * y * y ) ); // initial iteration
-		// relative error bound after the initial iteration: 1.8 * 10^-3
+	/* Magic constants by Jan Kadlec, with a relative error bound
+	of 6.50196699×10⁻⁴.
+	See: http://rrrola.wz.cz/inv_sqrt.html */
+	constexpr float a = 0.703952253f;
+	constexpr float b = 2.38924456f;
+	constexpr uint32_t magic = 0x5f1ffff9ul;
+	float o = Util::bit_cast<float>( magic - ( Util::bit_cast<uint32_t>( n ) >> 1 ) );
+	o *= a * ( b - n * o * o );
 #endif
-		y *= ( 1.5f - ( x * y * y ) ); // second iteration for higher precision
-		return y;
-	}
+	return o;
+}
+
+inline float Q_rsqrt( const float n )
+{
+	/* When using the magic constants, the relative error bound after the
+	iteration is expected to be at most 5×10⁻⁶. It was achieved with the
+	less-good Quake 3 constants with a first iteration having originally
+	a relative error bound of 1.8×10⁻³.
+	Since the new magic constants provide a better relative error bound of
+	6.50196699×10⁻⁴, the relative error bound is now expected to be smaller.
+	When using the SSE rsqrt, the initial error bound is 3.7×10⁻⁴ so after
+	the iteration it is also expected to be smaller. */
+	constexpr float a = 0.5f;
+	constexpr float b = 3.0f;
+	float o = Q_rsqrt_fast( n );
+	// Do an iteration of Newton's method for finding the zero of: f(x) = 1÷x² - n
+	o *= a * ( b - n * o * o );
+	return o;
+}
 
 inline float Q_fabs( float x )
 {
@@ -617,7 +693,7 @@ inline vec_t VectorNormalize( vec3_t v )
 // that length != 0, nor does it return length
 inline void VectorNormalizeFast( vec3_t v )
 {
-	vec_t ilength = Q_rsqrt( DotProduct( v, v ) );
+	vec_t ilength = Q_rsqrt_fast( DotProduct( v, v ) );
 
 	VectorScale( v, ilength, v );
 }
