@@ -690,7 +690,7 @@ static void SV_BuildClientSnapshot( client_t *client )
 	}
 
 	// grab the current playerState_t
-	OpaquePlayerState* ps = SV_GameClientNum( client - svs.clients );
+	const OpaquePlayerState* ps = SV_GameClientNum( client - svs.clients );
 	memcpy(&frame->ps, ps, sizeof(frame->ps));
 
 	// never send client's own entity, because it can

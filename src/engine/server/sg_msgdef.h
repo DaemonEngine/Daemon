@@ -45,6 +45,7 @@ enum gameImport_t
   G_GEN_FINGERPRINT,
   G_GET_PLAYER_PUBKEY,
   G_GET_TIME_STRING,
+  G_GET_PINGS,
 
   BOT_ALLOCATE_CLIENT,
   BOT_FREE_CLIENT,
@@ -101,6 +102,10 @@ using GetPlayerPubkeyMsg = IPC::SyncMessage<
 using GetTimeStringMsg = IPC::SyncMessage<
     IPC::Message<IPC::Id<VM::QVM, G_GET_TIME_STRING>, int, std::string, qtime_t>,
     IPC::Reply<std::string>
+>;
+using GetPingsMsg = IPC::SyncMessage<
+    IPC::Message<IPC::Id<VM::QVM, G_GET_PINGS>>,
+    IPC::Reply<std::vector<int>>
 >;
 
 using BotAllocateClientMsg = IPC::SyncMessage<

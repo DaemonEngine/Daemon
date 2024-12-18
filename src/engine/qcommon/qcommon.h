@@ -96,8 +96,8 @@ void  MSG_WriteDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to, 
 void  MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number );
 
 void MSG_InitNetcodeTables(NetcodeTable playerStateTable, int playerStateSize);
-void  MSG_WriteDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to );
-void  MSG_ReadDeltaPlayerstate( msg_t *msg, OpaquePlayerState *from, OpaquePlayerState *to );
+void  MSG_WriteDeltaPlayerstate( msg_t *msg, const OpaquePlayerState *from, const OpaquePlayerState *to );
+void  MSG_ReadDeltaPlayerstate( msg_t *msg, const OpaquePlayerState *from, OpaquePlayerState *to );
 
 //============================================================================
 
