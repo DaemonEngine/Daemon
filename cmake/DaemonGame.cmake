@@ -32,11 +32,61 @@ include(DaemonFlags)
 # Function to setup all the Sgame/Cgame libraries
 include(CMakeParseArguments)
 
+## About the different ways to host/play games:
+## Native DLL: no sandboxing, no cleaning up but debugger support. Use for dev.
+## NaCl exe: sandboxing, no leaks, slightly slower, hard to debug. Use for regular players.
+## Native exe: no sandboxing, no leaks, hard to debug. Might be used by server owners for perf.
+## See VirtualMachine.h for code.
+
+# can be loaded by daemon with vm.[sc]game.type 3
+option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for debugging changes locally." ON)
+
+# can be loaded by daemon with vm.[sc]game.type 2
+option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
+
+# The NaCl SDK only runs on amd64 or i686.
+if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
+AND (ARCH STREQUAL "amd64" OR ARCH STREQUAL "i686"))
+	# can be loaded by daemon with vm.[sc]game.type 0 or 1
+	option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
+
+	set(NACL_ALL_TARGETS "amd64;i686;armhf")
+	set(BUILD_GAME_NACL_TARGETS "all" CACHE STRING "Enabled NaCl \"nexe\" architecture targets, values: ${NACL_ALL_TARGETS}, all, native, none.")
+	mark_as_advanced(BUILD_GAME_NACL_TARGETS)
+
+	if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
+		set(NACL_TARGETS "${NACL_ALL_TARGETS}")
+	elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
+		set(NACL_TARGETS "${ARCH}")
+	elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
+		set(NACL_TARGETS "")
+	else()
+		set(NACL_TARGETS "${BUILD_GAME_NACL_TARGETS}")
+	endif()
+
+	foreach(NACL_TARGET ${NACL_TARGETS})
+		set(IS_NACL_VALID_TARGET OFF)
+		foreach(NACL_VALID_TARGET ${NACL_ALL_TARGETS})
+			if(NACL_TARGET STREQUAL NACL_VALID_TARGET)
+				set(IS_NACL_VALID_TARGET ON)
+			endif()
+		endforeach()
+
+		if (NOT IS_NACL_VALID_TARGET)
+			message(FATAL_ERROR "Invalid NaCl target ${NACL_TARGET}, must be one of ${NACL_ALL_TARGETS}")
+		endif()
+	endforeach()
+else()
+	set(BUILD_GAME_NACL OFF)
+	set(NACL_TARGETS "")
+endif()
+
 function(GAMEMODULE)
     # ParseArguments setup
     set(oneValueArgs NAME)
     set(multiValueArgs DEFINITIONS FLAGS FILES LIBS)
     cmake_parse_arguments(GAMEMODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
     if (NOT NACL)
         if (BUILD_GAME_NATIVE_DLL)
             add_library(${GAMEMODULE_NAME}-native-dll MODULE ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${COMMONLIST})
