@@ -51,6 +51,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/file.h>
 #endif
 
+#if defined(DAEMON_USE_FLOAT_EXCEPTIONS)
+	#if defined(__USE_GNU) || defined (__APPLE__)
+		#include <cfenv>
+		#define DAEMON_USE_FLOAT_EXCEPTIONS_AVAILABLE
+	#elif defined(_MSC_VER)
+		#include <cfloat>
+		#define DAEMON_USE_FLOAT_EXCEPTIONS_AVAILABLE
+	#endif
+#endif
+
+#if defined(DAEMON_USE_FLOAT_EXCEPTIONS_AVAILABLE)
+	static Cvar::Cvar<bool> common_floatExceptions_invalid("common.floatExceptions.invalid",
+		"enable floating point exception for operation with NaN",
+		Cvar::INIT, false);
+	static Cvar::Cvar<bool> common_floatExceptions_divByZero("common.floatExceptions.divByZero",
+		"enable floating point exception for division-by-zero operation",
+		Cvar::INIT, false);
+	static Cvar::Cvar<bool> common_floatExceptions_overflow("common.floatExceptions.overflow",
+		"enable floating point exception for operation producing an overflow",
+		Cvar::INIT, false);
+#endif
+
 namespace Sys {
 static Cvar::Cvar<bool> cvar_common_shutdownOnDrop("common.shutdownOnDrop", "shut down engine on game drop", Cvar::TEMPORARY, false);
 
@@ -352,6 +374,75 @@ static void CloseSingletonSocket()
 	try {
 		FS::HomePath::DeleteFile(std::string("lock") + Application::GetTraits().uniqueHomepathSuffix);
 	} catch (std::system_error&) {}
+#endif
+}
+
+static void SetFloatingPointExceptions()
+{
+	#if defined(DAEMON_USE_FLOAT_EXCEPTIONS_AVAILABLE)
+		#if defined(__USE_GNU) || defined(__APPLE__)
+			int exceptions = 0;
+		#elif defined(_MSC_VER)
+			unsigned int exceptions = 0;
+		#endif
+
+		// Operations with NaN.
+		if (common_floatExceptions_invalid.Get())
+		{
+			#if defined(__USE_GNU)
+				exceptions |= FE_INVALID;
+			#elif defined(__APPLE__)
+				exceptions |= __fpcr_trap_invalid;
+			#elif defined(_MSC_VER)
+				exceptions |= _EM_INVALID
+			#endif
+		}
+
+		// Division by zero.
+		if (common_floatExceptions_divByZero.Get())
+		{
+			#if defined(__USE_GNU)
+				exceptions |= FE_DIVBYZERO;
+			#elif defined(__APPLE__)
+				exceptions |= __fpcr_trap_divbyzero;
+			#elif defined(_MSC_VER)
+				exceptions |= _EM_ZERODIVIDE;
+			#endif
+		}
+
+		// Operations producing an overflow.
+		if (common_floatExceptions_overflow.Get())
+		{
+			#if defined(__USE_GNU)
+				exceptions |= FE_OVERFLOW;
+			#elif defined(__APPLE__)
+				exceptions |= __fpcr_trap_overflow;
+			#elif defined(_MSC_VER)
+				exceptions |= _EM_OVERFLOW;
+			#endif
+		}
+
+		#if defined(__USE_GNU)
+			// https://www.gnu.org/savannah-checkouts/gnu/libc/manual/html_node/Control-Functions.html
+			feenableexcept(exceptions);
+		#elif defined(__APPLE__)
+			// https://stackoverflow.com/a/71792418
+			fenv_t env;
+			fegetenv(&env);
+			env.__fpcr = env.__fpcr | exceptions;
+		    fesetenv(&env);
+		#elif defined(_MSC_VER)
+			// https://learn.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-2012/c9676k6h(v=vs.110)
+			unsigned int current;
+			_controlfp_s(&current, exceptions, _MCW_EM);
+		#endif
+	#endif
+// TODO: remove it.
+#if 1
+const float x = -1.0f;
+const float f = 0.0f;
+printf("%f\n", sqrt(x));
+printf(" %f\n", 1/f);
 #endif
 }
 
@@ -734,6 +825,8 @@ static void Init(int argc, char** argv)
 
 	// Set cvars set from the command line having the Cvar::INIT flag
 	SetCvarsWithInitFlag(cmdlineArgs);
+
+	SetFloatingPointExceptions();
 
 	// Initialize the filesystem. For pakpaths, the libpath is added first and has the
 	// lowest priority, while the homepath is added last and has the highest.
