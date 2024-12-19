@@ -834,11 +834,10 @@ void RE_BeginFrame()
 	}
 
 	// texturemode stuff
-	if ( r_textureMode->modified )
+	if ( Util::optional<std::string> textureMode = r_textureMode.GetModifiedValue() )
 	{
 		R_SyncRenderThread();
-		GL_TextureMode( r_textureMode->string );
-		r_textureMode->modified = false;
+		GL_TextureMode( textureMode->c_str() );
 	}
 
 	// check for errors

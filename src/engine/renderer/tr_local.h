@@ -2944,7 +2944,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen;
 	extern cvar_t *r_finish;
 	extern cvar_t *r_drawBuffer;
-	extern cvar_t *r_textureMode;
+	extern Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode;
 	extern cvar_t *r_offsetFactor;
 	extern cvar_t *r_offsetUnits;
 
