@@ -208,9 +208,11 @@ else()
 	if (USE_RECOMMENDED_C_STANDARD)
 		# GNU89 or later standard is required when building gzip or the compiler
 		# will complain about implicitly defined lseek, read, write and close.
-		try_c_flag(GNU89 "-std=gnu89")
-		if (NOT FLAG_GNU89)
-			message(FATAL_ERROR "GNU89 or C99 not supported by compiler")
+		# GNU99 or later standard is required when building lua or lua will
+		# complain that the compiler doesn't support 'long long'.
+		try_c_flag(GNU99 "-std=gnu99")
+		if (NOT FLAG_GNU99)
+			message(FATAL_ERROR "GNU99 or C99 not supported by compiler")
 		endif()
 	endif()
 
