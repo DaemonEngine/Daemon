@@ -149,7 +149,8 @@ extern cvar_t       *net_enabled;
 void       NET_Init();
 void       NET_Shutdown();
 void       NET_Restart_f();
-void       NET_Config( bool enableNetworking );
+void       NET_EnableNetworking( bool serverMode );
+void       NET_DisableNetworking();
 
 void       NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t& to );
 

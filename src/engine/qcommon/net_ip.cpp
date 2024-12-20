@@ -35,6 +35,7 @@ Maryland 20850 USA.
 #include "qcommon/q_shared.h"
 #include "qcommon/qcommon.h"
 #include <common/FileSystem.h>
+#include "engine/framework/Application.h"
 #include "engine/framework/Network.h"
 #include "server/server.h"
 
@@ -120,11 +121,6 @@ namespace net {
 
 static bool            usingSocks = false;
 static bool            networkingEnabled = false;
-#ifndef BUILD_SERVER
-static bool            serverMode = false;
-#else
-static const bool serverMode = true;
-#endif
 
 cvar_t                     *net_enabled;
 
@@ -935,7 +931,13 @@ SOCKET NET_IPSocket( const char *net_interface, int port, struct sockaddr_in *bi
 
 	Log::Notice( "Opening IP socket: %s:%s", net_interface ? net_interface : "0.0.0.0", port ? va( "%i", port ) : "*" );
 
-	if ( ( newsocket = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP ) ) == INVALID_SOCKET )
+#ifdef _WIN32
+	newsocket = WSASocketW( PF_INET, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
+#else
+	newsocket = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP );
+#endif
+
+	if ( newsocket == INVALID_SOCKET )
 	{
 		*err = socketError;
 		Log::Warn( "NET_IPSocket: socket: %s", NET_ErrorString() );
@@ -1020,7 +1022,13 @@ SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *
 	// Print the name in brackets if there is a colon:
 	Log::Notice( "Opening IP6 socket: %s%s%s:%s", brackets ? "[" : "", net_interface ? net_interface : "[::]", brackets ? "]" : "", port ? va( "%i", port ) : "*" );
 
-	if ( ( newsocket = socket( PF_INET6, SOCK_DGRAM, IPPROTO_UDP ) ) == INVALID_SOCKET )
+#ifdef _WIN32
+	newsocket = WSASocketW( PF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
+#else
+	newsocket = socket( PF_INET6, SOCK_DGRAM, IPPROTO_UDP );
+#endif
+
+	if ( newsocket  == INVALID_SOCKET )
 	{
 		*err = socketError;
 		Log::Warn( "NET_IP6Socket: socket: %s", NET_ErrorString() );
@@ -1223,7 +1231,13 @@ void NET_OpenSocks( int port )
 
 	Log::Notice( "Opening connection to SOCKS server." );
 
-	if ( ( socks_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ) == INVALID_SOCKET )
+#ifdef _WIN32
+	socks_socket = WSASocketW( AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT );
+#else
+	socks_socket = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
+#endif
+
+	if ( socks_socket == INVALID_SOCKET )
 	{
 		Log::Warn( "NET_OpenSocks: socket: %s", NET_ErrorString() );
 		return;
@@ -1580,7 +1594,7 @@ static int NET_EnsureValidPortNo( int port )
 NET_OpenIP
 ====================
 */
-static void NET_OpenIP()
+static void NET_OpenIP( bool serverMode )
 {
 	int i;
 	int err = 0;
@@ -1630,7 +1644,7 @@ static void NET_OpenIP()
 
 	if ( net_enabled->integer & NET_ENABLEV4 )
 	{
-		for ( i = ( port6 == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i-- )
+		for ( i = ( port == PORT_ANY ? 1 : MAX_TRY_PORTS ); i; i-- )
 		{
 			ip_socket = NET_IPSocket( net_ip->string, port, &boundto4, &err );
 
@@ -1671,10 +1685,8 @@ static void NET_OpenIP()
 NET_GetCvars
 ====================
 */
-static bool NET_GetCvars()
+static void NET_GetCvars()
 {
-	int modified;
-
 #ifdef BUILD_SERVER
 	// I want server owners to explicitly turn on IPv6 support.
 	net_enabled = Cvar_Get( "net_enabled", "1", CVAR_LATCH  );
@@ -1684,147 +1696,82 @@ static bool NET_GetCvars()
 	 * used if available due to ping */
 	net_enabled = Cvar_Get( "net_enabled", "3", CVAR_LATCH  );
 #endif
-	modified = net_enabled->modified;
-	net_enabled->modified = false;
 
 	net_ip = Cvar_Get( "net_ip", "0.0.0.0", CVAR_LATCH );
-	modified += net_ip->modified;
-	net_ip->modified = false;
-
 	net_ip6 = Cvar_Get( "net_ip6", "::", CVAR_LATCH );
-	modified += net_ip6->modified;
-	net_ip6->modified = false;
-
 	net_port = Cvar_Get( "net_port", va( "%i", PORT_SERVER ), CVAR_LATCH );
-	modified += net_port->modified;
-	net_port->modified = false;
-
 	net_port6 = Cvar_Get( "net_port6", va( "%i", PORT_SERVER ), CVAR_LATCH );
-	modified += net_port6->modified;
-	net_port6->modified = false;
 
 	// Some cvars for configuring multicast options which facilitates scanning for servers on local subnets.
 	net_mcast6addr = Cvar_Get( "net_mcast6addr", NET_MULTICAST_IP6, CVAR_LATCH  );
-	modified += net_mcast6addr->modified;
-	net_mcast6addr->modified = false;
-
 #ifdef _WIN32
 	net_mcast6iface = Cvar_Get( "net_mcast6iface", "0", CVAR_LATCH  );
 #else
 	net_mcast6iface = Cvar_Get( "net_mcast6iface", "", CVAR_LATCH  );
 #endif
-	modified += net_mcast6iface->modified;
-	net_mcast6iface->modified = false;
 
 	net_socksEnabled = Cvar_Get( "net_socksEnabled", "0", CVAR_LATCH  );
-	modified += net_socksEnabled->modified;
-	net_socksEnabled->modified = false;
-
 	net_socksServer = Cvar_Get( "net_socksServer", "", CVAR_LATCH  );
-	modified += net_socksServer->modified;
-	net_socksServer->modified = false;
-
 	net_socksPort = Cvar_Get( "net_socksPort", "1080", CVAR_LATCH  );
-	modified += net_socksPort->modified;
-	net_socksPort->modified = false;
-
 	net_socksUsername = Cvar_Get( "net_socksUsername", "", CVAR_LATCH  );
-	modified += net_socksUsername->modified;
-	net_socksUsername->modified = false;
-
 	net_socksPassword = Cvar_Get( "net_socksPassword", "", CVAR_LATCH  );
-	modified += net_socksPassword->modified;
-	net_socksPassword->modified = false;
-
-	return modified ? true : false;
 }
 
-/*
-====================
-NET_Config
-====================
-*/
-void NET_Config( bool enableNetworking )
+void NET_EnableNetworking( bool serverMode )
 {
-	bool modified;
-	bool stop;
-	bool start;
-#ifndef BUILD_SERVER
-	bool svRunning;
-#endif
-
 	// get any latched changes to cvars
-	modified = NET_GetCvars();
-#ifndef BUILD_SERVER
-	svRunning = !!com_sv_running->integer;
-	modified |= ( svRunning != serverMode );
-#endif
+	NET_GetCvars();
 
-	if ( !net_enabled->integer )
-	{
-		enableNetworking = false;
-	}
+	// always cycle off and on because this function is only called on a state change or forced restart
+	NET_DisableNetworking();
 
-	// if enable state is the same and no cvars were modified, we have nothing to do
-	if ( enableNetworking == networkingEnabled && !modified )
+	if ( !( net_enabled->integer & ( NET_ENABLEV4 | NET_ENABLEV6 ) ) )
 	{
 		return;
 	}
 
-	start = enableNetworking;
-	if ( enableNetworking == networkingEnabled )
+	networkingEnabled = true;
+
+	NET_OpenIP( serverMode );
+	NET_SetMulticast6();
+	SV_NET_Config();
+}
+
+void NET_DisableNetworking()
+{
+	if ( !networkingEnabled )
 	{
-		stop = enableNetworking;
-	}
-	else
-	{
-		stop = !enableNetworking;
-	}
-
-#ifndef BUILD_SERVER
-	serverMode = svRunning;
-#endif
-	networkingEnabled = enableNetworking;
-
-	if ( stop )
-	{
-		if ( ip_socket != INVALID_SOCKET )
-		{
-			closesocket( ip_socket );
-			ip_socket = INVALID_SOCKET;
-		}
-
-		if ( multicast6_socket != INVALID_SOCKET )
-		{
-			if ( multicast6_socket != ip6_socket )
-			{
-				closesocket( multicast6_socket );
-			}
-
-			multicast6_socket = INVALID_SOCKET;
-		}
-
-		if ( ip6_socket != INVALID_SOCKET )
-		{
-			closesocket( ip6_socket );
-			ip6_socket = INVALID_SOCKET;
-		}
-
-		if ( socks_socket != INVALID_SOCKET )
-		{
-			closesocket( socks_socket );
-			socks_socket = INVALID_SOCKET;
-		}
+		return;
 	}
 
-	if ( start )
+	networkingEnabled = false;
+
+	if ( ip_socket != INVALID_SOCKET )
 	{
-		if ( net_enabled->integer )
+		closesocket( ip_socket );
+		ip_socket = INVALID_SOCKET;
+	}
+
+	if ( multicast6_socket != INVALID_SOCKET )
+	{
+		if ( multicast6_socket != ip6_socket )
 		{
-			NET_OpenIP();
-			NET_SetMulticast6();
-			SV_NET_Config();
+			closesocket( multicast6_socket );
 		}
+
+		multicast6_socket = INVALID_SOCKET;
+	}
+
+	if ( ip6_socket != INVALID_SOCKET )
+	{
+		closesocket( ip6_socket );
+		ip6_socket = INVALID_SOCKET;
+	}
+
+	if ( socks_socket != INVALID_SOCKET )
+	{
+		closesocket( socks_socket );
+		socks_socket = INVALID_SOCKET;
 	}
 }
 
@@ -1850,7 +1797,7 @@ void NET_Init()
 	Log::Notice( "Winsock Initialized" );
 #endif
 
-	NET_Config( true );
+	NET_EnableNetworking( Application::GetTraits().isServer );
 
 	Cmd_AddCommand( "net_restart", NET_Restart_f );
 }
@@ -1862,16 +1809,14 @@ NET_Shutdown
 */
 void NET_Shutdown()
 {
-	if ( !networkingEnabled )
-	{
-		return;
-	}
-
-	NET_Config( false );
+	NET_DisableNetworking();
 
 #ifdef _WIN32
-	WSACleanup();
-	winsockInitialized = false;
+	if ( winsockInitialized )
+	{
+		WSACleanup();
+		winsockInitialized = false;
+	}
 #endif
 }
 
@@ -1930,8 +1875,12 @@ NET_Restart_f
 */
 void NET_Restart_f()
 {
-	NET_Config( false );
+	NET_DisableNetworking();
 	SV_NET_Config();
 	Net::ShutDownDNS();
-	NET_Config( true );
+#ifdef BUILD_SERVER
+	NET_EnableNetworking( true );
+#else
+	NET_EnableNetworking( !!com_sv_running->integer );
+#endif
 }
