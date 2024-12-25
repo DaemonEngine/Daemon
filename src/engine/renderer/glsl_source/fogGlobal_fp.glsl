@@ -26,7 +26,7 @@ uniform sampler2D	u_ColorMap; // fog texture
 uniform sampler2D	u_DepthMap;
 
 uniform vec4		u_FogDistanceVector;
-uniform vec4		u_Color;
+uniform uint u_Color;
 uniform mat4		u_UnprojectMatrix;
 
 #if __VERSION__ > 120
@@ -52,5 +52,5 @@ void	main()
 
 	vec4 color = texture2D(u_ColorMap, st);
 
-	outputColor = u_Color * color;
+	outputColor = unpackUnorm4x8( u_Color ) * color;
 }
