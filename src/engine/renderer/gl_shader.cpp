@@ -1359,7 +1359,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	std::string newShaderText;
 	std::string materialStruct = "\nstruct Material {\n";
-	std::string materialBlock = "layout(std430, binding = 0) readonly buffer materialsSSBO {\n"
+	std::string materialBlock = "layout(std430, binding = 0) restrict readonly buffer materialsSSBO {\n"
 	                            "	Material materials[];\n"
 	                            "};\n\n";
 	std::string texDataBlock = "struct TexData {\n"
@@ -1370,7 +1370,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "	uvec2 u_MaterialMap;\n"
 	                           "	uvec2 u_GlowMap;\n"
 	                           "};\n\n"
-	                           "layout(std430, binding = 6) readonly buffer texDataSSBO {\n"
+	                           "layout(std430, binding = 6) restrict readonly buffer texDataSSBO {\n"
 	                           "	TexData texData[];\n"
 	                           "};\n\n"
 		                       "#define u_TextureMatrix texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix\n"
