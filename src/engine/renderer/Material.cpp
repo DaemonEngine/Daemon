@@ -215,9 +215,6 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 
 	gl_genericShaderMaterial->BindProgram( material.deformIndex );
 
-	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
-
 	// u_AlphaThreshold
 	gl_genericShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
 
@@ -547,10 +544,6 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_
 	gl_liquidShaderMaterial->SetUniform_FresnelBias( RB_EvalExpression( &pStage->fresnelBiasExp, 0.05 ) );
 	gl_liquidShaderMaterial->SetUniform_FogDensity( fogDensity );
 	gl_liquidShaderMaterial->SetUniform_FogColor( fogColor );
-
-	gl_liquidShaderMaterial->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
-	gl_liquidShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	// NOTE: specular component is computed by shader.
 	// FIXME: physical mapping is not implemented.
@@ -1186,6 +1179,7 @@ void BindShaderLiquid( Material* material ) {
 
 	// Set shader uniforms.
 	gl_liquidShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_liquidShaderMaterial->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
 	gl_liquidShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 

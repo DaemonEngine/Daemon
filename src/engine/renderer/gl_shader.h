@@ -3437,7 +3437,7 @@ class u_UnprojectMatrix :
 {
 public:
 	u_UnprojectMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_UnprojectMatrix" )
+		GLUniformMatrix4f( shader, "u_UnprojectMatrix", true )
 	{
 	}
 
