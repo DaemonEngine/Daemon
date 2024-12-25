@@ -2912,6 +2912,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Cvar<bool> r_materialSystem;
 	extern Cvar::Cvar<bool> r_gpuFrustumCulling;
 	extern Cvar::Cvar<bool> r_gpuOcclusionCulling;
+	extern Cvar::Cvar<bool> r_materialSystemSkip;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
