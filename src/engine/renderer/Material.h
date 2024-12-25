@@ -136,9 +136,8 @@ struct Material {
 };
 
 struct TexBundle {
-	matrix_t textureMatrix;
+	vec_t textureMatrix[6];
 	GLuint64 textures[MAX_TEXTURE_BUNDLES];
-	GLuint64 padding;
 };
 
 struct TextureData {
@@ -152,26 +151,24 @@ struct TextureData {
 				return false;
 			}
 
-			// Skip texBundles check for ST_STYLELIGHTMAP
-			if ( texBundlesOverride[i] ) {
-				continue;
-			}
-
 			const textureBundle_t* bundle = texBundles[i];
 			const textureBundle_t* otherBundle = other.texBundles[i];
 
-			if ( bundle->numImages != otherBundle->numImages ) {
-				return false;
-			}
-
-			if ( ( bundle->numImages > 1 ) && ( bundle->imageAnimationSpeed != otherBundle->imageAnimationSpeed ) ) {
-				return false;
-			}
-
-			const uint8_t numImages = bundle->numImages > 0 ? bundle->numImages : 1;
-			for ( int j = 0; j < numImages; j++ ) {
-				if ( bundle->image[j] != otherBundle->image[j] ) {
+			// Skip texBundles image check for ST_STYLELIGHTMAP
+			if ( !texBundlesOverride[i] ) {
+				if ( bundle->numImages != otherBundle->numImages ) {
 					return false;
+				}
+
+				if ( ( bundle->numImages > 1 ) && ( bundle->imageAnimationSpeed != otherBundle->imageAnimationSpeed ) ) {
+					return false;
+				}
+
+				const uint8_t numImages = bundle->numImages > 0 ? bundle->numImages : 1;
+				for ( int j = 0; j < numImages; j++ ) {
+					if ( bundle->image[j] != otherBundle->image[j] ) {
+						return false;
+					}
 				}
 			}
 
@@ -233,7 +230,7 @@ extern PortalView portalStack[MAX_VIEWS];
 #define INDIRECT_COMMAND_SIZE 5
 #define SURFACE_COMMAND_SIZE 4
 #define SURFACE_COMMAND_BATCH_SIZE 2
-#define TEX_BUNDLE_SIZE 28
+#define TEX_BUNDLE_SIZE 16
 #define TEX_BUNDLE_BITS 12
 #define LIGHTMAP_SIZE 4
 #define LIGHTMAP_BITS 24

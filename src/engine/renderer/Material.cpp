@@ -598,7 +598,15 @@ void MaterialSystem::GenerateTexturesBuffer( std::vector<TextureData>& textures,
 		}
 
 		// While reflection, liquid and heatHaze shaders use the matrix from TB_NORMALMAP bundle, it's never actually parsed
-		RB_CalcTexMatrix( textureData.texBundles[0], textureBundles->textureMatrix );
+		RB_CalcTexMatrix( textureData.texBundles[0], tess.svars.texMatrices[TB_COLORMAP] );
+		/* We only actually need these 6 components to get the correct texture transformation,
+		the other ones are unused */
+		textureBundles->textureMatrix[0] = tess.svars.texMatrices[TB_COLORMAP][0];
+		textureBundles->textureMatrix[1] = tess.svars.texMatrices[TB_COLORMAP][1];
+		textureBundles->textureMatrix[2] = tess.svars.texMatrices[TB_COLORMAP][4];
+		textureBundles->textureMatrix[3] = tess.svars.texMatrices[TB_COLORMAP][5];
+		textureBundles->textureMatrix[4] = tess.svars.texMatrices[TB_COLORMAP][12];
+		textureBundles->textureMatrix[5] = tess.svars.texMatrices[TB_COLORMAP][13];
 		textureBundles++;
 	}
 }
