@@ -3099,17 +3099,17 @@ class u_CloudHeight :
 };
 
 class u_Color :
-	GLUniform4f
+	GLUniform1ui
 {
 public:
 	u_Color( GLShader *shader ) :
-		GLUniform4f( shader, "u_Color" )
+		GLUniform1ui( shader, "u_Color" )
 	{
 	}
 
 	void SetUniform_Color( const Color::Color& color )
 	{
-		this->SetValue( color.ToArray() );
+		this->SetValue( packUnorm4x8( color.ToArray() ) );
 	}
 };
 
