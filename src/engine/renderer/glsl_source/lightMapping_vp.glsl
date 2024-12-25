@@ -46,7 +46,7 @@ uniform mat4		u_ModelViewProjectionMatrix;
 uniform float		u_Time;
 
 uniform vec4		u_ColorModulate;
-uniform vec4		u_Color;
+uniform uint		u_Color;
 
 OUT(smooth) vec3	var_Position;
 OUT(smooth) vec2	var_TexCoords;
@@ -73,7 +73,7 @@ void main()
 
 	VertexFetch(position, LB, color, texCoord, lmCoord);
 
-	color = color * u_ColorModulate + u_Color;
+	color = color * u_ColorModulate + unpackUnorm4x8( u_Color );
 
 	DeformVertex(position, LB.normal, texCoord, color, u_Time);
 

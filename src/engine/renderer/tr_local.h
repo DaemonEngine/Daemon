@@ -124,6 +124,13 @@ static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
 	out[ 3 ] = snorm16ToFloat( in[ 3 ] );
 }
 
+static inline uint32_t packUnorm4x8( const vec4_t in ) {
+	return uint32_t( floatToUnorm8( in[0] ) )
+		| ( uint32_t( floatToUnorm8( in[1] ) ) << 8 )
+		| ( uint32_t( floatToUnorm8( in[2] ) ) << 16 )
+		| ( uint32_t( floatToUnorm8( in[3] ) ) << 24 );
+}
+
 static inline f16_t floatToHalf( float in ) {
 	static float scale = powf(2.0f, 15 - 127);
 
