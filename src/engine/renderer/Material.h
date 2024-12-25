@@ -136,7 +136,8 @@ struct Material {
 };
 
 struct TexBundle {
-	vec_t textureMatrix[6];
+	vec_t textureMatrix[4];
+	uint32_t textureMatrix2[2];
 	GLuint64 textures[MAX_TEXTURE_BUNDLES];
 };
 
@@ -235,6 +236,13 @@ extern PortalView portalStack[MAX_VIEWS];
 #define LIGHTMAP_SIZE 4
 #define LIGHTMAP_BITS 24
 #define PORTAL_SURFACE_SIZE 8
+
+// 64kb min
+#define MIN_MATERIAL_UBO_SIZE BIT( 16 )
+
+/* 64kb UBO : 54kb texBundles, 4kb lightmaps, 2kb map shader stages, 4kb entity shader stages
+Current mapss use up to ~38kb at max, without models */
+#define MAX_TEX_BUNDLES 54 * 1024 / 64
 
 #define MAX_FRAMES 2
 #define MAX_VIEWFRAMES MAX_VIEWS * MAX_FRAMES // Buffer 2 frames for each view
@@ -371,6 +379,7 @@ class MaterialSystem {
 	std::vector<shaderStage_t*> materialStages;
 	std::vector<shaderStage_t*> dynamicStages;
 
+	GLenum texDataBufferType;
 	std::vector<TextureData> texData;
 	std::vector<TextureData> dynamicTexData;
 
@@ -392,7 +401,7 @@ class MaterialSystem {
 };
 
 extern GLSSBO materialsSSBO; // Global
-extern GLSSBO texDataSSBO; // Global
+extern GLBuffer texDataSSBO; // Global
 extern GLUBO lightmapDataUBO; // Global
 
 extern GLSSBO surfaceDescriptorsSSBO; // Global

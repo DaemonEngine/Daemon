@@ -77,6 +77,7 @@ struct glconfig2_t
 	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
 	int      shadingLanguageVersion;
 
+	int maxUniformBlockSize;
 	int      maxVertexUniforms;
 //	int             maxVaryingFloats;
 	int      maxVertexAttribs;

@@ -2013,6 +2013,7 @@ static void GLimp_InitExtensions()
 	}
 
 	// Shader limits
+	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig2.maxUniformBlockSize );
 	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig2.maxVertexUniforms );
 	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig2.maxVertexAttribs );
 
