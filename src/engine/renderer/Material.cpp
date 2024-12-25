@@ -140,7 +140,7 @@ void UpdateSurfaceDataNOP( uint32_t*, Material&, shaderStage_t* ) {
 }
 
 void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, shaderStage_t* pStage ) {
-	shader_t* shader = pStage->shader;
+	// shader_t* shader = pStage->shader;
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
@@ -242,7 +242,7 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, sha
 	gl_lightMappingShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, shaderStage_t* pStage ) {
+void UpdateSurfaceDataReflection( uint32_t* materials, Material& /* material */, shaderStage_t* pStage) {
 	shader_t* shader = pStage->shader;
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
@@ -291,7 +291,7 @@ void UpdateSurfaceDataReflection( uint32_t* materials, Material& material, shade
 }
 
 void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, shaderStage_t* pStage ) {
-	shader_t* shader = pStage->shader;
+	// shader_t* shader = pStage->shader;
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
@@ -310,8 +310,8 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, shaderSta
 	gl_skyboxShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, shaderStage_t* pStage ) {
-	shader_t* shader = pStage->shader;
+void UpdateSurfaceDataScreen( uint32_t* materials, Material& /* material */, shaderStage_t* pStage) {
+	// shader_t* shader = pStage->shader;
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
@@ -332,8 +332,8 @@ void UpdateSurfaceDataScreen( uint32_t* materials, Material& material, shaderSta
 	gl_screenShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, shaderStage_t* pStage ) {
-	shader_t* shader = pStage->shader;
+void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& /* material */, shaderStage_t* pStage) {
+	// shader_t* shader = pStage->shader;
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
@@ -358,8 +358,8 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& material, shaderS
 	gl_heatHazeShaderMaterial->WriteUniformsToBuffer( materials );
 }
 
-void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, shaderStage_t* pStage ) {
-	shader_t* shader = pStage->shader;
+void UpdateSurfaceDataLiquid( uint32_t* materials, Material& /* material */, shaderStage_t* pStage) {
+	// shader_t* shader = pStage->shader;
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
@@ -418,7 +418,7 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, shaderSta
 }
 
 void UpdateSurfaceDataFog( uint32_t* materials, Material& material, shaderStage_t* pStage ) {
-	shader_t* shader = pStage->shader;
+	// shader_t* shader = pStage->shader;
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
