@@ -4767,7 +4767,7 @@ This is done so various debugging facilities will work properly
 */
 static void RB_RenderPostProcess()
 {
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig2.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
 		// Dispatch the cull compute shaders for queued once we're done with post-processing
 		// We'll only use the results from those shaders in the next frame so we don't block the pipeline
 		materialSystem.CullSurfaces();
