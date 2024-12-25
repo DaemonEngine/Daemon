@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_CurrentMap;
 uniform float		u_AlphaThreshold;
 
-#if defined(MATERIAL_SYSTEM)
+#if defined(USE_MATERIAL_SYSTEM)
 	uniform float u_DeformEnable;
 #endif
 
@@ -56,7 +56,7 @@ void	main()
 
 	// offset by the scaled normal and clamp it to 0.0 - 1.0
 	
-	#if defined(MATERIAL_SYSTEM)
+	#if defined(USE_MATERIAL_SYSTEM)
 		// Use a global uniform for heatHaze with material system to avoid duplicating all of the shader stage data
 		st += normal.xy * var_Deform * u_DeformEnable;
 	#else
