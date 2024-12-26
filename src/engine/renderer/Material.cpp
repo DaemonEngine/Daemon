@@ -145,12 +145,6 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, shader
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
 
-	bool updated = !pStage->bufferInitialized || pStage->colorDynamic || pStage->dynamic;
-	if ( !updated ) {
-		return;
-	}
-	pStage->bufferInitialized = true;
-
 	gl_genericShaderMaterial->BindProgram( material.deformIndex );
 
 	// u_AlphaThreshold
@@ -180,12 +174,6 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, sha
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
-
-	bool updated = !pStage->bufferInitialized || pStage->colorDynamic || pStage->dynamic;
-	if ( !updated ) {
-		return;
-	}
-	pStage->bufferInitialized = true;
 
 	gl_lightMappingShaderMaterial->BindProgram( material.deformIndex );
 
@@ -244,12 +232,6 @@ void UpdateSurfaceDataReflection( uint32_t* materials, Material& /* material */,
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
 
-	bool updated = !pStage->bufferInitialized || pStage->colorDynamic || pStage->dynamic;
-	if ( !updated ) {
-		return;
-	}
-	pStage->bufferInitialized = true;
-
 	// bind u_ColorMap
 	vec3_t position;
 	if ( backEnd.currentEntity && ( backEnd.currentEntity != &tr.worldEntity ) ) {
@@ -292,12 +274,6 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, shaderSta
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
 
-	bool updated = !pStage->bufferInitialized || pStage->colorDynamic || pStage->dynamic;
-	if ( !updated ) {
-		return;
-	}
-	pStage->bufferInitialized = true;
-
 	gl_skyboxShaderMaterial->BindProgram( material.deformIndex );
 
 	// u_AlphaThreshold
@@ -311,12 +287,6 @@ void UpdateSurfaceDataScreen( uint32_t* materials, Material& /* material */, sha
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
-
-	bool updated = !pStage->bufferInitialized || pStage->colorDynamic || pStage->dynamic;
-	if ( !updated ) {
-		return;
-	}
-	pStage->bufferInitialized = true;
 
 	gl_screenShaderMaterial->BindProgram( pStage->deformIndex );
 
@@ -333,12 +303,6 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& /* material */, s
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
-
-	bool updated = !pStage->bufferInitialized || pStage->colorDynamic || pStage->dynamic;
-	if ( !updated ) {
-		return;
-	}
-	pStage->bufferInitialized = true;
 
 	float deformMagnitude = RB_EvalExpression( &pStage->deformMagnitudeExp, 1.0 );
 	gl_heatHazeShaderMaterial->SetUniform_DeformMagnitude( deformMagnitude );
@@ -359,12 +323,6 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, Material& /* material */, sha
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
-
-	bool updated = !pStage->bufferInitialized || pStage->colorDynamic || pStage->dynamic;
-	if ( !updated ) {
-		return;
-	}
-	pStage->bufferInitialized = true;
 
 	float fogDensity = RB_EvalExpression( &pStage->fogDensityExp, 0.001 );
 	vec4_t fogColor;
@@ -418,12 +376,6 @@ void UpdateSurfaceDataFog( uint32_t* materials, Material& material, shaderStage_
 
 	const uint32_t paddedOffset = pStage->bufferOffset;
 	materials += paddedOffset;
-
-	bool updated = !pStage->bufferInitialized || pStage->dynamic;
-	if ( !updated ) {
-		return;
-	}
-	pStage->bufferInitialized = true;
 
 	const fog_t* fog = material.fog;
 
@@ -567,7 +519,11 @@ void MaterialSystem::GenerateMaterialsBuffer( std::vector<shaderStage_t*>& stage
 				pStage->vertexLit = i & Util::ordinal( ShaderStageVariant::VERTEX_LIT );
 				pStage->fullbright = i & Util::ordinal( ShaderStageVariant::FULLBRIGHT );
 				pStage->currentOffset = pStage->variantOffsets[i];
+
+				const uint32_t variantOffset = pStage->variantOffsets[i] * material.shader->GetPaddedSize();
+				pStage->bufferOffset += variantOffset;
 				pStage->surfaceDataUpdater( materialsData, material, pStage );
+				pStage->bufferOffset -= variantOffset;
 				variants++;
 			}
 		}
@@ -1398,6 +1354,11 @@ void MaterialSystem::AddStage( drawSurf_t* drawSurf, shaderStage_t* pStage, uint
 		}
 
 		pStage->materialRemappedStage = pStage2;
+
+		if ( pStage2->variantOffsets[variant] == -1 ) {
+			pStage2->variantOffsets[variant] = pStage2->variantOffset;
+			pStage2->variantOffset++;
+		}
 
 		return;
 	}

@@ -1217,7 +1217,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		uint32_t dynamicBufferOffset = 0;
 
 		bool initialized = false;
-		bool bufferInitialized = false;
 
 		uint materialPackID = 0;
 		uint materialID = 0;
