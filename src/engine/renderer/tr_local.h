@@ -1159,9 +1159,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		expression_t    normalIntensityExp;
 
-		expression_t    etaExp;
-		expression_t    etaDeltaExp;
-
 		expression_t    fogDensityExp;
 
 		expression_t    depthScaleExp;
