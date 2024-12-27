@@ -2718,6 +2718,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 		image_t    *bloomRenderFBOImage[ 2 ];
 		image_t    *currentRenderImage[ 2 ];
 		image_t    *currentDepthImage;
+		image_t    *currentRenderImageMSAA;
+		image_t    *currentDepthImageMSAA;
 		image_t    *depthtile1RenderImage;
 		image_t    *depthtile2RenderImage;
 		image_t    *lighttileRenderImage;
@@ -2736,6 +2738,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		// framebuffer objects
 		FBO_t *mainFBO[ 2 ];
+		FBO_t *msaaFBO;
 		FBO_t *depthtile1FBO;
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
@@ -3069,6 +3072,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Cvar<float> r_bloomBlur;
 	extern Cvar::Cvar<int> r_bloomPasses;
 	extern cvar_t *r_FXAA;
+	extern Cvar::Range<Cvar::Cvar<int>> r_msaa;
 	extern cvar_t *r_ssao;
 
 	extern cvar_t *r_evsmPostProcess;
@@ -3198,6 +3202,8 @@ inline bool checkGLErrors()
 	void GL_BindProgram( shaderProgram_t *program );
 	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_BindNullProgram();
+	void GL_BlitFBOToMSAA( FBO_t* fbo );
+	void GL_BlitMSAAToFBO( FBO_t* fbo );
 	void GL_SetDefaultState();
 	void GL_SelectTexture( int unit );
 	void GL_TextureMode( const char *string );
@@ -3282,7 +3288,8 @@ inline bool checkGLErrors()
 	image_t *R_FindImageFile( const char *name, imageParams_t &imageParams );
 	image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams );
 
-	image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams );
+	image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams,
+		const uint32_t samples = 0, const bool fixedSampleLocations = true );
 
 	image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, int height, const imageParams_t &imageParams );
 	image_t *R_Create3DImage( const char *name, const byte *pic, int width, int height, int depth, const imageParams_t &imageParams );
@@ -3291,7 +3298,8 @@ inline bool checkGLErrors()
 	qhandle_t RE_GenerateTexture( const byte *pic, int width, int height );
 
 	image_t *R_AllocImage( const char *name, bool linkIntoHashTable );
-	void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams );
+	void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams,
+		const uint32_t samples = 0, const bool fixedSampleLocations = true );
 
 	void    RE_GetTextureSize( int textureID, int *width, int *height );
 
@@ -3653,6 +3661,7 @@ inline bool checkGLErrors()
 	void     R_AttachFBOTextureDepth( int texId );
 
 	void     R_BindFBO( FBO_t *fbo );
+	void     R_BindFBO( const GLenum target, FBO_t* fbo );
 	void     R_BindNullFBO();
 
 	void     R_InitFBOs();

@@ -1171,6 +1171,9 @@ void BindShaderHeatHaze( Material* material ) {
 	gl_heatHazeShaderMaterial->SetUniform_DeformEnable( true );
 
 	// draw to background image
+	if ( r_msaa.Get() ) {
+		GL_BlitMSAAToFBO( tr.mainFBO[backEnd.currentMainFBO] );
+	}
 	R_BindFBO( tr.mainFBO[1 - backEnd.currentMainFBO] );
 }
 
@@ -2302,6 +2305,11 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
 
 		RenderIndirect( material, viewID );
+
+		if ( r_msaa.Get() ) {
+			GL_BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO] );
+			R_BindFBO( tr.msaaFBO );
+		}
 	}
 
 	if ( r_showTris->integer

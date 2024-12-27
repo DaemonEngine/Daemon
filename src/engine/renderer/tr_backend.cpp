@@ -208,6 +208,26 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 	return 0;
 }
 
+void GL_BlitFBOToMSAA( FBO_t* fbo ) {
+	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.msaaFBO );
+	glBlitFramebuffer( 0, 0, fbo->width, fbo->height, 0, 0, tr.msaaFBO->width, tr.msaaFBO->height,
+		GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
+	glState.currentFBO = nullptr;
+}
+
+void GL_BlitMSAAToFBO( FBO_t* fbo ) {
+	R_BindFBO( GL_READ_FRAMEBUFFER, tr.msaaFBO );
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
+	glBlitFramebuffer( 0, 0, tr.msaaFBO->width, tr.msaaFBO->height, 0, 0, fbo->width, fbo->height,
+		GL_COLOR_BUFFER_BIT /* | GL_DEPTH_BUFFER_BIT */, GL_NEAREST );
+
+	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
+	glState.currentFBO = nullptr;
+}
+
 void GL_BlendFunc( GLenum sfactor, GLenum dfactor )
 {
 	if ( glState.blendSrc != ( signed ) sfactor || glState.blendDst != ( signed ) dfactor )
@@ -3082,6 +3102,9 @@ void RB_RenderBloom()
 
 		GL_PopMatrix(); // special 1/4th of the screen contrastRenderFBO ortho
 
+		if ( r_msaa.Get() ) {
+			GL_BlitMSAAToFBO( tr.mainFBO[backEnd.currentMainFBO] );
+		}
 		R_BindFBO( tr.contrastRenderFBO );
 		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 		glClear( GL_COLOR_BUFFER_BIT );
@@ -3148,6 +3171,11 @@ void RB_RenderBloom()
 		                  backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 	}
 
+	if ( r_msaa.Get() ) {
+		GL_BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO] );
+		R_BindFBO( tr.msaaFBO );
+	}
+
 	// go back to 3D
 	GL_PopMatrix();
 
@@ -3169,6 +3197,10 @@ void RB_RenderMotionBlur()
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
 	gl_motionblurShader->BindProgram( 0 );
+
+	if ( r_msaa.Get() ) {
+		GL_BlitMSAAToFBO( tr.mainFBO[backEnd.currentMainFBO] );
+	}
 
 	// Swap main FBOs
 	gl_motionblurShader->SetUniform_ColorMapBindless(
@@ -3195,6 +3227,11 @@ void RB_RenderMotionBlur()
 	Tess_InstantQuad( *gl_motionblurShader,
 	                   backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
 	                   backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+
+	if ( r_msaa.Get() ) {
+		GL_BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO] );
+		R_BindFBO( tr.msaaFBO );
+	}
 
 	GL_PopMatrix();
 
@@ -4628,7 +4665,11 @@ static void RB_RenderView( bool depthPass )
 	backEnd.pc.c_surfaces += backEnd.viewParms.numDrawSurfs;
 
 	// disable offscreen rendering
-	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+	if ( r_msaa.Get() ) {
+		R_BindFBO( tr.msaaFBO );
+	} else {
+		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
+	}
 
 	// we will need to change the projection matrix before drawing
 	// 2D images again

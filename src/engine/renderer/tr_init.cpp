@@ -282,6 +282,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 1.0 );
 	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
 	cvar_t      *r_FXAA;
+	Cvar::Range<Cvar::Cvar<int>> r_msaa( "r_msaa", "Amount of MSAA samples. 0 to disable", Cvar::NONE, 0, 0, 64 );
 	cvar_t      *r_ssao;
 
 	cvar_t      *r_evsmPostProcess;
@@ -1190,6 +1191,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		Cvar::Latch( r_bloom );
 		r_FXAA = Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch( r_msaa );
 		r_ssao = Cvar_Get( "r_ssao", "0", CVAR_LATCH | CVAR_ARCHIVE );
 
 		// temporary variables that can change at any time

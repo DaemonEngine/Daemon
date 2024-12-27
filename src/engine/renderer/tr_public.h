@@ -73,6 +73,8 @@ struct glconfig2_t
 	int max3DTextureSize;
 	int maxCubeMapTextureSize;
 	int maxTextureUnits;
+	int maxColorTextureSamples;
+	int maxDepthTextureSamples;
 
 	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
 	int      shadingLanguageVersion;
