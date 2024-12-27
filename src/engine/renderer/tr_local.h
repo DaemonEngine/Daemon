@@ -1222,8 +1222,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		// something calls RE_RegisterShader again with
 		// the same name, we don't try looking for it again
 
-		bool       createdByGuide; // created using a shader .guide template
-
 		int            surfaceFlags;
 		int            contentFlags;
 
@@ -1239,8 +1237,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		float reliefDepthScale = 1.0f; // per-shader relief depth scale
 
 		bool       noShadows;
-		bool       fogLight;
-		bool       blendLight;
 		bool       ambientLight;
 		bool       translucent;
 		bool       forceOpaque;
