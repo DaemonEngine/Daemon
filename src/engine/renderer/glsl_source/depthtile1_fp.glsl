@@ -37,8 +37,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 uniform sampler2D u_DepthMap;
 IN(flat) vec3 unprojectionParams;
 
-uniform vec3 u_zFar;
-
 const vec2 pixelScale = 1 / r_FBufSize;
 
 DECLARE_OUTPUT(vec4)

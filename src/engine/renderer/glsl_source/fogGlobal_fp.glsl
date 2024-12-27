@@ -25,11 +25,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_ColorMap; // fog texture
 uniform sampler2D	u_DepthMap;
 
-uniform vec3		u_ViewOrigin;
 uniform vec4		u_FogDistanceVector;
-uniform vec4		u_FogDepthVector;
 uniform vec4		u_Color;
-uniform mat4		u_ViewMatrix;
 uniform mat4		u_UnprojectMatrix;
 
 #if __VERSION__ > 120
