@@ -207,6 +207,26 @@ GLuint64 GL_BindToTMU( int unit, image_t *image )
 	return 0;
 }
 
+void GL_BlitFBOToMSAA( FBO_t* fbo ) {
+	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, tr.msaaFBO );
+	glBlitFramebuffer( 0, 0, fbo->width, fbo->height, 0, 0, tr.msaaFBO->width, tr.msaaFBO->height,
+		GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
+	glState.currentFBO = nullptr;
+}
+
+void GL_BlitMSAAToFBO( FBO_t* fbo ) {
+	R_BindFBO( GL_READ_FRAMEBUFFER, tr.msaaFBO );
+	R_BindFBO( GL_DRAW_FRAMEBUFFER, fbo );
+	glBlitFramebuffer( 0, 0, tr.msaaFBO->width, tr.msaaFBO->height, 0, 0, fbo->width, fbo->height,
+		GL_COLOR_BUFFER_BIT /* | GL_DEPTH_BUFFER_BIT */, GL_NEAREST );
+
+	R_BindFBO( GL_READ_FRAMEBUFFER, fbo );
+	glState.currentFBO = nullptr;
+}
+
 void GL_BlendFunc( GLenum sfactor, GLenum dfactor )
 {
 	if ( glState.blendSrc != ( signed ) sfactor || glState.blendDst != ( signed ) dfactor )
@@ -3027,6 +3047,10 @@ void RB_RenderBloom()
 			GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
 		);
 
+		if ( r_msaa.Get() ) {
+			GL_BlitMSAAToFBO( tr.mainFBO[backEnd.currentMainFBO] );
+		}
+
 		R_BindFBO( tr.contrastRenderFBO );
 		GL_ClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
 		glClear( GL_COLOR_BUFFER_BIT );
@@ -3078,6 +3102,7 @@ void RB_RenderBloom()
 
 		gl_screenShader->SetUniform_CurrentMapBindless( GL_BindToTMU( 0, tr.bloomRenderFBOImage[flip ^ 1] ) );
 
+<<<<<<< HEAD
 		GL_PushMatrix();
 
 		matrix_t ortho;
@@ -3089,6 +3114,11 @@ void RB_RenderBloom()
 			backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
 
 		GL_PopMatrix();
+	}
+
+	if ( r_msaa.Get() ) {
+		GL_BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO] );
+		R_BindFBO( tr.msaaFBO );
 	}
 
 	GL_CheckErrors();
@@ -3110,6 +3140,10 @@ void RB_RenderMotionBlur()
 
 	gl_motionblurShader->BindProgram( 0 );
 
+	if ( r_msaa.Get() ) {
+		GL_BlitMSAAToFBO( tr.mainFBO[backEnd.currentMainFBO] );
+	}
+
 	// Swap main FBOs
 	gl_motionblurShader->SetUniform_ColorMapBindless(
 		GL_BindToTMU( 0, tr.currentRenderImage[backEnd.currentMainFBO] )
@@ -3124,6 +3158,11 @@ void RB_RenderMotionBlur()
 	);
 
 	Tess_InstantScreenSpaceQuad();
+
+	if ( r_msaa.Get() ) {
+		GL_BlitFBOToMSAA( tr.mainFBO[backEnd.currentMainFBO] );
+		R_BindFBO( tr.msaaFBO );
+	}
 
 	GL_CheckErrors();
 }
@@ -4552,7 +4591,11 @@ static void RB_RenderView( bool depthPass )
 	backEnd.pc.c_surfaces += backEnd.viewParms.numDrawSurfs;
 
 	// disable offscreen rendering
-	R_BindFBO( tr.mainFBO[ backEnd.currentMainFBO ] );
+	if ( r_msaa.Get() ) {
+		R_BindFBO( tr.msaaFBO );
+	} else {
+		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
+	}
 
 	// we will need to change the projection matrix before drawing
 	// 2D images again
