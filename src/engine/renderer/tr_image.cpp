@@ -841,7 +841,8 @@ level 1 has only numLayers/2 layers. There are still numLayers pointers in
 the dataArray for every mip level, the unneeded elements at the end aren't used.
 ===============
 */
-void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams )
+void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams,
+	const uint32_t samples, const bool fixedSampleLocations )
 {
 	const byte *data;
 	byte       *scaledBuffer = nullptr;
@@ -909,6 +910,14 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 		default:
 			target = GL_TEXTURE_2D;
 			break;
+	}
+
+	if ( samples ) {
+		if ( target == GL_TEXTURE_2D ) {
+			target = GL_TEXTURE_2D_MULTISAMPLE;
+		} else {
+			Log::Warn( "Multisampling is currently only supported for 2D textures (image: %s)", name );
+		}
 	}
 
 	if ( image->bits & ( IF_DEPTH16 | IF_DEPTH24 | IF_DEPTH32 ) )
@@ -1150,12 +1159,21 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 			default:
 				if ( image->bits & IF_PACKED_DEPTH24_STENCIL8 )
 				{
-					GL_TexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr, isSRGB );
+					if ( samples ) {
+						GL_TexImage2DMultisample( target, samples, internalFormat, scaledWidth, scaledHeight, fixedSampleLocations, isSRGB );
+					} else {
+						GL_TexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_INT_24_8, nullptr, isSRGB );
+					}
 				}
 				else
 				{
-					GL_TexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer, isSRGB );
+					if ( samples ) {
+						GL_TexImage2DMultisample( target, samples, internalFormat, scaledWidth, scaledHeight, fixedSampleLocations, isSRGB );
+					} else {
+						GL_TexImage2D( target, 0, internalFormat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, scaledBuffer, isSRGB );
+					}
 				}
+				GL_CheckErrors();
 
 				break;
 			}
@@ -1217,9 +1235,9 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 	GL_CheckErrors();
 
 	// set filter type
-	switch ( image->filterType )
-	{
-		case filterType_t::FT_DEFAULT:
+	if ( !samples ) {
+		switch ( image->filterType ) {
+			case filterType_t::FT_DEFAULT:
 
 			// set texture anisotropy
 			if ( glConfig.textureAnisotropyAvailable )
@@ -1227,139 +1245,137 @@ void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int
 				glTexParameterf( image->type, GL_TEXTURE_MAX_ANISOTROPY_EXT, glConfig.textureAnisotropy );
 			}
 
-			glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, gl_filter_min );
-			glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, gl_filter_max );
-			break;
+				glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, gl_filter_min );
+				glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+				break;
 
-		case filterType_t::FT_LINEAR:
-			glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-			glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-			break;
+			case filterType_t::FT_LINEAR:
+				glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+				glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+				break;
 
-		case filterType_t::FT_NEAREST:
-			glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-			glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-			break;
+			case filterType_t::FT_NEAREST:
+				glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+				glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+				break;
 
-		default:
-			Log::Warn("unknown filter type for image '%s'", image->name );
-			glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-			glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-			break;
+			default:
+				Log::Warn( "unknown filter type for image '%s'", image->name );
+				glTexParameterf( image->type, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+				glTexParameterf( image->type, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+				break;
+		}
 	}
 
 	GL_CheckErrors();
 
 	// set wrap type
-	if ( image->wrapType.s == image->wrapType.t )
-        {
-                switch ( image->wrapType.s )
-                {
-                        case wrapTypeEnum_t::WT_REPEAT:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_REPEAT );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_REPEAT );
-                                break;
+	if ( !samples ) {
+		if ( image->wrapType.s == image->wrapType.t ) {
+			switch ( image->wrapType.s ) {
+				case wrapTypeEnum_t::WT_REPEAT:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_REPEAT );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_REPEAT );
+					break;
 
-                        case wrapTypeEnum_t::WT_CLAMP:
-                        case wrapTypeEnum_t::WT_EDGE_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-                                break;
-                        case wrapTypeEnum_t::WT_ONE_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, oneClampBorder );
-                                break;
-                        case wrapTypeEnum_t::WT_ZERO_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, zeroClampBorder );
-                                break;
+				case wrapTypeEnum_t::WT_CLAMP:
+				case wrapTypeEnum_t::WT_EDGE_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+					break;
+				case wrapTypeEnum_t::WT_ONE_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, oneClampBorder );
+					break;
+				case wrapTypeEnum_t::WT_ZERO_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, zeroClampBorder );
+					break;
 
-                        case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, alphaZeroClampBorder );
-                                break;
+				case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, alphaZeroClampBorder );
+					break;
 
-                        default:
-								Log::Warn("unknown wrap type for image '%s'", image->name );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_REPEAT );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_REPEAT );
-                                break;
-                }
-        } else {
-        	// warn about mismatched clamp types if both require a border colour to be set
-                if ( ( image->wrapType.s == wrapTypeEnum_t::WT_ZERO_CLAMP || image->wrapType.s == wrapTypeEnum_t::WT_ONE_CLAMP || image->wrapType.s == wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP ) &&
-	             ( image->wrapType.t == wrapTypeEnum_t::WT_ZERO_CLAMP || image->wrapType.t == wrapTypeEnum_t::WT_ONE_CLAMP || image->wrapType.t == wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP ) )
-        	{
-					Log::Warn("mismatched wrap types for image '%s'", image->name );
-                }
+				default:
+					Log::Warn( "unknown wrap type for image '%s'", image->name );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_REPEAT );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_REPEAT );
+					break;
+			}
+		} else {
+			// warn about mismatched clamp types if both require a border colour to be set
+			if ( ( image->wrapType.s == wrapTypeEnum_t::WT_ZERO_CLAMP || image->wrapType.s == wrapTypeEnum_t::WT_ONE_CLAMP || image->wrapType.s == wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP ) &&
+				( image->wrapType.t == wrapTypeEnum_t::WT_ZERO_CLAMP || image->wrapType.t == wrapTypeEnum_t::WT_ONE_CLAMP || image->wrapType.t == wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP ) ) {
+				Log::Warn( "mismatched wrap types for image '%s'", image->name );
+			}
 
-                switch ( image->wrapType.s )
-                {
-                        case wrapTypeEnum_t::WT_REPEAT:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_REPEAT );
-                                break;
+			switch ( image->wrapType.s ) {
+				case wrapTypeEnum_t::WT_REPEAT:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_REPEAT );
+					break;
 
-                        case wrapTypeEnum_t::WT_CLAMP:
-                        case wrapTypeEnum_t::WT_EDGE_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-                                break;
+				case wrapTypeEnum_t::WT_CLAMP:
+				case wrapTypeEnum_t::WT_EDGE_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+					break;
 
-                        case wrapTypeEnum_t::WT_ONE_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, oneClampBorder );
-                                break;
+				case wrapTypeEnum_t::WT_ONE_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, oneClampBorder );
+					break;
 
-                        case wrapTypeEnum_t::WT_ZERO_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, zeroClampBorder );
-                                break;
+				case wrapTypeEnum_t::WT_ZERO_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, zeroClampBorder );
+					break;
 
-                        case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, alphaZeroClampBorder );
-                                break;
+				case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, alphaZeroClampBorder );
+					break;
 
-                        default:
-								Log::Warn("unknown wrap type for image '%s' axis S", image->name );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_REPEAT );
-                                break;
-                }
+				default:
+					Log::Warn( "unknown wrap type for image '%s' axis S", image->name );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_S, GL_REPEAT );
+					break;
+			}
 
-                switch ( image->wrapType.t )
-                {
-                        case wrapTypeEnum_t::WT_REPEAT:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_REPEAT );
-                                break;
+			switch ( image->wrapType.t ) {
+				case wrapTypeEnum_t::WT_REPEAT:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_REPEAT );
+					break;
 
-                        case wrapTypeEnum_t::WT_CLAMP:
-                        case wrapTypeEnum_t::WT_EDGE_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-                                break;
+				case wrapTypeEnum_t::WT_CLAMP:
+				case wrapTypeEnum_t::WT_EDGE_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+					break;
 
-                        case wrapTypeEnum_t::WT_ONE_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, oneClampBorder );
-                                break;
+				case wrapTypeEnum_t::WT_ONE_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, oneClampBorder );
+					break;
 
-                        case wrapTypeEnum_t::WT_ZERO_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, zeroClampBorder );
-                                break;
+				case wrapTypeEnum_t::WT_ZERO_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, zeroClampBorder );
+					break;
 
-                        case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-                                glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, alphaZeroClampBorder );
-                                break;
+				case wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP:
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+					glTexParameterfv( image->type, GL_TEXTURE_BORDER_COLOR, alphaZeroClampBorder );
+					break;
 
-                        default:
-								Log::Warn("unknown wrap type for image '%s' axis T", image->name );
-                                glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_REPEAT );
-                                break;
-                }
-        }
+				default:
+					Log::Warn( "unknown wrap type for image '%s' axis T", image->name );
+					glTexParameterf( image->type, GL_TEXTURE_WRAP_T, GL_REPEAT );
+					break;
+			}
+		}
+	}
 
 	GL_CheckErrors();
 
@@ -1448,7 +1464,8 @@ static void R_ExportTexture( image_t *image )
 R_CreateImage
 ================
 */
-image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams )
+image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams,
+	const uint32_t samples, const bool fixedSampleLocations )
 {
 	const char* colorspaces[] = { "linear", "sRGB" };
 	const char* colorspace = colorspaces[ bool( imageParams.bits & IF_SRGB ) ];
@@ -1464,8 +1481,13 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 		return nullptr;
 	}
 
-	image->type = GL_TEXTURE_2D;
-	image->texture->target = GL_TEXTURE_2D;
+	if ( samples ) {
+		image->type = GL_TEXTURE_2D_MULTISAMPLE;
+		image->texture->target = GL_TEXTURE_2D_MULTISAMPLE;
+	} else {
+		image->type = GL_TEXTURE_2D;
+		image->texture->target = GL_TEXTURE_2D;
+	}
 
 	image->width = width;
 	image->height = height;
@@ -1474,7 +1496,7 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 	image->filterType = imageParams.filterType;
 	image->wrapType = imageParams.wrapType;
 
-	R_UploadImage( name, pic, 1, numMips, image, imageParams );
+	R_UploadImage( name, pic, 1, numMips, image, imageParams, samples, fixedSampleLocations );
 
 	if( r_exportTextures->integer ) {
 		R_ExportTexture( image );
@@ -2466,6 +2488,10 @@ static void R_CreateCurrentRenderImage()
 	tr.currentRenderImage[0] = R_CreateImage( "*currentRender0", nullptr, width, height, 1, imageParams );
 	tr.currentRenderImage[1] = R_CreateImage( "*currentRender1", nullptr, width, height, 1, imageParams );
 
+	if ( glConfig.MSAA ) {
+		tr.currentRenderImageMSAA = R_CreateImage( "_currentRenderMSAA", nullptr, width, height, 1, imageParams, glConfig.MSAA, false );
+	}
+
 	imageParams = {};
 	imageParams.bits = IF_NOPICMIP | IF_PACKED_DEPTH24_STENCIL8;
 	imageParams.filterType = filterType_t::FT_NEAREST;
@@ -2477,6 +2503,10 @@ static void R_CreateCurrentRenderImage()
 	{
 		// For use with glBlitFramebuffer, format must be the same as currentDepthImage
 		tr.depthSamplerImage = R_CreateImage( "*readonlyDepth", nullptr, width, height, 1, imageParams );
+	}
+
+	if( glConfig.MSAA ) {
+		tr.currentDepthImageMSAA = R_CreateImage( "_currentDepthMSAA", nullptr, width, height, 1, imageParams, glConfig.MSAA, false );
 	}
 
 	if ( glConfig.usingMaterialSystem ) {

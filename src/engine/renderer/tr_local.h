@@ -2466,6 +2466,8 @@ enum
 		image_t    *currentRenderImage[ 2 ];
 		image_t    *currentDepthImage;
 		image_t    *depthSamplerImage;
+		image_t    *currentRenderImageMSAA;
+		image_t    *currentDepthImageMSAA;
 		image_t    *depthtile1RenderImage;
 		image_t    *depthtile2RenderImage;
 		image_t    *lighttileRenderImage;
@@ -2478,6 +2480,7 @@ enum
 		// framebuffer objects
 		FBO_t *mainFBO[ 2 ];
 		FBO_t *readonlyDepthFBO;
+		FBO_t *msaaFBO;
 		FBO_t *depthtile1FBO;
 		FBO_t *depthtile2FBO;
 		FBO_t *lighttileFBO;
@@ -2783,6 +2786,7 @@ enum
 	extern Cvar::Cvar<int> r_bloomPasses;
 	extern cvar_t *r_FXAA;
 	extern Cvar::Range<Cvar::Cvar<int>> r_ssao;
+	extern Cvar::Range<Cvar::Cvar<int>> r_msaa;
 
 	extern cvar_t *r_evsmPostProcess;
 
@@ -2912,6 +2916,11 @@ inline bool checkGLErrors()
 	void GL_BindProgram( ShaderProgramDescriptor* program );
 	GLuint64 GL_BindToTMU( int unit, image_t *image );
 	void GL_BindNullProgram();
+
+	void TransitionMainToMSAA();
+	void TransitionMSAAToMain();
+	void BindMSAAOrMainFBO();
+
 	void GL_SetDefaultState();
 	void GL_SelectTexture( int unit );
 	void GL_TextureMode( const char *string );
@@ -2938,6 +2947,7 @@ inline bool checkGLErrors()
 	void GL_VertexAttribsState( uint32_t stateBits, const bool settingUpVAO = false );
 	void GL_Cull( cullType_t cullType );
 void GL_TexImage2D( GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
+void GL_TexImage2DMultisample( GLenum target, GLsizei samples, GLint internalFormat, GLsizei width, GLsizei height, bool fixedSampleLocations, bool isSRGB );
 void GL_TexImage3D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *data, bool isSRGB );
 void GL_CompressedTexImage2D( GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data, bool isSRGB );
 void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLint yOffset, GLint zOffset, GLsizei width, GLsizei height, GLsizei depth, GLenum internalFormat, GLsizei size, const void *data, bool isSRGB );
@@ -2990,7 +3000,8 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 	image_t *R_FindImageFile( const char *name, imageParams_t &imageParams );
 	image_t *R_FindCubeImage( const char *name, imageParams_t &imageParams );
 
-	image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams );
+	image_t *R_CreateImage( const char *name, const byte **pic, int width, int height, int numMips, const imageParams_t &imageParams,
+		const uint32_t samples = 0, const bool fixedSampleLocations = true );
 
 	image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, int height, const imageParams_t &imageParams );
 	image_t *R_Create3DImage( const char *name, const byte *pic, int width, int height, int depth, const imageParams_t &imageParams );
@@ -2999,7 +3010,8 @@ void GL_CompressedTexSubImage3D( GLenum target, GLint level, GLint xOffset, GLin
 	qhandle_t RE_GenerateTexture( const byte *pic, int width, int height );
 
 	image_t *R_AllocImage( const char *name, bool linkIntoHashTable );
-	void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams );
+	void R_UploadImage( const char *name, const byte **dataArray, int numLayers, int numMips, image_t *image, const imageParams_t &imageParams,
+		const uint32_t samples = 0, const bool fixedSampleLocations = true );
 
 	void    RE_GetTextureSize( int textureID, int *width, int *height );
 

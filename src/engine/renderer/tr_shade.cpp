@@ -180,6 +180,13 @@ static void EnableAvailableFeatures()
 		}
 	}
 
+	glConfig.MSAA = r_msaa.Get();
+	const int maxSamples = std::min( glConfig.maxColorTextureSamples, glConfig.maxDepthTextureSamples );
+	if ( glConfig.MSAA > maxSamples ) {
+		Log::Warn( "MSAA samples %i > %i, setting to %i", r_msaa.Get(), maxSamples, maxSamples );
+		glConfig.MSAA = maxSamples;
+	}
+
 	glConfig.usingMaterialSystem = r_materialSystem.Get() && glConfig.materialSystemAvailable;
 	glConfig.usingBindlessTextures = glConfig.usingMaterialSystem ||
 		( r_preferBindlessTextures.Get() && glConfig.bindlessTexturesAvailable );
@@ -1458,6 +1465,7 @@ void Render_heatHaze( shaderStage_t *pStage )
 	}
 
 	// draw to background image
+	TransitionMSAAToMain();
 	R_BindFBO( tr.mainFBO[ 1 - backEnd.currentMainFBO ] );
 
 	// bind u_NormalMap
@@ -1492,6 +1500,8 @@ void Render_heatHaze( shaderStage_t *pStage )
 	);
 	gl_heatHazeShader->SetUniform_DeformMagnitude( 0.0f );
 	Tess_DrawElements();
+
+	TransitionMainToMSAA();
 
 	GL_CheckErrors();
 }
