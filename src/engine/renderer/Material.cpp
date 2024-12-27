@@ -1073,6 +1073,8 @@ void BindShaderHeatHaze( Material* material ) {
 	gl_heatHazeShaderMaterial->SetUniform_DeformEnable( true );
 
 	// draw to background image
+	TransitionMSAAToMain();
+
 	R_BindFBO( tr.mainFBO[1 - backEnd.currentMainFBO] );
 }
 
@@ -2228,6 +2230,8 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		R_BindFBO( tr.mainFBO[backEnd.currentMainFBO] );
 
 		RenderIndirect( material, viewID );
+
+		TransitionMainToMSAA();
 	}
 
 	if ( r_showTris->integer

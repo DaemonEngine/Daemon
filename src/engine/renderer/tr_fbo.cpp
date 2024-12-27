@@ -304,7 +304,8 @@ R_AttachFBOTexture2D
 */
 void R_AttachFBOTexture2D( int target, int texId, int index )
 {
-	if ( target != GL_TEXTURE_2D && ( target < GL_TEXTURE_CUBE_MAP_POSITIVE_X || target > GL_TEXTURE_CUBE_MAP_NEGATIVE_Z ) )
+	if ( target != GL_TEXTURE_2D  && target != GL_TEXTURE_2D_MULTISAMPLE
+		&& ( target < GL_TEXTURE_CUBE_MAP_POSITIVE_X || target > GL_TEXTURE_CUBE_MAP_NEGATIVE_Z ) )
 	{
 		Log::Warn("R_AttachFBOTexture2D: invalid target %i", target );
 		return;
@@ -356,6 +357,11 @@ void R_AttachFBOTexturePackedDepthStencil( int texId )
 	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texId, 0 );
 }
 
+void R_AttachFBOTexturePackedDepthStencilMSAA( int texId ) {
+	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, texId, 0 );
+	GL_fboShim.glFramebufferTexture2D( GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, texId, 0 );
+}
+
 /*
 ============
 R_BindFBO
@@ -363,17 +369,19 @@ R_BindFBO
 */
 void R_BindFBO( FBO_t *fbo )
 {
-	if ( !fbo )
-	{
+	R_BindFBO( GL_FRAMEBUFFER, fbo );
+}
+
+void R_BindFBO( const GLenum target, FBO_t* fbo ) {
+	if ( !fbo ) {
 		R_BindNullFBO();
 		return;
 	}
 
 	GLIMP_LOGCOMMENT( "--- R_BindFBO( %s ) ---", fbo->name );
 
-	if ( glState.currentFBO != fbo )
-	{
-		GL_fboShim.glBindFramebuffer( GL_FRAMEBUFFER, fbo->frameBuffer );
+	if ( glState.currentFBO != fbo ) {
+		GL_fboShim.glBindFramebuffer( target, fbo->frameBuffer );
 
 		glState.currentFBO = fbo;
 	}
@@ -429,6 +437,17 @@ void R_InitFBOs()
 	R_AttachFBOTexture2D( GL_TEXTURE_2D, tr.currentRenderImage[1]->texnum, 0 );
 	R_AttachFBOTexturePackedDepthStencil( tr.currentDepthImage->texnum );
 	R_CheckFBO( tr.mainFBO[1] );
+
+	if( glConfig.MSAA ) {
+		tr.msaaFBO = R_CreateFBO( "msaa", width, height );
+		R_BindFBO( tr.msaaFBO );
+		GL_CheckErrors();
+		R_AttachFBOTexture2D( GL_TEXTURE_2D_MULTISAMPLE, tr.currentRenderImageMSAA->texnum, 0 );
+		GL_CheckErrors();
+		R_AttachFBOTexturePackedDepthStencilMSAA( tr.currentDepthImageMSAA->texnum );
+		GL_CheckErrors();
+		R_CheckFBO( tr.msaaFBO );
+	}
 
 	if ( glConfig.realtimeLighting )
 	{
