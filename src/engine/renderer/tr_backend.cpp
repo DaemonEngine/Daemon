@@ -2983,8 +2983,6 @@ void RB_RenderGlobalFog()
 	// go back to the world modelview matrix
 	backEnd.orientation = backEnd.viewParms.world;
 
-	gl_fogGlobalShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // world space
-
 	{
 		fog_t *fog;
 
@@ -3014,7 +3012,6 @@ void RB_RenderGlobalFog()
 		gl_fogGlobalShader->SetUniform_Color( fog->color );
 	}
 
-	gl_fogGlobalShader->SetUniform_ViewMatrix( backEnd.viewParms.world.viewMatrix );
 	gl_fogGlobalShader->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
 
 	// bind u_ColorMap

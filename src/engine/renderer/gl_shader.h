@@ -4264,7 +4264,6 @@ class GLShader_shadowFill :
 	public GLShader,
 	public u_ColorMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_AlphaThreshold,
 	public u_LightOrigin,
 	public u_LightRadius,
@@ -4335,11 +4334,9 @@ class GLShader_skybox :
 	public u_ColorMapCube,
 	public u_CloudMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_CloudHeight,
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -4352,11 +4349,9 @@ class GLShader_skyboxMaterial :
 	public u_ColorMapCube,
 	public u_CloudMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_CloudHeight,
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_skyboxMaterial( GLShaderManager* manager );
@@ -4402,13 +4397,10 @@ class GLShader_fogGlobal :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
-	public u_ViewOrigin,
-	public u_ViewMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
 	public u_Color,
-	public u_FogDistanceVector,
-	public u_FogDepthVector
+	public u_FogDistanceVector
 {
 public:
 	GLShader_fogGlobal( GLShaderManager *manager );
@@ -4421,15 +4413,10 @@ class GLShader_heatHaze :
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_DeformMagnitude,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ModelViewMatrixTranspose,
 	public u_ProjectionMatrixTranspose,
-	public u_ColorModulateColorGen,
-	public u_Color,
 	public u_Bones,
 	public u_NormalScale,
 	public u_VertexInterpolation,
@@ -4448,16 +4435,11 @@ class GLShader_heatHazeMaterial :
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_DeformEnable,
 	public u_DeformMagnitude,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ModelViewMatrixTranspose,
 	public u_ProjectionMatrixTranspose,
-	public u_ColorModulateColorGen,
-	public u_Color,
 	public u_NormalScale,
 	public GLDeformStage
 {
@@ -4514,7 +4496,6 @@ class GLShader_cameraEffects :
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_DeformMagnitude,
 	public u_InverseGamma
 {
 public:
