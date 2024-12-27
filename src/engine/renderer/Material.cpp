@@ -1138,8 +1138,6 @@ void BindShaderSkybox( Material* material ) {
 	gl_skyboxShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
-	gl_skyboxShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-	gl_skyboxShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_skyboxShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
@@ -1156,7 +1154,6 @@ void BindShaderHeatHaze( Material* material ) {
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
-	gl_heatHazeShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	gl_heatHazeShaderMaterial->SetUniform_ModelViewMatrixTranspose( glState.modelViewMatrix[glState.stackIndex] );

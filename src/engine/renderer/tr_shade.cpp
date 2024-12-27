@@ -1977,9 +1977,6 @@ void Render_skybox( shaderStage_t *pStage )
 
 	gl_skyboxShader->BindProgram( pStage->deformIndex );
 
-	gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
-
-	gl_skyboxShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// bind u_ColorMap
