@@ -1435,9 +1435,12 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 		bool skip = false;
 		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
 			for ( GLUniform* uniform : shader->_uniforms ) {
-				if ( !uniform->IsGlobal() && ( line.find( uniform->GetName() ) != std::string::npos ) ) {
-					skip = true;
-					break;
+				if ( !uniform->IsGlobal() ) {
+					const size_t pos = line.find( uniform->GetName() );
+					if ( pos != std::string::npos && !std::isalpha( line[pos + strlen( uniform->GetName() ) ]) ) {
+						skip = true;
+						break;
+					}
 				}
 			}
 		}
@@ -2180,7 +2183,8 @@ GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
+	u_ColorModulateLightFactor( this ),
 	u_Color( this ),
 	u_DepthScale( this ),
 	GLDeformStage( this )
@@ -2207,7 +2211,8 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
+	u_ColorModulateLightFactor( this ),
 	u_Color( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
@@ -2239,7 +2244,8 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
+	u_ColorModulateLightFactor( this ),
 	u_Color( this ),
 	u_DepthScale( this ),
 	u_ShowTris( this ),
@@ -2274,7 +2280,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
@@ -2343,7 +2349,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
@@ -2403,7 +2409,7 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
@@ -2456,7 +2462,7 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
@@ -2520,7 +2526,7 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightDir( this ),
@@ -2762,7 +2768,7 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	u_ModelViewProjectionMatrix( this ),
 	u_ModelViewMatrixTranspose( this ),
 	u_ProjectionMatrixTranspose( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_Bones( this ),
 	u_NormalScale( this ),
@@ -2794,7 +2800,7 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	u_ModelViewProjectionMatrix( this ),
 	u_ModelViewMatrixTranspose( this ),
 	u_ProjectionMatrixTranspose( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this )
