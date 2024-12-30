@@ -335,13 +335,19 @@ else()
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
 		if (NOT NACL OR (NACL AND GAME_PIE))
-			try_c_cxx_flag(FPIE "-fPIE")
-			if (NOT APPLE)
-				try_linker_flag(LINKER_PIE "-pie")
+			if (FORK EQUAL 2 AND BUILD_GAME_NATIVE_DLL)
+				try_c_cxx_flag(FPIC "-fPIC")
+				try_linker_flag(LINKER_PIC "-pic")
+			else()
+				try_c_cxx_flag(FPIE "-fPIE")
+
+				if (NOT APPLE)
+					try_linker_flag(LINKER_PIE "-pie")
+				endif()
 			endif()
 		endif()
 
-		if ("${FLAG_LINKER_PIE}" AND MINGW)
+		if ("${FLAG_shared_LINKER_PIE}" AND MINGW)
 			# https://github.com/msys2/MINGW-packages/issues/4100
 			if (ARCH STREQUAL "i686")
 				set_linker_flag("-Wl,-e,_mainCRTStartup")
