@@ -157,7 +157,11 @@ function(GAMEMODULE)
 		endif()
 
 		if (BUILD_GAME_NATIVE_DLL)
-			buildGameModule("native-dll")
+			if (USE_HARDENING)
+				set(FORK 1 PARENT_SCOPE)
+			else()
+				buildGameModule("native-dll")
+			endif()
 		endif()
 
 		if (BUILD_GAME_NATIVE_EXE)
@@ -179,6 +183,17 @@ function(GAMEMODULE)
 			set(INHERITED_OPTION_ARGS ${INHERITED_OPTION_ARGS}
 				"-D${inherited_option}=${${inherited_option}}")
 		endforeach(inherited_option)
+
+		if (BUILD_GAME_NATIVE_DLL AND USE_HARDENING)
+			set(VMS_PROJECT dll-vms)
+			set(VMS_PROJECTS ${VMS_PROJECT})
+
+			gameSubProject(
+				-DBUILD_GAME_NACL=OFF
+				-DBUILD_GAME_NATIVE_DLL=ON
+				-DBUILD_GAME_NATIVE_EXE=OFF
+			)
+		endif()
 
 		if (BUILD_GAME_NACL)
 			if (USE_NACL_SAIGO)
@@ -229,7 +244,12 @@ function(GAMEMODULE)
 
 		set(VMS_PROJECTS ${VMS_PROJECTS} PARENT_SCOPE)
 	elseif (FORK EQUAL 2)
-		if (BUILD_GAME_NACL)
+		if (BUILD_GAME_NATIVE_DLL)
+			# Put the .dll and .so files in the same directory as the engine.
+			set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
+
+			buildGameModule("native-dll")
+		elseif (BUILD_GAME_NACL)
 			if (USE_NACL_SAIGO)
 				set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 			else()
