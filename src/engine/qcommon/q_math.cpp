@@ -744,9 +744,9 @@ void SetPlaneSignbits( cplane_t *out )
 int BoxOnPlaneSide( const bounds_t &bounds, const cplane_t *p )
 {
 #if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
-	auto mins = sseLoadVec3Unsafe( bounds.mins );
-	auto maxs = sseLoadVec3Unsafe( bounds.maxs );
-	auto normal = sseLoadVec3Unsafe( p->normal );
+	auto mins = _mm_load_ps( bounds.mins );
+	auto maxs = _mm_load_ps( bounds.maxs );
+	auto normal = _mm_load_ps( p->normal );
 
 	auto prod0 = _mm_mul_ps( maxs, normal );
 	auto prod1 = _mm_mul_ps( mins, normal );
