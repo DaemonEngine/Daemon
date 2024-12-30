@@ -1014,14 +1014,13 @@ static void RB_RenderDrawSurfaces( shaderSort_t fromSort, shaderSort_t toSort,
 /*
  * helper function for parallel split shadow mapping
  */
-static int MergeInteractionBounds( const matrix_t lightViewProjectionMatrix, interaction_t *ia, int iaCount, vec3_t bounds[ 2 ], bool shadowCasters )
+static int MergeInteractionBounds( const matrix_t lightViewProjectionMatrix, interaction_t *ia, int iaCount, bounds_t &bounds, bool shadowCasters )
 {
 	int           i;
 	int           j;
 	surfaceType_t *surface;
 	vec4_t        point;
 	vec4_t        transf;
-	vec3_t        worldBounds[ 2 ];
 	int       numCasters;
 
 	frustum_t frustum;
@@ -1029,7 +1028,7 @@ static int MergeInteractionBounds( const matrix_t lightViewProjectionMatrix, int
 	int       r;
 
 	numCasters = 0;
-	ClearBounds( bounds[ 0 ], bounds[ 1 ] );
+	ClearBounds( bounds );
 
 	// calculate frustum planes using the modelview projection matrix
 	R_SetupFrustum2( frustum, lightViewProjectionMatrix );
@@ -1054,19 +1053,19 @@ static int MergeInteractionBounds( const matrix_t lightViewProjectionMatrix, int
 			}
 		}
 
+		bounds_t worldBounds;
+
 		if ( *surface == surfaceType_t::SF_FACE || *surface == surfaceType_t::SF_GRID || *surface == surfaceType_t::SF_TRIANGLES )
 		{
 			srfGeneric_t *gen = ( srfGeneric_t * ) surface;
 
-			VectorCopy( gen->bounds[ 0 ], worldBounds[ 0 ] );
-			VectorCopy( gen->bounds[ 1 ], worldBounds[ 1 ] );
+			BoundsCopy( gen->bounds, worldBounds );
 		}
 		else if ( *surface == surfaceType_t::SF_VBO_MESH )
 		{
 			srfVBOMesh_t *srf = ( srfVBOMesh_t * ) surface;
 
-			VectorCopy( srf->bounds[ 0 ], worldBounds[ 0 ] );
-			VectorCopy( srf->bounds[ 1 ], worldBounds[ 1 ] );
+			BoundsCopy( srf->bounds, worldBounds );
 		}
 		else if ( *surface == surfaceType_t::SF_MDV )
 		{
@@ -1088,7 +1087,7 @@ static int MergeInteractionBounds( const matrix_t lightViewProjectionMatrix, int
 				continue;
 			}
 
-			r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], clipPlane );
+			r = BoxOnPlaneSide( worldBounds, clipPlane );
 
 			if ( r == 2 )
 			{
@@ -1103,9 +1102,9 @@ static int MergeInteractionBounds( const matrix_t lightViewProjectionMatrix, int
 
 		for ( j = 0; j < 8; j++ )
 		{
-			point[ 0 ] = worldBounds[ j & 1 ][ 0 ];
-			point[ 1 ] = worldBounds[( j >> 1 ) & 1 ][ 1 ];
-			point[ 2 ] = worldBounds[( j >> 2 ) & 1 ][ 2 ];
+			point[ 0 ] = worldBounds.at( j & 1 )[ 0 ];
+			point[ 1 ] = worldBounds.at( ( j >> 1 ) & 1 )[ 1 ];
+			point[ 2 ] = worldBounds.at( ( j >> 2 ) & 1 )[ 2 ];
 			point[ 3 ] = 1;
 
 			MatrixTransform4( lightViewProjectionMatrix, point, transf );
@@ -1113,7 +1112,7 @@ static int MergeInteractionBounds( const matrix_t lightViewProjectionMatrix, int
 			transf[ 1 ] /= transf[ 3 ];
 			transf[ 2 ] /= transf[ 3 ];
 
-			AddPointToBounds( transf, bounds[ 0 ], bounds[ 1 ] );
+			AddPointToBounds( transf, bounds );
 		}
 
 skipInteraction:
@@ -1565,12 +1564,9 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 				matrix_t cropMatrix;
 				vec3_t   splitFrustumNearCorners[ 4 ];
 				vec3_t   splitFrustumFarCorners[ 4 ];
-				vec3_t   splitFrustumBounds[ 2 ];
-				vec3_t   splitFrustumClipBounds[ 2 ];
+				bounds_t splitFrustumBounds, splitFrustumClipBounds;
 				int      numCasters;
-				vec3_t   casterBounds[ 2 ];
-				vec3_t   receiverBounds[ 2 ];
-				vec3_t   cropBounds[ 2 ];
+				bounds_t casterBounds, receiverBounds, cropBounds;
 				vec4_t   point;
 				vec4_t   transf;
 
@@ -1668,16 +1664,16 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 						}
 					}
 
-					ClearBounds( splitFrustumBounds[ 0 ], splitFrustumBounds[ 1 ] );
+					ClearBounds( splitFrustumBounds );
 
 					for ( auto nearCorner : splitFrustumNearCorners )
 					{
-						AddPointToBounds( nearCorner, splitFrustumBounds[ 0 ], splitFrustumBounds[ 1 ] );
+						AddPointToBounds( nearCorner, splitFrustumBounds );
 					}
 
 					for ( auto farCorner : splitFrustumFarCorners )
 					{
-						AddPointToBounds( farCorner, splitFrustumBounds[ 0 ], splitFrustumBounds[ 1 ] );
+						AddPointToBounds( farCorner, splitFrustumBounds );
 					}
 
 					//
@@ -1685,7 +1681,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 					//
 
 					// find the bounding box of the current split in the light's view space
-					ClearBounds( cropBounds[ 0 ], cropBounds[ 1 ] );
+					ClearBounds( cropBounds );
 
 					const auto pointsToViewBounds = [&]( vec_t *c ) {
 						VectorCopy( c, point );
@@ -1695,7 +1691,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 						transf[ 1 ] /= transf[ 3 ];
 						transf[ 2 ] /= transf[ 3 ];
 
-						AddPointToBounds( transf, cropBounds[ 0 ], cropBounds[ 1 ] );
+						AddPointToBounds( transf, cropBounds );
 					};
 
 					for ( auto nearCorner : splitFrustumNearCorners )
@@ -1708,7 +1704,10 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 						pointsToViewBounds( farCorner );
 					}
 
-					MatrixOrthogonalProjectionRH( projectionMatrix, cropBounds[ 0 ][ 0 ], cropBounds[ 1 ][ 0 ], cropBounds[ 0 ][ 1 ], cropBounds[ 1 ][ 1 ], -cropBounds[ 1 ][ 2 ], -cropBounds[ 0 ][ 2 ] );
+					MatrixOrthogonalProjectionRH( projectionMatrix,
+						cropBounds.mins[ 0 ], cropBounds.maxs[ 0 ],
+						cropBounds.mins[ 1 ], cropBounds.maxs[ 1 ],
+						-cropBounds.maxs[ 2 ], -cropBounds.mins[ 2 ] );
 
 					MatrixMultiply( projectionMatrix, light->viewMatrix, viewProjectionMatrix );
 
@@ -1716,7 +1715,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 					MergeInteractionBounds( viewProjectionMatrix, ia, iaCount, receiverBounds, false );
 
 					// find the bounding box of the current split in the light's clip space
-					ClearBounds( splitFrustumClipBounds[ 0 ], splitFrustumClipBounds[ 1 ] );
+					ClearBounds( splitFrustumClipBounds );
 
 					const auto pointsToViewProjectionBounds = [&]( vec_t* c ) {
 						VectorCopy( c, point );
@@ -1727,7 +1726,7 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 						transf[ 1 ] /= transf[ 3 ];
 						transf[ 2 ] /= transf[ 3 ];
 
-						AddPointToBounds( transf, splitFrustumClipBounds[ 0 ], splitFrustumClipBounds[ 1 ] );
+						AddPointToBounds( transf, splitFrustumClipBounds );
 					};
 
 					for ( auto nearCorner : splitFrustumNearCorners )
@@ -1745,35 +1744,34 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 						GLimp_LogComment( va( "shadow casters = %i\n", numCasters ) );
 
 						GLimp_LogComment( va( "split frustum light space clip bounds (%5.3f, %5.3f, %5.3f) (%5.3f, %5.3f, %5.3f)\n",
-										        splitFrustumClipBounds[ 0 ][ 0 ], splitFrustumClipBounds[ 0 ][ 1 ], splitFrustumClipBounds[ 0 ][ 2 ],
-										        splitFrustumClipBounds[ 1 ][ 0 ], splitFrustumClipBounds[ 1 ][ 1 ], splitFrustumClipBounds[ 1 ][ 2 ] ) );
+							splitFrustumClipBounds.mins[ 0 ], splitFrustumClipBounds.mins[ 1 ], splitFrustumClipBounds.mins[ 2 ],
+							splitFrustumClipBounds.maxs[ 0 ], splitFrustumClipBounds.maxs[ 1 ], splitFrustumClipBounds.maxs[ 2 ] ) );
 
 						GLimp_LogComment( va( "shadow caster light space clip bounds (%5.3f, %5.3f, %5.3f) (%5.3f, %5.3f, %5.3f)\n",
-										        casterBounds[ 0 ][ 0 ], casterBounds[ 0 ][ 1 ], casterBounds[ 0 ][ 2 ],
-										        casterBounds[ 1 ][ 0 ], casterBounds[ 1 ][ 1 ], casterBounds[ 1 ][ 2 ] ) );
+							casterBounds.mins[ 0 ], casterBounds.mins[ 1 ], casterBounds.mins[ 2 ],
+							casterBounds.maxs[ 0 ], casterBounds.maxs[ 1 ], casterBounds.maxs[ 2 ] ) );
 
 						GLimp_LogComment( va( "light receiver light space clip bounds (%5.3f, %5.3f, %5.3f) (%5.3f, %5.3f, %5.3f)\n",
-										        receiverBounds[ 0 ][ 0 ], receiverBounds[ 0 ][ 1 ], receiverBounds[ 0 ][ 2 ],
-										        receiverBounds[ 1 ][ 0 ], receiverBounds[ 1 ][ 1 ], receiverBounds[ 1 ][ 2 ] ) );
+							receiverBounds.mins[ 0 ], receiverBounds.mins[ 1 ], receiverBounds.mins[ 2 ],
+							receiverBounds.maxs[ 0 ], receiverBounds.maxs[ 1 ], receiverBounds.maxs[ 2 ] ) );
 					}
 
 					// scene-dependent bounding volume
-					cropBounds[ 0 ][ 0 ] = std::max( std::max( casterBounds[ 0 ][ 0 ], receiverBounds[ 0 ][ 0 ] ), splitFrustumClipBounds[ 0 ][ 0 ] );
-					cropBounds[ 0 ][ 1 ] = std::max( std::max( casterBounds[ 0 ][ 1 ], receiverBounds[ 0 ][ 1 ] ), splitFrustumClipBounds[ 0 ][ 1 ] );
+					cropBounds.mins[ 0 ] = std::max( std::max( casterBounds.mins[ 0 ], receiverBounds.mins[ 0 ] ), splitFrustumClipBounds.mins[ 0 ] );
+					cropBounds.mins[ 1 ] = std::max( std::max( casterBounds.mins[ 1 ], receiverBounds.mins[ 1 ] ), splitFrustumClipBounds.mins[ 1 ] );
 
-					cropBounds[ 1 ][ 0 ] = std::min( std::min( casterBounds[ 1 ][ 0 ], receiverBounds[ 1 ][ 0 ] ), splitFrustumClipBounds[ 1 ][ 0 ] );
-					cropBounds[ 1 ][ 1 ] = std::min( std::min( casterBounds[ 1 ][ 1 ], receiverBounds[ 1 ][ 1 ] ), splitFrustumClipBounds[ 1 ][ 1 ] );
+					cropBounds.maxs[ 0 ] = std::min( std::min( casterBounds.maxs[ 0 ], receiverBounds.maxs[ 0 ] ), splitFrustumClipBounds.maxs[ 0 ] );
+					cropBounds.maxs[ 1 ] = std::min( std::min( casterBounds.maxs[ 1 ], receiverBounds.maxs[ 1 ] ), splitFrustumClipBounds.maxs[ 1 ] );
 
-					cropBounds[ 0 ][ 2 ] = std::min( casterBounds[ 0 ][ 2 ], splitFrustumClipBounds[ 0 ][ 2 ] );
-					cropBounds[ 1 ][ 2 ] = std::min( receiverBounds[ 1 ][ 2 ], splitFrustumClipBounds[ 1 ][ 2 ] );
+					cropBounds.mins[ 2 ] = std::min( casterBounds.mins[ 2 ], splitFrustumClipBounds.mins[ 2 ] );
+					cropBounds.maxs[ 2 ] = std::min( receiverBounds.maxs[ 2 ], splitFrustumClipBounds.maxs[ 2 ] );
 
 					if ( numCasters == 0 )
 					{
-						VectorCopy( splitFrustumClipBounds[ 0 ], cropBounds[ 0 ] );
-						VectorCopy( splitFrustumClipBounds[ 1 ], cropBounds[ 1 ] );
+						BoundsCopy( splitFrustumClipBounds, cropBounds );
 					}
 
-					MatrixCrop( cropMatrix, cropBounds[ 0 ], cropBounds[ 1 ] );
+					MatrixCrop( cropMatrix, cropBounds.mins, cropBounds.maxs );
 
 					MatrixMultiply( cropMatrix, projectionMatrix, light->projectionMatrix );
 
@@ -1791,17 +1789,17 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 					MatrixAffineInverse( transformMatrix, viewMatrix );
 					MatrixMultiply( quakeToOpenGLMatrix, viewMatrix, light->viewMatrix );
 
-					ClearBounds( splitFrustumBounds[ 0 ], splitFrustumBounds[ 1 ] );
-					//BoundsAdd(splitFrustumBounds[0], splitFrustumBounds[1], backEnd.viewParms.visBounds[0], backEnd.viewParms.visBounds[1]);
-					BoundsAdd( splitFrustumBounds[ 0 ], splitFrustumBounds[ 1 ], light->worldBounds[ 0 ], light->worldBounds[ 1 ] );
+					ClearBounds( splitFrustumBounds );
+					// BoundsAdd( splitFrustumBounds, backEnd.viewParms.visBounds );
+					BoundsAdd( splitFrustumBounds, light->worldBounds );
 
-					ClearBounds( cropBounds[ 0 ], cropBounds[ 1 ] );
+					ClearBounds( cropBounds );
 
 					for ( j = 0; j < 8; j++ )
 					{
-						point[ 0 ] = splitFrustumBounds[ j & 1 ][ 0 ];
-						point[ 1 ] = splitFrustumBounds[( j >> 1 ) & 1 ][ 1 ];
-						point[ 2 ] = splitFrustumBounds[( j >> 2 ) & 1 ][ 2 ];
+						point[ 0 ] = splitFrustumBounds.at( j & 1 )[ 0 ];
+						point[ 1 ] = splitFrustumBounds.at( ( j >> 1 ) & 1 )[ 1 ];
+						point[ 2 ] = splitFrustumBounds.at( ( j >> 2 ) & 1 )[ 2 ];
 						point[ 3 ] = 1;
 
 						MatrixTransform4( light->viewMatrix, point, transf );
@@ -1809,10 +1807,14 @@ static void RB_SetupLightForShadowing( trRefLight_t *light, int index,
 						transf[ 1 ] /= transf[ 3 ];
 						transf[ 2 ] /= transf[ 3 ];
 
-						AddPointToBounds( transf, cropBounds[ 0 ], cropBounds[ 1 ] );
+						AddPointToBounds( transf, cropBounds );
 					}
 
-					MatrixOrthogonalProjectionRH( light->projectionMatrix, cropBounds[ 0 ][ 0 ], cropBounds[ 1 ][ 0 ], cropBounds[ 0 ][ 1 ], cropBounds[ 1 ][ 1 ], -cropBounds[ 1 ][ 2 ], -cropBounds[ 0 ][ 2 ] );
+					MatrixOrthogonalProjectionRH( light->projectionMatrix,
+						cropBounds.mins[ 0 ], cropBounds.maxs[ 0 ],
+						cropBounds.mins[ 1 ], cropBounds.maxs[ 1 ],
+						-cropBounds.maxs[ 2 ], -cropBounds.mins[ 2 ] );
+
 					GL_LoadProjectionMatrix( light->projectionMatrix );
 				}
 
@@ -3371,8 +3373,10 @@ static void RB_RenderDebugUtils()
 		trRefLight_t  *light;
 		vec3_t        forward, left, up;
 
-		static const vec3_t minSize = { -2, -2, -2 };
-		static const vec3_t maxSize = { 2,  2,  2 };
+		static const bounds_t size = {
+			{ -2, -2, -2 },
+			{ 2,  2,  2 },
+		};
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
@@ -3464,7 +3468,7 @@ static void RB_RenderDebugUtils()
 						{
 							if ( !VectorCompare( light->l.center, vec3_origin ) )
 							{
-								Tess_AddCube( light->l.center, minSize, maxSize, Color::Yellow );
+								Tess_AddCube( light->l.center, size, Color::Yellow );
 							}
 							break;
 						}
@@ -3472,18 +3476,18 @@ static void RB_RenderDebugUtils()
 					case refLightType_t::RL_PROJ:
 						{
 							// draw light_target
-							Tess_AddCube( light->l.projTarget, minSize, maxSize, Color::Red );
-							Tess_AddCube( light->l.projRight, minSize, maxSize, Color::Green );
-							Tess_AddCube( light->l.projUp, minSize, maxSize, Color::Blue );
+							Tess_AddCube( light->l.projTarget, size, Color::Red );
+							Tess_AddCube( light->l.projRight, size, Color::Green );
+							Tess_AddCube( light->l.projUp, size, Color::Blue );
 
 							if ( !VectorCompare( light->l.projStart, vec3_origin ) )
 							{
-								Tess_AddCube( light->l.projStart, minSize, maxSize, Color::Yellow );
+								Tess_AddCube( light->l.projStart, size, Color::Yellow );
 							}
 
 							if ( !VectorCompare( light->l.projEnd, vec3_origin ) )
 							{
-								Tess_AddCube( light->l.projEnd, minSize, maxSize, Color::Magenta );
+								Tess_AddCube( light->l.projEnd, size, Color::Magenta );
 							}
 							break;
 						}
@@ -3512,8 +3516,10 @@ static void RB_RenderDebugUtils()
 		surfaceType_t *surface;
 		Color::Color lightColor;
 
-		static const vec3_t mins = { -1, -1, -1 };
-		static const vec3_t maxs = { 1, 1, 1 };
+		static const bounds_t size = {
+			{ -1, -1, -1 },
+			{ 1, 1, 1 },
+		};
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
@@ -3601,18 +3607,18 @@ static void RB_RenderDebugUtils()
 					lightColor = Color::MdGrey;
 				}
 
-				Tess_AddCube( vec3_origin, gen->bounds[ 0 ], gen->bounds[ 1 ], lightColor );
+				Tess_AddCube( vec3_origin, gen->bounds, lightColor );
 
-				Tess_AddCube( gen->origin, mins, maxs, Color::White );
+				Tess_AddCube( gen->origin, size, Color::White );
 			}
 			else if ( *surface == surfaceType_t::SF_VBO_MESH )
 			{
 				srfVBOMesh_t *srf = ( srfVBOMesh_t * ) surface;
-				Tess_AddCube( vec3_origin, srf->bounds[ 0 ], srf->bounds[ 1 ], lightColor );
+				Tess_AddCube( vec3_origin, srf->bounds, lightColor );
 			}
 			else if ( *surface == surfaceType_t::SF_MDV )
 			{
-				Tess_AddCube( vec3_origin, entity->localBounds[ 0 ], entity->localBounds[ 1 ], lightColor );
+				Tess_AddCube( vec3_origin, entity->localBounds, lightColor );
 			}
 
 			Tess_End();
@@ -3627,8 +3633,11 @@ static void RB_RenderDebugUtils()
 	{
 		trRefEntity_t *ent;
 		int           i;
-		static const vec3_t mins = { -1, -1, -1 };
-		static const vec3_t maxs = { 1, 1, 1 };
+
+		static const bounds_t size = {
+			{ -1, -1, -1 },
+			{ 1, 1, 1 },
+		};
 
 		gl_genericShader->SetVertexSkinning( false );
 		gl_genericShader->SetVertexAnimation( false );
@@ -3673,9 +3682,9 @@ static void RB_RenderDebugUtils()
 
 			Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
 
-			Tess_AddCube( vec3_origin, ent->localBounds[ 0 ], ent->localBounds[ 1 ], Color::Blue );
+			Tess_AddCube( vec3_origin, ent->localBounds, Color::Blue );
 
-			Tess_AddCube( vec3_origin, mins, maxs,Color::White );
+			Tess_AddCube( vec3_origin, size, Color::White );
 
 			Tess_End();
 		}
@@ -3973,11 +3982,15 @@ static void RB_RenderDebugUtils()
 	if ( r_showCubeProbes.Get() && glConfig2.reflectionMapping &&
 	     !( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) ) )
 	{
-		static const vec3_t mins = { -8, -8, -8 };
-		static const vec3_t maxs = { 8,  8,  8 };
+		static const bounds_t size = {
+			{ -8, -8, -8 },
+			{ 8,  8,  8 },
+		};
 
-		static const vec3_t outlineMins = { -9, -9, -9 };
-		static const vec3_t outlineMaxs = { 9,  9,  9 };
+		static const bounds_t outline = {
+			{ -9, -9, -9 },
+			{ 9,  9,  9 },
+		};
 
 		// choose right shader program ----------------------------------
 		gl_reflectionShader->SetVertexSkinning( false );
@@ -4009,7 +4022,7 @@ static void RB_RenderDebugUtils()
 				vec3_t position{ ( float ) x * tr.cubeProbeSpacing, ( float ) y * tr.cubeProbeSpacing, ( float ) z * tr.cubeProbeSpacing };
 
 				// Match the map's start coords
-				VectorAdd( position, tr.world->nodes[0].mins, position );
+				VectorAdd( position, tr.world->nodes[0].bounds.mins, position );
 
 				cubemapProbe_t* cubeProbe = &tr.cubeProbes[tr.cubeProbeGrid( x, y, z )];
 
@@ -4022,7 +4035,7 @@ static void RB_RenderDebugUtils()
 					GL_BindToTMU( 0, cubeProbe->cubemap )
 				);
 
-				Tess_AddCubeWithNormals( position, mins, maxs, Color::White );
+				Tess_AddCubeWithNormals( position, size, Color::White );
 
 				Tess_End();
 			}
@@ -4038,7 +4051,7 @@ static void RB_RenderDebugUtils()
 					GL_BindToTMU( 0, cubeProbe.cubemap )
 				);
 
-				Tess_AddCubeWithNormals( cubeProbe.origin, mins, maxs, Color::White );
+				Tess_AddCubeWithNormals( cubeProbe.origin, size, Color::White );
 
 				Tess_End();
 			}
@@ -4090,24 +4103,24 @@ static void RB_RenderDebugUtils()
 					gridPoints[0][2] * tr.cubeProbeSpacing );
 
 				// Match the map's start coords
-				VectorAdd( position, tr.world->nodes[0].mins, position );
+				VectorAdd( position, tr.world->nodes[0].bounds.mins, position );
 			} else {
 				VectorCopy( probes[0]->origin, position );
 			}
 
-			Tess_AddCubeWithNormals( position, outlineMins, outlineMaxs, Color::Green );
+			Tess_AddCubeWithNormals( position, outline, Color::Green );
 
 			if ( r_showCubeProbes.Get() == Util::ordinal( showCubeProbesMode::GRID ) ) {
 				VectorSet( position, gridPoints[1][0] * tr.cubeProbeSpacing, gridPoints[1][1] * tr.cubeProbeSpacing,
 					gridPoints[1][2] * tr.cubeProbeSpacing );
 
 				// Match the map's start coords
-				VectorAdd( position, tr.world->nodes[0].mins, position );
+				VectorAdd( position, tr.world->nodes[0].bounds.mins, position );
 			} else {
 				VectorCopy( probes[1]->origin, position );
 			}
 
-			Tess_AddCubeWithNormals( position, outlineMins, outlineMaxs, Color::Red );
+			Tess_AddCubeWithNormals( position, outline, Color::Red );
 
 			Tess_End();
 		}
@@ -4275,7 +4288,6 @@ static void RB_RenderDebugUtils()
 					int    j;
 					vec3_t farCorners[ 4 ];
 					vec3_t nearCorners[ 4 ];
-					vec3_t cropBounds[ 2 ];
 					vec4_t point, transf;
 
 					GL_Viewport( x, y, w, h );
@@ -4293,13 +4305,14 @@ static void RB_RenderDebugUtils()
 						// Quake -> OpenGL view matrix from light perspective
 						MatrixLookAtRH( viewMatrix, backEnd.viewParms.orientation.origin, forward, up );
 
-						ClearBounds( cropBounds[ 0 ], cropBounds[ 1 ] );
+						bounds_t cropBounds;
+						ClearBounds( cropBounds );
 
 						for ( j = 0; j < 8; j++ )
 						{
-							point[ 0 ] = tr.world->models[ 0 ].bounds[ j & 1 ][ 0 ];
-							point[ 1 ] = tr.world->models[ 0 ].bounds[( j >> 1 ) & 1 ][ 1 ];
-							point[ 2 ] = tr.world->models[ 0 ].bounds[( j >> 2 ) & 1 ][ 2 ];
+							point[ 0 ] = tr.world->models[ 0 ].bounds.at( j & 1 )[ 0 ];
+							point[ 1 ] = tr.world->models[ 0 ].bounds.at( ( j >> 1 ) & 1 )[ 1 ];
+							point[ 2 ] = tr.world->models[ 0 ].bounds.at( ( j >> 2 ) & 1 )[ 2 ];
 							point[ 3 ] = 1;
 
 							MatrixTransform4( viewMatrix, point, transf );
@@ -4307,10 +4320,13 @@ static void RB_RenderDebugUtils()
 							transf[ 1 ] /= transf[ 3 ];
 							transf[ 2 ] /= transf[ 3 ];
 
-							AddPointToBounds( transf, cropBounds[ 0 ], cropBounds[ 1 ] );
+							AddPointToBounds( transf, cropBounds );
 						}
 
-						MatrixOrthogonalProjectionRH( projectionMatrix, cropBounds[ 0 ][ 0 ], cropBounds[ 1 ][ 0 ], cropBounds[ 0 ][ 1 ], cropBounds[ 1 ][ 1 ], -cropBounds[ 1 ][ 2 ], -cropBounds[ 0 ][ 2 ] );
+						MatrixOrthogonalProjectionRH( projectionMatrix,
+							cropBounds.mins[ 0 ], cropBounds.maxs[ 0 ],
+							cropBounds.mins[ 1 ], cropBounds.maxs[ 1 ],
+							-cropBounds.maxs[ 2 ], -cropBounds.mins[ 2 ] );
 
 						GL_LoadModelViewMatrix( viewMatrix );
 						GL_LoadProjectionMatrix( projectionMatrix );
@@ -4440,7 +4456,7 @@ static void RB_RenderDebugUtils()
 				}
 
 				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
-				Tess_AddCube( vec3_origin, node->mins, node->maxs, Color::White );
+				Tess_AddCube( vec3_origin, node->bounds, Color::White );
 				Tess_End();
 
 				if ( node->contents != -1 )

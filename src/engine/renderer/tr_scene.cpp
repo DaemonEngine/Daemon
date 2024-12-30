@@ -143,7 +143,6 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 	int       i, j;
 	int       fogIndex;
 	fog_t     *fog;
-	vec3_t    bounds[ 2 ];
 
 	if ( !tr.registered )
 	{
@@ -200,19 +199,19 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 		else
 		{
 			// find which fog volume the poly is in
-			VectorCopy( poly->verts[ 0 ].xyz, bounds[ 0 ] );
-			VectorCopy( poly->verts[ 0 ].xyz, bounds[ 1 ] );
+			bounds_t bounds;
+			BoundsSet( bounds, poly->verts[ 0 ].xyz, poly->verts[ 0 ].xyz );
 
 			for ( i = 1; i < poly->numVerts; i++ )
 			{
-				AddPointToBounds( poly->verts[ i ].xyz, bounds[ 0 ], bounds[ 1 ] );
+				AddPointToBounds( poly->verts[ i ].xyz, bounds );
 			}
 
 			for ( fogIndex = 1; fogIndex < tr.world->numFogs; fogIndex++ )
 			{
 				fog = &tr.world->fogs[ fogIndex ];
 
-				if ( BoundsIntersect( bounds[ 0 ], bounds[ 1 ], fog->bounds[ 0 ], fog->bounds[ 1 ] ) )
+				if ( BoundsIntersect( bounds, fog->bounds ) )
 				{
 					break;
 				}

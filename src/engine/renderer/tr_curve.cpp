@@ -459,7 +459,7 @@ static srfGridMesh_t *R_CreateSurfaceGridMesh( int width, int height,
 	grid->width = width;
 	grid->height = height;
 	grid->surfaceType = surfaceType_t::SF_GRID;
-	ClearBounds( grid->bounds[ 0 ], grid->bounds[ 1 ] );
+	ClearBounds( grid->bounds );
 
 	for ( i = 0; i < width; i++ )
 	{
@@ -467,14 +467,14 @@ static srfGridMesh_t *R_CreateSurfaceGridMesh( int width, int height,
 		{
 			vert = &grid->verts[ j * width + i ];
 			*vert = ctrl[ j ][ i ];
-			AddPointToBounds( vert->xyz, grid->bounds[ 0 ], grid->bounds[ 1 ] );
+			AddPointToBounds( vert->xyz, grid->bounds );
 		}
 	}
 
 	// compute local origin and bounds
-	VectorAdd( grid->bounds[ 0 ], grid->bounds[ 1 ], grid->origin );
+	VectorAdd( grid->bounds.mins, grid->bounds.maxs, grid->origin );
 	VectorScale( grid->origin, 0.5f, grid->origin );
-	VectorSubtract( grid->bounds[ 0 ], grid->origin, tmpVec );
+	VectorSubtract( grid->bounds.mins, grid->origin, tmpVec );
 	grid->radius = VectorLength( tmpVec );
 
 	VectorCopy( grid->origin, grid->lodOrigin );

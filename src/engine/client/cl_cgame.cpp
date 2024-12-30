@@ -1265,7 +1265,10 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 
 		case CG_R_MODELBOUNDS:
 			IPC::HandleMsg<Render::ModelBoundsMsg>(channel, std::move(reader), [this] (int handle, std::array<float, 3>& mins, std::array<float, 3>& maxs) {
-				re.ModelBounds(handle, mins.data(), maxs.data());
+				bounds_t bounds;
+				re.ModelBounds(handle, bounds);
+				VectorCopy(bounds.mins, mins.data());
+				VectorCopy(bounds.maxs, maxs.data());
 			});
 			break;
 
