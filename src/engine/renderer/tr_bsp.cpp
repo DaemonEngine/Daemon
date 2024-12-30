@@ -3615,6 +3615,7 @@ static void R_LoadNodesAndLeafs( lump_t *nodeLump, lump_t *leafLump )
 		out->bounds.mins[ 0 ] = LittleLong( in->mins[ 0 ] );
 		out->bounds.mins[ 1 ] = LittleLong( in->mins[ 1 ] );
 		out->bounds.mins[ 2 ] = LittleLong( in->mins[ 2 ] );
+		out->bounds.maxs[ 0 ] = LittleLong( in->maxs[ 0 ] );
 		out->bounds.maxs[ 1 ] = LittleLong( in->maxs[ 1 ] );
 		out->bounds.maxs[ 2 ] = LittleLong( in->maxs[ 2 ] );
 
