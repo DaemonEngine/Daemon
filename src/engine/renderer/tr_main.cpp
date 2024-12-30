@@ -1112,12 +1112,7 @@ void R_CalcFrustumFarCornersUnsafe( const plane_t frustum[ FRUSTUM_FAR + 1 ], ve
 
 static void CopyPlane( const cplane_t *in, cplane_t *out )
 {
-	VectorCopy( in->normal, out->normal );
-	out->dist = in->dist;
-	out->type = in->type;
-	out->signbits = in->signbits;
-	out->pad[ 0 ] = in->pad[ 0 ];
-	out->pad[ 1 ] = in->pad[ 1 ];
+	memcpy( out, in, sizeof(cplane_t) );
 }
 
 static void R_SetupSplitFrustums()

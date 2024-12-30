@@ -299,7 +299,9 @@ void  Com_Free_Aligned( void *ptr );
 struct bounds_t
 {
 	alignas(16) vec3_t mins;
+	vec_t pad_mins;
 	alignas(16) vec3_t maxs;
+	vec_t pad_maxs;
 
 	vec3_t& at( bool index )
 	{
@@ -1724,7 +1726,7 @@ void MatrixTransformBounds( const matrix_t m, const bounds_t &b, bounds_t &o );
 		vec_t dist;
 		byte   type; // for fast side tests: 0,1,2 = axial, 3 = nonaxial
 		byte   signbits; // signx + (signy<<1) + (signz<<2), used as lookup during collision
-		byte   pad[ 2 ];
+		byte pad[ 12 ];
 	};
 
 	enum class traceType_t

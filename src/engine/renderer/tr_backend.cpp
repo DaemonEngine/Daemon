@@ -3368,8 +3368,8 @@ static void RB_RenderDebugUtils()
 		vec3_t        forward, left, up;
 
 		static const bounds_t size = {
-			{ -2, -2, -2 },
-			{ 2,  2,  2 },
+			{ -2, -2, -2 }, 0,
+			{ 2,  2,  2 }, 0,
 		};
 
 		gl_genericShader->SetVertexSkinning( false );
@@ -3511,8 +3511,8 @@ static void RB_RenderDebugUtils()
 		Color::Color lightColor;
 
 		static const bounds_t size = {
-			{ -1, -1, -1 },
-			{ 1, 1, 1 },
+			{ -1, -1, -1 }, 0,
+			{ 1, 1, 1 }, 0,
 		};
 
 		gl_genericShader->SetVertexSkinning( false );
@@ -3629,8 +3629,8 @@ static void RB_RenderDebugUtils()
 		int           i;
 
 		static const bounds_t size = {
-			{ -1, -1, -1 },
-			{ 1, 1, 1 },
+			{ -1, -1, -1 }, 0,
+			{ 1, 1, 1 }, 0,
 		};
 
 		gl_genericShader->SetVertexSkinning( false );
@@ -3977,13 +3977,13 @@ static void RB_RenderDebugUtils()
 	     !( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOCUBEMAP ) ) )
 	{
 		static const bounds_t size = {
-			{ -8, -8, -8 },
-			{ 8,  8,  8 },
+			{ -8, -8, -8 }, 0,
+			{ 8,  8,  8 }, 0,
 		};
 
 		static const bounds_t outline = {
-			{ -9, -9, -9 },
-			{ 9,  9,  9 },
+			{ -9, -9, -9 }, 0,
+			{ 9,  9,  9 }, 0,
 		};
 
 		// choose right shader program ----------------------------------
