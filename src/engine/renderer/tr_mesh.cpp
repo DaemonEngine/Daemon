@@ -40,10 +40,15 @@ static void R_CullMDV( mdvModel_t *model, trRefEntity_t *ent )
 	// calculate a bounding box in the current coordinate system
 	for ( i = 0; i < 3; i++ )
 	{
-		ent->localBounds[ 0 ][ i ] =
-		  oldFrame->bounds[ 0 ][ i ] < newFrame->bounds[ 0 ][ i ] ? oldFrame->bounds[ 0 ][ i ] : newFrame->bounds[ 0 ][ i ];
-		ent->localBounds[ 1 ][ i ] =
-		  oldFrame->bounds[ 1 ][ i ] > newFrame->bounds[ 1 ][ i ] ? oldFrame->bounds[ 1 ][ i ] : newFrame->bounds[ 1 ][ i ];
+		ent->localBounds.mins[ i ] =
+			oldFrame->bounds[ 0 ][ i ] < newFrame->bounds[ 0 ][ i ]
+			? oldFrame->bounds[ 0 ][ i ]
+			: newFrame->bounds[ 0 ][ i ];
+
+		ent->localBounds.maxs[ i ] =
+			oldFrame->bounds[ 1 ][ i ] > newFrame->bounds[ 1 ][ i ]
+			? oldFrame->bounds[ 1 ][ i ]
+			: newFrame->bounds[ 1 ][ i ];
 	}
 
 	// setup world bounds for intersection tests
@@ -153,7 +158,9 @@ int R_ComputeLOD( trRefEntity_t *ent )
 		frame = tr.currentModel->mdv[ 0 ]->frames;
 		frame += ent->e.frame;
 
-		radius = RadiusFromBounds( frame->bounds[ 0 ], frame->bounds[ 1 ] );
+		bounds_t bounds;
+		BoundsSet( bounds, frame->bounds[ 0 ], frame->bounds[ 1 ] );
+		radius = RadiusFromBounds( bounds );
 
 		if ( ( projectedRadius = R_ProjectRadius( radius, ent->e.origin ) ) != 0 )
 		{
@@ -397,7 +404,7 @@ void R_AddMDVInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 	model = tr.currentModel->mdv[ lod ];
 
 	// do a quick AABB cull
-	if ( !BoundsIntersect( light->worldBounds[ 0 ], light->worldBounds[ 1 ], ent->worldBounds[ 0 ], ent->worldBounds[ 1 ] ) )
+	if ( !BoundsIntersect( light->worldBounds, ent->worldBounds ) )
 	{
 		tr.pc.c_dlightSurfacesCulled += model->numSurfaces;
 		return;

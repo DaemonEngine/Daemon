@@ -77,7 +77,7 @@ struct cbrushside_t
 struct cbrush_t
 {
 	int          contents;
-	vec3_t       bounds[ 2 ];
+	bounds_t bounds;
 	int          numsides;
 	cbrushside_t *sides;
 	int          checkcount; // to avoid repeated testings
@@ -129,7 +129,7 @@ struct cFacet_t
 
 struct cSurfaceCollide_t
 {
-	vec3_t   bounds[ 2 ];
+	bounds_t bounds;
 	int      numPlanes; // surface planes plus edge planes
 	cPlane_t *planes;
 
@@ -238,7 +238,7 @@ struct traceWork_t
 	vec3_t      offsets[ 8 ]; // [signbits][x] = either size[0][x] or size[1][x]
 	float       maxOffset; // longest corner length from origin
 	vec3_t      extents; // greatest of abs(size[0]) and abs(size[1])
-	vec3_t      bounds[ 2 ]; // enclosing box of start and end surrounding by size
+	bounds_t bounds; // enclosing box of start and end surrounding by size
 	vec3_t      modelOrigin; // origin of the model tracing through
 	int         contents; // ored contents of the model tracing through
 	int         skipContents; // ored contents that shall be ignored
@@ -253,7 +253,7 @@ struct leafList_t
 	int      maxcount;
 	bool overflowed;
 	int      *list;
-	vec3_t   bounds[ 2 ];
+	bounds_t bounds; // for bounding box culling
 	int      lastLeaf; // for overflows where each leaf can't be stored individually
 	void ( *storeLeafs )( leafList_t *ll, int nodenum );
 };

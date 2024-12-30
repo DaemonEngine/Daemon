@@ -150,7 +150,7 @@ static void R_ChopPolyBehindPlane( int numInPoints, vec3_t inPoints[ MAX_VERTS_O
 R_BoxSurfaces_r
 =================
 */
-void R_BoxSurfaces_r( bspNode_t *node, vec3_t mins, vec3_t maxs, surfaceType_t **list, int listsize, int *listlength, vec3_t dir )
+static void R_BoxSurfaces_r( bspNode_t *node, const bounds_t &bounds, surfaceType_t **list, int listsize, int *listlength, vec3_t dir )
 {
 	int          s, c;
 	bspSurface_t *surf, **mark;
@@ -158,7 +158,7 @@ void R_BoxSurfaces_r( bspNode_t *node, vec3_t mins, vec3_t maxs, surfaceType_t *
 	// do the tail recursion in a loop
 	while ( node->contents == -1 )
 	{
-		s = BoxOnPlaneSide( mins, maxs, node->plane );
+		s = BoxOnPlaneSide( bounds, node->plane );
 
 		if ( s == 1 )
 		{
@@ -170,7 +170,7 @@ void R_BoxSurfaces_r( bspNode_t *node, vec3_t mins, vec3_t maxs, surfaceType_t *
 		}
 		else
 		{
-			R_BoxSurfaces_r( node->children[ 0 ], mins, maxs, list, listsize, listlength, dir );
+			R_BoxSurfaces_r( node->children[ 0 ], bounds, list, listsize, listlength, dir );
 			node = node->children[ 1 ];
 		}
 	}
@@ -199,7 +199,7 @@ void R_BoxSurfaces_r( bspNode_t *node, vec3_t mins, vec3_t maxs, surfaceType_t *
 		else if ( * ( surf->data ) == surfaceType_t::SF_FACE )
 		{
 			// the face plane should go through the box
-			s = BoxOnPlaneSide( mins, maxs, & ( ( srfSurfaceFace_t * ) surf->data )->plane );
+			s = BoxOnPlaneSide( bounds, & ( ( srfSurfaceFace_t * ) surf->data )->plane );
 
 			if ( s == 1 || s == 2 )
 			{
@@ -293,7 +293,6 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 	int              numsurfaces, numPlanes;
 	int              i, j, k, m, n;
 	surfaceType_t    *surfaces[ 64 ];
-	vec3_t           mins, maxs;
 	int              returnedFragments;
 	int              returnedPoints;
 	vec3_t           normals[ MAX_VERTS_ON_POLY + 2 ];
@@ -313,21 +312,22 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 	//increment view count for double check prevention
 	tr.viewCountNoReset++;
 
-	//
 	VectorNormalize2( projection, projectionDir );
+
 	// find all the brushes that are to be considered
-	ClearBounds( mins, maxs );
+	bounds_t bounds;
+	ClearBounds( bounds );
 
 	for ( i = 0; i < numPoints; i++ )
 	{
 		vec3_t temp;
 
-		AddPointToBounds( points[ i ], mins, maxs );
+		AddPointToBounds( points[ i ], bounds );
 		VectorAdd( points[ i ], projection, temp );
-		AddPointToBounds( temp, mins, maxs );
+		AddPointToBounds( temp, bounds );
 		// make sure we get all the leafs (also the one(s) in front of the hit surface)
 		VectorMA( points[ i ], -20, projectionDir, temp );
-		AddPointToBounds( temp, mins, maxs );
+		AddPointToBounds( temp, bounds );
 	}
 
 	if ( numPoints > MAX_VERTS_ON_POLY )
@@ -355,7 +355,7 @@ int R_MarkFragments( int numPoints, const vec3_t *points, const vec3_t projectio
 	numPlanes = numPoints + 2;
 
 	numsurfaces = 0;
-	R_BoxSurfaces_r( tr.world->nodes, mins, maxs, surfaces, 64, &numsurfaces, projectionDir );
+	R_BoxSurfaces_r( tr.world->nodes, bounds, surfaces, 64, &numsurfaces, projectionDir );
 
 	returnedPoints = 0;
 	returnedFragments = 0;

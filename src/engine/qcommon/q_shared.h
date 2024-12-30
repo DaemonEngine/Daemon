@@ -226,7 +226,7 @@ void  Com_Free_Aligned( void *ptr );
 	using matrix_t = vec_t[4 * 4];
 	using quat_t = vec_t[4];
 
-	struct plane_t {
+	struct alignas(16) plane_t {
 		vec3_t normal;
 		vec_t dist;
 	};
@@ -296,6 +296,22 @@ void  Com_Free_Aligned( void *ptr );
 #define YAW   1 // left / right
 #define ROLL  2 // fall over
 
+struct bounds_t
+{
+	alignas(16) vec3_t mins;
+	alignas(16) vec3_t maxs;
+
+	vec3_t& at( bool index )
+	{
+		if ( index )
+		{
+			return maxs;
+		}
+
+		return mins;
+	}
+};
+
 // plane sides
 	enum class planeSide_t : int
 	{
@@ -329,7 +345,7 @@ void  Com_Free_Aligned( void *ptr );
 #define DEG2RAD( a )                  ( ( ( a ) * M_PI ) / 180.0f )
 #define RAD2DEG( a )                  ( ( ( a ) * 180.0f ) / M_PI )
 
-struct cplane_t;
+struct alignas(16) cplane_t;
 
 extern const vec3_t   vec3_origin;
 extern const vec3_t   axisDefault[ 3 ];
@@ -581,28 +597,44 @@ void SnapVector( V &&v )
                                       ( r )[ 1 ] = ( s )[ 1 ] + ( f ) * (( e )[ 1 ] - ( s )[ 1 ] ), \
                                       ( r )[ 2 ] = ( s )[ 2 ] + ( f ) * (( e )[ 2 ] - ( s )[ 2 ] ))
 
-	float    RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
-	void     ZeroBounds( vec3_t mins, vec3_t maxs );
-	void     ClearBounds( vec3_t mins, vec3_t maxs );
-	void     AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
+inline void BoundsSet( bounds_t &b, const vec3_t mins, const vec3_t maxs )
+{
+	VectorCopy( mins, b.mins );
+	VectorCopy( maxs, b.maxs );
+}
 
-	void     BoundsAdd( vec3_t mins, vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
-	bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
-	bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t origin, vec_t radius );
-	bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t origin );
-	float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs );
+inline void BoundsCopy( const bounds_t &b, bounds_t &o )
+{
+	memcpy( &o, &b, sizeof(bounds_t) );
+}
 
-	inline void BoundsToCorners( const vec3_t mins, const vec3_t maxs, vec3_t corners[ 8 ] )
-	{
-		VectorSet( corners[ 0 ], mins[ 0 ], maxs[ 1 ], maxs[ 2 ] );
-		VectorSet( corners[ 1 ], maxs[ 0 ], maxs[ 1 ], maxs[ 2 ] );
-		VectorSet( corners[ 2 ], maxs[ 0 ], mins[ 1 ], maxs[ 2 ] );
-		VectorSet( corners[ 3 ], mins[ 0 ], mins[ 1 ], maxs[ 2 ] );
-		VectorSet( corners[ 4 ], mins[ 0 ], maxs[ 1 ], mins[ 2 ] );
-		VectorSet( corners[ 5 ], maxs[ 0 ], maxs[ 1 ], mins[ 2 ] );
-		VectorSet( corners[ 6 ], maxs[ 0 ], mins[ 1 ], mins[ 2 ] );
-		VectorSet( corners[ 7 ], mins[ 0 ], mins[ 1 ], mins[ 2 ] );
-	}
+inline void BoundsScale( const bounds_t &b, vec_t s, bounds_t &o )
+{
+	VectorScale( b.mins, s, o.mins );
+	VectorScale( b.maxs, s, o.maxs );
+}
+
+float RadiusFromBounds( const bounds_t &b );
+void ZeroBounds( bounds_t &b );
+void ClearBounds( bounds_t &b );
+void AddPointToBounds( const vec3_t v, bounds_t &b );
+void BoundsAdd( bounds_t &b1, const bounds_t &b2 );
+bool BoundsIntersect( const bounds_t &b1, const bounds_t &b2 );
+bool BoundsIntersectSphere( const bounds_t &b, const vec3_t origin, vec_t radius );
+bool BoundsIntersectPoint( const bounds_t &b, const vec3_t origin );
+float BoundsMaxExtent( const bounds_t &b );
+
+inline void BoundsToCorners( const bounds_t &b, vec3_t corners[ 8 ] )
+{
+	VectorSet( corners[ 0 ], b.mins[ 0 ], b.maxs[ 1 ], b.maxs[ 2 ] );
+	VectorSet( corners[ 1 ], b.maxs[ 0 ], b.maxs[ 1 ], b.maxs[ 2 ] );
+	VectorSet( corners[ 2 ], b.maxs[ 0 ], b.mins[ 1 ], b.maxs[ 2 ] );
+	VectorSet( corners[ 3 ], b.mins[ 0 ], b.mins[ 1 ], b.maxs[ 2 ] );
+	VectorSet( corners[ 4 ], b.mins[ 0 ], b.maxs[ 1 ], b.mins[ 2 ] );
+	VectorSet( corners[ 5 ], b.maxs[ 0 ], b.maxs[ 1 ], b.mins[ 2 ] );
+	VectorSet( corners[ 6 ], b.maxs[ 0 ], b.mins[ 1 ], b.mins[ 2 ] );
+	VectorSet( corners[ 7 ], b.mins[ 0 ], b.mins[ 1 ], b.mins[ 2 ] );
+}
 
 	inline void VectorLerp( const vec3_t from, const vec3_t to, float frac, vec3_t out )
 	{
@@ -745,7 +777,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void  AxisCopy( const vec3_t in[ 3 ], vec3_t out[ 3 ] );
 
 	void  SetPlaneSignbits( struct cplane_t *out );
-	int   BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const struct cplane_t *plane );
+int BoxOnPlaneSide( const bounds_t &bounds, const struct cplane_t *plane );
 
 	float AngleMod( float a );
 	float LerpAngle( float from, float to, float frac );
@@ -852,7 +884,7 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 	void     MatrixTransform4( const matrix_t m, const vec4_t in, vec4_t out );
 	void MatrixTransformPlane( const matrix_t m, const plane_t &in, plane_t &out );
 	void MatrixTransformPlane2( const matrix_t m, plane_t &inout );
-	void     MatrixTransformBounds( const matrix_t m, const vec3_t mins, const vec3_t maxs, vec3_t omins, vec3_t omaxs );
+void MatrixTransformBounds( const matrix_t m, const bounds_t &b, bounds_t &o );
 	void     MatrixPerspectiveProjection( matrix_t m, vec_t left, vec_t right, vec_t bottom, vec_t top, vec_t near, vec_t far );
 	void     MatrixPerspectiveProjectionLH( matrix_t m, vec_t left, vec_t right, vec_t bottom, vec_t top, vec_t near, vec_t far );
 	void     MatrixPerspectiveProjectionRH( matrix_t m, vec_t left, vec_t right, vec_t bottom, vec_t top, vec_t near, vec_t far );
@@ -1686,10 +1718,10 @@ inline vec_t VectorNormalize2( const vec3_t v, vec3_t out )
 #define PlaneTypeForNormal( x ) ( x[ 0 ] == 1.0f ? PLANE_X : ( x[ 1 ] == 1.0f ? PLANE_Y : ( x[ 2 ] == 1.0f ? PLANE_Z : ( x[ 0 ] == 0.f && x[ 1 ] == 0.f && x[ 2 ] == 0.f ? PLANE_NON_PLANAR : PLANE_NON_AXIAL ) ) ) )
 
 // cplane_t structure
-	struct cplane_t
+	struct alignas(16) cplane_t
 	{
 		vec3_t normal;
-		float  dist;
+		vec_t dist;
 		byte   type; // for fast side tests: 0,1,2 = axial, 3 = nonaxial
 		byte   signbits; // signx + (signy<<1) + (signz<<2), used as lookup during collision
 		byte   pad[ 2 ];

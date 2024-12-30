@@ -140,7 +140,7 @@ void CM_BoxLeafnums_r( leafList_t *ll, int nodenum )
 
 		node = &cm.nodes[ nodenum ];
 		plane = node->plane;
-		s = BoxOnPlaneSide( ll->bounds[ 0 ], ll->bounds[ 1 ], plane );
+		s = BoxOnPlaneSide( ll->bounds, plane );
 
 		if ( s == 1 )
 		{
@@ -170,8 +170,7 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 
 	cm.checkcount++;
 
-	VectorCopy( mins, ll.bounds[ 0 ] );
-	VectorCopy( maxs, ll.bounds[ 1 ] );
+	BoundsSet( ll.bounds, mins, maxs );
 	ll.count = 0;
 	ll.maxcount = listsize;
 	ll.list = list;
@@ -236,7 +235,7 @@ int CM_PointContents( const vec3_t p, clipHandle_t model )
 		const cbrush_t *b = &cm.brushes[ *brushNum ];
 
 		// XreaL BEGIN
-		if ( !CM_BoundsIntersectPoint( b->bounds[ 0 ], b->bounds[ 1 ], p ) )
+		if ( !CM_BoundsIntersectPoint( b->bounds.mins, b->bounds.maxs, p ) )
 		{
 			continue;
 		}

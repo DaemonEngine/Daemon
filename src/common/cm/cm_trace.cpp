@@ -177,11 +177,12 @@ static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush )
 
 	// special test for axial
 	// the first 6 brush planes are always axial
-	if ( tw->bounds[ 0 ][ 0 ] > brush->bounds[ 1 ][ 0 ]
-	     || tw->bounds[ 0 ][ 1 ] > brush->bounds[ 1 ][ 1 ]
-	     || tw->bounds[ 0 ][ 2 ] > brush->bounds[ 1 ][ 2 ]
-	     || tw->bounds[ 1 ][ 0 ] < brush->bounds[ 0 ][ 0 ]
-	     || tw->bounds[ 1 ][ 1 ] < brush->bounds[ 0 ][ 1 ] || tw->bounds[ 1 ][ 2 ] < brush->bounds[ 0 ][ 2 ] )
+	if ( tw->bounds.mins[ 0 ] > brush->bounds.maxs[ 0 ]
+		|| tw->bounds.mins[ 1 ] > brush->bounds.maxs[ 1 ]
+		|| tw->bounds.mins[ 2 ] > brush->bounds.maxs[ 2 ]
+		|| tw->bounds.maxs[ 0 ] < brush->bounds.mins[ 0 ]
+		|| tw->bounds.maxs[ 1 ] < brush->bounds.mins[ 1 ]
+		|| tw->bounds.maxs[ 2 ] < brush->bounds.mins[ 2 ] )
 	{
 		return;
 	}
@@ -613,17 +614,17 @@ void CM_PositionTest( traceWork_t *tw )
 	leafList_t ll;
 
 	// identify the leafs we are touching
-	VectorAdd( tw->start, tw->size[ 0 ], ll.bounds[ 0 ] );
-	VectorAdd( tw->start, tw->size[ 1 ], ll.bounds[ 1 ] );
+	VectorAdd( tw->start, tw->size[ 0 ], ll.bounds.mins );
+	VectorAdd( tw->start, tw->size[ 1 ], ll.bounds.maxs );
 
 	{
-		ll.bounds[ 0 ][ 0 ] -= 1;
-		ll.bounds[ 0 ][ 1 ] -= 1;
-		ll.bounds[ 0 ][ 2 ] -= 1;
+		ll.bounds.mins[ 0 ] -= 1;
+		ll.bounds.mins[ 1 ] -= 1;
+		ll.bounds.mins[ 2 ] -= 1;
 
-		ll.bounds[ 1 ][ 0 ] += 1;
-		ll.bounds[ 1 ][ 1 ] += 1;
-		ll.bounds[ 1 ][ 2 ] += 1;
+		ll.bounds.maxs[ 0 ] += 1;
+		ll.bounds.maxs[ 1 ] += 1;
+		ll.bounds.maxs[ 2 ] += 1;
 	}
 
 	ll.count = 0;
@@ -850,7 +851,7 @@ void CM_TraceThroughSurfaceCollide( traceWork_t *tw, const cSurfaceCollide_t *sc
 	cFacet_t      *facet;
 	vec3_t        startp, endp;
 
-	if ( !CM_BoundsIntersect( tw->bounds[ 0 ], tw->bounds[ 1 ], sc->bounds[ 0 ], sc->bounds[ 1 ] ) )
+	if ( !CM_BoundsIntersect( tw->bounds.mins, tw->bounds.maxs, sc->bounds.mins, sc->bounds.maxs ) )
 	{
 		return;
 	}
@@ -1290,7 +1291,7 @@ void CM_TraceThroughLeaf( traceWork_t *tw, const cLeaf_t *leaf )
 			continue;
 		}
 
-		if ( !CM_BoundsIntersect( tw->bounds[ 0 ], tw->bounds[ 1 ], b->bounds[ 0 ], b->bounds[ 1 ] ) )
+		if ( !CM_BoundsIntersect( tw->bounds.mins, tw->bounds.maxs, b->bounds.mins, b->bounds.maxs ) )
 		{
 			continue;
 		}
@@ -1338,7 +1339,7 @@ void CM_TraceThroughLeaf( traceWork_t *tw, const cLeaf_t *leaf )
 			continue;
 		}
 
-		if ( !CM_BoundsIntersect( tw->bounds[ 0 ], tw->bounds[ 1 ], surface->sc->bounds[ 0 ], surface->sc->bounds[ 1 ] ) )
+		if ( !CM_BoundsIntersect( tw->bounds.mins, tw->bounds.maxs, surface->sc->bounds.mins, surface->sc->bounds.maxs ) )
 		{
 			continue;
 		}
@@ -1590,12 +1591,12 @@ void CM_TraceCapsuleThroughCapsule( traceWork_t *tw, clipHandle_t model )
 	CM_ModelBounds( model, mins, maxs );
 
 	// test trace bounds vs. capsule bounds
-	if ( tw->bounds[ 0 ][ 0 ] > maxs[ 0 ] + RADIUS_EPSILON
-	     || tw->bounds[ 0 ][ 1 ] > maxs[ 1 ] + RADIUS_EPSILON
-	     || tw->bounds[ 0 ][ 2 ] > maxs[ 2 ] + RADIUS_EPSILON
-	     || tw->bounds[ 1 ][ 0 ] < mins[ 0 ] - RADIUS_EPSILON
-	     || tw->bounds[ 1 ][ 1 ] < mins[ 1 ] - RADIUS_EPSILON
-	     || tw->bounds[ 1 ][ 2 ] < mins[ 2 ] - RADIUS_EPSILON )
+	if ( tw->bounds.mins[ 0 ] > maxs[ 0 ] + RADIUS_EPSILON
+	     || tw->bounds.mins[ 1 ] > maxs[ 1 ] + RADIUS_EPSILON
+	     || tw->bounds.mins[ 2 ] > maxs[ 2 ] + RADIUS_EPSILON
+	     || tw->bounds.maxs[ 0 ] < mins[ 0 ] - RADIUS_EPSILON
+	     || tw->bounds.maxs[ 1 ] < mins[ 1 ] - RADIUS_EPSILON
+	     || tw->bounds.maxs[ 2 ] < mins[ 2 ] - RADIUS_EPSILON )
 	{
 		return;
 	}
@@ -1964,13 +1965,13 @@ static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, co
 		{
 			if ( tw.start[ i ] < tw.end[ i ] )
 			{
-				tw.bounds[ 0 ][ i ] = tw.start[ i ] - fabsf( tw.sphere.offset[ i ] ) - tw.sphere.radius;
-				tw.bounds[ 1 ][ i ] = tw.end[ i ] + fabsf( tw.sphere.offset[ i ] ) + tw.sphere.radius;
+				tw.bounds.mins[ i ] = tw.start[ i ] - fabsf( tw.sphere.offset[ i ] ) - tw.sphere.radius;
+				tw.bounds.maxs[ i ] = tw.end[ i ] + fabsf( tw.sphere.offset[ i ] ) + tw.sphere.radius;
 			}
 			else
 			{
-				tw.bounds[ 0 ][ i ] = tw.end[ i ] - fabsf( tw.sphere.offset[ i ] ) - tw.sphere.radius;
-				tw.bounds[ 1 ][ i ] = tw.start[ i ] + fabsf( tw.sphere.offset[ i ] ) + tw.sphere.radius;
+				tw.bounds.mins[ i ] = tw.end[ i ] - fabsf( tw.sphere.offset[ i ] ) - tw.sphere.radius;
+				tw.bounds.maxs[ i ] = tw.start[ i ] + fabsf( tw.sphere.offset[ i ] ) + tw.sphere.radius;
 			}
 		}
 	}
@@ -1980,13 +1981,13 @@ static void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, co
 		{
 			if ( tw.start[ i ] < tw.end[ i ] )
 			{
-				tw.bounds[ 0 ][ i ] = tw.start[ i ] + tw.size[ 0 ][ i ];
-				tw.bounds[ 1 ][ i ] = tw.end[ i ] + tw.size[ 1 ][ i ];
+				tw.bounds.mins[ i ] = tw.start[ i ] + tw.size[ 0 ][ i ];
+				tw.bounds.maxs[ i ] = tw.end[ i ] + tw.size[ 1 ][ i ];
 			}
 			else
 			{
-				tw.bounds[ 0 ][ i ] = tw.end[ i ] + tw.size[ 0 ][ i ];
-				tw.bounds[ 1 ][ i ] = tw.start[ i ] + tw.size[ 1 ][ i ];
+				tw.bounds.mins[ i ] = tw.end[ i ] + tw.size[ 0 ][ i ];
+				tw.bounds.maxs[ i ] = tw.start[ i ] + tw.size[ 1 ][ i ];
 			}
 		}
 	}

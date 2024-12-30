@@ -1422,10 +1422,11 @@ void MaterialSystem::GenerateWorldMaterials() {
 	++tr.viewCountNoReset;
 	R_AddWorldSurfaces();
 
-	Log::Notice( "World bounds: min: %f %f %f max: %f %f %f", tr.viewParms.visBounds[0][0], tr.viewParms.visBounds[0][1],
-		tr.viewParms.visBounds[0][2], tr.viewParms.visBounds[1][0], tr.viewParms.visBounds[1][1], tr.viewParms.visBounds[1][2] );
-	VectorCopy( tr.viewParms.visBounds[0], worldViewBounds[0] );
-	VectorCopy( tr.viewParms.visBounds[1], worldViewBounds[1] );
+	Log::Notice( "World bounds: min: %f %f %f max: %f %f %f",
+		tr.viewParms.visBounds.mins[0], tr.viewParms.visBounds.mins[1], tr.viewParms.visBounds.mins[2],
+		tr.viewParms.visBounds.maxs[0], tr.viewParms.visBounds.maxs[1], tr.viewParms.visBounds.maxs[2] );
+
+	BoundsCopy( tr.viewParms.visBounds, worldViewBounds);
 
 	backEnd.currentEntity = &tr.worldEntity;
 

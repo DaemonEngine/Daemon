@@ -247,14 +247,14 @@ CM_BoundBrush
 */
 void CM_BoundBrush( cbrush_t *b )
 {
-	b->bounds[ 0 ][ 0 ] = -b->sides[ 0 ].plane->dist;
-	b->bounds[ 1 ][ 0 ] = b->sides[ 1 ].plane->dist;
+	b->bounds.mins[ 0 ] = -b->sides[ 0 ].plane->dist;
+	b->bounds.maxs[ 0 ] = b->sides[ 1 ].plane->dist;
 
-	b->bounds[ 0 ][ 1 ] = -b->sides[ 2 ].plane->dist;
-	b->bounds[ 1 ][ 1 ] = b->sides[ 3 ].plane->dist;
+	b->bounds.mins[ 1 ] = -b->sides[ 2 ].plane->dist;
+	b->bounds.maxs[ 1 ] = b->sides[ 3 ].plane->dist;
 
-	b->bounds[ 0 ][ 2 ] = -b->sides[ 4 ].plane->dist;
-	b->bounds[ 1 ][ 2 ] = b->sides[ 5 ].plane->dist;
+	b->bounds.mins[ 2 ] = -b->sides[ 4 ].plane->dist;
+	b->bounds.maxs[ 2 ] = b->sides[ 5 ].plane->dist;
 }
 
 /*
@@ -999,8 +999,7 @@ clipHandle_t CM_TempBoxModel( const vec3_t mins, const vec3_t maxs, bool capsule
 	box_planes[ 10 ].dist = mins[ 2 ];
 	box_planes[ 11 ].dist = -mins[ 2 ];
 
-	VectorCopy( mins, box_brush->bounds[ 0 ] );
-	VectorCopy( maxs, box_brush->bounds[ 1 ] );
+	BoundsSet( box_brush->bounds, mins, maxs );
 
 	return BOX_MODEL_HANDLE;
 }

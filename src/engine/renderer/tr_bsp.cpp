@@ -828,13 +828,13 @@ SphereFromBounds() - ydnar
 creates a bounding sphere from a bounding box
 */
 
-static void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float *radius )
+static void SphereFromBounds( const bounds_t &b, vec3_t origin, float *radius )
 {
-	vec3_t temp;
-
-	VectorAdd( mins, maxs, origin );
+	VectorAdd( b.mins, b.maxs, origin );
 	VectorScale( origin, 0.5, origin );
-	VectorSubtract( maxs, origin, temp );
+
+	vec3_t temp;
+	VectorSubtract( b.maxs, origin, temp );
 	*radius = VectorLength( temp );
 }
 
@@ -846,7 +846,7 @@ handles final surface classification
 static void FinishGenericSurface( dsurface_t *ds, srfGeneric_t *gen, vec3_t pt )
 {
 	// set bounding sphere
-	SphereFromBounds( gen->bounds[ 0 ], gen->bounds[ 1 ], gen->origin, &gen->radius );
+	SphereFromBounds( gen->bounds, gen->origin, &gen->radius );
 
 	if ( gen->surfaceType == surfaceType_t::SF_FACE )
 	{
@@ -996,7 +996,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 	surf->data = ( surfaceType_t * ) cv;
 
 	// copy vertexes
-	ClearBounds( cv->bounds[ 0 ], cv->bounds[ 1 ] );
+	ClearBounds( cv->bounds );
 	verts += LittleLong( ds->firstVert );
 
 	components = (struct vertexComponent_t *)ri.Hunk_AllocateTempMemory( numVerts * sizeof( struct vertexComponent_t ) );
@@ -1009,7 +1009,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 			cv->verts[ i ].normal[ j ] = LittleFloat( verts[ i ].normal[ j ] );
 		}
 
-		AddPointToBounds( cv->verts[ i ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
+		AddPointToBounds( cv->verts[ i ].xyz, cv->bounds );
 
 		components[ i ].minVertex = i;
 
@@ -1437,13 +1437,13 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 
 	// calc bounding box
 	// HACK: don't loop only through the vertices because they can contain bad data with .lwo models ...
-	ClearBounds( cv->bounds[ 0 ], cv->bounds[ 1 ] );
+	ClearBounds( cv->bounds );
 
 	for ( i = 0, tri = cv->triangles; i < numTriangles; i++, tri++ )
 	{
-		AddPointToBounds( cv->verts[ tri->indexes[ 0 ] ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
-		AddPointToBounds( cv->verts[ tri->indexes[ 1 ] ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
-		AddPointToBounds( cv->verts[ tri->indexes[ 2 ] ].xyz, cv->bounds[ 0 ], cv->bounds[ 1 ] );
+		AddPointToBounds( cv->verts[ tri->indexes[ 0 ] ].xyz, cv->bounds );
+		AddPointToBounds( cv->verts[ tri->indexes[ 1 ] ].xyz, cv->bounds );
+		AddPointToBounds( cv->verts[ tri->indexes[ 2 ] ].xyz, cv->bounds );
 	}
 
 	// Tr3B - calc tangent spaces
@@ -3174,8 +3174,8 @@ static void R_CreateWorldVBO()
 				{
 					srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
 					VectorCopy( srf->origin, aabb->origin );
-					VectorCopy( srf->bounds[0], aabb->mins );
-					VectorCopy( srf->bounds[1], aabb->maxs );
+					VectorCopy( srf->bounds.mins, aabb->mins );
+					VectorCopy( srf->bounds.maxs, aabb->maxs );
 					Log::Warn( "Grid portals aren't properly supported" );
 					break;
 				}
@@ -3184,8 +3184,8 @@ static void R_CreateWorldVBO()
 				{
 					srfGeneric_t* srf = ( srfGeneric_t* ) surface->data;
 					VectorCopy( srf->origin, aabb->origin );
-					VectorCopy( srf->bounds[0], aabb->mins );
-					VectorCopy( srf->bounds[1], aabb->maxs );
+					VectorCopy( srf->bounds.mins, aabb->mins );
+					VectorCopy( srf->bounds.maxs, aabb->maxs );
 					break;
 				}
 				default:
@@ -3245,7 +3245,6 @@ static void R_CreateWorldVBO()
 		oldViewCount = -2;
 		for ( i = 0; i < numSurfaces; i++ )
 		{
-			vec3_t bounds[ 2 ];
 			int surfVerts = 0;
 			int surfIndexes = 0;
 			int firstIndex = numTriangles * 3;
@@ -3283,7 +3282,9 @@ static void R_CreateWorldVBO()
 			}
 
 			// count verts and indexes and add bounds for the merged surface
-			ClearBounds( bounds[ 0 ], bounds[ 1 ] );
+			bounds_t bounds;
+			ClearBounds( bounds );
+
 			for ( j = i; j < numSurfaces; j++ )
 			{
 				bspSurface_t *surf2 = surfaces[ j ];
@@ -3299,21 +3300,21 @@ static void R_CreateWorldVBO()
 					srfSurfaceFace_t *face = ( srfSurfaceFace_t * ) surf2->data;
 					surfIndexes += face->numTriangles * 3;
 					surfVerts += face->numVerts;
-					BoundsAdd( bounds[ 0 ], bounds[ 1 ], face->bounds[ 0 ], face->bounds[ 1 ] );
+					BoundsAdd( bounds, face->bounds );
 				}
 				else if ( *surf2->data == surfaceType_t::SF_TRIANGLES )
 				{
 					srfTriangles_t *tris = ( srfTriangles_t * ) surf2->data;
 					surfIndexes += tris->numTriangles * 3;
 					surfVerts += tris->numVerts;
-					BoundsAdd( bounds[ 0 ], bounds[ 1 ], tris->bounds[ 0 ], tris->bounds[ 1 ] );
+					BoundsAdd( bounds, tris->bounds );
 				}
 				else if ( *surf2->data == surfaceType_t::SF_GRID )
 				{
 					srfGridMesh_t *grid = ( srfGridMesh_t * ) surf2->data;
 					surfIndexes += grid->numTriangles * 3;
 					surfVerts += grid->numVerts;
-					BoundsAdd( bounds[ 0 ], bounds[ 1 ], grid->bounds[ 0 ], grid->bounds[ 1 ] );
+					BoundsAdd( bounds, grid->bounds );
 				}
 			}
 
@@ -3336,9 +3337,8 @@ static void R_CreateWorldVBO()
 			vboSurf->vbo = s_worldData.vbo;
 			vboSurf->ibo = s_worldData.ibo;
 
-			VectorCopy( bounds[ 0 ], vboSurf->bounds[ 0 ] );
-			VectorCopy( bounds[ 1 ], vboSurf->bounds[ 1 ] );
-			SphereFromBounds( vboSurf->bounds[ 0 ], vboSurf->bounds[ 1 ], vboSurf->origin, &vboSurf->radius );
+			BoundsCopy( bounds, vboSurf->bounds );
+			SphereFromBounds( vboSurf->bounds, vboSurf->origin, &vboSurf->radius );
 
 			mergedSurf->data = ( surfaceType_t * ) vboSurf;
 			mergedSurf->fogIndex = surf1->fogIndex;
@@ -3510,7 +3510,6 @@ static void R_LoadSubmodels( lump_t *l )
 {
 	dmodel_t   *in;
 	bspModel_t *out;
-	int        i, j, count;
 
 	Log::Debug("...loading submodels" );
 
@@ -3521,12 +3520,12 @@ static void R_LoadSubmodels( lump_t *l )
 		Sys::Drop( "LoadMap: funny lump size in %s", s_worldData.name );
 	}
 
-	count = l->filelen / sizeof( *in );
+	int count = l->filelen / sizeof( *in );
 
 	s_worldData.numModels = count;
 	s_worldData.models = out = (bspModel_t*) ri.Hunk_Alloc( count * sizeof( *out ), ha_pref::h_low );
 
-	for ( i = 0; i < count; i++, in++, out++ )
+	for ( int i = 0; i < count; i++, in++, out++ )
 	{
 		model_t *model;
 
@@ -3543,11 +3542,12 @@ static void R_LoadSubmodels( lump_t *l )
 		model->bsp = out;
 		Com_sprintf( model->name, sizeof( model->name ), "*%d", i );
 
-		for ( j = 0; j < 3; j++ )
-		{
-			out->bounds[ 0 ][ j ] = LittleFloat( in->mins[ j ] );
-			out->bounds[ 1 ][ j ] = LittleFloat( in->maxs[ j ] );
-		}
+		out->bounds.mins[ 0 ] = LittleFloat( in->mins[ 0 ] );
+		out->bounds.mins[ 1 ] = LittleFloat( in->mins[ 1 ] );
+		out->bounds.mins[ 2 ] = LittleFloat( in->mins[ 2 ] );
+		out->bounds.maxs[ 0 ] = LittleFloat( in->maxs[ 0 ] );
+		out->bounds.maxs[ 1 ] = LittleFloat( in->maxs[ 1 ] );
+		out->bounds.maxs[ 2 ] = LittleFloat( in->maxs[ 2 ] );
 
 		out->firstSurface = s_worldData.surfaces + LittleLong( in->firstSurface );
 		out->numSurfaces = LittleLong( in->numSurfaces );
@@ -3612,11 +3612,11 @@ static void R_LoadNodesAndLeafs( lump_t *nodeLump, lump_t *leafLump )
 	// load nodes
 	for ( i = 0; i < numNodes; i++, in++, out++ )
 	{
-		for ( j = 0; j < 3; j++ )
-		{
-			out->mins[ j ] = LittleLong( in->mins[ j ] );
-			out->maxs[ j ] = LittleLong( in->maxs[ j ] );
-		}
+		out->bounds.mins[ 0 ] = LittleLong( in->mins[ 0 ] );
+		out->bounds.mins[ 1 ] = LittleLong( in->mins[ 1 ] );
+		out->bounds.mins[ 2 ] = LittleLong( in->mins[ 2 ] );
+		out->bounds.maxs[ 1 ] = LittleLong( in->maxs[ 1 ] );
+		out->bounds.maxs[ 2 ] = LittleLong( in->maxs[ 2 ] );
 
 		p = LittleLong( in->planeNum );
 		out->plane = s_worldData.planes + p;
@@ -3643,11 +3643,12 @@ static void R_LoadNodesAndLeafs( lump_t *nodeLump, lump_t *leafLump )
 
 	for ( i = 0; i < numLeafs; i++, inLeaf++, out++ )
 	{
-		for ( j = 0; j < 3; j++ )
-		{
-			out->mins[ j ] = LittleLong( inLeaf->mins[ j ] );
-			out->maxs[ j ] = LittleLong( inLeaf->maxs[ j ] );
-		}
+		out->bounds.mins[ 0 ] = LittleLong( inLeaf->mins[ 0 ] );
+		out->bounds.mins[ 1 ] = LittleLong( inLeaf->mins[ 1 ] );
+		out->bounds.mins[ 2 ] = LittleLong( inLeaf->mins[ 2 ] );
+		out->bounds.maxs[ 0 ] = LittleLong( inLeaf->maxs[ 0 ] );
+		out->bounds.maxs[ 1 ] = LittleLong( inLeaf->maxs[ 1 ] );
+		out->bounds.maxs[ 2 ] = LittleLong( inLeaf->maxs[ 2 ] );
 
 		out->cluster = LittleLong( inLeaf->cluster );
 		out->area = LittleLong( inLeaf->area );
@@ -3860,8 +3861,8 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 		// ydnar: global fog has a brush number of -1, and no visible side
 		if ( out->originalBrushNumber == -1 )
 		{
-			VectorSet( out->bounds[ 0 ], MIN_WORLD_COORD, MIN_WORLD_COORD, MIN_WORLD_COORD );
-			VectorSet( out->bounds[ 1 ], MAX_WORLD_COORD, MAX_WORLD_COORD, MAX_WORLD_COORD );
+			VectorSet( out->bounds.mins, MIN_WORLD_COORD, MIN_WORLD_COORD, MIN_WORLD_COORD );
+			VectorSet( out->bounds.maxs, MAX_WORLD_COORD, MAX_WORLD_COORD, MAX_WORLD_COORD );
 		}
 		else
 		{
@@ -3882,27 +3883,27 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 			// brushes are always sorted with the axial sides first
 			sideNum = firstSide + 0;
 			planeNum = LittleLong( sides[ sideNum ].planeNum );
-			out->bounds[ 0 ][ 0 ] = -s_worldData.planes[ planeNum ].dist;
+			out->bounds.mins[ 0 ] = -s_worldData.planes[ planeNum ].dist;
 
 			sideNum = firstSide + 1;
 			planeNum = LittleLong( sides[ sideNum ].planeNum );
-			out->bounds[ 1 ][ 0 ] = s_worldData.planes[ planeNum ].dist;
+			out->bounds.maxs[ 0 ] = s_worldData.planes[ planeNum ].dist;
 
 			sideNum = firstSide + 2;
 			planeNum = LittleLong( sides[ sideNum ].planeNum );
-			out->bounds[ 0 ][ 1 ] = -s_worldData.planes[ planeNum ].dist;
+			out->bounds.mins[ 1 ] = -s_worldData.planes[ planeNum ].dist;
 
 			sideNum = firstSide + 3;
 			planeNum = LittleLong( sides[ sideNum ].planeNum );
-			out->bounds[ 1 ][ 1 ] = s_worldData.planes[ planeNum ].dist;
+			out->bounds.maxs[ 1 ] = s_worldData.planes[ planeNum ].dist;
 
 			sideNum = firstSide + 4;
 			planeNum = LittleLong( sides[ sideNum ].planeNum );
-			out->bounds[ 0 ][ 2 ] = -s_worldData.planes[ planeNum ].dist;
+			out->bounds.mins[ 2 ] = -s_worldData.planes[ planeNum ].dist;
 
 			sideNum = firstSide + 5;
 			planeNum = LittleLong( sides[ sideNum ].planeNum );
-			out->bounds[ 1 ][ 2 ] = s_worldData.planes[ planeNum ].dist;
+			out->bounds.maxs[ 2 ] = s_worldData.planes[ planeNum ].dist;
 		}
 
 		// get information from the shader for fog parameters
@@ -4027,7 +4028,6 @@ void R_LoadLightGrid( lump_t *l )
 
 	int            i, j, k;
 	world_t        *w;
-	float          *wMins, *wMaxs;
 	dgridPoint_t   *in;
 	bspGridPoint1_t *gridPoint1;
 	bspGridPoint2_t *gridPoint2;
@@ -4059,8 +4059,8 @@ void R_LoadLightGrid( lump_t *l )
 	w->lightGridInverseSize[ 1 ] = 1.0f / w->lightGridSize[ 1 ];
 	w->lightGridInverseSize[ 2 ] = 1.0f / w->lightGridSize[ 2 ];
 
-	wMins = w->models[ 0 ].bounds[ 0 ];
-	wMaxs = w->models[ 0 ].bounds[ 1 ];
+	vec_t *wMins = w->models[ 0 ].bounds.mins;
+	vec_t *wMaxs = w->models[ 0 ].bounds.maxs;
 
 	for ( i = 0; i < 3; i++ )
 	{
@@ -4596,7 +4596,7 @@ void R_GetNearestCubeMaps( const vec3_t position, cubemapProbe_t** cubeProbes, v
 
 	vec3_t pos;
 	VectorCopy( position, pos );
-	VectorSubtract( pos, tr.world->nodes[0].mins, pos );
+	VectorSubtract( pos, tr.world->nodes[0].bounds.mins, pos );
 	VectorScale( pos, 1.0 / tr.cubeProbeSpacing, pos );
 
 	struct ProbeTrilerp {
@@ -4695,8 +4695,8 @@ int R_FindNearestCubeMapForGrid( const vec3_t position, bspNode_t* node ) {
 	}
 
 	vec3_t origin;
-	VectorCopy( node->mins, origin );
-	VectorAdd( origin, node->maxs, origin );
+	VectorCopy( node->bounds.mins, origin );
+	VectorAdd( origin, node->bounds.maxs, origin );
 	VectorScale( origin, 0.5, origin );
 
 	const byte* vis = R_ClusterPVS( node->cluster );
@@ -4772,7 +4772,7 @@ void R_BuildCubeMaps()
 		}
 
 		vec3_t origin;
-		VectorAdd( node->maxs, node->mins, origin );
+		VectorAdd( node->bounds.maxs, node->bounds.mins, origin );
 		VectorScale( origin, 0.5, origin );
 
 		// Don't spam probes where there's a lot of leafs
@@ -4780,7 +4780,7 @@ void R_BuildCubeMaps()
 		if ( std::find_if( cubeProbeMap.begin(), cubeProbeMap.end(),
 			[&origin]( const std::unordered_map<const bspNode_t*, uint32_t>::value_type& nodeCheck ) {
 				vec3_t nodeOrigin;
-				VectorAdd( nodeCheck.first->mins, nodeCheck.first->maxs, nodeOrigin );
+				VectorAdd( nodeCheck.first->bounds.mins, nodeCheck.first->bounds.maxs, nodeOrigin );
 				VectorScale( nodeOrigin, 0.5, nodeOrigin );
 
 				return Distance( origin, nodeOrigin ) <= tr.cubeProbeSpacing;
@@ -4805,7 +4805,7 @@ void R_BuildCubeMaps()
 		vec3_t position{ ( float ) x * tr.cubeProbeSpacing, ( float ) y * tr.cubeProbeSpacing, ( float ) z * tr.cubeProbeSpacing };
 
 		// Match the map's start coords
-		VectorAdd( position, tr.world->nodes[0].mins, position );
+		VectorAdd( position, tr.world->nodes[0].bounds.mins, position );
 
 		int cubeProbe = R_FindNearestCubeMapForGrid( position, &tr.world->nodes[0] );
 
@@ -5261,8 +5261,8 @@ void RE_LoadWorldMap( const char *name )
 		tr.cubeProbeSpacing = r_cubeProbeSpacing.Get();
 
 		vec3_t worldSize;
-		VectorCopy( tr.world->nodes[0].maxs, worldSize );
-		VectorSubtract( worldSize, tr.world->nodes[0].mins, worldSize );
+		VectorCopy( tr.world->nodes[0].bounds.maxs, worldSize );
+		VectorSubtract( worldSize, tr.world->nodes[0].bounds.mins, worldSize );
 
 		uint32_t gridSize[3];
 		gridSize[0] = ( worldSize[0] + tr.cubeProbeSpacing - 1 ) / tr.cubeProbeSpacing;

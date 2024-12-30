@@ -226,7 +226,7 @@ struct refexport_t
 	                        int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
 	int ( *LerpTag )( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex );
-	void ( *ModelBounds )( qhandle_t model, vec3_t mins, vec3_t maxs );
+	void ( *ModelBounds )( qhandle_t model, bounds_t &bounds );
 
 	void ( *RemapShader )( const char *oldShader, const char *newShader, const char *offsetTime );
 

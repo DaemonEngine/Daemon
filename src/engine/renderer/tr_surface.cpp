@@ -442,95 +442,91 @@ void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], const Color::Color& colorf )
 	}
 }
 
-void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color )
+void Tess_AddCube( const vec3_t position, const bounds_t &size, const Color::Color& color )
 {
+	bounds_t t;
+	VectorAdd( position, size.mins, t.mins );
+	VectorAdd( position, size.maxs, t.maxs );
+
 	vec4_t quadVerts[ 4 ];
-	vec3_t mins;
-	vec3_t maxs;
-
-	VectorAdd( position, minSize, mins );
-	VectorAdd( position, maxSize, maxs );
-
-	Vector4Set( quadVerts[ 0 ], mins[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], mins[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], mins[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], mins[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.mins[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.mins[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.mins[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.mins[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
 	Tess_AddQuadStamp2( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], maxs[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], maxs[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], maxs[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], maxs[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.maxs[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.maxs[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.maxs[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.maxs[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
 	Tess_AddQuadStamp2( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], mins[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], mins[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], maxs[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], maxs[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.mins[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.mins[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.maxs[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.maxs[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
 	Tess_AddQuadStamp2( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], maxs[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], maxs[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], mins[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], mins[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.maxs[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.maxs[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.mins[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.mins[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
 	Tess_AddQuadStamp2( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], mins[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], mins[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], maxs[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], maxs[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.mins[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.mins[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.maxs[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.maxs[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
 	Tess_AddQuadStamp2( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], maxs[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], maxs[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], mins[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], mins[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.maxs[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.maxs[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.mins[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.mins[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
 	Tess_AddQuadStamp2( quadVerts, color );
 }
 
-void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color )
+void Tess_AddCubeWithNormals( const vec3_t position, const bounds_t &size, const Color::Color& color )
 {
+	bounds_t t;
+	VectorAdd( position, size.mins, t.mins );
+	VectorAdd( position, size.maxs, t.maxs );
+
 	vec4_t quadVerts[ 4 ];
-	vec3_t mins;
-	vec3_t maxs;
-
-	VectorAdd( position, minSize, mins );
-	VectorAdd( position, maxSize, maxs );
-
-	Vector4Set( quadVerts[ 0 ], mins[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], mins[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], mins[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], mins[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.mins[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.mins[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.mins[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.mins[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
 	Tess_AddQuadStamp2WithNormals( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], maxs[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], maxs[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], maxs[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], maxs[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.maxs[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.maxs[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.maxs[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.maxs[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
 	Tess_AddQuadStamp2WithNormals( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], mins[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], mins[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], maxs[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], maxs[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.mins[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.mins[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.maxs[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.maxs[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
 	Tess_AddQuadStamp2WithNormals( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], maxs[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], maxs[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], mins[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], mins[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.maxs[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.maxs[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.mins[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.mins[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
 	Tess_AddQuadStamp2WithNormals( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], mins[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], mins[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], maxs[ 0 ], mins[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], maxs[ 0 ], mins[ 1 ], mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.mins[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.mins[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.maxs[ 0 ], t.mins[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.maxs[ 0 ], t.mins[ 1 ], t.mins[ 2 ], 1 );
 	Tess_AddQuadStamp2WithNormals( quadVerts, color );
 
-	Vector4Set( quadVerts[ 0 ], maxs[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
-	Vector4Set( quadVerts[ 1 ], maxs[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 2 ], mins[ 0 ], maxs[ 1 ], maxs[ 2 ], 1 );
-	Vector4Set( quadVerts[ 3 ], mins[ 0 ], maxs[ 1 ], mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 0 ], t.maxs[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
+	Vector4Set( quadVerts[ 1 ], t.maxs[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 2 ], t.mins[ 0 ], t.maxs[ 1 ], t.maxs[ 2 ], 1 );
+	Vector4Set( quadVerts[ 3 ], t.mins[ 0 ], t.maxs[ 1 ], t.mins[ 2 ], 1 );
 	Tess_AddQuadStamp2WithNormals( quadVerts, color );
 }
 

@@ -418,8 +418,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 		matrix_t     attenuationMatrix; // attenuation * (light view * entity transform)
 		matrix_t     attenuationMatrix2; // attenuation * tcMod matrices
 
-		vec3_t       localBounds[ 2 ];
-		vec3_t       worldBounds[ 2 ];
+		bounds_t localBounds;
+		bounds_t worldBounds;
 		float        sphereRadius; // calculated from localBounds
 
 		int8_t       shadowLOD; // Level of Detail for shadow mapping
@@ -467,8 +467,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 		float        axisLength; // compensate for non-normalized axis
 
 		cullResult_t cull;
-		vec3_t       localBounds[ 2 ];
-		vec3_t       worldBounds[ 2 ];
+		bounds_t localBounds;
+		bounds_t worldBounds;
 	};
 
 	struct orientationr_t
@@ -1509,7 +1509,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	struct fog_t
 	{
 		int        originalBrushNumber;
-		vec3_t     bounds[ 2 ];
+		bounds_t bounds;
 
 		Color::Color color; // in packed byte format
 		float      tcScale; // texture coordinate vector scales
@@ -1554,7 +1554,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		frustum_t      frustums[ MAX_SHADOWMAPS + 1 ]; // first frustum is the default one with complete zNear - zFar range
 		// and the other ones are for PSSM
 
-		vec3_t               visBounds[ 2 ];
+		bounds_t visBounds;
 		float                zNear;
 		float                zFar;
 
@@ -1778,7 +1778,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		surfaceType_t surfaceType;
 
 		// culling information
-		vec3_t   bounds[ 2 ];
+		bounds_t bounds;
 		vec3_t   origin;
 		float    radius;
 	};
@@ -1935,7 +1935,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int              contents; // -1 for nodes, to differentiate from leafs
 		int              visCounts[ MAX_VISCOUNTS ]; // node needs to be traversed if current
 
-		vec3_t           mins, maxs; // for bounding box culling
+		bounds_t bounds; // for bounding box culling
+
 		bspNode_t *parent;
 
 		// node specific
@@ -1952,7 +1953,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	struct bspModel_t
 	{
-		vec3_t       bounds[ 2 ]; // for culling
+		bounds_t bounds; // for culling
 
 		uint32_t     numSurfaces;
 		bspSurface_t *firstSurface;
@@ -2203,7 +2204,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		uint16_t        numVBOSurfaces;
 		srfVBOMD5Mesh_t **vboSurfaces;
 
-		vec3_t          bounds[ 2 ];
+		bounds_t bounds;
 		float		internalScale;
 	};
 
@@ -2238,7 +2239,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	struct md5Frame_t
 	{
-		vec3_t bounds[ 2 ]; // bounds of all surfaces of all LODs for this frame
+		bounds_t bounds; // bounds of all surfaces of all LODs for this frame
 		float  *components; // numAnimatedComponents many
 	};
 
@@ -2279,7 +2280,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		struct srfIQModel_t     *surfaces;
 		struct IQAnim_t         *anims;
 
-		vec3_t          bounds[2];
+		bounds_t bounds;
 		float		internalScale;
 
 		// vertex data
@@ -2380,7 +2381,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	int                RE_BoneIndex( qhandle_t hModel, const char *boneName );
 
-	void               R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs );
+void R_ModelBounds( qhandle_t handle, bounds_t &bounds );
 
 //====================================================
 	extern refimport_t ri;
@@ -3167,12 +3168,13 @@ inline bool checkGLErrors()
 	void           R_LocalNormalToWorld( const vec3_t local, vec3_t world );
 	void           R_LocalPointToWorld( const vec3_t local, vec3_t world );
 
-	cullResult_t   R_CullBox( vec3_t worldBounds[ 2 ] );
-	cullResult_t   R_CullLocalBox( vec3_t bounds[ 2 ] );
+cullResult_t R_CullBox( const bounds_t &worldBounds );
+cullResult_t R_CullLocalBox( const bounds_t &bounds );
+
 	cullResult_t   R_CullLocalPointAndRadius( vec3_t origin, float radius );
 	cullResult_t   R_CullPointAndRadius( vec3_t origin, float radius );
 
-	int            R_FogWorldBox( vec3_t bounds[ 2 ] );
+int R_FogWorldBox( const bounds_t &bounds );
 
 	void           R_SetupEntityWorldBounds( trRefEntity_t *ent );
 
@@ -3556,8 +3558,8 @@ inline bool checkGLErrors()
 	*/
 	void Tess_AddTetrahedron( vec4_t tetraVerts[ 4 ], const Color::Color& color );
 
-	void Tess_AddCube( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
-	void Tess_AddCubeWithNormals( const vec3_t position, const vec3_t minSize, const vec3_t maxSize, const Color::Color& color );
+	void Tess_AddCube( const vec3_t position, const bounds_t &size, const Color::Color& color );
+	void Tess_AddCubeWithNormals( const vec3_t position, const bounds_t &size, const Color::Color& color );
 
 	class u_ModelViewProjectionMatrix;
 	void Tess_InstantQuad( u_ModelViewProjectionMatrix &shader, float x, float y, float width, float height );
@@ -3642,9 +3644,9 @@ inline bool checkGLErrors()
 
 	void     R_SetupLightShader( trRefLight_t *light );
 
-	byte     R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
+byte R_CalcLightCubeSideBits( trRefLight_t *light, const bounds_t &worldBounds );
 
-	cullResult_t R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] );
+cullResult_t R_CullLightWorldBounds( trRefLight_t *light, const bounds_t &worldBounds );
 
 	void     R_ComputeFinalAttenuation( shaderStage_t *pStage, trRefLight_t *light );
 
