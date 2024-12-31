@@ -43,7 +43,6 @@ ShaderKind shaderKind = ShaderKind::Unknown;
 
 // *INDENT-OFF*
 
-GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_cull                            *gl_cullShader = nullptr;
@@ -2172,31 +2171,6 @@ void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 	}
 }
 
-GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
-	GLShader( "generic2D", "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
-	u_DepthMap( this ),
-	u_TextureMatrix( this ),
-	u_AlphaThreshold( this ),
-	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
-	u_Color( this ),
-	u_DepthScale( this ),
-	GLDeformStage( this )
-{
-}
-
-void GLShader_generic2D::BuildShaderCompileMacros( std::string& compileMacros )
-{
-	compileMacros += "GENERIC_2D ";
-}
-
-void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
-}
-
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
@@ -2219,7 +2193,8 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
-	GLCompileMacro_USE_DEPTH_FADE( this )
+	GLCompileMacro_USE_DEPTH_FADE( this ),
+	GLCompileMacro_GENERIC_2D( this )
 {
 }
 

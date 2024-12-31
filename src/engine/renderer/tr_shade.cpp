@@ -210,7 +210,6 @@ static void GLSL_InitGPUShadersOrError()
 	gl_shaderManager.GenerateBuiltinHeaders();
 
 	// single texture rendering
-	gl_shaderManager.load( gl_generic2DShader );
 	gl_shaderManager.load( gl_genericShader );
 
 	// standard light mapping
@@ -469,7 +468,6 @@ void GLSL_ShutdownGPUShaders()
 
 	gl_shaderManager.freeAll();
 
-	gl_generic2DShader = nullptr;
 	gl_genericShader = nullptr;
 	gl_genericShaderMaterial = nullptr;
 	gl_cullShader = nullptr;
@@ -816,46 +814,6 @@ void Render_NOP( shaderStage_t * )
 {
 }
 
-static void Render_generic2D( shaderStage_t *pStage )
-{
-	GLimp_LogComment( "--- Render_generic2D ---\n" );
-
-	// Disable depth testing and writing
-	GL_State( ( pStage->stateBits & ~GLS_DEPTHMASK_TRUE ) | GLS_DEPTHTEST_DISABLE );
-
-	gl_generic2DShader->BindProgram( pStage->deformIndex );
-
-	// set uniforms
-	// u_AlphaThreshold
-	gl_generic2DShader->SetUniform_AlphaTest( pStage->stateBits );
-
-	// u_ColorModulate
-	colorGen_t rgbGen = SetRgbGen( pStage );
-	alphaGen_t alphaGen = SetAlphaGen( pStage );
-
-	gl_generic2DShader->SetUniform_ColorModulate( rgbGen, alphaGen );
-
-	// u_Color
-	gl_generic2DShader->SetUniform_Color( tess.svars.color );
-
-	gl_generic2DShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_generic2DShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
-
-	// u_DeformGen
-	gl_generic2DShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
-
-	// bind u_ColorMap
-	gl_generic2DShader->SetUniform_ColorMapBindless( BindAnimatedImage( 0, &pStage->bundle[TB_COLORMAP] ) );
-	gl_generic2DShader->SetUniform_TextureMatrix( tess.svars.texMatrices[ TB_COLORMAP ] );
-
-	gl_generic2DShader->SetRequiredVertexPointers();
-
-	Tess_DrawElements();
-	GL_CheckErrors();
-
-	GL_CheckErrors();
-}
-
 void Render_generic3D( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_generic3D ---\n" );
@@ -970,7 +928,13 @@ void Render_generic( shaderStage_t *pStage )
 {
 	if ( backEnd.projection2D )
 	{
-		Render_generic2D( pStage );
+		glState.glStateBitsMask = ~uint32_t( GLS_DEPTHMASK_TRUE ) | GLS_DEPTHTEST_DISABLE;
+		gl_genericShader->SetGeneric2D( true );
+
+		Render_generic3D( pStage );
+
+		glState.glStateBitsMask = 0;
+		gl_genericShader->SetGeneric2D( false );
 		return;
 	}
 
