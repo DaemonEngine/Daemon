@@ -1359,9 +1359,12 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	std::string newShaderText;
 	std::string materialStruct = "\nstruct Material {\n";
-	std::string materialBlock = "layout(std430, binding = 0) restrict readonly buffer materialsSSBO {\n"
-	                            "	Material materials[];\n"
+	// 6 kb for materials
+	const uint32_t count = ( 4096 + 2048 ) / shader->GetPaddedSize();
+	std::string materialBlock = "layout(std140, binding = 0) uniform materialsUBO {\n"
+	                            "	Material materials[" + std::to_string( count ) + "]; \n"
 	                            "};\n\n";
+
 	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
 		"layout(std140, binding = 6) uniform texDataUBO {\n"
 		"	TexData texData[" + std::to_string( MAX_TEX_BUNDLES ) + "]; \n"
@@ -2019,7 +2022,6 @@ void GLShader::PostProcessUniforms() {
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
 	const uint numUniforms = _uniforms.size();
-	GLuint structAlignment = 0;
 	GLuint structSize = 0;
 	while ( tmp.size() < numUniforms ) {
 		// Higher-alignment uniforms first to avoid wasting memory
@@ -2030,9 +2032,7 @@ void GLShader::PostProcessUniforms() {
 				highestAlignment = _uniforms[i]->GetSTD430Alignment();
 				highestUniform = i;
 			}
-			if ( highestAlignment > structAlignment ) {
-				structAlignment = highestAlignment;
-			}
+
 			if ( highestAlignment == 4 ) {
 				break; // 4-component is the highest alignment in std430
 			}
@@ -2051,6 +2051,7 @@ void GLShader::PostProcessUniforms() {
 	}
 	_uniforms = tmp;
 
+	const GLuint structAlignment = 4; // Material buffer is now a UBO, so it uses std140 layout, which is aligned to vec4
 	if ( structSize > 0 ) {
 		padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
 	}
