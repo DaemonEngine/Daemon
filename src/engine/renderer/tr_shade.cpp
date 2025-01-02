@@ -2317,7 +2317,7 @@ void Render_fog( shaderStage_t* pStage )
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
 
 	// u_Color
-	gl_fogQuake3Shader->SetUniform_Color( fog->color );
+	gl_fogQuake3Shader->SetUniform_ColorGlobal( fog->color );
 
 	gl_fogQuake3Shader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_fogQuake3Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
@@ -2699,8 +2699,8 @@ void Tess_StageIteratorColor()
 
 		if ( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) {
 			tess.currentSSBOOffset = pStage->materialOffset;
-			tess.materialID = pStage->materialID;
-			tess.materialPackID = pStage->materialPackID;
+			tess.materialID = tess.currentDrawSurf->materialIDs[stage];
+			tess.materialPackID = tess.currentDrawSurf->materialPackIDs[stage];
 		}
 
 		pStage->colorRenderer( pStage );
