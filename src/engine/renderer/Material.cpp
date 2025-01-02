@@ -524,17 +524,16 @@ void MaterialSystem::GenerateTexturesBuffer( std::vector<TextureData>& textures,
 			}
 		}
 
-		// While reflection, liquid and heatHaze shaders use the matrix from TB_NORMALMAP bundle, it's never actually parsed
-		RB_CalcTexMatrix( textureData.texBundles[0], tess.svars.texMatrices[TB_COLORMAP] );
+		const int bundle = textureData.textureMatrixBundle;
+		RB_CalcTexMatrix( textureData.texBundles[bundle], tess.svars.texMatrices[bundle] );
 		/* We only actually need these 6 components to get the correct texture transformation,
 		the other ones are unused */
-		textureBundles->textureMatrix[0] = tess.svars.texMatrices[TB_COLORMAP][0];
-		textureBundles->textureMatrix[1] = tess.svars.texMatrices[TB_COLORMAP][1];
-		textureBundles->textureMatrix[2] = tess.svars.texMatrices[TB_COLORMAP][4];
-		textureBundles->textureMatrix[3] = tess.svars.texMatrices[TB_COLORMAP][5];
-		// These are stored as part of a vec4 in a UBO, so we need to convert them here as well
-		textureBundles->textureMatrix2[0] = tess.svars.texMatrices[TB_COLORMAP][12] * 32768.0f;
-		textureBundles->textureMatrix2[1] = tess.svars.texMatrices[TB_COLORMAP][13] * 32768.0f;
+		textureBundles->textureMatrix[0] = tess.svars.texMatrices[bundle][0];
+		textureBundles->textureMatrix[1] = tess.svars.texMatrices[bundle][1];
+		textureBundles->textureMatrix[2] = tess.svars.texMatrices[bundle][4];
+		textureBundles->textureMatrix[3] = tess.svars.texMatrices[bundle][5];
+		textureBundles->textureMatrix[4] = tess.svars.texMatrices[bundle][12];
+		textureBundles->textureMatrix[5] = tess.svars.texMatrices[bundle][13];
 		textureBundles++;
 	}
 }
@@ -1549,7 +1548,9 @@ void MaterialSystem::AddStageTextures( drawSurf_t* drawSurf, const uint32_t stag
 
 	int bundleNum = 0;
 	bool dynamic = false;
-	for ( const textureBundle_t& bundle : pStage->bundle ) {
+	for ( int i = 0; i < MAX_TEXTURE_BUNDLES; i++ ) {
+		const textureBundle_t& bundle = pStage->bundle[i];
+
 		if ( bundle.isVideoMap ) {
 			material->AddTexture( tr.cinematicImage[bundle.videoMapHandle]->texture );
 			continue;
@@ -1562,6 +1563,7 @@ void MaterialSystem::AddStageTextures( drawSurf_t* drawSurf, const uint32_t stag
 		}
 
 		if ( bundle.numImages > 1 || bundle.numTexMods > 0 ) {
+			textureData.textureMatrixBundle = i;
 			dynamic = true;
 		}
 
