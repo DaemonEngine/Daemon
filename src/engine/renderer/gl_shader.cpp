@@ -1381,7 +1381,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "	uvec4 u_MaterialGlowMap;\n"
 	                           "};\n\n"
 	                           + texBuf +
-		                       "#define u_TextureMatrix mat3x2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix, vec2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureDiffuseMap.xy ) * vec2( 1.0f / 32768.0f ) )\n"
+		                       "#define u_TextureMatrix mat3x2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.xy, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.zw, vec2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureDiffuseMap.xy ) * vec2( 1.0f / 32768.0f ) )\n"
 		                       "#define u_DiffuseMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureDiffuseMap.zw )\n"
 		                       "#define u_NormalMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_NormalHeightMap.xy )\n"
 		                       "#define u_HeightMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_NormalHeightMap.zw )\n"
