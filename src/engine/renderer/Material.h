@@ -136,8 +136,7 @@ struct Material {
 };
 
 struct TexBundle {
-	vec_t textureMatrix[4];
-	uint32_t textureMatrix2[2];
+	vec_t textureMatrix[6];
 	GLuint64 textures[MAX_TEXTURE_BUNDLES];
 };
 
@@ -145,6 +144,7 @@ struct TextureData {
 	const textureBundle_t* texBundles[MAX_TEXTURE_BUNDLES] = { nullptr, nullptr, nullptr, nullptr, nullptr };
 	// For ST_STYLELIGHTMAP stages
 	image_t* texBundlesOverride[MAX_TEXTURE_BUNDLES] = { nullptr, nullptr, nullptr, nullptr, nullptr };
+	int textureMatrixBundle = 0;
 
 	bool operator==( const TextureData& other ) const {
 		for ( int i = 0; i < MAX_TEXTURE_BUNDLES; i++ ) {
@@ -193,6 +193,7 @@ struct TextureData {
 	TextureData( const TextureData& other ) {
 		memcpy( texBundles, other.texBundles, MAX_TEXTURE_BUNDLES * sizeof( textureBundle_t* ) );
 		memcpy( texBundlesOverride, other.texBundlesOverride, MAX_TEXTURE_BUNDLES * sizeof( image_t* ) );
+		textureMatrixBundle = other.textureMatrixBundle;
 	}
 };
 
