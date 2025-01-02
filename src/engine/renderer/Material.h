@@ -400,8 +400,8 @@ class MaterialSystem {
 	void UpdateFrameData();
 };
 
-extern GLSSBO materialsSSBO; // Global
-extern GLBuffer texDataSSBO; // Global
+extern GLUBO materialsUBO; // Global
+extern GLBuffer texDataBuffer; // Global
 extern GLUBO lightmapDataUBO; // Global
 
 extern GLSSBO surfaceDescriptorsSSBO; // Global
