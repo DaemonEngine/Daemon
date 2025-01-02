@@ -1953,7 +1953,7 @@ void MaterialSystem::AddDrawCommand( const uint32_t materialID, const uint32_t m
 }
 
 void MaterialSystem::AddTexture( Texture* texture ) {
-	if ( cmd.textureCount > MAX_DRAWCOMMAND_TEXTURES ) {
+	if ( cmd.textureCount >= MAX_DRAWCOMMAND_TEXTURES ) {
 		Sys::Drop( "Exceeded max DrawCommand textures" );
 	}
 	cmd.textures[cmd.textureCount] = texture;
