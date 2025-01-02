@@ -26,9 +26,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #insert vertexSkinning_vp
 #insert vertexAnimation_vp
 
-uniform vec4		u_Color;
+uniform uint		u_Color;
 
-uniform mat4		u_TextureMatrix;
+uniform mat3x2		u_TextureMatrix;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
@@ -70,8 +70,8 @@ void	main()
 #endif
 
 	// transform texcoords
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec3(texCoord, 1.0)).st;
 
 	// assign color
-	var_Color = u_Color;
+	var_Color = unpackUnorm4x8( u_Color );
 }

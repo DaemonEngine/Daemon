@@ -429,7 +429,8 @@ protected:
 	size_t      _locationIndex;
 
 	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
-								 const bool global, const int components = 0, const bool isTexture = false ) :
+	                             const bool global, const int components = 0,
+	                             const bool isTexture = false ) :
 		_shader( shader ),
 		_name( name ),
 		_type( type ),
@@ -1197,6 +1198,48 @@ public:
 	matrix_t currentValue;
 };
 
+class GLUniformMatrix32f : protected GLUniform {
+	protected:
+	GLUniformMatrix32f( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniform( shader, name, "mat3x2", 6, 2, global ) {
+	}
+
+	inline void SetValue( GLboolean transpose, const vec_t* m ) {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer ) {
+			GLimp_LogComment( va( "GLSL_SetUniformMatrix32f( %s, shader: %s, transpose: %d, [ %f, %f, %f, %f, %f, %f ] ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), transpose,
+				m[0], m[1], m[2], m[3], m[4], m[5] ) );
+		}
+#endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			memcpy( currentValue, m, 6 * sizeof( float ) );
+			return;
+		}
+
+		glUniformMatrix3x2fv( p->uniformLocations[_locationIndex], 1, transpose, m );
+	}
+	public:
+	size_t GetSize() override {
+		return 6 * sizeof( float );
+	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, currentValue, 6 * sizeof( float ) );
+		return buffer + 6 * _components;
+	}
+
+	private:
+	vec_t currentValue[6] {};
+};
+
 class GLUniformMatrix4fv : protected GLUniform
 {
 protected:
@@ -1529,6 +1572,10 @@ class GLUBO : public GLBuffer {
 
 	void BindBuffer() {
 		GLBuffer::BindBuffer( GL_UNIFORM_BUFFER );
+	}
+
+	void UnBindBuffer() {
+		GLBuffer::UnBindBuffer( GL_UNIFORM_BUFFER );
 	}
 
 	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
@@ -2150,10 +2197,24 @@ public:
 	}
 };
 
+// HACK: Light factor is set as a global uniform here so that genericMaterial struct can fit into 8 bytes
+class u_ColorModulateLightFactor :
+	GLUniform1f {
+	public:
+	u_ColorModulateLightFactor( GLShader* shader ) :
+		GLUniform1f( shader, "u_ColorModulateLightFactor", true ) {
+	}
+
+	void SetUniform_ColorModulateLightFactor( const float lightFactor ) {
+		this->SetValue( lightFactor / 4.0f ); // Multiplied by 4 in the shader to save on instructions
+	}
+};
+
 class u_ColorMap :
 	GLUniformSampler2D {
 	public:
 	u_ColorMap( GLShader* shader ) :
+		// While u_ColorMap is used for some screen-space shaders, it's never global in material system shaders
 		GLUniformSampler2D( shader, "u_ColorMap" ) {
 	}
 
@@ -2282,7 +2343,7 @@ class u_LightMap :
 	GLUniformSampler {
 	public:
 	u_LightMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1 ) {
+		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1, true ) {
 	}
 
 	void SetUniform_LightMapBindless( GLuint64 bindlessHandle ) {
@@ -2298,7 +2359,7 @@ class u_DeluxeMap :
 	GLUniformSampler {
 	public:
 	u_DeluxeMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1 ) {
+		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1, true ) {
 	}
 
 	void SetUniform_DeluxeMapBindless( GLuint64 bindlessHandle ) {
@@ -2711,17 +2772,26 @@ class u_ShadowClipMap4 :
 };
 
 class u_TextureMatrix :
-	GLUniformMatrix4f
+	GLUniformMatrix32f
 {
 public:
 	u_TextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_TextureMatrix" )
+		GLUniformMatrix32f( shader, "u_TextureMatrix", true )
 	{
 	}
 
 	void SetUniform_TextureMatrix( const matrix_t m )
 	{
-		this->SetValue( GL_FALSE, m );
+		/* We only actually need these 6 components to get the correct texture transformation,
+		the other ones are unused */
+		static vec_t m2[6];
+		m2[0] = m[0];
+		m2[1] = m[1];
+		m2[2] = m[4];
+		m2[3] = m[5];
+		m2[4] = m[12];
+		m2[5] = m[13];
+		this->SetValue( GL_FALSE, m2 );
 	}
 };
 
@@ -3098,17 +3168,29 @@ class u_CloudHeight :
 };
 
 class u_Color :
-	GLUniform4f
+	GLUniform1ui
 {
 public:
 	u_Color( GLShader *shader ) :
-		GLUniform4f( shader, "u_Color" )
+		GLUniform1ui( shader, "u_Color" )
 	{
 	}
 
 	void SetUniform_Color( const Color::Color& color )
 	{
-		this->SetValue( color.ToArray() );
+		this->SetValue( packUnorm4x8( color.ToArray() ) );
+	}
+};
+
+class u_ColorGlobal :
+	GLUniform1ui {
+	public:
+	u_ColorGlobal( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ColorGlobal", true ) {
+	}
+
+	void SetUniform_ColorGlobal( const Color::Color& color ) {
+		this->SetValue( packUnorm4x8( color.ToArray() ) );
 	}
 };
 
@@ -3437,7 +3519,7 @@ class u_UnprojectMatrix :
 {
 public:
 	u_UnprojectMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_UnprojectMatrix" )
+		GLUniformMatrix4f( shader, "u_UnprojectMatrix", true )
 	{
 	}
 
@@ -3602,68 +3684,76 @@ public:
 	{
 		this->SetValue( v );
 	}
-	void SetUniform_ColorModulate( colorGen_t colorGen, alphaGen_t alphaGen, bool vertexOverbright = false )
-	{
-		vec4_t v;
+};
+
+enum class ColorModulate {
+	COLOR_ADD = BIT( 0 ),
+	COLOR_NEGATE = BIT( 1 ),
+	COLOR_LIGHTFACTOR = BIT( 2 ),
+	ALPHA_ADD = BIT( 3 ),
+	ALPHA_NEGATE = BIT( 4 )
+};
+
+class u_ColorModulateColorGen :
+	GLUniform1ui {
+	public:
+	u_ColorModulateColorGen( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ColorModulateColorGen" ) {
+	}
+
+	void SetUniform_ColorModulateColorGen( colorGen_t colorGen, alphaGen_t alphaGen, bool vertexOverbright = false ) {
+		uint32_t colorModulate = 0;
 		bool needAttrib = false;
 
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "--- u_ColorModulate::SetUniform_ColorModulate( program = %s, colorGen = %s, alphaGen = %s ) ---\n", _shader->GetName().c_str(), Util::enum_str(colorGen), Util::enum_str(alphaGen)) );
+		if ( r_logFile->integer ) {
+			GLimp_LogComment(
+				va( "--- u_ColorModulate::SetUniform_ColorModulateColorGen( program = %s, colorGen = %s, alphaGen = %s ) ---\n",
+					_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) )
+			);
 		}
 
-		switch ( colorGen )
-		{
+		switch ( colorGen ) {
 			case colorGen_t::CGEN_VERTEX:
 				needAttrib = true;
-				if ( vertexOverbright )
-				{
+				if ( vertexOverbright ) {
 					// vertexOverbright is only needed for non-lightmapped cases. When there is a
 					// lightmap, this is done by multiplying with the overbright-scaled white image
-					VectorSet( v, tr.mapLightFactor, tr.mapLightFactor, tr.mapLightFactor );
-				}
-				else
-				{
-					VectorSet( v, 1, 1, 1 );
+					colorModulate |= Util::ordinal( ColorModulate::COLOR_LIGHTFACTOR );
+				} else {
+					colorModulate |= Util::ordinal( ColorModulate::COLOR_ADD );
 				}
 				break;
 
 			case colorGen_t::CGEN_ONE_MINUS_VERTEX:
 				needAttrib = true;
-				VectorSet( v, -1, -1, -1 );
+				colorModulate |= Util::ordinal( ColorModulate::COLOR_ADD ) | Util::ordinal( ColorModulate::COLOR_NEGATE );
 				break;
 
 			default:
-				VectorSet( v, 0, 0, 0 );
 				break;
 		}
 
-		switch ( alphaGen )
-		{
+		switch ( alphaGen ) {
 			case alphaGen_t::AGEN_VERTEX:
 				needAttrib = true;
-				v[ 3 ] = 1.0f;
+				colorModulate |= Util::ordinal( ColorModulate::ALPHA_ADD );
 				break;
 
 			case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
 				needAttrib = true;
-				v[ 3 ] = -1.0f;
+				colorModulate |= Util::ordinal( ColorModulate::ALPHA_ADD ) | Util::ordinal( ColorModulate::ALPHA_NEGATE );
 				break;
 
 			default:
-				v[ 3 ] = 0.0f;
 				break;
 		}
 
-		if ( needAttrib )
-		{
+		if ( needAttrib ) {
 			_shader->AddVertexAttribBit( ATTR_COLOR );
-		}
-		else
-		{
+		} else {
 			_shader->DelVertexAttribBit( ATTR_COLOR );
 		}
-		this->SetValue( v );
+		this->SetValue( colorModulate );
 	}
 };
 
@@ -3929,7 +4019,8 @@ class GLShader_generic2D :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
+	public u_ColorModulateLightFactor,
 	public u_Color,
 	public u_DepthScale,
 	public GLDeformStage
@@ -3950,7 +4041,8 @@ class GLShader_generic :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
+	public u_ColorModulateLightFactor,
 	public u_Color,
 	public u_Bones,
 	public u_VertexInterpolation,
@@ -3979,7 +4071,8 @@ class GLShader_genericMaterial :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
+	public u_ColorModulateLightFactor,
 	public u_Color,
 	public u_DepthScale,
 	public u_ShowTris,
@@ -4011,7 +4104,7 @@ class GLShader_lightMapping :
 	public u_LightTiles,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
@@ -4063,7 +4156,7 @@ class GLShader_lightMappingMaterial :
 	public u_LightTiles,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
@@ -4110,7 +4203,7 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_ViewOrigin,
 	public u_LightOrigin,
@@ -4153,7 +4246,7 @@ class GLShader_forwardLighting_projXYZ :
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_ViewOrigin,
 	public u_LightOrigin,
@@ -4203,7 +4296,7 @@ class GLShader_forwardLighting_directionalSun :
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_ViewOrigin,
 	public u_LightDir,
@@ -4240,7 +4333,6 @@ class GLShader_shadowFill :
 	public GLShader,
 	public u_ColorMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_AlphaThreshold,
 	public u_LightOrigin,
 	public u_LightRadius,
@@ -4311,11 +4403,9 @@ class GLShader_skybox :
 	public u_ColorMapCube,
 	public u_CloudMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_CloudHeight,
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -4328,11 +4418,9 @@ class GLShader_skyboxMaterial :
 	public u_ColorMapCube,
 	public u_CloudMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_CloudHeight,
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_skyboxMaterial( GLShaderManager* manager );
@@ -4344,7 +4432,7 @@ class GLShader_fogQuake3 :
 	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_Color,
+	public u_ColorGlobal,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_FogDistanceVector,
@@ -4364,7 +4452,7 @@ class GLShader_fogQuake3Material :
 	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_Color,
+	public u_ColorGlobal,
 	public u_FogDistanceVector,
 	public u_FogDepthVector,
 	public u_FogEyeT,
@@ -4378,13 +4466,10 @@ class GLShader_fogGlobal :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
-	public u_ViewOrigin,
-	public u_ViewMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
 	public u_Color,
-	public u_FogDistanceVector,
-	public u_FogDepthVector
+	public u_FogDistanceVector
 {
 public:
 	GLShader_fogGlobal( GLShaderManager *manager );
@@ -4397,15 +4482,10 @@ class GLShader_heatHaze :
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_DeformMagnitude,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ModelViewMatrixTranspose,
 	public u_ProjectionMatrixTranspose,
-	public u_ColorModulate,
-	public u_Color,
 	public u_Bones,
 	public u_NormalScale,
 	public u_VertexInterpolation,
@@ -4424,16 +4504,11 @@ class GLShader_heatHazeMaterial :
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_DeformEnable,
 	public u_DeformMagnitude,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ModelViewMatrixTranspose,
 	public u_ProjectionMatrixTranspose,
-	public u_ColorModulate,
-	public u_Color,
 	public u_NormalScale,
 	public GLDeformStage
 {
@@ -4490,7 +4565,6 @@ class GLShader_cameraEffects :
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_DeformMagnitude,
 	public u_InverseGamma
 {
 public:

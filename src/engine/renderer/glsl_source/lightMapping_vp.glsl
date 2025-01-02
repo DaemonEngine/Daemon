@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_vp.glsl */
 
+#insert common
 #insert vertexSimple_vp
 #insert vertexSkinning_vp
 #insert vertexAnimation_vp
@@ -35,7 +36,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	#define USE_LIGHT_MAPPING
 #endif
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
+#endif
 
 #if defined(USE_MODEL_SURFACE)
 	uniform mat4 u_ModelMatrix;
@@ -45,8 +48,8 @@ uniform mat4		u_ModelViewProjectionMatrix;
 
 uniform float		u_Time;
 
-uniform vec4		u_ColorModulate;
-uniform vec4		u_Color;
+uniform uint u_ColorModulateColorGen;
+uniform uint u_Color;
 
 OUT(smooth) vec3	var_Position;
 OUT(smooth) vec2	var_TexCoords;
@@ -73,7 +76,7 @@ void main()
 
 	VertexFetch(position, LB, color, texCoord, lmCoord);
 
-	color = color * u_ColorModulate + u_Color;
+	color = color * ColorModulateToColor( u_ColorModulateColorGen ) + unpackUnorm4x8( u_Color );
 
 	DeformVertex(position, LB.normal, texCoord, color, u_Time);
 
@@ -103,7 +106,7 @@ void main()
 	SHADER_PROFILER_SET
 
 	// transform diffusemap texcoords
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec3(texCoord, 1.0)).st;
 
 	// assign color
 	var_Color = color;

@@ -503,6 +503,10 @@ static std::string GenCompatHeader() {
 		str += "float smoothstep(float edge0, float edge1, float x) { float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }\n";
 	}
 
+	if ( !glConfig2.gpuShader5Available ) {
+		str += "#define unpackUnorm4x8( value ) ( ( vec4( value, value >> 8, value >> 16, value >> 24 ) & 0xFF ) / 255.0f )\n";
+	}
+
 	return str;
 }
 
@@ -1356,9 +1360,42 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	std::string newShaderText;
 	std::string materialStruct = "\nstruct Material {\n";
-	std::string materialBlock = "layout(std430, binding = 0) readonly buffer materialsSSBO {\n"
-									 "  Material materials[];\n"
-									 "};\n\n";
+	// 6 kb for materials
+	const uint32_t count = ( 4096 + 2048 ) / shader->GetPaddedSize();
+	std::string materialBlock = "layout(std140, binding = 0) uniform materialsUBO {\n"
+	                            "	Material materials[" + std::to_string( count ) + "]; \n"
+	                            "};\n\n";
+
+	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
+		"layout(std140, binding = 6) uniform texDataUBO {\n"
+		"	TexData texData[" + std::to_string( MAX_TEX_BUNDLES ) + "]; \n"
+		"};\n\n"
+		: "layout(std430, binding = 6) restrict readonly buffer texDataSSBO {\n"
+		"	TexData texData[];\n"
+		"};\n\n";
+	// We have to store these as a bunch of vec4/uvec4 because std140 pads everything to a vec4
+	std::string texDataBlock = "struct TexData {\n"
+		                       "	vec4 u_TextureMatrix;\n"
+	                           "	uvec4 u_TextureDiffuseMap;\n"
+	                           "	uvec4 u_NormalHeightMap;\n"
+	                           "	uvec4 u_MaterialGlowMap;\n"
+	                           "};\n\n"
+	                           + texBuf +
+		                       "#define u_TextureMatrix mat3x2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.xy, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.zw, vec2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureDiffuseMap.xy ) * vec2( 1.0f / 32768.0f ) )\n"
+		                       "#define u_DiffuseMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureDiffuseMap.zw )\n"
+		                       "#define u_NormalMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_NormalHeightMap.xy )\n"
+		                       "#define u_HeightMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_NormalHeightMap.zw )\n"
+		                       "#define u_MaterialMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_MaterialGlowMap.xy )\n"
+		                       "#define u_GlowMap_initial uvec2( texData[( baseInstance >> 12 ) & 0xFFF].u_MaterialGlowMap.zw )\n\n"
+		                       "struct LightMapData {\n"
+	                           "	uvec2 u_LightMap;\n"
+	                           "	uvec2 u_DeluxeMap;\n"
+	                           "};\n\n"
+	                           "layout(std140, binding = 7) uniform lightmapDataUBO {\n"
+	                           "	LightMapData lightmapData[256];\n"
+	                           "};\n\n"
+		                       "#define u_LightMap_initial lightmapData[( baseInstance >> 24 ) & 0xFF].u_LightMap\n"
+		                       "#define u_DeluxeMap_initial lightmapData[( baseInstance >> 24 ) & 0xFF].u_DeluxeMap\n\n";
 	std::string materialDefines;
 
 	/* Generate the struct and defines in the form of:
@@ -1377,24 +1414,25 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			continue;
 		}
 
+		if ( !uniform->IsTexture() ) {
+			materialStruct += "	" + uniform->GetType() + " " + uniform->GetName();
+
+			if ( uniform->GetComponentSize() ) {
+				materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
+			}
+			materialStruct += ";\n";
+
+			// vec3 is aligned to 4 components, so just pad it with int
+			// TODO: Try to move 1 component uniforms here to avoid wasting memory
+			if ( uniform->GetSTD430Size() == 3 ) {
+				materialStruct += "	int ";
+				materialStruct += uniform->GetName();
+				materialStruct += "_padding;\n";
+			}
+		}
+
 		if ( uniform->IsTexture() ) {
-			materialStruct += "  uvec2 ";
-			materialStruct += uniform->GetName();
-		} else {
-			materialStruct += "  " + uniform->GetType() + " " + uniform->GetName();
-		}
-
-		if ( uniform->GetComponentSize() ) {
-			materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
-		}
-		materialStruct += ";\n";
-
-		// vec3 is aligned to 4 components, so just pad it with int
-		// TODO: Try to move 1 component uniforms here to avoid wasting memory
-		if ( uniform->GetSTD430Size() == 3 ) {
-			materialStruct += "  int ";
-			materialStruct += uniform->GetName();
-			materialStruct += "_padding;\n";
+			continue;
 		}
 
 		materialDefines += "#define ";
@@ -1404,7 +1442,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			materialDefines += "_initial uvec2("; // We'll need this to create sampler objects later
 		}
 
-		materialDefines += " materials[baseInstance].";
+		materialDefines += " materials[baseInstance & 0xFFF].";
 		materialDefines += uniform->GetName();
 		
 		if ( uniform->IsTexture() ) {
@@ -1416,7 +1454,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	// Array of structs is aligned to the largest member of the struct
 	for ( uint i = 0; i < shader->padding; i++ ) {
-		materialStruct += "  int material_padding" + std::to_string( i );
+		materialStruct += "	int material_padding" + std::to_string( i );
 		materialStruct += ";\n";
 	}
 
@@ -1435,9 +1473,12 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 		bool skip = false;
 		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
 			for ( GLUniform* uniform : shader->_uniforms ) {
-				if ( !uniform->IsGlobal() && ( line.find( uniform->GetName() ) != std::string::npos ) ) {
-					skip = true;
-					break;
+				if ( !uniform->IsGlobal() ) {
+					const size_t pos = line.find( uniform->GetName() );
+					if ( pos != std::string::npos && !std::isalpha( line[pos + strlen( uniform->GetName() ) ]) ) {
+						skip = true;
+						break;
+					}
 				}
 			}
 		}
@@ -1451,7 +1492,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	materialDefines += "\n";
 
-	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + materialDefines + shaderMain;
+	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + texDataBlock + materialDefines + shaderMain;
 	return newShaderText;
 }
 
@@ -1966,7 +2007,7 @@ void GLShader::PostProcessUniforms() {
 
 	std::vector<GLUniform*> globalUniforms;
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( uniform->IsGlobal() ) {
+		if ( uniform->IsGlobal() || uniform->IsTexture() ) {
 			globalUniforms.emplace_back( uniform );
 		}
 	}
@@ -1976,7 +2017,6 @@ void GLShader::PostProcessUniforms() {
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
 	const uint numUniforms = _uniforms.size();
-	GLuint structAlignment = 0;
 	GLuint structSize = 0;
 	while ( tmp.size() < numUniforms ) {
 		// Higher-alignment uniforms first to avoid wasting memory
@@ -1987,9 +2027,7 @@ void GLShader::PostProcessUniforms() {
 				highestAlignment = _uniforms[i]->GetSTD430Alignment();
 				highestUniform = i;
 			}
-			if ( highestAlignment > structAlignment ) {
-				structAlignment = highestAlignment;
-			}
+
 			if ( highestAlignment == 4 ) {
 				break; // 4-component is the highest alignment in std430
 			}
@@ -2008,6 +2046,7 @@ void GLShader::PostProcessUniforms() {
 	}
 	_uniforms = tmp;
 
+	const GLuint structAlignment = 4; // Material buffer is now a UBO, so it uses std140 layout, which is aligned to vec4
 	if ( structSize > 0 ) {
 		padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
 	}
@@ -2166,7 +2205,7 @@ void GLShader::SetRequiredVertexPointers()
 void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 	uint32_t* bufPtr = buffer;
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( !uniform->IsGlobal() ) {
+		if ( !uniform->IsGlobal() && !uniform->IsTexture() ) {
 			bufPtr = uniform->WriteToBuffer( bufPtr );
 		}
 	}
@@ -2180,7 +2219,8 @@ GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
+	u_ColorModulateLightFactor( this ),
 	u_Color( this ),
 	u_DepthScale( this ),
 	GLDeformStage( this )
@@ -2207,7 +2247,8 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
+	u_ColorModulateLightFactor( this ),
 	u_Color( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
@@ -2239,7 +2280,8 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
+	u_ColorModulateLightFactor( this ),
 	u_Color( this ),
 	u_DepthScale( this ),
 	u_ShowTris( this ),
@@ -2274,7 +2316,7 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
@@ -2343,7 +2385,7 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
@@ -2403,7 +2445,7 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
@@ -2456,7 +2498,7 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
@@ -2520,7 +2562,7 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightDir( this ),
@@ -2578,7 +2620,6 @@ GLShader_shadowFill::GLShader_shadowFill( GLShaderManager *manager ) :
 	GLShader( "shadowFill", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
 	u_LightOrigin( this ),
 	u_LightRadius( this ),
@@ -2658,11 +2699,9 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_ColorMapCube( this ),
 	u_CloudMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
 	u_CloudHeight( this ),
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this )
 {
 }
@@ -2678,11 +2717,9 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial( GLShaderManager* manager ) :
 	u_ColorMapCube( this ),
 	u_CloudMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
 	u_CloudHeight( this ),
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this )
 {}
 
@@ -2696,7 +2733,7 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Color( this ),
+	u_ColorGlobal( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_FogDistanceVector( this ),
@@ -2718,7 +2755,7 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Color( this ),
+	u_ColorGlobal( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
@@ -2733,13 +2770,10 @@ GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
 	GLShader( "fogGlobal", ATTR_POSITION, manager ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
-	u_ViewOrigin( this ),
-	u_ViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
 	u_Color( this ),
-	u_FogDistanceVector( this ),
-	u_FogDepthVector( this )
+	u_FogDistanceVector( this )
 {
 }
 
@@ -2755,15 +2789,10 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	u_NormalMap( this ),
 	u_HeightMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
-	u_ViewUp( this ),
 	u_DeformMagnitude( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ModelViewMatrixTranspose( this ),
 	u_ProjectionMatrixTranspose( this ),
-	u_ColorModulate( this ),
-	u_Color( this ),
 	u_Bones( this ),
 	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
@@ -2786,16 +2815,11 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	u_NormalMap( this ),
 	u_HeightMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
-	u_ViewUp( this ),
 	u_DeformEnable( this ),
 	u_DeformMagnitude( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ModelViewMatrixTranspose( this ),
 	u_ProjectionMatrixTranspose( this ),
-	u_ColorModulate( this ),
-	u_Color( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this )
 {
@@ -2862,7 +2886,6 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_DeformMagnitude( this ),
 	u_InverseGamma( this )
 {
 }

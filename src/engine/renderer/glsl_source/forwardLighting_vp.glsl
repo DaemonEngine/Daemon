@@ -22,17 +22,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* forwardLighting_vp.glsl */
 
+#insert common
 #insert vertexSimple_vp
 #insert vertexSkinning_vp
 #insert vertexAnimation_vp
 
-uniform mat4		u_TextureMatrix;
+uniform mat3x2		u_TextureMatrix;
 uniform mat4		u_LightAttenuationMatrix;
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
-uniform vec4		u_ColorModulate;
-uniform vec4		u_Color;
+uniform uint u_ColorModulateColorGen;
+uniform uint u_Color;
 
 uniform float		u_Time;
 
@@ -63,7 +64,7 @@ void	main()
 	VertexFetch( position, LB, color, texCoord, lmCoord);
 
 	// assign color
-        color = color * u_ColorModulate + u_Color;
+    color = color * ColorModulateToColor( u_ColorModulateColorGen ) + unpackUnorm4x8( u_Color );
 
 	DeformVertex( position,
 		      LB.normal,
@@ -85,7 +86,7 @@ void	main()
 	var_TexAttenuation = u_LightAttenuationMatrix * position;
 
 	// transform diffusemap texcoords
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec3(texCoord, 1.0)).st;
 
 	var_Color = color;
 }

@@ -22,13 +22,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* reflection_CB_fp.glsl */
 
+#insert common
 #insert reliefMapping_fp
 
 #define REFLECTION_CB_GLSL
 
 uniform samplerCube	u_ColorMapCube;
 uniform vec3		u_ViewOrigin;
-uniform mat4		u_ModelMatrix;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;

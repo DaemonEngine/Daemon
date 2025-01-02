@@ -689,7 +689,8 @@ static void DrawTris()
 		gl_genericShader->SetUniform_Color( Color::White );
 	}
 
-	gl_genericShader->SetUniform_ColorModulate( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
+	gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
+	gl_genericShader->SetUniform_ColorModulateLightFactor( tr.mapLightFactor );
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -833,7 +834,8 @@ static void Render_generic2D( shaderStage_t *pStage )
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	gl_generic2DShader->SetUniform_ColorModulate( rgbGen, alphaGen );
+	gl_generic2DShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen );
+	gl_generic2DShader->SetUniform_ColorModulateLightFactor( tr.mapLightFactor );
 
 	// u_Color
 	gl_generic2DShader->SetUniform_Color( tess.svars.color );
@@ -859,11 +861,6 @@ static void Render_generic2D( shaderStage_t *pStage )
 void Render_generic3D( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_generic3D ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	GL_State( pStage->stateBits );
 
@@ -898,7 +895,8 @@ void Render_generic3D( shaderStage_t *pStage )
 	// since the `generic` fragment shader only takes a single input color. `lightMapping` on the
 	// hand needs to know the real diffuse color, hence the separate u_LightFactor.
 	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && tess.bspSurface;
-	gl_genericShader->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
+	gl_genericShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, mayUseVertexOverbright );
+	gl_genericShader->SetUniform_ColorModulateLightFactor( tr.mapLightFactor );
 
 	// u_Color
 	gl_genericShader->SetUniform_Color( tess.svars.color );
@@ -980,11 +978,6 @@ void Render_generic( shaderStage_t *pStage )
 void Render_lightMapping( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
@@ -1099,7 +1092,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 		lightMode == lightMode_t::FULLBRIGHT ? 1.0f : tr.mapLightFactor );
 
 	// u_ColorModulate
-	gl_lightMappingShader->SetUniform_ColorModulate( rgbGen, alphaGen );
+	gl_lightMappingShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen );
 
 	// u_Color
 	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
@@ -1274,10 +1267,6 @@ static void Render_shadowFill( shaderStage_t *pStage )
 
 	GLimp_LogComment( "--- Render_shadowFill ---\n" );
 
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		return;
-	}
-
 	// remove blend modes
 	stateBits = pStage->stateBits;
 	stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS );
@@ -1376,7 +1365,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	gl_forwardLightingShader_omniXYZ->SetUniform_ColorModulate( rgbGen, alphaGen );
+	gl_forwardLightingShader_omniXYZ->SetUniform_ColorModulateColorGen( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_omniXYZ->SetUniform_Color( tess.svars.color );
@@ -1551,7 +1540,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	gl_forwardLightingShader_projXYZ->SetUniform_ColorModulate( rgbGen, alphaGen );
+	gl_forwardLightingShader_projXYZ->SetUniform_ColorModulateColorGen( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_projXYZ->SetUniform_Color( tess.svars.color );
@@ -1727,7 +1716,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	colorGen_t rgbGen = SetRgbGen( pStage );
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
-	gl_forwardLightingShader_directionalSun->SetUniform_ColorModulate( rgbGen, alphaGen );
+	gl_forwardLightingShader_directionalSun->SetUniform_ColorModulateColorGen( rgbGen, alphaGen );
 
 	// u_Color
 	gl_forwardLightingShader_directionalSun->SetUniform_Color( tess.svars.color );
@@ -1908,11 +1897,6 @@ void Render_reflection_CB( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_reflection_CB ---\n" );
 
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
-
 	GL_State( pStage->stateBits );
 
 	// choose right shader program ----------------------------------
@@ -2004,18 +1988,10 @@ void Render_skybox( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_skybox ---\n" );
 
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
-
 	GL_State( pStage->stateBits );
 
 	gl_skyboxShader->BindProgram( pStage->deformIndex );
 
-	gl_skyboxShader->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );  // in world space
-
-	gl_skyboxShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_skyboxShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// bind u_ColorMap
@@ -2036,11 +2012,6 @@ void Render_skybox( shaderStage_t *pStage )
 void Render_screen( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_screen ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	GL_State( pStage->stateBits );
 
@@ -2096,11 +2067,6 @@ void Render_heatHaze( shaderStage_t *pStage )
 	float         deformMagnitude;
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	// remove alpha test
 	stateBits = pStage->stateBits;
@@ -2189,11 +2155,6 @@ void Render_liquid( shaderStage_t *pStage )
 	vec3_t        fogColor;
 
 	GLimp_LogComment( "--- Render_liquid ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
@@ -2289,11 +2250,6 @@ void Render_liquid( shaderStage_t *pStage )
 
 void Render_fog( shaderStage_t* pStage )
 {
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
-
 	if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		return;
@@ -2356,7 +2312,7 @@ void Render_fog( shaderStage_t* pStage )
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
 
 	// u_Color
-	gl_fogQuake3Shader->SetUniform_Color( fog->color );
+	gl_fogQuake3Shader->SetUniform_ColorGlobal( fog->color );
 
 	gl_fogQuake3Shader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_fogQuake3Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
@@ -2742,7 +2698,7 @@ void Tess_StageIteratorColor()
 		Tess_ComputeTexMatrices( pStage );
 
 		if ( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) {
-			tess.currentSSBOOffset = tess.currentDrawSurf->materialsSSBOOffset[stage];
+			tess.currentSSBOOffset = pStage->materialOffset;
 			tess.materialID = tess.currentDrawSurf->materialIDs[stage];
 			tess.materialPackID = tess.currentDrawSurf->materialPackIDs[stage];
 		}
