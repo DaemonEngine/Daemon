@@ -415,16 +415,16 @@ extern GLSSBO debugSSBO; // Global
 
 extern MaterialSystem materialSystem;
 
-void UpdateSurfaceDataNONE( uint32_t*, Material&, shaderStage_t* );
-void UpdateSurfaceDataNOP( uint32_t*, Material&, shaderStage_t* );
-void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, shaderStage_t* pStage );
-void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, shaderStage_t* pStage );
-void UpdateSurfaceDataReflection( uint32_t* materials, Material& /* material */, shaderStage_t* pStage);
-void UpdateSurfaceDataSkybox( uint32_t* materials, Material& material, shaderStage_t* pStage );
-void UpdateSurfaceDataScreen( uint32_t* materials, Material& /* material */, shaderStage_t* pStage);
-void UpdateSurfaceDataHeatHaze( uint32_t* materials, Material& /* material */, shaderStage_t* pStage);
-void UpdateSurfaceDataLiquid( uint32_t* materials, Material& /* material */, shaderStage_t* pStage);
-void UpdateSurfaceDataFog( uint32_t* materials, Material& material, shaderStage_t* pStage );
+void UpdateSurfaceDataNONE( uint32_t*, shaderStage_t* );
+void UpdateSurfaceDataNOP( uint32_t*, shaderStage_t* );
+void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage );
+void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage );
+void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage);
+void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage );
+void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage);
+void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage);
+void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage);
+void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage );
 
 // void UpdateSurf( uint32)
 

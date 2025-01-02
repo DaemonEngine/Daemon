@@ -1102,7 +1102,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	struct drawSurf_t;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
-	using surfaceDataUpdater_t = void(*)(uint32_t*, Material&, shaderStage_t*);
+	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
 
@@ -1212,14 +1212,13 @@ enum class shaderProfilerRenderSubGroupsMode {
 		shader_t* shader;
 		shaderStage_t* materialRemappedStage = nullptr;
 
+		uint32_t paddedSize = 0;
+
 		uint32_t materialOffset = 0;
 		uint32_t bufferOffset = 0;
 		uint32_t dynamicBufferOffset = 0;
 
 		bool initialized = false;
-
-		uint materialPackID = 0;
-		uint materialID = 0;
 
 		bool dynamic = false;
 		bool colorDynamic = false;
@@ -1666,6 +1665,10 @@ enum class shaderProfilerRenderSubGroupsMode {
 		bool          bspSurface;
 		int fog;
 		int portalNum = -1;
+
+
+		uint32_t materialPackIDs[MAX_SHADER_STAGES];
+		uint32_t materialIDs[MAX_SHADER_STAGES];
 
 		uint32_t drawCommandIDs[MAX_SHADER_STAGES];
 		uint32_t texDataIDs[MAX_SHADER_STAGES];
