@@ -142,8 +142,7 @@ void UpdateSurfaceDataNOP( uint32_t*, shaderStage_t* ) {
 void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage ) {
 	// shader_t* shader = pStage->shader;
 
-	const uint32_t paddedOffset = pStage->bufferOffset;
-	materials += paddedOffset;
+	materials += pStage->bufferOffset;
 
 	// u_AlphaThreshold
 	gl_genericShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
@@ -170,8 +169,7 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, shaderStage_t* pStage ) {
 void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage ) {
 	shader_t* shader = pStage->shader;
 
-	const uint32_t paddedOffset = pStage->bufferOffset;
-	materials += paddedOffset;
+	materials += pStage->bufferOffset;
 
 	// u_ColorModulate
 	colorGen_t rgbGen = SetRgbGen( pStage );
@@ -223,8 +221,7 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage )
 void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage) {
 	shader_t* shader = pStage->shader;
 
-	const uint32_t paddedOffset = pStage->bufferOffset;
-	materials += paddedOffset;
+	materials += pStage->bufferOffset;
 
 	// bind u_ColorMap
 	vec3_t position;
@@ -265,8 +262,7 @@ void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage) {
 void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage ) {
 	// shader_t* shader = pStage->shader;
 
-	const uint32_t paddedOffset = pStage->bufferOffset;
-	materials += paddedOffset;
+	materials += pStage->bufferOffset;
 
 	// u_AlphaThreshold
 	gl_skyboxShaderMaterial->SetUniform_AlphaTest( GLS_ATEST_NONE );
@@ -277,8 +273,7 @@ void UpdateSurfaceDataSkybox( uint32_t* materials, shaderStage_t* pStage ) {
 void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage) {
 	// shader_t* shader = pStage->shader;
 
-	const uint32_t paddedOffset = pStage->bufferOffset;
-	materials += paddedOffset;
+	materials += pStage->bufferOffset;
 
 	// bind u_CurrentMap
 	/* FIXME: This is currently unused, but u_CurrentMap was made global for other shaders,
@@ -291,8 +286,7 @@ void UpdateSurfaceDataScreen( uint32_t* materials, shaderStage_t* pStage) {
 void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage) {
 	// shader_t* shader = pStage->shader;
 
-	const uint32_t paddedOffset = pStage->bufferOffset;
-	materials += paddedOffset;
+	materials += pStage->bufferOffset;
 
 	float deformMagnitude = RB_EvalExpression( &pStage->deformMagnitudeExp, 1.0 );
 	gl_heatHazeShaderMaterial->SetUniform_DeformMagnitude( deformMagnitude );
@@ -311,8 +305,7 @@ void UpdateSurfaceDataHeatHaze( uint32_t* materials, shaderStage_t* pStage) {
 void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage) {
 	// shader_t* shader = pStage->shader;
 
-	const uint32_t paddedOffset = pStage->bufferOffset;
-	materials += paddedOffset;
+	materials += pStage->bufferOffset;
 
 	float fogDensity = RB_EvalExpression( &pStage->fogDensityExp, 0.001 );
 	vec4_t fogColor;
@@ -364,8 +357,7 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage) {
 void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage ) {
 	// shader_t* shader = pStage->shader;
 
-	const uint32_t paddedOffset = pStage->bufferOffset;
-	materials += paddedOffset;
+	materials += pStage->bufferOffset;
 
 	gl_fogQuake3ShaderMaterial->WriteUniformsToBuffer( materials );
 }
@@ -468,7 +460,7 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 
 					Tess_Begin( Tess_StageIteratorDummy, nullptr, nullptr, false, -1, 0 );
 					rb_surfaceTable[Util::ordinal( *drawSurf->surface )]( drawSurf->surface );
-					remappedStage->colorRenderer( remappedStage );
+					Tess_DrawElements();
 					Tess_Clear();
 
 					drawSurf->drawCommandIDs[stage] = lastCommandID;
@@ -493,7 +485,7 @@ void MaterialSystem::GenerateMaterialsBuffer( std::vector<shaderStage_t*>& stage
 	memset( materialsData, 0, size * sizeof( uint32_t ) );
 	for ( shaderStage_t* pStage : stages ) {
 		/* Stage variants are essentially copies of the same stage with slightly different values that
-					normally come from a drawSurf_t */
+		normally come from a drawSurf_t */
 		uint32_t variants = 0;
 		for ( int i = 0; i < Util::ordinal( ShaderStageVariant::ALL ) && variants < pStage->variantOffset; i++ ) {
 			if ( pStage->variantOffsets[i] != -1 ) {
@@ -1368,21 +1360,6 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 
 	ComputeDynamics( pStage );
 
-	AddStage( drawSurf, pStage, stage );
-
-	/* if ( pStage->initialized ) {
-		Material* material = &materialPacks[drawSurf->materialPackIDs[stage]].materials[drawSurf->materialIDs[stage]];
-		if ( std::find( material->drawSurfs.begin(), material->drawSurfs.end(), drawSurf )
-			== material->drawSurfs.end() ) {
-			material->drawSurfs.emplace_back( drawSurf );
-		}
-
-		AddStageTextures( drawSurf, stage, material );
-
-		stage++;
-		return;
-	} */
-
 	Material material;
 
 	uint32_t materialPack = 0;
@@ -1448,6 +1425,7 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 	pStage->useMaterialSystem = true;
 	pStage->initialized = true;
 
+	AddStage( drawSurf, pStage, stage );
 	AddStageTextures( drawSurf, stage, &materials[previousMaterialID] );
 
 	if ( std::find( materials[previousMaterialID].drawSurfs.begin(), materials[previousMaterialID].drawSurfs.end(), drawSurf )
@@ -1487,13 +1465,12 @@ void MaterialSystem::GenerateWorldMaterials() {
 
 	backEnd.currentEntity = &tr.worldEntity;
 
-	drawSurf_t* drawSurf;
 	totalDrawSurfs = 0;
 
 	uint32_t packIDs[3] = { 0, 0, 0 };
 
 	for ( int i = 0; i < tr.refdef.numDrawSurfs; i++ ) {
-		drawSurf = &tr.refdef.drawSurfs[i];
+		drawSurf_t* drawSurf = &tr.refdef.drawSurfs[i];
 		if ( drawSurf->entity != &tr.worldEntity ) {
 			continue;
 		}
