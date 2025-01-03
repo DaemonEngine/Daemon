@@ -14,29 +14,55 @@ CURL="$(command -v curl)"
 # This should match the DEPS_VERSION in CMakeLists.txt.
 # This is mostly to ensure the path the files end up at if you build deps yourself
 # are the same as the ones when extracting from the downloaded packages.
-DEPS_VERSION=10
+DEPS_VERSION=11
+
+# Package download pages
+PKGCONFIG_BASEURL='https://pkg-config.freedesktop.org/releases'
+NASM_BASEURL='https://www.nasm.us/pub/nasm/releasebuilds/'
+ZLIB_BASEURL='https://zlib.net/fossils'
+GMP_BASEURL='https://gmplib.org/download/gmp'
+NETTLE_BASEURL='https://mirror.cyberbits.eu/gnu/nettle'
+CURL_BASEURL='https://curl.se/download'
+SDL2_BASEURL='https://www.libsdl.org/release'
+GLEW_BASEURL='https://github.com/nigels-com/glew/releases'
+PNG_BASEURL='https://download.sourceforge.net/libpng'
+JPEG_BASEURL='https://downloads.sourceforge.net/project/libjpeg-turbo'
+# Index: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/index.html
+WEBP_BASEURL='https://storage.googleapis.com/downloads.webmproject.org/releases/webp'
+FREETYPE_BASEURL='https://download.savannah.gnu.org/releases/freetype'
+OPENAL_BASEURL='https://openal-soft.org/openal-releases'
+OGG_BASEURL='https://downloads.xiph.org/releases/ogg'
+VORBIS_BASEURL='https://downloads.xiph.org/releases/vorbis'
+OPUS_BASEURL='https://downloads.xiph.org/releases/opus'
+OPUSFILE_BASEURL='https://downloads.xiph.org/releases/opus'
+LUA_BASEURL='https://www.lua.org/ftp'
+# No index.
+NACLSDK_BASEURL='https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk'
+NCURSES_BASEURL='https://ftpmirror.gnu.org/gnu/ncurses'
+WASISDK_BASEURL='https://github.com/WebAssembly/wasi-sdk/releases'
+WASMTIME_BASEURL='https://github.com/bytecodealliance/wasmtime/releases'
 
 # Package versions
 PKGCONFIG_VERSION=0.29.2
-NASM_VERSION=2.16.01
+NASM_VERSION=2.16.02
 ZLIB_VERSION=1.2.13
-GMP_VERSION=6.2.1
-NETTLE_VERSION=3.8.1
-CURL_VERSION=7.83.1
-SDL2_VERSION=2.26.5
+GMP_VERSION=6.3.0
+NETTLE_VERSION=3.9.1
+CURL_VERSION=8.11.0
+SDL2_VERSION=2.30.9
 GLEW_VERSION=2.2.0
-PNG_VERSION=1.6.39
-JPEG_VERSION=2.1.5.1
-WEBP_VERSION=1.3.2
-FREETYPE_VERSION=2.13.0
+PNG_VERSION=1.6.44
+JPEG_VERSION=3.0.1
+WEBP_VERSION=1.4.0
+FREETYPE_VERSION=2.13.3
 OPENAL_VERSION=1.23.1
 OGG_VERSION=1.3.5
 VORBIS_VERSION=1.3.7
-OPUS_VERSION=1.4
+OPUS_VERSION=1.5.2
 OPUSFILE_VERSION=0.12
-LUA_VERSION=5.4.4
+LUA_VERSION=5.4.7
 NACLSDK_VERSION=44.0.2403.155
-NCURSES_VERSION=6.2
+NCURSES_VERSION=6.5
 WASISDK_VERSION=16.0
 WASMTIME_VERSION=2.0.2
 
@@ -48,11 +74,13 @@ CXX='false'
 LD='ld'
 AR='ar'
 RANLIB='ranlib'
-CONFIGURE_SHARED=(--disable-shared --enable-static)
+LIBS_SHARED='OFF'
+LIBS_STATIC='ON'
+CMAKE_TOOLCHAIN=''
 # Always reset flags, we heavily cross-compile and must not inherit any stray flag
 # from environment.
-CFLAGS=''
-CXXFLAGS=''
+CFLAGS='-O3'
+CXXFLAGS='-O3'
 CPPFLAGS=''
 LDFLAGS=''
 
@@ -136,21 +164,65 @@ download_extract() {
 	extract "${tarball_file}" "${extract_dir}"
 }
 
+configure_build() {
+	local configure_args=(--disable-shared --enable-static)
+
+	configure_args=()
+
+	if [ "${LIBS_SHARED}" = 'ON' ]
+	then
+		configure_args+=(--enable-shared)
+	else
+		configure_args+=(--disable-shared)
+	fi
+
+	if [ "${LIBS_STATIC}" = 'ON' ]
+	then
+		configure_args+=(--enable-static)
+	else
+		configure_args+=(--disable-static)
+	fi
+
+	./configure \
+		--host="${HOST}" \
+		--prefix="${PREFIX}" \
+		--libdir="${PREFIX}/lib" \
+		"${configure_args[@]}" \
+		"${@}"
+
+	make
+	make install
+}
+
+cmake_build() {
+	local cmake_args=()
+
+	cmake -S . -B build \
+		-DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN}" \
+		-DCMAKE_BUILD_TYPE='Release' \
+		-DCMAKE_PREFIX_PATH="${PREFIX}" \
+		-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+		-DBUILD_SHARED_LIBS="${LIBS_SHARED}" \
+		"${cmake_args[@]}" \
+		"${@}"
+
+	cmake --build build
+	cmake --install build
+}
+
 # Build pkg-config
 build_pkgconfig() {
 	local dir_name="pkg-config-${PKGCONFIG_VERSION}"
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract pkgconfig "${archive_name}" \
-		"http://pkgconfig.freedesktop.org/releases/${archive_name}"
+		"${PKGCONFIG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --with-internal-glib
-	make
-	make install
+
+	configure_build --with-internal-glib
 }
 
 # Build NASM
@@ -161,7 +233,7 @@ build_nasm() {
 		local archive_name="${dir_name}-macosx.zip"
 
 		download_extract nasm "${archive_name}" \
-			"https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/macosx/${archive_name}"
+			"${NASM_BASEURL}/${NASM_VERSION}/macosx/${archive_name}"
 
 		"${download_only}" && return
 
@@ -181,24 +253,22 @@ build_zlib() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract zlib "${archive_name}" \
-		"https://zlib.net/fossils/${archive_name}" \
+		"${ZLIB_BASEURL}/${archive_name}" \
 		"https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
-	cd "${dir_name}"
+	local zlib_cmake_args=(-DCMAKE_C_FLAGS="${CFLAGS} -DZLIB_CONST")
+
 	case "${PLATFORM}" in
-	windows-*-*)
-		LOC="${CFLAGS}" make -f win32/Makefile.gcc PREFIX="${HOST}-"
-		make -f win32/Makefile.gcc install BINARY_PATH="${PREFIX}/bin" LIBRARY_PATH="${PREFIX}/lib" INCLUDE_PATH="${PREFIX}/include" SHARED_MODE=1
-		;;
-	*)
-		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS} -O3" ./configure --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --static --const
-		make
-		make install
+		windows-*-*)
+			zlib_cmake_args+=(-DBUILD_SHARED_LIBS=ON)
 		;;
 	esac
+
+	cd "${dir_name}"
+
+	cmake_build "${zlib_cmake_args[@]}"
 }
 
 # Build GMP
@@ -207,13 +277,12 @@ build_gmp() {
 	local archive_name="${dir_name}.tar.bz2"
 
 	download_extract gmp "${archive_name}" \
-		"https://gmplib.org/download/gmp/${archive_name}" \
+		"${GMP_BASEURL}/${archive_name}" \
 		"https://ftpmirror.gnu.org/gnu/gmp/${archive_name}" \
 		"https://ftp.gnu.org/gnu/gmp/${archive_name}"
 
 	"${download_only}" && return
 
-	cd "${dir_name}"
 	case "${PLATFORM}" in
 	windows-*-msvc)
 		# Configure script gets confused if we override the compiler. Shouldn't
@@ -225,19 +294,21 @@ build_gmp() {
 		;;
 	esac
 
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+	local gmp_configure_args=()
+
 	case "${PLATFORM}" in
 	macos-*-*)
 		# The assembler objects are incompatible with PIE
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-assembly
+		gmp_configure_args+=(--disable-assembly)
 		;;
 	*)
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
 		;;
 	esac
 
-	make
-	make install
+	cd "${dir_name}"
+
+	configure_build "${gmp_configure_args[@]}"
+
 	case "${PLATFORM}" in
 	windows-*-msvc)
 		export CC="${CC_BACKUP}"
@@ -252,16 +323,14 @@ build_nettle() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract nettle "${archive_name}" \
-		"https://ftpmirror.gnu.org/gnu/nettle/${archive_name}" \
+		"${NETTLE_BASEURL}/${archive_name}" \
 		"https://ftp.gnu.org/gnu/nettle/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	configure_build
 }
 
 # Build cURL
@@ -270,16 +339,83 @@ build_curl() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract curl "${archive_name}" \
-		"https://curl.se/download/${archive_name}" \
+		"${CURL_BASEURL}/${archive_name}" \
 		"https://github.com/curl/curl/releases/download/curl-${CURL_VERSION//./_}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The user-provided CFLAGS doesn't drop the default -O2
-	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --without-ssl --without-libssh2 --without-librtmp --without-libidn2 --without-brotli --without-zstd --disable-file --disable-ldap --disable-crypto-auth --disable-gopher --disable-ftp --disable-tftp --disable-dict --disable-imap --disable-mqtt --disable-smtp --disable-pop3 --disable-telnet --disable-rtsp --disable-threaded-resolver --disable-alt-svc "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	cmake_build \
+		-DBUILD_CURL_EXE=OFF \
+		-DBUILD_TESTING=OFF \
+		-DENABLE_THREADED_RESOLVER=OFF \
+		-DENABLE_UNIX_SOCKETS=OFF \
+		-DUSE_HTTPSRR=OFF \
+		-DUSE_LIBIDN2=OFF \
+		-DUSE_LIBRTMP=OFF \
+		-DUSE_MSH3=OFF \
+		-DUSE_NGHTTP2=OFF \
+		-DUSE_NGTCP2=OFF \
+		-DUSE_OPENSSL_QUIC=OFF \
+		-DUSE_QUICHE=OFF \
+		-DUSE_WIN32_IDN=OFF \
+		-DCURL_BROTLI=OFF \
+		-DCURL_ZLIB=ON \
+		-DCURL_ZSTD=OFF \
+		-DCURL_ENABLE_SSL=OFF \
+		-DCURL_USE_BEARSSL=OFF \
+		-DCURL_USE_GSSAPI=OFF \
+		-DCURL_USE_LIBPSL=OFF \
+		-DCURL_USE_LIBSSH=OFF \
+		-DCURL_USE_LIBSSH2=OFF \
+		-DCURL_USE_MBEDTLS=OFF \
+		-DCURL_USE_NSS=OFF \
+		-DCURL_USE_OPENSSL=OFF \
+		-DCURL_USE_WOLFSSL=ON \
+		-DCURL_DISABLE_ALTSVC=ON \
+		-DCURL_DISABLE_AWS=ON \
+		-DCURL_DISABLE_BASIC_AUTH=ON \
+		-DCURL_DISABLE_BEARER_AUTH=ON \
+		-DCURL_DISABLE_BINDLOCAL=ON \
+		-DCURL_DISABLE_CA_SEARCH=ON \
+		-DCURL_DISABLE_COOKIES=ON \
+		-DCURL_DISABLE_CRYPTO_AUTH=ON \
+		-DCURL_DISABLE_DICT=ON \
+		-DCURL_DISABLE_DIGEST_AUTH=ON \
+		-DCURL_DISABLE_DOH=ON \
+		-DCURL_DISABLE_FILE=ON \
+		-DCURL_DISABLE_FTP=ON \
+		-DCURL_DISABLE_GETOPTIONS=ON \
+		-DCURL_DISABLE_GOPHER=ON \
+		-DCURL_DISABLE_HSTS=ON \
+		-DCURL_DISABLE_HTTP=ON \
+		-DCURL_DISABLE_HTTP_AUTH=ON \
+		-DCURL_DISABLE_IMAP=ON \
+		-DCURL_DISABLE_IPFS=ON \
+		-DCURL_DISABLE_KERBEROS_AUTH=ON \
+		-DCURL_DISABLE_LDAP=ON \
+		-DCURL_DISABLE_LDAPS=ON \
+		-DCURL_DISABLE_LIBCURL_OPTION=ON \
+		-DCURL_DISABLE_MIME=ON \
+		-DCURL_DISABLE_MQTT=ON \
+		-DCURL_DISABLE_NETRC=ON \
+		-DCURL_DISABLE_NEGOTIATE_AUTH=ON \
+		-DCURL_DISABLE_NTLM=ON \
+		-DCURL_DISABLE_OPENSSL_AUTO_LOAD=ON \
+		-DCURL_DISABLE_PARSEDATE=ON \
+		-DCURL_DISABLE_POP3=ON \
+		-DCURL_DISABLE_PROGRESS_METER=ON \
+		-DCURL_DISABLE_PROXY=ON \
+		-DCURL_DISABLE_RTSP=ON \
+		-DCURL_DISABLE_SHA512_256=ON \
+		-DCURL_DISABLE_SHUFFLE_DNS=ON \
+		-DCURL_DISABLE_SMB=ON \
+		-DCURL_DISABLE_SMTP=ON \
+		-DCURL_DISABLE_SOCKETPAIR=ON \
+		-DCURL_DISABLE_TELNET=ON \
+		-DCURL_DISABLE_TFTP=ON \
+		-DCURL_DISABLE_WEBSOCKETS=ON
 }
 
 # Build SDL2
@@ -302,7 +438,7 @@ build_sdl2() {
 	esac
 
 	download_extract sdl2 "${archive_name}" \
-		"https://www.libsdl.org/release/${archive_name}" \
+		"${SDL2_BASEURL}/${archive_name}" \
 		"https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/${archive_name}"
 
 	"${download_only}" && return
@@ -336,15 +472,14 @@ build_sdl2() {
 		cp "${sdl2_lib_dir}/"*.dll "${PREFIX}/SDL2/${sdl2_lib_dir}"
 		;;
 	macos-*-*)
-		rm -rf "${PREFIX}/SDL2.framework"
-		cp -R "SDL2.framework" "${PREFIX}"
+		rm -rf "${PREFIX}/lib/SDL2.framework"
+		cp -R "SDL2.framework" "${PREFIX}/lib"
 		;;
 	*)
 		cd "${dir_name}"
-		# The default -O3 is dropped when there's user-provided CFLAGS.
-		CFLAGS="${CFLAGS} -O3" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-		make
-		make install
+
+		cmake_build
+
 		# Workaround for an SDL2 CMake bug, we need to provide
 		# a bin/ directory even when nothing is used from it.
 		mkdir -p "${PREFIX}/bin"
@@ -360,12 +495,13 @@ build_glew() {
 	local archive_name="${dir_name}.tgz"
 
 	download_extract glew "${archive_name}" \
-		"https://github.com/nigels-com/glew/releases/download/glew-${GLEW_VERSION}/${archive_name}" \
+		"${GLEW_BASEURL}/download/glew-${GLEW_VERSION}/${archive_name}" \
 		"https://downloads.sourceforge.net/project/glew/glew/${GLEW_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
+
 	case "${PLATFORM}" in
 	windows-*-*)
 		make SYSTEM="linux-mingw${BITNESS}" GLEW_DEST="${PREFIX}" CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${HOST}-strip" LD="${LD}" CFLAGS.EXTRA="${CFLAGS}" LDFLAGS.EXTRA="${LDFLAGS}"
@@ -395,15 +531,16 @@ build_png() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract png "${archive_name}" \
-		"https://download.sourceforge.net/libpng/${archive_name}"
+		"${PNG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	cmake_build \
+		-DPNG_EXECUTABLES=OFF \
+		-DPNG_SHARED="${LIBS_SHARED}" \
+		-DPNG_STATIC="${LIBS_STATIC}"
 }
 
 # Build JPEG
@@ -412,7 +549,7 @@ build_jpeg() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract jpeg "${archive_name}" \
-		"https://downloads.sourceforge.net/project/libjpeg-turbo/${JPEG_VERSION}/${archive_name}"
+		"${JPEG_BASEURL}/${JPEG_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -456,25 +593,28 @@ build_jpeg() {
 		;;
 	esac
 
-	local jpeg_cmake_call=(cmake -S . -B build -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-		-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" -DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
-		-DWITH_JPEG8=1)
+	local jpeg_cmake_args=()
 
-	cd "${dir_name}"
 	case "${PLATFORM}" in
-	windows-*-mingw)
-		"${jpeg_cmake_call[@]}" -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DENABLE_SHARED=0
-		;;
-	windows-*-msvc)
-		"${jpeg_cmake_call[@]}" -DCMAKE_TOOLCHAIN_FILE="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake" -DENABLE_SHARED=1
+	windows-*-*)
 		;;
 	*)
-		"${jpeg_cmake_call[@]}" -DENABLE_SHARED=0
+		# Workaround for: undefined reference to `log10'
+		# The CMakeLists.txt file only does -lm if UNIX,
+		# but UNIX may not be true on Linux.
+		jpeg_cmake_args=(-DUNIX=True)
 		;;
 	esac
-	make -C build
-	make -C build install
+		
+	cd "${dir_name}"
+
+	cmake_build \
+		-DENABLE_SHARED="${LIBS_SHARED}" \
+		-DENABLE_STATIC="${LIBS_STATIC}" \
+		-DCMAKE_SYSTEM_NAME="${SYSTEM_NAME}" \
+		-DCMAKE_SYSTEM_PROCESSOR="${SYSTEM_PROCESSOR}" \
+		-DWITH_JPEG8=1 \
+		"${jpeg_cmake_args[@]}"
 }
 
 # Build WebP
@@ -483,15 +623,25 @@ build_webp() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract webp "${archive_name}" \
-		"https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive_name}"
+		"${WEBP_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --disable-libwebpdemux "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	# WEBP_LINK_STATIC is ON by default
+
+	cmake_build \
+		-DWEBP_BUILD_ANIM_UTILS=OFF \
+		-DWEBP_BUILD_CWEBP=OFF \
+		-DWEBP_BUILD_DWEBP=OFF \
+		-DWEBP_BUILD_EXTRAS=OFF \
+		-DWEBP_BUILD_GIF2WEBP=OFF \
+		-DWEBP_BUILD_IMG2WEBP=OFF \
+		-DWEBP_BUILD_LIBWEBPMUX=OFF \
+		-DWEBP_BUILD_VWEBP=OFF \
+		-DWEBP_BUILD_WEBPINFO=OFF \
+		-DWEBP_BUILD_WEBPMUX=OFF
 }
 
 # Build FreeType
@@ -500,17 +650,19 @@ build_freetype() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract freetype "${archive_name}" \
-		"https://download.savannah.gnu.org/releases/freetype/${archive_name}"
+		"${FREETYPE_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --without-bzip2 --without-png --with-harfbuzz=no --with-brotli=no
-	make
-	make install
-	cp -a "${PREFIX}/include/freetype2" "${PREFIX}/include/freetype"
-	mv "${PREFIX}/include/freetype" "${PREFIX}/include/freetype2/freetype"
+
+	cmake_build \
+		-DFT_DISABLE_BROTLI=ON \
+		-DFT_DISABLE_BZIP2=ON \
+		-DFT_DISABLE_HARFBUZZ=ON \
+		-DFT_DISABLE_PNG=ON \
+		-DFT_REQUIRE_ZLIB=ON \
+		-DFT_ENABLE_ERROR_STRINGS=ON
 }
 
 # Build OpenAL
@@ -520,20 +672,15 @@ build_openal() {
 		local dir_name="openal-soft-${OPENAL_VERSION}-bin"
 		local archive_name="${dir_name}.zip"
 		;;
-	macos-*-*|linux-*-*)
+	*)
 		local dir_name="openal-soft-${OPENAL_VERSION}"
 		local archive_name="${dir_name}.tar.bz2"
-		local openal_cmake_call=(cmake -S . -B . -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-			-DCMAKE_C_FLAGS="${CFLAGS}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-			-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
-		;;
-	*)
-		log error 'Unsupported platform for OpenAL'
+		local openal_cmake_args=(-DCMAKE_BUILD_TYPE=Release -DALSOFT_EXAMPLES=OFF)
 		;;
 	esac
 
 	download_extract openal "${archive_name}" \
-		"https://openal-soft.org/openal-releases/${archive_name}" \
+		"${OPENAL_BASEURL}/${archive_name}" \
 		"https://github.com/kcat/openal-soft/releases/download/${OPENAL_VERSION}/${archive_name}" \
 
 	"${download_only}" && return
@@ -555,16 +702,16 @@ build_openal() {
 		;;
 	macos-*-*)
 		cd "${dir_name}"
-		"${openal_cmake_call[@]}"
-		make
-		make install
+
+		cmake_build \
+			-DBUILD_LIBS_SHARED=ON
+
 		install_name_tool -id "@rpath/libopenal.${OPENAL_VERSION}.dylib" "${PREFIX}/lib/libopenal.${OPENAL_VERSION}.dylib"
 		;;
-	linux-*-*)
+	*)
 		cd "${dir_name}"
-		"${openal_cmake_call[@]}" -DLIBTYPE=STATIC 
-		make
-		make install
+
+		cmake_build
 		;;
 	esac
 }
@@ -575,18 +722,18 @@ build_ogg() {
 	local archive_name="libogg-${OGG_VERSION}.tar.xz"
 
 	download_extract ogg "${archive_name}" \
-		"https://downloads.xiph.org/releases/ogg/${archive_name}"
+		"${OGG_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
+
 	# This header breaks the vorbis and opusfile Mac builds
 	cat <(echo '#include <stdint.h>') include/ogg/os_types.h > os_types.tmp
 	mv os_types.tmp include/ogg/os_types.h
-	# The user-provided CFLAGS doesn't drop the default -O2
-	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-	make
-	make install
+
+	# The provided CMakeLists.txt doesn't have an install target.
+	configure_build
 }
 
 # Build Vorbis
@@ -595,15 +742,23 @@ build_vorbis() {
 	local archive_name="${dir_name}.tar.xz"
 
 	download_extract vorbis "${archive_name}" \
-		"https://downloads.xiph.org/releases/vorbis/${archive_name}"
+		"${VORBIS_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The user-provided CFLAGS doesn't drop the default -O3
-	./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-examples
-	make
-	make install
+
+	case "${PLATFORM}" in
+	windows-*-msvc)
+		# Workaround a build issue on MinGW:
+		# See: https://github.com/microsoft/vcpkg/issues/22990
+		# and: https://github.com/microsoft/vcpkg/pull/23761
+		ls win32/vorbis.def win32/vorbisenc.def win32/vorbisfile.def \
+		| xargs -I{} -P3 sed -e 's/LIBRARY//' -i {}
+		;;
+	esac
+
+	cmake_build
 }
 
 # Build Opus
@@ -612,23 +767,31 @@ build_opus() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract opus "${archive_name}" \
-		"https://downloads.xiph.org/releases/opus/${archive_name}"
+		"${OPUS_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
-	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+	local opus_cmake_args=()
+
 	case "${PLATFORM}" in
 	windows-*-*)
-		# With MinGW _FORTIFY_SOURCE (added by configure) can only by used with -fstack-protector enabled.
-		CFLAGS="${CFLAGS} -O2 -D_FORTIFY_SOURCE=0" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
-		;;
-	*)
-		CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}"
+		# With MinGW, we would get this error:
+		# undefined reference to `__stack_chk_guard'
+		opus_cmake_args+=(-DOPUS_FORTIFY_SOURCE=OFF -DOPUS_STACK_PROTECTOR=OFF)
 		;;
 	esac
-	make
-	make install
+
+	cd "${dir_name}"
+
+	cmake_build "${opus_cmake_args[@]}" \
+		-DOPUS_BUILD_PROGRAMS=OFF \
+		-DOPUS_BUILD_TESTING=OFF \
+		-DOPUS_X86_MAY_HAVE_SSE=ON \
+		-DOPUS_X86_MAY_HAVE_SSE2=ON \
+		-DOPUS_X86_PRESUME_SSE=ON \
+		-DOPUS_X86_PRESUME_SSE2=ON \
+		-DOPUS_X86_MAY_HAVE_SSE4_1=OFF \
+		-DOPUS_X86_MAY_HAVE_AVX2=OFF
 }
 
 # Build OpusFile
@@ -637,15 +800,13 @@ build_opusfile() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract opusfile "${archive_name}" \
-		"https://downloads.xiph.org/releases/opus/${archive_name}"
+		"${OPUSFILE_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" "${CONFIGURE_SHARED[@]}" --disable-http
-	make
-	make install
+
+	configure_build --disable-http
 }
 
 # Build Lua
@@ -654,7 +815,7 @@ build_lua() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract lua "${archive_name}" \
-		"https://www.lua.org/ftp/${archive_name}"
+		"${LUA_BASEURL}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -694,17 +855,17 @@ build_ncurses() {
 	local archive_name="${dir_name}.tar.gz"
 
 	download_extract ncurses "${archive_name}" \
-		"https://ftpmirror.gnu.org/gnu/ncurses/${archive_name}" \
+		"${NCURSES_BASEURL}/${archive_name}" \
 		"https://ftp.gnu.org/pub/gnu/ncurses/${archive_name}"
 
 	"${download_only}" && return
 
 	cd "${dir_name}"
-	# The default -O2 is dropped when there's user-provided CFLAGS.
+
 	# Configure terminfo search dirs based on the ones used in Debian. By default it will only look in (only) the install directory.
-	CFLAGS="${CFLAGS} -O2" ./configure --host="${HOST}" --prefix="${PREFIX}" --libdir="${PREFIX}/lib" --enable-widec "${CONFIGURE_SHARED[@]}" --with-terminfo-dirs=/etc/terminfo:/lib/terminfo --with-default-terminfo-dir=/usr/share/terminfo
-	make
-	make install
+	configure_build \
+		--with-terminfo-dirs=/etc/terminfo:/lib/terminfo \
+		--with-default-terminfo-dir=/usr/share/terminfo
 }
 
 # "Builds" (downloads) the WASI SDK
@@ -733,7 +894,7 @@ build_wasisdk() {
 	local WASISDK_VERSION_MAJOR="$(echo "${WASISDK_VERSION}" | cut -f1 -d'.')"
 
 	download_extract wasisdk "${archive_name}" \
-		"https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
+		"${WASISDK_BASEURL}/download/wasi-sdk-${WASISDK_VERSION_MAJOR}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -772,7 +933,7 @@ build_wasmtime() {
 	local archive_name="${folder_name}.${ARCHIVE_EXT}"
 
 	download_extract wasmtime "${archive_name}" \
-		"https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/${archive_name}"
+		"${WASMTIME_BASEURL}/download/v${WASMTIME_VERSION}/${archive_name}"
 
 	"${download_only}" && return
 
@@ -818,7 +979,7 @@ build_naclsdk() {
 	local archive_name="naclsdk_${NACLSDK_PLATFORM}-${NACLSDK_VERSION}.${TAR_EXT}.bz2"
 
 	download_extract naclsdk "${archive_name}" \
-		"https://storage.googleapis.com/nativeclient-mirror/nacl/nacl_sdk/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
+		"${NACLSDK_BASEURL}/${NACLSDK_VERSION}/naclsdk_${NACLSDK_PLATFORM}.tar.bz2"
 
 	"${download_only}" && return
 
@@ -982,6 +1143,13 @@ build_install() {
 		;;
 	esac
 
+	case "${PLATFORM}" in
+	windows-*-*)
+		# CMake looks for libSDL2.a and aborts if missing if this file exists:
+		rm -rf "${PKG_PREFIX}/lib/cmake/SDL2/SDL2staticTargets.cmake"
+		;;
+	esac
+
 	# Remove empty directories
 	find "${PKG_PREFIX}/" -mindepth 1 -type d -empty -delete
 }
@@ -1008,8 +1176,10 @@ build_wipe() {
 # Common setup code
 common_setup() {
 	HOST="${2}"
+
 	"common_setup_${1}"
 	common_setup_arch
+
 	DOWNLOAD_DIR="${WORK_DIR}/download_cache"
 	PKG_BASEDIR="${PLATFORM}_${DEPS_VERSION}"
 	BUILD_BASEDIR="build-${PKG_BASEDIR}"
@@ -1020,10 +1190,12 @@ common_setup() {
 	PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 	CPPFLAGS+=" -I${PREFIX}/include"
 	LDFLAGS+=" -L${PREFIX}/lib"
+
 	mkdir -p "${DOWNLOAD_DIR}"
 	mkdir -p "${PREFIX}/bin"
 	mkdir -p "${PREFIX}/include"
 	mkdir -p "${PREFIX}/lib"
+
 	export CC CXX LD AR RANLIB PKG_CONFIG PKG_CONFIG_PATH PATH CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
 }
 
@@ -1059,24 +1231,27 @@ common_setup_arch() {
 # Lua does use this one, which results in compiler warnings. But this is OK because
 # the Windows build of Lua is only used in developer gamelogic builds, and Microsoft
 # supports %lld since Visual Studio 2013.
-common_setup_msvc() {
-	CONFIGURE_SHARED=(--enable-shared --disable-static)
-	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
-	CC="${HOST}-gcc -static-libgcc"
-	CXX="${HOST}-g++ -static-libgcc"
+common_setup_windows() {
 	LD="${HOST}-ld"
 	AR="${HOST}-ar"
 	RANLIB="${HOST}-ranlib"
 	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+	CMAKE_TOOLCHAIN="${SCRIPT_DIR}/../cmake/cross-toolchain-mingw${BITNESS}.cmake"
+}
+
+common_setup_msvc() {
+	LIBS_SHARED='ON'
+	LIBS_STATIC='OFF'
+	# Libtool bug prevents -static-libgcc from being set in LDFLAGS
+	CC="${HOST}-gcc -static-libgcc"
+	CXX="${HOST}-g++ -static-libgcc"
+	common_setup_windows
 }
 
 common_setup_mingw() {
 	CC="${HOST}-gcc"
 	CXX="${HOST}-g++"
-	LD="${HOST}-ld"
-	AR="${HOST}-ar"
-	RANLIB="${HOST}-ranlib"
-	CFLAGS+=' -D__USE_MINGW_ANSI_STDIO=0'
+	common_setup_windows
 }
 
 common_setup_macos() {
@@ -1264,7 +1439,8 @@ if [ "${#}" -lt "2" ]; then
 fi
 
 # Enable parallel build
-export MAKEFLAGS="-j`nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
+export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1)"
+export MAKEFLAGS="-j${CMAKE_BUILD_PARALLEL_LEVEL}"
 
 # Setup platform
 platform="${1}"; shift

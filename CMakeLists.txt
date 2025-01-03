@@ -245,7 +245,7 @@ else()
 endif()
 
 # Dependencies version, this must match the number in external_deps/build.sh
-set(DEPS_VERSION 10)
+set(DEPS_VERSION 11)
 
 option(USE_EXTERNAL_DEPS "Download or reuse dependencies from EXTERNAL_DEPS_DIR (mandatory for building and running NaCl .nexe binaries)." ON)
 
@@ -500,7 +500,7 @@ if (DEPS_DIR)
     # Add to paths
     set(CMAKE_FIND_ROOT_PATH ${DEPS_DIR} ${CMAKE_FIND_ROOT_PATH})
     set(CMAKE_INCLUDE_PATH ${DEPS_DIR} ${DEPS_DIR}/include ${CMAKE_INCLUDE_PATH})
-    set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR} ${CMAKE_FRAMEWORK_PATH})
+    set(CMAKE_FRAMEWORK_PATH ${DEPS_DIR}/lib ${CMAKE_FRAMEWORK_PATH})
     set(CMAKE_PREFIX_PATH ${DEPS_DIR} ${CMAKE_PREFIX_PATH})
     if (DAEMON_PARENT_SCOPE_DIR)
         # Also set parent scope so the top level CMakeLists can find precompiled deps
@@ -1047,11 +1047,16 @@ if (DEPS_DIR AND (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMM
 
     # Mac requires some libraries from external_deps
     if (APPLE)
-        add_custom_command(TARGET runtime_deps PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${DEPS_DIR}/SDL2.framework
-                ${FULL_OUTPUT_DIR}/SDL2.framework
-        )
+        file(GLOB RUNTIME_FRAMEWORKS ${DEPS_DIR}/lib/*.framework)
+        foreach(RUNTIME_FRAMEWORK ${RUNTIME_FRAMEWORKS})
+            get_filename_component(RUNTIME_FRAMEWORK_NAME ${RUNTIME_FRAMEWORK} NAME)
+            add_custom_command(TARGET runtime_deps PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${RUNTIME_FRAMEWORK}
+                    ${FULL_OUTPUT_DIR}/${RUNTIME_FRAMEWORK_NAME}
+            )
+        endforeach()
+
         file(GLOB RUNTIME_LIBS ${DEPS_DIR}/lib/*.dylib)
         foreach(RUNTIME_LIB ${RUNTIME_LIBS})
             add_custom_command(TARGET runtime_deps PRE_BUILD
