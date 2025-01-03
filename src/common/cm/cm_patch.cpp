@@ -822,13 +822,13 @@ cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t 
 	// the approximate surface defined by these points will be
 	// collided against
 	sc = ( cSurfaceCollide_t * ) CM_Alloc( sizeof( *sc ) );
-	ClearBounds( sc->bounds[ 0 ], sc->bounds[ 1 ] );
+	ClearBounds( sc->bounds );
 
 	for ( i = 0; i < grid.width; i++ )
 	{
 		for ( j = 0; j < grid.height; j++ )
 		{
-			AddPointToBounds( grid.points[ i ][ j ], sc->bounds[ 0 ], sc->bounds[ 1 ] );
+			AddPointToBounds( grid.points[ i ][ j ], sc->bounds );
 		}
 	}
 
@@ -838,13 +838,13 @@ cSurfaceCollide_t *CM_GeneratePatchCollide( int width, int height, const vec3_t 
 	CM_SurfaceCollideFromGrid( &grid, sc );
 
 	// expand by one unit for epsilon purposes
-	sc->bounds[ 0 ][ 0 ] -= 1;
-	sc->bounds[ 0 ][ 1 ] -= 1;
-	sc->bounds[ 0 ][ 2 ] -= 1;
+	sc->bounds.mins[ 0 ] -= 1;
+	sc->bounds.mins[ 1 ] -= 1;
+	sc->bounds.mins[ 2 ] -= 1;
 
-	sc->bounds[ 1 ][ 0 ] += 1;
-	sc->bounds[ 1 ][ 1 ] += 1;
-	sc->bounds[ 1 ][ 2 ] += 1;
+	sc->bounds.maxs[ 0 ] += 1;
+	sc->bounds.maxs[ 1 ] += 1;
+	sc->bounds.maxs[ 2 ] += 1;
 
 	return sc;
 }

@@ -162,7 +162,8 @@ struct alignas(16) refSkeleton_t
 
 	unsigned short numBones;
 
-	vec3_t            bounds[ 2 ]; // bounds of all applied animations
+	bounds_t bounds; // bounds of all applied animations
+
 	vec_t             scale;
 
 	refBone_t         bones[ MAX_BONES ];

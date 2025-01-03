@@ -318,13 +318,13 @@ cSurfaceCollide_t *CM_GenerateTriangleSoupCollide( int numVertexes, vec3_t *vert
 	//for(i = 0; i < triSoup.num
 
 	sc = ( cSurfaceCollide_t * ) CM_Alloc( sizeof( *sc ) );
-	ClearBounds( sc->bounds[ 0 ], sc->bounds[ 1 ] );
+	ClearBounds( sc->bounds );
 
 	for ( i = 0; i < triSoup.numTriangles; i++ )
 	{
 		for ( j = 0; j < 3; j++ )
 		{
-			AddPointToBounds( triSoup.points[ i ][ j ], sc->bounds[ 0 ], sc->bounds[ 1 ] );
+			AddPointToBounds( triSoup.points[ i ][ j ], sc->bounds );
 		}
 	}
 
@@ -332,13 +332,13 @@ cSurfaceCollide_t *CM_GenerateTriangleSoupCollide( int numVertexes, vec3_t *vert
 	CM_SurfaceCollideFromTriangleSoup( &triSoup, sc );
 
 	// expand by one unit for epsilon purposes
-	sc->bounds[ 0 ][ 0 ] -= 1;
-	sc->bounds[ 0 ][ 1 ] -= 1;
-	sc->bounds[ 0 ][ 2 ] -= 1;
+	sc->bounds.mins[ 0 ] -= 1;
+	sc->bounds.mins[ 1 ] -= 1;
+	sc->bounds.mins[ 2 ] -= 1;
 
-	sc->bounds[ 1 ][ 0 ] += 1;
-	sc->bounds[ 1 ][ 1 ] += 1;
-	sc->bounds[ 1 ][ 2 ] += 1;
+	sc->bounds.maxs[ 0 ] += 1;
+	sc->bounds.maxs[ 1 ] += 1;
+	sc->bounds.maxs[ 2 ] += 1;
 
 	cmLog.Debug( "CM_GenerateTriangleSoupCollide: %i planes %i facets", sc->numPlanes, sc->numFacets );
 

@@ -336,7 +336,7 @@ R_CullBox
 Returns CULL_IN, CULL_CLIP, or CULL_OUT
 =================
 */
-cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
+cullResult_t R_CullBox( const bounds_t &worldBounds )
 {
 	bool anyClip;
 	cplane_t *frust;
@@ -354,7 +354,7 @@ cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 	{
 		frust = &tr.viewParms.frustums[ 0 ][ i ];
 
-		r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
+		r = BoxOnPlaneSide( worldBounds, frust );
 
 		if ( r == 2 )
 		{
@@ -385,12 +385,12 @@ R_CullLocalBox
 Returns CULL_IN, CULL_CLIP, or CULL_OUT
 =================
 */
-cullResult_t R_CullLocalBox( vec3_t localBounds[ 2 ] )
+cullResult_t R_CullLocalBox( const bounds_t &localBounds )
 {
-	vec3_t   worldBounds[ 2 ];
+	bounds_t worldBounds;
 
 	// transform into world space
-	MatrixTransformBounds(tr.orientation.transformMatrix, localBounds[0], localBounds[1], worldBounds[0], worldBounds[1]);
+	MatrixTransformBounds( tr.orientation.transformMatrix, localBounds, worldBounds );
 
 	return R_CullBox( worldBounds );
 }
@@ -456,7 +456,7 @@ cullResult_t R_CullPointAndRadius( vec3_t pt, float radius )
 R_FogWorldBox
 =================
 */
-int R_FogWorldBox( vec3_t bounds[ 2 ] )
+int R_FogWorldBox( const bounds_t &bounds )
 {
 	int   i, j;
 	fog_t *fog;
@@ -472,12 +472,12 @@ int R_FogWorldBox( vec3_t bounds[ 2 ] )
 
 		for ( j = 0; j < 3; j++ )
 		{
-			if ( bounds[ 0 ][ j ] >= fog->bounds[ 1 ][ j ] )
+			if ( bounds.mins[ j ] >= fog->bounds.maxs[ j ] )
 			{
 				break;
 			}
 
-			if ( bounds[ 1 ][ j ] <= fog->bounds[ 0 ][ j ] )
+			if ( bounds.maxs[ j ] <= fog->bounds.mins[ j ] )
 			{
 				break;
 			}
@@ -619,7 +619,7 @@ Tr3B - needs R_RotateEntityForViewParms
 */
 void R_SetupEntityWorldBounds( trRefEntity_t *ent )
 {
-	MatrixTransformBounds(tr.orientation.transformMatrix, ent->localBounds[0], ent->localBounds[1], ent->worldBounds[0], ent->worldBounds[1]);
+	MatrixTransformBounds( tr.orientation.transformMatrix, ent->localBounds, ent->worldBounds );
 }
 
 /*
@@ -836,35 +836,34 @@ static void SetFarClip()
 		float  distance;
 
 		if ( glConfig2.usingMaterialSystem ) {
-			VectorCopy( materialSystem.worldViewBounds[0], tr.viewParms.visBounds[0] );
-			VectorCopy( materialSystem.worldViewBounds[1], tr.viewParms.visBounds[1] );
+			BoundsCopy( materialSystem.worldViewBounds, tr.viewParms.visBounds );
 		}
 
 		if ( i & 1 )
 		{
-			v[ 0 ] = tr.viewParms.visBounds[ 0 ][ 0 ];
+			v[ 0 ] = tr.viewParms.visBounds.mins[ 0 ];
 		}
 		else
 		{
-			v[ 0 ] = tr.viewParms.visBounds[ 1 ][ 0 ];
+			v[ 0 ] = tr.viewParms.visBounds.maxs[ 0 ];
 		}
 
 		if ( i & 2 )
 		{
-			v[ 1 ] = tr.viewParms.visBounds[ 0 ][ 1 ];
+			v[ 1 ] = tr.viewParms.visBounds.mins[ 1 ];
 		}
 		else
 		{
-			v[ 1 ] = tr.viewParms.visBounds[ 1 ][ 1 ];
+			v[ 1 ] = tr.viewParms.visBounds.maxs[ 1 ];
 		}
 
 		if ( i & 4 )
 		{
-			v[ 2 ] = tr.viewParms.visBounds[ 0 ][ 2 ];
+			v[ 2 ] = tr.viewParms.visBounds.mins[ 2 ];
 		}
 		else
 		{
-			v[ 2 ] = tr.viewParms.visBounds[ 1 ][ 2 ];
+			v[ 2 ] = tr.viewParms.visBounds.maxs[ 2 ];
 		}
 
 		distance = DistanceSquared( v, tr.viewParms.orientation.origin );
@@ -1113,12 +1112,7 @@ void R_CalcFrustumFarCornersUnsafe( const plane_t frustum[ FRUSTUM_FAR + 1 ], ve
 
 static void CopyPlane( const cplane_t *in, cplane_t *out )
 {
-	VectorCopy( in->normal, out->normal );
-	out->dist = in->dist;
-	out->type = in->type;
-	out->signbits = in->signbits;
-	out->pad[ 0 ] = in->pad[ 0 ];
-	out->pad[ 1 ] = in->pad[ 1 ];
+	memcpy( out, in, sizeof(cplane_t) );
 }
 
 static void R_SetupSplitFrustums()
@@ -1529,8 +1523,8 @@ int PortalOffScreenOrOutOfRange( const drawSurf_t *drawSurf, screenRect_t& surfR
 	AABB aabb;
 	if ( tr.currentEntity != &tr.worldEntity ) {
 		VectorCopy( tr.currentEntity->e.origin, aabb.origin );
-		VectorCopy( tr.currentEntity->localBounds[0], aabb.mins );
-		VectorCopy( tr.currentEntity->localBounds[1], aabb.maxs );
+		VectorCopy( tr.currentEntity->localBounds.mins, aabb.mins );
+		VectorCopy( tr.currentEntity->localBounds.maxs, aabb.maxs );
 	} else {
 		tr.orientation = tr.viewParms.world;
 		VectorCopy( tr.world->portals[drawSurf->portalNum].origin, aabb.origin );
@@ -1825,12 +1819,12 @@ int R_SpriteFogNum( trRefEntity_t *ent )
 
 		for ( j = 0; j < 3; j++ )
 		{
-			if ( ent->e.origin[ j ] - ent->e.radius >= fog->bounds[ 1 ][ j ] )
+			if ( ent->e.origin[ j ] - ent->e.radius >= fog->bounds.maxs[ j ] )
 			{
 				break;
 			}
 
-			if ( ent->e.origin[ j ] + ent->e.radius <= fog->bounds[ 0 ][ j ] )
+			if ( ent->e.origin[ j ] + ent->e.radius <= fog->bounds.mins[ j ] )
 			{
 				break;
 			}
@@ -2120,10 +2114,8 @@ void R_AddEntitySurfaces()
 								break;
 							}
 
-							VectorClear( ent->localBounds[ 0 ] );
-							VectorClear( ent->localBounds[ 1 ] );
-							VectorClear( ent->worldBounds[ 0 ] );
-							VectorClear( ent->worldBounds[ 1 ] );
+							ZeroBounds( ent->localBounds );
+							ZeroBounds( ent->worldBounds );
 							shader = R_GetShaderByHandle( ent->e.customShader );
 							R_AddDrawSurf( &entitySurface, tr.defaultShader, -1, 0 );
 							break;
@@ -2248,7 +2240,6 @@ check if OMNI shadow light can be turned into PROJ for better shadow map quality
 */
 void R_TransformShadowLight( trRefLight_t *light ) {
 	int    i;
-	vec3_t mins, maxs, mids;
 	vec3_t forward, right, up;
 	float  radius;
 
@@ -2256,18 +2247,21 @@ void R_TransformShadowLight( trRefLight_t *light ) {
 	    light->restrictInteractionFirst < 0 )
 		return;
 
-	ClearBounds( mins, maxs );
+	bounds_t bounds;
+	ClearBounds( bounds );
+
 	for( i = light->restrictInteractionFirst; i <= light->restrictInteractionLast; i++ ) {
 		trRefEntity_t *ent = &tr.refdef.entities[ i ];
 
-		BoundsAdd(ent->worldBounds[0], ent->worldBounds[1], mins, maxs);
+		BoundsAdd( ent->worldBounds, bounds );
 	}
 
 	// if light origin is outside BBox of shadow receivers, build
 	// a projection light on the closest plane of the BBox
-	VectorAdd( mins, maxs, mids );
+	vec3_t mids;
+	VectorAdd( bounds.mins, bounds.maxs, mids );
 	VectorScale( mids, 0.5f, mids );
-	radius = Distance( mids, maxs );
+	radius = Distance( mids, bounds.maxs );
 
 	light->l.rlType = refLightType_t::RL_PROJ;
 	VectorSubtract( mids, light->l.origin, forward );
@@ -2358,8 +2352,7 @@ void R_AddLightInteractions()
 			R_SetupLightFrustum( light );
 
 			// ignore if not in visible bounds
-			if ( !BoundsIntersect
-			     ( light->worldBounds[ 0 ], light->worldBounds[ 1 ], tr.viewParms.visBounds[ 0 ], tr.viewParms.visBounds[ 1 ] ) )
+			if ( !BoundsIntersect( light->worldBounds, tr.viewParms.visBounds ) )
 			{
 				continue;
 			}

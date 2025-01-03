@@ -106,7 +106,7 @@ int R_LerpTag( orientation_t*, const refEntity_t*, const char*, int )
 {
 	return 0;
 }
-void R_ModelBounds( qhandle_t, vec3_t, vec3_t ) { }
+void R_ModelBounds( qhandle_t, bounds_t& ) { }
 void R_RemapShader( const char*, const char*, const char* ) { }
 bool R_GetEntityToken( char*, int )
 {

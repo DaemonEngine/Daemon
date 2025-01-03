@@ -542,7 +542,7 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
 	}
 
 	// loading is done now calculate the bounding box
-	ClearBounds( md5->bounds[ 0 ], md5->bounds[ 1 ] );
+	ClearBounds( md5->bounds );
 
     surf = md5->surfaces;
 	for (unsigned i = 0; i < md5->numSurfaces; i++, surf++ )
@@ -550,11 +550,11 @@ bool R_LoadMD5( model_t *mod, const char *buffer, const char *modName )
         v = surf->verts;
 		for (unsigned j = 0; j < surf->numVerts; j++, v++ )
 		{
-			AddPointToBounds( v->position, md5->bounds[ 0 ], md5->bounds[ 1 ] );
+			AddPointToBounds( v->position, md5->bounds );
 		}
 	}
 
-	md5->internalScale = BoundsMaxExtent( md5->bounds[ 0 ], md5->bounds[ 1 ] );
+	md5->internalScale = BoundsMaxExtent( md5->bounds );
 	if( md5->internalScale > 0.0f ) {
 		float invScale = 1.0f / md5->internalScale;
 
