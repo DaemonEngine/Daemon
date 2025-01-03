@@ -905,7 +905,7 @@ void Render_generic3D( shaderStage_t *pStage )
 		);
 	}
 
-	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) ) {
+	if ( r_profilerRenderSubGroups.Get() && !( pStage->stateBits & GLS_DEPTHMASK_TRUE ) && !tr.skipSubgroupProfiler ) {
 		const uint mode = GetShaderProfilerRenderSubGroupsMode( pStage->stateBits );
 		if( mode == 0 ) {
 			return;
@@ -929,12 +929,12 @@ void Render_generic( shaderStage_t *pStage )
 	if ( backEnd.projection2D )
 	{
 		glState.glStateBitsMask = ~uint32_t( GLS_DEPTHMASK_TRUE ) | GLS_DEPTHTEST_DISABLE;
-		gl_genericShader->SetGeneric2D( true );
+		tr.skipSubgroupProfiler = true;
 
 		Render_generic3D( pStage );
 
 		glState.glStateBitsMask = 0;
-		gl_genericShader->SetGeneric2D( false );
+		tr.skipSubgroupProfiler = false;
 		return;
 	}
 
