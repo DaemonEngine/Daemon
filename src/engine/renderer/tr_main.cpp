@@ -1999,7 +1999,7 @@ static void R_SortDrawSurfs()
 	// check for any pass through drawing, which
 	// may cause another view to be rendered first
 	// Material system does its own handling of portal surfaces
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig2.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
 		if ( tr.viewParms.portalLevel == 0 ) {
 			materialSystem.AddPortalSurfaces();
 			currentView = 0;
@@ -2524,7 +2524,7 @@ void R_RenderView( viewParms_t *parms )
 
 	R_SetupFrustum();
 
-	if ( glConfig2.usingMaterialSystem ) {
+	if ( glConfig2.usingMaterialSystem && !r_materialSystemSkip.Get() ) {
 		tr.viewParms.viewID = tr.viewCount;
 		materialSystem.QueueSurfaceCull( tr.viewCount, tr.viewParms.pvsOrigin, (frustum_t*) tr.viewParms.frustums[0] );
 		materialSystem.AddAutospriteSurfaces();
