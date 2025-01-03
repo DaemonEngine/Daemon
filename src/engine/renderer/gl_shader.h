@@ -1686,7 +1686,6 @@ protected:
 	  USE_SHADOWING,
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
-	  GENERIC_2D,
 	  USE_PHYSICAL_MAPPING,
 	};
 
@@ -2107,26 +2106,6 @@ public:
 
 	void SetDepthFade( bool enable )
 	{
-		SetMacro( enable );
-	}
-};
-
-class GLCompileMacro_GENERIC_2D :
-	GLCompileMacro {
-	public:
-	GLCompileMacro_GENERIC_2D( GLShader* shader ) :
-		GLCompileMacro( shader ) {
-	}
-
-	const char* GetName() const override {
-		return "GENERIC_2D";
-	}
-
-	EGLCompileMacro GetType() const override {
-		return EGLCompileMacro::GENERIC_2D;
-	}
-
-	void SetGeneric2D( bool enable ) {
 		SetMacro( enable );
 	}
 };
@@ -3939,6 +3918,28 @@ class u_Lights :
 	}
 };
 
+// FIXME: this is the same as 'generic' and has no reason for existing.
+// It was added along with RmlUi transforms to add "gl_FragDepth = 0;" to the GLSL,
+// but that turns out not to be needed.
+class GLShader_generic2D :
+	public GLShader,
+	public u_ColorMap,
+	public u_DepthMap,
+	public u_TextureMatrix,
+	public u_AlphaThreshold,
+	public u_ModelMatrix,
+	public u_ModelViewProjectionMatrix,
+	public u_ColorModulate,
+	public u_Color,
+	public u_DepthScale,
+	public GLDeformStage
+{
+public:
+	GLShader_generic2D( GLShaderManager *manager );
+	void BuildShaderCompileMacros( std::string& compileMacros ) override;
+	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
+};
+
 class GLShader_generic :
 	public GLShader,
 	public u_ColorMap,
@@ -3961,8 +3962,7 @@ class GLShader_generic :
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
-	public GLCompileMacro_USE_DEPTH_FADE,
-	public GLCompileMacro_GENERIC_2D
+	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
 	GLShader_generic( GLShaderManager *manager );
@@ -4714,6 +4714,7 @@ std::string GetShaderPath();
 
 extern ShaderKind shaderKind;
 
+extern GLShader_generic2D                       *gl_generic2DShader;
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_cull                            *gl_cullShader;
