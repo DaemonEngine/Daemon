@@ -2791,6 +2791,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 		frontEndCounters_t pc;
 		int                frontEndMsec; // not in pc due to clearing issue
 
+		bool skipSubgroupProfiler = false;
+
 		vec4_t             clipRegion; // 2D clipping region
 
 		//

@@ -34,7 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* shaderProfiler_fp.glsl */
 
-#if defined(r_profilerRenderSubGroups) && !defined(GENERIC_2D) && defined(HAVE_KHR_shader_subgroup_basic) && defined(HAVE_KHR_shader_subgroup_arithmetic)
+#if defined(r_profilerRenderSubGroups) && defined(HAVE_KHR_shader_subgroup_basic) && defined(HAVE_KHR_shader_subgroup_arithmetic)
 	uniform float u_ProfilerZero;
 	uniform uint u_ProfilerRenderSubGroups;
 	IN(flat) float var_SubGroupCount;

@@ -2111,26 +2111,6 @@ public:
 	}
 };
 
-class GLCompileMacro_GENERIC_2D :
-	GLCompileMacro {
-	public:
-	GLCompileMacro_GENERIC_2D( GLShader* shader ) :
-		GLCompileMacro( shader ) {
-	}
-
-	const char* GetName() const override {
-		return "GENERIC_2D";
-	}
-
-	EGLCompileMacro GetType() const override {
-		return EGLCompileMacro::GENERIC_2D;
-	}
-
-	void SetGeneric2D( bool enable ) {
-		SetMacro( enable );
-	}
-};
-
 class GLCompileMacro_USE_PHYSICAL_MAPPING :
 	GLCompileMacro
 {
@@ -3961,8 +3941,7 @@ class GLShader_generic :
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
-	public GLCompileMacro_USE_DEPTH_FADE,
-	public GLCompileMacro_GENERIC_2D
+	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
 	GLShader_generic( GLShaderManager *manager );
