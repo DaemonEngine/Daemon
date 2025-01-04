@@ -2193,8 +2193,7 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
-	GLCompileMacro_USE_DEPTH_FADE( this ),
-	GLCompileMacro_GENERIC_2D( this )
+	GLCompileMacro_USE_DEPTH_FADE( this )
 {
 }
 
