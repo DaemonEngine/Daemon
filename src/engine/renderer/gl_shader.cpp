@@ -43,7 +43,6 @@ ShaderKind shaderKind = ShaderKind::Unknown;
 
 // *INDENT-OFF*
 
-GLShader_generic2D                       *gl_generic2DShader = nullptr;
 GLShader_generic                         *gl_genericShader = nullptr;
 GLShader_genericMaterial                 *gl_genericShaderMaterial = nullptr;
 GLShader_cull                            *gl_cullShader = nullptr;
@@ -2172,31 +2171,6 @@ void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 	}
 }
 
-GLShader_generic2D::GLShader_generic2D( GLShaderManager *manager ) :
-	GLShader( "generic2D", "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
-	u_ColorMap( this ),
-	u_DepthMap( this ),
-	u_TextureMatrix( this ),
-	u_AlphaThreshold( this ),
-	u_ModelMatrix( this ),
-	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
-	u_Color( this ),
-	u_DepthScale( this ),
-	GLDeformStage( this )
-{
-}
-
-void GLShader_generic2D::BuildShaderCompileMacros( std::string& compileMacros )
-{
-	compileMacros += "GENERIC_2D ";
-}
-
-void GLShader_generic2D::SetShaderProgramUniforms( shaderProgram_t *shaderProgram )
-{
-	glUniform1i( glGetUniformLocation( shaderProgram->program, "u_ColorMap" ), 0 );
-}
-
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
@@ -2219,7 +2193,8 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
-	GLCompileMacro_USE_DEPTH_FADE( this )
+	GLCompileMacro_USE_DEPTH_FADE( this ),
+	GLCompileMacro_GENERIC_2D( this )
 {
 }
 
@@ -2578,7 +2553,6 @@ GLShader_shadowFill::GLShader_shadowFill( GLShaderManager *manager ) :
 	GLShader( "shadowFill", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
 	u_ColorMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
 	u_AlphaThreshold( this ),
 	u_LightOrigin( this ),
 	u_LightRadius( this ),
@@ -2658,11 +2632,9 @@ GLShader_skybox::GLShader_skybox( GLShaderManager *manager ) :
 	u_ColorMapCube( this ),
 	u_CloudMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
 	u_CloudHeight( this ),
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this )
 {
 }
@@ -2678,11 +2650,9 @@ GLShader_skyboxMaterial::GLShader_skyboxMaterial( GLShaderManager* manager ) :
 	u_ColorMapCube( this ),
 	u_CloudMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
 	u_CloudHeight( this ),
 	u_UseCloudMap( this ),
 	u_AlphaThreshold( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this )
 {}
 
@@ -2733,13 +2703,10 @@ GLShader_fogGlobal::GLShader_fogGlobal( GLShaderManager *manager ) :
 	GLShader( "fogGlobal", ATTR_POSITION, manager ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
-	u_ViewOrigin( this ),
-	u_ViewMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_UnprojectMatrix( this ),
 	u_Color( this ),
-	u_FogDistanceVector( this ),
-	u_FogDepthVector( this )
+	u_FogDistanceVector( this )
 {
 }
 
@@ -2755,15 +2722,10 @@ GLShader_heatHaze::GLShader_heatHaze( GLShaderManager *manager ) :
 	u_NormalMap( this ),
 	u_HeightMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
-	u_ViewUp( this ),
 	u_DeformMagnitude( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ModelViewMatrixTranspose( this ),
 	u_ProjectionMatrixTranspose( this ),
-	u_ColorModulate( this ),
-	u_Color( this ),
 	u_Bones( this ),
 	u_NormalScale( this ),
 	u_VertexInterpolation( this ),
@@ -2786,16 +2748,11 @@ GLShader_heatHazeMaterial::GLShader_heatHazeMaterial( GLShaderManager* manager )
 	u_NormalMap( this ),
 	u_HeightMap( this ),
 	u_TextureMatrix( this ),
-	u_ViewOrigin( this ),
-	u_ViewUp( this ),
 	u_DeformEnable( this ),
 	u_DeformMagnitude( this ),
-	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
 	u_ModelViewMatrixTranspose( this ),
 	u_ProjectionMatrixTranspose( this ),
-	u_ColorModulate( this ),
-	u_Color( this ),
 	u_NormalScale( this ),
 	GLDeformStage( this )
 {
@@ -2862,7 +2819,6 @@ GLShader_cameraEffects::GLShader_cameraEffects( GLShaderManager *manager ) :
 	u_ColorModulate( this ),
 	u_TextureMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_DeformMagnitude( this ),
 	u_InverseGamma( this )
 {
 }

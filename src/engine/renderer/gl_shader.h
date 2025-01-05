@@ -1686,6 +1686,7 @@ protected:
 	  USE_SHADOWING,
 	  LIGHT_DIRECTIONAL,
 	  USE_DEPTH_FADE,
+	  GENERIC_2D,
 	  USE_PHYSICAL_MAPPING,
 	};
 
@@ -2106,6 +2107,26 @@ public:
 
 	void SetDepthFade( bool enable )
 	{
+		SetMacro( enable );
+	}
+};
+
+class GLCompileMacro_GENERIC_2D :
+	GLCompileMacro {
+	public:
+	GLCompileMacro_GENERIC_2D( GLShader* shader ) :
+		GLCompileMacro( shader ) {
+	}
+
+	const char* GetName() const override {
+		return "GENERIC_2D";
+	}
+
+	EGLCompileMacro GetType() const override {
+		return EGLCompileMacro::GENERIC_2D;
+	}
+
+	void SetGeneric2D( bool enable ) {
 		SetMacro( enable );
 	}
 };
@@ -3437,7 +3458,7 @@ class u_UnprojectMatrix :
 {
 public:
 	u_UnprojectMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_UnprojectMatrix" )
+		GLUniformMatrix4f( shader, "u_UnprojectMatrix", true )
 	{
 	}
 
@@ -3918,28 +3939,6 @@ class u_Lights :
 	}
 };
 
-// FIXME: this is the same as 'generic' and has no reason for existing.
-// It was added along with RmlUi transforms to add "gl_FragDepth = 0;" to the GLSL,
-// but that turns out not to be needed.
-class GLShader_generic2D :
-	public GLShader,
-	public u_ColorMap,
-	public u_DepthMap,
-	public u_TextureMatrix,
-	public u_AlphaThreshold,
-	public u_ModelMatrix,
-	public u_ModelViewProjectionMatrix,
-	public u_ColorModulate,
-	public u_Color,
-	public u_DepthScale,
-	public GLDeformStage
-{
-public:
-	GLShader_generic2D( GLShaderManager *manager );
-	void BuildShaderCompileMacros( std::string& compileMacros ) override;
-	void SetShaderProgramUniforms( shaderProgram_t *shaderProgram ) override;
-};
-
 class GLShader_generic :
 	public GLShader,
 	public u_ColorMap,
@@ -3962,7 +3961,8 @@ class GLShader_generic :
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
-	public GLCompileMacro_USE_DEPTH_FADE
+	public GLCompileMacro_USE_DEPTH_FADE,
+	public GLCompileMacro_GENERIC_2D
 {
 public:
 	GLShader_generic( GLShaderManager *manager );
@@ -4240,7 +4240,6 @@ class GLShader_shadowFill :
 	public GLShader,
 	public u_ColorMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_AlphaThreshold,
 	public u_LightOrigin,
 	public u_LightRadius,
@@ -4311,11 +4310,9 @@ class GLShader_skybox :
 	public u_ColorMapCube,
 	public u_CloudMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_CloudHeight,
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix
 {
 public:
@@ -4328,11 +4325,9 @@ class GLShader_skyboxMaterial :
 	public u_ColorMapCube,
 	public u_CloudMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
 	public u_CloudHeight,
 	public u_UseCloudMap,
 	public u_AlphaThreshold,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix {
 	public:
 	GLShader_skyboxMaterial( GLShaderManager* manager );
@@ -4378,13 +4373,10 @@ class GLShader_fogGlobal :
 	public GLShader,
 	public u_ColorMap,
 	public u_DepthMap,
-	public u_ViewOrigin,
-	public u_ViewMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_UnprojectMatrix,
 	public u_Color,
-	public u_FogDistanceVector,
-	public u_FogDepthVector
+	public u_FogDistanceVector
 {
 public:
 	GLShader_fogGlobal( GLShaderManager *manager );
@@ -4397,15 +4389,10 @@ class GLShader_heatHaze :
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_DeformMagnitude,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ModelViewMatrixTranspose,
 	public u_ProjectionMatrixTranspose,
-	public u_ColorModulate,
-	public u_Color,
 	public u_Bones,
 	public u_NormalScale,
 	public u_VertexInterpolation,
@@ -4424,16 +4411,11 @@ class GLShader_heatHazeMaterial :
 	public u_NormalMap,
 	public u_HeightMap,
 	public u_TextureMatrix,
-	public u_ViewOrigin,
-	public u_ViewUp,
 	public u_DeformEnable,
 	public u_DeformMagnitude,
-	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ModelViewMatrixTranspose,
 	public u_ProjectionMatrixTranspose,
-	public u_ColorModulate,
-	public u_Color,
 	public u_NormalScale,
 	public GLDeformStage
 {
@@ -4490,7 +4472,6 @@ class GLShader_cameraEffects :
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_DeformMagnitude,
 	public u_InverseGamma
 {
 public:
@@ -4714,7 +4695,6 @@ std::string GetShaderPath();
 
 extern ShaderKind shaderKind;
 
-extern GLShader_generic2D                       *gl_generic2DShader;
 extern GLShader_generic                         *gl_genericShader;
 extern GLShader_genericMaterial                 *gl_genericShaderMaterial;
 extern GLShader_cull                            *gl_cullShader;

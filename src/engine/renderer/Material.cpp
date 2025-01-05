@@ -183,7 +183,7 @@ static void ComputeDynamics( shaderStage_t* pStage ) {
 	pStage->dynamic = pStage->dynamic || pStage->alphaExp.numOps || pStage->alphaTestExp.numOps;
 	pStage->dynamic = pStage->dynamic || pStage->rgbExp.numOps || pStage->redExp.numOps || pStage->greenExp.numOps || pStage->blueExp.numOps;
 	pStage->dynamic = pStage->dynamic || pStage->deformMagnitudeExp.numOps;
-	pStage->dynamic = pStage->dynamic || pStage->depthScaleExp.numOps || pStage->etaExp.numOps || pStage->etaDeltaExp.numOps
+	pStage->dynamic = pStage->dynamic || pStage->depthScaleExp.numOps
 	                                  || pStage->fogDensityExp.numOps || pStage->fresnelBiasExp.numOps || pStage->fresnelPowerExp.numOps
 	                                  || pStage->fresnelScaleExp.numOps || pStage->normalIntensityExp.numOps || pStage->refractionIndexExp.numOps;
 
@@ -214,9 +214,6 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	drawSurf->initialized[stage] = true;
 
 	gl_genericShaderMaterial->BindProgram( material.deformIndex );
-
-	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	// u_AlphaThreshold
 	gl_genericShaderMaterial->SetUniform_AlphaTest( pStage->stateBits );
@@ -547,10 +544,6 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, Material& material, drawSurf_
 	gl_liquidShaderMaterial->SetUniform_FresnelBias( RB_EvalExpression( &pStage->fresnelBiasExp, 0.05 ) );
 	gl_liquidShaderMaterial->SetUniform_FogDensity( fogDensity );
 	gl_liquidShaderMaterial->SetUniform_FogColor( fogColor );
-
-	gl_liquidShaderMaterial->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
-	gl_liquidShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
-	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	// NOTE: specular component is computed by shader.
 	// FIXME: physical mapping is not implemented.
@@ -1138,8 +1131,6 @@ void BindShaderSkybox( Material* material ) {
 	gl_skyboxShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
-	gl_skyboxShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
-	gl_skyboxShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_skyboxShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 }
 
@@ -1156,7 +1147,6 @@ void BindShaderHeatHaze( Material* material ) {
 	gl_heatHazeShaderMaterial->BindProgram( material->deformIndex );
 
 	// Set shader uniforms.
-	gl_heatHazeShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_heatHazeShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
 	gl_heatHazeShaderMaterial->SetUniform_ModelViewMatrixTranspose( glState.modelViewMatrix[glState.stackIndex] );
@@ -1186,6 +1176,7 @@ void BindShaderLiquid( Material* material ) {
 
 	// Set shader uniforms.
 	gl_liquidShaderMaterial->SetUniform_ViewOrigin( backEnd.viewParms.orientation.origin );
+	gl_liquidShaderMaterial->SetUniform_UnprojectMatrix( backEnd.viewParms.unprojectionMatrix );
 	gl_liquidShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_liquidShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
@@ -1953,7 +1944,7 @@ void MaterialSystem::AddDrawCommand( const uint32_t materialID, const uint32_t m
 }
 
 void MaterialSystem::AddTexture( Texture* texture ) {
-	if ( cmd.textureCount > MAX_DRAWCOMMAND_TEXTURES ) {
+	if ( cmd.textureCount >= MAX_DRAWCOMMAND_TEXTURES ) {
 		Sys::Drop( "Exceeded max DrawCommand textures" );
 	}
 	cmd.textures[cmd.textureCount] = texture;
