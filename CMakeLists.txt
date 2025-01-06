@@ -640,15 +640,8 @@ if ( USE_STATIC_LIBS )
 endif()
 
 # zlib
-if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP OR (BUILD_CGAME AND NACL AND NOT USE_NACL_SAIGO))
-    if (NOT NACL)
-        find_package(ZLIB REQUIRED)
-    else()
-        add_library(srclibs-zlib EXCLUDE_FROM_ALL ${ZLIBLIST})
-        set_target_properties(srclibs-zlib PROPERTIES POSITION_INDEPENDENT_CODE ${GAME_PIE} FOLDER "libs")
-        set(ZLIB_INCLUDE_DIRS ${LIB_DIR}/zlib)
-        set(ZLIB_LIBRARIES srclibs-zlib)
-    endif()
+if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
+    find_package(ZLIB REQUIRED)
     set(LIBS_BASE ${LIBS_BASE} ${ZLIB_LIBRARIES})
     include_directories(${ZLIB_INCLUDE_DIRS})
 endif()
@@ -791,6 +784,22 @@ if (USE_BREAKPAD)
     endif()
 endif()
 
+option(PREFER_EXTERNAL_LIBS "Tries to use system libs where possible." ON)
+
+macro(prefer_package LIB_NAME LIB_CMAKE)
+    if (PREFER_EXTERNAL_LIBS AND NOT NACL)
+        find_package(${LIB_NAME})
+
+        if (NOT ${LIB_NAME}_FOUND)
+            message(WARNING "PREFER_EXTERNAL_LIBS is enabled but external ${LIB_NAME} is not found, falling back to vendored ${LIB_NAME}.")
+        endif()
+    endif()
+
+    if (NOT ${LIB_NAME}_FOUND)
+        include(${LIB_CMAKE})
+    endif()
+endmacro()
+
 if (BUILD_CLIENT)
     find_package(Ogg REQUIRED)
     include_directories(${OGG_INCLUDE_DIRS})
@@ -816,7 +825,8 @@ if (BUILD_CLIENT)
     include_directories(${PNG_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${PNG_LIBRARIES})
 
-    find_package(Freetype REQUIRED)
+    prefer_package(Freetype ${DAEMON_DIR}/freetype.cmake)
+
     include_directories(${FREETYPE_INCLUDE_DIRS})
     set(LIBS_CLIENT ${LIBS_CLIENT} ${FREETYPE_LIBRARIES})
 
