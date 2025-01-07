@@ -1532,8 +1532,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		ri.Cmd_RemoveCommand( "shaderexp" );
 		ri.Cmd_RemoveCommand( "gfxinfo" );
-		ri.Cmd_RemoveCommand( "shaderstate" );
-		ri.Cmd_RemoveCommand( "generatemtr" );
 		ri.Cmd_RemoveCommand( "buildcubemaps" );
 
 		ri.Cmd_RemoveCommand( "glsl_restart" );
