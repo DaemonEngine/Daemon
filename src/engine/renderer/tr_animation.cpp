@@ -581,25 +581,27 @@ skelAnimation_t *R_GetAnimationByHandle( qhandle_t index )
 	return anim;
 }
 
-/*
-================
-R_ListAnimations_f
-================
-*/
-void R_ListAnimations_f()
+class ListAnimationsCmd : public Cmd::StaticCmd
 {
-	int             i;
-	skelAnimation_t *anim;
+public:
+	ListAnimationsCmd() : StaticCmd("listAnimations", "list model animations loaded in renderer") {}
 
-	for ( i = 0; i < tr.numAnimations; i++ )
+	void Run( const Cmd::Args & ) const override
 	{
-		anim = tr.animations[ i ];
+		int             i;
+		skelAnimation_t *anim;
 
-		Log::Notice("'%s'", anim->name );
+		for ( i = 0; i < tr.numAnimations; i++ )
+		{
+			anim = tr.animations[ i ];
+
+			Print( "'%s'", anim->name );
+		}
+
+		Print( "%i total animations", tr.numAnimations );
 	}
-
-	Log::Notice("%8i : Total animations", tr.numAnimations );
-}
+};
+static ListAnimationsCmd listAnimationsCmdRegistration;
 
 /*
 =============

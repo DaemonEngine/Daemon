@@ -305,83 +305,86 @@ void R_ModelInit()
 	mod->type = modtype_t::MOD_BAD;
 }
 
-/*
-================
-R_ListModels_f
-================
-*/
-void R_ListModels_f()
+// shows MD3 per-frame info if there is an argument
+class ListModelsCmd : public Cmd::StaticCmd
 {
-	int      i, j, k;
-	model_t  *mod;
-	int      total;
-	int      totalDataSize;
-	bool showFrames;
+public:
+	ListModelsCmd() : StaticCmd("listModels", "list loaded 3D models") {}
 
-	showFrames = !strcmp( ri.Cmd_Argv( 1 ), "frames" );
-
-	total = 0;
-	totalDataSize = 0;
-
-	for ( i = 1; i < tr.numModels; i++ )
+	void Run( const Cmd::Args &args ) const override
 	{
-		mod = tr.models[ i ];
+		int      i, j, k;
+		model_t  *mod;
+		int      total;
+		int      totalDataSize;
+		bool showFrames;
 
-		if ( mod->type == modtype_t::MOD_MESH )
+		showFrames = args.Argc() > 1;
+
+		total = 0;
+		totalDataSize = 0;
+
+		for ( i = 1; i < tr.numModels; i++ )
 		{
-			for ( j = 0; j < MD3_MAX_LODS; j++ )
+			mod = tr.models[ i ];
+
+			if ( mod->type == modtype_t::MOD_MESH )
 			{
-				if ( mod->mdv[ j ] && ( j == 0 || mod->mdv[ j ] != mod->mdv[ j - 1 ] ) )
+				for ( j = 0; j < MD3_MAX_LODS; j++ )
 				{
-					mdvModel_t   *mdvModel;
-					mdvSurface_t *mdvSurface;
-					mdvTagName_t *mdvTagName;
-
-					mdvModel = mod->mdv[ j ];
-
-					total++;
-					Log::Notice("%d.%02d MB '%s' LOD = %i",      mod->dataSize / ( 1024 * 1024 ),
-					           ( mod->dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ),
-					           mod->name, j );
-
-					if ( showFrames && mdvModel->numFrames > 1 )
+					if ( mod->mdv[ j ] && ( j == 0 || mod->mdv[ j ] != mod->mdv[ j - 1 ] ) )
 					{
-						Log::Notice("\tnumSurfaces = %i", mdvModel->numSurfaces );
-						Log::Notice("\tnumFrames = %i", mdvModel->numFrames );
+						mdvModel_t   *mdvModel;
+						mdvSurface_t *mdvSurface;
+						mdvTagName_t *mdvTagName;
 
-						for ( k = 0, mdvSurface = mdvModel->surfaces; k < mdvModel->numSurfaces; k++, mdvSurface++ )
+						mdvModel = mod->mdv[ j ];
+
+						total++;
+						Print( "%d.%02d MB '%s' LOD = %i",      mod->dataSize / ( 1024 * 1024 ),
+						       ( mod->dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ),
+						       mod->name, j );
+
+						if ( showFrames && mdvModel->numFrames > 1 )
 						{
-							Log::Notice("\t\tmesh = '%s'", mdvSurface->name );
-							Log::Notice("\t\t\tnumVertexes = %i", mdvSurface->numVerts );
-							Log::Notice("\t\t\tnumTriangles = %i", mdvSurface->numTriangles );
+							Print("    numSurfaces = %i", mdvModel->numSurfaces );
+							Print("    numFrames = %i", mdvModel->numFrames );
+
+							for ( k = 0, mdvSurface = mdvModel->surfaces; k < mdvModel->numSurfaces; k++, mdvSurface++ )
+							{
+								Print("        mesh = '%s'", mdvSurface->name );
+								Print("            numVertexes = %i", mdvSurface->numVerts );
+								Print("            numTriangles = %i", mdvSurface->numTriangles );
+							}
 						}
-					}
 
-					Log::Notice("\t\tnumTags = %i", mdvModel->numTags );
+						Print("        numTags = %i", mdvModel->numTags );
 
-					for ( k = 0, mdvTagName = mdvModel->tagNames; k < mdvModel->numTags; k++, mdvTagName++ )
-					{
-						Log::Notice("\t\t\ttagName = '%s'", mdvTagName->name );
+						for ( k = 0, mdvTagName = mdvModel->tagNames; k < mdvModel->numTags; k++, mdvTagName++ )
+						{
+							Print("            tagName = '%s'", mdvTagName->name );
+						}
 					}
 				}
 			}
-		}
-		else
-		{
-			Log::Notice("%d.%02d MB '%s'",       mod->dataSize / ( 1024 * 1024 ),
-			           ( mod->dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ),
-			           mod->name );
+			else
+			{
+				Print( "%d.%02d MB '%s'",       mod->dataSize / ( 1024 * 1024 ),
+				       ( mod->dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ),
+				       mod->name );
 
-			total++;
+				total++;
+			}
+
+			totalDataSize += mod->dataSize;
 		}
 
-		totalDataSize += mod->dataSize;
+		Print(" %d.%02d MB total model memory", totalDataSize / ( 1024 * 1024 ),
+					  ( totalDataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
+		Print(" %i total models", total );
 	}
-
-	Log::Notice(" %d.%02d MB total model memory", totalDataSize / ( 1024 * 1024 ),
-	           ( totalDataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	Log::Notice(" %i total models", total );
-}
+};
+static ListModelsCmd listModelsCmdRegistration;
 
 //=============================================================================
 
