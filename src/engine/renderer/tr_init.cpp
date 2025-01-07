@@ -518,18 +518,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		return true;
 	}
 
-	/*
-	** R_ListModes_f
-	*/
-	static void R_ListModes_f()
+	class ListModesCmd : public Cmd::StaticCmd
 	{
-		int i;
-
-		for ( i = 0; i < s_numVidModes; i++ )
+	public:
+		ListModesCmd() : StaticCmd("listModes", "list suggested screen/window dimensions") {}
+		void Run( const Cmd::Args& ) const override
 		{
-			Log::Notice("Mode %-2d: %s", i, r_vidModes[ i ].description );
+			int i;
+
+			for ( i = 0; i < s_numVidModes; i++ )
+			{
+				Print("Mode %-2d: %s", i, r_vidModes[ i ].description );
+			}
 		}
-	}
+	};
+	static ListModesCmd listModesCmdRegistration;
 
 	/*
 	==================
@@ -1350,14 +1353,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_profilerRenderSubGroups );
 
 		// make sure all the commands added here are also removed in R_Shutdown
-		ri.Cmd_AddCommand( "listImages", R_ListImages_f );
-		ri.Cmd_AddCommand( "listShaders", R_ListShaders_f );
 		ri.Cmd_AddCommand( "shaderexp", R_ShaderExp_f );
-		ri.Cmd_AddCommand( "listSkins", R_ListSkins_f );
-		ri.Cmd_AddCommand( "listModels", R_ListModels_f );
-		ri.Cmd_AddCommand( "listModes", R_ListModes_f );
-		ri.Cmd_AddCommand( "listAnimations", R_ListAnimations_f );
-		ri.Cmd_AddCommand( "listFBOs", R_ListFBOs_f );
 		ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
 		ri.Cmd_AddCommand( "buildcubemaps", R_BuildCubeMaps );
 
@@ -1534,16 +1530,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	{
 		Log::Debug("RE_Shutdown( destroyWindow = %i )", destroyWindow );
 
-		ri.Cmd_RemoveCommand( "listModels" );
-		ri.Cmd_RemoveCommand( "listImages" );
-		ri.Cmd_RemoveCommand( "listShaders" );
 		ri.Cmd_RemoveCommand( "shaderexp" );
-		ri.Cmd_RemoveCommand( "listSkins" );
 		ri.Cmd_RemoveCommand( "gfxinfo" );
-		ri.Cmd_RemoveCommand( "listModes" );
 		ri.Cmd_RemoveCommand( "shaderstate" );
-		ri.Cmd_RemoveCommand( "listAnimations" );
-		ri.Cmd_RemoveCommand( "listFBOs" );
 		ri.Cmd_RemoveCommand( "generatemtr" );
 		ri.Cmd_RemoveCommand( "buildcubemaps" );
 
