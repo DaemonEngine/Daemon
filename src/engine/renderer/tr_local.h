@@ -3313,7 +3313,6 @@ inline bool checkGLErrors()
 	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );
 	void      R_InitShaders();
-	void      R_ShaderExp_f();
 	void      R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
 
 	/*

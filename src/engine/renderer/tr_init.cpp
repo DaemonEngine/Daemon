@@ -903,7 +903,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	GfxInfo_f
 	================
 	*/
-	void GfxInfo_f()
+	static void GfxInfo_f()
 	{
 		static const char fsstrings[][16] =
 		{
@@ -1082,31 +1082,44 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Debug("replaceMaterialMinDimensionIfPresentWithMaxDimension: %d", r_replaceMaterialMinDimensionIfPresentWithMaxDimension->integer );
 	}
 
-	static void GLSL_restart_f()
+	// FIXME: uses regular logging not Print()
+	static Cmd::LambdaCmd gfxInfoCmd(
+		"gfxinfo", "dump graphics driver and configuration info",
+		[]( const Cmd::Args & ) { GfxInfo_f(); });
+
+	class GlslRestartCmd : public Cmd::StaticCmd
 	{
-		// make sure the render thread is stopped
-		R_SyncRenderThread();
+	public:
+		GlslRestartCmd() : StaticCmd(
+			"glsl_restart", "recompile GLSL shaders (useful when shaderpath is set)") {}
 
-		GLSL_ShutdownGPUShaders();
-		GLSL_InitGPUShaders();
-
-		for ( int i = 0; i < tr.numShaders; i++ )
+		void Run( const Cmd::Args & ) const override
 		{
-			shader_t &shader = *tr.shaders[ i ];
-			if ( shader.stages == shader.lastStage || shader.stages[ 0 ].deformIndex == 0 )
-			{
-				continue;
-			}
+			// make sure the render thread is stopped
+			R_SyncRenderThread();
 
-			int deformIndex =
-				gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms );
+			GLSL_ShutdownGPUShaders();
+			GLSL_InitGPUShaders();
 
-			for ( shaderStage_t *stage = shader.stages; stage != shader.lastStage; stage++ )
+			for ( int i = 0; i < tr.numShaders; i++ )
 			{
-				stage->deformIndex = deformIndex;
+				shader_t &shader = *tr.shaders[ i ];
+				if ( shader.stages == shader.lastStage || shader.stages[ 0 ].deformIndex == 0 )
+				{
+					continue;
+				}
+
+				int deformIndex =
+					gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms );
+
+				for ( shaderStage_t *stage = shader.stages; stage != shader.lastStage; stage++ )
+				{
+					stage->deformIndex = deformIndex;
+				}
 			}
 		}
-	}
+	};
+	static GlslRestartCmd glslRestartCmdRegistration;
 
 	/*
 	===============
@@ -1354,13 +1367,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
 
 		Cvar::Latch( r_profilerRenderSubGroups );
-
-		// make sure all the commands added here are also removed in R_Shutdown
-		ri.Cmd_AddCommand( "shaderexp", R_ShaderExp_f );
-		ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
-		ri.Cmd_AddCommand( "buildcubemaps", R_BuildCubeMaps );
-
-		ri.Cmd_AddCommand( "glsl_restart", GLSL_restart_f );
 	}
 
 	/*
@@ -1532,12 +1538,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	void RE_Shutdown( bool destroyWindow )
 	{
 		Log::Debug("RE_Shutdown( destroyWindow = %i )", destroyWindow );
-
-		ri.Cmd_RemoveCommand( "shaderexp" );
-		ri.Cmd_RemoveCommand( "gfxinfo" );
-		ri.Cmd_RemoveCommand( "buildcubemaps" );
-
-		ri.Cmd_RemoveCommand( "glsl_restart" );
 
 		if ( tr.registered )
 		{

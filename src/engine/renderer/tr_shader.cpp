@@ -6855,28 +6855,24 @@ public:
 };
 static ListShadersCmd listShadersCmdRegistration;
 
-void R_ShaderExp_f()
+class ShaderExpCmd : public Cmd::StaticCmd
 {
-	std::string buffer;
+public:
+	ShaderExpCmd() : StaticCmd("shaderexp", "evaluate a q3shader expression (RB_EvalExpression)") {}
 
-	for ( int i = 1; i < ri.Cmd_Argc(); i++ )
+	void Run( const Cmd::Args &args ) const override
 	{
-		if ( i > 1 )
-		{
-			buffer += ' ';
-		}
+		std::string expStr = args.ConcatArgs( 1 );
+		const char* buffer_p = expStr.c_str();
+		expression_t exp;
 
-		buffer += ri.Cmd_Argv( i );
+		ParseExpression( &buffer_p, &exp );
+
+		Print( "%i total ops", exp.numOps );
+		Print( "%f result", RB_EvalExpression( &exp, 0 ) );
 	}
-
-	const char* buffer_p = buffer.c_str();
-	expression_t exp;
-
-	ParseExpression( &buffer_p, &exp );
-
-	Log::CommandInteractionMessage( Str::Format( "%i total ops", exp.numOps ) );
-	Log::CommandInteractionMessage( Str::Format( "%f result", RB_EvalExpression( &exp, 0 ) ) );
-}
+};
+static ShaderExpCmd shaderExpCmdRegistration;
 
 /*
 ====================
