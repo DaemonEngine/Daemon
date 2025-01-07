@@ -67,6 +67,16 @@ if (NOT CMAKE_OSX_ARCHITECTURES)
     set(CMAKE_OSX_ARCHITECTURES x86_64)
 endif()
 
+# FIXME: this reports an unused architecture if only vms are built.
+# We may not be able to avoid this for now without doing a huge rewrite
+# of this file.
+# FIXME: this reports an unused compiler if only vms are built.
+# We cannot avoid this for now without doing a huge rewrite of this files
+# since we also set useless flags using informations provided by this.
+if (NOT (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
+    message(NOTICE "You can safely ignore the following reported architecture, it is not used.")
+    message(NOTICE "You can safely ignore the following reported compilers, they are unused.")
+endif()
 include(DaemonPlatform)
 
 if (Daemon_OUT)
@@ -288,8 +298,17 @@ endif()
 # Compile and link flags
 ################################################################################
 
+# FIXME: This sets unused flags for an unused compiler if only nacl vms
+# are built and we are not yet running the chainloaded build. We cannot
+# avoid this for now or we would have to do a large rewrite of that file.
+# FIXME: This defines the try_flag function that is used in
+# Unvanquished CMakeLists.txt even if the engine is not built,
+# meaning we have to detect useless engine compiler to set
+# useless engine flags when only building vms.
 include(DaemonFlags)
 
+# FIXME: Once engine flags would be only set when building the engine
+# this would be likely unused by vms as they are built by DaemonGame.
 # Warning options (for Daemon only)
 # Note the different scopes used for warning options:
 # * set_c_cxx_flag(xxx) or try_c_cxx_flag(xxx) sets it for all code including dependencies
@@ -396,9 +415,16 @@ function(ADD_PRECOMPILED_HEADER Target)
     set(Header ${COMMON_DIR}/Common.h)
 
     # Compiler-specific PCH support
-    if (CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR NACL)
+    try_c_cxx_flag(PCH "-pch")
+
+    if (PCH)
+        # CMAKE_CXX_COMPILER_ARG1 is used with compilers using subcommands.
+        # For example when doing: cmake -D'CMAKE_CXX_COMPILER'='zig;c++'
+        # CMAKE_CXX_COMPILER will be "zig",
+        # CMAKE_CXX_COMPILER_ARG1 will be "c++".
         add_custom_command(OUTPUT "${OBJ_DIR}/${Target}.h.gch"
-            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
+            COMMAND ${PNACLPYTHON_PREFIX2} ${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ARG1}
+                ${Defs} ${Flags} -x c++-header ${Header} -o "${OBJ_DIR}/${Target}.h.gch"
             DEPENDS ${Header}
             IMPLICIT_DEPENDS CXX ${Header}
         )
@@ -407,10 +433,10 @@ function(ADD_PRECOMPILED_HEADER Target)
         add_dependencies(${Target} ${Target}-pch)
 
         # PNaCl clang doesn't support -include-pch properly
-        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT NACL)
-            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
-        else()
+        if (DAEMON_CXX_COMPILER_NAME STREQUAL "PNaCl")
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
+        else()
+            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
         endif()
     elseif (MSVC)
         # /Fp sets the PCH path used by either of the /Yc and /Yu options.

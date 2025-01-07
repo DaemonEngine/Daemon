@@ -438,7 +438,13 @@ elseif (NOT NACL)
 
 	if (ARCH STREQUAL "amd64")
 		# K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
-		set(GCC_GENERIC_ARCH "x86-64")
+		if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "ICC")
+			set(GCC_GENERIC_ARCH "pentium4")
+		elseif ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
+			set(GCC_GENERIC_ARCH "x86_64")
+		else()
+			set(GCC_GENERIC_ARCH "x86-64")
+		endif()
 		set(GCC_GENERIC_TUNE "generic")
 	elseif (ARCH STREQUAL "i686")
 		# P6 or K6 minimum: Intel Pentium Pro, AMD K6, Via Cyrix III, Via C3.
@@ -466,6 +472,10 @@ elseif (NOT NACL)
 		unset(GCC_GENERIC_TUNE)
 	else()
 		message(WARNING "Unknown architecture ${ARCH}")
+	endif()
+
+	if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
+		unset(GCC_GENERIC_TUNE)
 	endif()
 
 	option(USE_CPU_GENERIC_ARCHITECTURE "Enforce generic -march and -mtune compiler options" ON)
