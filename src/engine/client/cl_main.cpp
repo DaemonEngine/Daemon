@@ -2219,12 +2219,6 @@ static bool CL_InitRef()
 	refimport_t ri;
 	refexport_t *ret;
 
-	ri.Cmd_AddCommand = Cmd_AddCommand;
-	ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
-	ri.Cmd_Argc = Cmd_Argc;
-	ri.Cmd_Argv = Cmd_Argv;
-	ri.Cmd_QuoteString = Cmd_QuoteString;
-
 	ri.Milliseconds = Sys::Milliseconds;
 	ri.RealTime = Com_RealTime;
 
