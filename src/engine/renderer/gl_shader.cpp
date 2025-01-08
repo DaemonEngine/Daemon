@@ -1727,6 +1727,12 @@ std::vector<GLShaderManager::InfoLogEntry> GLShaderManager::ParseInfoLog( const 
 		}
 	}
 
+	// Messages in the log can sometimes be out of order
+	std::sort( out.begin(), out.end(),
+		[]( const InfoLogEntry& lhs, const InfoLogEntry& rhs ) {
+			return lhs.line < rhs.line;
+		} );
+
 	return out;
 }
 
