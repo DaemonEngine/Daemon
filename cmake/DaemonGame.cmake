@@ -26,17 +26,6 @@
 
 include_directories(${MOUNT_DIR} ${LIB_DIR} ${LIB_DIR}/zlib)
 
-# Do not report unused native compiler if native vms are not built.
-# If only NACL vms are built, this will be reported in chainloaded build.
-if (BUILD_GAME_NATIVE_DLL OR BUILD_GAME_NATIVE_EXE OR NACL)
-    include(DaemonPlatform)
-    include(DaemonNacl)
-    include(DaemonFlags)
-endif()
-
-# Function to setup all the Sgame/Cgame libraries
-include(CMakeParseArguments)
-
 ## About the different ways to host/play games:
 ## Native DLL: no sandboxing, no cleaning up but debugger support. Use for dev.
 ## NaCl exe: sandboxing, no leaks, slightly slower, hard to debug. Use for regular players.
@@ -48,6 +37,18 @@ option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for 
 
 # can be loaded by daemon with vm.[sc]game.type 2
 option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
+
+include(DaemonPlatform)
+
+# Do not report unused native compiler if native vms are not built.
+# If only NACL vms are built, this will be reported in chainloaded build.
+if (BUILD_GAME_NATIVE_DLL OR BUILD_GAME_NATIVE_EXE OR NACL)
+    include(DaemonNacl)
+    include(DaemonFlags)
+endif()
+
+# Function to setup all the Sgame/Cgame libraries
+include(CMakeParseArguments)
 
 # The NaCl SDK only runs on amd64 or i686.
 if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
