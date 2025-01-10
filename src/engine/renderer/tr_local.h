@@ -1270,8 +1270,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		shaderStage_t *stages;
 		shaderStage_t *lastStage;
 
-		int             currentState; // current state index for cycle purposes
-
 		struct shader_t *remappedShader; // current shader this one is remapped too
 
 		struct {
