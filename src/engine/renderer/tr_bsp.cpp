@@ -4124,10 +4124,10 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		if ( tmpAmbient[0] < r_forceAmbient->value &&
-			tmpAmbient[1] < r_forceAmbient->value &&
-			tmpAmbient[2] < r_forceAmbient->value ) {
-			VectorSet( tmpAmbient, r_forceAmbient->value, r_forceAmbient->value, r_forceAmbient->value );
+		if ( tmpAmbient[0] < r_forceAmbient.Get() &&
+			tmpAmbient[1] < r_forceAmbient.Get() &&
+			tmpAmbient[2] < r_forceAmbient.Get() ) {
+			VectorSet( tmpAmbient, r_forceAmbient.Get(), r_forceAmbient.Get(), r_forceAmbient.Get() );
 		}
 
 		if ( tr.legacyOverBrightClamping )
@@ -4352,7 +4352,7 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 		// check for ambient color
 		else if ( !Q_stricmp( keyname, "_color" ) || !Q_stricmp( keyname, "ambientColor" ) )
 		{
-			if ( r_forceAmbient->value <= 0 ) {
+			if ( r_forceAmbient.Get() == 0 ) {
 				sscanf( value, "%f %f %f", &tr.ambientLight[0], &tr.ambientLight[1],
 					&tr.ambientLight[2] );
 
