@@ -4338,14 +4338,6 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 		// check for ambient color
 		else if ( !Q_stricmp( keyname, "_color" ) || !Q_stricmp( keyname, "ambientColor" ) )
 		{
-			if ( r_forceAmbient->value <= 0 )
-			{
-				sscanf( value, "%f %f %f", &tr.worldEntity.ambientLight[ 0 ], &tr.worldEntity.ambientLight[ 1 ],
-				        &tr.worldEntity.ambientLight[ 2 ] );
-
-				VectorCopy( tr.worldEntity.ambientLight, tr.worldEntity.ambientLight );
-				VectorScale( tr.worldEntity.ambientLight, r_ambientScale->value, tr.worldEntity.ambientLight );
-			}
 		}
 
 		// check for deluxe mapping support
@@ -5047,11 +5039,6 @@ void RE_LoadWorldMap( const char *name )
 	tr.sunDirection[ 2 ] = 0.9f;
 
 	VectorNormalize( tr.sunDirection );
-
-	// set default ambient color
-	tr.worldEntity.ambientLight[ 0 ] = r_forceAmbient->value;
-	tr.worldEntity.ambientLight[ 1 ] = r_forceAmbient->value;
-	tr.worldEntity.ambientLight[ 2 ] = r_forceAmbient->value;
 
 	tr.worldMapLoaded = true;
 
