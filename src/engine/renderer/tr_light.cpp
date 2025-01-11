@@ -248,13 +248,13 @@ int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, ve
 
 	VectorNormalize( lightDir );
 
-	if ( ambientLight[ 0 ] < r_forceAmbient->value &&
-	     ambientLight[ 1 ] < r_forceAmbient->value &&
-	     ambientLight[ 2 ] < r_forceAmbient->value )
+	if ( ambientLight[ 0 ] < r_forceAmbient.Get() &&
+	     ambientLight[ 1 ] < r_forceAmbient.Get() &&
+	     ambientLight[ 2 ] < r_forceAmbient.Get() )
 	{
-		ambientLight[ 0 ] = r_forceAmbient->value;
-		ambientLight[ 1 ] = r_forceAmbient->value;
-		ambientLight[ 2 ] = r_forceAmbient->value;
+		ambientLight[ 0 ] = r_forceAmbient.Get();
+		ambientLight[ 1 ] = r_forceAmbient.Get();
+		ambientLight[ 2 ] = r_forceAmbient.Get();
 	}
 
 	return true;

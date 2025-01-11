@@ -216,7 +216,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_wolfFog;
 	cvar_t      *r_noFog;
 
-	cvar_t      *r_forceAmbient;
+	Cvar::Range<Cvar::Cvar<float>> r_forceAmbient( "r_forceAmbient", "Minimal light amount in lightGrid", Cvar::NONE,
+		0.125f, 0.0f, 0.3f );
 	cvar_t      *r_ambientScale;
 	cvar_t      *r_lightScale;
 	cvar_t      *r_debugSort;
@@ -1165,8 +1166,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_wolfFog = Cvar_Get( "r_wolfFog", "1", CVAR_CHEAT );
 		r_noFog = Cvar_Get( "r_noFog", "0", CVAR_CHEAT );
 
-		r_forceAmbient = Cvar_Get( "r_forceAmbient", "0.125",  CVAR_LATCH );
-		AssertCvarRange( r_forceAmbient, 0.0f, 0.3f, false );
+		Cvar::Latch( r_forceAmbient );
 
 		r_smp = Cvar_Get( "r_smp", "0",  CVAR_LATCH );
 

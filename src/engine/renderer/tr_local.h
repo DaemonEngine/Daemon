@@ -2890,7 +2890,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_wolfFog;
 	extern cvar_t *r_noFog;
 
-	extern cvar_t *r_forceAmbient;
+	extern Cvar::Range<Cvar::Cvar<float>> r_forceAmbient;
 	extern cvar_t *r_ambientScale;
 	extern cvar_t *r_lightScale;
 
