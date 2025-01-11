@@ -2752,6 +2752,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		std::vector<image_t *> deluxemaps;
 
 		vec3_t ambientLight;
+		bool ambientLightSet = false;
 
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
