@@ -274,7 +274,6 @@ void RE_AddRefEntityToScene( const refEntity_t *ent )
 	}
 
 	backEndData[ tr.smpFrame ]->entities[ r_numEntities ].e = *ent;
-	backEndData[ tr.smpFrame ]->entities[ r_numEntities ].lightingCalculated = false;
 
 	r_numEntities++;
 }

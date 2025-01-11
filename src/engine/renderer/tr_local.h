@@ -465,10 +465,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		// local
 		float        axisLength; // compensate for non-normalized axis
-		bool     lightingCalculated;
-		vec3_t       lightDir; // normalized direction towards light
-		vec3_t       ambientLight; // color normalized to 0-1
-		vec3_t       directedLight;
 
 		cullResult_t cull;
 		vec3_t       localBounds[ 2 ];
@@ -2755,6 +2751,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 		std::vector<image_t *> lightmaps;
 		std::vector<image_t *> deluxemaps;
 
+		vec3_t ambientLight;
+
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
 
@@ -3563,7 +3561,6 @@ inline bool checkGLErrors()
 	*/
 
 	void     R_AddBrushModelInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
-	void     R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t forcedOrigin );
 	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				      float *factors[3], vec3_t ambientLight,
 				      vec3_t directedLight, vec3_t lightDir );

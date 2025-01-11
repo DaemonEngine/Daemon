@@ -302,12 +302,6 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 		return;
 	}
 
-	// set up lighting now that we know we aren't culled
-	if ( !personalModel || glConfig2.shadowMapping )
-	{
-		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
-	}
-
 	// see if we are in a fog volume
 	fogNum = R_FogWorldBox( ent->worldBounds );
 
