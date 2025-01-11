@@ -4356,7 +4356,7 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 				sscanf( value, "%f %f %f", &tr.ambientLight[0], &tr.ambientLight[1],
 					&tr.ambientLight[2] );
 
-				VectorScale( tr.ambientLight, r_ambientScale->value, tr.ambientLight );
+				VectorScale( tr.ambientLight, r_ambientScale.Get(), tr.ambientLight );
 				tr.ambientLightSet = true;
 			}
 		}

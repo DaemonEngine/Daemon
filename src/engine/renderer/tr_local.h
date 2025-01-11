@@ -2891,7 +2891,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_noFog;
 
 	extern Cvar::Range<Cvar::Cvar<float>> r_forceAmbient;
-	extern cvar_t *r_ambientScale;
+	extern Cvar::Cvar<float> r_ambientScale;
 	extern cvar_t *r_lightScale;
 
 	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.

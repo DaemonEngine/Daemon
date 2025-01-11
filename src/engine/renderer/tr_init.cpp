@@ -218,7 +218,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	Cvar::Range<Cvar::Cvar<float>> r_forceAmbient( "r_forceAmbient", "Minimal light amount in lightGrid", Cvar::NONE,
 		0.125f, 0.0f, 0.3f );
-	cvar_t      *r_ambientScale;
+	Cvar::Cvar<float> r_ambientScale( "r_ambientScale", "Scale lightGrid produced by ambientColor keyword by this much", Cvar::CHEAT, 1.0 );
 	cvar_t      *r_lightScale;
 	cvar_t      *r_debugSort;
 	cvar_t      *r_printShaders;
@@ -1192,7 +1192,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE );
 		r_facePlaneCull = Cvar_Get( "r_facePlaneCull", "1", 0 );
 
-		r_ambientScale = Cvar_Get( "r_ambientScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
+		Cvar::Latch( r_ambientScale );
 		r_lightScale = Cvar_Get( "r_lightScale", "2", CVAR_CHEAT );
 
 		r_vboFaces = Cvar_Get( "r_vboFaces", "1", CVAR_CHEAT );
