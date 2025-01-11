@@ -1361,15 +1361,15 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	std::string materialStruct = "\nstruct Material {\n";
 	// 6 kb for materials
 	const uint32_t count = ( 4096 + 2048 ) / shader->GetPaddedSize();
-	std::string materialBlock = "layout(std140, binding = 0) uniform materialsUBO {\n"
+	std::string materialBlock = "layout(std140, binding = 6) uniform materialsUBO {\n"
 	                            "	Material materials[" + std::to_string( count ) + "]; \n"
 	                            "};\n\n";
 
 	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
-		"layout(std140, binding = 6) uniform texDataUBO {\n"
+		"layout(std140, binding = 7) uniform texDataUBO {\n"
 		"	TexData texData[" + std::to_string( MAX_TEX_BUNDLES ) + "]; \n"
 		"};\n\n"
-		: "layout(std430, binding = 6) restrict readonly buffer texDataSSBO {\n"
+		: "layout(std430, binding = 7) restrict readonly buffer texDataSSBO {\n"
 		"	TexData texData[];\n"
 		"};\n\n";
 	// We have to store u_TextureMatrix as vec4 + vec2 because otherwise it would be aligned to a vec4 under std140
@@ -1393,7 +1393,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "	uvec2 u_LightMap;\n"
 	                           "	uvec2 u_DeluxeMap;\n"
 	                           "};\n\n"
-	                           "layout(std140, binding = 7) uniform lightmapDataUBO {\n"
+	                           "layout(std140, binding = 8) uniform lightmapDataUBO {\n"
 	                           "	LightMapData lightmapData[256];\n"
 	                           "};\n\n"
 		                       "#define u_LightMap_initial lightmapData[( baseInstance >> 24 ) & 0xFF].u_LightMap\n"
