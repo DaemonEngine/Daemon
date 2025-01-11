@@ -3955,7 +3955,7 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump )
 	Log::Debug("%i fog volumes loaded", s_worldData.numFogs );
 }
 
-static void R_SetDefaultLightGrid()
+static void R_SetConstantColorLightGrid( const byte color[3] )
 {
 	world_t *w = &s_worldData;
 
@@ -3983,9 +3983,9 @@ static void R_SetDefaultLightGrid()
 	bspGridPoint2_t *gridPoint2 = (bspGridPoint2_t *) (gridPoint1 + w->numLightGridPoints);
 
 	// default some white light from above
-	gridPoint1->color[ 0 ] = 64;
-	gridPoint1->color[ 1 ] = 64;
-	gridPoint1->color[ 2 ] = 64;
+	gridPoint1->color[ 0 ] = color[0];
+	gridPoint1->color[ 1 ] = color[1];
+	gridPoint1->color[ 2 ] = color[2];
 	gridPoint1->ambientPart = 128;
 	gridPoint2->direction[ 0 ] = floatToSnorm8(0.0f);
 	gridPoint2->direction[ 1 ] = floatToSnorm8(0.0f);
@@ -4039,9 +4039,16 @@ void R_LoadLightGrid( lump_t *l )
 	vec3_t         ambientColor, directedColor, direction;
 	float          scale;
 
+	if ( tr.ambientLightSet ) {
+		const byte color[3]{ floatToUnorm8( tr.ambientLight[0] ), floatToUnorm8( tr.ambientLight[1] ),
+			floatToUnorm8( tr.ambientLight[2] ) };
+		R_SetConstantColorLightGrid( color );
+	}
+
 	if ( !r_precomputedLighting->integer )
 	{
-		R_SetDefaultLightGrid();
+		const byte color[3] { 64, 64, 64 };
+		R_SetConstantColorLightGrid( color );
 		return;
 	}
 
@@ -4081,7 +4088,8 @@ void R_LoadLightGrid( lump_t *l )
 	{
 		Log::Warn("light grid mismatch, default light grid used" );
 
-		R_SetDefaultLightGrid();
+		const byte color[3]{ 64, 64, 64 };
+		R_SetConstantColorLightGrid( color );
 
 		return;
 	}
@@ -4115,6 +4123,12 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 1 ] = in->directed[ 1 ];
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
+
+		if ( tmpAmbient[0] < r_forceAmbient->value &&
+			tmpAmbient[1] < r_forceAmbient->value &&
+			tmpAmbient[2] < r_forceAmbient->value ) {
+			VectorSet( tmpAmbient, r_forceAmbient->value, r_forceAmbient->value, r_forceAmbient->value );
+		}
 
 		if ( tr.legacyOverBrightClamping )
 		{
@@ -4338,6 +4352,13 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 		// check for ambient color
 		else if ( !Q_stricmp( keyname, "_color" ) || !Q_stricmp( keyname, "ambientColor" ) )
 		{
+			if ( r_forceAmbient->value <= 0 ) {
+				sscanf( value, "%f %f %f", &tr.ambientLight[0], &tr.ambientLight[1],
+					&tr.ambientLight[2] );
+
+				VectorScale( tr.ambientLight, r_ambientScale->value, tr.ambientLight );
+				tr.ambientLightSet = true;
+			}
 		}
 
 		// check for deluxe mapping support
