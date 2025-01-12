@@ -1393,7 +1393,9 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	                           "	uvec2 u_LightMap;\n"
 	                           "	uvec2 u_DeluxeMap;\n"
 	                           "};\n\n"
-	                           "layout(std140, binding = 8) uniform lightMapDataUBO {\n"
+	                           "layout(std140, binding = "
+		                       + std::to_string( Util::ordinal( BufferBind::LIGHTMAP_DATA ) )
+		                       + ") uniform lightMapDataUBO {\n"
 	                           "	LightMapData lightMapData[256];\n"
 	                           "};\n\n"
 		                       "#define u_LightMap_initial lightMapData[( baseInstance >> 24 ) & 0xFF].u_LightMap\n"
