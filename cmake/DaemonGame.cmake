@@ -25,6 +25,9 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 include_directories(${MOUNT_DIR} ${LIB_DIR} ${LIB_DIR}/zlib)
+include(DaemonPlatform)
+include(DaemonNacl)
+include(DaemonFlags)
 
 ## About the different ways to host/play games:
 ## Native DLL: no sandboxing, no cleaning up but debugger support. Use for dev.
@@ -37,15 +40,6 @@ option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for 
 
 # can be loaded by daemon with vm.[sc]game.type 2
 option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
-
-include(DaemonPlatform)
-
-# Do not report unused native compiler if native vms are not built.
-# If only NACL vms are built, this will be reported in chainloaded build.
-if (BUILD_GAME_NATIVE_DLL OR BUILD_GAME_NATIVE_EXE OR NACL)
-    include(DaemonNacl)
-    include(DaemonFlags)
-endif()
 
 # Function to setup all the Sgame/Cgame libraries
 include(CMakeParseArguments)

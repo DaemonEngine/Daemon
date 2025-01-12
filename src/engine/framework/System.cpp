@@ -692,8 +692,7 @@ static void Init(int argc, char** argv)
 #endif
 
 	// Print a banner and a copy of the command-line arguments
-	Log::Notice(Q3_VERSION " " PLATFORM_STRING " " XSTRING(ARCH_STRING) " (" XSTRING(DAEMON_CXX_COMPILER_STRING) ") " __DATE__);
-
+	Log::Notice(Q3_VERSION " " PLATFORM_STRING " " XSTRING(ARCH_STRING) " " __DATE__);
 	std::string argsString = "cmdline:";
 	for (int i = 1; i < argc; i++) {
 		argsString.push_back(' ');

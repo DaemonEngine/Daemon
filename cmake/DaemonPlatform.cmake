@@ -50,4 +50,3 @@ endif()
 
 
 include(DaemonArchitecture)
-include(DaemonCompiler)
