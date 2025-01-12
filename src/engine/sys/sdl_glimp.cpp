@@ -70,6 +70,8 @@ static Cvar::Cvar<bool> r_arb_buffer_storage( "r_arb_buffer_storage",
 	"Use GL_ARB_buffer_storage if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
 	"Use GL_ARB_compute_shader if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_direct_state_access( "r_arb_direct_state_access",
+	"Use GL_ARB_direct_state_access if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_framebuffer_object( "r_arb_framebuffer_object",
 	"Use GL_ARB_framebuffer_object if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform_location",
@@ -1975,6 +1977,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_bindless_texture );
 	Cvar::Latch( r_arb_buffer_storage );
 	Cvar::Latch( r_arb_compute_shader );
+	Cvar::Latch( r_arb_direct_state_access );
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_framebuffer_object );
 	Cvar::Latch( r_arb_gpu_shader5 );
@@ -2544,11 +2547,15 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.6
 	glConfig2.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
 
+	// made required in OpenGL 4.5
+	glConfig2.directStateAccessAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_direct_state_access, r_arb_direct_state_access.Get() );
+
 	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable
 		&& glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
 		&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
 		&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
-		&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable;
+		&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable
+		&& glConfig2.directStateAccessAvailable;
 
 	// This requires GLEW 2.2+, so skip if it's a lower version
 #ifdef GL_KHR_shader_subgroup
