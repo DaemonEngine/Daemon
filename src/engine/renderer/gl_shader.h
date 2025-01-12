@@ -1370,43 +1370,52 @@ public:
 
 class GLBuffer {
 	public:
-	std::string _name;
-	const GLuint _bindingPoint;
-	const GLbitfield _flags;
-	const GLbitfield _mapFlags;
+	std::string name;
 	const GLuint64 SYNC_TIMEOUT = 10000000000; // 10 seconds
 
-	GLBuffer( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		_name( name ),
-		_bindingPoint( bindingPoint ),
-		_flags( flags ),
-		_mapFlags( mapFlags ) {
+	GLBuffer( const char* newName, const GLuint newBindingPoint, const GLbitfield newFlags, const GLbitfield newMapFlags ) :
+		name( newName ),
+		internalTarget( 0 ),
+		internalBindingPoint( newBindingPoint ),
+		flags( newFlags ),
+		mapFlags( newMapFlags ) {
 	}
 
-	const char* GetName() {
-		return _name.c_str();
+	GLBuffer( const char* newName, const GLenum newTarget, const GLuint newBindingPoint,
+		const GLbitfield newFlags, const GLbitfield newMapFlags ) :
+		name( newName ),
+		internalTarget( newTarget ),
+		internalBindingPoint( newBindingPoint ),
+		flags( newFlags ),
+		mapFlags( newMapFlags ) {
 	}
 
-	void BindBufferBase( const GLenum target ) {
-		glBindBufferBase( target, _bindingPoint, handle );
+	void BindBufferBase( GLenum target = 0, GLuint bindingPoint = 0 ) {
+		target = target ? target : internalTarget;
+		bindingPoint = bindingPoint ? bindingPoint : internalBindingPoint;
+		glBindBufferBase( target, bindingPoint, id );
 	}
 
-	void UnBindBufferBase( const GLenum target ) {
-		glBindBufferBase( target, _bindingPoint, 0 );
+	void UnBindBufferBase( GLenum target = 0, GLuint bindingPoint = 0 ) {
+		target = target ? target : internalTarget;
+		bindingPoint = bindingPoint ? bindingPoint : internalBindingPoint;
+		glBindBufferBase( target, bindingPoint, 0 );
 	}
 
-	void BindBuffer( const GLenum target ) {
-		glBindBuffer( target, handle );
+	void BindBuffer( GLenum target = 0 ) {
+		target = target ? target : internalTarget;
+		glBindBuffer( target, id );
 	}
 
-	void UnBindBuffer( const GLenum target ) {
+	void UnBindBuffer( GLenum target = 0 ) {
+		target = target ? target : internalTarget;
 		glBindBuffer( target, 0 );
 	}
 
-	void BufferStorage( const GLenum target, const GLsizeiptr newAreaSize, const GLsizeiptr areaCount, const void* data ) {
+	void BufferStorage( const GLsizeiptr newAreaSize, const GLsizeiptr areaCount, const void* data ) {
 		areaSize = newAreaSize;
 		maxAreas = areaCount;
-		glBufferStorage( target, areaSize * areaCount * sizeof(uint32_t), data, _flags );
+		glNamedBufferStorage( id, areaSize * areaCount * sizeof( uint32_t ), data, flags );
 		syncs.resize( areaCount );
 	}
 
@@ -1418,18 +1427,17 @@ class GLBuffer {
 		}
 	}
 
-	void MapAll( const GLenum target ) {
+	void MapAll() {
 		if ( !mapped ) {
 			mapped = true;
-			mappedTarget = target;
-			data = ( uint32_t* ) glMapBufferRange( target, 0, areaSize * maxAreas * sizeof( uint32_t ), _flags | _mapFlags );
+			data = ( uint32_t* ) glMapNamedBufferRange( id, 0, areaSize * maxAreas * sizeof( uint32_t ), flags | mapFlags );
 		}
 	}
 
 	uint32_t* GetCurrentAreaData() {
 		if ( syncs[area] != nullptr ) {
 			if ( glClientWaitSync( syncs[area], GL_SYNC_FLUSH_COMMANDS_BIT, SYNC_TIMEOUT ) == GL_TIMEOUT_EXPIRED ) {
-				Sys::Drop( "Failed buffer %s area %u sync", _name, area );
+				Sys::Drop( "Failed buffer %s area %u sync", name, area );
 			}
 			glDeleteSync( syncs[area] );
 		}
@@ -1441,33 +1449,24 @@ class GLBuffer {
 		return data;
 	}
 
-	void FlushCurrentArea( GLenum target ) {
-		glFlushMappedBufferRange( target, area * areaSize * sizeof( uint32_t ), areaSize * sizeof( uint32_t ) );
+	void FlushCurrentArea() {
+		glFlushMappedNamedBufferRange( id, area * areaSize * sizeof( uint32_t ), areaSize * sizeof( uint32_t ) );
 	}
 
-	void FlushAll( GLenum target ) {
-		glFlushMappedBufferRange( target, 0, maxAreas * areaSize * sizeof( uint32_t ) );
+	void FlushAll() {
+		glFlushMappedNamedBufferRange( id, 0, maxAreas * areaSize * sizeof( uint32_t ) );
 	}
 
-	uint32_t* MapBufferRange( const GLenum target, const GLuint count ) {
+	uint32_t* MapBufferRange( const GLuint count ) {
+		return MapBufferRange( 0, count );
+	}
+
+	uint32_t* MapBufferRange( const GLuint offset, const GLuint count ) {
 		if ( !mapped ) {
 			mapped = true;
-			mappedTarget = target;
-			data = ( uint32_t* ) glMapBufferRange( target,
-				0, count * sizeof( uint32_t ),
-				_flags | _mapFlags );
-		}
-
-		return data;
-	}
-
-	uint32_t* MapBufferRange( const GLenum target, const GLuint offset, const GLuint count ) {
-		if ( !mapped ) {
-			mapped = true;
-			mappedTarget = target;
-			data = ( uint32_t* ) glMapBufferRange( target,
+			data = ( uint32_t* ) glMapNamedBufferRange( id,
 				offset * sizeof( uint32_t ), count * sizeof( uint32_t ),
-				_flags | _mapFlags );
+				flags | mapFlags );
 		}
 
 		return data;
@@ -1476,22 +1475,28 @@ class GLBuffer {
 	void UnmapBuffer() {
 		if ( mapped ) {
 			mapped = false;
-			glUnmapBuffer( mappedTarget );
+			glUnmapNamedBuffer( id );
 		}
 	}
 
 	void GenBuffer() {
-		glGenBuffers( 1, &handle );
+		glCreateBuffers( 1, &id );
 	}
 
 	void DelBuffer() {
-		glDeleteBuffers( 1, &handle );
+		glDeleteBuffers( 1, &id );
 	}
 
 	private:
-	GLenum mappedTarget;
-	GLuint handle;
+	const GLenum internalTarget;
+	const GLuint internalBindingPoint;
+
+	GLuint id;
+
 	bool mapped = false;
+	const GLbitfield flags;
+	const GLbitfield mapFlags;
+
 	std::vector<GLsync> syncs;
 	GLsizeiptr area = 0;
 	GLsizeiptr areaSize = 0;
@@ -1502,158 +1507,26 @@ class GLBuffer {
 class GLSSBO : public GLBuffer {
 	public:
 	GLSSBO( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, bindingPoint, flags, mapFlags ) {
-	}
-
-	public:
-	const char* GetName() {
-		return _name.c_str();
-	}
-
-	void BindBufferBase() {
-		GLBuffer::BindBufferBase( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void UnBindBufferBase() {
-		GLBuffer::UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void BindBuffer() {
-		GLBuffer::BindBuffer( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void UnBindBuffer() {
-		GLBuffer::UnBindBuffer( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
-		GLBuffer::BufferStorage( GL_SHADER_STORAGE_BUFFER, areaSize, areaCount, data );
-	}
-
-	void MapAll() {
-		GLBuffer::MapAll( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void FlushCurrentArea() {
-		GLBuffer::FlushCurrentArea( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void FlushAll() {
-		GLBuffer::FlushAll( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_SHADER_STORAGE_BUFFER, count );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_SHADER_STORAGE_BUFFER, offset, count );
+		GLBuffer( name, GL_SHADER_STORAGE_BUFFER, bindingPoint, flags, mapFlags ) {
 	}
 };
 
 class GLUBO : public GLBuffer {
 	public:
 	GLUBO( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, bindingPoint, flags, mapFlags ) {
-	}
-
-	public:
-	const char* GetName() {
-		return _name.c_str();
-	}
-
-	void BindBufferBase() {
-		GLBuffer::BindBufferBase( GL_UNIFORM_BUFFER );
-	}
-
-	void UnBindBufferBase() {
-		GLBuffer::UnBindBufferBase( GL_UNIFORM_BUFFER );
-	}
-
-	void BindBuffer() {
-		GLBuffer::BindBuffer( GL_UNIFORM_BUFFER );
-	}
-
-	void UnBindBuffer() {
-		GLBuffer::UnBindBuffer( GL_UNIFORM_BUFFER );
-	}
-
-	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
-		GLBuffer::BufferStorage( GL_UNIFORM_BUFFER, areaSize, areaCount, data );
-	}
-
-	void MapAll() {
-		GLBuffer::MapAll( GL_UNIFORM_BUFFER );
-	}
-
-	void FlushCurrentArea() {
-		GLBuffer::FlushCurrentArea( GL_UNIFORM_BUFFER );
-	}
-
-	void FlushAll() {
-		GLBuffer::FlushAll( GL_UNIFORM_BUFFER );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, count );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, offset, count );
+		GLBuffer( name, GL_UNIFORM_BUFFER, bindingPoint, flags, mapFlags ) {
 	}
 };
 
 class GLAtomicCounterBuffer : public GLBuffer {
 	public:
 	GLAtomicCounterBuffer( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, bindingPoint, flags, mapFlags ) {
-	}
-
-	public:
-	const char* GetName() {
-		return _name.c_str();
-	}
-
-	void BindBufferBase() {
-		GLBuffer::BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void UnBindBufferBase() {
-		GLBuffer::UnBindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void BindBuffer() {
-		GLBuffer::BindBuffer( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
-		GLBuffer::BufferStorage( GL_ATOMIC_COUNTER_BUFFER, areaSize, areaCount, data );
-	}
-
-	void MapAll() {
-		GLBuffer::MapAll( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void FlushCurrentArea() {
-		GLBuffer::FlushCurrentArea( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void FlushAll() {
-		GLBuffer::FlushAll( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_ATOMIC_COUNTER_BUFFER, count );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_ATOMIC_COUNTER_BUFFER, offset, count );
+		GLBuffer( name, GL_ATOMIC_COUNTER_BUFFER, bindingPoint, flags, mapFlags ) {
 	}
 };
 
 class GLIndirectBuffer {
 	public:
-
 	struct GLIndirectCommand {
 		GLuint count;
 		GLuint instanceCount;
@@ -1662,16 +1535,7 @@ class GLIndirectBuffer {
 		GLuint baseInstance;
 	};
 
-	std::string _name;
-
-	GLIndirectBuffer( const char* name ) :
-		_name( name ) {
-	}
-
-	public:
-
-	const char* GetName() {
-		return _name.c_str();
+	GLIndirectBuffer( const char* name ) {
 	}
 
 	void BindBuffer() {

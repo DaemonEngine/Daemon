@@ -574,9 +574,8 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	texDataBufferType = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ? GL_UNIFORM_BUFFER : GL_SHADER_STORAGE_BUFFER;
 
-	texDataBuffer.BindBuffer( texDataBufferType  );
-	texDataBuffer.BufferStorage( texDataBufferType, ( texData.size() + dynamicTexData.size() ) * TEX_BUNDLE_SIZE, 1, nullptr );
-	texDataBuffer.MapAll( texDataBufferType );
+	texDataBuffer.BufferStorage( ( texData.size() + dynamicTexData.size() ) * TEX_BUNDLE_SIZE, 1, nullptr );
+	texDataBuffer.MapAll();
 	TexBundle* textureBundles = ( TexBundle* ) texDataBuffer.GetData();
 	memset( textureBundles, 0, ( texData.size() + dynamicTexData.size() ) * TEX_BUNDLE_SIZE * sizeof( uint32_t ) );
 
@@ -589,11 +588,9 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	dynamicTexDataOffset = texData.size() * TEX_BUNDLE_SIZE;
 	dynamicTexDataSize = dynamicTexData.size() * TEX_BUNDLE_SIZE;
 
-	texDataBuffer.FlushAll( texDataBufferType  );
+	texDataBuffer.FlushAll();
 	texDataBuffer.UnmapBuffer();
-	texDataBuffer.UnBindBuffer( texDataBufferType );
 
-	lightMapDataUBO.BindBuffer();
 	lightMapDataUBO.BufferStorage( MAX_LIGHTMAPS * LIGHTMAP_SIZE, 1, nullptr );
 	lightMapDataUBO.MapAll();
 	uint64_t* lightmapData = ( uint64_t* ) lightMapDataUBO.GetData();
@@ -633,7 +630,6 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	lightMapDataUBO.FlushAll();
 	lightMapDataUBO.UnmapBuffer();
-	lightMapDataUBO.UnBindBuffer();
 
 	surfaceCommandsCount = totalBatchCount * SURFACE_COMMANDS_PER_BATCH;
 
@@ -643,13 +639,11 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	SurfaceCommand* surfaceCommands = ( SurfaceCommand* ) surfaceCommandsSSBO.GetData();
 	memset( surfaceCommands, 0, surfaceCommandsCount * sizeof( SurfaceCommand ) * MAX_VIEWFRAMES );
 
-	culledCommandsBuffer.BindBuffer( GL_SHADER_STORAGE_BUFFER );
-	culledCommandsBuffer.BufferStorage( GL_SHADER_STORAGE_BUFFER,
-		surfaceCommandsCount * INDIRECT_COMMAND_SIZE * MAX_VIEWFRAMES, 1, nullptr );
-	culledCommandsBuffer.MapAll( GL_SHADER_STORAGE_BUFFER );
+	culledCommandsBuffer.BufferStorage( surfaceCommandsCount * INDIRECT_COMMAND_SIZE * MAX_VIEWFRAMES, 1, nullptr );
+	culledCommandsBuffer.MapAll();
 	GLIndirectBuffer::GLIndirectCommand* culledCommands = ( GLIndirectBuffer::GLIndirectCommand* ) culledCommandsBuffer.GetData();
 	memset( culledCommands, 0, surfaceCommandsCount * sizeof( GLIndirectBuffer::GLIndirectCommand ) * MAX_VIEWFRAMES );
-	culledCommandsBuffer.FlushAll( GL_SHADER_STORAGE_BUFFER );
+	culledCommandsBuffer.FlushAll();
 
 	surfaceBatchesUBO.BindBuffer();
 	glBufferData( GL_UNIFORM_BUFFER, MAX_SURFACE_COMMAND_BATCHES * sizeof( SurfaceCommandBatch ), nullptr, GL_STATIC_DRAW );
@@ -675,10 +669,8 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 		}
 	}
 
-	atomicCommandCountersBuffer.BindBuffer( GL_ATOMIC_COUNTER_BUFFER );
-	atomicCommandCountersBuffer.BufferStorage( GL_ATOMIC_COUNTER_BUFFER,
-		MAX_COMMAND_COUNTERS * MAX_VIEWS, MAX_FRAMES, nullptr );
-	atomicCommandCountersBuffer.MapAll( GL_ATOMIC_COUNTER_BUFFER );
+	atomicCommandCountersBuffer.BufferStorage( MAX_COMMAND_COUNTERS * MAX_VIEWS, MAX_FRAMES, nullptr );
+	atomicCommandCountersBuffer.MapAll();
 	uint32_t* atomicCommandCounters = ( uint32_t* ) atomicCommandCountersBuffer.GetData();
 	memset( atomicCommandCounters, 0, MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES * sizeof( uint32_t ) );
 
@@ -786,19 +778,14 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 		memcpy( surfaceCommands + surfaceCommandsCount * i, surfaceCommands, surfaceCommandsCount * sizeof( SurfaceCommand ) );
 	}
 
-	surfaceDescriptorsSSBO.BindBuffer();
 	surfaceDescriptorsSSBO.UnmapBuffer();
 
-	surfaceCommandsSSBO.BindBuffer();
 	surfaceCommandsSSBO.UnmapBuffer();
 
-	culledCommandsBuffer.BindBuffer( GL_SHADER_STORAGE_BUFFER );
 	culledCommandsBuffer.UnmapBuffer();
 
-	atomicCommandCountersBuffer.BindBuffer( GL_ATOMIC_COUNTER_BUFFER);
 	atomicCommandCountersBuffer.UnmapBuffer();
 
-	surfaceBatchesUBO.BindBuffer();
 	surfaceBatchesUBO.UnmapBuffer();
 
 	GL_CheckErrors();
@@ -1605,7 +1592,7 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 		texDataBuffer.BindBuffer( texDataBufferType );
 		GL_CheckErrors();
 		TexBundle* textureBundles =
-			( TexBundle* ) texDataBuffer.MapBufferRange( texDataBufferType, dynamicTexDataOffset, dynamicTexDataSize );
+			( TexBundle* ) texDataBuffer.MapBufferRange( dynamicTexDataOffset, dynamicTexDataSize );
 		GL_CheckErrors();
 
 		GenerateTexturesBuffer( dynamicTexData, textureBundles );
