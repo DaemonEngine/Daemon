@@ -3047,6 +3047,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Cvar<bool> r_materialDebug;
 	extern cvar_t *r_showParallelShadowSplits;
 
+	extern Cvar::Cvar<int> r_forceRendererTime;
+
 	extern Cvar::Cvar<bool> r_profilerRenderSubGroups;
 	extern Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode;
 	extern Cvar::Cvar<int> r_profilerRenderSubGroupsStage;

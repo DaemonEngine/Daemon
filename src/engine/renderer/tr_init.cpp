@@ -271,6 +271,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		"(-1 to profile all stages/materials, rendered in their usual order); "
 		"for materials, material IDs start from opaque materials, depth pre-pass materials are ignored", Cvar::NONE, -1 );
 
+	Cvar::Cvar<int> r_forceRendererTime( "r_forceRendererTime", "Set a specific time (in ms, since the start of the map) for time-based shader effects; -1 to disable", Cvar::CHEAT, -1 );
+
 	cvar_t      *r_vboFaces;
 	cvar_t      *r_vboCurves;
 	cvar_t      *r_vboTriangles;
