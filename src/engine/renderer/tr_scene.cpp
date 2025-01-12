@@ -564,7 +564,11 @@ void RE_RenderScene( const refdef_t *fd )
 	}
 
 	// derived info
-	tr.refdef.floatTime = float(double(tr.refdef.time) * 0.001);
+	if ( r_forceRendererTime.Get() >= 0 ) {
+		tr.refdef.floatTime = float( double( r_forceRendererTime.Get() ) * 0.001 );
+	} else {
+		tr.refdef.floatTime = float( double( tr.refdef.time ) * 0.001 );
+	}
 
 	tr.refdef.numDrawSurfs = r_firstSceneDrawSurf;
 	tr.refdef.drawSurfs = backEndData[ tr.smpFrame ]->drawSurfs;
