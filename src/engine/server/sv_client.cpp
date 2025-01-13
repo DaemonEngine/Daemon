@@ -579,7 +579,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	// only accept wwwdl commands for clients which we first flagged as wwwdl ourselves
 	if ( !cl->bWWWDl )
 	{
-		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s' for client '%s'", subcmd, cl->name );
+		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s^*' for client '%s^*'", subcmd, cl->name );
 		SV_DropClient( cl, va( "SV_WWWDownload: unexpected wwwdl %s", subcmd ) );
 		return;
 	}
@@ -588,7 +588,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	{
 		if ( cl->bWWWing )
 		{
-			Log::Warn("dupe wwwdl ack from client '%s'", cl->name );
+			Log::Warn("dupe wwwdl ack from client '%s^*'", cl->name );
 		}
 
 		cl->bWWWing = true;
@@ -598,7 +598,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	// below for messages that only happen during/after download
 	if ( !cl->bWWWing )
 	{
-		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s' for client '%s'", subcmd, cl->name );
+		Log::Notice( "SV_WWWDownload: unexpected wwwdl '%s^*' for client '%s^*'", subcmd, cl->name );
 		SV_DropClient( cl, va( "SV_WWWDownload: unexpected wwwdl %s", subcmd ) );
 		return;
 	}
@@ -620,7 +620,7 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 	}
 	else if ( !Q_stricmp( subcmd, "chkfail" ) )
 	{
-		Log::Warn("client '%s' reports that the redirect download for '%s' had wrong checksum.\n\tYou should check your download redirect configuration.",
+		Log::Warn("client '%s^*' reports that the redirect download for '%s^*' had wrong checksum.\n\tYou should check your download redirect configuration.",
 				 cl->name, cl->downloadName );
 		*cl->downloadName = 0;
 		cl->bWWWing = false;
@@ -630,8 +630,8 @@ void SV_WWWDownload_f( client_t *cl, const Cmd::Args& args )
 		return;
 	}
 
-	Log::Notice("SV_WWWDownload: unknown wwwdl subcommand '%s' for client '%s'", subcmd, cl->name );
-	SV_DropClient( cl, va( "SV_WWWDownload: unknown wwwdl subcommand '%s'", subcmd ) );
+	Log::Notice("SV_WWWDownload: unknown wwwdl subcommand '%s^*' for client '%s^*'", subcmd, cl->name );
+	SV_DropClient( cl, va( "SV_WWWDownload: unknown wwwdl subcommand '%s^*'", subcmd ) );
 }
 
 // abort an attempted download
@@ -660,7 +660,7 @@ static bool SV_CheckFallbackURL( client_t *cl, const char* pakName, int download
 		return false;
 	}
 
-	Log::Notice( "clientDownload: sending client '%s' to fallback URL '%s'", cl->name, sv_wwwFallbackURL.Get() );
+	Log::Notice( "clientDownload: sending client '%s^*' to fallback URL '%s'", cl->name, sv_wwwFallbackURL.Get() );
 
 	Q_strncpyz(cl->downloadURL, va("%s/%s", sv_wwwFallbackURL.Get().c_str(), pakName), sizeof(cl->downloadURL));
 
@@ -757,7 +757,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 
 						downloadSize = length;
 					} catch (std::system_error& ex) {
-						Log::Warn("Client '%s': couldn't extract file size for %s - %s", cl->name, cl->downloadName, ex.what());
+						Log::Warn("Client '%s^*': couldn't extract file size for %s - %s", cl->name, cl->downloadName, ex.what());
 						success = false;
 					}
 				} else
@@ -777,7 +777,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					if ( cl->downloadnotify & DLNOTIFY_REDIRECT )
 					{
 						cl->downloadnotify &= ~DLNOTIFY_REDIRECT;
-						Log::Notice( "Redirecting client '%s' to %s", cl->name, cl->downloadURL );
+						Log::Notice( "Redirecting client '%s^*' to %s", cl->name, cl->downloadURL );
 					}
 
 					// once cl->downloadName is set (and possibly we have our listening socket), let the client know
@@ -794,7 +794,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 				else
 				{
 					// that should NOT happen - even regular download would fail then anyway
-					Log::Warn("Client '%s': couldn't extract file size for %s", cl->name, cl->downloadName );
+					Log::Warn("Client '%s^*': couldn't extract file size for %s", cl->name, cl->downloadName );
 				}
 			}
 			else
@@ -807,7 +807,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					return;
 				}
 
-				Log::Warn("Client '%s': falling back to regular downloading for failed file %s", cl->name,
+				Log::Warn("Client '%s^*': falling back to regular downloading for failed file %s", cl->name,
 						 cl->downloadName );
 			}
 		}
