@@ -688,7 +688,6 @@ static void DrawTris()
 	}
 
 	gl_genericShader->SetUniform_ColorModulateColorGen( colorGen_t::CGEN_CONST, alphaGen_t::AGEN_CONST );
-	gl_genericShader->SetUniform_ColorModulateLightFactor( tr.mapLightFactor );
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -857,8 +856,8 @@ void Render_generic3D( shaderStage_t *pStage )
 	// since the `generic` fragment shader only takes a single input color. `lightMapping` on the
 	// hand needs to know the real diffuse color, hence the separate u_LightFactor.
 	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && tess.bspSurface;
-	gl_genericShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, mayUseVertexOverbright );
-	gl_genericShader->SetUniform_ColorModulateLightFactor( tr.mapLightFactor );
+	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
+	gl_genericShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, mayUseVertexOverbright, styleLightMap );
 
 	// u_Color
 	gl_genericShader->SetUniform_Color( tess.svars.color );
@@ -2501,11 +2500,6 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				tess.svars.color.SetBlue( blue );
 				break;
 			}
-	}
-
-	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP )
-	{
-		tess.svars.color *= tr.mapLightFactor;
 	}
 
 	// alphaGen

@@ -223,8 +223,8 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && drawSurf->bspSurface;
-	gl_genericShaderMaterial->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, mayUseVertexOverbright );
-	gl_genericShaderMaterial->SetUniform_ColorModulateLightFactor( tr.mapLightFactor );
+	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
+	gl_genericShaderMaterial->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, mayUseVertexOverbright, styleLightMap );
 
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color( tess.svars.color );

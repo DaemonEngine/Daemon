@@ -47,7 +47,8 @@ array must be in the form of uvec4 array[] */
 Bit 1: color negate
 Bit 2: lightFactor add
 Bit 3: alpha add
-Bit 4: alpha negate */
+Bit 4: alpha negate
+Bit 5-12: lightFactor */
 
 float colorModArray[3] = float[3] ( 0.0f, 1.0f, -1.0f );
 
@@ -61,4 +62,8 @@ vec4 ColorModulateToColor( const in uint colorMod, const in float lightFactor ) 
 	vec4 colorModulate = vec4( colorModArray[colorMod & 3] + ( colorMod & 4 ) * lightFactor );
 	colorModulate.a = ( colorModArray[( colorMod & 24 ) >> 3] );
 	return colorModulate;
+}
+
+float ColorModulateToLightFactor( const in uint colorMod ) {
+	return ( colorMod >> 5 ) & 0xF;
 }
