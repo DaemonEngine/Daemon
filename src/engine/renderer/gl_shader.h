@@ -2151,19 +2151,6 @@ public:
 	}
 };
 
-// HACK: Light factor is set as a global uniform here so that genericMaterial struct can fit into 8 bytes
-class u_ColorModulateLightFactor :
-	GLUniform1f {
-	public:
-	u_ColorModulateLightFactor( GLShader* shader ) :
-		GLUniform1f( shader, "u_ColorModulateLightFactor", true ) {
-	}
-
-	void SetUniform_ColorModulateLightFactor( const float lightFactor ) {
-		this->SetValue( lightFactor / 4.0f ); // Multiplied by 4 in the shader to save on instructions
-	}
-};
-
 class u_ColorMap :
 	GLUniformSampler2D {
 	public:
@@ -3633,7 +3620,8 @@ class u_ColorModulateColorGen :
 		GLUniform1ui( shader, "u_ColorModulateColorGen" ) {
 	}
 
-	void SetUniform_ColorModulateColorGen( colorGen_t colorGen, alphaGen_t alphaGen, bool vertexOverbright = false ) {
+	void SetUniform_ColorModulateColorGen( colorGen_t colorGen, alphaGen_t alphaGen, bool vertexOverbright = false,
+		const bool styleLightMap = false ) {
 		uint32_t colorModulate = 0;
 		bool needAttrib = false;
 
@@ -3651,6 +3639,7 @@ class u_ColorModulateColorGen :
 					// vertexOverbright is only needed for non-lightmapped cases. When there is a
 					// lightmap, this is done by multiplying with the overbright-scaled white image
 					colorModulate |= Util::ordinal( ColorModulate::COLOR_LIGHTFACTOR );
+					colorModulate |= uint32_t( tr.mapLightFactor / 4 ) << 5;
 				} else {
 					colorModulate |= Util::ordinal( ColorModulate::COLOR_ADD );
 				}
@@ -3663,6 +3652,13 @@ class u_ColorModulateColorGen :
 
 			default:
 				break;
+		}
+
+		if ( styleLightMap ) {
+			ASSERT_EQ( vertexOverbright, false );
+			colorModulate |= uint32_t( tr.mapLightFactor ) << 5;
+		} else {
+			colorModulate |= 1 << 5;
 		}
 
 		switch ( alphaGen ) {
@@ -3951,7 +3947,6 @@ class GLShader_generic :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorModulateColorGen,
-	public u_ColorModulateLightFactor,
 	public u_Color,
 	public u_Bones,
 	public u_VertexInterpolation,
@@ -3981,7 +3976,6 @@ class GLShader_genericMaterial :
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
 	public u_ColorModulateColorGen,
-	public u_ColorModulateLightFactor,
 	public u_Color,
 	public u_DepthScale,
 	public u_ShowTris,
