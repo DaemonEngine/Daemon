@@ -23,8 +23,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define COMPUTELIGHT_GLSL
 
-uniform float u_LightFactor;
-
 #if !defined(USE_BSP_SURFACE)
 	#define USE_MODEL_SURFACE
 #endif
@@ -52,13 +50,13 @@ vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
 // lighting helper functions
 
 #if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
-	void ReadLightGrid( in vec4 texel, out vec3 ambientColor, out vec3 lightColor ) {
+	void ReadLightGrid( in vec4 texel, in float lightFactor, out vec3 ambientColor, out vec3 lightColor ) {
 		float ambientScale = 2.0 * texel.a;
 		float directedScale = 2.0 - ambientScale;
 		ambientColor = ambientScale * texel.rgb;
 		lightColor = directedScale * texel.rgb;
-		ambientColor *= u_LightFactor;
-		lightColor *= u_LightFactor;
+		ambientColor *= lightFactor;
+		lightColor *= lightFactor;
 	}
 #endif
 

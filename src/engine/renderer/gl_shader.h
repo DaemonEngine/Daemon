@@ -2136,21 +2136,6 @@ public:
 	}
 };
 
-class u_LightFactor :
-	GLUniform1f
-{
-public:
-	u_LightFactor( GLShader *shader ) :
-		GLUniform1f( shader, "u_LightFactor" )
-	{
-	}
-
-	void SetUniform_LightFactor( const float lightFactor )
-	{
-		this->SetValue( lightFactor );
-	}
-};
-
 class u_ColorMap :
 	GLUniformSampler2D {
 	public:
@@ -3621,7 +3606,7 @@ class u_ColorModulateColorGen :
 	}
 
 	void SetUniform_ColorModulateColorGen( colorGen_t colorGen, alphaGen_t alphaGen, bool vertexOverbright = false,
-		const bool styleLightMap = false ) {
+		const bool useMapLightFactor = false ) {
 		uint32_t colorModulate = 0;
 		bool needAttrib = false;
 
@@ -3654,7 +3639,7 @@ class u_ColorModulateColorGen :
 				break;
 		}
 
-		if ( styleLightMap ) {
+		if ( useMapLightFactor ) {
 			ASSERT_EQ( vertexOverbright, false );
 			colorModulate |= uint32_t( tr.mapLightFactor ) << 5;
 		} else {
@@ -4013,7 +3998,6 @@ class GLShader_lightMapping :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_LightFactor,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_ReliefDepthScale,
@@ -4065,7 +4049,6 @@ class GLShader_lightMappingMaterial :
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_LightFactor,
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,

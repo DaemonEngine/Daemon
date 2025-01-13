@@ -1059,12 +1059,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// u_DeformGen
 	gl_lightMappingShader->SetUniform_Time( backEnd.refdef.floatTime - backEnd.currentEntity->e.shaderTime );
 
-	// u_LightFactor
-	gl_lightMappingShader->SetUniform_LightFactor(
-		lightMode == lightMode_t::FULLBRIGHT ? 1.0f : tr.mapLightFactor );
-
 	// u_ColorModulate
-	gl_lightMappingShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen );
+	gl_lightMappingShader->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, false, lightMode != lightMode_t::FULLBRIGHT );
 
 	// u_Color
 	gl_lightMappingShader->SetUniform_Color( tess.svars.color );
