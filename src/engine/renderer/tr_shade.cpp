@@ -861,6 +861,12 @@ void Render_generic3D( shaderStage_t *pStage )
 	// u_Color
 	gl_genericShader->SetUniform_Color( tess.svars.color );
 
+	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP ) {
+		gl_genericShader->SetUniform_tmpLightFactor( tr.mapLightFactor );
+	} else {
+		gl_genericShader->SetUniform_tmpLightFactor( 1 );
+	}
+
 	gl_genericShader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
@@ -2499,11 +2505,6 @@ void Tess_ComputeColor( shaderStage_t *pStage )
 				tess.svars.color.SetBlue( blue );
 				break;
 			}
-	}
-
-	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP )
-	{
-		tess.svars.color *= tr.mapLightFactor;
 	}
 
 	// alphaGen

@@ -34,6 +34,7 @@ uniform float		u_Time;
 
 uniform vec4		u_ColorModulate;
 uniform uint		u_Color;
+uniform float u_tmpLightFactor;
 #if defined(USE_TCGEN_ENVIRONMENT)
 uniform mat4		u_ModelMatrix;
 #endif
@@ -63,7 +64,7 @@ void	main()
 	vec2 texCoord, lmCoord;
 
 	VertexFetch( position, LB, color, texCoord, lmCoord );
-	color = color * u_ColorModulate + unpackUnorm4x8( u_Color );
+	color = color * u_ColorModulate + unpackUnorm4x8( u_Color ) * vec4( u_tmpLightFactor, u_tmpLightFactor, u_tmpLightFactor, 1.0 );
 
 	DeformVertex( position,
 		      LB.normal,

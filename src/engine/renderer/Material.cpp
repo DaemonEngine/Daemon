@@ -999,6 +999,8 @@ void BindShaderGeneric3D( Material* material ) {
 		gl_genericShaderMaterial->SetUniform_ViewUp( backEnd.orientation.axis[2] );
 	}
 
+	gl_genericShaderMaterial->SetUniform_tmpLightFactor( material->tmpLightFactor );
+
 	gl_genericShaderMaterial->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_genericShaderMaterial->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[glState.stackIndex] );
 
@@ -1265,6 +1267,10 @@ void ProcessMaterialGeneric3D( Material* material, shaderStage_t* pStage, drawSu
 
 	material->useAttrColor = rgbGen == colorGen_t::CGEN_VERTEX || rgbGen == colorGen_t::CGEN_ONE_MINUS_VERTEX
 		|| alphaGen == alphaGen_t::AGEN_VERTEX || alphaGen == alphaGen_t::AGEN_ONE_MINUS_VERTEX;
+
+	if ( pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP ) {
+		material->tmpLightFactor = tr.mapLightFactor;
+	}
 
 	gl_genericShaderMaterial->SetTCGenEnvironment( pStage->tcGen_Environment );
 	gl_genericShaderMaterial->SetTCGenLightmap( pStage->tcGen_Lightmap );

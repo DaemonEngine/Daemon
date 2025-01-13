@@ -2151,6 +2151,19 @@ public:
 	}
 };
 
+// TODO: Move this to colormodulate
+class u_tmpLightFactor :
+	GLUniform1f {
+	public:
+	u_tmpLightFactor( GLShader* shader ) :
+		GLUniform1f( shader, "u_tmpLightFactor", true ) {
+	}
+
+	void SetUniform_tmpLightFactor( const float lightFactor ) {
+		this->SetValue( lightFactor );
+	}
+};
+
 class u_ColorMap :
 	GLUniformSampler2D {
 	public:
@@ -3931,6 +3944,7 @@ class GLShader_generic :
 	public u_ModelViewProjectionMatrix,
 	public u_ColorModulate,
 	public u_Color,
+	public u_tmpLightFactor,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_DepthScale,
@@ -3960,6 +3974,7 @@ class GLShader_genericMaterial :
 	public u_ModelViewProjectionMatrix,
 	public u_ColorModulate,
 	public u_Color,
+	public u_tmpLightFactor,
 	public u_DepthScale,
 	public u_ShowTris,
 	public u_MaterialColour,
