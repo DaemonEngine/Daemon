@@ -285,12 +285,8 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
 
-	// u_LightFactor
-	gl_lightMappingShaderMaterial->SetUniform_LightFactor(
-		lightMode == lightMode_t::FULLBRIGHT ? 1.0f : tr.mapLightFactor );
-
 	// u_ColorModulate
-	gl_lightMappingShaderMaterial->SetUniform_ColorModulateColorGen( rgbGen, alphaGen );
+	gl_lightMappingShaderMaterial->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, false, lightMode != lightMode_t::FULLBRIGHT );
 
 	// u_Color
 	gl_lightMappingShaderMaterial->SetUniform_Color( tess.svars.color );

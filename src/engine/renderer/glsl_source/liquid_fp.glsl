@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* liquid_fp.glsl */
 
+#insert common
 #insert computeLight_fp
 #insert reliefMapping_fp
 
@@ -30,7 +31,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D	u_CurrentMap;
 uniform sampler2D	u_PortalMap;
 uniform sampler2D	u_DepthMap;
+
 uniform vec3		u_ViewOrigin;
+
+uniform uint u_ColorModulateColorGen;
+
 uniform float		u_FogDensity;
 uniform vec3		u_FogColor;
 uniform float		u_RefractionIndex;
@@ -131,7 +136,8 @@ void	main()
 	// compute light color from light grid
 	vec3 ambientColor, lightColor;
 	#if defined(USE_GRID_LIGHTING) || defined(USE_GRID_DELUXE_MAPPING)
-		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
+		float lightFactor = ColorModulateToLightFactor( u_ColorModulateColorGen );
+		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), lightFactor, ambientColor, lightColor);
 	#else // !( defined(USE_GRID_LIGHTING) && defined(USE_GRID_DELUXE_MAPPING) )
 		ambientColor = vec3( 0.0, 0.0, 0.0 );
 		lightColor = vec3( 0.0, 0.0, 0.0 );
