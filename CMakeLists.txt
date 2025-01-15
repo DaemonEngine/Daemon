@@ -363,9 +363,8 @@ function(ADD_PRECOMPILED_HEADER Target)
     set(Header ${COMMON_DIR}/Common.h)
 
     # Compiler-specific PCH support
-    try_c_cxx_flag(PCH "-pch")
-
-    if (PCH)
+    if ((DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY)
+    AND NOT DAEMON_CXX_COMPILER_ICC)
         # CMAKE_CXX_COMPILER_ARG1 is used with compilers using subcommands.
         # For example when doing: cmake -D'CMAKE_CXX_COMPILER'='zig;c++'
         # CMAKE_CXX_COMPILER will be "zig",
@@ -381,10 +380,11 @@ function(ADD_PRECOMPILED_HEADER Target)
         add_dependencies(${Target} ${Target}-pch)
 
         # PNaCl clang doesn't support -include-pch properly
-        if (DAEMON_CXX_COMPILER_NAME STREQUAL "PNaCl")
-            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
-        else()
+        if (DAEMON_CXX_COMPILER_Clang_COMPATIBILITY
+        AND NOT DAEMON_CXX_COMPILER_PNaCl)
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
+        else()
+            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
         endif()
     elseif (MSVC)
         # /Fp sets the PCH path used by either of the /Yc and /Yu options.
