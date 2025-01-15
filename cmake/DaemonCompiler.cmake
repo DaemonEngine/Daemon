@@ -194,7 +194,7 @@ foreach(lang C;CXX)
 		if (DAEMON_${lang}_COMPILER_Clang_COMPATIBILITY)
 			if (NOT DAEMON_${lang}_COMPILER_NAME STREQUAL "Clang")
 				set(DAEMON_${lang}_COMPILER_EXTENDED_VERSION
-					"${DAEMON_${lang}_COMPILER_VERSION}/clang-${DAEMON_${lang}_COMPILER_Clang_VERSION}")
+					"${DAEMON_${lang}_COMPILER_VERSION}/Clang_${DAEMON_${lang}_COMPILER_Clang_VERSION}")
 			endif()
 		elseif (DAEMON_${lang}_COMPILER_GCC_COMPATIBILITY)
 			if (NOT DAEMON_${lang}_COMPILER_NAME STREQUAL "GCC")
@@ -213,7 +213,7 @@ foreach(lang C;CXX)
 					# GCC we are looking for.
 					if ("${CUSTOM_${lang}_GCC_OUTPUT}" MATCHES "\ngcc version ")
 						set(DAEMON_${lang}_COMPILER_EXTENDED_VERSION
-							"${DAEMON_${lang}_COMPILER_VERSION}/gcc-${DAEMON_${lang}_COMPILER_GCC_VERSION}")
+							"${DAEMON_${lang}_COMPILER_VERSION}/GCC_${DAEMON_${lang}_COMPILER_GCC_VERSION}")
 					endif()
 				endif()
 			endif()
@@ -225,11 +225,17 @@ foreach(lang C;CXX)
 	endif()
 
 	set(DAEMON_${lang}_COMPILER_STRING
-		"${DAEMON_${lang}_COMPILER_NAME} ${DAEMON_${lang}_COMPILER_EXTENDED_VERSION} ${DAEMON_${lang}_COMPILER_BASENAME}")
+		"${DAEMON_${lang}_COMPILER_NAME}_${DAEMON_${lang}_COMPILER_EXTENDED_VERSION}:${DAEMON_${lang}_COMPILER_BASENAME}")
+
+	if (CMAKE_CXX_COMPILER_ARG1)
+		set(DAEMON_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_STRING}:${CMAKE_CXX_COMPILER_ARG1}")
+	endif()
 
 	message(STATUS "Detected ${${lang}_NAME} compiler: ${DAEMON_${lang}_COMPILER_STRING}")
 
-	add_definitions(-DDAEMON_${lang}_COMPILER_${DAEMON_${lang}_COMPILER_NAME}=1)
+	set(compiler_var_name "DAEMON_${lang}_COMPILER_${DAEMON_${lang}_COMPILER_NAME}")
+	set(${compiler_var_name} ON)
+	add_definitions(-D${compiler_var_name}=1)
 
 	# Preprocessor definitions containing '#' may not be passed on the compiler
 	# command line because many compilers do not support it.
