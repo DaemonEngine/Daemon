@@ -43,12 +43,12 @@ array must be in the form of uvec4 array[] */
 #define UINT_FROM_UVEC4_ARRAY( array, id ) ( ( array )[( id ) / 4][( id ) % 4] )
 #define UVEC2_FROM_UVEC4_ARRAY( array, id ) ( ( id ) % 2 == 0 ? ( array )[( id ) / 2].xy : ( array )[( id ) / 2].zw )
 
-/* Bit 0: color add
-Bit 1: color negate
-Bit 2: lightFactor add
-Bit 3: alpha add
-Bit 4: alpha negate
-Bit 5-12: lightFactor */
+/* Bit 0: color * 1
+Bit 1: color * ( -1 )
+Bit 2: color += lightFactor
+Bit 3: alpha * 1
+Bit 4: alpha * ( -1 )
+Bit 5-7: lightFactor */
 
 float colorModArray[3] = float[3] ( 0.0f, 1.0f, -1.0f );
 
@@ -59,11 +59,11 @@ vec4 ColorModulateToColor( const in uint colorMod ) {
 }
 
 vec4 ColorModulateToColor( const in uint colorMod, const in float lightFactor ) {
-	vec4 colorModulate = vec4( colorModArray[colorMod & 3] + ( colorMod & 4 ) * lightFactor );
+	vec4 colorModulate = vec4( colorModArray[colorMod & 3] + ( ( colorMod & 4 ) >> 2 ) * lightFactor );
 	colorModulate.a = ( colorModArray[( colorMod & 24 ) >> 3] );
 	return colorModulate;
 }
 
 float ColorModulateToLightFactor( const in uint colorMod ) {
-	return ( colorMod >> 5 ) & 0xF;
+	return ( colorMod >> 5 ) & 0x7;
 }
