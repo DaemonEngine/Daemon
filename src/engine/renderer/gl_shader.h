@@ -3591,11 +3591,11 @@ public:
 };
 
 enum class ColorModulate {
-	COLOR_ADD = BIT( 0 ),
-	COLOR_NEGATE = BIT( 1 ),
+	COLOR_ONE = BIT( 0 ),
+	COLOR_MINUS_ONE = BIT( 1 ),
 	COLOR_LIGHTFACTOR = BIT( 2 ),
-	ALPHA_ADD = BIT( 3 ),
-	ALPHA_NEGATE = BIT( 4 )
+	ALPHA_ONE = BIT( 3 ),
+	ALPHA_MINUS_ONE = BIT( 4 )
 };
 
 class u_ColorModulateColorGen :
@@ -3617,6 +3617,7 @@ class u_ColorModulateColorGen :
 			);
 		}
 
+		uint32_t lightFactor = 0;
 		switch ( colorGen ) {
 			case colorGen_t::CGEN_VERTEX:
 				needAttrib = true;
@@ -3624,15 +3625,15 @@ class u_ColorModulateColorGen :
 					// vertexOverbright is only needed for non-lightmapped cases. When there is a
 					// lightmap, this is done by multiplying with the overbright-scaled white image
 					colorModulate |= Util::ordinal( ColorModulate::COLOR_LIGHTFACTOR );
-					colorModulate |= uint32_t( tr.mapLightFactor / 4 ) << 5;
+					lightFactor = uint32_t( tr.mapLightFactor ) << 5;
 				} else {
-					colorModulate |= Util::ordinal( ColorModulate::COLOR_ADD );
+					colorModulate |= Util::ordinal( ColorModulate::COLOR_ONE );
 				}
 				break;
 
 			case colorGen_t::CGEN_ONE_MINUS_VERTEX:
 				needAttrib = true;
-				colorModulate |= Util::ordinal( ColorModulate::COLOR_ADD ) | Util::ordinal( ColorModulate::COLOR_NEGATE );
+				colorModulate |= Util::ordinal( ColorModulate::COLOR_MINUS_ONE );
 				break;
 
 			default:
@@ -3641,20 +3642,20 @@ class u_ColorModulateColorGen :
 
 		if ( useMapLightFactor ) {
 			ASSERT_EQ( vertexOverbright, false );
-			colorModulate |= uint32_t( tr.mapLightFactor ) << 5;
-		} else {
-			colorModulate |= 1 << 5;
+			lightFactor = uint32_t( tr.mapLightFactor ) << 5;
 		}
+
+		colorModulate |= lightFactor ? lightFactor : 1 << 5;
 
 		switch ( alphaGen ) {
 			case alphaGen_t::AGEN_VERTEX:
 				needAttrib = true;
-				colorModulate |= Util::ordinal( ColorModulate::ALPHA_ADD );
+				colorModulate |= Util::ordinal( ColorModulate::ALPHA_ONE );
 				break;
 
 			case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
 				needAttrib = true;
-				colorModulate |= Util::ordinal( ColorModulate::ALPHA_ADD ) | Util::ordinal( ColorModulate::ALPHA_NEGATE );
+				colorModulate |= Util::ordinal( ColorModulate::ALPHA_MINUS_ONE );
 				break;
 
 			default:
