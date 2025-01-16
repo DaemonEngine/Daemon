@@ -3638,6 +3638,7 @@ public:
 				VectorSet( v, 0, 0, 0 );
 				break;
 		}
+		Log::Warn( "test" );
 
 		switch ( alphaGen )
 		{
