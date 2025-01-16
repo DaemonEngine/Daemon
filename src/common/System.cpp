@@ -39,7 +39,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/random.h>
 #endif
 #ifdef __native_client__
-#include <nacl/native_client/src/include/nacl/nacl_exception.h>
 #include <nacl/native_client/src/include/nacl/nacl_minidump.h>
 #include <nacl/nacl_random.h>
 #else
