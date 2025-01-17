@@ -1412,6 +1412,10 @@ class GLBuffer {
 		glBindBuffer( target, 0 );
 	}
 
+	void BufferData( const GLsizeiptr size, const void* data, const GLenum usageFlags ) {
+		glNamedBufferData( id, size * sizeof( uint32_t ), data, usageFlags );
+	}
+
 	void BufferStorage( const GLsizeiptr newAreaSize, const GLsizeiptr areaCount, const void* data ) {
 		areaSize = newAreaSize;
 		maxAreas = areaCount;
@@ -1504,6 +1508,7 @@ class GLBuffer {
 	uint32_t* data;
 };
 
+// Shorthands for buffers that are only bound to one specific target
 class GLSSBO : public GLBuffer {
 	public:
 	GLSSBO( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
