@@ -41,19 +41,19 @@ layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 #define SurfaceCommandBatch uvec4
 
-layout(std430, binding = 2) readonly restrict buffer surfaceCommandsSSBO {
+layout(std430, binding = BIND_SURFACE_COMMANDS) readonly restrict buffer surfaceCommandsSSBO {
 	SurfaceCommand surfaceCommands[];
 };
 
-layout(std430, binding = 3) writeonly restrict buffer culledCommandsSSBO {
+layout(std430, binding = BIND_CULLED_COMMANDS) writeonly restrict buffer culledCommandsSSBO {
 	GLIndirectCommand culledCommands[];
 };
 
-layout(std140, binding = 0) uniform ub_SurfaceBatches {
+layout(std140, binding = BIND_SURFACE_BATCHES) uniform ub_SurfaceBatches {
 	SurfaceCommandBatch surfaceBatches[MAX_SURFACE_COMMAND_BATCHES];
 };
 
-layout (binding = 4) uniform atomic_uint atomicCommandCounters[MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES];
+layout (binding = BIND_COMMAND_COUNTERS_ATOMIC) uniform atomic_uint atomicCommandCounters[MAX_COMMAND_COUNTERS * MAX_VIEWFRAMES];
 
 uniform uint u_Frame;
 uniform uint u_ViewID;
