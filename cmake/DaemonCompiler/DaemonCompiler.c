@@ -160,6 +160,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // Make the compilation succeeds if architecture is supported.
-int main(int, char**) {
+int main(int argc, char** argv) {
 	return 0;
 }
