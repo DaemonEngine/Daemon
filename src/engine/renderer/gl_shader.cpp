@@ -1440,7 +1440,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			for ( GLUniform* uniform : shader->_uniforms ) {
 				if ( !uniform->IsGlobal() ) {
 					const size_t pos = line.find( uniform->GetName() );
-					if ( pos != std::string::npos && !std::isalpha( line[pos + strlen( uniform->GetName() ) ]) ) {
+					if ( pos != std::string::npos && !Str::cisalpha( line[pos + strlen( uniform->GetName() )] ) ) {
 						skip = true;
 						break;
 					}
