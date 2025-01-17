@@ -1876,6 +1876,42 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 	portalSurfacesTmp.clear();
 }
 
+void MaterialSystem::InitGLBuffers() {
+	materialsUBO.GenBuffer();
+	texDataBuffer.GenBuffer();
+	lightMapDataUBO.GenBuffer();
+
+	surfaceDescriptorsSSBO.GenBuffer();
+	surfaceCommandsSSBO.GenBuffer();
+	culledCommandsBuffer.GenBuffer();
+	surfaceBatchesUBO.GenBuffer();
+	atomicCommandCountersBuffer.GenBuffer();
+
+	portalSurfacesSSBO.GenBuffer();
+
+	if ( r_materialDebug.Get() ) {
+		debugSSBO.GenBuffer();
+	}
+}
+
+void MaterialSystem::FreeGLBuffers() {
+	materialsUBO.DelBuffer();
+	texDataBuffer.DelBuffer();
+	lightMapDataUBO.DelBuffer();
+
+	surfaceDescriptorsSSBO.DelBuffer();
+	surfaceCommandsSSBO.DelBuffer();
+	culledCommandsBuffer.DelBuffer();
+	surfaceBatchesUBO.DelBuffer();
+	atomicCommandCountersBuffer.DelBuffer();
+
+	portalSurfacesSSBO.DelBuffer();
+
+	if ( r_materialDebug.Get() ) {
+		debugSSBO.DelBuffer();
+	}
+}
+
 void MaterialSystem::Free() {
 	generatedWorldCommandBuffer = false;
 

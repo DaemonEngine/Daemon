@@ -1118,6 +1118,19 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 					stage->deformIndex = deformIndex;
 				}
 			}
+
+			if ( glConfig2.usingMaterialSystem ) {
+				/* GLSL shaders linked to materials will be invalidated by glsl_restart,
+				so regenerate all the material stuff here */
+				const uint8_t maxStages = materialSystem.maxStages;
+				materialSystem.Free();
+				materialSystem.FreeGLBuffers();
+
+				materialSystem.InitGLBuffers();
+				materialSystem.maxStages = maxStages;
+
+				materialSystem.GenerateWorldMaterials();
+			}
 		}
 	};
 	static GlslRestartCmd glslRestartCmdRegistration;
