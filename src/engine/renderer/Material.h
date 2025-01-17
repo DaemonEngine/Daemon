@@ -43,7 +43,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static constexpr uint32_t MAX_DRAWCOMMAND_TEXTURES = 64;
 
-/* Similar to GLIndirectBuffer::GLIndirectCommand, but we always set instanceCount to 1 and baseVertex to 0,
+struct GLIndirectCommand {
+	GLuint count;
+	GLuint instanceCount;
+	GLuint firstIndex;
+	GLint baseVertex;
+	GLuint baseInstance;
+};
+
+/* Similar to GLIndirectCommand, but we always set instanceCount to 1 and baseVertex to 0,
  so no need to waste memory on those */
 struct IndirectCompactCommand {
 	GLuint count;

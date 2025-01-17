@@ -1530,45 +1530,6 @@ class GLAtomicCounterBuffer : public GLBuffer {
 	}
 };
 
-class GLIndirectBuffer {
-	public:
-	struct GLIndirectCommand {
-		GLuint count;
-		GLuint instanceCount;
-		GLuint firstIndex;
-		GLint baseVertex;
-		GLuint baseInstance;
-	};
-
-	GLIndirectBuffer( const char* name ) {
-	}
-
-	void BindBuffer() {
-		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, handle );
-	}
-
-	GLIndirectCommand* MapBufferRange( const GLsizeiptr count ) {
-		return (GLIndirectCommand*) glMapBufferRange( GL_DRAW_INDIRECT_BUFFER,
-			0, count * sizeof( GLIndirectCommand ),
-			GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
-	}
-
-	void UnmapBuffer() const {
-		glUnmapBuffer( GL_DRAW_INDIRECT_BUFFER );
-	}
-
-	void GenBuffer() {
-		glGenBuffers( 1, &handle );
-	}
-
-	void DelBuffer() {
-		glDeleteBuffers( 1, &handle );
-	}
-
-	private:
-	GLuint handle;
-};
-
 class GLCompileMacro
 {
 private:

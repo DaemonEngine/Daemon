@@ -636,8 +636,8 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	culledCommandsBuffer.BufferStorage( surfaceCommandsCount * INDIRECT_COMMAND_SIZE * MAX_VIEWFRAMES, 1, nullptr );
 	culledCommandsBuffer.MapAll();
-	GLIndirectBuffer::GLIndirectCommand* culledCommands = ( GLIndirectBuffer::GLIndirectCommand* ) culledCommandsBuffer.GetData();
-	memset( culledCommands, 0, surfaceCommandsCount * sizeof( GLIndirectBuffer::GLIndirectCommand ) * MAX_VIEWFRAMES );
+	GLIndirectCommand* culledCommands = ( GLIndirectCommand* ) culledCommandsBuffer.GetData();
+	memset( culledCommands, 0, surfaceCommandsCount * sizeof( GLIndirectCommand ) * MAX_VIEWFRAMES );
 	culledCommandsBuffer.FlushAll();
 
 	surfaceBatchesUBO.BufferData( MAX_SURFACE_COMMAND_BATCHES * SURFACE_COMMAND_BATCH_SIZE, nullptr, GL_STATIC_DRAW );
@@ -2100,9 +2100,9 @@ void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderS
 
 void MaterialSystem::RenderIndirect( const Material& material, const uint32_t viewID, const GLenum mode = GL_TRIANGLES ) {
 	glMultiDrawElementsIndirectCountARB( mode, GL_UNSIGNED_INT,
-		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectBuffer::GLIndirectCommand )
+		BUFFER_OFFSET( material.surfaceCommandBatchOffset * SURFACE_COMMANDS_PER_BATCH * sizeof( GLIndirectCommand )
 		               + ( surfaceCommandsCount * ( MAX_VIEWS * currentFrame + viewID )
-		               * sizeof( GLIndirectBuffer::GLIndirectCommand ) ) ),
+		               * sizeof( GLIndirectCommand ) ) ),
 		material.globalID * sizeof( uint32_t )
 		+ ( MAX_COMMAND_COUNTERS * ( MAX_VIEWS * currentFrame + viewID ) ) * sizeof( uint32_t ),
 		material.drawCommands.size(), 0 );
