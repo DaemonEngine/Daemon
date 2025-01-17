@@ -532,6 +532,12 @@ static std::string GenVertexHeader() {
 		str += "#define baseInstance gl_BaseInstanceARB\n\n";
 	}
 
+	if ( glConfig2.usingMaterialSystem ) {
+		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
+		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
+		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
+	}
+
 	return str;
 }
 
@@ -566,6 +572,12 @@ static std::string GenFragmentHeader() {
 		str += "#define baseInstance in_baseInstance\n\n";
 	}
 
+	if ( glConfig2.usingMaterialSystem ) {
+		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
+		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
+		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
+	}
+
 	return str;
 }
 
@@ -573,11 +585,23 @@ static std::string GenComputeHeader() {
 	std::string str;
 
 	// Compute shader compatibility defines
-	AddDefine( str, "MAX_VIEWS", MAX_VIEWS );
-	AddDefine( str, "MAX_FRAMES", MAX_FRAMES );
-	AddDefine( str, "MAX_VIEWFRAMES", MAX_VIEWFRAMES );
-	AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
-	AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
+	if ( glConfig2.usingMaterialSystem ) {
+		AddDefine( str, "MAX_VIEWS", MAX_VIEWS );
+		AddDefine( str, "MAX_FRAMES", MAX_FRAMES );
+		AddDefine( str, "MAX_VIEWFRAMES", MAX_VIEWFRAMES );
+		AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
+		AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
+
+		AddDefine( str, "BIND_SURFACE_DESCRIPTORS", Util::ordinal( BufferBind::SURFACE_DESCRIPTORS ) );
+		AddDefine( str, "BIND_SURFACE_COMMANDS", Util::ordinal( BufferBind::SURFACE_COMMANDS ) );
+		AddDefine( str, "BIND_CULLED_COMMANDS", Util::ordinal( BufferBind::CULLED_COMMANDS ) );
+		AddDefine( str, "BIND_SURFACE_BATCHES", Util::ordinal( BufferBind::SURFACE_BATCHES ) );
+		AddDefine( str, "BIND_COMMAND_COUNTERS_ATOMIC", Util::ordinal( BufferBind::COMMAND_COUNTERS_ATOMIC ) );
+		AddDefine( str, "BIND_COMMAND_COUNTERS_STORAGE", Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
+		AddDefine( str, "BIND_PORTAL_SURFACES", Util::ordinal( BufferBind::PORTAL_SURFACES ) );
+
+		AddDefine( str, "BIND_DEBUG", Util::ordinal( BufferBind::DEBUG ) );
+	}
 
 	if ( glConfig2.usingBindlessTextures ) {
 		str += "layout(bindless_image) uniform;\n";
@@ -1361,15 +1385,21 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 	std::string materialStruct = "\nstruct Material {\n";
 	// 6 kb for materials
 	const uint32_t count = ( 4096 + 2048 ) / shader->GetPaddedSize();
-	std::string materialBlock = "layout(std140, binding = 6) uniform materialsUBO {\n"
+	std::string materialBlock = "layout(std140, binding = "
+		                        + std::to_string( Util::ordinal( BufferBind::MATERIALS ) )
+		                        + ") uniform materialsUBO {\n"
 	                            "	Material materials[" + std::to_string( count ) + "]; \n"
 	                            "};\n\n";
 
 	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
-		"layout(std140, binding = 7) uniform texDataUBO {\n"
+		"layout(std140, binding = "
+		+ std::to_string( Util::ordinal( BufferBind::TEX_DATA ) )
+		+ ") uniform texDataUBO {\n"
 		"	TexData texData[" + std::to_string( MAX_TEX_BUNDLES ) + "]; \n"
 		"};\n\n"
-		: "layout(std430, binding = 7) restrict readonly buffer texDataSSBO {\n"
+		: "layout(std430, binding = "
+		+ std::to_string( Util::ordinal( BufferBind::TEX_DATA ) )
+		+ ") restrict readonly buffer texDataSSBO {\n"
 		"	TexData texData[];\n"
 		"};\n\n";
 	// We have to store u_TextureMatrix as vec4 + vec2 because otherwise it would be aligned to a vec4 under std140

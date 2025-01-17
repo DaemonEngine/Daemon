@@ -37,18 +37,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Material.h"
 #include "ShadeCommon.h"
 
-GLUBO materialsUBO( "materials", 6, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLBuffer texDataBuffer( "texData", 7, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLUBO lightMapDataUBO( "lightMapData", 8, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLUBO materialsUBO( "materials", Util::ordinal( BufferBind::MATERIALS ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+GLBuffer texDataBuffer( "texData", Util::ordinal( BufferBind::TEX_DATA ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLUBO lightMapDataUBO( "lightMapData", Util::ordinal( BufferBind::LIGHTMAP_DATA ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 
-GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", 1, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLBuffer culledCommandsBuffer( "culledCommands", 3, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLUBO surfaceBatchesUBO( "surfaceBatches", 0, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
-GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", 4, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLSSBO portalSurfacesSSBO( "portalSurfaces", 5, GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
+GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", Util::ordinal( BufferBind::SURFACE_DESCRIPTORS ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+GLSSBO surfaceCommandsSSBO( "surfaceCommands", Util::ordinal( BufferBind::SURFACE_COMMANDS ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLBuffer culledCommandsBuffer( "culledCommands", Util::ordinal( BufferBind::CULLED_COMMANDS ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLUBO surfaceBatchesUBO( "surfaceBatches", Util::ordinal( BufferBind::SURFACE_BATCHES ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+GLBuffer atomicCommandCountersBuffer( "atomicCommandCounters", Util::ordinal( BufferBind::COMMAND_COUNTERS_ATOMIC ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLSSBO portalSurfacesSSBO( "portalSurfaces", Util::ordinal( BufferBind::PORTAL_SURFACES ), GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT, 0 );
 
-GLSSBO debugSSBO( "debug", 10, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+GLSSBO debugSSBO( "debug", Util::ordinal( BufferBind::DEBUG ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 
 PortalView portalStack[MAX_VIEWS];
 
@@ -1607,11 +1607,11 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 }
 
 void MaterialSystem::UpdateFrameData() {
-	atomicCommandCountersBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER );
+	atomicCommandCountersBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER, Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
 	gl_clearSurfacesShader->BindProgram( 0 );
 	gl_clearSurfacesShader->SetUniform_Frame( nextFrame );
 	gl_clearSurfacesShader->DispatchCompute( MAX_VIEWS, 1, 1 );
-	atomicCommandCountersBuffer.UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
+	atomicCommandCountersBuffer.UnBindBufferBase( GL_SHADER_STORAGE_BUFFER, Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
 
 	GL_CheckErrors();
 }
