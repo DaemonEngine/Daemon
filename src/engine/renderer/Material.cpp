@@ -387,8 +387,6 @@ void UpdateSurfaceDataFog( uint32_t* materials, shaderStage_t* pStage, bool, boo
 void MaterialSystem::GenerateWorldMaterialsBuffer() {
 	Log::Debug( "Generating materials buffer" );
 
-	materialsUBO.BindBuffer();
-
 	// Sort by padded size to avoid extra padding
 	std::sort( materialStages.begin(), materialStages.end(),
 		[&]( const shaderStage_t* lhs, const shaderStage_t* rhs ) {
@@ -431,7 +429,7 @@ void MaterialSystem::GenerateWorldMaterialsBuffer() {
 	totalStageSize = offset;
 
 	// 4 bytes per component
-	glBufferData( GL_UNIFORM_BUFFER, offset * sizeof( uint32_t ), nullptr, GL_DYNAMIC_DRAW );
+	materialsUBO.BufferData( offset, nullptr, GL_DYNAMIC_DRAW );
 	uint32_t* materialsData = materialsUBO.MapBufferRange( offset );
 
 	GenerateMaterialsBuffer( materialStages, offset, materialsData );
@@ -565,11 +563,9 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	Log::Debug( "Total batch count: %u", totalBatchCount );
 
-	surfaceDescriptorsSSBO.BindBuffer();
 	surfaceDescriptorsCount = totalDrawSurfs;
 	descriptorSize = BOUNDING_SPHERE_SIZE + maxStages;
-	glBufferData( GL_SHADER_STORAGE_BUFFER, surfaceDescriptorsCount * descriptorSize * sizeof( uint32_t ),
-		nullptr, GL_STATIC_DRAW );
+	surfaceDescriptorsSSBO.BufferData( surfaceDescriptorsCount * descriptorSize, nullptr, GL_STATIC_DRAW );
 	uint32_t* surfaceDescriptors = surfaceDescriptorsSSBO.MapBufferRange( surfaceDescriptorsCount * descriptorSize );
 
 	texDataBufferType = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ? GL_UNIFORM_BUFFER : GL_SHADER_STORAGE_BUFFER;
@@ -593,20 +589,20 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	lightMapDataUBO.BufferStorage( MAX_LIGHTMAPS * LIGHTMAP_SIZE, 1, nullptr );
 	lightMapDataUBO.MapAll();
-	uint64_t* lightmapData = ( uint64_t* ) lightMapDataUBO.GetData();
-	memset( lightmapData, 0, MAX_LIGHTMAPS * LIGHTMAP_SIZE * sizeof( uint32_t ) );
+	uint64_t* lightMapData = ( uint64_t* ) lightMapDataUBO.GetData();
+	memset( lightMapData, 0, MAX_LIGHTMAPS * LIGHTMAP_SIZE * sizeof( uint32_t ) );
 	
 	for ( uint32_t i = 0; i < tr.lightmaps.size(); i++ ) {
 		if ( !tr.lightmaps[i]->texture->hasBindlessHandle ) {
 			tr.lightmaps[i]->texture->GenBindlessHandle();
 		}
-		lightmapData[i * 2] = tr.lightmaps[i]->texture->bindlessTextureHandle;
+		lightMapData[i * 2] = tr.lightmaps[i]->texture->bindlessTextureHandle;
 	}
 	for ( uint32_t i = 0; i < tr.deluxemaps.size(); i++ ) {
 		if ( !tr.deluxemaps[i]->texture->hasBindlessHandle ) {
 			tr.deluxemaps[i]->texture->GenBindlessHandle();
 		}
-		lightmapData[i * 2 + 1] = tr.deluxemaps[i]->texture->bindlessTextureHandle;
+		lightMapData[i * 2 + 1] = tr.deluxemaps[i]->texture->bindlessTextureHandle;
 	}
 
 	ASSERT_LE( tr.lightmaps.size(), 256 ); // Engine supports up to 256 lightmaps currently, so we use 8 bits to address them
@@ -624,8 +620,8 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 			tr.blackImage->texture->GenBindlessHandle();
 		}
 		// Use lightmap 255 for drawSurfs that use a full white image for their lightmap
-		lightmapData[255 * 2] = tr.whiteImage->texture->bindlessTextureHandle;
-		lightmapData[255 * 2 + 1] = tr.blackImage->texture->bindlessTextureHandle;
+		lightMapData[255 * 2] = tr.whiteImage->texture->bindlessTextureHandle;
+		lightMapData[255 * 2 + 1] = tr.blackImage->texture->bindlessTextureHandle;
 	}
 
 	lightMapDataUBO.FlushAll();
@@ -633,7 +629,6 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 
 	surfaceCommandsCount = totalBatchCount * SURFACE_COMMANDS_PER_BATCH;
 
-	surfaceCommandsSSBO.BindBuffer();
 	surfaceCommandsSSBO.BufferStorage( surfaceCommandsCount * SURFACE_COMMAND_SIZE * MAX_VIEWFRAMES, 1, nullptr );
 	surfaceCommandsSSBO.MapAll();
 	SurfaceCommand* surfaceCommands = ( SurfaceCommand* ) surfaceCommandsSSBO.GetData();
@@ -645,12 +640,11 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	memset( culledCommands, 0, surfaceCommandsCount * sizeof( GLIndirectBuffer::GLIndirectCommand ) * MAX_VIEWFRAMES );
 	culledCommandsBuffer.FlushAll();
 
-	surfaceBatchesUBO.BindBuffer();
-	glBufferData( GL_UNIFORM_BUFFER, MAX_SURFACE_COMMAND_BATCHES * sizeof( SurfaceCommandBatch ), nullptr, GL_STATIC_DRAW );
+	surfaceBatchesUBO.BufferData( MAX_SURFACE_COMMAND_BATCHES * SURFACE_COMMAND_BATCH_SIZE, nullptr, GL_STATIC_DRAW );
 	SurfaceCommandBatch* surfaceCommandBatches =
 		( SurfaceCommandBatch* ) surfaceBatchesUBO.MapBufferRange( MAX_SURFACE_COMMAND_BATCHES * SURFACE_COMMAND_BATCH_SIZE );
 
-	// memset( (void*) surfaceCommandBatches, 0, MAX_SURFACE_COMMAND_BATCHES * sizeof( SurfaceCommandBatch ) );
+	// memset( (void*) surfaceCommandBatches, 0, MAX_SURFACE_COMMAND_BATCHES * SURFACE_COMMAND_BATCH_SIZE );
 	// Fuck off gcc
 	for ( int i = 0; i < MAX_SURFACE_COMMAND_BATCHES; i++ ) {
 		surfaceCommandBatches[i] = {};
@@ -679,8 +673,7 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	if ( r_materialDebug.Get() ) {
 		const uint32_t debugSize = surfaceCommandsCount * 20;
 
-		debugSSBO.BindBuffer();
-		glBufferData( GL_SHADER_STORAGE_BUFFER, debugSize * sizeof( uint32_t ), nullptr, GL_STATIC_DRAW );
+		debugSSBO.BufferData( debugSize, nullptr, GL_STATIC_DRAW );
 		uint32_t* debugBuffer = debugSSBO.MapBufferRange( debugSize );
 		memset( debugBuffer, 0, debugSize * sizeof( uint32_t ) );
 		debugSSBO.UnmapBuffer();
@@ -1580,7 +1573,6 @@ void MaterialSystem::AddStageTextures( drawSurf_t* drawSurf, const uint32_t stag
 // Dynamic surfaces are those whose values in the SSBO can be updated
 void MaterialSystem::UpdateDynamicSurfaces() {
 	if ( dynamicStagesSize > 0 ) {
-		materialsUBO.BindBuffer();
 		uint32_t* materialsData = materialsUBO.MapBufferRange( dynamicStagesOffset, dynamicStagesSize );
 
 		GenerateMaterialsBuffer( dynamicStages, dynamicStagesSize, materialsData );
@@ -1589,16 +1581,15 @@ void MaterialSystem::UpdateDynamicSurfaces() {
 	}
 
 	if ( dynamicTexDataSize > 0 ) {
-		texDataBuffer.BindBuffer( texDataBufferType );
-		GL_CheckErrors();
 		TexBundle* textureBundles =
 			( TexBundle* ) texDataBuffer.MapBufferRange( dynamicTexDataOffset, dynamicTexDataSize );
-		GL_CheckErrors();
 
 		GenerateTexturesBuffer( dynamicTexData, textureBundles );
 
 		texDataBuffer.UnmapBuffer();
 	}
+
+	GL_CheckErrors();
 }
 
 void MaterialSystem::UpdateFrameData() {
@@ -1841,10 +1832,8 @@ void MaterialSystem::GeneratePortalBoundingSpheres() {
 		index++;
 	}
 
-	portalSurfacesSSBO.BindBuffer();
 	portalSurfacesSSBO.BufferStorage( totalPortals * PORTAL_SURFACE_SIZE * MAX_VIEWS, 2, portalSurfs );
 	portalSurfacesSSBO.MapAll();
-	portalSurfacesSSBO.UnBindBuffer();
 
 	portalSurfacesTmp.clear();
 }
