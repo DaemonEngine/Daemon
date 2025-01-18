@@ -351,12 +351,11 @@ namespace Cmd {
             void Run(const Cmd::Args& args) const override {
                 CommandMap& commands = GetCommandMap();
 
-                std::vector<const commandRecord_t*> matches;
-                std::vector<const std::string*> matchesNames;
+                std::vector<CommandMap::const_iterator> matches;
                 unsigned long maxNameLength = 0;
 
                 //Find all the matching commands and their names
-                for (auto it = commands.cbegin(); it != commands.cend(); ++it) {
+                for (CommandMap::const_iterator it = commands.cbegin(); it != commands.cend(); ++it) {
                     const commandRecord_t& record = it->second;
 
                     // /listCmds's argument is used for prefix matching
@@ -365,16 +364,19 @@ namespace Cmd {
                     }
 
                     if (record.cmd->GetFlags() & showCmdFlags) {
-                        matches.push_back(&it->second);
-                        matchesNames.push_back(&it->first);
+                        matches.push_back(it);
                         maxNameLength = std::max<size_t>(maxNameLength, it->first.size());
                     }
                 }
 
+                // TODO: case insensitive compare function?
+                std::sort(matches.begin(), matches.end(),
+                    [](CommandMap::const_iterator a, CommandMap::const_iterator b) { return a->first < b->first; });
+
                 //Print the matches, keeping the description aligned
-                for (unsigned i = 0; i < matches.size(); i++) {
-                    int toFill = maxNameLength - matchesNames[i]->size();
-                    Print("  %s%s %s", matchesNames[i]->c_str(), std::string(toFill, ' ').c_str(), matches[i]->description.c_str());
+                for (CommandMap::const_iterator it : matches) {
+                    int toFill = maxNameLength - it->first.size();
+                    Print("  %s%s %s", it->first, std::string(toFill, ' '), it->second.description);
                 }
 
                 Print("%zu commands", matches.size());
