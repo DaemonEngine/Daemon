@@ -309,7 +309,7 @@ void R_ModelInit()
 class ListModelsCmd : public Cmd::StaticCmd
 {
 public:
-	ListModelsCmd() : StaticCmd("listModels", "list loaded 3D models") {}
+	ListModelsCmd() : StaticCmd("listModels", Cmd::RENDERER, "list loaded 3D models") {}
 
 	void Run( const Cmd::Args &args ) const override
 	{

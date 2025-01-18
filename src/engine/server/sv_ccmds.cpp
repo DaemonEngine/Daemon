@@ -47,7 +47,7 @@ These commands can only be entered from stdin or by a remote operator datagram
 class MapCmd: public Cmd::StaticCmd {
     public:
         MapCmd(Str::StringRef name, Str::StringRef description, bool cheat):
-            Cmd::StaticCmd(name, Cmd::SYSTEM, description), cheat(cheat) {
+            Cmd::StaticCmd(name, Cmd::SERVER, description), cheat(cheat) {
         }
 
         void Run(const Cmd::Args& args) const override {
@@ -255,7 +255,7 @@ class StatusCmd: public Cmd::StaticCmd
 {
 public:
 	StatusCmd():
-		StaticCmd("status", Cmd::SYSTEM, "Shows a table with server and player information")
+		StaticCmd("status", Cmd::SERVER, "Shows a table with server and player information")
 	{}
 
 	void Run(const Cmd::Args&) const override
@@ -402,7 +402,7 @@ class ListMapsCmd: public Cmd::StaticCmd
 {
 public:
 	ListMapsCmd():
-		StaticCmd("listmaps", Cmd::SYSTEM, "Lists all maps available to the server")
+		StaticCmd("listmaps", Cmd::SERVER, "Lists all maps available to the server")
 	{}
 
 	void Run(const Cmd::Args&) const override

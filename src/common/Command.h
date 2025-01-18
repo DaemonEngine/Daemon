@@ -41,15 +41,18 @@ namespace Cmd {
      * mass removal of commands.
      */
     enum {
-        BASE             = BIT(0),
-        CVAR             = BIT(1),
-        ALIAS            = BIT(2),
-        SYSTEM           = BIT(3),
-        RENDERER         = BIT(4),
-        AUDIO            = BIT(5),
-        SGAME_VM         = BIT(6),
-        CGAME_VM         = BIT(7),
-        KEY_BINDING      = BIT(8),
+        BASE             = BIT(0), // anything in the dummy app?
+        SERVER           = BIT(1),
+        CLIENT           = BIT(2), // client stuff other than renderer, audio, keys
+        RENDERER         = BIT(3),
+        AUDIO            = BIT(4),
+        KEY_BINDING      = BIT(5),
+
+        // ones you should not use when defining a StaticCmd
+        SGAME_VM         = BIT(27),
+        CGAME_VM         = BIT(28),
+        CVAR             = BIT(29), // auto-generated cvar show/set command
+        ALIAS            = BIT(30),
         PROXY_FOR_OLD    = BIT(31) // OLD: The command has been registered through the proxy function in cmd.c
     };
 
@@ -154,14 +157,19 @@ namespace Cmd {
      * instanciated and removes it when it is destroyed. A typical usage is
      *
      *  class MyCmd : public Cmd::StaticCmd {
-     *      MyCmd() : Cmd::StaticCmd("my_command", NAMESPACE, "my_description"){}
+     *      MyCmd() : Cmd::StaticCmd("my_command", Cmd::NAMESPACE, "my_description"){}
      *      //Other stuff
      *  };
      *  static MyCmd MyCmdRegistration;
+     *
+     * The 'namespace' flag(s) is mandatory in the engine (so that the command will appear
+     * in /listCmds),  but ignored in the gamelogic (there they automatically get [CS]GAME_VM).
      */
     class StaticCmd : public CmdBase {
         protected:
+#ifndef BUILD_ENGINE
             StaticCmd(std::string name, std::string description);
+#endif
             StaticCmd(std::string name, int flags, std::string description);
     };
 
@@ -180,7 +188,9 @@ namespace Cmd {
         public:
             using RunFn = std::function<void(const Args&)>;
             using CompleteFn = std::function<CompletionResult(int, const Args&, Str::StringRef)>;
+#ifndef BUILD_ENGINE
             LambdaCmd(std::string name, std::string description, RunFn run, CompleteFn complete = NoopComplete);
+#endif
             LambdaCmd(std::string name, int flags, std::string description, RunFn run, CompleteFn complete = NoopComplete);
 
             void Run(const Args& args) const override;

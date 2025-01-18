@@ -396,11 +396,12 @@ namespace Cmd {
 
     static ListCmdsCmd listCmdsRegistration("listCmds", BASE, "lists all the commands", ~(CVAR|ALIAS));
     static ListCmdsCmd listBaseCmdsRegistration("listBaseCmds", BASE, "lists all the base commands", BASE);
-    static ListCmdsCmd listSystemCmdsRegistration("listSystemCmds", BASE | SYSTEM, "lists all the system commands", SYSTEM);
+    static ListCmdsCmd listServerCmdsRegistration("listServerCmds", BASE | SERVER, "lists all the server commands", SERVER);
+    static ListCmdsCmd listClientCmdsRegistration("listClientCmds", BASE | CLIENT, "lists all the client commands", CLIENT | RENDERER | AUDIO | KEY_BINDING);
     static ListCmdsCmd listRendererCmdsRegistration("listRendererCmds", BASE | RENDERER, "lists all the renderer commands", RENDERER);
     static ListCmdsCmd listAudioCmdsRegistration("listAudioCmds", BASE | AUDIO, "lists all the audio commands", AUDIO);
-    static ListCmdsCmd listCGameCmdsRegistration("listCGameCmds", BASE | CGAME_VM, "lists all the client-side game commands", CGAME_VM);
-    static ListCmdsCmd listGameCmdsRegistration("listSGameCmds", BASE | SGAME_VM, "lists all the server-side game commands", CGAME_VM);
     static ListCmdsCmd listKeyCmdsRegistration("listKeyBindingCmds", BASE | KEY_BINDING, "lists all the key binding commands", KEY_BINDING);
+    static ListCmdsCmd listCGameCmdsRegistration("listCGameCmds", BASE, "lists all the client-side game commands", CGAME_VM);
+    static ListCmdsCmd listGameCmdsRegistration("listSGameCmds", BASE, "lists all the server-side game commands", SGAME_VM);
     static ListCmdsCmd listOldStyleCmdsRegistration("listOldStyleCmds", BASE, "lists all the commands registered through the C interface", PROXY_FOR_OLD);
 }

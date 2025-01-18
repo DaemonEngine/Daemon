@@ -594,7 +594,7 @@ void R_ShutdownFBOs()
 class ListFBOsCmd : public Cmd::StaticCmd
 {
 public:
-	ListFBOsCmd() : StaticCmd("listFBOs", "list renderer's OpenGL framebuffer objects") {}
+	ListFBOsCmd() : StaticCmd("listFBOs", Cmd::RENDERER, "list renderer's OpenGL framebuffer objects") {}
 
 	void Run( const Cmd::Args & ) const override
 	{

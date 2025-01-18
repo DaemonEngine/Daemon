@@ -584,7 +584,8 @@ skelAnimation_t *R_GetAnimationByHandle( qhandle_t index )
 class ListAnimationsCmd : public Cmd::StaticCmd
 {
 public:
-	ListAnimationsCmd() : StaticCmd("listAnimations", "list model animations loaded in renderer") {}
+	ListAnimationsCmd() : StaticCmd(
+		"listAnimations", Cmd::RENDERER, "list model animations loaded in renderer") {}
 
 	void Run( const Cmd::Args & ) const override
 	{

@@ -330,7 +330,7 @@ skin_t         *R_GetSkinByHandle( qhandle_t hSkin )
 class ListSkinsCmd : public Cmd::StaticCmd
 {
 public:
-	ListSkinsCmd() : StaticCmd("listSkins", "list model skins") {}
+	ListSkinsCmd() : StaticCmd("listSkins", Cmd::RENDERER, "list model skins") {}
 
 	void Run( const Cmd::Args & ) const override
 	{
