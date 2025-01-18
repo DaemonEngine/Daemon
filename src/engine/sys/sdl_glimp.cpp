@@ -501,7 +501,7 @@ void GLimp_Shutdown()
 }
 
 static Cmd::LambdaCmd minimizeCmd(
-	"minimize", "minimize the window",
+	"minimize", Cmd::CLIENT, "minimize the window",
 	[]( const Cmd::Args & ) { SDL_MinimizeWindow( window ); });
 
 static void SetSwapInterval( int swapInterval )

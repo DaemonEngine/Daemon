@@ -292,7 +292,7 @@ class DemoRecordStopCmd: public Cmd::StaticCmd
 {
 public:
     DemoRecordStopCmd()
-        : Cmd::StaticCmd("demo_record_stop", Cmd::SYSTEM, "Stops recording a demo")
+        : Cmd::StaticCmd("demo_record_stop", Cmd::CLIENT, "Stops recording a demo")
     {}
 
     void Run(const Cmd::Args&) const override
@@ -312,7 +312,7 @@ class DemoRecordCmd : public Cmd::StaticCmd
 {
 public:
     DemoRecordCmd()
-        : Cmd::StaticCmd("demo_record", Cmd::SYSTEM, "Begins recording a demo from the current position")
+        : Cmd::StaticCmd("demo_record", Cmd::CLIENT, "Begins recording a demo from the current position")
     {}
 
     void Run(const Cmd::Args& args) const override
@@ -562,7 +562,7 @@ void CL_ReadDemoMessage()
 
 class DemoPlayCmd: public Cmd::StaticCmd {
     public:
-        DemoPlayCmd(): Cmd::StaticCmd("demo_play", Cmd::SYSTEM, "Starts playing a demo file") {
+        DemoPlayCmd(): Cmd::StaticCmd("demo_play", Cmd::CLIENT, "Starts playing a demo file") {
         }
 
         void Run(const Cmd::Args& args) const override {
@@ -1223,7 +1223,7 @@ class RconCmd: public Cmd::StaticCmd
 {
 public:
 	RconCmd():
-		StaticCmd("rcon", Cmd::SYSTEM, "Sends a remote console command")
+		StaticCmd("rcon", Cmd::CLIENT, "Sends a remote console command")
 	{}
 
 	void Run(const Cmd::Args& args) const override
@@ -1287,7 +1287,7 @@ class RconDiscoverCmd: public Cmd::StaticCmd
 {
 public:
 	RconDiscoverCmd():
-		StaticCmd("rconDiscover", Cmd::SYSTEM, "Sends a request to the server to populate rcon.client cvars")
+		StaticCmd("rconDiscover", Cmd::CLIENT, "Sends a request to the server to populate rcon.client cvars")
 	{}
 
 	void Run(const Cmd::Args&) const override
@@ -1528,7 +1528,7 @@ class DemoVideoCmd: public Cmd::StaticCmd
 {
 public:
     DemoVideoCmd()
-        : Cmd::StaticCmd("demo_video", Cmd::SYSTEM,
+        : Cmd::StaticCmd("demo_video", Cmd::CLIENT,
                          "Begins recording a video from the current demo")
     {}
 
@@ -1586,7 +1586,7 @@ class DemoStopVideoCmd: public Cmd::StaticCmd
 {
 public:
     DemoStopVideoCmd()
-        : Cmd::StaticCmd("demo_video_stop", Cmd::SYSTEM, "Stops recording a video")
+        : Cmd::StaticCmd("demo_video_stop", Cmd::CLIENT, "Stops recording a video")
     {}
 
     void Run(const Cmd::Args&) const override

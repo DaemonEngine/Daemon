@@ -1010,7 +1010,7 @@ namespace Cmd {
 
     class ShowFPSCommand : public Cmd::StaticCmd {
     public:
-        ShowFPSCommand() : StaticCmd("showfps", "prints engine frame rate") {}
+        ShowFPSCommand() : StaticCmd("showfps", Cmd::BASE, "prints engine frame rate") {}
 
         void Run(const Cmd::Args&) const override {
             Print("FPS: %.1f", Application::GetFPS());

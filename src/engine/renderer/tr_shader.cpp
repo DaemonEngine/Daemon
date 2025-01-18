@@ -6641,7 +6641,8 @@ A second parameter will cause it to print in sorted order
 class ListShadersCmd : public Cmd::StaticCmd
 {
 public:
-	ListShadersCmd() : StaticCmd("listShaders", "list q3shaders currently registered in the renderer") {}
+	ListShadersCmd() : StaticCmd(
+		"listShaders", Cmd::RENDERER, "list q3shaders currently registered in the renderer") {}
 
 	void Run( const Cmd::Args &args ) const override
 	{
@@ -6858,7 +6859,8 @@ static ListShadersCmd listShadersCmdRegistration;
 class ShaderExpCmd : public Cmd::StaticCmd
 {
 public:
-	ShaderExpCmd() : StaticCmd("shaderexp", "evaluate a q3shader expression (RB_EvalExpression)") {}
+	ShaderExpCmd() : StaticCmd(
+		"shaderexp", Cmd::RENDERER, "evaluate a q3shader expression (RB_EvalExpression)") {}
 
 	void Run( const Cmd::Args &args ) const override
 	{

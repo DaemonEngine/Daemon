@@ -525,7 +525,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	class ListModesCmd : public Cmd::StaticCmd
 	{
 	public:
-		ListModesCmd() : StaticCmd("listModes", "list suggested screen/window dimensions") {}
+		ListModesCmd() : StaticCmd("listModes", Cmd::RENDERER, "list suggested screen/window dimensions") {}
 		void Run( const Cmd::Args& ) const override
 		{
 			int i;
@@ -1085,14 +1085,14 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 	// FIXME: uses regular logging not Print()
 	static Cmd::LambdaCmd gfxInfoCmd(
-		"gfxinfo", "dump graphics driver and configuration info",
+		"gfxinfo", Cmd::RENDERER, "dump graphics driver and configuration info",
 		[]( const Cmd::Args & ) { GfxInfo_f(); });
 
 	class GlslRestartCmd : public Cmd::StaticCmd
 	{
 	public:
 		GlslRestartCmd() : StaticCmd(
-			"glsl_restart", "recompile GLSL shaders (useful when shaderpath is set)") {}
+			"glsl_restart", Cmd::RENDERER, "recompile GLSL shaders (useful when shaderpath is set)") {}
 
 		void Run( const Cmd::Args & ) const override
 		{
