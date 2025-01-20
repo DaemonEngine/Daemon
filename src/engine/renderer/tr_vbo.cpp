@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // tr_vbo.c
 #include "tr_local.h"
 #include "Material.h"
+#include "GeometryCache.h"
 
 // interleaved data: position, colour, qtangent, texcoord
 // -> struct shaderVertex_t in tr_local.h
@@ -74,7 +75,7 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	}
 }
 
-static uint32_t ComponentSize( GLenum type )
+uint32_t ComponentSize( GLenum type )
 {
 	switch ( type )
 	{
@@ -198,7 +199,7 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 	return vbo;
 }
 
-static void CopyVertexAttribute(
+void CopyVertexAttribute(
 	const vboAttributeLayout_t &attrib, const vertexAttributeSpec_t &spec,
 	uint32_t count, byte *interleavedData )
 {
@@ -751,6 +752,10 @@ void R_InitVBOs()
 		materialSystem.InitGLBuffers();
 	}
 
+	if ( glConfig2.usingGeometryCache ) {
+		geometryCache.InitGLBuffers();
+	}
+
 	GL_CheckErrors();
 }
 
@@ -817,6 +822,10 @@ void R_ShutdownVBOs()
 
 	if ( glConfig2.usingMaterialSystem ) {
 		materialSystem.FreeGLBuffers();
+	}
+
+	if ( glConfig2.usingGeometryCache ) {
+		geometryCache.FreeGLBuffers();
 	}
 
 	tess.verts = tess.vertsBuffer = nullptr;
