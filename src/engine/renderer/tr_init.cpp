@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "framework/CvarSystem.h"
 #include "DetectGLVendors.h"
 #include "Material.h"
+#include "GeometryCache.h"
 
 	glconfig_t  glConfig;
 	glconfig2_t glConfig2;
@@ -92,6 +93,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_gpuOcclusionCulling( "r_gpuOcclusionCulling", "Use occlusion culling on the GPU for the Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_materialSystemSkip( "r_materialSystemSkip", "Temporarily skip Material System rendering, using only core renderer instead", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_geometryCache( "r_geometryCache", "Use Geometry Cache", Cvar::NONE, true );
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
@@ -1241,6 +1243,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_realtimeLightLayers );
 		Cvar::Latch( r_preferBindlessTextures );
 		Cvar::Latch( r_materialSystem );
+		Cvar::Latch( r_geometryCache );
 
 		r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
 		r_max_portal_levels = Cvar_Get( "r_max_portal_levels", "5", 0 );
@@ -1566,7 +1569,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		R_DoneFreeType();
 
-		materialSystem.Free();
+		if ( glConfig2.usingMaterialSystem ) {
+			materialSystem.Free();
+		}
+
+		if ( glConfig2.usingGeometryCache ) {
+			geometryCache.Free();
+		}
 
 		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )
