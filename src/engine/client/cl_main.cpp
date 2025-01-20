@@ -2219,12 +2219,6 @@ static bool CL_InitRef()
 	refimport_t ri;
 	refexport_t *ret;
 
-	ri.Cmd_AddCommand = Cmd_AddCommand;
-	ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
-	ri.Cmd_Argc = Cmd_Argc;
-	ri.Cmd_Argv = Cmd_Argv;
-	ri.Cmd_QuoteString = Cmd_QuoteString;
-
 	ri.Milliseconds = Sys::Milliseconds;
 	ri.RealTime = Com_RealTime;
 
@@ -2474,18 +2468,15 @@ void CL_Shutdown()
 
 	Cmd_RemoveCommand( "cmd" );
 	Cmd_RemoveCommand( "configstrings" );
-	Cmd_RemoveCommand( "userinfo" );
 	Cmd_RemoveCommand( "snd_restart" );
 	Cmd_RemoveCommand( "vid_restart" );
 	Cmd_RemoveCommand( "disconnect" );
 	Cmd_RemoveCommand( "connect" );
 	Cmd_RemoveCommand( "localservers" );
 	Cmd_RemoveCommand( "globalservers" );
-	Cmd_RemoveCommand( "rcon" );
 	Cmd_RemoveCommand( "ping" );
 	Cmd_RemoveCommand( "serverstatus" );
 	Cmd_RemoveCommand( "showip" );
-	Cmd_RemoveCommand( "model" );
 
 	CL_ClearKeyBinding();
 	CL_ClearInput();

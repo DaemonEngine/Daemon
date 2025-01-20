@@ -500,10 +500,9 @@ void GLimp_Shutdown()
 	ResetStruct( glState );
 }
 
-static void GLimp_Minimize()
-{
-	SDL_MinimizeWindow( window );
-}
+static Cmd::LambdaCmd minimizeCmd(
+	"minimize", "minimize the window",
+	[]( const Cmd::Args & ) { SDL_MinimizeWindow( window ); });
 
 static void SetSwapInterval( int swapInterval )
 {
@@ -2654,8 +2653,6 @@ bool GLimp_Init()
 	Cvar::Latch( workaround_glDriver_nvidia_v340_disableTextureGather );
 	Cvar::Latch( workaround_glExtension_missingArbFbo_useExtFbo );
 	Cvar::Latch( workaround_glHardware_intel_useFirstProvokinVertex );
-
-	ri.Cmd_AddCommand( "minimize", GLimp_Minimize );
 
 	/* Enable S3TC on Mesa even if libtxc-dxtn is not available
 	The environment variables is currently always set,

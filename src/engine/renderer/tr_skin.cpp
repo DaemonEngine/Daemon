@@ -327,29 +327,31 @@ skin_t         *R_GetSkinByHandle( qhandle_t hSkin )
 	return tr.skins[ hSkin ];
 }
 
-/*
-===============
-R_ListSkins_f
-===============
-*/
-void R_ListSkins_f()
+class ListSkinsCmd : public Cmd::StaticCmd
 {
-	int    i, j;
-	skin_t *skin;
+public:
+	ListSkinsCmd() : StaticCmd("listSkins", "list model skins") {}
 
-	Log::Notice("------------------" );
-
-	for ( i = 0; i < tr.numSkins; i++ )
+	void Run( const Cmd::Args & ) const override
 	{
-		skin = tr.skins[ i ];
+		int    i, j;
+		skin_t *skin;
 
-		Log::Notice("%3i:%s", i, skin->name );
+		Print("------------------" );
 
-		for ( j = 0; j < skin->numSurfaces; j++ )
+		for ( i = 0; i < tr.numSkins; i++ )
 		{
-			Log::Notice("       %s = %s", skin->surfaces[ j ]->name, skin->surfaces[ j ]->shader->name );
-		}
-	}
+			skin = tr.skins[ i ];
 
-	Log::Notice("------------------" );
-}
+			Print("%3i:%s", i, skin->name );
+
+			for ( j = 0; j < skin->numSurfaces; j++ )
+			{
+				Print("       %s = %s", skin->surfaces[ j ]->name, skin->surfaces[ j ]->shader->name );
+			}
+		}
+
+		Print("------------------" );
+	}
+};
+static ListSkinsCmd listSkinsCmdRegistration;

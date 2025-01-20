@@ -93,58 +93,6 @@ endif()
 if(NOT DAEMON_EXTERNAL_APP)
     option(BUILD_CLIENT "Engine client executable, required to play" ON)
     option(BUILD_SERVER "Engine server executable, required to host servers" ON)
-
-    ## About the different ways to host/play games:
-    ## Native DLL: no sandboxing, no cleaning up but debugger support. Use for dev.
-    ## NaCl exe: sandboxing, no leaks, slightly slower, hard to debug. Use for regular players.
-    ## Native exe: no sandboxing, no leaks, hard to debug. Might be used by server owners for perf.
-    ## see VirtualMachine.h for code
-
-    # can be loaded by daemon with vm.[sc]game.type 3
-    option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for debugging changes locally." ON)
-
-    # can be loaded by daemon with vm.[sc]game.type 2
-    option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
-
-    # The NaCl SDK only runs on amd64 or i686.
-    if (CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME
-    AND (ARCH STREQUAL "amd64" OR ARCH STREQUAL "i686"))
-        # can be loaded by daemon with vm.[sc]game.type 0 or 1
-        option(BUILD_GAME_NACL "Build the NaCl \"pexe\" and \"nexe\" gamelogic modules for enabled architecture targets, required to host mods." OFF)
-
-        set(NACL_ALL_TARGETS "amd64;i686;armhf")
-        set(BUILD_GAME_NACL_TARGETS "all" CACHE STRING "Enabled NaCl \"nexe\" architecture targets, values: ${NACL_ALL_TARGETS}, all, native, none.")
-        mark_as_advanced(BUILD_GAME_NACL_TARGETS)
-
-        if (BUILD_GAME_NACL_TARGETS STREQUAL "all")
-            set(NACL_TARGETS "${NACL_ALL_TARGETS}")
-        elseif (BUILD_GAME_NACL_TARGETS STREQUAL "native")
-            set(NACL_TARGETS "${ARCH}")
-        elseif (BUILD_GAME_NACL_TARGETS STREQUAL "none")
-            set(NACL_TARGETS "")
-        else()
-            set(NACL_TARGETS "${BUILD_GAME_NACL_TARGETS}")
-        endif()
-
-        foreach(NACL_TARGET ${NACL_TARGETS})
-            set(IS_NACL_VALID_TARGET OFF)
-            foreach(NACL_VALID_TARGET ${NACL_ALL_TARGETS})
-                if(NACL_TARGET STREQUAL NACL_VALID_TARGET)
-                    set(IS_NACL_VALID_TARGET ON)
-                endif()
-            endforeach()
-
-            if (NOT IS_NACL_VALID_TARGET)
-                message(FATAL_ERROR "Invalid NaCl target ${NACL_TARGET}, must be one of ${NACL_ALL_TARGETS}")
-            endif()
-        endforeach()
-    else()
-        set(BUILD_GAME_NACL OFF)
-        set(NACL_TARGETS "")
-    endif()
-
-    set(NACL_TARGETS "${NACL_TARGETS}" PARENT_SCOPE)
-
     option(BUILD_TTY_CLIENT "Engine client with no graphical display" ON)
     option(BUILD_DUMMY_APP "Stripped-down engine executable, mostly used to ease incremental porting and debugging" OFF)
     mark_as_advanced(BUILD_DUMMY_APP)
@@ -415,9 +363,8 @@ function(ADD_PRECOMPILED_HEADER Target)
     set(Header ${COMMON_DIR}/Common.h)
 
     # Compiler-specific PCH support
-    try_c_cxx_flag(PCH "-pch")
-
-    if (PCH)
+    if ((DAEMON_CXX_COMPILER_GCC_COMPATIBILITY OR DAEMON_CXX_COMPILER_Clang_COMPATIBILITY)
+    AND NOT DAEMON_CXX_COMPILER_ICC)
         # CMAKE_CXX_COMPILER_ARG1 is used with compilers using subcommands.
         # For example when doing: cmake -D'CMAKE_CXX_COMPILER'='zig;c++'
         # CMAKE_CXX_COMPILER will be "zig",
@@ -433,10 +380,11 @@ function(ADD_PRECOMPILED_HEADER Target)
         add_dependencies(${Target} ${Target}-pch)
 
         # PNaCl clang doesn't support -include-pch properly
-        if (DAEMON_CXX_COMPILER_NAME STREQUAL "PNaCl")
-            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
-        else()
+        if (DAEMON_CXX_COMPILER_Clang_COMPATIBILITY
+        AND NOT DAEMON_CXX_COMPILER_PNaCl)
             set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include-pch;${OBJ_DIR}/${Target}.h.gch")
+        else()
+            set_property(TARGET ${Target} APPEND PROPERTY COMPILE_OPTIONS "-include;${OBJ_DIR}/${Target}.h;-Winvalid-pch")
         endif()
     elseif (MSVC)
         # /Fp sets the PCH path used by either of the /Yc and /Yu options.

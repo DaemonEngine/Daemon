@@ -451,6 +451,5 @@ void SV_RemoveOperatorCommands()
 	Cmd_RemoveCommand( "heartbeat" );
 	Cmd_RemoveCommand( "map_restart" );
 	Cmd_RemoveCommand( "serverinfo" );
-	Cmd_RemoveCommand( "status" );
 	Cmd_RemoveCommand( "systeminfo" );
 }

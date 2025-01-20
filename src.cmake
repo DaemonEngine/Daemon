@@ -160,6 +160,7 @@ set(RENDERERLIST
 )
 
 set(GLSLSOURCELIST
+    ${ENGINE_DIR}/renderer/glsl_source/common.glsl
     ${ENGINE_DIR}/renderer/glsl_source/common_cp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/shaderProfiler_vp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/shaderProfiler_fp.glsl

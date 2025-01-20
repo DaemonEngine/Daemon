@@ -223,7 +223,8 @@ void UpdateSurfaceDataGeneric3D( uint32_t* materials, Material& material, drawSu
 	alphaGen_t alphaGen = SetAlphaGen( pStage );
 
 	bool mayUseVertexOverbright = pStage->type == stageType_t::ST_COLORMAP && drawSurf->bspSurface;
-	gl_genericShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen, mayUseVertexOverbright );
+	const bool styleLightMap = pStage->type == stageType_t::ST_STYLELIGHTMAP || pStage->type == stageType_t::ST_STYLECOLORMAP;
+	gl_genericShaderMaterial->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, mayUseVertexOverbright, styleLightMap );
 
 	Tess_ComputeColor( pStage );
 	gl_genericShaderMaterial->SetUniform_Color( tess.svars.color );
@@ -284,12 +285,8 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, Material& material, dra
 	bool enableGridLighting = ( lightMode == lightMode_t::GRID );
 	bool enableGridDeluxeMapping = ( deluxeMode == deluxeMode_t::GRID );
 
-	// u_LightFactor
-	gl_lightMappingShaderMaterial->SetUniform_LightFactor(
-		lightMode == lightMode_t::FULLBRIGHT ? 1.0f : tr.mapLightFactor );
-
 	// u_ColorModulate
-	gl_lightMappingShaderMaterial->SetUniform_ColorModulate( rgbGen, alphaGen );
+	gl_lightMappingShaderMaterial->SetUniform_ColorModulateColorGen( rgbGen, alphaGen, false, lightMode != lightMode_t::FULLBRIGHT );
 
 	// u_Color
 	gl_lightMappingShaderMaterial->SetUniform_Color( tess.svars.color );
@@ -2049,6 +2046,10 @@ void MaterialSystem::AddAutospriteSurfaces() {
 
 void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID ) {
 	if ( !r_drawworld->integer ) {
+		return;
+	}
+
+	if ( r_materialSystemSkip.Get() ) {
 		return;
 	}
 

@@ -137,325 +137,179 @@ void GL_TextureMode( const char *string )
 	}
 }
 
-/*
-===============
-R_ListImages_f
-===============
-*/
-void R_ListImages_f()
+class ListImagesCmd : public Cmd::StaticCmd
 {
-	static const std::unordered_map<GLenum, std::string> imageTypeName = {
-		{ GL_TEXTURE_2D, "2D" },
-		{ GL_TEXTURE_3D, "3D" },
-		{ GL_TEXTURE_CUBE_MAP, "CUBE" },
-	};
+public:
+	ListImagesCmd() : StaticCmd("listImages", "list images loaded in renderer") {}
 
-	typedef std::pair<const std::string, int> nameSizePair;
-	static const std::unordered_map<uint32_t, nameSizePair> imageFormatNameSize = {
-		/* Generic format that does not have any specified actual format
-		and implementations can choose one of a few different ones
-		GL4.6 spec (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf):
-		8.5. TEXTURE IMAGE SPECIFICATION
-		"If internalformat is specified as a base internal format, the GL stores the resulting texture with
-		 internal component resolutions of its own choosing, referred to as the effective internal format."
-		 Use 4 bytes as an estimate: */
-		{ GL_RGBA, { "RGBA", 4 } },
+	void Run( const Cmd::Args &args ) const override
+	{
+		static const std::unordered_map<GLenum, std::string> imageTypeName = {
+			{ GL_TEXTURE_2D, "2D" },
+			{ GL_TEXTURE_3D, "3D" },
+			{ GL_TEXTURE_CUBE_MAP, "CUBE" },
+		};
 
-		{ GL_RGB8, { "RGB8", 3 } },
-		{ GL_RGBA8, { "RGBA8", 4 } },
-		{ GL_RGB16, { "RGB16", 6 } },
-		{ GL_RGBA16, { "RGBA16", 8 } },
-		{ GL_RGB16F, { "RGB16F", 6 } },
-		{ GL_RGB32F, { "RGB32F", 12 } },
-		{ GL_RGBA16F, { "RGBA16F", 8 } },
-		{ GL_RGBA32F, { "RGBA32F", 16 } },
-		{ GL_RGBA32UI, { "RGBA32UI", 16 } },
-		{ GL_ALPHA16F_ARB, { "A16F", 2 } },
-		{ GL_ALPHA32F_ARB, { "A32F", 4 } },
-		{ GL_R16F, { "R16F", 2 } },
-		{ GL_R32F, { "R32F", 4 } },
-		{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
-		{ GL_LUMINANCE_ALPHA32F_ARB, { "LA32F", 8 } },
-		{ GL_RG16F, { "RG16F", 4 } },
-		{ GL_RG32F, { "RG32F", 8 } },
+		typedef std::pair<const std::string, int> nameSizePair;
+		static const std::unordered_map<uint32_t, nameSizePair> imageFormatNameSize = {
+			/* Generic format that does not have any specified actual format
+			and implementations can choose one of a few different ones
+			GL4.6 spec (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf):
+			8.5. TEXTURE IMAGE SPECIFICATION
+			"If internalformat is specified as a base internal format, the GL stores the resulting texture with
+			 internal component resolutions of its own choosing, referred to as the effective internal format."
+			 Use 4 bytes as an estimate: */
+			{ GL_RGBA, { "RGBA", 4 } },
 
-		// Compressed formats here use imageDataSize multiplier as blocksize
+			{ GL_RGB8, { "RGB8", 3 } },
+			{ GL_RGBA8, { "RGBA8", 4 } },
+			{ GL_RGB16, { "RGB16", 6 } },
+			{ GL_RGBA16, { "RGBA16", 8 } },
+			{ GL_RGB16F, { "RGB16F", 6 } },
+			{ GL_RGB32F, { "RGB32F", 12 } },
+			{ GL_RGBA16F, { "RGBA16F", 8 } },
+			{ GL_RGBA32F, { "RGBA32F", 16 } },
+			{ GL_RGBA32UI, { "RGBA32UI", 16 } },
+			{ GL_ALPHA16F_ARB, { "A16F", 2 } },
+			{ GL_ALPHA32F_ARB, { "A32F", 4 } },
+			{ GL_R16F, { "R16F", 2 } },
+			{ GL_R32F, { "R32F", 4 } },
+			{ GL_LUMINANCE_ALPHA16F_ARB, { "LA16F", 4 } },
+			{ GL_LUMINANCE_ALPHA32F_ARB, { "LA32F", 8 } },
+			{ GL_RG16F, { "RG16F", 4 } },
+			{ GL_RG32F, { "RG32F", 8 } },
+
+			// Compressed formats here use imageDataSize multiplier as blocksize
 		
-		/* Generic compressed format that does not have any specified actual format
-		and implementations can compress it in whatever way
-		GL4.6 spec (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf):
-		8.5. TEXTURE IMAGE SPECIFICATION
-		"Generic compressed internal formats are never used directly as the internal formats of texture images.
-		 If internalformat is one of the six generic compressed internal formats, its value is replaced by the symbolic constant
-		 for a specific compressed internal format of the GL’s choosing with the same base internal format."
-		 Use 4x4 blocks with 8 bytes per block here as an estimate: */
-		{ GL_COMPRESSED_RGBA, { "RGBAC", 8 } },
+			/* Generic compressed format that does not have any specified actual format
+			and implementations can compress it in whatever way
+			GL4.6 spec (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf):
+			8.5. TEXTURE IMAGE SPECIFICATION
+			"Generic compressed internal formats are never used directly as the internal formats of texture images.
+			 If internalformat is one of the six generic compressed internal formats, its value is replaced by the symbolic constant
+			 for a specific compressed internal format of the GL’s choosing with the same base internal format."
+			 Use 4x4 blocks with 8 bytes per block here as an estimate: */
+			{ GL_COMPRESSED_RGBA, { "RGBAC", 8 } },
 
-		/* https://registry.khronos.org/OpenGL/extensions/EXT/EXT_texture_compression_s3tc.txt
-		S3TC Compressed Texture Image Formats
-		"Compressed texture images stored using the S3TC compressed image formats
-		 are represented as a collection of 4x4 texel blocks, where each block
-		 contains 64 or 128 bits of texel data.  The image is encoded as a normal
-		 2D raster image in which each 4x4 block is treated as a single pixel.  If
-		 an S3TC image has a width or height that is not a multiple of four, the
-		 data corresponding to texels outside the image are irrelevant and
-		 undefined.
+			/* https://registry.khronos.org/OpenGL/extensions/EXT/EXT_texture_compression_s3tc.txt
+			S3TC Compressed Texture Image Formats
+			"Compressed texture images stored using the S3TC compressed image formats
+			 are represented as a collection of 4x4 texel blocks, where each block
+			 contains 64 or 128 bits of texel data.  The image is encoded as a normal
+			 2D raster image in which each 4x4 block is treated as a single pixel.  If
+			 an S3TC image has a width or height that is not a multiple of four, the
+			 data corresponding to texels outside the image are irrelevant and
+			 undefined.
 
-	  	 When an S3TC image with a width of w, height of h, and block size of
-		 blocksize (8 or 16 bytes) is decoded, the corresponding image size (in
-		 bytes) is: ceil( w / 4 ) * ceil( h / 4 ) * blocksize."
+	  		 When an S3TC image with a width of w, height of h, and block size of
+			 blocksize (8 or 16 bytes) is decoded, the corresponding image size (in
+			 bytes) is: ceil( w / 4 ) * ceil( h / 4 ) * blocksize."
 
-		All of the following have blocksize of 8 bytes: */
-		{ GL_COMPRESSED_RGB_S3TC_DXT1_EXT, { "DXT1", 8 } },
-		{ GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { "DXT1a", 8 } },
-		{ GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { "DXT3", 8 } },
-		{ GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { "DXT5", 8 } },
+			All of the following have blocksize of 8 bytes: */
+			{ GL_COMPRESSED_RGB_S3TC_DXT1_EXT, { "DXT1", 8 } },
+			{ GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { "DXT1a", 8 } },
+			{ GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { "DXT3", 8 } },
+			{ GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { "DXT5", 8 } },
 
-		/* GL4.6 spec: Appendix D Compressed Texture Image Formats
-		D.1 RGTC Compressed Texture Image Formats (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf)
-		Khronos Data Format Specification v1.1 rev 9
-		14. RGTC Compressed Texture Image Formats (https://registry.khronos.org/DataFormat/specs/1.1/dataformat.1.1.html#RGTC)
-		"Compressed texture images stored using the RGTC compressed image encodings are represented as a collection of 4×4 texel blocks,
-		 where each block contains 64 or 128 bits of texel data. The image is encoded as a normal 2D raster image in which each 4×4 block
-		 is treated as a single pixel. If an RGTC image has a width or height that is not a multiple of four,
-		 the data corresponding to texels outside the image are irrelevant and undefined.
+			/* GL4.6 spec: Appendix D Compressed Texture Image Formats
+			D.1 RGTC Compressed Texture Image Formats (https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf)
+			Khronos Data Format Specification v1.1 rev 9
+			14. RGTC Compressed Texture Image Formats (https://registry.khronos.org/DataFormat/specs/1.1/dataformat.1.1.html#RGTC)
+			"Compressed texture images stored using the RGTC compressed image encodings are represented as a collection of 4×4 texel blocks,
+			 where each block contains 64 or 128 bits of texel data. The image is encoded as a normal 2D raster image in which each 4×4 block
+			 is treated as a single pixel. If an RGTC image has a width or height that is not a multiple of four,
+			 the data corresponding to texels outside the image are irrelevant and undefined.
 		   
-		 When an RGTC image with a width of w, height of h, and block size of blocksize (8 or 16 bytes) is decoded,
-		 the corresponding image size (in bytes) is: ceil( w / 4 ) * ceil( h / 4 ) * blocksize."
+			 When an RGTC image with a width of w, height of h, and block size of blocksize (8 or 16 bytes) is decoded,
+			 the corresponding image size (in bytes) is: ceil( w / 4 ) * ceil( h / 4 ) * blocksize."
 
-		All of the following use blocksize of 8 bytes: */
-		{ GL_COMPRESSED_RED_RGTC1, { "RGTC1r", 8 } },
-		{ GL_COMPRESSED_SIGNED_RED_RGTC1, { "RGTC1Sr", 8 } },
-		{ GL_COMPRESSED_RG_RGTC2, { "RGTC2rg", 8 } },
-		{ GL_COMPRESSED_SIGNED_RG_RGTC2, { "RGTC2Srg", 8 } },
+			All of the following use blocksize of 8 bytes: */
+			{ GL_COMPRESSED_RED_RGTC1, { "RGTC1r", 8 } },
+			{ GL_COMPRESSED_SIGNED_RED_RGTC1, { "RGTC1Sr", 8 } },
+			{ GL_COMPRESSED_RG_RGTC2, { "RGTC2rg", 8 } },
+			{ GL_COMPRESSED_SIGNED_RG_RGTC2, { "RGTC2Srg", 8 } },
 
-		// These usually still use a 32-bit format internally
-		{ GL_DEPTH_COMPONENT16, { "D16", 2 } },
-		{ GL_DEPTH_COMPONENT24, { "D24", 3 } },
-		{ GL_DEPTH_COMPONENT32, { "D32", 4 } },
-		{ GL_DEPTH24_STENCIL8, { "D24S8", 4 } },
-	};
+			// These usually still use a 32-bit format internally
+			{ GL_DEPTH_COMPONENT16, { "D16", 2 } },
+			{ GL_DEPTH_COMPONENT24, { "D24", 3 } },
+			{ GL_DEPTH_COMPONENT32, { "D32", 4 } },
+			{ GL_DEPTH24_STENCIL8, { "D24S8", 4 } },
+		};
 
-	static const std::unordered_map<wrapTypeEnum_t, std::string> wrapTypeName = {
-		{ wrapTypeEnum_t::WT_REPEAT, "rept" },
-		{ wrapTypeEnum_t::WT_CLAMP, "clmp" },
-		{ wrapTypeEnum_t::WT_EDGE_CLAMP, "eclmp" },
-		{ wrapTypeEnum_t::WT_ZERO_CLAMP, "0clmp" },
-		{ wrapTypeEnum_t::WT_ONE_CLAMP, "1clmp" },
-		{ wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP, "a0clmp" },
-	};
+		static const std::unordered_map<wrapTypeEnum_t, std::string> wrapTypeName = {
+			{ wrapTypeEnum_t::WT_REPEAT, "rept" },
+			{ wrapTypeEnum_t::WT_CLAMP, "clmp" },
+			{ wrapTypeEnum_t::WT_EDGE_CLAMP, "eclmp" },
+			{ wrapTypeEnum_t::WT_ZERO_CLAMP, "0clmp" },
+			{ wrapTypeEnum_t::WT_ONE_CLAMP, "1clmp" },
+			{ wrapTypeEnum_t::WT_ALPHA_ZERO_CLAMP, "a0clmp" },
+		};
 
-	const char *yesno[] = { "no", "yes" };
-	const char *filter = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv(1) : nullptr;
+		const char *yesno[] = { "no", "yes" };
+		const char *filter = args.Argc() > 1 ? args.Argv( 1 ).c_str() : nullptr;
 
-	// Header names
-	std::string num = "num";
-	std::string width = "width";
-	std::string height = "height";
-	std::string layers = "layers";
-	std::string mm = "mm";
-	std::string type = "type";
-	std::string format = "format";
-	std::string twrap = "wrap.t";
-	std::string swrap = "wrap.s";
-	std::string name = "name";
+		// Header names
+		std::string num = "num";
+		std::string width = "width";
+		std::string height = "height";
+		std::string layers = "layers";
+		std::string mm = "mm";
+		std::string type = "type";
+		std::string format = "format";
+		std::string twrap = "wrap.t";
+		std::string swrap = "wrap.s";
+		std::string name = "name";
 
-	// Number sizes
-	size_t numLen = 5;
-	size_t widthLen = 5;
-	size_t heightLen = 5;
-	size_t layersLen = 5;
-	size_t mmLen = 3;
-	size_t typeLen = 4;
-	size_t formatLen = 4;
-	size_t twrapLen = 4;
-	size_t swrapLen = 4;
+		// Number sizes
+		size_t numLen = 5;
+		size_t widthLen = 5;
+		size_t heightLen = 5;
+		size_t layersLen = 5;
+		size_t mmLen = 3;
+		size_t typeLen = 4;
+		size_t formatLen = 4;
+		size_t twrapLen = 4;
+		size_t swrapLen = 4;
 
-	// Header number sizes
-	numLen = std::max( numLen, num.length() );
-	widthLen = std::max( widthLen, width.length() );
-	heightLen = std::max( heightLen, height.length() );
-	layersLen = std::max( layersLen, layers.length() );
-	mmLen = std::max( mmLen, mm.length() );
-	typeLen = std::max( typeLen, type.length() );
-	formatLen = std::max( formatLen, format.length() );
-	twrapLen = std::max( twrapLen, twrap.length() );
-	swrapLen = std::max( swrapLen, swrap.length() );
+		// Header number sizes
+		numLen = std::max( numLen, num.length() );
+		widthLen = std::max( widthLen, width.length() );
+		heightLen = std::max( heightLen, height.length() );
+		layersLen = std::max( layersLen, layers.length() );
+		mmLen = std::max( mmLen, mm.length() );
+		typeLen = std::max( typeLen, type.length() );
+		formatLen = std::max( formatLen, format.length() );
+		twrapLen = std::max( twrapLen, twrap.length() );
+		swrapLen = std::max( swrapLen, swrap.length() );
 
-	// Value sizes
-	for ( const auto& kv : imageTypeName )
-	{
-		typeLen = std::max( typeLen, kv.second.length() );
-	}
+		// Value sizes
+		for ( const auto& kv : imageTypeName )
+		{
+			typeLen = std::max( typeLen, kv.second.length() );
+		}
 	
-	for ( const auto& kv : imageFormatNameSize )
-	{
-		formatLen = std::max( formatLen, kv.second.first.length() );
-	}
-
-	for ( const auto& kv: wrapTypeName )
-	{
-		// 2 for the "t." and "s." prefix length.
-		twrapLen = std::max( twrapLen, 2 + kv.second.length() );
-		swrapLen = std::max( swrapLen, 2 + kv.second.length() );
-	}
-
-	std::string separator = " ";
-	std::stringstream lineStream;
-
-	// Print header
-	lineStream << std::left;
-	lineStream << std::setw(numLen) << num << separator;
-	lineStream << std::right;
-	lineStream << std::setw(widthLen) << width << separator;
-	lineStream << std::setw(heightLen) << height << separator;
-	lineStream << std::setw(layersLen) << layers << separator;
-	lineStream << std::left;
-	lineStream << std::setw(mmLen) << mm << separator;
-	lineStream << std::setw(typeLen) << type << separator;
-	lineStream << std::setw(formatLen) << format << separator;
-	lineStream << std::setw(twrapLen) << twrap << separator;
-	lineStream << std::setw(swrapLen) << swrap << separator;
-	lineStream << name;
-
-	std::string lineSeparator( lineStream.str().length(), '-' );
-
-	Log::CommandInteractionMessage( lineSeparator );
-	Log::CommandInteractionMessage( lineStream.str() );
-	Log::CommandInteractionMessage( lineSeparator );
-
-	int texels = 0;
-	int dataSize = 0;
-
-	for ( size_t i = 0; i < tr.images.size(); i++ )
-	{
-		const image_t *image = tr.images[ i ];
-		if ( filter && !Com_Filter( filter, image->name, true ) )
+		for ( const auto& kv : imageFormatNameSize )
 		{
-			continue;
+			formatLen = std::max( formatLen, kv.second.first.length() );
 		}
 
-		mm = yesno[ image->filterType == filterType_t::FT_DEFAULT ];
-
-		if ( !imageTypeName.count( image->type ) )
+		for ( const auto& kv: wrapTypeName )
 		{
-			Log::Debug( "Undocumented image type %i (%X) for image %s",
-				image->type, image->type, image->name );
-
-			type = Str::Format( "0x%4X", image->type );
-		}
-		else
-		{
-			type = imageTypeName.at( image->type );
+			// 2 for the "t." and "s." prefix length.
+			twrapLen = std::max( twrapLen, 2 + kv.second.length() );
+			swrapLen = std::max( swrapLen, 2 + kv.second.length() );
 		}
 
-		int imageDataSize = 0;
-		texels += imageDataSize;
-		
-		if ( !imageFormatNameSize.count( image->internalFormat ) )
-		{
-			Log::Debug( "Undocumented image format %i (%X) for image %s",
-				image->internalFormat, image->internalFormat, image->name );
+		std::string separator = " ";
+		std::stringstream lineStream;
 
-			format = Str::Format( "0x%04X", image->internalFormat);
-			imageDataSize *= 4;
-		}
-		else
-		{
-			switch ( image->internalFormat ) {
-				// Compressed formats encode blocks of 4x4 texels
-				case GL_COMPRESSED_RGBA:
-				case GL_COMPRESSED_RED_RGTC1:
-				case GL_COMPRESSED_SIGNED_RED_RGTC1:
-				case GL_COMPRESSED_RG_RGTC2:
-				case GL_COMPRESSED_SIGNED_RG_RGTC2:
-				case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
-				case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-				case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-				case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-				{
-					format = imageFormatNameSize.at( image->internalFormat ).first;
-
-					uint16_t imageWidth = image->uploadWidth;
-					uint16_t imageHeight = image->uploadHeight;
-					uint16_t imageLayers = image->numLayers;
-
-					int numMips = 1;
-					if ( image->filterType == filterType_t::FT_DEFAULT ) {
-						numMips = log2f( std::max( std::max( imageWidth, imageHeight ), imageLayers ) ) + 1;
-					}
-
-					for ( int j = 0; j < numMips; j++ ) {
-						imageDataSize += ceil( imageWidth / 4.0 ) * ceil( imageHeight / 4.0 ) * imageLayers;
-						imageWidth >>= imageWidth > 1 ? 1 : 0;
-						imageHeight >>= imageHeight > 1 ? 1 : 0;
-						imageLayers >>= imageLayers > 1 ? 1 : 0;
-					}
-
-					imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
-					break;
-				}
-				default:
-				{
-					format = imageFormatNameSize.at( image->internalFormat ).first;
-
-					uint16_t imageWidth = image->uploadWidth;
-					uint16_t imageHeight = image->uploadHeight;
-					uint16_t imageLayers = image->numLayers;
-
-					int numMips = 1;
-					if ( image->filterType == filterType_t::FT_DEFAULT ) {
-						numMips = log2f( std::max( std::max( imageWidth, imageHeight ), imageLayers ) ) + 1;
-					}
-					
-					for ( int j = 0; j < numMips; j++ ) {
-						imageDataSize += imageWidth * imageHeight * imageLayers;
-						imageWidth >>= imageWidth > 1 ? 1 : 0;
-						imageHeight >>= imageHeight > 1 ? 1 : 0;
-						imageLayers >>= imageLayers > 1 ? 1 : 0;
-					}
-
-					imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
-					break;
-				}
-			}
-		}
-
-		if ( !wrapTypeName.count( image->wrapType.t ) )
-		{
-			Log::Debug( "Undocumented wrapType.t %i for image %s",
-				Util::ordinal(image->wrapType.t), image->name );
-
-			twrap = Str::Format( "t.%4i", Util::ordinal(image->wrapType.t) );
-		}
-		else
-		{
-			twrap = "t." + wrapTypeName.at( image->wrapType.t );
-		}
-
-		if ( !wrapTypeName.count( image->wrapType.s ) )
-		{
-			Log::Debug( "Undocumented wrapType.s %i for image %s",
-				Util::ordinal(image->wrapType.s), image->name );
-
-			swrap = Str::Format( "s.%4i", Util::ordinal(image->wrapType.s) );
-		}
-		else
-		{
-			swrap = "s." + wrapTypeName.at( image->wrapType.s );
-		}
-
-		name = image->name;
-
-		lineStream.clear();
-		lineStream.str("");
-
+		// Print header
 		lineStream << std::left;
-		lineStream << std::setw(numLen) << i << separator;
+		lineStream << std::setw(numLen) << num << separator;
 		lineStream << std::right;
-		lineStream << std::setw(widthLen) << image->uploadWidth << separator;
-		lineStream << std::setw(heightLen) << image->uploadHeight << separator;
-		lineStream << std::setw(layersLen) << image->numLayers << separator;
+		lineStream << std::setw(widthLen) << width << separator;
+		lineStream << std::setw(heightLen) << height << separator;
+		lineStream << std::setw(layersLen) << layers << separator;
 		lineStream << std::left;
 		lineStream << std::setw(mmLen) << mm << separator;
 		lineStream << std::setw(typeLen) << type << separator;
@@ -464,22 +318,166 @@ void R_ListImages_f()
 		lineStream << std::setw(swrapLen) << swrap << separator;
 		lineStream << name;
 
-		Log::CommandInteractionMessage( lineStream.str() );
+		std::string lineSeparator( lineStream.str().length(), '-' );
 
-		dataSize += imageDataSize;
+		Print( lineSeparator );
+		Print( lineStream.str() );
+		Print( lineSeparator );
+
+		int texels = 0;
+		int dataSize = 0;
+
+		for ( size_t i = 0; i < tr.images.size(); i++ )
+		{
+			const image_t *image = tr.images[ i ];
+			if ( filter && !Com_Filter( filter, image->name, true ) )
+			{
+				continue;
+			}
+
+			mm = yesno[ image->filterType == filterType_t::FT_DEFAULT ];
+
+			if ( !imageTypeName.count( image->type ) )
+			{
+				Log::Debug( "Undocumented image type %i (%X) for image %s",
+					image->type, image->type, image->name );
+
+				type = Str::Format( "0x%4X", image->type );
+			}
+			else
+			{
+				type = imageTypeName.at( image->type );
+			}
+
+			int imageDataSize = 0;
+			texels += imageDataSize;
+		
+			if ( !imageFormatNameSize.count( image->internalFormat ) )
+			{
+				Log::Debug( "Undocumented image format %i (%X) for image %s",
+					image->internalFormat, image->internalFormat, image->name );
+
+				format = Str::Format( "0x%04X", image->internalFormat);
+				imageDataSize *= 4;
+			}
+			else
+			{
+				switch ( image->internalFormat ) {
+					// Compressed formats encode blocks of 4x4 texels
+					case GL_COMPRESSED_RGBA:
+					case GL_COMPRESSED_RED_RGTC1:
+					case GL_COMPRESSED_SIGNED_RED_RGTC1:
+					case GL_COMPRESSED_RG_RGTC2:
+					case GL_COMPRESSED_SIGNED_RG_RGTC2:
+					case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+					case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+					case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+					case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+					{
+						format = imageFormatNameSize.at( image->internalFormat ).first;
+
+						uint16_t imageWidth = image->uploadWidth;
+						uint16_t imageHeight = image->uploadHeight;
+						uint16_t imageLayers = image->numLayers;
+
+						int numMips = 1;
+						if ( image->filterType == filterType_t::FT_DEFAULT ) {
+							numMips = log2f( std::max( std::max( imageWidth, imageHeight ), imageLayers ) ) + 1;
+						}
+
+						for ( int j = 0; j < numMips; j++ ) {
+							imageDataSize += ceil( imageWidth / 4.0 ) * ceil( imageHeight / 4.0 ) * imageLayers;
+							imageWidth >>= imageWidth > 1 ? 1 : 0;
+							imageHeight >>= imageHeight > 1 ? 1 : 0;
+							imageLayers >>= imageLayers > 1 ? 1 : 0;
+						}
+
+						imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
+						break;
+					}
+					default:
+					{
+						format = imageFormatNameSize.at( image->internalFormat ).first;
+
+						uint16_t imageWidth = image->uploadWidth;
+						uint16_t imageHeight = image->uploadHeight;
+						uint16_t imageLayers = image->numLayers;
+
+						int numMips = 1;
+						if ( image->filterType == filterType_t::FT_DEFAULT ) {
+							numMips = log2f( std::max( std::max( imageWidth, imageHeight ), imageLayers ) ) + 1;
+						}
+					
+						for ( int j = 0; j < numMips; j++ ) {
+							imageDataSize += imageWidth * imageHeight * imageLayers;
+							imageWidth >>= imageWidth > 1 ? 1 : 0;
+							imageHeight >>= imageHeight > 1 ? 1 : 0;
+							imageLayers >>= imageLayers > 1 ? 1 : 0;
+						}
+
+						imageDataSize *= imageFormatNameSize.at( image->internalFormat ).second;
+						break;
+					}
+				}
+			}
+
+			if ( !wrapTypeName.count( image->wrapType.t ) )
+			{
+				Log::Debug( "Undocumented wrapType.t %i for image %s",
+					Util::ordinal(image->wrapType.t), image->name );
+
+				twrap = Str::Format( "t.%4i", Util::ordinal(image->wrapType.t) );
+			}
+			else
+			{
+				twrap = "t." + wrapTypeName.at( image->wrapType.t );
+			}
+
+			if ( !wrapTypeName.count( image->wrapType.s ) )
+			{
+				Log::Debug( "Undocumented wrapType.s %i for image %s",
+					Util::ordinal(image->wrapType.s), image->name );
+
+				swrap = Str::Format( "s.%4i", Util::ordinal(image->wrapType.s) );
+			}
+			else
+			{
+				swrap = "s." + wrapTypeName.at( image->wrapType.s );
+			}
+
+			name = image->name;
+
+			lineStream.clear();
+			lineStream.str("");
+
+			lineStream << std::left;
+			lineStream << std::setw(numLen) << i << separator;
+			lineStream << std::right;
+			lineStream << std::setw(widthLen) << image->uploadWidth << separator;
+			lineStream << std::setw(heightLen) << image->uploadHeight << separator;
+			lineStream << std::setw(layersLen) << image->numLayers << separator;
+			lineStream << std::left;
+			lineStream << std::setw(mmLen) << mm << separator;
+			lineStream << std::setw(typeLen) << type << separator;
+			lineStream << std::setw(formatLen) << format << separator;
+			lineStream << std::setw(twrapLen) << twrap << separator;
+			lineStream << std::setw(swrapLen) << swrap << separator;
+			lineStream << name;
+
+			Print( lineStream.str() );
+
+			dataSize += imageDataSize;
+		}
+
+		Print( lineSeparator );
+		Print( "%i total texels (not including mipmaps)", texels );
+		Print( "%d.%02d MB total image memory (estimated)",
+			dataSize / ( 1024 * 1024 ), ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
+		Print( "%i total images", tr.images.size() );
+		Print( lineSeparator );
 	}
-
-	std::string summary1 = Str::Format( "%i total texels (not including mipmaps)", texels );
-	std::string summary2 = Str::Format( "%d.%02d MB total image memory (estimated)",
-		dataSize / ( 1024 * 1024 ), ( dataSize % ( 1024 * 1024 ) ) * 100 / ( 1024 * 1024 ) );
-	std::string summary3 = Str::Format( "%i total images", tr.images.size() );
-
-	Log::CommandInteractionMessage( lineSeparator );
-	Log::CommandInteractionMessage( summary1 );
-	Log::CommandInteractionMessage( summary2 );
-	Log::CommandInteractionMessage( summary3 );
-	Log::CommandInteractionMessage( lineSeparator );
-}
+};
+static ListImagesCmd listImagesCmdRegistration;
 
 //=======================================================================
 

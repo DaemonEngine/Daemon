@@ -293,14 +293,6 @@ struct refimport_t
 	void            *( *Hunk_AllocateTempMemory )( int size );
 	void ( *Hunk_FreeTempMemory )( void *block );
 
-	void ( *Cmd_AddCommand )( const char *name, void ( *cmd )() );
-	void ( *Cmd_RemoveCommand )( const char *name );
-
-	int ( *Cmd_Argc )();
-	const char *( *Cmd_Argv )( int i );
-
-	const char *( *Cmd_QuoteString )( const char *text );
-
 	// a -1 return means the file does not exist
 	// nullptr can be passed for buf to just determine existence
 	int ( *FS_ReadFile )( const char *name, void **buf );

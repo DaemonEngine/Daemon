@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* generic_vp.glsl */
 
+#insert common
 #insert vertexSimple_vp
 #insert vertexSkinning_vp
 #insert vertexAnimation_vp
@@ -32,8 +33,8 @@ uniform vec3		u_ViewOrigin;
 
 uniform float		u_Time;
 
-uniform vec4		u_ColorModulate;
-uniform vec4		u_Color;
+uniform uint u_ColorModulateColorGen;
+uniform uint u_Color;
 #if defined(USE_TCGEN_ENVIRONMENT)
 uniform mat4		u_ModelMatrix;
 #endif
@@ -63,7 +64,9 @@ void	main()
 	vec2 texCoord, lmCoord;
 
 	VertexFetch( position, LB, color, texCoord, lmCoord );
-	color = color * u_ColorModulate + u_Color;
+	float lightFactor = ColorModulateToLightFactor( u_ColorModulateColorGen );
+	color = color * ColorModulateToColor( u_ColorModulateColorGen, lightFactor )
+		+ unpackUnorm4x8( u_Color ) * vec4( lightFactor, lightFactor, lightFactor, 1.0 );
 
 	DeformVertex( position,
 		      LB.normal,

@@ -502,6 +502,10 @@ static std::string GenCompatHeader() {
 		str += "float smoothstep(float edge0, float edge1, float x) { float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }\n";
 	}
 
+	if ( !glConfig2.gpuShader5Available ) {
+		str += "#define unpackUnorm4x8( value ) ( ( vec4( value, value >> 8, value >> 16, value >> 24 ) & 0xFF ) / 255.0f )\n";
+	}
+
 	return str;
 }
 
@@ -1434,9 +1438,12 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 		bool skip = false;
 		if ( line.find( "uniform" ) < line.find( "//" ) && line.find( ";" ) != std::string::npos ) {
 			for ( GLUniform* uniform : shader->_uniforms ) {
-				if ( !uniform->IsGlobal() && ( line.find( uniform->GetName() ) != std::string::npos ) ) {
-					skip = true;
-					break;
+				if ( !uniform->IsGlobal() ) {
+					const size_t pos = line.find( uniform->GetName() );
+					if ( pos != std::string::npos && !Str::cisalpha( line[pos + strlen( uniform->GetName() )] ) ) {
+						skip = true;
+						break;
+					}
 				}
 			}
 		}
@@ -1726,6 +1733,12 @@ std::vector<GLShaderManager::InfoLogEntry> GLShaderManager::ParseInfoLog( const 
 				return out;
 		}
 	}
+
+	// Messages in the log can sometimes be out of order
+	std::sort( out.begin(), out.end(),
+		[]( const InfoLogEntry& lhs, const InfoLogEntry& rhs ) {
+			return lhs.line < rhs.line;
+		} );
 
 	return out;
 }
@@ -2181,7 +2194,7 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
@@ -2193,8 +2206,7 @@ GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
 	GLCompileMacro_USE_VERTEX_ANIMATION( this ),
 	GLCompileMacro_USE_TCGEN_ENVIRONMENT( this ),
 	GLCompileMacro_USE_TCGEN_LIGHTMAP( this ),
-	GLCompileMacro_USE_DEPTH_FADE( this ),
-	GLCompileMacro_GENERIC_2D( this )
+	GLCompileMacro_USE_DEPTH_FADE( this )
 {
 }
 
@@ -2214,7 +2226,7 @@ GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
 	u_AlphaThreshold( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_DepthScale( this ),
 	u_ShowTris( this ),
@@ -2249,13 +2261,12 @@ GLShader_lightMapping::GLShader_lightMapping( GLShaderManager *manager ) :
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_LightFactor( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_ReliefDepthScale( this ),
@@ -2318,13 +2329,12 @@ GLShader_lightMappingMaterial::GLShader_lightMappingMaterial( GLShaderManager* m
 	u_LightTiles( this ),
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_AlphaThreshold( this ),
 	u_ViewOrigin( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_LightFactor( this ),
 	u_ReliefDepthScale( this ),
 	u_ReliefOffsetBias( this ),
 	u_NormalScale( this ),
@@ -2378,7 +2388,7 @@ GLShader_forwardLighting_omniXYZ::GLShader_forwardLighting_omniXYZ( GLShaderMana
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
@@ -2431,7 +2441,7 @@ GLShader_forwardLighting_projXYZ::GLShader_forwardLighting_projXYZ( GLShaderMana
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightOrigin( this ),
@@ -2495,7 +2505,7 @@ GLShader_forwardLighting_directionalSun::GLShader_forwardLighting_directionalSun
 	u_TextureMatrix( this ),
 	u_SpecularExponent( this ),
 	u_AlphaThreshold( this ),
-	u_ColorModulate( this ),
+	u_ColorModulateColorGen( this ),
 	u_Color( this ),
 	u_ViewOrigin( this ),
 	u_LightDir( this ),

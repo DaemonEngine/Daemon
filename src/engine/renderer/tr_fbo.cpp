@@ -591,25 +591,27 @@ void R_ShutdownFBOs()
 	}
 }
 
-/*
-============
-R_ListFBOs_f
-============
-*/
-void R_ListFBOs_f()
+class ListFBOsCmd : public Cmd::StaticCmd
 {
-	int   i;
-	FBO_t *fbo;
+public:
+	ListFBOsCmd() : StaticCmd("listFBOs", "list renderer's OpenGL framebuffer objects") {}
 
-	Log::Notice("             size       name" );
-	Log::Notice("----------------------------------------------------------" );
-
-	for ( i = 0; i < tr.numFBOs; i++ )
+	void Run( const Cmd::Args & ) const override
 	{
-		fbo = tr.fbos[ i ];
+		int   i;
+		FBO_t *fbo;
 
-		Log::Notice("  %4i: %4i %4i %s", i, fbo->width, fbo->height, fbo->name );
+		Print("             size       name" );
+		Print("----------------------------------------------------------" );
+
+		for ( i = 0; i < tr.numFBOs; i++ )
+		{
+			fbo = tr.fbos[ i ];
+
+			Print("  %4i: %4i %4i %s", i, fbo->width, fbo->height, fbo->name );
+		}
+
+		Print(" %i FBOs", tr.numFBOs );
 	}
-
-	Log::Notice(" %i FBOs", tr.numFBOs );
-}
+};
+static ListFBOsCmd listFBOsCmdRegistration;

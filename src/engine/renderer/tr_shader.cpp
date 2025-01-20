@@ -6634,247 +6634,245 @@ shader_t       *R_GetShaderByHandle( qhandle_t hShader )
 
 /*
 ===============
-R_ListShaders_f
-
 Dump information on all valid shaders to the console
 A second parameter will cause it to print in sorted order
 ===============
 */
-void R_ListShaders_f()
+class ListShadersCmd : public Cmd::StaticCmd
 {
-	static const std::unordered_map<shaderType_t, std::string> shaderTypeName = {
-		{ shaderType_t::SHADER_2D, "2D" },
-		{ shaderType_t::SHADER_3D_DYNAMIC, "3D_DYNAMIC" },
-		{ shaderType_t::SHADER_3D_STATIC, "3D_STATIC" },
-		{ shaderType_t::SHADER_LIGHT, "LIGHT" },
-	};
+public:
+	ListShadersCmd() : StaticCmd("listShaders", "list q3shaders currently registered in the renderer") {}
 
-	static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
-		{ shaderSort_t::SS_BAD, "BAD" },
-		{ shaderSort_t::SS_PORTAL, "PORTAL" },
-		{ shaderSort_t::SS_DEPTH, "DEPTH" },
-		{ shaderSort_t::SS_ENVIRONMENT_FOG, "ENV_FOG" },
-		{ shaderSort_t::SS_ENVIRONMENT_NOFOG, "ENV_NOFOG" },
-		{ shaderSort_t::SS_OPAQUE, "OPAQUE" },
-		{ shaderSort_t::SS_DECAL, "DECAL" },
-		{ shaderSort_t::SS_SEE_THROUGH, "SEE_THROUGH" },
-		{ shaderSort_t::SS_BANNER, "BANNER" },
-		{ shaderSort_t::SS_FOG, "FOG" },
-		{ shaderSort_t::SS_UNDERWATER, "UNDERWATER" },
-		{ shaderSort_t::SS_WATER, "WATER" },
-		{ shaderSort_t::SS_FAR, "FAR" },
-		{ shaderSort_t::SS_MEDIUM, "MEDIUM" },
-		{ shaderSort_t::SS_CLOSE, "CLOSE" },
-		{ shaderSort_t::SS_BLEND0, "BLEND0" },
-		{ shaderSort_t::SS_BLEND1, "BLEND1" },
-		{ shaderSort_t::SS_BLEND2, "BLEND2" },
-		{ shaderSort_t::SS_BLEND3, "BLEND3" },
-		{ shaderSort_t::SS_BLEND6, "BLEND6" },
-		{ shaderSort_t::SS_ALMOST_NEAREST, "ALMOST_NEAREST" },
-		{ shaderSort_t::SS_NEAREST, "NEAREST" },
-		{ shaderSort_t::SS_POST_PROCESS, "POST_PROCESS" },
-	};
-
-	static const std::unordered_map<stageType_t, std::string> stageTypeName = {
-		{ stageType_t::ST_COLORMAP, "COLORMAP" },
-		{ stageType_t::ST_GLOWMAP, "GLOWMAP" },
-		{ stageType_t::ST_DIFFUSEMAP, "DIFFUSEMAP" },
-		{ stageType_t::ST_NORMALMAP, "NORMALMAP" },
-		{ stageType_t::ST_HEIGHTMAP, "HEIGHTMAP" },
-		{ stageType_t::ST_PHYSICALMAP, "PHYSICALMAP" },
-		{ stageType_t::ST_SPECULARMAP, "SPECULARMAP" },
-		{ stageType_t::ST_REFLECTIONMAP, "REFLECTIONMAP" },
-		{ stageType_t::ST_REFRACTIONMAP, "REFRACTIONMAP" },
-		{ stageType_t::ST_DISPERSIONMAP, "DISPERSIONMAP" },
-		{ stageType_t::ST_SKYBOXMAP, "SKYBOXMAP" },
-		{ stageType_t::ST_SCREENMAP, "SCREENMAP" },
-		{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
-		{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
-		{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
-		{ stageType_t::ST_FOGMAP, "FOGMAP" },
-		{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },
-		{ stageType_t::ST_STYLELIGHTMAP, "STYLELIGHTMAP" },
-		{ stageType_t::ST_STYLECOLORMAP, "STYLECOLORMAP" },
-		{ stageType_t::ST_COLLAPSE_COLORMAP, "COLLAPSE_COLORMAP" },
-		{ stageType_t::ST_COLLAPSE_DIFFUSEMAP, "COLLAPSE_DIFFUSEMAP" },
-		{ stageType_t::ST_COLLAPSE_REFLECTIONMAP, "COLLAPSE_REFLECTIONMAP" },
-		{ stageType_t::ST_ATTENUATIONMAP_XY, "ATTENUATIONMAP_XY" },
-		{ stageType_t::ST_ATTENUATIONMAP_Z, "ATTENUATIONMAP_XZ" },
-	};
-
-	const char *prefix = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv( 1 ) : nullptr;
-
-	// Header names
-	std::string num = "num";
-	std::string shaderType = "shaderType";
-	std::string shaderSort = "shaderSort";
-	std::string stageType = "stageType";
-	std::string interactLight = "interactLight";
-	std::string stageNumber = "stageNumber";
-	std::string shaderName = "shaderName";
-
-	// Number sizes
-	size_t numLen = 5;
-
-	// Header number sizes
-	numLen = std::max( numLen, num.length() );
-	size_t shaderTypeLen = shaderType.length();
-	size_t shaderSortLen = shaderSort.length();
-	size_t stageTypeLen = stageType.length();
-	size_t interactLightLen = interactLight.length();
-
-	// Value size
-	for ( const auto& kv : shaderTypeName )
+	void Run( const Cmd::Args &args ) const override
 	{
-		shaderTypeLen = std::max( shaderTypeLen, kv.second.length() );
-	}
+		static const std::unordered_map<shaderType_t, std::string> shaderTypeName = {
+			{ shaderType_t::SHADER_2D, "2D" },
+			{ shaderType_t::SHADER_3D_DYNAMIC, "3D_DYNAMIC" },
+			{ shaderType_t::SHADER_3D_STATIC, "3D_STATIC" },
+			{ shaderType_t::SHADER_LIGHT, "LIGHT" },
+		};
 
-	for ( const auto& kv : shaderSortName )
-	{
-		shaderSortLen = std::max( shaderSortLen, kv.second.length() );
-	}
+		static const std::unordered_map<shaderSort_t, std::string> shaderSortName = {
+			{ shaderSort_t::SS_BAD, "BAD" },
+			{ shaderSort_t::SS_PORTAL, "PORTAL" },
+			{ shaderSort_t::SS_DEPTH, "DEPTH" },
+			{ shaderSort_t::SS_ENVIRONMENT_FOG, "ENV_FOG" },
+			{ shaderSort_t::SS_ENVIRONMENT_NOFOG, "ENV_NOFOG" },
+			{ shaderSort_t::SS_OPAQUE, "OPAQUE" },
+			{ shaderSort_t::SS_DECAL, "DECAL" },
+			{ shaderSort_t::SS_SEE_THROUGH, "SEE_THROUGH" },
+			{ shaderSort_t::SS_BANNER, "BANNER" },
+			{ shaderSort_t::SS_FOG, "FOG" },
+			{ shaderSort_t::SS_UNDERWATER, "UNDERWATER" },
+			{ shaderSort_t::SS_WATER, "WATER" },
+			{ shaderSort_t::SS_FAR, "FAR" },
+			{ shaderSort_t::SS_MEDIUM, "MEDIUM" },
+			{ shaderSort_t::SS_CLOSE, "CLOSE" },
+			{ shaderSort_t::SS_BLEND0, "BLEND0" },
+			{ shaderSort_t::SS_BLEND1, "BLEND1" },
+			{ shaderSort_t::SS_BLEND2, "BLEND2" },
+			{ shaderSort_t::SS_BLEND3, "BLEND3" },
+			{ shaderSort_t::SS_BLEND6, "BLEND6" },
+			{ shaderSort_t::SS_ALMOST_NEAREST, "ALMOST_NEAREST" },
+			{ shaderSort_t::SS_NEAREST, "NEAREST" },
+			{ shaderSort_t::SS_POST_PROCESS, "POST_PROCESS" },
+		};
 
-	for ( const auto& kv : stageTypeName )
-	{
-		stageTypeLen = std::max( stageTypeLen, kv.second.length() );
-	}
+		static const std::unordered_map<stageType_t, std::string> stageTypeName = {
+			{ stageType_t::ST_COLORMAP, "COLORMAP" },
+			{ stageType_t::ST_GLOWMAP, "GLOWMAP" },
+			{ stageType_t::ST_DIFFUSEMAP, "DIFFUSEMAP" },
+			{ stageType_t::ST_NORMALMAP, "NORMALMAP" },
+			{ stageType_t::ST_HEIGHTMAP, "HEIGHTMAP" },
+			{ stageType_t::ST_PHYSICALMAP, "PHYSICALMAP" },
+			{ stageType_t::ST_SPECULARMAP, "SPECULARMAP" },
+			{ stageType_t::ST_REFLECTIONMAP, "REFLECTIONMAP" },
+			{ stageType_t::ST_REFRACTIONMAP, "REFRACTIONMAP" },
+			{ stageType_t::ST_DISPERSIONMAP, "DISPERSIONMAP" },
+			{ stageType_t::ST_SKYBOXMAP, "SKYBOXMAP" },
+			{ stageType_t::ST_SCREENMAP, "SCREENMAP" },
+			{ stageType_t::ST_PORTALMAP, "PORTALMAP" },
+			{ stageType_t::ST_HEATHAZEMAP, "HEATHAZEMAP" },
+			{ stageType_t::ST_LIQUIDMAP, "LIQUIDMAP" },
+			{ stageType_t::ST_FOGMAP, "FOGMAP" },
+			{ stageType_t::ST_LIGHTMAP, "LIGHTMAP" },
+			{ stageType_t::ST_STYLELIGHTMAP, "STYLELIGHTMAP" },
+			{ stageType_t::ST_STYLECOLORMAP, "STYLECOLORMAP" },
+			{ stageType_t::ST_COLLAPSE_COLORMAP, "COLLAPSE_COLORMAP" },
+			{ stageType_t::ST_COLLAPSE_DIFFUSEMAP, "COLLAPSE_DIFFUSEMAP" },
+			{ stageType_t::ST_COLLAPSE_REFLECTIONMAP, "COLLAPSE_REFLECTIONMAP" },
+			{ stageType_t::ST_ATTENUATIONMAP_XY, "ATTENUATIONMAP_XY" },
+			{ stageType_t::ST_ATTENUATIONMAP_Z, "ATTENUATIONMAP_XZ" },
+		};
 
-	std::string separator = " ";
-	std::stringstream lineStream;
+		const char *prefix = args.Argc() > 1 ? args.Argv( 1 ).c_str() : nullptr;
 
-	// Print header
-	lineStream << std::left;
-	lineStream << std::setw(numLen) << num << separator;
-	lineStream << std::setw(shaderTypeLen) << shaderType << separator;
-	lineStream << std::setw(shaderSortLen) << shaderSort << separator;
-	lineStream << std::setw(stageTypeLen) << stageType << separator;
-	lineStream << std::setw(interactLightLen) << interactLight << separator;
-	lineStream << stageNumber << ":" << shaderName;
+		// Header names
+		std::string num = "num";
+		std::string shaderType = "shaderType";
+		std::string shaderSort = "shaderSort";
+		std::string stageType = "stageType";
+		std::string interactLight = "interactLight";
+		std::string stageNumber = "stageNumber";
+		std::string shaderName = "shaderName";
 
-	std::string lineSeparator( lineStream.str().length(), '-' );
+		// Number sizes
+		size_t numLen = 5;
 
-	Log::CommandInteractionMessage( lineSeparator );
-	Log::CommandInteractionMessage( lineStream.str() );
-	Log::CommandInteractionMessage( lineSeparator );
+		// Header number sizes
+		numLen = std::max( numLen, num.length() );
+		size_t shaderTypeLen = shaderType.length();
+		size_t shaderSortLen = shaderSort.length();
+		size_t stageTypeLen = stageType.length();
+		size_t interactLightLen = interactLight.length();
 
-	size_t totalStageCount = 0;
-	size_t highestShaderStageCount = 0;
-
-	for ( int i = 0; i < tr.numShaders; i++ )
-	{
-		shader_t *shader = ri.Cmd_Argc() > 2 ? tr.sortedShaders[ i ] : tr.shaders[ i ];
-
-		// Only display shaders starting with prefix if prefix is not empty.
-		if ( prefix && !Com_Filter( prefix, shader->name, false ) )
+		// Value size
+		for ( const auto& kv : shaderTypeName )
 		{
-			continue;
+			shaderTypeLen = std::max( shaderTypeLen, kv.second.length() );
 		}
 
-		if ( !shaderTypeName.count( shader->type ) )
+		for ( const auto& kv : shaderSortName )
 		{
-			Log::Debug( "Undocumented shader type %i for shader %s",
-				Util::ordinal( shader->type ), shader->name );
-		}
-		else
-		{
-			shaderType = shaderTypeName.at( shader->type );
+			shaderSortLen = std::max( shaderSortLen, kv.second.length() );
 		}
 
-		if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
+		for ( const auto& kv : stageTypeName )
 		{
-			Log::Debug( "Undocumented shader sort %f for shader %s",
-				shader->sort, shader->name );
-		}
-		else
-		{
-			shaderSort = shaderSortName.at( (shaderSort_t) shader->sort );
+			stageTypeLen = std::max( stageTypeLen, kv.second.length() );
 		}
 
-		interactLight = shader->interactLight ? "INTERACTLIGHT" : "";
-		shaderName = shader->name;
-		shaderName += shader->defaultShader ? " (DEFAULTED)" : "";
+		std::string separator = " ";
+		std::stringstream lineStream;
 
-		if ( shader->stages == shader->lastStage )
+		// Print header
+		lineStream << std::left;
+		lineStream << std::setw(numLen) << num << separator;
+		lineStream << std::setw(shaderTypeLen) << shaderType << separator;
+		lineStream << std::setw(shaderSortLen) << shaderSort << separator;
+		lineStream << std::setw(stageTypeLen) << stageType << separator;
+		lineStream << std::setw(interactLightLen) << interactLight << separator;
+		lineStream << stageNumber << ":" << shaderName;
+
+		std::string lineSeparator( lineStream.str().length(), '-' );
+
+		Print( lineSeparator );
+		Print( lineStream.str() );
+		Print( lineSeparator );
+
+		size_t totalStageCount = 0;
+		size_t highestShaderStageCount = 0;
+
+		for ( int i = 0; i < tr.numShaders; i++ )
 		{
-			lineStream.clear();
-			lineStream.str("");
+			shader_t *shader = args.Argc() > 2 ? tr.sortedShaders[ i ] : tr.shaders[ i ];
 
-			lineStream << std::left;
-			lineStream << std::setw(numLen) << i << separator;
-			lineStream << std::setw(shaderTypeLen) << shaderType << separator;
-			lineStream << std::setw(shaderSortLen) << shaderSort << separator;
-			lineStream << std::setw(stageTypeLen) << stageType << separator;
-			lineStream << std::setw(interactLightLen) << interactLight << separator;
-			lineStream << "-:" << shaderName;
-
-			Log::CommandInteractionMessage( lineStream.str() );
-			continue;
-		}
-
-		const size_t stageCount = shader->lastStage - shader->stages;
-		totalStageCount += stageCount;
-		highestShaderStageCount = std::max( highestShaderStageCount, stageCount );
-
-		for ( size_t j = 0; j < stageCount; j++ )
-		{
-			shaderStage_t *stage = &shader->stages[ j ];
-
-			if ( !stageTypeName.count( stage->type ) )
+			// Only display shaders starting with prefix if prefix is not empty.
+			if ( prefix && !Com_Filter( prefix, shader->name, false ) )
 			{
-				Log::Debug( "Undocumented stage type %i for shader stage %s:%d",
-					Util::ordinal( stage->type ), shader->name, j );
+				continue;
+			}
+
+			if ( !shaderTypeName.count( shader->type ) )
+			{
+				Log::Debug( "Undocumented shader type %i for shader %s",
+					Util::ordinal( shader->type ), shader->name );
 			}
 			else
 			{
-				stageType = stageTypeName.at( stage->type );
+				shaderType = shaderTypeName.at( shader->type );
 			}
 
-			lineStream.clear();
-			lineStream.str("");
+			if ( !shaderSortName.count( (shaderSort_t) shader->sort ) )
+			{
+				Log::Debug( "Undocumented shader sort %f for shader %s",
+					shader->sort, shader->name );
+			}
+			else
+			{
+				shaderSort = shaderSortName.at( (shaderSort_t) shader->sort );
+			}
 
-			lineStream << std::left;
-			lineStream << std::setw(numLen) << i << separator;
-			lineStream << std::setw(shaderTypeLen) << shaderType << separator;
-			lineStream << std::setw(shaderSortLen) << shaderSort << separator;
-			lineStream << std::setw(stageTypeLen) << stageType << separator;
-			lineStream << std::setw(interactLightLen) << interactLight << separator;
-			lineStream << j << ":" << shaderName;
+			interactLight = shader->interactLight ? "INTERACTLIGHT" : "";
+			shaderName = shader->name;
+			shaderName += shader->defaultShader ? " (DEFAULTED)" : "";
 
-			Log::CommandInteractionMessage( lineStream.str() );
+			if ( shader->stages == shader->lastStage )
+			{
+				lineStream.clear();
+				lineStream.str("");
+
+				lineStream << std::left;
+				lineStream << std::setw(numLen) << i << separator;
+				lineStream << std::setw(shaderTypeLen) << shaderType << separator;
+				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
+				lineStream << std::setw(stageTypeLen) << stageType << separator;
+				lineStream << std::setw(interactLightLen) << interactLight << separator;
+				lineStream << "-:" << shaderName;
+
+				Print( lineStream.str() );
+				continue;
+			}
+
+			const size_t stageCount = shader->lastStage - shader->stages;
+			totalStageCount += stageCount;
+			highestShaderStageCount = std::max( highestShaderStageCount, stageCount );
+
+			for ( size_t j = 0; j < stageCount; j++ )
+			{
+				shaderStage_t *stage = &shader->stages[ j ];
+
+				if ( !stageTypeName.count( stage->type ) )
+				{
+					Log::Debug( "Undocumented stage type %i for shader stage %s:%d",
+						Util::ordinal( stage->type ), shader->name, j );
+				}
+				else
+				{
+					stageType = stageTypeName.at( stage->type );
+				}
+
+				lineStream.clear();
+				lineStream.str("");
+
+				lineStream << std::left;
+				lineStream << std::setw(numLen) << i << separator;
+				lineStream << std::setw(shaderTypeLen) << shaderType << separator;
+				lineStream << std::setw(shaderSortLen) << shaderSort << separator;
+				lineStream << std::setw(stageTypeLen) << stageType << separator;
+				lineStream << std::setw(interactLightLen) << interactLight << separator;
+				lineStream << j << ":" << shaderName;
+
+				Print( lineStream.str() );
+			}
 		}
+
+		Print( lineSeparator );
+		Print( "%i total shaders, %i total stages, largest shader has %i stages",
+			tr.numShaders, totalStageCount, highestShaderStageCount );
+		Print( lineSeparator );
 	}
+};
+static ListShadersCmd listShadersCmdRegistration;
 
-	std::string summary = Str::Format(
-		"%i total shaders, %i total stages, largest shader has %i stages",
-		tr.numShaders, totalStageCount, highestShaderStageCount );
-
-	Log::CommandInteractionMessage( lineSeparator );
-	Log::CommandInteractionMessage( summary );
-	Log::CommandInteractionMessage( lineSeparator );
-}
-
-void R_ShaderExp_f()
+class ShaderExpCmd : public Cmd::StaticCmd
 {
-	std::string buffer;
+public:
+	ShaderExpCmd() : StaticCmd("shaderexp", "evaluate a q3shader expression (RB_EvalExpression)") {}
 
-	for ( int i = 1; i < ri.Cmd_Argc(); i++ )
+	void Run( const Cmd::Args &args ) const override
 	{
-		if ( i > 1 )
-		{
-			buffer += ' ';
-		}
+		std::string expStr = args.ConcatArgs( 1 );
+		const char* buffer_p = expStr.c_str();
+		expression_t exp;
 
-		buffer += ri.Cmd_Argv( i );
+		ParseExpression( &buffer_p, &exp );
+
+		Print( "%i total ops", exp.numOps );
+		Print( "%f result", RB_EvalExpression( &exp, 0 ) );
 	}
-
-	const char* buffer_p = buffer.c_str();
-	expression_t exp;
-
-	ParseExpression( &buffer_p, &exp );
-
-	Log::CommandInteractionMessage( Str::Format( "%i total ops", exp.numOps ) );
-	Log::CommandInteractionMessage( Str::Format( "%f result", RB_EvalExpression( &exp, 0 ) ) );
-}
+};
+static ShaderExpCmd shaderExpCmdRegistration;
 
 /*
 ====================

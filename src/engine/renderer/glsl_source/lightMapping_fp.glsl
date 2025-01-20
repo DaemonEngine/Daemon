@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 /* lightMapping_fp.glsl */
 
+#insert common
 #insert computeLight_fp
 #insert reliefMapping_fp
 
@@ -33,6 +34,8 @@ uniform sampler2D	u_GlowMap;
 
 uniform float		u_AlphaThreshold;
 uniform vec3		u_ViewOrigin;
+
+uniform uint u_ColorModulateColorGen;
 
 IN(smooth) vec3		var_Position;
 IN(smooth) vec2		var_TexCoords;
@@ -140,19 +143,20 @@ void main()
 		vec4 texel = texture3D(u_LightGrid2, lightGridPos);
 		vec3 lightDir = normalize(texel.xyz - (128.0 / 255.0));
 	#endif
-
+	
+	float lightFactor = ColorModulateToLightFactor( u_ColorModulateColorGen );
 	#if defined(USE_LIGHT_MAPPING)
 		// Compute light color from world space lightmap.
 		// When doing vertex lighting with full-range overbright, this reads out
 		// 1<<overbrightBits and serves for the overbright shift for vertex colors.
 		vec3 lightColor = texture2D(u_LightMap, var_TexLight).rgb;
-		lightColor *= u_LightFactor;
+		lightColor *= lightFactor;
 
 		color.rgb = vec3(0.0);
 	#else
 		// Compute light color from lightgrid.
 		vec3 ambientColor, lightColor;
-		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), ambientColor, lightColor);
+		ReadLightGrid(texture3D(u_LightGrid1, lightGridPos), lightFactor, ambientColor, lightColor);
 
 		color.rgb = ambientColor * r_AmbientScale * diffuse.rgb;
 	#endif

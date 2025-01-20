@@ -5016,6 +5016,10 @@ void R_BuildCubeMaps()
 	}
 }
 
+static Cmd::LambdaCmd buildCubeMapsCmd(
+	"buildcubemaps", "generate cube probes for reflection mapping",
+	[]( const Cmd::Args & ) { R_BuildCubeMaps(); });
+
 /*
 =================
 RE_LoadWorldMap

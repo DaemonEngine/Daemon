@@ -91,6 +91,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_materialSystem( "r_materialSystem", "Use Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_gpuOcclusionCulling( "r_gpuOcclusionCulling", "Use occlusion culling on the GPU for the Material System", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_materialSystemSkip( "r_materialSystemSkip", "Temporarily skip Material System rendering, using only core renderer instead", Cvar::NONE, false );
 	cvar_t      *r_lightStyles;
 	cvar_t      *r_exportTextures;
 	cvar_t      *r_heatHaze;
@@ -269,6 +270,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		"stage/material ID (if material system is enabled) for subgroup profiling "
 		"(-1 to profile all stages/materials, rendered in their usual order); "
 		"for materials, material IDs start from opaque materials, depth pre-pass materials are ignored", Cvar::NONE, -1 );
+
+	Cvar::Cvar<int> r_forceRendererTime( "r_forceRendererTime", "Set a specific time (in ms, since the start of the map) for time-based shader effects; -1 to disable", Cvar::CHEAT, -1 );
 
 	cvar_t      *r_vboFaces;
 	cvar_t      *r_vboCurves;
@@ -518,18 +521,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		return true;
 	}
 
-	/*
-	** R_ListModes_f
-	*/
-	static void R_ListModes_f()
+	class ListModesCmd : public Cmd::StaticCmd
 	{
-		int i;
-
-		for ( i = 0; i < s_numVidModes; i++ )
+	public:
+		ListModesCmd() : StaticCmd("listModes", "list suggested screen/window dimensions") {}
+		void Run( const Cmd::Args& ) const override
 		{
-			Log::Notice("Mode %-2d: %s", i, r_vidModes[ i ].description );
+			int i;
+
+			for ( i = 0; i < s_numVidModes; i++ )
+			{
+				Print("Mode %-2d: %s", i, r_vidModes[ i ].description );
+			}
 		}
-	}
+	};
+	static ListModesCmd listModesCmdRegistration;
 
 	/*
 	==================
@@ -897,7 +903,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	GfxInfo_f
 	================
 	*/
-	void GfxInfo_f()
+	static void GfxInfo_f()
 	{
 		static const char fsstrings[][16] =
 		{
@@ -1076,31 +1082,44 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Debug("replaceMaterialMinDimensionIfPresentWithMaxDimension: %d", r_replaceMaterialMinDimensionIfPresentWithMaxDimension->integer );
 	}
 
-	static void GLSL_restart_f()
+	// FIXME: uses regular logging not Print()
+	static Cmd::LambdaCmd gfxInfoCmd(
+		"gfxinfo", "dump graphics driver and configuration info",
+		[]( const Cmd::Args & ) { GfxInfo_f(); });
+
+	class GlslRestartCmd : public Cmd::StaticCmd
 	{
-		// make sure the render thread is stopped
-		R_SyncRenderThread();
+	public:
+		GlslRestartCmd() : StaticCmd(
+			"glsl_restart", "recompile GLSL shaders (useful when shaderpath is set)") {}
 
-		GLSL_ShutdownGPUShaders();
-		GLSL_InitGPUShaders();
-
-		for ( int i = 0; i < tr.numShaders; i++ )
+		void Run( const Cmd::Args & ) const override
 		{
-			shader_t &shader = *tr.shaders[ i ];
-			if ( shader.stages == shader.lastStage || shader.stages[ 0 ].deformIndex == 0 )
-			{
-				continue;
-			}
+			// make sure the render thread is stopped
+			R_SyncRenderThread();
 
-			int deformIndex =
-				gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms );
+			GLSL_ShutdownGPUShaders();
+			GLSL_InitGPUShaders();
 
-			for ( shaderStage_t *stage = shader.stages; stage != shader.lastStage; stage++ )
+			for ( int i = 0; i < tr.numShaders; i++ )
 			{
-				stage->deformIndex = deformIndex;
+				shader_t &shader = *tr.shaders[ i ];
+				if ( shader.stages == shader.lastStage || shader.stages[ 0 ].deformIndex == 0 )
+				{
+					continue;
+				}
+
+				int deformIndex =
+					gl_shaderManager.getDeformShaderIndex( shader.deforms, shader.numDeforms );
+
+				for ( shaderStage_t *stage = shader.stages; stage != shader.lastStage; stage++ )
+				{
+					stage->deformIndex = deformIndex;
+				}
 			}
 		}
-	}
+	};
+	static GlslRestartCmd glslRestartCmdRegistration;
 
 	/*
 	===============
@@ -1348,20 +1367,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
 
 		Cvar::Latch( r_profilerRenderSubGroups );
-
-		// make sure all the commands added here are also removed in R_Shutdown
-		ri.Cmd_AddCommand( "listImages", R_ListImages_f );
-		ri.Cmd_AddCommand( "listShaders", R_ListShaders_f );
-		ri.Cmd_AddCommand( "shaderexp", R_ShaderExp_f );
-		ri.Cmd_AddCommand( "listSkins", R_ListSkins_f );
-		ri.Cmd_AddCommand( "listModels", R_ListModels_f );
-		ri.Cmd_AddCommand( "listModes", R_ListModes_f );
-		ri.Cmd_AddCommand( "listAnimations", R_ListAnimations_f );
-		ri.Cmd_AddCommand( "listFBOs", R_ListFBOs_f );
-		ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
-		ri.Cmd_AddCommand( "buildcubemaps", R_BuildCubeMaps );
-
-		ri.Cmd_AddCommand( "glsl_restart", GLSL_restart_f );
 	}
 
 	/*
@@ -1533,21 +1538,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	void RE_Shutdown( bool destroyWindow )
 	{
 		Log::Debug("RE_Shutdown( destroyWindow = %i )", destroyWindow );
-
-		ri.Cmd_RemoveCommand( "listModels" );
-		ri.Cmd_RemoveCommand( "listImages" );
-		ri.Cmd_RemoveCommand( "listShaders" );
-		ri.Cmd_RemoveCommand( "shaderexp" );
-		ri.Cmd_RemoveCommand( "listSkins" );
-		ri.Cmd_RemoveCommand( "gfxinfo" );
-		ri.Cmd_RemoveCommand( "listModes" );
-		ri.Cmd_RemoveCommand( "shaderstate" );
-		ri.Cmd_RemoveCommand( "listAnimations" );
-		ri.Cmd_RemoveCommand( "listFBOs" );
-		ri.Cmd_RemoveCommand( "generatemtr" );
-		ri.Cmd_RemoveCommand( "buildcubemaps" );
-
-		ri.Cmd_RemoveCommand( "glsl_restart" );
 
 		if ( tr.registered )
 		{

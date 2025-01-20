@@ -124,6 +124,13 @@ static inline void snorm16ToFloat( const i16vec4_t in, vec4_t out )
 	out[ 3 ] = snorm16ToFloat( in[ 3 ] );
 }
 
+static inline uint32_t packUnorm4x8( const vec4_t in ) {
+	return uint32_t( floatToUnorm8( in[0] ) )
+		| ( uint32_t( floatToUnorm8( in[1] ) ) << 8 )
+		| ( uint32_t( floatToUnorm8( in[2] ) ) << 16 )
+		| ( uint32_t( floatToUnorm8( in[3] ) ) << 24 );
+}
+
 static inline f16_t floatToHalf( float in ) {
 	static float scale = powf(2.0f, 15 - 127);
 
@@ -1270,8 +1277,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		shaderStage_t *stages;
 		shaderStage_t *lastStage;
 
-		int             currentState; // current state index for cycle purposes
-
 		struct shader_t *remappedShader; // current shader this one is remapped too
 
 		struct {
@@ -2324,8 +2329,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	void               R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs );
 
-	void               R_ListModels_f();
-
 //====================================================
 	extern refimport_t ri;
 
@@ -2791,6 +2794,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 		frontEndCounters_t pc;
 		int                frontEndMsec; // not in pc due to clearing issue
 
+		bool skipSubgroupProfiler = false;
+
 		vec4_t             clipRegion; // 2D clipping region
 
 		//
@@ -2905,6 +2910,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Cvar<bool> r_materialSystem;
 	extern Cvar::Cvar<bool> r_gpuFrustumCulling;
 	extern Cvar::Cvar<bool> r_gpuOcclusionCulling;
+	extern Cvar::Cvar<bool> r_materialSystemSkip;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
@@ -3045,6 +3051,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials;
 	extern Cvar::Cvar<bool> r_materialDebug;
 	extern cvar_t *r_showParallelShadowSplits;
+
+	extern Cvar::Cvar<int> r_forceRendererTime;
 
 	extern Cvar::Cvar<bool> r_profilerRenderSubGroups;
 	extern Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode;
@@ -3252,9 +3260,6 @@ inline bool checkGLErrors()
 
 	bool   R_GetModeInfo( int *width, int *height, int mode );
 
-	void       R_ListImages_f();
-	void       R_ListSkins_f();
-
 // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=516
 	const void *RB_TakeScreenshotCmd( const void *data );
 
@@ -3308,8 +3313,6 @@ inline bool checkGLErrors()
 	shader_t  *R_FindShaderByName( const char *name );
 	const char *RE_GetShaderNameFromHandle( qhandle_t shader );
 	void      R_InitShaders();
-	void      R_ListShaders_f();
-	void      R_ShaderExp_f();
 	void      R_RemapShader( const char *oldShader, const char *newShader, const char *timeOffset );
 
 	/*
@@ -3650,7 +3653,6 @@ inline bool checkGLErrors()
 
 	void     R_InitFBOs();
 	void     R_ShutdownFBOs();
-	void     R_ListFBOs_f();
 
 	/*
 	============================================================
@@ -3719,7 +3721,6 @@ inline bool checkGLErrors()
 	qhandle_t RE_RegisterAnimationIQM( const char *name, IQAnim_t *data );
 
 	skelAnimation_t *R_GetAnimationByHandle( qhandle_t hAnim );
-	void            R_ListAnimations_f();
 
 	void            R_AddMD5Surfaces( trRefEntity_t *ent );
 	void            R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );

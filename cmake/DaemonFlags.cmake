@@ -438,9 +438,9 @@ elseif (NOT NACL)
 
 	if (ARCH STREQUAL "amd64")
 		# K8 or EM64T minimum: AMD Athlon 64 ClawHammer, Intel Xeon Nocona, Intel Pentium 4 model F (Prescott revision EO), VIA Nano.
-		if ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "ICC")
+		if (DAEMON_CXX_COMPILER_ICC)
 			set(GCC_GENERIC_ARCH "pentium4")
-		elseif ("${DAEMON_CXX_COMPILER_NAME}" STREQUAL "Zig")
+		elseif (DAEMON_CXX_COMPILER_Zig)
 			set(GCC_GENERIC_ARCH "x86_64")
 		else()
 			set(GCC_GENERIC_ARCH "x86-64")

@@ -2111,26 +2111,6 @@ public:
 	}
 };
 
-class GLCompileMacro_GENERIC_2D :
-	GLCompileMacro {
-	public:
-	GLCompileMacro_GENERIC_2D( GLShader* shader ) :
-		GLCompileMacro( shader ) {
-	}
-
-	const char* GetName() const override {
-		return "GENERIC_2D";
-	}
-
-	EGLCompileMacro GetType() const override {
-		return EGLCompileMacro::GENERIC_2D;
-	}
-
-	void SetGeneric2D( bool enable ) {
-		SetMacro( enable );
-	}
-};
-
 class GLCompileMacro_USE_PHYSICAL_MAPPING :
 	GLCompileMacro
 {
@@ -2153,21 +2133,6 @@ public:
 	void SetPhysicalShading( bool enable )
 	{
 		SetMacro( enable );
-	}
-};
-
-class u_LightFactor :
-	GLUniform1f
-{
-public:
-	u_LightFactor( GLShader *shader ) :
-		GLUniform1f( shader, "u_LightFactor" )
-	{
-	}
-
-	void SetUniform_LightFactor( const float lightFactor )
-	{
-		this->SetValue( lightFactor );
 	}
 };
 
@@ -3119,17 +3084,17 @@ class u_CloudHeight :
 };
 
 class u_Color :
-	GLUniform4f
+	GLUniform1ui
 {
 public:
 	u_Color( GLShader *shader ) :
-		GLUniform4f( shader, "u_Color" )
+		GLUniform1ui( shader, "u_Color" )
 	{
 	}
 
 	void SetUniform_Color( const Color::Color& color )
 	{
-		this->SetValue( color.ToArray() );
+		this->SetValue( packUnorm4x8( color.ToArray() ) );
 	}
 };
 
@@ -3623,68 +3588,86 @@ public:
 	{
 		this->SetValue( v );
 	}
-	void SetUniform_ColorModulate( colorGen_t colorGen, alphaGen_t alphaGen, bool vertexOverbright = false )
-	{
-		vec4_t v;
+};
+
+enum class ColorModulate {
+	COLOR_ONE = BIT( 0 ),
+	COLOR_MINUS_ONE = BIT( 1 ),
+	COLOR_LIGHTFACTOR = BIT( 2 ),
+	ALPHA_ONE = BIT( 3 ),
+	ALPHA_MINUS_ONE = BIT( 4 )
+};
+
+class u_ColorModulateColorGen :
+	GLUniform1ui {
+	public:
+	u_ColorModulateColorGen( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ColorModulateColorGen" ) {
+	}
+
+	void SetUniform_ColorModulateColorGen( colorGen_t colorGen, alphaGen_t alphaGen, bool vertexOverbright = false,
+		const bool useMapLightFactor = false ) {
+		uint32_t colorModulate = 0;
 		bool needAttrib = false;
 
-		if ( r_logFile->integer )
-		{
-			GLimp_LogComment( va( "--- u_ColorModulate::SetUniform_ColorModulate( program = %s, colorGen = %s, alphaGen = %s ) ---\n", _shader->GetName().c_str(), Util::enum_str(colorGen), Util::enum_str(alphaGen)) );
+		if ( r_logFile->integer ) {
+			GLimp_LogComment(
+				va( "--- u_ColorModulate::SetUniform_ColorModulateColorGen( program = %s, colorGen = %s, alphaGen = %s ) ---\n",
+					_shader->GetName().c_str(), Util::enum_str( colorGen ), Util::enum_str( alphaGen ) )
+			);
 		}
 
-		switch ( colorGen )
-		{
+		uint32_t lightFactor = 0;
+		switch ( colorGen ) {
 			case colorGen_t::CGEN_VERTEX:
 				needAttrib = true;
-				if ( vertexOverbright )
-				{
+				if ( vertexOverbright ) {
 					// vertexOverbright is only needed for non-lightmapped cases. When there is a
 					// lightmap, this is done by multiplying with the overbright-scaled white image
-					VectorSet( v, tr.mapLightFactor, tr.mapLightFactor, tr.mapLightFactor );
-				}
-				else
-				{
-					VectorSet( v, 1, 1, 1 );
+					colorModulate |= Util::ordinal( ColorModulate::COLOR_LIGHTFACTOR );
+					lightFactor = uint32_t( tr.mapLightFactor ) << 5;
+				} else {
+					colorModulate |= Util::ordinal( ColorModulate::COLOR_ONE );
 				}
 				break;
 
 			case colorGen_t::CGEN_ONE_MINUS_VERTEX:
 				needAttrib = true;
-				VectorSet( v, -1, -1, -1 );
+				colorModulate |= Util::ordinal( ColorModulate::COLOR_MINUS_ONE );
 				break;
 
 			default:
-				VectorSet( v, 0, 0, 0 );
 				break;
 		}
 
-		switch ( alphaGen )
-		{
+		if ( useMapLightFactor ) {
+			ASSERT_EQ( vertexOverbright, false );
+			lightFactor = uint32_t( tr.mapLightFactor ) << 5;
+		}
+
+		colorModulate |= lightFactor ? lightFactor : 1 << 5;
+
+		switch ( alphaGen ) {
 			case alphaGen_t::AGEN_VERTEX:
 				needAttrib = true;
-				v[ 3 ] = 1.0f;
+				colorModulate |= Util::ordinal( ColorModulate::ALPHA_ONE );
 				break;
 
 			case alphaGen_t::AGEN_ONE_MINUS_VERTEX:
 				needAttrib = true;
-				v[ 3 ] = -1.0f;
+				colorModulate |= Util::ordinal( ColorModulate::ALPHA_MINUS_ONE );
 				break;
 
 			default:
-				v[ 3 ] = 0.0f;
 				break;
 		}
 
-		if ( needAttrib )
-		{
+		if ( needAttrib ) {
 			_shader->AddVertexAttribBit( ATTR_COLOR );
-		}
-		else
-		{
+		} else {
 			_shader->DelVertexAttribBit( ATTR_COLOR );
 		}
-		this->SetValue( v );
+		this->SetValue( colorModulate );
 	}
 };
 
@@ -3949,7 +3932,7 @@ class GLShader_generic :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_Bones,
 	public u_VertexInterpolation,
@@ -3961,8 +3944,7 @@ class GLShader_generic :
 	public GLCompileMacro_USE_VERTEX_ANIMATION,
 	public GLCompileMacro_USE_TCGEN_ENVIRONMENT,
 	public GLCompileMacro_USE_TCGEN_LIGHTMAP,
-	public GLCompileMacro_USE_DEPTH_FADE,
-	public GLCompileMacro_GENERIC_2D
+	public GLCompileMacro_USE_DEPTH_FADE
 {
 public:
 	GLShader_generic( GLShaderManager *manager );
@@ -3979,7 +3961,7 @@ class GLShader_genericMaterial :
 	public u_AlphaThreshold,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_DepthScale,
 	public u_ShowTris,
@@ -4011,13 +3993,12 @@ class GLShader_lightMapping :
 	public u_LightTiles,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_LightFactor,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_ReliefDepthScale,
@@ -4063,13 +4044,12 @@ class GLShader_lightMappingMaterial :
 	public u_LightTiles,
 	public u_TextureMatrix,
 	public u_SpecularExponent,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_AlphaThreshold,
 	public u_ViewOrigin,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_LightFactor,
 	public u_ReliefDepthScale,
 	public u_ReliefOffsetBias,
 	public u_NormalScale,
@@ -4110,7 +4090,7 @@ class GLShader_forwardLighting_omniXYZ :
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_ViewOrigin,
 	public u_LightOrigin,
@@ -4153,7 +4133,7 @@ class GLShader_forwardLighting_projXYZ :
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_ViewOrigin,
 	public u_LightOrigin,
@@ -4203,7 +4183,7 @@ class GLShader_forwardLighting_directionalSun :
 	public u_TextureMatrix,
 	public u_SpecularExponent,
 	public u_AlphaThreshold,
-	public u_ColorModulate,
+	public u_ColorModulateColorGen,
 	public u_Color,
 	public u_ViewOrigin,
 	public u_LightDir,
