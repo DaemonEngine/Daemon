@@ -4112,10 +4112,11 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		if ( tmpAmbient[0] < r_forceAmbient.Get() &&
-			tmpAmbient[1] < r_forceAmbient.Get() &&
-			tmpAmbient[2] < r_forceAmbient.Get() ) {
-			VectorSet( tmpAmbient, r_forceAmbient.Get(), r_forceAmbient.Get(), r_forceAmbient.Get() );
+		const byte forceAmbientNormalised = floatToUnorm8( r_forceAmbient.Get() );
+		if ( tmpAmbient[0] < forceAmbientNormalised &&
+			tmpAmbient[1] < forceAmbientNormalised &&
+			tmpAmbient[2] < forceAmbientNormalised ) {
+			VectorSet( tmpAmbient, forceAmbientNormalised, forceAmbientNormalised, forceAmbientNormalised );
 		}
 
 		if ( tr.legacyOverBrightClamping )
