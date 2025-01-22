@@ -4112,13 +4112,6 @@ void R_LoadLightGrid( lump_t *l )
 		tmpDirected[ 2 ] = in->directed[ 2 ];
 		tmpDirected[ 3 ] = 255;
 
-		const byte forceAmbientNormalised = floatToUnorm8( r_forceAmbient.Get() );
-		if ( tmpAmbient[0] < forceAmbientNormalised &&
-			tmpAmbient[1] < forceAmbientNormalised &&
-			tmpAmbient[2] < forceAmbientNormalised ) {
-			VectorSet( tmpAmbient, forceAmbientNormalised, forceAmbientNormalised, forceAmbientNormalised );
-		}
-
 		if ( tr.legacyOverBrightClamping )
 		{
 			R_ColorShiftLightingBytes( tmpAmbient );
@@ -4129,6 +4122,18 @@ void R_LoadLightGrid( lump_t *l )
 		{
 			ambientColor[ j ] = tmpAmbient[ j ] * ( 1.0f / 255.0f );
 			directedColor[ j ] = tmpDirected[ j ] * ( 1.0f / 255.0f );
+		}
+
+		const float forceAmbient = r_forceAmbient.Get();
+		if ( ambientColor[0] < forceAmbient &&
+			ambientColor[1] < forceAmbient &&
+			ambientColor[2] < forceAmbient &&
+			/* Make sure we don't change the (0, 0, 0) points because those are points in walls,
+			which we'll fill up by interpolating nearby points later */
+			( ambientColor[0] != 0 ||
+			ambientColor[1] != 0 || 
+			ambientColor[2] != 0 ) ) {
+			VectorSet( ambientColor, forceAmbient, forceAmbient, forceAmbient );
 		}
 
 		// standard spherical coordinates to cartesian coordinates conversion
