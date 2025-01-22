@@ -2851,7 +2851,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern const matrix_t quakeToOpenGLMatrix;
 	extern const matrix_t openGLToQuakeMatrix;
 	extern const matrix_t flipZMatrix;
-	extern const GLenum   geometricRenderTargets[];
 	extern int            shadowMapResolutions[ 5 ];
 	extern int            sunShadowMapResolutions[ 5 ];
 
