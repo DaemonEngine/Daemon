@@ -2252,7 +2252,7 @@ void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 }
 
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
-	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR, manager ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_TextureMatrix( this ),
@@ -2284,7 +2284,7 @@ void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram 
 }
 
 GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
-	GLShader( "genericMaterial", "generic", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	GLShader( "genericMaterial", "generic", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR, manager ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_TextureMatrix( this ),

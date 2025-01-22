@@ -3494,7 +3494,8 @@ enum class ColorModulate {
 	COLOR_MINUS_ONE = BIT( 1 ),
 	COLOR_LIGHTFACTOR = BIT( 2 ),
 	ALPHA_ONE = BIT( 3 ),
-	ALPHA_MINUS_ONE = BIT( 4 )
+	ALPHA_MINUS_ONE = BIT( 4 ),
+	ALPHA_ADD_ONE = BIT( 5 )
 };
 
 class u_ColorModulateColorGen :
@@ -3524,7 +3525,7 @@ class u_ColorModulateColorGen :
 					// vertexOverbright is only needed for non-lightmapped cases. When there is a
 					// lightmap, this is done by multiplying with the overbright-scaled white image
 					colorModulate |= Util::ordinal( ColorModulate::COLOR_LIGHTFACTOR );
-					lightFactor = uint32_t( tr.mapLightFactor ) << 5;
+					lightFactor = uint32_t( tr.mapLightFactor ) << 6;
 				} else {
 					colorModulate |= Util::ordinal( ColorModulate::COLOR_ONE );
 				}
@@ -3541,10 +3542,10 @@ class u_ColorModulateColorGen :
 
 		if ( useMapLightFactor ) {
 			ASSERT_EQ( vertexOverbright, false );
-			lightFactor = uint32_t( tr.mapLightFactor ) << 5;
+			lightFactor = uint32_t( tr.mapLightFactor ) << 6;
 		}
 
-		colorModulate |= lightFactor ? lightFactor : 1 << 5;
+		colorModulate |= lightFactor ? lightFactor : 1 << 6;
 
 		switch ( alphaGen ) {
 			case alphaGen_t::AGEN_VERTEX:
@@ -3561,10 +3562,12 @@ class u_ColorModulateColorGen :
 				break;
 		}
 
-		if ( needAttrib ) {
-			_shader->AddVertexAttribBit( ATTR_COLOR );
-		} else {
-			_shader->DelVertexAttribBit( ATTR_COLOR );
+		if ( !needAttrib ) {
+			/* Originally, this controlled whether the vertex color array was used,
+			now it does the equivalent by setting the color in the shader in such way as if it was using
+			the default OpenGL values for the disabled arrays (0.0, 0.0, 0.0, 1.0)
+			This allows to skip the vertex format change */
+			colorModulate |= Util::ordinal( ColorModulate::ALPHA_ADD_ONE );
 		}
 		this->SetValue( colorModulate );
 	}
