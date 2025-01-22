@@ -345,6 +345,7 @@ void SV_Startup()
 
 	Cvar_Set( "sv_running", "1" );
 #ifndef BUILD_SERVER
+	// For clients, reconfigure to open server ports.
 	NET_EnableNetworking( true );
 #endif
 
@@ -767,6 +768,7 @@ void SV_Shutdown( const char *finalmsg )
 
 	Cvar_Set( "sv_running", "0" );
 #ifndef BUILD_SERVER
+	// For clients, reconfigure to close server ports.
 	NET_EnableNetworking( false );
 #endif
 
