@@ -68,6 +68,7 @@ void	main()
 
 	VertexFetch( position, LB, color, texCoord, lmCoord );
 	float lightFactor = ColorModulateToLightFactor( u_ColorModulateColorGen );
+	color.a = ColorModulateToVertexColor( u_ColorModulateColorGen ) ? 1.0 : color.a;
 	color = color * ColorModulateToColor( u_ColorModulateColorGen, lightFactor )
 		+ unpackUnorm4x8( u_Color ) * vec4( lightFactor, lightFactor, lightFactor, 1.0 );
 

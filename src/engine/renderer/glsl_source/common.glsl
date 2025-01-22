@@ -48,7 +48,8 @@ Bit 1: color * ( -1 )
 Bit 2: color += lightFactor
 Bit 3: alpha * 1
 Bit 4: alpha * ( -1 )
-Bit 5-7: lightFactor */
+Bit 5: alpha = 1
+Bit 6-9: lightFactor */
 
 float colorModArray[3] = float[3] ( 0.0f, 1.0f, -1.0f );
 
@@ -65,5 +66,10 @@ vec4 ColorModulateToColor( const in uint colorMod, const in float lightFactor ) 
 }
 
 float ColorModulateToLightFactor( const in uint colorMod ) {
-	return ( colorMod >> 5 ) & 0x7;
+	return ( colorMod >> 6 ) & 0xF;
+}
+
+// This is used to skip vertex colours if the colorMod doesn't need them
+bool ColorModulateToVertexColor( const in uint colorMod ) {
+	return ( colorMod & 0xFF ) == 0xFF;
 }
