@@ -231,6 +231,17 @@ else()
 		endif()
 	endif()
 
+	if (NACL AND USE_NACL_SAIGO AND SAIGO_ARCH STREQUAL "arm")
+		# This should be set for every build type because build type flags
+		# are set after the other custom flags and then have the last word.
+		# DEBUG should already use -O0 anyway.
+		# See: https://github.com/Unvanquished/Unvanquished/issues/3297
+		set_c_cxx_flag("-O0" DEBUG)
+		set_c_cxx_flag("-O0" RELEASE)
+		set_c_cxx_flag("-O0" RELWITHDEBINFO)
+		set_c_cxx_flag("-O0" MINSIZEREL)
+	endif()
+
 	# Extra debug flags.
 	set_c_cxx_flag("-g3" RELWITHDEBINFO)
 	set_c_cxx_flag("-g3" DEBUG)
