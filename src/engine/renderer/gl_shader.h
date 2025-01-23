@@ -2757,7 +2757,7 @@ public:
 	{
 		/* We only actually need these 6 components to get the correct texture transformation,
 		the other ones are unused */
-		static vec_t m2[6];
+		vec_t m2[6];
 		m2[0] = m[0];
 		m2[1] = m[1];
 		m2[2] = m[4];
