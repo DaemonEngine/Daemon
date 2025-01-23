@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "framework/CommandSystem.h"
 #include "GeometryCache.h"
+#include "GeometryOptimiser.h"
 
 /*
 ========================================================
@@ -2584,13 +2585,11 @@ static void R_CreateWorldVBO()
 	int       i, j, k;
 
 	int       numVerts;
-	glIndex_t      *vboIdxs;
 
 	int           numTriangles;
 
 	int            numSurfaces;
 	bspSurface_t  *surface;
-	bspSurface_t  **surfaces;
 	bspSurface_t  *mergedSurf;
 	int           startTime, endTime;
 
@@ -2644,120 +2643,18 @@ static void R_CreateWorldVBO()
 		surface->interactionBits = 0;
 	}
 
-	// mark matching surfaces
-	for ( i = 0; i < s_worldData.numnodes - s_worldData.numDecisionNodes; i++ )
-	{
-		bspNode_t *leaf = s_worldData.nodes + s_worldData.numDecisionNodes + i;
+	bspSurface_t** surfaces = OptimiseMapGeometryCore( &s_worldData, numSurfaces );
 
-		for ( j = 0; j < leaf->numMarkSurfaces; j++ )
-		{
-			bspSurface_t *surf1;
-			shader_t *shader1;
-			int fogIndex1;
-			int lightMapNum1;
-			bool merged = false;
-			surf1 = s_worldData.markSurfaces[ leaf->firstMarkSurface + j ];
-
-			if ( surf1->viewCount != -1 )
-			{
-				continue;
-			}
-
-			if ( *surf1->data != surfaceType_t::SF_GRID && *surf1->data != surfaceType_t::SF_TRIANGLES && *surf1->data != surfaceType_t::SF_FACE )
-			{
-				continue;
-			}
-
-			shader1 = surf1->shader;
-
-			if ( shader1->isPortal || shader1->autoSpriteMode != 0 )
-			{
-				continue;
-			}
-
-			fogIndex1 = surf1->fogIndex;
-			lightMapNum1 = surf1->lightmapNum;
-			surf1->viewCount = surf1 - s_worldData.surfaces;
-			surf1->lightCount = j;
-			surf1->interactionBits = i;
-
-			for ( k = j + 1; k < leaf->numMarkSurfaces; k++ )
-			{
-				bspSurface_t *surf2;
-				shader_t *shader2;
-				int fogIndex2;
-				int lightMapNum2;
-
-				surf2 = s_worldData.markSurfaces[ leaf->firstMarkSurface + k ];
-
-				if ( surf2->viewCount != -1 )
-				{
-					continue;
-				}
-
-				if ( *surf2->data != surfaceType_t::SF_GRID && *surf2->data != surfaceType_t::SF_TRIANGLES && *surf2->data != surfaceType_t::SF_FACE )
-				{
-					continue;
-				}
-
-				shader2 = surf2->shader;
-				fogIndex2 = surf2->fogIndex;
-				lightMapNum2 = surf2->lightmapNum;
-				if ( shader1 != shader2 || fogIndex1 != fogIndex2 || lightMapNum1 != lightMapNum2 )
-				{
-					continue;
-				}
-
-				surf2->viewCount = surf1->viewCount;
-				surf2->lightCount = k;
-				surf2->interactionBits = i;
-				merged = true;
-			}
-
-			if ( !merged )
-			{
-				surf1->viewCount = -1;
-				surf1->lightCount = -1;
-				// don't clear the leaf number so
-				// surfaces that arn't merged are placed
-				// closer to other leafs in the vbo
-			}
-		}
-	}
-
-	surfaces = ( bspSurface_t ** ) ri.Hunk_AllocateTempMemory( sizeof( *surfaces ) * numSurfaces );
-
-	numSurfaces = 0;
-	for ( k = 0; k < s_worldData.numSurfaces; k++ )
-	{
-		surface = &s_worldData.surfaces[ k ];
-
-		if ( surface->shader->isPortal )
-		{
-			// HACK: don't use VBO because when adding a portal we have to read back the verts CPU-side
-			continue;
-		}
-
-		if ( surface->shader->autoSpriteMode != 0 )
-		{
-			// don't use VBO because verts are rewritten each time based on view origin
-			continue;
-		}
-
-		if ( *surface->data == surfaceType_t::SF_FACE || *surface->data == surfaceType_t::SF_GRID || *surface->data == surfaceType_t::SF_TRIANGLES )
-		{
-			surfaces[ numSurfaces++ ] = surface;
-		}
-	}
-
-	qsort( surfaces, numSurfaces, sizeof( *surfaces ), LeafSurfaceCompare );
-
-	Log::Debug("...calculating world VBO ( %i verts %i tris )", numVerts, numTriangles );
+	Log::Debug( "...calculating world VBO ( %i verts %i tris )", numVerts, numTriangles );
 
 	// Use srfVert_t for the temporary array used to feed R_CreateStaticVBO, despite containing
 	// extraneous data, so that verts can be conveniently be bulk copied from the surface.
-	auto *vboVerts = (srfVert_t *)ri.Hunk_AllocateTempMemory( numVerts * sizeof( srfVert_t ) );
-	vboIdxs = (glIndex_t *)ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
+	srfVert_t* vboVerts = ( srfVert_t* ) ri.Hunk_AllocateTempMemory( numVerts * sizeof( srfVert_t ) );
+	glIndex_t* vboIdxs = ( glIndex_t* ) ri.Hunk_AllocateTempMemory( 3 * numTriangles * sizeof( glIndex_t ) );
+
+	if ( glConfig2.usingMaterialSystem ) {
+		OptimiseMapGeometryMaterial( &s_worldData, numSurfaces );
+	}
 
 	// set up triangle and vertex arrays
 	int vboNumVerts = 0;
