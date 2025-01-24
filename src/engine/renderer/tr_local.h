@@ -2467,7 +2467,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int   c_vertexes;
 		int   c_indexes;
 		int   c_drawElements;
-		float c_overDraw;
 		int   c_vboVertexBuffers;
 		int   c_vboIndexBuffers;
 		int   c_vboVertexes;
@@ -2937,8 +2936,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_zfar;
 
 	extern cvar_t *r_colorbits; // number of desired color bits, only relevant for fullscreen
-
-	extern cvar_t *r_measureOverdraw; // enables stencil buffer overdraw measurement
 
 	extern cvar_t *r_lodBias; // push/pull LOD transitions
 	extern cvar_t *r_lodScale;
