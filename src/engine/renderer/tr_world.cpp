@@ -304,7 +304,7 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 	bspModel = pModel->bsp;
 
 	// copy local bounds
-	BoundsCopy( ent->localBounds, bspModel->bounds );
+	BoundsCopy( bspModel->bounds, ent->localBounds );
 
 	R_SetupEntityWorldBounds(ent);
 
