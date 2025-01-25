@@ -830,9 +830,6 @@ static void RB_SetGL2D()
 	GL_LoadProjectionMatrix( proj );
 	GL_LoadModelViewMatrix( matrixIdentity );
 
-	// TODO: remove this, state is set wherever drawing is done
-	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
-
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
 	// set time for 2D shaders
