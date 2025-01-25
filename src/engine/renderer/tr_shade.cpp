@@ -929,7 +929,10 @@ void Render_generic( shaderStage_t *pStage )
 {
 	if ( backEnd.projection2D )
 	{
-		glState.glStateBitsMask = ~uint32_t( GLS_DEPTHMASK_TRUE ) | GLS_DEPTHTEST_DISABLE;
+		constexpr uint32_t lockBits = GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE;
+		glState.glStateBitsMask = ~lockBits;
+		GL_State( GLS_DEPTHTEST_DISABLE );
+		glState.glStateBitsMask = lockBits;
 		tr.skipSubgroupProfiler = true;
 
 		Render_generic3D( pStage );
