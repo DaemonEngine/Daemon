@@ -1726,7 +1726,7 @@ void MatrixTransformBounds( const matrix_t m, const bounds_t &b, bounds_t &o );
 		vec_t dist;
 		byte   type; // for fast side tests: 0,1,2 = axial, 3 = nonaxial
 		byte   signbits; // signx + (signy<<1) + (signz<<2), used as lookup during collision
-		byte pad[ 12 ];
+		byte pad[ 14 ];
 	};
 
 	enum class traceType_t
