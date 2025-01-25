@@ -1486,6 +1486,8 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 *  A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 *  Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
 void MaterialSystem::GenerateWorldMaterials() {
+	R_SyncRenderThread();
+
 	const int current_r_nocull = r_nocull->integer;
 	const int current_r_drawworld = r_drawworld->integer;
 	r_nocull->integer = 1;
@@ -1493,8 +1495,6 @@ void MaterialSystem::GenerateWorldMaterials() {
 	generatingWorldCommandBuffer = true;
 
 	Log::Debug( "Generating world materials" );
-
-	R_SyncRenderThread();
 
 	++tr.viewCountNoReset;
 	R_AddWorldSurfaces();
