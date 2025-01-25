@@ -766,7 +766,7 @@ bool FS_ComparePaks(char* neededpaks, int len)
 class WhichCmd: public Cmd::StaticCmd {
 public:
 	WhichCmd()
-		: Cmd::StaticCmd("which", Cmd::SYSTEM, "shows which pak a file is in") {}
+		: Cmd::StaticCmd("which", Cmd::BASE, "shows which pak a file is in") {}
 
 	void Run(const Cmd::Args& args) const override
 	{
@@ -797,7 +797,7 @@ static WhichCmd WhichCmdRegistration;
 class ListPathsCmd: public Cmd::StaticCmd {
 public:
 	ListPathsCmd()
-		: Cmd::StaticCmd("listPaths", Cmd::SYSTEM, "list filesystem search paths") {}
+		: Cmd::StaticCmd("listPaths", Cmd::BASE, "list filesystem search paths") {}
 
 	void Run(const Cmd::Args&) const override
 	{
@@ -810,7 +810,7 @@ static ListPathsCmd ListPathsCmdRegistration;
 
 class DirCmd: public Cmd::StaticCmd {
 public:
-	DirCmd(): Cmd::StaticCmd("dir", Cmd::SYSTEM, "list all files in a given directory with the option to pass a filter") {}
+	DirCmd(): Cmd::StaticCmd("dir", Cmd::BASE, "list all files in a given directory with the option to pass a filter") {}
 
 	void Run(const Cmd::Args& args) const override
 	{

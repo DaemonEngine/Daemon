@@ -322,9 +322,6 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 		return;
 	}
 
-	// Tr3B: BSP inline models should always use vertex lighting
-	R_SetupEntityLighting( &tr.refdef, ent, boundsCenter );
-
 	fogNum = R_FogWorldBox( ent->worldBounds );
 
 	for ( i = 0; i < bspModel->numSurfaces; i++ )

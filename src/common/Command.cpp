@@ -493,11 +493,13 @@ namespace Cmd {
         return *Cmd::GetEnv();
     }
 
+#ifndef BUILD_ENGINE
     StaticCmd::StaticCmd(std::string name, std::string description)
     :CmdBase(0){
         //Register this command statically
         AddCommand(std::move(name), *this, std::move(description));
     }
+#endif
 
     StaticCmd::StaticCmd(std::string name, const int flags, std::string description)
     :CmdBase(flags){
@@ -509,9 +511,11 @@ namespace Cmd {
         return {};
     }
 
+#ifndef BUILD_ENGINE
     LambdaCmd::LambdaCmd(std::string name, std::string description, RunFn run, CompleteFn complete)
     :StaticCmd(std::move(name), std::move(description)), run(run), complete(complete) {
     }
+#endif
     LambdaCmd::LambdaCmd(std::string name, int flags, std::string description, RunFn run, CompleteFn complete)
     :StaticCmd(std::move(name), flags, std::move(description)), run(run), complete(complete) {
     }
@@ -528,7 +532,7 @@ class InjectFaultCmd : public Cmd::StaticCmd
 {
 public:
     InjectFaultCmd() : StaticCmd(
-        VM_STRING_PREFIX "injectFault", "make the program error and crash") {}
+        VM_STRING_PREFIX "injectFault", Cmd::BASE, "make the program error and crash") {}
 
     void Run(const Cmd::Args& args) const override
     {

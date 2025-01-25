@@ -140,7 +140,7 @@ void GL_TextureMode( const char *string )
 class ListImagesCmd : public Cmd::StaticCmd
 {
 public:
-	ListImagesCmd() : StaticCmd("listImages", "list images loaded in renderer") {}
+	ListImagesCmd() : StaticCmd("listImages", Cmd::RENDERER, "list images loaded in renderer") {}
 
 	void Run( const Cmd::Args &args ) const override
 	{

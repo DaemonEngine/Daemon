@@ -948,10 +948,8 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 	personalModel = (ent->e.renderfx & RF_THIRD_PERSON) &&
 	  tr.viewParms.portalLevel == 0;
 
-	//
 	// cull the entire model if merged bounding box of both frames
 	// is outside the view frustum.
-	//
 	R_CullIQM( ent );
 
 	// HACK: Never cull first-person models, due to issues with a certain model's bounds
@@ -962,16 +960,7 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 		return;
 	}
 
-	//
-	// set up lighting now that we know we aren't culled
-	//
-	if ( !personalModel || glConfig2.shadowMapping ) {
-		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
-	}
-
-	//
 	// see if we are in a fog volume
-	//
 	fogNum = R_FogWorldBox( ent->worldBounds );
 
 	for ( i = 0 ; i < IQModel->num_surfaces ; i++ ) {

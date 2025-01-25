@@ -584,7 +584,8 @@ skelAnimation_t *R_GetAnimationByHandle( qhandle_t index )
 class ListAnimationsCmd : public Cmd::StaticCmd
 {
 public:
-	ListAnimationsCmd() : StaticCmd("listAnimations", "list model animations loaded in renderer") {}
+	ListAnimationsCmd() : StaticCmd(
+		"listAnimations", Cmd::RENDERER, "list model animations loaded in renderer") {}
 
 	void Run( const Cmd::Args & ) const override
 	{
@@ -677,12 +678,6 @@ void R_AddMD5Surfaces( trRefEntity_t *ent )
 	if ( ent->cull == cullResult_t::CULL_OUT )
 	{
 		return;
-	}
-
-	// set up lighting now that we know we aren't culled
-	if ( !personalModel || glConfig2.shadowMapping )
-	{
-		R_SetupEntityLighting( &tr.refdef, ent, nullptr );
 	}
 
 	// see if we are in a fog volume

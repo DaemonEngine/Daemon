@@ -465,10 +465,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		// local
 		float        axisLength; // compensate for non-normalized axis
-		bool     lightingCalculated;
-		vec3_t       lightDir; // normalized direction towards light
-		vec3_t       ambientLight; // color normalized to 0-1
-		vec3_t       directedLight;
 
 		cullResult_t cull;
 		vec3_t       localBounds[ 2 ];
@@ -2755,6 +2751,9 @@ enum class shaderProfilerRenderSubGroupsMode {
 		std::vector<image_t *> lightmaps;
 		std::vector<image_t *> deluxemaps;
 
+		vec3_t ambientLight;
+		bool ambientLightSet = false;
+
 		image_t   *lightGrid1Image;
 		image_t   *lightGrid2Image;
 
@@ -2852,7 +2851,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern const matrix_t quakeToOpenGLMatrix;
 	extern const matrix_t openGLToQuakeMatrix;
 	extern const matrix_t flipZMatrix;
-	extern const GLenum   geometricRenderTargets[];
 	extern int            shadowMapResolutions[ 5 ];
 	extern int            sunShadowMapResolutions[ 5 ];
 
@@ -2891,8 +2889,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_wolfFog;
 	extern cvar_t *r_noFog;
 
-	extern cvar_t *r_forceAmbient;
-	extern cvar_t *r_ambientScale;
+	extern Cvar::Range<Cvar::Cvar<float>> r_forceAmbient;
+	extern Cvar::Cvar<float> r_ambientScale;
 	extern cvar_t *r_lightScale;
 
 	extern Cvar::Cvar<bool> r_drawSky; // Controls whether sky should be drawn or cleared.
@@ -3563,7 +3561,6 @@ inline bool checkGLErrors()
 	*/
 
 	void     R_AddBrushModelInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionType_t iaType );
-	void     R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent, vec3_t forcedOrigin );
 	float R_InterpolateLightGrid( world_t *w, int from[3], int to[3],
 				      float *factors[3], vec3_t ambientLight,
 				      vec3_t directedLight, vec3_t lightDir );

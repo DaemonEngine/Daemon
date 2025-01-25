@@ -216,8 +216,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_wolfFog;
 	cvar_t      *r_noFog;
 
-	cvar_t      *r_forceAmbient;
-	cvar_t      *r_ambientScale;
+	Cvar::Range<Cvar::Cvar<float>> r_forceAmbient( "r_forceAmbient", "Minimal light amount in lightGrid", Cvar::NONE,
+		0.125f, 0.0f, 0.3f );
+	Cvar::Cvar<float> r_ambientScale( "r_ambientScale", "Scale lightGrid produced by ambientColor keyword by this much", Cvar::CHEAT, 1.0 );
 	cvar_t      *r_lightScale;
 	cvar_t      *r_debugSort;
 	cvar_t      *r_printShaders;
@@ -340,11 +341,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 				return false;
 			}
 
-			if( glConfig2.glCoreProfile ) {
-				glGenVertexArrays( 1, &backEnd.currentVAO );
-				glBindVertexArray( backEnd.currentVAO );
-			}
-
 			glState.tileStep[ 0 ] = TILE_SIZE * ( 1.0f / glConfig.vidWidth );
 			glState.tileStep[ 1 ] = TILE_SIZE * ( 1.0f / glConfig.vidHeight );
 
@@ -378,6 +374,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		{
 			GLSL_ShutdownGPUShaders();
 			GLSL_InitGPUShaders();
+		}
+
+		if ( glConfig2.glCoreProfile ) {
+			glGenVertexArrays( 1, &backEnd.currentVAO );
+			glBindVertexArray( backEnd.currentVAO );
 		}
 
 		GL_CheckErrors();
@@ -524,7 +525,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	class ListModesCmd : public Cmd::StaticCmd
 	{
 	public:
-		ListModesCmd() : StaticCmd("listModes", "list suggested screen/window dimensions") {}
+		ListModesCmd() : StaticCmd("listModes", Cmd::RENDERER, "list suggested screen/window dimensions") {}
 		void Run( const Cmd::Args& ) const override
 		{
 			int i;
@@ -1084,14 +1085,14 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 	// FIXME: uses regular logging not Print()
 	static Cmd::LambdaCmd gfxInfoCmd(
-		"gfxinfo", "dump graphics driver and configuration info",
+		"gfxinfo", Cmd::RENDERER, "dump graphics driver and configuration info",
 		[]( const Cmd::Args & ) { GfxInfo_f(); });
 
 	class GlslRestartCmd : public Cmd::StaticCmd
 	{
 	public:
 		GlslRestartCmd() : StaticCmd(
-			"glsl_restart", "recompile GLSL shaders (useful when shaderpath is set)") {}
+			"glsl_restart", Cmd::RENDERER, "recompile GLSL shaders (useful when shaderpath is set)") {}
 
 		void Run( const Cmd::Args & ) const override
 		{
@@ -1165,8 +1166,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_wolfFog = Cvar_Get( "r_wolfFog", "1", CVAR_CHEAT );
 		r_noFog = Cvar_Get( "r_noFog", "0", CVAR_CHEAT );
 
-		r_forceAmbient = Cvar_Get( "r_forceAmbient", "0.125",  CVAR_LATCH );
-		AssertCvarRange( r_forceAmbient, 0.0f, 0.3f, false );
+		Cvar::Latch( r_forceAmbient );
 
 		r_smp = Cvar_Get( "r_smp", "0",  CVAR_LATCH );
 
@@ -1192,7 +1192,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE );
 		r_facePlaneCull = Cvar_Get( "r_facePlaneCull", "1", 0 );
 
-		r_ambientScale = Cvar_Get( "r_ambientScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
+		Cvar::Latch( r_ambientScale );
 		r_lightScale = Cvar_Get( "r_lightScale", "2", CVAR_CHEAT );
 
 		r_vboFaces = Cvar_Get( "r_vboFaces", "1", CVAR_CHEAT );

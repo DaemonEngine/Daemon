@@ -599,7 +599,7 @@ static std::string GenEngineConstants() {
 	// Engine constants
 	std::string str;
 
-	AddDefine( str, "r_AmbientScale", r_ambientScale->value );
+	AddDefine( str, "r_AmbientScale", r_ambientScale.Get() );
 	AddDefine( str, "r_SpecularScale", r_specularScale->value );
 	AddDefine( str, "r_zNear", r_znear->value );
 
