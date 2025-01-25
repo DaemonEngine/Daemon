@@ -536,9 +536,9 @@ int trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float
     for ( i = 0; i < 3; i++ )
     {
         bounds.maxs[ i ] = skel->bounds.maxs[ i ]
-            < blend->bounds.maxs[ i ]
-            ? skel->bounds.maxs[ i ]
-            : blend->bounds.maxs[ i ];
+            < blend->bounds.mins[ i ]
+            ? skel->bounds.mins[ i ]
+            : blend->bounds.mins[ i ];
 
         bounds.maxs[ i ] = skel->bounds.maxs[ i ]
             > blend->bounds.maxs[ i ]
