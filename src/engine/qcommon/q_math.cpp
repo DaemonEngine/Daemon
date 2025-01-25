@@ -835,7 +835,7 @@ void ZeroBounds( bounds_t &b )
 
 void ClearBounds( bounds_t &b )
 {
-	bounds_t cleared = {
+	static const bounds_t cleared = {
 		{ 99999, 99999, 99999 }, 0,
 		{ -99999, -99999, -99999 }, 0,
 	};
