@@ -5869,6 +5869,16 @@ static shader_t *FinishShader()
 	numStages = MAX_SHADER_STAGES;
 	GroupActiveStages();
 
+	if ( shader.forceLightMap ) {
+		for( size_t stage = 0; stage < numStages; stage++ ) {
+			shaderStage_t* pStage = &stages[numStages];
+
+			if ( pStage->type == stageType_t::ST_COLORMAP ) {
+				pStage->type = stageType_t::ST_DIFFUSEMAP;
+			}
+		}
+	}
+
 	// set appropriate stage information
 	for ( size_t stage = 0; stage < numStages; stage++ )
 	{
@@ -6231,6 +6241,11 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	if ( flags & RSF_SPRITE )
 	{
 		shader.entitySpriteFaceViewDirection = true;
+	}
+
+	if ( flags & RSF_FORCE_LIGHTMAP )
+	{
+		shader.forceLightMap = true;
 	}
 
 	// attempt to define shader from an explicit parameter file
