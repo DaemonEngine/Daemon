@@ -65,10 +65,7 @@ using bool8_t = uint8_t;
 // for lighting.  This allows entities to sink into the floor
 // with their origin going solid, and allows all parts of a
 // player to get the same lighting
-#define RF_WRAP_FRAMES   0x000080 // mod the model frames by the maxframes to allow continuous
-// animation without needing to know the frame count
-#define RF_FORCENOLOD    0x000400
-#define RF_SWAPCULL      0x000800 // swap CT_FRONT_SIDED and CT_BACK_SIDED
+#define RF_SWAPCULL      0x000040 // swap CT_FRONT_SIDED and CT_BACK_SIDED
 
 // refdef flags
 #define RDF_NOWORLDMODEL ( 1 << 0 ) // used for player configuration screen

@@ -262,21 +262,8 @@ void R_AddMDVSurfaces( trRefEntity_t *ent )
 	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) &&
 	  tr.viewParms.portalLevel == 0;
 
-	if ( ent->e.renderfx & RF_WRAP_FRAMES )
-	{
-		ent->e.frame %= tr.currentModel->mdv[ 0 ]->numFrames;
-		ent->e.oldframe %= tr.currentModel->mdv[ 0 ]->numFrames;
-	}
-
 	// compute LOD
-	if ( ent->e.renderfx & RF_FORCENOLOD )
-	{
-		lod = 0;
-	}
-	else
-	{
-		lod = R_ComputeLOD( ent );
-	}
+	lod = R_ComputeLOD( ent );
 
 	// Validate the frames so there is no chance of a crash.
 	// This will write directly into the entity structure, so
