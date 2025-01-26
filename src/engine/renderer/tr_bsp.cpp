@@ -4344,7 +4344,7 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 		}
 
 		// check for ambient color
-		else if ( !Q_stricmp( keyname, "_color" ) || !Q_stricmp( keyname, "ambientColor" ) )
+		else if ( !Q_stricmp( keyname, "ambientColor" ) )
 		{
 			if ( r_forceAmbient.Get() == -1 ) {
 				sscanf( value, "%f %f %f", &tr.ambientLight[0], &tr.ambientLight[1],
