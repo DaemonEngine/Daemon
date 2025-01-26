@@ -52,7 +52,6 @@ using bool8_t = uint8_t;
 #define MAX_WEIGHTS        4 // GPU vertex skinning limit, never change this without rewriting many GLSL shaders
 // XreaL END
 
-#define MAX_DLIGHTS        32 // can't be increased, because bit flags are used on surfaces
 #define MAX_ENTITIES       MAX_REF_ENTITIES // RB: for compatibility
 
 // renderfx flags
