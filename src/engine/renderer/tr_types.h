@@ -69,19 +69,14 @@ using bool8_t = uint8_t;
 
 // refdef flags
 #define RDF_NOWORLDMODEL ( 1 << 0 ) // used for player configuration screen
-#define RDF_NOSHADOWS    ( 1 << 1 ) // force renderer to use faster lighting only path
-#define RDF_HYPERSPACE   ( 1 << 2 ) // teleportation effect
+#define RDF_HYPERSPACE   ( 1 << 1 ) // teleportation effect
 
 // Rafael
-#define RDF_SKYBOXPORTAL ( 1 << 3 )
-
-//----(SA)
-#define RDF_UNDERWATER   ( 1 << 4 ) // so the renderer knows to use underwater fog when the player is underwater
-#define RDF_DRAWINGSKY   ( 1 << 5 )
+#define RDF_SKYBOXPORTAL ( 1 << 2 )
 
 // XreaL BEGIN
-#define RDF_NOCUBEMAP    ( 1 << 7 ) // RB: don't use cubemaps
-#define RDF_NOBLOOM      ( 1 << 8 ) // RB: disable bloom. useful for HUD models
+#define RDF_NOCUBEMAP    ( 1 << 3 ) // RB: don't use cubemaps
+#define RDF_NOBLOOM      ( 1 << 4 ) // RB: disable bloom. useful for HUD models
 // XreaL END
 
 #define MAX_ALTSHADERS   64 // alternative shaders ('when <condition> <shader>') – selection controlled from cgame
