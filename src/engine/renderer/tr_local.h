@@ -1102,7 +1102,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	struct drawSurf_t;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
-	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*);
+	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
 
@@ -1225,11 +1225,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		int variantOffsets[Util::ordinal( ShaderStageVariant::ALL )];
 		uint32_t variantOffset = 0;
-		uint32_t currentOffset = 0;
-
-		bool mayUseVertexOverbright = false;
-		bool vertexLit = false;
-		bool fullbright = false;
 	};
 
 	enum cullType_t : int
