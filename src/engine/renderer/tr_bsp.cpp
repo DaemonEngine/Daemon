@@ -4026,7 +4026,6 @@ void R_LoadLightGrid( lump_t *l )
 	}
 
 	int            i, j, k;
-	vec3_t         maxs;
 	world_t        *w;
 	float          *wMins, *wMaxs;
 	dgridPoint_t   *in;
@@ -4065,9 +4064,20 @@ void R_LoadLightGrid( lump_t *l )
 
 	for ( i = 0; i < 3; i++ )
 	{
-		w->lightGridOrigin[ i ] = w->lightGridSize[ i ] * ceil( wMins[ i ] / w->lightGridSize[ i ] );
-		maxs[ i ] = w->lightGridSize[ i ] * floor( wMaxs[ i ] / w->lightGridSize[ i ] );
-		w->lightGridBounds[ i ] = ( maxs[ i ] - w->lightGridOrigin[ i ] ) / w->lightGridSize[ i ] + 1;
+		float numNegativePoints = ceil( wMins[ i ] / w->lightGridSize[ i ] );
+		float numPositivePoints = floor( wMaxs[ i ] / w->lightGridSize[ i ] );
+		w->lightGridBounds[ i ] = static_cast<int>( numPositivePoints - numNegativePoints ) + 1;
+
+		if ( w->lightGridBounds[ i ] <= 0 || w->lightGridBounds[ i ] > 5000 )
+		{
+			// sanity check to avoid integer overflows etc.
+			Log::Warn( "invalid light grid parameters, default light grid used" );
+			const byte color[ 3 ]{ 64, 64, 64 };
+			R_SetConstantColorLightGrid( color );
+			return;
+		}
+
+		w->lightGridOrigin[ i ] = w->lightGridSize[ i ] * numNegativePoints;
 	}
 
 	VectorMA( w->lightGridOrigin, -0.5f, w->lightGridSize,
