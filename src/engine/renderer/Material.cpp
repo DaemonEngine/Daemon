@@ -486,11 +486,11 @@ void MaterialSystem::GenerateMaterialsBuffer( std::vector<shaderStage_t*>& stage
 		/* Stage variants are essentially copies of the same stage with slightly different values that
 		normally come from a drawSurf_t */
 		uint32_t variants = 0;
-		for ( int i = 0; i < Util::ordinal( ShaderStageVariant::ALL ) && variants < pStage->variantOffset; i++ ) {
+		for ( int i = 0; i < ShaderStageVariant::ALL && variants < pStage->variantOffset; i++ ) {
 			if ( pStage->variantOffsets[i] != -1 ) {
-				const bool mayUseVertexOverbright = i & Util::ordinal( ShaderStageVariant::VERTEX_OVERBRIGHT );
-				const bool vertexLit = i & Util::ordinal( ShaderStageVariant::VERTEX_LIT );
-				const bool fullbright = i & Util::ordinal( ShaderStageVariant::FULLBRIGHT );
+				const bool mayUseVertexOverbright = i & ShaderStageVariant::VERTEX_OVERBRIGHT;
+				const bool vertexLit = i & ShaderStageVariant::VERTEX_LIT;
+				const bool fullbright = i & ShaderStageVariant::FULLBRIGHT;
 
 				const uint32_t variantOffset = pStage->variantOffsets[i] * pStage->paddedSize;
 				pStage->bufferOffset += variantOffset;
@@ -1244,9 +1244,9 @@ void ProcessMaterialFog( Material* material, shaderStage_t* pStage, drawSurf_t* 
 
 void MaterialSystem::AddStage( drawSurf_t* drawSurf, shaderStage_t* pStage, uint32_t stage,
 	const bool mayUseVertexOverbright, const bool vertexLit, const bool fullbright ) {
-	const int variant = ( mayUseVertexOverbright ? Util::ordinal( ShaderStageVariant::VERTEX_OVERBRIGHT ) : 0 )
-		| ( vertexLit ? Util::ordinal( ShaderStageVariant::VERTEX_LIT ) : 0 )
-		| ( fullbright ? Util::ordinal( ShaderStageVariant::FULLBRIGHT ) : 0 );
+	const int variant = ( mayUseVertexOverbright ? ShaderStageVariant::VERTEX_OVERBRIGHT : 0 )
+		| ( vertexLit ? ShaderStageVariant::VERTEX_LIT : 0 )
+		| ( fullbright ? ShaderStageVariant::FULLBRIGHT : 0 );
 
 	if ( pStage->variantOffsets[variant] == -1 ) {
 		pStage->variantOffsets[variant] = pStage->variantOffset;

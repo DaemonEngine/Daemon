@@ -1106,7 +1106,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
 
-	enum class ShaderStageVariant {
+	enum ShaderStageVariant {
 		VERTEX_OVERBRIGHT = 1,
 		VERTEX_LIT = BIT( 1 ),
 		FULLBRIGHT = BIT( 2 ),
@@ -1223,7 +1223,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		bool dynamic = false;
 		bool colorDynamic = false;
 
-		int variantOffsets[Util::ordinal( ShaderStageVariant::ALL )];
+		int variantOffsets[ShaderStageVariant::ALL];
 		uint32_t variantOffset = 0;
 	};
 
