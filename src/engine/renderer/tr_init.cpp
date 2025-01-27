@@ -75,7 +75,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_nocurves( "r_nocurves", "Cull all SF_GRID surfaces", Cvar::CHEAT, false );
 	Cvar::Range<Cvar::Cvar<int>> r_lightScissors( "r_lightScissors", "Light clipping: 0: disabled, 1: near plane, 2: all planes",
 		Cvar::NONE, 0, 0, 2 );
-	cvar_t      *r_noLightVisCull;
 	cvar_t      *r_noInteractionSort;
 	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer( "r_realtimeLightingRenderer",
 		"renderer for real time lights: 0: legacy, 1: tiled", Cvar::NONE,
@@ -1215,7 +1214,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_ssao );
 
 		// temporary variables that can change at any time
-		r_noLightVisCull = Cvar_Get( "r_noLightVisCull", "0", CVAR_CHEAT );
 		r_noInteractionSort = Cvar_Get( "r_noInteractionSort", "0", CVAR_CHEAT );
 
 		Cvar::Latch( r_realtimeLightingRenderer );

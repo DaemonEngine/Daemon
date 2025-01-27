@@ -2977,7 +2977,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Cvar<bool> r_facePlaneCull;
 	extern Cvar::Cvar<bool> r_nocurves;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightScissors;
-	extern cvar_t *r_noLightVisCull;
 	extern cvar_t *r_noInteractionSort;
 
 	extern Cvar::Cvar<int> r_mode;
