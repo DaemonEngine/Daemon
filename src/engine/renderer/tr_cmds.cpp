@@ -32,7 +32,7 @@ R_PerformanceCounters
 */
 void R_PerformanceCounters()
 {
-	if ( !r_speeds->integer )
+	if ( !r_speeds.Get() )
 	{
 		// clear the counters even if we aren't printing
 		tr.pc = {};
@@ -40,73 +40,73 @@ void R_PerformanceCounters()
 		return;
 	}
 
-	if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_GENERAL))
+	if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_GENERAL ) )
 	{
-		Log::Notice("%i views %i portals %i batches %i surfs %i leafs %i verts %i tris",
+		Log::Notice( "%i views %i portals %i batches %i surfs %i leafs %i verts %i tris",
 		           backEnd.pc.c_views, backEnd.pc.c_portals, backEnd.pc.c_batches, backEnd.pc.c_surfaces, tr.pc.c_leafs,
 		           backEnd.pc.c_vertexes, backEnd.pc.c_indexes / 3 );
 
-		Log::Notice("%i lights %i bout %i pvsout %i interactions",
+		Log::Notice( "%i lights %i bout %i pvsout %i interactions",
 		           tr.pc.c_dlights,
 		           tr.pc.c_box_cull_light_out,
 		           tr.pc.c_pvs_cull_light_out,
 		           tr.pc.c_dlightInteractions );
 
-		Log::Notice("%i draws %i vbos %i ibos %i verts %i tris",
+		Log::Notice( "%i draws %i vbos %i ibos %i verts %i tris",
 		           backEnd.pc.c_drawElements,
 		           backEnd.pc.c_vboVertexBuffers, backEnd.pc.c_vboIndexBuffers,
 		           backEnd.pc.c_vboVertexes, backEnd.pc.c_vboIndexes / 3 );
 
-		Log::Notice("%i multidraws %i primitives %i tris",
+		Log::Notice( "%i multidraws %i primitives %i tris",
 		           backEnd.pc.c_multiDrawElements,
 		           backEnd.pc.c_multiDrawPrimitives,
 		           backEnd.pc.c_multiVboIndexes / 3 );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_CULLING ))
+	else if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_CULLING ) )
 	{
-		Log::Notice("(gen) %i pin %i pout %i bin %i bclip %i bout",
+		Log::Notice( "(gen) %i pin %i pout %i bin %i bclip %i bout",
 		           tr.pc.c_plane_cull_in, tr.pc.c_plane_cull_out, tr.pc.c_box_cull_in,
 		           tr.pc.c_box_cull_clip, tr.pc.c_box_cull_out );
 
-		Log::Notice("(mdv) %i sin %i sclip %i sout %i bin %i bclip %i bout",
+		Log::Notice( "(mdv) %i sin %i sclip %i sout %i bin %i bclip %i bout",
 		           tr.pc.c_sphere_cull_mdv_in, tr.pc.c_sphere_cull_mdv_clip,
 		           tr.pc.c_sphere_cull_mdv_out, tr.pc.c_box_cull_mdv_in, tr.pc.c_box_cull_mdv_clip, tr.pc.c_box_cull_mdv_out );
 
-		Log::Notice("(md5) %i bin %i bclip %i bout",
+		Log::Notice( "(md5) %i bin %i bclip %i bout",
 		           tr.pc.c_box_cull_md5_in, tr.pc.c_box_cull_md5_clip, tr.pc.c_box_cull_md5_out );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_VIEWCLUSTER ))
+	else if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_VIEWCLUSTER ) )
 	{
-		Log::Notice("viewcluster: %i", tr.visClusters[ tr.visIndex ] );
+		Log::Notice( "viewcluster: %i", tr.visClusters[ tr.visIndex ] );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_LIGHTS ))
+	else if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_LIGHTS ) )
 	{
-		Log::Notice("dlight srf:%i culled:%i", tr.pc.c_dlightSurfaces, tr.pc.c_dlightSurfacesCulled );
+		Log::Notice( "dlight srf:%i culled:%i", tr.pc.c_dlightSurfaces, tr.pc.c_dlightSurfacesCulled );
 
-		Log::Notice("dlights:%i interactions:%i", tr.pc.c_dlights, tr.pc.c_dlightInteractions );
+		Log::Notice( "dlights:%i interactions:%i", tr.pc.c_dlights, tr.pc.c_dlightInteractions );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADOWCUBE_CULLING ))
+	else if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_SHADOWCUBE_CULLING ) )
 	{
-		Log::Notice("omni pyramid tests:%i bin:%i bclip:%i bout:%i",
+		Log::Notice( "omni pyramid tests:%i bin:%i bclip:%i bout:%i",
 		           tr.pc.c_pyramidTests, tr.pc.c_pyramid_cull_ent_in, tr.pc.c_pyramid_cull_ent_clip, tr.pc.c_pyramid_cull_ent_out );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_FOG ))
+	else if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_FOG ) )
 	{
-		Log::Notice("fog srf:%i batches:%i", backEnd.pc.c_fogSurfaces, backEnd.pc.c_fogBatches );
+		Log::Notice( "fog srf:%i batches:%i", backEnd.pc.c_fogSurfaces, backEnd.pc.c_fogBatches );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_FLARES ))
+	else if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_FLARES ) )
 	{
-		Log::Notice("flare adds:%i tests:%i renders:%i",
+		Log::Notice( "flare adds:%i tests:%i renders:%i",
 		           backEnd.pc.c_flareAdds, backEnd.pc.c_flareTests, backEnd.pc.c_flareRenders );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES ))
+	else if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_SHADING_TIMES ) )
 	{
-		Log::Notice("forward shading times: ambient:%i lighting:%i", backEnd.pc.c_forwardAmbientTime,
+		Log::Notice( "forward shading times: ambient:%i lighting:%i", backEnd.pc.c_forwardAmbientTime,
 			           backEnd.pc.c_forwardLightingTime );
 	}
-	else if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_NEAR_FAR ))
+	else if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_NEAR_FAR ) )
 	{
-		Log::Notice("zNear: %.0f zFar: %.0f", tr.viewParms.zNear, tr.viewParms.zFar );
+		Log::Notice( "zNear: %.0f zFar: %.0f", tr.viewParms.zNear, tr.viewParms.zFar );
 	}
 
 	tr.pc = {};
@@ -140,18 +140,18 @@ void R_IssueRenderCommands( bool runPerformanceCounters )
 		{
 			c_blockedOnRender++;
 
-			if ( r_showSmp->integer )
+			if ( r_showSmp.Get() )
 			{
-				Log::Notice("R");
+				Log::Notice( "R" );
 			}
 		}
 		else
 		{
 			c_blockedOnMain++;
 
-			if ( r_showSmp->integer )
+			if ( r_showSmp.Get() )
 			{
-				Log::Notice(".");
+				Log::Notice( "." );
 			}
 		}
 
@@ -167,7 +167,7 @@ void R_IssueRenderCommands( bool runPerformanceCounters )
 	}
 
 	// actually start the commands going
-	if ( !r_skipBackEnd->integer )
+	if ( !r_skipBackEnd.Get() )
 	{
 		// let it start on the new batch
 		if ( !glConfig.smpActive )
@@ -598,7 +598,7 @@ void RE_2DPolyies( polyVert_t *verts, int numverts, qhandle_t hShader )
 {
 	Poly2dCommand *cmd;
 
-	if ( r_numPolyVerts + numverts > r_maxPolyVerts->integer )
+	if ( r_numPolyVerts + numverts > r_maxPolyVerts.Get() )
 	{
 		return;
 	}
@@ -622,12 +622,12 @@ void RE_2DPolyiesIndexed( polyVert_t *verts, int numverts, int *indexes, int num
 {
 	Poly2dIndexedCommand *cmd;
 
-	if ( r_numPolyVerts + numverts > r_maxPolyVerts->integer )
+	if ( r_numPolyVerts + numverts > r_maxPolyVerts.Get() )
 	{
 		return;
 	}
 
-	if ( r_numPolyIndexes + numindexes > r_maxPolyVerts->integer )
+	if ( r_numPolyIndexes + numindexes > r_maxPolyVerts.Get() )
 	{
 		return;
 	}
@@ -855,7 +855,7 @@ void RE_BeginFrame()
 		return;
 	}
 
-	if ( !Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) )
+	if ( !Q_stricmp( r_drawBuffer.Get().c_str(), "GL_FRONT" ) )
 	{
 		cmd->buffer = ( int ) GL_FRONT;
 	}

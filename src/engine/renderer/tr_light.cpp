@@ -1025,7 +1025,7 @@ static void R_AddEdgeToLightScissor( trRefLight_t *light, const vec3_t in_world1
 	cplane_t *frust;
 	vec3_t  clip1, clip2;
 
-	if ( r_lightScissors->integer == 1 )
+	if ( r_lightScissors.Get() == 1 )
 	{
 		// only clip against near plane
 		frust = &tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ];
@@ -1037,7 +1037,7 @@ static void R_AddEdgeToLightScissor( trRefLight_t *light, const vec3_t in_world1
 		R_AddPointToLightScissor( light, clip1 );
 		R_AddPointToLightScissor( light, clip2 );
 	}
-	else if ( r_lightScissors->integer == 2 )
+	else if ( r_lightScissors.Get() == 2 )
 	{
 		// clip against all planes
 		for ( i = 0; i < FRUSTUM_PLANES; i++ )
@@ -1486,7 +1486,7 @@ cullResult_t R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 
 	bool anyClip;
 	int      r;
 
-	if ( r_nocull->integer )
+	if ( r_nocull.Get() )
 	{
 		return cullResult_t::CULL_CLIP;
 	}

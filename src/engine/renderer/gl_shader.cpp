@@ -623,9 +623,14 @@ static std::string GenEngineConstants() {
 	// Engine constants
 	std::string str;
 
-	AddDefine( str, "r_AmbientScale", r_ambientScale.Get() );
-	AddDefine( str, "r_SpecularScale", r_specularScale->value );
-	AddDefine( str, "r_zNear", r_znear->value );
+	if ( r_ambientScale.Get() ) {
+		AddDefine( str, "r_AmbientScale", 1 );
+	}
+
+	if ( r_specularScale.Get() ) {
+		AddDefine( str, "r_SpecularScale", 1 );
+	}
+	AddDefine( str, "r_zNear", r_znear.Get() );
 
 	AddDefine( str, "M_PI", static_cast< float >( M_PI ) );
 	AddDefine( str, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
@@ -736,22 +741,23 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_realtimeLightingRenderer", r_realtimeLightingRenderer.Get() );
 	}
 
-	if ( r_precomputedLighting->integer )
+	if ( r_precomputedLighting.Get() ) {
 		AddDefine( str, "r_precomputedLighting", 1 );
+	}
 
-	if ( r_showNormalMaps->integer )
+	if ( r_showNormalMaps.Get() )
 	{
 		AddDefine( str, "r_showNormalMaps", 1 );
 	}
-	else if ( r_showMaterialMaps->integer )
+	else if ( r_showMaterialMaps.Get() )
 	{
 		AddDefine( str, "r_showMaterialMaps", 1 );
 	}
-	else if ( r_showLightMaps->integer )
+	else if ( r_showLightMaps.Get() )
 	{
 		AddDefine( str, "r_showLightMaps", 1 );
 	}
-	else if ( r_showDeluxeMaps->integer )
+	else if ( r_showDeluxeMaps.Get() )
 	{
 		AddDefine( str, "r_showDeluxeMaps", 1 );
 	}
@@ -793,16 +799,18 @@ static std::string GenEngineConstants() {
 		AddConst( str, "MAX_GLSL_BONES", 4 );
 	}
 
-	if ( r_halfLambertLighting->integer )
-		AddDefine( str, "r_halfLambertLighting", 1 );
-
-	if ( r_rimLighting->integer )
+	if ( r_halfLambertLighting.Get() )
 	{
-		AddDefine( str, "r_rimLighting", 1 );
-		AddConst( str, "r_RimExponent", r_rimExponent->value );
+		AddDefine( str, "r_halfLambertLighting", 1 );
 	}
 
-	if ( r_showLightTiles->integer )
+	if ( r_rimLighting.Get() )
+	{
+		AddDefine( str, "r_rimLighting", 1 );
+		AddConst( str, "r_RimExponent", r_rimExponent.Get() );
+	}
+
+	if ( r_showLightTiles.Get() )
 	{
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
@@ -812,7 +820,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_normalMapping", 1 );
 	}
 
-	if ( r_liquidMapping->integer )
+	if ( r_liquidMapping.Get() )
 	{
 		AddDefine( str, "r_liquidMapping", 1 );
 	}
@@ -827,7 +835,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_physicalMapping", 1 );
 	}
 
-	if ( r_glowMapping->integer )
+	if ( r_glowMapping.Get() )
 	{
 		AddDefine( str, "r_glowMapping", 1 );
 	}
@@ -836,8 +844,6 @@ static std::string GenEngineConstants() {
 	{
 		AddDefine( str, "r_colorGrading", 1 );
 	}
-
-	AddDefine( str, "r_zNear", r_znear->value );
 
 	return str;
 }

@@ -420,7 +420,7 @@ static srfGridMesh_t *R_CreateSurfaceGridMesh( int width, int height,
 	// copy the results out to a grid
 	size = sizeof( *grid );
 
-	if ( r_stitchCurves->integer )
+	if ( r_stitchCurves.Get() )
 	{
 		grid = (srfGridMesh_t*)/*ri.Hunk_Alloc */ Z_Calloc( size );
 
@@ -588,7 +588,7 @@ srfGridMesh_t  *R_SubdividePatchToGrid( int width, int height, srfVert_t points[
 				continue; // can't subdivide any more
 			}
 
-			if ( maxLen <= r_subdivisions->value )
+			if ( maxLen <= r_subdivisions.Get() )
 			{
 				errorTable[ dir ][ j + 1 ] = 1.0f / maxLen;
 				continue; // didn't need subdivision

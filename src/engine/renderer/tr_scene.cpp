@@ -52,7 +52,7 @@ R_ToggleSmpFrame
 */
 void R_ToggleSmpFrame()
 {
-	if ( r_smp->integer )
+	if ( r_smp.Get() )
 	{
 		// use the other buffers next frame, because another CPU
 		// may still be rendering into the current ones
@@ -118,7 +118,7 @@ void R_AddPolygonSurfaces()
 	shader_t  *sh;
 	srfPoly_t *poly;
 
-	if ( !r_drawpolies->integer )
+	if ( !r_drawpolies.Get() )
 	{
 		return;
 	}
@@ -150,7 +150,7 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 		return;
 	}
 
-	if ( !r_drawpolies->integer )
+	if ( !r_drawpolies.Get() )
 	{
 		return;
 	}
@@ -163,7 +163,7 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 
 	for ( j = 0; j < numPolys; j++ )
 	{
-		if ( r_numPolyVerts + numVerts >= r_maxPolyVerts->integer || r_numPolys >= r_maxPolys->integer )
+		if ( r_numPolyVerts + numVerts >= r_maxPolyVerts.Get() || r_numPolys >= r_maxPolys.Get() )
 		{
 			/*
 			   NOTE TTimo this was initially Log::Warn
@@ -171,7 +171,7 @@ static void R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t
 			   since we don't plan on changing the const and making for room for those effects
 			   simply cut this message to developer only
 			 */
-			Log::Debug("RE_AddPolyToScene: r_max_polys or r_max_polyverts reached" );
+			Log::Debug( "RE_AddPolyToScene: r_max_polys or r_max_polyverts reached" );
 			return;
 		}
 
@@ -335,7 +335,7 @@ void RE_AddDynamicLightToSceneET( const vec3_t org, float radius, float intensit
 	light->l.color[ 2 ] = b;
 
 	light->l.inverseShadows = (flags & REF_INVERSE_DLIGHT) != 0;
-	light->l.noShadows = !r_realtimeLightingCastShadows->integer && !light->l.inverseShadows;
+	light->l.noShadows = !r_realtimeLightingCastShadows.Get() && !light->l.inverseShadows;
 
 	if( flags & REF_RESTRICT_DLIGHT ) {
 		light->restrictInteractionFirst = r_numEntities - r_firstSceneEntity;
@@ -500,8 +500,6 @@ to handle mirrors,
 */
 void RE_RenderScene( const refdef_t *fd )
 {
-	int         startTime;
-
 	if ( !tr.registered )
 	{
 		return;
@@ -509,12 +507,12 @@ void RE_RenderScene( const refdef_t *fd )
 
 	GLimp_LogComment( "====== RE_RenderScene =====\n" );
 
-	if ( r_norefresh->integer )
+	if ( r_norefresh.Get() )
 	{
 		return;
 	}
 
-	startTime = ri.Milliseconds();
+	int startTime = ri.Milliseconds();
 
 	if ( !tr.world && !( fd->rdflags & RDF_NOWORLDMODEL ) )
 	{
