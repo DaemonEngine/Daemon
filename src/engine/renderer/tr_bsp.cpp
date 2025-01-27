@@ -4026,7 +4026,6 @@ void R_LoadLightGrid( lump_t *l )
 	}
 
 	int            i, j, k;
-	vec3_t         maxs;
 	world_t        *w;
 	float          *wMins, *wMaxs;
 	dgridPoint_t   *in;
@@ -4063,12 +4062,16 @@ void R_LoadLightGrid( lump_t *l )
 	wMins = w->models[ 0 ].bounds[ 0 ];
 	wMaxs = w->models[ 0 ].bounds[ 1 ];
 
-	for ( i = 0; i < 3; i++ )
-	{
-		w->lightGridOrigin[ i ] = w->lightGridSize[ i ] * ceil( wMins[ i ] / w->lightGridSize[ i ] );
-		maxs[ i ] = w->lightGridSize[ i ] * floor( wMaxs[ i ] / w->lightGridSize[ i ] );
-		w->lightGridBounds[ i ] = ( maxs[ i ] - w->lightGridOrigin[ i ] ) / w->lightGridSize[ i ] + 1;
-	}
+	vec3_t maxs;
+	w->lightGridOrigin[ 0 ] = w->lightGridSize[ 0 ] * ceil( wMins[ 0 ] / w->lightGridSize[ 0 ] );
+	w->lightGridOrigin[ 1 ] = w->lightGridSize[ 1 ] * ceil( wMins[ 1 ] / w->lightGridSize[ 1 ] );
+	w->lightGridOrigin[ 2 ] = w->lightGridSize[ 2 ] * ceil( wMins[ 2 ] / w->lightGridSize[ 2 ] );
+	maxs[ 0 ] = w->lightGridSize[ 0 ] * floor( wMaxs[ 0 ] / w->lightGridSize[ 0 ] );
+	maxs[ 1 ] = w->lightGridSize[ 1 ] * floor( wMaxs[ 1 ] / w->lightGridSize[ 1 ] );
+	maxs[ 2 ] = w->lightGridSize[ 2 ] * floor( wMaxs[ 2 ] / w->lightGridSize[ 2 ] );
+	w->lightGridBounds[ 0 ] = ( maxs[ 0 ] - w->lightGridOrigin[ 0 ] ) / w->lightGridSize[ 0 ] + 1;
+	w->lightGridBounds[ 1 ] = ( maxs[ 1 ] - w->lightGridOrigin[ 1 ] ) / w->lightGridSize[ 1 ] + 1;
+	w->lightGridBounds[ 2 ] = ( maxs[ 2 ] - w->lightGridOrigin[ 2 ] ) / w->lightGridSize[ 2 ] + 1;
 
 	VectorMA( w->lightGridOrigin, -0.5f, w->lightGridSize,
 		  w->lightGridGLOrigin );
