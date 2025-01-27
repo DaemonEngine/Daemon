@@ -5240,7 +5240,7 @@ static void FinishStages()
 				break;
 		}
 
-		memset( stage->variantOffsets, -1, Util::ordinal( ShaderStageVariant::ALL ) * sizeof( int ) );
+		memset( stage->variantOffsets, -1, ShaderStageVariant::ALL * sizeof( int ) );
 	}
 
 	GroupActiveStages();
