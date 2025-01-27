@@ -99,15 +99,13 @@ R_InitRingbuffer
 ============
 */
 static void R_InitRingbuffer( GLenum target, GLsizei elementSize,
-			      GLsizei segmentElements, glRingbuffer_t *rb ) {
+	GLsizei segmentElements, glRingbuffer_t *rb ) {
 	GLsizei totalSize = elementSize * segmentElements * DYN_BUFFER_SEGMENTS;
 
 	glBufferStorage( target, totalSize, nullptr,
-			 GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT );
+		GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT );
 	rb->baseAddr = glMapBufferRange( target, 0, totalSize,
-					 GL_MAP_WRITE_BIT |
-					 GL_MAP_PERSISTENT_BIT |
-					 GL_MAP_FLUSH_EXPLICIT_BIT );
+		GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT );
 	rb->elementSize = elementSize;
 	rb->segmentElements = segmentElements;
 	rb->activeSegment = 0;
@@ -125,13 +123,15 @@ static GLsizei R_RotateRingbuffer( glRingbuffer_t *rb ) {
 	rb->syncs[ rb->activeSegment ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
 
 	rb->activeSegment++;
-	if( rb->activeSegment >= DYN_BUFFER_SEGMENTS )
+	if ( rb->activeSegment >= DYN_BUFFER_SEGMENTS ) {
 		rb->activeSegment = 0;
+	}
 
-	// wait until next segment is ready in 1 sec intervals
-	while( glClientWaitSync( rb->syncs[ rb->activeSegment ], GL_SYNC_FLUSH_COMMANDS_BIT,
-				 10000000 ) == GL_TIMEOUT_EXPIRED ) {
-		Log::Warn("long wait for GL buffer" );
+	// wait until next segment is ready in 10ms intervals
+	const GLuint64 TIMEOUT = 10000000;
+	while( glClientWaitSync( rb->syncs[ rb->activeSegment ], GL_SYNC_FLUSH_COMMANDS_BIT, TIMEOUT )
+	       == GL_TIMEOUT_EXPIRED ) {
+		Log::Warn( "Long wait for dynamic GL buffer: active segment: %i, timeout: %uns", rb->activeSegment, TIMEOUT );
 	};
 	glDeleteSync( rb->syncs[ rb->activeSegment ] );
 
@@ -144,12 +144,10 @@ R_ShutdownRingbuffer
 ============
 */
 static void R_ShutdownRingbuffer( GLenum target, glRingbuffer_t *rb ) {
-	int i;
-
 	glUnmapBuffer( target );
 	rb->baseAddr = nullptr;
 
-	for( i = 0; i < DYN_BUFFER_SEGMENTS; i++ ) {
+	for( int i = 0; i < DYN_BUFFER_SEGMENTS; i++ ) {
 		if( i == rb->activeSegment )
 			continue;
 
