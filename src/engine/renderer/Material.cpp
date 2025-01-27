@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 GLUBO materialsUBO( "materials", 6, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLBuffer texDataBuffer( "texData", 7, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
-GLUBO lightmapDataUBO( "texData", 8, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+GLUBO lightMapDataUBO( "lightMapData", 8, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
 
 GLSSBO surfaceDescriptorsSSBO( "surfaceDescriptors", 1, GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
 GLSSBO surfaceCommandsSSBO( "surfaceCommands", 2, GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
@@ -595,10 +595,10 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 	texDataBuffer.UnmapBuffer();
 	texDataBuffer.UnBindBuffer( texDataBufferType );
 
-	lightmapDataUBO.BindBuffer();
-	lightmapDataUBO.BufferStorage( MAX_LIGHTMAPS * LIGHTMAP_SIZE, 1, nullptr );
-	lightmapDataUBO.MapAll();
-	uint64_t* lightmapData = ( uint64_t* ) lightmapDataUBO.GetData();
+	lightMapDataUBO.BindBuffer();
+	lightMapDataUBO.BufferStorage( MAX_LIGHTMAPS * LIGHTMAP_SIZE, 1, nullptr );
+	lightMapDataUBO.MapAll();
+	uint64_t* lightmapData = ( uint64_t* ) lightMapDataUBO.GetData();
 	memset( lightmapData, 0, MAX_LIGHTMAPS * LIGHTMAP_SIZE * sizeof( uint32_t ) );
 	
 	for ( uint32_t i = 0; i < tr.lightmaps.size(); i++ ) {
@@ -633,9 +633,9 @@ void MaterialSystem::GenerateWorldCommandBuffer() {
 		lightmapData[255 * 2 + 1] = tr.blackImage->texture->bindlessTextureHandle;
 	}
 
-	lightmapDataUBO.FlushAll();
-	lightmapDataUBO.UnmapBuffer();
-	lightmapDataUBO.UnBindBuffer();
+	lightMapDataUBO.FlushAll();
+	lightMapDataUBO.UnmapBuffer();
+	lightMapDataUBO.UnBindBuffer();
 
 	surfaceCommandsCount = totalBatchCount * SURFACE_COMMANDS_PER_BATCH;
 
@@ -1897,7 +1897,7 @@ void MaterialSystem::Free() {
 	culledCommandsBuffer.UnmapBuffer();
 	atomicCommandCountersBuffer.UnmapBuffer();
 	texDataBuffer.UnmapBuffer();
-	lightmapDataUBO.UnmapBuffer();
+	lightMapDataUBO.UnmapBuffer();
 
 	if ( totalPortals > 0 ) {
 		portalSurfacesSSBO.UnmapBuffer();
@@ -2202,7 +2202,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	atomicCommandCountersBuffer.BindBuffer( GL_PARAMETER_BUFFER_ARB );
 
 	texDataBuffer.BindBufferBase( texDataBufferType );
-	lightmapDataUBO.BindBufferBase();
+	lightMapDataUBO.BindBufferBase();
 
 	if ( r_showGlobalMaterials.Get() && material.sort != 0
 		&& ( material.shaderBinder == BindShaderLightMapping || material.shaderBinder == BindShaderGeneric3D ) ) {
@@ -2319,7 +2319,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	atomicCommandCountersBuffer.UnBindBuffer( GL_PARAMETER_BUFFER_ARB );
 
 	texDataBuffer.UnBindBufferBase( texDataBufferType );
-	lightmapDataUBO.UnBindBufferBase();
+	lightMapDataUBO.UnBindBufferBase();
 
 	if ( material.usePolygonOffset ) {
 		glDisable( GL_POLYGON_OFFSET_FILL );
