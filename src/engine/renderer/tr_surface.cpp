@@ -748,7 +748,7 @@ static void Tess_SurfaceFace( srfSurfaceFace_t *srf )
 {
 	GLimp_LogComment( "--- Tess_SurfaceFace ---\n" );
 
-	if ( !r_vboFaces->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
+	if ( !r_vboFaces.Get() || !Tess_SurfaceVBO(srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}
@@ -763,7 +763,7 @@ static void Tess_SurfaceGrid( srfGridMesh_t *srf )
 {
 	GLimp_LogComment( "--- Tess_SurfaceGrid ---\n" );
 
-	if ( !r_vboCurves->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
+	if ( !r_vboCurves.Get() || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}
@@ -778,7 +778,7 @@ static void Tess_SurfaceTriangles( srfTriangles_t *srf )
 {
 	GLimp_LogComment( "--- Tess_SurfaceTriangles ---\n" );
 
-	if ( !r_vboTriangles->integer || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
+	if ( !r_vboTriangles.Get() || !Tess_SurfaceVBO( srf->vbo, srf->ibo, srf->numTriangles * 3, srf->firstIndex ) )
 	{
 		Tess_SurfaceVertsAndTris( srf->verts, srf->triangles, srf->numVerts, srf->numTriangles );
 	}

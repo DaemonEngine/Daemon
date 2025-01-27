@@ -489,7 +489,7 @@ R_LoadLightmaps
 */
 static void R_LoadLightmaps( lump_t *l, const char *bspName )
 {
-	tr.worldLightMapping = r_precomputedLighting->integer && tr.lightMode == lightMode_t::MAP;
+	tr.worldLightMapping = r_precomputedLighting.Get() && tr.lightMode == lightMode_t::MAP;
 
 	/* All lightmaps will be loaded if either light mapping
 	or deluxe mapping is enabled. */
@@ -976,7 +976,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf, in
 	// get shader value
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
 
-	if ( r_singleShader->integer && !surf->shader->isSky )
+	if ( r_singleShader.Get() && !surf->shader->isSky )
 	{
 		surf->shader = tr.defaultShader;
 	}
@@ -1187,7 +1187,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf )
 	// get shader value
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
 
-	if ( r_singleShader->integer && !surf->shader->isSky )
+	if ( r_singleShader.Get() && !surf->shader->isSky )
 	{
 		surf->shader = tr.defaultShader;
 	}
@@ -1313,7 +1313,7 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, bspSurface_t *surf,
 	// get shader
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
 
-	if ( r_singleShader->integer && !surf->shader->isSky )
+	if ( r_singleShader.Get() && !surf->shader->isSky )
 	{
 		surf->shader = tr.defaultShader;
 	}
@@ -1493,7 +1493,7 @@ static void ParseFlare( dsurface_t *ds, bspSurface_t *surf )
 	// get shader
 	surf->shader = ShaderForShaderNum( ds->shaderNum );
 
-	if ( r_singleShader->integer && !surf->shader->isSky )
+	if ( r_singleShader.Get() && !surf->shader->isSky )
 	{
 		surf->shader = tr.defaultShader;
 	}
@@ -3220,7 +3220,7 @@ static void R_CreateWorldVBO()
 	ri.Hunk_FreeTempMemory( vboIdxs );
 	ri.Hunk_FreeTempMemory( vboVerts );
 
-	if ( r_mergeLeafSurfaces->integer )
+	if ( r_mergeLeafSurfaces.Get() )
 	{
 		// count merged/unmerged surfaces
 		int numUnmergedSurfaces = 0;
@@ -3490,17 +3490,17 @@ static void R_LoadSurfaces( lump_t *surfs, lump_t *verts, lump_t *indexLump )
 		}
 	}
 
-	Log::Debug("...loaded %d faces, %i meshes, %i trisurfs, %i flares %i foliages", numFaces, numMeshes, numTriSurfs,
+	Log::Debug( "...loaded %d faces, %i meshes, %i trisurfs, %i flares %i foliages", numFaces, numMeshes, numTriSurfs,
 	           numFlares, numFoliages );
 
-	if ( r_stitchCurves->integer )
+	if ( r_stitchCurves.Get() )
 	{
 		R_StitchAllPatches();
 	}
 
 	R_FixSharedVertexLodError();
 
-	if ( r_stitchCurves->integer )
+	if ( r_stitchCurves.Get() )
 	{
 		R_MovePatchSurfacesToHunk();
 	}
@@ -3672,7 +3672,7 @@ static void R_LoadNodesAndLeafs( lump_t *nodeLump, lump_t *leafLump )
 	backEndData[ 0 ]->traversalList = ( bspNode_t ** ) ri.Hunk_Alloc( sizeof( bspNode_t * ) * s_worldData.numnodes, ha_pref::h_low );
 	backEndData[ 0 ]->traversalLength = 0;
 
-	if ( r_smp->integer )
+	if ( r_smp.Get() )
 	{
 		backEndData[ 1 ]->traversalList = ( bspNode_t ** ) ri.Hunk_Alloc( sizeof( bspNode_t * ) * s_worldData.numnodes, ha_pref::h_low );
 		backEndData[ 1 ]->traversalLength = 0;
@@ -4050,7 +4050,7 @@ void R_LoadLightGrid( lump_t *l )
 		R_SetConstantColorLightGrid( color );
 	}
 
-	if ( !r_precomputedLighting->integer )
+	if ( !r_precomputedLighting.Get() )
 	{
 		const byte color[3] { 64, 64, 64 };
 		R_SetConstantColorLightGrid( color );
@@ -4817,8 +4817,8 @@ void R_BuildCubeMaps()
 	r_gpuOcclusionCulling.Set( false );
 
 	// We still need to run the cameraEffects shader for overbright, so set r_gamma to 1.0 here to avoid applying it twice to the reflection
-	const float gamma = r_gamma->value;
-	Cvar_SetValue( "r_gamma", 1.0 );
+	const float gamma = r_gamma.Get();
+	r_gamma.Set( 1.0f );
 
 	for ( size_t i = 0; i < tr.cubeProbes.size(); i++ )
 	{
@@ -5019,7 +5019,7 @@ void R_BuildCubeMaps()
 
 	r_gpuOcclusionCulling.Set( gpuOcclusionCulling );
 
-	Cvar_SetValue( "r_gamma", gamma );
+	r_gamma.Set( gamma );
 
 	// turn pixel targets off
 	tr.refdef.pixelTarget = nullptr;

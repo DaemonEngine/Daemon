@@ -1476,7 +1476,7 @@ image_t *R_CreateImage( const char *name, const byte **pic, int width, int heigh
 
 	R_UploadImage( name, pic, 1, numMips, image, imageParams );
 
-	if( r_exportTextures->integer ) {
+	if( r_exportTextures.Get() ) {
 		R_ExportTexture( image );
 	}
 
@@ -1557,7 +1557,7 @@ image_t *R_CreateCubeImage( const char *name, const byte *pic[ 6 ], int width, i
 
 	R_UploadImage( name, pic, 6, 1, image, imageParams );
 
-	if( r_exportTextures->integer ) {
+	if( r_exportTextures.Get() ) {
 		R_ExportTexture( image );
 	}
 
@@ -1608,7 +1608,7 @@ image_t *R_Create3DImage( const char *name, const byte *pic, int width, int heig
 		ri.Hunk_FreeTempMemory( pics );
 	}
 
-	if( r_exportTextures->integer ) {
+	if( r_exportTextures.Get() ) {
 		R_ExportTexture( image );
 	}
 

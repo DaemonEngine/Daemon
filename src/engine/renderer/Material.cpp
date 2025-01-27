@@ -193,7 +193,7 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, 
 
 	// HeightMap
 	if ( pStage->enableReliefMapping ) {
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		depthScale *= shader->reliefDepthScale;
 
 		gl_lightMappingShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
@@ -209,8 +209,8 @@ void UpdateSurfaceDataLightMapping( uint32_t* materials, shaderStage_t* pStage, 
 	}
 
 	if ( pStage->enableSpecularMapping ) {
-		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin.Get() );
+		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax.Get() );
 
 		gl_lightMappingShaderMaterial->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
@@ -249,7 +249,7 @@ void UpdateSurfaceDataReflection( uint32_t* materials, shaderStage_t* pStage, bo
 
 	// u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping ) {
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		float reliefDepthScale = shader->reliefDepthScale;
 		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_reflectionShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
@@ -322,8 +322,8 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, 
 	// NOTE: specular component is computed by shader.
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping ) {
-		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin.Get() );
+		float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax.Get() );
 		gl_liquidShaderMaterial->SetUniform_SpecularExponent( specMin, specMax );
 	}
 
@@ -335,7 +335,7 @@ void UpdateSurfaceDataLiquid( uint32_t* materials, shaderStage_t* pStage, bool, 
 		float depthScale;
 		float reliefDepthScale;
 
-		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		reliefDepthScale = tess.surfaceShader->reliefDepthScale;
 		depthScale *= reliefDepthScale == 0 ? 1 : reliefDepthScale;
 		gl_liquidShaderMaterial->SetUniform_ReliefDepthScale( depthScale );
@@ -1407,10 +1407,10 @@ void MaterialSystem::ProcessStage( drawSurf_t* drawSurf, shaderStage_t* pStage, 
 *  A material represents a distinct global OpenGL state (e. g. blend function, depth test, depth write etc.)
 *  Materials can have a dependency on other materials to make sure that consecutive stages are rendered in the proper order */
 void MaterialSystem::GenerateWorldMaterials() {
-	const int current_r_nocull = r_nocull->integer;
-	const int current_r_drawworld = r_drawworld->integer;
-	r_nocull->integer = 1;
-	r_drawworld->integer = 1;
+	const bool current_r_nocull = r_nocull.Get();
+	const bool current_r_drawworld = r_drawworld.Get();
+	r_nocull.Set( true );
+	r_drawworld.Set( true );
 	generatingWorldCommandBuffer = true;
 
 	Log::Debug( "Generating world materials" );
@@ -1485,8 +1485,8 @@ void MaterialSystem::GenerateWorldMaterials() {
 		}
 	} */
 
-	r_nocull->integer = current_r_nocull;
-	r_drawworld->integer = current_r_drawworld;
+	r_nocull.Set( current_r_nocull );
+	r_drawworld.Set( current_r_drawworld );
 	AddAllWorldSurfaces();
 
 	GeneratePortalBoundingSpheres();
@@ -1602,7 +1602,7 @@ void MaterialSystem::QueueSurfaceCull( const uint32_t viewID, const vec3_t origi
 }
 
 void MaterialSystem::DepthReduction() {
-	if ( r_lockpvs->integer ) {
+	if ( r_lockpvs.Get() ) {
 		if ( !PVSLocked ) {
 			lockedDepthImage = depthImage;
 		}
@@ -1709,11 +1709,11 @@ void MaterialSystem::CullSurfaces() {
 		}
 
 		if ( PVSLocked ) {
-			if ( r_lockpvs->integer == 0 ) {
+			if ( !r_lockpvs.Get() ) {
 				PVSLocked = false;
 			}
 		}
-		if ( r_lockpvs->integer == 1 && !PVSLocked ) {
+		if ( r_lockpvs.Get() && !PVSLocked ) {
 			PVSLocked = true;
 			for ( int i = 0; i < 6; i++ ) {
 				VectorCopy( frustum[0][i].normal, lockedFrustums[view][i].normal );
@@ -2005,7 +2005,7 @@ void MaterialSystem::AddPortalSurfaces() {
 		return;
 	}
 
-	if ( r_lockpvs->integer ) {
+	if ( r_lockpvs.Get() ) {
 		return;
 	}
 
@@ -2030,7 +2030,7 @@ void MaterialSystem::AddAutospriteSurfaces() {
 }
 
 void MaterialSystem::RenderMaterials( const shaderSort_t fromSort, const shaderSort_t toSort, const uint32_t viewID ) {
-	if ( !r_drawworld->integer ) {
+	if ( !r_drawworld.Get() ) {
 		return;
 	}
 
@@ -2126,7 +2126,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	}
 
 	if( material.shaderBinder == BindShaderFog ) {
-		if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ) {
+		if ( r_noFog.Get() || !r_wolfFog.Get() || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ) {
 			return;
 		}
 	}
@@ -2136,7 +2136,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 	GL_State( stateBits );
 	if ( material.usePolygonOffset ) {
 		glEnable( GL_POLYGON_OFFSET_FILL );
-		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+		GL_PolygonOffset( r_offsetFactor.Get(), r_offsetUnits.Get() );
 	} else {
 		glDisable( GL_POLYGON_OFFSET_FILL );
 	}
@@ -2278,7 +2278,7 @@ void MaterialSystem::RenderMaterial( Material& material, const uint32_t viewID )
 		RenderIndirect( material, viewID );
 	}
 
-	if ( r_showTris->integer
+	if ( r_showTris.Get()
 		&& ( material.stateBits & GLS_DEPTHMASK_TRUE ) == 0
 		&& ( material.shaderBinder == &BindShaderLightMapping || material.shaderBinder == &BindShaderGeneric3D ) )
 	{

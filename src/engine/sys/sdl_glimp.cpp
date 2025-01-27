@@ -1269,7 +1269,7 @@ static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glCo
 		customConfiguration.profile = bestConfiguration.profile;
 	}
 
-	customConfiguration.colorBits = std::max( 0, r_colorbits->integer );
+	customConfiguration.colorBits = std::max( 0, r_colorbits.Get() );
 
 	if ( customConfiguration.colorBits == 0 )
 	{
@@ -2038,7 +2038,7 @@ static void GLimp_InitExtensions()
 
 	int reservedComponents = 36 * 10; // approximation how many uniforms we have besides the bone matrices
 	glConfig2.maxVertexSkinningBones = Math::Clamp( ( glConfig2.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
-	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
+	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning.Get() && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
 
 	/* On OpenGL Core profile the ARB_fragment_program extension doesn't exist and the related getter functions
 	return 0. We can assume OpenGL 3 Core hardware is featureful enough to not care about those limits. */
@@ -2743,7 +2743,7 @@ bool GLimp_Init()
 		Sys::SetEnv( "stub_occlusion_query", "true" );
 	}
 
-	int mode = r_mode->integer;
+	int mode = r_mode.Get();
 	bool fullscreen = r_fullscreen.Get();
 	bool bordered = !r_noBorder.Get();
 
@@ -2920,7 +2920,7 @@ Responsible for doing a swapbuffers
 void GLimp_EndFrame()
 {
 	// don't flip if drawing to front buffer
-	if ( Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) != 0 )
+	if ( Q_stricmp( r_drawBuffer.Get().c_str(), "GL_FRONT" ) != 0 )
 	{
 		SDL_GL_SwapWindow( window );
 	}
