@@ -34,9 +34,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	static void GfxInfo_f();
 
-	cvar_t      *r_glMajorVersion;
-	cvar_t      *r_glMinorVersion;
-	cvar_t      *r_glProfile;
 	Cvar::Cvar<bool> r_glDebugProfile( "r_glDebugProfile", "Enable GL debug message callback", Cvar::NONE, false );
 	Cvar::Range<Cvar::Cvar<int>> r_glDebugMode( "r_glDebugMode",
 		"GL debug message callback mode: 0: none, 1: error, 2: deprecated, 3: undefined, 4: portability, 5: performance,"
@@ -44,8 +41,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal( glDebugModes_t::GLDEBUG_NONE ),
 		Util::ordinal( glDebugModes_t::GLDEBUG_NONE ),
 		Util::ordinal( glDebugModes_t::GLDEBUG_ALL ) );
-	cvar_t      *r_glAllowSoftware;
-	cvar_t      *r_glExtendedValidation;
+	Cvar::Cvar<bool> r_glExtendedValidation( "r_glExtendedValidation",
+		"Enable extra GL context validation", Cvar::NONE, false );
 
 	cvar_t      *r_ignore;
 
@@ -963,7 +960,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			glConfig.vidWidth, glConfig.vidHeight,
 			fsstrings[ +r_fullscreen.Get() ] );
 
-		if ( !!r_glExtendedValidation->integer )
+		if ( r_glExtendedValidation.Get() )
 		{
 			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d, highest: %d.%d",
 				glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor,
@@ -1145,12 +1142,8 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	void R_Register()
 	{
 		// OpenGL context selection
-		r_glMajorVersion = Cvar_Get( "r_glMajorVersion", "", CVAR_LATCH );
-		r_glMinorVersion = Cvar_Get( "r_glMinorVersion", "", CVAR_LATCH );
-		r_glProfile = Cvar_Get( "r_glProfile", "", CVAR_LATCH );
 		Cvar::Latch( r_glDebugProfile );
-		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "0", CVAR_LATCH );
-		r_glExtendedValidation = Cvar_Get( "r_glExtendedValidation", "0", CVAR_LATCH );
+		Cvar::Latch( r_glExtendedValidation );
 
 		// latched and archived variables
 		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );

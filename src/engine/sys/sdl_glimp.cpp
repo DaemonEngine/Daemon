@@ -41,6 +41,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static Log::Logger logger("glconfig", "", Log::Level::NOTICE);
 
+static Cvar::Range<Cvar::Cvar<int>> r_glMajorVersion( "r_glMajorVersion",
+	"Force this GL major version; 0 to set up automatically", Cvar::NONE, 0, 0, 4 );
+static Cvar::Range<Cvar::Cvar<int>> r_glMinorVersion( "r_glMinorVersion",
+	"Force this GL minor version; 0 to set up automatically", Cvar::NONE, 0, 0, 6 );
+static Cvar::Cvar<std::string> r_glProfile( "r_glProfile",
+	"Force this GL profile (core or compat); empty to set up automatically", Cvar::NONE, "" );
+static Cvar::Cvar<bool> r_glAllowSoftware( "r_glAllowSoftware", "Allow software rendering", Cvar::NONE, false );
+
 static Cvar::Modified<Cvar::Cvar<bool>> r_noBorder(
 	"r_noBorder", "draw window without border", Cvar::ARCHIVE, false);
 static Cvar::Modified<Cvar::Range<Cvar::Cvar<int>>> r_swapInterval(
@@ -770,7 +778,8 @@ static void GLimp_SetAttributes( const glConfiguration &configuration )
 	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 );
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
-	if ( !r_glAllowSoftware->integer )
+	Cvar::Latch( r_glAllowSoftware );
+	if ( !r_glAllowSoftware.Get() )
 	{
 		SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
 	}
@@ -1124,9 +1133,9 @@ static rserr_t GLimp_ValidateBestContext(
 		{ 1, 0, glProfile::COMPATIBILITY, true },
 	};
 
-	logger.Debug( "Validating best OpenGL context." );
+	logger.Debug( "Validating best OpenGL context" );
 
-	bool needHighestExtended = !!r_glExtendedValidation->integer;
+	bool needHighestExtended = r_glExtendedValidation.Get();
 	for ( int colorBits : {24, 16} )
 	{
 		for ( auto& row : glSupportArray )
@@ -1182,14 +1191,16 @@ static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glCo
 {
 	glConfiguration customConfiguration = {};
 
-	if ( bestConfiguration.profile == glProfile::CORE && !Q_stricmp( r_glProfile->string, "compat" ) )
+	Cvar::Latch( r_glProfile );
+	const char* glProfile = r_glProfile.Get().c_str();
+	if ( bestConfiguration.profile == glProfile::CORE && !Q_stricmp( glProfile, "compat") )
 	{
 		logger.Debug( "Compatibility profile is forced by r_glProfile" );
 
 		customConfiguration.profile = glProfile::COMPATIBILITY;
 	}
 
-	if ( bestConfiguration.profile == glProfile::COMPATIBILITY && !Q_stricmp( r_glProfile->string, "core" ) )
+	if ( bestConfiguration.profile == glProfile::COMPATIBILITY && !Q_stricmp( glProfile, "core" ) )
 	{
 		if ( GLEWmajor < 2 )
 		{
@@ -1204,8 +1215,10 @@ static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glCo
 		}
 	}
 
-	customConfiguration.major = std::max( 0, r_glMajorVersion->integer );
-	customConfiguration.minor = std::max( 0, r_glMinorVersion->integer );
+	Cvar::Latch( r_glMajorVersion );
+	Cvar::Latch( r_glMinorVersion );
+	customConfiguration.major = std::max( 0, r_glMajorVersion.Get() );
+	customConfiguration.minor = std::max( 0, r_glMinorVersion.Get() );
 
 	if ( customConfiguration.major == 0 )
 	{
@@ -1598,11 +1611,11 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 	static glConfiguration bestValidatedConfiguration = {}; // considering only up to OpenGL 3.2
 	static glConfiguration extendedValidationResult = {}; // max available OpenGL version for diagnostic purposes
 
-	if ( r_glExtendedValidation->integer && extendedValidationResult.major != 0 )
+	if ( r_glExtendedValidation.Get() && extendedValidationResult.major != 0 )
 	{
 		logger.Debug( "Previously best validated context: %s", ContextDescription( extendedValidationResult ) );
 	}
-	else if ( bestValidatedConfiguration.major == 0 || r_glExtendedValidation->integer )
+	else if ( bestValidatedConfiguration.major == 0 || r_glExtendedValidation.Get() )
 	{
 		// Detect best configuration.
 		rserr_t err = GLimp_ValidateBestContext( GLEWmajor, bestValidatedConfiguration, extendedValidationResult );
@@ -1621,7 +1634,7 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 		}
 	}
 
-	if ( r_glExtendedValidation->integer )
+	if ( r_glExtendedValidation.Get() )
 	{
 		logger.Notice( "Highest available context: %s", ContextDescription( extendedValidationResult ) );
 	}
