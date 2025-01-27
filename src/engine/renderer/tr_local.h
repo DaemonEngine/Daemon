@@ -3113,7 +3113,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_vboFaces;
 	extern cvar_t *r_vboCurves;
 	extern cvar_t *r_vboTriangles;
-	extern cvar_t *r_vboModels;
+	extern Cvar::Cvar<bool> r_vboModels;
 	extern cvar_t *r_vboVertexSkinning;
 
 	extern cvar_t *r_mergeLeafSurfaces;
