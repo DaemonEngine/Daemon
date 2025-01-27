@@ -1426,7 +1426,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 		|| ( type == stageType_t::ST_HEIGHTMAP && !glConfig2.reliefMapping )
 		|| ( type == stageType_t::ST_SPECULARMAP && !glConfig2.specularMapping )
 		|| ( type == stageType_t::ST_PHYSICALMAP && !glConfig2.physicalMapping )
-		|| ( type == stageType_t::ST_GLOWMAP && !r_glowMapping->integer )
+		|| ( type == stageType_t::ST_GLOWMAP && !r_glowMapping.Get() )
 		|| ( type == stageType_t::ST_REFLECTIONMAP && !glConfig2.reflectionMappingAvailable ) )
 	{
 		return true;
@@ -1463,7 +1463,7 @@ static bool LoadMap( shaderStage_t *stage, const char *buffer, stageType_t type,
 	So we don't load extra light maps when light styles are not supported.
 
 	The disablement of the stage is done in the ParseShader() function. */
-	if ( ( tr.lightMode != lightMode_t::MAP || r_lightStyles->integer == 0 )
+	if ( ( tr.lightMode != lightMode_t::MAP || !r_lightStyles.Get() )
 		&& stage->tcGen_Lightmap )
 	{
 		/* We don't return false because we properly parsed the stage
@@ -1608,7 +1608,7 @@ static void ParseNormalMap( shaderStage_t *stage, const char **text, const int b
 	char buffer[ 1024 ] = "";
 
 	// because of collapsing, this affects other textures (diffuse, specular…) too
-	if ( r_highQualityNormalMapping->integer )
+	if ( r_highQualityNormalMapping.Get() )
 	{
 		stage->overrideFilterType = true;
 		stage->filterType = filterType_t::FT_LINEAR;
@@ -4023,7 +4023,7 @@ static bool ParseShader( const char *_text )
 
 			So we disable light style stages when light mapping
 			is disabled. */
-			if ( tr.lightMode != lightMode_t::MAP || r_lightStyles->integer == 0 )
+			if ( tr.lightMode != lightMode_t::MAP || !r_lightStyles.Get() )
 			{
 				switch ( stage->type )
 				{
@@ -5189,7 +5189,7 @@ static void FinishStages()
 	{
 		shaderStage_t *stage = &stages[ s ];
 
-		if ( r_showLightMaps->integer && lightStageFound )
+		if ( r_showLightMaps.Get() && lightStageFound )
 		{
 			stage->active = false;
 			continue;
@@ -5204,11 +5204,11 @@ static void FinishStages()
 				break;
 
 			case stageType_t::ST_HEATHAZEMAP:
-				stage->active = r_heatHaze->integer;
+				stage->active = r_heatHaze.Get();
 				break;
 
 			case stageType_t::ST_LIQUIDMAP:
-				if ( !r_liquidMapping->integer )
+				if ( !r_liquidMapping.Get() )
 				{
 					stage->type = stageType_t::ST_COLLAPSE_DIFFUSEMAP;
 					stage->bundle[ TB_DIFFUSEMAP ].image[ 0 ] = tr.whiteImage;
@@ -5239,6 +5239,8 @@ static void FinishStages()
 			default:
 				break;
 		}
+
+		memset( stage->variantOffsets, -1, ShaderStageVariant::ALL * sizeof( int ) );
 	}
 
 	GroupActiveStages();
@@ -5269,7 +5271,7 @@ static void FinishStages()
 		stage->enableReliefMapping = glConfig2.reliefMapping && !shader.disableReliefMapping
 			&& ( hasHeightMap || stage->hasHeightMapInNormalMap );
 
-		stage->enableGlowMapping = r_glowMapping->integer && hasGlowMap;
+		stage->enableGlowMapping = r_glowMapping.Get() && hasGlowMap;
 
 		if ( stage->collapseType == collapseType_t::COLLAPSE_PBR )
 		{
@@ -5372,7 +5374,7 @@ static void SetStagesRenderers()
 		stageRenderer_t colorRenderer;
 
 		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
-		stageSurfaceDataUpdater_t surfaceDataUpdater;
+		surfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
 
@@ -5591,6 +5593,8 @@ static shader_t *MakeShaderPermanent()
 			std::copy_n( stages[ s ].bundle[ b ].texMods, newShader->stages[ s ].bundle[ b ].numTexMods,
 			             newShader->stages[ s ].bundle[ b ].texMods );
 		}
+
+		newShader->stages[ s ].shader = newShader;
 	}
 
 	newShader->lastStage = newShader->stages + numStages;
@@ -6329,7 +6333,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
-	if ( r_smp->integer )
+	if ( r_smp.Get() )
 	{
 		R_SyncRenderThread();
 	}
@@ -6378,7 +6382,7 @@ shader_t       *R_FindShader( const char *name, shaderType_t type, int flags )
 	{
 		// enable this when building a pak file to get a global list
 		// of all explicit shaders
-		if ( r_printShaders->integer )
+		if ( r_printShaders.Get() )
 		{
 			Log::Notice("loading explicit shader '%s'", strippedName );
 		}
@@ -6541,7 +6545,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, image_t *image )
 
 	// make sure the render thread is stopped, because we are probably
 	// going to have to upload an image
-	if ( r_smp->integer )
+	if ( r_smp.Get() )
 	{
 		R_SyncRenderThread();
 	}

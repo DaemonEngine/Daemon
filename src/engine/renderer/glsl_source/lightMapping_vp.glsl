@@ -36,7 +36,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	#define USE_LIGHT_MAPPING
 #endif
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
+#endif
 
 #if defined(USE_MODEL_SURFACE)
 	uniform mat4 u_ModelMatrix;
@@ -104,7 +106,7 @@ void main()
 	SHADER_PROFILER_SET
 
 	// transform diffusemap texcoords
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec3(texCoord, 1.0)).st;
 
 	// assign color
 	var_Color = color;

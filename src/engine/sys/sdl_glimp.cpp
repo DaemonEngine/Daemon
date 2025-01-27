@@ -41,6 +41,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 static Log::Logger logger("glconfig", "", Log::Level::NOTICE);
 
+static Cvar::Range<Cvar::Cvar<int>> r_glMajorVersion( "r_glMajorVersion",
+	"Force this GL major version; 0 to set up automatically", Cvar::NONE, 0, 0, 4 );
+static Cvar::Range<Cvar::Cvar<int>> r_glMinorVersion( "r_glMinorVersion",
+	"Force this GL minor version; 0 to set up automatically", Cvar::NONE, 0, 0, 6 );
+static Cvar::Cvar<std::string> r_glProfile( "r_glProfile",
+	"Force this GL profile (core or compat); empty to set up automatically", Cvar::NONE, "" );
+static Cvar::Cvar<bool> r_glAllowSoftware( "r_glAllowSoftware", "Allow software rendering", Cvar::NONE, false );
+
 static Cvar::Modified<Cvar::Cvar<bool>> r_noBorder(
 	"r_noBorder", "draw window without border", Cvar::ARCHIVE, false);
 static Cvar::Modified<Cvar::Range<Cvar::Cvar<int>>> r_swapInterval(
@@ -70,6 +78,8 @@ static Cvar::Cvar<bool> r_arb_buffer_storage( "r_arb_buffer_storage",
 	"Use GL_ARB_buffer_storage if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_compute_shader( "r_arb_compute_shader",
 	"Use GL_ARB_compute_shader if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_direct_state_access( "r_arb_direct_state_access",
+	"Use GL_ARB_direct_state_access if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_framebuffer_object( "r_arb_framebuffer_object",
 	"Use GL_ARB_framebuffer_object if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_explicit_uniform_location( "r_arb_explicit_uniform_location",
@@ -106,6 +116,8 @@ static Cvar::Cvar<bool> r_arb_texture_gather( "r_arb_texture_gather",
 	"Use GL_ARB_texture_gather if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_arb_uniform_buffer_object( "r_arb_uniform_buffer_object",
 	"Use GL_ARB_uniform_buffer_object if available", Cvar::NONE, true );
+static Cvar::Cvar<bool> r_arb_vertex_attrib_binding( "r_arb_vertex_attrib_binding",
+	"Use GL_ARB_vertex_attrib_binding if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_draw_buffers( "r_ext_draw_buffers",
 	"Use GL_EXT_draw_buffers if available", Cvar::NONE, true );
 static Cvar::Cvar<bool> r_ext_gpu_shader4( "r_ext_gpu_shader4",
@@ -766,7 +778,8 @@ static void GLimp_SetAttributes( const glConfiguration &configuration )
 	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 0 );
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
-	if ( !r_glAllowSoftware->integer )
+	Cvar::Latch( r_glAllowSoftware );
+	if ( !r_glAllowSoftware.Get() )
 	{
 		SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
 	}
@@ -1120,9 +1133,9 @@ static rserr_t GLimp_ValidateBestContext(
 		{ 1, 0, glProfile::COMPATIBILITY, true },
 	};
 
-	logger.Debug( "Validating best OpenGL context." );
+	logger.Debug( "Validating best OpenGL context" );
 
-	bool needHighestExtended = !!r_glExtendedValidation->integer;
+	bool needHighestExtended = r_glExtendedValidation.Get();
 	for ( int colorBits : {24, 16} )
 	{
 		for ( auto& row : glSupportArray )
@@ -1178,14 +1191,16 @@ static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glCo
 {
 	glConfiguration customConfiguration = {};
 
-	if ( bestConfiguration.profile == glProfile::CORE && !Q_stricmp( r_glProfile->string, "compat" ) )
+	Cvar::Latch( r_glProfile );
+	const char* glProfile = r_glProfile.Get().c_str();
+	if ( bestConfiguration.profile == glProfile::CORE && !Q_stricmp( glProfile, "compat") )
 	{
 		logger.Debug( "Compatibility profile is forced by r_glProfile" );
 
 		customConfiguration.profile = glProfile::COMPATIBILITY;
 	}
 
-	if ( bestConfiguration.profile == glProfile::COMPATIBILITY && !Q_stricmp( r_glProfile->string, "core" ) )
+	if ( bestConfiguration.profile == glProfile::COMPATIBILITY && !Q_stricmp( glProfile, "core" ) )
 	{
 		if ( GLEWmajor < 2 )
 		{
@@ -1200,8 +1215,10 @@ static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glCo
 		}
 	}
 
-	customConfiguration.major = std::max( 0, r_glMajorVersion->integer );
-	customConfiguration.minor = std::max( 0, r_glMinorVersion->integer );
+	Cvar::Latch( r_glMajorVersion );
+	Cvar::Latch( r_glMinorVersion );
+	customConfiguration.major = std::max( 0, r_glMajorVersion.Get() );
+	customConfiguration.minor = std::max( 0, r_glMinorVersion.Get() );
 
 	if ( customConfiguration.major == 0 )
 	{
@@ -1252,7 +1269,7 @@ static glConfiguration GLimp_ApplyCustomOptions( const int GLEWmajor, const glCo
 		customConfiguration.profile = bestConfiguration.profile;
 	}
 
-	customConfiguration.colorBits = std::max( 0, r_colorbits->integer );
+	customConfiguration.colorBits = std::max( 0, r_colorbits.Get() );
 
 	if ( customConfiguration.colorBits == 0 )
 	{
@@ -1594,11 +1611,11 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 	static glConfiguration bestValidatedConfiguration = {}; // considering only up to OpenGL 3.2
 	static glConfiguration extendedValidationResult = {}; // max available OpenGL version for diagnostic purposes
 
-	if ( r_glExtendedValidation->integer && extendedValidationResult.major != 0 )
+	if ( r_glExtendedValidation.Get() && extendedValidationResult.major != 0 )
 	{
 		logger.Debug( "Previously best validated context: %s", ContextDescription( extendedValidationResult ) );
 	}
-	else if ( bestValidatedConfiguration.major == 0 || r_glExtendedValidation->integer )
+	else if ( bestValidatedConfiguration.major == 0 || r_glExtendedValidation.Get() )
 	{
 		// Detect best configuration.
 		rserr_t err = GLimp_ValidateBestContext( GLEWmajor, bestValidatedConfiguration, extendedValidationResult );
@@ -1617,7 +1634,7 @@ static rserr_t GLimp_SetMode( const int mode, const bool fullscreen, const bool 
 		}
 	}
 
-	if ( r_glExtendedValidation->integer )
+	if ( r_glExtendedValidation.Get() )
 	{
 		logger.Notice( "Highest available context: %s", ContextDescription( extendedValidationResult ) );
 	}
@@ -1975,6 +1992,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_bindless_texture );
 	Cvar::Latch( r_arb_buffer_storage );
 	Cvar::Latch( r_arb_compute_shader );
+	Cvar::Latch( r_arb_direct_state_access );
 	Cvar::Latch( r_arb_explicit_uniform_location );
 	Cvar::Latch( r_arb_framebuffer_object );
 	Cvar::Latch( r_arb_gpu_shader5 );
@@ -1993,6 +2011,7 @@ static void GLimp_InitExtensions()
 	Cvar::Latch( r_arb_sync );
 	Cvar::Latch( r_arb_texture_gather );
 	Cvar::Latch( r_arb_uniform_buffer_object );
+	Cvar::Latch( r_arb_vertex_attrib_binding );
 	Cvar::Latch( r_ext_draw_buffers );
 	Cvar::Latch( r_ext_gpu_shader4 );
 	Cvar::Latch( r_ext_texture_filter_anisotropic );
@@ -2013,12 +2032,13 @@ static void GLimp_InitExtensions()
 	}
 
 	// Shader limits
+	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &glConfig2.maxUniformBlockSize );
 	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS_ARB, &glConfig2.maxVertexUniforms );
 	glGetIntegerv( GL_MAX_VERTEX_ATTRIBS_ARB, &glConfig2.maxVertexAttribs );
 
 	int reservedComponents = 36 * 10; // approximation how many uniforms we have besides the bone matrices
 	glConfig2.maxVertexSkinningBones = Math::Clamp( ( glConfig2.maxVertexUniforms - reservedComponents ) / 16, 0, MAX_BONES );
-	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning->integer && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
+	glConfig2.vboVertexSkinningAvailable = r_vboVertexSkinning.Get() && ( ( glConfig2.maxVertexSkinningBones >= 12 ) ? true : false );
 
 	/* On OpenGL Core profile the ARB_fragment_program extension doesn't exist and the related getter functions
 	return 0. We can assume OpenGL 3 Core hardware is featureful enough to not care about those limits. */
@@ -2543,11 +2563,21 @@ static void GLimp_InitExtensions()
 	// made required in OpenGL 4.6
 	glConfig2.indirectParametersAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_indirect_parameters, r_arb_indirect_parameters.Get() );
 
+	// made required in OpenGL 4.5
+	glConfig2.directStateAccessAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_direct_state_access, r_arb_direct_state_access.Get() );
+
+	// made required in OpenGL 4.3
+	glConfig2.vertexAttribBindingAvailable = LOAD_EXTENSION_WITH_TEST( ExtFlag_NONE, ARB_vertex_attrib_binding, r_arb_vertex_attrib_binding.Get() );
+
+	glConfig2.geometryCacheAvailable = glConfig2.vertexAttribBindingAvailable && glConfig2.directStateAccessAvailable;
+
 	glConfig2.materialSystemAvailable = glConfig2.shaderDrawParametersAvailable && glConfig2.SSBOAvailable
 		&& glConfig2.multiDrawIndirectAvailable && glConfig2.bindlessTexturesAvailable
 		&& glConfig2.computeShaderAvailable && glConfig2.shadingLanguage420PackAvailable
 		&& glConfig2.explicitUniformLocationAvailable && glConfig2.shaderImageLoadStoreAvailable
-		&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable;
+		&& glConfig2.shaderAtomicCountersAvailable && glConfig2.indirectParametersAvailable
+		&& glConfig2.directStateAccessAvailable
+		&& glConfig2.geometryCacheAvailable;
 
 	// This requires GLEW 2.2+, so skip if it's a lower version
 #ifdef GL_KHR_shader_subgroup
@@ -2713,7 +2743,7 @@ bool GLimp_Init()
 		Sys::SetEnv( "stub_occlusion_query", "true" );
 	}
 
-	int mode = r_mode->integer;
+	int mode = r_mode.Get();
 	bool fullscreen = r_fullscreen.Get();
 	bool bordered = !r_noBorder.Get();
 
@@ -2890,7 +2920,7 @@ Responsible for doing a swapbuffers
 void GLimp_EndFrame()
 {
 	// don't flip if drawing to front buffer
-	if ( Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) != 0 )
+	if ( Q_stricmp( r_drawBuffer.Get().c_str(), "GL_FRONT" ) != 0 )
 	{
 		SDL_GL_SwapWindow( window );
 	}

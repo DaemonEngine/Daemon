@@ -45,13 +45,13 @@ static bool R_CullSurface( surfaceType_t *surface, shader_t *shader, int planeBi
 	float        d;
 
 	// allow culling to be disabled
-	if ( r_nocull->integer )
+	if ( r_nocull.Get() )
 	{
 		return false;
 	}
 
 	// ydnar: made surface culling generic, inline with q3map2 surface classification
-	if ( *surface == surfaceType_t::SF_GRID && r_nocurves->integer )
+	if ( *surface == surfaceType_t::SF_GRID && r_nocurves.Get() )
 	{
 		return true;
 	}
@@ -65,7 +65,7 @@ static bool R_CullSurface( surfaceType_t *surface, shader_t *shader, int planeBi
 	gen = ( srfGeneric_t * ) surface;
 
 	// plane cull
-	if ( *surface == surfaceType_t::SF_FACE && r_facePlaneCull->integer )
+	if ( *surface == surfaceType_t::SF_FACE && r_facePlaneCull.Get() )
 	{
 		srfSurfaceFace_t *srf = ( srfSurfaceFace_t * )gen;
 		d = DotProduct( tr.orientation.viewOrigin, srf->plane.normal ) - srf->plane.dist;
@@ -131,13 +131,13 @@ static bool R_CullLightSurface( surfaceType_t *surface, shader_t *shader, trRefL
 	float        d;
 
 	// allow culling to be disabled
-	if ( r_nocull->integer )
+	if ( r_nocull.Get() )
 	{
 		return false;
 	}
 
 	// ydnar: made surface culling generic, inline with q3map2 surface classification
-	if ( *surface == surfaceType_t::SF_GRID && r_nocurves->integer )
+	if ( *surface == surfaceType_t::SF_GRID && r_nocurves.Get() )
 	{
 		return true;
 	}
@@ -165,7 +165,7 @@ static bool R_CullLightSurface( surfaceType_t *surface, shader_t *shader, trRefL
 	}
 
 	// plane cull
-	if ( *surface == surfaceType_t::SF_FACE && r_facePlaneCull->integer )
+	if ( *surface == surfaceType_t::SF_FACE && r_facePlaneCull.Get() )
 	{
 		srfSurfaceFace_t *srf = ( srfSurfaceFace_t * )gen;
 		if ( light->l.rlType == refLightType_t::RL_DIRECTIONAL )
@@ -418,7 +418,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits )
 
 		// if the bounding volume is outside the frustum, nothing
 		// inside can be visible
-		if ( !r_nocull->integer )
+		if ( !r_nocull.Get() )
 		{
 			int i;
 			int r;
@@ -492,7 +492,7 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 
 		// Tr3B - even surfaces that belong to nodes that are outside of the view frustum
 		// can cast shadows into the view frustum
-		if ( !r_nocull->integer )
+		if ( !r_nocull.Get() )
 		{
 			for ( i = 0; i < FRUSTUM_PLANES; i++ )
 			{
@@ -704,7 +704,7 @@ static void R_MarkLeaves()
 
 	// lockpvs lets designers walk around to determine the
 	// extent of the current pvs
-	if ( r_lockpvs->integer )
+	if ( r_lockpvs.Get() )
 	{
 		return;
 	}
@@ -750,7 +750,7 @@ static void R_MarkLeaves()
 		Log::Notice("update cluster:%i  area:%i  index:%i", cluster, leaf->area, tr.visIndex );
 	}
 
-	if ( r_novis->integer || tr.visClusters[ tr.visIndex ] == -1 )
+	if ( r_novis.Get() || tr.visClusters[tr.visIndex] == -1 )
 	{
 		for ( i = 0; i < tr.world->numnodes; i++ )
 		{
@@ -831,7 +831,7 @@ R_AddWorldSurfaces
 */
 void R_AddWorldSurfaces()
 {
-	if ( !r_drawworld->integer )
+	if ( !r_drawworld.Get() )
 	{
 		return;
 	}
@@ -879,7 +879,7 @@ void R_AddWorldInteractions( trRefLight_t *light )
 {
 	int interactionBits;
 
-	if ( !r_drawworld->integer )
+	if ( !r_drawworld.Get() )
 	{
 		return;
 	}

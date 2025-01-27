@@ -139,8 +139,8 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 		return scalingStep;
 	}
 
-	int materialMinDimension = r_ignoreMaterialMinDimension->integer ? 0 : imageParams.minDimension;
-	int materialMaxDimension = r_ignoreMaterialMaxDimension->integer ? 0 : imageParams.maxDimension;
+	int materialMinDimension = r_ignoreMaterialMinDimension.Get() ? 0 : imageParams.minDimension;
+	int materialMaxDimension = r_ignoreMaterialMaxDimension.Get() ? 0 : imageParams.maxDimension;
 
 	int minDimension;
 
@@ -148,7 +148,7 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 	{
 		minDimension = 1;
 	}
-	else if ( r_replaceMaterialMinDimensionIfPresentWithMaxDimension->integer )
+	else if ( r_replaceMaterialMinDimensionIfPresentWithMaxDimension.Get() )
 	{
 		minDimension = materialMaxDimension > 0 ? materialMaxDimension : std::numeric_limits<int>::max();
 	}
@@ -159,16 +159,16 @@ int R_GetImageCustomScalingStep( const image_t *image, const imageParams_t &imag
 
 	int maxDimension = materialMaxDimension > 0 ? materialMaxDimension : std::numeric_limits<int>::max();
 
-	if ( r_imageMaxDimension->integer > 0 )
+	if ( r_imageMaxDimension.Get() > 0 )
 	{
-		maxDimension = std::min( maxDimension, r_imageMaxDimension->integer );
+		maxDimension = std::min( maxDimension, r_imageMaxDimension.Get() );
 	}
 
 	// 1st priority: scaledDimension >= minDimension
 	// 2nd priority: scaledDimension <= maxDimension
-	// 3rd priority: scalingStep >= r_picMip->integer
+	// 3rd priority: scalingStep >= r_picMip.Get()
 	// 4th priority: scalingStep as low as possible
-	while ( scaledDimension > maxDimension || scalingStep < r_picMip->integer )
+	while ( scaledDimension > maxDimension || scalingStep < r_picMip.Get() )
 	{
 		scaledDimension >>= 1;
 

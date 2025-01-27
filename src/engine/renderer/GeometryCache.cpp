@@ -1,8 +1,8 @@
-/*
+﻿/*
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2024-2025 Daemon Developers
+Copyright (c) 2025 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,45 +31,70 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
+// GeometryCache.cpp
 
-/* common.glsl */
+#include "GeometryCache.h"
 
-/* Common defines */
+#include "tr_local.h"
 
-/* Allows accessing each element of a uvec4 array with a singular ID
-Useful to avoid wasting memory due to alignment requirements
-array must be in the form of uvec4 array[] */
+GeometryCache geometryCache;
 
-#define UINT_FROM_UVEC4_ARRAY( array, id ) ( ( array )[( id ) / 4][( id ) % 4] )
-#define UVEC2_FROM_UVEC4_ARRAY( array, id ) ( ( id ) % 2 == 0 ? ( array )[( id ) / 2].xy : ( array )[( id ) / 2].zw )
-
-/* Bit 0: color * 1
-Bit 1: color * ( -1 )
-Bit 2: color += lightFactor
-Bit 3: alpha * 1
-Bit 4: alpha * ( -1 )
-Bit 5: alpha = 1
-Bit 6-9: lightFactor */
-
-float colorModArray[3] = float[3] ( 0.0f, 1.0f, -1.0f );
-
-vec4 ColorModulateToColor( const in uint colorMod ) {
-	vec4 colorModulate = vec4( colorModArray[colorMod & 3] );
-	colorModulate.a = ( colorModArray[( colorMod & 24 ) >> 3] );
-	return colorModulate;
+void GeometryCache::Bind() {
+	VAO.Bind();
 }
 
-vec4 ColorModulateToColor( const in uint colorMod, const in float lightFactor ) {
-	vec4 colorModulate = vec4( colorModArray[colorMod & 3] + ( ( colorMod & 4 ) >> 2 ) * lightFactor );
-	colorModulate.a = ( colorModArray[( colorMod & 24 ) >> 3] );
-	return colorModulate;
+void GeometryCache::InitGLBuffers() {
+	inputVBO.GenBuffer();
+	VBO.GenBuffer();
+	IBO.GenBuffer();
+
+	VAO.GenVAO();
 }
 
-float ColorModulateToLightFactor( const in uint colorMod ) {
-	return ( colorMod >> 6 ) & 0xF;
+void GeometryCache::FreeGLBuffers() {
+	inputVBO.DelBuffer();
+	VBO.DelBuffer();
+	IBO.DelBuffer();
+
+	VAO.DelVAO();
 }
 
-// This is used to skip vertex colours if the colorMod doesn't need them
-bool ColorModulateToVertexColor( const in uint colorMod ) {
-	return ( colorMod & 0xFF ) == 0xFF;
+void GeometryCache::Free() {
+}
+
+void GeometryCache::AllocBuffers() {
+	VBO.BufferData( mapVerticesNumber * 8, nullptr, GL_STATIC_DRAW );
+
+	IBO.BufferData( mapIndicesNumber, nullptr, GL_STATIC_DRAW );
+}
+
+void GeometryCache::AddMapGeometry( const uint32_t verticesNumber, const uint32_t indicesNumber,
+	const vertexAttributeSpec_t* attrBegin, const vertexAttributeSpec_t* attrEnd,
+	const glIndex_t* indices ) {
+	mapVerticesNumber = verticesNumber;
+	mapIndicesNumber = indicesNumber;
+
+	VAO.Bind();
+
+	AllocBuffers();
+
+	VAO.SetAttrs( attrBegin, attrEnd );
+
+	VAO.SetVertexBuffer( VBO, 0 );
+	VAO.SetIndexBuffer( IBO );
+	
+	uint32_t* VBOVerts = VBO.MapBufferRange( mapVerticesNumber * 8 );
+	memset( VBOVerts, 0, mapVerticesNumber * 8 * sizeof( uint32_t ) );
+	for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
+		vboAttributeLayout_t& attr = VAO.attrs[spec->attrIndex];
+
+		CopyVertexAttribute( attr, *spec, mapVerticesNumber, ( byte* ) VBOVerts );
+	}
+	VBO.UnmapBuffer();
+
+	uint32_t* VBOIndices = IBO.MapBufferRange( mapIndicesNumber );
+	memcpy( VBOIndices, indices, mapIndicesNumber * sizeof( uint32_t ) );
+	IBO.UnmapBuffer();
+
+	glBindVertexArray( backEnd.currentVAO );
 }

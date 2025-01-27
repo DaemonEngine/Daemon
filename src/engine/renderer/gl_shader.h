@@ -429,7 +429,8 @@ protected:
 	size_t      _locationIndex;
 
 	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
-								 const bool global, const int components = 0, const bool isTexture = false ) :
+	                             const bool global, const int components = 0,
+	                             const bool isTexture = false ) :
 		_shader( shader ),
 		_name( name ),
 		_type( type ),
@@ -1197,6 +1198,48 @@ public:
 	matrix_t currentValue;
 };
 
+class GLUniformMatrix32f : protected GLUniform {
+	protected:
+	GLUniformMatrix32f( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniform( shader, name, "mat3x2", 6, 2, global ) {
+	}
+
+	inline void SetValue( GLboolean transpose, const vec_t* m ) {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer ) {
+			GLimp_LogComment( va( "GLSL_SetUniformMatrix32f( %s, shader: %s, transpose: %d, [ %f, %f, %f, %f, %f, %f ] ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), transpose,
+				m[0], m[1], m[2], m[3], m[4], m[5] ) );
+		}
+#endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			memcpy( currentValue, m, 6 * sizeof( float ) );
+			return;
+		}
+
+		glUniformMatrix3x2fv( p->uniformLocations[_locationIndex], 1, transpose, m );
+	}
+	public:
+	size_t GetSize() override {
+		return 6 * sizeof( float );
+	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, currentValue, 6 * sizeof( float ) );
+		return buffer + 6 * _components;
+	}
+
+	private:
+	vec_t currentValue[6] {};
+};
+
 class GLUniformMatrix4fv : protected GLUniform
 {
 protected:
@@ -1327,43 +1370,58 @@ public:
 
 class GLBuffer {
 	public:
-	std::string _name;
-	const GLuint _bindingPoint;
-	const GLbitfield _flags;
-	const GLbitfield _mapFlags;
+	friend class GLVAO;
+
+	std::string name;
 	const GLuint64 SYNC_TIMEOUT = 10000000000; // 10 seconds
 
-	GLBuffer( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		_name( name ),
-		_bindingPoint( bindingPoint ),
-		_flags( flags ),
-		_mapFlags( mapFlags ) {
+	GLBuffer( const char* newName, const GLuint newBindingPoint, const GLbitfield newFlags, const GLbitfield newMapFlags ) :
+		name( newName ),
+		internalTarget( 0 ),
+		internalBindingPoint( newBindingPoint ),
+		flags( newFlags ),
+		mapFlags( newMapFlags ) {
 	}
 
-	const char* GetName() {
-		return _name.c_str();
+	GLBuffer( const char* newName, const GLenum newTarget, const GLuint newBindingPoint,
+		const GLbitfield newFlags, const GLbitfield newMapFlags ) :
+		name( newName ),
+		internalTarget( newTarget ),
+		internalBindingPoint( newBindingPoint ),
+		flags( newFlags ),
+		mapFlags( newMapFlags ) {
 	}
 
-	void BindBufferBase( const GLenum target ) {
-		glBindBufferBase( target, _bindingPoint, handle );
+	void BindBufferBase( GLenum target = 0, GLuint bindingPoint = 0 ) {
+		target = target ? target : internalTarget;
+		bindingPoint = bindingPoint ? bindingPoint : internalBindingPoint;
+		glBindBufferBase( target, bindingPoint, id );
 	}
 
-	void UnBindBufferBase( const GLenum target ) {
-		glBindBufferBase( target, _bindingPoint, 0 );
+	void UnBindBufferBase( GLenum target = 0, GLuint bindingPoint = 0 ) {
+		target = target ? target : internalTarget;
+		bindingPoint = bindingPoint ? bindingPoint : internalBindingPoint;
+		glBindBufferBase( target, bindingPoint, 0 );
 	}
 
-	void BindBuffer( const GLenum target ) {
-		glBindBuffer( target, handle );
+	void BindBuffer( GLenum target = 0 ) {
+		target = target ? target : internalTarget;
+		glBindBuffer( target, id );
 	}
 
-	void UnBindBuffer( const GLenum target ) {
+	void UnBindBuffer( GLenum target = 0 ) {
+		target = target ? target : internalTarget;
 		glBindBuffer( target, 0 );
 	}
 
-	void BufferStorage( const GLenum target, const GLsizeiptr newAreaSize, const GLsizeiptr areaCount, const void* data ) {
+	void BufferData( const GLsizeiptr size, const void* data, const GLenum usageFlags ) {
+		glNamedBufferData( id, size * sizeof( uint32_t ), data, usageFlags );
+	}
+
+	void BufferStorage( const GLsizeiptr newAreaSize, const GLsizeiptr areaCount, const void* data ) {
 		areaSize = newAreaSize;
 		maxAreas = areaCount;
-		glBufferStorage( target, areaSize * areaCount * sizeof(uint32_t), data, _flags );
+		glNamedBufferStorage( id, areaSize * areaCount * sizeof( uint32_t ), data, flags );
 		syncs.resize( areaCount );
 	}
 
@@ -1375,18 +1433,17 @@ class GLBuffer {
 		}
 	}
 
-	void MapAll( const GLenum target ) {
+	void MapAll() {
 		if ( !mapped ) {
 			mapped = true;
-			mappedTarget = target;
-			data = ( uint32_t* ) glMapBufferRange( target, 0, areaSize * maxAreas * sizeof( uint32_t ), _flags | _mapFlags );
+			data = ( uint32_t* ) glMapNamedBufferRange( id, 0, areaSize * maxAreas * sizeof( uint32_t ), flags | mapFlags );
 		}
 	}
 
 	uint32_t* GetCurrentAreaData() {
 		if ( syncs[area] != nullptr ) {
 			if ( glClientWaitSync( syncs[area], GL_SYNC_FLUSH_COMMANDS_BIT, SYNC_TIMEOUT ) == GL_TIMEOUT_EXPIRED ) {
-				Sys::Drop( "Failed buffer %s area %u sync", _name, area );
+				Sys::Drop( "Failed buffer %s area %u sync", name, area );
 			}
 			glDeleteSync( syncs[area] );
 		}
@@ -1398,33 +1455,24 @@ class GLBuffer {
 		return data;
 	}
 
-	void FlushCurrentArea( GLenum target ) {
-		glFlushMappedBufferRange( target, area * areaSize * sizeof( uint32_t ), areaSize * sizeof( uint32_t ) );
+	void FlushCurrentArea() {
+		glFlushMappedNamedBufferRange( id, area * areaSize * sizeof( uint32_t ), areaSize * sizeof( uint32_t ) );
 	}
 
-	void FlushAll( GLenum target ) {
-		glFlushMappedBufferRange( target, 0, maxAreas * areaSize * sizeof( uint32_t ) );
+	void FlushAll() {
+		glFlushMappedNamedBufferRange( id, 0, maxAreas * areaSize * sizeof( uint32_t ) );
 	}
 
-	uint32_t* MapBufferRange( const GLenum target, const GLuint count ) {
+	uint32_t* MapBufferRange( const GLuint count ) {
+		return MapBufferRange( 0, count );
+	}
+
+	uint32_t* MapBufferRange( const GLuint offset, const GLuint count ) {
 		if ( !mapped ) {
 			mapped = true;
-			mappedTarget = target;
-			data = ( uint32_t* ) glMapBufferRange( target,
-				0, count * sizeof( uint32_t ),
-				_flags | _mapFlags );
-		}
-
-		return data;
-	}
-
-	uint32_t* MapBufferRange( const GLenum target, const GLuint offset, const GLuint count ) {
-		if ( !mapped ) {
-			mapped = true;
-			mappedTarget = target;
-			data = ( uint32_t* ) glMapBufferRange( target,
+			data = ( uint32_t* ) glMapNamedBufferRange( id,
 				offset * sizeof( uint32_t ), count * sizeof( uint32_t ),
-				_flags | _mapFlags );
+				flags | mapFlags );
 		}
 
 		return data;
@@ -1433,22 +1481,28 @@ class GLBuffer {
 	void UnmapBuffer() {
 		if ( mapped ) {
 			mapped = false;
-			glUnmapBuffer( mappedTarget );
+			glUnmapNamedBuffer( id );
 		}
 	}
 
 	void GenBuffer() {
-		glGenBuffers( 1, &handle );
+		glCreateBuffers( 1, &id );
 	}
 
 	void DelBuffer() {
-		glDeleteBuffers( 1, &handle );
+		glDeleteBuffers( 1, &id );
 	}
 
 	private:
-	GLenum mappedTarget;
-	GLuint handle;
+	const GLenum internalTarget;
+	const GLuint internalBindingPoint;
+
+	GLuint id;
+
 	bool mapped = false;
+	const GLbitfield flags;
+	const GLbitfield mapFlags;
+
 	std::vector<GLsync> syncs;
 	GLsizeiptr area = 0;
 	GLsizeiptr areaSize = 0;
@@ -1456,201 +1510,98 @@ class GLBuffer {
 	uint32_t* data;
 };
 
+// Shorthands for buffers that are only bound to one specific target
 class GLSSBO : public GLBuffer {
 	public:
 	GLSSBO( const char* name, const GLuint bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, bindingPoint, flags, mapFlags ) {
-	}
-
-	public:
-	const char* GetName() {
-		return _name.c_str();
-	}
-
-	void BindBufferBase() {
-		GLBuffer::BindBufferBase( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void UnBindBufferBase() {
-		GLBuffer::UnBindBufferBase( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void BindBuffer() {
-		GLBuffer::BindBuffer( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void UnBindBuffer() {
-		GLBuffer::UnBindBuffer( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
-		GLBuffer::BufferStorage( GL_SHADER_STORAGE_BUFFER, areaSize, areaCount, data );
-	}
-
-	void MapAll() {
-		GLBuffer::MapAll( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void FlushCurrentArea() {
-		GLBuffer::FlushCurrentArea( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	void FlushAll() {
-		GLBuffer::FlushAll( GL_SHADER_STORAGE_BUFFER );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_SHADER_STORAGE_BUFFER, count );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_SHADER_STORAGE_BUFFER, offset, count );
+		GLBuffer( name, GL_SHADER_STORAGE_BUFFER, bindingPoint, flags, mapFlags ) {
 	}
 };
 
 class GLUBO : public GLBuffer {
 	public:
 	GLUBO( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, bindingPoint, flags, mapFlags ) {
-	}
-
-	public:
-	const char* GetName() {
-		return _name.c_str();
-	}
-
-	void BindBufferBase() {
-		GLBuffer::BindBufferBase( GL_UNIFORM_BUFFER );
-	}
-
-	void UnBindBufferBase() {
-		GLBuffer::UnBindBufferBase( GL_UNIFORM_BUFFER );
-	}
-
-	void BindBuffer() {
-		GLBuffer::BindBuffer( GL_UNIFORM_BUFFER );
-	}
-
-	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
-		GLBuffer::BufferStorage( GL_UNIFORM_BUFFER, areaSize, areaCount, data );
-	}
-
-	void MapAll() {
-		GLBuffer::MapAll( GL_UNIFORM_BUFFER );
-	}
-
-	void FlushCurrentArea() {
-		GLBuffer::FlushCurrentArea( GL_UNIFORM_BUFFER );
-	}
-
-	void FlushAll() {
-		GLBuffer::FlushAll( GL_UNIFORM_BUFFER );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, count );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_UNIFORM_BUFFER, offset, count );
+		GLBuffer( name, GL_UNIFORM_BUFFER, bindingPoint, flags, mapFlags ) {
 	}
 };
 
 class GLAtomicCounterBuffer : public GLBuffer {
 	public:
 	GLAtomicCounterBuffer( const char* name, const GLsizeiptr bindingPoint, const GLbitfield flags, const GLbitfield mapFlags ) :
-		GLBuffer( name, bindingPoint, flags, mapFlags ) {
-	}
-
-	public:
-	const char* GetName() {
-		return _name.c_str();
-	}
-
-	void BindBufferBase() {
-		GLBuffer::BindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void UnBindBufferBase() {
-		GLBuffer::UnBindBufferBase( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void BindBuffer() {
-		GLBuffer::BindBuffer( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
-		GLBuffer::BufferStorage( GL_ATOMIC_COUNTER_BUFFER, areaSize, areaCount, data );
-	}
-
-	void MapAll() {
-		GLBuffer::MapAll( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void FlushCurrentArea() {
-		GLBuffer::FlushCurrentArea( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	void FlushAll() {
-		GLBuffer::FlushAll( GL_ATOMIC_COUNTER_BUFFER );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_ATOMIC_COUNTER_BUFFER, count );
-	}
-
-	uint32_t* MapBufferRange( const GLsizeiptr offset, const GLsizeiptr count ) {
-		return GLBuffer::MapBufferRange( GL_ATOMIC_COUNTER_BUFFER, offset, count );
+		GLBuffer( name, GL_ATOMIC_COUNTER_BUFFER, bindingPoint, flags, mapFlags ) {
 	}
 };
 
-class GLIndirectBuffer {
+class GLVAO {
 	public:
+	vboAttributeLayout_t attrs[ATTR_INDEX_MAX];
+	uint32_t enabledAttrs;
 
-	struct GLIndirectCommand {
-		GLuint count;
-		GLuint instanceCount;
-		GLuint firstIndex;
-		GLint baseVertex;
-		GLuint baseInstance;
-	};
-
-	std::string _name;
-
-	GLIndirectBuffer( const char* name ) :
-		_name( name ) {
+	GLVAO( const GLuint newVBOBindingPoint ) :
+		VBOBindingPoint( newVBOBindingPoint ) {
 	}
 
-	public:
+	~GLVAO() = default;
 
-	const char* GetName() {
-		return _name.c_str();
+	void Bind() {
+		glBindVertexArray( id );
 	}
 
-	void BindBuffer() {
-		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, handle );
+	void SetAttrs( const vertexAttributeSpec_t* attrBegin, const vertexAttributeSpec_t* attrEnd ) {
+		uint32_t ofs = 0;
+		for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
+			vboAttributeLayout_t& attr = attrs[spec->attrIndex];
+			ASSERT_NQ( spec->numComponents, 0U );
+			// vbo->attribBits |= 1 << spec->attrIndex;
+			attr.componentType = spec->componentStorageType;
+			if ( attr.componentType == GL_HALF_FLOAT && !glConfig2.halfFloatVertexAvailable ) {
+				attr.componentType = GL_FLOAT;
+			}
+			attr.numComponents = spec->numComponents;
+			attr.normalize = spec->attrOptions & ATTR_OPTION_NORMALIZE ? GL_TRUE : GL_FALSE;
+
+			attr.ofs = ofs;
+			ofs += attr.numComponents * ComponentSize( attr.componentType );
+			ofs = ( ofs + 3 ) & ~3; // 4 is minimum alignment for any vertex attribute
+
+			enabledAttrs |= 1 << spec->attrIndex;
+		}
+
+		stride = ofs;
+
+		for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
+			const int index = spec->attrIndex;
+			vboAttributeLayout_t& attr = attrs[index];
+
+			attr.stride = stride;
+
+			glEnableVertexArrayAttrib( id, index );
+			glVertexArrayAttribFormat( id, index, attr.numComponents, attr.componentType,
+				attr.normalize, attr.ofs );
+			glVertexArrayAttribBinding( id, index, VBOBindingPoint );
+		}
 	}
 
-	GLIndirectCommand* MapBufferRange( const GLsizeiptr count ) {
-		return (GLIndirectCommand*) glMapBufferRange( GL_DRAW_INDIRECT_BUFFER,
-			0, count * sizeof( GLIndirectCommand ),
-			GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
+	void SetVertexBuffer( const GLBuffer buffer, const GLuint offset ) {
+		glVertexArrayVertexBuffer( id, VBOBindingPoint, buffer.id, offset, stride );
 	}
 
-	void UnmapBuffer() const {
-		glUnmapBuffer( GL_DRAW_INDIRECT_BUFFER );
+	void SetIndexBuffer( const GLBuffer buffer ) {
+		glVertexArrayElementBuffer( id, buffer.id );
 	}
 
-	void GenBuffer() {
-		glGenBuffers( 1, &handle );
+	void GenVAO() {
+		glGenVertexArrays( 1, &id );
 	}
 
-	void DelBuffer() {
-		glDeleteBuffers( 1, &handle );
+	void DelVAO() {
+		glDeleteVertexArrays( 1, &id );
 	}
 
 	private:
-	GLuint handle;
+	GLuint id;
+	const GLuint VBOBindingPoint;
+	GLuint stride;
 };
 
 class GLCompileMacro
@@ -2140,6 +2091,7 @@ class u_ColorMap :
 	GLUniformSampler2D {
 	public:
 	u_ColorMap( GLShader* shader ) :
+		// While u_ColorMap is used for some screen-space shaders, it's never global in material system shaders
 		GLUniformSampler2D( shader, "u_ColorMap" ) {
 	}
 
@@ -2268,7 +2220,7 @@ class u_LightMap :
 	GLUniformSampler {
 	public:
 	u_LightMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1 ) {
+		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1, true ) {
 	}
 
 	void SetUniform_LightMapBindless( GLuint64 bindlessHandle ) {
@@ -2284,7 +2236,7 @@ class u_DeluxeMap :
 	GLUniformSampler {
 	public:
 	u_DeluxeMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1 ) {
+		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1, true ) {
 	}
 
 	void SetUniform_DeluxeMapBindless( GLuint64 bindlessHandle ) {
@@ -2697,17 +2649,26 @@ class u_ShadowClipMap4 :
 };
 
 class u_TextureMatrix :
-	GLUniformMatrix4f
+	GLUniformMatrix32f
 {
 public:
 	u_TextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_TextureMatrix" )
+		GLUniformMatrix32f( shader, "u_TextureMatrix", true )
 	{
 	}
 
 	void SetUniform_TextureMatrix( const matrix_t m )
 	{
-		this->SetValue( GL_FALSE, m );
+		/* We only actually need these 6 components to get the correct texture transformation,
+		the other ones are unused */
+		vec_t m2[6];
+		m2[0] = m[0];
+		m2[1] = m[1];
+		m2[2] = m[4];
+		m2[3] = m[5];
+		m2[4] = m[12];
+		m2[5] = m[13];
+		this->SetValue( GL_FALSE, m2 );
 	}
 };
 
@@ -3094,6 +3055,18 @@ public:
 
 	void SetUniform_Color( const Color::Color& color )
 	{
+		this->SetValue( packUnorm4x8( color.ToArray() ) );
+	}
+};
+
+class u_ColorGlobal :
+	GLUniform1ui {
+	public:
+	u_ColorGlobal( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ColorGlobal", true ) {
+	}
+
+	void SetUniform_ColorGlobal( const Color::Color& color ) {
 		this->SetValue( packUnorm4x8( color.ToArray() ) );
 	}
 };
@@ -3595,7 +3568,8 @@ enum class ColorModulate {
 	COLOR_MINUS_ONE = BIT( 1 ),
 	COLOR_LIGHTFACTOR = BIT( 2 ),
 	ALPHA_ONE = BIT( 3 ),
-	ALPHA_MINUS_ONE = BIT( 4 )
+	ALPHA_MINUS_ONE = BIT( 4 ),
+	ALPHA_ADD_ONE = BIT( 5 )
 };
 
 class u_ColorModulateColorGen :
@@ -3625,7 +3599,7 @@ class u_ColorModulateColorGen :
 					// vertexOverbright is only needed for non-lightmapped cases. When there is a
 					// lightmap, this is done by multiplying with the overbright-scaled white image
 					colorModulate |= Util::ordinal( ColorModulate::COLOR_LIGHTFACTOR );
-					lightFactor = uint32_t( tr.mapLightFactor ) << 5;
+					lightFactor = uint32_t( tr.mapLightFactor ) << 6;
 				} else {
 					colorModulate |= Util::ordinal( ColorModulate::COLOR_ONE );
 				}
@@ -3642,10 +3616,10 @@ class u_ColorModulateColorGen :
 
 		if ( useMapLightFactor ) {
 			ASSERT_EQ( vertexOverbright, false );
-			lightFactor = uint32_t( tr.mapLightFactor ) << 5;
+			lightFactor = uint32_t( tr.mapLightFactor ) << 6;
 		}
 
-		colorModulate |= lightFactor ? lightFactor : 1 << 5;
+		colorModulate |= lightFactor ? lightFactor : 1 << 6;
 
 		switch ( alphaGen ) {
 			case alphaGen_t::AGEN_VERTEX:
@@ -3662,10 +3636,12 @@ class u_ColorModulateColorGen :
 				break;
 		}
 
-		if ( needAttrib ) {
-			_shader->AddVertexAttribBit( ATTR_COLOR );
-		} else {
-			_shader->DelVertexAttribBit( ATTR_COLOR );
+		if ( !needAttrib ) {
+			/* Originally, this controlled whether the vertex color array was used,
+			now it does the equivalent by setting the color in the shader in such way as if it was using
+			the default OpenGL values for the disabled arrays (0.0, 0.0, 0.0, 1.0)
+			This allows to skip the vertex format change */
+			colorModulate |= Util::ordinal( ColorModulate::ALPHA_ADD_ONE );
 		}
 		this->SetValue( colorModulate );
 	}
@@ -4319,7 +4295,7 @@ class GLShader_fogQuake3 :
 	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_Color,
+	public u_ColorGlobal,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_FogDistanceVector,
@@ -4339,7 +4315,7 @@ class GLShader_fogQuake3Material :
 	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_Color,
+	public u_ColorGlobal,
 	public u_FogDistanceVector,
 	public u_FogDepthVector,
 	public u_FogEyeT,

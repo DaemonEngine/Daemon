@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "framework/CvarSystem.h"
 #include "DetectGLVendors.h"
 #include "Material.h"
+#include "GeometryCache.h"
 
 	glconfig_t  glConfig;
 	glconfig2_t glConfig2;
@@ -33,9 +34,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	static void GfxInfo_f();
 
-	cvar_t      *r_glMajorVersion;
-	cvar_t      *r_glMinorVersion;
-	cvar_t      *r_glProfile;
 	Cvar::Cvar<bool> r_glDebugProfile( "r_glDebugProfile", "Enable GL debug message callback", Cvar::NONE, false );
 	Cvar::Range<Cvar::Cvar<int>> r_glDebugMode( "r_glDebugMode",
 		"GL debug message callback mode: 0: none, 1: error, 2: deprecated, 3: undefined, 4: portability, 5: performance,"
@@ -43,34 +41,40 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal( glDebugModes_t::GLDEBUG_NONE ),
 		Util::ordinal( glDebugModes_t::GLDEBUG_NONE ),
 		Util::ordinal( glDebugModes_t::GLDEBUG_ALL ) );
-	cvar_t      *r_glAllowSoftware;
-	cvar_t      *r_glExtendedValidation;
+	Cvar::Cvar<bool> r_glExtendedValidation( "r_glExtendedValidation",
+		"Enable extra GL context validation", Cvar::NONE, false );
 
 	cvar_t      *r_ignore;
 
-	cvar_t      *r_znear;
-	cvar_t      *r_zfar;
+	Cvar::Cvar<float> r_znear( "r_znear", "Near frustum plane distance", Cvar::CHEAT, 3.0f );
+	Cvar::Cvar<float> r_zfar( "r_zfar", "Near frustum plane distance", Cvar::CHEAT, 0.0f );
 
-	cvar_t      *r_smp;
-	cvar_t      *r_showSmp;
-	cvar_t      *r_skipBackEnd;
+	Cvar::Cvar<bool> r_smp( "r_smp", "Enable SMP (use 2 different threads for renderer frontend and backend",
+		Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showSmp( "r_showSmp", "Show which of the threads is executing with r_smp on", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_skipBackEnd( "r_skipBackEnd", "Skip renderer backend", Cvar::NONE, false );
 
 	cvar_t      *r_measureOverdraw;
 
-	cvar_t      *r_lodBias;
-	cvar_t      *r_lodScale;
+	Cvar::Cvar<int> r_lodBias( "r_lodBias", "Add this to model lod selection", Cvar::NONE, 0 );
+	Cvar::Cvar<int> r_lodScale( "r_lodScale", "Scale model lod selection by this", Cvar::NONE, 5 );
 
-	cvar_t      *r_norefresh;
-	cvar_t      *r_drawentities;
-	cvar_t      *r_drawworld;
-	cvar_t      *r_drawpolies;
-	cvar_t      *r_speeds;
-	cvar_t      *r_novis;
-	cvar_t      *r_nocull;
-	cvar_t      *r_facePlaneCull;
-	cvar_t      *r_nocurves;
-	cvar_t      *r_lightScissors;
-	cvar_t      *r_noLightVisCull;
+	Cvar::Cvar<bool> r_norefresh( "r_norefresh", "Skip renderer frontend", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_drawentities( "r_drawentities", "Render entities", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_drawworld( "r_drawworld", "Render world", Cvar::CHEAT, true );
+	Cvar::Cvar<bool> r_drawpolies( "r_drawpolies", "Render polies", Cvar::CHEAT, true );
+	Cvar::Range<Cvar::Cvar<int>> r_speeds( "r_speeds",
+		"Renderer timings: 0: disabled, 1: general, 2: culling, 3: view cluster, 4: lights, 5: shadowcube culling,"
+		"6: fog, 7: flares, 8: shading times, 9: chc, 10: show z_near/z_far", Cvar::NONE,
+		0,
+		0,
+		Util::ordinal( renderSpeeds_t::RSPEEDS_NEAR_FAR ) );
+	Cvar::Cvar<bool> r_novis( "r_novis", "Skip PVS for rendering world", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_nocull( "r_nocull", "Skip culling", Cvar::CHEAT, false );
+	Cvar::Cvar<bool> r_facePlaneCull( "r_facePlaneCull", "Back-face culling of planar surfaces (CPU-side)", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_nocurves( "r_nocurves", "Cull all SF_GRID surfaces", Cvar::CHEAT, false );
+	Cvar::Range<Cvar::Cvar<int>> r_lightScissors( "r_lightScissors", "Light clipping: 0: disabled, 1: near plane, 2: all planes",
+		Cvar::NONE, 0, 0, 2 );
 	cvar_t      *r_noInteractionSort;
 	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer( "r_realtimeLightingRenderer",
 		"renderer for real time lights: 0: legacy, 1: tiled", Cvar::NONE,
@@ -80,8 +84,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_realtimeLighting( "r_realtimeLighting", "Enable realtime light rendering", Cvar::NONE, true );
 	Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers( "r_realtimeLightLayers", "Dynamic light layers per tile, each layer holds 16 lights",
 		Cvar::NONE, 4, 1, MAX_REF_LIGHTS / 16 );
-	cvar_t      *r_realtimeLightingCastShadows;
-	cvar_t      *r_precomputedLighting;
+	Cvar::Cvar<bool> r_realtimeLightingCastShadows( "r_realtimeLightingCastShadows", "Enable realtime light shadows",
+		Cvar::NONE, true );
+	Cvar::Cvar<bool> r_precomputedLighting( "r_precomputedLighting", "Use lightMaps if available", Cvar::CHEAT, true );
 	Cvar::Cvar<int> r_overbrightDefaultExponent("r_overbrightDefaultExponent", "default map light color shift (multiply by 2^x)", Cvar::NONE, 2);
 	Cvar::Cvar<bool> r_overbrightDefaultClamp("r_overbrightDefaultClamp", "clamp lightmap colors to 1 (in absence of map worldspawn value)", Cvar::NONE, false);
 	Cvar::Cvar<bool> r_overbrightIgnoreMapSettings("r_overbrightIgnoreMapSettings", "force usage of r_overbrightDefaultClamp / r_overbrightDefaultExponent, ignoring worldspawn", Cvar::NONE, false);
@@ -92,10 +97,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Cvar<bool> r_gpuFrustumCulling( "r_gpuFrustumCulling", "Use frustum culling on the GPU for the Material System", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_gpuOcclusionCulling( "r_gpuOcclusionCulling", "Use occlusion culling on the GPU for the Material System", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_materialSystemSkip( "r_materialSystemSkip", "Temporarily skip Material System rendering, using only core renderer instead", Cvar::NONE, false );
-	cvar_t      *r_lightStyles;
-	cvar_t      *r_exportTextures;
-	cvar_t      *r_heatHaze;
-	cvar_t      *r_noMarksOnTrisurfs;
+	Cvar::Cvar<bool> r_geometryCache( "r_geometryCache", "Use Geometry Cache", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_lightStyles( "r_lightStyles", "Enable light styles", Cvar::ARCHIVE, true );
+	Cvar::Cvar<bool> r_exportTextures( "r_exportTextures", "Save all textures that get created to /texexp", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_heatHaze( "r_heatHaze", "Enable heat haze mapping", Cvar::ARCHIVE, true );
+	Cvar::Cvar<bool> r_noMarksOnTrisurfs( "r_noMarksOnTrisurfs", "Disable marks on SF_TRIANGLES surfaces", Cvar::NONE, true );
 
 	/* Default value is 1: Delay GLSL shader build until first map load.
 
@@ -109,12 +115,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		"r_lazyShaders", "build GLSL shaders (0) on startup, (1) on map load or (2) when used",
 		Cvar::NONE, 1, 0, 2);
 
-	cvar_t      *r_checkGLErrors;
+	Cvar::Range<Cvar::Cvar<int>> r_checkGLErrors( "r_checkGLErrors", "Enable GL error checking: -1: in debug builds, 0: never, 1: always",
+		Cvar::NONE, -1, -1, 1 );
 	cvar_t      *r_logFile;
 
-	cvar_t      *r_colorbits;
+	Cvar::Cvar<int> r_colorbits( "r_colorbits", "Number of desired color bits, only relevant for fullscreen; 0 to set up automatically",
+		Cvar::NONE, 0 );
 
-	cvar_t      *r_drawBuffer;
+	Cvar::Cvar<std::string> r_drawBuffer( "r_drawBuffer", "Render to front or back buffer (GL_FRONT and GL_BACK)",
+		Cvar::NONE, "GL_BACK" );
 
 	Cvar::Range<Cvar::Cvar<int>> r_shadows( "cg_shadows", "shadowing mode", Cvar::NONE,
 		Util::ordinal(shadowingMode_t::SHADOWING_BLOB),
@@ -149,34 +158,35 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_parallelShadowSplits;
 	cvar_t      *r_parallelShadowSplitWeight;
 
-	cvar_t      *r_mode;
-	cvar_t      *r_nobind;
-	cvar_t      *r_singleShader;
-	cvar_t      *r_picMip;
-	cvar_t      *r_imageMaxDimension;
-	cvar_t      *r_ignoreMaterialMinDimension;
-	cvar_t      *r_ignoreMaterialMaxDimension;
-	cvar_t      *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
+	Cvar::Cvar<int> r_mode( "r_mode", "Video mode", Cvar::ARCHIVE, -2 );
+	Cvar::Cvar<bool> r_nobind( "r_nobind", "Bind a black image for all textures", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_singleShader( "r_singleShader", "Use the default shader on most world surfaces", Cvar::CHEAT, false );
+	Cvar::Cvar<int> r_picMip( "r_picMip", "Downscale textures this many times", Cvar::ARCHIVE, 0 );
+	Cvar::Cvar<int> r_imageMaxDimension( "r_imageMaxDimension", "Downscale textures to this dimension", Cvar::ARCHIVE, 0 );
+	Cvar::Cvar<bool> r_ignoreMaterialMinDimension( "r_ignoreMaterialMinDimension", "Ignore material min dimension", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_ignoreMaterialMaxDimension( "r_ignoreMaterialMaxDimension", "Ignore material max dimension", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_replaceMaterialMinDimensionIfPresentWithMaxDimension( "r_replaceMaterialMinDimensionIfPresentWithMaxDimension",
+		"Replace material min dimension with max dimension if present", Cvar::NONE, false );
 	Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen("r_imageFitScreen", "downscale “fitscreen” images to fit the screen size: 0: disable, 1: downscale as much as possible without being smaller than screen size (default), 2: downscale to never be larger then screen size", Cvar::NONE, 1, 0, 2);
-	cvar_t      *r_finish;
-	Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode(
-		"r_textureMode", "default texture filter mode", Cvar::NONE, "GL_LINEAR_MIPMAP_LINEAR");
-	cvar_t      *r_offsetFactor;
-	cvar_t      *r_offsetUnits;
+	Cvar::Cvar<bool> r_finish( "r_finish", "Use glFinish() at the end of rendering a frame", Cvar::NONE, false );
+	Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode( "r_textureMode", "default texture filter mode",
+		Cvar::NONE, "GL_LINEAR_MIPMAP_LINEAR" );
+	Cvar::Cvar<float> r_offsetFactor( "r_offsetFactor", "Polygon offset factor", Cvar::CHEAT, -1 );
+	Cvar::Cvar<float> r_offsetUnits( "r_offsetUnits", "Polygon offset units", Cvar::CHEAT, -2 );
 
-	cvar_t      *r_physicalMapping;
-	cvar_t      *r_specularExponentMin;
-	cvar_t      *r_specularExponentMax;
-	cvar_t      *r_specularScale;
-	cvar_t      *r_specularMapping;
-	cvar_t      *r_deluxeMapping;
-	cvar_t      *r_normalScale;
-	cvar_t      *r_normalMapping;
-	cvar_t      *r_liquidMapping;
-	cvar_t      *r_highQualityNormalMapping;
-	cvar_t      *r_reliefDepthScale;
-	cvar_t      *r_reliefMapping;
-	cvar_t      *r_glowMapping;
+	Cvar::Cvar<bool> r_physicalMapping( "r_physicalMapping", "Enable PBR", Cvar::ARCHIVE, true );
+	Cvar::Cvar<float> r_specularExponentMin( "r_specularExponentMin", "Minimum specular exponent", Cvar::CHEAT, 0.001f );
+	Cvar::Cvar<float> r_specularExponentMax( "r_specularExponentMax", "Maximum specular exponent", Cvar::CHEAT, 16.0f );
+	Cvar::Cvar<float> r_specularScale( "r_specularScale", "Specular scale", Cvar::CHEAT, 1.0f );
+	Cvar::Cvar<bool> r_specularMapping( "r_specularMapping", "Enable specular mapping", Cvar::ARCHIVE, true );
+	Cvar::Cvar<bool> r_deluxeMapping( "r_deluxeMapping", "Enable deluxe mapping", Cvar::ARCHIVE, true );
+	Cvar::Cvar<float> r_normalScale( "r_normalScale", "Normal scale", Cvar::NONE, 1.0f );
+	Cvar::Cvar<bool> r_normalMapping( "r_normalMapping", "Enable normal mapping", Cvar::ARCHIVE, true );
+	Cvar::Cvar<bool> r_liquidMapping( "r_liquidMapping", "Enable liquid mapping", Cvar::ARCHIVE, false );
+	Cvar::Cvar<bool> r_highQualityNormalMapping( "r_highQualityNormalMapping", "Enable high quality normal mapping", Cvar::NONE, false );
+	Cvar::Cvar<float> r_reliefDepthScale( "r_reliefDepthScale", "Relief mapping depth scale", Cvar::NONE, 0.02f );
+	Cvar::Cvar<bool> r_reliefMapping( "r_reliefMapping", "Enable relief mapping", Cvar::ARCHIVE, false );
+	Cvar::Cvar<bool> r_glowMapping( "r_glowMapping", "Enable glow mapping", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_reflectionMapping( "r_reflectionMapping", "Use static reflections", Cvar::NONE, false );
 	Cvar::Range<Cvar::Cvar<int>> r_autoBuildCubeMaps( "r_autoBuildCubeMaps",
 		"Automatically build cube maps when a map is loaded: 0: off, 1: build and store on disk if not found, 2: always build", Cvar::NONE,
@@ -188,62 +198,64 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing( "r_cubeProbeSpacing", "Spacing between the static reflections cubemaps", Cvar::NONE,
 		256, 64, 1024 );
 
-	cvar_t      *r_halfLambertLighting;
-	cvar_t      *r_rimLighting;
-	cvar_t      *r_rimExponent;
+	Cvar::Cvar<bool> r_halfLambertLighting( "r_halfLambertLighting", "Enable half-Lambert lighting (makes models brighter)",
+		Cvar::ARCHIVE, true );
+	Cvar::Cvar<bool> r_rimLighting( "r_rimLighting", "Light the edges of modes from behind", Cvar::NONE, true );
+	Cvar::Range<Cvar::Cvar<float>> r_rimExponent( "r_rimExponent", "Rim lighting exponent", Cvar::NONE, 3.0f, 0.5f, 8.0f );
 
 	Cvar::Cvar<bool> r_highPrecisionRendering("r_highPrecisionRendering", "use high precision frame buffers for rendering and blending", Cvar::NONE, true);
 
-	cvar_t      *r_gamma;
-	cvar_t      *r_lockpvs;
-	cvar_t      *r_noportals;
+	Cvar::Cvar<float> r_gamma( "r_gamma", "Gamma", Cvar::ARCHIVE, 1.0f );
+	Cvar::Cvar<bool> r_lockpvs( "r_lockpvs", "Lock the culling position and angles at the current viewpos", Cvar::CHEAT, false );
+	Cvar::Cvar<bool> r_noportals( "r_noportals", "Skip portals", Cvar::CHEAT, false );
 
-	cvar_t      *r_max_portal_levels;
+	Cvar::Cvar<int> r_max_portal_levels( "r_max_portal_levels", "Maximum portal view recursion level", Cvar::NONE, 5 );
 
-	cvar_t      *r_subdivisions;
-	cvar_t      *r_stitchCurves;
+	Cvar::Cvar<int> r_subdivisions( "r_subdivisions", "Quality of patch-mesh sub-division (lower = better)", Cvar::NONE, 4 );
+	Cvar::Cvar<bool> r_stitchCurves( "r_stitchCurves", "Stitch edges of patch meshes", Cvar::CHEAT, true );
 
 	Cvar::Modified<Cvar::Cvar<bool>> r_fullscreen(
 		"r_fullscreen", "use full-screen window", CVAR_ARCHIVE, true );
 
-	cvar_t      *r_customwidth;
-	cvar_t      *r_customheight;
+	Cvar::Cvar<int> r_customwidth( "r_customwidth", "Window width", Cvar::ARCHIVE, 1600 );
+	Cvar::Cvar<int> r_customheight( "r_customheight", "Window height", Cvar::ARCHIVE, 1024 );
 
-	cvar_t      *r_debugSurface;
+	Cvar::Cvar<bool> r_debugSurface( "r_debugSurface", "Enable debug surface rendering", Cvar::NONE, false );
 
-	cvar_t      *r_showImages;
+	Cvar::Range<Cvar::Cvar<int>> r_showImages( "r_showImages", "Render all textures on screen: 0: disabled, 1: normal, 2: proportional",
+		Cvar::TEMPORARY, 0, 0, 2 );
 
-	cvar_t      *r_wolfFog;
-	cvar_t      *r_noFog;
+	Cvar::Cvar<bool> r_wolfFog( "r_wolfFog", "Enable surface fog", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_noFog( "r_noFog", "Skip fog", Cvar::CHEAT, false );
 
 	Cvar::Range<Cvar::Cvar<float>> r_forceAmbient( "r_forceAmbient", "Minimal light amount in lightGrid", Cvar::NONE,
 		0.125f, 0.0f, 0.3f );
 	Cvar::Cvar<float> r_ambientScale( "r_ambientScale", "Scale lightGrid produced by ambientColor keyword by this much", Cvar::CHEAT, 1.0 );
 	cvar_t      *r_lightScale;
-	cvar_t      *r_debugSort;
-	cvar_t      *r_printShaders;
+	Cvar::Cvar<int> r_debugSort( "r_debugSort", "Stop rendering surfaces after this sort value", Cvar::CHEAT, 0 );
+	Cvar::Cvar<bool> r_printShaders( "r_printShaders", "Print names of q3 shaders that are being loaded", Cvar::NONE, false );
 
-	cvar_t      *r_maxPolys;
-	cvar_t      *r_maxPolyVerts;
+	Cvar::Range<Cvar::Cvar<int>> r_maxPolys( "r_maxPolys", "Maximum amount of polys", Cvar::NONE, 10000, 600, 30000 );
+	Cvar::Range<Cvar::Cvar<int>> r_maxPolyVerts( "r_maxPolyVerts", "Maximum amount of poly vertices", Cvar::NONE, 100000, 3000, 200000 );
 
-	cvar_t      *r_showTris;
-	cvar_t      *r_showSky;
+	Cvar::Cvar<bool> r_showTris( "r_showTris", "Render surfaces' wireframe", Cvar::CHEAT, false );
+	Cvar::Cvar<bool> r_showSky( "r_showSky", "Render sky only", Cvar::NONE, false );
 	cvar_t      *r_showShadowLod;
 	cvar_t      *r_showShadowMaps;
-	cvar_t      *r_showSkeleton;
-	cvar_t      *r_showEntityTransforms;
-	cvar_t      *r_showLightTransforms;
-	cvar_t      *r_showLightInteractions;
-	cvar_t      *r_showLightScissors;
-	cvar_t      *r_showLightBatches;
-	cvar_t      *r_showLightGrid;
-	cvar_t      *r_showLightTiles;
-	cvar_t      *r_showBatches;
+	Cvar::Cvar<bool> r_showSkeleton( "r_showSkeleton", "Render model skeletons", Cvar::CHEAT, false );
+	Cvar::Cvar<bool> r_showEntityTransforms( "r_showEntityTransforms", "Render entity transform bounds", Cvar::CHEAT, false );
+	Cvar::Cvar<bool> r_showLightTransforms( "r_showLightTransforms", "Render light transform bounds", Cvar::CHEAT, false );
+	Cvar::Cvar<bool> r_showLightInteractions( "r_showLightInteractions", "Render light interactions", Cvar::CHEAT, false );
+	Cvar::Cvar<bool> r_showLightScissors( "r_showLightScissors", "Render light scissors", Cvar::ARCHIVE, false );
+	Cvar::Cvar<bool> r_showLightBatches( "r_showLightBatches", "Render light batches", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showLightGrid( "r_showLightGrid", "Render lightGrid", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showLightTiles( "r_showLightTiles", "Render light tiles", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showBatches( "r_showBatches", "Render batches", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_showVertexColors("r_showVertexColors", "show vertex colors used for vertex lighting", Cvar::CHEAT, false);
-	cvar_t      *r_showLightMaps;
-	cvar_t      *r_showDeluxeMaps;
-	cvar_t      *r_showNormalMaps;
-	cvar_t      *r_showMaterialMaps;
+	Cvar::Cvar<bool> r_showLightMaps( "r_showLightMaps", "Render lightMaps", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showDeluxeMaps( "r_showDeluxeMaps", "Render deluxe maps", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showNormalMaps( "r_showNormalMaps", "Render normal maps", Cvar::NONE, false );
+	Cvar::Cvar<bool> r_showMaterialMaps( "r_showMaterialMaps", "Render material maps", Cvar::NONE, false );
 	Cvar::Cvar<bool> r_showReflectionMaps( "r_showReflectionMaps", "Show only the static reflections on surfaces", Cvar::NONE, false );
 	Cvar::Range<Cvar::Cvar<int>> r_showCubeProbes( "r_showCubeProbes", "Show static reflections cubemap placement: 0: off, 1: grid, "
 		"2: unique only", Cvar::NONE,
@@ -252,7 +264,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Util::ordinal( showCubeProbesMode::UNIQUE ) );
 	Cvar::Cvar<int> r_showCubeProbeFace( "r_showCubeProbeFace", "Render from the perspective of a selected static reflection "
 		"cubemap face, -1 to disable", Cvar::NONE, -1 );
-	cvar_t      *r_showBspNodes;
+	Cvar::Range<Cvar::Cvar<int>> r_showBspNodes( "r_showBspNodes", "Render BSP nodes", Cvar::NONE, 0, 0, 3 );
 	Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials( "r_showGlobalMaterials", "Show material system materials: 0: off, 1: depth, "
 		"2: opaque, 3: opaque + transparent", Cvar::NONE,
 		Util::ordinal( MaterialDebugMode::NONE ),
@@ -274,19 +286,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	Cvar::Cvar<int> r_forceRendererTime( "r_forceRendererTime", "Set a specific time (in ms, since the start of the map) for time-based shader effects; -1 to disable", Cvar::CHEAT, -1 );
 
-	cvar_t      *r_vboFaces;
-	cvar_t      *r_vboCurves;
-	cvar_t      *r_vboTriangles;
-	cvar_t      *r_vboModels;
-	cvar_t      *r_vboVertexSkinning;
+	Cvar::Cvar<bool> r_vboFaces( "r_vboFaces", "Use static VBO to render SF_FACE", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_vboCurves( "r_vboCurves", "Use static VBO to render SF_GRID", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_vboTriangles( "r_vboTriangles", "Use static VBO to render SF_FACE", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_vboModels( "r_vboModels", "Use static VBOs for models", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_vboVertexSkinning( "r_vboVertexSkinning", "Use GPU for skeletal animation transforms", Cvar::NONE, true );
 
-	cvar_t      *r_mergeLeafSurfaces;
+	Cvar::Cvar<bool> r_mergeLeafSurfaces( "r_mergeLeafSurfaces", "Merge surfaces in the same BSP leaf", Cvar::NONE, true );
 	
 	Cvar::Cvar<bool> r_bloom( "r_bloom", "Use bloom", Cvar::ARCHIVE, false );
 	Cvar::Cvar<float> r_bloomBlur( "r_bloomBlur", "Bloom strength", Cvar::NONE, 1.0 );
 	Cvar::Cvar<int> r_bloomPasses( "r_bloomPasses", "Amount of bloom passes in each direction", Cvar::NONE, 2 );
-	cvar_t      *r_FXAA;
-	cvar_t      *r_ssao;
+	Cvar::Cvar<bool> r_FXAA( "r_FXAA", "Use FXAA", Cvar::ARCHIVE, false );
+	Cvar::Cvar<int> r_ssao( "r_ssao", "Use SSAO", Cvar::ARCHIVE, 0 );
 
 	cvar_t      *r_evsmPostProcess;
 
@@ -355,18 +367,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			GLSL_InitGPUShaders();
 			glConfig.smpActive = false;
 
-			if ( r_smp->integer )
+			if ( r_smp.Get() )
 			{
-				Log::Notice("Trying SMP acceleration..." );
+				Log::Notice( "Trying SMP acceleration..." );
 
 				if ( GLimp_SpawnRenderThread( RB_RenderThread ) )
 				{
-					Log::Notice("...succeeded." );
+					Log::Notice( "...succeeded." );
 					glConfig.smpActive = true;
 				}
 				else
 				{
-					Log::Notice("...failed." );
+					Log::Notice( "...failed." );
 				}
 			}
 		}
@@ -508,8 +520,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		}
 		else if ( mode == -1 )
 		{
-			*width = r_customwidth->integer;
-			*height = r_customheight->integer;
+			*width = r_customwidth.Get();
+			*height = r_customheight.Get();
 		}
 		else
 		{
@@ -957,11 +969,11 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Log::Notice("PIXELFORMAT: color(%d-bits)", glConfig.colorBits );
 
 		Log::Notice("MODE: %d, %d x %d %s",
-			r_mode->integer,
+			r_mode.Get(),
 			glConfig.vidWidth, glConfig.vidHeight,
 			fsstrings[ +r_fullscreen.Get() ] );
 
-		if ( !!r_glExtendedValidation->integer )
+		if ( r_glExtendedValidation.Get() )
 		{
 			Log::Notice("Using OpenGL version %d.%d, requested: %d.%d, highest: %d.%d",
 				glConfig2.glMajor, glConfig2.glMinor, glConfig2.glRequestedMajor, glConfig2.glRequestedMinor,
@@ -1070,17 +1082,18 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			Log::Notice("Using dual processor acceleration." );
 		}
 
-		if ( r_finish->integer )
+		if ( r_finish.Get() )
 		{
-			Log::Notice("Forcing glFinish." );
+			Log::Notice( "Forcing glFinish()" );
 		}
 
-		Log::Debug("texturemode: %s", r_textureMode.Get() );
-		Log::Debug("picmip: %d", r_picMip->integer );
-		Log::Debug("imageMaxDimension: %d", r_imageMaxDimension->integer );
-		Log::Debug("ignoreMaterialMinDimension: %d", r_ignoreMaterialMinDimension->integer );
-		Log::Debug("ignoreMaterialMaxDimension: %d", r_ignoreMaterialMaxDimension->integer );
-		Log::Debug("replaceMaterialMinDimensionIfPresentWithMaxDimension: %d", r_replaceMaterialMinDimensionIfPresentWithMaxDimension->integer );
+		Log::Debug( "texturemode: %s", r_textureMode.Get() );
+		Log::Debug( "picmip: %d", r_picMip.Get() );
+		Log::Debug( "imageMaxDimension: %d", r_imageMaxDimension.Get() );
+		Log::Debug( "ignoreMaterialMinDimension: %d", r_ignoreMaterialMinDimension.Get() );
+		Log::Debug( "ignoreMaterialMaxDimension: %d", r_ignoreMaterialMaxDimension.Get() );
+		Log::Debug( "replaceMaterialMinDimensionIfPresentWithMaxDimension: %d",
+			r_replaceMaterialMinDimensionIfPresentWithMaxDimension.Get() );
 	}
 
 	// FIXME: uses regular logging not Print()
@@ -1118,6 +1131,19 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 					stage->deformIndex = deformIndex;
 				}
 			}
+
+			if ( glConfig2.usingMaterialSystem ) {
+				/* GLSL shaders linked to materials will be invalidated by glsl_restart,
+				so regenerate all the material stuff here */
+				const uint8_t maxStages = materialSystem.maxStages;
+				materialSystem.Free();
+				materialSystem.FreeGLBuffers();
+
+				materialSystem.InitGLBuffers();
+				materialSystem.maxStages = maxStages;
+
+				materialSystem.GenerateWorldMaterials();
+			}
 		}
 	};
 	static GlslRestartCmd glslRestartCmdRegistration;
@@ -1130,49 +1156,38 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 	void R_Register()
 	{
 		// OpenGL context selection
-		r_glMajorVersion = Cvar_Get( "r_glMajorVersion", "", CVAR_LATCH );
-		r_glMinorVersion = Cvar_Get( "r_glMinorVersion", "", CVAR_LATCH );
-		r_glProfile = Cvar_Get( "r_glProfile", "", CVAR_LATCH );
 		Cvar::Latch( r_glDebugProfile );
-		r_glAllowSoftware = Cvar_Get( "r_glAllowSoftware", "0", CVAR_LATCH );
-		r_glExtendedValidation = Cvar_Get( "r_glExtendedValidation", "0", CVAR_LATCH );
+		Cvar::Latch( r_glExtendedValidation );
 
 		// latched and archived variables
-		r_picMip = Cvar_Get( "r_picMip", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_imageMaxDimension = Cvar_Get( "r_imageMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_ignoreMaterialMinDimension = Cvar_Get( "r_ignoreMaterialMinDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_ignoreMaterialMaxDimension = Cvar_Get( "r_ignoreMaterialMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_replaceMaterialMinDimensionIfPresentWithMaxDimension
-			= Cvar_Get( "r_replaceMaterialMinDimensionIfPresentWithMaxDimension", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		Cvar::Latch(r_imageFitScreen);
-		r_colorbits = Cvar_Get( "r_colorbits", "0",  CVAR_LATCH );
-		r_mode = Cvar_Get( "r_mode", "-2", CVAR_LATCH | CVAR_ARCHIVE );
-		r_customwidth = Cvar_Get( "r_customwidth", "1600", CVAR_LATCH | CVAR_ARCHIVE );
-		r_customheight = Cvar_Get( "r_customheight", "1024", CVAR_LATCH | CVAR_ARCHIVE );
-		r_subdivisions = Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
-		r_realtimeLightingCastShadows = Cvar_Get( "r_realtimeLightingCastShadows", "1", 0 );
-		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_CHEAT | CVAR_LATCH );
+		Cvar::Latch( r_picMip );
+		Cvar::Latch( r_imageMaxDimension );
+		Cvar::Latch( r_ignoreMaterialMinDimension );
+		Cvar::Latch( r_ignoreMaterialMaxDimension );
+		Cvar::Latch( r_replaceMaterialMinDimensionIfPresentWithMaxDimension );
+		Cvar::Latch( r_imageFitScreen );
+		Cvar::Latch( r_colorbits );
+		Cvar::Latch( r_mode );
+		Cvar::Latch( r_customwidth );
+		Cvar::Latch( r_customheight );
+		Cvar::Latch( r_subdivisions );
+		Cvar::Latch( r_precomputedLighting );
 		Cvar::Latch( r_overbrightDefaultExponent );
 		Cvar::Latch( r_overbrightDefaultClamp );
 		Cvar::Latch( r_overbrightIgnoreMapSettings );
 		Cvar::Latch( r_lightMode );
 		Cvar::Latch( r_colorGrading );
 		Cvar::Latch( r_drawSky );
-		r_lightStyles = Cvar_Get( "r_lightStyles", "1", CVAR_LATCH | CVAR_ARCHIVE );
-		r_exportTextures = Cvar_Get( "r_exportTextures", "0", 0 );
-		r_heatHaze = Cvar_Get( "r_heatHaze", "1", CVAR_LATCH | CVAR_ARCHIVE );
-		r_noMarksOnTrisurfs = Cvar_Get( "r_noMarksOnTrisurfs", "1", CVAR_CHEAT );
-
-		r_wolfFog = Cvar_Get( "r_wolfFog", "1", CVAR_CHEAT );
-		r_noFog = Cvar_Get( "r_noFog", "0", CVAR_CHEAT );
+		Cvar::Latch( r_lightStyles );
+		Cvar::Latch( r_heatHaze );
 
 		Cvar::Latch( r_forceAmbient );
 
-		r_smp = Cvar_Get( "r_smp", "0",  CVAR_LATCH );
+		Cvar::Latch( r_smp );
 
 		// temporary latched variables that can only change over a restart
-		r_singleShader = Cvar_Get( "r_singleShader", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_stitchCurves = Cvar_Get( "r_stitchCurves", "1", CVAR_CHEAT | CVAR_LATCH );
+		Cvar::Latch( r_singleShader );
+		Cvar::Latch( r_stitchCurves );
 		r_debugShadowMaps = Cvar_Get( "r_debugShadowMaps", "0", CVAR_CHEAT | CVAR_LATCH );
 		r_shadowMapLinearFilter = Cvar_Get( "r_shadowMapLinearFilter", "1", CVAR_CHEAT | CVAR_LATCH );
 		r_lightBleedReduction = Cvar_Get( "r_lightBleedReduction", "0", CVAR_CHEAT | CVAR_LATCH );
@@ -1184,43 +1199,21 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		AssertCvarRange( r_parallelShadowSplits, 0, MAX_SHADOWMAPS - 1, true );
 
 		// archived variables that can change at any time
-		r_lodBias = Cvar_Get( "r_lodBias", "0", 0 );
-		r_znear = Cvar_Get( "r_znear", "3", CVAR_CHEAT );
-		r_zfar = Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
-		r_checkGLErrors = Cvar_Get( "r_checkGLErrors", "-1", 0 );
-		r_finish = Cvar_Get( "r_finish", "0", CVAR_CHEAT );
-		r_gamma = Cvar_Get( "r_gamma", "1.0", CVAR_ARCHIVE );
-		r_facePlaneCull = Cvar_Get( "r_facePlaneCull", "1", 0 );
-
 		Cvar::Latch( r_ambientScale );
 		r_lightScale = Cvar_Get( "r_lightScale", "2", CVAR_CHEAT );
 
-		r_vboFaces = Cvar_Get( "r_vboFaces", "1", CVAR_CHEAT );
-		r_vboCurves = Cvar_Get( "r_vboCurves", "1", CVAR_CHEAT );
-		r_vboTriangles = Cvar_Get( "r_vboTriangles", "1", CVAR_CHEAT );
-		r_vboModels = Cvar_Get( "r_vboModels", "1", CVAR_LATCH );
-		r_vboVertexSkinning = Cvar_Get( "r_vboVertexSkinning", "1",  CVAR_LATCH );
+		Cvar::Latch( r_vboModels );
+		Cvar::Latch( r_vboVertexSkinning );
 
-		r_mergeLeafSurfaces = Cvar_Get( "r_mergeLeafSurfaces", "1",  CVAR_LATCH );
+		Cvar::Latch( r_mergeLeafSurfaces );
 
 		r_evsmPostProcess = Cvar_Get( "r_evsmPostProcess", "0",  CVAR_LATCH );
 
-		r_printShaders = Cvar_Get( "r_printShaders", "0", 0 );
-
 		Cvar::Latch( r_bloom );
-		r_FXAA = Cvar_Get( "r_FXAA", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_ssao = Cvar_Get( "r_ssao", "0", CVAR_LATCH | CVAR_ARCHIVE );
+		Cvar::Latch( r_FXAA );
+		Cvar::Latch( r_ssao );
 
 		// temporary variables that can change at any time
-		r_showImages = Cvar_Get( "r_showImages", "0", CVAR_TEMP );
-
-		r_debugSort = Cvar_Get( "r_debugSort", "0", CVAR_CHEAT );
-
-		r_nocurves = Cvar_Get( "r_nocurves", "0", CVAR_CHEAT );
-		r_lightScissors = Cvar_Get( "r_lightScissors", "1", CVAR_ARCHIVE );
-		AssertCvarRange( r_lightScissors, 0, 2, true );
-
-		r_noLightVisCull = Cvar_Get( "r_noLightVisCull", "0", CVAR_CHEAT );
 		r_noInteractionSort = Cvar_Get( "r_noInteractionSort", "0", CVAR_CHEAT );
 
 		Cvar::Latch( r_realtimeLightingRenderer );
@@ -1228,56 +1221,31 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		Cvar::Latch( r_realtimeLightLayers );
 		Cvar::Latch( r_preferBindlessTextures );
 		Cvar::Latch( r_materialSystem );
-
-		r_drawworld = Cvar_Get( "r_drawworld", "1", CVAR_CHEAT );
-		r_max_portal_levels = Cvar_Get( "r_max_portal_levels", "5", 0 );
-
-		r_showSmp = Cvar_Get( "r_showSmp", "0", CVAR_CHEAT );
-		r_skipBackEnd = Cvar_Get( "r_skipBackEnd", "0", CVAR_CHEAT );
+		Cvar::Latch( r_geometryCache );
 
 		r_measureOverdraw = Cvar_Get( "r_measureOverdraw", "0", CVAR_CHEAT );
-		r_lodScale = Cvar_Get( "r_lodScale", "5", CVAR_CHEAT );
-		r_norefresh = Cvar_Get( "r_norefresh", "0", CVAR_CHEAT );
-		r_drawentities = Cvar_Get( "r_drawentities", "1", CVAR_CHEAT );
-		r_drawpolies = Cvar_Get( "r_drawpolies", "1", CVAR_CHEAT );
 		r_ignore = Cvar_Get( "r_ignore", "1", CVAR_CHEAT );
-		r_nocull = Cvar_Get( "r_nocull", "0", CVAR_CHEAT );
-		r_novis = Cvar_Get( "r_novis", "0", CVAR_CHEAT );
-		r_speeds = Cvar_Get( "r_speeds", "0", 0 );
 		r_logFile = Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
-		r_debugSurface = Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
-		r_nobind = Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
-		r_offsetFactor = Cvar_Get( "r_offsetFactor", "-1", CVAR_CHEAT );
-		r_offsetUnits = Cvar_Get( "r_offsetUnits", "-2", CVAR_CHEAT );
 
-		r_physicalMapping = Cvar_Get( "r_physicalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
-		r_specularExponentMin = Cvar_Get( "r_specularExponentMin", "0.001", CVAR_CHEAT );
-		r_specularExponentMax = Cvar_Get( "r_specularExponentMax", "16", CVAR_CHEAT );
-		r_specularScale = Cvar_Get( "r_specularScale", "1.0", CVAR_CHEAT | CVAR_LATCH );
-		r_specularMapping = Cvar_Get( "r_specularMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
-		r_deluxeMapping = Cvar_Get( "r_deluxeMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
-		r_normalScale = Cvar_Get( "r_normalScale", "1.0", CVAR_ARCHIVE );
-		r_normalMapping = Cvar_Get( "r_normalMapping", "1", CVAR_LATCH | CVAR_ARCHIVE );
-		r_highQualityNormalMapping = Cvar_Get( "r_highQualityNormalMapping", "0",  CVAR_LATCH );
-		r_liquidMapping = Cvar_Get( "r_liquidMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_reliefDepthScale = Cvar_Get( "r_reliefDepthScale", "0.02", CVAR_CHEAT );
-		r_reliefMapping = Cvar_Get( "r_reliefMapping", "0", CVAR_LATCH | CVAR_ARCHIVE );
-		r_glowMapping = Cvar_Get( "r_glowMapping", "1", CVAR_LATCH );
+		Cvar::Latch( r_physicalMapping );
+		Cvar::Latch( r_specularScale );
+		Cvar::Latch( r_specularMapping );
+		Cvar::Latch( r_deluxeMapping );
+		Cvar::Latch( r_normalMapping );
+		Cvar::Latch( r_highQualityNormalMapping );
+		Cvar::Latch( r_liquidMapping );
+		Cvar::Latch( r_reliefMapping );
+		Cvar::Latch( r_glowMapping );
 		Cvar::Latch( r_reflectionMapping );
 		Cvar::Latch( r_autoBuildCubeMaps );
 		Cvar::Latch( r_cubeProbeSize );
 		Cvar::Latch( r_cubeProbeSpacing );
 
-		r_halfLambertLighting = Cvar_Get( "r_halfLambertLighting", "1", CVAR_LATCH | CVAR_ARCHIVE );
-		r_rimLighting = Cvar_Get( "r_rimLighting", "0",  CVAR_LATCH | CVAR_ARCHIVE );
-		r_rimExponent = Cvar_Get( "r_rimExponent", "3", CVAR_CHEAT | CVAR_LATCH );
-		AssertCvarRange( r_rimExponent, 0.5, 8.0, false );
+		Cvar::Latch( r_halfLambertLighting );
+		Cvar::Latch( r_rimLighting );
+		Cvar::Latch( r_rimExponent );
 
 		Cvar::Latch( r_highPrecisionRendering );
-
-		r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
-		r_lockpvs = Cvar_Get( "r_lockpvs", "0", CVAR_CHEAT );
-		r_noportals = Cvar_Get( "r_noportals", "0", CVAR_CHEAT );
 
 		Cvar::Latch( r_shadows );
 
@@ -1336,32 +1304,18 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_cullShadowPyramidFaces = Cvar_Get( "r_cullShadowPyramidFaces", "0", CVAR_CHEAT );
 		r_noLightFrustums = Cvar_Get( "r_noLightFrustums", "1", CVAR_CHEAT );
 
-		r_maxPolys = Cvar_Get( "r_maxpolys", "10000", CVAR_LATCH );  // 600 in vanilla Q3A
-		AssertCvarRange( r_maxPolys, 600, 30000, true );
-
-		r_maxPolyVerts = Cvar_Get( "r_maxpolyverts", "100000", CVAR_LATCH );  // 3000 in vanilla Q3A
-		AssertCvarRange( r_maxPolyVerts, 3000, 200000, true );
-
-		r_showTris = Cvar_Get( "r_showTris", "0", CVAR_CHEAT );
-		r_showSky = Cvar_Get( "r_showSky", "0", CVAR_CHEAT );
 		r_showShadowLod = Cvar_Get( "r_showShadowLod", "0", CVAR_CHEAT );
-		r_showShadowMaps = Cvar_Get( "r_showShadowMaps", "0", CVAR_CHEAT );
-		r_showSkeleton = Cvar_Get( "r_showSkeleton", "0", CVAR_CHEAT );
-		r_showEntityTransforms = Cvar_Get( "r_showEntityTransforms", "0", CVAR_CHEAT );
-		r_showLightTransforms = Cvar_Get( "r_showLightTransforms", "0", CVAR_CHEAT );
-		r_showLightInteractions = Cvar_Get( "r_showLightInteractions", "0", CVAR_CHEAT );
-		r_showLightScissors = Cvar_Get( "r_showLightScissors", "0", CVAR_CHEAT );
-		r_showLightBatches = Cvar_Get( "r_showLightBatches", "0", CVAR_CHEAT );
-		r_showLightGrid = Cvar_Get( "r_showLightGrid", "0", CVAR_CHEAT );
-		r_showLightTiles = Cvar_Get("r_showLightTiles", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showBatches = Cvar_Get( "r_showBatches", "0", CVAR_CHEAT );
+
+		Cvar::Latch( r_maxPolys );
+		Cvar::Latch( r_maxPolyVerts );
+
+		Cvar::Latch( r_showLightTiles );
 		Cvar::Latch( r_showVertexColors );
-		r_showLightMaps = Cvar_Get( "r_showLightMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showDeluxeMaps = Cvar_Get( "r_showDeluxeMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showNormalMaps = Cvar_Get( "r_showNormalMaps", "0", CVAR_CHEAT | CVAR_LATCH );
-		r_showMaterialMaps = Cvar_Get( "r_showMaterialMaps", "0", CVAR_CHEAT | CVAR_LATCH );
+		Cvar::Latch( r_showLightMaps );
+		Cvar::Latch( r_showDeluxeMaps );
+		Cvar::Latch( r_showNormalMaps );
+		Cvar::Latch( r_showMaterialMaps );
 		Cvar::Latch( r_showReflectionMaps );
-		r_showBspNodes = Cvar_Get( "r_showBspNodes", "0", CVAR_CHEAT );
 		Cvar::Latch( r_showGlobalMaterials );
 		Cvar::Latch( r_materialDebug );
 		r_showParallelShadowSplits = Cvar_Get( "r_showParallelShadowSplits", "0", CVAR_CHEAT | CVAR_LATCH );
@@ -1444,13 +1398,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 			}
 		}
 
-		if ( r_showNormalMaps->integer
-			|| r_showMaterialMaps->integer )
+		if ( r_showNormalMaps.Get()
+			|| r_showMaterialMaps.Get() )
 		{
 			tr.lightMode = lightMode_t::MAP;
 		}
-		else if ( r_showLightMaps->integer
-			|| r_showDeluxeMaps->integer )
+		else if ( r_showLightMaps.Get()
+			|| r_showDeluxeMaps.Get() )
 		{
 			tr.lightMode = lightMode_t::MAP;
 		}
@@ -1462,38 +1416,38 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		if ( r_reflectionMapping.Get() ) {
 			glConfig2.reflectionMappingAvailable = true;
 
-			if ( !r_normalMapping->integer ) {
+			if ( !r_normalMapping.Get() ) {
 				glConfig2.reflectionMappingAvailable = false;
 				Log::Warn( "Unable to use static reflections without normal mapping, make sure you enable r_normalMapping" );
 			}
 
-			if ( !r_deluxeMapping->integer ) {
+			if ( !r_deluxeMapping.Get() ) {
 				glConfig2.reflectionMappingAvailable = false;
 				Log::Warn( "Unable to use static reflections without deluxe mapping, make sure you enable r_deluxeMapping" );
 			}
 
-			if ( !r_specularMapping->integer ) {
+			if ( !r_specularMapping.Get() ) {
 				glConfig2.reflectionMappingAvailable = false;
 				Log::Warn( "Unable to use static reflections without specular mapping, make sure you enable r_specularMapping" );
 			}
 
-			if ( r_physicalMapping->integer ) {
+			if ( r_physicalMapping.Get() ) {
 				glConfig2.reflectionMappingAvailable = false;
 				Log::Warn( "Unable to use static reflections with physical mapping, make sure you disable r_physicalMapping" );
 			}
 		}
 
 		backEndData[ 0 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 0 ] ), ha_pref::h_low );
-		backEndData[ 0 ]->polys = ( srfPoly_t * ) ri.Hunk_Alloc( r_maxPolys->integer * sizeof( srfPoly_t ), ha_pref::h_low );
-		backEndData[ 0 ]->polyVerts = ( polyVert_t * ) ri.Hunk_Alloc( r_maxPolyVerts->integer * sizeof( polyVert_t ), ha_pref::h_low );
-		backEndData[ 0 ]->polyIndexes = ( int * ) ri.Hunk_Alloc( r_maxPolyVerts->integer * sizeof( int ), ha_pref::h_low );
+		backEndData[ 0 ]->polys = ( srfPoly_t * ) ri.Hunk_Alloc( r_maxPolys.Get() * sizeof( srfPoly_t ), ha_pref::h_low );
+		backEndData[ 0 ]->polyVerts = ( polyVert_t * ) ri.Hunk_Alloc( r_maxPolyVerts.Get() * sizeof( polyVert_t ), ha_pref::h_low );
+		backEndData[ 0 ]->polyIndexes = ( int * ) ri.Hunk_Alloc( r_maxPolyVerts.Get() * sizeof( int ), ha_pref::h_low );
 
-		if ( r_smp->integer )
+		if ( r_smp.Get() )
 		{
 			backEndData[ 1 ] = ( backEndData_t * ) ri.Hunk_Alloc( sizeof( *backEndData[ 1 ] ), ha_pref::h_low );
-			backEndData[ 1 ]->polys = ( srfPoly_t * ) ri.Hunk_Alloc( r_maxPolys->integer * sizeof( srfPoly_t ), ha_pref::h_low );
-			backEndData[ 1 ]->polyVerts = ( polyVert_t * ) ri.Hunk_Alloc( r_maxPolyVerts->integer * sizeof( polyVert_t ), ha_pref::h_low );
-			backEndData[ 1 ]->polyIndexes = ( int * ) ri.Hunk_Alloc( r_maxPolyVerts->integer * sizeof( int ), ha_pref::h_low );
+			backEndData[ 1 ]->polys = ( srfPoly_t * ) ri.Hunk_Alloc( r_maxPolys.Get() * sizeof( srfPoly_t ), ha_pref::h_low );
+			backEndData[ 1 ]->polyVerts = ( polyVert_t * ) ri.Hunk_Alloc( r_maxPolyVerts.Get() * sizeof( polyVert_t ), ha_pref::h_low );
+			backEndData[ 1 ]->polyIndexes = ( int * ) ri.Hunk_Alloc( r_maxPolyVerts.Get() * sizeof( int ), ha_pref::h_low );
 		}
 		else
 		{
@@ -1553,7 +1507,13 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		R_DoneFreeType();
 
-		materialSystem.Free();
+		if ( glConfig2.usingMaterialSystem ) {
+			materialSystem.Free();
+		}
+
+		if ( glConfig2.usingGeometryCache ) {
+			geometryCache.Free();
+		}
 
 		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )

@@ -911,6 +911,24 @@ enum class shaderProfilerRenderSubGroupsMode {
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
 		size_t numOps;
+
+		bool operator==( const expression_t& other ) {
+			if ( numOps != other.numOps ) {
+				return false;
+			}
+
+			for ( size_t i = 0; i < numOps; i++ ) {
+				if ( ops[i].type != other.ops[i].type || ops[i].value != other.ops[i].value ) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool operator!=( const expression_t& other ) {
+			return !( *this == other );
+		}
 	};
 
 	struct waveForm_t
@@ -921,6 +939,15 @@ enum class shaderProfilerRenderSubGroupsMode {
 		float     amplitude;
 		float     phase;
 		float     frequency;
+
+		bool operator==( const waveForm_t& other ) {
+			return func == other.func && base == other.base && amplitude == other.amplitude && phase == other.phase
+				&& frequency == other.frequency;
+		}
+
+		bool operator!=( const waveForm_t& other ) {
+			return !( *this == other );
+		}
 	};
 
 #define TR_MAX_TEXMODS 4
@@ -988,6 +1015,17 @@ enum class shaderProfilerRenderSubGroupsMode {
 		expression_t sExp;
 		expression_t tExp;
 		expression_t rExp;
+
+		bool operator==( const texModInfo_t& other ) {
+			return type == other.type && wave == other.wave && MatrixCompare( matrix, other.matrix )
+				&& scale[0] == other.scale[0] && scale[1] == other.scale[1] && scroll[0] == other.scroll[0] && scroll[1] == other.scroll[1]
+				&& rotateSpeed == other.rotateSpeed
+				&& sExp == other.sExp && tExp == other.tExp && rExp == other.rExp;
+		}
+
+		bool operator!=( const texModInfo_t& other ) {
+			return !( *this == other );
+		}
 	};
 
 #define MAX_IMAGE_ANIMATIONS 32
@@ -1064,9 +1102,16 @@ enum class shaderProfilerRenderSubGroupsMode {
 	struct drawSurf_t;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
-	using stageSurfaceDataUpdater_t = void(*)(uint32_t*, Material&, drawSurf_t*, const uint32_t);
+	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
+
+	enum ShaderStageVariant {
+		VERTEX_OVERBRIGHT = 1,
+		VERTEX_LIT = BIT( 1 ),
+		FULLBRIGHT = BIT( 2 ),
+		ALL = BIT( 3 )
+	};
 
 	struct shaderStage_t
 	{
@@ -1082,7 +1127,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		stageRenderer_t colorRenderer;
 
 		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
-		stageSurfaceDataUpdater_t surfaceDataUpdater;
+		surfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
 
@@ -1164,12 +1209,22 @@ enum class shaderProfilerRenderSubGroupsMode {
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
 
 		bool useMaterialSystem = false;
-		uint materialPackID = 0;
-		uint materialID = 0;
+		shader_t* shader;
+		shaderStage_t* materialRemappedStage = nullptr;
+
+		uint32_t paddedSize = 0;
+
+		uint32_t materialOffset = 0;
+		uint32_t bufferOffset = 0;
+		uint32_t dynamicBufferOffset = 0;
+
+		bool initialized = false;
+
 		bool dynamic = false;
 		bool colorDynamic = false;
-		bool texMatricesDynamic = false;
-		bool texturesDynamic = false;
+
+		int variantOffsets[ShaderStageVariant::ALL];
+		uint32_t variantOffset = 0;
 	};
 
 	enum cullType_t : int
@@ -1606,12 +1661,14 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int fog;
 		int portalNum = -1;
 
-		uint materialsSSBOOffset[ MAX_SHADER_STAGES ];
-		bool initialized[ MAX_SHADER_STAGES ];
-		uint materialIDs[ MAX_SHADER_STAGES ];
-		uint materialPackIDs[ MAX_SHADER_STAGES ];
-		bool texturesDynamic[ MAX_SHADER_STAGES ];
-		uint drawCommandIDs[ MAX_SHADER_STAGES ];
+
+		uint32_t materialPackIDs[MAX_SHADER_STAGES];
+		uint32_t materialIDs[MAX_SHADER_STAGES];
+
+		uint32_t drawCommandIDs[MAX_SHADER_STAGES];
+		uint32_t texDataIDs[MAX_SHADER_STAGES];
+		bool texDataDynamic[MAX_SHADER_STAGES];
+		uint32_t shaderVariant[MAX_SHADER_STAGES];
 
 		drawSurf_t* depthSurface;
 		drawSurf_t* fogSurface;
@@ -2861,33 +2918,27 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	extern glstate_t      glState; // outside of TR since it shouldn't be cleared during ref re-init
 
-//
 // cvars
-//
-	extern cvar_t *r_glMajorVersion; // override GL version autodetect (for testing)
-	extern cvar_t *r_glMinorVersion;
-	extern cvar_t *r_glProfile;
 	extern Cvar::Cvar<bool> r_glDebugProfile;
 	extern Cvar::Range<Cvar::Cvar<int>> r_glDebugMode;
-	extern cvar_t *r_glAllowSoftware;
-	extern cvar_t *r_glExtendedValidation;
+	extern Cvar::Cvar<bool> r_glExtendedValidation;
 
 	extern cvar_t *r_ignore; // used for debugging anything
 
 	extern Cvar::Cvar<bool> r_dpBlend;
 
-	extern cvar_t *r_znear; // near Z clip plane
-	extern cvar_t *r_zfar;
+	extern Cvar::Cvar<float> r_znear; // near Z clip plane
+	extern Cvar::Cvar<float> r_zfar;
 
-	extern cvar_t *r_colorbits; // number of desired color bits, only relevant for fullscreen
+	extern Cvar::Cvar<int> r_colorbits;
 
 	extern cvar_t *r_measureOverdraw; // enables stencil buffer overdraw measurement
 
-	extern cvar_t *r_lodBias; // push/pull LOD transitions
-	extern cvar_t *r_lodScale;
+	extern Cvar::Cvar<int> r_lodBias; // push/pull LOD transitions
+	extern Cvar::Cvar<int> r_lodScale;
 
-	extern cvar_t *r_wolfFog;
-	extern cvar_t *r_noFog;
+	extern Cvar::Cvar<bool> r_wolfFog;
+	extern Cvar::Cvar<bool> r_noFog;
 
 	extern Cvar::Range<Cvar::Cvar<float>> r_forceAmbient;
 	extern Cvar::Cvar<float> r_ambientScale;
@@ -2897,8 +2948,8 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightingRenderer;
 	extern Cvar::Cvar<bool> r_realtimeLighting;
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers;
-	extern cvar_t *r_realtimeLightingCastShadows;
-	extern cvar_t *r_precomputedLighting;
+	extern Cvar::Cvar<bool> r_realtimeLightingCastShadows;
+	extern Cvar::Cvar<bool> r_precomputedLighting;
 	extern Cvar::Cvar<int> r_overbrightDefaultExponent;
 	extern Cvar::Cvar<bool> r_overbrightDefaultClamp;
 	extern Cvar::Cvar<bool> r_overbrightIgnoreMapSettings;
@@ -2909,63 +2960,63 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Cvar<bool> r_gpuFrustumCulling;
 	extern Cvar::Cvar<bool> r_gpuOcclusionCulling;
 	extern Cvar::Cvar<bool> r_materialSystemSkip;
-	extern cvar_t *r_lightStyles;
-	extern cvar_t *r_exportTextures;
-	extern cvar_t *r_heatHaze;
-	extern cvar_t *r_noMarksOnTrisurfs;
+	extern Cvar::Cvar<bool> r_geometryCache;
+	extern Cvar::Cvar<bool> r_lightStyles;
+	extern Cvar::Cvar<bool> r_exportTextures;
+	extern Cvar::Cvar<bool> r_heatHaze;
+	extern Cvar::Cvar<bool> r_noMarksOnTrisurfs;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lazyShaders; // 0: build all shaders on program start 1: delay shader build until first map load 2: delay shader build until needed
 
-	extern cvar_t *r_norefresh; // bypasses the ref rendering
-	extern cvar_t *r_drawentities; // disable/enable entity rendering
-	extern cvar_t *r_drawworld; // disable/enable world rendering
-	extern cvar_t *r_drawpolies; // disable/enable world rendering
-	extern cvar_t *r_speeds; // various levels of information display
-	extern cvar_t *r_novis; // disable/enable usage of PVS
-	extern cvar_t *r_nocull;
-	extern cvar_t *r_facePlaneCull; // enables culling of planar surfaces with back side test
-	extern cvar_t *r_nocurves;
-	extern cvar_t *r_lightScissors;
-	extern cvar_t *r_noLightVisCull;
+	extern Cvar::Cvar<bool> r_norefresh;
+	extern Cvar::Cvar<bool> r_drawentities;
+	extern Cvar::Cvar<bool> r_drawworld;
+	extern Cvar::Cvar<bool> r_drawpolies;
+	extern Cvar::Range<Cvar::Cvar<int>> r_speeds;
+	extern Cvar::Cvar<bool> r_novis;
+	extern Cvar::Cvar<bool> r_nocull;
+	extern Cvar::Cvar<bool> r_facePlaneCull;
+	extern Cvar::Cvar<bool> r_nocurves;
+	extern Cvar::Range<Cvar::Cvar<int>> r_lightScissors;
 	extern cvar_t *r_noInteractionSort;
 
-	extern cvar_t *r_mode; // video mode
-	extern cvar_t *r_gamma;
+	extern Cvar::Cvar<int> r_mode;
+	extern Cvar::Cvar<float> r_gamma;
 
-	extern cvar_t *r_nobind; // turns off binding to appropriate textures
-	extern cvar_t *r_singleShader; // make most world faces use default shader
-	extern cvar_t *r_picMip; // controls picmip values
-	extern cvar_t *r_imageMaxDimension;
-	extern cvar_t *r_ignoreMaterialMinDimension;
-	extern cvar_t *r_ignoreMaterialMaxDimension;
-	extern cvar_t *r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
+	extern Cvar::Cvar<bool> r_nobind;
+	extern Cvar::Cvar<bool> r_singleShader;
+	extern Cvar::Cvar<int> r_picMip;
+	extern Cvar::Cvar<int> r_imageMaxDimension;
+	extern Cvar::Cvar<bool> r_ignoreMaterialMinDimension;
+	extern Cvar::Cvar<bool> r_ignoreMaterialMaxDimension;
+	extern Cvar::Cvar<bool> r_replaceMaterialMinDimensionIfPresentWithMaxDimension;
 	extern Cvar::Range<Cvar::Cvar<int>> r_imageFitScreen;
-	extern cvar_t *r_finish;
-	extern cvar_t *r_drawBuffer;
+	extern Cvar::Cvar<bool> r_finish;
+	extern Cvar::Cvar<std::string> r_drawBuffer;
 	extern Cvar::Modified<Cvar::Cvar<std::string>> r_textureMode;
-	extern cvar_t *r_offsetFactor;
-	extern cvar_t *r_offsetUnits;
+	extern Cvar::Cvar<float> r_offsetFactor;
+	extern Cvar::Cvar<float> r_offsetUnits;
 
-	extern cvar_t *r_physicalMapping;
-	extern cvar_t *r_specularExponentMin;
-	extern cvar_t *r_specularExponentMax;
-	extern cvar_t *r_specularScale;
-	extern cvar_t *r_specularMapping;
-	extern cvar_t *r_deluxeMapping;
-	extern cvar_t *r_normalScale;
-	extern cvar_t *r_normalMapping;
-	extern cvar_t *r_highQualityNormalMapping;
-	extern cvar_t *r_liquidMapping;
-	extern cvar_t *r_reliefDepthScale;
-	extern cvar_t *r_reliefMapping;
-	extern cvar_t *r_glowMapping;
+	extern Cvar::Cvar<bool> r_physicalMapping;
+	extern Cvar::Cvar<float> r_specularExponentMin;
+	extern Cvar::Cvar<float> r_specularExponentMax;
+	extern Cvar::Cvar<float> r_specularScale;
+	extern Cvar::Cvar<bool> r_specularMapping;
+	extern Cvar::Cvar<bool> r_deluxeMapping;
+	extern Cvar::Cvar<float> r_normalScale;
+	extern Cvar::Cvar<bool> r_normalMapping;
+	extern Cvar::Cvar<bool> r_highQualityNormalMapping;
+	extern Cvar::Cvar<bool> r_liquidMapping;
+	extern Cvar::Cvar<float> r_reliefDepthScale;
+	extern Cvar::Cvar<bool> r_reliefMapping;
+	extern Cvar::Cvar<bool> r_glowMapping;
 	extern Cvar::Cvar<bool> r_reflectionMapping;
 	extern Cvar::Range<Cvar::Cvar<int>> r_autoBuildCubeMaps;
 	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSize;
 	extern Cvar::Range<Cvar::Cvar<int>> r_cubeProbeSpacing;
 
-	extern cvar_t *r_halfLambertLighting;
-	extern cvar_t *r_rimLighting;
-	extern cvar_t *r_rimExponent;
+	extern Cvar::Cvar<bool> r_halfLambertLighting;
+	extern Cvar::Cvar<bool> r_rimLighting;
+	extern Cvar::Range<Cvar::Cvar<float>> r_rimExponent;
 
 	extern Cvar::Cvar<bool> r_highPrecisionRendering;
 
@@ -3001,51 +3052,51 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_parallelShadowSplits;
 	extern cvar_t *r_parallelShadowSplitWeight;
 
-	extern cvar_t *r_lockpvs;
-	extern cvar_t *r_noportals;
-	extern cvar_t *r_max_portal_levels;
+	extern Cvar::Cvar<bool> r_lockpvs;
+	extern Cvar::Cvar<bool> r_noportals;
+	extern Cvar::Cvar<int> r_max_portal_levels;
 
-	extern cvar_t *r_subdivisions;
-	extern cvar_t *r_stitchCurves;
+	extern Cvar::Cvar<int> r_subdivisions;
+	extern Cvar::Cvar<bool> r_stitchCurves;
 
-	extern cvar_t *r_smp;
-	extern cvar_t *r_showSmp;
-	extern cvar_t *r_skipBackEnd;
+	extern Cvar::Cvar<bool> r_smp;
+	extern Cvar::Cvar<bool> r_showSmp;
+	extern Cvar::Cvar<bool> r_skipBackEnd;
 
-	extern cvar_t *r_checkGLErrors;
+	extern Cvar::Range<Cvar::Cvar<int>> r_checkGLErrors;
 
-	extern cvar_t *r_debugSurface;
+	extern Cvar::Cvar<bool> r_debugSurface;
 
-	extern cvar_t *r_showImages;
-	extern cvar_t *r_debugSort;
+	extern Cvar::Range<Cvar::Cvar<int>> r_showImages;
+	extern Cvar::Cvar<int> r_debugSort;
 
-	extern cvar_t *r_printShaders;
+	extern Cvar::Cvar<bool> r_printShaders;
 
-	extern cvar_t *r_maxPolys;
-	extern cvar_t *r_maxPolyVerts;
+	extern Cvar::Range<Cvar::Cvar<int>> r_maxPolys;
+	extern Cvar::Range<Cvar::Cvar<int>> r_maxPolyVerts;
 
-	extern cvar_t *r_showTris; // enables wireframe rendering of the world
-	extern cvar_t *r_showSky; // forces sky in front of all surfaces
+	extern Cvar::Cvar<bool> r_showTris;
+	extern Cvar::Cvar<bool> r_showSky;
 	extern cvar_t *r_showShadowLod;
 	extern cvar_t *r_showShadowMaps;
-	extern cvar_t *r_showSkeleton;
-	extern cvar_t *r_showEntityTransforms;
-	extern cvar_t *r_showLightTransforms;
-	extern cvar_t *r_showLightInteractions;
-	extern cvar_t *r_showLightScissors;
-	extern cvar_t *r_showLightBatches;
-	extern cvar_t *r_showLightGrid;
-	extern cvar_t *r_showLightTiles;
-	extern cvar_t *r_showBatches;
+	extern Cvar::Cvar<bool> r_showSkeleton;
+	extern Cvar::Cvar<bool> r_showEntityTransforms;
+	extern Cvar::Cvar<bool> r_showLightTransforms;
+	extern Cvar::Cvar<bool> r_showLightInteractions;
+	extern Cvar::Cvar<bool> r_showLightScissors;
+	extern Cvar::Cvar<bool> r_showLightBatches;
+	extern Cvar::Cvar<bool> r_showLightGrid;
+	extern Cvar::Cvar<bool> r_showLightTiles;
+	extern Cvar::Cvar<bool> r_showBatches;
 	extern Cvar::Cvar<bool> r_showVertexColors;
-	extern cvar_t *r_showLightMaps; // render lightmaps only
-	extern cvar_t *r_showDeluxeMaps;
-	extern cvar_t *r_showNormalMaps;
-	extern cvar_t *r_showMaterialMaps;
+	extern Cvar::Cvar<bool> r_showLightMaps;
+	extern Cvar::Cvar<bool> r_showDeluxeMaps;
+	extern Cvar::Cvar<bool> r_showNormalMaps;
+	extern Cvar::Cvar<bool> r_showMaterialMaps;
 	extern Cvar::Cvar<bool> r_showReflectionMaps;
 	extern Cvar::Range<Cvar::Cvar<int>> r_showCubeProbes;
 	extern Cvar::Cvar<int> r_showCubeProbeFace;
-	extern cvar_t *r_showBspNodes;
+	extern Cvar::Range<Cvar::Cvar<int>> r_showBspNodes;
 	extern Cvar::Range<Cvar::Cvar<int>> r_showGlobalMaterials;
 	extern Cvar::Cvar<bool> r_materialDebug;
 	extern cvar_t *r_showParallelShadowSplits;
@@ -3056,19 +3107,19 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Range<Cvar::Cvar<int>> r_profilerRenderSubGroupsMode;
 	extern Cvar::Cvar<int> r_profilerRenderSubGroupsStage;
 
-	extern cvar_t *r_vboFaces;
-	extern cvar_t *r_vboCurves;
-	extern cvar_t *r_vboTriangles;
-	extern cvar_t *r_vboModels;
-	extern cvar_t *r_vboVertexSkinning;
+	extern Cvar::Cvar<bool> r_vboFaces;
+	extern Cvar::Cvar<bool> r_vboCurves;
+	extern Cvar::Cvar<bool> r_vboTriangles;
+	extern Cvar::Cvar<bool> r_vboModels;
+	extern Cvar::Cvar<bool> r_vboVertexSkinning;
 
-	extern cvar_t *r_mergeLeafSurfaces;
+	extern Cvar::Cvar<bool> r_mergeLeafSurfaces;
 
 	extern Cvar::Cvar<bool> r_bloom;
 	extern Cvar::Cvar<float> r_bloomBlur;
 	extern Cvar::Cvar<int> r_bloomPasses;
-	extern cvar_t *r_FXAA;
-	extern cvar_t *r_ssao;
+	extern Cvar::Cvar<bool> r_FXAA;
+	extern Cvar::Cvar<int> r_ssao;
 
 	extern cvar_t *r_evsmPostProcess;
 
@@ -3081,9 +3132,9 @@ enum class shaderProfilerRenderSubGroupsMode {
 inline bool checkGLErrors()
 {
 #ifdef DEBUG_BUILD
-	return r_checkGLErrors->integer != 0;
+	return r_checkGLErrors.Get() != 0;
 #else
-	return r_checkGLErrors->integer > 0;
+	return r_checkGLErrors.Get() > 0;
 #endif
 }
 
@@ -3192,7 +3243,7 @@ inline bool checkGLErrors()
 	void GL_Bind( image_t *image );
 	void GL_BindNearestCubeMap( int unit, const vec3_t xyz );
 	void GL_Unbind( image_t *image );
-	GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle );
+	GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle );
 	void GL_TextureFilter( image_t *image, filterType_t filterType );
 	void GL_BindProgram( shaderProgram_t *program );
 	GLuint64 GL_BindToTMU( int unit, image_t *image );
@@ -3658,6 +3709,10 @@ inline bool checkGLErrors()
 
 	============================================================
 	*/
+	uint32_t ComponentSize( GLenum type );
+	void CopyVertexAttribute( const vboAttributeLayout_t& attrib, const vertexAttributeSpec_t& spec,
+		uint32_t count, byte* interleavedData );
+
 	VBO_t *R_CreateStaticVBO(
 		Str::StringRef name, const vertexAttributeSpec_t *attrBegin, const vertexAttributeSpec_t *attrEnd,
 		uint32_t numVerts, uint32_t numFrames = 0 );

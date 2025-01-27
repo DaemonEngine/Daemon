@@ -342,7 +342,7 @@ cullResult_t R_CullBox( vec3_t worldBounds[ 2 ] )
 	cplane_t *frust;
 	int i, r;
 
-	if ( r_nocull->integer )
+	if ( r_nocull.Get() )
 	{
 		return cullResult_t::CULL_CLIP;
 	}
@@ -421,7 +421,7 @@ cullResult_t R_CullPointAndRadius( vec3_t pt, float radius )
 	cplane_t *frust;
 	bool mightBeClipped = false;
 
-	if ( r_nocull->integer )
+	if ( r_nocull.Get() )
 	{
 		return cullResult_t::CULL_CLIP;
 	}
@@ -895,14 +895,14 @@ static void R_SetupProjection( bool infiniteFarClip )
 	// portal views are constrained to their surface plane
 	if ( tr.viewParms.portalLevel == 0 )
 	{
-		tr.viewParms.zNear = r_znear->value;
+		tr.viewParms.zNear = r_znear.Get();
 	}
 
 	zNear = tr.viewParms.zNear;
 
-	if ( r_zfar->value )
+	if ( r_zfar.Get() )
 	{
-		zFar = tr.viewParms.zFar = std::max( tr.viewParms.zFar, r_zfar->value );
+		zFar = tr.viewParms.zFar = std::max( tr.viewParms.zFar, r_zfar.Get() );
 	}
 	else if ( infiniteFarClip )
 	{
@@ -913,7 +913,7 @@ static void R_SetupProjection( bool infiniteFarClip )
 		zFar = tr.viewParms.zFar;
 	}
 
-	if ( zFar <= 0 || infiniteFarClip ) // || r_showBspNodes->integer)
+	if ( zFar <= 0 || infiniteFarClip )
 	{
 		MatrixPerspectiveProjectionFovXYInfiniteRH( proj, tr.refdef.fov_x, tr.refdef.fov_y, zNear );
 	}
@@ -1016,7 +1016,7 @@ static void R_SetupFrustum()
 		tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].type = PLANE_NON_AXIAL;
 		VectorCopy( tr.viewParms.orientation.axis[ 0 ], tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal );
 
-		VectorMA( tr.viewParms.orientation.origin, r_znear->value, tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal, planeOrigin );
+		VectorMA( tr.viewParms.orientation.origin, r_znear.Get(), tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal, planeOrigin );
 		tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].dist = DotProduct( planeOrigin, tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ].normal );
 		SetPlaneSignbits( &tr.viewParms.frustums[ 0 ][ FRUSTUM_NEAR ] );
 	}
@@ -1697,7 +1697,7 @@ static void R_SetupPortalFrustum( const viewParms_t& oldParms, const orientation
 	}
 
 	zNear = sqrtf(zNear);
-	zNear = std::max(zNear, r_znear->value);
+	zNear = std::max(zNear, r_znear.Get() );
 
 	newParms.zNear = zNear;
 }
@@ -1715,7 +1715,7 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 	screenRect_t  surfRect;
 
 	// don't recursively mirror too much
-	if ( tr.viewParms.portalLevel >= r_max_portal_levels->integer &&
+	if ( tr.viewParms.portalLevel >= r_max_portal_levels.Get() &&
 	     tr.viewParms.portalLevel > 0 )
 	{
 		/* Having more than one mirror in a scene is not a bug,
@@ -1725,7 +1725,7 @@ bool R_MirrorViewBySurface(drawSurf_t *drawSurf)
 		return false;
 	}
 
-	if (r_noportals->integer)
+	if ( r_noportals.Get() )
 	{
 		return false;
 	}
@@ -2038,16 +2038,15 @@ R_AddEntitySurfaces
 */
 void R_AddEntitySurfaces()
 {
-	int           i;
 	trRefEntity_t *ent;
 	shader_t      *shader;
 
-	if ( !r_drawentities->integer )
+	if ( !r_drawentities.Get() )
 	{
 		return;
 	}
 
-	for ( i = 0; i < tr.refdef.numEntities; i++ )
+	for ( int i = 0; i < tr.refdef.numEntities; i++ )
 	{
 		ent = tr.currentEntity = &tr.refdef.entities[ i ];
 
@@ -2148,16 +2147,15 @@ R_AddEntityInteractions
 */
 void R_AddEntityInteractions( trRefLight_t *light )
 {
-	int               i;
 	trRefEntity_t     *ent;
 	interactionType_t iaType;
 
-	if ( !r_drawentities->integer )
+	if ( !r_drawentities.Get() )
 	{
 		return;
 	}
 
-	for ( i = 0; i < tr.refdef.numEntities; i++ )
+	for ( int i = 0; i < tr.refdef.numEntities; i++ )
 	{
 		iaType = IA_DEFAULT;
 
@@ -2464,7 +2462,7 @@ Visualization aid for movement clipping debugging
 */
 static void R_DebugGraphics()
 {
-	if ( r_debugSurface->integer )
+	if ( r_debugSurface.Get() )
 	{
 		// the render thread can't make callbacks to the main thread
 		R_SyncRenderThread();

@@ -532,6 +532,12 @@ static std::string GenVertexHeader() {
 		str += "#define baseInstance gl_BaseInstanceARB\n\n";
 	}
 
+	if ( glConfig2.usingMaterialSystem ) {
+		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
+		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
+		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
+	}
+
 	return str;
 }
 
@@ -566,6 +572,12 @@ static std::string GenFragmentHeader() {
 		str += "#define baseInstance in_baseInstance\n\n";
 	}
 
+	if ( glConfig2.usingMaterialSystem ) {
+		AddDefine( str, "BIND_MATERIALS", Util::ordinal( BufferBind::MATERIALS ) );
+		AddDefine( str, "BIND_TEX_DATA", Util::ordinal( BufferBind::TEX_DATA ) );
+		AddDefine( str, "BIND_LIGHTMAP_DATA", Util::ordinal( BufferBind::LIGHTMAP_DATA ) );
+	}
+
 	return str;
 }
 
@@ -573,11 +585,23 @@ static std::string GenComputeHeader() {
 	std::string str;
 
 	// Compute shader compatibility defines
-	AddDefine( str, "MAX_VIEWS", MAX_VIEWS );
-	AddDefine( str, "MAX_FRAMES", MAX_FRAMES );
-	AddDefine( str, "MAX_VIEWFRAMES", MAX_VIEWFRAMES );
-	AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
-	AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
+	if ( glConfig2.usingMaterialSystem ) {
+		AddDefine( str, "MAX_VIEWS", MAX_VIEWS );
+		AddDefine( str, "MAX_FRAMES", MAX_FRAMES );
+		AddDefine( str, "MAX_VIEWFRAMES", MAX_VIEWFRAMES );
+		AddDefine( str, "MAX_SURFACE_COMMAND_BATCHES", MAX_SURFACE_COMMAND_BATCHES );
+		AddDefine( str, "MAX_COMMAND_COUNTERS", MAX_COMMAND_COUNTERS );
+
+		AddDefine( str, "BIND_SURFACE_DESCRIPTORS", Util::ordinal( BufferBind::SURFACE_DESCRIPTORS ) );
+		AddDefine( str, "BIND_SURFACE_COMMANDS", Util::ordinal( BufferBind::SURFACE_COMMANDS ) );
+		AddDefine( str, "BIND_CULLED_COMMANDS", Util::ordinal( BufferBind::CULLED_COMMANDS ) );
+		AddDefine( str, "BIND_SURFACE_BATCHES", Util::ordinal( BufferBind::SURFACE_BATCHES ) );
+		AddDefine( str, "BIND_COMMAND_COUNTERS_ATOMIC", Util::ordinal( BufferBind::COMMAND_COUNTERS_ATOMIC ) );
+		AddDefine( str, "BIND_COMMAND_COUNTERS_STORAGE", Util::ordinal( BufferBind::COMMAND_COUNTERS_STORAGE ) );
+		AddDefine( str, "BIND_PORTAL_SURFACES", Util::ordinal( BufferBind::PORTAL_SURFACES ) );
+
+		AddDefine( str, "BIND_DEBUG", Util::ordinal( BufferBind::DEBUG ) );
+	}
 
 	if ( glConfig2.usingBindlessTextures ) {
 		str += "layout(bindless_image) uniform;\n";
@@ -599,9 +623,14 @@ static std::string GenEngineConstants() {
 	// Engine constants
 	std::string str;
 
-	AddDefine( str, "r_AmbientScale", r_ambientScale.Get() );
-	AddDefine( str, "r_SpecularScale", r_specularScale->value );
-	AddDefine( str, "r_zNear", r_znear->value );
+	if ( r_ambientScale.Get() ) {
+		AddDefine( str, "r_AmbientScale", 1 );
+	}
+
+	if ( r_specularScale.Get() ) {
+		AddDefine( str, "r_SpecularScale", 1 );
+	}
+	AddDefine( str, "r_zNear", r_znear.Get() );
 
 	AddDefine( str, "M_PI", static_cast< float >( M_PI ) );
 	AddDefine( str, "MAX_SHADOWMAPS", MAX_SHADOWMAPS );
@@ -712,22 +741,23 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_realtimeLightingRenderer", r_realtimeLightingRenderer.Get() );
 	}
 
-	if ( r_precomputedLighting->integer )
+	if ( r_precomputedLighting.Get() ) {
 		AddDefine( str, "r_precomputedLighting", 1 );
+	}
 
-	if ( r_showNormalMaps->integer )
+	if ( r_showNormalMaps.Get() )
 	{
 		AddDefine( str, "r_showNormalMaps", 1 );
 	}
-	else if ( r_showMaterialMaps->integer )
+	else if ( r_showMaterialMaps.Get() )
 	{
 		AddDefine( str, "r_showMaterialMaps", 1 );
 	}
-	else if ( r_showLightMaps->integer )
+	else if ( r_showLightMaps.Get() )
 	{
 		AddDefine( str, "r_showLightMaps", 1 );
 	}
-	else if ( r_showDeluxeMaps->integer )
+	else if ( r_showDeluxeMaps.Get() )
 	{
 		AddDefine( str, "r_showDeluxeMaps", 1 );
 	}
@@ -769,16 +799,18 @@ static std::string GenEngineConstants() {
 		AddConst( str, "MAX_GLSL_BONES", 4 );
 	}
 
-	if ( r_halfLambertLighting->integer )
-		AddDefine( str, "r_halfLambertLighting", 1 );
-
-	if ( r_rimLighting->integer )
+	if ( r_halfLambertLighting.Get() )
 	{
-		AddDefine( str, "r_rimLighting", 1 );
-		AddConst( str, "r_RimExponent", r_rimExponent->value );
+		AddDefine( str, "r_halfLambertLighting", 1 );
 	}
 
-	if ( r_showLightTiles->integer )
+	if ( r_rimLighting.Get() )
+	{
+		AddDefine( str, "r_rimLighting", 1 );
+		AddConst( str, "r_RimExponent", r_rimExponent.Get() );
+	}
+
+	if ( r_showLightTiles.Get() )
 	{
 		AddDefine( str, "r_showLightTiles", 1 );
 	}
@@ -788,7 +820,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_normalMapping", 1 );
 	}
 
-	if ( r_liquidMapping->integer )
+	if ( r_liquidMapping.Get() )
 	{
 		AddDefine( str, "r_liquidMapping", 1 );
 	}
@@ -803,7 +835,7 @@ static std::string GenEngineConstants() {
 		AddDefine( str, "r_physicalMapping", 1 );
 	}
 
-	if ( r_glowMapping->integer )
+	if ( r_glowMapping.Get() )
 	{
 		AddDefine( str, "r_glowMapping", 1 );
 	}
@@ -812,8 +844,6 @@ static std::string GenEngineConstants() {
 	{
 		AddDefine( str, "r_colorGrading", 1 );
 	}
-
-	AddDefine( str, "r_zNear", r_znear->value );
 
 	return str;
 }
@@ -1359,9 +1389,53 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	std::string newShaderText;
 	std::string materialStruct = "\nstruct Material {\n";
-	std::string materialBlock = "layout(std430, binding = 0) readonly buffer materialsSSBO {\n"
-									 "  Material materials[];\n"
-									 "};\n\n";
+	// 6 kb for materials
+	const uint32_t count = ( 4096 + 2048 ) / shader->GetPaddedSize();
+	std::string materialBlock = "layout(std140, binding = "
+		                        + std::to_string( Util::ordinal( BufferBind::MATERIALS ) )
+		                        + ") uniform materialsUBO {\n"
+	                            "	Material materials[" + std::to_string( count ) + "]; \n"
+	                            "};\n\n";
+
+	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
+		"layout(std140, binding = "
+		+ std::to_string( Util::ordinal( BufferBind::TEX_DATA ) )
+		+ ") uniform texDataUBO {\n"
+		"	TexData texData[" + std::to_string( MAX_TEX_BUNDLES ) + "]; \n"
+		"};\n\n"
+		: "layout(std430, binding = "
+		+ std::to_string( Util::ordinal( BufferBind::TEX_DATA ) )
+		+ ") restrict readonly buffer texDataSSBO {\n"
+		"	TexData texData[];\n"
+		"};\n\n";
+	// We have to store u_TextureMatrix as vec4 + vec2 because otherwise it would be aligned to a vec4 under std140
+	std::string texDataBlock = "struct TexData {\n"
+		                       "	vec4 u_TextureMatrix;\n"
+	                           "	vec2 u_TextureMatrix2;\n"
+	                           "	uvec2 u_DiffuseMap;\n"
+	                           "	uvec2 u_NormalMap;\n"
+	                           "	uvec2 u_HeightMap;\n"
+	                           "	uvec2 u_MaterialMap;\n"
+	                           "	uvec2 u_GlowMap;\n"
+	                           "};\n\n"
+	                           + texBuf +
+		                       "#define u_TextureMatrix mat3x2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.xy, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.zw, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix2 )\n"
+		                       "#define u_DiffuseMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_DiffuseMap\n"
+		                       "#define u_NormalMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_NormalMap\n"
+		                       "#define u_HeightMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_HeightMap\n"
+		                       "#define u_MaterialMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_MaterialMap\n"
+		                       "#define u_GlowMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_GlowMap\n\n"
+		                       "struct LightMapData {\n"
+	                           "	uvec2 u_LightMap;\n"
+	                           "	uvec2 u_DeluxeMap;\n"
+	                           "};\n\n"
+	                           "layout(std140, binding = "
+		                       + std::to_string( Util::ordinal( BufferBind::LIGHTMAP_DATA ) )
+		                       + ") uniform lightMapDataUBO {\n"
+	                           "	LightMapData lightMapData[256];\n"
+	                           "};\n\n"
+		                       "#define u_LightMap_initial lightMapData[( baseInstance >> 24 ) & 0xFF].u_LightMap\n"
+		                       "#define u_DeluxeMap_initial lightMapData[( baseInstance >> 24 ) & 0xFF].u_DeluxeMap\n\n";
 	std::string materialDefines;
 
 	/* Generate the struct and defines in the form of:
@@ -1380,24 +1454,25 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			continue;
 		}
 
+		if ( !uniform->IsTexture() ) {
+			materialStruct += "	" + uniform->GetType() + " " + uniform->GetName();
+
+			if ( uniform->GetComponentSize() ) {
+				materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
+			}
+			materialStruct += ";\n";
+
+			// vec3 is aligned to 4 components, so just pad it with int
+			// TODO: Try to move 1 component uniforms here to avoid wasting memory
+			if ( uniform->GetSTD430Size() == 3 ) {
+				materialStruct += "	int ";
+				materialStruct += uniform->GetName();
+				materialStruct += "_padding;\n";
+			}
+		}
+
 		if ( uniform->IsTexture() ) {
-			materialStruct += "  uvec2 ";
-			materialStruct += uniform->GetName();
-		} else {
-			materialStruct += "  " + uniform->GetType() + " " + uniform->GetName();
-		}
-
-		if ( uniform->GetComponentSize() ) {
-			materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
-		}
-		materialStruct += ";\n";
-
-		// vec3 is aligned to 4 components, so just pad it with int
-		// TODO: Try to move 1 component uniforms here to avoid wasting memory
-		if ( uniform->GetSTD430Size() == 3 ) {
-			materialStruct += "  int ";
-			materialStruct += uniform->GetName();
-			materialStruct += "_padding;\n";
+			continue;
 		}
 
 		materialDefines += "#define ";
@@ -1407,7 +1482,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			materialDefines += "_initial uvec2("; // We'll need this to create sampler objects later
 		}
 
-		materialDefines += " materials[baseInstance].";
+		materialDefines += " materials[baseInstance & 0xFFF].";
 		materialDefines += uniform->GetName();
 		
 		if ( uniform->IsTexture() ) {
@@ -1419,7 +1494,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	// Array of structs is aligned to the largest member of the struct
 	for ( uint i = 0; i < shader->padding; i++ ) {
-		materialStruct += "  int material_padding" + std::to_string( i );
+		materialStruct += "	int material_padding" + std::to_string( i );
 		materialStruct += ";\n";
 	}
 
@@ -1457,7 +1532,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	materialDefines += "\n";
 
-	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + materialDefines + shaderMain;
+	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + texDataBlock + materialDefines + shaderMain;
 	return newShaderText;
 }
 
@@ -1978,7 +2053,7 @@ void GLShader::PostProcessUniforms() {
 
 	std::vector<GLUniform*> globalUniforms;
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( uniform->IsGlobal() ) {
+		if ( uniform->IsGlobal() || uniform->IsTexture() ) {
 			globalUniforms.emplace_back( uniform );
 		}
 	}
@@ -1988,7 +2063,6 @@ void GLShader::PostProcessUniforms() {
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
 	const uint numUniforms = _uniforms.size();
-	GLuint structAlignment = 0;
 	GLuint structSize = 0;
 	while ( tmp.size() < numUniforms ) {
 		// Higher-alignment uniforms first to avoid wasting memory
@@ -1999,9 +2073,7 @@ void GLShader::PostProcessUniforms() {
 				highestAlignment = _uniforms[i]->GetSTD430Alignment();
 				highestUniform = i;
 			}
-			if ( highestAlignment > structAlignment ) {
-				structAlignment = highestAlignment;
-			}
+
 			if ( highestAlignment == 4 ) {
 				break; // 4-component is the highest alignment in std430
 			}
@@ -2020,6 +2092,7 @@ void GLShader::PostProcessUniforms() {
 	}
 	_uniforms = tmp;
 
+	const GLuint structAlignment = 4; // Material buffer is now a UBO, so it uses std140 layout, which is aligned to vec4
 	if ( structSize > 0 ) {
 		padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
 	}
@@ -2178,14 +2251,14 @@ void GLShader::SetRequiredVertexPointers()
 void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 	uint32_t* bufPtr = buffer;
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( !uniform->IsGlobal() ) {
+		if ( !uniform->IsGlobal() && !uniform->IsTexture() ) {
 			bufPtr = uniform->WriteToBuffer( bufPtr );
 		}
 	}
 }
 
 GLShader_generic::GLShader_generic( GLShaderManager *manager ) :
-	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	GLShader( "generic", ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR, manager ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_TextureMatrix( this ),
@@ -2217,7 +2290,7 @@ void GLShader_generic::SetShaderProgramUniforms( shaderProgram_t *shaderProgram 
 }
 
 GLShader_genericMaterial::GLShader_genericMaterial( GLShaderManager* manager ) :
-	GLShader( "genericMaterial", "generic", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT, manager ),
+	GLShader( "genericMaterial", "generic", true, ATTR_POSITION | ATTR_TEXCOORD | ATTR_QTANGENT | ATTR_COLOR, manager ),
 	u_ColorMap( this ),
 	u_DepthMap( this ),
 	u_TextureMatrix( this ),
@@ -2676,7 +2749,7 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Color( this ),
+	u_ColorGlobal( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_FogDistanceVector( this ),
@@ -2698,7 +2771,7 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Color( this ),
+	u_ColorGlobal( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),

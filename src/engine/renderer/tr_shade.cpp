@@ -103,11 +103,11 @@ static void EnableAvailableFeatures()
 		}
 	}
 
-	glConfig2.deluxeMapping = r_deluxeMapping->integer;
-	glConfig2.normalMapping = r_normalMapping->integer;
-	glConfig2.specularMapping = r_specularMapping->integer;
-	glConfig2.physicalMapping = r_physicalMapping->integer;
-	glConfig2.reliefMapping = r_reliefMapping->integer;
+	glConfig2.deluxeMapping = r_deluxeMapping.Get();
+	glConfig2.normalMapping = r_normalMapping.Get();
+	glConfig2.specularMapping = r_specularMapping.Get();
+	glConfig2.physicalMapping = r_physicalMapping.Get();
+	glConfig2.reliefMapping = r_reliefMapping.Get();
 
 	/* ATI R300 and Intel GMA 3 only have 64 ALU instructions, which is not enough for some shader
 	variants. For example the lightMapping shader permutation with macros USE_GRID_LIGHTING and
@@ -177,6 +177,8 @@ static void EnableAvailableFeatures()
 	glConfig2.usingMaterialSystem = r_materialSystem.Get() && glConfig2.materialSystemAvailable;
 	glConfig2.usingBindlessTextures = glConfig2.usingMaterialSystem ||
 		( r_preferBindlessTextures.Get() && glConfig2.bindlessTexturesAvailable );
+	glConfig2.usingGeometryCache = glConfig2.usingMaterialSystem
+		|| ( r_geometryCache.Get() && glConfig2.geometryCacheAvailable );
 }
 
 // For shaders that require map data for compile-time values 
@@ -306,7 +308,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_fogGlobalShader );
 	}
 
-	if ( r_heatHaze->integer )
+	if ( r_heatHaze.Get() )
 	{
 		// heatHaze post process effect
 		gl_shaderManager.load( gl_heatHazeShader );
@@ -331,7 +333,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_contrastShader );
 	}
 
-	if ( !r_noportals->integer || r_liquidMapping->integer )
+	if ( !r_noportals.Get() || r_liquidMapping.Get() )
 	{
 		// portal process effect
 		gl_shaderManager.load( gl_portalShader );
@@ -355,7 +357,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_debugShadowMapShader );
 	}
 
-	if ( r_liquidMapping->integer != 0 )
+	if ( r_liquidMapping.Get() )
 	{
 		gl_shaderManager.load( gl_liquidShader );
 
@@ -370,7 +372,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_motionblurShader );
 	}
 
-	if ( r_ssao->integer )
+	if ( r_ssao.Get() )
 	{
 		if ( glConfig2.textureGatherAvailable )
 		{
@@ -382,7 +384,7 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
-	if ( r_FXAA->integer != 0 )
+	if ( r_FXAA.Get() != 0 )
 	{
 		gl_shaderManager.load( gl_fxaaShader );
 	}
@@ -670,7 +672,7 @@ static void DrawTris()
 	// u_AlphaThreshold
 	gl_genericShader->SetUniform_AlphaTest( GLS_ATEST_NONE );
 
-	if ( r_showBatches->integer || r_showLightBatches->integer )
+	if ( r_showBatches.Get() || r_showLightBatches.Get() )
 	{
 		gl_genericShader->SetUniform_Color( Color::Color::Indexed( backEnd.pc.c_batches % 8 ) );
 	}
@@ -800,7 +802,7 @@ void SetNormalScale( const shaderStage_t *pStage, vec3_t normalScale )
 	r_normalScale is set to zero. This is cool enough to be kept as
 	a feature. Normal Z component equal to zero would be wrong anyway.
 	r_normalScale is only applied on Z. */
-	normalScale[ 2 ] = pStage->normalScale[ 2 ] * r_normalScale->value;
+	normalScale[ 2 ] = pStage->normalScale[ 2 ] * r_normalScale.Get();
 }
 
 // *INDENT-ON*
@@ -817,11 +819,6 @@ void Render_NOP( shaderStage_t * )
 void Render_generic3D( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_generic3D ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	GL_State( pStage->stateBits );
 
@@ -949,11 +946,6 @@ void Render_lightMapping( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_lightMapping ---\n" );
 
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
-
 	lightMode_t lightMode;
 	deluxeMode_t deluxeMode;
 	SetLightDeluxeMode( &tess, pStage->type, lightMode, deluxeMode );
@@ -970,7 +962,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	uint32_t stateBits = pStage->stateBits;
 
-	if ( lightMode == lightMode_t::MAP && r_showLightMaps->integer )
+	if ( lightMode == lightMode_t::MAP && r_showLightMaps.Get() )
 	{
 		stateBits &= ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_ATEST_BITS );
 	}
@@ -1074,7 +1066,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		depthScale *= tess.surfaceShader->reliefDepthScale;
 
 		gl_lightMappingShader->SetUniform_ReliefDepthScale( depthScale );
@@ -1100,7 +1092,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_NormalMap
-	if ( !!r_normalMapping->integer || pStage->hasHeightMapInNormalMap )
+	if ( !!r_normalMapping.Get() || pStage->hasHeightMapInNormalMap )
 	{
 		gl_lightMappingShader->SetUniform_NormalMapBindless(
 			GL_BindToTMU( BIND_NORMALMAP, pStage->bundle[TB_NORMALMAP].image[0] )
@@ -1126,8 +1118,8 @@ void Render_lightMapping( shaderStage_t *pStage )
 
 	if ( pStage->enableSpecularMapping )
 	{
-		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		float specExpMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin.Get() );
+		float specExpMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax.Get() );
 
 		gl_lightMappingShader->SetUniform_SpecularExponent( specExpMin, specExpMax );
 	}
@@ -1206,7 +1198,7 @@ void Render_lightMapping( shaderStage_t *pStage )
 	}
 
 	// bind u_GlowMap
-	if ( !!r_glowMapping->integer )
+	if ( r_glowMapping.Get() )
 	{
 		gl_lightMappingShader->SetUniform_GlowMapBindless(
 			GL_BindToTMU( BIND_GLOWMAP, pStage->bundle[TB_GLOWMAP].image[0] )
@@ -1237,10 +1229,6 @@ static void Render_shadowFill( shaderStage_t *pStage )
 	uint32_t      stateBits;
 
 	GLimp_LogComment( "--- Render_shadowFill ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		return;
-	}
 
 	// remove blend modes
 	stateBits = pStage->stateBits;
@@ -1351,7 +1339,7 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		depthScale *= tess.surfaceShader->reliefDepthScale;
 
 		gl_forwardLightingShader_omniXYZ->SetUniform_ReliefDepthScale( depthScale );
@@ -1444,8 +1432,8 @@ static void Render_forwardLighting_DBS_omni( shaderStage_t *pStage,
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
-		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin.Get() );
+		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax.Get() );
 
 		gl_forwardLightingShader_omniXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
 
@@ -1526,7 +1514,7 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		depthScale *= tess.surfaceShader->reliefDepthScale;
 
 		gl_forwardLightingShader_projXYZ->SetUniform_ReliefDepthScale( depthScale );
@@ -1625,8 +1613,8 @@ static void Render_forwardLighting_DBS_proj( shaderStage_t *pStage,
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
-		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin.Get() );
+		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax.Get() );
 
 		gl_forwardLightingShader_projXYZ->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
@@ -1702,7 +1690,7 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// bind u_HeightMap
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		depthScale *= tess.surfaceShader->reliefDepthScale;
 
 		gl_forwardLightingShader_directionalSun->SetUniform_ReliefDepthScale( depthScale );
@@ -1805,8 +1793,8 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
-		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		float minSpec = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin.Get() );
+		float maxSpec = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax.Get() );
 		gl_forwardLightingShader_directionalSun->SetUniform_SpecularExponent( minSpec, maxSpec );
 	}
 
@@ -1871,11 +1859,6 @@ static void Render_forwardLighting_DBS_directional( shaderStage_t *pStage, trRef
 void Render_reflection_CB( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_reflection_CB ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	GL_State( pStage->stateBits );
 
@@ -1942,7 +1925,7 @@ void Render_reflection_CB( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		depthScale *= tess.surfaceShader->reliefDepthScale;
 
 		gl_reflectionShader->SetUniform_ReliefDepthScale( depthScale );
@@ -1968,11 +1951,6 @@ void Render_skybox( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_skybox ---\n" );
 
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
-
 	GL_State( pStage->stateBits );
 
 	gl_skyboxShader->BindProgram( pStage->deformIndex );
@@ -1997,11 +1975,6 @@ void Render_skybox( shaderStage_t *pStage )
 void Render_screen( shaderStage_t *pStage )
 {
 	GLimp_LogComment( "--- Render_screen ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	GL_State( pStage->stateBits );
 
@@ -2057,11 +2030,6 @@ void Render_heatHaze( shaderStage_t *pStage )
 	float         deformMagnitude;
 
 	GLimp_LogComment( "--- Render_heatHaze ---\n" );
-
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
 
 	// remove alpha test
 	stateBits = pStage->stateBits;
@@ -2151,11 +2119,6 @@ void Render_liquid( shaderStage_t *pStage )
 
 	GLimp_LogComment( "--- Render_liquid ---\n" );
 
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
-
 	// Tr3B: don't allow blend effects
 	GL_State( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS | GLS_DEPTHMASK_TRUE ) );
 
@@ -2198,8 +2161,8 @@ void Render_liquid( shaderStage_t *pStage )
 	// FIXME: physical mapping is not implemented.
 	if ( pStage->enableSpecularMapping )
 	{
-		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin->value );
-		float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax->value );
+		float specMin = RB_EvalExpression( &pStage->specularExponentMin, r_specularExponentMin.Get() );
+		float specMax = RB_EvalExpression( &pStage->specularExponentMax, r_specularExponentMax.Get() );
 		gl_liquidShader->SetUniform_SpecularExponent( specMin, specMax );
 	}
 
@@ -2215,7 +2178,7 @@ void Render_liquid( shaderStage_t *pStage )
 	// bind u_HeightMap u_depthScale u_reliefOffsetBias
 	if ( pStage->enableReliefMapping )
 	{
-		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale->value );
+		float depthScale = RB_EvalExpression( &pStage->depthScaleExp, r_reliefDepthScale.Get() );
 		depthScale *= tess.surfaceShader->reliefDepthScale;
 
 		gl_liquidShader->SetUniform_ReliefDepthScale( depthScale );
@@ -2250,12 +2213,7 @@ void Render_liquid( shaderStage_t *pStage )
 
 void Render_fog( shaderStage_t* pStage )
 {
-	if ( materialSystem.generatingWorldCommandBuffer ) {
-		Tess_DrawElements();
-		return;
-	}
-
-	if ( r_noFog->integer || !r_wolfFog->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if ( r_noFog.Get() || !r_wolfFog.Get() || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		return;
 	}
@@ -2317,7 +2275,7 @@ void Render_fog( shaderStage_t* pStage )
 	gl_fogQuake3Shader->SetUniform_FogEyeT( eyeT );
 
 	// u_Color
-	gl_fogQuake3Shader->SetUniform_Color( fog->color );
+	gl_fogQuake3Shader->SetUniform_ColorGlobal( fog->color );
 
 	gl_fogQuake3Shader->SetUniform_ModelMatrix( backEnd.orientation.transformMatrix );
 	gl_fogQuake3Shader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
@@ -2674,7 +2632,7 @@ void Tess_StageIteratorColor()
 	if ( tess.surfaceShader->polygonOffset )
 	{
 		glEnable( GL_POLYGON_OFFSET_FILL );
-		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+		GL_PolygonOffset( r_offsetFactor.Get(), r_offsetUnits.Get() );
 	}
 
 	// call shader function
@@ -2698,7 +2656,7 @@ void Tess_StageIteratorColor()
 		Tess_ComputeTexMatrices( pStage );
 
 		if ( materialSystem.generatingWorldCommandBuffer && pStage->useMaterialSystem ) {
-			tess.currentSSBOOffset = tess.currentDrawSurf->materialsSSBOOffset[stage];
+			tess.currentSSBOOffset = pStage->materialOffset;
 			tess.materialID = tess.currentDrawSurf->materialIDs[stage];
 			tess.materialPackID = tess.currentDrawSurf->materialPackIDs[stage];
 		}
@@ -2787,7 +2745,7 @@ void Tess_StageIteratorShadowFill()
 	if ( tess.surfaceShader->polygonOffset )
 	{
 		glEnable( GL_POLYGON_OFFSET_FILL );
-		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+		GL_PolygonOffset( r_offsetFactor.Get(), r_offsetUnits.Get() );
 	}
 
 	// call shader function
@@ -2865,7 +2823,7 @@ void Tess_StageIteratorLighting()
 	if ( tess.surfaceShader->polygonOffset )
 	{
 		glEnable( GL_POLYGON_OFFSET_FILL );
-		GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+		GL_PolygonOffset( r_offsetFactor.Get(), r_offsetUnits.Get() );
 	}
 
 	// call shader function
@@ -2968,8 +2926,8 @@ void Tess_End()
 	}
 
 	// for debugging of sort order issues, stop rendering after a given sort value
-	bool skip = r_debugSort->integer && tess.surfaceShader != nullptr
-		&& r_debugSort->integer < tess.surfaceShader->sort;
+	bool skip = r_debugSort.Get() && tess.surfaceShader != nullptr
+		&& r_debugSort.Get() < tess.surfaceShader->sort;
 	if ( !skip )
 	{
 		// update performance counter
@@ -2985,7 +2943,7 @@ void Tess_End()
 		     tess.stageIteratorFunc != Tess_StageIteratorDummy )
 		{
 			// draw debugging stuff
-			if ( r_showTris->integer || r_showBatches->integer || ( r_showLightBatches->integer && ( tess.stageIteratorFunc == Tess_StageIteratorLighting ) ) )
+			if ( r_showTris.Get() || r_showBatches.Get() || ( r_showLightBatches.Get() && ( tess.stageIteratorFunc == Tess_StageIteratorLighting ) ) )
 			{
 				// Skybox triangle rendering is done in Tess_StageIteratorSky()
 				if ( tess.stageIteratorFunc != Tess_StageIteratorSky ) {

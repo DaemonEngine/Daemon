@@ -138,7 +138,7 @@ enum class refEntityType_t
 
 // RB: having bone names for each refEntity_t takes several MiBs
 // in backEndData_t so only use it for debugging and development
-// enabling this will show the bone names with r_showSkeleton 1
+// enabling this will show the bone names with r_showSkeleton on
 
 struct refBone_t
 {

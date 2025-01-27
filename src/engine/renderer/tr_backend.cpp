@@ -55,7 +55,7 @@ void GL_Bind( image_t *image )
 
 	texnum = image->texnum;
 
-	if ( r_nobind->integer && tr.blackImage )
+	if ( r_nobind.Get() && tr.blackImage )
 	{
 		// performance evaluation option
 		texnum = tr.blackImage->texnum;
@@ -82,7 +82,7 @@ void GL_Unbind( image_t *image )
 	glBindTexture( image->type, 0 );
 }
 
-GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle )
+GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle )
 {
 	int index;
 
@@ -1239,7 +1239,7 @@ static void RB_RenderInteractions()
 
 	GLimp_LogComment( "--- RB_RenderInteractions ---\n" );
 
-	if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES))
+	if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_SHADING_TIMES ) )
 	{
 		glFinish();
 		startTime = ri.Milliseconds();
@@ -1366,7 +1366,7 @@ static void RB_RenderInteractions()
 
 	GL_CheckErrors();
 
-	if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES) )
+	if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_SHADING_TIMES ) )
 	{
 		glFinish();
 		endTime = ri.Milliseconds();
@@ -2117,7 +2117,7 @@ static void RB_RenderInteractionsShadowMapped()
 
 	GLimp_LogComment( "--- RB_RenderInteractionsShadowMapped ---\n" );
 
-	if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES) )
+	if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_SHADING_TIMES ) )
 	{
 		glFinish();
 		startTime = ri.Milliseconds();
@@ -2665,7 +2665,7 @@ static void RB_RenderInteractionsShadowMapped()
 
 	GL_CheckErrors();
 
-	if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES) )
+	if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_SHADING_TIMES ) )
 	{
 		glFinish();
 		endTime = ri.Milliseconds();
@@ -2963,7 +2963,7 @@ void RB_RenderGlobalFog()
 		return;
 	}
 
-	if ( r_noFog->integer )
+	if ( r_noFog.Get() )
 	{
 		return;
 	}
@@ -3212,7 +3212,7 @@ void RB_RenderSSAO()
 	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO );
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 
-	if ( r_ssao->integer < 0 ) {
+	if ( r_ssao.Get() < 0 ) {
 		// clear the screen to show only SSAO
 		GL_ClearColor( 1.0, 1.0, 1.0, 1.0 );
 		glClear( GL_COLOR_BUFFER_BIT );
@@ -3228,9 +3228,9 @@ void RB_RenderSSAO()
 	gl_ssaoShader->SetUniform_zFar( zParams );
 
 	vec3_t unprojectionParams;
-	unprojectionParams[ 0 ] = -r_znear->value * zParams[ 2 ];
-	unprojectionParams[ 1 ] = 2.0 * ( zParams[ 2 ] - r_znear->value );
-	unprojectionParams[ 2 ] = 2.0 * zParams[ 2 ] - r_znear->value;
+	unprojectionParams[ 0 ] = -r_znear.Get() * zParams[ 2 ];
+	unprojectionParams[ 1 ] = 2.0 * ( zParams[ 2 ] - r_znear.Get() );
+	unprojectionParams[ 2 ] = 2.0 * zParams[ 2 ] - r_znear.Get();
 
 	gl_ssaoShader->SetUniform_UnprojectionParams( unprojectionParams );
 
@@ -3267,7 +3267,7 @@ void RB_FXAA()
 		return;
 	}
 
-	if ( !r_FXAA->integer || !gl_fxaaShader )
+	if ( !r_FXAA.Get() || !gl_fxaaShader )
 	{
 		return;
 	}
@@ -3330,7 +3330,7 @@ void RB_CameraPostFX()
 
 	gl_cameraEffectsShader->SetUniform_ColorModulate( backEnd.viewParms.gradingWeights );
 
-	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma->value );
+	gl_cameraEffectsShader->SetUniform_InverseGamma( 1.0 / r_gamma.Get() );
 
 	// This shader is run last, so let it render to screen instead of
 	// tr.mainFBO
@@ -3359,7 +3359,7 @@ static void RB_RenderDebugUtils()
 {
 	GLimp_LogComment( "--- RB_RenderDebugUtils ---\n" );
 
-	if ( r_showLightTransforms->integer || r_showShadowLod->integer )
+	if ( r_showLightTransforms.Get() || r_showShadowLod->integer )
 	{
 		const interaction_t *ia;
 		trRefLight_t  *light;
@@ -3495,7 +3495,7 @@ static void RB_RenderDebugUtils()
 		GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
 	}
 
-	if ( r_showLightInteractions->integer )
+	if ( r_showLightInteractions.Get() )
 	{
 		int           i;
 		int           cubeSides;
@@ -3617,7 +3617,7 @@ static void RB_RenderDebugUtils()
 		GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
 	}
 
-	if ( r_showEntityTransforms->integer )
+	if ( r_showEntityTransforms.Get() )
 	{
 		trRefEntity_t *ent;
 		int           i;
@@ -3679,7 +3679,7 @@ static void RB_RenderDebugUtils()
 		GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
 	}
 
-	if ( r_showSkeleton->integer )
+	if ( r_showSkeleton.Get() )
 	{
 		int                  i, j, k, parentIndex;
 		trRefEntity_t        *ent;
@@ -3897,7 +3897,7 @@ static void RB_RenderDebugUtils()
 		}
 	}
 
-	if ( r_showLightScissors->integer )
+	if ( r_showLightScissors.Get() )
 	{
 		interaction_t *ia;
 		int           iaCount;
@@ -4111,7 +4111,7 @@ static void RB_RenderDebugUtils()
 		GL_LoadModelViewMatrix( backEnd.viewParms.world.modelViewMatrix );
 	}
 
-	if ( r_showLightGrid->integer && !( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
+	if ( r_showLightGrid.Get() && !( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
 		int             x, y, z, k;
 		vec3_t          offset;
@@ -4205,7 +4205,7 @@ static void RB_RenderDebugUtils()
 		Tess_End();
 	}
 
-	if ( r_showBspNodes->integer )
+	if ( r_showBspNodes.Get() )
 	{
 		if ( ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL ) ) || !tr.world )
 		{
@@ -4388,7 +4388,7 @@ static void RB_RenderDebugUtils()
 
 				if ( node->contents != -1 )
 				{
-					if ( r_showBspNodes->integer == 3 )
+					if ( r_showBspNodes.Get() == 3 )
 					{
 						continue;
 					}
@@ -4412,7 +4412,7 @@ static void RB_RenderDebugUtils()
 				}
 				else
 				{
-					if ( r_showBspNodes->integer == 2 )
+					if ( r_showBspNodes.Get() == 2 )
 					{
 						continue;
 					}
@@ -4430,7 +4430,7 @@ static void RB_RenderDebugUtils()
 				if ( node->contents != -1 )
 				{
 					glEnable( GL_POLYGON_OFFSET_FILL );
-					GL_PolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+					GL_PolygonOffset( r_offsetFactor.Get(), r_offsetUnits.Get() );
 				}
 
 				Tess_Begin( Tess_StageIteratorDebug, nullptr, nullptr, true, -1, 0 );
@@ -4650,7 +4650,7 @@ static void RB_RenderView( bool depthPass )
 
 	GL_CheckErrors();
 
-	if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES) )
+	if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_SHADING_TIMES ) )
 	{
 		glFinish();
 		startTime = ri.Milliseconds();
@@ -4693,11 +4693,11 @@ static void RB_RenderView( bool depthPass )
 		RB_RenderDrawSurfaces( shaderSort_t::SS_ENVIRONMENT_FOG, shaderSort_t::SS_OPAQUE, DRAWSURFACES_ALL );
 	}
 
-	if ( r_ssao->integer ) {
+	if ( r_ssao.Get() ) {
 		RB_RenderSSAO();
 	}
 
-	if ( r_speeds->integer == Util::ordinal(renderSpeeds_t::RSPEEDS_SHADING_TIMES) )
+	if ( r_speeds.Get() == Util::ordinal( renderSpeeds_t::RSPEEDS_SHADING_TIMES ) )
 	{
 		glFinish();
 		endTime = ri.Milliseconds();
@@ -4734,7 +4734,7 @@ static void RB_RenderView( bool depthPass )
 
 	if ( backEnd.viewParms.portalLevel > 0 )
 	{
-		if ( r_liquidMapping->integer )
+		if ( r_liquidMapping.Get() )
 		{
 			// capture current color buffer
 			// liquid shader will then bind tr.portalRenderImage
@@ -5376,13 +5376,14 @@ const RenderCommand *ClearBufferCommand::ExecuteSelf( ) const
 	GL_CheckErrors();
 
 	// sync with gl if needed
-	if ( r_finish->integer == 1 && !glState.finishCalled )
+	if ( r_finish.Get() && !glState.finishCalled )
 	{
 		glFinish();
 		glState.finishCalled = true;
 	}
 
-	if ( r_finish->integer == 0 )
+	// WTF?
+	if ( !r_finish.Get() )
 	{
 		glState.finishCalled = true;
 	}
@@ -5672,7 +5673,7 @@ void RB_ShowImages()
 		y = i / 20 * h;
 
 		// show in proportional size in mode 2
-		if ( r_showImages->integer == 2 )
+		if ( r_showImages.Get() == 2 )
 		{
 			w *= image->uploadWidth / 512.0f;
 			h *= image->uploadHeight / 512.0f;
@@ -5707,7 +5708,7 @@ const RenderCommand *SwapBuffersCommand::ExecuteSelf( ) const
 	Tess_End();
 
 	// texture swapping test
-	if ( r_showImages->integer )
+	if ( r_showImages.Get() )
 	{
 		RB_ShowImages();
 	}
@@ -5791,7 +5792,7 @@ void RB_ExecuteRenderCommands( const void *data )
 
 	t1 = ri.Milliseconds();
 
-	if ( !r_smp->integer || data == backEndData[ 0 ]->commands.cmds )
+	if ( !r_smp.Get() || data == backEndData[0]->commands.cmds )
 	{
 		backEnd.smpFrame = 0;
 	}

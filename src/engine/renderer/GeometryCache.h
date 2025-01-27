@@ -2,7 +2,7 @@
 ===========================================================================
 
 Daemon BSD Source Code
-Copyright (c) 2024-2025 Daemon Developers
+Copyright (c) 2025 Daemon Developers
 All rights reserved.
 
 This file is part of the Daemon BSD Source Code (Daemon Source Code).
@@ -31,45 +31,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
+// GeometryCache.h
 
-/* common.glsl */
+#ifndef GEOMETRY_CACHE_H
+#define GEOMETRY_CACHE_H
 
-/* Common defines */
+#include "gl_shader.h"
+#include "Material.h"
 
-/* Allows accessing each element of a uvec4 array with a singular ID
-Useful to avoid wasting memory due to alignment requirements
-array must be in the form of uvec4 array[] */
+class GeometryCache {
+	public:
+	void Bind();
 
-#define UINT_FROM_UVEC4_ARRAY( array, id ) ( ( array )[( id ) / 4][( id ) % 4] )
-#define UVEC2_FROM_UVEC4_ARRAY( array, id ) ( ( id ) % 2 == 0 ? ( array )[( id ) / 2].xy : ( array )[( id ) / 2].zw )
+	void InitGLBuffers();
+	void FreeGLBuffers();
 
-/* Bit 0: color * 1
-Bit 1: color * ( -1 )
-Bit 2: color += lightFactor
-Bit 3: alpha * 1
-Bit 4: alpha * ( -1 )
-Bit 5: alpha = 1
-Bit 6-9: lightFactor */
+	void Free();
 
-float colorModArray[3] = float[3] ( 0.0f, 1.0f, -1.0f );
+	void AllocBuffers();
+	void AddMapGeometry( const uint32_t verticesNumber, const uint32_t indicesNumber,
+		const vertexAttributeSpec_t* attrBegin,
+		const vertexAttributeSpec_t* attrEnd,
+		const glIndex_t* indices );
 
-vec4 ColorModulateToColor( const in uint colorMod ) {
-	vec4 colorModulate = vec4( colorModArray[colorMod & 3] );
-	colorModulate.a = ( colorModArray[( colorMod & 24 ) >> 3] );
-	return colorModulate;
-}
+	private:
+	uint32_t mapVerticesNumber;
+	uint32_t mapIndicesNumber;
 
-vec4 ColorModulateToColor( const in uint colorMod, const in float lightFactor ) {
-	vec4 colorModulate = vec4( colorModArray[colorMod & 3] + ( ( colorMod & 4 ) >> 2 ) * lightFactor );
-	colorModulate.a = ( colorModArray[( colorMod & 24 ) >> 3] );
-	return colorModulate;
-}
+	GLVAO VAO = GLVAO( 0 );
 
-float ColorModulateToLightFactor( const in uint colorMod ) {
-	return ( colorMod >> 6 ) & 0xF;
-}
+	GLBuffer inputVBO = GLBuffer( "geometryCacheInputVBO", Util::ordinal( BufferBind::GEOMETRY_CACHE_INPUT_VBO ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+	GLBuffer VBO = GLBuffer( "geometryCacheVBO", Util::ordinal( BufferBind::GEOMETRY_CACHE_VBO ), GL_MAP_WRITE_BIT, GL_MAP_FLUSH_EXPLICIT_BIT );
+	GLBuffer IBO = GLBuffer( "geometryCacheIBO", Util::ordinal( BufferBind::UNUSED ), GL_MAP_WRITE_BIT, GL_MAP_INVALIDATE_RANGE_BIT );
+};
 
-// This is used to skip vertex colours if the colorMod doesn't need them
-bool ColorModulateToVertexColor( const in uint colorMod ) {
-	return ( colorMod & 0xFF ) == 0xFF;
-}
+extern GeometryCache geometryCache;
+
+#endif // GEOMETRY_CACHE_H

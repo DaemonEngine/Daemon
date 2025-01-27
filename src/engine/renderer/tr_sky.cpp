@@ -81,7 +81,7 @@ void Tess_StageIteratorSky()
 	GL_Cull(cullType_t::CT_BACK_SIDED);
 
 	// r_showSky will draw the whole skybox in front of everything else
-	if ( r_showSky->integer )
+	if ( r_showSky.Get() )
 	{
 		glDepthRange( 0.0, 0.0 );
 	}
@@ -123,7 +123,7 @@ void Tess_StageIteratorSky()
 		Tess_DrawElements();
 	}
 
-	if ( r_showTris->integer ) {
+	if ( r_showTris.Get() ) {
 		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHFUNC_ALWAYS );
 
 		// bind u_ColorMap

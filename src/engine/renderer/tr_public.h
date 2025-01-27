@@ -77,6 +77,7 @@ struct glconfig2_t
 	char     shadingLanguageVersionString[ MAX_STRING_CHARS ];
 	int      shadingLanguageVersion;
 
+	int maxUniformBlockSize;
 	int      maxVertexUniforms;
 //	int             maxVaryingFloats;
 	int      maxVertexAttribs;
@@ -101,6 +102,8 @@ struct glconfig2_t
 	bool indirectParametersAvailable;
 	bool shadingLanguage420PackAvailable;
 	bool explicitUniformLocationAvailable;
+	bool directStateAccessAvailable;
+	bool vertexAttribBindingAvailable;
 	bool shaderImageLoadStoreAvailable;
 	bool shaderAtomicCountersAvailable;
 	bool shaderAtomicCounterOpsAvailable;
@@ -115,6 +118,8 @@ struct glconfig2_t
 	bool shaderSubgroupQuadAvailable;
 	bool materialSystemAvailable; // do the driver/hardware support it
 	bool usingMaterialSystem; // are we using it right now
+	bool geometryCacheAvailable;
+	bool usingGeometryCache;
 	bool gpuShader4Available;
 	bool gpuShader5Available;
 	bool textureGatherAvailable;
