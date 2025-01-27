@@ -2918,16 +2918,10 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	extern glstate_t      glState; // outside of TR since it shouldn't be cleared during ref re-init
 
-//
 // cvars
-//
-	extern cvar_t *r_glMajorVersion; // override GL version autodetect (for testing)
-	extern cvar_t *r_glMinorVersion;
-	extern cvar_t *r_glProfile;
 	extern Cvar::Cvar<bool> r_glDebugProfile;
 	extern Cvar::Range<Cvar::Cvar<int>> r_glDebugMode;
-	extern cvar_t *r_glAllowSoftware;
-	extern cvar_t *r_glExtendedValidation;
+	extern Cvar::Cvar<bool> r_glExtendedValidation;
 
 	extern cvar_t *r_ignore; // used for debugging anything
 
