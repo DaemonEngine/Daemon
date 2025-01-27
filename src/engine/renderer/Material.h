@@ -403,7 +403,7 @@ class MaterialSystem {
 
 extern GLUBO materialsUBO; // Global
 extern GLBuffer texDataBuffer; // Global
-extern GLUBO lightmapDataUBO; // Global
+extern GLUBO lightMapDataUBO; // Global
 
 extern GLSSBO surfaceDescriptorsSSBO; // Global
 extern GLSSBO surfaceCommandsSSBO; // Per viewframe, GPU updated
