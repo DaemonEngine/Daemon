@@ -3414,7 +3414,6 @@ inline bool checkGLErrors()
 		vec4_t texCoords;
 	};
 
-#ifdef GL_ARB_sync
 	struct glRingbuffer_t {
 		// the BO is logically split into DYN_BUFFER_SEGMENTS
 		// segments, the active segment is the one the CPU may write
@@ -3428,7 +3427,6 @@ inline bool checkGLErrors()
 		// sync is always undefined
 		GLsync         syncs[ DYN_BUFFER_SEGMENTS ];
 	};
-#endif
 
 	struct shaderCommands_t
 	{
@@ -3498,10 +3496,8 @@ inline bool checkGLErrors()
 		VBO_t       *vbo;
 		IBO_t       *ibo;
 
-#ifdef GL_ARB_sync
 		glRingbuffer_t  vertexRB;
 		glRingbuffer_t  indexRB;
-#endif
 	};
 
 	alignas(16) extern shaderCommands_t tess;
