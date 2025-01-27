@@ -186,15 +186,6 @@ struct TextureData {
 
 		return true;
 	}
-
-	TextureData() {
-	}
-
-	TextureData( const TextureData& other ) {
-		memcpy( texBundles, other.texBundles, MAX_TEXTURE_BUNDLES * sizeof( textureBundle_t* ) );
-		memcpy( texBundlesOverride, other.texBundlesOverride, MAX_TEXTURE_BUNDLES * sizeof( image_t* ) );
-		textureMatrixBundle = other.textureMatrixBundle;
-	}
 };
 
 enum class MaterialDebugMode {
