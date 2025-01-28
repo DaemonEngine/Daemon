@@ -2866,9 +2866,13 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	 *
 	 *	   http://www.intel.com/cd/ids/developer/asmo-na/eng/293748.htm
 	 */
+
+	/* For the +1 that deviates from the original implementation,
+	see https://github.com/DaemonEngine/Daemon/issues/1527 */
+
 	float t, s;
 
-	if ( m[ 0 ] + m[ 5 ] + m[ 10 ] > 0.0f )
+	if ( m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f > 0.0f )
 	{
 		t = m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f;
 		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
