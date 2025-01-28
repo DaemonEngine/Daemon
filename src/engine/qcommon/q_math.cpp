@@ -1976,7 +1976,7 @@ void MatrixFromQuat( matrix_t m, const quat_t q )
 	 *	February 27th 2005
 	 *	J.M.P. van Waveren
 	 *
-	 *	http://www.intel.com/cd/ids/developer/asmo-na/eng/293748.htm
+	 *	https://web.archive.org/web/20100818052330/http://cache-www.intel.com/cd/00/00/29/37/293748_293748.pdf
 	 */
 	float x2, y2, z2 /*, w2*/;
 	float yy2, xy2;
@@ -2864,7 +2864,7 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	 *	   February 27th 2005
 	 *	   J.M.P. van Waveren
 	 *
-	 *	   http://www.intel.com/cd/ids/developer/asmo-na/eng/293748.htm
+	 *	   https://web.archive.org/web/20100818052330/http://cache-www.intel.com/cd/00/00/29/37/293748_293748.pdf
 	 */
 
 	/* For the +1 that deviates from the original implementation,
