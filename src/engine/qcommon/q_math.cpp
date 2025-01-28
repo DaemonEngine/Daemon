@@ -2870,11 +2870,11 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	/* For the +1 that deviates from the original implementation,
 	see https://github.com/DaemonEngine/Daemon/issues/1527 */
 
-	float t, s;
+	float t = m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f;
+	float s;
 
-	if ( m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f > 0.0f )
+	if ( t > 0.0f )
 	{
-		t = m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f;
 		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
 
 		q[ 3 ] = s * t;
