@@ -429,7 +429,8 @@ protected:
 	size_t      _locationIndex;
 
 	GLUniform( GLShader *shader, const char *name, const char* type, const GLuint std430Size, const GLuint std430Alignment,
-								 const bool global, const int components = 0, const bool isTexture = false ) :
+	                             const bool global, const int components = 0,
+	                             const bool isTexture = false ) :
 		_shader( shader ),
 		_name( name ),
 		_type( type ),
@@ -1197,6 +1198,48 @@ public:
 	matrix_t currentValue;
 };
 
+class GLUniformMatrix32f : protected GLUniform {
+	protected:
+	GLUniformMatrix32f( GLShader* shader, const char* name, const bool global = false ) :
+		GLUniform( shader, name, "mat3x2", 6, 2, global ) {
+	}
+
+	inline void SetValue( GLboolean transpose, const vec_t* m ) {
+		shaderProgram_t* p = _shader->GetProgram();
+
+		if ( _global || !_shader->UseMaterialSystem() ) {
+			ASSERT_EQ( p, glState.currentProgram );
+		}
+
+#if defined( LOG_GLSL_UNIFORMS )
+		if ( r_logFile->integer ) {
+			GLimp_LogComment( va( "GLSL_SetUniformMatrix32f( %s, shader: %s, transpose: %d, [ %f, %f, %f, %f, %f, %f ] ) ---\n",
+				this->GetName(), _shader->GetName().c_str(), transpose,
+				m[0], m[1], m[2], m[3], m[4], m[5] ) );
+		}
+#endif
+
+		if ( _shader->UseMaterialSystem() && !_global ) {
+			memcpy( currentValue, m, 6 * sizeof( float ) );
+			return;
+		}
+
+		glUniformMatrix3x2fv( p->uniformLocations[_locationIndex], 1, transpose, m );
+	}
+	public:
+	size_t GetSize() override {
+		return 6 * sizeof( float );
+	}
+
+	uint32_t* WriteToBuffer( uint32_t* buffer ) override {
+		memcpy( buffer, currentValue, 6 * sizeof( float ) );
+		return buffer + 6 * _components;
+	}
+
+	private:
+	vec_t currentValue[6] {};
+};
+
 class GLUniformMatrix4fv : protected GLUniform
 {
 protected:
@@ -1529,6 +1572,10 @@ class GLUBO : public GLBuffer {
 
 	void BindBuffer() {
 		GLBuffer::BindBuffer( GL_UNIFORM_BUFFER );
+	}
+
+	void UnBindBuffer() {
+		GLBuffer::UnBindBuffer( GL_UNIFORM_BUFFER );
 	}
 
 	void BufferStorage( const GLsizeiptr areaSize, const GLsizeiptr areaCount, const void* data ) {
@@ -2140,6 +2187,7 @@ class u_ColorMap :
 	GLUniformSampler2D {
 	public:
 	u_ColorMap( GLShader* shader ) :
+		// While u_ColorMap is used for some screen-space shaders, it's never global in material system shaders
 		GLUniformSampler2D( shader, "u_ColorMap" ) {
 	}
 
@@ -2268,7 +2316,7 @@ class u_LightMap :
 	GLUniformSampler {
 	public:
 	u_LightMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1 ) {
+		GLUniformSampler( shader, "u_LightMap", "sampler2D", 1, true ) {
 	}
 
 	void SetUniform_LightMapBindless( GLuint64 bindlessHandle ) {
@@ -2284,7 +2332,7 @@ class u_DeluxeMap :
 	GLUniformSampler {
 	public:
 	u_DeluxeMap( GLShader* shader ) :
-		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1 ) {
+		GLUniformSampler( shader, "u_DeluxeMap", "sampler2D", 1, true ) {
 	}
 
 	void SetUniform_DeluxeMapBindless( GLuint64 bindlessHandle ) {
@@ -2697,17 +2745,26 @@ class u_ShadowClipMap4 :
 };
 
 class u_TextureMatrix :
-	GLUniformMatrix4f
+	GLUniformMatrix32f
 {
 public:
 	u_TextureMatrix( GLShader *shader ) :
-		GLUniformMatrix4f( shader, "u_TextureMatrix" )
+		GLUniformMatrix32f( shader, "u_TextureMatrix", true )
 	{
 	}
 
 	void SetUniform_TextureMatrix( const matrix_t m )
 	{
-		this->SetValue( GL_FALSE, m );
+		/* We only actually need these 6 components to get the correct texture transformation,
+		the other ones are unused */
+		vec_t m2[6];
+		m2[0] = m[0];
+		m2[1] = m[1];
+		m2[2] = m[4];
+		m2[3] = m[5];
+		m2[4] = m[12];
+		m2[5] = m[13];
+		this->SetValue( GL_FALSE, m2 );
 	}
 };
 
@@ -3094,6 +3151,18 @@ public:
 
 	void SetUniform_Color( const Color::Color& color )
 	{
+		this->SetValue( packUnorm4x8( color.ToArray() ) );
+	}
+};
+
+class u_ColorGlobal :
+	GLUniform1ui {
+	public:
+	u_ColorGlobal( GLShader* shader ) :
+		GLUniform1ui( shader, "u_ColorGlobal", true ) {
+	}
+
+	void SetUniform_ColorGlobal( const Color::Color& color ) {
 		this->SetValue( packUnorm4x8( color.ToArray() ) );
 	}
 };
@@ -4319,7 +4388,7 @@ class GLShader_fogQuake3 :
 	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_Color,
+	public u_ColorGlobal,
 	public u_Bones,
 	public u_VertexInterpolation,
 	public u_FogDistanceVector,
@@ -4339,7 +4408,7 @@ class GLShader_fogQuake3Material :
 	public u_FogMap,
 	public u_ModelMatrix,
 	public u_ModelViewProjectionMatrix,
-	public u_Color,
+	public u_ColorGlobal,
 	public u_FogDistanceVector,
 	public u_FogDepthVector,
 	public u_FogEyeT,

@@ -458,6 +458,12 @@ inline void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross )
 	cross[ 2 ] = v1[ 0 ] * v2[ 1 ] - v1[ 1 ] * v2[ 0 ];
 }
 
+template<typename A>
+A Square( A a )
+{
+	return a * a;
+}
+
 template<typename A, typename B, typename C>
 void VectorSubtract( const A &a, const B &b, C &&c )
 {
@@ -2220,8 +2226,6 @@ struct fontInfo_t
 	float         glyphScale;
 	char          name[ MAX_QPATH ];
 };
-
-#define Square( x ) ( ( x ) * ( x ) )
 
 // real time
 //=============================================

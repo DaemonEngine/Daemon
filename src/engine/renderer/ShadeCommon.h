@@ -32,12 +32,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===========================================================================
 */
 
-inline size_t GetLightMapNum( shaderCommands_t* tess )
+inline size_t GetLightMapNum( const shaderCommands_t* tess )
 {
 	return tess->lightmapNum;
 }
 
-inline size_t GetLightMapNum( drawSurf_t* drawSurf )
+inline size_t GetLightMapNum( const drawSurf_t* drawSurf )
 {
 	return drawSurf->lightmapNum();
 }

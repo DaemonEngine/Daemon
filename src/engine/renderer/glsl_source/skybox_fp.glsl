@@ -33,7 +33,9 @@ uniform sampler2D	u_CloudMap;
 uniform bool        u_UseCloudMap;
 uniform float       u_CloudHeight;
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
+#endif
 
 uniform float		u_AlphaThreshold;
 
@@ -66,7 +68,7 @@ void	main()
 		incidentRay.z += radiusWorld;
 		incidentRay = normalize( incidentRay );
 		vec2 st = vec2( acos(incidentRay.x), acos(incidentRay.y) );
-		st = (u_TextureMatrix * vec4(st, 0.0, 1.0)).xy;
+		st = (u_TextureMatrix * vec3(st, 1.0)).xy;
 		color = texture2D( u_CloudMap, st ).rgba;
 	}
 	

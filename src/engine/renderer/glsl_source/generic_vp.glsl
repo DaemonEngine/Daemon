@@ -28,7 +28,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #insert vertexAnimation_vp
 #insert shaderProfiler_vp
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
+#endif
+
 uniform vec3		u_ViewOrigin;
 
 uniform float		u_Time;
@@ -92,9 +95,9 @@ void	main()
 		var_TexCoords = 0.5 + vec2(0.5, -0.5) * reflected.yz;
 	}
 #elif defined(USE_TCGEN_LIGHTMAP)
-	var_TexCoords = (u_TextureMatrix * vec4(lmCoord, 0.0, 1.0)).xy;
+	var_TexCoords = (u_TextureMatrix * vec3(lmCoord, 1.0)).xy;
 #else
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).xy;
+	var_TexCoords = (u_TextureMatrix * vec3(texCoord, 1.0)).xy;
 #endif
 
 #if defined(USE_DEPTH_FADE)

@@ -82,7 +82,7 @@ void GL_Unbind( image_t *image )
 	glBindTexture( image->type, 0 );
 }
 
-GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle )
+GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle )
 {
 	int index;
 
@@ -829,9 +829,6 @@ static void RB_SetGL2D()
 
 	GL_LoadProjectionMatrix( proj );
 	GL_LoadModelViewMatrix( matrixIdentity );
-
-	// TODO: remove this, state is set wherever drawing is done
-	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
 	GL_Cull( cullType_t::CT_TWO_SIDED );
 

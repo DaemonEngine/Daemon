@@ -5239,6 +5239,8 @@ static void FinishStages()
 			default:
 				break;
 		}
+
+		memset( stage->variantOffsets, -1, ShaderStageVariant::ALL * sizeof( int ) );
 	}
 
 	GroupActiveStages();
@@ -5372,7 +5374,7 @@ static void SetStagesRenderers()
 		stageRenderer_t colorRenderer;
 
 		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
-		stageSurfaceDataUpdater_t surfaceDataUpdater;
+		surfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
 
@@ -5591,6 +5593,8 @@ static shader_t *MakeShaderPermanent()
 			std::copy_n( stages[ s ].bundle[ b ].texMods, newShader->stages[ s ].bundle[ b ].numTexMods,
 			             newShader->stages[ s ].bundle[ b ].texMods );
 		}
+
+		newShader->stages[ s ].shader = newShader;
 	}
 
 	newShader->lastStage = newShader->stages + numStages;

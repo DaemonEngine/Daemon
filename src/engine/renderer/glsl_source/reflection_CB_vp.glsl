@@ -26,7 +26,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #insert vertexSkinning_vp
 #insert vertexAnimation_vp
 
-uniform mat4		u_TextureMatrix;
+#if !defined(USE_MATERIAL_SYSTEM)
+	uniform mat3x2 u_TextureMatrix;
+#endif
+
 uniform mat4		u_ModelMatrix;
 uniform mat4		u_ModelViewProjectionMatrix;
 
@@ -82,6 +85,6 @@ void	main()
 	var_Normal.xyz = (u_ModelMatrix * vec4(LB.normal, 0.0)).xyz;
 
 	// transform normalmap texcoords
-	var_TexCoords = (u_TextureMatrix * vec4(texCoord, 0.0, 1.0)).st;
+	var_TexCoords = (u_TextureMatrix * vec3(texCoord, 1.0)).st;
 }
 

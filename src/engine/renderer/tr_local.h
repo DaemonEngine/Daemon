@@ -911,6 +911,24 @@ enum class shaderProfilerRenderSubGroupsMode {
 	{
 		expOperation_t ops[ MAX_EXPRESSION_OPS ];
 		size_t numOps;
+
+		bool operator==( const expression_t& other ) {
+			if ( numOps != other.numOps ) {
+				return false;
+			}
+
+			for ( size_t i = 0; i < numOps; i++ ) {
+				if ( ops[i].type != other.ops[i].type || ops[i].value != other.ops[i].value ) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool operator!=( const expression_t& other ) {
+			return !( *this == other );
+		}
 	};
 
 	struct waveForm_t
@@ -921,6 +939,15 @@ enum class shaderProfilerRenderSubGroupsMode {
 		float     amplitude;
 		float     phase;
 		float     frequency;
+
+		bool operator==( const waveForm_t& other ) {
+			return func == other.func && base == other.base && amplitude == other.amplitude && phase == other.phase
+				&& frequency == other.frequency;
+		}
+
+		bool operator!=( const waveForm_t& other ) {
+			return !( *this == other );
+		}
 	};
 
 #define TR_MAX_TEXMODS 4
@@ -988,6 +1015,17 @@ enum class shaderProfilerRenderSubGroupsMode {
 		expression_t sExp;
 		expression_t tExp;
 		expression_t rExp;
+
+		bool operator==( const texModInfo_t& other ) {
+			return type == other.type && wave == other.wave && MatrixCompare( matrix, other.matrix )
+				&& scale[0] == other.scale[0] && scale[1] == other.scale[1] && scroll[0] == other.scroll[0] && scroll[1] == other.scroll[1]
+				&& rotateSpeed == other.rotateSpeed
+				&& sExp == other.sExp && tExp == other.tExp && rExp == other.rExp;
+		}
+
+		bool operator!=( const texModInfo_t& other ) {
+			return !( *this == other );
+		}
 	};
 
 #define MAX_IMAGE_ANIMATIONS 32
@@ -1064,9 +1102,16 @@ enum class shaderProfilerRenderSubGroupsMode {
 	struct drawSurf_t;
 
 	using stageRenderer_t = void(*)(shaderStage_t *);
-	using stageSurfaceDataUpdater_t = void(*)(uint32_t*, Material&, drawSurf_t*, const uint32_t);
+	using surfaceDataUpdater_t = void(*)(uint32_t*, shaderStage_t*, bool, bool, bool);
 	using stageShaderBinder_t = void(*)(Material*);
 	using stageMaterialProcessor_t = void(*)(Material*, shaderStage_t*, drawSurf_t*);
+
+	enum ShaderStageVariant {
+		VERTEX_OVERBRIGHT = 1,
+		VERTEX_LIT = BIT( 1 ),
+		FULLBRIGHT = BIT( 2 ),
+		ALL = BIT( 3 )
+	};
 
 	struct shaderStage_t
 	{
@@ -1082,7 +1127,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 		stageRenderer_t colorRenderer;
 
 		// Material renderer (code path for advanced OpenGL techniques like bindless textures).
-		stageSurfaceDataUpdater_t surfaceDataUpdater;
+		surfaceDataUpdater_t surfaceDataUpdater;
 		stageShaderBinder_t shaderBinder;
 		stageMaterialProcessor_t materialProcessor;
 
@@ -1164,12 +1209,22 @@ enum class shaderProfilerRenderSubGroupsMode {
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
 
 		bool useMaterialSystem = false;
-		uint materialPackID = 0;
-		uint materialID = 0;
+		shader_t* shader;
+		shaderStage_t* materialRemappedStage = nullptr;
+
+		uint32_t paddedSize = 0;
+
+		uint32_t materialOffset = 0;
+		uint32_t bufferOffset = 0;
+		uint32_t dynamicBufferOffset = 0;
+
+		bool initialized = false;
+
 		bool dynamic = false;
 		bool colorDynamic = false;
-		bool texMatricesDynamic = false;
-		bool texturesDynamic = false;
+
+		int variantOffsets[ShaderStageVariant::ALL];
+		uint32_t variantOffset = 0;
 	};
 
 	enum cullType_t : int
@@ -1606,12 +1661,14 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int fog;
 		int portalNum = -1;
 
-		uint materialsSSBOOffset[ MAX_SHADER_STAGES ];
-		bool initialized[ MAX_SHADER_STAGES ];
-		uint materialIDs[ MAX_SHADER_STAGES ];
-		uint materialPackIDs[ MAX_SHADER_STAGES ];
-		bool texturesDynamic[ MAX_SHADER_STAGES ];
-		uint drawCommandIDs[ MAX_SHADER_STAGES ];
+
+		uint32_t materialPackIDs[MAX_SHADER_STAGES];
+		uint32_t materialIDs[MAX_SHADER_STAGES];
+
+		uint32_t drawCommandIDs[MAX_SHADER_STAGES];
+		uint32_t texDataIDs[MAX_SHADER_STAGES];
+		bool texDataDynamic[MAX_SHADER_STAGES];
+		uint32_t shaderVariant[MAX_SHADER_STAGES];
 
 		drawSurf_t* depthSurface;
 		drawSurf_t* fogSurface;
@@ -3191,7 +3248,7 @@ inline bool checkGLErrors()
 	void GL_Bind( image_t *image );
 	void GL_BindNearestCubeMap( int unit, const vec3_t xyz );
 	void GL_Unbind( image_t *image );
-	GLuint64 BindAnimatedImage( int unit, textureBundle_t *bundle );
+	GLuint64 BindAnimatedImage( int unit, const textureBundle_t *bundle );
 	void GL_TextureFilter( image_t *image, filterType_t filterType );
 	void GL_BindProgram( shaderProgram_t *program );
 	GLuint64 GL_BindToTMU( int unit, image_t *image );

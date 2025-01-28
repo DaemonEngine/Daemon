@@ -1359,9 +1359,45 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	std::string newShaderText;
 	std::string materialStruct = "\nstruct Material {\n";
-	std::string materialBlock = "layout(std430, binding = 0) readonly buffer materialsSSBO {\n"
-									 "  Material materials[];\n"
-									 "};\n\n";
+	// 6 kb for materials
+	const uint32_t count = ( 4096 + 2048 ) / shader->GetPaddedSize();
+	std::string materialBlock = "layout(std140, binding = 6) uniform materialsUBO {\n"
+	                            "	Material materials[" + std::to_string( count ) + "]; \n"
+	                            "};\n\n";
+
+	std::string texBuf = glConfig2.maxUniformBlockSize >= MIN_MATERIAL_UBO_SIZE ?
+		"layout(std140, binding = 7) uniform texDataUBO {\n"
+		"	TexData texData[" + std::to_string( MAX_TEX_BUNDLES ) + "]; \n"
+		"};\n\n"
+		: "layout(std430, binding = 7) restrict readonly buffer texDataSSBO {\n"
+		"	TexData texData[];\n"
+		"};\n\n";
+	// We have to store u_TextureMatrix as vec4 + vec2 because otherwise it would be aligned to a vec4 under std140
+	std::string texDataBlock = "struct TexData {\n"
+		                       "	vec4 u_TextureMatrix;\n"
+	                           "	vec2 u_TextureMatrix2;\n"
+	                           "	uvec2 u_DiffuseMap;\n"
+	                           "	uvec2 u_NormalMap;\n"
+	                           "	uvec2 u_HeightMap;\n"
+	                           "	uvec2 u_MaterialMap;\n"
+	                           "	uvec2 u_GlowMap;\n"
+	                           "};\n\n"
+	                           + texBuf +
+		                       "#define u_TextureMatrix mat3x2( texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.xy, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix.zw, texData[( baseInstance >> 12 ) & 0xFFF].u_TextureMatrix2 )\n"
+		                       "#define u_DiffuseMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_DiffuseMap\n"
+		                       "#define u_NormalMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_NormalMap\n"
+		                       "#define u_HeightMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_HeightMap\n"
+		                       "#define u_MaterialMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_MaterialMap\n"
+		                       "#define u_GlowMap_initial texData[( baseInstance >> 12 ) & 0xFFF].u_GlowMap\n\n"
+		                       "struct LightMapData {\n"
+	                           "	uvec2 u_LightMap;\n"
+	                           "	uvec2 u_DeluxeMap;\n"
+	                           "};\n\n"
+	                           "layout(std140, binding = 8) uniform lightMapDataUBO {\n"
+	                           "	LightMapData lightMapData[256];\n"
+	                           "};\n\n"
+		                       "#define u_LightMap_initial lightMapData[( baseInstance >> 24 ) & 0xFF].u_LightMap\n"
+		                       "#define u_DeluxeMap_initial lightMapData[( baseInstance >> 24 ) & 0xFF].u_DeluxeMap\n\n";
 	std::string materialDefines;
 
 	/* Generate the struct and defines in the form of:
@@ -1380,24 +1416,25 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			continue;
 		}
 
+		if ( !uniform->IsTexture() ) {
+			materialStruct += "	" + uniform->GetType() + " " + uniform->GetName();
+
+			if ( uniform->GetComponentSize() ) {
+				materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
+			}
+			materialStruct += ";\n";
+
+			// vec3 is aligned to 4 components, so just pad it with int
+			// TODO: Try to move 1 component uniforms here to avoid wasting memory
+			if ( uniform->GetSTD430Size() == 3 ) {
+				materialStruct += "	int ";
+				materialStruct += uniform->GetName();
+				materialStruct += "_padding;\n";
+			}
+		}
+
 		if ( uniform->IsTexture() ) {
-			materialStruct += "  uvec2 ";
-			materialStruct += uniform->GetName();
-		} else {
-			materialStruct += "  " + uniform->GetType() + " " + uniform->GetName();
-		}
-
-		if ( uniform->GetComponentSize() ) {
-			materialStruct += "[ " + std::to_string( uniform->GetComponentSize() ) + " ]";
-		}
-		materialStruct += ";\n";
-
-		// vec3 is aligned to 4 components, so just pad it with int
-		// TODO: Try to move 1 component uniforms here to avoid wasting memory
-		if ( uniform->GetSTD430Size() == 3 ) {
-			materialStruct += "  int ";
-			materialStruct += uniform->GetName();
-			materialStruct += "_padding;\n";
+			continue;
 		}
 
 		materialDefines += "#define ";
@@ -1407,7 +1444,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 			materialDefines += "_initial uvec2("; // We'll need this to create sampler objects later
 		}
 
-		materialDefines += " materials[baseInstance].";
+		materialDefines += " materials[baseInstance & 0xFFF].";
 		materialDefines += uniform->GetName();
 		
 		if ( uniform->IsTexture() ) {
@@ -1419,7 +1456,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	// Array of structs is aligned to the largest member of the struct
 	for ( uint i = 0; i < shader->padding; i++ ) {
-		materialStruct += "  int material_padding" + std::to_string( i );
+		materialStruct += "	int material_padding" + std::to_string( i );
 		materialStruct += ";\n";
 	}
 
@@ -1457,7 +1494,7 @@ std::string GLShaderManager::ShaderPostProcess( GLShader *shader, const std::str
 
 	materialDefines += "\n";
 
-	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + materialDefines + shaderMain;
+	newShaderText = "#define USE_MATERIAL_SYSTEM\n" + materialStruct + materialBlock + texDataBlock + materialDefines + shaderMain;
 	return newShaderText;
 }
 
@@ -1978,7 +2015,7 @@ void GLShader::PostProcessUniforms() {
 
 	std::vector<GLUniform*> globalUniforms;
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( uniform->IsGlobal() ) {
+		if ( uniform->IsGlobal() || uniform->IsTexture() ) {
 			globalUniforms.emplace_back( uniform );
 		}
 	}
@@ -1988,7 +2025,6 @@ void GLShader::PostProcessUniforms() {
 
 	// Sort uniforms from highest to lowest alignment so we don't need to pad uniforms (other than vec3s)
 	const uint numUniforms = _uniforms.size();
-	GLuint structAlignment = 0;
 	GLuint structSize = 0;
 	while ( tmp.size() < numUniforms ) {
 		// Higher-alignment uniforms first to avoid wasting memory
@@ -1999,9 +2035,7 @@ void GLShader::PostProcessUniforms() {
 				highestAlignment = _uniforms[i]->GetSTD430Alignment();
 				highestUniform = i;
 			}
-			if ( highestAlignment > structAlignment ) {
-				structAlignment = highestAlignment;
-			}
+
 			if ( highestAlignment == 4 ) {
 				break; // 4-component is the highest alignment in std430
 			}
@@ -2020,6 +2054,7 @@ void GLShader::PostProcessUniforms() {
 	}
 	_uniforms = tmp;
 
+	const GLuint structAlignment = 4; // Material buffer is now a UBO, so it uses std140 layout, which is aligned to vec4
 	if ( structSize > 0 ) {
 		padding = ( structAlignment - ( structSize % structAlignment ) ) % structAlignment;
 	}
@@ -2178,7 +2213,7 @@ void GLShader::SetRequiredVertexPointers()
 void GLShader::WriteUniformsToBuffer( uint32_t* buffer ) {
 	uint32_t* bufPtr = buffer;
 	for ( GLUniform* uniform : _uniforms ) {
-		if ( !uniform->IsGlobal() ) {
+		if ( !uniform->IsGlobal() && !uniform->IsTexture() ) {
 			bufPtr = uniform->WriteToBuffer( bufPtr );
 		}
 	}
@@ -2676,7 +2711,7 @@ GLShader_fogQuake3::GLShader_fogQuake3( GLShaderManager *manager ) :
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Color( this ),
+	u_ColorGlobal( this ),
 	u_Bones( this ),
 	u_VertexInterpolation( this ),
 	u_FogDistanceVector( this ),
@@ -2698,7 +2733,7 @@ GLShader_fogQuake3Material::GLShader_fogQuake3Material( GLShaderManager* manager
 	u_FogMap( this ),
 	u_ModelMatrix( this ),
 	u_ModelViewProjectionMatrix( this ),
-	u_Color( this ),
+	u_ColorGlobal( this ),
 	u_FogDistanceVector( this ),
 	u_FogDepthVector( this ),
 	u_FogEyeT( this ),
