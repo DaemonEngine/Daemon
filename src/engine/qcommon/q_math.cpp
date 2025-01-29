@@ -1976,7 +1976,7 @@ void MatrixFromQuat( matrix_t m, const quat_t q )
 	 *	February 27th 2005
 	 *	J.M.P. van Waveren
 	 *
-	 *	http://www.intel.com/cd/ids/developer/asmo-na/eng/293748.htm
+	 *	https://web.archive.org/web/20100818052330/http://cache-www.intel.com/cd/00/00/29/37/293748_293748.pdf
 	 */
 	float x2, y2, z2 /*, w2*/;
 	float yy2, xy2;
@@ -2864,14 +2864,18 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	 *	   February 27th 2005
 	 *	   J.M.P. van Waveren
 	 *
-	 *	   http://www.intel.com/cd/ids/developer/asmo-na/eng/293748.htm
+	 *	   https://web.archive.org/web/20100818052330/http://cache-www.intel.com/cd/00/00/29/37/293748_293748.pdf
 	 */
-	float t, s;
 
-	if ( m[ 0 ] + m[ 5 ] + m[ 10 ] > 0.0f )
+	/* For the +1 that deviates from the original implementation,
+	see https://github.com/DaemonEngine/Daemon/issues/1527 */
+
+	float t = m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f;
+	float s;
+
+	if ( t > 0.0f )
 	{
-		t = m[ 0 ] + m[ 5 ] + m[ 10 ] + 1.0f;
-		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
+		s = Q_rsqrt( t ) * 0.5f;
 
 		q[ 3 ] = s * t;
 		q[ 2 ] = ( m[ 1 ] - m[ 4 ] ) * s;
@@ -2882,7 +2886,7 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	else if ( m[ 0 ] > m[ 5 ] && m[ 0 ] > m[ 10 ] )
 	{
 		t = m[ 0 ] - m[ 5 ] - m[ 10 ] + 1.0f;
-		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
+		s = Q_rsqrt( t ) * 0.5f;
 
 		q[ 0 ] = s * t;
 		q[ 1 ] = ( m[ 1 ] + m[ 4 ] ) * s;
@@ -2893,7 +2897,7 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	else if ( m[ 5 ] > m[ 10 ] )
 	{
 		t = -m[ 0 ] + m[ 5 ] - m[ 10 ] + 1.0f;
-		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
+		s = Q_rsqrt( t ) * 0.5f;
 
 		q[ 1 ] = s * t;
 		q[ 0 ] = ( m[ 1 ] + m[ 4 ] ) * s;
@@ -2904,7 +2908,7 @@ void QuatFromMatrix( quat_t q, const matrix_t m )
 	else
 	{
 		t = -m[ 0 ] - m[ 5 ] + m[ 10 ] + 1.0f;
-		s = ( 1.0f / sqrtf( t ) ) * 0.5f;
+		s = Q_rsqrt( t ) * 0.5f;
 
 		q[ 2 ] = s * t;
 		q[ 3 ] = ( m[ 1 ] - m[ 4 ] ) * s;

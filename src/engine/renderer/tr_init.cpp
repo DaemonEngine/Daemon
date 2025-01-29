@@ -26,6 +26,16 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "DetectGLVendors.h"
 #include "Material.h"
 
+#ifdef _WIN32
+	extern "C" {
+		// Use dGPU if both dGPU and iGPU are available
+		// https://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+		__declspec( dllexport ) uint32_t NvOptimusEnablement = 0x00000001;
+		// https://gpuopen.com/learn/amdpowerxpressrequesthighperformance/
+		__declspec( dllexport ) uint32_t AmdPowerXpressRequestHighPerformance = 0x00000001;
+	}
+#endif
+
 	glconfig_t  glConfig;
 	glconfig2_t glConfig2;
 
