@@ -459,7 +459,7 @@ inline void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross )
 }
 
 template<typename A>
-A Square( A a )
+decltype(std::declval<A>() * std::declval<A>()) Square( const A &a )
 {
 	return a * a;
 }
