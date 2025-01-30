@@ -1769,7 +1769,7 @@ static void R_LoadImage( const char *name, byte **pic, int *width, int *height,
 
 	if ( loader )
 	{
-		std::string altName = Str::Format( "%s.%s", name, loader->ext );
+		std::string altName = Str::Format( "%s%s.%s", prefix, name, loader->ext );
 		R_LoadImageWithLoader( name, altName.c_str(), loader, pic, width, height, numLayers, numMips, bits, alphaByte );
 		return;
 	}
