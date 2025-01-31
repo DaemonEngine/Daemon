@@ -47,6 +47,22 @@ if (BUILD_GAME_NATIVE_DLL OR BUILD_GAME_NATIVE_EXE OR NACL)
     include(DaemonFlags)
 endif()
 
+# Source lists for src/shared
+set(SHAREDLIST
+    ${MOUNT_DIR}/shared/CommandBufferClient.cpp
+    ${MOUNT_DIR}/shared/CommandBufferClient.h
+    ${MOUNT_DIR}/shared/CommonProxies.cpp
+    ${MOUNT_DIR}/shared/CommonProxies.h
+    ${MOUNT_DIR}/shared/VMMain.cpp
+    ${MOUNT_DIR}/shared/VMMain.h
+)
+set(SHAREDLIST_cgame
+    ${MOUNT_DIR}/shared/client/cg_api.cpp ${MOUNT_DIR}/shared/client/cg_api.h
+)
+set(SHAREDLIST_sgame
+    ${MOUNT_DIR}/shared/server/sg_api.cpp ${MOUNT_DIR}/shared/server/sg_api.h
+)
+
 # Function to setup all the Sgame/Cgame libraries
 include(CMakeParseArguments)
 

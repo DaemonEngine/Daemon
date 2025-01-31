@@ -66,7 +66,7 @@ void trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime )
 	VM::SendMsg<GetCurrentSnapshotNumberMsg>(*snapshotNumber, *serverTime);
 }
 
-bool trap_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
+bool trap_GetSnapshot( int snapshotNumber, ipcSnapshot_t *snapshot )
 {
 	bool res;
 	VM::SendMsg<GetSnapshotMsg>(snapshotNumber, res, *snapshot);

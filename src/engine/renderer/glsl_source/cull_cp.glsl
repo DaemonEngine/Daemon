@@ -41,15 +41,15 @@ layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0) uniform sampler2D depthImage;
 
-layout(std430, binding = 1) readonly restrict buffer surfaceDescriptorsSSBO {
+layout(std430, binding = BIND_SURFACE_DESCRIPTORS) readonly restrict buffer surfaceDescriptorsSSBO {
 	SurfaceDescriptor surfaces[];
 };
 
-layout(std430, binding = 2) writeonly restrict buffer surfaceCommandsSSBO {
+layout(std430, binding = BIND_SURFACE_COMMANDS) writeonly restrict buffer surfaceCommandsSSBO {
 	SurfaceCommand surfaceCommands[];
 };
 
-layout(std430, binding = 5) restrict buffer portalSurfacesSSBO {
+layout(std430, binding = BIND_PORTAL_SURFACES) restrict buffer portalSurfacesSSBO {
 	PortalSurface portalSurfaces[];
 };
 
@@ -57,7 +57,7 @@ layout(std430, binding = 5) restrict buffer portalSurfacesSSBO {
 	#define DEBUG_INVOCATION_SIZE 5
 	#define DEBUG_ID( id ) ( id * DEBUG_INVOCATION_SIZE )
 
-	layout(std430, binding = 10) writeonly restrict buffer debugSSBO {
+	layout(std430, binding = BIND_DEBUG) writeonly restrict buffer debugSSBO {
 		uvec4 debug[];
 	};
 #endif

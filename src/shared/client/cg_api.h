@@ -84,7 +84,7 @@ int             trap_R_LerpTag( orientation_t *tag, const refEntity_t *refent, c
 void            trap_R_GetTextureSize( qhandle_t handle, int *x, int *y );
 qhandle_t       trap_R_GenerateTexture( const byte *data, int x, int y );
 void            trap_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime );
-bool        trap_GetSnapshot( int snapshotNumber, snapshot_t *snapshot );
+bool        trap_GetSnapshot( int snapshotNumber, ipcSnapshot_t *snapshot );
 int             trap_GetCurrentCmdNumber();
 bool        trap_GetUserCmd( int cmdNumber, usercmd_t *ucmd );
 void            trap_SetUserCmdValue( int stateValue, int flags, float sensitivityScale );

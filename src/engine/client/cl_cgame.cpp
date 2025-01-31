@@ -281,7 +281,7 @@ void CL_FillServerCommands(std::vector<std::string>& commands, int start, int en
 CL_GetSnapshot
 ====================
 */
-bool CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
+bool CL_GetSnapshot( int snapshotNumber, ipcSnapshot_t *snapshot )
 {
 	clSnapshot_t *clSnap;
 
@@ -305,14 +305,14 @@ bool CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot )
 	}
 
 	// write the snapshot
-	snapshot->snapFlags = clSnap->snapFlags;
-	snapshot->ping = clSnap->ping;
-	snapshot->serverTime = clSnap->serverTime;
-	memcpy( snapshot->areamask, clSnap->areamask, sizeof( snapshot->areamask ) );
+	snapshot->b.snapFlags = clSnap->snapFlags;
+	snapshot->b.ping = clSnap->ping;
+	snapshot->b.serverTime = clSnap->serverTime;
+	memcpy( snapshot->b.areamask, clSnap->areamask, sizeof( snapshot->b.areamask ) );
 	snapshot->ps = clSnap->ps;
-	snapshot->entities = clSnap->entities;
+	snapshot->b.entities = clSnap->entities;
 
-	CL_FillServerCommands(snapshot->serverCommands, clc.lastExecutedServerCommand + 1, clSnap->serverCommandNum);
+	CL_FillServerCommands(snapshot->b.serverCommands, clc.lastExecutedServerCommand + 1, clSnap->serverCommandNum);
 	clc.lastExecutedServerCommand = clSnap->serverCommandNum;
 
 	return true;
@@ -1138,7 +1138,7 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			break;
 
 		case CG_GETSNAPSHOT:
-			IPC::HandleMsg<GetSnapshotMsg>(channel, std::move(reader), [this] (int number, bool& res, snapshot_t& snapshot) {
+			IPC::HandleMsg<GetSnapshotMsg>(channel, std::move(reader), [this] (int number, bool& res, ipcSnapshot_t& snapshot) {
 				res = CL_GetSnapshot(number, &snapshot);
 			});
 			break;

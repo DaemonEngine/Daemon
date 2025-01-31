@@ -29,35 +29,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "common/KeyIdentification.h"
 
 namespace Util {
-	template<> struct SerializeTraits<snapshot_t> {
-#ifdef BUILD_ENGINE
-		static void Write(Writer& stream, const snapshot_t& snap)
+	template<> struct SerializeTraits<ipcSnapshot_t> {
+		static void Write(Writer& stream, const ipcSnapshot_t& snap)
 		{
-
-			stream.Write<uint32_t>(snap.snapFlags);
-			stream.Write<uint32_t>(snap.ping);
-			stream.Write<uint32_t>(snap.serverTime);
-			stream.WriteData(&snap.areamask, MAX_MAP_AREA_BYTES);
+			stream.Write<uint32_t>(snap.b.snapFlags);
+			stream.Write<uint32_t>(snap.b.ping);
+			stream.Write<uint32_t>(snap.b.serverTime);
+			stream.WriteData(&snap.b.areamask, MAX_MAP_AREA_BYTES);
 			stream.Write<OpaquePlayerState>(snap.ps);
-			stream.Write<std::vector<entityState_t>>(snap.entities);
-			stream.Write<std::vector<std::string>>(snap.serverCommands);
+			stream.Write<std::vector<entityState_t>>(snap.b.entities);
+			stream.Write<std::vector<std::string>>(snap.b.serverCommands);
 		}
-#endif
-#ifdef BUILD_CGAME
-		static snapshot_t Read(Reader& stream)
+
+		static ipcSnapshot_t Read(Reader& stream)
 		{
-			snapshot_t snap;
-			snap.snapFlags = stream.Read<uint32_t>();
-			snap.ping = stream.Read<uint32_t>();
-			snap.serverTime = stream.Read<uint32_t>();
-			stream.ReadData(&snap.areamask, MAX_MAP_AREA_BYTES);
-			auto ops = stream.Read<OpaquePlayerState>();
-			memcpy(&snap.ps, &ops, sizeof(snap.ps));
-			snap.entities = stream.Read<std::vector<entityState_t>>();
-			snap.serverCommands = stream.Read<std::vector<std::string>>();
+			ipcSnapshot_t snap;
+			snap.b.snapFlags = stream.Read<uint32_t>();
+			snap.b.ping = stream.Read<uint32_t>();
+			snap.b.serverTime = stream.Read<uint32_t>();
+			stream.ReadData(&snap.b.areamask, MAX_MAP_AREA_BYTES);
+			snap.ps = stream.Read<OpaquePlayerState>();
+			snap.b.entities = stream.Read<std::vector<entityState_t>>();
+			snap.b.serverCommands = stream.Read<std::vector<std::string>>();
 			return snap;
 		}
-#endif
 	};
 
 	// For skeletons, only send the bones which are used
@@ -255,7 +250,7 @@ using GetCurrentSnapshotNumberMsg = IPC::SyncMessage<
 >;
 using GetSnapshotMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_GETSNAPSHOT>, int>,
-	IPC::Reply<bool, snapshot_t>
+	IPC::Reply<bool, ipcSnapshot_t>
 >;
 using GetCurrentCmdNumberMsg = IPC::SyncMessage<
 	IPC::Message<IPC::Id<VM::QVM, CG_GETCURRENTCMDNUMBER>>,

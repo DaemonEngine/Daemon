@@ -43,7 +43,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static constexpr uint32_t MAX_DRAWCOMMAND_TEXTURES = 64;
 
-/* Similar to GLIndirectBuffer::GLIndirectCommand, but we always set instanceCount to 1 and baseVertex to 0,
+struct GLIndirectCommand {
+	GLuint count;
+	GLuint instanceCount;
+	GLuint firstIndex;
+	GLint baseVertex;
+	GLuint baseInstance;
+};
+
+/* Similar to GLIndirectCommand, but we always set instanceCount to 1 and baseVertex to 0,
  so no need to waste memory on those */
 struct IndirectCompactCommand {
 	GLuint count;
@@ -269,6 +277,20 @@ struct SurfaceCommandBatch {
 	uint32_t materialIDs[2] { 0, 0 };
 };
 
+enum class BufferBind {
+	MATERIALS = 1, // LightTile UBO uses binding point 0, so avoid it here
+	TEX_DATA = 6,
+	LIGHTMAP_DATA = 2,
+	SURFACE_DESCRIPTORS = 0,
+	SURFACE_COMMANDS = 1,
+	CULLED_COMMANDS = 2,
+	SURFACE_BATCHES = 3,
+	COMMAND_COUNTERS_ATOMIC = 0,
+	COMMAND_COUNTERS_STORAGE = 4, // Avoid needlessly rebinding buffers
+	PORTAL_SURFACES = 5,
+	DEBUG = 10
+};
+
 class MaterialSystem {
 	public:
 	bool generatedWorldCommandBuffer = false;
@@ -328,6 +350,9 @@ class MaterialSystem {
 	void EndFrame();
 
 	void GenerateDepthImages( const int width, const int height, imageParams_t imageParms );
+
+	void InitGLBuffers();
+	void FreeGLBuffers();
 
 	void AddStageTextures( drawSurf_t* drawSurf, const uint32_t stage, Material* material );
 	void AddStage( drawSurf_t* drawSurf, shaderStage_t* pStage, uint32_t stage,

@@ -102,6 +102,7 @@ struct glconfig2_t
 	bool indirectParametersAvailable;
 	bool shadingLanguage420PackAvailable;
 	bool explicitUniformLocationAvailable;
+	bool directStateAccessAvailable;
 	bool shaderImageLoadStoreAvailable;
 	bool shaderAtomicCountersAvailable;
 	bool shaderAtomicCounterOpsAvailable;
