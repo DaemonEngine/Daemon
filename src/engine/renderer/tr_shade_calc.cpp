@@ -701,6 +701,16 @@ TEX COORDS
 ====================================================================
 */
 
+static inline void ComputeTextureWrapModifer( const matrix_t matrix, const vec2_t scroll, vec2_t modifier ) {
+	const float xDiv = ( matrix[0] * scroll[0] + matrix[4] * scroll[1] );
+	const float yDiv = ( matrix[1] * scroll[0] + matrix[5] * scroll[1] );
+	const float xPeriod = xDiv ? 1.0f / xDiv : 1.0f;
+	const float yPeriod = yDiv ? 1.0f / yDiv : 1.0f;
+
+	modifier[0] = xPeriod ? fmodf( backEnd.refdef.floatTime, xPeriod ) : 0.0f;
+	modifier[1] = yPeriod ? fmodf( backEnd.refdef.floatTime, yPeriod ) : 0.0f;
+}
+
 /*
 ===============
 RB_CalcTexMatrix
@@ -741,24 +751,24 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
-					x = x - floor( x );
-					y = y - floor( y );
+					vec2_t modifier;
+					vec2_t scroll { x, y };
+					ComputeTextureWrapModifer( matrix, scroll, modifier );
 
-					MatrixMultiplyTranslation( matrix, x, y, 0.0 );
+					matrix[12] += matrix[0] * x * modifier[0] + matrix[4] * x * modifier[0];
+					matrix[13] += matrix[1] * y * modifier[1] + matrix[5] * y * modifier[1];
 					break;
 				}
 
 			case texMod_t::TMOD_SCROLL:
 				{
-					float x = texMod->scroll[ 0 ] * backEnd.refdef.floatTime;
-					float y = texMod->scroll[ 1 ] * backEnd.refdef.floatTime;
-
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
-					x = x - floor( x );
-					y = y - floor( y );
+					vec2_t modifier;
+					ComputeTextureWrapModifer( matrix, texMod->scroll, modifier );
 
-					MatrixMultiplyTranslation( matrix, x, y, 0.0 );
+					matrix[12] += matrix[0] * texMod->scroll[0] * modifier[0] + matrix[4] * texMod->scroll[1] * modifier[0];
+					matrix[13] += matrix[1] * texMod->scroll[0] * modifier[1] + matrix[5] * texMod->scroll[1] * modifier[1];
 					break;
 				}
 
@@ -804,10 +814,12 @@ void RB_CalcTexMatrix( const textureBundle_t *bundle, matrix_t matrix )
 
 					// clamp so coordinates don't continuously get larger, causing problems
 					// with hardware limits
-					x = x - floor( x );
-					y = y - floor( y );
+					vec2_t modifier;
+					vec2_t scroll{ x, y };
+					ComputeTextureWrapModifer( matrix, scroll, modifier );
 
-					MatrixMultiplyTranslation( matrix, x, y, 0.0 );
+					matrix[12] += matrix[0] * x * modifier[0] + matrix[4] * x * modifier[0];
+					matrix[13] += matrix[1] * y * modifier[1] + matrix[5] * y * modifier[1];
 					break;
 				}
 
