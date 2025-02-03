@@ -26,6 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "engine/qcommon/q_shared.h"
 
+#define MAX_FEATLABEL_CHARS 32
+
 #define CMD_BACKUP               64
 #define CMD_MASK                 ( CMD_BACKUP - 1 )
 // allow a lot of command backups for very fast systems
@@ -85,6 +87,15 @@ enum class serverResponseProtocol_t : uint8_t
 	UNKNOWN,
 	IP4,
 	IP6,
+};
+
+// "Trusted" as in we know it is correct and present, as opposed to the server's info string
+// which is self-reported data whose fields may be missing, false or not of the right format
+struct trustedServerInfo_t
+{
+	serverResponseProtocol_t responseProto;
+	char addr[ MAX_ADDR_CHARS ];
+	char featuredLabel[ MAX_FEATLABEL_CHARS ];
 };
 
 using markMsgInput_t = std::pair<

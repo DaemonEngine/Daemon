@@ -82,17 +82,10 @@ CL_InitServerInfo
 static void CL_InitServerInfo( serverInfo_t *server, netadr_t *address )
 {
 	server->adr = *address;
-	server->clients = 0;
-	server->hostName[ 0 ] = '\0';
-	server->mapName[ 0 ] = '\0';
 	server->label[ 0 ] = '\0';
-	server->maxClients = 0;
-	server->maxPing = 0;
-	server->minPing = 0;
 	server->pingStatus = pingStatus_t::WAITING;
 	server->pingAttempts = 0;
 	server->ping = -1;
-	server->game[ 0 ] = '\0';
 	server->responseProto = serverResponseProtocol_t::UNKNOWN;
 }
 
@@ -492,17 +485,7 @@ static void CL_SetServerInfo(
 {
 	if ( info )
 	{
-		server->clients = atoi( Info_ValueForKey( info, "clients" ) );
-		server->bots = atoi( Info_ValueForKey( info, "bots" ) );
-		Q_strncpyz( server->hostName, Info_ValueForKey( info, "hostname" ), MAX_NAME_LENGTH );
-		server->load = atoi( Info_ValueForKey( info, "serverload" ) );
-		Q_strncpyz( server->mapName, Info_ValueForKey( info, "mapname" ), MAX_NAME_LENGTH );
-		server->maxClients = atoi( Info_ValueForKey( info, "sv_maxclients" ) );
-		Q_strncpyz( server->game, Info_ValueForKey( info, "game" ), MAX_NAME_LENGTH );
-		server->minPing = atoi( Info_ValueForKey( info, "minping" ) );
-		server->maxPing = atoi( Info_ValueForKey( info, "maxping" ) );
-		server->needpass = atoi( Info_ValueForKey( info, "g_needpass" ) );   // NERVE - SMF
-		Q_strncpyz( server->gameName, Info_ValueForKey( info, "gamename" ), MAX_NAME_LENGTH );   // Arnout
+		server->infoString = info;
 	}
 
 	server->responseProto = proto;
@@ -640,20 +623,11 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	// add this to the list
 	cls.numlocalservers = i + 1;
 	cls.localServers[ i ].adr = from;
-	cls.localServers[ i ].clients = 0;
-	cls.localServers[ i ].hostName[ 0 ] = '\0';
-	cls.localServers[ i ].load = -1;
-	cls.localServers[ i ].mapName[ 0 ] = '\0';
-	cls.localServers[ i ].maxClients = 0;
-	cls.localServers[ i ].maxPing = 0;
-	cls.localServers[ i ].minPing = 0;
 	cls.localServers[ i ].ping = -1;
 	cls.localServers[ i ].pingStatus = pingStatus_t::WAITING;
 	cls.localServers[ i ].pingAttempts = 0;
-	cls.localServers[ i ].game[ 0 ] = '\0';
 	cls.localServers[ i ].responseProto = serverResponseProtocol_t::UNKNOWN;
-	cls.localServers[ i ].needpass = 0;
-	cls.localServers[ i ].gameName[ 0 ] = '\0'; // Arnout
+	cls.localServers[ i ].infoString.clear();
 
 	Q_strncpyz( info, MSG_ReadString( msg ), MAX_INFO_STRING );
 

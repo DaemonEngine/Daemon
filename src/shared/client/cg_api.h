@@ -124,7 +124,7 @@ void            trap_SetColorGrading( int slot, qhandle_t hShader );
 void            trap_R_ScissorEnable( bool enable );
 void            trap_R_ScissorSet( int x, int y, int w, int h );
 int             trap_LAN_GetServerCount( int source );
-void            trap_LAN_GetServerInfo( int source, int n, char *buf, int buflen );
+void            trap_LAN_GetServerInfo( int source, int n, trustedServerInfo_t &trustedInfo, std::string &info );
 int             trap_LAN_GetServerPing( int source, int n );
 void            trap_LAN_MarkServerVisible( int source, int n, bool visible );
 int             trap_LAN_ServerIsVisible( int source, int n );
