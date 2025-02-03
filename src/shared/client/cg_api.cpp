@@ -627,11 +627,9 @@ int trap_LAN_GetServerCount( int source )
 	return count;
 }
 
-void trap_LAN_GetServerInfo( int source, int n, char *buf, int buflen )
+void trap_LAN_GetServerInfo( int source, int n, trustedServerInfo_t &trustedInfo, std::string &info )
 {
-	std::string info;
-	VM::SendMsg<LAN::GetServerInfoMsg>(source, n, buflen, info);
-	Q_strncpyz(buf, info.c_str(), buflen);
+	VM::SendMsg<LAN::GetServerInfoMsg>(source, n, trustedInfo, info);
 }
 
 int trap_LAN_GetServerPing( int source, int n )

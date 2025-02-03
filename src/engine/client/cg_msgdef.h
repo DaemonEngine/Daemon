@@ -434,8 +434,8 @@ namespace LAN {
 		IPC::Reply<int>
 	>;
 	using GetServerInfoMsg = IPC::SyncMessage<
-		IPC::Message<IPC::Id<VM::QVM, CG_LAN_GETSERVERINFO>, int, int, int>,
-		IPC::Reply<std::string>
+		IPC::Message<IPC::Id<VM::QVM, CG_LAN_GETSERVERINFO>, int, int>,
+		IPC::Reply<trustedServerInfo_t, std::string>
 	>;
 	using GetServerPingMsg = IPC::SyncMessage<
 		IPC::Message<IPC::Id<VM::QVM, CG_LAN_GETSERVERPING>, int, int>,

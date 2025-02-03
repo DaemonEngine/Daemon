@@ -395,12 +395,9 @@ static int LAN_GetServerCount( int source )
  * LAN_GetServerInfo
  * ====================
  */
-static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
+static void LAN_GetServerInfo( int source, int n, trustedServerInfo_t &trustedInfo, std::string &info )
 {
-	char         info[ MAX_STRING_CHARS ];
 	serverInfo_t *server = nullptr;
-
-	info[ 0 ] = '\0';
 
 	switch ( source )
 	{
@@ -421,32 +418,17 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen )
 			break;
 	}
 
-	if ( server && buf )
+	if ( server )
 	{
-		buf[ 0 ] = '\0';
-		Info_SetValueForKey( info, "hostname", server->hostName, false );
-		Info_SetValueForKey( info, "serverload", va( "%i", server->load ), false );
-		Info_SetValueForKey( info, "mapname", server->mapName, false );
-		Info_SetValueForKey( info, "label", server->label, false );
-		Info_SetValueForKey( info, "clients", va( "%i", server->clients ), false );
-		Info_SetValueForKey( info, "bots", va( "%i", server->bots ), false );
-		Info_SetValueForKey( info, "sv_maxclients", va( "%i", server->maxClients ), false );
-		Info_SetValueForKey( info, "ping", va( "%i", server->ping ), false );
-		Info_SetValueForKey( info, "minping", va( "%i", server->minPing ), false );
-		Info_SetValueForKey( info, "maxping", va( "%i", server->maxPing ), false );
-		Info_SetValueForKey( info, "game", server->game, false );
-		Info_SetValueForKey( info, "nettype", Util::enum_str( server->responseProto ), false );
-		Info_SetValueForKey( info, "addr", Net::AddressToString( server->adr, true ).c_str(), false );
-		Info_SetValueForKey( info, "needpass", va( "%i", server->needpass ), false );   // NERVE - SMF
-		Info_SetValueForKey( info, "gamename", server->gameName, false );  // Arnout
-		Q_strncpyz( buf, info, buflen );
+		trustedInfo.responseProto = server->responseProto;
+		Q_strncpyz( trustedInfo.addr, Net::AddressToString( server->adr, true ).c_str(), sizeof( trustedInfo.addr ) );
+		Q_strncpyz( trustedInfo.featuredLabel, server->label, sizeof( trustedInfo.featuredLabel ) );
+		info = server->infoString;
 	}
 	else
 	{
-		if ( buf )
-		{
-			buf[ 0 ] = '\0';
-		}
+		trustedInfo = {};
+		info.clear();
 	}
 }
 
@@ -1419,11 +1401,8 @@ void CGameVM::QVMSyscall(int syscallNum, Util::Reader& reader, IPC::Channel& cha
 			break;
 
 		case CG_LAN_GETSERVERINFO:
-			IPC::HandleMsg<LAN::GetServerInfoMsg>(channel, std::move(reader), [this] (int source, int n, int len, std::string& info) {
-				std::unique_ptr<char[]> buffer(new char[len]);
-				buffer[0] = '\0';
-				LAN_GetServerInfo(source, n, buffer.get(), len);
-				info.assign(buffer.get());
+			IPC::HandleMsg<LAN::GetServerInfoMsg>(channel, std::move(reader), [this] (int source, int n, trustedServerInfo_t& trustedInfo, std::string& info) {
+				LAN_GetServerInfo(source, n, trustedInfo, info);
 			});
 			break;
 
