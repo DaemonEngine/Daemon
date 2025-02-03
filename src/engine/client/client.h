@@ -259,7 +259,7 @@ struct serverInfo_t
 	char     mapName[ MAX_NAME_LENGTH ];
 	char     game[ MAX_NAME_LENGTH ];
 	char     label[ MAX_FEATLABEL_CHARS ]; // for featured servers, nullptr otherwise
-	netadrtype_t netType;
+	serverResponseProtocol_t responseProto;
 	int      clients;
 	int      bots;
 	int      maxClients;

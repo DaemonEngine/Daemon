@@ -67,6 +67,7 @@ struct ping_t
 	int      start;
 	int      time;
 	char     challenge[ 9 ]; // 8-character challenge string
+	serverResponseProtocol_t responseProto;
 	char     info[ MAX_INFO_STRING ];
 };
 
@@ -92,7 +93,7 @@ static void CL_InitServerInfo( serverInfo_t *server, netadr_t *address )
 	server->pingAttempts = 0;
 	server->ping = -1;
 	server->game[ 0 ] = '\0';
-	server->netType = netadrtype_t::NA_BOT;
+	server->responseProto = serverResponseProtocol_t::UNKNOWN;
 }
 
 /*
@@ -485,7 +486,9 @@ void CL_ServersResponsePacket( const netadr_t *from, msg_t *msg, bool extended )
 		parsed_count, numservers, duplicate_count, count );
 }
 
-static void CL_SetServerInfo( serverInfo_t *server, const char *info, pingStatus_t pingStatus, int ping )
+static void CL_SetServerInfo(
+	serverInfo_t *server, const char *info,
+	serverResponseProtocol_t proto, pingStatus_t pingStatus, int ping )
 {
 	if ( info )
 	{
@@ -496,18 +499,20 @@ static void CL_SetServerInfo( serverInfo_t *server, const char *info, pingStatus
 		Q_strncpyz( server->mapName, Info_ValueForKey( info, "mapname" ), MAX_NAME_LENGTH );
 		server->maxClients = atoi( Info_ValueForKey( info, "sv_maxclients" ) );
 		Q_strncpyz( server->game, Info_ValueForKey( info, "game" ), MAX_NAME_LENGTH );
-		server->netType = Util::enum_cast<netadrtype_t>(atoi(Info_ValueForKey(info, "nettype")));
 		server->minPing = atoi( Info_ValueForKey( info, "minping" ) );
 		server->maxPing = atoi( Info_ValueForKey( info, "maxping" ) );
 		server->needpass = atoi( Info_ValueForKey( info, "g_needpass" ) );   // NERVE - SMF
 		Q_strncpyz( server->gameName, Info_ValueForKey( info, "gamename" ), MAX_NAME_LENGTH );   // Arnout
 	}
 
+	server->responseProto = proto;
 	server->pingStatus = pingStatus;
 	server->ping = ping;
 }
 
-static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, pingStatus_t pingStatus, int ping )
+static void CL_SetServerInfoByAddress(
+	const netadr_t& from, const char *info,
+	serverResponseProtocol_t proto, pingStatus_t pingStatus, int ping )
 {
 	int i;
 
@@ -515,7 +520,7 @@ static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, p
 	{
 		if ( NET_CompareAdr( from, cls.localServers[ i ].adr ) )
 		{
-			CL_SetServerInfo( &cls.localServers[ i ], info, pingStatus, ping );
+			CL_SetServerInfo( &cls.localServers[ i ], info, proto, pingStatus, ping );
 		}
 	}
 
@@ -523,7 +528,7 @@ static void CL_SetServerInfoByAddress( const netadr_t& from, const char *info, p
 	{
 		if ( NET_CompareAdr( from, cls.globalServers[ i ].adr ) )
 		{
-			CL_SetServerInfo( &cls.globalServers[ i ], info, pingStatus, ping );
+			CL_SetServerInfo( &cls.globalServers[ i ], info, proto, pingStatus, ping );
 		}
 	}
 }
@@ -535,7 +540,7 @@ CL_ServerInfoPacket
 */
 void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 {
-	int  i, type;
+	int  i;
 	char info[ MAX_INFO_STRING ];
 //	char*   str;
 	char *infoString;
@@ -582,27 +587,24 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 			Q_strncpyz( cl_pinglist[ i ].info, infoString, sizeof( cl_pinglist[ i ].info ) );
 
 			// tack on the net type
-			// NOTE: make sure these types are in sync with the netnames strings in the UI
 			switch ( from.type )
 			{
 				case netadrtype_t::NA_BROADCAST:
 				case netadrtype_t::NA_IP:
-					//str = "udp";
-					type = 1;
+					cl_pinglist[ i ].responseProto = serverResponseProtocol_t::IP4;
 					break;
 
 				case netadrtype_t::NA_IP6:
-					type = 2;
+					cl_pinglist[ i ].responseProto = serverResponseProtocol_t::IP6;
 					break;
 
 				default:
-					//str = "???";
-					type = 0;
+					cl_pinglist[ i ].responseProto = serverResponseProtocol_t::UNKNOWN;
 					break;
 			}
 
-			Info_SetValueForKey( cl_pinglist[ i ].info, "nettype", va( "%d", type ), false );
-			CL_SetServerInfoByAddress( from, infoString, pingStatus_t::COMPLETE, cl_pinglist[ i ].time );
+			CL_SetServerInfoByAddress( from, infoString, cl_pinglist[ i ].responseProto,
+			                           pingStatus_t::COMPLETE, cl_pinglist[ i ].time );
 
 			return;
 		}
@@ -649,7 +651,7 @@ void CL_ServerInfoPacket( const netadr_t& from, msg_t *msg )
 	cls.localServers[ i ].pingStatus = pingStatus_t::WAITING;
 	cls.localServers[ i ].pingAttempts = 0;
 	cls.localServers[ i ].game[ 0 ] = '\0';
-	cls.localServers[ i ].netType = from.type;
+	cls.localServers[ i ].responseProto = serverResponseProtocol_t::UNKNOWN;
 	cls.localServers[ i ].needpass = 0;
 	cls.localServers[ i ].gameName[ 0 ] = '\0'; // Arnout
 
@@ -851,7 +853,10 @@ static pingStatus_t CL_GetPing( int n )
 		}
 	}
 
-	CL_SetServerInfoByAddress( cl_pinglist[ n ].adr, cl_pinglist[ n ].info, status, time );
+	// FIXME: do we really need to call this again? CL_ServerInfoPacket already calls it
+	// at the moment the ping response arrives
+	CL_SetServerInfoByAddress( cl_pinglist[ n ].adr, cl_pinglist[ n ].info,
+	                           cl_pinglist[ n ].responseProto, status, time );
 
 	return status;
 }
@@ -1002,7 +1007,8 @@ void CL_Ping_f()
 	pingptr->time = -1;
 	GeneratePingChallenge( *pingptr );
 
-	CL_SetServerInfoByAddress( pingptr->adr, nullptr, pingStatus_t::WAITING, 0 );
+	CL_SetServerInfoByAddress( pingptr->adr, nullptr, serverResponseProtocol_t::UNKNOWN,
+	                           pingStatus_t::WAITING, 0 );
 
 	Net::OutOfBandPrint( netsrc_t::NS_CLIENT, to, "getinfo %s", pingptr->challenge );
 }
