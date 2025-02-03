@@ -92,9 +92,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		Cvar::NONE, 4, 1, MAX_REF_LIGHTS / 16 );
 	cvar_t      *r_realtimeLightingCastShadows;
 	cvar_t      *r_precomputedLighting;
-	Cvar::Cvar<int> r_overbrightDefaultExponent("r_overbrightDefaultExponent", "default map light color shift (multiply by 2^x)", Cvar::NONE, 2);
-	Cvar::Cvar<bool> r_overbrightDefaultClamp("r_overbrightDefaultClamp", "clamp lightmap colors to 1 (in absence of map worldspawn value)", Cvar::NONE, false);
-	Cvar::Cvar<bool> r_overbrightIgnoreMapSettings("r_overbrightIgnoreMapSettings", "force usage of r_overbrightDefaultClamp / r_overbrightDefaultExponent, ignoring worldspawn", Cvar::NONE, false);
+	Cvar::Cvar<int> r_overbrightDefaultLegacyExponent("r_overbrightDefaultLegacyExponent", "default map light color shift for legacy maps (multiply by 2^x)", Cvar::NONE, 2);
+	Cvar::Cvar<int> r_overbrightDefaultLinearExponent("r_overbrightDefaultLinearExponent", "default map light color shift for maps with linear colorspace (multiply by 2^x)", Cvar::NONE, 1);
+	Cvar::Cvar<bool> r_overbrightDefaultLegacyClamp("r_overbrightDefaultLegacyClamp", "clamp legacy lightmap colors to 1 (in absence of map worldspawn value)", Cvar::NONE, false);
+	Cvar::Cvar<bool> r_overbrightIgnoreMapSettings("r_overbrightIgnoreMapSettings", "force usage of r_overbrightDefaultLegacyClamp / r_overbrightDefaultLegacyExponent / r_overbrightDefaultLinearExponent, ignoring worldspawn", Cvar::NONE, false);
 	Cvar::Range<Cvar::Cvar<int>> r_lightMode("r_lightMode", "lighting mode: 0: fullbright (cheat), 1: vertex light, 2: grid light (cheat), 3: light map", Cvar::NONE, Util::ordinal(lightMode_t::MAP), Util::ordinal(lightMode_t::FULLBRIGHT), Util::ordinal(lightMode_t::MAP));
 	Cvar::Cvar<bool> r_colorGrading( "r_colorGrading", "Use color grading", Cvar::NONE, true );
 	Cvar::Cvar<bool> r_preferBindlessTextures( "r_preferBindlessTextures", "use bindless textures even when material system is off", Cvar::NONE, false );
@@ -1169,8 +1170,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_subdivisions = Cvar_Get( "r_subdivisions", "4", CVAR_LATCH );
 		r_realtimeLightingCastShadows = Cvar_Get( "r_realtimeLightingCastShadows", "1", 0 );
 		r_precomputedLighting = Cvar_Get( "r_precomputedLighting", "1", CVAR_CHEAT | CVAR_LATCH );
-		Cvar::Latch( r_overbrightDefaultExponent );
-		Cvar::Latch( r_overbrightDefaultClamp );
+		Cvar::Latch( r_overbrightDefaultLegacyExponent );
+		Cvar::Latch( r_overbrightDefaultLinearExponent );
+		Cvar::Latch( r_overbrightDefaultLegacyClamp );
 		Cvar::Latch( r_overbrightIgnoreMapSettings );
 		Cvar::Latch( r_lightMode );
 		Cvar::Latch( r_colorGrading );

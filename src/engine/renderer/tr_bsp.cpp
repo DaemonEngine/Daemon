@@ -4301,6 +4301,13 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 
 	p = w->entityString;
 
+	bool hasMapOverBrightBits = false;
+	int mapOverBrightBits = 0;
+
+	bool hasSRGBtex = false;
+	bool hasSRGBcolor = false;
+	bool hasSRGBlight = false;
+
 	// only parse the world spawn
 	while ( true )
 	{
@@ -4403,7 +4410,8 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 			// check for mapOverBrightBits override
 			if ( !Q_stricmp( keyname, "mapOverBrightBits" ) )
 			{
-				tr.mapOverBrightBits = Math::Clamp( atof( value ), 0.0, 3.0 );
+				hasMapOverBrightBits = true;
+				mapOverBrightBits = Math::Clamp( atof( value ), 0.0, 3.0 );
 				continue;
 			}
 
@@ -4438,71 +4446,52 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 				tr.worldDeluxeMapping = glConfig2.deluxeMapping;
 			}
 
-			bool sRGBtex = false;
-			bool sRGBcolor = false;
-			bool sRGBlight = false;
-
 			s = strstr( value, "-sRGB" );
 
 			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
 			{
-				sRGBtex = true;
-				sRGBcolor = true;
-				sRGBlight = true;
+				hasSRGBtex = true;
+				hasSRGBcolor = true;
+				hasSRGBlight = true;
 			}
 
 			s = strstr( value, "-nosRGB" );
 
 			if ( s && ( s[5] == ' ' || s[5] == '\0' ) )
 			{
-				sRGBtex = false;
-				sRGBcolor = false;
-				sRGBlight = true;
+				hasSRGBtex = false;
+				hasSRGBcolor = false;
+				hasSRGBlight = true;
 			}
 
 			if ( strstr( value, "-sRGBlight" ) )
 			{
-				sRGBlight = true;
+				hasSRGBlight = true;
 			}
 
 			if ( strstr( value, "-nosRGBlight" ) )
 			{
-				sRGBlight = false;
+				hasSRGBlight = false;
 			}
 
 			if ( strstr( value, "-sRGBcolor" ) )
 			{
-				sRGBcolor = true;
+				hasSRGBcolor = true;
 			}
 
 			if ( strstr( value, "-nosRGBcolor" ) )
 			{
-				sRGBcolor = false;
+				hasSRGBcolor = false;
 			}
 
 			if ( strstr( value, "-sRGBtex" ) )
 			{
-				sRGBtex = true;
+				hasSRGBtex = true;
 			}
 
 			if ( strstr( value, "-nosRGBtex" ) )
 			{
-				sRGBtex = false;
-			}
-
-			if ( sRGBlight )
-			{
-				Log::Debug("map features lights in sRGB colorspace" );
-				tr.worldLinearizeLightMap = true;
-			}
-
-			if ( sRGBcolor && sRGBtex )
-			{
-				Log::Debug("map features lights computed with linear colors and textures" );
-				tr.worldLinearizeTexture = true;
-				/* The forceLegacyMapOverBrightClamping is only compatible and purposed
-				with legacy maps without color linearization. */
-				tr. legacyOverBrightClamping= false;
+				hasSRGBtex = false;
 			}
 
 			continue;
@@ -4521,6 +4510,87 @@ void R_LoadEntities( lump_t *l, std::string &externalEntities )
 			Log::Warn("expected worldspawn found '%s'", value );
 			continue;
 		}
+	}
+
+	/* These are the values expected by the rest of the renderer
+	(esp. tr_bsp), used for "gamma correction of the map".
+	Both were set to 0 if we had neither COMPAT_ET nor COMPAT_Q3,
+	it may be interesting to remember.
+
+	Quake 3 and Tremulous values:
+
+	  tr.overbrightBits = 1;
+	  tr.mapOverBrightBits = 2;
+	  tr.identityLight = 1.0f / ( 1 << tr.overbrightBits );
+
+	Wolfenstein: Enemy Territory values:
+
+	  tr.overbrightBits = 0;
+	  tr.mapOverBrightBits = 2;
+	  tr.identityLight = 1.0f / ( 1 << tr.overbrightBits );
+
+	Games like Quake 3 and Tremulous require tr.mapOverBrightBits
+	to be set to 2. Because this engine is primarily maintained for
+	Unvanquished and needs to keep compatibility with legacy Tremulous
+	maps, this value is set to 2.
+
+	Games like True Combat: Elite (Wolf:ET mod) or Urban Terror 4
+	(Quake 3 mod) require tr.mapOverBrightBits to be set to 0.
+
+	The mapOverBrightBits value will be read as map entity key
+	by R_LoadEntities() in tr_bsp, making possible to override
+	the default value and properly render a map with another
+	value than the default one.
+
+	If this key is missing in map entity lump, there is no way
+	to know the required value for mapOverBrightBits when loading
+	a BSP, one may rely on arena files to do some guessing when
+	loading foreign maps and games ported to the Dæmon engine may
+	require to set a different default than what Unvanquished
+	requires.
+
+	Using a non-zero value for tr.mapOverBrightBits turns light
+	non-linear and makes deluxe mapping buggy though.
+
+	Mappers may port and fix maps by multiplying the lights by 2.5
+	and set the mapOverBrightBits key to 0 in map entities lump.
+
+	In legacy engines, tr.overbrightBits was non-zero when
+	hardware overbright bits were enabled, zero when disabled.
+	This engine do not implement hardware overbright bit, so
+	this is always zero, and we can remove it and simplify all
+	the computations making use of it.
+
+	Because tr.overbrightBits is always 0, tr.identityLight is
+	always 1.0f. We can entirely remove it. */
+
+	if ( hasSRGBlight )
+	{
+		Log::Debug("map features lights in sRGB colorspace" );
+		tr.worldLinearizeLightMap = true;
+	}
+
+	if ( hasSRGBcolor && hasSRGBtex )
+	{
+		Log::Debug("map features lights computed with linear colors and textures" );
+		tr.worldLinearizeTexture = true;
+
+		/* The forceLegacyMapOverBrightClamping is only compatible and purposed
+		for legacy maps without color linearization. */
+		tr.legacyOverBrightClamping = false;
+
+		tr.mapOverBrightBits = r_overbrightDefaultLinearExponent.Get();
+	}
+	else
+	{
+		tr.legacyOverBrightClamping = r_overbrightDefaultLegacyClamp.Get();
+
+		tr.mapOverBrightBits = r_overbrightDefaultLegacyExponent.Get();
+	}
+
+	if ( !r_overbrightIgnoreMapSettings.Get() && hasMapOverBrightBits )
+	{
+		tr.mapOverBrightBits = mapOverBrightBits;
 	}
 }
 

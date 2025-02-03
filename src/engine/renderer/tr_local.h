@@ -2829,7 +2829,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		viewParms_t    viewParms;
 
-		// r_overbrightDefaultExponent, but can be overridden by mapper using the worldspawn
+		// r_overbrightDefault[Linear/Legacy]Exponent, but can be overridden by mapper using the worldspawn
 		int mapOverBrightBits;
 		// pow(2, mapOverbrightBits)
 		float mapLightFactor;
@@ -2959,8 +2959,9 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Range<Cvar::Cvar<int>> r_realtimeLightLayers;
 	extern cvar_t *r_realtimeLightingCastShadows;
 	extern cvar_t *r_precomputedLighting;
-	extern Cvar::Cvar<int> r_overbrightDefaultExponent;
-	extern Cvar::Cvar<bool> r_overbrightDefaultClamp;
+	extern Cvar::Cvar<int> r_overbrightDefaultLinearExponent;
+	extern Cvar::Cvar<int> r_overbrightDefaultLegacyExponent;
+	extern Cvar::Cvar<bool> r_overbrightDefaultLegacyClamp;
 	extern Cvar::Cvar<bool> r_overbrightIgnoreMapSettings;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern Cvar::Cvar<bool> r_colorGrading;
