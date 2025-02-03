@@ -80,6 +80,13 @@ enum class MouseMode
 	SystemCursor, // The input is sent as positions, the cursor should be rendered by the system
 };
 
+enum class serverResponseProtocol_t : uint8_t
+{
+	UNKNOWN,
+	IP4,
+	IP6,
+};
+
 using markMsgInput_t = std::pair<
 	std::vector<std::array<float, 3>>, // points
 	std::array<float, 3> // projection
