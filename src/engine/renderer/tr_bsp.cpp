@@ -4162,16 +4162,8 @@ void R_LoadLightGrid( lump_t *l )
 
 			if ( tr.worldLinearizeLightMap )
 			{
-				if ( r_cheapSRGB.Get() )
-				{
-					ambientColor[ j ] = convertFromSRGB( ambientColor[ j ] );
-					directedColor[ j ] = convertFromSRGB( directedColor[ j ] );
-				}
-				else
-				{
-					/* When not cheap, the light grid conversion from sRGB is done
-					in GLSL code after interpolation. */
-				}
+				ambientColor[ j ] = convertFromSRGB( ambientColor[ j ] );
+				directedColor[ j ] = convertFromSRGB( directedColor[ j ] );
 			}
 		}
 

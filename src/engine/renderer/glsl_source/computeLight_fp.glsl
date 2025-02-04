@@ -67,13 +67,8 @@ vec4 EnvironmentalSpecularFactor( vec3 viewDir, vec3 normal )
 		ambientColor = ambientScale * texel.rgb;
 		lightColor = directedScale * texel.rgb;
 
-		#if defined(r_cheapSRGB)
-			/* The light grid conversion from sRGB is done in C++ code
-			when loading it, meaning it's done before interpolation. */
-		#else
-			convertFromSRGB(lightColor, linearizeLightMap);
-			convertFromSRGB(ambientColor, linearizeLightMap);
-		#endif
+		/* The light grid conversion from sRGB is done in C++ code
+		when loading it, so it's done before interpolation. */
 
 		ambientColor *= lightFactor;
 		lightColor *= lightFactor;
