@@ -3233,6 +3233,10 @@ static bool ParseStage( shaderStage_t *stage, const char **text )
 		{
 			ParseExpression( text, &stage->deformMagnitudeExp );
 		}
+		else if ( !Q_stricmp( token, "specularSRGB" ) )
+		{
+			stage->specularSRGB = true;
+		}
 		else
 		{
 			Log::Warn("unknown shader stage parameter '%s' in shader '%s'", token, shader.name );
@@ -5326,7 +5330,9 @@ static void FinishStages()
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				stage->linearizeTexture = packLinearizeTexture(
 					tr.worldLinearizeTexture,
-					hasMaterialMap && stage->collapseType == collapseType_t::COLLAPSE_PHONG,
+					hasMaterialMap
+						&& stage->collapseType == collapseType_t::COLLAPSE_PHONG
+						&& stage->specularSRGB,
 					tr.worldLinearizeLightMap );
 				break;
 			default:

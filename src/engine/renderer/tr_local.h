@@ -1207,6 +1207,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 		expression_t    deformMagnitudeExp;
 
+		bool specularSRGB;
 		bool        noFog; // used only for shaders that have fog disabled, so we can enable it for individual stages
 
 		bool useMaterialSystem = false;
