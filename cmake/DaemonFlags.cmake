@@ -148,10 +148,16 @@ else()
     set(WARNMODE "no-")
 endif()
 
+option(USE_FAST_MATH "Use fast math" ON)
+
 # Compiler options
 if (MSVC)
     set_c_cxx_flag("/MP")
-    set_c_cxx_flag("/fp:fast")
+
+	if (USE_FAST_MATH)
+		set_c_cxx_flag("/fp:fast")
+	endif()
+
     set_c_cxx_flag("/d2Zi+" RELWITHDEBINFO)
 
     # https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
@@ -251,7 +257,9 @@ else()
 	endif()
 
 	# Optimizations.
-	set_c_cxx_flag("-ffast-math")
+	if (USE_FAST_MATH)
+		set_c_cxx_flag("-ffast-math")
+	endif()
 
 	# Use hidden symbol visibility if possible.
 	try_c_cxx_flag(FVISIBILITY_HIDDEN "-fvisibility=hidden")

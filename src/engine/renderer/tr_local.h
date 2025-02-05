@@ -2467,7 +2467,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int   c_vertexes;
 		int   c_indexes;
 		int   c_drawElements;
-		float c_overDraw;
 		int   c_vboVertexBuffers;
 		int   c_vboIndexBuffers;
 		int   c_vboVertexes;
@@ -2938,8 +2937,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 
 	extern cvar_t *r_colorbits; // number of desired color bits, only relevant for fullscreen
 
-	extern cvar_t *r_measureOverdraw; // enables stencil buffer overdraw measurement
-
 	extern cvar_t *r_lodBias; // push/pull LOD transitions
 	extern cvar_t *r_lodScale;
 
@@ -3115,7 +3112,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_vboFaces;
 	extern cvar_t *r_vboCurves;
 	extern cvar_t *r_vboTriangles;
-	extern cvar_t *r_vboModels;
+	extern Cvar::Cvar<bool> r_vboModels;
 	extern cvar_t *r_vboVertexSkinning;
 
 	extern cvar_t *r_mergeLeafSurfaces;
@@ -3416,7 +3413,6 @@ inline bool checkGLErrors()
 		vec4_t texCoords;
 	};
 
-#ifdef GL_ARB_sync
 	struct glRingbuffer_t {
 		// the BO is logically split into DYN_BUFFER_SEGMENTS
 		// segments, the active segment is the one the CPU may write
@@ -3430,7 +3426,6 @@ inline bool checkGLErrors()
 		// sync is always undefined
 		GLsync         syncs[ DYN_BUFFER_SEGMENTS ];
 	};
-#endif
 
 	struct shaderCommands_t
 	{
@@ -3500,10 +3495,8 @@ inline bool checkGLErrors()
 		VBO_t       *vbo;
 		IBO_t       *ibo;
 
-#ifdef GL_ARB_sync
 		glRingbuffer_t  vertexRB;
 		glRingbuffer_t  indexRB;
-#endif
 	};
 
 	alignas(16) extern shaderCommands_t tess;

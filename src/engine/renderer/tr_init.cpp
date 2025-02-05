@@ -65,8 +65,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_showSmp;
 	cvar_t      *r_skipBackEnd;
 
-	cvar_t      *r_measureOverdraw;
-
 	cvar_t      *r_lodBias;
 	cvar_t      *r_lodScale;
 
@@ -286,7 +284,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	cvar_t      *r_vboFaces;
 	cvar_t      *r_vboCurves;
 	cvar_t      *r_vboTriangles;
-	cvar_t      *r_vboModels;
+	Cvar::Cvar<bool> r_vboModels( "r_vboModels", "Use static GPU VBOs/IBOs for models", Cvar::NONE, true );
 	cvar_t      *r_vboVertexSkinning;
 
 	cvar_t      *r_mergeLeafSurfaces;
@@ -1127,6 +1125,12 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 					stage->deformIndex = deformIndex;
 				}
 			}
+
+			if ( glConfig2.usingMaterialSystem ) {
+				/* GLSL shaders linked to materials will be invalidated by glsl_restart,
+				so we need to reset them here */
+				materialSystem.GLSLRestart();
+			}
 		}
 	};
 	static GlslRestartCmd glslRestartCmdRegistration;
@@ -1206,7 +1210,7 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_vboFaces = Cvar_Get( "r_vboFaces", "1", CVAR_CHEAT );
 		r_vboCurves = Cvar_Get( "r_vboCurves", "1", CVAR_CHEAT );
 		r_vboTriangles = Cvar_Get( "r_vboTriangles", "1", CVAR_CHEAT );
-		r_vboModels = Cvar_Get( "r_vboModels", "1", CVAR_LATCH );
+		Cvar::Latch( r_vboModels );
 		r_vboVertexSkinning = Cvar_Get( "r_vboVertexSkinning", "1",  CVAR_LATCH );
 
 		r_mergeLeafSurfaces = Cvar_Get( "r_mergeLeafSurfaces", "1",  CVAR_LATCH );
@@ -1243,7 +1247,6 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 		r_showSmp = Cvar_Get( "r_showSmp", "0", CVAR_CHEAT );
 		r_skipBackEnd = Cvar_Get( "r_skipBackEnd", "0", CVAR_CHEAT );
 
-		r_measureOverdraw = Cvar_Get( "r_measureOverdraw", "0", CVAR_CHEAT );
 		r_lodScale = Cvar_Get( "r_lodScale", "5", CVAR_CHEAT );
 		r_norefresh = Cvar_Get( "r_norefresh", "0", CVAR_CHEAT );
 		r_drawentities = Cvar_Get( "r_drawentities", "1", CVAR_CHEAT );
