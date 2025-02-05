@@ -75,7 +75,7 @@ static void R_SetVBOAttributeLayouts( VBO_t *vbo )
 	}
 }
 
-uint32_t ComponentSize( GLenum type )
+uint32_t R_ComponentSize( GLenum type )
 {
 	switch ( type )
 	{
@@ -91,7 +91,7 @@ uint32_t ComponentSize( GLenum type )
 		return 4;
 	}
 
-	Sys::Error( "VBO ComponentSize: unknown type %d", type );
+	Sys::Error( "VBO R_ComponentSize: unknown type %d", type );
 }
 
 /*
@@ -199,7 +199,7 @@ VBO_t *R_CreateDynamicVBO( const char *name, int numVertexes, uint32_t stateBits
 	return vbo;
 }
 
-void CopyVertexAttribute(
+void R_CopyVertexAttribute(
 	const vboAttributeLayout_t &attrib, const vertexAttributeSpec_t &spec,
 	uint32_t count, byte *interleavedData )
 {
@@ -216,7 +216,7 @@ void CopyVertexAttribute(
 
 	if ( attrib.componentType == spec.componentInputType )
 	{
-		uint32_t size = attrib.numComponents * ComponentSize( attrib.componentType );
+		uint32_t size = attrib.numComponents * R_ComponentSize( attrib.componentType );
 
 		for ( uint32_t v = count; ; )
 		{
@@ -323,7 +323,7 @@ VBO_t *R_CreateStaticVBO(
 
 		uint32_t &ofs = spec->attrOptions & ATTR_OPTION_HAS_FRAMES ? ofsFrameful : ofsFrameless;
 		attrib.ofs = ofs;
-		ofs += attrib.numComponents * ComponentSize( attrib.componentType );
+		ofs += attrib.numComponents * R_ComponentSize( attrib.componentType );
 		ofs = ( ofs + 3 ) & ~3; // 4 is minimum alignment for any vertex attribute
 	}
 
@@ -343,12 +343,12 @@ VBO_t *R_CreateStaticVBO(
 			attrib.stride = ofsFrameful;
 			attrib.frameOffset = numVerts * ofsFrameful;
 			attrib.ofs += framelessSize;
-			CopyVertexAttribute( attrib, *spec, numVerts * numFrames, interleavedData );
+			R_CopyVertexAttribute( attrib, *spec, numVerts * numFrames, interleavedData );
 		}
 		else
 		{
 			attrib.stride = ofsFrameless;
-			CopyVertexAttribute( attrib, *spec, numVerts, interleavedData );
+			R_CopyVertexAttribute( attrib, *spec, numVerts, interleavedData );
 		}
 	}
 
