@@ -1382,7 +1382,9 @@ void RB_RenderGlobalFog()
 void RB_RenderBloom()
 {
 	if ( ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOBLOOM ) )
-		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0 ) {
+		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0
+		|| !tr.worldLinearizeTexture )
+	{
 		return;
 	}
 
