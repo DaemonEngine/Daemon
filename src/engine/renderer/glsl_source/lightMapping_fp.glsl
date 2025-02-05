@@ -217,9 +217,21 @@ void main()
 
 	// Add Rim Lighting to highlight the edges on model entities.
 	#if defined(r_rimLighting) && defined(USE_MODEL_SURFACE) && defined(USE_GRID_LIGHTING)
+		float mul1, mul2;
+		if ( linearizeLightMap )
+		{
+			mul1 = 0.033; // convertFromSRGB( 0.2 )
+			mul2 = 0.448; // convertFromSRGB( 0.7 )
+		}
+		else
+		{
+			mul1 = 0.2;
+			mul2 = 0.7;
+		}
+
 		float rim = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), r_RimExponent);
-		vec3 emission = ambientColor * rim * rim * 0.2;
-		color.rgb += 0.7 * emission;
+		vec3 emission = ambientColor * rim * rim * mul1;
+		color.rgb += mul2 * emission;
 	#endif
 
 	#if defined(r_glowMapping)
