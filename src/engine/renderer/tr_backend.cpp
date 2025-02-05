@@ -3048,7 +3048,9 @@ void RB_RenderBloom()
 	GLimp_LogComment( "--- RB_RenderBloom ---\n" );
 
 	if ( ( backEnd.refdef.rdflags & ( RDF_NOWORLDMODEL | RDF_NOBLOOM ) )
-		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0 ) {
+		|| !glConfig2.bloom || backEnd.viewParms.portalLevel > 0
+		|| !tr.worldLinearizeTexture )
+	{
 		return;
 	}
 
