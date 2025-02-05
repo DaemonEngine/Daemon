@@ -2966,7 +2966,6 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern Cvar::Cvar<bool> r_gpuFrustumCulling;
 	extern Cvar::Cvar<bool> r_gpuOcclusionCulling;
 	extern Cvar::Cvar<bool> r_materialSystemSkip;
-	extern Cvar::Cvar<bool> r_geometryCache;
 	extern cvar_t *r_lightStyles;
 	extern cvar_t *r_exportTextures;
 	extern cvar_t *r_heatHaze;
@@ -3716,8 +3715,8 @@ inline bool checkGLErrors()
 
 	============================================================
 	*/
-	uint32_t ComponentSize( GLenum type );
-	void CopyVertexAttribute( const vboAttributeLayout_t& attrib, const vertexAttributeSpec_t& spec,
+	uint32_t R_ComponentSize( GLenum type );
+	void R_CopyVertexAttribute( const vboAttributeLayout_t& attrib, const vertexAttributeSpec_t& spec,
 		uint32_t count, byte* interleavedData );
 
 	VBO_t *R_CreateStaticVBO(

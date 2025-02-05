@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // GeometryCache.cpp
 
+#include "common/Common.h"
+
 #include "GeometryCache.h"
 
 #include "tr_local.h"
@@ -57,9 +59,6 @@ void GeometryCache::FreeGLBuffers() {
 	IBO.DelBuffer();
 
 	VAO.DelVAO();
-}
-
-void GeometryCache::Free() {
 }
 
 void GeometryCache::AllocBuffers() {
@@ -89,7 +88,7 @@ void GeometryCache::AddMapGeometry( const uint32_t verticesNumber, const uint32_
 	for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
 		vboAttributeLayout_t& attr = VAO.attrs[spec->attrIndex];
 
-		CopyVertexAttribute( attr, *spec, mapVerticesNumber, ( byte* ) VBOVerts );
+		R_CopyVertexAttribute( attr, *spec, mapVerticesNumber, ( byte* ) VBOVerts );
 	}
 	VBO.UnmapBuffer();
 

@@ -46,8 +46,6 @@ class GeometryCache {
 	void InitGLBuffers();
 	void FreeGLBuffers();
 
-	void Free();
-
 	void AllocBuffers();
 	void AddMapGeometry( const uint32_t verticesNumber, const uint32_t indicesNumber,
 		const vertexAttributeSpec_t* attrBegin,

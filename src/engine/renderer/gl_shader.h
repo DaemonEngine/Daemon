@@ -1552,7 +1552,6 @@ class GLVAO {
 		for ( const vertexAttributeSpec_t* spec = attrBegin; spec < attrEnd; spec++ ) {
 			vboAttributeLayout_t& attr = attrs[spec->attrIndex];
 			ASSERT_NQ( spec->numComponents, 0U );
-			// vbo->attribBits |= 1 << spec->attrIndex;
 			attr.componentType = spec->componentStorageType;
 			if ( attr.componentType == GL_HALF_FLOAT && !glConfig2.halfFloatVertexAvailable ) {
 				attr.componentType = GL_FLOAT;
@@ -1561,7 +1560,7 @@ class GLVAO {
 			attr.normalize = spec->attrOptions & ATTR_OPTION_NORMALIZE ? GL_TRUE : GL_FALSE;
 
 			attr.ofs = ofs;
-			ofs += attr.numComponents * ComponentSize( attr.componentType );
+			ofs += attr.numComponents * R_ComponentSize( attr.componentType );
 			ofs = ( ofs + 3 ) & ~3; // 4 is minimum alignment for any vertex attribute
 
 			enabledAttrs |= 1 << spec->attrIndex;
