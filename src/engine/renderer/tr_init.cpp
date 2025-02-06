@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "framework/CvarSystem.h"
 #include "DetectGLVendors.h"
 #include "Material.h"
+#include "GeometryCache.h"
 
 #ifdef _WIN32
 	extern "C" {
@@ -1564,7 +1565,9 @@ ScreenshotCmd screenshotPNGRegistration("screenshotPNG", ssFormat_t::SSF_PNG, "p
 
 		R_DoneFreeType();
 
-		materialSystem.Free();
+		if ( glConfig2.usingMaterialSystem ) {
+			materialSystem.Free();
+		}
 
 		// shut down platform specific OpenGL stuff
 		if ( destroyWindow )

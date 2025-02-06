@@ -3707,6 +3707,10 @@ inline bool checkGLErrors()
 
 	============================================================
 	*/
+	uint32_t R_ComponentSize( GLenum type );
+	void R_CopyVertexAttribute( const vboAttributeLayout_t& attrib, const vertexAttributeSpec_t& spec,
+		uint32_t count, byte* interleavedData );
+
 	VBO_t *R_CreateStaticVBO(
 		Str::StringRef name, const vertexAttributeSpec_t *attrBegin, const vertexAttributeSpec_t *attrEnd,
 		uint32_t numVerts, uint32_t numFrames = 0 );
