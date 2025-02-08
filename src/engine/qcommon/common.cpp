@@ -64,6 +64,8 @@ Cvar::Cvar<bool> cvar_demo_timedemo(
 cvar_t *com_sv_running;
 cvar_t *com_cl_running;
 cvar_t *com_version;
+Cvar::Cvar<std::string> com_engineVersion( "com_engineVersion", "Engine version used by the server",
+	Cvar::ROM | Cvar::SERVERINFO, ENGINE_VERSION );
 
 cvar_t *com_unfocused;
 cvar_t *com_minimized;
@@ -278,7 +280,7 @@ std::unique_ptr<Sys::EventBase> Com_GetEvent()
 		return std::move(eventQueue[( eventTail - 1 ) & MASK_QUEUED_EVENTS ]);
 	}
 
-	// check for console commands
+	// check for tty/curses console commands
 	if ( char* s = CON_Input() )
 	{
 		Com_QueueEvent( Util::make_unique<Sys::ConsoleInputEvent>( s ) );
