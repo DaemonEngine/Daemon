@@ -627,6 +627,7 @@ int trap_LAN_GetServerCount( int source )
 	return count;
 }
 
+// See SVC_Info() for the keys that are supposed to be available in `info`
 void trap_LAN_GetServerInfo( int source, int n, trustedServerInfo_t &trustedInfo, std::string &info )
 {
 	VM::SendMsg<LAN::GetServerInfoMsg>(source, n, trustedInfo, info);

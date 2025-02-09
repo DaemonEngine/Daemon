@@ -599,6 +599,10 @@ static void SVC_Info( const netadr_t& from, const Cmd::Args& args )
 	}
 
 	info_map["gamename"] = GAMENAME_STRING;  // Arnout: to be able to filter out Quake servers
+	info_map["abi"] = IPC::SYSCALL_ABI_VERSION;
+	// Add the engine version. But is that really what we want? Probably the gamelogic version would
+	// be more interesting to players. Oh well, it's what's available for now.
+	info_map["daemonver"] = ENGINE_VERSION;
 
 	Net::OutOfBandPrint( netsrc_t::NS_SERVER, from, "infoResponse\n%s", InfoMapToString( info_map ) );
 }
