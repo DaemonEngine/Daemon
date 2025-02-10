@@ -110,13 +110,9 @@ void main()
 		return;
 	}
 
-	/* HACK: emulate three-bits bitfield
-	even: no color map linearization (first bit)
-	less than 2: no light map linearization (second bit)
-	positive: no material map linearization (extra bit) */
-	bool linearizeColorMap = bool(u_LinearizeTexture % 2);
-	bool linearizeLightMap = abs(u_LinearizeTexture) > 1;
-	bool linearizeMaterialMap = u_LinearizeTexture < 0;
+	bool linearizeColorMap = ( u_LinearizeTexture & 0x1 ) != 0;
+	bool linearizeLightMap = ( u_LinearizeTexture & 0x2 ) != 0;
+	bool linearizeMaterialMap = ( u_LinearizeTexture & 0x4 ) != 0;
 
 	convertFromSRGB(diffuse.rgb, linearizeColorMap);
 
