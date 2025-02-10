@@ -861,7 +861,7 @@ void Render_generic3D( shaderStage_t *pStage )
 	gl_genericShader->SetUniform_ModelViewProjectionMatrix( glState.modelViewProjectionMatrix[ glState.stackIndex ] );
 
 	// u_LinearizeTexture
-	gl_genericShader->SetUniform_LinearizeTexture( pStage->linearizeTexture );
+	gl_genericShader->SetUniform_LinearizeTexture( pStage->linearizeTexture, styleLightMap );
 
 	// u_Bones
 	if ( glConfig2.vboVertexSkinningAvailable && tess.vboVertexSkinning )

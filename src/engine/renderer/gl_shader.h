@@ -2815,8 +2815,13 @@ public:
 	{
 	}
 
-	void SetUniform_LinearizeTexture( const int value )
+	void SetUniform_LinearizeTexture( int value, bool styleLightMap = false )
 	{
+		if ( styleLightMap ? !tr.worldLinearizeLightMap : !tr.worldLinearizeTexture )
+			value &= ~0x1;
+		if ( !tr.worldLinearizeTexture )
+			value &= ~0x2;
+
 		this->SetValue( value );
 	}
 };

@@ -5319,23 +5319,23 @@ static void FinishStages()
 			case stageType_t::ST_COLORMAP:
 			case stageType_t::ST_COLLAPSE_COLORMAP:
 			case stageType_t::ST_SKYBOXMAP:
-				stage->linearizeTexture = tr.worldLinearizeTexture;
+				stage->linearizeTexture = true /*tr.worldLinearizeTexture*/;
 				break;
 			case stageType_t::ST_STYLELIGHTMAP:
 			case stageType_t::ST_STYLECOLORMAP:
-				stage->linearizeTexture = tr.worldLinearizeLightMap;
+				stage->linearizeTexture = true /*tr.worldLinearizeLightMap*/;
 				break;
 			case stageType_t::ST_LIGHTMAP:
-				stage->linearizeTexture = packLinearizeTexture( false, false, tr.worldLinearizeLightMap );
+				stage->linearizeTexture = packLinearizeTexture( false, false, true /*tr.worldLinearizeLightMap*/);
 				break;
 			case stageType_t::ST_DIFFUSEMAP:
 			case stageType_t::ST_COLLAPSE_DIFFUSEMAP:
 				stage->linearizeTexture = packLinearizeTexture(
-					tr.worldLinearizeTexture,
+					true /*tr.worldLinearizeTexture*/,
 					hasMaterialMap
 						&& stage->collapseType == collapseType_t::COLLAPSE_PHONG
 						&& stage->specularSRGB,
-					tr.worldLinearizeLightMap );
+					true /*tr.worldLinearizeLightMap*/ );
 				break;
 			default:
 				break;
