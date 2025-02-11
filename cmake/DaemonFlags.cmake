@@ -161,6 +161,9 @@ if (MSVC)
 
 	if (USE_FLOAT_EXCEPTIONS)
 		set_c_cxx_flag("/fp:strict")
+		# Don't switch on C4305 "truncation from 'double' to 'float'" every
+		# time an unsuffixed decimal constant is used
+		set_c_cxx_flag("/wd4305")
 	elseif (USE_FAST_MATH)
 		set_c_cxx_flag("/fp:fast")
 	endif()
