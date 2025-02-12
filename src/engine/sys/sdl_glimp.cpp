@@ -931,7 +931,7 @@ static bool GLimp_CreateContext( const glConfiguration &configuration )
 			"Please report the bug and tell us what is your operating system,\n"
 			"OpenGL driver, graphic card, and if you built the game yourself.\n\n"
 
-#if defined(DAEMON_OpenGL_ABI_GLVND)
+#if defined(DAEMON_OPENGL_ABI_GLVND)
 			"This engine was built with the \"GLVND\" OpenGL ABI,\n"
 			"try to reconfigure the build with the \"LEGACY\" one:\n\n"
 			"  cmake -DOpenGL_GL_PREFERENCE=LEGACY\n\n"
@@ -1750,8 +1750,8 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, bool fullscreen, bool bord
 		Sys::Error( "SDL_GetNumVideoDisplays failed: %s\n", SDL_GetError() );
 	}
 
-#if defined(DAEMON_OpenGL_ABI)
-	logger.Notice( "Using OpenGL ABI \"%s\"", XSTRING(DAEMON_OpenGL_ABI) );
+#if defined(DAEMON_OPENGL_ABI)
+	logger.Notice( "Using OpenGL ABI \"%s\"", DAEMON_OPENGL_ABI_STRING );
 #endif
 
 	AssertCvarRange( r_displayIndex, 0, numDisplays - 1, true );
