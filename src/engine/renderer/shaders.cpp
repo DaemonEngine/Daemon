@@ -31,6 +31,8 @@
 #include "lighttile_fp.glsl.h"
 #include "computeLight_fp.glsl.h"
 #include "reliefMapping_fp.glsl.h"
+#include "luminanceReduction_cp.glsl.h"
+#include "clearFrameData_cp.glsl.h"
 
 #include "deformVertexes_vp.glsl.h"
 #include "vertexAnimation_vp.glsl.h"
@@ -97,6 +99,8 @@ std::unordered_map<std::string, std::string> shadermap({
 	{ "lighttile_fp.glsl", std::string( reinterpret_cast< const char* >( lighttile_fp_glsl ), sizeof( lighttile_fp_glsl ) ) },
 	{ "computeLight_fp.glsl", std::string( reinterpret_cast< const char* >( computeLight_fp_glsl ), sizeof( computeLight_fp_glsl ) ) },
 	{ "reliefMapping_fp.glsl", std::string( reinterpret_cast< const char* >( reliefMapping_fp_glsl ), sizeof( reliefMapping_fp_glsl ) ) },
+	{ "luminanceReduction_cp.glsl", std::string( reinterpret_cast< const char* >( luminanceReduction_cp_glsl ), sizeof( luminanceReduction_cp_glsl ) ) },
+	{ "clearFrameData_cp.glsl", std::string( reinterpret_cast< const char* >( clearFrameData_cp_glsl ), sizeof( clearFrameData_cp_glsl ) ) },
 
 	// Common vertex shader libraries
 	{ "deformVertexes_vp.glsl", std::string( reinterpret_cast< const char* >( deformVertexes_vp_glsl ), sizeof( deformVertexes_vp_glsl ) ) },
