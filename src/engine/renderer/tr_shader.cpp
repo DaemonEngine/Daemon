@@ -4763,10 +4763,6 @@ static bool ParseShader( const char *_text )
 
 static int packLinearizeTexture( bool linearizeColorMap, bool linearizeMaterialMap, bool linearizeLightMap )
 {
-	/* HACK: emulate three-bits bitfield
-	even: no color map linearization (first bit)
-	less than 2: no light map linearization (second bit)
-	positive: no material map linearization (extra bit) */
 	return linearizeColorMap << 0
 	     | linearizeLightMap << 1
 	     | linearizeMaterialMap << 2;
