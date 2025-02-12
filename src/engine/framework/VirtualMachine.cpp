@@ -234,8 +234,8 @@ static std::pair<Sys::OSHandle, IPC::Socket> InternalLoadModule(std::pair<IPC::S
 static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket, IPC::Socket> pair, Str::StringRef name, bool debug, bool extract, int debugLoader) {
 	CheckMinAddressSysctlTooLarge();
 	const std::string& libPath = FS::GetLibPath();
-#ifdef NACL_RUNTIME_PATH
-	const char* naclPath = XSTRING(NACL_RUNTIME_PATH);
+#ifdef DAEMON_NACL_RUNTIME_PATH
+	const char* naclPath = DAEMON_NACL_RUNTIME_PATH_STRING;
 #else
 	const std::string& naclPath = libPath;
 #endif
@@ -254,7 +254,9 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 #endif
 
 	// Extract the nexe from the pak so that nacl_loader can load it
-	module = win32Force64Bit ? name + "-amd64.nexe" : name + "-" XSTRING(NACL_ARCH_STRING) ".nexe";
+	module = win32Force64Bit
+		? name + "-amd64.nexe"
+		: Str::Format("%s-%s.nexe", name, DAEMON_NACL_ARCH_STRING);
 	if (extract) {
 		try {
 			FS::File out = FS::HomePath::OpenWrite(module);
@@ -272,7 +274,9 @@ static std::pair<Sys::OSHandle, IPC::Socket> CreateNaClVM(std::pair<IPC::Socket,
 
 	// Generate command line
 	Q_snprintf(rootSocketRedir, sizeof(rootSocketRedir), "%d:%d", ROOT_SOCKET_FD, (int)(intptr_t)pair.second.GetHandle());
-	irt = FS::Path::Build(naclPath, win32Force64Bit ? "irt_core-amd64.nexe" : "irt_core-" XSTRING(NACL_ARCH_STRING) ".nexe");
+	irt = FS::Path::Build(naclPath, win32Force64Bit
+		? "irt_core-amd64.nexe"
+		: Str::Format("irt_core-%s.nexe", DAEMON_NACL_ARCH_STRING));
 	nacl_loader = FS::Path::Build(naclPath, win32Force64Bit ? "nacl_loader-amd64" EXE_EXT : "nacl_loader" EXE_EXT);
 
 	if (!FS::RawPath::FileExists(modulePath)) {
