@@ -3117,6 +3117,36 @@ void RB_FXAA()
 	GL_CheckErrors();
 }
 
+static void AdaptiveLightingReduction() {
+	luminanceBuffer.BindBufferBase( GL_SHADER_STORAGE_BUFFER, Util::ordinal( BufferBind::LUMINANCE_STORAGE ) );
+
+	gl_clearFrameDataShader->BindProgram( 0 );
+	gl_clearFrameDataShader->DispatchCompute( 1, 1, 1 );
+
+	luminanceBuffer.BindBufferBase( GL_ATOMIC_COUNTER_BUFFER, Util::ordinal( BufferBind::LUMINANCE ) );
+
+	gl_luminanceReductionShader->BindProgram( 0 );
+
+	const int width = tr.currentRenderImage[backEnd.currentMainFBO]->width;
+	const int height = tr.currentRenderImage[backEnd.currentMainFBO]->height;
+
+	uint32_t globalWorkgroupX = ( width + 7 ) / 8;
+	uint32_t globalWorkgroupY = ( height + 7 ) / 8;
+
+	GL_Bind( tr.currentRenderImage[backEnd.currentMainFBO] );
+
+	gl_luminanceReductionShader->SetUniform_ViewWidth( width );
+	gl_luminanceReductionShader->SetUniform_ViewHeight( height );
+	vec4_t parms { log2f( r_toneMappingHDRMax.Get() ) };
+	gl_luminanceReductionShader->SetUniform_TonemapParms2( parms );
+
+	glMemoryBarrier( GL_ATOMIC_COUNTER_BARRIER_BIT );
+
+	gl_luminanceReductionShader->DispatchCompute( globalWorkgroupX, globalWorkgroupY, 1 );
+
+	glMemoryBarrier( GL_UNIFORM_BARRIER_BIT );
+}
+
 static void ComputeTonemapParams( const float contrast, const float highlightsCompressionSpeed,
 	const float HDRMax,
 	const float darkAreaPointHDR, const float darkAreaPointLDR,
@@ -3167,10 +3197,16 @@ void RB_CameraPostFX() {
 
 	const bool tonemap = r_toneMapping.Get() && r_highPrecisionRendering.Get() && glConfig2.textureFloatAvailable;
 	if ( tonemap ) {
+		gl_cameraEffectsShader->SetUniform_ViewWidth( tr.currentRenderImage[backEnd.currentMainFBO]->width );
+		gl_cameraEffectsShader->SetUniform_ViewHeight( tr.currentRenderImage[backEnd.currentMainFBO]->height );
+
 		vec4_t tonemapParms { r_toneMappingContrast.Get(), r_toneMappingHighlightsCompressionSpeed.Get() };
 		ComputeTonemapParams( tonemapParms[0], tonemapParms[1], r_toneMappingHDRMax.Get(),
 			r_toneMappingDarkAreaPointHDR.Get(), r_toneMappingDarkAreaPointLDR.Get(), tonemapParms[2], tonemapParms[3] );
 		gl_cameraEffectsShader->SetUniform_TonemapParms( tonemapParms );
+
+		gl_cameraEffectsShader->SetUniform_TonemapAdaptiveExposure(
+			glConfig2.adaptiveExposureAvailable && r_toneMappingAdaptiveExposure.Get() );
 		gl_cameraEffectsShader->SetUniform_TonemapExposure( r_toneMappingExposure.Get() );
 	}
 	gl_cameraEffectsShader->SetUniform_Tonemap( tonemap );
@@ -3184,6 +3220,10 @@ void RB_CameraPostFX() {
 
 	if ( glConfig2.colorGrading ) {
 		gl_cameraEffectsShader->SetUniform_ColorMap3DBindless( GL_BindToTMU( 3, tr.colorGradeImage ) );
+	}
+
+	if ( glConfig2.adaptiveExposureAvailable && r_toneMappingAdaptiveExposure.Get() ) {
+		luminanceBuffer.BindBufferBase( GL_UNIFORM_BUFFER );
 	}
 
 	Tess_InstantScreenSpaceQuad();
@@ -4595,6 +4635,10 @@ static void RB_RenderPostProcess()
 		// We'll only use the results from those shaders in the next frame so we don't block the pipeline
 		materialSystem.CullSurfaces();
 		materialSystem.EndFrame();
+	}
+
+	if ( glConfig2.adaptiveExposureAvailable && r_toneMappingAdaptiveExposure.Get() ) {
+		AdaptiveLightingReduction();
 	}
 
 	RB_FXAA();

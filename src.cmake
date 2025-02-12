@@ -173,6 +173,8 @@ set(GLSLSOURCELIST
     ${ENGINE_DIR}/renderer/glsl_source/lighttile_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/computeLight_fp.glsl
     ${ENGINE_DIR}/renderer/glsl_source/reliefMapping_fp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/luminanceReduction_cp.glsl
+    ${ENGINE_DIR}/renderer/glsl_source/clearFrameData_cp.glsl
 
     # Common vertex shader libraries
     ${ENGINE_DIR}/renderer/glsl_source/deformVertexes_vp.glsl

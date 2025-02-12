@@ -211,6 +211,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	Cvar::Cvar<bool> r_toneMapping(
 		"r_toneMapping", "Use  HDR->LDR tonemapping", Cvar::NONE, true );
+	Cvar::Cvar<bool> r_toneMappingAdaptiveExposure( "r_toneMappingAdaptiveExposure",
+		"Use adaptive exposure based on scene brightness", Cvar::NONE, false );
 	Cvar::Cvar<float> r_toneMappingExposure(
 		"r_toneMappingExposure", "Tonemap exposure", Cvar::NONE, 1.0f );
 	Cvar::Range<Cvar::Cvar<float>> r_toneMappingContrast(

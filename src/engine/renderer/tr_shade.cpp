@@ -286,6 +286,11 @@ static void GLSL_InitGPUShadersOrError()
 		}
 	}
 
+	if ( glConfig2.adaptiveExposureAvailable ) {
+		gl_shaderManager.LoadShader( gl_luminanceReductionShader );
+		gl_shaderManager.LoadShader( gl_clearFrameDataShader );
+	}
+
 	if ( glConfig2.reflectionMappingAvailable )
 	{
 		// bumped cubemap reflection for abitrary polygons ( EMBM )
@@ -477,6 +482,7 @@ void GLSL_ShutdownGPUShaders()
 
 	gl_genericShader = nullptr;
 	gl_genericShaderMaterial = nullptr;
+	gl_clearFrameDataShader = nullptr;
 	gl_cullShader = nullptr;
 	gl_depthReductionShader = nullptr;
 	gl_clearSurfacesShader = nullptr;
@@ -486,6 +492,7 @@ void GLSL_ShutdownGPUShaders()
 	gl_forwardLightingShader_omniXYZ = nullptr;
 	gl_forwardLightingShader_projXYZ = nullptr;
 	gl_forwardLightingShader_directionalSun = nullptr;
+	gl_luminanceReductionShader = nullptr;
 	gl_shadowFillShader = nullptr;
 	gl_reflectionShader = nullptr;
 	gl_reflectionShaderMaterial = nullptr;
