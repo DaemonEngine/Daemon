@@ -9,14 +9,14 @@ This file is part of the Daemon BSD Source Code (Daemon Source Code).
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-	* Redistributions of source code must retain the above copyright
-	  notice, this list of conditions and the following disclaimer.
-	* Redistributions in binary form must reproduce the above copyright
-	  notice, this list of conditions and the following disclaimer in the
-	  documentation and/or other materials provided with the distribution.
-	* Neither the name of the Daemon developers nor the
-	  names of its contributors may be used to endorse or promote products
-	  derived from this software without specific prior written permission.
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the Daemon developers nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -31,45 +31,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ===========================================================================
 */
-// BufferBind.h
 
-#ifndef BUFFERBIND_H
-#define BUFFERBIND_H
+/* clearFrameData_cp.glsl */
 
-namespace BufferBind {
-	enum : uint32_t {
-		// UBO
-		MATERIALS = 0,
-		TEX_DATA = 1,
-		LIGHTMAP_DATA = 2,
-		GLOBAL_DATA = 3,
-		LIGHTS = 4,
+#insert common_cp
 
-		SURFACE_BATCHES = 5,
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-		// SSBO
-		SURFACE_DESCRIPTORS = 0,
-		SURFACE_COMMANDS = 1,
-		CULLED_COMMANDS = 2,
-		PORTAL_SURFACES = 4,
-
-		GEOMETRY_CACHE_INPUT_VBO = 5,
-		GEOMETRY_CACHE_VBO = 6,
-		GEOMETRY_CACHE_IBO = 7,
-
-		COMMAND_COUNTERS_STORAGE = 9,
-		TEX_DATA_STORAGE = 11,
-		STAGING = 12,
-
-		// Adaptative exposure
-		LUMINANCE = 3,
-		LUMINANCE_STORAGE = 8,
-
-		DEBUG = 10,
-		
-		// Atomic
-		COMMAND_COUNTERS_ATOMIC = 0
-	};
+layout(std430, binding = BIND_LUMINANCE_STORAGE) writeonly buffer luminanceBuffer {
+    uint luminance;
 };
 
-#endif // BUFFERBIND_H
+uniform uint u_Frame;
+
+void main() {
+    const uint globalInvocationID = GLOBAL_INVOCATION_ID;
+    if( globalInvocationID >= 1 ) {
+        return;
+    }
+    luminance = 0;
+}

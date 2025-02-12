@@ -27,12 +27,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 uniform sampler2D u_CurrentMap;
 
 #if defined(r_colorGrading)
-uniform sampler3D u_ColorMap3D;
+	uniform sampler3D u_ColorMap3D;
 #endif
 
-uniform vec4      u_ColorModulate;
-uniform float     u_GlobalLightFactor; // 1 / tr.identityLight
-uniform float     u_InverseGamma;
+uniform vec4 u_ColorModulate;
+uniform float u_GlobalLightFactor; // 1 / tr.identityLight
+uniform float u_InverseGamma;
 uniform bool u_SRGB;
 
 void convertToSRGB(inout vec3 color) {
@@ -58,11 +58,15 @@ uniform float u_Exposure;
 
 // Tone mapping is not available when high-precision float framebuffer isn't enabled or supported.
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
+uniform uint u_ViewWidth;
+uniform uint u_ViewHeight;
+
+uniform bool u_Tonemap;
+uniform bool u_TonemapAdaptiveExposure;
 /* x: contrast
 y: highlightsCompressionSpeed
 z: shoulderClip
 w: highlightsCompression */
-uniform bool u_Tonemap;
 uniform vec4 u_TonemapParms;
 
 vec3 TonemapLottes( vec3 color ) {
@@ -70,12 +74,21 @@ vec3 TonemapLottes( vec3 color ) {
   return pow( color, vec3( u_TonemapParms[0] ) )
          / ( pow( color, vec3( u_TonemapParms[0] * u_TonemapParms[1] ) ) * u_TonemapParms[2] + u_TonemapParms[3] );
 }
+
+#if defined(HAVE_ARB_explicit_uniform_location) && defined(HAVE_ARB_shader_atomic_counters)
+	layout(std140, binding = BIND_LUMINANCE) uniform ub_LuminanceUBO {
+		uint luminanceU;
+	};
+#endif
+
+float GetAverageLuminance( const in uint luminance ) {
+    return float( luminanceU ) / ( 256.0f * u_ViewWidth * u_ViewHeight );
+}
 #endif
 
 DECLARE_OUTPUT(vec4)
 
-void main()
-{
+void main() {
 	#insert material_fp
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
@@ -93,6 +106,13 @@ void main()
 
 #if defined(r_highPrecisionRendering) && defined(HAVE_ARB_texture_float)
 	if( u_Tonemap ) {
+		#if defined(HAVE_ARB_explicit_uniform_location) && defined(HAVE_ARB_shader_atomic_counters)
+			if( u_TonemapAdaptiveExposure ) {
+					const float l = GetAverageLuminance( luminanceU ) - 8;
+					color.rgb *= clamp( 0.18f / exp2( l * 0.8f + 0.1f ), 0.0f, 2.0f );
+			}
+		#endif
+
 		color.rgb = TonemapLottes( color.rgb );
 	}
 #endif
