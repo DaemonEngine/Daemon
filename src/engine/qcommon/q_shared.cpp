@@ -416,26 +416,27 @@ static const char *SkipWhitespace( const char *data, bool *hasNewLines )
 
 int COM_Compress( char *data_p )
 {
-	char     *datai, *datao;
-	int      c, size;
+	char *datai, *datao;
 	bool ws = false;
 
-	size = 0;
+	int size = 0;
 	datai = datao = data_p;
 
+	char c;
 	if ( datai )
 	{
 		while ( ( c = *datai ) != 0 )
 		{
-			if ( c == 13 || c == 10 )
+			if ( c == '\n' || c == '\r' )
 			{
+				c = '\n'; // Change `\r` endings to `\n`
 				*datao = c;
 				datao++;
 				ws = false;
 				datai++;
 				size++;
-				// skip double slash comments
 			}
+			// skip double slash comments
 			else if ( c == '/' && datai[ 1 ] == '/' )
 			{
 				while ( *datai && *datai != '\n' )
@@ -444,8 +445,9 @@ int COM_Compress( char *data_p )
 				}
 
 				ws = false;
-				// skip /* */ comments
+				
 			}
+			// skip /* */ comments
 			else if ( c == '/' && datai[ 1 ] == '*' )
 			{
 				datai += 2; // Arnout: skip over '/*'
