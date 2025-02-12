@@ -3316,18 +3316,18 @@ static void ComputeTonemapParams( const float contrast, const float highlightsCo
 	midOut: darkAreaPointLDR */
 
 	shoulderClip =
-		( -pow( darkAreaPointHDR, contrast ) + pow( HDRMax, contrast ) * darkAreaPointLDR )
+		( -powf( darkAreaPointHDR, contrast ) + powf( HDRMax, contrast ) * darkAreaPointLDR )
 		/
-		( ( pow( HDRMax, contrast * highlightsCompressionSpeed )
-			- pow( darkAreaPointHDR, contrast * highlightsCompressionSpeed )
+		( ( powf( HDRMax, contrast * highlightsCompressionSpeed )
+			- powf( darkAreaPointHDR, contrast * highlightsCompressionSpeed )
 		) * darkAreaPointLDR );
 	highlightsCompression =
-		( pow( HDRMax, contrast * highlightsCompressionSpeed ) * pow( darkAreaPointHDR, contrast )
-			- pow( HDRMax, contrast ) * pow( darkAreaPointHDR, contrast * highlightsCompressionSpeed ) * darkAreaPointLDR
+		( powf( HDRMax, contrast * highlightsCompressionSpeed ) * powf( darkAreaPointHDR, contrast )
+			- powf( HDRMax, contrast ) * powf( darkAreaPointHDR, contrast * highlightsCompressionSpeed ) * darkAreaPointLDR
 		)
 		/
-		( ( pow( HDRMax, contrast * highlightsCompressionSpeed )
-			- pow( darkAreaPointHDR, contrast * highlightsCompressionSpeed )
+		( ( powf( HDRMax, contrast * highlightsCompressionSpeed )
+			- powf( darkAreaPointHDR, contrast * highlightsCompressionSpeed )
 		) * darkAreaPointLDR );
 }
 
