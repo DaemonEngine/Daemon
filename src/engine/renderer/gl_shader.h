@@ -3811,7 +3811,7 @@ class u_TonemapParms :
 	GLUniform4f {
 	public:
 	u_TonemapParms( GLShader* shader ) :
-		GLUniform4f( shader, "u_TonemapParms" ) {
+		GLUniform4f( shader, "u_TonemapParms", true ) {
 	}
 
 	void SetUniform_TonemapParms( vec4_t tonemapParms ) {
