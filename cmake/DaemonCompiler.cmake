@@ -237,10 +237,5 @@ foreach(lang C;CXX)
 	set(${compiler_var_name} ON)
 	add_definitions(-D${compiler_var_name}=1)
 
-	# Preprocessor definitions containing '#' may not be passed on the compiler
-	# command line because many compilers do not support it.
-	string(REGEX REPLACE "\#" "~" DAEMON_DEFINE_${lang}_COMPILER_STRING "${DAEMON_${lang}_COMPILER_STRING}")
-
-	# Quotes cannot be part of the define as support for them is not reliable.
-	add_definitions(-DDAEMON_${lang}_COMPILER_STRING=${DAEMON_DEFINE_${lang}_COMPILER_STRING})
+	daemon_add_builtin("char*" "DAEMON_${lang}_COMPILER_STRING" "\"${DAEMON_${lang}_COMPILER_STRING}\"")
 endforeach()

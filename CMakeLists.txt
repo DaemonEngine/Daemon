@@ -77,7 +77,6 @@ if (NOT (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP))
     message(NOTICE "You can safely ignore the following reported architecture, it is not used.")
     message(NOTICE "You can safely ignore the following reported compilers, they are unused.")
 endif()
-include(DaemonPlatform)
 
 if (Daemon_OUT)
     set(CMAKE_CURRENT_BINARY_DIR ${Daemon_OUT})
@@ -85,6 +84,9 @@ if (Daemon_OUT)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${Daemon_OUT})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${Daemon_OUT})
 endif()
+
+include(DaemonBuiltin)
+include(DaemonPlatform)
 
 ################################################################################
 # Configuration options
@@ -605,8 +607,9 @@ if (BUILD_CLIENT)
         message(STATUS "Found OpenGL ABI: ${OpenGL_selected_ABI}")
         message(STATUS "Found OpenGL library: ${OpenGL_selected_LIBRARY}")
 
-        add_definitions("-DDAEMON_OpenGL_ABI=${OpenGL_selected_ABI}")
-        add_definitions("-DDAEMON_OpenGL_ABI_${OpenGL_selected_ABI}")
+        daemon_add_builtin("char*" "DAEMON_OPENGL_ABI_STRING" "\"${OpenGL_selected_ABI}\"")
+        add_definitions("-DDAEMON_OPENGL_ABI_${OpenGL_selected_ABI}")
+        add_definitions("-DDAEMON_OPENGL_ABI")
     endif()
 endif()
 
@@ -655,7 +658,8 @@ endif()
 
 if (BUILD_CLIENT OR BUILD_TTY_CLIENT OR BUILD_SERVER OR BUILD_DUMMY_APP)
     if (NACL_RUNTIME_PATH)
-        add_definitions("-DNACL_RUNTIME_PATH=${NACL_RUNTIME_PATH}")
+        daemon_add_builtin("char*" "NACL_RUNTIME_PATH_STRING" "\"${NACL_RUNTIME_PATH}\"")
+        add_definitions("-DNACL_RUNTIME_PATH")
     endif()
 
     # FindLocale
@@ -888,8 +892,10 @@ function(AddApplication)
     ADD_PRECOMPILED_HEADER(${A_Target}-objects)
 endfunction()
 
+daemon_write_builtin()
+
 if (NOT NACL)
-    add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${COMMONLIST} ${ENGINELIST})
+    add_library(engine-lib EXCLUDE_FROM_ALL ${PCH_FILE} ${BUILTINLIST} ${COMMONLIST} ${ENGINELIST})
     target_link_libraries(engine-lib ${LIBS_BASE} ${LIBS_ENGINE_BASE})
     set_property(TARGET engine-lib APPEND PROPERTY COMPILE_DEFINITIONS BUILD_ENGINE)
     set_property(TARGET engine-lib APPEND PROPERTY INCLUDE_DIRECTORIES ${ENGINE_DIR} ${MOUNT_DIR} ${LIB_DIR})
@@ -923,7 +929,7 @@ if (BUILD_CLIENT)
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions ${Definitions}
         Flags ${WARNINGS}
-        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
+        Files ${WIN_RC} ${BUILTINLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${CLIENTLIST}
         Libs ${LIBS_CLIENT} ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
     )
@@ -954,7 +960,7 @@ if (BUILD_SERVER)
         ApplicationMain ${ENGINE_DIR}/server/ServerApplication.cpp
         Definitions BUILD_ENGINE BUILD_SERVER
         Flags ${WARNINGS}
-        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST}
+        Files ${WIN_RC} ${BUILTINLIST} ${QCOMMONLIST} ${SERVERLIST} ${DEDSERVERLIST}
         Libs ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
     )
@@ -967,7 +973,7 @@ if (BUILD_TTY_CLIENT)
         ApplicationMain ${ENGINE_DIR}/client/ClientApplication.cpp
         Definitions BUILD_ENGINE BUILD_TTY_CLIENT
         Flags ${WARNINGS}
-        Files ${WIN_RC} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST}
+        Files ${WIN_RC} ${BUILTINLIST} ${QCOMMONLIST} ${SERVERLIST} ${CLIENTBASELIST} ${TTYCLIENTLIST}
         Libs ${LIBS_CLIENTBASE} ${LIBS_ENGINE}
         Tests ${ENGINETESTLIST}
     )

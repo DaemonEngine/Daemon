@@ -38,6 +38,7 @@ option(BUILD_GAME_NATIVE_DLL "Build the shared library files, mostly useful for 
 # can be loaded by daemon with vm.[sc]game.type 2
 option(BUILD_GAME_NATIVE_EXE "Build native executable, which might be used for better performances by server owners" OFF)
 
+include(DaemonBuiltin)
 include(DaemonPlatform)
 
 # Do not report unused native compiler if native vms are not built.
@@ -109,9 +110,11 @@ function(GAMEMODULE)
     set(multiValueArgs DEFINITIONS FLAGS FILES LIBS)
     cmake_parse_arguments(GAMEMODULE "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
+	daemon_write_builtin()
+
     if (NOT NACL)
         if (BUILD_GAME_NATIVE_DLL)
-            add_library(${GAMEMODULE_NAME}-native-dll MODULE ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${COMMONLIST})
+            add_library(${GAMEMODULE_NAME}-native-dll MODULE ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${BUILTINLIST} ${COMMONLIST})
             target_link_libraries(${GAMEMODULE_NAME}-native-dll ${GAMEMODULE_LIBS} ${LIBS_BASE})
             set_target_properties(${GAMEMODULE_NAME}-native-dll PROPERTIES
                 PREFIX ""
@@ -123,7 +126,7 @@ function(GAMEMODULE)
         endif()
 
         if (BUILD_GAME_NATIVE_EXE)
-            add_executable(${GAMEMODULE_NAME}-native-exe ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${COMMONLIST})
+            add_executable(${GAMEMODULE_NAME}-native-exe ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${BUILTINLIST} ${COMMONLIST})
             target_link_libraries(${GAMEMODULE_NAME}-native-exe ${GAMEMODULE_LIBS} ${LIBS_BASE})
             set_target_properties(${GAMEMODULE_NAME}-native-exe PROPERTIES
                 COMPILE_DEFINITIONS "VM_NAME=${GAMEMODULE_NAME};${GAMEMODULE_DEFINITIONS};BUILD_VM"
@@ -247,7 +250,7 @@ function(GAMEMODULE)
             endif()
         endif()
 
-        add_executable(${GAMEMODULE_NAME}-nacl ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${COMMONLIST})
+        add_executable(${GAMEMODULE_NAME}-nacl ${PCH_FILE} ${GAMEMODULE_FILES} ${SHAREDLIST_${GAMEMODULE_NAME}} ${SHAREDLIST} ${BUILTINLIST} ${COMMONLIST})
         target_link_libraries(${GAMEMODULE_NAME}-nacl ${GAMEMODULE_LIBS} ${LIBS_BASE})
         # PLATFORM_EXE_SUFFIX is .pexe when building with PNaCl
         # as translating to .nexe is a separate task.

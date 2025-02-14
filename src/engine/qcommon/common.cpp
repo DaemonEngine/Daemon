@@ -571,7 +571,7 @@ void Com_Init()
 	Cmd_AddCommand( "writebindings", Com_WriteBindings_f );
 #endif
 
-	s = va( "%s %s %s %s", Q3_VERSION, PLATFORM_STRING, XSTRING(ARCH_STRING), __DATE__ );
+	s = va( "%s %s %s %s", Q3_VERSION, PLATFORM_STRING, ARCH_STRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_ROM | CVAR_SERVERINFO );
 
 	Cmd_AddCommand( "in_restart", Com_In_Restart_f );

@@ -69,9 +69,7 @@ message(STATUS "Detected architecture: ${ARCH}")
 add_definitions(-D${ARCH_DEFINE})
 
 # This string can be modified without breaking compatibility.
-# Quotes cannot be part of the define as support for them is not reliable.
-# See: https://cmake.org/cmake/help/latest/prop_dir/COMPILE_DEFINITIONS.html
-add_definitions(-DARCH_STRING=${ARCH})
+daemon_add_builtin("char*" "ARCH_STRING" "\"${ARCH}\"")
 
 # Modifying NACL_ARCH breaks engine compatibility with nexe game binaries
 # since NACL_ARCH contributes to the nexe file name.
@@ -91,8 +89,7 @@ elseif(APPLE)
 	endif()
 endif()
 
-# Quotes cannot be part of the define as support for them is not reliable.
-add_definitions(-DNACL_ARCH_STRING=${NACL_ARCH})
+daemon_add_builtin("char*" "NACL_ARCH_STRING" "\"${NACL_ARCH}\"")
 
 option(USE_ARCH_INTRINSICS "Enable custom code using intrinsics functions or asm declarations" ON)
 mark_as_advanced(USE_ARCH_INTRINSICS)
