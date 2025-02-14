@@ -68,6 +68,11 @@ macro(set_c_cxx_flag FLAG)
     set_c_flag(${FLAG} ${ARGN})
     set_cxx_flag(${FLAG} ${ARGN})
 endmacro()
+
+macro(set_exe_linker_flag FLAG)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${FLAG}")
+endmacro()
+
 macro(set_linker_flag FLAG)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${FLAG}")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${FLAG}")
@@ -138,8 +143,19 @@ macro(try_linker_flag PROP FLAG)
     check_C_compiler_flag(${FLAG} FLAG_${PROP})
     set(CMAKE_REQUIRED_FLAGS "")
     if (FLAG_${PROP})
-        set_linker_flag(${FLAG} ${ARGN})
+        set_exe_linker_flag(${FLAG} ${ARGN})
     endif()
+endmacro()
+
+macro(try_exe_linker_flag PROP FLAG)
+	# Check it with the C compiler
+	set(CMAKE_REQUIRED_FLAGS ${FLAG})
+	check_C_compiler_flag(${FLAG} FLAG_${PROP})
+	set(CMAKE_REQUIRED_FLAGS "")
+
+	if (FLAG_${PROP})
+		set_linker_flag(${FLAG} ${ARGN})
+	endif()
 endmacro()
 
 if (BE_VERBOSE)
@@ -375,9 +391,12 @@ else()
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
 		if (NOT NACL OR (NACL AND GAME_PIE))
-			try_c_cxx_flag(FPIE "-fPIE")
+			try_c_cxx_flag(FPIE "-fPIC")
+
+			# This flag isn't used on macOS:
+			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
 			if (NOT APPLE)
-				try_linker_flag(LINKER_PIE "-pie")
+				try_exe_linker_flag(LINKER_PIE "-pie")
 			endif()
 		endif()
 
