@@ -351,7 +351,7 @@ else()
 	endif()
 
 	# Hardening.
-	if (USE_HARDENING OR NOT MINGW)
+	if (USE_HARDENING)
 		# MinGW with _FORTIFY_SOURCE and without -fstack-protector
 		# causes unsatisfied dependency on libssp.
 		# https://github.com/msys2/MINGW-packages/issues/5868
@@ -359,9 +359,7 @@ else()
 		set_c_cxx_flag("-D_FORTIFY_SOURCE=2" RELWITHDEBINFO)
 		set_c_cxx_flag("-D_FORTIFY_SOURCE=2" MINSIZEREL)
 		# Don't set _FORTIFY_SOURCE in debug builds.
-	endif()
 
-	if (USE_HARDENING)
 		# PNaCl accepts the flags but does not define __stack_chk_guard and __stack_chk_fail.
 		if (NOT NACL)
 			try_c_cxx_flag(FSTACK_PROTECTOR_STRONG "-fstack-protector-strong")
