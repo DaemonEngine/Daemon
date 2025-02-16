@@ -73,7 +73,7 @@ void R_AddBrushModelInteractions( trRefEntity_t *ent, trRefLight_t *light, inter
 	bspModel = pModel->bsp;
 
 	// do a quick AABB cull
-	if ( !BoundsIntersect( light->worldBounds[ 0 ], light->worldBounds[ 1 ], ent->worldBounds[ 0 ], ent->worldBounds[ 1 ] ) )
+	if ( !BoundsIntersect( light->worldBounds, ent->worldBounds ) )
 	{
 		tr.pc.c_dlightSurfacesCulled += bspModel->numSurfaces;
 		return;
@@ -311,12 +311,12 @@ void R_SetupLightLocalBounds( trRefLight_t *light )
 		case refLightType_t::RL_OMNI:
 		case refLightType_t::RL_DIRECTIONAL:
 			{
-				light->localBounds[ 0 ][ 0 ] = -light->l.radius;
-				light->localBounds[ 0 ][ 1 ] = -light->l.radius;
-				light->localBounds[ 0 ][ 2 ] = -light->l.radius;
-				light->localBounds[ 1 ][ 0 ] = light->l.radius;
-				light->localBounds[ 1 ][ 1 ] = light->l.radius;
-				light->localBounds[ 1 ][ 2 ] = light->l.radius;
+				light->localBounds.mins[ 0 ] = -light->l.radius;
+				light->localBounds.mins[ 1 ] = -light->l.radius;
+				light->localBounds.mins[ 2 ] = -light->l.radius;
+				light->localBounds.maxs[ 0 ] = light->l.radius;
+				light->localBounds.maxs[ 1 ] = light->l.radius;
+				light->localBounds.maxs[ 2 ] = light->l.radius;
 				break;
 			}
 
@@ -325,7 +325,7 @@ void R_SetupLightLocalBounds( trRefLight_t *light )
 				int    j;
 				vec3_t farCorners[ 4 ];
 
-				ClearBounds( light->localBounds[ 0 ], light->localBounds[ 1 ] );
+				ClearBounds( light->localBounds );
 
 				// transform frustum from world space to local space
 				R_CalcFrustumFarCorners( light->localFrustum, farCorners );
@@ -339,8 +339,8 @@ void R_SetupLightLocalBounds( trRefLight_t *light )
 
 					for ( j = 0; j < 4; j++ )
 					{
-						AddPointToBounds( farCorners[ j ], light->localBounds[ 0 ], light->localBounds[ 1 ] );
-						AddPointToBounds( nearCorners[ j ], light->localBounds[ 0 ], light->localBounds[ 1 ] );
+						AddPointToBounds( farCorners[ j ], light->localBounds );
+						AddPointToBounds( nearCorners[ j ], light->localBounds );
 					}
 				}
 				else
@@ -349,11 +349,11 @@ void R_SetupLightLocalBounds( trRefLight_t *light )
 					const plane_t* frustum = light->localFrustum;
 
 					PlanesGetIntersectionPoint( frustum[ FRUSTUM_LEFT ], frustum[ FRUSTUM_RIGHT ], frustum[ FRUSTUM_TOP ], top );
-					AddPointToBounds( top, light->localBounds[ 0 ], light->localBounds[ 1 ] );
+					AddPointToBounds( top, light->localBounds );
 
 					for ( j = 0; j < 4; j++ )
 					{
-						AddPointToBounds( farCorners[ j ], light->localBounds[ 0 ], light->localBounds[ 1 ] );
+						AddPointToBounds( farCorners[ j ], light->localBounds );
 					}
 				}
 
@@ -364,7 +364,7 @@ void R_SetupLightLocalBounds( trRefLight_t *light )
 			break;
 	}
 
-	light->sphereRadius = RadiusFromBounds( light->localBounds[ 0 ], light->localBounds[ 1 ] );
+	light->sphereRadius = RadiusFromBounds( light->localBounds );
 }
 
 /*
@@ -375,7 +375,7 @@ Tr3B - needs finished transformMatrix
 */
 void R_SetupLightWorldBounds( trRefLight_t *light )
 {
-	MatrixTransformBounds(light->transformMatrix, light->localBounds[0], light->localBounds[1], light->worldBounds[0], light->worldBounds[1]);
+	MatrixTransformBounds( light->transformMatrix, light->localBounds, light->worldBounds );
 }
 
 /*
@@ -407,7 +407,7 @@ void R_TessLight( const trRefLight_t *light, const Color::Color& color, bool use
 	{
 		case refLightType_t::RL_OMNI:
 		case refLightType_t::RL_DIRECTIONAL:
-			Tess_AddCube( vec3_origin, light->localBounds[ 0 ], light->localBounds[ 1 ], use_default_color ? Color::White : color );
+			Tess_AddCube( vec3_origin, light->localBounds, use_default_color ? Color::White : color );
 			break;
 		case refLightType_t::RL_PROJ:
 			{
@@ -1086,54 +1086,54 @@ void R_SetupLightScissor( trRefLight_t *light )
 		case refLightType_t::RL_OMNI:
 			{
 				// top plane
-				VectorSet( v1, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.maxs[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.maxs[ 2 ] );
+				VectorSet( v2, light->worldBounds.mins[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.maxs[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.maxs[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.maxs[ 2 ] );
+				VectorSet( v2, light->worldBounds.maxs[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.maxs[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.mins[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.maxs[ 2 ] );
+				VectorSet( v2, light->worldBounds.mins[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.maxs[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.mins[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.maxs[ 2 ] );
+				VectorSet( v2, light->worldBounds.maxs[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.maxs[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
 				// bottom plane
-				VectorSet( v1, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.maxs[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.mins[ 2 ] );
+				VectorSet( v2, light->worldBounds.mins[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.mins[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.maxs[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.mins[ 2 ] );
+				VectorSet( v2, light->worldBounds.maxs[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.mins[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.mins[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.mins[ 2 ] );
+				VectorSet( v2, light->worldBounds.mins[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.mins[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.mins[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.mins[ 2 ] );
+				VectorSet( v2, light->worldBounds.maxs[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.mins[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
 				// sides
-				VectorSet( v1, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.mins[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.mins[ 2 ] );
+				VectorSet( v2, light->worldBounds.mins[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.maxs[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 1 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.maxs[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.mins[ 2 ] );
+				VectorSet( v2, light->worldBounds.maxs[ 0 ], light->worldBounds.maxs[ 1 ], light->worldBounds.maxs[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 0 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.mins[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.mins[ 2 ] );
+				VectorSet( v2, light->worldBounds.mins[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.maxs[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 
-				VectorSet( v1, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 0 ][ 2 ] );
-				VectorSet( v2, light->worldBounds[ 1 ][ 0 ], light->worldBounds[ 0 ][ 1 ], light->worldBounds[ 1 ][ 2 ] );
+				VectorSet( v1, light->worldBounds.maxs[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.mins[ 2 ] );
+				VectorSet( v2, light->worldBounds.maxs[ 0 ], light->worldBounds.mins[ 1 ], light->worldBounds.maxs[ 2 ] );
 				R_AddEdgeToLightScissor( light, v1, v2 );
 				break;
 			}
@@ -1207,7 +1207,7 @@ R_CalcLightCubeSideBits
 =============
 */
 // *INDENT-OFF*
-byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
+byte R_CalcLightCubeSideBits( trRefLight_t *light, const bounds_t &worldBounds )
 {
 	int        i;
 	int        cubeSide;
@@ -1308,7 +1308,7 @@ byte R_CalcLightCubeSideBits( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
 		{
 			clipPlane = &frustum[ i ];
 
-			r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], clipPlane );
+			r = BoxOnPlaneSide( worldBounds, clipPlane );
 
 			if ( r == 2 )
 			{
@@ -1479,7 +1479,7 @@ R_CullLightTriangle
 Returns CULL_IN, CULL_CLIP, or CULL_OUT
 =================
 */
-cullResult_t R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 ] )
+cullResult_t R_CullLightWorldBounds( trRefLight_t *light, const bounds_t &worldBounds )
 {
 	int      i;
 	cplane_t *frust;
@@ -1498,7 +1498,7 @@ cullResult_t R_CullLightWorldBounds( trRefLight_t *light, vec3_t worldBounds[ 2 
 	{
 		frust = &light->frustum[ i ];
 
-		r = BoxOnPlaneSide( worldBounds[ 0 ], worldBounds[ 1 ], frust );
+		r = BoxOnPlaneSide( worldBounds, frust );
 
 		if ( r == 2 )
 		{

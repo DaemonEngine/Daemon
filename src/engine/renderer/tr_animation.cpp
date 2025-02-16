@@ -239,7 +239,7 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, const char *buffer, const 
 		for ( int j = 0; j < 3; j++ )
 		{
 			token = COM_ParseExt2( &buf_p, false );
-			frame->bounds[ 0 ][ j ] = atof( token );
+			frame->bounds.mins[ j ] = atof( token );
 		}
 
 		// skip )
@@ -263,7 +263,7 @@ static bool R_LoadMD5Anim( skelAnimation_t *skelAnim, const char *buffer, const 
 		for ( int j = 0; j < 3; j++ )
 		{
 			token = COM_ParseExt2( &buf_p, false );
-			frame->bounds[ 1 ][ j ] = atof( token );
+			frame->bounds.maxs[ j ] = atof( token );
 		}
 
 		// skip )
@@ -611,24 +611,17 @@ R_CullMD5
 */
 static void R_CullMD5( trRefEntity_t *ent )
 {
-	int        i;
-
 	if ( ent->e.skeleton.type == refSkeletonType_t::SK_INVALID )
 	{
 		// no properly set skeleton so use the bounding box by the model instead by the animations
 		md5Model_t *model = tr.currentModel->md5;
 
-		VectorCopy( model->bounds[ 0 ], ent->localBounds[ 0 ] );
-		VectorCopy( model->bounds[ 1 ], ent->localBounds[ 1 ] );
+		BoundsCopy( model->bounds, ent->localBounds );
 	}
 	else
 	{
 		// copy a bounding box in the current coordinate system provided by skeleton
-		for ( i = 0; i < 3; i++ )
-		{
-			ent->localBounds[ 0 ][ i ] = ent->e.skeleton.bounds[ 0 ][ i ] * ent->e.skeleton.scale;
-			ent->localBounds[ 1 ][ i ] = ent->e.skeleton.bounds[ 1 ][ i ] * ent->e.skeleton.scale;
-		}
+		BoundsScale( ent->e.skeleton.bounds, ent->e.skeleton.scale, ent->localBounds );
 	}
 
 	R_SetupEntityWorldBounds(ent);
@@ -843,7 +836,7 @@ void R_AddIQMInteractions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 	model = tr.currentModel->iqm;
 
 	// do a quick AABB cull
-	if ( !BoundsIntersect( light->worldBounds[ 0 ], light->worldBounds[ 1 ], ent->worldBounds[ 0 ], ent->worldBounds[ 1 ] ) )
+	if ( !BoundsIntersect( light->worldBounds, ent->worldBounds ) )
 	{
 		tr.pc.c_dlightSurfacesCulled += model->num_surfaces;
 		return;
@@ -965,7 +958,7 @@ void R_AddMD5Interactions( trRefEntity_t *ent, trRefLight_t *light, interactionT
 	model = tr.currentModel->md5;
 
 	// do a quick AABB cull
-	if ( !BoundsIntersect( light->worldBounds[ 0 ], light->worldBounds[ 1 ], ent->worldBounds[ 0 ], ent->worldBounds[ 1 ] ) )
+	if ( !BoundsIntersect( light->worldBounds, ent->worldBounds ) )
 	{
 		tr.pc.c_dlightSurfacesCulled += model->numSurfaces;
 		return;
@@ -1255,7 +1248,6 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 	int            i;
 	IQAnim_t       *anim;
 	transform_t    *newPose, *oldPose;
-	vec3_t         mins, maxs;
 
 	anim = skelAnim->iqm;
 
@@ -1275,14 +1267,18 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 	oldPose = &anim->poses[ startFrame * anim->num_joints ];
 	newPose = &anim->poses[ endFrame * anim->num_joints ];
 
+	bounds_t bounds;
+
 	// calculate a bounding box in the current coordinate system
 	if( anim->bounds ) {
-		float *bounds = &anim->bounds[ 6 * startFrame ];
-		VectorCopy( bounds, mins );
-		VectorCopy( bounds + 3, maxs );
+		float *pBounds = &anim->bounds[ 6 * startFrame ];
+		BoundsSet( bounds, pBounds, pBounds + 3 );
 
-		bounds = &anim->bounds[ 6 * endFrame ];
-		BoundsAdd( mins, maxs, bounds, bounds + 3 );
+		pBounds = &anim->bounds[ 6 * endFrame ];
+		bounds_t endBounds;
+		BoundsSet( endBounds, pBounds, pBounds + 3 );
+
+		BoundsAdd( bounds, endBounds );
 	}
 
 #if defined( REFBONE_NAMES )
@@ -1305,8 +1301,7 @@ static int IQMBuildSkeleton( refSkeleton_t *skel, skelAnimation_t *skelAnim,
 
 	skel->numBones = anim->num_joints;
 	skel->type = refSkeletonType_t::SK_RELATIVE;
-	VectorCopy( mins, skel->bounds[ 0 ] );
-	VectorCopy( maxs, skel->bounds[ 1 ] );
+	BoundsCopy( bounds, skel->bounds );
 	return true;
 }
 
@@ -1360,10 +1355,15 @@ int RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t hAnim, int startFrame, int 
 		// calculate a bounding box in the current coordinate system
 		for ( i = 0; i < 3; i++ )
 		{
-			skel->bounds[ 0 ][ i ] =
-			  oldFrame->bounds[ 0 ][ i ] < newFrame->bounds[ 0 ][ i ] ? oldFrame->bounds[ 0 ][ i ] : newFrame->bounds[ 0 ][ i ];
-			skel->bounds[ 1 ][ i ] =
-			  oldFrame->bounds[ 1 ][ i ] > newFrame->bounds[ 1 ][ i ] ? oldFrame->bounds[ 1 ][ i ] : newFrame->bounds[ 1 ][ i ];
+			skel->bounds.mins[ i ] =
+				oldFrame->bounds.mins[ i ] < newFrame->bounds.mins[ i ]
+				? oldFrame->bounds.mins[ i ]
+				: newFrame->bounds.mins[ i ];
+
+			skel->bounds.maxs[ i ] =
+				oldFrame->bounds.maxs[ i ] > newFrame->bounds.maxs[ i ]
+				? oldFrame->bounds.maxs[ i ]
+				: newFrame->bounds.maxs[ i ];
 		}
 
 		for ( i = 0, channel = anim->channels; i < anim->numChannels; i++, channel++ )
@@ -1443,8 +1443,8 @@ int RE_BuildSkeleton( refSkeleton_t *skel, qhandle_t hAnim, int startFrame, int 
 				QuatClear( skel->bones[ i ].t.rot );
 
 				// move bounding box back
-				VectorSubtract( skel->bounds[ 0 ], lerpedOrigin, skel->bounds[ 0 ] );
-				VectorSubtract( skel->bounds[ 1 ], lerpedOrigin, skel->bounds[ 1 ] );
+				VectorSubtract( skel->bounds.mins, lerpedOrigin, skel->bounds.mins );
+				VectorSubtract( skel->bounds.maxs, lerpedOrigin, skel->bounds.maxs );
 			}
 			else
 			{
@@ -1475,9 +1475,6 @@ RE_BlendSkeleton
 */
 int RE_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float frac )
 {
-	int    i;
-	vec3_t bounds[ 2 ];
-
 	if ( skel->numBones != blend->numBones )
 	{
 		Log::Warn("RE_BlendSkeleton: different number of bones %d != %d", skel->numBones, blend->numBones );
@@ -1485,7 +1482,7 @@ int RE_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float fra
 	}
 
 	// lerp between the 2 bone poses
-	for ( i = 0; i < skel->numBones; i++ )
+	for ( int i = 0; i < skel->numBones; i++ )
 	{
 		transform_t trans;
 
@@ -1497,15 +1494,23 @@ int RE_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float fra
 		skel->bones[ i ].t = trans;
 	}
 
+	bounds_t bounds;
+
 	// calculate a bounding box in the current coordinate system
-	for ( i = 0; i < 3; i++ )
+	for ( int i = 0; i < 3; i++ )
 	{
-		bounds[ 0 ][ i ] = skel->bounds[ 0 ][ i ] < blend->bounds[ 0 ][ i ] ? skel->bounds[ 0 ][ i ] : blend->bounds[ 0 ][ i ];
-		bounds[ 1 ][ i ] = skel->bounds[ 1 ][ i ] > blend->bounds[ 1 ][ i ] ? skel->bounds[ 1 ][ i ] : blend->bounds[ 1 ][ i ];
+		bounds.mins[ i ] =
+			skel->bounds.mins[ i ] < blend->bounds.mins[ i ]
+			? skel->bounds.mins[ i ]
+			: blend->bounds.mins[ i ];
+
+		bounds.maxs[ i ] =
+			skel->bounds.maxs[ i ] > blend->bounds.maxs[ i ]
+			? skel->bounds.maxs[ i ]
+			: blend->bounds.maxs[ i ];
 	}
 
-	VectorCopy( bounds[ 0 ], skel->bounds[ 0 ] );
-	VectorCopy( bounds[ 1 ], skel->bounds[ 1 ] );
+	BoundsCopy( bounds, skel->bounds );
 
 	return true;
 }

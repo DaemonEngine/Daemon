@@ -741,12 +741,12 @@ void SetPlaneSignbits( cplane_t *out )
  * ==================
  */
 
-int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
+int BoxOnPlaneSide( const bounds_t &bounds, const cplane_t *p )
 {
 #if defined(DAEMON_USE_ARCH_INTRINSICS_i686_sse)
-	auto mins = sseLoadVec3Unsafe( emins );
-	auto maxs = sseLoadVec3Unsafe( emaxs );
-	auto normal = sseLoadVec3Unsafe( p->normal );
+	auto mins = _mm_load_ps( bounds.mins );
+	auto maxs = _mm_load_ps( bounds.maxs );
+	auto normal = _mm_load_ps( p->normal );
 
 	auto prod0 = _mm_mul_ps( maxs, normal );
 	auto prod1 = _mm_mul_ps( mins, normal );
@@ -754,26 +754,25 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 	auto pmax = _mm_max_ps( prod0, prod1 );
 	auto pmin = _mm_min_ps( prod0, prod1 );
 
-	alignas(16) vec4_t pmaxv;
-	alignas(16) vec4_t pminv;
-	_mm_store_ps( pmaxv, pmax );
-	_mm_store_ps( pminv, pmin );
+	bounds_t b;
+	_mm_store_ps( b.maxs, pmax );
+	_mm_store_ps( b.mins, pmin );
 
 	float dist[ 2 ];
-	dist[ 0 ] = pmaxv[ 0 ] + pmaxv[ 1 ] + pmaxv[ 2 ];
-	dist[ 1 ] = pminv[ 0 ] + pminv[ 1 ] + pminv[ 2 ];
+	dist[ 0 ] = b.maxs[ 0 ] + b.maxs[ 1 ] + b.maxs[ 2 ];
+	dist[ 1 ] = b.mins[ 0 ] + b.mins[ 1 ] + b.mins[ 2 ];
 #else
 	ASSERT_LT( p->signbits, 8 );
 
 	// fast axial cases
 	if ( p->type < 3 )
 	{
-		if ( p->dist <= emins[ p->type ] )
+		if ( p->dist <= bounds.mins[ p->type ] )
 		{
 			return 1;
 		}
 
-		if ( p->dist >= emaxs[ p->type ] )
+		if ( p->dist >= bounds.maxs[ p->type ] )
 		{
 			return 2;
 		}
@@ -792,8 +791,8 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
 	index[ 2 ] &= 1;
 
 	vec3_t mmins, mmaxs;
-	VectorMultiply( p->normal, emins, mmins );
-	VectorMultiply( p->normal, emaxs, mmaxs );
+	VectorMultiply( p->normal, bounds.mins, mmins );
+	VectorMultiply( p->normal, bounds.maxs, mmaxs );
 
 	float dist[ 2 ] = {};
 	dist[ index[ 0 ] ] += mmaxs[ 0 ];
@@ -815,116 +814,123 @@ int BoxOnPlaneSide( const vec3_t emins, const vec3_t emaxs, const cplane_t *p )
  * RadiusFromBounds
  * =================
  */
-float RadiusFromBounds( const vec3_t mins, const vec3_t maxs )
+float RadiusFromBounds( const bounds_t &b )
 {
-	int    i;
 	vec3_t corner;
-	float  a, b;
 
-	for ( i = 0; i < 3; i++ )
+	for ( int i = 0; i < 3; i++ )
 	{
-		a = Q_fabs( mins[ i ] );
-		b = Q_fabs( maxs[ i ] );
-		corner[ i ] = a > b ? a : b;
+		vec_t mins = Q_fabs( b.mins[ i ] );
+		vec_t maxs = Q_fabs( b.maxs[ i ] );
+		corner[ i ] = mins > maxs ? mins : maxs;
 	}
 
 	return VectorLength( corner );
 }
 
-void ZeroBounds( vec3_t mins, vec3_t maxs )
+void ZeroBounds( bounds_t &b )
 {
-	mins[ 0 ] = mins[ 1 ] = mins[ 2 ] = 0;
-	maxs[ 0 ] = maxs[ 1 ] = maxs[ 2 ] = 0;
+	b = {};
 }
 
-void ClearBounds( vec3_t mins, vec3_t maxs )
+void ClearBounds( bounds_t &b )
 {
-	mins[ 0 ] = mins[ 1 ] = mins[ 2 ] = 99999;
-	maxs[ 0 ] = maxs[ 1 ] = maxs[ 2 ] = -99999;
+	static const bounds_t cleared = {
+		{ 99999, 99999, 99999 }, 0,
+		{ -99999, -99999, -99999 }, 0,
+	};
+
+	BoundsCopy( cleared, b );
 }
 
-void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs )
+void AddPointToBounds( const vec3_t v, bounds_t &b )
 {
-	if ( v[ 0 ] < mins[ 0 ] )
+	if ( v[ 0 ] < b.mins[ 0 ] )
 	{
-		mins[ 0 ] = v[ 0 ];
+		b.mins[ 0 ] = v[ 0 ];
 	}
 
-	if ( v[ 0 ] > maxs[ 0 ] )
+	if ( v[ 0 ] > b.maxs[ 0 ] )
 	{
-		maxs[ 0 ] = v[ 0 ];
+		b.maxs[ 0 ] = v[ 0 ];
 	}
 
-	if ( v[ 1 ] < mins[ 1 ] )
+	if ( v[ 1 ] < b.mins[ 1 ] )
 	{
-		mins[ 1 ] = v[ 1 ];
+		b.mins[ 1 ] = v[ 1 ];
 	}
 
-	if ( v[ 1 ] > maxs[ 1 ] )
+	if ( v[ 1 ] > b.maxs[ 1 ] )
 	{
-		maxs[ 1 ] = v[ 1 ];
+		b.maxs[ 1 ] = v[ 1 ];
 	}
 
-	if ( v[ 2 ] < mins[ 2 ] )
+	if ( v[ 2 ] < b.mins[ 2 ] )
 	{
-		mins[ 2 ] = v[ 2 ];
+		b.mins[ 2 ] = v[ 2 ];
 	}
 
-	if ( v[ 2 ] > maxs[ 2 ] )
+	if ( v[ 2 ] > b.maxs[ 2 ] )
 	{
-		maxs[ 2 ] = v[ 2 ];
-	}
-}
-
-void BoundsAdd( vec3_t mins, vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 )
-{
-	if ( mins2[ 0 ] < mins[ 0 ] )
-	{
-		mins[ 0 ] = mins2[ 0 ];
-	}
-
-	if ( mins2[ 1 ] < mins[ 1 ] )
-	{
-		mins[ 1 ] = mins2[ 1 ];
-	}
-
-	if ( mins2[ 2 ] < mins[ 2 ] )
-	{
-		mins[ 2 ] = mins2[ 2 ];
-	}
-
-	if ( maxs2[ 0 ] > maxs[ 0 ] )
-	{
-		maxs[ 0 ] = maxs2[ 0 ];
-	}
-
-	if ( maxs2[ 1 ] > maxs[ 1 ] )
-	{
-		maxs[ 1 ] = maxs2[ 1 ];
-	}
-
-	if ( maxs2[ 2 ] > maxs[ 2 ] )
-	{
-		maxs[ 2 ] = maxs2[ 2 ];
+		b.maxs[ 2 ] = v[ 2 ];
 	}
 }
 
-bool BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 )
+void BoundsAdd( bounds_t &b1, const bounds_t &b2 )
 {
-	if ( maxs[ 0 ] < mins2[ 0 ] ||
-	        maxs[ 1 ] < mins2[ 1 ] || maxs[ 2 ] < mins2[ 2 ] || mins[ 0 ] > maxs2[ 0 ] || mins[ 1 ] > maxs2[ 1 ] || mins[ 2 ] > maxs2[ 2 ] )
+	if ( b2.mins[ 0 ] < b1.mins[ 0 ] )
+	{
+		b1.mins[ 0 ] = b2.mins[ 0 ];
+	}
+
+	if ( b2.mins[ 1 ] < b1.mins[ 1 ] )
+	{
+		b1.mins[ 1 ] = b2.mins[ 1 ];
+	}
+
+	if ( b2.mins[ 2 ] < b1.mins[ 2 ] )
+	{
+		b1.mins[ 2 ] = b2.mins[ 2 ];
+	}
+
+	if ( b2.maxs[ 0 ] > b1.maxs[ 0 ] )
+	{
+		b1.maxs[ 0 ] = b2.maxs[ 0 ];
+	}
+
+	if ( b2.maxs[ 1 ] > b1.maxs[ 1 ] )
+	{
+		b1.maxs[ 1 ] = b2.maxs[ 1 ];
+	}
+
+	if ( b2.maxs[ 2 ] > b1.maxs[ 2 ] )
+	{
+		b1.maxs[ 2 ] = b2.maxs[ 2 ];
+	}
+}
+
+bool BoundsIntersect( const bounds_t &b1, const bounds_t &b2 )
+{
+	if ( b1.maxs[ 0 ] < b2.mins[ 0 ]
+		|| b1.maxs[ 1 ] < b2.mins[ 1 ]
+		|| b1.maxs[ 2 ] < b2.mins[ 2 ]
+		|| b1.mins[ 0 ] > b2.maxs[ 0 ]
+		|| b1.mins[ 1 ] > b2.maxs[ 1 ]
+		|| b1.mins[ 2 ] > b2.maxs[ 2 ] )
 	{
 		return false;
 	}
 
 	return true;
 }
-bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t origin, vec_t radius )
+bool BoundsIntersectSphere( const bounds_t &b, const vec3_t origin, vec_t radius )
 {
-	if ( origin[ 0 ] - radius > maxs[ 0 ] ||
-	        origin[ 0 ] + radius < mins[ 0 ] ||
-	        origin[ 1 ] - radius > maxs[ 1 ] ||
-	        origin[ 1 ] + radius < mins[ 1 ] || origin[ 2 ] - radius > maxs[ 2 ] || origin[ 2 ] + radius < mins[ 2 ] )
+	if ( origin[ 0 ] - radius > b.maxs[ 0 ]
+		|| origin[ 0 ] + radius < b.mins[ 0 ]
+		|| origin[ 1 ] - radius > b.maxs[ 1 ]
+		|| origin[ 1 ] + radius < b.mins[ 1 ]
+		|| origin[ 2 ] - radius > b.maxs[ 2 ]
+		|| origin[ 2 ] + radius < b.mins[ 2 ] )
 	{
 		return false;
 	}
@@ -932,10 +938,14 @@ bool BoundsIntersectSphere( const vec3_t mins, const vec3_t maxs, const vec3_t o
 	return true;
 }
 
-bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t origin )
+bool BoundsIntersectPoint( const bounds_t &b, const vec3_t origin )
 {
-	if ( origin[ 0 ] > maxs[ 0 ] ||
-	        origin[ 0 ] < mins[ 0 ] || origin[ 1 ] > maxs[ 1 ] || origin[ 1 ] < mins[ 1 ] || origin[ 2 ] > maxs[ 2 ] || origin[ 2 ] < mins[ 2 ] )
+	if ( origin[ 0 ] > b.maxs[ 0 ]
+		|| origin[ 0 ] < b.mins[ 0 ]
+		|| origin[ 1 ] > b.maxs[ 1 ]
+		|| origin[ 1 ] < b.mins[ 1 ]
+		|| origin[ 2 ] > b.maxs[ 2 ]
+		|| origin[ 2 ] < b.mins[ 2 ] )
 	{
 		return false;
 	}
@@ -943,14 +953,14 @@ bool BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t or
 	return true;
 }
 
-float BoundsMaxExtent( const vec3_t mins, const vec3_t maxs ) {
-	float result = Q_fabs( mins[0] );
+float BoundsMaxExtent( const bounds_t &b ) {
+	float result = Q_fabs( b.mins[0] );
 
-	result = std::max( result, Q_fabs( mins[ 1 ] ) );
-	result = std::max( result, Q_fabs( mins[ 2 ] ) );
-	result = std::max( result, Q_fabs( maxs[ 0 ] ) );
-	result = std::max( result, Q_fabs( maxs[ 1 ] ) );
-	result = std::max( result, Q_fabs( maxs[ 2 ] ) );
+	result = std::max( result, Q_fabs( b.mins[ 1 ] ) );
+	result = std::max( result, Q_fabs( b.mins[ 2 ] ) );
+	result = std::max( result, Q_fabs( b.maxs[ 0 ] ) );
+	result = std::max( result, Q_fabs( b.maxs[ 1 ] ) );
+	result = std::max( result, Q_fabs( b.maxs[ 2 ] ) );
 
 	return result;
 }
@@ -2346,45 +2356,43 @@ void MatrixTransformPlane2( const matrix_t m, plane_t &inout )
 *	omaxs = max(mins.x*m.c1, maxs.x*m.c1) + max(mins.y*m.c2, maxs.y*m.c2) + max(mins.z*m.c3, maxs.z*m.c3) + c4
 * =================
 */
-void MatrixTransformBounds(const matrix_t m, const vec3_t mins, const vec3_t maxs, vec3_t omins, vec3_t omaxs)
+void MatrixTransformBounds( const matrix_t m, const bounds_t &b, bounds_t &o )
 {
-	vec3_t minx, maxx;
-	vec3_t miny, maxy;
-	vec3_t minz, maxz;
+	bounds_t x, y, z;
 
 	const float* c1 = m;
 	const float* c2 = m + 4;
 	const float* c3 = m + 8;
 	const float* c4 = m + 12;
 
-	VectorScale(c1, mins[0], minx);
-	VectorScale(c1, maxs[0], maxx);
+	VectorScale(c1, b.mins[0], x.mins);
+	VectorScale(c1, b.maxs[0], x.maxs);
 
-	VectorScale(c2, mins[1], miny);
-	VectorScale(c2, maxs[1], maxy);
+	VectorScale(c2, b.mins[1], y.mins);
+	VectorScale(c2, b.maxs[1], y.maxs);
 
-	VectorScale(c3, mins[2], minz);
-	VectorScale(c3, maxs[2], maxz);
+	VectorScale(c3, b.mins[2], z.mins);
+	VectorScale(c3, b.maxs[2], z.maxs);
 
-	vec3_t tmins, tmaxs;
+	bounds_t t;
 	vec3_t tmp;
 
-	VectorMin(minx, maxx, tmins);
-	VectorMax(minx, maxx, tmaxs);
-	VectorAdd(tmins, c4, tmins);
-	VectorAdd(tmaxs, c4, tmaxs);
+	VectorMin(x.mins, x.maxs, t.mins);
+	VectorMax(x.mins, x.maxs, t.maxs);
+	VectorAdd(t.mins, c4, t.mins);
+	VectorAdd(t.maxs, c4, t.maxs);
 
-	VectorMin(miny, maxy, tmp);
-	VectorAdd(tmp, tmins, tmins);
+	VectorMin(y.mins, y.maxs, tmp);
+	VectorAdd(tmp, t.mins, t.mins);
 
-	VectorMax(miny, maxy, tmp);
-	VectorAdd(tmp, tmaxs, tmaxs);
+	VectorMax(y.mins, y.maxs, tmp);
+	VectorAdd(tmp, t.maxs, t.maxs);
 
-	VectorMin(minz, maxz, tmp);
-	VectorAdd(tmp, tmins, omins);
+	VectorMin(z.mins, z.maxs, tmp);
+	VectorAdd(tmp, t.mins, o.mins);
 
-	VectorMax(minz, maxz, tmp);
-	VectorAdd(tmp, tmaxs, omaxs);
+	VectorMax(z.mins, z.maxs, tmp);
+	VectorAdd(tmp, t.maxs, o.maxs);
 }
 
 /*

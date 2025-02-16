@@ -567,7 +567,7 @@ int RE_BoneIndex( qhandle_t hModel, const char *boneName )
 R_ModelBounds
 ====================
 */
-void R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs )
+void R_ModelBounds( qhandle_t handle, bounds_t &bounds )
 {
 	model_t    *model;
 	mdvModel_t *header;
@@ -578,32 +578,25 @@ void R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs )
 	switch ( model->type )
 	{
 		case modtype_t::MOD_BSP:
-			VectorCopy( model->bsp->bounds[ 0 ], mins );
-			VectorCopy( model->bsp->bounds[ 1 ], maxs );
+			BoundsCopy( model->bsp->bounds, bounds);
 			break;
 
 		case modtype_t::MOD_MESH:
 			header = model->mdv[ 0 ];
-
 			frame = header->frames;
-
-			VectorCopy( frame->bounds[ 0 ], mins );
-			VectorCopy( frame->bounds[ 1 ], maxs );
+			BoundsSet( bounds, frame->bounds[ 0 ], frame->bounds[ 1 ] );
 			break;
 
 		case modtype_t::MOD_MD5:
-			VectorCopy( model->md5->bounds[ 0 ], mins );
-			VectorCopy( model->md5->bounds[ 1 ], maxs );
+			BoundsCopy( model->md5->bounds, bounds );
 			break;
 
 		case modtype_t::MOD_IQM:
-			VectorCopy( model->iqm->bounds[ 0 ], mins );
-			VectorCopy( model->iqm->bounds[ 1 ], maxs );
+			BoundsCopy( model->iqm->bounds, bounds );
 			break;
 
 		default:
-			VectorClear( mins );
-			VectorClear( maxs );
+			ZeroBounds( bounds );
 			break;
 	}
 }

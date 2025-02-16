@@ -150,7 +150,7 @@ static bool R_CullLightSurface( surfaceType_t *surface, shader_t *shader, trRefL
 	gen = ( srfGeneric_t * ) surface;
 
 	// do a quick AABB cull
-	if ( !BoundsIntersect( light->worldBounds[ 0 ], light->worldBounds[ 1 ], gen->bounds[ 0 ], gen->bounds[ 1 ] ) )
+	if ( !BoundsIntersect( light->worldBounds, gen->bounds ) )
 	{
 		return true;
 	}
@@ -304,15 +304,11 @@ void R_AddBSPModelSurfaces( trRefEntity_t *ent )
 	bspModel = pModel->bsp;
 
 	// copy local bounds
-	for ( i = 0; i < 3; i++ )
-	{
-		ent->localBounds[ 0 ][ i ] = bspModel->bounds[ 0 ][ i ];
-		ent->localBounds[ 1 ][ i ] = bspModel->bounds[ 1 ][ i ];
-	}
+	BoundsCopy( bspModel->bounds, ent->localBounds );
 
 	R_SetupEntityWorldBounds(ent);
 
-	VectorAdd( ent->worldBounds[ 0 ], ent->worldBounds[ 1 ], boundsCenter );
+	VectorAdd( ent->worldBounds.mins, ent->worldBounds.maxs, boundsCenter );
 	VectorScale( boundsCenter, 0.5f, boundsCenter );
 
 	ent->cull = R_CullBox( ent->worldBounds );
@@ -347,34 +343,34 @@ static void R_AddLeafSurfaces( bspNode_t *node, int planeBits )
 	tr.pc.c_leafs++;
 
 	// add to z buffer bounds
-	if ( node->mins[ 0 ] < tr.viewParms.visBounds[ 0 ][ 0 ] )
+	if ( node->bounds.mins[ 0 ] < tr.viewParms.visBounds.mins[ 0 ] )
 	{
-		tr.viewParms.visBounds[ 0 ][ 0 ] = node->mins[ 0 ];
+		tr.viewParms.visBounds.mins[ 0 ] = node->bounds.mins[ 0 ];
 	}
 
-	if ( node->mins[ 1 ] < tr.viewParms.visBounds[ 0 ][ 1 ] )
+	if ( node->bounds.mins[ 1 ] < tr.viewParms.visBounds.mins[ 1 ] )
 	{
-		tr.viewParms.visBounds[ 0 ][ 1 ] = node->mins[ 1 ];
+		tr.viewParms.visBounds.mins[ 1 ] = node->bounds.mins[ 1 ];
 	}
 
-	if ( node->mins[ 2 ] < tr.viewParms.visBounds[ 0 ][ 2 ] )
+	if ( node->bounds.mins[ 2 ] < tr.viewParms.visBounds.mins[ 2 ] )
 	{
-		tr.viewParms.visBounds[ 0 ][ 2 ] = node->mins[ 2 ];
+		tr.viewParms.visBounds.mins[ 2 ] = node->bounds.mins[ 2 ];
 	}
 
-	if ( node->maxs[ 0 ] > tr.viewParms.visBounds[ 1 ][ 0 ] )
+	if ( node->bounds.maxs[ 0 ] > tr.viewParms.visBounds.maxs[ 0 ] )
 	{
-		tr.viewParms.visBounds[ 1 ][ 0 ] = node->maxs[ 0 ];
+		tr.viewParms.visBounds.maxs[ 0 ] = node->bounds.maxs[ 0 ];
 	}
 
-	if ( node->maxs[ 1 ] > tr.viewParms.visBounds[ 1 ][ 1 ] )
+	if ( node->bounds.maxs[ 1 ] > tr.viewParms.visBounds.maxs[ 1 ] )
 	{
-		tr.viewParms.visBounds[ 1 ][ 1 ] = node->maxs[ 1 ];
+		tr.viewParms.visBounds.maxs[ 1 ] = node->bounds.maxs[ 1 ];
 	}
 
-	if ( node->maxs[ 2 ] > tr.viewParms.visBounds[ 1 ][ 2 ] )
+	if ( node->bounds.maxs[ 2 ] > tr.viewParms.visBounds.maxs[ 2 ] )
 	{
-		tr.viewParms.visBounds[ 1 ][ 2 ] = node->maxs[ 2 ];
+		tr.viewParms.visBounds.maxs[ 2 ] = node->bounds.maxs[ 2 ];
 	}
 
 	// add the individual surfaces
@@ -427,7 +423,7 @@ static void R_RecursiveWorldNode( bspNode_t *node, int planeBits )
 			{
 				if ( planeBits & ( 1 << i ) )
 				{
-					r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
+					r = BoxOnPlaneSide( node->bounds, &tr.viewParms.frustums[ 0 ][ i ] );
 
 					if ( r == 2 )
 					{
@@ -498,7 +494,7 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 			{
 				if ( planeBits & ( 1 << i ) )
 				{
-					r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustums[ 0 ][ i ] );
+					r = BoxOnPlaneSide( node->bounds, &tr.viewParms.frustums[ 0 ][ i ] );
 
 					if ( r == 2 )
 					{
@@ -528,7 +524,7 @@ static void R_RecursiveInteractionNode( bspNode_t *node, trRefLight_t *light, in
 
 		// node is just a decision point, so go down both sides
 		// since we don't care about sort orders, just go positive to negative
-		r = BoxOnPlaneSide( light->worldBounds[ 0 ], light->worldBounds[ 1 ], node->plane );
+		r = BoxOnPlaneSide( light->worldBounds, node->plane );
 
 		switch ( r )
 		{
@@ -844,7 +840,7 @@ void R_AddWorldSurfaces()
 	tr.currentEntity = &tr.worldEntity;
 
 	// clear out the visible min/max
-	ClearBounds( tr.viewParms.visBounds[ 0 ], tr.viewParms.visBounds[ 1 ] );
+	ClearBounds( tr.viewParms.visBounds );
 
 	// render sky or world?
 	if ( tr.refdef.rdflags & RDF_SKYBOXPORTAL && tr.world->numSkyNodes > 0 )

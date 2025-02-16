@@ -61,11 +61,12 @@ namespace Util {
 		{
 			stream.Write<uint32_t>(Util::ordinal(skel.type));
 			stream.WriteSize(skel.numBones);
-			for (int i = 0; i < 2; i++) {
-				for (int j = 0; j < 3; j++) {
-					stream.Write<float>(skel.bounds[i][j]);
-				}
-			}
+			stream.Write<float>(skel.bounds.mins[0]);
+			stream.Write<float>(skel.bounds.mins[1]);
+			stream.Write<float>(skel.bounds.mins[2]);
+			stream.Write<float>(skel.bounds.maxs[0]);
+			stream.Write<float>(skel.bounds.maxs[1]);
+			stream.Write<float>(skel.bounds.maxs[2]);
 			stream.Write<float>(skel.scale);
 			size_t length = sizeof(refBone_t) * skel.numBones;
 			stream.WriteData(&skel.bones, length);
@@ -75,11 +76,12 @@ namespace Util {
 			refSkeleton_t skel;
 			skel.type = static_cast<refSkeletonType_t>(stream.Read<uint32_t>());
 			skel.numBones = stream.ReadSize<refBone_t>();
-			for (int i = 0; i < 2; i++) {
-				for (int j = 0; j < 3; j++) {
-					skel.bounds[i][j] = stream.Read<float>();
-				}
-			}
+			skel.bounds.mins[0] = stream.Read<float>();
+			skel.bounds.mins[1] = stream.Read<float>();
+			skel.bounds.mins[2] = stream.Read<float>();
+			skel.bounds.maxs[0] = stream.Read<float>();
+			skel.bounds.maxs[1] = stream.Read<float>();
+			skel.bounds.maxs[2] = stream.Read<float>();
 			skel.scale = stream.Read<float>();
 
 			if (skel.numBones > sizeof(skel.bones) / sizeof(refBone_t)) {

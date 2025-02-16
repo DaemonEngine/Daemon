@@ -510,7 +510,6 @@ int trap_R_BuildSkeleton( refSkeleton_t *skel, qhandle_t anim, int startFrame, i
 int trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float frac )
 {
     int    i;
-    vec3_t bounds[ 2 ];
 
     if ( skel->numBones != blend->numBones )
     {
@@ -532,14 +531,22 @@ int trap_R_BlendSkeleton( refSkeleton_t *skel, const refSkeleton_t *blend, float
     }
 
     // calculate a bounding box in the current coordinate system
+    bounds_t bounds;
+
     for ( i = 0; i < 3; i++ )
     {
-        bounds[ 0 ][ i ] = skel->bounds[ 0 ][ i ] < blend->bounds[ 0 ][ i ] ? skel->bounds[ 0 ][ i ] : blend->bounds[ 0 ][ i ];
-        bounds[ 1 ][ i ] = skel->bounds[ 1 ][ i ] > blend->bounds[ 1 ][ i ] ? skel->bounds[ 1 ][ i ] : blend->bounds[ 1 ][ i ];
+        bounds.maxs[ i ] = skel->bounds.maxs[ i ]
+            < blend->bounds.mins[ i ]
+            ? skel->bounds.mins[ i ]
+            : blend->bounds.mins[ i ];
+
+        bounds.maxs[ i ] = skel->bounds.maxs[ i ]
+            > blend->bounds.maxs[ i ]
+            ? skel->bounds.maxs[ i ]
+            : blend->bounds.maxs[ i ];
     }
 
-    VectorCopy( bounds[ 0 ], skel->bounds[ 0 ] );
-    VectorCopy( bounds[ 1 ], skel->bounds[ 1 ] );
+    BoundsCopy( bounds, skel->bounds );
 
     return true;
 }

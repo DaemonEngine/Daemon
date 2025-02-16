@@ -692,16 +692,14 @@ bool R_LoadIQModel( model_t *mod, const void *buffer, int filesize,
 
 		switch( vertexarray->type ) {
 		case IQM_POSITION:
-			ClearBounds( IQModel->bounds[ 0 ], IQModel->bounds[ 1 ] );
+			ClearBounds( IQModel->bounds );
 			memcpy( IQModel->positions,
 				    IQMPtr( header, vertexarray->offset ),
 				    n * sizeof(float) );
 			for( int j = 0; j < n; j += vertexarray->size ) {
-				AddPointToBounds( &IQModel->positions[ j ],
-						  IQModel->bounds[ 0 ],
-						  IQModel->bounds[ 1 ] );
+				AddPointToBounds( &IQModel->positions[ j ], IQModel->bounds );
 			}
-			IQModel->internalScale = BoundsMaxExtent( IQModel->bounds[ 0 ], IQModel->bounds[ 1 ] );
+			IQModel->internalScale = BoundsMaxExtent( IQModel->bounds );
 			if( IQModel->internalScale > 0.0f ) {
 				float inverseScale = 1.0f / IQModel->internalScale;
 				for( int j = 0; j < n; j += vertexarray->size ) {
@@ -880,31 +878,26 @@ R_CullIQM
 =============
 */
 static void R_CullIQM( trRefEntity_t *ent ) {
-	vec3_t     localBounds[ 2 ];
 	float      scale = ent->e.skeleton.scale;
 	IQModel_t *model = tr.currentModel->iqm;
 	IQAnim_t  *anim = model->anims;
-	float     *bounds;
 
 	// use the bounding box by the model
-	bounds = model->bounds[0];
-	VectorCopy( bounds, localBounds[ 0 ] );
-	VectorCopy( bounds + 3, localBounds[ 1 ] );
+	bounds_t localBounds;
+	BoundsCopy( model->bounds, localBounds );
 
-	if ( anim && ( bounds = anim->bounds ) ) {
+	if ( anim && anim->bounds ) {
 		// merge bounding box provided by the animation
-		BoundsAdd( localBounds[ 0 ], localBounds[ 1 ],
-			   bounds, bounds + 3 );
+		bounds_t bounds;
+		BoundsSet( bounds, anim->bounds, anim->bounds + 3 );
+		BoundsAdd( localBounds, bounds );
 	}
 
 	// merge bounding box provided by skeleton
-	BoundsAdd( localBounds[ 0 ], localBounds[ 1 ],
-		   ent->e.skeleton.bounds[ 0 ], ent->e.skeleton.bounds[ 1 ] );
+	BoundsAdd( localBounds, ent->e.skeleton.bounds );
 
-	VectorScale( localBounds[0], scale, ent->localBounds[ 0 ] );
-	VectorScale( localBounds[1], scale, ent->localBounds[ 1 ] );
+	BoundsScale( localBounds, scale, ent->localBounds );
 
-	
 	R_SetupEntityWorldBounds(ent);
 
 	switch ( R_CullBox( ent->worldBounds ) )
