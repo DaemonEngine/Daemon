@@ -2831,8 +2831,10 @@ enum class shaderProfilerRenderSubGroupsMode {
 		int mapOverBrightBits;
 		// min(r_overbrightBits.Get(), mapOverBrightBits)
 		int overbrightBits;
-		// pow(2, overbrightBits)
+		// pow(2, overbrightBits), unless r_overbrightQ3 is on
 		float mapLightFactor;
+		// 1/pow(2, overbrightBits) if r_overbrightQ3 is on
+		float identityLight;
 
 		orientationr_t orientation; // for current entity
 
@@ -2957,6 +2959,7 @@ enum class shaderProfilerRenderSubGroupsMode {
 	extern cvar_t *r_precomputedLighting;
 	extern Cvar::Cvar<int> r_overbrightDefaultExponent;
 	extern Cvar::Range<Cvar::Cvar<int>> r_overbrightBits;
+	extern Cvar::Cvar<bool> r_overbrightQ3;
 	extern Cvar::Cvar<bool> r_overbrightIgnoreMapSettings;
 	extern Cvar::Range<Cvar::Cvar<int>> r_lightMode;
 	extern Cvar::Cvar<bool> r_colorGrading;

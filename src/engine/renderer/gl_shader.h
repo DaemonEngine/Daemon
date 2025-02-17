@@ -4424,6 +4424,7 @@ class GLShader_cameraEffects :
 	public GLShader,
 	public u_ColorMap3D,
 	public u_CurrentMap,
+	public u_CloudHeight,
 	public u_ColorModulate,
 	public u_TextureMatrix,
 	public u_ModelViewProjectionMatrix,
