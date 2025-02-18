@@ -68,6 +68,11 @@ macro(set_c_cxx_flag FLAG)
     set_c_flag(${FLAG} ${ARGN})
     set_cxx_flag(${FLAG} ${ARGN})
 endmacro()
+
+macro(set_exe_linker_flag FLAG)
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${FLAG}")
+endmacro()
+
 macro(set_linker_flag FLAG)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${FLAG}")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${FLAG}")
@@ -138,8 +143,19 @@ macro(try_linker_flag PROP FLAG)
     check_C_compiler_flag(${FLAG} FLAG_${PROP})
     set(CMAKE_REQUIRED_FLAGS "")
     if (FLAG_${PROP})
-        set_linker_flag(${FLAG} ${ARGN})
+        set_exe_linker_flag(${FLAG} ${ARGN})
     endif()
+endmacro()
+
+macro(try_exe_linker_flag PROP FLAG)
+	# Check it with the C compiler
+	set(CMAKE_REQUIRED_FLAGS ${FLAG})
+	check_C_compiler_flag(${FLAG} FLAG_${PROP})
+	set(CMAKE_REQUIRED_FLAGS "")
+
+	if (FLAG_${PROP})
+		set_linker_flag(${FLAG} ${ARGN})
+	endif()
 endmacro()
 
 if (BE_VERBOSE)
@@ -148,13 +164,23 @@ else()
     set(WARNMODE "no-")
 endif()
 
+# Compiler options
+option(USE_FLOAT_EXCEPTIONS "Use floating point exceptions with common.floatException.* cvars" OFF)
 option(USE_FAST_MATH "Use fast math" ON)
 
-# Compiler options
+if (USE_FLOAT_EXCEPTIONS)
+	add_definitions(-DDAEMON_USE_FLOAT_EXCEPTIONS)
+endif()
+
 if (MSVC)
     set_c_cxx_flag("/MP")
 
-	if (USE_FAST_MATH)
+	if (USE_FLOAT_EXCEPTIONS)
+		set_c_cxx_flag("/fp:strict")
+		# Don't switch on C4305 "truncation from 'double' to 'float'" every
+		# time an unsuffixed decimal constant is used
+		set_c_cxx_flag("/wd4305")
+	elseif (USE_FAST_MATH)
 		set_c_cxx_flag("/fp:fast")
 	endif()
 
@@ -261,6 +287,15 @@ else()
 		set_c_cxx_flag("-ffast-math")
 	endif()
 
+	if (USE_FLOAT_EXCEPTIONS)
+		# Floating point exceptions requires trapping math
+		# to avoid false positives on architectures with SSE.
+		set_c_cxx_flag("-ftrapping-math")
+		# GCC prints noisy warnings saying -ftrapping-math implies this.
+		set_c_cxx_flag("-fno-associative-math")
+		# Other optimizations from -ffast-math can be kept.
+	endif()
+
 	# Use hidden symbol visibility if possible.
 	try_c_cxx_flag(FVISIBILITY_HIDDEN "-fvisibility=hidden")
 
@@ -356,9 +391,12 @@ else()
 		try_c_cxx_flag(WSTACK_PROTECTOR "-Wstack-protector")
 
 		if (NOT NACL OR (NACL AND GAME_PIE))
-			try_c_cxx_flag(FPIE "-fPIE")
+			try_c_cxx_flag(FPIE "-fPIC")
+
+			# This flag isn't used on macOS:
+			# > clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
 			if (NOT APPLE)
-				try_linker_flag(LINKER_PIE "-pie")
+				try_exe_linker_flag(LINKER_PIE "-pie")
 			endif()
 		endif()
 

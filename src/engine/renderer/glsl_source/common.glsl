@@ -71,5 +71,5 @@ float ColorModulateToLightFactor( const in uint colorMod ) {
 
 // This is used to skip vertex colours if the colorMod doesn't need them
 bool ColorModulateToVertexColor( const in uint colorMod ) {
-	return ( colorMod & 0xFF ) == 0xFF;
+	return ( colorMod & 32 ) == 32;
 }
