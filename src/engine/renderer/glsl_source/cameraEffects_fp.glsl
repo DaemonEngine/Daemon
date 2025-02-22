@@ -58,9 +58,8 @@ void main()
 
 	if( u_Tonemap ) {
 		color.rgb = TonemapLottes( color.rgb * u_TonemapExposure );
-	} else {
-		color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
 	}
+	color.rgb = clamp( color.rgb, vec3( 0.0f ), vec3( 1.0f ) );
 
 #if defined(r_colorGrading)
 	// apply color grading
