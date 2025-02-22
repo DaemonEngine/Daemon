@@ -331,12 +331,11 @@ function(ADD_PRECOMPILED_HEADER Target)
     separate_arguments(Flags)
 
     # Get the per-configuration compile flags
-    foreach(Config Debug Release RelWithDebInfo MinSizeRel)
-        string(TOUPPER ${Config} CONFIG)
-        set(ConfigFlags ${CMAKE_CXX_FLAGS_${CONFIG}})
+    foreach(Config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+        set(ConfigFlags ${CMAKE_CXX_FLAGS_${Config}})
         separate_arguments(ConfigFlags)
         foreach(Flag ${ConfigFlags})
-            set(Flags ${Flags} $<$<CONFIG:${Config}>:${Flag}>)
+            set(Flags ${Flags} $<${${Config}_GENEXP_COND}:${Flag}>)
         endforeach()
     endforeach()
 
