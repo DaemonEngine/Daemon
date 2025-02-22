@@ -49,6 +49,9 @@ else()
     message(STATUS "Disabling compiler custom attributes and operators")
 endif()
 
+option(USE_RECOMMENDED_CXX_STANDARD "Use recommended C++ standard" ON)
+mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
+
 # Set flag without checking, optional argument specifies build type
 macro(set_c_flag FLAG)
     if (${ARGC} GREATER 1)
@@ -221,9 +224,6 @@ else()
 			message(FATAL_ERROR "GNU99 is not supported by the compiler")
 		endif()
 	endif()
-
-	option(USE_RECOMMENDED_CXX_STANDARD "Use recommended C++ standard" ON)
-	mark_as_advanced(USE_RECOMMENDED_CXX_STANDARD)
 
 	if (USE_RECOMMENDED_CXX_STANDARD)
 		# PNaCl only defines isascii if __STRICT_ANSI__ is not defined,
