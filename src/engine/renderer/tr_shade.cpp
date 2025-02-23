@@ -332,7 +332,7 @@ static void GLSL_InitGPUShadersOrError()
 		gl_shaderManager.load( gl_contrastShader );
 	}
 
-	if ( !r_noportals->integer || r_liquidMapping->integer )
+	if ( r_liquidMapping->integer )
 	{
 		// portal process effect
 		gl_shaderManager.load( gl_portalShader );
